@@ -27,12 +27,21 @@
 #ifndef STANDALONECLIENT_H
 #define STANDALONECLIENT_H
 
-#include "client.h"
+//#define NO_SOUND_THREAD
+
+
+#ifndef NO_SOUND_THREAD
 #include "qlambdathreadworker.h"
+#endif
+
+#include "client.h"
 #include "qsoundeffect.h"
 #include "sound.h"
 #include "server.h"
 #include "utils.h"
+
+
+
 
 /**
  * @brief The StandaloneClient class
@@ -111,11 +120,14 @@ signals:
 	void vibrateChanged();
 
 private:
-	Sound *m_sound = nullptr;
 	ServerList *m_serverList = nullptr;
 	QVector<QPointer<QSoundEffect>> m_soundEffectList;
 
+	Sound *m_sound = nullptr;
+
+#ifndef NO_SOUND_THREAD
 	QLambdaThreadWorker *m_worker = nullptr;
+#endif
 	QTimer m_soundEffectTimer;
 	bool m_vibrate = true;
 

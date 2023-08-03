@@ -30,9 +30,9 @@
 #include "xlsxdocument.h"
 #include "utils.h"
 
-/*#ifdef Q_OS_WASM
+#ifdef Q_OS_WASM
 #include "onlineclient.h"
-#endif*/
+#endif
 
 
 
@@ -55,11 +55,14 @@ const QHash<UserImporter::Field, QString> UserImporter::m_fieldMap = {
 UserImporter::UserImporter(QObject *parent)
 	: QObject{parent}
 	, m_client(Application::instance()->client())
+	#ifndef Q_OS_WASM
 	, m_worker(new QLambdaThreadWorker())
+	#endif
 {
-/*#ifdef Q_OS_WASM
+#ifdef Q_OS_WASM
 	m_onlineClient = dynamic_cast<OnlineClient*>(m_client);
-#endif*/
+	Q_ASSERT(m_onlineClient);
+#endif
 }
 
 
@@ -69,8 +72,10 @@ UserImporter::UserImporter(QObject *parent)
 
 UserImporter::~UserImporter()
 {
+#ifndef Q_OS_WASM
 	delete m_worker;
 	m_worker = nullptr;
+#endif
 }
 
 
@@ -123,6 +128,7 @@ void UserImporter::upload(const QUrl &file)
 
 	_load(b);
 }
+
 
 
 
@@ -218,7 +224,9 @@ void UserImporter::_load(const QByteArray &data)
 	m_records = {};
 	m_errorRecords = {};
 
+#ifndef Q_OS_WASM
 	m_worker->execInThread([this, data](){
+#endif
 		QBuffer buf;
 		buf.setData(data);
 		buf.open(QIODevice::ReadOnly);
@@ -296,10 +304,15 @@ void UserImporter::_load(const QByteArray &data)
 		emit recordsChanged();
 		emit errorRecordsChanged();
 		emit loadFinished();
-
+#ifndef Q_OS_WASM
 	});
+#endif
 
 }
+
+
+
+
 
 const QJsonArray &UserImporter::errorRecords() const
 {
@@ -312,73 +325,32 @@ const QJsonArray &UserImporter::records() const
 }
 
 
-/*
 
 
 #ifdef Q_OS_WASM
 
+/**
+ * @brief UserImporter::wasmDownloadTempate
+ */
+
+void UserImporter::wasmDownloadTemplate()
+{
+	if (m_templateContent.isEmpty())
+		_generateTemplate();
 
 
-Q_ASSERT(m_onlineClient);
-
-QByteArray data = m_map->toBinaryData(true);
-
-if (createNew) {
-	GameMap *m = GameMap::fromBinaryData(data);
-
-	if (!m)
-		return m_client->messageError(tr("Hiba történt"));
-
-	m->regenerateUuids();
-
-	data = m->toBinaryData(true);
-
-	delete m;
+	m_onlineClient->wasmSaveContent(m_templateContent, tr("user_import_template.xlsx"));
 }
 
 
-OnlineClient *client = dynamic_cast<OnlineClient*>(m_client);
+/**
+ * @brief UserImporter::wasmUpload
+ */
 
-if (!client)
-return;
-
-client->wasmSaveContent(data, m_displayName);
-
-
-
-void UserImporter::wasmUploadImage(QJSValue uploadFunc)
+void UserImporter::wasmUpload()
 {
-	Q_ASSERT(m_onlineClient);
-
-	client->wasmLoadFileToFileSystem(QStringLiteral("*"),
-									 [uploadFunc, this](const QString &name, const QByteArray &content) mutable {
-		LOG_CDEBUG("client") << "Upload image:" << qPrintable(name);
-
-		if (!m_map)
-			return;
-
-		if (!uploadFunc.isCallable())
-			return;
-
-		QJSEngine *engine = qjsEngine(m_client);
-
-		if (!engine)
-			return;
-
-		MapEditorImage *i = new MapEditorImage(m_map);
-		i->setId(m_map->nextIndexImage());
-		i->setData(content);
-		m_map->imageList()->append(i);
-
-		QJSValueList list;
-
-		list = {engine->toScriptValue<MapEditorImage *>(i)};
-
-		uploadFunc.call(list);
-	});
-
-
+	m_onlineClient->wasmLoadFileToFileSystem(QStringLiteral("*"), std::bind(&UserImporter::_load, this, std::placeholders::_2));
 }
 
 #endif
-*/
+

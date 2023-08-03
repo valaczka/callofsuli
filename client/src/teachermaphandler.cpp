@@ -28,6 +28,10 @@
 #include "gamemap.h"
 #include "utils.h"
 
+#ifdef Q_OS_WASM
+#include "onlineclient.h"
+#endif
+
 
 /**
  * @brief TeacherMapHandler::TeacherMapHandler
@@ -138,6 +142,38 @@ void TeacherMapHandler::loadEditorPage()
 
 
 
+
+
+/**
+ * @brief TeacherMapHandler::_mapImportContent
+ * @param name
+ * @param content
+ */
+
+void TeacherMapHandler::_mapImportContent(const QString &name, const QByteArray &content)
+{
+	GameMap *map = GameMap::fromBinaryData(content);
+
+	if (!map)
+		return m_client->messageError(tr("A fájl nem Call of Suli pályát tartalmaz!"), tr("Érvénytelen fájl"));
+
+	delete map;
+	map = nullptr;
+
+	LOG_CDEBUG("client") << "Import map:" << qPrintable(name);
+
+	const QByteArray &comp = qCompress(content);
+
+	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(name), comp)
+			->fail([this](const QString &err){m_client->messageWarning(err, tr("Importálási hiba"));})
+			->done([this](const QJsonObject &){
+		m_client->snack(tr("Az importálás sikerült"));
+		reload();
+	});
+}
+
+
+
 /**
  * @brief TeacherMapHandler::mapEditor
  * @return
@@ -155,6 +191,25 @@ void TeacherMapHandler::setMapEditor(TeacherMapEditor *newMapEditor)
 	m_mapEditor = newMapEditor;
 	emit mapEditorChanged();
 }
+
+
+#ifdef Q_OS_WASM
+
+/**
+ * @brief TeacherMapHandler::mapImportWasm
+ */
+
+void TeacherMapHandler::mapImportWasm()
+{
+	OnlineClient *client = dynamic_cast<OnlineClient*>(m_client);
+
+	if (!client)
+		return;
+
+	client->wasmLoadFileToFileSystem(QStringLiteral("*"), this, &TeacherMapHandler::_mapImportContent);
+}
+
+#endif
 
 
 
@@ -206,22 +261,8 @@ void TeacherMapHandler::mapImport(const QUrl &file)
 	if (err)
 		return m_client->messageError(tr("A fájl nem importálható"));
 
-	GameMap *map = GameMap::fromBinaryData(b);
 
-	if (!map)
-		return m_client->messageError(tr("A fájl nem Call of Suli pályát tartalmaz!"), tr("Érvénytelen fájl"));
-
-	delete map;
-	map = nullptr;
-
-	const QByteArray &comp = qCompress(b);
-
-	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(Utils::fileBaseName(file.toLocalFile())), comp)
-			->fail([this](const QString &err){m_client->messageWarning(err, tr("Importálási hiba"));})
-			->done([this](const QJsonObject &){
-		m_client->snack(tr("Az importálás sikerült"));
-		reload();
-	});
+	_mapImportContent(Utils::fileBaseName(file.toLocalFile()), b);
 }
 
 

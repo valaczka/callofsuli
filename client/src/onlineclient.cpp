@@ -26,8 +26,6 @@
 
 #include <emscripten/val.h>
 #include <emscripten/bind.h>
-#include <QtGui/private/qwasmlocalfileaccess_p.h>
-
 
 #include "Logger.h"
 #include "abstractlevelgame.h"
@@ -94,6 +92,7 @@ void OnlineClient::wasmLoadFileToFileSystem(const QString &accept, std::function
 		delete fileData;
 	});
 }
+
 
 
 
@@ -266,3 +265,5 @@ EMSCRIPTEN_BINDINGS(app) {
 	function("app_beforeUnloadHandler", &beforeUnloadhandler);
 }
 */
+
+

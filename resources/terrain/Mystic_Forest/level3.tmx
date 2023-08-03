@@ -127,7 +127,7 @@
   </object>
   <object id="59" x="1377.43" y="737.333">
    <properties>
-    <property name="block" type="int" value="4"/>
+    <property name="block" type="int" value="2"/>
    </properties>
    <polyline points="0,0 72.0489,-2.00007"/>
   </object>

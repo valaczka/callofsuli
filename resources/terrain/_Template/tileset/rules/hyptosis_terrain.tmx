@@ -3,62 +3,62 @@
  <tileset firstgid="1" source="../hyptosis.tsx"/>
  <layer id="11" name="output3_Terrain3" width="100" height="20">
   <data encoding="base64" compression="zlib">
-   eJztyjEOABAUREHhGA7poC4lOsVPhEIhM80rdlMCAAB4p+W4t9v6qeWsU89xdxsAAAAA/xnsUQnt
+   eJztzbEJACAMRUHRMRzSQV1K7FIIooWF3DWv+IGkBAAA8E7L695u8aaWs049r7vb4l8AAAAA/jAA2XsKXg==
   </data>
  </layer>
- <layer id="10" name="output2_Terrain3" width="100" height="20" locked="1">
+ <layer id="10" name="output2_Terrain3" width="100" height="20">
   <data encoding="base64" compression="zlib">
-   eJztyjEOABAUREHhFg7poi4lOsVPhEIhM80rdlMCAAB4p+W4t9v6qeWsU89xdxsAAAAA/xnEtgnd
+   eJztzbEJACAMRUHRLRzSRV1K7FIIooWF3DWv+IGkBAAA8E7L695u8aaWs049r7vb4l8AAAAA/jAAn+wKTQ==
   </data>
  </layer>
  <layer id="9" name="output1_Terrain3" width="100" height="20">
   <data encoding="base64" compression="zlib">
-   eJztyjEOABAUREHhFA7ppC4lOsVPhEIhM80rdlMCAAB4p+W4t9v6qeWsU89xdxsAAAAA/xmdGwnN
+   eJztzbEJACAMRUHRKRzSSV1K7FIIooWF3DWv+IGkBAAA8E7L695u8aaWs049r7vb4l8AAAAA/jAAZl0KPA==
   </data>
  </layer>
- <layer id="8" name="input_Terrain3" width="100" height="20" locked="1">
+ <layer id="8" name="input_Terrain3" width="100" height="20">
   <data encoding="base64" compression="zlib">
-   eJztzzsOQEAURmESEWzMs1WyEvsQ1oYteJUaxf2T0Wi0ztec4s6dyXgeAAAAAOCvJt86q4vvZmNs7dUhdrM6sTahtVPb0J1JA2um5mqhlmoVuJ1V+5u6P+679P4RWc/o/V8AAAAAAABf3CwzDdQ=
+   eJztzj0SgjAQhuFkJpNJvJgotpZyEu8BeDbwCvhT0ljsN7PUtL5P8xabTRICAAAAAOBfTdE6q8/os0e19upYfXY9WG/Zele77GeOydqoJ/Wstuol+c6i/Zf63ty36v1PsX6Lz4bN3wAAAAAAAPb6AXukDnU=
   </data>
  </layer>
- <layer id="9" name="output3_Terrain2" width="100" height="20" locked="1">
+ <layer id="9" name="output3_Terrain2" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztyrENACAMA0EUxmBIBmUplI4iEoL6rvnCbg0A/syo+7udn9HfmlbUvW0AAAAAAABpA/LzCe0=
+   eJztzbEJACAMRUGJYzikg7qU2FkIYlrvmlf8QEoBgJwe52a3/abVty4jzr1t+18AAAAAAOBfE6KKCl4=
   </data>
  </layer>
- <layer id="8" name="output2_Terrain2" width="100" height="20" locked="1">
+ <layer id="8" name="output2_Terrain2" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztyrENACAMA0EUtmBIFmUplI4iEoL6rvnCbg0A/syo+7udn9HfmlbUvW0AAAAAAABpA2dYCd0=
+   eJztzbEJACAMRUGJWziki7qU2FkIYlrvmlf8QEoBgJwe52a3/abVty4jzr1t+18AAAAAAOBfE/6sCk0=
   </data>
  </layer>
- <layer id="7" name="output1_Terrain2" width="100" height="20" locked="1">
+ <layer id="7" name="output1_Terrain2" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztyrENACAMA0EUpmBIJmUplI4iEoL6rvnCbg0A/syo+7udn9HfmlbUvW0AAAAAAABpA9uuCc0=
+   eJztzbEJACAMRUGJUzikk7qU2FkIYlrvmlf8QEoBgJwe52a3/abVty4jzr1t+18AAAAAAOBfE1rdCjw=
   </data>
  </layer>
- <layer id="7" name="input_Terrain2" width="100" height="20" locked="1">
+ <layer id="7" name="input_Terrain2" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztzzsOQEAURmESEWzMs1WyEvsQ1oYteJUaxf2T0WgVcr7mFHfuTMbzAADAH0y+dVYX383G2NqrQ+xmdWJtQmuntqE7kwbWTM3VQi3VKnA7q/Y3dX/cd+n9I7Ke0fu/AAAAAAAAAAD4yg2X/Q3U
+   eJztzr0NwjAQhmFbsiybxQiElpJMwh5JmC1hhfBTpqG4T7pMkAK9T/MW57MdAgAA+AdTtM7qM/rsUa29OlafXQ/WW7be1S77mWOyNupJPautekm+s2j/pb439616/1Os3+KzYfM3AAAAAAAAAAD29APV6g51
   </data>
  </layer>
- <layer id="5" name="output3_Terrain1" width="100" height="20" locked="1">
+ <layer id="5" name="output3_Terrain1" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztyrEJACAQBMFHy7BIC7UpERMDQfx4JtngLmLr5d7sdn5a/esyyr2vDQAAAAAAAAAyJtHlCe0=
+   eJztzbsJACAQREHRMizSQm1KxOQCwU88k7xgDy6lpeV9f7d4U8tbp573PW3xLwAAAAAAAADcGkIlCl4=
   </data>
  </layer>
- <layer id="6" name="output2_Terrain1" width="100" height="20" locked="1">
+ <layer id="6" name="output2_Terrain1" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztyrEJACAQBMFHu7BIG7UpERMDQfx4JtngLmLr5d7sdn5a/esyyr2vDQAAAAAAAAAyJuJ7Cd0=
+   eJztzbsJACAQREHRLizSRm1KxOQCwU88k7xgDy6lpeV9f7d4U8tbp573PW3xLwAAAAAAAADcGjRLCk0=
   </data>
  </layer>
- <layer id="4" name="output1_Terrain1" width="100" height="20" locked="1">
+ <layer id="4" name="output1_Terrain1" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztyrEJACAQBMFHq7BIK7UpERMDQfx4JtngLmLr5d7sdn5a/esyyr2vDQAAAAAAAAAyJvMRCc0=
+   eJztzbsJACAQREHRKizSSm1KxOQCwU88k7xgDy6lpeV9f7d4U8tbp573PW3xLwAAAAAAAADcGiZxCjw=
   </data>
  </layer>
- <layer id="1" name="input_Terrain1" width="100" height="20" locked="1">
+ <layer id="1" name="input_Terrain1" width="100" height="20" visible="0">
   <data encoding="base64" compression="zlib">
-   eJztzzsOQEAURmESmWBjnq2SldiHsDZswavUKO6fjEavOF9zijt3JhME+KM5tC7qGvrZlFgHdUz8rEmtrbP2auf8mSyy5mqhlmql1pHf2bS/q8frvlvvn7H1ir//BQAAAAAAAAAAAAB/9QDMew3U
+   eJztzjESgjAQRuFkJsMkXkwUWks5ifcAPBt4BRRLG4v9Z5YjpHhf84rNJgkBNVqidVVf0WfPYh3VufjsdrLeG+tDHRo/c07WVr2oV7VT++Q7m/bf6udw30/v79n6zT6bDn8DAAAAAAAAAAAAgJr9AfZgDnU=
   </data>
  </layer>
 </map>

@@ -1,293 +1,344 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.4" tiledversion="1.4.3" orientation="orthogonal" renderorder="right-down" width="89" height="23" tilewidth="32" tileheight="32" infinite="0" nextlayerid="86" nextobjectid="249">
- <tileset firstgid="1" name="hyptosis" tilewidth="32" tileheight="32" tilecount="3600" columns="30">
-  <image source="../tileset/hyptosis.png" width="960" height="3840"/>
-  <terraintypes>
-   <terrain name="StoneWall1" tile="475"/>
-   <terrain name="StoneWall2" tile="2457"/>
-   <terrain name="StoneWall3" tile="2644"/>
-   <terrain name="StoneWall4" tile="1094"/>
-   <terrain name="StoneWall5" tile="1097"/>
-   <terrain name="StoneWall7" tile="1774"/>
-   <terrain name="StoneWall8" tile="2554"/>
-  </terraintypes>
-  <tile id="312" terrain="0,0,0,0"/>
-  <tile id="375" terrain="0,0,0,0"/>
-  <tile id="402" terrain="0,0,0,0"/>
-  <tile id="475" terrain=",,,0"/>
-  <tile id="476" terrain=",,0,0"/>
-  <tile id="477" terrain=",,0,"/>
-  <tile id="504" terrain=",0,,0"/>
-  <tile id="505" terrain="0,0,0,0"/>
-  <tile id="506" terrain="0,,0,"/>
-  <tile id="507" terrain="0,0,0,0"/>
-  <tile id="534" terrain=",0,,"/>
-  <tile id="535" terrain="0,0,,"/>
-  <tile id="536" terrain="0,,,"/>
-  <tile id="537" terrain="0,0,0,0"/>
-  <tile id="642" terrain="0,0,0,0"/>
-  <tile id="882" terrain="0,0,0,0"/>
-  <tile id="1006" terrain="4,4,4,4"/>
-  <tile id="1036" terrain="4,4,4,4"/>
-  <tile id="1038" terrain="0,0,0,0"/>
-  <tile id="1039" terrain="0,0,0,0"/>
-  <tile id="1066" terrain="4,4,4,4"/>
-  <tile id="1068" terrain="0,0,0,0"/>
-  <tile id="1069" terrain="4,4,4,4"/>
-  <tile id="1092" terrain="3,3,3,3"/>
-  <tile id="1093" terrain="3,3,3,3"/>
-  <tile id="1094" terrain=",,,3"/>
-  <tile id="1095" terrain=",,3,3"/>
-  <tile id="1096" terrain=",,3,"/>
-  <tile id="1097" terrain=",,,4"/>
-  <tile id="1098" terrain=",,4,4"/>
-  <tile id="1099" terrain=",,4,"/>
-  <tile id="1122" terrain=",3,,"/>
-  <tile id="1123" terrain="3,3,3,3"/>
-  <tile id="1124" terrain=",3,,3"/>
-  <tile id="1126" terrain="3,,3,"/>
-  <tile id="1127" terrain=",4,,4"/>
-  <tile id="1129" terrain="4,,4,"/>
-  <tile id="1154" terrain=",3,,"/>
-  <tile id="1155" terrain="3,3,,"/>
-  <tile id="1156" terrain="3,,,"/>
-  <tile id="1157" terrain=",4,,"/>
-  <tile id="1158" terrain="4,4,,"/>
-  <tile id="1159" terrain="4,,,"/>
-  <tile id="1625" terrain="2,2,2,2"/>
-  <tile id="1626" terrain="2,,2,"/>
-  <tile id="1628" terrain=",,2,2"/>
-  <tile id="1629" terrain=",,2,"/>
-  <tile id="1655" terrain="2,2,,"/>
-  <tile id="1656" terrain="2,,,"/>
-  <tile id="1657" terrain="2,2,2,2"/>
-  <tile id="1658" terrain="2,2,2,2"/>
-  <tile id="1659" terrain=",,2,2"/>
-  <tile id="1723" terrain="4,4,4,4"/>
-  <tile id="1774" terrain=",,,5"/>
-  <tile id="1775" terrain=",,5,5"/>
-  <tile id="1776" terrain=",,5,"/>
-  <tile id="1777" terrain="5,5,5,5"/>
-  <tile id="1778" terrain="5,5,5,5"/>
-  <tile id="1804" terrain=",5,,5"/>
-  <tile id="1805" terrain="5,5,5,5"/>
-  <tile id="1806" terrain="5,,5,"/>
-  <tile id="1807" terrain="5,5,5,5"/>
-  <tile id="1808" terrain="5,5,5,5"/>
-  <tile id="1834" terrain=",5,,"/>
-  <tile id="1835" terrain="5,5,,"/>
-  <tile id="1836" terrain="5,,,"/>
-  <tile id="2289" terrain=",,6,6"/>
-  <tile id="2290" terrain=",,6,"/>
-  <tile id="2319" terrain="6,6,6,6"/>
-  <tile id="2320" terrain="6,,6,"/>
-  <tile id="2349" terrain="6,6,,"/>
-  <tile id="2350" terrain="6,,,"/>
-  <tile id="2454" terrain=",,1,1"/>
-  <tile id="2456" terrain=",,1,"/>
-  <tile id="2457" terrain=",,,1"/>
-  <tile id="2484" terrain="1,1,,"/>
-  <tile id="2485" terrain="1,1,,"/>
-  <tile id="2486" terrain="1,,,"/>
-  <tile id="2487" terrain=",1,,"/>
-  <tile id="2554" terrain=",,,6"/>
-  <tile id="2584" terrain=",6,,6"/>
-  <tile id="2614" terrain=",6,,"/>
-  <tile id="2644" terrain=",,,2"/>
-  <tile id="2674" terrain=",2,,2"/>
-  <tile id="2704" terrain=",2,,"/>
- </tileset>
- <layer id="82" name="4. csemperéteg" width="89" height="23">
-  <data encoding="base64" compression="zlib">
-   eJzt0bENgCAQRuFrHMHeHZzESZRBNHEOdUfOQEEB0ZiDWLwveR0UP4gAAAAAAAAAAAAAuA1dvf6q9c5ZW2JO6w37uq82y42lnalV22K7hHcejcp5Ol+6Z6n1Gx/amXRpk1E5b/7GA2XhIM4=
+<map version="1.10" tiledversion="1.10.1" orientation="orthogonal" renderorder="right-down" width="75" height="28" tilewidth="32" tileheight="32" infinite="0" nextlayerid="28" nextobjectid="161">
+ <tileset firstgid="1" source="../_Template/tileset/hyptosis.tsx"/>
+ <group id="15" name="TILES" locked="1">
+  <group id="7" name="Background">
+   <layer id="8" name="Background1" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJztwTEBAAAAwqD1T20ND6AAAAAAAAAAAL4MINAAAQ==
   </data>
- </layer>
- <layer id="83" name="2. csemperéteg" width="89" height="23">
-  <data encoding="base64" compression="zlib">
-   eJztlsEKwjAMhsMOOfh+Xib6BrqDF233Er6xKyPwE+KhdiIr/wchKxW6/ovJL0IIIYQQQgghhJBeOB5EZhU5a5xnWJe46L/feH/cF42TrjFCZMi4d6LG1RSNxw96mvYZ9qhxPaYx6plcPWfYp8b1FI1RR8zYM6jx91gdY/3iM+a8c42vg8g0rPkGeYLAPft9WbcQ9Qpce833rHHxUOaP0C+hb4qi1Uv5Ok4a9+fcgcZYT3YfP+99n9ziv4vezc+73voxeqjonknjOttCYz/vfB/uxR9H8338sN7SS9m53hP7b9xDr3gtd31ofTwb71x7but5v+INQh5vyA==
+   </layer>
+   <layer id="9" name="Background2" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJzt0T0SgjAQhuFYiKWNrXSWSQ7hxfYwFuo5/LuKt/CLWIQMDgM40rzPzDcuyLILOAcAAAAAAAAAAAAAwz2Xc2/wH/XC2VaZ0reqfr1V29zf4qwclbVyGNird/Tu2zS17armnN7fJKk/7XTK9kv1Xve/6vfinNUjvusYmmuab5rpHkpUfJH4+S8/Tgkd14UsPqtjT39Zx6zn3pOufX0xI98tfjkunz0U99AsuympfgH2Xia/
   </data>
- </layer>
- <layer id="84" name="1. csemperéteg" width="89" height="23">
-  <data encoding="base64" compression="zlib">
-   eJztWEtOhUAQJGhm4f3caPAGwMKNgjdQE1269QCeUUheh7Ks5g2PF/k4lXSGT8Nkiqn+kGUJCQkJCQnrQJUPVoLVMNbgw8fm358naFxfZdlTGKw4GJ7HHN+FpVeyXrx3HD+E+faYOF4cFcQdjEPedRsVOH5VFNO8ce/gmDQWe8y8+GPvKpz3FOLef4hl9x0vTRjsBsZWjP29W4eXU+KbimUl6YfzOuZ/leNL4VsK35r81XOoWdYgz2/PKY6N1xZ4xOMmkuMl8dyt7eWIveY/tcam9IY683SKelW6NI7NGuLWztFnjRzHwnTbht97ytaH93CtMTpVujyXvqeizP3aH+ODsrG8ewzGMXKp9pfieGvodTeWE1Ue9jQ8BVP31JZrX9xPNo7lBdbylvfXX2Fuj7Xl/ZWQcC7wfzTuTbkeZ3/EZ2T+Vf/tVB+8F2DO5drY63fNON/GcmxzenX52vvej4tp/phzsb+yvMu9r1czK7xd+nPi+9Wce8rl2Itw78H/FfhbeDzYd/5yOD61h9kq5tQ1sTx8A5dK6Yc=
+   </layer>
+   <layer id="10" name="Background3" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJztwTEBAAAAwqD1T20ND6AAAAAAAAAAAL4MINAAAQ==
   </data>
- </layer>
- <layer id="85" name="3. csemperéteg" width="89" height="23">
-  <data encoding="base64" compression="zlib">
-   eJztkktOwlAYRi+3mMBUFwC4D9T9+FiBgztSQVegjowKcQM+Jr7dgY+JT5AV6FhPlSZV0BBsL4l8JzlpS2/5uYcaI4QQQgghhBBCCCGEEGIYWbDGLOISVrBqB/2L/h+bNN3CbaxhfQgarwbGrOF64GfeCU1P8QzP8WLAjZu5rz5jK5fc9+/SdQ/38cBT4weaPuITNrDpuXEj1jI82nynQf7jnmt9rnPhOc+5fuZd0vUKr/EGV7IJb+gH3sKuzMug9fTfRmRiHbO/nEdy7fjc8Zzrd+YLe3xt73On3Xia4wzO4lxK3Tdi729pJJ0Z3SjQrYglHO9B1jnWu8IfGo/ScOxbxwrXVVxOqe8hfY/wONZ5ns5FD5bpNoGTONWDrHOsd+WwdQLzI2q0rXfpm9Q+b2l7h/e289470XtLFw==
+   </layer>
+  </group>
+  <group id="2" name="Terrain">
+   <layer id="27" name="14. csemperéteg" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJztzkEJAAAIBLB7G9H+QSwhCLIlWAIAAAAAAAB7uq4HAHwwmCQAZQ==
   </data>
- </layer>
- <objectgroup color="#ffaa00" id="16" name="Ground">
-  <object id="203" x="2059" y="599" width="489" height="19"/>
-  <object id="204" x="2480" y="343" width="291" height="17"/>
-  <object id="205" x="2099" y="149" width="574" height="19"/>
-  <object id="206" x="1264" y="343" width="1121" height="18"/>
-  <object id="208" x="1041" y="440" width="514" height="20"/>
-  <object id="209" x="681" y="277.5" width="415" height="22"/>
-  <object id="211" x="82.5" y="278" width="415" height="22"/>
-  <object id="212" x="306" y="566.667" width="448" height="21.3333"/>
-  <object id="213" x="146.667" y="628.667" width="282.667" height="20.6667"/>
+   </layer>
+   <layer id="5" name="Terrain3" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJztll1qwzAQhEUD1pNc6Rxtn9vc/7GHSWpfoF2igfESG+OfJKTzwZJIlmXtoP0JQQghhBBCCCHEFpyaEM4b209zb6/2IcUQ2mp9c7FSx10dGzlefvHcntmcX2v/X+P9/NmTVP00zE9oAg1KHWO+JW15HbC9nlkr3B3cGQO64a5gDGMN8z/SqqO44lg0w1yOwzms75vhs/LEMfj259f7xvbxAFr5mrWk3uxR9+bUxc9DCF9kx8P0WdbW0lTzRKl3fsldxx4A8XVtjnM2cnh26xCzY+/miZhM5AvieI1vfm+cbWkOTc63Eoc53UCOYq0y5TVe59/19XPqnOwP77+VVqhLa7SCjx3lae6RuH/C97jv6t17uEu8L/cWU1rxd/h+rdXK52HLod8v88yfr6Vz+n4AfrPP3CtwHmCdWSvWc04Mck3dq5/1OfOaWR4d0/sWNlYXp87yCLVUCCHEbfgF4Yuu1Q==
+  </data>
+   </layer>
+   <layer id="4" name="Terrain2" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJztWEFuwzAMM3aoTvbcd7T7/yP2mG3JB9agJiqosRt5QQ4eCQh2U4uVWPkQhkAQBEG8wufb6/Cetzmj4OsUwncjfk6+82s5oyBKCEnue6xT6XW+re/yfH5SWpzlHsDCYXNGQZRHv4sGWJeea1rl8p2OpJ6PrtUCzBU+55UZiWaOzkUf4D9oNZeZyiWwr91BzNNUIstjHVWry62vayM+xHd+LYcgCIIgCIIgCALYy1Pb6tEdybt3LS1vzeOpbfHojubd2zeEF5eUvwRPwPM+H0teVjzZBHwDL6/2JsBt9zUvDH2hNvDgubcWcOkavN5HVDXAx7OeSpK+/wAc1vvD77S0Qg3J6FbzGrfUAi49B14eXU+W53lFnT3zmip967XmGyKQB217arGa93i10dQwV2bhr/M6GT59t2pa2buq9fPU0vLWPJ7aFo/uaN4e3/AXaSTRYg==
+  </data>
+   </layer>
+   <layer id="3" name="Terrain1" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJzt1sENgCAMheEXQ2AYdQ51LnU6h1E30CMXk2qKXP4vedfSAIFKAAAAAPBsa8oEAP7GW2Q3BGnMMoXaHdl4nPHb/2y+92bJsoZyfyf3FwAAoD6vea3G7Pf33LlH6TDkjD51LLW8e/dau01SZ0iffOpYann3/nXtC4bihME=
+  </data>
+   </layer>
+   <layer id="23" name="WindowT" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJzt1EEKABAQBVDlUu5/MtlJk6SkeG+j0beZ9FMCAG4qOT5n+T4zztD4V8ALVjvsF2NP77yxS4C7oi4+cQcAAK+oXGMHYQ==
+  </data>
+   </layer>
+   <layer id="26" name="WindowR" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJzt1MsJwCAQBNCFNGX/lVhKrjn4WwgI+t5FFOYyyEQAADuVJ2rrXMn07uBfASfIbNgNvj30Nnu25bd0OepqJZPJAWS19uXPt5P2S1cAALz/ESWX
+  </data>
+   </layer>
+   <layer id="24" name="WindowL" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJzt1DEKwCAQBMCDfMrn5P+vEDsLTUIKg7mZ5lBsXI6NAAC+VI44R/Pu/ewMjb0C/uBph2XR5zDr7as+z5Tjm39nzQpYa9QvK+52JCsAAJoKHEsUlw==
+  </data>
+   </layer>
+   <layer id="25" name="WindowB" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJzt1TEKwDAIAEChn+qY/7+qdCsioZSGDN4twWBAREwEALDTecSozln+MyfHcDNXAL283fdd5D/tyxu9BNir2sUr7v6rGACAFS6ntQ9h
+  </data>
+   </layer>
+  </group>
+  <group id="11" name="Foreground">
+   <layer id="12" name="Foreground1" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJzt1DEJAAAIAEFnI9o/iKsBBBHuEvz0EQAAAAAAALCn8roAgOnrlxvf+gDJ
+  </data>
+   </layer>
+   <layer id="13" name="Foreground2" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJztwTEBAAAAwqD1T20ND6AAAAAAAAAAAL4MINAAAQ==
+  </data>
+   </layer>
+   <layer id="14" name="Over" width="75" height="28">
+    <data encoding="base64" compression="zlib">
+   eJztmG1uwyAMhpnUtFnOsJOsvUh7kv7kRjtHt2OkUj8PUaMUyaI24SutRv1ISIRgCxPwG1BKEARBCGHfKNU3Q71HdY6P+WObtdmP2ArCzyLN7pJo9x+4RsaG56Jty46lZtx5Ple8pgxnZp1Qe9Btc5/fYZ1h7aN0LsRONFDAcLmd0zN3n73DvpsCmTeBwu7Hsf/Q2H1bA+7ZL0UD3bOgfY7xRY1FeC5fleVPE4/VhJKxmX/s78Jz9epzCY6ndGyGXG3OmR/ONjevp95rTAl1L8flVftNlp1Sq26oUxroy8tjObu2nL7uXj2CcDYtXS/hI9d3rt+SYzFs73ZmT28zfYTWn+W35FgoPmdl+uP2HXyHXyh/kTkW+muw02CvcbvvjoZ6Z7WB8+cD59McQjXvAP2OUE6RcwX9NdjpgxNb6vg5fz5wPs3ReJ8W43cNrPk5lEXk2of+Guw02GvcnqoHnD/DDdkvV7M=
+  </data>
+   </layer>
+  </group>
+ </group>
+ <objectgroup color="#ffaa00" id="17" name="Ground" visible="0" locked="1">
+  <object id="2" x="1000.5" y="154.5" width="270.5" height="22.5"/>
+  <object id="3" x="1385" y="154.5" width="302" height="23"/>
+  <object id="4" x="1009.5" y="345" width="668.5" height="18"/>
+  <object id="5" x="872.5" y="539" width="1359" height="19"/>
+  <object id="6" x="1252" y="475.5" width="151.5" height="63.5"/>
+  <object id="7" x="231.667" y="699.333" width="944" height="23.3333"/>
+  <object id="8" x="137" y="827.667" width="334.667" height="18.6667"/>
+  <object id="9" x="327.333" y="538" width="145" height="17"/>
+  <object id="10" x="713" y="828" width="367.667" height="16.6667"/>
+  <object id="11" x="1512.67" y="699" width="366.667" height="17"/>
+  <object id="12" x="1640.67" y="827" width="431.667" height="19.6667"/>
+  <object id="13" x="1992.67" y="698" width="303.333" height="19"/>
  </objectgroup>
- <objectgroup color="#ff0000" id="30" name="Enemies">
-  <object id="174" x="1320" y="304">
-   <properties>
-    <property name="block" type="int" value="2"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="223" x="1676.39" y="306">
-   <properties>
-    <property name="block" type="int" value="2"/>
-   </properties>
-   <polyline points="-47.594,21 283.406,21"/>
-  </object>
-  <object id="224" x="2157" y="303">
-   <properties>
-    <property name="block" type="int" value="2"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="225" x="2151" y="108">
-   <properties>
-    <property name="block" type="int" value="3"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="226" x="2467" y="105">
-   <properties>
-    <property name="block" type="int" value="3"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="227" x="2539" y="307">
-   <properties>
-    <property name="block" type="int" value="3"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="228" x="2104" y="553">
-   <properties>
-    <property name="block" type="int" value="3"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="231" x="728" y="237">
-   <properties>
-    <property name="block" type="int" value="2"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="232" x="1081" y="401">
-   <properties>
-    <property name="block" type="int" value="2"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="234" x="547" y="523">
+ <objectgroup color="#ff0000" id="18" name="Enemies">
+  <object id="27" x="401.5" y="687.5">
    <properties>
     <property name="block" type="int" value="1"/>
    </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
+   <polyline points="0,0 137.5,-1.5"/>
   </object>
-  <object id="235" x="301" y="232">
+  <object id="28" x="265.5" y="686.5">
    <properties>
     <property name="block" type="int" value="1"/>
    </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
+   <polyline points="0,0 94,-1.5"/>
   </object>
-  <object id="236" x="130" y="232">
+  <object id="29" x="334.5" y="527">
    <properties>
     <property name="block" type="int" value="1"/>
    </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
+   <polyline points="0,0 131,-1.5"/>
   </object>
-  <object id="237" x="195" y="595.333">
-   <properties>
-    <property name="block" type="int" value="1"/>
-   </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
-  </object>
-  <object id="244" x="253.673" y="598">
-   <properties>
-    <property name="block" type="int" value="1"/>
-   </properties>
-   <polyline points="-25.8819,21 154.118,21"/>
-  </object>
-  <object id="245" x="984" y="248">
+  <object id="35" x="888.5" y="821.333">
    <properties>
     <property name="block" type="int" value="2"/>
    </properties>
-   <polyline points="-128.875,10.3333 95.1243,10.3333"/>
+   <polyline points="0,0 131,-1.5"/>
   </object>
-  <object id="246" x="1300" y="413.333">
+  <object id="36" x="742.167" y="820">
    <properties>
     <property name="block" type="int" value="2"/>
    </properties>
-   <polyline points="-25.5419,11 198.458,11"/>
+   <polyline points="0,0 131,-1.5"/>
   </object>
-  <object id="247" x="2329.33" y="555.333">
+  <object id="37" x="1001" y="685.5">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="0,0 131,-1.5"/>
+  </object>
+  <object id="38" x="584.667" y="687">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="0,0 137.5,-1.5"/>
+  </object>
+  <object id="39" x="899.5" y="529.5">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="0,0 131,-1.5"/>
+  </object>
+  <object id="40" x="1095" y="528.5">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <polyline points="0,0 131,-1.5"/>
+  </object>
+  <object id="41" x="1263.5" y="465">
    <properties>
     <property name="block" type="int" value="3"/>
    </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
+   <polyline points="0,0 119.333,-1.5"/>
   </object>
-  <object id="248" x="2308" y="110">
+  <object id="42" x="1196" y="337.833">
    <properties>
     <property name="block" type="int" value="3"/>
    </properties>
-   <polyline points="-32.2086,21 191.791,21"/>
+   <polyline points="0,0 131,-1.5"/>
+  </object>
+  <object id="43" x="1030.5" y="339">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="0,0 131,-1.5"/>
+  </object>
+  <object id="131" x="1290.33" y="465.002">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
+   <polyline points="0,0 106,-0.00166667"/>
+  </object>
+  <object id="132" type="sniper" x="1616.67" y="692.667">
+   <point/>
+  </object>
+  <object id="139" x="1771.33" y="690">
+   <properties>
+    <property name="block" type="int" value="5"/>
+   </properties>
+   <polyline points="0,0 95,-3.5"/>
+  </object>
+  <object id="141" x="2045.33" y="689.333">
+   <properties>
+    <property name="block" type="int" value="5"/>
+   </properties>
+   <polyline points="0,0 136.333,-0.015"/>
+  </object>
+  <object id="142" x="1961.33" y="820">
+   <properties>
+    <property name="block" type="int" value="5"/>
+   </properties>
+   <polyline points="0,0 93.6667,-1.5"/>
+  </object>
+  <object id="143" x="2081.33" y="522.667">
+   <properties>
+    <property name="block" type="int" value="5"/>
+   </properties>
+   <polyline points="0,0 138.333,-1.5"/>
+  </object>
+  <object id="144" x="1623.33" y="528.667">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="0,0 138.333,-1.5"/>
+  </object>
+  <object id="145" x="1515.33" y="336.667">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="0,0 138.333,-1.5"/>
+  </object>
+  <object id="146" x="1403.33" y="143.333">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="0,0 113.666,-1.5"/>
+  </object>
+  <object id="147" x="1421.33" y="530.667">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <polyline points="0,0 138.333,-1.5"/>
+  </object>
+  <object id="148" x="328" y="815.333">
+   <properties>
+    <property name="block" type="int" value="1"/>
+   </properties>
+   <polyline points="0,0 137.5,-1.5"/>
   </object>
  </objectgroup>
- <objectgroup color="#ff00ff" id="17" name="Ladders">
-  <object id="214" x="2518.67" y="343.333" width="14.6667" height="256"/>
-  <object id="215" x="2620.67" y="150.667" width="20" height="191.333"/>
-  <object id="216" x="2185.33" y="148.667" width="14.6667" height="194">
-   <properties>
-    <property name="blockBottom" type="int" value="2"/>
-    <property name="blockTop" type="int" value="3"/>
-   </properties>
+ <objectgroup color="#ffff00" id="19" name="Objects">
+  <object id="129" type="fence" x="1583.67" y="543">
+   <point/>
   </object>
-  <object id="217" x="1456.67" y="343.333" width="12.6667" height="96"/>
-  <object id="218" x="1051.33" y="278" width="14.6667" height="161.333"/>
-  <object id="219" x="716" y="277.333" width="14.6667" height="288">
-   <properties>
-    <property name="blockBottom" type="int" value="1"/>
-    <property name="blockTop" type="int" value="2"/>
-   </properties>
+  <object id="134" type="fire" x="1381.33" y="350">
+   <point/>
   </object>
-  <object id="220" x="325.333" y="568" width="15.3333" height="61.3333"/>
-  <object id="221" x="156.667" y="278.667" width="15.3333" height="349.333"/>
-  <object id="222" x="456" y="278.667" width="12.6667" height="287.333"/>
+  <object id="137" type="fire" x="875.333" y="703.333">
+   <point/>
+  </object>
  </objectgroup>
- <objectgroup id="18" name="Player">
-  <object id="177" x="1430.66" y="435.333">
+ <objectgroup color="#00ff00" id="20" name="Items">
+  <object id="130" type="pliers" x="1665.5" y="148.5">
+   <point/>
+  </object>
+  <object id="133" type="time2" x="1684.67" y="693.333">
+   <point/>
+  </object>
+  <object id="135" type="water" x="1510.67" y="533.333">
+   <point/>
+  </object>
+  <object id="136" type="water" x="1020" y="146.667">
+   <point/>
+  </object>
+  <object id="138" type="health" x="435.333" y="530.667">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ff00ff" id="21" name="Ladders">
+  <object id="14" x="356" y="536.667" width="11.3333" height="154.667"/>
+  <object id="15" x="259.667" y="698.333" width="10.6667" height="120.333"/>
+  <object id="17" x="989.333" y="697.667" width="9" height="121.333"/>
+  <object id="18" x="1046.33" y="537" width="11" height="153.333"/>
+  <object id="19" x="1218.67" y="344.333" width="10" height="186"/>
+  <object id="20" x="1435.33" y="343.667" width="8.33333" height="187"/>
+  <object id="21" x="1535" y="537.333" width="11" height="154.333"/>
+  <object id="23" x="2006.5" y="696.25" width="9.25" height="122"/>
+  <object id="24" x="2204" y="537.25" width="7.5" height="153.75"/>
+  <object id="25" x="1540.5" y="151.5" width="13.5" height="187"/>
+  <object id="26" x="1099.5" y="152.5" width="10" height="186"/>
+  <object id="45" x="1323.5" y="342.5" width="10" height="124"/>
+  <object id="127" x="1647.33" y="342.5" width="8.33333" height="187"/>
+ </objectgroup>
+ <objectgroup color="#ffffff" id="22" name="Player">
+  <object id="110" x="1684" y="820.666">
    <properties>
-    <property name="block" type="int" value="2"/>
+    <property name="block" type="int" value="5"/>
+    <property name="start" type="bool" value="true"/>
    </properties>
    <point/>
   </object>
-  <object id="238" x="338" y="555">
+  <object id="111" x="621.996" y="686.666">
    <properties>
     <property name="block" type="int" value="1"/>
    </properties>
    <point/>
   </object>
-  <object id="239" x="2494" y="585">
+  <object id="112" x="969.996" y="820.666">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="113" x="1033.99" y="688">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="114" x="1182" y="532.667">
+   <properties>
+    <property name="block" type="int" value="2"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="115" x="1200" y="344.667">
    <properties>
     <property name="block" type="int" value="3"/>
    </properties>
    <point/>
   </object>
-  <object id="240" x="1580" y="325">
+  <object id="116" x="1077.99" y="152.667">
+   <properties>
+    <property name="block" type="int" value="3"/>
+   </properties>
    <point/>
   </object>
-  <object id="241" x="722" y="261">
+  <object id="117" x="1620" y="343.333">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
    <point/>
   </object>
-  <object id="242" x="2226" y="134">
+  <object id="118" x="1518.66" y="147.333">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
    <point/>
   </object>
-  <object id="243" x="2573" y="331">
+  <object id="119" x="1469.99" y="530.666">
+   <properties>
+    <property name="block" type="int" value="4"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="149" x="2164.67" y="532.667">
+   <properties>
+    <property name="block" type="int" value="5"/>
+   </properties>
    <point/>
   </object>
  </objectgroup>

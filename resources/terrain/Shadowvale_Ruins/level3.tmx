@@ -109,13 +109,13 @@
   </object>
   <object id="51" x="1356.67" y="960.667">
    <properties>
-    <property name="block" type="int" value="2"/>
+    <property name="block" type="int" value="3"/>
    </properties>
    <polyline points="0,0 220.666,-0.666667"/>
   </object>
   <object id="52" x="1512" y="958.673">
    <properties>
-    <property name="block" type="int" value="2"/>
+    <property name="block" type="int" value="3"/>
    </properties>
    <polyline points="0,0 305.333,-0.00666667"/>
   </object>
@@ -127,7 +127,7 @@
   </object>
   <object id="56" x="2080.28" y="898.101">
    <properties>
-    <property name="block" type="int" value="3"/>
+    <property name="block" type="int" value="5"/>
    </properties>
    <polyline points="0,0 181.171,-6.66667e-07"/>
   </object>
@@ -169,13 +169,13 @@
   </object>
   <object id="91" x="490.545" y="1057">
    <properties>
-    <property name="block" type="int" value="1"/>
+    <property name="block" type="int" value="2"/>
    </properties>
    <polyline points="0,0 203.333,-0.666667"/>
   </object>
   <object id="96" x="2014.18" y="900.985">
    <properties>
-    <property name="block" type="int" value="3"/>
+    <property name="block" type="int" value="5"/>
    </properties>
    <polyline points="0,0 108.855,-6.66667e-07"/>
   </object>
@@ -196,7 +196,7 @@
   </object>
   <object id="106" x="767.023" y="1057.47">
    <properties>
-    <property name="block" type="int" value="1"/>
+    <property name="block" type="int" value="2"/>
    </properties>
    <polyline points="0,0 203.333,-0.666667"/>
   </object>
@@ -214,7 +214,7 @@
   </object>
   <object id="109" x="634.246" y="1056.29">
    <properties>
-    <property name="block" type="int" value="1"/>
+    <property name="block" type="int" value="2"/>
    </properties>
    <polyline points="0,0 203.333,-0.666667"/>
   </object>

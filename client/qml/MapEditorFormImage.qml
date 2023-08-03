@@ -105,16 +105,12 @@ Row {
 
 			if (Qt.platform.os == "wasm") {
 				editor.wasmUploadImage(function(img){
-					console.info("UPLOADED", img)
-
 					if (_form && watchModification)
 						_form.modified = true
 					if (bindingField)
 						bindingField.performModification()
 
 					root.modified(img.imageid)
-
-					console.info("UPLOAD FINISHED", img)
 				})
 
 			} else

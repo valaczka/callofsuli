@@ -152,7 +152,7 @@ Item
 		id: actionCampaignAdd
 		enabled: group
 		text: qsTr("Új kihívás")
-		icon.source: Qaterial.Icons.accountPlus
+		icon.source: Qaterial.Icons.plus
 		onTriggered: {
 			Client.send(WebSocket.ApiTeacher, "group/%1/campaign/create".arg(group.groupid))
 			.done(function(r){

@@ -243,19 +243,14 @@ QPage {
 		icon.source: Qaterial.Icons.briefcaseUploadOutline
 		enabled: handler
 		onTriggered: {
-			Qaterial.DialogManager.openFromComponent(cmpFile)
+			if (Qt.platform.os == "wasm") {
+				handler.mapImportWasm()
+			} else {
+				Qaterial.DialogManager.openFromComponent(cmpFile)
+			}
 		}
 	}
 
-
-	/*Action {
-		id: actionUserAdd
-		text: qsTr("Új felhasználó")
-		icon.source: Qaterial.Icons.accountPlus
-		onTriggered: Client.stackPushPage("AdminUserEdit.qml", {
-											  classid: _user.classid
-										  })
-	}*/
 
 
 	Action {

@@ -1,0 +1,73 @@
+{
+    "activeFile": "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level3.tmx",
+    "automapping.whileDrawing": true,
+    "expandedProjectPaths": [
+    ],
+    "file.lastUsedOpenFilter": "Minden fájl (*)",
+    "fileStates": {
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level1.tmx": {
+            "expandedGroupLayers": [
+                7,
+                2,
+                11
+            ],
+            "expandedObjectLayers": [
+                21,
+                18,
+                22,
+                17
+            ],
+            "scale": 0.75,
+            "selectedLayer": 23,
+            "viewCenter": {
+                "x": 1138,
+                "y": 338.6666666666666
+            }
+        },
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level2.tmx": {
+            "expandedObjectLayers": [
+                21,
+                18,
+                19,
+                22,
+                20
+            ],
+            "scale": 1.5,
+            "selectedLayer": 19,
+            "viewCenter": {
+                "x": 1167,
+                "y": 562.6666666666666
+            }
+        },
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level3.tmx": {
+            "expandedObjectLayers": [
+                21,
+                18,
+                19,
+                22,
+                20
+            ],
+            "scale": 1.5,
+            "selectedLayer": 21,
+            "viewCenter": {
+                "x": 1094.3333333333333,
+                "y": 530
+            }
+        },
+        "tileset/hyptosis.tsx": {
+            "scaleInDock": 1
+        }
+    },
+    "openFiles": [
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level1.tmx",
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level2.tmx",
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level3.tmx"
+    ],
+    "project": "hyptosis.tiled-project",
+    "property.type": "int",
+    "recentFiles": [
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level1.tmx",
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level2.tmx",
+        "/home/valaczka/Projektek/callofsuli/resources/terrain/Northwood_Brae/level3.tmx"
+    ]
+}

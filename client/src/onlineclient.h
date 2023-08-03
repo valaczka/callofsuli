@@ -28,6 +28,7 @@
 #define ONLINECLIENT_H
 
 #include "client.h"
+#include <QtGui/private/qwasmlocalfileaccess_p.h>
 #include <QObject>
 
 class OnlineClient : public Client
@@ -38,10 +39,13 @@ public:
 	explicit OnlineClient(Application *app, QObject *parent = nullptr);
 	virtual ~OnlineClient();
 
-	void wasmLoadFileToFileSystem(const QString &accept, std::function<void (const QString &, const QByteArray &)> saveFunc);
 	void wasmSaveContent(const QByteArray &data, const QString &fileNameHint);
+	void wasmLoadFileToFileSystem(const QString &accept, std::function<void (const QString &, const QByteArray &)> saveFunc);
 
-	/*void toggleFullscreen(); */
+	template <typename T>
+	void wasmLoadFileToFileSystem(const QString &accept, T *inst, void (T::*func)(const QString &name, const QByteArray &content));
+
+
 	void enableTabCloseConfirmation(bool enable);
 
 protected slots:
@@ -57,7 +61,45 @@ signals:
 private:
 	QStringList m_resourceList;
 	bool m_demoMode = false;
-
 };
+
+
+
+/**
+ * @brief OnlineClient::wasmLoadFileToFileSystem
+ * @param accept
+ * @param inst
+ * @return
+ */
+
+template<typename T>
+void OnlineClient::wasmLoadFileToFileSystem(const QString &accept, T *inst, void (T::*func)(const QString &, const QByteArray &))
+{
+	struct LoadFileData {
+		QString name;
+		QByteArray buffer;
+	};
+
+	LoadFileData *fileData = new LoadFileData();
+
+	QWasmLocalFileAccess::openFile(accept.toStdString(),
+								   [](bool fileSelected) {
+		LOG_CDEBUG("client") << "File selected" << fileSelected;
+	},
+	[fileData](uint64_t size, const std::string name) -> char* {
+		fileData->name = QString::fromStdString(name);
+		fileData->buffer.resize(size);
+		return fileData->buffer.data();
+	},
+	[fileData, inst, func](){
+		QByteArray content = fileData->buffer;
+		QString name = fileData->name;
+		if (inst && func)
+			std::invoke(func, inst, name, content);
+		delete fileData;
+	});
+}
+
+
 
 #endif // ONLINECLIENT_H

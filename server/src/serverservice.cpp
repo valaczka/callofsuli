@@ -65,6 +65,8 @@ ServerService::ServerService(int &argc, char **argv)
 {
 	m_consoleAppender = new ColorConsoleAppender;
 
+	m_consoleAppender->setDetailsLevel(Logger::Info);
+
 #ifndef QT_NO_DEBUG
 	m_consoleAppender->setFormat(QString::fromStdString(
 									 "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
@@ -87,7 +89,7 @@ ServerService::ServerService(int &argc, char **argv)
 	connect(&m_mainTimer, &QTimer::timeout, this, &ServerService::onMainTimerTimeout);
 	m_mainTimer.setInterval(500);
 
-	LOG_CTRACE("service") << "Server service created";
+	//LOG_CTRACE("service") << "Server service created";
 }
 
 
@@ -100,7 +102,7 @@ ServerService::~ServerService()
 	delete m_settings;
 	delete m_networkManager;
 
-	LOG_CTRACE("service") << "Server service destroyed";
+	//LOG_CTRACE("service") << "Server service destroyed";
 }
 
 
@@ -147,8 +149,8 @@ Service::CommandResult ServerService::onStart()
 	// Load WASM
 
 	if (!wasmLoad()) {
-		quit();
-		return CommandResult::Failed;
+		//quit();
+		//return CommandResult::Failed;
 	}
 
 
@@ -273,8 +275,8 @@ Service::CommandResult ServerService::onReload()
 	}
 
 	if (!wasmLoad()) {
-		quit();
-		return CommandResult::Failed;
+		/*quit();
+		return CommandResult::Failed;*/
 	}
 
 	if (m_webSocketServer)
@@ -368,8 +370,8 @@ bool ServerService::wasmLoad()
 bool ServerService::wasmUnload()
 {
 	if (m_loadedWasmResource.isEmpty()) {
-		LOG_CERROR("service") << "Invalid wasm resource";
-		return false;
+		LOG_CWARNING("service") << "Missing wasm resource";
+		return true;
 	}
 
 	if (QResource::unregisterResource(m_loadedWasmResource, QStringLiteral("/wasm"))) {

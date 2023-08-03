@@ -60,6 +60,12 @@ public:
 	TeacherMapEditor *mapEditor() const;
 	void setMapEditor(TeacherMapEditor *newMapEditor);
 
+
+#ifdef Q_OS_WASM
+	Q_INVOKABLE void mapImportWasm();
+#endif
+
+
 signals:
 	void mapEditorChanged();
 
@@ -71,6 +77,7 @@ protected:
 
 private:
 	void loadEditorPage();
+	void _mapImportContent(const QString &name, const QByteArray &content);
 
 private:
 	TeacherMapList *const m_mapList;

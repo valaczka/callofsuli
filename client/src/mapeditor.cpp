@@ -222,7 +222,7 @@ void MapEditor::wasmSaveAs(const bool &createNew)
 	if (!client)
 		return;
 
-	client->wasmSaveContent(data, m_displayName);
+	client->wasmSaveContent(data, m_displayName.append(QStringLiteral(".map")));
 }
 
 

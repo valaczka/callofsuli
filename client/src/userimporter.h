@@ -28,14 +28,19 @@
 #define USERIMPORTER_H
 
 #include "qjsonarray.h"
-#include "qlambdathreadworker.h"
 #include <QObject>
 
 class Client;
 
-/*#ifdef Q_OS_WASM
+#ifdef Q_OS_WASM
 class OnlineClient;
-#endif*/
+#else
+#include "qlambdathreadworker.h"
+#endif
+
+/**
+ * @brief The UserImporter class
+ */
 
 class UserImporter : public QObject
 {
@@ -68,10 +73,10 @@ public slots:
 	void downloadTemplate(const QUrl &file);
 	void upload(const QUrl &file);
 
-/*#ifdef Q_OS_WASM
-	void wasmDownloadTempate();
+#ifdef Q_OS_WASM
+	void wasmDownloadTemplate();
 	void wasmUpload();
-#endif*/
+#endif
 
 signals:
 	void loadStarted();
@@ -86,7 +91,6 @@ private:
 	void _load(const QByteArray &data);
 
 	Client *const m_client;
-	QLambdaThreadWorker *m_worker = nullptr;
 
 	QByteArray m_templateContent;
 	static const QHash<Field, QString> m_fieldMap;
@@ -94,9 +98,11 @@ private:
 	QJsonArray m_records;
 	QJsonArray m_errorRecords;
 
-/*#ifdef Q_OS_WASM
+#ifdef Q_OS_WASM
 	OnlineClient *m_onlineClient = nullptr;
-#endif*/
+#else
+	QLambdaThreadWorker *m_worker = nullptr;
+#endif
 };
 
 #endif // USERIMPORTER_H

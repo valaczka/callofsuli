@@ -47,10 +47,17 @@
 StandaloneClient::StandaloneClient(Application *app, QObject *parent)
 	: Client(app, parent)
 	, m_serverList(new ServerList(this))
+	#ifdef NO_SOUND_THREAD
+	, m_sound(new Sound(this))
+	#else
 	, m_worker(new QLambdaThreadWorker())
+	#endif
 {
 	LOG_CTRACE("client") << "StandaloneClient created:" << this;
 
+#ifdef NO_SOUND_THREAD
+	m_sound->init();
+#else
 	QDefer ret;
 
 	m_worker->execInThread([this, &ret](){
@@ -61,6 +68,7 @@ StandaloneClient::StandaloneClient(Application *app, QObject *parent)
 	});
 
 	QDefer::await(ret);
+#endif
 
 	QSettings s;
 	s.beginGroup(QStringLiteral("sound"));
@@ -101,6 +109,10 @@ StandaloneClient::~StandaloneClient()
 	s.setValue(QStringLiteral("vibrate"), m_vibrate);
 	s.endGroup();
 
+#ifdef NO_SOUND_THREAD
+	m_sound->deleteLater();
+	m_sound = nullptr;
+#else
 	QDefer ret;
 
 	m_worker->execInThread([this, &ret](){
@@ -113,6 +125,7 @@ StandaloneClient::~StandaloneClient()
 
 	delete m_worker;
 	m_worker = nullptr;
+#endif
 
 	delete m_serverList;
 	m_serverList = nullptr;
@@ -132,6 +145,11 @@ QSoundEffect *StandaloneClient::newSoundEffect()
 {
 	QSoundEffect *e = nullptr;
 
+#ifdef NO_SOUND_THREAD
+	e = new QSoundEffect(m_sound);
+	const qreal vol = (qreal) volumeSfx() / 100.0;
+	e->setVolume(vol);
+#else
 	QDefer ret;
 
 	m_worker->execInThread([&e, this, &ret](){
@@ -142,6 +160,7 @@ QSoundEffect *StandaloneClient::newSoundEffect()
 	});
 
 	QDefer::await(ret);
+#endif
 
 	m_soundEffectList.append(e);
 
@@ -174,9 +193,13 @@ void StandaloneClient::removeSoundEffect(QSoundEffect *effect)
 
 void StandaloneClient::playSound(const QString &source, const Sound::SoundType &soundType)
 {
+#ifdef NO_SOUND_THREAD
+	m_sound->playSound(source, soundType);
+#else
 	m_worker->execInThread([this, soundType, source](){
 		m_sound->playSound(source, soundType);
 	});
+#endif
 }
 
 
@@ -188,9 +211,13 @@ void StandaloneClient::playSound(const QString &source, const Sound::SoundType &
 
 void StandaloneClient::stopSound(const QString &source, const Sound::SoundType &soundType)
 {
+#ifdef NO_SOUND_THREAD
+	m_sound->stopSound(source, soundType);
+#else
 	m_worker->execInThread([this, soundType, source](){
 		m_sound->stopSound(source, soundType);
 	});
+#endif
 }
 
 
@@ -421,10 +448,12 @@ void StandaloneClient::serverListSave(const QDir &dir)
 
 void StandaloneClient::_setVolume(const Sound::ChannelType &channel, int newVolume)
 {
+#ifndef NO_SOUND_THREAD
 	if (!m_worker)
 		return;
 
 	m_worker->execInThread([this, channel, newVolume](){
+#endif
 		int v = m_sound->volume(channel);
 
 		if (v == newVolume)
@@ -445,7 +474,10 @@ void StandaloneClient::_setVolume(const Sound::ChannelType &channel, int newVolu
 			emit volumeVoiceOverChanged();
 			break;
 		}
+
+#ifndef NO_SOUND_THREAD
 	});
+#endif
 }
 
 

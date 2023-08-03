@@ -79,7 +79,7 @@ make
 Köszönet a szoftverhez használt könyvtárak és multimédiás tartalmak alkotóinak, melyek forrása itt található: [CREDITS.md](CREDITS.md)
 
 ## 📜 Licensz
-**Call  of  Suli -- Copyright  (c)  2012-2023  Valaczka  János  Pál**
+**Call  of  Suli – Copyright  (c)  2012-2023  Valaczka  János  Pál**
 
 This  program  is  free  software:  you  can  redistribute  it  and/or  modify it  under  the  terms  of  the [GNU  General  Public  License](LICENSE) as  published  by the  Free  Software  Foundation,  either  version  3  of  the  License,  or (at  your  option)  any  later  version.  
 

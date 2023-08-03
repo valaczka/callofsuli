@@ -122,6 +122,9 @@ Application::Application(int &argc, char **argv)
 	QCoreApplication::setApplicationVersion(m_version);
 	QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
+	QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
+
+
 	if (!m_instance)
 		m_instance = this;
 

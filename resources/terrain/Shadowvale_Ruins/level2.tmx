@@ -97,7 +97,7 @@
   </object>
   <object id="48" x="1025.33" y="737.333">
    <properties>
-    <property name="block" type="int" value="2"/>
+    <property name="block" type="int" value="1"/>
    </properties>
    <polyline points="0,0 155.333,-0.666667"/>
   </object>
@@ -121,13 +121,13 @@
   </object>
   <object id="53" x="1480.67" y="1061.33">
    <properties>
-    <property name="block" type="int" value="3"/>
+    <property name="block" type="int" value="2"/>
    </properties>
    <polyline points="0,0 61.6457,-6.66667e-05"/>
   </object>
   <object id="56" x="2080.28" y="898.101">
    <properties>
-    <property name="block" type="int" value="3"/>
+    <property name="block" type="int" value="5"/>
    </properties>
    <polyline points="0,0 181.171,-6.66667e-07"/>
   </object>
@@ -139,7 +139,7 @@
   </object>
   <object id="61" x="2010.67" y="485.333">
    <properties>
-    <property name="block" type="int" value="4"/>
+    <property name="block" type="int" value="3"/>
    </properties>
    <polyline points="0,0 152.666,-2.00007"/>
   </object>
@@ -147,7 +147,7 @@
    <properties>
     <property name="block" type="int" value="4"/>
    </properties>
-   <polyline points="0,0 142.666,-2.00007"/>
+   <polyline points="0,0 81.0988,-1.13694 142.666,-2.00007"/>
   </object>
   <object id="63" x="1353.33" y="485.333">
    <properties>
@@ -175,7 +175,7 @@
   </object>
   <object id="96" x="2014.18" y="900.985">
    <properties>
-    <property name="block" type="int" value="3"/>
+    <property name="block" type="int" value="5"/>
    </properties>
    <polyline points="0,0 108.855,-6.66667e-07"/>
   </object>

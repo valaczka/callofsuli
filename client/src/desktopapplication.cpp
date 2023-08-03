@@ -52,6 +52,7 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 #endif
 
 	m_appender = new ColorConsoleAppender;
+	m_appender->setDetailsLevel(Logger::Info);
 
 #ifndef QT_NO_DEBUG
 	m_appender->setFormat(QString::fromStdString(
