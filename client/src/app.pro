@@ -3,13 +3,14 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private quickcontrols2 charts
 
-!wasm: QT += multimedia sql networkauth
+!wasm: QT += multimedia sql
 
 CONFIG += c++17
 
 include(../../common.pri)
 include(../../version/version.pri)
 include(../../lib/callofsuli-core/callofsuli-core.pri)
+include(../../translations/translations.pri)
 
 
 DESTDIR = ../..
@@ -264,5 +265,8 @@ HEADERS += \
 	userimporter.h \
 	userloglist.h \
 	websocket.h
+
+DISTFILES += \
+	translation.pri
 
 

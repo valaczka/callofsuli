@@ -73,6 +73,8 @@ Client::Client(Application *app, QObject *parent)
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
 	startCache();
+
+	retranslate(Utils::settingsGet(QStringLiteral("window/language"), QStringLiteral("hu")).toString());
 }
 
 
@@ -96,6 +98,13 @@ Client::~Client()
 	m_utils = nullptr;
 
 	m_cache.removeAll();
+
+	if (m_translator) {
+		/// TODO: Utils::settingsSet(QStringLiteral("window/language"), m_translator->language());
+		m_application->application()->removeTranslator(m_translator);
+		delete m_translator;
+		m_translator = nullptr;
+	}
 }
 
 /**
@@ -1186,7 +1195,7 @@ void Client::parseUrl()
 	}
 
 
-	if (server()->url().isParentOf(m_parseUrl)) {
+	if (server()->url() == m_parseUrl || server()->url().isParentOf(m_parseUrl)) {
 		LOG_CDEBUG("client") << "URL parsed successfuly";
 
 		const QString &page = q.queryItemValue(QStringLiteral("page"));
@@ -1371,6 +1380,38 @@ QVariantMap Client::userToMap(const QJsonObject &data) const
 	User u;
 	u.loadFromJson(data, true);
 	return u.toVariantMap();
+}
+
+
+/**
+ * @brief Client::retranslate
+ * @param language
+ */
+
+void Client::retranslate(const QString &language)
+{
+	QLocale locale(language);
+
+	LOG_CINFO("client") << "Retranslate:" << qPrintable(language) << "-" << qPrintable(locale.name());
+
+	QTranslator *translator = new QTranslator();
+
+	if (translator->load(locale, QStringLiteral("qt"), QStringLiteral("_"), QStringLiteral(":/"))) {
+		LOG_CDEBUG("client") << "Translator file loaded:" << qPrintable(translator->filePath());
+
+		if (m_translator) {
+			m_application->application()->removeTranslator(m_translator);
+			delete m_translator;
+			m_translator = nullptr;
+		}
+
+		m_application->application()->installTranslator(translator);
+		m_translator = translator;
+		m_application->engine()->retranslate();
+	} else {
+		LOG_CWARNING("client") << "Can't load translator language:" << qPrintable(locale.name());
+		delete translator;
+	}
 }
 
 

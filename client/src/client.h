@@ -226,6 +226,8 @@ public:
 
 	Q_INVOKABLE QVariantMap userToMap(const QJsonObject &data) const;
 
+	Q_INVOKABLE void retranslate(const QString &language = QStringLiteral("hu"));
+
 
 	Updater *updater() const;
 
@@ -306,6 +308,8 @@ protected:
 	QUrl m_parseUrl;
 
 	Updater *m_updater = nullptr;
+
+	QTranslator *m_translator = nullptr;
 };
 
 
