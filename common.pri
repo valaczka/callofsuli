@@ -28,7 +28,7 @@ WasmWithBox2D = true
 
 # Android
 
-AndroidVersionCode = 35
+AndroidVersionCode = 36
 
 
 #########################################################################

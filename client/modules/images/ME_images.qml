@@ -66,6 +66,56 @@ QFormColumn {
 			onModified: loadData(id)
 
 		}
+
+		function importFromDir() {
+			if (!objectiveEditor.editor)
+				return
+
+			if (Qt.platform.os == "wasm") {
+				Client.messageError(qsTr("Platform error"), qsTr("Belső hiba"))
+			} else
+				Qaterial.DialogManager.openFromComponent(_importDialog)
+		}
+	}
+
+	Component {
+		id: _importDialog
+
+		QFileDialog {
+			title: qsTr("Képek importálása")
+			isDirectorySelect: true
+			onDirectorySelected: {
+				let list = objectiveEditor.editor.uploadImageDirectory(dir)
+
+				if (list.length) {
+					for (let i=0; i<list.length; ++i) {
+						_binding._addItem(list[i].name, list[i].id)
+					}
+
+					root.modified = true
+					Client.Utils.settingsSet("folder/mapEditor", dir.toString())
+				}
+
+				Client.snack(qsTr("%1 kép importálva").arg(list.length))
+			}
+
+			folder: Client.Utils.settingsGet("folder/mapEditor", "")
+		}
+	}
+
+
+	QButton {
+		id: _importButton
+		anchors.horizontalCenter: parent.horizontalCenter
+		text: qsTr("Importálás")
+		icon.source: Qaterial.Icons.imageMultipleOutline
+		outlined: true
+		flat: true
+		visible: !root.readOnly && Qt.platform.os != "wasm"
+		foregroundColor: Qaterial.Colors.green400
+		onClicked: {
+			_binding.importFromDir()
+		}
 	}
 
 
