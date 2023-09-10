@@ -123,7 +123,7 @@ Row {
 
 		QFileDialog {
 			title: qsTr("Kép hozzáadása")
-			filters: [ "*.jpg", "*.png", "*.gif", "*.bmp" ]
+			filters: [ "*.jpg", "*.jpeg", "*.png", "*.gif", "*.bmp" ]
 			onFileSelected: {
 				var img = editor.uploadImage(file)
 

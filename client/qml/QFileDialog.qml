@@ -20,12 +20,15 @@ Qaterial.ModalDialog
 	property alias filters: folderListModel.nameFilters
 	property alias modelFolder: folderListModel.folder
 
+	property bool isDirectorySelect: false
+
 
 	horizontalPadding: 0
 
 	dialogImplicitWidth: 600
 
 	signal fileSelected(url file)
+	signal directorySelected(url dir)
 
 
 	property url _selectedFile: ""
@@ -127,6 +130,7 @@ Qaterial.ModalDialog
 				id:  folderListModel
 
 				showDirsFirst: true
+				//showFiles: !control.isDirectorySelect
 
 				onFolderChanged: setFilePath()
 
@@ -168,7 +172,8 @@ Qaterial.ModalDialog
 
 				text: fileName
 				icon.source: fileIsDir ? Qaterial.Icons.folderOpen : Qaterial.Icons.fileOutline
-				textColor: fileIsDir ? Qaterial.Style.accentColor : Qaterial.Style.primaryTextColor()
+				textColor: fileIsDir ? Qaterial.Style.accentColor :
+									   control.isDirectorySelect ? Qaterial.Style.disabledTextColor() : Qaterial.Style.primaryTextColor()
 
 				MouseArea {
 					anchors.fill: parent
@@ -177,6 +182,8 @@ Qaterial.ModalDialog
 					onClicked: {
 						if (item.fileIsDir) {
 							folderListModel.folder = fileUrl
+						} else if (control.isDirectorySelect) {
+							return
 						} else if (!isSave) {
 							_selectedFile = fileUrl
 							control.accept()
@@ -202,7 +209,7 @@ Qaterial.ModalDialog
 			leadingIconSource: Qaterial.Icons.file
 			leadingIconInline: true
 
-			visible: isSave && !itemNoPermissions.visible
+			visible: isSave && !itemNoPermissions.visible && !control.isDirectorySelect
 
 			suffixText: control.suffix != "" ? (text.endsWith(control.suffix) ? "" : control.suffix) : ""
 
@@ -214,6 +221,7 @@ Qaterial.ModalDialog
 	}
 
 	standardButtons: itemNoPermissions.visible ? Dialog.Close :
+												 control.isDirectorySelect ? Dialog.Ok | Dialog.Cancel :
 												 isSave ? Dialog.Save | Dialog.Cancel : Dialog.Cancel
 
 	Component.onCompleted: {
@@ -223,13 +231,18 @@ Qaterial.ModalDialog
 
 
 	onOpened: {
-		if (isSave)
+		if (isSave && !isDirectorySelect)
 			tfFile.forceActiveFocus()
 		else
 			view.forceActiveFocus()
 	}
 
 	onAccepted: {
+		if (isDirectorySelect) {
+			directorySelected(folderListModel.folder)
+			return
+		}
+
 		if (isSave && tfFile.text == "")
 			return
 

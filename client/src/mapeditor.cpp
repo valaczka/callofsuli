@@ -28,6 +28,7 @@
 #include "application.h"
 #include "mapimage.h"
 #include "gamepickable.h"
+#include "qimagereader.h"
 #include "question.h"
 #include "abstractlevelgame.h"
 #include "gameterrain.h"
@@ -1017,7 +1018,7 @@ MapEditorImage *MapEditor::uploadImage(const QUrl &url)
 	const QByteArray &data = Utils::fileContent(url.toLocalFile(), &err);
 
 	if (err) {
-		m_client->messageError(tr("Nem olvasható a fájl:\n").arg(url.toLocalFile()));
+		m_client->messageError(tr("Nem olvasható a fájl:\n").append(url.toLocalFile()));
 		return nullptr;
 	}
 
@@ -1027,6 +1028,98 @@ MapEditorImage *MapEditor::uploadImage(const QUrl &url)
 
 	m_map->imageList()->append(i);
 	return i;
+}
+
+
+
+
+/**
+ * @brief MapEditor::uploadImageDirectory
+ * @param url
+ * @return
+ */
+
+QVariantList MapEditor::uploadImageDirectory(const QUrl &url)
+{
+	if (!m_map)
+		return {};
+
+	QDir dir(url.toLocalFile());
+
+	LOG_CDEBUG("client") << "Import images from directory:" << qPrintable(dir.absolutePath());
+
+	if (!dir.isReadable()) {
+		m_client->messageError(tr("Nem olvasható a könyvtár:\n").append(dir.absolutePath()));
+		return {};
+	}
+
+	struct ImgData {
+		QString name;
+		MapEditorImage *image = nullptr;
+	};
+
+	QVector<ImgData> imageList;
+
+	bool success = true;
+
+	foreach (const QFileInfo &info, dir.entryInfoList(QDir::Files|QDir::Readable)) {
+		const QString &d = info.absoluteFilePath();
+		const QByteArray &f = QImageReader::imageFormat(d);
+		LOG_CTRACE("client") << "- check:" << qPrintable(d) << "-" << f;
+
+		if (f.isEmpty())
+			continue;
+
+		bool err = false;
+		const QByteArray &data = Utils::fileContent(d, &err);
+
+		if (err) {
+			m_client->messageError(tr("Nem olvasható a fájl:\n").append(d));
+			success = false;
+			break;
+		}
+
+		MapEditorImage *i = new MapEditorImage(m_map);
+		i->setId(m_map->nextIndexImage());
+		i->setData(data);
+
+		imageList.append({ Utils::fileBaseName(d), i});
+	}
+
+
+	if (!success) {
+		for (ImgData &d : imageList) {
+			if (d.image)
+				delete d.image;
+			d.image = nullptr;
+		}
+
+		return {};
+	}
+
+	QList<MapEditorImage *> _list;
+	QVariantList ret;
+
+	_list.reserve(imageList.size());
+
+	foreach (const ImgData &d, imageList) {
+		if (!d.image)
+			continue;
+
+		_list.append(d.image);
+		ret.append(QVariantMap{
+					   { QStringLiteral("name"), d.name },
+					   { QStringLiteral("id"), d.image->id() }
+				   });
+	}
+
+
+	LOG_CTRACE("client") << "Imported:" << ret;
+
+	if (!_list.isEmpty())
+		m_map->imageList()->append(_list);
+
+	return ret;
 }
 
 

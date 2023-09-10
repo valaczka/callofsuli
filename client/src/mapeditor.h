@@ -99,6 +99,7 @@ public:
 	Q_INVOKABLE QVariantList terrainListModel() const;
 
 	Q_INVOKABLE MapEditorImage *uploadImage(const QUrl &url);
+	Q_INVOKABLE QVariantList uploadImageDirectory(const QUrl &url);
 
 	Q_INVOKABLE MapEditorMission* missionAdd(const QString &name = QString());
 	Q_INVOKABLE void missionRemove(MapEditorMission *mission);
