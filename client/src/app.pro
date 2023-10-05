@@ -69,6 +69,7 @@ CommonRcc.files += $$files($$PWD/../../share/*.cres)
 
 android: CommonRcc.path = /assets
 ios: CommonRcc.path = share
+macx: CommonRcc.path = Contents/Resources
 
 
 !isEmpty(CommonRcc.path)	INSTALLS += CommonRcc
@@ -139,6 +140,15 @@ ios {
 	QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
 }
 
+
+
+macx {
+	CONFIG += app_bundle
+
+	QMAKE_BUNDLE_DATA += CommonRcc
+	ICON = $$PWD/../deploy/CallOfSuli.icns
+	QMAKE_TARGET_BUNDLE_PREFIX = hu.piarista.vjp
+}
 
 
 ######## SOURCES ###############

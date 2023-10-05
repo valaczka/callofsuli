@@ -10,4 +10,5 @@ MODULES_LIST = truefalse \
 				sequence \
 				order \
 				images \
-				writer
+				writer \
+				text

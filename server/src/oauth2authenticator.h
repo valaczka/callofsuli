@@ -51,6 +51,9 @@ public:
 	virtual void setCodeFlow(OAuth2CodeFlow *flow) const = 0;
 	virtual QJsonObject localAuthData() const = 0;
 	virtual bool parseResponse(const QUrlQuery &query) = 0;
+	virtual bool profileUpdateSupport() const = 0;
+	Q_INVOKABLE virtual bool profileUpdate(const QString &username, const QJsonObject &data) const = 0;
+	virtual void profileUpdateWithAccessToken(const QString &username, const QString &token) const = 0;
 
 	OAuth2CodeFlow *addCodeFlow();
 	void removeCodeFlow(OAuth2CodeFlow *flow);
@@ -64,6 +67,7 @@ public:
 	const char *type() const;
 
 	virtual AdminAPI::User getUserInfoFromIdToken(const QJsonObject &data) const;
+
 
 
 protected:

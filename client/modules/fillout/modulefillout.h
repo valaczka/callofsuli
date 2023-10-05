@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return "fillout"; }
 	inline bool isStorageModule() const override { return false; }
 	inline QString readableName() const override { return tr("Szövegkitöltés"); }
-	inline QString icon() const override { return "image://font/Books/\uf120"; }
+	inline QString icon() const override { return "image://font/Academic/\uf182"; }
 
 	inline QString qmlEditor() const override { return "ME_fillout.qml"; }
 	inline QString qmlQuestion() const override { return "GQ_fillout.qml"; }

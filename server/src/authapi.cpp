@@ -648,24 +648,21 @@ void AuthAPI::updateOAuth2TokenInfo(OAuth2CodeFlow *flow) const
 void AuthAPI::updateOAuth2UserData(OAuth2CodeFlow *flow) const
 {
 	Q_ASSERT(flow);
+	Q_ASSERT(flow->authenticator());
 
-	m_service->databaseMain()->worker()->execInThread([flow, this]() mutable {
-		const AdminAPI::User &user = flow->getUserInfo();
+	const AdminAPI::User &user = flow->getUserInfo();
 
-		QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
+	if (user.username.isEmpty()) {
+		LOG_CWARNING("oauth2") << "Invalid user in code flow:" << flow->state();
+		return;
+	}
 
-		QMutexLocker(m_service->databaseMain()->mutex());
+	if (flow->authenticator()->profileUpdateSupport()) {
+		const QJsonObject &oauthData = flow->token().toJson();
 
-		if (QueryBuilder::q(db)
-				.addQuery("UPDATE user SET ").setCombinedPlaceholder()
-				.addField("familyName", user.familyName)
-				.addField("givenName", user.givenName)
-				.addField("picture", user.picture)
-				.addQuery(" WHERE username=").addValue(user.username).exec()) {
-			LOG_CDEBUG("oauth2") << "OAuth tokenData updated:" << user.username;
-		} else {
-			LOG_CWARNING("oauth2") << "User data update failed:" << user.username;
-		}
-
-	});
+		QMetaObject::invokeMethod(flow->authenticator(), "profileUpdate", Qt::QueuedConnection,
+								  Q_ARG(QString, user.username),
+								  Q_ARG(QJsonObject, oauthData)
+								  );
+	}
 }

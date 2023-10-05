@@ -29,6 +29,10 @@
 #include "writerengine.h"
 #include <QRandomGenerator>
 
+const QRegularExpression ModuleWriter::m_expressionWord("(?<!\\\\)%((?:[^%\\\\]|\\\\.)+)%");
+const QString ModuleWriter::m_punctation = QStringLiteral(",.-:;?!– ");
+const QString ModuleWriter::m_placeholder = QStringLiteral("...");
+
 
 ModuleWriter::ModuleWriter(QObject *parent) : QObject(parent)
 {
@@ -131,6 +135,28 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		m[QStringLiteral("image")] = image;
 
 		return m;
+	} else if (storage->name() == QStringLiteral("sequence")) {
+		const QStringList &list = storageData.value(QStringLiteral("items")).toStringList();
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = list.join(QStringLiteral(" "));
+		m[QStringLiteral("details")] = tr("Kiegészítendő: %1, további szavak: %2")
+				.arg(data.value(QStringLiteral("words")).toInt())
+				.arg(data.value(QStringLiteral("pad")).toInt());
+		m[QStringLiteral("image")] = QLatin1String("");
+
+		return m;
+	} else if (storage->name() == QStringLiteral("text")) {
+		QStringList list = storageData.value(QStringLiteral("items")).toStringList();
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = list.isEmpty() ? QLatin1String("") : list.at(0);
+		if (!list.isEmpty())
+			list.removeFirst();
+		m[QStringLiteral("details")] = list.isEmpty() ? QLatin1String("") : list.join(QStringLiteral("\n"));
+		m[QStringLiteral("image")] = QLatin1String("");
+
+		return m;
 	}
 
 	return QVariantMap({{QStringLiteral("title"), QLatin1String("")},
@@ -173,6 +199,12 @@ QVariantList ModuleWriter::generateAll(const QVariantMap &data, ModuleInterface 
 
 	if (storage->name() == QStringLiteral("images"))
 		return generateImages(data, storageData);
+
+	if (storage->name() == QStringLiteral("sequence"))
+		return generateSequence(data, storageData);
+
+	if (storage->name() == QStringLiteral("text"))
+		return generateText(data, storageData);
 
 
 	return QVariantList();
@@ -293,6 +325,182 @@ QVariantList ModuleWriter::generateImages(const QVariantMap &data, const QVarian
 		retMap[QStringLiteral("answer")] = text;
 
 		ret.append(retMap);
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief ModuleWriter::generateSequence
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleWriter::generateSequence(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	const QStringList &list = storageData.value(QStringLiteral("items")).toStringList();
+
+	int words = qMax(1, data.value(QStringLiteral("words")).toInt());
+	const int &pad = data.value(QStringLiteral("pad")).toInt();
+
+	int padLeft = -1, padRight = -1, start = 0;
+
+	if (list.size() > words)
+		start = QRandomGenerator::global()->bounded(list.size()-words);
+
+
+	if (pad > 0) {
+		if (start > 0)
+			padLeft = QRandomGenerator::global()->bounded(qMin(pad+1, start));
+		else
+			padLeft = 0;
+
+		padRight = pad-padLeft;
+
+		padLeft += -qMin(0, list.size()-(start+words+padRight));
+	}
+
+	QString question;
+	QStringList answerList;
+
+	for (int i=0; i<list.size(); ++i) {
+		if ((padLeft > -1 && i < start-padLeft) ||
+				(padRight > -1 && i >= start+words+padRight))
+			continue;
+
+		QString w = list.at(i).simplified();
+
+		if (i>=start && i<start+words) {
+			QString wPunct, wPrep;
+
+			while (!w.isEmpty() && m_punctation.contains(w.at(0))) {
+				wPrep.append(w.at(0));
+				w.remove(0, 1);
+			}
+
+			while (!w.isEmpty() && m_punctation.contains(w.right(1))) {
+				wPunct.prepend(w.right(1));
+				w.chop(1);
+			}
+
+			if (!question.endsWith(m_placeholder)) {
+				if (!question.isEmpty())
+					question.append(QStringLiteral(" "));
+				question.append(wPrep+m_placeholder);
+			}
+
+			if (!wPunct.isEmpty())
+				question.append(wPunct);
+
+			answerList.append(w);
+
+		} else {
+			if (!question.isEmpty())
+				question.append(QStringLiteral(" "));
+			question.append(w);
+		}
+	}
+
+
+	QVariantMap retMap;
+
+	retMap[QStringLiteral("question")] = question;
+	retMap[QStringLiteral("answer")] = answerList.join(QStringLiteral(" "));
+
+	ret.append(retMap);
+	return ret;
+}
+
+
+
+
+/**
+ * @brief ModuleWriter::generateText
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	foreach (const QString &text, storageData.value(QStringLiteral("items")).toStringList()) {
+		if (text.isEmpty())
+			continue;
+
+
+		struct ItemStruct {
+			QString text;
+			bool isQuestion;
+
+			ItemStruct(const QString &t, const bool &q) : text(t), isQuestion(q) {}
+		};
+
+		QVector<ItemStruct> items;
+
+		QRegularExpressionMatchIterator i = m_expressionWord.globalMatch(text);
+
+		int _cptrd = 0;
+
+
+		while (i.hasNext())
+		{
+			QRegularExpressionMatch match = i.next();
+
+			int _s = match.capturedStart();
+			if (_s > _cptrd) {
+				foreach (QString s, text.mid(_cptrd, _s-_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+					items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
+			}
+			_cptrd = match.capturedStart()+match.capturedLength();
+
+			QString q = text.mid(match.capturedStart(1), match.capturedLength(1)).replace(QStringLiteral("\\%"), QStringLiteral("%"));
+
+			items.append(ItemStruct(q, true));
+		}
+
+
+		foreach (QString s, text.mid(_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+			items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
+
+
+		QVector<int> questionIndexList;
+
+		for (int i=0; i<items.size(); ++i) {
+			if (items.at(i).isQuestion)
+				questionIndexList.append(i);
+		}
+
+		foreach (int questionIndex, questionIndexList) {
+			QString question;
+
+			for (int i=0; i<items.size(); ++i) {
+				const QString &w = items.at(i).text;
+
+				if (!question.isEmpty() && !w.isEmpty() && !m_punctation.contains(w.at(0)))
+					question.append(QStringLiteral(" "));
+
+				if (i == questionIndex)
+					question.append(m_placeholder);
+				else
+					question.append(w);
+
+			}
+
+
+			QVariantMap retMap;
+
+			retMap[QStringLiteral("question")] = question;
+			retMap[QStringLiteral("answer")] = items.at(questionIndex).text;
+
+			ret.append(retMap);
+		}
 	}
 
 	return ret;

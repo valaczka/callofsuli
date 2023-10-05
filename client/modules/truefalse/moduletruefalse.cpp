@@ -156,6 +156,8 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 	const QString &mode = data.value(QStringLiteral("mode")).toString();
 
 	if (mode == QStringLiteral("left") || mode == QStringLiteral("right")) {
+		const QString &question = data.value(QStringLiteral("question")).toString();
+
 		foreach (const QVariant &v, storageData.value(QStringLiteral("bindings")).toList()) {
 			const QVariantMap &m = v.toMap();
 			const QString &left = m.value(QStringLiteral("first")).toString();
@@ -164,14 +166,25 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 
 			if (!left.isEmpty()) {
 				QVariantMap retMap;
-				retMap[QStringLiteral("question")] = left;
+				if (question.contains(QStringLiteral("%1")))
+					retMap[QStringLiteral("question")] = question.arg(left);
+				else if (question.isEmpty())
+					retMap[QStringLiteral("question")] = left;
+				else
+					retMap[QStringLiteral("question")] = question+QStringLiteral(" ")+left;
+
 				retMap[QStringLiteral("answer")] = (mode == QStringLiteral("left")) ? 1 : 0;
 				ret.append(retMap);
 			}
 
 			if (!right.isEmpty()) {
 				QVariantMap retMap;
-				retMap[QStringLiteral("question")] = right;
+				if (question.contains(QStringLiteral("%1")))
+					retMap[QStringLiteral("question")] = question.arg(right);
+				else if (question.isEmpty())
+					retMap[QStringLiteral("question")] = right;
+				else
+					retMap[QStringLiteral("question")] = question+QStringLiteral(" ")+right;
 				retMap[QStringLiteral("answer")] = (mode == QStringLiteral("right")) ? 1 : 0;
 				ret.append(retMap);
 			}

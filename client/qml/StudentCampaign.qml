@@ -173,14 +173,14 @@ Item {
 							font.pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
 							lineHeight: 1.2
 
-							text: task ? (task.required ? qsTr("* ") : "") + task.readableCriterion(root.mapHandler.mapList) : " "
+							text: task ? (task.required ? qsTr("* ") : "") + task.readableCriterion(root.mapHandler.mapList, campaign) : " "
 
 							Connections {
 								target: root.mapHandler
 
 								function onReloaded() {
 									if (_delegate.task)
-										labelText.text = _delegate.task.readableCriterion(root.mapHandler.mapList)
+										labelText.text = _delegate.task.readableCriterion(root.mapHandler.mapList, campaign)
 								}
 							}
 

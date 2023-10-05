@@ -143,6 +143,9 @@ Qaterial.Page
 
 			height: contentHeight
 
+			boundsBehavior: Flickable.StopAtBounds
+			boundsMovement: Flickable.StopAtBounds
+
 			refreshProgressVisible: Client.webSocket.pending
 			refreshEnabled: true
 			onRefreshRequest: reloadUsers()

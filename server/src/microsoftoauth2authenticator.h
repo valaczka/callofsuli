@@ -40,6 +40,9 @@ public:
 	void setCodeFlow(OAuth2CodeFlow *flow) const override;
 	bool parseResponse(const QUrlQuery &query) override;
 	QJsonObject localAuthData() const override;
+	bool profileUpdateSupport() const override { return false; }
+	bool profileUpdate(const QString &/*username*/, const QJsonObject &/*data*/) const override { return false; }
+	void profileUpdateWithAccessToken(const QString &/*username*/, const QString &/*token*/) const override {};
 
 	AdminAPI::User getUserInfoFromIdToken(const QJsonObject &data) const override;
 };

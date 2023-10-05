@@ -64,8 +64,8 @@ private:
 	bool _createMapsTables(Database *db);
 	bool _createStatTables(Database *db);
 	bool _upgradeTables();
-	bool _upgradeMapsTables();
-	bool _upgradeStatTables();
+	bool _upgradeMapsTables(Database *mapsDb);
+	bool _upgradeStatTables(Database *statDb);
 	bool _createUsers();
 	bool _createRanksAndGrades();
 	bool _databaseImport(const QString &dbFile);

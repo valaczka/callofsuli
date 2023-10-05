@@ -26,6 +26,7 @@
 
 #include "task.h"
 #include "application.h"
+#include "campaign.h"
 
 Task::Task(QObject *parent)
 	: SelectableObject{parent}
@@ -265,7 +266,7 @@ int Task::gradeValue() const
  * @return
  */
 
-QString Task::readableCriterion(BaseMapList *mapList) const
+QString Task::readableCriterion(BaseMapList *mapList, Campaign *campaign) const
 {
 	const QString &module = m_criterion.value(QStringLiteral("module")).toString();
 	const int &num = m_criterion.value(QStringLiteral("num")).toInt();
@@ -297,9 +298,14 @@ QString Task::readableCriterion(BaseMapList *mapList) const
 			}
 		}
 
-		return tr("Teljesítsd a %1 pálya %2 küldetést LEVEL %3%4 szinten").arg(m_mapName, missionName)
-				.arg(level)
-				.arg(deathmatch ? tr(" SUDDEN DEATH") : QLatin1String(""));
+		if (campaign && campaign->usedMapUuids().size() < 2)
+			return tr("Teljesítsd a %1 küldetést LEVEL %2%3 szinten").arg(missionName)
+					.arg(level)
+					.arg(deathmatch ? tr(" SUDDEN DEATH") : QLatin1String(""));
+		else
+			return tr("Teljesítsd a %1 pálya %2 küldetést LEVEL %3%4 szinten").arg(m_mapName, missionName)
+					.arg(level)
+					.arg(deathmatch ? tr(" SUDDEN DEATH") : QLatin1String(""));
 	}
 
 	return tr("-- Érvénytelen modul: %1 --").arg(module);
@@ -312,7 +318,7 @@ QString Task::readableCriterion(BaseMapList *mapList) const
  * @return
  */
 
-QString Task::readableShortCriterion(BaseMapList *mapList) const
+QString Task::readableShortCriterion(BaseMapList *mapList, Campaign *campaign) const
 {
 	const QString &module = m_criterion.value(QStringLiteral("module")).toString();
 	const int &num = m_criterion.value(QStringLiteral("num")).toInt();
@@ -345,9 +351,14 @@ QString Task::readableShortCriterion(BaseMapList *mapList) const
 			}
 		}
 
-		return tr("%1 / %2 level %3%4").arg(mapName, missionName)
-				.arg(level)
-				.arg(deathmatch ? tr(" S D") : QLatin1String(""));
+		if (campaign && campaign->usedMapUuids().size() < 2)
+			return tr("%1 level %2%3").arg(missionName)
+					.arg(level)
+					.arg(deathmatch ? tr(" S D") : QLatin1String(""));
+		else
+			return tr("%1 / %2 level %3%4").arg(mapName, missionName)
+					.arg(level)
+					.arg(deathmatch ? tr(" S D") : QLatin1String(""));
 	}
 
 	return tr("-- Érvénytelen --");

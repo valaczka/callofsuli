@@ -357,7 +357,7 @@ bool DatabaseMain::_checkMapsSystemTable(Database *mapsDb)
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeMapsTables())
+			if (_upgradeMapsTables(mapsDb))
 				return _checkMapsSystemTable(mapsDb);
 			else
 				return false;
@@ -423,7 +423,7 @@ bool DatabaseMain::_checkStatSystemTable(Database *statDb)
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeMapsTables())
+			if (_upgradeStatTables(statDb))
 				return _checkStatSystemTable(statDb);
 			else
 				return false;
@@ -583,7 +583,22 @@ bool DatabaseMain::_createStatTables(Database *db)
 bool DatabaseMain::_upgradeTables()
 {
 	LOG_CERROR("db") << "Missing implementation";
-	return false;
+
+	QSqlDatabase db = QSqlDatabase::database(m_dbName);
+
+	QueryBuilder q(db);
+
+	q.addQuery("UPDATE system SET ")
+			.setCombinedPlaceholder()
+			.addField("versionMajor", m_service->versionMajor())
+			.addField("versionMinor", m_service->versionMinor())
+			;
+
+	if (!q.exec())
+		return false;
+
+
+	return true;
 }
 
 
@@ -592,10 +607,25 @@ bool DatabaseMain::_upgradeTables()
  * @return
  */
 
-bool DatabaseMain::_upgradeMapsTables()
+bool DatabaseMain::_upgradeMapsTables(Database *mapsDb)
 {
 	LOG_CERROR("db") << "Missing implementation";
-	return false;
+
+	QSqlDatabase d = QSqlDatabase::database(mapsDb->dbName());
+
+	QueryBuilder q(d);
+
+	q.addQuery("UPDATE system SET ")
+			.setCombinedPlaceholder()
+			.addField("versionMajor", m_service->versionMajor())
+			.addField("versionMinor", m_service->versionMinor())
+			;
+
+	if (!q.exec())
+		return false;
+
+
+	return true;
 }
 
 
@@ -604,10 +634,25 @@ bool DatabaseMain::_upgradeMapsTables()
  * @return
  */
 
-bool DatabaseMain::_upgradeStatTables()
+bool DatabaseMain::_upgradeStatTables(Database *statDb)
 {
 	LOG_CERROR("db") << "Missing implementation";
-	return false;
+
+	QSqlDatabase d = QSqlDatabase::database(statDb->dbName());
+
+	QueryBuilder q(d);
+
+	q.addQuery("UPDATE system SET ")
+			.setCombinedPlaceholder()
+			.addField("versionMajor", m_service->versionMajor())
+			.addField("versionMinor", m_service->versionMinor())
+			;
+
+	if (!q.exec())
+		return false;
+
+
+	return true;
 }
 
 

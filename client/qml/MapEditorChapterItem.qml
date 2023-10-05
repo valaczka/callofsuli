@@ -18,6 +18,8 @@ Qaterial.Expandable {
 
 	signal removeActionRequest()
 
+	expanded: true
+
 	header: Item {
 		width: root.width
 		height: _headerRow.height

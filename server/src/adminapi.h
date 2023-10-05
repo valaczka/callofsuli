@@ -166,6 +166,7 @@ public:
 
 	/// CONFIG FUNCTIONS
 	void configUpdate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void usersProfileUpdate(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 
 	static QDeferred<bool, int> getClassIdFromCode(const AbstractAPI *api, const QString &code);

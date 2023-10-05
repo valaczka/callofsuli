@@ -20,6 +20,8 @@ QFormColumn {
 
 	readonly property bool isBinding: storage && storage.module == "binding"
 	readonly property bool isImages: storage && storage.module == "images"
+	readonly property bool isSequence: storage && storage.module == "sequence"
+	readonly property bool isText: storage && storage.module == "text"
 
 
 	QFormComboBox {
@@ -51,7 +53,7 @@ QFormColumn {
 		helperText: isBinding ? qsTr("A \%1 jelöli a generált elem helyét") : ""
 		field: "question"
 		width: parent.width
-		visible: !isImages
+		visible: !isImages && !isSequence && !isText
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -75,15 +77,43 @@ QFormColumn {
 		placeholderText: qsTr("Ez lesz a helyes válasz")
 		field: "correct"
 		width: parent.width
-		visible: !isBinding && !isImages
+		visible: !isBinding && !isImages && !isSequence && !isText
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormSpinBox {
+		id: _countWords
+		text: qsTr("Egymást követő kiegészítendő szavak száma:")
+		field: "words"
+
+		from: 1
+		to: 5
+		stepSize: 1
+
+		spin.editable: true
+
+		visible: isSequence
+	}
+
+	QFormSpinBox {
+		id: _countPad
+		text: qsTr("További megjelenített szavak száma (0=mind):")
+		field: "pad"
+
+		from: 0
+		to: 20
+		stepSize: 1
+
+		spin.editable: true
+
+		visible: isSequence
 	}
 
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isBinding || isImages
+		visible: isBinding || isImages || isSequence || isText
 	}
 
 
@@ -92,7 +122,9 @@ QFormColumn {
 	function loadData() {
 		let _items = isBinding ? [_question, _modeBinding] :
 								 isImages ? [_questionII] :
-											[_question, _correctAnswer]
+											isSequence ? [_countWords, _countPad] :
+														 isText ? [] :
+																  [_question, _correctAnswer]
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -108,8 +140,10 @@ QFormColumn {
 
 	function previewData() {
 		let _items = isBinding ? [_question, _modeBinding] :
-								 isImages ? [_questionII, _answerImage] :
-											[_question, _correctAnswer]
+								 isImages ? [_questionII] :
+											isSequence ? [_countWords, _countPad] :
+														 isText ? [] :
+																  [_question, _correctAnswer]
 
 		return getItems(_items)
 	}

@@ -118,6 +118,18 @@ QFormColumn {
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormTextField {
+		id: _questionBindingSelect
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		helperText: qsTr("A \%1 jelöli az elem helyét")
+		field: "question"
+		width: parent.width
+		visible: isBinding && (_modeBinding.currentValue === "left" || _modeBinding.currentValue === "right")
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
 
 
 
@@ -131,7 +143,7 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isBinding ? [_modeBinding, _questionBinding] :
+		let _items = isBinding ? [_modeBinding, _questionBinding, _questionBindingSelect] :
 								 isNumbers ? [_modeNumbers, _questionBinding] :
 											 [_questionNone, _correct]
 
@@ -149,7 +161,7 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isBinding ? [_modeBinding, _questionBinding] :
+		let _items = isBinding ? [_modeBinding, _questionBindingSelect.visible ? _questionBindingSelect : _questionBinding] :
 								 isNumbers ? [_modeNumbers, _questionBinding] :
 											 [_questionNone, _correct]
 

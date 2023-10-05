@@ -60,6 +60,7 @@ AdminAPI::AdminAPI(ServerService *service)
 	addMap("^user/noclass/*$", this, &AdminAPI::classUsersNone);
 	addMap("^user/create/*$", this, &AdminAPI::userCreate);
 	addMap("^user/import/*$", this, &AdminAPI::userImport);
+	addMap("^user/update/*$", this, &AdminAPI::usersProfileUpdate);
 	addMap("^user/([^/]+)/update/*$", this, &AdminAPI::userUpdate);
 	addMap("^user/([^/]+)/delete/*$", this, &AdminAPI::userDeleteOne);
 	addMap("^user/([^/]+)/password/*$", this, &AdminAPI::userPassword);
@@ -675,7 +676,7 @@ void AdminAPI::userImport(const QRegularExpressionMatch &, const QJsonObject &da
 
 		if (!exists.isEmpty())
 			LOG_CWARNING("client") << "Users already exists:" << exists;
-			/*return responseAnswer(response, {
+		/*return responseAnswer(response, {
 									  { QStringLiteral("error"), QStringLiteral("user exists") },
 									  { QStringLiteral("list"), QJsonArray::fromStringList(exists) }
 								  });*/
@@ -809,6 +810,70 @@ void AdminAPI::configUpdate(const QRegularExpressionMatch &, const QJsonObject &
 			m_service->config().set(realData);
 
 		responseAnswerOk(response);
+	});
+}
+
+
+
+
+
+
+/**
+ * @brief AdminAPI::usersProfileUpdate
+ * @param response
+ */
+
+void AdminAPI::usersProfileUpdate(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	LOG_CINFO("client") << "Update users profile";
+
+	databaseMainWorker()->execInThread([response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QJsonArray userList;
+
+		{
+			QMutexLocker(databaseMain()->mutex());
+
+			bool err = false;
+
+			userList = QueryBuilder::q(db).addQuery("SELECT username, oauth, oauthData FROM auth WHERE oauth IS NOT NULL AND oauthData IS NOT NULL")
+					.execToJsonArray(&err);
+
+			if (err)
+				responseErrorSql(response);
+			else
+				responseAnswerOk(response);
+		}
+
+		foreach (const QJsonValue &v, userList) {
+			const QJsonObject &o = v.toObject();
+
+			const QString &username = o.value(QStringLiteral("username")).toString();
+			const QString &oauth = o.value(QStringLiteral("oauth")).toString();
+			const QJsonObject &oauthData = Utils::byteArrayToJsonObject(o.value(QStringLiteral("oauthData")).toString().toUtf8());
+
+			if (username.isEmpty() || oauth.isEmpty())
+				continue;
+
+			OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(oauth.toLatin1());
+
+			if (!authenticator) {
+				LOG_CWARNING("client") << "Invalid authenticator:" << oauth;
+				continue;
+			}
+
+			if (!authenticator->profileUpdateSupport()) {
+				LOG_CTRACE("client") << "Authenticator not supports profile update:" << oauth;
+				continue;
+			}
+
+			QMetaObject::invokeMethod(authenticator, "profileUpdate", Qt::QueuedConnection,
+									  Q_ARG(QString, username),
+									  Q_ARG(QJsonObject, oauthData)
+									  );
+		}
+
 	});
 }
 

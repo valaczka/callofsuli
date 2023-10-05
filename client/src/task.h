@@ -42,6 +42,8 @@ class Task;
 using TaskList = qolm::QOlm<Task>;
 Q_DECLARE_METATYPE(TaskList*)
 
+class Campaign;
+
 /**
  * @brief The Task class
  */
@@ -96,8 +98,8 @@ public:
 
 	int gradeValue() const;
 
-	Q_INVOKABLE QString readableCriterion(BaseMapList *mapList) const;
-	Q_INVOKABLE QString readableShortCriterion(BaseMapList *mapList) const;
+	Q_INVOKABLE QString readableCriterion(BaseMapList *mapList, Campaign *campaign = nullptr) const;
+	Q_INVOKABLE QString readableShortCriterion(BaseMapList *mapList, Campaign *campaign = nullptr) const;
 
 	bool success() const;
 	void setSuccess(bool newSuccess);

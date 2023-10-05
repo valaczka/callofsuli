@@ -26,6 +26,8 @@
 
 #include "googleoauth2authenticator.h"
 #include "Logger.h"
+#include "serverservice.h"
+#include "utils.h"
 
 
 
@@ -69,6 +71,169 @@ QJsonObject GoogleOAuth2Authenticator::localAuthData() const
 
 	return d;
 }
+
+
+
+
+
+
+
+
+
+/**
+ * @brief GoogleOAuth2Authenticator::profileUpdate
+ * @return
+ */
+
+bool GoogleOAuth2Authenticator::profileUpdate(const QString &username, const QJsonObject &data) const
+{
+	LOG_CDEBUG("oauth2") << "Update user profile:" << qPrintable(username);
+
+	const QDateTime &exp = QDateTime::fromSecsSinceEpoch(data.value(QStringLiteral("exp")).toInt());
+
+	if (exp <= QDateTime::currentDateTime()) {
+		LOG_CTRACE("oauth2") << "Token expired, get access token for user:" << qPrintable(username);
+
+		const QString &refreshToken = data.value(QStringLiteral("refresh")).toString();
+
+		if (refreshToken.isEmpty()) {
+			LOG_CDEBUG("oauth2") << "Missing refresh token for user:" << qPrintable(username);
+			return false;
+		}
+
+
+		QUrlQuery q;
+		q.addQueryItem(QStringLiteral("client_id"), m_oauth.clientId);
+		q.addQueryItem(QStringLiteral("client_secret"), m_oauth.clientKey);
+		q.addQueryItem(QStringLiteral("grant_type"), QStringLiteral("refresh_token"));
+		q.addQueryItem(QStringLiteral("refresh_token"), refreshToken);
+
+		QNetworkRequest r{QUrl(QStringLiteral("https://accounts.google.com/o/oauth2/token"))};
+		r.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/x-www-form-urlencoded"));
+
+		QNetworkReply *reply = service()->networkManager()->post(r, q.toString(QUrl::FullyEncoded).toUtf8());
+
+		connect(reply, &QNetworkReply::errorOccurred, this, [](const QNetworkReply::NetworkError &err){
+			LOG_CERROR("oauth2") << "Profile update error:" << err;
+		});
+
+
+		connect(reply, &QNetworkReply::finished, this, [reply, this, username, data]{
+			LOG_CTRACE("oauth2") << "Refresh token received for user:" << qPrintable(username);
+
+			const QByteArray &tdata = reply->readAll();
+			reply->deleteLater();
+
+			const QJsonObject &json = Utils::byteArrayToJsonObject(tdata);
+
+			const QDateTime &tokenExp = QDateTime::currentDateTime().addSecs(json.value(QStringLiteral("expires_in")).toInt());
+			const QString &accessToken = json.value(QStringLiteral("access_token")).toString();
+
+			if (!service() || !service()->databaseMain())
+				return;
+
+			QJsonObject newData = data;
+			newData[QStringLiteral("exp")] = tokenExp.toSecsSinceEpoch();
+			newData[QStringLiteral("token")] = accessToken;
+
+
+			service()->databaseMain()->worker()->execInThread([this, newData, username]{
+				QSqlDatabase db = QSqlDatabase::database(service()->databaseMain()->dbName());
+
+				QMutexLocker(service()->databaseMain()->mutex());
+
+				const QString &d = QString::fromUtf8(QJsonDocument(newData).toJson(QJsonDocument::Compact));
+
+				if (!QueryBuilder::q(db).addQuery("UPDATE auth SET ")
+						.setCombinedPlaceholder()
+						.addField("oauthData", d)
+						.addQuery(" WHERE username=").addValue(username)
+						.exec()) {
+					LOG_CERROR("oauth2") << "User update error:" << qPrintable(username);
+					return;
+				}
+
+				LOG_CINFO("oauth2") << "User token updated:" << qPrintable(username);
+			});
+
+			profileUpdateWithAccessToken(username, accessToken);
+		});
+	} else {
+		profileUpdateWithAccessToken(username, data.value(QStringLiteral("token")).toString());
+	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief GoogleOAuth2Authenticator::profileUpdateWithAccessToken
+ * @param username
+ * @param token
+ */
+
+void GoogleOAuth2Authenticator::profileUpdateWithAccessToken(const QString &username, const QString &token) const
+{
+	if (username.isEmpty() || token.isEmpty())
+		return;
+
+	//LOG_CINFO("oauth2") << "Update user profile:" << qPrintable(username);
+
+	QUrlQuery q;
+	q.addQueryItem(QStringLiteral("alt"), QStringLiteral("json"));
+	q.addQueryItem(QStringLiteral("access_token"), token);
+
+	QUrl url(QStringLiteral("https://www.googleapis.com/oauth2/v1/userinfo"));
+	url.setQuery(q);
+
+	QNetworkRequest r{url};
+	r.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/x-www-form-urlencoded"));
+
+	QNetworkReply *reply = service()->networkManager()->get(r);
+
+	connect(reply, &QNetworkReply::errorOccurred, this, [](const QNetworkReply::NetworkError &err){
+		LOG_CERROR("oauth2") << "Profile update error:" << err;
+	});
+
+
+	connect(reply, &QNetworkReply::finished, this, [reply, this, username]{
+		LOG_CTRACE("oauth2") << "Profile received for user:" << qPrintable(username);
+
+		const QByteArray &tdata = reply->readAll();
+		reply->deleteLater();
+
+		const QJsonObject &json = Utils::byteArrayToJsonObject(tdata);
+
+		if (!service() || !service()->databaseMain())
+			return;
+
+		service()->databaseMain()->worker()->execInThread([this, json, username]{
+			QSqlDatabase db = QSqlDatabase::database(service()->databaseMain()->dbName());
+
+			QMutexLocker(service()->databaseMain()->mutex());
+
+			if (QueryBuilder::q(db)
+					.addQuery("UPDATE user SET ").setCombinedPlaceholder()
+					.addField("familyName", json.value(QStringLiteral("family_name")).toString())
+					.addField("givenName", json.value(QStringLiteral("given_name")).toString())
+					.addField("picture", json.value(QStringLiteral("picture")).toString())
+					.addQuery(" WHERE username=").addValue(username).exec()) {
+				LOG_CINFO("oauth2") << "User profile updated:" << qPrintable(username);
+			} else {
+				LOG_CERROR("oauth2") << "User profile update error:" << qPrintable(username);
+			}
+		});
+
+	});
+
+
+}
+
+
+
+
+
 
 
 /**

@@ -51,7 +51,7 @@ public:
 	inline QString qmlQuestion() const override { return "GQ_writer.qml"; }
 	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
 
-	inline QStringList storageModules() const override { return {"binding", "images"}; }
+	inline QStringList storageModules() const override { return {"binding", "images", "sequence", "text"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
@@ -65,9 +65,15 @@ public:
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateSequence(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateText(const QVariantMap &data, const QVariantMap &storageData) const;
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); };
 
+private:
+	static const QRegularExpression m_expressionWord;
+	static const QString m_punctation;
+	static const QString m_placeholder;
 };
 
 #endif // MODULEFILLOUT_H
