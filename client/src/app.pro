@@ -97,7 +97,7 @@ android {
 	alist.output = $$PWD/android/AndroidManifest.xml
 	QMAKE_SUBSTITUTES += alist
 
-	ANDROID_TARGET_SDK_VERSION = 31
+	ANDROID_TARGET_SDK_VERSION = 33
 
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 

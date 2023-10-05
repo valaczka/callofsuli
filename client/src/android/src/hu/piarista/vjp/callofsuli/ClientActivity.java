@@ -32,11 +32,11 @@ public class ClientActivity extends QtActivity
 		  }
 	  }
 
-	  //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+	  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
 		  getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
 				  WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
 		  getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-	  //}
+	  }
 	}
 
 
@@ -82,6 +82,10 @@ public class ClientActivity extends QtActivity
 
 	public Object getSafeArea() {
 		final Rect safeInsetRect = new Rect();
+
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+			return safeInsetRect;
+		}
 
 		final WindowInsets windowInsets = getWindow().getDecorView().getRootWindowInsets();
 		if (windowInsets == null) {
