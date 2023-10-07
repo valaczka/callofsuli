@@ -18,7 +18,11 @@ for(lang, LCONVERT_LANGS) {
 	outfile = $$OUT_PWD/qt_$${lang}.qm
 
 	!exists($$outfile): {
-		!system("$$LCONVERT -i $$join(lang_files, ' ') -o $$outfile"): error(lconvert error $${lang})
+		exists($$PWD/qt_$${lang}.qm) {
+			!system("cp $$PWD/qt_$${lang}.qm $$outfile"): error(copy error $${lang})
+		} else {
+			!system("$$LCONVERT -i $$join(lang_files, ' ') -o $$outfile"): error(lconvert error $${lang})
+		}
 	}
 
 	LCONVERT_OUTPUTS += $$outfile

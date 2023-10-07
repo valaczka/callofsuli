@@ -174,7 +174,7 @@ QPageGradient {
 				id: _delegate
 				width: _view.width
 
-				text: model.readableMap+" | "+model.readableMission+" [%1%2]".arg(model.level).arg(model.deathmatch ? qsTr(" SD") : "")
+				text: model.readableMission+" | "+model.readableMap+" [%1%2]".arg(model.level).arg(model.deathmatch ? qsTr(" SD") : "")
 				secondaryText: {
 					let t = JS.readableTimestamp(model.timestamp)
 					switch (model.mode) {
