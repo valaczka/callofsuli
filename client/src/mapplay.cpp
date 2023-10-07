@@ -279,7 +279,7 @@ void MapPlay::reloadMissionList()
 			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, false);
 			pMission->missionLevelList()->append(pLevel);
 
-			if (mLevel->canDeathmatch()) {
+            if (mLevel->canDeathmatch() && mission->modes().testFlag(GameMap::Action)) {
 				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, true);
 				pMission->missionLevelList()->append(pLevel);
 			}

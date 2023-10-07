@@ -28,6 +28,8 @@ Qaterial.ApplicationWindow
 	minimumWidth: 320
 	minimumHeight: 240
 
+    color: "black"
+
 	property bool _completed: false
 	readonly property bool _allLoaded: mainStackView._loaded && _completed
 

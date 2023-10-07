@@ -135,23 +135,42 @@ Item
 							text: qsTr("%1 XP").arg(Number(xp).toLocaleString())
 							color: Qaterial.Style.accentColor
 						}
-						Row {
-							anchors.right: parent.right
-							spacing: 2
-							visible: streak
-							Qaterial.LabelCaption {
-								anchors.verticalCenter: parent.verticalCenter
-								text: streak
-								color: Qaterial.Style.primaryTextColor()
-							}
-							Qaterial.Icon {
-								anchors.verticalCenter: parent.verticalCenter
-								icon: Qaterial.Icons.fire
-								color: Qaterial.Colors.orange500
-								width: Qaterial.Style.smallIcon*0.8
-								height: Qaterial.Style.smallIcon*0.8
-							}
-						}
+                        Row {
+                            anchors.right: parent.right
+                            spacing: 2
+
+                            Qaterial.LabelCaption {
+                                visible: trophy
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: trophy
+                                color: Qaterial.Colors.green700
+                            }
+
+                            Qaterial.Icon {
+                                visible: trophy
+                                anchors.verticalCenter: parent.verticalCenter
+                                icon: Qaterial.Icons.trophy
+                                color: Qaterial.Colors.green700
+                                width: Qaterial.Style.smallIcon*0.8
+                                height: Qaterial.Style.smallIcon*0.8
+                            }
+
+                            Qaterial.LabelCaption {
+                                visible: streak
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: streak
+                                color: Qaterial.Style.primaryTextColor()
+                                leftPadding: trophy ? 5 * Qaterial.Style.pixelSizeRatio : 0
+                            }
+                            Qaterial.Icon {
+                                visible: streak
+                                anchors.verticalCenter: parent.verticalCenter
+                                icon: Qaterial.Icons.fire
+                                color: Qaterial.Colors.orange500
+                                width: Qaterial.Style.smallIcon*0.8
+                                height: Qaterial.Style.smallIcon*0.8
+                            }
+                        }
 					}
 				}
 			}

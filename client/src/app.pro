@@ -106,6 +106,7 @@ android {
 	ANDROID_VERSION_NAME = $$VERSION
 
 	QTDIR = $$dirname(QMAKE_QMAKE)/../qml
+
 }
 
 
