@@ -70,6 +70,8 @@ void openUrl(const std::string &url)
 
 void MobileUtils::vibrate(const int &milliseconds)
 {
+	int apiLevel = QtAndroid::androidSdkVersion();
+
 	QAndroidJniObject activity = QtAndroid::androidActivity();
 
 	if (!activity.isValid()) {
@@ -85,18 +87,6 @@ void MobileUtils::vibrate(const int &milliseconds)
 	}
 
 
-	jint amplitude = QAndroidJniObject::getStaticField<jint>("android/os/VibrationEffect", "DEFAULT_AMPLITUDE");
-
-	jlong ms = milliseconds;
-
-	QAndroidJniObject effect = QAndroidJniObject::callStaticObjectMethod("android/os/VibrationEffect", "createOneShot",
-																		 "(JI)Landroid/os/VibrationEffect;", ms, amplitude);
-
-	if (!effect.isValid()) {
-		LOG_CWARNING("utils") << "Invalid VibrationEffect";
-		return;
-	}
-
 	QAndroidJniObject vibrator = activity.callObjectMethod("getSystemService",
 														   "(Ljava/lang/String;)Ljava/lang/Object;",
 														   service.object<jstring>());
@@ -104,7 +94,23 @@ void MobileUtils::vibrate(const int &milliseconds)
 	{
 		LOG_CDEBUG("utils") << "Call Android Vibrator" << milliseconds;
 
-		vibrator.callMethod<void>("vibrate", "(Landroid/os/VibrationEffect;)V", effect.object());
+		jlong ms = milliseconds;
+
+		if (apiLevel >= 26) {
+			jint amplitude = QAndroidJniObject::getStaticField<jint>("android/os/VibrationEffect", "DEFAULT_AMPLITUDE");
+
+			QAndroidJniObject effect = QAndroidJniObject::callStaticObjectMethod("android/os/VibrationEffect", "createOneShot",
+																				 "(JI)Landroid/os/VibrationEffect;", ms, amplitude);
+
+			if (!effect.isValid()) {
+				LOG_CWARNING("utils") << "Invalid VibrationEffect";
+				return;
+			}
+
+			vibrator.callMethod<void>("vibrate", "(Landroid/os/VibrationEffect;)V", effect.object());
+		} else {
+			vibrator.callMethod<void>("vibrate", "(J)V", ms);
+		}
 	}
 	else
 	{

@@ -814,9 +814,7 @@ bool GameMapMissionIface::getLockTree(QVector<GameMapMissionLevelIface *> *listP
 		bool contains = false;
 
 		foreach (GameMapMissionLevelIface *it, *listPtr) {
-			if (it->mission() == l->mission()) {
-				if (l->m_level > it->m_level)
-					it->m_level = l->m_level;
+			if (it->mission() == l->mission()) {                
 				contains = true;
 				break;
 			}

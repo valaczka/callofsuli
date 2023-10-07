@@ -50,6 +50,8 @@ Item {
 					rippleActive: _area.containsMouse
 					ripplePressed: _area.pressed
 
+					onMissionChanged: _tagList.reloadModel()
+
 					contentItem: MouseArea {
 						id: _area
 						acceptedButtons: Qt.LeftButton
