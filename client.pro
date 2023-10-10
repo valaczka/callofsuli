@@ -15,7 +15,7 @@ SUBDIRS += \
 		modules \
 		application
 
-linux|win32|mac:!android:!ios {
+linux|win32:!android:!ios {
 	if($$CreateBundle):	SUBDIRS += bundle-client
 } else:wasm: {
 	SUBDIRS += bundle-client

@@ -279,7 +279,7 @@ void MapPlay::reloadMissionList()
 			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, false);
 			pMission->missionLevelList()->append(pLevel);
 
-            if (mLevel->canDeathmatch() && mission->modes().testFlag(GameMap::Action)) {
+			if (mLevel->canDeathmatch() && mission->modes().testFlag(GameMap::Action)) {
 				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, true);
 				pMission->missionLevelList()->append(pLevel);
 			}
@@ -1118,7 +1118,7 @@ QList<MapPlayMissionLevel *> MapPlaySolverDefault::updateLock()
 
 		mission->setLockDepth(0);
 
-		for (int i=1; i<mission->missionLevelList()->size(); ++i) {
+		for (int i=1; i<=mission->missionLevelList()->size(); ++i) {
 			MapPlayMissionLevel *level = m_mapPlay->getMissionLevel(gMission->level(i), false);
 			MapPlayMissionLevel *dmLevel = m_mapPlay->getMissionLevel(gMission->level(i), true);
 

@@ -5,8 +5,8 @@ qtPrepareTool(LCONVERT, lconvert)
 
 isEmpty(LCONVERT): error(Missing lconvert)
 
+!exists($$OUT_PWD): error($$OUT_PWD not exists)
 
-LCONVERT_OUTPUTS =
 
 for(lang, LCONVERT_LANGS) {
 	lang_files = $$PWD/i18n_$${lang}.ts
