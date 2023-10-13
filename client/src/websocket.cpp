@@ -367,6 +367,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 	}
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
+	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
@@ -416,6 +417,7 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 	}
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/octet-stream"));
+	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
@@ -471,6 +473,7 @@ EventStream *WebSocket::getEventStream(const API &api, const QString &path, cons
 	r.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
+	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
 
 	EventStream *stream = new EventStream(this);
 	stream->setRequest(r);

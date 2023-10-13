@@ -81,7 +81,9 @@ Handler::~Handler()
 void Handler::handle(HttpRequest *request, HttpResponse *response)
 {
 	LOG_CDEBUG("client") << qPrintable(request->method()+QStringLiteral(":")) << qPrintable(request->uriStr())
-						 << qPrintable(request->address().toString());
+						 << qPrintable(request->address().toString()) << qPrintable(QStringLiteral("[")+
+																					request->headerDefault(QStringLiteral("User-Agent"), QStringLiteral("invalid"))
+																					+QStringLiteral("]"));
 
 	const QString &method = request->method();
 	const QString &uri = request->uriStr();

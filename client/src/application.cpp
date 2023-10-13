@@ -132,6 +132,10 @@ Application::Application(int &argc, char **argv)
 
 	m_engine = new QQmlApplicationEngine(m_application);
 
+	m_userAgent = QStringLiteral("CallOfSuli/%1.%2.%3 (%4; %5)")
+			.arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
+			.arg(QSysInfo::prettyProductName())
+			.arg(QSysInfo::currentCpuArchitecture());
 }
 
 
@@ -520,6 +524,22 @@ void Application::loadModules()
 	}
 
 }
+
+
+
+
+
+/**
+ * @brief Application::userAgent
+ * @return
+ */
+
+const QString &Application::userAgent() const
+{
+	return m_userAgent;
+}
+
+
 
 
 /**

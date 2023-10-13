@@ -83,7 +83,7 @@ public class ClientActivity extends QtActivity
 	public Object getSafeArea() {
 		final Rect safeInsetRect = new Rect();
 
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
 			return safeInsetRect;
 		}
 

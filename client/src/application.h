@@ -74,6 +74,8 @@ public:
 
 	void selectUrl(const QUrl &url);
 
+	const QString &userAgent() const;
+
 protected:
 	virtual bool loadMainQml();
 	virtual bool loadResources();
@@ -103,6 +105,8 @@ protected:
 
 	QHash<QString, ModuleInterface*> m_objectiveModules;
 	QHash<QString, ModuleInterface*> m_storageModules;
+
+	QString m_userAgent;
 };
 
 #endif // APPLICATION_H
