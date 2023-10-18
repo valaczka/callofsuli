@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
+import SortFilterProxyModel 0.2
 import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
@@ -28,6 +29,42 @@ QPage {
 	property Campaign campaign: null
 	property TeacherMapHandler mapHandler: null
 
+	//property TeacherGroupList _groupListTeacher: Client.cache("teacherGroupList")
+
+	SortFilterProxyModel {
+		id: _sortedGroupListTeacher
+		sourceModel: _groupModel
+		sorters: [
+			StringSorter {
+				roleName: "text"
+			}
+		]
+
+		function reload() {
+			_groupModel.clear()
+
+			if (!campaign)
+				return
+
+			let l = Client.cache("teacherGroupList")
+
+			for (let i=0; i<l.count; ++i) {
+				let g = l.get(i)
+				if (!g.active)
+					continue
+				_groupModel.append({
+									   text: g.fullName,
+									   id: g.groupid
+								   })
+			}
+		}
+	}
+
+	ListModel {
+		id: _groupModel
+	}
+
+
 	readonly property string _campaignName: campaign ? campaign.readableName : ""
 
 	title: campaign ? _campaignName : qsTr("Új kihívás")
@@ -44,6 +81,7 @@ QPage {
 		QMenu {
 			id: menuDetails
 
+			QMenuItem { action: _actionDuplicate }
 			QMenuItem { action: _actionRemove }
 		}
 
@@ -115,12 +153,49 @@ QPage {
 									 group.reload()
 									 Client.stackPop(control)
 								 })
-								 .fail(JS.failMessage("Törlés sikertelen"))
+								 .fail(JS.failMessage(qsTr("Törlés sikertelen")))
 							 },
 							 text: qsTr("Biztosan törlöd a kihívást?"),
 							 title: _campaignName,
 							 iconSource: Qaterial.Icons.closeCircle
 						 })
+	}
+
+
+	Action {
+		id: _actionDuplicate
+		enabled: campaign
+		text: qsTr("Kettőzés")
+		icon.source: Qaterial.Icons.contentDuplicate
+		onTriggered: {
+			_sortedGroupListTeacher.reload()
+
+			Qaterial.DialogManager.openCheckListView(
+						{
+							onAccepted: function(indexList)
+							{
+								if (indexList.length === 0)
+									return
+
+								var l = []
+
+								for (let i=0; i<indexList.length; ++i) {
+									l.push(_sortedGroupListTeacher.get(indexList[i]).id)
+								}
+
+								Client.send(WebSocket.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
+												list: l
+											})
+								.done(function(r){
+									Client.snack(qsTr("Hadjárat megkettőzve %1x").arg(r.list ? r.list.length : 0))
+								})
+								.fail(JS.failMessage("Megkettőzés sikertelen"))
+							},
+							title: qsTr("Hadjárat megkettőzése"),
+							standardButtons: Dialog.Cancel | Dialog.Ok,
+							model: _sortedGroupListTeacher
+						})
+		}
 	}
 
 }

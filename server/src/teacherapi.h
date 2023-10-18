@@ -171,6 +171,7 @@ public:
 	void campaignDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
 	void campaignRun(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void campaignFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	void campaignDuplicate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
 	void taskOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void task(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;

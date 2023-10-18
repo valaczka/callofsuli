@@ -29,10 +29,21 @@
 #include "serverservice.h"
 
 AbstractAPI::AbstractAPI(ServerService *service)
-	: m_service(service)
+	: QObject()
+	, m_service(service)
 {
 	Q_ASSERT(m_service);
 	Q_ASSERT(m_service->databaseMain());
+}
+
+
+/**
+ * @brief AbstractAPI::~AbstractAPI
+ */
+
+AbstractAPI::~AbstractAPI()
+{
+	m_validResponses.clear();
 }
 
 
@@ -61,6 +72,19 @@ void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QSt
 			return responseError(response, "permission denied");
 		}
 	}
+
+	LOG_CTRACE("client") << "Add response" << response;
+
+	m_validResponses.append(response);
+	QObject::connect(response, &QObject::destroyed, this, [this, response](){
+		LOG_CTRACE("client") << "Remove response" << response;
+		m_validResponses.removeAll(response);
+	});
+
+	QObject::connect(response, &HttpResponse::cancelled, this, [this, response](){
+		LOG_CDEBUG("client") << "Response cancelled" << response;
+		m_validResponses.removeAll(response);
+	});
 
 	QJsonObject data;
 
@@ -148,7 +172,7 @@ QLambdaThreadWorker *AbstractAPI::databaseMainWorker() const
 
 void AbstractAPI::responseError(HttpResponse *response, const char *errorStr) const
 {
-	if (!response) {
+	if (!m_validResponses.contains(response) || !response) {
 		LOG_CTRACE("client") << "Reponse null";
 		return;
 	}
@@ -170,11 +194,6 @@ void AbstractAPI::responseError(HttpResponse *response, const char *errorStr) co
 
 void AbstractAPI::responseAnswer(HttpResponse *response, const char *field, const QJsonValue &value) const
 {
-	if (!response) {
-		LOG_CTRACE("client") << "Reponse null";
-		return;
-	}
-
 	responseAnswer(response, QJsonObject{
 					   { field, value }
 				   });
@@ -189,7 +208,7 @@ void AbstractAPI::responseAnswer(HttpResponse *response, const char *field, cons
 
 void AbstractAPI::responseAnswer(HttpResponse *response, const QJsonObject &value) const
 {
-	if (!response) {
+	if (!m_validResponses.contains(response) || !response) {
 		LOG_CTRACE("client") << "Reponse null";
 		return;
 	}

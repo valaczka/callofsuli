@@ -47,11 +47,13 @@ class ServerService;
  * @brief The AbstractAPI class
  */
 
-class AbstractAPI
+class AbstractAPI : public QObject
 {
+	Q_OBJECT
+
 public:
 	AbstractAPI(ServerService *service);
-	virtual ~AbstractAPI() {}
+	virtual ~AbstractAPI();
 
 	struct Map {
 		const char *regularExpression;
@@ -110,6 +112,7 @@ protected:
 	ServerService *m_service = nullptr;
 	Credential m_credential;
 	Credential::Role m_validateRole = Credential::Role::None;
+	QVector<HttpResponse*> m_validResponses;
 };
 
 #endif // ABSTRACTAPI_H

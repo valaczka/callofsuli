@@ -63,6 +63,7 @@ TeacherAPI::TeacherAPI(ServerService *service)
 	addMap("^campaign/(\\d+)/run/*$", this, &TeacherAPI::campaignRun);
 	addMap("^campaign/(\\d+)/finish/*$", this, &TeacherAPI::campaignFinish);
 	addMap("^campaign/(\\d+)/delete/*$", this, &TeacherAPI::campaignDeleteOne);
+	addMap("^campaign/(\\d+)/duplicate/*$", this, &TeacherAPI::campaignDuplicate);
 	addMap("^campaign/(\\d+)/result/*$", this, &TeacherAPI::campaignOneResult);
 	addMap("^campaign/(\\d+)/result/([^/]+)/*$", this, &TeacherAPI::campaignUserResult);
 	addMap("^campaign/delete/*$", this, &TeacherAPI::campaignDelete);
@@ -1988,6 +1989,117 @@ void TeacherAPI::campaignFinish(const QRegularExpressionMatch &match, const QJso
 		AdminAPI::campaignFinish(this, id)
 				.fail([response, this](){responseError(response, "campaign finish error");})
 				.done([response, this](){responseAnswerOk(response);});
+	});
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::campaignDuplicate
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::campaignDuplicate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	if (id <= 0)
+		return responseError(response, "invalid id");
+
+	databaseMainWorker()->execInThread([id, data, response, this]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+				.addValue(username)
+				.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=")
+				.addValue(id)
+				.addQuery(")")
+				.execCheckExists()) {
+			return responseError(response, "invalid campaign");
+		}
+
+		db.transaction();
+
+		QVector<int> myGroupIds;
+
+		QueryBuilder q2(db);
+		q2.addQuery("SELECT id FROM studentgroup WHERE owner=").addValue(username);
+
+		if (!q2.exec()) {
+			db.rollback();
+			return responseErrorSql(response);
+		}
+
+		while (q2.sqlQuery().next())
+			myGroupIds.append(q2.value("id", -1).toInt());
+
+		QVector<int> targetIds;
+
+		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
+
+		foreach (const QJsonValue &v, list) {
+			int id = v.toInt();
+			if (!targetIds.contains(id))
+				targetIds.append(id);
+		}
+
+		if (data.contains(QStringLiteral("id"))) {
+			int id = data.value(QStringLiteral("id")).toInt();
+			if (!targetIds.contains(id))
+				targetIds.append(id);
+		}
+
+		if (targetIds.isEmpty()) {
+			db.rollback();
+			return responseError(response, "missing target id");
+		}
+
+
+		QJsonArray newIdList;
+
+		foreach (const int target, targetIds) {
+			if (!myGroupIds.contains(target)) {
+				LOG_CWARNING("client") << "Duplicate campaign, skip id (owner error)" << id << "->" << target;
+				continue;
+			}
+
+			bool err = false;
+
+			const int newId = QueryBuilder::q(db)
+					.addQuery("INSERT INTO campaign (groupid, endtime, description, defaultGrade) "
+							  "SELECT ").addValue(target)
+					.addQuery(", endtime, description, defaultGrade FROM campaign WHERE id=").addValue(id)
+					.execInsertAsInt(&err);
+
+			if (err) {
+				db.rollback();
+				return responseErrorSql(response);
+			}
+
+			if (!QueryBuilder::q(db)
+					.addQuery("INSERT INTO task (campaignid, gradeid, xp, required, mapuuid, criterion) "
+							  "SELECT ").addValue(newId)
+					.addQuery(", gradeid, xp,required, mapuuid, criterion FROM task WHERE campaignid=").addValue(id)
+					.exec()) {
+				db.rollback();
+				return responseErrorSql(response);
+			}
+
+			newIdList.append(newId);
+		}
+
+		db.commit();
+
+		LOG_CDEBUG("client") << "Campaign duplicated:" << id << "->" << newIdList;
+		responseAnswer(response, "list", newIdList);
 	});
 }
 
