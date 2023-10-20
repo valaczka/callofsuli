@@ -20,6 +20,7 @@ QFormColumn {
 
 	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "numbers")
 	readonly property bool isImages: storage && storage.module == "images"
+	readonly property bool isBlock: storage && storage.module == "block"
 
 
 	QFormComboBox {
@@ -72,7 +73,7 @@ QFormColumn {
 		helperText: isBinding ? qsTr("A \%1 jelöli a generált elem helyét") : ""
 		field: "question"
 		width: parent.width
-		visible: !isImages
+		visible: !isImages && !isBlock
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -104,12 +105,26 @@ QFormColumn {
 	}
 
 	QFormTextField {
+		id: _questionBlock
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		helperText: qsTr("A \%1 jelöli az elemnek, a \%2 a blokk nevének a helyét")
+		field: "question"
+		width: parent.width
+		visible: isBlock
+
+		text: qsTr("Minek a része: %1?")
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormTextField {
 		id: _correctAnswer
 		title: qsTr("Helyes válasz")
 		placeholderText: qsTr("Ez lesz az egyetlen helyes válasz")
 		field: "correct"
 		width: parent.width
-		visible: !isBinding && !isImages
+		visible: !isBinding && !isImages && !isBlock
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -119,7 +134,7 @@ QFormColumn {
 		title: qsTr("Helytelen válaszok")
 		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
 		width: parent.width
-		visible: !isBinding && !isImages
+		visible: !isBinding && !isImages && !isBlock
 
 		field: "answers"
 		getData: function() { return text.split("\n") }
@@ -142,7 +157,7 @@ QFormColumn {
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isBinding || isImages
+		visible: isBinding || isImages || isBlock
 	}
 
 
@@ -153,11 +168,12 @@ QFormColumn {
 								 isImages ? (objective.data.mode === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
 												 [_modeImages, _questionIT]) :
-											[_question, _correctAnswer]
+											isBlock ? [_questionBlock] :
+													  [_question, _correctAnswer]
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
-		if (!isBinding && !isImages && objective.data.answers !== undefined)
+		if (!isBinding && !isImages && !isBlock && objective.data.answers !== undefined)
 			_answers.fieldData = objective.data.answers.join("\n")
 	}
 
@@ -174,7 +190,8 @@ QFormColumn {
 								 isImages ? (_modeImages.currentValue === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
 												 [_modeImages, _questionIT]) :
-											[_question, _correctAnswer, _answers]
+											isBlock ? [_questionBlock] :
+													  [_question, _correctAnswer, _answers]
 
 		return getItems(_items)
 	}

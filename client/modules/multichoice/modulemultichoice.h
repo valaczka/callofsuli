@@ -51,7 +51,7 @@ public:
 	inline QString qmlQuestion() const override { return "GQ_multichoice.qml"; }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
-	inline QStringList storageModules() const override { return QStringList(); }
+	inline QStringList storageModules() const override { return { "block" }; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
@@ -63,9 +63,13 @@ public:
 
 	void registerQmlTypes() const override {};
 
+	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantMap generateOne(const QVariantMap &data) const;
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
+
+private:
+	QVariantMap _generate(QStringList correctList, QStringList optionsList, int minCorrect, int maxOptions, int maxCorrect) const;
 
 signals:
 

@@ -94,6 +94,8 @@ Item {
 				canEdit: campaign && campaign.state < Campaign.Finished
 				title: campaign && campaign.state < Campaign.Finished ? qsTr("Automatikus befejezés") : qsTr("Befejezés ideje")
 				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A kihívás már befejeződött, az időpont nem módosítható") : ""
+				hour: 23
+				minute: 59
 				onSaveRequest: {
 					Client.send(WebSocket.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{

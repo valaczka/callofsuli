@@ -20,6 +20,7 @@ QFormColumn {
 
 	readonly property bool isBinding: storage && storage.module == "binding"
 	readonly property bool isNumbers: storage && storage.module == "numbers"
+	readonly property bool isBlock: storage && storage.module == "block"
 
 
 	QFormTextField {
@@ -28,7 +29,7 @@ QFormColumn {
 		placeholderText: qsTr("Ez az állítás fog megjelenni")
 		field: "question"
 		width: parent.width
-		visible: !isBinding && !isNumbers
+		visible: !isBinding && !isNumbers && !isBlock
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -38,7 +39,7 @@ QFormColumn {
 		id: _correct
 		text: qsTr("Az állítás igazságtartalma:")
 
-		visible: !isBinding && !isNumbers
+		visible: !isBinding && !isNumbers && !isBlock
 
 		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
 
@@ -130,13 +131,25 @@ QFormColumn {
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormTextField {
+		id: _questionBlock
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		helperText: qsTr("A \%1 jelöli az elemnek, a \%2 a blokk nevének a helyét")
+		text: qsTr("A(z) %1 a(z) %2 része")
+		field: "question"
+		width: parent.width
+		visible: isBlock
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
 
 
 
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isBinding || isNumbers
+		visible: isBinding || isNumbers || isBlock
 	}
 
 
@@ -145,7 +158,8 @@ QFormColumn {
 	function loadData() {
 		let _items = isBinding ? [_modeBinding, _questionBinding, _questionBindingSelect] :
 								 isNumbers ? [_modeNumbers, _questionBinding] :
-											 [_questionNone, _correct]
+											 isBlock ? [_questionBlock ] :
+													   [_questionNone, _correct]
 
 
 		_countBinding.value = objective.storageCount
@@ -163,7 +177,8 @@ QFormColumn {
 	function previewData() {
 		let _items = isBinding ? [_modeBinding, _questionBindingSelect.visible ? _questionBindingSelect : _questionBinding] :
 								 isNumbers ? [_modeNumbers, _questionBinding] :
-											 [_questionNone, _correct]
+											 isBlock ? [_questionBlock ] :
+													   [_questionNone, _correct]
 
 		return getItems(_items)
 	}

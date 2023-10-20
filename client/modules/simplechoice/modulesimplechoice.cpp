@@ -127,6 +127,23 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		m[QStringLiteral("image")] = image;
 
 		return m;
+	} else if (storage->name() == QStringLiteral("block")) {
+		QStringList answers;
+
+		foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &left = m.value(QStringLiteral("first")).toString();
+			const QString &right = m.value(QStringLiteral("second")).toStringList().join(QStringLiteral(", "));
+
+			answers.append(QStringLiteral("%1 [%2]").arg(left, right));
+		}
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = QLatin1String("");
+
+		return m;
 	}
 
 	return QVariantMap({{QStringLiteral("title"), QLatin1String("")},
@@ -173,6 +190,9 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 
 	if (storage->name() == QStringLiteral("images"))
 		return generateImages(data, storageData);
+
+	if (storage->name() == QStringLiteral("block"))
+		return generateBlock(data, storageData);
 
 
 	return QVariantList();
@@ -298,6 +318,78 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 			retMap.insert(generateOne(QStringLiteral("image://mapimage/%1").arg(imgId), alist));
 
 		ret.append(retMap);
+	}
+
+	return ret;
+}
+
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateBlock
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	const QString &question = data.value(QStringLiteral("question")).toString();
+
+	QVector<QString> bNames;
+
+	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+		const QVariantMap &m = v.toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString();
+		bNames.append(left);
+	}
+
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	for (int idx = 0; idx < list.size(); ++idx) {
+		const QVariantMap &m = list.at(idx).toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		foreach (QString s, right) {
+			s = s.simplified();
+			if (s.isEmpty())
+				continue;
+
+			if (question.isEmpty())
+				retMap[QStringLiteral("question")] = s;
+			else if (question.contains(QStringLiteral("%1")))
+				retMap[QStringLiteral("question")] = question.arg(s);
+			else
+				retMap[QStringLiteral("question")] = question;
+
+			QStringList alist;
+
+			for (int i=0; i<bNames.size(); ++i) {
+				if (idx == i)
+					continue;
+
+				const QString &opt = bNames.at(i).simplified();
+
+				if (opt.isEmpty())
+					continue;
+
+				alist.append(opt);
+			}
+
+			retMap.insert(generateOne(left, alist));
+
+			ret.append(retMap);
+		}
+
 	}
 
 	return ret;

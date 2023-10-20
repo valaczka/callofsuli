@@ -19,6 +19,7 @@ QFormColumn {
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
 	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "numbers")
+	readonly property bool isBlock: storage && storage.module == "block"
 
 	QFormTextField {
 		id: _question
@@ -36,6 +37,8 @@ QFormColumn {
 		width: parent.width
 		text: qsTr("Párok")
 		icon.source: Qaterial.Icons.cards
+
+		visible: !isBinding && !isBlock
 	}
 
 	QFormBindingField {
@@ -45,7 +48,7 @@ QFormColumn {
 		defaultLeftData: ""
 		defaultRightData: ""
 
-		visible: !isBinding
+		visible: !isBinding && !isBlock
 
 		readOnly: false
 
@@ -119,11 +122,13 @@ QFormColumn {
 
 
 	function loadData() {
+		let _items = isBlock ? [_question, _spinOptions, _modeOrder, _spinCount] :
+							   [_question, _spinOptions, _modeOrder, _spinCount]
+
 		_countBinding.value = objective.storageCount
+		setItems(_items, objective.data)
 
-		setItems([_question, _spinOptions, _modeOrder, _spinCount], objective.data)
-
-		if (!isBinding && objective.data.pairs !== undefined)
+		if (!isBinding && !isBlock && objective.data.pairs !== undefined)
 			_binding.loadFromList(objective.data.pairs)
 		else
 			_binding.loadFromList([])
@@ -138,9 +143,11 @@ QFormColumn {
 
 
 	function previewData() {
-		let d = getItems([_question, _spinOptions, _modeOrder, _spinCount])
+		let d = getItems(isBlock ? [_question, _spinOptions, _modeOrder, _spinCount] :
+								   [_question, _spinOptions, _modeOrder, _spinCount]
+						 )
 
-		if (!isBinding)
+		if (!isBinding && !isBlock)
 			d.pairs = _binding.saveToList()
 
 		return d

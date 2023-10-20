@@ -82,21 +82,37 @@ QString ModulePair::testResult(const QVariantMap &data, const QVariantMap &answe
 
 QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-
 	QStringList list;
 
 	QVariantList l;
 
-	if (!storage)
+	if (!storage) {
 		l = data.value(QStringLiteral("pairs")).toList();
-	else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
+
+		foreach (QVariant v, l) {
+			QVariantMap m = v.toMap();
+			list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString(),
+													  m.value(QStringLiteral("second")).toString()));
+		}
+	} else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers")) {
 		l = storageData.value(QStringLiteral("bindings")).toList();
 
-	foreach (QVariant v, l) {
-		QVariantMap m = v.toMap();
-		list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString(),
-												  m.value(QStringLiteral("second")).toString()));
+		foreach (QVariant v, l) {
+			QVariantMap m = v.toMap();
+			list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString(),
+													  m.value(QStringLiteral("second")).toString()));
+		}
+	} else if (storage->name() == QStringLiteral("block")) {
+		foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &left = m.value(QStringLiteral("first")).toString();
+			const QString &right = m.value(QStringLiteral("second")).toStringList().join(QStringLiteral(", "));
+
+			list.append(QStringLiteral("%1 [%2]").arg(left, right));
+		}
 	}
+
+
 
 	QVariantMap m;
 	m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
@@ -129,6 +145,8 @@ QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *s
 		alist = data.value(QStringLiteral("pairs")).toList();
 	else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
 		alist = storageData.value(QStringLiteral("bindings")).toList();
+	else if (storage->name() == QStringLiteral("block"))
+		alist = generateBlock(storageData);
 
 	m.insert(generateOne(data, alist));
 
@@ -138,6 +156,52 @@ QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *s
 
 
 	return QVariantList();
+}
+
+
+
+/**
+ * @brief ModulePair::generateBlock
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModulePair::generateBlock(const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+		const QVariantMap &m = v.toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		QStringList realList;
+
+		foreach (QString s, right) {
+			s = s.simplified();
+			if (s.isEmpty())
+				continue;
+
+			realList.append(s);
+		}
+
+		if (left.isEmpty() && realList.isEmpty())
+			continue;
+
+		QString second;
+
+		if (!realList.isEmpty())
+			second = realList.at(QRandomGenerator::global()->bounded(realList.size()));
+
+		ret.append(QVariantMap {
+					   { QStringLiteral("first"), left },
+					   { QStringLiteral("second"), second }
+				   }
+				   );
+	}
+
+	return ret;
 }
 
 

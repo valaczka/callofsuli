@@ -786,7 +786,7 @@ bool TeacherGroupCampaignResultModel::loadCampaignDataFromRow(Campaign *campaign
 	if (m_showHeaderPlaceholders)
 		return false;
 
-	if (row <= 0 || row > m_userList.size())
+	if (row < 0 || row >= m_userList.size())
 		return false;
 
 	campaign->setCampaignid(m_campaign->campaignid());

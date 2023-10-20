@@ -11,4 +11,5 @@ MODULES_LIST = truefalse \
 				order \
 				images \
 				writer \
-				text
+				text \
+				block

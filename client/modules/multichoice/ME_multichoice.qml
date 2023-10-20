@@ -18,12 +18,30 @@ QFormColumn {
 
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
+	readonly property bool isBlock: storage && storage.module == "block"
+
 	QFormTextField {
 		id: _question
 		title: qsTr("Kérdés")
 		placeholderText: qsTr("Ez a kérdés fog megjelenni")
 		field: "question"
 		width: parent.width
+
+		visible: !isBlock
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormTextField {
+		id: _questionBlock
+		title: qsTr("Kérdés")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		helperText: qsTr("A \%1 jelöli a blokk nevének a helyét")
+		field: "question"
+		width: parent.width
+		visible: isBlock
+
+		text: qsTr("Melyek tartoznak ide: %1?")
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -33,6 +51,8 @@ QFormColumn {
 		title: qsTr("Helyes válaszok")
 		placeholderText: qsTr("Lehetséges helyes válaszok (soronként)")
 		width: parent.width
+
+		visible: !isBlock
 
 		field: "corrects"
 		getData: function() { return text.split("\n") }
@@ -45,6 +65,8 @@ QFormColumn {
 		title: qsTr("Helytelen válaszok")
 		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
 		width: parent.width
+
+		visible: !isBlock
 
 		field: "answers"
 		getData: function() { return text.split("\n") }
@@ -92,27 +114,44 @@ QFormColumn {
 	}
 
 
+	MapEditorSpinStorageCount {
+		id: _countBinding
+		visible: isBlock
+	}
+
+
 
 
 
 	function loadData() {
-		setItems([_question, _spinMin, _spinMax, _spinCount], objective.data)
-		if (objective.data.answers !== undefined)
-			_wrongAnswers.fieldData = objective.data.answers.join("\n")
-		if (objective.data.corrects !== undefined)
-			_correctAnswers.fieldData = objective.data.corrects.join("\n")
+		let _items = isBlock ? [_questionBlock, _spinMin, _spinMax, _spinCount] :
+							   [_question, _spinMin, _spinMax, _spinCount]
+
+		_countBinding.value = objective.storageCount
+		setItems(_items, objective.data)
+
+		if (!isBlock) {
+			if (objective.data.answers !== undefined)
+				_wrongAnswers.fieldData = objective.data.answers.join("\n")
+			if (objective.data.corrects !== undefined)
+				_correctAnswers.fieldData = objective.data.corrects.join("\n")
+		}
+
 	}
 
 
 	function saveData() {
 		objective.data = previewData()
-		//objective.storageCount = _countBinding.value
+		objective.storageCount = _countBinding.value
 	}
 
 
 
 	function previewData() {
-		return getItems([_question, _spinMin, _spinMax, _spinCount, _wrongAnswers, _correctAnswers])
+		let _items = isBlock ? [_questionBlock, _spinMin, _spinMax, _spinCount] :
+							   [_question, _spinMin, _spinMax, _spinCount, _wrongAnswers, _correctAnswers]
+
+		return getItems(_items)
 	}
 }
 

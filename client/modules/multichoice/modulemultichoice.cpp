@@ -86,17 +86,34 @@ QString ModuleMultichoice::testResult(const QVariantMap &data, const QVariantMap
 
 QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storage)
-	Q_UNUSED(storageData)
+	if (!storage) {
+		QVariantMap m;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = data.value(QStringLiteral("corrects")).toStringList().join(QStringLiteral(", "))+
+				QStringLiteral("<br>(")+data.value(QStringLiteral("answers")).toStringList().join(QStringLiteral(", "))+
+				QStringLiteral(")");
+		m[QStringLiteral("image")] = QLatin1String("");
+		return m;
+	} else if (storage->name() == QStringLiteral("block")) {
+		QStringList answers;
 
-	QVariantMap m;
-	m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
-	m[QStringLiteral("details")] = data.value(QStringLiteral("corrects")).toStringList().join(QStringLiteral(", "))+
-			QStringLiteral("<br>(")+data.value(QStringLiteral("answers")).toStringList().join(QStringLiteral(", "))+
-			QStringLiteral(")");
-	m[QStringLiteral("image")] = QLatin1String("");
+		foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &left = m.value(QStringLiteral("first")).toString();
+			const QString &right = m.value(QStringLiteral("second")).toStringList().join(QStringLiteral(", "));
 
-	return m;
+			answers.append(QStringLiteral("%1 [%2]").arg(left, right));
+		}
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = QLatin1String("");
+
+		return m;
+	}
+
+	return {};
 }
 
 
@@ -111,7 +128,8 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 
 QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	Q_UNUSED(storageData)
+	if (storage->name() == QStringLiteral("block"))
+		return generateBlock(data, storageData);
 
 	if (!storage) {
 		QVariantList list;
@@ -167,6 +185,86 @@ QVariantMap ModuleMultichoice::preview(const QVariantList &generatedList) const
 }
 
 
+
+/**
+ * @brief ModuleMultichoice::generateBlock
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+	const QString &question = data.value(QStringLiteral("question")).toString();
+
+	QVector<QString> bNames;
+	QVector<QStringList> bItems;
+	QVector<int> realIndices;
+
+	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+		const QVariantMap &m = v.toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		QStringList realList;
+
+		foreach (QString s, right) {
+			s = s.simplified();
+			if (s.isEmpty())
+				continue;
+
+			realList.append(s);
+		}
+
+		if (left.isEmpty() && realList.isEmpty())
+			continue;
+
+		bNames.append(left);
+		bItems.append(realList);
+
+		if (!left.isEmpty() && !realList.isEmpty())
+			realIndices.append(bNames.size()-1);
+	}
+
+	if (realIndices.isEmpty())
+		return ret;
+
+	const int idx = realIndices.at(QRandomGenerator::global()->bounded(realIndices.size()));
+
+	QStringList correctList;
+	QStringList optionsList;
+
+	const QString &realname = bNames.at(idx);
+
+	correctList.append(bItems.at(idx));
+
+	for (int i=0; i<bItems.size(); ++i) {
+		if (i == idx)
+			continue;
+
+
+		optionsList.append(bItems.at(i));
+	}
+
+
+	int minCorrect = qMax(data.value(QStringLiteral("correctMin"), -1).toInt(), 2);
+	int maxOptions = qMax(data.value(QStringLiteral("count"), -1).toInt(), 3);
+	int maxCorrect = qMin(data.value(QStringLiteral("correctMax"), -1).toInt(), maxOptions-1);
+
+	QVariantMap m = _generate(correctList, optionsList, minCorrect, maxOptions, maxCorrect);
+
+	if (question.isEmpty())
+		m[QStringLiteral("question")] = realname;
+	else if (question.contains(QStringLiteral("%1")))
+		m[QStringLiteral("question")] = question.arg(realname);
+	else
+		m[QStringLiteral("question")] = question;
+
+	return {m};
+}
+
+
 /**
  * @brief ModuleMultichoice::generate
  * @param data
@@ -178,20 +276,38 @@ QVariantMap ModuleMultichoice::preview(const QVariantList &generatedList) const
 
 QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 {
-	QVariantMap m;
-
-	m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
-
-	QStringList clist = data.value(QStringLiteral("corrects")).toStringList();
-
-	if (clist.isEmpty())
-		clist = QStringList({QStringLiteral(" ")});
-
-	QStringList alist = data.value(QStringLiteral("answers")).toStringList();
+	const QStringList &clist = data.value(QStringLiteral("corrects")).toStringList();
+	const QStringList &alist = data.value(QStringLiteral("answers")).toStringList();
 
 	int minCorrect = qMax(data.value(QStringLiteral("correctMin"), -1).toInt(), 2);
 	int maxOptions = qMax(data.value(QStringLiteral("count"), -1).toInt(), 3);
 	int maxCorrect = qMin(data.value(QStringLiteral("correctMax"), -1).toInt(), maxOptions-1);
+
+	QVariantMap m = _generate(clist, alist, minCorrect, maxOptions, maxCorrect);
+
+	m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
+
+	return m;
+}
+
+
+
+
+
+/**
+ * @brief ModuleMultichoice::_generate
+ * @return
+ */
+
+QVariantMap ModuleMultichoice::_generate(QStringList correctList, QStringList optionsList,
+										 int minCorrect, int maxOptions, int maxCorrect) const
+{
+	QVariantMap m;
+
+
+	if (correctList.isEmpty())
+		correctList = QStringList({QStringLiteral(" ")});
+
 
 	int correctCount = minCorrect;
 
@@ -200,14 +316,13 @@ QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 
 	QVector<QPair<QString, bool>> options;
 
-	while (clist.size() && options.size() < correctCount) {
-		options.append(qMakePair(clist.takeAt(QRandomGenerator::global()->bounded(clist.size())), true));
+	while (correctList.size() && options.size() < correctCount) {
+		options.append(qMakePair(correctList.takeAt(QRandomGenerator::global()->bounded(correctList.size())), true));
 	}
 
-	while (alist.size() && options.size() < maxOptions) {
-		options.append(qMakePair(alist.takeAt(QRandomGenerator::global()->bounded(alist.size())), false));
+	while (optionsList.size() && options.size() < maxOptions) {
+		options.append(qMakePair(optionsList.takeAt(QRandomGenerator::global()->bounded(optionsList.size())), false));
 	}
-
 
 
 	QVariantList correctIdx;

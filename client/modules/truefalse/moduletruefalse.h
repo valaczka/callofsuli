@@ -51,13 +51,14 @@ public:
 	inline QString qmlQuestion() const override { return "GQ_singlechoice.qml"; }
 	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
 
-	inline QStringList storageModules() const override { return {"binding", "numbers"}; }
+	inline QStringList storageModules() const override { return {"binding", "numbers", "block"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
 	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData) const;
 
 	qreal xpFactor() const override { return 1.0; };
 

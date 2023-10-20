@@ -51,7 +51,7 @@ public:
 	inline QString qmlQuestion() const override { return "GQ_pair.qml"; }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
-	inline QStringList storageModules() const override { return { "binding", "numbers" }; }
+	inline QStringList storageModules() const override { return { "binding", "numbers", "block" }; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
@@ -63,6 +63,7 @@ public:
 
 	void registerQmlTypes() const override {};
 
+	QVariantList generateBlock(const QVariantMap &storageData) const;
 	QVariantMap generateOne(const QVariantMap &data, QVariantList pairList) const;
 
 	enum Mode {

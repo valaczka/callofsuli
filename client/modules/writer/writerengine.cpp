@@ -202,7 +202,7 @@ void WriterEngine::generate(const int &currentIndex)
 {
 	QList<QChar> list;
 
-	static const QString &defaultCharacters = QStringLiteral("AÁBCDEÉFGHIÍJKLMNOÖŐPQRSTUÚÜŰVWXYZ2345789");
+	static const QString &defaultCharacters = QStringLiteral("AÁBCDEÉFGHIÍJKLMNOÖŐPQRSTUÚÜŰVWXYZ");
 
 	for (int i=0; i<defaultCharacters.size(); ++i)
 		list.append(defaultCharacters.at(i));

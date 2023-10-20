@@ -824,7 +824,7 @@ bool ServerService::preStart()
 		}
 
 		RollingFileAppender* appender = new RollingFileAppender(m_settings->dataDir().absoluteFilePath(logDir+QStringLiteral("/server.log")));
-		appender->setFormat(QString::fromStdString("%{time}{yyyy-MM-dd hh:mm:ss}: %{category:-10} [%{Type}] %{message}\n"));
+		appender->setFormat(QString::fromStdString("%{time}{yyyy-MM-dd hh:mm:ss} %{category:-10} [%{Type}] %{message}\n"));
 		appender->setDatePattern(RollingFileAppender::DailyRollover);
 		appender->setLogFilesLimit(logLimit);
 		appender->setDetailsLevel(Logger::Debug);

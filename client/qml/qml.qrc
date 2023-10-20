@@ -182,5 +182,6 @@
         <file>SettingsSoftware.qml</file>
         <file>TeacherCampaignTiming.qml</file>
         <file>StudentXpChart.qml</file>
+        <file>QFormBindingTextArea.qml</file>
     </qresource>
 </RCC>

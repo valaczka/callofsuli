@@ -101,6 +101,23 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 		m[QStringLiteral("image")] = QLatin1String("");
 
 		return m;
+	} else if (storage->name() == QStringLiteral("block")) {
+		QStringList answers;
+
+		foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &left = m.value(QStringLiteral("first")).toString();
+			const QString &right = m.value(QStringLiteral("second")).toStringList().join(QStringLiteral(", "));
+
+			answers.append(QStringLiteral("%1 [%2]").arg(left, right));
+		}
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = QLatin1String("");
+
+		return m;
 	}
 
 	return QVariantMap({{QStringLiteral("title"), QLatin1String("")},
@@ -134,6 +151,8 @@ QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterfa
 
 	if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
 		return generateBinding(data, storageData);
+	else if (storage->name() == QStringLiteral("block"))
+		return generateBlock(data, storageData);
 
 
 	return QVariantList();
@@ -245,6 +264,90 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 				retMap[QStringLiteral("question")] = questionPart+QStringLiteral(" ")+answerPart;
 			else
 				retMap[QStringLiteral("question")] = question+QStringLiteral(" ")+questionPart+QStringLiteral(" ")+answerPart;
+
+			retMap[QStringLiteral("answer")] = isCorrect ? 1 : 0;
+
+			ret.append(retMap);
+		}
+	}
+
+	return ret;
+}
+
+
+
+
+/**
+ * @brief ModuleTruefalse::generateBlock
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+	const QString &question = data.value(QStringLiteral("question")).toString();
+
+	QVector<QString> bNames;
+	QVector<QStringList> bItems;
+	QVector<int> realIndices;
+
+	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+		const QVariantMap &m = v.toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		if (left.isEmpty() && right.isEmpty())
+			continue;
+
+		bNames.append(left);
+		bItems.append(right);
+
+		if (!left.isEmpty())
+			realIndices.append(bNames.size()-1);
+	}
+
+
+	for (int i=0; i<bItems.size(); ++i) {
+		const QStringList &list = bItems.at(i);
+		const QString &realname = bNames.at(i);
+
+		foreach (QString s, list) {
+			s = s.simplified();
+			if (s.isEmpty())
+				continue;
+
+			bool isCorrect = (QRandomGenerator::global()->generate() % 2 == 1);
+
+			QString qName;
+
+			if (realname.isEmpty())
+				isCorrect = false;
+
+			if (isCorrect)
+				qName = realname;
+			else {
+				QVector<int> indices = realIndices;
+				indices.removeAll(i);
+
+				if (indices.isEmpty())
+					isCorrect = true;
+				else {
+					qName = bNames.at(indices.at(QRandomGenerator::global()->bounded(indices.size()))).simplified();
+				}
+			}
+
+			QVariantMap retMap;
+
+			if (question.contains(QStringLiteral("%1")) && question.contains(QStringLiteral("%2")))
+				retMap[QStringLiteral("question")] = question.arg(s, qName);
+			else if (question.contains(QStringLiteral("%1")))
+				retMap[QStringLiteral("question")] = question.arg(s)+QStringLiteral(" ")+qName;
+			else if (question.isEmpty())
+				retMap[QStringLiteral("question")] = s+QStringLiteral(" ")+qName;
+			else
+				retMap[QStringLiteral("question")] = question+QStringLiteral(" ")+s+QStringLiteral(" ")+qName;
 
 			retMap[QStringLiteral("answer")] = isCorrect ? 1 : 0;
 

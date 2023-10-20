@@ -51,7 +51,7 @@ public:
 	inline QString qmlQuestion() const override { return "GQ_simplechoice.qml"; }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
-	inline QStringList storageModules() const override { return {"binding", "numbers", "images"}; }
+	inline QStringList storageModules() const override { return {"binding", "numbers", "images", "block" }; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
@@ -61,6 +61,7 @@ public:
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList) const;
 
 	QVariantMap preview(const QVariantList &generatedList) const override;
