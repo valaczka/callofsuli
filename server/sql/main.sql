@@ -215,7 +215,11 @@ CREATE TABLE taskSuccess(
 	UNIQUE(taskid, username)
 );
 
-
+CREATE TABLE campaignStudent(
+	id INTEGER NOT NULL PRIMARY KEY,
+	campaignid INTEGER NOT NULL REFERENCES campaign(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE
+);
 
 
 ----------------------------------

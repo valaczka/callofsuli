@@ -103,13 +103,18 @@ QItemGradient {
 			}
 		}
 
+		UserInfoCounter {
+			id: _counter
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+			userLogList: _userLog
+		}
 
 		UserInfoLog {
 			id: _log
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
-
-			username: userData ? userData.username : ""
+			userLogList: _userLog
 		}
 
 
@@ -124,6 +129,14 @@ QItemGradient {
 	}
 
 
+
+	UserLogListImpl {
+		id: _userLog
+		username: userData ? userData.username: ""
+	}
+
+
+
 	StackView.onActivated: { reload() }
 
 	function reload() {
@@ -133,6 +146,7 @@ QItemGradient {
 		Client.send(WebSocket.ApiGeneral, "user/%1".arg(userData.username))
 		.done(function(r){
 			userData = Client.userToMap(r)
+			_userLog.reload()
 		})
 		.fail(JS.failMessage("Letöltés sikertelen"))
 

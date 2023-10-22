@@ -65,6 +65,7 @@ QPage {
 	}
 
 
+
 	readonly property string _campaignName: campaign ? campaign.readableName : ""
 
 	title: campaign ? _campaignName : qsTr("Új kihívás")
@@ -82,12 +83,15 @@ QPage {
 			id: menuDetails
 
 			QMenuItem { action: _actionDuplicate }
+			QMenuItem { action: _result.actionRepeat }
 			QMenuItem { action: _actionRemove }
 		}
 
 		QMenu {
 			id: menuResult
 
+			QMenuItem { action: _result.actionStudentEdit }
+			QMenuItem { action: _result.actionRepeat }
 			QMenuItem { action: _actionResultReload }
 		}
 	}
@@ -197,5 +201,9 @@ QPage {
 						})
 		}
 	}
+
+
+
+
 
 }

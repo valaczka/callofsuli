@@ -35,12 +35,12 @@ class UserAPI : public AbstractAPI
 public:
 	UserAPI(ServerService *service);
 
-	static QMap<QString, GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
-	static GameMap::SolverInfo solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
-	static int solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
-										  const int &level);
-	static int solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
-										  const int &level, const bool &deathmatch);
+	static QDeferred<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
+	static QDeferred<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
+	static QDeferred<int> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
+									 const int &level);
+	static int _solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
+						   const int &level, const bool &deathmatch);
 
 	static QDeferred<QJsonArray> getGroupScore(const DatabaseMain *database, const int &id);
 

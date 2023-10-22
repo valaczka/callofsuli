@@ -60,12 +60,12 @@ private:
 	bool _checkSystemTable(const QString &dbImport = QString());
 	bool _checkMapsSystemTable(Database *mapsDb);
 	bool _checkStatSystemTable(Database *statDb);
-	bool _createTables();
+	bool _createSytemTables();
 	bool _createMapsTables(Database *db);
 	bool _createStatTables(Database *db);
-	bool _upgradeTables();
-	bool _upgradeMapsTables(Database *mapsDb);
-	bool _upgradeStatTables(Database *statDb);
+	bool _upgradeSystemTables(Database *db, int fromMajor, int fromMinor);
+	bool _upgradeMapsTables(Database *mapsDb, int fromMajor, int fromMinor);
+	bool _upgradeStatTables(Database *statDb, int fromMajor, int fromMinor);
 	bool _createUsers();
 	bool _createRanksAndGrades();
 	bool _databaseImport(const QString &dbFile);

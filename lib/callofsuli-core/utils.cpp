@@ -382,7 +382,7 @@ QString Utils::formatMSecs(const int &msec, const int &decimals, const bool &wit
 	if (withMinute) {
 		int h = qFloor((qreal)msec / (60*60*1000.0));
 		int m = qFloor((qreal)msec / (60*1000.0)) - h*60;
-		s -= m*60;
+		s -= m*60 + h*60*60;
 
 		if (h > 0)
 			r += QStringLiteral("%1:").arg(h, 2, 10, QLatin1Char('0'));

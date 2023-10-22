@@ -33,6 +33,19 @@ QPageGradient {
 			topPadding: root.paddingTop
 		}
 
+		Loader {
+			id: _counter
+			asynchronous: true
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			sourceComponent: UserInfoCounter {
+				visible: _counter.status == Loader.Ready
+				userLogList: _userLog
+			}
+
+			onLoaded: reload()
+		}
 
 		Loader {
 			id: _log
@@ -41,13 +54,20 @@ QPageGradient {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			sourceComponent: UserInfoLog {
-				username: userData ? userData.username : ""
 				visible: _log.status == Loader.Ready
+				userLogList: _userLog
 			}
 
 			onLoaded: reload()
 		}
 
+	}
+
+
+
+	UserLogListImpl {
+		id: _userLog
+		username: userData ? userData.username: ""
 	}
 
 
@@ -58,10 +78,9 @@ QPageGradient {
 		Client.send(WebSocket.ApiGeneral, "user/%1".arg(userData.username))
 		.done(function(r){
 			userData = Client.userToMap(r)
+			_userLog.reload()
 		})
 		.fail(JS.failMessage("Letöltés sikertelen"))
-
-		_log.item.reload()
 	}
 
 }

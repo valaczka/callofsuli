@@ -73,6 +73,14 @@ void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QSt
 		}
 	}
 
+	if (m_credential.isValid()) {
+		PeerUser user;
+		user.setUsername(m_credential.username());
+		user.setHost(request->address());
+		user.setAgent(request->headerDefault(QStringLiteral("User-Agent"), QStringLiteral("invalid")));
+		m_service->logPeerUser(user);
+	}
+
 	LOG_CTRACE("client") << "Add response" << response;
 
 	m_validResponses.append(response);

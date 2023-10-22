@@ -183,5 +183,7 @@
         <file>TeacherCampaignTiming.qml</file>
         <file>StudentXpChart.qml</file>
         <file>QFormBindingTextArea.qml</file>
+        <file>PageTeacherPeers.qml</file>
+        <file>UserInfoCounter.qml</file>
     </qresource>
 </RCC>

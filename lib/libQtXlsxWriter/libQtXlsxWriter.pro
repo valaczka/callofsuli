@@ -8,6 +8,7 @@ DEPENDPATH += $${SOURCE_DIR}
 
 QT += core gui gui-private
 
+CONFIG += separate_debug_info
 CONFIG += build_xlsx_lib
 
 android: TARGET = QtXlsxWriter_$${QT_ARCH}

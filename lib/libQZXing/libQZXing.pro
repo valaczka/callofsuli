@@ -1,5 +1,7 @@
 include(../../common.pri)
 
+CONFIG += separate_debug_info
+
 CONFIG += \
 	enable_encoder_qr_code \
 	qzxing_qml \

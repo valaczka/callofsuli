@@ -75,6 +75,10 @@ AdminAPI::AdminAPI(ServerService *service)
 	addMap("^user/inactivate/*$", this, &AdminAPI::userInactivate);
 	addMap("^user/*$", this, &AdminAPI::classUsers);
 	addMap("^user/([^/]+)/*$", this, &AdminAPI::user);
+
+	addMap("^user/peers/*$", this, &AdminAPI::userPeers);
+	addMap("^user/peers/live/*$", this, &AdminAPI::userPeersLive);
+
 	addMap("^config/*$", this, &AdminAPI::configUpdate);
 }
 
@@ -743,7 +747,7 @@ void AdminAPI::userImport(const QRegularExpressionMatch &, const QJsonObject &da
 			QDefer dret;
 
 			userAdd(this, user)
-					.fail([&ret, &dret]{
+					.fail([&ret, dret]() mutable {
 				ret.insert(QStringLiteral("error"), QStringLiteral("failed"));
 				dret.reject();
 			})
@@ -753,11 +757,11 @@ void AdminAPI::userImport(const QRegularExpressionMatch &, const QJsonObject &da
 				else
 					return authAddPlain(this, user.username, password);
 			})
-					.fail([&ret, &dret]{
+					.fail([&ret, dret]() mutable {
 				ret.insert(QStringLiteral("error"), QStringLiteral("failed"));
 				dret.reject();
 			})
-					.done([&ret, &dret]{
+					.done([&ret, dret]() mutable {
 				ret.insert(QStringLiteral("status"), QStringLiteral("ok"));
 				dret.resolve();
 			});
@@ -772,6 +776,39 @@ void AdminAPI::userImport(const QRegularExpressionMatch &, const QJsonObject &da
 						 });
 
 	});
+}
+
+
+
+/**
+ * @brief AdminAPI::userPeers
+ * @param match
+ * @param response
+ */
+
+void AdminAPI::userPeers(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	responseAnswer(response, "list", PeerUser::toJson(&(m_service->peerUser())));
+}
+
+
+
+/**
+ * @brief AdminAPI::userPeersLive
+ * @param match
+ * @param response
+ */
+
+void AdminAPI::userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
+	EventStream *stream = new EventStream(EventStream::EventStreamPeerUsers, conn);
+	conn->setEventStream(stream);
+	m_service->addEventStream(stream);
+
+	response->setStatus(HttpStatus::Ok);
+
+	stream->trigger();
 }
 
 
@@ -1316,8 +1353,12 @@ QDefer AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 
 		QueryBuilder q(db);
 
-		q.addQuery("SELECT username FROM studentGroupInfo WHERE active=true "
-				   "AND id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign).addQuery(")");
+		q.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+				   "SELECT username FROM studentGroupInfo WHERE active=true "
+				   "AND id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign)
+				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+				.addQuery(") OR studentGroupInfo.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+				.addQuery("))");
 
 		if (!q.exec()) {
 			LOG_CERROR("client") << "Campaign finish error:" << campaign;

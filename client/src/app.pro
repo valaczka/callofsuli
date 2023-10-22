@@ -6,6 +6,7 @@ QT += gui quick svg xml network gui-private quickcontrols2 charts
 !wasm: QT += multimedia sql
 
 CONFIG += c++17
+CONFIG += separate_debug_info
 
 include(../../common.pri)
 include(../../version/version.pri)
@@ -35,12 +36,12 @@ include(../../lib/import_lib_client.pri)
 	SOURCES += \
 		mobileapplication.cpp \
 		sound.cpp \
-	standaloneclient.cpp
+		standaloneclient.cpp
 
 	HEADERS += \
 		mobileapplication.h \
 		sound.h \
-	standaloneclient.h
+		standaloneclient.h
 
 	!android:!ios {
 		SOURCES += desktopapplication.cpp

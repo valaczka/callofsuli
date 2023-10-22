@@ -275,6 +275,88 @@ QLambdaThreadWorker *Database::worker() const
 
 
 
+/**
+ * @brief Database::performUpgrade
+ * @param toVersionMajor
+ * @param toVersionMinor
+ * @return
+ */
+
+bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
+							  const QString &defaultUpgradeData,
+							  const quint32 &fromVersionMajor, const quint32 &fromVersionMinor,
+							  const quint32 &toVersionMajor, const quint32 &toVersionMinor)
+{
+	LOG_CINFO("db") << qPrintable(QObject::tr("Upgrade database %1 v%2.%3 -> v%4.%5")
+								  .arg(m_dbName)
+								  .arg(fromVersionMajor).arg(fromVersionMinor)
+								  .arg(toVersionMajor).arg(toVersionMinor)
+								  );
+
+	quint32 version = Utils::versionCode(fromVersionMajor, fromVersionMinor);
+	const quint32 toVersion = Utils::versionCode(toVersionMajor, toVersionMinor);
+
+	QMutexLocker mutexlocker(mutex());
+
+	QSqlDatabase db = QSqlDatabase::database(m_dbName);
+
+	db.transaction();
+
+	while (version < toVersion) {
+		quint32 nextVersion = 0;
+
+		foreach (const Upgrade &u, upgrades) {
+			const quint32 from = Utils::versionCode(u.fromVersionMajor, u.fromVersionMinor);
+			const quint32 to = Utils::versionCode(u.toVersionMajor, u.toVersionMinor);
+
+			if (from < version || (nextVersion != 0 && to > nextVersion))
+				continue;
+
+			LOG_CDEBUG("db") << "- upgrade:" << from << "->" << to;
+
+			if (nextVersion == 0 || to < nextVersion)
+				nextVersion = to;
+
+			switch (u.type) {
+			case Upgrade::UpgradeFromData:
+				if (!_batchFromData(u.content)) {
+					db.rollback();
+					return false;
+				}
+				break;
+
+			case Upgrade::UpgradeFromFile:
+				if (!_batchFromFile(u.content)) {
+					db.rollback();
+					return false;
+				}
+				break;
+			}
+		}
+
+		if (nextVersion == 0 || nextVersion == toVersion) {
+			version = toVersion;
+
+			LOG_CDEBUG("db") << "- default upgrade";
+
+			if (!defaultUpgradeData.isEmpty() && !_batchFromData(defaultUpgradeData)) {
+				db.rollback();
+				return false;
+			}
+		} else {
+			version = nextVersion;
+		}
+	};
+
+	db.commit();
+
+	LOG_CINFO("db") << qPrintable(QObject::tr("Upgrade database %1 successfull").arg(m_dbName));
+
+	return true;
+}
+
+
+
 
 
 

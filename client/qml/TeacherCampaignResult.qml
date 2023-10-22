@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import Qaterial 1.0 as Qaterial
+import SortFilterProxyModel 0.2
 import "./QaterialHelper" as Qaterial
 import CallOfSuli 1.0
 import "JScript.js" as JS
@@ -152,9 +153,15 @@ QTableView {
 		implicitHeight: 50
 
 		hoverEnabled: true
-		acceptedButtons: Qt.LeftButton
+		acceptedButtons: Qt.LeftButton | Qt.RightButton
 
 		onClicked: {
+			if (mouse.button == Qt.RightButton) {
+				_contextMenu.currentUser = _model.userAt(row-1)
+				_contextMenu.open()
+				return
+			}
+
 			rowClicked(row)
 
 			let u = _model.userAt(row-1)
@@ -172,6 +179,58 @@ QTableView {
 					d.subtitle = group ? group.name : ""
 
 				Client.stackPushPage("PageStudentCampaign.qml", d)
+			}
+		}
+
+		QMenu {
+			id: _contextMenu
+
+			property User currentUser: null
+
+			QMenuItem {
+				icon.source: Qaterial.Icons.accountPlusOutline
+				text: qsTr("Kiosztás")
+				enabled: campaign && !campaign.finished && _contextMenu.currentUser
+				onClicked: {
+					JS.questionDialog(
+											 {
+												 onAccepted: function()
+												 {
+													 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/add/%2"
+																 .arg(campaign.campaignid).arg(_contextMenu.currentUser.username))
+													 .done(function(r){
+														 _model.reloadContent()
+													 })
+													 .fail(JS.failMessage(qsTr("Kiosztás sikertelen")))
+												 },
+												 text: qsTr("Biztosan kiosztod a feladatot?\n%1").arg(_contextMenu.currentUser.fullName),
+												 title: campaign.readableName,
+												 iconSource: Qaterial.Icons.accountPlusOutline
+											 })
+				}
+			}
+
+			QMenuItem {
+				icon.source: Qaterial.Icons.accountMinusOutline
+				text: qsTr("Visszavonás")
+				enabled: campaign && !campaign.finished && _contextMenu.currentUser
+				onClicked: {
+					JS.questionDialog(
+											 {
+												 onAccepted: function()
+												 {
+													 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/remove/%2"
+																 .arg(campaign.campaignid).arg(_contextMenu.currentUser.username))
+													 .done(function(r){
+														 _model.reloadContent()
+													 })
+													 .fail(JS.failMessage(qsTr("Visszavonás sikertelen")))
+												 },
+												 text: qsTr("Biztosan visszavonod a feladatot?\n%1").arg(_contextMenu.currentUser.fullName),
+												 title: campaign.readableName,
+												 iconSource: Qaterial.Icons.accountMinusOutline
+											 })
+				}
 			}
 		}
 
@@ -207,6 +266,7 @@ QTableView {
 					lineHeight: 0.8
 					wrapMode: Text.Wrap
 					text: display
+					enabled: checked
 				}
 
 				Qaterial.LabelHeadline5 {
@@ -214,7 +274,7 @@ QTableView {
 					visible: !isPlaceholder
 					anchors.verticalCenter: parent.verticalCenter
 					text: result
-					color: Qaterial.Style.accentColor
+					color: checked ? Qaterial.Style.accentColor : Qaterial.Style.colorTheme.disabledText
 				}
 
 				QPlaceholderItem {
@@ -231,5 +291,114 @@ QTableView {
 
 	StackView.onActivated: _model.reloadContent()
 	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _model.reloadContent()
+
+
+
+	SortFilterProxyModel {
+		id: _sortedGradeList
+		sourceModel: _gradeModel
+		sorters: [
+			RoleSorter {
+				roleName: "gradeid"
+			}
+		]
+
+		function reload() {
+			_gradeModel.clear()
+
+			_gradeModel.append({
+								   text: qsTr("Minden jegy"),
+								   id: 0
+							   })
+
+			let l = Client.cache("gradeList")
+
+			for (let i=0; i<l.count; ++i) {
+				let g = l.get(i)
+				_gradeModel.append({
+									   text: "%1 (%2)".arg(g.longname).arg(g.shortname),
+									   id: g.gradeid
+								   })
+			}
+		}
+	}
+
+	ListModel {
+		id: _gradeModel
+	}
+
+
+	readonly property Action actionStudentEdit:	Action {
+		id: _actionStudentEdit
+		enabled: campaign && !campaign.finished
+		text: qsTr("Kiosztás törlése")
+		icon.source: Qaterial.Icons.accountRemoveOutline
+		onTriggered: JS.questionDialog(
+						 {
+							 onAccepted: function()
+							 {
+								 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/clear".arg(campaign.campaignid))
+								 .done(function(r){
+									 _model.reloadContent()
+								 })
+								 .fail(JS.failMessage(qsTr("Kiosztás törlése sikertelen")))
+							 },
+							 text: qsTr("Biztosan törlöd a meglévő kiosztást?\nEzzel mindenkinek ki lesz osztva."),
+							 title: campaign.readableName,
+							 iconSource: Qaterial.Icons.accountRemoveOutline
+						 })
+	}
+
+
+
+	readonly property Action actionRepeat: Action {
+		id: _actionRepeat
+		enabled: campaign && campaign.finished
+		text: qsTr("Megismétlés")
+		icon.source: Qaterial.Icons.repeat
+		onTriggered: {
+			_sortedGradeList.reload()
+
+			Qaterial.DialogManager.openCheckListView(
+						{
+							onAccepted: function(indexList)
+							{
+								if (indexList.length === 0)
+									return
+
+								var l = []
+
+								for (let i=0; i<indexList.length; ++i) {
+									l.push(_sortedGradeList.get(indexList[i]).id)
+								}
+
+								Client.send(WebSocket.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
+												list: [ campaign.groupid ]
+											})
+								.done(function(r){
+									let list = r.list
+
+									if (list.length !== 1) {
+										Client.messageError(qsTr("Belső hiba"), qsTr("Hadjárat másolása"))
+										return
+									}
+
+									Client.send(WebSocket.ApiTeacher, "campaign/%1/user/copy".arg(list[0]), {
+													from: campaign.campaignid,
+													gradeList: l
+												})
+									.done(function(r){
+										Client.snack(qsTr("Hadjárat megismételve"))
+									})
+									.fail(JS.failMessage("Megismétlés sikertelen"))
+								})
+
+							},
+							title: qsTr("Hadjárat megismétlése a kapott jegyek szerint"),
+							standardButtons: Dialog.Cancel | Dialog.Ok,
+							model: _sortedGradeList
+						})
+		}
+	}
 
 }

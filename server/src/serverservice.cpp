@@ -416,6 +416,20 @@ void ServerService::setImitateLatency(int newImitateLatency)
 
 
 /**
+ * @brief ServerService::logPeerUser
+ * @param user
+ */
+
+bool ServerService::logPeerUser(const PeerUser &user)
+{
+	bool ret = PeerUser::addOrUpdate(&m_peerUser, user);
+	if (ret)
+		triggerEventStreams(EventStream::EventStreamPeerUsers);
+	return ret;
+}
+
+
+/**
  * @brief ServerService::importDb
  * @return
  */
@@ -760,7 +774,7 @@ bool ServerService::preStart()
 	if (parser.isSet(QStringLiteral("dir")))
 		m_settings->setDataDir(parser.value(QStringLiteral("dir")));
 	else if (!envDir.isEmpty())
-			m_settings->setDataDir(QString::fromUtf8(envDir));
+		m_settings->setDataDir(QString::fromUtf8(envDir));
 	else {
 		LOG_CERROR("service") << "You must specify main data directory";
 
@@ -967,6 +981,10 @@ void ServerService::onMainTimerTimeout()
 	LOG_CTRACE("service") << "Timer check";
 	m_mainTimerLastTick = dtMinute;
 
+	if (PeerUser::clear(&m_peerUser))
+		triggerEventStreams(EventStream::EventStreamPeerUsers);
+
+
 	if (!m_databaseMain) {
 		LOG_CWARNING("service") << "Main database unavailable";
 		return;
@@ -1002,7 +1020,7 @@ void ServerService::onMainTimerTimeout()
 
 		QueryBuilder qq(db);
 		qq.addQuery("SELECT id FROM campaign WHERE started=false "
-				   "AND startTime IS NOT NULL AND startTime<").addValue(QDateTime::currentDateTimeUtc());
+					"AND startTime IS NOT NULL AND startTime<").addValue(QDateTime::currentDateTimeUtc());
 
 		if (!qq.exec()) {
 			LOG_CERROR("service") << "Start campaigns failed";
@@ -1016,4 +1034,205 @@ void ServerService::onMainTimerTimeout()
 
 	});
 
+}
+
+
+/**
+ * @brief ServerService::peerUser
+ * @return
+ */
+
+const QVector<PeerUser> &ServerService::peerUser() const
+{
+	return m_peerUser;
+}
+
+
+
+
+/**
+ * @brief PeerUser::add
+ * @param list
+ * @param user
+ */
+
+QVector<PeerUser>::iterator PeerUser::find(QVector<PeerUser> *list, const PeerUser &user)
+{
+	Q_ASSERT(list);
+
+	QVector<PeerUser>::iterator it = list->begin();
+
+	for (; it != list->end(); ++it) {
+		if (*it == user)
+			break;
+	}
+
+	return it;
+}
+
+
+/**
+ * @brief PeerUser::add
+ * @param list
+ * @param user
+ */
+
+bool PeerUser::addOrUpdate(QVector<PeerUser> *list, const PeerUser &user)
+{
+	Q_ASSERT(list);
+
+	if (user.m_username.isEmpty())
+		return false;
+
+	auto it = find(list, user);
+
+	if (it == list->end()) {
+		list->append(user);
+		return true;
+	} else
+		it->setTimestamp(QDateTime::currentDateTime());
+
+	return false;
+}
+
+
+/**
+ * @brief PeerUser::remove
+ * @param list
+ * @param user
+ * @return
+ */
+
+bool PeerUser::remove(QVector<PeerUser> *list, const PeerUser &user)
+{
+	Q_ASSERT(list);
+
+	if (user.m_username.isEmpty())
+		return false;
+
+	bool ret = false;
+
+	for (auto it = list->begin(); it != list->end(); ) {
+		if (*it == user) {
+			list->erase(it);
+			ret = true;
+		} else
+			++it;
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief PeerUser::clear
+ * @param list
+ */
+
+bool PeerUser::clear(QVector<PeerUser> *list, const qint64 &sec)
+{
+	Q_ASSERT(list);
+
+	const QDateTime &dt = QDateTime::currentDateTime();
+
+	bool ret = false;
+
+	for (auto it = list->begin(); it != list->end(); ) {
+		if (!(it->m_timestamp).isValid() || it->m_timestamp.secsTo(dt) > sec) {
+			list->erase(it);
+			ret = true;
+		} else
+			++it;
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief PeerUser::toJson
+ * @param list
+ * @return
+ */
+
+QJsonArray PeerUser::toJson(const QVector<PeerUser> *list)
+{
+	Q_ASSERT(list);
+
+	QJsonArray ret;
+
+	foreach (const PeerUser &user, *list) {
+		QJsonObject o;
+		o.insert(QStringLiteral("username"), user.m_username);
+		o.insert(QStringLiteral("host"), user.m_host.toString());
+		o.insert(QStringLiteral("agent"), user.m_agent);
+		o.insert(QStringLiteral("timestamp"), user.m_timestamp.toSecsSinceEpoch());
+		ret.append(o);
+	}
+
+	return ret;
+}
+
+
+
+
+const QString &PeerUser::username() const
+{
+	return m_username;
+}
+
+void PeerUser::setUsername(const QString &newUsername)
+{
+	m_username = newUsername;
+}
+
+const QString &PeerUser::familyName() const
+{
+	return m_familyName;
+}
+
+void PeerUser::setFamilyName(const QString &newFamilyName)
+{
+	m_familyName = newFamilyName;
+}
+
+const QString &PeerUser::givenName() const
+{
+	return m_givenName;
+}
+
+void PeerUser::setGivenName(const QString &newGivenName)
+{
+	m_givenName = newGivenName;
+}
+
+const QHostAddress &PeerUser::host() const
+{
+	return m_host;
+}
+
+void PeerUser::setHost(const QHostAddress &newHost)
+{
+	m_host = newHost;
+}
+
+const QDateTime &PeerUser::timestamp() const
+{
+	return m_timestamp;
+}
+
+void PeerUser::setTimestamp(const QDateTime &newTimestamp)
+{
+	m_timestamp = newTimestamp;
+}
+
+const QString &PeerUser::agent() const
+{
+	return m_agent;
+}
+
+void PeerUser::setAgent(const QString &newAgent)
+{
+	m_agent = newAgent;
 }

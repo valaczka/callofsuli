@@ -35,6 +35,7 @@
 #include <QSqlError>
 #include <QObject>
 #include <QSqlQuery>
+#include "utils.h"
 
 
 
@@ -62,6 +63,29 @@ public:
 	bool _batchFromFile(const QString &filename);
 
 	QLambdaThreadWorker *worker() const;
+
+
+	// Database upgrade
+
+	struct Upgrade
+	{
+		enum Type {
+			UpgradeFromData,
+			UpgradeFromFile
+		};
+
+		int fromVersionMajor = 0;
+		int fromVersionMinor = 0;
+		int toVersionMajor = 0;
+		int toVersionMinor = 0;
+		Type type = UpgradeFromData;
+		QString content;
+	};
+
+	virtual bool performUpgrade(const QVector<Upgrade> &upgrades, const QString &defaultUpgradeData,
+								const quint32 &fromVersionMajor, const quint32 &fromVersionMinor,
+								const quint32 &toVersionMajor = Utils::versionMajor(),
+								const quint32 &toVersionMinor = Utils::versionMinor());
 
 protected:
 	bool databaseInit();

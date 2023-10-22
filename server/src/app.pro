@@ -5,6 +5,7 @@ QT += network sql networkauth core-private
 
 CONFIG += c++17 console
 CONFIG -= app_bundle
+CONFIG += separate_debug_info
 
 include(../../common.pri)
 include(../../version/version.pri)

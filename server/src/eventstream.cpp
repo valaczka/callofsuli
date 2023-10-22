@@ -32,7 +32,8 @@
 
 
 const QHash<QByteArray, EventStream::EventStreamType> EventStream::m_streamTypeHash = {
-	{ QByteArrayLiteral("groupScore"), EventStream::EventStreamGroupScore }
+	{ QByteArrayLiteral("groupScore"), EventStream::EventStreamGroupScore },
+	{ QByteArrayLiteral("peerUsers"), EventStream::EventStreamPeerUsers }
 };
 
 
@@ -142,6 +143,7 @@ void EventStream::trigger()
 	LOG_CTRACE("client") << "Event stream triggered:" << this;
 
 	trigger(EventStreamGroupScore);
+	trigger(EventStreamPeerUsers);
 }
 
 
@@ -157,8 +159,17 @@ void EventStream::trigger(const EventStreamType &type)
 
 	LOG_CTRACE("client") << "Event stream triggered:" << type << this;
 
-	if (type == EventStreamGroupScore)
+	switch (type) {
+	case EventStreamGroupScore:
 		triggerGroupScore();
+		break;
+	case EventStreamPeerUsers:
+		triggerPeerUsers();
+		break;
+	case EventStreamInvalid:
+		break;
+	}
+
 }
 
 
@@ -178,8 +189,16 @@ void EventStream::trigger(const EventStreamType &type, const QVariant &data)
 
 	LOG_CTRACE("client") << "Event stream triggered:" << type << data << this;
 
-	if (type == EventStreamGroupScore)
+	switch (type) {
+	case EventStreamGroupScore:
 		triggerGroupScore();
+		break;
+	case EventStreamPeerUsers:
+		triggerPeerUsers();
+		break;
+	case EventStreamInvalid:
+		break;
+	}
 }
 
 
@@ -303,4 +322,20 @@ void EventStream::triggerGroupScore()
 			.done([this](const QJsonArray &list) {
 		write(EventStreamGroupScore, QJsonObject{{QStringLiteral("list"), list}});
 	});
+}
+
+
+
+/**
+ * @brief EventStream::triggerPeerUsers
+ */
+
+void EventStream::triggerPeerUsers()
+{
+	if (!m_service)
+		return;
+
+	const QJsonArray &list = PeerUser::toJson(&(m_service->peerUser()));
+
+	write(EventStreamPeerUsers, QJsonObject{{QStringLiteral("list"), list}});
 }

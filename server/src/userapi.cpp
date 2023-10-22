@@ -77,15 +77,16 @@ UserAPI::UserAPI(ServerService *service)
  * @return
  */
 
-QMap<QString, GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map)
+QDeferred<QMap<QString, GameMap::SolverInfo> > UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map)
 {
 	Q_ASSERT(api);
 
-	QDefer ret;
-	QMap<QString, GameMap::SolverInfo> solver;
+	QDeferred<QMap<QString, GameMap::SolverInfo> > ret;
 
-	api->databaseMainWorker()->execInThread([api, username, map, ret, &solver]() mutable {
+	api->databaseMainWorker()->execInThread([api, username, map, ret]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+		QMap<QString, GameMap::SolverInfo> solver;
 
 		QMutexLocker(api->databaseMain()->mutex());
 
@@ -97,7 +98,7 @@ QMap<QString, GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, c
 				.addQuery(" GROUP BY missionid, level, deathmatch");
 
 		if (!q.exec())
-			return ret.reject();
+			return ret.reject(solver);
 
 		while (q.sqlQuery().next()) {
 			const QString &mission = q.value("missionid").toString();
@@ -112,12 +113,10 @@ QMap<QString, GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, c
 			solver.insert(mission, s);
 		}
 
-		ret.resolve();
+		ret.resolve(solver);
 	});
 
-	QDefer::await(ret);
-
-	return solver;
+	return ret;
 }
 
 
@@ -134,19 +133,20 @@ QMap<QString, GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, c
  * @return
  */
 
-GameMap::SolverInfo UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission)
+QDeferred<GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission)
 {
 	Q_ASSERT(api);
 
-	QDefer ret;
-	GameMap::SolverInfo solver;
+	QDeferred<GameMap::SolverInfo> ret;
 
-	api->databaseMainWorker()->execInThread([api, username, map, mission, ret, &solver]() mutable {
+	api->databaseMainWorker()->execInThread([api, username, map, mission, ret]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
 
 		QMutexLocker(api->databaseMain()->mutex());
 
 		QueryBuilder q(db);
+
+		GameMap::SolverInfo solver;
 
 		q.addQuery("SELECT level, deathmatch, COUNT(*) AS num FROM game WHERE username=").addValue(username)
 				.addQuery(" AND success=true")
@@ -155,17 +155,15 @@ GameMap::SolverInfo UserAPI::solverInfo(const AbstractAPI *api, const QString &u
 				.addQuery(" GROUP BY level, deathmatch");
 
 		if (!q.exec())
-			return ret.reject();
+			return ret.reject(solver);
 
 		while (q.sqlQuery().next())
 			solver.setSolved(q.value("level").toInt(), q.value("deathmatch").toBool(), q.value("num").toInt());
 
-		ret.resolve();
+		ret.resolve(solver);
 	});
 
-	QDefer::await(ret);
-
-	return solver;
+	return ret;
 }
 
 
@@ -181,14 +179,13 @@ GameMap::SolverInfo UserAPI::solverInfo(const AbstractAPI *api, const QString &u
  * @return
  */
 
-int UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level)
+QDeferred<int> UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level)
 {
 	Q_ASSERT(api);
 
-	QDefer ret;
-	int num = -1;
+	QDeferred<int> ret;
 
-	api->databaseMainWorker()->execInThread([api, username, map, mission, ret, level, &num]() mutable {
+	api->databaseMainWorker()->execInThread([api, username, map, mission, ret, level]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
 
 		QMutexLocker(api->databaseMain()->mutex());
@@ -203,16 +200,12 @@ int UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const Q
 				.execToValue("num", &err).toInt();
 
 		if (err)
-			return ret.reject();
+			return ret.reject(-1);
 
-		num = n;
-
-		ret.resolve();
+		ret.resolve(n);
 	});
 
-	QDefer::await(ret);
-
-	return num;
+	return ret;
 }
 
 
@@ -228,40 +221,30 @@ int UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const Q
  * @return
  */
 
-int UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level,
-						const bool &deathmatch)
+int UserAPI::_solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level,
+						 const bool &deathmatch)
 {
 	Q_ASSERT(api);
 
-	QDefer ret;
-	int num = -1;
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
 
-	api->databaseMainWorker()->execInThread([api, username, map, mission, ret, level, deathmatch, &num]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+	QMutexLocker(api->databaseMain()->mutex());
 
-		QMutexLocker(api->databaseMain()->mutex());
+	bool err = false;
+	const int &n = QueryBuilder::q(db)
+			.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
+			.addQuery(" AND success=true")
+			.addQuery(" AND mapid=").addValue(map)
+			.addQuery(" AND missionid=").addValue(mission)
+			.addQuery(" AND level=").addValue(level)
+			.addQuery(" AND deathmatch=").addValue(deathmatch)
+			.execToValue("num", &err).toInt();
 
-		bool err = false;
-		const int &n = QueryBuilder::q(db)
-				.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
-				.addQuery(" AND success=true")
-				.addQuery(" AND mapid=").addValue(map)
-				.addQuery(" AND missionid=").addValue(mission)
-				.addQuery(" AND level=").addValue(level)
-				.addQuery(" AND deathmatch=").addValue(deathmatch)
-				.execToValue("num", &err).toInt();
+	if (err)
+		return -1;
 
-		if (err)
-			return ret.reject();
+	return n;
 
-		num = n;
-
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-
-	return num;
 }
 
 
@@ -441,7 +424,8 @@ void UserAPI::campaigns(const QRegularExpressionMatch &, const QJsonObject &, QP
 		bool err = false;
 
 		const QJsonArray &list = QueryBuilder::q(db)
-				.addQuery("SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+				.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+						  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
 						  "description, finished, groupid,"
 						  "score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
@@ -450,7 +434,9 @@ void UserAPI::campaigns(const QRegularExpressionMatch &, const QJsonObject &, QP
 				.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
 						  "WHERE started=true AND groupid IN "
 						  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
-				.addQuery(")")
+				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
+						  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(username)
+				.addQuery("))")
 				.execToJsonArray(&err);
 
 		if (err)
@@ -482,7 +468,8 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 		bool err = false;
 
 		QJsonObject obj = QueryBuilder::q(db)
-				.addQuery("SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+				.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+						  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
 						  "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
 						  "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
@@ -491,7 +478,9 @@ void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObjec
 						  "WHERE started=true AND campaign.id=").addValue(id)
 				.addQuery(" AND groupid IN "
 						  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
-				.addQuery(")")
+				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
+						  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(username)
+				.addQuery("))")
 				.execToJsonObject(&err);
 
 		if (err)
@@ -652,14 +641,22 @@ void UserAPI::mapSolver(const QRegularExpressionMatch &match, const QJsonObject 
 	const QString &uuid = match.captured(1);
 	const QString &username = m_credential.username();
 
-	const QMap<QString, GameMap::SolverInfo> &solver = solverInfo(this, username, uuid);
+	//const QMap<QString, GameMap::SolverInfo> &solver = solverInfo(this, username, uuid);
 
-	QJsonObject ret;
+	QDeferred<QMap<QString, GameMap::SolverInfo> > defer =
+			solverInfo(this, username, uuid)
+			.fail([response, this](const QMap<QString, GameMap::SolverInfo> &) {
+		responseErrorSql(response);
+	})
+			.done([response, this](const QMap<QString, GameMap::SolverInfo> &solver) {
+		QJsonObject ret;
 
-	for (auto it = solver.constBegin(); it != solver.constEnd(); ++it)
-		ret.insert(it.key(), it.value().toJsonObject());
+		for (auto it = solver.constBegin(); it != solver.constEnd(); ++it)
+			ret.insert(it.key(), it.value().toJsonObject());
 
-	responseAnswer(response, ret);
+		responseAnswer(response, ret);
+	});
+
 }
 
 
@@ -981,7 +978,7 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 		QJsonObject ret;
 
 		const int &baseXP = m_service->config().get("gameBaseXP").toInt(100);
-		const int &oldSolved = solverInfo(this, username, g.map, g.mission, g.level, g.deathmatch);
+		const int &oldSolved = _solverInfo(this, username, g.map, g.mission, g.level, g.deathmatch);
 
 		if (success) {
 			// Solved XP

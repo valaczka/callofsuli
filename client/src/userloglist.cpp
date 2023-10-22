@@ -28,6 +28,7 @@
 #include "application.h"
 #include "rank.h"
 #include "server.h"
+#include "gamemap.h"
 
 UserLogList::UserLogList(QObject *parent)
 	: QObject{parent}
@@ -177,6 +178,69 @@ void UserLogList::loadFromJson(const QJsonObject &obj)
 	setModel(model);
 
 	emit modelReloaded();
+
+
+	/// COUNTERS
+
+	QMap<GameMap::GameMode, QMap<QString, int>> modeMap;
+
+	foreach (const QJsonValue &v, obj.value(QStringLiteral("durations")).toArray()) {
+		const QJsonObject &o = v.toObject();
+		const GameMap::GameMode &mode = o.value(QStringLiteral("mode")).toVariant().value<GameMap::GameMode>();
+
+		if (mode == GameMap::Invalid) {
+			LOG_CWARNING("client") << "Invalid GameMap::GameMode" << o;
+			continue;
+		}
+
+		modeMap[mode][QStringLiteral("duration")] = o.value(QStringLiteral("duration")).toInt();
+	}
+
+	foreach (const QJsonValue &v, obj.value(QStringLiteral("trophies")).toArray()) {
+		const QJsonObject &o = v.toObject();
+		const GameMap::GameMode &mode = o.value(QStringLiteral("mode")).toVariant().value<GameMap::GameMode>();
+
+		if (mode == GameMap::Invalid) {
+			LOG_CWARNING("client") << "Invalid GameMap::GameMode" << o;
+			continue;
+		}
+
+		modeMap[mode][QStringLiteral("trophy")] = o.value(QStringLiteral("trophy")).toInt();
+	}
+
+	QVariantList counterList;
+
+	for (auto it=modeMap.constBegin(); it != modeMap.constEnd(); ++it) {
+		QVariantMap record;
+		record.insert(QStringLiteral("mode"), it.key());
+
+		for (auto ii=it.value().constBegin(); ii != it.value().constEnd(); ++ii) {
+			record.insert(ii.key(), ii.value());
+		}
+
+		counterList.append(record);
+	}
+
+	setCounters(counterList);
+}
+
+
+/**
+ * @brief UserLogList::counters
+ * @return
+ */
+
+const QVariantList &UserLogList::counters() const
+{
+	return m_counters;
+}
+
+void UserLogList::setCounters(const QVariantList &newCounters)
+{
+	/*if (m_counters == newCounters)			// Nem kell, mert különben üres lista esetén nem tűnnek el a placeholderek
+		return;*/
+	m_counters = newCounters;
+	emit countersChanged();
 }
 
 

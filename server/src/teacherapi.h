@@ -173,6 +173,25 @@ public:
 	void campaignFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void campaignDuplicate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
+	void campaignUser(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void campaignUserClear(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void campaignUserAddOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		campaignUserAdd(match.captured(1).toInt(), {match.captured(2)}, response);
+	}
+	void campaignUserAdd(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		campaignUserAdd(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void campaignUserAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+
+	void campaignUserRemoveOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
+		campaignUserRemove(match.captured(1).toInt(), {match.captured(2)}, response);
+	}
+	void campaignUserRemove(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		campaignUserRemove(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
+	}
+	void campaignUserRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+	void campaignUserCopy(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+
 	void taskOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void task(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void taskCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
@@ -184,6 +203,10 @@ public:
 		taskDelete(data.value(QStringLiteral("list")).toArray(), response);
 	}
 	void taskDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+
+
+	void userPeers(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 
 	// Run in database worker thread

@@ -357,6 +357,30 @@ void GeneralAPI::userLog(const QRegularExpressionMatch &match, const QJsonObject
 		if (err)
 			return responseErrorSql(response);
 
+		ret[QStringLiteral("durations")] = QueryBuilder::q(db)
+				.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
+						  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
+						  "SELECT usermodes.mode AS mode, SUM(duration) AS duration FROM usermodes "
+						  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode) "
+						  "WHERE usermodes.username=").addValue(username)
+						  .addQuery(" GROUP BY usermodes.username, usermodes.mode")
+				.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		ret[QStringLiteral("trophies")] = QueryBuilder::q(db)
+				.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
+						  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
+						  "SELECT usermodes.mode AS mode, COUNT(success) AS trophy FROM usermodes "
+						  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode AND success=true) "
+						  "WHERE usermodes.username=").addValue(username)
+						  .addQuery(" GROUP BY usermodes.username, usermodes.mode")
+				.execToJsonArray(&err);
+
+		if (err)
+			return responseErrorSql(response);
+
 		responseAnswerOk(response, ret);
 	});
 }

@@ -298,8 +298,11 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 		return QLatin1String("");
 
 	} else if (role == Qt::CheckStateRole) {								// checked: 0 (false) : 1 (checked) : 2 (required but not checked)
-		if (col == 0 || row == 0)
-			return 0;
+		if (col == 0 && row > 0 && row <= m_userList.size()) {
+			User *user = m_userList.at(row-1).user;
+
+			return user->active() ? 1 : 0;
+		}
 
 		if (row <= 0 || row > m_userList.size() || col <= 0 || col > m_taskList.size())
 			return 0;
@@ -538,6 +541,10 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 		} else {
 			LOG_CWARNING("client") << "Invalid user:" << username;
 			continue;
+		}
+
+		if (obj.contains(QStringLiteral("included"))) {
+			user->setActive(obj.value(QStringLiteral("included")).toVariant().toBool());
 		}
 
 		const QJsonArray &list = obj.value(QStringLiteral("taskList")).toArray();

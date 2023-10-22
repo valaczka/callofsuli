@@ -38,6 +38,7 @@ class UserLogList : public QObject
 	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
 	Q_PROPERTY(WebSocket::API api READ api WRITE setApi NOTIFY apiChanged)
 	Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
+	Q_PROPERTY(QVariantList counters READ counters WRITE setCounters NOTIFY countersChanged)
 
 public:
 	explicit UserLogList(QObject *parent = nullptr);
@@ -54,6 +55,9 @@ public:
 	const QVariantList &model() const;
 	void setModel(const QVariantList &newModel);
 
+	const QVariantList &counters() const;
+	void setCounters(const QVariantList &newCounters);
+
 public slots:
 	void reload();
 
@@ -64,11 +68,13 @@ signals:
 	void modelChanged();
 	void modelReloaded();
 	void modelReloadRequested();
+	void countersChanged();
 
 private:
 	void loadFromJson(const QJsonObject &obj);
 
 	QVariantList m_model;
+	QVariantList m_counters;
 	QString m_username;
 	WebSocket::API m_api = WebSocket::ApiGeneral;
 	QString m_path = QStringLiteral("user/%1/log");

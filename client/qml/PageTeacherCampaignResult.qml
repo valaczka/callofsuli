@@ -18,6 +18,20 @@ QPage {
 
 	appBar.backButtonVisible: true
 
+	appBar.rightComponent: Qaterial.AppBarButton
+	{
+		icon.source: Qaterial.Icons.dotsVertical
+		onClicked: menuResult.open()
+
+		QMenu {
+			id: menuResult
+
+			QMenuItem { action: _result.actionStudentEdit }
+			QMenuItem { action: _result.actionRepeat }
+			QMenuItem { action: _actionResultReload }
+		}
+	}
+
 	TeacherCampaignResult {
 		id: _result
 		anchors.fill: parent
@@ -27,4 +41,12 @@ QPage {
 	}
 
 	StackView.onActivated: _result.resultModel.reloadContent()
+
+	Action {
+		id: _actionResultReload
+		text: qsTr("Frissítés")
+		icon.source: Qaterial.Icons.refresh
+		onTriggered: _result.resultModel.reloadContent()
+	}
+
 }

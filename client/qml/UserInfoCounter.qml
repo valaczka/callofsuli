@@ -19,8 +19,8 @@ Qaterial.Expandable {
 	}
 
 	header: QExpandableHeader {
-		text: qsTr("Előléptetések")
-		icon: Qaterial.Icons.medalOutline
+		text: qsTr("Számlálók")
+		icon: Qaterial.Icons.counter
 		expandable: root
 	}
 
@@ -86,36 +86,72 @@ Qaterial.Expandable {
 
 						height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
 
-						highlighted: modelData && modelData.rank === undefined
-
-						readonly property color _color: modelData && modelData.rank !== undefined ?
-															Qaterial.Style.primaryTextColor() : Qaterial.Style.accentColor
+						highlighted: false
 
 						contentSourceComponent: Label {
 							font: Qaterial.Style.textTheme.body2
 							verticalAlignment: Label.AlignVCenter
 
+							text: {
+								switch (modelData.mode) {
+								case GameMap.Action:
+									qsTr("Akciójáték")
+									break
+								case GameMap.Lite:
+									qsTr("Feladatmegoldás")
+									break
+								case GameMap.Test:
+									qsTr("Teszt")
+									break
+								case GameMap.Quiz:
+									qsTr("Kvíz")
+									break
+								case GameMap.Exam:
+									qsTr("Dolgozat")
+									break
+								default:
+									"???"
+								}
+							}
 
-							color: _delegate._color
-
-							text: modelData.rank !== undefined
-								  ? (modelData.rank.sublevel > 0 ?
-										 qsTr("%1 (level %2)").arg(modelData.rank.name).arg(modelData.rank.sublevel) : modelData.rank.name)
-								  : "Streak: "+modelData.streak
 						}
 
-						leftSourceComponent: UserImage {
-							visible: modelData && modelData.rank !== undefined
-							userData: modelData && modelData.rank !== undefined ? modelData : null
-							pictureEnabled: false
-							sublevelEnabled: true
-							height: _delegate.height-6
-							width: _delegate.height-6
-						}
+						rightSourceComponent: Row {
+							spacing: 2
 
-						rightSourceComponent: Qaterial.LabelCaption {
-							text: JS.readableDate(modelData.timestamp)
-							color: _delegate._color
+							Qaterial.Icon {
+								visible: modelData.trophy
+								anchors.verticalCenter: parent.verticalCenter
+								icon: Qaterial.Icons.trophy
+								color: Qaterial.Colors.green500
+								width: Qaterial.Style.smallIcon*0.8
+								height: Qaterial.Style.smallIcon*0.8
+							}
+
+							Qaterial.LabelCaption {
+								visible: modelData.trophy
+								anchors.verticalCenter: parent.verticalCenter
+								text: modelData.trophy
+								color: Qaterial.Colors.green300
+								rightPadding: modelData.duration ? 10 * Qaterial.Style.pixelSizeRatio : 0
+							}
+
+							Qaterial.Icon {
+								visible: modelData.duration
+								anchors.verticalCenter: parent.verticalCenter
+								icon: Qaterial.Icons.clock
+								color: Qaterial.Colors.cyan500
+								width: Qaterial.Style.smallIcon*0.8
+								height: Qaterial.Style.smallIcon*0.8
+							}
+
+							Qaterial.LabelCaption {
+								visible: modelData.duration
+								anchors.verticalCenter: parent.verticalCenter
+								text: Client.Utils.formatMSecs(modelData.duration, 0, true)
+								color: Qaterial.Colors.cyan300
+							}
+
 						}
 					}
 				}
@@ -126,15 +162,12 @@ Qaterial.Expandable {
 		Connections {
 			target: userLogList
 
-			function onModelReloaded() {
-				_rptr.model = userLogList.model
+			function onCountersChanged() {
+				_rptr.model = userLogList.counters
 				if (!_rptr.model || !_rptr.model.length)
 					_loaderGroup.showPlaceholders = false
 			}
 		}
 	}
-
-
-
 
 }

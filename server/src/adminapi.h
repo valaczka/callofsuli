@@ -163,6 +163,10 @@ public:
 	void userImport(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
 
+	void userPeers(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+
+
 
 	/// CONFIG FUNCTIONS
 	void configUpdate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;

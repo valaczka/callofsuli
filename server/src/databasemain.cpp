@@ -282,7 +282,7 @@ bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 		m_service->setServerName(q.value(QStringLiteral("serverName")).toString());
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeTables())
+			if (_upgradeSystemTables(this, vMajor, vMinor))
 				return _checkSystemTable();
 			else
 				return false;
@@ -300,7 +300,7 @@ bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 	} else {
 
 		if (!dbImport.isEmpty()) {
-			if (_createTables() && _createRanksAndGrades() && _databaseImport(dbImport)) {
+			if (_createSytemTables() && _createRanksAndGrades() && _databaseImport(dbImport)) {
 				return _checkSystemTable();
 			} else {
 				LOG_CERROR("db") << "Database import failed:" << qPrintable(dbImport);
@@ -310,7 +310,7 @@ bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 
 		db.transaction();
 
-		if (_createTables() && _createUsers() && _createRanksAndGrades()) {
+		if (_createSytemTables() && _createUsers() && _createRanksAndGrades()) {
 			db.commit();
 			return _checkSystemTable();
 		} else {
@@ -357,7 +357,7 @@ bool DatabaseMain::_checkMapsSystemTable(Database *mapsDb)
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeMapsTables(mapsDb))
+			if (_upgradeMapsTables(mapsDb, vMajor, vMinor))
 				return _checkMapsSystemTable(mapsDb);
 			else
 				return false;
@@ -423,7 +423,7 @@ bool DatabaseMain::_checkStatSystemTable(Database *statDb)
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeStatTables(statDb))
+			if (_upgradeStatTables(statDb, vMajor, vMinor))
 				return _checkStatSystemTable(statDb);
 			else
 				return false;
@@ -459,7 +459,7 @@ bool DatabaseMain::_checkStatSystemTable(Database *statDb)
  * @return
  */
 
-bool DatabaseMain::_createTables()
+bool DatabaseMain::_createSytemTables()
 {
 	LOG_CTRACE("db") << "Create tables";
 
@@ -580,25 +580,18 @@ bool DatabaseMain::_createStatTables(Database *db)
  */
 
 
-bool DatabaseMain::_upgradeTables()
+bool DatabaseMain::_upgradeSystemTables(Database *db, int fromMajor, int fromMinor)
 {
-	LOG_CERROR("db") << "Missing implementation";
+	Q_ASSERT(db);
 
-	QSqlDatabase db = QSqlDatabase::database(m_dbName);
+	static const QVector<Upgrade> list = {
+		Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_3.4_3.5.sql") }
+	};
 
-	QueryBuilder q(db);
-
-	q.addQuery("UPDATE system SET ")
-			.setCombinedPlaceholder()
-			.addField("versionMajor", m_service->versionMajor())
-			.addField("versionMinor", m_service->versionMinor())
-			;
-
-	if (!q.exec())
-		return false;
-
-
-	return true;
+	return db->performUpgrade(list,
+							  QStringLiteral("UPDATE system SET versionMajor=%1, versionMinor=%2")
+							  .arg(m_service->versionMajor()).arg(m_service->versionMinor()),
+							  fromMajor, fromMinor);
 }
 
 
@@ -607,25 +600,23 @@ bool DatabaseMain::_upgradeTables()
  * @return
  */
 
-bool DatabaseMain::_upgradeMapsTables(Database *mapsDb)
+bool DatabaseMain::_upgradeMapsTables(Database *mapsDb, int fromMajor, int fromMinor)
 {
-	LOG_CERROR("db") << "Missing implementation";
+	Q_ASSERT(mapsDb);
 
-	QSqlDatabase d = QSqlDatabase::database(mapsDb->dbName());
+	static const QVector<Upgrade> list = {
+		/*Upgrade {2, 9, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+		Upgrade {3, 0, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+		Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+		Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+		Upgrade {3, 3, 3, 4, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+		Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},*/
+	};
 
-	QueryBuilder q(d);
-
-	q.addQuery("UPDATE system SET ")
-			.setCombinedPlaceholder()
-			.addField("versionMajor", m_service->versionMajor())
-			.addField("versionMinor", m_service->versionMinor())
-			;
-
-	if (!q.exec())
-		return false;
-
-
-	return true;
+	return mapsDb->performUpgrade(list,
+								  QStringLiteral("UPDATE system SET versionMajor=%1, versionMinor=%2")
+								  .arg(m_service->versionMajor()).arg(m_service->versionMinor()),
+								  fromMajor, fromMinor);
 }
 
 
@@ -634,25 +625,21 @@ bool DatabaseMain::_upgradeMapsTables(Database *mapsDb)
  * @return
  */
 
-bool DatabaseMain::_upgradeStatTables(Database *statDb)
+bool DatabaseMain::_upgradeStatTables(Database *statDb, int fromMajor, int fromMinor)
 {
-	LOG_CERROR("db") << "Missing implementation";
+	static const QVector<Upgrade> list = {
+		/*Upgrade {2, 9, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+			Upgrade {3, 0, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+			Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+			Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+			Upgrade {3, 3, 3, 4, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
+			Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},*/
+	};
 
-	QSqlDatabase d = QSqlDatabase::database(statDb->dbName());
-
-	QueryBuilder q(d);
-
-	q.addQuery("UPDATE system SET ")
-			.setCombinedPlaceholder()
-			.addField("versionMajor", m_service->versionMajor())
-			.addField("versionMinor", m_service->versionMinor())
-			;
-
-	if (!q.exec())
-		return false;
-
-
-	return true;
+	return statDb->performUpgrade(list,
+								  QStringLiteral("UPDATE system SET versionMajor=%1, versionMinor=%2")
+								  .arg(m_service->versionMajor()).arg(m_service->versionMinor()),
+								  fromMajor, fromMinor);
 }
 
 
@@ -676,17 +663,17 @@ bool DatabaseMain::_createUsers()
 	bool success = false;
 
 	AdminAPI::userAdd(this, user)
-			.fail([&ret, &success]() mutable {
+			.fail([ret, &success]() mutable {
 		success = false;
 		ret.reject();
 	})
-			.done([this, user, &ret, &success]() mutable {
+			.done([this, user, ret, &success]() mutable {
 		AdminAPI::authAddPlain(this, user.username, user.username)
-				.fail([&ret, &success]() mutable {
+				.fail([ret, &success]() mutable {
 			success = false;
 			ret.reject();
 		})
-				.done([&ret, &success]() mutable {
+				.done([ret, &success]() mutable {
 			success = true;
 			ret.resolve();
 		});

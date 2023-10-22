@@ -46,7 +46,8 @@ class EventStream : public HttpEventStream
 public:
 	enum EventStreamType {
 		EventStreamInvalid = 0,
-		EventStreamGroupScore = 1
+		EventStreamGroupScore = 1,
+		EventStreamPeerUsers = 1 << 1
 	};
 
 	Q_ENUM(EventStreamType)
@@ -86,6 +87,7 @@ signals:
 
 private:
 	void triggerGroupScore();
+	void triggerPeerUsers();
 
 	EventStreamTypes m_streamTypes = EventStreamInvalid;
 	QMap<EventStreamType, QVariant> m_streamData;

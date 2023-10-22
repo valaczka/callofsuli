@@ -330,7 +330,7 @@ void TerminalHandler::parseRoot(const QByteArray &data)
 	f.map("users", [this](const QStringList &){
 		QDefer ret;
 
-		m_service->databaseMain()->worker()->execInThread([this, &ret]() {
+		m_service->databaseMain()->worker()->execInThread([this, ret]() mutable {
 			QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
 
 			QMutexLocker(m_service->databaseMain()->mutex());

@@ -5,6 +5,8 @@ else: TARGET = tiled
 
 CONFIG += c++17
 
+CONFIG += separate_debug_info
+
 DESTDIR = ..
 
 !wasm: LIBS += -lz

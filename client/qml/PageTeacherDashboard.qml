@@ -336,6 +336,19 @@ QPage {
 				onClicked: Client.stackPushPage("PageAdminServerConfig.qml")
 			}
 
+			QDashboardButton {
+				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
+				text: qsTr("Aktív felhasználók")
+				icon.source: Qaterial.Icons.accountEyeOutline
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: (Client.server.user.roles & Credential.Admin) ? Qaterial.Colors.red500 : Qaterial.Colors.amber500
+
+				onClicked: Client.stackPushPage("PageTeacherPeers.qml")
+			}
+
 		}
 
 	}
