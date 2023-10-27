@@ -26,6 +26,7 @@
 
 #include "mapeditor.h"
 #include "application.h"
+#include "examgame.h"
 #include "mapimage.h"
 #include "gamepickable.h"
 #include "qimagereader.h"
@@ -189,6 +190,77 @@ void MapEditor::saveAs(const QUrl &file, const bool &createNew)
 
 	}
 }
+
+
+/**
+ * @brief MapEditor::exportData
+ * @param type
+ * @param file
+ * @param data
+ * @param createNew
+ */
+
+void MapEditor::exportData(const ExportType &type, const QUrl &file, const QVariantMap &data)
+{
+	QByteArray content;
+	QString fileName;
+
+	if (type == ExportExam) {
+		MapEditorMissionLevel *ml = data.value(QStringLiteral("missionLevel")).value<MapEditorMissionLevel*>();
+		LOG_CDEBUG("client") << "Export exam from mission level:" << ml;
+
+		if (!ml) {
+			m_client->messageError(tr("Érvénytelen küldetés"), tr("Belső hiba"));
+			return;
+		}
+
+#ifdef Q_OS_WASM
+		fileName = ml->editorMission() ? ml->editorMission()->name() : file.toLocalFile();
+#else
+		fileName = file.toLocalFile();
+#endif
+
+		content = exportExam(ml);
+
+	} else {
+		m_client->messageError(tr("Exportálás érvénytelen"), tr("Belső hiba"));
+		return;
+	}
+
+	if (content.isEmpty()) {
+		LOG_CWARNING("client") << "Export content empty";
+		return;
+	}
+
+
+
+#ifdef Q_OS_WASM
+	OnlineClient *client = dynamic_cast<OnlineClient*>(m_client);
+
+	if (!client)
+		return;
+
+	client->wasmSaveContent(data, fileName.append(QStringLiteral(".map")));
+#else
+	if (fileName.isEmpty())
+		return;
+
+	QFile f(fileName);
+
+	if (!f.open(QIODevice::WriteOnly)) {
+		LOG_CWARNING("client") << "Can't write file:";
+		return;
+	}
+
+	f.write(content);
+
+	f.close();
+#endif
+
+	LOG_CDEBUG("client") << "Successfully exported to:" << qPrintable(fileName);
+
+}
+
 
 
 
@@ -664,6 +736,226 @@ void MapEditor::loadAvailableMedals()
 		m[QStringLiteral("source")] = AbstractLevelGame::medalImagePath(s);
 		m[QStringLiteral("name")] = s;
 		m_availableMedals << m;
+	}
+}
+
+
+/**
+ * @brief MapEditor::exportExam
+ * @param missionLevel
+ * @return
+ */
+
+QByteArray MapEditor::exportExam(MapEditorMissionLevel *missionLevel) const
+{
+	QByteArray content;
+
+	if (!missionLevel || !missionLevel->editorMission())
+		return content;
+
+	MapEditorMission *m = missionLevel->editorMission();
+
+	QByteArray data = m_map->toBinaryData(true);
+	QScopedPointer<GameMap> map(GameMap::fromBinaryData(data));
+
+	if (!map && !m) {
+		m_client->messageError(tr("Hiba történt"));
+		return content;
+	}
+
+	GameMapMissionLevel *ml = map->missionLevel(m->uuid(), missionLevel->level());
+
+	if (!ml) {
+		m_client->messageError(tr("Hiba történt"));
+		return content;
+	}
+
+	const ExamGame::PaperContent &pc = ExamGame::generateQuestions(ExamGame::createQuestions(ml));
+
+	content += QByteArrayLiteral("# ") + m->name().toUtf8() + QByteArrayLiteral("\n\n");
+	content += pc.questions.toUtf8();
+	content += QByteArrayLiteral("\n\n\n# ") + m->name().toUtf8() + tr(" -- Válaszok").toUtf8() + QByteArrayLiteral("\n\n");
+	content += pc.answers.toUtf8();
+
+	return content;
+}
+
+
+
+/**
+ * @brief MapEditor::exportChapterList
+ * @param list
+ * @return
+ */
+
+QVariantMap MapEditor::exportChapterList(MapEditorMap *map, const QList<MapEditorChapter *> &list)
+{
+	Q_ASSERT (map);
+
+	QVariantMap data;
+
+	QVariantList storages, chapters;
+
+	QVector<MapEditorStorage *> storageList;
+
+	foreach (const MapEditorChapter *chapter, list) {
+		for (MapEditorObjective *o : *chapter->objectiveList()) {
+			MapEditorStorage *s = o->storage();
+			if (s && !storageList.contains(s))
+				storageList.append(s);
+		}
+		chapters.append(chapter->toVariantMap(false));
+	}
+
+	foreach (const MapEditorStorage *s, storageList) {
+		storages.append(s->toVariantMap(false));
+	}
+
+	data.insert(QStringLiteral("chapters"), chapters);
+	data.insert(QStringLiteral("storages"), storages);
+
+	return data;
+}
+
+
+/**
+ * @brief MapEditor::importChapterList
+ * @param data
+ * @return
+ */
+
+bool MapEditor::importChapterList(const QVariantMap &data)
+{
+	if (!m_map)
+		return false;
+
+	QVariantList newStorages, newChapters;
+
+	QHash<int, int> storageHash;
+
+	foreach (const QVariant &v, data.value(QStringLiteral("storages")).toList()) {
+		QVariantMap d = v.toMap();
+		const int oldId = d.value(QStringLiteral("id")).toInt();
+		const int newId = m_map->nextIndexStorage();
+		d[QStringLiteral("id")] = newId;
+		newStorages.append(d);
+
+		storageHash.insert(oldId, newId);
+	}
+
+
+	foreach (const QVariant &v, data.value(QStringLiteral("chapters")).toList()) {
+		QVariantMap d = v.toMap();
+		d[QStringLiteral("id")] = m_map->nextIndexChapter();
+		QVariantList oList;
+
+		foreach (const QVariant &v, d.value(QStringLiteral("objectives")).toList()) {
+			QVariantMap d = v.toMap();
+			d[QStringLiteral("uuid")] = QUuid::createUuid().toString(QUuid::WithoutBraces);
+			const int oldStorageId = d.value(QStringLiteral("storageId"), -1).toInt();
+			if (oldStorageId > 0)
+				d[QStringLiteral("storageId")] = storageHash.value(oldStorageId);
+
+			oList.append(d);
+		}
+
+		d[QStringLiteral("objectives")] = oList;
+
+		newChapters.append(d);
+	}
+
+	if (newStorages.isEmpty() && newChapters.isEmpty()) {
+		m_client->messageWarning(tr("Nem található adat"), tr("Importálás"));
+		return false;
+	}
+
+
+	QVariantMap newData;
+	newData.insert(QStringLiteral("storages"), newStorages);
+	newData.insert(QStringLiteral("chapters"), newChapters);
+
+
+	EditorAction *action = new EditorAction(m_map, tr("Importálás"));
+	action->setData(newData);
+	action->setRedoFunc([action, newData]{
+		if (!action->map())
+			return;
+
+		QVector<MapEditorStorage *> sList;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("storages")).toList()) {
+			MapEditorStorage *s = new MapEditorStorage(action->map());
+			s->fromVariantMap(v.toMap());
+			action->map()->storageList()->append(s);
+			sList.append(s);
+		}
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("chapters")).toList()) {
+			MapEditorChapter *ch = new MapEditorChapter(action->map());
+			ch->fromVariantMap(v.toMap());
+			action->map()->chapterList()->append(ch);
+		}
+
+		foreach (MapEditorStorage *s, sList)
+			s->recalculateObjectives();
+
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("chapters")).toList()) {
+			MapEditorChapter *ch = action->map()->chapter(v.toMap().value(QStringLiteral("id")).toInt());
+
+			if (ch)
+				action->map()->chapterList()->remove(ch);
+		}
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("storages")).toList()) {
+			MapEditorStorage *s = action->map()->storage(v.toMap().value(QStringLiteral("id")).toInt());
+
+			if (s)
+				action->map()->storageList()->remove(s);
+		}
+	});
+
+	m_undoStack->call(action);
+
+	return true;
+}
+
+
+
+/**
+ * @brief MapEditor::chapterImportData
+ * @param content
+ */
+
+bool MapEditor::chapterImportData(const QByteArray &content)
+{
+	QScopedPointer<MapEditorMap> map(new MapEditorMap(this));
+
+	if (!map->loadFromBinaryData(content)) {
+		m_client->messageWarning(tr("Érvénytelen pálya"), tr("Importálási hiba"));
+		return false;
+	}
+
+	QList<MapEditorChapter*> list;
+
+	for (int i=0; i<map->chapterList()->size(); ++i) {
+		MapEditorChapter *ch = map->chapterList()->at(i);
+		list.append(ch);
+	}
+
+	const QVariantMap &d = exportChapterList(list);
+
+	if (importChapterList(d)) {
+		m_client->messageInfo(tr("%1 szakasz és %2 adatbank importálva.").arg(d.value(QStringLiteral("chapters")).toList().size())
+							  .arg(d.value(QStringLiteral("storages")).toList().size()), tr("Importálás"));
+		return true;
+	} else {
+		m_client->messageWarning(tr("Az importálás sikertelen"), tr("Importálási hiba"));
+		return false;
 	}
 }
 
@@ -1811,6 +2103,42 @@ void MapEditor::chapterModify(MapEditorChapter *chapter, QJSValue modifyFunc)
 	});
 
 	m_undoStack->call(action);
+}
+
+
+/**
+ * @brief MapEditor::chapterImport
+ */
+
+void MapEditor::chapterImport(const QUrl &url)
+{
+#ifdef Q_OS_WASM
+	Q_UNUSED(url);
+
+	OnlineClient *client = dynamic_cast<OnlineClient*>(m_client);
+
+	if (!client)
+		return;
+
+	client->wasmLoadFileToFileSystem(QStringLiteral("*"),
+									 [this](const QString &name, const QByteArray &content) mutable {
+		LOG_CDEBUG("client") << "Upload map:" << qPrintable(name);
+
+		chapterImportData(content);
+	});
+
+	return;
+#else
+	const QString &fname = url.toLocalFile();
+
+	bool err = false;
+	const QByteArray &b = Utils::fileContent(fname, &err);
+
+	if (err)
+		return m_client->messageError(tr("Nem lehet megnyitni a fájlt!"), tr("Pályaszerkesztő"));
+
+	chapterImportData(b);
+#endif
 }
 
 

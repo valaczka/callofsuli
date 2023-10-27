@@ -128,9 +128,6 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 
 QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
-	if (storage->name() == QStringLiteral("block"))
-		return generateBlock(data, storageData);
-
 	if (!storage) {
 		QVariantList list;
 
@@ -138,7 +135,8 @@ QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInter
 			list.append(generateOne(data));
 
 		return list;
-	}
+	} else if (storage->name() == QStringLiteral("block"))
+		return generateBlock(data, storageData);
 
 
 	return QVariantList();

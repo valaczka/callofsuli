@@ -102,6 +102,12 @@ Item {
 													  color: Qaterial.Colors.green800
 												  })
 
+									if (mission.modes & GameMap.Exam)
+										list.push({
+													  text: qsTr("Dolgozat"),
+													  color: Qaterial.Colors.red600
+												  })
+
 									model = list
 								}
 							}

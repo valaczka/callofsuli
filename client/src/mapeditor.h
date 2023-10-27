@@ -58,6 +58,13 @@ public:
 	explicit MapEditor(QObject *parent = nullptr);
 	virtual ~MapEditor();
 
+	enum ExportType {
+		ExportInvalid,
+		ExportExam
+	};
+
+	Q_ENUM(ExportType);
+
 	MapEditorMap *map() const;
 	void setMap(MapEditorMap *newMap);
 
@@ -65,6 +72,7 @@ public:
 
 	Q_INVOKABLE void createFile();
 	Q_INVOKABLE void saveAs(const QUrl &file, const bool &createNew = false);
+	Q_INVOKABLE void exportData(const MapEditor::ExportType &type, const QUrl &file, const QVariantMap &data = {});
 
 #ifdef Q_OS_WASM
 	Q_INVOKABLE void wasmSaveAs(const bool &createNew = false);
@@ -116,6 +124,7 @@ public:
 	Q_INVOKABLE void chapterAdd(const QString &name = QString(), MapEditorMissionLevel *missionLevel = nullptr);
 	Q_INVOKABLE void chapterRemove(MapEditorChapter *chapter);
 	Q_INVOKABLE void chapterModify(MapEditorChapter *chapter, QJSValue modifyFunc);
+	Q_INVOKABLE void chapterImport(const QUrl &url);
 
 	Q_INVOKABLE void objectiveLoadEditor(MapEditorChapter *chapter, const QString &module, const QString &storageModule, MapEditorStorage *storage);
 	Q_INVOKABLE void objectiveAdd(MapEditorChapter *chapter, MapEditorObjective *objective, MapEditorStorage *storage, QJSValue modifyFunc);
@@ -185,6 +194,11 @@ protected:
 
 private:
 	void loadAvailableMedals();
+	QByteArray exportExam(MapEditorMissionLevel *missionLevel) const;
+	static QVariantMap exportChapterList(MapEditorMap *map, const QList<MapEditorChapter*> &list);
+	QVariantMap exportChapterList(const QList<MapEditorChapter*> &list) const { return exportChapterList(m_map, list); }
+	bool importChapterList(const QVariantMap &data);
+	bool chapterImportData(const QByteArray &content);
 
 	EditorUndoStack *const m_undoStack;
 	QTimer m_saveTimer;

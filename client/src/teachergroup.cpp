@@ -545,6 +545,8 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 
 		if (obj.contains(QStringLiteral("included"))) {
 			user->setActive(obj.value(QStringLiteral("included")).toVariant().toBool());
+		} else {
+			user->setActive(true);
 		}
 
 		const QJsonArray &list = obj.value(QStringLiteral("taskList")).toArray();

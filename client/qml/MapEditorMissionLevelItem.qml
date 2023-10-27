@@ -90,6 +90,8 @@ QPage {
 							mode: GameMap.Test
 							title: qsTr("Teszt")
 						}
+
+						// Exam: missing
 					}
 
 					delegate: Qaterial.OutlineButton
@@ -123,9 +125,32 @@ QPage {
 			}
 
 
+			QButton {
+				anchors.left: parent.left
+
+				enabled: editor && missionLevel
+
+				visible: mission && (mission.modes & (GameMap.Exam))
+
+				text: qsTr("Markdown fájl készítése")
+
+				icon.source: Qaterial.Icons.signText
+
+				onClicked: {
+					if (Qt.platform.os == "wasm")
+						editor.exportData(MapEditor.ExportExam, "", {
+											  missionLevel: missionLevel
+										  })
+					else
+						Qaterial.DialogManager.openFromComponent(_cmpFileExportMarkdown)
+				}
+			}
+
 
 			Row {
 				anchors.left: parent.left
+
+				visible: mission && (mission.modes & (GameMap.Action|GameMap.Lite|GameMap.Test))
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -772,6 +797,41 @@ QPage {
 	}
 
 
+	Component {
+		id: _cmpFileExportMarkdown
+
+		QFileDialog {
+			title: qsTr("Dolgozat Markdown fájl készítése")
+			filters: [ "*.md" ]
+			isSave: true
+			suffix: ".md"
+			onFileSelected: {
+				if (Client.Utils.fileExists(file))
+					overrideQuestion(file, false, MapEditor.ExportExam)
+				else
+					editor.exportData(MapEditor.ExportExam, file, {
+										  missionLevel: missionLevel
+									  })
+				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+			}
+
+			folder: editor.currentFolder()
+		}
+	}
+
+	function overrideQuestion(file, isNew, type) {
+		JS.questionDialog({
+							  onAccepted: function()
+							  {
+								  editor.exportData(type, file, {
+														missionLevel: missionLevel
+													})
+							  },
+							  text: qsTr("A fájl létezik. Felülírjuk?\n%1").arg(file),
+							  title: qsTr("Mentés másként"),
+							  iconSource: Qaterial.Icons.fileAlert
+						  })
+	}
 
 	Component {
 		id: _terrainDelegate

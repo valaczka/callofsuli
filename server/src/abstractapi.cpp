@@ -87,12 +87,12 @@ void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QSt
 	QObject::connect(response, &QObject::destroyed, this, [this, response](){
 		LOG_CTRACE("client") << "Remove response" << response;
 		m_validResponses.removeAll(response);
-	});
+	}, Qt::DirectConnection);
 
 	QObject::connect(response, &HttpResponse::cancelled, this, [this, response](){
 		LOG_CDEBUG("client") << "Response cancelled" << response;
 		m_validResponses.removeAll(response);
-	});
+	}, Qt::DirectConnection);
 
 	QJsonObject data;
 
@@ -181,7 +181,7 @@ QLambdaThreadWorker *AbstractAPI::databaseMainWorker() const
 void AbstractAPI::responseError(HttpResponse *response, const char *errorStr) const
 {
 	if (!m_validResponses.contains(response) || !response) {
-		LOG_CTRACE("client") << "Reponse null";
+		LOG_CWARNING("client") << "Reponse null";
 		return;
 	}
 
@@ -217,7 +217,7 @@ void AbstractAPI::responseAnswer(HttpResponse *response, const char *field, cons
 void AbstractAPI::responseAnswer(HttpResponse *response, const QJsonObject &value) const
 {
 	if (!m_validResponses.contains(response) || !response) {
-		LOG_CTRACE("client") << "Reponse null";
+		LOG_CWARNING("client") << "Reponse null";
 		return;
 	}
 

@@ -170,6 +170,7 @@ SOURCES += \
 	clientcache.cpp \
 	editorundostack.cpp \
 	eventstream.cpp \
+	examgame.cpp \
 	fetchmodel.cpp \
 	fontimage.cpp \
 	gameenemy.cpp \
@@ -234,6 +235,7 @@ HEADERS += \
 	clientcache.h \
 	editorundostack.h \
 	eventstream.h \
+	examgame.h \
 	fetchmodel.h \
 	fontimage.h \
 	gameenemy.h \

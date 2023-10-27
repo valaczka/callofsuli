@@ -98,6 +98,8 @@ QPage {
 
 				QMenuItem { action: _actionSaveAs }
 				QMenuItem { action: _actionSaveNew }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: _actionImport }
 			}
 
 			QMenu {
@@ -192,6 +194,25 @@ QPage {
 		}
 	}
 
+
+	Component {
+		id: _cmpFileImport
+
+		QFileDialog {
+			title: qsTr("Importálás")
+			filters: [ "*.map" ]
+			onFileSelected: {
+				mapEditor.chapterImport(file)
+				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+			}
+
+			folder: Client.Utils.settingsGet("folder/mapEditor", "")
+		}
+
+	}
+
+
+
 	Qaterial.SwipeView
 	{
 		id: swipeView
@@ -273,6 +294,19 @@ QPage {
 				mapEditor.wasmSaveAs(true)
 			else
 				Qaterial.DialogManager.openFromComponent(_cmpFileSaveNew)
+		}
+	}
+
+
+	Action {
+		id: _actionImport
+		text: qsTr("Importálás")
+		icon.source: Qaterial.Icons.fileImport
+		onTriggered: {
+			if (Qt.platform.os == "wasm")
+				mapEditor.chapterImport("")
+			else
+				Qaterial.DialogManager.openFromComponent(_cmpFileImport)
 		}
 	}
 

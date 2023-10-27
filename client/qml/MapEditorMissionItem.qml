@@ -189,6 +189,7 @@ QPage {
 						text: qsTr("Akciójáték")
 						checked: mission && (mission.modes & GameMap.Action)
 						onToggled: _form.updateCheckButtons()
+						enabled: !_isExam.checked
 					}
 
 					QFormCheckButton
@@ -197,6 +198,7 @@ QPage {
 						text: qsTr("Feladatmegoldás")
 						checked: mission && (mission.modes & GameMap.Lite)
 						onToggled: _form.updateCheckButtons()
+						enabled: !_isExam.checked
 					}
 
 					QFormCheckButton
@@ -205,6 +207,15 @@ QPage {
 						text: qsTr("Teszt")
 						checked: mission && (mission.modes & GameMap.Test)
 						onToggled: _form.updateCheckButtons()
+						enabled: !_isExam.checked
+					}
+
+					QFormCheckButton
+					{
+						id: _isExam
+						text: qsTr("Dolgozat")
+						checked: mission && (mission.modes & GameMap.Exam)
+						onToggled: _form.updateCheckButtons()
 					}
 				}
 			}
@@ -212,14 +223,18 @@ QPage {
 			function updateCheckButtons() {
 				var c = 0
 
-				if (_isAction.checked)
-					c |= GameMap.Action
+				if (_isExam.checked)
+					c |= GameMap.Exam
+				else {
+					if (_isAction.checked)
+						c |= GameMap.Action
 
-				if (_isLite.checked)
-					c |= GameMap.Lite
+					if (_isLite.checked)
+						c |= GameMap.Lite
 
-				if (_isTest.checked)
-					c |= GameMap.Test
+					if (_isTest.checked)
+						c |= GameMap.Test
+				}
 
 				editor.missionModify(mission, function() {
 					mission.modes = c
