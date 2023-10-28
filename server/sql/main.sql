@@ -247,6 +247,14 @@ CREATE TABLE runningGame(
 	UNIQUE(gameid)
 );
 
+CREATE TABLE inventory(
+	id INTEGER NOT NULL PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	key TEXT NOT NULL,
+	value INTEGER NOT NULL DEFAULT 0,
+	UNIQUE(username, key)
+);
+
 
 CREATE VIEW streak AS
 WITH game_date AS (SELECT DISTINCT username, date(timestamp) AS date FROM game WHERE success=true),

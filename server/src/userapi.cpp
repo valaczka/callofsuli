@@ -64,6 +64,7 @@ UserAPI::UserAPI(ServerService *service)
 	addMap("^map/([^/]+)/*$", this, &UserAPI::mapOne);
 	addMap("^map/([^/]+)/solver/*$", this, &UserAPI::mapSolver);
 
+	addMap("^inventory/*", this, &UserAPI::inventory);
 }
 
 
@@ -732,7 +733,7 @@ void UserAPI::gameCreate(const QRegularExpressionMatch &match, const QJsonObject
 		return responseError(response, "invalid mode");
 
 
-	databaseMainWorker()->execInThread([this, response, campaign, g]() {
+	databaseMainWorker()->execInThread([this, response, campaign, g, data]() {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 		QMutexLocker(databaseMain()->mutex());
@@ -850,11 +851,49 @@ void UserAPI::gameCreate(const QRegularExpressionMatch &match, const QJsonObject
 			return responseErrorSql(response);
 		}
 
-		db.commit();
+
 
 		QJsonObject ret;
 		ret.insert(QStringLiteral("id"), gameId);
 		ret.insert(QStringLiteral("closedGames"), list);
+
+
+		if (g.mode == GameMap::Action && g.deathmatch) {
+			const QJsonObject &inventory = data.value(QStringLiteral("extended")).toObject();
+			QJsonObject iList;
+
+			for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
+				const int num = it.value().toInt(0);
+
+				if (num <= 0)
+					continue;
+
+				const int &realNum = qMin(num, QueryBuilder::q(db).addQuery("SELECT value FROM inventory WHERE username=").addValue(username)
+										  .addQuery(" AND key=").addValue(it.key())
+										  .execToValue("value").toInt(0));
+
+
+
+				if (!QueryBuilder::q(db)
+						.addQuery("WITH t AS (SELECT ").addValue(username)
+						.addQuery(" AS username, ").addValue(it.key())
+						.addQuery(" AS key, COALESCE((SELECT value FROM inventory WHERE username=").addValue(username)
+						.addQuery(" AND key=").addValue(it.key())
+						.addQuery("),0)-").addValue(realNum)
+						.addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) SELECT * FROM t")
+						.exec()) {
+					db.rollback();
+					return responseErrorSql(response);
+				}
+
+				iList.insert(it.key(), realNum);
+			}
+
+			ret[QStringLiteral("extended")] = iList;
+		}
+
+		db.commit();
+
 
 		responseAnswerOk(response, ret);
 	});
@@ -1047,7 +1086,6 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 				}
 				ret[QStringLiteral("streak")] = streak+1;
 			}
-
 		}
 
 		ret[QStringLiteral("sumXP")] = sumXP;
@@ -1092,6 +1130,40 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 			return responseErrorSql(response);
 		}
 
+
+		// Inventory
+
+		if (success && g.mode == GameMap::Action) {
+			const QJsonObject &inventory = data.value(QStringLiteral("extended")).toObject();
+			QJsonArray iList;
+
+			for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
+				const int num = it.value().toInt(0);
+
+				if (num <= 0)
+					continue;
+
+				if (!QueryBuilder::q(db)
+						.addQuery("WITH t AS (SELECT ").addValue(username)
+						.addQuery(" AS username, ").addValue(it.key())
+						.addQuery(" AS key, COALESCE((SELECT value FROM inventory WHERE username=").addValue(username)
+						.addQuery(" AND key=").addValue(it.key())
+						.addQuery("),0)+").addValue(num)
+						.addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) SELECT * FROM t")
+						.exec()) {
+					db.rollback();
+					return responseErrorSql(response);
+				}
+
+				iList.append(QJsonObject{
+								 { QStringLiteral("key"), it.key() },
+								 { QStringLiteral("value"), it.value() }
+							 });
+			}
+
+			ret[QStringLiteral("inventory")] = iList;
+		}
+
 		db.commit();
 
 
@@ -1118,6 +1190,35 @@ void UserAPI::gameFinish(const QRegularExpressionMatch &match, const QJsonObject
 		responseAnswerOk(response, ret);
 	});
 
+}
+
+
+
+/**
+ * @brief UserAPI::inventory
+ * @param response
+ */
+
+void UserAPI::inventory(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+{
+	databaseMainWorker()->execInThread([this, response]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		const QString &username = m_credential.username();
+
+		bool err = false;
+
+		const QJsonArray &list = QueryBuilder::q(db)
+				.addQuery("SELECT key, value FROM inventory WHERE username=").addValue(username)
+				.execToJsonArray(&err);
+
+		if (err)
+			responseErrorSql(response);
+		else
+			responseAnswer(response, "list", list);
+	});
 }
 
 

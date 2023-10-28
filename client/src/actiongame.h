@@ -112,6 +112,8 @@ public:
 	static void reloadAvailableCharacters();
 	static const QStringList &availableCharacters();
 
+	virtual QJsonObject getExtendedData() const override;
+
 
 public slots:
 	void onPlayerDied(GameEntity *);

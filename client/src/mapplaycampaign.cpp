@@ -156,7 +156,8 @@ void MapPlayCampaign::onCurrentGamePrepared()
 						   { QStringLiteral("mission"), levelGame->uuid() },
 						   { QStringLiteral("level"), levelGame->level() },
 						   { QStringLiteral("deathmatch"), levelGame->deathmatch() },
-						   { QStringLiteral("mode"), levelGame->mode() }
+						   { QStringLiteral("mode"), levelGame->mode() },
+						   { QStringLiteral("extended"), m_extendedData }
 					   })
 				->error(this, [this](const QNetworkReply::NetworkError &){
 			m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
@@ -177,6 +178,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 			LOG_CDEBUG("client") << "Game play (campaign)" << gameId;
 
 			game->setGameId(gameId);
+			game->setServerExtended(data.value(QStringLiteral("extended")).toObject());
 			levelGame->load();
 
 			setGameState(StatePlay);
@@ -214,12 +216,14 @@ void MapPlayCampaign::onCurrentGameFinished()
 		setGameState(StateFinished);
 	} else {
 		const QJsonArray &stat = m_currentGame->getStatistics();
+		const QJsonObject &extended = m_currentGame->getExtendedData();
 
 		m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
 						   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
 						   { QStringLiteral("xp"), levelGame->xp() },
 						   { QStringLiteral("duration"), levelGame->elapsedMsec() },
-						   { QStringLiteral("statistics"), stat }
+						   { QStringLiteral("statistics"), stat },
+						   { QStringLiteral("extended"), extended },
 					   })
 				->fail(this, [this, stat](const QString &err){
 			m_client->messageError(err, tr("Játék mentése sikertelen"));
@@ -345,6 +349,10 @@ void MapPlayCampaign::destroyCurrentGame()
 	if (m_client) m_client->setCurrentGame(nullptr);
 	if (g) g->setReadyToDestroy(true);
 }
+
+
+
+
 
 
 

@@ -56,6 +56,7 @@ TeacherAPI::TeacherAPI(ServerService *service)
 
 	addMap("^group/(\\d+)/result/*$", this, &TeacherAPI::groupResult);
 	addMap("^group/(\\d+)/result/([^/]+)/*$", this, &TeacherAPI::groupUserResult);
+	addMap("^group/(\\d+)/log/*$", this, &TeacherAPI::groupGameLog);
 	addMap("^group/(\\d+)/campaign/create/*$", this, &TeacherAPI::campaignCreate);
 
 	addMap("^campaign/(\\d+)/*$", this, &TeacherAPI::campaignOne);
@@ -883,6 +884,50 @@ void TeacherAPI::groupUserResult(const QRegularExpressionMatch &match, const QJs
 		int limit = data.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
 
 		const QJsonArray &list = TeacherAPI::_groupUserGameResult(this, id, username, limit, offset, &err);
+
+		if (err)
+			return responseErrorSql(response);
+
+		responseAnswer(response, QJsonObject{
+						   { QStringLiteral("list"), list },
+						   { QStringLiteral("limit"), limit },
+						   { QStringLiteral("offset"), offset },
+					   });
+	});
+}
+
+
+
+/**
+ * @brief TeacherAPI::groupGameResult
+ * @param match
+ * @param data
+ * @param response
+ */
+
+void TeacherAPI::groupGameLog(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+{
+	const int &id = match.captured(1).toInt();
+
+	databaseMainWorker()->execInThread([this, response, id, data]() {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+		QMutexLocker(databaseMain()->mutex());
+
+		bool err = false;
+
+		if (!QueryBuilder::q(db).addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(m_credential.username())
+				.addQuery(" AND id=").addValue(id)
+				.execCheckExists())
+			return responseError(response, "invalid group");
+
+		if (err)
+			return responseErrorSql(response);
+
+		int offset = data.value(QStringLiteral("offset")).toInt(0);
+		int limit = data.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
+
+		const QJsonArray &list = TeacherAPI::_groupGameResult(this, id, limit, offset, &err);
 
 		if (err)
 			return responseErrorSql(response);
@@ -3064,6 +3109,47 @@ QJsonArray TeacherAPI::_groupUserGameResult(const AbstractAPI *api, const int &g
 					  "WHERE (campaignid IS NULL OR campaignid IN (SELECT id FROM campaign WHERE groupid=").addValue(group)
 			.addQuery(")) AND game.username=").addValue(username)
 			.addQuery(") SELECT * FROM t WHERE id NOT IN (SELECT id FROM t ORDER BY timestamp DESC, id DESC LIMIT ").addValue(offset)
+			.addQuery(") ORDER BY timestamp DESC, id DESC LIMIT ").addValue(limit)
+			.execToJsonArray(&e);
+
+	if (e) {
+		if (err) *err = e;
+		return QJsonArray();
+	}
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::_groupGameResult
+ * @param api
+ * @param group
+ * @param limit
+ * @param offset
+ * @param err
+ * @return
+ */
+
+QJsonArray TeacherAPI::_groupGameResult(const AbstractAPI *api, const int &group, const int &limit, const int &offset, bool *err)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool e = false;
+
+	const QJsonArray &list = QueryBuilder::q(db)
+			.addQuery("WITH t AS (SELECT game.id as id, CAST(strftime('%s', game.timestamp) AS INTEGER) AS timestamp, mapid, missionid, "
+					  "level, mode, deathmatch, success, duration, xp, game.username as username, familyName, givenName "
+					  "FROM game LEFT JOIN score ON (score.id=game.scoreid) "
+					  "LEFT JOIN user ON (user.username=game.username) "
+					  "WHERE (campaignid IS NULL OR campaignid IN (SELECT id FROM campaign WHERE groupid=").addValue(group)
+			.addQuery("))) SELECT * FROM t WHERE id NOT IN (SELECT id FROM t ORDER BY timestamp DESC, id DESC LIMIT ").addValue(offset)
 			.addQuery(") ORDER BY timestamp DESC, id DESC LIMIT ").addValue(limit)
 			.execToJsonArray(&e);
 

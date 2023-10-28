@@ -88,6 +88,9 @@ public:
 	QJsonArray getStatistics();
 	void clearStatistics(const QJsonArray &list, const bool &revert = false);
 
+	virtual QJsonObject getExtendedData() const { return QJsonObject(); };
+	virtual QJsonObject getServerExtendedData() const { return QJsonObject(); };
+
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
 

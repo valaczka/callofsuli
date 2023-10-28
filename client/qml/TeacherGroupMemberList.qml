@@ -93,7 +93,7 @@ Item
 	Action {
 		id: actionUserEdit
 		icon.source: Qaterial.Icons.pen
-		text: qsTr("Törlés")
+		text: qsTr("Résztvevők")
 		onTriggered: {
 			Client.stackPushPage("PageTeacherGroupEdit.qml", {
 									 group: control.group

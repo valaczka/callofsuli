@@ -66,6 +66,8 @@ public:
 	void gameUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void gameFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
+	void inventory(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
+
 	void _addStatistics(const QJsonArray &list) const;
 };
 

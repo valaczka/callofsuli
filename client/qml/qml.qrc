@@ -185,5 +185,6 @@
         <file>QFormBindingTextArea.qml</file>
         <file>PageTeacherPeers.qml</file>
         <file>UserInfoCounter.qml</file>
+        <file>TeacherGroupLog.qml</file>
     </qresource>
 </RCC>

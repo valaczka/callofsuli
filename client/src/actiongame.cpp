@@ -811,6 +811,44 @@ void ActionGame::onSceneStarted()
 		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
 	}
 
+	const QJsonObject &data = getServerExtendedData();
+
+	for (auto it=data.constBegin(); it != data.constEnd(); ++it) {
+		const int num = it.value().toInt();
+		if (num <= 0) {
+			LOG_CWARNING("game") << "Server inventory skipped:" << it.key() << it.value();
+			continue;
+		}
+
+		if (it.key() == QLatin1String("hp")) {
+			if (m_player) {
+				LOG_CINFO("game") << "Server inventory HP:" << num;
+				message(tr("+%1 HP gained").arg(num));
+				m_player->setHp(m_player->hp()+num);
+			} else {
+				m_client->messageError(tr("Missing player, server inventory HP lost"), tr("Belső hiba"));
+			}
+		} else if (it.key() == QLatin1String("shield")) {
+			if (player()) {
+				LOG_CINFO("game") << "Server inventory shield:" << num;
+				message(tr("+%1 shield gained").arg(num));
+				player()->setShield(player()->shield()+num);
+			} else {
+				m_client->messageError(tr("Missing player, server inventory shield lost"), tr("Belső hiba"));
+			}
+		}
+
+		const GamePickable::GamePickableData &data = GamePickable::pickableDataHash().value(it.key());
+
+		if (data.type != GamePickable::PickableInvalid) {
+			toolAdd(data.type, num);
+			message(tr("+1 %1 gained").arg(data.messageName.isEmpty() ? data.name : data.messageName), data.iconColor);
+		} else {
+			LOG_CWARNING("game") << "Server inventory skipped:" << it.key() << it.value();
+		}
+
+	}
+
 
 #if defined(Q_OS_ANDROID) || defined (Q_OS_IOS)
 	QScreen *screen = QApplication::primaryScreen();
@@ -1025,6 +1063,35 @@ void ActionGame::timeNotifySendReset()
 const QStringList &ActionGame::availableCharacters()
 {
 	return m_availableCharacters;
+}
+
+
+
+/**
+ * @brief ActionGame::getExtendedData
+ * @return
+ */
+
+QJsonObject ActionGame::getExtendedData() const
+{
+	QJsonObject data;
+
+	if (m_deathmatch)
+		return data;
+
+	if (player()) {
+		data.insert(QStringLiteral("hp"), m_player->hp()-1);
+		data.insert(QStringLiteral("shield"), player()->shield());
+	}
+
+	foreach (const GamePickable::GamePickableData &d, GamePickable::pickableDataTypes()) {
+		const int cnt = toolCount(d.type);
+
+		if (cnt > 0)
+			data.insert(d.id, cnt);
+	}
+
+	return data;
 }
 
 

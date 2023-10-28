@@ -71,6 +71,12 @@ QPage {
 			group: control.group
 			mapHandler: control.mapHandler
 		}
+
+		TeacherGroupLog {
+			id: _log
+			group: control.group
+			mapHandler: control.mapHandler
+		}
 	}
 
 	footer: QTabBar {
@@ -80,8 +86,7 @@ QPage {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
-			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
+			model.append({ text: qsTr("Log"), source: Qaterial.Icons.paperRoll, color: "yellow" })
 		}
 	}
 

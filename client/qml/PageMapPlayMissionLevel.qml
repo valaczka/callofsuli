@@ -178,6 +178,101 @@ QPageGradient {
 			}
 		}
 
+
+		// Using Inventory
+
+		QExpandableHeader {
+			text: qsTr("Felhasználandó felszerelés")
+			icon: Qaterial.Icons.bagPersonal
+
+			anchors.left: _inventoryUseView.left
+			anchors.right: _inventoryUseView.right
+			topPadding: 30 * Qaterial.Style.pixelSizeRatio
+
+			visible: _inventoryUseView.visible
+
+			button.visible: false
+		}
+
+		ListView {
+			id: _inventoryUseView
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.8)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			visible: map && map.gameState == MapPlay.StateSelect && !map.readOnly && _inventoryUseModel.count && missionLevel && missionLevel.deathmatch
+
+			height: contentHeight
+
+			model: ListModel {
+				id: _inventoryUseModel
+			}
+
+			boundsBehavior: Flickable.StopAtBounds
+
+			delegate: Qaterial.FullLoaderItemDelegate {
+				id: _inventoryUseDelegate
+
+				spacing: 10
+				leftPadding: 0
+				rightPadding: 0
+
+				highlighted: usedValue > 0
+
+				width: ListView.view.width
+
+				height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
+
+				readonly property var _info: map ? map.inventoryInfo(key) : {}
+				readonly property string module: key
+				property int usedValue: 0
+
+				leftSourceComponent: Qaterial.Icon {
+					size: Qaterial.Style.delegate.iconWidth
+
+					icon: _inventoryUseDelegate._info.icon !== undefined ? _inventoryUseDelegate._info.icon : ""
+
+					color: "transparent"
+				}
+
+				contentSourceComponent: Label {
+					font: Qaterial.Style.textTheme.body2Upper
+					verticalAlignment: Label.AlignVCenter
+					text: (_inventoryUseDelegate._info.name !== undefined ? _inventoryUseDelegate._info.name : "")
+						  +" [%1]".arg(value)
+					color: _inventoryUseDelegate.usedValue > 0 ? Qaterial.Style.accentColor : Qaterial.Colors.blue400
+				}
+
+				rightSourceComponent: Row {
+					spacing: 3
+
+					Qaterial.RoundButton {
+						icon.source: Qaterial.Icons.minus
+						//icon.color: Qaterial.Colors.blue700
+						anchors.verticalCenter: parent.verticalCenter
+						enabled: _inventoryUseDelegate.usedValue > 0
+						onClicked: _inventoryUseDelegate.usedValue--
+					}
+
+					QBanner {
+						num: _inventoryUseDelegate.usedValue
+						color: num > 0 ? Qaterial.Style.accentColor : Qaterial.Colors.blue700
+						textColor: num > 0 ? Qaterial.Colors.black : Qaterial.Colors.white
+						anchors.verticalCenter: parent.verticalCenter
+					}
+
+					Qaterial.RoundButton {
+						icon.source: Qaterial.Icons.plus
+						//icon.color: Qaterial.Colors.blue700
+						anchors.verticalCenter: parent.verticalCenter
+						enabled: _inventoryUseDelegate.usedValue < value
+						onClicked: _inventoryUseDelegate.usedValue++
+					}
+				}
+			}
+		}
+
+
+
 		QButton {
 			id: _btnPlay
 
@@ -204,9 +299,22 @@ QPageGradient {
 
 			outlined: !enabled
 
-			onClicked: map.play(missionLevel, _modeGroup.checkedButton.gameMode)
-		}
+			onClicked: {
+				let d = {}
 
+				if (missionLevel.deathmatch) {
+					for (let i=0; i<_inventoryUseModel.count; ++i) {
+						let item = _inventoryUseView.itemAtIndex(i)
+
+						if (item.usedValue > 0)
+							d[item.module] = item.usedValue
+					}
+
+				}
+
+				map.play(missionLevel, _modeGroup.checkedButton.gameMode, d)
+			}
+		}
 
 
 
@@ -403,7 +511,79 @@ QPageGradient {
 
 
 
+
+		// Inventory
+
+		QExpandableHeader {
+			text: qsTr("Megszerzett felszerelés")
+			icon: Qaterial.Icons.bagPersonal
+
+			anchors.left: _inventoryView.left
+			anchors.right: _inventoryView.right
+			topPadding: 30 * Qaterial.Style.pixelSizeRatio
+
+			visible: _inventoryView.visible
+
+			button.visible:  false
+		}
+
+		ListView {
+			id: _inventoryView
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.6)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			visible: map && map.gameState == MapPlay.StateFinished && _inventoryModel.count
+
+			height: contentHeight
+
+			model: ListModel {
+				id: _inventoryModel
+			}
+
+			boundsBehavior: Flickable.StopAtBounds
+
+			delegate: Qaterial.FullLoaderItemDelegate {
+				id: _inventoryDelegate
+
+				spacing: 10
+				leftPadding: 0
+				rightPadding: 0
+
+				width: ListView.view.width
+
+				height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
+
+				readonly property var _info: map ? map.inventoryInfo(key) : {}
+
+				leftSourceComponent: Qaterial.Icon {
+					size: Qaterial.Style.delegate.iconWidth
+
+					icon: _inventoryDelegate._info.icon !== undefined ? _inventoryDelegate._info.icon : ""
+
+					color: "transparent"
+				}
+
+				contentSourceComponent: Label {
+					font: Qaterial.Style.textTheme.body2Upper
+					verticalAlignment: Label.AlignVCenter
+					text: _inventoryDelegate._info.name !== undefined ? _inventoryDelegate._info.name : ""
+					color: Qaterial.Colors.blue400
+				}
+
+				rightSourceComponent: QBanner {
+					num: value
+					color: Qaterial.Colors.blue700
+				}
+			}
+		}
+
+
+
+
+
 		// Lists
+
+
 
 
 
@@ -519,6 +699,20 @@ QPageGradient {
 						_firstLoad = false
 					})
 		.fail(root, JS.failMessage("Letöltés sikertelen"))
+
+		if (!missionLevel.deathmatch)
+			_inventoryUseModel.clear()
+		else {
+			Client.send(WebSocket.ApiUser, "inventory").done(root, function(r) {
+				_inventoryUseModel.clear()
+				for (let i=0; i<r.list.length; ++i) {
+					let o = r.list[i]
+					if (o.value > 0)
+						_inventoryUseModel.append(o)
+				}
+			})
+			.fail(root, JS.failMessage("Letöltés sikertelen"))
+		}
 	}
 
 	StackView.onActivated: {
@@ -646,6 +840,13 @@ QPageGradient {
 								name: qsTr("Gyorsabb megoldásért kapott"),
 								xp: map.finishedData.xpDuration
 							})
+
+		_inventoryModel.clear()
+
+		if (map.finishedData.inventory !== undefined) {
+			for (let i=0; i<map.finishedData.inventory.length; ++i)
+				_inventoryModel.append(map.finishedData.inventory[i])
+		}
 
 	}
 }

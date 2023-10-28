@@ -504,7 +504,7 @@ MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionL
  * @return
  */
 
-bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
+bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const QJsonObject &extended)
 {
 	if (!m_client) {
 		LOG_CERROR("game") << "Missing client";
@@ -530,6 +530,8 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
 
 	setCurrentGame(g);
 	m_client->setCurrentGame(g);
+
+	m_extendedData = extended;
 
 	onCurrentGamePrepared();
 
@@ -630,6 +632,38 @@ MapPlayMissionLevel *MapPlay::getNextLevel(MapPlayMissionLevel *currentLevel, co
 	}
 
 	return nullptr;
+}
+
+
+
+/**
+ * @brief MapPlay::inventoryInfo
+ * @param module
+ * @return
+ */
+
+QVariantMap MapPlay::inventoryInfo(const QString &module) const
+{
+	GamePickable::GamePickableData data;
+
+	if (module == QLatin1String("hp"))
+		data = GamePickable::pickableDataDetails(GamePickable::PickableHealth);
+	else if (module == QLatin1String("shield"))
+		data = GamePickable::pickableDataDetails(GamePickable::PickableShield1);
+	else
+		data = GamePickable::pickableDataHash().value(module);
+
+
+	if (data.type == GamePickable::PickableInvalid)
+		return QVariantMap {
+			{ QStringLiteral("name"), tr("Érvénytelen modul: %1").arg(module) },
+			{ QStringLiteral("icon"), QLatin1String("") }
+		};
+	else
+		return QVariantMap {
+			{ QStringLiteral("name"), data.name },
+			{ QStringLiteral("icon"), data.image }
+		};
 }
 
 

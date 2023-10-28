@@ -483,6 +483,9 @@ StudentCampaignOffsetModel::StudentCampaignOffsetModel(QObject *parent)
 				  QStringLiteral("readableMap"),
 				  QStringLiteral("readableMission"),
 				  QStringLiteral("medal"),
+				  QStringLiteral("username"),
+				  QStringLiteral("givenName"),
+				  QStringLiteral("familyName"),
 			  });
 }
 
@@ -548,6 +551,9 @@ void StudentCampaignOffsetModel::_setApi()
 	if (m_groupid > -1 && !m_username.isEmpty()) {
 		setApi(WebSocket::ApiTeacher);
 		setPath(QStringLiteral("group/%1/result/%2").arg(m_groupid).arg(m_username));
+	} else if (m_groupid > -1 && m_username.isEmpty()) {
+		setApi(WebSocket::ApiTeacher);
+		setPath(QStringLiteral("group/%1/log").arg(m_groupid));
 	} else if (m_username.isEmpty()) {
 		setApi(m_campaign ? WebSocket::ApiUser : WebSocket::ApiInvalid);
 		setPath(m_campaign ? QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()) : QLatin1String(""));

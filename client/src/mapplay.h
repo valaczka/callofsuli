@@ -98,12 +98,14 @@ public:
 	MapPlayMission *getMission(GameMapMissionIface *mission) const;
 	MapPlayMissionLevel *getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const;
 
-	Q_INVOKABLE bool play(MapPlayMissionLevel *level, const GameMap::GameMode &mode);
+	Q_INVOKABLE bool play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const QJsonObject &extended = {});
 	Q_INVOKABLE virtual void updateSolver();
 
 	Q_INVOKABLE int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const;
 
 	Q_INVOKABLE MapPlayMissionLevel* getNextLevel(MapPlayMissionLevel *currentLevel = nullptr, const GameMap::GameMode &mode = GameMap::Invalid) const;
+
+	Q_INVOKABLE QVariantMap inventoryInfo(const QString &module) const;
 
 	AbstractLevelGame *currentGame() const;
 	void setCurrentGame(AbstractLevelGame *newCurrentGame);
@@ -151,6 +153,7 @@ protected:
 	GameState m_gameState = StateInvalid;
 	QJsonObject m_finishedData;
 	bool m_readOnly = false;
+	QJsonObject m_extendedData;
 };
 
 
