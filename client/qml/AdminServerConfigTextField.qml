@@ -24,10 +24,10 @@ Qaterial.TextField {
 				var d = {}
 				d[field] = getData
 				Client.send(WebSocket.ApiAdmin, "config", d)
-				.done(function(r){
+				.done(root, function(r){
 					saved()
 				})
-				.fail(function(err) {
+				.fail(root, function(err) {
 					Client.messageWarning(err, qsTr("Módosítás sikertelen"))
 					revert()
 				})

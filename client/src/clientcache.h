@@ -88,7 +88,7 @@ public:
 	bool set(const QString &key, const QJsonArray &list);
 
 	bool reload(WebSocket *websocket, const QString &key);
-	bool reload(WebSocket *websocket, const QString &key, QJSValue func);
+	bool reload(WebSocket *websocket, const QString &key, QObject *inst, QJSValue func);
 
 	QObject *find(const QString &key, const QVariant &value);
 

@@ -165,7 +165,31 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 	m[QStringLiteral("placeholderMax")] = data.value(QStringLiteral("placeholderMax")).toString();
 	m[QStringLiteral("list")] = slist;
 
+
+	// Get correct index list
+
+	QVector<int> numbers;
+
+	for (int i=0; i<slist.size(); ++i) {
+		const int &num = slist.at(i).toMap().value(QStringLiteral("num")).toInt();
+		numbers.append(num);
+	}
+
+
+	if (isDesc)
+		std::sort(numbers.begin(), numbers.end(), std::greater<>());
+	else
+		std::sort(numbers.begin(), numbers.end(), std::less<>());
+
+	QVariantList aList;
+
+	for (auto it = numbers.constBegin(); it != numbers.constEnd(); ++it)
+		aList.append(*it);
+
+	m[QStringLiteral("answer")] = aList;
+
 	list.append(m);
+
 
 	return list;
 }

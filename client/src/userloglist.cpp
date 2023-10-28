@@ -106,7 +106,7 @@ void UserLogList::reload()
 
 	client->send(m_api, m_path.arg(m_username))
 			->error(client, &Client::onWebSocketError)
-			->fail([client](const QString &err){ client->messageWarning(err, tr("Letöltési hiba")); })
+			->fail(client, [client](const QString &err){ client->messageWarning(err, tr("Letöltési hiba")); })
 			->done(this, &UserLogList::loadFromJson);
 }
 

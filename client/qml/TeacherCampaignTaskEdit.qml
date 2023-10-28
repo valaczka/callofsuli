@@ -28,11 +28,11 @@ QPage {
 						   onAccepted: function()
 						   {
 							   Client.send(WebSocket.ApiTeacher, "task/%1/delete".arg(task.taskid))
-							   .done(function(r){
+							   .done(control, function(r){
 								   _form.modified = false
 								   Client.stackPop(control)
 							   })
-							   .fail(JS.failMessage("Törlés sikertelen"))
+							   .fail(control, JS.failMessage("Törlés sikertelen"))
 						   },
 						   text: qsTr("Biztosan törlöd a kritériumot?"),
 						   title: campaign ? campaign.readableName : "",
@@ -332,15 +332,15 @@ QPage {
 					_form.enabled = false
 
 					Client.send(WebSocket.ApiTeacher, path, d)
-					.done(function(r){
+					.done(control, function(r){
 						_form.modified = false
 						Client.stackPop(control)
 					})
-					.fail(function(err) {
+					.fail(control, function(err) {
 						Client.messageWarning(err, task ? qsTr("Kritérium módosítása sikertelen") : qsTr("Kritérium létrehozása sikertelen"))
 						_form.enabled = true
 					})
-					.error(function(err) {
+					.error(control, function(err) {
 						_form.enabled = true
 					})
 

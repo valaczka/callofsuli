@@ -28,10 +28,10 @@ Item {
 			visible: campaign && campaign.state < Campaign.Running
 			onClicked: {
 				Client.send(WebSocket.ApiTeacher, "campaign/%1/run".arg(campaign.campaignid))
-				.done(function(r){
+				.done(control, function(r){
 					reloadRequest()
 				})
-				.fail(JS.failMessage(qsTr("Kihívás indítása sikertelen")))
+				.fail(control, JS.failMessage(qsTr("Kihívás indítása sikertelen")))
 			}
 		}
 
@@ -174,10 +174,10 @@ Item {
 									  onAccepted: function()
 									  {
 										  Client.send(WebSocket.ApiTeacher, "campaign/%1/finish".arg(campaign.campaignid))
-										  .done(function(r){
+										  .done(control, function(r){
 											  reloadRequest()
 										  })
-										  .fail(JS.failMessage(qsTr("Kihívás befejezése sikertelen")))
+										  .fail(control, JS.failMessage(qsTr("Kihívás befejezése sikertelen")))
 									  },
 									  title: qsTr("Kihívás befejezése"),
 									  text: qsTr("Biztosan befejezed a kihívást?")

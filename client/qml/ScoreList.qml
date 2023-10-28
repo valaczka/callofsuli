@@ -185,31 +185,31 @@ Qaterial.Page
 							anchors.right: parent.right
 							spacing: 2
 
-                            Qaterial.LabelCaption {
-                                visible: trophy
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: trophy
-                                color: Qaterial.Colors.green700
-                            }
+							Qaterial.LabelCaption {
+								visible: trophy
+								anchors.verticalCenter: parent.verticalCenter
+								text: trophy
+								color: Qaterial.Colors.green700
+							}
 
-                            Qaterial.Icon {
-                                visible: trophy
-                                anchors.verticalCenter: parent.verticalCenter
-                                icon: Qaterial.Icons.trophy
-                                color: Qaterial.Colors.green700
-                                width: Qaterial.Style.smallIcon*0.8
-                                height: Qaterial.Style.smallIcon*0.8
-                            }
+							Qaterial.Icon {
+								visible: trophy
+								anchors.verticalCenter: parent.verticalCenter
+								icon: Qaterial.Icons.trophy
+								color: Qaterial.Colors.green700
+								width: Qaterial.Style.smallIcon*0.8
+								height: Qaterial.Style.smallIcon*0.8
+							}
 
 							Qaterial.LabelCaption {
-                                visible: streak
+								visible: streak
 								anchors.verticalCenter: parent.verticalCenter
 								text: streak
 								color: Qaterial.Style.primaryTextColor()
-                                leftPadding: trophy ? 5 * Qaterial.Style.pixelSizeRatio : 0
+								leftPadding: trophy ? 5 * Qaterial.Style.pixelSizeRatio : 0
 							}
 							Qaterial.Icon {
-                                visible: streak
+								visible: streak
 								anchors.verticalCenter: parent.verticalCenter
 								icon: Qaterial.Icons.fire
 								color: Qaterial.Colors.orange500
@@ -260,7 +260,7 @@ Qaterial.Page
 	}
 
 	Component.onCompleted: {
-		Client.reloadCache("classList", function(){_preparedClassList.reload()})
+		Client.reloadCache("classList", control, function(){_preparedClassList.reload()})
 	}
 
 	function reload() {

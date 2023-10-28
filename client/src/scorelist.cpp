@@ -54,7 +54,7 @@ void ScoreList::reload()
 
 	client->send(m_api, m_path, m_apiData)
 			->error(client, &Client::onWebSocketError)
-			->fail([client](const QString &err){ client->messageWarning(err, tr("Letöltési hiba")); })
+			->fail(client, [client](const QString &err){ client->messageWarning(err, tr("Letöltési hiba")); })
 			->done(this, &ScoreList::loadFromJson);
 
 }

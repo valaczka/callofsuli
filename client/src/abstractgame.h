@@ -46,6 +46,7 @@ class AbstractGame : public QObject
 	Q_PROPERTY(QQuickItem *pageItem READ pageItem WRITE setPageItem NOTIFY pageItemChanged)
 	Q_PROPERTY(GameMap* map READ map WRITE setMap NOTIFY mapChanged)
 	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged)
+	Q_PROPERTY(GameMap::GameMode mode READ mode CONSTANT)
 
 public:
 
@@ -137,7 +138,6 @@ private:
 	FinishState m_finishState = Invalid;
 	bool m_readyToDestroy = false;
 	int m_statId = 0;
-
 };
 
 #endif // ABSTRACTGAME_H

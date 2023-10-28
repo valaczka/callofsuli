@@ -250,16 +250,16 @@ QFormColumn {
 			_form.enabled = false
 
 			Client.send(api, path, d)
-			.done(function(r){
+			.done(_form, function(r){
 				_form.enabled = true
 				Client.snack(qsTr("Módosítás sikeres"))
 				Client.reloadUser(function() { loadData(Client.userToMap(Client.server.user)) })
 			})
-			.fail(function(err) {
+			.fail(_form, function(err) {
 				Client.messageWarning(err, qsTr("Módosítás sikertelen"))
 				_form.enabled = true
 			})
-			.error(function(err) {
+			.error(_form, function(err) {
 				_form.enabled = true
 			})
 

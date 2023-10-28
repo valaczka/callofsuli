@@ -195,8 +195,7 @@ protected:
 private:
 	void loadAvailableMedals();
 	QByteArray exportExam(MapEditorMissionLevel *missionLevel) const;
-	static QVariantMap exportChapterList(MapEditorMap *map, const QList<MapEditorChapter*> &list);
-	QVariantMap exportChapterList(const QList<MapEditorChapter*> &list) const { return exportChapterList(m_map, list); }
+	QVariantMap exportChapterList(const QList<MapEditorChapter*> &list) const;
 	bool importChapterList(const QVariantMap &data);
 	bool chapterImportData(const QByteArray &content);
 

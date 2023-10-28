@@ -106,7 +106,7 @@ void MapPlayCampaign::updateSolver()
 		return;
 
 	m_client->send(WebSocket::ApiUser, QStringLiteral("map/%1/solver").arg(m_gameMap->uuid()))
-			->done([this](const QJsonObject &data){
+			->done(this, [this](const QJsonObject &data){
 		for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
 			GameMapMission *mission = m_gameMap->mission(it.key());
 			GameMap::SolverInfo s(it.value().toObject());
@@ -147,38 +147,43 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 	setFinishedData({});
 
-	m_client->send(WebSocket::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
-					   { QStringLiteral("map"), m_gameMap->uuid() },
-					   { QStringLiteral("mission"), levelGame->uuid() },
-					   { QStringLiteral("level"), levelGame->level() },
-					   { QStringLiteral("deathmatch"), levelGame->deathmatch() },
-					   { QStringLiteral("mode"), levelGame->mode() }
-				   })
-			->error([this](const QNetworkReply::NetworkError &){
-		m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
-		destroyCurrentGame();
-	})
-			->fail([this](const QString &err){
-		m_client->messageError(err, tr("Játék indítása sikertelen"));
-		destroyCurrentGame();
-	})
-			->done([this, game, levelGame](const QJsonObject &data){
-		const int &gameId = data.value(QStringLiteral("id")).toInt(-1);
-		if (gameId < 0) {
-			m_client->messageError(tr("Érvénytelen játékazonosító érekezett"), tr("Játék indítása sikertelen"));
-			destroyCurrentGame();
-			return;
-		}
-
-		LOG_CDEBUG("client") << "Game play (campaign)" << gameId;
-
-		game->setGameId(gameId);
+	if (m_currentGame->mode() == GameMap::Practice) {
 		levelGame->load();
-
 		setGameState(StatePlay);
+	} else {
+		m_client->send(WebSocket::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
+						   { QStringLiteral("map"), m_gameMap->uuid() },
+						   { QStringLiteral("mission"), levelGame->uuid() },
+						   { QStringLiteral("level"), levelGame->level() },
+						   { QStringLiteral("deathmatch"), levelGame->deathmatch() },
+						   { QStringLiteral("mode"), levelGame->mode() }
+					   })
+				->error(this, [this](const QNetworkReply::NetworkError &){
+			m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
+			destroyCurrentGame();
+		})
+				->fail(this, [this](const QString &err){
+			m_client->messageError(err, tr("Játék indítása sikertelen"));
+			destroyCurrentGame();
+		})
+				->done(this, [this, game, levelGame](const QJsonObject &data){
+			const int &gameId = data.value(QStringLiteral("id")).toInt(-1);
+			if (gameId < 0) {
+				m_client->messageError(tr("Érvénytelen játékazonosító érekezett"), tr("Játék indítása sikertelen"));
+				destroyCurrentGame();
+				return;
+			}
 
-		m_updateTimer.start();
-	});
+			LOG_CDEBUG("client") << "Game play (campaign)" << gameId;
+
+			game->setGameId(gameId);
+			levelGame->load();
+
+			setGameState(StatePlay);
+
+			m_updateTimer.start();
+		});
+	}
 }
 
 
@@ -203,29 +208,35 @@ void MapPlayCampaign::onCurrentGameFinished()
 		emit currentGameFailed();
 
 
-	const QJsonArray &stat = m_currentGame->getStatistics();
-
-	m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
-					   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
-					   { QStringLiteral("xp"), levelGame->xp() },
-					   { QStringLiteral("duration"), levelGame->elapsedMsec() },
-					   { QStringLiteral("statistics"), stat }
-				   })
-			->fail([this, stat](const QString &err){
-		m_client->messageError(err, tr("Játék mentése sikertelen"));
-		m_currentGame->clearStatistics(stat);
+	if (m_currentGame->mode() == GameMap::Practice) {
 		destroyCurrentGame();
-	})
-			->done([this](const QJsonObject &data){
-
-		setFinishedData(data);
-
-		destroyCurrentGame();
-
 		updateSolver();
-
 		setGameState(StateFinished);
-	});
+	} else {
+		const QJsonArray &stat = m_currentGame->getStatistics();
+
+		m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
+						   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
+						   { QStringLiteral("xp"), levelGame->xp() },
+						   { QStringLiteral("duration"), levelGame->elapsedMsec() },
+						   { QStringLiteral("statistics"), stat }
+					   })
+				->fail(this, [this, stat](const QString &err){
+			m_client->messageError(err, tr("Játék mentése sikertelen"));
+			m_currentGame->clearStatistics(stat);
+			destroyCurrentGame();
+		})
+				->done(this, [this](const QJsonObject &data){
+
+			setFinishedData(data);
+
+			destroyCurrentGame();
+
+			updateSolver();
+
+			setGameState(StateFinished);
+		});
+	}
 
 }
 
@@ -241,7 +252,7 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_currentGame);
 
-	if (m_gameState != StatePlay || !m_currentGame || !game)
+	if (m_gameState != StatePlay || !m_currentGame || !game || m_currentGame->mode() == GameMap::Practice)
 		return;
 
 	const QJsonArray &stat = m_currentGame->getStatistics();
@@ -254,13 +265,13 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 					   { QStringLiteral("xp"), xp },
 					   { QStringLiteral("statistics"), stat }
 				   })
-			->fail([stat, this](const QString &err){
+			->fail(this, [stat, this](const QString &err){
 		LOG_CWARNING("client") << "Game update error:" << qPrintable(err);
 
 		if (m_currentGame)
 			m_currentGame->clearStatistics(stat, true);
 	})
-			->done([this, stat, xp](const QJsonObject &){
+			->done(this, [this, stat, xp](const QJsonObject &){
 		if (m_currentGame)
 			m_currentGame->clearStatistics(stat, false);
 
@@ -302,6 +313,10 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 	case GameMap::Test:
 		g = new CampaignTestGame(level->missionLevel(), m_client);
+		break;
+
+	case GameMap::Practice:
+		g = new CampaignLiteGame(level->missionLevel(), m_client, true);
 		break;
 
 	default:

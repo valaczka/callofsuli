@@ -97,8 +97,8 @@ QPage {
 			if (panelId > 0) {
 				if (!_live) {
 					Client.send(WebSocket.ApiPanel, panelId)
-					.done(function(r){ reload(r) })
-					.fail(JS.failMessage("Letöltés sikertelen"))
+					.done(control, function(r){ reload(r) })
+					.fail(control, JS.failMessage("Letöltés sikertelen"))
 					return
 				}
 
@@ -109,10 +109,10 @@ QPage {
 				Client.eventStream = Client.webSocket.getEventStream(WebSocket.ApiPanel, panelId+"/live")
 			} else {
 				Client.send(WebSocket.ApiPanel, "")
-				.done(function(r){
+				.done(control, function(r){
 					panelId = r.id
 				})
-				.fail(JS.failMessage("Letöltés sikertelen"))
+				.fail(control, JS.failMessage("Letöltés sikertelen"))
 			}
 		}
 	}

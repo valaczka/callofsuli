@@ -198,10 +198,10 @@ QTableView {
 												 {
 													 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/add/%2"
 																 .arg(campaign.campaignid).arg(_contextMenu.currentUser.username))
-													 .done(function(r){
+													 .done(root, function(r){
 														 _model.reloadContent()
 													 })
-													 .fail(JS.failMessage(qsTr("Kiosztás sikertelen")))
+													 .fail(root, JS.failMessage(qsTr("Kiosztás sikertelen")))
 												 },
 												 text: qsTr("Biztosan kiosztod a feladatot?\n%1").arg(_contextMenu.currentUser.fullName),
 												 title: campaign.readableName,
@@ -221,10 +221,10 @@ QTableView {
 												 {
 													 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/remove/%2"
 																 .arg(campaign.campaignid).arg(_contextMenu.currentUser.username))
-													 .done(function(r){
+													 .done(root, function(r){
 														 _model.reloadContent()
 													 })
-													 .fail(JS.failMessage(qsTr("Visszavonás sikertelen")))
+													 .fail(root, JS.failMessage(qsTr("Visszavonás sikertelen")))
 												 },
 												 text: qsTr("Biztosan visszavonod a feladatot?\n%1").arg(_contextMenu.currentUser.fullName),
 												 title: campaign.readableName,
@@ -338,10 +338,10 @@ QTableView {
 							 onAccepted: function()
 							 {
 								 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/clear".arg(campaign.campaignid))
-								 .done(function(r){
+								 .done(root, function(r){
 									 _model.reloadContent()
 								 })
-								 .fail(JS.failMessage(qsTr("Kiosztás törlése sikertelen")))
+								 .fail(root, JS.failMessage(qsTr("Kiosztás törlése sikertelen")))
 							 },
 							 text: qsTr("Biztosan törlöd a meglévő kiosztást?\nEzzel mindenkinek ki lesz osztva."),
 							 title: campaign.readableName,
@@ -375,7 +375,7 @@ QTableView {
 								Client.send(WebSocket.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
 												list: [ campaign.groupid ]
 											})
-								.done(function(r){
+								.done(root, function(r){
 									let list = r.list
 
 									if (list.length !== 1) {
@@ -387,10 +387,10 @@ QTableView {
 													from: campaign.campaignid,
 													gradeList: l
 												})
-									.done(function(r){
+									.done(root, function(r){
 										Client.snack(qsTr("Hadjárat megismételve"))
 									})
-									.fail(JS.failMessage("Megismétlés sikertelen"))
+									.fail(root, JS.failMessage("Megismétlés sikertelen"))
 								})
 
 							},

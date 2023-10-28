@@ -788,21 +788,43 @@ QByteArray MapEditor::exportExam(MapEditorMissionLevel *missionLevel) const
  * @return
  */
 
-QVariantMap MapEditor::exportChapterList(MapEditorMap *map, const QList<MapEditorChapter *> &list)
+QVariantMap MapEditor::exportChapterList(const QList<MapEditorChapter *> &list) const
 {
-	Q_ASSERT (map);
-
 	QVariantMap data;
 
-	QVariantList storages, chapters;
+	QVariantList storages, chapters, images;
 
 	QVector<MapEditorStorage *> storageList;
+	QVector<MapEditorImage *> imageList;
 
 	foreach (const MapEditorChapter *chapter, list) {
+		MapEditorMap *map = chapter->map();
+
+		if (!map)
+			continue;
+
 		for (MapEditorObjective *o : *chapter->objectiveList()) {
 			MapEditorStorage *s = o->storage();
-			if (s && !storageList.contains(s))
+			if (!s)
+				continue;
+
+			if (!storageList.contains(s))
 				storageList.append(s);
+
+			ModuleInterface *mi = Application::instance()->storageModules().value(s->module());
+
+			if (!mi)
+				continue;
+
+			const QList<int> &list = mi->images(s->data());
+
+			foreach (const int id, list) {
+				MapEditorImage *img = map->image(id);
+
+				if (img && !imageList.contains(img))
+					imageList.append(img);
+			}
+
 		}
 		chapters.append(chapter->toVariantMap(false));
 	}
@@ -811,8 +833,13 @@ QVariantMap MapEditor::exportChapterList(MapEditorMap *map, const QList<MapEdito
 		storages.append(s->toVariantMap(false));
 	}
 
+	foreach (const MapEditorImage *i, imageList) {
+		images.append(i->toVariantMap(false));
+	}
+
 	data.insert(QStringLiteral("chapters"), chapters);
 	data.insert(QStringLiteral("storages"), storages);
+	data.insert(QStringLiteral("images"), images);
 
 	return data;
 }
@@ -829,17 +856,43 @@ bool MapEditor::importChapterList(const QVariantMap &data)
 	if (!m_map)
 		return false;
 
-	QVariantList newStorages, newChapters;
+	QVariantList newStorages, newChapters, newImages;
 
-	QHash<int, int> storageHash;
+	QHash<int, int> storageHash, imageHash;
+
+	foreach (const QVariant &v, data.value(QStringLiteral("images")).toList()) {
+		QVariantMap d = v.toMap();
+		const int oldId = d.value(QStringLiteral("id")).toInt();
+		const int newId = m_map->nextIndexImage();
+		d[QStringLiteral("id")] = newId;
+		newImages.append(d);
+		imageHash.insert(oldId, newId);
+	}
 
 	foreach (const QVariant &v, data.value(QStringLiteral("storages")).toList()) {
 		QVariantMap d = v.toMap();
 		const int oldId = d.value(QStringLiteral("id")).toInt();
 		const int newId = m_map->nextIndexStorage();
-		d[QStringLiteral("id")] = newId;
-		newStorages.append(d);
+		const QString &module = d.value(QStringLiteral("module")).toString();
+		QVariantMap moduleData = d.value(QStringLiteral("data")).toMap();
 
+		d[QStringLiteral("id")] = newId;
+
+		if (module == QLatin1String("image")) {
+			const QVariantList &l = moduleData.value(QStringLiteral("images")).toList();
+			QVariantList newList;
+			foreach (const QVariant &v, l) {
+				QVariantMap m = v.toMap();
+				int imgId = m.value(QStringLiteral("second"), -1).toInt();
+				if (imgId > 0)
+					m[QStringLiteral("second")] = imageHash.value(imgId);
+				newList.append(m);
+			}
+			moduleData[QStringLiteral("images")] = newList;
+			d[QStringLiteral("data")] = moduleData;
+		}
+
+		newStorages.append(d);
 		storageHash.insert(oldId, newId);
 	}
 
@@ -873,6 +926,7 @@ bool MapEditor::importChapterList(const QVariantMap &data)
 	QVariantMap newData;
 	newData.insert(QStringLiteral("storages"), newStorages);
 	newData.insert(QStringLiteral("chapters"), newChapters);
+	newData.insert(QStringLiteral("images"), newImages);
 
 
 	EditorAction *action = new EditorAction(m_map, tr("Importálás"));
@@ -882,6 +936,12 @@ bool MapEditor::importChapterList(const QVariantMap &data)
 			return;
 
 		QVector<MapEditorStorage *> sList;
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("images")).toList()) {
+			MapEditorImage *i = new MapEditorImage(action->map());
+			i->fromVariantMap(v.toMap());
+			action->map()->imageList()->append(i);
+		}
 
 		foreach (const QVariant &v, action->data().value(QStringLiteral("storages")).toList()) {
 			MapEditorStorage *s = new MapEditorStorage(action->map());
@@ -917,6 +977,13 @@ bool MapEditor::importChapterList(const QVariantMap &data)
 			if (s)
 				action->map()->storageList()->remove(s);
 		}
+
+		foreach (const QVariant &v, action->data().value(QStringLiteral("images")).toList()) {
+			MapEditorImage *i = action->map()->image(v.toMap().value(QStringLiteral("id")).toInt());
+
+			if (i)
+				action->map()->imageList()->remove(i);
+		}
 	});
 
 	m_undoStack->call(action);
@@ -950,8 +1017,11 @@ bool MapEditor::chapterImportData(const QByteArray &content)
 	const QVariantMap &d = exportChapterList(list);
 
 	if (importChapterList(d)) {
-		m_client->messageInfo(tr("%1 szakasz és %2 adatbank importálva.").arg(d.value(QStringLiteral("chapters")).toList().size())
-							  .arg(d.value(QStringLiteral("storages")).toList().size()), tr("Importálás"));
+		m_client->messageInfo(tr("%1 szakasz, %2 adatbank, %3 kép importálva.")
+							  .arg(d.value(QStringLiteral("chapters")).toList().size())
+							  .arg(d.value(QStringLiteral("storages")).toList().size())
+							  .arg(d.value(QStringLiteral("images")).toList().size())
+							  , tr("Importálás"));
 		return true;
 	} else {
 		m_client->messageWarning(tr("Az importálás sikertelen"), tr("Importálási hiba"));

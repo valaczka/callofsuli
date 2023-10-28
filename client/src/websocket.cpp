@@ -154,7 +154,7 @@ void WebSocket::connectToServer(Server *server)
 
 	setState(Connecting);
 
-	WebSocketReply *wr = send(ApiGeneral, "config")->done([this](const QJsonObject &json){
+	WebSocketReply *wr = send(ApiGeneral, "config")->done(this, [this](const QJsonObject &json){
 
 		if (json.isEmpty() || json.value(QStringLiteral("server")).toString() != QStringLiteral("Call of Suli server")) {
 			m_client->messageError(tr("A megadott címen nem található Call of Suli szerver"), tr("Sikertelen csatlakozás"));
@@ -715,11 +715,14 @@ void WebSocketReply::onReplyFinished()
 		LOG_CWARNING("websocket") << "WebSocketReply error" << error << this;
 		emit finished();
 
-		foreach (const std::function<void (const QNetworkReply::NetworkError &)> &func, m_funcsError)
-			func(error);
+		foreach (const auto &func, m_funcsError) {
+			if (func.first)
+				func.second(error);
+		}
 
-		foreach (QJSValue v, m_jsvaluesError) {
-			v.call({error});
+		foreach (auto func, m_jsvaluesError) {
+			if (func.first)
+			func.second.call({error});
 		}
 
 		QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
@@ -747,11 +750,15 @@ void WebSocketReply::onReplyFinished()
 	if (errorString.isEmpty()) {
 		LOG_CTRACE("websocket") << "RECEIVED:" << content.size() << contentJson;
 
-		foreach (const std::function<void (const QByteArray &)> &func, m_funcsByteArray)
-			func(content);
+		foreach (const auto &func, m_funcsByteArray) {
+			if (func.first)
+				func.second(content);
+		}
 
-		foreach (const std::function<void (const QJsonObject &)> &func, m_funcs)
-			func(contentJson);
+		foreach (const auto &func, m_funcs) {
+			if (func.first)
+				func.second(contentJson);
+		}
 
 		QJSValueList list;
 
@@ -762,19 +769,23 @@ void WebSocketReply::onReplyFinished()
 		else
 			LOG_CERROR("websocket") << "Invalid JSEngine";
 
-		foreach (QJSValue v, m_jsvalues) {
-			v.call(list);
+		foreach (auto v, m_jsvalues) {
+			if (v.first)
+			v.second.call(list);
 		}
 	} else {
 		LOG_CWARNING("websocket") << "Response error:" << errorString << this;
 
 		emit m_socket->responseError(errorString);
 
-		foreach (const std::function<void (const QString &)> &func, m_funcsFail)
-			func(errorString);
+		foreach (const auto &func, m_funcsFail) {
+			if (func.first)
+				func.second(errorString);
+		}
 
-		foreach (QJSValue v, m_jsvaluesFail) {
-			v.call({errorString});
+		foreach (auto v, m_jsvaluesFail) {
+			if (v.first)
+			v.second.call({errorString});
 		}
 	}
 
@@ -796,11 +807,14 @@ void WebSocketReply::onErrorPresent(const QNetworkReply::NetworkError &error)
 
 	emit finished();
 
-	foreach (const std::function<void (const QNetworkReply::NetworkError &)> &func, m_funcsError)
-		func(error);
+	foreach (const auto &func, m_funcsError) {
+		if (func.first)
+			func.second(error);
+	}
 
-	foreach (QJSValue v, m_jsvaluesError) {
-		v.call({error});
+	foreach (auto v, m_jsvaluesError) {
+		if (v.first)
+		v.second.call({error});
 	}
 
 	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
@@ -840,12 +854,12 @@ bool WebSocketReply::pending() const
  * @return
  */
 
-WebSocketReply *WebSocketReply::done(const QJSValue &v)
+WebSocketReply *WebSocketReply::done(QObject *inst, const QJSValue &v)
 {
 	if (!v.isCallable())
 		LOG_CERROR("websocket") << "QJSValue isn't callable";
 	else
-		m_jsvalues.append(v);
+		m_jsvalues.append(qMakePair(inst, v));
 	return this;
 }
 
@@ -856,12 +870,12 @@ WebSocketReply *WebSocketReply::done(const QJSValue &v)
  * @return
  */
 
-WebSocketReply *WebSocketReply::fail(const QJSValue &v)
+WebSocketReply *WebSocketReply::fail(QObject *inst, const QJSValue &v)
 {
 	if (!v.isCallable())
 		LOG_CERROR("websocket") << "QJSValue isn't callable";
 	else
-		m_jsvaluesFail.append(v);
+		m_jsvaluesFail.append(qMakePair(inst, v));
 	return this;
 }
 
@@ -872,12 +886,12 @@ WebSocketReply *WebSocketReply::fail(const QJSValue &v)
  * @return
  */
 
-WebSocketReply *WebSocketReply::error(const QJSValue &v)
+WebSocketReply *WebSocketReply::error(QObject *inst, const QJSValue &v)
 {
 	if (!v.isCallable())
 		LOG_CERROR("websocket") << "QJSValue isn't callable";
 	else
-		m_jsvaluesError.append(v);
+		m_jsvaluesError.append(qMakePair(inst, v));
 	return this;
 }
 

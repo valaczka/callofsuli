@@ -47,7 +47,7 @@ class LiteGame : public AbstractLevelGame
 	Q_PROPERTY(int questions READ questions NOTIFY questionsChanged)
 
 public:
-	LiteGame(GameMapMissionLevel *missionLevel, Client *client);
+	LiteGame(GameMapMissionLevel *missionLevel, Client *client, const bool &isPractice = false);
 	virtual ~LiteGame();
 
 	int questions() const;

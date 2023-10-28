@@ -105,10 +105,10 @@ void TeacherGroup::reload()
 		return;
 
 	Application::instance()->client()->send(WebSocket::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
-			->fail([](const QString &err) {
+			->fail(this, [](const QString &err) {
 		Application::instance()->client()->messageWarning(err, tr("Letöltés sikertelen"));
 	})
-			->done(std::bind(&TeacherGroup::loadFromJson, this, std::placeholders::_1, true));
+			->done(this, std::bind(&TeacherGroup::loadFromJson, this, std::placeholders::_1, true));
 }
 
 
@@ -117,16 +117,16 @@ void TeacherGroup::reload()
  * @param v
  */
 
-void TeacherGroup::reloadAndCall(QJSValue v)
+void TeacherGroup::reloadAndCall(QObject *inst, QJSValue v)
 {
 	if (m_groupid <= 0)
 		return;
 
 	Application::instance()->client()->send(WebSocket::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
-			->fail([](const QString &err) {
+			->fail(inst, [](const QString &err) {
 		Application::instance()->client()->messageWarning(err, tr("Letöltés sikertelen"));
 	})
-			->done([this, v](const QJsonObject &o) mutable {
+			->done(inst, [this, v](const QJsonObject &o) mutable {
 		loadFromJson(o, true);
 		if (v.isCallable())
 			v.call();
@@ -507,7 +507,7 @@ void TeacherGroupCampaignResultModel::reloadContent()
 	Client *client = Application::instance()->client();
 
 	client->send(WebSocket::ApiTeacher, QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()))
-			->fail([client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
+			->fail(client, [client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, &TeacherGroupCampaignResultModel::reloadFromJson);
 }
 
@@ -1078,7 +1078,7 @@ void TeacherGroupResultModel::reloadContent()
 	Client *client = Application::instance()->client();
 
 	client->send(WebSocket::ApiTeacher, QStringLiteral("group/%1/result").arg(m_teacherGroup->groupid()))
-			->fail([client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
+			->fail(client, [client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, &TeacherGroupResultModel::reloadFromJson);
 }
 

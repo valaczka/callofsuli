@@ -112,16 +112,14 @@ GameQuestionComponentImpl {
 	}
 
 	function answer() {
-		var success = true
+		let success = true
 
-		var l = []
-
-		var prevNum = 0
+		let l = []
 
 		for (var i=0; i<containerItem.drops.length; ++i) {
 			var d=containerItem.drops[i]
 
-			var a = {}
+			let a = {}
 
 			if (!d.currentDrag) {
 				success = false
@@ -132,22 +130,12 @@ GameQuestionComponentImpl {
 				a.answer = ""
 				a.success = false
 				a.dragIndex = -1
+
 			} else {
-				var t = d.currentDrag.text
-				var n = d.currentDrag.num
+				let t = d.currentDrag.text
+				let n = d.currentDrag.num
 
-				var s = false
-
-				if (i == 0)
-					s = true
-				else {
-					if (questionData.mode === "descending")
-						s = (n <= prevNum)
-					else
-						s = (n >= prevNum)
-				}
-
-				prevNum = n
+				let s = (questionData.answer[i] === n)
 
 				a.answer = t
 				a.dragIndex = d.currentDrag.dragIndex
@@ -171,6 +159,7 @@ GameQuestionComponentImpl {
 			question.onSuccess({"list": l})
 		else
 			question.onFailed({"list": l})
+
 	}
 
 

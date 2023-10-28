@@ -69,7 +69,7 @@ public:
 	void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
 	Q_INVOKABLE void reload();
-	Q_INVOKABLE void reloadAndCall(QJSValue v);
+	Q_INVOKABLE void reloadAndCall(QObject *inst, QJSValue v);
 
 	int groupid() const;
 	void setGroupid(int newGroupid);

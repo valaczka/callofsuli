@@ -57,11 +57,11 @@ Qaterial.Page
 									{
 										name: text
 									})
-						.done(function(r){
+						.done(control, function(r){
 							Client.reloadCache("classList")
 							saved()
 						})
-						.fail(function(err) {
+						.fail(control, function(err) {
 							Client.messageWarning(err, "Átnevezés sikertelen")
 							revert()
 						})
@@ -108,10 +108,10 @@ Qaterial.Page
 									{
 										code: text
 									})
-						.done(function(r){
+						.done(control, function(r){
 							saved()
 						})
-						.fail(function(err) {
+						.fail(control, function(err) {
 							Client.messageWarning(err, "Módosítás sikertelen")
 							revert()
 						})
@@ -274,11 +274,11 @@ Qaterial.Page
 																			{
 																				list: JS.listGetFields(l, "username")
 																			})
-																.done(function(r){
+																.done(control, function(r){
 																	reloadUsers()
 																	_user.view.unselectAll()
 																})
-																.fail(JS.failMessage("Áthelyezés sikertelen"))
+																.fail(control, JS.failMessage("Áthelyezés sikertelen"))
 															},
 															title: qsTr("Felhasználók áthelyezése"),
 															iconSource: Qaterial.Icons.arrowRightBold
@@ -325,11 +325,11 @@ Qaterial.Page
 											Client.send(WebSocket.ApiAdmin, "user/delete", {
 															list: JS.listGetFields(l, "username")
 														})
-											.done(function(r){
+											.done(control, function(r){
 												reloadUsers()
 												_user.view.unselectAll()
 											})
-											.fail(JS.failMessage("Törlés sikertelen"))
+											.fail(control, JS.failMessage("Törlés sikertelen"))
 
 										},
 										title: qsTr("Felhasználók törlése"),
@@ -356,11 +356,11 @@ Qaterial.Page
 											Client.send(WebSocket.ApiAdmin, "user/activate", {
 															list: JS.listGetFields(l, "username")
 														})
-											.done(function(r){
+											.done(control, function(r){
 												reloadUsers()
 												_user.view.unselectAll()
 											})
-											.fail(JS.failMessage("Aktiválás sikertelen"))
+											.fail(control, JS.failMessage("Aktiválás sikertelen"))
 										},
 										title: qsTr("Felhasználók aktiválása"),
 										iconSource: Qaterial.Icons.accountCheck
@@ -386,11 +386,11 @@ Qaterial.Page
 											Client.send(WebSocket.ApiAdmin, "user/inactivate", {
 															list: JS.listGetFields(l, "username")
 														})
-											.done(function(r){
+											.done(control, function(r){
 												reloadUsers()
 												_user.view.unselectAll()
 											})
-											.fail(JS.failMessage("Inaktiválás sikertelen"))
+											.fail(control, JS.failMessage("Inaktiválás sikertelen"))
 										},
 										title: qsTr("Felhasználók inaktiválása"),
 										iconSource: Qaterial.Icons.accountOff
@@ -421,14 +421,14 @@ Qaterial.Page
 			return
 
 		Client.send(WebSocket.ApiAdmin, "class/%1/code".arg(classid < 0 ? -1 : classid))
-		.done(function(r){
+		.done(control, function(r){
 			if (r.list && r.list.length === 1) {
 				classcode = r.list[0].code
 			} else {
 				Client.messageWarning(qsTr("Érvénytelen válasz érkezett"))
 			}
 		})
-		.fail(JS.failMessage("Inaktiválás sikertelen"))
+		.fail(control, JS.failMessage("Inaktiválás sikertelen"))
 	}
 
 	Component.onCompleted: reloadCode()

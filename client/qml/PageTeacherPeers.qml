@@ -64,10 +64,10 @@ QPage {
 
 			function reload() {
 				Client.send(_liveStream.api, "user/peers")
-				.done(function(r){
+				.done(control, function(r){
 					_view.loadFromJson(r.list)
 				})
-				.fail(function(err) {
+				.fail(control, function(err) {
 					Client.messageWarning(err, qsTr("Sikertelen"))
 				})
 			}

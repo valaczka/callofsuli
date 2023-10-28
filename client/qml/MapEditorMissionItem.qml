@@ -212,6 +212,15 @@ QPage {
 
 					QFormCheckButton
 					{
+						id: _isPractice
+						text: qsTr("Gyakorlás")
+						checked: mission && (mission.modes & GameMap.Practice)
+						onToggled: _form.updateCheckButtons()
+						enabled: !_isExam.checked
+					}
+
+					QFormCheckButton
+					{
 						id: _isExam
 						text: qsTr("Dolgozat")
 						checked: mission && (mission.modes & GameMap.Exam)
@@ -234,6 +243,9 @@ QPage {
 
 					if (_isTest.checked)
 						c |= GameMap.Test
+
+					if (_isPractice.checked)
+						c |= GameMap.Practice
 				}
 
 				editor.missionModify(mission, function() {

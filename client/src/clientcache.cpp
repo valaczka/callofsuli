@@ -190,7 +190,7 @@ bool ClientCache::reload(WebSocket *websocket, const QString &key)
 	}
 
 
-	websocket->send(it.api, it.path)->done([this, key](const QJsonObject &data){
+	websocket->send(it.api, it.path)->done(this, [this, key](const QJsonObject &data){
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 		set(key, list);
 	});
@@ -206,7 +206,7 @@ bool ClientCache::reload(WebSocket *websocket, const QString &key)
  * @return
  */
 
-bool ClientCache::reload(WebSocket *websocket, const QString &key, QJSValue func)
+bool ClientCache::reload(WebSocket *websocket, const QString &key, QObject *inst, QJSValue func)
 {
 	if (!websocket) {
 		LOG_CERROR("client") << "Websocket not set";
@@ -226,7 +226,7 @@ bool ClientCache::reload(WebSocket *websocket, const QString &key, QJSValue func
 	}
 
 
-	websocket->send(it.api, it.path)->done([this, key, func](const QJsonObject &data) mutable {
+	websocket->send(it.api, it.path)->done(inst, [this, key, func](const QJsonObject &data) mutable {
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 		set(key, list);
 		if (func.isCallable())

@@ -318,6 +318,10 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 		g = new TestGame(level->missionLevel(), m_client);
 		break;
 
+	case GameMap::Practice:
+		g = new LiteGame(level->missionLevel(), m_client, true);
+		break;
+
 	default:
 		m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
 		return nullptr;

@@ -123,10 +123,10 @@ QPage {
 			return
 
 		Client.send(WebSocket.ApiGeneral, "user/%1".arg(userData.username))
-		.done(function(r){
+		.done(root, function(r){
 			userData = Client.userToMap(r)
 		})
-		.fail(JS.failMessage("Letöltés sikertelen"))
+		.fail(root, JS.failMessage("Letöltés sikertelen"))
 	}
 
 }

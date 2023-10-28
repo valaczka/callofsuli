@@ -70,11 +70,11 @@ QPage {
 									{
 										name: text
 									})
-						.done(function(r){
+						.done(control, function(r){
 							Client.reloadCache("teacherGroupList")
 							saved()
 						})
-						.fail(function(err) {
+						.fail(control, function(err) {
 							Client.messageWarning(err, "Átnevezés sikertelen")
 							revert()
 						})
@@ -276,8 +276,8 @@ QPage {
 		enabled: group
 		onTriggered: {
 			Client.send(WebSocket.ApiTeacher, "group/%1/class/exclude".arg(group.groupid))
-			.fail(JS.failMessage(qsTr("Letöltsé sikertelen")))
-			.done(function(r){
+			.fail(control, JS.failMessage(qsTr("Letöltsé sikertelen")))
+			.done(control, function(r){
 				_dlgClassModel.clear()
 				for (var i=0; i<r.list.length; i++) {
 					var d = r.list[i]
@@ -299,8 +299,8 @@ QPage {
 
 
 									Client.send(WebSocket.ApiTeacher, "group/%1/class/add".arg(group.groupid), { list: clist })
-									.fail(JS.failMessage(qsTr("Hozzáadás sikertelen")))
-									.done(function(){group.reload()})
+									.fail(control, JS.failMessage(qsTr("Hozzáadás sikertelen")))
+									.done(control, function(){group.reload()})
 
 								},
 								title: qsTr("Osztály hozzáadása"),
@@ -317,8 +317,8 @@ QPage {
 		enabled: group
 		onTriggered: {
 			Client.send(WebSocket.ApiTeacher, "group/%1/user/exclude".arg(group.groupid))
-			.fail(JS.failMessage(qsTr("Letöltés sikertelen")))
-			.done(function(r){
+			.fail(control, JS.failMessage(qsTr("Letöltés sikertelen")))
+			.done(control, function(r){
 				_dlgUserModel.clear()
 				for (var i=0; i<r.list.length; i++) {
 					var d = r.list[i]
@@ -342,8 +342,8 @@ QPage {
 
 
 									Client.send(WebSocket.ApiTeacher, "group/%1/user/add".arg(group.groupid), { list: clist })
-									.fail(JS.failMessage(qsTr("Hozzáadás sikertelen")))
-									.done(function(){group.reload()})
+									.fail(control, JS.failMessage(qsTr("Hozzáadás sikertelen")))
+									.done(control, function(){group.reload()})
 
 								},
 								title: qsTr("Tanuló hozzáadása"),
@@ -371,11 +371,11 @@ QPage {
 											Client.send(WebSocket.ApiTeacher,  "group/%1/class/remove".arg(group.groupid), {
 															list: JS.listGetFields(l, "classid")
 														})
-											.done(function(r){
+											.done(control, function(r){
 												group.reload()
 												classView.unselectAll()
 											})
-											.fail(JS.failMessage("Eltávolítás sikertelen"))
+											.fail(control, JS.failMessage("Eltávolítás sikertelen"))
 
 										},
 										title: qsTr("Osztályok eltávolítása"),
@@ -401,11 +401,11 @@ QPage {
 											Client.send(WebSocket.ApiTeacher,  "group/%1/user/remove".arg(group.groupid), {
 															list: JS.listGetFields(l, "username")
 														})
-											.done(function(r){
+											.done(control, function(r){
 												group.reload()
 												userView.unselectAll()
 											})
-											.fail(JS.failMessage("Eltávolítás sikertelen"))
+											.fail(control, JS.failMessage("Eltávolítás sikertelen"))
 
 										},
 										title: qsTr("Tanulók eltávolítása"),

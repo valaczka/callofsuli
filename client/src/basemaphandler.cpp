@@ -144,8 +144,8 @@ QByteArray BaseMapHandler::read(BaseMap *map) const
 void BaseMapHandler::download(BaseMap *map, const WebSocket::API &api, const QString &path)
 {
 	WebSocketReply *r = m_client->webSocket()->send(api, path)
-			->fail([this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
-			->done([this, map](const QByteArray &data){ checkAndSave(map, data); });
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
+			->done(this, [this, map](const QByteArray &data){ checkAndSave(map, data); });
 
 	connect(r, &WebSocketReply::downloadProgress, map, &BaseMap::setDownloadProgress);
 }

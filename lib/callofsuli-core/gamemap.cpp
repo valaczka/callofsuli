@@ -186,7 +186,9 @@ qreal GameMap::computeSolvedXpFactor(const int &level, const bool &deathmatch, c
 {
 	qreal factor = XP_FACTOR_LEVEL*level;
 
-	if (mode == Action) {
+	if (mode == Practice) {
+		return 0.0;
+	} else if (mode == Action) {
 		if (deathmatch)
 			factor *= XP_FACTOR_DEATHMATCH;
 

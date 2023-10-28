@@ -104,11 +104,11 @@ QPage {
 							onAccepted: function()
 							{
 								Client.send(WebSocket.ApiTeacher, "group/%1/delete".arg(group.groupid))
-								.done(function(r){
+								.done(control, function(r){
 									Client.reloadCache("teacherGroupList")
 									Client.stackPop(control)
 								})
-								.fail(JS.failMessage("Törlés sikertelen"))
+								.fail(control, JS.failMessage("Törlés sikertelen"))
 							},
 							text: qsTr("Biztosan törlöd a csoportot?"),
 							title: group.name,
@@ -135,10 +135,10 @@ QPage {
 																			   {
 																				   name: _text
 																			   })
-															   .done(function(r){
+															   .done(control, function(r){
 																   Client.reloadCache("teacherGroupList")
 															   })
-															   .fail(JS.failMessage("Átnevezés sikertelen"))
+															   .fail(control, JS.failMessage("Átnevezés sikertelen"))
 														   }
 													   })
 		}

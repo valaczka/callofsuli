@@ -384,21 +384,21 @@ QPage {
 		let uuid = mapEditor.uuid
 		let version = mapEditor.draftVersion
 		Client.send(WebSocket.ApiTeacher, "map/%1/publish/%2".arg(uuid).arg(version))
-		.done(function(r){
+		.done(root, function(r){
 			Client.messageInfo(qsTr("Sikeres közzététel"), mapEditor.displayName)
 			Client.stackPop(root)
 		})
-		.fail(JS.failMessage("Közzététel sikertelen"))
+		.fail(root, JS.failMessage("Közzététel sikertelen"))
 	}
 
 	function deleteDraft() {
 		let uuid = mapEditor.uuid
 		let version = mapEditor.draftVersion
 		Client.send(WebSocket.ApiTeacher, "map/%1/deleteDraft/%2".arg(uuid).arg(version))
-		.done(function(r){
+		.done(root, function(r){
 			Client.messageInfo(qsTr("Vázlat törlése sikeres"), mapEditor.displayName)
 			Client.stackPop(root)
 		})
-		.fail(JS.failMessage("Törlés sikertelen"))
+		.fail(root, JS.failMessage("Törlés sikertelen"))
 	}
 }

@@ -520,8 +520,11 @@ void Client::onServerConnected()
 	m_mainPage = stackPushPage(QStringLiteral("PageMain.qml"));
 
 	send(WebSocket::ApiGeneral, QStringLiteral("config"))
-			->done([this](const QJsonObject &json)
+			->done(this, [this](const QJsonObject &json)
 	{
+		if (!server())
+			return;
+
 		if (json.contains(QStringLiteral("name")) && server())
 			server()->setServerName(json.value(QStringLiteral("name")).toString());
 
@@ -540,15 +543,18 @@ void Client::onServerConnected()
 		parseUrl();
 
 		send(WebSocket::ApiGeneral, QStringLiteral("rank"))
-				->done([this](const QJsonObject &json)
+				->done(this, [this](const QJsonObject &json)
 		{
+			if (!server())
+				return;
+
 			server()->setRankList(RankList::fromJson(json.value(QStringLiteral("list")).toArray()));
 			loginToken();
 		});
 
 		reloadCache(QStringLiteral("gradeList"));
 	})
-			->fail([this](const QString &err){
+			->fail(this, [this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
 		m_webSocket->close();
 	});
@@ -622,7 +628,10 @@ void Client::onUserLoggedIn()
 {
 	LOG_CINFO("client") << "User logged in:" << qPrintable(server()->user()->username());
 
-	send(WebSocket::ApiGeneral, "me")->done([this](const QJsonObject &json){
+	send(WebSocket::ApiGeneral, "me")->done(this, [this](const QJsonObject &json){
+		if (!server())
+			return;
+
 		server()->user()->loadFromJson(json);
 
 		if (server()->user()->roles().testFlag(Credential::Panel))
@@ -1155,7 +1164,10 @@ void Client::reloadUser(QJSValue func)
 
 	LOG_CDEBUG("client") << "Reload user:" << qPrintable(server()->user()->username());
 
-	send(WebSocket::ApiGeneral, "me")->done([this, func](const QJsonObject &json) mutable {
+	send(WebSocket::ApiGeneral, "me")->done(this, [this, func](const QJsonObject &json) mutable {
+		if (!server())
+			return;
+
 		server()->user()->loadFromJson(json);
 
 		if (func.isCallable())

@@ -246,17 +246,17 @@ QItemGradient {
 
 	function reload() {
 		Client.reloadUser()
-		Client.reloadCache("studentCampaignList", function() {
+		Client.reloadCache("studentCampaignList", root, function() {
 			_firstRun = false
 		})
 		Client.send(WebSocket.ApiGeneral, "user/%1/log/xp".arg(user.username))
-		.done(function(r){
+		.done(root, function(r){
 			_chart.loadList(r.list)
 			_chart._showPlaceholder = false
 			if (r.list.length)
 				_chart.visible = true
 		})
-		.fail((err) => _chart._showPlaceholder = false)
+		.fail(root, (err) => _chart._showPlaceholder = false)
 	}
 }
 

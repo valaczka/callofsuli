@@ -26,11 +26,11 @@ QPage {
 						   onAccepted: function()
 						   {
 							   Client.send(WebSocket.ApiAdmin, "user/%1/delete".arg(user.username))
-							   .done(function(r){
+							   .done(control, function(r){
 								   _form.modified = false
 								   Client.stackPop(control)
 							   })
-							   .fail(JS.failMessage("Törlés sikertelen"))
+							   .fail(control, JS.failMessage("Törlés sikertelen"))
 						   },
 						   text: qsTr("Biztosan törlöd a felhasználót?"),
 						   title: user.username,
@@ -107,12 +107,12 @@ QPage {
 						Client.send(WebSocket.ApiAdmin, "user/%1/password".arg(user.username), {
 										password: _password.text
 									})
-						.done(function(r){
+						.done(control, function(r){
 							_password.text = ""
 							_password2.text = ""
 							_password.visible = false
 						})
-						.fail(JS.failMessage("Jelszóváltoztatás sikertelen"))
+						.fail(control, JS.failMessage("Jelszóváltoztatás sikertelen"))
 
 					} else {
 						_password.visible = true
@@ -236,19 +236,19 @@ QPage {
 
 					if (user) {
 						Client.send(WebSocket.ApiAdmin, "user/%1/update".arg(user.username), d)
-						.done(function(r){
+						.done(control, function(r){
 							_form.modified = false
 							Client.stackPop(control)
 						})
-						.fail(JS.failMessage("Módosítás sikertelen"))
+						.fail(control, JS.failMessage("Módosítás sikertelen"))
 					} else {
 						d.password = _password.text
 						Client.send(WebSocket.ApiAdmin, "user/create", d)
-						.done(function(r){
+						.done(control, function(r){
 							_form.modified = false
 							Client.stackPop(control)
 						})
-						.fail(JS.failMessage("Létrehozás sikertelen"))
+						.fail(control, JS.failMessage("Létrehozás sikertelen"))
 					}
 				}
 			}

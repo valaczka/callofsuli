@@ -70,8 +70,8 @@ QPage {
 			selectableObject: mapObject
 
 			highlighted: ListView.isCurrentItem
-			iconSource: mapObject.draftVersion > 0 ? Qaterial.Icons.briefcaseEditOutline : Qaterial.Icons.briefcaseCheck
-			iconColor: mapObject.draftVersion > 0 ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
+			iconSource: mapObject && mapObject.draftVersion > 0 ? Qaterial.Icons.briefcaseEditOutline : Qaterial.Icons.briefcaseCheck
+			iconColor: mapObject && mapObject.draftVersion > 0 ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
 			text: mapObject ? (mapObject.name + (mapObject.draftVersion > 0 ? qsTr(" [*]") : "")) : ""
 			secondaryText: mapObject ? qsTr("%1. verzió (%2 @%3)").arg(mapObject.version)
 									   .arg(mapObject.lastModified.toLocaleString(Qt.locale(), "yyyy. MMM d. H:mm:ss"))
@@ -196,10 +196,10 @@ QPage {
 											Client.send(WebSocket.ApiTeacher, "map/delete", {
 															list: JS.listGetFields(l, "uuid")
 														})
-											.done(function(r){
+											.done(control, function(r){
 												reload()
 											})
-											.fail(JS.failMessage("Törlés sikertelen"))
+											.fail(control, JS.failMessage("Törlés sikertelen"))
 										},
 										title: qsTr("Pályák törlése"),
 										iconSource: Qaterial.Icons.briefcaseRemove
@@ -226,10 +226,10 @@ QPage {
 																   Client.send(WebSocket.ApiTeacher, "map/%1/update".arg(o.uuid), {
 																				   name: _text
 																			   })
-															   .done(function(r){
+															   .done(control, function(r){
 																   reload()
 															   })
-															   .fail(JS.failMessage("Átnevezés sikertelen"))
+															   .fail(control, JS.failMessage("Átnevezés sikertelen"))
 														   }
 													   })
 		}
@@ -279,7 +279,7 @@ QPage {
 										{
 											for (let j=0; j<list.length; ++j) {
 												Client.send(WebSocket.ApiTeacher, "map/%1/publish/%2".arg(list[j].uuid).arg(list[j].draftVersion))
-												.fail(JS.failMessage("Közzététel sikertelen"))
+												.fail(control, JS.failMessage("Közzététel sikertelen"))
 											}
 											view.unselectAll()
 											Client.messageInfo(qsTr("Vázlatok közzétéve"))
@@ -317,7 +317,7 @@ QPage {
 										{
 											for (let j=0; j<list.length; ++j) {
 												Client.send(WebSocket.ApiTeacher, "map/%1/deleteDraft/%2".arg(list[j].uuid).arg(list[j].draftVersion))
-												.fail(JS.failMessage("Törlés sikertelen"))
+												.fail(control, JS.failMessage("Törlés sikertelen"))
 											}
 											view.unselectAll()
 											Client.messageInfo(qsTr("Vázlatok törölve"))

@@ -155,8 +155,8 @@ Item
 		icon.source: Qaterial.Icons.plus
 		onTriggered: {
 			Client.send(WebSocket.ApiTeacher, "group/%1/campaign/create".arg(group.groupid))
-			.done(function(r){
-				group.reloadAndCall(function() {
+			.done(control, function(r){
+				group.reloadAndCall(control, function() {
 					var o = Client.findOlmObject(group.campaignList, "campaignid", r.id)
 					if (o)
 						Client.stackPushPage("PageTeacherCampaign.qml", {
@@ -166,7 +166,7 @@ Item
 											 })
 				})
 			})
-			.fail(JS.failMessage(qsTr("Kihívás létrehozása sikertelen")))
+			.fail(control, JS.failMessage(qsTr("Kihívás létrehozása sikertelen")))
 		}
 	}
 }

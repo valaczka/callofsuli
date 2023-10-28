@@ -391,7 +391,7 @@ QPage {
 								list: _importer.records,
 								classid: control.classId
 							})
-				.done((r) => {
+				.done(control, (r) => {
 						  _loading = false
 
 						  let t = ""
@@ -415,7 +415,7 @@ QPage {
 						  _labelResult.text = t
 
 					  })
-				.fail((msg) => {
+				.fail(control, (msg) => {
 						  _loading = false
 						  _labelError.text = qsTr("Az importálás sikertelen!\n")+msg
 					  })
@@ -525,7 +525,7 @@ QPage {
 
 
 	StackView.onActivated: {
-		Client.reloadCache("classList", _preparedClassList.reload)
+		Client.reloadCache("classList", control, _preparedClassList.reload)
 	}
 
 	Component.onCompleted: {

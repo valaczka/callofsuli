@@ -36,7 +36,7 @@ Page {
 		anchors.topMargin: Math.max(5, Client.safeMarginTop)
 		anchors.top: parent.top
 		value: game ? game.hp : 0
-		visible: itemsVisible
+		visible: itemsVisible && game && game.mode != GameMap.Practice
 		onValueChanged: marked = true
 	}
 
@@ -61,6 +61,8 @@ Page {
 			text: "%1 XP"
 
 			value: game ? game.xp : 0
+
+			visible: game && game.mode != GameMap.Practice
 		}
 
 		GameInfo {
@@ -125,9 +127,11 @@ Page {
 
 			iconLabel.icon.source: Qaterial.Icons.timerOutline
 
-			iconLabel.text: game.msecLeft>=60000 ?
-								Client.Utils.formatMSecs(game.msecLeft) :
-								Client.Utils.formatMSecs(game.msecLeft, 1, false)
+			iconLabel.text: game && game.mode == GameMap.Practice ?
+								"--:--" :
+								game.msecLeft>=60000 ?
+									Client.Utils.formatMSecs(game.msecLeft) :
+									Client.Utils.formatMSecs(game.msecLeft, 1, false)
 		}
 	}
 

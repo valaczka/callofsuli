@@ -344,7 +344,7 @@ QPage {
 				outlined: true
 				flat: true
 
-				textColor: (Client.server.user.roles & Credential.Admin) ? Qaterial.Colors.red500 : Qaterial.Colors.amber500
+				textColor: (Client.server && Client.server.user.roles & Credential.Admin) ? Qaterial.Colors.red500 : Qaterial.Colors.amber500
 
 				onClicked: Client.stackPushPage("PageTeacherPeers.qml")
 			}
@@ -367,8 +367,8 @@ QPage {
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
 																   Client.send(WebSocket.ApiTeacher, "group/create", { name: _text })
-															   .done(function(r){
-																   Client.reloadCache("teacherGroupList", function() {
+															   .done(root, function(r){
+																   Client.reloadCache("teacherGroupList", root, function() {
 																	   var d = Client.findCacheObject("teacherGroupList", r.id)
 																	   if (d)
 																		   Client.stackPushPage("PageTeacherGroup.qml", {
@@ -377,7 +377,7 @@ QPage {
 
 																   })
 															   })
-															   .fail(JS.failMessage("Létrehozás sikertelen"))
+															   .fail(root, JS.failMessage("Létrehozás sikertelen"))
 														   }
 													   })
 		}
@@ -386,7 +386,7 @@ QPage {
 
 	StackView.onActivated: {
 		if (Client.server) {
-			Client.reloadCache("teacherGroupList", function() {
+			Client.reloadCache("teacherGroupList", root, function() {
 				_firstRun = false
 			})
 		}

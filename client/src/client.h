@@ -141,7 +141,7 @@ public:
 	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key) const { return m_cache.get(key); }
 	Q_INVOKABLE void setCache(const QString &key, const QJsonArray &list) { m_cache.set(key, list); }
 	Q_INVOKABLE void reloadCache(const QString &key) { m_cache.reload(m_webSocket, key); }
-	Q_INVOKABLE void reloadCache(const QString &key, const QJSValue &func) { m_cache.reload(m_webSocket, key, func); }
+	Q_INVOKABLE void reloadCache(const QString &key, QObject *inst, const QJSValue &func) { m_cache.reload(m_webSocket, key, inst, func); }
 	Q_INVOKABLE QObject *findCacheObject(const QString &key, const QVariant &value) { return m_cache.find(key, value); }
 	Q_INVOKABLE QObject *findOlmObject(qolm::QOlmBase *list, const QString &key, const QVariant &value) { return OlmLoader::find(list, key.toUtf8(), value); }
 

@@ -47,11 +47,11 @@ Item {
 										{
 											description: text
 										})
-							.done(function(r){
+							.done(control, function(r){
 								reloadCampaign()
 								saved()
 							})
-							.fail(function(err) {
+							.fail(control, function(err) {
 								Client.messageWarning(err, qsTr("Módosítás sikertelen"))
 								revert()
 							})
@@ -72,11 +72,11 @@ Item {
 								{
 									starttime: hasDate ? Math.floor(date.getTime()/1000) : -1
 								})
-					.done(function(r){
+					.done(control, function(r){
 						reloadCampaign()
 						saved()
 					})
-					.fail(function(err) {
+					.fail(control, function(err) {
 						Client.messageWarning(err, qsTr("Módosítás sikertelen"))
 						revert()
 					})
@@ -101,11 +101,11 @@ Item {
 								{
 									endtime: hasDate ? Math.floor(date.getTime()/1000) : -1
 								})
-					.done(function(r){
+					.done(control, function(r){
 						reloadCampaign()
 						saved()
 					})
-					.fail(function(err) {
+					.fail(control, function(err) {
 						Client.messageWarning(err, qsTr("Módosítás sikertelen"))
 						revert()
 					})
@@ -247,11 +247,11 @@ Item {
 									{
 										defaultGrade: _combo.currentValue
 									})
-						.done(function(r){
+						.done(control, function(r){
 							reloadCampaign()
 							saved()
 						})
-						.fail(function(err) {
+						.fail(control, function(err) {
 							Client.messageWarning(err, qsTr("Módosítás sikertelen"))
 							revert()
 						})
@@ -423,7 +423,7 @@ Item {
 			return
 
 		Client.send(WebSocket.ApiTeacher, "campaign/%1".arg(campaign.campaignid))
-		.done(function(r){
+		.done(control, function(r){
 			if (r.id !== campaign.campaignid) {
 				Client.messageWarning(qsTr("Érvénytelen kihívás"), qsTr("Belső hiba"))
 				return
@@ -431,7 +431,7 @@ Item {
 
 			campaign.loadFromJson(r, true)
 		})
-		.fail(JS.failMessage(qsTr("Kihívás letöltése sikertelen")))
+		.fail(control, JS.failMessage(qsTr("Kihívás letöltése sikertelen")))
 	}
 
 

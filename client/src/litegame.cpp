@@ -42,12 +42,15 @@
  * @param client
  */
 
-LiteGame::LiteGame(GameMapMissionLevel *missionLevel, Client *client)
-	: AbstractLevelGame(GameMap::Lite, missionLevel, client)
+LiteGame::LiteGame(GameMapMissionLevel *missionLevel, Client *client, const bool &isPractice)
+	: AbstractLevelGame(isPractice ? GameMap::Practice : GameMap::Lite, missionLevel, client)
 {
 	Q_ASSERT(missionLevel);
 
-	LOG_CTRACE("game") << "Lite game constructed" << this;
+	if (isPractice)
+		LOG_CTRACE("game") << "Practice game constructed" << this;
+	else
+		LOG_CTRACE("game") << "Lite game constructed" << this;
 
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &LiteGame::onMsecLeftChanged);
 	connect(this, &AbstractLevelGame::gameTimeout, this, &LiteGame::onGameTimeout);
@@ -59,7 +62,7 @@ LiteGame::LiteGame(GameMapMissionLevel *missionLevel, Client *client)
 
 LiteGame::~LiteGame()
 {
-	LOG_CTRACE("game") << "Lite game destroyed" << this;
+	LOG_CTRACE("game") << "Lite/Practice game destroyed" << this;
 }
 
 
@@ -110,6 +113,12 @@ void LiteGame::onPageReady()
 
 void LiteGame::onStarted()
 {
+	if (m_mode == GameMap::Practice) {
+		gameStart();
+		nextQuestion();
+		return;
+	}
+
 	qint64 msec = 0;
 
 	foreach (const LiteQuestion &q, m_questions) {
@@ -204,6 +213,9 @@ bool LiteGame::nextQuestion() {
 
 void LiteGame::onMsecLeftChanged()
 {
+	if (m_mode == GameMap::Practice)
+		return;
+
 	const int &msec = msecLeft();
 
 	if (m_timeNotifySendNext > msec) {
@@ -260,45 +272,50 @@ void LiteGame::onGameQuestionFailed(const QVariantMap &answer)
 
 	if (!m_indices.isEmpty()) {
 		const int &idx = m_indices.takeFirst();
-		m_questions[idx].increaseUsed();
-		m_indices.append(idx);
+
+		if (m_mode != GameMap::Practice) {
+			m_questions[idx].increaseUsed();
+			m_indices.append(idx);
+		}
 		emit questionsChanged();
 	}
 
-	if (m_hp > 1) {
-		setHp(m_hp-1);
-	} else {
-		const int &hp = startHP();
-		int used = 0;
-		int cnt = hp;
+	if (m_mode != GameMap::Practice) {
+		if (m_hp > 1) {
+			setHp(m_hp-1);
+		} else {
+			const int &hp = startHP();
+			int used = 0;
+			int cnt = hp;
 
-		while (cnt>0) {
-			QVector<int> idxs;
-			for (int i=0; i<m_questions.size(); ++i) {
-				if (m_questions.at(i).used() == used)
-					idxs.append(i);
+			while (cnt>0) {
+				QVector<int> idxs;
+				for (int i=0; i<m_questions.size(); ++i) {
+					if (m_questions.at(i).used() == used)
+						idxs.append(i);
+				}
+
+				while (!idxs.isEmpty() && cnt>0) {
+					const int &idx = idxs.takeAt(QRandomGenerator::global()->bounded(idxs.size()));
+					m_questions[idx].increaseUsed();
+					m_indices.append(idx);
+					--cnt;
+				}
+
+				++used;
+
+				if (used > 100)
+					break;
 			}
 
-			while (!idxs.isEmpty() && cnt>0) {
-				const int &idx = idxs.takeAt(QRandomGenerator::global()->bounded(idxs.size()));
-				m_questions[idx].increaseUsed();
-				m_indices.append(idx);
-				--cnt;
-			}
+			emit questionsChanged();
 
-			++used;
-
-			if (used > 100)
-				break;
+			setHp(0);
 		}
-
-		emit questionsChanged();
-
-		setHp(0);
 	}
 
 	m_gameQuestion->answerReveal(answer);
-	m_gameQuestion->setMsecBeforeHide(1250);
+	m_gameQuestion->setMsecBeforeHide(m_mode == GameMap::Practice ? 2000 : 1250);
 
 	m_gameQuestion->finish();
 }
@@ -324,6 +341,9 @@ void LiteGame::onGameQuestionFinished()
 
 void LiteGame::onGameTimeout()
 {
+	if (m_mode == GameMap::Practice)
+		return;
+
 	setFinishState(Fail);
 	gameFinish();
 	dialogMessageFinish(tr("Lejárt az idő"), "qrc:/Qaterial/Icons/timer-sand.svg", false);
@@ -337,7 +357,11 @@ void LiteGame::onGameTimeout()
 
 void LiteGame::onGameSuccess()
 {
-	setFinishState(Success);
+	if (m_mode == GameMap::Practice)
+		setFinishState(Fail);
+	else
+		setFinishState(Success);
+
 	gameFinish();
 
 	dialogMessageFinish(m_isFlawless ? tr("Mission completed\nHibátlan győzelem!") : tr("Mission completed"), "qrc:/Qaterial/Icons/trophy.svg", true);

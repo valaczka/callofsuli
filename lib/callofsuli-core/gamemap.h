@@ -101,7 +101,8 @@ public:
 		Lite = 1 << 2,
 		Test = 1 << 3,
 		Quiz = 1 << 4,
-		Exam = 1 << 5
+		Exam = 1 << 5,
+		Practice = 1 << 6
 	};
 
 	Q_ENUM(GameMode);

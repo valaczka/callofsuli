@@ -370,7 +370,7 @@ void Updater::githubUpdateCheck(const bool &force)
 	LOG_CDEBUG("updater") << "Download update installer started";
 
 
-	wr->done([this, platform, force](const QJsonObject &data){
+	wr->done(this, [this, platform, force](const QJsonObject &data){
 
 		/*	QJsonObject platformData = {
 			{ "version", "3.3.998" },
@@ -400,7 +400,7 @@ void Updater::githubUpdateCheck(const bool &force)
 		}
 
 	})
-			->error([this](const QNetworkReply::NetworkError &){
+			->error(this, [this](const QNetworkReply::NetworkError &){
 		emit gitHubUpdateCheckFailed();
 	});
 

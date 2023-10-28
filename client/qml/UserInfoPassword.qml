@@ -67,18 +67,18 @@ QFormColumn {
 							oldPassword: _passwordOld.text,
 							password: _password.text
 						})
-			.done(function(r){
+			.done(root, function(r){
 				_passwordOld.text = ""
 				_password.text = ""
 				_password2.text = ""
 				root.enabled = true
 				Client.snack(qsTr("Jelszóváltoztatás sikeres"))
 			})
-			.fail(function(err) {
+			.fail(root, function(err) {
 				Client.messageWarning(err, qsTr("Jelszóváltoztatás sikertelen"))
 				root.enabled = true
 			})
-			.error(function(err) {
+			.error(root, function(err) {
 				root.enabled = true
 			})
 		}

@@ -118,8 +118,8 @@ class CampaignLiteGame : public LiteGame, public CampaignGameIface
 	Q_OBJECT
 
 public:
-	explicit CampaignLiteGame(GameMapMissionLevel *missionLevel, Client *client)
-		: LiteGame(missionLevel, client) {}
+	explicit CampaignLiteGame(GameMapMissionLevel *missionLevel, Client *client, const bool &isPractice = false)
+		: LiteGame(missionLevel, client, isPractice) {}
 	virtual ~CampaignLiteGame() {}
 };
 

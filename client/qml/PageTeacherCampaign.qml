@@ -153,11 +153,11 @@ QPage {
 							 onAccepted: function()
 							 {
 								 Client.send(WebSocket.ApiTeacher, "campaign/%1/delete".arg(campaign.campaignid))
-								 .done(function(r){
+								 .done(control, function(r){
 									 group.reload()
 									 Client.stackPop(control)
 								 })
-								 .fail(JS.failMessage(qsTr("Törlés sikertelen")))
+								 .fail(control, JS.failMessage(qsTr("Törlés sikertelen")))
 							 },
 							 text: qsTr("Biztosan törlöd a kihívást?"),
 							 title: _campaignName,
@@ -190,10 +190,10 @@ QPage {
 								Client.send(WebSocket.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
 												list: l
 											})
-								.done(function(r){
+								.done(control, function(r){
 									Client.snack(qsTr("Hadjárat megkettőzve %1x").arg(r.list ? r.list.length : 0))
 								})
-								.fail(JS.failMessage("Megkettőzés sikertelen"))
+								.fail(control, JS.failMessage("Megkettőzés sikertelen"))
 							},
 							title: qsTr("Hadjárat megkettőzése"),
 							standardButtons: Dialog.Cancel | Dialog.Ok,

@@ -168,64 +168,64 @@ public:
 
 	// Done
 
-	WebSocketReply *done(const std::function<void (const QJsonObject &)> &func)
+	WebSocketReply *done(QObject *inst, const std::function<void (const QJsonObject &)> &func)
 	{
-		m_funcs.append(func);
+		m_funcs.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
 	WebSocketReply *done(T *inst, void (T::*func)(const QJsonObject &)) {
-		m_funcs.append(std::bind(func, inst, std::placeholders::_1));
+		m_funcs.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	WebSocketReply *done(const std::function<void (const QByteArray &)> &func)
+	WebSocketReply *done(QObject *inst, const std::function<void (const QByteArray &)> &func)
 	{
-		m_funcsByteArray.append(func);
+		m_funcsByteArray.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
 	WebSocketReply *done(T *inst, void (T::*func)(const QByteArray &)) {
-		m_funcsByteArray.append(std::bind(func, inst, std::placeholders::_1));
+		m_funcsByteArray.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	Q_INVOKABLE WebSocketReply *done(const QJSValue &v);
+	Q_INVOKABLE WebSocketReply *done(QObject *inst, const QJSValue &v);
 
 
 	// Fail
 
-	WebSocketReply *fail(const std::function<void (const QString &)> &func)
+	WebSocketReply *fail(QObject *inst, const std::function<void (const QString &)> &func)
 	{
-		m_funcsFail.append(func);
+		m_funcsFail.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
 	WebSocketReply *fail(T *inst, void (T::*func)(const QString &)) {
-		m_funcsFail.append(std::bind(func, inst, std::placeholders::_1));
+		m_funcsFail.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	Q_INVOKABLE WebSocketReply *fail(const QJSValue &v);
+	Q_INVOKABLE WebSocketReply *fail(QObject *inst, const QJSValue &v);
 
 	// Network error
 
-	WebSocketReply *error(const std::function<void (const QNetworkReply::NetworkError &)> &func)
+	WebSocketReply *error(QObject *inst, const std::function<void (const QNetworkReply::NetworkError &)> &func)
 	{
-		m_funcsError.append(func);
+		m_funcsError.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
 	WebSocketReply *error(T *inst, void (T::*func)(const QNetworkReply::NetworkError &)) {
-		m_funcsError.append(std::bind(func, inst, std::placeholders::_1));
+		m_funcsError.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	Q_INVOKABLE WebSocketReply *error(const QJSValue &v);
+	Q_INVOKABLE WebSocketReply *error(QObject *inst, const QJSValue &v);
 
 	const std::function<void (const QList<QSslError> &)> &sslErrorCallback() const;
 	void setSslErrorCallback(const std::function<void (const QList<QSslError> &)> &newSslErrorCallback);
@@ -248,13 +248,13 @@ private:
 	QPointer<QNetworkReply> m_reply = nullptr;
 	QPointer<WebSocket> m_socket = nullptr;
 	bool m_pending = true;
-	QVector<std::function<void (const QJsonObject &)>> m_funcs;
-	QVector<std::function<void (const QByteArray &)>> m_funcsByteArray;
-	QJSValueList m_jsvalues;
-	QVector<std::function<void (const QString &)>> m_funcsFail;
-	QJSValueList m_jsvaluesFail;
-	QVector<std::function<void (const QNetworkReply::NetworkError &)>> m_funcsError;
-	QJSValueList m_jsvaluesError;
+	QVector<QPair<QPointer<QObject>, std::function<void (const QJsonObject &)>>> m_funcs;
+	QVector<QPair<QPointer<QObject>, std::function<void (const QByteArray &)>>> m_funcsByteArray;
+	QVector<QPair<QPointer<QObject>, QJSValue>> m_jsvalues;
+	QVector<QPair<QPointer<QObject>, std::function<void (const QString &)>>> m_funcsFail;
+	QVector<QPair<QPointer<QObject>, QJSValue>> m_jsvaluesFail;
+	QVector<QPair<QPointer<QObject>, std::function<void (const QNetworkReply::NetworkError &)>>> m_funcsError;
+	QVector<QPair<QPointer<QObject>, QJSValue>> m_jsvaluesError;
 	std::function<void (const QList<QSslError> &)> m_sslErrorCallback;
 };
 

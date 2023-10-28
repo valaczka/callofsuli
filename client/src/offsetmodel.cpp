@@ -218,8 +218,8 @@ void OffsetModel::fetch()
 
 	client->send(m_api, m_path, data)
 			->error(client, &Client::onWebSocketError)
-			->error([this](const QNetworkReply::NetworkError &){ m_fetchActive = false; })
-			->fail([client, this](const QString &err){
+			->error(this, [this](const QNetworkReply::NetworkError &){ m_fetchActive = false; })
+			->fail(this, [client, this](const QString &err){
 		m_fetchActive = false;
 		client->messageWarning(err, tr("Letöltési hiba"));
 	})

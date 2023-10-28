@@ -109,6 +109,7 @@ QPageGradient {
 						GameMap.Test,
 						GameMap.Action,
 						GameMap.Lite,
+						GameMap.Practice,
 						GameMap.Quiz
 					]
 
@@ -126,6 +127,9 @@ QPageGradient {
 								break
 							case GameMap.Lite:
 								qsTr("Csak feladatmegoldás")
+								break
+							case GameMap.Practice:
+								qsTr("Gyakorlás")
 								break
 							case GameMap.Test:
 								qsTr("Teszt")
@@ -495,7 +499,7 @@ QPageGradient {
 						level: missionLevel.level,
 						deathmatch: missionLevel.deathmatch,
 						mode: _modeGroup.checkedButton.gameMode
-					}).done(function(r) {
+					}).done(root, function(r) {
 						var maxD = 1
 						var minD = 0
 						var maxS = 1
@@ -514,7 +518,7 @@ QPageGradient {
 						Client.callReloadHandler("mapGame", _mapGameList, r.list)
 						_firstLoad = false
 					})
-		.fail(JS.failMessage("Letöltés sikertelen"))
+		.fail(root, JS.failMessage("Letöltés sikertelen"))
 	}
 
 	StackView.onActivated: {
@@ -604,7 +608,10 @@ QPageGradient {
 		if (!map || !map.online)
 			return
 
-		_finishedXP.xp = map.finishedData.sumXP
+		if (map.finishedData.sumXP !== undefined)
+			_finishedXP.xp = map.finishedData.sumXP
+		else
+			_finishedXP.xp = 0
 
 		if (map.finishedData.streak !== undefined) {
 			_streakRow.visible = true

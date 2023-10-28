@@ -92,8 +92,8 @@ void StudentMapHandler::getUserCampaign(Campaign *campaign)
 	}
 
 	m_client->webSocket()->send(WebSocket::ApiUser, QStringLiteral("campaign/%1").arg(campaign->campaignid()))
-			->fail([this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
-			->done([this, campaign](const QJsonObject &data){
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
+			->done(this, [this, campaign](const QJsonObject &data){
 		campaign->loadFromJson(data, false);
 		reloadList();
 	});
@@ -147,8 +147,8 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 void StudentMapHandler::reloadList()
 {
 	m_client->webSocket()->send(WebSocket::ApiUser, QStringLiteral("map"))
-			->fail([this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
-			->done([this](const QJsonObject &data){
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
+			->done(this, [this](const QJsonObject &data){
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 		OlmLoader::loadFromJsonArray<StudentMap>(m_mapList, list, "uuid", "uuid", true);
 		checkDownloads();

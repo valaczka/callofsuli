@@ -90,6 +90,10 @@ QPage {
 							mode: GameMap.Test
 							title: qsTr("Teszt")
 						}
+						ListElement {
+							mode: GameMap.Practice
+							title: qsTr("Gyakorlás")
+						}
 
 						// Exam: missing
 					}

@@ -76,8 +76,8 @@ void TeacherMapHandler::mapCreate(const QString &name)
 	map = nullptr;
 
 	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(name), b)
-			->fail([this](const QString &err){m_client->messageWarning(err, tr("Pálya létrehozási hiba"));})
-			->done([this](const QJsonObject &){
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Pálya létrehozási hiba"));})
+			->done(this, [this](const QJsonObject &){
 		m_client->snack(tr("A pálya létrehozása sikerült"));
 		reload();
 	});
@@ -108,8 +108,8 @@ void TeacherMapHandler::checkDownloads()
 void TeacherMapHandler::reloadList()
 {
 	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map"))
-			->fail([this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
-			->done([this](const QJsonObject &data){
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
+			->done(this, [this](const QJsonObject &data){
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 		OlmLoader::loadFromJsonArray<TeacherMap>(m_mapList, list, "uuid", "uuid", true);
 		checkDownloads();
@@ -165,8 +165,8 @@ void TeacherMapHandler::_mapImportContent(const QString &name, const QByteArray 
 	const QByteArray &comp = qCompress(content);
 
 	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/create/%1").arg(name), comp)
-			->fail([this](const QString &err){m_client->messageWarning(err, tr("Importálási hiba"));})
-			->done([this](const QJsonObject &){
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Importálási hiba"));})
+			->done(this, [this](const QJsonObject &){
 		m_client->snack(tr("Az importálás sikerült"));
 		reload();
 	});
@@ -308,11 +308,11 @@ void TeacherMapHandler::mapEdit(TeacherMap *map)
 
 	WebSocketReply *r = m_client->webSocket()->send(WebSocket::ApiTeacher,
 													QStringLiteral("map/%1/draft/%2").arg(editor->uuid()).arg(editor->draftVersion()))
-			->fail([this](const QString &err) {
+			->fail(this, [this](const QString &err) {
 		m_client->messageWarning(err, tr("Letöltési hiba"));
 		unsetMapEditor();
 	})
-			->done([this, map](const QByteArray &data) {
+			->done(this, [this, map](const QByteArray &data) {
 		if (map)
 			map->setDownloadProgress(0);
 
@@ -385,10 +385,10 @@ void TeacherMapEditor::onSaveRequest()
 	const QByteArray &data = qCompress(m_map->toBinaryData(true));
 
 	m_client->webSocket()->send(WebSocket::ApiTeacher, QStringLiteral("map/%1/upload/%2").arg(m_uuid).arg(m_draftVersion), data)
-			->fail([this](const QString &){
+			->fail(this, [this](const QString &){
 		onSaved(false);
 	})
-			->done([this](const QJsonObject &data){
+			->done(this, [this](const QJsonObject &data){
 		onSaved(true);
 		if (data.contains(QStringLiteral("version")))
 			m_draftVersion = data.value(QStringLiteral("version")).toInt();
