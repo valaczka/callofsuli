@@ -11,9 +11,9 @@ LIBS += -lcrypto
 
 # Qt5Service
 
-LIBS += -L../../lib/QtService/lib -lQt5Service
-INCLUDEPATH += $$OUT_PWD/../../lib/QtService/include
-DEFINES += QT_SERVICE_LIB
+#LIBS += -L../../lib/QtService/lib -lQt5Service
+#INCLUDEPATH += $$OUT_PWD/../../lib/QtService/include
+#DEFINES += QT_SERVICE_LIB
 
 
 # CuteLogger
@@ -29,7 +29,7 @@ include($$PWD/QConsole/qconsole.pri)
 
 # HttpServer
 
-INCLUDEPATH += $$PWD/HttpServer/src/httpServer
-LIBS += -L../../lib/HttpServer -lhttpServer
-win32: LIBS += -lzlib
-unix: LIBS += -lz
+#INCLUDEPATH += $$PWD/HttpServer/src/httpServer
+#LIBS += -L../../lib/HttpServer -lhttpServer
+#win32: LIBS += -lzlib
+#unix: LIBS += -lz

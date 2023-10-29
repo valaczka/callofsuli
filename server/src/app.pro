@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli-server
 
-QT += network sql networkauth core-private
+QT += network sql networkauth httpserver core5compat #core-private
 
 CONFIG += c++17 console
 CONFIG -= app_bundle

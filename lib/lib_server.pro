@@ -3,11 +3,11 @@ include(../common.pri)
 TEMPLATE = subdirs
 
 SUBDIRS = \
-	QtService \
-	HttpServer \
+#	QtService \
+#	HttpServer \
 	CuteLogger
 
-QtService.file = QtService/qtservice.pro
+#QtService.file = QtService/qtservice.pro
 
 CONFIG += ordered
 
