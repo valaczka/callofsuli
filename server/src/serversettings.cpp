@@ -39,15 +39,6 @@ const QStringList ServerSettings::m_supportedProviders = {
 };
 
 
-/**
- * @brief ServerSettings::ServerSettings
- */
-
-ServerSettings::ServerSettings()
-{
-
-}
-
 
 /**
  * @brief ServerSettings::printConfig
@@ -111,9 +102,6 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("server/redirectHost")))
 		setRedirectHost(s.value(QStringLiteral("server/redirectHost")).toString());
 
-	if (s.contains(QStringLiteral("server/maxRequestSize")))
-		setMaxRequestSize(s.value(QStringLiteral("server/maxRequestSize")).toUInt());
-
 
 	if (s.contains(QStringLiteral("ssl/enabled")))
 		setSsl(s.value(QStringLiteral("ssl/enabled")).toBool());
@@ -171,7 +159,6 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("server/port"), m_listenPort);
 	s.setValue(QStringLiteral("server/jwtSecret"), m_jwtSecret);
 	s.setValue(QStringLiteral("server/redirectHost"), m_redirectHost);
-	s.setValue(QStringLiteral("server/maxRequestSize"), m_maxRequestSize);
 
 	s.setValue(QStringLiteral("ssl/enabled"), m_ssl);
 	s.setValue(QStringLiteral("ssl/certificate"), m_certFile);
@@ -198,7 +185,7 @@ const QDir &ServerSettings::dataDir() const
 
 void ServerSettings::setDataDir(const QDir &newDataDir)
 {
-	m_dataDir = newDataDir;
+	m_dataDir.setPath(newDataDir.absolutePath());
 }
 
 bool ServerSettings::ssl() const
@@ -297,16 +284,6 @@ int ServerSettings::logLimit() const
 void ServerSettings::setLogLimit(int newLogLimit)
 {
 	m_logLimit = newLogLimit;
-}
-
-uint ServerSettings::maxRequestSize() const
-{
-	return m_maxRequestSize;
-}
-
-void ServerSettings::setMaxRequestSize(uint newMaxRequestSize)
-{
-	m_maxRequestSize = newMaxRequestSize;
 }
 
 

@@ -35,7 +35,7 @@
 class ServerSettings
 {
 public:
-	ServerSettings();
+	ServerSettings() {}
 
 	/**
 	 * @brief The OAuth class
@@ -88,9 +88,6 @@ public:
 	int logLimit() const;
 	void setLogLimit(int newLogLimit);
 
-	uint maxRequestSize() const;
-	void setMaxRequestSize(uint newMaxRequestSize);
-
 	static const QStringList &supportedProviders();
 
 	const QHash<QString, OAuth> &oauthMap() const;
@@ -112,7 +109,6 @@ private:
 	QHash<QString, OAuth> m_oauthMap;
 
 	int m_logLimit = 14;
-	uint m_maxRequestSize = 10*1024*1024;
 
 	static const QStringList m_supportedProviders;
 

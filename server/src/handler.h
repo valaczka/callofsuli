@@ -27,8 +27,10 @@
 #ifndef HANDLER_H
 #define HANDLER_H
 
-#include "httpRequestHandler.h"
-#include "abstractapi.h"
+#include "qhttpserver.h"
+#include <QObject>
+//#include "httpRequestHandler.h"
+//#include "abstractapi.h"
 
 class ServerService;
 
@@ -36,7 +38,7 @@ class ServerService;
  * @brief The Handler class
  */
 
-class Handler : public HttpRequestHandler
+class Handler : public QObject
 {
 	Q_OBJECT
 
@@ -44,6 +46,17 @@ public:
 	explicit Handler(ServerService *service, QObject *parent = nullptr);
 	virtual ~Handler();
 
+	std::optional<QHttpServer *> httpServer() const;
+	bool loadRoutes();
+
+	void logRequest(const QHttpServerRequest &request) const;
+
+private:
+	QHttpServerResponse getFavicon(const QHttpServerRequest &request);
+	QHttpServerResponse getStaticContent(const QHttpServerRequest &request);
+	QHttpServerResponse getErrorPage(const QString &errorString, const QHttpServerResponse::StatusCode &code = QHttpServerResponse::StatusCode::NotFound);
+
+/*
 	void handle(HttpRequest *request, HttpResponse *response);
 
 	const QMap<const char *, AbstractAPI *> &apiHandlers() const;
@@ -55,6 +68,7 @@ private:
 	void handleOAuthCallback(HttpRequest *request, HttpResponse *response);
 
 	QMap<const char*, AbstractAPI*> m_apiHandlers;
+*/
 	ServerService *m_service = nullptr;
 };
 

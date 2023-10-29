@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli-server
 
-QT += network sql networkauth httpserver core5compat #core-private
+QT += network sql networkauth httpserver #core-private
 
 CONFIG += c++17 console
 CONFIG -= app_bundle
@@ -40,25 +40,25 @@ win32 {
 
 
 SOURCES += \
-	abstractapi.cpp \
-	adminapi.cpp \
-	authapi.cpp \
+#	abstractapi.cpp \
+#	adminapi.cpp \
+#	authapi.cpp \
 	databasemain.cpp \
-	eventstream.cpp \
-	generalapi.cpp \
-	googleoauth2authenticator.cpp \
+#	eventstream.cpp \
+#	generalapi.cpp \
+#	googleoauth2authenticator.cpp \
 	handler.cpp \
 	main.cpp \
-	microsoftoauth2authenticator.cpp \
-	oauth2authenticator.cpp \
-	oauth2codeflow.cpp \
-	panel.cpp \
-	panelapi.cpp \
+#	microsoftoauth2authenticator.cpp \
+#	oauth2authenticator.cpp \
+#	oauth2codeflow.cpp \
+#	panel.cpp \
+#	panelapi.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
-	teacherapi.cpp \
-	terminalhandler.cpp \
-	userapi.cpp \
+#	teacherapi.cpp \
+#	terminalhandler.cpp \
+#	userapi.cpp \
 	webserver.cpp
 
 RESOURCES += \
@@ -68,23 +68,23 @@ RESOURCES += \
 
 HEADERS += \
 	../../version/version.h \
-	abstractapi.h \
-	adminapi.h \
-	authapi.h \
+#	abstractapi.h \
+#	adminapi.h \
+#	authapi.h \
 	databasemain.h \
-	eventstream.h \
-	generalapi.h \
-	googleoauth2authenticator.h \
+#	eventstream.h \
+#	generalapi.h \
+#	googleoauth2authenticator.h \
 	handler.h \
-	microsoftoauth2authenticator.h \
-	oauth2authenticator.h \
-	oauth2codeflow.h \
-	panel.h \
-	panelapi.h \
+#	microsoftoauth2authenticator.h \
+#	oauth2authenticator.h \
+#	oauth2codeflow.h \
+#	panel.h \
+#	panelapi.h \
 	serverservice.h \
 	serversettings.h \
-	teacherapi.h \
-	terminalhandler.h \
-	userapi.h \
+#	teacherapi.h \
+#	terminalhandler.h \
+#	userapi.h \
 	webserver.h
 

@@ -26,13 +26,14 @@
 
 #include "handler.h"
 #include "Logger.h"
-#include "generalapi.h"
+/*#include "generalapi.h"
 #include "authapi.h"
 #include "teacherapi.h"
 #include "adminapi.h"
 #include "panelapi.h"
-#include "userapi.h"
+#include "userapi.h"*/
 #include "serverservice.h"
+#include <QtConcurrent/QtConcurrent>
 
 
 /**
@@ -41,17 +42,19 @@
  */
 
 Handler::Handler(ServerService *service, QObject *parent)
-	: HttpRequestHandler{parent}
+	: QObject{parent}
 	, m_service(service)
 {
-	LOG_CTRACE("client") << "Handler created" << this;
+	Q_ASSERT(m_service);
 
-	m_apiHandlers.insert("admin", new AdminAPI(service));
+	LOG_CTRACE("service") << "Handler created" << this;
+
+	/*	m_apiHandlers.insert("admin", new AdminAPI(service));
 	m_apiHandlers.insert("auth", new AuthAPI(service));
 	m_apiHandlers.insert("general", new GeneralAPI(service));
 	m_apiHandlers.insert("user", new UserAPI(service));
 	m_apiHandlers.insert("teacher", new TeacherAPI(service));
-	m_apiHandlers.insert("panel", new PanelAPI(service));
+	m_apiHandlers.insert("panel", new PanelAPI(service)); */
 }
 
 
@@ -61,14 +64,239 @@ Handler::Handler(ServerService *service, QObject *parent)
 
 Handler::~Handler()
 {
-	foreach (AbstractAPI *api, m_apiHandlers) {
+	/*foreach (AbstractAPI *api, m_apiHandlers) {
 		delete api;
 		api = nullptr;
 	}
 
-	m_apiHandlers.clear();
+	m_apiHandlers.clear();*/
 
-	LOG_CTRACE("client") << "Handler destroyed" << this;
+	LOG_CTRACE("service") << "Handler destroyed" << this;
+}
+
+
+/**
+ * @brief Handler::httpServer
+ * @return
+ */
+
+std::optional<QHttpServer*> Handler::httpServer() const
+{
+	const auto &ptr = m_service->webServer().lock();
+
+	if (!ptr) {
+		LOG_CWARNING("service") << "Missing WebServer";
+		return std::nullopt;
+	}
+
+	const auto &server = ptr->server().lock();
+
+	if (!server) {
+		LOG_CWARNING("service") << "Missing Server";
+		return std::nullopt;
+	}
+
+	return server.get();
+}
+
+
+
+
+
+/**
+ * @brief Handler::loadRoutes
+ * @return
+ */
+
+bool Handler::loadRoutes()
+{
+	LOG_CTRACE("service") << "Load routes";
+
+	auto server = httpServer();
+
+	if (!server)
+		return false;
+
+	(*server)->route("/favicon.ico", QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		return getFavicon(request);
+	});
+
+	(*server)->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
+		responder.sendResponse(std::move(getStaticContent(request)));
+	});
+
+	return true;
+}
+
+
+/**
+ * @brief Handler::logRequest
+ * @param request
+ */
+
+void Handler::logRequest(const QHttpServerRequest &request) const
+{
+	LOG_CINFO("service") << request.method() << request.remoteAddress() << request.remotePort() << request.url();
+}
+
+
+
+/**
+ * @brief Handler::getFavicon
+ * @param request
+ * @return
+ */
+
+QHttpServerResponse Handler::getFavicon(const QHttpServerRequest &request)
+{
+	logRequest(request);
+
+	const QString &fname = QStringLiteral(":/wasm/cos.png");
+
+	if (QFile::exists(fname))
+		return QHttpServerResponse::fromFile(fname);
+	else
+		return getErrorPage(tr("Hiányzó fájl"));
+}
+
+
+
+/**
+ * @brief Handler::getStaticContent
+ * @param request
+ * @return
+ */
+
+QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
+{
+	logRequest(request);
+
+	QString path = request.url().path();
+
+	QDir htmlDir(QStringLiteral(":/html"));
+	QDir dir(QStringLiteral(":/wasm"));
+
+	if (path.startsWith('/'))
+		path.removeFirst();
+
+	if (path.isEmpty())
+		path = QStringLiteral("index.html");
+
+	QString fname;
+	bool isHtml = false;
+
+	if (htmlDir.exists(path)) {
+		fname = htmlDir.absoluteFilePath(path);
+		isHtml = true;
+	} else if (dir.exists(path))
+		fname = dir.absoluteFilePath(path);
+
+	if (!fname.isEmpty() && QFile::exists(fname)) {
+		LOG_CTRACE("service") << "HTTP response file content:" << fname;
+
+		if (isHtml) {
+			QByteArray b;
+			QFile f(fname);
+			if (f.open(QIODevice::ReadOnly)) {
+				b = f.readAll();
+				f.close();
+			}
+
+			QByteArray contentType;
+			const auto &server= m_service->webServer().lock();
+
+			QByteArray hostname = QStringLiteral("callofsuli://%1:%2").arg(server ? server->redirectHost() : QStringLiteral("invalid"))
+					.arg(m_service->settings()->listenPort()).toUtf8();
+
+			if (m_service->settings()->ssl())
+				hostname.append(QByteArrayLiteral("/?ssl=1"));
+
+			b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8())
+					.replace(QByteArrayLiteral("${server:connect}"), hostname);
+
+			if (fname.endsWith(QStringLiteral("css")))
+				contentType = QByteArrayLiteral("text/css");
+			if (fname.endsWith(QStringLiteral("js")))
+				contentType = QByteArrayLiteral("text/javascript");
+			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm")))
+				contentType = QByteArrayLiteral("text/html");
+
+			return QHttpServerResponse(contentType, b, QHttpServerResponder::StatusCode::Ok);
+		}
+
+		if (QFile::exists(fname)) {
+			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm"))) {
+				QByteArray b;
+				QFile f(fname);
+				if (f.open(QIODevice::ReadOnly)) {
+					b = f.readAll();
+					f.close();
+				}
+
+				return QHttpServerResponse(QByteArrayLiteral("text/html"), b, QHttpServerResponder::StatusCode::Ok);
+			} else
+				return QHttpServerResponse::fromFile(fname);
+		} else
+			return getErrorPage(tr("A fájl nem található"));
+	}
+
+	LOG_CWARNING("client") << "Invalid static content request:" << path;
+	return getErrorPage(tr("Érvénytelen útvonal"));
+}
+
+
+
+/**
+ * @brief Handler::getErrorPage
+ * @param errorString
+ * @param code
+ * @return
+ */
+
+QHttpServerResponse Handler::getErrorPage(const QString &message, const QHttpServerResponse::StatusCode &code)
+{
+	QByteArray b;
+	QFile f(QStringLiteral(":/html/html_error.html"));
+
+	if (f.open(QIODevice::ReadOnly)) {
+		b = f.readAll();
+		f.close();
+	}
+
+	const auto &server= m_service->webServer().lock();
+
+	QByteArray hostname = QStringLiteral("callofsuli://%1:%2").arg(server ? server->redirectHost() : QStringLiteral("invalid"))
+			.arg(m_service->settings()->listenPort()).toUtf8();
+
+	if (m_service->settings()->ssl())
+		hostname.append(QByteArrayLiteral("/?ssl=1"));
+
+
+	QByteArray str;
+
+	switch (code) {
+	case QHttpServerResponder::StatusCode::Ok:
+		str = tr("Ok").toUtf8();
+		break;
+	case QHttpServerResponder::StatusCode::NotFound:
+		str = tr("A kért oldal nem található").toUtf8();
+		break;
+	case QHttpServerResponder::StatusCode::Unauthorized:
+		str = tr("Azonosítás szükséges").toUtf8();
+		break;
+	default:
+		str = tr("Hibás kérés").toUtf8();
+		break;
+	}
+
+	b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8())
+			.replace(QByteArrayLiteral("${server:connect}"), hostname)
+			.replace(QByteArrayLiteral("${statusCode}"), QByteArray::number(static_cast<int>(code)))
+			.replace(QByteArrayLiteral("${message}"), message.toUtf8())
+			.replace(QByteArrayLiteral("${statusStr}"), str)
+			;
+
+	return QHttpServerResponse(QByteArrayLiteral("text/html"), b, QHttpServerResponder::StatusCode::Ok);
 }
 
 
@@ -78,6 +306,7 @@ Handler::~Handler()
  * @param response
  */
 
+#ifdef _COMPAT
 void Handler::handle(HttpRequest *request, HttpResponse *response)
 {
 	LOG_CDEBUG("client") << qPrintable(request->method()+QStringLiteral(":")) << qPrintable(request->uriStr())
@@ -113,88 +342,6 @@ void Handler::handle(HttpRequest *request, HttpResponse *response)
 
 }
 
-
-
-/**
- * @brief Handler::getFavicon
- * @param response
- */
-
-void Handler::getFavicon(HttpResponse *response)
-{
-	QByteArray b;
-	QFile f(QStringLiteral(":/wasm/cos.png"));
-
-	if (f.exists() && f.open(QIODevice::ReadOnly)) {
-		b = f.readAll();
-		f.close();
-		response->setStatus(HttpStatus::Ok, b);
-	} else {
-		response->setError(HttpStatus::NotFound, tr("Érvénytelen kérés!"));
-	}
-}
-
-
-/**
- * @brief Handler::getWasmContent
- * @param uri
- * @param response
- */
-
-void Handler::getWasmContent(QString uri, HttpResponse *response)
-{
-	QDir htmlDir(QStringLiteral(":/html"));
-	QDir dir(QStringLiteral(":/wasm"));
-
-	uri.remove(QRegExp("^/"));
-
-	if (uri.isEmpty())
-		uri = QStringLiteral("index.html");
-
-	QString fname;
-	bool isHtml = false;
-
-	if (htmlDir.exists(uri)) {
-		fname = htmlDir.absoluteFilePath(uri);
-		isHtml = true;
-	} else if (dir.exists(uri))
-		fname = dir.absoluteFilePath(uri);
-
-	if (!fname.isEmpty()) {
-		LOG_CTRACE("client") << "HTTP response file content:" << fname;
-
-		QByteArray b;
-		QFile f(fname);
-		if (f.open(QIODevice::ReadOnly)) {
-			b = f.readAll();
-			f.close();
-		}
-
-		QString contentType;
-
-		if (isHtml) {
-			QByteArray hostname = QStringLiteral("callofsuli://%1:%2").arg(m_service->webServer()->redirectHost())
-					.arg(m_service->settings()->listenPort()).toUtf8();
-
-			if (m_service->settings()->ssl())
-				hostname.append(QByteArrayLiteral("/?ssl=1"));
-
-			b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8())
-					.replace(QByteArrayLiteral("${server:connect}"), hostname);
-
-			if (fname.endsWith(QStringLiteral("css")))
-				contentType = QStringLiteral("text/css");
-			if (fname.endsWith(QStringLiteral("js")))
-				contentType = QStringLiteral("text/javascript");
-		}
-
-		response->setStatus(HttpStatus::Ok, b, contentType);
-		return;
-	}
-
-	LOG_CWARNING("client") << "Invalid wasm content request:" << uri;
-	response->setError(HttpStatus::NotFound, tr("Érvénytelen kérés!"));
-}
 
 
 
@@ -292,4 +439,4 @@ const QMap<const char *, AbstractAPI *> &Handler::apiHandlers() const
 	return m_apiHandlers;
 }
 
-
+#endif

@@ -69,16 +69,12 @@ Database::~Database()
 
 		if (m_mutex) {
 			m_mutex->unlock();
-			delete m_mutex;
-			m_mutex = nullptr;
 		}
 
 		ret.resolve();
 	});
 
 	QDefer::await(ret);
-
-	delete m_worker;
 
 	LOG_CTRACE("db") << "Database destroyed:" << qPrintable(m_dbName);
 }
@@ -160,7 +156,7 @@ void Database::databaseClose()
 
 QRecursiveMutex *Database::mutex() const
 {
-	return m_mutex;
+	return m_mutex.get();
 }
 
 
@@ -209,15 +205,14 @@ bool Database::_batchFromData(const QString &data)
 
 bool Database::_batchFromFile(const QString &filename)
 {
-	bool err = false;
-	const QByteArray &b = Utils::fileContent(filename, &err);
+	const auto &b = Utils::fileContent(filename);
 
-	if (err) {
+	if (!b) {
 		LOG_CWARNING("db") << "File read error:" << qPrintable(filename);
 		return false;
 	}
 
-	return _batchFromData(QString::fromUtf8(b));
+	return _batchFromData(QString::fromUtf8(b.value()));
 }
 
 
@@ -235,7 +230,7 @@ bool Database::databaseInit()
 	m_worker->execInThread([ret, this, &retValue]() mutable {
 		LOG_CDEBUG("db") << "Add database:" << qPrintable(m_dbName);
 
-		m_mutex = new QRecursiveMutex;
+		m_mutex = std::make_unique<QRecursiveMutex>();
 
 		if (QSqlDatabase::contains(m_dbName)) {
 			LOG_CERROR("db") << "Database already in use:" << qPrintable(m_dbName);
@@ -270,7 +265,7 @@ bool Database::databaseInit()
 
 QLambdaThreadWorker *Database::worker() const
 {
-	return m_worker;
+	return m_worker.get();
 }
 
 
@@ -493,12 +488,10 @@ bool QueryBuilder::exec()
  */
 
 
-QJsonArray QueryBuilder::execToJsonArray(bool *err)
+std::optional<QJsonArray> QueryBuilder::execToJsonArray()
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return QJsonArray();
-	}
+	if (!exec())
+		return std::nullopt;
 
 	QJsonArray list;
 
@@ -512,8 +505,6 @@ QJsonArray QueryBuilder::execToJsonArray(bool *err)
 		list.append(obj);
 	}
 
-	if (err) *err = false;
-
 	return list;
 }
 
@@ -524,17 +515,14 @@ QJsonArray QueryBuilder::execToJsonArray(bool *err)
  * @return
  */
 
-QJsonObject QueryBuilder::execToJsonObject(bool *err)
+std::optional<QJsonObject> QueryBuilder::execToJsonObject()
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return QJsonObject();
-	}
+	if (!exec())
+		return std::nullopt;
 
 	if (m_sqlQuery.size() > 1) {
-		if (err) *err = true;
 		LOG_CWARNING("db") << "More than one row returned";
-		return QJsonObject();
+		return std::nullopt;
 	}
 
 	QJsonObject obj;
@@ -546,8 +534,6 @@ QJsonObject QueryBuilder::execToJsonObject(bool *err)
 			obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
 	}
 
-	if (err) *err = false;
-
 	return obj;
 }
 
@@ -557,14 +543,9 @@ QJsonObject QueryBuilder::execToJsonObject(bool *err)
  * @return
  */
 
-bool QueryBuilder::execCheckExists(bool *err)
+std::optional<bool> QueryBuilder::execCheckExists()
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return false;
-	}
-
-	if (err) *err = false;
+	if (!exec()) return std::nullopt;
 
 	if (!m_sqlQuery.first())
 		return false;
@@ -580,14 +561,10 @@ bool QueryBuilder::execCheckExists(bool *err)
  * @return
  */
 
-QVariant QueryBuilder::execInsert(bool *err)
+std::optional<QVariant> QueryBuilder::execInsert()
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return QVariant::Invalid;
-	}
-
-	if (err) *err = false;
+	if (!exec())
+		return std::nullopt;
 
 	return m_sqlQuery.lastInsertId();
 }
@@ -599,14 +576,14 @@ QVariant QueryBuilder::execInsert(bool *err)
  * @return
  */
 
-int QueryBuilder::execInsertAsInt(bool *err)
+std::optional<int> QueryBuilder::execInsertAsInt()
 {
-	const QVariant &v = execInsert(err);
+	const std::optional<QVariant> &v = execInsert();
 
-	if (v.isNull() || !v.isValid())
-		return -1;
+	if (v)
+		return v.value().toInt();
 	else
-		return v.toInt();
+		return std::nullopt;
 }
 
 
@@ -617,12 +594,9 @@ int QueryBuilder::execInsertAsInt(bool *err)
  * @return
  */
 
-QJsonArray QueryBuilder::execToJsonArray(const QMap<QString, FieldConvertFunc> &map, bool *err)
+std::optional<QJsonArray> QueryBuilder::execToJsonArray(const QMap<QString, FieldConvertFunc> &map)
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return QJsonArray();
-	}
+	if (!exec()) return std::nullopt;
 
 	QJsonArray list;
 
@@ -644,8 +618,6 @@ QJsonArray QueryBuilder::execToJsonArray(const QMap<QString, FieldConvertFunc> &
 		list.append(obj);
 	}
 
-	if (err) *err = false;
-
 	return list;
 }
 
@@ -659,17 +631,13 @@ QJsonArray QueryBuilder::execToJsonArray(const QMap<QString, FieldConvertFunc> &
  * @return
  */
 
-QJsonObject QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc> &map, bool *err)
+std::optional<QJsonObject> QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc> &map)
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return QJsonObject();
-	}
+	if (!exec()) return std::nullopt;
 
 	if (m_sqlQuery.size() > 1) {
-		if (err) *err = true;
 		LOG_CWARNING("db") << "More than one row returned";
-		return QJsonObject();
+		return std::nullopt;
 	}
 
 	QJsonObject obj;
@@ -689,8 +657,6 @@ QJsonObject QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc>
 		}
 	}
 
-	if (err) *err = false;
-
 	return obj;
 }
 
@@ -703,25 +669,19 @@ QJsonObject QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc>
  * @return
  */
 
-QVariant QueryBuilder::execToValue(const char *field, bool *err)
+std::optional<QVariant> QueryBuilder::execToValue(const char *field)
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return QVariant::Invalid;
-	}
+	if (!exec()) return std::nullopt;
 
 	if (m_sqlQuery.size() > 1) {
-		if (err) *err = true;
 		LOG_CWARNING("db") << "More than one row returned";
-		return QVariant::Invalid;
+		return std::nullopt;
 	}
-
-	if (err) *err = false;
 
 	if (m_sqlQuery.first())
 		return value(field);
 	else
-		return QVariant::Invalid;
+		return std::nullopt;
 
 }
 
@@ -736,20 +696,14 @@ QVariant QueryBuilder::execToValue(const char *field, bool *err)
  * @return
  */
 
-QVariant QueryBuilder::execToValue(const char *field, const QVariant &defaultValue, bool *err)
+std::optional<QVariant> QueryBuilder::execToValue(const char *field, const QVariant &defaultValue)
 {
-	if (!exec()) {
-		if (err) *err = true;
-		return QVariant::Invalid;
-	}
+	if (!exec()) return std::nullopt;
 
 	if (m_sqlQuery.size() > 1) {
-		if (err) *err = true;
 		LOG_CWARNING("db") << "More than one row returned";
-		return QVariant::Invalid;
+		return std::nullopt;
 	}
-
-	if (err) *err = false;
 
 	if (m_sqlQuery.first())
 		return value(field, defaultValue);

@@ -30,6 +30,7 @@
 
 #include <QDebug>
 #include <QUuid>
+#include <QIODevice>
 
 
 GameMapReaderIface::GameMapReaderIface()
@@ -814,7 +815,7 @@ bool GameMapMissionIface::getLockTree(QVector<GameMapMissionLevelIface *> *listP
 		bool contains = false;
 
 		foreach (GameMapMissionLevelIface *it, *listPtr) {
-			if (it->mission() == l->mission()) {                
+			if (it->mission() == l->mission()) {
 				contains = true;
 				break;
 			}

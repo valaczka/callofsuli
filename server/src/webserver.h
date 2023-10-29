@@ -29,7 +29,7 @@
 
 #include "serversettings.h"
 #include <QSslConfiguration>
-#include "httpServer.h"
+#include <QHttpServer>
 #include "handler.h"
 
 class ServerService;
@@ -44,23 +44,20 @@ public:
 
 	bool start();
 
-	HttpServer *server() const;
-
-	static QSslConfiguration loadSslConfiguration(const ServerSettings &settings);
+	std::optional<QSslConfiguration> loadSslConfiguration(const ServerSettings &settings);
 
 	const QString &redirectHost() const;
 	void setRedirectHost(const QString &newRedirectHost);
 
-	Handler *handler() const;
+	std::weak_ptr<QHttpServer> server() const;
 
-	const HttpServerConfig & configuration() { return m_configuration; }
+	Handler* handler() const;
 
 private:
 	ServerService *const m_service;
-	HttpServer *m_server = nullptr;
-	Handler *const m_handler = nullptr;
 	QString m_redirectHost;
-	HttpServerConfig m_configuration;
+	std::shared_ptr<QHttpServer> m_server;
+	std::unique_ptr<Handler> m_handler;
 };
 
 #endif // WEBSERVER_H

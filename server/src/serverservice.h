@@ -27,15 +27,15 @@
 #ifndef SERVERSERVICE_H
 #define SERVERSERVICE_H
 
-#include <QtService/Service>
 #include <QPointer>
 #include "ColorConsoleAppender.h"
-#include "panel.h"
+//#include "panel.h"
+#include "qnetworkaccessmanager.h"
 #include "serversettings.h"
 #include "databasemain.h"
 #include "webserver.h"
-#include "oauth2authenticator.h"
-#include "eventstream.h"
+//#include "oauth2authenticator.h"
+//#include "eventstream.h"
 
 
 class ServerService;
@@ -100,7 +100,7 @@ public:
 		, m_agent(agent)
 	{}
 	PeerUser(const QString &username, const QHostAddress &host)
-		: PeerUser(username, host, QLatin1String("")) {}
+		: PeerUser(username, host, QStringLiteral("")) {}
 	PeerUser(const QString &username, const QString &agent)
 		: PeerUser(username, QHostAddress::Any, agent) {}
 	PeerUser(const QString &username)
@@ -167,15 +167,21 @@ private:
  * @brief The ServerService class
  */
 
-class ServerService : public QtService::Service
+class ServerService : public QObject
 {
 	Q_OBJECT
-
-	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 
 public:
 	explicit ServerService(int &argc, char **argv);
 	virtual ~ServerService();
+
+	enum State {
+		ServerInit,
+		ServerPrepared,
+		ServerRunning,
+		ServerPaused,
+		ServerFinished
+	};
 
 	static void initialize();
 
@@ -184,32 +190,33 @@ public:
 	static int versionBuild();
 	const char *version() const;
 
+
+	int exec();
+
 	ServerSettings *settings() const;
 	DatabaseMain *databaseMain() const;
-	WebServer *webServer() const;
+	std::weak_ptr<WebServer> webServer() const;
 
-	OAuth2Authenticator *oauth2Authenticator(const char *type) const;
+//	OAuth2Authenticator *oauth2Authenticator(const char *type) const;
 
-	const QString &serverName() const;
-	void setServerName(const QString &newServerName);
 
 	ServerConfig &config();
 
-	QVector<OAuth2Authenticator *> authenticators() const;
+//	QVector<OAuth2Authenticator *> authenticators() const;
 
 	QNetworkAccessManager *networkManager() const;
 
-	QVector<EventStream *> eventStreams() const;
-	void addEventStream(EventStream *stream);
+//	QVector<EventStream *> eventStreams() const;
+//	void addEventStream(EventStream *stream);
 
-	void triggerEventStreams(const EventStream::EventStreamType &type);
-	void triggerEventStreams(const EventStream::EventStreamType &type, const QVariant &data);
+//	void triggerEventStreams(const EventStream::EventStreamType &type);
+//	void triggerEventStreams(const EventStream::EventStreamType &type, const QVariant &data);
 
-	QVector<Panel *> panels() const;
+/*	QVector<Panel *> panels() const;
 	void addPanel(Panel *panel);
 	void removePanel(Panel *panel, const bool &_delete = true);
 	Panel *panel(const int &id) const;
-
+*/
 	const QString &importDb() const;
 
 	int imitateLatency() const;
@@ -218,27 +225,29 @@ public:
 	bool logPeerUser(const PeerUser &user);
 	const QVector<PeerUser> &peerUser() const;
 
+	const QString &serverName() const;
+	void setServerName(const QString &newServerName);
+
+	std::optional<int> preStart();
+
+
 signals:
 	void configChanged();
 	void serverNameChanged();
 
 protected:
-	bool preStart() override;
-
-	CommandResult onStart() override;
-	CommandResult onStop(int &exitCode) override;
-	CommandResult onReload() override;
-	CommandResult onPause() override;
-	CommandResult onResume() override;
-
 	bool wasmLoad();
 	bool wasmUnload();
 
-protected slots:
-	void terminalConnected(QtService::Terminal *terminal) override;
-
 private:
+	static void processSignal(int sig);
+
 	void onMainTimerTimeout();
+	bool start();
+	void stop();
+	void pause();
+	void resume();
+	void reload();
 
 	static const int m_versionMajor;
 	static const int m_versionMinor;
@@ -246,21 +255,22 @@ private:
 	static const char* m_version;
 
 	QString m_serverName;
-
 	QStringList m_arguments;
-
-	ServerSettings *const m_settings;
 	ServerConfig m_config;
 
-	QPointer<DatabaseMain> m_databaseMain = nullptr;
-	QPointer<WebServer> m_webSocketServer = nullptr;
-	QVector<QPointer<OAuth2Authenticator>> m_authenticators;
+	State m_state = ServerInit;
+
+	ColorConsoleAppender *const m_consoleAppender;
+
+	std::unique_ptr<QCoreApplication> m_application;
+	std::unique_ptr<ServerSettings> m_settings;
+	std::unique_ptr<DatabaseMain> m_databaseMain;
+	/*QVector<QPointer<OAuth2Authenticator>> m_authenticators;
 	QVector<QPointer<EventStream>> m_eventStreams;
-	QVector<QPointer<Panel>> m_panels;
+	QVector<QPointer<Panel>> m_panels;*/
 
-	ColorConsoleAppender *m_consoleAppender = nullptr;
-
-	QNetworkAccessManager *const m_networkManager = nullptr;
+	std::unique_ptr<QNetworkAccessManager> m_networkManager;
+	std::shared_ptr<WebServer> m_webServer;
 
 	QString m_loadedWasmResource;
 	QString m_importDb;
@@ -270,6 +280,8 @@ private:
 	QDateTime m_mainTimerLastTick;
 
 	QVector<PeerUser> m_peerUser;
+
+	static ServerService *m_instance;
 };
 
 

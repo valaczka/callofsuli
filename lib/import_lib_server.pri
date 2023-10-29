@@ -26,7 +26,6 @@ LIBS += -lCuteLogger
 
 include($$PWD/QConsole/qconsole.pri)
 
-
 # HttpServer
 
 #INCLUDEPATH += $$PWD/HttpServer/src/httpServer

@@ -90,9 +90,9 @@ public:
 protected:
 	bool databaseInit();
 
-	QLambdaThreadWorker *m_worker = nullptr;
+	std::unique_ptr<QLambdaThreadWorker> m_worker;
 	QString m_dbName;
-	QRecursiveMutex *m_mutex = nullptr;
+	std::unique_ptr<QRecursiveMutex> m_mutex;
 };
 
 
@@ -180,15 +180,17 @@ public:
 		return *this;
 	}
 
+	template <typename T>
 	QueryBuilder &addNullValue() {
 		m_queryString.append(QueryString::Bind);
-		m_bind.append({Bind::Positional, QVariant::Invalid});
+		m_bind.append({Bind::Positional, QVariant(QMetaType::fromType<T>())});
 		return *this;
 	}
 
+	template <typename T>
 	QueryBuilder &addNullValue(const char *name) {
 		m_queryString.append(QueryString::Bind);
-		m_bind.append({Bind::Positional, QVariant::Invalid, name});
+		m_bind.append({Bind::Positional, QVariant(QMetaType::fromType<T>()), name});
 		return *this;
 	}
 
@@ -213,16 +215,16 @@ public:
 	}
 
 	bool exec();
-	QJsonArray execToJsonArray(bool *err = nullptr);
-	QJsonObject execToJsonObject(bool *err = nullptr);
-	bool execCheckExists(bool *err = nullptr);
-	QVariant execInsert(bool *err = nullptr);
-	int execInsertAsInt(bool *err = nullptr);
+	std::optional<QJsonArray> execToJsonArray();
+	std::optional<QJsonObject> execToJsonObject();
+	std::optional<bool> execCheckExists();
+	std::optional<QVariant> execInsert();
+	std::optional<int> execInsertAsInt();
 
-	QJsonArray execToJsonArray(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);
-	QJsonObject execToJsonObject(const QMap<QString, FieldConvertFunc> &map, bool *err = nullptr);
-	QVariant execToValue(const char *field, bool *err = nullptr);
-	QVariant execToValue(const char *field, const QVariant &defaultValue, bool *err = nullptr);
+	std::optional<QJsonArray> execToJsonArray(const QMap<QString, FieldConvertFunc> &map);
+	std::optional<QJsonObject> execToJsonObject(const QMap<QString, FieldConvertFunc> &map);
+	std::optional<QVariant> execToValue(const char *field);
+	std::optional<QVariant> execToValue(const char *field, const QVariant &defaultValue);
 
 	void clear() {
 		m_sqlQuery.clear();
@@ -242,6 +244,7 @@ public:
 	void logError() const { QUERY_LOG_ERROR(m_sqlQuery); }
 	void logWarning() const { QUERY_LOG_WARNING(m_sqlQuery); }
 };
+
 
 
 #endif // DATABASE_H

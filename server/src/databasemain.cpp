@@ -29,7 +29,7 @@
 #include "qsqlquery.h"
 #include "utils.h"
 #include "serverservice.h"
-#include "adminapi.h"
+//#include "adminapi.h"
 #include "rank.h"
 
 DatabaseMain::DatabaseMain(ServerService *service)
@@ -468,9 +468,8 @@ bool DatabaseMain::_createSytemTables()
 
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
-	QueryBuilder q(db);
-
-	q.addQuery("INSERT INTO system (")
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT INTO system (")
 			.setFieldPlaceholder()
 			.addQuery(") VALUES (")
 			.setValuePlaceholder()
@@ -479,24 +478,26 @@ bool DatabaseMain::_createSytemTables()
 			.addField("versionMinor", m_service->versionMinor())
 			.addField("serverName", QStringLiteral("New Call of Suli server"))
 			.addField("config", QStringLiteral("{\"tokenFirstIat\":%1}").arg(QDateTime::currentSecsSinceEpoch()))
-			;
-
-	if (!q.exec())
+			.exec())
 		return false;
 
 
-	q.clear();
-
-	q.addQuery("INSERT INTO classCode(")
+	QueryBuilder::q(db)
+			.addQuery("INSERT INTO classCode(")
 			.setFieldPlaceholder()
 			.addQuery(") VALUES (")
 			.setValuePlaceholder()
 			.addQuery(")")
-			.addField("classid", QVariant::Invalid)
+			.addField("classid", QVariant(QMetaType::fromType<int>()))
+#ifdef _COMPAT
 			.addField("code", AdminAPI::generateClassCode())
-			;
+#else
+			.addField("code", QString("jkkk"))
+#endif
+			.exec();
 
-	return q.exec();
+
+	return true;
 }
 
 
@@ -606,10 +607,6 @@ bool DatabaseMain::_upgradeMapsTables(Database *mapsDb, int fromMajor, int fromM
 
 	static const QVector<Upgrade> list = {
 		/*Upgrade {2, 9, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-		Upgrade {3, 0, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-		Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-		Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-		Upgrade {3, 3, 3, 4, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
 		Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},*/
 	};
 
@@ -628,12 +625,7 @@ bool DatabaseMain::_upgradeMapsTables(Database *mapsDb, int fromMajor, int fromM
 bool DatabaseMain::_upgradeStatTables(Database *statDb, int fromMajor, int fromMinor)
 {
 	static const QVector<Upgrade> list = {
-		/*Upgrade {2, 9, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-			Upgrade {3, 0, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-			Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-			Upgrade {3, 2, 3, 3, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-			Upgrade {3, 3, 3, 4, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-			Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},*/
+
 	};
 
 	return statDb->performUpgrade(list,
@@ -650,6 +642,7 @@ bool DatabaseMain::_upgradeStatTables(Database *statDb, int fromMajor, int fromM
 
 bool DatabaseMain::_createUsers()
 {
+#ifdef _COMPAT
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
 	AdminAPI::User user;
@@ -682,6 +675,9 @@ bool DatabaseMain::_createUsers()
 	QDefer::await(ret);
 
 	return success;
+#endif
+
+	return true;
 }
 
 
@@ -703,8 +699,8 @@ bool DatabaseMain::_createRanksAndGrades()
 				.setValuePlaceholder()
 				.addQuery(")")
 				.addField("level", r.level())
-				.addField("sublevel", r.sublevel() < 0 ? QVariant(QVariant::Invalid) : r.sublevel())
-				.addField("xp", r.xp() < 0 ? QVariant(QVariant::Invalid) : r.xp())
+				.addField("sublevel", r.sublevel() < 0 ? QVariant(QMetaType::fromType<int>()) : r.sublevel())
+				.addField("xp", r.xp() < 0 ? QVariant(QMetaType::fromType<int>()) : r.xp())
 				.addField("name", r.name())
 				.exec())
 			return false;

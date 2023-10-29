@@ -33,6 +33,7 @@
 #include "qjsondocument.h"
 #include "qmath.h"
 #include "qsettings.h"
+#include <QStandardPaths>
 #include <random>
 #include "../../version/version.h"
 
@@ -89,34 +90,23 @@ Utils::~Utils()
  * @return
  */
 
-QByteArray Utils::fileContent(const QString &filename, bool *error)
+std::optional<QByteArray> Utils::fileContent(const QString &filename)
 {
 	QFile f(filename);
 
 	if (!f.exists()) {
 		LOG_CWARNING("utils") << "Can't read file:" << filename;
-
-		if (error)
-			*error = true;
-
-		return QByteArray();
+		return std::nullopt;
 	}
 
 	if (!f.open(QIODevice::ReadOnly)) {
 		LOG_CWARNING("utils") << "Can't open file:" << filename;
-
-		if (error)
-			*error = true;
-
-		return QByteArray();
+		return std::nullopt;
 	}
 
 	QByteArray data = f.readAll();
 
 	f.close();
-
-	if (error)
-		*error = false;
 
 	return data;
 }
@@ -209,13 +199,14 @@ bool Utils::jsonArrayToFile(const QJsonArray &array, const QString &filename, co
  * @return
  */
 
-QJsonDocument Utils::byteArrayToJsonDocument(const QByteArray &data)
+std::optional<QJsonDocument> Utils::byteArrayToJsonDocument(const QByteArray &data)
 {
 	QJsonParseError error;
 	QJsonDocument doc = QJsonDocument::fromJson(data, &error);
 
 	if (error.error != QJsonParseError::NoError) {
 		LOG_CWARNING("utils") << "JSON parse error:" << error.errorString() << error.error;
+		return std::nullopt;
 	}
 
 	return doc;
@@ -228,14 +219,16 @@ QJsonDocument Utils::byteArrayToJsonDocument(const QByteArray &data)
  * @return
  */
 
-QJsonObject Utils::byteArrayToJsonObject(const QByteArray &data, bool *error)
+std::optional<QJsonObject> Utils::byteArrayToJsonObject(const QByteArray &data, bool *error)
 {
-	const QJsonDocument &doc = byteArrayToJsonDocument(data);
+	const std::optional<QJsonDocument> &doc = byteArrayToJsonDocument(data);
 
-	if (error)
-		*error = doc.isNull();
+	if (!doc || doc->isNull()) {
+		if (error)  *error = true;
+		return std::nullopt;
+	}
 
-	return doc.object();
+	return doc->object();
 }
 
 
@@ -245,14 +238,16 @@ QJsonObject Utils::byteArrayToJsonObject(const QByteArray &data, bool *error)
  * @return
  */
 
-QJsonArray Utils::byteArrayToJsonArray(const QByteArray &data, bool *error)
+std::optional<QJsonArray> Utils::byteArrayToJsonArray(const QByteArray &data, bool *error)
 {
-	const QJsonDocument &doc = byteArrayToJsonDocument(data);
+	const std::optional<QJsonDocument> &doc = byteArrayToJsonDocument(data);
 
-	if (error)
-		*error = doc.isNull();
+	if (!doc || doc->isNull()) {
+		if (error)  *error = true;
+		return std::nullopt;
+	}
 
-	return doc.array();
+	return doc->array();
 }
 
 
@@ -262,7 +257,7 @@ QJsonArray Utils::byteArrayToJsonArray(const QByteArray &data, bool *error)
  * @return
  */
 
-QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
+std::optional<QJsonDocument> Utils::fileToJsonDocument(const QString &filename, bool *error)
 {
 	QFile f(filename);
 
@@ -272,7 +267,7 @@ QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
 		if (error)
 			*error = true;
 
-		return QJsonDocument();
+		return std::nullopt;
 	}
 
 	if (!f.open(QIODevice::ReadOnly)) {
@@ -281,7 +276,7 @@ QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
 		if (error)
 			*error = true;
 
-		return QJsonDocument();
+		return std::nullopt;
 	}
 
 	QByteArray data = f.readAll();
@@ -302,23 +297,25 @@ QJsonDocument Utils::fileToJsonDocument(const QString &filename, bool *error)
  * @return
  */
 
-QJsonObject Utils::fileToJsonObject(const QString &filename, bool *error)
+std::optional<QJsonObject> Utils::fileToJsonObject(const QString &filename, bool *error)
 {
 	bool myerror = false;
 
-	const QJsonDocument &doc = fileToJsonDocument(filename, &myerror);
+	const std::optional<QJsonDocument> &doc = fileToJsonDocument(filename, &myerror);
 
 	if (myerror) {
 		if (error)
 			*error = true;
 
-		return QJsonObject();
+		return std::nullopt;
 	}
 
-	if (error)
-		*error = doc.isNull();
+	if (!doc || doc->isNull()) {
+		if (error)  *error = true;
+		return std::nullopt;
+	}
 
-	return doc.object();
+	return doc->object();
 }
 
 
@@ -330,23 +327,25 @@ QJsonObject Utils::fileToJsonObject(const QString &filename, bool *error)
  * @return
  */
 
-QJsonArray Utils::fileToJsonArray(const QString &filename, bool *error)
+std::optional<QJsonArray> Utils::fileToJsonArray(const QString &filename, bool *error)
 {
 	bool myerror = false;
 
-	const QJsonDocument &doc = fileToJsonDocument(filename, &myerror);
+	const std::optional<QJsonDocument> &doc = fileToJsonDocument(filename, &myerror);
 
 	if (myerror) {
 		if (error)
 			*error = true;
 
-		return QJsonArray();
+		return std::nullopt;
 	}
 
-	if (error)
-		*error = doc.isNull();
+	if (!doc || doc->isNull()) {
+		if (error)  *error = true;
+		return std::nullopt;
+	}
 
-	return doc.array();
+	return doc->array();
 }
 
 
@@ -385,18 +384,18 @@ QString Utils::formatMSecs(const int &msec, const int &decimals, const bool &wit
 		s -= m*60 + h*60*60;
 
 		if (h > 0)
-			r += QStringLiteral("%1:").arg(h, 2, 10, QLatin1Char('0'));
+			r += QStringLiteral("%1:").arg(h, 2, 10, QChar('0'));
 
-		r += QStringLiteral("%1:%2").arg(m, 2, 10, QLatin1Char('0')).arg(s, 2, 10, QLatin1Char('0'));
+		r += QStringLiteral("%1:%2").arg(m, 2, 10, QChar('0')).arg(s, 2, 10, QChar('0'));
 
 		if (decimals > 0) {
-			QString n = QStringLiteral("%1").arg(ms, 3, 10, QLatin1Char('0'));
+			QString n = QStringLiteral("%1").arg(ms, 3, 10, QChar('0'));
 			r += QStringLiteral(".")+n.left(decimals);
 		}
 	} else {
 		r = QString::number(s);
 		if (decimals > 0) {
-			QString n = QStringLiteral("%1").arg(ms, 3, 10, QLatin1Char('0'));
+			QString n = QStringLiteral("%1").arg(ms, 3, 10, QChar('0'));
 			r += QStringLiteral(".")+n.left(decimals);
 		}
 	}
@@ -427,9 +426,9 @@ void Utils::openUrl(const QUrl &url)
 QString Utils::standardPath(const QString &path)
 {
 	if (!path.isEmpty())
-		return QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0)+QStringLiteral("/")+path;
+		return QStandardPaths::standardLocations(QStandardPaths::AppDataLocation).at(0)+QStringLiteral("/")+path;
 	else
-		return QStandardPaths::standardLocations(QStandardPaths::DataLocation).at(0);
+		return QStandardPaths::standardLocations(QStandardPaths::AppDataLocation).at(0);
 }
 
 

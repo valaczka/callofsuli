@@ -63,7 +63,7 @@ public:
 	explicit Utils(QObject *parent = nullptr);
 	virtual ~Utils();
 
-	Q_INVOKABLE static QByteArray fileContent(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QByteArray> fileContent(const QString &filename);
 	Q_INVOKABLE static QString fileBaseName(const QString &filename);
 	Q_INVOKABLE static bool fileExists(const QUrl &file);
 
@@ -74,13 +74,13 @@ public:
 	Q_INVOKABLE static bool jsonArrayToFile(const QJsonArray &array, const QString &filename,
 											const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);
 
-	Q_INVOKABLE static QJsonDocument byteArrayToJsonDocument(const QByteArray &data);
-	Q_INVOKABLE static QJsonObject byteArrayToJsonObject(const QByteArray &data, bool *error = nullptr);
-	Q_INVOKABLE static QJsonArray byteArrayToJsonArray(const QByteArray &data, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QJsonDocument> byteArrayToJsonDocument(const QByteArray &data);
+	Q_INVOKABLE static std::optional<QJsonObject> byteArrayToJsonObject(const QByteArray &data, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QJsonArray> byteArrayToJsonArray(const QByteArray &data, bool *error = nullptr);
 
-	Q_INVOKABLE static QJsonDocument fileToJsonDocument(const QString &filename, bool *error = nullptr);
-	Q_INVOKABLE static QJsonObject fileToJsonObject(const QString &filename, bool *error = nullptr);
-	Q_INVOKABLE static QJsonArray fileToJsonArray(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QJsonDocument> fileToJsonDocument(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QJsonObject> fileToJsonObject(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QJsonArray> fileToJsonArray(const QString &filename, bool *error = nullptr);
 
 	Q_INVOKABLE static QColor colorSetAlpha(QColor color, const qreal &alpha);
 

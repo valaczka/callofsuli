@@ -26,8 +26,10 @@
 
 #include "webserver.h"
 #include "Logger.h"
+#include <QSslKey>
 #include "serversettings.h"
 #include "serverservice.h"
+#include <QNetworkInterface>
 
 
 /**
@@ -37,20 +39,13 @@
  */
 
 WebServer::WebServer(ServerService *service)
-	: QObject(service)
+	: QObject(nullptr)
 	, m_service(service)
 	, m_handler(new Handler(service, this))
 {
 	Q_ASSERT(m_service);
 
-	LOG_CDEBUG("service") << "Socket server created:" << this;
-
-	/*connect(this, &QWebSocketServer::acceptError, this, &WebSocketServer::onAcceptError);
-	connect(this, &QWebSocketServer::newConnection, this, &WebSocketServer::onNewConnection);
-	connect(this, &QWebSocketServer::peerVerifyError, this, &WebSocketServer::onPeerVerifyError);
-	connect(this, &QWebSocketServer::serverError, this, &WebSocketServer::onServerError);
-	connect(this, &QWebSocketServer::sslErrors, this, &WebSocketServer::onSslErrors);*/
-
+	LOG_CDEBUG("service") << "Web server created:" << this;
 }
 
 
@@ -60,12 +55,7 @@ WebServer::WebServer(ServerService *service)
 
 WebServer::~WebServer()
 {
-	if (m_server)
-		delete m_server;
-
-	delete m_handler;
-
-	LOG_CDEBUG("service") << "Web socket server destroyed";
+	LOG_CDEBUG("service") << "Web server destroyed";
 }
 
 
@@ -75,26 +65,34 @@ bool WebServer::start()
 {
 	ServerSettings *settings = m_service->settings();
 
-	m_configuration.host = settings->listenAddress();
-	m_configuration.port = settings->listenPort();
-	m_configuration.maxRequestSize = settings->maxRequestSize();
-	//configuration.verbosity = HttpServerConfig::Verbose::Info;
-
+#ifdef _COMPAT
 	m_configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html/html_error.html");
+#endif
+
+
+	m_server = std::make_shared<QHttpServer>(this);
+
+	m_handler->loadRoutes();
+
+	LOG_CTRACE("service") << "HttpServer created";
 
 	if (settings->ssl()) {
-		m_configuration.sslCertPath = settings->dataDir().absoluteFilePath(settings->certFile());
-		m_configuration.sslKeyPath = settings->dataDir().absoluteFilePath(settings->certKeyFile());
+		const auto &configuration = loadSslConfiguration(*settings);
+
+		if (!configuration) {
+			LOG_CERROR("service") << "Invalid SSL configuration";
+			return false;
+		}
+
+		m_server->sslSetup(configuration.value());
 	}
 
-	m_server = new HttpServer(m_configuration, m_handler, this);
-
-	if (!m_server->listen())	{
+	if (!m_server->listen(settings->listenAddress(), settings->listenPort()))	{
 		LOG_CERROR("service") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
 		return false;
 	}
 
-	LOG_CINFO("service") << tr("A szerver elindult, elérhető a következő címeken:");
+	LOG_CINFO("service") << qPrintable(tr("A szerver elindult, elérhető a következő címeken:"));
 	LOG_CINFO("service") << tr("====================================================");
 
 	foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
@@ -105,7 +103,7 @@ bool WebServer::start()
 				settings->listenAddress() == QHostAddress::AnyIPv6 || settings->listenAddress() == h) {
 
 			QUrl u;
-			u.setScheme(m_server->getSslConfig() ? QStringLiteral("https") : QStringLiteral("http"));
+			u.setScheme(settings->ssl() ? QStringLiteral("https") : QStringLiteral("http"));
 			u.setHost(h.toString());
 			u.setPort(settings->listenPort());
 
@@ -132,12 +130,11 @@ bool WebServer::start()
  * @return
  */
 
-QSslConfiguration WebServer::loadSslConfiguration(const ServerSettings &settings)
+std::optional<QSslConfiguration> WebServer::loadSslConfiguration(const ServerSettings &settings)
 {
-	QSslConfiguration c;
 	if (!QSslSocket::supportsSsl()) {
 		LOG_CERROR("websocket") << "Platform doesn't support SSL";
-		return c;
+		return std::nullopt;
 	}
 
 	const QString &certFilePath = settings.dataDir().absoluteFilePath(settings.certFile());
@@ -148,12 +145,12 @@ QSslConfiguration WebServer::loadSslConfiguration(const ServerSettings &settings
 
 	if (!certFile.exists()) {
 		LOG_CERROR("websocket") << "Server certificate doesn't exists:" << qPrintable(certFile.fileName());
-		return c;
+		return std::nullopt;
 	}
 
 	if (!keyFile.exists()) {
 		LOG_CERROR("websocket") << "Server certificate key doesn't exists:" << qPrintable(keyFile.fileName());
-		return c;
+		return std::nullopt;
 	}
 
 	certFile.open(QIODevice::ReadOnly);
@@ -167,13 +164,15 @@ QSslConfiguration WebServer::loadSslConfiguration(const ServerSettings &settings
 
 	if (cert.isNull()) {
 		LOG_CERROR("websocket") << "Invalid certificate:" << qPrintable(certFile.fileName());
-		return c;
+		return std::nullopt;
 	}
 
 	if (key.isNull()) {
 		LOG_CERROR("websocket") << "Invalid key:" << qPrintable(keyFile.fileName());
-		return c;
+		return std::nullopt;
 	}
+
+	QSslConfiguration c;
 
 	c.setLocalCertificate(cert);
 	c.setPrivateKey(key);
@@ -198,30 +197,21 @@ void WebServer::setRedirectHost(const QString &newRedirectUrl)
 	m_redirectHost = newRedirectUrl;
 }
 
-Handler *WebServer::handler() const
-{
-	return m_handler;
-}
 
+/**
+ * @brief WebServer::server
+ * @return
+ */
 
-
-HttpServer *WebServer::server() const
+std::weak_ptr<QHttpServer> WebServer::server() const
 {
 	return m_server;
 }
 
-
-/**
- * @brief WebSocketServer::onNewConnection
- */
-/*
-void WebSocketServer::onNewConnection()
+Handler* WebServer::handler() const
 {
-	while (hasPendingConnections()) {
-		QWebSocket *socket = nextPendingConnection();
-		Client *client = new Client(socket, m_service);
-		m_service->clientAdd(client);
-	}
+	return m_handler.get();
 }
-*/
+
+
 
