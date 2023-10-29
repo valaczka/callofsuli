@@ -52,3 +52,6 @@
 [submodule "lib/QSingleInstance"]
 	path = lib/QSingleInstance
 	url = https://github.com/valaczka/QSingleInstance.git
+[submodule "lib/pulltorefreshhandler"]
+	path = lib/pulltorefreshhandler
+	url = https://github.com/mohammadhasanzadeh/pulltorefreshhandler.git
