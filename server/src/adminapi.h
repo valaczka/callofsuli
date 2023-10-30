@@ -28,12 +28,13 @@
 #define ADMINAPI_H
 
 #include "abstractapi.h"
-#include "qjsonarray.h"
 
 class AdminAPI : public AbstractAPI
 {
 public:
-	AdminAPI(ServerService *service);
+
+	AdminAPI(Handler *handler, ServerService *service);
+	virtual ~AdminAPI() {}
 
 	/**
 	 * @brief The User class
@@ -78,38 +79,31 @@ public:
 	};
 
 
-	/// CLASS FUNCTIONS
-
-	void classUsers(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const {
-		classUsers(0, response);
-	}
-	void classUsersNone(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const {
-		classUsers(-1, response);
-	}
-	void classUsersOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		classUsers(match.captured(1).toInt(), response);
-	}
-	void classUsers(const int &id, const QPointer<HttpResponse> &response) const;
 
 
-	void classCreate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void classUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void classCodeOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		classCode(match.captured(1).toInt(), response);
-	}
-	void classCode(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const {
-		classCode(-2, response);
-	}
-	void classCode(const int &code, QPointer<HttpResponse> response) const;
-	void classUpdateCode(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void classDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		classDelete({match.captured(1).toInt()}, response);
-	}
-	void classDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		classDelete(data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void classDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+	QHttpServerResponse classUsers(const int &id = 0);
+	QHttpServerResponse classCreate(const QJsonObject &json);
+	QHttpServerResponse classUpdate(const int &id, const QJsonObject &json);
+	QHttpServerResponse classCode(const int &id = 0);
+	QHttpServerResponse classUpdateCode(const int &id, const QJsonObject &json);
+	QHttpServerResponse classDelete(const QJsonArray &idList);
 
+
+	QHttpServerResponse user(const QString &username);
+	QHttpServerResponse userCreate(const QJsonObject &json);
+
+
+
+	static std::optional<int> _classCreate(const AbstractAPI *api, const Class &_class);
+	static QString generateClassCode();
+
+	static bool userAdd(const AbstractAPI *api, const User &user);
+	static bool userAdd(const DatabaseMain *dbMain, const User &user);
+	static bool authAddPlain(const AbstractAPI *api, const QString &username, const QString &password);
+	static bool authAddPlain(const DatabaseMain *dbMain, const QString &username, const QString &password);
+	static bool authAddOAuth2(const AbstractAPI *api, const QString &username, const QString &type);
+
+#ifdef _COMPAT
 
 
 	/// USER FUNCTIONS
@@ -179,21 +173,21 @@ public:
 	static QDefer userNotExists(const AbstractAPI *api, const QString &username) {
 		return userExists(api, username, true);
 	}
-	static QDefer userAdd(const AbstractAPI *api, const User &user);
-	static QDefer userAdd(const DatabaseMain *dbMain, const User &user);
-	static QDefer authAddPlain(const AbstractAPI *api, const QString &username, const QString &password);
-	static QDefer authAddPlain(const DatabaseMain *dbMain, const QString &username, const QString &password);
-	static QDefer authAddOAuth2(const AbstractAPI *api, const QString &username, const QString &type);
+
+
 	static QDefer authPlainPasswordChange(const AbstractAPI *api, const QString &username,
 										  const QString &oldPassword, const QString &password, const bool &check);
 
-	static int _classCreate(const AbstractAPI *api, const Class &_class);
-	static QString generateClassCode();
+
 
 	static QDefer campaignStart(const AbstractAPI *api, const int &campaign);
 	static QDefer campaignStart(const DatabaseMain *dbMain, const int &campaign);
 	static QDefer campaignFinish(const AbstractAPI *api, const int &campaign);
 	static QDefer campaignFinish(const DatabaseMain *dbMain, const int &campaign);
+};
+
+#endif
+
 };
 
 #endif // ADMINAPI_H

@@ -75,12 +75,12 @@ public:
 											const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);
 
 	Q_INVOKABLE static std::optional<QJsonDocument> byteArrayToJsonDocument(const QByteArray &data);
-	Q_INVOKABLE static std::optional<QJsonObject> byteArrayToJsonObject(const QByteArray &data, bool *error = nullptr);
-	Q_INVOKABLE static std::optional<QJsonArray> byteArrayToJsonArray(const QByteArray &data, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QJsonObject> byteArrayToJsonObject(const QByteArray &data);
+	Q_INVOKABLE static std::optional<QJsonArray> byteArrayToJsonArray(const QByteArray &data);
 
-	Q_INVOKABLE static std::optional<QJsonDocument> fileToJsonDocument(const QString &filename, bool *error = nullptr);
-	Q_INVOKABLE static std::optional<QJsonObject> fileToJsonObject(const QString &filename, bool *error = nullptr);
-	Q_INVOKABLE static std::optional<QJsonArray> fileToJsonArray(const QString &filename, bool *error = nullptr);
+	Q_INVOKABLE static std::optional<QJsonDocument> fileToJsonDocument(const QString &filename);
+	Q_INVOKABLE static std::optional<QJsonObject> fileToJsonObject(const QString &filename);
+	Q_INVOKABLE static std::optional<QJsonArray> fileToJsonArray(const QString &filename);
 
 	Q_INVOKABLE static QColor colorSetAlpha(QColor color, const qreal &alpha);
 

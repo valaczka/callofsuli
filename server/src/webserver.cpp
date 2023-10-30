@@ -61,20 +61,27 @@ WebServer::~WebServer()
 
 
 
+/**
+ * @brief WebServer::start
+ * @return
+ */
+
 bool WebServer::start()
 {
 	ServerSettings *settings = m_service->settings();
-
-#ifdef _COMPAT
-	m_configuration.errorDocumentMap[HttpStatus::NotFound] = QStringLiteral(":/html/html_error.html");
-#endif
-
 
 	m_server = std::make_shared<QHttpServer>(this);
 
 	m_handler->loadRoutes();
 
+	// WebSocket connection
+
+	m_server.get()->route("/ws", [](QHttpServerResponder &&) {});
+	connect(m_server.get(), &QAbstractHttpServer::newWebSocketConnection, this, &WebServer::onNewWebsSocketConnection);
+
 	LOG_CTRACE("service") << "HttpServer created";
+
+	// SSL
 
 	if (settings->ssl()) {
 		const auto &configuration = loadSslConfiguration(*settings);
@@ -87,10 +94,13 @@ bool WebServer::start()
 		m_server->sslSetup(configuration.value());
 	}
 
+	// Listen
+
 	if (!m_server->listen(settings->listenAddress(), settings->listenPort()))	{
 		LOG_CERROR("service") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
 		return false;
 	}
+
 
 	LOG_CINFO("service") << qPrintable(tr("A szerver elindult, elérhető a következő címeken:"));
 	LOG_CINFO("service") << tr("====================================================");
@@ -107,7 +117,7 @@ bool WebServer::start()
 			u.setHost(h.toString());
 			u.setPort(settings->listenPort());
 
-			LOG_CINFO("service") << u.toString();
+			LOG_CINFO("service") << qPrintable(u.toString());
 
 			if (m_redirectHost.isEmpty())
 				setRedirectHost(h.toString());
@@ -211,6 +221,22 @@ std::weak_ptr<QHttpServer> WebServer::server() const
 Handler* WebServer::handler() const
 {
 	return m_handler.get();
+}
+
+
+
+/**
+ * @brief WebServer::onNewWebsSocketConnection
+ */
+
+void WebServer::onNewWebsSocketConnection()
+{
+	LOG_CDEBUG("service") << "New WebSocket connection";
+
+	while (m_server.get()->hasPendingWebSocketConnections()) {
+		auto ws = m_server.get()->nextPendingWebSocketConnection();
+		ws->sendTextMessage("WebSocket connectio not implemented\n");
+	}
 }
 
 

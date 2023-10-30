@@ -30,18 +30,14 @@
 #include <QDeferred>
 #include <QLambdaThreadWorker>
 #include "credential.h"
-#include "httpRequest.h"
+#include "qhttpserverresponse.h"
 #include "databasemain.h"
 #include <QPointer>
-#include "httpResponse.h"
 
-typedef std::function<void(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse>)> ApiMapFunction;
-typedef std::function<void(const QRegularExpressionMatch &, HttpRequest*, QPointer<HttpResponse>)> ApiBaseFunction;
 
 class ServerService;
+class Handler;
 
-
-#define DEFAULT_LIMIT	50
 
 /**
  * @brief The AbstractAPI class
@@ -52,67 +48,93 @@ class AbstractAPI : public QObject
 	Q_OBJECT
 
 public:
-	AbstractAPI(ServerService *service);
+	AbstractAPI(const char *path, Handler *handler, ServerService *service);
 	virtual ~AbstractAPI();
 
-	struct Map {
-		const char *regularExpression;
-		ApiMapFunction func = nullptr;
-		ApiBaseFunction baseFunc = nullptr;
+	const char *path() const;
 
-		Map(const char *n, ApiMapFunction f) : regularExpression(n), func(f) {}
-		Map(const char *n, ApiBaseFunction f) : regularExpression(n), baseFunc(f) {}
-	};
+	static QHttpServerResponse responseOk();
+	static QHttpServerResponse responseOk(QJsonObject object);
+	static QHttpServerResponse responseResult(const char *field, const QJsonValue &value);
+	static QHttpServerResponse responseError(const char *errorStr, const QHttpServerResponse::StatusCode &code = QHttpServerResponse::StatusCode::Ok);
+	static QHttpServerResponse responseErrorSql();
 
-	virtual void handle(HttpRequest *request, HttpResponse *response, const QString &parameters);
-
+	static const char *apiPath();
 
 	DatabaseMain *databaseMain() const;
 	QLambdaThreadWorker *databaseMainWorker() const;
 
-
-	template <typename T>
-	void addMap(const char *regularExpression, T *inst,
-				void (T::*handler)(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse>) const)
-	{
-		Map m = {regularExpression, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
-		m_maps.append(m);
-	}
-
-	template <typename T>
-	void addMap(const char *regularExpression, T *inst,
-				void (T::*handler)(const QRegularExpressionMatch &, HttpRequest *, QPointer<HttpResponse>) const)
-	{
-		Map m = {regularExpression, std::bind(handler, inst, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3)};
-		m_maps.append(m);
-	}
-
-
-	void responseError(HttpResponse *response, const char *errorStr) const;
-	void responseAnswer(HttpResponse *response, const char *field, const QJsonValue &value) const;
-	void responseAnswer(HttpResponse *response, const QJsonObject &value) const;
-	void responseAnswerOk(HttpResponse *response, QJsonObject value = {}) const;
-	void responseErrorSql(HttpResponse *response) const {
-		responseError(response, "sql error");
-	}
-
-
-	Credential authorize(HttpRequest *request) const;
-	bool validate(const Credential &credential, const Credential::Role &role) const;
-	bool validate(HttpRequest *request, const Credential::Role &role) const;
-	bool checkMultiPart(HttpRequest *request, HttpResponse *response,
-						QJsonObject *json = nullptr, QByteArray *content = nullptr,
-						const QString &fieldFile = QStringLiteral("content"),
-						const QString &fieldJson = QStringLiteral("json")) const;
-
-	const QVector<Map> &maps() const;
-
 protected:
-	QVector<Map> m_maps;
+
+	static const char *m_apiPath;
 	ServerService *m_service = nullptr;
-	Credential m_credential;
-	Credential::Role m_validateRole = Credential::Role::None;
-	QVector<HttpResponse*> m_validResponses;
+	Handler *m_handler = nullptr;
+	const char *m_path = nullptr;
+
+	Credential::Roles m_validateRole = Credential::None;
 };
+
+
+
+// AUTHORIZATION
+
+#define AUTHORIZE_API()	\
+	const auto &credential = m_handler->authorizeRequestLog(request);\
+	if (m_validateRole != Credential::None && (!credential || !(credential->roles() & m_validateRole)))\
+		return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
+
+#define AUTHORIZE_API_X(role)	\
+	const auto &credential = m_handler->authorizeRequestLog(request);\
+	if ((role) != Credential::None && (!credential || !(credential->roles() & (role))))\
+		return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
+
+#define AUTHORIZE_FUTURE_API()	\
+	const auto &credential = m_handler->authorizeRequestLog(request);\
+	if (m_validateRole != Credential::None && (!credential || !(credential->roles() & m_validateRole)))\
+		return QtConcurrent::run(&AbstractAPI::responseError, "unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
+
+#define AUTHORIZE_FUTURE_API_X(role)	\
+	const auto &credential = m_handler->authorizeRequestLog(request);\
+	if ((role) != Credential::None && (!credential || !(credential->roles() & (role))))\
+		return QtConcurrent::run(&AbstractAPI::responseError, "unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
+
+
+
+// CONTENT
+
+#define JSON_OBJECT_GET()	const auto &jsonObject = Utils::byteArrayToJsonObject(request.body());
+
+#define JSON_OBJECT_ASSERT() \
+	JSON_OBJECT_GET(); \
+	const QByteArray &mimeType = request.value(QByteArrayLiteral("Content-Type")); \
+	if ((!mimeType.isEmpty() && mimeType.compare(QByteArrayLiteral("application/json")) != 0) || !jsonObject) \
+		return QtConcurrent::run(&AbstractAPI::responseError, "invalid content", QHttpServerResponse::StatusCode::BadRequest);
+
+
+// LAMBDA THREAD
+
+#define LAMBDA_THREAD_BEGIN(...)	\
+	QDefer ret;\
+	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);\
+	databaseMainWorker()->execInThread([&response, ret, this, __VA_ARGS__]() mutable {\
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());\
+		QMutexLocker(databaseMain()->mutex());
+
+#define LAMBDA_THREAD_BEGIN_NOVAR()	\
+	QDefer ret;\
+	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);\
+	databaseMainWorker()->execInThread([&response, ret, this]() mutable {\
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());\
+		QMutexLocker(databaseMain()->mutex());
+
+#define LAMBDA_THREAD_END	\
+		ret.resolve(); \
+	}); \
+	QDefer::await(ret); \
+	return response;
+
+
+#define LAMBDA_SQL_ASSERT(opt)		if (!opt) { response = responseErrorSql(); return ret.reject();	}
+#define LAMBDA_SQL_ASSERT_ROLLBACK(opt)		if (!opt) { response = responseErrorSql(); db.rollback(); return ret.reject();	}
 
 #endif // ABSTRACTAPI_H

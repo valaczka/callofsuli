@@ -26,8 +26,8 @@
 
 #include "handler.h"
 #include "Logger.h"
-/*#include "generalapi.h"
-#include "authapi.h"
+#include "generalapi.h"
+/*#include "authapi.h"
 #include "teacherapi.h"
 #include "adminapi.h"
 #include "panelapi.h"
@@ -122,10 +122,28 @@ bool Handler::loadRoutes()
 	});
 
 	(*server)->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
-		responder.sendResponse(std::move(getStaticContent(request)));
+		if (request.url().path().startsWith(AbstractAPI::apiPath())) {
+			authorizeRequestLog(request);
+			responder.sendResponse(std::move(AbstractAPI::responseError("invalid api request", QHttpServerResponse::StatusCode::NotFound)));
+		} else
+			responder.sendResponse(std::move(getStaticContent(request)));
 	});
 
+	addApi(std::make_shared<GeneralAPI>(this, m_service));
+
 	return true;
+}
+
+
+/**
+ * @brief Handler::api
+ * @param api
+ * @return
+ */
+
+std::shared_ptr<AbstractAPI> Handler::api(const char *api) const
+{
+	return m_apis.value(api);
 }
 
 
@@ -134,9 +152,63 @@ bool Handler::loadRoutes()
  * @param request
  */
 
-void Handler::logRequest(const QHttpServerRequest &request) const
+std::optional<Credential> Handler::authorizeRequest(const QHttpServerRequest &request) const
 {
-	LOG_CINFO("service") << request.method() << request.remoteAddress() << request.remotePort() << request.url();
+	QByteArray token = request.value(QByteArrayLiteral("Authorization"));
+
+	if (token.isEmpty())
+		return std::nullopt;
+
+	static const char* bearer = "Bearer ";
+
+	if (token.startsWith(bearer))
+		token.remove(0, strlen(bearer));
+
+	if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
+		LOG_CDEBUG("client") << "Token verification failed";
+		return std::nullopt;
+	}
+
+	Credential c = Credential::fromJWT(token);
+
+	if (!c.isValid()) {
+		LOG_CDEBUG("client") << "Invalid token";
+		return std::nullopt;
+	}
+
+	return c;
+}
+
+
+/**
+ * @brief Handler::authorizeRequestLog
+ * @param request
+ * @return
+ */
+
+std::optional<Credential> Handler::authorizeRequestLog(const QHttpServerRequest &request) const
+{
+	const auto &credential = authorizeRequest(request);
+
+	/*for (const auto &h : request.headers()) {
+		LOG_CTRACE("service") << "--" << h.first << ":" << h.second;
+	}*/
+
+	const QByteArray &userAgent = request.value(QByteArrayLiteral("User-Agent"));
+
+	LOG_CDEBUG("service") << qPrintable(request.url().path()) << qPrintable(request.remoteAddress().toString()) << request.remotePort()
+						  << (credential ? qPrintable(credential->username()) : "")
+						  << (userAgent.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgent+QByteArrayLiteral("]")).constData());
+
+	if (credential) {
+		PeerUser user;
+		user.setUsername(credential->username());
+		user.setHost(request.remoteAddress());
+		user.setAgent(userAgent);
+		m_service->logPeerUser(user);
+	}
+
+	return credential;
 }
 
 
@@ -149,7 +221,7 @@ void Handler::logRequest(const QHttpServerRequest &request) const
 
 QHttpServerResponse Handler::getFavicon(const QHttpServerRequest &request)
 {
-	logRequest(request);
+	authorizeRequestLog(request);
 
 	const QString &fname = QStringLiteral(":/wasm/cos.png");
 
@@ -169,7 +241,7 @@ QHttpServerResponse Handler::getFavicon(const QHttpServerRequest &request)
 
 QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 {
-	logRequest(request);
+	authorizeRequestLog(request);
 
 	QString path = request.url().path();
 
@@ -240,8 +312,21 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 			return getErrorPage(tr("A fájl nem található"));
 	}
 
-	LOG_CWARNING("client") << "Invalid static content request:" << path;
+	LOG_CWARNING("service") << "Invalid static content request:" << path;
 	return getErrorPage(tr("Érvénytelen útvonal"));
+}
+
+
+
+/**
+ * @brief Handler::addApi
+ * @param api
+ */
+
+void Handler::addApi(const std::shared_ptr<AbstractAPI> &api)
+{
+	LOG_CTRACE("service") << "Add API" << api->path() << api.get();
+	m_apis.insert(api->path(), std::move(api));
 }
 
 
@@ -340,38 +425,6 @@ void Handler::handle(HttpRequest *request, HttpResponse *response)
 	LOG_CWARNING("client") << "Invalid request:" << request->method() << request->uriStr();
 	response->setError(HttpStatus::BadRequest, tr("Invalid request"));
 
-}
-
-
-
-
-/**
- * @brief Handler::handleApi
- * @param request
- * @param response
- */
-
-void Handler::handleApi(HttpRequest *request, HttpResponse *response)
-{
-	if (request->method() == QLatin1String("GET") || request->method() == QLatin1String("POST")) {
-		QRegularExpression exp(QStringLiteral("^/api/(\\w+)/(.*)$"));
-		QRegularExpressionMatch match = exp.match(request->uriStr());
-
-		if (match.hasMatch()) {
-			const QString &api = match.captured(1);
-			const QString &params = match.captured(2);
-
-			for (auto it = m_apiHandlers.constBegin(); it != m_apiHandlers.constEnd(); ++it) {
-				if (it.key() == api) {
-					it.value()->handle(request, response, params);
-					return;
-				}
-			}
-		}
-	}
-
-	LOG_CWARNING("client") << "Invalid api request:" << request->uriStr();
-	response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
 }
 
 

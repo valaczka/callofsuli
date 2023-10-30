@@ -25,6 +25,7 @@
  */
 
 #include "generalapi.h"
+#include "QtConcurrent/qtconcurrentrun.h"
 #include "rank.h"
 #include "Logger.h"
 #include "serverservice.h"
@@ -34,42 +35,101 @@
  * @param service
  */
 
-GeneralAPI::GeneralAPI(ServerService *service)
-	: AbstractAPI(service)
+GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
+	: AbstractAPI("general", handler, service)
 {
-	addMap("^config/*$", this, &GeneralAPI::config);
+	auto server = m_handler->httpServer();
 
-	addMap("^rank/*$", this, &GeneralAPI::ranks);
-	addMap("^rank/(\\d+)/*$", this, &GeneralAPI::rank);
+	Q_ASSERT(server);
 
-	addMap("^class/*$", this, &GeneralAPI::classes);
-	addMap("^class/(\\d+)/*$", this, &GeneralAPI::classOne);
-	addMap("^class/(\\d+)/users/*$", this, &GeneralAPI::classUsers);
+	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
 
-	addMap("^user/*$", this, &GeneralAPI::users);
-	addMap("^score/*$", this, &GeneralAPI::userStudent);
-	addMap("^user/([^/]+)/*$", this, &GeneralAPI::user);
-	addMap("^user/([^/]+)/log/*$", this, &GeneralAPI::userLog);
-	addMap("^user/([^/]+)/log/xp/*$", this, &GeneralAPI::userXpLog);
-	addMap("^user/([^/]+)/log/game/*$", this, &GeneralAPI::userGameLog);
+	(*server)->route(path+"config", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return config();
+	});
 
-	addMap("^me/*$", this, &GeneralAPI::userMe);
+	(*server)->route(path+"grade", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return grade();
+	});
 
-	addMap("^grade/*$", this, &GeneralAPI::grade);
+	(*server)->route(path+"rank", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::rank, &*this, -1);
+	});
 
-	addMap("^events/*$", this, &GeneralAPI::testEvents);
+	(*server)->route(path+"rank/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::rank, &*this, id);
+	});
+
+
+
+	(*server)->route(path+"class", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::class_, &*this, -1);
+	});
+
+	(*server)->route(path+"class/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::class_, &*this, id);
+	});
+
+	(*server)->route(path+"class/<arg>/users", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::classUsers, &*this, id);
+	});
+
+
+
+
+	(*server)->route(path+"user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::user, &*this, QStringLiteral(""), Credential::None);
+	});
+
+	(*server)->route(path+"user/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::user, &*this, username, Credential::None);
+	});
+
+	(*server)->route(path+"me", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API_X(Credential::Student|Credential::Admin);
+		return QtConcurrent::run(&GeneralAPI::me, &*this, credential);
+	});
+
+	(*server)->route(path+"score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::user, &*this, QStringLiteral(""), Credential::Student);
+	});
+
+	(*server)->route(path+"user/<arg>/log", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::userLog, &*this, username);
+	});
+
+	(*server)->route(path+"user/<arg>/log/xp", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_GET();
+		return QtConcurrent::run(&GeneralAPI::userXpLog, &*this, username, *jsonObject);
+	});
+
+	(*server)->route(path+"user/<arg>/log/game", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::userGameLog, &*this, username);
+	});
 }
 
 
 
-
-
 /**
- * @brief GeneralAPI::info
- * @param response
+ * @brief GeneralAPI::config
+ * @param request
+ * @return
  */
 
-void GeneralAPI::config(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+QHttpServerResponse GeneralAPI::config()
 {
 	LOG_CTRACE("client") << "Get config";
 
@@ -77,391 +137,70 @@ void GeneralAPI::config(const QRegularExpressionMatch &, const QJsonObject &, QP
 
 	QJsonArray pList;
 
-	foreach (OAuth2Authenticator *a, m_service->authenticators())
+	/*foreach (OAuth2Authenticator *a, m_service->authenticators())
 		pList.append(QString::fromLatin1(a->type()));
 
-	c.insert(QStringLiteral("oauthProviders"), pList);
+	c.insert(QStringLiteral("oauthProviders"), pList);*/
 
 	QJsonObject r;
 	r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));
 	r.insert(QStringLiteral("name"), m_service->serverName());
 	r.insert(QStringLiteral("versionMajor"), m_service->versionMajor());
 	r.insert(QStringLiteral("versionMinor"), m_service->versionMinor());
-	r.insert(QStringLiteral("uploadLimit"), m_service->webServer()->configuration().maxRequestSize);
 	r.insert(QStringLiteral("config"), c);
 
-	responseAnswer(response, r);
+	return QHttpServerResponse(r, QHttpServerResponse::StatusCode::Ok);
 }
 
 
 
-
-
 /**
- * @brief GeneralAPI::ranks
+ * @brief GeneralAPI::rank
+ * @param request
  * @param id
- * @param response
+ * @return
  */
 
-void GeneralAPI::ranks(const int &id, const QPointer<HttpResponse> &response) const
+QHttpServerResponse GeneralAPI::rank(const int &id)
 {
-	LOG_CTRACE("client") << "Get rank list:" << id;
+	LOG_CTRACE("client") << "Get rank" << id;
 
-	databaseMainWorker()->execInThread([response, id, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+	LAMBDA_THREAD_BEGIN(id);
 
-		QMutexLocker(databaseMain()->mutex());
+	QueryBuilder q(db);
+	q.addQuery("SELECT id, level, sublevel, xp, name FROM rank");
 
-		QueryBuilder q(db);
-		q.addQuery("SELECT id, level, sublevel, xp, name FROM rank");
+	if (id != -1)
+		q.addQuery(" WHERE id=").addValue(id);
 
-		if (id != -1)
-			q.addQuery(" WHERE id=").addValue(id);
+	q.addQuery(" ORDER BY level, sublevel");
 
-		q.addQuery(" ORDER BY level, sublevel");
+	LAMBDA_SQL_ASSERT(q.exec());
 
-		if (!q.exec())
-			return responseErrorSql(response);
+	RankList list;
 
-		RankList list;
+	list.reserve(q.sqlQuery().size());
 
-		list.reserve(q.sqlQuery().size());
-
-		while (q.sqlQuery().next()) {
-			Rank r(
-						q.value("id").toInt(),
-						q.value("level").toInt(),
-						q.value("sublevel", -1).toInt(),
-						q.value("xp", -1).toInt(),
-						q.value("name").toString()
-						);
-			list.append(r);
-		}
-
-		if (id == -1)
-			responseAnswer(response, "list", list.toJson());
-		else if (list.size() != 1)
-			responseError(response, "not found");
-		else {
-			responseAnswer(response, list.at(0).toJson());
-		}
-	});
-}
-
-
-
-
-
-/**
- * @brief GeneralAPI::classes
- * @param id
- * @param response
- */
-
-void GeneralAPI::classes(const int &id, const QPointer<HttpResponse> &response) const
-{
-	LOG_CTRACE("client") << "Get class list:" << id;
-
-
-	databaseMainWorker()->execInThread([response, id, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		bool err = false;
-
-		QueryBuilder q(db);
-		q.addQuery("SELECT id, name FROM class");
-
-		if (id != -1)
-			q.addQuery(" WHERE id=").addValue(id);
-
-		const QJsonArray &list = q.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		if (id == -1)
-			responseAnswer(response, "list", list);
-		else if (list.size() != 1)
-			responseError(response, "not found");
-		else
-			responseAnswer(response, list.at(0).toObject());
-	});
-}
-
-
-
-
-
-/**
- * @brief GeneralAPI::classUsers
- * @param match
- * @param response
- */
-
-void GeneralAPI::classUsers(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	const int &classid = match.captured(1).toInt();
-
-	LOG_CTRACE("client") << "Get user list in class:" << classid;
-
-	databaseMainWorker()->execInThread([response, classid, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		QueryBuilder q(db);
-		q.addQuery(_SQL_get_user)
-				.addQuery("WHERE isPanel=false AND active=true AND user.classid=")
-				.addValue(classid);
-
-		bool err = false;
-
-		const QJsonArray &list = q.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		responseAnswer(response, "list", list);
-	});
-
-}
-
-
-
-
-
-/**
- * @brief GeneralAPI::userMe
- * @param match
- * @param response
- */
-
-void GeneralAPI::userMe(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	LOG_CTRACE("client") << "Get me";
-
-	if (!m_credential.isValid()) {
-		LOG_CWARNING("client") << "Unauthorized request";
-		return responseError(response, "unauthorized");
+	while (q.sqlQuery().next()) {
+		Rank r(
+					q.value("id").toInt(),
+					q.value("level").toInt(),
+					q.value("sublevel", -1).toInt(),
+					q.value("xp", -1).toInt(),
+					q.value("name").toString()
+					);
+		list.append(r);
 	}
 
-	user(m_credential.username(), response);
-}
+	if (id == -1)
+		response = responseResult("list", list.toJson());
+	else if (list.size() != 1)
+		response = responseError("not found");
+	else {
+		response = QHttpServerResponse(list.at(0).toJson());
+	}
 
-
-
-
-
-
-
-/**
- * @brief GeneralAPI::user
- * @param username
- * @param response
- */
-
-void GeneralAPI::user(const QString &username, const QPointer<HttpResponse> &response, const Credential::Roles &roles) const
-{
-	LOG_CTRACE("client") << "Get user list:" << username;
-
-	databaseMainWorker()->execInThread([response, username, this, roles]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		QueryBuilder q(db);
-		q.addQuery(_SQL_get_user)
-				.addQuery("WHERE active=true");
-
-		if (!roles.testFlag(Credential::None)) {
-			QStringList list;
-			if (roles.testFlag(Credential::Teacher) && !roles.testFlag(Credential::Student))
-				list.append(QStringLiteral("isTeacher=true"));
-			if (!roles.testFlag(Credential::Teacher) && roles.testFlag(Credential::Student))
-				list.append(QStringLiteral("isTeacher=false"));
-			if (roles.testFlag(Credential::Admin))
-				list.append(QStringLiteral("isAdmin=true"));
-			if (roles.testFlag(Credential::Panel))
-				list.append(QStringLiteral("isPanel=true"));
-
-			if (!roles.testFlag(Credential::Panel))
-				q.addQuery(" AND isPanel=false");
-
-			if (!list.isEmpty()) {
-				QString str = QStringLiteral(" AND (")+list.join(QStringLiteral(" OR "))+QStringLiteral(")");
-				q.addQuery(str.toUtf8());
-			}
-		}
-
-		if (!username.isEmpty()) {
-			q.addQuery(" AND user.username=")
-					.addValue(username);
-		}
-
-		bool err = false;
-
-		const QJsonArray &list = q.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		if (username.isEmpty())
-			responseAnswer(response, "list", list);
-		else if (list.size() != 1)
-			responseError(response, "not found");
-		else {
-			responseAnswer(response, list.at(0).toObject());
-		}
-	});
-
-}
-
-
-
-/**
- * @brief GeneralAPI::userLog
- * @param match
- * @param response
- */
-
-void GeneralAPI::userLog(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	const QString &username = match.captured(1);
-
-	LOG_CTRACE("client") << "Get user log:" << username;
-
-	databaseMainWorker()->execInThread([this, username, response]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		QJsonObject ret;
-
-		bool err = false;
-
-		ret[QStringLiteral("ranklog")] = QueryBuilder::q(db)
-				.addQuery("SELECT rankid, CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp, xp FROM ranklog WHERE username=").addValue(username)
-				.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		ret[QStringLiteral("streaklog")] = QueryBuilder::q(db)
-				.addQuery("SELECT streak, CAST(strftime('%s', started_on) AS INTEGER) AS started_on, "
-						  "CAST(strftime('%s', ended_on) AS INTEGER) AS ended_on FROM streak "
-						  "WHERE streak > 1 AND username=").addValue(username)
-				.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		ret[QStringLiteral("durations")] = QueryBuilder::q(db)
-				.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
-						  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
-						  "SELECT usermodes.mode AS mode, SUM(duration) AS duration FROM usermodes "
-						  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode) "
-						  "WHERE usermodes.username=").addValue(username)
-						  .addQuery(" GROUP BY usermodes.username, usermodes.mode")
-				.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		ret[QStringLiteral("trophies")] = QueryBuilder::q(db)
-				.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
-						  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
-						  "SELECT usermodes.mode AS mode, COUNT(success) AS trophy FROM usermodes "
-						  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode AND success=true) "
-						  "WHERE usermodes.username=").addValue(username)
-						  .addQuery(" GROUP BY usermodes.username, usermodes.mode")
-				.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		responseAnswerOk(response, ret);
-	});
-}
-
-
-
-/**
- * @brief GeneralAPI::userXpLog
- * @param match
- * @param response
- */
-
-void GeneralAPI::userXpLog(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
-{
-	const QString &username = match.captured(1);
-
-	LOG_CTRACE("client") << "Get user xp log:" << username;
-
-	databaseMainWorker()->execInThread([this, username, response, data]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		bool err = false;
-		QJsonArray list;
-
-		if (data.value(QStringLiteral("cummulate")).toBool()) {
-			list = QueryBuilder::q(db)
-					.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
-							  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
-							  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND score.timestamp<=cte.day) "
-							  "WHERE cte.username=").addValue(username)
-					.addQuery(" GROUP BY day").execToJsonArray(&err);
-		} else {
-			list = QueryBuilder::q(db)
-					.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
-							  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
-							  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND date(score.timestamp)=cte.day) "
-							  "WHERE cte.username=").addValue(username)
-					.addQuery(" GROUP BY day").execToJsonArray(&err);
-		}
-
-		if (err)
-			return responseErrorSql(response);
-
-		responseAnswer(response, "list", list);
-	});
-}
-
-
-
-/**
- * @brief GeneralAPI::userGameLog
- * @param match
- * @param response
- */
-
-void GeneralAPI::userGameLog(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	const QString &username = match.captured(1);
-
-	LOG_CTRACE("client") << "Get user xp log:" << username;
-
-	databaseMainWorker()->execInThread([this, username, response]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		bool err = false;
-
-		const QJsonArray &list = QueryBuilder::q(db)
-				.addQuery("SELECT date(timestamp) AS day, CAST(JULIANDAY(date('now'))-JULIANDAY(date(timestamp)) AS INTEGER) AS diff, "
-						  "SUM(CASE WHEN success THEN 1 ELSE 0 END) AS success, COUNT(*) AS full FROM game "
-						  "WHERE username=").addValue(username)
-				.addQuery(" GROUP BY username, date(timestamp)").execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		responseAnswer(response, "list", list);
-	});
+	LAMBDA_THREAD_END;
 }
 
 
@@ -469,61 +208,302 @@ void GeneralAPI::userGameLog(const QRegularExpressionMatch &match, const QJsonOb
 
 /**
  * @brief GeneralAPI::grade
- * @param response
+ * @return
  */
 
-void GeneralAPI::grade(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+QHttpServerResponse GeneralAPI::grade()
 {
-	LOG_CTRACE("client") << "Get grade list";
+	LOG_CTRACE("client") << "Get grade";
 
-	databaseMainWorker()->execInThread([response, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+	LAMBDA_THREAD_BEGIN_NOVAR();
 
-		QMutexLocker(databaseMain()->mutex());
+	const auto &list = QueryBuilder::q(db)
+			.addQuery("SELECT id, shortname, longname, value FROM grade")
+			.execToJsonArray();
 
-		bool err = false;
+	LAMBDA_SQL_ASSERT(list);
 
-		const QJsonArray &list = QueryBuilder::q(db)
-				.addQuery("SELECT id, shortname, longname, value FROM grade")
-				.execToJsonArray(&err);
+	response = responseResult("list", *list);
 
-		if (err)
-			return responseErrorSql(response);
+	LAMBDA_THREAD_END;
+}
 
-		responseAnswer(response, "list", list);
-	});
+
+
+/**
+ * @brief GeneralAPI::class_
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::class_(const int &id)
+{
+	LOG_CTRACE("client") << "Get class" << id;
+
+	LAMBDA_THREAD_BEGIN(id);
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT id, name FROM class");
+
+	if (id != -1)
+		q.addQuery(" WHERE id=").addValue(id);
+
+	const std::optional<QJsonArray> &list = q.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(list);
+
+	if (id == -1)
+		response = responseResult("list", *list);
+	else if (list->size() != 1)
+		response = responseError("not found");
+	else {
+		response = QHttpServerResponse(list->at(0).toObject());
+	}
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief GeneralAPI::classUser
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::classUsers(const int &id)
+{
+	LOG_CTRACE("client") << "Get class users" << id;
+
+	LAMBDA_THREAD_BEGIN(id);
+
+	QueryBuilder q(db);
+	q.addQuery(_SQL_get_user)
+			.addQuery("WHERE isPanel=false AND active=true AND user.classid=")
+			.addValue(id);
+
+	const std::optional<QJsonArray> &list = q.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(list);
+
+	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
 }
 
 
 
 
+/**
+ * @brief GeneralAPI::user
+ * @param username
+ * @return
+ */
 
-
-
-
-void GeneralAPI::testEvents(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
+QHttpServerResponse GeneralAPI::user(const QString &username, const Credential::Roles &roles)
 {
-	HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
-	LOG_CWARNING("client") << "ADD stream" << conn ;
-	EventStream *stream = new EventStream(conn);
-	conn->setEventStream(stream);
+	LOG_CTRACE("client") << "Get user" << username;
 
-	m_service->addEventStream(stream);
+	LAMBDA_THREAD_BEGIN(username, roles);
 
-	QTimer *s = new QTimer(stream);
-	QObject::connect(s, &QTimer::timeout, stream, [stream](){
-		LOG_CTRACE("client") << "SEND.....";
-		//stream->write("esemeny", "Üzenet jön ide");
-	});
-	s->start(5000);
+	QueryBuilder q(db);
+	q.addQuery(_SQL_get_user)
+			.addQuery("WHERE active=true");
 
-	QTimer *s2 = new QTimer(stream);
-	QObject::connect(s2, &QTimer::timeout, stream, [stream](){
-		LOG_CTRACE("client") << "SEND PING.....";
-		stream->ping();
-	});
-	s2->start(8000);
+	if (!roles.testFlag(Credential::None)) {
+		QStringList list;
+		if (roles.testFlag(Credential::Teacher) && !roles.testFlag(Credential::Student))
+			list.append(QStringLiteral("isTeacher=true"));
+		if (!roles.testFlag(Credential::Teacher) && roles.testFlag(Credential::Student))
+			list.append(QStringLiteral("isTeacher=false"));
+		if (roles.testFlag(Credential::Admin))
+			list.append(QStringLiteral("isAdmin=true"));
+		if (roles.testFlag(Credential::Panel))
+			list.append(QStringLiteral("isPanel=true"));
 
-	response->setStatus(HttpStatus::Ok);
+		if (!roles.testFlag(Credential::Panel))
+			q.addQuery(" AND isPanel=false");
+
+		if (!list.isEmpty()) {
+			QString str = QStringLiteral(" AND (")+list.join(QStringLiteral(" OR "))+QStringLiteral(")");
+			q.addQuery(str.toUtf8());
+		}
+	}
+
+	if (!username.isEmpty()) {
+		q.addQuery(" AND user.username=")
+				.addValue(username);
+	}
+
+	const std::optional<QJsonArray> &list = q.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(list);
+
+	if (username.isEmpty())
+		response = responseResult("list", *list);
+	else if (list->size() != 1)
+		response = responseError("not found");
+	else {
+		response = QHttpServerResponse(list->at(0).toObject());
+	}
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief GeneralAPI::userLog
+ * @param username
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::userLog(const QString &username)
+{
+	LOG_CTRACE("client") << "Get user log" << username;
+
+	if (username.isEmpty())
+		return responseError("missing username");
+
+
+	LAMBDA_THREAD_BEGIN(username);
+
+	QJsonObject obj;
+
+	const auto &rankList = QueryBuilder::q(db)
+			.addQuery("SELECT rankid, CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp, xp FROM ranklog WHERE username=").addValue(username)
+			.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(rankList);
+
+	obj[QStringLiteral("ranklog")] = *rankList;
+
+
+	const auto &streakList = QueryBuilder::q(db)
+			.addQuery("SELECT streak, CAST(strftime('%s', started_on) AS INTEGER) AS started_on, "
+					  "CAST(strftime('%s', ended_on) AS INTEGER) AS ended_on FROM streak "
+					  "WHERE streak > 1 AND username=").addValue(username)
+			.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(streakList);
+
+	obj[QStringLiteral("streaklog")] = *streakList;
+
+	const auto &durationList = QueryBuilder::q(db)
+			.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
+					  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
+					  "SELECT usermodes.mode AS mode, SUM(duration) AS duration FROM usermodes "
+					  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode) "
+					  "WHERE usermodes.username=").addValue(username)
+			.addQuery(" GROUP BY usermodes.username, usermodes.mode")
+			.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(durationList);
+
+	obj[QStringLiteral("durations")] = *durationList;
+
+
+	const auto &trophyList = QueryBuilder::q(db)
+			.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
+					  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
+					  "SELECT usermodes.mode AS mode, COUNT(success) AS trophy FROM usermodes "
+					  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode AND success=true) "
+					  "WHERE usermodes.username=").addValue(username)
+			.addQuery(" GROUP BY usermodes.username, usermodes.mode")
+			.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(trophyList);
+
+	obj[QStringLiteral("trophies")] = *trophyList;
+
+	response = QHttpServerResponse(obj);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief GeneralAPI::userXpLog
+ * @param username
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::userXpLog(const QString &username, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Get user XP log" << username;
+
+	if (username.isEmpty())
+		return responseError("missing username");
+
+	LAMBDA_THREAD_BEGIN(username, json);
+
+	std::optional<QJsonArray> list;
+
+	if (json.value(QStringLiteral("cummulate")).toBool()) {
+		list = QueryBuilder::q(db)
+				.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
+						  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
+						  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND score.timestamp<=cte.day) "
+						  "WHERE cte.username=").addValue(username)
+				.addQuery(" GROUP BY day").execToJsonArray();
+	} else {
+		list = QueryBuilder::q(db)
+				.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
+						  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
+						  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND date(score.timestamp)=cte.day) "
+						  "WHERE cte.username=").addValue(username)
+				.addQuery(" GROUP BY day").execToJsonArray();
+	}
+
+	LAMBDA_SQL_ASSERT(list);
+
+	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief GeneralAPI::userGameLog
+ * @param username
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::userGameLog(const QString &username)
+{
+	LOG_CTRACE("client") << "Get user game log" << username;
+
+	if (username.isEmpty())
+		return responseError("missing username");
+
+	LAMBDA_THREAD_BEGIN(username);
+
+	const auto &list = QueryBuilder::q(db)
+			.addQuery("SELECT date(timestamp) AS day, CAST(JULIANDAY(date('now'))-JULIANDAY(date(timestamp)) AS INTEGER) AS diff, "
+					  "SUM(CASE WHEN success THEN 1 ELSE 0 END) AS success, COUNT(*) AS full FROM game "
+					  "WHERE username=").addValue(username)
+			.addQuery(" GROUP BY username, date(timestamp)").execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(list);
+
+	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
+
+}
+
+
+
+/**
+ * @brief GeneralAPI::me
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::me(const std::optional<Credential> &credential)
+{
+	return user(credential->username());
 }
 

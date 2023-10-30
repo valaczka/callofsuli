@@ -58,6 +58,9 @@ private:
 	QString m_redirectHost;
 	std::shared_ptr<QHttpServer> m_server;
 	std::unique_ptr<Handler> m_handler;
+
+private slots:
+	void onNewWebsSocketConnection();
 };
 
 #endif // WEBSERVER_H

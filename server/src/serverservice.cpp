@@ -33,8 +33,8 @@
 #include <ColorConsoleAppender.h>
 #include "qconsole.h"
 #include "utils.h"
-//#include "googleoauth2authenticator.h"
-//#include "microsoftoauth2authenticator.h"
+#include "googleoauth2authenticator.h"
+#include "microsoftoauth2authenticator.h"
 #include <QOAuthHttpServerReplyHandler>
 #include <csignal>
 #include <QResource>
@@ -418,27 +418,6 @@ QNetworkAccessManager *ServerService::networkManager() const
 	return m_networkManager.get();
 }
 
-#ifdef _COMPAT
-/**
- * @brief ServerService::authenticators
- * @return
- */
-
-QVector<OAuth2Authenticator *> ServerService::authenticators() const
-{
-	QVector<OAuth2Authenticator *> list;
-
-	list.reserve(m_authenticators.size());
-
-	foreach (OAuth2Authenticator *a, m_authenticators)
-		if (a)
-			list.append(a);
-
-	list.squeeze();
-
-	return list;
-}
-#endif
 
 /**
  * @brief ServerService::config
@@ -467,25 +446,6 @@ std::weak_ptr<WebServer> ServerService::webServer() const
 
 
 
-#ifdef _COMPAT
-/**
- * @brief ServerService::oauth2Authenticator
- * @param type
- * @return
- */
-
-OAuth2Authenticator *ServerService::oauth2Authenticator(const char *type) const
-{
-	for (OAuth2Authenticator *a : m_authenticators) {
-		if (strcmp(a->type(), type) == 0)
-			return a;
-	}
-
-	return nullptr;
-}
-
-#endif
-
 /**
  * @brief ServerService::databaseMain
  * @return
@@ -494,6 +454,20 @@ OAuth2Authenticator *ServerService::oauth2Authenticator(const char *type) const
 DatabaseMain *ServerService::databaseMain() const
 {
 	return m_databaseMain.get();
+}
+
+
+/**
+ * @brief ServerService::databaseMainWorker
+ * @return
+ */
+
+QLambdaThreadWorker *ServerService::databaseMainWorker() const
+{
+	if (m_databaseMain)
+		return m_databaseMain->worker();
+	else
+		return nullptr;
 }
 
 
@@ -664,6 +638,12 @@ int ServerService::exec()
 		signal(s, &ServerService::processSignal);
 
 	m_state = ServerPrepared;
+
+
+#ifdef Q_OS_LINUX
+	pid_t pid = getpid();
+	LOG_CDEBUG("service") << "Server service PID:" << pid;
+#endif
 
 	m_settings->printConfig();
 
@@ -909,21 +889,21 @@ bool ServerService::start()
 	m_webServer->setRedirectHost(m_settings->redirectHost());
 
 	// Create authenticators
-/*
+
 	for (auto it=m_settings->oauthMap().constBegin(); it != m_settings->oauthMap().constEnd(); ++it) {
-		OAuth2Authenticator *authenticator = nullptr;
+		std::shared_ptr<OAuth2Authenticator> authenticator;
 
 		if (it.key() == QStringLiteral("google"))
-			authenticator = new GoogleOAuth2Authenticator(this);
+			authenticator = std::make_shared<GoogleOAuth2Authenticator>(this);
 		else if (it.key() == QStringLiteral("microsoft"))
-			authenticator = new MicrosoftOAuth2Authenticator(this);
+			authenticator = std::make_shared<MicrosoftOAuth2Authenticator>(this);
 
 		if (authenticator) {
 			authenticator->setOAuth(it.value());
-			m_authenticators.append(authenticator);
+			m_authenticators.append(std::move(authenticator));
 		}
 	}
-*/
+
 
 	m_mainTimer.start();
 
@@ -1031,6 +1011,29 @@ void ServerService::reload()
 	wasmLoad();
 
 	resume();
+}
+
+
+
+const QVector<std::shared_ptr<OAuth2Authenticator> > &ServerService::authenticators() const
+{
+	return m_authenticators;
+}
+
+
+/**
+ * @brief ServerService::oauth2Authenticator
+ * @param type
+ * @return
+ */
+
+std::weak_ptr<OAuth2Authenticator> ServerService::oauth2Authenticator(const char *type) const
+{
+	const auto &it = std::find_if(m_authenticators.constBegin(), m_authenticators.constEnd(), [&type](const std::shared_ptr<OAuth2Authenticator> &auth) {
+		return strcmp(auth->type(), type) == 0;
+	});
+
+	return *it;
 }
 
 

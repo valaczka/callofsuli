@@ -29,7 +29,7 @@
 #include "qsqlquery.h"
 #include "utils.h"
 #include "serverservice.h"
-//#include "adminapi.h"
+#include "adminapi.h"
 #include "rank.h"
 
 DatabaseMain::DatabaseMain(ServerService *service)
@@ -489,11 +489,7 @@ bool DatabaseMain::_createSytemTables()
 			.setValuePlaceholder()
 			.addQuery(")")
 			.addField("classid", QVariant(QMetaType::fromType<int>()))
-#ifdef _COMPAT
 			.addField("code", AdminAPI::generateClassCode())
-#else
-			.addField("code", QString("jkkk"))
-#endif
 			.exec();
 
 

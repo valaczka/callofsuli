@@ -201,6 +201,9 @@ bool Utils::jsonArrayToFile(const QJsonArray &array, const QString &filename, co
 
 std::optional<QJsonDocument> Utils::byteArrayToJsonDocument(const QByteArray &data)
 {
+	if (data.isEmpty())
+		return QJsonDocument();
+
 	QJsonParseError error;
 	QJsonDocument doc = QJsonDocument::fromJson(data, &error);
 
@@ -219,14 +222,15 @@ std::optional<QJsonDocument> Utils::byteArrayToJsonDocument(const QByteArray &da
  * @return
  */
 
-std::optional<QJsonObject> Utils::byteArrayToJsonObject(const QByteArray &data, bool *error)
+std::optional<QJsonObject> Utils::byteArrayToJsonObject(const QByteArray &data)
 {
+	if (data.isEmpty())
+		return QJsonObject();
+
 	const std::optional<QJsonDocument> &doc = byteArrayToJsonDocument(data);
 
-	if (!doc || doc->isNull()) {
-		if (error)  *error = true;
+	if (!doc || doc->isNull())
 		return std::nullopt;
-	}
 
 	return doc->object();
 }
@@ -238,14 +242,15 @@ std::optional<QJsonObject> Utils::byteArrayToJsonObject(const QByteArray &data, 
  * @return
  */
 
-std::optional<QJsonArray> Utils::byteArrayToJsonArray(const QByteArray &data, bool *error)
+std::optional<QJsonArray> Utils::byteArrayToJsonArray(const QByteArray &data)
 {
+	if (data.isEmpty())
+		return QJsonArray();
+
 	const std::optional<QJsonDocument> &doc = byteArrayToJsonDocument(data);
 
-	if (!doc || doc->isNull()) {
-		if (error)  *error = true;
+	if (!doc || doc->isNull())
 		return std::nullopt;
-	}
 
 	return doc->array();
 }
@@ -257,34 +262,23 @@ std::optional<QJsonArray> Utils::byteArrayToJsonArray(const QByteArray &data, bo
  * @return
  */
 
-std::optional<QJsonDocument> Utils::fileToJsonDocument(const QString &filename, bool *error)
+std::optional<QJsonDocument> Utils::fileToJsonDocument(const QString &filename)
 {
 	QFile f(filename);
 
 	if (!f.exists()) {
 		LOG_CWARNING("utils") << "Can't read file:" << filename;
-
-		if (error)
-			*error = true;
-
 		return std::nullopt;
 	}
 
 	if (!f.open(QIODevice::ReadOnly)) {
 		LOG_CWARNING("utils") << "Can't open file:" << filename;
-
-		if (error)
-			*error = true;
-
 		return std::nullopt;
 	}
 
 	QByteArray data = f.readAll();
 
 	f.close();
-
-	if (error)
-		*error = false;
 
 	return byteArrayToJsonDocument(data);
 }
@@ -297,23 +291,12 @@ std::optional<QJsonDocument> Utils::fileToJsonDocument(const QString &filename, 
  * @return
  */
 
-std::optional<QJsonObject> Utils::fileToJsonObject(const QString &filename, bool *error)
+std::optional<QJsonObject> Utils::fileToJsonObject(const QString &filename)
 {
-	bool myerror = false;
+	const std::optional<QJsonDocument> &doc = fileToJsonDocument(filename);
 
-	const std::optional<QJsonDocument> &doc = fileToJsonDocument(filename, &myerror);
-
-	if (myerror) {
-		if (error)
-			*error = true;
-
+	if (!doc || doc->isNull())
 		return std::nullopt;
-	}
-
-	if (!doc || doc->isNull()) {
-		if (error)  *error = true;
-		return std::nullopt;
-	}
 
 	return doc->object();
 }
@@ -327,23 +310,12 @@ std::optional<QJsonObject> Utils::fileToJsonObject(const QString &filename, bool
  * @return
  */
 
-std::optional<QJsonArray> Utils::fileToJsonArray(const QString &filename, bool *error)
+std::optional<QJsonArray> Utils::fileToJsonArray(const QString &filename)
 {
-	bool myerror = false;
+	const std::optional<QJsonDocument> &doc = fileToJsonDocument(filename);
 
-	const std::optional<QJsonDocument> &doc = fileToJsonDocument(filename, &myerror);
-
-	if (myerror) {
-		if (error)
-			*error = true;
-
+	if (!doc || doc->isNull())
 		return std::nullopt;
-	}
-
-	if (!doc || doc->isNull()) {
-		if (error)  *error = true;
-		return std::nullopt;
-	}
 
 	return doc->array();
 }

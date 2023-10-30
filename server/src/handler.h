@@ -30,7 +30,7 @@
 #include "qhttpserver.h"
 #include <QObject>
 //#include "httpRequestHandler.h"
-//#include "abstractapi.h"
+#include "abstractapi.h"
 
 class ServerService;
 
@@ -49,27 +49,20 @@ public:
 	std::optional<QHttpServer *> httpServer() const;
 	bool loadRoutes();
 
-	void logRequest(const QHttpServerRequest &request) const;
+	std::shared_ptr<AbstractAPI> api(const char *api) const;
+
+	std::optional<Credential> authorizeRequest(const QHttpServerRequest &request) const;
+	std::optional<Credential> authorizeRequestLog(const QHttpServerRequest &request) const;
+	QHttpServerResponse getErrorPage(const QString &errorString, const QHttpServerResponse::StatusCode &code = QHttpServerResponse::StatusCode::NotFound);
 
 private:
 	QHttpServerResponse getFavicon(const QHttpServerRequest &request);
 	QHttpServerResponse getStaticContent(const QHttpServerRequest &request);
-	QHttpServerResponse getErrorPage(const QString &errorString, const QHttpServerResponse::StatusCode &code = QHttpServerResponse::StatusCode::NotFound);
+	void addApi(const std::shared_ptr<AbstractAPI> &api);
 
-/*
-	void handle(HttpRequest *request, HttpResponse *response);
-
-	const QMap<const char *, AbstractAPI *> &apiHandlers() const;
-
-private:
-	void getFavicon(HttpResponse *response);
-	void getWasmContent(QString uri, HttpResponse *response);
-	void handleApi(HttpRequest *request, HttpResponse *response);
-	void handleOAuthCallback(HttpRequest *request, HttpResponse *response);
-
-	QMap<const char*, AbstractAPI*> m_apiHandlers;
-*/
 	ServerService *m_service = nullptr;
+
+	QMap<const char*, std::shared_ptr<AbstractAPI>> m_apis;
 };
 
 #endif // HANDLER_H

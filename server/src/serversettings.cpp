@@ -122,7 +122,7 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("log/limit")))
 		setLogLimit(s.value(QStringLiteral("log/limit")).toInt());
 
-	LOG_CINFO("service") << "Configuration loaded from:" << f;
+	LOG_CINFO("service") << "Configuration loaded from:" << qPrintable(f);
 }
 
 
@@ -169,7 +169,7 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	for (auto it=m_oauthMap.constBegin(); it != m_oauthMap.constEnd(); ++it)
 		it->toSettings(&s, it.key());
 
-	LOG_CINFO("service") << "Configuration saved to:" << f;
+	LOG_CINFO("service") << "Configuration saved to:" << qPrintable(f);
 }
 
 

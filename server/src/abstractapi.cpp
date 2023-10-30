@@ -28,13 +28,29 @@
 #include "Logger.h"
 #include "serverservice.h"
 
-AbstractAPI::AbstractAPI(ServerService *service)
-	: QObject()
+
+const char *AbstractAPI::m_apiPath = "/api/";
+
+
+/**
+ * @brief AbstractAPI::~AbstractAPI
+ */
+
+AbstractAPI::AbstractAPI(const char *path, Handler *handler, ServerService *service)
+	: QObject(handler)
 	, m_service(service)
+	, m_handler(handler)
+	, m_path(path)
 {
-	Q_ASSERT(m_service);
-	Q_ASSERT(m_service->databaseMain());
+	Q_ASSERT(handler);
+	Q_ASSERT(service);
+
+	QByteArray p = m_apiPath;
+	p.append(path);
+
+	LOG_CTRACE("service") << "Abstract API created:" << m_path << this;
 }
+
 
 
 /**
@@ -43,107 +59,8 @@ AbstractAPI::AbstractAPI(ServerService *service)
 
 AbstractAPI::~AbstractAPI()
 {
-	m_validResponses.clear();
+	LOG_CTRACE("service") << "Abstract API destroyed:" << m_path << this;
 }
-
-
-/**
- * @brief AbstractAPI::handle
- * @param request
- * @param response
- * @param method
- * @param parameters
- */
-
-void AbstractAPI::handle(HttpRequest *request, HttpResponse *response, const QString &parameters)
-{
-	m_credential = authorize(request);
-
-	if (m_validateRole != Credential::Role::None) {
-		LOG_CTRACE("client") << "Validate role:" << m_validateRole;
-
-		if (!m_credential.isValid()) {
-			LOG_CWARNING("client") << "Unauthorized request:" << request->uriStr();
-			return responseError(response, "unauthorized");
-		}
-
-		if (!validate(request, m_validateRole)) {
-			LOG_CWARNING("client") << "Permission denied:" << m_validateRole << request->uriStr();
-			return responseError(response, "permission denied");
-		}
-	}
-
-	if (m_credential.isValid()) {
-		PeerUser user;
-		user.setUsername(m_credential.username());
-		user.setHost(request->address());
-		user.setAgent(request->headerDefault(QStringLiteral("User-Agent"), QStringLiteral("invalid")));
-		m_service->logPeerUser(user);
-	}
-
-	LOG_CTRACE("client") << "Add response" << response;
-
-	m_validResponses.append(response);
-	QObject::connect(response, &QObject::destroyed, this, [this, response](){
-		LOG_CTRACE("client") << "Remove response" << response;
-		m_validResponses.removeAll(response);
-	}, Qt::DirectConnection);
-
-	QObject::connect(response, &HttpResponse::cancelled, this, [this, response](){
-		LOG_CDEBUG("client") << "Response cancelled" << response;
-		m_validResponses.removeAll(response);
-	}, Qt::DirectConnection);
-
-	QJsonObject data;
-
-	QVector<AbstractAPI::Map>::const_iterator it = m_maps.constBegin();
-
-	QRegularExpressionMatch match;
-
-	for (; it != m_maps.constEnd(); ++it) {
-		QRegularExpression r(it->regularExpression);
-		QRegularExpressionMatch m = r.match(parameters);
-		if (m.hasMatch()) {
-			match = m;
-			break;
-		}
-	}
-
-	if (it == m_maps.constEnd()) {
-		LOG_CWARNING("client") << "Invalid api function:" << request->uriStr();
-		return responseError(response, "invalid function");
-	}
-
-
-	// Base function
-
-	if (it->baseFunc) {
-		LOG_CTRACE("client") << "Handle API base request:" << parameters;
-
-		return it->baseFunc(match, request, response);
-	}
-
-
-	// Json function
-
-	if (!it->func) {
-		LOG_CERROR("client") << "Missing function";
-		return responseError(response, "internal error");
-	}
-
-	if (request->mimeType().compare("application/json", Qt::CaseInsensitive) == 0 && !request->parseBodyStr().isEmpty()) {
-		const QJsonDocument &jsonDocument = request->parseJsonBody();
-		if (jsonDocument.isNull())
-			return responseError(response, "invalid json");
-
-		data = jsonDocument.object();
-	}
-
-	LOG_CTRACE("client") << "Handle API request:" << parameters << data;
-
-	it->func(match, data, response);
-}
-
 
 
 
@@ -165,183 +82,97 @@ DatabaseMain *AbstractAPI::databaseMain() const
 
 QLambdaThreadWorker *AbstractAPI::databaseMainWorker() const
 {
-	return m_service->databaseMain()->worker();
+	return m_service->databaseMainWorker();
 }
 
 
+/**
+ * @brief AbstractAPI::apiPath
+ * @return
+ */
 
+const char *AbstractAPI::apiPath()
+{
+	return m_apiPath;
+}
 
 
 /**
  * @brief AbstractAPI::responseError
- * @param reponse
  * @param errorStr
+ * @return
  */
 
-void AbstractAPI::responseError(HttpResponse *response, const char *errorStr) const
+QHttpServerResponse AbstractAPI::responseError(const char *errorStr, const QHttpServerResponse::StatusCode &code)
 {
-	if (!m_validResponses.contains(response) || !response) {
-		LOG_CWARNING("client") << "Reponse null";
-		return;
-	}
-
-	QJsonDocument doc{QJsonObject{
-			{ QStringLiteral("error"), errorStr }
-		}};
-
-	response->setStatus(HttpStatus::Ok, doc);
+	LOG_CTRACE("service") << "-> RESPONSE ERROR" << errorStr << code;
+	return QHttpServerResponse(QJsonObject{
+								   { QStringLiteral("error"), errorStr }
+							   }, code);
 }
 
 
 /**
- * @brief AbstractAPI::responseAnswer
- * @param response
+ * @brief AbstractAPI::responseErrorSql
+ * @return
+ */
+
+QHttpServerResponse AbstractAPI::responseErrorSql()
+{
+	LOG_CTRACE("service") << "-> RESPONSE SQL ERROR";
+	return QHttpServerResponse(QJsonObject{
+								   { QStringLiteral("error"), QStringLiteral("sql error") }
+							   }, QHttpServerResponse::StatusCode::InternalServerError);
+}
+
+
+/**
+ * @brief AbstractAPI::path
+ * @return
+ */
+
+const char *AbstractAPI::path() const
+{
+	return m_path;
+}
+
+
+
+/**
+ * @brief AbstractAPI::responseOk
+ * @return
+ */
+
+QHttpServerResponse AbstractAPI::responseOk()
+{
+	return responseResult("status", QStringLiteral("ok"));
+}
+
+
+/**
+ * @brief AbstractAPI::responseOk
+ * @param object
+ * @return
+ */
+
+QHttpServerResponse AbstractAPI::responseOk(QJsonObject object)
+{
+	object.insert(QStringLiteral("status"), QStringLiteral("ok"));
+	return QHttpServerResponse(object);
+}
+
+
+/**
+ * @brief AbstractAPI::responseResult
  * @param field
  * @param value
- */
-
-void AbstractAPI::responseAnswer(HttpResponse *response, const char *field, const QJsonValue &value) const
-{
-	responseAnswer(response, QJsonObject{
-					   { field, value }
-				   });
-}
-
-
-/**
- * @brief AbstractAPI::responseAnswer
- * @param response
- * @param value
- */
-
-void AbstractAPI::responseAnswer(HttpResponse *response, const QJsonObject &value) const
-{
-	if (!m_validResponses.contains(response) || !response) {
-		LOG_CWARNING("client") << "Reponse null";
-		return;
-	}
-
-	response->setStatus(HttpStatus::Ok, QJsonDocument{value});
-}
-
-
-
-/**
- * @brief AbstractAPI::responseAnswerOk
- * @param response
- * @param value
- */
-
-void AbstractAPI::responseAnswerOk(HttpResponse *response, QJsonObject value) const
-{
-	value.insert(QStringLiteral("status"), QStringLiteral("ok"));
-	responseAnswer(response, value);
-}
-
-
-
-
-/**
- * @brief AbstractAPI::authorize
- * @param request
  * @return
  */
 
-Credential AbstractAPI::authorize(HttpRequest *request) const
+QHttpServerResponse AbstractAPI::responseResult(const char *field, const QJsonValue &value)
 {
-	QString token = request->headerDefault(QStringLiteral("Authorization"), QString());
-
-	if (token.isEmpty())
-		return Credential();
-
-	token.replace(QRegExp(QStringLiteral("^Bearer ")), QLatin1String(""));
-
-	if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
-		LOG_CDEBUG("client") << "Token verification failed";
-		return Credential();
-	}
-
-	Credential c = Credential::fromJWT(token);
-
-	if (!c.isValid())
-		LOG_CDEBUG("client") << "Invalid token";
-
-	return c;
+	return QHttpServerResponse(QJsonObject{
+								   { field, value }
+							   }, QHttpServerResponse::StatusCode::Ok);
 }
-
-
-/**
- * @brief AbstractAPI::validate
- * @param credential
- * @param role
- * @return
- */
-
-bool AbstractAPI::validate(const Credential &credential, const Credential::Role &role) const
-{
-	return (credential.isValid() && credential.roles().testFlag(role));
-}
-
-
-/**
- * @brief AbstractAPI::validate
- * @param request
- * @param role
- * @return
- */
-
-bool AbstractAPI::validate(HttpRequest *request, const Credential::Role &role) const
-{
-	return validate(authorize(request), role);
-}
-
-
-/**
- * @brief AbstractAPI::checkMultiPart
- * @param request
- * @param response
- * @return
- */
-
-bool AbstractAPI::checkMultiPart(HttpRequest *request, HttpResponse *response, QJsonObject *json,
-								 QByteArray *content, const QString &fieldFile, const QString &fieldJson) const
-{
-	LOG_CWARNING("client") << "Deprecated: checkMultiPart()";
-	const std::unordered_map<QString, QString> &fields = request->formFields();
-	const std::unordered_map<QString, FormFile> &formFiles = request->formFiles();
-
-	if (json) {
-		auto jsonIt = fields.find(fieldJson);
-
-		if (jsonIt == fields.cend()) {
-			responseError(response, "missing field: " + fieldJson.toUtf8());
-			return false;
-		}
-
-		const QString &jsonStr = jsonIt->second;
-		*json = QJsonDocument::fromJson(jsonStr.toUtf8()).object();
-	}
-
-	if (content) {
-		auto fileIt = formFiles.find(fieldFile);
-
-		if (fileIt == formFiles.cend()) {
-			responseError(response, "missing field: " + fieldFile.toUtf8());
-			return false;
-		}
-
-		*content = fileIt->second.file->readAll();
-	}
-
-	return true;
-}
-
-
-const QVector<AbstractAPI::Map> &AbstractAPI::maps() const
-{
-	return m_maps;
-}
-
-
-
 

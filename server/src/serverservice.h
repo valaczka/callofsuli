@@ -34,7 +34,7 @@
 #include "serversettings.h"
 #include "databasemain.h"
 #include "webserver.h"
-//#include "oauth2authenticator.h"
+#include "oauth2authenticator.h"
 //#include "eventstream.h"
 
 
@@ -195,14 +195,10 @@ public:
 
 	ServerSettings *settings() const;
 	DatabaseMain *databaseMain() const;
+	QLambdaThreadWorker *databaseMainWorker() const;
 	std::weak_ptr<WebServer> webServer() const;
 
-//	OAuth2Authenticator *oauth2Authenticator(const char *type) const;
-
-
 	ServerConfig &config();
-
-//	QVector<OAuth2Authenticator *> authenticators() const;
 
 	QNetworkAccessManager *networkManager() const;
 
@@ -230,6 +226,8 @@ public:
 
 	std::optional<int> preStart();
 
+	const QVector<std::shared_ptr<OAuth2Authenticator> > &authenticators() const;
+	std::weak_ptr<OAuth2Authenticator> oauth2Authenticator(const char *type) const;
 
 signals:
 	void configChanged();
@@ -265,8 +263,8 @@ private:
 	std::unique_ptr<QCoreApplication> m_application;
 	std::unique_ptr<ServerSettings> m_settings;
 	std::unique_ptr<DatabaseMain> m_databaseMain;
-	/*QVector<QPointer<OAuth2Authenticator>> m_authenticators;
-	QVector<QPointer<EventStream>> m_eventStreams;
+	QVector<std::shared_ptr<OAuth2Authenticator> > m_authenticators;
+	/*QVector<QPointer<EventStream>> m_eventStreams;
 	QVector<QPointer<Panel>> m_panels;*/
 
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
