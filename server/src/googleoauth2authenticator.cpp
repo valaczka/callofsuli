@@ -124,13 +124,14 @@ bool GoogleOAuth2Authenticator::profileUpdate(const QString &username, const QJs
 			const QByteArray &tdata = reply->readAll();
 			reply->deleteLater();
 
-			const QJsonObject &json = Utils::byteArrayToJsonObject(tdata);
+			const auto &json = Utils::byteArrayToJsonObject(tdata);
 
-			const QDateTime &tokenExp = QDateTime::currentDateTime().addSecs(json.value(QStringLiteral("expires_in")).toInt());
-			const QString &accessToken = json.value(QStringLiteral("access_token")).toString();
-
-			if (!service() || !service()->databaseMain())
+			if (!service() || !service()->databaseMain() || !json)
 				return;
+
+			const QDateTime &tokenExp = QDateTime::currentDateTime().addSecs(json->value(QStringLiteral("expires_in")).toInt());
+			const QString &accessToken = json->value(QStringLiteral("access_token")).toString();
+
 
 			QJsonObject newData = data;
 			newData[QStringLiteral("exp")] = tokenExp.toSecsSinceEpoch();
@@ -203,9 +204,9 @@ void GoogleOAuth2Authenticator::profileUpdateWithAccessToken(const QString &user
 		const QByteArray &tdata = reply->readAll();
 		reply->deleteLater();
 
-		const QJsonObject &json = Utils::byteArrayToJsonObject(tdata);
+		const auto &json = Utils::byteArrayToJsonObject(tdata);
 
-		if (!service() || !service()->databaseMain())
+		if (!service() || !service()->databaseMain() || !json)
 			return;
 
 		service()->databaseMain()->worker()->execInThread([this, json, username]{
@@ -215,9 +216,9 @@ void GoogleOAuth2Authenticator::profileUpdateWithAccessToken(const QString &user
 
 			if (QueryBuilder::q(db)
 					.addQuery("UPDATE user SET ").setCombinedPlaceholder()
-					.addField("familyName", json.value(QStringLiteral("family_name")).toString())
-					.addField("givenName", json.value(QStringLiteral("given_name")).toString())
-					.addField("picture", json.value(QStringLiteral("picture")).toString())
+					.addField("familyName", json->value(QStringLiteral("family_name")).toString())
+					.addField("givenName", json->value(QStringLiteral("given_name")).toString())
+					.addField("picture", json->value(QStringLiteral("picture")).toString())
 					.addQuery(" WHERE username=").addValue(username).exec()) {
 				LOG_CINFO("oauth2") << "User profile updated:" << qPrintable(username);
 			} else {
@@ -266,14 +267,14 @@ bool GoogleOAuth2Authenticator::parseResponse(const QUrlQuery &query)
 		return false;
 	}
 
-	OAuth2CodeFlow *flow = getCodeFlowForState(receivedState);
+	OAuth2CodeFlow *flow = getCodeFlowForState(receivedState).lock().get();
 
 
 	if (flow) {
 		flow->requestAccesToken(code);
 		return true;
 	} else {
-		LOG_CTRACE("oauth2") << "Flow not found" << flow;
+		LOG_CDEBUG("oauth2") << "Flow not found" << flow;
 		return false;
 	}
 }

@@ -140,7 +140,7 @@ void GameTerrain::reloadAvailableTerrains()
 
 	LOG_CINFO("client") << "Terrain cache:" << cache;
 
-	QJsonObject terrainCache = Utils::fileToJsonObject(cache);
+	QJsonObject terrainCache = Utils::fileToJsonObject(cache).value_or(QJsonObject{});
 
 	m_availableTerrains.clear();
 
@@ -159,7 +159,7 @@ void GameTerrain::reloadAvailableTerrains()
 		QString bgMusic;
 
 		if (QFile::exists(dataFile)) {
-			const QJsonObject &data = Utils::fileToJsonObject(dataFile);
+			const QJsonObject &data = Utils::fileToJsonObject(dataFile).value_or(QJsonObject{});
 
 			if (data.contains(QStringLiteral("name")))
 				displayName = data.value(QStringLiteral("name")).toString();

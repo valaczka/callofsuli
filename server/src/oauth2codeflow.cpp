@@ -37,10 +37,10 @@ OAuth2CodeFlow::OAuth2CodeFlow(OAuth2Authenticator *authenticator)
 
 	LOG_CTRACE("oauth2") << "OAuth2CodeFlow created" << state() << this;
 
-	setModifyParametersFunction([](QAbstractOAuth::Stage stage, QVariantMap* parameters) {
+	setModifyParametersFunction([](QAbstractOAuth::Stage stage, QMultiMap<QString, QVariant>* parameters) {
 		if (stage == QAbstractOAuth::Stage::RequestingAuthorization) {
-			parameters->insert(QStringLiteral("access_type"), QStringLiteral("offline"));
-			parameters->insert(QStringLiteral("prompt"), QStringLiteral("consent"));
+			parameters->replace(QStringLiteral("access_type"), QStringLiteral("offline"));
+			parameters->replace(QStringLiteral("prompt"), QStringLiteral("consent"));
 		}
 	});
 

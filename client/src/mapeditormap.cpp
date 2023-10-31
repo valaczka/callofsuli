@@ -1184,7 +1184,7 @@ MapEditorMissionLevel *MapEditorMission::createNextLevel(MapEditorMap *map) cons
 	level->setLevel(l);
 	level->setCanDeathmatch(m_modes.testFlag(GameMap::Action));
 
-	const QJsonObject &parameters = Utils::fileToJsonObject(QStringLiteral(":/internal/game/parameters.json"));
+	const QJsonObject &parameters = Utils::fileToJsonObject(QStringLiteral(":/internal/game/parameters.json")).value_or(QJsonObject{});
 
 	const QJsonObject &levelData = parameters.value(QStringLiteral("level")).toObject()
 			.value(QString::number(l)).toObject()

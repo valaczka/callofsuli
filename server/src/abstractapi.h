@@ -35,6 +35,9 @@
 #include <QPointer>
 
 
+#define DEFAULT_LIMIT	50
+
+
 class ServerService;
 class Handler;
 
@@ -134,7 +137,9 @@ protected:
 	return response;
 
 
-#define LAMBDA_SQL_ASSERT(opt)		if (!opt) { response = responseErrorSql(); return ret.reject();	}
-#define LAMBDA_SQL_ASSERT_ROLLBACK(opt)		if (!opt) { response = responseErrorSql(); db.rollback(); return ret.reject();	}
+#define LAMBDA_SQL_ASSERT(opt)		if (!(opt)) { response = responseErrorSql(); return ret.reject();	}
+#define LAMBDA_SQL_ASSERT_ROLLBACK(opt)		if (!(opt)) { response = responseErrorSql(); db.rollback(); return ret.reject();	}
+#define LAMBDA_SQL_ERROR(errStr, opt)		if (!(opt)) { response = responseError(errStr); return ret.reject();	}
+#define LAMBDA_SQL_ERROR_ROLLBACK(errStr, opt)		if (!(opt)) { response = responseError(errStr); db.rollback(); return ret.reject();	}
 
 #endif // ABSTRACTAPI_H

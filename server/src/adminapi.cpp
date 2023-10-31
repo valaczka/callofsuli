@@ -25,10 +25,10 @@
  */
 
 #include "adminapi.h"
-//#include "oauth2authenticator.h"
 #include "QtConcurrent/qtconcurrentrun.h"
 #include "serverservice.h"
-//#include "teacherapi.h"
+#include "teacherapi.h"
+
 
 #define _SQL_QUERY_USERS "SELECT user.username, familyName, givenName, active, user.classid, class.name as className, " \
 	"isTeacher, isAdmin, isPanel, nickname, character, picture," \
@@ -45,7 +45,7 @@
 AdminAPI::AdminAPI(Handler *handler, ServerService *service)
 	: AbstractAPI("admin", handler, service)
 {
-	auto server = m_handler->httpServer();
+	auto server = m_handler->httpServer().lock().get();
 
 	Q_ASSERT(server);
 
@@ -53,86 +53,170 @@ AdminAPI::AdminAPI(Handler *handler, ServerService *service)
 
 	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
 
-	(*server)->route(path+"user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classUsers, &*this, 0);
 	});
 
-	(*server)->route(path+"user/noclass", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"user/noclass", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classUsers, &*this, -1);
 	});
 
-	(*server)->route(path+"user/create", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+	server->route(path+"user/create", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_ASSERT();
 		return QtConcurrent::run(&AdminAPI::userCreate, &*this, *jsonObject);
 	});
 
-	(*server)->route(path+"user", QHttpServerRequest::Method::Put, [this](const QHttpServerRequest &request){
+	server->route(path+"user", QHttpServerRequest::Method::Put, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_ASSERT();
 		return QtConcurrent::run(&AdminAPI::userCreate, &*this, *jsonObject);
 	});
 
+	server->route(path+"user/<arg>/update", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userUpdate, &*this, username, *jsonObject);
+	});
+
+	server->route(path+"user/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&AdminAPI::userDelete, &*this, QJsonArray{username});
+	});
+
+	server->route(path+"user/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userDelete, &*this, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
+	server->route(path+"user/", QHttpServerRequest::Method::Delete, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&AdminAPI::userDelete, &*this, QJsonArray{username});
+	});
+
+	server->route(path+"user/<arg>/password", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userPassword, &*this, username, *jsonObject);
+	});
+
+	server->route(path+"user/<arg>/activate", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&AdminAPI::userActivate, &*this, QJsonArray{username}, true);
+	});
+
+	server->route(path+"user/<arg>/inactivate", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&AdminAPI::userActivate, &*this, QJsonArray{username}, false);
+	});
+
+	server->route(path+"user/activate", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userActivate, &*this, jsonObject->value(QStringLiteral("list")).toArray(), true);
+	});
+
+	server->route(path+"user/inactivate", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userActivate, &*this, jsonObject->value(QStringLiteral("list")).toArray(), false);
+	});
+
+	server->route(path+"user/<arg>/move/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+					 [this](const QString &username, const int &classid, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&AdminAPI::userMove, &*this, QJsonArray{username}, classid);
+	});
+
+	server->route(path+"user/<arg>/move/none", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&AdminAPI::userMove, &*this, QJsonArray{username}, -1);
+	});
+
+	server->route(path+"user/move/", QHttpServerRequest::Method::Post, [this](const int &classid, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userMove, &*this, jsonObject->value(QStringLiteral("list")).toArray(), classid);
+	});
+
+	server->route(path+"user/move/none", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userMove, &*this, jsonObject->value(QStringLiteral("list")).toArray(), -1);
+	});
+
+	server->route(path+"user/import", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AdminAPI::userImport, &*this, *jsonObject);
+	});
 
 
+	/*void userCreateClass(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
+		QJsonObject d = data;
+		d.insert(QStringLiteral("classid"), match.captured(1).toInt());
+		userCreate(match, d, response);
+	}*/
 
-	(*server)->route(path+"class", QHttpServerRequest::Method::Put, [this](const QHttpServerRequest &request){
+
+	server->route(path+"class", QHttpServerRequest::Method::Put, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_ASSERT();
 		return QtConcurrent::run(&AdminAPI::classCreate, &*this, *jsonObject);
 	});
 
-	(*server)->route(path+"class/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classDelete, &*this, QJsonArray{id});
 	});
 
-	(*server)->route(path+"class/create", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+	server->route(path+"class/create", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_ASSERT();
 		return QtConcurrent::run(&AdminAPI::classCreate, &*this, *jsonObject);
 	});
 
-	(*server)->route(path+"class/<arg>/users", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/<arg>/users", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classUsers, &*this, id);
 	});
 
-	(*server)->route(path+"class/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_ASSERT();
 		return QtConcurrent::run(&AdminAPI::classUpdate, &*this, id, *jsonObject);
 	});
 
-	(*server)->route(path+"class/code", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"class/code", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classCode, &*this, -2);
 	});
 
-	(*server)->route(path+"class/nocode", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"class/nocode", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classCode, &*this, -1);
 	});
 
-	(*server)->route(path+"class/<arg>/code", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/<arg>/code", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classCode, &*this, id);
 	});
 
-	(*server)->route(path+"class/<arg>/updateCode", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/<arg>/updateCode", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_ASSERT();
 		return QtConcurrent::run(&AdminAPI::classUpdateCode, &*this, id, *jsonObject);
 	});
 
-	(*server)->route(path+"class/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&AdminAPI::classDelete, &*this, QJsonArray{id});
 	});
 
-	(*server)->route(path+"class/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+	server->route(path+"class/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_ASSERT();
 		return QtConcurrent::run(&AdminAPI::classDelete, &*this, jsonObject->value(QStringLiteral("list")).toArray());
@@ -168,7 +252,7 @@ QHttpServerResponse AdminAPI::classUsers(const int &id)
 
 	LAMBDA_SQL_ASSERT(list);
 
-	response = responseResult("list", *list);
+	response = responseResult("list", std::move(*list));
 
 	LAMBDA_THREAD_END;
 }
@@ -277,7 +361,7 @@ QHttpServerResponse AdminAPI::classCode(const int &id)
 	LAMBDA_SQL_ASSERT(list);
 
 	if (id == -1)
-		response = responseResult("list", *list);
+		response = responseResult("list", std::move(*list));
 	else if (list->size() != 1)
 		response = responseError("not found");
 	else {
@@ -395,10 +479,8 @@ QHttpServerResponse AdminAPI::userCreate(const QJsonObject &json)
 	if (password.isEmpty() && oauth.isEmpty())
 		return responseError("missing password/oauth");
 
-#ifdef _COMPAT
-	if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8()))
+	if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8()).lock())
 		return responseError("invalid provider");
-#endif
 
 	User user;
 	user.username = username;
@@ -433,26 +515,336 @@ QHttpServerResponse AdminAPI::userCreate(const QJsonObject &json)
 
 
 
+/**
+ * @brief AdminAPI::userUpdate
+ * @param username
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::userUpdate(const QString &username, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "User update" << username;
+
+	if (username.isEmpty())
+		return responseError("invalid username");
+
+	LAMBDA_THREAD_BEGIN(username, json);
+
+	db.transaction();
+
+	LAMBDA_SQL_ERROR_ROLLBACK("not found", QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(username).execCheckExists());
+
+	QueryBuilder q(db);
+
+	q.addQuery("UPDATE user SET ").setCombinedPlaceholder();
+
+	if (json.contains(QStringLiteral("familyName")))	q.addField("familyName", json.value(QStringLiteral("familyName")).toString());
+	if (json.contains(QStringLiteral("givenName")))		q.addField("givenName", json.value(QStringLiteral("givenName")).toString());
+	if (json.contains(QStringLiteral("active")))		q.addField("active", json.value(QStringLiteral("active")).toBool());
+	if (json.contains(QStringLiteral("classid"))) {
+		const int &id = json.value(QStringLiteral("classid")).toInt();
+		if (id > 0)
+			q.addField("classid", id);
+		else
+			q.addField("classid", QVariant(QMetaType::fromType<int>()));
+	}
+
+	if (json.contains(QStringLiteral("isTeacher")))		q.addField("isTeacher", json.value(QStringLiteral("isTeacher")).toBool());
+	if (json.contains(QStringLiteral("isAdmin")))		q.addField("isAdmin", json.value(QStringLiteral("isAdmin")).toBool());
+	if (json.contains(QStringLiteral("isPanel")))		q.addField("isPanel", json.value(QStringLiteral("isPanel")).toBool());
+	if (json.contains(QStringLiteral("nickname")))		q.addField("nickname", json.value(QStringLiteral("nickname")).toString());
+	if (json.contains(QStringLiteral("character")))		q.addField("character", json.value(QStringLiteral("character")).toString());
+	if (json.contains(QStringLiteral("picture")))		q.addField("picture", json.value(QStringLiteral("picture")).toString());
+
+	q.addQuery(" WHERE username=").addValue(username);
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(q.fieldCount() && q.exec());
+
+	db.commit();
+
+	response = responseOk({{QStringLiteral("username"), username}});
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief AdminAPI::userDelete
+ * @param userList
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::userDelete(const QJsonArray &userList)
+{
+	LOG_CTRACE("client") << "User delete" << userList;
+
+	if (userList.isEmpty())
+		return responseError("invalid username");
+
+	LAMBDA_THREAD_BEGIN(userList);
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+					  .addQuery("DELETE FROM user WHERE username IN (")
+					  .addList(userList.toVariantList())
+					  .addQuery(")")
+					  .exec());
+
+	LOG_CDEBUG("client") << "User deleted:" << userList;
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief AdminAPI::userPassword
+ * @param username
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::userPassword(const QString &username, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "User update password" << username;
+
+	if (username.isEmpty())
+		return responseError("invalid username");
+
+	const QString &password = json.value(QStringLiteral("password")).toString();
+
+	if (password.isEmpty())
+		return responseError("missing password");
+
+	LOG_CDEBUG("client") << "Change password for user:" << qPrintable(username);
+
+	if (!authPlainPasswordChange(this, username, QString(), password, false))
+		return responseError("failed");
+	else
+		return responseOk({{QStringLiteral("username"), username}});
+}
+
+
+
+
+
+/**
+ * @brief AdminAPI::userActivate
+ * @param userList
+ * @param active
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::userActivate(const QJsonArray &userList, const bool &active)
+{
+	LOG_CTRACE("client") << "User activate" << active << userList;
+
+	if (userList.isEmpty())
+		return responseError("invalid username");
+
+	LAMBDA_THREAD_BEGIN(userList, active);
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+					  .addQuery("UPDATE user SET active=")
+					  .addValue(active)
+					  .addQuery(" WHERE username IN (").addList(userList.toVariantList()).addQuery(")")
+					  .exec());
+
+	LOG_CDEBUG("client") << "User activated:" << active << userList;
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief AdminAPI::userMove
+ * @param userList
+ * @param classid
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::userMove(const QJsonArray &userList, const int &classid)
+{
+	LOG_CTRACE("client") << "Move users to class" << classid << userList;
+
+	if (userList.isEmpty())
+		return responseError("invalid username");
+
+	LAMBDA_THREAD_BEGIN(userList, classid);
+
+	db.transaction();
+
+	LAMBDA_SQL_ERROR_ROLLBACK("invalid class",
+							  (classid < 0 || QueryBuilder::q(db).addQuery("SELECT id FROM class WHERE id=").addValue(classid).execCheckExists()));
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+							   .addQuery("UPDATE user SET classid=")
+							   .addValue(classid > 0 ? classid : QVariant(QMetaType::fromType<int>()))
+							   .addQuery(" WHERE username IN (").addList(userList.toVariantList()).addQuery(")")
+							   .exec());
+
+	LOG_CDEBUG("client") << "Users moved to class:" << classid << userList;
+
+	db.commit();
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief AdminAPI::userImport
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::userImport(const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "User batch import";
+
+	const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
+	const int classid = json.value(QStringLiteral("classid")).toInt(-1);
+
+	if (list.isEmpty())
+		return responseError("missing list");
+
+	QVariantList usernames;
+
+	for (const QJsonValue &v : qAsConst(list)) {
+		const QString &u = v.toObject().value(QStringLiteral("username")).toString();
+		if (!u.isEmpty())
+			usernames << u;
+	}
+
+	if (usernames.isEmpty())
+		return responseError("missing usernames");
+
+	LAMBDA_THREAD_BEGIN(list, classid, usernames);
+
+
+	// Check existing usernames
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT username FROM user WHERE username IN (").addList(usernames).addQuery(")");
+
+	LAMBDA_SQL_ASSERT(q.exec());
+
+	QStringList exists;
+
+	while (q.sqlQuery().next())
+		exists.append(q.value("username").toString());
+
+	if (!exists.isEmpty())
+		LOG_CWARNING("client") << "Users already exists:" << exists;
+	/*return responseAnswer(response, {
+								  { QStringLiteral("error"), QStringLiteral("user exists") },
+								  { QStringLiteral("list"), QJsonArray::fromStringList(exists) }
+							  });*/
+
+
+
+	// Add users
+
+	QJsonArray retList;
+
+	for (const QJsonValue &v : qAsConst(list)) {
+		const QJsonObject &o = v.toObject();
+
+		QJsonObject ret;
+
+		const QString &username = o.value(QStringLiteral("username")).toString();
+		const QString &password = o.value(QStringLiteral("password")).toString();
+		const QString &oauth = o.value(QStringLiteral("oauth2")).toString();
+
+
+		if (username.isEmpty()) {
+			ret.insert(QStringLiteral("error"), QStringLiteral("missing username"));
+			retList.append(ret);
+			continue;
+		}
+
+		ret.insert(QStringLiteral("username"), username);
+
+		if (exists.contains(username)) {
+			ret.insert(QStringLiteral("error"), QStringLiteral("already exists"));
+			retList.append(ret);
+			continue;
+		}
+
+		if (password.isEmpty() && oauth.isEmpty()) {
+			ret.insert(QStringLiteral("error"), QStringLiteral("missing password/oauth"));
+			retList.append(ret);
+			continue;
+		}
+
+		if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8()).lock()) {
+			ret.insert(QStringLiteral("error"), QStringLiteral("invalid provider"));
+			retList.append(ret);
+			continue;
+		}
+
+		User user;
+
+		user.username = username;
+
+		LOG_CTRACE("client") << "Add user" << qPrintable(user.username);
+
+		user.familyName = o.value(QStringLiteral("familyName")).toString();
+		user.givenName = o.value(QStringLiteral("givenName")).toString();
+		user.nickname = o.value(QStringLiteral("nickName")).toString();
+		user.character = o.value(QStringLiteral("character")).toString();
+		user.picture = o.value(QStringLiteral("picture")).toString();
+		user.active = true;
+		user.classid = classid;
+		user.isAdmin = false;
+		user.isTeacher = false;
+		user.isPanel = false;
+
+		if (userAdd(this, user)) {
+			if (!oauth.isEmpty()) {
+				if (authAddOAuth2(this, user.username, oauth))
+					ret.insert(QStringLiteral("status"), QStringLiteral("ok"));
+				else
+					ret.insert(QStringLiteral("error"), QStringLiteral("oauth failed"));
+			} else {
+				if (!authAddPlain(this, user.username, password))
+					ret.insert(QStringLiteral("status"), QStringLiteral("ok"));
+				else
+					ret.insert(QStringLiteral("error"), QStringLiteral("plain auth failed"));
+			}
+		} else {
+			ret.insert(QStringLiteral("error"), QStringLiteral("failed"));
+		}
+
+		retList.append(ret);
+	}
+
+	response = responseResult("list", retList);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
 
 
 #ifdef _COMPAT
 
 
 
-addMap("^user/import/*$", this, &AdminAPI::userImport);
+
 addMap("^user/update/*$", this, &AdminAPI::usersProfileUpdate);
-addMap("^user/([^/]+)/update/*$", this, &AdminAPI::userUpdate);
-addMap("^user/([^/]+)/delete/*$", this, &AdminAPI::userDeleteOne);
-addMap("^user/([^/]+)/password/*$", this, &AdminAPI::userPassword);
-addMap("^user/([^/]+)/activate/*$", this, &AdminAPI::userActivateOne);
-addMap("^user/([^/]+)/inactivate/*$", this, &AdminAPI::userInactivateOne);
-addMap("^user/([^/]+)/move/(\\d+)/*$", this, &AdminAPI::userMoveOne);
-addMap("^user/([^/]+)/move/none/*$", this, &AdminAPI::userMoveOneNoClass);
-addMap("^user/delete/*$", this, &AdminAPI::userDelete);
-addMap("^user/move/(\\d+)/*$", this, &AdminAPI::userMove);
-addMap("^user/move/none/*$", this, &AdminAPI::userMoveNoClass);
-addMap("^user/activate/*$", this, &AdminAPI::userActivate);
-addMap("^user/inactivate/*$", this, &AdminAPI::userInactivate);
+
 addMap("^user/([^/]+)/*$", this, &AdminAPI::user);
 addMap("^class/(\\d+)/users/create/*$", this, &AdminAPI::userCreateClass);
 
@@ -466,383 +858,6 @@ addMap("^config/*$", this, &AdminAPI::configUpdate);
 
 
 
-
-
-
-/**
- * @brief AdminAPI::userUpdate
- * @param match
- * @param data
- * @param response
- */
-
-
-void AdminAPI::userUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
-{
-	const QString &username = match.captured(1);
-
-	if (username.isEmpty())
-		return responseError(response, "missing username");
-
-	LOG_CTRACE("client") << "Modify user" << qPrintable(username);
-
-	databaseMainWorker()->execInThread([username, response, data, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		db.transaction();
-
-		if (!QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(username).execCheckExists()) {
-			LOG_CWARNING("client") << "User doesn't exists:" << qPrintable(username);
-			db.rollback();
-			return responseError(response, "invalid username");
-		}
-
-		QueryBuilder q(db);
-
-		q.addQuery("UPDATE user SET ").setCombinedPlaceholder();
-
-		if (data.contains(QStringLiteral("familyName")))	q.addField("familyName", data.value(QStringLiteral("familyName")).toString());
-		if (data.contains(QStringLiteral("givenName")))		q.addField("givenName", data.value(QStringLiteral("givenName")).toString());
-		if (data.contains(QStringLiteral("active")))		q.addField("active", data.value(QStringLiteral("active")).toBool());
-		if (data.contains(QStringLiteral("classid"))) {
-			const int &id = data.value(QStringLiteral("classid")).toInt();
-			if (id > 0)
-				q.addField("classid", id);
-			else
-				q.addField("classid", QVariant::Invalid);
-		}
-
-		if (data.contains(QStringLiteral("isTeacher")))		q.addField("isTeacher", data.value(QStringLiteral("isTeacher")).toBool());
-		if (data.contains(QStringLiteral("isAdmin")))		q.addField("isAdmin", data.value(QStringLiteral("isAdmin")).toBool());
-		if (data.contains(QStringLiteral("isPanel")))		q.addField("isPanel", data.value(QStringLiteral("isPanel")).toBool());
-		if (data.contains(QStringLiteral("nickname")))		q.addField("nickname", data.value(QStringLiteral("nickname")).toString());
-		if (data.contains(QStringLiteral("character")))		q.addField("character", data.value(QStringLiteral("character")).toString());
-		if (data.contains(QStringLiteral("picture")))		q.addField("picture", data.value(QStringLiteral("picture")).toString());
-
-		q.addQuery(" WHERE username=").addValue(username);
-
-		if (!q.fieldCount() || !q.exec()) {
-			LOG_CWARNING("client") << "User update failed:" << username;
-			db.rollback();
-			return responseErrorSql(response);
-		}
-
-		db.commit();
-
-		responseAnswerOk(response, {{QStringLiteral("username"), username}});
-	});
-}
-
-
-
-
-/**
- * @brief AdminAPI::userDelete
- * @param list
- * @param response
- */
-
-void AdminAPI::userDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const
-{
-	if (list.isEmpty())
-		return responseError(response, "missing username");
-
-	LOG_CTRACE("client") << "Delete users" << list;
-
-	databaseMainWorker()->execInThread([list, response, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		db.transaction();
-
-		if (!QueryBuilder::q(db).addQuery("DELETE FROM user WHERE username IN (").addList(list.toVariantList()).addQuery(")")
-				.exec()) {
-			LOG_CWARNING("client") << "Users remove error:" << list;
-			db.rollback();
-			return responseErrorSql(response);
-		}
-
-		db.commit();
-
-		LOG_CINFO("client") << "Users removed:" << list;
-		responseAnswerOk(response);
-	});
-}
-
-
-
-
-
-/**
- * @brief AdminAPI::userPassword
- * @param data
- * @param response
- */
-
-void AdminAPI::userPassword(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
-{
-	const QString &username = match.captured(1);
-
-	if (username.isEmpty())
-		return responseError(response, "missing username");
-
-	const QString &password = data.value(QStringLiteral("password")).toString();
-
-	if (password.isEmpty())
-		return responseError(response, "missing password");
-
-	LOG_CTRACE("client") << "Change password for user:" << qPrintable(username);
-
-	authPlainPasswordChange(this, username, QString(), password, false)
-			.fail([this, response](){
-		responseError(response, "failed");
-	})			.done([this, username, response](){
-		responseAnswerOk(response, {{QStringLiteral("username"), username}});
-	});
-
-
-}
-
-
-
-/**
- * @brief AdminAPI::userActivate
- * @param list
- * @param active
- * @param response
- */
-
-void AdminAPI::userActivate(const QJsonArray &list, const bool &active, const QPointer<HttpResponse> &response) const
-{
-	if (list.isEmpty())
-		return responseError(response, "missing username");
-
-	if (active)
-		LOG_CTRACE("client") << "Activate users" << list;
-	else
-		LOG_CTRACE("client") << "Inactivate users" << list;
-
-	databaseMainWorker()->execInThread([list, active, response, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		db.transaction();
-
-		if (!QueryBuilder::q(db)
-				.addQuery("UPDATE user SET active=")
-				.addValue(active)
-				.addQuery(" WHERE username IN (").addList(list.toVariantList()).addQuery(")")
-				.exec()) {
-			db.rollback();
-			return responseErrorSql(response);
-		}
-
-		db.commit();
-
-		responseAnswerOk(response);
-	});
-}
-
-
-
-/**
- * @brief AdminAPI::userMove
- * @param list
- * @param classid
- * @param response
- */
-
-void AdminAPI::userMove(const QJsonArray &list, const int &classid, const QPointer<HttpResponse> &response) const
-{
-	if (list.isEmpty())
-		return responseError(response, "missing username");
-
-	LOG_CTRACE("client") << "Move users to class" << classid << list;
-
-	databaseMainWorker()->execInThread([list, classid, response, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		db.transaction();
-
-		if (classid > 0 && !QueryBuilder::q(db).addQuery("SELECT id FROM class WHERE id=").addValue(classid).execCheckExists()) {
-			LOG_CWARNING("client") << "Class doesn't exists:" << classid;
-			db.rollback();
-			return responseError(response, "invalid class");
-		}
-
-		if (!QueryBuilder::q(db)
-				.addQuery("UPDATE user SET classid=")
-				.addValue(classid > 0 ? classid : QVariant(QVariant::Invalid))
-				.addQuery(" WHERE username IN (").addList(list.toVariantList()).addQuery(")")
-				.exec()) {
-			db.rollback();
-			return responseErrorSql(response);
-		}
-
-		db.commit();
-
-		responseAnswerOk(response);
-	});
-}
-
-
-
-
-
-/**
- * @brief AdminAPI::userImport
- * @param match
- * @param data
- * @param response
- */
-
-void AdminAPI::userImport(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
-{
-	LOG_CTRACE("client") << "Batch user import";
-
-
-	databaseMainWorker()->execInThread([response, data, this]() {
-		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
-		const int classid = data.value(QStringLiteral("classid")).toInt(-1);
-
-		if (list.isEmpty())
-			return responseError(response, "missing list");
-
-		QVariantList usernames;
-
-		foreach (const QJsonValue &v, list) {
-			const QString &u = v.toObject().value(QStringLiteral("username")).toString();
-			if (!u.isEmpty())
-				usernames << u;
-		}
-
-		if (usernames.isEmpty())
-			return responseError(response, "missing usernames");
-
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-
-		// Check existing usernames
-
-		QueryBuilder q(db);
-		q.addQuery("SELECT username FROM user WHERE username IN (").addList(usernames).addQuery(")");
-
-		if (!q.exec())
-			return responseErrorSql(response);
-
-
-		QStringList exists;
-
-		while (q.sqlQuery().next())
-			exists.append(q.value("username").toString());
-
-		if (!exists.isEmpty())
-			LOG_CWARNING("client") << "Users already exists:" << exists;
-		/*return responseAnswer(response, {
-									  { QStringLiteral("error"), QStringLiteral("user exists") },
-									  { QStringLiteral("list"), QJsonArray::fromStringList(exists) }
-								  });*/
-
-
-
-		// Add users
-
-		QJsonArray retList;
-
-		foreach (const QJsonValue &v, list) {
-			const QJsonObject &o = v.toObject();
-
-			QJsonObject ret;
-
-			const QString &username = o.value(QStringLiteral("username")).toString();
-			const QString &password = o.value(QStringLiteral("password")).toString();
-			const QString &oauth = o.value(QStringLiteral("oauth2")).toString();
-
-
-			if (username.isEmpty()) {
-				ret.insert(QStringLiteral("error"), QStringLiteral("missing username"));
-				retList.append(ret);
-				continue;
-			}
-
-			ret.insert(QStringLiteral("username"), username);
-
-			if (exists.contains(username)) {
-				ret.insert(QStringLiteral("error"), QStringLiteral("already exists"));
-				retList.append(ret);
-				continue;
-			}
-
-			if (password.isEmpty() && oauth.isEmpty()) {
-				ret.insert(QStringLiteral("error"), QStringLiteral("missing password/oauth"));
-				retList.append(ret);
-				continue;
-			}
-
-			if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8())) {
-				ret.insert(QStringLiteral("error"), QStringLiteral("invalid provider"));
-				retList.append(ret);
-				continue;
-			}
-
-			User user;
-
-			user.username = username;
-
-			LOG_CTRACE("client") << "Add user" << qPrintable(user.username);
-
-			user.familyName = o.value(QStringLiteral("familyName")).toString();
-			user.givenName = o.value(QStringLiteral("givenName")).toString();
-			user.nickname = o.value(QStringLiteral("nickName")).toString();
-			user.character = o.value(QStringLiteral("character")).toString();
-			user.picture = o.value(QStringLiteral("picture")).toString();
-			user.active = true;
-			user.classid = classid;
-			user.isAdmin = false;
-			user.isTeacher = false;
-			user.isPanel = false;
-
-			QDefer dret;
-
-			userAdd(this, user)
-					.fail([&ret, dret]() mutable {
-				ret.insert(QStringLiteral("error"), QStringLiteral("failed"));
-				dret.reject();
-			})
-					.then([this, user, password, oauth](){
-				if (!oauth.isEmpty())
-					return authAddOAuth2(this, user.username, oauth);
-				else
-					return authAddPlain(this, user.username, password);
-			})
-					.fail([&ret, dret]() mutable {
-				ret.insert(QStringLiteral("error"), QStringLiteral("failed"));
-				dret.reject();
-			})
-					.done([&ret, dret]() mutable {
-				ret.insert(QStringLiteral("status"), QStringLiteral("ok"));
-				dret.resolve();
-			});
-
-			QDefer::await(dret);
-
-			retList.append(ret);
-		}
-
-		responseAnswerOk(response, {
-							 { QStringLiteral("list"), retList }
-						 });
-
-	});
-}
 
 
 
@@ -984,395 +999,6 @@ void AdminAPI::usersProfileUpdate(const QRegularExpressionMatch &, const QJsonOb
 
 
 
-/**
- * @brief AdminAPI::userExists
- * @param username
- * @return
- */
-
-QDefer AdminAPI::userExists(const AbstractAPI *api, const QString &username, const bool &inverse)
-{
-	Q_ASSERT (api);
-
-	if (inverse)
-		LOG_CTRACE("client") << "Check user not exists:" << username;
-	else
-		LOG_CTRACE("client") << "Check user exists:" << username;
-
-	QDefer ret;
-
-	api->databaseMainWorker()->execInThread([ret, username, api, inverse]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
-
-		QMutexLocker(api->databaseMain()->mutex());
-
-		const bool &r = QueryBuilder::q(db)
-				.addQuery("SELECT username FROM user WHERE username=")
-				.addValue(username)
-				.execCheckExists();
-
-		if (!r != !inverse)
-			ret.resolve();
-		else
-			ret.reject();
-	});
-
-	return ret;
-}
-
-
-
-
-
-/**
- * @brief AdminAPI::getClassIdFromCode
- * @param api
- * @param code
- * @return
- */
-
-QDeferred<bool, int> AdminAPI::getClassIdFromCode(const AbstractAPI *api, const QString &code)
-{
-	Q_ASSERT (api);
-
-	LOG_CTRACE("client") << "Get class id for code:" << code;
-
-	QDeferred<bool, int> ret;
-
-	api->databaseMainWorker()->execInThread([ret, code, api]() mutable {
-		if (code.isEmpty()) {
-			LOG_CDEBUG("client") << "Empty code";
-			ret.resolve(false, -1);
-			return;
-		}
-
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
-
-		QMutexLocker(api->databaseMain()->mutex());
-
-		QueryBuilder q(db);
-		q.addQuery("SELECT code, classid FROM classCode WHERE code=")
-				.addValue(code);
-
-		if (!q.exec() || !q.sqlQuery().first()) {
-			LOG_CDEBUG("client") << "Class code doesn't exists:" << qPrintable(code);
-			ret.resolve(false, -1);
-			return;
-		}
-
-		ret.resolve(true, q.value("classid", -1).toInt());
-	});
-
-	return ret;
-}
-
-
-
-
-
-/**
- * @brief AdminAPI::campaignStart
- * @param api
- * @param campaign
- * @return
- */
-
-QDefer AdminAPI::campaignStart(const AbstractAPI *api, const int &campaign)
-{
-	Q_ASSERT(api);
-	return campaignStart(api->databaseMain(), campaign);
-}
-
-
-/**
- * @brief AdminAPI::campaignStart
- * @param dbMain
- * @param campaign
- * @return
- */
-
-QDefer AdminAPI::campaignStart(const DatabaseMain *dbMain, const int &campaign)
-{
-	Q_ASSERT (dbMain);
-
-	LOG_CDEBUG("client") << "Campaign start:" << campaign;
-
-	QDefer ret;
-
-	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
-
-		QMutexLocker(dbMain->mutex());
-
-		db.transaction();
-
-		QueryBuilder q(db);
-		q.addQuery("SELECT starttime FROM campaign WHERE started=false AND finished=false AND id=").addValue(campaign);
-
-		if (!q.exec() || !q.sqlQuery().first()) {
-			db.rollback();
-			return ret.reject();
-		}
-
-		if (!QueryBuilder::q(db)
-				.addQuery("UPDATE campaign SET ")
-				.setCombinedPlaceholder()
-				.addField("started", true)
-				.addField("starttime", QDateTime::currentDateTimeUtc())
-				.addQuery(" WHERE id=").addValue(campaign)
-				.exec()) {
-			LOG_CERROR("client") << "Campaign start error:" << campaign;
-			db.rollback();
-			return ret.reject();
-		}
-
-		db.commit();
-
-		LOG_CINFO("client") << "Campaign started:" << campaign;
-		ret.resolve();
-	});
-
-	return ret;
-}
-
-
-/**
- * @brief AdminAPI::campaignFinish
- * @param api
- * @param campaign
- * @return
- */
-
-QDefer AdminAPI::campaignFinish(const AbstractAPI *api, const int &campaign)
-{
-	Q_ASSERT(api);
-
-	return campaignFinish(api->databaseMain(), campaign);
-}
-
-
-
-
-
-/**
- * @brief AdminAPI::campaignFinish
- * @param dbMain
- * @param campaign
- * @return
- */
-
-QDefer AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
-{
-	Q_ASSERT(dbMain);
-
-	LOG_CDEBUG("client") << "Campaign finish:" << campaign;
-
-	QDefer ret;
-
-	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
-
-		QMutexLocker(dbMain->mutex());
-
-		db.transaction();
-
-		if (!QueryBuilder::q(db)
-				.addQuery("SELECT starttime FROM campaign WHERE started=true AND finished=false AND id=").addValue(campaign)
-				.execCheckExists()) {
-			db.rollback();
-			return ret.reject();
-		}
-
-		if (!QueryBuilder::q(db)
-				.addQuery("UPDATE campaign SET ")
-				.setCombinedPlaceholder()
-				.addField("finished", true)
-				.addField("endtime", QDateTime::currentDateTimeUtc())
-				.addQuery(" WHERE id=").addValue(campaign)
-				.exec()) {
-			LOG_CERROR("client") << "Campaign finish error:" << campaign;
-			db.rollback();
-			return ret.reject();
-		}
-
-		QueryBuilder q(db);
-
-		q.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
-				   "SELECT username FROM studentGroupInfo WHERE active=true "
-				   "AND id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign)
-				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(campaign)
-				.addQuery(") OR studentGroupInfo.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(campaign)
-				.addQuery("))");
-
-		if (!q.exec()) {
-			LOG_CERROR("client") << "Campaign finish error:" << campaign;
-			db.rollback();
-			return ret.reject();
-		}
-
-		bool err = false;
-
-		while (q.sqlQuery().next()) {
-			const QString &username = q.value("username").toString();
-
-			const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(dbMain, campaign, false, username, false, &err);
-
-			if (err) {
-				LOG_CERROR("client") << "Campaign finish error:" << campaign;
-				db.rollback();
-				return ret.reject();
-			}
-
-			if (result.grade <= 0 && result.xp <= 0)
-				continue;
-
-			QVariant scoreId = QVariant::Invalid;
-
-			if (result.xp > 0) {
-				scoreId = QueryBuilder::q(db)
-						.addQuery("INSERT OR REPLACE INTO score (")
-						.setFieldPlaceholder()
-						.addQuery(") VALUES (")
-						.setValuePlaceholder()
-						.addQuery(")")
-						.addField("username", username)
-						.addField("xp", result.xp)
-						.execInsertAsInt(&err);
-
-				if (err) {
-					LOG_CERROR("client") << "Campaign finish error:" << campaign;
-					db.rollback();
-					return ret.reject();
-				}
-			}
-
-			QueryBuilder::q(db)
-					.addQuery("INSERT OR REPLACE INTO campaignResult (")
-					.setFieldPlaceholder()
-					.addQuery(") VALUES (")
-					.setValuePlaceholder()
-					.addQuery(")")
-					.addField("campaignid", campaign)
-					.addField("username", username)
-					.addField("gradeid", result.grade > 0 ? result.grade : QVariant(QVariant::Invalid))
-					.addField("scoreid", scoreId)
-					.execInsert(&err);
-
-			if (err) {
-				LOG_CERROR("client") << "Campaign finish error:" << campaign;
-				db.rollback();
-				return ret.reject();
-			}
-		}
-
-		db.commit();
-
-		LOG_CINFO("client") << "Campaign finished:" << campaign;
-		ret.resolve();
-	});
-
-	return ret;
-}
-
-
-
-
-
-/**
- * @brief AdminAPI::authPlainPasswordChange
- * @param api
- * @param username
- * @param oldPassword
- * @param password
- * @param check
- * @return
- */
-
-QDefer AdminAPI::authPlainPasswordChange(const AbstractAPI *api, const QString &username,
-										 const QString &oldPassword, const QString &password,
-										 const bool &check)
-{
-	Q_ASSERT(api);
-
-	QDefer ret;
-
-	if (username.isEmpty()) {
-		LOG_CWARNING("client") << "Empty username";
-		ret.reject();
-		return ret;
-	}
-
-	LOG_CDEBUG("client") << "Password change:" << qPrintable(username);
-
-	api->databaseMainWorker()->execInThread([ret, username, oldPassword, password, check, api]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
-
-		QMutexLocker(api->databaseMain()->mutex());
-
-		db.transaction();
-
-		if (!QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(username).execCheckExists()) {
-			LOG_CWARNING("client") << "User doesn't exists:" << qPrintable(username);
-			db.rollback();
-			return ret.reject();
-		}
-
-		QueryBuilder q(db);
-
-		q.addQuery("SELECT password, salt, oauth FROM auth WHERE username=").addValue(username);
-
-		if (!q.exec() || !q.sqlQuery().first()) {
-			LOG_CWARNING("client") << "Sql error";
-			db.rollback();
-			return ret.reject();
-		}
-
-		if (!q.value("oauth").isNull()) {
-			LOG_CWARNING("client") << "Unable to change password for OAuth2 user:" << qPrintable(username);
-			db.rollback();
-			return ret.reject();
-		}
-
-		if (check) {
-			const QString &pwd = q.value("password").toString();
-			const QString &salt = q.value("salt").toString();
-
-			if (pwd != Credential::hashString(oldPassword, salt)) {
-				LOG_CWARNING("client") << "Invalid password for user:" << qPrintable(username);
-				db.rollback();
-				return ret.reject();
-			}
-		}
-
-
-		QString salt;
-		const QString &pwd = Credential::hashString(password, &salt);
-
-
-		if (!QueryBuilder::q(db).addQuery("INSERT OR REPLACE INTO auth(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("username", username)
-				.addField("password", pwd)
-				.addField("salt", salt)
-				.exec()) {
-			LOG_CWARNING("client") << "User password change error:" << qPrintable(username);
-			db.rollback();
-			return ret.reject();
-		}
-
-		db.commit();
-
-		LOG_CINFO("client") << "User password changed:" << qPrintable(username);
-		ret.resolve();
-	});
-
-	return ret;
-}
-
-
 
 
 
@@ -1506,9 +1132,8 @@ bool AdminAPI::userAdd(const DatabaseMain *dbMain, const User &user)
 	}
 
 	QDefer ret;
-	bool success = false;
 
-	dbMain->worker()->execInThread([ret, user, dbMain, &success]() mutable {
+	dbMain->worker()->execInThread([ret, user, dbMain]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
 		QMutexLocker(dbMain->mutex());
@@ -1551,13 +1176,12 @@ bool AdminAPI::userAdd(const DatabaseMain *dbMain, const User &user)
 		db.commit();
 
 		LOG_CINFO("client") << "New user created:" << qPrintable(user.username);
-		success = true;
 		ret.resolve();
 	});
 
 	QDefer::await(ret);
 
-	return success;
+	return (ret.state() == RESOLVED);
 }
 
 
@@ -1600,9 +1224,8 @@ bool AdminAPI::authAddPlain(const DatabaseMain *dbMain, const QString &username,
 	}
 
 	QDefer ret;
-	bool success = false;
 
-	dbMain->worker()->execInThread([ret, username, password, dbMain, &success]() mutable {
+	dbMain->worker()->execInThread([ret, username, password, dbMain]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
 		QMutexLocker(dbMain->mutex());
@@ -1628,14 +1251,13 @@ bool AdminAPI::authAddPlain(const DatabaseMain *dbMain, const QString &username,
 
 		LOG_CTRACE("client") << "User auth created:" << qPrintable(username);
 
-		success = true;
 		ret.resolve();
 
 	});
 
 	QDefer::await(ret);
 
-	return success;
+	return (ret.state() == RESOLVED);
 }
 
 
@@ -1662,9 +1284,8 @@ bool AdminAPI::authAddOAuth2(const AbstractAPI *api, const QString &username, co
 	}
 
 	QDefer ret;
-	bool success = false;
 
-	api->databaseMainWorker()->execInThread([ret, username, type, api, &success]() mutable {
+	api->databaseMainWorker()->execInThread([ret, username, type, api]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
 
 		QMutexLocker(api->databaseMain()->mutex());
@@ -1685,12 +1306,417 @@ bool AdminAPI::authAddOAuth2(const AbstractAPI *api, const QString &username, co
 		}
 
 		LOG_CTRACE("client") << "User auth created:" << qPrintable(username);
-		success = true;
 		ret.resolve();
 	});
 
 	QDefer::await(ret);
 
-	return success;
+	return (ret.state() == RESOLVED);
 }
 
+
+
+
+
+
+
+
+/**
+ * @brief AdminAPI::authPlainPasswordChange
+ * @param api
+ * @param username
+ * @param oldPassword
+ * @param password
+ * @param check
+ * @return
+ */
+
+bool AdminAPI::authPlainPasswordChange(const AbstractAPI *api, const QString &username,
+									   const QString &oldPassword, const QString &password,
+									   const bool &check)
+{
+	Q_ASSERT(api);
+
+	if (username.isEmpty()) {
+		LOG_CWARNING("client") << "Empty username";
+		return false;
+	}
+
+	QDefer ret;
+
+	LOG_CDEBUG("client") << "Password change:" << qPrintable(username);
+
+	api->databaseMainWorker()->execInThread([ret, username, oldPassword, password, check, api]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+		QMutexLocker(api->databaseMain()->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(username).execCheckExists()) {
+			LOG_CWARNING("client") << "User doesn't exists:" << qPrintable(username);
+			db.rollback();
+			return ret.reject();
+		}
+
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT password, salt, oauth FROM auth WHERE username=").addValue(username);
+
+		if (!q.exec() || !q.sqlQuery().first()) {
+			LOG_CWARNING("client") << "Sql error";
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!q.value("oauth").isNull()) {
+			LOG_CWARNING("client") << "Unable to change password for OAuth2 user:" << qPrintable(username);
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (check) {
+			const QString &pwd = q.value("password").toString();
+			const QString &salt = q.value("salt").toString();
+
+			if (pwd != Credential::hashString(oldPassword, salt)) {
+				LOG_CWARNING("client") << "Invalid password for user:" << qPrintable(username);
+				db.rollback();
+				return ret.reject();
+			}
+		}
+
+
+		QString salt;
+		const QString &pwd = Credential::hashString(password, &salt);
+
+
+		if (!QueryBuilder::q(db).addQuery("INSERT OR REPLACE INTO auth(")
+				.setFieldPlaceholder()
+				.addQuery(") VALUES (")
+				.setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", username)
+				.addField("password", pwd)
+				.addField("salt", salt)
+				.exec()) {
+			LOG_CWARNING("client") << "User password change error:" << qPrintable(username);
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+		LOG_CINFO("client") << "User password changed:" << qPrintable(username);
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	return (ret.state() == RESOLVED);
+}
+
+
+
+
+
+
+
+/**
+ * @brief AdminAPI::campaignStart
+ * @param api
+ * @param campaign
+ * @return
+ */
+
+bool AdminAPI::campaignStart(const AbstractAPI *api, const int &campaign)
+{
+	Q_ASSERT(api);
+	return campaignStart(api->databaseMain(), campaign);
+}
+
+
+/**
+ * @brief AdminAPI::campaignStart
+ * @param dbMain
+ * @param campaign
+ * @return
+ */
+
+bool AdminAPI::campaignStart(const DatabaseMain *dbMain, const int &campaign)
+{
+	Q_ASSERT (dbMain);
+
+	LOG_CDEBUG("client") << "Campaign start:" << campaign;
+
+	QDefer ret;
+
+	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker(dbMain->mutex());
+
+		db.transaction();
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT starttime FROM campaign WHERE started=false AND finished=false AND id=").addValue(campaign);
+
+		if (!q.exec() || !q.sqlQuery().first()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE campaign SET ")
+				.setCombinedPlaceholder()
+				.addField("started", true)
+				.addField("starttime", QDateTime::currentDateTimeUtc())
+				.addQuery(" WHERE id=").addValue(campaign)
+				.exec()) {
+			LOG_CERROR("client") << "Campaign start error:" << campaign;
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+		LOG_CINFO("client") << "Campaign started:" << campaign;
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
+}
+
+
+/**
+ * @brief AdminAPI::campaignFinish
+ * @param api
+ * @param campaign
+ * @return
+ */
+
+bool AdminAPI::campaignFinish(const AbstractAPI *api, const int &campaign)
+{
+	Q_ASSERT(api);
+
+	return campaignFinish(api->databaseMain(), campaign);
+}
+
+
+
+
+/**
+ * @brief AdminAPI::campaignFinish
+ * @param dbMain
+ * @param campaign
+ * @return
+ */
+
+bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
+{
+	Q_ASSERT(dbMain);
+
+	LOG_CDEBUG("client") << "Campaign finish:" << campaign;
+
+	QDefer ret;
+
+	dbMain->worker()->execInThread([ret, campaign, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker(dbMain->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("SELECT starttime FROM campaign WHERE started=true AND finished=false AND id=").addValue(campaign)
+				.execCheckExists()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE campaign SET ")
+				.setCombinedPlaceholder()
+				.addField("finished", true)
+				.addField("endtime", QDateTime::currentDateTimeUtc())
+				.addQuery(" WHERE id=").addValue(campaign)
+				.exec()) {
+			LOG_CERROR("client") << "Campaign finish error:" << campaign;
+			db.rollback();
+			return ret.reject();
+		}
+
+		QueryBuilder q(db);
+
+		q.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+				   "SELECT username FROM studentGroupInfo WHERE active=true "
+				   "AND id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign)
+				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+				.addQuery(") OR studentGroupInfo.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+				.addQuery("))");
+
+		if (!q.exec()) {
+			LOG_CERROR("client") << "Campaign finish error:" << campaign;
+			db.rollback();
+			return ret.reject();
+		}
+
+		while (q.sqlQuery().next()) {
+			const QString &username = q.value("username").toString();
+
+			const auto &result = TeacherAPI::_campaignUserResult(dbMain, campaign, false, username, false);
+
+			if (!result) {
+				LOG_CERROR("client") << "Campaign finish error:" << campaign;
+				db.rollback();
+				return ret.reject();
+			}
+
+			if (result->grade <= 0 && result->xp <= 0)
+				continue;
+
+			//QVariant scoreId = QVariant(QMetaType::fromType<int>());
+			int scoreId = -1;
+
+			if (result->xp > 0) {
+				const auto &sId = QueryBuilder::q(db)
+						.addQuery("INSERT OR REPLACE INTO score (")
+						.setFieldPlaceholder()
+						.addQuery(") VALUES (")
+						.setValuePlaceholder()
+						.addQuery(")")
+						.addField("username", username)
+						.addField("xp", result->xp)
+						.execInsertAsInt();
+
+				if (!sId) {
+					LOG_CERROR("client") << "Campaign finish error:" << campaign;
+					db.rollback();
+					return ret.reject();
+				}
+
+				scoreId = *sId;
+			}
+
+			if (!QueryBuilder::q(db)
+					.addQuery("INSERT OR REPLACE INTO campaignResult (")
+					.setFieldPlaceholder()
+					.addQuery(") VALUES (")
+					.setValuePlaceholder()
+					.addQuery(")")
+					.addField("campaignid", campaign)
+					.addField("username", username)
+					.addField("gradeid", result->grade > 0 ? result->grade : QVariant(QMetaType::fromType<int>()))
+					.addField("scoreid", scoreId)
+					.execInsert())
+			{
+				LOG_CERROR("client") << "Campaign finish error:" << campaign;
+				db.rollback();
+				return ret.reject();
+			}
+		}
+
+		db.commit();
+
+		LOG_CINFO("client") << "Campaign finished:" << campaign;
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
+}
+
+
+
+
+
+
+
+
+
+/**
+ * @brief AdminAPI::userExists
+ * @param username
+ * @return
+ */
+
+bool AdminAPI::userExists(const AbstractAPI *api, const QString &username, const bool &inverse)
+{
+	Q_ASSERT (api);
+
+	if (inverse)
+		LOG_CTRACE("client") << "Check user not exists:" << username;
+	else
+		LOG_CTRACE("client") << "Check user exists:" << username;
+
+	QDefer ret;
+
+	api->databaseMainWorker()->execInThread([ret, username, api, inverse]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+		QMutexLocker(api->databaseMain()->mutex());
+
+		const auto &r = QueryBuilder::q(db)
+				.addQuery("SELECT username FROM user WHERE username=")
+				.addValue(username)
+				.execCheckExists();
+
+		if (!r != !inverse)
+			ret.resolve();
+		else
+			ret.reject();
+	});
+
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
+}
+
+
+
+
+
+/**
+ * @brief AdminAPI::getClassIdFromCode
+ * @param api
+ * @param code
+ * @return
+ */
+
+std::optional<int> AdminAPI::getClassIdFromCode(const AbstractAPI *api, const QString &code)
+{
+	Q_ASSERT (api);
+
+	LOG_CTRACE("client") << "Get class id for code:" << code;
+
+	QDefer ret;
+	int retInt = 0;
+
+	api->databaseMainWorker()->execInThread([ret, code, api, &retInt]() mutable {
+		if (code.isEmpty()) {
+			LOG_CDEBUG("client") << "Empty code";
+			return ret.reject();
+		}
+
+		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+		QMutexLocker(api->databaseMain()->mutex());
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT code, classid FROM classCode WHERE code=")
+				.addValue(code);
+
+		if (!q.exec() || !q.sqlQuery().first()) {
+			LOG_CDEBUG("client") << "Class code doesn't exists:" << qPrintable(code);
+			return ret.reject();
+		}
+
+		retInt = q.value("classid", -1).toInt();
+		ret.resolve();
+	});
+
+	if (ret.state() == RESOLVED)
+		return retInt;
+	else
+		return std::nullopt;
+}

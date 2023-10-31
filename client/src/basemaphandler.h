@@ -30,6 +30,7 @@
 #include "basemap.h"
 #include "client.h"
 #include <QObject>
+#include <optional>
 
 class BaseMapHandler : public QObject
 {
@@ -44,7 +45,7 @@ public:
 
 	Q_INVOKABLE void reload();
 
-	Q_INVOKABLE QByteArray read(BaseMap *map) const;
+	Q_INVOKABLE std::optional<QByteArray> read(BaseMap *map) const;
 
 	Client *client() const;
 
@@ -59,8 +60,8 @@ protected:
 	bool checkDownload(const BaseMap *map, const QByteArray &data) const;
 	bool check(BaseMap *map) const;
 	bool checkAndSave(BaseMap *map, const QByteArray &data) const;
-	QByteArray readFromMap(const BaseMap *map) const;
-	QByteArray loadAndCheck(const BaseMap *map) const;
+	std::optional<QByteArray> readFromMap(const BaseMap *map) const;
+	std::optional<QByteArray> loadAndCheck(const BaseMap *map) const;
 
 	Client *const m_client;
 	QString m_subdirName;

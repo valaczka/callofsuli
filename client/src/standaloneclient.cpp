@@ -383,9 +383,9 @@ void StandaloneClient::serverListLoad(const QDir &dir)
 	while (it.hasNext()) {
 		const QString &realname = it.next();
 
-		QJsonObject o = Utils::fileToJsonObject(realname);
+		const auto &o = Utils::fileToJsonObject(realname);
 
-		Server *s = Server::fromJson(o);
+		Server *s = o ? Server::fromJson(*o) : nullptr;
 
 		if (!s)
 			continue;

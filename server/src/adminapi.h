@@ -91,102 +91,57 @@ public:
 
 	QHttpServerResponse user(const QString &username);
 	QHttpServerResponse userCreate(const QJsonObject &json);
+	QHttpServerResponse userUpdate(const QString &username, const QJsonObject &json);
+	QHttpServerResponse userDelete(const QJsonArray &userList);
+	QHttpServerResponse userPassword(const QString &username, const QJsonObject &json);
+	QHttpServerResponse userActivate(const QJsonArray &userList, const bool &active);
+	QHttpServerResponse userMove(const QJsonArray &userList, const int &classid);
+	QHttpServerResponse userImport(const QJsonObject &json);
 
 
+
+
+	// Static functions
 
 	static std::optional<int> _classCreate(const AbstractAPI *api, const Class &_class);
 	static QString generateClassCode();
 
 	static bool userAdd(const AbstractAPI *api, const User &user);
 	static bool userAdd(const DatabaseMain *dbMain, const User &user);
+
 	static bool authAddPlain(const AbstractAPI *api, const QString &username, const QString &password);
 	static bool authAddPlain(const DatabaseMain *dbMain, const QString &username, const QString &password);
 	static bool authAddOAuth2(const AbstractAPI *api, const QString &username, const QString &type);
+	static bool authPlainPasswordChange(const AbstractAPI *api, const QString &username, const QString &oldPassword, const QString &password, const bool &check);
+
+	static bool campaignStart(const AbstractAPI *api, const int &campaign);
+	static bool campaignStart(const DatabaseMain *dbMain, const int &campaign);
+	static bool campaignFinish(const AbstractAPI *api, const int &campaign);
+	static bool campaignFinish(const DatabaseMain *dbMain, const int &campaign);
+
+	static std::optional<int> getClassIdFromCode(const AbstractAPI *api, const QString &code);
+
+	static bool userExists(const AbstractAPI *api, const QString &username, const bool &inverse = false);
+	static bool userNotExists(const AbstractAPI *api, const QString &username) {
+		return userExists(api, username, true);
+	}
 
 #ifdef _COMPAT
 
-
 	/// USER FUNCTIONS
-
-	void user(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void userCreateClass(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		QJsonObject d = data;
-		d.insert(QStringLiteral("classid"), match.captured(1).toInt());
-		userCreate(match, d, response);
-	}
-	void userCreate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void userUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void userDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		userDelete({match.captured(1)}, response);
-	}
-	void userDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		userDelete(data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void userDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-
-	void userPassword(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
-	void userActivateOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		userActivate({match.captured(1)}, true, response);
-	}
-	void userActivate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		userActivate(data.value(QStringLiteral("list")).toArray(), true, response);
-	}
-	void userInactivateOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		userActivate({match.captured(1)}, false, response);
-	}
-	void userInactivate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		userActivate(data.value(QStringLiteral("list")).toArray(), false, response);
-	}
-	void userActivate(const QJsonArray &list, const bool &active, const QPointer<HttpResponse> &response) const;
-
-	void userMoveOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		userMove({match.captured(1)}, match.captured(2).toInt(), response);
-	}
-	void userMove(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		userMove(data.value(QStringLiteral("list")).toArray(), match.captured(1).toInt(), response);
-	}
-	void userMoveOneNoClass(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		userMove({match.captured(1)}, -1, response);
-	}
-	void userMoveNoClass(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		userMove(data.value(QStringLiteral("list")).toArray(), -1, response);
-	}
-	void userMove(const QJsonArray &list, const int &classid, const QPointer<HttpResponse> &response) const;
-
-	void userImport(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
 
 	void userPeers(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-
 
 
 	/// CONFIG FUNCTIONS
 	void configUpdate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 	void usersProfileUpdate(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
-
-	static QDeferred<bool, int> getClassIdFromCode(const AbstractAPI *api, const QString &code);
-
-	static QDefer userExists(const AbstractAPI *api, const QString &username, const bool &inverse = false);
-	static QDefer userNotExists(const AbstractAPI *api, const QString &username) {
-		return userExists(api, username, true);
-	}
-
-
-	static QDefer authPlainPasswordChange(const AbstractAPI *api, const QString &username,
-										  const QString &oldPassword, const QString &password, const bool &check);
-
-
-
-	static QDefer campaignStart(const AbstractAPI *api, const int &campaign);
-	static QDefer campaignStart(const DatabaseMain *dbMain, const int &campaign);
-	static QDefer campaignFinish(const AbstractAPI *api, const int &campaign);
-	static QDefer campaignFinish(const DatabaseMain *dbMain, const int &campaign);
 };
 
 #endif
+
 
 };
 

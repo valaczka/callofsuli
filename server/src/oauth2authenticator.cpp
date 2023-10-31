@@ -29,6 +29,8 @@
 #include "oauth2codeflow.h"
 #include "serverservice.h"
 
+const char* OAuth2Authenticator::m_callbackPath = "cb";
+
 OAuth2Authenticator::OAuth2Authenticator(const char *type, ServerService *service)
 	: QObject{service}
 	, m_handler(new OAuth2ReplyHandler(this))
@@ -47,9 +49,6 @@ OAuth2Authenticator::OAuth2Authenticator(const char *type, ServerService *servic
 
 OAuth2Authenticator::~OAuth2Authenticator()
 {
-	qDeleteAll(m_codeFlowList);
-	delete m_handler;
-
 	LOG_CTRACE("oauth2") << "OAuth2Authenticator destroyed" << m_type << this;
 }
 
@@ -62,18 +61,17 @@ OAuth2Authenticator::~OAuth2Authenticator()
 
 OAuth2CodeFlow *OAuth2Authenticator::addCodeFlow()
 {
-	OAuth2CodeFlow *flow = new OAuth2CodeFlow(this);
+	auto flow = std::make_shared<OAuth2CodeFlow>(this);
 
-	flow->setReplyHandler(m_handler);
+	flow->setReplyHandler(m_handler.get());
 
-	setCodeFlow(flow);
+	setCodeFlow(flow.get());
 
 	LOG_CDEBUG("oauth2") << "Add new code flow" << flow->state();
 
-	m_codeFlowList.append(flow);
+	m_codeFlowList.append(std::move(flow));
 
-
-	return flow;
+	return flow.get();
 }
 
 
@@ -84,12 +82,14 @@ OAuth2CodeFlow *OAuth2Authenticator::addCodeFlow()
 
 void OAuth2Authenticator::removeCodeFlow(OAuth2CodeFlow *flow)
 {
-	if (m_codeFlowList.contains(flow)) {
-		LOG_CTRACE("oauth2") << "Remove code flow:" << flow;
-		m_codeFlowList.removeAll(flow);
-	} else {
-		LOG_CDEBUG("oauth2") << "Code flow not found:" << flow;
+	for (auto it = m_codeFlowList.constBegin(); it != m_codeFlowList.constEnd(); ) {
+		if (it->get() == flow)
+			m_codeFlowList.erase(it);
+		else
+			++it;
 	}
+
+	LOG_CTRACE("oauth2") << "Remove code flow:" << flow;
 }
 
 
@@ -102,13 +102,13 @@ void OAuth2Authenticator::removeCodeFlow(OAuth2CodeFlow *flow)
  * @return
  */
 
-OAuth2CodeFlow *OAuth2Authenticator::getCodeFlowForState(const QString &state) const
+std::weak_ptr<OAuth2CodeFlow> OAuth2Authenticator::getCodeFlowForState(const QString &state) const
 {
-	foreach (OAuth2CodeFlow *f, m_codeFlowList)
+	foreach (const auto &f, m_codeFlowList)
 		if (f->state() == state)
-			return f;
+			return std::weak_ptr<OAuth2CodeFlow>(f);
 
-	return nullptr;
+	return std::weak_ptr<OAuth2CodeFlow>();
 }
 
 
@@ -150,6 +150,17 @@ AdminAPI::User OAuth2Authenticator::getUserInfoFromIdToken(const QJsonObject &da
 	user.picture = data.value(QStringLiteral("picture")).toString();
 
 	return user;
+}
+
+
+/**
+ * @brief OAuth2Authenticator::callbackPath
+ * @return
+ */
+
+const char *OAuth2Authenticator::callbackPath()
+{
+	return m_callbackPath;
 }
 
 const ServerSettings::OAuth &OAuth2Authenticator::oauth() const
@@ -215,10 +226,11 @@ QString OAuth2ReplyHandler::callback() const
 {
 	Q_ASSERT(m_authenticator);
 
-	const QUrl url(QString::fromLatin1("%1://%2:%3/cb/%4")
+	const QUrl url(QString::fromLatin1("%1://%2:%3/%4/%5")
 				   .arg(m_authenticator->service()->settings()->ssl() ? QStringLiteral("https") : QStringLiteral("http"))
-				   .arg(m_authenticator->service()->webServer()->redirectHost())
+				   .arg(m_authenticator->service()->webServer().lock()->redirectHost())
 				   .arg(m_authenticator->service()->settings()->listenPort())
+				   .arg(m_authenticator->callbackPath())
 				   .arg(m_authenticator->oauth().path)
 				   );
 	return url.toString(QUrl::EncodeDelimiters);

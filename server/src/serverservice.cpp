@@ -676,6 +676,24 @@ int ServerService::exec()
 
 	m_config.m_service = this;
 
+
+	// Create authenticators
+
+	for (auto it=m_settings->oauthMap().constBegin(); it != m_settings->oauthMap().constEnd(); ++it) {
+		std::shared_ptr<OAuth2Authenticator> authenticator;
+
+		if (it.key() == QStringLiteral("google"))
+			authenticator = std::make_shared<GoogleOAuth2Authenticator>(this);
+		else if (it.key() == QStringLiteral("microsoft"))
+			authenticator = std::make_shared<MicrosoftOAuth2Authenticator>(this);
+
+		if (authenticator) {
+			authenticator->setOAuth(it.value());
+			m_authenticators.append(std::move(authenticator));
+		}
+	}
+
+
 	if (!start())
 		return 3;
 
@@ -776,9 +794,7 @@ void ServerConfig::loadFromDb(DatabaseMain *db)
 			m_data = Utils::byteArrayToJsonObject(s.toUtf8()).value_or(QJsonObject());
 
 
-#ifdef _COMPAT
 		if (m_service) emit m_service->configChanged();
-#endif
 
 		ret.resolve();
 	});
@@ -834,12 +850,10 @@ void ServerService::onMainTimerTimeout()
 			LOG_CERROR("service") << "Finish campaigns failed";
 			return;
 		}
-#ifdef _COMPAT
 		while (q.sqlQuery().next()) {
 			const int id = q.value("id").toInt();
-			QDefer::await(AdminAPI::campaignFinish(m_databaseMain, id));
+			AdminAPI::campaignFinish(m_databaseMain.get(), id);
 		}
-#endif
 
 
 		// Start campaigns
@@ -855,12 +869,10 @@ void ServerService::onMainTimerTimeout()
 			return;
 		}
 
-#ifdef _COMPAT
 		while (qq.sqlQuery().next()) {
 			const int id = qq.value("id").toInt();
-			QDefer::await(AdminAPI::campaignStart(m_databaseMain, id));
+			AdminAPI::campaignStart(m_databaseMain.get(), id);
 		}
-#endif
 
 	});
 
@@ -887,23 +899,6 @@ bool ServerService::start()
 	LOG_CDEBUG("service") << "Server service started";
 
 	m_webServer->setRedirectHost(m_settings->redirectHost());
-
-	// Create authenticators
-
-	for (auto it=m_settings->oauthMap().constBegin(); it != m_settings->oauthMap().constEnd(); ++it) {
-		std::shared_ptr<OAuth2Authenticator> authenticator;
-
-		if (it.key() == QStringLiteral("google"))
-			authenticator = std::make_shared<GoogleOAuth2Authenticator>(this);
-		else if (it.key() == QStringLiteral("microsoft"))
-			authenticator = std::make_shared<MicrosoftOAuth2Authenticator>(this);
-
-		if (authenticator) {
-			authenticator->setOAuth(it.value());
-			m_authenticators.append(std::move(authenticator));
-		}
-	}
-
 
 	m_mainTimer.start();
 
@@ -1132,7 +1127,7 @@ bool PeerUser::remove(QVector<PeerUser> *list, const PeerUser &user)
 
 	bool ret = false;
 
-	for (auto it = list->begin(); it != list->end(); ) {
+	for (auto it = list->constBegin(); it != list->constEnd(); ) {
 		if (*it == user) {
 			list->erase(it);
 			ret = true;
@@ -1158,7 +1153,7 @@ bool PeerUser::clear(QVector<PeerUser> *list, const qint64 &sec)
 
 	bool ret = false;
 
-	for (auto it = list->begin(); it != list->end(); ) {
+	for (auto it = list->constBegin(); it != list->constEnd(); ) {
 		if (!(it->m_timestamp).isValid() || it->m_timestamp.secsTo(dt) > sec) {
 			list->erase(it);
 			ret = true;

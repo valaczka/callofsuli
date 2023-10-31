@@ -118,15 +118,14 @@ void UserImporter::downloadTemplate(const QUrl &file)
 void UserImporter::upload(const QUrl &file)
 {
 	const QString &fileName = file.toLocalFile();
-	bool err = false;
-	const QByteArray &b = Utils::fileContent(fileName, &err);
+	const auto &b = Utils::fileContent(fileName);
 
-	if (err)
+	if (!b)
 		return m_client->messageWarning(tr("Nem lehet megnyitni a fájlt:\n")+fileName, tr("Importálás"));
 
 	LOG_CDEBUG("client") << "Import file:" << qPrintable(fileName);
 
-	_load(b);
+	_load(*b);
 }
 
 

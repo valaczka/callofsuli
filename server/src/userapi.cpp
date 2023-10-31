@@ -25,6 +25,7 @@
  */
 
 #include "userapi.h"
+#include "QtConcurrent/qtconcurrentrun.h"
 #include "generalapi.h"
 #include "qjsonarray.h"
 #include "serverservice.h"
@@ -39,25 +40,71 @@
  * @param service
  */
 
-UserAPI::UserAPI(ServerService *service)
-	: AbstractAPI(service)
+UserAPI::UserAPI(Handler *handler, ServerService *service)
+	: AbstractAPI("user", handler, service)
 {
+	auto server = m_handler->httpServer().lock().get();
+
+	Q_ASSERT(server);
+
 	m_validateRole = Credential::Student;
 
+	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
+
+	server->route(path+"group", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&UserAPI::group, &*this, *credential);
+	});
+
+	server->route(path+"group/<arg>/score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&UserAPI::groupScore, &*this, id);
+	});
+
+	server->route(path+"update", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&UserAPI::update, &*this, *credential, *jsonObject);
+	});
+
+	server->route(path+"password", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&UserAPI::password, &*this, *credential, *jsonObject);
+	});
+
+
+	server->route(path+"campaign", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&UserAPI::campaigns, &*this, *credential);
+	});
+
+	server->route(path+"campaign/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&UserAPI::campaign, &*this, *credential, id);
+	});
+
+	server->route(path+"campaign/<arg>/result", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_GET();
+		return QtConcurrent::run(&UserAPI::campaignResult, &*this, *credential, id, jsonObject.value_or(QJsonObject{}));
+	});
+
+
+
+#ifdef _COMPAT
 	addMap("^update/*$", this, &UserAPI::update);
 	addMap("^password/*$", this, &UserAPI::password);
 
-	addMap("^campaign/*$", this, &UserAPI::campaigns);
-	addMap("^campaign/(\\d+)/*$", this, &UserAPI::campaignOne);
-	addMap("^campaign/(\\d+)/result/*$", this, &UserAPI::campaignResult);
 	addMap("^campaign/(\\d+)/game/create/*$", this, &UserAPI::gameCreate);
 
 	addMap("^game/info/*", this, &UserAPI::gameInfo);
 	addMap("^game/(\\d+)/update/*$", this, &UserAPI::gameUpdate);
 	addMap("^game/(\\d+)/finish/*$", this, &UserAPI::gameFinish);
 
-	addMap("^group/*$", this, &UserAPI::groups);
-	addMap("^group/(\\d+)/score/*$", this, &UserAPI::groupScore);
 	addMap("^group/(\\d+)/score/live/*$", this, &UserAPI::groupScoreLive);
 
 	addMap("^map/*$", this, &UserAPI::maps);
@@ -65,491 +112,257 @@ UserAPI::UserAPI(ServerService *service)
 	addMap("^map/([^/]+)/solver/*$", this, &UserAPI::mapSolver);
 
 	addMap("^inventory/*", this, &UserAPI::inventory);
+#endif
 }
 
 
 
-
 /**
- * @brief UserAPI::solverInfo
- * @param api
- * @param username
- * @param map
+ * @brief UserAPI::group
  * @return
  */
 
-QDeferred<QMap<QString, GameMap::SolverInfo> > UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map)
+QHttpServerResponse UserAPI::group(const Credential &credential)
 {
-	Q_ASSERT(api);
+	LOG_CTRACE("client") << "Get user groups";
 
-	QDeferred<QMap<QString, GameMap::SolverInfo> > ret;
+	LAMBDA_THREAD_BEGIN(credential);
 
-	api->databaseMainWorker()->execInThread([api, username, map, ret]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+	const auto &list = QueryBuilder::q(db)
+			.addQuery("SELECT id, name, owner, familyName AS ownerFamilyName, givenName AS ownerGivenName FROM studentGroupInfo "
+					  "LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
+					  "WHERE studentGroupInfo.active=true AND studentGroupInfo.username=").addValue(credential.username())
+			.execToJsonArray();
 
-		QMap<QString, GameMap::SolverInfo> solver;
+	LAMBDA_SQL_ASSERT(list);
 
-		QMutexLocker(api->databaseMain()->mutex());
+	response = responseResult("list", *list);
 
-		QueryBuilder q(db);
-
-		q.addQuery("SELECT missionid, level, deathmatch, COUNT(*) AS num FROM game WHERE username=").addValue(username)
-				.addQuery(" AND success=true")
-				.addQuery(" AND mapid=").addValue(map)
-				.addQuery(" GROUP BY missionid, level, deathmatch");
-
-		if (!q.exec())
-			return ret.reject(solver);
-
-		while (q.sqlQuery().next()) {
-			const QString &mission = q.value("missionid").toString();
-
-			GameMap::SolverInfo s;
-
-			if (solver.contains(mission))
-				s = solver.value(mission);
-
-			s.setSolved(q.value("level").toInt(), q.value("deathmatch").toBool(), q.value("num").toInt());
-
-			solver.insert(mission, s);
-		}
-
-		ret.resolve(solver);
-	});
-
-	return ret;
+	LAMBDA_THREAD_END;
 }
-
-
-
-
-
-
-/**
- * @brief UserAPI::solverInfo
- * @param api
- * @param username
- * @param map
- * @param mission
- * @return
- */
-
-QDeferred<GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission)
-{
-	Q_ASSERT(api);
-
-	QDeferred<GameMap::SolverInfo> ret;
-
-	api->databaseMainWorker()->execInThread([api, username, map, mission, ret]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
-
-		QMutexLocker(api->databaseMain()->mutex());
-
-		QueryBuilder q(db);
-
-		GameMap::SolverInfo solver;
-
-		q.addQuery("SELECT level, deathmatch, COUNT(*) AS num FROM game WHERE username=").addValue(username)
-				.addQuery(" AND success=true")
-				.addQuery(" AND mapid=").addValue(map)
-				.addQuery(" AND missionid=").addValue(mission)
-				.addQuery(" GROUP BY level, deathmatch");
-
-		if (!q.exec())
-			return ret.reject(solver);
-
-		while (q.sqlQuery().next())
-			solver.setSolved(q.value("level").toInt(), q.value("deathmatch").toBool(), q.value("num").toInt());
-
-		ret.resolve(solver);
-	});
-
-	return ret;
-}
-
-
-
-
-/**
- * @brief UserAPI::solverInfo
- * @param api
- * @param username
- * @param map
- * @param mission
- * @param level
- * @return
- */
-
-QDeferred<int> UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level)
-{
-	Q_ASSERT(api);
-
-	QDeferred<int> ret;
-
-	api->databaseMainWorker()->execInThread([api, username, map, mission, ret, level]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
-
-		QMutexLocker(api->databaseMain()->mutex());
-
-		bool err = false;
-		const int &n = QueryBuilder::q(db)
-				.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
-				.addQuery(" AND success=true")
-				.addQuery(" AND mapid=").addValue(map)
-				.addQuery(" AND missionid=").addValue(mission)
-				.addQuery(" AND level=").addValue(level)
-				.execToValue("num", &err).toInt();
-
-		if (err)
-			return ret.reject(-1);
-
-		ret.resolve(n);
-	});
-
-	return ret;
-}
-
-
-
-/**
- * @brief UserAPI::solverInfo
- * @param api
- * @param username
- * @param map
- * @param mission
- * @param level
- * @param deathmatch
- * @return
- */
-
-int UserAPI::_solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level,
-						 const bool &deathmatch)
-{
-	Q_ASSERT(api);
-
-	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
-
-	QMutexLocker(api->databaseMain()->mutex());
-
-	bool err = false;
-	const int &n = QueryBuilder::q(db)
-			.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
-			.addQuery(" AND success=true")
-			.addQuery(" AND mapid=").addValue(map)
-			.addQuery(" AND missionid=").addValue(mission)
-			.addQuery(" AND level=").addValue(level)
-			.addQuery(" AND deathmatch=").addValue(deathmatch)
-			.execToValue("num", &err).toInt();
-
-	if (err)
-		return -1;
-
-	return n;
-
-}
-
-
-
-
-
-/**
- * @brief StudentAPI::groups
- * @param response
- */
-
-void UserAPI::groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	databaseMainWorker()->execInThread([this, response]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		const QString &username = m_credential.username();
-
-		bool err = false;
-
-		const QJsonArray &list = QueryBuilder::q(db)
-				.addQuery("SELECT id, name, owner, familyName AS ownerFamilyName, givenName AS ownerGivenName FROM studentGroupInfo "
-						  "LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
-						  "WHERE studentGroupInfo.active=true AND studentGroupInfo.username=").addValue(username)
-				.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		responseAnswer(response, "list", list);
-	});
-}
-
-
 
 
 
 /**
  * @brief UserAPI::groupScore
- * @param match
- * @param response
+ * @param credential
+ * @param id
+ * @return
  */
 
-void UserAPI::groupScore(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+QHttpServerResponse UserAPI::groupScore(const int &id)
 {
-	const int &id = match.captured(1).toInt();
+	LOG_CTRACE("client") << "Get user group score" << id;
 
 	if (id < 0)
-		return responseError(response, "invalid id");
+		return responseError("invalid id");
 
-	QDeferred<QJsonArray> def = getGroupScore(databaseMain(), id);
+	const auto &list = getGroupScore(databaseMain(), id);
 
-	def.fail([response, this](const QJsonArray &) {
-		responseErrorSql(response);
-	})
-			.done([response, this](const QJsonArray &list) {
-		responseAnswer(response, "list", list);
-	});
+	if (list)
+		return responseResult("list", *list);
+	else
+		return responseErrorSql();
 }
 
 
 
 /**
- * @brief UserAPI::groupScoreLive
- * @param match
- * @param response
+ * @brief UserAPI::campaigns
+ * @param credential
+ * @return
  */
 
-void UserAPI::groupScoreLive(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
+QHttpServerResponse UserAPI::campaigns(const Credential &credential)
 {
-	const int &id = match.captured(1).toInt();
+	LOG_CTRACE("client") << "Get user groups";
+
+	LAMBDA_THREAD_BEGIN(credential);
+
+	const auto &list = QueryBuilder::q(db)
+			.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+					  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+					  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
+					  "description, finished, groupid,"
+					  "score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+					  "FROM campaign "
+					  "LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id AND campaignResult.username=").addValue(credential.username())
+			.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+					  "WHERE started=true AND groupid IN "
+					  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+			.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
+					  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(credential.username())
+			.addQuery("))")
+			.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(list);
+
+	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::campaign
+ * @param credential
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse UserAPI::campaign(const Credential &credential, const int &id)
+{
+	LOG_CTRACE("client") << "Get user campaigns";
 
 	if (id < 0)
-		return responseError(response, "invalid id");
+		return responseError("invalid id");
 
-	HttpConnection *conn = qobject_cast<HttpConnection*>(response->parent());
-	EventStream *stream = new EventStream(EventStream::EventStreamGroupScore, id, conn);
-	conn->setEventStream(stream);
-	m_service->addEventStream(stream);
+	LAMBDA_THREAD_BEGIN(credential, id);
 
-	response->setStatus(HttpStatus::Ok);
+	const auto &obj = QueryBuilder::q(db)
+			.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+					  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+					  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
+					  "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+					  "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
+			.addValue(credential.username())
+			.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+					  "WHERE started=true AND campaign.id=").addValue(id)
+			.addQuery(" AND groupid IN "
+					  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+			.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
+					  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(credential.username())
+			.addQuery("))")
+			.execToJsonObject();
 
-	stream->trigger();
+	LAMBDA_SQL_ASSERT(obj);
+
+	LAMBDA_SQL_ERROR("not found", !obj->isEmpty());
+
+	const bool &finished = obj->value(QStringLiteral("finished")).toVariant().toBool();
+	const auto &result = TeacherAPI::_campaignUserResult(this, id, finished, credential.username(), true);
+
+	LAMBDA_SQL_ASSERT(result);
+
+	if (!finished) {
+		(*obj)[QStringLiteral("resultXP")] = result->xp > 0 ? result->xp : QJsonValue::Null;
+		(*obj)[QStringLiteral("resultGrade")] = result->grade > 0 ? result->grade : QJsonValue::Null;
+	}
+
+	(*obj)[QStringLiteral("taskList")] = result->tasks;
+
+	response = QHttpServerResponse(*obj);
+
+	LAMBDA_THREAD_END;
 }
-
-
-
-
-/**
- * @brief UserAPI::update
- * @param data
- * @param response
- */
-
-void UserAPI::update(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
-{
-	const QString &username = m_credential.username();
-
-	LOG_CTRACE("client") << "Modify user data:" << qPrintable(username);
-
-	databaseMainWorker()->execInThread([username, response, data, this]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		QueryBuilder q(db);
-
-		q.addQuery("UPDATE user SET ").setCombinedPlaceholder();
-
-		if (m_service->config().nameUpdateEnabled()) {
-			if (data.contains(QStringLiteral("familyName")))	q.addField("familyName", data.value(QStringLiteral("familyName")).toString());
-			if (data.contains(QStringLiteral("givenName")))		q.addField("givenName", data.value(QStringLiteral("givenName")).toString());
-			if (data.contains(QStringLiteral("picture")))		q.addField("picture", data.value(QStringLiteral("picture")).toString());
-		}
-
-		if (data.contains(QStringLiteral("nickname")))	q.addField("nickname", data.value(QStringLiteral("nickname")).toString());
-		if (data.contains(QStringLiteral("character")))		q.addField("character", data.value(QStringLiteral("character")).toString());
-
-		q.addQuery(" WHERE username=").addValue(username);
-
-		if (!q.fieldCount() || !q.exec()) {
-			LOG_CWARNING("client") << "User update failed:" << username;
-			return responseErrorSql(response);
-		}
-
-		responseAnswerOk(response);
-	});
-}
-
-
-
-
-/**
- * @brief UserAPI::password
- * @param data
- * @param response
- */
-
-void UserAPI::password(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
-{
-	const QString &username = m_credential.username();
-	const QString &password = data.value(QStringLiteral("password")).toString();
-
-	if (password.isEmpty())
-		return responseError(response, "missing password");
-
-	LOG_CTRACE("client") << "Change password for user:" << qPrintable(username);
-
-	AdminAPI::authPlainPasswordChange(this, username, data.value(QStringLiteral("oldPassword")).toString(), password, true)
-			.fail([this, response](){
-		responseError(response, "failed");
-	})			.done([this, response](){
-		responseAnswerOk(response);
-	});
-}
-
-
-
-
-
-/**
- * @brief StudentAPI::campaigns
- * @param response
- */
-
-void UserAPI::campaigns(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	databaseMainWorker()->execInThread([this, response]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		const QString &username = m_credential.username();
-
-		bool err = false;
-
-		const QJsonArray &list = QueryBuilder::q(db)
-				.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
-						  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
-						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-						  "description, finished, groupid,"
-						  "score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
-						  "FROM campaign "
-						  "LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id AND campaignResult.username=").addValue(username)
-				.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
-						  "WHERE started=true AND groupid IN "
-						  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
-				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
-						  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(username)
-				.addQuery("))")
-				.execToJsonArray(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		responseAnswer(response, "list", list);
-	});
-}
-
-
-
-/**
- * @brief UserAPI::campaignOne
- * @param match
- * @param response
- */
-
-void UserAPI::campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const
-{
-	const int &id = match.captured(1).toInt();
-
-	databaseMainWorker()->execInThread([this, response, id]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-		QMutexLocker(databaseMain()->mutex());
-
-		const QString &username = m_credential.username();
-
-		bool err = false;
-
-		QJsonObject obj = QueryBuilder::q(db)
-				.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
-						  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
-						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-						  "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
-						  "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
-				.addValue(username)
-				.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
-						  "WHERE started=true AND campaign.id=").addValue(id)
-				.addQuery(" AND groupid IN "
-						  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
-				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
-						  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(username)
-				.addQuery("))")
-				.execToJsonObject(&err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		if (obj.isEmpty())
-			return responseError(response, "not found");
-
-		const bool &finished = obj.value(QStringLiteral("finished")).toVariant().toBool();
-
-
-		const TeacherAPI::UserCampaignResult &result = TeacherAPI::_campaignUserResult(this, id, finished, username, true, &err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		if (!finished) {
-			obj[QStringLiteral("resultXP")] = result.xp > 0 ? result.xp : QJsonValue::Null;
-			obj[QStringLiteral("resultGrade")] = result.grade > 0 ? result.grade : QJsonValue::Null;
-		}
-
-		obj[QStringLiteral("taskList")] = result.tasks;
-
-		responseAnswer(response, obj);
-	});
-
-}
-
-
-
 
 
 
 /**
  * @brief UserAPI::campaignResult
- * @param match
- * @param response
+ * @param credential
+ * @param id
+ * @param json
+ * @return
  */
 
-void UserAPI::campaignResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+QHttpServerResponse UserAPI::campaignResult(const Credential &credential, const int &id, const QJsonObject &json)
 {
-	const int &id = match.captured(1).toInt();
+	LOG_CTRACE("client") << "Get user campaign result" << id;
 
-	databaseMainWorker()->execInThread([this, response, id, data]() {
-		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+	LAMBDA_THREAD_BEGIN(credential, id, json);
 
-		QMutexLocker(databaseMain()->mutex());
+	int offset = json.value(QStringLiteral("offset")).toInt(0);
+	int limit = json.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
 
-		const QString &username = m_credential.username();
+	const auto &list = TeacherAPI::_campaignUserGameResult(this, id, credential.username(), limit, offset);
 
-		bool err = false;
+	LAMBDA_SQL_ASSERT(list);
 
-		int offset = data.value(QStringLiteral("offset")).toInt(0);
-		int limit = data.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
-
-		const QJsonArray &list = TeacherAPI::_campaignUserGameResult(this, id, username, limit, offset, &err);
-
-		if (err)
-			return responseErrorSql(response);
-
-		responseAnswer(response, QJsonObject{
-						   { QStringLiteral("list"), list },
-						   { QStringLiteral("limit"), limit },
-						   { QStringLiteral("offset"), offset },
-					   });
-
-	});
+	response = QHttpServerResponse(QJsonObject{
+									   { QStringLiteral("list"), *list },
+									   { QStringLiteral("limit"), limit },
+									   { QStringLiteral("offset"), offset },
+								   });
+	LAMBDA_THREAD_END;
 }
+
+
+
+/**
+ * @brief UserAPI::update
+ * @param credential
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::update(const Credential &credential, const QJsonObject &json)
+{
+	const QString &username = credential.username();
+
+	LOG_CTRACE("client") << "Modify user data:" << qPrintable(username);
+
+	LAMBDA_THREAD_BEGIN(username, json);
+
+	QueryBuilder q(db);
+
+	q.addQuery("UPDATE user SET ").setCombinedPlaceholder();
+
+	if (m_service->config().nameUpdateEnabled()) {
+		if (json.contains(QStringLiteral("familyName")))	q.addField("familyName", json.value(QStringLiteral("familyName")).toString());
+		if (json.contains(QStringLiteral("givenName")))		q.addField("givenName", json.value(QStringLiteral("givenName")).toString());
+		if (json.contains(QStringLiteral("picture")))		q.addField("picture", json.value(QStringLiteral("picture")).toString());
+	}
+
+	if (json.contains(QStringLiteral("nickname")))	q.addField("nickname", json.value(QStringLiteral("nickname")).toString());
+	if (json.contains(QStringLiteral("character")))		q.addField("character", json.value(QStringLiteral("character")).toString());
+
+	q.addQuery(" WHERE username=").addValue(username);
+
+	LAMBDA_SQL_ASSERT(q.fieldCount() && !q.exec());
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::password
+ * @param credential
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::password(const Credential &credential, const QJsonObject &json)
+{
+	const QString &username = credential.username();
+	const QString &password = json.value(QStringLiteral("password")).toString();
+
+	LOG_CTRACE("client") << "Change password for user:" << qPrintable(username);
+
+	if (password.isEmpty())
+		return responseError("missing password");
+
+	if (AdminAPI::authPlainPasswordChange(this, username, json.value(QStringLiteral("oldPassword")).toString(), password, true))
+		return responseOk();
+	else
+		return responseError("failed");
+}
+
+
+
+
+
+#ifdef _COMPAT
+
+
+
+
+
+
 
 
 
@@ -1280,44 +1093,222 @@ void UserAPI::_addStatistics(const QJsonArray &list) const
 
 
 
+
+* @brief UserAPI::solverInfo
+* @param api
+* @param username
+* @param map
+* @return
+*/
+
+QDeferred<QMap<QString, GameMap::SolverInfo> > UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map)
+{
+	Q_ASSERT(api);
+
+	QDeferred<QMap<QString, GameMap::SolverInfo> > ret;
+
+	api->databaseMainWorker()->execInThread([api, username, map, ret]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+		QMap<QString, GameMap::SolverInfo> solver;
+
+		QMutexLocker(api->databaseMain()->mutex());
+
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT missionid, level, deathmatch, COUNT(*) AS num FROM game WHERE username=").addValue(username)
+				.addQuery(" AND success=true")
+				.addQuery(" AND mapid=").addValue(map)
+				.addQuery(" GROUP BY missionid, level, deathmatch");
+
+		if (!q.exec())
+			return ret.reject(solver);
+
+		while (q.sqlQuery().next()) {
+			const QString &mission = q.value("missionid").toString();
+
+			GameMap::SolverInfo s;
+
+			if (solver.contains(mission))
+				s = solver.value(mission);
+
+			s.setSolved(q.value("level").toInt(), q.value("deathmatch").toBool(), q.value("num").toInt());
+
+			solver.insert(mission, s);
+		}
+
+		ret.resolve(solver);
+	});
+
+	return ret;
+}
+
+
+
+
+
+
+/**
+* @brief UserAPI::solverInfo
+* @param api
+* @param username
+* @param map
+* @param mission
+* @return
+*/
+
+QDeferred<GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission)
+{
+	Q_ASSERT(api);
+
+	QDeferred<GameMap::SolverInfo> ret;
+
+	api->databaseMainWorker()->execInThread([api, username, map, mission, ret]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+		QMutexLocker(api->databaseMain()->mutex());
+
+		QueryBuilder q(db);
+
+		GameMap::SolverInfo solver;
+
+		q.addQuery("SELECT level, deathmatch, COUNT(*) AS num FROM game WHERE username=").addValue(username)
+				.addQuery(" AND success=true")
+				.addQuery(" AND mapid=").addValue(map)
+				.addQuery(" AND missionid=").addValue(mission)
+				.addQuery(" GROUP BY level, deathmatch");
+
+		if (!q.exec())
+			return ret.reject(solver);
+
+		while (q.sqlQuery().next())
+			solver.setSolved(q.value("level").toInt(), q.value("deathmatch").toBool(), q.value("num").toInt());
+
+		ret.resolve(solver);
+	});
+
+	return ret;
+}
+
+
+
+
+/**
+* @brief UserAPI::solverInfo
+* @param api
+* @param username
+* @param map
+* @param mission
+* @param level
+* @return
+*/
+
+QDeferred<int> UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level)
+{
+	Q_ASSERT(api);
+
+	QDeferred<int> ret;
+
+	api->databaseMainWorker()->execInThread([api, username, map, mission, ret, level]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+		QMutexLocker(api->databaseMain()->mutex());
+
+		bool err = false;
+		const int &n = QueryBuilder::q(db)
+				.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
+				.addQuery(" AND success=true")
+				.addQuery(" AND mapid=").addValue(map)
+				.addQuery(" AND missionid=").addValue(mission)
+				.addQuery(" AND level=").addValue(level)
+				.execToValue("num", &err).toInt();
+
+		if (err)
+			return ret.reject(-1);
+
+		ret.resolve(n);
+	});
+
+	return ret;
+}
+
+
+
+/**
+* @brief UserAPI::solverInfo
+* @param api
+* @param username
+* @param map
+* @param mission
+* @param level
+* @param deathmatch
+* @return
+*/
+
+int UserAPI::_solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level,
+						 const bool &deathmatch)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker(api->databaseMain()->mutex());
+
+	bool err = false;
+	const int &n = QueryBuilder::q(db)
+			.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
+			.addQuery(" AND success=true")
+			.addQuery(" AND mapid=").addValue(map)
+			.addQuery(" AND missionid=").addValue(mission)
+			.addQuery(" AND level=").addValue(level)
+			.addQuery(" AND deathmatch=").addValue(deathmatch)
+			.execToValue("num", &err).toInt();
+
+	if (err)
+		return -1;
+
+	return n;
+
+}
+
+#endif
+
+
+
+
 /**
  * @brief UserAPI::getGroupScore
- * @param api
+ * @param database
  * @param id
  * @return
  */
 
-
-QDeferred<QJsonArray> UserAPI::getGroupScore(const DatabaseMain *database, const int &id)
+std::optional<QJsonArray> UserAPI::getGroupScore(const DatabaseMain *database, const int &id)
 {
 	Q_ASSERT (database);
 
 	LOG_CTRACE("client") << "Get group score:" << id;
 
-	QDeferred<QJsonArray> ret;
+	QDefer ret;
 
-	database->worker()->execInThread([ret, id, database]() mutable {
+	std::optional<QJsonArray> list;
+
+	database->worker()->execInThread([ret, id, database, &list]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(database->dbName());
 
 		QMutexLocker(database->mutex());
 
-		QueryBuilder q(db);
-		q.addQuery(_SQL_get_user)
+		list = QueryBuilder::q(db)
+				.addQuery(_SQL_get_user)
 				.addQuery("WHERE active=true AND user.username IN (SELECT username FROM studentGroupInfo WHERE active=true AND id=")
 				.addValue(id)
 				.addQuery(")")
-				;
+				.execToJsonArray();
 
-
-		bool err = false;
-
-		const QJsonArray &list = q.execToJsonArray(&err);
-
-		if (err)
-			return ret.reject({});
-
-		ret.resolve(list);
+		ret.resolve();
 	});
 
-	return ret;
+	QDefer::await(ret);
+
+	return list;
 }

@@ -422,13 +422,9 @@ Qaterial.Page
 
 		Client.send(WebSocket.ApiAdmin, "class/%1/code".arg(classid < 0 ? -1 : classid))
 		.done(control, function(r){
-			if (r.list && r.list.length === 1) {
-				classcode = r.list[0].code
-			} else {
-				Client.messageWarning(qsTr("Érvénytelen válasz érkezett"))
-			}
+			classcode = r.code
 		})
-		.fail(control, JS.failMessage("Inaktiválás sikertelen"))
+		.fail(control, JS.failMessage("Kód lekérése sikertelen"))
 	}
 
 	Component.onCompleted: reloadCode()

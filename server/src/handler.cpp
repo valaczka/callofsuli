@@ -27,11 +27,10 @@
 #include "handler.h"
 #include "Logger.h"
 #include "generalapi.h"
-/*#include "authapi.h"
-#include "teacherapi.h"
 #include "adminapi.h"
-#include "panelapi.h"
-#include "userapi.h"*/
+#include "authapi.h"
+#include "teacherapi.h"
+#include "userapi.h"
 #include "serverservice.h"
 #include <QtConcurrent/QtConcurrent>
 
@@ -48,13 +47,6 @@ Handler::Handler(ServerService *service, QObject *parent)
 	Q_ASSERT(m_service);
 
 	LOG_CTRACE("service") << "Handler created" << this;
-
-	/*	m_apiHandlers.insert("admin", new AdminAPI(service));
-	m_apiHandlers.insert("auth", new AuthAPI(service));
-	m_apiHandlers.insert("general", new GeneralAPI(service));
-	m_apiHandlers.insert("user", new UserAPI(service));
-	m_apiHandlers.insert("teacher", new TeacherAPI(service));
-	m_apiHandlers.insert("panel", new PanelAPI(service)); */
 }
 
 
@@ -64,13 +56,6 @@ Handler::Handler(ServerService *service, QObject *parent)
 
 Handler::~Handler()
 {
-	/*foreach (AbstractAPI *api, m_apiHandlers) {
-		delete api;
-		api = nullptr;
-	}
-
-	m_apiHandlers.clear();*/
-
 	LOG_CTRACE("service") << "Handler destroyed" << this;
 }
 
@@ -80,23 +65,17 @@ Handler::~Handler()
  * @return
  */
 
-std::optional<QHttpServer*> Handler::httpServer() const
+std::weak_ptr<QHttpServer> Handler::httpServer() const
 {
 	const auto &ptr = m_service->webServer().lock();
 
 	if (!ptr) {
-		LOG_CWARNING("service") << "Missing WebServer";
-		return std::nullopt;
+		LOG_CERROR("service") << "Missing WebServer";
+		return std::weak_ptr<QHttpServer>();
 	}
 
-	const auto &server = ptr->server().lock();
+	return ptr->server();
 
-	if (!server) {
-		LOG_CWARNING("service") << "Missing Server";
-		return std::nullopt;
-	}
-
-	return server.get();
 }
 
 
@@ -112,24 +91,42 @@ bool Handler::loadRoutes()
 {
 	LOG_CTRACE("service") << "Load routes";
 
-	auto server = httpServer();
+	auto server = httpServer().lock().get();
 
 	if (!server)
 		return false;
 
-	(*server)->route("/favicon.ico", QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route("/favicon.ico", QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		return getFavicon(request);
 	});
 
-	(*server)->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
-		if (request.url().path().startsWith(AbstractAPI::apiPath())) {
+	server->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
+		LOG_CTRACE("service") << "MISSING HANDLER START";
+		const QString &callbackPath = QStringLiteral("/")+OAuth2Authenticator::callbackPath()+QStringLiteral("/");
+		const QString &requestPath = request.url().path();
+
+		if (requestPath.startsWith(callbackPath)) {
+			responder.sendResponse(std::move(getCallback(request)));
+		} else if (requestPath.startsWith(AbstractAPI::apiPath())) {
 			authorizeRequestLog(request);
 			responder.sendResponse(std::move(AbstractAPI::responseError("invalid api request", QHttpServerResponse::StatusCode::NotFound)));
 		} else
 			responder.sendResponse(std::move(getStaticContent(request)));
 	});
 
-	addApi(std::make_shared<GeneralAPI>(this, m_service));
+	server->afterRequest([] (QHttpServerResponse &&resp) {
+		LOG_CTRACE("service") << "---AFTER request" << resp.statusCode();
+		return std::move(resp);
+	});
+
+
+	// Load APIs
+
+	addApi(new GeneralAPI(this, m_service));
+	addApi(new AdminAPI(this, m_service));
+	addApi(new AuthAPI(this, m_service));
+	addApi(new TeacherAPI(this, m_service));
+	addApi(new UserAPI(this, m_service));
 
 	return true;
 }
@@ -141,7 +138,7 @@ bool Handler::loadRoutes()
  * @return
  */
 
-std::shared_ptr<AbstractAPI> Handler::api(const char *api) const
+AbstractAPI *Handler::api(const char *api) const
 {
 	return m_apis.value(api);
 }
@@ -196,7 +193,20 @@ std::optional<Credential> Handler::authorizeRequestLog(const QHttpServerRequest 
 
 	const QByteArray &userAgent = request.value(QByteArrayLiteral("User-Agent"));
 
-	LOG_CDEBUG("service") << qPrintable(request.url().path()) << qPrintable(request.remoteAddress().toString()) << request.remotePort()
+	QByteArray method;
+
+	switch (request.method()) {
+	case QHttpServerRequest::Method::Get: method = QByteArrayLiteral("GET"); break;
+	case QHttpServerRequest::Method::Put: method = QByteArrayLiteral("PUT"); break;
+	case QHttpServerRequest::Method::Post: method = QByteArrayLiteral("POST"); break;
+	case QHttpServerRequest::Method::Delete: method = QByteArrayLiteral("DELETE"); break;
+	case QHttpServerRequest::Method::Head: method = QByteArrayLiteral("HEAD"); break;
+	case QHttpServerRequest::Method::Patch: method = QByteArrayLiteral("PATCH"); break;
+	default: method = QByteArrayLiteral("INVALID"); break;
+	}
+
+	LOG_CDEBUG("service") << method.constData() << qPrintable(request.url().path())
+						  << qPrintable(request.remoteAddress().toString()) << request.remotePort()
 						  << (credential ? qPrintable(credential->username()) : "")
 						  << (userAgent.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgent+QByteArrayLiteral("]")).constData());
 
@@ -318,14 +328,68 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 
 
 
+
+/**
+ * @brief Handler::getCallback
+ * @param request
+ * @return
+ */
+
+QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
+{
+	QRegularExpression exp(QStringLiteral("^/cb/(\\w+)"));
+	const QRegularExpressionMatch &match = exp.match(request.url().path());
+
+	if (match.hasMatch()) {
+		const QString &provider = match.captured(1);
+
+		OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8()).lock().get();
+
+		if (!authenticator) {
+			LOG_CWARNING("client") << "Invalid provider:" << provider;
+			return AbstractAPI::responseError("invalid provider", QHttpServerResponse::StatusCode::BadRequest);
+		}
+
+		if (!authenticator->parseResponse(std::move(QUrlQuery(request.url()))))
+			return AbstractAPI::responseError("invalid request", QHttpServerResponse::StatusCode::BadRequest);
+
+		QByteArray content;
+		QFile f(QStringLiteral(":/html/callback.html"));
+		if (f.open(QIODevice::ReadOnly)) {
+			content = f.readAll();
+			f.close();
+		}
+
+		if (!content.isEmpty()) {
+			content.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8());
+		} else {
+			content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body>"
+									 "<p>%1</p>"
+									 "<p><a href=\"callofsuli://\">%2</a></p>"
+									 "</body></html>")
+					.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot."), tr("Vissza az alkalmazásba"))
+					.toUtf8();
+		}
+
+
+		return QHttpServerResponse(QByteArrayLiteral("text/html"), content, QHttpServerResponder::StatusCode::Ok);
+
+	}
+
+	LOG_CWARNING("client") << "Invalid request:" << request.url().path();
+	return AbstractAPI::responseError("invalid request", QHttpServerResponse::StatusCode::BadRequest);
+}
+
+
+
 /**
  * @brief Handler::addApi
  * @param api
  */
 
-void Handler::addApi(const std::shared_ptr<AbstractAPI> &api)
+void Handler::addApi(AbstractAPI *api)
 {
-	LOG_CTRACE("service") << "Add API" << api->path() << api.get();
+	LOG_CTRACE("service") << "Add API" << api->path() << api;
 	m_apis.insert(api->path(), std::move(api));
 }
 
@@ -384,112 +448,3 @@ QHttpServerResponse Handler::getErrorPage(const QString &message, const QHttpSer
 	return QHttpServerResponse(QByteArrayLiteral("text/html"), b, QHttpServerResponder::StatusCode::Ok);
 }
 
-
-/**
- * @brief Handler::handle
- * @param request
- * @param response
- */
-
-#ifdef _COMPAT
-void Handler::handle(HttpRequest *request, HttpResponse *response)
-{
-	LOG_CDEBUG("client") << qPrintable(request->method()+QStringLiteral(":")) << qPrintable(request->uriStr())
-						 << qPrintable(request->address().toString()) << qPrintable(QStringLiteral("[")+
-																					request->headerDefault(QStringLiteral("User-Agent"), QStringLiteral("invalid"))
-																					+QStringLiteral("]"));
-
-	const QString &method = request->method();
-	const QString &uri = request->uriStr();
-
-	if (method == QLatin1String("GET") && uri == QLatin1String("/favicon.ico")) {
-		getFavicon(response);
-		return;
-	}
-
-	if (m_service->imitateLatency() > 0) {
-		QThread::msleep(m_service->imitateLatency());
-	}
-
-
-	if (uri.startsWith(QStringLiteral("/api/")))
-		return handleApi(request, response);
-
-	if (uri.startsWith(QStringLiteral("/cb/")))
-		return handleOAuthCallback(request, response);
-
-	if (method == QLatin1String("GET"))
-		return getWasmContent(uri, response);
-
-
-	LOG_CWARNING("client") << "Invalid request:" << request->method() << request->uriStr();
-	response->setError(HttpStatus::BadRequest, tr("Invalid request"));
-
-}
-
-
-
-
-/**
- * @brief Handler::handleOAuthCallback
- * @param request
- * @param response
- */
-
-void Handler::handleOAuthCallback(HttpRequest *request, HttpResponse *response)
-{
-	QRegularExpression exp(QStringLiteral("^/cb/(\\w+)"));
-	QRegularExpressionMatch match = exp.match(request->uriStr());
-
-	if (match.hasMatch()) {
-		const QString &provider = match.captured(1);
-
-		OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8());
-
-		if (!authenticator) {
-			LOG_CWARNING("client") << "Invalid provider:" << provider;
-			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid provider"));
-		}
-
-		if (!authenticator->parseResponse(request->uriQuery()))
-			return response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
-
-		QByteArray content;
-		QFile f(QStringLiteral(":/html/callback.html"));
-		if (f.open(QIODevice::ReadOnly)) {
-			content = f.readAll();
-			f.close();
-		}
-
-		if (!content.isEmpty()) {
-			content.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8());
-		} else {
-			content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body>"
-									 "<p>%1</p>"
-									 "<p><a href=\"callofsuli://\">%2</a></p>"
-									 "</body></html>")
-					.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot."), tr("Vissza az alkalmazásba"))
-					.toUtf8();
-		}
-
-
-		return response->setStatus(HttpStatus::Ok, content);
-
-	}
-
-	LOG_CWARNING("client") << "Invalid request:" << request->method() << request->uriStr();
-	response->setError(HttpStatus::BadRequest, QStringLiteral("invalid request"));
-}
-
-
-/**
- * @brief Handler::apiHandlers
- * @return
- */
-
-const QMap<const char *, AbstractAPI *> &Handler::apiHandlers() const
-{
-	return m_apiHandlers;
-}
-
-#endif

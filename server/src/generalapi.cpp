@@ -38,45 +38,45 @@
 GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 	: AbstractAPI("general", handler, service)
 {
-	auto server = m_handler->httpServer();
+	auto server = m_handler->httpServer().lock().get();
 
 	Q_ASSERT(server);
 
 	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
 
-	(*server)->route(path+"config", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"config", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return config();
 	});
 
-	(*server)->route(path+"grade", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"grade", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return grade();
 	});
 
-	(*server)->route(path+"rank", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"rank", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::rank, &*this, -1);
 	});
 
-	(*server)->route(path+"rank/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"rank/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::rank, &*this, id);
 	});
 
 
 
-	(*server)->route(path+"class", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"class", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::class_, &*this, -1);
 	});
 
-	(*server)->route(path+"class/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::class_, &*this, id);
 	});
 
-	(*server)->route(path+"class/<arg>/users", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"class/<arg>/users", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::classUsers, &*this, id);
 	});
@@ -84,38 +84,38 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 
 
 
-	(*server)->route(path+"user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::user, &*this, QStringLiteral(""), Credential::None);
 	});
 
-	(*server)->route(path+"user/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+	server->route(path+"user/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::user, &*this, username, Credential::None);
 	});
 
-	(*server)->route(path+"me", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"me", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API_X(Credential::Student|Credential::Admin);
 		return QtConcurrent::run(&GeneralAPI::me, &*this, credential);
 	});
 
-	(*server)->route(path+"score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::user, &*this, QStringLiteral(""), Credential::Student);
 	});
 
-	(*server)->route(path+"user/<arg>/log", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+	server->route(path+"user/<arg>/log", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::userLog, &*this, username);
 	});
 
-	(*server)->route(path+"user/<arg>/log/xp", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
+	server->route(path+"user/<arg>/log/xp", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		JSON_OBJECT_GET();
-		return QtConcurrent::run(&GeneralAPI::userXpLog, &*this, username, *jsonObject);
+		return QtConcurrent::run(&GeneralAPI::userXpLog, &*this, username, jsonObject.value_or(QJsonObject{}));
 	});
 
-	(*server)->route(path+"user/<arg>/log/game", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+	server->route(path+"user/<arg>/log/game", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
 		return QtConcurrent::run(&GeneralAPI::userGameLog, &*this, username);
 	});

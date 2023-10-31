@@ -387,12 +387,13 @@ void GameScene::keyReleaseEvent(QKeyEvent *event)
 
 void GameScene::loadGameData()
 {
-	bool error = false;
 	const QString filename = QStringLiteral(":/internal/game/parameters.json");
 
-	m_gameData = Utils::fileToJsonObject(filename, &error);
+	const auto &c = Utils::fileToJsonObject(filename);
 
-	if (error)
+	if (c)
+		m_gameData = *c;
+	else
 		return;
 
 	LOG_CDEBUG("scene") << "Load game data from:" << filename;

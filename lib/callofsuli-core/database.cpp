@@ -543,9 +543,9 @@ std::optional<QJsonObject> QueryBuilder::execToJsonObject()
  * @return
  */
 
-std::optional<bool> QueryBuilder::execCheckExists()
+bool QueryBuilder::execCheckExists()
 {
-	if (!exec()) return std::nullopt;
+	if (!exec()) return false;
 
 	if (!m_sqlQuery.first())
 		return false;

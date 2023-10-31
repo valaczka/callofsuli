@@ -33,6 +33,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QColor>
+#include <optional>
 
 #ifdef CLIENT_UTILS
 #pragma GCC diagnostic ignored "-Wunused-parameter"

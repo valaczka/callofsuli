@@ -30,6 +30,7 @@
 #include <QByteArray>
 #include <QTextStream>
 #include "utils.h"
+#include "oauth2authenticator.h"
 
 
 
@@ -62,7 +63,8 @@ void ServerSettings::printConfig() const
 		if (it->clientId.isEmpty())
 			continue;
 
-		LOG_CINFO("service") << "OAuth2" << qPrintable(it.key()) << "listening:" << qPrintable(QStringLiteral("/cb/")+it->path);
+		LOG_CINFO("service") << "OAuth2" << qPrintable(it.key()) << "listening:"
+							 << qPrintable(QStringLiteral("/%1/").arg(OAuth2Authenticator::callbackPath())+it->path);
 	}
 
 

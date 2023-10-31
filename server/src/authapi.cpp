@@ -25,6 +25,7 @@
  */
 
 #include "authapi.h"
+#include "QtConcurrent/qtconcurrentrun.h"
 #include "serverservice.h"
 #include "adminapi.h"
 
@@ -35,14 +36,38 @@
  * @param service
  */
 
-AuthAPI::AuthAPI(ServerService *service)
-	: AbstractAPI(service)
+AuthAPI::AuthAPI(Handler *handler, ServerService *service)
+	: AbstractAPI("auth", handler, service)
 {
-	addMap("^login/*$", this, &AuthAPI::login);
-	addMap("^login/(\\w+)/*$", this, &AuthAPI::loginOAuth2);
+	auto server = m_handler->httpServer().lock().get();
 
-	addMap("^registration/*$", this, &AuthAPI::registration);
-	addMap("^registration/(\\w+)/*$", this, &AuthAPI::registrationOAuth2);
+	Q_ASSERT(server);
+
+	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
+
+	server->route(path+"login", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AuthAPI::login, &*this, *jsonObject);
+	});
+
+	server->route(path+"login/", QHttpServerRequest::Method::Post, [this](const QString &provider, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_GET();
+		return QtConcurrent::run(&AuthAPI::loginOAuth2, &*this, provider, jsonObject.value_or(QJsonObject{}));
+	});
+
+	server->route(path+"registration", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AuthAPI::registration, &*this, *jsonObject);
+	});
+
+	server->route(path+"registration/", QHttpServerRequest::Method::Post, [this](const QString &provider, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_ASSERT();
+		return QtConcurrent::run(&AuthAPI::registrationOAuth2, &*this, provider,*jsonObject);
+	});
 }
 
 
@@ -53,7 +78,7 @@ AuthAPI::AuthAPI(ServerService *service)
  * @param response
  */
 
-void AuthAPI::login(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+QHttpServerResponse AuthAPI::login(const QJsonObject &data) const
 {
 	LOG_CTRACE("client") << "Login";
 
@@ -62,49 +87,42 @@ void AuthAPI::login(const QRegularExpressionMatch &, const QJsonObject &data, QP
 	const QString &password = data.value(QStringLiteral("password")).toString();
 
 	if (token.isEmpty() && (username.isEmpty() || password.isEmpty()))
-		return responseError(response, "missing username/password");
+		return responseError("missing username/password");
 
 	if (!token.isEmpty()) {
 		if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
 			LOG_CDEBUG("client") << "Token verification failed";
-			return responseError(response, "invalid token");
+			return responseError("invalid token");
 		}
 
 		Credential c = Credential::fromJWT(token);
 
 		if (!c.isValid()) {
 			LOG_CDEBUG("client") << "Invalid JWT";
-			return responseError(response, "invalid token");
+			return responseError("invalid token");
 		}
 
 		const QString &username = c.username();
 
-		getCredential(username)
-				.fail([this, response](Credential){
-			responseError(response, "invalid user");
-		})
-				.done([this, response](Credential c){
-			responseAnswer(response, getToken(c));
-		});
+		const auto &ret = getCredential(username);
 
-		return;
+		if (ret)
+			return QHttpServerResponse(getToken(*ret));
+		else
+			return responseError("invalid user");
 	}
 
 	// Without token
 
-	getCredential(username)
-			.fail([this, response](Credential){
-		responseError(response, "invalid user");
-	})
-			.then<Credential>([this, username, password](Credential c){
-		return authorizePlain(c, password);
-	})
-			.fail([this, response](Credential){
-		responseError(response, "authorization failed");
-	})
-			.done([this, response](Credential c){
-		responseAnswer(response, getToken(c));
-	});
+	const auto &c = getCredential(username);
+
+	if (c) {
+		if (authorizePlain(*c, password))
+			return QHttpServerResponse(getToken(*c));
+		else
+			return responseError("authorization failed");
+	} else
+		return responseError("invalid user");
 }
 
 
@@ -116,52 +134,48 @@ void AuthAPI::login(const QRegularExpressionMatch &, const QJsonObject &data, QP
  * @param response
  */
 
-void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+QHttpServerResponse AuthAPI::loginOAuth2(const QString &provider, const QJsonObject &data) const
 {
-	const QString &provider = match.captured(1);
-
-	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8());
+	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8()).lock().get();
 
 	if (!authenticator)
-		return responseError(response, "invalid provider");
+		return responseError("invalid provider");
 
 	if (data.contains(QStringLiteral("state"))) {
 		const QString &state = data.value(QStringLiteral("state")).toString();
-		OAuth2CodeFlow *flow = authenticator->getCodeFlowForState(state);
+		OAuth2CodeFlow *flow = authenticator->getCodeFlowForState(state).lock().get();
 
 		if (!flow)
-			return responseError(response, "invalid state");
+			return responseError("invalid state");
 
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
-			return responseError(response, "invalid state");
+			return responseError("invalid state");
 			break;
 		case OAuth2CodeFlow::Failed:
 		case OAuth2CodeFlow::UserExists:
 		case OAuth2CodeFlow::InvalidDomain:
 		case OAuth2CodeFlow::InvalidCode:
-			return responseError(response, "authentication failed");
+			return responseError("authentication failed");
 			break;
 		case OAuth2CodeFlow::TokenReceived:
-			return responseAnswer(response, {
-									  { QStringLiteral("pending"), true },
-									  { QStringLiteral("tokenReceived"), true }
-								  });
+			return QHttpServerResponse(QJsonObject{
+										   { QStringLiteral("pending"), true },
+										   { QStringLiteral("tokenReceived"), true }
+									   });
 			break;
 		case OAuth2CodeFlow::Authenticated:
 			if (flow->credential().isValid())
-				return responseAnswer(response, getToken(flow->credential()));
+				return QHttpServerResponse(getToken(flow->credential()));
 			else
-				return responseAnswer(response, {
-										  { QStringLiteral("pending"), true },
-										  { QStringLiteral("tokenReceived"), true }
-									  });
+				return QHttpServerResponse(QJsonObject{
+											   { QStringLiteral("pending"), true },
+											   { QStringLiteral("tokenReceived"), true }
+										   });
 			break;
 		case OAuth2CodeFlow::Pending:
-			return responseAnswer(response, {
-									  { QStringLiteral("pending"), true }
-								  });
+			return responseResult("pending", true);
 			break;
 		}
 	}
@@ -173,27 +187,24 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
 		QString email = flow->getUserInfo().username;
 
 		if (!email.isEmpty()) {
-			QPointer<OAuth2CodeFlow> fp(flow);
-			getCredential(email).fail([fp](Credential){
-				if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
-			})
-			.done([fp, this](Credential c){
-				if (fp) {
-					fp->setCredential(c);
-					fp->setAuthState(OAuth2CodeFlow::Authenticated);
-				}
-				updateOAuth2TokenInfo(fp);
+			const auto &c = getCredential(email);
+
+			if (c) {
+				flow->setCredential(*c);
+				flow->setAuthState(OAuth2CodeFlow::Authenticated);
+				updateOAuth2TokenInfo(flow);
 
 				if (m_service->config().get("oauth2NameUpdate").toBool())
-					updateOAuth2UserData(fp);
-			});
+					updateOAuth2UserData(flow);
+			} else
+				flow->setAuthState(OAuth2CodeFlow::Failed);
 		}
 	});
 
-	responseAnswer(response, {
-					   { QStringLiteral("state"), flow->state() },
-					   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
-				   });
+	return QHttpServerResponse(QJsonObject{
+								   { QStringLiteral("state"), flow->state() },
+								   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+							   });
 }
 
 
@@ -204,11 +215,11 @@ void AuthAPI::loginOAuth2(const QRegularExpressionMatch &match, const QJsonObjec
  * @param response
  */
 
-void AuthAPI::registration(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const
+QHttpServerResponse AuthAPI::registration(const QJsonObject &data) const
 {
 	if (!m_service->config().registrationEnabled() || m_service->config().oAuth2RegistrationForced()) {
 		LOG_CWARNING("client") << "Registration disabled";
-		return responseError(response, "registration disabled");
+		return responseError("registration disabled");
 	}
 
 	const QString &username = data.value(QStringLiteral("username")).toString();
@@ -216,47 +227,34 @@ void AuthAPI::registration(const QRegularExpressionMatch &, const QJsonObject &d
 
 	LOG_CDEBUG("client") << "Registration:" << qPrintable(username);
 
-	AdminAPI::userNotExists(this, username)
-			.fail([this, response](){
-		responseError(response, "user exists");
-	})
-			.then<bool, int>([this, code, response](){
-		return AdminAPI::getClassIdFromCode(this, code);
-	})
-			.done([this, username, response, data](bool exists, int classid) {
-		if (!exists) {
-			return responseError(response, "invalid code");
-		}
+	if (!AdminAPI::userNotExists(this, username))
+		return responseError("user exists");
 
-		AdminAPI::User user;
-		user.username = username;
-		user.familyName = data.value(QStringLiteral("familyName")).toString();
-		user.givenName = data.value(QStringLiteral("givenName")).toString();
-		user.picture = data.value(QStringLiteral("picture")).toString();
-		user.active = true;
-		user.classid = classid;
+	const auto &classid = AdminAPI::getClassIdFromCode(this, code);
 
-		AdminAPI::userAdd(this, user)
-				.fail([this, response]{
-			return responseError(response, "registration failed");
-		})
-				.then([username, this, data]{
-			return AdminAPI::authAddPlain(this, username, data.value(QStringLiteral("password")).toString());
-		})
-				.fail([this, response]{
-			return responseError(response, "registration failed");
-		})
-				.done([username, response, this]{
-			getCredential(username)
-					.fail([this, response](Credential){
-				responseError(response, "invalid user");
-			})
-					.done([this, response](Credential c){
-				responseAnswer(response, getToken(c));
-			});
+	if (!classid)
+		return responseError("invalid code");
 
-		});
-	});
+	AdminAPI::User user;
+	user.username = username;
+	user.familyName = data.value(QStringLiteral("familyName")).toString();
+	user.givenName = data.value(QStringLiteral("givenName")).toString();
+	user.picture = data.value(QStringLiteral("picture")).toString();
+	user.active = true;
+	user.classid = *classid;
+
+	if (!AdminAPI::userAdd(this, user))
+		return responseError("registration failed");
+
+	if (!AdminAPI::authAddPlain(this, username, data.value(QStringLiteral("password")).toString()))
+		return responseError("registration failed");
+
+	const auto &c = getCredential(username);
+
+	if (!c)
+		return responseError("invalid user");
+	else
+		return QHttpServerResponse(getToken(*c));
 }
 
 
@@ -268,58 +266,56 @@ void AuthAPI::registration(const QRegularExpressionMatch &, const QJsonObject &d
  * @param response
  */
 
-void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const
+QHttpServerResponse AuthAPI::registrationOAuth2(const QString &provider, const QJsonObject &data) const
 {
-	const QString &provider = match.captured(1);
-
-	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8());
+	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8()).lock().get();
 
 	if (!authenticator)
-		return responseError(response, "invalid provider");
+		return responseError("invalid provider");
 
 	if (data.contains(QStringLiteral("state"))) {
 		const QString &state = data.value(QStringLiteral("state")).toString();
-		OAuth2CodeFlow *flow = authenticator->getCodeFlowForState(state);
+		OAuth2CodeFlow *flow = authenticator->getCodeFlowForState(state).lock().get();
 
 		if (!flow)
-			return responseError(response, "invalid state");
+			return responseError("invalid state");
 
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
-			return responseError(response, "invalid state");
+			return responseError("invalid state");
 			break;
 		case OAuth2CodeFlow::Failed:
-			return responseError(response, "authentication failed");
+			return responseError("authentication failed");
 			break;
 		case OAuth2CodeFlow::UserExists:
-			return responseError(response, "user exists");
+			return responseError("user exists");
 			break;
 		case OAuth2CodeFlow::InvalidCode:
-			return responseError(response, "invalid code");
+			return responseError("invalid code");
 			break;
 		case OAuth2CodeFlow::InvalidDomain:
-			return responseError(response, "invalid domain");
+			return responseError("invalid domain");
 			break;
 		case OAuth2CodeFlow::TokenReceived:
-			return responseAnswer(response, {
-									  { QStringLiteral("pending"), true },
-									  { QStringLiteral("tokenReceived"), true }
-								  });
+			return QHttpServerResponse(QJsonObject{
+										   { QStringLiteral("pending"), true },
+										   { QStringLiteral("tokenReceived"), true }
+									   });
 			break;
 		case OAuth2CodeFlow::Authenticated:
 			if (flow->credential().isValid())
-				return responseAnswer(response, getToken(flow->credential()));
+				return QHttpServerResponse(getToken(flow->credential()));
 			else
-				return responseAnswer(response, {
-										  { QStringLiteral("pending"), true },
-										  { QStringLiteral("tokenReceived"), true }
-									  });
+				return QHttpServerResponse(QJsonObject{
+											   { QStringLiteral("pending"), true },
+											   { QStringLiteral("tokenReceived"), true }
+										   });
 			break;
 		case OAuth2CodeFlow::Pending:
-			return responseAnswer(response, {
-									  { QStringLiteral("pending"), true }
-								  });
+			return QHttpServerResponse(QJsonObject{
+										   { QStringLiteral("pending"), true }
+									   });
 			break;
 		}
 	}
@@ -327,17 +323,16 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
 
 
-	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow, response, data](){
+	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow, data](){
 		AdminAPI::User user = flow->getUserInfo();
 		QString code = data.value(QStringLiteral("code")).toString();
 
 		if (!user.username.isEmpty()) {
-			QPointer<OAuth2CodeFlow> fp(flow);
 
 			const QStringList &array = m_service->config().get("oauth2DomainList").toString().simplified()
 					.split(QStringLiteral(","), Qt::SkipEmptyParts);
-			bool domainEnabled = array.isEmpty();
 
+			bool domainEnabled = array.isEmpty();
 
 			for (const QString &s : array) {
 				if (domainEnabled)
@@ -352,59 +347,43 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
 
 			LOG_CTRACE("client") << "Check domains:" << array << domainEnabled;
 
-			if (!domainEnabled) {
-				if (fp) fp->setAuthState(OAuth2CodeFlow::InvalidDomain);
-				return;
-			}
+			if (!domainEnabled)
+				return flow->setAuthState(OAuth2CodeFlow::InvalidDomain);
 
-			AdminAPI::userNotExists(this, user.username)
-					.fail([fp](){
-				if (fp)
-					fp->setAuthState(OAuth2CodeFlow::UserExists);
-			})
-					.then<bool, int>([this, code, response](){
-				return AdminAPI::getClassIdFromCode(this, code);
-			})
-					.done([this, user, data, fp](bool exists, int classid) mutable {
-				if (!exists) {
-					if (fp) fp->setAuthState(OAuth2CodeFlow::InvalidCode);
-					return;
-				}
+			if (!AdminAPI::userNotExists(this, user.username))
+				return flow->setAuthState(OAuth2CodeFlow::UserExists);
 
-				user.active = true;
-				user.classid = classid;
+			const auto &classid = AdminAPI::getClassIdFromCode(this, code);
 
-				AdminAPI::userAdd(this, user)
-						.fail([fp]{
-					if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
-				})
-						.then([user, this, data, fp]{
-					return AdminAPI::authAddOAuth2(this, user.username, fp ? QString::fromUtf8(fp->authenticator()->type()) : QLatin1String(""));
-				})
-						.fail([fp]{
-					if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
-				})
-						.done([user, fp, this]{
-					getCredential(user.username)
-							.fail([fp](Credential){
-						if (fp) fp->setAuthState(OAuth2CodeFlow::Failed);
-					})
-					.done([fp, this](Credential c){
-						if (fp) {
-							fp->setCredential(c);
-							fp->setAuthState(OAuth2CodeFlow::Authenticated);
-						}
-						updateOAuth2TokenInfo(fp);
-					});
-				});
-			});
+			if (!classid)
+				return flow->setAuthState(OAuth2CodeFlow::InvalidCode);
+
+
+			user.active = true;
+			user.classid = *classid;
+
+			if (!AdminAPI::userAdd(this, user))
+				return flow->setAuthState(OAuth2CodeFlow::Failed);
+
+			if (!AdminAPI::authAddOAuth2(this, user.username, QString::fromUtf8(flow->authenticator()->type())))
+				return flow->setAuthState(OAuth2CodeFlow::Failed);
+
+			const auto &c = getCredential(user.username);
+
+			if (!c)
+				return flow->setAuthState(OAuth2CodeFlow::Failed);
+
+			flow->setCredential(*c);
+			flow->setAuthState(OAuth2CodeFlow::Authenticated);
+
+			updateOAuth2TokenInfo(flow);
 		}
 	});
 
-	responseAnswer(response, {
-					   { QStringLiteral("state"), flow->state() },
-					   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
-				   });
+	return QHttpServerResponse(QJsonObject{
+								   { QStringLiteral("state"), flow->state() },
+								   { QStringLiteral("url"), flow->requestAuthorizationUrl().toString() }
+							   });
 }
 
 
@@ -420,7 +399,7 @@ void AuthAPI::registrationOAuth2(const QRegularExpressionMatch &match, const QJs
  * @return
  */
 
-QDeferred<Credential> AuthAPI::getCredential(const QString &username) const
+std::optional<Credential> AuthAPI::getCredential(const QString &username) const
 {
 	return getCredential(databaseMain(), username);
 }
@@ -434,15 +413,16 @@ QDeferred<Credential> AuthAPI::getCredential(const QString &username) const
  * @return
  */
 
-QDeferred<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QString &username)
+std::optional<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QString &username)
 {
 	Q_ASSERT(dbMain);
 
 	LOG_CTRACE("client") << "Get credential for" << qPrintable(username);
 
-	QDeferred<Credential> ret;
+	QDefer ret;
+	Credential returnCredential;
 
-	dbMain->worker()->execInThread([ret, username, dbMain]() mutable {
+	dbMain->worker()->execInThread([ret, username, dbMain, &returnCredential]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
 		QMutexLocker(dbMain->mutex());
@@ -453,30 +433,34 @@ QDeferred<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QString
 
 		if (!q.exec() || !q.sqlQuery().first()) {
 			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(username);
-			return ret.reject(Credential());
+			return ret.reject();
 		}
 
 		if (!q.value("active").toBool()) {
 			LOG_CDEBUG("client") << "Inactive user:" << qPrintable(username);
-			return ret.reject(Credential());
+			return ret.reject();
 		}
 
 
-		Credential c;
-		c.setUsername(username);
+		returnCredential.setUsername(username);
 
 		if (q.value("isPanel").toBool()) {
-			c.setRole(Credential::Panel);
+			returnCredential.setRole(Credential::Panel);
 		} else {
-			c.setRole(Credential::Student);
-			c.setRole(Credential::Admin, q.value("isAdmin").toBool());
-			c.setRole(Credential::Teacher, q.value("isTeacher").toBool());
+			returnCredential.setRole(Credential::Student);
+			returnCredential.setRole(Credential::Admin, q.value("isAdmin").toBool());
+			returnCredential.setRole(Credential::Teacher, q.value("isTeacher").toBool());
 		}
 
-		ret.resolve(c);
+		ret.resolve();
 	});
 
-	return ret;
+	QDefer::await(ret);
+
+	if (ret.state() == RESOLVED)
+		return returnCredential;
+	else
+		return std::nullopt;
 }
 
 
@@ -490,16 +474,16 @@ QDeferred<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QString
  */
 
 
-QDeferred<Credential> AuthAPI::authorizePlain(const Credential &credential, const QString &password) const
+bool AuthAPI::authorizePlain(const Credential &credential, const QString &password) const
 {
 	LOG_CTRACE("client") << "Authorize plain" << qPrintable(credential.username());
 
-	QDeferred<Credential> ret;
+	QDefer ret;
 
 	databaseMainWorker()->execInThread([ret, credential, password, this]() mutable {
 		if (!credential.isValid()) {
 			LOG_CWARNING("client") << "Invalid credential";
-			return ret.reject(credential);
+			return ret.reject();
 		}
 
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
@@ -512,32 +496,34 @@ QDeferred<Credential> AuthAPI::authorizePlain(const Credential &credential, cons
 
 		if (!q.exec() || !q.sqlQuery().first()) {
 			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(credential.username());
-			return ret.reject(credential);
+			return ret.reject();
 		}
 
 		if (!q.value("oauth").isNull()) {
 			LOG_CDEBUG("client") << "OAuth2 user:" << qPrintable(credential.username());
-			return ret.reject(credential);
+			return ret.reject();
 		}
 
 		const QString &storedPassword = q.value("password").toString();
 
 		if (storedPassword.isEmpty()) {
 			LOG_CDEBUG("client") << "Empty password stored for user:" << qPrintable(credential.username());
-			return ret.reject(credential);
+			return ret.reject();
 		}
 
 		const QString &hashedPassword = Credential::hashString(password, q.value("salt").toString());
 
 		if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0)
-			ret.resolve(credential);
+			ret.resolve();
 		else {
 			LOG_CDEBUG("client") << "Invalid password for user:" << qPrintable(credential.username());
-			ret.reject(credential);
+			ret.reject();
 		}
 	});
 
-	return ret;
+	QDefer::await(ret);
+
+	return (ret.state() == RESOLVED);
 }
 
 
@@ -551,16 +537,16 @@ QDeferred<Credential> AuthAPI::authorizePlain(const Credential &credential, cons
  * @return
  */
 
-QDeferred<Credential> AuthAPI::authorizeOAuth2(const Credential &credential, const char *oauthType) const
+bool AuthAPI::authorizeOAuth2(const Credential &credential, const char *oauthType) const
 {
 	LOG_CTRACE("client") << "Authorize OAuth2" << oauthType << qPrintable(credential.username());
 
-	QDeferred<Credential> ret;
+	QDefer ret;
 
 	databaseMain()->worker()->execInThread([ret, credential, oauthType, this]() mutable {
 		if (!credential.isValid()) {
 			LOG_CWARNING("client") << "Invalid credential";
-			return ret.reject(credential);
+			return ret.reject();
 		}
 
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
@@ -573,18 +559,19 @@ QDeferred<Credential> AuthAPI::authorizeOAuth2(const Credential &credential, con
 
 		if (!q.exec() || !q.sqlQuery().first()) {
 			LOG_CDEBUG("client") << "Invalid username:" << qPrintable(credential.username());
-			return ret.reject(credential);
+			return ret.reject();
 		}
 
 		if (q.value("oauth").toString() != QString::fromUtf8(oauthType)) {
 			LOG_CDEBUG("client") << "Plain (non oauth2) user:" << qPrintable(credential.username());
-			return ret.reject(credential);
+			return ret.reject();
 		}
 
-		ret.resolve(credential);
+		ret.resolve();
 	});
 
-	return ret;
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
 }
 
 

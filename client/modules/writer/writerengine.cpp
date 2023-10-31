@@ -27,6 +27,7 @@
 #include "writerengine.h"
 #include "qdebug.h"
 #include "qmath.h"
+#include "qregularexpression.h"
 #include <QRandomGenerator>
 
 WriterEngine::WriterEngine(QObject *parent)
@@ -327,7 +328,8 @@ void WriterEngine::wrong(const int &index)
 
 QString WriterEngine::displayText() const
 {
-	return m_text + m_answer.mid(m_text.size()).replace(QRegExp("\\S"), "•");
+	static const QRegularExpression regExp("\\S");
+	return m_text + m_answer.mid(m_text.size()).replace(regExp, "•");
 }
 
 

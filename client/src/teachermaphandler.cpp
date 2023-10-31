@@ -255,14 +255,13 @@ void TeacherMapHandler::mapImport(const QUrl &file)
 		return m_client->messageError(tr("A fájl nem importálható"));
 	}
 
-	bool err = false;
-	const QByteArray &b = Utils::fileContent(file.toLocalFile(), &err);
+	const auto &b = Utils::fileContent(file.toLocalFile());
 
-	if (err)
+	if (!b)
 		return m_client->messageError(tr("A fájl nem importálható"));
 
 
-	_mapImportContent(Utils::fileBaseName(file.toLocalFile()), b);
+	_mapImportContent(Utils::fileBaseName(file.toLocalFile()), *b);
 }
 
 

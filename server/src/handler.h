@@ -46,10 +46,10 @@ public:
 	explicit Handler(ServerService *service, QObject *parent = nullptr);
 	virtual ~Handler();
 
-	std::optional<QHttpServer *> httpServer() const;
+	std::weak_ptr<QHttpServer> httpServer() const;
 	bool loadRoutes();
 
-	std::shared_ptr<AbstractAPI> api(const char *api) const;
+	AbstractAPI *api(const char *api) const;
 
 	std::optional<Credential> authorizeRequest(const QHttpServerRequest &request) const;
 	std::optional<Credential> authorizeRequestLog(const QHttpServerRequest &request) const;
@@ -58,11 +58,13 @@ public:
 private:
 	QHttpServerResponse getFavicon(const QHttpServerRequest &request);
 	QHttpServerResponse getStaticContent(const QHttpServerRequest &request);
-	void addApi(const std::shared_ptr<AbstractAPI> &api);
+	QHttpServerResponse getCallback(const QHttpServerRequest &request);
+
+	void addApi(AbstractAPI *api);
 
 	ServerService *m_service = nullptr;
 
-	QMap<const char*, std::shared_ptr<AbstractAPI>> m_apis;
+	QMap<const char*, AbstractAPI*> m_apis;
 };
 
 #endif // HANDLER_H

@@ -154,8 +154,8 @@ Application::~Application()
 		delete m_client;
 	m_client = nullptr;
 
-	delete m_application;
-	m_application = nullptr;
+	/*delete m_application;
+	m_application = nullptr;*/
 
 	m_instance = nullptr;
 }

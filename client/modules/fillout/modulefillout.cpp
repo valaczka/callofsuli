@@ -171,13 +171,15 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	int _cptrd = 0;
 
 
+	static const QRegularExpression regExp("\\s+");
+
 	while (i.hasNext())
 	{
 		QRegularExpressionMatch match = i.next();
 
 		int _s = match.capturedStart();
 		if (_s > _cptrd) {
-			foreach (QString s, text.mid(_cptrd, _s-_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+			foreach (QString s, text.mid(_cptrd, _s-_cptrd).split(regExp, Qt::SkipEmptyParts))
 				items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
 		}
 		_cptrd = match.capturedStart()+match.capturedLength();
@@ -188,7 +190,7 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	}
 
 
-	foreach (QString s, text.mid(_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+	foreach (QString s, text.mid(_cptrd).split(regExp, Qt::SkipEmptyParts))
 		items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
 
 

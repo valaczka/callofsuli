@@ -33,18 +33,19 @@
 class AuthAPI : public AbstractAPI
 {
 public:
-	AuthAPI(ServerService *service);
+	AuthAPI(Handler *handler, ServerService *service);
+	virtual ~AuthAPI() {}
 
-	void login(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void loginOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	QHttpServerResponse login(const QJsonObject &data) const;
+	QHttpServerResponse loginOAuth2(const QString &provider, const QJsonObject &data) const;
 
-	void registration(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void registrationOAuth2(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
+	QHttpServerResponse registration(const QJsonObject &data) const;
+	QHttpServerResponse registrationOAuth2(const QString &provider, const QJsonObject &data) const;
 
-	QDeferred<Credential> getCredential(const QString &username) const;
-	static QDeferred<Credential> getCredential(DatabaseMain *dbMain, const QString &username);
-	QDeferred<Credential> authorizePlain(const Credential &credential, const QString &password) const;
-	QDeferred<Credential> authorizeOAuth2(const Credential &credential, const char *oauthType) const;
+	std::optional<Credential> getCredential(const QString &username) const;
+	static std::optional<Credential> getCredential(DatabaseMain *dbMain, const QString &username);
+	bool authorizePlain(const Credential &credential, const QString &password) const;
+	bool authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 
 	QJsonObject getToken(const Credential &credential) const;
 

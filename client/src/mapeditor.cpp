@@ -363,13 +363,12 @@ void MapEditor::openFile(const QUrl &file, const bool &fromBackup)
 	if (fromBackup)
 		fname.append(m_backupSuffix);
 
-	bool err = false;
-	const QByteArray &b = Utils::fileContent(fname, &err);
+	const auto &b = Utils::fileContent(fname);
 
-	if (err)
+	if (!b)
 		return m_client->messageError(tr("Nem lehet megnyitni a fájlt!"), tr("Pályaszerkesztő"));
 
-	if (!loadFromBinaryData(b))
+	if (!loadFromBinaryData(*b))
 		return m_client->messageError(tr("Érvénytelen fájl!"), tr("Pályaszerkesztő"));
 
 	m_currentFileName = file.toLocalFile();
@@ -1376,17 +1375,16 @@ MapEditorImage *MapEditor::uploadImage(const QUrl &url)
 	if (!m_map)
 		return nullptr;
 
-	bool err = false;
-	const QByteArray &data = Utils::fileContent(url.toLocalFile(), &err);
+	const auto &data = Utils::fileContent(url.toLocalFile());
 
-	if (err) {
+	if (!data) {
 		m_client->messageError(tr("Nem olvasható a fájl:\n").append(url.toLocalFile()));
 		return nullptr;
 	}
 
 	MapEditorImage *i = new MapEditorImage(m_map);
 	i->setId(m_map->nextIndexImage());
-	i->setData(data);
+	i->setData(*data);
 
 	m_map->imageList()->append(i);
 	return i;
@@ -1432,10 +1430,9 @@ QVariantList MapEditor::uploadImageDirectory(const QUrl &url)
 		if (f.isEmpty())
 			continue;
 
-		bool err = false;
-		const QByteArray &data = Utils::fileContent(d, &err);
+		const auto &data = Utils::fileContent(d);
 
-		if (err) {
+		if (!data) {
 			m_client->messageError(tr("Nem olvasható a fájl:\n").append(d));
 			success = false;
 			break;
@@ -1443,7 +1440,7 @@ QVariantList MapEditor::uploadImageDirectory(const QUrl &url)
 
 		MapEditorImage *i = new MapEditorImage(m_map);
 		i->setId(m_map->nextIndexImage());
-		i->setData(data);
+		i->setData(*data);
 
 		imageList.append({ Utils::fileBaseName(d), i});
 	}
@@ -2201,13 +2198,12 @@ void MapEditor::chapterImport(const QUrl &url)
 #else
 	const QString &fname = url.toLocalFile();
 
-	bool err = false;
-	const QByteArray &b = Utils::fileContent(fname, &err);
+	const auto &b = Utils::fileContent(fname);
 
-	if (err)
+	if (!b)
 		return m_client->messageError(tr("Nem lehet megnyitni a fájlt!"), tr("Pályaszerkesztő"));
 
-	chapterImportData(b);
+	chapterImportData(*b);
 #endif
 }
 

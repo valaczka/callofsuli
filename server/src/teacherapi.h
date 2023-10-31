@@ -34,8 +34,8 @@
 class TeacherAPI : public AbstractAPI
 {
 public:
-	TeacherAPI(ServerService *service);
-
+	TeacherAPI(Handler *handler, ServerService *service);
+	virtual ~TeacherAPI() {}
 
 	/**
 	 * @brief The UserCampaignResult class
@@ -47,7 +47,6 @@ public:
 		int xp = 0;
 		QJsonArray tasks;
 	};
-
 
 
 	/**
@@ -65,97 +64,63 @@ public:
 
 
 
+	QHttpServerResponse groups(const Credential &credential);
+	QHttpServerResponse group(const Credential &credential, const int &id);
+	QHttpServerResponse groupCreate(const Credential &credential, const QJsonObject &json);
+	QHttpServerResponse groupUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse groupDelete(const Credential &credential, const QJsonArray &list);
+
+	QHttpServerResponse groupClassAdd(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse groupClassRemove(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse groupClassExclude(const Credential &credential, const int &id);
+
+	QHttpServerResponse groupUserAdd(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse groupUserRemove(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse groupUserExclude(const Credential &credential, const int &id);
+
+	QHttpServerResponse groupResult(const Credential &credential, const int &id);
+	QHttpServerResponse groupUserResult(const Credential &credential, const int &id, const QString &username, const QJsonObject &json);
+	QHttpServerResponse groupGameLog(const Credential &credential, const int &id, const QJsonObject &json);
+
+	QHttpServerResponse map(const Credential &credential, const QString &uuid = QStringLiteral(""));
+	QHttpServerResponse mapCreate(const Credential &credential, const QByteArray &body, const QString &name = QStringLiteral(""));
+	QHttpServerResponse mapUpdate(const Credential &credential, const QString &uuid, const QJsonObject &json);
+	QHttpServerResponse mapPublish(const Credential &credential, const QString &uuid, const int &version);
+	QHttpServerResponse mapDelete(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse mapDeleteDraft(const Credential &credential, const QString &uuid, const int &version);
+	QHttpServerResponse mapUpload(const Credential &credential, const QString &uuid, const int &version, const QByteArray &body);
+	QHttpServerResponse mapContent(const Credential &credential, const QString &uuid, const int &draftVersion = -1);
+
+
+
+
+	// Static members
+
 	static QString mapMd5(GameMap *map);
 	static QString mapMd5(const QByteArray &data);
 	static QJsonObject mapCache(GameMap *map);
 	static QString mapCacheString(GameMap *map);
 
-	void groupOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void groupCreate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void groupUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void groupDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		groupDelete({match.captured(1).toInt()}, response);
-	}
-	void groupDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		groupDelete(data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void groupDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
+	static std::optional<UserCampaignResult> _campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
+												  const QString &username, const bool &withCriterion = false);
+	static std::optional<UserCampaignResult> _campaignUserResult(const DatabaseMain *dbMain, const int &campaign, const bool &finished,
+												  const QString &username, const bool &withCriterion = false);
+
+	static std::optional<QJsonArray> _campaignUserGameResult(const AbstractAPI *api, const int &campaign, const QString &username,
+											  const int &limit = DEFAULT_LIMIT, const int &offset = 0);
+	static std::optional<QJsonArray> _groupUserGameResult(const AbstractAPI *api, const int &group, const QString &username,
+										   const int &limit = DEFAULT_LIMIT, const int &offset = 0);
+	static std::optional<QJsonArray> _groupGameResult(const AbstractAPI *api, const int &group,
+									   const int &limit = DEFAULT_LIMIT, const int &offset = 0);
+
+
+private:
+	QJsonObject _task(const int &id) const;
+	QJsonArray _taskList(const int &campaign) const;
 
 
 
-	void groupClassAddOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		groupClassAdd(match.captured(1).toInt(), {match.captured(2).toInt()}, response);
-	}
-	void groupClassAdd(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		groupClassAdd(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void groupClassAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-
-	void groupClassRemoveOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		groupClassRemove(match.captured(1).toInt(), {match.captured(2).toInt()}, response);
-	}
-	void groupClassRemove(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		groupClassRemove(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void groupClassRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-	void groupClassExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-
-
-
-	void groupUserAddOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		groupUserAdd(match.captured(1).toInt(), {match.captured(2)}, response);
-	}
-	void groupUserAdd(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		groupUserAdd(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void groupUserAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-
-	void groupUserRemoveOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		groupUserRemove(match.captured(1).toInt(), {match.captured(2)}, response);
-	}
-	void groupUserRemove(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		groupUserRemove(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void groupUserRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-	void groupUserExclude(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-
-	void groupResult(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void groupUserResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void groupGameLog(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
-
-	void panelOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void panels(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void panelGrab(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void panelRelease(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void panelUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
-
-
-	void mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void mapOneContent(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		mapContent(match.captured(1), response, -1);
-	};
-	void mapOneDraft(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		mapContent(match.captured(1), response, match.captured(2).toInt());
-	};
-	void mapContent(const QString &uuid, const QPointer<HttpResponse> &response, const int &draftVersion) const;
-	void maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void mapUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void mapPublish(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void mapDeleteDraft(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void mapDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		mapDelete({match.captured(1)}, response);
-	}
-	void mapDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		mapDelete(data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void mapDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-
-	void mapCreate(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const;
-	void mapUpload(const QRegularExpressionMatch &match, HttpRequest *request, QPointer<HttpResponse> response) const;
-
+#if _COMPAT
 
 
 	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
@@ -211,18 +176,7 @@ public:
 
 
 	// Run in database worker thread
-	QJsonObject _task(const int &id) const;
-	QJsonArray _taskList(const int &campaign) const;
-	static UserCampaignResult _campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
-												  const QString &username, const bool &withCriterion = false, bool *err = nullptr);
-	static UserCampaignResult _campaignUserResult(const DatabaseMain *dbMain, const int &campaign, const bool &finished,
-												  const QString &username, const bool &withCriterion = false, bool *err = nullptr);
-	static QJsonArray _campaignUserGameResult(const AbstractAPI *api, const int &campaign, const QString &username,
-											  const int &limit = DEFAULT_LIMIT, const int &offset = 0, bool *err = nullptr);
-	static QJsonArray _groupUserGameResult(const AbstractAPI *api, const int &group, const QString &username,
-										   const int &limit = DEFAULT_LIMIT, const int &offset = 0, bool *err = nullptr);
-	static QJsonArray _groupGameResult(const AbstractAPI *api, const int &group,
-									   const int &limit = DEFAULT_LIMIT, const int &offset = 0, bool *err = nullptr);
+
 
 	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, bool *err = nullptr);
 	static bool _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username, bool *err = nullptr);
@@ -230,6 +184,7 @@ public:
 										  const QString &username, bool *err = nullptr);
 	static bool _evaluateCriterionMapMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
 											 const QString &username, bool *err = nullptr);
+#endif
 
 };
 

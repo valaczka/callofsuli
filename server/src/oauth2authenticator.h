@@ -57,7 +57,7 @@ public:
 
 	OAuth2CodeFlow *addCodeFlow();
 	void removeCodeFlow(OAuth2CodeFlow *flow);
-	OAuth2CodeFlow *getCodeFlowForState(const QString &status) const;
+	std::weak_ptr<OAuth2CodeFlow> getCodeFlowForState(const QString &status) const;
 
 	const ServerSettings::OAuth &oauth() const;
 	void setOAuth(const ServerSettings::OAuth &newOauth);
@@ -68,16 +68,17 @@ public:
 
 	virtual AdminAPI::User getUserInfoFromIdToken(const QJsonObject &data) const;
 
-
+	static const char *callbackPath();
 
 protected:
-	QVector<QPointer<OAuth2CodeFlow>> m_codeFlowList;
-	OAuth2ReplyHandler *const m_handler = nullptr;
+	QVector<std::shared_ptr<OAuth2CodeFlow> > m_codeFlowList;
+	std::unique_ptr<OAuth2ReplyHandler> m_handler = nullptr;
 	ServerSettings::OAuth m_oauth;
 
 private:
 	const char* m_type = "";
 	ServerService *const m_service = nullptr;
+	static const char* m_callbackPath;
 };
 
 

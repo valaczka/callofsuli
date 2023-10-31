@@ -1353,10 +1353,13 @@ QVariantMap Client::availableCharacters() const
 	const QStringList &l = ActionGame::availableCharacters();
 
 	foreach (const QString &s, l) {
-		const QJsonObject &obj = Utils::fileToJsonObject(QStringLiteral(":/character/%1/data.json").arg(s));
+		const auto &obj = Utils::fileToJsonObject(QStringLiteral(":/character/%1/data.json").arg(s));
+
+		if (!obj)
+			continue;
 
 		QVariantMap m;
-		m[QStringLiteral("name")] = obj.contains(QStringLiteral("name")) ? obj.value(QStringLiteral("name")).toString() : s;
+		m[QStringLiteral("name")] = obj->contains(QStringLiteral("name")) ? obj->value(QStringLiteral("name")).toString() : s;
 		ret.insert(s, m);
 	}
 

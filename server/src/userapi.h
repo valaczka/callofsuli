@@ -33,7 +33,19 @@
 class UserAPI : public AbstractAPI
 {
 public:
-	UserAPI(ServerService *service);
+	UserAPI(Handler *handler, ServerService *service);
+	virtual ~UserAPI() {}
+
+	QHttpServerResponse update(const Credential &credential, const QJsonObject &json);
+	QHttpServerResponse password(const Credential &credential, const QJsonObject &json);
+
+	QHttpServerResponse group(const Credential &credential);
+	QHttpServerResponse groupScore(const int &id);
+
+	QHttpServerResponse campaigns(const Credential &credential);
+	QHttpServerResponse campaign(const Credential &credential, const int &id);
+	QHttpServerResponse campaignResult(const Credential &credential, const int &id, const QJsonObject &json);
+
 
 	static QDeferred<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
 	static QDeferred<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
@@ -42,19 +54,13 @@ public:
 	static int _solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
 						   const int &level, const bool &deathmatch);
 
-	static QDeferred<QJsonArray> getGroupScore(const DatabaseMain *database, const int &id);
+	static std::optional<QJsonArray> getGroupScore(const DatabaseMain *database, const int &id);
 
+#ifdef _COMPAT
 
-
-	void groups(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void groupScore(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void groupScoreLive(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 
-	void update(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void password(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
-	void campaigns(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
 	void campaignResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
 
 	void maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
@@ -69,6 +75,7 @@ public:
 	void inventory(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 	void _addStatistics(const QJsonArray &list) const;
+#endif
 };
 
 #endif // USERAPI_H

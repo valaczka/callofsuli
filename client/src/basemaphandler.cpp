@@ -48,7 +48,11 @@ BaseMapHandler::BaseMapHandler(const QString &subdirName, QObject *parent)
 
 bool BaseMapHandler::hasDownloaded(const BaseMap *map) const
 {
-	return checkDownload(map, readFromMap(map));
+	const auto &c = readFromMap(map);
+	if (c)
+		return checkDownload(map, *c);
+	else
+		return false;
 }
 
 
@@ -122,11 +126,11 @@ void BaseMapHandler::reload()
  * @return
  */
 
-QByteArray BaseMapHandler::read(BaseMap *map) const
+std::optional<QByteArray> BaseMapHandler::read(BaseMap *map) const
 {
 	if (!map) {
 		LOG_CERROR("client") << "Invalid map";
-		return QByteArray();
+		return std::nullopt;
 	}
 
 	return loadAndCheck(map);
@@ -214,28 +218,27 @@ bool BaseMapHandler::checkAndSave(BaseMap *map, const QByteArray &data) const
  * @return
  */
 
-QByteArray BaseMapHandler::readFromMap(const BaseMap *map) const
+std::optional<QByteArray> BaseMapHandler::readFromMap(const BaseMap *map) const
 {
 	if (!map || !m_client->server())
-		return QByteArray();
+		return std::nullopt;
 
 	QDir dir = m_client->server()->directory();
 
 	if (!dir.cd(m_subdirName))
-		return QByteArray();
+		return std::nullopt;
 
 
 	const QString filename = QStringLiteral("%1.map").arg(map->uuid());
 
 	if (!dir.exists(filename))
-		return QByteArray();
+		return std::nullopt;
 
-	bool err = false;
-	const QByteArray &b = Utils::fileContent(dir.absoluteFilePath(filename), &err);
+	const auto &b = Utils::fileContent(dir.absoluteFilePath(filename));
 
-	if (err) {
+	if (!b) {
 		m_client->messageError(tr("Nem olvasható fájl"), tr("Belső hiba"));
-		return QByteArray();
+		return std::nullopt;
 	}
 
 	return b;
@@ -251,16 +254,17 @@ QByteArray BaseMapHandler::readFromMap(const BaseMap *map) const
  * @return
  */
 
-QByteArray BaseMapHandler::loadAndCheck(const BaseMap *map) const
+std::optional<QByteArray> BaseMapHandler::loadAndCheck(const BaseMap *map) const
 {
 	Q_ASSERT(map);
 
-	const QByteArray &b = readFromMap(map);
-	if (checkDownload(map, b))
-		return qUncompress(b);
+	const auto &b = readFromMap(map);
+
+	if (b && checkDownload(map, *b))
+		return qUncompress(*b);
 	else {
 		LOG_CWARNING("client") << "Map check failed";
-		return QByteArray();
+		return std::nullopt;
 	}
 }
 

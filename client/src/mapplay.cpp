@@ -119,7 +119,8 @@ bool MapPlay::loadFromBinaryData(const QByteArray &data)
 
 bool MapPlay::loadFromFile(const QString &filename)
 {
-	return loadFromBinaryData(Utils::fileContent(filename));
+	const auto &c = Utils::fileContent(filename);
+	return c ? loadFromBinaryData(*c) : false;
 }
 
 

@@ -205,10 +205,12 @@ bool DesktopApplication::performCommandLine()
 {
 	if (m_commandLine == License)
 	{
-		const QByteArray &b = Utils::fileContent(QStringLiteral(":/license.txt"));
+		const auto &b = Utils::fileContent(QStringLiteral(":/license.txt"));
 
+		if (b) {
 		QTextStream out(stdout);
-		out << b << Qt::endl;
+		out << *b << Qt::endl;
+		}
 
 		return false;
 	}

@@ -69,14 +69,14 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 	if (!m_client)
 		return false;
 
-	const QByteArray &data = m_handler->read(map);
+	const auto &data = m_handler->read(map);
 
-	if (data.isEmpty()) {
+	if (!data) {
 		m_client->messageWarning(tr("A pálya még nincs letöltve!"), tr("Hiba"));
 		return false;
 	}
 
-	if (!loadFromBinaryData(data)) {
+	if (!loadFromBinaryData(*data)) {
 		m_client->messageWarning(tr("Nem lehet betölteni a pályát!"), tr("Belső hiba"));
 		return false;
 	}

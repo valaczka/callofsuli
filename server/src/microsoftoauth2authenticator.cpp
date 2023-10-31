@@ -75,14 +75,14 @@ bool MicrosoftOAuth2Authenticator::parseResponse(const QUrlQuery &query)
 		return false;
 	}
 
-	OAuth2CodeFlow *flow = getCodeFlowForState(receivedState);
+	OAuth2CodeFlow *flow = getCodeFlowForState(receivedState).lock().get();
 
 
 	if (flow) {
 		flow->requestAccesToken(code);
 		return true;
 	} else {
-		LOG_CTRACE("oauth2") << "Flow not found" << flow;
+		LOG_CDEBUG("oauth2") << "Flow not found" << flow;
 		return false;
 	}
 }

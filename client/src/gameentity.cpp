@@ -107,13 +107,12 @@ bool GameEntity::loadFromJsonFile()
 
 bool GameEntity::loadFromJsonFile(const QString &filename)
 {
-	bool error = false;
+	const auto &content = Utils::fileToJsonObject(filename);
 
-	m_dataObject = Utils::fileToJsonObject(filename, &error);
-
-
-	if (error)
+	if (!content)
 		return false;
+
+	m_dataObject = *content;
 
 	LOG_CDEBUG("scene") << "Load entity data from:" << filename;
 

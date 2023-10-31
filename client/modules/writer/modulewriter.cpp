@@ -448,6 +448,7 @@ QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVari
 
 		int _cptrd = 0;
 
+		static const QRegularExpression regExp("\\s+");
 
 		while (i.hasNext())
 		{
@@ -455,7 +456,7 @@ QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVari
 
 			int _s = match.capturedStart();
 			if (_s > _cptrd) {
-				foreach (QString s, text.mid(_cptrd, _s-_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+				foreach (QString s, text.mid(_cptrd, _s-_cptrd).split(regExp, Qt::SkipEmptyParts))
 					items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
 			}
 			_cptrd = match.capturedStart()+match.capturedLength();
@@ -466,7 +467,7 @@ QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVari
 		}
 
 
-		foreach (QString s, text.mid(_cptrd).split(QRegExp("\\s+"), Qt::SkipEmptyParts))
+		foreach (QString s, text.mid(_cptrd).split(regExp, Qt::SkipEmptyParts))
 			items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
 
 

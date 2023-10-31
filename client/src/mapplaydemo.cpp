@@ -80,7 +80,7 @@ void MapPlayDemo::solverLoad()
 	if (!m_gameMap || !m_solver)
 		return;
 
-	const QJsonObject &object = Utils::fileToJsonObject(m_file);
+	const QJsonObject &object = Utils::fileToJsonObject(m_file).value_or(QJsonObject{});
 
 	for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
 		const QString &uuid = it.key();
@@ -110,7 +110,7 @@ void MapPlayDemo::solverSave()
 	if (!m_gameMap)
 		return;
 
-	QJsonObject object = Utils::fileToJsonObject(m_file);
+	QJsonObject object = Utils::fileToJsonObject(m_file).value_or(QJsonObject{});
 
 	for (const MapPlayMission *mission: *m_missionList) {
 		object.insert(mission->mission()->uuid(), mission->toSolverInfo().toJsonObject());

@@ -347,7 +347,7 @@ void TestGame::resultoToTextDocument(QTextDocument *document) const
 	QFont font(QStringLiteral("Rajdhani"), 14);
 
 	document->setDefaultFont(font);
-	document->setDefaultStyleSheet(Utils::fileContent(QStringLiteral(":/gametest.css")));
+	document->setDefaultStyleSheet(Utils::fileContent(QStringLiteral(":/gametest.css")).value_or(QByteArrayLiteral("")));
 
 
 	document->setHtml(questionDataResultToHtml(m_result));

@@ -217,7 +217,7 @@ public:
 	bool exec();
 	std::optional<QJsonArray> execToJsonArray();
 	std::optional<QJsonObject> execToJsonObject();
-	std::optional<bool> execCheckExists();
+	bool execCheckExists();
 	std::optional<QVariant> execInsert();
 	std::optional<int> execInsertAsInt();
 
