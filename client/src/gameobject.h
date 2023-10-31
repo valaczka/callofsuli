@@ -63,6 +63,19 @@
 class GameScene;
 class ActionGame;
 
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_GameScene
+#define OPAQUE_PTR_GameScene
+  Q_DECLARE_OPAQUE_POINTER(GameScene*)
+#endif
+
+#ifndef OPAQUE_PTR_ActionGame
+#define OPAQUE_PTR_ActionGame
+  Q_DECLARE_OPAQUE_POINTER(ActionGame*)
+#endif
+
+#endif
 
 /**
  * @brief The GameObject class

@@ -26,7 +26,7 @@
 
 #include "teachermaphandler.h"
 #include "gamemap.h"
-#include "utils.h"
+#include "utils_.h"
 
 #ifdef Q_OS_WASM
 #include "onlineclient.h"

@@ -39,6 +39,15 @@
 
 class GamePlayer;
 
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_GamePlayer
+#define OPAQUE_PTR_GamePlayer
+  Q_DECLARE_OPAQUE_POINTER(GamePlayer*)
+#endif
+
+#endif
+
 class GameEnemy : public GameEntity
 {
 	Q_OBJECT

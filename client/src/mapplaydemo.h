@@ -28,7 +28,7 @@
 #define MAPPLAYDEMO_H
 
 #include "mapplay.h"
-#include "utils.h"
+#include "utils_.h"
 
 class MapPlayDemo : public MapPlay
 {

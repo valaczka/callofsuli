@@ -33,10 +33,23 @@
 #include <QStack>
 #include "gameladder.h"
 #include "gameterrainmap.h"
-#include "qtimer.h"
 
 class ActionGame;
 class GameObject;
+
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_ActionGame
+#define OPAQUE_PTR_ActionGame
+  Q_DECLARE_OPAQUE_POINTER(ActionGame*)
+#endif
+
+#ifndef OPAQUE_PTR_GameObject
+#define OPAQUE_PTR_GameObject
+  Q_DECLARE_OPAQUE_POINTER(GameObject*)
+#endif
+
+#endif
 
 #define TIMING_TIMER_TIMEOUT_MSEC	30
 

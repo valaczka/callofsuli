@@ -29,7 +29,7 @@
 #include "litegame.h"
 #include "mapimage.h"
 #include "testgame.h"
-#include "utils.h"
+#include "utils_.h"
 #include "application.h"
 #include "gamemap.h"
 #include "gameterrain.h"

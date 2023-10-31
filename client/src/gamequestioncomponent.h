@@ -31,6 +31,19 @@
 
 class GameQuestion;
 
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_GameQuestion
+#define OPAQUE_PTR_GameQuestion
+  Q_DECLARE_OPAQUE_POINTER(GameQuestion*)
+#endif
+
+#endif
+
+/**
+ * @brief The GameQuestionComponent class
+ */
+
 class GameQuestionComponent : public QQuickItem
 {
 	Q_OBJECT

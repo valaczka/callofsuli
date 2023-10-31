@@ -27,7 +27,7 @@
 #include "scorelist.h"
 #include "application.h"
 #include "user.h"
-#include "utils.h"
+#include "utils_.h"
 
 
 /**
@@ -184,7 +184,7 @@ void ScoreList::loadFromJson(const QJsonObject &obj)
 {
 	m_originalModel.clear();
 
-	foreach (const QJsonValue &v, obj.value(QStringLiteral("list")).toArray()) {
+	for (const QJsonValue &v : obj.value(QStringLiteral("list")).toArray()) {
 		User u;
 		u.loadFromJson(v.toObject());
 		m_originalModel.append(u.toVariantMap());

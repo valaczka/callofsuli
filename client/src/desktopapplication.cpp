@@ -28,7 +28,7 @@
 #include "ColorConsoleAppender.h"
 #include "desktopapplication.h"
 #include "standaloneclient.h"
-#include "utils.h"
+#include "utils_.h"
 
 #ifdef Q_OS_WIN
 #include <Windows.h>

@@ -28,7 +28,6 @@
 #define CLIENT_H
 
 #include "clientcache.h"
-#include "qnetworkaccessmanager.h"
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
@@ -37,6 +36,7 @@
 #include "eventstream.h"
 #include <QAbstractSocket>
 #include <QNetworkReply>
+#include "QQuickWindow"
 
 class Application;
 class AbstractGame;
@@ -44,6 +44,30 @@ class WebSocket;
 class Updater;
 class Utils;
 
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_AbstractGame
+#define OPAQUE_PTR_AbstractGame
+  Q_DECLARE_OPAQUE_POINTER(AbstractGame*)
+#endif
+
+#ifndef OPAQUE_PTR_Updater
+#define OPAQUE_PTR_Updater
+  Q_DECLARE_OPAQUE_POINTER(Updater*)
+#endif
+
+#ifndef OPAQUE_PTR_WebSocket
+#define OPAQUE_PTR_WebSocket
+  Q_DECLARE_OPAQUE_POINTER(WebSocket*)
+#endif
+
+
+#ifndef OPAQUE_PTR_Utils
+#define OPAQUE_PTR_Utils
+  Q_DECLARE_OPAQUE_POINTER(Utils*)
+#endif
+
+#endif
 
 /**
  * @brief The Client class

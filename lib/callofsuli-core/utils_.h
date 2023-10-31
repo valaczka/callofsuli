@@ -24,8 +24,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef UTILS__H
+#define UTILS__H
 
 #include "qloggingcategory.h"
 #include <QObject>
@@ -64,7 +64,11 @@ public:
 	explicit Utils(QObject *parent = nullptr);
 	virtual ~Utils();
 
-	Q_INVOKABLE static std::optional<QByteArray> fileContent(const QString &filename);
+	static std::optional<QByteArray> fileContent(const QString &filename);
+	Q_INVOKABLE static QByteArray fileContentRead(const QString &filename) {
+		return fileContent(filename).value_or(QByteArray{});
+	}
+
 	Q_INVOKABLE static QString fileBaseName(const QString &filename);
 	Q_INVOKABLE static bool fileExists(const QUrl &file);
 
@@ -75,13 +79,13 @@ public:
 	Q_INVOKABLE static bool jsonArrayToFile(const QJsonArray &array, const QString &filename,
 											const QJsonDocument::JsonFormat &format = QJsonDocument::Indented);
 
-	Q_INVOKABLE static std::optional<QJsonDocument> byteArrayToJsonDocument(const QByteArray &data);
-	Q_INVOKABLE static std::optional<QJsonObject> byteArrayToJsonObject(const QByteArray &data);
-	Q_INVOKABLE static std::optional<QJsonArray> byteArrayToJsonArray(const QByteArray &data);
+	static std::optional<QJsonDocument> byteArrayToJsonDocument(const QByteArray &data);
+	static std::optional<QJsonObject> byteArrayToJsonObject(const QByteArray &data);
+	static std::optional<QJsonArray> byteArrayToJsonArray(const QByteArray &data);
 
-	Q_INVOKABLE static std::optional<QJsonDocument> fileToJsonDocument(const QString &filename);
-	Q_INVOKABLE static std::optional<QJsonObject> fileToJsonObject(const QString &filename);
-	Q_INVOKABLE static std::optional<QJsonArray> fileToJsonArray(const QString &filename);
+	static std::optional<QJsonDocument> fileToJsonDocument(const QString &filename);
+	static std::optional<QJsonObject> fileToJsonObject(const QString &filename);
+	static std::optional<QJsonArray> fileToJsonArray(const QString &filename);
 
 	Q_INVOKABLE static QColor colorSetAlpha(QColor color, const qreal &alpha);
 
@@ -159,4 +163,4 @@ private:
 };
 
 
-#endif // UTILS_H
+#endif // UTILS__H

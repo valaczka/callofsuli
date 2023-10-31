@@ -33,7 +33,7 @@
 #include "question.h"
 #include "abstractlevelgame.h"
 #include "gameterrain.h"
-#include "utils.h"
+#include "utils_.h"
 
 #ifdef Q_OS_WASM
 #include "onlineclient.h"

@@ -24,7 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "utils.h"
+#include "utils_.h"
 #include "Logger.h"
 #include "qdesktopservices.h"
 #include "qdir.h"

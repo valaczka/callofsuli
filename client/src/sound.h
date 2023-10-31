@@ -80,6 +80,10 @@ private:
 	QVariantAnimation *m_fadeAnimation = nullptr;
 	int m_musicVolume;
 
+#if QT_VERSION >= 0x060000
+	QAudioOutput *m_audioOutput = nullptr;
+#endif
+
 	friend class StandaloneClient;
 };
 

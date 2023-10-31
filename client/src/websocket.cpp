@@ -31,7 +31,7 @@
 #include "qnetworkreply.h"
 #include "Logger.h"
 #include "qtimer.h"
-#include "utils.h"
+#include "utils_.h"
 #include "server.h"
 
 WebSocket::WebSocket(Client *client)

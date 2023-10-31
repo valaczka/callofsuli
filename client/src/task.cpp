@@ -288,7 +288,7 @@ QString Task::readableCriterion(BaseMapList *mapList, Campaign *campaign) const
 
 			if (m) {
 				const QJsonArray &list = m->cache().value(QStringLiteral("missions")).toArray();
-				foreach (const QJsonValue &v, list) {
+				for (const QJsonValue &v : qAsConst(list)) {
 					const QJsonObject &o = v.toObject();
 					if (o.value(QStringLiteral("uuid")).toString() == mission) {
 						missionName = o.value(QStringLiteral("name")).toString();
@@ -341,7 +341,7 @@ QString Task::readableShortCriterion(BaseMapList *mapList, Campaign *campaign) c
 
 			if (m) {
 				const QJsonArray &list = m->cache().value(QStringLiteral("missions")).toArray();
-				foreach (const QJsonValue &v, list) {
+				for (const QJsonValue &v : qAsConst(list)) {
 					const QJsonObject &o = v.toObject();
 					if (o.value(QStringLiteral("uuid")).toString() == mission) {
 						missionName = o.value(QStringLiteral("name")).toString();

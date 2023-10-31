@@ -38,6 +38,20 @@
 class GamePlayer;
 class GameEnemy;
 
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_GamePlayer
+#define OPAQUE_PTR_GamePlayer
+  Q_DECLARE_OPAQUE_POINTER(GamePlayer*)
+#endif
+
+#ifndef OPAQUE_PTR_GameEnemy
+#define OPAQUE_PTR_GameEnemy
+  Q_DECLARE_OPAQUE_POINTER(GameEnemy*)
+#endif
+
+#endif
+
 #define ACTION_GAME_BASE_XP		10
 #define ACTION_GAME_ENEMY_KILL_XP	5
 

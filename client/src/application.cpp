@@ -48,7 +48,7 @@
 #include "testgame.h"
 #include "userimporter.h"
 #include "userloglist.h"
-#include "utils.h"
+#include "utils_.h"
 #include "updater.h"
 #include "server.h"
 #include <QFontDatabase>
@@ -303,7 +303,7 @@ bool Application::loadResources()
 	searchList.append(binDir+"/../../callofsuli/share");
 	searchList.append(binDir+"/../../../callofsuli/share");
 #endif
-	searchList.append(QStandardPaths::standardLocations(QStandardPaths::DataLocation));
+	searchList.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
 
 	searchList.removeDuplicates();
 #endif

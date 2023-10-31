@@ -52,7 +52,7 @@ QPage {
 			Qaterial.LabelBody2 {
 				width: parent.width
 				wrapMode: Text.Wrap
-				text: Client.Utils.fileContent(":/CREDITS.md")
+				text: Client.Utils.fileContentRead(":/CREDITS.md")
 				textFormat: Text.MarkdownText
 				bottomPadding: 15
 
@@ -70,7 +70,7 @@ QPage {
 			Qaterial.LabelBody2 {
 				width: parent.width
 				wrapMode: Text.Wrap
-				text: Client.Utils.fileContent(":/license.txt")
+				text: Client.Utils.fileContentRead(":/license.txt")
 				textFormat: Text.MarkdownText
 				bottomPadding: 15
 

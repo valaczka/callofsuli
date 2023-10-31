@@ -45,7 +45,7 @@
 	url = https://github.com/valaczka/QOlm.git
 [submodule "lib/qsyncable"]
 	path = lib/qsyncable
-	url = https://github.com/benlau/qsyncable.git
+	url = https://github.com/valaczka/qsyncable.git
 [submodule "lib/QSingleInstance"]
 	path = lib/QSingleInstance
 	url = https://github.com/valaczka/QSingleInstance.git

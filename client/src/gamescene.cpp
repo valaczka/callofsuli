@@ -36,7 +36,7 @@
 #include "libtiled/mapobject.h"
 #include "libtiled/objectgroup.h"
 #include "server.h"
-#include "utils.h"
+#include "utils_.h"
 #include <QRandomGenerator>
 
 #ifndef Q_OS_WASM

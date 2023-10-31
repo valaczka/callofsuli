@@ -34,7 +34,11 @@
 
 #include "sound.h"
 #include <QSettings>
+#if QT_VERSION < 0x060000
 #include <QMediaPlaylist>
+#else
+#include <QAudioOutput>
+#endif
 #include <Logger.h>
 
 Sound::Sound(QObject *parent)
@@ -102,20 +106,35 @@ void Sound::init()
 	m_mediaPlayerSfx = new QMediaPlayer(this);
 	m_mediaPlayerVoiceOver = new QMediaPlayer(this);
 
+#if QT_VERSION >= 0x060000
+	m_audioOutput = new QAudioOutput(this);
+	m_mediaPlayerMusic->setAudioOutput(m_audioOutput);
+#endif
+
+
 	m_soundTypeSfx = PlayerSfx;
 
-
+#if QT_VERSION < 0x060000
 	connect(m_mediaPlayerVoiceOver, &QMediaPlayer::stateChanged, this, [=](QMediaPlayer::State state) {
 		if (state == QMediaPlayer::StoppedState && m_mediaPlayerVoiceOver->playlist()) {
 			m_mediaPlayerVoiceOver->playlist()->clear();
 		}
 	});
+#endif
 
 	connect(m_fadeAnimation, &QVariantAnimation::valueChanged, m_mediaPlayerMusic, [=](const QVariant &value) {
+#if QT_VERSION < 0x060000
 		m_mediaPlayerMusic->setVolume(value.toInt());
+#else
+		m_audioOutput->setVolume(value.toDouble());
+#endif
 	});
 	connect(m_fadeAnimation, &QVariantAnimation::finished, this, [=]() {
+#if QT_VERSION < 0x060000
 		m_mediaPlayerMusic->setVolume(m_musicVolume);
+#else
+		m_audioOutput->setVolume(m_musicVolume);
+#endif
 	});
 
 
@@ -140,6 +159,7 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 	if (soundType == Music) {
 		musicPlay(source);
 	} else if (soundType == VoiceOver) {
+#if QT_VERSION < 0x060000
 		if (!m_mediaPlayerVoiceOver->volume())
 			return;
 
@@ -154,7 +174,9 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 
 		if (m_mediaPlayerVoiceOver->state() != QMediaPlayer::PlayingState)
 			m_mediaPlayerVoiceOver->play();
+#endif
 	} else {
+#if QT_VERSION < 0x060000
 		if (!m_mediaPlayerSfx->volume())
 			return;
 
@@ -172,6 +194,7 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 
 		m_mediaPlayerSfx->setMedia(QUrl(source));
 		m_mediaPlayerSfx->play();
+#endif
 	}
 }
 
@@ -191,13 +214,14 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 
 	if (soundType != Music)
 		return;
-
+#if QT_VERSION < 0x060000
 	if (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState && m_mediaPlayerMusic->currentMedia() == QUrl(source)
 			&& m_fadeAnimation->state() != QAbstractAnimation::Running)
 	{
 		m_fadeAnimation->setStartValue(m_mediaPlayerMusic->volume());
 		m_fadeAnimation->start();
 	}
+#endif
 }
 
 
@@ -209,6 +233,7 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 
 int Sound::volume(const ChannelType &channel) const
 {
+#if QT_VERSION < 0x060000
 	switch (channel) {
 	case MusicChannel:
 		return m_mediaPlayerMusic->volume();
@@ -220,7 +245,7 @@ int Sound::volume(const ChannelType &channel) const
 		return m_mediaPlayerVoiceOver->volume();
 		break;
 	}
-
+#endif
 	return 0;
 }
 
@@ -233,6 +258,7 @@ int Sound::volume(const ChannelType &channel) const
 
 void Sound::setVolume(const ChannelType &channel, int newVolume)
 {
+#if QT_VERSION < 0x060000
 	switch (channel) {
 	case MusicChannel:
 		m_mediaPlayerMusic->setVolume(newVolume);
@@ -245,6 +271,7 @@ void Sound::setVolume(const ChannelType &channel, int newVolume)
 		m_mediaPlayerVoiceOver->setVolume(newVolume);
 		break;
 	}
+#endif
 }
 
 
@@ -255,7 +282,11 @@ void Sound::setVolume(const ChannelType &channel, int newVolume)
 
 bool Sound::isPlayingMusic() const
 {
+#if QT_VERSION < 0x060000
 	return (m_mediaPlayerMusic && m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState);
+#else
+	return false;
+#endif
 }
 
 
@@ -274,7 +305,7 @@ void Sound::musicPlay(const QString &source)
 		return;
 
 	m_musicNextSource = source;
-
+#if QT_VERSION < 0x060000
 	if (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState) {
 		if (m_fadeAnimation->state() != QAbstractAnimation::Running) {
 			m_fadeAnimation->setStartValue(m_mediaPlayerMusic->volume());
@@ -283,6 +314,7 @@ void Sound::musicPlay(const QString &source)
 	} else {
 		musicLoadNextSource();
 	}
+#endif
 }
 
 
@@ -302,7 +334,7 @@ void Sound::musicLoadNextSource()
 		m_mediaPlayerMusic->stop();
 		return;
 	}
-
+#if QT_VERSION < 0x060000
 	m_mediaPlayerMusic->setVolume(m_musicVolume);
 
 	QMediaPlaylist *playlist = m_mediaPlayerMusic->playlist();
@@ -319,6 +351,6 @@ void Sound::musicLoadNextSource()
 	m_musicNextSource = QLatin1String("");
 
 	m_mediaPlayerMusic->play();
-
+#endif
 }
 

@@ -16,8 +16,8 @@ HEADERS += \
 	$$PWD/gamemapreaderiface.h \
 	$$PWD/rank.h \
 	$$PWD/selectableobject.h \
-	$$PWD/utils.h \
-	$$PWD/../QJsonWebToken/src/qjsonwebtoken.h
+	$$PWD/../QJsonWebToken/src/qjsonwebtoken.h \
+	$$PWD/utils_.h
 
 
 SOURCES += \
@@ -26,8 +26,8 @@ SOURCES += \
 	$$PWD/gamemapreaderiface.cpp \
 	$$PWD/rank.cpp \
 	$$PWD/selectableobject.cpp \
-	$$PWD/utils.cpp \
-	$$PWD/../QJsonWebToken/src/qjsonwebtoken.cpp
+	$$PWD/../QJsonWebToken/src/qjsonwebtoken.cpp \
+	$$PWD/utils_.cpp
 
 !wasm {
 	HEADERS += \

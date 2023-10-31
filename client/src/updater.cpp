@@ -31,7 +31,7 @@
 #include "qnetworkrequest.h"
 #include "qsettings.h"
 #include "qurl.h"
-#include "utils.h"
+#include "utils_.h"
 #include "websocket.h"
 #include <QFile>
 #include "client.h"

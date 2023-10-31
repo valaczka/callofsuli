@@ -37,7 +37,7 @@
 #include "application.h"
 #include "gameentity.h"
 #include "actiongame.h"
-#include "utils.h"
+#include "utils_.h"
 #include "gamescene.h"
 
 GameEntity::GameEntity(QQuickItem *parent)

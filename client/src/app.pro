@@ -3,6 +3,7 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private quickcontrols2 charts
 
+
 !wasm: QT += multimedia sql
 
 CONFIG += c++17

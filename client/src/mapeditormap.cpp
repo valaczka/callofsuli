@@ -28,7 +28,7 @@
 #include "Logger.h"
 #include "clientcache.h"
 #include "gameterrain.h"
-#include "utils.h"
+#include "utils_.h"
 #include "abstractlevelgame.h"
 
 /**
@@ -1208,7 +1208,7 @@ MapEditorMissionLevel *MapEditorMission::createNextLevel(MapEditorMap *map) cons
 	if (levelData.contains(QStringLiteral("inventory"))) {
 		const QJsonArray &list = levelData.value(QStringLiteral("inventory")).toArray();
 
-		foreach (const QJsonValue &v, list) {
+		for (const QJsonValue &v : qAsConst(list)) {
 			const QVariantMap &data = v.toObject().toVariantMap();
 
 			MapEditorInventory *inventory = new MapEditorInventory(map);

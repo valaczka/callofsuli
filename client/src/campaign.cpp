@@ -501,7 +501,7 @@ QVariantList StudentCampaignOffsetModel::getListFromJson(const QJsonObject &obj)
 {
 	QVariantList list;
 
-	foreach (const QJsonValue &v, obj.value(listField()).toArray()) {
+	for (const QJsonValue &v : obj.value(listField()).toArray()) {
 		QJsonObject obj = v.toObject();
 
 		if (m_mapList) {
@@ -513,7 +513,7 @@ QVariantList StudentCampaignOffsetModel::getListFromJson(const QJsonObject &obj)
 			if (m) {
 				obj[QStringLiteral("readableMap")] = m->name();
 				const QJsonArray &list = m->cache().value(QStringLiteral("missions")).toArray();
-				foreach (const QJsonValue &v, list) {
+				for (const QJsonValue &v : qAsConst(list)) {
 					const QJsonObject &o = v.toObject();
 					if (o.value(QStringLiteral("uuid")).toString() == obj.value(QStringLiteral("missionid")).toString()) {
 						mission = o.value(QStringLiteral("name")).toString();

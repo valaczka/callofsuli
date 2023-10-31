@@ -127,7 +127,7 @@ void UserLogList::loadFromJson(const QJsonObject &obj)
 
 	// Rank
 
-	foreach (const QJsonValue &v, obj.value(QStringLiteral("ranklog")).toArray()) {
+	for (const QJsonValue &v : obj.value(QStringLiteral("ranklog")).toArray()) {
 		const QJsonObject &o = v.toObject();
 		QVariantMap m;
 
@@ -146,7 +146,7 @@ void UserLogList::loadFromJson(const QJsonObject &obj)
 
 	// Streak
 
-	foreach (const QJsonValue &v, obj.value(QStringLiteral("streaklog")).toArray()) {
+	for (const QJsonValue &v : obj.value(QStringLiteral("streaklog")).toArray()) {
 		const QJsonObject &o = v.toObject();
 		QVariantMap m;
 
@@ -184,7 +184,7 @@ void UserLogList::loadFromJson(const QJsonObject &obj)
 
 	QMap<GameMap::GameMode, QMap<QString, int>> modeMap;
 
-	foreach (const QJsonValue &v, obj.value(QStringLiteral("durations")).toArray()) {
+	for (const QJsonValue &v : obj.value(QStringLiteral("durations")).toArray()) {
 		const QJsonObject &o = v.toObject();
 		const GameMap::GameMode &mode = o.value(QStringLiteral("mode")).toVariant().value<GameMap::GameMode>();
 
@@ -196,7 +196,7 @@ void UserLogList::loadFromJson(const QJsonObject &obj)
 		modeMap[mode][QStringLiteral("duration")] = o.value(QStringLiteral("duration")).toInt();
 	}
 
-	foreach (const QJsonValue &v, obj.value(QStringLiteral("trophies")).toArray()) {
+	for (const QJsonValue &v : obj.value(QStringLiteral("trophies")).toArray()) {
 		const QJsonObject &o = v.toObject();
 		const GameMap::GameMode &mode = o.value(QStringLiteral("mode")).toVariant().value<GameMap::GameMode>();
 
