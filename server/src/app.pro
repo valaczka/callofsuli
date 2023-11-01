@@ -1,3 +1,5 @@
+!greaterThan(QT_MAJOR_VERSION, 5): error(Qt6 required)
+
 TEMPLATE = app
 TARGET = callofsuli-server
 

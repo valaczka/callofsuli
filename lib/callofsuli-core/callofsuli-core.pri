@@ -8,7 +8,7 @@ INCLUDEPATH += $$PWD/../QJsonWebToken/src
 
 android: INCLUDEPATH += $$PWD/../android_openssl/static/include
 
-# info: utils.h includes selectableobject.h
+# info: utils_.h includes selectableobject.h
 
 HEADERS += \
 	$$PWD/credential.h \

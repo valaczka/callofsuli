@@ -42,7 +42,7 @@ public:
 	explicit GoogleOAuth2Authenticator(ServerService *service)
 		: OAuth2Authenticator("google", service) { }
 
-	void setCodeFlow(OAuth2CodeFlow *flow) const override;
+	void setCodeFlow(const std::weak_ptr<OAuth2CodeFlow> &flow) const override;
 	bool parseResponse(const QUrlQuery &query) override;
 	QJsonObject localAuthData() const override;
 

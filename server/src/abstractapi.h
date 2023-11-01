@@ -121,14 +121,14 @@ protected:
 	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);\
 	databaseMainWorker()->execInThread([&response, ret, this, __VA_ARGS__]() mutable {\
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());\
-		QMutexLocker(databaseMain()->mutex());
+		QMutexLocker _locker(databaseMain()->mutex());
 
 #define LAMBDA_THREAD_BEGIN_NOVAR()	\
 	QDefer ret;\
 	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);\
 	databaseMainWorker()->execInThread([&response, ret, this]() mutable {\
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());\
-		QMutexLocker(databaseMain()->mutex());
+		QMutexLocker _locker(databaseMain()->mutex());
 
 #define LAMBDA_THREAD_END	\
 		ret.resolve(); \

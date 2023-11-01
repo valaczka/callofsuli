@@ -31,16 +31,17 @@
  * @param flow
  */
 
-void MicrosoftOAuth2Authenticator::setCodeFlow(OAuth2CodeFlow *flow) const
+void MicrosoftOAuth2Authenticator::setCodeFlow(const std::weak_ptr<OAuth2CodeFlow> &flow) const
 {
-	Q_ASSERT(flow);
+	OAuth2CodeFlow *f = flow.lock().get();
+	Q_ASSERT(f);
 
-	flow->setAuthorizationUrl(QUrl(QStringLiteral("https://login.microsoftonline.com/%1/oauth2/v2.0/authorize").arg(m_oauth.tenant)));
-	flow->setAccessTokenUrl(QUrl(QStringLiteral("https://login.microsoftonline.com/%1/oauth2/v2.0/token").arg(m_oauth.tenant)));
-	flow->setScope(QStringLiteral("openid+email+profile"));
+	f->setAuthorizationUrl(QUrl(QStringLiteral("https://login.microsoftonline.com/%1/oauth2/v2.0/authorize").arg(m_oauth.tenant)));
+	f->setAccessTokenUrl(QUrl(QStringLiteral("https://login.microsoftonline.com/%1/oauth2/v2.0/token").arg(m_oauth.tenant)));
+	f->setScope(QStringLiteral("openid+email+profile"));
 
-	flow->setClientIdentifier(m_oauth.clientId);
-	flow->setClientIdentifierSharedKey(m_oauth.clientKey);
+	f->setClientIdentifier(m_oauth.clientId);
+	f->setClientIdentifierSharedKey(m_oauth.clientKey);
 }
 
 

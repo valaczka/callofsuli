@@ -27,7 +27,7 @@
 #include "googleoauth2authenticator.h"
 #include "Logger.h"
 #include "serverservice.h"
-#include "utils.h"
+#include "utils_.h"
 
 
 
@@ -37,16 +37,17 @@
  * @param flow
  */
 
-void GoogleOAuth2Authenticator::setCodeFlow(OAuth2CodeFlow *flow) const
+void GoogleOAuth2Authenticator::setCodeFlow(const std::weak_ptr<OAuth2CodeFlow> &flow) const
 {
-	Q_ASSERT(flow);
+	OAuth2CodeFlow *f = flow.lock().get();
+	Q_ASSERT(f);
 
-	flow->setAuthorizationUrl(QUrl(QStringLiteral("https://accounts.google.com/o/oauth2/auth")));
-	flow->setAccessTokenUrl(QUrl(QStringLiteral("https://oauth2.googleapis.com/token")));
-	flow->setScope(QStringLiteral("email+profile"));
+	f->setAuthorizationUrl(QUrl(QStringLiteral("https://accounts.google.com/o/oauth2/auth")));
+	f->setAccessTokenUrl(QUrl(QStringLiteral("https://oauth2.googleapis.com/token")));
+	f->setScope(QStringLiteral("email+profile"));
 
-	flow->setClientIdentifier(m_oauth.clientId);
-	flow->setClientIdentifierSharedKey(m_oauth.clientKey);
+	f->setClientIdentifier(m_oauth.clientId);
+	f->setClientIdentifierSharedKey(m_oauth.clientKey);
 }
 
 
@@ -141,7 +142,7 @@ bool GoogleOAuth2Authenticator::profileUpdate(const QString &username, const QJs
 			service()->databaseMain()->worker()->execInThread([this, newData, username]{
 				QSqlDatabase db = QSqlDatabase::database(service()->databaseMain()->dbName());
 
-				QMutexLocker(service()->databaseMain()->mutex());
+				QMutexLocker _locker(service()->databaseMain()->mutex());
 
 				const QString &d = QString::fromUtf8(QJsonDocument(newData).toJson(QJsonDocument::Compact));
 
@@ -212,7 +213,7 @@ void GoogleOAuth2Authenticator::profileUpdateWithAccessToken(const QString &user
 		service()->databaseMain()->worker()->execInThread([this, json, username]{
 			QSqlDatabase db = QSqlDatabase::database(service()->databaseMain()->dbName());
 
-			QMutexLocker(service()->databaseMain()->mutex());
+			QMutexLocker _locker(service()->databaseMain()->mutex());
 
 			if (QueryBuilder::q(db)
 					.addQuery("UPDATE user SET ").setCombinedPlaceholder()

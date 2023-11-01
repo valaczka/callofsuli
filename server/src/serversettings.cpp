@@ -29,7 +29,7 @@
 #include "qsettings.h"
 #include <QByteArray>
 #include <QTextStream>
-#include "utils.h"
+#include "utils_.h"
 #include "oauth2authenticator.h"
 
 

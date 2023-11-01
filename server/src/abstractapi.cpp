@@ -126,6 +126,7 @@ QHttpServerResponse AbstractAPI::responseErrorSql()
 }
 
 
+
 /**
  * @brief AbstractAPI::path
  * @return

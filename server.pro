@@ -14,7 +14,7 @@ SUBDIRS += \
 			application
 
 
-linux|win32|mac:!android:!ios {
+CONFIG(release,debug|release):linux|win32|mac:!android:!ios {
 	if($$CreateBundle):	SUBDIRS += bundle-server
 }
 

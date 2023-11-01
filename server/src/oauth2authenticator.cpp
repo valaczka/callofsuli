@@ -53,26 +53,29 @@ OAuth2Authenticator::~OAuth2Authenticator()
 }
 
 
-
 /**
- * @brief OAuth2Authenticator::addCodeFlow
+ * @brief OAuth2Authenticator::addCodeFlow_
  * @return
  */
 
-OAuth2CodeFlow *OAuth2Authenticator::addCodeFlow()
+std::weak_ptr<OAuth2CodeFlow> OAuth2Authenticator::addCodeFlow()
 {
-	auto flow = std::make_shared<OAuth2CodeFlow>(this);
+	auto f = std::make_shared<OAuth2CodeFlow>(this);
 
-	flow->setReplyHandler(m_handler.get());
+	f->setReplyHandler(m_handler.get());
 
-	setCodeFlow(flow.get());
+	m_codeFlowList.append(std::move(f));
 
-	LOG_CDEBUG("oauth2") << "Add new code flow" << flow->state();
+	const auto &flow = m_codeFlowList.last();
 
-	m_codeFlowList.append(std::move(flow));
+	setCodeFlow(flow);
 
-	return flow.get();
+	LOG_CDEBUG("oauth2") << "Add new code flow" << flow.get()->state();
+
+	return flow;
 }
+
+
 
 
 /**
@@ -82,14 +85,14 @@ OAuth2CodeFlow *OAuth2Authenticator::addCodeFlow()
 
 void OAuth2Authenticator::removeCodeFlow(OAuth2CodeFlow *flow)
 {
+	LOG_CTRACE("oauth2") << "Remove code flow:" << flow;
+
 	for (auto it = m_codeFlowList.constBegin(); it != m_codeFlowList.constEnd(); ) {
-		if (it->get() == flow)
+		if (it->get() == flow) {
 			m_codeFlowList.erase(it);
-		else
+		} else
 			++it;
 	}
-
-	LOG_CTRACE("oauth2") << "Remove code flow:" << flow;
 }
 
 

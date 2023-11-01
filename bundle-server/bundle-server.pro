@@ -58,7 +58,6 @@ else: extralib.commands = echo \"Create bundle...\"; \
 				test -f $${LddLibDir}/$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f) || \
 					cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f $${LddLibDir} ; \
 			done ; \
-			cp -R ../lib/QtService/plugins/* $${CQtTargetDir}/usr/plugins/ ; \
 			ln -s usr/$${BinFile}.sh $${CQtTargetDir}/AppRun ; \
 			cp $$PWD/../server/deploy/cos_server.png $${CQtTargetDir}/callofsuli-server.png; \
 			ln -s callofsuli-server.png $${CQtTargetDir}/.DirIcon ; \

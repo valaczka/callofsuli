@@ -83,6 +83,21 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 
 
 
+	server->route(path+"user/<arg>/log", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::userLog, &*this, username);
+	});
+
+	server->route(path+"user/<arg>/log/xp", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		JSON_OBJECT_GET();
+		return QtConcurrent::run(&GeneralAPI::userXpLog, &*this, username, jsonObject.value_or(QJsonObject{}));
+	});
+
+	server->route(path+"user/<arg>/log/game", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&GeneralAPI::userGameLog, &*this, username);
+	});
 
 	server->route(path+"user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_FUTURE_API();
@@ -104,21 +119,6 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		return QtConcurrent::run(&GeneralAPI::user, &*this, QStringLiteral(""), Credential::Student);
 	});
 
-	server->route(path+"user/<arg>/log", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::userLog, &*this, username);
-	});
-
-	server->route(path+"user/<arg>/log/xp", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		JSON_OBJECT_GET();
-		return QtConcurrent::run(&GeneralAPI::userXpLog, &*this, username, jsonObject.value_or(QJsonObject{}));
-	});
-
-	server->route(path+"user/<arg>/log/game", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::userGameLog, &*this, username);
-	});
 }
 
 
@@ -137,10 +137,10 @@ QHttpServerResponse GeneralAPI::config()
 
 	QJsonArray pList;
 
-	/*foreach (OAuth2Authenticator *a, m_service->authenticators())
+	for (const auto &a : qAsConst(m_service->authenticators()))
 		pList.append(QString::fromLatin1(a->type()));
 
-	c.insert(QStringLiteral("oauthProviders"), pList);*/
+	c.insert(QStringLiteral("oauthProviders"), pList);
 
 	QJsonObject r;
 	r.insert(QStringLiteral("server"), QStringLiteral("Call of Suli server"));

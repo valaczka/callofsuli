@@ -101,7 +101,6 @@ bool Handler::loadRoutes()
 	});
 
 	server->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
-		LOG_CTRACE("service") << "MISSING HANDLER START";
 		const QString &callbackPath = QStringLiteral("/")+OAuth2Authenticator::callbackPath()+QStringLiteral("/");
 		const QString &requestPath = request.url().path();
 
@@ -115,7 +114,6 @@ bool Handler::loadRoutes()
 	});
 
 	server->afterRequest([] (QHttpServerResponse &&resp) {
-		LOG_CTRACE("service") << "---AFTER request" << resp.statusCode();
 		return std::move(resp);
 	});
 
@@ -337,7 +335,7 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 
 QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
 {
-	QRegularExpression exp(QStringLiteral("^/cb/(\\w+)"));
+	static QRegularExpression exp(QStringLiteral("^/cb/(\\w+)"));
 	const QRegularExpressionMatch &match = exp.match(request.url().path());
 
 	if (match.hasMatch()) {

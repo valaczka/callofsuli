@@ -91,12 +91,18 @@ public:
 
 	QHttpServerResponse user(const QString &username);
 	QHttpServerResponse userCreate(const QJsonObject &json);
+	QHttpServerResponse userCreateClass(QJsonObject json, const int &classid);
 	QHttpServerResponse userUpdate(const QString &username, const QJsonObject &json);
 	QHttpServerResponse userDelete(const QJsonArray &userList);
 	QHttpServerResponse userPassword(const QString &username, const QJsonObject &json);
 	QHttpServerResponse userActivate(const QJsonArray &userList, const bool &active);
 	QHttpServerResponse userMove(const QJsonArray &userList, const int &classid);
 	QHttpServerResponse userImport(const QJsonObject &json);
+
+	QHttpServerResponse userPeers();
+
+	QHttpServerResponse configUpdate(const QJsonObject &json);
+	QHttpServerResponse usersProfileUpdate();
 
 
 
@@ -126,22 +132,7 @@ public:
 		return userExists(api, username, true);
 	}
 
-#ifdef _COMPAT
-
-	/// USER FUNCTIONS
-
-	void userPeers(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-
-
-	/// CONFIG FUNCTIONS
-	void configUpdate(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void usersProfileUpdate(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-
-};
-
-#endif
-
+//	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 };
 

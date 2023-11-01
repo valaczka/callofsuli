@@ -46,36 +46,34 @@ public:
 	QHttpServerResponse campaign(const Credential &credential, const int &id);
 	QHttpServerResponse campaignResult(const Credential &credential, const int &id, const QJsonObject &json);
 
+	QHttpServerResponse map(const Credential &credential);
+	QHttpServerResponse mapContent(const Credential &credential, const QString &uuid);
+	QHttpServerResponse mapSolver(const Credential &credential, const QString &uuid);
 
-	static QDeferred<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
-	static QDeferred<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
-	static QDeferred<int> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
+	QHttpServerResponse gameInfo(const Credential &credential, const QJsonObject &json);
+	QHttpServerResponse gameCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
+	QHttpServerResponse gameUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json);
+
+	QHttpServerResponse inventory(const Credential &credential);
+
+
+	// Static members
+
+	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
+	static std::optional<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
+	static std::optional<int> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
 									 const int &level);
-	static int _solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
-						   const int &level, const bool &deathmatch);
 
 	static std::optional<QJsonArray> getGroupScore(const DatabaseMain *database, const int &id);
 
-#ifdef _COMPAT
 
-	void groupScoreLive(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
+	static std::optional<int> _solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
+						   const int &level, const bool &deathmatch);
 
+private:
+	void _addStatistics(const Credential &credential, const QJsonArray &list) const;
 
-	void campaignResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
-	void maps(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void mapOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void mapSolver(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-
-	void gameInfo(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void gameCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void gameUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void gameFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
-	void inventory(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-
-	void _addStatistics(const QJsonArray &list) const;
-#endif
 };
 
 #endif // USERAPI_H

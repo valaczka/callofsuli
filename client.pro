@@ -15,12 +15,13 @@ SUBDIRS += \
 		modules \
 		application
 
-linux|win32:!android:!ios {
+CONFIG(release,debug|release):linux|win32:!android:!ios {
 	if($$CreateBundle):	SUBDIRS += bundle-client
 } else:wasm: {
 	SUBDIRS += bundle-client
 	bundle-client.file = bundle-client/bundle-client-wasm.pro
 }
+
 
 CONFIG += ordered
 

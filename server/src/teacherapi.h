@@ -91,7 +91,29 @@ public:
 	QHttpServerResponse mapUpload(const Credential &credential, const QString &uuid, const int &version, const QByteArray &body);
 	QHttpServerResponse mapContent(const Credential &credential, const QString &uuid, const int &draftVersion = -1);
 
+	QHttpServerResponse campaign(const Credential &credential, const int &id);
+	QHttpServerResponse campaignCreate(const Credential &credential, const int &group, const QJsonObject &json);
+	QHttpServerResponse campaignUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse campaignRun(const Credential &credential, const int &id);
+	QHttpServerResponse campaignFinish(const Credential &credential, const int &id);
+	QHttpServerResponse campaignDelete(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse campaignDuplicate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse campaignResult(const Credential &credential, const int &id);
+	QHttpServerResponse campaignResultUser(const Credential &credential, const int &id, const QString &username, const QJsonObject &json);
 
+	QHttpServerResponse campaignUser(const Credential &credential, const int &id);
+	QHttpServerResponse campaignUserClear(const Credential &credential, const int &id);
+	QHttpServerResponse campaignUserAdd(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse campaignUserRemove(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse campaignUserCopy(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse campaignTask(const Credential &credential, const int &id);
+	QHttpServerResponse campaignTaskCreate(const Credential &credential, const int &id, const QJsonObject &json);
+
+	QHttpServerResponse task(const Credential &credential, const int &id);
+	QHttpServerResponse taskUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse taskDelete(const Credential &credential, const QJsonArray &list);
+
+	QHttpServerResponse userPeers() const;
 
 
 	// Static members
@@ -113,78 +135,19 @@ public:
 	static std::optional<QJsonArray> _groupGameResult(const AbstractAPI *api, const int &group,
 									   const int &limit = DEFAULT_LIMIT, const int &offset = 0);
 
+	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username);
+	static std::optional<bool> _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username);
+	static std::optional<bool> _evaluateCriterionMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
+										  const QString &username);
+	static std::optional<bool> _evaluateCriterionMapMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
+											 const QString &username);
+
 
 private:
 	QJsonObject _task(const int &id) const;
 	QJsonArray _taskList(const int &campaign) const;
 
-
-
-#if _COMPAT
-
-
-	void campaignOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void campaignOneResult(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void campaignUserResult(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void campaignCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void campaignUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void campaignDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		campaignDelete({match.captured(1).toInt()}, response);
-	}
-	void campaignDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		campaignDelete(data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void campaignDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-	void campaignRun(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void campaignFinish(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void campaignDuplicate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
-	void campaignUser(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void campaignUserClear(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void campaignUserAddOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		campaignUserAdd(match.captured(1).toInt(), {match.captured(2)}, response);
-	}
-	void campaignUserAdd(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		campaignUserAdd(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void campaignUserAdd(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-
-	void campaignUserRemoveOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		campaignUserRemove(match.captured(1).toInt(), {match.captured(2)}, response);
-	}
-	void campaignUserRemove(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		campaignUserRemove(match.captured(1).toInt(), data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void campaignUserRemove(const int &id, const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-	void campaignUserCopy(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-
-	void taskOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void task(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void taskCreate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void taskUpdate(const QRegularExpressionMatch &match, const QJsonObject &data, QPointer<HttpResponse> response) const;
-	void taskDeleteOne(const QRegularExpressionMatch &match, const QJsonObject &, QPointer<HttpResponse> response) const {
-		taskDelete({match.captured(1).toInt()}, response);
-	}
-	void taskDelete(const QRegularExpressionMatch &, const QJsonObject &data, QPointer<HttpResponse> response) const {
-		taskDelete(data.value(QStringLiteral("list")).toArray(), response);
-	}
-	void taskDelete(const QJsonArray &list, const QPointer<HttpResponse> &response) const;
-
-
-	void userPeers(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-
-
-	// Run in database worker thread
-
-
-	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, bool *err = nullptr);
-	static bool _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username, bool *err = nullptr);
-	static bool _evaluateCriterionMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
-										  const QString &username, bool *err = nullptr);
-	static bool _evaluateCriterionMapMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
-											 const QString &username, bool *err = nullptr);
-#endif
+//	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 };
 

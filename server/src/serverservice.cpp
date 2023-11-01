@@ -32,7 +32,7 @@
 #include <RollingFileAppender.h>
 #include <ColorConsoleAppender.h>
 #include "qconsole.h"
-#include "utils.h"
+#include "utils_.h"
 #include "googleoauth2authenticator.h"
 #include "microsoftoauth2authenticator.h"
 #include <QOAuthHttpServerReplyHandler>
@@ -60,6 +60,7 @@ ServerService::ServerService(int &argc, char **argv)
 	, m_consoleAppender(new ColorConsoleAppender)
 	, m_application(new QCoreApplication(argc, argv))
 	, m_settings(new ServerSettings)
+	, m_networkManager(new QNetworkAccessManager(this))
 {
 	Q_ASSERT(!m_instance);
 
@@ -776,7 +777,7 @@ void ServerConfig::loadFromDb(DatabaseMain *db)
 	m_db->worker()->execInThread([ret, this]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(m_db->dbName());
 
-		QMutexLocker(m_db->mutex());
+		QMutexLocker _locker(m_db->mutex());
 
 		QSqlQuery q(db);
 		q.prepare("SELECT config FROM system");
@@ -824,8 +825,7 @@ void ServerService::onMainTimerTimeout()
 	LOG_CTRACE("service") << "Timer check";
 	m_mainTimerLastTick = dtMinute;
 
-	//if (PeerUser::clear(&m_peerUser))
-	//	triggerEventStreams(EventStream::EventStreamPeerUsers);
+	//if (PeerUser::clear(&m_peerUser))	//	triggerEventStreams(EventStream::EventStreamPeerUsers);
 
 
 	if (!m_databaseMain) {
@@ -836,7 +836,7 @@ void ServerService::onMainTimerTimeout()
 	m_databaseMain->worker()->execInThread([this]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(m_databaseMain->dbName());
 
-		QMutexLocker(m_databaseMain->mutex());
+		QMutexLocker _locker(m_databaseMain->mutex());
 
 		// Finish campaigns
 

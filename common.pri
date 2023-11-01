@@ -37,7 +37,7 @@ AndroidVersionCode = 39
 
 # Build creation enabled (linux, win32, mac, wasm)
 
-CreateBundle = false
+CreateBundle = true
 
 # CQtDeployer path
 

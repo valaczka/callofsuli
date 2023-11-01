@@ -39,8 +39,8 @@ OAuth2CodeFlow::OAuth2CodeFlow(OAuth2Authenticator *authenticator)
 
 	setModifyParametersFunction([](QAbstractOAuth::Stage stage, QMultiMap<QString, QVariant>* parameters) {
 		if (stage == QAbstractOAuth::Stage::RequestingAuthorization) {
-			parameters->replace(QStringLiteral("access_type"), QStringLiteral("offline"));
-			parameters->replace(QStringLiteral("prompt"), QStringLiteral("consent"));
+			parameters->insert(QStringLiteral("access_type"), QStringLiteral("offline"));
+			parameters->insert(QStringLiteral("prompt"), QStringLiteral("consent"));
 		}
 	});
 
@@ -105,7 +105,7 @@ void OAuth2CodeFlow::requestAccesToken(const QString &code)
 
 	LOG_CTRACE("oauth2") << "Post request token" << request.url() << query.query();
 
-	QNetworkReply *reply = m_authenticator->service()->networkManager()->post(request, query.query(QUrl::FullyEncoded).toUtf8());
+	QNetworkReply *reply = m_authenticator->service()->networkManager()->post(std::move(request), query.query(QUrl::FullyEncoded).toUtf8());
 
 	QObject::connect(reply, &QNetworkReply::finished, this, &OAuth2CodeFlow::onRequestAccessFinished);
 
@@ -130,10 +130,11 @@ void OAuth2CodeFlow::onRequestAccessFinished()
 	}
 
 	if (reply->error() != QNetworkReply::NoError) {
-		LOG_CERROR("oauth2") << "NetworkReply error:" << qPrintable(reply->errorString());
+		LOG_CERROR("oauth2") << "NetworkReply error:" << reply->error() << qPrintable(reply->errorString());
 		m_authState = Failed;
 		return reply->deleteLater();
 	}
+
 	if (reply->header(QNetworkRequest::ContentTypeHeader).isNull()) {
 		LOG_CERROR("oauth2") << "Empty Content-type header";
 		m_authState = Failed;
@@ -228,8 +229,6 @@ void OAuth2CodeFlow::onRemoveTimerTimeout()
 
 	if (m_authenticator)
 		m_authenticator->removeCodeFlow(this);
-
-	deleteLater();
 }
 
 

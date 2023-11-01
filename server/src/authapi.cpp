@@ -180,11 +180,21 @@ QHttpServerResponse AuthAPI::loginOAuth2(const QString &provider, const QJsonObj
 		}
 	}
 
-	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
+	std::weak_ptr<OAuth2CodeFlow> ptr;
 
+	QMetaObject::invokeMethod(authenticator, "addCodeFlow",
+							  (authenticator->thread() == QThread::currentThread() ? Qt::DirectConnection : Qt::BlockingQueuedConnection),
+							  Q_RETURN_ARG(std::weak_ptr<OAuth2CodeFlow>, ptr));
+
+	OAuth2CodeFlow *flow = ptr.lock().get();
+
+	if (!flow)
+		return responseError("internal error");
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow](){
 		QString email = flow->getUserInfo().username;
+
+		LOG_CTRACE("oauth2") << "Login OAuth2 authenticated" << flow << email;
 
 		if (!email.isEmpty()) {
 			const auto &c = getCredential(email);
@@ -320,12 +330,23 @@ QHttpServerResponse AuthAPI::registrationOAuth2(const QString &provider, const Q
 		}
 	}
 
-	OAuth2CodeFlow *flow = authenticator->addCodeFlow();
+	std::weak_ptr<OAuth2CodeFlow> ptr;
+
+	QMetaObject::invokeMethod(authenticator, "addCodeFlow",
+							  (authenticator->thread() == QThread::currentThread() ? Qt::DirectConnection : Qt::BlockingQueuedConnection),
+							  Q_RETURN_ARG(std::weak_ptr<OAuth2CodeFlow>, ptr));
+
+	OAuth2CodeFlow *flow = ptr.lock().get();
+
+	if (!flow)
+		return responseError("internal error");
 
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow, data](){
 		AdminAPI::User user = flow->getUserInfo();
 		QString code = data.value(QStringLiteral("code")).toString();
+
+		LOG_CTRACE("oauth2") << "Registration OAuth2 authenticated" << flow << user.username << code;
 
 		if (!user.username.isEmpty()) {
 
@@ -354,6 +375,8 @@ QHttpServerResponse AuthAPI::registrationOAuth2(const QString &provider, const Q
 				return flow->setAuthState(OAuth2CodeFlow::UserExists);
 
 			const auto &classid = AdminAPI::getClassIdFromCode(this, code);
+
+			//LOG_CTRACE("client") << "CODE:" << code << *classid;
 
 			if (!classid)
 				return flow->setAuthState(OAuth2CodeFlow::InvalidCode);
@@ -425,7 +448,7 @@ std::optional<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QSt
 	dbMain->worker()->execInThread([ret, username, dbMain, &returnCredential]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
-		QMutexLocker(dbMain->mutex());
+		QMutexLocker _locker(dbMain->mutex());
 
 		QueryBuilder q(db);
 		q.addQuery("SELECT active, isAdmin, isTeacher, isPanel FROM user WHERE username=")
@@ -488,7 +511,7 @@ bool AuthAPI::authorizePlain(const Credential &credential, const QString &passwo
 
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
-		QMutexLocker(databaseMain()->mutex());
+		QMutexLocker _locker(databaseMain()->mutex());
 
 		QueryBuilder q(db);
 		q.addQuery("SELECT salt, password, oauth FROM auth WHERE username=")
@@ -551,7 +574,7 @@ bool AuthAPI::authorizeOAuth2(const Credential &credential, const char *oauthTyp
 
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
-		QMutexLocker(databaseMain()->mutex());
+		QMutexLocker _locker(databaseMain()->mutex());
 
 		QueryBuilder q(db);
 		q.addQuery("SELECT oauth FROM auth WHERE username=")
@@ -610,7 +633,7 @@ void AuthAPI::updateOAuth2TokenInfo(OAuth2CodeFlow *flow) const
 
 		QSqlDatabase db = QSqlDatabase::database(m_service->databaseMain()->dbName());
 
-		QMutexLocker(m_service->databaseMain()->mutex());
+		QMutexLocker _locker(m_service->databaseMain()->mutex());
 
 		QueryBuilder q(db);
 		q.addQuery("UPDATE auth SET oauthData=")
@@ -646,6 +669,8 @@ void AuthAPI::updateOAuth2UserData(OAuth2CodeFlow *flow) const
 
 	if (flow->authenticator()->profileUpdateSupport()) {
 		const QJsonObject &oauthData = flow->token().toJson();
+
+		LOG_CTRACE("oauth2") << "Profile update" << flow;
 
 		QMetaObject::invokeMethod(flow->authenticator(), "profileUpdate", Qt::QueuedConnection,
 								  Q_ARG(QString, user.username),
