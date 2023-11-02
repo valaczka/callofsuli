@@ -136,7 +136,7 @@ QPage {
 
 				visible: mission && (mission.modes & (GameMap.Exam))
 
-				text: qsTr("Markdown fájl készítése")
+				text: qsTr("LaTeX fájl készítése")
 
 				icon.source: Qaterial.Icons.signText
 
@@ -146,7 +146,7 @@ QPage {
 											  missionLevel: missionLevel
 										  })
 					else
-						Qaterial.DialogManager.openFromComponent(_cmpFileExportMarkdown)
+						Qaterial.DialogManager.openFromComponent(_cmpFileExportLatex)
 				}
 			}
 
@@ -802,13 +802,13 @@ QPage {
 
 
 	Component {
-		id: _cmpFileExportMarkdown
+		id: _cmpFileExportLatex
 
 		QFileDialog {
-			title: qsTr("Dolgozat Markdown fájl készítése")
-			filters: [ "*.md" ]
+			title: qsTr("Dolgozat LaTeX fájl készítése")
+			filters: [ "*.tex" ]
 			isSave: true
-			suffix: ".md"
+			suffix: ".tex"
 			onFileSelected: {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file, false, MapEditor.ExportExam)

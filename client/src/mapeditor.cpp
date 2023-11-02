@@ -771,9 +771,10 @@ QByteArray MapEditor::exportExam(MapEditorMissionLevel *missionLevel) const
 
 	const ExamGame::PaperContent &pc = ExamGame::generateQuestions(ExamGame::createQuestions(ml));
 
-	content += QByteArrayLiteral("# ") + m->name().toUtf8() + QByteArrayLiteral("\n\n");
+	content += QByteArrayLiteral("\\textbf{") + m->name().toUtf8() + QByteArrayLiteral("}\n\n");
 	content += pc.questions.toUtf8();
-	content += QByteArrayLiteral("\n\n\n# ") + m->name().toUtf8() + tr(" -- Válaszok").toUtf8() + QByteArrayLiteral("\n\n");
+	content += QByteArrayLiteral("\n\n\n\n\n\n-----------------------------------------\n\n\\clearpage\n\\textbf{")
+			+ m->name().toUtf8() + tr(" -- Válaszok").toUtf8() + QByteArrayLiteral("}\n\n");
 	content += pc.answers.toUtf8();
 
 	return content;

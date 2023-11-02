@@ -33,6 +33,7 @@ const char* OAuth2Authenticator::m_callbackPath = "cb";
 
 OAuth2Authenticator::OAuth2Authenticator(const char *type, ServerService *service)
 	: QObject{service}
+	, m_codeFlowList(std::make_shared<QVector<std::shared_ptr<OAuth2CodeFlow> > >())
 	, m_handler(new OAuth2ReplyHandler(this))
 	, m_type(type)
 	, m_service(service)
@@ -64,9 +65,9 @@ std::weak_ptr<OAuth2CodeFlow> OAuth2Authenticator::addCodeFlow()
 
 	f->setReplyHandler(m_handler.get());
 
-	m_codeFlowList.append(std::move(f));
+	m_codeFlowList->append(std::move(f));
 
-	const auto &flow = m_codeFlowList.last();
+	const auto &flow = m_codeFlowList->last();
 
 	setCodeFlow(flow);
 
@@ -87,9 +88,9 @@ void OAuth2Authenticator::removeCodeFlow(OAuth2CodeFlow *flow)
 {
 	LOG_CTRACE("oauth2") << "Remove code flow:" << flow;
 
-	for (auto it = m_codeFlowList.constBegin(); it != m_codeFlowList.constEnd(); ) {
+	for (auto it = m_codeFlowList->constBegin(); it != m_codeFlowList->constEnd(); ) {
 		if (it->get() == flow) {
-			m_codeFlowList.erase(it);
+			it = m_codeFlowList->erase(it);
 		} else
 			++it;
 	}
@@ -105,13 +106,13 @@ void OAuth2Authenticator::removeCodeFlow(OAuth2CodeFlow *flow)
  * @return
  */
 
-std::weak_ptr<OAuth2CodeFlow> OAuth2Authenticator::getCodeFlowForState(const QString &state) const
+std::optional<std::weak_ptr<OAuth2CodeFlow>> OAuth2Authenticator::getCodeFlowForState(const QString &state) const
 {
-	foreach (const auto &f, m_codeFlowList)
+	foreach (const auto &f, (*m_codeFlowList.get()))
 		if (f->state() == state)
 			return std::weak_ptr<OAuth2CodeFlow>(f);
 
-	return std::weak_ptr<OAuth2CodeFlow>();
+	return std::nullopt;
 }
 
 

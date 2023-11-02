@@ -521,7 +521,7 @@ QHttpServerResponse AdminAPI::userCreate(const QJsonObject &json)
 	if (password.isEmpty() && oauth.isEmpty())
 		return responseError("missing password/oauth");
 
-	if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8()).lock())
+	if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8()))
 		return responseError("invalid provider");
 
 	User user;
@@ -844,7 +844,7 @@ QHttpServerResponse AdminAPI::userImport(const QJsonObject &json)
 			continue;
 		}
 
-		if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8()).lock()) {
+		if (!oauth.isEmpty() && !m_service->oauth2Authenticator(oauth.toUtf8())) {
 			ret.insert(QStringLiteral("error"), QStringLiteral("invalid provider"));
 			retList.append(ret);
 			continue;
@@ -980,7 +980,7 @@ QHttpServerResponse AdminAPI::usersProfileUpdate()
 		if (username.isEmpty() || oauth.isEmpty())
 			continue;
 
-		OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(oauth.toLatin1()).lock().get();
+		OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(oauth.toLatin1())->lock().get();
 
 		if (!authenticator) {
 			LOG_CWARNING("client") << "Invalid authenticator:" << oauth;

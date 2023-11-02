@@ -67,12 +67,9 @@ Handler::~Handler()
 
 std::weak_ptr<QHttpServer> Handler::httpServer() const
 {
-	const auto &ptr = m_service->webServer().lock();
+	const auto &ptr = m_service->webServer().lock().get();
 
-	if (!ptr) {
-		LOG_CERROR("service") << "Missing WebServer";
-		return std::weak_ptr<QHttpServer>();
-	}
+	Q_ASSERT(ptr);
 
 	return ptr->server();
 
@@ -98,6 +95,15 @@ bool Handler::loadRoutes()
 
 	server->route("/favicon.ico", QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		return getFavicon(request);
+	});
+
+	server->route("/test", QHttpServerRequest::Method::Get, [this](){
+		LOG_CTRACE("service") << "*****";
+		auto *server = m_service->webServer().lock().get();
+
+		server->webSocketHandler().runTest();
+
+		return QHttpServerResponse("ok");
 	});
 
 	server->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
@@ -341,12 +347,14 @@ QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
 	if (match.hasMatch()) {
 		const QString &provider = match.captured(1);
 
-		OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8()).lock().get();
+		const auto &ptr = m_service->oauth2Authenticator(provider.toUtf8());
 
-		if (!authenticator) {
+		if (!ptr) {
 			LOG_CWARNING("client") << "Invalid provider:" << provider;
 			return AbstractAPI::responseError("invalid provider", QHttpServerResponse::StatusCode::BadRequest);
 		}
+
+		OAuth2Authenticator *authenticator = ptr->lock().get();
 
 		if (!authenticator->parseResponse(std::move(QUrlQuery(request.url()))))
 			return AbstractAPI::responseError("invalid request", QHttpServerResponse::StatusCode::BadRequest);

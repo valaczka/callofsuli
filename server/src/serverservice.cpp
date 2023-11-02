@@ -1022,13 +1022,16 @@ const QVector<std::shared_ptr<OAuth2Authenticator> > &ServerService::authenticat
  * @return
  */
 
-std::weak_ptr<OAuth2Authenticator> ServerService::oauth2Authenticator(const char *type) const
+std::optional<std::weak_ptr<OAuth2Authenticator>> ServerService::oauth2Authenticator(const char *type) const
 {
 	const auto &it = std::find_if(m_authenticators.constBegin(), m_authenticators.constEnd(), [&type](const std::shared_ptr<OAuth2Authenticator> &auth) {
 		return strcmp(auth->type(), type) == 0;
 	});
 
-	return *it;
+	if (it != m_authenticators.constEnd())
+		return *it;
+	else
+		return std::nullopt;
 }
 
 
@@ -1129,7 +1132,7 @@ bool PeerUser::remove(QVector<PeerUser> *list, const PeerUser &user)
 
 	for (auto it = list->constBegin(); it != list->constEnd(); ) {
 		if (*it == user) {
-			list->erase(it);
+			it = list->erase(it);
 			ret = true;
 		} else
 			++it;
@@ -1155,7 +1158,7 @@ bool PeerUser::clear(QVector<PeerUser> *list, const qint64 &sec)
 
 	for (auto it = list->constBegin(); it != list->constEnd(); ) {
 		if (!(it->m_timestamp).isValid() || it->m_timestamp.secsTo(dt) > sec) {
-			list->erase(it);
+			it = list->erase(it);
 			ret = true;
 		} else
 			++it;

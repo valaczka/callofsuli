@@ -227,7 +227,7 @@ public:
 	std::optional<int> preStart();
 
 	const QVector<std::shared_ptr<OAuth2Authenticator> > &authenticators() const;
-	std::weak_ptr<OAuth2Authenticator> oauth2Authenticator(const char *type) const;
+	std::optional<std::weak_ptr<OAuth2Authenticator>> oauth2Authenticator(const char *type) const;
 
 signals:
 	void configChanged();

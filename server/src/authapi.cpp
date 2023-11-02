@@ -136,18 +136,19 @@ QHttpServerResponse AuthAPI::login(const QJsonObject &data) const
 
 QHttpServerResponse AuthAPI::loginOAuth2(const QString &provider, const QJsonObject &data) const
 {
-	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8()).lock().get();
+	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8())->lock().get();
 
 	if (!authenticator)
 		return responseError("invalid provider");
 
 	if (data.contains(QStringLiteral("state"))) {
 		const QString &state = data.value(QStringLiteral("state")).toString();
-		OAuth2CodeFlow *flow = authenticator->getCodeFlowForState(state).lock().get();
+		const auto &ptr = authenticator->getCodeFlowForState(state);
 
-		if (!flow)
+		if (!ptr)
 			return responseError("invalid state");
 
+		OAuth2CodeFlow *flow = ptr->lock().get();
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
@@ -186,10 +187,9 @@ QHttpServerResponse AuthAPI::loginOAuth2(const QString &provider, const QJsonObj
 							  (authenticator->thread() == QThread::currentThread() ? Qt::DirectConnection : Qt::BlockingQueuedConnection),
 							  Q_RETURN_ARG(std::weak_ptr<OAuth2CodeFlow>, ptr));
 
-	OAuth2CodeFlow *flow = ptr.lock().get();
+	Q_ASSERT(!ptr.expired());
 
-	if (!flow)
-		return responseError("internal error");
+	OAuth2CodeFlow *flow = ptr.lock().get();
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow](){
 		QString email = flow->getUserInfo().username;
@@ -278,18 +278,19 @@ QHttpServerResponse AuthAPI::registration(const QJsonObject &data) const
 
 QHttpServerResponse AuthAPI::registrationOAuth2(const QString &provider, const QJsonObject &data) const
 {
-	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8()).lock().get();
+	OAuth2Authenticator *authenticator = m_service->oauth2Authenticator(provider.toUtf8())->lock().get();
 
 	if (!authenticator)
 		return responseError("invalid provider");
 
 	if (data.contains(QStringLiteral("state"))) {
 		const QString &state = data.value(QStringLiteral("state")).toString();
-		OAuth2CodeFlow *flow = authenticator->getCodeFlowForState(state).lock().get();
+		const auto &ptr = authenticator->getCodeFlowForState(state);
 
-		if (!flow)
+		if (!ptr)
 			return responseError("invalid state");
 
+		OAuth2CodeFlow *flow = ptr->lock().get();
 
 		switch (flow->authState()) {
 		case OAuth2CodeFlow::Invalid:
@@ -336,10 +337,9 @@ QHttpServerResponse AuthAPI::registrationOAuth2(const QString &provider, const Q
 							  (authenticator->thread() == QThread::currentThread() ? Qt::DirectConnection : Qt::BlockingQueuedConnection),
 							  Q_RETURN_ARG(std::weak_ptr<OAuth2CodeFlow>, ptr));
 
-	OAuth2CodeFlow *flow = ptr.lock().get();
+	Q_ASSERT(!ptr.expired());
 
-	if (!flow)
-		return responseError("internal error");
+	OAuth2CodeFlow *flow = ptr.lock().get();
 
 
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow, data](){

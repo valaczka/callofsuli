@@ -83,18 +83,6 @@ ExamGame::PaperContent ExamGame::generateQuestions(const QVector<Question> &list
 		QStringLiteral("pair"),
 	};
 
-	static const QString fQuestionPrefix = QStringLiteral("%1. ");
-	static const QString fQuestionSuffix = QLatin1String("");
-	static const QString fQuestionSpecialPrefix = QStringLiteral("**");
-	static const QString fQuestionSpecialSuffix = QStringLiteral("**  \n");
-	static const QString fOptionPrefix = QStringLiteral("(%1) ");
-	static const QString fOptionValues = QStringLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-	static const QString fOptionSeparator = QStringLiteral(", ");
-	static const QString fOptionSuffix = QLatin1String("");
-	static const QString fOptionListStart = QStringLiteral(" *");
-	static const QString fOptionListEnd = QStringLiteral("*");
-	static const QString fOptionCorrectPrefix = QStringLiteral("**");
-	static const QString fOptionCorrectSuffix = QStringLiteral("**");
 
 	for (auto it=list.constBegin(); it != list.constEnd(); ++it) {
 		if (easyModules.contains(it->module()))
@@ -104,104 +92,135 @@ ExamGame::PaperContent ExamGame::generateQuestions(const QVector<Question> &list
 	}
 
 
-	int qNum = 1;
-
+	bool enumerateStarted = false;
+	bool requireRestart = true;
 
 	while (!easyList.isEmpty()) {
 		const Question &q = easyList.takeAt(QRandomGenerator::global()->bounded(easyList.size()));
 
 		const QVariantMap &data = q.generate();
 
-		if (!content.questions.isEmpty()) {
-			content.questions += QStringLiteral("\n");
-			content.answers += QStringLiteral("\n");
-		}
-
-
 		QStringList options;
 		QVariantList correct;
 
 		if (q.module() == QLatin1String("simplechoice")) {
-			content.questions += fQuestionPrefix.arg(qNum) + data.value(QStringLiteral("question")).toString() + fQuestionSuffix;
-			content.answers += fQuestionPrefix.arg(qNum++) + data.value(QStringLiteral("question")).toString() + fQuestionSuffix;
+			QString q;
+			if (!enumerateStarted) {
+				q = requireRestart ? QStringLiteral("\\begin{enumerate}[start=1]\n") : QStringLiteral("\\begin{enumerate}\n");
+				enumerateStarted = true;
+				requireRestart = false;
+			}
+
+			q += QStringLiteral("\\item ")+data.value(QStringLiteral("question")).toString()+QStringLiteral("\n");
+			content.questions += q;
+			content.answers += q;
 
 			options = data.value(QStringLiteral("options")).toStringList();
 			correct << data.value(QStringLiteral("answer")).toInt();
+
 		} else if (q.module() == QLatin1String("multichoice")) {
-			content.questions += fQuestionPrefix.arg(qNum) + data.value(QStringLiteral("question")).toString() + fQuestionSuffix;
-			content.answers += fQuestionPrefix.arg(qNum++) + data.value(QStringLiteral("question")).toString() + fQuestionSuffix;
+			QString q;
+			if (!enumerateStarted) {
+				q = requireRestart ? QStringLiteral("\\begin{enumerate}[start=1]\n") : QStringLiteral("\\begin{enumerate}\n");
+				enumerateStarted = true;
+				requireRestart = false;
+			}
+
+			q += QStringLiteral("\\item ")+data.value(QStringLiteral("question")).toString()+QStringLiteral("\n");
+			content.questions += q;
+			content.answers += q;
 
 			options = data.value(QStringLiteral("options")).toStringList();
 			correct = data.value(QStringLiteral("answer")).toList();
+
 		} else if (q.module() == QLatin1String("pair")) {
-			content.questions += fQuestionSpecialPrefix + data.value(QStringLiteral("question")).toString() + fQuestionSpecialSuffix;
-			content.answers += fQuestionSpecialPrefix + data.value(QStringLiteral("question")).toString() + fQuestionSpecialSuffix;
+			QString q;
+			if (enumerateStarted) {
+				q = QStringLiteral("\\end{enumerate}\n\n");
+				enumerateStarted = false;
+			}
+			q += QStringLiteral("\\textbf{")+data.value(QStringLiteral("question")).toString()+QStringLiteral("}\n");
+			content.questions += q;
+			content.answers += q;
 
 			options = data.value(QStringLiteral("options")).toStringList();
 		}
 
-		content.questions += fOptionListStart;
-		content.answers += fOptionListStart;
+		static const QString optStart = QStringLiteral("\\begin{inlinelist}\n");
+		content.questions += optStart;
+		content.answers += optStart;
 
 		for (int i=0; i<options.size(); ++i) {
+			content.questions += QStringLiteral(" \\item ") + options.at(i) + QStringLiteral("\n");
 
 			if (correct.contains(i))
-				content.answers += fOptionCorrectPrefix;
+				content.answers += QStringLiteral(" \\item \\textbf{") + options.at(i) + QStringLiteral("}");
+			else
+				content.answers += QStringLiteral(" \\item ") + options.at(i);
 
-			content.questions += fOptionPrefix.arg((i < fOptionValues.size()) ? fOptionValues.at(i) : QStringLiteral("?")) + options.at(i) + fOptionSuffix;
-			content.answers += fOptionPrefix.arg((i < fOptionValues.size()) ? fOptionValues.at(i) : QStringLiteral("?")) + options.at(i) + fOptionSuffix;
-
-			if (correct.contains(i))
-				content.answers += fOptionCorrectSuffix;
-
-			if (i < options.size()-1) {
-				content.questions += fOptionSeparator;
-				content.answers += fOptionSeparator;
-			}
+			content.answers += QStringLiteral("\n");
 
 		}
 
-		content.questions += fOptionListEnd;
-		content.answers += fOptionListEnd;
+		static const QString optEnd = QStringLiteral("\\end{inlinelist}\n\n");
+		content.questions += optEnd;
+		content.answers += optEnd;
 
-		content.questions += QStringLiteral("\n");
-		content.answers += QStringLiteral("\n");
 
 		if (q.module() == QLatin1String("pair")) {
-			content.questions += QStringLiteral("\n");
-			content.answers += QStringLiteral("\n");
+			QString q;
+			if (requireRestart) {
+				q = QStringLiteral("\n\\begin{enumerate}[labelindent=3em, topsep=0cm, start=1]\n");
+				requireRestart = false;
+			} else
+				q = QStringLiteral("\n\\begin{enumerate}[labelindent=3em, topsep=0cm]\n");
+
+			content.questions += q;
+			content.answers += q;
+
 
 			const QStringList &qList = data.value(QStringLiteral("list")).toStringList();
 			const QStringList &aList = data.value(QStringLiteral("answer")).toMap().value(QStringLiteral("list")).toStringList();
 
 			for (int i=0; i<qList.size(); ++i) {
-				content.questions += fQuestionPrefix.arg(qNum) + qList.at(i) + fQuestionSuffix + QStringLiteral(" -- ________\n\n");
-				content.answers += fQuestionPrefix.arg(qNum++) + qList.at(i) + fQuestionSuffix + QStringLiteral(" -- ") + fOptionCorrectPrefix;
+				content.questions += QStringLiteral("\\item ")+qList.at(i)+QStringLiteral(" -- \\rule{3em}{0.5pt}\n");
+				content.answers += QStringLiteral("\\item ")+qList.at(i)+QStringLiteral(" -- \\textbf{");
 
 				if (aList.size() && i < aList.size()) {
 					const QString &ans = aList.at(i);
 					int idx = options.indexOf(ans);
 
-					if (idx != -1) {
-						content.answers += fOptionPrefix.arg((idx < fOptionValues.size()) ? fOptionValues.at(idx) : QStringLiteral("?"));
-					}
+					static const QString &optValues = QStringLiteral("ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
-					content.answers += ans;
+					if (idx > -1)
+						content.answers += QStringLiteral("(")+((idx < optValues.size()) ? optValues.at(idx) : QStringLiteral("?"))+QStringLiteral(") ");
+
+					content.answers += ans + QStringLiteral("}\n");
 				}
 
-				content.answers += fOptionCorrectSuffix + QStringLiteral("\n\n");
 			}
 
-			content.questions += QStringLiteral("\n---\n\n");
-			content.answers += QStringLiteral("\n---\n\n");
+			static const QString &q2 = QStringLiteral("\\end{enumerate}\n\n");
+			content.questions += q2;
+			content.answers += q2;
+			enumerateStarted = false;
+
 		}
+	}
+
+	if (enumerateStarted) {
+		static const QString &q = QStringLiteral("\\end{enumerate}\n\n");
+		content.questions += q;
+		content.answers += q;
 	}
 
 
 	if (!content.questions.isEmpty() && !complexList.isEmpty()) {
-		content.questions += QStringLiteral("\n---\n\n");
+		content.questions += QStringLiteral("\n\\rule{\\linewidth}{0.5pt}\n\n");
 	}
 
+
+	content.questions += QStringLiteral("\\begin{spacing}{2.0}\n");
 
 	while (!complexList.isEmpty()) {
 		const Question &q = complexList.takeAt(QRandomGenerator::global()->bounded(complexList.size()));
@@ -212,10 +231,12 @@ ExamGame::PaperContent ExamGame::generateQuestions(const QVector<Question> &list
 			content.questions += QStringLiteral("\n");
 		}
 
-		content.questions += fQuestionPrefix.arg(qNum++) + data.value(QStringLiteral("question")).toString() + fQuestionSuffix
-				+ QStringLiteral(" -- _________________________________________\n\n");
+		content.questions += data.value(QStringLiteral("question")).toString()
+				+ QStringLiteral(" -- \\rule{10em}{0.5pt}\n\n");
 
 	}
+
+	content.questions += QStringLiteral("\\end{spacing}\n");
 
 
 	return content;

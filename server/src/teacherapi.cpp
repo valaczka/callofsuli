@@ -1038,7 +1038,7 @@ QHttpServerResponse TeacherAPI::groupUserExclude(const Credential &credential, c
 
 QHttpServerResponse TeacherAPI::groupResult(const Credential &credential, const int &id)
 {
-	LOG_CTRACE("client") << "Get excluded users from group" << id;
+	LOG_CTRACE("client") << "Get group result" << id;
 
 	if (id <= 0)
 		return responseError("invalid id");
@@ -1072,10 +1072,11 @@ QHttpServerResponse TeacherAPI::groupResult(const Credential &credential, const 
 		QJsonObject obj;
 		obj[QStringLiteral("campaignid")] = id;
 		obj[QStringLiteral("resultList")] = *resultList;
+
 		list.append(obj);
 	}
 
-	response = QHttpServerResponse(list);
+	response = responseResult("list", list);
 
 	LAMBDA_THREAD_END;
 }
@@ -1099,14 +1100,14 @@ QHttpServerResponse TeacherAPI::groupUserResult(const Credential &credential, co
 	if (id <= 0)
 		return responseError("invalid id");
 
-	LAMBDA_THREAD_BEGIN(credential, id, json);
+	LAMBDA_THREAD_BEGIN(credential, id, json, username);
 
 	CHECK_GROUP(credential.username(), id);
 
 	int offset = json.value(QStringLiteral("offset")).toInt(0);
 	int limit = json.value(QStringLiteral("limit")).toInt(DEFAULT_LIMIT);
 
-	const auto &list = TeacherAPI::_groupUserGameResult(this, id, credential.username(), limit, offset);
+	const auto &list = TeacherAPI::_groupUserGameResult(this, id, username, limit, offset);
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -2199,7 +2200,7 @@ QHttpServerResponse TeacherAPI::campaignUserRemove(const Credential &credential,
 
 	CHECK_CAMPAIGN(credential.username(), id);
 
-	LAMBDA_SQL_ASSERT(!QueryBuilder::q(db).
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).
 					  addQuery("DELETE FROM campaignStudent WHERE campaignid=").addValue(id)
 					  .addQuery(" AND username IN (").addList(list.toVariantList())
 					  .addQuery(")")

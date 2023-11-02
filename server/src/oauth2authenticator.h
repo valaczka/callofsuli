@@ -58,7 +58,7 @@ public:
 	Q_INVOKABLE std::weak_ptr<OAuth2CodeFlow> addCodeFlow();
 
 	void removeCodeFlow(OAuth2CodeFlow *flow);
-	std::weak_ptr<OAuth2CodeFlow> getCodeFlowForState(const QString &status) const;
+	std::optional<std::weak_ptr<OAuth2CodeFlow> > getCodeFlowForState(const QString &status) const;
 
 	const ServerSettings::OAuth &oauth() const;
 	void setOAuth(const ServerSettings::OAuth &newOauth);
@@ -72,7 +72,7 @@ public:
 	static const char *callbackPath();
 
 protected:
-	QVector<std::shared_ptr<OAuth2CodeFlow> > m_codeFlowList;
+	std::shared_ptr<QVector<std::shared_ptr<OAuth2CodeFlow> > > m_codeFlowList;
 	std::unique_ptr<OAuth2ReplyHandler> m_handler = nullptr;
 	ServerSettings::OAuth m_oauth;
 
