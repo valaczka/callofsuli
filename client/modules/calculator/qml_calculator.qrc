@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>GQ_calculator.qml</file>
         <file>ME_calculator.qml</file>
+        <file>ME_calculator_qt6.qml</file>
+        <file>GQ_calculator_qt6.qml</file>
     </qresource>
 </RCC>

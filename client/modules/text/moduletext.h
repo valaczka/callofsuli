@@ -47,7 +47,13 @@ public:
 	inline QString readableName() const override { return tr("Szöveg"); }
 	inline QString icon() const override { return "image://font/AcademicI/\uf1b2"; }
 
-	inline QString qmlEditor() const override { return "ME_text.qml"; }
+	inline QString qmlEditor() const override {
+#if QT_VERSION >= 0x060000
+		return "ME_text_qt6.qml";
+#else
+		return "ME_text.qml";
+#endif
+	}
 	inline QString qmlQuestion() const override { return QLatin1String(""); }
 	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QLatin1String(""); }
 

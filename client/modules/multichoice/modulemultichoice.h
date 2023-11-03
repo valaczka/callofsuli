@@ -47,8 +47,20 @@ public:
 	inline QString readableName() const override { return tr("Többszörös választás"); }
 	inline QString icon() const override { return "image://font/Academic/\uf155"; }
 
-	inline QString qmlEditor() const override { return "ME_multichoice.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_multichoice.qml"; }
+	inline QString qmlEditor() const override {
+#if QT_VERSION >= 0x060000
+		return "ME_multichoice_qt6.qml";
+#else
+		return "ME_multichoice.qml";
+#endif
+	}
+	inline QString qmlQuestion() const override {
+#if QT_VERSION >= 0x060000
+		return "GQ_multichoice_qt6.qml";
+#else
+		return "GQ_multichoice.qml";
+#endif
+	}
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return { "block" }; }

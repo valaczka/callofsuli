@@ -47,8 +47,20 @@ public:
 	inline QString readableName() const override { return tr("Egyszerű választás"); }
 	inline QString icon() const override { return "image://font/Material Icons/\ue1db"; }
 
-	inline QString qmlEditor() const override { return "ME_simplechoice.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_simplechoice.qml"; }
+	inline QString qmlEditor() const override {
+#if QT_VERSION >= 0x060000
+		return "ME_simplechoice_qt6.qml";
+#else
+		return "ME_simplechoice.qml";
+#endif
+	}
+	inline QString qmlQuestion() const override {
+#if QT_VERSION >= 0x060000
+		return "GQ_simplechoice_qt6.qml";
+#else
+		return "GQ_simplechoice.qml";
+#endif
+	}
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return {"binding", "numbers", "images", "block" }; }

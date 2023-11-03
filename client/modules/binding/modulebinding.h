@@ -47,7 +47,13 @@ public:
 	inline QString readableName() const override { return tr("Összerendelés"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/link-box.svg"; }
 
-	inline QString qmlEditor() const override { return "ME_binding.qml"; }
+	inline QString qmlEditor() const override {
+#if QT_VERSION >= 0x060000
+		return "ME_binding_qt6.qml";
+#else
+		return "ME_binding.qml";
+#endif
+	}
 	inline QString qmlQuestion() const override { return QLatin1String(""); }
 	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QLatin1String(""); }
 

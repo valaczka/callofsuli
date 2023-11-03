@@ -1,0 +1,106 @@
+p {
+	padding: 0px;
+	margin: 0px;
+	font-size: medium;
+	font-weight: 200;
+}
+
+h1 {
+	font-size: xx-large;
+	font-family: "HVD Peace";
+	font-weight: normal;
+	text-align: center;
+}
+
+p.resultSuccess {
+	font-size: large;
+	font-weight: 600;
+	color: "#4CAF50";
+	text-align: center;
+	margin-bottom: 10px;
+}
+
+p.resultFail {
+	font-size: large;
+	font-weight: 600;
+	color: "#F44336";
+	text-align: center;
+	margin-bottom: 10px;
+}
+
+span.answer, p.answer {
+	font-family: "Special Elite";
+	color: "#303F9F";
+	font-weight: normal;
+}
+
+span.answerFail, p.answerFail {
+	font-family: "Special Elite";
+	color: "#F44336";
+	font-weight: normal;
+	text-decoration: underline;
+}
+
+span.pointSuccess {
+	color: "#4CAF50";
+	font-weight: 600;
+}
+
+span.pointFail {
+	color: "#F44336";
+	font-weight: 600;
+}
+
+span.checkOK {
+	font-family: "Material Icons";
+	color: "#4CAF50";
+}
+
+span.checkFail {
+	font-family: "Material Icons";
+	color: "#F44336";
+}
+
+
+tr.questionTitle {
+	font-weight: 500;
+	font-size: normal;
+}
+
+tr.answer, td.answer p {
+	font-weight: 400;
+	font-size: normal;
+}
+
+
+td.check {
+	font-size: x-large;
+}
+
+td.questionNum {
+	padding-top: 20px;
+}
+
+td.questionPoint {
+	padding-top: 20px;
+	white-space: nowrap;
+}
+
+td.question {
+	padding-top: 20px;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+td.answer {
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+
+p.options, td.answer p.options {
+	font-weight: 100;
+	font-size: small;
+	font-style: italic;
+	margin-bottom: 5px;
+}

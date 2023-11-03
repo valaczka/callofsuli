@@ -2,5 +2,7 @@
     <qresource prefix="/">
         <file>GQ_order.qml</file>
         <file>ME_order.qml</file>
+        <file>GQ_order_qt6.qml</file>
+        <file>ME_order_qt6.qml</file>
     </qresource>
 </RCC>

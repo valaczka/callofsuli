@@ -14,8 +14,10 @@ else: TARGET = Qaterial
 DESTDIR = ../
 
 RESOURCES += \
-	$$PWD/Qaterial.qrc \
 	$$PWD/QaterialIcons.qrc
+
+lessThan(QT_MAJOR_VERSION, 6): $$PWD/Qaterial.qrc
+else: $$PWD/Qaterial-Qt6.qrc
 
 
 DEFINES += \
@@ -32,20 +34,36 @@ QMAKE_CXXFLAGS += -Wno-unused-parameter -Wno-unused-lambda-capture -Wno-deprecat
 
 
 # Qrc
+lessThan(QT_MAJOR_VERSION, 6) {
+	linux:!exists(Qaterial.qrc): {
+		lines = <RCC>
+		lines += "<qresource prefix=\"/Qaterial\">"
 
-linux:!exists(Qaterial.qrc): {
-	lines = <RCC>
-	lines += "<qresource prefix=\"/Qaterial\">"
+		flist = $$files($$PWD/../Qaterial/qml/Qaterial/*)
 
-	flist = $$files($$PWD/../Qaterial/qml/Qaterial/*)
+		for (file, flist): lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
 
-	for (file, flist): lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
+		lines += </qresource>
+		lines += </RCC>
 
-	lines += </qresource>
-	lines += </RCC>
+		message(Create Qaterial.qrc)
+		write_file(Qaterial.qrc, lines)
+	}
+} else {
+	linux:!exists(Qaterial-Qt6.qrc): {
+		lines = <RCC>
+		lines += "<qresource prefix=\"/Qaterial\">"
 
-	message(Create Qaterial.qrc)
-	write_file(Qaterial.qrc, lines)
+		flist = $$files($$PWD/../Qaterial/qml/Qaterial-Qt6/*)
+
+		for (file, flist): lines += "	<file alias=\"$$basename(file)\">$$relative_path($$file)</file>"
+
+		lines += </qresource>
+		lines += </RCC>
+
+		message(Create Qaterial-Qt6.qrc)
+		write_file(Qaterial-Qt6.qrc, lines)
+	}
 }
 
 
