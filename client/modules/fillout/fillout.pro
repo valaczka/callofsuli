@@ -19,4 +19,4 @@ HEADERS += \
 	modulefillout.h
 
 RESOURCES += \
-	qml_fillout.qrc
+	qml_fillout_qt$${QT_MAJOR_VERSION}.qrc

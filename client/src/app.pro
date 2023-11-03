@@ -217,9 +217,15 @@ SOURCES += \
 	userloglist.cpp \
 	websocket.cpp
 
-RESOURCES += \
-	../qml/qml.qrc \
-	../qml/QaterialHelper.qrc
+lessThan(QT_MAJOR_VERSION, 6): {
+	RESOURCES += \
+		../qml/qml.qrc \
+		../qml/QaterialHelper.qrc
+} else {
+	RESOURCES += \
+		../qml-Qt6/qml.qrc \
+		../qml-Qt6/QaterialHelper.qrc
+}
 
 
 HEADERS += \

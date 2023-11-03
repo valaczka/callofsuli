@@ -138,8 +138,6 @@ ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
 
 ActionGame::~ActionGame()
 {
-	qDeleteAll(m_questions);
-	qDeleteAll(m_enemies);
 	LOG_CTRACE("game") << "Action game destroyed" << this;
 }
 
@@ -150,17 +148,15 @@ ActionGame::~ActionGame()
 
 void ActionGame::createQuestions()
 {
-	qDeleteAll(m_questions);
-
 	QVector<Question> list = AbstractLevelGame::createQuestions();
 
 	foreach (const Question &q, list) {
-		QuestionLocation *ql = new QuestionLocation();
+		auto ql = std::make_unique<QuestionLocation>();
 		ql->setQuestion(q);
 		ql->setEnemy(nullptr);
 		ql->setUsed(0);
 
-		m_questions.append(ql);
+		m_questions.push_back(std::move(ql));
 	}
 }
 
@@ -171,15 +167,13 @@ void ActionGame::createQuestions()
 
 void ActionGame::createEnemyLocations()
 {
-	qDeleteAll(m_enemies);
-
 	if (!m_scene) {
 		LOG_CWARNING("game") << "Missing scene, don't created any location";
 		return;
 	}
 
 	foreach (const GameTerrain::EnemyData &e, m_scene->terrain().enemies())
-		m_enemies.append(new EnemyLocation(e));
+		m_enemies.push_back(std::make_unique<EnemyLocation>(e));
 
 	LOG_CDEBUG("game") << m_enemies.size() << " enemy places created";
 
@@ -202,7 +196,7 @@ void ActionGame::createFixEnemies()
 
 	int n = 0;
 
-	foreach (EnemyLocation *el, m_enemies) {
+	for (auto &el : m_enemies) {
 		const GameTerrain::EnemyData &e = el->enemyData();
 		const GameTerrain::EnemyType &type = el->enemyData().type;
 
@@ -260,7 +254,7 @@ void ActionGame::recreateEnemies()
 
 	QList<GameEnemy *> soldiers;
 
-	foreach (EnemyLocation *el, m_enemies) {
+	for (auto &el : m_enemies) {
 		const GameTerrain::EnemyData &e = el->enemyData();
 		const GameTerrain::EnemyType &type = el->enemyData().type;
 
@@ -412,13 +406,13 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 
 	QMap<int, QVL> usedList;
 
-	foreach (QuestionLocation *ql, m_questions) {
+	for (auto &ql : qAsConst(m_questions)) {
 		if (!ql->enemy()) {
 			const int &used = ql->used();
 			if (usedList.contains(used)) {
-				usedList[used].append(ql);
+				usedList[used].append(ql.get());
 			} else {
-				usedList.insert(used, {ql});
+				usedList.insert(used, {ql.get()});
 			}
 		}
 	}
@@ -439,7 +433,7 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 				qreal blockMax = 0;
 				int blockQuestions = 0;
 
-				foreach (EnemyLocation *el, m_enemies) {
+				for (auto &el : m_enemies) {
 					if (el->enemyData().block != block) {
 						continue;
 					}
@@ -497,7 +491,7 @@ void ActionGame::linkPickablesToEnemies(QList<GameEnemy *> enemies)
 
 	QVector<int> eBlocks;
 
-	foreach (EnemyLocation *el, m_enemies) {
+	for (auto &el : m_enemies) {
 		if (!el->enemy())
 			continue;
 
@@ -579,18 +573,18 @@ void ActionGame::relinkQuestionToEnemy(GameEnemy *enemy)
 
 	QMap<int, QVL> usedList;
 
-	foreach (QuestionLocation *ql, m_questions) {
+	for (auto &ql : qAsConst(m_questions)) {
 		if (!ql->enemy()) {
 			const int &used = ql->used();
 			if (usedList.contains(used)) {
-				usedList[used].append(ql);
+				usedList[used].append(ql.get());
 			} else {
-				usedList.insert(used, {ql});
+				usedList.insert(used, {ql.get()});
 			}
 		}
 	}
 
-	if (m_questions.isEmpty()) {
+	if (m_questions.empty()) {
 		LOG_CWARNING("game") << "Question location unavailable";
 		return;
 	}
@@ -1157,7 +1151,7 @@ void ActionGame::resetKillStreak()
 
 void ActionGame::killAllEnemy()
 {
-	foreach (EnemyLocation *e, m_enemies) {
+	for (auto &e : m_enemies) {
 		if (e->enemy())
 			e->enemy()->kill();
 	}
@@ -1346,7 +1340,7 @@ int ActionGame::activeEnemies() const
 {
 	int n = 0;
 
-	foreach (EnemyLocation *e, m_enemies) {
+	for (auto &e : m_enemies) {
 		if (e->enemy())
 			++n;
 	}
@@ -1413,7 +1407,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 
 	int block = -1;
 
-	foreach (EnemyLocation *el, m_enemies) {
+	for (auto &el : m_enemies) {
 		if (el->enemy() == enemy) {
 			block = el->enemyData().block;
 			el->setEnemy(nullptr);
@@ -1437,7 +1431,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 
 	// Close blocks
 
-	foreach (EnemyLocation *el, m_enemies) {
+	for (auto &el : m_enemies) {
 		if (el->enemyData().block == block && el->enemy()) {
 			return;
 		}

@@ -18,7 +18,7 @@ QFormColumn {
 		title: qsTr("Régi jelszó")
 		echoMode: TextInput.Password
 		inputMethodHints: Qt.ImhSensitiveData
-		validator: RegExpValidator { regExp: /.+/ }
+		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldPasswordButton { }
@@ -33,7 +33,7 @@ QFormColumn {
 		title: qsTr("Új jelszó")
 		echoMode: TextInput.Password
 		inputMethodHints: Qt.ImhSensitiveData
-		validator: RegExpValidator { regExp: /.+/ }
+		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldPasswordButton { }

@@ -24,7 +24,7 @@ write_file($$OUT_PWD/wasm.qrc, lines)
 
 WasmRccFiles = $$files($$PWD/../share/*.cres)
 WasmRccFiles += \
-	$$PWD/../client/deploy/callofsuli.html \
+	#$$PWD/../client/deploy/callofsuli.html \
 	$$PWD/../resources/internal/img/cos.png \
 	$$PWD/../client/deploy/wasm_resources.json
 

@@ -7,7 +7,7 @@ else: TARGET = calculator
 include(../common.pri)
 
 RESOURCES += \
-	qml_calculator.qrc
+	qml_calculator_qt$${QT_MAJOR_VERSION}.qrc
 
 HEADERS += \
 	modulecalculator.h

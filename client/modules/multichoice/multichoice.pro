@@ -13,4 +13,4 @@ HEADERS += \
 	modulemultichoice.h
 
 RESOURCES += \
-	qml_multichoice.qrc
+	qml_multichoice_qt$${QT_MAJOR_VERSION}.qrc

@@ -44,6 +44,7 @@
 
 DesktopApplication::DesktopApplication(int &argc, char **argv)
 	: MobileApplication(argc, argv)
+	, m_appender(new ColorConsoleAppender)
 {
 #ifdef Q_OS_WIN
 	SetConsoleOutputCP(CP_UTF8);
@@ -51,7 +52,6 @@ DesktopApplication::DesktopApplication(int &argc, char **argv)
 	QWindowsWindowFunctions::setWindowActivationBehavior(QWindowsWindowFunctions::AlwaysActivateWindow);
 #endif
 
-	m_appender = new ColorConsoleAppender;
 	m_appender->setDetailsLevel(Logger::Info);
 
 #ifndef QT_NO_DEBUG

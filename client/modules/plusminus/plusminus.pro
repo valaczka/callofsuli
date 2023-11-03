@@ -7,7 +7,7 @@ else: TARGET = plusminus
 include(../common.pri)
 
 RESOURCES += \
-	qml_plusminus.qrc
+	qml_plusminus_qt$${QT_MAJOR_VERSION}.qrc
 
 HEADERS += \
 	moduleplusminus.h

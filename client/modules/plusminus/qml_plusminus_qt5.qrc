@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
         <file>ME_plusminus.qml</file>
-        <file>ME_plusminus_qt6.qml</file>
     </qresource>
 </RCC>

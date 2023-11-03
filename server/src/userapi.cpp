@@ -149,6 +149,11 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 	});
 
 
+	server->route(path+"inventory", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_FUTURE_API();
+		return QtConcurrent::run(&UserAPI::inventory, &*this, *credential);
+	});
+
 	/*server->route(path+"group/<arg>/score/live", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();

@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GQ_fillout.qml</file>
+        <file>ME_fillout.qml</file>
+    </qresource>
+</RCC>

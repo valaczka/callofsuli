@@ -117,7 +117,7 @@ QPageGradient {
 
 						missionLevel: model.qtObject
 
-						onClicked: Client.stackPushPage("PageMapPlayMissionLevel.qml", {
+						onClicked: item => Client.stackPushPage("PageMapPlayMissionLevel.qml", {
 															mission: missionColumn.mission,
 															map: control.map,
 															missionLevel: item

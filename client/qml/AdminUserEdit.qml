@@ -53,7 +53,7 @@ QPage {
 				width: parent.width
 				readOnly: user
 				helperText: qsTr("Egyedi felhasználónév, email cím")
-				validator: RegExpValidator { regExp: /.+/ }
+				validator: RegularExpressionValidator { regularExpression: /.+/ }
 				errorText: qsTr("Felhasználónév szükséges")
 				leadingIconSource: Qaterial.Icons.accountOutline
 				trailingContent: Qaterial.TextFieldButtonContainer
@@ -70,7 +70,7 @@ QPage {
 				visible: !user
 				echoMode: TextInput.Password
 				inputMethodHints: Qt.ImhSensitiveData
-				validator: RegExpValidator { regExp: /.+/ }
+				validator: RegularExpressionValidator { regularExpression: /.+/ }
 				errorText: qsTr("Meg kell adni egy jelszót")
 				trailingContent: Qaterial.TextFieldButtonContainer
 				{
@@ -130,7 +130,7 @@ QPage {
 				id: _familyName
 				title: qsTr("Vezetéknév")
 				width: parent.width
-				validator: RegExpValidator { regExp: /.+/ }
+				validator: RegularExpressionValidator { regularExpression: /.+/ }
 				errorText: qsTr("Vezetéknév szükséges")
 				trailingContent: Qaterial.TextFieldButtonContainer
 				{
@@ -166,7 +166,7 @@ QPage {
 				helperText: qsTr("A profilkép URL címe")
 				placeholderText: qsTr("http://...")
 				width: parent.width
-				validator: RegExpValidator { regExp: /^(http(s)*:\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/ }
+				validator: RegularExpressionValidator { regularExpression: /^(http(s)*:\/\/.)[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)$/ }
 				errorText: qsTr("Érvényes URL cím szükséges")
 				leadingIconSource: Qaterial.Icons.image
 				trailingContent: Qaterial.TextFieldButtonContainer

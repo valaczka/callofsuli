@@ -97,14 +97,14 @@ bool Handler::loadRoutes()
 		return getFavicon(request);
 	});
 
-	server->route("/test", QHttpServerRequest::Method::Get, [this](){
+	/*server->route("/test", QHttpServerRequest::Method::Get, [this](){
 		LOG_CTRACE("service") << "*****";
 		auto *server = m_service->webServer().lock().get();
 
 		server->webSocketHandler().runTest();
 
 		return QHttpServerResponse("ok");
-	});
+	});*/
 
 	server->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
 		const QString &callbackPath = QStringLiteral("/")+OAuth2Authenticator::callbackPath()+QStringLiteral("/");

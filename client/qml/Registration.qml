@@ -24,7 +24,7 @@ QFormColumn {
 		title: qsTr("Hitelesítő kód")
 		width: parent.width
 		helperText: qsTr("A regisztrációhoz kapott hitelesítő kód")
-		validator: RegExpValidator { regExp: /.+/ }
+		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni a hitelesítő kódot")
 		leadingIconSource: Qaterial.Icons.keyOutline
 		trailingContent: Qaterial.TextFieldButtonContainer
@@ -66,7 +66,7 @@ QFormColumn {
 		title: qsTr("Felhasználónév")
 		width: parent.width
 		visible: _radioPlain.checked
-		validator: RegExpValidator { regExp: /.+/ }
+		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni egy felhasználónevet")
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
@@ -82,7 +82,7 @@ QFormColumn {
 		title: qsTr("Vezetéknév")
 		width: parent.width
 		visible: _radioPlain.checked
-		validator: RegExpValidator { regExp: /.+/ }
+		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni a vezetéknevet")
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
@@ -112,7 +112,7 @@ QFormColumn {
 		visible: _radioPlain.checked
 		echoMode: TextInput.Password
 		inputMethodHints: Qt.ImhSensitiveData
-		validator: RegExpValidator { regExp: /.+/ }
+		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni egy jelszót")
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{

@@ -117,7 +117,7 @@ protected:
 	int m_xp = 0;
 
 private:
-	QTimer *m_timerLeft = nullptr;
+	QTimer m_timerLeft;
 	bool m_deadlineTimeout = false;
 	QString m_backgroundMusic;
 	static QStringList m_availableMusic;

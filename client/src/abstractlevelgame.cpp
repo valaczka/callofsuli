@@ -46,12 +46,11 @@ QStringList AbstractLevelGame::m_availableMedal;
 AbstractLevelGame::AbstractLevelGame(const GameMap::GameMode &mode, GameMapMissionLevel *missionLevel, Client *client)
 	: AbstractGame(mode, client)
 	, m_missionLevel(missionLevel)
-	, m_timerLeft(new QTimer(this))
 {
 	if (m_missionLevel)
 		setMap(m_missionLevel->map());
-	m_timerLeft->setInterval(50);
-	connect(m_timerLeft, &QTimer::timeout, this, &AbstractLevelGame::onTimerLeftTimeout);
+	m_timerLeft.setInterval(50);
+	connect(&m_timerLeft, &QTimer::timeout, this, &AbstractLevelGame::onTimerLeftTimeout);
 }
 
 
@@ -61,7 +60,7 @@ AbstractLevelGame::AbstractLevelGame(const GameMap::GameMode &mode, GameMapMissi
 
 AbstractLevelGame::~AbstractLevelGame()
 {
-	delete m_timerLeft;
+
 }
 
 
@@ -105,7 +104,7 @@ QVector<Question> AbstractLevelGame::createQuestions()
 void AbstractLevelGame::onTimerLeftTimeout()
 {
 	if (m_deadlineTimeout || m_closedSuccesfully) {
-		m_timerLeft->stop();
+		m_timerLeft.stop();
 		return;
 	}
 
@@ -115,7 +114,7 @@ void AbstractLevelGame::onTimerLeftTimeout()
 		LOG_CDEBUG("game") << "Game timeout";
 
 		m_deadlineTimeout = true;
-		m_timerLeft->stop();
+		m_timerLeft.stop();
 		emit gameTimeout();
 		return;
 	}
@@ -151,7 +150,7 @@ int AbstractLevelGame::msecLeft() const
 	if (m_deadlineTimeout)
 		return 0;
 
-	if (!m_timerLeft->isActive())
+	if (!m_timerLeft.isActive())
 		return duration()*1000;
 
 	if (m_deadline.hasExpired())
@@ -257,7 +256,7 @@ void AbstractLevelGame::startWithRemainingTime(const qint64 &msec)
 {
 	m_deadline.setRemainingTime(msec);
 	m_deadlineTimeout = false;
-	m_timerLeft->start();
+	m_timerLeft.start();
 	gameStart();
 }
 

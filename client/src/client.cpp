@@ -75,6 +75,8 @@ Client::Client(Application *app, QObject *parent)
 	startCache();
 
 	retranslate(Utils::settingsGet(QStringLiteral("window/language"), QStringLiteral("hu")).toString());
+
+	LOG_CTRACE("app") << "Client created" << this;
 }
 
 
@@ -105,6 +107,8 @@ Client::~Client()
 		delete m_translator;
 		m_translator = nullptr;
 	}
+
+	LOG_CTRACE("app") << "Client destroyed" << this;
 }
 
 /**

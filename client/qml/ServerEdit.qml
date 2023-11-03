@@ -50,7 +50,7 @@ QPage {
 			width: parent.width
 			helperText: qsTr("A szerver IP címe, vagy domain neve")
 			placeholderText: qsTr("192.168.2.1, www.callofsuli.hu,...stb.")
-			validator: RegExpValidator { regExp: /.+/ }
+			validator: RegularExpressionValidator { regularExpression: /.+/ }
 			errorText: qsTr("A szerver IP címe szükséges")
 			leadingIconSource: Qaterial.Icons.ipNetwork
 			trailingContent: Qaterial.TextFieldButtonContainer

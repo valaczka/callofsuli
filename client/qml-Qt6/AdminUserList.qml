@@ -85,7 +85,7 @@ Qaterial.Page
 			backgroundBorderHeight: 1
 			backgroundColor: "transparent"
 
-			validator: RegExpValidator { regExp: /.+/ }
+			validator: RegularExpressionValidator { regularExpression: /.+/ }
 			errorText: qsTr("Egyedi kódot szükséges megadni")
 			trailingContent: Qaterial.TextFieldButtonContainer
 			{

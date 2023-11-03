@@ -2,7 +2,5 @@
     <qresource prefix="/">
         <file>GQ_simplechoice.qml</file>
         <file>ME_simplechoice.qml</file>
-        <file>ME_simplechoice_qt6.qml</file>
-        <file>GQ_simplechoice_qt6.qml</file>
     </qresource>
 </RCC>

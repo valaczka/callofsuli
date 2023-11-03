@@ -175,8 +175,8 @@ private:
 	QPointer<GameScene> m_scene = nullptr;
 	QPointer<GameEntity> m_player = nullptr;
 	bool m_running = true;
-	QVector<QuestionLocation*> m_questions;
-	QVector<EnemyLocation*> m_enemies;
+	std::vector<std::unique_ptr<QuestionLocation>> m_questions;
+	std::vector<std::unique_ptr<EnemyLocation>> m_enemies;
 	QVector<int> m_closedBlocks;
 
 	typedef QPair<GamePickable::GamePickableData, int> Inventory;

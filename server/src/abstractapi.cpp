@@ -105,7 +105,7 @@ const char *AbstractAPI::apiPath()
 
 QHttpServerResponse AbstractAPI::responseError(const char *errorStr, const QHttpServerResponse::StatusCode &code)
 {
-	LOG_CTRACE("service") << "-> RESPONSE ERROR" << errorStr << code;
+	LOG_CWARNING("service") << "Response error:" << errorStr << code;
 	return QHttpServerResponse(QJsonObject{
 								   { QStringLiteral("error"), errorStr }
 							   }, code);
@@ -119,7 +119,7 @@ QHttpServerResponse AbstractAPI::responseError(const char *errorStr, const QHttp
 
 QHttpServerResponse AbstractAPI::responseErrorSql()
 {
-	LOG_CTRACE("service") << "-> RESPONSE SQL ERROR";
+	LOG_CWARNING("service") << "Response SQL error";
 	return QHttpServerResponse(QJsonObject{
 								   { QStringLiteral("error"), QStringLiteral("sql error") }
 							   }, QHttpServerResponse::StatusCode::InternalServerError);

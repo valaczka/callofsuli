@@ -13,4 +13,4 @@ HEADERS += \
 	moduleimages.h
 
 RESOURCES += \
-	qml_images.qrc
+	qml_images_qt$${QT_MAJOR_VERSION}.qrc

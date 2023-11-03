@@ -240,14 +240,9 @@ void WebServer::onWebSocketConnection()
 		QWebSocket *ws = ptr.get();
 		ptr.release();
 
-		auto stream = webSocketAdd(ws);
+		webSocketAdd(ws);
 
-		if (!stream) {
-			LOG_CERROR("service") << "Error";
-			return;
-		}
-
-		LOG_CDEBUG("service") << "Added" << stream << stream->socket();
+		LOG_CDEBUG("service") << "Added";
 	}
 }
 
@@ -301,22 +296,22 @@ WebSocketStreamHandler::~WebSocketStreamHandler()
  * @return
  */
 
-WebSocketStream *WebSocketStreamHandler::webSocketAdd(QWebSocket *ws)
+void WebSocketStreamHandler::webSocketAdd(QWebSocket *ws)
 {
 	LOG_CTRACE("service") << "Add WebSocketStream" << ws;
 
 	if (!ws)
-		return nullptr;
+		return;
 
 	QMutexLocker locker(&m_mutex);
 
-	const auto &it = std::find_if(m_streams.begin(), m_streams.end(), [ws](const WebSocketStream &s) {
-		return (s.socket() == ws);
+	const auto &it = std::find_if(m_streams.begin(), m_streams.end(), [ws](const std::shared_ptr<WebSocketStream> &s) {
+		return (s->socket() == ws);
 	});
 
 	if (it != m_streams.end()) {
 		LOG_CTRACE("service") << "WebSocketSteram already EXISTS!" << ws;
-		return &(*it);
+		return;
 	}
 
 
@@ -327,11 +322,9 @@ WebSocketStream *WebSocketStreamHandler::webSocketAdd(QWebSocket *ws)
 	});
 
 
-	m_streams.append(ws);
+	m_streams.append(std::make_shared<WebSocketStream>(ws));
 
 	LOG_CTRACE("service") << "WebSocketStream added" << &m_streams.last();
-
-	return &m_streams.last();
 }
 
 
@@ -351,7 +344,7 @@ void WebSocketStreamHandler::webSocketRemove(QWebSocket *ws)
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_streams.constBegin(); it != m_streams.constEnd(); ) {
-		if (it->socket() == ws) {
+		if (it->get()->socket() == ws) {
 			it = m_streams.erase(it);
 		} else
 			++it;
@@ -370,7 +363,7 @@ void WebSocketStreamHandler::runTest()
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_streams.begin(); it != m_streams.end(); ++it)
-		it->sendTextMessage("szia, ezt üzenem neked!");
+		it->get()->sendTextMessage("szia, ezt üzenem neked!");
 
 }
 
@@ -390,9 +383,9 @@ QList<QPointer<QWebSocket> > WebSocketStreamHandler::triggerEvent(const WebSocke
 	QMutexLocker locker(&m_mutex);
 	QList<QPointer<QWebSocket> > list;
 
-	for (const WebSocketStream &stream : m_streams) {
-		if (stream.hasObserver(type))
-			list.append(stream.socket());
+	for (auto &stream : m_streams) {
+		if (stream->hasObserver(type))
+			list.append(stream->socket());
 	}
 
 	return list;
@@ -412,9 +405,9 @@ QList<QPointer<QWebSocket> > WebSocketStreamHandler::triggerEvent(const WebSocke
 	QMutexLocker locker(&m_mutex);
 	QList<QPointer<QWebSocket> > list;
 
-	for (const WebSocketStream &stream : m_streams) {
-		if (stream.hasObserver(type, data))
-			list.append(stream.socket());
+	for (auto &stream : m_streams) {
+		if (stream->hasObserver(type, data))
+			list.append(stream->socket());
 	}
 
 	return list;
@@ -495,7 +488,7 @@ void WebSocketStream::observerRemoveAll(const StreamType &type)
  * @return
  */
 
-bool WebSocketStream::hasObserver(const StreamType &type) const
+bool WebSocketStream::hasObserver(const StreamType &type)
 {
 	QMutexLocker locker(&m_mutex);
 	for (auto it=m_observers.constBegin(); it != m_observers.constEnd();) {
@@ -513,7 +506,7 @@ bool WebSocketStream::hasObserver(const StreamType &type) const
  * @return
  */
 
-bool WebSocketStream::hasObserver(const StreamType &type, const QVariant &data) const
+bool WebSocketStream::hasObserver(const StreamType &type, const QVariant &data)
 {
 	QMutexLocker locker(&m_mutex);
 	return m_observers.contains(StreamObserver{type, data});

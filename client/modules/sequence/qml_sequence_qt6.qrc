@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ME_sequence_qt6.qml</file>
+    </qresource>
+</RCC>

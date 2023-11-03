@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
         <file>ME_text.qml</file>
-        <file>ME_text_qt6.qml</file>
     </qresource>
 </RCC>

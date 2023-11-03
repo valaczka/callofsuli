@@ -35,7 +35,7 @@ QFormColumn {
 		width: parent.width
 		readOnly: !_form.editable || !_form.nameEditable
 		helperText: !_form.nameEditable ? qsTr("A vezetéknevek módosítása nincs engedélyezve a szerveren") : ""
-		validator: RegExpValidator { regExp: /.+/ }
+		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Vezetéknév szükséges")
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer

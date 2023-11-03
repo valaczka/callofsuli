@@ -13,4 +13,4 @@ HEADERS += \
 	modulepair.h
 
 RESOURCES += \
-	qml_pair.qrc
+	qml_pair_qt$${QT_MAJOR_VERSION}.qrc

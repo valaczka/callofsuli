@@ -2,7 +2,5 @@
     <qresource prefix="/">
         <file>GQ_writer.qml</file>
         <file>ME_writer.qml</file>
-        <file>ME_writer_qt6.qml</file>
-        <file>GQ_writer_qt6.qml</file>
     </qresource>
 </RCC>

@@ -240,7 +240,7 @@ void MapEditor::exportData(const ExportType &type, const QUrl &file, const QVari
 	if (!client)
 		return;
 
-	client->wasmSaveContent(data, fileName.append(QStringLiteral(".map")));
+	client->wasmSaveContent(content, fileName.append(QStringLiteral(".map")));
 #else
 	if (fileName.isEmpty())
 		return;

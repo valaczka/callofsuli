@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>GQ_pair_qt6.qml</file>
+        <file>ME_pair_qt6.qml</file>
+    </qresource>
+</RCC>

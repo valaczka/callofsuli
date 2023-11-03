@@ -13,4 +13,4 @@ HEADERS += \
 	moduleorder.h
 
 RESOURCES += \
-	qml_order.qrc
+	qml_order_qt$${QT_MAJOR_VERSION}.qrc

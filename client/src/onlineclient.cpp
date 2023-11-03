@@ -150,7 +150,7 @@ void OnlineClient::onResourceDownloaded()
 		const QString &filename = url.path();
 
 		if (filename == "wasm_resources.json") {
-			const QJsonObject &o = Utils::byteArrayToJsonObject(payload);
+			const QJsonObject &o = Utils::byteArrayToJsonObject(payload).value_or(QJsonObject{});
 			const QJsonArray &resources = o.value(QStringLiteral("resources")).toArray();
 
 			m_demoMode = o.value(QStringLiteral("demo")).toBool(false);

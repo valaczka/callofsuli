@@ -16,8 +16,8 @@ DESTDIR = ../
 RESOURCES += \
 	$$PWD/QaterialIcons.qrc
 
-lessThan(QT_MAJOR_VERSION, 6): $$PWD/Qaterial.qrc
-else: $$PWD/Qaterial-Qt6.qrc
+lessThan(QT_MAJOR_VERSION, 6): RESOURCES += $$PWD/Qaterial.qrc
+else: RESOURCES += $$PWD/Qaterial-Qt6.qrc
 
 
 DEFINES += \

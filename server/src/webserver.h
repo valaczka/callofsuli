@@ -66,8 +66,8 @@ public:
 	void observerRemove(const StreamType &type, const QVariant &data = QVariant());
 	void observerRemoveAll(const WebSocketStream::StreamType &type);
 
-	bool hasObserver(const StreamType &type) const;
-	bool hasObserver(const StreamType &type, const QVariant &data) const;
+	bool hasObserver(const StreamType &type);
+	bool hasObserver(const StreamType &type, const QVariant &data);
 
 	QWebSocket *socket() const { return m_socket; }
 
@@ -95,7 +95,7 @@ public:
 	~WebSocketStreamHandler();
 
 
-	WebSocketStream *webSocketAdd(QWebSocket *ws);
+	void webSocketAdd(QWebSocket *ws);
 	void webSocketRemove(QWebSocket *ws);
 
 	void runTest();
@@ -104,7 +104,7 @@ public:
 	QList<QPointer<QWebSocket>> triggerEvent(const WebSocketStream::StreamType &type, const QVariant &data);
 
 private:
-	QVector<WebSocketStream> m_streams;
+	QVector<std::shared_ptr<WebSocketStream>> m_streams;
 	QMutex m_mutex;
 	WebServer *m_server = nullptr;
 
@@ -135,7 +135,7 @@ public:
 
 	Handler* handler() const;
 
-	WebSocketStream *webSocketAdd(QWebSocket *ws) { return m_webSocketHandler.webSocketAdd(ws); }
+	void webSocketAdd(QWebSocket *ws) { m_webSocketHandler.webSocketAdd(ws); }
 	void webSocketRemove(QWebSocket *ws) { m_webSocketHandler.webSocketRemove(ws); }
 
 	WebSocketStreamHandler &webSocketHandler();

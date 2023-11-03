@@ -61,14 +61,14 @@ Qaterial.ItemDelegate {
 		}
 	}
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		if (event.key == Qt.Key_Enter || event.key == Qt.Key_Return) {
 			down = true
 			event.accepted = true
 		}
 	}
 
-	Keys.onReleased: {
+	Keys.onReleased: event => {
 		if (event.key == Qt.Key_Enter || event.key == Qt.Key_Return) {
 			down = false
 			clicked()
