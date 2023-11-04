@@ -117,7 +117,7 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
 	QVariantMap m;
 	m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 	m[QStringLiteral("details")] = list.join(QStringLiteral(", "));
-	m[QStringLiteral("image")] = QLatin1String("");
+	m[QStringLiteral("image")] = QStringLiteral("");
 
 	return m;
 }

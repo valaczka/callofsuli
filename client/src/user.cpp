@@ -218,11 +218,11 @@ void User::setRoles(const Credential::Roles &newRoles)
 
 void User::clear()
 {
-    setUsername(QLatin1String(""));
-    setFamilyName(QLatin1String(""));
-    setGivenName(QLatin1String(""));
-    setNickName(QLatin1String(""));
-    setCharacter(QLatin1String(""));
+    setUsername(QStringLiteral(""));
+    setFamilyName(QStringLiteral(""));
+    setGivenName(QStringLiteral(""));
+    setNickName(QStringLiteral(""));
+    setCharacter(QStringLiteral(""));
     setRank(Rank());
     setRoles(Credential::None);
     setLoginState(LoggedOut);
@@ -334,7 +334,7 @@ QString User::picture() const
     if (!m_picture.isEmpty()) {
         LOG_CTRACE("client") << "URL override:" << m_picture;
     }
-    return QLatin1String("");
+    return QStringLiteral("");
 #endif
     return m_picture;
 }

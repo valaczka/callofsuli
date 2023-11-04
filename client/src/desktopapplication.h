@@ -34,7 +34,7 @@
 class DesktopApplication : public MobileApplication
 {
 public:
-	DesktopApplication(int &argc, char **argv);
+	DesktopApplication(QApplication *app);
 	virtual ~DesktopApplication();
 
 	void commandLineParse();

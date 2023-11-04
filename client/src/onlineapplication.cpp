@@ -34,8 +34,8 @@
  * @param argv
  */
 
-OnlineApplication::OnlineApplication(int &argc, char **argv)
-	: Application(argc, argv)
+OnlineApplication::OnlineApplication(QApplication *app)
+	: Application(app)
 {
 
 }
@@ -80,7 +80,7 @@ bool OnlineApplication::loadMainQml()
 Client *OnlineApplication::createClient()
 {
 	LOG_CTRACE("app") << "Create online client";
-	return new OnlineClient(this, m_application);
+	return new OnlineClient(this);
 }
 
 

@@ -32,7 +32,7 @@
 class OnlineApplication : public Application
 {
 public:
-	OnlineApplication(int &argc, char **argv);
+	OnlineApplication(QApplication *app);
 	virtual ~OnlineApplication();
 
 protected:

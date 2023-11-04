@@ -28,7 +28,6 @@
 #define CREDENTIAL_H
 
 #include "qcryptographichash.h"
-#include "qdatetime.h"
 #include <QJsonObject>
 #include <qjsonwebtoken.h>
 
@@ -40,6 +39,7 @@ class Credential
 
 public:
 	Credential() {}
+	virtual ~Credential() {}
 
 	enum Role {
 		None = 0,

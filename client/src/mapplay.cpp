@@ -171,7 +171,7 @@ Client *MapPlay::client() const
 
 QString MapPlay::uuid() const
 {
-	return m_gameMap ? m_gameMap->uuid() : QLatin1String("");
+	return m_gameMap ? m_gameMap->uuid() : QStringLiteral("");
 }
 
 
@@ -658,7 +658,7 @@ QVariantMap MapPlay::inventoryInfo(const QString &module) const
 	if (data.type == GamePickable::PickableInvalid)
 		return QVariantMap {
 			{ QStringLiteral("name"), tr("Érvénytelen modul: %1").arg(module) },
-			{ QStringLiteral("icon"), QLatin1String("") }
+			{ QStringLiteral("icon"), QStringLiteral("") }
 		};
 	else
 		return QVariantMap {
@@ -857,7 +857,7 @@ GameMapMission *MapPlayMission::mission() const
 
 QString MapPlayMission::name() const
 {
-	return m_mission ? m_mission->name() : QLatin1String("");
+	return m_mission ? m_mission->name() : QStringLiteral("");
 }
 
 
@@ -868,7 +868,7 @@ QString MapPlayMission::name() const
 
 QString MapPlayMission::uuid() const
 {
-	return m_mission ? m_mission->uuid() : QLatin1String("");
+	return m_mission ? m_mission->uuid() : QStringLiteral("");
 }
 
 
@@ -880,7 +880,7 @@ QString MapPlayMission::uuid() const
 QString MapPlayMission::description() const
 {
 	if (!m_mission)
-		return QLatin1String("");
+		return QStringLiteral("");
 
 	QString txt = m_mission->description();
 

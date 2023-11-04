@@ -31,9 +31,6 @@ include(../../lib/import_lib_client.pri)
 }
 
 !wasm {
-	DEFINES += \
-		WITH_BOX2D
-
 	SOURCES += \
 		mobileapplication.cpp \
 		sound.cpp \
@@ -89,7 +86,7 @@ win32 {
 
 
 android {
-	QT += androidextras
+lessThan(QT_MAJOR_VERSION, 6): QT += androidextras
 
 	DISTFILES += \
 		android/build.gradle \

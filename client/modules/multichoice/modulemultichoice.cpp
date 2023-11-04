@@ -92,7 +92,7 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 		m[QStringLiteral("details")] = data.value(QStringLiteral("corrects")).toStringList().join(QStringLiteral(", "))+
 				QStringLiteral("<br>(")+data.value(QStringLiteral("answers")).toStringList().join(QStringLiteral(", "))+
 				QStringLiteral(")");
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 		return m;
 	} else if (storage->name() == QStringLiteral("block")) {
 		QStringList answers;
@@ -108,7 +108,7 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	}

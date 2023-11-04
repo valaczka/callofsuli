@@ -98,7 +98,7 @@ class Client : public QObject
 
 
 public:
-	explicit Client(Application *app, QObject *parent = nullptr);
+	explicit Client(Application *app);
 	virtual ~Client();
 
 
@@ -164,8 +164,8 @@ public:
 
 	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key) const { return m_cache.get(key); }
 	Q_INVOKABLE void setCache(const QString &key, const QJsonArray &list) { m_cache.set(key, list); }
-	Q_INVOKABLE void reloadCache(const QString &key) { m_cache.reload(m_webSocket, key); }
-	Q_INVOKABLE void reloadCache(const QString &key, QObject *inst, const QJSValue &func) { m_cache.reload(m_webSocket, key, inst, func); }
+	Q_INVOKABLE void reloadCache(const QString &key) { m_cache.reload(m_webSocket.get(), key); }
+	Q_INVOKABLE void reloadCache(const QString &key, QObject *inst, const QJSValue &func) { m_cache.reload(m_webSocket.get(), key, inst, func); }
 	Q_INVOKABLE QObject *findCacheObject(const QString &key, const QVariant &value) { return m_cache.find(key, value); }
 	Q_INVOKABLE QObject *findOlmObject(qolm::QOlmBase *list, const QString &key, const QVariant &value) { return OlmLoader::find(list, key.toUtf8(), value); }
 
@@ -311,9 +311,9 @@ protected:
 	QQuickWindow *m_mainWindow = nullptr;
 	bool m_mainWindowClosable = false;
 
-	Utils *m_utils = nullptr;
+	std::unique_ptr<Utils> m_utils;
 	AbstractGame *m_currentGame = nullptr;
-	WebSocket *m_webSocket = nullptr;
+	std::unique_ptr<WebSocket> m_webSocket;
 	QPointer<EventStream> m_eventStream = nullptr;
 
 	qreal m_safeMarginLeft = 0;
@@ -331,9 +331,8 @@ protected:
 
 	QUrl m_parseUrl;
 
-	Updater *m_updater = nullptr;
-
-	QTranslator *m_translator = nullptr;
+	std::unique_ptr<Updater> m_updater;
+	std::unique_ptr<QTranslator> m_translator;
 };
 
 

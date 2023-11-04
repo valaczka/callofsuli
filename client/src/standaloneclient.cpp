@@ -32,6 +32,9 @@
 #include "application.h"
 #include <QSettings>
 
+#include <QMediaDevices>
+#include <QAudioDevice>
+
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 #include "mobileutils.h"
 #endif
@@ -44,13 +47,14 @@
  * @param parent
  */
 
-StandaloneClient::StandaloneClient(Application *app, QObject *parent)
-	: Client(app, parent)
-	, m_serverList(new ServerList(this))
+StandaloneClient::StandaloneClient(Application *app)
+	: Client(app)
+	, m_serverList(new ServerList())
+	, m_fadeAnimation(new QVariantAnimation())
 	#ifdef NO_SOUND_THREAD
-	, m_sound(new Sound(this))
+	, m_sound(new Sound(m_fadeAnimation))
 	#else
-	, m_worker(new QLambdaThreadWorker())
+	, m_worker()
 	#endif
 {
 	LOG_CTRACE("client") << "StandaloneClient created:" << this;
@@ -60,8 +64,8 @@ StandaloneClient::StandaloneClient(Application *app, QObject *parent)
 #else
 	QDefer ret;
 
-	m_worker->execInThread([this, &ret](){
-		m_sound = new Sound();
+	m_worker.execInThread([this, &ret](){
+		m_sound = std::make_unique<Sound>(m_fadeAnimation);
 		m_sound->init();
 
 		ret.resolve();
@@ -84,10 +88,12 @@ StandaloneClient::StandaloneClient(Application *app, QObject *parent)
 
 	serverListLoad();
 
+#if QT_VERSION < 0x060000
 	m_soundEffectTimer.setInterval(1500);
 	connect(&m_soundEffectTimer, &QTimer::timeout, this, &StandaloneClient::onSoundEffectTimeout);
 
 	connect(this, &StandaloneClient::volumeSfxChanged, &m_soundEffectTimer, [this](){ m_soundEffectTimer.start(); });
+#endif
 }
 
 
@@ -109,32 +115,11 @@ StandaloneClient::~StandaloneClient()
 	s.setValue(QStringLiteral("vibrate"), m_vibrate);
 	s.endGroup();
 
-#ifdef NO_SOUND_THREAD
-	m_sound->deleteLater();
-	m_sound = nullptr;
-#else
-	QDefer ret;
-
-	m_worker->execInThread([this, &ret](){
-		m_sound->deleteLater();
-		m_sound = nullptr;
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-
-	delete m_worker;
-	m_worker = nullptr;
-#endif
-
-	delete m_serverList;
-	m_serverList = nullptr;
-
 	LOG_CTRACE("client") << "StandaloneClient destroyed:" << this;
 }
 
 
-
+#if QT_VERSION < 0x060000
 
 /**
  * @brief StandaloneClient::newSoundEffect
@@ -146,14 +131,17 @@ QSoundEffect *StandaloneClient::newSoundEffect()
 	QSoundEffect *e = nullptr;
 
 #ifdef NO_SOUND_THREAD
-	e = new QSoundEffect(m_sound);
+	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
+
+	e = new QSoundEffect(ad, m_sound.get());
 	const qreal vol = (qreal) volumeSfx() / 100.0;
 	e->setVolume(vol);
 #else
 	QDefer ret;
 
-	m_worker->execInThread([&e, this, &ret](){
-		e = new QSoundEffect(m_sound);
+	m_worker.execInThread([&e, this, &ret](){
+		QAudioDevice ad(QMediaDevices::defaultAudioOutput());
+		e = new QSoundEffect(ad, m_sound.get());
 		const qreal vol = (qreal) volumeSfx() / 100.0;
 		e->setVolume(vol);
 		ret.resolve();
@@ -168,6 +156,7 @@ QSoundEffect *StandaloneClient::newSoundEffect()
 }
 
 
+
 /**
  * @brief StandaloneClient::removeSoundEffect
  * @param effect
@@ -179,7 +168,7 @@ void StandaloneClient::removeSoundEffect(QSoundEffect *effect)
 		m_soundEffectList.removeAll(effect);
 }
 
-
+#endif
 
 
 
@@ -196,7 +185,7 @@ void StandaloneClient::playSound(const QString &source, const Sound::SoundType &
 #ifdef NO_SOUND_THREAD
 	m_sound->playSound(source, soundType);
 #else
-	m_worker->execInThread([this, soundType, source](){
+	m_worker.execInThread([this, soundType, source](){
 		m_sound->playSound(source, soundType);
 	});
 #endif
@@ -214,7 +203,7 @@ void StandaloneClient::stopSound(const QString &source, const Sound::SoundType &
 #ifdef NO_SOUND_THREAD
 	m_sound->stopSound(source, soundType);
 #else
-	m_worker->execInThread([this, soundType, source](){
+	m_worker.execInThread([this, soundType, source](){
 		m_sound->stopSound(source, soundType);
 	});
 #endif
@@ -396,7 +385,7 @@ void StandaloneClient::serverListLoad(const QDir &dir)
 		s->setDirectory(realname.section('/', 0, -2));
 
 		if (!s->token().isEmpty() && !s->isTokenValid())
-			s->setToken(QLatin1String(""));
+			s->setToken(QStringLiteral(""));
 
 
 		LOG_CTRACE("client") << "Add server"<< s->name() << s->url() << s->directory();
@@ -449,10 +438,7 @@ void StandaloneClient::serverListSave(const QDir &dir)
 void StandaloneClient::_setVolume(const Sound::ChannelType &channel, int newVolume)
 {
 #ifndef NO_SOUND_THREAD
-	if (!m_worker)
-		return;
-
-	m_worker->execInThread([this, channel, newVolume](){
+	m_worker.execInThread([this, channel, newVolume](){
 #endif
 		int v = m_sound->volume(channel);
 
@@ -488,14 +474,14 @@ void StandaloneClient::_setVolume(const Sound::ChannelType &channel, int newVolu
 
 void StandaloneClient::onSoundEffectTimeout()
 {
-	if (!m_sound)
+	/*if (!m_sound)
 		return;
 
 	const qreal vol = (qreal) volumeSfx() / 100.0;
 
 	foreach (QSoundEffect *e, m_soundEffectList)
 		if (e)
-			e->setVolume(vol);
+			e->setVolume(vol); */
 }
 
 
@@ -510,7 +496,7 @@ void StandaloneClient::onSoundEffectTimeout()
 
 ServerList *StandaloneClient::serverList() const
 {
-	return m_serverList;
+	return m_serverList.get();
 }
 
 
@@ -704,7 +690,7 @@ Server *StandaloneClient::serverAddWithUrl(const QUrl &url)
 
 int StandaloneClient::serverListSelectedCount() const
 {
-	return Utils::selectedCount(m_serverList);
+	return Utils::selectedCount(m_serverList.get());
 }
 
 

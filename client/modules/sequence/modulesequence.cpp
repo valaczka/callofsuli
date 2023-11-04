@@ -50,8 +50,8 @@ QVariantMap ModuleSequence::details(const QVariantMap &data, ModuleInterface *st
 
 	QVariantMap m;
 	m[QStringLiteral("title")] = list.join(QStringLiteral(", "));
-	m[QStringLiteral("details")] = QLatin1String("");
-	m[QStringLiteral("image")] = QLatin1String("");
+	m[QStringLiteral("details")] = QStringLiteral("");
+	m[QStringLiteral("image")] = QStringLiteral("");
 
 	return m;
 }

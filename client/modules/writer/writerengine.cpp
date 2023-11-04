@@ -64,7 +64,7 @@ void WriterEngine::setAnswer(const QString &newAnswer)
 		return;
 	m_answer = newAnswer;
 	emit answerChanged();
-	m_text = QLatin1String("");
+	m_text = QStringLiteral("");
 	emit textChanged();
 	emit displayTextChanged();
 	m_characters.clear();

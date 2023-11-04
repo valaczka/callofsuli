@@ -200,7 +200,7 @@ private slots:
 private:
 	void ladderMove(const bool &up, const qreal &delayFactor);
 
-#ifndef Q_OS_WASM
+#if !defined(Q_OS_WASM) && QT_VERSION < 0x060000
 	QSoundEffect *m_soundEffectShot = nullptr;
 	QSoundEffect *m_soundEffectGeneral = nullptr;
 #endif

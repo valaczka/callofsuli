@@ -71,9 +71,9 @@ void TestGame::onPageReady()
 
 	if (list.isEmpty()) {
 		m_client->messageError(tr("Nem lehet előkészíteni a kérdéseket!"), tr("Nem lehet elindítani a játékot"));
-		pageItem()->setProperty("closeDisabled", QLatin1String(""));
+		pageItem()->setProperty("closeDisabled", QStringLiteral(""));
 		pageItem()->setProperty("onPageClose", QVariant::Invalid);
-		pageItem()->setProperty("closeQuestion", QLatin1String(""));
+		pageItem()->setProperty("closeQuestion", QStringLiteral(""));
 
 		unloadPageItem();
 
@@ -98,7 +98,7 @@ void TestGame::onPageReady()
 
 	emit questionsChanged();
 
-	pageItem()->setProperty("closeDisabled", QLatin1String(""));
+	pageItem()->setProperty("closeDisabled", QStringLiteral(""));
 
 	pageItem()->setState(QStringLiteral("run"));
 }
@@ -187,7 +187,7 @@ void TestGame::onGameQuestionFinished()
 	if (m_currentQuestion >= 0 && m_currentQuestion < m_questionList.size())
 		loadCurrentQuestion();
 	else if (m_currentQuestion == m_questionList.size())
-		m_gameQuestion->loadQuestion(QLatin1String(""), QStringLiteral("qrc:/GameQuestionTestFinishComponent.qml"), QVariantMap());
+		m_gameQuestion->loadQuestion(QStringLiteral(""), QStringLiteral("qrc:/GameQuestionTestFinishComponent.qml"), QVariantMap());
 	else
 		checkAnswers();
 }

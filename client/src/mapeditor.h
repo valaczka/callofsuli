@@ -86,7 +86,7 @@ public:
 
 	Q_INVOKABLE QStringList checkMap() const;
 
-	GameTerrain getNextTerrain(const QString &terrain = QLatin1String("")) const;
+	GameTerrain getNextTerrain(const QString &terrain = QStringLiteral("")) const;
 
 	EditorUndoStack *undoStack() const;
 

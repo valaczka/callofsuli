@@ -155,7 +155,7 @@ QTableView {
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-		onClicked: {
+		onClicked: mouse => {
 			if (mouse.button == Qt.RightButton) {
 				_contextMenu.currentUser = _model.userAt(row-1)
 				_contextMenu.open()

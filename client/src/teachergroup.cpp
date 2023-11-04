@@ -271,7 +271,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 	if (role == Qt::DisplayRole) {											// display
 		if (col == 0) {
 			if (m_showHeaderPlaceholders)
-				return QLatin1String("");
+				return QStringLiteral("");
 
 			if (row <= 0 || row > m_userList.size())
 				return QStringLiteral("???");
@@ -280,7 +280,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 			return u ? u->fullName() : QStringLiteral("???");
 		} else if (row == 0) {
 			if (m_showHeaderPlaceholders)
-				return QLatin1String("");
+				return QStringLiteral("");
 
 			if (col <= 0 || col > m_taskList.size())
 				return QStringLiteral("???");
@@ -295,7 +295,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 				return task.section();
 		}
 
-		return QLatin1String("");
+		return QStringLiteral("");
 
 	} else if (role == Qt::CheckStateRole) {								// checked: 0 (false) : 1 (checked) : 2 (required but not checked)
 		if (col == 0 && row > 0 && row <= m_userList.size()) {
@@ -333,7 +333,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 
 	} else if (role == Qt::UserRole+2) {									// result
 		if (col != 0)
-			return QLatin1String("");
+			return QStringLiteral("");
 
 		if (row <= 0 || row > m_userList.size())
 			return QStringLiteral("???");
@@ -902,7 +902,7 @@ QVariant TeacherGroupResultModel::data(const QModelIndex &index, int role) const
 	if (role == Qt::DisplayRole) {											// display
 		if (col == 0) {
 			if (m_showHeaderPlaceholders)
-				return QLatin1String("");
+				return QStringLiteral("");
 
 			if (row <= 0 || row > m_userList.size())
 				return QStringLiteral("???");
@@ -911,7 +911,7 @@ QVariant TeacherGroupResultModel::data(const QModelIndex &index, int role) const
 			return u ? u->fullName() : QStringLiteral("???");
 		} else if (row == 0) {
 			if (m_showHeaderPlaceholders)
-				return QLatin1String("");
+				return QStringLiteral("");
 
 			if (col <= 0 || col > m_campaignList.size())
 				return QStringLiteral("???");
@@ -921,7 +921,7 @@ QVariant TeacherGroupResultModel::data(const QModelIndex &index, int role) const
 			return c ? c->readableName() : QStringLiteral("???");
 		}
 
-		return QLatin1String("");
+		return QStringLiteral("");
 
 	} else if (role == Qt::CheckStateRole) {								// campaignState
 		if (col == 0 || row == 0)

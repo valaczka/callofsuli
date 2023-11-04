@@ -26,7 +26,7 @@ Qaterial.TabBar
 
 		delegate: Qaterial.TabButton
 		{
-			width: control.width / model.count
+			width: control.width / repeater.model.count
 			implicitWidth: width
 			text: model.text ? model.text : ""
 			icon.source: model.source ? model.source : ""

@@ -152,7 +152,7 @@ private:
 	QSslCertificate m_rootCertificate;
 	QList<QSslError> m_pendingSslErrors;
 #endif
-	QNetworkAccessManager *m_networkManager = nullptr;
+	std::unique_ptr<QNetworkAccessManager> m_networkManager;
 	QVector<WebSocketReply *> m_replies;
 	bool m_pending = false;
 

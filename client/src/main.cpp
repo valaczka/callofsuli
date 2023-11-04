@@ -37,22 +37,21 @@
 
 int main(int argc, char *argv[])
 {
+	Application::initialize();
+	QApplication qapp(argc, argv);
+
 #ifdef Q_OS_WASM
-	OnlineApplication app(argc, argv);
+	OnlineApplication app(&qapp);
 	return app.run();
 #else
 
 #if defined (Q_OS_ANDROID) || defined (Q_OS_IOS)
-	MobileApplication app (argc, argv);
-
-	MobileUtils::initialize();
-
+	MobileApplication app (&qapp);
 	app.initialize();
-
 	return app.run();
 #else
 
-	DesktopApplication app(argc, argv);
+	DesktopApplication app(&qapp);
 
 	app.commandLineParse();
 	app.initialize();
@@ -63,8 +62,6 @@ int main(int argc, char *argv[])
 	return app.runSingleInstance();
 
 #endif
-
-
 
 #endif
 

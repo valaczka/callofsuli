@@ -32,10 +32,16 @@
 #include <QtQml>
 #include "../modules/interfaces.h"
 
+
+
+/**
+ * @brief The Application class
+ */
+
 class Application
 {
 public:
-	Application(int &argc, char **argv);
+	Application(QApplication *app);
 	virtual ~Application();
 
 	enum CommandLine {
@@ -55,6 +61,8 @@ public:
 	static int versionBuild();
 	const char *version() const;
 	static bool debug();
+
+	static void initialize();
 
 	QApplication *application() const;
 	QQmlApplicationEngine *engine() const;
@@ -97,16 +105,16 @@ protected:
 
 	CommandLine m_commandLine = Normal;
 	QString m_commandLineData;
-	QApplication *m_application = nullptr;
-	QQmlApplicationEngine *m_engine = nullptr;
-	Client *m_client = nullptr;
+	QApplication *const m_application;
+	std::unique_ptr<QQmlApplicationEngine> m_engine;
+	std::unique_ptr<Client> m_client;
 	static Application *m_instance;
 	static const bool m_debug;
 
 	QHash<QString, ModuleInterface*> m_objectiveModules;
 	QHash<QString, ModuleInterface*> m_storageModules;
 
-	QString m_userAgent;
+	static const QString m_userAgent;
 };
 
 #endif // APPLICATION_H

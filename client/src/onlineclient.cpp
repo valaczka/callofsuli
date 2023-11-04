@@ -41,8 +41,8 @@
 #include "utils_.h"
 #include "websocket.h"
 
-OnlineClient::OnlineClient(Application *app, QObject *parent)
-	: Client{app, parent}
+OnlineClient::OnlineClient(Application *app)
+	: Client{app}
 {
 	connect(this, &OnlineClient::allResourceReady, this, &OnlineClient::onAllResourceReady);
 }
@@ -170,7 +170,7 @@ void OnlineClient::onResourceDownloaded()
 			} else {
 				m_resourceList.clear();
 
-				foreach (const QJsonValue &v, resources)
+				for (const QJsonValue &v : qAsConst(resources))
 					m_resourceList.append(v.toString());
 
 				LOG_CDEBUG("client") << "Letöltendő erőforrások:" << m_resourceList;

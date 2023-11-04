@@ -17,10 +17,8 @@ HEADERS += \
 	onlineclient.h
 
 
-if($$WasmWithBox2D): DEFINES += WITH_BOX2D
-
-
 DESTDIR = ../html
+
 
 lessThan(QT_MAJOR_VERSION, 6) {
 	QMAKE_LFLAGS += -s TOTAL_MEMORY=32MB

@@ -49,7 +49,7 @@ QVariantMap ModuleImages::details(const QVariantMap &data, ModuleInterface *stor
 	QStringList list;
 
 	const QVariantList &l = data.value(QStringLiteral("images")).toList();
-	QString image = QLatin1String("");
+	QString image = QStringLiteral("");
 	foreach (const QVariant &v, l) {
 		const QVariantMap &m = v.toMap();
 		list.append(m.value(QStringLiteral("first")).toString());
@@ -60,7 +60,7 @@ QVariantMap ModuleImages::details(const QVariantMap &data, ModuleInterface *stor
 
 	QVariantMap m;
 	m[QStringLiteral("title")] = list.join(QStringLiteral(", "));
-	m[QStringLiteral("details")] = QLatin1String("");
+	m[QStringLiteral("details")] = QStringLiteral("");
 	m[QStringLiteral("image")] = image;
 
 	return m;

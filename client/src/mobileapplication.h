@@ -32,7 +32,7 @@
 class MobileApplication : public Application
 {
 public:
-	MobileApplication(int &argc, char **argv);
+	MobileApplication(QApplication *app);
 	virtual ~MobileApplication();
 
 	virtual void initialize();

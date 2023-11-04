@@ -54,8 +54,8 @@ public:
 		return "ME_images.qml";
 #endif
 	}
-	inline QString qmlQuestion() const override { return QLatin1String(""); }
-	QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QLatin1String(""); }
+	inline QString qmlQuestion() const override { return QStringLiteral(""); }
+	QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 

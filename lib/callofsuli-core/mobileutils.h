@@ -42,8 +42,6 @@ public:
 		return m_instance;
 	}
 
-	static void initialize();
-
 	static void vibrate(const int &milliseconds = 400);
 
 	static void openUrl(const std::string &url);

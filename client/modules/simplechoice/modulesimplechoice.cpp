@@ -72,7 +72,7 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		QStringList answers = data.value(QStringLiteral("answers")).toStringList();
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = data.value(QStringLiteral("correct")).toString()+QStringLiteral("<br>(")+answers.join(QStringLiteral(", "))+QStringLiteral(")");
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	} else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers")) {
@@ -94,13 +94,13 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	} else if (storage->name() == QStringLiteral("images")) {
 		QStringList answers;
 
-		QString image = QLatin1String("");
+		QString image = QStringLiteral("");
 
 		const QString &mode = data.value(QStringLiteral("mode")).toString();
 
@@ -141,14 +141,14 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QLatin1String("")},
-						{QStringLiteral("details"), QLatin1String("")},
-						{QStringLiteral("image"), QLatin1String("")}
+	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
+						{QStringLiteral("details"), QStringLiteral("")},
+						{QStringLiteral("image"), QStringLiteral("")}
 					   });
 }
 
@@ -455,7 +455,7 @@ QVariantMap ModuleSimplechoice::preview(const QVariantList &generatedList) const
 		const QString &image = m.value(QStringLiteral("image")).toString();
 		const bool &imageAnswers = m.value(QStringLiteral("imageAnswers")).toBool();
 
-		s.append((image.isEmpty() ? QLatin1String("") : tr("[KÉP] "))
+		s.append((image.isEmpty() ? QStringLiteral("") : tr("[KÉP] "))
 				 +QStringLiteral("**")+m.value(QStringLiteral("question")).toString()+QStringLiteral("**\n"));
 
 		int correct = m.value(QStringLiteral("answer"), -1).toInt();

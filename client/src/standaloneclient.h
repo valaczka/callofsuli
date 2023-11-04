@@ -61,11 +61,13 @@ class StandaloneClient : public Client
 
 
 public:
-	explicit StandaloneClient(Application *app, QObject *parent = nullptr);
+	explicit StandaloneClient(Application *app);
 	virtual ~StandaloneClient();
 
+#if QT_VERSION < 0x060000
 	QSoundEffect *newSoundEffect();
 	void removeSoundEffect(QSoundEffect *effect);
+#endif
 
 	ServerList *serverList() const;
 
@@ -120,15 +122,19 @@ signals:
 	void vibrateChanged();
 
 private:
-	ServerList *m_serverList = nullptr;
-	QVector<QPointer<QSoundEffect>> m_soundEffectList;
-
-	Sound *m_sound = nullptr;
+	std::unique_ptr<ServerList> m_serverList = nullptr;
+	std::unique_ptr<QVariantAnimation> m_fadeAnimation;
+	std::unique_ptr<Sound> m_sound;
 
 #ifndef NO_SOUND_THREAD
-	QLambdaThreadWorker *m_worker = nullptr;
+	QLambdaThreadWorker m_worker;
 #endif
+
+#if QT_VERSION < 0x060000
+	QVector<QPointer<QSoundEffect>> m_soundEffectList;
 	QTimer m_soundEffectTimer;
+#endif
+
 	bool m_vibrate = true;
 
 	int m_volumeSfx = 0;

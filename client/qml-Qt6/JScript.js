@@ -101,7 +101,7 @@ function questionDialog(_params) {
 	_params.textColor = Qaterial.Colors.orange500
 	_params.iconFill = false
 	_params.iconSize = Qaterial.Style.roundIcon.size
-	_params.standardButtons = Dialog.No | Dialog.Yes
+	_params.standardButtons = DialogButtonBox.No | DialogButtonBox.Yes
 
 	Qaterial.DialogManager.showDialog(_params)
 }
@@ -114,7 +114,7 @@ function questionDialogPlural(_list, _question, _field, _params) {
 	_params.textColor = Qaterial.Colors.orange500
 	_params.iconFill = false
 	_params.iconSize = Qaterial.Style.roundIcon.size
-	_params.standardButtons = Dialog.No | Dialog.Yes
+	_params.standardButtons = DialogButtonBox.No | DialogButtonBox.Yes
 
 	_params.text = _question.arg(_list.length)
 	_params.text += "\n" + listGetFields(_list, _field).join(", ")

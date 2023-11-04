@@ -54,8 +54,8 @@ public:
 		return "ME_numbers.qml";
 #endif
 	}
-	inline QString qmlQuestion() const override { return QLatin1String(""); }
-	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QLatin1String(""); }
+	inline QString qmlQuestion() const override { return QStringLiteral(""); }
+	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 

@@ -99,7 +99,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		m[QStringLiteral("details")] = QStringLiteral("%1 %2").arg(
 					data.value(QStringLiteral("answer")).toString(),
 					data.value(QStringLiteral("suffix")).toString());
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	} else if (storage->name() == QStringLiteral("plusminus")) {
@@ -113,7 +113,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		else
 			m[QStringLiteral("title")] = QObject::tr("Összeadás");
 
-		QString details = QLatin1String("");
+		QString details = QStringLiteral("");
 
 		if (range >= 4) {
 			if (allCanNegative)
@@ -142,7 +142,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 			details += QStringLiteral("<br>")+QObject::tr("nem lehet negatív eredmény");
 
 		m[QStringLiteral("details")] = details;
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 		return m;
 	} else if (storage->name() == QStringLiteral("numbers")) {
 		QStringList answers;
@@ -161,7 +161,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 
@@ -169,8 +169,8 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 
 	m[QStringLiteral("title")] = QStringLiteral("Calculator");
-	m[QStringLiteral("details")] = storage ? storage->name() : QLatin1String("");
-	m[QStringLiteral("image")] = QLatin1String("");
+	m[QStringLiteral("details")] = storage ? storage->name() : QStringLiteral("");
+	m[QStringLiteral("image")] = QStringLiteral("");
 
 	return m;
 }
@@ -295,7 +295,7 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 						.arg(isSubtract ? QStringLiteral("-") : QStringLiteral("+"))
 						.arg(number2);
 
-	m[QStringLiteral("suffix")] = QLatin1String("");
+	m[QStringLiteral("suffix")] = QStringLiteral("");
 	m[QStringLiteral("twoLine")] = false;
 	m[QStringLiteral("decimalEnabled")] = false;
 	m[QStringLiteral("answer")] = QVariantMap({{QStringLiteral("first"), answer}, {QStringLiteral("second"), 0}});

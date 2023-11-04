@@ -28,7 +28,9 @@
 #include "Logger.h"
 #include "qdebug.h"
 #include "application.h"
+#if QT_VERSION < 0x060000
 #include "qandroidfunctions.h"
+#endif
 #include "qurl.h"
 
 
@@ -45,14 +47,6 @@ MobileUtils::MobileUtils()
 }
 
 
-/**
- * @brief MobileUtils::initialize
- */
-
-void MobileUtils::initialize()
-{
-
-}
 
 
 
@@ -70,9 +64,15 @@ void openUrl(const std::string &url)
 
 void MobileUtils::vibrate(const int &milliseconds)
 {
+#if QT_VERSION >= 0x060000
+	using QAndroidJniObject = QJniObject;
+	int apiLevel = QNativeInterface::QAndroidApplication::sdkVersion();
+	QAndroidJniObject activity = QNativeInterface::QAndroidApplication::context();
+#else
 	int apiLevel = QtAndroid::androidSdkVersion();
-
 	QAndroidJniObject activity = QtAndroid::androidActivity();
+#endif
+
 
 	if (!activity.isValid()) {
 		LOG_CWARNING("utils") << "Invalid AndroidActivity";
@@ -183,7 +183,12 @@ void MobileUtils::vibrate(const int &milliseconds)
 
 QString MobileUtils::checkPendingIntents()
 {
+#if QT_VERSION >= 0x060000
+	QJniObject activity = QNativeInterface::QAndroidApplication::context();
+	const QJniObject &uri = activity.callObjectMethod<jstring>("checkPendingIntents");
+#else
 	QAndroidJniObject uri = QtAndroid::androidActivity().callObjectMethod<jstring>("checkPendingIntents");
+#endif
 
 	QString uriStr = uri.toString();
 

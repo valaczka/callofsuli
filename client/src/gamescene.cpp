@@ -842,7 +842,7 @@ void GameScene::createPlayer()
 	}
 
 	QString character = Application::instance()->client()->server() ? Application::instance()->client()->server()->user()->character() :
-																	  QLatin1String("");
+																	  QStringLiteral("");
 
 	GamePlayer *player = GamePlayer::create(this, character);
 	GameTerrain::PlayerPositionData pos = getPlayerPosition();
@@ -970,9 +970,9 @@ void GameScene::onSceneStepSuccess()
 
 void GameScene::onSceneLoadFailed()
 {
-	m_game->pageItem()->setProperty("closeDisabled", QLatin1String(""));
+	m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
 	m_game->pageItem()->setProperty("onPageClose", QVariant::Invalid);
-	m_game->pageItem()->setProperty("closeQuestion", QLatin1String(""));
+	m_game->pageItem()->setProperty("closeQuestion", QStringLiteral(""));
 
 	m_game->unloadPageItem();
 
@@ -987,7 +987,7 @@ void GameScene::onSceneLoadFailed()
 
 void GameScene::onSceneAnimationReady()
 {
-	m_game->pageItem()->setProperty("closeDisabled", QLatin1String(""));
+	m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
 
 	m_game->recreateEnemies();
 

@@ -125,8 +125,8 @@ void MapEditor::createFile()
 	setMap(map);
 	loadMap();
 
-	m_currentFileName = QLatin1String("");
-	m_currentBackupName = QLatin1String("");
+	m_currentFileName = QStringLiteral("");
+	m_currentBackupName = QStringLiteral("");
 
 	setDisplayName(tr("--- új pálya ---"));
 	setModified(true);
@@ -1109,9 +1109,9 @@ void MapEditor::setDisplayName(const QString &newDisplayName)
 QVariantMap MapEditor::objectiveInfo(MapEditorObjective *objective) const
 {
 	if (!objective)
-		return Question::objectiveInfo(QLatin1String(""), {});
+		return Question::objectiveInfo(QStringLiteral(""), {});
 
-	return Question::objectiveInfo(objective->module(), objective->data(), objective->storage() ? objective->storage()->module() : QLatin1String(""),
+	return Question::objectiveInfo(objective->module(), objective->data(), objective->storage() ? objective->storage()->module() : QStringLiteral(""),
 								   objective->storage() ? objective->storage()->data() : QVariantMap());
 }
 
@@ -1125,7 +1125,7 @@ QVariantMap MapEditor::objectiveInfo(MapEditorObjective *objective) const
 QVariantMap MapEditor::storageInfo(MapEditorStorage *storage) const
 {
 	if (!storage)
-		return Question::storageInfo(QLatin1String(""), {});
+		return Question::storageInfo(QStringLiteral(""), {});
 
 	return Question::storageInfo(storage->module(), storage->data());
 }
@@ -1146,7 +1146,7 @@ QString MapEditor::objectiveQml(MapEditorObjective *objective) const
 			return mi->qmlEditor();
 	}
 
-	return QLatin1String("");
+	return QStringLiteral("");
 }
 
 
@@ -1166,7 +1166,7 @@ QString MapEditor::storageQml(MapEditorStorage *storage) const
 			return mi->qmlEditor();
 	}
 
-	return QLatin1String("");
+	return QStringLiteral("");
 }
 
 
@@ -1187,7 +1187,7 @@ QVariantMap MapEditor::inventoryInfo(MapEditorInventory *inventory) const
 	if (data.type == GamePickable::PickableInvalid)
 		return QVariantMap {
 			{ QStringLiteral("name"), tr("Érvénytelen modul: %1").arg(inventory->module()) },
-			{ QStringLiteral("icon"), QLatin1String("") }
+			{ QStringLiteral("icon"), QStringLiteral("") }
 		};
 	else
 		return QVariantMap {
@@ -2818,7 +2818,7 @@ MapEditorMissionLevel *MapEditor::missionLevelAdd(MapEditorMission *mission)
 
 	MapEditorMissionLevel *level = mission->createNextLevel(m_map);
 
-	const GameTerrain &t = getNextTerrain(maxLevel ? maxLevel->terrain() : QLatin1String(""));
+	const GameTerrain &t = getNextTerrain(maxLevel ? maxLevel->terrain() : QStringLiteral(""));
 
 	level->setTerrain(t.name()+QStringLiteral("/%1").arg(t.level()));
 

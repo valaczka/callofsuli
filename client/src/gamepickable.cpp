@@ -35,31 +35,31 @@
 const QVector<GamePickable::GamePickableData> GamePickable::m_pickableDataTypes = {
 	{ QStringLiteral("health"), tr("HP"), GamePickable::PickableHealth,
 	  QStringLiteral("qrc:/internal/game/powerup.gif"), GamePickable::FormatAnimated,
-	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+	  QStringLiteral(""), QStringLiteral(""), QStringLiteral("") },
 
 	{ QStringLiteral("time1"), tr("Idő (30 másodperc)"), GamePickable::PickableTime30,
 	  QStringLiteral("qrc:/internal/game/time-30.png"), GamePickable::FormatPixmap,
-	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+	  QStringLiteral(""), QStringLiteral(""), QStringLiteral("") },
 
 	{ QStringLiteral("time2"), tr("Idő (1 perc)"), GamePickable::PickableTime60,
 	  QStringLiteral("qrc:/internal/game/time-60.png"), GamePickable::FormatPixmap,
-	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+	  QStringLiteral(""), QStringLiteral(""), QStringLiteral("") },
 
 	{ QStringLiteral("shield1"), tr("Pajzs (x1)"), GamePickable::PickableShield1,
 	  QStringLiteral("qrc:/internal/game/shield-green.png"), GamePickable::FormatPixmap,
-	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+	  QStringLiteral(""), QStringLiteral(""), QStringLiteral("") },
 
 	{ QStringLiteral("shield2"), tr("Pajzs (x2)"), GamePickable::PickableShield2,
 	  QStringLiteral("qrc:/internal/game/shield-blue.png"), GamePickable::FormatPixmap,
-	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+	  QStringLiteral(""), QStringLiteral(""), QStringLiteral("") },
 
 	{ QStringLiteral("shield3"), tr("Pajzs (x3)"), GamePickable::PickableShield3,
 	  QStringLiteral("qrc:/internal/game/shield-red.png"), GamePickable::FormatPixmap,
-	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+	  QStringLiteral(""), QStringLiteral(""), QStringLiteral("") },
 
 	{ QStringLiteral("shield4"), tr("Pajzs (x5)"), GamePickable::PickableShield5,
 	  QStringLiteral("qrc:/internal/game/shield-gold.png"), GamePickable::FormatPixmap,
-	  QLatin1String(""), QLatin1String(""), QLatin1String("") },
+	  QStringLiteral(""), QStringLiteral(""), QStringLiteral("") },
 
 	{ QStringLiteral("water"), tr("Víz"), GamePickable::PickableWater,
 	  QStringLiteral("qrc:/internal/game/water.svg"), GamePickable::FormatPixmap,

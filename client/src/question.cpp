@@ -70,7 +70,7 @@ QString Question::module() const
 	if (m_objective)
 		return m_objective->module();
 
-	return QLatin1String("");
+	return QStringLiteral("");
 }
 
 
@@ -128,11 +128,11 @@ QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &da
 {
 	if (!Application::instance()->objectiveModules().contains(module)) {
 		return QVariantMap({
-							   { QStringLiteral("name"), QLatin1String("") },
+							   { QStringLiteral("name"), QStringLiteral("") },
 							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
-							   { QStringLiteral("details"), QLatin1String("") },
-							   { QStringLiteral("image"), QLatin1String("") }
+							   { QStringLiteral("details"), QStringLiteral("") },
+							   { QStringLiteral("image"), QStringLiteral("") }
 						   });
 	}
 
@@ -158,11 +158,11 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 {
 	if (!Application::instance()->storageModules().contains(module)) {
 		return QVariantMap({
-							   { QStringLiteral("name"), QLatin1String("") },
+							   { QStringLiteral("name"), QStringLiteral("") },
 							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
-							   { QStringLiteral("details"), QLatin1String("") },
-							   { QStringLiteral("image"), QLatin1String("") }
+							   { QStringLiteral("details"), QStringLiteral("") },
+							   { QStringLiteral("image"), QStringLiteral("") }
 						   });
 	}
 
@@ -186,12 +186,12 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 QString Question::qml() const
 {
 	if (!m_objective)
-		return QLatin1String("");
+		return QStringLiteral("");
 
 	QString module = m_objective->module();
 
 	if (!Application::instance()->objectiveModules().contains(module))
-		return QLatin1String("");
+		return QStringLiteral("");
 
 	ModuleInterface *mi = Application::instance()->objectiveModules().value(module);
 
@@ -209,7 +209,7 @@ QString Question::uuid() const
 	if (m_objective)
 		return m_objective->uuid();
 	else
-		return QLatin1String("");
+		return QStringLiteral("");
 }
 
 

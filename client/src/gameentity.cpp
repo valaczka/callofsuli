@@ -717,7 +717,7 @@ void GameEntity::onFacingLeftChanged()
 	if (m_facingLeft != m_spriteFacingLeft)
 		m_spriteSequence->setState(QStringLiteral("inverse"));
 	else
-		m_spriteSequence->setState(QLatin1String(""));
+		m_spriteSequence->setState(QStringLiteral(""));
 
 	updateFixtures();
 }

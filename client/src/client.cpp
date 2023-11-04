@@ -50,8 +50,8 @@
 #include "qscreen.h"
 #endif
 
-Client::Client(Application *app, QObject *parent)
-	: QObject{parent}
+Client::Client(Application *app)
+	: QObject{}
 	, m_application(app)
 	, m_utils(new Utils(this))
 	, m_webSocket(new WebSocket(this))
@@ -61,14 +61,14 @@ Client::Client(Application *app, QObject *parent)
 
 	m_oauthData.timer.setInterval(3000);
 
-	connect(m_webSocket, &WebSocket::socketError, this, &Client::onWebSocketError);
-	connect(m_webSocket, &WebSocket::responseError, this, &Client::onWebSocketResponseError);
+	connect(m_webSocket.get(), &WebSocket::socketError, this, &Client::onWebSocketError);
+	connect(m_webSocket.get(), &WebSocket::responseError, this, &Client::onWebSocketResponseError);
 #ifndef QT_NO_SSL
-	connect(m_webSocket, &WebSocket::socketSslErrors, this, &Client::onWebSocketSslError);
+	connect(m_webSocket.get(), &WebSocket::socketSslErrors, this, &Client::onWebSocketSslError);
 #endif
-	connect(m_webSocket, &WebSocket::serverConnected, this, &Client::onServerConnected);
-	connect(m_webSocket, &WebSocket::serverDisconnected, this, &Client::onServerDisconnected);
-	connect(m_webSocket, &WebSocket::serverChanged, this, &Client::serverChanged);
+	connect(m_webSocket.get(), &WebSocket::serverConnected, this, &Client::onServerConnected);
+	connect(m_webSocket.get(), &WebSocket::serverDisconnected, this, &Client::onServerDisconnected);
+	connect(m_webSocket.get(), &WebSocket::serverChanged, this, &Client::serverChanged);
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
@@ -87,25 +87,17 @@ Client::Client(Application *app, QObject *parent)
 
 Client::~Client()
 {
+	LOG_CTRACE("app") << "Client destroying" << this;
+
 	if (m_currentGame)
 		delete m_currentGame;
-
-	delete m_updater;
-	m_updater = nullptr;
-
-	delete m_webSocket;
-	m_webSocket = nullptr;
-
-	delete m_utils;
-	m_utils = nullptr;
 
 	m_cache.removeAll();
 
 	if (m_translator) {
+		LOG_CTRACE("app") << "Remove translator";
 		/// TODO: Utils::settingsSet(QStringLiteral("window/language"), m_translator->language());
-		m_application->application()->removeTranslator(m_translator);
-		delete m_translator;
-		m_translator = nullptr;
+		m_application->application()->removeTranslator(m_translator.get());
 	}
 
 	LOG_CTRACE("app") << "Client destroyed" << this;
@@ -656,7 +648,7 @@ void Client::onUserLoggedOut()
 {
 	LOG_CINFO("client") << "User logged out:" << qPrintable(server()->user()->username());
 
-	server()->setToken(QLatin1String(""));
+	server()->setToken(QStringLiteral(""));
 	server()->user()->clear();
 
 	if (m_mainPage)
@@ -881,7 +873,7 @@ void Client::startCache()
 
 Updater *Client::updater() const
 {
-	return m_updater;
+	return m_updater.get();
 }
 
 
@@ -973,7 +965,7 @@ void Client::stackPopToStartPage()
 
 WebSocket *Client::webSocket() const
 {
-	return m_webSocket;
+	return m_webSocket.get();
 }
 
 
@@ -1119,14 +1111,14 @@ bool Client::loginToken()
 	QJsonWebToken jwt;
 	if (!jwt.setToken(token)) {
 		LOG_CWARNING("credential") << "Invalid token:" << token;
-		server()->setToken(QLatin1String(""));
+		server()->setToken(QStringLiteral(""));
 		return false;
 	}
 
 
 	if (jwt.getPayloadJDoc().object().value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CINFO("client") << "Token expired";
-		server()->setToken(QLatin1String(""));
+		server()->setToken(QStringLiteral(""));
 		return false;
 	}
 
@@ -1413,23 +1405,19 @@ void Client::retranslate(const QString &language)
 
 	LOG_CINFO("client") << "Retranslate:" << qPrintable(language) << "-" << qPrintable(locale.name());
 
-	QTranslator *translator = new QTranslator();
+	std::unique_ptr<QTranslator> translator(new QTranslator());
 
 	if (translator->load(locale, QStringLiteral("qt"), QStringLiteral("_"), QStringLiteral(":/"))) {
 		LOG_CDEBUG("client") << "Translator file loaded:" << qPrintable(translator->filePath());
 
-		if (m_translator) {
-			m_application->application()->removeTranslator(m_translator);
-			delete m_translator;
-			m_translator = nullptr;
-		}
+		if (m_translator)
+			m_application->application()->removeTranslator(m_translator.get());
 
-		m_application->application()->installTranslator(translator);
-		m_translator = translator;
+		m_application->application()->installTranslator(translator.get());
+		m_translator = std::move(translator);
 		m_application->engine()->retranslate();
 	} else {
 		LOG_CWARNING("client") << "Can't load translator language:" << qPrintable(locale.name());
-		delete translator;
 	}
 }
 
@@ -1561,7 +1549,7 @@ Application *Client::application() const
 
 Utils *Client::utils() const
 {
-	return m_utils;
+	return m_utils.get();
 }
 
 

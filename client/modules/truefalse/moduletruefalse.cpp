@@ -81,7 +81,7 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = data.value(QStringLiteral("correct")).toBool() ? QObject::tr("igaz") : QObject::tr("hamis");
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 		return m;
 
 	} else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers")) {
@@ -98,7 +98,7 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	} else if (storage->name() == QStringLiteral("block")) {
@@ -115,14 +115,14 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QLatin1String("")},
-						{QStringLiteral("details"), QLatin1String("")},
-						{QStringLiteral("image"), QLatin1String("")}
+	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
+						{QStringLiteral("details"), QStringLiteral("")},
+						{QStringLiteral("image"), QStringLiteral("")}
 					   });
 }
 

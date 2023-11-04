@@ -42,8 +42,8 @@
  * @param argv
  */
 
-DesktopApplication::DesktopApplication(int &argc, char **argv)
-	: MobileApplication(argc, argv)
+DesktopApplication::DesktopApplication(QApplication *app)
+	: MobileApplication(app)
 	, m_appender(new ColorConsoleAppender)
 {
 #ifdef Q_OS_WIN
@@ -265,7 +265,7 @@ int DesktopApplication::runSingleInstance()
 
 Client *DesktopApplication::createClient()
 {
-	Client *c = new StandaloneClient(this, m_application);
+	Client *c = new StandaloneClient(this);
 
 	if (!m_arguments.isEmpty()) {
 		QUrl u(m_arguments.at(0));

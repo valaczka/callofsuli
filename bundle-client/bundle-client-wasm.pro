@@ -21,13 +21,13 @@ lines += "</qresource></RCC>"
 write_file($$OUT_PWD/wasm.qrc, lines)
 
 
-
 WasmRccFiles = $$files($$PWD/../share/*.cres)
 WasmRccFiles += \
-	#$$PWD/../client/deploy/callofsuli.html \
 	$$PWD/../resources/internal/img/cos.png \
 	$$PWD/../client/deploy/wasm_resources.json
 
+lessThan(QT_MAJOR_VERSION, 6): WasmRccFiles += $$PWD/../client/deploy/callofsuli.html
+else: WasmRccFiles += $$PWD/../client/deploy/Qt6/callofsuli.html
 
 extralib.commands = $(COPY_FILE) $$shell_path($$WasmRccFiles) $$shell_path($$OUT_PWD/../client/html/) ; $${RCC} -binary $${TARGET_QRC} -o $${TARGET_RCC}
 

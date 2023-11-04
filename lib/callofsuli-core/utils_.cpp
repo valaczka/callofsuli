@@ -49,7 +49,11 @@ const quint32 Utils::m_versionMinor = VERSION_MINOR;
 const quint32 Utils::m_versionBuild = VERSION_BUILD;
 
 #ifdef Q_OS_ANDROID
+#if QT_VERSION < 0x060000
 #include "qandroidfunctions.h"
+#else
+#include <QtCore/private/qandroidextras_p.h>
+#endif
 #include "QApplication"
 #include "qscreen.h"
 #endif
@@ -415,8 +419,13 @@ QString Utils::standardPath(const QString &path)
 QString Utils::genericDataPath(const QString &path)
 {
 #ifdef Q_OS_ANDROID
+#if QT_VERSION >= 0x060000
+	QJniObject mediaDir = QJniObject::callStaticObjectMethod("android/os/Environment", "getExternalStorageDirectory", "()Ljava/io/File;");
+	QJniObject mediaPath = mediaDir.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
+#else
 	QAndroidJniObject mediaDir = QAndroidJniObject::callStaticObjectMethod("android/os/Environment", "getExternalStorageDirectory", "()Ljava/io/File;");
 	QAndroidJniObject mediaPath = mediaDir.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
+#endif
 	if (!path.isEmpty())
 		return QStringLiteral("file://")+mediaPath.toString()+QStringLiteral("/")+path;
 	else
@@ -622,7 +631,7 @@ QString Utils::clipboardText()
 
 	if (!clipboard) {
 		LOG_CERROR("utils") << "Cliboard unavailable";
-		return QLatin1String("");
+		return QStringLiteral("");
 	}
 
 	return clipboard->text();
@@ -690,6 +699,8 @@ quint32 Utils::versionCode(const int &major, const int &minor)
 void Utils::checkStoragePermissions()
 {
 #ifdef Q_OS_ANDROID
+
+#if QT_VERSION < 0x060000
 	QtAndroid::PermissionResult result1 = QtAndroid::checkPermission("android.permission.READ_EXTERNAL_STORAGE");
 	QtAndroid::PermissionResult result2 = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
 
@@ -710,6 +721,12 @@ void Utils::checkStoragePermissions()
 			return;
 		}
 	}
+#else
+	emit storagePermissionsDenied();
+	return;
+#endif
+#else
+
 #endif
 
 	emit storagePermissionsGranted();
@@ -725,7 +742,7 @@ void Utils::checkStoragePermissions()
 
 void Utils::checkMediaPermissions()
 {
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID) && QT_VERSION < 0x060000
 	QtAndroid::PermissionResult result0 = QtAndroid::checkPermission("android.permission.CAMERA");
 
 	QStringList permissions;
@@ -742,6 +759,28 @@ void Utils::checkMediaPermissions()
 			return;
 		}
 	}
+#else
+	switch (qApp->checkPermission(QCameraPermission{}))
+	{
+	case Qt::PermissionStatus::Undetermined:
+		qApp->requestPermission(QCameraPermission{}, this, [this](const QPermission &permission) {
+			if (permission.status() == Qt::PermissionStatus::Granted)
+				emit mediaPermissionsGranted();
+			else if (permission.status() == Qt::PermissionStatus::Denied)
+				emit mediaPermissionsDenied();
+		});
+		break;
+
+	case Qt::PermissionStatus::Granted:
+		emit mediaPermissionsGranted();
+		break;
+
+	case Qt::PermissionStatus::Denied:
+		emit mediaPermissionsDenied();
+		break;
+	}
+
+
 #endif
 
 	emit mediaPermissionsGranted();
@@ -887,7 +926,12 @@ QMarginsF Utils::getAndroidSafeMargins()
 	QMarginsF margins;
 	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
 
+#if QT_VERSION >= 0x060000
+	QJniObject activity = QNativeInterface::QAndroidApplication::context();
+	QJniObject rect = activity.callObjectMethod<jobject>("getSafeArea");
+#else
 	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
+#endif
 
 	const double left = static_cast<double>(rect.getField<jint>("left"));
 	const double top = static_cast<double>(rect.getField<jint>("top"));

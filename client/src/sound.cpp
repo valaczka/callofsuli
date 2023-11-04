@@ -41,14 +41,11 @@
 #endif
 #include <Logger.h>
 
-Sound::Sound(QObject *parent)
+Sound::Sound(const std::unique_ptr<QVariantAnimation> &fadeAnimation, QObject *parent)
 	: QObject(parent)
-	, m_mediaPlayerMusic (nullptr)
-	, m_mediaPlayerSfx (nullptr)
-	, m_mediaPlayerVoiceOver (nullptr)
 	, m_soundTypeSfx(PlayerSfx)
 	, m_musicNextSource()
-	, m_fadeAnimation(new QVariantAnimation(this))
+	, m_fadeAnimation(fadeAnimation.get())
 	, m_musicVolume(0)
 {
 	LOG_CTRACE("sound") << "Sound object created" << this;
@@ -57,6 +54,9 @@ Sound::Sound(QObject *parent)
 	m_fadeAnimation->setEndValue(0);
 
 	connect(m_fadeAnimation, &QVariantAnimation::finished, this, &Sound::musicLoadNextSource);
+	connect(m_fadeAnimation, &QVariantAnimation::stateChanged, this, [](QAbstractAnimation::State newState, QAbstractAnimation::State oldState
+			){ LOG_CTRACE("sound") << "###### STATE" << newState << oldState; });
+	connect(m_fadeAnimation, &QVariantAnimation::valueChanged, this, [](const QVariant &v){ LOG_CTRACE("sound") << "%%%%" << v; });
 }
 
 
@@ -67,24 +67,6 @@ Sound::Sound(QObject *parent)
 
 Sound::~Sound()
 {
-	delete m_fadeAnimation;
-	m_fadeAnimation = nullptr;
-
-	if (m_mediaPlayerSfx)
-		delete m_mediaPlayerSfx;
-
-	m_mediaPlayerSfx = nullptr;
-
-	if (m_mediaPlayerMusic)
-		delete m_mediaPlayerMusic;
-
-	m_mediaPlayerMusic = nullptr;
-
-	if (m_mediaPlayerVoiceOver)
-		delete m_mediaPlayerVoiceOver;
-
-	m_mediaPlayerVoiceOver = nullptr;
-
 	LOG_CTRACE("sound") << "Sound object destroyed" << this;
 }
 
@@ -102,38 +84,55 @@ void Sound::init()
 {
 	LOG_CTRACE("sound") << "Sound object init";
 
-	m_mediaPlayerMusic = new QMediaPlayer(this);
-	m_mediaPlayerSfx = new QMediaPlayer(this);
-	m_mediaPlayerVoiceOver = new QMediaPlayer(this);
+	m_mediaPlayerMusic = std::make_unique<QMediaPlayer>();
+	m_mediaPlayerSfx = std::make_unique<QMediaPlayer>();
+	m_mediaPlayerVoiceOver = std::make_unique<QMediaPlayer>();
 
 #if QT_VERSION >= 0x060000
-	m_audioOutput = new QAudioOutput(this);
-	m_mediaPlayerMusic->setAudioOutput(m_audioOutput);
+	m_audioOutputMusic = std::make_unique<QAudioOutput>();
+	m_mediaPlayerMusic->setAudioOutput(m_audioOutputMusic.get());
+
+	m_audioOutputSfx = std::make_unique<QAudioOutput>();
+	m_mediaPlayerSfx->setAudioOutput(m_audioOutputSfx.get());
+
+	m_audioOutputVoiceOver = std::make_unique<QAudioOutput>();
+	m_mediaPlayerVoiceOver->setAudioOutput(m_audioOutputVoiceOver.get());
+
+	m_mediaPlayerSoundEffect = std::make_unique<QMediaPlayer>();
+	m_mediaPlayerSoundEffect->setAudioOutput(m_audioOutputSfx.get());
 #endif
 
 
 	m_soundTypeSfx = PlayerSfx;
 
 #if QT_VERSION < 0x060000
-	connect(m_mediaPlayerVoiceOver, &QMediaPlayer::stateChanged, this, [=](QMediaPlayer::State state) {
-		if (state == QMediaPlayer::StoppedState && m_mediaPlayerVoiceOver->playlist()) {
-			m_mediaPlayerVoiceOver->playlist()->clear();
+	connect(m_mediaPlayerVoiceOver.get(), &QMediaPlayer::stateChanged, this, [this](QMediaPlayer::State state) {
+		if (state == QMediaPlayer::StoppedState && !m_playlist.isEmpty()) {
+			m_mediaPlayerVoiceOver->setMedia(QUrl(m_playlist.dequeue()));
+			m_mediaPlayerVoiceOver->play();
+		}
+	});
+#else
+	connect(m_mediaPlayerVoiceOver.get(), &QMediaPlayer::playingChanged, this, [this](const bool &playing) {
+		if (!playing && !m_playlist.isEmpty()) {
+			m_mediaPlayerVoiceOver->setSource(QUrl(m_playlist.dequeue()));
+			m_mediaPlayerVoiceOver->play();
 		}
 	});
 #endif
 
-	connect(m_fadeAnimation, &QVariantAnimation::valueChanged, m_mediaPlayerMusic, [=](const QVariant &value) {
+	connect(m_fadeAnimation, &QVariantAnimation::valueChanged, m_mediaPlayerMusic.get(), [this](const QVariant &value) {
 #if QT_VERSION < 0x060000
 		m_mediaPlayerMusic->setVolume(value.toInt());
 #else
-		m_audioOutput->setVolume(value.toDouble());
+		m_audioOutputMusic->setVolume(value.toDouble());
 #endif
 	});
 	connect(m_fadeAnimation, &QVariantAnimation::finished, this, [=]() {
 #if QT_VERSION < 0x060000
 		m_mediaPlayerMusic->setVolume(m_musicVolume);
 #else
-		m_audioOutput->setVolume(m_musicVolume);
+		m_audioOutputMusic->setVolume((qreal)m_musicVolume/100.0);
 #endif
 	});
 
@@ -153,28 +152,34 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 {
 	LOG_CTRACE("sound") << "Play sound" << source << soundType;
 
-	if (!m_mediaPlayerMusic || !m_mediaPlayerSfx || !m_mediaPlayerVoiceOver)
-		return;
-
 	if (soundType == Music) {
 		musicPlay(source);
 	} else if (soundType == VoiceOver) {
 #if QT_VERSION < 0x060000
 		if (!m_mediaPlayerVoiceOver->volume())
 			return;
+#else
+		if (m_audioOutputVoiceOver->isMuted())
+			return;
+#endif
 
-		QMediaPlaylist *playlist = m_mediaPlayerVoiceOver->playlist();
+		m_playlist.append(source);
 
-		if (!playlist) {
-			playlist = new QMediaPlaylist(m_mediaPlayerMusic);
-			playlist->setPlaybackMode(QMediaPlaylist::Sequential);
-			m_mediaPlayerVoiceOver->setPlaylist(playlist);
-		}
-		playlist->addMedia(QUrl(source));
-
+#if QT_VERSION < 0x060000
 		if (m_mediaPlayerVoiceOver->state() != QMediaPlayer::PlayingState)
 			m_mediaPlayerVoiceOver->play();
+#else
+		if (!m_mediaPlayerVoiceOver->isPlaying()) {
+			m_mediaPlayerVoiceOver->setSource(QUrl(m_playlist.dequeue()));
+			m_mediaPlayerVoiceOver->play();
+		}
 #endif
+
+	} else if (soundType == SoundEffect) {
+		m_mediaPlayerSoundEffect->setSource(QUrl());
+		m_mediaPlayerSoundEffect->stop();
+		m_mediaPlayerSoundEffect->setSource(QUrl(source));
+		m_mediaPlayerSoundEffect->play();
 	} else {
 #if QT_VERSION < 0x060000
 		if (!m_mediaPlayerSfx->volume())
@@ -194,6 +199,25 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 
 		m_mediaPlayerSfx->setMedia(QUrl(source));
 		m_mediaPlayerSfx->play();
+#else
+		if (m_audioOutputSfx->isMuted())
+			return;
+
+		if (m_mediaPlayerSfx->isPlaying()) {
+			if (soundType == PlayerVoice && m_soundTypeSfx == GameSound)
+				return;
+
+			if (soundType == PlayerSfx && m_soundTypeSfx == GameSound)
+				return;
+		}
+
+		m_mediaPlayerSfx->setSource(QUrl());
+		m_mediaPlayerSfx->stop();
+
+		m_soundTypeSfx = soundType;
+
+		m_mediaPlayerSfx->setSource(QUrl(source));
+		m_mediaPlayerSfx->play();
 #endif
 	}
 }
@@ -209,16 +233,27 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 {
 	LOG_CTRACE("sound") << "Stop sound" << source << soundType;
 
-	if (!m_mediaPlayerMusic)
-		return;
+	LOG_CTRACE("sound") << "**** STOP CHECK" << m_mediaPlayerMusic->isPlaying() << m_mediaPlayerMusic->source();
 
 	if (soundType != Music)
 		return;
+
 #if QT_VERSION < 0x060000
 	if (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState && m_mediaPlayerMusic->currentMedia() == QUrl(source)
 			&& m_fadeAnimation->state() != QAbstractAnimation::Running)
 	{
 		m_fadeAnimation->setStartValue(m_mediaPlayerMusic->volume());
+		m_fadeAnimation->start();
+	}
+#else
+	LOG_CTRACE("sound") << "----" << m_mediaPlayerMusic->isPlaying() << m_mediaPlayerMusic->source() << (m_mediaPlayerMusic->source() == QUrl(source))
+						<< m_fadeAnimation->state();
+
+	if (m_mediaPlayerMusic->isPlaying() && m_mediaPlayerMusic->source() == QUrl(source)
+			&& m_fadeAnimation->state() != QAbstractAnimation::Running)
+	{
+		m_fadeAnimation->setStartValue(m_audioOutputMusic->volume());
+		LOG_CTRACE("sound") << "++++++" << m_fadeAnimation->startValue();
 		m_fadeAnimation->start();
 	}
 #endif
@@ -243,6 +278,18 @@ int Sound::volume(const ChannelType &channel) const
 		break;
 	case VoiceoverChannel:
 		return m_mediaPlayerVoiceOver->volume();
+		break;
+	}
+#else
+	switch (channel) {
+	case MusicChannel:
+		return m_audioOutputMusic->volume()*100;
+		break;
+	case SfxChannel:
+		return m_audioOutputSfx->volume()*100;
+		break;
+	case VoiceoverChannel:
+		return m_audioOutputVoiceOver->volume()*100;
 		break;
 	}
 #endif
@@ -271,6 +318,82 @@ void Sound::setVolume(const ChannelType &channel, int newVolume)
 		m_mediaPlayerVoiceOver->setVolume(newVolume);
 		break;
 	}
+#else
+	switch (channel) {
+	case MusicChannel:
+		m_audioOutputMusic->setVolume((qreal)newVolume/100.0);
+		m_musicVolume = newVolume;
+		break;
+	case SfxChannel:
+		m_audioOutputSfx->setVolume((qreal)newVolume/100.0);
+		break;
+	case VoiceoverChannel:
+		m_audioOutputVoiceOver->setVolume((qreal)newVolume/100.0);
+		break;
+	}
+#endif
+}
+
+
+
+/**
+ * @brief Sound::muted
+ * @param channel
+ * @return
+ */
+
+bool Sound::isMuted(const ChannelType &channel) const
+{
+#if QT_VERSION < 0x060000
+	switch (channel) {
+	case MusicChannel:
+		return m_mediaPlayerMusic->volume() == 0;
+		break;
+	case SfxChannel:
+		return m_mediaPlayerSfx->volume() == 0;
+		break;
+	case VoiceoverChannel:
+		return m_mediaPlayerVoiceOver->volume() == 0;
+		break;
+	}
+#else
+	switch (channel) {
+	case MusicChannel:
+		return m_audioOutputMusic->isMuted();
+		break;
+	case SfxChannel:
+		return m_audioOutputSfx->isMuted();
+		break;
+	case VoiceoverChannel:
+		return m_audioOutputVoiceOver->isMuted();
+		break;
+	}
+#endif
+
+	return false;
+}
+
+
+/**
+ * @brief Sound::setMuted
+ * @param channel
+ * @param newMuted
+ */
+
+void Sound::setMuted(const ChannelType &channel, bool newMuted)
+{
+#if QT_VERSION >= 0x060000
+	switch (channel) {
+	case MusicChannel:
+		m_audioOutputMusic->setMuted(newMuted);
+		break;
+	case SfxChannel:
+		m_audioOutputSfx->setMuted(newMuted);
+		break;
+	case VoiceoverChannel:
+		m_audioOutputVoiceOver->setMuted(newMuted);
+		break;
+	}
 #endif
 }
 
@@ -283,9 +406,9 @@ void Sound::setVolume(const ChannelType &channel, int newVolume)
 bool Sound::isPlayingMusic() const
 {
 #if QT_VERSION < 0x060000
-	return (m_mediaPlayerMusic && m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState);
+	return (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState);
 #else
-	return false;
+	return m_mediaPlayerMusic->isPlaying();
 #endif
 }
 
@@ -298,23 +421,28 @@ bool Sound::isPlayingMusic() const
 
 void Sound::musicPlay(const QString &source)
 {
-
 	LOG_CTRACE("sound") << "Play music" << source;
 
-	if (!m_mediaPlayerMusic)
-		return;
-
 	m_musicNextSource = source;
+
 #if QT_VERSION < 0x060000
 	if (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState) {
+#else
+	if (m_mediaPlayerMusic->isPlaying()) {
+#endif
+		LOG_CTRACE("sound") << "+++playing";
 		if (m_fadeAnimation->state() != QAbstractAnimation::Running) {
+#if QT_VERSION < 0x060000
 			m_fadeAnimation->setStartValue(m_mediaPlayerMusic->volume());
+#else
+			m_fadeAnimation->setStartValue(m_audioOutputMusic->volume());
+#endif
+			LOG_CTRACE("sound") << "FADE FROM" << m_fadeAnimation->startValue();
 			m_fadeAnimation->start();
 		}
 	} else {
 		musicLoadNextSource();
 	}
-#endif
 }
 
 
@@ -326,9 +454,6 @@ void Sound::musicPlay(const QString &source)
 void Sound::musicLoadNextSource()
 {
 	LOG_CTRACE("sound") << "Music load next source" << m_musicNextSource;
-
-	if (!m_mediaPlayerMusic)
-		return;
 
 	if (m_musicNextSource.isEmpty()) {
 		m_mediaPlayerMusic->stop();
@@ -348,9 +473,15 @@ void Sound::musicLoadNextSource()
 	playlist->clear();
 	playlist->addMedia(QUrl(m_musicNextSource));
 
-	m_musicNextSource = QLatin1String("");
 
-	m_mediaPlayerMusic->play();
+#else
+	m_audioOutputMusic->setVolume((qreal)m_musicVolume/100.0);
+
+	m_mediaPlayerMusic->setSource(QUrl(m_musicNextSource));
+	m_mediaPlayerMusic->setLoops(QMediaPlayer::Infinite);
 #endif
+
+	m_musicNextSource = QStringLiteral("");
+	m_mediaPlayerMusic->play();
 }
 

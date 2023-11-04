@@ -76,9 +76,6 @@ WebSocket::WebSocket(Client *client)
 
 WebSocket::~WebSocket()
 {
-	delete m_networkManager;
-	m_networkManager = nullptr;
-
 	LOG_CTRACE("websocket") << "WebSocket destroyed";
 }
 
@@ -323,7 +320,7 @@ QUrl WebSocket::getUrl(const API &api, const QString &path) const
 
 QNetworkAccessManager *WebSocket::networkManager() const
 {
-	return m_networkManager;
+	return m_networkManager.get();
 }
 
 
@@ -338,8 +335,6 @@ QNetworkAccessManager *WebSocket::networkManager() const
 
 WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJsonObject &data)
 {
-	Q_ASSERT (m_networkManager);
-
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
 		return new WebSocketReply(QNetworkReply::InternalServerError);
@@ -390,8 +385,6 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 
 WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByteArray &content)
 {
-	Q_ASSERT (m_networkManager);
-
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
 		return new WebSocketReply(QNetworkReply::InternalServerError);
@@ -445,8 +438,6 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 
 EventStream *WebSocket::getEventStream(const API &api, const QString &path, const QJsonObject &data)
 {
-	Q_ASSERT (m_networkManager);
-
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
 		return nullptr;
@@ -646,8 +637,8 @@ WebSocketReply::~WebSocketReply()
 		m_socket->checkPending();
 	}
 
-	if (m_reply.data())
-		m_reply.data()->deleteLater();
+	//if (m_reply.data())
+	//	m_reply.data()->deleteLater();
 
 	LOG_CTRACE("websocket") << "WebSocketReply destroyed" << this;
 }

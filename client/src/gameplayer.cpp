@@ -98,6 +98,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 #ifndef Q_OS_WASM
 	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
+	#if QT_VERSION < 0x060000
 	if (client) {
 		m_soundEffectShot = client->newSoundEffect();
 		m_soundEffectShot->setSource(shotSound());
@@ -106,6 +107,11 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 		m_soundEffectGeneral = client->newSoundEffect();
 	}
+	#else
+	connect(this, &GamePlayer::attack, this, [this, client](){
+		client->playSound(shotSound().toString(), Sound::SoundEffect);
+	});
+	#endif
 #endif
 
 	connect(this, &GamePlayer::movingFlagsChanged, this, &GamePlayer::onMovingFlagsChanged);
@@ -135,7 +141,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 GamePlayer::~GamePlayer()
 {
-#ifndef Q_OS_WASM
+#if !defined(Q_OS_WASM) && QT_VERSION < 0x060000
 	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
 	if (client) {

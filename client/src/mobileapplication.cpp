@@ -35,8 +35,8 @@
  * @param argv
  */
 
-MobileApplication::MobileApplication(int &argc, char **argv)
-	: Application(argc, argv)
+MobileApplication::MobileApplication(QApplication *app)
+	: Application(app)
 {
 
 }
@@ -92,5 +92,5 @@ void MobileApplication::createStandardPath()
 
 Client *MobileApplication::createClient()
 {
-	return new StandaloneClient(this, m_application);
+	return new StandaloneClient(this);
 }

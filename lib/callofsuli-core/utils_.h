@@ -47,7 +47,11 @@
 
 #ifdef Q_OS_ANDROID
 #include <jni.h>
+#if QT_VERSION < 0x060000
 #include <QtAndroidExtras/QAndroidJniObject>
+#else
+#include <QJniObject>
+#endif
 #include "qmargins.h"
 #endif
 

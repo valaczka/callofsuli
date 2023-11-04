@@ -212,7 +212,7 @@ QString AbstractLevelGame::medalImagePath(const QString &medal)
 	if (m_availableMedal.contains(medal))
 		return QStringLiteral("qrc:/internal/medal/")+medal;
 	else
-		return QLatin1String("");
+		return QStringLiteral("");
 }
 
 
@@ -226,7 +226,7 @@ QString AbstractLevelGame::medalImagePath(const QString &medal)
 QString AbstractLevelGame::medalImagePath(GameMapMission *mission)
 {
 	if (!mission)
-		return QLatin1String("");
+		return QStringLiteral("");
 
 	return medalImagePath(mission->medalImage());
 }
@@ -241,7 +241,7 @@ QString AbstractLevelGame::medalImagePath(GameMapMission *mission)
 QString AbstractLevelGame::medalImagePath(GameMapMissionLevel *missionLevel)
 {
 	if (!missionLevel)
-		return QLatin1String("");
+		return QStringLiteral("");
 	else
 		return medalImagePath(missionLevel->mission());
 }

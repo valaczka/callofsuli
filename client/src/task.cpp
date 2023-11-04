@@ -222,7 +222,7 @@ QString Task::readableGradeOrXp(Grade *grade, int xp)
 	else if (xp > 0)
 		return tr("%1 XP").arg(xp);
 
-	return QLatin1String("");
+	return QStringLiteral("");
 }
 
 
@@ -242,7 +242,7 @@ QString Task::readableGradeOrXpShort(Grade *grade, int xp)
 	else if (xp > 0)
 		return tr("%1 XP").arg(xp);
 
-	return QLatin1String("");
+	return QStringLiteral("");
 }
 
 
@@ -301,11 +301,11 @@ QString Task::readableCriterion(BaseMapList *mapList, Campaign *campaign) const
 		if (campaign && campaign->usedMapUuids().size() < 2)
 			return tr("Teljesítsd a %1 küldetést LEVEL %2%3 szinten").arg(missionName)
 					.arg(level)
-					.arg(deathmatch ? tr(" SUDDEN DEATH") : QLatin1String(""));
+					.arg(deathmatch ? tr(" SUDDEN DEATH") : QStringLiteral(""));
 		else
 			return tr("Teljesítsd a %1 pálya %2 küldetést LEVEL %3%4 szinten").arg(m_mapName, missionName)
 					.arg(level)
-					.arg(deathmatch ? tr(" SUDDEN DEATH") : QLatin1String(""));
+					.arg(deathmatch ? tr(" SUDDEN DEATH") : QStringLiteral(""));
 	}
 
 	return tr("-- Érvénytelen modul: %1 --").arg(module);
@@ -354,11 +354,11 @@ QString Task::readableShortCriterion(BaseMapList *mapList, Campaign *campaign) c
 		if (campaign && campaign->usedMapUuids().size() < 2)
 			return tr("%1 level %2%3").arg(missionName)
 					.arg(level)
-					.arg(deathmatch ? tr(" S D") : QLatin1String(""));
+					.arg(deathmatch ? tr(" S D") : QStringLiteral(""));
 		else
 			return tr("%1 / %2 level %3%4").arg(mapName, missionName)
 					.arg(level)
-					.arg(deathmatch ? tr(" S D") : QLatin1String(""));
+					.arg(deathmatch ? tr(" S D") : QStringLiteral(""));
 	}
 
 	return tr("-- Érvénytelen --");

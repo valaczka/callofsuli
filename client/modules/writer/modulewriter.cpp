@@ -80,7 +80,7 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = data.value(QStringLiteral("correct")).toString();
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	} else if (storage->name() == QStringLiteral("binding")) {
@@ -102,13 +102,13 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	} else if (storage->name() == QStringLiteral("images")) {
 		QStringList answers;
 
-		QString image = QLatin1String("");
+		QString image = QStringLiteral("");
 
 		const QString &mode = data.value(QStringLiteral("mode")).toString();
 
@@ -143,25 +143,25 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		m[QStringLiteral("details")] = tr("Kiegészítendő: %1, további szavak: %2")
 				.arg(data.value(QStringLiteral("words")).toInt())
 				.arg(data.value(QStringLiteral("pad")).toInt());
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	} else if (storage->name() == QStringLiteral("text")) {
 		QStringList list = storageData.value(QStringLiteral("items")).toStringList();
 
 		QVariantMap m;
-		m[QStringLiteral("title")] = list.isEmpty() ? QLatin1String("") : list.at(0);
+		m[QStringLiteral("title")] = list.isEmpty() ? QStringLiteral("") : list.at(0);
 		if (!list.isEmpty())
 			list.removeFirst();
-		m[QStringLiteral("details")] = list.isEmpty() ? QLatin1String("") : list.join(QStringLiteral("\n"));
-		m[QStringLiteral("image")] = QLatin1String("");
+		m[QStringLiteral("details")] = list.isEmpty() ? QStringLiteral("") : list.join(QStringLiteral("\n"));
+		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QLatin1String("")},
-						{QStringLiteral("details"), QLatin1String("")},
-						{QStringLiteral("image"), QLatin1String("")}
+	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
+						{QStringLiteral("details"), QStringLiteral("")},
+						{QStringLiteral("image"), QStringLiteral("")}
 					   });
 }
 
@@ -228,7 +228,7 @@ QVariantMap ModuleWriter::preview(const QVariantList &generatedList) const
 
 		const QString &image = m.value(QStringLiteral("image")).toString();
 
-		s.append((image.isEmpty() ? QLatin1String("") : tr("[KÉP] "))
+		s.append((image.isEmpty() ? QStringLiteral("") : tr("[KÉP] "))
 				 +QStringLiteral("**")+m.value(QStringLiteral("question")).toString()+QStringLiteral("**\n"));
 
 		const QString &answer = m.value(QStringLiteral("answer")).toString();

@@ -61,12 +61,9 @@
 #endif
 
 #include <QZXing.h>
-
-#ifdef WITH_BOX2D
 #include <box2dplugin.h>
-#endif
 
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID) && QT_VERSION < 0x060000
 #include <QtAndroid>
 //#include "AndroidAppender.h"
 #endif
@@ -96,6 +93,10 @@ const int Application::m_versionMinor = VERSION_MINOR;
 const int Application::m_versionBuild = VERSION_BUILD;
 const char *Application::m_version = VERSION_FULL;
 Application *Application::m_instance = nullptr;
+const QString Application::m_userAgent = QStringLiteral("CallOfSuli/%1.%2.%3 (%4; %5)")
+		.arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
+		.arg(QSysInfo::prettyProductName())
+		.arg(QSysInfo::currentCpuArchitecture());
 
 
 #ifdef QT_NO_DEBUG
@@ -105,13 +106,14 @@ const bool Application::m_debug = true;
 #endif
 
 
+
+
+
 /**
- * @brief Application::Application
- * @param argc
- * @param argv
+ * @brief Application::initialize
  */
 
-Application::Application(int &argc, char **argv)
+void Application::initialize()
 {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
 	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
@@ -123,19 +125,30 @@ Application::Application(int &argc, char **argv)
 	QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
 	QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
+}
 
 
-	if (!m_instance)
-		m_instance = this;
 
-	m_application = new QApplication(argc, argv);
 
-	m_engine = new QQmlApplicationEngine(m_application);
+/**
+ * @brief Application::Application
+ * @param argc
+ * @param argv
+ */
 
-	m_userAgent = QStringLiteral("CallOfSuli/%1.%2.%3 (%4; %5)")
-			.arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
-			.arg(QSysInfo::prettyProductName())
-			.arg(QSysInfo::currentCpuArchitecture());
+Application::Application(QApplication *app)
+	: m_application(app)
+{
+	Q_ASSERT(!m_instance);
+
+	m_instance = this;
+
+	QObject::connect(m_application, &QCoreApplication::aboutToQuit, [this](){
+		m_engine.reset();
+		m_client.reset();
+	});
+
+	m_engine = std::make_unique<QQmlApplicationEngine>();
 }
 
 
@@ -145,19 +158,7 @@ Application::Application(int &argc, char **argv)
 
 Application::~Application()
 {
-	LOG_CTRACE("app") << "Destroy Application";
-
-	delete m_engine;
-	m_engine = nullptr;
-
-	if (m_client)
-		delete m_client;
-	m_client = nullptr;
-
-	/*delete m_application;
-	m_application = nullptr;*/
-
-	m_instance = nullptr;
+	LOG_CTRACE("app") << "Destroy Application" << this;
 }
 
 
@@ -168,19 +169,16 @@ Application::~Application()
 
 int Application::run()
 {
-	m_client = createClient();
-
-	Q_ASSERT(m_client);
-
 	registerQmlTypes();
 	loadQaterial();
 	loadBox2D();
 	loadModules();
 
+	m_client.reset(createClient());
 	m_engine->addImageProvider(QStringLiteral("font"), new FontImage());
 	m_engine->addImageProvider(QStringLiteral("qrcode"), new QrImage());
 
-	m_engine->rootContext()->setContextProperty("Client", m_client);
+	m_engine->rootContext()->setContextProperty("Client", m_client.get());
 
 	if (!loadResources()) {
 		LOG_CERROR("app") << "Failed to load resources";
@@ -200,9 +198,11 @@ int Application::run()
 
 	LOG_CINFO("app") << "Run Application";
 
-	return m_application->exec();
+	const int r = m_application->exec();
 
-	LOG_CINFO("app") << "Application finished";
+	LOG_CINFO("app") << "Application finished with code" << r;
+
+	return r;
 }
 
 
@@ -246,7 +246,7 @@ QApplication *Application::application() const
 
 QQmlApplicationEngine *Application::engine() const
 {
-	return m_engine;
+	return m_engine.get();
 }
 
 
@@ -258,13 +258,17 @@ QQmlApplicationEngine *Application::engine() const
 bool Application::loadMainQml()
 {
 	const QUrl url(QStringLiteral("qrc:/main.qml"));
-	QObject::connect(m_engine, &QQmlApplicationEngine::objectCreated,
+	QObject::connect(m_engine.get(), &QQmlApplicationEngine::objectCreated,
 					 m_application, [url](QObject *obj, const QUrl &objUrl) {
 		if (!obj && url == objUrl)
 			QCoreApplication::exit(-1);
 
-#ifdef Q_OS_ANDROID
+#if defined(Q_OS_ANDROID)
+#if QT_VERSION < 0x060000
 		QtAndroid::hideSplashScreen();
+#else
+		QNativeInterface::QAndroidApplication::hideSplashScreen();
+#endif
 #endif
 	}, Qt::QueuedConnection);
 
@@ -285,7 +289,7 @@ bool Application::loadResources()
 #ifdef Q_OS_ANDROID
 	searchList.append("assets:");
 	searchList.append(QStandardPaths::standardLocations(QStandardPaths::HomeLocation));
-	searchList.append(QStandardPaths::standardLocations(QStandardPaths::DataLocation));
+	searchList.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
 #else
 	QString binDir = QCoreApplication::applicationDirPath();
 
@@ -340,12 +344,8 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
-	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
 	qmlRegisterUncreatableType<EventStream>("CallOfSuli", 1, 0, "EventStream", "EventStream is uncreatable");
-	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
-	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
-	qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<LiteGame>("CallOfSuli", 1, 0, "LiteGame", "LiteGame is uncreatable");
 	qmlRegisterUncreatableType<MapEditorMap>("CallOfSuli", 1, 0, "MapEditorMap", "MapEditorMap is uncreatable");
 	qmlRegisterUncreatableType<MapEditorMission>("CallOfSuli", 1, 0, "MapEditorMission", "MapEditorMission is uncreatable");
@@ -358,7 +358,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
-	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
@@ -366,9 +365,14 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
 
+	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
+	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
+	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
+	qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
+	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
+
 	qmlRegisterType<QSJsonListModel>("QSyncable", 1, 0, "QSJsonListModel");
 	qmlRegisterType<QSListModel>("QSyncable", 1, 0, "QSListModel");
-
 
 
 	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
@@ -474,15 +478,11 @@ void Application::loadQaterial()
 
 void Application::loadBox2D()
 {
-#ifdef WITH_BOX2D
 	LOG_CTRACE("app") << "Load Box2D";
 
 	Box2DPlugin plugin;
 	plugin.registerTypes("Box2D");
 	qmlProtectModule("Box2D", 2);
-#else
-	LOG_CTRACE("app") << "Skip Box2D loading");
-#endif
 }
 
 
@@ -574,7 +574,7 @@ void Application::selectUrl(const QUrl &url)
 
 	m_client->setParseUrl(url);
 
-	QMetaObject::invokeMethod(m_client, "parseUrl", Qt::QueuedConnection);
+	QMetaObject::invokeMethod(m_client.get(), "parseUrl", Qt::QueuedConnection);
 }
 
 
@@ -691,6 +691,6 @@ void Application::messageError(const QString &text, const QString &title) const
 
 Client *Application::client() const
 {
-	return m_client;
+	return m_client.get();
 }
 

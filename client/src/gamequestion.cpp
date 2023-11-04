@@ -120,10 +120,10 @@ void GameQuestion::onHideAnimationFinished()
 	LOG_CDEBUG("game") << "Game question hide animation finished";
 
 	if (m_loader)
-		m_loader->setProperty("source", QUrl(QLatin1String("")));
+		m_loader->setProperty("source", QUrl(QStringLiteral("")));
 
 	setVisible(false);
-	setObjectiveUuid(QLatin1String(""));
+	setObjectiveUuid(QStringLiteral(""));
 	setQuestionComponent(nullptr);
 
 	emit finished();
@@ -144,7 +144,7 @@ void GameQuestion::onLoaderLoaded(QQuickItem *item)
 	if (!component) {
 		Application::instance()->messageError(tr("Érvénytelen kérdés!"), tr("Belső hiba"));
 		emit questionLoadFailed();
-		setObjectiveUuid(QLatin1String(""));
+		setObjectiveUuid(QStringLiteral(""));
 		return;
 	}
 

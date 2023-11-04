@@ -36,7 +36,7 @@ class OnlineClient : public Client
 	Q_OBJECT
 
 public:
-	explicit OnlineClient(Application *app, QObject *parent = nullptr);
+	explicit OnlineClient(Application *app);
 	virtual ~OnlineClient();
 
 	void wasmSaveContent(const QByteArray &data, const QString &fileNameHint);

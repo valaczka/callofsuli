@@ -137,7 +137,7 @@ protected:
 	virtual void enemyStateModified() {}
 	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
 
-#ifndef Q_OS_WASM
+#if !defined(Q_OS_WASM) && QT_VERSION < 0x060000
 	QSoundEffect *m_soundEffect = nullptr;
 #endif
 	GameTerrain::EnemyData m_terrainEnemyData;
