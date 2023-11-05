@@ -100,7 +100,7 @@ Item {
 			}
 		]
 
-		onTouchUpdated: {
+		onTouchUpdated: touchPoints => {
 			if (touchPoints.length) {
 				hasTouch = true
 				moveThumb(touchPoints[0].x, touchPoints[0].y)

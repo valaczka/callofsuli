@@ -50,16 +50,10 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
 	if (client) {
-#if QT_VERSION < 0x060000
 		m_soundEffect = client->newSoundEffect();
 		m_soundEffect->setSource(shotSound());
 		connect(this, &GameEnemy::attack, m_soundEffect, &QSoundEffect::play);
 		connect(this, &GameEnemy::shotSoundChanged, m_soundEffect, &QSoundEffect::setSource);
-#else
-		connect(this, &GameEnemy::attack, this, [this, client](){
-			client->playSound(shotSound().toString(), Sound::SoundEffect);
-		});
-#endif
 	}
 #endif
 
@@ -80,7 +74,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 
 GameEnemy::~GameEnemy()
 {
-#if !defined(Q_OS_WASM) && QT_VERSION < 0x060000
+#if !defined(Q_OS_WASM)
 	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
 	if (client)

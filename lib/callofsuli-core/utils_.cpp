@@ -637,57 +637,6 @@ QString Utils::clipboardText()
 	return clipboard->text();
 }
 
-#endif
-
-/**
- * @brief Utils::versionMajor
- * @return
- */
-
-quint32 Utils::versionMajor()
-{
-	return m_versionMajor;
-}
-
-
-/**
- * @brief Utils::versionMinor
- * @return
- */
-
-quint32 Utils::versionMinor()
-{
-	return m_versionMinor;
-}
-
-quint32 Utils::versionBuild()
-{
-	return m_versionBuild;
-}
-
-
-/**
- * @brief Utils::versionCode
- * @return
- */
-
-quint32 Utils::versionCode()
-{
-	return (1000*m_versionMajor)+m_versionMinor;
-}
-
-
-/**
- * @brief Utils::versionCode
- * @param major
- * @param minor
- * @return
- */
-
-quint32 Utils::versionCode(const int &major, const int &minor)
-{
-	return (1000*major)+minor;
-}
 
 
 
@@ -742,7 +691,9 @@ void Utils::checkStoragePermissions()
 
 void Utils::checkMediaPermissions()
 {
-#if defined(Q_OS_ANDROID) && QT_VERSION < 0x060000
+#if defined(Q_OS_ANDROID)
+
+#if QT_VERSION < 0x060000
 	QtAndroid::PermissionResult result0 = QtAndroid::checkPermission("android.permission.CAMERA");
 
 	QStringList permissions;
@@ -780,11 +731,69 @@ void Utils::checkMediaPermissions()
 		break;
 	}
 
+	return;
+
+
+#endif
 
 #endif
 
 	emit mediaPermissionsGranted();
 }
+
+
+#endif
+
+/**
+ * @brief Utils::versionMajor
+ * @return
+ */
+
+quint32 Utils::versionMajor()
+{
+	return m_versionMajor;
+}
+
+
+/**
+ * @brief Utils::versionMinor
+ * @return
+ */
+
+quint32 Utils::versionMinor()
+{
+	return m_versionMinor;
+}
+
+quint32 Utils::versionBuild()
+{
+	return m_versionBuild;
+}
+
+
+/**
+ * @brief Utils::versionCode
+ * @return
+ */
+
+quint32 Utils::versionCode()
+{
+	return (1000*m_versionMajor)+m_versionMinor;
+}
+
+
+/**
+ * @brief Utils::versionCode
+ * @param major
+ * @param minor
+ * @return
+ */
+
+quint32 Utils::versionCode(const int &major, const int &minor)
+{
+	return (1000*major)+minor;
+}
+
 
 
 

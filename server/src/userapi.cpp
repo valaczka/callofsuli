@@ -25,7 +25,6 @@
  */
 
 #include "userapi.h"
-#include "QtConcurrent/qtconcurrentrun.h"
 #include "generalapi.h"
 #include "qjsonarray.h"
 #include "serverservice.h"
@@ -52,106 +51,106 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
 
 	server->route(path+"group", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::group, &*this, *credential);
+		AUTHORIZE_API();
+		return group(*credential);
 	});
 
 	server->route(path+"group/<arg>/score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::groupScore, &*this, id);
+		AUTHORIZE_API();
+		return groupScore(id);
 	});
 
 	server->route(path+"update", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&UserAPI::update, &*this, *credential, *jsonObject);
+		return update(*credential, *jsonObject);
 	});
 
 	server->route(path+"password", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&UserAPI::password, &*this, *credential, *jsonObject);
+		return password(*credential, *jsonObject);
 	});
 
 
 	server->route(path+"campaign", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::campaigns, &*this, *credential);
+		AUTHORIZE_API();
+		return campaigns(*credential);
 	});
 
 	server->route(path+"campaign/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::campaign, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaign(*credential, id);
 	});
 
 	server->route(path+"campaign/<arg>/result", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_GET();
-		return QtConcurrent::run(&UserAPI::campaignResult, &*this, *credential, id, jsonObject.value_or(QJsonObject{}));
+		return campaignResult(*credential, id, jsonObject.value_or(QJsonObject{}));
 	});
 
 
 	server->route(path+"map/<arg>/solver", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::mapSolver, &*this, *credential, uuid);
+		AUTHORIZE_API();
+		return mapSolver(*credential, uuid);
 	});
 
 	server->route(path+"map", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::map, &*this, *credential);
+		AUTHORIZE_API();
+		return map(*credential);
 	});
 
 	server->route(path+"map/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::mapContent, &*this, *credential, uuid);
+		AUTHORIZE_API();
+		return mapContent(*credential, uuid);
 	});
 
 
 
 
 	server->route(path+"game/info", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&UserAPI::gameInfo, &*this, *credential, *jsonObject);
+		return gameInfo(*credential, *jsonObject);
 	});
 
 	server->route(path+"campaign/<arg>/game/create", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&UserAPI::gameCreate, &*this, *credential, id, *jsonObject);
+		return gameCreate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"campaign/<arg>/game", QHttpServerRequest::Method::Put,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&UserAPI::gameCreate, &*this, *credential, id, *jsonObject);
+		return gameCreate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"game/<arg>/update", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&UserAPI::gameUpdate, &*this, *credential, id, *jsonObject);
+		return gameUpdate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"game/<arg>/finish", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&UserAPI::gameFinish, &*this, *credential, id, *jsonObject);
+		return gameFinish(*credential, id, *jsonObject);
 	});
 
 
 	server->route(path+"inventory", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&UserAPI::inventory, &*this, *credential);
+		AUTHORIZE_API();
+		return inventory(*credential);
 	});
 
 	/*server->route(path+"group/<arg>/score/live", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,

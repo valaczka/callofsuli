@@ -86,6 +86,16 @@ ServerService::ServerService(int &argc, char **argv)
 
 	QObject::connect(&m_mainTimer, &QTimer::timeout, this, &ServerService::onMainTimerTimeout);
 	m_mainTimer.setInterval(500);
+
+	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
+		m_mainTimer.stop();
+		m_webServer.reset();
+		m_networkManager.reset();
+		m_authenticators.clear();
+		m_databaseMain->databaseClose();
+		m_databaseMain.reset();
+		m_settings.reset();
+	});
 }
 
 

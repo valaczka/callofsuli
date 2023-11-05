@@ -25,7 +25,6 @@
  */
 
 #include "generalapi.h"
-#include "QtConcurrent/qtconcurrentrun.h"
 #include "rank.h"
 #include "Logger.h"
 #include "serverservice.h"
@@ -55,68 +54,68 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 	});
 
 	server->route(path+"rank", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::rank, &*this, -1);
+		AUTHORIZE_API();
+		return rank(-1);
 	});
 
 	server->route(path+"rank/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::rank, &*this, id);
+		AUTHORIZE_API();
+		return rank(id);
 	});
 
 
 
 	server->route(path+"class", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::class_, &*this, -1);
+		AUTHORIZE_API();
+		return class_(-1);
 	});
 
 	server->route(path+"class/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::class_, &*this, id);
+		AUTHORIZE_API();
+		return class_(id);
 	});
 
 	server->route(path+"class/<arg>/users", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::classUsers, &*this, id);
+		AUTHORIZE_API();
+		return classUsers(id);
 	});
 
 
 
 	server->route(path+"user/<arg>/log", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::userLog, &*this, username);
+		AUTHORIZE_API();
+		return userLog(username);
 	});
 
 	server->route(path+"user/<arg>/log/xp", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_GET();
-		return QtConcurrent::run(&GeneralAPI::userXpLog, &*this, username, jsonObject.value_or(QJsonObject{}));
+		return userXpLog(username, jsonObject.value_or(QJsonObject{}));
 	});
 
 	server->route(path+"user/<arg>/log/game", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::userGameLog, &*this, username);
+		AUTHORIZE_API();
+		return userGameLog(username);
 	});
 
 	server->route(path+"user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::user, &*this, QStringLiteral(""), Credential::None);
+		AUTHORIZE_API();
+		return user(QStringLiteral(""), Credential::None);
 	});
 
 	server->route(path+"user/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::user, &*this, username, Credential::None);
+		AUTHORIZE_API();
+		return user(username, Credential::None);
 	});
 
 	server->route(path+"me", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API_X(Credential::Student|Credential::Admin);
-		return QtConcurrent::run(&GeneralAPI::me, &*this, credential);
+		AUTHORIZE_API_X(Credential::Student|Credential::Admin);
+		return me(credential);
 	});
 
 	server->route(path+"score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&GeneralAPI::user, &*this, QStringLiteral(""), Credential::Student);
+		AUTHORIZE_API();
+		return user(QStringLiteral(""), Credential::Student);
 	});
 
 }

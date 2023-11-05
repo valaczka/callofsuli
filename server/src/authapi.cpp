@@ -25,7 +25,6 @@
  */
 
 #include "authapi.h"
-#include "QtConcurrent/qtconcurrentrun.h"
 #include "serverservice.h"
 #include "adminapi.h"
 
@@ -46,27 +45,27 @@ AuthAPI::AuthAPI(Handler *handler, ServerService *service)
 	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
 
 	server->route(path+"login", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&AuthAPI::login, &*this, *jsonObject);
+		return login(*jsonObject);
 	});
 
 	server->route(path+"login/", QHttpServerRequest::Method::Post, [this](const QString &provider, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_GET();
-		return QtConcurrent::run(&AuthAPI::loginOAuth2, &*this, provider, jsonObject.value_or(QJsonObject{}));
+		return loginOAuth2(provider, jsonObject.value_or(QJsonObject{}));
 	});
 
 	server->route(path+"registration", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&AuthAPI::registration, &*this, *jsonObject);
+		return registration(*jsonObject);
 	});
 
 	server->route(path+"registration/", QHttpServerRequest::Method::Post, [this](const QString &provider, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&AuthAPI::registrationOAuth2, &*this, provider,*jsonObject);
+		return registrationOAuth2(provider,*jsonObject);
 	});
 }
 

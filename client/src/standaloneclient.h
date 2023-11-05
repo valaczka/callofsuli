@@ -27,8 +27,6 @@
 #ifndef STANDALONECLIENT_H
 #define STANDALONECLIENT_H
 
-//#define NO_SOUND_THREAD
-
 
 #ifndef NO_SOUND_THREAD
 #include "qlambdathreadworker.h"
@@ -64,10 +62,8 @@ public:
 	explicit StandaloneClient(Application *app);
 	virtual ~StandaloneClient();
 
-#if QT_VERSION < 0x060000
 	QSoundEffect *newSoundEffect();
 	void removeSoundEffect(QSoundEffect *effect);
-#endif
 
 	ServerList *serverList() const;
 
@@ -130,10 +126,8 @@ private:
 	QLambdaThreadWorker m_worker;
 #endif
 
-#if QT_VERSION < 0x060000
 	QVector<QPointer<QSoundEffect>> m_soundEffectList;
 	QTimer m_soundEffectTimer;
-#endif
 
 	bool m_vibrate = true;
 

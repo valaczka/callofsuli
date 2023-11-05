@@ -186,7 +186,7 @@ Page {
 				anchors.fill: parent
 			}
 
-			onPinchUpdated: {
+			onPinchUpdated: pinch => {
 				if (pinch.scale < 0.9) {
 					gameScene.zoomOverview = true
 				} else if (pinch.scale > 1.1) {
@@ -641,44 +641,46 @@ Page {
 							   game.player.standbyMovingFlags()
 						   }
 
-		onJoystickMoved: if (game.player && hasTouch) {
-							 var f = GamePlayer.Standby
+		onJoystickMoved: (x,y) => {
+							 if (game.player && hasTouch) {
+								 var f = GamePlayer.Standby
 
-							 if (y > 0.75) {
-								 f |= GamePlayer.MoveUp
-							 } else if (y < -0.75) {
-								 f |= GamePlayer.MoveDown
-							 } else {
-								 f &= ~GamePlayer.MoveUp
-								 f &= ~GamePlayer.MoveDown
-							 }
-
-							 if (x > 0.3) {
-								 if (x > 0.85) {
-									 f |= GamePlayer.MoveRight
-									 f &= ~GamePlayer.SlowModifier
-								 } else{
-									 f |= GamePlayer.MoveRight
-									 f |= GamePlayer.SlowModifier
-								 }
-							 } else if (x > 0.1) {
-								 game.player.turnRight()
-								 return
-							 } else if (x < -0.3) {
-								 if (x < -0.85) {
-									 f |= GamePlayer.MoveLeft
-									 f &= ~GamePlayer.SlowModifier
+								 if (y > 0.75) {
+									 f |= GamePlayer.MoveUp
+								 } else if (y < -0.75) {
+									 f |= GamePlayer.MoveDown
 								 } else {
-									 f |= GamePlayer.MoveLeft
-									 f |= GamePlayer.SlowModifier
+									 f &= ~GamePlayer.MoveUp
+									 f &= ~GamePlayer.MoveDown
 								 }
-							 } else if (x < -0.1) {
-								 game.player.turnLeft()
-								 return
+
+								 if (x > 0.3) {
+									 if (x > 0.85) {
+										 f |= GamePlayer.MoveRight
+										 f &= ~GamePlayer.SlowModifier
+									 } else{
+										 f |= GamePlayer.MoveRight
+										 f |= GamePlayer.SlowModifier
+									 }
+								 } else if (x > 0.1) {
+									 game.player.turnRight()
+									 return
+								 } else if (x < -0.3) {
+									 if (x < -0.85) {
+										 f |= GamePlayer.MoveLeft
+										 f &= ~GamePlayer.SlowModifier
+									 } else {
+										 f |= GamePlayer.MoveLeft
+										 f |= GamePlayer.SlowModifier
+									 }
+								 } else if (x < -0.1) {
+									 game.player.turnLeft()
+									 return
+								 }
+
+								 game.player.movingFlags = f
+
 							 }
-
-							 game.player.movingFlags = f
-
 						 }
 	}
 

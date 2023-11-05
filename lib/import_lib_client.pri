@@ -51,14 +51,11 @@ else: LIBS += -lQZXing
 
 # QML-Box2D
 
-!wasm|if($$WasmWithBox2D) {
-	INCLUDEPATH += $$PWD/qml-box2d/
-	INCLUDEPATH += $$PWD/qml-box2d/Box2D
+INCLUDEPATH += $$PWD/qml-box2d/
+INCLUDEPATH += $$PWD/qml-box2d/Box2D
 
-	android: LIBS += -lqml-box2d_$${QT_ARCH}
-	else: LIBS += -lqml-box2d
-
-}
+android: LIBS += -lqml-box2d_$${QT_ARCH}
+else: LIBS += -lqml-box2d
 
 
 

@@ -119,64 +119,6 @@ void MobileUtils::vibrate(const int &milliseconds)
 	}
 
 
-
-
-	/*
-
-
-	  API 31:
-
-	LOG_CDEBUG("utils") << "API" << QtAndroid::androidSdkVersion();
-
-	if (!activity.isValid()) {
-		LOG_CWARNING("utils") << "Invalid AndroidActivity";
-		return;
-	}
-
-	QAndroidJniObject service = QAndroidJniObject::getStaticObjectField("android/content/Context", "VIBRATOR_MANAGER_SERVICE", "Ljava/lang/String;");
-
-	if (!service.isValid()) {
-		LOG_CWARNING("utils") << "Invalid AndroidContext";
-		return;
-	}
-
-
-	jint amplitude = QAndroidJniObject::getStaticField<jint>("android/os/VibrationEffect", "DEFAULT_AMPLITUDE");
-
-	jlong ms = milliseconds;
-
-	QAndroidJniObject effect = QAndroidJniObject::callStaticObjectMethod("android/os/VibrationEffect", "createOneShot",
-																	  "(JI)Landroid/os/VibrationEffect;", ms, amplitude);
-
-	if (!effect.isValid()) {
-		LOG_CWARNING("utils") << "Invalid VibrationEffect";
-		return;
-	}
-
-	QAndroidJniObject vibratorManager = activity.callObjectMethod("getSystemService",
-														   "(Ljava/lang/String;)Ljava/lang/Object;",
-														   service.object<jstring>());
-
-	if (!vibratorManager.isValid()) {
-		LOG_CWARNING("utils") << "Invalid VibratorManager";
-		return;
-	}
-
-	QAndroidJniObject vibrator = vibratorManager.callObjectMethod("getDefaultVibrator", "()Landroid/os/Vibrator;");
-
-	if (vibrator.isValid())
-	{
-		LOG_CDEBUG("utils") << "Call Android Vibrator" << milliseconds;
-
-		vibrator.callMethod<void>("vibrate", "(Landroid/os/VibrationEffect;)V", effect.object());
-	}
-	else
-	{
-		LOG_CWARNING("utils") << "Invalid Android Vibrator";
-		return;
-	}
-
-	*/
 }
 
 

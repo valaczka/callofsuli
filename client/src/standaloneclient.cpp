@@ -64,7 +64,7 @@ StandaloneClient::StandaloneClient(Application *app)
 #else
 	QDefer ret;
 
-	m_worker.execInThread([this, &ret](){
+	m_worker.execInThread([this, ret]() mutable {
 		m_sound = std::make_unique<Sound>(m_fadeAnimation);
 		m_sound->init();
 
@@ -88,12 +88,12 @@ StandaloneClient::StandaloneClient(Application *app)
 
 	serverListLoad();
 
-#if QT_VERSION < 0x060000
+//#if QT_VERSION < 0x060000
 	m_soundEffectTimer.setInterval(1500);
 	connect(&m_soundEffectTimer, &QTimer::timeout, this, &StandaloneClient::onSoundEffectTimeout);
 
 	connect(this, &StandaloneClient::volumeSfxChanged, &m_soundEffectTimer, [this](){ m_soundEffectTimer.start(); });
-#endif
+//#endif
 }
 
 
@@ -119,7 +119,7 @@ StandaloneClient::~StandaloneClient()
 }
 
 
-#if QT_VERSION < 0x060000
+//#if QT_VERSION < 0x060000
 
 /**
  * @brief StandaloneClient::newSoundEffect
@@ -139,9 +139,13 @@ QSoundEffect *StandaloneClient::newSoundEffect()
 #else
 	QDefer ret;
 
-	m_worker.execInThread([&e, this, &ret](){
+	m_worker.execInThread([&e, this, ret]() mutable {
+#ifdef Q_OS_LINUX
 		QAudioDevice ad(QMediaDevices::defaultAudioOutput());
 		e = new QSoundEffect(ad, m_sound.get());
+#else
+		e = new QSoundEffect(m_sound.get());
+#endif
 		const qreal vol = (qreal) volumeSfx() / 100.0;
 		e->setVolume(vol);
 		ret.resolve();
@@ -168,7 +172,7 @@ void StandaloneClient::removeSoundEffect(QSoundEffect *effect)
 		m_soundEffectList.removeAll(effect);
 }
 
-#endif
+//#endif
 
 
 
@@ -474,14 +478,14 @@ void StandaloneClient::_setVolume(const Sound::ChannelType &channel, int newVolu
 
 void StandaloneClient::onSoundEffectTimeout()
 {
-	/*if (!m_sound)
+	if (!m_sound)
 		return;
 
 	const qreal vol = (qreal) volumeSfx() / 100.0;
 
 	foreach (QSoundEffect *e, m_soundEffectList)
 		if (e)
-			e->setVolume(vol); */
+			e->setVolume(vol);
 }
 
 

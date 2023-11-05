@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts
+QT += gui quick svg xml network gui-private quickcontrols2 charts concurrent
 
 
 !wasm: QT += multimedia sql
@@ -86,20 +86,32 @@ win32 {
 
 
 android {
-lessThan(QT_MAJOR_VERSION, 6): QT += androidextras
+	lessThan(QT_MAJOR_VERSION, 6) {
+		QT += androidextras
 
-	DISTFILES += \
-		android/build.gradle \
-		android/res/drawable/splashscreen.xml \
-		android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
+		DISTFILES += \
+			android/res/drawable/splashscreen.xml \
+			android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
 
-	alist.input = $$PWD/../deploy/AndroidManifest.xml.in
-	alist.output = $$PWD/android/AndroidManifest.xml
+		alist.input = $$PWD/../deploy/AndroidManifest.xml.in
+		alist.output = $$PWD/android/AndroidManifest.xml
+
+		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+	} else {
+		DISTFILES += \
+			android-Qt6/res/drawable/splashscreen.xml \
+			android-Qt6/src/hu/piarista/vjp/callofsuli/ClientActivity.java
+
+		alist.input = $$PWD/../deploy/Qt6/AndroidManifest.xml.in
+		alist.output = $$PWD/android-Qt6/AndroidManifest.xml
+
+		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
+	}
+
+
 	QMAKE_SUBSTITUTES += alist
 
 	ANDROID_TARGET_SDK_VERSION = 33
-
-	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 	ANDROID_VERSION_CODE = $${AndroidVersionCode}
 	ANDROID_VERSION_NAME = $$VERSION

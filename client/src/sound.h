@@ -52,7 +52,7 @@ public:
 	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel };
 	Q_ENUM(ChannelType)
 
-	enum SoundType { Music, VoiceOver, PlayerSfx, PlayerVoice, GameSound, SoundEffect };
+	enum SoundType { Music, VoiceOver, PlayerSfx, PlayerVoice, GameSound };
 	Q_ENUM(SoundType)
 
 	explicit Sound(const std::unique_ptr<QVariantAnimation> &fadeAnimation, QObject *parent = nullptr);
@@ -88,8 +88,6 @@ private:
 	std::unique_ptr<QAudioOutput> m_audioOutputMusic;
 	std::unique_ptr<QAudioOutput> m_audioOutputSfx;
 	std::unique_ptr<QAudioOutput> m_audioOutputVoiceOver;
-
-	std::unique_ptr<QMediaPlayer> m_mediaPlayerSoundEffect;
 #endif
 
 	QQueue<QString> m_playlist;

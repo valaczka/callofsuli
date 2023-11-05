@@ -38,12 +38,12 @@ GameEnemySniperImpl {
 	}
 
 
-	onRayCastPerformed: Qt.callLater(() => {
+	onRayCastPerformed: rect => {
 		rect.width -= bodyRect.width
 		if (!facingLeft)
 			rect.x += bodyRect.width
 		ray.show(rect, scene)
-	})
+	}
 
 
 	GameEntityRay {

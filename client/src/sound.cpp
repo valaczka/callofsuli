@@ -56,7 +56,6 @@ Sound::Sound(const std::unique_ptr<QVariantAnimation> &fadeAnimation, QObject *p
 	connect(m_fadeAnimation, &QVariantAnimation::finished, this, &Sound::musicLoadNextSource);
 	connect(m_fadeAnimation, &QVariantAnimation::stateChanged, this, [](QAbstractAnimation::State newState, QAbstractAnimation::State oldState
 			){ LOG_CTRACE("sound") << "###### STATE" << newState << oldState; });
-	connect(m_fadeAnimation, &QVariantAnimation::valueChanged, this, [](const QVariant &v){ LOG_CTRACE("sound") << "%%%%" << v; });
 }
 
 
@@ -97,9 +96,6 @@ void Sound::init()
 
 	m_audioOutputVoiceOver = std::make_unique<QAudioOutput>();
 	m_mediaPlayerVoiceOver->setAudioOutput(m_audioOutputVoiceOver.get());
-
-	m_mediaPlayerSoundEffect = std::make_unique<QMediaPlayer>();
-	m_mediaPlayerSoundEffect->setAudioOutput(m_audioOutputSfx.get());
 #endif
 
 
@@ -122,13 +118,15 @@ void Sound::init()
 #endif
 
 	connect(m_fadeAnimation, &QVariantAnimation::valueChanged, m_mediaPlayerMusic.get(), [this](const QVariant &value) {
+		LOG_CINFO("sound") << "***FADE" << value;
 #if QT_VERSION < 0x060000
 		m_mediaPlayerMusic->setVolume(value.toInt());
 #else
 		m_audioOutputMusic->setVolume(value.toDouble());
 #endif
 	});
-	connect(m_fadeAnimation, &QVariantAnimation::finished, this, [=]() {
+	connect(m_fadeAnimation, &QVariantAnimation::finished, this, [this]() {
+		LOG_CINFO("sound") << "***FADE FINISHED";
 #if QT_VERSION < 0x060000
 		m_mediaPlayerMusic->setVolume(m_musicVolume);
 #else
@@ -170,16 +168,12 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 			m_mediaPlayerVoiceOver->play();
 #else
 		if (!m_mediaPlayerVoiceOver->isPlaying()) {
+			m_mediaPlayerVoiceOver->setSource(QUrl());
 			m_mediaPlayerVoiceOver->setSource(QUrl(m_playlist.dequeue()));
 			m_mediaPlayerVoiceOver->play();
 		}
 #endif
 
-	} else if (soundType == SoundEffect) {
-		m_mediaPlayerSoundEffect->setSource(QUrl());
-		m_mediaPlayerSoundEffect->stop();
-		m_mediaPlayerSoundEffect->setSource(QUrl(source));
-		m_mediaPlayerSoundEffect->play();
 	} else {
 #if QT_VERSION < 0x060000
 		if (!m_mediaPlayerSfx->volume())
@@ -209,10 +203,11 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 
 			if (soundType == PlayerSfx && m_soundTypeSfx == GameSound)
 				return;
+
+			m_mediaPlayerSfx->stop();
 		}
 
 		m_mediaPlayerSfx->setSource(QUrl());
-		m_mediaPlayerSfx->stop();
 
 		m_soundTypeSfx = soundType;
 

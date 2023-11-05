@@ -25,7 +25,6 @@
  */
 
 #include "teacherapi.h"
-#include "QtConcurrent/qtconcurrentrun.h"
 #include "gamemap.h"
 #include "qjsonarray.h"
 #include "qsqlrecord.h"
@@ -72,159 +71,159 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 	const QByteArray path = QByteArray(m_apiPath).append(m_path).append(QByteArrayLiteral("/"));
 
 	server->route(path+"group", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groups, &*this, *credential);
+		AUTHORIZE_API();
+		return groups(*credential);
 	});
 
 	server->route(path+"group/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::group, &*this, *credential, id);
+		AUTHORIZE_API();
+		return group(*credential, id);
 	});
 
 	server->route(path+"group/create", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupCreate, &*this, *credential, *jsonObject);
+		return groupCreate(*credential, *jsonObject);
 	});
 
 	server->route(path+"group", QHttpServerRequest::Method::Put, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupCreate, &*this, *credential, *jsonObject);
+		return groupCreate(*credential, *jsonObject);
 	});
 
 	server->route(path+"group/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupUpdate, &*this, *credential, id, *jsonObject);
+		return groupUpdate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"group/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupDelete, &*this, *credential, QJsonArray{id});
+		AUTHORIZE_API();
+		return groupDelete(*credential, QJsonArray{id});
 	});
 
 	server->route(path+"group/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupDelete, &*this, *credential, QJsonArray{id});
+		AUTHORIZE_API();
+		return groupDelete(*credential, QJsonArray{id});
 	});
 
 	server->route(path+"group/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupDelete, &*this, *credential, jsonObject->value(QStringLiteral("list")).toArray());
+		return groupDelete(*credential, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 
 	server->route(path+"group/<arg>/class/add/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const int &classid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupClassAdd, &*this, *credential, id, QJsonArray{classid});
+		AUTHORIZE_API();
+		return groupClassAdd(*credential, id, QJsonArray{classid});
 	});
 
 	server->route(path+"group/<arg>/class/", QHttpServerRequest::Method::Put,
 				  [this](const int &id, const int &classid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupClassAdd, &*this, *credential, id, QJsonArray{classid});
+		AUTHORIZE_API();
+		return groupClassAdd(*credential, id, QJsonArray{classid});
 	});
 
 	server->route(path+"group/<arg>/class/add", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupClassAdd, &*this, *credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return groupClassAdd(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"group/<arg>/class/remove/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const int &classid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupClassRemove, &*this, *credential, id, QJsonArray{classid});
+		AUTHORIZE_API();
+		return groupClassRemove(*credential, id, QJsonArray{classid});
 	});
 
 	server->route(path+"group/<arg>/class/", QHttpServerRequest::Method::Delete,
 				  [this](const int &id, const int &classid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupClassRemove, &*this, *credential, id, QJsonArray{classid});
+		AUTHORIZE_API();
+		return groupClassRemove(*credential, id, QJsonArray{classid});
 	});
 
 	server->route(path+"group/<arg>/class/remove", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupClassRemove, &*this, *credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return groupClassRemove(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"group/<arg>/class/exclude", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupClassExclude, &*this, *credential, id);
+		AUTHORIZE_API();
+		return groupClassExclude(*credential, id);
 	});
 
 
 	server->route(path+"group/<arg>/user/add/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QString &userid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupUserAdd, &*this, *credential, id, QJsonArray{userid});
+		AUTHORIZE_API();
+		return groupUserAdd(*credential, id, QJsonArray{userid});
 	});
 
 	server->route(path+"group/<arg>/user/", QHttpServerRequest::Method::Put,
 				  [this](const int &id, const QString &userid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupUserAdd, &*this, *credential, id, QJsonArray{userid});
+		AUTHORIZE_API();
+		return groupUserAdd(*credential, id, QJsonArray{userid});
 	});
 
 	server->route(path+"group/<arg>/user/add", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupUserAdd, &*this, *credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return groupUserAdd(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"group/<arg>/user/remove/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QString &userid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupUserRemove, &*this, *credential, id, QJsonArray{userid});
+		AUTHORIZE_API();
+		return groupUserRemove(*credential, id, QJsonArray{userid});
 	});
 
 	server->route(path+"group/<arg>/user/", QHttpServerRequest::Method::Delete,
 				  [this](const int &id, const QString &userid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupUserRemove, &*this, *credential, id, QJsonArray{userid});
+		AUTHORIZE_API();
+		return groupUserRemove(*credential, id, QJsonArray{userid});
 	});
 
 	server->route(path+"group/<arg>/user/remove", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::groupUserRemove, &*this, *credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return groupUserRemove(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"group/<arg>/user/exclude", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupUserExclude, &*this, *credential, id);
+		AUTHORIZE_API();
+		return groupUserExclude(*credential, id);
 	});
 
 
 	server->route(path+"group/<arg>/result", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::groupResult, &*this, *credential, id);
+		AUTHORIZE_API();
+		return groupResult(*credential, id);
 	});
 
 	server->route(path+"group/<arg>/result/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_GET();
-		return QtConcurrent::run(&TeacherAPI::groupUserResult, &*this, *credential, id, username, jsonObject.value_or(QJsonObject{}));
+		return groupUserResult(*credential, id, username, jsonObject.value_or(QJsonObject{}));
 	});
 
 	server->route(path+"group/<arg>/log", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_GET();
-		return QtConcurrent::run(&TeacherAPI::groupGameLog, &*this, *credential, id, jsonObject.value_or(QJsonObject{}));
+		return groupGameLog(*credential, id, jsonObject.value_or(QJsonObject{}));
 	});
 
 
@@ -233,85 +232,85 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 
 
 	server->route(path+"map/create", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapCreate, &*this, *credential, request.body(), QStringLiteral(""));
+		AUTHORIZE_API();
+		return mapCreate(*credential, request.body(), QStringLiteral(""));
 	});
 
 	server->route(path+"map/create/", QHttpServerRequest::Method::Post,
 				  [this](const QString &name, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapCreate, &*this, *credential, request.body(), name);
+		AUTHORIZE_API();
+		return mapCreate(*credential, request.body(), name);
 	});
 
 	server->route(path+"map/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::mapDelete, &*this, *credential, jsonObject->value(QStringLiteral("list")).toArray());
+		return mapDelete(*credential, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 
 	server->route(path+"map", QHttpServerRequest::Method::Put, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapCreate, &*this, *credential, request.body(), QStringLiteral(""));
+		AUTHORIZE_API();
+		return mapCreate(*credential, request.body(), QStringLiteral(""));
 	});
 
 	server->route(path+"map/<arg>/update", QHttpServerRequest::Method::Post, [this](const QString &uuid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::mapUpdate, &*this, *credential, uuid, *jsonObject);
+		return mapUpdate(*credential, uuid, *jsonObject);
 	});
 
 	server->route(path+"map/<arg>/publish/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const int &version, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapPublish, &*this, *credential, uuid, version);
+		AUTHORIZE_API();
+		return mapPublish(*credential, uuid, version);
 	});
 
 	server->route(path+"map/<arg>/deleteDraft/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const int &version, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapDeleteDraft, &*this, *credential, uuid, version);
+		AUTHORIZE_API();
+		return mapDeleteDraft(*credential, uuid, version);
 	});
 
 	server->route(path+"map/<arg>/upload/", QHttpServerRequest::Method::Post,
 				  [this](const QString &uuid, const int &version, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapUpload, &*this, *credential, uuid, version, request.body());
+		AUTHORIZE_API();
+		return mapUpload(*credential, uuid, version, request.body());
 	});
 
 
 	server->route(path+"map/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapDelete, &*this, *credential, QJsonArray{uuid});
+		AUTHORIZE_API();
+		return mapDelete(*credential, QJsonArray{uuid});
 	});
 
 	server->route(path+"map/", QHttpServerRequest::Method::Delete, [this](const QString &uuid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapDelete, &*this, *credential, QJsonArray{uuid});
+		AUTHORIZE_API();
+		return mapDelete(*credential, QJsonArray{uuid});
 	});
 
 
 	server->route(path+"map/<arg>/content", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapContent, &*this, *credential, uuid, -1);
+		AUTHORIZE_API();
+		return mapContent(*credential, uuid, -1);
 	});
 
 	server->route(path+"map/<arg>/draft/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const int &version, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::mapContent, &*this, *credential, uuid, version);
+		AUTHORIZE_API();
+		return mapContent(*credential, uuid, version);
 	});
 
 	server->route(path+"map/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &uuid, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::map, &*this, *credential, uuid);
+		AUTHORIZE_API();
+		return map(*credential, uuid);
 	});
 
 	server->route(path+"map", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::map, &*this, *credential, QStringLiteral(""));
+		AUTHORIZE_API();
+		return map(*credential, QStringLiteral(""));
 	});
 
 
@@ -319,140 +318,140 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 
 	server->route(path+"campaign/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaign, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaign(*credential, id);
 	});
 
 	server->route(path+"group/<arg>/campaign/create", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignCreate, &*this, *credential, id, *jsonObject);
+		return campaignCreate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"group/<arg>/campaign", QHttpServerRequest::Method::Put, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignCreate, &*this, *credential, id, *jsonObject);
+		return campaignCreate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"campaign/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignUpdate, &*this, *credential, id, *jsonObject);
+		return campaignUpdate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"campaign/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignDelete, &*this, *credential, QJsonArray{id});
+		AUTHORIZE_API();
+		return campaignDelete(*credential, QJsonArray{id});
 	});
 
 	server->route(path+"campaign/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignDelete, &*this, *credential, QJsonArray{id});
+		AUTHORIZE_API();
+		return campaignDelete(*credential, QJsonArray{id});
 	});
 
 	server->route(path+"campaign/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignDelete, &*this, *credential, jsonObject->value(QStringLiteral("list")).toArray());
+		return campaignDelete(*credential, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"campaign/<arg>/run", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignRun, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaignRun(*credential, id);
 	});
 
 	server->route(path+"campaign/<arg>/finish", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignFinish, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaignFinish(*credential, id);
 	});
 
 	server->route(path+"campaign/<arg>/duplicate", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignDuplicate, &*this, *credential, id, *jsonObject);
+		return campaignDuplicate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"campaign/<arg>/result", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignResult, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaignResult(*credential, id);
 	});
 
 	server->route(path+"campaign/<arg>/result/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_GET();
-		return QtConcurrent::run(&TeacherAPI::campaignResultUser, &*this, *credential, id, username, jsonObject.value_or(QJsonObject{}));
+		return campaignResultUser(*credential, id, username, jsonObject.value_or(QJsonObject{}));
 	});
 
 	server->route(path+"campaign/<arg>/user", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignUser, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaignUser(*credential, id);
 	});
 
 	server->route(path+"campaign/<arg>/user/clear", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignUserClear, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaignUserClear(*credential, id);
 	});
 
 	server->route(path+"campaign/<arg>/user/add/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QString &user, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignUserAdd, &*this, *credential, id, QJsonArray{user});
+		AUTHORIZE_API();
+		return campaignUserAdd(*credential, id, QJsonArray{user});
 	});
 
 	server->route(path+"campaign/<arg>/user/add", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignUserAdd, &*this, *credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return campaignUserAdd(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"campaign/<arg>/user/remove/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QString &user, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignUserRemove, &*this, *credential, id, QJsonArray{user});
+		AUTHORIZE_API();
+		return campaignUserRemove(*credential, id, QJsonArray{user});
 	});
 
 	server->route(path+"campaign/<arg>/user/remove", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignUserRemove, &*this, *credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return campaignUserRemove(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"campaign/<arg>/user/copy", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignUserCopy, &*this, *credential, id, *jsonObject);
+		return campaignUserCopy(*credential, id, *jsonObject);
 	});
 
 
 	server->route(path+"campaign/<arg>/task", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::campaignTask, &*this, *credential, id);
+		AUTHORIZE_API();
+		return campaignTask(*credential, id);
 	});
 
 	server->route(path+"campaign/<arg>/task/create", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignTaskCreate, &*this, *credential, id, *jsonObject);
+		return campaignTaskCreate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"campaign/<arg>/task", QHttpServerRequest::Method::Put,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::campaignTaskCreate, &*this, *credential, id, *jsonObject);
+		return campaignTaskCreate(*credential, id, *jsonObject);
 	});
 
 
@@ -462,38 +461,37 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 
 	server->route(path+"task/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::task, &*this, *credential, id);
+		AUTHORIZE_API();
+		return task(*credential, id);
 	});
 
 	server->route(path+"task/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::taskUpdate, &*this, *credential, id, *jsonObject);
+		return taskUpdate(*credential, id, *jsonObject);
 	});
 
 	server->route(path+"task/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::taskDelete, &*this, *credential, QJsonArray{id});
+		AUTHORIZE_API();
+		return taskDelete(*credential, QJsonArray{id});
 	});
 
 	server->route(path+"task/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::taskDelete, &*this, *credential, QJsonArray{id});
+		AUTHORIZE_API();
+		return taskDelete(*credential, QJsonArray{id});
 	});
 
 	server->route(path+"task/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
+		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return QtConcurrent::run(&TeacherAPI::taskDelete, &*this, *credential, jsonObject->value(QStringLiteral("list")).toArray());
+		return taskDelete(*credential, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 
-
 	server->route(path+"user/peers", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_FUTURE_API();
-		return QtConcurrent::run(&TeacherAPI::userPeers, &*this);
+		AUTHORIZE_API();
+		return userPeers();
 	});
 
 	/*server->route(path+"user/peers/live", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){

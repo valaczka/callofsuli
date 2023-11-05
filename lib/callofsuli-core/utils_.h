@@ -129,6 +129,9 @@ public:
 
 	Q_INVOKABLE static void setClipboardText(const QString &text);
 	Q_INVOKABLE static QString clipboardText();
+
+	Q_INVOKABLE void checkStoragePermissions();
+	Q_INVOKABLE void checkMediaPermissions();
 #endif
 
 	Q_INVOKABLE static quint32 versionMajor();
@@ -137,8 +140,6 @@ public:
 	Q_INVOKABLE static quint32 versionCode();
 	Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
 
-	Q_INVOKABLE void checkStoragePermissions();
-	Q_INVOKABLE void checkMediaPermissions();
 
 	Q_INVOKABLE static void vibrate();
 

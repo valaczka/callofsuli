@@ -91,17 +91,6 @@ protected:
 	if ((role) != Credential::None && (!credential || !(credential->roles() & (role))))\
 		return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
 
-#define AUTHORIZE_FUTURE_API()	\
-	const auto &credential = m_handler->authorizeRequestLog(request);\
-	if (m_validateRole != Credential::None && (!credential || !(credential->roles() & m_validateRole)))\
-		return QtConcurrent::run(&AbstractAPI::responseError, "unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
-
-#define AUTHORIZE_FUTURE_API_X(role)	\
-	const auto &credential = m_handler->authorizeRequestLog(request);\
-	if ((role) != Credential::None && (!credential || !(credential->roles() & (role))))\
-		return QtConcurrent::run(&AbstractAPI::responseError, "unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
-
-
 
 // CONTENT
 
@@ -111,7 +100,7 @@ protected:
 	JSON_OBJECT_GET(); \
 	const QByteArray &mimeType = request.value(QByteArrayLiteral("Content-Type")); \
 	if ((!mimeType.isEmpty() && mimeType.compare(QByteArrayLiteral("application/json")) != 0) || !jsonObject) \
-		return QtConcurrent::run(&AbstractAPI::responseError, "invalid content", QHttpServerResponse::StatusCode::BadRequest);
+		return responseError("invalid content", QHttpServerResponse::StatusCode::BadRequest);
 
 
 // LAMBDA THREAD
