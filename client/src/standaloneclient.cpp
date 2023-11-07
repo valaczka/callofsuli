@@ -50,50 +50,20 @@
 StandaloneClient::StandaloneClient(Application *app)
 	: Client(app)
 	, m_serverList(new ServerList())
-	, m_fadeAnimation(new QVariantAnimation())
-	#ifdef NO_SOUND_THREAD
-	, m_sound(new Sound(m_fadeAnimation))
-	#else
-	, m_worker()
-	#endif
 {
 	LOG_CTRACE("client") << "StandaloneClient created:" << this;
-
-#ifdef NO_SOUND_THREAD
-	m_sound->init();
-#else
-	QDefer ret;
-
-	m_worker.execInThread([this, ret]() mutable {
-		m_sound = std::make_unique<Sound>(m_fadeAnimation);
-		m_sound->init();
-
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-#endif
-
-	QSettings s;
-	s.beginGroup(QStringLiteral("sound"));
-	setVolumeMusic(s.value(QStringLiteral("volumeMusic"), 50).toInt());
-	setVolumeSfx(s.value(QStringLiteral("volumeSfx"), 50).toInt());
-	setVolumeVoiceOver(s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
-	setVibrate(s.value(QStringLiteral("vibrate"), true).toBool());
-	s.endGroup();
-
 
 	connect(this, &Client::mainWindowChanged, this, &StandaloneClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &StandaloneClient::onStartPageLoaded);
 
 	serverListLoad();
 
-//#if QT_VERSION < 0x060000
-	m_soundEffectTimer.setInterval(1500);
-	connect(&m_soundEffectTimer, &QTimer::timeout, this, &StandaloneClient::onSoundEffectTimeout);
+	QSettings s;
+	s.beginGroup(QStringLiteral("sound"));
+	setVibrate(s.value(QStringLiteral("vibrate"), true).toBool());
+	s.endGroup();
 
-	connect(this, &StandaloneClient::volumeSfxChanged, &m_soundEffectTimer, [this](){ m_soundEffectTimer.start(); });
-//#endif
+
 }
 
 
@@ -109,9 +79,6 @@ StandaloneClient::~StandaloneClient()
 
 	QSettings s;
 	s.beginGroup(QStringLiteral("sound"));
-	s.setValue(QStringLiteral("volumeMusic"), m_volumeMusic);
-	s.setValue(QStringLiteral("volumeSfx"), m_volumeSfx);
-	s.setValue(QStringLiteral("volumeVoiceOver"), m_volumeVoiceOver);
 	s.setValue(QStringLiteral("vibrate"), m_vibrate);
 	s.endGroup();
 
@@ -119,99 +86,6 @@ StandaloneClient::~StandaloneClient()
 }
 
 
-//#if QT_VERSION < 0x060000
-
-/**
- * @brief StandaloneClient::newSoundEffect
- * @return
- */
-
-QSoundEffect *StandaloneClient::newSoundEffect()
-{
-	QSoundEffect *e = nullptr;
-
-#ifdef NO_SOUND_THREAD
-	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
-
-	e = new QSoundEffect(ad, m_sound.get());
-	const qreal vol = (qreal) volumeSfx() / 100.0;
-	e->setVolume(vol);
-#else
-	QDefer ret;
-
-	m_worker.execInThread([&e, this, ret]() mutable {
-#ifdef Q_OS_LINUX
-		QAudioDevice ad(QMediaDevices::defaultAudioOutput());
-		e = new QSoundEffect(ad, m_sound.get());
-#else
-		e = new QSoundEffect(m_sound.get());
-#endif
-		const qreal vol = (qreal) volumeSfx() / 100.0;
-		e->setVolume(vol);
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-#endif
-
-	m_soundEffectList.append(e);
-
-	return e;
-}
-
-
-
-/**
- * @brief StandaloneClient::removeSoundEffect
- * @param effect
- */
-
-void StandaloneClient::removeSoundEffect(QSoundEffect *effect)
-{
-	if (effect)
-		m_soundEffectList.removeAll(effect);
-}
-
-//#endif
-
-
-
-
-
-/**
- * @brief StandaloneClient::playSound
- * @param source
- * @param soundType
- */
-
-void StandaloneClient::playSound(const QString &source, const Sound::SoundType &soundType)
-{
-#ifdef NO_SOUND_THREAD
-	m_sound->playSound(source, soundType);
-#else
-	m_worker.execInThread([this, soundType, source](){
-		m_sound->playSound(source, soundType);
-	});
-#endif
-}
-
-
-/**
- * @brief StandaloneClient::stopSound
- * @param source
- * @param soundType
- */
-
-void StandaloneClient::stopSound(const QString &source, const Sound::SoundType &soundType)
-{
-#ifdef NO_SOUND_THREAD
-	m_sound->stopSound(source, soundType);
-#else
-	m_worker.execInThread([this, soundType, source](){
-		m_sound->stopSound(source, soundType);
-	});
-#endif
-}
 
 
 /**
@@ -433,59 +307,23 @@ void StandaloneClient::serverListSave(const QDir &dir)
 
 
 
+
 /**
- * @brief StandaloneClient::_setVolume
- * @param channel
- * @param newVolume
+ * @brief StandaloneClient::vibrate
+ * @return
  */
 
-void StandaloneClient::_setVolume(const Sound::ChannelType &channel, int newVolume)
+bool StandaloneClient::vibrate() const
 {
-#ifndef NO_SOUND_THREAD
-	m_worker.execInThread([this, channel, newVolume](){
-#endif
-		int v = m_sound->volume(channel);
-
-		if (v == newVolume)
-			return;
-
-		m_sound->setVolume(channel, newVolume);
-		switch (channel) {
-		case Sound::MusicChannel:
-			m_volumeMusic = newVolume;
-			emit volumeMusicChanged();
-			break;
-		case Sound::SfxChannel:
-			m_volumeSfx = newVolume;
-			emit volumeSfxChanged();
-			break;
-		case Sound::VoiceoverChannel:
-			m_volumeVoiceOver = newVolume;
-			emit volumeVoiceOverChanged();
-			break;
-		}
-
-#ifndef NO_SOUND_THREAD
-	});
-#endif
+	return m_vibrate;
 }
 
-
-
-/**
- * @brief StandaloneClient::onSoundEffectTimeout
- */
-
-void StandaloneClient::onSoundEffectTimeout()
+void StandaloneClient::setVibrate(bool newVibrate)
 {
-	if (!m_sound)
+	if (m_vibrate == newVibrate)
 		return;
-
-	const qreal vol = (qreal) volumeSfx() / 100.0;
-
-	foreach (QSoundEffect *e, m_soundEffectList)
-		if (e)
-			e->setVolume(vol);
+	m_vibrate = newVibrate;
+	emit vibrateChanged();
 }
 
 
@@ -697,55 +535,5 @@ int StandaloneClient::serverListSelectedCount() const
 	return Utils::selectedCount(m_serverList.get());
 }
 
-
-
-/**
- * @brief StandaloneClient::volumeMusic
- * @return
- */
-
-
-int StandaloneClient::volumeMusic() const
-{
-	return m_volumeMusic;
-}
-
-void StandaloneClient::setVolumeMusic(int newVolumeMusic)
-{
-	_setVolume(Sound::MusicChannel, newVolumeMusic);
-}
-
-int StandaloneClient::volumeSfx() const
-{
-	return m_volumeSfx;
-}
-
-void StandaloneClient::setVolumeSfx(int newVolumeSfx)
-{
-	_setVolume(Sound::SfxChannel, newVolumeSfx);
-}
-
-int StandaloneClient::volumeVoiceOver() const
-{
-	return m_volumeVoiceOver;
-}
-
-void StandaloneClient::setVolumeVoiceOver(int newVolumeVoiceOver)
-{
-	_setVolume(Sound::VoiceoverChannel, newVolumeVoiceOver);
-}
-
-bool StandaloneClient::vibrate() const
-{
-	return m_vibrate;
-}
-
-void StandaloneClient::setVibrate(bool newVibrate)
-{
-	if (m_vibrate == newVibrate)
-		return;
-	m_vibrate = newVibrate;
-	emit vibrateChanged();
-}
 
 

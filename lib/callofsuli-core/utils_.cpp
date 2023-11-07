@@ -48,16 +48,6 @@ const quint32 Utils::m_versionMajor = VERSION_MAJOR;
 const quint32 Utils::m_versionMinor = VERSION_MINOR;
 const quint32 Utils::m_versionBuild = VERSION_BUILD;
 
-#ifdef Q_OS_ANDROID
-#if QT_VERSION < 0x060000
-#include "qandroidfunctions.h"
-#else
-#include <QtCore/private/qandroidextras_p.h>
-#endif
-#include "QApplication"
-#include "qscreen.h"
-#endif
-
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 #include "mobileutils.h"
@@ -920,42 +910,6 @@ void Utils::clearDiskCache()
 }
 
 
-
-
-
-/**
- * @brief Utils::getAndroidSafeMargins
- * @return
- */
-
-#ifdef Q_OS_ANDROID
-
-QMarginsF Utils::getAndroidSafeMargins()
-{
-	QMarginsF margins;
-	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
-
-#if QT_VERSION >= 0x060000
-	QJniObject activity = QNativeInterface::QAndroidApplication::context();
-	QJniObject rect = activity.callObjectMethod<jobject>("getSafeArea");
-#else
-	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
-#endif
-
-	const double left = static_cast<double>(rect.getField<jint>("left"));
-	const double top = static_cast<double>(rect.getField<jint>("top"));
-	const double right = static_cast<double>(rect.getField<jint>("right"));
-	const double bottom = static_cast<double>(rect.getField<jint>("bottom"));
-
-	margins.setTop(top/devicePixelRatio);
-	margins.setBottom(bottom/devicePixelRatio);
-	margins.setLeft(left/devicePixelRatio);
-	margins.setRight(right/devicePixelRatio);
-
-	return margins;
-}
-
-#endif
 
 
 

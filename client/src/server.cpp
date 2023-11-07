@@ -73,7 +73,7 @@ Server *Server::fromJson(const QJsonObject &data, QObject *parent)
 
 	QList<QSslError::SslError> errList;
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		QSslError::SslError e = v.toVariant().value<QSslError::SslError>();
 		if (!errList.contains(e))
 			errList.append(e);

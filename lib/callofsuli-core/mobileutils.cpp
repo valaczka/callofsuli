@@ -28,9 +28,12 @@
 #include "Logger.h"
 #include "qdebug.h"
 #include "application.h"
+
 #if QT_VERSION < 0x060000
 #include "qandroidfunctions.h"
 #endif
+
+#include <QtCore/private/qandroidextras_p.h>
 #include "qurl.h"
 
 
@@ -47,8 +50,17 @@ MobileUtils::MobileUtils()
 }
 
 
+/**
+ * @brief initialize
+ */
+
+void MobileUtils::initialize() {}
 
 
+/**
+ * @brief openUrl
+ * @param url
+ */
 
 void openUrl(const std::string &url)
 {
@@ -123,6 +135,11 @@ void MobileUtils::vibrate(const int &milliseconds)
 
 
 
+/**
+ * @brief MobileUtils::checkPendingIntents
+ * @return
+ */
+
 QString MobileUtils::checkPendingIntents()
 {
 #if QT_VERSION >= 0x060000
@@ -138,6 +155,43 @@ QString MobileUtils::checkPendingIntents()
 
 	return uriStr;
 }
+
+
+
+
+
+/**
+ * @brief MobileUtils::getSafeMargins
+ * @return
+ */
+
+
+QMarginsF MobileUtils::getSafeMargins()
+{
+	QMarginsF margins;
+	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
+
+#if QT_VERSION >= 0x060000
+	QJniObject activity = QNativeInterface::QAndroidApplication::context();
+	QJniObject rect = activity.callObjectMethod<jobject>("getSafeArea");
+#else
+	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
+#endif
+
+	const double left = static_cast<double>(rect.getField<jint>("left"));
+	const double top = static_cast<double>(rect.getField<jint>("top"));
+	const double right = static_cast<double>(rect.getField<jint>("right"));
+	const double bottom = static_cast<double>(rect.getField<jint>("bottom"));
+
+	margins.setTop(top/devicePixelRatio);
+	margins.setBottom(bottom/devicePixelRatio);
+	margins.setLeft(left/devicePixelRatio);
+	margins.setRight(right/devicePixelRatio);
+
+	return margins;
+}
+
+
 
 
 

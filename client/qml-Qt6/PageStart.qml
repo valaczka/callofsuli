@@ -115,7 +115,7 @@ QPage {
 			QMenuItem { action: actionDelete }
 		}
 
-		onRightClickOrPressAndHold: index => {
+		onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 			if (index != -1)
 				currentIndex = index
 			contextMenu.popup(mouseX, mouseY)
@@ -129,6 +129,7 @@ QPage {
 		visible: false
 
 		Column {
+
 			anchors.centerIn: parent
 			spacing: 20
 

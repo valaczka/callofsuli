@@ -406,7 +406,7 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 
 	QMap<int, QVL> usedList;
 
-	for (auto &ql : qAsConst(m_questions)) {
+	for (auto &ql : std::as_const(m_questions)) {
 		if (!ql->enemy()) {
 			const int &used = ql->used();
 			if (usedList.contains(used)) {
@@ -573,7 +573,7 @@ void ActionGame::relinkQuestionToEnemy(GameEnemy *enemy)
 
 	QMap<int, QVL> usedList;
 
-	for (auto &ql : qAsConst(m_questions)) {
+	for (auto &ql : std::as_const(m_questions)) {
 		if (!ql->enemy()) {
 			const int &used = ql->used();
 			if (usedList.contains(used)) {

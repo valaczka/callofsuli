@@ -33,11 +33,18 @@ else: LddBinFile = $${CQtTargetDir}/usr/bin/$${BinFile}
 win32: LddLibDir = $${CQtTargetDir}/usr
 else: LddLibDir = $${CQtTargetDir}/usr/lib
 
+lessThan(QT_MAJOR_VERSION, 6): QmlDir = $$PWD/../client/qml
+else: QmlDir = $$PWD/../client/qml-Qt6
+
+lessThan(QT_MAJOR_VERSION, 6): SslVersion = 1_1
+else: SslVersion = 3
+
+
 win32: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
 			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter,QOlm \
 			-qmake $$QMAKE_QMAKE \
-			-qmlDir $$PWD/../client/qml ; \
+			-qmlDir $$QmlDir ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
@@ -48,14 +55,14 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 					cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f $${LddLibDir} ; \
 			done ; \
 			which libjpeg-8.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libjpeg-8.dll) $${LddLibDir} ; \
-			which libssl-1_1-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libssl-1_1-x64.dll) $${LddLibDir} ; \
-			which libcrypto-1_1-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libcrypto-1_1-x64.dll) $${LddLibDir}
+			which libssl-$${SslVersion}-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libssl-1_1-x64.dll) $${LddLibDir} ; \
+			which libcrypto-$${SslVersion}-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libcrypto-1_1-x64.dll) $${LddLibDir}
 
 else: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
 			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter,QOlm \
 			-qmake $$QMAKE_QMAKE \
-			-qmlDir $$PWD/../client/qml ; \
+			-qmlDir $$QmlDir ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \

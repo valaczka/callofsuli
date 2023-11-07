@@ -413,7 +413,7 @@ QJsonArray AbstractGame::getStatistics()
 
 void AbstractGame::clearStatistics(const QJsonArray &list, const bool &revert)
 {
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		int id = v.toObject().value(QStringLiteral("id")).toInt(-1);
 
 		for (auto it = m_statistics.begin(); it != m_statistics.end();) {

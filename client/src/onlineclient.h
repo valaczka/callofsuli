@@ -45,11 +45,12 @@ public:
 	template <typename T>
 	void wasmLoadFileToFileSystem(const QString &accept, T *inst, void (T::*func)(const QString &name, const QByteArray &content));
 
-
 	void enableTabCloseConfirmation(bool enable);
 
 protected slots:
 	virtual void onApplicationStarted() override;
+	virtual void onUserLoggedIn() override;
+	virtual void onUserLoggedOut() override;
 
 private slots:
 	void onResourceDownloaded();

@@ -27,18 +27,9 @@
 #ifndef STANDALONECLIENT_H
 #define STANDALONECLIENT_H
 
-
-#ifndef NO_SOUND_THREAD
-#include "qlambdathreadworker.h"
-#endif
-
 #include "client.h"
-#include "qsoundeffect.h"
-#include "sound.h"
 #include "server.h"
 #include "utils_.h"
-
-
 
 
 /**
@@ -51,19 +42,12 @@ class StandaloneClient : public Client
 
 	Q_PROPERTY(ServerList *serverList READ serverList CONSTANT)
 	Q_PROPERTY(int serverListSelectedCount READ serverListSelectedCount NOTIFY serverListSelectedCountChanged)
-
-	Q_PROPERTY(int volumeMusic READ volumeMusic WRITE setVolumeMusic NOTIFY volumeMusicChanged)
-	Q_PROPERTY(int volumeSfx READ volumeSfx WRITE setVolumeSfx NOTIFY volumeSfxChanged)
-	Q_PROPERTY(int volumeVoiceOver READ volumeVoiceOver WRITE setVolumeVoiceOver NOTIFY volumeVoiceOverChanged)
 	Q_PROPERTY(bool vibrate READ vibrate WRITE setVibrate NOTIFY vibrateChanged)
 
 
 public:
 	explicit StandaloneClient(Application *app);
 	virtual ~StandaloneClient();
-
-	QSoundEffect *newSoundEffect();
-	void removeSoundEffect(QSoundEffect *effect);
 
 	ServerList *serverList() const;
 
@@ -76,23 +60,10 @@ public:
 
 	int serverListSelectedCount() const;
 
-	int volumeMusic() const;
-	void setVolumeMusic(int newVolumeMusic);
-
-	int volumeSfx() const;
-	void setVolumeSfx(int newVolumeSfx);
-
-	int volumeVoiceOver() const;
-	void setVolumeVoiceOver(int newVolumeVoiceOver);
-
 	bool vibrate() const;
 	void setVibrate(bool newVibrate);
 
-	Q_INVOKABLE bool isPlayingMusic() const { return m_sound && m_sound->isPlayingMusic(); }
-
 public slots:
-	void playSound(const QString &source, const Sound::SoundType &soundType);
-	void stopSound(const QString &source, const Sound::SoundType &soundType);
 	void performVibrate() const;
 
 protected slots:
@@ -103,37 +74,19 @@ protected slots:
 private slots:
 	void onMainWindowChanged();
 	void onOrientationChanged(Qt::ScreenOrientation orientation);
-	void onSoundEffectTimeout();
 
 private:
 	void serverListLoad(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 	void serverListSave(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
-	void _setVolume(const Sound::ChannelType &channel, int newVolume);
 
 signals:
 	void serverListSelectedCountChanged();
-	void volumeMusicChanged();
-	void volumeSfxChanged();
-	void volumeVoiceOverChanged();
 	void vibrateChanged();
 
 private:
 	std::unique_ptr<ServerList> m_serverList = nullptr;
-	std::unique_ptr<QVariantAnimation> m_fadeAnimation;
-	std::unique_ptr<Sound> m_sound;
-
-#ifndef NO_SOUND_THREAD
-	QLambdaThreadWorker m_worker;
-#endif
-
-	QVector<QPointer<QSoundEffect>> m_soundEffectList;
-	QTimer m_soundEffectTimer;
-
 	bool m_vibrate = true;
 
-	int m_volumeSfx = 0;
-	int m_volumeMusic = 0;
-	int m_volumeVoiceOver = 0;
 };
 
 

@@ -276,7 +276,7 @@ void OlmLoader::loadFromJsonArray(qolm::QOlmBase *list, const QJsonArray &jsonAr
 		for (T *u : *t)
 			tmp.append(u);
 
-		for (const QJsonValue &v : qAsConst(jsonArray)) {
+		for (const QJsonValue &v : std::as_const(jsonArray)) {
 			const QJsonObject &obj = v.toObject();
 			T *record = find<T>(t, property, obj.value(jsonField).toVariant());
 			if (record) {
@@ -306,7 +306,7 @@ void OlmLoader::loadFromJsonArray(qolm::QOlmBase *list, const QJsonArray &jsonAr
 
 		list->clear();
 
-		for (const QJsonValue &v : qAsConst(jsonArray)) {
+		for (const QJsonValue &v : std::as_const(jsonArray)) {
 			T* record = new T(list);
 			record->loadFromJson(v.toObject(), allFieldOverride);
 			t->append(record);

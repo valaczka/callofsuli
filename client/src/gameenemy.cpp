@@ -31,9 +31,6 @@
 #include "gameplayer.h"
 #include <qtimer.h>
 
-#ifndef Q_OS_WASM
-#include "standaloneclient.h"
-#endif
 
 GameEnemy::GameEnemy(QQuickItem *parent)
 	: GameEntity(parent)
@@ -46,16 +43,9 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 
 	connect(this, &GameObject::sceneConnected, this, &GameEnemy::onSceneConnected);
 
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-
-	if (client) {
-		m_soundEffect = client->newSoundEffect();
-		m_soundEffect->setSource(shotSound());
-		connect(this, &GameEnemy::attack, m_soundEffect, &QSoundEffect::play);
-		connect(this, &GameEnemy::shotSoundChanged, m_soundEffect, &QSoundEffect::setSource);
-	}
-#endif
+	m_soundEffect = Application::instance()->client()->newSoundEffect();
+	m_soundEffect->setSource(shotSound());
+	connect(this, &GameEnemy::attack, m_soundEffect.get(), &QSoundEffect::play);
 
 	connect(this, &GameEnemy::allHpLost, this, [this](){
 		emit killed(this);
@@ -74,17 +64,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 
 GameEnemy::~GameEnemy()
 {
-#if !defined(Q_OS_WASM)
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-
-	if (client)
-		client->removeSoundEffect(m_soundEffect);
-
-	if (m_soundEffect)
-		m_soundEffect->deleteLater();
-
-	m_soundEffect = nullptr;
-#endif
+	Application::instance()->client()->removeSoundEffect(m_soundEffect.get());
 }
 
 

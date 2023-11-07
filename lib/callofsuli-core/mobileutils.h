@@ -27,6 +27,7 @@
 #ifndef MOBILEUTILS_H
 #define MOBILEUTILS_H
 
+#include "qmargins.h"
 #include "qurl.h"
 #include <string>
 
@@ -42,10 +43,14 @@ public:
 		return m_instance;
 	}
 
+	static void initialize();
+
 	static void vibrate(const int &milliseconds = 400);
 
 	static void openUrl(const std::string &url);
 	static QString checkPendingIntents();
+
+	static QMarginsF getSafeMargins();
 
 private:
 	static MobileUtils *m_instance;

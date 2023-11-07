@@ -95,18 +95,16 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 	connect(this, &GameEntity::endContact, this, &GamePlayer::onEndContact);
 	connect(this, &GameEntity::baseGroundContact, this, &GamePlayer::onBaseGroundContacted);
 
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 
-	if (client) {
-		m_soundEffectShot = client->newSoundEffect();
+	m_soundEffectShot = Application::instance()->client()->newSoundEffect();
+	m_soundEffectShot->setSource(shotSound());
+	connect(this, &GamePlayer::attack, m_soundEffectShot.get(), [this](){
+		m_soundEffectShot->setSource(QUrl());
 		m_soundEffectShot->setSource(shotSound());
-		connect(this, &GamePlayer::attack, m_soundEffectShot, &QSoundEffect::play);
-		connect(this, &GamePlayer::shotSoundChanged, m_soundEffectShot, &QSoundEffect::setSource);
+		m_soundEffectShot->play();
+	});
 
-		m_soundEffectGeneral = client->newSoundEffect();
-	}
-#endif
+
 
 	connect(this, &GamePlayer::movingFlagsChanged, this, &GamePlayer::onMovingFlagsChanged);
 
@@ -135,22 +133,7 @@ GamePlayer::GamePlayer(QQuickItem *parent)
 
 GamePlayer::~GamePlayer()
 {
-#if !defined(Q_OS_WASM)
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-
-	if (client) {
-		client->removeSoundEffect(m_soundEffectShot);
-		client->removeSoundEffect(m_soundEffectGeneral);
-	}
-
-	if (m_soundEffectShot)
-		m_soundEffectShot->deleteLater();
-	if (m_soundEffectGeneral)
-		m_soundEffectGeneral->deleteLater();
-
-	m_soundEffectShot = nullptr;
-	m_soundEffectGeneral = nullptr;
-#endif
+	Application::instance()->client()->removeSoundEffect(m_soundEffectShot.get());
 
 	LOG_CDEBUG("scene") << "Player destroyed:" << this;
 }

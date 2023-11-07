@@ -39,10 +39,6 @@
 #include "utils_.h"
 #include <QRandomGenerator>
 
-#ifndef Q_OS_WASM
-#include "standaloneclient.h"
-#endif
-
 /**
  * @brief GameScene::GameScene
  * @param parent
@@ -145,11 +141,7 @@ void GameScene::load()
 
 void GameScene::playSoundPlayerVoice(const QString &source)
 {
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-	if (client)
-		client->playSound(source, Sound::PlayerVoice);
-#endif
+		Application::instance()->client()->sound()->playSound(source, Sound::PlayerVoice);
 }
 
 
@@ -160,11 +152,7 @@ void GameScene::playSoundPlayerVoice(const QString &source)
 
 void GameScene::playSound(const QString &source)
 {
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-	if (client)
-		client->playSound(source, Sound::GameSound);
-#endif
+Application::instance()->client()->sound()->playSound(source, Sound::GameSound);
 }
 
 
@@ -175,11 +163,7 @@ void GameScene::playSound(const QString &source)
 
 void GameScene::playSoundVoiceOver(const QString &source)
 {
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-	if (client)
-		client->playSound(source, Sound::VoiceOver);
-#endif
+Application::instance()->client()->sound()->playSound(source, Sound::VoiceOver);
 }
 
 
@@ -190,11 +174,7 @@ void GameScene::playSoundVoiceOver(const QString &source)
 
 void GameScene::playSoundMusic(const QString &source)
 {
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-	if (client)
-		client->playSound(source, Sound::Music);
-#endif
+Application::instance()->client()->sound()->playSound(source, Sound::Music);
 }
 
 
@@ -207,11 +187,7 @@ void GameScene::playSoundMusic(const QString &source)
 
 void GameScene::stopSoundMusic(const QString &source)
 {
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-	if (client)
-		client->stopSound(source, Sound::Music);
-#endif
+Application::instance()->client()->sound()->stopSound(source, Sound::Music);
 }
 
 

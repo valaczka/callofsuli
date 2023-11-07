@@ -1604,7 +1604,7 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 					.addField("campaignid", campaign)
 					.addField("username", username)
 					.addField("gradeid", result->grade > 0 ? result->grade : QVariant(QMetaType::fromType<int>()))
-					.addField("scoreid", scoreId)
+					.addField("scoreid", scoreId > 0 ? scoreId : QVariant(QMetaType::fromType<int>()))
 					.execInsert())
 			{
 				LOG_CERROR("client") << "Campaign finish error:" << campaign;

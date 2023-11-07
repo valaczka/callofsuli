@@ -523,7 +523,7 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 {
 	const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const QJsonObject &obj = v.toObject();
 		const QString &username = obj.value(QStringLiteral("username")).toString();
 		int gradeid = obj.value(QStringLiteral("resultGrade")).toInt();
@@ -551,7 +551,7 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 
 		const QJsonArray &list = obj.value(QStringLiteral("taskList")).toArray();
 
-		for (const QJsonValue &v : qAsConst(list)) {
+		for (const QJsonValue &v : std::as_const(list)) {
 			const QJsonObject &obj = v.toObject();
 
 			int taskid = obj.value(QStringLiteral("id")).toInt();
@@ -1094,13 +1094,13 @@ void TeacherGroupResultModel::reloadFromJson(const QJsonObject &data)
 {
 	const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const QJsonObject &obj = v.toObject();
 
 		int campaignid = obj.value(QStringLiteral("campaignid")).toInt();
 		const QJsonArray &rList = obj.value(QStringLiteral("resultList")).toArray();
 
-		for (const QJsonValue &v : qAsConst(rList)) {
+		for (const QJsonValue &v : std::as_const(rList)) {
 			const QJsonObject &obj = v.toObject();
 
 			const QString &username = obj.value(QStringLiteral("username")).toString();

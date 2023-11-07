@@ -41,10 +41,14 @@
 #include "utils_.h"
 #include "websocket.h"
 
+#include <QMediaDevices>
+#include <QAudioDevice>
+
 OnlineClient::OnlineClient(Application *app)
 	: Client{app}
 {
 	connect(this, &OnlineClient::allResourceReady, this, &OnlineClient::onAllResourceReady);
+
 }
 
 
@@ -127,6 +131,44 @@ void OnlineClient::onApplicationStarted()
 
 	emscripten::val location = emscripten::val::global("location");
 	m_parseUrl = {QString::fromStdString(location["href"].as<std::string>())};
+
+
+	/*emscripten::val doc = emscripten::val::global("document");
+	auto cookie = doc["cookie"].as<std::string>();*/
+
+	const auto devices = QMediaDevices::audioOutputs();
+	for (const QAudioDevice &device : devices)
+		qDebug() << "Device: " << device.description();
+
+}
+
+
+
+/**
+ * @brief OnlineClient::onUserLoggedIn
+ */
+
+void OnlineClient::onUserLoggedIn()
+{
+	Client::onUserLoggedIn();
+
+	QSettings s;
+	s.setValue(QStringLiteral("usertoken"), server()->token());
+	s.sync();
+}
+
+
+/**
+ * @brief OnlineClient::onUserLoggedOut
+ */
+
+void OnlineClient::onUserLoggedOut()
+{
+	QSettings s;
+	s.setValue(QStringLiteral("usertoken"), QStringLiteral(""));
+	s.sync();
+
+	Client::onUserLoggedOut();
 }
 
 
@@ -164,13 +206,20 @@ void OnlineClient::onResourceDownloaded()
 			m_webSocket->setServer(s);
 			s->setUrl(url);
 
+			QSettings settings;
+
+			const QString &token = settings.value(QStringLiteral("usertoken")).toString();
+
+			if (!token.isEmpty())
+				s->setToken(token);
+
 
 			if (resources.isEmpty()) {
 				LOG_CERROR("client") << "Az erőforráslista üres";
 			} else {
 				m_resourceList.clear();
 
-				for (const QJsonValue &v : qAsConst(resources))
+				for (const QJsonValue &v : std::as_const(resources))
 					m_resourceList.append(v.toString());
 
 				LOG_CDEBUG("client") << "Letöltendő erőforrások:" << m_resourceList;
@@ -219,6 +268,18 @@ void OnlineClient::onAllResourceReady()
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
 
+
+	/*void toggleFullscreen() {
+		using emscripten::val;
+		const val document = val::global("document");
+		const val fullscreenElement = document["fullscreenElement"];
+		if (fullscreenElement.isUndefined() || fullscreenElement.isNull())
+			document["documentElement"].call("requestFullscreen");
+		else
+			document.call("exitFullscreen");
+	}*/
+
+
 	if (m_demoMode)
 		m_startPage = loadDemoMap();
 	else
@@ -233,8 +294,7 @@ void OnlineClient::onAllResourceReady()
 
 void OnlineClient::enableTabCloseConfirmation(bool enable)
 {
-	Q_UNUSED(enable)
-	/*LOG_CDEBUG("client") << "Enable tab close confirmation" << enable;
+	LOG_CDEBUG("client") << "Enable tab close confirmation" << enable;
 
 	using emscripten::val;
 	const val window = val::global("window");
@@ -244,12 +304,11 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 		window.call<void>("addEventListener", std::string("beforeunload"), eventHandler, capture);
 	} else {
 		window.call<void>("removeEventListener", std::string("beforeunload"), eventHandler, capture);
-	}*/
+	}
 }
 
 
 
-/*
 namespace {
 void beforeUnloadhandler(emscripten::val event) {
 	LOG_CWARNING("client") << "Unload handler";
@@ -264,6 +323,5 @@ void beforeUnloadhandler(emscripten::val event) {
 EMSCRIPTEN_BINDINGS(app) {
 	function("app_beforeUnloadHandler", &beforeUnloadhandler);
 }
-*/
 
 

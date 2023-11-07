@@ -112,7 +112,7 @@ RankList RankList::fromJson(const QJsonArray &array)
 
 	list.reserve(array.size());
 
-	for (const QJsonValue &v : qAsConst(array)) {
+	for (const QJsonValue &v : std::as_const(array)) {
 		const Rank &r = Rank::fromJson(v.toObject());
 		if (r.isValid())
 			list.append(r);

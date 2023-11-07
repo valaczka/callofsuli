@@ -1,10 +1,9 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts concurrent
+QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia
 
-
-!wasm: QT += multimedia sql
+!wasm: QT += sql
 
 CONFIG += c++17
 CONFIG += separate_debug_info
@@ -20,7 +19,7 @@ DESTDIR = ../..
 QML_IMPORT_PATH += $$PWD/../qml
 QMLPATHS += $$PWD/../qml
 
-DEFINES += CLIENT_UTILS
+DEFINES += CLIENT_UTILS NO_SOUND_THREAD
 
 include(../../lib/import_lib_client.pri)
 
@@ -33,12 +32,10 @@ include(../../lib/import_lib_client.pri)
 !wasm {
 	SOURCES += \
 		mobileapplication.cpp \
-		sound.cpp \
 		standaloneclient.cpp
 
 	HEADERS += \
 		mobileapplication.h \
-		sound.h \
 		standaloneclient.h
 
 	!android:!ios {
@@ -98,6 +95,8 @@ android {
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 	} else {
+		QT += concurrent
+
 		DISTFILES += \
 			android-Qt6/res/drawable/splashscreen.xml \
 			android-Qt6/src/hu/piarista/vjp/callofsuli/ClientActivity.java
@@ -131,7 +130,9 @@ ios {
 	Q_ENABLE_BITCODE.value = NO
 	QMAKE_MAC_XCODE_SETTINGS += Q_ENABLE_BITCODE
 
-	QMAKE_IOS_DEPLOYMENT_TARGET = 12.0
+	lessThan(QT_MAJOR_VERSION, 6): QMAKE_IOS_DEPLOYMENT_TARGET = 12.0
+	else: QMAKE_IOS_DEPLOYMENT_TARGET = 14.0
+
 	QMAKE_APPLE_TARGETED_DEVICE_FAMILY = 1,2
 
 	QMAKE_ASSET_CATALOGS += $$PWD/../deploy/Assets.xcassets
@@ -212,6 +213,7 @@ SOURCES += \
 	question.cpp \
 	scorelist.cpp \
 	server.cpp \
+	sound.cpp \
 	studentgroup.cpp \
 	studentmap.cpp \
 	studentmaphandler.cpp \
@@ -282,6 +284,7 @@ HEADERS += \
 	question.h \
 	scorelist.h \
 	server.h \
+	sound.h \
 	studentgroup.h \
 	studentmap.h \
 	studentmaphandler.h \

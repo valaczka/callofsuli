@@ -133,10 +133,6 @@ GameQuestionBase {
 				ScriptAction {
 					script: {
 						control.onHideAnimationFinished()
-
-						/*if (questionPrivate && questionPrivate.mode == GameMatch.ModeNormal) {
-								cosClient.playSound("qrc:/sound/sfx/question.mp3")
-							}*/
 					}
 				}
 

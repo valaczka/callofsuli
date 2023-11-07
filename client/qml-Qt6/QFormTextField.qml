@@ -16,4 +16,6 @@ Qaterial.TextField {
 	onFieldDataChanged: text = fieldData
 
 	onTextEdited: if (_form && watchModification) _form.modified = true
+
+	activeFocusOnPress: true
 }

@@ -32,10 +32,7 @@
 #include "gamepickable.h"
 #include "actiongame.h"
 #include <QPointer>
-
-#ifndef Q_OS_WASM
 #include <QSoundEffect>
-#endif
 
 class GamePlayer;
 
@@ -137,9 +134,8 @@ protected:
 	virtual void enemyStateModified() {}
 	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
 
-#if !defined(Q_OS_WASM) //&& QT_VERSION < 0x060000
-	QSoundEffect *m_soundEffect = nullptr;
-#endif
+	std::unique_ptr<QSoundEffect> m_soundEffect;
+
 	GameTerrain::EnemyData m_terrainEnemyData;
 	int m_startMovingAfter = 0;
 

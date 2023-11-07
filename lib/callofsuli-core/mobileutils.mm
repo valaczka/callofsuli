@@ -113,9 +113,10 @@ MobileUtils::MobileUtils()
 
 void MobileUtils::vibrate(const int &)
 {
-	LOG_CDEBUG("utils") << "Call iOS Vibrator";
 	AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
 }
+
+
 
 
 /**
@@ -134,6 +135,13 @@ void MobileUtils::openUrl(const std::string &url)
 }
 
 
+
+
+/**
+ * @brief MobileUtils::checkPendingIntents
+ * @return
+ */
+
 QString MobileUtils::checkPendingIntents()
 {
 	QString r = m_pendingArg;
@@ -143,3 +151,28 @@ QString MobileUtils::checkPendingIntents()
 	return r;
 }
 
+
+
+
+/**
+ * @brief MobileUtils::getSafeMargins
+ * @return
+ */
+
+QMarginsF MobileUtils::getSafeMargins()
+{
+	UIWindow* window=[[UIApplication sharedApplication] keyWindow];
+
+	float reservedTop=window.safeAreaInsets.top;
+	float reservedBottom=window.safeAreaInsets.bottom;
+	float reservedLeft=window.safeAreaInsets.left;
+	float reservedRight=window.safeAreaInsets.right;
+
+	QMarginsF margins;
+	margins.setTop(reservedTop);
+	margins.setBottom(reservedBottom);
+	margins.setLeft(reservedLeft);
+	margins.setRight(reservedRight);
+
+	return margins;
+}

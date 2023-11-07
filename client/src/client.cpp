@@ -32,6 +32,8 @@
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
+#include "qaudiodevice.h"
+#include "qmediadevices.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include "websocket.h"
@@ -50,12 +52,22 @@
 #include "qscreen.h"
 #endif
 
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+#include "mobileutils.h"
+#endif
+
+
 Client::Client(Application *app)
 	: QObject{}
 	, m_application(app)
 	, m_utils(new Utils(this))
 	, m_webSocket(new WebSocket(this))
 	, m_updater(new Updater(this))
+	#ifdef NO_SOUND_THREAD
+	, m_sound(new Sound(nullptr))
+	#else
+	, m_worker()
+	#endif
 {
 	Q_ASSERT(app);
 
@@ -75,6 +87,28 @@ Client::Client(Application *app)
 	startCache();
 
 	retranslate(Utils::settingsGet(QStringLiteral("window/language"), QStringLiteral("hu")).toString());
+
+
+
+#ifdef NO_SOUND_THREAD
+	m_sound->init();
+#else
+	QDefer ret;
+
+	m_worker.execInThread([this, ret]() mutable {
+		m_sound = std::make_unique<Sound>();
+		m_sound->init();
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+
+	m_soundEffectTimer.setInterval(1500);
+	connect(&m_soundEffectTimer, &QTimer::timeout, this, &Client::onSoundEffectTimeout);
+
+	connect(m_sound.get(), &Sound::volumeSfxChanged, this, [this](int){ m_soundEffectTimer.start(); });
 
 	LOG_CTRACE("app") << "Client created" << this;
 }
@@ -866,6 +900,32 @@ void Client::startCache()
 }
 
 
+
+/**
+ * @brief Client::sound
+ * @return
+ */
+
+Sound* Client::sound() const
+{
+	return m_sound.get();
+}
+
+
+/**
+ * @brief Client::setSound
+ * @param newSound
+ */
+
+void Client::setSound(std::unique_ptr<Sound> newSound)
+{
+	if (m_sound == newSound)
+		return;
+	m_sound = std::move(newSound);
+	emit soundChanged();
+}
+
+
 /**
  * @brief Client::updater
  * @return
@@ -1501,8 +1561,8 @@ void Client::safeMarginsGet()
 {
 	QMarginsF margins;
 
-#ifdef Q_OS_ANDROID
-	margins = Utils::getAndroidSafeMargins();
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	margins = MobileUtils::getSafeMargins();
 #else
 	const QString &str = QString::fromUtf8(qgetenv("SAFE_MARGINS"));
 
@@ -1730,4 +1790,96 @@ bool Client::debug() const
 {
 	return m_application->debug();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief StandaloneClient::onSoundEffectTimeout
+ */
+
+void Client::onSoundEffectTimeout()
+{
+	if (!m_sound)
+		return;
+
+	const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
+
+	foreach (QSoundEffect *e, m_soundEffectList)
+		if (e)
+			e->setVolume(vol);
+}
+
+
+
+
+
+
+
+
+
+/**
+ * @brief StandaloneClient::newSoundEffect
+ * @return
+ */
+
+std::unique_ptr<QSoundEffect> Client::newSoundEffect()
+{
+	std::unique_ptr<QSoundEffect> e;
+
+#ifdef NO_SOUND_THREAD
+	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
+	e = std::make_unique<QSoundEffect>(ad);
+	const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
+	e->setVolume(vol);
+#else
+	QDefer ret;
+
+	m_worker.execInThread([&e, this, ret]() mutable {
+#ifdef Q_OS_LINUX
+		QAudioDevice ad(QMediaDevices::defaultAudioOutput());
+		e = std::make_unique<QSoundEffect>(ad);
+#else
+		e = std::make_unique<QSoundEffect>();
+#endif
+		const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
+		e->setVolume(vol);
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+
+	m_soundEffectList.append(e.get());
+
+	return e;
+}
+
+
+
+/**
+ * @brief StandaloneClient::removeSoundEffect
+ * @param effect
+ */
+
+void Client::removeSoundEffect(QSoundEffect *effect)
+{
+	if (effect)
+		m_soundEffectList.removeAll(effect);
+}
+
+
+
+
 

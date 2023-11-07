@@ -1208,7 +1208,7 @@ MapEditorMissionLevel *MapEditorMission::createNextLevel(MapEditorMap *map) cons
 	if (levelData.contains(QStringLiteral("inventory"))) {
 		const QJsonArray &list = levelData.value(QStringLiteral("inventory")).toArray();
 
-		for (const QJsonValue &v : qAsConst(list)) {
+		for (const QJsonValue &v : std::as_const(list)) {
 			const QVariantMap &data = v.toObject().toVariantMap();
 
 			MapEditorInventory *inventory = new MapEditorInventory(map);

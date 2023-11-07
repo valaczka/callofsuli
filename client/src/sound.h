@@ -48,6 +48,10 @@ class Sound : public QObject
 {
 	Q_OBJECT
 
+	Q_PROPERTY(int volumeSfx READ volumeSfx WRITE setVolumeSfx NOTIFY volumeSfxChanged)
+	Q_PROPERTY(int volumeVoiceOver READ volumeVoiceOver WRITE setVolumeVoiceOver NOTIFY volumeVoiceOverChanged)
+	Q_PROPERTY(int volumeMusic READ volumeMusic WRITE setVolumeMusic NOTIFY volumeMusicChanged)
+
 public:
 	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel };
 	Q_ENUM(ChannelType)
@@ -55,21 +59,34 @@ public:
 	enum SoundType { Music, VoiceOver, PlayerSfx, PlayerVoice, GameSound };
 	Q_ENUM(SoundType)
 
-	explicit Sound(const std::unique_ptr<QVariantAnimation> &fadeAnimation, QObject *parent = nullptr);
+	explicit Sound(QObject *parent = nullptr);
 	virtual ~Sound();
 
 	void init();
 
-	void playSound(const QString &source, const Sound::SoundType &soundType);
-	void stopSound(const QString &source, const Sound::SoundType &soundType);
+	Q_INVOKABLE void playSound(const QString &source, const Sound::SoundType &soundType);
+	Q_INVOKABLE void stopSound(const QString &source, const Sound::SoundType &soundType);
 
-	int volume(const ChannelType &channel) const;
-	void setVolume(const ChannelType &channel, int newVolume);
+	int volume(const Sound::ChannelType &channel) const;
+	void setVolume(const Sound::ChannelType &channel, int newVolume);
 
-	bool isMuted(const ChannelType &channel) const;
-	void setMuted(const ChannelType &channel, bool newMuted);
+	bool isMuted(const Sound::ChannelType &channel) const;
+	void setMuted(const Sound::ChannelType &channel, bool newMuted);
 
-	bool isPlayingMusic() const;
+	Q_INVOKABLE bool isPlayingMusic() const;
+
+	int volumeSfx() const { return volume(SfxChannel); }
+	int volumeMusic() const { return volume(MusicChannel); }
+	int volumeVoiceOver() const { return volume(VoiceoverChannel); }
+
+	void setVolumeSfx(int volume) { setVolume(SfxChannel, volume); }
+	void setVolumeMusic(int volume) { setVolume(MusicChannel, volume); }
+	void setVolumeVoiceOver(int volume) { setVolume(VoiceoverChannel, volume); }
+
+signals:
+	void volumeMusicChanged(int volume);
+	void volumeSfxChanged(int volume);
+	void volumeVoiceOverChanged(int volume);
 
 private slots:
 	void musicPlay(const QString &source);
@@ -81,8 +98,6 @@ private:
 	std::unique_ptr<QMediaPlayer> m_mediaPlayerVoiceOver;
 	SoundType m_soundTypeSfx;
 	QString m_musicNextSource;
-	QVariantAnimation *const m_fadeAnimation;
-	int m_musicVolume;
 
 #if QT_VERSION >= 0x060000
 	std::unique_ptr<QAudioOutput> m_audioOutputMusic;
@@ -91,8 +106,6 @@ private:
 #endif
 
 	QQueue<QString> m_playlist;
-
-	friend class StandaloneClient;
 };
 
 

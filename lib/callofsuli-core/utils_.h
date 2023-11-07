@@ -45,16 +45,6 @@
 #include "qslistmodel.h"
 #endif
 
-#ifdef Q_OS_ANDROID
-#include <jni.h>
-#if QT_VERSION < 0x060000
-#include <QtAndroidExtras/QAndroidJniObject>
-#else
-#include <QJniObject>
-#endif
-#include "qmargins.h"
-#endif
-
 
 /**
  * @brief The Utils class
@@ -150,10 +140,6 @@ public:
 
 	static size_t getPeakRSS();
 	static size_t getCurrentRSS();
-
-#ifdef Q_OS_ANDROID
-	static QMarginsF getAndroidSafeMargins();
-#endif
 
 signals:
 	void storagePermissionsGranted();

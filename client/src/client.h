@@ -31,18 +31,26 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
+#include "qsoundeffect.h"
 #include "qtimer.h"
 #include "websocket.h"
 #include "eventstream.h"
 #include <QAbstractSocket>
 #include <QNetworkReply>
 #include "QQuickWindow"
+#include "sound.h"
+
+#ifndef NO_SOUND_THREAD
+#include "qlambdathreadworker.h"
+#endif
+
 
 class Application;
 class AbstractGame;
 class WebSocket;
 class Updater;
 class Utils;
+
 
 #if QT_VERSION >= 0x060000
 
@@ -94,6 +102,7 @@ class Client : public QObject
 	Q_PROPERTY(WebSocket *webSocket READ webSocket CONSTANT)
 	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
 	Q_PROPERTY(EventStream* eventStream READ eventStream WRITE setEventStream NOTIFY eventStreamChanged)
+	Q_PROPERTY(Sound *sound READ sound NOTIFY soundChanged)
 
 
 
@@ -249,11 +258,20 @@ public:
 	// Helpers
 
 	Q_INVOKABLE QVariantMap userToMap(const QJsonObject &data) const;
-
 	Q_INVOKABLE void retranslate(const QString &language = QStringLiteral("hu"));
 
 
+
+	// Sound
+
+	std::unique_ptr<QSoundEffect> newSoundEffect();
+	void removeSoundEffect(QSoundEffect *effect);
+
+
 	Updater *updater() const;
+
+	Sound* sound() const;
+	void setSound(std::unique_ptr<Sound> newSound);
 
 public slots:
 	virtual void onWebSocketError(const QNetworkReply::NetworkError &code);
@@ -300,9 +318,11 @@ signals:
 	void safeMarginBottomChanged();
 	void serverChanged();
 	void eventStreamChanged();
+	void soundChanged();
 
 private:
 	void startCache();
+	void onSoundEffectTimeout();
 
 
 protected:
@@ -333,6 +353,15 @@ protected:
 
 	std::unique_ptr<Updater> m_updater;
 	std::unique_ptr<QTranslator> m_translator;
+
+private:
+	std::unique_ptr<Sound> m_sound;
+#ifndef NO_SOUND_THREAD
+	QLambdaThreadWorker m_worker;
+#endif
+
+	QVector<QPointer<QSoundEffect>> m_soundEffectList;
+	QTimer m_soundEffectTimer;
 };
 
 

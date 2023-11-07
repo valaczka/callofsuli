@@ -18,7 +18,7 @@ Column {
 
 		property int soundType: Sound.GameSound
 
-		onTriggered: Client.playSound("qrc:/sound/sfx/question.mp3", soundType)
+		onTriggered: Client.sound.playSound("qrc:/sound/sfx/question.mp3", soundType)
 	}
 
 	GridLayout {
@@ -47,12 +47,12 @@ Column {
 			from: 0
 			to: 100
 			stepSize: 1
-			value: Client.volumeSfx
+			value: Client.sound.volumeSfx
 			Layout.fillWidth: true
 			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
 			onMoved: {
-				Client.volumeSfx = _volSfx.value
+				Client.sound.volumeSfx = _volSfx.value
 				_delayTimer.soundType = Sound.GameSound
 				_delayTimer.restart()
 			}
@@ -60,7 +60,7 @@ Column {
 
 
 		Qaterial.LabelBody2 {
-			text: Client.volumeSfx
+			text: Client.sound.volumeSfx
 			Layout.minimumWidth: Math.max(implicitWidth, 25 * Qaterial.Style.pixelSizeRatio)
 			Layout.fillWidth: false
 			Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
@@ -88,12 +88,12 @@ Column {
 			from: 0
 			to: 100
 			stepSize: 1
-			value: Client.volumeVoiceOver
+			value: Client.sound.volumeVoiceOver
 			Layout.fillWidth: true
 			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
 			onMoved: {
-				Client.volumeVoiceOver = _volVoiceOver.value
+				Client.sound.volumeVoiceOver = _volVoiceOver.value
 				_delayTimer.soundType = Sound.VoiceOver
 				_delayTimer.restart()
 			}
@@ -101,7 +101,7 @@ Column {
 
 
 		Qaterial.LabelBody2 {
-			text: Client.volumeVoiceOver
+			text: Client.sound.volumeVoiceOver
 			Layout.fillWidth: false
 			Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 		}
@@ -126,19 +126,19 @@ Column {
 			from: 0
 			to: 100
 			stepSize: 1
-			value: Client.volumeMusic
+			value: Client.sound.volumeMusic
 			Layout.fillWidth: true
 			Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
 
 			onMoved: {
-				Client.volumeMusic = _volMusic.value
+				Client.sound.volumeMusic = _volMusic.value
 				musicVolumeModified()
 			}
 		}
 
 
 		Qaterial.LabelBody2 {
-			text: Client.volumeMusic
+			text: Client.sound.volumeMusic
 			Layout.fillWidth: false
 			Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
 		}

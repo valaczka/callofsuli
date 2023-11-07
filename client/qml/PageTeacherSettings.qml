@@ -59,8 +59,6 @@ QPage {
 			anchors.horizontalCenter: parent.horizontalCenter
 			expanded: true
 
-			visible: Qt.platform.os != "wasm"
-
 			header: QExpandableHeader {
 				text: qsTr("Hangok")
 				button.visible: false
@@ -70,8 +68,8 @@ QPage {
 				width: _item.width
 				bottomPadding: 30 * Qaterial.Style.pixelSizeRatio
 				onMusicVolumeModified: {
-					if (!Client.isPlayingMusic())
-						Client.playSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+					if (!Client.sound.isPlayingMusic())
+						Client.sound.playSound("qrc:/sound/menu/bg.mp3", Sound.Music)
 				}
 			}
 
@@ -106,17 +104,17 @@ QPage {
 			case Qt.ApplicationSuspended:
 			case Qt.ApplicationHidden:
 				if (control.StackView.isCurrentItem)
-					Client.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+					Client.sound.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
 				break
 			case Qt.ApplicationActive:
 				if (control.StackView.isCurrentItem)
-					Client.playSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+					Client.sound.playSound("qrc:/sound/menu/bg.mp3", Sound.Music)
 				break
 			}
 		}
 	}
 
 	Component.onDestruction: {
-		Client.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+		Client.sound.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
 	}
 }
