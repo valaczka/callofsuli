@@ -31,7 +31,7 @@ Qaterial.Page {
 	QRefreshProgressBar {
 		id: _progress
 		anchors.top: parent.top
-		visible: progressBarEnabled && Client.webSocket.pending
+		visible: progressBarEnabled && Client.httpConnection.pending
 	}
 
 	background: Item {

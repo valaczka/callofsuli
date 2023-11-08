@@ -3380,14 +3380,16 @@ bool MapPlayEditor::reloadMap(MapEditorMap *map)
 
 	LOG_CTRACE("client") << "Reload MapPlayEditorMap";
 
-	GameMap *gmap = GameMap::fromBinaryData(map->toBinaryData());
+	auto gmap = GameMap::fromBinaryData(map->toBinaryData());
 
 	if (!gmap) {
 		m_client->messageError(tr("Nem lehet létrehozni a pályát!"), tr("Belső hiba"));
 		return false;
 	}
 
-	loadGameMap(gmap);
+	std::unique_ptr<GameMap> ptr(gmap);
+
+	loadGameMap(ptr);
 
 	return true;
 }
@@ -3437,10 +3439,10 @@ bool MapPlayEditor::play(MapEditorMissionLevel *missionLevel, const GameMap::Gam
 
 void MapPlayEditor::onCurrentGamePrepared()
 {
-	if (!m_currentGame)
+	if (!m_client->currentGame())
 		return;
 
-	m_currentGame->load();
+	m_client->currentGame()->load();
 
 	setGameState(StatePlay);
 }
@@ -3452,14 +3454,9 @@ void MapPlayEditor::onCurrentGamePrepared()
 
 void MapPlayEditor::onCurrentGameFinished()
 {
-	if (!m_currentGame || !m_client)
+	if (!m_client->currentGame())
 		return;
 
-	AbstractLevelGame *g = m_currentGame;
-
-	setCurrentGame(nullptr);
-	m_client->setCurrentGame(nullptr);
-	g->setReadyToDestroy(true);
-
+	m_client->currentGame()->setReadyToDestroy(true);
 	setGameState(StateFinished);
 }

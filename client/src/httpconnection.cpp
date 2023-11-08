@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * websocket.cpp
+ * httpconnection.cpp
  *
  * Created on: 2023. 01. 02.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * WebSocket
+ * HttpConnection
  *
  *  This file is part of Call of Suli.
  *
@@ -25,7 +25,7 @@
  */
 
 #include "application.h"
-#include "websocket.h"
+#include "httpconnection.h"
 #include "client.h"
 #include "qjsengine.h"
 #include "qnetworkreply.h"
@@ -34,21 +34,21 @@
 #include "utils_.h"
 #include "server.h"
 
-WebSocket::WebSocket(Client *client)
-	: QObject(client)
+HttpConnection::HttpConnection(Client *client)
+	: QObject()
 	, m_client(client)
-	, m_networkManager(new QNetworkAccessManager(this))
+	, m_networkManager(new QNetworkAccessManager())
 {
-	LOG_CTRACE("websocket") << "WebSocket created";
+	LOG_CTRACE("http") << "HttpConnection created";
 
 
 #ifndef QT_NO_SSL
 	if (!QSslSocket::supportsSsl())
-		LOG_CERROR("websocket") << "Platform doesn't support SSL";
+		LOG_CERROR("http") << "Platform doesn't support SSL";
 
 	QFile certFile(QStringLiteral(":/root_CallOfSuli_CA.crt"));
 
-	LOG_CTRACE("websocket") << "Cert file exists:" << certFile.exists();
+	LOG_CTRACE("http") << "Cert file exists:" << certFile.exists();
 
 	if (certFile.exists()) {
 		certFile.open(QIODevice::ReadOnly);
@@ -56,14 +56,14 @@ WebSocket::WebSocket(Client *client)
 		certFile.close();
 
 		if (cert.isNull()) {
-			LOG_CDEBUG("websocket") << "Invalid certificate";
+			LOG_CDEBUG("http") << "Invalid certificate";
 		} else {
 			m_rootCertificate = cert;
-			LOG_CTRACE("websocket") << "Root certificate added";
+			LOG_CTRACE("http") << "Root certificate added";
 		}
 	}
 #else
-	LOG_CERROR("websocket") << "Qt built without SSL support";
+	LOG_CERROR("http") << "Qt built without SSL support";
 #endif
 
 
@@ -71,26 +71,26 @@ WebSocket::WebSocket(Client *client)
 
 
 /**
- * @brief WebSocket::~WebSocket
+ * @brief HttpConnection::~HttpConnection
  */
 
-WebSocket::~WebSocket()
+HttpConnection::~HttpConnection()
 {
-	LOG_CTRACE("websocket") << "WebSocket destroyed";
+	LOG_CTRACE("http") << "HttpConnection destroyed";
 }
 
 
 /**
- * @brief WebSocket::state
+ * @brief HttpConnection::state
  * @return
  */
 
-const WebSocket::State &WebSocket::state() const
+const HttpConnection::State &HttpConnection::state() const
 {
 	return m_state;
 }
 
-void WebSocket::setState(const State &newState)
+void HttpConnection::setState(const State &newState)
 {
 	if (m_state == newState)
 		return;
@@ -105,16 +105,16 @@ void WebSocket::setState(const State &newState)
 
 
 /**
- * @brief WebSocket::server
+ * @brief HttpConnection::server
  * @return
  */
 
-Server *WebSocket::server() const
+Server *HttpConnection::server() const
 {
 	return m_server;
 }
 
-void WebSocket::setServer(Server *newServer)
+void HttpConnection::setServer(Server *newServer)
 {
 	if (m_server == newServer)
 		return;
@@ -124,11 +124,11 @@ void WebSocket::setServer(Server *newServer)
 
 
 /**
- * @brief WebSocket::connectToServer
+ * @brief HttpConnection::connectToServer
  * @param server
  */
 
-void WebSocket::connectToServer(Server *server)
+void HttpConnection::connectToServer(Server *server)
 {
 	if (!server)
 		server = m_server;
@@ -147,11 +147,11 @@ void WebSocket::connectToServer(Server *server)
 	}
 #endif
 
-	LOG_CDEBUG("websocket") << "Connect to server:" << server->url();
+	LOG_CDEBUG("http") << "Connect to server:" << server->url();
 
 	setState(Connecting);
 
-	WebSocketReply *wr = send(ApiGeneral, "config")->done(this, [this](const QJsonObject &json){
+	HttpReply *wr = send(ApiGeneral, "config")->done(this, [this](const QJsonObject &json){
 
 		if (json.isEmpty() || json.value(QStringLiteral("server")).toString() != QStringLiteral("Call of Suli server")) {
 			m_client->messageError(tr("A megadott címen nem található Call of Suli szerver"), tr("Sikertelen csatlakozás"));
@@ -173,13 +173,13 @@ void WebSocket::connectToServer(Server *server)
 		}
 
 		if (m_server)
-			LOG_CINFO("websocket") << "Connected to server:" << m_server->url();
+			LOG_CINFO("http") << "Connected to server:" << m_server->url();
 		setState(Connected);
 	});
 
 #ifndef QT_NO_SSL
 	wr->setSslErrorCallback([this](const QList<QSslError> &list){
-		LOG_CDEBUG("websocket") << "SslErrorCallback:" << list;
+		LOG_CDEBUG("http") << "SslErrorCallback:" << list;
 		m_pendingSslErrors = list;
 
 		QStringList errorList;
@@ -212,13 +212,13 @@ void WebSocket::connectToServer(Server *server)
 
 
 /**
- * @brief WebSocket::close
+ * @brief HttpConnection::close
  */
 
-void WebSocket::close()
+void HttpConnection::close()
 {
 	if (m_state != Disconnected) {
-		LOG_CTRACE("websocket") << "Close connection";
+		LOG_CTRACE("http") << "Close connection";
 		setState(Disconnected);
 		abortAllReplies();
 		setServer(nullptr);
@@ -229,13 +229,13 @@ void WebSocket::close()
 
 
 /**
- * @brief WebSocket::abort
+ * @brief HttpConnection::abort
  */
 
-void WebSocket::abort()
+void HttpConnection::abort()
 {
 	if (m_state != Disconnected) {
-		LOG_CTRACE("websocket") << "Abort connection";
+		LOG_CTRACE("http") << "Abort connection";
 		m_client->stackPopToStartPage();
 		setState(Disconnected);
 		abortAllReplies();
@@ -251,28 +251,28 @@ void WebSocket::abort()
 
 
 /**
- * @brief WebSocket::abortAllReplies
+ * @brief HttpConnection::abortAllReplies
  */
 
-void WebSocket::abortAllReplies()
+void HttpConnection::abortAllReplies()
 {
-	LOG_CTRACE("websocket") << "Abort all replies";
-	foreach (WebSocketReply *r, m_replies)
+	LOG_CTRACE("http") << "Abort all replies";
+	foreach (HttpReply *r, m_replies)
 		r->abort();
 }
 
 
 /**
- * @brief WebSocket::pending
+ * @brief HttpConnection::pending
  * @return
  */
 
-bool WebSocket::pending() const
+bool HttpConnection::pending() const
 {
 	return m_pending;
 }
 
-void WebSocket::setPending(bool newPending)
+void HttpConnection::setPending(bool newPending)
 {
 	if (m_pending == newPending)
 		return;
@@ -283,14 +283,14 @@ void WebSocket::setPending(bool newPending)
 
 
 /**
- * @brief WebSocket::getUrl
+ * @brief HttpConnection::getUrl
  * @param api
  * @param path
  * @param data
  * @return
  */
 
-QUrl WebSocket::getUrl(const API &api, const QString &path) const
+QUrl HttpConnection::getUrl(const API &api, const QString &path) const
 {
 	QHash<API, const char*> apis;
 	apis[ApiServer] = "server";
@@ -314,18 +314,18 @@ QUrl WebSocket::getUrl(const API &api, const QString &path) const
 
 
 /**
- * @brief WebSocket::networkManager
+ * @brief HttpConnection::networkManager
  * @return
  */
 
-QNetworkAccessManager *WebSocket::networkManager() const
+QNetworkAccessManager *HttpConnection::networkManager() const
 {
 	return m_networkManager.get();
 }
 
 
 /**
- * @brief WebSocket::send
+ * @brief HttpConnection::send
  * @param method
  * @param api
  * @param path
@@ -333,18 +333,18 @@ QNetworkAccessManager *WebSocket::networkManager() const
  * @return
  */
 
-WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJsonObject &data)
+HttpReply *HttpConnection::send(const API &api, const QString &path, const QJsonObject &data)
 {
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
-		return new WebSocketReply(QNetworkReply::InternalServerError);
+		return new HttpReply(QNetworkReply::InternalServerError);
 	}
 
 	const QByteArray &content = QJsonDocument(data).toJson();
 
 	if (m_server->maxUploadSize() > 0 && content.size() >= m_server->maxUploadSize()) {
 		m_client->messageError(tr("Az üzenet túl nagy méretű"), tr("Hálózati hiba"));
-		return new WebSocketReply(QNetworkReply::InternalServerError);
+		return new HttpReply(QNetworkReply::InternalServerError);
 	}
 
 	QNetworkRequest r(getUrl(api, path));
@@ -366,33 +366,33 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QJson
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
-	LOG_CTRACE("websocket") << "SEND:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
+	LOG_CTRACE("http") << "SEND:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
 
-	WebSocketReply *wr = new WebSocketReply(reply, this);
-	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
+	HttpReply *wr = new HttpReply(reply, this);
+	connect(wr, &HttpReply::finished, this, &HttpConnection::checkPending);
 	return wr;
 }
 
 
 
 /**
- * @brief WebSocket::send
+ * @brief HttpConnection::send
  * @param api
  * @param path
  * @param content
  * @return
  */
 
-WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByteArray &content)
+HttpReply *HttpConnection::send(const API &api, const QString &path, const QByteArray &content)
 {
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
-		return new WebSocketReply(QNetworkReply::InternalServerError);
+		return new HttpReply(QNetworkReply::InternalServerError);
 	}
 
 	if (m_server->maxUploadSize() > 0 && content.size() >= m_server->maxUploadSize()) {
 		m_client->messageError(tr("Az üzenet túl nagy méretű"), tr("Hálózati hiba"));
-		return new WebSocketReply(QNetworkReply::InternalServerError);
+		return new HttpReply(QNetworkReply::InternalServerError);
 	}
 
 	QNetworkRequest r(getUrl(api, path));
@@ -415,10 +415,10 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
 
-	LOG_CDEBUG("websocket") << "Send content:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << content.size();
+	LOG_CDEBUG("http") << "Send content:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << content.size();
 
-	WebSocketReply *wr = new WebSocketReply(reply, this);
-	connect(wr, &WebSocketReply::finished, this, &WebSocket::checkPending);
+	HttpReply *wr = new HttpReply(reply, this);
+	connect(wr, &HttpReply::finished, this, &HttpConnection::checkPending);
 	return wr;
 }
 
@@ -429,14 +429,14 @@ WebSocketReply *WebSocket::send(const API &api, const QString &path, const QByte
 
 
 /**
- * @brief WebSocket::getEventStream
+ * @brief HttpConnection::getEventStream
  * @param api
  * @param path
  * @param data
  * @return
  */
 
-EventStream *WebSocket::getEventStream(const API &api, const QString &path, const QJsonObject &data)
+EventStream *HttpConnection::getEventStream(const API &api, const QString &path, const QJsonObject &data)
 {
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
@@ -471,7 +471,7 @@ EventStream *WebSocket::getEventStream(const API &api, const QString &path, cons
 	stream->setRequestData(QJsonDocument(data).toJson());
 	stream->connect(m_server);
 
-	LOG_CTRACE("websocket") << "Get EventStream:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
+	LOG_CTRACE("http") << "Get EventStream:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
 
 	return stream;
 }
@@ -480,14 +480,14 @@ EventStream *WebSocket::getEventStream(const API &api, const QString &path, cons
 
 
 /**
- * @brief WebSocket::checkPending
+ * @brief HttpConnection::checkPending
  */
 
-void WebSocket::checkPending()
+void HttpConnection::checkPending()
 {
 	bool pending = false;
 
-	foreach (WebSocketReply *r, m_replies)
+	foreach (HttpReply *r, m_replies)
 		if (r && r->pending()) {
 			pending = true;
 			break;
@@ -499,10 +499,10 @@ void WebSocket::checkPending()
 
 
 /**
- * @brief WebSocket::acceptPendingSslErrors
+ * @brief HttpConnection::acceptPendingSslErrors
  */
 
-void WebSocket::acceptPendingSslErrors()
+void HttpConnection::acceptPendingSslErrors()
 {
 #ifndef QT_NO_SSL
 	if (m_server && !m_pendingSslErrors.isEmpty()) {
@@ -528,12 +528,12 @@ void WebSocket::acceptPendingSslErrors()
 
 
 /**
- * @brief WebSocketReply::WebSocketReply
+ * @brief HttpConnectionReply::HttpConnectionReply
  * @param reply
  * @param socket
  */
 
-WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
+HttpReply::HttpReply(QNetworkReply *reply, HttpConnection *socket)
 	: QObject(socket)
 	, m_reply(reply)
 	, m_socket(socket)
@@ -541,14 +541,14 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 	Q_ASSERT(m_socket);
 	Q_ASSERT(m_reply);
 
-	LOG_CTRACE("websocket") << "WebSocketReply created" << this;
+	LOG_CTRACE("http") << "HttpConnectionReply created" << this;
 
 	m_socket->m_replies.append(this);
 	m_socket->checkPending();
 
 #ifndef QT_NO_SSL
 	connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
-		LOG_CDEBUG("websocket") << "SSL error:" << e;
+		LOG_CDEBUG("http") << "SSL error:" << e;
 
 		Server *server = m_socket->server();
 
@@ -556,20 +556,20 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 			QSslCertificate cert(server->certificate(), QSsl::Pem);
 
 			if (cert.isNull()) {
-				LOG_CERROR("websocket") << "Invalid server certificate stored";
+				LOG_CERROR("http") << "Invalid server certificate stored";
 			} else {
 				QList<QSslError> ignoredErrors;
 
 				for (auto it=e.constBegin(); it != e.constEnd(); ++it) {
 					if (it->certificate() != cert)
-						LOG_CWARNING("websocket") << "Server certificate mismatch";
+						LOG_CWARNING("http") << "Server certificate mismatch";
 					else if (server->ignoredSslErrors().contains(it->error()))
 						ignoredErrors.append(*it);
 
 				}
 
 				if (ignoredErrors.size() == e.size()) {
-					LOG_CDEBUG("websocket") << "Ignore SSL errors:" << ignoredErrors;
+					LOG_CDEBUG("http") << "Ignore SSL errors:" << ignoredErrors;
 					m_reply->ignoreSslErrors(ignoredErrors);
 					return;
 				}
@@ -593,7 +593,7 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 		this->abort();
 	});
 
-	connect(m_reply, &QNetworkReply::finished, this, &WebSocketReply::onReplyFinished);
+	connect(m_reply, &QNetworkReply::finished, this, &HttpReply::onReplyFinished);
 
 	connect(m_reply, &QNetworkReply::downloadProgress, this, [this](qint64 rec, qint64 total){
 		if (total <= 0)
@@ -613,24 +613,24 @@ WebSocketReply::WebSocketReply(QNetworkReply *reply, WebSocket *socket)
 
 
 /**
- * @brief WebSocketReply::WebSocketReply
+ * @brief HttpConnectionReply::HttpConnectionReply
  * @param error
  */
 
-WebSocketReply::WebSocketReply(const QNetworkReply::NetworkError &error, QObject *parent)
+HttpReply::HttpReply(const QNetworkReply::NetworkError &error, QObject *parent)
 	: QObject(parent)
 {
-	LOG_CTRACE("websocket") << "WebSocketReply created" << error << this;
+	LOG_CTRACE("http") << "HttpConnectionReply created" << error << this;
 
 	QMetaObject::invokeMethod(this, "onErrorPresent", Qt::QueuedConnection, Q_ARG(QNetworkReply::NetworkError, error));
 }
 
 
 /**
- * @brief WebSocketReply::~WebSocketReply
+ * @brief HttpConnectionReply::~HttpConnectionReply
  */
 
-WebSocketReply::~WebSocketReply()
+HttpReply::~HttpReply()
 {
 	if (m_socket) {
 		m_socket->m_replies.removeAll(this);
@@ -640,47 +640,47 @@ WebSocketReply::~WebSocketReply()
 	//if (m_reply.data())
 	//	m_reply.data()->deleteLater();
 
-	LOG_CTRACE("websocket") << "WebSocketReply destroyed" << this;
+	LOG_CTRACE("http") << "HttpConnectionReply destroyed" << this;
 }
 
 
 
 /**
- * @brief WebSocketReply::abort
+ * @brief HttpConnectionReply::abort
  */
 
-void WebSocketReply::abort()
+void HttpReply::abort()
 {
 	m_pending = false;
 
 	emit failed(this);
 
-	LOG_CTRACE("websocket") << "Abort" << this;
+	LOG_CTRACE("http") << "Abort" << this;
 
 	//if (m_reply && !m_reply->isFinished() && m_reply->error() == QNetworkReply::NoError)
 	//	m_reply->abort();
 
 	emit finished();
 
-	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
+	QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);
 
 	//close();
 }
 
 
 /**
- * @brief WebSocketReply::done
+ * @brief HttpConnectionReply::done
  */
 
-void WebSocketReply::close()
+void HttpReply::close()
 {
-	LOG_CTRACE("websocket") << "WebSocketReply done" << this << parent();
+	LOG_CTRACE("http") << "HttpConnectionReply done" << this << parent();
 	this->deleteLater();
 }
 
 
 /**
- * @brief WebSocketReply::done
+ * @brief HttpConnectionReply::done
  * @param func
  * @return
  */
@@ -689,10 +689,10 @@ void WebSocketReply::close()
 
 
 /**
- * @brief WebSocketReply::onReplyFinished
+ * @brief HttpConnectionReply::onReplyFinished
  */
 
-void WebSocketReply::onReplyFinished()
+void HttpReply::onReplyFinished()
 {
 	Q_ASSERT(m_socket);
 
@@ -703,7 +703,7 @@ void WebSocketReply::onReplyFinished()
 
 
 	if (error != QNetworkReply::NoError) {
-		LOG_CWARNING("websocket") << "WebSocketReply error" << error << this;
+		LOG_CWARNING("http") << "HttpConnectionReply error" << error << this;
 		emit finished();
 
 		foreach (const auto &func, m_funcsError) {
@@ -716,12 +716,12 @@ void WebSocketReply::onReplyFinished()
 			func.second.call({error});
 		}
 
-		QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
+		QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);
 
 		return;
 	}
 
-	//LOG_CTRACE("websocket") << "WebSocketReply finished successful" << this;
+	//LOG_CTRACE("http") << "HttpConnectionReply finished successful" << this;
 
 	QJsonObject contentJson;
 	QString errorString;
@@ -739,7 +739,7 @@ void WebSocketReply::onReplyFinished()
 
 
 	if (errorString.isEmpty()) {
-		LOG_CTRACE("websocket") << "RECEIVED:" << content.size() << contentJson;
+		LOG_CTRACE("http") << "RECEIVED:" << content.size() << contentJson;
 
 		foreach (const auto &func, m_funcsByteArray) {
 			if (func.first)
@@ -758,14 +758,14 @@ void WebSocketReply::onReplyFinished()
 		if (engine)
 			list = {engine->toScriptValue<QJsonObject>(contentJson)};
 		else
-			LOG_CERROR("websocket") << "Invalid JSEngine";
+			LOG_CERROR("http") << "Invalid JSEngine";
 
 		foreach (auto v, m_jsvalues) {
 			if (v.first)
 			v.second.call(list);
 		}
 	} else {
-		LOG_CWARNING("websocket") << "Response error:" << errorString << this;
+		LOG_CWARNING("http") << "Response error:" << errorString << this;
 
 		emit m_socket->responseError(errorString);
 
@@ -782,19 +782,19 @@ void WebSocketReply::onReplyFinished()
 
 	emit finished();
 
-	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
+	QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);
 }
 
 
 
 /**
- * @brief WebSocketReply::onErrorPresent
+ * @brief HttpConnectionReply::onErrorPresent
  * @param error
  */
 
-void WebSocketReply::onErrorPresent(const QNetworkReply::NetworkError &error)
+void HttpReply::onErrorPresent(const QNetworkReply::NetworkError &error)
 {
-	LOG_CWARNING("websocket") << "WebSocketReply error" << error << this;
+	LOG_CWARNING("http") << "HttpConnectionReply error" << error << this;
 
 	emit finished();
 
@@ -808,47 +808,47 @@ void WebSocketReply::onErrorPresent(const QNetworkReply::NetworkError &error)
 		v.second.call({error});
 	}
 
-	QTimer::singleShot(WEBSOCKETREPLY_DELETE_AFTER_MSEC, this, &WebSocketReply::close);
+	QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);
 }
 
 
 /**
- * @brief WebSocketReply::sslErrorCallback
+ * @brief HttpConnectionReply::sslErrorCallback
  * @return
  */
 
-const std::function<void (const QList<QSslError> &)> &WebSocketReply::sslErrorCallback() const
+const std::function<void (const QList<QSslError> &)> &HttpReply::sslErrorCallback() const
 {
 	return m_sslErrorCallback;
 }
 
-void WebSocketReply::setSslErrorCallback(const std::function<void (const QList<QSslError> &)> &newSslErrorCallback)
+void HttpReply::setSslErrorCallback(const std::function<void (const QList<QSslError> &)> &newSslErrorCallback)
 {
 	m_sslErrorCallback = newSslErrorCallback;
 }
 
 
 /**
- * @brief WebSocketReply::pending
+ * @brief HttpConnectionReply::pending
  * @return
  */
 
-bool WebSocketReply::pending() const
+bool HttpReply::pending() const
 {
 	return m_pending;
 }
 
 
 /**
- * @brief WebSocketReply::done
+ * @brief HttpConnectionReply::done
  * @param v
  * @return
  */
 
-WebSocketReply *WebSocketReply::done(QObject *inst, const QJSValue &v)
+HttpReply *HttpReply::done(QObject *inst, const QJSValue &v)
 {
 	if (!v.isCallable())
-		LOG_CERROR("websocket") << "QJSValue isn't callable";
+		LOG_CERROR("http") << "QJSValue isn't callable";
 	else
 		m_jsvalues.append(qMakePair(inst, v));
 	return this;
@@ -856,15 +856,15 @@ WebSocketReply *WebSocketReply::done(QObject *inst, const QJSValue &v)
 
 
 /**
- * @brief WebSocketReply::fail
+ * @brief HttpConnectionReply::fail
  * @param v
  * @return
  */
 
-WebSocketReply *WebSocketReply::fail(QObject *inst, const QJSValue &v)
+HttpReply *HttpReply::fail(QObject *inst, const QJSValue &v)
 {
 	if (!v.isCallable())
-		LOG_CERROR("websocket") << "QJSValue isn't callable";
+		LOG_CERROR("http") << "QJSValue isn't callable";
 	else
 		m_jsvaluesFail.append(qMakePair(inst, v));
 	return this;
@@ -872,15 +872,15 @@ WebSocketReply *WebSocketReply::fail(QObject *inst, const QJSValue &v)
 
 
 /**
- * @brief WebSocketReply::error
+ * @brief HttpConnectionReply::error
  * @param v
  * @return
  */
 
-WebSocketReply *WebSocketReply::error(QObject *inst, const QJSValue &v)
+HttpReply *HttpReply::error(QObject *inst, const QJSValue &v)
 {
 	if (!v.isCallable())
-		LOG_CERROR("websocket") << "QJSValue isn't callable";
+		LOG_CERROR("http") << "QJSValue isn't callable";
 	else
 		m_jsvaluesError.append(qMakePair(inst, v));
 	return this;

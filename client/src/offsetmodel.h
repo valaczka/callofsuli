@@ -29,7 +29,7 @@
 
 #include <QObject>
 #include "qslistmodel.h"
-#include "websocket.h"
+#include "httpconnection.h"
 
 /**
  * @brief The OffsetModel class
@@ -41,7 +41,7 @@ class OffsetModel : public QObject
 
 	Q_PROPERTY(QSListModel *model READ model CONSTANT)
 
-	Q_PROPERTY(WebSocket::API api READ api WRITE setApi NOTIFY apiChanged)
+	Q_PROPERTY(HttpConnection::API api READ api WRITE setApi NOTIFY apiChanged)
 	Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
 	Q_PROPERTY(QJsonObject apiData READ apiData WRITE setApiData NOTIFY apiDataChanged)
 
@@ -55,8 +55,8 @@ public:
 	explicit OffsetModel(QObject *parent = nullptr);
 	virtual ~OffsetModel();
 
-	const WebSocket::API &api() const;
-	void setApi(const WebSocket::API &newApi);
+	const HttpConnection::API &api() const;
+	void setApi(const HttpConnection::API &newApi);
 
 	const QString &path() const;
 	void setPath(const QString &newPath);
@@ -101,8 +101,8 @@ signals:
 
 private:
 	void loadFromJson(const QJsonObject &obj);
-	QSListModel *m_model = nullptr;
-	WebSocket::API m_api = WebSocket::ApiInvalid;
+	std::unique_ptr<QSListModel> m_model;
+	HttpConnection::API m_api = HttpConnection::ApiInvalid;
 	QString m_path;
 	QJsonObject m_apiData;
 	QStringList m_fields;

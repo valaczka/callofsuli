@@ -70,8 +70,6 @@ GameObject::~GameObject()
 	if (m_scene)
 		m_scene->gameObjectRemove(this);
 
-	delete m_body;
-
 	qDeleteAll(m_childItems);
 
 	LOG_CDEBUG("scene") << "Destroy GameObject" << this;
@@ -121,7 +119,7 @@ void GameObject::setScene(GameScene *newScene)
 
 Box2DBody *GameObject::body() const
 {
-	return m_body;
+	return m_body.get();
 }
 
 

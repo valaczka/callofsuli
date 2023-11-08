@@ -76,43 +76,43 @@ QPage {
 			Row {
 				spacing: 20
 
-				visible: Client.webSocket.state != WebSocket.Disconnected
+				visible: Client.httpConnection.state != HttpConnection.Disconnected
 
 				Qaterial.BusyIndicator {
 					anchors.verticalCenter: parent.verticalCenter
 					height: txt.height
 					width: txt.height
-					visible: Client.webSocket.state != WebSocket.Connected
+					visible: Client.httpConnection.state != HttpConnection.Connected
 				}
 
 				Qaterial.LabelWithCaption {
 					id: txt
 					anchors.verticalCenter: parent.verticalCenter
-					text: Client.webSocket.state == WebSocket.Connected ? qsTr("Csatlakozva") : qsTr("Csatlakozás...")
+					text: Client.httpConnection.state == HttpConnection.Connected ? qsTr("Csatlakozva") : qsTr("Csatlakozás...")
 					caption: Client.server ? Client.server.url : ""
 				}
 			}
 
 			Qaterial.RaisedButton {
-				visible: Client.webSocket.state != WebSocket.Disconnected
+				visible: Client.httpConnection.state != HttpConnection.Disconnected
 
 				anchors.horizontalCenter: parent.horizontalCenter
 				backgroundColor: Qaterial.Colors.red600
 				foregroundColor: Qaterial.Colors.white
 				text: qsTr("Megszakítás")
 				icon.source: Qaterial.Icons.close
-				onClicked: Client.webSocket.close()
+				onClicked: Client.httpConnection.close()
 			}
 
 			Qaterial.IconLabelWithCaption {
-				visible: Client.webSocket.state == WebSocket.Disconnected
+				visible: Client.httpConnection.state == HttpConnection.Disconnected
 				icon.source: Qaterial.Icons.connection
 				text: qsTr("Nincs kapcsolat")
 				caption: qsTr("Nem lehet csatlakozni a szerverhez")
 			}
 
 			Qaterial.RaisedButton {
-				visible: Client.webSocket.state == WebSocket.Disconnected
+				visible: Client.httpConnection.state == HttpConnection.Disconnected
 				anchors.horizontalCenter: parent.horizontalCenter
 				backgroundColor: Qaterial.Colors.red600
 				foregroundColor: Qaterial.Colors.white
@@ -126,5 +126,5 @@ QPage {
 
 
 	StackView.onActivated: if (Client.server)
-							   Client.webSocket.connectToServer()
+							   Client.httpConnection.connectToServer()
 }

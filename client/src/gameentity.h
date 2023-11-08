@@ -254,7 +254,7 @@ private:
 
 	void loadSprites();
 
-	Box2DRayCast *m_rayCast = nullptr;
+	std::unique_ptr<Box2DRayCast> m_rayCast;
 	qreal m_rayCastLength = 0;
 	qreal m_rayCastElevation = 0;
 	bool m_rayCastEnabled = false;
@@ -273,13 +273,13 @@ private:
 	bool m_spritesLoaded = false;
 
 
-	Box2DBox *m_fixture = nullptr;
+	std::unique_ptr<Box2DBox> m_fixture;
 	Box2DFixture::CategoryFlags m_categoryFixture = Box2DFixture::None;
 	Box2DFixture::CategoryFlags m_categoryCollidesWith = CATEGORY_GROUND;
 	Box2DFixture::CategoryFlags m_categoryRayCast = Box2DFixture::None;
 	QMap<float32, QList<QPointer<Box2DFixture>>> m_rayCastFixtures;
 
-	QPropertyAnimation *m_dieAnimation = nullptr;
+	std::unique_ptr<QPropertyAnimation> m_dieAnimation;
 
 };
 

@@ -164,16 +164,16 @@ bool ClientCache::set(const QString &key, const QJsonArray &list)
 
 /**
  * @brief ClientCache::reload
- * @param websocket
+ * @param httpconnection
  * @param key
  * @return
  */
 
 
-bool ClientCache::reload(WebSocket *websocket, const QString &key)
+bool ClientCache::reload(HttpConnection *httpconnection, const QString &key)
 {
-	if (!websocket) {
-		LOG_CERROR("client") << "Websocket not set";
+	if (!httpconnection) {
+		LOG_CERROR("client") << "Httpconnection not set";
 		return false;
 	}
 
@@ -184,13 +184,13 @@ bool ClientCache::reload(WebSocket *websocket, const QString &key)
 
 	const CacheItem &it = m_list.value(key);
 
-	if (it.api == WebSocket::ApiInvalid) {
+	if (it.api == HttpConnection::ApiInvalid) {
 		LOG_CWARNING("client") << "API not set for key:" << key;
 		return false;
 	}
 
 
-	websocket->send(it.api, it.path)->done(this, [this, key](const QJsonObject &data){
+	httpconnection->send(it.api, it.path)->done(this, [this, key](const QJsonObject &data){
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 		set(key, list);
 	});
@@ -200,16 +200,16 @@ bool ClientCache::reload(WebSocket *websocket, const QString &key)
 
 /**
  * @brief ClientCache::reload
- * @param websocket
+ * @param httpconnection
  * @param key
  * @param func
  * @return
  */
 
-bool ClientCache::reload(WebSocket *websocket, const QString &key, QObject *inst, QJSValue func)
+bool ClientCache::reload(HttpConnection *httpconnection, const QString &key, QObject *inst, QJSValue func)
 {
-	if (!websocket) {
-		LOG_CERROR("client") << "Websocket not set";
+	if (!httpconnection) {
+		LOG_CERROR("client") << "Httpconnection not set";
 		return false;
 	}
 
@@ -220,13 +220,13 @@ bool ClientCache::reload(WebSocket *websocket, const QString &key, QObject *inst
 
 	const CacheItem &it = m_list.value(key);
 
-	if (it.api == WebSocket::ApiInvalid) {
+	if (it.api == HttpConnection::ApiInvalid) {
 		LOG_CWARNING("client") << "API not set for key:" << key;
 		return false;
 	}
 
 
-	websocket->send(it.api, it.path)->done(inst, [this, key, func](const QJsonObject &data) mutable {
+	httpconnection->send(it.api, it.path)->done(inst, [this, key, func](const QJsonObject &data) mutable {
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
 		set(key, list);
 		if (func.isCallable())

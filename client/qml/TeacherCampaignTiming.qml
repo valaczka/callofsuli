@@ -27,7 +27,7 @@ Item {
 			enabled: campaign
 			visible: campaign && campaign.state < Campaign.Running
 			onClicked: {
-				Client.send(WebSocket.ApiTeacher, "campaign/%1/run".arg(campaign.campaignid))
+				Client.send(HttpConnection.ApiTeacher, "campaign/%1/run".arg(campaign.campaignid))
 				.done(control, function(r){
 					reloadRequest()
 				})
@@ -173,7 +173,7 @@ Item {
 				JS.questionDialog({
 									  onAccepted: function()
 									  {
-										  Client.send(WebSocket.ApiTeacher, "campaign/%1/finish".arg(campaign.campaignid))
+										  Client.send(HttpConnection.ApiTeacher, "campaign/%1/finish".arg(campaign.campaignid))
 										  .done(control, function(r){
 											  reloadRequest()
 										  })

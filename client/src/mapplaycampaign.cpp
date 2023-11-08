@@ -83,7 +83,7 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 
 	m_campaign = campaign;
 
-	MapPlaySolverDefault *solver = new MapPlaySolverDefault(this);
+	auto solver = new MapPlaySolverDefault(this);
 	setSolver(solver);
 
 	updateSolver();
@@ -105,7 +105,7 @@ void MapPlayCampaign::updateSolver()
 	if (!m_gameMap || !m_solver || !m_client)
 		return;
 
-	m_client->send(WebSocket::ApiUser, QStringLiteral("map/%1/solver").arg(m_gameMap->uuid()))
+	m_client->send(HttpConnection::ApiUser, QStringLiteral("map/%1/solver").arg(m_gameMap->uuid()))
 			->done(this, [this](const QJsonObject &data){
 		for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
 			GameMapMission *mission = m_gameMap->mission(it.key());
@@ -129,7 +129,7 @@ void MapPlayCampaign::updateSolver()
 
 void MapPlayCampaign::onCurrentGamePrepared()
 {
-	if (!m_currentGame || !m_client || !m_gameMap)
+	if (!m_client || !m_gameMap || !m_client->currentGame())
 		return;
 
 	if (!m_campaign) {
@@ -137,21 +137,21 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		return;
 	}
 
-	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_currentGame);
-	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_currentGame);
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
 	if (!levelGame || !game) {
-		LOG_CERROR("client") << "Object cast error" << m_currentGame;
+		LOG_CERROR("client") << "Object cast error" << m_client->currentGame();
 		return;
 	}
 
 	setFinishedData({});
 
-	if (m_currentGame->mode() == GameMap::Practice) {
+	if (levelGame->mode() == GameMap::Practice) {
 		levelGame->load();
 		setGameState(StatePlay);
 	} else {
-		m_client->send(WebSocket::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
+		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
 						   { QStringLiteral("map"), m_gameMap->uuid() },
 						   { QStringLiteral("mission"), levelGame->uuid() },
 						   { QStringLiteral("level"), levelGame->level() },
@@ -195,30 +195,32 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 void MapPlayCampaign::onCurrentGameFinished()
 {
-	if (!m_currentGame || !m_client)
+	if (!m_client || !m_client->currentGame())
 		return;
 
-	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_currentGame);
-	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_currentGame);
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
 	if (!levelGame || !game) {
-		LOG_CERROR("client") << "Object cast error" << m_currentGame;
+		LOG_CERROR("client") << "Object cast error" << m_client->currentGame();
 		return;
 	}
+
+	m_updateTimer.stop();
 
 	if (levelGame->finishState() == AbstractGame::Fail)
 		emit currentGameFailed();
 
 
-	if (m_currentGame->mode() == GameMap::Practice) {
+	if (levelGame->mode() == GameMap::Practice) {
 		destroyCurrentGame();
-		updateSolver();
+		//updateSolver();
 		setGameState(StateFinished);
 	} else {
-		const QJsonArray &stat = m_currentGame->getStatistics();
-		const QJsonObject &extended = m_currentGame->getExtendedData();
+		const QJsonArray &stat = levelGame->getStatistics();
+		const QJsonObject &extended = levelGame->getExtendedData();
 
-		m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
+		m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
 						   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
 						   { QStringLiteral("xp"), levelGame->xp() },
 						   { QStringLiteral("duration"), levelGame->elapsedMsec() },
@@ -227,7 +229,8 @@ void MapPlayCampaign::onCurrentGameFinished()
 					   })
 				->fail(this, [this, stat](const QString &err){
 			m_client->messageError(err, tr("Játék mentése sikertelen"));
-			m_currentGame->clearStatistics(stat);
+			if (m_client->currentGame())
+				m_client->currentGame()->clearStatistics(stat);
 			destroyCurrentGame();
 		})
 				->done(this, [this](const QJsonObject &data){
@@ -254,34 +257,42 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 {
 	LOG_CTRACE("client") << "GAME UPDATE";
 
-	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_currentGame);
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
-	if (m_gameState != StatePlay || !m_currentGame || !game || m_currentGame->mode() == GameMap::Practice)
+	if (m_gameState != StatePlay)
 		return;
 
-	const QJsonArray &stat = m_currentGame->getStatistics();
-	int xp = m_currentGame->xp();
+	if (!levelGame || !game) {
+		LOG_CERROR("client") << "Object cast error" << m_client->currentGame();
+		return;
+	}
+
+	if (levelGame->mode() == GameMap::Practice)
+		return;
+
+
+	const QJsonArray &stat = levelGame->getStatistics();
+	int xp = levelGame->xp();
 
 	if (stat.isEmpty() && m_lastXP == xp)
 		return;
 
-	m_client->send(WebSocket::ApiUser, QStringLiteral("game/%1/update").arg(game->gameId()), {
+	m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/update").arg(game->gameId()), {
 					   { QStringLiteral("xp"), xp },
 					   { QStringLiteral("statistics"), stat }
 				   })
 			->fail(this, [stat, this](const QString &err){
 		LOG_CWARNING("client") << "Game update error:" << qPrintable(err);
 
-		if (m_currentGame)
-			m_currentGame->clearStatistics(stat, true);
+		if (m_client->currentGame())
+			m_client->currentGame()->clearStatistics(stat, true);
 	})
 			->done(this, [this, stat, xp](const QJsonObject &){
-		if (m_currentGame)
-			m_currentGame->clearStatistics(stat, false);
+		if (m_client->currentGame())
+			m_client->currentGame()->clearStatistics(stat, false);
 
 		m_lastXP = xp;
-
-		LOG_CTRACE("client") << "GAME UPDATED SUCCESSFULY";
 	});
 }
 
@@ -343,11 +354,12 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 void MapPlayCampaign::destroyCurrentGame()
 {
-	AbstractLevelGame *g = m_currentGame;
-
-	setCurrentGame(nullptr);
-	if (m_client) m_client->setCurrentGame(nullptr);
-	if (g) g->setReadyToDestroy(true);
+	if (m_client->currentGame()) {
+		LOG_CTRACE("client") << "Destroy current game" << m_client->currentGame();
+		m_client->currentGame()->setReadyToDestroy(true);
+	} else {
+		LOG_CERROR("client") << "Missing current game";
+	}
 }
 
 

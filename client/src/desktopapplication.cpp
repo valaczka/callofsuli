@@ -85,7 +85,7 @@ DesktopApplication::DesktopApplication(QApplication *app)
 	cuteLogger->logToGlobalInstance(QStringLiteral("scene"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("sound"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("websocket"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("http"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("updater"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qml"), true);

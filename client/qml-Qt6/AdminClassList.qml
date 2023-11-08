@@ -28,7 +28,7 @@ Qaterial.Page
 		currentIndex: -1
 		autoSelectChange: true
 
-		refreshProgressVisible: Client.webSocket.pending
+		refreshProgressVisible: Client.httpConnection.pending
 		refreshEnabled: true
 		onRefreshRequest: Client.reloadCache("classList")
 

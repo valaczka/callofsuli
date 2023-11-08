@@ -201,7 +201,7 @@ GameQuestionComponentImpl {
 	}
 
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		var key = event.key
 
 		if (toggleMode && selectedButtonIndex != -1 && (key === Qt.Key_Return || key === Qt.Key_Enter)) {

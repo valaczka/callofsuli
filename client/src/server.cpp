@@ -31,7 +31,7 @@
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
-	, m_user(new User(this))
+	, m_user(new User())
 {
 
 
@@ -40,8 +40,7 @@ Server::Server(QObject *parent)
 
 Server::~Server()
 {
-	delete m_user;
-	m_user = nullptr;
+
 }
 
 
@@ -242,7 +241,7 @@ void Server::setConfig(const QJsonObject &newConfig)
 
 User *Server::user() const
 {
-	return m_user;
+	return m_user.get();
 }
 
 

@@ -10,7 +10,7 @@ QPage {
 	id: control
 
 	onPageClose: function() {
-		Client.webSocket.close()
+		Client.httpConnection.close()
 	}
 
 	stackPopFunction: function() {
@@ -74,7 +74,7 @@ QPage {
 
 	QRefreshProgressBar {
 		anchors.top: parent.top
-		visible: Client.webSocket.pending
+		visible: Client.httpConnection.pending
 	}
 
 }

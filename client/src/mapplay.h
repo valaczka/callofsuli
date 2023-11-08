@@ -52,10 +52,9 @@ class MapPlay : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(GameMap *gameMap READ gameMap WRITE setGameMap NOTIFY gameMapChanged)
+	Q_PROPERTY(GameMap *gameMap READ gameMap NOTIFY gameMapChanged)
 	Q_PROPERTY(QString uuid READ uuid CONSTANT)
 	Q_PROPERTY(MapPlayMissionList *missionList READ missionList CONSTANT)
-	Q_PROPERTY(AbstractLevelGame *currentGame READ currentGame WRITE setCurrentGame NOTIFY currentGameChanged)
 	Q_PROPERTY(bool online READ online WRITE setOnline NOTIFY onlineChanged)
 	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged)
 	Q_PROPERTY(QJsonObject finishedData READ finishedData WRITE setFinishedData NOTIFY finishedDataChanged)
@@ -88,12 +87,13 @@ public:
 	QString uuid() const;
 
 	GameMap *gameMap() const;
-	void setGameMap(GameMap *newGameMap);
+	void setGameMap(std::unique_ptr<GameMap> &newGameMap);
+	void clearGameMap();
 
 	AbstractMapPlaySolver *solver() const;
 	void setSolver(AbstractMapPlaySolver *newSolver);
 
-	MapPlayMissionList *missionList() const { return m_missionList; }
+	MapPlayMissionList *missionList() const { return m_missionList.get(); }
 
 	MapPlayMission *getMission(GameMapMissionIface *mission) const;
 	MapPlayMissionLevel *getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const;
@@ -106,9 +106,6 @@ public:
 	Q_INVOKABLE MapPlayMissionLevel* getNextLevel(MapPlayMissionLevel *currentLevel = nullptr, const GameMap::GameMode &mode = GameMap::Invalid) const;
 
 	Q_INVOKABLE QVariantMap inventoryInfo(const QString &module) const;
-
-	AbstractLevelGame *currentGame() const;
-	void setCurrentGame(AbstractLevelGame *newCurrentGame);
 
 	bool online() const;
 	void setOnline(bool newOnline);
@@ -123,7 +120,7 @@ public:
 	void setReadOnly(bool newReadOnly);
 
 protected:
-	void loadGameMap(GameMap *map);
+	void loadGameMap(std::unique_ptr<GameMap> &map);
 	void unloadGameMap();
 	void reloadMissionList();
 
@@ -137,7 +134,6 @@ signals:
 	void gameMapLoaded();
 	void gameMapUnloaded();
 	void gameMapChanged();
-	void currentGameChanged();
 	void onlineChanged();
 	void gameStateChanged();
 	void finishedDataChanged();
@@ -145,10 +141,9 @@ signals:
 
 protected:
 	Client *const m_client ;
-	GameMap *m_gameMap = nullptr;
-	AbstractMapPlaySolver *m_solver = nullptr;
-	MapPlayMissionList *m_missionList = nullptr;
-	AbstractLevelGame *m_currentGame = nullptr;
+	std::unique_ptr<GameMap> m_gameMap;
+	std::unique_ptr<AbstractMapPlaySolver> m_solver;
+	std::unique_ptr<MapPlayMissionList> m_missionList;
 	bool m_online = true;
 	GameState m_gameState = StateInvalid;
 	QJsonObject m_finishedData;

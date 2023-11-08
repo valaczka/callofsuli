@@ -142,7 +142,6 @@ signals:
 	void readableNameChanged();
 	void resultGradeChanged();
 	void resultXPChanged();
-
 	void groupidChanged();
 
 private:
@@ -155,7 +154,7 @@ private:
 	Grade *m_defaultGrade = nullptr;
 	Grade *m_resultGrade = nullptr;
 	int m_resultXP = -1;
-	TaskList *const m_taskList;
+	std::unique_ptr<TaskList> m_taskList;
 	int m_groupid = -1;
 };
 

@@ -64,8 +64,43 @@ QScrollable
 			topPadding: spacing
 			bottomPadding: spacing
 
+			QButton {
+				id: _google
+				visible: Client.server && Client.server.config.oauthProviders !== undefined && Client.server.config.oauthProviders.includes("google")
+						 && !_loginFields.visible
+				anchors.horizontalCenter: parent.horizontalCenter
+				text: qsTr("Bejelentkezés Google fiókkal")
+				icon.source: Qaterial.Icons.google
+				onClicked: Client.loginOAuth2("google")
+			}
+
+			QButton {
+				id: _microsoft
+				visible: Client.server && Client.server.config.oauthProviders !== undefined &&
+						 Client.server.config.oauthProviders.includes("microsoft") && !_loginFields.visible
+				anchors.horizontalCenter: parent.horizontalCenter
+				text: qsTr("Bejelentkezés Microsoft fiókkal")
+				icon.source: Qaterial.Icons.microsoft
+				onClicked: Client.loginOAuth2("microsoft")
+			}
+
+
+			QButton {
+				visible: !_loginFields.visible
+				flat: true
+				outlined: false
+
+				anchors.horizontalCenter: parent.horizontalCenter
+				text: qsTr("Bejelentkezés jelszóval")
+
+				onClicked: _loginFields.visible = true
+			}
+
 			QFormColumn {
+				id: _loginFields
 				spacing: 5
+
+				visible: false
 
 				QFormTextField {
 					id: _user
@@ -100,31 +135,6 @@ QScrollable
 
 
 			Qaterial.HorizontalLineSeparator {
-				visible: _google.visible || _microsoft.visible
-				anchors.horizontalCenter: parent.horizontalCenter
-				width: parent.width*0.75
-			}
-
-			QButton {
-				id: _google
-				visible: Client.server && Client.server.config.oauthProviders !== undefined && Client.server.config.oauthProviders.includes("google")
-				anchors.horizontalCenter: parent.horizontalCenter
-				text: qsTr("Bejelentkezés Google fiókkal")
-				icon.source: Qaterial.Icons.google
-				onClicked: Client.loginOAuth2("google")
-			}
-
-			QButton {
-				id: _microsoft
-				visible: Client.server && Client.server.config.oauthProviders !== undefined &&
-						 Client.server.config.oauthProviders.includes("microsoft")
-				anchors.horizontalCenter: parent.horizontalCenter
-				text: qsTr("Bejelentkezés Microsoft fiókkal")
-				icon.source: Qaterial.Icons.microsoft
-				onClicked: Client.loginOAuth2("microsoft")
-			}
-
-			Qaterial.HorizontalLineSeparator {
 				visible: _registration.visible
 				anchors.horizontalCenter: parent.horizontalCenter
 				width: parent.width*0.75
@@ -133,6 +143,7 @@ QScrollable
 			QButton {
 				id: _registration
 				visible: Client.server && Client.server.config.registrationEnabled !== undefined && Client.server.config.registrationEnabled
+						 && !_loginFields.visible
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Regisztráció")
 				icon.source: Qaterial.Icons.loginVariant
@@ -176,7 +187,7 @@ QScrollable
 			foregroundColor: Qaterial.Colors.white
 			text: qsTr("Megszakítás")
 			icon.source: Qaterial.Icons.close
-			onClicked: Client.webSocket.abort()
+			onClicked: Client.httpConnection.abort()
 		}
 	}
 

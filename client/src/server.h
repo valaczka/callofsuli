@@ -145,7 +145,7 @@ private:
 	QDir m_directory;
 	bool m_autoConnect = false;
 	QString m_token;
-	User *m_user = nullptr;
+	std::unique_ptr<User> m_user;
 	RankList m_rankList;
 	bool m_temporary = false;
 	int m_maxUploadSize = 0;

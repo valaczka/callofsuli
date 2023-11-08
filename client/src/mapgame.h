@@ -87,7 +87,7 @@ signals:
 	void usernameChanged();
 
 private:
-	User *m_user = nullptr;
+	std::unique_ptr<User> m_user;
 	int m_solved = 0;
 	int m_durationMin = 0;
 	int m_durationMax = 0;

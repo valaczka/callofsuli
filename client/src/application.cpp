@@ -84,7 +84,7 @@
 #include "gamepickable.h"
 #include "gamequestion.h"
 #include "mapplay.h"
-#include "websocket.h"
+#include "httpconnection.h"
 
 
 
@@ -93,10 +93,14 @@ const int Application::m_versionMinor = VERSION_MINOR;
 const int Application::m_versionBuild = VERSION_BUILD;
 const char *Application::m_version = VERSION_FULL;
 Application *Application::m_instance = nullptr;
+
+
 const QString Application::m_userAgent = QStringLiteral("CallOfSuli/%1.%2.%3 (%4; %5)")
 		.arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
 		.arg(QSysInfo::prettyProductName())
-		.arg(QSysInfo::currentCpuArchitecture());
+		.arg(QSysInfo::currentCpuArchitecture())
+		;
+
 
 
 #ifdef QT_NO_DEBUG
@@ -175,8 +179,8 @@ int Application::run()
 	loadModules();
 
 	m_client.reset(createClient());
-	m_engine->addImageProvider(QStringLiteral("font"), new FontImage());
-	m_engine->addImageProvider(QStringLiteral("qrcode"), new QrImage());
+	m_engine->addImageProvider(QStringLiteral("font"), std::move(new FontImage()));
+	m_engine->addImageProvider(QStringLiteral("qrcode"), std::move(new QrImage()));
 
 	m_engine->rootContext()->setContextProperty("Client", m_client.get());
 
@@ -363,8 +367,8 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
 	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
-	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
-	qmlRegisterUncreatableType<WebSocketReply>("CallOfSuli", 1, 0, "WebSocketReply", "WebSocketReply is uncreatable");
+	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
+	qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");
 
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");

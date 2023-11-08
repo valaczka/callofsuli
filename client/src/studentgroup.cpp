@@ -30,8 +30,8 @@
 
 StudentGroup::StudentGroup(QObject *parent)
 	: QObject{parent}
-	, m_memberList(new UserList(this))
-	, m_campaignList(new CampaignList(this))
+	, m_memberList(new UserList())
+	, m_campaignList(new CampaignList())
 {
 
 }
@@ -43,8 +43,7 @@ StudentGroup::StudentGroup(QObject *parent)
 
 StudentGroup::~StudentGroup()
 {
-	delete m_campaignList;
-	delete m_memberList;
+
 }
 
 
@@ -67,10 +66,10 @@ void StudentGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 		setActive(object.value(QStringLiteral("active")).toInt());
 
 	if (object.contains(QStringLiteral("memberList")) || allField)
-		OlmLoader::loadFromJsonArray<User>(m_memberList, object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
+		OlmLoader::loadFromJsonArray<User>(m_memberList.get(), object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
 
 	if (object.contains(QStringLiteral("campaignList")) || allField)
-		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList, object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
+		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList.get(), object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
 }
 
 
@@ -120,12 +119,12 @@ void StudentGroup::setActive(bool newActive)
 
 UserList *StudentGroup::memberList() const
 {
-	return m_memberList;
+	return m_memberList.get();
 }
 
 CampaignList *StudentGroup::campaignList() const
 {
-	return m_campaignList;
+	return m_campaignList.get();
 }
 
 

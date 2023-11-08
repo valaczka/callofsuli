@@ -12,7 +12,6 @@ import "JScript.js" as JS
 import Qt.labs.folderlistmodel
 import Qt.labs.platform
 import Qt.labs.settings
-//import Qt.labs.calendar
 import Qt.labs.qmlmodels
 
 // -----
@@ -32,6 +31,7 @@ Qaterial.ApplicationWindow
 
 	property bool _completed: false
 	readonly property bool _allLoaded: mainStackView._loaded && _completed
+
 
 	MainStackView {
 		id: mainStackView
@@ -254,14 +254,14 @@ Qaterial.ApplicationWindow
 
 
 	Connections {
-		target: Client.webSocket
+		target: Client.httpConnection
 
 		function onPendingSslErrors(list) {
 			JS.questionDialog(
 						{
 							onAccepted: function()
 							{
-								Client.webSocket.acceptPendingSslErrors()
+								Client.httpConnection.acceptPendingSslErrors()
 							},
 							text: qsTr("A szerver tanúsítványa hibás. Ennek ellenére csatlakozol hozzá?\n")+list.join("\n"),
 							title: qsTr("SSL tanúsítvány"),

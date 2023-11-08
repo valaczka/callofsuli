@@ -83,8 +83,8 @@ private:
 	int m_groupid = -1;
 	QString m_name;
 	bool m_active = false;
-	UserList *const m_memberList;
-	CampaignList *const m_campaignList;
+	std::unique_ptr<UserList> m_memberList;
+	std::unique_ptr<CampaignList> m_campaignList;
 };
 
 #endif // STUDENTGROUP_H

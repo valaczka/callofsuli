@@ -36,7 +36,7 @@ Item
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			refreshProgressVisible: Client.webSocket.pending
+			refreshProgressVisible: Client.httpConnection.pending
 
 			model: SortFilterProxyModel {
 				sourceModel: group ? group.memberList : null

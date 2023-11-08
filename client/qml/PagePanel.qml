@@ -25,7 +25,7 @@ QPage {
 
 	onPageClose: function() {
 		if (Client.server && Client.server.user.loginState == User.LoggedIn)
-			Client.webSocket.close()
+			Client.httpConnection.close()
 	}
 
 	title: Client.server ? Client.server.serverName : ""
@@ -96,7 +96,7 @@ QPage {
 		onTriggered: {
 			if (panelId > 0) {
 				if (!_live) {
-					Client.send(WebSocket.ApiPanel, panelId)
+					Client.send(HttpConnection.ApiPanel, panelId)
 					.done(control, function(r){ reload(r) })
 					.fail(control, JS.failMessage("Letöltés sikertelen"))
 					return
@@ -106,9 +106,9 @@ QPage {
 					console.warn("Event stream already exists")
 					return
 				}
-				Client.eventStream = Client.webSocket.getEventStream(WebSocket.ApiPanel, panelId+"/live")
+				Client.eventStream = Client.httpConnection.getEventStream(HttpConnection.ApiPanel, panelId+"/live")
 			} else {
-				Client.send(WebSocket.ApiPanel, "")
+				Client.send(HttpConnection.ApiPanel, "")
 				.done(control, function(r){
 					panelId = r.id
 				})

@@ -28,7 +28,7 @@ Item
 		id: _liveStream
 
 		reloadCallback: function() { _scoreList.reload() }
-		api: WebSocket.ApiUser
+		api: HttpConnection.ApiUser
 		path: "group/%1/score/live".arg(group.groupid)
 	}
 
@@ -36,7 +36,7 @@ Item
 	ScoreListImpl {
 		id: _scoreList
 
-		api: WebSocket.ApiUser
+		api: HttpConnection.ApiUser
 		path: "group/%1/score".arg(group ? group.groupid : -1)
 		sortOrder: ScoreListImpl.SortXPdesc
 		eventStream: _liveStream.eventStream

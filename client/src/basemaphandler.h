@@ -54,7 +54,7 @@ signals:
 
 protected:
 	virtual void reloadList() {}
-	virtual void download(BaseMap *map, const WebSocket::API &api, const QString &path);
+	virtual void download(BaseMap *map, const HttpConnection::API &api, const QString &path);
 
 	bool hasDownloaded(const BaseMap *map) const;
 	bool checkDownload(const BaseMap *map, const QByteArray &data) const;

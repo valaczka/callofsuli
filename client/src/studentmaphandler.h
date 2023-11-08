@@ -58,7 +58,7 @@ protected:
 	void reloadList() override;
 
 private:
-	StudentMapList *const m_mapList;
+	std::unique_ptr<StudentMapList> m_mapList;
 };
 
 

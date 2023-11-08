@@ -38,9 +38,9 @@
 #include <Logger.h>
 
 MapPlay::MapPlay(Client *client, QObject *parent)
-	: QObject{(parent ? parent : client)}
+	: QObject{parent}
 	, m_client(client)
-	, m_missionList(new MapPlayMissionList(this))
+	, m_missionList(new MapPlayMissionList())
 {
 	Q_ASSERT(m_client);
 
@@ -58,16 +58,6 @@ MapPlay::~MapPlay()
 {
 	unloadGameMap();
 
-	if (m_solver) {
-		delete m_solver;
-		m_solver = nullptr;
-	}
-
-	if (m_missionList) {
-		delete m_missionList;
-		m_missionList = nullptr;
-	}
-
 	LOG_CTRACE("game") << "Map play destroyed:" << this;
 }
 
@@ -80,7 +70,7 @@ MapPlay::~MapPlay()
 
 bool MapPlay::loadFromBinaryData(const QByteArray &data)
 {
-	QScopedPointer<GameMap> map(GameMap::fromBinaryData(data));
+	std::unique_ptr<GameMap> map(GameMap::fromBinaryData(data));
 
 	if (!map) {
 		Application::instance()->messageError(tr("Nem lehet megnyitni a pályát!"), tr("Belső hiba"));
@@ -105,7 +95,7 @@ bool MapPlay::loadFromBinaryData(const QByteArray &data)
 		return false;
 	}
 
-	loadGameMap(map.take());
+	loadGameMap(map);
 
 	return true;
 }
@@ -177,14 +167,20 @@ QString MapPlay::uuid() const
 
 GameMap *MapPlay::gameMap() const
 {
-	return m_gameMap;
+	return m_gameMap.get();
 }
 
-void MapPlay::setGameMap(GameMap *newGameMap)
+void MapPlay::setGameMap(std::unique_ptr<GameMap> &newGameMap)
 {
 	if (m_gameMap == newGameMap)
 		return;
-	m_gameMap = newGameMap;
+	m_gameMap = std::move(newGameMap);
+	emit gameMapChanged();
+}
+
+void MapPlay::clearGameMap()
+{
+	m_gameMap.reset();
 	emit gameMapChanged();
 }
 
@@ -194,11 +190,11 @@ void MapPlay::setGameMap(GameMap *newGameMap)
  * @param map
  */
 
-void MapPlay::loadGameMap(GameMap *map)
+void MapPlay::loadGameMap(std::unique_ptr<GameMap> &map)
 {
 	unloadGameMap();
 
-	LOG_CDEBUG("game") << "Load gamemap:" << map;
+	LOG_CDEBUG("game") << "Load gamemap:" << map.get();
 
 	setGameMap(map);
 
@@ -208,8 +204,8 @@ void MapPlay::loadGameMap(GameMap *map)
 	reloadMissionList();
 
 	LOG_CDEBUG("game") << "Add mapimage provider for map:" << m_gameMap->uuid();
-	MapImage *mapImage = new MapImage(m_gameMap);
-	Application::instance()->engine()->addImageProvider(QStringLiteral("mapimage"), mapImage);
+	MapImage *mapImage = new MapImage(m_gameMap.get());
+	Application::instance()->engine()->addImageProvider(QStringLiteral("mapimage"), std::move(mapImage));
 
 	AbstractMapPlaySolver::clear(this);
 
@@ -237,10 +233,7 @@ void MapPlay::unloadGameMap()
 	m_missionList->clear();
 
 	if (m_gameMap) {
-		LOG_CDEBUG("game") << "Delete gamemap:" << m_gameMap;
-		delete m_gameMap;
-
-		setGameMap(nullptr);
+		clearGameMap();
 
 		emit gameMapUnloaded();
 	}
@@ -359,8 +352,16 @@ void MapPlay::onCurrentGameFinished()
 {
 	LOG_CWARNING("game") << "Missing game finished implementation!";
 
-	m_currentGame->setReadyToDestroy(true);
+	if (m_client->currentGame())
+		m_client->currentGame()->setReadyToDestroy(true);
 }
+
+
+
+/**
+ * @brief MapPlay::readOnly
+ * @return
+ */
 
 bool MapPlay::readOnly() const
 {
@@ -416,26 +417,6 @@ void MapPlay::setOnline(bool newOnline)
 
 
 
-/**
- * @brief MapPlay::currentGame
- * @return
- */
-
-AbstractLevelGame *MapPlay::currentGame() const
-{
-	return m_currentGame;
-}
-
-void MapPlay::setCurrentGame(AbstractLevelGame *newCurrentGame)
-{
-	if (m_currentGame == newCurrentGame)
-		return;
-	m_currentGame = newCurrentGame;
-	emit currentGameChanged();
-}
-
-
-
 
 
 
@@ -446,16 +427,12 @@ void MapPlay::setCurrentGame(AbstractLevelGame *newCurrentGame)
 
 AbstractMapPlaySolver *MapPlay::solver() const
 {
-	return m_solver;
+	return m_solver.get();
 }
 
 void MapPlay::setSolver(AbstractMapPlaySolver *newSolver)
 {
-	if (m_solver)
-		delete m_solver;
-
-	m_solver = newSolver;
-
+	m_solver.reset(std::move(newSolver));
 	updateSolver();
 }
 
@@ -529,7 +506,6 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, co
 
 	connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
 
-	setCurrentGame(g);
 	m_client->setCurrentGame(g);
 
 	m_extendedData = extended;
@@ -647,9 +623,9 @@ QVariantMap MapPlay::inventoryInfo(const QString &module) const
 {
 	GamePickable::GamePickableData data;
 
-	if (module == QLatin1String("hp"))
+	if (module == QStringLiteral("hp"))
 		data = GamePickable::pickableDataDetails(GamePickable::PickableHealth);
-	else if (module == QLatin1String("shield"))
+	else if (module == QStringLiteral("shield"))
 		data = GamePickable::pickableDataDetails(GamePickable::PickableShield1);
 	else
 		data = GamePickable::pickableDataHash().value(module);

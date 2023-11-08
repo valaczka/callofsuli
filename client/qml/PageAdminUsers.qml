@@ -105,7 +105,7 @@ QPage {
 														   standardButtons: Dialog.Cancel | Dialog.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   Client.send(WebSocket.ApiAdmin, "class/create", {
+																   Client.send(HttpConnection.ApiAdmin, "class/create", {
 																				   name: _text
 																			   })
 															   .done(control, function(r){
@@ -132,7 +132,7 @@ QPage {
 									{
 										onAccepted: function()
 										{
-											Client.send(WebSocket.ApiAdmin, "class/delete", {
+											Client.send(HttpConnection.ApiAdmin, "class/delete", {
 															list: JS.listGetFields(l, "classid")
 														})
 											.done(control, function(r){
@@ -162,7 +162,7 @@ QPage {
 														   text: o.name,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   Client.send(WebSocket.ApiAdmin, "class/%1/update".arg(o.classid), {
+																   Client.send(HttpConnection.ApiAdmin, "class/%1/update".arg(o.classid), {
 																				   name: _text
 																			   })
 															   .done(control, function(r){
@@ -204,7 +204,7 @@ QPage {
 			JS.questionDialog({
 								  onAccepted: function()
 								  {
-									  Client.send(WebSocket.ApiAdmin, "user/update")
+									  Client.send(HttpConnection.ApiAdmin, "user/update")
 									  .done(control, function(r){
 										  Client.snack(qsTr("Profilok frissítése..."))
 									  })
@@ -220,7 +220,7 @@ QPage {
 	}
 
 	function reloadUsers() {
-		Client.send(WebSocket.ApiAdmin, "user").done(control, function(r) {
+		Client.send(HttpConnection.ApiAdmin, "user").done(control, function(r) {
 			Client.callReloadHandler("user", userList, r.list)
 		})
 		.fail(control, JS.failMessage("Letöltés sikertelen"))

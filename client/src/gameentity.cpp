@@ -49,7 +49,7 @@ GameEntity::GameEntity(QQuickItem *parent)
 	m_body->setGravityScale(5.0);
 	m_body->setFixedRotation(true);
 
-	connect(m_rayCast, &Box2DRayCast::fixtureReported, this, &GameEntity::onRayCastFixtureReported);
+	connect(m_rayCast.get(), &Box2DRayCast::fixtureReported, this, &GameEntity::onRayCastFixtureReported);
 
 	connect(this, &GameEntity::beginContact, this, &GameEntity::onBeginContact);
 	connect(this, &GameEntity::endContact, this, &GameEntity::onEndContact);
@@ -62,7 +62,7 @@ GameEntity::GameEntity(QQuickItem *parent)
 		});
 	});
 
-	connect(m_dieAnimation, &QAbstractAnimation::finished, this, &GameEntity::deleteLater);
+	connect(m_dieAnimation.get(), &QAbstractAnimation::finished, this, &GameEntity::deleteLater);
 
 	hpProgressValueSetup();
 }
@@ -74,11 +74,7 @@ GameEntity::GameEntity(QQuickItem *parent)
 
 GameEntity::~GameEntity()
 {
-	delete m_dieAnimation;
-	delete m_rayCast;
 
-	if (m_fixture)
-		delete m_fixture;
 }
 
 
@@ -172,7 +168,7 @@ void GameEntity::doRayCast(const QPointF &point1, const QPointF &point2)
 
 	emit rayCastPerformed(r2);
 
-	m_scene->world()->rayCast(m_rayCast, point1, point2);
+	m_scene->world()->rayCast(m_rayCast.get(), point1, point2);
 }
 
 
@@ -183,7 +179,7 @@ void GameEntity::doRayCast(const QPointF &point1, const QPointF &point2)
 
 Box2DBox *GameEntity::fixture() const
 {
-	return m_fixture;
+	return m_fixture.get();
 }
 
 
@@ -538,20 +534,20 @@ void GameEntity::updateFixturesJson(const QJsonObject &spriteData)
 	if (!m_fixture) {
 		LOG_CDEBUG("scene") << "Create fixture for:" << this << m_categoryFixture << m_categoryCollidesWith;
 
-		m_fixture = new Box2DBox(this);
+		m_fixture = std::make_unique<Box2DBox>();
 		m_fixture->setDensity(1);
 		m_fixture->setFriction(1);
 		m_fixture->setRestitution(0);
 		m_fixture->setCategories(m_categoryFixture);
 		m_fixture->setCollidesWith(m_categoryCollidesWith);
 
-		connect(this, &GameEntity::categoryFixtureChanged, m_fixture, &Box2DBox::setCategories);
-		connect(this, &GameEntity::categoryCollidesWithChanged, m_fixture, &Box2DBox::setCollidesWith);
+		connect(this, &GameEntity::categoryFixtureChanged, m_fixture.get(), &Box2DBox::setCategories);
+		connect(this, &GameEntity::categoryCollidesWithChanged, m_fixture.get(), &Box2DBox::setCollidesWith);
 
-		connect(m_fixture, &Box2DBox::beginContact, this, &GameEntity::beginContact);
-		connect(m_fixture, &Box2DBox::endContact, this, &GameEntity::endContact);
+		connect(m_fixture.get(), &Box2DBox::beginContact, this, &GameEntity::beginContact);
+		connect(m_fixture.get(), &Box2DBox::endContact, this, &GameEntity::endContact);
 
-		m_body->addFixture(m_fixture);
+		m_body->addFixture(m_fixture.get());
 
 		bodyComplete();
 	}

@@ -48,7 +48,7 @@ QPage {
 		anchors.fill: parent
 		autoSelectChange: true
 
-		refreshProgressVisible: Client.webSocket.pending
+		refreshProgressVisible: Client.httpConnection.pending
 		refreshEnabled: true
 		onRefreshRequest: reload()
 
@@ -193,7 +193,7 @@ QPage {
 									{
 										onAccepted: function()
 										{
-											Client.send(WebSocket.ApiTeacher, "map/delete", {
+											Client.send(HttpConnection.ApiTeacher, "map/delete", {
 															list: JS.listGetFields(l, "uuid")
 														})
 											.done(control, function(r){
@@ -223,7 +223,7 @@ QPage {
 														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   Client.send(WebSocket.ApiTeacher, "map/%1/update".arg(o.uuid), {
+																   Client.send(HttpConnection.ApiTeacher, "map/%1/update".arg(o.uuid), {
 																				   name: _text
 																			   })
 															   .done(control, function(r){
@@ -278,7 +278,7 @@ QPage {
 										onAccepted: function()
 										{
 											for (let j=0; j<list.length; ++j) {
-												Client.send(WebSocket.ApiTeacher, "map/%1/publish/%2".arg(list[j].uuid).arg(list[j].draftVersion))
+												Client.send(HttpConnection.ApiTeacher, "map/%1/publish/%2".arg(list[j].uuid).arg(list[j].draftVersion))
 												.fail(control, JS.failMessage("Közzététel sikertelen"))
 											}
 											view.unselectAll()
@@ -316,7 +316,7 @@ QPage {
 										onAccepted: function()
 										{
 											for (let j=0; j<list.length; ++j) {
-												Client.send(WebSocket.ApiTeacher, "map/%1/deleteDraft/%2".arg(list[j].uuid).arg(list[j].draftVersion))
+												Client.send(HttpConnection.ApiTeacher, "map/%1/deleteDraft/%2".arg(list[j].uuid).arg(list[j].draftVersion))
 												.fail(control, JS.failMessage("Törlés sikertelen"))
 											}
 											view.unselectAll()

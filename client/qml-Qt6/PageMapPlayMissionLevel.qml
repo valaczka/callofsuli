@@ -673,7 +673,7 @@ QPageGradient {
 			return
 		}
 
-		Client.send(WebSocket.ApiUser, "game/info", {
+		Client.send(HttpConnection.ApiUser, "game/info", {
 						map: map.uuid,
 						mission: mission.uuid,
 						level: missionLevel.level,
@@ -703,7 +703,7 @@ QPageGradient {
 		if (!missionLevel.deathmatch)
 			_inventoryUseModel.clear()
 		else {
-			Client.send(WebSocket.ApiUser, "inventory").done(root, function(r) {
+			Client.send(HttpConnection.ApiUser, "inventory").done(root, function(r) {
 				_inventoryUseModel.clear()
 				for (let i=0; i<r.list.length; ++i) {
 					let o = r.list[i]

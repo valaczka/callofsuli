@@ -122,7 +122,7 @@ signals:
 
 protected:
 	GameScene *m_scene = nullptr;
-	Box2DBody *m_body = nullptr;
+	std::unique_ptr<Box2DBody> m_body;
 	QList<QPointer<QQuickItem>> m_childItems;
 
 private:

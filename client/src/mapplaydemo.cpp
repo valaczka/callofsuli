@@ -63,9 +63,7 @@ bool MapPlayDemo::load(const QString &map)
 	MapPlaySolverDefault *solver = new MapPlaySolverDefault(this);
 	setSolver(solver);
 
-#ifndef Q_OS_WASM
 	solverLoad();
-#endif
 
 	return true;
 }
@@ -127,12 +125,15 @@ void MapPlayDemo::solverSave()
 
 void MapPlayDemo::onCurrentGamePrepared()
 {
-	if (!m_currentGame)
+	if (!m_client->currentGame())
 		return;
 
-	m_currentGame->load();
-
-	setGameState(StatePlay);
+	if (m_client->currentGame()->load())
+		setGameState(StatePlay);
+	else {
+		setGameState(StateInvalid);
+		m_client->currentGame()->setReadyToDestroy(true);
+	}
 }
 
 
@@ -143,29 +144,28 @@ void MapPlayDemo::onCurrentGamePrepared()
 
 void MapPlayDemo::onCurrentGameFinished()
 {
-	if (!m_currentGame || !m_client)
+	if (!m_client || !m_client->currentGame())
 		return;
 
-	AbstractLevelGame *g = m_currentGame;
+	auto g = qobject_cast<AbstractLevelGame *>(m_client->currentGame());
+
+	if (!g) {
+		LOG_CERROR("game") << "AbstractLevelGame cast error" << m_client->currentGame();
+		return;
+	}
 
 	if (g->finishState() == AbstractGame::Success) {
 		MapPlayMissionLevel *ml = getMissionLevel(g->missionLevel(), g->deathmatch());
 
 		if (ml) {
 			ml->solverDataIncrement();
-#ifndef Q_OS_WASM
 			solverSave();
-#endif
 			updateSolver();
 		}
 	} else if (g->finishState() == AbstractGame::Fail) {
 		emit currentGameFailed();
 	}
 
-
-
-	setCurrentGame(nullptr);
-	m_client->setCurrentGame(nullptr);
 	g->setReadyToDestroy(true);
 
 	setGameState(StateFinished);

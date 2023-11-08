@@ -32,7 +32,7 @@
 #include "qsettings.h"
 #include "qurl.h"
 #include "utils_.h"
-#include "websocket.h"
+#include "httpconnection.h"
 #include <QFile>
 #include "client.h"
 
@@ -181,10 +181,10 @@ void Updater::updateGitHub(const QString &installer, const QString &sha1)
 {
 	LOG_CDEBUG("updater") << "GitHub download update:" << qPrintable(installer);
 
-	WebSocket *webSocket = m_client->webSocket();
+	HttpConnection *HttpConnection = m_client->httpConnection();
 
-	if (!webSocket) {
-		LOG_CERROR("updater") << "WebSocket missing";
+	if (!HttpConnection) {
+		LOG_CERROR("updater") << "HttpConnection missing";
 		return;
 	}
 
@@ -203,7 +203,7 @@ void Updater::updateGitHub(const QString &installer, const QString &sha1)
 
 	m_client->snack(tr("Telepítő letöltése..."));
 
-	QNetworkReply *reply = webSocket->networkManager()->get(r);
+	QNetworkReply *reply = HttpConnection->networkManager()->get(r);
 
 	connect(reply, &QNetworkReply::errorOccurred, this, [this](const QNetworkReply::NetworkError &err){
 		LOG_CERROR("updater") << "Update download error:" << err;
@@ -334,10 +334,10 @@ void Updater::githubUpdateCheck(const bool &force)
 {
 	LOG_CDEBUG("updater") << "GitHub update check";
 
-	WebSocket *webSocket = m_client->webSocket();
+	HttpConnection *HttpConnection = m_client->httpConnection();
 
-	if (!webSocket) {
-		LOG_CERROR("updater") << "WebSocket missing";
+	if (!HttpConnection) {
+		LOG_CERROR("updater") << "HttpConnection missing";
 		return;
 	}
 
@@ -362,10 +362,10 @@ void Updater::githubUpdateCheck(const bool &force)
 
 	QNetworkRequest r(QUrl(_URL_GITHUB));
 
-	QNetworkReply *reply = webSocket->networkManager()->get(r);
+	QNetworkReply *reply = HttpConnection->networkManager()->get(r);
 
-	WebSocketReply *wr = new WebSocketReply(reply, webSocket);
-	connect(wr, &WebSocketReply::finished, webSocket, &WebSocket::checkPending);
+	HttpReply *wr = new HttpReply(reply, HttpConnection);
+	connect(wr, &HttpReply::finished, HttpConnection, &HttpConnection::checkPending);
 
 	LOG_CDEBUG("updater") << "Download update installer started";
 

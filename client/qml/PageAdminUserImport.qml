@@ -387,7 +387,7 @@ QPage {
 
 
 			Component.onCompleted: {
-				Client.send(WebSocket.ApiAdmin, "user/import", {
+				Client.send(HttpConnection.ApiAdmin, "user/import", {
 								list: _importer.records,
 								classid: control.classId
 							})

@@ -19,7 +19,7 @@ QtObject {
 	property EventStream eventStream: null
 	property alias interval: _timer.interval
 
-	property int api: WebSocket.ApiInvalid
+	property int api: HttpConnection.ApiInvalid
 	property string path: ""
 	property var data: ({})
 
@@ -153,7 +153,7 @@ QtObject {
 
 		_tries++
 
-		eventStream = Client.webSocket.getEventStream(api, path, data)
+		eventStream = Client.httpConnection.getEventStream(api, path, data)
 
 		if (!eventStream) {
 			console.warn("Error occurred")

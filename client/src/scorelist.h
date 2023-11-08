@@ -28,7 +28,7 @@
 #define SCORELIST_H
 
 #include "qjsonobject.h"
-#include "websocket.h"
+#include "httpconnection.h"
 #include "fetchmodel.h"
 #include <QObject>
 
@@ -39,7 +39,7 @@ class ScoreList : public FetchModel
 	Q_PROPERTY(SortOrder sortOrder READ sortOrder WRITE setSortOrder NOTIFY sortOrderChanged)
 	Q_PROPERTY(int filterClassId READ filterClassId WRITE setFilterClassId NOTIFY filterClassIdChanged)
 
-	Q_PROPERTY(WebSocket::API api READ api WRITE setApi NOTIFY apiChanged)
+	Q_PROPERTY(HttpConnection::API api READ api WRITE setApi NOTIFY apiChanged)
 	Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
 	Q_PROPERTY(QJsonObject apiData READ apiData WRITE setApiData NOTIFY apiDataChanged)
 
@@ -63,8 +63,8 @@ public:
 	void setSortOrder(const SortOrder &newSortOrder);
 
 
-	const WebSocket::API &api() const;
-	void setApi(const WebSocket::API &newApi);
+	const HttpConnection::API &api() const;
+	void setApi(const HttpConnection::API &newApi);
 
 	const QString &path() const;
 	void setPath(const QString &newPath);
@@ -98,7 +98,7 @@ private:
 	void loadFromJson(const QJsonObject &obj);
 
 	SortOrder m_sortOrder = SortNone;
-	WebSocket::API m_api = WebSocket::ApiGeneral;
+	HttpConnection::API m_api = HttpConnection::ApiGeneral;
 	QString m_path = QStringLiteral("score");
 	QJsonObject m_apiData;
 	int m_filterClassId = -1;

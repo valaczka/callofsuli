@@ -64,7 +64,7 @@ Row {
 		onSaveRequest: {
 			var d = {}
 			d[field] = getData
-			Client.send(WebSocket.ApiAdmin, "config", d)
+			Client.send(HttpConnection.ApiAdmin, "config", d)
 			.done(root, function(r){
 				saved()
 			})

@@ -7,7 +7,7 @@ import CallOfSuli 1.0
 QFormColumn {
 	id: root
 
-	property int api: WebSocket.ApiUser
+	property int api: HttpConnection.ApiUser
 	property string path: "password"
 
 	spacing: 3

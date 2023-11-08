@@ -62,12 +62,12 @@ void UserLogList::setUsername(const QString &newUsername)
  * @return
  */
 
-const WebSocket::API &UserLogList::api() const
+const HttpConnection::API &UserLogList::api() const
 {
 	return m_api;
 }
 
-void UserLogList::setApi(const WebSocket::API &newApi)
+void UserLogList::setApi(const HttpConnection::API &newApi)
 {
 	if (m_api == newApi)
 		return;
@@ -105,7 +105,7 @@ void UserLogList::reload()
 	Client *client = Application::instance()->client();
 
 	client->send(m_api, m_path.arg(m_username))
-			->error(client, &Client::onWebSocketError)
+			->error(client, &Client::onHttpConnectionError)
 			->fail(client, [client](const QString &err){ client->messageWarning(err, tr("Letöltési hiba")); })
 			->done(this, &UserLogList::loadFromJson);
 }

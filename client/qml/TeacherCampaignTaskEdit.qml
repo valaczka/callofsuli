@@ -27,7 +27,7 @@ QPage {
 					   {
 						   onAccepted: function()
 						   {
-							   Client.send(WebSocket.ApiTeacher, "task/%1/delete".arg(task.taskid))
+							   Client.send(HttpConnection.ApiTeacher, "task/%1/delete".arg(task.taskid))
 							   .done(control, function(r){
 								   _form.modified = false
 								   Client.stackPop(control)
@@ -331,7 +331,7 @@ QPage {
 
 					_form.enabled = false
 
-					Client.send(WebSocket.ApiTeacher, path, d)
+					Client.send(HttpConnection.ApiTeacher, path, d)
 					.done(control, function(r){
 						_form.modified = false
 						Client.stackPop(control)

@@ -138,6 +138,7 @@ signals:
 	void mapChanged();
 	void gameQuestionChanged();
 	void gameFinished(AbstractGame::FinishState state);
+	void gameDestroyRequest();
 
 protected:
 	Client *m_client = nullptr;

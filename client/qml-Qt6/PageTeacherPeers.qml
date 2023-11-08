@@ -17,7 +17,7 @@ QPage {
 		id: _liveStream
 
 		reloadCallback: function() { _list.reload() }
-		api: (Client.server.user.roles & Credential.Admin) ? WebSocket.ApiAdmin : WebSocket.ApiTeacher
+		api: (Client.server.user.roles & Credential.Admin) ? HttpConnection.ApiAdmin : HttpConnection.ApiTeacher
 		path: "user/peers/live"
 	}
 

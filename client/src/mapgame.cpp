@@ -28,9 +28,9 @@
 
 MapGame::MapGame(QObject *parent)
 	: QObject{parent}
-	, m_user(new User(this))
+	, m_user(new User())
 {
-	connect(m_user, &User::usernameChanged, this, &MapGame::usernameChanged);
+	connect(m_user.get(), &User::usernameChanged, this, &MapGame::usernameChanged);
 }
 
 
@@ -40,8 +40,7 @@ MapGame::MapGame(QObject *parent)
 
 MapGame::~MapGame()
 {
-	delete m_user;
-	m_user = nullptr;
+
 }
 
 
@@ -82,7 +81,7 @@ void MapGame::loadFromJson(const QJsonObject &object, const bool &allField)
 
 User *MapGame::user() const
 {
-	return m_user;
+	return m_user.get();
 }
 
 int MapGame::solved() const

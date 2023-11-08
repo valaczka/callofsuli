@@ -32,11 +32,13 @@
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
+#if QT_VERSION >= 0x060000
 #include "qaudiodevice.h"
 #include "qmediadevices.h"
+#endif
 #include "studentgroup.h"
 #include "teachergroup.h"
-#include "websocket.h"
+#include "httpconnection.h"
 #include "gameterrain.h"
 #include "qquickwindow.h"
 #include "qapplication.h"
@@ -61,7 +63,7 @@ Client::Client(Application *app)
 	: QObject{}
 	, m_application(app)
 	, m_utils(new Utils(this))
-	, m_webSocket(new WebSocket(this))
+	, m_httpConnection(new HttpConnection(this))
 	, m_updater(new Updater(this))
 	#ifdef NO_SOUND_THREAD
 	, m_sound(new Sound(nullptr))
@@ -73,14 +75,14 @@ Client::Client(Application *app)
 
 	m_oauthData.timer.setInterval(3000);
 
-	connect(m_webSocket.get(), &WebSocket::socketError, this, &Client::onWebSocketError);
-	connect(m_webSocket.get(), &WebSocket::responseError, this, &Client::onWebSocketResponseError);
+	connect(m_httpConnection.get(), &HttpConnection::socketError, this, &Client::onHttpConnectionError);
+	connect(m_httpConnection.get(), &HttpConnection::responseError, this, &Client::onHttpConnectionResponseError);
 #ifndef QT_NO_SSL
-	connect(m_webSocket.get(), &WebSocket::socketSslErrors, this, &Client::onWebSocketSslError);
+	connect(m_httpConnection.get(), &HttpConnection::socketSslErrors, this, &Client::onHttpConnectionSslError);
 #endif
-	connect(m_webSocket.get(), &WebSocket::serverConnected, this, &Client::onServerConnected);
-	connect(m_webSocket.get(), &WebSocket::serverDisconnected, this, &Client::onServerDisconnected);
-	connect(m_webSocket.get(), &WebSocket::serverChanged, this, &Client::serverChanged);
+	connect(m_httpConnection.get(), &HttpConnection::serverConnected, this, &Client::onServerConnected);
+	connect(m_httpConnection.get(), &HttpConnection::serverDisconnected, this, &Client::onServerDisconnected);
+	connect(m_httpConnection.get(), &HttpConnection::serverChanged, this, &Client::serverChanged);
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
@@ -122,9 +124,6 @@ Client::Client(Application *app)
 Client::~Client()
 {
 	LOG_CTRACE("app") << "Client destroying" << this;
-
-	if (m_currentGame)
-		delete m_currentGame;
 
 	m_cache.removeAll();
 
@@ -448,13 +447,13 @@ void Client::onApplicationStarted()
 
 
 /**
- * @brief Client::onWebSocketError
+ * @brief Client::onHttpConnectionError
  * @param error
  */
 
-void Client::onWebSocketError(const QNetworkReply::NetworkError &code)
+void Client::onHttpConnectionError(const QNetworkReply::NetworkError &code)
 {
-	LOG_CWARNING("client") << "Websocket error:" << code;
+	LOG_CWARNING("client") << "Httpconnection error:" << code;
 
 	QString errStr;
 	bool closeSocket = false;
@@ -486,41 +485,41 @@ void Client::onWebSocketError(const QNetworkReply::NetworkError &code)
 	}
 
 
-	if (m_webSocket->state() == WebSocket::Connecting && closeSocket)
-		m_webSocket->abort();
+	if (m_httpConnection->state() == HttpConnection::Connecting && closeSocket)
+		m_httpConnection->abort();
 
-	if (m_webSocket->state() == WebSocket::Connected)
+	if (m_httpConnection->state() == HttpConnection::Connected)
 		snack(errStr);
 	else
 		messageError(errStr, tr("Sikertelen csatlakozás"));
-	//m_webSocket->close();
+	//m_httpConnection->close();
 }
 
 
 
 /**
- * @brief Client::onWebSocketResponseError
+ * @brief Client::onHttpConnectionResponseError
  * @param error
  */
 
-void Client::onWebSocketResponseError(const QString &error)
+void Client::onHttpConnectionResponseError(const QString &error)
 {
-	if (error == QLatin1String("unauthorized"))
+	if (error == QStringLiteral("unauthorized"))
 		messageWarning(tr("A kérés végrehajátáshoz be kell jelentkezni"), tr("Hitelesítés szükséges"));
-	else if (error == QLatin1String("permission denied"))
+	else if (error == QStringLiteral("permission denied"))
 		messageWarning(tr("Hozzáférés megtagadva"), tr("Hitelesítés szükséges"));
 }
 
 
 /**
- * @brief Client::onWebSocketSslError
+ * @brief Client::onHttpConnectionSslError
  * @param errors
  */
 
 #ifndef QT_NO_SSL
-void Client::onWebSocketSslError(const QList<QSslError> &errors)
+void Client::onHttpConnectionSslError(const QList<QSslError> &errors)
 {
-	LOG_CWARNING("client") << "Websocket SSL error:" << errors;
+	LOG_CWARNING("client") << "Httpconnection SSL error:" << errors;
 
 	QStringList errList;
 
@@ -528,11 +527,11 @@ void Client::onWebSocketSslError(const QList<QSslError> &errors)
 		errList.append(err.errorString());
 
 
-	if (m_webSocket->state() == WebSocket::Connected)
+	if (m_httpConnection->state() == HttpConnection::Connected)
 		snack(errList.join(QStringLiteral(", ")));
 	else
 		messageError(errList.join(QStringLiteral(", ")), tr("Sikertelen csatlakozás"));
-	//m_webSocket->close();
+	//m_httpConnection->close();
 }
 #endif
 
@@ -543,13 +542,13 @@ void Client::onWebSocketSslError(const QList<QSslError> &errors)
 
 void Client::onServerConnected()
 {
-	LOG_CINFO("client") << "Server connected:" << m_webSocket->server()->url();
+	LOG_CINFO("client") << "Server connected:" << m_httpConnection->server()->url();
 
 	server()->user()->setLoginState(User::LoggedOut);
 
 	m_mainPage = stackPushPage(QStringLiteral("PageMain.qml"));
 
-	send(WebSocket::ApiGeneral, QStringLiteral("config"))
+	send(HttpConnection::ApiGeneral, QStringLiteral("config"))
 			->done(this, [this](const QJsonObject &json)
 	{
 		if (!server())
@@ -572,7 +571,7 @@ void Client::onServerConnected()
 
 		parseUrl();
 
-		send(WebSocket::ApiGeneral, QStringLiteral("rank"))
+		send(HttpConnection::ApiGeneral, QStringLiteral("rank"))
 				->done(this, [this](const QJsonObject &json)
 		{
 			if (!server())
@@ -586,7 +585,7 @@ void Client::onServerConnected()
 	})
 			->fail(this, [this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
-		m_webSocket->close();
+		m_httpConnection->close();
 	});
 }
 
@@ -658,7 +657,7 @@ void Client::onUserLoggedIn()
 {
 	LOG_CINFO("client") << "User logged in:" << qPrintable(server()->user()->username());
 
-	send(WebSocket::ApiGeneral, "me")->done(this, [this](const QJsonObject &json){
+	send(HttpConnection::ApiGeneral, "me")->done(this, [this](const QJsonObject &json){
 		if (!server())
 			return;
 
@@ -742,7 +741,7 @@ void Client::onOAuthPendingTimer()
 	j.insert(QStringLiteral("state"), m_oauthData.state);
 
 
-	send(WebSocket::ApiAuth, m_oauthData.path, j)
+	send(HttpConnection::ApiAuth, m_oauthData.path, j)
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 
@@ -788,19 +787,19 @@ void Client::onLoginFailed(const QString &error)
 	}
 
 	QString errorStr = error;
-	if (error == QLatin1String("invalid user"))
+	if (error == QStringLiteral("invalid user"))
 		errorStr = tr("Érvénytelen felhasználó");
-	else if (error == QLatin1String("authorization failed"))
+	else if (error == QStringLiteral("authorization failed"))
 		errorStr = tr("Hibás felhasználónév/jelszó");
-	else if (error == QLatin1String("invalid token"))
+	else if (error == QStringLiteral("invalid token"))
 		errorStr = tr("Érvénytelen token");
-	else if (error == QLatin1String("invalid state"))
+	else if (error == QStringLiteral("invalid state"))
 		errorStr = tr("Hibás OAuth2 kérés");
-	else if (error == QLatin1String("invalid code"))
+	else if (error == QStringLiteral("invalid code"))
 		errorStr = tr("Érvénytelen hitelesítő kód");
-	else if (error == QLatin1String("invalid domain"))
+	else if (error == QStringLiteral("invalid domain"))
 		errorStr = tr("Érvénytelen email cím (domain)");
-	else if (error == QLatin1String("authentication failed"))
+	else if (error == QStringLiteral("authentication failed"))
 		errorStr = tr("A felhasználó nem azonosítható");
 
 	messageWarning(errorStr, tr("Sikertelen bejelentkezés"));
@@ -858,41 +857,41 @@ void Client::_userAuthTokenReceived(const QString &token)
 
 void Client::startCache()
 {
-	m_cache.add<User>(QStringLiteral("scoreList"), new UserList(this),
+	m_cache.add<User>(QStringLiteral("scoreList"), std::move(new UserList(this)),
 					  &OlmLoader::loadFromJsonArray<User>,
 					  &OlmLoader::find<User>,
 					  "username", "username", true,
-					  WebSocket::ApiGeneral, "score");
+					  HttpConnection::ApiGeneral, "score");
 
-	m_cache.add<Grade>(QStringLiteral("gradeList"), new GradeList(this),
+	m_cache.add<Grade>(QStringLiteral("gradeList"), std::move(new GradeList(this)),
 					   &OlmLoader::loadFromJsonArray<Grade>,
 					   &OlmLoader::find<Grade>,
 					   "id", "gradeid", false,
-					   WebSocket::ApiGeneral, "grade");
+					   HttpConnection::ApiGeneral, "grade");
 
-	m_cache.add<ClassObject>(QStringLiteral("classList"), new ClassList(this),
+	m_cache.add<ClassObject>(QStringLiteral("classList"), std::move(new ClassList(this)),
 							 &OlmLoader::loadFromJsonArray<ClassObject>,
 							 &OlmLoader::find<ClassObject>,
 							 "id", "classid", true,
-							 WebSocket::ApiGeneral, "class");
+							 HttpConnection::ApiGeneral, "class");
 
-	m_cache.add<StudentGroup>(QStringLiteral("studentGroupList"), new StudentGroupList(this),
+	m_cache.add<StudentGroup>(QStringLiteral("studentGroupList"), std::move(new StudentGroupList(this)),
 							  &OlmLoader::loadFromJsonArray<StudentGroup>,
 							  &OlmLoader::find<StudentGroup>,
 							  "id", "groupid", false,
-							  WebSocket::ApiUser, "group");
+							  HttpConnection::ApiUser, "group");
 
-	m_cache.add<Campaign>(QStringLiteral("studentCampaignList"), new CampaignList(this),
+	m_cache.add<Campaign>(QStringLiteral("studentCampaignList"), std::move(new CampaignList(this)),
 						  &OlmLoader::loadFromJsonArray<Campaign>,
 						  &OlmLoader::find<Campaign>,
 						  "id", "campaignid", false,
-						  WebSocket::ApiUser, "campaign");
+						  HttpConnection::ApiUser, "campaign");
 
-	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), new TeacherGroupList(this),
+	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), std::move(new TeacherGroupList(this)),
 							  &OlmLoader::loadFromJsonArray<TeacherGroup>,
 							  &OlmLoader::find<TeacherGroup>,
 							  "id", "groupid", false,
-							  WebSocket::ApiTeacher, "group");
+							  HttpConnection::ApiTeacher, "group");
 
 
 	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>, &OlmLoader::find<User>);
@@ -1000,7 +999,7 @@ void Client::connectToServer(Server *server)
 		return;
 	}
 
-	m_webSocket->connectToServer(server);
+	m_httpConnection->connectToServer(server);
 }
 
 
@@ -1019,13 +1018,13 @@ void Client::stackPopToStartPage()
 
 
 /**
- * @brief Client::webSocket
+ * @brief Client::HttpConnection
  * @return
  */
 
-WebSocket *Client::webSocket() const
+HttpConnection *Client::httpConnection() const
 {
-	return m_webSocket.get();
+	return m_httpConnection.get();
 }
 
 
@@ -1035,9 +1034,9 @@ WebSocket *Client::webSocket() const
  * @return
  */
 
-WebSocketReply *Client::send(const WebSocket::API &api, const QString &path, const QJsonObject &data) const
+HttpReply *Client::send(const HttpConnection::API &api, const QString &path, const QJsonObject &data) const
 {
-	return m_webSocket->send(api, path, data);
+	return m_httpConnection->send(api, path, data);
 }
 
 
@@ -1050,7 +1049,7 @@ WebSocketReply *Client::send(const WebSocket::API &api, const QString &path, con
 
 Server *Client::server() const
 {
-	return m_webSocket->server();
+	return m_httpConnection->server();
 }
 
 
@@ -1085,7 +1084,7 @@ void Client::loginOAuth2(const QString &provider)
 	m_oauthData.state = "";
 	m_oauthData.path = QStringLiteral("login/")+provider;
 
-	send(WebSocket::ApiAuth, m_oauthData.path)
+	send(HttpConnection::ApiAuth, m_oauthData.path)
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 }
@@ -1107,7 +1106,7 @@ void Client::registrationOAuth2(const QString &provider, const QString &code)
 	m_oauthData.path = QStringLiteral("registration/")+provider;
 
 
-	send(WebSocket::ApiAuth, m_oauthData.path, {
+	send(HttpConnection::ApiAuth, m_oauthData.path, {
 			 { QStringLiteral("code"), code }
 		 })
 			->done(this, &Client::onLoginSuccess)
@@ -1126,7 +1125,7 @@ void Client::loginPlain(const QString &username, const QString &password)
 {
 	server()->user()->setLoginState(User::LoggingIn);
 
-	send(WebSocket::ApiAuth, QStringLiteral("login"),
+	send(HttpConnection::ApiAuth, QStringLiteral("login"),
 		 QJsonObject{
 			 { QStringLiteral("username"), username },
 			 { QStringLiteral("password"), password }
@@ -1146,7 +1145,7 @@ void Client::loginPlain(const QString &username, const QString &password)
 
 void Client::registrationPlain(const QJsonObject &data)
 {
-	send(WebSocket::ApiAuth, QStringLiteral("registration"), data)
+	send(HttpConnection::ApiAuth, QStringLiteral("registration"), data)
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 }
@@ -1184,7 +1183,7 @@ bool Client::loginToken()
 
 	server()->user()->setLoginState(User::LoggingIn);
 
-	send(WebSocket::ApiAuth, QStringLiteral("login"),
+	send(HttpConnection::ApiAuth, QStringLiteral("login"),
 		 QJsonObject{
 			 { QStringLiteral("token"), token },
 		 })
@@ -1220,7 +1219,7 @@ void Client::reloadUser(QJSValue func)
 
 	LOG_CDEBUG("client") << "Reload user:" << qPrintable(server()->user()->username());
 
-	send(WebSocket::ApiGeneral, "me")->done(this, [this, func](const QJsonObject &json) mutable {
+	send(HttpConnection::ApiGeneral, "me")->done(this, [this, func](const QJsonObject &json) mutable {
 		if (!server())
 			return;
 
@@ -1268,14 +1267,14 @@ void Client::parseUrl()
 
 		const QString &page = q.queryItemValue(QStringLiteral("page"));
 
-		if (page == QLatin1String("registration")) {
+		if (page == QStringLiteral("registration")) {
 			const QString &oauth = q.queryItemValue(QStringLiteral("oauth"));
 			const QString &code = q.queryItemValue(QStringLiteral("code"));
 
 			LOG_CDEBUG("client") << "Load registration with oauth" << oauth << "and code" << code;
 
 			emit loadRequestRegistration(oauth, code);
-		} else if (page == QLatin1String("login")) {
+		} else if (page == QStringLiteral("login")) {
 			const QString &token = q.queryItemValue(QStringLiteral("token"));
 
 			if (!token.isEmpty()) {
@@ -1652,18 +1651,32 @@ void Client::setMainWindow(QQuickWindow *newMainWindow)
 }
 
 
+
+/**
+ * @brief Client::currentGame
+ * @return
+ */
+
 AbstractGame *Client::currentGame() const
 {
-	return m_currentGame;
+	return m_currentGame.get();
 }
 
 
 void Client::setCurrentGame(AbstractGame *newCurrentGame)
 {
-	if (m_currentGame == newCurrentGame)
+	if (m_currentGame.get() == newCurrentGame)
 		return;
-	m_currentGame = newCurrentGame;
+
+	if (m_currentGame)
+		disconnect(m_currentGame.get(), &AbstractGame::gameDestroyRequest, this, &Client::onGameDestroyRequest);
+
+	m_currentGame.reset(newCurrentGame);
 	emit currentGameChanged();
+
+	if (m_currentGame)
+		connect(m_currentGame.get(), &AbstractGame::gameDestroyRequest, this, &Client::onGameDestroyRequest);
+
 }
 
 
@@ -1746,7 +1759,7 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 		return nullptr;
 	}
 
-	MapPlayDemo *mapPlay = new MapPlayDemo(this);
+	std::unique_ptr<MapPlayDemo> mapPlay(new MapPlayDemo(this));
 
 
 	bool success = false;
@@ -1756,24 +1769,22 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 	else
 		success = mapPlay->load(url.toLocalFile());
 
-	if (!success) {
-		delete mapPlay;
+	if (!success)
 		return nullptr;
-	}
-
 
 	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
 																						{ QStringLiteral("title"), tr("Demó pálya") },
-																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay) }
+																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
 																					}));
 
 	if (!page) {
 		messageError(tr("Nem lehet betölteni a demó oldalt!"));
-		delete mapPlay;
 		return nullptr;
 	}
 
-	connect(page, &QQuickItem::destroyed, mapPlay, &MapPlay::deleteLater);
+	connect(page, &QQuickItem::destroyed, mapPlay.get(), &MapPlay::deleteLater);
+
+	mapPlay.release();
 
 	return page;
 }
@@ -1823,6 +1834,22 @@ void Client::onSoundEffectTimeout()
 
 
 
+/**
+ * @brief Client::onGameDestroyRequest
+ */
+
+void Client::onGameDestroyRequest()
+{
+	LOG_CDEBUG("client") << "Destroy current game request";
+
+	if (!m_currentGame)
+		return;
+
+	m_currentGame.reset();
+}
+
+
+
 
 
 
@@ -1839,10 +1866,14 @@ std::unique_ptr<QSoundEffect> Client::newSoundEffect()
 	std::unique_ptr<QSoundEffect> e;
 
 #ifdef NO_SOUND_THREAD
+#if QT_VERSION >= 0x060000
 	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
 	e = std::make_unique<QSoundEffect>(ad);
+#else
+	e = std::make_unique<QSoundEffect>();
 	const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
 	e->setVolume(vol);
+#endif
 #else
 	QDefer ret;
 

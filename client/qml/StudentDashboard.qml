@@ -249,7 +249,7 @@ QItemGradient {
 		Client.reloadCache("studentCampaignList", root, function() {
 			_firstRun = false
 		})
-		Client.send(WebSocket.ApiGeneral, "user/%1/log/xp".arg(user.username))
+		Client.send(HttpConnection.ApiGeneral, "user/%1/log/xp".arg(user.username))
 		.done(root, function(r){
 			_chart.loadList(r.list)
 			_chart._showPlaceholder = false

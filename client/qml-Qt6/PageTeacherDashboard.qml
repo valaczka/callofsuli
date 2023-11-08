@@ -21,7 +21,7 @@ QPage {
 						{
 							_closeEnabled = true
 							if (Client.server && Client.server.user.loginState == User.LoggedIn)
-								Client.webSocket.close()
+								Client.httpConnection.close()
 							else
 								Client.stackPop(root)
 						},
@@ -366,7 +366,7 @@ QPage {
 														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   Client.send(WebSocket.ApiTeacher, "group/create", { name: _text })
+																   Client.send(HttpConnection.ApiTeacher, "group/create", { name: _text })
 															   .done(root, function(r){
 																   Client.reloadCache("teacherGroupList", root, function() {
 																	   var d = Client.findCacheObject("teacherGroupList", r.id)

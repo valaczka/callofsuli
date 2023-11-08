@@ -122,7 +122,7 @@ QPage {
 		if (!userData || !userData.username)
 			return
 
-		Client.send(WebSocket.ApiGeneral, "user/%1".arg(userData.username))
+		Client.send(HttpConnection.ApiGeneral, "user/%1".arg(userData.username))
 		.done(root, function(r){
 			userData = Client.userToMap(r)
 		})

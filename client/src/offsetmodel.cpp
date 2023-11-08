@@ -30,7 +30,7 @@
 
 OffsetModel::OffsetModel(QObject *parent)
 	: QObject{parent}
-	, m_model(new QSListModel(this))
+	, m_model(new QSListModel())
 {
 
 }
@@ -42,17 +42,16 @@ OffsetModel::OffsetModel(QObject *parent)
 
 OffsetModel::~OffsetModel()
 {
-	delete m_model;
-	m_model = nullptr;
+
 }
 
 
-const WebSocket::API &OffsetModel::api() const
+const HttpConnection::API &OffsetModel::api() const
 {
 	return m_api;
 }
 
-void OffsetModel::setApi(const WebSocket::API &newApi)
+void OffsetModel::setApi(const HttpConnection::API &newApi)
 {
 	if (m_api == newApi)
 		return;
@@ -88,7 +87,7 @@ void OffsetModel::setApiData(const QJsonObject &newApiData)
 
 QSListModel *OffsetModel::model() const
 {
-	return m_model;
+	return m_model.get();
 }
 
 
@@ -181,7 +180,7 @@ void OffsetModel::setCanFetch(bool newCanFetch)
 
 void OffsetModel::reload()
 {
-	if (m_fetchActive || m_api == WebSocket::ApiInvalid)
+	if (m_fetchActive || m_api == HttpConnection::ApiInvalid)
 		return;
 
 	LOG_CTRACE("client") << "Reload";
@@ -203,10 +202,10 @@ void OffsetModel::reload()
 
 void OffsetModel::fetch()
 {
-	if (m_fetchActive || m_api == WebSocket::ApiInvalid)
+	if (m_fetchActive || m_api == HttpConnection::ApiInvalid)
 		return;
 
-	LOG_CTRACE("client") << "Fetch" << m_model;
+	LOG_CTRACE("client") << "Fetch" << m_model.get();
 
 	Client *client = Application::instance()->client();
 
@@ -217,7 +216,7 @@ void OffsetModel::fetch()
 	data[QStringLiteral("offset")] = m_offset;
 
 	client->send(m_api, m_path, data)
-			->error(client, &Client::onWebSocketError)
+			->error(client, &Client::onHttpConnectionError)
 			->error(this, [this](const QNetworkReply::NetworkError &){ m_fetchActive = false; })
 			->fail(this, [client, this](const QString &err){
 		m_fetchActive = false;

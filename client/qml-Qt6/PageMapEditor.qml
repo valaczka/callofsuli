@@ -383,7 +383,7 @@ QPage {
 	function publishDraft() {
 		let uuid = mapEditor.uuid
 		let version = mapEditor.draftVersion
-		Client.send(WebSocket.ApiTeacher, "map/%1/publish/%2".arg(uuid).arg(version))
+		Client.send(HttpConnection.ApiTeacher, "map/%1/publish/%2".arg(uuid).arg(version))
 		.done(root, function(r){
 			Client.messageInfo(qsTr("Sikeres közzététel"), mapEditor.displayName)
 			Client.stackPop(root)
@@ -394,7 +394,7 @@ QPage {
 	function deleteDraft() {
 		let uuid = mapEditor.uuid
 		let version = mapEditor.draftVersion
-		Client.send(WebSocket.ApiTeacher, "map/%1/deleteDraft/%2".arg(uuid).arg(version))
+		Client.send(HttpConnection.ApiTeacher, "map/%1/deleteDraft/%2".arg(uuid).arg(version))
 		.done(root, function(r){
 			Client.messageInfo(qsTr("Vázlat törlése sikeres"), mapEditor.displayName)
 			Client.stackPop(root)

@@ -31,7 +31,7 @@
 #include "qnetworkrequest.h"
 #include <QObject>
 
-class WebSocket;
+class HttpConnection;
 class Server;
 
 #define MAX_RETRIES	5
@@ -49,7 +49,7 @@ class EventStream : public QObject
 	Q_PROPERTY(bool reconnect READ reconnect WRITE setReconnect NOTIFY reconnectChanged)
 
 public:
-	explicit EventStream(WebSocket *socket);
+	explicit EventStream(HttpConnection *socket);
 	virtual ~EventStream();
 
 	const QNetworkRequest &request() const;
@@ -58,7 +58,7 @@ public:
 	const QByteArray &requestData() const;
 	void setRequestData(const QByteArray &newRequestData);
 
-	WebSocket *socket() const;
+	HttpConnection *socket() const;
 
 	bool reconnect() const;
 	void setReconnect(bool newReconnect);
@@ -84,7 +84,7 @@ signals:
 	void reconnectChanged();
 
 private:
-	WebSocket *const m_socket;
+	HttpConnection *const m_socket;
 	QNetworkRequest m_request;
 	QByteArray m_requestData;
 	bool m_reconnect = true;

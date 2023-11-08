@@ -38,7 +38,7 @@ Item
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			refreshProgressVisible: Client.webSocket.pending
+			refreshProgressVisible: Client.httpConnection.pending
 
 			model: SortFilterProxyModel {
 				sourceModel: group ? group.campaignList : null
@@ -154,7 +154,7 @@ Item
 		text: qsTr("Új kihívás")
 		icon.source: Qaterial.Icons.plus
 		onTriggered: {
-			Client.send(WebSocket.ApiTeacher, "group/%1/campaign/create".arg(group.groupid))
+			Client.send(HttpConnection.ApiTeacher, "group/%1/campaign/create".arg(group.groupid))
 			.done(control, function(r){
 				group.reloadAndCall(control, function() {
 					var o = Client.findOlmObject(group.campaignList, "campaignid", r.id)

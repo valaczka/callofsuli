@@ -14,7 +14,7 @@ QFormColumn {
 	property bool nameEditable: true
 	property bool pictureEditable: false
 
-	property int api: WebSocket.ApiUser
+	property int api: HttpConnection.ApiUser
 	property string path: "update"
 
 	QFormTextField {

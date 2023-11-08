@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * websocket.h
+ * httpconnection.h
  *
  * Created on: 2023. 01. 02.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * WebSocket
+ * HttpConnection
  *
  *  This file is part of Call of Suli.
  *
@@ -24,8 +24,8 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef WEBSOCKET_H
-#define WEBSOCKET_H
+#ifndef HTTPCONNECTION_H
+#define HTTPCONNECTION_H
 
 #include "qnetworkaccessmanager.h"
 #include "eventstream.h"
@@ -35,11 +35,11 @@
 #include <QJSValue>
 #include <QJsonObject>
 
-#define WEBSOCKETREPLY_DELETE_AFTER_MSEC	20000
+#define HTTPREPLY_DELETE_AFTER_MSEC	20000
 
 class Client;
 class Server;
-class WebSocketReply;
+class HttpReply;
 
 
 #if QT_VERSION >= 0x060000
@@ -52,10 +52,10 @@ class WebSocketReply;
 #endif
 
 /**
- * @brief The WebSocket class
+ * @brief The HttpConnection class
  */
 
-class WebSocket : public QObject
+class HttpConnection : public QObject
 {
 	Q_OBJECT
 
@@ -64,8 +64,8 @@ class WebSocket : public QObject
 	Q_PROPERTY(bool pending READ pending NOTIFY pendingChanged)
 
 public:
-	explicit WebSocket(Client *client);
-	virtual ~WebSocket();
+	explicit HttpConnection(Client *client);
+	virtual ~HttpConnection();
 
 	///
 	/// \brief The State enum
@@ -109,17 +109,17 @@ public:
 	bool pending() const;
 	void setPending(bool newPending);
 
-	QUrl getUrl(const WebSocket::API &api, const QString &path) const;
+	QUrl getUrl(const HttpConnection::API &api, const QString &path) const;
 
 public slots:
 	void connectToServer(Server *server = nullptr);
 	void close();
 	void abort();
 
-	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
-	WebSocketReply *send(const WebSocket::API &api, const QString &path, const QByteArray &content);
+	HttpReply *send(const HttpConnection::API &api, const QString &path, const QJsonObject &data = {});
+	HttpReply *send(const HttpConnection::API &api, const QString &path, const QByteArray &content);
 
-	EventStream *getEventStream(const WebSocket::API &api, const QString &path, const QJsonObject &data = {});
+	EventStream *getEventStream(const HttpConnection::API &api, const QString &path, const QJsonObject &data = {});
 
 	void checkPending();
 
@@ -153,89 +153,89 @@ private:
 	QList<QSslError> m_pendingSslErrors;
 #endif
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
-	QVector<WebSocketReply *> m_replies;
+	QVector<HttpReply *> m_replies;
 	bool m_pending = false;
 
-	friend class WebSocketReply;
+	friend class HttpReply;
 };
 
 
 
 /**
- * @brief The WebSocketReply class
+ * @brief The HttpConnectionReply class
  */
 
-class WebSocketReply : public QObject
+class HttpReply : public QObject
 {
 	Q_OBJECT
 
 public:
-	explicit WebSocketReply(QNetworkReply *reply, WebSocket *socket);
-	explicit WebSocketReply(const QNetworkReply::NetworkError &error, QObject *parent = nullptr);
-	virtual ~WebSocketReply();
+	explicit HttpReply(QNetworkReply *reply, HttpConnection *socket);
+	explicit HttpReply(const QNetworkReply::NetworkError &error, QObject *parent = nullptr);
+	virtual ~HttpReply();
 
 	bool pending() const;
 
 	// Done
 
-	WebSocketReply *done(QObject *inst, const std::function<void (const QJsonObject &)> &func)
+	HttpReply *done(QObject *inst, const std::function<void (const QJsonObject &)> &func)
 	{
 		m_funcs.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
-	WebSocketReply *done(T *inst, void (T::*func)(const QJsonObject &)) {
+	HttpReply *done(T *inst, void (T::*func)(const QJsonObject &)) {
 		m_funcs.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	WebSocketReply *done(QObject *inst, const std::function<void (const QByteArray &)> &func)
+	HttpReply *done(QObject *inst, const std::function<void (const QByteArray &)> &func)
 	{
 		m_funcsByteArray.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
-	WebSocketReply *done(T *inst, void (T::*func)(const QByteArray &)) {
+	HttpReply *done(T *inst, void (T::*func)(const QByteArray &)) {
 		m_funcsByteArray.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	Q_INVOKABLE WebSocketReply *done(QObject *inst, const QJSValue &v);
+	Q_INVOKABLE HttpReply *done(QObject *inst, const QJSValue &v);
 
 
 	// Fail
 
-	WebSocketReply *fail(QObject *inst, const std::function<void (const QString &)> &func)
+	HttpReply *fail(QObject *inst, const std::function<void (const QString &)> &func)
 	{
 		m_funcsFail.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
-	WebSocketReply *fail(T *inst, void (T::*func)(const QString &)) {
+	HttpReply *fail(T *inst, void (T::*func)(const QString &)) {
 		m_funcsFail.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	Q_INVOKABLE WebSocketReply *fail(QObject *inst, const QJSValue &v);
+	Q_INVOKABLE HttpReply *fail(QObject *inst, const QJSValue &v);
 
 	// Network error
 
-	WebSocketReply *error(QObject *inst, const std::function<void (const QNetworkReply::NetworkError &)> &func)
+	HttpReply *error(QObject *inst, const std::function<void (const QNetworkReply::NetworkError &)> &func)
 	{
 		m_funcsError.append(qMakePair(inst, func));
 		return this;
 	}
 
 	template <typename T>
-	WebSocketReply *error(T *inst, void (T::*func)(const QNetworkReply::NetworkError &)) {
+	HttpReply *error(T *inst, void (T::*func)(const QNetworkReply::NetworkError &)) {
 		m_funcsError.append(qMakePair(inst, std::bind(func, inst, std::placeholders::_1)));
 		return this;
 	}
 
-	Q_INVOKABLE WebSocketReply *error(QObject *inst, const QJSValue &v);
+	Q_INVOKABLE HttpReply *error(QObject *inst, const QJSValue &v);
 
 	const std::function<void (const QList<QSslError> &)> &sslErrorCallback() const;
 	void setSslErrorCallback(const std::function<void (const QList<QSslError> &)> &newSslErrorCallback);
@@ -250,13 +250,13 @@ private slots:
 
 signals:
 	void finished();
-	void failed(WebSocketReply *reply);
+	void failed(HttpReply *reply);
 	void downloadProgress(qreal percent);
 	void uploadProgress(qreal percent);
 
 private:
 	QPointer<QNetworkReply> m_reply = nullptr;
-	QPointer<WebSocket> m_socket = nullptr;
+	QPointer<HttpConnection> m_socket = nullptr;
 	bool m_pending = true;
 	QVector<QPair<QPointer<QObject>, std::function<void (const QJsonObject &)>>> m_funcs;
 	QVector<QPair<QPointer<QObject>, std::function<void (const QByteArray &)>>> m_funcsByteArray;
@@ -269,7 +269,7 @@ private:
 };
 
 
-Q_DECLARE_METATYPE(WebSocket::API)
+Q_DECLARE_METATYPE(HttpConnection::API)
 
 
-#endif // WEBSOCKET_H
+#endif // HTTPCONNECTION_H

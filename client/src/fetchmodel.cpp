@@ -47,8 +47,6 @@ FetchModel::FetchModel(QObject *parent)
 
 FetchModel::~FetchModel()
 {
-	delete m_model;
-	m_model = nullptr;
 }
 
 
@@ -59,7 +57,7 @@ FetchModel::~FetchModel()
 
 QSListModel *FetchModel::model() const
 {
-	return m_model;
+	return m_model.get();
 }
 
 const QStringList &FetchModel::fields() const

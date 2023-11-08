@@ -100,10 +100,10 @@ private:
 	int m_groupid = -1;
 	QString m_name;
 	bool m_active = false;
-	UserList *const m_userList;
-	UserList *const m_memberList;
-	ClassList *const m_classList;
-	CampaignList *const m_campaignList;
+	std::unique_ptr<UserList> m_userList;
+	std::unique_ptr<UserList> m_memberList;
+	std::unique_ptr<ClassList> m_classList;
+	std::unique_ptr<CampaignList> m_campaignList;
 };
 
 

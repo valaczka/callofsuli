@@ -152,7 +152,7 @@ QPage {
 						 {
 							 onAccepted: function()
 							 {
-								 Client.send(WebSocket.ApiTeacher, "campaign/%1/delete".arg(campaign.campaignid))
+								 Client.send(HttpConnection.ApiTeacher, "campaign/%1/delete".arg(campaign.campaignid))
 								 .done(control, function(r){
 									 group.reload()
 									 Client.stackPop(control)
@@ -187,7 +187,7 @@ QPage {
 									l.push(_sortedGroupListTeacher.get(indexList[i]).id)
 								}
 
-								Client.send(WebSocket.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
+								Client.send(HttpConnection.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
 												list: l
 											})
 								.done(control, function(r){

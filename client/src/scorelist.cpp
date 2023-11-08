@@ -53,7 +53,7 @@ void ScoreList::reload()
 	Client *client = Application::instance()->client();
 
 	client->send(m_api, m_path, m_apiData)
-			->error(client, &Client::onWebSocketError)
+			->error(client, &Client::onHttpConnectionError)
 			->fail(client, [client](const QString &err){ client->messageWarning(err, tr("Letöltési hiba")); })
 			->done(this, &ScoreList::loadFromJson);
 
@@ -69,7 +69,7 @@ void ScoreList::reload()
 void ScoreList::reloadFromVariantList(const QVariantList &list)
 {
 	if (limit() < 0)
-		Utils::patchSListModel(m_model, list, QStringLiteral("username"));
+		Utils::patchSListModel(m_model.get(), list, QStringLiteral("username"));
 	else
 		FetchModel::reloadFromVariantList(list);
 }
@@ -266,12 +266,12 @@ void ScoreList::setPath(const QString &newPath)
 	emit pathChanged();
 }
 
-const WebSocket::API &ScoreList::api() const
+const HttpConnection::API &ScoreList::api() const
 {
 	return m_api;
 }
 
-void ScoreList::setApi(const WebSocket::API &newApi)
+void ScoreList::setApi(const HttpConnection::API &newApi)
 {
 	if (m_api == newApi)
 		return;

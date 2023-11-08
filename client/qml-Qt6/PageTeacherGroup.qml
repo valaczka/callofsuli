@@ -108,7 +108,7 @@ QPage {
 						{
 							onAccepted: function()
 							{
-								Client.send(WebSocket.ApiTeacher, "group/%1/delete".arg(group.groupid))
+								Client.send(HttpConnection.ApiTeacher, "group/%1/delete".arg(group.groupid))
 								.done(control, function(r){
 									Client.reloadCache("teacherGroupList")
 									Client.stackPop(control)
@@ -136,7 +136,7 @@ QPage {
 														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
-																   Client.send(WebSocket.ApiTeacher, "group/%1/update".arg(group.groupid),
+																   Client.send(HttpConnection.ApiTeacher, "group/%1/update".arg(group.groupid),
 																			   {
 																				   name: _text
 																			   })

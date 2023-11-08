@@ -199,6 +199,7 @@ SOURCES += \
 	gameterrain.cpp \
 	gameterrainmap.cpp \
 	grade.cpp \
+	httpconnection.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -225,8 +226,7 @@ SOURCES += \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
-	userloglist.cpp \
-	websocket.cpp
+	userloglist.cpp
 
 lessThan(QT_MAJOR_VERSION, 6): {
 	RESOURCES += \
@@ -271,6 +271,7 @@ HEADERS += \
 	gameterrain.h \
 	gameterrainmap.h \
 	grade.h \
+	httpconnection.h \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \
@@ -296,8 +297,7 @@ HEADERS += \
 	updater.h \
 	user.h \
 	userimporter.h \
-	userloglist.h \
-	websocket.h
+	userloglist.h
 
 DISTFILES += \
 	translation.pri

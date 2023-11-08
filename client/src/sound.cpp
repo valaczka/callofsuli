@@ -455,12 +455,12 @@ void Sound::musicLoadNextSource()
 		return;
 	}
 #if QT_VERSION < 0x060000
-	m_mediaPlayerMusic->setVolume(m_musicVolume);
+	//m_mediaPlayerMusic->setVolume(m_musicVolume);
 
 	QMediaPlaylist *playlist = m_mediaPlayerMusic->playlist();
 
 	if (!playlist) {
-		playlist = new QMediaPlaylist(m_mediaPlayerMusic);
+		playlist = new QMediaPlaylist(m_mediaPlayerMusic.get());
 		playlist->setPlaybackMode(QMediaPlaylist::Loop);
 		m_mediaPlayerMusic->setPlaylist(playlist);
 	}

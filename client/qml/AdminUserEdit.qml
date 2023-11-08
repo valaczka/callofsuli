@@ -25,7 +25,7 @@ QPage {
 					   {
 						   onAccepted: function()
 						   {
-							   Client.send(WebSocket.ApiAdmin, "user/%1/delete".arg(user.username))
+							   Client.send(HttpConnection.ApiAdmin, "user/%1/delete".arg(user.username))
 							   .done(control, function(r){
 								   _form.modified = false
 								   Client.stackPop(control)
@@ -104,7 +104,7 @@ QPage {
 				enabled: user && _password._hasAcceptableInput
 				onClicked: {
 					if (_password.visible) {
-						Client.send(WebSocket.ApiAdmin, "user/%1/password".arg(user.username), {
+						Client.send(HttpConnection.ApiAdmin, "user/%1/password".arg(user.username), {
 										password: _password.text
 									})
 						.done(control, function(r){
@@ -235,7 +235,7 @@ QPage {
 					d.isPanel = _isPanel.checked
 
 					if (user) {
-						Client.send(WebSocket.ApiAdmin, "user/%1/update".arg(user.username), d)
+						Client.send(HttpConnection.ApiAdmin, "user/%1/update".arg(user.username), d)
 						.done(control, function(r){
 							_form.modified = false
 							Client.stackPop(control)
@@ -243,7 +243,7 @@ QPage {
 						.fail(control, JS.failMessage("Módosítás sikertelen"))
 					} else {
 						d.password = _password.text
-						Client.send(WebSocket.ApiAdmin, "user/create", d)
+						Client.send(HttpConnection.ApiAdmin, "user/create", d)
 						.done(control, function(r){
 							_form.modified = false
 							Client.stackPop(control)

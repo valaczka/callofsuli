@@ -36,7 +36,7 @@ Campaign::Campaign(QObject *parent)
 {
 	connect(this, &Campaign::startedChanged, this, &Campaign::stateChanged);
 	connect(this, &Campaign::finishedChanged, this, &Campaign::stateChanged);
-	connect(m_taskList, &qolm::QOlmBase::countChanged, this, &Campaign::stateChanged);
+	connect(m_taskList.get(), &qolm::QOlmBase::countChanged, this, &Campaign::stateChanged);
 }
 
 
@@ -46,7 +46,7 @@ Campaign::Campaign(QObject *parent)
 
 Campaign::~Campaign()
 {
-	m_taskList->deleteLater();
+
 }
 
 
@@ -86,7 +86,7 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 																								object.value(QStringLiteral("defaultGrade")).toInt())));
 
 	if (object.contains(QStringLiteral("taskList")) || allField) {
-		OlmLoader::loadFromJsonArray<Task>(m_taskList, object.value(QStringLiteral("taskList")).toArray(), "id", "taskid", true);
+		OlmLoader::loadFromJsonArray<Task>(m_taskList.get(), object.value(QStringLiteral("taskList")).toArray(), "id", "taskid", true);
 		emit taskListReloaded();
 	}
 
@@ -111,7 +111,7 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 
 Task *Campaign::appendTask()
 {
-	Task *t = new Task(m_taskList);
+	Task *t = new Task(m_taskList.get());
 	m_taskList->append(t);
 	return t;
 }
@@ -218,7 +218,7 @@ void Campaign::setDefaultGrade(Grade *newDefaultGrade)
 
 TaskList *Campaign::taskList() const
 {
-	return m_taskList;
+	return m_taskList.get();
 }
 
 
@@ -549,16 +549,16 @@ QVariantList StudentCampaignOffsetModel::getListFromJson(const QJsonObject &obj)
 void StudentCampaignOffsetModel::_setApi()
 {
 	if (m_groupid > -1 && !m_username.isEmpty()) {
-		setApi(WebSocket::ApiTeacher);
+		setApi(HttpConnection::ApiTeacher);
 		setPath(QStringLiteral("group/%1/result/%2").arg(m_groupid).arg(m_username));
 	} else if (m_groupid > -1 && m_username.isEmpty()) {
-		setApi(WebSocket::ApiTeacher);
+		setApi(HttpConnection::ApiTeacher);
 		setPath(QStringLiteral("group/%1/log").arg(m_groupid));
 	} else if (m_username.isEmpty()) {
-		setApi(m_campaign ? WebSocket::ApiUser : WebSocket::ApiInvalid);
+		setApi(m_campaign ? HttpConnection::ApiUser : HttpConnection::ApiInvalid);
 		setPath(m_campaign ? QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()) : QStringLiteral(""));
 	} else {
-		setApi(m_campaign ? WebSocket::ApiTeacher : WebSocket::ApiInvalid);
+		setApi(m_campaign ? HttpConnection::ApiTeacher : HttpConnection::ApiInvalid);
 		setPath(m_campaign ? QStringLiteral("campaign/%1/result/%2").arg(m_campaign->campaignid()).arg(m_username) : QStringLiteral(""));
 	}
 }

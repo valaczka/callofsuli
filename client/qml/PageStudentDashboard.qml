@@ -26,7 +26,7 @@ QPage {
 						{
 							_closeEnabled = true
 							if (Client.server && Client.server.user.loginState == User.LoggedIn)
-								Client.webSocket.close()
+								Client.httpConnection.close()
 							else
 								Client.stackPop(control)
 						},
@@ -59,7 +59,7 @@ QPage {
 
 	QRefreshProgressBar {
 		anchors.top: parent.top
-		visible: Client.webSocket.pending || _loader.status == Loader.Loading
+		visible: Client.httpConnection.pending || _loader.status == Loader.Loading
 	}
 
 	footer: QTabBar

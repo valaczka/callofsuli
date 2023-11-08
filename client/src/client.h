@@ -33,7 +33,7 @@
 #include <QLoggingCategory>
 #include "qsoundeffect.h"
 #include "qtimer.h"
-#include "websocket.h"
+#include "httpconnection.h"
 #include "eventstream.h"
 #include <QAbstractSocket>
 #include <QNetworkReply>
@@ -47,7 +47,7 @@
 
 class Application;
 class AbstractGame;
-class WebSocket;
+class HttpConnection;
 class Updater;
 class Utils;
 
@@ -64,9 +64,9 @@ class Utils;
   Q_DECLARE_OPAQUE_POINTER(Updater*)
 #endif
 
-#ifndef OPAQUE_PTR_WebSocket
-#define OPAQUE_PTR_WebSocket
-  Q_DECLARE_OPAQUE_POINTER(WebSocket*)
+#ifndef OPAQUE_PTR_HttpConnection
+#define OPAQUE_PTR_HttpConnection
+  Q_DECLARE_OPAQUE_POINTER(HttpConnection*)
 #endif
 
 
@@ -99,7 +99,7 @@ class Client : public QObject
 	Q_PROPERTY(qreal safeMarginTop READ safeMarginTop NOTIFY safeMarginTopChanged)
 	Q_PROPERTY(qreal safeMarginBottom READ safeMarginBottom NOTIFY safeMarginBottomChanged)
 
-	Q_PROPERTY(WebSocket *webSocket READ webSocket CONSTANT)
+	Q_PROPERTY(HttpConnection *httpConnection READ httpConnection CONSTANT)
 	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
 	Q_PROPERTY(EventStream* eventStream READ eventStream WRITE setEventStream NOTIFY eventStreamChanged)
 	Q_PROPERTY(Sound *sound READ sound NOTIFY soundChanged)
@@ -173,8 +173,8 @@ public:
 
 	Q_INVOKABLE qolm::QOlmBase *cache(const QString &key) const { return m_cache.get(key); }
 	Q_INVOKABLE void setCache(const QString &key, const QJsonArray &list) { m_cache.set(key, list); }
-	Q_INVOKABLE void reloadCache(const QString &key) { m_cache.reload(m_webSocket.get(), key); }
-	Q_INVOKABLE void reloadCache(const QString &key, QObject *inst, const QJSValue &func) { m_cache.reload(m_webSocket.get(), key, inst, func); }
+	Q_INVOKABLE void reloadCache(const QString &key) { m_cache.reload(m_httpConnection.get(), key); }
+	Q_INVOKABLE void reloadCache(const QString &key, QObject *inst, const QJSValue &func) { m_cache.reload(m_httpConnection.get(), key, inst, func); }
 	Q_INVOKABLE QObject *findCacheObject(const QString &key, const QVariant &value) { return m_cache.find(key, value); }
 	Q_INVOKABLE QObject *findOlmObject(qolm::QOlmBase *list, const QString &key, const QVariant &value) { return OlmLoader::find(list, key.toUtf8(), value); }
 
@@ -206,10 +206,10 @@ public:
 	void setSafeMargins(const QMarginsF &margins);
 
 
-	// WebSocket
+	// HttpConnection
 
-	Q_INVOKABLE WebSocket *webSocket() const;
-	Q_INVOKABLE WebSocketReply *send(const WebSocket::API &api, const QString &path, const QJsonObject &data = {}) const;
+	Q_INVOKABLE HttpConnection *httpConnection() const;
+	Q_INVOKABLE HttpReply *send(const HttpConnection::API &api, const QString &path, const QJsonObject &data = {}) const;
 
 	EventStream *eventStream() const;
 	void setEventStream(EventStream *newEventStream);
@@ -274,15 +274,15 @@ public:
 	void setSound(std::unique_ptr<Sound> newSound);
 
 public slots:
-	virtual void onWebSocketError(const QNetworkReply::NetworkError &code);
+	virtual void onHttpConnectionError(const QNetworkReply::NetworkError &code);
 
 protected slots:
 	virtual void onApplicationStarted();
 	friend class Application;
 
-	virtual void onWebSocketResponseError(const QString &error);
+	virtual void onHttpConnectionResponseError(const QString &error);
 #ifndef QT_NO_SSL
-	virtual void onWebSocketSslError(const QList<QSslError> &errors);
+	virtual void onHttpConnectionSslError(const QList<QSslError> &errors);
 #endif
 	virtual void onServerConnected();
 	virtual void onServerDisconnected();
@@ -323,6 +323,7 @@ signals:
 private:
 	void startCache();
 	void onSoundEffectTimeout();
+	void onGameDestroyRequest();
 
 
 protected:
@@ -332,8 +333,8 @@ protected:
 	bool m_mainWindowClosable = false;
 
 	std::unique_ptr<Utils> m_utils;
-	AbstractGame *m_currentGame = nullptr;
-	std::unique_ptr<WebSocket> m_webSocket;
+	std::unique_ptr<AbstractGame> m_currentGame;
+	std::unique_ptr<HttpConnection> m_httpConnection;
 	QPointer<EventStream> m_eventStream = nullptr;
 
 	qreal m_safeMarginLeft = 0;

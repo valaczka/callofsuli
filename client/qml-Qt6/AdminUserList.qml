@@ -53,7 +53,7 @@ Qaterial.Page
 				QTextFieldInPlaceButtons {
 					setTo: classname
 					onSaveRequest: {
-						Client.send(WebSocket.ApiAdmin, "class/%1/update".arg(classid),
+						Client.send(HttpConnection.ApiAdmin, "class/%1/update".arg(classid),
 									{
 										name: text
 									})
@@ -104,7 +104,7 @@ Qaterial.Page
 				QTextFieldInPlaceButtons {
 					setTo: classcode
 					onSaveRequest: {
-						Client.send(WebSocket.ApiAdmin, "class/%1/updateCode".arg(classid),
+						Client.send(HttpConnection.ApiAdmin, "class/%1/updateCode".arg(classid),
 									{
 										code: text
 									})
@@ -146,7 +146,7 @@ Qaterial.Page
 			boundsBehavior: Flickable.StopAtBounds
 			boundsMovement: Flickable.StopAtBounds
 
-			refreshProgressVisible: Client.webSocket.pending
+			refreshProgressVisible: Client.httpConnection.pending
 			refreshEnabled: true
 			onRefreshRequest: reloadUsers()
 
@@ -269,7 +269,7 @@ Qaterial.Page
 														{
 															onAccepted: function()
 															{
-																Client.send(WebSocket.ApiAdmin,
+																Client.send(HttpConnection.ApiAdmin,
 																			model.classid === -1 ? "user/move/none" : "user/move/%1".arg(model.classid),
 																			{
 																				list: JS.listGetFields(l, "username")
@@ -322,7 +322,7 @@ Qaterial.Page
 									{
 										onAccepted: function()
 										{
-											Client.send(WebSocket.ApiAdmin, "user/delete", {
+											Client.send(HttpConnection.ApiAdmin, "user/delete", {
 															list: JS.listGetFields(l, "username")
 														})
 											.done(control, function(r){
@@ -353,7 +353,7 @@ Qaterial.Page
 									{
 										onAccepted: function()
 										{
-											Client.send(WebSocket.ApiAdmin, "user/activate", {
+											Client.send(HttpConnection.ApiAdmin, "user/activate", {
 															list: JS.listGetFields(l, "username")
 														})
 											.done(control, function(r){
@@ -383,7 +383,7 @@ Qaterial.Page
 									{
 										onAccepted: function()
 										{
-											Client.send(WebSocket.ApiAdmin, "user/inactivate", {
+											Client.send(HttpConnection.ApiAdmin, "user/inactivate", {
 															list: JS.listGetFields(l, "username")
 														})
 											.done(control, function(r){
@@ -420,7 +420,7 @@ Qaterial.Page
 		if (classid == -1)
 			return
 
-		Client.send(WebSocket.ApiAdmin, "class/%1/code".arg(classid < 0 ? -1 : classid))
+		Client.send(HttpConnection.ApiAdmin, "class/%1/code".arg(classid < 0 ? -1 : classid))
 		.done(control, function(r){
 			classcode = r.code
 		})

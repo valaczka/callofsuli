@@ -69,7 +69,7 @@ signals:
 	void canFetchChanged();
 
 protected:
-	QSListModel *m_model = nullptr;
+	std::unique_ptr<QSListModel> m_model;
 
 private:
 	QVariantList m_originalModel;

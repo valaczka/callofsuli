@@ -37,7 +37,7 @@
 #include "qdebug.h"
 #include "qjsonarray.h"
 #include "qjsonobject.h"
-#include "websocket.h"
+#include "httpconnection.h"
 
 
 typedef std::function<void(qolm::QOlmBase *olm, const QJsonArray &, const char *, const char *, const bool &)> OlmLoaderFunc;
@@ -63,7 +63,7 @@ public:
 		qolm::QOlmBase *list;
 		OlmLoaderFunc func;
 		OlmFinderFunc finder;
-		WebSocket::API api = WebSocket::ApiInvalid;
+		HttpConnection::API api = HttpConnection::ApiInvalid;
 		const char *path = nullptr;
 		const char *jsonField = nullptr;
 		const char *property = nullptr;
@@ -76,7 +76,7 @@ public:
 			 void (*handler)(qolm::QOlmBase *, const QJsonArray &, const char *, const char *, const bool &),
 			 T* (*finder)(qolm::QOlmBase *, const char *, const QVariant &),
 			 const char *jsonField = nullptr, const char *property = nullptr, const bool &allFieldOverride = true,
-			 const WebSocket::API &api = WebSocket::ApiInvalid, const char *path = nullptr);
+			 const HttpConnection::API &api = HttpConnection::ApiInvalid, const char *path = nullptr);
 
 	bool contains(const QString &key) const;
 	void remove(const QString &key);
@@ -87,8 +87,8 @@ public:
 
 	bool set(const QString &key, const QJsonArray &list);
 
-	bool reload(WebSocket *websocket, const QString &key);
-	bool reload(WebSocket *websocket, const QString &key, QObject *inst, QJSValue func);
+	bool reload(HttpConnection *httpconnection, const QString &key);
+	bool reload(HttpConnection *httpconnection, const QString &key, QObject *inst, QJSValue func);
 
 	QObject *find(const QString &key, const QVariant &value);
 
@@ -192,7 +192,7 @@ void ClientCache::add(const QString &key, qolm::QOlm<T> *list,
 					  T* (*finder)(qolm::QOlmBase *, const char *, const QVariant &),
 					  const char *jsonField, const char *property,
 					  const bool &allFieldOverride,
-					  const WebSocket::API &api, const char *path)
+					  const HttpConnection::API &api, const char *path)
 {
 	Q_ASSERT(list);
 

@@ -28,7 +28,7 @@
 #include "Logger.h"
 #include "qjsondocument.h"
 #include "server.h"
-#include "websocket.h"
+#include "httpconnection.h"
 #include "application.h"
 
 
@@ -37,13 +37,13 @@
  * @param socket
  */
 
-EventStream::EventStream(WebSocket *socket)
+EventStream::EventStream(HttpConnection *socket)
 	: QObject{socket}
 	, m_socket(socket)
 {
 	Q_ASSERT(m_socket);
 
-	LOG_CDEBUG("websocket") << "Event stream created:" << this;
+	LOG_CDEBUG("http") << "Event stream created:" << this;
 
 	QObject::connect(this, &EventStream::finished, this, &EventStream::deleteLater);
 }
@@ -60,7 +60,7 @@ EventStream::~EventStream()
 		m_reply = nullptr;
 	}
 
-	LOG_CDEBUG("websocket") << "Event stream destroyed:" << this;
+	LOG_CDEBUG("http") << "Event stream destroyed:" << this;
 }
 
 
@@ -95,7 +95,7 @@ void EventStream::setRequestData(const QByteArray &newRequestData)
 	emit requestDataChanged();
 }
 
-WebSocket *EventStream::socket() const
+HttpConnection *EventStream::socket() const
 {
 	return m_socket;
 }
@@ -121,11 +121,11 @@ void EventStream::setReconnect(bool newReconnect)
 
 void EventStream::connect(Server *server)
 {
-	LOG_CDEBUG("websocket") << "Connect event stream:" << m_request.url().toString();
+	LOG_CDEBUG("http") << "Connect event stream:" << m_request.url().toString();
 
 	if (m_reply) {
 		if (m_reply->isOpen()) {
-			LOG_CDEBUG("websocket") << "QNetworkReply is already present and opened";
+			LOG_CDEBUG("http") << "QNetworkReply is already present and opened";
 			return;
 		}
 		m_reply->deleteLater();
@@ -140,12 +140,12 @@ void EventStream::connect(Server *server)
 	if (server && !server->certificate().isEmpty()) {
 		QSslCertificate cert(server->certificate());
 		if (cert.isNull()) {
-			LOG_CERROR("websocket") << "Invalid server certificate stored";
+			LOG_CERROR("http") << "Invalid server certificate stored";
 		} else {
 			QList<QSslError> expectedErrors;
 
 			foreach (const QSslError::SslError &err, server->ignoredSslErrors()) {
-				LOG_CDEBUG("websocket") << "Ignore SSL error:" << err;
+				LOG_CDEBUG("http") << "Ignore SSL error:" << err;
 				expectedErrors << QSslError(err, cert);
 			}
 
@@ -155,7 +155,7 @@ void EventStream::connect(Server *server)
 	}
 
 	QObject::connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
-		LOG_CDEBUG("websocket") << "SSL error:" << e;
+		LOG_CDEBUG("http") << "SSL error:" << e;
 
 		QList<QSslError> list;
 
@@ -168,7 +168,7 @@ void EventStream::connect(Server *server)
 
 		if (!list.isEmpty()) {
 			m_reply->ignoreSslErrors(list);
-			LOG_CWARNING("websocket") << "SSL errors ignored:" << list;
+			LOG_CWARNING("http") << "SSL errors ignored:" << list;
 		}
 
 		if (list.size() < e.size()) {
@@ -194,7 +194,7 @@ void EventStream::connect(Server *server)
 
 void EventStream::disconnect()
 {
-	LOG_CDEBUG("websocket") << "Event stream disconnect:" << this;
+	LOG_CDEBUG("http") << "Event stream disconnect:" << this;
 
 
 	m_reconnect = false;
@@ -216,7 +216,7 @@ void EventStream::disconnect()
 
 void EventStream::onReplyFinished()
 {
-	LOG_CDEBUG("websocket") << "Event stream finished:" << m_request.url().toString();
+	LOG_CDEBUG("http") << "Event stream finished:" << m_request.url().toString();
 
 	if (m_reply) {
 		emit disconnected();
@@ -231,11 +231,11 @@ void EventStream::onReplyFinished()
 	}
 
 	if (m_retries < MAX_RETRIES) {
-		LOG_CDEBUG("websocket") << "Reconnecting:" << m_request.url().toString();
+		LOG_CDEBUG("http") << "Reconnecting:" << m_request.url().toString();
 		m_retries++;
 		connect();
 	} else {
-		LOG_CERROR("websocket") << "Unable to reconnect event stream, max retries reached:" << m_request.url().toString();
+		LOG_CERROR("http") << "Unable to reconnect event stream, max retries reached:" << m_request.url().toString();
 		emit finished();
 	}
 }

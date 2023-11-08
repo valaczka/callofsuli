@@ -140,13 +140,13 @@ QPage {
 					anchors.verticalCenter: parent.verticalCenter
 					height: txt.height
 					width: txt.height
-					visible: Client.webSocket.state != WebSocket.Connected
+					visible: Client.httpConnection.state != HttpConnection.Connected
 				}
 
 				Qaterial.LabelWithCaption {
 					id: txt
 					anchors.verticalCenter: parent.verticalCenter
-					text: Client.webSocket.state == WebSocket.Connected ? qsTr("Csatlakozva") : qsTr("Csatlakozás...")
+					text: Client.httpConnection.state == HttpConnection.Connected ? qsTr("Csatlakozva") : qsTr("Csatlakozás...")
 					caption: Client.server ? Client.server.url : ""
 				}
 			}
@@ -157,7 +157,7 @@ QPage {
 				foregroundColor: Qaterial.Colors.white
 				text: qsTr("Megszakítás")
 				icon.source: Qaterial.Icons.close
-				onClicked: Client.webSocket.abort()
+				onClicked: Client.httpConnection.abort()
 			}
 		}
 
@@ -295,7 +295,7 @@ QPage {
 	states: [
 		State {
 			name: "disconnected"
-			when: Client.webSocket.state == WebSocket.Disconnected
+			when: Client.httpConnection.state == HttpConnection.Disconnected
 			PropertyChanges {
 				target: view
 				visible: true
@@ -307,7 +307,7 @@ QPage {
 		},
 		State {
 			name: "connecting"
-			when: Client.webSocket.state != WebSocket.Disconnected
+			when: Client.httpConnection.state != HttpConnection.Disconnected
 			PropertyChanges {
 				target: view
 				visible: false

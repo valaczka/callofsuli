@@ -35,7 +35,7 @@
  */
 
 AbstractGame::AbstractGame(const GameMap::GameMode &mode, Client *client)
-	: QObject{client}
+	: QObject{}
 	, m_client(client)
 	, m_mode(mode)
 {
@@ -205,7 +205,8 @@ bool AbstractGame::gameFinish()
 void AbstractGame::gameDestroy()
 {
 	if (!m_pageItem && m_readyToDestroy)
-		this->deleteLater();
+		//this->deleteLater();
+		emit gameDestroyRequest();
 }
 
 

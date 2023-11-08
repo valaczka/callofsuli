@@ -35,7 +35,7 @@
 
 StudentMapHandler::StudentMapHandler(QObject *parent)
 	: BaseMapHandler{QStringLiteral("studentmaps"), parent}
-	, m_mapList(new StudentMapList(this))
+	, m_mapList(new StudentMapList())
 {
 	LOG_CTRACE("client") << "StudentMapHandler created" << this;
 }
@@ -62,7 +62,7 @@ void StudentMapHandler::mapDownload(StudentMap *map)
 	if (!map)
 		return;
 
-	download(map, WebSocket::ApiUser, QStringLiteral("map/%1").arg(map->uuid()));
+	download(map, HttpConnection::ApiUser, QStringLiteral("map/%1").arg(map->uuid()));
 }
 
 
@@ -91,7 +91,7 @@ void StudentMapHandler::getUserCampaign(Campaign *campaign)
 		return;
 	}
 
-	m_client->webSocket()->send(WebSocket::ApiUser, QStringLiteral("campaign/%1").arg(campaign->campaignid()))
+	m_client->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1").arg(campaign->campaignid()))
 			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, [this, campaign](const QJsonObject &data){
 		campaign->loadFromJson(data, false);
@@ -117,26 +117,24 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 		return;
 	}
 
-	MapPlayCampaign *mapPlay = new MapPlayCampaign(this);
+	auto mapPlay = std::make_unique<MapPlayCampaign>(this);
 
-	if (!mapPlay->load(campaign, map)) {
-		delete mapPlay;
+	if (!mapPlay->load(campaign, map))
 		return;
-	}
 
 
 	QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
 																						{ QStringLiteral("title"), map->name() },
-																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay) }
+																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
 																					}));
 
 	if (!page) {
 		m_client->messageError(tr("Nem lehet betölteni az oldalt!"));
-		delete mapPlay;
 		return;
 	}
 
-	connect(page, &QQuickItem::destroyed, mapPlay, &MapPlay::deleteLater);
+	connect(page, &QQuickItem::destroyed, mapPlay.get(), &MapPlay::deleteLater);
+	mapPlay.release();
 }
 
 
@@ -146,11 +144,11 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 
 void StudentMapHandler::reloadList()
 {
-	m_client->webSocket()->send(WebSocket::ApiUser, QStringLiteral("map"))
+	m_client->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("map"))
 			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, [this](const QJsonObject &data){
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
-		OlmLoader::loadFromJsonArray<StudentMap>(m_mapList, list, "uuid", "uuid", true);
+		OlmLoader::loadFromJsonArray<StudentMap>(m_mapList.get(), list, "uuid", "uuid", true);
 		checkDownloads();
 		emit reloaded();
 	});
@@ -164,5 +162,5 @@ void StudentMapHandler::reloadList()
 
 StudentMapList *StudentMapHandler::mapList() const
 {
-	return m_mapList;
+	return m_mapList.get();
 }

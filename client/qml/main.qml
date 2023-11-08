@@ -254,14 +254,14 @@ Qaterial.ApplicationWindow
 
 
 	Connections {
-		target: Client.webSocket
+		target: Client.httpConnection
 
 		function onPendingSslErrors(list) {
 			JS.questionDialog(
 						{
 							onAccepted: function()
 							{
-								Client.webSocket.acceptPendingSslErrors()
+								Client.httpConnection.acceptPendingSslErrors()
 							},
 							text: qsTr("A szerver tanúsítványa hibás. Ennek ellenére csatlakozol hozzá?\n")+list.join("\n"),
 							title: qsTr("SSL tanúsítvány"),

@@ -64,7 +64,7 @@ signals:
 private:
 	friend class FilloutSyntaxHighlighter;
 
-	FilloutSyntaxHighlighter *m_syntaxHighlighter;
+	std::unique_ptr<FilloutSyntaxHighlighter> m_syntaxHighlighter;
 
 	QTextCharFormat m_fmtWord;
 	QQuickTextDocument *m_document;

@@ -31,7 +31,7 @@
 
 FilloutHighlighter::FilloutHighlighter(QObject *parent)
 	: QObject(parent)
-	, m_syntaxHighlighter(new FilloutSyntaxHighlighter(this))
+	, m_syntaxHighlighter(new FilloutSyntaxHighlighter())
 {
 
 }

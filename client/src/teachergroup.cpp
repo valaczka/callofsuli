@@ -33,10 +33,10 @@
 
 TeacherGroup::TeacherGroup(QObject *parent)
 	: QObject{parent}
-	, m_userList(new UserList(this))
-	, m_memberList(new UserList(this))
-	, m_classList(new ClassList(this))
-	, m_campaignList(new CampaignList(this))
+	, m_userList(new UserList())
+	, m_memberList(new UserList())
+	, m_classList(new ClassList())
+	, m_campaignList(new CampaignList())
 {
 	LOG_CTRACE("client") << "TeacherGroup created" << this;
 
@@ -49,11 +49,6 @@ TeacherGroup::TeacherGroup(QObject *parent)
 
 TeacherGroup::~TeacherGroup()
 {
-	delete m_campaignList;
-	delete m_classList;
-	delete m_userList;
-	delete m_memberList;
-
 	LOG_CTRACE("client") << "TeacherGroup destroyed" << this;
 }
 
@@ -76,20 +71,20 @@ void TeacherGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 		setActive(object.value(QStringLiteral("active")).toInt());
 
 	if (object.contains(QStringLiteral("classList")) || allField) {
-		OlmLoader::loadFromJsonArray<ClassObject>(m_classList, object.value(QStringLiteral("classList")).toArray(), "id", "id", true);
+		OlmLoader::loadFromJsonArray<ClassObject>(m_classList.get(), object.value(QStringLiteral("classList")).toArray(), "id", "id", true);
 		emit fullNameChanged();
 	}
 
 	if (object.contains(QStringLiteral("userList")) || allField)
-		OlmLoader::loadFromJsonArray<User>(m_userList, object.value(QStringLiteral("userList")).toArray(), "username", "username", true);
+		OlmLoader::loadFromJsonArray<User>(m_userList.get(), object.value(QStringLiteral("userList")).toArray(), "username", "username", true);
 
 	if (object.contains(QStringLiteral("memberList")) || allField) {
-		OlmLoader::loadFromJsonArray<User>(m_memberList, object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
+		OlmLoader::loadFromJsonArray<User>(m_memberList.get(), object.value(QStringLiteral("memberList")).toArray(), "username", "username", true);
 		emit memberListReloaded();
 	}
 
 	if (object.contains(QStringLiteral("campaignList")) || allField) {
-		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList, object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
+		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList.get(), object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
 		emit campaignListReloaded();
 	}
 }
@@ -104,7 +99,7 @@ void TeacherGroup::reload()
 	if (m_groupid <= 0)
 		return;
 
-	Application::instance()->client()->send(WebSocket::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
 			->fail(this, [](const QString &err) {
 		Application::instance()->client()->messageWarning(err, tr("Letöltés sikertelen"));
 	})
@@ -122,7 +117,7 @@ void TeacherGroup::reloadAndCall(QObject *inst, QJSValue v)
 	if (m_groupid <= 0)
 		return;
 
-	Application::instance()->client()->send(WebSocket::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("group/%1").arg(m_groupid))
 			->fail(inst, [](const QString &err) {
 		Application::instance()->client()->messageWarning(err, tr("Letöltés sikertelen"));
 	})
@@ -182,17 +177,17 @@ void TeacherGroup::setActive(bool newActive)
 
 UserList *TeacherGroup::userList() const
 {
-	return m_userList;
+	return m_userList.get();
 }
 
 UserList *TeacherGroup::memberList() const
 {
-	return m_memberList;
+	return m_memberList.get();
 }
 
 ClassList *TeacherGroup::classList() const
 {
-	return m_classList;
+	return m_classList.get();
 }
 
 
@@ -224,7 +219,7 @@ QString TeacherGroup::fullName() const
 
 CampaignList *TeacherGroup::campaignList() const
 {
-	return m_campaignList;
+	return m_campaignList.get();
 }
 
 
@@ -506,7 +501,7 @@ void TeacherGroupCampaignResultModel::reloadContent()
 
 	Client *client = Application::instance()->client();
 
-	client->send(WebSocket::ApiTeacher, QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()))
+	client->send(HttpConnection::ApiTeacher, QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()))
 			->fail(client, [client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, &TeacherGroupCampaignResultModel::reloadFromJson);
 }
@@ -1077,7 +1072,7 @@ void TeacherGroupResultModel::reloadContent()
 
 	Client *client = Application::instance()->client();
 
-	client->send(WebSocket::ApiTeacher, QStringLiteral("group/%1/result").arg(m_teacherGroup->groupid()))
+	client->send(HttpConnection::ApiTeacher, QStringLiteral("group/%1/result").arg(m_teacherGroup->groupid()))
 			->fail(client, [client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, &TeacherGroupResultModel::reloadFromJson);
 }

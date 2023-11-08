@@ -145,13 +145,13 @@ std::optional<QByteArray> BaseMapHandler::read(BaseMap *map) const
  * @param path
  */
 
-void BaseMapHandler::download(BaseMap *map, const WebSocket::API &api, const QString &path)
+void BaseMapHandler::download(BaseMap *map, const HttpConnection::API &api, const QString &path)
 {
-	WebSocketReply *r = m_client->webSocket()->send(api, path)
+	HttpReply *r = m_client->httpConnection()->send(api, path)
 			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, [this, map](const QByteArray &data){ checkAndSave(map, data); });
 
-	connect(r, &WebSocketReply::downloadProgress, map, &BaseMap::setDownloadProgress);
+	connect(r, &HttpReply::downloadProgress, map, &BaseMap::setDownloadProgress);
 }
 
 

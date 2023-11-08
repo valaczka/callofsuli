@@ -39,7 +39,7 @@
 #include "actiongame.h"
 #include "server.h"
 #include "utils_.h"
-#include "websocket.h"
+#include "httpconnection.h"
 
 #include <QMediaDevices>
 #include <QAudioDevice>
@@ -124,7 +124,7 @@ void OnlineClient::onApplicationStarted()
 	LOG_CDEBUG("client") << "Download resources";
 
 	QNetworkRequest request(QUrl(QStringLiteral("wasm_resources.json")));
-	QNetworkReply *reply = m_webSocket->networkManager()->get(request);
+	QNetworkReply *reply = m_httpConnection->networkManager()->get(request);
 	connect(reply, &QNetworkReply::finished, this, &OnlineClient::onResourceDownloaded);
 
 	enableTabCloseConfirmation(true);
@@ -203,7 +203,7 @@ void OnlineClient::onResourceDownloaded()
 			url.setPort(m_parseUrl.port());
 
 			Server *s = new Server(this);
-			m_webSocket->setServer(s);
+			m_httpConnection->setServer(s);
 			s->setUrl(url);
 
 			QSettings settings;
@@ -225,7 +225,7 @@ void OnlineClient::onResourceDownloaded()
 				LOG_CDEBUG("client") << "Letöltendő erőforrások:" << m_resourceList;
 
 				foreach (const QString &s, m_resourceList) {
-					QNetworkReply *r = m_webSocket->networkManager()->get(QNetworkRequest(QUrl(s)));
+					QNetworkReply *r = m_httpConnection->networkManager()->get(QNetworkRequest(QUrl(s)));
 					connect(r, &QNetworkReply::finished, this, &OnlineClient::onResourceDownloaded);
 				}
 			}

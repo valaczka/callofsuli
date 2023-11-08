@@ -196,7 +196,7 @@ QTableView {
 											 {
 												 onAccepted: function()
 												 {
-													 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/add/%2"
+													 Client.send(HttpConnection.ApiTeacher, "campaign/%1/user/add/%2"
 																 .arg(campaign.campaignid).arg(_contextMenu.currentUser.username))
 													 .done(root, function(r){
 														 _model.reloadContent()
@@ -219,7 +219,7 @@ QTableView {
 											 {
 												 onAccepted: function()
 												 {
-													 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/remove/%2"
+													 Client.send(HttpConnection.ApiTeacher, "campaign/%1/user/remove/%2"
 																 .arg(campaign.campaignid).arg(_contextMenu.currentUser.username))
 													 .done(root, function(r){
 														 _model.reloadContent()
@@ -337,7 +337,7 @@ QTableView {
 						 {
 							 onAccepted: function()
 							 {
-								 Client.send(WebSocket.ApiTeacher, "campaign/%1/user/clear".arg(campaign.campaignid))
+								 Client.send(HttpConnection.ApiTeacher, "campaign/%1/user/clear".arg(campaign.campaignid))
 								 .done(root, function(r){
 									 _model.reloadContent()
 								 })
@@ -372,7 +372,7 @@ QTableView {
 									l.push(_sortedGradeList.get(indexList[i]).id)
 								}
 
-								Client.send(WebSocket.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
+								Client.send(HttpConnection.ApiTeacher, "campaign/%1/duplicate".arg(campaign.campaignid), {
 												list: [ campaign.groupid ]
 											})
 								.done(root, function(r){
@@ -383,7 +383,7 @@ QTableView {
 										return
 									}
 
-									Client.send(WebSocket.ApiTeacher, "campaign/%1/user/copy".arg(list[0]), {
+									Client.send(HttpConnection.ApiTeacher, "campaign/%1/user/copy".arg(list[0]), {
 													from: campaign.campaignid,
 													gradeList: l
 												})

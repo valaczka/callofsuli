@@ -32,8 +32,10 @@
 #include "application.h"
 #include <QSettings>
 
+#if QT_VERSION >= 0x060000
 #include <QMediaDevices>
 #include <QAudioDevice>
+#endif
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 #include "mobileutils.h"

@@ -27,7 +27,7 @@
 #ifndef USERLOGLIST_H
 #define USERLOGLIST_H
 
-#include "websocket.h"
+#include "httpconnection.h"
 #include <QObject>
 
 class UserLogList : public QObject
@@ -36,7 +36,7 @@ class UserLogList : public QObject
 
 	Q_PROPERTY(QVariantList model READ model WRITE setModel NOTIFY modelChanged)
 	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged)
-	Q_PROPERTY(WebSocket::API api READ api WRITE setApi NOTIFY apiChanged)
+	Q_PROPERTY(HttpConnection::API api READ api WRITE setApi NOTIFY apiChanged)
 	Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
 	Q_PROPERTY(QVariantList counters READ counters WRITE setCounters NOTIFY countersChanged)
 
@@ -46,8 +46,8 @@ public:
 	const QString &username() const;
 	void setUsername(const QString &newUsername);
 
-	const WebSocket::API &api() const;
-	void setApi(const WebSocket::API &newApi);
+	const HttpConnection::API &api() const;
+	void setApi(const HttpConnection::API &newApi);
 
 	const QString &path() const;
 	void setPath(const QString &newPath);
@@ -76,7 +76,7 @@ private:
 	QVariantList m_model;
 	QVariantList m_counters;
 	QString m_username;
-	WebSocket::API m_api = WebSocket::ApiGeneral;
+	HttpConnection::API m_api = HttpConnection::ApiGeneral;
 	QString m_path = QStringLiteral("user/%1/log");
 };
 
