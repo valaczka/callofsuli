@@ -221,7 +221,7 @@ GameQuestionComponentImpl {
 	}
 
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		if (_engine.enabled)
 			_engine.pressKey(event.text)
 	}

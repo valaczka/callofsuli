@@ -349,6 +349,40 @@ QPage {
 				onClicked: Client.stackPushPage("PageTeacherPeers.qml")
 			}
 
+
+			QDashboardButton {
+				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
+				text: qsTr("+++")
+				icon.source: Qaterial.Icons.accountEyeOutline
+				highlighted: false
+				outlined: true
+				flat: Client.httpConnection.webSocket.active
+
+				textColor: (Client.server && Client.server.user.roles & Credential.Admin) ? Qaterial.Colors.red500 : Qaterial.Colors.amber500
+
+				onClicked: {
+					Client.httpConnection.webSocket.observerAdd("peers")
+					Client.httpConnection.webSocket.connect()
+				}
+			}
+
+
+
+			QDashboardButton {
+				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
+				text: qsTr("---")
+				icon.source: Qaterial.Icons.accountEyeOutline
+				highlighted: false
+				outlined: true
+				flat: Client.httpConnection.webSocket.active
+
+				textColor: (Client.server && Client.server.user.roles & Credential.Admin) ? Qaterial.Colors.red500 : Qaterial.Colors.amber500
+
+				onClicked: {
+					Client.httpConnection.webSocket.observerRemove("peers")
+				}
+			}
+
 		}
 
 	}

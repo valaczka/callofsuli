@@ -27,6 +27,7 @@
 #include "studentmaphandler.h"
 #include "campaign.h"
 #include "mapplaycampaign.h"
+#include "server.h"
 
 /**
  * @brief StudentMapHandler::StudentMapHandler
@@ -122,6 +123,13 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 	if (!mapPlay->load(campaign, map))
 		return;
 
+	// Daily rate
+
+	if (m_client->server() && m_client->server()->user()) {
+		if (m_client->server()->user()->dailyRate() >= 1.0)
+			mapPlay->setReadOnly(true);
+	}
+
 
 	QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
 																						{ QStringLiteral("title"), map->name() },
@@ -133,7 +141,12 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 		return;
 	}
 
-	connect(page, &QQuickItem::destroyed, mapPlay.get(), &MapPlay::deleteLater);
+	connect(page, &QQuickItem::destroyed, mapPlay.get(), [g = mapPlay.get(), this](){
+		if (g)
+		g->deleteLater();
+		if (m_client->currentGame())
+			emit m_client->currentGame()->gameDestroyRequest();
+	});
 	mapPlay.release();
 }
 

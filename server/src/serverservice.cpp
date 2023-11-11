@@ -247,8 +247,9 @@ void ServerService::setImitateLatency(int newImitateLatency)
 bool ServerService::logPeerUser(const PeerUser &user)
 {
 	bool ret = PeerUser::addOrUpdate(&m_peerUser, user);
-	//if (ret)
-	//	triggerEventStreams(EventStream::EventStreamPeerUsers);
+	if (ret)
+		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
+
 	return ret;
 }
 
@@ -835,8 +836,9 @@ void ServerService::onMainTimerTimeout()
 	LOG_CTRACE("service") << "Timer check";
 	m_mainTimerLastTick = dtMinute;
 
-	//if (PeerUser::clear(&m_peerUser))	//	triggerEventStreams(EventStream::EventStreamPeerUsers);
-
+	if (PeerUser::clear(&m_peerUser)) {
+		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
+	}
 
 	if (!m_databaseMain) {
 		LOG_CWARNING("service") << "Main database unavailable";
@@ -934,8 +936,10 @@ void ServerService::stop()
 
 	m_state = ServerFinished;
 
-	if (m_webServer)
+	if (m_webServer) {
+		m_webServer->webSocketHandler().closeAll();
 		m_webServer.reset();
+	}
 
 	m_mainTimer.stop();
 	m_databaseMain->databaseClose();
@@ -957,8 +961,10 @@ void ServerService::pause()
 
 	LOG_CINFO("service") << "Server service pause";
 
-	if (m_webServer)
+	if (m_webServer) {
+		m_webServer->webSocketHandler().closeAll();
 		m_webServer.reset();
+	}
 
 	m_state = ServerPaused;
 

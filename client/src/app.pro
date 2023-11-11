@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia
+QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets
 
 !wasm: QT += sql
 
@@ -226,7 +226,8 @@ SOURCES += \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
-	userloglist.cpp
+	userloglist.cpp \
+	websocket.cpp
 
 lessThan(QT_MAJOR_VERSION, 6): {
 	RESOURCES += \
@@ -297,7 +298,8 @@ HEADERS += \
 	updater.h \
 	user.h \
 	userimporter.h \
-	userloglist.h
+	userloglist.h \
+	websocket.h
 
 DISTFILES += \
 	translation.pri

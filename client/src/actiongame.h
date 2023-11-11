@@ -141,7 +141,7 @@ public slots:
 	void dialogMessageTooltip(const QString &text, const QString &icon, const QString &title = tr("Tudtad?"));
 	bool dialogMessageTooltipById(const QString &msgId);
 	void dialogMessageFinish(const QString &text, const QString &icon, const bool &success);
-	void gameAbort();
+	void gameAbort() override;
 
 protected:
 	virtual QQuickItem *loadPage() override;

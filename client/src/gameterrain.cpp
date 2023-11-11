@@ -39,6 +39,10 @@
 #include "qdiriterator.h"
 #include "utils_.h"
 
+#ifdef Q_OS_WASM
+#include "qsettings.h"
+#endif
+
 
 QVector<GameTerrain> GameTerrain::m_availableTerrains;
 
@@ -136,11 +140,14 @@ void GameTerrain::reloadAvailableTerrains()
 {
 	LOG_CINFO("client") << "Reload terrains...";
 
+#ifdef Q_OS_WASM
+	QSettings settings;
+	QJsonObject terrainCache = settings.value(QStringLiteral("terrainCache")).toJsonObject()
+#else
 	const QString cache = Utils::standardPath("terrain_cache.json");
-
 	LOG_CINFO("client") << "Terrain cache:" << cache;
-
 	QJsonObject terrainCache = Utils::fileToJsonObject(cache).value_or(QJsonObject{});
+#endif
 
 	m_availableTerrains.clear();
 
@@ -193,7 +200,7 @@ void GameTerrain::reloadAvailableTerrains()
 			const qint64 &tmxModified = tmxI.lastModified().toMSecsSinceEpoch();
 
 			const QJsonObject &cacheObject = terrainCache.value(tmxFile).toObject();
-			double cacheModified = cacheObject.value(QLatin1String("lastModified")).toDouble();
+			double cacheModified = cacheObject.value(QStringLiteral("lastModified")).toDouble();
 
 			const QString &thumbnail = terrainDir+QStringLiteral("/thumbnail.png");
 
@@ -238,7 +245,11 @@ void GameTerrain::reloadAvailableTerrains()
 
 	LOG_CDEBUG("client") << "Save terrain cache:" << cache;
 
+#ifdef Q_OS_WASM
+	settings.setValue(QStringLiteral("terrainCache"), terrainCache);
+#else
 	Utils::jsonObjectToFile(terrainCache, cache);
+#endif
 }
 
 

@@ -62,6 +62,7 @@ class AbstractGame : public QObject
 	Q_PROPERTY(GameMap* map READ map WRITE setMap NOTIFY mapChanged)
 	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged)
 	Q_PROPERTY(GameMap::GameMode mode READ mode CONSTANT)
+	Q_PROPERTY(FinishState finishState READ finishState WRITE setFinishState NOTIFY finishStateChanged)
 
 public:
 
@@ -111,17 +112,18 @@ public:
 
 	int elapsedMsec() const;
 
-	void setFinishState(const FinishState &newFinishState);
-	const FinishState &finishState() const;
-
 	bool readyToDestroy() const;
 	void setReadyToDestroy(bool newReadyToDestroy);
 
+
+	const FinishState &finishState() const;
+	void setFinishState(const FinishState &newFinishState);
 
 public slots:
 	bool load();
 	bool gameStart();
 	bool gameFinish();
+	virtual void gameAbort() {}
 
 protected:
 	virtual QQuickItem *loadPage() = 0;
@@ -139,6 +141,7 @@ signals:
 	void gameQuestionChanged();
 	void gameFinished(AbstractGame::FinishState state);
 	void gameDestroyRequest();
+	void finishStateChanged();
 
 protected:
 	Client *m_client = nullptr;

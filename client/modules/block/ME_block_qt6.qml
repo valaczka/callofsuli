@@ -38,7 +38,7 @@ QFormColumn {
 
 	QFormSection {
 		width: parent.width
-		text: qsTr("Tömbök")
+		text: qsTr("Halmazok")
 		icon.source: Qaterial.Icons.cards
 	}
 

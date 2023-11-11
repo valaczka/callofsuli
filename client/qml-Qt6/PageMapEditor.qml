@@ -140,7 +140,7 @@ QPage {
 		QFileDialog {
 			title: qsTr("Pálya megnyitása")
 			filters: [ "*.map" ]
-			onFileSelected: {
+			onFileSelected: file => {
 				if (mapEditor.hasBackup(file)) {
 					backupQuestion(file)
 				} else {
@@ -162,7 +162,7 @@ QPage {
 			filters: [ "*.map" ]
 			isSave: true
 			suffix: ".map"
-			onFileSelected: {
+			onFileSelected: file => {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file, false)
 				else
@@ -182,7 +182,7 @@ QPage {
 			filters: [ "*.map" ]
 			isSave: true
 			suffix: ".map"
-			onFileSelected: {
+			onFileSelected: file => {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file, true)
 				else
@@ -201,7 +201,7 @@ QPage {
 		QFileDialog {
 			title: qsTr("Importálás")
 			filters: [ "*.map" ]
-			onFileSelected: {
+			onFileSelected: file => {
 				mapEditor.chapterImport(file)
 				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
 			}

@@ -32,9 +32,13 @@
 #include <QRandomGenerator>
 #include "utils_.h"
 
-
+#if QT_VERSION < 0x060000
 const QString TestGame::CheckOK = QStringLiteral("<span class=\"checkOK\">\ue5ca</span>");
 const QString TestGame::CheckFailed = QStringLiteral("<span class=\"checkFail\">\ue5cd</span>");
+#else
+const QString TestGame::CheckOK = QStringLiteral("<img src=\"imgdata://check.png\" width=\"30\" align=right valign=top/>");
+const QString TestGame::CheckFailed = QStringLiteral(" ");
+#endif
 
 
 TestGame::TestGame(GameMapMissionLevel *missionLevel, Client *client)
@@ -351,6 +355,11 @@ void TestGame::resultoToTextDocument(QTextDocument *document) const
 
 
 	document->setHtml(questionDataResultToHtml(m_result));
+
+	QImage img = QImage::fromData(Utils::fileContent(":/internal/img/checkmark_green.png").value_or(QByteArray{}));
+
+	document->addResource(QTextDocument::ImageResource, QUrl("imgdata://check.png"),
+						  QVariant(img));
 	/*
 	QPdfWriter pdf("/tmp/out.pdf");
 	pdf.setCreator("Valaczka János Pál");
@@ -551,7 +560,7 @@ QString TestGame::questionDataResultToHtml(const TestGame *game, const QuestionR
 		if (q.success)
 			html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top><span class=\"pointSuccess\">%1</span>/%2</td>").arg(point).arg(point);
 		else
-			html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top><span class=\"pointFail\">0</span>/%1</td>").arg(point);
+			html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top><span class=\"pointFail\">&ndash;</span>/%1</td>").arg(point);
 		html += QStringLiteral("</tr>");
 
 
@@ -576,7 +585,7 @@ QString TestGame::questionDataResultToHtml(const TestGame *game, const QuestionR
 		}
 
 		html += QStringLiteral("</td>");
-		html += QStringLiteral("<td class=\"check\" align=right valign=middle>%1</td>").arg(q.success ? CheckOK : CheckFailed);
+		html += QStringLiteral("<td class=\"check\" align=right valign=top>%1</td>").arg(q.success ? CheckOK : CheckFailed);
 		html += QStringLiteral("</tr>");
 
 	}

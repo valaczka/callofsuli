@@ -129,7 +129,7 @@ QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &da
 	if (!Application::instance()->objectiveModules().contains(module)) {
 		return QVariantMap({
 							   { QStringLiteral("name"), QStringLiteral("") },
-							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
+							   { QStringLiteral("icon"), QStringLiteral("qrc:/Qaterial/Icons/alert.svg") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
 							   { QStringLiteral("details"), QStringLiteral("") },
 							   { QStringLiteral("image"), QStringLiteral("") }
@@ -159,7 +159,7 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 	if (!Application::instance()->storageModules().contains(module)) {
 		return QVariantMap({
 							   { QStringLiteral("name"), QStringLiteral("") },
-							   { QStringLiteral("icon"), QStringLiteral("image://font/Material Icons/\ue002") },
+							   { QStringLiteral("icon"), QStringLiteral("qrc:/Qaterial/Icons/alert.svg") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
 							   { QStringLiteral("details"), QStringLiteral("") },
 							   { QStringLiteral("image"), QStringLiteral("") }

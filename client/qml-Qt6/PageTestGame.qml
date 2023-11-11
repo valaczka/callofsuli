@@ -40,6 +40,8 @@ Page {
 
 		visible: itemsVisible && !resultVisible
 
+		enabled: control.game && (control.game.finishState == AbstractGame.Invalid || control.game.finishState == AbstractGame.Neutral)
+
 
 		/*Qaterial.AppBarButton {
 			icon.source: Qaterial.Icons.stopCircle
@@ -171,6 +173,8 @@ Page {
 		id: gameQuestion
 
 		game: control.game
+
+		enabled: control.game && (control.game.finishState == AbstractGame.Invalid || control.game.finishState == AbstractGame.Neutral)
 
 		anchors.top: _buttonRow.bottom
 		anchors.left: parent.left

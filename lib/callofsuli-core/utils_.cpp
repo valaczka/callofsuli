@@ -562,7 +562,7 @@ QStringList Utils::getRolesFromObject(const QMetaObject *object)
 
 		const QString &p = property.name();
 
-		if (p == QLatin1String("objectName"))
+		if (p == QStringLiteral("objectName"))
 			continue;
 
 		roles.append(p);
@@ -681,7 +681,7 @@ void Utils::checkStoragePermissions()
 
 void Utils::checkMediaPermissions()
 {
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined (Q_OS_MAC)
 
 #if QT_VERSION < 0x060000
 	QtAndroid::PermissionResult result0 = QtAndroid::checkPermission("android.permission.CAMERA");

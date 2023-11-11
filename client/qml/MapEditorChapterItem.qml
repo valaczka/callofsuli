@@ -240,7 +240,7 @@ Qaterial.Expandable {
 
 			}
 
-			onRightClickOrPressAndHold: {
+			onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 				if (index != -1)
 					currentIndex = index
 

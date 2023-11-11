@@ -23,6 +23,9 @@ QPageGradient {
 		if (map && map.gameState == MapPlay.StateFinished) {
 			map.gameState = MapPlay.StateSelect
 			return false
+		} else if (map && map.gameState == MapPlay.StatePlay) {
+			Client.messageWarning(qsTr("A játék még folyamatban van..."))
+			return false
 		}
 
 		return true
@@ -649,14 +652,14 @@ QPageGradient {
 		Row {
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 5
-			visible: map && map.gameState == MapPlay.StateLoading
+			visible: map && (map.gameState == MapPlay.StateLoading || map.gameState == MapPlay.StatePlay)
 			Qaterial.BusyIndicator {
 				anchors.verticalCenter: parent.verticalCenter
 			}
 
 			Qaterial.LabelBody1 {
 				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Betöltés...")
+				text: map && map.gameState == MapPlay.StatePlay ? qsTr("Lejátszás...") : qsTr("Betöltés...")
 			}
 		}
 

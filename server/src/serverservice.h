@@ -202,17 +202,6 @@ public:
 
 	QNetworkAccessManager *networkManager() const;
 
-//	QVector<EventStream *> eventStreams() const;
-//	void addEventStream(EventStream *stream);
-
-//	void triggerEventStreams(const EventStream::EventStreamType &type);
-//	void triggerEventStreams(const EventStream::EventStreamType &type, const QVariant &data);
-
-/*	QVector<Panel *> panels() const;
-	void addPanel(Panel *panel);
-	void removePanel(Panel *panel, const bool &_delete = true);
-	Panel *panel(const int &id) const;
-*/
 	const QString &importDb() const;
 
 	int imitateLatency() const;
@@ -229,6 +218,10 @@ public:
 	const QVector<std::shared_ptr<OAuth2Authenticator> > &authenticators() const;
 	std::optional<std::weak_ptr<OAuth2Authenticator>> oauth2Authenticator(const char *type) const;
 
+	void stop();
+	void pause();
+	void reload();
+
 signals:
 	void configChanged();
 	void serverNameChanged();
@@ -242,10 +235,7 @@ private:
 
 	void onMainTimerTimeout();
 	bool start();
-	void stop();
-	void pause();
 	void resume();
-	void reload();
 
 	static const int m_versionMajor;
 	static const int m_versionMinor;

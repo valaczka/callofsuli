@@ -163,7 +163,7 @@ GameQuestionComponentImpl {
 	}
 
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		var key = event.key
 
 		if (key === Qt.Key_Return || key === Qt.Key_Enter)

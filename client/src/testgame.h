@@ -107,7 +107,7 @@ public slots:
 	void onPageReady();
 	void onStarted();
 	void dialogMessageFinish(const QString &text, const QString &icon, const bool &success);
-	void gameAbort();
+	void gameAbort() override;
 
 private slots:
 	void onMsecLeftChanged();

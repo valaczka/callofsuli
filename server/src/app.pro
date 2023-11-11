@@ -57,7 +57,8 @@ SOURCES += \
 	serversettings.cpp \
 	teacherapi.cpp \
 	userapi.cpp \
-	webserver.cpp
+	webserver.cpp \
+	websocketstream.cpp
 
 RESOURCES += \
 	html.qrc \
@@ -80,5 +81,6 @@ HEADERS += \
 	serversettings.h \
 	teacherapi.h \
 	userapi.h \
-	webserver.h
+	webserver.h \
+	websocketstream.h
 

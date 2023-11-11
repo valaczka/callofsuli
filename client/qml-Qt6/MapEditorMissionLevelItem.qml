@@ -168,9 +168,10 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Időtartam")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
-				SpinBox {
+				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
 					from: 30
 					to: 600
@@ -205,9 +206,10 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Kezdő HP")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
-				SpinBox {
+				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
 					from: 1
 					to: 10
@@ -243,9 +245,10 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Kérdések aránya")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
-				SpinBox {
+				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
 					from: 10
 					to: 100
@@ -281,9 +284,10 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Sikeres teljesítés")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
-				SpinBox {
+				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
 					from: 10
 					to: 100
@@ -305,8 +309,6 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				spacing: 15
-
 				visible: mission && (mission.modes & GameMap.Action)
 
 				Qaterial.ColorIcon {
@@ -321,6 +323,7 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Harcmező:")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 10 * Qaterial.Style.pixelSizeRatio
 				}
 
 				MouseArea {
@@ -418,8 +421,6 @@ QPage {
 
 				visible: mission && (mission.modes & GameMap.Action)
 
-				spacing: 10
-
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
 					source: Qaterial.Icons.image
@@ -432,6 +433,7 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Egyéni háttérkép")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
 				MapEditorFormImage {
@@ -656,7 +658,7 @@ QPage {
 						}
 					}
 
-					onRightClickOrPressAndHold: {
+					onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 						if (index != -1)
 							currentIndex = index
 
@@ -809,7 +811,7 @@ QPage {
 			filters: [ "*.tex" ]
 			isSave: true
 			suffix: ".tex"
-			onFileSelected: {
+			onFileSelected: file => {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file, false, MapEditor.ExportExam)
 				else

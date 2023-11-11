@@ -14,6 +14,8 @@ QItemGradient {
 	property CampaignList campaignList: Client.cache("studentCampaignList")
 
 	property bool _firstRun: true
+	property bool _notifyDailyRate80: false
+	property bool _notifyDailyRate100: false
 
 	appBar.rightComponent: Qaterial.AppBarButton {
 		icon.source: Qaterial.Icons.cogOutline
@@ -132,6 +134,25 @@ QItemGradient {
 			property bool _showPlaceholder: true
 		}
 
+
+		QAnimatedProgressBar {
+			id: _progressLimit
+			width: Math.min(parent.width-40, Qaterial.Style.maxContainerSize, 450)
+			anchors.horizontalCenter: parent.horizontalCenter
+			spacing: 0
+			topPadding: 20 * Qaterial.Style.pixelSizeRatio
+			color: Qaterial.Colors.amber500
+
+			visible: user && user.dailyRate >= 0.8
+
+			from: 0
+			value: user ? user.dailyRate*100 : 0
+			to: 100
+			textFormat: qsTr("Napi játékidő: %1%")
+			icon: Qaterial.Icons.timerAlert
+		}
+
+
 		QPlaceholderItem {
 			anchors.horizontalCenter: parent.horizontalCenter
 			widthRatio: 1.0
@@ -226,6 +247,16 @@ QItemGradient {
 		function onStreakChanged() {
 			if (root.StackView.status == StackView.Active)
 				_streakRow.value = user.streak
+		}
+
+		function onDailyRateChanged() {
+			if (user.dailyRate >= 1.0 && !_notifyDailyRate100) {
+				Client.messageWarning(qsTr("Elérted a napi játékidőt, ma már nem tudsz több játékot indítani!"), qsTr("Játékidő"))
+				_notifyDailyRate100 = true
+			} else if (user.dailyRate >= 0.8 && !_notifyDailyRate80) {
+				Client.messageInfo(qsTr("Elérted a napi játékidő 80%-át"), qsTr("Játékidő"))
+				_notifyDailyRate80 = true
+			}
 		}
 	}
 

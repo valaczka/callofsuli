@@ -810,7 +810,7 @@ QHttpServerResponse TeacherAPI::groupClassAdd(const Credential &credential, cons
 							  .addQuery(" AND owner=").addValue(username)
 							  .execCheckExists());
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const int &classid = v.toInt(-1);
 
 		LAMBDA_SQL_ERROR("invalid class", classid > 0) {
@@ -929,7 +929,7 @@ QHttpServerResponse TeacherAPI::groupUserAdd(const Credential &credential, const
 
 	CHECK_GROUP(credential.username(), id);
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const QString &user = v.toString();
 
 		LAMBDA_SQL_ERROR("invalid user", !user.isEmpty()) {
@@ -1893,7 +1893,7 @@ QHttpServerResponse TeacherAPI::campaignDuplicate(const Credential &credential, 
 
 	const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		int id = v.toInt();
 		if (!targetIds.contains(id))
 			targetIds.append(id);
@@ -1909,7 +1909,7 @@ QHttpServerResponse TeacherAPI::campaignDuplicate(const Credential &credential, 
 
 	QJsonArray newIdList;
 
-	for (const int target : qAsConst(targetIds)) {
+	for (const int target : std::as_const(targetIds)) {
 		if (!myGroupIds.contains(target)) {
 			LOG_CWARNING("client") << "Duplicate campaign, skip id (owner error)" << id << "->" << target;
 			continue;
@@ -2150,7 +2150,7 @@ QHttpServerResponse TeacherAPI::campaignUserAdd(const Credential &credential, co
 
 	db.transaction();
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const QString &user = v.toString();
 
 		LAMBDA_SQL_ERROR_ROLLBACK("invalid user", !user.isEmpty());
@@ -2235,7 +2235,7 @@ QHttpServerResponse TeacherAPI::campaignUserCopy(const Credential &credential, c
 	if (json.contains(QStringLiteral("gradeList"))) {
 		const QJsonArray &list = json.value(QStringLiteral("gradeList")).toArray();
 
-		for (const QJsonValue &v : qAsConst(list)) {
+		for (const QJsonValue &v : std::as_const(list)) {
 			int g = v.toInt(-1);
 
 			if (g >= 0 && !grades.contains(g))
@@ -2861,7 +2861,7 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 
 	// Task list
 
-	for (const auto &it : qAsConst(list.value())) {
+	for (const auto &it : std::as_const(list.value())) {
 		const QJsonObject &o = it.toObject();
 
 		const int &gradeid = o.value(QStringLiteral("gradeid")).toInt(-1);

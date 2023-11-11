@@ -34,7 +34,6 @@
 #include "qsoundeffect.h"
 #include "qtimer.h"
 #include "httpconnection.h"
-#include "eventstream.h"
 #include <QAbstractSocket>
 #include <QNetworkReply>
 #include "QQuickWindow"
@@ -101,7 +100,6 @@ class Client : public QObject
 
 	Q_PROPERTY(HttpConnection *httpConnection READ httpConnection CONSTANT)
 	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
-	Q_PROPERTY(EventStream* eventStream READ eventStream WRITE setEventStream NOTIFY eventStreamChanged)
 	Q_PROPERTY(Sound *sound READ sound NOTIFY soundChanged)
 
 
@@ -211,9 +209,6 @@ public:
 	Q_INVOKABLE HttpConnection *httpConnection() const;
 	Q_INVOKABLE HttpReply *send(const HttpConnection::API &api, const QString &path, const QJsonObject &data = {}) const;
 
-	EventStream *eventStream() const;
-	void setEventStream(EventStream *newEventStream);
-
 	Server *server() const;
 
 	Q_INVOKABLE virtual Server *serverAddWithUrl(const QUrl &url);
@@ -317,7 +312,6 @@ signals:
 	void safeMarginTopChanged();
 	void safeMarginBottomChanged();
 	void serverChanged();
-	void eventStreamChanged();
 	void soundChanged();
 
 private:
@@ -335,7 +329,6 @@ protected:
 	std::unique_ptr<Utils> m_utils;
 	std::unique_ptr<AbstractGame> m_currentGame;
 	std::unique_ptr<HttpConnection> m_httpConnection;
-	QPointer<EventStream> m_eventStream = nullptr;
 
 	qreal m_safeMarginLeft = 0;
 	qreal m_safeMarginRight = 0;

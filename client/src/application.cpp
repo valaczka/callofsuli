@@ -349,7 +349,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
-	qmlRegisterUncreatableType<EventStream>("CallOfSuli", 1, 0, "EventStream", "EventStream is uncreatable");
+	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 	qmlRegisterUncreatableType<LiteGame>("CallOfSuli", 1, 0, "LiteGame", "LiteGame is uncreatable");
 	qmlRegisterUncreatableType<MapEditorMap>("CallOfSuli", 1, 0, "MapEditorMap", "MapEditorMap is uncreatable");
 	qmlRegisterUncreatableType<MapEditorMission>("CallOfSuli", 1, 0, "MapEditorMission", "MapEditorMission is uncreatable");
@@ -436,10 +436,13 @@ void Application::loadFonts()
 
 	const QVector<QString> fontsToLoad = {
 		QStringLiteral(":/internal/font/Books.ttf"),
-		QStringLiteral(":/internal/font/Material.ttf"),
 		QStringLiteral(":/internal/font/School.ttf"),
 		QStringLiteral(":/internal/font/Academic.ttf"),
 		QStringLiteral(":/internal/font/AcademicI.ttf"),
+
+	#if QT_VERSION < 0x060000
+		QStringLiteral(":/internal/font/Material.ttf"),
+	#endif
 
 		QStringLiteral(":/internal/font/rajdhani-bold.ttf"),
 		QStringLiteral(":/internal/font/rajdhani-light.ttf"),

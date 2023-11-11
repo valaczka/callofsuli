@@ -114,8 +114,9 @@ void Sound::init()
 		}
 	});
 #else
-	connect(m_mediaPlayerVoiceOver.get(), &QMediaPlayer::playingChanged, this, [this](const bool &playing) {
-		if (!playing && !m_playlist.isEmpty()) {
+	connect(m_mediaPlayerVoiceOver.get(), &QMediaPlayer::playbackStateChanged, this, [this](const QMediaPlayer::PlaybackState &state) {
+		if (state == QMediaPlayer::StoppedState && !m_playlist.isEmpty()) {
+			m_mediaPlayerVoiceOver->setSource(QUrl());
 			m_mediaPlayerVoiceOver->setSource(QUrl(m_playlist.dequeue()));
 			m_mediaPlayerVoiceOver->play();
 		}

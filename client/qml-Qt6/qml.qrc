@@ -186,5 +186,6 @@
         <file>PageTeacherPeers.qml</file>
         <file>UserInfoCounter.qml</file>
         <file>TeacherGroupLog.qml</file>
+        <file>QSpinBox.qml</file>
     </qresource>
 </RCC>

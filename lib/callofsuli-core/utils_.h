@@ -27,7 +27,6 @@
 #ifndef UTILS__H
 #define UTILS__H
 
-#include "qloggingcategory.h"
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonArray>

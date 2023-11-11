@@ -57,7 +57,8 @@ public:
 #define _SQL_get_user	\
 	"SELECT user.username, familyName, givenName, active, classid, class.name as className, isTeacher, isAdmin, isPanel, oauth, " \
 	"nickname, character, picture, xp, rankid, COALESCE(streak, 0) AS streak, COALESCE((ended_on = date('now')), false) AS streakToday, " \
-	"(SELECT COUNT(*) FROM game WHERE game.username=user.username AND success=TRUE) AS trophy " \
+	"(SELECT COUNT(*) FROM game WHERE game.username=user.username AND success=TRUE) AS trophy, " \
+	"COALESCE((SELECT rate FROM dailyLimit WHERE dailyLimit.username=user.username), 0) AS dailyRate " \
 	"FROM user " \
 	"LEFT JOIN auth ON (auth.username=user.username) " \
 	"LEFT JOIN class ON (class.id=user.classid) " \

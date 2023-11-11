@@ -23,6 +23,9 @@ QPageGradient {
 		if (map && map.gameState == MapPlay.StateFinished) {
 			map.gameState = MapPlay.StateSelect
 			return false
+		} else if (map && map.gameState == MapPlay.StatePlay) {
+			Client.messageWarning(qsTr("A játék még folyamatban van..."))
+			return false
 		}
 
 		return true
@@ -577,6 +580,18 @@ QPageGradient {
 			}
 		}
 
+		Qaterial.IconLabel {
+			anchors.left: _inventoryView.left
+			anchors.right: _inventoryView.right
+			visible: _inventoryView.visible
+			font: Qaterial.Style.textTheme.caption
+			icon.source: Qaterial.Icons.informationOutline
+			wrapMode: Text.Wrap
+			text: qsTr("A megszerzett felszerelés bármelyik Sudden Death szinten felhasználható")
+			enabled: false
+			horizontalAlignment: Qt.AlignLeft
+		}
+
 
 
 
@@ -649,14 +664,14 @@ QPageGradient {
 		Row {
 			anchors.horizontalCenter: parent.horizontalCenter
 			spacing: 5
-			visible: map && map.gameState == MapPlay.StateLoading
+			visible: map && (map.gameState == MapPlay.StateLoading || map.gameState == MapPlay.StatePlay)
 			Qaterial.BusyIndicator {
 				anchors.verticalCenter: parent.verticalCenter
 			}
 
 			Qaterial.LabelBody1 {
 				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Betöltés...")
+				text: map && map.gameState == MapPlay.StatePlay ? qsTr("Lejátszás...") : qsTr("Betöltés...")
 			}
 		}
 

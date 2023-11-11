@@ -431,7 +431,7 @@ QPage {
 		QFileDialog {
 			title: qsTr("Adatok feltöltése")
 			filters: [ "*.xlsx" ]
-			onFileSelected: {
+			onFileSelected: file => {
 				_importer.upload(file)
 				Client.Utils.settingsSet("folder/excelImport", modelFolder.toString())
 			}
@@ -454,7 +454,7 @@ QPage {
 
 			isSave: true
 			suffix: ".xlsx"
-			onFileSelected: {
+			onFileSelected: file => {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file)
 				else

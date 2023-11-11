@@ -194,31 +194,6 @@ void ScoreList::loadFromJson(const QJsonObject &obj)
 }
 
 
-/**
- * @brief ScoreList::eventStream
- * @return
- */
-
-EventStream *ScoreList::eventStream() const
-{
-	return m_eventStream;
-}
-
-void ScoreList::setEventStream(EventStream *newEventStream)
-{
-	if (m_eventStream == newEventStream)
-		return;
-
-	if (m_eventStream)
-		disconnect(m_eventStream, &EventStream::eventJsonReceived, this, &ScoreList::onEventJsonReceived);
-
-	m_eventStream = newEventStream;
-	emit eventStreamChanged();
-
-	if (m_eventStream)
-		connect(m_eventStream, &EventStream::eventJsonReceived, this, &ScoreList::onEventJsonReceived);
-}
-
 
 /**
  * @brief ScoreList::filterClassId

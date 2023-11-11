@@ -212,8 +212,6 @@ void ActionGame::createFixEnemies()
 			sniper->setX(e.rect.left() + e.rect.width()/2);
 			sniper->setY(e.rect.bottom()-sniper->height());
 
-			m_scene->addChildItem(sniper);
-
 			sniper->startMovingAfter(2500);
 
 			el->setEnemy(sniper);
@@ -270,8 +268,6 @@ void ActionGame::recreateEnemies()
 
 		soldier->setX(e.rect.left() + e.rect.width()/2);
 		soldier->setY(e.rect.bottom()-soldier->height());
-
-		m_scene->addChildItem(soldier);
 
 		soldier->startMovingAfter(2500);
 
@@ -385,8 +381,6 @@ void ActionGame::createPickable(const GamePickable::GamePickableData &data, cons
 	object->setScene(m_scene);
 	object->setBottomPoint(bottomPoint);
 	object->bodyComplete();
-
-	m_scene->addChildItem(object);
 
 	object->setPickableData(data);
 
@@ -1074,7 +1068,7 @@ QJsonObject ActionGame::getExtendedData() const
 		return data;
 
 	if (player()) {
-		data.insert(QStringLiteral("hp"), m_player->hp()-1);
+		data.insert(QStringLiteral("hp"), qMin(m_player->hp()-1, 2));
 		data.insert(QStringLiteral("shield"), player()->shield());
 	}
 

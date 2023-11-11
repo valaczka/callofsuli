@@ -97,15 +97,6 @@ bool Handler::loadRoutes()
 		return getFavicon(request);
 	});
 
-	/*server->route("/test", QHttpServerRequest::Method::Get, [this](){
-		LOG_CTRACE("service") << "*****";
-		auto *server = m_service->webServer().lock().get();
-
-		server->webSocketHandler().runTest();
-
-		return QHttpServerResponse("ok");
-	});*/
-
 	server->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
 		const QString &callbackPath = QStringLiteral("/")+OAuth2Authenticator::callbackPath()+QStringLiteral("/");
 		const QString &requestPath = request.url().path();
@@ -117,10 +108,6 @@ bool Handler::loadRoutes()
 			responder.sendResponse(std::move(AbstractAPI::responseError("invalid api request", QHttpServerResponse::StatusCode::NotFound)));
 		} else
 			responder.sendResponse(std::move(getStaticContent(request)));
-	});
-
-	server->afterRequest([] (QHttpServerResponse &&resp) {
-		return std::move(resp);
 	});
 
 
@@ -453,4 +440,5 @@ QHttpServerResponse Handler::getErrorPage(const QString &message, const QHttpSer
 
 	return QHttpServerResponse(QByteArrayLiteral("text/html"), b, QHttpServerResponder::StatusCode::Ok);
 }
+
 

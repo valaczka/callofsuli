@@ -527,7 +527,7 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 	LAMBDA_SQL_ASSERT_ROLLBACK(list);
 
 
-	for (const QJsonValue &v : qAsConst(*list)) {
+	for (const QJsonValue &v : std::as_const(*list)) {
 		const QJsonObject &o = v.toObject();
 		const int &gid = o.value(QStringLiteral("gameid")).toInt();
 		const int &xp = o.value(QStringLiteral("xp")).toInt();
@@ -870,7 +870,9 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 									   .addQuery(" AS key, COALESCE((SELECT value FROM inventory WHERE username=").addValue(username)
 									   .addQuery(" AND key=").addValue(it.key())
 									   .addQuery("),0)+").addValue(num)
-									   .addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) SELECT * FROM t")
+									   .addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) "
+												 "SELECT username, key, MIN(value, COALESCE((SELECT value FROM inventoryLimit WHERE key=t.key), 999)) "
+												 "FROM t")
 									   .exec());
 
 			iList.append(QJsonObject{
@@ -1017,7 +1019,7 @@ void UserAPI::_addStatistics(const Credential &credential, const QJsonArray &lis
 
 	QMutexLocker _locker(databaseMain()->mutex());
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const QJsonObject &o = v.toObject();
 
 		QueryBuilder q(db);

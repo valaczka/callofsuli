@@ -24,7 +24,7 @@ QPage {
 	{
 		visible: view.visible
 		icon.source: Qaterial.Icons.dotsVertical
-		onClicked: menu.open()
+		onClicked: (Qt.platform.os === "windows" || Qt.platform.os === "linux") ? menuDesktop.open() : menu.open()
 
 		QMenu {
 			id: menu
@@ -33,6 +33,20 @@ QPage {
 			QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionDemo }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionSettings }
+			QMenuItem { action: actionAbout }
+			QMenuItem { action: actionExit }
+		}
+
+		QMenu {
+			id: menuDesktop
+
+			QMenuItem { action: actionAdd }
+			QMenuItem { action: actionQR }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionDemo }
+			QMenuItem { action: actionEditor }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionSettings }
 			QMenuItem { action: actionAbout }
@@ -73,6 +87,15 @@ QPage {
 		icon.source: Qaterial.Icons.cog
 		onTriggered: {
 			onClicked: Client.stackPushPage("PageStudentSettings.qml", {})
+		}
+	}
+
+	Action {
+		id: actionEditor
+		text: qsTr("Pályaszerkesztő")
+		icon.source: Qaterial.Icons.briefcaseEdit
+		onTriggered: {
+			onClicked: Client.stackPushPage("PageMapEditor.qml", {})
 		}
 	}
 
@@ -218,7 +241,7 @@ QPage {
 
 	QFabButton {
 		visible: view.visible
-		action: actionQR
+		action: actionAdd
 	}
 
 

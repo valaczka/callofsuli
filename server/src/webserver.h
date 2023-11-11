@@ -31,56 +31,11 @@
 #include <QSslConfiguration>
 #include <QHttpServer>
 #include "handler.h"
+#include "websocketstream.h"
+
 
 class ServerService;
 class WebServer;
-
-/**
- * @brief The WebSocketStream class
- */
-
-class WebSocketStream
-{
-public:
-	WebSocketStream(QWebSocket *socket);
-	~WebSocketStream();
-
-	enum StreamType {
-		StreamInvalid = 0,
-		StreamPeers,
-		StreamGroupScore
-	};
-
-	struct StreamObserver {
-		StreamType type = StreamInvalid;
-		QVariant data;
-
-		friend inline bool operator== (const StreamObserver &o1, const StreamObserver &o2) {
-			return o1.type == o2.type && o1.data == o2.data;
-		}
-	};
-
-
-
-	void observerAdd(const StreamType &type, const QVariant &data = QVariant());
-	void observerRemove(const StreamType &type, const QVariant &data = QVariant());
-	void observerRemoveAll(const WebSocketStream::StreamType &type);
-
-	bool hasObserver(const StreamType &type);
-	bool hasObserver(const StreamType &type, const QVariant &data);
-
-	QWebSocket *socket() const { return m_socket; }
-
-	void sendTextMessage(const QString &message) { if (m_socket) m_socket->sendTextMessage(message); }
-
-	const QVector<StreamObserver> &observers() const;
-	void setObservers(const QVector<StreamObserver> &newObservers);
-
-private:
-	QPointer<QWebSocket> m_socket;
-	QVector<StreamObserver> m_observers;
-	QMutex m_mutex;
-};
 
 
 
@@ -91,22 +46,28 @@ private:
 class WebSocketStreamHandler
 {
 public:
-	WebSocketStreamHandler(WebServer *server);
+	WebSocketStreamHandler(WebServer *server, ServerService *service);
 	~WebSocketStreamHandler();
 
+	WebSocketStream *webSocketAdd(QWebSocket *ws);
+	void webSocketRemove(WebSocketStream *ws);
 
-	void webSocketAdd(QWebSocket *ws);
-	void webSocketRemove(QWebSocket *ws);
+	void trigger(const WebSocketStream::StreamType &type);
+	void trigger(const WebSocketStream::StreamType &type, const QVariant &data);
+	void trigger(WebSocketStream *stream);
 
-	void runTest();
-
-	QList<QPointer<QWebSocket>> triggerEvent(const WebSocketStream::StreamType &type);
-	QList<QPointer<QWebSocket>> triggerEvent(const WebSocketStream::StreamType &type, const QVariant &data);
+	void closeAll();
 
 private:
-	QVector<std::shared_ptr<WebSocketStream>> m_streams;
+	QVector<WebSocketStream*> _triggerEvent(const WebSocketStream::StreamType &type);
+	QVector<WebSocketStream*> _triggerEvent(const WebSocketStream::StreamType &type, const QVariant &data);
+
+	void _trPeers(const QVector<WebSocketStream*> &list);
+
+	std::vector<std::unique_ptr<WebSocketStream>> m_streams;
 	QMutex m_mutex;
 	WebServer *m_server = nullptr;
+	ServerService *m_service = nullptr;
 
 };
 
@@ -135,10 +96,9 @@ public:
 
 	Handler* handler() const;
 
-	void webSocketAdd(QWebSocket *ws) { m_webSocketHandler.webSocketAdd(ws); }
-	void webSocketRemove(QWebSocket *ws) { m_webSocketHandler.webSocketRemove(ws); }
-
 	WebSocketStreamHandler &webSocketHandler();
+
+	WebSocketStream *webSocketAdd(QWebSocket *ws) { return m_webSocketHandler.webSocketAdd(ws); }
 
 private slots:
 	void onWebSocketConnection();

@@ -41,6 +41,8 @@ QPageGradient {
 		]
 	}
 
+	property bool _notifyDailyRate100: false
+
 	QScrollable {
 		anchors.fill: parent
 		horizontalPadding: 0
@@ -130,6 +132,21 @@ QPageGradient {
 		}
 
 	}
+
+
+	Connections {
+		target: Client.server ? Client.server.user : null
+
+		function onDailyRateChanged() {
+			if (Client.server.user.dailyRate >= 1.0) {
+				Client.messageWarning(qsTr("Elérted a napi játékidőt, ma már nem tudsz több játékot indítani!"), qsTr("Játékidő"))
+				_notifyDailyRate100 = true
+				if (map)
+					map.readOnly = true
+			}
+		}
+	}
+
 
 	StackView.onActivated: {
 		if (map)

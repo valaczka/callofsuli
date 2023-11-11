@@ -60,11 +60,12 @@ class User : public SelectableObject
 	Q_PROPERTY(QString picture READ picture WRITE setPicture NOTIFY pictureChanged)
 	Q_PROPERTY(QString nickName READ nickName WRITE setNickName NOTIFY nickNameChanged)
 	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged)
+	Q_PROPERTY(qreal dailyRate READ dailyRate WRITE setDailyRate NOTIFY dailyRateChanged)
 
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 	Q_PROPERTY(int streak READ streak WRITE setStreak NOTIFY streakChanged)
 	Q_PROPERTY(bool streakToday READ streakToday WRITE setStreakToday NOTIFY streakTodayChanged)
-    Q_PROPERTY(int trophy READ trophy WRITE setTrophy NOTIFY trophyChanged)
+	Q_PROPERTY(int trophy READ trophy WRITE setTrophy NOTIFY trophyChanged)
 	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged)
 	Q_PROPERTY(QString oauth READ oauth WRITE setOauth NOTIFY oauthChanged)
@@ -136,8 +137,11 @@ public:
 	const QString &character() const;
 	void setCharacter(const QString &newCharacter);
 
-    int trophy() const;
-    void setTrophy(int newTrophy);
+	int trophy() const;
+	void setTrophy(int newTrophy);
+
+	qreal dailyRate() const;
+	void setDailyRate(qreal newDailyRate);
 
 public slots:
 	void clear();
@@ -161,7 +165,8 @@ signals:
 	void nickNameChanged();
 	void streakTodayChanged();
 	void characterChanged();
-    void trophyChanged();
+	void trophyChanged();
+	void dailyRateChanged();
 
 private:
 	QString m_username;
@@ -179,8 +184,9 @@ private:
 	QString m_className;
 	int m_streak = 0;
 	bool m_streakToday = false;
-    QString m_character;
-    int m_trophy = 0;
+	QString m_character;
+	int m_trophy = 0;
+	qreal m_dailyRate = 0.0;
 };
 
 

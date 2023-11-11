@@ -30,7 +30,7 @@ Row {
 	}
 
 
-	SpinBox {
+	QSpinBox {
 		id: _spin
 		anchors.verticalCenter: parent.verticalCenter
 

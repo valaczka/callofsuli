@@ -38,6 +38,7 @@ HttpConnection::HttpConnection(Client *client)
 	: QObject()
 	, m_client(client)
 	, m_networkManager(new QNetworkAccessManager())
+	, m_webSocket(new WebSocket(this))
 {
 	LOG_CTRACE("http") << "HttpConnection created";
 
@@ -120,6 +121,10 @@ void HttpConnection::setServer(Server *newServer)
 		return;
 	m_server = newServer;
 	emit serverChanged();
+
+	if (!m_server) {
+		m_webSocket->close();
+	}
 }
 
 
@@ -260,6 +265,19 @@ void HttpConnection::abortAllReplies()
 	foreach (HttpReply *r, m_replies)
 		r->abort();
 }
+
+
+/**
+ * @brief HttpConnection::webSocket
+ * @return
+ */
+
+WebSocket*HttpConnection::webSocket() const
+{
+	return m_webSocket.get();
+}
+
+
 
 
 /**
@@ -429,57 +447,6 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QByte
 
 
 /**
- * @brief HttpConnection::getEventStream
- * @param api
- * @param path
- * @param data
- * @return
- */
-
-EventStream *HttpConnection::getEventStream(const API &api, const QString &path, const QJsonObject &data)
-{
-	if (!m_server) {
-		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
-		return nullptr;
-	}
-
-	QNetworkRequest r(getUrl(api, path));
-
-#ifndef QT_NO_SSL
-	if (!m_rootCertificate.isNull()) {
-		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-		config.addCaCertificate(m_rootCertificate);
-		r.setSslConfiguration(config);
-	}
-#endif
-
-	if (!m_server->token().isEmpty()) {
-		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
-	}
-
-	r.setRawHeader(QByteArrayLiteral("Accept"), QByteArrayLiteral("text/event-stream"));
-	//r.setHeader(QNetworkRequest::UserAgentHeader, USER_AGENT);
-
-	r.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-	r.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::AlwaysNetwork);
-
-	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
-	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
-
-	EventStream *stream = new EventStream(this);
-	stream->setRequest(r);
-	stream->setRequestData(QJsonDocument(data).toJson());
-	stream->connect(m_server);
-
-	LOG_CTRACE("http") << "Get EventStream:" << qPrintable(Utils::enumToQString<API>(api)) << qPrintable(path) << this << data;
-
-	return stream;
-}
-
-
-
-
-/**
  * @brief HttpConnection::checkPending
  */
 
@@ -637,9 +604,6 @@ HttpReply::~HttpReply()
 		m_socket->checkPending();
 	}
 
-	//if (m_reply.data())
-	//	m_reply.data()->deleteLater();
-
 	LOG_CTRACE("http") << "HttpConnectionReply destroyed" << this;
 }
 
@@ -656,9 +620,6 @@ void HttpReply::abort()
 	emit failed(this);
 
 	LOG_CTRACE("http") << "Abort" << this;
-
-	//if (m_reply && !m_reply->isFinished() && m_reply->error() == QNetworkReply::NoError)
-	//	m_reply->abort();
 
 	emit finished();
 
@@ -720,8 +681,6 @@ void HttpReply::onReplyFinished()
 
 		return;
 	}
-
-	//LOG_CTRACE("http") << "HttpConnectionReply finished successful" << this;
 
 	QJsonObject contentJson;
 	QString errorString;

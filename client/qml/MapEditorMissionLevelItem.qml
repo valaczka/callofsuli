@@ -656,7 +656,7 @@ QPage {
 						}
 					}
 
-					onRightClickOrPressAndHold: {
+					onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 						if (index != -1)
 							currentIndex = index
 
@@ -809,7 +809,7 @@ QPage {
 			filters: [ "*.tex" ]
 			isSave: true
 			suffix: ".tex"
-			onFileSelected: {
+			onFileSelected: file => {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file, false, MapEditor.ExportExam)
 				else

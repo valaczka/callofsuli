@@ -126,6 +126,7 @@ Client::~Client()
 	LOG_CTRACE("app") << "Client destroying" << this;
 
 	m_cache.removeAll();
+	m_soundEffectList.clear();
 
 	if (m_translator) {
 		LOG_CTRACE("app") << "Remove translator";
@@ -934,49 +935,6 @@ Updater *Client::updater() const
 {
 	return m_updater.get();
 }
-
-
-/**
- * @brief Client::eventStream
- * @return
- */
-
-EventStream *Client::eventStream() const
-{
-	return m_eventStream;
-}
-
-
-/**
- * @brief Client::setEventStream
- * @param newEventStream
- */
-
-void Client::setEventStream(EventStream *newEventStream)
-{
-#ifdef Q_OS_WASM
-	LOG_CWARNING("client") << "EventStream not functioning on WASM";
-#endif
-
-	if (m_eventStream == newEventStream)
-		return;
-
-	if (m_eventStream)
-		m_eventStream->disconnect();
-
-	m_eventStream = newEventStream;
-	emit eventStreamChanged();
-
-	if (m_eventStream) {
-		connect(m_eventStream, &EventStream::finished, this, [this](){
-			if (sender() == m_eventStream) {
-				LOG_CDEBUG("client") << "EventStream finished" << m_eventStream;
-				setEventStream(nullptr);
-			}
-		});
-	}
-}
-
 
 
 
@@ -1871,9 +1829,9 @@ std::unique_ptr<QSoundEffect> Client::newSoundEffect()
 	e = std::make_unique<QSoundEffect>(ad);
 #else
 	e = std::make_unique<QSoundEffect>();
+#endif
 	const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
 	e->setVolume(vol);
-#endif
 #else
 	QDefer ret;
 

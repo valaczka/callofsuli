@@ -44,8 +44,8 @@ public:
 
 	inline QString name() const override { return "block"; }
 	inline bool isStorageModule() const override { return true; }
-	inline QString readableName() const override { return tr("Tömb"); }
-	inline QString icon() const override { return "qrc:/Qaterial/Icons/link-box.svg"; }
+	inline QString readableName() const override { return tr("Halmaz"); }
+	inline QString icon() const override { return "qrc:/Qaterial/Icons/view-dashboard.svg"; }
 
 	inline QString qmlEditor() const override {
 #if QT_VERSION >= 0x060000

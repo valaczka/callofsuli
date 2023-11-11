@@ -38,12 +38,13 @@ GameQuestionComponentImpl {
 		anchors.bottom: titleRow.top
 		anchors.topMargin: 15
 
+		readonly property real buttonMinWidth: 150 * Qaterial.Style.pixelSizeRatio
+
 		Row {
 			id: row
 			anchors.centerIn: parent
 			spacing: 30
 
-			property real buttonMinWidth: 150 * Qaterial.Style.pixelSizeRatio
 
 			Repeater {
 				model: [qsTr("Hamis"), qsTr("Igaz")]
@@ -51,7 +52,7 @@ GameQuestionComponentImpl {
 				delegate: GameQuestionButton {
 					id: btn
 					text: modelData
-					width: Math.max(implicitWidth, row.buttonMinWidth)
+					width: Math.max(implicitWidth, containerItem.buttonMinWidth)
 
 					buttonType: control.toggleMode ?
 									(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :
@@ -97,7 +98,7 @@ GameQuestionComponentImpl {
 	}
 
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		var key = event.key
 
 		if (toggleMode) {

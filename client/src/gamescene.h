@@ -33,6 +33,7 @@
 #include <QStack>
 #include "gameladder.h"
 #include "gameterrainmap.h"
+#include "qmutex.h"
 
 
 
@@ -119,8 +120,6 @@ public:
 	bool showEnemies() const;
 	void setShowEnemies(bool newShowEnemies);
 
-	Q_INVOKABLE void addChildItem(QQuickItem *item);
-
 	QQuickItem *mouseArea() const;
 	void setMouseArea(QQuickItem *newMouseArea);
 
@@ -146,7 +145,6 @@ public:
 	const QString &imageOver() const;
 
 	void gameObjectAdd(GameObject *object);
-	void gameObjectRemove(GameObject *object);
 
 public slots:
 	void zoomOverviewToggle();
@@ -214,7 +212,7 @@ private:
 	QList<QPointer<QQuickItem>> m_childItems;
 	QStack<QPointer<GamePlayerPosition>> m_playerPositions;
 
-	QVector<GameObject*> m_gameObjects;
+	QVector<QPointer<GameObject>> m_gameObjects;
 
 	bool m_zoomOverview = false;
 	bool m_debugView = false;

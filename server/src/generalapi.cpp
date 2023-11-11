@@ -136,7 +136,7 @@ QHttpServerResponse GeneralAPI::config()
 
 	QJsonArray pList;
 
-	for (const auto &a : qAsConst(m_service->authenticators()))
+	for (const auto &a : std::as_const(m_service->authenticators()))
 		pList.append(QString::fromLatin1(a->type()));
 
 	c.insert(QStringLiteral("oauthProviders"), pList);

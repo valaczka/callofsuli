@@ -56,7 +56,6 @@ public:
 	}
 
 	inline QString qmlQuestion() const override {
-		return "GQ_calculator.qml";
 #if QT_VERSION >= 0x060000
 		return "GQ_calculator_qt6.qml";
 #else

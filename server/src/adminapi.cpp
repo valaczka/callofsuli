@@ -261,9 +261,6 @@ AdminAPI::AdminAPI(Handler *handler, ServerService *service)
 	});
 
 
-	/*addMap("^user/peers/live$", this, &AdminAPI::userPeersLive); */
-
-
 }
 
 
@@ -776,7 +773,7 @@ QHttpServerResponse AdminAPI::userImport(const QJsonObject &json)
 
 	QVariantList usernames;
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const QString &u = v.toObject().value(QStringLiteral("username")).toString();
 		if (!u.isEmpty())
 			usernames << u;
@@ -813,7 +810,7 @@ QHttpServerResponse AdminAPI::userImport(const QJsonObject &json)
 
 	QJsonArray retList;
 
-	for (const QJsonValue &v : qAsConst(list)) {
+	for (const QJsonValue &v : std::as_const(list)) {
 		const QJsonObject &o = v.toObject();
 
 		QJsonObject ret;
@@ -969,7 +966,7 @@ QHttpServerResponse AdminAPI::usersProfileUpdate()
 	if (!userList)
 		return responseErrorSql();
 
-	for (const QJsonValue &v : qAsConst(*userList)) {
+	for (const QJsonValue &v : std::as_const(*userList)) {
 		const QJsonObject &o = v.toObject();
 
 		const QString &username = o.value(QStringLiteral("username")).toString();

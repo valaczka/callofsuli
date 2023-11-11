@@ -104,7 +104,7 @@ QPage {
 					onToggled: _form.modified = true
 				}
 
-				SpinBox {
+				QSpinBox {
 					id: _spinXP
 
 					enabled: _modeXP.checked
@@ -250,7 +250,7 @@ QPage {
 					anchors.verticalCenter: parent.verticalCenter
 				}
 
-				SpinBox {
+				QSpinBox {
 					id: _spinNum
 
 					anchors.verticalCenter: parent.verticalCenter

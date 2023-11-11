@@ -113,7 +113,7 @@ QPage {
 			QMenuItem { action: actionMapDeleteDraft }
 		}
 
-		onRightClickOrPressAndHold: {
+		onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 			if (index != -1)
 				currentIndex = index
 			contextMenu.popup(mouseX, mouseY)
@@ -152,7 +152,7 @@ QPage {
 		QFileDialog {
 			title: qsTr("Pálya importálása")
 			filters: [ "*.map" ]
-			onFileSelected: {
+			onFileSelected: file => {
 				handler.mapImport(file)
 				Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
 			}

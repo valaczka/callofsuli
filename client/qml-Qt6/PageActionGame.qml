@@ -1161,7 +1161,7 @@ Page {
 						text: qsTr("Joystick:")
 					}
 
-					SpinBox {
+					QSpinBox {
 						anchors.verticalCenter: parent.verticalCenter
 						from: 200
 						to: 600

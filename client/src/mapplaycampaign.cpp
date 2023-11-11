@@ -42,6 +42,9 @@ MapPlayCampaign::MapPlayCampaign(StudentMapHandler *handler, QObject *parent)
 	m_updateTimer.setInterval(5000);
 	connect(&m_updateTimer, &QTimer::timeout, this, &MapPlayCampaign::onUpdateTimerTimeout);
 
+	m_finishTimer.setInterval(5000);
+	connect(&m_finishTimer, &QTimer::timeout, this, &MapPlayCampaign::onFinishTimerTimeout);
+
 	LOG_CTRACE("client") << "MapPlayCampaign created" << this;
 }
 
@@ -220,29 +223,19 @@ void MapPlayCampaign::onCurrentGameFinished()
 		const QJsonArray &stat = levelGame->getStatistics();
 		const QJsonObject &extended = levelGame->getExtendedData();
 
-		m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), {
-						   { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
-						   { QStringLiteral("xp"), levelGame->xp() },
-						   { QStringLiteral("duration"), levelGame->elapsedMsec() },
-						   { QStringLiteral("statistics"), stat },
-						   { QStringLiteral("extended"), extended },
-					   })
-				->fail(this, [this, stat](const QString &err){
-			m_client->messageError(err, tr("Játék mentése sikertelen"));
-			if (m_client->currentGame())
-				m_client->currentGame()->clearStatistics(stat);
-			destroyCurrentGame();
-		})
-				->done(this, [this](const QJsonObject &data){
+		m_finishObject = QJsonObject({
+										 { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
+										 { QStringLiteral("xp"), levelGame->xp() },
+										 { QStringLiteral("duration"), levelGame->elapsedMsec() },
+										 { QStringLiteral("statistics"), stat },
+										 { QStringLiteral("extended"), extended },
+									 });
 
-			setFinishedData(data);
+		levelGame->clearStatistics(stat);
 
-			destroyCurrentGame();
-
-			updateSolver();
-
-			setGameState(StateFinished);
-		});
+		m_finishTries = 0;
+		onFinishTimerTimeout();
+		m_finishTimer.start();
 	}
 
 }
@@ -293,6 +286,52 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 			m_client->currentGame()->clearStatistics(stat, false);
 
 		m_lastXP = xp;
+	});
+}
+
+
+
+/**
+ * @brief MapPlayCampaign::onFinishTimerTimeout
+ */
+
+void MapPlayCampaign::onFinishTimerTimeout()
+{
+	if (m_finishObject.isEmpty()) {
+		m_finishTimer.stop();
+		return;
+	}
+
+	LOG_CDEBUG("client") << "Try finishing game" << m_finishTries;
+
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
+
+	if (!levelGame || !game || ++m_finishTries > 4) {
+		m_client->messageError(tr("Játék mentése sikertelen"));
+		m_finishTimer.stop();
+		setGameState(StateFinished);
+		destroyCurrentGame();
+		return;
+	}
+
+	m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), m_finishObject)
+			->fail(this, [](const QString &err){
+		LOG_CERROR("client") << "Game finish error:" << qPrintable(err);
+	})
+			->done(this, [this](const QJsonObject &data){
+		m_finishTimer.stop();
+		m_finishObject = QJsonObject();
+
+		setFinishedData(data);
+
+		destroyCurrentGame();
+
+		updateSolver();
+
+		setGameState(StateFinished);
+
+		m_client->reloadUser();
 	});
 }
 
@@ -355,7 +394,6 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 void MapPlayCampaign::destroyCurrentGame()
 {
 	if (m_client->currentGame()) {
-		LOG_CTRACE("client") << "Destroy current game" << m_client->currentGame();
 		m_client->currentGame()->setReadyToDestroy(true);
 	} else {
 		LOG_CERROR("client") << "Missing current game";

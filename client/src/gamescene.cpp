@@ -65,10 +65,9 @@ GameScene::GameScene(QQuickItem *parent)
 
 GameScene::~GameScene()
 {
-	qDeleteAll(m_childItems);
-	qDeleteAll(m_ladders);
-	qDeleteAll(m_grounds);
-
+	m_grounds.clear();
+	m_ladders.clear();
+	m_childItems.clear();
 	LOG_CDEBUG("scene") << "Scene destroyed" << this;
 }
 
@@ -141,7 +140,7 @@ void GameScene::load()
 
 void GameScene::playSoundPlayerVoice(const QString &source)
 {
-		Application::instance()->client()->sound()->playSound(source, Sound::PlayerVoice);
+	Application::instance()->client()->sound()->playSound(source, Sound::PlayerVoice);
 }
 
 
@@ -152,7 +151,7 @@ void GameScene::playSoundPlayerVoice(const QString &source)
 
 void GameScene::playSound(const QString &source)
 {
-Application::instance()->client()->sound()->playSound(source, Sound::GameSound);
+	Application::instance()->client()->sound()->playSound(source, Sound::GameSound);
 }
 
 
@@ -163,7 +162,7 @@ Application::instance()->client()->sound()->playSound(source, Sound::GameSound);
 
 void GameScene::playSoundVoiceOver(const QString &source)
 {
-Application::instance()->client()->sound()->playSound(source, Sound::VoiceOver);
+	Application::instance()->client()->sound()->playSound(source, Sound::VoiceOver);
 }
 
 
@@ -174,7 +173,7 @@ Application::instance()->client()->sound()->playSound(source, Sound::VoiceOver);
 
 void GameScene::playSoundMusic(const QString &source)
 {
-Application::instance()->client()->sound()->playSound(source, Sound::Music);
+	Application::instance()->client()->sound()->playSound(source, Sound::Music);
 }
 
 
@@ -187,7 +186,7 @@ Application::instance()->client()->sound()->playSound(source, Sound::Music);
 
 void GameScene::stopSoundMusic(const QString &source)
 {
-Application::instance()->client()->sound()->stopSound(source, Sound::Music);
+	Application::instance()->client()->sound()->stopSound(source, Sound::Music);
 }
 
 
@@ -539,8 +538,6 @@ void GameScene::loadTerrainObjectsLayer()
 			}
 
 			object->bodyComplete();
-
-			addChildItem(object);
 		}
 	}
 }
@@ -649,7 +646,8 @@ void GameScene::onTimerTimeout()
 
 
 	foreach (GameObject *o, m_gameObjects)
-		o->onTimingTimerTimeout(m_timingTimerTimeoutMsec, factor);
+		if (o)
+			o->onTimingTimerTimeout(m_timingTimerTimeoutMsec, factor);
 
 
 	foreach (GameObject *o, m_gameObjects) {
@@ -828,8 +826,6 @@ void GameScene::createPlayer()
 
 	m_game->setPlayer(player);
 
-	addChildItem(player);
-
 	QCoreApplication::processEvents();
 }
 
@@ -984,6 +980,9 @@ void GameScene::activateLaddersInBlock(const int &block)
 	LOG_CDEBUG("scene") << "Activate ladders in block:" << block;
 
 	foreach (GameLadder *ladder, m_ladders) {
+		if (!ladder)
+			continue;
+
 		if (ladder->blockTop() == block || ladder->blockBottom() == block)
 			ladder->setActive(true);
 	}
@@ -1048,15 +1047,6 @@ void GameScene::setShowEnemies(bool newShowEnemies)
 	emit showEnemiesChanged(m_showEnemies);
 }
 
-/**
- * @brief GameScene::addChildItem
- * @param item
- */
-
-void GameScene::addChildItem(QQuickItem *item)
-{
-	m_childItems.append(item);
-}
 
 QQuickItem *GameScene::mouseArea() const
 {
@@ -1104,17 +1094,13 @@ const QString &GameScene::imageOver() const
 
 void GameScene::gameObjectAdd(GameObject *object)
 {
-	if (!m_gameObjects.contains(object))
+	if (!m_gameObjects.contains(object)) {
 		m_gameObjects.append(object);
+		connect(object, &GameObject::destroyed, this, [this, object]() {
+			LOG_CTRACE("scene") << "Remove...";
+			LOG_CTRACE("scene") << "Remove" << object;
+			m_gameObjects.removeAll(object);
+		}, Qt::DirectConnection);
+	}
 }
 
-
-/**
- * @brief GameScene::gameObjectRemove
- * @param object
- */
-
-void GameScene::gameObjectRemove(GameObject *object)
-{
-	m_gameObjects.removeAll(object);
-}

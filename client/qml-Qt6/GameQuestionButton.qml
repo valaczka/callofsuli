@@ -23,6 +23,7 @@ Qaterial.Button {
 	maximumLineCount: 2
 	topInset: 0
 	bottomInset: 0
+	elide: Text.ElideNone
 
 
 

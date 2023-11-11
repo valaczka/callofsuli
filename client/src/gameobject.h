@@ -103,7 +103,6 @@ public:
 	Box2DBody *body() const;
 
 	Q_INVOKABLE void bodyComplete();
-	Q_INVOKABLE void addChildItem(QQuickItem *item);
 	Q_INVOKABLE void deleteSelf();
 
 	const QString &objectType() const;
@@ -121,7 +120,7 @@ signals:
 	void objectTypeChanged();
 
 protected:
-	GameScene *m_scene = nullptr;
+	QPointer<GameScene> m_scene;
 	std::unique_ptr<Box2DBody> m_body;
 	QList<QPointer<QQuickItem>> m_childItems;
 

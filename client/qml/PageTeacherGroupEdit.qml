@@ -143,7 +143,7 @@ QPage {
 				QMenuItem { action: actionClassRemove }
 			}
 
-			onRightClickOrPressAndHold: {
+			onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 				if (index != -1)
 					currentIndex = index
 				contextMenu.popup(mouseX, mouseY)
@@ -216,7 +216,7 @@ QPage {
 				QMenuItem { action: actionUserRemove }
 			}
 
-			onRightClickOrPressAndHold: {
+			onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 				if (index != -1)
 					currentIndex = index
 				contextMenuUser.popup(mouseX, mouseY)

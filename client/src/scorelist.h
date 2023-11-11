@@ -43,8 +43,6 @@ class ScoreList : public FetchModel
 	Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged)
 	Q_PROPERTY(QJsonObject apiData READ apiData WRITE setApiData NOTIFY apiDataChanged)
 
-	Q_PROPERTY(EventStream *eventStream READ eventStream WRITE setEventStream NOTIFY eventStreamChanged)
-
 public:
 	explicit ScoreList(QObject *parent = nullptr);
 
@@ -75,9 +73,6 @@ public:
 	int filterClassId() const;
 	void setFilterClassId(int newFilterClassId);
 
-	EventStream *eventStream() const;
-	void setEventStream(EventStream *newEventStream);
-
 public slots:
 	void reload() override;
 	void reloadFromVariantList(const QVariantList &list) override;
@@ -104,8 +99,6 @@ private:
 	int m_filterClassId = -1;
 
 	QVariantList m_originalModel;
-
-	EventStream *m_eventStream = nullptr;
 };
 
 

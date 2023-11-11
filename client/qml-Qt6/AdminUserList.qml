@@ -295,7 +295,7 @@ Qaterial.Page
 
 			}
 
-			onRightClickOrPressAndHold: {
+			onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 				if (index != -1)
 					currentIndex = index
 				_moveMenuModel.reload()

@@ -51,16 +51,6 @@ span.pointFail {
 	font-weight: 600;
 }
 
-span.checkOK {
-	font-family: "Material Icons";
-	color: "#4CAF50";
-}
-
-span.checkFail {
-	font-family: "Material Icons";
-	color: "#F44336";
-}
-
 
 tr.questionTitle {
 	font-weight: 500;
@@ -73,9 +63,6 @@ tr.answer, td.answer p {
 }
 
 
-td.check {
-	font-size: x-large;
-}
 
 td.questionNum {
 	padding-top: 20px;

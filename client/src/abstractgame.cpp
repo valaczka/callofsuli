@@ -84,11 +84,6 @@ void AbstractGame::onPageItemDestroyed()
 	gameDestroy();
 }
 
-void AbstractGame::setFinishState(const FinishState &newFinishState)
-{
-	m_finishState = newFinishState;
-}
-
 
 /**
  * @brief AbstractGame::readyToDestroy
@@ -113,15 +108,6 @@ void AbstractGame::setReadyToDestroy(bool newReadyToDestroy)
 }
 
 
-/**
- * @brief AbstractGame::finishState
- * @return
- */
-
-const AbstractGame::FinishState &AbstractGame::finishState() const
-{
-	return m_finishState;
-}
 
 
 /**
@@ -283,6 +269,31 @@ void AbstractGame::elapsedTimeStop()
 	}
 
 	m_elapsedMsec = m_elapsedTimer.elapsed();
+}
+
+
+/**
+ * @brief AbstractGame::finishState
+ * @return
+ */
+
+const AbstractGame::FinishState &AbstractGame::finishState() const
+{
+	return m_finishState;
+}
+
+
+/**
+ * @brief AbstractGame::setFinishState
+ * @param newFinishState
+ */
+
+void AbstractGame::setFinishState(const FinishState &newFinishState)
+{
+	if (m_finishState == newFinishState)
+		return;
+	m_finishState = newFinishState;
+	emit finishStateChanged();
 }
 
 

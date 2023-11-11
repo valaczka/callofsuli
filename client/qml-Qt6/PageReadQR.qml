@@ -20,26 +20,22 @@ QPage {
 
 	Camera
 	{
-		id:camera
+		id: camera
 
-		focus {
-			focusMode: CameraFocus.FocusContinuous
-			focusPointMode: CameraFocus.FocusPointCenter
-		}
+		active: true
+		focusMode: Camera.FocusModeAutoNear
+	}
+
+	CaptureSession {
+		camera: camera
+		videoOutput: videoOutput
 	}
 
 	VideoOutput
 	{
 		id: videoOutput
-		source: camera
-		/*anchors.top: hdr.bottom
-		   anchors.bottom: parent.bottom
-		   anchors.left: parent.left
-		   anchors.right: parent.right*/
+
 		anchors.fill: parent
-		autoOrientation: true
-		fillMode: VideoOutput.Stretch
-		filters: [ zxingFilter ]
 
 		property double captureRectStartFactorX: 0.1
 		property double captureRectStartFactorY: 0.1
@@ -75,11 +71,15 @@ QPage {
 			invert: true
 			opacity: 0.5
 		}
+
+		Component.onCompleted: { camera.active = false; camera.active = true; }
 	}
 
 	QZXingFilter
 	{
 		id: zxingFilter
+
+		videoSink: videoOutput.videoSink
 		orientation: videoOutput.orientation
 		captureRect: {
 			videoOutput.sourceRect;

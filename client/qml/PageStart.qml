@@ -115,7 +115,7 @@ QPage {
 			QMenuItem { action: actionDelete }
 		}
 
-		onRightClickOrPressAndHold: {
+		onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
 			if (index != -1)
 				currentIndex = index
 			contextMenu.popup(mouseX, mouseY)

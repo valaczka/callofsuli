@@ -67,11 +67,6 @@ GameObject::GameObject(QQuickItem *parent)
 
 GameObject::~GameObject()
 {
-	if (m_scene)
-		m_scene->gameObjectRemove(this);
-
-	qDeleteAll(m_childItems);
-
 	LOG_CDEBUG("scene") << "Destroy GameObject" << this;
 }
 
@@ -132,16 +127,6 @@ void GameObject::bodyComplete()
 	m_body->componentComplete();
 }
 
-
-/**
- * @brief GameObject::addChildItem
- * @param item
- */
-
-void GameObject::addChildItem(QQuickItem *item)
-{
-	m_childItems.append(item);
-}
 
 
 /**

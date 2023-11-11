@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return "simplechoice"; }
 	inline bool isStorageModule() const override { return false; }
 	inline QString readableName() const override { return tr("Egyszerű választás"); }
-	inline QString icon() const override { return "image://font/Material Icons/\ue1db"; }
+	inline QString icon() const override { return "qrc:/Qaterial/Icons/checkbox-multiple-marked-outline.svg"; }
 
 	inline QString qmlEditor() const override {
 #if QT_VERSION >= 0x060000

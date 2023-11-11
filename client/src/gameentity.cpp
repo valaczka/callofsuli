@@ -213,8 +213,6 @@ bool GameEntity::createSpriteItem()
 			}
 		}
 
-		addChildItem(item);
-
 		loadSprites();
 		return true;
 	}
