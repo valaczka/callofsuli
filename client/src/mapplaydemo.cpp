@@ -26,6 +26,7 @@
 
 #include "mapplaydemo.h"
 #include "client.h"
+#include "qsettings.h"
 
 
 MapPlayDemo::MapPlayDemo(Client *client, QObject *parent)
@@ -78,7 +79,12 @@ void MapPlayDemo::solverLoad()
 	if (!m_gameMap || !m_solver)
 		return;
 
+#ifdef Q_OS_WASM
+	QSettings settings;
+	const QJsonObject &object = settings.value(QStringLiteral("demo")).toJsonObject();
+#else
 	const QJsonObject &object = Utils::fileToJsonObject(m_file).value_or(QJsonObject{});
+#endif
 
 	for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
 		const QString &uuid = it.key();
@@ -114,7 +120,12 @@ void MapPlayDemo::solverSave()
 		object.insert(mission->mission()->uuid(), mission->toSolverInfo().toJsonObject());
 	}
 
+#ifdef Q_OS_WASM
+	QSettings settings;
+	settings.setValue(QStringLiteral("demo"), object);
+#else
 	Utils::jsonObjectToFile(object, m_file);
+#endif
 }
 
 

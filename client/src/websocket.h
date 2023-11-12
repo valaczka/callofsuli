@@ -2,6 +2,7 @@
 #define WEBSOCKET_H
 
 #include "qjsonvalue.h"
+#include "qtimer.h"
 #include <QObject>
 #include <QWebSocket>
 
@@ -37,20 +38,25 @@ public:
 	Q_INVOKABLE void close();
 
 	Q_INVOKABLE void observerAdd(const QString &type) { observerAddValue(type, QJsonValue::Null); }
-	Q_INVOKABLE void observerAddInt(const QString &type, const int &num) { observerAddValue(type, num); }
+	/*Q_INVOKABLE void observerAddInt(const QString &type, const int &num) { observerAddValue(type, num); }
 	Q_INVOKABLE void observerAddString(const QString &type, const QString &string) { observerAddValue(type, string); }
 	Q_INVOKABLE void observerAddObject(const QString &type, const QJsonObject &object) { observerAddValue(type, object); }
-	Q_INVOKABLE void observerAddArray(const QString &type, const QJsonArray &array) { observerAddValue(type, array); }
+	Q_INVOKABLE void observerAddArray(const QString &type, const QJsonArray &array) { observerAddValue(type, array); }*/
 
 	Q_INVOKABLE void observerRemove(const QString &type) { observerRemoveValue(type, QJsonValue::Null); }
-	Q_INVOKABLE void observerRemoveInt(const QString &type, const int &num) { observerRemoveValue(type, num); }
+	/*Q_INVOKABLE void observerRemoveInt(const QString &type, const int &num) { observerRemoveValue(type, num); }
 	Q_INVOKABLE void observerRemoveString(const QString &type, const QString &string) { observerRemoveValue(type, string); }
 	Q_INVOKABLE void observerRemoveObject(const QString &type, const QJsonObject &object) { observerRemoveValue(type, object); }
-	Q_INVOKABLE void observerRemoveArray(const QString &type, const QJsonArray &array) { observerRemoveValue(type, array); }
+	Q_INVOKABLE void observerRemoveArray(const QString &type, const QJsonArray &array) { observerRemoveValue(type, array); }*/
+
+	Q_INVOKABLE void observerAddValue(const QString &type, const QJsonValue &value);
+	Q_INVOKABLE void observerRemoveValue(const QString &type, const QJsonValue &value);
 
 signals:
 	void activeChanged();
 	void connectionError();
+	void connectionFailed();
+	void messageReceived(QString operation, QJsonValue data);
 
 private:
 	void onConnected();
@@ -59,8 +65,7 @@ private:
 	void onTextReceived(const QString &text);
 	void onJsonReceived(const QJsonObject &json);
 	void send(const QJsonObject &json);
-	void observerAddValue(const QString &type, const QJsonValue &value);
-	void observerRemoveValue(const QString &type, const QJsonValue &value);
+	void reconnect();
 
 	enum State {
 		WebSocketReset = 0,
@@ -84,6 +89,9 @@ private:
 	std::unique_ptr<QWebSocket> m_socket;
 	State m_state = WebSocketReset;
 	QVector<Observer> m_observers;
+	QTimer m_timerConnect;
+	int m_tries = 0;
+	bool m_forceClose = false;
 };
 
 #endif // WEBSOCKET_H

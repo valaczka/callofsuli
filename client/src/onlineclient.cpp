@@ -131,15 +131,6 @@ void OnlineClient::onApplicationStarted()
 
 	emscripten::val location = emscripten::val::global("location");
 	m_parseUrl = {QString::fromStdString(location["href"].as<std::string>())};
-
-
-	/*emscripten::val doc = emscripten::val::global("document");
-	auto cookie = doc["cookie"].as<std::string>();*/
-
-	const auto devices = QMediaDevices::audioOutputs();
-	for (const QAudioDevice &device : devices)
-		qDebug() << "Device: " << device.description();
-
 }
 
 
@@ -268,18 +259,6 @@ void OnlineClient::onAllResourceReady()
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
 
-
-	/*void toggleFullscreen() {
-		using emscripten::val;
-		const val document = val::global("document");
-		const val fullscreenElement = document["fullscreenElement"];
-		if (fullscreenElement.isUndefined() || fullscreenElement.isNull())
-			document["documentElement"].call("requestFullscreen");
-		else
-			document.call("exitFullscreen");
-	}*/
-
-
 	if (m_demoMode)
 		m_startPage = loadDemoMap();
 	else
@@ -305,6 +284,62 @@ void OnlineClient::enableTabCloseConfirmation(bool enable)
 	} else {
 		window.call<void>("removeEventListener", std::string("beforeunload"), eventHandler, capture);
 	}
+}
+
+
+/**
+ * @brief OnlineClient::fullScreenHelper
+ * @return
+ */
+
+bool OnlineClient::fullScreenHelper() const
+{
+	using emscripten::val;
+	const val document = val::global("document");
+	const val fullscreenElement = document["fullscreenElement"];
+	if (fullscreenElement.isUndefined() || fullscreenElement.isNull())
+		return false;
+	else
+		return true;
+}
+
+
+/**
+ * @brief OnlineClient::setFullScreenHelper
+ * @param newFullScreenHelper
+ */
+
+void OnlineClient::setFullScreenHelper(bool newFullScreenHelper)
+{
+	using emscripten::val;
+	const val document = val::global("document");
+	const val fullscreenElement = document["fullscreenElement"];
+	if (newFullScreenHelper && (fullscreenElement.isUndefined() || fullscreenElement.isNull()))
+		document["documentElement"].call<void>("requestFullscreen");
+	else if (!newFullScreenHelper && (!fullscreenElement.isUndefined() || !fullscreenElement.isNull()))
+		document.call<void>("exitFullscreen");
+}
+
+
+/**
+ * @brief OnlineClient::fullScreenHelperConnect
+ * @param window
+ */
+
+void OnlineClient::fullScreenHelperConnect(QQuickWindow *window)
+{
+	Q_UNUSED(window);
+}
+
+
+/**
+ * @brief OnlineClient::fullScreenHelperDisconnect
+ * @param window
+ */
+
+void OnlineClient::fullScreenHelperDisconnect(QQuickWindow *window)
+{
+	Q_UNUSED(window);
 }
 
 

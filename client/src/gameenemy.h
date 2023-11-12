@@ -133,8 +133,7 @@ private slots:
 protected:
 	virtual void enemyStateModified() {}
 	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
-
-	std::unique_ptr<QSoundEffect> m_soundEffect;
+	void playAttackSound();
 
 	GameTerrain::EnemyData m_terrainEnemyData;
 	int m_startMovingAfter = 0;

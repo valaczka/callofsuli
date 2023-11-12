@@ -83,6 +83,8 @@ win32 {
 
 
 android {
+	androidCodeApi = 26000
+
 	lessThan(QT_MAJOR_VERSION, 6) {
 		QT += androidextras
 
@@ -94,6 +96,8 @@ android {
 		alist.output = $$PWD/android/AndroidManifest.xml
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+		androidCodeApi = 21000
 	} else {
 		QT += concurrent
 
@@ -107,12 +111,14 @@ android {
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
 	}
 
+	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)
+
 
 	QMAKE_SUBSTITUTES += alist
 
 	ANDROID_TARGET_SDK_VERSION = 33
 
-	ANDROID_VERSION_CODE = $${AndroidVersionCode}
+	ANDROID_VERSION_CODE = $${androidCodeApi}
 	ANDROID_VERSION_NAME = $$VERSION
 
 	QTDIR = $$dirname(QMAKE_QMAKE)/../qml
@@ -180,7 +186,6 @@ SOURCES += \
 	client.cpp \
 	clientcache.cpp \
 	editorundostack.cpp \
-	eventstream.cpp \
 	examgame.cpp \
 	fetchmodel.cpp \
 	fontimage.cpp \
@@ -253,7 +258,6 @@ HEADERS += \
 	client.h \
 	clientcache.h \
 	editorundostack.h \
-	eventstream.h \
 	examgame.h \
 	fetchmodel.h \
 	fontimage.h \

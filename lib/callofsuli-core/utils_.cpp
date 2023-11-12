@@ -53,6 +53,12 @@ const quint32 Utils::m_versionBuild = VERSION_BUILD;
 #include "mobileutils.h"
 #endif
 
+#ifdef Q_OS_ANDROID
+#if QT_VERSION <= 0x060000
+#include <QAndroidJniObject>
+#include "qandroidfunctions.h"
+#endif
+#endif
 
 
 /**
@@ -683,7 +689,7 @@ void Utils::checkMediaPermissions()
 {
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined (Q_OS_MAC)
 
-#if QT_VERSION < 0x060000
+#if QT_VERSION < 0x060000 && defined(Q_OS_ANDROID)
 	QtAndroid::PermissionResult result0 = QtAndroid::checkPermission("android.permission.CAMERA");
 
 	QStringList permissions;

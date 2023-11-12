@@ -125,6 +125,20 @@ void MapPlayCampaign::updateSolver()
 }
 
 
+/**
+ * @brief MapPlayCampaign::getShortTimeHelper
+ * @param missionLevel
+ * @return
+ */
+
+int MapPlayCampaign::getShortTimeHelper(MapPlayMissionLevel *missionLevel) const
+{
+	if (!missionLevel)
+		return -1;
+	return m_shortTimeHelper.value(missionLevel->missionLevel(), 0);
+}
+
+
 
 /**
  * @brief MapPlayCampaign::onCurrentGamePrepared
@@ -154,6 +168,13 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		levelGame->load();
 		setGameState(StatePlay);
 	} else {
+		if (LiteGame *lg = qobject_cast<LiteGame*>(m_client->currentGame()); lg && levelGame->mode() == GameMap::Lite) {
+			LOG_CDEBUG("client") << "Add extra time to GameLite" << m_extraTimeFactor;
+
+			if (m_extraTimeFactor > 0.0)
+				lg->setAddExtraTime(m_extraTimeFactor);
+		}
+
 		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
 						   { QStringLiteral("map"), m_gameMap->uuid() },
 						   { QStringLiteral("mission"), levelGame->uuid() },
@@ -208,7 +229,6 @@ void MapPlayCampaign::onCurrentGameFinished()
 		LOG_CERROR("client") << "Object cast error" << m_client->currentGame();
 		return;
 	}
-
 	m_updateTimer.stop();
 
 	if (levelGame->finishState() == AbstractGame::Fail)
@@ -222,6 +242,14 @@ void MapPlayCampaign::onCurrentGameFinished()
 	} else {
 		const QJsonArray &stat = levelGame->getStatistics();
 		const QJsonObject &extended = levelGame->getExtendedData();
+
+		if (LiteGame *lg = qobject_cast<LiteGame*>(m_client->currentGame()); lg && levelGame->mode() == GameMap::Lite) {
+			if (GameMapMissionLevel *ml = lg->missionLevel(); lg->shortTimeHelper() && ml) {
+				int num = m_shortTimeHelper.value(ml, 0);
+				m_shortTimeHelper[ml] = ++num;
+				emit shortTimeHelperUpdated();
+			}
+		}
 
 		m_finishObject = QJsonObject({
 										 { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
@@ -248,7 +276,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 void MapPlayCampaign::onUpdateTimerTimeout()
 {
-	LOG_CTRACE("client") << "GAME UPDATE";
+	LOG_CTRACE("client") << "Update game";
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
@@ -398,6 +426,26 @@ void MapPlayCampaign::destroyCurrentGame()
 	} else {
 		LOG_CERROR("client") << "Missing current game";
 	}
+}
+
+
+
+/**
+ * @brief MapPlayCampaign::extraTimeFactor
+ * @return
+ */
+
+qreal MapPlayCampaign::extraTimeFactor() const
+{
+	return m_extraTimeFactor;
+}
+
+void MapPlayCampaign::setExtraTimeFactor(qreal newExtraTimeFactor)
+{
+	if (qFuzzyCompare(m_extraTimeFactor, newExtraTimeFactor))
+		return;
+	m_extraTimeFactor = newExtraTimeFactor;
+	emit extraTimeFactorChanged();
 }
 
 

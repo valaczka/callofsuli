@@ -160,8 +160,10 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 		m_playlist.append(source);
 
 #if QT_VERSION < 0x060000
-		if (m_mediaPlayerVoiceOver->state() != QMediaPlayer::PlayingState)
+		if (m_mediaPlayerVoiceOver->state() != QMediaPlayer::PlayingState) {
+			m_mediaPlayerVoiceOver->setMedia(QUrl(m_playlist.dequeue()));
 			m_mediaPlayerVoiceOver->play();
+		}
 #else
 		if (!m_mediaPlayerVoiceOver->isPlaying()) {
 			m_mediaPlayerVoiceOver->setSource(QUrl());

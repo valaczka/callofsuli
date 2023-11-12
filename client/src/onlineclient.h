@@ -47,6 +47,13 @@ public:
 
 	void enableTabCloseConfirmation(bool enable);
 
+	virtual bool fullScreenHelper() const override;
+	virtual void setFullScreenHelper(bool newFullScreenHelper) override;
+
+protected:
+	virtual void fullScreenHelperConnect(QQuickWindow *window) override;
+	virtual void fullScreenHelperDisconnect(QQuickWindow *window) override;
+
 protected slots:
 	virtual void onApplicationStarted() override;
 	virtual void onUserLoggedIn() override;

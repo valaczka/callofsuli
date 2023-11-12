@@ -142,7 +142,7 @@ void GameTerrain::reloadAvailableTerrains()
 
 #ifdef Q_OS_WASM
 	QSettings settings;
-	QJsonObject terrainCache = settings.value(QStringLiteral("terrainCache")).toJsonObject()
+	QJsonObject terrainCache = settings.value(QStringLiteral("terrainCache")).toJsonObject();
 #else
 	const QString cache = Utils::standardPath("terrain_cache.json");
 	LOG_CINFO("client") << "Terrain cache:" << cache;
@@ -243,11 +243,12 @@ void GameTerrain::reloadAvailableTerrains()
 
 	LOG_CINFO("client") << "...loaded" << m_availableTerrains.size() << "terrains";
 
-	LOG_CDEBUG("client") << "Save terrain cache:" << cache;
 
 #ifdef Q_OS_WASM
+	LOG_CDEBUG("client") << "Save terrain cache";
 	settings.setValue(QStringLiteral("terrainCache"), terrainCache);
 #else
+	LOG_CDEBUG("client") << "Save terrain cache:" << cache;
 	Utils::jsonObjectToFile(terrainCache, cache);
 #endif
 }

@@ -98,16 +98,11 @@ Qaterial.ApplicationWindow
 	property Action actionFullScreen: Action {
 		shortcut: "Ctrl+F11"
 		text: qsTr("Teljes képernyő")
-		icon.source: mainWindow.visibility === Window.FullScreen ? Qaterial.Icons.fullscreenExit : Qaterial.Icons.fullscreen
-		checked: mainWindow.visibility === Window.FullScreen
+		icon.source: Client.fullScreenHelper ? Qaterial.Icons.fullscreenExit : Qaterial.Icons.fullscreen
+		checked: Client.fullScreenHelper
 		checkable: true
 
-		onTriggered: {
-			if (checked)
-				mainWindow.showFullScreen()
-			else
-				mainWindow.showMaximized()
-		}
+		onTriggered: Client.fullScreenHelper = checked
 	}
 
 	Connections {

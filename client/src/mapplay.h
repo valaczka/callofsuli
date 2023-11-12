@@ -119,6 +119,8 @@ public:
 	bool readOnly() const;
 	void setReadOnly(bool newReadOnly);
 
+	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel */*missionLevel*/) const { return -1; }
+
 protected:
 	void loadGameMap(std::unique_ptr<GameMap> &map);
 	void unloadGameMap();
@@ -138,6 +140,7 @@ signals:
 	void gameStateChanged();
 	void finishedDataChanged();
 	void readOnlyChanged();
+	void shortTimeHelperUpdated();
 
 protected:
 	Client *const m_client ;

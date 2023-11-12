@@ -32,10 +32,6 @@
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
-#if QT_VERSION >= 0x060000
-#include "qaudiodevice.h"
-#include "qmediadevices.h"
-#endif
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include "httpconnection.h"
@@ -107,11 +103,6 @@ Client::Client(Application *app)
 	QDefer::await(ret);
 #endif
 
-	m_soundEffectTimer.setInterval(1500);
-	connect(&m_soundEffectTimer, &QTimer::timeout, this, &Client::onSoundEffectTimeout);
-
-	connect(m_sound.get(), &Sound::volumeSfxChanged, this, [this](int){ m_soundEffectTimer.start(); });
-
 	LOG_CTRACE("app") << "Client created" << this;
 }
 
@@ -126,7 +117,6 @@ Client::~Client()
 	LOG_CTRACE("app") << "Client destroying" << this;
 
 	m_cache.removeAll();
-	m_soundEffectList.clear();
 
 	if (m_translator) {
 		LOG_CTRACE("app") << "Remove translator";
@@ -849,6 +839,37 @@ void Client::_userAuthTokenReceived(const QString &token)
 
 	onUserLoggedIn();
 }
+
+
+
+/**
+ * @brief Client::fullScreenHelperConnect
+ * @param window
+ */
+
+void Client::fullScreenHelperConnect(QQuickWindow *window)
+{
+	if (!window)
+		return;
+
+	connect(window, &QQuickWindow::visibilityChanged, this, &Client::fullScreenHelperChanged);
+}
+
+
+/**
+ * @brief Client::fullScreenHelperDisconnect
+ * @param window
+ */
+
+void Client::fullScreenHelperDisconnect(QQuickWindow *window)
+{
+	if (!window)
+		return;
+
+	disconnect(window, &QQuickWindow::visibilityChanged, this, &Client::fullScreenHelperChanged);
+}
+
+
 
 
 
@@ -1597,12 +1618,16 @@ void Client::setMainWindow(QQuickWindow *newMainWindow)
 	if (m_mainWindow == newMainWindow)
 		return;
 
+	if (m_mainWindow)
+		fullScreenHelperDisconnect(m_mainWindow);
+
 	m_mainWindow = newMainWindow;
 	emit mainWindowChanged();
 
 	if (!m_mainWindow)
 		return;
 
+	fullScreenHelperConnect(m_mainWindow);
 	m_mainWindow->setIcon(QIcon(QStringLiteral(":/internal/img/cos.png")));
 
 	safeMarginsGet();
@@ -1767,31 +1792,6 @@ bool Client::debug() const
 
 
 
-
-
-
-
-
-
-
-/**
- * @brief StandaloneClient::onSoundEffectTimeout
- */
-
-void Client::onSoundEffectTimeout()
-{
-	if (!m_sound)
-		return;
-
-	const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
-
-	foreach (QSoundEffect *e, m_soundEffectList)
-		if (e)
-			e->setVolume(vol);
-}
-
-
-
 /**
  * @brief Client::onGameDestroyRequest
  */
@@ -1807,66 +1807,34 @@ void Client::onGameDestroyRequest()
 }
 
 
-
-
-
-
-
-
-
 /**
- * @brief StandaloneClient::newSoundEffect
+ * @brief Client::fullScreenHelper
  * @return
  */
 
-std::unique_ptr<QSoundEffect> Client::newSoundEffect()
+bool Client::fullScreenHelper() const
 {
-	std::unique_ptr<QSoundEffect> e;
-
-#ifdef NO_SOUND_THREAD
-#if QT_VERSION >= 0x060000
-	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
-	e = std::make_unique<QSoundEffect>(ad);
-#else
-	e = std::make_unique<QSoundEffect>();
-#endif
-	const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
-	e->setVolume(vol);
-#else
-	QDefer ret;
-
-	m_worker.execInThread([&e, this, ret]() mutable {
-#ifdef Q_OS_LINUX
-		QAudioDevice ad(QMediaDevices::defaultAudioOutput());
-		e = std::make_unique<QSoundEffect>(ad);
-#else
-		e = std::make_unique<QSoundEffect>();
-#endif
-		const qreal vol = (qreal) m_sound->volume(Sound::SfxChannel) / 100.0;
-		e->setVolume(vol);
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-#endif
-
-	m_soundEffectList.append(e.get());
-
-	return e;
+	return m_mainWindow && m_mainWindow->visibility() == QWindow::FullScreen;
 }
-
 
 
 /**
- * @brief StandaloneClient::removeSoundEffect
- * @param effect
+ * @brief Client::setFullScreenHelper
+ * @param newFullScreenHelper
  */
 
-void Client::removeSoundEffect(QSoundEffect *effect)
+void Client::setFullScreenHelper(bool newFullScreenHelper)
 {
-	if (effect)
-		m_soundEffectList.removeAll(effect);
+	if (!m_mainWindow)
+		return;
+
+	m_mainWindow->setVisibility(newFullScreenHelper ? QWindow::FullScreen : QWindow::Maximized);
 }
+
+
+
+
+
 
 
 

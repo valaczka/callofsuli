@@ -943,7 +943,11 @@ void GameScene::onSceneStepSuccess()
 void GameScene::onSceneLoadFailed()
 {
 	m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
+#if QT_VERSION < 0x060000
 	m_game->pageItem()->setProperty("onPageClose", QVariant::Invalid);
+#else
+	m_game->pageItem()->setProperty("onPageClose", QVariant(QMetaType::fromType<QJSValue>()));
+#endif
 	m_game->pageItem()->setProperty("closeQuestion", QStringLiteral(""));
 
 	m_game->unloadPageItem();

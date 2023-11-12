@@ -816,6 +816,8 @@ void ActionGame::onSceneStarted()
 			} else {
 				m_client->messageError(tr("Missing player, server inventory HP lost"), tr("Belső hiba"));
 			}
+
+			continue;
 		} else if (it.key() == QLatin1String("shield")) {
 			if (player()) {
 				LOG_CINFO("game") << "Server inventory shield:" << num;
@@ -824,6 +826,8 @@ void ActionGame::onSceneStarted()
 			} else {
 				m_client->messageError(tr("Missing player, server inventory shield lost"), tr("Belső hiba"));
 			}
+
+			continue;
 		}
 
 		const GamePickable::GamePickableData &data = GamePickable::pickableDataHash().value(it.key());

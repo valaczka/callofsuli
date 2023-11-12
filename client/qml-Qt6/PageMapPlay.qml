@@ -16,6 +16,7 @@ QPageGradient {
 
 	property MapPlay map: null
 
+
 	property SortFilterProxyModel mList: SortFilterProxyModel {
 		sourceModel: map ? map.missionList : []
 

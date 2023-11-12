@@ -92,6 +92,7 @@ private:
 	QMutex m_mutex;
 	StreamState m_state = StateInvalid;
 	Credential m_credential;
+	static const QHash<StreamType, Credential::Roles> m_observerRoles;
 
 	friend class WebSocketStreamHandler;
 };

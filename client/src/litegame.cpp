@@ -35,6 +35,7 @@
 #include "standaloneclient.h"
 #endif
 
+#define EXTRA_TIME_REQUIRED_FACTOR 0.75
 
 /**
  * @brief LiteGame::LiteGame
@@ -77,7 +78,11 @@ void LiteGame::onPageReady()
 	if (list.empty()) {
 		m_client->messageError(tr("Nem lehet előkészíteni a kérdéseket!"), tr("Nem lehet elindítani a játékot"));
 		pageItem()->setProperty("closeDisabled", QStringLiteral(""));
+#if QT_VERSION < 0x060000
 		pageItem()->setProperty("onPageClose", QVariant::Invalid);
+#else
+		pageItem()->setProperty("onPageClose", QVariant(QMetaType::fromType<QJSValue>()));
+#endif
 		pageItem()->setProperty("closeQuestion", QStringLiteral(""));
 
 		unloadPageItem();
@@ -134,6 +139,11 @@ void LiteGame::onStarted()
 		// Exponenciálisan növeljük
 
 		msec += factor * SECOND_PER_QUESTION * 1000 * 2;
+	}
+
+	if (m_addExtraTime > 0.0) {
+		LOG_CDEBUG("game") << "Add extra time" << m_addExtraTime;
+		msec *= (1.0+m_addExtraTime);
 	}
 
 	startWithRemainingTime(msec);
@@ -253,7 +263,7 @@ void LiteGame::onGameQuestionSuccess(const QVariantMap &answer)
 
 
 
-/**
+/**i
  * @brief LiteGame::onGameQuestionFailed
  * @param answer
  */
@@ -344,9 +354,22 @@ void LiteGame::onGameTimeout()
 	if (m_mode == GameMap::Practice)
 		return;
 
+	if (m_isFlawless && m_questions.size()) {
+		int answeredQuestions = m_questions.size() - m_indices.size();
+
+		qreal factor = (qreal) answeredQuestions / (qreal) m_questions.size();
+
+		if (factor >= EXTRA_TIME_REQUIRED_FACTOR)
+			m_shortTimeHelper = true;
+	}
+
 	setFinishState(Fail);
 	gameFinish();
-	dialogMessageFinish(tr("Lejárt az idő"), "qrc:/Qaterial/Icons/timer-sand.svg", false);
+
+	if (m_shortTimeHelper)
+		dialogMessageFinish(tr("Lejárt az idő\nA játék beleszámít az extra időkérés lehetőségébe"), "qrc:/Qaterial/Icons/timer-sand.svg", false);
+	else
+		dialogMessageFinish(tr("Lejárt az idő"), "qrc:/Qaterial/Icons/timer-sand.svg", false);
 }
 
 
@@ -408,6 +431,34 @@ bool LiteGame::gameFinishEvent()
 	m_closedSuccesfully = true;
 	return true;
 }
+
+
+/**
+ * @brief LiteGame::addExtraTime
+ * @return
+ */
+
+qreal LiteGame::addExtraTime() const
+{
+	return m_addExtraTime;
+}
+
+void LiteGame::setAddExtraTime(qreal newAddExtraTime)
+{
+	m_addExtraTime = newAddExtraTime;
+}
+
+
+/**
+ * @brief LiteGame::shortTimeHelper
+ * @return
+ */
+
+bool LiteGame::shortTimeHelper() const
+{
+	return m_shortTimeHelper;
+}
+
 
 
 

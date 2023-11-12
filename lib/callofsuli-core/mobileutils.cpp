@@ -31,9 +31,11 @@
 
 #if QT_VERSION < 0x060000
 #include "qandroidfunctions.h"
+#include "qscreen.h"
+#else
+#include <QtCore/private/qandroidextras_p.h>
 #endif
 
-#include <QtCore/private/qandroidextras_p.h>
 #include "qurl.h"
 
 

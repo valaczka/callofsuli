@@ -46,7 +46,7 @@ Column {
 	Qaterial.SwitchButton {
 		anchors.horizontalCenter: parent.horizontalCenter
 		action: Client.mainWindow.actionFullScreen
-		visible: Qt.platform.os == "osx" || Qt.platform.os == "windows" || Qt.platform.os == "linux"
+		visible: Qt.platform.os == "osx" || Qt.platform.os == "windows" || Qt.platform.os == "linux" || Qt.platform.os == "wasm"
 	}
 
 	QButton {

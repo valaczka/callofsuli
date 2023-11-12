@@ -55,6 +55,11 @@ public:
 	int hp() const;
 	void setHp(int newHp);
 
+	bool shortTimeHelper() const;
+
+	qreal addExtraTime() const;
+	void setAddExtraTime(qreal newAddExtraTime);
+
 public slots:
 	void onPageReady();
 	void onStarted();
@@ -79,6 +84,9 @@ protected:
 	virtual QQuickItem *loadPage() override;
 	virtual void connectGameQuestion() override;
 	virtual bool gameFinishEvent() override;
+
+	bool m_shortTimeHelper = false;
+	qreal m_addExtraTime = 0.0;
 
 private:
 	int m_timeNotifySendNext = 60000;

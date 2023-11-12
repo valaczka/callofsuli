@@ -3,7 +3,9 @@
 #include "Logger.h"
 
 
-
+const QHash<WebSocketStream::StreamType, Credential::Roles> WebSocketStream::m_observerRoles = {
+	{ WebSocketStream::StreamPeers, Credential::Teacher|Credential::Admin }
+};
 
 /**
  * @brief WebSocketStream::WebSocketStream
@@ -49,10 +51,14 @@ void WebSocketStream::observerAdd(const StreamType &type, const QVariant &data)
 
 	StreamObserver ob{type, data};
 
+	if (auto roles = m_observerRoles.value(type, Credential::None); roles != Credential::None && !(m_credential.roles() & roles)) {
+		sendJson("warning", QStringLiteral("permission denied"));
+	}
+
 	if (!m_observers.contains(ob))
 		m_observers.append(ob);
 
-	LOG_CTRACE("service") << "Observer added" << type << data;
+	LOG_CTRACE("service") << "Observer added" << m_credential.username() << type << data;
 }
 
 
@@ -67,7 +73,7 @@ void WebSocketStream::observerRemove(const StreamType &type, const QVariant &dat
 	QMutexLocker locker(&m_mutex);
 	m_observers.removeAll(StreamObserver{type, data});
 
-	LOG_CTRACE("service") << "Observer removed" << type << data;
+	LOG_CTRACE("service") << "Observer removed" << m_credential.username() << type << data;
 }
 
 
@@ -129,7 +135,7 @@ void WebSocketStream::close()
 	if (!m_socket)
 		return;
 
-	LOG_CTRACE("service") << "DISCONNECT" << m_socket.get();
+	LOG_CTRACE("service") << "Close WebSocket" << m_socket.get();
 	disconnect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocketStream::onWebSocketDisconnected);
 	disconnect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocketStream::onTextReceived);
 
@@ -383,7 +389,7 @@ void WebSocketStream::onWebSocketDisconnected()
 {
 	QWebSocket *ws = qobject_cast<QWebSocket*>(sender());
 
-	LOG_CDEBUG("service") << "WebSocket disconnected:" << ws;
+	LOG_CDEBUG("service") << "WebSocket disconnected:" << ws << m_credential.username();
 
 	m_service->webServer().lock().get()->webSocketHandler().webSocketRemove(this);
 }

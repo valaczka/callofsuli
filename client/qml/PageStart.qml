@@ -217,7 +217,7 @@ QPage {
 
 	QFabButton {
 		visible: view.visible
-		action: actionQR
+		action: actionAdd
 	}
 
 

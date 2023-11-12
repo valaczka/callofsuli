@@ -31,6 +31,7 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
+#include "qmutex.h"
 #include "qsoundeffect.h"
 #include "qtimer.h"
 #include "httpconnection.h"
@@ -86,6 +87,7 @@ class Client : public QObject
 
 	Q_PROPERTY(QQuickItem* mainStack READ mainStack WRITE setMainStack NOTIFY mainStackChanged)
 	Q_PROPERTY(QQuickWindow* mainWindow READ mainWindow WRITE setMainWindow NOTIFY mainWindowChanged)
+	Q_PROPERTY(bool fullScreenHelper READ fullScreenHelper WRITE setFullScreenHelper NOTIFY fullScreenHelperChanged)
 
 	Q_PROPERTY(Utils* Utils READ utils CONSTANT)
 	Q_PROPERTY(bool debug READ debug CONSTANT)
@@ -101,6 +103,7 @@ class Client : public QObject
 	Q_PROPERTY(HttpConnection *httpConnection READ httpConnection CONSTANT)
 	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
 	Q_PROPERTY(Sound *sound READ sound NOTIFY soundChanged)
+
 
 
 
@@ -257,16 +260,13 @@ public:
 
 
 
-	// Sound
-
-	std::unique_ptr<QSoundEffect> newSoundEffect();
-	void removeSoundEffect(QSoundEffect *effect);
-
-
 	Updater *updater() const;
 
 	Sound* sound() const;
 	void setSound(std::unique_ptr<Sound> newSound);
+
+	virtual bool fullScreenHelper() const;
+	virtual void setFullScreenHelper(bool newFullScreenHelper);
 
 public slots:
 	virtual void onHttpConnectionError(const QNetworkReply::NetworkError &code);
@@ -296,6 +296,8 @@ protected slots:
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
 	void _userAuthTokenReceived(const QString &token);
+	virtual void fullScreenHelperConnect(QQuickWindow *window);
+	virtual void fullScreenHelperDisconnect(QQuickWindow *window);
 
 signals:
 	void loadRequestRegistration(const QString &oauth, const QString &code);
@@ -313,6 +315,7 @@ signals:
 	void safeMarginBottomChanged();
 	void serverChanged();
 	void soundChanged();
+	void fullScreenHelperChanged();
 
 private:
 	void startCache();
@@ -353,9 +356,6 @@ private:
 #ifndef NO_SOUND_THREAD
 	QLambdaThreadWorker m_worker;
 #endif
-
-	QVector<QPointer<QSoundEffect>> m_soundEffectList;
-	QTimer m_soundEffectTimer;
 };
 
 

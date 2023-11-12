@@ -48,11 +48,7 @@ protected:
 	virtual void onCurrentGameFinished() override;
 
 private:
-#ifdef Q_OS_WASM
-	const QString m_file = QStringLiteral(":/demomap.json");
-#else
 	const QString m_file = Utils::standardPath(QStringLiteral("demomap.json"));
-#endif
 
 };
 

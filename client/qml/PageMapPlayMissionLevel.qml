@@ -16,8 +16,11 @@ QPageGradient {
 	property MapPlayMission mission: null
 	property MapPlayMissionLevel missionLevel: null
 
+	readonly property MapPlayCampaign _mapPlayCampaign: map instanceof MapPlayCampaign ? map : null
+
 	property bool _firstLoad: true
 	property bool _currentGameFailed: false
+	readonly property int _mapPlayLiteExtraTimeTries: 2
 
 	stackPopFunction: function() {
 		if (map && map.gameState == MapPlay.StateFinished) {
@@ -274,6 +277,35 @@ QPageGradient {
 			}
 		}
 
+		Column {
+			id: _extraTimeCol
+
+			anchors.horizontalCenter: parent.horizontalCenter
+			visible: _mapPlayCampaign && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Lite && _btnPlay.visible
+			enabled: map.gameState == MapPlay.StateSelect || map.gameState == MapPlay.StateFinished
+
+			Qaterial.SwitchButton {
+				id: _extraTimeSwitch
+
+				readonly property real timeFactor: 0.25
+
+				text: qsTr("Extra időt (%1%) kérek").arg(Math.floor(timeFactor*100))
+			}
+
+			Qaterial.IconLabel {
+				width: Math.min(_inventoryUseView.width, implicitWidth, _extraTimeCol.parent.width)
+				font: Qaterial.Style.textTheme.caption
+				icon.source: Qaterial.Icons.informationOutline
+				wrapMode: Text.Wrap
+				text: qsTr("Ha %1x elfogy az időd úgy, hogy hiba nélkül teljesítetted a kérdések 75%-át, akkor extra időt kérhetsz")
+				.arg(_mapPlayLiteExtraTimeTries)
+				enabled: false
+				horizontalAlignment: Qt.AlignLeft
+				visible: !_extraTimeSwitch.enabled
+			}
+
+			bottomPadding: 15 * Qaterial.Style.pixelSizeRatio
+		}
 
 
 		QButton {
@@ -314,6 +346,10 @@ QPageGradient {
 					}
 
 				}
+
+				if (_mapPlayCampaign)
+					_mapPlayCampaign.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
+								_extraTimeSwitch.timeFactor : 0.0
 
 				map.play(missionLevel, _modeGroup.checkedButton.gameMode, d)
 			}
@@ -796,6 +832,10 @@ QPageGradient {
 			_unlockView.model = _model
 			_unlockView.delegate = _cmpDelegate
 		}
+
+		function onShortTimeHelperUpdated() {
+			reloadExtraTimeSwitch()
+		}
 	}
 
 
@@ -852,4 +892,15 @@ QPageGradient {
 		}
 
 	}
+
+	function reloadExtraTimeSwitch() {
+		if (_mapPlayCampaign && root.missionLevel) {
+			let num = _mapPlayCampaign.getShortTimeHelper(root.missionLevel)
+			_extraTimeSwitch.enabled = (num >= _mapPlayLiteExtraTimeTries)
+		}
+	}
+
+	on_MapPlayCampaignChanged: reloadExtraTimeSwitch()
+
+	onMissionLevelChanged: reloadExtraTimeSwitch()
 }

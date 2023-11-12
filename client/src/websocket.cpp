@@ -6,6 +6,10 @@
 #include "utils_.h"
 #include <QFile>
 
+
+#define MAX_TRIES	5
+#define INTERVAL_TRIES	3000
+
 /**
  * @brief WebSocket::WebSocket
  * @param connection
@@ -16,6 +20,9 @@ WebSocket::WebSocket(HttpConnection *connection)
 	, m_connection(connection)
 {
 	LOG_CTRACE("http") << "WebSocket created" << this;
+
+	m_timerConnect.setInterval(INTERVAL_TRIES);
+	QObject::connect(&m_timerConnect, &QTimer::timeout, this, &WebSocket::reconnect);
 }
 
 
@@ -46,82 +53,10 @@ bool WebSocket::active() const
 
 void WebSocket::connect()
 {
-	Server *server = m_connection->server();
+	m_tries = 0;
+	m_forceClose = false;
 
-	if (!server)
-		return;
-
-	if (!m_socket) {
-		m_socket = std::make_unique<QWebSocket>();
-		m_state = WebSocketReset;
-
-		QObject::connect(m_socket.get(), &QWebSocket::destroyed, this, [this](){ qDebug() << "******" << sender(); });
-
-		QObject::connect(m_socket.get(), &QWebSocket::connected, this, &WebSocket::onConnected);
-		QObject::connect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocket::onDisconnected);
-		QObject::connect(m_socket.get(), &QWebSocket::errorOccurred, this, &WebSocket::onError);
-		QObject::connect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocket::onTextReceived);
-
-#ifndef QT_NO_SSL
-		if (!QSslSocket::supportsSsl())
-			LOG_CERROR("http") << "Platform doesn't support SSL";
-		else {
-			if (!m_connection->m_rootCertificate.isNull()) {
-				QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-				config.addCaCertificate(m_connection->m_rootCertificate);
-				m_socket->setSslConfiguration(config);
-			}
-
-			QObject::connect(m_socket.get(), &QWebSocket::sslErrors, this, [this](const QList<QSslError> &e){
-				Server *server = m_connection->server();
-
-				if (m_socket.get() && server && !server->certificate().isEmpty()) {
-					QSslCertificate cert(server->certificate(), QSsl::Pem);
-
-					if (cert.isNull()) {
-						LOG_CERROR("http") << "Invalid server certificate stored";
-					} else {
-						QList<QSslError> ignoredErrors;
-
-						for (auto it=e.constBegin(); it != e.constEnd(); ++it) {
-							if (it->certificate() != cert)
-								LOG_CWARNING("http") << "Server certificate mismatch";
-							else if (server->ignoredSslErrors().contains(it->error()))
-								ignoredErrors.append(*it);
-
-						}
-
-						if (ignoredErrors.size() == e.size()) {
-							LOG_CDEBUG("http") << "Ignore SSL errors:" << ignoredErrors;
-							m_socket.get()->ignoreSslErrors(ignoredErrors);
-							return;
-						}
-					}
-				}
-			});
-		}
-#else
-		LOG_CERROR("http") << "Qt built without SSL support";
-#endif
-	}
-
-	if (m_state != WebSocketReset)
-		return;
-
-	QUrl url = server->url();
-	if (url.scheme() == QStringLiteral("https"))
-		url.setScheme(QStringLiteral("wss"));
-	else
-		url.setScheme(QStringLiteral("ws"));
-
-	url.setPath(QStringLiteral("/ws"));
-
-	LOG_CDEBUG("http") << "Open WebSocket:" << qPrintable(url.toString());
-
-	emit activeChanged();
-
-	m_socket->open(url);
-
+	reconnect();
 }
 
 
@@ -132,6 +67,8 @@ void WebSocket::connect()
 
 void WebSocket::close()
 {
+	m_forceClose = true;
+
 	if (m_socket) {
 		m_socket->close();
 		m_state = WebSocketReset;
@@ -148,6 +85,9 @@ void WebSocket::onConnected()
 {
 	LOG_CDEBUG("http") << "WebSocket connected";
 	m_state = WebSocketConnected;
+
+	m_tries = 0;
+	m_timerConnect.stop();
 
 	emit activeChanged();
 }
@@ -168,6 +108,9 @@ void WebSocket::onDisconnected()
 	ws->deleteLater();
 
 	emit activeChanged();
+
+	if (!m_forceClose)
+		m_timerConnect.start();
 }
 
 
@@ -180,6 +123,9 @@ void WebSocket::onError(const QAbstractSocket::SocketError &error)
 {
 	LOG_CERROR("http") << "WebSocket error:" << error;
 	m_connection->m_client->snack("WebSocket error");
+
+	if (!m_forceClose)
+		m_timerConnect.start();
 }
 
 
@@ -252,6 +198,14 @@ void WebSocket::onJsonReceived(const QJsonObject &json)
 			m_state = WebSocketListening;
 			emit activeChanged();
 		}
+	} else if (operation == QStringLiteral("error")) {
+		LOG_CERROR("http") << "WebSocket error" << json;
+		close();
+		return;
+	} else if (m_state == WebSocketListening) {
+		const QJsonValue &data = json.value(QStringLiteral("d"));
+		LOG_CTRACE("http") << "WebSocket message received" << operation << data;
+		emit messageReceived(operation, data);
 	}
 }
 
@@ -316,6 +270,105 @@ void WebSocket::observerRemoveValue(const QString &type, const QJsonValue &value
 
 	if (m_observers.isEmpty())
 		close();
+}
+
+
+
+/**
+ * @brief WebSocket::reconnect
+ */
+
+void WebSocket::reconnect()
+{
+	Server *server = m_connection->server();
+
+	if (!server)
+		return;
+
+	if (!m_socket) {
+		LOG_CTRACE("http") << "Try to connect" << m_tries;
+
+		if (++m_tries > MAX_TRIES) {
+			LOG_CWARNING("http") << "Connection failed";
+			m_connection->m_client->messageError(tr("Nem sikerült létrehozni a kapcsolatot"), tr("WebSocket hiba"));
+			emit connectionFailed();
+			return;
+		}
+
+
+		m_socket = std::make_unique<QWebSocket>();
+		m_state = WebSocketReset;
+
+		//QObject::connect(m_socket.get(), &QWebSocket::destroyed, this, [this](){ qDebug() << "******" << sender(); });
+
+		QObject::connect(m_socket.get(), &QWebSocket::connected, this, &WebSocket::onConnected);
+		QObject::connect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocket::onDisconnected);
+#if QT_VERSION >= 0x060000
+		QObject::connect(m_socket.get(), &QWebSocket::errorOccurred, this, &WebSocket::onError);
+#else
+		QObject::connect(m_socket.get(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &WebSocket::onError);
+#endif
+		QObject::connect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocket::onTextReceived);
+
+#ifndef QT_NO_SSL
+		if (!QSslSocket::supportsSsl())
+			LOG_CERROR("http") << "Platform doesn't support SSL";
+		else {
+			if (!m_connection->m_rootCertificate.isNull()) {
+				QSslConfiguration config = QSslConfiguration::defaultConfiguration();
+				config.addCaCertificate(m_connection->m_rootCertificate);
+				m_socket->setSslConfiguration(config);
+			}
+
+			QObject::connect(m_socket.get(), &QWebSocket::sslErrors, this, [this](const QList<QSslError> &e){
+				Server *server = m_connection->server();
+
+				if (m_socket.get() && server && !server->certificate().isEmpty()) {
+					QSslCertificate cert(server->certificate(), QSsl::Pem);
+
+					if (cert.isNull()) {
+						LOG_CERROR("http") << "Invalid server certificate stored";
+					} else {
+						QList<QSslError> ignoredErrors;
+
+						for (auto it=e.constBegin(); it != e.constEnd(); ++it) {
+							if (it->certificate() != cert)
+								LOG_CWARNING("http") << "Server certificate mismatch";
+							else if (server->ignoredSslErrors().contains(it->error()))
+								ignoredErrors.append(*it);
+
+						}
+
+						if (ignoredErrors.size() == e.size()) {
+							LOG_CDEBUG("http") << "Ignore SSL errors:" << ignoredErrors;
+							m_socket.get()->ignoreSslErrors(ignoredErrors);
+							return;
+						}
+					}
+				}
+			});
+		}
+#else
+		LOG_CERROR("http") << "Qt built without SSL support";
+#endif
+	}
+
+	if (m_state != WebSocketReset)
+		return;
+
+	QUrl url = server->url();
+	if (url.scheme() == QStringLiteral("https"))
+		url.setScheme(QStringLiteral("wss"));
+	else
+		url.setScheme(QStringLiteral("ws"));
+
+	url.setPath(QStringLiteral("/ws"));
+
+	LOG_CDEBUG("http") << "Open WebSocket:" << qPrintable(url.toString());
+
+	emit activeChanged();
+
+	m_socket->open(url);
 }
 
 

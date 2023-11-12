@@ -60,7 +60,6 @@ public:
 	const SortOrder &sortOrder() const;
 	void setSortOrder(const SortOrder &newSortOrder);
 
-
 	const HttpConnection::API &api() const;
 	void setApi(const HttpConnection::API &newApi);
 
@@ -87,7 +86,6 @@ signals:
 	void pathChanged();
 	void apiDataChanged();
 	void filterClassIdChanged();
-	void eventStreamChanged();
 
 private:
 	void loadFromJson(const QJsonObject &obj);

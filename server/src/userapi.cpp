@@ -970,7 +970,7 @@ QHttpServerResponse UserAPI::update(const Credential &credential, const QJsonObj
 
 	q.addQuery(" WHERE username=").addValue(username);
 
-	LAMBDA_SQL_ASSERT(q.fieldCount() && !q.exec());
+	LAMBDA_SQL_ASSERT(q.fieldCount() && q.exec());
 
 	response = responseOk();
 

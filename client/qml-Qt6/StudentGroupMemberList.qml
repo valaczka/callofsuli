@@ -18,18 +18,8 @@ Item
 
 	property real topPadding: 0
 
-
-
 	QFetchLoaderGroup {
 		id: _loaderGroup
-	}
-
-	QLiveStream {
-		id: _liveStream
-
-		reloadCallback: function() { _scoreList.reload() }
-		api: HttpConnection.ApiUser
-		path: "group/%1/score/live".arg(group.groupid)
 	}
 
 
@@ -39,7 +29,6 @@ Item
 		api: HttpConnection.ApiUser
 		path: "group/%1/score".arg(group ? group.groupid : -1)
 		sortOrder: ScoreListImpl.SortXPdesc
-		eventStream: _liveStream.eventStream
 		limit: -1
 	}
 
@@ -50,7 +39,7 @@ Item
 		bottomPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: _liveStream.reload()
+		onRefreshRequest: _scoreList.reload()
 
 		QListView {
 			id: _viewPlaceholder
@@ -135,42 +124,42 @@ Item
 							text: qsTr("%1 XP").arg(Number(xp).toLocaleString())
 							color: Qaterial.Style.accentColor
 						}
-                        Row {
-                            anchors.right: parent.right
-                            spacing: 2
+						Row {
+							anchors.right: parent.right
+							spacing: 2
 
-                            Qaterial.LabelCaption {
-                                visible: trophy
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: trophy
-                                color: Qaterial.Colors.green700
-                            }
+							Qaterial.LabelCaption {
+								visible: trophy
+								anchors.verticalCenter: parent.verticalCenter
+								text: trophy
+								color: Qaterial.Colors.green700
+							}
 
-                            Qaterial.Icon {
-                                visible: trophy
-                                anchors.verticalCenter: parent.verticalCenter
-                                icon: Qaterial.Icons.trophy
-                                color: Qaterial.Colors.green700
-                                width: Qaterial.Style.smallIcon*0.8
-                                height: Qaterial.Style.smallIcon*0.8
-                            }
+							Qaterial.Icon {
+								visible: trophy
+								anchors.verticalCenter: parent.verticalCenter
+								icon: Qaterial.Icons.trophy
+								color: Qaterial.Colors.green700
+								width: Qaterial.Style.smallIcon*0.8
+								height: Qaterial.Style.smallIcon*0.8
+							}
 
-                            Qaterial.LabelCaption {
-                                visible: streak
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: streak
-                                color: Qaterial.Style.primaryTextColor()
-                                leftPadding: trophy ? 5 * Qaterial.Style.pixelSizeRatio : 0
-                            }
-                            Qaterial.Icon {
-                                visible: streak
-                                anchors.verticalCenter: parent.verticalCenter
-                                icon: Qaterial.Icons.fire
-                                color: Qaterial.Colors.orange500
-                                width: Qaterial.Style.smallIcon*0.8
-                                height: Qaterial.Style.smallIcon*0.8
-                            }
-                        }
+							Qaterial.LabelCaption {
+								visible: streak
+								anchors.verticalCenter: parent.verticalCenter
+								text: streak
+								color: Qaterial.Style.primaryTextColor()
+								leftPadding: trophy ? 5 * Qaterial.Style.pixelSizeRatio : 0
+							}
+							Qaterial.Icon {
+								visible: streak
+								anchors.verticalCenter: parent.verticalCenter
+								icon: Qaterial.Icons.fire
+								color: Qaterial.Colors.orange500
+								width: Qaterial.Style.smallIcon*0.8
+								height: Qaterial.Style.smallIcon*0.8
+							}
+						}
 					}
 				}
 			}
@@ -192,7 +181,7 @@ Item
 
 	}
 
-	StackView.onActivated: _liveStream.reload()
-	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _liveStream.reload()
+	StackView.onActivated: _scoreList.reload()
+	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _scoreList.reload()
 
 }

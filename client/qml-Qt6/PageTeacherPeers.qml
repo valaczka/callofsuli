@@ -13,19 +13,12 @@ QPage {
 
 	appBar.backButtonVisible: true
 
-	QLiveStream {
-		id: _liveStream
-
-		reloadCallback: function() { _list.reload() }
-		api: (Client.server.user.roles & Credential.Admin) ? HttpConnection.ApiAdmin : HttpConnection.ApiTeacher
-		path: "user/peers/live"
-	}
-
 	Connections {
-		target: _liveStream.eventStream
-		function onEventJsonReceived(event, json) {
-			if (event === "peerUsers")
-				_view.loadFromJson(json.list)
+		target: Client.httpConnection.webSocket
+
+		function onMessageReceived(operation, data) {
+			if (operation === "peers")
+				_view.loadFromJson(data)
 		}
 	}
 
@@ -37,7 +30,7 @@ QPage {
 		bottomPadding: 0
 
 		refreshEnabled: false
-		onRefreshRequest: _liveStream.reload()
+		onRefreshRequest: Client.httpConnection.webSocket.connect()
 
 		QListView {
 			id: _view
@@ -62,15 +55,6 @@ QPage {
 				secondaryText: host+" – "+agent
 			}
 
-			function reload() {
-				Client.send(_liveStream.api, "user/peers")
-				.done(control, function(r){
-					_view.loadFromJson(r.list)
-				})
-				.fail(control, function(err) {
-					Client.messageWarning(err, qsTr("Sikertelen"))
-				})
-			}
 
 			function loadFromJson(list) {
 				_model.clear()
@@ -81,6 +65,9 @@ QPage {
 		}
 	}
 
-	StackView.onActivated: _liveStream.reload()
-	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _liveStream.reload()
+	StackView.onActivated: Client.httpConnection.webSocket.connect()
+	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) Client.httpConnection.webSocket.connect()
+
+	Component.onCompleted: Client.httpConnection.webSocket.observerAdd("peers")
+	Component.onDestruction: Client.httpConnection.webSocket.observerRemove("peers")
 }

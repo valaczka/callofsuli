@@ -197,8 +197,7 @@ private slots:
 
 private:
 	void ladderMove(const bool &up, const qreal &delayFactor);
-
-	std::unique_ptr<QSoundEffect> m_soundEffectShot;
+	void playAttackSound();
 
 	QPointer<GameEnemy> m_enemy = nullptr;
 	QPointer<GameLadder> m_ladder = nullptr;
@@ -219,6 +218,7 @@ private:
 	bool m_invisible = false;
 	QPointer<GameObject> m_operatingObject = nullptr;
 	int m_invisibleTime = 0;
+	int m_soundEffectCount = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(GamePlayer::MovingFlags)

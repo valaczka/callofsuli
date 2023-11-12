@@ -31,6 +31,17 @@
 #include "gameplayer.h"
 #include <qtimer.h>
 
+#if QT_VERSION >= 0x060000
+#include "qaudiodevice.h"
+#include "qmediadevices.h"
+#endif
+
+
+
+/**
+ * @brief GameEnemy::GameEnemy
+ * @param parent
+ */
 
 GameEnemy::GameEnemy(QQuickItem *parent)
 	: GameEntity(parent)
@@ -42,10 +53,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 	setRayCastEnabled(true);
 
 	connect(this, &GameObject::sceneConnected, this, &GameEnemy::onSceneConnected);
-
-	m_soundEffect = Application::instance()->client()->newSoundEffect();
-	m_soundEffect->setSource(shotSound());
-	connect(this, &GameEnemy::attack, m_soundEffect.get(), &QSoundEffect::play);
+	connect(this, &GameEnemy::attack, this, &GameEnemy::playAttackSound);
 
 	connect(this, &GameEnemy::allHpLost, this, [this](){
 		emit killed(this);
@@ -64,7 +72,7 @@ GameEnemy::GameEnemy(QQuickItem *parent)
 
 GameEnemy::~GameEnemy()
 {
-	Application::instance()->client()->removeSoundEffect(m_soundEffect.get());
+
 }
 
 
@@ -91,6 +99,34 @@ void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestion
 	if (!isQuestionEmpty || !player->isAlive()) {
 		turnToPlayer(player);
 	}
+}
+
+
+
+
+/**
+ * @brief GameEnemy::playAttackSound
+ */
+
+void GameEnemy::playAttackSound()
+{
+#if QT_VERSION >= 0x060000
+	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
+	QSoundEffect *effect = new QSoundEffect(ad, m_scene);
+#else
+	QSoundEffect *effect = new QSoundEffect(m_scene);
+#endif
+
+	connect(effect, &QSoundEffect::playingChanged, this, [effect](){
+		if (!effect->isPlaying()) {
+			effect->deleteLater();
+		}
+	});
+
+	const qreal vol = (qreal) Application::instance()->client()->sound()->volume(Sound::SfxChannel) / 100.0;
+	effect->setVolume(vol);
+	effect->setSource(shotSound());
+	effect->play();
 }
 
 

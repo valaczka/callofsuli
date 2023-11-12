@@ -43,6 +43,8 @@ class MapPlayCampaign : public MapPlay
 {
 	Q_OBJECT
 
+	Q_PROPERTY(qreal extraTimeFactor READ extraTimeFactor WRITE setExtraTimeFactor NOTIFY extraTimeFactorChanged)
+
 public:
 	explicit MapPlayCampaign(StudentMapHandler *handler, QObject *parent = nullptr);
 	virtual ~MapPlayCampaign();
@@ -50,9 +52,14 @@ public:
 	bool load(Campaign *campaign, StudentMap *map);
 
 	Q_INVOKABLE virtual void updateSolver() override;
+	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel *missionLevel) const override;
+
+	qreal extraTimeFactor() const;
+	void setExtraTimeFactor(qreal newExtraTimeFactor);
 
 signals:
 	void gameIdChanged();
+	void extraTimeFactorChanged();
 
 protected:
 	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode) override;
@@ -71,6 +78,8 @@ private:
 	QTimer m_finishTimer;
 	QJsonObject m_finishObject;
 	int m_finishTries = 0;
+	QHash<GameMapMissionLevel *, int> m_shortTimeHelper;
+	qreal m_extraTimeFactor = 0.0;
 };
 
 
