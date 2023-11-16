@@ -54,7 +54,7 @@ const quint32 Utils::m_versionBuild = VERSION_BUILD;
 #endif
 
 #ifdef Q_OS_ANDROID
-#if QT_VERSION <= 0x060000
+#if QT_VERSION < 0x060000
 #include <QAndroidJniObject>
 #include "qandroidfunctions.h"
 #endif

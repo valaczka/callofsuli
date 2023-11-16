@@ -93,7 +93,10 @@ QScrollable
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Bejelentkezés jelszóval")
 
-				onClicked: _loginFields.visible = true
+				onClicked: {
+					_loginFields.visible = true
+					_user.forceActiveFocus()
+				}
 			}
 
 			QFormColumn {
@@ -108,6 +111,7 @@ QScrollable
 					title: qsTr("Felhasználónév")
 					onAccepted: _password.forceActiveFocus()
 					text: Client.server && Client.server.user && Client.server.user.oauth == "" ? Client.server.user.username : ""
+					inputMethodHints: Qt.ImhNoPredictiveText
 				}
 
 				QFormTextField {

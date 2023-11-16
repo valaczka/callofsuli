@@ -27,6 +27,7 @@ QFormColumn {
 		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni a hitelesítő kódot")
 		leadingIconSource: Qaterial.Icons.keyOutline
+		inputMethodHints: Qt.ImhSensitiveData
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldAlertIcon {  }
@@ -68,6 +69,7 @@ QFormColumn {
 		visible: _radioPlain.checked
 		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni egy felhasználónevet")
+		inputMethodHints: Qt.ImhNoPredictiveText
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{

@@ -40,10 +40,6 @@
 #include "QQuickWindow"
 #include "sound.h"
 
-#ifndef NO_SOUND_THREAD
-#include "qlambdathreadworker.h"
-#endif
-
 
 class Application;
 class AbstractGame;
@@ -353,9 +349,6 @@ protected:
 
 private:
 	std::unique_ptr<Sound> m_sound;
-#ifndef NO_SOUND_THREAD
-	QLambdaThreadWorker m_worker;
-#endif
 };
 
 

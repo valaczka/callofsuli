@@ -7,6 +7,7 @@ QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia web
 
 CONFIG += c++17
 CONFIG += separate_debug_info
+CONFIG += permissions
 
 include(../../common.pri)
 include(../../version/version.pri)
@@ -16,10 +17,15 @@ include(../../translations/translations.pri)
 
 DESTDIR = ../..
 
-QML_IMPORT_PATH += $$PWD/../qml
-QMLPATHS += $$PWD/../qml
+lessThan(QT_MAJOR_VERSION, 6) {
+	QML_IMPORT_PATH += $$PWD/../qml
+	QMLPATHS += $$PWD/../qml
+} else {
+	QML_IMPORT_PATH += $$PWD/../qml-Qt6
+	QMLPATHS += $$PWD/../qml-Qt6
+}
 
-DEFINES += CLIENT_UTILS NO_SOUND_THREAD
+DEFINES += CLIENT_UTILS
 
 include(../../lib/import_lib_client.pri)
 
@@ -150,7 +156,8 @@ ios {
 	OTHER_FILES += $$PWD/../deploy/Info.plist.in
 
 	INFO_PLIST_VERSION = "$$VERSION"
-	INFO_PLIST_SHORT_VERSION = "$${VER_MAJ}.$${VER_MIN}"
+	#INFO_PLIST_SHORT_VERSION = "$${VER_MAJ}.$${VER_MIN}"
+	INFO_PLIST_SHORT_VERSION = "$$VERSION"
 
 	plist.input = $$PWD/../deploy/Info.plist.in
 	plist.output = $$OUT_PWD/Info.plist

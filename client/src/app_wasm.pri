@@ -8,6 +8,8 @@
 
 #########################
 
+DEFINES += NO_SOUND_THREAD
+
 SOURCES += \
 	onlineapplication.cpp \
 	onlineclient.cpp
@@ -15,7 +17,6 @@ SOURCES += \
 HEADERS += \
 	onlineapplication.h \
 	onlineclient.h
-
 
 DESTDIR = ../html
 

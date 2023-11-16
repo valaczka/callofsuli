@@ -514,8 +514,10 @@ HttpReply::HttpReply(QNetworkReply *reply, HttpConnection *socket)
 	m_socket->checkPending();
 
 #ifndef QT_NO_SSL
-	connect(m_reply, &QNetworkReply::sslErrors, m_socket, [this](const QList<QSslError> &e){
+	connect(m_reply, &QNetworkReply::sslErrors, this, [this](const QList<QSslError> &e){
 		LOG_CDEBUG("http") << "SSL error:" << e;
+
+		if (!m_socket) return;
 
 		Server *server = m_socket->server();
 
@@ -554,9 +556,10 @@ HttpReply::HttpReply(QNetworkReply *reply, HttpConnection *socket)
 	});
 #endif
 
-	connect(m_reply, &QNetworkReply::errorOccurred, m_socket, [this](QNetworkReply::NetworkError e){
+	connect(m_reply, &QNetworkReply::errorOccurred, this, [this](QNetworkReply::NetworkError e){
 		m_pending = false;
-		emit m_socket->socketError(e);
+		if (m_socket)
+			emit m_socket->socketError(e);
 		this->abort();
 	});
 

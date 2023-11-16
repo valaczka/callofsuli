@@ -67,6 +67,11 @@ Item {
 
 	TapHandler {
 		id: tap
+
+		gesturePolicy: TapHandler.ReleaseWithinBounds | TapHandler.WithinBounds
+		grabPermissions: PointerHandler.CanTakeOverFromAnything | PointerHandler.CanTakeOverFromHandlersOfSameType | PointerHandler.CanTakeOverFromItems
+						 | PointHandler.ApprovesTakeOverByAnything | PointHandler.ApprovesCancellation
+
 		onTapped: {
 			control.clicked()
 			anim.start()

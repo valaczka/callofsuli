@@ -61,11 +61,7 @@ Client::Client(Application *app)
 	, m_utils(new Utils(this))
 	, m_httpConnection(new HttpConnection(this))
 	, m_updater(new Updater(this))
-	#ifdef NO_SOUND_THREAD
 	, m_sound(new Sound(nullptr))
-	#else
-	, m_worker()
-	#endif
 {
 	Q_ASSERT(app);
 
@@ -85,23 +81,6 @@ Client::Client(Application *app)
 	startCache();
 
 	retranslate(Utils::settingsGet(QStringLiteral("window/language"), QStringLiteral("hu")).toString());
-
-
-
-#ifdef NO_SOUND_THREAD
-	m_sound->init();
-#else
-	QDefer ret;
-
-	m_worker.execInThread([this, ret]() mutable {
-		m_sound = std::make_unique<Sound>();
-		m_sound->init();
-
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-#endif
 
 	LOG_CTRACE("app") << "Client created" << this;
 }

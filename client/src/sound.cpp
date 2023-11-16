@@ -1,4 +1,4 @@
-/*
+/*S
  * ---- Call of Suli ----
  *
  * cosclientsound.cpp
@@ -46,7 +46,7 @@ Sound::Sound(QObject *parent)
 	, m_soundTypeSfx(PlayerSfx)
 	, m_musicNextSource()
 {
-	LOG_CTRACE("sound") << "Sound object created" << this;
+	LOG_CTRACE("sound") << "Sound object created" << this << QThread::currentThread();
 
 	/*m_fadeAnimation->setDuration(750);
 	m_fadeAnimation->setEndValue(0);
@@ -54,6 +54,18 @@ Sound::Sound(QObject *parent)
 	connect(m_fadeAnimation, &QVariantAnimation::finished, this, &Sound::musicLoadNextSource);
 	connect(m_fadeAnimation, &QVariantAnimation::stateChanged, this, [](QAbstractAnimation::State newState, QAbstractAnimation::State oldState
 			){ LOG_CTRACE("sound") << "###### STATE" << newState << oldState; });*/
+
+
+#ifndef NO_SOUND_THREAD
+	QDefer ret;
+	m_worker.execInThread([this, ret]() mutable {
+		this->init();
+		ret.resolve();
+	});
+	QDefer::await(ret);
+#else
+	init();
+#endif
 }
 
 
@@ -64,7 +76,7 @@ Sound::Sound(QObject *parent)
 
 Sound::~Sound()
 {
-	LOG_CTRACE("sound") << "Sound object destroyed" << this;
+	LOG_CTRACE("sound") << "Sound object destroyed" << this << QThread::currentThread();
 
 	QSettings s;
 	s.beginGroup(QStringLiteral("sound"));
@@ -86,7 +98,7 @@ Sound::~Sound()
 
 void Sound::init()
 {
-	LOG_CTRACE("sound") << "Sound object init";
+	LOG_CTRACE("sound") << "Sound object init" << this << QThread::currentThread();
 
 	m_mediaPlayerMusic = std::make_unique<QMediaPlayer>();
 	m_mediaPlayerSfx = std::make_unique<QMediaPlayer>();
@@ -112,7 +124,7 @@ void Sound::init()
 			m_mediaPlayerVoiceOver->setMedia(QUrl(m_playlist.dequeue()));
 			m_mediaPlayerVoiceOver->play();
 		}
-	});
+	}, Qt::DirectConnection);
 #else
 	connect(m_mediaPlayerVoiceOver.get(), &QMediaPlayer::playbackStateChanged, this, [this](const QMediaPlayer::PlaybackState &state) {
 		if (state == QMediaPlayer::StoppedState && !m_playlist.isEmpty()) {
@@ -120,18 +132,18 @@ void Sound::init()
 			m_mediaPlayerVoiceOver->setSource(QUrl(m_playlist.dequeue()));
 			m_mediaPlayerVoiceOver->play();
 		}
-	});
+	}, Qt::DirectConnection);
 #endif
 
 
 	QSettings s;
 	s.beginGroup(QStringLiteral("sound"));
-	setVolume(Sound::MusicChannel, s.value(QStringLiteral("volumeMusic"), 50).toInt());
-	setVolume(Sound::SfxChannel, s.value(QStringLiteral("volumeSfx"), 50).toInt());
-	setVolume(Sound::VoiceoverChannel, s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
+	p_setVolume(Sound::MusicChannel, s.value(QStringLiteral("volumeMusic"), 50).toInt());
+	p_setVolume(Sound::SfxChannel, s.value(QStringLiteral("volumeSfx"), 50).toInt());
+	p_setVolume(Sound::VoiceoverChannel, s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
 	s.endGroup();
 
-	LOG_CTRACE("sound") << "Sound object initialized";
+	LOG_CTRACE("sound") << "Sound object initialized" << this << QThread::currentThread();
 }
 
 
@@ -146,6 +158,125 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 {
 	LOG_CTRACE("sound") << "Play sound" << source << soundType;
 
+#ifndef NO_SOUND_THREAD
+	m_worker.execInThread([this, soundType, source]() {
+		this->p_playSound(source, soundType);
+	});
+#else
+	p_playSound(source, soundType);
+#endif
+}
+
+
+/**
+ * @brief CosClientSound::stopSound
+ * @param source
+ * @param soundType
+ */
+
+void Sound::stopSound(const QString &source, const SoundType &soundType)
+{
+	LOG_CTRACE("sound") << "Stop sound" << source << soundType;
+
+#ifndef NO_SOUND_THREAD
+	m_worker.execInThread([this, soundType, source]() {
+		this->p_stopSound(source, soundType);
+	});
+#else
+	p_stopSound(source, soundType);
+#endif
+}
+
+
+/**
+ * @brief Sound::volume
+ * @param channel
+ * @return
+ */
+
+int Sound::volume(const ChannelType &channel) const
+{
+#if QT_VERSION < 0x060000
+	switch (channel) {
+	case MusicChannel:
+		return m_mediaPlayerMusic->volume();
+		break;
+	case SfxChannel:
+		return m_mediaPlayerSfx->volume();
+		break;
+	case VoiceoverChannel:
+		return m_mediaPlayerVoiceOver->volume();
+		break;
+	}
+#else
+	switch (channel) {
+	case MusicChannel:
+		return m_audioOutputMusic->volume()*100;
+		break;
+	case SfxChannel:
+		return m_audioOutputSfx->volume()*100;
+		break;
+	case VoiceoverChannel:
+		return m_audioOutputVoiceOver->volume()*100;
+		break;
+	}
+#endif
+	return 0;
+}
+
+
+/**
+ * @brief Sound::setVolume
+ * @param channel
+ * @param newVolume
+ */
+
+void Sound::p_setVolume(const ChannelType &channel, int newVolume)
+{
+#if QT_VERSION < 0x060000
+	switch (channel) {
+	case MusicChannel:
+		m_mediaPlayerMusic->setVolume(newVolume);
+		emit volumeMusicChanged(newVolume);
+		break;
+	case SfxChannel:
+		m_mediaPlayerSfx->setVolume(newVolume);
+		emit volumeSfxChanged(newVolume);
+		break;
+	case VoiceoverChannel:
+		m_mediaPlayerVoiceOver->setVolume(newVolume);
+		emit volumeMusicChanged(newVolume);
+		break;
+	}
+#else
+	switch (channel) {
+	case MusicChannel:
+		m_audioOutputMusic->setVolume((qreal)newVolume/100.0);
+		emit volumeMusicChanged(newVolume);
+		break;
+	case SfxChannel:
+		m_audioOutputSfx->setVolume((qreal)newVolume/100.0);
+		emit volumeSfxChanged(newVolume);
+		break;
+	case VoiceoverChannel:
+		m_audioOutputVoiceOver->setVolume((qreal)newVolume/100.0);
+		emit volumeVoiceOverChanged(newVolume);
+		break;
+	}
+#endif
+}
+
+
+
+
+/**
+ * @brief Sound::p_playSound
+ * @param source
+ * @param soundType
+ */
+
+void Sound::p_playSound(const QString &source, const SoundType &soundType)
+{
 	if (soundType == Music) {
 		musicPlay(source);
 	} else if (soundType == VoiceOver) {
@@ -216,16 +347,15 @@ void Sound::playSound(const QString &source, const SoundType &soundType)
 }
 
 
+
 /**
- * @brief CosClientSound::stopSound
+ * @brief Sound::p_stopSound
  * @param source
  * @param soundType
  */
 
-void Sound::stopSound(const QString &source, const SoundType &soundType)
+void Sound::p_stopSound(const QString &source, const SoundType &soundType)
 {
-	LOG_CTRACE("sound") << "Stop sound" << source << soundType;
-
 	if (soundType != Music)
 		return;
 
@@ -250,85 +380,6 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 		LOG_CTRACE("sound") << "++++++" << m_fadeAnimation->startValue();
 		m_fadeAnimation->start();
 	}*/
-#endif
-}
-
-
-/**
- * @brief Sound::volume
- * @param channel
- * @return
- */
-
-int Sound::volume(const ChannelType &channel) const
-{
-#if QT_VERSION < 0x060000
-	switch (channel) {
-	case MusicChannel:
-		return m_mediaPlayerMusic->volume();
-		break;
-	case SfxChannel:
-		return m_mediaPlayerSfx->volume();
-		break;
-	case VoiceoverChannel:
-		return m_mediaPlayerVoiceOver->volume();
-		break;
-	}
-#else
-	switch (channel) {
-	case MusicChannel:
-		return m_audioOutputMusic->volume()*100;
-		break;
-	case SfxChannel:
-		return m_audioOutputSfx->volume()*100;
-		break;
-	case VoiceoverChannel:
-		return m_audioOutputVoiceOver->volume()*100;
-		break;
-	}
-#endif
-	return 0;
-}
-
-
-/**
- * @brief Sound::setVolume
- * @param channel
- * @param newVolume
- */
-
-void Sound::setVolume(const ChannelType &channel, int newVolume)
-{
-#if QT_VERSION < 0x060000
-	switch (channel) {
-	case MusicChannel:
-		m_mediaPlayerMusic->setVolume(newVolume);
-		emit volumeMusicChanged(newVolume);
-		break;
-	case SfxChannel:
-		m_mediaPlayerSfx->setVolume(newVolume);
-		emit volumeSfxChanged(newVolume);
-		break;
-	case VoiceoverChannel:
-		m_mediaPlayerVoiceOver->setVolume(newVolume);
-		emit volumeMusicChanged(newVolume);
-		break;
-	}
-#else
-	switch (channel) {
-	case MusicChannel:
-		m_audioOutputMusic->setVolume((qreal)newVolume/100.0);
-		emit volumeMusicChanged(newVolume);
-		break;
-	case SfxChannel:
-		m_audioOutputSfx->setVolume((qreal)newVolume/100.0);
-		emit volumeSfxChanged(newVolume);
-		break;
-	case VoiceoverChannel:
-		m_audioOutputVoiceOver->setVolume((qreal)newVolume/100.0);
-		emit volumeVoiceOverChanged(newVolume);
-		break;
-	}
 #endif
 }
 
@@ -413,6 +464,58 @@ bool Sound::isPlayingMusic() const
 
 
 /**
+ * @brief Sound::setVolumeSfx
+ * @param volume
+ */
+
+void Sound::setVolumeSfx(int volume)
+{
+#ifndef NO_SOUND_THREAD
+	m_worker.execInThread([this, volume]() {
+		this->p_setVolume(Sound::SfxChannel, volume);
+	});
+#else
+	p_setVolume(Sound::SfxChannel, volume);
+#endif
+}
+
+
+/**
+ * @brief Sound::setVolumeMusic
+ * @param volume
+ */
+
+void Sound::setVolumeMusic(int volume)
+{
+#ifndef NO_SOUND_THREAD
+	m_worker.execInThread([this, volume]() {
+		this->p_setVolume(Sound::MusicChannel, volume);
+	});
+#else
+	p_setVolume(Sound::MusicChannel, volume);
+#endif
+}
+
+
+/**
+ * @brief Sound::setVolumeVoiceOver
+ * @param volume
+ */
+
+void Sound::setVolumeVoiceOver(int volume)
+{
+#ifndef NO_SOUND_THREAD
+	m_worker.execInThread([this, volume]() {
+		this->p_setVolume(Sound::VoiceoverChannel, volume);
+	});
+#else
+	p_setVolume(Sound::VoiceoverChannel, volume);
+#endif
+}
+
+
+
+/**
  * @brief CosSound::musicPlay
  * @param source
  */
@@ -422,7 +525,7 @@ void Sound::musicPlay(const QString &source)
 	LOG_CTRACE("sound") << "Play music" << source;
 
 	m_musicNextSource = source;
-/*
+	/*
 #if QT_VERSION < 0x060000
 	if (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState) {
 #else
@@ -439,7 +542,7 @@ void Sound::musicPlay(const QString &source)
 			m_fadeAnimation->start();
 		}
 	} else {*/
-		musicLoadNextSource();
+	musicLoadNextSource();
 	/*}*/
 }
 

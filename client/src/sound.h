@@ -40,6 +40,11 @@
 #include <QVariantAnimation>
 #include <QQueue>
 
+#ifndef NO_SOUND_THREAD
+#include "qlambdathreadworker.h"
+#endif
+
+
 /**
  * @brief The Sound class
  */
@@ -67,9 +72,6 @@ public:
 	Q_INVOKABLE void playSound(const QString &source, const Sound::SoundType &soundType);
 	Q_INVOKABLE void stopSound(const QString &source, const Sound::SoundType &soundType);
 
-	int volume(const Sound::ChannelType &channel) const;
-	void setVolume(const Sound::ChannelType &channel, int newVolume);
-
 	bool isMuted(const Sound::ChannelType &channel) const;
 	void setMuted(const Sound::ChannelType &channel, bool newMuted);
 
@@ -79,20 +81,25 @@ public:
 	int volumeMusic() const { return volume(MusicChannel); }
 	int volumeVoiceOver() const { return volume(VoiceoverChannel); }
 
-	void setVolumeSfx(int volume) { setVolume(SfxChannel, volume); }
-	void setVolumeMusic(int volume) { setVolume(MusicChannel, volume); }
-	void setVolumeVoiceOver(int volume) { setVolume(VoiceoverChannel, volume); }
+	void setVolumeSfx(int volume);
+	void setVolumeMusic(int volume);
+	void setVolumeVoiceOver(int volume);
+
+	int volume(const Sound::ChannelType &channel) const;
 
 signals:
 	void volumeMusicChanged(int volume);
 	void volumeSfxChanged(int volume);
 	void volumeVoiceOverChanged(int volume);
 
-private slots:
+private:
 	void musicPlay(const QString &source);
 	void musicLoadNextSource();
 
-private:
+	void p_setVolume(const Sound::ChannelType &channel, int newVolume);
+	void p_playSound(const QString &source, const Sound::SoundType &soundType);
+	void p_stopSound(const QString &source, const Sound::SoundType &soundType);
+
 	std::unique_ptr<QMediaPlayer> m_mediaPlayerMusic;
 	std::unique_ptr<QMediaPlayer> m_mediaPlayerSfx;
 	std::unique_ptr<QMediaPlayer> m_mediaPlayerVoiceOver;
@@ -104,6 +111,11 @@ private:
 	std::unique_ptr<QAudioOutput> m_audioOutputSfx;
 	std::unique_ptr<QAudioOutput> m_audioOutputVoiceOver;
 #endif
+
+#ifndef NO_SOUND_THREAD
+	QLambdaThreadWorker m_worker;
+#endif
+
 
 	QQueue<QString> m_playlist;
 };
