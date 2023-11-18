@@ -35,15 +35,19 @@
 #ifndef SOUND_H
 #define SOUND_H
 
+#include "qsoundeffect.h"
 #include <QObject>
 #include <QMediaPlayer>
 #include <QVariantAnimation>
 #include <QQueue>
+#include <QPointer>
 
 #ifndef NO_SOUND_THREAD
 #include "qlambdathreadworker.h"
 #endif
 
+
+//#define NO_SOUND
 
 /**
  * @brief The Sound class
@@ -71,6 +75,8 @@ public:
 
 	Q_INVOKABLE void playSound(const QString &source, const Sound::SoundType &soundType);
 	Q_INVOKABLE void stopSound(const QString &source, const Sound::SoundType &soundType);
+
+	QSoundEffect *getSoundEffect(const QUrl &source);
 
 	bool isMuted(const Sound::ChannelType &channel) const;
 	void setMuted(const Sound::ChannelType &channel, bool newMuted);
@@ -100,13 +106,15 @@ private:
 	void p_playSound(const QString &source, const Sound::SoundType &soundType);
 	void p_stopSound(const QString &source, const Sound::SoundType &soundType);
 
+#ifndef NO_SOUND
 	std::unique_ptr<QMediaPlayer> m_mediaPlayerMusic;
 	std::unique_ptr<QMediaPlayer> m_mediaPlayerSfx;
 	std::unique_ptr<QMediaPlayer> m_mediaPlayerVoiceOver;
+#endif
 	SoundType m_soundTypeSfx;
 	QString m_musicNextSource;
 
-#if QT_VERSION >= 0x060000
+#if QT_VERSION >= 0x060000 && !defined(NO_SOUND)
 	std::unique_ptr<QAudioOutput> m_audioOutputMusic;
 	std::unique_ptr<QAudioOutput> m_audioOutputSfx;
 	std::unique_ptr<QAudioOutput> m_audioOutputVoiceOver;
@@ -116,8 +124,9 @@ private:
 	QLambdaThreadWorker m_worker;
 #endif
 
-
 	QQueue<QString> m_playlist;
+	QVector<QPointer<QSoundEffect>> m_soundEffects;
+	QRecursiveMutex m_mutex;
 };
 
 

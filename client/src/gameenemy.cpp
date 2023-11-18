@@ -110,23 +110,7 @@ void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestion
 
 void GameEnemy::playAttackSound()
 {
-#if QT_VERSION >= 0x060000
-	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
-	QSoundEffect *effect = new QSoundEffect(ad, m_scene);
-#else
-	QSoundEffect *effect = new QSoundEffect(m_scene);
-#endif
-
-	connect(effect, &QSoundEffect::playingChanged, this, [effect](){
-		if (!effect->isPlaying()) {
-			effect->deleteLater();
-		}
-	});
-
-	const qreal vol = (qreal) Application::instance()->client()->sound()->volume(Sound::SfxChannel) / 100.0;
-	effect->setVolume(vol);
-	effect->setSource(shotSound());
-	effect->play();
+	Application::instance()->client()->sound()->getSoundEffect(shotSound());
 }
 
 

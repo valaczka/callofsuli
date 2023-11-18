@@ -34,12 +34,15 @@
 
 #include "sound.h"
 #include <QSettings>
+#include <Logger.h>
+
 #if QT_VERSION < 0x060000
 #include <QMediaPlaylist>
 #else
 #include <QAudioOutput>
+#include "qaudiodevice.h"
+#include "qmediadevices.h"
 #endif
-#include <Logger.h>
 
 Sound::Sound(QObject *parent)
 	: QObject(parent)
@@ -84,6 +87,24 @@ Sound::~Sound()
 	s.setValue(QStringLiteral("volumeSfx"), volume(SfxChannel));
 	s.setValue(QStringLiteral("volumeVoiceOver"), volume(VoiceoverChannel));
 	s.endGroup();
+
+#if !defined(NO_SOUND_THREAD) && !defined(NO_SOUND)
+	QDefer ret;
+	m_worker.execInThread([this, ret]() mutable {
+		m_mediaPlayerMusic.reset();
+		m_mediaPlayerSfx.reset();
+		m_mediaPlayerVoiceOver.reset();
+
+#if QT_VERSION >= 0x060000
+		m_audioOutputMusic.reset();
+		m_audioOutputSfx.reset();
+		m_audioOutputVoiceOver.reset();
+#endif
+
+		ret.resolve();
+	});
+	QDefer::await(ret);
+#endif
 }
 
 
@@ -98,6 +119,9 @@ Sound::~Sound()
 
 void Sound::init()
 {
+#ifdef NO_SOUND
+	LOG_CINFO("sound") << "Sound disabled";
+#else
 	LOG_CTRACE("sound") << "Sound object init" << this << QThread::currentThread();
 
 	m_mediaPlayerMusic = std::make_unique<QMediaPlayer>();
@@ -144,6 +168,8 @@ void Sound::init()
 	s.endGroup();
 
 	LOG_CTRACE("sound") << "Sound object initialized" << this << QThread::currentThread();
+
+#endif
 }
 
 
@@ -188,6 +214,87 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 }
 
 
+
+/**
+ * @brief Sound::getSoundEffect
+ * @return
+ */
+
+QSoundEffect *Sound::getSoundEffect(const QUrl &source)
+{
+	QMutexLocker locker(&m_mutex);
+	QSoundEffect *effect = nullptr;
+
+	while (m_soundEffects.size() > 3) {
+		LOG_CTRACE("sound") << "Sound effect overload" << m_soundEffects.size();
+
+		auto ptr = m_soundEffects.takeFirst();
+		if (ptr) {
+			ptr->stop();
+			ptr->deleteLater();
+		}
+	}
+
+
+#ifndef NO_SOUND_THREAD
+	QDefer ret;
+	m_worker.execInThread([this, ret, &effect]() mutable {
+#endif
+
+#if QT_VERSION >= 0x060000
+		QAudioDevice ad(QMediaDevices::defaultAudioOutput());
+		effect = new QSoundEffect(ad, m_mediaPlayerSfx.get());
+#else
+		effect = new QSoundEffect(m_mediaPlayerSfx.get());
+#endif
+
+
+#ifndef NO_SOUND_THREAD
+		ret.resolve();
+	});
+	QDefer::await(ret);
+#endif
+
+	m_soundEffects.append(effect);
+
+	LOG_CTRACE("sound") << "SoundEffect created" << effect << m_soundEffects.size();
+
+
+	connect(effect, &QSoundEffect::destroyed, this, [this](){
+		LOG_CTRACE("sound") << "SoundEffect destroyed" << m_soundEffects.size();
+	});
+
+	connect(effect, &QSoundEffect::playingChanged, this, [this]() {
+		QMutexLocker locker(&m_mutex);
+		QSoundEffect *effect = qobject_cast<QSoundEffect*>(sender());
+
+		if (!effect)
+			return;
+
+		if (!effect->isPlaying()) {
+			for (auto it = m_soundEffects.begin(); it != m_soundEffects.end(); ) {
+				if (it->data() == effect)
+					it = m_soundEffects.erase(it);
+				else
+					++it;
+			}
+
+			effect->deleteLater();
+		}
+	});
+
+	const qreal vol = (qreal) volume(SfxChannel) / 100.0;
+	effect->setVolume(vol);
+
+	if (!source.isEmpty()) {
+		effect->setSource(source);
+		effect->play();
+	}
+
+	return effect;
+}
+
+
 /**
  * @brief Sound::volume
  * @param channel
@@ -196,6 +303,12 @@ void Sound::stopSound(const QString &source, const SoundType &soundType)
 
 int Sound::volume(const ChannelType &channel) const
 {
+#ifdef NO_SOUND
+	Q_UNUSED(channel);
+
+	return 0;
+
+#else
 #if QT_VERSION < 0x060000
 	switch (channel) {
 	case MusicChannel:
@@ -222,6 +335,7 @@ int Sound::volume(const ChannelType &channel) const
 	}
 #endif
 	return 0;
+#endif
 }
 
 
@@ -233,6 +347,10 @@ int Sound::volume(const ChannelType &channel) const
 
 void Sound::p_setVolume(const ChannelType &channel, int newVolume)
 {
+#ifdef NO_SOUND
+	Q_UNUSED(channel);
+	Q_UNUSED(newVolume);
+#else
 #if QT_VERSION < 0x060000
 	switch (channel) {
 	case MusicChannel:
@@ -264,6 +382,7 @@ void Sound::p_setVolume(const ChannelType &channel, int newVolume)
 		break;
 	}
 #endif
+#endif
 }
 
 
@@ -277,6 +396,10 @@ void Sound::p_setVolume(const ChannelType &channel, int newVolume)
 
 void Sound::p_playSound(const QString &source, const SoundType &soundType)
 {
+#ifdef NO_SOUND
+	Q_UNUSED(source);
+	Q_UNUSED(soundType);
+#else
 	if (soundType == Music) {
 		musicPlay(source);
 	} else if (soundType == VoiceOver) {
@@ -344,6 +467,8 @@ void Sound::p_playSound(const QString &source, const SoundType &soundType)
 		m_mediaPlayerSfx->play();
 #endif
 	}
+
+#endif
 }
 
 
@@ -393,6 +518,12 @@ void Sound::p_stopSound(const QString &source, const SoundType &soundType)
 
 bool Sound::isMuted(const ChannelType &channel) const
 {
+#ifdef NO_SOUND
+	Q_UNUSED(channel);
+
+	return true;
+#else
+
 #if QT_VERSION < 0x060000
 	switch (channel) {
 	case MusicChannel:
@@ -420,6 +551,7 @@ bool Sound::isMuted(const ChannelType &channel) const
 #endif
 
 	return false;
+#endif
 }
 
 
@@ -431,7 +563,10 @@ bool Sound::isMuted(const ChannelType &channel) const
 
 void Sound::setMuted(const ChannelType &channel, bool newMuted)
 {
-#if QT_VERSION >= 0x060000
+#ifdef NO_SOUND
+	Q_UNUSED(channel);
+	Q_UNUSED(newMuted);
+#elif QT_VERSION >= 0x060000
 	switch (channel) {
 	case MusicChannel:
 		m_audioOutputMusic->setMuted(newMuted);
@@ -454,7 +589,9 @@ void Sound::setMuted(const ChannelType &channel, bool newMuted)
 
 bool Sound::isPlayingMusic() const
 {
-#if QT_VERSION < 0x060000
+#ifdef NO_SOUND
+	return false;
+#elif QT_VERSION < 0x060000
 	return (m_mediaPlayerMusic->state() == QMediaPlayer::PlayingState);
 #else
 	return m_mediaPlayerMusic->isPlaying();
@@ -554,6 +691,7 @@ void Sound::musicPlay(const QString &source)
 
 void Sound::musicLoadNextSource()
 {
+#ifndef NO_SOUND
 	LOG_CTRACE("sound") << "Music load next source" << m_musicNextSource;
 
 	if (m_musicNextSource.isEmpty()) {
@@ -584,5 +722,6 @@ void Sound::musicLoadNextSource()
 
 	m_musicNextSource = QStringLiteral("");
 	m_mediaPlayerMusic->play();
+#endif
 }
 

@@ -1103,7 +1103,14 @@ void GameScene::gameObjectAdd(GameObject *object)
 		connect(object, &GameObject::destroyed, this, [this, object]() {
 			LOG_CTRACE("scene") << "Remove...";
 			LOG_CTRACE("scene") << "Remove" << object;
-			m_gameObjects.removeAll(object);
+			//m_gameObjects.removeAll(object);
+
+			for (auto it=m_gameObjects.begin(); it != m_gameObjects.end(); ) {
+				if (it->data() == object)
+					it = m_gameObjects.erase(it);
+				else
+					++it;
+			}
 		}, Qt::DirectConnection);
 	}
 }

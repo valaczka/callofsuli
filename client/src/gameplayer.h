@@ -218,7 +218,6 @@ private:
 	bool m_invisible = false;
 	QPointer<GameObject> m_operatingObject = nullptr;
 	int m_invisibleTime = 0;
-	int m_soundEffectCount = 0;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(GamePlayer::MovingFlags)

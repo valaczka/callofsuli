@@ -33,8 +33,6 @@
 #include <QStack>
 #include "gameladder.h"
 #include "gameterrainmap.h"
-#include "qmutex.h"
-
 
 
 class ActionGame;

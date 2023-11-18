@@ -706,7 +706,7 @@ void Utils::checkMediaPermissions()
 			return;
 		}
 	}
-#else
+#elif QT_VERSION >= 0x060000
 	switch (qApp->checkPermission(QCameraPermission{}))
 	{
 	case Qt::PermissionStatus::Undetermined:

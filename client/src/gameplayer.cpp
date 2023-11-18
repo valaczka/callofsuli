@@ -32,12 +32,6 @@
 #include "gameplayerposition.h"
 #include "gamescene.h"
 
-#if QT_VERSION >= 0x060000
-#include "qaudiodevice.h"
-#include "qmediadevices.h"
-#endif
-
-
 
 /**
  * @brief GamePlayer::GamePlayer
@@ -571,29 +565,7 @@ void GamePlayer::ladderMove(const bool &up, const qreal &delayFactor)
 
 void GamePlayer::playAttackSound()
 {
-	if (m_soundEffectCount > 5)
-		return;
-
-#if QT_VERSION >= 0x060000
-	QAudioDevice ad(QMediaDevices::defaultAudioOutput());
-	QSoundEffect *effect = new QSoundEffect(ad, m_scene);
-#else
-	QSoundEffect *effect = new QSoundEffect(m_scene);
-#endif
-
-	++m_soundEffectCount;
-
-	connect(effect, &QSoundEffect::playingChanged, this, [effect, this](){
-		if (!effect->isPlaying()) {
-			effect->deleteLater();
-			--m_soundEffectCount;
-		}
-	});
-
-	const qreal vol = (qreal) Application::instance()->client()->sound()->volume(Sound::SfxChannel) / 100.0;
-	effect->setVolume(vol);
-	effect->setSource(shotSound());
-	effect->play();
+	Application::instance()->client()->sound()->getSoundEffect(shotSound());
 }
 
 
