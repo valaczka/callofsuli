@@ -291,6 +291,10 @@ bool Application::loadResources()
 {
 	QStringList searchList;
 
+#ifdef STATIC_ASSETS
+	LOG_CDEBUG("app") << "Static assets included";
+#else
+
 #ifdef Q_OS_ANDROID
 	searchList.append("assets:");
 	searchList.append(QStandardPaths::standardLocations(QStandardPaths::HomeLocation));
@@ -328,6 +332,8 @@ bool Application::loadResources()
 			QResource::registerResource(realname);
 		}
 	}
+
+#endif
 
 	loadFonts();
 

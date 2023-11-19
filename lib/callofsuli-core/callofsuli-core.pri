@@ -29,15 +29,6 @@ SOURCES += \
 	$$PWD/../QJsonWebToken/src/qjsonwebtoken.cpp \
 	$$PWD/utils_.cpp
 
-!wasm {
-	HEADERS += \
-		$$PWD/database.h
-
-	SOURCES += \
-		$$PWD/database.cpp
-}
-
-
 android: {
 	HEADERS += \
 		$$PWD/mobileutils.h

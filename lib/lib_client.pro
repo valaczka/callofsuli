@@ -7,12 +7,10 @@ SUBDIRS += \
 	libQaterial \
 	libQZXing \
 	libTiled \
-	libQtXlsxWriter
+	libQtXlsxWriter \
+	qml-box2d
 
 !wasm:!android:!ios: SUBDIRS += CuteLogger
 
-!wasm|if($$WasmWithBox2D) {
-	SUBDIRS += qml-box2d
-}
 
 

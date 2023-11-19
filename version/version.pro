@@ -2,11 +2,13 @@ include(../common.pri)
 
 TEMPLATE = aux
 
-linux:if($$AppVersionIncrement) {
-	AppVersionBuild = "$$cat(version_build.num)"
+AppVersionBuild = "$$cat(version_build.num)"
 
-	AppVersionBuild = $$num_add($$AppVersionBuild,1)
-	write_file(version_build.num, AppVersionBuild)
+linux {
+	if($$AppVersionIncrement) {
+		AppVersionBuild = $$num_add($$AppVersionBuild,1)
+		write_file(version_build.num, AppVersionBuild)
+	}
 
 	lines = "VER_MAJ = $$AppVersionMajor"
 	lines += "VER_MIN = $$AppVersionMinor"
@@ -30,5 +32,5 @@ linux:if($$AppVersionIncrement) {
 
 	QMAKE_EXTRA_TARGETS += build_nr
 	POST_TARGETDEPS += build_nr
-}
 
+}

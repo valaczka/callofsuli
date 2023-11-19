@@ -385,8 +385,9 @@ void Updater::githubUpdateCheck(const bool &force)
 		uint vBuild = vstr.section('.', 2, 2).toUInt();
 
 		const QString &lastNotified = Utils::settingsGet(QStringLiteral("update/lastVersion")).toString();
+		const QDate &lastDate = Utils::settingsGet(QStringLiteral("update/lastDate")).toDate();
 
-		if (!force && !lastNotified.isEmpty() && vstr == lastNotified)
+		if (!force && !lastNotified.isEmpty() && vstr == lastNotified && lastDate == QDate::currentDate())
 			return;
 
 		if (vMajor > Utils::versionMajor() ||
@@ -394,6 +395,7 @@ void Updater::githubUpdateCheck(const bool &force)
 				(vMajor == Utils::versionMajor() && vMinor == Utils::versionMinor() && vBuild > Utils::versionBuild())
 				) {
 			Utils::settingsSet(QStringLiteral("update/lastVersion"), vstr);
+			Utils::settingsSet(QStringLiteral("update/lastDate"), QDate::currentDate());
 			emit gitHubUpdateAvailable(platformData);
 		} else if (force) {
 			emit updateNotAvailable();

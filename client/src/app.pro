@@ -3,8 +3,6 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets
 
-!wasm: QT += sql
-
 CONFIG += c++17
 CONFIG += separate_debug_info
 CONFIG += permissions
@@ -67,14 +65,18 @@ for(m, MODULES_LIST) {
 
 ##### Assets
 
-CommonRcc.files += $$files($$PWD/../../share/*.cres)
+if ($$StaticAssets) {
+	RESOURCES += $$files($$PWD/../../resources/*.qrc)
+	DEFINES += STATIC_ASSETS
+} else {
+	CommonRcc.files += $$files($$PWD/../../share/*.cres)
 
-android: CommonRcc.path = /assets
-ios: CommonRcc.path = share
-macx: CommonRcc.path = Contents/Resources
+	android: CommonRcc.path = /assets
+	ios: CommonRcc.path = share
+	macx: CommonRcc.path = Contents/Resources
 
-
-!isEmpty(CommonRcc.path)	INSTALLS += CommonRcc
+	!isEmpty(CommonRcc.path)	INSTALLS += CommonRcc
+}
 
 
 ################ PLATFORM SPECIFIC SETTINGS ######################x
@@ -89,7 +91,7 @@ win32 {
 
 
 android {
-	androidCodeApi = 26000
+	androidCodeApi = 0
 
 	lessThan(QT_MAJOR_VERSION, 6) {
 		QT += androidextras
@@ -102,8 +104,6 @@ android {
 		alist.output = $$PWD/android/AndroidManifest.xml
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
-
-		androidCodeApi = 21000
 	} else {
 		QT += concurrent
 
@@ -115,6 +115,13 @@ android {
 		alist.output = $$PWD/android-Qt6/AndroidManifest.xml
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
+
+		equals(QT_ARCH, armeabi-v7a): androidCodeApi = 100000
+		else:equals(QT_ARCH, arm64-v8a): androidCodeApi = 200000
+		else:equals(QT_ARCH, x86): androidCodeApi = 300000
+		else:equals(QT_ARCH, x86_64): androidCodeApi = 400000
+
+		androidCodeApi = $$num_add($$androidCodeApi,26000)
 	}
 
 	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)

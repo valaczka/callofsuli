@@ -10,11 +10,11 @@
 # App Version
 
 AppVersionMajor = 3
-AppVersionMinor = 4
+AppVersionMinor = 5
 
 # Automatic version increment (build)
 
-AppVersionIncrement = true
+AppVersionIncrement = false
 
 
 
@@ -22,9 +22,9 @@ AppVersionIncrement = true
 ### BUILD SETTINGS
 #########################################################################
 
-# WebAssembly build with qml-box2d
+# Compile assets into binary
 
-WasmWithBox2D = true
+StaticAssets = false
 
 # Android
 
@@ -34,6 +34,7 @@ AndroidVersionCode = 39
 #########################################################################
 # BUNDLE SETTINGS
 #########################################################################
+
 
 # Build creation enabled (linux, win32, mac, wasm)
 

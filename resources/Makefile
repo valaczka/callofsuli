@@ -4,25 +4,27 @@ MAPDIRS = $(shell find -maxdepth 1 -mindepth 1 -type d)
 
 define GEN_MAP
 echo "<!DOCTYPE RCC><RCC version=\"1.0\">" >$(2); \
-echo "<qresource prefix=\"/$(1)\">" >>$(2); \
+echo "<qresource>" >>$(2); \
 for ff in $(shell find $(1) -mindepth 1 -maxdepth 2 -type f | sed -e 's+^$(1)/++'); do \
-	echo "<file>$$ff</file>" >>$(2); \
+	echo "<file>$(1)/$$ff</file>" >>$(2); \
 done; \
 echo "</qresource>" >>$(2); \
-echo "</RCC>" >>$(2); \
-$(RCC) -binary $(2) -o $(3); \
-rm -f $(2);
+echo "</RCC>" >>$(2); 
 endef
 
+all: $(addsuffix .qrc,$(MAPDIRS))
 
-all: $(addsuffix .cres,$(MAPDIRS))
+cres: $(addsuffix .cres,$(MAPDIRS))
 
 distclean: clean
 
 clean: 
+	$(shell rm -f $(addsuffix .qrc,$(MAPDIRS)))
 	$(shell rm -f $(addsuffix .cres,$(MAPDIRS)))
 
 
-%.cres: % 
-	$(shell rm -f $</_out.qrc)
-	$(call GEN_MAP,$<,$</_out.qrc,$@)
+%.cres: %.qrc
+	$(RCC) -binary $< -o $@
+
+%.qrc: %
+	$(call GEN_MAP,$<,$<.qrc)
