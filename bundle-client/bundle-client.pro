@@ -80,10 +80,15 @@ else: extralib.commands = echo \"Create bundle...\"; \
 			ln -s callofsuli.png $${CQtTargetDir}/.DirIcon ; \
 			cat $$PWD/../client/deploy/callofsuli.desktop >$${CQtTargetDir}/callofsuli.desktop ; \
 			echo "X-AppImage-Version=$${VERSION}" >>$${CQtTargetDir}/callofsuli.desktop ; \
-			cp $$PWD/../client/deploy/metainfo.xml $${CQtTargetDir}/usr/share/metainfo/hu.piarista.vjp.callofsuli.metainfo.xml ; \
+			mkdir -p $${CQtTargetDir}/usr/share/applications ; \
+			cat $$PWD/../client/deploy/callofsuli.desktop >$${CQtTargetDir}/usr/share/applications/callofsuli.desktop ; \
+			mkdir -p $${CQtTargetDir}/usr/share/icons/hicolor/512x512/apps ; \
+			cat $$PWD/../resources/internal/img/cos.png >$${CQtTargetDir}/usr/share/icons/hicolor/512x512/apps/callofsuli.png ; \
 			cp $$PWD/../client/deploy/appimageupdatetool-x86_64.AppImage $${CQtTargetDir}/usr/bin/
 
 
+### mkdir -p $${CQtTargetDir}/usr/share/metainfo/ ; \
+### cp $$PWD/../client/deploy/metainfo.xml $${CQtTargetDir}/usr/share/metainfo/callofsuli.appdata.xml ; \
 
 extralib.target = .bundle
 extralib.depends =

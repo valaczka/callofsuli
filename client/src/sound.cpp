@@ -49,7 +49,7 @@ Sound::Sound(QObject *parent)
 	, m_soundTypeSfx(PlayerSfx)
 	, m_musicNextSource()
 {
-	LOG_CTRACE("sound") << "Sound object created" << this << QThread::currentThread();
+	LOG_CTRACE("sound") << "Sound object created" << this;
 
 	/*m_fadeAnimation->setDuration(750);
 	m_fadeAnimation->setEndValue(0);
@@ -79,7 +79,7 @@ Sound::Sound(QObject *parent)
 
 Sound::~Sound()
 {
-	LOG_CTRACE("sound") << "Sound object destroyed" << this << QThread::currentThread();
+	LOG_CTRACE("sound") << "Sound object destroyed" << this;
 
 	QSettings s;
 	s.beginGroup(QStringLiteral("sound"));
@@ -122,7 +122,7 @@ void Sound::init()
 #ifdef NO_SOUND
 	LOG_CINFO("sound") << "Sound disabled";
 #else
-	LOG_CTRACE("sound") << "Sound object init" << this << QThread::currentThread();
+	LOG_CTRACE("sound") << "Sound object init" << this;
 
 	m_mediaPlayerMusic = std::make_unique<QMediaPlayer>();
 	m_mediaPlayerSfx = std::make_unique<QMediaPlayer>();
@@ -167,7 +167,7 @@ void Sound::init()
 	p_setVolume(Sound::VoiceoverChannel, s.value(QStringLiteral("volumeVoiceOver"), 50).toInt());
 	s.endGroup();
 
-	LOG_CTRACE("sound") << "Sound object initialized" << this << QThread::currentThread();
+	LOG_CTRACE("sound") << "Sound object initialized" << this;
 
 #endif
 }

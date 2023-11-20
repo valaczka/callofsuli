@@ -41,6 +41,7 @@
 #include <QVariantAnimation>
 #include <QQueue>
 #include <QPointer>
+#include <QMutex>
 
 #ifndef NO_SOUND_THREAD
 #include "qlambdathreadworker.h"

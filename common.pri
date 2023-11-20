@@ -28,7 +28,7 @@ StaticAssets = false
 
 # Android
 
-AndroidVersionCode = 39
+AndroidVersionCode = 40
 
 
 #########################################################################

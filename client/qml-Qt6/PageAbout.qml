@@ -80,7 +80,7 @@ QPage {
 			Qaterial.LabelHeadline6 {
 				text: qsTr("Rendszer")
 				bottomPadding: 5
-				visible: Client.debug
+				//visible: Client.debug
 			}
 
 			Qaterial.LabelBody2 {
@@ -89,7 +89,7 @@ QPage {
 				text: Client.getSystemInfo()
 				textFormat: Text.MarkdownText
 				bottomPadding: 15
-				visible: Client.debug
+				//visible: Client.debug
 			}
 		}
 

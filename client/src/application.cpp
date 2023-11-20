@@ -130,6 +130,18 @@ void Application::initialize()
 	QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
 	QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
+
+
+#if QT_VERSION >= 0x060000
+#if defined(Q_OS_ANDROID)
+	qputenv("QT_MEDIA_BACKEND", QByteArrayLiteral("android"));
+#elif defined(Q_OS_IOS) || defined (Q_OS_MACOS)
+	qputenv("QT_MEDIA_BACKEND", QByteArrayLiteral("ffmpeg"));
+#elif defined(Q_OS_LINUX)
+	qputenv("QT_MEDIA_BACKEND", QByteArrayLiteral("gstreamer"));
+#endif
+#endif
+
 }
 
 
