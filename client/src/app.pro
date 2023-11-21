@@ -171,6 +171,8 @@ ios {
 	QMAKE_SUBSTITUTES += plist
 
 	QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
+
+	SOURCES += sound_helper.mm
 }
 
 
@@ -181,6 +183,8 @@ macx {
 	QMAKE_BUNDLE_DATA += CommonRcc
 	ICON = $$PWD/../deploy/CallOfSuli.icns
 	QMAKE_TARGET_BUNDLE_PREFIX = hu.piarista.vjp
+
+	SOURCES += sound_helper.mm
 }
 
 

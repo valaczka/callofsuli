@@ -32,7 +32,6 @@
 #include <QQuickItem>
 #include <QLoggingCategory>
 #include "qmutex.h"
-#include "qsoundeffect.h"
 #include "qtimer.h"
 #include "httpconnection.h"
 #include <QAbstractSocket>

@@ -58,7 +58,7 @@ QPage {
 
 				linkColor: Qaterial.Colors.cyan500
 
-				onLinkActivated: Client.Utils.openUrl(link)
+				onLinkActivated: link => Client.Utils.openUrl(link)
 			}
 
 			Qaterial.LabelHeadline6 {
@@ -74,7 +74,7 @@ QPage {
 				textFormat: Text.MarkdownText
 				bottomPadding: 15
 
-				onLinkActivated: Client.Utils.openUrl(link)
+				onLinkActivated: link => Client.Utils.openUrl(link)
 			}
 
 			Qaterial.LabelHeadline6 {

@@ -31,12 +31,6 @@
 #include "gameplayer.h"
 #include <qtimer.h>
 
-#if QT_VERSION >= 0x060000
-#include "qaudiodevice.h"
-#include "qmediadevices.h"
-#endif
-
-
 
 /**
  * @brief GameEnemy::GameEnemy
@@ -110,7 +104,7 @@ void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestion
 
 void GameEnemy::playAttackSound()
 {
-	Application::instance()->client()->sound()->getSoundEffect(shotSound());
+	Application::instance()->client()->sound()->playSound(shotSound(), Sound::SfxChannel);
 }
 
 

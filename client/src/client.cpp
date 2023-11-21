@@ -1324,7 +1324,6 @@ QString Client::getSystemInfo() const
 	text += tr("Qt: **%1.%2**\n\n").arg(QT_VERSION_MAJOR).arg(QT_VERSION_MINOR);
 	text += tr("Képernyő mérete: **%1x%2**\n\n").arg(screen->geometry().width()).arg(screen->geometry().height());
 	text += tr("Logical DPI: **%1**\n\n").arg(screen->logicalDotsPerInch());
-	text += tr("Multimedia backend: **%1**\n\n").arg(qgetenv("QT_MEDIA_BACKEND"));
 
 	return text;
 }

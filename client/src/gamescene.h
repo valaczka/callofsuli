@@ -99,7 +99,7 @@ public:
 	Q_INVOKABLE void playSound(const QString &source);
 	Q_INVOKABLE void playSoundVoiceOver(const QString &source);
 	Q_INVOKABLE void playSoundMusic(const QString &source);
-	Q_INVOKABLE void stopSoundMusic(const QString &source);
+	Q_INVOKABLE void stopSoundMusic();
 
 	bool zoomOverview() const;
 	void setZoomOverview(bool newZoomOverview);

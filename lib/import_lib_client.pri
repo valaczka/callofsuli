@@ -118,3 +118,7 @@ android: include($$PWD/android_openssl/openssl.pri)
 include(qsyncable.pri)
 
 
+
+# Miniaudio
+
+INCLUDEPATH += $$PWD/miniaudio

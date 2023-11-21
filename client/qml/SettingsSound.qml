@@ -16,7 +16,7 @@ Column {
 		triggeredOnStart: false
 		running: false
 
-		property int soundType: Sound.GameSound
+		property int soundType: Sound.SfxChannel
 
 		onTriggered: Client.sound.playSound("qrc:/sound/sfx/question.mp3", soundType)
 	}
@@ -53,7 +53,7 @@ Column {
 
 			onMoved: {
 				Client.sound.volumeSfx = _volSfx.value
-				_delayTimer.soundType = Sound.GameSound
+				_delayTimer.soundType = Sound.SfxChannel
 				_delayTimer.restart()
 			}
 		}
@@ -94,7 +94,7 @@ Column {
 
 			onMoved: {
 				Client.sound.volumeVoiceOver = _volVoiceOver.value
-				_delayTimer.soundType = Sound.VoiceOver
+				_delayTimer.soundType = Sound.VoiceoverChannel
 				_delayTimer.restart()
 			}
 		}

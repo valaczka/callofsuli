@@ -86,8 +86,8 @@ public:
 	bool loadFromJsonFile();
 	virtual bool loadFromJsonFile(const QString &filename);
 
-	QPair<QPointF, QPointF> getRayPoints(const qreal &width);
-	QPair<QPointF, QPointF> getRayPoints();
+	std::optional<QPair<QPointF, QPointF> > getRayPoints(const qreal &width);
+	std::optional<QPair<QPointF, QPointF> > getRayPoints();
 
 	bool isOnGround() const;
 
@@ -128,7 +128,7 @@ public:
 	const QString &dataDir() const;
 	void setDataDir(const QString &newDataDir);
 
-	QUrl shotSound() const;
+	QString shotSound() const;
 	void setShotSound(const QUrl &newShotSound);
 
 	bool isAlive() const;
@@ -238,7 +238,7 @@ protected:
 	QJsonObject m_dataObject;
 	QJsonObject m_sprites;
 	QString m_dataDir;
-	QUrl m_defaultShotSound;
+	QString m_defaultShotSound;
 	int m_hp = 1;
 	int m_maxHp = 1;
 	bool m_facingLeft = false;

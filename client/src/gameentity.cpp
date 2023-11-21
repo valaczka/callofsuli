@@ -274,8 +274,10 @@ void GameEntity::setHp(int newHp)
 
 void GameEntity::doRayCast()
 {
-	QPair<QPointF, QPointF> p = getRayPoints();
-	doRayCast(p.first, p.second);
+	auto p = getRayPoints();
+
+	if (p)
+		doRayCast(p->first, p->second);
 }
 
 
@@ -285,11 +287,11 @@ void GameEntity::doRayCast()
  * @return
  */
 
-QPair<QPointF, QPointF> GameEntity::getRayPoints(const qreal &width)
+std::optional<QPair<QPointF, QPointF> > GameEntity::getRayPoints(const qreal &width)
 {
 	if (!m_fixture) {
 		LOG_CDEBUG("scene") << "Missing fixture";
-		return qMakePair<QPointF, QPointF>(QPointF(.0,.0), QPointF(.0,.0));
+		return std::nullopt;
 	}
 
 	QPointF point1;
@@ -320,7 +322,7 @@ QPair<QPointF, QPointF> GameEntity::getRayPoints(const qreal &width)
  * @return
  */
 
-QPair<QPointF, QPointF> GameEntity::getRayPoints()
+std::optional<QPair<QPointF, QPointF> > GameEntity::getRayPoints()
 {
 	return getRayPoints(m_rayCastLength);
 }
@@ -966,7 +968,7 @@ bool GameEntity::isOnGround() const
  * @return
  */
 
-QUrl GameEntity::shotSound() const
+QString GameEntity::shotSound() const
 {
 	QString sound = m_shotSound.toString();
 

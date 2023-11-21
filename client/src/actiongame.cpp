@@ -987,7 +987,7 @@ void ActionGame::onGameQuestionFinished()
 
 void ActionGame::onGameTimeout()
 {
-	m_scene->stopSoundMusic(backgroundMusic());
+	m_scene->stopSoundMusic();
 
 	setFinishState(Fail);
 	gameFinish();
@@ -1004,7 +1004,7 @@ void ActionGame::onGameTimeout()
 
 void ActionGame::onGameSuccess()
 {
-	m_scene->stopSoundMusic(backgroundMusic());
+	m_scene->stopSoundMusic();
 
 	setFinishState(Success);
 	gameFinish();
@@ -1026,7 +1026,7 @@ void ActionGame::onGameSuccess()
 
 void ActionGame::onGameFailed()
 {
-	m_scene->stopSoundMusic(backgroundMusic());
+	m_scene->stopSoundMusic();
 
 	setFinishState(Fail);
 	gameFinish();
@@ -1689,7 +1689,7 @@ void ActionGame::toolUse(const GamePickable::PickableType &type)
 
 void ActionGame::gameAbort()
 {
-	m_scene->stopSoundMusic(backgroundMusic());
+	m_scene->stopSoundMusic();
 	setFinishState(Fail);
 
 	LOG_CINFO("game") << "Game aborted:" << this;

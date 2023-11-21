@@ -58,7 +58,6 @@ MobileApplication::~MobileApplication()
 
 void MobileApplication::initialize()
 {
-	qRegisterMetaType<Sound::SoundType>("SoundType");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 0, "Sound", "Sound is uncreatable");
 
 	qmlRegisterType<Server>("CallOfSuli", 1, 0, "Server");

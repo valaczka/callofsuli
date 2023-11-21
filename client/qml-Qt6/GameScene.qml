@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
-import QtMultimedia
 import Box2D 2.0
 import CallOfSuli
 import Qaterial as Qaterial

@@ -41,8 +41,6 @@
 #include "utils_.h"
 #include "httpconnection.h"
 
-#include <QMediaDevices>
-#include <QAudioDevice>
 
 OnlineClient::OnlineClient(Application *app)
 	: Client{app}

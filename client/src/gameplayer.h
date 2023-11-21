@@ -31,8 +31,6 @@
 #include "gameentity.h"
 #include "gameladder.h"
 
-#include <QSoundEffect>
-
 class GamePlayer : public GameEntity
 {
 	Q_OBJECT

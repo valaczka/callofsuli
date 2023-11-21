@@ -35,20 +35,19 @@
 #ifndef SOUND_H
 #define SOUND_H
 
-#include "qsoundeffect.h"
+#include "qtimer.h"
+#include <QString>
 #include <QObject>
-#include <QMediaPlayer>
-#include <QVariantAnimation>
 #include <QQueue>
 #include <QPointer>
 #include <QMutex>
+#include <miniaudio.h>
+#include <QHash>
+#include <QTemporaryFile>
 
-#ifndef NO_SOUND_THREAD
-#include "qlambdathreadworker.h"
-#endif
+//#define NO_SOUND_THREAD
 
 
-//#define NO_SOUND
 
 /**
  * @brief The Sound class
@@ -61,74 +60,120 @@ class Sound : public QObject
 	Q_PROPERTY(int volumeSfx READ volumeSfx WRITE setVolumeSfx NOTIFY volumeSfxChanged)
 	Q_PROPERTY(int volumeVoiceOver READ volumeVoiceOver WRITE setVolumeVoiceOver NOTIFY volumeVoiceOverChanged)
 	Q_PROPERTY(int volumeMusic READ volumeMusic WRITE setVolumeMusic NOTIFY volumeMusicChanged)
+	Q_PROPERTY(bool sfxEnabled READ sfxEnabled WRITE setSfxEnabled NOTIFY sfxEnabledChanged)
+	Q_PROPERTY(bool voiceOverEnabled READ voiceOverEnabled WRITE setVoiceOverEnabled NOTIFY voiceOverEnabledChanged)
+	Q_PROPERTY(bool musicEnabled READ musicEnabled WRITE setMusicEnabled NOTIFY musicEnabledChanged)
 
 public:
 	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel };
 	Q_ENUM(ChannelType)
 
-	enum SoundType { Music, VoiceOver, PlayerSfx, PlayerVoice, GameSound };
-	Q_ENUM(SoundType)
-
 	explicit Sound(QObject *parent = nullptr);
 	virtual ~Sound();
 
-	void init();
-
-	Q_INVOKABLE void playSound(const QString &source, const Sound::SoundType &soundType);
-	Q_INVOKABLE void stopSound(const QString &source, const Sound::SoundType &soundType);
-
-	QSoundEffect *getSoundEffect(const QUrl &source);
-
-	bool isMuted(const Sound::ChannelType &channel) const;
-	void setMuted(const Sound::ChannelType &channel, bool newMuted);
+	Q_INVOKABLE void playSound(const QString &source, const Sound::ChannelType &channel);
+	Q_INVOKABLE void stopSound(const QString &source, const Sound::ChannelType &channel);
+	Q_INVOKABLE void stopMusic();
 
 	Q_INVOKABLE bool isPlayingMusic() const;
 
-	int volumeSfx() const { return volume(SfxChannel); }
-	int volumeMusic() const { return volume(MusicChannel); }
-	int volumeVoiceOver() const { return volume(VoiceoverChannel); }
+	int volumeSfx() const;
+	void setVolumeSfx(int newVolumeSfx);
 
-	void setVolumeSfx(int volume);
-	void setVolumeMusic(int volume);
-	void setVolumeVoiceOver(int volume);
+	int volumeVoiceOver() const;
+	void setVolumeVoiceOver(int newVolumeVoiceOver);
 
-	int volume(const Sound::ChannelType &channel) const;
+	int volumeMusic() const;
+	void setVolumeMusic(int newVolumeMusic);
+
+	bool sfxEnabled() const;
+	void setSfxEnabled(bool newSfxEnabled);
+
+	bool voiceOverEnabled() const;
+	void setVoiceOverEnabled(bool newVoiceOverEnabled);
+
+	bool musicEnabled() const;
+	void setMusicEnabled(bool newMusicEnabled);
 
 signals:
-	void volumeMusicChanged(int volume);
-	void volumeSfxChanged(int volume);
-	void volumeVoiceOverChanged(int volume);
+	void volumeSfxChanged();
+	void volumeVoiceOverChanged();
+	void volumeMusicChanged();
+	void sfxEnabledChanged();
+	void voiceOverEnabledChanged();
+	void musicEnabledChanged();
 
 private:
-	void musicPlay(const QString &source);
-	void musicLoadNextSource();
 
-	void p_setVolume(const Sound::ChannelType &channel, int newVolume);
-	void p_playSound(const QString &source, const Sound::SoundType &soundType);
-	void p_stopSound(const QString &source, const Sound::SoundType &soundType);
+	/**
+	 * @brief The MaSound class
+	 */
 
-#ifndef NO_SOUND
-	std::unique_ptr<QMediaPlayer> m_mediaPlayerMusic;
-	std::unique_ptr<QMediaPlayer> m_mediaPlayerSfx;
-	std::unique_ptr<QMediaPlayer> m_mediaPlayerVoiceOver;
-#endif
-	SoundType m_soundTypeSfx;
-	QString m_musicNextSource;
+	class MaSound {
+	public:
+		MaSound(ma_engine *engine, const QString &path, const ChannelType &channel, ma_sound_group *group);
+		~MaSound();
 
-#if QT_VERSION >= 0x060000 && !defined(NO_SOUND)
-	std::unique_ptr<QAudioOutput> m_audioOutputMusic;
-	std::unique_ptr<QAudioOutput> m_audioOutputSfx;
-	std::unique_ptr<QAudioOutput> m_audioOutputVoiceOver;
-#endif
+		void uninit();
+		void uninitChildren();
 
-#ifndef NO_SOUND_THREAD
-	QLambdaThreadWorker m_worker;
-#endif
+		const QString &path() const { return m_path; }
 
-	QQueue<QString> m_playlist;
-	QVector<QPointer<QSoundEffect>> m_soundEffects;
+		ChannelType channel() const { return m_channel; }
+		void setChannel(ChannelType newType) { m_channel = newType; }
+
+		ma_sound *sound() const { return m_sound.get(); }
+
+		ma_sound *duplicate(ma_sound_group *group);
+		void garbage();
+
+		const std::vector<std::unique_ptr<ma_sound> > &children() { return m_children; }
+
+	private:
+		void removeChild(ma_sound *ptr);
+
+		ma_engine *m_engine = nullptr;
+		QString m_path;
+		ChannelType m_channel = SfxChannel;
+		std::unique_ptr<ma_sound> m_sound;
+		std::vector<std::unique_ptr<ma_sound> > m_children;
+		std::vector<ma_sound*> m_garbage;
+
+		QRecursiveMutex m_mutex;
+		std::unique_ptr<QTemporaryFile> m_file;
+	};
+
+	bool engineInit();
+	bool engineUninit();
+	void engineCheck();
+
+	void playSound(MaSound *sound);
+	QVector<MaSound *> currentMusic() const;
+	void updateVolumes();
+	void garbage();
+	void playNextVoiceOver();
+
+	int m_volumeSfx = 0;
+	int m_volumeVoiceOver = 0;
+	int m_volumeMusic = 0;
+	bool m_sfxEnabled = true;
+	bool m_voiceOverEnabled = true;
+	bool m_musicEnabled = true;
+
+	std::unique_ptr<ma_engine> m_engine;
+	std::unique_ptr<ma_sound_group> m_groupSfx;
+	std::unique_ptr<ma_sound_group> m_groupMusic;
+	std::unique_ptr<ma_sound_group> m_groupVoiceOver;
+
+	std::vector<std::unique_ptr<MaSound> > m_sound;
+
+	QQueue<MaSound *> m_queue;
+
+	QTimer m_garbageTimer;
 	QRecursiveMutex m_mutex;
 };
+
+
 
 
 

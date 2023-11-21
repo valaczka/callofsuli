@@ -140,7 +140,7 @@ void GameScene::load()
 
 void GameScene::playSoundPlayerVoice(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::PlayerVoice);
+	Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel);
 }
 
 
@@ -151,7 +151,7 @@ void GameScene::playSoundPlayerVoice(const QString &source)
 
 void GameScene::playSound(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::GameSound);
+	Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel);
 }
 
 
@@ -162,7 +162,7 @@ void GameScene::playSound(const QString &source)
 
 void GameScene::playSoundVoiceOver(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::VoiceOver);
+	Application::instance()->client()->sound()->playSound(source, Sound::VoiceoverChannel);
 }
 
 
@@ -173,7 +173,7 @@ void GameScene::playSoundVoiceOver(const QString &source)
 
 void GameScene::playSoundMusic(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::Music);
+	Application::instance()->client()->sound()->playSound(source, Sound::MusicChannel);
 }
 
 
@@ -184,9 +184,9 @@ void GameScene::playSoundMusic(const QString &source)
  * @param source
  */
 
-void GameScene::stopSoundMusic(const QString &source)
+void GameScene::stopSoundMusic()
 {
-	Application::instance()->client()->sound()->stopSound(source, Sound::Music);
+	Application::instance()->client()->sound()->stopMusic();
 }
 
 
@@ -1101,10 +1101,6 @@ void GameScene::gameObjectAdd(GameObject *object)
 	if (!m_gameObjects.contains(object)) {
 		m_gameObjects.append(object);
 		connect(object, &GameObject::destroyed, this, [this, object]() {
-			LOG_CTRACE("scene") << "Remove...";
-			LOG_CTRACE("scene") << "Remove" << object;
-			//m_gameObjects.removeAll(object);
-
 			for (auto it=m_gameObjects.begin(); it != m_gameObjects.end(); ) {
 				if (it->data() == object)
 					it = m_gameObjects.erase(it);

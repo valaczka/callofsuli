@@ -565,7 +565,7 @@ void GamePlayer::ladderMove(const bool &up, const qreal &delayFactor)
 
 void GamePlayer::playAttackSound()
 {
-	Application::instance()->client()->sound()->getSoundEffect(shotSound());
+	Application::instance()->client()->sound()->playSound(shotSound(), Sound::SfxChannel);
 }
 
 

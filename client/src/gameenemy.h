@@ -32,7 +32,6 @@
 #include "gamepickable.h"
 #include "actiongame.h"
 #include <QPointer>
-#include <QSoundEffect>
 
 class GamePlayer;
 

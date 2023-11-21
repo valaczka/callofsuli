@@ -14,7 +14,7 @@ AppVersionMinor = 5
 
 # Automatic version increment (build)
 
-AppVersionIncrement = false
+AppVersionIncrement = true
 
 
 
@@ -28,7 +28,7 @@ StaticAssets = false
 
 # Android
 
-AndroidVersionCode = 40
+AndroidVersionCode = 41
 
 
 #########################################################################

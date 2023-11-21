@@ -64,7 +64,7 @@ QPageGradient {
 				width: _item.width
 				onMusicVolumeModified: {
 					if (!Client.sound.isPlayingMusic())
-						Client.sound.playSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+						Client.sound.playSound("qrc:/sound/menu/bg.mp3", Sound.MusicChannel)
 				}
 
 				bottomPadding: 30 * Qaterial.Style.pixelSizeRatio
@@ -100,17 +100,17 @@ QPageGradient {
 			case Qt.ApplicationSuspended:
 			case Qt.ApplicationHidden:
 				if (control.StackView.isCurrentItem)
-					Client.sound.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+					Client.sound.stopSound("qrc:/sound/menu/bg.mp3", Sound.MusicChannel)
 				break
 			case Qt.ApplicationActive:
 				if (control.StackView.isCurrentItem)
-					Client.sound.playSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+					Client.sound.playSound("qrc:/sound/menu/bg.mp3", Sound.MusicChannel)
 				break
 			}
 		}
 	}
 
 	Component.onDestruction: {
-		Client.sound.stopSound("qrc:/sound/menu/bg.mp3", Sound.Music)
+		Client.sound.stopSound("qrc:/sound/menu/bg.mp3", Sound.MusicChannel)
 	}
 }
