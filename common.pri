@@ -14,17 +14,13 @@ AppVersionMinor = 5
 
 # Automatic version increment (build)
 
-AppVersionIncrement = true
+AppVersionIncrement = false
 
 
 
 #########################################################################
 ### BUILD SETTINGS
 #########################################################################
-
-# Compile assets into binary
-
-StaticAssets = false
 
 # Android
 

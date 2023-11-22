@@ -291,10 +291,6 @@ bool Application::loadResources()
 {
 	QStringList searchList;
 
-#ifdef STATIC_ASSETS
-	LOG_CDEBUG("app") << "Static assets included";
-#else
-
 #ifdef Q_OS_ANDROID
 	searchList.append("assets:");
 	searchList.append(QStandardPaths::standardLocations(QStandardPaths::HomeLocation));
@@ -333,8 +329,6 @@ bool Application::loadResources()
 		}
 	}
 
-#endif
-
 	loadFonts();
 
 	return true;
@@ -356,27 +350,27 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
-	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
+	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
+	qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");
 	qmlRegisterUncreatableType<LiteGame>("CallOfSuli", 1, 0, "LiteGame", "LiteGame is uncreatable");
+	qmlRegisterUncreatableType<MapEditorChapter>("CallOfSuli", 1, 0, "MapEditorChapter", "MapEditorChapter is uncreatable");
+	qmlRegisterUncreatableType<MapEditorImage>("CallOfSuli", 1, 0, "MapEditorImage", "MapEditorImage is uncreatable");
+	qmlRegisterUncreatableType<MapEditorInventory>("CallOfSuli", 1, 0, "MapEditorInventory", "MapEditorInventory is uncreatable");
 	qmlRegisterUncreatableType<MapEditorMap>("CallOfSuli", 1, 0, "MapEditorMap", "MapEditorMap is uncreatable");
 	qmlRegisterUncreatableType<MapEditorMission>("CallOfSuli", 1, 0, "MapEditorMission", "MapEditorMission is uncreatable");
 	qmlRegisterUncreatableType<MapEditorMissionLevel>("CallOfSuli", 1, 0, "MapEditorMissionLevel", "MapEditorMissionLevel is uncreatable");
-	qmlRegisterUncreatableType<MapEditorChapter>("CallOfSuli", 1, 0, "MapEditorChapter", "MapEditorChapter is uncreatable");
-	qmlRegisterUncreatableType<MapEditorInventory>("CallOfSuli", 1, 0, "MapEditorInventory", "MapEditorInventory is uncreatable");
-	qmlRegisterUncreatableType<MapEditorStorage>("CallOfSuli", 1, 0, "MapEditorStorage", "MapEditorStorage is uncreatable");
 	qmlRegisterUncreatableType<MapEditorObjective>("CallOfSuli", 1, 0, "MapEditorObjective", "MapEditorObjective is uncreatable");
-	qmlRegisterUncreatableType<MapEditorImage>("CallOfSuli", 1, 0, "MapEditorImage", "MapEditorImage is uncreatable");
-	qmlRegisterUncreatableType<MapPlayCampaign>("CallOfSuli", 1, 0, "MapPlayCampaign", "MapPlayCampaign is uncreatable");
+	qmlRegisterUncreatableType<MapEditorStorage>("CallOfSuli", 1, 0, "MapEditorStorage", "MapEditorStorage is uncreatable");
 	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
+	qmlRegisterUncreatableType<MapPlayCampaign>("CallOfSuli", 1, 0, "MapPlayCampaign", "MapPlayCampaign is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
-	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
+	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
 	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
-	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
-	qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");
+	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
@@ -411,8 +405,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
 	qmlRegisterType<OffsetModel>("CallOfSuli", 1, 0, "OffsetModelImpl");
-	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
+	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<StudentCampaignOffsetModel>("CallOfSuli", 1, 0, "StudentCampaignOffsetModelImpl");
 	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
 	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
@@ -423,8 +417,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TaskList>("CallOfSuli", 1, 0, "TaskList");
 	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
 	qmlRegisterType<TeacherGroupCampaignResultModel>("CallOfSuli", 1, 0, "TeacherGroupCampaignResultModel");
-	qmlRegisterType<TeacherGroupResultModel>("CallOfSuli", 1, 0, "TeacherGroupResultModel");
 	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
+	qmlRegisterType<TeacherGroupResultModel>("CallOfSuli", 1, 0, "TeacherGroupResultModel");
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");

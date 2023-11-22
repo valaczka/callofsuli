@@ -852,7 +852,7 @@ void ActionGame::onSceneStarted()
 	} else {
 		dialogMessageTooltipById(QStringLiteral("pinch"));
 	}
-#elif defined(Q_OS_WIN32) || (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_MACOS) || defined(Q_OS_WASM)
+#elif defined(Q_OS_WIN) || (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_MACOS) || defined(Q_OS_WASM)
 	dialogMessageTooltipById(QStringLiteral("keyboard"));
 #endif
 

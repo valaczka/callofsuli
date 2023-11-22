@@ -65,18 +65,14 @@ for(m, MODULES_LIST) {
 
 ##### Assets
 
-if ($$StaticAssets) {
-	RESOURCES += $$files($$PWD/../../resources/*.qrc)
-	DEFINES += STATIC_ASSETS
-} else {
-	CommonRcc.files += $$files($$PWD/../../share/*.cres)
+CommonRcc.files += $$files($$PWD/../../share/*.cres)
 
-	android: CommonRcc.path = /assets
-	ios: CommonRcc.path = share
-	macx: CommonRcc.path = Contents/Resources
+android: CommonRcc.path = /assets
+ios: CommonRcc.path = share
+macx: CommonRcc.path = Contents/Resources
 
-	!isEmpty(CommonRcc.path)	INSTALLS += CommonRcc
-}
+!isEmpty(CommonRcc.path)	INSTALLS += CommonRcc
+
 
 
 ################ PLATFORM SPECIFIC SETTINGS ######################x

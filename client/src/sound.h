@@ -45,9 +45,6 @@
 #include <QHash>
 #include <QTemporaryFile>
 
-//#define NO_SOUND_THREAD
-
-
 
 /**
  * @brief The Sound class
@@ -140,7 +137,7 @@ private:
 		std::vector<ma_sound*> m_garbage;
 
 		QRecursiveMutex m_mutex;
-		std::unique_ptr<QTemporaryFile> m_file;
+		QByteArray m_tmpPath;
 	};
 
 	bool engineInit();

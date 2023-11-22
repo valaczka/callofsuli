@@ -37,6 +37,7 @@
 #include <Logger.h>
 #include <QFile>
 #include <QTemporaryFile>
+#include <QDir>
 
 #if !defined(Q_OS_IOS) && !defined(Q_OS_MACOS)
 #define MINIAUDIO_IMPLEMENTATION
@@ -144,7 +145,7 @@ void Sound::playSound(const QString &source, const ChannelType &channel)
 		sndObj = ptr.get();
 		m_sound.push_back(std::move(ptr));
 
-		//updateVolumes();	// Bug
+		//updateVolumes();	// Bug?
 
 		if (channel == VoiceoverChannel && sndObj && sndObj->sound()) {
 			ma_sound_set_end_callback(sndObj->sound(), [](void* pUserData, ma_sound *) {
@@ -613,39 +614,28 @@ Sound::MaSound::MaSound(ma_engine *engine, const QString &path, const ChannelTyp
 	: m_engine(engine)
 	, m_path(path)
 	, m_channel(channel)
-	, m_file(new QTemporaryFile)
 {
 	LOG_CTRACE("sound") << "MaSound created" << qPrintable(path) << channel << this;
-
 
 	QString s = path;
 	if (s.startsWith(QStringLiteral("qrc:/")))
 		s.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
 
-	QFile f(s);
-	if (!f.open(QIODevice::ReadOnly)) {
-		LOG_CERROR("sound") << "Invalid path" << path;
-		return;
-	}
+	QTemporaryFile *tmp = QTemporaryFile::createNativeFile(s);
 
-	const QByteArray &content = f.readAll();
-	f.close();
+	if (tmp) {
+		tmp->setAutoRemove(false);
+		m_tmpPath = QDir::toNativeSeparators(tmp->fileName()).toUtf8();
+		delete tmp;
+	} else
+		m_tmpPath = QDir::toNativeSeparators(s).toUtf8();
 
-	if (content.isEmpty()) {
-		LOG_CERROR("sound") << "Invalid sound" << path;
-		return;
-	}
-
-	m_file->open();
-	m_file->write(content);
-	m_file->close();
-
-	LOG_CTRACE("sound") << "MaSound ready:" << qPrintable(path) << "->" << qPrintable(m_file->fileName());
+	LOG_CTRACE("sound") << "MaSound ready:" << qPrintable(path) << "->" << m_tmpPath.constData();
 
 	m_sound = std::make_unique<ma_sound>();
 
-	if (auto r = ma_sound_init_from_file(m_engine, m_file->fileName().toUtf8().constData(),
-										 MA_SOUND_FLAG_DECODE, group, NULL, m_sound.get()); r != MA_SUCCESS) {
+	if (auto r = ma_sound_init_from_file(m_engine, m_tmpPath, MA_SOUND_FLAG_DECODE, group, NULL, m_sound.get());
+			r != MA_SUCCESS) {
 		LOG_CERROR("sound") << "Sound error" << qPrintable(path) << "code" << r;
 		m_sound.reset();
 		return;
@@ -690,7 +680,9 @@ void Sound::MaSound::uninit()
 		m_sound.reset();
 	}
 
-	m_file->reset();
+	if (!m_tmpPath.isEmpty()) {
+		QFile::remove(m_tmpPath);
+	}
 
 	LOG_CTRACE("sound") << "Uninit MaSound finished" << this;
 }
