@@ -45,6 +45,7 @@ SOURCES += \
 	abstractapi.cpp \
 	adminapi.cpp \
 	authapi.cpp \
+	database.cpp \
 	databasemain.cpp \
 	generalapi.cpp \
 	googleoauth2authenticator.cpp \
@@ -70,6 +71,7 @@ HEADERS += \
 	abstractapi.h \
 	adminapi.h \
 	authapi.h \
+	database.h \
 	databasemain.h \
 	generalapi.h \
 	googleoauth2authenticator.h \

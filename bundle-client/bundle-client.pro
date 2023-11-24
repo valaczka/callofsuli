@@ -49,7 +49,6 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
 			$${LddPath} $${LddBinFile} >./_tmp_dll.txt ; \
-			$${LddPath} $${CQtTargetDir}/usr/plugins/multimedia/ffmpegmediaplugin.dll >>./_tmp_dll.txt ; \
 			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(cat ./_tmp_dll.txt | \
 				grep \"=>\" | grep -i -v \"WINDOWS/\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \
 				echo \"---> $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \

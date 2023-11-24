@@ -87,7 +87,7 @@ protected:
 	void highlightBlock(const QString &text) override;
 
 private:
-	FilloutHighlighter *m_highlighter;
+	FilloutHighlighter *m_highlighter = nullptr;
 };
 
 #endif // FILLOUTHIGHLIGHTER_H
