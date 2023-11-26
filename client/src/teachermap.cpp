@@ -48,7 +48,7 @@ void TeacherMap::loadFromJson(const QJsonObject &object, const bool &allField)
 		setDraftVersion(object.value(QStringLiteral("draftVersion")).toInt());
 
 	if (object.contains(QStringLiteral("lastModified")) || allField)
-		setLastModified(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("lastModified")).toInt()));
+		setLastModified(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("lastModified")).toInteger()));
 
 	if (object.contains(QStringLiteral("lastEditor")) || allField)
 		setLastEditor(object.value(QStringLiteral("lastEditor")).toString());

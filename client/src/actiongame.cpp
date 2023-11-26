@@ -47,6 +47,10 @@
 #endif
 
 
+
+const int ActionGame::TickTimer::m_interval = 2000;
+
+
 // Tool dependency
 
 const QHash<QString, QVector<GamePickable::PickableType>>
@@ -119,12 +123,12 @@ const QHash<QString, ActionGame::Tooltip> ActionGame::m_tooltips {
  * @param client
  */
 
-ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
-	: AbstractLevelGame(GameMap::Action, missionLevel, client)
+ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client, const GameMap::GameMode &mode)
+	: AbstractLevelGame(mode, missionLevel, client)
 {
 	Q_ASSERT(missionLevel);
 
-	LOG_CTRACE("game") << "Action game constructed" << this;
+	LOG_CTRACE("game") << "Action game constructed" << mode << this;
 
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionGame::onMsecLeftChanged);
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionGame::onGameTimeout);
@@ -138,7 +142,40 @@ ActionGame::ActionGame(GameMapMissionLevel *missionLevel, Client *client)
 
 ActionGame::~ActionGame()
 {
+	m_tickTimer.stop();
 	LOG_CTRACE("game") << "Action game destroyed" << this;
+}
+
+
+
+
+/**
+ * @brief ActionGame::createPlayer
+ */
+
+void ActionGame::createPlayer()
+{
+	LOG_CDEBUG("game") << "Create player";
+
+	if (!m_scene) {
+		LOG_CWARNING("game") << "Missing scene";
+		return;
+	}
+
+	if (m_player) {
+		LOG_CWARNING("game") << "Player already exists";
+		return;
+	}
+
+	QString character = m_client->server() ? m_client->server()->user()->character() : QStringLiteral("");
+
+	GamePlayer *player = GamePlayer::create(m_scene, character);
+	GameTerrain::PlayerPositionData pos = m_scene->getPlayerPosition();
+	pos.point.setY(pos.point.y()-player->height());
+
+	player->setPosition(pos.point);
+
+	setPlayer(player);
 }
 
 
@@ -778,6 +815,30 @@ bool ActionGame::gameFinishEvent()
 
 
 /**
+ * @brief ActionGame::timerEvent
+ * @param event
+ */
+
+void ActionGame::timerEvent(QTimerEvent *event)
+{
+	if (!m_scene)
+		return;
+
+	LOG_CTRACE("game") << "TIMER EVENT" << m_tickTimer.currentTick();
+
+	foreach (GameObject *o, m_scene->m_gameObjects)
+		if (o) {
+			o->onTimerTick();
+			if (dynamic_cast<GameEnemySoldier*>(o) != NULL)
+				break;
+		}
+	/*if (o)
+			o->onTimingTimerTimeout(m_timingTimerTimeoutMsec, factor);*/
+}
+
+
+
+/**
  * @brief ActionGame::onSceneStarted
  */
 
@@ -785,6 +846,7 @@ void ActionGame::onSceneStarted()
 {
 	timeNotifySendReset();
 	startWithRemainingTime(m_missionLevel->duration()*1000);
+	m_tickTimer.start(this, 1);
 
 	if (m_deathmatch) {
 		message(tr("LEVEL %1").arg(level()));
@@ -804,7 +866,7 @@ void ActionGame::onSceneStarted()
 			continue;
 		}
 
-		if (it.key() == QLatin1String("hp")) {
+		if (it.key() == QStringLiteral("hp")) {
 			if (m_player) {
 				LOG_CINFO("game") << "Server inventory HP:" << num;
 				message(tr("+%1 HP gained").arg(num));
@@ -814,7 +876,7 @@ void ActionGame::onSceneStarted()
 			}
 
 			continue;
-		} else if (it.key() == QLatin1String("shield")) {
+		} else if (it.key() == QStringLiteral("shield")) {
 			if (player()) {
 				LOG_CINFO("game") << "Server inventory shield:" << num;
 				message(tr("+%1 shield gained").arg(num));
@@ -1080,6 +1142,31 @@ QJsonObject ActionGame::getExtendedData() const
 	}
 
 	return data;
+}
+
+
+
+/**
+ * @brief ActionGame::sceneTimerTimeout
+ */
+
+void ActionGame::sceneTimerTimeout(const int &msec, const qreal &delayFactor)
+{
+	if (!m_scene) {
+		LOG_CWARNING("game") << "Missing scene";
+		return;
+	}
+
+	foreach (GameObject *o, m_scene->m_gameObjects)
+		if (o)
+			o->onTimingTimerTimeout(msec, delayFactor);
+
+
+	foreach (GameObject *o, m_scene->m_gameObjects) {
+		GameEntity *e = qobject_cast<GameEntity*>(o);
+		if (e)
+			e->performRayCast();
+	}
 }
 
 
@@ -1366,7 +1453,7 @@ void ActionGame::onPlayerDied(GameEntity *)
 
 	recreateEnemies();
 
-	m_scene->createPlayer();
+	createPlayer();
 }
 
 
@@ -1624,7 +1711,7 @@ bool ActionGame::dialogMessageTooltipById(const QString &msgId)
 		return true;
 
 	if (!m_tooltips.contains(msgId))
-		dialogMessageTooltip(msgId, QLatin1String("qrc:/Qaterial/Icons/information-slab-box-outline.svg"));
+		dialogMessageTooltip(msgId, QStringLiteral("qrc:/Qaterial/Icons/information-slab-box-outline.svg"));
 	else {
 		const Tooltip &t = m_tooltips.value(msgId);
 		dialogMessageTooltip(t.text, t.icon, t.title);

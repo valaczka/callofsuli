@@ -272,7 +272,7 @@ void HttpConnection::abortAllReplies()
  * @return
  */
 
-WebSocket*HttpConnection::webSocket() const
+WebSocket* HttpConnection::webSocket() const
 {
 	return m_webSocket.get();
 }

@@ -46,7 +46,6 @@
 #define XP_FACTOR_NEW_STREAK	1.0
 #define XP_FACTOR_DURATION_SEC	0.05
 
-
 class GameMapStorage;
 class GameMapImage;
 class GameMapChapter;
@@ -102,7 +101,8 @@ public:
 		Test = 1 << 3,
 		Quiz = 1 << 4,
 		Exam = 1 << 5,
-		Practice = 1 << 6
+		Practice = 1 << 6,
+		MultiPlayer = 1 << 7
 	};
 
 	Q_ENUM(GameMode);
@@ -522,17 +522,17 @@ struct GameMap::SolverInfo {
 
 
 	inline int solved(const QString &field) const {
-		if (field == QLatin1String("t1"))
+		if (field == QStringLiteral("t1"))
 			return t1;
-		else if (field == QLatin1String("t2"))
+		else if (field == QStringLiteral("t2"))
 			return t2;
-		else if (field == QLatin1String("t3"))
+		else if (field == QStringLiteral("t3"))
 			return t3;
-		else if (field == QLatin1String("d1"))
+		else if (field == QStringLiteral("d1"))
 			return d1;
-		else if (field == QLatin1String("d2"))
+		else if (field == QStringLiteral("d2"))
 			return d2;
-		else if (field == QLatin1String("d3"))
+		else if (field == QStringLiteral("d3"))
 			return d3;
 
 		return -1;

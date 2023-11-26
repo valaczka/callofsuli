@@ -122,3 +122,8 @@ include(qsyncable.pri)
 # Miniaudio
 
 INCLUDEPATH += $$PWD/miniaudio
+
+
+# Librg
+
+INCLUDEPATH += $$PWD/librg

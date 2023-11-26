@@ -89,7 +89,7 @@ QHttpServerResponse AuthAPI::login(const QJsonObject &data) const
 		return responseError("missing username/password");
 
 	if (!token.isEmpty()) {
-		if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
+		if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInteger(0))) {
 			LOG_CDEBUG("client") << "Token verification failed";
 			return responseError("invalid token");
 		}

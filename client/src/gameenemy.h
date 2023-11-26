@@ -134,6 +134,16 @@ protected:
 	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
 	void playAttackSound();
 
+	struct CachedState : public GameEntity::CachedState {
+		EnemyState enemyState = Invalid;
+		qreal msecLeftToAttack = -1;
+
+		virtual QByteArray toByteArray() const override;
+	};
+
+	bool getCurrentState(CachedState *ptr) const;
+	void setCurrentState(const CachedState &state);
+
 	GameTerrain::EnemyData m_terrainEnemyData;
 	int m_startMovingAfter = 0;
 

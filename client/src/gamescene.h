@@ -33,7 +33,7 @@
 #include <QStack>
 #include "gameladder.h"
 #include "gameterrainmap.h"
-
+#include <QElapsedTimer>
 
 class ActionGame;
 class GameObject;
@@ -123,8 +123,6 @@ public:
 
 	const QJsonObject &gameData() const;
 	QJsonObject levelData(int level = -1) const;
-
-	Q_INVOKABLE void createPlayer();
 
 	SceneState gameState() const;
 	void setGameState(SceneState newGameState);
@@ -221,6 +219,9 @@ private:
 
 	SceneState m_sceneState = ScenePrepare;
 	int m_sceneLoadSteps = 0;
+
+	friend class ActionGame;
+	friend class MultiPlayerGame;
 };
 
 

@@ -1681,7 +1681,7 @@ QHttpServerResponse TeacherAPI::campaignCreate(const Credential &credential, con
 			;
 
 	if (json.contains(QStringLiteral("starttime"))) {
-		const int &g = json.value(QStringLiteral("starttime")).toInt();
+		const int &g = json.value(QStringLiteral("starttime")).toInteger();
 		q.addField("starttime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QMetaType::fromType<int>()));
 	}
 

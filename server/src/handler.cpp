@@ -152,7 +152,7 @@ std::optional<Credential> Handler::authorizeRequest(const QHttpServerRequest &re
 	if (token.startsWith(bearer))
 		token.remove(0, strlen(bearer));
 
-	if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
+	if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInteger(0))) {
 		LOG_CDEBUG("client") << "Token verification failed";
 		return std::nullopt;
 	}

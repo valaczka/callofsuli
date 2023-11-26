@@ -272,7 +272,7 @@ bool Server::isTokenValid(const QString &jwt)
 
 	const QJsonObject &object = token.getPayloadJDoc().object();
 
-	if (object.value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch()) {
+	if (object.value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CWARNING("client") << "Expired token:" << jwt;
 		return false;
 	}

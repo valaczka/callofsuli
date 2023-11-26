@@ -273,6 +273,26 @@ void WebSocket::observerRemoveValue(const QString &type, const QJsonValue &value
 }
 
 
+/**
+ * @brief WebSocket::send
+ * @param op
+ * @param data
+ */
+
+void WebSocket::send(const QString &op, const QJsonValue &data)
+{
+	if (m_state != WebSocketListening) {
+		LOG_CWARNING("http") << "WebSocket isn't listening";
+		return;
+	}
+
+	send(QJsonObject{
+			 { QStringLiteral("op"), op },
+			 { QStringLiteral("d"), data },
+		 });
+}
+
+
 
 /**
  * @brief WebSocket::reconnect

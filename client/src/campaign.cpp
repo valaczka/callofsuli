@@ -531,7 +531,7 @@ QVariantList StudentCampaignOffsetModel::getListFromJson(const QJsonObject &obj)
 
 		QVariantMap m = obj.toVariantMap();
 
-		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(obj.value(QStringLiteral("timestamp")).toInt());
+		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(obj.value(QStringLiteral("timestamp")).toInteger());
 
 		list.append(m);
 	}

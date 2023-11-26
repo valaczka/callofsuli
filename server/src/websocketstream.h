@@ -39,7 +39,8 @@ public:
 	enum StreamType {
 		StreamInvalid = 0,
 		StreamPeers,
-		StreamGroupScore
+		StreamGroupScore,
+		StreamMultiPlayer
 	};
 
 
@@ -78,13 +79,14 @@ public:
 	StreamState state() const;
 	const Credential &credential() const;
 
-	void onTextReceived(const QString &text);
-
 private:
+	void onBinaryDataReceived(const QByteArray &data);
+	void onTextReceived(const QString &text);
 	void onJsonReceived(const QJsonObject &data);
 	void observerAdd(const QJsonValue &data);
 	void observerRemove(const QJsonValue &data);
 	void onWebSocketDisconnected();
+	void timeSync(QJsonObject data);
 
 	ServerService *m_service = nullptr;
 	std::unique_ptr<QWebSocket> m_socket;

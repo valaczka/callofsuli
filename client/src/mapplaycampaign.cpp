@@ -25,6 +25,7 @@
  */
 
 #include "mapplaycampaign.h"
+#include "multiplayergame.h"
 
 
 /**
@@ -155,6 +156,13 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	}
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+
+	if (levelGame->mode() == GameMap::MultiPlayer) {
+		levelGame->load();
+		setGameState(StatePlay);
+		return;
+	}
+
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
 	if (!levelGame || !game) {
@@ -223,6 +231,13 @@ void MapPlayCampaign::onCurrentGameFinished()
 		return;
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+
+	if (levelGame->mode() == GameMap::MultiPlayer) {
+		destroyCurrentGame();
+		setGameState(StateFinished);
+		return;
+	}
+
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
 	if (!levelGame || !game) {
@@ -235,7 +250,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 		emit currentGameFailed();
 
 
-	if (levelGame->mode() == GameMap::Practice) {
+	if (levelGame->mode() == GameMap::Practice || levelGame->mode() == GameMap::MultiPlayer) {
 		destroyCurrentGame();
 		//updateSolver();
 		setGameState(StateFinished);
@@ -399,6 +414,10 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 	case GameMap::Practice:
 		g = new CampaignLiteGame(level->missionLevel(), m_client, true);
+		break;
+
+	case GameMap::MultiPlayer:
+		g = new MultiPlayerGame(level->missionLevel(), m_client);
 		break;
 
 	default:

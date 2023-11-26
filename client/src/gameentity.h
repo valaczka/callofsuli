@@ -245,6 +245,18 @@ protected:
 	QList<QPointer<Box2DFixture>> m_groundFixtures;
 	QString m_lastCurrentSprite = "";
 
+	struct CachedState : public GameObject::CachedState {
+		int hp = 0;
+		int maxHp = 0;
+		int facingLeft = false;
+
+		virtual QByteArray toByteArray() const override;
+	};
+
+	bool getCurrentState(CachedState *ptr) const;
+	void setCurrentState(const CachedState &state);
+
+
 
 private:
 	void doRayCast();

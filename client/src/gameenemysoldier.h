@@ -50,6 +50,7 @@ public:
 	Q_INVOKABLE void attackPlayer();
 
 	void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
+	void onTimerTick() override;
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
@@ -69,6 +70,20 @@ private:
 	int m_msecBeforeTurn = 5000;
 	int m_turnElapsedMsec = -1;
 	int m_attackElapsedMsec = -1;
+
+	struct CachedState : public GameEnemy::CachedState {
+		int turnElapsedMsec = 0;
+		int attackElapsedMsec = 0;
+
+		virtual QByteArray toByteArray() const override;
+	};
+
+	bool getCurrentState(CachedState *ptr) const;
+	void setCurrentState(const CachedState &state);
+	void cacheCurrentState();
+
+	QList<CachedState> m_cachedStates;
+	bool m_log = false;
 };
 
 #endif // GAMEENEMYSOLDIER_H

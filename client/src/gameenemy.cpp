@@ -110,6 +110,41 @@ void GameEnemy::playAttackSound()
 
 
 
+/**
+ * @brief GameEnemy::getCurrentState
+ * @param ptr
+ * @return
+ */
+
+bool GameEnemy::getCurrentState(CachedState *ptr) const
+{
+	if (!ptr)
+		return false;
+
+	GameEntity::getCurrentState(ptr);
+	ptr->enemyState = m_enemyState;
+	ptr->msecLeftToAttack = m_msecLeftToAttack;
+
+	return true;
+}
+
+
+
+/**
+ * @brief GameEnemy::setCurrentState
+ * @param state
+ */
+
+void GameEnemy::setCurrentState(const CachedState &state)
+{
+	GameEntity::setCurrentState(state);
+	setEnemyState(state.enemyState);
+	setMsecLeftToAttack(state.msecLeftToAttack);
+}
+
+
+
+
 const GamePickable::GamePickableData &GameEnemy::pickable() const
 {
 	return m_pickable;
@@ -350,4 +385,20 @@ void GameEnemy::turnToPlayer(GamePlayer *player)
 		setFacingLeft(true);
 	else if (playerX > x() && m_facingLeft)
 		setFacingLeft(false);
+}
+
+
+/**
+ * @brief GameEnemy::CachedState::toByteArray
+ * @return
+ */
+
+QByteArray GameEnemy::CachedState::toByteArray() const
+{
+	QByteArray data = GameEntity::CachedState::toByteArray();
+
+	data.append(QString("state: %1\n").arg(enemyState).toUtf8());
+	data.append(QString("msecLeftToAttack: %1\n").arg(msecLeftToAttack).toUtf8());
+
+	return data;
 }

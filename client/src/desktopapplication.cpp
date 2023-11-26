@@ -253,7 +253,8 @@ void DesktopApplication::performInstanceArguments(const QStringList &arguments)
 
 int DesktopApplication::runSingleInstance()
 {
-	if (m_singleInstance.process()) {
+	LOG_CERROR("app") << "Single instance disabled";
+	/*if (m_singleInstance.process()) {
 		if (!m_singleInstance.isMaster()) {
 			LOG_CINFO("app") << QObject::tr("Már fut az alkalmazás egy példánya");
 			return 1;
@@ -261,7 +262,7 @@ int DesktopApplication::runSingleInstance()
 	} else {
 		LOG_CINFO("app") << QObject::tr("Már fut az alkalmazás egy példánya");
 		return 1;
-	}
+	}*/
 
 
 	return run();

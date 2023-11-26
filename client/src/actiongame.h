@@ -34,6 +34,7 @@
 #include "gameterrain.h"
 #include "gamescene.h"
 #include "gamepickable.h"
+#include "gamemap.h"
 
 class GamePlayer;
 class GameEnemy;
@@ -55,6 +56,8 @@ class GameEnemy;
 #define ACTION_GAME_BASE_XP		10
 #define ACTION_GAME_ENEMY_KILL_XP	5
 
+
+
 /**
  * @brief The ActionGame class
  */
@@ -73,16 +76,18 @@ class ActionGame : public AbstractLevelGame
 	Q_PROPERTY(QVariantList toolListIcons READ toolListIcons NOTIFY toolListIconsChanged)
 
 public:
-	ActionGame(GameMapMissionLevel *missionLevel, Client *client);
+	explicit ActionGame(GameMapMissionLevel *missionLevel, Client *client, const GameMap::GameMode &mode);
+	explicit ActionGame(GameMapMissionLevel *missionLevel, Client *client) : ActionGame(missionLevel, client, GameMap::Action) {}
 	virtual ~ActionGame();
 
 	class EnemyLocation;
 	class QuestionLocation;
 
+	virtual void createPlayer();
 	void createQuestions();
 	void createEnemyLocations();
 	void createFixEnemies();
-	void recreateEnemies();
+	virtual void recreateEnemies();
 	void createInventory();
 	void createPickable(GameEnemy *enemy);
 	void createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint);
@@ -128,6 +133,11 @@ public:
 
 	virtual QJsonObject getExtendedData() const override;
 
+	static int tickInterval() { return TickTimer::interval(); }
+	qint64 currentTick() const { return m_tickTimer.currentTick(); }
+
+	virtual void sceneTimerTimeout(const int &msec, const qreal &delayFactor);
+
 
 public slots:
 	void onPlayerDied(GameEntity *);
@@ -147,6 +157,7 @@ protected:
 	virtual QQuickItem *loadPage() override;
 	virtual void connectGameQuestion() override;
 	virtual bool gameFinishEvent() override;
+	virtual void timerEvent(QTimerEvent *event) override;
 
 signals:
 	void playerChanged();
@@ -169,7 +180,49 @@ private slots:
 	void onGameSuccess();
 	void onGameFailed();
 
-private:
+protected:
+	/**
+	 * @brief The ActionGameTickTimer class
+	 */
+
+	class TickTimer {
+	public:
+		TickTimer() {}
+
+		void start(ActionGame *game, const qint64 &startTick = 0) {
+			m_reference.start();
+			m_startTick = startTick > 0 ? startTick : QDateTime::currentMSecsSinceEpoch();
+			m_timer.start(m_interval, Qt::PreciseTimer, game);
+		}
+
+		void stop() {
+			m_reference.invalidate();
+			m_timer.stop();
+		}
+
+		const qint64 &latency() const { return m_latency; }
+		void setLatency(const qint64 &latency) { m_latency = latency; }
+
+		qint64 currentTick() const {
+			if (!m_reference.isValid())
+				return 0;
+
+			const qint64 &elapsed = m_reference.elapsed();
+			return m_startTick+elapsed+m_latency;
+		}
+
+		static int interval() { return m_interval; }
+
+	private:
+		QBasicTimer m_timer;
+		QElapsedTimer m_reference;
+		qint64 m_startTick = 0;
+		qint64 m_latency = 0;
+		static const int m_interval;
+	};
+
+	TickTimer m_tickTimer;
+
 	void timeNotifySendReset();
 
 	QPointer<GameScene> m_scene = nullptr;
@@ -193,6 +246,7 @@ private:
 	int m_timeNotifySendNext = -1;
 	int m_killStreak = 0;
 
+private:
 
 
 	/**

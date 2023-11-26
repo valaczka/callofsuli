@@ -50,6 +50,8 @@ public:
 	QHttpServerResponse userGameLog(const QString &username);
 
 	QHttpServerResponse me(const std::optional<Credential> &credential);
+
+	QHttpServerResponse time(const QJsonObject &json);
 };
 
 

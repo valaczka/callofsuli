@@ -200,7 +200,7 @@ void OAuth2CodeFlow::onRequestAccessFinished()
 	m_token.refreshToken = object.value(QStringLiteral("refresh_token")).toString();
 	m_token.idToken = object.value(QStringLiteral("id_token")).toString();
 
-	const int &expiresIn = object.value(QStringLiteral("expires_in")).toInt(-1);
+	const int &expiresIn = object.value(QStringLiteral("expires_in")).toInteger(-1);
 	if (expiresIn > 0)
 		m_token.expiration = QDateTime::currentDateTime().addSecs(expiresIn);
 	else

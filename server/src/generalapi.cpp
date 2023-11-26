@@ -118,6 +118,12 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		return user(QStringLiteral(""), Credential::Student);
 	});
 
+	server->route(path+"time", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_GET();
+		return time(jsonObject.value_or(QJsonObject{}));
+	});
+
 }
 
 
@@ -504,5 +510,21 @@ QHttpServerResponse GeneralAPI::userGameLog(const QString &username)
 QHttpServerResponse GeneralAPI::me(const std::optional<Credential> &credential)
 {
 	return user(credential->username());
+}
+
+
+
+
+/**
+ * @brief GeneralAPI::time
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::time(const QJsonObject &json)
+{
+	QJsonObject retJson = json;
+	retJson[QStringLiteral("serverTime")] = QDateTime::currentMSecsSinceEpoch();
+	return QHttpServerResponse(retJson, QHttpServerResponse::StatusCode::Ok);
 }
 

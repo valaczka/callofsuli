@@ -132,9 +132,9 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 
 
 	QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
-																						{ QStringLiteral("title"), map->name() },
-																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
-																					}));
+																								  { QStringLiteral("title"), map->name() },
+																								  { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
+																							  }));
 
 	if (!page) {
 		m_client->messageError(tr("Nem lehet betölteni az oldalt!"));
@@ -143,8 +143,8 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 
 	connect(page, &QQuickItem::destroyed, mapPlay.get(), [g = mapPlay.get(), this](){
 		if (g)
-		g->deleteLater();
-		if (m_client->currentGame())
+			g->deleteLater();
+		if (m_client && m_client->currentGame())
 			emit m_client->currentGame()->gameDestroyRequest();
 	});
 	mapPlay.release();

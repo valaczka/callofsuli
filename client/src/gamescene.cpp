@@ -120,13 +120,6 @@ void GameScene::load()
 	setWidth(m_terrain.width());
 	setHeight(m_terrain.height());
 
-	/*loadTiledLayers();
-	loadGroundLayer();
-	loadLadderLayer();
-	loadPlayerPositionLayer();
-	loadTerrainObjectsLayer();
-	loadPickablesLayer();*/
-
 	++m_sceneLoadSteps;
 
 	emit sceneStepSuccess();
@@ -642,17 +635,8 @@ void GameScene::onTimerTimeout()
 			m_performanceTimer.invalidate();
 	}
 
-
-	foreach (GameObject *o, m_gameObjects)
-		if (o)
-			o->onTimingTimerTimeout(m_timingTimerTimeoutMsec, factor);
-
-
-	foreach (GameObject *o, m_gameObjects) {
-		GameEntity *e = qobject_cast<GameEntity*>(o);
-		if (e)
-			e->performRayCast();
-	}
+	if (m_game)
+		m_game->sceneTimerTimeout(m_timingTimerTimeoutMsec, factor);
 }
 
 
@@ -800,34 +784,6 @@ QJsonObject GameScene::levelData(int level) const
 
 
 
-/**
- * @brief GameScene::createPlayer
- */
-
-void GameScene::createPlayer()
-{
-	LOG_CDEBUG("scene") << "Create player";
-
-	if (m_game->player()) {
-		LOG_CWARNING("scene") << "Player already exists";
-		return;
-	}
-
-	QString character = Application::instance()->client()->server() ? Application::instance()->client()->server()->user()->character() :
-																	  QStringLiteral("");
-
-	GamePlayer *player = GamePlayer::create(this, character);
-	GameTerrain::PlayerPositionData pos = getPlayerPosition();
-	pos.point.setY(pos.point.y()-player->height());
-
-	player->setPosition(pos.point);
-
-	m_game->setPlayer(player);
-}
-
-
-
-
 
 
 
@@ -970,7 +926,7 @@ void GameScene::onSceneAnimationReady()
 
 	m_game->recreateEnemies();
 
-	createPlayer();
+	m_game->createPlayer();
 
 
 	setSceneState(ScenePlay);

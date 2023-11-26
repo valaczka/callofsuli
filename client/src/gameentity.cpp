@@ -510,6 +510,41 @@ void GameEntity::hpProgressValueSetup()
 
 
 /**
+ * @brief GameEntity::getCurrentState
+ * @return
+ */
+
+bool GameEntity::getCurrentState(CachedState *ptr) const
+{
+	if (!ptr)
+		return false;
+
+	GameObject::getCurrentState(ptr);
+	ptr->facingLeft = m_facingLeft;
+	ptr->hp = m_hp;
+	ptr->maxHp = m_maxHp;
+
+	return true;
+}
+
+
+
+/**
+ * @brief GameEntity::setCurrentState
+ * @param state
+ */
+
+void GameEntity::setCurrentState(const CachedState &state)
+{
+	GameObject::setCurrentState(state);
+	setFacingLeft(state.facingLeft);
+	setHp(state.hp);
+	setMaxHp(state.maxHp);
+}
+
+
+
+/**
  * @brief GameEntity::rayCastReport
  * @param items
  */
@@ -1134,4 +1169,22 @@ void GameEntity::kill()
 QQuickItem *GameEntity::spriteSequence() const
 {
 	return m_spriteSequence;
+}
+
+
+
+/**
+ * @brief GameEntity::CachedState::toByteArray
+ * @return
+ */
+
+QByteArray GameEntity::CachedState::toByteArray() const
+{
+	QByteArray data = GameObject::CachedState::toByteArray();
+
+	data.append(QString("hp: %1\n").arg(hp).toUtf8());
+	data.append(QString("maxHp: %1\n").arg(maxHp).toUtf8());
+	data.append(QString("facingLeft: %1\n").arg(facingLeft).toUtf8());
+
+	return data;
 }

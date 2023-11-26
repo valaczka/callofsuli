@@ -4,7 +4,8 @@
 
 
 const QHash<WebSocketStream::StreamType, Credential::Roles> WebSocketStream::m_observerRoles = {
-	{ WebSocketStream::StreamPeers, Credential::Teacher|Credential::Admin }
+	{ WebSocketStream::StreamPeers, Credential::Teacher|Credential::Admin },
+	{ WebSocketStream::StreamMultiPlayer, Credential::Student }
 };
 
 /**
@@ -26,6 +27,7 @@ WebSocketStream::WebSocketStream(ServerService *service, QWebSocket *socket)
 
 	connect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocketStream::onWebSocketDisconnected);
 	connect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocketStream::onTextReceived);
+	connect(m_socket.get(), &QWebSocket::binaryMessageReceived, this, &WebSocketStream::onBinaryDataReceived);
 }
 
 
@@ -138,6 +140,7 @@ void WebSocketStream::close()
 	LOG_CTRACE("service") << "Close WebSocket" << m_socket.get();
 	disconnect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocketStream::onWebSocketDisconnected);
 	disconnect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocketStream::onTextReceived);
+	disconnect(m_socket.get(), &QWebSocket::binaryMessageReceived, this, &WebSocketStream::onBinaryDataReceived);
 
 	auto ws = m_socket.release();
 
@@ -270,7 +273,7 @@ void WebSocketStream::onJsonReceived(const QJsonObject &data)
 	if (m_state == StateHelloSent) {
 		const QString &token = data.value(QStringLiteral("token")).toString();
 
-		if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInt(0))) {
+		if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInteger(0))) {
 			LOG_CDEBUG("service") << "Token verification failed" << this;
 			sendJson("error", QStringLiteral("unauthorized"));
 			m_state = StateError;
@@ -310,6 +313,8 @@ void WebSocketStream::onJsonReceived(const QJsonObject &data)
 		observerAdd(d);
 	else if (operation == QStringLiteral("remove"))
 		observerRemove(d);
+	else if (operation == QStringLiteral("timeSync"))
+		timeSync(d.toObject());
 	else {
 		LOG_CDEBUG("service") << "Invalid operation:" << operation << qPrintable(m_credential.username());
 		sendJson("error", QStringLiteral("invalid operation"));
@@ -342,6 +347,8 @@ void WebSocketStream::observerAdd(const QJsonValue &data)
 
 		if (type == QStringLiteral("peers")) {
 			observerAdd(StreamPeers);
+		} else if (type == QStringLiteral("multiplayer")) {
+			observerAdd(StreamMultiPlayer);
 		} else {
 			LOG_CWARNING("service") << "Invalid observer:" << type;
 		}
@@ -374,6 +381,8 @@ void WebSocketStream::observerRemove(const QJsonValue &data)
 
 		if (type == QStringLiteral("peers")) {
 			observerRemove(StreamPeers);
+		} else if (type == QStringLiteral("multiplayer")) {
+			observerRemove(StreamMultiPlayer);
 		} else {
 			LOG_CWARNING("service") << "Invalid observer:" << type;
 		}
@@ -395,6 +404,19 @@ void WebSocketStream::onWebSocketDisconnected()
 }
 
 
+
+/**
+ * @brief WebSocketStream::timeSync
+ * @param data
+ */
+
+void WebSocketStream::timeSync(QJsonObject data)
+{
+	data[QStringLiteral("serverTime")] = QDateTime::currentMSecsSinceEpoch();
+	sendJson("timeSync", data);
+}
+
+
 /**
  * @brief WebSocketStream::credential
  * @return
@@ -403,4 +425,21 @@ void WebSocketStream::onWebSocketDisconnected()
 const Credential &WebSocketStream::credential() const
 {
 	return m_credential;
+}
+
+
+
+/**
+ * @brief WebSocketStream::onBinaryDataReceived
+ * @param data
+ */
+
+void WebSocketStream::onBinaryDataReceived(const QByteArray &data)
+{
+	LOG_CTRACE("service") << "WebSocketStream binary data received:" << this << data.size();
+
+	if (m_state == StateError) {
+		sendJson("error", QStringLiteral("invalid stream"));
+		return;
+	}
 }

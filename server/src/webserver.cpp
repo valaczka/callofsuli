@@ -370,6 +370,9 @@ void WebSocketStreamHandler::trigger(const WebSocketStream::StreamType &type)
 	case WebSocketStream::StreamPeers:
 		_trPeers(list);
 		break;
+	case WebSocketStream::StreamMultiPlayer:
+		_trMultiPlayer(list);
+		break;
 	default:
 		LOG_CERROR("service") << "Trigger not defined" << type;
 	}
@@ -390,6 +393,9 @@ void WebSocketStreamHandler::trigger(const WebSocketStream::StreamType &type, co
 	switch (type) {
 	case WebSocketStream::StreamPeers:
 		_trPeers(list);
+		break;
+	case WebSocketStream::StreamMultiPlayer:
+		_trMultiPlayer(list);
 		break;
 	default:
 		LOG_CERROR("service") << "Trigger not defined" << type;
@@ -415,6 +421,9 @@ void WebSocketStreamHandler::trigger(WebSocketStream *stream)
 		switch (ob.type) {
 		case WebSocketStream::StreamPeers:
 			_trPeers({stream});
+			break;
+		case WebSocketStream::StreamMultiPlayer:
+			_trMultiPlayer({stream});
 			break;
 		default:
 			LOG_CERROR("service") << "Trigger not defined" << ob.type;
@@ -496,6 +505,17 @@ void WebSocketStreamHandler::_trPeers(const QVector<WebSocketStream*> &list)
 	for (auto ws : list) {
 		ws->sendJson("peers", PeerUser::toJson(&(m_service->peerUser())));
 	}
+}
+
+
+/**
+ * @brief WebSocketStreamHandler::_trMultiPlayer
+ * @param list
+ */
+
+void WebSocketStreamHandler::_trMultiPlayer(const QVector<WebSocketStream *> &list)
+{
+
 }
 
 

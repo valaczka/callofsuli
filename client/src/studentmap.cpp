@@ -51,7 +51,7 @@ void StudentMap::loadFromJson(const QJsonObject &object, const bool &allField)
 		setCache(object.value(QStringLiteral("cache")).toObject());
 
 	if (object.contains(QStringLiteral("lastModified")) || allField)
-		setLastModified(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("lastModified")).toInt()));
+		setLastModified(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("lastModified")).toInteger()));
 
 	if (object.contains(QStringLiteral("lastEditor")) || allField)
 		setLastEditor(object.value(QStringLiteral("lastEditor")).toString());*/

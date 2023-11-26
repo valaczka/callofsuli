@@ -219,6 +219,7 @@ SOURCES += \
 	gameterrainmap.cpp \
 	grade.cpp \
 	httpconnection.cpp \
+	librg_impl.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -228,6 +229,7 @@ SOURCES += \
 	mapplay.cpp \
 	mapplaycampaign.cpp \
 	mapplaydemo.cpp \
+	multiplayergame.cpp \
 	offsetmodel.cpp \
 	qrimage.cpp \
 	question.cpp \
@@ -299,6 +301,7 @@ HEADERS += \
 	mapplay.h \
 	mapplaycampaign.h \
 	mapplaydemo.h \
+	multiplayergame.h \
 	offsetmodel.h \
 	qrimage.h \
 	question.h \

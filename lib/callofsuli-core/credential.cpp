@@ -139,7 +139,7 @@ Credential Credential::fromJWT(const QString &jwt)
 
 	const QString &r = obj.value(QStringLiteral("roles")).toString();
 
-	c.m_iat = obj.value(QStringLiteral("iat")).toInt();
+	c.m_iat = obj.value(QStringLiteral("iat")).toInteger();
 
 	Roles roles;
 
@@ -177,10 +177,10 @@ bool Credential::verify(const QString &token, const QString &secret, const qint6
 
 	const QJsonObject &object = jwt.getPayloadJDoc().object();
 
-	if (firstIat > 0 && object.value(QStringLiteral("iat")).toInt() < firstIat)
+	if (firstIat > 0 && object.value(QStringLiteral("iat")).toInteger() < firstIat)
 		return false;
 
-	if (object.value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch())
+	if (object.value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch())
 		return false;
 
 	if (object.value(QStringLiteral("iss")).toString() != JWT_ISSUER)

@@ -1133,7 +1133,7 @@ bool Client::loginToken()
 	}
 
 
-	if (jwt.getPayloadJDoc().object().value(QStringLiteral("exp")).toInt() <= QDateTime::currentSecsSinceEpoch()) {
+	if (jwt.getPayloadJDoc().object().value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CINFO("client") << "Token expired";
 		server()->setToken(QStringLiteral(""));
 		return false;

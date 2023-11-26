@@ -1,6 +1,7 @@
 #ifndef WEBSOCKET_H
 #define WEBSOCKET_H
 
+#include "qjsonobject.h"
 #include "qjsonvalue.h"
 #include "qtimer.h"
 #include <QObject>
@@ -51,6 +52,8 @@ public:
 
 	Q_INVOKABLE void observerAddValue(const QString &type, const QJsonValue &value);
 	Q_INVOKABLE void observerRemoveValue(const QString &type, const QJsonValue &value);
+
+	Q_INVOKABLE void send(const QString &op, const QJsonValue &data = {});
 
 signals:
 	void activeChanged();

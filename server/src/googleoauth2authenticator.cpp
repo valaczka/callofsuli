@@ -90,7 +90,7 @@ bool GoogleOAuth2Authenticator::profileUpdate(const QString &username, const QJs
 {
 	LOG_CDEBUG("oauth2") << "Update user profile:" << qPrintable(username);
 
-	const QDateTime &exp = QDateTime::fromSecsSinceEpoch(data.value(QStringLiteral("exp")).toInt());
+	const QDateTime &exp = QDateTime::fromSecsSinceEpoch(data.value(QStringLiteral("exp")).toInteger());
 
 	if (exp <= QDateTime::currentDateTime()) {
 		LOG_CTRACE("oauth2") << "Token expired, get access token for user:" << qPrintable(username);
@@ -130,7 +130,7 @@ bool GoogleOAuth2Authenticator::profileUpdate(const QString &username, const QJs
 			if (!service() || !service()->databaseMain() || !json)
 				return;
 
-			const QDateTime &tokenExp = QDateTime::currentDateTime().addSecs(json->value(QStringLiteral("expires_in")).toInt());
+			const QDateTime &tokenExp = QDateTime::currentDateTime().addSecs(json->value(QStringLiteral("expires_in")).toInteger());
 			const QString &accessToken = json->value(QStringLiteral("access_token")).toString();
 
 

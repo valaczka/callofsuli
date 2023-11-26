@@ -63,6 +63,76 @@ void GameEnemySoldier::onAttack()
 }
 
 
+/**
+ * @brief GameEnemySoldier::getCurrentState
+ * @param ptr
+ * @return
+ */
+
+bool GameEnemySoldier::getCurrentState(CachedState *ptr) const
+{
+	if (!ptr)
+		return false;
+
+	GameEnemy::getCurrentState(ptr);
+
+	ptr->turnElapsedMsec = m_turnElapsedMsec;
+	ptr->attackElapsedMsec = m_attackElapsedMsec;
+
+	return true;
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::setCurrentState
+ * @param state
+ */
+
+void GameEnemySoldier::setCurrentState(const CachedState &state)
+{
+	GameEnemy::setCurrentState(state);
+	setTurnElapsedMsec(state.turnElapsedMsec);
+	m_attackElapsedMsec = state.attackElapsedMsec;
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::cacheCurrentState
+ */
+
+void GameEnemySoldier::cacheCurrentState()
+{
+	if (!m_log)
+		return;
+
+	ActionGame *_game = game();
+
+	if (!_game)
+		return;
+
+	if (!m_cachedStates.isEmpty()) {
+		CachedState &state = m_cachedStates.last();
+
+		if (state.enemyState == m_enemyState &&
+				state.facingLeft == m_facingLeft &&
+				state.hp == m_hp &&
+				state.maxHp == m_maxHp) {
+			getCurrentState(&state);
+			state.tick = _game->currentTick();
+			return;
+		}
+	}
+
+	CachedState state;
+	getCurrentState(&state);
+	state.tick = _game->currentTick();
+
+	m_cachedStates.append(state);
+}
+
+
 
 
 
@@ -79,12 +149,17 @@ void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayF
 		return;
 	}
 
+	if (m_isRemote) {
+		return;
+	}
+
 	if (m_enemyState == Dead || !isAlive())
 		return;
 
-	if (!game() || !game()->running()) {
+	ActionGame *_game = game();
+
+	if (!_game || !_game->running())
 		return;
-	}
 
 
 	if (m_enemyState == Idle) {
@@ -139,6 +214,31 @@ void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayF
 			m_attackElapsedMsec = 0;
 		}
 	}
+
+	cacheCurrentState();
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::onTimerTick
+ */
+
+void GameEnemySoldier::onTimerTick()
+{
+	ActionGame *_game = game();
+
+	if (!_game)
+		return;
+
+	GameEnemySoldier::CachedState cState;
+	getCurrentState(&cState);
+
+	cState.tick = _game->currentTick();
+
+	m_log = true;
+
+	//appendState(cState);
 }
 
 
@@ -339,4 +439,21 @@ void GameEnemySoldier::setMsecBeforeTurn(int newMsecBeforeTurn)
 		return;
 	m_msecBeforeTurn = newMsecBeforeTurn;
 	emit msecBeforeTurnChanged();
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::CachedState::toByteArray
+ * @return
+ */
+
+QByteArray GameEnemySoldier::CachedState::toByteArray() const
+{
+	QByteArray data = GameEnemy::CachedState::toByteArray();
+
+	data.append(QString("turn: %1\n").arg(turnElapsedMsec).toUtf8());
+	data.append(QString("attack: %1\n").arg(attackElapsedMsec).toUtf8());
+
+	return data;
 }
