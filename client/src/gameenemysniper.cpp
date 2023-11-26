@@ -68,7 +68,7 @@ GameEnemySniper *GameEnemySniper::create(GameScene *scene, const GameTerrain::En
 {
 	LOG_CDEBUG("scene") << "Create enemy sniper";
 
-	GameEnemySniper *sniper = qobject_cast<GameEnemySniper*>(GameObject::createFromFile(QStringLiteral("GameEnemySniper.qml"), scene));
+	GameEnemySniper *sniper = qobject_cast<GameEnemySniper*>(GameObject::createFromFile(QStringLiteral("GameEnemySniper.qml"), scene, false));
 
 	if (!sniper) {
 		LOG_CERROR("scene") << "Enemy sniper creation error";

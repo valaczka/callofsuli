@@ -77,7 +77,7 @@ GameObject::~GameObject()
  * @return
  */
 
-GameObject *GameObject::createFromFile(QString file, GameScene *scene)
+GameObject *GameObject::createFromFile(QString file, GameScene *scene, const bool &synchronous)
 {
 	if (file.startsWith(QStringLiteral(":")))
 		file.replace(QStringLiteral(":"), QStringLiteral("qrc:"));
@@ -86,11 +86,27 @@ GameObject *GameObject::createFromFile(QString file, GameScene *scene)
 	else if (!file.startsWith(QStringLiteral("qrc:/")))
 		file.prepend(QStringLiteral("qrc:/"));
 
+
 	QQmlComponent component(Application::instance()->engine(), file, scene);
 
 	LOG_CDEBUG("scene") << "Create object from file:" << file << component.isReady();
 
-	return qobject_cast<GameObject*>(component.create());
+	// Synchronous
+
+	if (synchronous)
+		return qobject_cast<GameObject*>(component.create());
+
+
+	// Asynchronous
+
+	QQmlIncubator incubator;
+	component.create(incubator, Application::instance()->engine()->contextForObject(scene));
+
+	while (!incubator.isReady()) {
+		QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+	}
+
+	return qobject_cast<GameObject*>(incubator.object());
 }
 
 

@@ -120,12 +120,12 @@ void GameScene::load()
 	setWidth(m_terrain.width());
 	setHeight(m_terrain.height());
 
-	loadTiledLayers();
+	/*loadTiledLayers();
 	loadGroundLayer();
 	loadLadderLayer();
 	loadPlayerPositionLayer();
 	loadTerrainObjectsLayer();
-	loadPickablesLayer();
+	loadPickablesLayer();*/
 
 	++m_sceneLoadSteps;
 
@@ -390,8 +390,6 @@ void GameScene::loadTiledLayers()
 		LOG_CDEBUG("scene") <<  "Load terrain over image:" << qPrintable(m_terrain.imageOver());
 		emit imageOverChanged();
 	}
-
-	QCoreApplication::processEvents();
 }
 
 
@@ -466,7 +464,7 @@ void GameScene::loadLadderLayer()
 
 		QRectF rect(object->x(), object->y(), object->width(), object->height());
 
-		GameLadder *ladder = qobject_cast<GameLadder*>(GameObject::createFromFile(QStringLiteral("GameLadder.qml"), this));
+		GameLadder *ladder = qobject_cast<GameLadder*>(GameObject::createFromFile(QStringLiteral("GameLadder.qml"), this, false));
 
 		if (!ladder) {
 			LOG_CERROR("scene") << "Ladder creation error";
@@ -513,7 +511,7 @@ void GameScene::loadTerrainObjectsLayer()
 		const QString &qml = it.value();
 
 		foreach(const GameTerrain::ObjectData &data, m_terrain.objects(type)) {
-			GameObject *object = GameObject::createFromFile(qml, this);
+			GameObject *object = GameObject::createFromFile(qml, this, false);
 
 			if (!object) {
 				LOG_CERROR("scene") << "Terrain object creation error:" << type << qml;
@@ -825,8 +823,6 @@ void GameScene::createPlayer()
 	player->setPosition(pos.point);
 
 	m_game->setPlayer(player);
-
-	QCoreApplication::processEvents();
 }
 
 
@@ -907,6 +903,13 @@ void GameScene::zoomOverviewToggle()
 void GameScene::onScenePrepared()
 {
 	LOG_CDEBUG("scene") << "Scene prepared";
+
+	loadTiledLayers();
+	loadGroundLayer();
+	loadLadderLayer();
+	loadPlayerPositionLayer();
+	loadTerrainObjectsLayer();
+	loadPickablesLayer();
 
 	++m_sceneLoadSteps;
 

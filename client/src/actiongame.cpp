@@ -225,8 +225,6 @@ void ActionGame::createFixEnemies()
 			sniper->setMaxHp(hp);
 			sniper->setHp(hp);
 
-			QCoreApplication::processEvents();
-
 			++n;
 		}
 	}
@@ -274,8 +272,6 @@ void ActionGame::recreateEnemies()
 		el->setEnemy(soldier);
 
 		connect(soldier, &GameEntity::killed, this, &ActionGame::onEnemyDied);
-
-		QCoreApplication::processEvents();
 
 		soldiers.append(soldier);
 	}
@@ -370,7 +366,7 @@ void ActionGame::createPickable(const GamePickable::GamePickableData &data, cons
 
 	LOG_CDEBUG("game") << "Create pickable:" << data.type << bottomPoint;
 
-	GamePickable *object = qobject_cast<GamePickable*>(GameObject::createFromFile("GamePickable.qml", m_scene));
+	GamePickable *object = qobject_cast<GamePickable*>(GameObject::createFromFile("GamePickable.qml", m_scene, false));
 
 	if (!object) {
 		LOG_CERROR("scene") << "Pickable creation error:" << data.type;

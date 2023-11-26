@@ -688,7 +688,7 @@ GamePlayer *GamePlayer::create(GameScene *scene, const QString &type)
 {
 	LOG_CDEBUG("scene") << "Create player";
 
-	GamePlayer *player = qobject_cast<GamePlayer*>(GameObject::createFromFile(QStringLiteral("GamePlayer.qml"), scene));
+	GamePlayer *player = qobject_cast<GamePlayer*>(GameObject::createFromFile(QStringLiteral("GamePlayer.qml"), scene, false));
 
 	if (!player) {
 		LOG_CERROR("scene") << "Player creation error";

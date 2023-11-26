@@ -94,7 +94,7 @@ public:
 	GameObject(QQuickItem *parent = nullptr);
 	virtual ~GameObject();
 
-	static GameObject* createFromFile(QString file, GameScene *scene);
+	static GameObject* createFromFile(QString file, GameScene *scene, const bool &synchronous = true);
 
 	GameScene *scene() const;
 	void setScene(GameScene *newScene);

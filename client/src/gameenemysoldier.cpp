@@ -180,7 +180,7 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 {
 	LOG_CDEBUG("scene") << "Create enemy soldier";
 
-	GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile(QStringLiteral("GameEnemySoldier.qml"), scene));
+	GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile(QStringLiteral("GameEnemySoldier.qml"), scene, false));
 
 	if (!soldier) {
 		LOG_CERROR("scene") << "Enemy soldier creation error";

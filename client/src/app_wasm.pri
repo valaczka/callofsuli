@@ -8,7 +8,7 @@
 
 #########################
 
-DEFINES += NO_SOUND_THREAD
+DEFINES += NO_LAMBDA_THREAD
 
 SOURCES += \
 	onlineapplication.cpp \
