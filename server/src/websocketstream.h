@@ -2,6 +2,7 @@
 #define WEBSOCKETSTREAM_H
 
 #include <QWebSocket>
+#include "abstractengine.h"
 #include "credential.h"
 #include <QJsonObject>
 #include <QPointer>
@@ -79,6 +80,13 @@ public:
 	StreamState state() const;
 	const Credential &credential() const;
 
+	const QVector<std::shared_ptr<AbstractEngine> > &engines() const;
+	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
+	void engineRemove(AbstractEngine *engine);
+	bool hasEngine(const AbstractEngine::Type &type);
+
+	QRecursiveMutex &mutex();
+
 private:
 	void onBinaryDataReceived(const QByteArray &data);
 	void onTextReceived(const QString &text);
@@ -91,10 +99,12 @@ private:
 	ServerService *m_service = nullptr;
 	std::unique_ptr<QWebSocket> m_socket;
 	QVector<StreamObserver> m_observers;
-	QMutex m_mutex;
+	QRecursiveMutex m_mutex;
 	StreamState m_state = StateInvalid;
 	Credential m_credential;
 	static const QHash<StreamType, Credential::Roles> m_observerRoles;
+
+	QVector<std::shared_ptr<AbstractEngine>> m_engines;
 
 	friend class WebSocketStreamHandler;
 };

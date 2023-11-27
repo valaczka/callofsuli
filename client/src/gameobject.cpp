@@ -177,19 +177,6 @@ void GameObject::onSceneChanged()
 	}
 }
 
-bool GameObject::isRemote() const
-{
-	return m_isRemote;
-}
-
-void GameObject::setIsRemote(bool newIsRemote)
-{
-	if (m_isRemote == newIsRemote)
-		return;
-	m_isRemote = newIsRemote;
-	emit isRemoteChanged();
-}
-
 
 /**
  * @brief GameObject::getCurrentState
@@ -197,20 +184,18 @@ void GameObject::setIsRemote(bool newIsRemote)
  * @return
  */
 
-bool GameObject::getCurrentState(CachedState *ptr) const
+bool GameObject::getCurrentState(ObjectStateBase *ptr) const
 {
 	if (!ptr)
 		return false;
 
-	ptr->tick = 0;
-	ptr->height = height();
-	ptr->width = width();
-	ptr->x = x();
-	ptr->y = y();
-	ptr->z = z();
+	ptr->position = QPointF(x(), y());
+	ptr->size = QSizeF(width(), height());
 
 	return true;
 }
+
+
 
 
 /**
@@ -219,13 +204,12 @@ bool GameObject::getCurrentState(CachedState *ptr) const
  * @return
  */
 
-void GameObject::setCurrentState(const CachedState &state)
+void GameObject::setCurrentState(const ObjectStateBase &state)
 {
-	setHeight(state.height);
-	setWidth(state.width);
-	setX(state.x);
-	setY(state.y);
-	setZ(state.z);
+	setHeight(state.size.height());
+	setWidth(state.size.width());
+	setX(state.position.x());
+	setY(state.position.y());
 }
 
 
@@ -275,20 +259,3 @@ void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 	Q_UNUSED(delayFactor)
 }
 
-
-/**
- * @brief GameObject::CachedState::toByteArray
- */
-
-QByteArray GameObject::CachedState::toByteArray() const
-{
-	QByteArray data;
-
-	data.append(QString("tick: %1\n").arg(tick).toUtf8());
-	data.append(QString("x: %1\n").arg(x).toUtf8());
-	data.append(QString("y: %1\n").arg(y).toUtf8());
-	data.append(QString("width: %1\n").arg(width).toUtf8());
-	data.append(QString("height: %1\n").arg(height).toUtf8());
-
-	return data;
-}

@@ -49,6 +49,8 @@ ServerService *ServerService::m_instance = nullptr;
 
 
 
+#define _MAIN_TIMER_TEST_MODE
+
 /**
  * @brief ServerService::ServerService
  * @param argc
@@ -85,7 +87,13 @@ ServerService::ServerService(int &argc, char **argv)
 	}
 
 	QObject::connect(&m_mainTimer, &QTimer::timeout, this, &ServerService::onMainTimerTimeout);
+
+#ifdef _MAIN_TIMER_TEST_MODE
+	LOG_CERROR("service") << "_MAIN_TIMER_TEST_MODE defined";
+	m_mainTimer.setInterval(10000);
+#else
 	m_mainTimer.setInterval(500);
+#endif
 
 	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
 		m_mainTimer.stop();
@@ -126,6 +134,7 @@ void ServerService::initialize()
 	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("engine"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
 }
@@ -246,6 +255,8 @@ void ServerService::setImitateLatency(int newImitateLatency)
 
 bool ServerService::logPeerUser(const PeerUser &user)
 {
+	QMutexLocker locker(&m_mutex);
+
 	bool ret = PeerUser::addOrUpdate(&m_peerUser, user);
 	if (ret)
 		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
@@ -263,161 +274,6 @@ const QString &ServerService::importDb() const
 {
 	return m_importDb;
 }
-
-
-#ifdef _COMPAT
-/**
- * @brief ServerService::panels
- * @return
- */
-
-QVector<Panel*> ServerService::panels() const
-{
-	QVector<Panel *> list;
-
-	list.reserve(m_panels.size());
-
-	foreach (Panel *p, m_panels)
-		if (p)
-			list.append(p);
-
-	list.squeeze();
-
-	return list;
-}
-
-
-/**
- * @brief ServerService::addPanel
- * @param panel
- */
-
-void ServerService::addPanel(Panel *panel)
-{
-	if (!panel)
-		return;
-
-	int id = 1;
-
-	foreach (Panel *p, m_panels)
-		if (p && p->id() >= id)
-			id = p->id()+1;
-
-	panel->setId(id);
-
-	m_panels.append(panel);
-	connect(panel, &Panel::destroyed, this, [this, panel](){
-		removePanel(panel, false);
-	});
-}
-
-
-/**
- * @brief ServerService::removePanel
- * @param panel
- */
-
-void ServerService::removePanel(Panel *panel, const bool &_delete)
-{
-	if (!panel)
-		return;
-
-	m_panels.removeAll(panel);
-
-	if (_delete)
-		panel->deleteLater();
-}
-
-
-/**
- * @brief ServerService::panel
- * @param uuid
- * @return
- */
-
-Panel *ServerService::panel(const int &id) const
-{
-	foreach (Panel *p, m_panels)
-		if (p && p->id() == id)
-			return p;
-
-	return nullptr;
-}
-
-
-/**
- * @brief ServerService::eventStreams
- * @return
- */
-
-QVector<EventStream *> ServerService::eventStreams() const
-{
-	QVector<EventStream *> list;
-
-	list.reserve(m_eventStreams.size());
-
-	foreach (EventStream *s, m_eventStreams)
-		if (s)
-			list.append(s);
-
-	list.squeeze();
-
-	return list;
-}
-
-
-
-/**
- * @brief ServerService::addEventStream
- * @param stream
- */
-
-void ServerService::addEventStream(EventStream *stream)
-{
-	if (!stream)
-		return;
-
-	m_eventStreams.append(stream);
-
-	stream->setService(this);
-
-	LOG_CTRACE("service") << "Event stream added:" << stream << stream->streamTypes();
-
-	connect(stream, &EventStream::destroyed, this, [this, stream](){
-		m_eventStreams.removeAll(stream);
-		LOG_CTRACE("service") << "Event stream removed:" << stream << stream->streamTypes();
-	});
-
-	stream->HttpEventStream::write(QByteArrayLiteral("hello"), QByteArrayLiteral("hello message"));
-}
-
-
-
-/**
- * @brief ServerService::triggerEventStreams
- * @param type
- */
-
-void ServerService::triggerEventStreams(const EventStream::EventStreamType &type)
-{
-	foreach (EventStream *s, m_eventStreams)
-		if (s) s->trigger(type);
-}
-
-
-/**
- * @brief ServerService::triggerEventStreams
- * @param type
- * @param data
- */
-
-void ServerService::triggerEventStreams(const EventStream::EventStreamType &type, const QVariant &data)
-{
-	foreach (EventStream *s, m_eventStreams)
-		if (s) s->trigger(type, data);
-}
-
-#endif
 
 
 /**
@@ -830,11 +686,15 @@ void ServerService::onMainTimerTimeout()
 	const QDateTime &current = QDateTime::currentDateTime();
 	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
 
+#ifndef _MAIN_TIMER_TEST_MODE
 	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
 		return;
+#endif
 
 	LOG_CTRACE("service") << "Timer check";
 	m_mainTimerLastTick = dtMinute;
+
+	QMutexLocker locker(&m_mutex);
 
 	if (PeerUser::clear(&m_peerUser)) {
 		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
@@ -843,6 +703,14 @@ void ServerService::onMainTimerTimeout()
 	if (!m_databaseMain) {
 		LOG_CWARNING("service") << "Main database unavailable";
 		return;
+	}
+
+
+	// Check engines
+
+	for (const auto &e : m_engines) {
+		if (e->canDelete(e.use_count()))
+			engineRemove(e);
 	}
 
 	m_databaseMain->worker()->execInThread([this]() mutable {
@@ -999,6 +867,90 @@ void ServerService::resume()
 }
 
 
+/**
+ * @brief ServerService::mutex
+ * @return
+ */
+
+const QRecursiveMutex &ServerService::mutex() const
+{
+	return m_mutex;
+}
+
+
+/**
+ * @brief ServerService::engines
+ * @return
+ */
+
+const QVector<std::shared_ptr<AbstractEngine> > &ServerService::engines() const
+{
+	return m_engines;
+}
+
+
+/**
+ * @brief ServerService::engineAdd
+ * @param engine
+ */
+
+void ServerService::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
+{
+	if (!engine)
+		return;
+
+	LOG_CTRACE("service") << "Add engine:" << engine.get()->type() << engine.get();
+
+	QMutexLocker locker(&m_mutex);
+
+	m_engines.append(std::move(engine));
+}
+
+
+/**
+ * @brief ServerService::engineRemove
+ * @param engine
+ */
+
+void ServerService::engineRemove(const std::shared_ptr<AbstractEngine> &engine)
+{
+	LOG_CTRACE("service") << "Remove engine:" << engine->type();
+
+	QMutexLocker locker(&m_mutex);
+
+	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
+		if (*it == engine)
+			it = m_engines.erase(it);
+		else
+			++it;
+	}
+}
+
+
+
+/**
+ * @brief ServerService::engineRemove
+ * @param engine
+ */
+
+void ServerService::engineRemove(AbstractEngine *engine)
+{
+	if (!engine)
+		return;
+
+	LOG_CTRACE("service") << "Remove engine:" << engine->type() << engine;
+
+	QMutexLocker locker(&m_mutex);
+
+	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
+		if (it->get() == engine)
+			it = m_engines.erase(it);
+		else
+			++it;
+	}
+}
+
+
 
 /**
  * @brief ServerService::reload
@@ -1040,7 +992,8 @@ const QVector<std::shared_ptr<OAuth2Authenticator> > &ServerService::authenticat
 
 std::optional<std::weak_ptr<OAuth2Authenticator>> ServerService::oauth2Authenticator(const char *type) const
 {
-	const auto &it = std::find_if(m_authenticators.constBegin(), m_authenticators.constEnd(), [&type](const std::shared_ptr<OAuth2Authenticator> &auth) {
+	const auto &it = std::find_if(m_authenticators.constBegin(), m_authenticators.constEnd(),
+								  [&type](const std::shared_ptr<OAuth2Authenticator> &auth) {
 		return strcmp(auth->type(), type) == 0;
 	});
 

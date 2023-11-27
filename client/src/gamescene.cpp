@@ -884,14 +884,7 @@ void GameScene::onSceneStepSuccess()
 	if (m_sceneLoadSteps < 2)
 		return;
 
-	m_game->createQuestions();
-	m_game->createEnemyLocations();
-	m_game->createFixEnemies();
-	m_game->createInventory();
-
-	m_game->pageItem()->setState(QStringLiteral("run"));
-
-	playSoundMusic(m_game->backgroundMusic());
+	m_game->onSceneReady();
 }
 
 
@@ -924,10 +917,7 @@ void GameScene::onSceneAnimationReady()
 {
 	m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
 
-	m_game->recreateEnemies();
-
-	m_game->createPlayer();
-
+	m_game->onSceneAnimationFinished();
 
 	setSceneState(ScenePlay);
 }

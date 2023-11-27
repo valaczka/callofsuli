@@ -32,6 +32,18 @@
 #include <qtimer.h>
 
 
+// State hash
+
+const QHash<ObjectStateEnemy::EnemyState, GameEnemy::EnemyState> GameEnemy::m_stateHash = {
+	{ ObjectStateEnemy::Idle, GameEnemy::Idle },
+	{ ObjectStateEnemy::Move, GameEnemy::Move },
+	{ ObjectStateEnemy::WatchPlayer, GameEnemy::WatchPlayer },
+	{ ObjectStateEnemy::Attack, GameEnemy::Attack },
+	{ ObjectStateEnemy::Dead, GameEnemy::Dead },
+};
+
+
+
 /**
  * @brief GameEnemy::GameEnemy
  * @param parent
@@ -116,13 +128,13 @@ void GameEnemy::playAttackSound()
  * @return
  */
 
-bool GameEnemy::getCurrentState(CachedState *ptr) const
+bool GameEnemy::getCurrentState(ObjectStateEnemy *ptr) const
 {
 	if (!ptr)
 		return false;
 
 	GameEntity::getCurrentState(ptr);
-	ptr->enemyState = m_enemyState;
+	ptr->enemyState = m_stateHash.key(m_enemyState, ObjectStateEnemy::Invalid);
 	ptr->msecLeftToAttack = m_msecLeftToAttack;
 
 	return true;
@@ -135,10 +147,10 @@ bool GameEnemy::getCurrentState(CachedState *ptr) const
  * @param state
  */
 
-void GameEnemy::setCurrentState(const CachedState &state)
+void GameEnemy::setCurrentState(const ObjectStateEnemy &state)
 {
 	GameEntity::setCurrentState(state);
-	setEnemyState(state.enemyState);
+	setEnemyState(m_stateHash.value(state.enemyState, Invalid));
 	setMsecLeftToAttack(state.msecLeftToAttack);
 }
 
@@ -385,20 +397,4 @@ void GameEnemy::turnToPlayer(GamePlayer *player)
 		setFacingLeft(true);
 	else if (playerX > x() && m_facingLeft)
 		setFacingLeft(false);
-}
-
-
-/**
- * @brief GameEnemy::CachedState::toByteArray
- * @return
- */
-
-QByteArray GameEnemy::CachedState::toByteArray() const
-{
-	QByteArray data = GameEntity::CachedState::toByteArray();
-
-	data.append(QString("state: %1\n").arg(enemyState).toUtf8());
-	data.append(QString("msecLeftToAttack: %1\n").arg(msecLeftToAttack).toUtf8());
-
-	return data;
 }

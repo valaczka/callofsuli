@@ -9,7 +9,9 @@ import "JScript.js" as J
 QPage {
 	id: control
 
-	title: qsTr("MultiPlayer ") + (game ? (game.multiPlayerMode == MultiPlayerGame.MultiPlayerHost ? "Host" : "Client") : "???")
+	title: qsTr("MultiPlayer ") +
+		   (game ? ((game.multiPlayerMode == MultiPlayerGame.MultiPlayerHost ? "Host" : "Client")+ " - " + game.engineId)
+				 : "???")
 
 	property MultiPlayerGame game: null
 	//property string closeDisabled: qsTr("A játék előkészítése alatt nem lehet bezárni a lapot!")
@@ -53,16 +55,9 @@ QPage {
 
 			QButton {
 				anchors.horizontalCenter: parent.horizontalCenter
-				text: "HOST"
-				onClicked: if (game)
-							   game.multiPlayerMode = MultiPlayerGame.MultiPlayerHost
-			}
-
-			QButton {
-				anchors.horizontalCenter: parent.horizontalCenter
-				text: "CLIENT"
-				onClicked: if (game)
-							   game.multiPlayerMode = MultiPlayerGame.MultiPlayerClient
+				text: "CONNECT"
+				enabled: game
+				onClicked: game.sendWebSocketMessage({"cmd": "connect"})
 			}
 
 			QButton {

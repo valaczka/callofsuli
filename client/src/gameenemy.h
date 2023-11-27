@@ -134,15 +134,8 @@ protected:
 	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
 	void playAttackSound();
 
-	struct CachedState : public GameEntity::CachedState {
-		EnemyState enemyState = Invalid;
-		qreal msecLeftToAttack = -1;
-
-		virtual QByteArray toByteArray() const override;
-	};
-
-	bool getCurrentState(CachedState *ptr) const;
-	void setCurrentState(const CachedState &state);
+	bool getCurrentState(ObjectStateEnemy *ptr) const;
+	void setCurrentState(const ObjectStateEnemy &state);
 
 	GameTerrain::EnemyData m_terrainEnemyData;
 	int m_startMovingAfter = 0;
@@ -150,6 +143,8 @@ protected:
 	qreal m_castAttackFraction = 0.5;
 	qreal m_msecBeforeAttack = 1500;
 	qreal m_msecBetweenAttack = 1500;
+
+	static const QHash<ObjectStateEnemy::EnemyState, EnemyState> m_stateHash;
 
 	EnemyState m_enemyState = Invalid;
 	bool m_aimedByPlayer = false;

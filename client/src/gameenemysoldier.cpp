@@ -69,7 +69,7 @@ void GameEnemySoldier::onAttack()
  * @return
  */
 
-bool GameEnemySoldier::getCurrentState(CachedState *ptr) const
+bool GameEnemySoldier::getCurrentState(ObjectStateEnemySoldier *ptr) const
 {
 	if (!ptr)
 		return false;
@@ -89,7 +89,7 @@ bool GameEnemySoldier::getCurrentState(CachedState *ptr) const
  * @param state
  */
 
-void GameEnemySoldier::setCurrentState(const CachedState &state)
+void GameEnemySoldier::setCurrentState(const ObjectStateEnemySoldier &state)
 {
 	GameEnemy::setCurrentState(state);
 	setTurnElapsedMsec(state.turnElapsedMsec);
@@ -104,18 +104,15 @@ void GameEnemySoldier::setCurrentState(const CachedState &state)
 
 void GameEnemySoldier::cacheCurrentState()
 {
-	if (!m_log)
-		return;
-
 	ActionGame *_game = game();
 
 	if (!_game)
 		return;
 
 	if (!m_cachedStates.isEmpty()) {
-		CachedState &state = m_cachedStates.last();
+		ObjectStateEnemySoldier &state = m_cachedStates.last();
 
-		if (state.enemyState == m_enemyState &&
+		if (m_stateHash.value(state.enemyState, Invalid) == m_enemyState &&
 				state.facingLeft == m_facingLeft &&
 				state.hp == m_hp &&
 				state.maxHp == m_maxHp) {
@@ -125,11 +122,45 @@ void GameEnemySoldier::cacheCurrentState()
 		}
 	}
 
-	CachedState state;
+	ObjectStateEnemySoldier state;
 	getCurrentState(&state);
 	state.tick = _game->currentTick();
 
 	m_cachedStates.append(state);
+}
+
+
+
+
+
+/**
+ * @brief GameEnemySoldier::getStateSnapshot
+ * @return
+ */
+
+bool GameEnemySoldier::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId)
+{
+	ActionGame *_game = game();
+
+	if (!_game)
+		return false;
+
+	LOG_CINFO("game") << "GET SNAPSHOT" << this;
+
+	if (snapshot) {
+		for (const auto &s : m_cachedStates) {
+			ObjectStateEnemySoldier state = s;
+			state.id = objectId;
+			ObjectStateEnemySoldier *ptr = new ObjectStateEnemySoldier;
+			std::memmove((void*)ptr, (void*)&state, sizeof(ObjectStateEnemySoldier));
+			std::unique_ptr<ObjectStateBase> _ptr(ptr);
+			snapshot->append(_ptr);
+		}
+	}
+
+	m_cachedStates.clear();
+
+	return snapshot ? true : false;
 }
 
 
@@ -146,10 +177,6 @@ void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayF
 {
 	if (m_terrainEnemyData.type != GameTerrain::EnemySoldier) {
 		LOG_CWARNING("scene") << "Invalid enemy type";
-		return;
-	}
-
-	if (m_isRemote) {
 		return;
 	}
 
@@ -214,32 +241,9 @@ void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayF
 			m_attackElapsedMsec = 0;
 		}
 	}
-
-	cacheCurrentState();
 }
 
 
-
-/**
- * @brief GameEnemySoldier::onTimerTick
- */
-
-void GameEnemySoldier::onTimerTick()
-{
-	ActionGame *_game = game();
-
-	if (!_game)
-		return;
-
-	GameEnemySoldier::CachedState cState;
-	getCurrentState(&cState);
-
-	cState.tick = _game->currentTick();
-
-	m_log = true;
-
-	//appendState(cState);
-}
 
 
 
@@ -442,18 +446,3 @@ void GameEnemySoldier::setMsecBeforeTurn(int newMsecBeforeTurn)
 }
 
 
-
-/**
- * @brief GameEnemySoldier::CachedState::toByteArray
- * @return
- */
-
-QByteArray GameEnemySoldier::CachedState::toByteArray() const
-{
-	QByteArray data = GameEnemy::CachedState::toByteArray();
-
-	data.append(QString("turn: %1\n").arg(turnElapsedMsec).toUtf8());
-	data.append(QString("attack: %1\n").arg(attackElapsedMsec).toUtf8());
-
-	return data;
-}

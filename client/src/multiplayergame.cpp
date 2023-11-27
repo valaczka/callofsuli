@@ -1,7 +1,6 @@
 #include "multiplayergame.h"
 #include "Logger.h"
 #include "client.h"
-#include "gameenemysoldier.h"
 #include <QRandomGenerator>
 
 
@@ -16,17 +15,20 @@ MultiPlayerGame::MultiPlayerGame(GameMapMissionLevel *missionLevel, Client *clie
 {
 	if (m_client) {
 		connect(m_client->httpConnection()->webSocket(), &WebSocket::messageReceived, this, &MultiPlayerGame::onJsonReceived);
+		connect(m_client->httpConnection()->webSocket(), &WebSocket::activeChanged, this, &MultiPlayerGame::onActiveChanged);
 
 		m_client->httpConnection()->webSocket()->observerAdd(QStringLiteral("multiplayer"));
-		m_client->httpConnection()->webSocket()->connect();
+
+		if (m_client->httpConnection()->webSocket()->active())
+			onActiveChanged();
+		else
+			m_client->httpConnection()->webSocket()->connect();
 	}
 
 	connect(&m_timeSyncTimer, &QTimer::timeout, this, &MultiPlayerGame::onTimeSyncTimerTimeout);
 
 	m_timeSyncTimer.setInterval(8000);
 	m_timeSyncTimer.start();
-
-	m_world = librg_world_create();
 }
 
 
@@ -39,9 +41,6 @@ MultiPlayerGame::~MultiPlayerGame()
 	if (m_client) {
 		m_client->httpConnection()->webSocket()->observerRemove(QStringLiteral("multiplayer"));
 	}
-
-	librg_world_destroy(m_world);
-	m_world = nullptr;
 }
 
 
@@ -89,6 +88,87 @@ QQuickItem *MultiPlayerGame::loadPage()
 
 
 /**
+ * @brief MultiPlayerGame::onSceneAboutToStart
+ */
+
+void MultiPlayerGame::onSceneAboutToStart()
+{
+	startWithRemainingTime(m_missionLevel->duration()*1000);
+	m_tickTimer.start(this, 1);
+
+	if (m_deathmatch) {
+		message(tr("LEVEL %1").arg(level()));
+		message(tr("SUDDEN DEATH"));
+		message(m_multiPlayerMode == MultiPlayerHost ? tr("MULTIPLAYER HOST") : tr("MULTIPLAYER CLIENT"));
+		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/sudden_death.mp3"));
+	} else {
+		message(tr("LEVEL %1").arg(level()));
+		message(m_multiPlayerMode == MultiPlayerHost ? tr("MULTIPLAYER HOST") : tr("MULTIPLAYER CLIENT"));
+		m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
+	}
+}
+
+
+
+/**
+ * @brief MultiPlayerGame::timerEvent
+ * @param event
+ */
+
+void MultiPlayerGame::timerEvent(QTimerEvent *)
+{
+	if (!m_scene)
+		return;
+
+	LOG_CTRACE("game") << "TIMER EVENT" << m_tickTimer.currentTick();
+
+	ObjectStateSnapshot snap;
+	int id = 1780;
+
+	foreach (GameObject *o, m_scene->m_gameObjects)
+		if (o) {
+			o->getStateSnapshot(&snap, ++id);
+		}
+
+	LOG_CINFO("game") << snap.toReadable().constData();
+}
+
+
+
+
+/**
+ * @brief MultiPlayerGame::sendWebSocketMessage
+ * @param cmd
+ * @param data
+ */
+
+void MultiPlayerGame::sendWebSocketMessage(const QJsonValue &data)
+{
+	if (!m_client || !m_client->httpConnection()->webSocket()->active()) {
+		LOG_CWARNING("game") << "WebSocket inactive";
+		return;
+	}
+
+	m_client->httpConnection()->webSocket()->send(QStringLiteral("multiplayer"), data);
+}
+
+
+
+/**
+ * @brief MultiPlayerGame::getServerState
+ */
+
+void MultiPlayerGame::getServerState()
+{
+	m_client->httpConnection()->webSocket()->send(QStringLiteral("multiplayer"), QJsonObject{
+													  { QStringLiteral("cmd"), QStringLiteral("state") }
+												  });
+
+}
+
+
+
+/**
  * @brief MultiPlayerGame::onTimeSyncTimerTimeout
  */
 
@@ -113,6 +193,24 @@ void MultiPlayerGame::onTimeSyncTimerTimeout()
 
 
 /**
+ * @brief MultiPlayerGame::onActiveChanged
+ */
+
+void MultiPlayerGame::onActiveChanged()
+{
+	const bool active = m_client->httpConnection()->webSocket()->active();
+	LOG_CTRACE("game") << "MultiPlayerGame WebSocket active changed" << active;
+
+	sendWebSocketMessage(QJsonObject{
+							 { QStringLiteral("cmd"), QStringLiteral("connect") }
+						 });
+
+
+}
+
+
+
+/**
  * @brief MultiPlayerGame::onJsonReceived
  * @param operation
  * @param data
@@ -127,6 +225,17 @@ void MultiPlayerGame::onJsonReceived(const QString &operation, const QJsonValue 
 		m_tickTimer.setLatency(clientTime/2);
 
 		LOG_CTRACE("game") << "ACTUAL SERVER TIME" << m_tickTimer.latency();
+	} else if (operation == QStringLiteral("multiplayer")) {
+		const QJsonObject &obj = data.toObject();
+		const QString &cmd = obj.value(QStringLiteral("cmd")).toString();
+
+		if (cmd == QStringLiteral("connect")) {
+			setEngineId(obj.value(QStringLiteral("engine")).toInt(-1));
+			getServerState();
+		} else if (cmd == QStringLiteral("state")) {
+			setEngineId(obj.value(QStringLiteral("engine")).toInt(-1));
+			setMultiPlayerMode(obj.value(QStringLiteral("host")).toVariant().toBool() ? MultiPlayerHost : MultiPlayerClient);
+		}
 	}
 }
 
@@ -156,6 +265,22 @@ void MultiPlayerGame::loadGamePage()
 
 
 
+
+int MultiPlayerGame::engineId() const
+{
+	return m_engineId;
+}
+
+void MultiPlayerGame::setEngineId(int newEngineId)
+{
+	if (m_engineId == newEngineId)
+		return;
+	m_engineId = newEngineId;
+	emit engineIdChanged();
+}
+
+
+
 /**
  * @brief MultiPlayerGame::multiPlayerMode
  * @return
@@ -177,57 +302,34 @@ void MultiPlayerGame::setMultiPlayerMode(const Mode &newMultiPlayerMode)
 
 
 /**
- * @brief MultiPlayerGame::recreateEnemies
+ * @brief MultiPlayerGame::sceneTimerTimeout
+ * @param msec
+ * @param delayFactor
  */
 
-void MultiPlayerGame::recreateEnemies()
+void MultiPlayerGame::sceneTimerTimeout(const int &msec, const qreal &delayFactor)
 {
+	if (!m_scene) {
+		LOG_CWARNING("game") << "Missing scene";
+		return;
+	}
+
 	if (m_multiPlayerMode == MultiPlayerHost) {
-		ActionGame::recreateEnemies();
+		foreach (GameObject *o, m_scene->m_gameObjects) {
+			if (o) {
+				o->onTimingTimerTimeout(msec, delayFactor);
+				o->cacheCurrentState();
+			}
+		}
 	} else {
-		if (!m_scene) {
-			LOG_CWARNING("game") << "Missing scene";
-			return;
-		}
 
-		LOG_CDEBUG("game") << "Recreate enemies";
+	}
 
-		QList<GameEnemy *> soldiers;
 
-		for (auto &el : m_enemies) {
-			const GameTerrain::EnemyData &e = el->enemyData();
-			const GameTerrain::EnemyType &type = el->enemyData().type;
-
-			if (el->enemy())
-				continue;
-
-			if (type != GameTerrain::EnemySoldier || m_closedBlocks.contains(e.block))
-				continue;
-
-			GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, e);
-
-			soldier->setFacingLeft(QRandomGenerator::global()->generate() % 2);
-
-			soldier->setX(e.rect.left() + e.rect.width()/2);
-			soldier->setY(e.rect.bottom()-soldier->height());
-
-			soldier->startMovingAfter(2500);
-
-			soldier->setIsRemote(true);
-
-			el->setEnemy(soldier);
-
-			connect(soldier, &GameEntity::killed, this, &ActionGame::onEnemyDied);
-
-			soldiers.append(soldier);
-		}
-
-		LOG_CDEBUG("game") << soldiers.size() << " new enemies created";
-
-		linkQuestionToEnemies(soldiers);
-		linkPickablesToEnemies(soldiers);
-
-		emit activeEnemiesChanged();
+	foreach (GameObject *o, m_scene->m_gameObjects) {
+		GameEntity *e = qobject_cast<GameEntity*>(o);
+		if (e)
+			e->performRayCast();
 	}
 }
 

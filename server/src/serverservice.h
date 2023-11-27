@@ -30,6 +30,7 @@
 #include <QPointer>
 #include "ColorConsoleAppender.h"
 //#include "panel.h"
+#include "abstractengine.h"
 #include "qnetworkaccessmanager.h"
 #include "serversettings.h"
 #include "databasemain.h"
@@ -222,6 +223,13 @@ public:
 	void pause();
 	void reload();
 
+	const QVector<std::shared_ptr<AbstractEngine> > &engines() const;
+	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
+	void engineRemove(const std::shared_ptr<AbstractEngine> &engine);
+	void engineRemove(AbstractEngine *engine);
+
+	const QRecursiveMutex &mutex() const;
+
 signals:
 	void configChanged();
 	void serverNameChanged();
@@ -254,6 +262,8 @@ private:
 	std::unique_ptr<ServerSettings> m_settings;
 	std::unique_ptr<DatabaseMain> m_databaseMain;
 	QVector<std::shared_ptr<OAuth2Authenticator> > m_authenticators;
+	QVector<std::shared_ptr<AbstractEngine>> m_engines;
+
 	/*QVector<QPointer<EventStream>> m_eventStreams;
 	QVector<QPointer<Panel>> m_panels;*/
 
@@ -270,6 +280,8 @@ private:
 	QVector<PeerUser> m_peerUser;
 
 	static ServerService *m_instance;
+
+	QRecursiveMutex m_mutex;
 };
 
 

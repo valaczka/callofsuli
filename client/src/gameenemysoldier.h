@@ -50,7 +50,8 @@ public:
 	Q_INVOKABLE void attackPlayer();
 
 	void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
-	void onTimerTick() override;
+	virtual void cacheCurrentState() override;
+	virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId = 1) override;
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
@@ -71,19 +72,10 @@ private:
 	int m_turnElapsedMsec = -1;
 	int m_attackElapsedMsec = -1;
 
-	struct CachedState : public GameEnemy::CachedState {
-		int turnElapsedMsec = 0;
-		int attackElapsedMsec = 0;
+	bool getCurrentState(ObjectStateEnemySoldier *ptr) const;
+	void setCurrentState(const ObjectStateEnemySoldier &state);
 
-		virtual QByteArray toByteArray() const override;
-	};
-
-	bool getCurrentState(CachedState *ptr) const;
-	void setCurrentState(const CachedState &state);
-	void cacheCurrentState();
-
-	QList<CachedState> m_cachedStates;
-	bool m_log = false;
+	QList<ObjectStateEnemySoldier> m_cachedStates;
 };
 
 #endif // GAMEENEMYSOLDIER_H

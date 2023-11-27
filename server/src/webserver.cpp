@@ -30,6 +30,7 @@
 #include "serversettings.h"
 #include "serverservice.h"
 #include <QNetworkInterface>
+#include "multiplayerengine.h"
 
 
 /**
@@ -290,8 +291,6 @@ WebSocketStreamHandler::~WebSocketStreamHandler()
 {
 	LOG_CTRACE("service") << "WebSocketStreamHandler destroying" << this;
 
-	QMutexLocker locker(&m_mutex);
-
 	m_streams.clear();
 
 	LOG_CTRACE("service") << "WebSocketStreamHandler destroyed" << this;
@@ -371,7 +370,7 @@ void WebSocketStreamHandler::trigger(const WebSocketStream::StreamType &type)
 		_trPeers(list);
 		break;
 	case WebSocketStream::StreamMultiPlayer:
-		_trMultiPlayer(list);
+		_trMultiPlayer(list, -1);
 		break;
 	default:
 		LOG_CERROR("service") << "Trigger not defined" << type;
@@ -395,7 +394,7 @@ void WebSocketStreamHandler::trigger(const WebSocketStream::StreamType &type, co
 		_trPeers(list);
 		break;
 	case WebSocketStream::StreamMultiPlayer:
-		_trMultiPlayer(list);
+		_trMultiPlayer(list, data.canConvert<int>() ? data.toInt() : -1);
 		break;
 	default:
 		LOG_CERROR("service") << "Trigger not defined" << type;
@@ -423,7 +422,7 @@ void WebSocketStreamHandler::trigger(WebSocketStream *stream)
 			_trPeers({stream});
 			break;
 		case WebSocketStream::StreamMultiPlayer:
-			_trMultiPlayer({stream});
+			_trMultiPlayer({stream}, -1);
 			break;
 		default:
 			LOG_CERROR("service") << "Trigger not defined" << ob.type;
@@ -513,9 +512,9 @@ void WebSocketStreamHandler::_trPeers(const QVector<WebSocketStream*> &list)
  * @param list
  */
 
-void WebSocketStreamHandler::_trMultiPlayer(const QVector<WebSocketStream *> &list)
+void WebSocketStreamHandler::_trMultiPlayer(const QVector<WebSocketStream *> &list, const int &engineId)
 {
-
+	MultiPlayerEngine::handleWebSocketTrigger(list, m_service, engineId);
 }
 
 

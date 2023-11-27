@@ -83,18 +83,10 @@ public:
 	class EnemyLocation;
 	class QuestionLocation;
 
-	virtual void createPlayer();
-	void createQuestions();
-	void createEnemyLocations();
-	void createFixEnemies();
-	virtual void recreateEnemies();
-	void createInventory();
-	void createPickable(GameEnemy *enemy);
-	void createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint);
+	virtual void onSceneReady();
+	virtual void onSceneAnimationFinished();
 
-	void linkQuestionToEnemies(QList<GameEnemy *> enemies);
-	void linkPickablesToEnemies(QList<GameEnemy *> enemies);
-	void relinkQuestionToEnemy(GameEnemy * enemy);
+	void createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint);
 
 	void tryAttack(GamePlayer *player, GameEnemy *enemy);
 	void operateReal(GamePlayer *player, GameObject *object);
@@ -140,8 +132,6 @@ public:
 
 
 public slots:
-	void onPlayerDied(GameEntity *);
-	void onEnemyDied(GameEntity *entity);
 	void pickableAdd(GamePickable *pickable);
 	void pickableRemove(GamePickable *pickable);
 	void pickableRemoveAll();
@@ -157,7 +147,19 @@ protected:
 	virtual QQuickItem *loadPage() override;
 	virtual void connectGameQuestion() override;
 	virtual bool gameFinishEvent() override;
-	virtual void timerEvent(QTimerEvent *event) override;
+	virtual void onSceneAboutToStart();
+
+	void createPlayer();
+	void createQuestions();
+	void createEnemyLocations();
+	void createFixEnemies();
+	void recreateEnemies();
+	void createInventory();
+	void createPickable(GameEnemy *enemy);
+
+	void linkQuestionToEnemies(QList<GameEnemy *> enemies);
+	void linkPickablesToEnemies(QList<GameEnemy *> enemies);
+	void relinkQuestionToEnemy(GameEnemy * enemy);
 
 signals:
 	void playerChanged();
@@ -169,7 +171,7 @@ signals:
 	void toolChanged(GamePickable::PickableType type, int count);
 	void toolListIconsChanged();
 
-private slots:
+private:
 	void onSceneStarted();
 	void onMsecLeftChanged();
 	void onGameQuestionSuccess(const QVariantMap &answer);
@@ -179,6 +181,9 @@ private slots:
 	void onGameTimeout();
 	void onGameSuccess();
 	void onGameFailed();
+
+	void onPlayerDied(GameEntity *);
+	void onEnemyDied(GameEntity *entity);
 
 protected:
 	/**

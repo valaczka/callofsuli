@@ -14,6 +14,7 @@ HEADERS += \
 	$$PWD/credential.h \
 	$$PWD/gamemap.h \
 	$$PWD/gamemapreaderiface.h \
+	$$PWD/objectstate.h \
 	$$PWD/rank.h \
 	$$PWD/selectableobject.h \
 	$$PWD/../QJsonWebToken/src/qjsonwebtoken.h \

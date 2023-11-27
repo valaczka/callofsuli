@@ -231,10 +231,20 @@ void WebSocket::send(const QJsonObject &json)
 
 void WebSocket::observerAddValue(const QString &type, const QJsonValue &value)
 {
-	Observer ob{type, value};
+	bool contains = false;
 
-	if (!m_observers.contains(ob)) {
-		m_observers.append(ob);
+	for (const auto &ob : m_observers) {
+		if (value == QJsonValue::Null && ob.type == type) {
+			contains = true;
+			break;
+		} else if (ob.type == type && ob.data == value) {
+			contains = true;
+			break;
+		}
+	}
+
+	if (!contains) {
+		m_observers.append(Observer{type, value});
 
 		if (m_socket && (m_state == WebSocketConnected || m_state == WebSocketListening)) {
 			QJsonObject obj;
@@ -264,9 +274,15 @@ void WebSocket::observerAddValue(const QString &type, const QJsonValue &value)
 
 void WebSocket::observerRemoveValue(const QString &type, const QJsonValue &value)
 {
-	Observer ob{type, value};
-
-	m_observers.removeAll(ob);
+	for (auto it = m_observers.constBegin(); it != m_observers.constEnd(); ) {
+		if (value == QJsonValue::Null && it->type == type) {
+			it = m_observers.erase(it);
+		} else if (it->type == type && it->data == value) {
+			it = m_observers.erase(it);
+		} else {
+			++it;
+		}
+	}
 
 	if (m_observers.isEmpty())
 		close();
@@ -305,16 +321,16 @@ void WebSocket::reconnect()
 	if (!server)
 		return;
 
+	if (++m_tries > MAX_TRIES) {
+		LOG_CWARNING("http") << "Connection failed";
+		m_connection->m_client->messageError(tr("Nem sikerült létrehozni a kapcsolatot"), tr("WebSocket hiba"));
+		emit connectionFailed();
+		close();
+		return;
+	}
+
 	if (!m_socket) {
 		LOG_CTRACE("http") << "Try to connect" << m_tries;
-
-		if (++m_tries > MAX_TRIES) {
-			LOG_CWARNING("http") << "Connection failed";
-			m_connection->m_client->messageError(tr("Nem sikerült létrehozni a kapcsolatot"), tr("WebSocket hiba"));
-			emit connectionFailed();
-			return;
-		}
-
 
 		m_socket = std::make_unique<QWebSocket>();
 		m_state = WebSocketReset;

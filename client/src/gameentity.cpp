@@ -514,7 +514,7 @@ void GameEntity::hpProgressValueSetup()
  * @return
  */
 
-bool GameEntity::getCurrentState(CachedState *ptr) const
+bool GameEntity::getCurrentState(ObjectStateEntity *ptr) const
 {
 	if (!ptr)
 		return false;
@@ -534,7 +534,7 @@ bool GameEntity::getCurrentState(CachedState *ptr) const
  * @param state
  */
 
-void GameEntity::setCurrentState(const CachedState &state)
+void GameEntity::setCurrentState(const ObjectStateEntity &state)
 {
 	GameObject::setCurrentState(state);
 	setFacingLeft(state.facingLeft);
@@ -1173,18 +1173,3 @@ QQuickItem *GameEntity::spriteSequence() const
 
 
 
-/**
- * @brief GameEntity::CachedState::toByteArray
- * @return
- */
-
-QByteArray GameEntity::CachedState::toByteArray() const
-{
-	QByteArray data = GameObject::CachedState::toByteArray();
-
-	data.append(QString("hp: %1\n").arg(hp).toUtf8());
-	data.append(QString("maxHp: %1\n").arg(maxHp).toUtf8());
-	data.append(QString("facingLeft: %1\n").arg(facingLeft).toUtf8());
-
-	return data;
-}

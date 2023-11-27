@@ -219,7 +219,6 @@ SOURCES += \
 	gameterrainmap.cpp \
 	grade.cpp \
 	httpconnection.cpp \
-	librg_impl.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \

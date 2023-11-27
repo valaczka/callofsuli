@@ -38,7 +38,7 @@
 #include <QObject>
 #include <QQuickItem>
 #include "box2dbody.h"
-
+#include "objectstate.h"
 
 /**
  * COLLISION CATEGORIES
@@ -93,7 +93,6 @@ class GameObject : public QQuickItem
 	Q_PROPERTY(Box2DBody *body READ body CONSTANT)
 	Q_PROPERTY(ActionGame *game READ game NOTIFY gameChanged)
 	Q_PROPERTY(QString objectType READ objectType WRITE setObjectType NOTIFY objectTypeChanged)
-	Q_PROPERTY(bool isRemote READ isRemote WRITE setIsRemote NOTIFY isRemoteChanged)
 
 public:
 	GameObject(QQuickItem *parent = nullptr);
@@ -114,10 +113,11 @@ public:
 	void setObjectType(const QString &newObjectType);
 
 	virtual void onTimingTimerTimeout(const int &msec, const qreal &delayFactor);
-	virtual void onTimerTick() {}
-
-	bool isRemote() const;
-	void setIsRemote(bool newIsRemote);
+	virtual void cacheCurrentState() {}
+	virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId = 1) {
+		Q_UNUSED(snapshot); Q_UNUSED(objectId);
+		return false;
+	}
 
 private slots:
 	void onSceneChanged();
@@ -128,30 +128,13 @@ signals:
 	void sceneConnected();
 	void objectTypeChanged();
 
-	void isRemoteChanged();
-
 protected:
 	QPointer<GameScene> m_scene;
 	std::unique_ptr<Box2DBody> m_body;
 	QList<QPointer<QQuickItem>> m_childItems;
-	bool m_isRemote = false;
 
-	struct CachedState {
-		virtual ~CachedState() = default;
-
-		qint64 tick = 0;
-		qreal x = 0;
-		qreal y = 0;
-		qreal z = 0;
-		qreal width = 0;
-		qreal height = 0;
-
-		virtual QByteArray toByteArray() const;
-	};
-
-	bool getCurrentState(CachedState *ptr) const;
-	void setCurrentState(const CachedState &state);
-
+	bool getCurrentState(ObjectStateBase *ptr) const;
+	void setCurrentState(const ObjectStateBase &state);
 
 private:
 	bool m_sceneConnected = false;

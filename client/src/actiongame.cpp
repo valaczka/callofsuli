@@ -148,6 +148,40 @@ ActionGame::~ActionGame()
 
 
 
+/**
+ * @brief ActionGame::onSceneReady
+ */
+
+void ActionGame::onSceneReady()
+{
+	LOG_CTRACE("game") << "Scene ready" << this;
+
+	createQuestions();
+	createEnemyLocations();
+	createFixEnemies();
+	createInventory();
+
+	pageItem()->setState(QStringLiteral("run"));
+
+	m_scene->playSoundMusic(backgroundMusic());
+}
+
+
+
+/**
+ * @brief ActionGame::onSceneAnimationFinished
+ */
+
+void ActionGame::onSceneAnimationFinished()
+{
+	LOG_CTRACE("game") << "Scene amimation finsihed" << this;
+
+	recreateEnemies();
+	createPlayer();
+}
+
+
+
 
 /**
  * @brief ActionGame::createPlayer
@@ -174,6 +208,10 @@ void ActionGame::createPlayer()
 	pos.point.setY(pos.point.y()-player->height());
 
 	player->setPosition(pos.point);
+	player->setMaxHp(startHP());
+	player->setHp(startHP());
+	connect(player, &GamePlayer::died, this, &ActionGame::onPlayerDied);
+	connect(this, &ActionGame::runningChanged, player, &GamePlayer::onMovingFlagsChanged);
 
 	setPlayer(player);
 }
@@ -753,13 +791,6 @@ void ActionGame::setPlayer(GamePlayer *newPlayer)
 
 	if (!m_player)
 		return;
-
-	LOG_CDEBUG("game") << "Setup new player";
-
-	m_player->setMaxHp(startHP());
-	m_player->setHp(startHP());
-	connect(m_player, &GamePlayer::died, this, &ActionGame::onPlayerDied);
-	connect(this, &ActionGame::runningChanged, newPlayer, &GamePlayer::onMovingFlagsChanged);
 }
 
 
@@ -814,39 +845,15 @@ bool ActionGame::gameFinishEvent()
 
 
 
-/**
- * @brief ActionGame::timerEvent
- * @param event
- */
-
-void ActionGame::timerEvent(QTimerEvent *event)
-{
-	if (!m_scene)
-		return;
-
-	LOG_CTRACE("game") << "TIMER EVENT" << m_tickTimer.currentTick();
-
-	foreach (GameObject *o, m_scene->m_gameObjects)
-		if (o) {
-			o->onTimerTick();
-			if (dynamic_cast<GameEnemySoldier*>(o) != NULL)
-				break;
-		}
-	/*if (o)
-			o->onTimingTimerTimeout(m_timingTimerTimeoutMsec, factor);*/
-}
-
 
 
 /**
- * @brief ActionGame::onSceneStarted
+ * @brief ActionGame::onSceneAboutToStart
  */
 
-void ActionGame::onSceneStarted()
+void ActionGame::onSceneAboutToStart()
 {
-	timeNotifySendReset();
 	startWithRemainingTime(m_missionLevel->duration()*1000);
-	m_tickTimer.start(this, 1);
 
 	if (m_deathmatch) {
 		message(tr("LEVEL %1").arg(level()));
@@ -899,6 +906,19 @@ void ActionGame::onSceneStarted()
 
 	}
 
+}
+
+
+
+/**
+ * @brief ActionGame::onSceneStarted
+ */
+
+void ActionGame::onSceneStarted()
+{
+	timeNotifySendReset();
+
+	onSceneAboutToStart();
 
 #if defined(Q_OS_ANDROID) || defined (Q_OS_IOS)
 	QScreen *screen = QApplication::primaryScreen();

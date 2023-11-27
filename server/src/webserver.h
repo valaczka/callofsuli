@@ -63,7 +63,7 @@ private:
 	QVector<WebSocketStream*> _triggerEvent(const WebSocketStream::StreamType &type, const QVariant &data);
 
 	void _trPeers(const QVector<WebSocketStream*> &list);
-	void _trMultiPlayer(const QVector<WebSocketStream*> &list);
+	void _trMultiPlayer(const QVector<WebSocketStream*> &list, const int &engineId);
 
 	std::vector<std::unique_ptr<WebSocketStream>> m_streams;
 	QMutex m_mutex;
