@@ -45,6 +45,7 @@ WebSocketStream::~WebSocketStream()
 
 void WebSocketStream::observerAdd(const StreamType &type, const QVariant &data)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 
 	StreamObserver ob{type, data};
@@ -68,6 +69,7 @@ void WebSocketStream::observerAdd(const StreamType &type, const QVariant &data)
 
 void WebSocketStream::observerRemove(const StreamType &type, const QVariant &data)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 	m_observers.removeAll(StreamObserver{type, data});
 
@@ -82,6 +84,7 @@ void WebSocketStream::observerRemove(const StreamType &type, const QVariant &dat
 
 void WebSocketStream::observerRemoveAll(const StreamType &type)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 	for (auto it=m_observers.constBegin(); it != m_observers.constEnd();) {
 		if (it->type == type)
@@ -100,6 +103,7 @@ void WebSocketStream::observerRemoveAll(const StreamType &type)
 
 bool WebSocketStream::hasObserver(const StreamType &type)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 	for (auto it=m_observers.constBegin(); it != m_observers.constEnd();) {
 		if (it->type == type)
@@ -118,6 +122,7 @@ bool WebSocketStream::hasObserver(const StreamType &type)
 
 bool WebSocketStream::hasObserver(const StreamType &type, const QVariant &data)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 	return m_observers.contains(StreamObserver{type, data});
 }
@@ -399,6 +404,7 @@ void WebSocketStream::onWebSocketDisconnected()
 	LOG_CDEBUG("service") << "WebSocket disconnected:" << ws << m_credential.username();
 
 	{
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 		QMutexLocker locker(&m_mutex);
 
 		for (const auto &e : m_engines)
@@ -422,15 +428,6 @@ void WebSocketStream::timeSync(QJsonObject data)
 }
 
 
-/**
- * @brief WebSocketStream::mutex
- * @return
- */
-
-QRecursiveMutex &WebSocketStream::mutex()
-{
-	return m_mutex;
-}
 
 
 /**
@@ -451,6 +448,7 @@ const QVector<std::shared_ptr<AbstractEngine> > &WebSocketStream::engines() cons
 
 void WebSocketStream::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 	LOG_CTRACE("service") << "WebSocket add engine" << this << engine.get() << engine->type();
 
@@ -467,6 +465,7 @@ void WebSocketStream::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
 
 void WebSocketStream::engineRemove(AbstractEngine *engine)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 	LOG_CTRACE("service") << "WebSocket remove engine" << this << engine << engine->type();
 
@@ -487,6 +486,7 @@ void WebSocketStream::engineRemove(AbstractEngine *engine)
 
 bool WebSocketStream::hasEngine(const AbstractEngine::Type &type)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 
 	for (const auto &e : m_engines) {

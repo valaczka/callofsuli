@@ -108,6 +108,8 @@ public:
 	void setPickable(const GamePickable::GamePickableData &newPickable);
 	bool hasPickable() const { return m_pickable.type != GamePickable::PickableInvalid; }
 
+	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
+
 public slots:
 	void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
 	void missedByPlayer(GamePlayer *player);

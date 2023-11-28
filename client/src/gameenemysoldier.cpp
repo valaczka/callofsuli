@@ -148,19 +148,39 @@ bool GameEnemySoldier::getStateSnapshot(ObjectStateSnapshot *snapshot, const qin
 	LOG_CINFO("game") << "GET SNAPSHOT" << this;
 
 	if (snapshot) {
-		for (const auto &s : m_cachedStates) {
-			ObjectStateEnemySoldier state = s;
-			state.id = objectId;
-			ObjectStateEnemySoldier *ptr = new ObjectStateEnemySoldier;
-			std::memmove((void*)ptr, (void*)&state, sizeof(ObjectStateEnemySoldier));
-			std::unique_ptr<ObjectStateBase> _ptr(ptr);
+		for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ) {
+			it->id = objectId;
+			std::unique_ptr<ObjectStateBase> _ptr(it->clone());
 			snapshot->append(_ptr);
+
+			it = m_cachedStates.erase(it);
 		}
 	}
 
-	m_cachedStates.clear();
 
 	return snapshot ? true : false;
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::setStateFromSnapshot
+ * @param ptr
+ */
+
+void GameEnemySoldier::setStateFromSnapshot(ObjectStateBase *ptr)
+{
+	if (!ptr)
+		return;
+
+	ObjectStateEnemySoldier *_ptr = dynamic_cast<ObjectStateEnemySoldier*>(ptr);
+
+	LOG_CTRACE("scene") << "Set state from snapshot" << _ptr;
+
+	if (_ptr)
+		setCurrentState(*_ptr);
+	else
+		GameEnemy::setStateFromSnapshot(ptr);
 }
 
 

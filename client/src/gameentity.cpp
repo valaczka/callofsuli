@@ -424,6 +424,27 @@ void GameEntity::performRayCast()
 }
 
 
+/**
+ * @brief GameEntity::setStateFromSnapshot
+ * @param ptr
+ */
+
+void GameEntity::setStateFromSnapshot(ObjectStateBase *ptr)
+{
+	if (!ptr)
+		return;
+
+	ObjectStateEntity *_ptr = dynamic_cast<ObjectStateEntity*>(ptr);
+
+	LOG_CTRACE("scene") << "Set state from snapshot" << _ptr;
+
+	if (_ptr)
+		setCurrentState(*_ptr);
+	else
+		GameObject::setCurrentState(*ptr);
+}
+
+
 
 
 

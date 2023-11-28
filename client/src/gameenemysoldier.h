@@ -52,6 +52,7 @@ public:
 	void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
 	virtual void cacheCurrentState() override;
 	virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId = 1) override;
+	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;

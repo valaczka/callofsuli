@@ -118,6 +118,7 @@ public:
 		Q_UNUSED(snapshot); Q_UNUSED(objectId);
 		return false;
 	}
+	virtual void setStateFromSnapshot(ObjectStateBase *ptr);
 
 private slots:
 	void onSceneChanged();

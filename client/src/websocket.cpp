@@ -311,6 +311,25 @@ void WebSocket::send(const QString &op, const QJsonValue &data)
 
 
 /**
+ * @brief WebSocket::send
+ * @param data
+ */
+
+void WebSocket::send(const QByteArray &data)
+{
+	if (m_state != WebSocketListening) {
+		LOG_CWARNING("http") << "WebSocket isn't listening";
+		return;
+	}
+
+	if (m_socket && m_socket->isValid()) {
+		m_socket->sendBinaryMessage(data);
+	}
+}
+
+
+
+/**
  * @brief WebSocket::reconnect
  */
 
@@ -405,6 +424,18 @@ void WebSocket::reconnect()
 	emit activeChanged();
 
 	m_socket->open(url);
+}
+
+
+
+/**
+ * @brief WebSocket::socket
+ * @return
+ */
+
+QWebSocket*WebSocket::socket() const
+{
+	return m_socket.get();
 }
 
 

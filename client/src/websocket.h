@@ -39,21 +39,14 @@ public:
 	Q_INVOKABLE void close();
 
 	Q_INVOKABLE void observerAdd(const QString &type) { observerAddValue(type, QJsonValue::Null); }
-	/*Q_INVOKABLE void observerAddInt(const QString &type, const int &num) { observerAddValue(type, num); }
-	Q_INVOKABLE void observerAddString(const QString &type, const QString &string) { observerAddValue(type, string); }
-	Q_INVOKABLE void observerAddObject(const QString &type, const QJsonObject &object) { observerAddValue(type, object); }
-	Q_INVOKABLE void observerAddArray(const QString &type, const QJsonArray &array) { observerAddValue(type, array); }*/
-
-	Q_INVOKABLE void observerRemove(const QString &type) { observerRemoveValue(type, QJsonValue::Null); }
-	/*Q_INVOKABLE void observerRemoveInt(const QString &type, const int &num) { observerRemoveValue(type, num); }
-	Q_INVOKABLE void observerRemoveString(const QString &type, const QString &string) { observerRemoveValue(type, string); }
-	Q_INVOKABLE void observerRemoveObject(const QString &type, const QJsonObject &object) { observerRemoveValue(type, object); }
-	Q_INVOKABLE void observerRemoveArray(const QString &type, const QJsonArray &array) { observerRemoveValue(type, array); }*/
-
 	Q_INVOKABLE void observerAddValue(const QString &type, const QJsonValue &value);
+	Q_INVOKABLE void observerRemove(const QString &type) { observerRemoveValue(type, QJsonValue::Null); }
 	Q_INVOKABLE void observerRemoveValue(const QString &type, const QJsonValue &value);
 
 	Q_INVOKABLE void send(const QString &op, const QJsonValue &data = {});
+	Q_INVOKABLE void send(const QByteArray &data);
+
+	QWebSocket* socket() const;
 
 signals:
 	void activeChanged();

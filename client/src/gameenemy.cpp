@@ -169,6 +169,28 @@ void GameEnemy::setPickable(const GamePickable::GamePickableData &newPickable)
 }
 
 
+
+/**
+ * @brief GameEnemy::setStateFromSnapshot
+ * @param ptr
+ */
+
+void GameEnemy::setStateFromSnapshot(ObjectStateBase *ptr)
+{
+	if (!ptr)
+		return;
+
+	ObjectStateEnemy*_ptr = dynamic_cast<ObjectStateEnemy*>(ptr);
+
+	LOG_CTRACE("scene") << "Set state from snapshot" << _ptr;
+
+	if (_ptr)
+		setCurrentState(*_ptr);
+	else
+		GameEntity::setStateFromSnapshot(ptr);
+}
+
+
 /**
  * @brief GameEnemy::question
  * @return

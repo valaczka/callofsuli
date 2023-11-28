@@ -85,8 +85,6 @@ public:
 	void engineRemove(AbstractEngine *engine);
 	bool hasEngine(const AbstractEngine::Type &type);
 
-	QRecursiveMutex &mutex();
-
 private:
 	void onBinaryDataReceived(const QByteArray &data);
 	void onTextReceived(const QString &text);

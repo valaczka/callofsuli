@@ -8,8 +8,9 @@
  * @param parent
  */
 
-AbstractEngine::AbstractEngine(const Type &type, QObject *parent)
+AbstractEngine::AbstractEngine(const Type &type, ServerService *service, QObject *parent)
 	: QObject{parent}
+	, m_service(service)
 	, m_type(type)
 {
 	LOG_CTRACE("engine") << "Abstract engine created:" << type << this;
@@ -38,12 +39,16 @@ void AbstractEngine::streamSet(WebSocketStream *stream)
 		return;
 
 	LOG_CTRACE("engine") << "Engine stream set:" << this << stream;
-	QMutexLocker locker(&m_mutex);
 
-	if (!m_streams.contains(stream)) {
-		m_streams.append(stream);
-		streamConnectedEvent(stream);
-	}
+	m_worker.execInThread([this, stream](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
+
+		if (!m_streams.contains(stream)) {
+			m_streams.append(stream);
+			streamConnectedEvent(stream);
+		}
+	});
 }
 
 
@@ -58,11 +63,15 @@ void AbstractEngine::streamUnSet(WebSocketStream *stream)
 		return;
 
 	LOG_CTRACE("engine") << "Engine stream unset:" << this << stream;
-	QMutexLocker locker(&m_mutex);
 
-	streamDisconnectedEvent(stream);
+	m_worker.execInThread([this, stream](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
 
-	m_streams.removeAll(stream);
+		streamDisconnectedEvent(stream);
+
+		m_streams.removeAll(stream);
+	});
 }
 
 
@@ -111,10 +120,12 @@ const QVector<WebSocketStream *> &AbstractEngine::streams() const
 
 void AbstractEngine::triggerAll()
 {
-	for (const auto &s : m_streams) {
-		if (s)
-			streamTriggerEvent(s);
-	}
+	m_worker.execInThread([this](){
+		for (const auto &s : m_streams) {
+			if (s)
+				streamTriggerEvent(s);
+		}
+	});
 }
 
 
@@ -125,7 +136,12 @@ void AbstractEngine::triggerAll()
 
 void AbstractEngine::trigger(WebSocketStream *stream)
 {
-	if (stream && m_streams.contains(stream))
-		streamTriggerEvent(stream);
+	m_worker.execInThread([this, stream](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
+
+		if (stream && m_streams.contains(stream))
+			streamTriggerEvent(stream);
+	});
 }
 

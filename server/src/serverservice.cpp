@@ -86,13 +86,11 @@ ServerService::ServerService(int &argc, char **argv)
 		m_arguments.append(argv[i]);
 	}
 
-	QObject::connect(&m_mainTimer, &QTimer::timeout, this, &ServerService::onMainTimerTimeout);
-
 #ifdef _MAIN_TIMER_TEST_MODE
 	LOG_CERROR("service") << "_MAIN_TIMER_TEST_MODE defined";
-	m_mainTimer.setInterval(10000);
+	m_mainTimerInterval = 2000;
 #else
-	m_mainTimer.setInterval(500);
+	m_mainTimerInterval = 500;
 #endif
 
 	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
@@ -207,6 +205,100 @@ bool ServerService::wasmUnload()
 
 
 /**
+ * @brief ServerService::timerEvent
+ * @param event
+ */
+
+void ServerService::timerEvent(QTimerEvent *)
+{
+	LOG_CTRACE("service") << "Timer check";
+
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+	QMutexLocker locker(&m_mutex);
+
+	for (const auto &e : m_engines) {
+		e->timerTick();
+	}
+
+	const QDateTime &current = QDateTime::currentDateTime();
+	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
+
+#ifndef _MAIN_TIMER_TEST_MODE
+	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
+		return;
+#endif
+
+
+	m_mainTimerLastTick = dtMinute;
+
+	LOG_CTRACE("service") << "Timer check unlocked";
+
+	if (PeerUser::clear(&m_peerUser)) {
+		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
+	}
+
+	if (!m_databaseMain) {
+		LOG_CWARNING("service") << "Main database unavailable";
+		return;
+	}
+
+
+	// Check engines
+
+	for (const auto &e : m_engines) {
+		if (e->canDelete(e.use_count()))
+			engineRemove(e);
+	}
+
+	m_databaseMain->worker()->execInThread([this]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(m_databaseMain->dbName());
+
+		QMutexLocker _locker(m_databaseMain->mutex());
+
+		// Finish campaigns
+
+		LOG_CTRACE("service") << "Finish campaigns";
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT id FROM campaign WHERE started=true AND finished=false "
+				   "AND endTime IS NOT NULL AND endTime<").addValue(QDateTime::currentDateTimeUtc());
+
+		if (!q.exec()) {
+			LOG_CERROR("service") << "Finish campaigns failed";
+			return;
+		}
+		while (q.sqlQuery().next()) {
+			const int id = q.value("id").toInt();
+			AdminAPI::campaignFinish(m_databaseMain.get(), id);
+		}
+
+
+		// Start campaigns
+
+		LOG_CTRACE("service") << "Start campaigns";
+
+		QueryBuilder qq(db);
+		qq.addQuery("SELECT id FROM campaign WHERE started=false "
+					"AND startTime IS NOT NULL AND startTime<").addValue(QDateTime::currentDateTimeUtc());
+
+		if (!qq.exec()) {
+			LOG_CERROR("service") << "Start campaigns failed";
+			return;
+		}
+
+		while (qq.sqlQuery().next()) {
+			const int id = qq.value("id").toInt();
+			AdminAPI::campaignStart(m_databaseMain.get(), id);
+		}
+
+	});
+
+	LOG_CTRACE("service") << "Timer check finished";
+}
+
+
+
+/**
  * @brief ServerService::processSignal
  * @param sig
  */
@@ -255,6 +347,7 @@ void ServerService::setImitateLatency(int newImitateLatency)
 
 bool ServerService::logPeerUser(const PeerUser &user)
 {
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 
 	bool ret = PeerUser::addOrUpdate(&m_peerUser, user);
@@ -678,89 +771,6 @@ void ServerConfig::loadFromDb(DatabaseMain *db)
 
 
 /**
- * @brief ServerService::onMainTimerTimeout
- */
-
-void ServerService::onMainTimerTimeout()
-{
-	const QDateTime &current = QDateTime::currentDateTime();
-	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
-
-#ifndef _MAIN_TIMER_TEST_MODE
-	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
-		return;
-#endif
-
-	LOG_CTRACE("service") << "Timer check";
-	m_mainTimerLastTick = dtMinute;
-
-	QMutexLocker locker(&m_mutex);
-
-	if (PeerUser::clear(&m_peerUser)) {
-		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
-	}
-
-	if (!m_databaseMain) {
-		LOG_CWARNING("service") << "Main database unavailable";
-		return;
-	}
-
-
-	// Check engines
-
-	for (const auto &e : m_engines) {
-		if (e->canDelete(e.use_count()))
-			engineRemove(e);
-	}
-
-	m_databaseMain->worker()->execInThread([this]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(m_databaseMain->dbName());
-
-		QMutexLocker _locker(m_databaseMain->mutex());
-
-		// Finish campaigns
-
-		LOG_CTRACE("service") << "Finish campaigns";
-
-		QueryBuilder q(db);
-		q.addQuery("SELECT id FROM campaign WHERE started=true AND finished=false "
-				   "AND endTime IS NOT NULL AND endTime<").addValue(QDateTime::currentDateTimeUtc());
-
-		if (!q.exec()) {
-			LOG_CERROR("service") << "Finish campaigns failed";
-			return;
-		}
-		while (q.sqlQuery().next()) {
-			const int id = q.value("id").toInt();
-			AdminAPI::campaignFinish(m_databaseMain.get(), id);
-		}
-
-
-		// Start campaigns
-
-		LOG_CTRACE("service") << "Start campaigns";
-
-		QueryBuilder qq(db);
-		qq.addQuery("SELECT id FROM campaign WHERE started=false "
-					"AND startTime IS NOT NULL AND startTime<").addValue(QDateTime::currentDateTimeUtc());
-
-		if (!qq.exec()) {
-			LOG_CERROR("service") << "Start campaigns failed";
-			return;
-		}
-
-		while (qq.sqlQuery().next()) {
-			const int id = qq.value("id").toInt();
-			AdminAPI::campaignStart(m_databaseMain.get(), id);
-		}
-
-	});
-
-}
-
-
-
-/**
  * @brief ServerService::start
  * @return
  */
@@ -780,7 +790,7 @@ bool ServerService::start()
 
 	m_webServer->setRedirectHost(m_settings->redirectHost());
 
-	m_mainTimer.start();
+	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
 
 	LOG_CINFO("service") << "Server service started successful";
 
@@ -860,10 +870,21 @@ void ServerService::resume()
 	if (!m_databaseMain->databaseAttach())
 		return std::exit(10);
 
-	m_mainTimer.start();
+	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
 
 	if (!start())
 		m_application->quit();
+}
+
+
+/**
+ * @brief ServerService::mainTimerInterval
+ * @return
+ */
+
+int ServerService::mainTimerInterval() const
+{
+	return m_mainTimerInterval;
 }
 
 
@@ -901,6 +922,7 @@ void ServerService::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
 
 	LOG_CTRACE("service") << "Add engine:" << engine.get()->type() << engine.get();
 
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 
 	m_engines.append(std::move(engine));
@@ -916,6 +938,7 @@ void ServerService::engineRemove(const std::shared_ptr<AbstractEngine> &engine)
 {
 	LOG_CTRACE("service") << "Remove engine:" << engine->type();
 
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
@@ -940,6 +963,7 @@ void ServerService::engineRemove(AbstractEngine *engine)
 
 	LOG_CTRACE("service") << "Remove engine:" << engine->type() << engine;
 
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {

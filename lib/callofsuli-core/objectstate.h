@@ -27,8 +27,16 @@ struct ObjectStateBase {
 		TypeEnemySniper
 	};
 
+	enum ServerState {
+		StateInvalid = 0,
+		StateActive,
+		StateInactive,
+		StateSleep
+	};
+
 	qint64 id = -1;					// object id
 	ObjectType type = TypeBase;
+	ServerState state = StateInvalid;
 	qint64 tick = 0;
 
 	QPointF position = {-1., -1.};
@@ -44,6 +52,7 @@ struct ObjectStateBase {
 		stream << id;
 		stream << type;
 		stream << tick;
+		stream << state;
 		stream << position;
 		stream << size;
 	}
@@ -53,6 +62,7 @@ struct ObjectStateBase {
 		data->append(QStringLiteral("id: %1\n").arg(id).toUtf8());
 		data->append(QStringLiteral("type: %1\n").arg(type).toUtf8());
 		data->append(QStringLiteral("tick: %1\n").arg(tick).toUtf8());
+		data->append(QStringLiteral("state: %1\n").arg(state).toUtf8());
 		data->append(QStringLiteral("position: %1,%2\n").arg(position.x()).arg(position.y()).toUtf8());
 		data->append(QStringLiteral("size: %1x%2\n").arg(size.width()).arg(size.height()).toUtf8());
 	};
@@ -68,6 +78,7 @@ struct ObjectStateBase {
 		stream >> id;
 		stream >> type;
 		stream >> tick;
+		stream >> state;
 		stream >> position;
 		stream >> size;
 
@@ -78,11 +89,17 @@ struct ObjectStateBase {
 
 		return true;
 	}
+
+	virtual ObjectStateBase* clone() const { return new ObjectStateBase(*this); }
+
+
+	static ObjectStateBase* fromType(const ObjectType &type);
 };
 
 
 
 
+typedef std::vector<std::unique_ptr<ObjectStateBase> > ObjectStateVector;
 
 
 
@@ -122,6 +139,8 @@ struct ObjectStateEntity : public ObjectStateBase {
 
 		return true;
 	}
+
+	virtual ObjectStateBase* clone() const override { return new ObjectStateEntity(*this); }
 
 };
 
@@ -171,6 +190,8 @@ struct ObjectStateEnemy : public ObjectStateEntity {
 
 		return true;
 	}
+
+	virtual ObjectStateBase* clone() const override { return new ObjectStateEnemy(*this); }
 };
 
 
@@ -208,6 +229,8 @@ struct ObjectStateEnemySoldier : public ObjectStateEnemy {
 
 		return true;
 	}
+
+	virtual ObjectStateBase* clone() const override { return new ObjectStateEnemySoldier(*this); }
 };
 
 
@@ -220,7 +243,7 @@ struct ObjectStateEnemySoldier : public ObjectStateEnemy {
  */
 
 struct ObjectStateSnapshot {
-	std::vector<std::unique_ptr<ObjectStateBase>> list;
+	ObjectStateVector list;
 
 
 	/**
@@ -228,7 +251,8 @@ struct ObjectStateSnapshot {
 	 * @param ptr
 	 */
 
-	void append(std::unique_ptr<ObjectStateBase> &ptr) {
+	void append(std::unique_ptr<ObjectStateBase> &ptr)
+	{
 		list.push_back(std::move(ptr));
 	}
 
@@ -237,7 +261,8 @@ struct ObjectStateSnapshot {
 	 * @return
 	 */
 
-	QByteArray toByteArray() const {
+	QByteArray toByteArray() const
+	{
 		QByteArray s;
 		QDataStream stream(&s, QIODevice::WriteOnly);
 		stream.setVersion(QDataStream::Qt_5_15);
@@ -257,6 +282,31 @@ struct ObjectStateSnapshot {
 	}
 
 
+	/**
+	 * @brief toByteArray
+	 * @param list
+	 * @return
+	 */
+
+	static QByteArray toByteArray(const std::vector<ObjectStateBase*> &list)
+	{
+		QByteArray s;
+		QDataStream stream(&s, QIODevice::WriteOnly);
+		stream.setVersion(QDataStream::Qt_5_15);
+
+		quint32 version = OBJECT_STATE_BASE_VERSION;
+
+		stream << (quint32) 0x434F53;			// COS
+		stream << QByteArrayLiteral("OBJ");
+		stream << version;
+		stream << (quint64) list.size();
+
+		for (const auto &b : list) {
+			b->toDataStream(stream);
+		}
+
+		return s;
+	}
 
 
 	/**
@@ -264,7 +314,8 @@ struct ObjectStateSnapshot {
 	 * @return
 	 */
 
-	QByteArray toReadable() const {
+	QByteArray toReadable() const
+	{
 		QByteArray s;
 
 		s.append(QStringLiteral("Size: %1\n").arg(list.size()).toUtf8());
@@ -287,7 +338,8 @@ struct ObjectStateSnapshot {
 	 * @return
 	 */
 
-	static std::optional<ObjectStateSnapshot> fromByteArray(const QByteArray &data) {
+	static std::optional<ObjectStateSnapshot> fromByteArray(const QByteArray &data)
+	{
 		QDataStream stream(data);
 		stream.setVersion(QDataStream::Qt_5_15);
 
@@ -328,38 +380,9 @@ struct ObjectStateSnapshot {
 
 			stream.rollbackTransaction();
 
-			ObjectStateBase *ptr = nullptr;
+			std::unique_ptr<ObjectStateBase> _ptr(ObjectStateBase::fromType(type));
 
-			switch (type) {
-			case ObjectStateBase::TypeInvalid:
-				LOG_CERROR("app") << "Invalid stream data";
-				return std::nullopt;
-				break;
-
-			case ObjectStateBase::TypeBase:
-				ptr = new ObjectStateBase();
-				break;
-
-			case ObjectStateBase::TypeEntity:
-				ptr = new ObjectStateEntity();
-				break;
-
-			case ObjectStateBase::TypeEnemy:
-				ptr = new ObjectStateEnemy();
-				break;
-
-			case ObjectStateBase::TypeEnemySoldier:
-				ptr = new ObjectStateEnemySoldier();
-				break;
-
-			case ObjectStateBase::TypePlayer:
-			case ObjectStateBase::TypeEnemySniper:
-				LOG_CWARNING("app") << "Stream data skipped" << type;
-				break;
-			}
-
-			if (ptr && ptr->fromDataStream(stream)) {
-				std::unique_ptr<ObjectStateBase> _ptr(ptr);
+			if (_ptr && _ptr->fromDataStream(stream)) {
 				snap.list.push_back(std::move(_ptr));
 			}
 		}
@@ -368,10 +391,121 @@ struct ObjectStateSnapshot {
 
 		return snap;
 	}
+
+
+
+
+	/**
+	 * @brief moveTo
+	 * @param src
+	 * @param dest
+	 * @return
+	 */
+
+	static void copyTo(ObjectStateBase *src, ObjectStateVector *dest)
+	{
+		Q_ASSERT(src);
+		Q_ASSERT(dest);
+
+		std::unique_ptr<ObjectStateBase> ptr(src->clone());
+		dest->push_back(std::move(ptr));
+	}
+
+
+	/**
+	 * @brief copyTo
+	 * @param src
+	 * @param dest
+	 * @return
+	 */
+
+	static void copyTo(const std::unique_ptr<ObjectStateBase> &src, ObjectStateVector *dest)
+	{
+		Q_ASSERT(dest);
+
+		std::unique_ptr<ObjectStateBase> ptr(src->clone());
+		dest->push_back(std::move(ptr));
+	}
+
+
+
+	/**
+	 * @brief moveTo
+	 * @param src
+	 * @param dest
+	 */
+
+	static void moveTo(std::unique_ptr<ObjectStateBase> &src, ObjectStateVector *dest)
+	{
+		Q_ASSERT(dest);
+
+		std::unique_ptr<ObjectStateBase> ptr(src.release());
+		dest->push_back(std::move(ptr));
+	}
+
+	/**
+	 * @brief moveTo
+	 * @param dest
+	 */
+
+	void moveTo(ObjectStateVector *dest)
+	{
+		Q_ASSERT(dest);
+
+		dest->reserve(dest->size()+list.size());
+
+		for (auto it=list.begin(); it != list.end(); ) {
+			copyTo(*it, dest);
+			it = list.erase(it);
+		}
+
+		dest->shrink_to_fit();
+	}
 };
 
 
 
+/**
+ * @brief ObjectStateBase::fromType
+ * @param type
+ * @return
+ */
+
+
+inline ObjectStateBase *ObjectStateBase::fromType(const ObjectType &type)
+{
+	ObjectStateBase *ptr = nullptr;
+
+	switch (type) {
+	case ObjectStateBase::TypeInvalid:
+		LOG_CERROR("app") << "Invalid object state type";
+		return nullptr;
+		break;
+
+	case ObjectStateBase::TypeBase:
+		ptr = new ObjectStateBase();
+		break;
+
+	case ObjectStateBase::TypeEntity:
+		ptr = new ObjectStateEntity();
+		break;
+
+	case ObjectStateBase::TypeEnemy:
+		ptr = new ObjectStateEnemy();
+		break;
+
+	case ObjectStateBase::TypeEnemySoldier:
+		ptr = new ObjectStateEnemySoldier();
+		break;
+
+	case ObjectStateBase::TypePlayer:
+	case ObjectStateBase::TypeEnemySniper:
+		LOG_CWARNING("app") << "Stream data skipped" << type;
+		break;
+	}
+
+	return ptr;
+}
 
 
 

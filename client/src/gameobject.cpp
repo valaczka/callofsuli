@@ -259,3 +259,19 @@ void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 	Q_UNUSED(delayFactor)
 }
 
+
+/**
+ * @brief GameObject::setStateFromSnapshot
+ * @param ptr
+ */
+
+void GameObject::setStateFromSnapshot(ObjectStateBase *ptr)
+{
+	if (!ptr)
+		return;
+
+	LOG_CTRACE("scene") << "Load state from snapshot" << ptr;
+
+	setCurrentState(*ptr);
+}
+

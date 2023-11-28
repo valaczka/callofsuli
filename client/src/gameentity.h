@@ -170,6 +170,8 @@ public:
 
 	void performRayCast();
 
+	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
+
 public slots:
 	void decreaseHp();
 	void kill();

@@ -308,22 +308,34 @@ WebSocketStream *WebSocketStreamHandler::webSocketAdd(QWebSocket *ws)
 {
 	LOG_CTRACE("service") << "Add WebSocket" << ws;
 
-	QMutexLocker locker(&m_mutex);
+	WebSocketStream *stream = nullptr;
+	QDefer ret;
 
-	const auto &it = std::find_if(m_streams.begin(), m_streams.end(), [ws](const std::unique_ptr<WebSocketStream> &s) {
-		return (s->socket() == ws);
+	m_worker.execInThread([this, ws, &stream, ret]() mutable {
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
+
+		const auto &it = std::find_if(m_streams.begin(), m_streams.end(), [ws](const std::unique_ptr<WebSocketStream> &s) {
+			return (s->socket() == ws);
+		});
+
+		if (it != m_streams.end()) {
+			LOG_CTRACE("service") << "WebSocketSteram already EXISTS!" << ws;
+
+			stream = it->get();
+			return ret.resolve();
+		}
+
+		m_streams.push_back(std::make_unique<WebSocketStream>(m_service, ws));
+
+		stream = m_streams.back().get();
+
+		LOG_CTRACE("service") << "WebSocketStream added" << &m_streams.back();
+
+		ret.resolve();
 	});
 
-	if (it != m_streams.end()) {
-		LOG_CTRACE("service") << "WebSocketSteram already EXISTS!" << ws;
-		return it->get();
-	}
-
-	m_streams.push_back(std::make_unique<WebSocketStream>(m_service, ws));
-
-	WebSocketStream *stream = m_streams.back().get();
-
-	LOG_CTRACE("service") << "WebSocketStream added" << &m_streams.back();
+	QDefer::await(ret);
 
 	return stream;
 }
@@ -342,14 +354,17 @@ void WebSocketStreamHandler::webSocketRemove(WebSocketStream *ws)
 	if (!ws)
 		return;
 
-	QMutexLocker locker(&m_mutex);
+	m_worker.execInThread([this, ws](){
+	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
 
-	for (auto it = m_streams.begin(); it != m_streams.end(); ) {
-		if (it->get() == ws) {
-			it = m_streams.erase(it);
-		} else
-			++it;
-	}
+		for (auto it = m_streams.begin(); it != m_streams.end(); ) {
+			if (it->get() == ws) {
+				it = m_streams.erase(it);
+			} else
+				++it;
+		}
+	});
 }
 
 
@@ -363,19 +378,24 @@ void WebSocketStreamHandler::webSocketRemove(WebSocketStream *ws)
 
 void WebSocketStreamHandler::trigger(const WebSocketStream::StreamType &type)
 {
-	auto list = _triggerEvent(type);
+	m_worker.execInThread([this, type](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
 
-	switch (type) {
-	case WebSocketStream::StreamPeers:
-		_trPeers(list);
-		break;
-	case WebSocketStream::StreamMultiPlayer:
-		_trMultiPlayer(list, -1);
-		break;
-	default:
-		LOG_CERROR("service") << "Trigger not defined" << type;
-	}
+		auto list = _triggerEvent(type);
 
+		switch (type) {
+		case WebSocketStream::StreamPeers:
+			_trPeers(list);
+			break;
+		case WebSocketStream::StreamMultiPlayer:
+			_trMultiPlayer(list, -1);
+			break;
+		default:
+			LOG_CERROR("service") << "Trigger not defined" << type;
+		}
+
+	});
 }
 
 
@@ -387,18 +407,23 @@ void WebSocketStreamHandler::trigger(const WebSocketStream::StreamType &type)
 
 void WebSocketStreamHandler::trigger(const WebSocketStream::StreamType &type, const QVariant &data)
 {
-	auto list = _triggerEvent(type, data);
+	m_worker.execInThread([this, type, data](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
 
-	switch (type) {
-	case WebSocketStream::StreamPeers:
-		_trPeers(list);
-		break;
-	case WebSocketStream::StreamMultiPlayer:
-		_trMultiPlayer(list, data.canConvert<int>() ? data.toInt() : -1);
-		break;
-	default:
-		LOG_CERROR("service") << "Trigger not defined" << type;
-	}
+		auto list = _triggerEvent(type, data);
+
+		switch (type) {
+		case WebSocketStream::StreamPeers:
+			_trPeers(list);
+			break;
+		case WebSocketStream::StreamMultiPlayer:
+			_trMultiPlayer(list, data.canConvert<int>() ? data.toInt() : -1);
+			break;
+		default:
+			LOG_CERROR("service") << "Trigger not defined" << type;
+		}
+	});
 }
 
 
@@ -414,20 +439,23 @@ void WebSocketStreamHandler::trigger(WebSocketStream *stream)
 	if (!stream)
 		return;
 
-	QMutexLocker locker(&m_mutex);
+	m_worker.execInThread([this, stream](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
 
-	for (const auto &ob : stream->observers()) {
-		switch (ob.type) {
-		case WebSocketStream::StreamPeers:
-			_trPeers({stream});
-			break;
-		case WebSocketStream::StreamMultiPlayer:
-			_trMultiPlayer({stream}, -1);
-			break;
-		default:
-			LOG_CERROR("service") << "Trigger not defined" << ob.type;
+		for (const auto &ob : stream->observers()) {
+			switch (ob.type) {
+			case WebSocketStream::StreamPeers:
+				_trPeers({stream});
+				break;
+			case WebSocketStream::StreamMultiPlayer:
+				_trMultiPlayer({stream}, -1);
+				break;
+			default:
+				LOG_CERROR("service") << "Trigger not defined" << ob.type;
+			}
 		}
-	}
+	});
 }
 
 
@@ -438,12 +466,16 @@ void WebSocketStreamHandler::trigger(WebSocketStream *stream)
 
 void WebSocketStreamHandler::closeAll()
 {
-	QMutexLocker locker(&m_mutex);
+	m_worker.execInThread([this](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
 
-	for (const auto &stream : std::as_const(m_streams))
-		stream->close();
 
-	m_streams.clear();
+		for (const auto &stream : std::as_const(m_streams))
+			stream->close();
+
+		m_streams.clear();
+	});
 }
 
 
@@ -458,13 +490,22 @@ void WebSocketStreamHandler::closeAll()
 
 QVector<WebSocketStream*> WebSocketStreamHandler::_triggerEvent(const WebSocketStream::StreamType &type)
 {
-	QMutexLocker locker(&m_mutex);
 	QVector<WebSocketStream*> list;
 
-	for (const auto &stream : std::as_const(m_streams)) {
-		if (stream->hasObserver(type))
-			list.append(stream.get());
-	}
+	QDefer ret;
+	m_worker.execInThread([this, type, &list, ret]() mutable {
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
+
+		for (const auto &stream : std::as_const(m_streams)) {
+			if (stream->hasObserver(type))
+				list.append(stream.get());
+		}
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
 
 	return list;
 }
@@ -480,13 +521,23 @@ QVector<WebSocketStream*> WebSocketStreamHandler::_triggerEvent(const WebSocketS
 
 QVector<WebSocketStream*> WebSocketStreamHandler::_triggerEvent(const WebSocketStream::StreamType &type, const QVariant &data)
 {
-	QMutexLocker locker(&m_mutex);
 	QVector<WebSocketStream*> list;
+	QDefer ret;
 
-	for (const auto &stream : std::as_const(m_streams)) {
-		if (stream->hasObserver(type, data))
-			list.append(stream.get());
-	}
+	m_worker.execInThread([this, type, data, ret, &list]() mutable {
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
+
+		for (const auto &stream : std::as_const(m_streams)) {
+			if (stream->hasObserver(type, data))
+				list.append(stream.get());
+		}
+
+		ret.resolve();
+
+	});
+
+	QDefer::await(ret);
 
 	return list;
 }
@@ -501,9 +552,13 @@ QVector<WebSocketStream*> WebSocketStreamHandler::_triggerEvent(const WebSocketS
 
 void WebSocketStreamHandler::_trPeers(const QVector<WebSocketStream*> &list)
 {
-	for (auto ws : list) {
-		ws->sendJson("peers", PeerUser::toJson(&(m_service->peerUser())));
-	}
+	m_worker.execInThread([this, list](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
+		for (auto ws : list) {
+			ws->sendJson("peers", PeerUser::toJson(&(m_service->peerUser())));
+		}
+	});
 }
 
 
@@ -514,7 +569,11 @@ void WebSocketStreamHandler::_trPeers(const QVector<WebSocketStream*> &list)
 
 void WebSocketStreamHandler::_trMultiPlayer(const QVector<WebSocketStream *> &list, const int &engineId)
 {
-	MultiPlayerEngine::handleWebSocketTrigger(list, m_service, engineId);
+	m_worker.execInThread([this, list, engineId](){
+		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
+		QMutexLocker locker(&m_mutex);
+		MultiPlayerEngine::handleWebSocketTrigger(list, m_service, engineId);
+	});
 }
 
 

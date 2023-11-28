@@ -1,11 +1,13 @@
 #ifndef ABSTRACTENGINE_H
 #define ABSTRACTENGINE_H
 
+#include "qlambdathreadworker.h"
 #include "qmutex.h"
 #include <QJsonValue>
 #include <QObject>
 
 class WebSocketStream;
+class ServerService;
 
 class AbstractEngine : public QObject
 {
@@ -19,8 +21,8 @@ public:
 
 	Q_ENUM(Type);
 
-	explicit AbstractEngine(const Type &type, QObject *parent = nullptr);
-	explicit AbstractEngine(QObject *parent = nullptr) : AbstractEngine(EngineInvalid, parent) {}
+	explicit AbstractEngine(const Type &type, ServerService *service, QObject *parent = nullptr);
+	explicit AbstractEngine(ServerService *service, QObject *parent = nullptr) : AbstractEngine(EngineInvalid, service, parent) {}
 	virtual ~AbstractEngine();
 
 	const Type &type() const { return m_type; }
@@ -40,6 +42,8 @@ public:
 	void triggerAll();
 	void trigger(WebSocketStream *stream);
 
+	virtual void timerTick() {}
+
 signals:
 
 protected:
@@ -47,12 +51,13 @@ protected:
 	virtual void streamDisconnectedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 	virtual void streamTriggerEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 
-
+	ServerService *const m_service;
 	const Type m_type = EngineInvalid;
 	QVector<WebSocketStream*> m_streams;
 	QString m_owner;
 	int m_connectionLimit = 0;
 
+	QLambdaThreadWorker m_worker;
 	QRecursiveMutex m_mutex;
 
 };

@@ -230,6 +230,8 @@ public:
 
 	const QRecursiveMutex &mutex() const;
 
+	int mainTimerInterval() const;
+
 signals:
 	void configChanged();
 	void serverNameChanged();
@@ -237,11 +239,11 @@ signals:
 protected:
 	bool wasmLoad();
 	bool wasmUnload();
+	virtual void timerEvent(QTimerEvent *event) override;
 
 private:
 	static void processSignal(int sig);
 
-	void onMainTimerTimeout();
 	bool start();
 	void resume();
 
@@ -274,8 +276,9 @@ private:
 	QString m_importDb;
 	int m_imitateLatency = 0;
 
-	QTimer m_mainTimer;
+	QBasicTimer m_mainTimer;
 	QDateTime m_mainTimerLastTick;
+	int m_mainTimerInterval = 0;
 
 	QVector<PeerUser> m_peerUser;
 
