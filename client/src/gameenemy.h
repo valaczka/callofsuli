@@ -109,6 +109,8 @@ public:
 	bool hasPickable() const { return m_pickable.type != GamePickable::PickableInvalid; }
 
 	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
+	bool getCurrentState(ObjectStateEnemy *ptr) const;
+	void setCurrentState(const ObjectStateEnemy &state);
 
 public slots:
 	void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
@@ -136,8 +138,6 @@ protected:
 	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
 	void playAttackSound();
 
-	bool getCurrentState(ObjectStateEnemy *ptr) const;
-	void setCurrentState(const ObjectStateEnemy &state);
 
 	GameTerrain::EnemyData m_terrainEnemyData;
 	int m_startMovingAfter = 0;

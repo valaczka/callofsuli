@@ -119,6 +119,10 @@ public:
 		return false;
 	}
 	virtual void setStateFromSnapshot(ObjectStateBase *ptr);
+	bool getCurrentState(ObjectStateBase *ptr) const;
+	void setCurrentState(const ObjectStateBase &state);
+
+	static void updateStateQuickItem(ObjectStateEntity *state, QQuickItem *item);
 
 private slots:
 	void onSceneChanged();
@@ -134,8 +138,6 @@ protected:
 	std::unique_ptr<Box2DBody> m_body;
 	QList<QPointer<QQuickItem>> m_childItems;
 
-	bool getCurrentState(ObjectStateBase *ptr) const;
-	void setCurrentState(const ObjectStateBase &state);
 
 private:
 	bool m_sceneConnected = false;

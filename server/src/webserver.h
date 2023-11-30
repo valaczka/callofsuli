@@ -31,48 +31,10 @@
 #include <QSslConfiguration>
 #include <QHttpServer>
 #include "handler.h"
-#include "websocketstream.h"
 
 
 class ServerService;
 class WebServer;
-
-
-
-/**
- * @brief The WebSocketStreamHandler class
- */
-
-class WebSocketStreamHandler
-{
-public:
-	WebSocketStreamHandler(WebServer *server, ServerService *service);
-	~WebSocketStreamHandler();
-
-	WebSocketStream *webSocketAdd(QWebSocket *ws);
-	void webSocketRemove(WebSocketStream *ws);
-
-	void trigger(const WebSocketStream::StreamType &type);
-	void trigger(const WebSocketStream::StreamType &type, const QVariant &data);
-	void trigger(WebSocketStream *stream);
-
-	void closeAll();
-
-private:
-	QVector<WebSocketStream*> _triggerEvent(const WebSocketStream::StreamType &type);
-	QVector<WebSocketStream*> _triggerEvent(const WebSocketStream::StreamType &type, const QVariant &data);
-
-	void _trPeers(const QVector<WebSocketStream*> &list);
-	void _trMultiPlayer(const QVector<WebSocketStream*> &list, const int &engineId);
-
-	std::vector<std::unique_ptr<WebSocketStream>> m_streams;
-	QLambdaThreadWorker m_worker;
-	QRecursiveMutex m_mutex;
-	WebServer *m_server = nullptr;
-	ServerService *m_service = nullptr;
-
-};
-
 
 
 /**
@@ -98,10 +60,6 @@ public:
 
 	Handler* handler() const;
 
-	WebSocketStreamHandler &webSocketHandler();
-
-	WebSocketStream *webSocketAdd(QWebSocket *ws) { return m_webSocketHandler.webSocketAdd(ws); }
-
 private slots:
 	void onWebSocketConnection();
 
@@ -110,7 +68,6 @@ private:
 	QString m_redirectHost;
 	std::shared_ptr<QHttpServer> m_server;
 	std::unique_ptr<Handler> m_handler;
-	WebSocketStreamHandler m_webSocketHandler;
 };
 
 #endif // WEBSERVER_H

@@ -29,15 +29,12 @@
 
 #include <QPointer>
 #include "ColorConsoleAppender.h"
-//#include "panel.h"
-#include "abstractengine.h"
 #include "qnetworkaccessmanager.h"
 #include "serversettings.h"
 #include "databasemain.h"
 #include "webserver.h"
 #include "oauth2authenticator.h"
-//#include "eventstream.h"
-
+#include "enginehandler.h"
 
 class ServerService;
 
@@ -88,83 +85,6 @@ private:
 
 
 /**
- * @brief The PeerUser class
- */
-
-class PeerUser
-{
-public:
-	PeerUser(const QString &username, const QHostAddress &host, const QString &agent)
-		: m_username(username)
-		, m_host(host)
-		, m_timestamp(QDateTime::currentDateTime())
-		, m_agent(agent)
-	{}
-	PeerUser(const QString &username, const QHostAddress &host)
-		: PeerUser(username, host, QStringLiteral("")) {}
-	PeerUser(const QString &username, const QString &agent)
-		: PeerUser(username, QHostAddress::Any, agent) {}
-	PeerUser(const QString &username)
-		: PeerUser(username, QHostAddress::Any) {}
-	PeerUser()
-		: PeerUser(QString()) {}
-
-	static QVector<PeerUser>::iterator find(QVector<PeerUser> *list, const PeerUser &user);
-	static bool addOrUpdate(QVector<PeerUser> *list, const PeerUser &user);
-	static bool remove(QVector<PeerUser> *list, const PeerUser &user);
-	static bool get(QVector<PeerUser> *list, const QString &username, PeerUser *user);
-	static bool clear(QVector<PeerUser> *list, const qint64 &sec = 120);
-	static QJsonArray toJson(const QVector<PeerUser> *list);
-
-	const QString &username() const;
-	void setUsername(const QString &newUsername);
-
-	const QString &familyName() const;
-	void setFamilyName(const QString &newFamilyName);
-
-	const QString &givenName() const;
-	void setGivenName(const QString &newGivenName);
-
-	const QHostAddress &host() const;
-	void setHost(const QHostAddress &newHost);
-
-	const QDateTime &timestamp() const;
-	void setTimestamp(const QDateTime &newTimestamp);
-
-	const QString &agent() const;
-	void setAgent(const QString &newAgent);
-
-	friend bool operator==(const PeerUser &u1, const PeerUser &u2) {
-		return (u1.m_username == u2.m_username && u1.m_host == u2.m_host && u1.m_agent == u2.m_agent);
-	}
-
-	friend QDebug operator<<(QDebug debug, const PeerUser &user) {
-		QDebugStateSaver saver(debug);
-		debug.nospace() << qPrintable(QByteArrayLiteral("PeerUser("))
-						<< qPrintable(user.m_username)
-						<< qPrintable(QByteArrayLiteral(", "))
-						<< qPrintable(user.m_host.toString())
-						<< qPrintable(QByteArrayLiteral(", "))
-						<< qPrintable(user.m_agent)
-						<< qPrintable(QByteArrayLiteral(" @"))
-						<< qPrintable(user.m_timestamp.toString())
-						<< ')';
-		return debug;
-	}
-
-
-private:
-	QString m_username;
-	QString m_familyName;
-	QString m_givenName;
-	QHostAddress m_host;
-	QDateTime m_timestamp;
-	QString m_agent;
-
-};
-
-
-/**
  * @brief The ServerService class
  */
 
@@ -191,13 +111,13 @@ public:
 	static int versionBuild();
 	const char *version() const;
 
-
 	int exec();
 
 	ServerSettings *settings() const;
 	DatabaseMain *databaseMain() const;
 	QLambdaThreadWorker *databaseMainWorker() const;
 	std::weak_ptr<WebServer> webServer() const;
+	EngineHandler *engineHandler() const { return m_engineHandler.get(); }
 
 	ServerConfig &config();
 
@@ -208,9 +128,6 @@ public:
 	int imitateLatency() const;
 	void setImitateLatency(int newImitateLatency);
 
-	bool logPeerUser(const PeerUser &user);
-	const QVector<PeerUser> &peerUser() const;
-
 	const QString &serverName() const;
 	void setServerName(const QString &newServerName);
 
@@ -219,18 +136,12 @@ public:
 	const QVector<std::shared_ptr<OAuth2Authenticator> > &authenticators() const;
 	std::optional<std::weak_ptr<OAuth2Authenticator>> oauth2Authenticator(const char *type) const;
 
+	int mainTimerInterval() const;
+
 	void stop();
 	void pause();
 	void reload();
 
-	const QVector<std::shared_ptr<AbstractEngine> > &engines() const;
-	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
-	void engineRemove(const std::shared_ptr<AbstractEngine> &engine);
-	void engineRemove(AbstractEngine *engine);
-
-	const QRecursiveMutex &mutex() const;
-
-	int mainTimerInterval() const;
 
 signals:
 	void configChanged();
@@ -264,13 +175,9 @@ private:
 	std::unique_ptr<ServerSettings> m_settings;
 	std::unique_ptr<DatabaseMain> m_databaseMain;
 	QVector<std::shared_ptr<OAuth2Authenticator> > m_authenticators;
-	QVector<std::shared_ptr<AbstractEngine>> m_engines;
-
-	/*QVector<QPointer<EventStream>> m_eventStreams;
-	QVector<QPointer<Panel>> m_panels;*/
-
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
 	std::shared_ptr<WebServer> m_webServer;
+	std::unique_ptr<EngineHandler> m_engineHandler;
 
 	QString m_loadedWasmResource;
 	QString m_importDb;
@@ -280,11 +187,7 @@ private:
 	QDateTime m_mainTimerLastTick;
 	int m_mainTimerInterval = 0;
 
-	QVector<PeerUser> m_peerUser;
-
 	static ServerService *m_instance;
-
-	QRecursiveMutex m_mutex;
 };
 
 

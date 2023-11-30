@@ -26,6 +26,7 @@
 
 #include "teacherapi.h"
 #include "gamemap.h"
+#include "peerengine.h"
 #include "qjsonarray.h"
 #include "qsqlrecord.h"
 #include "serverservice.h"
@@ -629,7 +630,7 @@ QHttpServerResponse TeacherAPI::group(const Credential &credential, const int &i
 		for (int i=0; i<rec.count(); ++i) {
 			const QString &field = rec.fieldName(i);
 			obj.insert(field, rec.value(i).toJsonValue());
-			if (field == QLatin1String("id"))
+			if (field == QStringLiteral("id"))
 				id = rec.value(i).toInt();
 		}
 
@@ -2500,7 +2501,15 @@ QHttpServerResponse TeacherAPI::taskDelete(const Credential &credential, const Q
 
 QHttpServerResponse TeacherAPI::userPeers() const
 {
-	return responseResult("list", PeerUser::toJson(&(m_service->peerUser())));
+	const auto &list = m_service->engineHandler()->engineGet<PeerEngine>(AbstractEngine::EnginePeer);
+
+	QJsonArray r;
+
+	if (!list.isEmpty()) {
+		r = PeerUser::toJson(list.at(0)->peerUser());
+	}
+
+	return responseResult("list", r);
 }
 
 
@@ -2542,11 +2551,11 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 
 		std::optional<bool> success;
 
-		if (module == QLatin1String("xp"))
+		if (module == QStringLiteral("xp"))
 			success = _evaluateCriterionXP(api, campaign, criterion, username);
-		else if (module == QLatin1String("mission"))
+		else if (module == QStringLiteral("mission"))
 			success = _evaluateCriterionMission(api, campaign, criterion, map, username);
-		else if (module == QLatin1String("mapmission"))
+		else if (module == QStringLiteral("mapmission"))
 			success = _evaluateCriterionMapMission(api, campaign, criterion, map, username);
 
 		if (!success) {

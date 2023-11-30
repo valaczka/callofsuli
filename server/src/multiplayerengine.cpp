@@ -1,6 +1,9 @@
 #include "multiplayerengine.h"
 #include "Logger.h"
 #include "objectstate.h"
+#include "qjsonarray.h"
+#include "qjsonobject.h"
+#include "enginehandler.h"
 #include "serverservice.h"
 
 
@@ -9,8 +12,8 @@
  * @param parent
  */
 
-MultiPlayerEngine::MultiPlayerEngine(ServerService *service, QObject *parent)
-	: AbstractEngine{EngineMultiPlayer, service, parent}
+MultiPlayerEngine::MultiPlayerEngine(EngineHandler *handler, QObject *parent)
+	: AbstractEngine{EngineMultiPlayer, handler, parent}
 {
 
 }
@@ -28,49 +31,6 @@ MultiPlayerEngine::~MultiPlayerEngine()
 
 
 
-/**
- * @brief MultiPlayerEngine::find
- * @param service
- * @param id
- */
-
-QVector<std::shared_ptr<AbstractEngine> >::const_iterator MultiPlayerEngine::find(const QVector<std::shared_ptr<AbstractEngine> > &list, const int &id)
-{
-	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
-		if (it->get() && it->get()->type() == AbstractEngine::EngineMultiPlayer) {
-			MultiPlayerEngine *ptr = qobject_cast<MultiPlayerEngine*>(it->get());
-			if (ptr && ptr->id() == id)
-				return it;
-		}
-	}
-
-	return list.constEnd();
-}
-
-
-/**
- * @brief MultiPlayerEngine::handleWebSocketTrigger
- * @param list
- * @param service
- */
-
-void MultiPlayerEngine::handleWebSocketTrigger(const QVector<WebSocketStream *> &list, ServerService *service, const int &engineId)
-{
-	Q_UNUSED(service);
-
-	LOG_CDEBUG("engine") << "WebSocket trigger" << list << engineId;
-
-	for (auto s : list) {
-		if (!s)
-			continue;
-
-		for (const auto &e : s->engines()) {
-			if (e && e->type() == AbstractEngine::EngineMultiPlayer)
-				e->trigger(s);
-		}
-	}
-
-}
 
 
 
@@ -81,61 +41,265 @@ void MultiPlayerEngine::handleWebSocketTrigger(const QVector<WebSocketStream *> 
  * @param service
  */
 
-void MultiPlayerEngine::handleWebSocketMessage(WebSocketStream *stream, const QJsonValue &message, ServerService *service)
+void MultiPlayerEngine::handleWebSocketMessage(WebSocketStream *stream, const QJsonValue &message, EngineHandler *handler)
 {
-	if (!service || !stream)
+	if (!handler || !stream)
 		return;
 
 	const QJsonObject &obj = message.toObject();
 	const QString &cmd = obj.value(QStringLiteral("cmd")).toString();
 
-	LOG_CINFO("engine") << "HANDLE" << cmd;
+	LOG_CINFO("engine") << "HANDLE" << cmd << message;
 
 	if (cmd == QStringLiteral("connect")) {
-		static int nextId = 0;
+		const auto &eList = handler->engines();
 
-		MultiPlayerEngine *myEngine = nullptr;
+		int eid = -1;
 
-		const auto &eList = service->engines();
-		auto ptr = find(eList, nextId);
-
-		if (ptr != eList.constEnd()) {
-			MultiPlayerEngine *engine = qobject_cast<MultiPlayerEngine*>(ptr->get());
-			const auto &l = stream->engines();
-			if (auto it = std::find_if(l.constBegin(), l.constEnd(),
-									   [engine](const std::shared_ptr<AbstractEngine> &e) { return (e.get() == engine); });
-					it == l.constEnd())
-			{
-				stream->engineAdd(*ptr);
-				(*ptr)->streamSet(stream);
-			}
-			myEngine = engine;
-
+		if (eList.isEmpty()) {
+			const auto &ptr = createEngine(stream, handler);
+			LOG_CINFO("engine") << "CREATED COUNT" << ptr.use_count();
+			if (!ptr.expired())
+				eid = ptr.lock()->id();
 		} else {
-			auto ptr = std::make_shared<MultiPlayerEngine>(service);
-
-			ptr->setId(++nextId);
-			ptr->setHostStream(stream);
-
-			myEngine = ptr.get();
-			stream->engineAdd(ptr);
-			ptr->streamSet(stream);
-			service->engineAdd(std::move(ptr));
+			const auto &ptr = eList.first();
+			auto engine = connectToEngine(ptr->id(), stream, handler);
+			LOG_CINFO("engine") << "CONNECTED COUNT ENGINE" << engine.use_count();
+			if (!engine.expired())
+				eid = engine.lock()->id();
 		}
 
-		LOG_CINFO("engine") << "CONNECTED" << myEngine << (myEngine ? myEngine->id() : -1);
+		LOG_CINFO("engine") << "CONNECTED" << eid;
 
 		sendStreamJson(stream, QJsonObject{
 						   { QStringLiteral("cmd"), cmd },
-						   { QStringLiteral("engine"), (myEngine ? myEngine->id() : -1) }
+						   { QStringLiteral("engine"), eid }
 					   });
 
 	} else if (cmd == QStringLiteral("state")) {
-		for (auto &e : stream->engines()) {
-			if (e && e->type() == EngineMultiPlayer)
-				e->trigger(stream);
+		handler->engineTrigger(EngineMultiPlayer);
+	} else if (cmd == QStringLiteral("start")) {
+		const auto &id = message.toObject().value(QStringLiteral("engine")).toInt(-1);
+		MultiPlayerEngine *engine = stream->engineGet<MultiPlayerEngine>(AbstractEngine::EngineMultiPlayer, id);
+		if (engine) {
+			engine->startGame(stream);
+		} else {
+			sendStreamJson(stream, QJsonObject{
+							   { QStringLiteral("cmd"), cmd },
+							   { QStringLiteral("error"), QStringLiteral("invalid engine") }
+						   });
 		}
+
+	} else if (cmd == QStringLiteral("create")) {
+		const QJsonObject &obj = message.toObject();
+		const auto &id = obj.value(QStringLiteral("engine")).toInt(-1);
+		LOG_CTRACE("engine") << "GET ENGINE" << id;
+		MultiPlayerEngine *engine = stream->engineGet<MultiPlayerEngine>(AbstractEngine::EngineMultiPlayer, id);
+		if (engine) {
+			engine->createGame(stream, obj);
+		} else {
+			sendStreamJson(stream, QJsonObject{
+							   { QStringLiteral("cmd"), cmd },
+							   { QStringLiteral("error"), QStringLiteral("invalid engine") }
+						   });
+		}
+
+	} else if (cmd == QStringLiteral("prepare")) {
+		const QJsonObject &obj = message.toObject();
+		const auto &id = obj.value(QStringLiteral("engine")).toInt(-1);
+		MultiPlayerEngine *engine = stream->engineGet<MultiPlayerEngine>(AbstractEngine::EngineMultiPlayer, id);
+		if (engine) {
+			engine->prepareGame(stream);
+		} else {
+			sendStreamJson(stream, QJsonObject{
+							   { QStringLiteral("cmd"), cmd },
+							   { QStringLiteral("error"), QStringLiteral("invalid engine") }
+						   });
+		}
+
 	}
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::createEngine
+ * @param stream
+ * @param service
+ * @return
+ */
+
+std::weak_ptr<MultiPlayerEngine> MultiPlayerEngine::createEngine(WebSocketStream *stream, EngineHandler *handler)
+{
+	if (!handler)
+		return std::weak_ptr<MultiPlayerEngine>();
+
+	LOG_CDEBUG("engine") << "Create MultiPlayerEngine" << stream;
+
+	static int nextId = 0;
+
+	auto ptr = std::make_shared<MultiPlayerEngine>(handler);
+
+	++nextId;
+
+	ptr->setId(nextId);
+
+	if (stream) {
+		ptr->setHostStream(stream);
+		LOG_CTRACE("engine") << "SET HOST" << ptr.get() << stream << ptr->m_id;
+		ptr->setGameState(StateConnecting);
+		handler->websocketEngineLink(stream, ptr);
+	}
+
+
+	handler->engineAdd(ptr);
+
+	LOG_CINFO("engine") << "CHECK LOCK" << ptr->id() << ptr->hostStream() << ptr.use_count();
+
+	return ptr;
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::connectToEngine
+ * @param stream
+ * @return
+ */
+
+std::weak_ptr<AbstractEngine> MultiPlayerEngine::connectToEngine(const int &id, WebSocketStream *stream, EngineHandler *handler)
+{
+	if (!handler || !stream)
+		return std::weak_ptr<AbstractEngine>();
+
+	LOG_CDEBUG("engine") << "Connect to MultiPlayerEngine" << id;
+
+	const auto &ptr = handler->engineGet(AbstractEngine::EngineMultiPlayer, id);
+
+	if (!ptr.expired()) {
+		handler->websocketEngineLink(stream, ptr.lock());
+		return ptr;
+	} else {
+		return createEngine(stream, handler);
+	}
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::createGame
+ * @param stream
+ */
+
+void MultiPlayerEngine::startGame(WebSocketStream *stream)
+{
+	if (m_gameState != StateConnecting) {
+		return sendStreamJson(stream, QJsonObject{
+								  { QStringLiteral("cmd"), QStringLiteral("start") },
+								  { QStringLiteral("error"), QStringLiteral("invalid state") }
+							  });
+	}
+
+	if (stream != m_hostStream) {
+		return sendStreamJson(stream, QJsonObject{
+								  { QStringLiteral("cmd"), QStringLiteral("start") },
+								  { QStringLiteral("error"), QStringLiteral("permission denied") }
+							  });
+	}
+
+	setGameState(StateCreating);
+
+	m_handler->engineTriggerEngine(this);
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::createGame
+ * @param stream
+ */
+
+void MultiPlayerEngine::createGame(WebSocketStream *stream, const QJsonObject &data)
+{
+	if (!stream)
+		return;
+
+	if (m_gameState != StateCreating && m_gameState != StateConnecting) {
+		return sendStreamJson(stream, QJsonObject{
+								  { QStringLiteral("cmd"), QStringLiteral("create") },
+								  { QStringLiteral("error"), QStringLiteral("invalid state") }
+							  });
+	}
+
+	if (stream != m_hostStream) {
+		return sendStreamJson(stream, QJsonObject{
+								  { QStringLiteral("cmd"), QStringLiteral("create") },
+								  { QStringLiteral("error"), QStringLiteral("permission denied") }
+							  });
+	}
+
+	const QByteArray &baseData = QByteArray::fromBase64(data.value(QStringLiteral("entities")).toString().toUtf8());
+
+	std::optional<ObjectStateSnapshot> snap = ObjectStateSnapshot::fromByteArray(qUncompress(baseData));
+
+	if (!snap) {
+		LOG_CWARNING("engine") << "Invalid binary message received";
+		return sendStreamJson(stream, QJsonObject{
+								  { QStringLiteral("cmd"), QStringLiteral("create") },
+								  { QStringLiteral("error"), QStringLiteral("invalid data") }
+							  });
+	}
+
+	// Start id from 1000
+	int entityId = 1000;
+
+	for (auto it=snap->list.begin(); it != snap->list.end(); ++it) {
+		if (!it->get())
+			continue;
+
+		ObjectStateBase *ptr = it->get()->clone();
+		ptr->tick = 0;
+		ptr->state = ObjectStateBase::StateActive;
+
+		auto &e = m_entities[++entityId];
+		e.owner = QStringLiteral("");
+		e.type = ptr->type;
+		e.renderedState.reset(ptr);
+	}
+
+
+	// PLAYERS?
+
+	setGameState(StatePreparing);
+
+	m_handler->engineTriggerEngine(this);
+
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::prepareGame
+ * @param stream
+ * @param data
+ */
+
+void MultiPlayerEngine::prepareGame(WebSocketStream *stream)
+{
+	if (m_gameState != StatePreparing) {
+		return sendStreamJson(stream, QJsonObject{
+								  { QStringLiteral("cmd"), QStringLiteral("prepare") },
+								  { QStringLiteral("error"), QStringLiteral("invalid state") }
+							  });
+	}
+
+	const QString &baseData = QString::fromUtf8(getStates().toBase64());
+
+	return sendStreamJson(stream, QJsonObject{
+							  { QStringLiteral("cmd"), QStringLiteral("prepare") },
+							  { QStringLiteral("engine"), m_id },
+							  { QStringLiteral("entities"), baseData }
+						  });
 }
 
 
@@ -160,32 +324,6 @@ bool MultiPlayerEngine::canDelete(const int &useCount)
 
 
 
-/**
- * @brief MultiPlayerEngine::id
- * @return
- */
-
-
-int MultiPlayerEngine::id() const
-{
-	return m_id;
-}
-
-void MultiPlayerEngine::setId(int newId)
-{
-	m_id = newId;
-}
-
-const MultiPlayerEngine::GameState &MultiPlayerEngine::gameState() const
-{
-	return m_gameState;
-}
-
-void MultiPlayerEngine::setGameState(const GameState &newGameState)
-{
-	m_gameState = newGameState;
-}
-
 
 /**
  * @brief MultiPlayerEngine::sendStreamJson
@@ -202,70 +340,38 @@ void MultiPlayerEngine::sendStreamJson(WebSocketStream *stream, const QJsonValue
 }
 
 
-/**
- * @brief MultiPlayerEngine::streamConnectedEvent
- * @param stream
- */
-
-void MultiPlayerEngine::streamConnectedEvent(WebSocketStream *stream)
-{
-	LOG_CTRACE("engine") << "MultiPlayerEngine stream connected:" << stream << (stream ? stream->credential().username() : "");
-
-	if (stream && stream->socket()) {
-		auto sig = connect(stream->socket(), &QWebSocket::binaryMessageReceived,
-						   this, std::bind(&MultiPlayerEngine::onBinaryMessageReceived, this, std::placeholders::_1, stream));
-
-		m_signalHelper[stream] = sig;
-
-		LOG_CINFO("engine") << "SIGNAL HELPER ADD" << stream << sig;
-	}
-}
-
 
 /**
  * @brief MultiPlayerEngine::streamDisconnectedEvent
  * @param stream
  */
 
-void MultiPlayerEngine::streamDisconnectedEvent(WebSocketStream *stream)
+void MultiPlayerEngine::streamUnlinkedEvent(WebSocketStream *stream)
 {
 	LOG_CTRACE("engine") << "MultiPlayerEngine stream disconnected:" << stream << (stream ? stream->credential().username() : "");
-
-	if (stream && stream->socket()) {
-		if (m_signalHelper.contains(stream)) {
-			LOG_CINFO("engine") << "SIGNAL HELPER REMOVE" << stream << m_signalHelper.value(stream);
-			QObject::disconnect(m_signalHelper.value(stream));
-		}
-		m_signalHelper.remove(stream);
-	}
 
 	if (m_hostStream == stream) {
 		LOG_CTRACE("engine") << "HOST STREAM DISCONNECTED";
 
-		m_worker.execInThread([this, stream](){
-			LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-			QMutexLocker locker(&m_mutex);
+		WebSocketStream *next = nullptr;
 
-			WebSocketStream *next = nullptr;
+		for (auto &s : m_streams) {
+			if (s == stream)
+				continue;
 
-			for (auto &s : m_streams) {
-				if (s == stream)
-					continue;
+			next = s;
+			break;
+		}
 
-				next = s;
-				break;
-			}
+		if (!next) {
+			LOG_CWARNING("engine") << "Host stream dismissed";
+			setHostStream(nullptr);
+		} else {
+			LOG_CINFO("engine") << "Next host stream:" << next;
+			setHostStream(next);
+		}
 
-			if (!next) {
-				LOG_CWARNING("engine") << "Host stream dismissed";
-				setHostStream(nullptr);
-			} else {
-				LOG_CINFO("engine") << "Next host stream:" << next;
-				setHostStream(next);
-			}
-
-			triggerAll();
-		});
+		m_handler->engineTriggerEngine(this);
 	}
 }
 
@@ -279,28 +385,28 @@ void MultiPlayerEngine::streamTriggerEvent(WebSocketStream *stream)
 {
 	LOG_CINFO("engine") << "Stream trigger" << this << stream;
 
-	m_worker.execInThread([this, stream](){
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
-		QJsonObject ret;
+	QJsonObject ret;
 
-		ret.insert(QStringLiteral("cmd"), QStringLiteral("state"));
-		ret.insert(QStringLiteral("engine"), m_id);
-		ret.insert(QStringLiteral("state"), m_gameState);
-		ret.insert(QStringLiteral("interval"), m_service->mainTimerInterval());
-		ret.insert(QStringLiteral("host"), (m_hostStream == stream ? true : false));
+	ret.insert(QStringLiteral("cmd"), QStringLiteral("state"));
+	ret.insert(QStringLiteral("engine"), m_id);
+	ret.insert(QStringLiteral("gameState"), m_gameState);
+	ret.insert(QStringLiteral("interval"), m_service->mainTimerInterval());
+	ret.insert(QStringLiteral("host"), (m_hostStream == stream ? true : false));
 
-		QJsonArray streams;
+	if (m_elapsedTimer.isValid()) {
+		ret.insert(QStringLiteral("tick"), currentTick());
+	}
 
-		for (const auto &s : m_streams) {
-			if (!s) continue;
-			streams.append(s->credential().username());
-		}
+	QJsonArray streams;
 
-		ret.insert(QStringLiteral("users"), streams);
+	for (const auto &s : m_streams) {
+		if (!s) continue;
+		streams.append(s->credential().username());
+	}
 
-		sendStreamJson(stream, ret);
-	});
+	ret.insert(QStringLiteral("users"), streams);
+
+	sendStreamJson(stream, ret);
 }
 
 
@@ -310,35 +416,34 @@ void MultiPlayerEngine::streamTriggerEvent(WebSocketStream *stream)
  * @param data
  */
 
-void MultiPlayerEngine::onBinaryMessageReceived(const QByteArray &data, WebSocketStream *sender)
+void MultiPlayerEngine::onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream)
 {
 	LOG_CTRACE("engine") << "Binary message received" << data.size();
 
-	m_worker.execInThread([this, sender, data]() mutable {
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
+	if (m_gameState != StatePlaying) {
+		LOG_CWARNING("engine") << "Binary message not accepted";
+		return;
+	}
 
-		std::optional<ObjectStateSnapshot> snap = ObjectStateSnapshot::fromByteArray(qUncompress(data));
+	std::optional<ObjectStateSnapshot> snap = ObjectStateSnapshot::fromByteArray(qUncompress(data));
 
-		if (!snap) {
-			LOG_CWARNING("engine") << "Invalid binary message received";
-			return;
-		}
+	if (!snap) {
+		LOG_CWARNING("engine") << "Invalid binary message received";
+		return;
+	}
 
-		LOG_CTRACE("engine") << "Sorting snap";
+	LOG_CTRACE("engine") << "Sorting snap";
 
-		for (auto it=snap->list.begin(); it != snap->list.end(); ++it) {
-			if (!it->get())
-				continue;
+	for (auto it=snap->list.begin(); it != snap->list.end(); ++it) {
+		if (!it->get())
+			continue;
 
-			const qint64 &tick = (*it)->tick;
-			std::unique_ptr<EntityState> estate(new EntityState(*it, sender ? sender->credential().username() : QStringLiteral("")));
+		const qint64 &tick = (*it)->tick;
+		std::unique_ptr<EntityState> estate(new EntityState(*it, stream ? stream->credential().username() : QStringLiteral("")));
 
-			auto &v = m_states[tick];
-			v.push_back(std::move(estate));
-		}
-
-	});
+		auto &v = m_states[tick];
+		v.push_back(std::move(estate));
+	}
 }
 
 
@@ -351,55 +456,30 @@ void MultiPlayerEngine::renderStates()
 {
 	LOG_CTRACE("engine") << "Rendering states";
 
-	m_worker.execInThread([this](){
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
+	for (auto & [entityId, entity] : m_entities) {
+		LOG_CTRACE("engine") << "Render......." << entityId << entity.type;
 
-		// create entities
+		EntityState statePtr(entity.renderedState, entity.owner);
 
-		for (const auto& [tick, sList] : m_states) {
-			for (const auto &s : sList) {
-				const auto &id = s->id();
-				if (id == -1 || !s->state)
-					continue;
+		for (const auto& [tick, esList] : m_states) {
+			if (auto eIt = std::find_if(esList.cbegin(), esList.cend(),
+										[&e = entityId](const auto &esPtr){ return (esPtr && esPtr->id() == e); });
+					eIt != esList.cend()) {
 
-				if (m_entities.find(id) == m_entities.end()) {
-					auto &e = m_entities[id];
-					e.type = s->state->type;
-					e.owner = s->sender;
-					e.renderedState.reset(s->state->clone());
+				updateState(&statePtr, eIt->get());
 
-					LOG_CTRACE("engine") << "-----CREATED" << id << e.type;
-				}
+				LOG_CTRACE("engine") << "   - " << tick;
 			}
 		}
 
+		LOG_CTRACE("engine") << "   ===" << statePtr.sender << statePtr.state->id << statePtr.state->state << statePtr.state->position;
 
-		for (auto & [entityId, entity] : m_entities) {
-			LOG_CTRACE("engine") << "Render......." << entityId << entity.type;
+		entity.renderedState.reset(statePtr.state->clone());
+	}
 
-			EntityState statePtr(entity.renderedState, entity.owner);
+	m_lastRenderedState = currentTick();
 
-			for (const auto& [tick, esList] : m_states) {
-				if (auto eIt = std::find_if(esList.cbegin(), esList.cend(),
-											[&e = entityId](const auto &esPtr){ return (esPtr && esPtr->id() == e); });
-						eIt != esList.cend()) {
-
-					updateState(&statePtr, eIt->get());
-
-					LOG_CTRACE("engine") << "   - " << tick;
-				}
-			}
-
-			LOG_CTRACE("engine") << "   ===" << statePtr.sender << statePtr.state->id << statePtr.state->state << statePtr.state->position;
-
-			entity.renderedState.reset(statePtr.state->clone());
-		}
-
-		m_states.clear();
-
-	});
-
+	m_states.clear();
 }
 
 
@@ -412,30 +492,53 @@ void MultiPlayerEngine::sendStates()
 {
 	LOG_CTRACE("engine") << "Sending states";
 
-	m_worker.execInThread([this](){
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
+	const QByteArray &data = getStates();
 
-		std::vector<ObjectStateBase*> snap;
-		//const qint64 tick =
+	for (auto ws : m_streams) {
+		if (ws)
+			ws->sendBinaryMessage(data);
+	}
+}
 
-		snap.reserve(m_entities.size());
 
-		for (auto & [entityId, entity] : m_entities) {
-			ObjectStateBase *ptr = entity.renderedState.get();
-			ptr->id = entityId;
-			//ptr->tick
-			snap.push_back(ptr);
-		}
 
-		const QByteArray &data = qCompress(ObjectStateSnapshot::toByteArray(snap));
+/**
+ * @brief MultiPlayerEngine::getStates
+ * @return
+ */
 
-		for (auto ws : m_streams) {
-			if (ws && ws->socket())
-				ws->socket()->sendBinaryMessage(data);
-		}
+QByteArray MultiPlayerEngine::getStates()
+{
+	QByteArray data;
 
-	});
+	std::vector<ObjectStateBase*> snap;
+
+	snap.reserve(m_entities.size());
+
+	for (auto & [entityId, entity] : m_entities) {
+		ObjectStateBase *ptr = entity.renderedState.get();
+		ptr->id = entityId;
+		ptr->tick = m_lastRenderedState;
+		snap.push_back(ptr);
+	}
+
+	data = qCompress(ObjectStateSnapshot::toByteArray(snap));
+
+	return data;
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::playGame
+ */
+
+void MultiPlayerEngine::playGame()
+{
+	LOG_CDEBUG("engine") << "Play MultiPlayerGame" << m_id << this;
+
+
+
 }
 
 
@@ -452,6 +555,22 @@ void MultiPlayerEngine::updateState(EntityState *dest, const EntityState &from)
 
 	dest->sender = from.sender;
 	dest->state.reset(from.state->clone());
+}
+
+
+/**
+ * @brief MultiPlayerEngine::gameState
+ * @return
+ */
+
+MultiPlayerGameState MultiPlayerEngine::gameState() const
+{
+	return m_gameState;
+}
+
+void MultiPlayerEngine::setGameState(MultiPlayerGameState newGameState)
+{
+	m_gameState = newGameState;
 }
 
 
@@ -484,33 +603,44 @@ void MultiPlayerEngine::timerTick()
 {
 	LOG_CTRACE("engine") << "Timer tick" << this;
 
-	m_worker.execInThread([this](){
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
+	if (m_gameState != StatePlaying)
+		return;
 
-		renderStates();
-		sendStates();
+	renderStates();
+	sendStates();
+
+	QByteArray content;
+
+	for (auto & [entityId, entity] : m_entities) {
+		content.append("=========================================\n");
+		content.append(QString("%1 - %2\n").arg(entityId).arg(entity.type).toUtf8());
+		content.append(entity.owner.toUtf8()).append("\n");
+		content.append("=========================================\n");
+
+		entity.renderedState->toReadable(&content);
+		content.append("---------------------------------\n");
+	}
+
+	QFile f("/tmp/_state.txt");
+	f.open(QIODevice::WriteOnly);
+	f.write(content);
+	f.close();
+
+	LOG_CTRACE("engine") << "States saved";
+}
 
 
-		QByteArray content;
 
-		for (auto & [entityId, entity] : m_entities) {
-			content.append("=========================================\n");
-			content.append(QString("%1 - %2\n").arg(entityId).arg(entity.type).toUtf8());
-			content.append(entity.owner.toUtf8()).append("\n");
-			content.append("=========================================\n");
+/**
+ * @brief MultiPlayerEngine::currentTick
+ * @return
+ */
 
-			entity.renderedState->toReadable(&content);
-			content.append("---------------------------------\n");
-		}
-
-		QFile f("/tmp/_state.txt");
-		f.open(QIODevice::WriteOnly);
-		f.write(content);
-		f.close();
-
-		LOG_CTRACE("engine") << "States saved";
-
-	});
+qint64 MultiPlayerEngine::currentTick() const
+{
+	if (m_elapsedTimer.isValid())
+		return m_elapsedTimer.elapsed();
+	else
+		return -1;
 }
 

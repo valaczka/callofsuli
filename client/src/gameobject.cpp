@@ -213,6 +213,21 @@ void GameObject::setCurrentState(const ObjectStateBase &state)
 }
 
 
+/**
+ * @brief GameObject::updateStateQuickItem
+ * @param state
+ * @param item
+ */
+
+void GameObject::updateStateQuickItem(ObjectStateEntity *state, QQuickItem *item)
+{
+	if (!state || !item)
+		return;
+
+	state->position.setY(state->position.y()-item->height());
+}
+
+
 
 
 /**

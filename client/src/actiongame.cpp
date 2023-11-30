@@ -335,12 +335,10 @@ void ActionGame::recreateEnemies()
 		if (type != GameTerrain::EnemySoldier || m_closedBlocks.contains(e.block))
 			continue;
 
-		GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, e);
-
-		soldier->setFacingLeft(QRandomGenerator::global()->generate() % 2);
-
-		soldier->setX(e.rect.left() + e.rect.width()/2);
-		soldier->setY(e.rect.bottom()-soldier->height());
+		ObjectStateEnemySoldier state = GameEnemySoldier::createState(e);
+		GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, e, QString::fromUtf8(state.subType));
+		GameObject::updateStateQuickItem(&state, soldier);
+		soldier->setCurrentState(state);
 
 		soldier->startMovingAfter(2500);
 

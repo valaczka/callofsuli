@@ -343,6 +343,40 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 }
 
 
+
+
+/**
+ * @brief GameEnemySoldier::createState
+ * @param enemyData
+ * @return
+ */
+
+ObjectStateEnemySoldier GameEnemySoldier::createState(const GameTerrain::EnemyData &enemyData)
+{
+	QDirIterator it(QStringLiteral(":/soldiers"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
+	QStringList list;
+
+	while (it.hasNext())
+		list.append(it.next().section('/',-2,-2));
+
+	if (list.isEmpty()) {
+		qFatal("Enemy soldier directory is empty");
+	}
+
+	ObjectStateEnemySoldier state;
+
+	state.hp = 1;
+	state.maxHp = 1;
+	state.enemyRect = enemyData.rect;
+	state.subType = list.at(QRandomGenerator::global()->bounded(list.size())).toUtf8();
+	state.facingLeft = QRandomGenerator::global()->generate() % 2;
+	state.position = QPointF(enemyData.rect.left() + enemyData.rect.width()/2,
+							 enemyData.rect.bottom());
+
+	return state;
+}
+
+
 /**
  * @brief GameEnemySoldier::attackPlayer
  */

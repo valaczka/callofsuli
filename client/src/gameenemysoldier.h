@@ -46,6 +46,7 @@ public:
 	void setTurnElapsedMsec(int newTurnElapsedMsec);
 
 	static GameEnemySoldier* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
+	static ObjectStateEnemySoldier createState(const GameTerrain::EnemyData &enemyData);
 
 	Q_INVOKABLE void attackPlayer();
 
@@ -53,6 +54,9 @@ public:
 	virtual void cacheCurrentState() override;
 	virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId = 1) override;
 	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
+
+	bool getCurrentState(ObjectStateEnemySoldier *ptr) const;
+	void setCurrentState(const ObjectStateEnemySoldier &state);
 
 protected:
 	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
@@ -72,9 +76,6 @@ private:
 	int m_msecBeforeTurn = 5000;
 	int m_turnElapsedMsec = -1;
 	int m_attackElapsedMsec = -1;
-
-	bool getCurrentState(ObjectStateEnemySoldier *ptr) const;
-	void setCurrentState(const ObjectStateEnemySoldier &state);
 
 	QList<ObjectStateEnemySoldier> m_cachedStates;
 };

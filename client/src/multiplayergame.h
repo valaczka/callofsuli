@@ -2,13 +2,15 @@
 #define MULTIPLAYERGAME_H
 
 #include "actiongame.h"
+#include "objectstate.h"
 
 class MultiPlayerGame : public ActionGame
 {
 	Q_OBJECT
 
 	Q_PROPERTY(Mode multiPlayerMode READ multiPlayerMode NOTIFY multiPlayerModeChanged)
-	Q_PROPERTY(int engineId READ engineId WRITE setEngineId NOTIFY engineIdChanged)
+	Q_PROPERTY(int engineId READ engineId NOTIFY engineIdChanged)
+	Q_PROPERTY(MultiPlayerGameState multiPlayerGameState READ multiPlayerGameState NOTIFY multiPlayerGameStateChanged)
 
 public:
 	explicit MultiPlayerGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -35,12 +37,16 @@ public:
 	int engineId() const;
 	void setEngineId(int newEngineId);
 
+	MultiPlayerGameState multiPlayerGameState() const;
+	void setMultiPlayerGameState(MultiPlayerGameState newMultiPlayerGameState);
+
 public slots:
 	void gameAbort() override;
 
 signals:
 	void multiPlayerModeChanged();
 	void engineIdChanged();
+	void multiPlayerGameStateChanged();
 
 protected:
 	virtual QQuickItem *loadPage() override;
@@ -53,15 +59,17 @@ private:
 	void onTimeSyncTimerTimeout();
 	void onActiveChanged();
 	void onJsonReceived(const QString &operation, const QJsonValue &data);
-	void onBinaryDataReceived(const QByteArray &data);
 	void loadGamePage();
+
+	void createGameTrigger();
+	void prepareGameTrigger(const QByteArray &data);
 
 	QTimer m_timeSyncTimer;
 	Mode m_multiPlayerMode = MultiPlayerClient;
 	int m_engineId = -1;
+	MultiPlayerGameState m_multiPlayerGameState = StateInvalid;
 
-	QHash<qint64, GameObject*> m_test_enemies;	//!!! unique!
-
+	std::map<qint64, std::unique_ptr<GameObject>> m_entities;
 };
 
 #endif // MULTIPLAYERGAME_H

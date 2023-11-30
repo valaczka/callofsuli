@@ -30,7 +30,6 @@
 #include "qhttpserver.h"
 #include <QObject>
 #include "abstractapi.h"
-#include "websocketstream.h"
 
 class ServerService;
 

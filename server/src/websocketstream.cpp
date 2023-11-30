@@ -3,27 +3,35 @@
 #include "Logger.h"
 #include "multiplayerengine.h"
 
-const QHash<WebSocketStream::StreamType, Credential::Roles> WebSocketStream::m_observerRoles = {
-	{ WebSocketStream::StreamPeers, Credential::Teacher|Credential::Admin },
-	{ WebSocketStream::StreamMultiPlayer, Credential::Student }
+
+/// Static maps
+
+const QHash<AbstractEngine::Type, Credential::Roles> WebSocketStream::m_observerRoles = {
+	{ AbstractEngine::EnginePeer, Credential::Teacher|Credential::Admin },
+	{ AbstractEngine::EngineMultiPlayer, Credential::Student }
 };
+
+
+const QHash<QString, AbstractEngine::Type> WebSocketStream::m_observerMap = {
+	{ QStringLiteral("peers"), AbstractEngine::EnginePeer },
+	{ QStringLiteral("multiplayer"), AbstractEngine::EngineMultiPlayer },
+};
+
 
 /**
  * @brief WebSocketStream::WebSocketStream
  * @param socket
  */
 
-WebSocketStream::WebSocketStream(ServerService *service, QWebSocket *socket)
+WebSocketStream::WebSocketStream(EngineHandler *handler, QWebSocket *socket)
 	: QObject()
-	, m_service(service)
+	, m_handler(handler)
+	, m_service(handler ? handler->m_service : nullptr)
 	, m_socket(std::move(socket))
 {
+	Q_ASSERT(m_service);
+
 	LOG_CTRACE("service") << "WebSocketStream created" << this;
-
-
-	connect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocketStream::onWebSocketDisconnected);
-	connect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocketStream::onTextReceived);
-	connect(m_socket.get(), &QWebSocket::binaryMessageReceived, this, &WebSocketStream::onBinaryDataReceived);
 }
 
 
@@ -43,21 +51,20 @@ WebSocketStream::~WebSocketStream()
  * @param data
  */
 
-void WebSocketStream::observerAdd(const StreamType &type, const QVariant &data)
+bool WebSocketStream::observerAdd(const AbstractEngine::Type &type)
 {
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-
-	StreamObserver ob{type, data};
-
 	if (auto roles = m_observerRoles.value(type, Credential::None); roles != Credential::None && !(m_credential.roles() & roles)) {
 		sendJson("warning", QStringLiteral("permission denied"));
 	}
 
-	if (!m_observers.contains(ob))
-		m_observers.append(ob);
+	LOG_CTRACE("service") << "Observer added" << m_credential.username() << type;
 
-	LOG_CTRACE("service") << "Observer added" << m_credential.username() << type << data;
+	if (!m_observers.contains(type)) {
+		m_observers.append(type);
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -67,65 +74,13 @@ void WebSocketStream::observerAdd(const StreamType &type, const QVariant &data)
  * @param data
  */
 
-void WebSocketStream::observerRemove(const StreamType &type, const QVariant &data)
+void WebSocketStream::observerRemove(const AbstractEngine::Type &type)
 {
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-	m_observers.removeAll(StreamObserver{type, data});
+	m_observers.removeAll(type);
 
-	LOG_CTRACE("service") << "Observer removed" << m_credential.username() << type << data;
+	LOG_CTRACE("service") << "Observer removed" << m_credential.username() << type;
 }
 
-
-/**
- * @brief WebSocketStream::observerRemoveAll
- * @param type
- */
-
-void WebSocketStream::observerRemoveAll(const StreamType &type)
-{
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-	for (auto it=m_observers.constBegin(); it != m_observers.constEnd();) {
-		if (it->type == type)
-			it = m_observers.erase(it);
-		else
-			++it;
-	}
-}
-
-
-/**
- * @brief WebSocketStream::hasObserver
- * @param type
- * @return
- */
-
-bool WebSocketStream::hasObserver(const StreamType &type)
-{
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-	for (auto it=m_observers.constBegin(); it != m_observers.constEnd();) {
-		if (it->type == type)
-			return true;
-	}
-
-	return false;
-}
-
-/**
- * @brief WebSocketStream::hasObserver
- * @param type
- * @param data
- * @return
- */
-
-bool WebSocketStream::hasObserver(const StreamType &type, const QVariant &data)
-{
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-	return m_observers.contains(StreamObserver{type, data});
-}
 
 
 
@@ -135,20 +90,16 @@ bool WebSocketStream::hasObserver(const StreamType &type, const QVariant &data)
 
 void WebSocketStream::close()
 {
-	if (!m_socket)
-		return;
-
-	LOG_CTRACE("service") << "Close WebSocket" << m_socket.get();
-	disconnect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocketStream::onWebSocketDisconnected);
-	disconnect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocketStream::onTextReceived);
-	disconnect(m_socket.get(), &QWebSocket::binaryMessageReceived, this, &WebSocketStream::onBinaryDataReceived);
-
-	auto ws = m_socket.release();
-
-	ws->close();
-
-	delete ws;
+	if (m_socket) {
+		m_socket->close();
+		m_socket.reset();
+	}
 }
+
+
+
+
+
 
 
 /**
@@ -200,7 +151,7 @@ void WebSocketStream::sendJson(const char *operation, const QJsonValue &data)
  * @return
  */
 
-const QVector<WebSocketStream::StreamObserver> &WebSocketStream::observers() const
+const QVector<AbstractEngine::Type> &WebSocketStream::observers() const
 {
 	return m_observers;
 }
@@ -211,7 +162,7 @@ const QVector<WebSocketStream::StreamObserver> &WebSocketStream::observers() con
  * @param newObservers
  */
 
-void WebSocketStream::setObservers(const QVector<StreamObserver> &newObservers)
+void WebSocketStream::setObservers(const QVector<AbstractEngine::Type> &newObservers)
 {
 	m_observers = newObservers;
 }
@@ -317,7 +268,7 @@ void WebSocketStream::onJsonReceived(const QJsonObject &data)
 	else if (operation == QStringLiteral("timeSync"))
 		timeSync(d.toObject());
 	else if (operation == QStringLiteral("multiplayer"))
-		MultiPlayerEngine::handleWebSocketMessage(this, d, m_service);
+		MultiPlayerEngine::handleWebSocketMessage(this, d, m_handler);
 	else {
 		LOG_CDEBUG("service") << "Invalid operation:" << operation << qPrintable(m_credential.username());
 		sendJson("error", QStringLiteral("invalid operation"));
@@ -345,20 +296,27 @@ void WebSocketStream::observerAdd(const QJsonValue &data)
 		list.append(data.toObject());
 	}
 
+	QList<AbstractEngine::Type> added;
+
 	for (const QJsonObject &obj : std::as_const(list)) {
 		const QString &type = obj.value(QStringLiteral("type")).toString();
 
-		if (type == QStringLiteral("peers")) {
-			observerAdd(StreamPeers);
-		} else if (type == QStringLiteral("multiplayer")) {
-			observerAdd(StreamMultiPlayer);
-		} else {
+		const AbstractEngine::Type &t = m_observerMap.value(type, AbstractEngine::EngineInvalid);
+
+		if (t == AbstractEngine::EngineInvalid)
 			LOG_CWARNING("service") << "Invalid observer:" << type;
+		else {
+			if (observerAdd(t))
+				added.append(t);
 		}
 	}
 
-	m_service->webServer().lock().get()->webSocketHandler().trigger(this);
+	for (const auto &t : added) {
+		m_handler->websocketObserverAdded(this, t);
+	}
 }
+
+
 
 
 /**
@@ -379,18 +337,27 @@ void WebSocketStream::observerRemove(const QJsonValue &data)
 		list.append(data.toObject());
 	}
 
+	QList<AbstractEngine::Type> removed;
+
 	for (const QJsonObject &obj : std::as_const(list)) {
 		const QString &type = obj.value(QStringLiteral("type")).toString();
 
-		if (type == QStringLiteral("peers")) {
-			observerRemove(StreamPeers);
-		} else if (type == QStringLiteral("multiplayer")) {
-			observerRemove(StreamMultiPlayer);
-		} else {
+		const AbstractEngine::Type &t = m_observerMap.value(type, AbstractEngine::EngineInvalid);
+
+		if (t == AbstractEngine::EngineInvalid)
 			LOG_CWARNING("service") << "Invalid observer:" << type;
+		else {
+			observerRemove(t);
+			removed.append(t);
 		}
 	}
+
+	for (const auto &t : removed) {
+		m_handler->websocketObserverRemoved(this, t);
+	}
 }
+
+
 
 
 /**
@@ -401,17 +368,11 @@ void WebSocketStream::onWebSocketDisconnected()
 {
 	QWebSocket *ws = qobject_cast<QWebSocket*>(sender());
 
-	LOG_CDEBUG("service") << "WebSocket disconnected:" << ws << m_credential.username();
+	LOG_CDEBUG("service") << "WebSocket disconnected:" << ws << m_credential.username() << this;
 
-	{
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
+	m_handler->websocketDisconnected(this);
 
-		for (const auto &e : m_engines)
-			e.get()->streamUnSet(this);
-	}
-
-	m_service->webServer().lock().get()->webSocketHandler().webSocketRemove(this);
+	LOG_CTRACE("service") << "WebSocket disconnected finished:" << ws << m_credential.username() << this;
 }
 
 
@@ -448,11 +409,11 @@ const QVector<std::shared_ptr<AbstractEngine> > &WebSocketStream::engines() cons
 
 void WebSocketStream::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
 {
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-	LOG_CTRACE("service") << "WebSocket add engine" << this << engine.get() << engine->type();
+	LOG_CTRACE("service") << "WebSocket add engine" << this << engine.get() << engine->type() << engine->id();
 
 	std::shared_ptr<AbstractEngine> ptr = engine;
+
+	LOG_CTRACE("service") << "WebSocket add engine -- " << this << ptr.use_count();
 
 	m_engines.append(std::move(ptr));
 }
@@ -465,8 +426,6 @@ void WebSocketStream::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
 
 void WebSocketStream::engineRemove(AbstractEngine *engine)
 {
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
 	LOG_CTRACE("service") << "WebSocket remove engine" << this << engine << engine->type();
 
 	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
@@ -486,15 +445,49 @@ void WebSocketStream::engineRemove(AbstractEngine *engine)
 
 bool WebSocketStream::hasEngine(const AbstractEngine::Type &type)
 {
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-
 	for (const auto &e : m_engines) {
 		if (e && e->type() == type)
 			return true;
 	}
 
 	return false;
+}
+
+
+/**
+ * @brief WebSocketStream::hasEngine
+ * @param type
+ * @param id
+ * @return
+ */
+
+bool WebSocketStream::hasEngine(const AbstractEngine::Type &type, const int &id)
+{
+	for (const auto &e : m_engines) {
+		if (e && e->type() == type && e->id() == id)
+			return true;
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief WebSocketStream::engineGet
+ * @param type
+ * @param id
+ * @return
+ */
+
+std::weak_ptr<AbstractEngine> WebSocketStream::engineGet(const AbstractEngine::Type &type, const int &id)
+{
+	for (const auto &e : m_engines) {
+		if (e && e->type() == type && e->id() == id)
+			return e;
+	}
+
+	return std::weak_ptr<AbstractEngine>();
 }
 
 
@@ -526,3 +519,6 @@ void WebSocketStream::onBinaryDataReceived(const QByteArray &data)
 		return;
 	}
 }
+
+
+

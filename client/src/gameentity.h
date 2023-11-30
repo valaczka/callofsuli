@@ -171,6 +171,8 @@ public:
 	void performRayCast();
 
 	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
+	bool getCurrentState(ObjectStateEntity *ptr) const;
+	void setCurrentState(const ObjectStateEntity &state);
 
 public slots:
 	void decreaseHp();
@@ -246,12 +248,6 @@ protected:
 	bool m_facingLeft = false;
 	QList<QPointer<Box2DFixture>> m_groundFixtures;
 	QString m_lastCurrentSprite = "";
-
-
-
-	bool getCurrentState(ObjectStateEntity *ptr) const;
-	void setCurrentState(const ObjectStateEntity &state);
-
 
 
 private:

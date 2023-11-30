@@ -63,6 +63,7 @@ QPage {
 			QButton {
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: "START"
+				enabled: game && game.multiPlayerMode == MultiPlayerGame.MultiPlayerHost
 				onClicked: game.start()
 			}
 		}

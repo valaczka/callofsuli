@@ -7,8 +7,18 @@
 #include "qsize.h"
 #include "qtypes.h"
 #include <QIODevice>
+#include <QRectF>
 
 #define OBJECT_STATE_BASE_VERSION 1
+
+enum MultiPlayerGameState {
+	StateInvalid = 0,
+	StateConnecting,
+	StateCreating,
+	StatePreparing,
+	StatePlaying,
+	StateFinished
+};
 
 /**
  * @brief The ObjectStateObject class
@@ -82,7 +92,7 @@ struct ObjectStateBase {
 		stream >> position;
 		stream >> size;
 
-		if (id == -1 || type == TypeInvalid) {
+		if (type == TypeInvalid) {
 			LOG_CWARNING("app") << "Invalid stream exception";
 			return false;
 		}
@@ -165,18 +175,25 @@ struct ObjectStateEnemy : public ObjectStateEntity {
 	};
 
 	EnemyState enemyState = Invalid;
+	QRectF enemyRect;
 	double msecLeftToAttack = -1;
 
 	virtual void toDataStream(QDataStream &stream) const override {
 		ObjectStateEntity::toDataStream(stream);
 
 		stream << enemyState;
+		stream << enemyRect;
 		stream << msecLeftToAttack;
 	}
 
 	virtual void toReadable(QByteArray *data) const override {
 		ObjectStateEntity::toReadable(data);
 		data->append(QStringLiteral("enemyState: %1\n").arg(enemyState).toUtf8());
+		data->append(QStringLiteral("enemyRect: %1x%2+%3,%4\n").arg(enemyRect.width())
+					 .arg(enemyRect.height())
+					 .arg(enemyRect.x())
+					 .arg(enemyRect.y())
+					 .toUtf8());
 		data->append(QStringLiteral("msecLeftToAttack: %1\n").arg(msecLeftToAttack).toUtf8());
 	};
 
@@ -186,6 +203,7 @@ struct ObjectStateEnemy : public ObjectStateEntity {
 			return false;
 
 		stream >> enemyState;
+		stream >> enemyRect;
 		stream >> msecLeftToAttack;
 
 		return true;
@@ -206,16 +224,19 @@ struct ObjectStateEnemySoldier : public ObjectStateEnemy {
 
 	int turnElapsedMsec = 0;
 	int attackElapsedMsec = 0;
+	QByteArray subType;
 
 	virtual void toDataStream(QDataStream &stream) const override {
 		ObjectStateEnemy::toDataStream(stream);
 
 		stream << turnElapsedMsec;
 		stream << attackElapsedMsec;
+		stream << subType;
 	}
 
 	virtual void toReadable(QByteArray *data) const override {
 		ObjectStateEnemy::toReadable(data);
+		data->append(QStringLiteral("subType: %1\n").arg(subType).toUtf8());
 		data->append(QStringLiteral("turnElapsedMsec: %1\n").arg(turnElapsedMsec).toUtf8());
 		data->append(QStringLiteral("attackElapsedMsec: %1\n").arg(attackElapsedMsec).toUtf8());
 	};
@@ -226,6 +247,7 @@ struct ObjectStateEnemySoldier : public ObjectStateEnemy {
 
 		stream >> turnElapsedMsec;
 		stream >> attackElapsedMsec;
+		stream >> subType;
 
 		return true;
 	}

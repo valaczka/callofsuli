@@ -2,13 +2,13 @@
 #define WEBSOCKETSTREAM_H
 
 #include <QWebSocket>
+#include "Logger.h"
 #include "abstractengine.h"
 #include "credential.h"
 #include <QJsonObject>
 #include <QPointer>
 #include <QMutex>
 
-class ServerService;
 
 /**
  * @brief The WebSocketStream class
@@ -19,7 +19,7 @@ class WebSocketStream : public QObject
 	Q_OBJECT
 
 public:
-	WebSocketStream(ServerService *service, QWebSocket *socket);
+	WebSocketStream(EngineHandler *handler, QWebSocket *socket);
 	~WebSocketStream();
 
 	/**
@@ -33,79 +33,80 @@ public:
 	};
 
 
-	/**
-	 * @brief The StreamType enum
-	 */
-
-	enum StreamType {
-		StreamInvalid = 0,
-		StreamPeers,
-		StreamGroupScore,
-		StreamMultiPlayer
-	};
-
-
-	/**
-	 * @brief The StreamObserver class
-	 */
-
-	struct StreamObserver {
-		StreamType type = StreamInvalid;
-		QVariant data;
-
-		friend inline bool operator== (const StreamObserver &o1, const StreamObserver &o2) {
-			return o1.type == o2.type && o1.data == o2.data;
-		}
-	};
-
-
-	void observerAdd(const StreamType &type, const QVariant &data = QVariant());
-	void observerRemove(const StreamType &type, const QVariant &data = QVariant());
-	void observerRemoveAll(const WebSocketStream::StreamType &type);
-
-	bool hasObserver(const StreamType &type);
-	bool hasObserver(const StreamType &type, const QVariant &data);
-
-	QWebSocket *socket() const { return m_socket.get(); }
+	bool observerAdd(const AbstractEngine::Type &type);
+	void observerRemove(const AbstractEngine::Type &type);
+	bool hasObserver(const AbstractEngine::Type &type) { return m_observers.contains(type); }
 
 	void close();
 
 	void sendHello();
 	void sendJson(const char *operation, const QJsonValue &data = QJsonValue::Null);
 	void sendTextMessage(const QString &message) { if (m_socket) m_socket->sendTextMessage(message); }
+	void sendBinaryMessage(const QByteArray &message) { if (m_socket) m_socket->sendBinaryMessage(message); }
 
-	const QVector<StreamObserver> &observers() const;
-	void setObservers(const QVector<StreamObserver> &newObservers);
+	const QVector<AbstractEngine::Type> &observers() const;
+	void setObservers(const QVector<AbstractEngine::Type> &newObservers);
 
 	StreamState state() const;
 	const Credential &credential() const;
 
+	bool hasEngine(const AbstractEngine::Type &type);
+	bool hasEngine(const AbstractEngine::Type &type, const int &id);
+
+	template <typename T>
+	T* engineGet(const AbstractEngine::Type &type, const int &id);
+
+	std::weak_ptr<AbstractEngine> engineGet(const AbstractEngine::Type &type, const int &id);
+
+private:
 	const QVector<std::shared_ptr<AbstractEngine> > &engines() const;
 	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
 	void engineRemove(AbstractEngine *engine);
-	bool hasEngine(const AbstractEngine::Type &type);
 
-private:
 	void onBinaryDataReceived(const QByteArray &data);
 	void onTextReceived(const QString &text);
+	void onWebSocketDisconnected();
+
 	void onJsonReceived(const QJsonObject &data);
 	void observerAdd(const QJsonValue &data);
 	void observerRemove(const QJsonValue &data);
-	void onWebSocketDisconnected();
 	void timeSync(QJsonObject data);
 
+	EngineHandler *m_handler = nullptr;
 	ServerService *m_service = nullptr;
 	std::unique_ptr<QWebSocket> m_socket;
-	QVector<StreamObserver> m_observers;
-	QRecursiveMutex m_mutex;
+	QVector<AbstractEngine::Type> m_observers;
 	StreamState m_state = StateInvalid;
 	Credential m_credential;
-	static const QHash<StreamType, Credential::Roles> m_observerRoles;
+
+	static const QHash<AbstractEngine::Type, Credential::Roles> m_observerRoles;
+	static const QHash<QString, AbstractEngine::Type> m_observerMap;
 
 	QVector<std::shared_ptr<AbstractEngine>> m_engines;
 
-	friend class WebSocketStreamHandler;
+	friend class EngineHandler;
+	friend class EngineHandlerPrivate;
 };
+
+
+/**
+ * @brief WebSocketStream::engineGet
+ * @param type
+ * @param id
+ * @return
+ */
+
+template<typename T>
+T *WebSocketStream::engineGet(const AbstractEngine::Type &type, const int &id)
+{
+	for (const auto &e : m_engines) {
+		LOG_CTRACE("engine") << "--CHECK" << type << id << e.get() << e->type() << e->id();
+		if (e && e->type() == type && e->id() == id) {
+			return qobject_cast<T*>(e.get());
+		}
+	}
+	return nullptr;
+}
 
 
 #endif // WEBSOCKETSTREAM_H

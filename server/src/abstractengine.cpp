@@ -1,5 +1,6 @@
 #include "abstractengine.h"
 #include "Logger.h"
+#include "enginehandler.h"
 
 
 /**
@@ -8,12 +9,16 @@
  * @param parent
  */
 
-AbstractEngine::AbstractEngine(const Type &type, ServerService *service, QObject *parent)
+AbstractEngine::AbstractEngine(const Type &type, const int &id, EngineHandler *handler, QObject *parent)
 	: QObject{parent}
-	, m_service(service)
+	, m_handler(handler)
+	, m_service(handler ? handler->m_service : nullptr)
 	, m_type(type)
+	, m_id(id)
 {
-	LOG_CTRACE("engine") << "Abstract engine created:" << type << this;
+	Q_ASSERT(handler);
+
+	LOG_CTRACE("engine") << "Abstract engine created:" << m_type << m_id << this;
 }
 
 
@@ -24,7 +29,7 @@ AbstractEngine::AbstractEngine(const Type &type, ServerService *service, QObject
 
 AbstractEngine::~AbstractEngine()
 {
-	LOG_CTRACE("engine") << "Abstract engine destroyed:" << m_type << this;
+	LOG_CTRACE("engine") << "Abstract engine destroyed:" << m_type << m_id << this;
 }
 
 
@@ -40,15 +45,12 @@ void AbstractEngine::streamSet(WebSocketStream *stream)
 
 	LOG_CTRACE("engine") << "Engine stream set:" << this << stream;
 
-	m_worker.execInThread([this, stream](){
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
+	if (!m_streams.contains(stream)) {
+		m_streams.append(stream);
+		streamLinkedEvent(stream);
+	}
 
-		if (!m_streams.contains(stream)) {
-			m_streams.append(stream);
-			streamConnectedEvent(stream);
-		}
-	});
+	LOG_CTRACE("engine") << "Engine stream set finsihed" << this << stream << m_streams;
 }
 
 
@@ -62,16 +64,11 @@ void AbstractEngine::streamUnSet(WebSocketStream *stream)
 	if (!stream)
 		return;
 
-	LOG_CTRACE("engine") << "Engine stream unset:" << this << stream;
+	LOG_CTRACE("engine") << "Engine stream unset check" << stream;
 
-	m_worker.execInThread([this, stream](){
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
+	streamUnlinkedEvent(stream);
 
-		streamDisconnectedEvent(stream);
-
-		m_streams.removeAll(stream);
-	});
+	m_streams.removeAll(stream);
 }
 
 
@@ -113,35 +110,13 @@ const QVector<WebSocketStream *> &AbstractEngine::streams() const
 }
 
 
-
-/**
- * @brief AbstractEngine::triggerAll
- */
-
-void AbstractEngine::triggerAll()
+int AbstractEngine::id() const
 {
-	m_worker.execInThread([this](){
-		for (const auto &s : m_streams) {
-			if (s)
-				streamTriggerEvent(s);
-		}
-	});
+	return m_id;
 }
 
-
-/**
- * @brief AbstractEngine::trigger
- * @param stream
- */
-
-void AbstractEngine::trigger(WebSocketStream *stream)
+void AbstractEngine::setId(int newId)
 {
-	m_worker.execInThread([this, stream](){
-		LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-		QMutexLocker locker(&m_mutex);
-
-		if (stream && m_streams.contains(stream))
-			streamTriggerEvent(stream);
-	});
+	m_id = newId;
 }
 

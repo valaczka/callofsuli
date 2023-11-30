@@ -159,6 +159,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 	if (levelGame->mode() == GameMap::MultiPlayer) {
 		levelGame->load();
+		levelGame->setPageItem(nullptr);				/// Kivétel!
 		setGameState(StatePlay);
 		return;
 	}

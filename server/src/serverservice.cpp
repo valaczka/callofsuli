@@ -63,6 +63,7 @@ ServerService::ServerService(int &argc, char **argv)
 	, m_application(new QCoreApplication(argc, argv))
 	, m_settings(new ServerSettings)
 	, m_networkManager(new QNetworkAccessManager(this))
+	, m_engineHandler(new EngineHandler(this))
 {
 	Q_ASSERT(!m_instance);
 
@@ -93,8 +94,10 @@ ServerService::ServerService(int &argc, char **argv)
 	m_mainTimerInterval = 500;
 #endif
 
+
 	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
 		m_mainTimer.stop();
+		m_engineHandler.reset();
 		m_webServer.reset();
 		m_networkManager.reset();
 		m_authenticators.clear();
@@ -213,12 +216,7 @@ void ServerService::timerEvent(QTimerEvent *)
 {
 	LOG_CTRACE("service") << "Timer check";
 
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-
-	for (const auto &e : m_engines) {
-		e->timerTick();
-	}
+	m_engineHandler->timerEvent();
 
 	const QDateTime &current = QDateTime::currentDateTime();
 	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
@@ -228,26 +226,19 @@ void ServerService::timerEvent(QTimerEvent *)
 		return;
 #endif
 
-
 	m_mainTimerLastTick = dtMinute;
 
-	LOG_CTRACE("service") << "Timer check unlocked";
+	m_engineHandler->timerMinuteEvent();
 
-	if (PeerUser::clear(&m_peerUser)) {
-		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
-	}
+
+#ifdef _MAIN_TIMER_TEST_MODE
+	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
+		return;
+#endif
 
 	if (!m_databaseMain) {
 		LOG_CWARNING("service") << "Main database unavailable";
 		return;
-	}
-
-
-	// Check engines
-
-	for (const auto &e : m_engines) {
-		if (e->canDelete(e.use_count()))
-			engineRemove(e);
 	}
 
 	m_databaseMain->worker()->execInThread([this]() mutable {
@@ -340,22 +331,6 @@ void ServerService::setImitateLatency(int newImitateLatency)
 }
 
 
-/**
- * @brief ServerService::logPeerUser
- * @param user
- */
-
-bool ServerService::logPeerUser(const PeerUser &user)
-{
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-
-	bool ret = PeerUser::addOrUpdate(&m_peerUser, user);
-	if (ret)
-		m_webServer->webSocketHandler().trigger(WebSocketStream::StreamPeers);
-
-	return ret;
-}
 
 
 /**
@@ -815,7 +790,7 @@ void ServerService::stop()
 	m_state = ServerFinished;
 
 	if (m_webServer) {
-		m_webServer->webSocketHandler().closeAll();
+		m_engineHandler->websocketCloseAll();
 		m_webServer.reset();
 	}
 
@@ -840,7 +815,7 @@ void ServerService::pause()
 	LOG_CINFO("service") << "Server service pause";
 
 	if (m_webServer) {
-		m_webServer->webSocketHandler().closeAll();
+		m_engineHandler->websocketCloseAll();
 		m_webServer.reset();
 	}
 
@@ -888,91 +863,8 @@ int ServerService::mainTimerInterval() const
 }
 
 
-/**
- * @brief ServerService::mutex
- * @return
- */
-
-const QRecursiveMutex &ServerService::mutex() const
-{
-	return m_mutex;
-}
 
 
-/**
- * @brief ServerService::engines
- * @return
- */
-
-const QVector<std::shared_ptr<AbstractEngine> > &ServerService::engines() const
-{
-	return m_engines;
-}
-
-
-/**
- * @brief ServerService::engineAdd
- * @param engine
- */
-
-void ServerService::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
-{
-	if (!engine)
-		return;
-
-	LOG_CTRACE("service") << "Add engine:" << engine.get()->type() << engine.get();
-
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-
-	m_engines.append(std::move(engine));
-}
-
-
-/**
- * @brief ServerService::engineRemove
- * @param engine
- */
-
-void ServerService::engineRemove(const std::shared_ptr<AbstractEngine> &engine)
-{
-	LOG_CTRACE("service") << "Remove engine:" << engine->type();
-
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-
-	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
-		if (*it == engine)
-			it = m_engines.erase(it);
-		else
-			++it;
-	}
-}
-
-
-
-/**
- * @brief ServerService::engineRemove
- * @param engine
- */
-
-void ServerService::engineRemove(AbstractEngine *engine)
-{
-	if (!engine)
-		return;
-
-	LOG_CTRACE("service") << "Remove engine:" << engine->type() << engine;
-
-	LOG_CERROR("app") << "MUTEX LOCKER" << &m_mutex << QThread::currentThread();
-	QMutexLocker locker(&m_mutex);
-
-	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
-		if (it->get() == engine)
-			it = m_engines.erase(it);
-		else
-			++it;
-	}
-}
 
 
 
@@ -1048,202 +940,4 @@ void ServerService::setServerName(const QString &newServerName)
 }
 
 
-/**
- * @brief ServerService::peerUser
- * @return
- */
 
-const QVector<PeerUser> &ServerService::peerUser() const
-{
-	return m_peerUser;
-}
-
-
-
-
-/**
- * @brief PeerUser::add
- * @param list
- * @param user
- */
-
-QVector<PeerUser>::iterator PeerUser::find(QVector<PeerUser> *list, const PeerUser &user)
-{
-	Q_ASSERT(list);
-
-	QVector<PeerUser>::iterator it = list->begin();
-
-	for (; it != list->end(); ++it) {
-		if (*it == user)
-			break;
-	}
-
-	return it;
-}
-
-
-/**
- * @brief PeerUser::add
- * @param list
- * @param user
- */
-
-bool PeerUser::addOrUpdate(QVector<PeerUser> *list, const PeerUser &user)
-{
-	Q_ASSERT(list);
-
-	if (user.m_username.isEmpty())
-		return false;
-
-	auto it = find(list, user);
-
-	if (it == list->end()) {
-		list->append(user);
-		return true;
-	} else
-		it->setTimestamp(QDateTime::currentDateTime());
-
-	return false;
-}
-
-
-/**
- * @brief PeerUser::remove
- * @param list
- * @param user
- * @return
- */
-
-bool PeerUser::remove(QVector<PeerUser> *list, const PeerUser &user)
-{
-	Q_ASSERT(list);
-
-	if (user.m_username.isEmpty())
-		return false;
-
-	bool ret = false;
-
-	for (auto it = list->constBegin(); it != list->constEnd(); ) {
-		if (*it == user) {
-			it = list->erase(it);
-			ret = true;
-		} else
-			++it;
-	}
-
-	return ret;
-}
-
-
-
-/**
- * @brief PeerUser::clear
- * @param list
- */
-
-bool PeerUser::clear(QVector<PeerUser> *list, const qint64 &sec)
-{
-	Q_ASSERT(list);
-
-	const QDateTime &dt = QDateTime::currentDateTime();
-
-	bool ret = false;
-
-	for (auto it = list->constBegin(); it != list->constEnd(); ) {
-		if (!(it->m_timestamp).isValid() || it->m_timestamp.secsTo(dt) > sec) {
-			it = list->erase(it);
-			ret = true;
-		} else
-			++it;
-	}
-
-	return ret;
-}
-
-
-/**
- * @brief PeerUser::toJson
- * @param list
- * @return
- */
-
-QJsonArray PeerUser::toJson(const QVector<PeerUser> *list)
-{
-	Q_ASSERT(list);
-
-	QJsonArray ret;
-
-	foreach (const PeerUser &user, *list) {
-		QJsonObject o;
-		o.insert(QStringLiteral("username"), user.m_username);
-		o.insert(QStringLiteral("host"), user.m_host.toString());
-		o.insert(QStringLiteral("agent"), user.m_agent);
-		o.insert(QStringLiteral("timestamp"), user.m_timestamp.toSecsSinceEpoch());
-		ret.append(o);
-	}
-
-	return ret;
-}
-
-
-
-
-const QString &PeerUser::username() const
-{
-	return m_username;
-}
-
-void PeerUser::setUsername(const QString &newUsername)
-{
-	m_username = newUsername;
-}
-
-const QString &PeerUser::familyName() const
-{
-	return m_familyName;
-}
-
-void PeerUser::setFamilyName(const QString &newFamilyName)
-{
-	m_familyName = newFamilyName;
-}
-
-const QString &PeerUser::givenName() const
-{
-	return m_givenName;
-}
-
-void PeerUser::setGivenName(const QString &newGivenName)
-{
-	m_givenName = newGivenName;
-}
-
-const QHostAddress &PeerUser::host() const
-{
-	return m_host;
-}
-
-void PeerUser::setHost(const QHostAddress &newHost)
-{
-	m_host = newHost;
-}
-
-const QDateTime &PeerUser::timestamp() const
-{
-	return m_timestamp;
-}
-
-void PeerUser::setTimestamp(const QDateTime &newTimestamp)
-{
-	m_timestamp = newTimestamp;
-}
-
-const QString &PeerUser::agent() const
-{
-	return m_agent;
-}
-
-void PeerUser::setAgent(const QString &newAgent)
-{
-	m_agent = newAgent;
-}

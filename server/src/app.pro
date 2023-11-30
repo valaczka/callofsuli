@@ -48,6 +48,7 @@ SOURCES += \
 	authapi.cpp \
 	database.cpp \
 	databasemain.cpp \
+	enginehandler.cpp \
 	generalapi.cpp \
 	googleoauth2authenticator.cpp \
 	handler.cpp \
@@ -56,6 +57,7 @@ SOURCES += \
 	multiplayerengine.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
+	peerengine.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	teacherapi.cpp \
@@ -76,6 +78,7 @@ HEADERS += \
 	authapi.h \
 	database.h \
 	databasemain.h \
+	enginehandler.h \
 	generalapi.h \
 	googleoauth2authenticator.h \
 	handler.h \
@@ -83,6 +86,7 @@ HEADERS += \
 	multiplayerengine.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
+	peerengine.h \
 	serverservice.h \
 	serversettings.h \
 	teacherapi.h \

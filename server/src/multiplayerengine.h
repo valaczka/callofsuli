@@ -17,47 +17,43 @@ class MultiPlayerEngine : public AbstractEngine
 	Q_OBJECT
 
 public:
-	explicit MultiPlayerEngine(ServerService *service, QObject *parent = nullptr);
+	explicit MultiPlayerEngine(EngineHandler *handler, QObject *parent = nullptr);
 	virtual ~MultiPlayerEngine();
 
-	enum GameState {
-		StateInvalid = 0,
-		StateConnecting,
-		StateCreating,
-		StatePreparing,
-		StatePlaying,
-		StateFinished
-	};
+	static void handleWebSocketMessage(WebSocketStream *stream, const QJsonValue &message, EngineHandler *handler);
 
-	Q_ENUM(GameState);
+	static std::weak_ptr<MultiPlayerEngine> createEngine(WebSocketStream *stream, EngineHandler *handler);
+	static std::weak_ptr<AbstractEngine> connectToEngine(const int &id, WebSocketStream *stream, EngineHandler *handler);
 
-	static QVector<std::shared_ptr<AbstractEngine> >::const_iterator find(const QVector<std::shared_ptr<AbstractEngine> > &list, const int &id);
-	static void handleWebSocketTrigger(const QVector<WebSocketStream *> &list, ServerService *service, const int &engineId);
-	static void handleWebSocketMessage(WebSocketStream *stream, const QJsonValue &message, ServerService *service);
+	void startGame(WebSocketStream *stream);
+	void createGame(WebSocketStream *stream, const QJsonObject &data);
+	void prepareGame(WebSocketStream *stream);
 
 	virtual bool canDelete(const int &useCount) override;
-
-	int id() const;
-	void setId(int newId);
-
-	const GameState &gameState() const;
-	void setGameState(const GameState &newGameState);
 
 	WebSocketStream *hostStream() const;
 	void setHostStream(WebSocketStream *newHostStream);
 
 	virtual void timerTick() override;
 
-protected:
-	static void sendStreamJson(WebSocketStream *stream, const QJsonValue &value);
-	virtual void streamConnectedEvent(WebSocketStream *stream) override;
-	virtual void streamDisconnectedEvent(WebSocketStream *stream) override;
+	qint64 currentTick() const;
+
+	MultiPlayerGameState gameState() const;
+	void setGameState(MultiPlayerGameState newGameState);
+
 	virtual void streamTriggerEvent(WebSocketStream *stream) override;
 
+protected:
+	static void sendStreamJson(WebSocketStream *stream, const QJsonValue &value);
+	//virtual void streamLinkedEvent(WebSocketStream *stream) override;
+	virtual void streamUnlinkedEvent(WebSocketStream *stream) override;
+	virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) override;
+
 private:
-	void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *sender);
 	void renderStates();
 	void sendStates();
+	QByteArray getStates();
+	void playGame();
 
 
 	/**
@@ -116,19 +112,16 @@ private:
 
 
 
-	int m_id = 1;
-	GameState m_gameState = StateInvalid;
+	MultiPlayerGameState m_gameState = StateInvalid;
 	WebSocketStream *m_hostStream = nullptr;
+	QElapsedTimer m_elapsedTimer;
 
 	std::map<qint64, Entity> m_entities;
 	std::map<qint64, std::vector<std::unique_ptr<EntityState>>> m_states;
 
 	qint64 m_lastRenderedState = 0;
-	qint64 m_lastCachedState = 0;
-	qint64 m_lastSentState = 0;
 
 
-	QHash<WebSocketStream*, QMetaObject::Connection> m_signalHelper;
 	int m_t = 0;			/// tmp
 };
 
