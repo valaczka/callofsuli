@@ -19,6 +19,3 @@ LIBS += -lCuteLogger
 
 include($$PWD/QConsole/qconsole.pri)
 
-# Librg
-
-INCLUDEPATH += $$PWD/librg

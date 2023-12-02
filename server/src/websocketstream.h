@@ -84,6 +84,8 @@ private:
 
 	QVector<std::shared_ptr<AbstractEngine>> m_engines;
 
+	QList<QMetaObject::Connection> m_signalHelper;
+
 	friend class EngineHandler;
 	friend class EngineHandlerPrivate;
 };

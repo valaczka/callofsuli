@@ -40,22 +40,22 @@
 
 
 GameObject::GameObject(QQuickItem *parent)
-	: QQuickItem(parent)
-	, m_body(new Box2DBody(this))
+    : QQuickItem(parent)
+    , m_body(new Box2DBody(this))
 {
-	LOG_CDEBUG("scene") << "Create GameObject" << this;
-	setScene(static_cast<GameScene*>(parent));
+    LOG_CDEBUG("scene") << "Create GameObject" << this;
+    setScene(static_cast<GameScene*>(parent));
 
-	m_body->setBodyType(Box2DBody::Static);
-	m_body->setTarget(this);
-	m_body->setActive(true);
-	m_body->setSleepingAllowed(true);
+    m_body->setBodyType(Box2DBody::Static);
+    m_body->setTarget(this);
+    m_body->setActive(true);
+    m_body->setSleepingAllowed(true);
 
-	if (m_scene) {
-		onSceneChanged();
-	}
+    if (m_scene) {
+        onSceneChanged();
+    }
 
-	connect(this, &GameObject::sceneChanged, this, &GameObject::onSceneChanged);
+    connect(this, &GameObject::sceneChanged, this, &GameObject::onSceneChanged);
 }
 
 
@@ -67,7 +67,7 @@ GameObject::GameObject(QQuickItem *parent)
 
 GameObject::~GameObject()
 {
-	LOG_CDEBUG("scene") << "Destroy GameObject" << this;
+    LOG_CDEBUG("scene") << "Destroy GameObject" << this;
 }
 
 
@@ -79,34 +79,34 @@ GameObject::~GameObject()
 
 GameObject *GameObject::createFromFile(QString file, GameScene *scene, const bool &synchronous)
 {
-	if (file.startsWith(QStringLiteral(":")))
-		file.replace(QStringLiteral(":"), QStringLiteral("qrc:"));
-	else if (file.startsWith(QStringLiteral("/")))
-		file.replace(QStringLiteral("/"), QStringLiteral("qrc:/"));
-	else if (!file.startsWith(QStringLiteral("qrc:/")))
-		file.prepend(QStringLiteral("qrc:/"));
+    if (file.startsWith(QStringLiteral(":")))
+        file.replace(QStringLiteral(":"), QStringLiteral("qrc:"));
+    else if (file.startsWith(QStringLiteral("/")))
+        file.replace(QStringLiteral("/"), QStringLiteral("qrc:/"));
+    else if (!file.startsWith(QStringLiteral("qrc:/")))
+        file.prepend(QStringLiteral("qrc:/"));
 
 
-	QQmlComponent component(Application::instance()->engine(), file, scene);
+    QQmlComponent component(Application::instance()->engine(), file, scene);
 
-	LOG_CDEBUG("scene") << "Create object from file:" << file << component.isReady();
+    LOG_CDEBUG("scene") << "Create object from file:" << file << component.isReady();
 
-	// Synchronous
+    // Synchronous
 
-	if (synchronous)
-		return qobject_cast<GameObject*>(component.create());
+    if (synchronous)
+        return qobject_cast<GameObject*>(component.create());
 
 
-	// Asynchronous
+    // Asynchronous
 
-	QQmlIncubator incubator;
-	component.create(incubator, Application::instance()->engine()->contextForObject(scene));
+    QQmlIncubator incubator;
+    component.create(incubator, Application::instance()->engine()->contextForObject(scene));
 
-	while (!incubator.isReady()) {
-		QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
-	}
+    while (!incubator.isReady()) {
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+    }
 
-	return qobject_cast<GameObject*>(incubator.object());
+    return qobject_cast<GameObject*>(incubator.object());
 }
 
 
@@ -114,23 +114,23 @@ GameObject *GameObject::createFromFile(QString file, GameScene *scene, const boo
 
 GameScene *GameObject::scene() const
 {
-	return m_scene;
+    return m_scene;
 }
 
 void GameObject::setScene(GameScene *newScene)
 {
-	if (m_scene == newScene)
-		return;
-	m_scene = newScene;
-	emit sceneChanged();
-	emit gameChanged();
+    if (m_scene == newScene)
+        return;
+    m_scene = newScene;
+    emit sceneChanged();
+    emit gameChanged();
 }
 
 
 
 Box2DBody *GameObject::body() const
 {
-	return m_body.get();
+    return m_body.get();
 }
 
 
@@ -140,7 +140,7 @@ Box2DBody *GameObject::body() const
 
 void GameObject::bodyComplete()
 {
-	m_body->componentComplete();
+    m_body->componentComplete();
 }
 
 
@@ -151,7 +151,7 @@ void GameObject::bodyComplete()
 
 void GameObject::deleteSelf()
 {
-	this->deleteLater();
+    this->deleteLater();
 }
 
 
@@ -161,20 +161,20 @@ void GameObject::deleteSelf()
 
 void GameObject::onSceneChanged()
 {
-	if (m_sceneConnected)
-		return;
+    if (m_sceneConnected)
+        return;
 
-	if (m_scene) {
-		if (m_scene->world()) {
-			m_body->setWorld(m_scene->world());
-		}
+    if (m_scene) {
+        if (m_scene->world()) {
+            m_body->setWorld(m_scene->world());
+        }
 
-		if (m_scene) {
-			m_scene->gameObjectAdd(this);
-			emit sceneConnected();
-			m_sceneConnected = true;
-		}
-	}
+        if (m_scene) {
+            m_scene->gameObjectAdd(this);
+            emit sceneConnected();
+            m_sceneConnected = true;
+        }
+    }
 }
 
 
@@ -186,13 +186,13 @@ void GameObject::onSceneChanged()
 
 bool GameObject::getCurrentState(ObjectStateBase *ptr) const
 {
-	if (!ptr)
-		return false;
+    if (!ptr)
+        return false;
 
-	ptr->position = QPointF(x(), y());
-	ptr->size = QSizeF(width(), height());
+    ptr->position = QPointF(x(), y()+height());
+    ptr->size = QSizeF(width(), height());
 
-	return true;
+    return true;
 }
 
 
@@ -204,28 +204,26 @@ bool GameObject::getCurrentState(ObjectStateBase *ptr) const
  * @return
  */
 
-void GameObject::setCurrentState(const ObjectStateBase &state)
+void GameObject::setCurrentState(const ObjectStateBase &state, const bool &force)
 {
-	setHeight(state.size.height());
-	setWidth(state.size.width());
-	setX(state.position.x());
-	setY(state.position.y());
+    Q_UNUSED(force);
+
+    if (state.size != QSizeF(-1., -1.)) {
+        setHeight(state.size.height());
+        setWidth(state.size.width());
+    }
+
+    const qreal _x = state.position.x();
+    const qreal _y = state.position.y()-height();
+
+    if (_x != x() || _y != y()) {
+        setX(state.position.x());
+        setY(_y);
+        m_body->setAwake(true);
+    }
 }
 
 
-/**
- * @brief GameObject::updateStateQuickItem
- * @param state
- * @param item
- */
-
-void GameObject::updateStateQuickItem(ObjectStateEntity *state, QQuickItem *item)
-{
-	if (!state || !item)
-		return;
-
-	state->position.setY(state->position.y()-item->height());
-}
 
 
 
@@ -237,7 +235,7 @@ void GameObject::updateStateQuickItem(ObjectStateEntity *state, QQuickItem *item
 
 ActionGame *GameObject::game() const
 {
-	return m_scene ? m_scene->game() : nullptr;
+    return m_scene ? m_scene->game() : nullptr;
 }
 
 
@@ -249,15 +247,15 @@ ActionGame *GameObject::game() const
 
 const QString &GameObject::objectType() const
 {
-	return m_objectType;
+    return m_objectType;
 }
 
 void GameObject::setObjectType(const QString &newObjectType)
 {
-	if (m_objectType == newObjectType)
-		return;
-	m_objectType = newObjectType;
-	emit objectTypeChanged();
+    if (m_objectType == newObjectType)
+        return;
+    m_objectType = newObjectType;
+    emit objectTypeChanged();
 }
 
 
@@ -270,8 +268,8 @@ void GameObject::setObjectType(const QString &newObjectType)
 
 void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 {
-	Q_UNUSED(msec)
-	Q_UNUSED(delayFactor)
+    Q_UNUSED(msec)
+    Q_UNUSED(delayFactor)
 }
 
 
@@ -280,13 +278,13 @@ void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
  * @param ptr
  */
 
-void GameObject::setStateFromSnapshot(ObjectStateBase *ptr)
+void GameObject::setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force)
 {
-	if (!ptr)
-		return;
+    if (!ptr)
+        return;
 
-	LOG_CTRACE("scene") << "Load state from snapshot" << ptr;
+    LOG_CTRACE("scene") << "Load state from snapshot" << ptr << force;
 
-	setCurrentState(*ptr);
+    setCurrentState(*ptr, force);
 }
 

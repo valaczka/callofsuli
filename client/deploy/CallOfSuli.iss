@@ -13,6 +13,8 @@ LicenseFile=LICENSE
 AppCopyright=Copyright (C) 2012-2023 Valaczka János Pál
 DisableDirPage=auto
 DisableProgramGroupPage=auto
+MinVersion={#WinMinVersion}
+OnlyBelowVersion={#WinMaxVersion}
 
 [Files]
 Source: "*"; DestDir: "{app}"; Excludes: "CallOfSuli.iss"; Flags: recursesubdirs
@@ -66,6 +68,8 @@ function InitializeSetup(): Boolean;
 begin
   FilesNotToBeDeleted := TStringList.Create;
   FilesNotToBeDeleted.Add('\data');
+  FilesNotToBeDeleted.Add('\unins000.dat');
+  FilesNotToBeDeleted.Add('\unins000.exe');
   {#Trim(ProcessFolder('.\', ''))}
   FilesNotToBeDeleted.Sorted := True;
   Result := True;

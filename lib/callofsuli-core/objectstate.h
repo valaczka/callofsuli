@@ -12,12 +12,12 @@
 #define OBJECT_STATE_BASE_VERSION 1
 
 enum MultiPlayerGameState {
-	StateInvalid = 0,
-	StateConnecting,
-	StateCreating,
-	StatePreparing,
-	StatePlaying,
-	StateFinished
+    StateInvalid = 0,
+    StateConnecting,
+    StateCreating,
+    StatePreparing,
+    StatePlaying,
+    StateFinished
 };
 
 /**
@@ -25,85 +25,160 @@ enum MultiPlayerGameState {
  */
 
 struct ObjectStateBase {
-	virtual ~ObjectStateBase() = default;
+    virtual ~ObjectStateBase() = default;
 
-	enum ObjectType {
-		TypeInvalid = 0,
-		TypeBase,
-		TypeEntity,
-		TypePlayer,
-		TypeEnemy,
-		TypeEnemySoldier,
-		TypeEnemySniper
-	};
+    enum ObjectType {
+        TypeInvalid = 0,
+        TypeBase,
+        TypeEntity,
+        TypePlayer,
+        TypeEnemy,
+        TypeEnemySoldier,
+        TypeEnemySniper
+    };
 
-	enum ServerState {
-		StateInvalid = 0,
-		StateActive,
-		StateInactive,
-		StateSleep
-	};
+    enum ServerState {
+        StateInvalid = 0,
+        StateActive,
+        StateInactive,
+        StateSleep
+    };
 
-	qint64 id = -1;					// object id
-	ObjectType type = TypeBase;
-	ServerState state = StateInvalid;
-	qint64 tick = 0;
+    qint64 id = -1;					// object id
+    ObjectType type = TypeBase;
+    ServerState state = StateInvalid;
+    qint64 tick = 0;
 
-	QPointF position = {-1., -1.};
-	QSizeF size = {-1., -1.};
-
-
-	/**
-	 * @brief toDataStream
-	 * @param stream
-	 */
-
-	virtual void toDataStream(QDataStream &stream) const {
-		stream << id;
-		stream << type;
-		stream << tick;
-		stream << state;
-		stream << position;
-		stream << size;
-	}
+    QPointF position = {-1., -1.};		// *Bottom*Left corner
+    QSizeF size = {-1., -1.};
 
 
-	virtual void toReadable(QByteArray *data) const {
-		data->append(QStringLiteral("id: %1\n").arg(id).toUtf8());
-		data->append(QStringLiteral("type: %1\n").arg(type).toUtf8());
-		data->append(QStringLiteral("tick: %1\n").arg(tick).toUtf8());
-		data->append(QStringLiteral("state: %1\n").arg(state).toUtf8());
-		data->append(QStringLiteral("position: %1,%2\n").arg(position.x()).arg(position.y()).toUtf8());
-		data->append(QStringLiteral("size: %1x%2\n").arg(size.width()).arg(size.height()).toUtf8());
-	};
+    /**
+     * @brief toDataStream
+     * @param stream
+     */
 
-	/**
-	 * @brief fromDataStream
-	 * @param stream
-	 * @param ptr
-	 * @return
-	 */
-
-	virtual bool fromDataStream(QDataStream &stream) {
-		stream >> id;
-		stream >> type;
-		stream >> tick;
-		stream >> state;
-		stream >> position;
-		stream >> size;
-
-		if (type == TypeInvalid) {
-			LOG_CWARNING("app") << "Invalid stream exception";
-			return false;
-		}
-
-		return true;
-	}
-
-	virtual ObjectStateBase* clone() const { return new ObjectStateBase(*this); }
+    virtual void toDataStream(QDataStream &stream) const {
+        stream << id;
+        stream << type;
+        stream << tick;
+        stream << state;
+        stream << position;
+        stream << size;
+    }
 
 
-	static ObjectStateBase* fromType(const ObjectType &type);
+    virtual void toReadable(QByteArray *data) const {
+        data->append(QStringLiteral("id: %1\n").arg(id).toUtf8());
+        data->append(QStringLiteral("type: %1\n").arg(type).toUtf8());
+        data->append(QStringLiteral("tick: %1\n").arg(tick).toUtf8());
+        data->append(QStringLiteral("state: %1\n").arg(state).toUtf8());
+        data->append(QStringLiteral("position: %1,%2\n").arg(position.x()).arg(position.y()).toUtf8());
+        data->append(QStringLiteral("size: %1x%2\n").arg(size.width()).arg(size.height()).toUtf8());
+    };
+
+    /**
+     * @brief fromDataStream
+     * @param stream
+     * @param ptr
+     * @return
+     */
+
+    virtual bool fromDataStream(QDataStream &stream) {
+        stream >> id;
+        stream >> type;
+        stream >> tick;
+        stream >> state;
+        stream >> position;
+        stream >> size;
+
+        if (type == TypeInvalid) {
+            LOG_CWARNING("app") << "Invalid stream exception";
+            return false;
+        }
+
+        return true;
+    }
+
+    virtual ObjectStateBase* clone() const { return new ObjectStateBase(*this); }
+
+
+    static ObjectStateBase* fromType(const ObjectType &type);
+
+    template <typename T>
+    static bool stateReconciliation(T *ptr, std::vector<T> *list, bool (*func)(const T &from, const T &to))
+    {
+        Q_ASSERT (ptr);
+        Q_ASSERT (list);
+
+        for (auto it = list->rbegin(); it != list->rend(); ++it) {
+            if (it->tick < ptr->tick) {
+                LOG_CINFO("game") << "*** erase state" << it->tick;
+                list->erase(it.base()-1);
+            } else {
+                LOG_CINFO("game") << "=== hold state" << it->tick;
+            }
+        }
+
+        for (auto it = list->begin(); it != list->end(); ++it) {
+            LOG_CINFO("game") << "??? prediction" << it->tick;
+
+            if (func(*ptr, *it)) {
+                LOG_CTRACE("game") << "   => override" << ptr << &*it;
+                ptr = &*it;
+            } else {
+                LOG_CERROR("game") << "unable to override";
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    virtual void interpolate(const qreal &t, ObjectStateBase *toState)
+    {
+        Q_ASSERT(toState);
+        size.setWidth(std::lerp(size.width(), toState->size.width(), t));
+        size.setHeight(std::lerp(size.height(), toState->size.height(), t));
+        position.setX(std::lerp(position.x(), toState->position.x(), t));
+        position.setY(std::lerp(position.y(), toState->position.y(), t));
+    }
+
+
+    template <typename T>
+    static std::optional<T> interpolateStates(const qint64 &currentTick, const QMap<qint64, T> &authoritativeStates, T* defaultPtr = nullptr)
+    {
+        if (authoritativeStates.size() < 2) {
+            if (defaultPtr)
+                return *defaultPtr;
+            else
+                return std::nullopt;
+        }
+
+        auto it = authoritativeStates.constEnd();
+        --it;
+        const qint64 toTick = it.key();
+        T state2 = it.value();
+        --it;
+        const qint64 fromTick = it.key();
+        T state1 = it.value();
+
+        const qint64 timeWindow = toTick-fromTick;
+
+        //qDebug() << "FROM" << fromTick << "TO" << toTick << "curr" << currentTick << "W" << time;
+
+        if (fromTick > currentTick || toTick > currentTick || (currentTick-toTick > 2*timeWindow)) {
+            if (defaultPtr)
+                return *defaultPtr;
+            else
+                return std::nullopt;
+        }
+
+        state1.interpolate((qreal)(currentTick-toTick)/(qreal)(timeWindow), &state2);
+
+        return state1;
+    }
 };
 
 
@@ -118,40 +193,57 @@ typedef std::vector<std::unique_ptr<ObjectStateBase> > ObjectStateVector;
  */
 
 struct ObjectStateEntity : public ObjectStateBase {
-	ObjectStateEntity() : ObjectStateBase() { type = TypeEntity; }
+    ObjectStateEntity() : ObjectStateBase() { type = TypeEntity; }
 
-	qint32 hp = -1;
-	qint32 maxHp = -1;
-	bool facingLeft = false;
+    qint32 hp = -1;
+    qint32 maxHp = -1;
+    bool facingLeft = false;
 
-	virtual void toDataStream(QDataStream &stream) const override {
-		ObjectStateBase::toDataStream(stream);
+    virtual void toDataStream(QDataStream &stream) const override {
+        ObjectStateBase::toDataStream(stream);
 
-		stream << hp;
-		stream << maxHp;
-		stream << facingLeft;
-	}
+        stream << hp;
+        stream << maxHp;
+        stream << facingLeft;
+    }
 
-	virtual void toReadable(QByteArray *data) const override {
-		ObjectStateBase::toReadable(data);
-		data->append(QStringLiteral("hp: %1\n").arg(hp).toUtf8());
-		data->append(QStringLiteral("maxHp: %1\n").arg(maxHp).toUtf8());
-		data->append(QStringLiteral("facingLeft: %1\n").arg(facingLeft).toUtf8());
-	};
+    virtual void toReadable(QByteArray *data) const override {
+        ObjectStateBase::toReadable(data);
+        data->append(QStringLiteral("hp: %1\n").arg(hp).toUtf8());
+        data->append(QStringLiteral("maxHp: %1\n").arg(maxHp).toUtf8());
+        data->append(QStringLiteral("facingLeft: %1\n").arg(facingLeft).toUtf8());
+    };
 
-	virtual bool fromDataStream(QDataStream &stream) override {
-		if (!ObjectStateBase::fromDataStream(stream))
-			return false;
+    virtual bool fromDataStream(QDataStream &stream) override {
+        if (!ObjectStateBase::fromDataStream(stream))
+            return false;
 
-		stream >> hp;
-		stream >> maxHp;
-		stream >> facingLeft;
+        stream >> hp;
+        stream >> maxHp;
+        stream >> facingLeft;
 
-		return true;
-	}
+        return true;
+    }
 
-	virtual ObjectStateBase* clone() const override { return new ObjectStateEntity(*this); }
+    virtual ObjectStateBase* clone() const override { return new ObjectStateEntity(*this); }
 
+    virtual void interpolate(const qreal &t, ObjectStateBase *toState) override
+    {
+        Q_ASSERT(toState);
+
+        if (ObjectStateEntity *ptr = dynamic_cast<ObjectStateEntity*>(toState); ptr != nullptr) {
+            if (t < 1.0) {
+                if (ptr->position.x() > position.x())
+                    facingLeft = false;
+                else if (ptr->position.x() < position.x())
+                    facingLeft = true;
+            } else {
+                facingLeft = ptr->facingLeft;
+            }
+        }
+
+        ObjectStateBase::interpolate(t, toState);
+    }
 };
 
 
@@ -163,53 +255,73 @@ struct ObjectStateEntity : public ObjectStateBase {
  */
 
 struct ObjectStateEnemy : public ObjectStateEntity {
-	ObjectStateEnemy() : ObjectStateEntity() { type = TypeEnemy; }
+    ObjectStateEnemy() : ObjectStateEntity() { type = TypeEnemy; }
 
-	enum EnemyState {
-		Invalid = 0,
-		Idle,
-		Move,
-		WatchPlayer,
-		Attack,
-		Dead
-	};
+    enum EnemyState {
+        Invalid = 0,
+        Idle,
+        Move,
+        WatchPlayer,
+        Attack,
+        Dead
+    };
 
-	EnemyState enemyState = Invalid;
-	QRectF enemyRect;
-	double msecLeftToAttack = -1;
+    EnemyState enemyState = Invalid;
+    QRectF enemyRect;
+    double msecLeftToAttack = -1;
 
-	virtual void toDataStream(QDataStream &stream) const override {
-		ObjectStateEntity::toDataStream(stream);
+    virtual void toDataStream(QDataStream &stream) const override {
+        ObjectStateEntity::toDataStream(stream);
 
-		stream << enemyState;
-		stream << enemyRect;
-		stream << msecLeftToAttack;
-	}
+        stream << enemyState;
+        stream << enemyRect;
+        stream << msecLeftToAttack;
+    }
 
-	virtual void toReadable(QByteArray *data) const override {
-		ObjectStateEntity::toReadable(data);
-		data->append(QStringLiteral("enemyState: %1\n").arg(enemyState).toUtf8());
-		data->append(QStringLiteral("enemyRect: %1x%2+%3,%4\n").arg(enemyRect.width())
-					 .arg(enemyRect.height())
-					 .arg(enemyRect.x())
-					 .arg(enemyRect.y())
-					 .toUtf8());
-		data->append(QStringLiteral("msecLeftToAttack: %1\n").arg(msecLeftToAttack).toUtf8());
-	};
+    virtual void toReadable(QByteArray *data) const override {
+        ObjectStateEntity::toReadable(data);
+        data->append(QStringLiteral("enemyState: %1\n").arg(enemyState).toUtf8());
+        data->append(QStringLiteral("enemyRect: %1x%2+%3,%4\n").arg(enemyRect.width())
+                         .arg(enemyRect.height())
+                         .arg(enemyRect.x())
+                         .arg(enemyRect.y())
+                         .toUtf8());
+        data->append(QStringLiteral("msecLeftToAttack: %1\n").arg(msecLeftToAttack).toUtf8());
+    };
 
 
-	virtual bool fromDataStream(QDataStream &stream) override {
-		if (!ObjectStateEntity::fromDataStream(stream))
-			return false;
+    virtual bool fromDataStream(QDataStream &stream) override {
+        if (!ObjectStateEntity::fromDataStream(stream))
+            return false;
 
-		stream >> enemyState;
-		stream >> enemyRect;
-		stream >> msecLeftToAttack;
+        stream >> enemyState;
+        stream >> enemyRect;
+        stream >> msecLeftToAttack;
 
-		return true;
-	}
+        return true;
+    }
 
-	virtual ObjectStateBase* clone() const override { return new ObjectStateEnemy(*this); }
+    virtual ObjectStateBase* clone() const override { return new ObjectStateEnemy(*this); }
+
+    virtual void interpolate(const qreal &t, ObjectStateBase *toState) override
+    {
+        Q_ASSERT(toState);
+
+        if (ObjectStateEnemy *ptr = dynamic_cast<ObjectStateEnemy*>(toState); ptr != nullptr) {
+            if (t < 1.0) {
+                if (ptr->position.x() != position.x())
+                    enemyState = Move;
+                else if (ptr->position.x() == position.x() && enemyState == Move)
+                    enemyState = ptr->enemyState == Move ? Idle : ptr->enemyState;
+            } else {
+                enemyState = ptr->enemyState;
+            }
+
+            msecLeftToAttack = std::lerp(msecLeftToAttack, ptr->msecLeftToAttack, t);
+        }
+
+        ObjectStateEntity::interpolate(t, toState);
+    }
 };
 
 
@@ -220,39 +332,51 @@ struct ObjectStateEnemy : public ObjectStateEntity {
  */
 
 struct ObjectStateEnemySoldier : public ObjectStateEnemy {
-	ObjectStateEnemySoldier() : ObjectStateEnemy() { type = TypeEnemySoldier; }
+    ObjectStateEnemySoldier() : ObjectStateEnemy() { type = TypeEnemySoldier; }
 
-	int turnElapsedMsec = 0;
-	int attackElapsedMsec = 0;
-	QByteArray subType;
+    int turnElapsedMsec = 0;
+    int attackElapsedMsec = 0;
+    QByteArray subType;
 
-	virtual void toDataStream(QDataStream &stream) const override {
-		ObjectStateEnemy::toDataStream(stream);
+    virtual void toDataStream(QDataStream &stream) const override {
+        ObjectStateEnemy::toDataStream(stream);
 
-		stream << turnElapsedMsec;
-		stream << attackElapsedMsec;
-		stream << subType;
-	}
+        stream << turnElapsedMsec;
+        stream << attackElapsedMsec;
+        stream << subType;
+    }
 
-	virtual void toReadable(QByteArray *data) const override {
-		ObjectStateEnemy::toReadable(data);
-		data->append(QStringLiteral("subType: %1\n").arg(subType).toUtf8());
-		data->append(QStringLiteral("turnElapsedMsec: %1\n").arg(turnElapsedMsec).toUtf8());
-		data->append(QStringLiteral("attackElapsedMsec: %1\n").arg(attackElapsedMsec).toUtf8());
-	};
+    virtual void toReadable(QByteArray *data) const override {
+        ObjectStateEnemy::toReadable(data);
+        data->append(QStringLiteral("subType: %1\n").arg(subType).toUtf8());
+        data->append(QStringLiteral("turnElapsedMsec: %1\n").arg(turnElapsedMsec).toUtf8());
+        data->append(QStringLiteral("attackElapsedMsec: %1\n").arg(attackElapsedMsec).toUtf8());
+    };
 
-	virtual bool fromDataStream(QDataStream &stream) override {
-		if (!ObjectStateEnemy::fromDataStream(stream))
-			return false;
+    virtual bool fromDataStream(QDataStream &stream) override {
+        if (!ObjectStateEnemy::fromDataStream(stream))
+            return false;
 
-		stream >> turnElapsedMsec;
-		stream >> attackElapsedMsec;
-		stream >> subType;
+        stream >> turnElapsedMsec;
+        stream >> attackElapsedMsec;
+        stream >> subType;
 
-		return true;
-	}
+        return true;
+    }
 
-	virtual ObjectStateBase* clone() const override { return new ObjectStateEnemySoldier(*this); }
+    virtual ObjectStateBase* clone() const override { return new ObjectStateEnemySoldier(*this); }
+
+    virtual void interpolate(const qreal &t, ObjectStateBase *toState) override
+    {
+        Q_ASSERT(toState);
+
+        if (ObjectStateEnemySoldier *ptr = dynamic_cast<ObjectStateEnemySoldier*>(toState); ptr != nullptr) {
+            turnElapsedMsec = std::lerp(turnElapsedMsec, ptr->turnElapsedMsec, t);
+            attackElapsedMsec = std::lerp(attackElapsedMsec, ptr->attackElapsedMsec, t);
+        }
+
+        ObjectStateEnemy::interpolate(t, toState);
+    }
 };
 
 
@@ -265,224 +389,224 @@ struct ObjectStateEnemySoldier : public ObjectStateEnemy {
  */
 
 struct ObjectStateSnapshot {
-	ObjectStateVector list;
+    ObjectStateVector list;
 
 
-	/**
-	 * @brief append
-	 * @param ptr
-	 */
+    /**
+     * @brief append
+     * @param ptr
+     */
 
-	void append(std::unique_ptr<ObjectStateBase> &ptr)
-	{
-		list.push_back(std::move(ptr));
-	}
+    void append(std::unique_ptr<ObjectStateBase> &ptr)
+    {
+        list.push_back(std::move(ptr));
+    }
 
-	/**
-	 * @brief toByteArray
-	 * @return
-	 */
+    /**
+     * @brief toByteArray
+     * @return
+     */
 
-	QByteArray toByteArray() const
-	{
-		QByteArray s;
-		QDataStream stream(&s, QIODevice::WriteOnly);
-		stream.setVersion(QDataStream::Qt_5_15);
+    QByteArray toByteArray() const
+    {
+        QByteArray s;
+        QDataStream stream(&s, QIODevice::WriteOnly);
+        stream.setVersion(QDataStream::Qt_5_15);
 
-		quint32 version = OBJECT_STATE_BASE_VERSION;
+        quint32 version = OBJECT_STATE_BASE_VERSION;
 
-		stream << (quint32) 0x434F53;			// COS
-		stream << QByteArrayLiteral("OBJ");
-		stream << version;
-		stream << (quint64) list.size();
+        stream << (quint32) 0x434F53;			// COS
+        stream << QByteArrayLiteral("OBJ");
+        stream << version;
+        stream << (quint64) list.size();
 
-		for (const auto &b : list) {
-			b->toDataStream(stream);
-		}
+        for (const auto &b : list) {
+            b->toDataStream(stream);
+        }
 
-		return s;
-	}
+        return s;
+    }
 
 
-	/**
-	 * @brief toByteArray
-	 * @param list
-	 * @return
-	 */
+    /**
+     * @brief toByteArray
+     * @param list
+     * @return
+     */
 
-	static QByteArray toByteArray(const std::vector<ObjectStateBase*> &list)
-	{
-		QByteArray s;
-		QDataStream stream(&s, QIODevice::WriteOnly);
-		stream.setVersion(QDataStream::Qt_5_15);
+    static QByteArray toByteArray(const std::vector<ObjectStateBase*> &list)
+    {
+        QByteArray s;
+        QDataStream stream(&s, QIODevice::WriteOnly);
+        stream.setVersion(QDataStream::Qt_5_15);
 
-		quint32 version = OBJECT_STATE_BASE_VERSION;
+        quint32 version = OBJECT_STATE_BASE_VERSION;
 
-		stream << (quint32) 0x434F53;			// COS
-		stream << QByteArrayLiteral("OBJ");
-		stream << version;
-		stream << (quint64) list.size();
+        stream << (quint32) 0x434F53;			// COS
+        stream << QByteArrayLiteral("OBJ");
+        stream << version;
+        stream << (quint64) list.size();
 
-		for (const auto &b : list) {
-			b->toDataStream(stream);
-		}
+        for (const auto &b : list) {
+            b->toDataStream(stream);
+        }
 
-		return s;
-	}
+        return s;
+    }
 
 
-	/**
-	 * @brief toReadable
-	 * @return
-	 */
+    /**
+     * @brief toReadable
+     * @return
+     */
 
-	QByteArray toReadable() const
-	{
-		QByteArray s;
+    QByteArray toReadable() const
+    {
+        QByteArray s;
 
-		s.append(QStringLiteral("Size: %1\n").arg(list.size()).toUtf8());
-		s.append(QByteArrayLiteral("==============================================\n"));
+        s.append(QStringLiteral("Size: %1\n").arg(list.size()).toUtf8());
+        s.append(QByteArrayLiteral("==============================================\n"));
 
-		for (const auto &b : list) {
-			b->toReadable(&s);
-			s.append(QByteArrayLiteral("-----------------------------------------------\n"));
-		}
+        for (const auto &b : list) {
+            b->toReadable(&s);
+            s.append(QByteArrayLiteral("-----------------------------------------------\n"));
+        }
 
-		s.append(QByteArrayLiteral("==============================================\n"));
+        s.append(QByteArrayLiteral("==============================================\n"));
 
-		return s;
-	}
+        return s;
+    }
 
 
-	/**
-	 * @brief fromByteArray
-	 * @param data
-	 * @return
-	 */
+    /**
+     * @brief fromByteArray
+     * @param data
+     * @return
+     */
 
-	static std::optional<ObjectStateSnapshot> fromByteArray(const QByteArray &data)
-	{
-		QDataStream stream(data);
-		stream.setVersion(QDataStream::Qt_5_15);
+    static std::optional<ObjectStateSnapshot> fromByteArray(const QByteArray &data)
+    {
+        QDataStream stream(data);
+        stream.setVersion(QDataStream::Qt_5_15);
 
-		quint32 magic = 0;
-		QByteArray str;
+        quint32 magic = 0;
+        QByteArray str;
 
-		stream >> magic >> str;
+        stream >> magic >> str;
 
-		if (magic != 0x434F53 || str != QByteArrayLiteral("OBJ")) {			// COS
-			LOG_CWARNING("app") << "Invalid stream data";
-			return std::nullopt;
-		}
+        if (magic != 0x434F53 || str != QByteArrayLiteral("OBJ")) {			// COS
+            LOG_CWARNING("app") << "Invalid stream data";
+            return std::nullopt;
+        }
 
-		quint32 version = 0;
+        quint32 version = 0;
 
-		stream >> version;
+        stream >> version;
 
-		if (version != OBJECT_STATE_BASE_VERSION) {
-			LOG_CERROR("app") << "Invalid stream version:" << version;
-			return std::nullopt;
-		}
+        if (version != OBJECT_STATE_BASE_VERSION) {
+            LOG_CERROR("app") << "Invalid stream version:" << version;
+            return std::nullopt;
+        }
 
-		quint64 size = 0;
+        quint64 size = 0;
 
-		ObjectStateSnapshot snap;
+        ObjectStateSnapshot snap;
 
-		stream >> size;
+        stream >> size;
 
-		snap.list.reserve(size);
+        snap.list.reserve(size);
 
-		for (quint64 i=0; i<size; ++i) {
-			stream.startTransaction();
+        for (quint64 i=0; i<size; ++i) {
+            stream.startTransaction();
 
-			qint64 id = -1;
-			ObjectStateBase::ObjectType type = ObjectStateBase::TypeInvalid;
+            qint64 id = -1;
+            ObjectStateBase::ObjectType type = ObjectStateBase::TypeInvalid;
 
-			stream >> id >> type;
+            stream >> id >> type;
 
-			stream.rollbackTransaction();
+            stream.rollbackTransaction();
 
-			std::unique_ptr<ObjectStateBase> _ptr(ObjectStateBase::fromType(type));
+            std::unique_ptr<ObjectStateBase> _ptr(ObjectStateBase::fromType(type));
 
-			if (_ptr && _ptr->fromDataStream(stream)) {
-				snap.list.push_back(std::move(_ptr));
-			}
-		}
+            if (_ptr && _ptr->fromDataStream(stream)) {
+                snap.list.push_back(std::move(_ptr));
+            }
+        }
 
-		snap.list.shrink_to_fit();
+        snap.list.shrink_to_fit();
 
-		return snap;
-	}
+        return snap;
+    }
 
 
 
 
-	/**
-	 * @brief moveTo
-	 * @param src
-	 * @param dest
-	 * @return
-	 */
+    /**
+     * @brief moveTo
+     * @param src
+     * @param dest
+     * @return
+     */
 
-	static void copyTo(ObjectStateBase *src, ObjectStateVector *dest)
-	{
-		Q_ASSERT(src);
-		Q_ASSERT(dest);
+    static void copyTo(ObjectStateBase *src, ObjectStateVector *dest)
+    {
+        Q_ASSERT(src);
+        Q_ASSERT(dest);
 
-		std::unique_ptr<ObjectStateBase> ptr(src->clone());
-		dest->push_back(std::move(ptr));
-	}
+        std::unique_ptr<ObjectStateBase> ptr(src->clone());
+        dest->push_back(std::move(ptr));
+    }
 
 
-	/**
-	 * @brief copyTo
-	 * @param src
-	 * @param dest
-	 * @return
-	 */
+    /**
+     * @brief copyTo
+     * @param src
+     * @param dest
+     * @return
+     */
 
-	static void copyTo(const std::unique_ptr<ObjectStateBase> &src, ObjectStateVector *dest)
-	{
-		Q_ASSERT(dest);
+    static void copyTo(const std::unique_ptr<ObjectStateBase> &src, ObjectStateVector *dest)
+    {
+        Q_ASSERT(dest);
 
-		std::unique_ptr<ObjectStateBase> ptr(src->clone());
-		dest->push_back(std::move(ptr));
-	}
+        std::unique_ptr<ObjectStateBase> ptr(src->clone());
+        dest->push_back(std::move(ptr));
+    }
 
 
 
-	/**
-	 * @brief moveTo
-	 * @param src
-	 * @param dest
-	 */
+    /**
+     * @brief moveTo
+     * @param src
+     * @param dest
+     */
 
-	static void moveTo(std::unique_ptr<ObjectStateBase> &src, ObjectStateVector *dest)
-	{
-		Q_ASSERT(dest);
+    static void moveTo(std::unique_ptr<ObjectStateBase> &src, ObjectStateVector *dest)
+    {
+        Q_ASSERT(dest);
 
-		std::unique_ptr<ObjectStateBase> ptr(src.release());
-		dest->push_back(std::move(ptr));
-	}
+        std::unique_ptr<ObjectStateBase> ptr(src.release());
+        dest->push_back(std::move(ptr));
+    }
 
-	/**
-	 * @brief moveTo
-	 * @param dest
-	 */
+    /**
+     * @brief moveTo
+     * @param dest
+     */
 
-	void moveTo(ObjectStateVector *dest)
-	{
-		Q_ASSERT(dest);
+    void moveTo(ObjectStateVector *dest)
+    {
+        Q_ASSERT(dest);
 
-		dest->reserve(dest->size()+list.size());
+        dest->reserve(dest->size()+list.size());
 
-		for (auto it=list.begin(); it != list.end(); ) {
-			copyTo(*it, dest);
-			it = list.erase(it);
-		}
+        for (auto it=list.begin(); it != list.end(); ) {
+            copyTo(*it, dest);
+            it = list.erase(it);
+        }
 
-		dest->shrink_to_fit();
-	}
+        dest->shrink_to_fit();
+    }
 };
 
 
@@ -496,37 +620,37 @@ struct ObjectStateSnapshot {
 
 inline ObjectStateBase *ObjectStateBase::fromType(const ObjectType &type)
 {
-	ObjectStateBase *ptr = nullptr;
+    ObjectStateBase *ptr = nullptr;
 
-	switch (type) {
-	case ObjectStateBase::TypeInvalid:
-		LOG_CERROR("app") << "Invalid object state type";
-		return nullptr;
-		break;
+    switch (type) {
+    case ObjectStateBase::TypeInvalid:
+        LOG_CERROR("app") << "Invalid object state type";
+        return nullptr;
+        break;
 
-	case ObjectStateBase::TypeBase:
-		ptr = new ObjectStateBase();
-		break;
+    case ObjectStateBase::TypeBase:
+        ptr = new ObjectStateBase();
+        break;
 
-	case ObjectStateBase::TypeEntity:
-		ptr = new ObjectStateEntity();
-		break;
+    case ObjectStateBase::TypeEntity:
+        ptr = new ObjectStateEntity();
+        break;
 
-	case ObjectStateBase::TypeEnemy:
-		ptr = new ObjectStateEnemy();
-		break;
+    case ObjectStateBase::TypeEnemy:
+        ptr = new ObjectStateEnemy();
+        break;
 
-	case ObjectStateBase::TypeEnemySoldier:
-		ptr = new ObjectStateEnemySoldier();
-		break;
+    case ObjectStateBase::TypeEnemySoldier:
+        ptr = new ObjectStateEnemySoldier();
+        break;
 
-	case ObjectStateBase::TypePlayer:
-	case ObjectStateBase::TypeEnemySniper:
-		LOG_CWARNING("app") << "Stream data skipped" << type;
-		break;
-	}
+    case ObjectStateBase::TypePlayer:
+    case ObjectStateBase::TypeEnemySniper:
+        LOG_CWARNING("app") << "Stream data skipped" << type;
+        break;
+    }
 
-	return ptr;
+    return ptr;
 }
 
 

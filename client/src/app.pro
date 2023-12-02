@@ -3,7 +3,7 @@ TARGET = callofsuli
 
 QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets
 
-CONFIG += c++17
+CONFIG += c++20
 CONFIG += separate_debug_info
 CONFIG += permissions
 

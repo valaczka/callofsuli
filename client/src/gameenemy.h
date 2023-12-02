@@ -46,114 +46,112 @@ class GamePlayer;
 
 class GameEnemy : public GameEntity
 {
-	Q_OBJECT
+    Q_OBJECT
 
-	Q_PROPERTY(bool aimedByPlayer READ aimedByPlayer WRITE setAimedByPlayer NOTIFY aimedByPlayerChanged)
-	Q_PROPERTY(qreal castAttackFraction READ castAttackFraction WRITE setCastAttackFraction NOTIFY castAttackFractionChanged)
-	Q_PROPERTY(qreal msecBeforeAttack READ msecBeforeAttack WRITE setMsecBeforeAttack NOTIFY msecBeforeAttackChanged)
-	Q_PROPERTY(qreal msecBetweenAttack READ msecBetweenAttack WRITE setMsecBetweenAttack NOTIFY msecBetweenAttackChanged)
-	Q_PROPERTY(EnemyState enemyState READ enemyState WRITE setEnemyState NOTIFY enemyStateChanged)
-	Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
-	Q_PROPERTY(qreal msecLeftToAttack READ msecLeftToAttack NOTIFY msecLeftToAttackChanged)
-	Q_PROPERTY(bool hasQuestion READ hasQuestion NOTIFY questionChanged)
-	Q_PROPERTY(bool hasPickable READ hasPickable NOTIFY pickableChanged)
+    Q_PROPERTY(bool aimedByPlayer READ aimedByPlayer WRITE setAimedByPlayer NOTIFY aimedByPlayerChanged)
+    Q_PROPERTY(qreal castAttackFraction READ castAttackFraction WRITE setCastAttackFraction NOTIFY castAttackFractionChanged)
+    Q_PROPERTY(qreal msecBeforeAttack READ msecBeforeAttack WRITE setMsecBeforeAttack NOTIFY msecBeforeAttackChanged)
+    Q_PROPERTY(qreal msecBetweenAttack READ msecBetweenAttack WRITE setMsecBetweenAttack NOTIFY msecBetweenAttackChanged)
+    Q_PROPERTY(EnemyState enemyState READ enemyState WRITE setEnemyState NOTIFY enemyStateChanged)
+    Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
+    Q_PROPERTY(qreal msecLeftToAttack READ msecLeftToAttack NOTIFY msecLeftToAttackChanged)
+    Q_PROPERTY(bool hasQuestion READ hasQuestion NOTIFY questionChanged)
+    Q_PROPERTY(bool hasPickable READ hasPickable NOTIFY pickableChanged)
 
 public:
-	explicit GameEnemy(QQuickItem *parent = nullptr);
-	virtual ~GameEnemy();
+    explicit GameEnemy(QQuickItem *parent = nullptr);
+    virtual ~GameEnemy();
 
-	enum EnemyState {
-		Invalid = 0,
-		Idle,
-		Move,
-		WatchPlayer,
-		Attack,
-		Dead
-	};
+    enum EnemyState {
+        Invalid = 0,
+        Idle,
+        Move,
+        WatchPlayer,
+        Attack,
+        Dead
+    };
 
-	Q_ENUM(EnemyState);
+    Q_ENUM(EnemyState);
 
-	Q_INVOKABLE void startMovingAfter(const int &msec);
+    Q_INVOKABLE void startMovingAfter(const int &msec);
 
 
-	const GameTerrain::EnemyData &terrainEnemyData() const;
-	void setTerrainEnemyData(const GameTerrain::EnemyData &newTerrainEnemyData);
+    const GameTerrain::EnemyData &terrainEnemyData() const;
+    void setTerrainEnemyData(const GameTerrain::EnemyData &newTerrainEnemyData);
 
-	bool aimedByPlayer() const;
-	void setAimedByPlayer(bool newAimedByPlayer);
+    bool aimedByPlayer() const;
+    void setAimedByPlayer(bool newAimedByPlayer);
 
-	qreal castAttackFraction() const;
-	void setCastAttackFraction(qreal newCastAttackFraction);
+    qreal castAttackFraction() const;
+    void setCastAttackFraction(qreal newCastAttackFraction);
 
-	qreal msecBeforeAttack() const;
-	void setMsecBeforeAttack(qreal newMsecBeforeAttack);
+    qreal msecBeforeAttack() const;
+    void setMsecBeforeAttack(qreal newMsecBeforeAttack);
 
-	qreal msecBetweenAttack() const;
-	void setMsecBetweenAttack(qreal newMsecBetweenAttack);
+    qreal msecBetweenAttack() const;
+    void setMsecBetweenAttack(qreal newMsecBetweenAttack);
 
-	const EnemyState &enemyState() const;
-	void setEnemyState(const EnemyState &newEnemyState);
+    const EnemyState &enemyState() const;
+    void setEnemyState(const EnemyState &newEnemyState);
 
-	GamePlayer *player() const;
-	void setPlayer(GamePlayer *newPlayer);
+    GamePlayer *player() const;
+    void setPlayer(GamePlayer *newPlayer);
 
-	qreal msecLeftToAttack() const;
-	void setMsecLeftToAttack(qreal newMsecLeftToAttack);
+    qreal msecLeftToAttack() const;
+    void setMsecLeftToAttack(qreal newMsecLeftToAttack);
 
-	ActionGame::QuestionLocation *question() const;
-	void setQuestion(ActionGame::QuestionLocation *newQuestion);
-	bool hasQuestion() const { return m_question; }
+    ActionGame::QuestionLocation *question() const;
+    void setQuestion(ActionGame::QuestionLocation *newQuestion);
+    bool hasQuestion() const { return m_question; }
 
-	const GamePickable::GamePickableData &pickable() const;
-	void setPickable(const GamePickable::GamePickableData &newPickable);
-	bool hasPickable() const { return m_pickable.type != GamePickable::PickableInvalid; }
+    const GamePickable::GamePickableData &pickable() const;
+    void setPickable(const GamePickable::GamePickableData &newPickable);
+    bool hasPickable() const { return m_pickable.type != GamePickable::PickableInvalid; }
 
-	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
-	bool getCurrentState(ObjectStateEnemy *ptr) const;
-	void setCurrentState(const ObjectStateEnemy &state);
+    virtual void setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force) override;
+    bool getCurrentState(ObjectStateEnemy *ptr) const;
+    void setCurrentState(const ObjectStateEnemy &state, const bool &force);
 
 public slots:
-	void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
-	void missedByPlayer(GamePlayer *player);
-	void turnToPlayer(GamePlayer *player);
+    void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
+    void missedByPlayer(GamePlayer *player);
+    void turnToPlayer(GamePlayer *player);
 
 signals:
-	void attack();
-	void killMissed();
-	void aimedByPlayerChanged();
-	void castAttackFractionChanged();
-	void msecBeforeAttackChanged();
-	void msecBetweenAttackChanged();
-	void enemyStateChanged();
-	void playerChanged();
-	void msecLeftToAttackChanged();
-	void questionChanged();
-	void pickableChanged();
+    void attack();
+    void killMissed();
+    void aimedByPlayerChanged();
+    void castAttackFractionChanged();
+    void msecBeforeAttackChanged();
+    void msecBetweenAttackChanged();
+    void enemyStateChanged();
+    void playerChanged();
+    void msecLeftToAttackChanged();
+    void questionChanged();
+    void pickableChanged();
 
 private slots:
-	void onSceneConnected();
+    void onSceneConnected();
 
 protected:
-	virtual void enemyStateModified() {}
-	virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
-	void playAttackSound();
+    virtual void enemyStateModified() {}
+    virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
+    void playAttackSound();
 
+    GameTerrain::EnemyData m_terrainEnemyData;
 
-	GameTerrain::EnemyData m_terrainEnemyData;
-	int m_startMovingAfter = 0;
+    qreal m_castAttackFraction = 0.5;
+    qreal m_msecBeforeAttack = 1500;
+    qreal m_msecBetweenAttack = 1500;
 
-	qreal m_castAttackFraction = 0.5;
-	qreal m_msecBeforeAttack = 1500;
-	qreal m_msecBetweenAttack = 1500;
+    static const QHash<ObjectStateEnemy::EnemyState, EnemyState> m_stateHash;
 
-	static const QHash<ObjectStateEnemy::EnemyState, EnemyState> m_stateHash;
-
-	EnemyState m_enemyState = Invalid;
-	bool m_aimedByPlayer = false;
-	QPointer<GameEntity> m_player = nullptr;
-	qreal m_msecLeftToAttack = -1;
-	ActionGame::QuestionLocation *m_question = nullptr;
-	GamePickable::GamePickableData m_pickable;
+    EnemyState m_enemyState = Invalid;
+    bool m_aimedByPlayer = false;
+    QPointer<GameEntity> m_player = nullptr;
+    qreal m_msecLeftToAttack = -1;
+    ActionGame::QuestionLocation *m_question = nullptr;
+    GamePickable::GamePickableData m_pickable;
 
 };
 

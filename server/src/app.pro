@@ -5,7 +5,7 @@ TARGET = callofsuli-server
 
 QT += network sql networkauth httpserver websockets
 
-CONFIG += c++17 console
+CONFIG += c++20 console
 CONFIG -= app_bundle
 CONFIG += separate_debug_info
 

@@ -49,7 +49,7 @@ private:
 	void timerEventRun();
 	void timerMinuteEventRun();
 
-	void onBinaryDataReceived(const QByteArray &data);
+	void onBinaryDataReceived(WebSocketStream *stream, const QByteArray &data);
 
 
 private:

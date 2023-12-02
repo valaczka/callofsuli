@@ -35,12 +35,12 @@
 // State hash
 
 const QHash<ObjectStateEnemy::EnemyState, GameEnemy::EnemyState> GameEnemy::m_stateHash = {
-	{ ObjectStateEnemy::Idle, GameEnemy::Idle },
-	{ ObjectStateEnemy::Move, GameEnemy::Move },
-	{ ObjectStateEnemy::WatchPlayer, GameEnemy::WatchPlayer },
-	{ ObjectStateEnemy::Attack, GameEnemy::Attack },
-	{ ObjectStateEnemy::Dead, GameEnemy::Dead },
-};
+    { ObjectStateEnemy::Idle, GameEnemy::Idle },
+    { ObjectStateEnemy::Move, GameEnemy::Move },
+    { ObjectStateEnemy::WatchPlayer, GameEnemy::WatchPlayer },
+    { ObjectStateEnemy::Attack, GameEnemy::Attack },
+    { ObjectStateEnemy::Dead, GameEnemy::Dead },
+    };
 
 
 
@@ -50,25 +50,25 @@ const QHash<ObjectStateEnemy::EnemyState, GameEnemy::EnemyState> GameEnemy::m_st
  */
 
 GameEnemy::GameEnemy(QQuickItem *parent)
-	: GameEntity(parent)
+    : GameEntity(parent)
 {
-	m_defaultShotSound = QStringLiteral("qrc:/sound/sfx/enemyshot.wav");
+    m_defaultShotSound = QStringLiteral("qrc:/sound/sfx/enemyshot.wav");
 
-	setCategoryFixture(CATEGORY_ENEMY);
-	setCategoryRayCast(CATEGORY_PLAYER);
-	setRayCastEnabled(true);
+    setCategoryFixture(CATEGORY_ENEMY);
+    setCategoryRayCast(CATEGORY_PLAYER);
+    setRayCastEnabled(true);
 
-	connect(this, &GameObject::sceneConnected, this, &GameEnemy::onSceneConnected);
-	connect(this, &GameEnemy::attack, this, &GameEnemy::playAttackSound);
+    connect(this, &GameObject::sceneConnected, this, &GameEnemy::onSceneConnected);
+    connect(this, &GameEnemy::attack, this, &GameEnemy::playAttackSound);
 
-	connect(this, &GameEnemy::allHpLost, this, [this](){
-		emit killed(this);
-	});
+    connect(this, &GameEnemy::allHpLost, this, [this](){
+        emit killed(this);
+    });
 
-	connect(this, &GameEnemy::isAliveChanged, this, [this](){
-		if (!isAlive())
-			setEnemyState(Dead);
-	});
+    connect(this, &GameEnemy::isAliveChanged, this, [this](){
+        if (!isAlive())
+            setEnemyState(Dead);
+    });
 }
 
 
@@ -88,7 +88,7 @@ GameEnemy::~GameEnemy()
 
 void GameEnemy::onSceneConnected()
 {
-	connect(m_scene, &GameScene::zoomOverviewChanged, this, &GameEntity::setOverlayEnabled);
+    connect(m_scene, &GameScene::zoomOverviewChanged, this, &GameEntity::setOverlayEnabled);
 }
 
 
@@ -100,11 +100,11 @@ void GameEnemy::onSceneConnected()
 
 void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty)
 {
-	Q_ASSERT (player);
+    Q_ASSERT (player);
 
-	if (!isQuestionEmpty || !player->isAlive()) {
-		turnToPlayer(player);
-	}
+    if (!isQuestionEmpty || !player->isAlive()) {
+        turnToPlayer(player);
+    }
 }
 
 
@@ -116,7 +116,7 @@ void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestion
 
 void GameEnemy::playAttackSound()
 {
-	Application::instance()->client()->sound()->playSound(shotSound(), Sound::SfxChannel);
+    Application::instance()->client()->sound()->playSound(shotSound(), Sound::SfxChannel);
 }
 
 
@@ -130,14 +130,15 @@ void GameEnemy::playAttackSound()
 
 bool GameEnemy::getCurrentState(ObjectStateEnemy *ptr) const
 {
-	if (!ptr)
-		return false;
+    if (!ptr)
+        return false;
 
-	GameEntity::getCurrentState(ptr);
-	ptr->enemyState = m_stateHash.key(m_enemyState, ObjectStateEnemy::Invalid);
-	ptr->msecLeftToAttack = m_msecLeftToAttack;
+    GameEntity::getCurrentState(ptr);
+    ptr->enemyState = m_stateHash.key(m_enemyState, ObjectStateEnemy::Invalid);
+    ptr->enemyRect = m_terrainEnemyData.rect;
+    ptr->msecLeftToAttack = m_msecLeftToAttack;
 
-	return true;
+    return true;
 }
 
 
@@ -147,11 +148,15 @@ bool GameEnemy::getCurrentState(ObjectStateEnemy *ptr) const
  * @param state
  */
 
-void GameEnemy::setCurrentState(const ObjectStateEnemy &state)
+void GameEnemy::setCurrentState(const ObjectStateEnemy &state, const bool &force)
 {
-	GameEntity::setCurrentState(state);
-	setEnemyState(m_stateHash.value(state.enemyState, Invalid));
-	setMsecLeftToAttack(state.msecLeftToAttack);
+    GameEntity::setCurrentState(state, force);
+
+    if (force) {
+        setEnemyState(m_stateHash.value(state.enemyState, Invalid));
+        //m_terrainEnemyData.rect = state.enemyRect;        // ??
+        setMsecLeftToAttack(state.msecLeftToAttack);
+    }
 }
 
 
@@ -159,13 +164,13 @@ void GameEnemy::setCurrentState(const ObjectStateEnemy &state)
 
 const GamePickable::GamePickableData &GameEnemy::pickable() const
 {
-	return m_pickable;
+    return m_pickable;
 }
 
 void GameEnemy::setPickable(const GamePickable::GamePickableData &newPickable)
 {
-	m_pickable = newPickable;
-	emit pickableChanged();
+    m_pickable = newPickable;
+    emit pickableChanged();
 }
 
 
@@ -175,19 +180,19 @@ void GameEnemy::setPickable(const GamePickable::GamePickableData &newPickable)
  * @param ptr
  */
 
-void GameEnemy::setStateFromSnapshot(ObjectStateBase *ptr)
+void GameEnemy::setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force)
 {
-	if (!ptr)
-		return;
+    if (!ptr)
+        return;
 
-	ObjectStateEnemy*_ptr = dynamic_cast<ObjectStateEnemy*>(ptr);
+    ObjectStateEnemy*_ptr = dynamic_cast<ObjectStateEnemy*>(ptr);
 
-	LOG_CTRACE("scene") << "Set state from snapshot" << _ptr;
+    LOG_CTRACE("scene") << "Set state from snapshot" << _ptr << force;
 
-	if (_ptr)
-		setCurrentState(*_ptr);
-	else
-		GameEntity::setStateFromSnapshot(ptr);
+    if (_ptr)
+        setCurrentState(*_ptr, force);
+    else
+        GameEntity::setStateFromSnapshot(ptr, currentTick, force);
 }
 
 
@@ -198,15 +203,15 @@ void GameEnemy::setStateFromSnapshot(ObjectStateBase *ptr)
 
 ActionGame::QuestionLocation *GameEnemy::question() const
 {
-	return m_question;
+    return m_question;
 }
 
 void GameEnemy::setQuestion(ActionGame::QuestionLocation *newQuestion)
 {
-	if (m_question == newQuestion)
-		return;
-	m_question = newQuestion;
-	emit questionChanged();
+    if (m_question == newQuestion)
+        return;
+    m_question = newQuestion;
+    emit questionChanged();
 }
 
 
@@ -217,17 +222,17 @@ void GameEnemy::setQuestion(ActionGame::QuestionLocation *newQuestion)
 
 const GameEnemy::EnemyState &GameEnemy::enemyState() const
 {
-	return m_enemyState;
+    return m_enemyState;
 }
 
 void GameEnemy::setEnemyState(const EnemyState &newEnemyState)
 {
-	if (m_enemyState == newEnemyState)
-		return;
-	m_enemyState = newEnemyState;
-	emit enemyStateChanged();
+    if (m_enemyState == newEnemyState)
+        return;
+    m_enemyState = newEnemyState;
+    emit enemyStateChanged();
 
-	enemyStateModified();
+    enemyStateModified();
 }
 
 
@@ -238,41 +243,41 @@ void GameEnemy::setEnemyState(const EnemyState &newEnemyState)
 
 qreal GameEnemy::msecBetweenAttack() const
 {
-	return m_msecBetweenAttack;
+    return m_msecBetweenAttack;
 }
 
 void GameEnemy::setMsecBetweenAttack(qreal newMsecBetweenAttack)
 {
-	if (qFuzzyCompare(m_msecBetweenAttack, newMsecBetweenAttack))
-		return;
-	m_msecBetweenAttack = newMsecBetweenAttack;
-	emit msecBetweenAttackChanged();
+    if (qFuzzyCompare(m_msecBetweenAttack, newMsecBetweenAttack))
+        return;
+    m_msecBetweenAttack = newMsecBetweenAttack;
+    emit msecBetweenAttackChanged();
 }
 
 qreal GameEnemy::msecBeforeAttack() const
 {
-	return m_msecBeforeAttack;
+    return m_msecBeforeAttack;
 }
 
 void GameEnemy::setMsecBeforeAttack(qreal newMsecBeforeAttack)
 {
-	if (qFuzzyCompare(m_msecBeforeAttack, newMsecBeforeAttack))
-		return;
-	m_msecBeforeAttack = newMsecBeforeAttack;
-	emit msecBeforeAttackChanged();
+    if (qFuzzyCompare(m_msecBeforeAttack, newMsecBeforeAttack))
+        return;
+    m_msecBeforeAttack = newMsecBeforeAttack;
+    emit msecBeforeAttackChanged();
 }
 
 qreal GameEnemy::castAttackFraction() const
 {
-	return m_castAttackFraction;
+    return m_castAttackFraction;
 }
 
 void GameEnemy::setCastAttackFraction(qreal newCastAttackFraction)
 {
-	if (qFuzzyCompare(m_castAttackFraction, newCastAttackFraction))
-		return;
-	m_castAttackFraction = newCastAttackFraction;
-	emit castAttackFractionChanged();
+    if (qFuzzyCompare(m_castAttackFraction, newCastAttackFraction))
+        return;
+    m_castAttackFraction = newCastAttackFraction;
+    emit castAttackFractionChanged();
 }
 
 
@@ -286,7 +291,7 @@ void GameEnemy::setCastAttackFraction(qreal newCastAttackFraction)
 
 void GameEnemy::startMovingAfter(const int &msec)
 {
-	QTimer::singleShot(msec, this, [this]() { setEnemyState(Move); });
+    QTimer::singleShot(msec, this, [this]() { setEnemyState(Move); });
 }
 
 
@@ -297,7 +302,7 @@ void GameEnemy::startMovingAfter(const int &msec)
 
 void GameEnemy::setTerrainEnemyData(const GameTerrain::EnemyData &newTerrainEnemyData)
 {
-	m_terrainEnemyData = newTerrainEnemyData;
+    m_terrainEnemyData = newTerrainEnemyData;
 }
 
 
@@ -308,21 +313,21 @@ void GameEnemy::setTerrainEnemyData(const GameTerrain::EnemyData &newTerrainEnem
 
 const GameTerrain::EnemyData &GameEnemy::terrainEnemyData() const
 {
-	return m_terrainEnemyData;
+    return m_terrainEnemyData;
 }
 
 
 bool GameEnemy::aimedByPlayer() const
 {
-	return m_aimedByPlayer;
+    return m_aimedByPlayer;
 }
 
 void GameEnemy::setAimedByPlayer(bool newAimedByPlayer)
 {
-	if (m_aimedByPlayer == newAimedByPlayer)
-		return;
-	m_aimedByPlayer = newAimedByPlayer;
-	emit aimedByPlayerChanged();
+    if (m_aimedByPlayer == newAimedByPlayer)
+        return;
+    m_aimedByPlayer = newAimedByPlayer;
+    emit aimedByPlayerChanged();
 }
 
 
@@ -333,28 +338,28 @@ void GameEnemy::setAimedByPlayer(bool newAimedByPlayer)
 
 GamePlayer *GameEnemy::player() const
 {
-	return qobject_cast<GamePlayer*>(m_player);
+    return qobject_cast<GamePlayer*>(m_player);
 }
 
 void GameEnemy::setPlayer(GamePlayer *newPlayer)
 {
-	if (m_player == newPlayer)
-		return;
-	m_player = newPlayer;
-	emit playerChanged();
+    if (m_player == newPlayer)
+        return;
+    m_player = newPlayer;
+    emit playerChanged();
 }
 
 qreal GameEnemy::msecLeftToAttack() const
 {
-	return m_msecLeftToAttack;
+    return m_msecLeftToAttack;
 }
 
 void GameEnemy::setMsecLeftToAttack(qreal newMsecLeftToAttack)
 {
-	if (qFuzzyCompare(m_msecLeftToAttack, newMsecLeftToAttack))
-		return;
-	m_msecLeftToAttack = newMsecLeftToAttack;
-	emit msecLeftToAttackChanged();
+    if (qFuzzyCompare(m_msecLeftToAttack, newMsecLeftToAttack))
+        return;
+    m_msecLeftToAttack = newMsecLeftToAttack;
+    emit msecLeftToAttackChanged();
 }
 
 
@@ -368,14 +373,14 @@ void GameEnemy::setMsecLeftToAttack(qreal newMsecLeftToAttack)
 
 void GameEnemy::attackByPlayer(GamePlayer *player, const bool &questionEmpty)
 {
-	decreaseHp();
+    decreaseHp();
 
-	attackedByPlayerEvent(player, questionEmpty);
+    attackedByPlayerEvent(player, questionEmpty);
 
-	if (isAlive())
-		return;
+    if (isAlive())
+        return;
 
-	setAimedByPlayer(false);
+    setAimedByPlayer(false);
 }
 
 
@@ -386,15 +391,15 @@ void GameEnemy::attackByPlayer(GamePlayer *player, const bool &questionEmpty)
 
 void GameEnemy::missedByPlayer(GamePlayer *player)
 {
-	LOG_CDEBUG("scene") << "Missed by player:" << this;
+    LOG_CDEBUG("scene") << "Missed by player:" << this;
 
-	game()->setIsFlawless(false);
+    game()->setIsFlawless(false);
 
-	turnToPlayer(player);
+    turnToPlayer(player);
 
-	emit killMissed();
+    emit killMissed();
 
-	player->hurtByEnemy(this, false);
+    player->hurtByEnemy(this, false);
 }
 
 
@@ -408,15 +413,15 @@ void GameEnemy::missedByPlayer(GamePlayer *player)
 
 void GameEnemy::turnToPlayer(GamePlayer *player)
 {
-	if (!player) {
-		LOG_CWARNING("game") << tr("Missing player");
-		return;
-	}
+    if (!player) {
+        LOG_CWARNING("game") << tr("Missing player");
+        return;
+    }
 
-	const qreal &playerX = player->x();
+    const qreal &playerX = player->x();
 
-	if (playerX <= x() && !m_facingLeft)
-		setFacingLeft(true);
-	else if (playerX > x() && m_facingLeft)
-		setFacingLeft(false);
+    if (playerX <= x() && !m_facingLeft)
+        setFacingLeft(true);
+    else if (playerX > x() && m_facingLeft)
+        setFacingLeft(false);
 }

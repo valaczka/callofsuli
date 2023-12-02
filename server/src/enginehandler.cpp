@@ -291,7 +291,9 @@ void EngineHandlerPrivate::websocketAdd(QWebSocket *socket)
 	connect(wsocket, &QWebSocket::disconnected, ws.get(), &WebSocketStream::onWebSocketDisconnected);
 	connect(wsocket, &QWebSocket::textMessageReceived, ws.get(), &WebSocketStream::onTextReceived);
 	connect(wsocket, &QWebSocket::binaryMessageReceived, ws.get(), &WebSocketStream::onBinaryDataReceived);
-	connect(wsocket, &QWebSocket::binaryMessageReceived, this, &EngineHandlerPrivate::onBinaryDataReceived);
+	auto sig = connect(wsocket, &QWebSocket::binaryMessageReceived, this,
+			std::bind(&EngineHandlerPrivate::onBinaryDataReceived, this, ws.get(), std::placeholders::_1));
+	ws->m_signalHelper.append(sig);
 
 	LOG_CTRACE("service") << "WebSocketStream added" << &ws;
 
@@ -319,7 +321,11 @@ void EngineHandlerPrivate::websocketRemove(WebSocketStream *stream)
 			disconnect(wsocket, &QWebSocket::disconnected, ws, &WebSocketStream::onWebSocketDisconnected);
 			disconnect(wsocket, &QWebSocket::textMessageReceived, ws, &WebSocketStream::onTextReceived);
 			disconnect(wsocket, &QWebSocket::binaryMessageReceived, ws, &WebSocketStream::onBinaryDataReceived);
-			disconnect(wsocket, &QWebSocket::binaryMessageReceived, this, &EngineHandlerPrivate::onBinaryDataReceived);
+
+			for (const auto &sig : ws->m_signalHelper)
+				disconnect(sig);
+
+			ws->m_signalHelper.clear();
 
 			it = m_streams.erase(it);
 		} else
@@ -352,7 +358,11 @@ void EngineHandlerPrivate::websocketCloseAll()
 		disconnect(wsocket, &QWebSocket::disconnected, ws, &WebSocketStream::onWebSocketDisconnected);
 		disconnect(wsocket, &QWebSocket::textMessageReceived, ws, &WebSocketStream::onTextReceived);
 		disconnect(wsocket, &QWebSocket::binaryMessageReceived, ws, &WebSocketStream::onBinaryDataReceived);
-		disconnect(wsocket, &QWebSocket::binaryMessageReceived, this, &EngineHandlerPrivate::onBinaryDataReceived);
+
+		for (const auto &sig : ws->m_signalHelper)
+			disconnect(sig);
+
+		ws->m_signalHelper.clear();
 
 
 		it = m_streams.erase(it);
@@ -516,10 +526,8 @@ void EngineHandlerPrivate::timerMinuteEventRun()
  * @param data
  */
 
-void EngineHandlerPrivate::onBinaryDataReceived(const QByteArray &data)
+void EngineHandlerPrivate::onBinaryDataReceived(WebSocketStream *stream, const QByteArray &data)
 {
-	WebSocketStream *stream = qobject_cast<WebSocketStream*>(sender());
-
 	if (!stream) {
 		LOG_CERROR("service") << "Invalid stream";
 		return;

@@ -14,6 +14,15 @@ else: CQtTargetDir = CallOfSuli.AppDir
 win32 {
 	lines = "$${LITERAL_HASH}define COSversion = \"$${VERSION}\""
 	lines += "$${LITERAL_HASH}define COSexe = \"Call_of_Suli_x64_install_unsigned\""
+
+	lessThan(QT_MAJOR_VERSION, 6) {
+		lines += "$${LITERAL_HASH}define WinMaxVersion = 10.0.17763"
+		lines += "$${LITERAL_HASH}define WinMinVersion = 6.1"
+	} else {
+		lines += "$${LITERAL_HASH}define WinMaxVersion = 0"
+		lines += "$${LITERAL_HASH}define WinMinVersion = 10.0.17763"
+	}
+
 	lines += $$cat(../client/deploy/CallOfSuli.iss, blob)
 
 	write_file($$OUT_PWD/$${CQtTargetDir}/usr/CallOfSuli.iss, lines)

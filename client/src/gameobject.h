@@ -87,61 +87,61 @@ class GameObject;
 
 class GameObject : public QQuickItem
 {
-	Q_OBJECT
+    Q_OBJECT
 
-	Q_PROPERTY(GameScene *scene READ scene WRITE setScene NOTIFY sceneChanged)
-	Q_PROPERTY(Box2DBody *body READ body CONSTANT)
-	Q_PROPERTY(ActionGame *game READ game NOTIFY gameChanged)
-	Q_PROPERTY(QString objectType READ objectType WRITE setObjectType NOTIFY objectTypeChanged)
+    Q_PROPERTY(GameScene *scene READ scene WRITE setScene NOTIFY sceneChanged)
+    Q_PROPERTY(Box2DBody *body READ body CONSTANT)
+    Q_PROPERTY(ActionGame *game READ game NOTIFY gameChanged)
+    Q_PROPERTY(QString objectType READ objectType WRITE setObjectType NOTIFY objectTypeChanged)
 
 public:
-	GameObject(QQuickItem *parent = nullptr);
-	virtual ~GameObject();
+    GameObject(QQuickItem *parent = nullptr);
+    virtual ~GameObject();
 
-	static GameObject* createFromFile(QString file, GameScene *scene, const bool &synchronous = true);
+    static GameObject* createFromFile(QString file, GameScene *scene, const bool &synchronous = true);
 
-	GameScene *scene() const;
-	void setScene(GameScene *newScene);
+    GameScene *scene() const;
+    void setScene(GameScene *newScene);
 
-	ActionGame *game() const;
-	Box2DBody *body() const;
+    ActionGame *game() const;
+    Box2DBody *body() const;
 
-	Q_INVOKABLE void bodyComplete();
-	Q_INVOKABLE void deleteSelf();
+    Q_INVOKABLE void bodyComplete();
+    Q_INVOKABLE void deleteSelf();
 
-	const QString &objectType() const;
-	void setObjectType(const QString &newObjectType);
+    const QString &objectType() const;
+    void setObjectType(const QString &newObjectType);
 
-	virtual void onTimingTimerTimeout(const int &msec, const qreal &delayFactor);
-	virtual void cacheCurrentState() {}
-	virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId = 1) {
-		Q_UNUSED(snapshot); Q_UNUSED(objectId);
-		return false;
-	}
-	virtual void setStateFromSnapshot(ObjectStateBase *ptr);
-	bool getCurrentState(ObjectStateBase *ptr) const;
-	void setCurrentState(const ObjectStateBase &state);
+    virtual void onTimingTimerTimeout(const int &msec, const qreal &delayFactor);
+    virtual void cacheCurrentState() {}
+    virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId) {
+        Q_UNUSED(snapshot); Q_UNUSED(entityId);
+        return false;
+    }
+    virtual void setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force);
+    virtual void interpolateState(const qint64 &currentTick) { Q_UNUSED(currentTick); }
 
-	static void updateStateQuickItem(ObjectStateEntity *state, QQuickItem *item);
+    bool getCurrentState(ObjectStateBase *ptr) const;
+    void setCurrentState(const ObjectStateBase &state, const bool &force);
 
 private slots:
-	void onSceneChanged();
+    void onSceneChanged();
 
 signals:
-	void sceneChanged();
-	void gameChanged();
-	void sceneConnected();
-	void objectTypeChanged();
+    void sceneChanged();
+    void gameChanged();
+    void sceneConnected();
+    void objectTypeChanged();
 
 protected:
-	QPointer<GameScene> m_scene;
-	std::unique_ptr<Box2DBody> m_body;
-	QList<QPointer<QQuickItem>> m_childItems;
+    QPointer<GameScene> m_scene;
+    std::unique_ptr<Box2DBody> m_body;
+    QList<QPointer<QQuickItem>> m_childItems;
 
 
 private:
-	bool m_sceneConnected = false;
-	QString m_objectType;
+    bool m_sceneConnected = false;
+    QString m_objectType;
 };
 
 #endif // GAMEOBJECT_H

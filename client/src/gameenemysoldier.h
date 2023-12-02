@@ -31,53 +31,57 @@
 
 class GameEnemySoldier : public GameEnemy
 {
-	Q_OBJECT
+    Q_OBJECT
 
-	Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
+    Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
 
 public:
-	explicit GameEnemySoldier(QQuickItem *parent = nullptr);
-	virtual ~GameEnemySoldier();
+    explicit GameEnemySoldier(QQuickItem *parent = nullptr);
+    virtual ~GameEnemySoldier();
 
-	int msecBeforeTurn() const;
-	void setMsecBeforeTurn(int newMsecBeforeTurn);
+    int msecBeforeTurn() const;
+    void setMsecBeforeTurn(int newMsecBeforeTurn);
 
-	int turnElapsedMsec() const;
-	void setTurnElapsedMsec(int newTurnElapsedMsec);
+    int turnElapsedMsec() const;
+    void setTurnElapsedMsec(int newTurnElapsedMsec);
 
-	static GameEnemySoldier* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
-	static ObjectStateEnemySoldier createState(const GameTerrain::EnemyData &enemyData);
+    static GameEnemySoldier* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
+    static ObjectStateEnemySoldier createState(const GameTerrain::EnemyData &enemyData);
 
-	Q_INVOKABLE void attackPlayer();
+    Q_INVOKABLE void attackPlayer();
 
-	void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
-	virtual void cacheCurrentState() override;
-	virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId = 1) override;
-	virtual void setStateFromSnapshot(ObjectStateBase *ptr) override;
+    void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
+    virtual void cacheCurrentState() override;
+    virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId) override;
+    virtual void setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force) override;
+    virtual void interpolateState(const qint64 &currentTick) override;
 
-	bool getCurrentState(ObjectStateEnemySoldier *ptr) const;
-	void setCurrentState(const ObjectStateEnemySoldier &state);
+    bool getCurrentState(ObjectStateEnemySoldier *ptr) const;
+    void setCurrentState(const ObjectStateEnemySoldier &state, const bool &force);
 
 protected:
-	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
-	virtual void enemyStateModified() override;
+    virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
+    virtual void enemyStateModified() override;
+
+    static bool stateReconciliation(const ObjectStateEnemySoldier &from, const ObjectStateEnemySoldier &to);
 
 private slots:
-	void onSceneConnected();
+    void onSceneConnected();
 
 signals:
-	void msecBeforeTurnChanged();
-	void turnElapsedMsecChanged();
+    void msecBeforeTurnChanged();
+    void turnElapsedMsecChanged();
 
 private slots:
-	void onAttack();
+    void onAttack();
 
 private:
-	int m_msecBeforeTurn = 5000;
-	int m_turnElapsedMsec = -1;
-	int m_attackElapsedMsec = -1;
+    int m_msecBeforeTurn = 5000;
+    int m_turnElapsedMsec = -1;
+    int m_attackElapsedMsec = -1;
 
-	QList<ObjectStateEnemySoldier> m_cachedStates;
+    std::vector<ObjectStateEnemySoldier> m_cachedStates;
+    QMap<qint64, ObjectStateEnemySoldier> m_authoritativeStates;
 };
 
 #endif // GAMEENEMYSOLDIER_H

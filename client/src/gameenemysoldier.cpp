@@ -33,10 +33,10 @@
 #include <QRandomGenerator>
 
 GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
-	: GameEnemy(parent)
+    : GameEnemy(parent)
 {
-	connect(this, &GameEnemy::attack, this, &GameEnemySoldier::onAttack);
-	connect(this, &GameObject::sceneConnected, this, &GameEnemySoldier::onSceneConnected);
+    connect(this, &GameEnemy::attack, this, &GameEnemySoldier::onAttack);
+    connect(this, &GameObject::sceneConnected, this, &GameEnemySoldier::onSceneConnected);
 
 }
 
@@ -57,9 +57,9 @@ GameEnemySoldier::~GameEnemySoldier()
 
 void GameEnemySoldier::onAttack()
 {
-	LOG_CDEBUG("scene") << "Enemy soldier attack" << this;
+    LOG_CDEBUG("scene") << "Enemy soldier attack" << this;
 
-	jumpToSprite(QStringLiteral("shot"));
+    jumpToSprite(QStringLiteral("shot"));
 }
 
 
@@ -71,15 +71,15 @@ void GameEnemySoldier::onAttack()
 
 bool GameEnemySoldier::getCurrentState(ObjectStateEnemySoldier *ptr) const
 {
-	if (!ptr)
-		return false;
+    if (!ptr)
+        return false;
 
-	GameEnemy::getCurrentState(ptr);
+    GameEnemy::getCurrentState(ptr);
 
-	ptr->turnElapsedMsec = m_turnElapsedMsec;
-	ptr->attackElapsedMsec = m_attackElapsedMsec;
+    ptr->turnElapsedMsec = m_turnElapsedMsec;
+    ptr->attackElapsedMsec = m_attackElapsedMsec;
 
-	return true;
+    return true;
 }
 
 
@@ -89,11 +89,15 @@ bool GameEnemySoldier::getCurrentState(ObjectStateEnemySoldier *ptr) const
  * @param state
  */
 
-void GameEnemySoldier::setCurrentState(const ObjectStateEnemySoldier &state)
+void GameEnemySoldier::setCurrentState(const ObjectStateEnemySoldier &state, const bool &force)
 {
-	GameEnemy::setCurrentState(state);
-	setTurnElapsedMsec(state.turnElapsedMsec);
-	m_attackElapsedMsec = state.attackElapsedMsec;
+    LOG_CTRACE("game") << "------set" << state.tick << state.enemyState << state.position << state.hp << state.maxHp;
+    GameEnemy::setCurrentState(state, force);
+
+    if (force) {
+        setTurnElapsedMsec(state.turnElapsedMsec);
+        m_attackElapsedMsec = state.attackElapsedMsec;
+    }
 }
 
 
@@ -104,29 +108,29 @@ void GameEnemySoldier::setCurrentState(const ObjectStateEnemySoldier &state)
 
 void GameEnemySoldier::cacheCurrentState()
 {
-	ActionGame *_game = game();
+    ActionGame *_game = game();
 
-	if (!_game)
-		return;
+    if (!_game)
+        return;
 
-	if (!m_cachedStates.isEmpty()) {
-		ObjectStateEnemySoldier &state = m_cachedStates.last();
+    if (!m_cachedStates.empty()) {
+        ObjectStateEnemySoldier &state = m_cachedStates.back();
 
-		if (m_stateHash.value(state.enemyState, Invalid) == m_enemyState &&
-				state.facingLeft == m_facingLeft &&
-				state.hp == m_hp &&
-				state.maxHp == m_maxHp) {
-			getCurrentState(&state);
-			state.tick = _game->currentTick();
-			return;
-		}
-	}
+        if (m_stateHash.value(state.enemyState, Invalid) == m_enemyState &&
+            state.facingLeft == m_facingLeft &&
+            state.hp == m_hp &&
+            state.maxHp == m_maxHp) {
+            getCurrentState(&state);
+            state.tick = _game->currentTick();
+            return;
+        }
+    }
 
-	ObjectStateEnemySoldier state;
-	getCurrentState(&state);
-	state.tick = _game->currentTick();
+    ObjectStateEnemySoldier state;
+    getCurrentState(&state);
+    state.tick = _game->currentTick();
 
-	m_cachedStates.append(state);
+    m_cachedStates.push_back(state);
 }
 
 
@@ -138,27 +142,27 @@ void GameEnemySoldier::cacheCurrentState()
  * @return
  */
 
-bool GameEnemySoldier::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &objectId)
+bool GameEnemySoldier::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId)
 {
-	ActionGame *_game = game();
+    ActionGame *_game = game();
 
-	if (!_game)
-		return false;
+    if (!_game)
+        return false;
 
-	LOG_CINFO("game") << "GET SNAPSHOT" << this;
+    LOG_CINFO("game") << "GET SNAPSHOT" << this << entityId;
 
-	if (snapshot) {
-		for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ) {
-			it->id = objectId;
-			std::unique_ptr<ObjectStateBase> _ptr(it->clone());
-			snapshot->append(_ptr);
+    if (snapshot) {
+        for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ++it) {
+            it->id = entityId;
 
-			it = m_cachedStates.erase(it);
-		}
-	}
+            LOG_CINFO("game") << "++" << entityId << it->tick << it->enemyState << it->position << it->facingLeft;
+
+            ObjectStateSnapshot::copyTo(&*it, &snapshot->list);
+        }
+    }
 
 
-	return snapshot ? true : false;
+    return snapshot ? true : false;
 }
 
 
@@ -168,20 +172,60 @@ bool GameEnemySoldier::getStateSnapshot(ObjectStateSnapshot *snapshot, const qin
  * @param ptr
  */
 
-void GameEnemySoldier::setStateFromSnapshot(ObjectStateBase *ptr)
+void GameEnemySoldier::setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force)
 {
-	if (!ptr)
-		return;
+    if (!ptr)
+        return;
 
-	ObjectStateEnemySoldier *_ptr = dynamic_cast<ObjectStateEnemySoldier*>(ptr);
+    QByteArray b; ptr->toReadable(&b);
+    LOG_CINFO("game")  << "SET FROM" << b.constData();
 
-	LOG_CTRACE("scene") << "Set state from snapshot" << _ptr;
+    ObjectStateEnemySoldier *_ptr = dynamic_cast<ObjectStateEnemySoldier*>(ptr);
 
-	if (_ptr)
-		setCurrentState(*_ptr);
-	else
-		GameEnemy::setStateFromSnapshot(ptr);
+    if (_ptr) {
+        if (!force) {
+            const bool success = ObjectStateBase::stateReconciliation<ObjectStateEnemySoldier>(_ptr, &m_cachedStates,
+                                                                                               &GameEnemySoldier::stateReconciliation);
+
+            if (success) {
+                ObjectStateEnemySoldier curr;
+                getCurrentState(&curr);
+                if (!stateReconciliation(*_ptr, curr)) {
+                    setCurrentState(*_ptr, true);
+                }
+            } else {
+                setCurrentState(*_ptr, true);
+            }
+        } else {
+            if (m_authoritativeStates.size() > 1)
+                m_authoritativeStates.erase(m_authoritativeStates.constBegin());
+            m_authoritativeStates.insert(_ptr->tick, *_ptr);
+
+            QByteArray b; _ptr->toReadable(&b);
+            LOG_CDEBUG("game")  << "APPEND" << b.constData();
+
+            if (const auto &s = ObjectStateBase::interpolateStates<ObjectStateEnemySoldier>(currentTick, m_authoritativeStates, _ptr); s.has_value())
+                setCurrentState(s.value(), true);
+        }
+    } else
+        GameEnemy::setStateFromSnapshot(ptr, currentTick, force);
 }
+
+
+
+
+
+/**
+ * @brief GameEnemySoldier::interpolateState
+ * @param currentTick
+ */
+
+void GameEnemySoldier::interpolateState(const qint64 &currentTick)
+{
+    if (const auto &s = ObjectStateBase::interpolateStates<ObjectStateEnemySoldier>(currentTick, m_authoritativeStates); s.has_value())
+        setCurrentState(s.value(), true);
+}
+
 
 
 
@@ -195,72 +239,72 @@ void GameEnemySoldier::setStateFromSnapshot(ObjectStateBase *ptr)
 
 void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 {
-	if (m_terrainEnemyData.type != GameTerrain::EnemySoldier) {
-		LOG_CWARNING("scene") << "Invalid enemy type";
-		return;
-	}
+    if (m_terrainEnemyData.type != GameTerrain::EnemySoldier) {
+        LOG_CWARNING("scene") << "Invalid enemy type";
+        return;
+    }
 
-	if (m_enemyState == Dead || !isAlive())
-		return;
+    if (m_enemyState == Dead || !isAlive())
+        return;
 
-	ActionGame *_game = game();
+    ActionGame *_game = game();
 
-	if (!_game || !_game->running())
-		return;
+    if (!_game || !_game->running())
+        return;
 
 
-	if (m_enemyState == Idle) {
-		m_turnElapsedMsec += msec * delayFactor;
+    if (m_enemyState == Idle) {
+        m_turnElapsedMsec += msec * delayFactor;
 
-		if (m_turnElapsedMsec >= m_msecBeforeTurn) {
-			setFacingLeft(!facingLeft());
-			setEnemyState(Move);
-			m_turnElapsedMsec = -1;
-		}
-	} else if (m_enemyState == Move) {
-		qreal posX = x();
-		qreal delta = m_walkSize;
+        if (m_turnElapsedMsec >= m_msecBeforeTurn) {
+            setFacingLeft(!facingLeft());
+            setEnemyState(Move);
+            m_turnElapsedMsec = -1;
+        }
+    } else if (m_enemyState == Move) {
+        qreal posX = x();
+        qreal delta = m_walkSize;
 
-		if (facingLeft()) {
-			if ((posX-(delta*delayFactor) < m_terrainEnemyData.rect.left()) && (posX-delta >= m_terrainEnemyData.rect.left())) {
-				setX(posX-delta);
-			} else if (posX-(delta*delayFactor) < m_terrainEnemyData.rect.left()) {
-				setEnemyState(Idle);
-				m_turnElapsedMsec = 0;
-			} else {
-				setX(posX-(delta*delayFactor));
-			}
-		} else {
-			if ((posX+(delta*delayFactor) > m_terrainEnemyData.rect.right() - width()) && (posX+delta <= m_terrainEnemyData.rect.right() - width())) {
-				setX(posX+delta);
-			} else if (posX+(delta*delayFactor) > m_terrainEnemyData.rect.right() - width()) {
-				setEnemyState(Idle);
-				m_turnElapsedMsec = 0;
-			} else {
-				setX(posX+(delta*delayFactor));
-			}
-		}
+        if (facingLeft()) {
+            if ((posX-(delta*delayFactor) < m_terrainEnemyData.rect.left()) && (posX-delta >= m_terrainEnemyData.rect.left())) {
+                setX(posX-delta);
+            } else if (posX-(delta*delayFactor) < m_terrainEnemyData.rect.left()) {
+                setEnemyState(Idle);
+                m_turnElapsedMsec = 0;
+            } else {
+                setX(posX-(delta*delayFactor));
+            }
+        } else {
+            if ((posX+(delta*delayFactor) > m_terrainEnemyData.rect.right() - width()) && (posX+delta <= m_terrainEnemyData.rect.right() - width())) {
+                setX(posX+delta);
+            } else if (posX+(delta*delayFactor) > m_terrainEnemyData.rect.right() - width()) {
+                setEnemyState(Idle);
+                m_turnElapsedMsec = 0;
+            } else {
+                setX(posX+(delta*delayFactor));
+            }
+        }
 
-		m_body->setAwake(true);
+        m_body->setAwake(true);
 
-	} else if (m_enemyState == WatchPlayer) {
-		m_attackElapsedMsec += msec * delayFactor;
+    } else if (m_enemyState == WatchPlayer) {
+        m_attackElapsedMsec += msec * delayFactor;
 
-		setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
+        setMsecLeftToAttack(qMax((int)m_msecBeforeAttack-m_attackElapsedMsec, 0));
 
-		if (m_attackElapsedMsec >= m_msecBeforeAttack) {
-			setEnemyState(Attack);
-			attackPlayer();
-			m_attackElapsedMsec = 0;
-		}
-	} else if (m_enemyState == Attack) {
-		m_attackElapsedMsec += msec * delayFactor;
+        if (m_attackElapsedMsec >= m_msecBeforeAttack) {
+            setEnemyState(Attack);
+            attackPlayer();
+            m_attackElapsedMsec = 0;
+        }
+    } else if (m_enemyState == Attack) {
+        m_attackElapsedMsec += msec * delayFactor;
 
-		if (m_attackElapsedMsec >= m_msecBetweenAttack) {
-			attackPlayer();
-			m_attackElapsedMsec = 0;
-		}
-	}
+        if (m_attackElapsedMsec >= m_msecBetweenAttack) {
+            attackPlayer();
+            m_attackElapsedMsec = 0;
+        }
+    }
 }
 
 
@@ -278,15 +322,15 @@ void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayF
 
 int GameEnemySoldier::turnElapsedMsec() const
 {
-	return m_turnElapsedMsec;
+    return m_turnElapsedMsec;
 }
 
 void GameEnemySoldier::setTurnElapsedMsec(int newTurnElapsedMsec)
 {
-	if (m_turnElapsedMsec == newTurnElapsedMsec)
-		return;
-	m_turnElapsedMsec = newTurnElapsedMsec;
-	emit turnElapsedMsecChanged();
+    if (m_turnElapsedMsec == newTurnElapsedMsec)
+        return;
+    m_turnElapsedMsec = newTurnElapsedMsec;
+    emit turnElapsedMsecChanged();
 }
 
 
@@ -302,44 +346,44 @@ void GameEnemySoldier::setTurnElapsedMsec(int newTurnElapsedMsec)
 
 GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type)
 {
-	LOG_CDEBUG("scene") << "Create enemy soldier";
+    LOG_CDEBUG("scene") << "Create enemy soldier";
 
-	GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile(QStringLiteral("GameEnemySoldier.qml"), scene, false));
+    GameEnemySoldier *soldier = qobject_cast<GameEnemySoldier*>(GameObject::createFromFile(QStringLiteral("GameEnemySoldier.qml"), scene, false));
 
-	if (!soldier) {
-		LOG_CERROR("scene") << "Enemy soldier creation error";
-		return nullptr;
-	}
+    if (!soldier) {
+        LOG_CERROR("scene") << "Enemy soldier creation error";
+        return nullptr;
+    }
 
-	soldier->setParentItem(scene);
-	soldier->setScene(scene);
-	soldier->createSpriteItem();
+    soldier->setParentItem(scene);
+    soldier->setScene(scene);
+    soldier->createSpriteItem();
 
-	QDirIterator it(QStringLiteral(":/soldiers"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
-	QStringList list;
+    QDirIterator it(QStringLiteral(":/soldiers"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
+    QStringList list;
 
-	while (it.hasNext())
-		list.append(it.next().section('/',-2,-2));
+    while (it.hasNext())
+        list.append(it.next().section('/',-2,-2));
 
-	if (list.isEmpty()) {
-		qFatal("Enemy soldier directory is empty");
-	}
+    if (list.isEmpty()) {
+        qFatal("Enemy soldier directory is empty");
+    }
 
-	if (type.isEmpty()) {
-		const QString &s = list.at(QRandomGenerator::global()->bounded(list.size()));
-		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(s));
-	} else if (list.contains(type)) {
-		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(type));
-	} else {
-		LOG_CWARNING("scene") << "Invalid enemy soldier type:" << type;
-		soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(list.first()));
-	}
+    if (type.isEmpty()) {
+        const QString &s = list.at(QRandomGenerator::global()->bounded(list.size()));
+        soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(s));
+    } else if (list.contains(type)) {
+        soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(type));
+    } else {
+        LOG_CWARNING("scene") << "Invalid enemy soldier type:" << type;
+        soldier->setDataDir(QStringLiteral(":/soldiers/%1").arg(list.first()));
+    }
 
 
-	soldier->loadFromJsonFile();
-	soldier->setTerrainEnemyData(enemyData);
+    soldier->loadFromJsonFile();
+    soldier->setTerrainEnemyData(enemyData);
 
-	return soldier;
+    return soldier;
 }
 
 
@@ -353,27 +397,27 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
 
 ObjectStateEnemySoldier GameEnemySoldier::createState(const GameTerrain::EnemyData &enemyData)
 {
-	QDirIterator it(QStringLiteral(":/soldiers"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
-	QStringList list;
+    QDirIterator it(QStringLiteral(":/soldiers"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
+    QStringList list;
 
-	while (it.hasNext())
-		list.append(it.next().section('/',-2,-2));
+    while (it.hasNext())
+        list.append(it.next().section('/',-2,-2));
 
-	if (list.isEmpty()) {
-		qFatal("Enemy soldier directory is empty");
-	}
+    if (list.isEmpty()) {
+        qFatal("Enemy soldier directory is empty");
+    }
 
-	ObjectStateEnemySoldier state;
+    ObjectStateEnemySoldier state;
 
-	state.hp = 1;
-	state.maxHp = 1;
-	state.enemyRect = enemyData.rect;
-	state.subType = list.at(QRandomGenerator::global()->bounded(list.size())).toUtf8();
-	state.facingLeft = QRandomGenerator::global()->generate() % 2;
-	state.position = QPointF(enemyData.rect.left() + enemyData.rect.width()/2,
-							 enemyData.rect.bottom());
+    state.hp = 1;
+    state.maxHp = 1;
+    state.enemyRect = enemyData.rect;
+    state.subType = list.at(QRandomGenerator::global()->bounded(list.size())).toUtf8();
+    state.facingLeft = QRandomGenerator::global()->generate() % 2;
+    state.position = QPointF(enemyData.rect.left() + enemyData.rect.width()/2,
+                             enemyData.rect.bottom());
 
-	return state;
+    return state;
 }
 
 
@@ -383,12 +427,12 @@ ObjectStateEnemySoldier GameEnemySoldier::createState(const GameTerrain::EnemyDa
 
 void GameEnemySoldier::attackPlayer()
 {
-	emit attack();
+    emit attack();
 
-	//jumpToSprite(QStringLiteral("shot"));
+    //jumpToSprite(QStringLiteral("shot"));
 
-	if (player() && player()->isAlive())
-		player()->hurtByEnemy(this, true);
+    if (player() && player()->isAlive())
+        player()->hurtByEnemy(this, true);
 }
 
 
@@ -401,36 +445,36 @@ void GameEnemySoldier::attackPlayer()
 
 void GameEnemySoldier::rayCastReport(const QMultiMap<qreal, GameEntity *> &items)
 {
-	GamePlayer *_player = nullptr;
+    GamePlayer *_player = nullptr;
 
-	qreal fraction = -1.0;
+    qreal fraction = -1.0;
 
-	for (auto it = items.constBegin(); it != items.constEnd(); ++it) {
-		GamePlayer *e = qobject_cast<GamePlayer *>(it.value());
+    for (auto it = items.constBegin(); it != items.constEnd(); ++it) {
+        GamePlayer *e = qobject_cast<GamePlayer *>(it.value());
 
-		if (e && e->isAlive() && !e->invisible()) {
-			_player = e;
-			fraction = it.key();
-			break;
-		}
-	}
+        if (e && e->isAlive() && !e->invisible()) {
+            _player = e;
+            fraction = it.key();
+            break;
+        }
+    }
 
-	GamePlayer *oldPlayer = player();
+    GamePlayer *oldPlayer = player();
 
-	setPlayer(_player);
+    setPlayer(_player);
 
-	if ((m_enemyState == Attack || m_enemyState == WatchPlayer) && !_player) {
-		if (oldPlayer)
-			turnToPlayer(oldPlayer);
-		else
-			setEnemyState(Move);
-	} else if (_player && m_enemyState != Attack && m_enemyState != WatchPlayer) {
-		if (fraction != -1.0 && fraction < m_castAttackFraction) {
-			setEnemyState(Attack);
-			attackPlayer();
-		} else
-			setEnemyState(WatchPlayer);
-	}
+    if ((m_enemyState == Attack || m_enemyState == WatchPlayer) && !_player) {
+        if (oldPlayer)
+            turnToPlayer(oldPlayer);
+        else
+            setEnemyState(Move);
+    } else if (_player && m_enemyState != Attack && m_enemyState != WatchPlayer) {
+        if (fraction != -1.0 && fraction < m_castAttackFraction) {
+            setEnemyState(Attack);
+            attackPlayer();
+        } else
+            setEnemyState(WatchPlayer);
+    }
 
 }
 
@@ -442,29 +486,48 @@ void GameEnemySoldier::rayCastReport(const QMultiMap<qreal, GameEntity *> &items
 
 void GameEnemySoldier::enemyStateModified()
 {
-	switch (m_enemyState) {
-	case Invalid:
-	case Idle:
-		jumpToSprite(QStringLiteral("idle"));
-		break;
-	case Move:
-		jumpToSprite(QStringLiteral("walk"));
-		break;
-	case WatchPlayer:
-		m_attackElapsedMsec = 0;
-		setMsecLeftToAttack(m_msecBeforeAttack);
-		jumpToSprite(QStringLiteral("idle"));
-		break;
+    switch (m_enemyState) {
+    case Invalid:
+    case Idle:
+        jumpToSprite(QStringLiteral("idle"));
+        break;
+    case Move:
+        jumpToSprite(QStringLiteral("walk"));
+        break;
+    case WatchPlayer:
+        m_attackElapsedMsec = 0;
+        setMsecLeftToAttack(m_msecBeforeAttack);
+        jumpToSprite(QStringLiteral("idle"));
+        break;
 
-	case Attack:
-		setMsecLeftToAttack(0);
-		break;
+    case Attack:
+        setMsecLeftToAttack(0);
+        break;
 
-	case Dead:
-		jumpToSprite(QStringLiteral("idle"));
-		jumpToSprite(QStringLiteral("dead"));
-		break;
-	}
+    case Dead:
+        jumpToSprite(QStringLiteral("idle"));
+        jumpToSprite(QStringLiteral("dead"));
+        break;
+    }
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::stateReconciliation
+ * @param from
+ * @param to
+ * @return
+ */
+
+bool GameEnemySoldier::stateReconciliation(const ObjectStateEnemySoldier &from, const ObjectStateEnemySoldier &to)
+{
+    LOG_CDEBUG("game") << "   - soldier state prediction" << from.tick << to.tick << from.enemyState << to.enemyState;
+
+    if (from.enemyState != ObjectStateEnemy::Dead)
+        return true;
+
+    return false;
 }
 
 
@@ -475,28 +538,28 @@ void GameEnemySoldier::enemyStateModified()
 
 void GameEnemySoldier::onSceneConnected()
 {
-	const QJsonObject &data = m_scene->levelData().value(QStringLiteral("enemy")).toObject().value(QStringLiteral("soldier")).toObject();
+    const QJsonObject &data = m_scene->levelData().value(QStringLiteral("enemy")).toObject().value(QStringLiteral("soldier")).toObject();
 
-	setRayCastElevation(data.value(QStringLiteral("rayCastElevation")).toDouble());
-	setRayCastLength(data.value(QStringLiteral("rayCastLength")).toDouble());
-	setMsecBeforeTurn(data.value(QStringLiteral("msecBeforeTurn")).toDouble());
-	setCastAttackFraction(data.value(QStringLiteral("castAttackFraction")).toDouble());
-	setMsecBeforeAttack(data.value(QStringLiteral("msecBeforeAttack")).toDouble());
-	setMsecBetweenAttack(data.value(QStringLiteral("msecBetweenAttack")).toDouble());
+    setRayCastElevation(data.value(QStringLiteral("rayCastElevation")).toDouble());
+    setRayCastLength(data.value(QStringLiteral("rayCastLength")).toDouble());
+    setMsecBeforeTurn(data.value(QStringLiteral("msecBeforeTurn")).toDouble());
+    setCastAttackFraction(data.value(QStringLiteral("castAttackFraction")).toDouble());
+    setMsecBeforeAttack(data.value(QStringLiteral("msecBeforeAttack")).toDouble());
+    setMsecBetweenAttack(data.value(QStringLiteral("msecBetweenAttack")).toDouble());
 }
 
 
 int GameEnemySoldier::msecBeforeTurn() const
 {
-	return m_msecBeforeTurn;
+    return m_msecBeforeTurn;
 }
 
 void GameEnemySoldier::setMsecBeforeTurn(int newMsecBeforeTurn)
 {
-	if (m_msecBeforeTurn == newMsecBeforeTurn)
-		return;
-	m_msecBeforeTurn = newMsecBeforeTurn;
-	emit msecBeforeTurnChanged();
+    if (m_msecBeforeTurn == newMsecBeforeTurn)
+        return;
+    m_msecBeforeTurn = newMsecBeforeTurn;
+    emit msecBeforeTurnChanged();
 }
 
 
