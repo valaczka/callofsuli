@@ -46,24 +46,21 @@ public:
     void setTurnElapsedMsec(int newTurnElapsedMsec);
 
     static GameEnemySoldier* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
-    static ObjectStateEnemySoldier createState(const GameTerrain::EnemyData &enemyData);
+    static ObjectStateBase createState(const GameTerrain::EnemyData &enemyData);
 
     Q_INVOKABLE void attackPlayer();
 
     void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
     virtual void cacheCurrentState() override;
-    virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId) override;
-    virtual void setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force) override;
-    virtual void interpolateState(const qint64 &currentTick) override;
 
-    bool getCurrentState(ObjectStateEnemySoldier *ptr) const;
-    void setCurrentState(const ObjectStateEnemySoldier &state, const bool &force);
+    virtual void setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force) override;
+    virtual ObjectStateBase getCurrentState() const override;
+    virtual void setCurrentState(const ObjectStateBase &state, const bool &force) override;
 
 protected:
     virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
     virtual void enemyStateModified() override;
-
-    static bool stateReconciliation(const ObjectStateEnemySoldier &from, const ObjectStateEnemySoldier &to);
+    virtual ObjectStateBase interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to) override;
 
 private slots:
     void onSceneConnected();
@@ -79,9 +76,6 @@ private:
     int m_msecBeforeTurn = 5000;
     int m_turnElapsedMsec = -1;
     int m_attackElapsedMsec = -1;
-
-    std::vector<ObjectStateEnemySoldier> m_cachedStates;
-    QMap<qint64, ObjectStateEnemySoldier> m_authoritativeStates;
 };
 
 #endif // GAMEENEMYSOLDIER_H

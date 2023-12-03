@@ -44,13 +44,13 @@ QStringList AbstractLevelGame::m_availableMedal;
  */
 
 AbstractLevelGame::AbstractLevelGame(const GameMap::GameMode &mode, GameMapMissionLevel *missionLevel, Client *client)
-	: AbstractGame(mode, client)
-	, m_missionLevel(missionLevel)
+    : AbstractGame(mode, client)
+    , m_missionLevel(missionLevel)
 {
-	if (m_missionLevel)
-		setMap(m_missionLevel->map());
-	m_timerLeft.setInterval(50);
-	connect(&m_timerLeft, &QTimer::timeout, this, &AbstractLevelGame::onTimerLeftTimeout);
+    if (m_missionLevel)
+        setMap(m_missionLevel->map());
+    m_timerLeft.setInterval(50);
+    connect(&m_timerLeft, &QTimer::timeout, this, &AbstractLevelGame::onTimerLeftTimeout);
 }
 
 
@@ -70,28 +70,28 @@ AbstractLevelGame::~AbstractLevelGame()
 
 QVector<Question> AbstractLevelGame::createQuestions()
 {
-	LOG_CDEBUG("game") << "Create questions";
+    LOG_CDEBUG("game") << "Create questions";
 
-	QVector<Question> list;
+    QVector<Question> list;
 
-	if (!m_missionLevel) {
-		LOG_CWARNING("game") << "Missing game map, don't created any question";
-		return list;
-	}
+    if (!m_missionLevel) {
+        LOG_CWARNING("game") << "Missing game map, don't created any question";
+        return list;
+    }
 
-	foreach (GameMapChapter *chapter, m_missionLevel->chapters()) {
-		foreach (GameMapObjective *objective, chapter->objectives()) {
-			int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
+    foreach (GameMapChapter *chapter, m_missionLevel->chapters()) {
+        foreach (GameMapObjective *objective, chapter->objectives()) {
+            int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
 
-			for (int i=0; i<n; ++i)
-				list.append(Question(objective));
+            for (int i=0; i<n; ++i)
+                list.append(Question(objective));
 
-		}
-	}
+        }
+    }
 
-	LOG_CDEBUG("game") << "Created " << list.size() << " questions";
+    LOG_CDEBUG("game") << "Created " << list.size() << " questions";
 
-	return list;
+    return list;
 }
 
 
@@ -103,40 +103,40 @@ QVector<Question> AbstractLevelGame::createQuestions()
 
 void AbstractLevelGame::onTimerLeftTimeout()
 {
-	if (m_deadlineTimeout || m_closedSuccesfully) {
-		m_timerLeft.stop();
-		return;
-	}
+    if (m_deadlineTimeout || m_closedSuccesfully) {
+        m_timerLeft.stop();
+        return;
+    }
 
-	emit msecLeftChanged();
+    emit msecLeftChanged();
 
-	if (m_deadline.hasExpired()) {
-		LOG_CDEBUG("game") << "Game timeout";
+    if (m_deadline.hasExpired()) {
+        LOG_CDEBUG("game") << "Game timeout";
 
-		m_deadlineTimeout = true;
-		m_timerLeft.stop();
-		emit gameTimeout();
-		return;
-	}
+        m_deadlineTimeout = true;
+        m_timerLeft.stop();
+        emit gameTimeout();
+        return;
+    }
 
 }
 
 const QStringList &AbstractLevelGame::availableMedal()
 {
-	return m_availableMedal;
+    return m_availableMedal;
 }
 
 int AbstractLevelGame::xp() const
 {
-	return m_xp;
+    return m_xp;
 }
 
 void AbstractLevelGame::setXp(int newXp)
 {
-	if (m_xp == newXp)
-		return;
-	m_xp = newXp;
-	emit xpChanged();
+    if (m_xp == newXp)
+        return;
+    m_xp = newXp;
+    emit xpChanged();
 }
 
 
@@ -147,16 +147,16 @@ void AbstractLevelGame::setXp(int newXp)
 
 int AbstractLevelGame::msecLeft() const
 {
-	if (m_deadlineTimeout)
-		return 0;
+    if (m_deadlineTimeout)
+        return 0;
 
-	if (!m_timerLeft.isActive())
-		return duration()*1000;
+    if (!m_timerLeft.isActive())
+        return duration()*1000;
 
-	if (m_deadline.hasExpired())
-		return 0;
+    if (m_deadline.hasExpired())
+        return 0;
 
-	return m_deadline.remainingTime();
+    return m_deadline.remainingTime();
 }
 
 
@@ -166,16 +166,16 @@ int AbstractLevelGame::msecLeft() const
 
 void AbstractLevelGame::reloadAvailableMusic()
 {
-	LOG_CDEBUG("game") << "Reload available music...";
+    LOG_CDEBUG("game") << "Reload available music...";
 
-	m_availableMusic.clear();
+    m_availableMusic.clear();
 
-	QDirIterator it(QStringLiteral(":/sound/music"), QDir::Files);
+    QDirIterator it(QStringLiteral(":/sound/music"), QDir::Files);
 
-	while (it.hasNext())
-		m_availableMusic.append(it.next());
+    while (it.hasNext())
+        m_availableMusic.append(it.next());
 
-	LOG_CDEBUG("game") << "...loaded " << m_availableMusic.size() << "music";
+    LOG_CDEBUG("game") << "...loaded " << m_availableMusic.size() << "music";
 }
 
 
@@ -185,18 +185,18 @@ void AbstractLevelGame::reloadAvailableMusic()
 
 void AbstractLevelGame::reloadAvailableMedal()
 {
-	LOG_CDEBUG("game") << "Reload available medal...";
+    LOG_CDEBUG("game") << "Reload available medal...";
 
-	m_availableMedal.clear();
+    m_availableMedal.clear();
 
-	QDirIterator it(QStringLiteral(":/internal/medal"), QDir::Files);
+    QDirIterator it(QStringLiteral(":/internal/medal"), QDir::Files);
 
-	while (it.hasNext()) {
-		it.next();
-		m_availableMedal.append(it.fileName());
-	}
+    while (it.hasNext()) {
+        it.next();
+        m_availableMedal.append(it.fileName());
+    }
 
-	LOG_CDEBUG("game") << "...loaded " << m_availableMedal.size() << " medal";
+    LOG_CDEBUG("game") << "...loaded " << m_availableMedal.size() << " medal";
 }
 
 
@@ -209,10 +209,10 @@ void AbstractLevelGame::reloadAvailableMedal()
 
 QString AbstractLevelGame::medalImagePath(const QString &medal)
 {
-	if (m_availableMedal.contains(medal))
-		return QStringLiteral("qrc:/internal/medal/")+medal;
-	else
-		return QStringLiteral("");
+    if (m_availableMedal.contains(medal))
+        return QStringLiteral("qrc:/internal/medal/")+medal;
+    else
+        return QStringLiteral("");
 }
 
 
@@ -225,10 +225,10 @@ QString AbstractLevelGame::medalImagePath(const QString &medal)
 
 QString AbstractLevelGame::medalImagePath(GameMapMission *mission)
 {
-	if (!mission)
-		return QStringLiteral("");
+    if (!mission)
+        return QStringLiteral("");
 
-	return medalImagePath(mission->medalImage());
+    return medalImagePath(mission->medalImage());
 }
 
 
@@ -240,10 +240,10 @@ QString AbstractLevelGame::medalImagePath(GameMapMission *mission)
 
 QString AbstractLevelGame::medalImagePath(GameMapMissionLevel *missionLevel)
 {
-	if (!missionLevel)
-		return QStringLiteral("");
-	else
-		return medalImagePath(missionLevel->mission());
+    if (!missionLevel)
+        return QStringLiteral("");
+    else
+        return medalImagePath(missionLevel->mission());
 }
 
 
@@ -254,21 +254,21 @@ QString AbstractLevelGame::medalImagePath(GameMapMissionLevel *missionLevel)
 
 void AbstractLevelGame::startWithRemainingTime(const qint64 &msec)
 {
-	m_deadline.setRemainingTime(msec);
-	m_deadlineTimeout = false;
-	m_timerLeft.start();
-	gameStart();
+    m_deadline.setRemainingTime(msec);
+    m_deadlineTimeout = false;
+    m_timerLeft.start();
+    gameStart();
 }
 
 
-/**
+/**+
  * @brief AbstractLevelGame::addToDeadline
  * @param msec
  */
 
 void AbstractLevelGame::addToDeadline(const qint64 &msec)
 {
-	m_deadline += msec;
+    m_deadline += msec;
 }
 
 
@@ -283,22 +283,22 @@ void AbstractLevelGame::addToDeadline(const qint64 &msec)
 
 bool AbstractLevelGame::deathmatch() const
 {
-	return m_deathmatch;
+    return m_deathmatch;
 }
 
 void AbstractLevelGame::setDeathmatch(bool newDeathmatch)
 {
-	if (m_deathmatch == newDeathmatch)
-		return;
-	m_deathmatch = newDeathmatch;
-	emit deathmatchChanged();
+    if (m_deathmatch == newDeathmatch)
+        return;
+    m_deathmatch = newDeathmatch;
+    emit deathmatchChanged();
 }
 
 
 
 GameMapMissionLevel *AbstractLevelGame::missionLevel() const
 {
-	return m_missionLevel;
+    return m_missionLevel;
 }
 
 
@@ -310,43 +310,43 @@ GameMapMissionLevel *AbstractLevelGame::missionLevel() const
 
 QString AbstractLevelGame::uuid() const
 {
-	return m_missionLevel ? m_missionLevel->mission()->uuid() : "";
+    return m_missionLevel ? m_missionLevel->mission()->uuid() : "";
 }
 
 QString AbstractLevelGame::name() const
 {
-	return m_missionLevel ? m_missionLevel->mission()->name() : "";
+    return m_missionLevel ? m_missionLevel->mission()->name() : "";
 }
 
 QString AbstractLevelGame::description() const
 {
-	return m_missionLevel ? m_missionLevel->mission()->description() : "";
+    return m_missionLevel ? m_missionLevel->mission()->description() : "";
 }
 
 int AbstractLevelGame::level() const
 {
-	return m_missionLevel ? m_missionLevel->level() : -1;
+    return m_missionLevel ? m_missionLevel->level() : -1;
 }
 
 QString AbstractLevelGame::medalImage() const
 {
-	return medalImagePath(m_missionLevel);
+    return medalImagePath(m_missionLevel);
 }
 
 
 QString AbstractLevelGame::terrain() const
 {
-	return m_missionLevel ? m_missionLevel->terrain() : "";
+    return m_missionLevel ? m_missionLevel->terrain() : "";
 }
 
 int AbstractLevelGame::startHP() const
 {
-	return m_missionLevel ? m_missionLevel->startHP() : 1;
+    return m_missionLevel ? m_missionLevel->startHP() : 1;
 }
 
 int AbstractLevelGame::duration() const
 {
-	return m_missionLevel ? m_missionLevel->duration() : 1;
+    return m_missionLevel ? m_missionLevel->duration() : 1;
 }
 
 
@@ -359,29 +359,29 @@ int AbstractLevelGame::duration() const
 
 QUrl AbstractLevelGame::backgroundImage() const
 {
-	if (!m_missionLevel)
-		return QUrl(QStringLiteral("qrc:/internal/game/bg.png"));
+    if (!m_missionLevel)
+        return QUrl(QStringLiteral("qrc:/internal/game/bg.png"));
 
-	QString d;
+    QString d;
 
-	if (m_missionLevel->image() > 0)
-		d = QStringLiteral("image://mapimage/%1").arg(m_missionLevel->image());
+    if (m_missionLevel->image() > 0)
+        d = QStringLiteral("image://mapimage/%1").arg(m_missionLevel->image());
 
-	if (d.isEmpty()) {
-		const GameTerrain &t = GameTerrain::terrain(m_missionLevel->terrain());
+    if (d.isEmpty()) {
+        const GameTerrain &t = GameTerrain::terrain(m_missionLevel->terrain());
 
-		if (!t.name().isEmpty())
-			d = t.backgroundImage();
+        if (!t.name().isEmpty())
+            d = t.backgroundImage();
 
-		if (!d.isEmpty()) {
-			if (d.startsWith(QStringLiteral(":")))
-				d.prepend(QStringLiteral("qrc"));
-			else if (!d.startsWith(QStringLiteral("qrc:")))
-				d.prepend(QStringLiteral("qrc:"));
-		}
-	}
+        if (!d.isEmpty()) {
+            if (d.startsWith(QStringLiteral(":")))
+                d.prepend(QStringLiteral("qrc"));
+            else if (!d.startsWith(QStringLiteral("qrc:")))
+                d.prepend(QStringLiteral("qrc:"));
+        }
+    }
 
-	return d.isEmpty() ? QStringLiteral("qrc:/internal/game/bg.png") : d;
+    return d.isEmpty() ? QStringLiteral("qrc:/internal/game/bg.png") : d;
 }
 
 
@@ -393,36 +393,36 @@ QUrl AbstractLevelGame::backgroundImage() const
 
 QString AbstractLevelGame::backgroundMusic()
 {
-	if (!m_backgroundMusic.isEmpty())
-		return m_backgroundMusic;
+    if (!m_backgroundMusic.isEmpty())
+        return m_backgroundMusic;
 
-	QString d;
+    QString d;
 
-	if (m_missionLevel) {
-		const GameTerrain &t = GameTerrain::terrain(m_missionLevel->terrain());
+    if (m_missionLevel) {
+        const GameTerrain &t = GameTerrain::terrain(m_missionLevel->terrain());
 
-		if (!t.name().isEmpty())
-			d = t.backgroundMusic();
+        if (!t.name().isEmpty())
+            d = t.backgroundMusic();
 
-		if (d.isEmpty() && m_availableMusic.size()) {
-			d = m_availableMusic.at(QRandomGenerator::global()->bounded(m_availableMusic.size()));
-		}
+        if (d.isEmpty() && m_availableMusic.size()) {
+            d = m_availableMusic.at(QRandomGenerator::global()->bounded(m_availableMusic.size()));
+        }
 
-		if (d.isEmpty())
-			d = QStringLiteral("qrc:/sound/music/default_bg_music.mp3");
+        if (d.isEmpty())
+            d = QStringLiteral("qrc:/sound/music/default_bg_music.mp3");
 
-		if (d.startsWith(QStringLiteral(":")))
-			d.prepend(QStringLiteral("qrc"));
-		else if (!d.startsWith(QStringLiteral("qrc:")))
-			d.prepend(QStringLiteral("qrc:"));
+        if (d.startsWith(QStringLiteral(":")))
+            d.prepend(QStringLiteral("qrc"));
+        else if (!d.startsWith(QStringLiteral("qrc:")))
+            d.prepend(QStringLiteral("qrc:"));
 
 
-		m_backgroundMusic = d;
-	} else {
-		d = QStringLiteral("qrc:/sound/music/default_bg_music.mp3");
-	}
+        m_backgroundMusic = d;
+    } else {
+        d = QStringLiteral("qrc:/sound/music/default_bg_music.mp3");
+    }
 
-	return d;
+    return d;
 }
 
 
@@ -434,13 +434,13 @@ QString AbstractLevelGame::backgroundMusic()
 
 bool AbstractLevelGame::isFlawless() const
 {
-	return m_isFlawless;
+    return m_isFlawless;
 }
 
 void AbstractLevelGame::setIsFlawless(bool newIsFlawless)
 {
-	if (m_isFlawless == newIsFlawless)
-		return;
-	m_isFlawless = newIsFlawless;
-	emit isFlawlessChanged();
+    if (m_isFlawless == newIsFlawless)
+        return;
+    m_isFlawless = newIsFlawless;
+    emit isFlawlessChanged();
 }

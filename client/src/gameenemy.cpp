@@ -34,12 +34,12 @@
 
 // State hash
 
-const QHash<ObjectStateEnemy::EnemyState, GameEnemy::EnemyState> GameEnemy::m_stateHash = {
-    { ObjectStateEnemy::Idle, GameEnemy::Idle },
-    { ObjectStateEnemy::Move, GameEnemy::Move },
-    { ObjectStateEnemy::WatchPlayer, GameEnemy::WatchPlayer },
-    { ObjectStateEnemy::Attack, GameEnemy::Attack },
-    { ObjectStateEnemy::Dead, GameEnemy::Dead },
+const QHash<ObjectStateBase::EnemyState, GameEnemy::EnemyState> GameEnemy::m_stateHash = {
+    { ObjectStateBase::Idle, GameEnemy::Idle },
+    { ObjectStateBase::Move, GameEnemy::Move },
+    { ObjectStateBase::WatchPlayer, GameEnemy::WatchPlayer },
+    { ObjectStateBase::Attack, GameEnemy::Attack },
+    { ObjectStateBase::Dead, GameEnemy::Dead },
     };
 
 
@@ -108,6 +108,52 @@ void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestion
 }
 
 
+/**
+ * @brief GameEnemy::interpolate
+ * @param t
+ * @param from
+ * @param to
+ * @return
+ */
+
+ObjectStateBase GameEnemy::interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to)
+{
+    ObjectStateBase b = GameEntity::interpolate(t, from, to);
+
+    /*if (from.fields.testFlag(ObjectStateBase::FieldEnemyState)) {
+        if (t < 1.0) {
+            if (to.position.x() != from.position.x())
+                b.enemyState = ObjectStateBase::Move;
+            else if (from.position.x() == to.position.x() && from.enemyState == ObjectStateBase::Move)
+                b.enemyState = to.enemyState == ObjectStateBase::Move ? ObjectStateBase::Idle : to.enemyState;
+        } else {
+            b.enemyState = to.enemyState;
+        }
+    }*/
+
+    return b;
+}
+
+
+/**
+ * @brief GameEnemy::stateReconciliation
+ * @param from
+ * @param to
+ * @return
+ */
+
+bool GameEnemy::stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to)
+{
+    if (!GameEntity::stateReconciliation(from, to))
+        return false;
+
+    if (from.enemyState == ObjectStateBase::Dead)
+        return false;
+
+    return true;
+}
+
+
 
 
 /**
@@ -118,48 +164,6 @@ void GameEnemy::playAttackSound()
 {
     Application::instance()->client()->sound()->playSound(shotSound(), Sound::SfxChannel);
 }
-
-
-
-
-/**
- * @brief GameEnemy::getCurrentState
- * @param ptr
- * @return
- */
-
-bool GameEnemy::getCurrentState(ObjectStateEnemy *ptr) const
-{
-    if (!ptr)
-        return false;
-
-    GameEntity::getCurrentState(ptr);
-    ptr->enemyState = m_stateHash.key(m_enemyState, ObjectStateEnemy::Invalid);
-    ptr->enemyRect = m_terrainEnemyData.rect;
-    ptr->msecLeftToAttack = m_msecLeftToAttack;
-
-    return true;
-}
-
-
-
-/**
- * @brief GameEnemy::setCurrentState
- * @param state
- */
-
-void GameEnemy::setCurrentState(const ObjectStateEnemy &state, const bool &force)
-{
-    GameEntity::setCurrentState(state, force);
-
-    if (force) {
-        setEnemyState(m_stateHash.value(state.enemyState, Invalid));
-        //m_terrainEnemyData.rect = state.enemyRect;        // ??
-        setMsecLeftToAttack(state.msecLeftToAttack);
-    }
-}
-
-
 
 
 const GamePickable::GamePickableData &GameEnemy::pickable() const
@@ -175,25 +179,55 @@ void GameEnemy::setPickable(const GamePickable::GamePickableData &newPickable)
 
 
 
+
 /**
- * @brief GameEnemy::setStateFromSnapshot
- * @param ptr
+ * @brief GameEnemy::getCurrentState
+ * @return
  */
 
-void GameEnemy::setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force)
+ObjectStateBase GameEnemy::getCurrentState() const
 {
-    if (!ptr)
-        return;
+    ObjectStateBase b = GameEntity::getCurrentState();
+    b.type = ObjectStateBase::TypeEnemy;
 
-    ObjectStateEnemy*_ptr = dynamic_cast<ObjectStateEnemy*>(ptr);
+    b.fields.setFlag(ObjectStateBase::FieldEnemyState);
+    b.fields.setFlag(ObjectStateBase::FieldEnemyRect);
+    b.fields.setFlag(ObjectStateBase::FieldMSecToAttack);
 
-    LOG_CTRACE("scene") << "Set state from snapshot" << _ptr << force;
+    b.enemyState = m_stateHash.key(m_enemyState, ObjectStateBase::Invalid);
+    b.enemyRect = m_terrainEnemyData.rect;
+    b.msecLeftToAttack = m_msecLeftToAttack;
 
-    if (_ptr)
-        setCurrentState(*_ptr, force);
-    else
-        GameEntity::setStateFromSnapshot(ptr, currentTick, force);
+    return b;
 }
+
+
+
+
+/**
+ * @brief GameEnemy::setCurrentState
+ * @param state
+ * @param force
+ */
+
+void GameEnemy::setCurrentState(const ObjectStateBase &state, const bool &force)
+{
+    GameEntity::setCurrentState(state, force);
+
+    if (force) {
+        if (state.fields.testFlag(ObjectStateBase::FieldEnemyState))
+            setEnemyState(m_stateHash.value(state.enemyState, Invalid));
+
+        if (state.fields.testFlag(ObjectStateBase::FieldEnemyRect))
+            m_terrainEnemyData.rect = state.enemyRect;
+
+        if (state.fields.testFlag(ObjectStateBase::FieldMSecToAttack))
+            setMsecLeftToAttack(state.msecLeftToAttack);
+    }
+}
+
+
+
 
 
 /**

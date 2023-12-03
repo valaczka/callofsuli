@@ -16,11 +16,11 @@ win32 {
 	lines += "$${LITERAL_HASH}define COSexe = \"Call_of_Suli_x64_install_unsigned\""
 
 	lessThan(QT_MAJOR_VERSION, 6) {
-		lines += "$${LITERAL_HASH}define WinMaxVersion = 10.0.17763"
-		lines += "$${LITERAL_HASH}define WinMinVersion = 6.1"
+		lines += "$${LITERAL_HASH}define WinMaxVersion = \"10.0.17763\""
+		lines += "$${LITERAL_HASH}define WinMinVersion = \"6.1sp1\""
 	} else {
-		lines += "$${LITERAL_HASH}define WinMaxVersion = 0"
-		lines += "$${LITERAL_HASH}define WinMinVersion = 10.0.17763"
+		lines += "$${LITERAL_HASH}define WinMaxVersion = \"0\""
+		lines += "$${LITERAL_HASH}define WinMinVersion = \"10.0.17763\""
 	}
 
 	lines += $$cat(../client/deploy/CallOfSuli.iss, blob)
@@ -45,10 +45,6 @@ else: LddLibDir = $${CQtTargetDir}/usr/lib
 lessThan(QT_MAJOR_VERSION, 6): QmlDir = $$PWD/../client/qml
 else: QmlDir = $$PWD/../client/qml-Qt6
 
-lessThan(QT_MAJOR_VERSION, 6): SslVersion = 1_1
-else: SslVersion = 3
-
-
 win32: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
 			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter,QOlm \
@@ -66,8 +62,8 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			done ; \
 			rm ./_tmp_dll.txt ; \
 			which libjpeg-8.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libjpeg-8.dll) $${LddLibDir} ; \
-			which libssl-$${SslVersion}-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libssl-$${SslVersion}-x64.dll) $${LddLibDir} ; \
-			which libcrypto-$${SslVersion}-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libcrypto-$${SslVersion}-x64.dll) $${LddLibDir}
+			which libssl-3-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libssl-3-x64.dll) $${LddLibDir} ; \
+			which libcrypto-3-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libcrypto-3-x64.dll) $${LddLibDir}
 
 else: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \

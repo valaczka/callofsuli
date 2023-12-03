@@ -55,19 +55,19 @@
  */
 
 Updater::Updater(Client *client)
-	: QObject{client}
-	, m_client(client)
-	#ifdef Q_OS_WIN
-	, m_updaterExecutable(_UPDATER_EXECUTABLE_WIN)
-	#else
-	, m_updaterExecutable(_UPDATER_EXECUTABLE)
-	#endif
+    : QObject{client}
+    , m_client(client)
+    #ifdef Q_OS_WIN
+    , m_updaterExecutable(_UPDATER_EXECUTABLE_WIN)
+    #else
+    , m_updaterExecutable(_UPDATER_EXECUTABLE)
+    #endif
 {
-	Q_ASSERT(m_client);
+    Q_ASSERT(m_client);
 
-	connect(this, &Updater::appImageUpdateCheckFailed, this, &Updater::githubUpdateCheckNoForce);
+    connect(this, &Updater::appImageUpdateCheckFailed, this, &Updater::githubUpdateCheckNoForce);
 
-	removeUpdaterExecutable();
+    removeUpdaterExecutable();
 
 }
 
@@ -81,26 +81,26 @@ Updater::Updater(Client *client)
 
 void Updater::checkAvailableUpdates(const bool &force)
 {
-	if (!force) {
-		QSettings s;
-		if (!s.contains(QStringLiteral("update/enabled"))) {
-			LOG_CDEBUG("updater") << "First run, skip automatic update";
-			setAutoUpdate(true);
-			return;
-		}
-	}
+    if (!force) {
+        QSettings s;
+        if (!s.contains(QStringLiteral("update/enabled"))) {
+            LOG_CDEBUG("updater") << "First run, skip automatic update";
+            setAutoUpdate(true);
+            return;
+        }
+    }
 
-	const bool updateEnabled = autoUpdate();
+    const bool updateEnabled = autoUpdate();
 
-	if (!updateEnabled && !force) {
-		LOG_CINFO("updater") << "Automatic update disabled";
-		return;
-	}
+    if (!updateEnabled && !force) {
+        LOG_CINFO("updater") << "Automatic update disabled";
+        return;
+    }
 
-	if (appImageUpdateCheck(force))
-		return;
+    if (appImageUpdateCheck(force))
+        return;
 
-	githubUpdateCheck(force);
+    githubUpdateCheck(force);
 }
 
 
@@ -112,60 +112,60 @@ void Updater::checkAvailableUpdates(const bool &force)
 void Updater::updateAppImage()
 {
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-	const QByteArray &appImage = qgetenv("APPIMAGE");
+    const QByteArray &appImage = qgetenv("APPIMAGE");
 
-	if (appImage.isEmpty()) {
-		LOG_CDEBUG("updater") << "AppImage not present";
-		emit appImageUpdateFailed(tr("Nem található AppImage"));
-		return;
-	}
+    if (appImage.isEmpty()) {
+        LOG_CDEBUG("updater") << "AppImage not present";
+        emit appImageUpdateFailed(tr("Nem található AppImage"));
+        return;
+    }
 
-	if (!QFile::exists(_APPIMAGE_UPDATE_TOOL)) {
-		LOG_CWARNING("updater") << "AppImageUpdateTool not found";
-		emit appImageUpdateFailed(tr("Az AppImageToolUpdate nem található"));
-		return;
-	}
+    if (!QFile::exists(_APPIMAGE_UPDATE_TOOL)) {
+        LOG_CWARNING("updater") << "AppImageUpdateTool not found";
+        emit appImageUpdateFailed(tr("Az AppImageToolUpdate nem található"));
+        return;
+    }
 
 
-	QProcess *process = new QProcess(this);
+    QProcess *process = new QProcess(this);
 
-	process->setProgram(_APPIMAGE_UPDATE_TOOL);
-	process->setArguments({QStringLiteral("-O"), QString::fromUtf8(appImage)});
+    process->setProgram(_APPIMAGE_UPDATE_TOOL);
+    process->setArguments({QStringLiteral("-O"), QString::fromUtf8(appImage)});
 
-	connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error){
-		LOG_CERROR("updater") << "AppImateUpdateTool failed:" << error;
+    connect(process, &QProcess::errorOccurred, this, [this, process](QProcess::ProcessError error){
+        LOG_CERROR("updater") << "AppImateUpdateTool failed:" << error;
 
-		emit appImageUpdateFailed(tr("AppImageUpdateTool futtatása sikertelen"));
+        emit appImageUpdateFailed(tr("AppImageUpdateTool futtatása sikertelen"));
 
-		process->deleteLater();
-	});
+        process->deleteLater();
+    });
 
-	connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
-			[this, process](int exitCode, QProcess::ExitStatus exitStatus){
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+            [this, process](int exitCode, QProcess::ExitStatus exitStatus){
 
-		LOG_CWARNING("updater") << "AppImateUpdateTool update finished with code:" << exitCode << exitStatus;
+        LOG_CWARNING("updater") << "AppImateUpdateTool update finished with code:" << exitCode << exitStatus;
 
-		if (exitStatus == QProcess::NormalExit && exitCode == 0)
-			emit appImageUpdateSuccess();
-		else
-			emit appImageUpdateFailed(tr("A frissítés sikertelen"));
+        if (exitStatus == QProcess::NormalExit && exitCode == 0)
+            emit appImageUpdateSuccess();
+        else
+            emit appImageUpdateFailed(tr("A frissítés sikertelen"));
 
-		process->deleteLater();
-	});
+        process->deleteLater();
+    });
 
-	connect(process, &QProcess::readyReadStandardOutput, this, [process](){
-		LOG_CTRACE("updater") << process->readAllStandardOutput();
-	});
+    connect(process, &QProcess::readyReadStandardOutput, this, [process](){
+        LOG_CTRACE("updater") << process->readAllStandardOutput();
+    });
 
-	connect(process, &QProcess::readyReadStandardError, this, [process](){
-		LOG_CTRACE("updater") << process->readAllStandardError();
-	});
+    connect(process, &QProcess::readyReadStandardError, this, [process](){
+        LOG_CTRACE("updater") << process->readAllStandardError();
+    });
 
-	m_client->snack(tr("Szoftverfrissítés..."));
+    m_client->snack(tr("Szoftverfrissítés..."));
 
-	process->start();
+    process->start();
 
-	LOG_CDEBUG("updater") << "AppImageUpdateTool update started";
+    LOG_CDEBUG("updater") << "AppImageUpdateTool update started";
 
 #endif
 }
@@ -179,83 +179,83 @@ void Updater::updateAppImage()
 
 void Updater::updateGitHub(const QString &installer, const QString &sha1)
 {
-	LOG_CDEBUG("updater") << "GitHub download update:" << qPrintable(installer);
+    LOG_CDEBUG("updater") << "GitHub download update:" << qPrintable(installer);
 
-	HttpConnection *HttpConnection = m_client->httpConnection();
+    HttpConnection *HttpConnection = m_client->httpConnection();
 
-	if (!HttpConnection) {
-		LOG_CERROR("updater") << "HttpConnection missing";
-		return;
-	}
+    if (!HttpConnection) {
+        LOG_CERROR("updater") << "HttpConnection missing";
+        return;
+    }
 
-	removeUpdaterExecutable();
+    removeUpdaterExecutable();
 
-	m_fileUpdater.setFileName(m_updaterExecutable);
+    m_fileUpdater.setFileName(m_updaterExecutable);
 
-	if (!m_fileUpdater.open(QIODevice::WriteOnly)) {
-		LOG_CERROR("updater") << "Update installer write error:" << qPrintable(m_updaterExecutable);
-		emit updateDownloadFailed();
-		return;
-	}
+    if (!m_fileUpdater.open(QIODevice::WriteOnly)) {
+        LOG_CERROR("updater") << "Update installer write error:" << qPrintable(m_updaterExecutable);
+        emit updateDownloadFailed();
+        return;
+    }
 
-	QNetworkRequest r{QUrl(installer)};
-	r.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    QNetworkRequest r{QUrl(installer)};
+    r.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
 
-	m_client->snack(tr("Telepítő letöltése..."));
+    m_client->snack(tr("Telepítő letöltése..."));
 
-	QNetworkReply *reply = HttpConnection->networkManager()->get(r);
+    QNetworkReply *reply = HttpConnection->networkManager()->get(r);
 
-	connect(reply, &QNetworkReply::errorOccurred, this, [this](const QNetworkReply::NetworkError &err){
-		LOG_CERROR("updater") << "Update download error:" << err;
-		emit updateDownloadFailed();
-	});
+    connect(reply, &QNetworkReply::errorOccurred, this, [this](const QNetworkReply::NetworkError &err){
+        LOG_CERROR("updater") << "Update download error:" << err;
+        emit updateDownloadFailed();
+    });
 
-	connect(reply, &QNetworkReply::readyRead, this, [this, reply] {
-		const QByteArray &data = reply->readAll();
-		m_fileUpdater.write(data);
-	});
+    connect(reply, &QNetworkReply::readyRead, this, [this, reply] {
+        const QByteArray &data = reply->readAll();
+        m_fileUpdater.write(data);
+    });
 
-	connect(reply, &QNetworkReply::finished, this, [reply, sha1, this]{
-		LOG_CDEBUG("updater") << "Update install download finished";
+    connect(reply, &QNetworkReply::finished, this, [reply, sha1, this]{
+        LOG_CDEBUG("updater") << "Update install download finished";
 
-		m_client->snack(tr("Telepítő letöltődött"));
+        m_client->snack(tr("Telepítő letöltődött"));
 
-		const QByteArray &data = reply->readAll();
-		m_fileUpdater.write(data);
-		m_fileUpdater.close();
+        const QByteArray &data = reply->readAll();
+        m_fileUpdater.write(data);
+        m_fileUpdater.close();
 
-		reply->deleteLater();
+        reply->deleteLater();
 
-		if (!sha1.isEmpty()) {
-			QCryptographicHash hash(QCryptographicHash::Sha1);
+        if (!sha1.isEmpty()) {
+            QCryptographicHash hash(QCryptographicHash::Sha1);
 
-			QByteArray result;
+            QByteArray result;
 
-			if (m_fileUpdater.open(QFile::ReadOnly))
-				if (hash.addData(&m_fileUpdater)) {
-					result = hash.result();
-				}
-			m_fileUpdater.close();
+            if (m_fileUpdater.open(QFile::ReadOnly))
+                if (hash.addData(&m_fileUpdater)) {
+                    result = hash.result();
+                }
+            m_fileUpdater.close();
 
-			LOG_CDEBUG("updater") << "Update installer downloaded, size:" << data.size() << "SHA1:" << result.toHex();
+            LOG_CDEBUG("updater") << "Update installer downloaded, size:" << data.size() << "SHA1:" << result.toHex();
 
-			if (sha1.toLatin1() != result.toHex()) {
-				LOG_CERROR("updater") << "Update installer SHA1 checksum mismatch";
-				emit updateDownloadFailed();
-				return;
-			}
-		}
+            if (sha1.toLatin1() != result.toHex()) {
+                LOG_CERROR("updater") << "Update installer SHA1 checksum mismatch";
+                emit updateDownloadFailed();
+                return;
+            }
+        }
 
 
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-		m_fileUpdater.setPermissions(QFile::ReadOwner | QFile::ExeOwner | QFile::WriteOwner);
+        m_fileUpdater.setPermissions(QFile::ReadOwner | QFile::ExeOwner | QFile::WriteOwner);
 #endif
 
-		LOG_CINFO("updater") << "Update installer ready:" << m_updaterExecutable;
+        LOG_CINFO("updater") << "Update installer ready:" << m_updaterExecutable;
 
-		emit updateReady();
+        emit updateReady();
 
-	});
+    });
 
 
 
@@ -270,11 +270,11 @@ void Updater::updateGitHub(const QString &installer, const QString &sha1)
 void Updater::updateNative()
 {
 #if defined(Q_OS_ANDROID)
-	LOG_CDEBUG("updater") << "Update native" << qPrintable(_URL_MARKET);
-	Utils::openUrl(_URL_MARKET);
+    LOG_CDEBUG("updater") << "Update native" << qPrintable(_URL_MARKET);
+    Utils::openUrl(_URL_MARKET);
 #elif defined (Q_OS_IOS)
-	LOG_CDEBUG("updater") << "Update native" << qPrintable(_URL_APPSTORE);
-	Utils::openUrl(_URL_APPSTORE);
+    LOG_CDEBUG("updater") << "Update native" << qPrintable(_URL_APPSTORE);
+    Utils::openUrl(_URL_APPSTORE);
 #endif
 }
 
@@ -287,23 +287,23 @@ void Updater::updateNative()
 void Updater::updateExecute()
 {
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN) || defined (Q_OS_MACOS)
-	if (!QFile::exists(m_updaterExecutable)) {
-		LOG_CWARNING("updater") << "Update installer not found";
-		emit updateExecuteFailed();
-	}
+    if (!QFile::exists(m_updaterExecutable)) {
+        LOG_CWARNING("updater") << "Update installer not found";
+        emit updateExecuteFailed();
+    }
 
-	QProcess *p = new QProcess(this);
+    QProcess *p = new QProcess(this);
 
-	p->setProgram(m_updaterExecutable);
+    p->setProgram(m_updaterExecutable);
 
-	if (p->startDetached()) {
-		emit updateExecuteStarted();
-	} else {
-		emit updateExecuteFailed();
-		p->deleteLater();
-	}
+    if (p->startDetached()) {
+        emit updateExecuteStarted();
+    } else {
+        emit updateExecuteFailed();
+        p->deleteLater();
+    }
 #else
-	emit updateExecuteFailed();
+    emit updateExecuteFailed();
 #endif
 }
 
@@ -316,11 +316,11 @@ void Updater::updateExecute()
 
 void Updater::removeUpdaterExecutable()
 {
-	if (QFile::exists(m_updaterExecutable)) {
-		LOG_CDEBUG("updater") << "Remove update installer:" << qPrintable(m_updaterExecutable);
-		if (!QFile::remove(m_updaterExecutable))
-			LOG_CERROR("updater") << "Remove update installer failed:" << qPrintable(m_updaterExecutable);
-	}
+    if (QFile::exists(m_updaterExecutable)) {
+        LOG_CDEBUG("updater") << "Remove update installer:" << qPrintable(m_updaterExecutable);
+        if (!QFile::remove(m_updaterExecutable))
+            LOG_CERROR("updater") << "Remove update installer failed:" << qPrintable(m_updaterExecutable);
+    }
 }
 
 
@@ -332,79 +332,83 @@ void Updater::removeUpdaterExecutable()
 
 void Updater::githubUpdateCheck(const bool &force)
 {
-	LOG_CDEBUG("updater") << "GitHub update check";
+    LOG_CDEBUG("updater") << "GitHub update check";
 
-	HttpConnection *HttpConnection = m_client->httpConnection();
+    HttpConnection *HttpConnection = m_client->httpConnection();
 
-	if (!HttpConnection) {
-		LOG_CERROR("updater") << "HttpConnection missing";
-		return;
-	}
+    if (!HttpConnection) {
+        LOG_CERROR("updater") << "HttpConnection missing";
+        return;
+    }
 
-	QString platform;
+    QString platform;
 
 #if defined(Q_OS_WIN)
-	platform = QStringLiteral("windows");
+    #if QT_VERSION >= 0x060000
+        platform = QStringLiteral("windows");
+    #else
+        platform = QStringLiteral("win7");
+    #endif
 #elif defined(Q_OS_IOS)
-	platform = QStringLiteral("ios");
+    platform = QStringLiteral("ios");
 #elif defined(Q_OS_ANDROID)
-	platform = QStringLiteral("android");
+    platform = QStringLiteral("android");
 #elif defined(Q_OS_MACOS)
-	platform = QStringLiteral("mac");
+    platform = QStringLiteral("mac");
 #elif defined(Q_OS_LINUX)
-	platform = QStringLiteral("linux");
+    platform = QStringLiteral("linux");
 #endif
 
-	if (platform.isEmpty()) {
-		LOG_CERROR("updater") << "Unknow platform";
-		return;
-	}
+    if (platform.isEmpty()) {
+        LOG_CERROR("updater") << "Unknow platform";
+        return;
+    }
 
-	QNetworkRequest r(QUrl(_URL_GITHUB));
+    QNetworkRequest r(QUrl(_URL_GITHUB));
 
-	QNetworkReply *reply = HttpConnection->networkManager()->get(r);
+    QNetworkReply *reply = HttpConnection->networkManager()->get(r);
 
-	HttpReply *wr = new HttpReply(reply, HttpConnection);
-	connect(wr, &HttpReply::finished, HttpConnection, &HttpConnection::checkPending);
+    HttpReply *wr = new HttpReply(reply, HttpConnection);
+    connect(wr, &HttpReply::finished, HttpConnection, &HttpConnection::checkPending);
 
-	LOG_CDEBUG("updater") << "Download update installer started";
+    LOG_CDEBUG("updater") << "Download update installer started";
 
 
-	wr->done(this, [this, platform, force](const QJsonObject &data){
+    wr->done(this, [this, platform, force](const QJsonObject &data){
 
-		/*	QJsonObject platformData = {
-			{ "version", "3.3.998" },
-			{ "installer", "https://github.com/valaczka/callofsuli/releases/download/3.2.32/Call_of_Suli_3.2.32_install.exe" },
-			{ "sha1", "671fd69d09b4767e923c063e1e6eb52cb1260e79" }
-		};*/
+        /*	QJsonObject platformData = {
+            { "version", "3.3.998" },
+            { "installer", "https://github.com/valaczka/callofsuli/releases/download/3.2.32/Call_of_Suli_3.2.32_install.exe" },
+            { "sha1", "671fd69d09b4767e923c063e1e6eb52cb1260e79" }
+        };*/
 
-		const QJsonObject &platformData = data.value(platform).toObject();
-		const QString &vstr = platformData.value(QStringLiteral("version")).toString();
-		uint vMajor = vstr.section('.', 0, 0).toUInt();
-		uint vMinor = vstr.section('.', 1, 1).toUInt();
-		uint vBuild = vstr.section('.', 2, 2).toUInt();
+        const QJsonObject &platformData = data.value(platform).toObject();
+        const QString &vstr = platformData.value(QStringLiteral("version")).toString();
+        uint vMajor = vstr.section('.', 0, 0).toUInt();
+        uint vMinor = vstr.section('.', 1, 1).toUInt();
+        uint vBuild = vstr.section('.', 2, 2).toUInt();
 
-		const QString &lastNotified = Utils::settingsGet(QStringLiteral("update/lastVersion")).toString();
-		const QDate &lastDate = Utils::settingsGet(QStringLiteral("update/lastDate")).toDate();
+        const QString &lastNotified = Utils::settingsGet(QStringLiteral("update/lastVersion")).toString();
+        const QDate &lastDate = Utils::settingsGet(QStringLiteral("update/lastDate")).toDate();
 
-		if (!force && !lastNotified.isEmpty() && vstr == lastNotified && lastDate == QDate::currentDate())
-			return;
+        if (!force && !lastNotified.isEmpty() && vstr == lastNotified && lastDate == QDate::currentDate())
+            return;
 
-		if (vMajor > Utils::versionMajor() ||
-				(vMajor == Utils::versionMajor() && vMinor > Utils::versionMinor()) ||
-				(vMajor == Utils::versionMajor() && vMinor == Utils::versionMinor() && vBuild > Utils::versionBuild())
-				) {
-			Utils::settingsSet(QStringLiteral("update/lastVersion"), vstr);
-			Utils::settingsSet(QStringLiteral("update/lastDate"), QDate::currentDate());
-			emit gitHubUpdateAvailable(platformData);
-		} else if (force) {
-			emit updateNotAvailable();
-		}
+        if (vMajor > Utils::versionMajor() ||
+                (vMajor == Utils::versionMajor() && vMinor > Utils::versionMinor()) ||
+                (vMajor == Utils::versionMajor() && vMinor == Utils::versionMinor() && vBuild > Utils::versionBuild())
+                ) {
+            Utils::settingsSet(QStringLiteral("update/lastVersion"), vstr);
+            Utils::settingsSet(QStringLiteral("update/lastDate"), QDate::currentDate());
+            emit gitHubUpdateAvailable(platformData);
+        } else if (force) {
+            emit updateNotAvailable();
+        }
 
-	})
-			->error(this, [this](const QNetworkReply::NetworkError &){
-		emit gitHubUpdateCheckFailed();
-	});
+    })
+            ->error(this, [this](const QNetworkReply::NetworkError &){
+        emit gitHubUpdateCheckFailed();
+    });
 
 }
 
@@ -420,50 +424,50 @@ void Updater::githubUpdateCheck(const bool &force)
 bool Updater::appImageUpdateCheck(const bool &force)
 {
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-	const QByteArray &appImage = qgetenv("APPIMAGE");
+    const QByteArray &appImage = qgetenv("APPIMAGE");
 
-	LOG_CDEBUG("updater") << "AppImage update check:" << appImage;
+    LOG_CDEBUG("updater") << "AppImage update check:" << appImage;
 
-	if (appImage.isEmpty()) {
-		LOG_CDEBUG("updater") << "AppImage not present";
-		return false;
-	}
+    if (appImage.isEmpty()) {
+        LOG_CDEBUG("updater") << "AppImage not present";
+        return false;
+    }
 
 
-	if (!QFile::exists(_APPIMAGE_UPDATE_TOOL)) {
-		LOG_CWARNING("updater") << "AppImageUpdateTool not found";
-		return false;
-	}
+    if (!QFile::exists(_APPIMAGE_UPDATE_TOOL)) {
+        LOG_CWARNING("updater") << "AppImageUpdateTool not found";
+        return false;
+    }
 
-	QProcess *process = new QProcess(this);
+    QProcess *process = new QProcess(this);
 
-	process->setProgram(_APPIMAGE_UPDATE_TOOL);
-	process->setArguments({QStringLiteral("-j"), QString::fromUtf8(appImage)});
+    process->setProgram(_APPIMAGE_UPDATE_TOOL);
+    process->setArguments({QStringLiteral("-j"), QString::fromUtf8(appImage)});
 
-	connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
-			[this, process, force](int exitCode, QProcess::ExitStatus exitStatus){
-		LOG_CDEBUG("updater") << "AppImateUpdateTool check finished with code:" << exitCode << exitStatus;
+    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this,
+            [this, process, force](int exitCode, QProcess::ExitStatus exitStatus){
+        LOG_CDEBUG("updater") << "AppImateUpdateTool check finished with code:" << exitCode << exitStatus;
 
-		if (exitStatus != QProcess::NormalExit || exitCode > 1) {
-			emit appImageUpdateCheckFailed();
-		}
+        if (exitStatus != QProcess::NormalExit || exitCode > 1) {
+            emit appImageUpdateCheckFailed();
+        }
 
-		if (exitCode == 1)
-			emit appImageUpdateAvailable();
-		else if (force)
-			emit updateNotAvailable();
+        if (exitCode == 1)
+            emit appImageUpdateAvailable();
+        else if (force)
+            emit updateNotAvailable();
 
-		process->deleteLater();
-	});
+        process->deleteLater();
+    });
 
-	process->start();
+    process->start();
 
-	LOG_CDEBUG("updater") << "AppImageUpdateTool check started";
+    LOG_CDEBUG("updater") << "AppImageUpdateTool check started";
 
-	return true;
+    return true;
 #else
-	Q_UNUSED(force);
-	return false;
+    Q_UNUSED(force);
+    return false;
 #endif
 }
 
@@ -476,13 +480,13 @@ bool Updater::appImageUpdateCheck(const bool &force)
 
 bool Updater::autoUpdate() const
 {
-	return Utils::settingsGet(QStringLiteral("update/enabled"), true).toBool();
+    return Utils::settingsGet(QStringLiteral("update/enabled"), true).toBool();
 }
 
 void Updater::setAutoUpdate(bool newAutoUpdate)
 {
-	Utils::settingsSet(QStringLiteral("update/enabled"), newAutoUpdate);
-	emit autoUpdateChanged();
+    Utils::settingsSet(QStringLiteral("update/enabled"), newAutoUpdate);
+    emit autoUpdateChanged();
 }
 
 

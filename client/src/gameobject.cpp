@@ -179,20 +179,200 @@ void GameObject::onSceneChanged()
 
 
 /**
+ * @brief GameObject::interpolate
+ * @param t
+ * @param toState
+ */
+
+ObjectStateBase GameObject::interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to)
+{
+    ObjectStateBase b = from;
+
+    if (from.fields.testFlag(ObjectStateBase::FieldSize)) {
+        b.size.setWidth(std::lerp(from.size.width(), to.size.width(), t));
+        b.size.setHeight(std::lerp(from.size.height(), to.size.height(), t));
+    }
+
+    if (from.fields.testFlag(ObjectStateBase::FieldPosition)) {
+        b.position.setX(std::lerp(from.position.x(), to.position.x(), t));
+        b.position.setY(std::lerp(from.position.y(), to.position.y(), t));
+    }
+
+    return b;
+}
+
+
+
+/**
+ * @brief GameObject::interpolateStates
+ * @param currentTick
+ * @param defaultState
+ * @return
+ */
+
+ObjectStateBase GameObject::interpolateStates(const qint64 &currentTick, const ObjectStateBase *defaultState)
+{
+    if (m_authoritativeStates.size() < 2) {
+        if (defaultState)
+            return *defaultState;
+        else
+            return ObjectStateBase();
+    }
+
+
+    const qint64 virtualTick = currentTick-m_authoritativeStateInterval;
+
+    qint64 fromTick=-1, toTick=-1;
+    ObjectStateBase fromState, toState;
+
+    for (auto it = m_authoritativeStates.cbegin(); it != m_authoritativeStates.cend(); ++it) {
+        auto it2 = it;
+        ++it2;
+
+        if (it2 == m_authoritativeStates.cend())
+            break;
+
+        if (fromTick != -1 && toTick > virtualTick)
+            break;
+
+        fromTick = it->first;
+        fromState = it->second;
+        toTick = it2->first;
+        toState = it2->second;
+    }
+
+    if (fromTick > virtualTick || toTick < (currentTick-2*m_authoritativeStateInterval)) {
+        if (defaultState)
+            return *defaultState;
+        else
+            return ObjectStateBase();
+    }
+
+    return interpolate((qreal)(virtualTick-fromTick)/(qreal)(toTick-fromTick), fromState, toState);;
+}
+
+
+
+
+/**
+ * @brief GameObject::stateReconciliation
+ * @param from
+ * @param to
+ * @return
+ */
+
+bool GameObject::stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to)
+{
+    Q_UNUSED(to);
+
+    if (from.state == ObjectStateBase::StateInactive)
+        return false;
+
+    return true;
+}
+
+
+/**
+ * @brief GameObject::removeOldAuthoritativeStates
+ * @param currentTick
+ */
+
+void GameObject::removeOldAuthoritativeStates(const qint64 &currentTick)
+{
+    qint64 diff = m_authoritativeStateInterval * AUTHORITATIVE_STATE_CACHE_FACTOR;
+
+    LOG_CTRACE("game") << "Remove old states" << this << currentTick-diff;
+
+    for (auto it = m_authoritativeStates.cbegin(); it != m_authoritativeStates.cend(); ) {
+        if (it->first < currentTick-diff) {
+            LOG_CTRACE("game") << "   - remove" << it->first;
+            it = m_authoritativeStates.erase(it);
+        } else
+            ++it;
+    }
+}
+
+
+/**
+ * @brief GameObject::authoritativeStateInterval
+ * @return
+ */
+
+qint64 GameObject::authoritativeStateInterval() const
+{
+    return m_authoritativeStateInterval;
+}
+
+
+/**
+ * @brief GameObject::setAuthoritativeStateInterval
+ * @param newAuthoritativeStateInterval
+ */
+
+void GameObject::setAuthoritativeStateInterval(qint64 newAuthoritativeStateInterval)
+{
+    if (newAuthoritativeStateInterval > 0)
+        m_authoritativeStateInterval = newAuthoritativeStateInterval;
+}
+
+
+
+
+
+/**
+ * @brief GameObject::stateReconciliation
+ * @param state
+ * @return
+ */
+
+std::optional<ObjectStateBase> GameObject::stateReconciliation(const ObjectStateBase &state)
+{
+
+    for (auto it = m_cachedStates.rbegin(); it != m_cachedStates.rend(); ++it) {
+        if (it->tick < state.tick) {
+            LOG_CINFO("game") << "*** erase state" << it->tick;
+            m_cachedStates.erase(it.base()-1);
+        } else {
+            LOG_CINFO("game") << "=== hold state" << it->tick;
+        }
+    }
+
+    ObjectStateBase r = state;
+
+    for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ++it) {
+        LOG_CINFO("game") << "??? prediction" << it->tick;
+
+        if (stateReconciliation(state, *it)) {
+            LOG_CTRACE("game") << "   => override" << &*it;
+            r = *it;
+        } else {
+            LOG_CERROR("game") << "unable to override";
+            return std::nullopt;
+        }
+    }
+
+    return r;
+}
+
+
+/**
  * @brief GameObject::getCurrentState
  * @param ptr
  * @return
  */
 
-bool GameObject::getCurrentState(ObjectStateBase *ptr) const
+ObjectStateBase GameObject::getCurrentState() const
 {
-    if (!ptr)
-        return false;
+    ObjectStateBase b;
+    b.type = ObjectStateBase::TypeBase;
 
-    ptr->position = QPointF(x(), y()+height());
-    ptr->size = QSizeF(width(), height());
+    b.fields.setFlag(ObjectStateBase::FieldPosition);
+    b.fields.setFlag(ObjectStateBase::FieldSize);
 
-    return true;
+    b.position = QPointF(x(), y()+height());
+    b.size = QSizeF(width(), height());
+
+    return b;
 }
 
 
@@ -208,18 +388,40 @@ void GameObject::setCurrentState(const ObjectStateBase &state, const bool &force
 {
     Q_UNUSED(force);
 
-    if (state.size != QSizeF(-1., -1.)) {
+    if (state.fields.testFlag(ObjectStateBase::FieldSize)) {
         setHeight(state.size.height());
         setWidth(state.size.width());
     }
 
-    const qreal _x = state.position.x();
-    const qreal _y = state.position.y()-height();
+    if (state.fields.testFlag(ObjectStateBase::FieldPosition)) {
+        const qreal _x = state.position.x();
+        const qreal _y = state.position.y()-height();
 
-    if (_x != x() || _y != y()) {
-        setX(state.position.x());
-        setY(_y);
-        m_body->setAwake(true);
+        if (_x != x() || _y != y()) {
+            setX(state.position.x());
+            setY(_y);
+            m_body->setAwake(true);
+        }
+    }
+}
+
+
+/**
+ * @brief GameObject::interpolateState
+ * @param currentTick
+ * @param defaultState
+ */
+
+void GameObject::interpolateState(const qint64 &currentTick, const ObjectStateBase *defaultState)
+{
+    const ObjectStateBase &b = interpolateStates(currentTick, defaultState);
+
+    if (b.type != ObjectStateBase::TypeInvalid) {
+        setCurrentState(b, true);
+    } else if (defaultState) {
+        setCurrentState(*defaultState, true);
+    } else {
+        LOG_CTRACE("game") << "SKIP..." << currentTick << this;
     }
 }
 
@@ -273,18 +475,64 @@ void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 }
 
 
+
+/**
+ * @brief GameObject::getStateSnapshot
+ * @param snapshot
+ * @param entityId
+ * @return
+ */
+
+int GameObject::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId)
+{
+    ActionGame *_game = game();
+
+    if (!_game)
+        return -1;
+
+    LOG_CINFO("game") << "GET SNAPSHOT" << this << entityId;
+
+    if (snapshot) {
+        ObjectStateBase prev;
+        int num = 0;
+
+        for (ObjectStateBase s : m_cachedStates) {
+            s.id = entityId;
+
+            LOG_CINFO("game") << "++" << entityId << s.tick << s.enemyState << s.position << s.facingLeft;
+
+            if (prev.type != ObjectStateBase::TypeInvalid) {
+                const auto &d = prev.diff(s);
+
+                if (!d) {
+                    LOG_CERROR("game") << "State diff error" << entityId << s.type << s.tick;
+                } else {
+                    s = d.value();
+                }
+            }
+
+            prev = s;
+            snapshot->append(s);
+            ++num;
+        }
+
+        return num;
+    }
+
+
+    return -1;
+}
+
+
 /**
  * @brief GameObject::setStateFromSnapshot
  * @param ptr
  */
 
-void GameObject::setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force)
+void GameObject::setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force)
 {
-    if (!ptr)
-        return;
+    LOG_CTRACE("scene") << "Load state from snapshot" << ptr.id << ptr.tick << force;
 
-    LOG_CTRACE("scene") << "Load state from snapshot" << ptr << force;
-
-    setCurrentState(*ptr, force);
+    setCurrentState(ptr, force);
 }
 

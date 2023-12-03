@@ -108,9 +108,8 @@ public:
     void setPickable(const GamePickable::GamePickableData &newPickable);
     bool hasPickable() const { return m_pickable.type != GamePickable::PickableInvalid; }
 
-    virtual void setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force) override;
-    bool getCurrentState(ObjectStateEnemy *ptr) const;
-    void setCurrentState(const ObjectStateEnemy &state, const bool &force);
+    virtual ObjectStateBase getCurrentState() const override;
+    virtual void setCurrentState(const ObjectStateBase &state, const bool &force) override;
 
 public slots:
     void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
@@ -136,6 +135,9 @@ private slots:
 protected:
     virtual void enemyStateModified() {}
     virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
+    virtual ObjectStateBase interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to) override;
+    virtual bool stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to) override;
+
     void playAttackSound();
 
     GameTerrain::EnemyData m_terrainEnemyData;
@@ -144,7 +146,7 @@ protected:
     qreal m_msecBeforeAttack = 1500;
     qreal m_msecBetweenAttack = 1500;
 
-    static const QHash<ObjectStateEnemy::EnemyState, EnemyState> m_stateHash;
+    static const QHash<ObjectStateBase::EnemyState, EnemyState> m_stateHash;
 
     EnemyState m_enemyState = Invalid;
     bool m_aimedByPlayer = false;

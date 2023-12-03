@@ -78,7 +78,7 @@ private:
     int m_serverInterval = 0;
     MultiPlayerGameState m_multiPlayerGameState = StateInvalid;
 
-    std::map<qint64, std::unique_ptr<GameObject>> m_entities;
+    std::map<qint64, QPointer<GameObject>> m_entities;
 
     bool m_binarySignalConnected = false;
 };

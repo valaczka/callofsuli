@@ -48,7 +48,7 @@
 
 
 
-const int ActionGame::TickTimer::m_interval = 100;//2000;
+const int ActionGame::TickTimer::m_interval = 200;
 
 
 // Tool dependency
@@ -335,7 +335,7 @@ void ActionGame::recreateEnemies()
         if (type != GameTerrain::EnemySoldier || m_closedBlocks.contains(e.block))
             continue;
 
-        ObjectStateEnemySoldier state = GameEnemySoldier::createState(e);
+        ObjectStateBase state = GameEnemySoldier::createState(e);
         GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, e, QString::fromUtf8(state.subType));
         state.size = QSizeF(soldier->width(), soldier->height());
         soldier->setCurrentState(state, true);

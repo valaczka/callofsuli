@@ -58,6 +58,8 @@
 #define CATEGORY_ENEMY			Box2DFixture::Category5
 #define CATEGORY_OTHER			Box2DFixture::Category6
 
+#define AUTHORITATIVE_STATE_CACHE_FACTOR  3
+
 
 class GameScene;
 class ActionGame;
@@ -114,15 +116,17 @@ public:
 
     virtual void onTimingTimerTimeout(const int &msec, const qreal &delayFactor);
     virtual void cacheCurrentState() {}
-    virtual bool getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId) {
-        Q_UNUSED(snapshot); Q_UNUSED(entityId);
-        return false;
-    }
-    virtual void setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force);
-    virtual void interpolateState(const qint64 &currentTick) { Q_UNUSED(currentTick); }
+    virtual int getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId);
+    virtual void setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force);
 
-    bool getCurrentState(ObjectStateBase *ptr) const;
-    void setCurrentState(const ObjectStateBase &state, const bool &force);
+    virtual ObjectStateBase getCurrentState() const;
+    virtual void setCurrentState(const ObjectStateBase &state, const bool &force);
+
+    void interpolateState(const qint64 &currentTick, const ObjectStateBase *defaultState = nullptr);
+    std::optional<ObjectStateBase> stateReconciliation(const ObjectStateBase &state);
+
+    qint64 authoritativeStateInterval() const;
+    void setAuthoritativeStateInterval(qint64 newAuthoritativeStateInterval);
 
 private slots:
     void onSceneChanged();
@@ -134,9 +138,19 @@ signals:
     void objectTypeChanged();
 
 protected:
+    virtual ObjectStateBase interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to);
+    virtual ObjectStateBase interpolateStates(const qint64 &currentTick, const ObjectStateBase *defaultState);
+    virtual bool stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to);
+
+    void removeOldAuthoritativeStates(const qint64 &minTick);
+
     QPointer<GameScene> m_scene;
     std::unique_ptr<Box2DBody> m_body;
     QList<QPointer<QQuickItem>> m_childItems;
+
+    std::vector<ObjectStateBase> m_cachedStates;
+    std::map<qint64, ObjectStateBase> m_authoritativeStates;
+    qint64 m_authoritativeStateInterval = 1000;
 
 
 private:

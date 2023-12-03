@@ -326,13 +326,10 @@ void MultiPlayerGame::createGameTrigger()
         if (e.type != GameTerrain::EnemySoldier)
             continue;
 
-        ObjectStateEnemySoldier state = GameEnemySoldier::createState(e);
+        ObjectStateBase state = GameEnemySoldier::createState(e);
 
-        std::unique_ptr<ObjectStateBase> ptr(state.clone());
-        QByteArray b;
-        state.toReadable(&b);
-        LOG_CTRACE("game") << "+++STATE" << b.constData();
-        snap.append(ptr);
+        LOG_CTRACE("game") << "+++STATE" << state.toReadable();
+        snap.append(state);
 
         if (++num > 1)
             break;
@@ -377,37 +374,45 @@ void MultiPlayerGame::updateGameTrigger(const QByteArray &data)
 
     QVector<qint64> existingIdList;
 
-    for (const auto &s : snap->list) {
-        auto it = m_entities.find(s->id);
+    ObjectStateBase prev;
 
-        LOG_CINFO("game") << "---SNAP" << s->id << s->tick;
+    for (const auto &sn : snap->list) {
+        if (prev.type != sn.type || prev.id != sn.id) {
+            prev = sn;
+        } else {
+            if (!prev.patch(sn)) {
+                LOG_CERROR("game") << "State patch error" << sn.type << sn.id;
+                continue;
+            }
+        }
+
+        auto it = m_entities.find(prev.id);
+
+        LOG_CINFO("game") << "---SNAP" << prev.id << prev.tick;
 
         if (it == m_entities.end()) {
-            LOG_CINFO("game") << "Create entity" << s->id << s->type;
+            LOG_CINFO("game") << "Create entity" << prev.id << prev.type;
 
-            if (s->type == ObjectStateBase::TypeEnemySoldier) {
-                ObjectStateEnemySoldier *_ptr = dynamic_cast<ObjectStateEnemySoldier*>(s.get());
-                if (!_ptr) {
-                    LOG_CERROR("game") << "Invalid pointer";
-                    continue;
-                }
-
-                LOG_CINFO("game") << "---" << _ptr->id << _ptr->enemyState << _ptr->position << _ptr->facingLeft << _ptr->enemyRect;
+            if (prev.type == ObjectStateBase::TypeEnemySoldier) {
+                LOG_CINFO("game") << "---" << prev.toReadable();
 
                 GameTerrain::EnemyData d;
                 d.type = GameTerrain::EnemySoldier;
-                d.rect = _ptr->enemyRect;
-                GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, d, QString::fromUtf8(_ptr->subType));
+                d.rect = prev.enemyRect;
+                GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, d, QString::fromUtf8(prev.subType));
                 updateBody(soldier, m_multiPlayerMode == MultiPlayerHost);
 
-                soldier->setCurrentState(*_ptr, m_multiPlayerMode == MultiPlayerClient);
+                soldier->setCurrentState(prev, m_multiPlayerMode == MultiPlayerClient);
 
-                auto &e = m_entities[s->id];
-                e.reset(soldier);
+                m_entities.insert({prev.id, soldier});
             }
         } else {
-            LOG_CTRACE("game") << "Update entity" << s->id << s->type << s->tick << "<>" << currentTick();
-            it->second->setStateFromSnapshot(s.get(), currentTick(), m_multiPlayerMode == MultiPlayerClient);
+            LOG_CTRACE("game") << "Update entity" << prev.id << prev.type << prev.tick << "<>" << currentTick();
+            if (it->second) {
+                it->second->setAuthoritativeStateInterval(m_serverInterval);
+                it->second->setStateFromSnapshot(prev, currentTick(), m_multiPlayerMode == MultiPlayerClient);
+            } else
+                LOG_CERROR("game") << "Invalid object pointer" << prev.id;
         }
     }
 
@@ -429,11 +434,11 @@ void MultiPlayerGame::playGameTrigger()
     if (m_multiPlayerMode != MultiPlayerHost)
         return;
 
-    for (auto &e : m_entities) {
-        GameEnemy *enemy = dynamic_cast<GameEnemy*>(e.second.get());
+    for (auto &[id, e] : m_entities) {
+        GameEnemy *enemy = dynamic_cast<GameEnemy*>(e.get());
 
         if (enemy && enemy->enemyState() == GameEnemy::Invalid) {
-            LOG_CWARNING("game") << "MOVE ENEMY" << enemy << e.first;
+            LOG_CWARNING("game") << "MOVE ENEMY" << enemy << id;
             //enemy->setEnemyState(GameEnemy::Move);
             enemy->startMovingAfter(1500);
         }
@@ -593,9 +598,11 @@ void MultiPlayerGame::sceneTimerTimeout(const int &msec, const qreal &delayFacto
         }
     } else {
         const qint64 tick = currentTick();
-        foreach (GameObject *o, m_scene->m_gameObjects) {
-            if (o) {
-                o->interpolateState(tick);
+        for (const auto &[id, obj] : m_entities) {
+            if (obj) {
+                obj->interpolateState(tick);
+            } else {
+                LOG_CERROR("game") << "Entity missing:" << id;
             }
         }
     }

@@ -63,42 +63,6 @@ void GameEnemySoldier::onAttack()
 }
 
 
-/**
- * @brief GameEnemySoldier::getCurrentState
- * @param ptr
- * @return
- */
-
-bool GameEnemySoldier::getCurrentState(ObjectStateEnemySoldier *ptr) const
-{
-    if (!ptr)
-        return false;
-
-    GameEnemy::getCurrentState(ptr);
-
-    ptr->turnElapsedMsec = m_turnElapsedMsec;
-    ptr->attackElapsedMsec = m_attackElapsedMsec;
-
-    return true;
-}
-
-
-
-/**
- * @brief GameEnemySoldier::setCurrentState
- * @param state
- */
-
-void GameEnemySoldier::setCurrentState(const ObjectStateEnemySoldier &state, const bool &force)
-{
-    LOG_CTRACE("game") << "------set" << state.tick << state.enemyState << state.position << state.hp << state.maxHp;
-    GameEnemy::setCurrentState(state, force);
-
-    if (force) {
-        setTurnElapsedMsec(state.turnElapsedMsec);
-        m_attackElapsedMsec = state.attackElapsedMsec;
-    }
-}
 
 
 
@@ -114,20 +78,19 @@ void GameEnemySoldier::cacheCurrentState()
         return;
 
     if (!m_cachedStates.empty()) {
-        ObjectStateEnemySoldier &state = m_cachedStates.back();
+        ObjectStateBase &state = m_cachedStates.back();
 
         if (m_stateHash.value(state.enemyState, Invalid) == m_enemyState &&
             state.facingLeft == m_facingLeft &&
             state.hp == m_hp &&
             state.maxHp == m_maxHp) {
-            getCurrentState(&state);
+            state = getCurrentState();
             state.tick = _game->currentTick();
             return;
         }
     }
 
-    ObjectStateEnemySoldier state;
-    getCurrentState(&state);
+    ObjectStateBase state = getCurrentState();
     state.tick = _game->currentTick();
 
     m_cachedStates.push_back(state);
@@ -137,93 +100,96 @@ void GameEnemySoldier::cacheCurrentState()
 
 
 
-/**
- * @brief GameEnemySoldier::getStateSnapshot
- * @return
- */
-
-bool GameEnemySoldier::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId)
-{
-    ActionGame *_game = game();
-
-    if (!_game)
-        return false;
-
-    LOG_CINFO("game") << "GET SNAPSHOT" << this << entityId;
-
-    if (snapshot) {
-        for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ++it) {
-            it->id = entityId;
-
-            LOG_CINFO("game") << "++" << entityId << it->tick << it->enemyState << it->position << it->facingLeft;
-
-            ObjectStateSnapshot::copyTo(&*it, &snapshot->list);
-        }
-    }
 
 
-    return snapshot ? true : false;
-}
 
 
 
 /**
  * @brief GameEnemySoldier::setStateFromSnapshot
  * @param ptr
+ * @param currentTick
+ * @param force
  */
 
-void GameEnemySoldier::setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force)
+void GameEnemySoldier::setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force)
 {
-    if (!ptr)
+    LOG_CINFO("game")  << "SET STATE FROM" << ptr.toReadable().constData();
+
+    if (ptr.type != ObjectStateBase::TypeEnemySoldier) {
+        LOG_CERROR("game") << "Invalid ObjectState" << ptr.id << ptr.type;
         return;
+    }
 
-    QByteArray b; ptr->toReadable(&b);
-    LOG_CINFO("game")  << "SET FROM" << b.constData();
+    if (!force) {
+        const auto &s = GameObject::stateReconciliation(ptr);
 
-    ObjectStateEnemySoldier *_ptr = dynamic_cast<ObjectStateEnemySoldier*>(ptr);
-
-    if (_ptr) {
-        if (!force) {
-            const bool success = ObjectStateBase::stateReconciliation<ObjectStateEnemySoldier>(_ptr, &m_cachedStates,
-                                                                                               &GameEnemySoldier::stateReconciliation);
-
-            if (success) {
-                ObjectStateEnemySoldier curr;
-                getCurrentState(&curr);
-                if (!stateReconciliation(*_ptr, curr)) {
-                    setCurrentState(*_ptr, true);
-                }
-            } else {
-                setCurrentState(*_ptr, true);
+        if (s.has_value()) {
+            const ObjectStateBase &curr = getCurrentState();
+            if (!stateReconciliation(*s, curr)) {
+                setCurrentState(*s, true);
             }
         } else {
-            if (m_authoritativeStates.size() > 1)
-                m_authoritativeStates.erase(m_authoritativeStates.constBegin());
-            m_authoritativeStates.insert(_ptr->tick, *_ptr);
-
-            QByteArray b; _ptr->toReadable(&b);
-            LOG_CDEBUG("game")  << "APPEND" << b.constData();
-
-            if (const auto &s = ObjectStateBase::interpolateStates<ObjectStateEnemySoldier>(currentTick, m_authoritativeStates, _ptr); s.has_value())
-                setCurrentState(s.value(), true);
+            setCurrentState(ptr, true);
         }
-    } else
-        GameEnemy::setStateFromSnapshot(ptr, currentTick, force);
+    } else {
+        removeOldAuthoritativeStates(currentTick);
+        m_authoritativeStates.insert({ptr.tick, ptr});
+
+        LOG_CDEBUG("game")  << "APPEND" << ptr.toReadable().constData();
+        LOG_CTRACE("game") << "AUTH STATES.........................................";
+
+        for (const auto &[tick, s] : m_authoritativeStates)  {
+            LOG_CINFO("game")  << "   #" << tick << s.position << s.size << s.subType;
+        }
+
+        LOG_CTRACE("game") << ".........................................";
+
+        interpolateState(currentTick);
+    }
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::getCurrentState
+ * @return
+ */
+
+ObjectStateBase GameEnemySoldier::getCurrentState() const
+{
+    ObjectStateBase b = GameEnemy::getCurrentState();
+    b.type = ObjectStateBase::TypeEnemySoldier;
+
+    b.fields.setFlag(ObjectStateBase::FieldTurnElapsedMSec);
+    b.fields.setFlag(ObjectStateBase::FieldAttackElapsedMSec);
+
+    b.turnElapsedMsec = m_turnElapsedMsec;
+    b.attackElapsedMsec = m_attackElapsedMsec;
+
+    return b;
 }
 
 
 
 
-
 /**
- * @brief GameEnemySoldier::interpolateState
- * @param currentTick
+ * @brief GameEnemySoldier::setCurrentState
+ * @param state
+ * @param force
  */
 
-void GameEnemySoldier::interpolateState(const qint64 &currentTick)
+void GameEnemySoldier::setCurrentState(const ObjectStateBase &state, const bool &force)
 {
-    if (const auto &s = ObjectStateBase::interpolateStates<ObjectStateEnemySoldier>(currentTick, m_authoritativeStates); s.has_value())
-        setCurrentState(s.value(), true);
+    GameEnemy::setCurrentState(state, force);
+
+    if (force) {
+        if (state.fields.testFlag(ObjectStateBase::FieldTurnElapsedMSec))
+            setTurnElapsedMsec(state.turnElapsedMsec);
+
+        if (state.fields.testFlag(ObjectStateBase::FieldAttackElapsedMSec))
+            m_attackElapsedMsec = state.attackElapsedMsec;
+    }
 }
 
 
@@ -395,7 +361,7 @@ GameEnemySoldier *GameEnemySoldier::create(GameScene *scene, const GameTerrain::
  * @return
  */
 
-ObjectStateEnemySoldier GameEnemySoldier::createState(const GameTerrain::EnemyData &enemyData)
+ObjectStateBase GameEnemySoldier::createState(const GameTerrain::EnemyData &enemyData)
 {
     QDirIterator it(QStringLiteral(":/soldiers"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
     QStringList list;
@@ -407,11 +373,17 @@ ObjectStateEnemySoldier GameEnemySoldier::createState(const GameTerrain::EnemyDa
         qFatal("Enemy soldier directory is empty");
     }
 
-    ObjectStateEnemySoldier state;
+    ObjectStateBase state;
+
+    state.type = ObjectStateBase::TypeEnemySoldier;
+
+    state.fields = ObjectStateBase::FieldHp|ObjectStateBase::FieldMaxHp|ObjectStateBase::FieldEnemyState|ObjectStateBase::FieldEnemyRect|
+                   ObjectStateBase::FieldSubType|ObjectStateBase::FieldFacingLeft|ObjectStateBase::FieldPosition;
 
     state.hp = 1;
     state.maxHp = 1;
     state.enemyRect = enemyData.rect;
+    state.enemyState = ObjectStateBase::Idle;
     state.subType = list.at(QRandomGenerator::global()->bounded(list.size())).toUtf8();
     state.facingLeft = QRandomGenerator::global()->generate() % 2;
     state.position = QPointF(enemyData.rect.left() + enemyData.rect.width()/2,
@@ -514,21 +486,33 @@ void GameEnemySoldier::enemyStateModified()
 
 
 /**
- * @brief GameEnemySoldier::stateReconciliation
+ * @brief GameEnemySoldier::interpolate
+ * @param t
  * @param from
  * @param to
  * @return
  */
 
-bool GameEnemySoldier::stateReconciliation(const ObjectStateEnemySoldier &from, const ObjectStateEnemySoldier &to)
+ObjectStateBase GameEnemySoldier::interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to)
 {
-    LOG_CDEBUG("game") << "   - soldier state prediction" << from.tick << to.tick << from.enemyState << to.enemyState;
+    ObjectStateBase b = GameEnemy::interpolate(t, from, to);
 
-    if (from.enemyState != ObjectStateEnemy::Dead)
-        return true;
+    if (t < 1.0) {
+        if (from.fields.testFlag(ObjectStateBase::FieldTurnElapsedMSec))
+            b.turnElapsedMsec = std::lerp(from.turnElapsedMsec, to.turnElapsedMsec, t);
+        if (from.fields.testFlag(ObjectStateBase::FieldAttackElapsedMSec))
+            b.attackElapsedMsec = std::lerp(from.attackElapsedMsec, to.attackElapsedMsec, t);
+    } else {
+        if (from.fields.testFlag(ObjectStateBase::FieldTurnElapsedMSec))
+            b.turnElapsedMsec = to.turnElapsedMsec;
+        if (from.fields.testFlag(ObjectStateBase::FieldAttackElapsedMSec))
+            b.attackElapsedMsec = to.attackElapsedMsec;
+    }
 
-    return false;
+    return b;
 }
+
+
 
 
 

@@ -41,6 +41,7 @@
 #include "qpropertyanimation.h"
 
 #include <QJsonObject>
+#include <optional>
 
 #define DEFAULT_ENTITY_GRAVITY_SCALE    5.0
 
@@ -172,9 +173,9 @@ public:
 
     void performRayCast();
 
-    virtual void setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force) override;
-    bool getCurrentState(ObjectStateEntity *ptr) const;
-    void setCurrentState(const ObjectStateEntity &state, const bool &force);
+    virtual ObjectStateBase getCurrentState() const override;
+    virtual void setCurrentState(const ObjectStateBase &state, const bool &force) override;
+
 
 public slots:
     void decreaseHp();
@@ -236,6 +237,8 @@ protected:
     void updateFixturesJson(const QJsonObject &spriteData);
     void onIsAliveDisabled();
     virtual void hpProgressValueSetup();
+    virtual ObjectStateBase interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to) override;
+    virtual bool stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to) override;
 
     QRectF m_bodyRect;
     QSizeF m_frameSize;

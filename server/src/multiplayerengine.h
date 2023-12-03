@@ -62,21 +62,11 @@ private:
 
     struct Entity {
         Entity() {}
-        /*Entity(const ObjectStateBase::ObjectType &_type, const QString &_owner, std::unique_ptr<ObjectStateBase> &ptr)
-            : type(_type)
-            , owner(_owner)
-            , renderedState(ptr.release())
-        {}
-        Entity(const ObjectStateBase::ObjectType &_type, const QString &_owner, ObjectStateBase *state)
-            : type(_type)
-            , owner(_owner)
-            , renderedState(state)
-        {}*/
         virtual ~Entity() = default;
 
         ObjectStateBase::ObjectType type = ObjectStateBase::TypeInvalid;
         QString owner;
-        std::unique_ptr<ObjectStateBase> renderedState;
+        std::vector<ObjectStateBase> renderedStates;
     };
 
     /**
@@ -85,30 +75,21 @@ private:
 
     struct EntityState {
         EntityState() {}
-        EntityState(std::unique_ptr<ObjectStateBase> &ptr, const QString &_sender)
+        EntityState(const ObjectStateBase &_state, const QString &_sender)
             : sender(_sender)
-        {
-            if (ptr) {
-                std::unique_ptr<ObjectStateBase> p(ptr->clone());
-                state = std::move(p);
-            }
-        }
+            , state(_state)
+        {  }
 
         virtual ~EntityState() = default;
 
         QString sender;
-        std::unique_ptr<ObjectStateBase> state;
+        ObjectStateBase state;
 
-        qint64 id() const { return state ? state->id : -1; }
+        qint64 id() const { return state.id; }
+
+        bool updateFrom(const ObjectStateBase &state, const QString &sender);
+        bool updateFrom(const EntityState &state) { return updateFrom(state.state, state.sender); }
     };
-
-
-    void updateState(EntityState *dest, const EntityState &from);
-    void updateState(EntityState *dest, EntityState *from) {
-        if (!from || !dest)
-            return;
-        updateState(dest, *from);
-    }
 
 
 
@@ -118,9 +99,9 @@ private:
     qint64 m_startedAt = -1;
 
     std::map<qint64, Entity> m_entities;
-    std::map<qint64, std::vector<std::unique_ptr<EntityState>>> m_states;
+    std::map<qint64, std::vector<EntityState>> m_states;
 
-    qint64 m_lastRenderedState = 0;
+    qint64 m_lastSentState = 0;
 
 
     int m_t = 0;			/// tmp

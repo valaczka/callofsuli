@@ -424,26 +424,52 @@ void GameEntity::performRayCast()
 }
 
 
+
 /**
- * @brief GameEntity::setStateFromSnapshot
- * @param ptr
+ * @brief GameEntity::getCurrentState
+ * @return
  */
 
-void GameEntity::setStateFromSnapshot(ObjectStateBase *ptr, const qint64 &currentTick, const bool &force)
+ObjectStateBase GameEntity::getCurrentState() const
 {
-    Q_UNUSED(currentTick);
+    ObjectStateBase b = GameObject::getCurrentState();
+    b.type = ObjectStateBase::TypeEntity;
 
-    if (!ptr)
-        return;
+    b.fields.setFlag(ObjectStateBase::FieldFacingLeft);
+    b.fields.setFlag(ObjectStateBase::FieldHp);
+    b.fields.setFlag(ObjectStateBase::FieldMaxHp);
 
-    ObjectStateEntity *_ptr = dynamic_cast<ObjectStateEntity*>(ptr);
+    b.facingLeft = m_facingLeft;
+    b.hp = m_hp;
+    b.maxHp = m_maxHp;
 
-    LOG_CTRACE("scene") << "Set state from snapshot" << _ptr << force;
+    return b;
+}
 
-    if (_ptr)
-        setCurrentState(*_ptr, force);
-    else
-        GameObject::setCurrentState(*ptr, force);
+
+
+
+
+/**
+ * @brief GameEntity::setCurrentState
+ * @param state
+ * @param force
+ */
+
+void GameEntity::setCurrentState(const ObjectStateBase &state, const bool &force)
+{
+    GameObject::setCurrentState(state, force);
+
+    if (force) {
+        if (state.fields.testFlag(ObjectStateBase::FieldFacingLeft))
+            setFacingLeft(state.facingLeft);
+
+        if (state.fields.testFlag(ObjectStateBase::FieldHp))
+            setHp(state.hp);
+
+        if (state.fields.testFlag(ObjectStateBase::FieldMaxHp))
+            setMaxHp(state.maxHp);
+    }
 }
 
 
@@ -531,44 +557,54 @@ void GameEntity::hpProgressValueSetup()
 }
 
 
-
 /**
- * @brief GameEntity::getCurrentState
+ * @brief GameEntity::interpolate
+ * @param t
+ * @param from
+ * @param to
  * @return
  */
 
-bool GameEntity::getCurrentState(ObjectStateEntity *ptr) const
+ObjectStateBase GameEntity::interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to)
 {
-    if (!ptr)
+    ObjectStateBase b = GameObject::interpolate(t, from, to);
+
+    if (from.fields.testFlag(ObjectStateBase::FieldFacingLeft)) {
+        if (t < 1.0) {
+            if (to.position.x() > from.position.x())
+                b.facingLeft = false;
+            else if (to.position.x() < from.position.x())
+                b.facingLeft = true;
+        } else {
+            b.facingLeft = to.facingLeft;
+        }
+    }
+
+    return b;
+}
+
+
+/**
+ * @brief GameEntity::stateReconciliation
+ * @param from
+ * @param to
+ * @return
+ */
+
+bool GameEntity::stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to)
+{
+    if (!GameObject::stateReconciliation(from, to))
         return false;
 
-    GameObject::getCurrentState(ptr);
-    ptr->facingLeft = m_facingLeft;
-    ptr->hp = m_hp;
-    ptr->maxHp = m_maxHp;
+    if (to.hp > from.hp || to.maxHp > from.maxHp)
+        return false;
 
     return true;
 }
 
 
 
-/**
- * @brief GameEntity::setCurrentState
- * @param state
- */
 
-void GameEntity::setCurrentState(const ObjectStateEntity &state, const bool &force)
-{
-    GameObject::setCurrentState(state, force);
-
-    if (force) {
-        setFacingLeft(state.facingLeft);
-        setHp(1);
-        setMaxHp(1);
-        //setHp(state.hp);
-        //setMaxHp(state.maxHp);
-    }
-}
 
 
 

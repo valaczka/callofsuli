@@ -61,8 +61,13 @@ void MultiPlayerEngine::handleWebSocketMessage(WebSocketStream *stream, const QJ
             if (!ptr.expired())
                 eid = ptr.lock()->id();
         } else {
-            const auto &ptr = eList.first();
-            auto engine = connectToEngine(ptr->id(), stream, handler);
+            for (const auto &ptr : eList) {
+                if (ptr->type() == EngineMultiPlayer) {
+                    eid = ptr->id();
+                    break;
+                }
+            }
+            auto engine = connectToEngine(eid, stream, handler);
             if (!engine.expired())
                 eid = engine.lock()->id();
         }
@@ -172,9 +177,11 @@ std::weak_ptr<AbstractEngine> MultiPlayerEngine::connectToEngine(const int &id, 
     const auto &ptr = handler->engineGet(AbstractEngine::EngineMultiPlayer, id);
 
     if (!ptr.expired()) {
+        LOG_CTRACE("engine") << "Engine exists" << id;
         handler->websocketEngineLink(stream, ptr.lock());
         return ptr;
     } else {
+        LOG_CTRACE("engine") << "Engine not exists" << id;
         return createEngine(stream, handler);
     }
 }
@@ -249,25 +256,19 @@ void MultiPlayerEngine::createGame(WebSocketStream *stream, const QJsonObject &d
     int entityId = 1000;
 
     for (auto it=snap->list.begin(); it != snap->list.end(); ++it) {
-        if (!it->get())
-            continue;
+        ObjectStateBase ptr = *it;
+        ptr.tick = 0;
+        ptr.state = ObjectStateBase::StateActive;
+        ptr.id = ++entityId;
 
-        ObjectStateBase *ptr = it->get()->clone();
-        ptr->tick = 0;
-        ptr->state = ObjectStateBase::StateActive;
+        LOG_CINFO("entine") << "++ ADD" << ptr.id << ptr.type << ptr.enemyState << ptr.position << ptr.size << ptr.facingLeft << ptr.subType;
 
-
-        auto &e = m_entities[++entityId];
-
-        if (ObjectStateEnemySoldier *soldier = dynamic_cast<ObjectStateEnemySoldier*>(ptr); soldier != nullptr) {
-            LOG_CINFO("entine") << "++ ADD" << entityId << soldier->enemyState << soldier->position << soldier->size << soldier->facingLeft;
-        } else {
-            LOG_CTRACE("entine") << "++ ADD" << entityId << ptr->position;
-        }
-
+        Entity e;
         e.owner = QStringLiteral("");
-        e.type = ptr->type;
-        e.renderedState.reset(ptr);
+        e.type = ptr.type;
+        e.renderedStates.push_back(ptr);
+
+        m_entities.insert({ptr.id, e});
     }
 
 
@@ -431,35 +432,56 @@ void MultiPlayerEngine::onBinaryMessageReceived(const QByteArray &data, WebSocke
     LOG_CTRACE("engine") << "Binary message received" << data.size();
 
     if (m_gameState != StatePlaying) {
-        LOG_CWARNING("engine") << "Binary message not accepted";
+        LOG_CWARNING("engine") << "Binary message not accepted, state:" << m_gameState;
         return;
     }
 
     std::optional<ObjectStateSnapshot> snap = ObjectStateSnapshot::fromByteArray(qUncompress(data));
 
     if (!snap) {
-        LOG_CWARNING("engine") << "Invalid binary message received";
+        LOG_CWARNING("engine") << "Invalid binary message received from:"
+                               << qPrintable(stream ? stream->credential().username() : QStringLiteral("?"));
         return;
     }
 
     LOG_CTRACE("engine") << "Sorting snap";
 
-    LOG_CTRACE("engine") << snap->toReadable();
+    ObjectStateBase prev;
 
     for (auto &s : snap->list) {
-        if (!s)
-            continue;
+        EntityState estate;
+        if (stream)
+            estate.sender = stream->credential().username();
 
-        const qint64 &tick = s->tick;
-        std::unique_ptr<EntityState> estate(new EntityState(s, stream ? stream->credential().username() : QStringLiteral("")));
-
-
-        if (ObjectStateEnemySoldier *soldier = dynamic_cast<ObjectStateEnemySoldier*>(estate->state.get()); soldier != nullptr) {
-            LOG_CINFO("engine") << "Add state to tick" << tick << soldier->id << soldier->enemyState << soldier->position << soldier->size << soldier->facingLeft;
+        if (prev.type == s.type && prev.id == s.id) {
+            estate.state = prev;
+            if (!estate.state.patch(s)) {
+                LOG_CERROR("engine") << "Patch error" << s.type << s.id;
+                estate.state = s;
+                prev = s;
+            } else {
+                prev = estate.state;
+            }
+        } else {
+            estate.state = s;
+            prev = s;
         }
 
+        const qint64 &tick = s.tick;
+
+        /*if (m_lastSentState > 0 && s.tick < m_lastSentState) {
+            LOG_CWARNING("engine") << "Received and skipped state from past:" << s.id << s.tick
+                                   << qPrintable(stream ? stream->credential().username() : QStringLiteral("?"));
+            continue;
+        }*/
+
+        estate.state.fields = ObjectStateBase::FieldAll;
+
+        LOG_CINFO("engine") << "Add state to tick" << tick << "id:" <<
+            estate.state.id << estate.state.enemyState << estate.state.position << estate.state.size << estate.state.subType;
+
         auto &v = m_states[tick];
-        v.push_back(std::move(estate));
+        v.push_back(estate);
     }
 }
 
@@ -476,25 +498,31 @@ void MultiPlayerEngine::renderStates()
     for (auto & [entityId, entity] : m_entities) {
         LOG_CTRACE("engine") << "Render......." << entityId << entity.type;
 
-        EntityState statePtr(entity.renderedState, entity.owner);
+        if (entity.renderedStates.empty()) {
+            LOG_CERROR("engine") << "Missing rendered state" << entityId << entity.type;
+            continue;
+        }
 
         for (const auto& [tick, esList] : m_states) {
             if (auto eIt = std::find_if(esList.cbegin(), esList.cend(),
-                                        [&e = entityId](const auto &esPtr){ return (esPtr && esPtr->id() == e); });
+                                        [&e = entityId](const auto &esPtr){ return (esPtr.id() == e); });
                 eIt != esList.cend()) {
 
-                updateState(&statePtr, eIt->get());
+                EntityState statePtr(entity.renderedStates.back(), entity.owner);
 
-                LOG_CTRACE("engine") << "   - " << tick;
+                if (eIt->state.tick < statePtr.state.tick) {
+                    LOG_CWARNING("engine") << "Cached state older than last rendered state" << entityId << entity.type;
+                    continue;
+                }
+
+                if (statePtr.updateFrom(*eIt)) {
+                    LOG_CTRACE("engine") << "   - " << tick << eIt->sender << eIt->state.position << eIt->state.size << eIt->state.enemyState << eIt->state.subType;
+                    entity.renderedStates.push_back(statePtr.state);
+                } else
+                    LOG_CERROR("engine") << "   ! " << tick << eIt->sender << eIt->state.position << eIt->state.size << eIt->state.enemyState << eIt->state.subType;
             }
         }
-
-        LOG_CTRACE("engine") << "   ===" << statePtr.sender << statePtr.state->id << statePtr.state->state << statePtr.state->position;
-
-        entity.renderedState.reset(statePtr.state->clone());
     }
-
-    m_lastRenderedState = currentTick();
 
     m_states.clear();
 }
@@ -511,6 +539,8 @@ void MultiPlayerEngine::sendStates()
 
     const QByteArray &data = getStates();
 
+    m_lastSentState = currentTick();
+
     for (auto ws : m_streams) {
         if (ws)
             ws->sendBinaryMessage(data);
@@ -526,21 +556,38 @@ void MultiPlayerEngine::sendStates()
 
 QByteArray MultiPlayerEngine::getStates()
 {
-    QByteArray data;
+    renderStates();
 
-    std::vector<ObjectStateBase*> snap;
+    ObjectStateSnapshot snap;
 
-    snap.reserve(m_entities.size());
+    snap.list.reserve(m_entities.size());
 
-    for (auto & [entityId, entity] : m_entities) {
-        ObjectStateBase *ptr = entity.renderedState.get();
-        ptr->id = entityId;
-        snap.push_back(ptr);
+    for (auto &[entityId, entity] : m_entities) {
+        ObjectStateBase prev;
+        for (const auto &rs: entity.renderedStates) {
+            if (prev.type != ObjectStateBase::TypeInvalid) {
+                auto s = prev.diff(rs);
+                if (!s) {
+                    LOG_CERROR("engine") << "State diff error" << entityId << entity.type << rs.tick;
+                    continue;
+                }
+                s->id = entityId;
+                snap.append(*s);
+            } else {
+                ObjectStateBase ptr = rs;
+                ptr.id = entityId;
+                snap.append(ptr);
+            }
+            prev = rs;
+        }
+
+        if (entity.renderedStates.size() > 1) {
+            LOG_CTRACE("engine") << "   remove rendered states" << entityId << entity.type;
+            entity.renderedStates.erase(entity.renderedStates.cbegin(), entity.renderedStates.cend()-1);
+        }
     }
 
-    data = qCompress(ObjectStateSnapshot::toByteArray(snap));
-
-    return data;
+    return qCompress(snap.toByteArray());
 }
 
 
@@ -564,27 +611,6 @@ void MultiPlayerEngine::playGame()
 
 }
 
-
-/**
- * @brief MultiPlayerEngine::updateState
- * @param dest
- * @param from
- */
-
-void MultiPlayerEngine::updateState(EntityState *dest, const EntityState &from)
-{
-    if (!dest)
-        return;
-
-    if (ObjectStateEnemySoldier *soldier = dynamic_cast<ObjectStateEnemySoldier*>(from.state.get()); soldier != nullptr) {
-        LOG_CTRACE("engine") << "UPDATE STATE" << dest << from.id() << from.state->tick << soldier->position << soldier->enemyState << soldier->size << soldier->facingLeft;
-    } else {
-        LOG_CTRACE("engine") << "UPDATE STATE" << dest << from.id() << from.state->tick << from.state->position;
-    }
-
-    dest->sender = from.sender;
-    dest->state.reset(from.state->clone());
-}
 
 
 /**
@@ -635,25 +661,25 @@ void MultiPlayerEngine::timerTick()
     if (m_gameState != StatePlaying)
         return;
 
-    renderStates();
-    sendStates();
-
     QByteArray content;
 
-    for (auto & [entityId, entity] : m_entities) {
+    for (const auto & [entityId, entity] : m_entities) {
         content.append("=========================================\n");
         content.append(QString("%1 - %2\n").arg(entityId).arg(entity.type).toUtf8());
         content.append(entity.owner.toUtf8()).append("\n");
         content.append("=========================================\n");
-
-        entity.renderedState->toReadable(&content);
-        content.append("---------------------------------\n");
+        for (const auto &rs : entity.renderedStates) {
+            content.append(rs.toReadable());
+            content.append("---------------------------------\n");
+        }
     }
 
     QFile f("/tmp/_state.txt");
     f.open(QIODevice::WriteOnly);
     f.write(content);
     f.close();
+
+    sendStates();
 
     LOG_CTRACE("engine") << "States saved";
 }
@@ -673,3 +699,19 @@ qint64 MultiPlayerEngine::currentTick() const
         return 0;
 }
 
+
+
+/**
+ * @brief MultiPlayerEngine::EntityState::updateFrom
+ * @param from
+ * @param sender
+ * @return
+ */
+
+bool MultiPlayerEngine::EntityState::updateFrom(const ObjectStateBase &from, const QString &sender)
+{
+    ObjectStateBase::Fields field = ObjectStateBase::FieldAll;
+    field &= ~ObjectStateBase::FieldSubType;
+
+    return state.patch(from, field);
+}
