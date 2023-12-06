@@ -10,15 +10,15 @@
  */
 
 AbstractEngine::AbstractEngine(const Type &type, const int &id, EngineHandler *handler, QObject *parent)
-	: QObject{parent}
-	, m_handler(handler)
-	, m_service(handler ? handler->m_service : nullptr)
-	, m_type(type)
-	, m_id(id)
+    : QObject{parent}
+    , m_handler(handler)
+    , m_service(handler ? handler->m_service : nullptr)
+    , m_type(type)
+    , m_id(id)
 {
-	Q_ASSERT(handler);
+    Q_ASSERT(handler);
 
-	LOG_CTRACE("engine") << "Abstract engine created:" << m_type << m_id << this;
+    LOG_CTRACE("engine") << "Abstract engine created:" << m_type << m_id << this;
 }
 
 
@@ -29,7 +29,7 @@ AbstractEngine::AbstractEngine(const Type &type, const int &id, EngineHandler *h
 
 AbstractEngine::~AbstractEngine()
 {
-	LOG_CTRACE("engine") << "Abstract engine destroyed:" << m_type << m_id << this;
+    LOG_CTRACE("engine") << "Abstract engine destroyed:" << m_type << m_id << this;
 }
 
 
@@ -40,17 +40,17 @@ AbstractEngine::~AbstractEngine()
 
 void AbstractEngine::streamSet(WebSocketStream *stream)
 {
-	if (!stream)
-		return;
+    if (!stream)
+        return;
 
-	LOG_CTRACE("engine") << "Engine stream set:" << this << stream;
+    LOG_CTRACE("engine") << "Engine stream set:" << this << stream;
 
-	if (!m_streams.contains(stream)) {
-		m_streams.append(stream);
-		streamLinkedEvent(stream);
-	}
+    if (!m_streams.contains(stream)) {
+        m_streams.append(stream);
+        streamLinkedEvent(stream);
+    }
 
-	LOG_CTRACE("engine") << "Engine stream set finsihed" << this << stream << m_streams;
+    LOG_CTRACE("engine") << "Engine stream set finsihed" << this << stream << m_streams;
 }
 
 
@@ -61,14 +61,14 @@ void AbstractEngine::streamSet(WebSocketStream *stream)
 
 void AbstractEngine::streamUnSet(WebSocketStream *stream)
 {
-	if (!stream)
-		return;
+    if (!stream)
+        return;
 
-	LOG_CTRACE("engine") << "Engine stream unset check" << stream;
+    LOG_CTRACE("engine") << "Engine stream unset check" << stream;
 
-	streamUnlinkedEvent(stream);
+    streamUnlinkedEvent(stream);
 
-	m_streams.removeAll(stream);
+    m_streams.removeAll(stream);
 }
 
 
@@ -81,42 +81,52 @@ void AbstractEngine::streamUnSet(WebSocketStream *stream)
 
 bool AbstractEngine::canDelete(const int &useCount)
 {
-	return (useCount == 1);
+    return (useCount == 1);
 }
 
 const QString &AbstractEngine::owner() const
 {
-	return m_owner;
+    return m_owner;
 }
 
 void AbstractEngine::setOwner(const QString &newOwner)
 {
-	m_owner = newOwner;
+    m_owner = newOwner;
 }
 
-int AbstractEngine::connectionLimit() const
+uint AbstractEngine::connectionLimit() const
 {
-	return m_connectionLimit;
+    return m_connectionLimit;
 }
 
-void AbstractEngine::setConnectionLimit(int newConnectionLimit)
+void AbstractEngine::setConnectionLimit(uint newConnectionLimit)
 {
-	m_connectionLimit = newConnectionLimit;
+    m_connectionLimit = newConnectionLimit;
 }
 
 const QVector<WebSocketStream *> &AbstractEngine::streams() const
 {
-	return m_streams;
+    return m_streams;
 }
 
 
 int AbstractEngine::id() const
 {
-	return m_id;
+    return m_id;
 }
 
 void AbstractEngine::setId(int newId)
 {
-	m_id = newId;
+    m_id = newId;
+}
+
+uint AbstractEngine::playerLimit() const
+{
+    return m_playerLimit;
+}
+
+void AbstractEngine::setPlayerLimit(uint newPlayerLimit)
+{
+    m_playerLimit = newPlayerLimit;
 }
 

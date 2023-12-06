@@ -187,5 +187,6 @@
         <file>TeacherGroupLog.qml</file>
         <file>QSpinBox.qml</file>
         <file>PageMultiPlayerGame.qml</file>
+        <file>GamePlayerMulti.qml</file>
     </qresource>
 </RCC>

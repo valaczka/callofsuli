@@ -62,6 +62,13 @@ QPage {
 
 			QButton {
 				anchors.horizontalCenter: parent.horizontalCenter
+				text: "ENROLL "+(game ? game.playerId : "")
+				enabled: game && game.playerId === -1
+				onClicked: game.sendWebSocketMessage({"cmd": "enroll", "engine": game.engineId})
+			}
+
+			QButton {
+				anchors.horizontalCenter: parent.horizontalCenter
 				text: "START"
 				enabled: game && game.multiPlayerMode == MultiPlayerGame.MultiPlayerHost
 				onClicked: game.start()

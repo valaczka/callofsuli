@@ -17,7 +17,8 @@ enum MultiPlayerGameState {
     StateCreating,
     StatePreparing,
     StatePlaying,
-    StateFinished
+    StateFinished,
+    StateError
 };
 
 
@@ -66,6 +67,23 @@ public:
     };
 
 
+    enum PlayerState {
+        PlayerInvalid = 0,
+        PlayerIdle,
+        PlayerWalk,
+        PlayerRun,
+        PlayerShot,
+        PlayerClimbUp,
+        PlayerClimbPause,
+        PlayerClimbDown,
+        PlayerMoveToOperate,
+        PlayerOperate,
+        PlayerBurn,
+        PlayerFall,
+        PlayerDead
+    };
+
+
     enum Field {
         FieldNone = 0,
 
@@ -88,11 +106,15 @@ public:
         FieldTurnElapsedMSec = 1 << 9,
         FieldAttackElapsedMSec = 1 << 10,
 
+        /// Player fields
+        FieldPlayerState = 1 << 11,
+
         /// All
         FieldAll = FieldPosition | FieldSize |
                    FieldHp | FieldMaxHp | FieldFacingLeft | FieldSubType |
                    FieldEnemyState | FieldEnemyRect | FieldMSecToAttack |
-                   FieldTurnElapsedMSec | FieldAttackElapsedMSec
+                   FieldTurnElapsedMSec | FieldAttackElapsedMSec |
+                   FieldPlayerState
 
     };
 
@@ -124,6 +146,8 @@ public:
     int turnElapsedMsec = 0;
     int attackElapsedMsec = 0;
 
+    PlayerState playerState = PlayerInvalid;
+
 
 
     /**
@@ -149,6 +173,7 @@ public:
         FIELD_TO_STREAM(fields, stream, FieldMSecToAttack, msecLeftToAttack);
         FIELD_TO_STREAM(fields, stream, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_TO_STREAM(fields, stream, FieldAttackElapsedMSec, attackElapsedMsec);
+        FIELD_TO_STREAM(fields, stream, FieldPlayerState, playerState);
     }
 
 
@@ -206,6 +231,12 @@ public:
 
         if (fields.testFlag(FieldAttackElapsedMSec)) data.append(QByteArrayLiteral("* "));
         data.append(QStringLiteral("attackElapsedMsec: %1\n").arg(attackElapsedMsec).toUtf8());
+
+
+        if (fields.testFlag(FieldPlayerState)) data.append(QByteArrayLiteral("* "));
+        data.append(QStringLiteral("playerState: %1\n").arg(playerState).toUtf8());
+
+
         return data;
     };
 
@@ -242,6 +273,7 @@ public:
         FIELD_FROM_STREAM(fields, stream, FieldMSecToAttack, msecLeftToAttack);
         FIELD_FROM_STREAM(fields, stream, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_FROM_STREAM(fields, stream, FieldAttackElapsedMSec, attackElapsedMsec);
+        FIELD_FROM_STREAM(fields, stream, FieldPlayerState, playerState);
 
         return true;
     }
@@ -271,6 +303,7 @@ public:
         FIELD_DIFF(d.fields, to, FieldMSecToAttack, msecLeftToAttack);
         FIELD_DIFF(d.fields, to, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_DIFF(d.fields, to, FieldAttackElapsedMSec, attackElapsedMsec);
+        FIELD_DIFF(d.fields, to, FieldPlayerState, playerState);
 
         return d;
     };
@@ -301,6 +334,7 @@ public:
         FIELD_PATCH(patch, field, FieldMSecToAttack, msecLeftToAttack);
         FIELD_PATCH(patch, field, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_PATCH(patch, field, FieldAttackElapsedMSec, attackElapsedMsec);
+        FIELD_PATCH(patch, field, FieldPlayerState, playerState);
 
         return true;
     }

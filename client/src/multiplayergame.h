@@ -11,6 +11,8 @@ class MultiPlayerGame : public ActionGame
     Q_PROPERTY(Mode multiPlayerMode READ multiPlayerMode NOTIFY multiPlayerModeChanged)
     Q_PROPERTY(int engineId READ engineId NOTIFY engineIdChanged)
     Q_PROPERTY(MultiPlayerGameState multiPlayerGameState READ multiPlayerGameState NOTIFY multiPlayerGameStateChanged)
+    Q_PROPERTY(int playerId READ playerId WRITE setPlayerId NOTIFY playerIdChanged FINAL)
+    Q_PROPERTY(qint64 playerEntityId READ playerEntityId WRITE setPlayerEntityId NOTIFY playerEntityIdChanged FINAL)
 
 public:
     explicit MultiPlayerGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -43,6 +45,12 @@ public:
     int serverInterval() const;
     void setServerInterval(int newServerInterval);
 
+    int playerId() const;
+    void setPlayerId(int newPlayerId);
+
+    qint64 playerEntityId() const;
+    void setPlayerEntityId(qint64 newPlayerEntityId);
+
 public slots:
     void gameAbort() override;
 
@@ -50,6 +58,9 @@ signals:
     void multiPlayerModeChanged();
     void engineIdChanged();
     void multiPlayerGameStateChanged();
+    void playerIdChanged();
+
+    void playerEntityIdChanged();
 
 protected:
     virtual QQuickItem *loadPage() override;
@@ -76,9 +87,17 @@ private:
     Mode m_multiPlayerMode = MultiPlayerClient;
     int m_engineId = -1;
     int m_serverInterval = 0;
+    int m_playerId = -1;
+    qint64 m_playerEntityId = -1;
     MultiPlayerGameState m_multiPlayerGameState = StateInvalid;
 
-    std::map<qint64, QPointer<GameObject>> m_entities;
+    struct Entity {
+        qint64 id = -1;
+        ObjectStateBase::ObjectType type = ObjectStateBase::TypeInvalid;
+        QPointer<GameObject> object;
+    };
+
+    std::vector<Entity> m_entities;
 
     bool m_binarySignalConnected = false;
 };

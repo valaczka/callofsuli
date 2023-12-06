@@ -114,8 +114,6 @@ void GameEnemySoldier::cacheCurrentState()
 
 void GameEnemySoldier::setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force)
 {
-    LOG_CINFO("game")  << "SET STATE FROM" << ptr.toReadable().constData();
-
     if (ptr.type != ObjectStateBase::TypeEnemySoldier) {
         LOG_CERROR("game") << "Invalid ObjectState" << ptr.id << ptr.type;
         return;
@@ -135,15 +133,6 @@ void GameEnemySoldier::setStateFromSnapshot(const ObjectStateBase &ptr, const qi
     } else {
         removeOldAuthoritativeStates(currentTick);
         m_authoritativeStates.insert({ptr.tick, ptr});
-
-        LOG_CDEBUG("game")  << "APPEND" << ptr.toReadable().constData();
-        LOG_CTRACE("game") << "AUTH STATES.........................................";
-
-        for (const auto &[tick, s] : m_authoritativeStates)  {
-            LOG_CINFO("game")  << "   #" << tick << s.position << s.size << s.subType;
-        }
-
-        LOG_CTRACE("game") << ".........................................";
 
         interpolateState(currentTick);
     }
@@ -271,6 +260,21 @@ void GameEnemySoldier::onTimingTimerTimeout(const int &msec, const qreal &delayF
             m_attackElapsedMsec = 0;
         }
     }
+}
+
+
+
+/**
+ * @brief GameEnemySoldier::onTimingTimerTimeoutMulti
+ * @param hosted
+ * @param msec
+ * @param delayFactor
+ */
+
+void GameEnemySoldier::onTimingTimerTimeoutMulti(const bool &hosted, const int &msec, const qreal &delayFactor)
+{
+    if (hosted)
+        onTimingTimerTimeout(msec, delayFactor);
 }
 
 

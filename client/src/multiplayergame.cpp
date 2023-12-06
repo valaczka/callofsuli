@@ -2,6 +2,7 @@
 #include "Logger.h"
 #include "client.h"
 #include "gameenemysoldier.h"
+#include "gameplayermulti.h"
 #include <QRandomGenerator>
 
 
@@ -57,7 +58,10 @@ void MultiPlayerGame::start()
         return;
     }
 
-    loadGamePage();
+    sendWebSocketMessage(QJsonObject{
+        { QStringLiteral("cmd"), QStringLiteral("start") },
+        { QStringLiteral("engine"), m_engineId }
+    });
 }
 
 
@@ -99,7 +103,7 @@ QQuickItem *MultiPlayerGame::loadPage()
 
 void MultiPlayerGame::onSceneAboutToStart()
 {
-    if (m_deathmatch) {
+    /*if (m_deathmatch) {
         message(tr("LEVEL %1").arg(level()));
         message(tr("SUDDEN DEATH"));
         message(m_multiPlayerMode == MultiPlayerHost ? tr("MULTIPLAYER HOST") : tr("MULTIPLAYER CLIENT"));
@@ -108,7 +112,7 @@ void MultiPlayerGame::onSceneAboutToStart()
         message(tr("LEVEL %1").arg(level()));
         message(m_multiPlayerMode == MultiPlayerHost ? tr("MULTIPLAYER HOST") : tr("MULTIPLAYER CLIENT"));
         m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
-    }
+    }*/
 }
 
 
@@ -120,7 +124,7 @@ void MultiPlayerGame::onSceneAboutToStart()
 
 void MultiPlayerGame::timerEvent(QTimerEvent *)
 {
-    if (!m_scene)
+    if (!m_scene || m_multiPlayerGameState != StatePlaying)
         return;
 
     LOG_CTRACE("game") << "TIMER EVENT" << m_tickTimer.currentTick();
@@ -153,6 +157,8 @@ void MultiPlayerGame::sendWebSocketMessage(const QJsonValue &data)
         LOG_CWARNING("game") << "WebSocket inactive";
         return;
     }
+
+    LOG_CTRACE("game") << "SEND:" << data;
 
     m_client->httpConnection()->webSocket()->send(QStringLiteral("multiplayer"), data);
 }
@@ -241,7 +247,9 @@ void MultiPlayerGame::onJsonReceived(const QString &operation, const QJsonValue 
         const QJsonObject &obj = data.toObject();
         const QString &cmd = obj.value(QStringLiteral("cmd")).toString();
 
-        if (cmd == QStringLiteral("connect")) {
+        if (obj.contains(QStringLiteral("error"))) {
+            m_client->messageError(obj.value(QStringLiteral("error")).toString(), tr("Belső hiba"));
+        } else if (cmd == QStringLiteral("connect")) {
             setEngineId(obj.value(QStringLiteral("engine")).toInt(-1));
             getServerState();
         } else if (cmd == QStringLiteral("state")) {
@@ -250,6 +258,12 @@ void MultiPlayerGame::onJsonReceived(const QString &operation, const QJsonValue 
             if (obj.contains(QStringLiteral("gameState"))) {
                 setMultiPlayerGameState(obj.value(QStringLiteral("gameState")).toVariant().value<MultiPlayerGameState>());
             }
+            if (obj.contains(QStringLiteral("playerId"))) {
+                setPlayerId(obj.value(QStringLiteral("playerId")).toInt());
+            }
+            if (obj.contains(QStringLiteral("playerEntityId"))) {
+                setPlayerEntityId(obj.value(QStringLiteral("playerEntityId")).toInt());
+            }
             if (qint64 tick = obj.value(QStringLiteral("tick")).toInteger(-1); tick != -1) {
                 m_tickTimer.start(this, tick);
             }
@@ -257,21 +271,15 @@ void MultiPlayerGame::onJsonReceived(const QString &operation, const QJsonValue 
                 setServerInterval(obj.value(QStringLiteral("interval")).toInt());
             }
         } else if (cmd == QStringLiteral("create")) {
-            if (obj.contains(QStringLiteral("error"))) {
-                m_client->messageError(obj.value(QStringLiteral("error")).toString(), tr("Belső hiba"));
-            }
+
         } else if (cmd == QStringLiteral("prepare")) {
-            if (obj.contains(QStringLiteral("error"))) {
-                m_client->messageError(obj.value(QStringLiteral("error")).toString(), tr("Belső hiba"));
-            } else if (obj.value(QStringLiteral("engine")).toInt() != m_engineId) {
+            if (obj.value(QStringLiteral("engine")).toInt() != m_engineId) {
                 LOG_CERROR("game") << "Invalid engineId";
             } else {
                 updateGameTrigger(QByteArray::fromBase64(obj.value(QStringLiteral("entities")).toString().toUtf8()));
             }
         } else if (cmd == QStringLiteral("start")) {
-            if (obj.contains(QStringLiteral("error"))) {
-                m_client->messageError(obj.value(QStringLiteral("error")).toString(), tr("Belső hiba"));
-            }
+
         }
     }
 }
@@ -313,7 +321,7 @@ void MultiPlayerGame::loadGamePage()
 
 void MultiPlayerGame::createGameTrigger()
 {
-    if (m_multiPlayerMode != MultiPlayerHost || m_multiPlayerGameState != StateConnecting)
+    if (m_multiPlayerMode != MultiPlayerHost || m_multiPlayerGameState != StateCreating || !m_scene)
         return;
 
     LOG_CINFO("game") << "Create multiplayer enemies";
@@ -326,13 +334,27 @@ void MultiPlayerGame::createGameTrigger()
         if (e.type != GameTerrain::EnemySoldier)
             continue;
 
-        ObjectStateBase state = GameEnemySoldier::createState(e);
-
-        LOG_CTRACE("game") << "+++STATE" << state.toReadable();
-        snap.append(state);
-
-        if (++num > 1)
+        if (num > 3)
             break;
+        else if (num > 1) {
+            ObjectStateBase state = GamePlayerMulti::createState(e.rect.bottomLeft());
+            const auto &chList = ActionGame::availableCharacters();
+            if (chList.size() > (num-2)) {
+                state.fields.setFlag(ObjectStateBase::FieldSubType);
+                state.subType = chList.at(num-2).toUtf8();
+            }
+
+            LOG_CTRACE("game") << "+++STATE" << state.toReadable();
+            snap.append(state);
+        } else {
+            ObjectStateBase state = GameEnemySoldier::createState(e);
+
+            LOG_CTRACE("game") << "+++STATE" << state.toReadable();
+            snap.append(state);
+        }
+
+        ++num;
+
     }
 
     sendWebSocketMessage(QJsonObject{
@@ -350,7 +372,7 @@ void MultiPlayerGame::createGameTrigger()
 
 void MultiPlayerGame::updateGameTrigger(const QByteArray &data)
 {
-    if (m_multiPlayerGameState != StatePreparing && m_multiPlayerGameState != StatePlaying)
+    if (m_multiPlayerGameState != StateCreating && m_multiPlayerGameState != StatePlaying && m_multiPlayerGameState != StatePreparing)
         return;
 
     if (data.isEmpty() && m_entities.empty()) {
@@ -363,7 +385,9 @@ void MultiPlayerGame::updateGameTrigger(const QByteArray &data)
     }
 
 
-    LOG_CTRACE("game") << "Binary message received";
+    bool _sendReady = m_entities.empty();
+
+    LOG_CTRACE("game") << "Binary message received" << "??" << _sendReady;
 
     const std::optional<ObjectStateSnapshot> &snap = ObjectStateSnapshot::fromByteArray(qUncompress(data));
 
@@ -371,8 +395,6 @@ void MultiPlayerGame::updateGameTrigger(const QByteArray &data)
         LOG_CWARNING("game") << "Invalid binary message received";
         return;
     }
-
-    QVector<qint64> existingIdList;
 
     ObjectStateBase prev;
 
@@ -386,11 +408,16 @@ void MultiPlayerGame::updateGameTrigger(const QByteArray &data)
             }
         }
 
-        auto it = m_entities.find(prev.id);
+        auto it = std::find_if(m_entities.cbegin(), m_entities.cend(), [&prev](const Entity &e) {
+            return e.id == prev.id;
+        });
 
-        LOG_CINFO("game") << "---SNAP" << prev.id << prev.tick;
+        LOG_CINFO("game") << "---SNAP" << prev.id << prev.tick << prev.type << prev.playerState;
 
-        if (it == m_entities.end()) {
+        const bool isSelf = (prev.type == ObjectStateBase::TypePlayer && prev.id == m_playerEntityId) ||
+                            (prev.type == ObjectStateBase::TypeEnemySoldier && m_multiPlayerMode == MultiPlayerHost);
+
+        if (it == m_entities.cend()) {
             LOG_CINFO("game") << "Create entity" << prev.id << prev.type;
 
             if (prev.type == ObjectStateBase::TypeEnemySoldier) {
@@ -400,22 +427,43 @@ void MultiPlayerGame::updateGameTrigger(const QByteArray &data)
                 d.type = GameTerrain::EnemySoldier;
                 d.rect = prev.enemyRect;
                 GameEnemySoldier *soldier = GameEnemySoldier::create(m_scene, d, QString::fromUtf8(prev.subType));
-                updateBody(soldier, m_multiPlayerMode == MultiPlayerHost);
+                updateBody(soldier, isSelf);
 
-                soldier->setCurrentState(prev, m_multiPlayerMode == MultiPlayerClient);
+                soldier->setCurrentState(prev, !isSelf);
 
-                m_entities.insert({prev.id, soldier});
+                m_entities.push_back({prev.id, prev.type, soldier});
+            } else if (prev.type == ObjectStateBase::TypePlayer) {
+                LOG_CINFO("game") << "--- PLAYER" << isSelf << prev.toReadable();
+
+                GamePlayerMulti *player = GamePlayer::create<GamePlayerMulti>(m_scene, QStringLiteral("GamePlayerMulti.qml"), prev.subType);
+                updateBody(player, isSelf);
+                player->setIsSelf(isSelf);
+                player->init(this);
+                player->setCurrentState(prev, !isSelf);
+
+                if (isSelf)
+                    setPlayer(player);
+
+                m_entities.push_back({prev.id, prev.type, player});
             }
         } else {
             LOG_CTRACE("game") << "Update entity" << prev.id << prev.type << prev.tick << "<>" << currentTick();
-            if (it->second) {
-                it->second->setAuthoritativeStateInterval(m_serverInterval);
-                it->second->setStateFromSnapshot(prev, currentTick(), m_multiPlayerMode == MultiPlayerClient);
+            if (it->object) {
+                it->object->setAuthoritativeStateInterval(m_serverInterval);
+                it->object->setStateFromSnapshot(prev, currentTick(), !isSelf);
             } else
                 LOG_CERROR("game") << "Invalid object pointer" << prev.id;
         }
     }
 
+
+
+    if (_sendReady)
+        sendWebSocketMessage(QJsonObject{
+            { QStringLiteral("cmd"), QStringLiteral("prepare") },
+            { QStringLiteral("engine"), m_engineId },
+            { QStringLiteral("ready"), true }
+        });
 }
 
 
@@ -429,16 +477,20 @@ void MultiPlayerGame::playGameTrigger()
     if (m_multiPlayerGameState != StatePlaying)
         return;
 
+    message(m_multiPlayerMode == MultiPlayerHost ? tr("MULTIPLAYER HOST") : tr("MULTIPLAYER CLIENT"));
+    m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/begin.mp3"));
+
+
     LOG_CTRACE("game") << "Play game trigger";
 
     if (m_multiPlayerMode != MultiPlayerHost)
         return;
 
-    for (auto &[id, e] : m_entities) {
-        GameEnemy *enemy = dynamic_cast<GameEnemy*>(e.get());
+    for (const auto &e : m_entities) {
+        GameEnemy *enemy = dynamic_cast<GameEnemy*>(e.object.get());
 
         if (enemy && enemy->enemyState() == GameEnemy::Invalid) {
-            LOG_CWARNING("game") << "MOVE ENEMY" << enemy << id;
+            LOG_CWARNING("game") << "MOVE ENEMY" << enemy << e.id;
             //enemy->setEnemyState(GameEnemy::Move);
             enemy->startMovingAfter(1500);
         }
@@ -476,12 +528,38 @@ qint64 MultiPlayerGame::getObjectId(GameObject *object)
     if (!object)
         return -1;
 
-    for (const auto &[id, obj] : m_entities) {
-        if (obj.get() == object)
-            return id;
+    for (const auto &e : m_entities) {
+        if (e.object.get() == object)
+            return e.id;
     }
 
     return -1;
+}
+
+qint64 MultiPlayerGame::playerEntityId() const
+{
+    return m_playerEntityId;
+}
+
+void MultiPlayerGame::setPlayerEntityId(qint64 newPlayerEntityId)
+{
+    if (m_playerEntityId == newPlayerEntityId)
+        return;
+    m_playerEntityId = newPlayerEntityId;
+    emit playerEntityIdChanged();
+}
+
+int MultiPlayerGame::playerId() const
+{
+    return m_playerId;
+}
+
+void MultiPlayerGame::setPlayerId(int newPlayerId)
+{
+    if (m_playerId == newPlayerId)
+        return;
+    m_playerId = newPlayerId;
+    emit playerIdChanged();
 }
 
 
@@ -521,17 +599,26 @@ void MultiPlayerGame::setMultiPlayerGameState(MultiPlayerGameState newMultiPlaye
 
     LOG_CINFO("game") << "MULTIPLAYER STATE CHANGED" << m_multiPlayerGameState << m_pageItem;
 
-    if (m_multiPlayerGameState != StateConnecting && !m_pageItem) {
-        LOG_CERROR("game") << "+++PAGE";
-        start();
+
+    if (m_multiPlayerMode == MultiPlayerHost) {
+        if ((m_multiPlayerGameState == StatePreparing || m_multiPlayerGameState == StateCreating || m_multiPlayerGameState == StatePlaying) && !m_pageItem) {
+            LOG_CERROR("game") << "+++PAGE";
+            loadGamePage();
+        }
+    } else {
+        if ((m_multiPlayerGameState == StatePreparing || m_multiPlayerGameState == StatePlaying) && !m_pageItem) {
+            LOG_CERROR("game") << "+++PAGE";
+            loadGamePage();
+        }
     }
 
-    if (m_multiPlayerGameState == StateCreating)
+
+    /*if (m_multiPlayerGameState == StateCreating)
         createGameTrigger();
-    else if (m_multiPlayerGameState == StatePlaying)
+    else if (m_multiPlayerGameState == StatePreparing)
+        updateGameTrigger({});
+    else*/ if (m_multiPlayerGameState == StatePlaying)
         playGameTrigger();
-    /*else if (m_multiPlayerGameState == StatePreparing)
-        prepareGameTrigger({});*/
 
 }
 
@@ -589,22 +676,27 @@ void MultiPlayerGame::sceneTimerTimeout(const int &msec, const qreal &delayFacto
     if (m_multiPlayerGameState != StatePlaying)
         return;
 
-    if (m_multiPlayerMode == MultiPlayerHost) {
-        foreach (GameObject *o, m_scene->m_gameObjects) {
-            if (o) {
-                o->onTimingTimerTimeout(msec, delayFactor);
-                o->cacheCurrentState();
-            }
+    const qint64 tick = currentTick();
+
+    for (const auto &e : m_entities) {
+        if (!e.object) {
+            LOG_CERROR("game") << "Entity missing:" << e.id;
+            continue;
         }
-    } else {
-        const qint64 tick = currentTick();
-        for (const auto &[id, obj] : m_entities) {
-            if (obj) {
-                obj->interpolateState(tick);
-            } else {
-                LOG_CERROR("game") << "Entity missing:" << id;
-            }
-        }
+
+        bool hosted = false;
+
+        if ((e.type == ObjectStateBase::TypeEnemySniper && m_multiPlayerMode == MultiPlayerHost) ||
+            (e.type == ObjectStateBase::TypeEnemySoldier && m_multiPlayerMode == MultiPlayerHost) ||
+            (e.type == ObjectStateBase::TypePlayer && e.id == m_playerEntityId))
+            hosted = true;
+
+        e.object->onTimingTimerTimeoutMulti(hosted, msec, delayFactor);
+
+        if (hosted)
+            e.object->cacheCurrentState();
+        else
+            e.object->interpolateState(tick);
     }
 
 
@@ -634,7 +726,7 @@ void MultiPlayerGame::onSceneReady()
 
     pageItem()->setState(QStringLiteral("run"));
 
-    m_scene->playSoundMusic(backgroundMusic());
+    ////m_scene->playSoundMusic(backgroundMusic());
 
     LOG_CTRACE("game") << "!!!!" << m_multiPlayerMode << m_multiPlayerGameState;
 

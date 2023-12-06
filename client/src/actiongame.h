@@ -130,6 +130,8 @@ public:
 
     virtual void sceneTimerTimeout(const int &msec, const qreal &delayFactor);
 
+    void onPlayerDied(GameEntity *);
+    void onEnemyDied(GameEntity *entity);
 
 public slots:
     void pickableAdd(GamePickable *pickable);
@@ -182,8 +184,6 @@ private:
     void onGameSuccess();
     void onGameFailed();
 
-    void onPlayerDied(GameEntity *);
-    void onEnemyDied(GameEntity *entity);
 
 protected:
     /**

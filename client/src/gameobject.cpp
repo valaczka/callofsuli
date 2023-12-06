@@ -281,13 +281,10 @@ void GameObject::removeOldAuthoritativeStates(const qint64 &currentTick)
 {
     qint64 diff = m_authoritativeStateInterval * AUTHORITATIVE_STATE_CACHE_FACTOR;
 
-    LOG_CTRACE("game") << "Remove old states" << this << currentTick-diff;
-
     for (auto it = m_authoritativeStates.cbegin(); it != m_authoritativeStates.cend(); ) {
-        if (it->first < currentTick-diff) {
-            LOG_CTRACE("game") << "   - remove" << it->first;
+        if (it->first < currentTick-diff)
             it = m_authoritativeStates.erase(it);
-        } else
+        else
             ++it;
     }
 }
@@ -327,26 +324,17 @@ void GameObject::setAuthoritativeStateInterval(qint64 newAuthoritativeStateInter
 
 std::optional<ObjectStateBase> GameObject::stateReconciliation(const ObjectStateBase &state)
 {
-
     for (auto it = m_cachedStates.rbegin(); it != m_cachedStates.rend(); ++it) {
-        if (it->tick < state.tick) {
-            LOG_CINFO("game") << "*** erase state" << it->tick;
+        if (it->tick < state.tick)
             m_cachedStates.erase(it.base()-1);
-        } else {
-            LOG_CINFO("game") << "=== hold state" << it->tick;
-        }
     }
 
     ObjectStateBase r = state;
 
     for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ++it) {
-        LOG_CINFO("game") << "??? prediction" << it->tick;
-
         if (stateReconciliation(state, *it)) {
-            LOG_CTRACE("game") << "   => override" << &*it;
             r = *it;
         } else {
-            LOG_CERROR("game") << "unable to override";
             return std::nullopt;
         }
     }
@@ -475,6 +463,21 @@ void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 }
 
 
+/**
+ * @brief GameObject::onTimingTimerTimeoutMulti
+ * @param hosted
+ * @param msec
+ * @param delayFactor
+ */
+
+void GameObject::onTimingTimerTimeoutMulti(const bool &hosted, const int &msec, const qreal &delayFactor)
+{
+    Q_UNUSED(msec)
+    Q_UNUSED(delayFactor)
+    Q_UNUSED(hosted)
+}
+
+
 
 /**
  * @brief GameObject::getStateSnapshot
@@ -490,16 +493,12 @@ int GameObject::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &en
     if (!_game)
         return -1;
 
-    LOG_CINFO("game") << "GET SNAPSHOT" << this << entityId;
-
     if (snapshot) {
         ObjectStateBase prev;
         int num = 0;
 
         for (ObjectStateBase s : m_cachedStates) {
             s.id = entityId;
-
-            LOG_CINFO("game") << "++" << entityId << s.tick << s.enemyState << s.position << s.facingLeft;
 
             if (prev.type != ObjectStateBase::TypeInvalid) {
                 const auto &d = prev.diff(s);
@@ -531,8 +530,6 @@ int GameObject::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &en
 
 void GameObject::setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force)
 {
-    LOG_CTRACE("scene") << "Load state from snapshot" << ptr.id << ptr.tick << force;
-
     setCurrentState(ptr, force);
 }
 

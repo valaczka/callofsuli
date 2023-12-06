@@ -51,6 +51,7 @@ public:
     Q_INVOKABLE void attackPlayer();
 
     void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
+    virtual void onTimingTimerTimeoutMulti(const bool &hosted, const int &msec, const qreal &delayFactor) override;
     virtual void cacheCurrentState() override;
 
     virtual void setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force) override;

@@ -120,7 +120,7 @@ ObjectStateBase GameEnemy::interpolate(const qreal &t, const ObjectStateBase &fr
 {
     ObjectStateBase b = GameEntity::interpolate(t, from, to);
 
-    /*if (from.fields.testFlag(ObjectStateBase::FieldEnemyState)) {
+    if (from.fields.testFlag(ObjectStateBase::FieldEnemyState)) {
         if (t < 1.0) {
             if (to.position.x() != from.position.x())
                 b.enemyState = ObjectStateBase::Move;
@@ -129,7 +129,7 @@ ObjectStateBase GameEnemy::interpolate(const qreal &t, const ObjectStateBase &fr
         } else {
             b.enemyState = to.enemyState;
         }
-    }*/
+    }
 
     return b;
 }

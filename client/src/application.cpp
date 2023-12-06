@@ -29,6 +29,7 @@
 #include "fetchmodel.h"
 #include "fontimage.h"
 #include "gameenemysniper.h"
+#include "gameplayermulti.h"
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
 #include "litegame.h"
@@ -98,10 +99,10 @@ Application *Application::m_instance = nullptr;
 
 
 const QString Application::m_userAgent = QStringLiteral("CallOfSuli/%1.%2.%3 (%4; %5)")
-		.arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
-		.arg(QSysInfo::prettyProductName())
-		.arg(QSysInfo::currentCpuArchitecture())
-		;
+        .arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
+        .arg(QSysInfo::prettyProductName())
+        .arg(QSysInfo::currentCpuArchitecture())
+        ;
 
 
 
@@ -122,15 +123,15 @@ const bool Application::m_debug = true;
 void Application::initialize()
 {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 #endif
 
-	QCoreApplication::setApplicationName(QStringLiteral("callofsuli"));
-	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli"));
-	QCoreApplication::setApplicationVersion(m_version);
-	QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
+    QCoreApplication::setApplicationName(QStringLiteral("callofsuli"));
+    QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli"));
+    QCoreApplication::setApplicationVersion(m_version);
+    QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
-	QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
+    QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
 }
 
 
@@ -143,18 +144,18 @@ void Application::initialize()
  */
 
 Application::Application(QApplication *app)
-	: m_application(app)
+    : m_application(app)
 {
-	Q_ASSERT(!m_instance);
+    Q_ASSERT(!m_instance);
 
-	m_instance = this;
+    m_instance = this;
 
-	QObject::connect(m_application, &QCoreApplication::aboutToQuit, [this](){
-		m_engine.reset();
-		m_client.reset();
-	});
+    QObject::connect(m_application, &QCoreApplication::aboutToQuit, [this](){
+        m_engine.reset();
+        m_client.reset();
+    });
 
-	m_engine = std::make_unique<QQmlApplicationEngine>();
+    m_engine = std::make_unique<QQmlApplicationEngine>();
 }
 
 
@@ -164,7 +165,7 @@ Application::Application(QApplication *app)
 
 Application::~Application()
 {
-	LOG_CTRACE("app") << "Destroy Application" << this;
+    LOG_CTRACE("app") << "Destroy Application" << this;
 }
 
 
@@ -175,62 +176,62 @@ Application::~Application()
 
 int Application::run()
 {
-	registerQmlTypes();
-	loadQaterial();
-	loadBox2D();
-	loadModules();
+    registerQmlTypes();
+    loadQaterial();
+    loadBox2D();
+    loadModules();
 
-	m_client.reset(createClient());
-	m_engine->addImageProvider(QStringLiteral("font"), std::move(new FontImage()));
-	m_engine->addImageProvider(QStringLiteral("qrcode"), std::move(new QrImage()));
+    m_client.reset(createClient());
+    m_engine->addImageProvider(QStringLiteral("font"), std::move(new FontImage()));
+    m_engine->addImageProvider(QStringLiteral("qrcode"), std::move(new QrImage()));
 
-	m_engine->rootContext()->setContextProperty("Client", m_client.get());
+    m_engine->rootContext()->setContextProperty("Client", m_client.get());
 
-	if (!loadResources()) {
-		LOG_CERROR("app") << "Failed to load resources";
-		return -1;
-	}
+    if (!loadResources()) {
+        LOG_CERROR("app") << "Failed to load resources";
+        return -1;
+    }
 
-	if (!loadMainQml()) {
-		LOG_CERROR("app") << "Failed to load main qml";
-		return -1;
-	}
+    if (!loadMainQml()) {
+        LOG_CERROR("app") << "Failed to load main qml";
+        return -1;
+    }
 
-	if (m_engine->rootObjects().isEmpty())
-	{
-		LOG_CERROR("app") << "Missing root object";
-		return -1;
-	}
+    if (m_engine->rootObjects().isEmpty())
+    {
+        LOG_CERROR("app") << "Missing root object";
+        return -1;
+    }
 
-	LOG_CINFO("app") << "Run Application";
+    LOG_CINFO("app") << "Run Application";
 
-	const int r = m_application->exec();
+    const int r = m_application->exec();
 
-	LOG_CINFO("app") << "Application finished with code" << r;
+    LOG_CINFO("app") << "Application finished with code" << r;
 
-	return r;
+    return r;
 }
 
 
 
 int Application::versionMajor()
 {
-	return m_versionMajor;
+    return m_versionMajor;
 }
 
 int Application::versionMinor()
 {
-	return m_versionMinor;
+    return m_versionMinor;
 }
 
 int Application::versionBuild()
 {
-	return m_versionBuild;
+    return m_versionBuild;
 }
 
 const char *Application::version() const
 {
-	return m_version;
+    return m_version;
 }
 
 
@@ -241,7 +242,7 @@ const char *Application::version() const
 
 QApplication *Application::application() const
 {
-	return m_application;
+    return m_application;
 }
 
 
@@ -252,7 +253,7 @@ QApplication *Application::application() const
 
 QQmlApplicationEngine *Application::engine() const
 {
-	return m_engine.get();
+    return m_engine.get();
 }
 
 
@@ -263,24 +264,24 @@ QQmlApplicationEngine *Application::engine() const
 
 bool Application::loadMainQml()
 {
-	const QUrl url(QStringLiteral("qrc:/main.qml"));
-	QObject::connect(m_engine.get(), &QQmlApplicationEngine::objectCreated,
-					 m_application, [url](QObject *obj, const QUrl &objUrl) {
-		if (!obj && url == objUrl)
-			QCoreApplication::exit(-1);
+    const QUrl url(QStringLiteral("qrc:/main.qml"));
+    QObject::connect(m_engine.get(), &QQmlApplicationEngine::objectCreated,
+                     m_application, [url](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl)
+            QCoreApplication::exit(-1);
 
 #if defined(Q_OS_ANDROID)
 #if QT_VERSION < 0x060000
-		QtAndroid::hideSplashScreen();
+        QtAndroid::hideSplashScreen();
 #else
-		QNativeInterface::QAndroidApplication::hideSplashScreen();
+        QNativeInterface::QAndroidApplication::hideSplashScreen();
 #endif
 #endif
-	}, Qt::QueuedConnection);
+    }, Qt::QueuedConnection);
 
-	m_engine->load(url);
+    m_engine->load(url);
 
-	return true;
+    return true;
 }
 
 
@@ -290,49 +291,49 @@ bool Application::loadMainQml()
 
 bool Application::loadResources()
 {
-	QStringList searchList;
+    QStringList searchList;
 
 #ifdef Q_OS_ANDROID
-	searchList.append("assets:");
-	searchList.append(QStandardPaths::standardLocations(QStandardPaths::HomeLocation));
-	searchList.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
+    searchList.append("assets:");
+    searchList.append(QStandardPaths::standardLocations(QStandardPaths::HomeLocation));
+    searchList.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
 #else
-	QString binDir = QCoreApplication::applicationDirPath();
+    QString binDir = QCoreApplication::applicationDirPath();
 
-	searchList.append(binDir);
-	searchList.append(binDir+"/share");
+    searchList.append(binDir);
+    searchList.append(binDir+"/share");
 
 #ifndef Q_OS_IOS
-	searchList.append(binDir+"/../share");
-	searchList.append(binDir+"/../../share");
-	searchList.append(binDir+"/../../../share");
+    searchList.append(binDir+"/../share");
+    searchList.append(binDir+"/../../share");
+    searchList.append(binDir+"/../../../share");
 #endif
 
 #ifndef QT_NO_DEBUG
-	searchList.append(binDir+"/../callofsuli/share");
-	searchList.append(binDir+"/../../callofsuli/share");
-	searchList.append(binDir+"/../../../callofsuli/share");
+    searchList.append(binDir+"/../callofsuli/share");
+    searchList.append(binDir+"/../../callofsuli/share");
+    searchList.append(binDir+"/../../../callofsuli/share");
 #endif
-	searchList.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
+    searchList.append(QStandardPaths::standardLocations(QStandardPaths::AppDataLocation));
 
-	searchList.removeDuplicates();
+    searchList.removeDuplicates();
 #endif
 
-	foreach (QString dir, searchList)
-	{
-		LOG_CDEBUG("app") << "Search resources:" << qPrintable(dir);
-		QDirIterator it(dir+"/", {"*.cres"});
+    foreach (QString dir, searchList)
+    {
+        LOG_CDEBUG("app") << "Search resources:" << qPrintable(dir);
+        QDirIterator it(dir+"/", {"*.cres"});
 
-		while (it.hasNext()) {
-			QString realname = it.next();
-			LOG_CINFO("app") << "Register resource:" << qPrintable(realname);
-			QResource::registerResource(realname);
-		}
-	}
+        while (it.hasNext()) {
+            QString realname = it.next();
+            LOG_CINFO("app") << "Register resource:" << qPrintable(realname);
+            QResource::registerResource(realname);
+        }
+    }
 
-	loadFonts();
+    loadFonts();
 
-	return true;
+    return true;
 }
 
 
@@ -344,90 +345,91 @@ bool Application::loadResources()
 
 void Application::registerQmlTypes()
 {
-	LOG_CTRACE("app") << "Register QML types";
+    LOG_CTRACE("app") << "Register QML types";
 
-	QZXing::registerQMLTypes();
+    QZXing::registerQMLTypes();
 
-	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
-	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
-	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
-	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
-	qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");
-	qmlRegisterUncreatableType<LiteGame>("CallOfSuli", 1, 0, "LiteGame", "LiteGame is uncreatable");
-	qmlRegisterUncreatableType<MapEditorChapter>("CallOfSuli", 1, 0, "MapEditorChapter", "MapEditorChapter is uncreatable");
-	qmlRegisterUncreatableType<MapEditorImage>("CallOfSuli", 1, 0, "MapEditorImage", "MapEditorImage is uncreatable");
-	qmlRegisterUncreatableType<MapEditorInventory>("CallOfSuli", 1, 0, "MapEditorInventory", "MapEditorInventory is uncreatable");
-	qmlRegisterUncreatableType<MapEditorMap>("CallOfSuli", 1, 0, "MapEditorMap", "MapEditorMap is uncreatable");
-	qmlRegisterUncreatableType<MapEditorMission>("CallOfSuli", 1, 0, "MapEditorMission", "MapEditorMission is uncreatable");
-	qmlRegisterUncreatableType<MapEditorMissionLevel>("CallOfSuli", 1, 0, "MapEditorMissionLevel", "MapEditorMissionLevel is uncreatable");
-	qmlRegisterUncreatableType<MapEditorObjective>("CallOfSuli", 1, 0, "MapEditorObjective", "MapEditorObjective is uncreatable");
-	qmlRegisterUncreatableType<MapEditorStorage>("CallOfSuli", 1, 0, "MapEditorStorage", "MapEditorStorage is uncreatable");
-	qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
-	qmlRegisterUncreatableType<MapPlayCampaign>("CallOfSuli", 1, 0, "MapPlayCampaign", "MapPlayCampaign is uncreatable");
-	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
-	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
-	qmlRegisterUncreatableType<MultiPlayerGame>("CallOfSuli", 1, 0, "MultiPlayerGame", "MultiPlayerGame is uncreatable");
-	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
-	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
-	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
-	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
-	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
-	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
+    qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
+    qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+    qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
+    qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
+    qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");
+    qmlRegisterUncreatableType<LiteGame>("CallOfSuli", 1, 0, "LiteGame", "LiteGame is uncreatable");
+    qmlRegisterUncreatableType<MapEditorChapter>("CallOfSuli", 1, 0, "MapEditorChapter", "MapEditorChapter is uncreatable");
+    qmlRegisterUncreatableType<MapEditorImage>("CallOfSuli", 1, 0, "MapEditorImage", "MapEditorImage is uncreatable");
+    qmlRegisterUncreatableType<MapEditorInventory>("CallOfSuli", 1, 0, "MapEditorInventory", "MapEditorInventory is uncreatable");
+    qmlRegisterUncreatableType<MapEditorMap>("CallOfSuli", 1, 0, "MapEditorMap", "MapEditorMap is uncreatable");
+    qmlRegisterUncreatableType<MapEditorMission>("CallOfSuli", 1, 0, "MapEditorMission", "MapEditorMission is uncreatable");
+    qmlRegisterUncreatableType<MapEditorMissionLevel>("CallOfSuli", 1, 0, "MapEditorMissionLevel", "MapEditorMissionLevel is uncreatable");
+    qmlRegisterUncreatableType<MapEditorObjective>("CallOfSuli", 1, 0, "MapEditorObjective", "MapEditorObjective is uncreatable");
+    qmlRegisterUncreatableType<MapEditorStorage>("CallOfSuli", 1, 0, "MapEditorStorage", "MapEditorStorage is uncreatable");
+    qmlRegisterUncreatableType<MapPlay>("CallOfSuli", 1, 0, "MapPlay", "MapPlay is uncreatable");
+    qmlRegisterUncreatableType<MapPlayCampaign>("CallOfSuli", 1, 0, "MapPlayCampaign", "MapPlayCampaign is uncreatable");
+    qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
+    qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
+    qmlRegisterUncreatableType<MultiPlayerGame>("CallOfSuli", 1, 0, "MultiPlayerGame", "MultiPlayerGame is uncreatable");
+    qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
+    qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
+    qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
+    qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
+    qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
+    qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
-	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
-	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
-	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
-	qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
-	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
+    qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
+    qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
+    qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
+    qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
+    qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 
-	qmlRegisterType<QSJsonListModel>("QSyncable", 1, 0, "QSJsonListModel");
-	qmlRegisterType<QSListModel>("QSyncable", 1, 0, "QSListModel");
+    qmlRegisterType<QSJsonListModel>("QSyncable", 1, 0, "QSJsonListModel");
+    qmlRegisterType<QSListModel>("QSyncable", 1, 0, "QSListModel");
 
 
-	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
-	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
-	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
-	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
-	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
-	qmlRegisterType<FetchModel>("CallOfSuli", 1, 0, "FetchModelImpl");
-	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
-	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
-	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");
-	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityImpl");
-	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderImpl");
-	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
-	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
-	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerImpl");
-	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
-	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
-	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
-	qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
-	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
-	qmlRegisterType<MapEditor>("CallOfSuli", 1, 0, "MapEditor");
-	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
-	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
-	qmlRegisterType<OffsetModel>("CallOfSuli", 1, 0, "OffsetModelImpl");
-	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
-	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
-	qmlRegisterType<StudentCampaignOffsetModel>("CallOfSuli", 1, 0, "StudentCampaignOffsetModelImpl");
-	qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
-	qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
-	qmlRegisterType<StudentMap>("CallOfSuli", 1, 0, "StudentMap");
-	qmlRegisterType<StudentMapHandler>("CallOfSuli", 1, 0, "StudentMapHandler");
-	qmlRegisterType<StudentMapList>("CallOfSuli", 1, 0, "StudentMapList");
-	qmlRegisterType<Task>("CallOfSuli", 1, 0, "Task");
-	qmlRegisterType<TaskList>("CallOfSuli", 1, 0, "TaskList");
-	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
-	qmlRegisterType<TeacherGroupCampaignResultModel>("CallOfSuli", 1, 0, "TeacherGroupCampaignResultModel");
-	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
-	qmlRegisterType<TeacherGroupResultModel>("CallOfSuli", 1, 0, "TeacherGroupResultModel");
-	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
-	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
-	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
-	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
-	qmlRegisterType<UserImporter>("CallOfSuli", 1, 0, "UserImporter");
-	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
-	qmlRegisterType<UserLogList>("CallOfSuli", 1, 0, "UserLogListImpl");
+    qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
+    qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
+    qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
+    qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
+    qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
+    qmlRegisterType<FetchModel>("CallOfSuli", 1, 0, "FetchModelImpl");
+    qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
+    qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
+    qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");
+    qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityImpl");
+    qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderImpl");
+    qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
+    qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
+    qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerImpl");
+    qmlRegisterType<GamePlayerMulti>("CallOfSuli", 1, 0, "GamePlayerMultiImpl");
+    qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
+    qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
+    qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
+    qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
+    qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
+    qmlRegisterType<MapEditor>("CallOfSuli", 1, 0, "MapEditor");
+    qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
+    qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
+    qmlRegisterType<OffsetModel>("CallOfSuli", 1, 0, "OffsetModelImpl");
+    qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
+    qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
+    qmlRegisterType<StudentCampaignOffsetModel>("CallOfSuli", 1, 0, "StudentCampaignOffsetModelImpl");
+    qmlRegisterType<StudentGroup>("CallOfSuli", 1, 0, "StudentGroup");
+    qmlRegisterType<StudentGroupList>("CallOfSuli", 1, 0, "StudentGroupList");
+    qmlRegisterType<StudentMap>("CallOfSuli", 1, 0, "StudentMap");
+    qmlRegisterType<StudentMapHandler>("CallOfSuli", 1, 0, "StudentMapHandler");
+    qmlRegisterType<StudentMapList>("CallOfSuli", 1, 0, "StudentMapList");
+    qmlRegisterType<Task>("CallOfSuli", 1, 0, "Task");
+    qmlRegisterType<TaskList>("CallOfSuli", 1, 0, "TaskList");
+    qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
+    qmlRegisterType<TeacherGroupCampaignResultModel>("CallOfSuli", 1, 0, "TeacherGroupCampaignResultModel");
+    qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
+    qmlRegisterType<TeacherGroupResultModel>("CallOfSuli", 1, 0, "TeacherGroupResultModel");
+    qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
+    qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
+    qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
+    qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
+    qmlRegisterType<UserImporter>("CallOfSuli", 1, 0, "UserImporter");
+    qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
+    qmlRegisterType<UserLogList>("CallOfSuli", 1, 0, "UserLogListImpl");
 }
 
 /**
@@ -436,36 +438,36 @@ void Application::registerQmlTypes()
 
 void Application::loadFonts()
 {
-	LOG_CTRACE("app") << "Load fonts";
+    LOG_CTRACE("app") << "Load fonts";
 
-	const QVector<QString> fontsToLoad = {
-		QStringLiteral(":/internal/font/Books.ttf"),
-		QStringLiteral(":/internal/font/School.ttf"),
-		QStringLiteral(":/internal/font/Academic.ttf"),
-		QStringLiteral(":/internal/font/AcademicI.ttf"),
+    const QVector<QString> fontsToLoad = {
+        QStringLiteral(":/internal/font/Books.ttf"),
+        QStringLiteral(":/internal/font/School.ttf"),
+        QStringLiteral(":/internal/font/Academic.ttf"),
+        QStringLiteral(":/internal/font/AcademicI.ttf"),
 
-	#if QT_VERSION < 0x060000
-		QStringLiteral(":/internal/font/Material.ttf"),
-	#endif
+    #if QT_VERSION < 0x060000
+        QStringLiteral(":/internal/font/Material.ttf"),
+    #endif
 
-		QStringLiteral(":/internal/font/rajdhani-bold.ttf"),
-		QStringLiteral(":/internal/font/rajdhani-light.ttf"),
-		QStringLiteral(":/internal/font/rajdhani-regular.ttf"),
-		QStringLiteral(":/internal/font/rajdhani-medium.ttf"),
-		QStringLiteral(":/internal/font/rajdhani-semibold.ttf"),
+        QStringLiteral(":/internal/font/rajdhani-bold.ttf"),
+        QStringLiteral(":/internal/font/rajdhani-light.ttf"),
+        QStringLiteral(":/internal/font/rajdhani-regular.ttf"),
+        QStringLiteral(":/internal/font/rajdhani-medium.ttf"),
+        QStringLiteral(":/internal/font/rajdhani-semibold.ttf"),
 
-		QStringLiteral(":/internal/font/SpecialElite.ttf"),
-		QStringLiteral(":/internal/font/HVD_Peace.ttf"),
-		QStringLiteral(":/internal/font/RenegadeMaster.ttf"),
-	};
+        QStringLiteral(":/internal/font/SpecialElite.ttf"),
+        QStringLiteral(":/internal/font/HVD_Peace.ttf"),
+        QStringLiteral(":/internal/font/RenegadeMaster.ttf"),
+    };
 
-	for (const QString &fontPath : fontsToLoad) {
-		if (QFontDatabase::addApplicationFont(fontPath) == -1) {
-			LOG_CWARNING("app") << "Failed to load font:" << qPrintable(fontPath);
-		} else {
-			LOG_CINFO("app") << "Font loaded:" << qPrintable(fontPath);
-		}
-	}
+    for (const QString &fontPath : fontsToLoad) {
+        if (QFontDatabase::addApplicationFont(fontPath) == -1) {
+            LOG_CWARNING("app") << "Failed to load font:" << qPrintable(fontPath);
+        } else {
+            LOG_CINFO("app") << "Font loaded:" << qPrintable(fontPath);
+        }
+    }
 }
 
 
@@ -475,12 +477,12 @@ void Application::loadFonts()
 
 void Application::loadQaterial()
 {
-	m_engine->addImportPath(QStringLiteral("qrc:/"));
+    m_engine->addImportPath(QStringLiteral("qrc:/"));
 
-	qaterial::setDefaultFontFamily(QStringLiteral("Rajdhani"));
+    qaterial::setDefaultFontFamily(QStringLiteral("Rajdhani"));
 
-	qaterial::loadQmlResources();
-	qaterial::registerQmlTypes();
+    qaterial::loadQmlResources();
+    qaterial::registerQmlTypes();
 }
 
 
@@ -490,11 +492,11 @@ void Application::loadQaterial()
 
 void Application::loadBox2D()
 {
-	LOG_CTRACE("app") << "Load Box2D";
+    LOG_CTRACE("app") << "Load Box2D";
 
-	Box2DPlugin plugin;
-	plugin.registerTypes("Box2D");
-	qmlProtectModule("Box2D", 2);
+    Box2DPlugin plugin;
+    plugin.registerTypes("Box2D");
+    qmlProtectModule("Box2D", 2);
 }
 
 
@@ -504,36 +506,36 @@ void Application::loadBox2D()
 
 void Application::loadModules()
 {
-	LOG_CTRACE("app") << "Load modules";
+    LOG_CTRACE("app") << "Load modules";
 
-	m_objectiveModules.clear();
-	m_storageModules.clear();
+    m_objectiveModules.clear();
+    m_storageModules.clear();
 
-	QVector<QStaticPlugin> l = QPluginLoader::staticPlugins();
+    QVector<QStaticPlugin> l = QPluginLoader::staticPlugins();
 
-	foreach (QStaticPlugin ll, l) {
-		QObject *o = ll.instance();
+    foreach (QStaticPlugin ll, l) {
+        QObject *o = ll.instance();
 
-		if (!o)
-			continue;
+        if (!o)
+            continue;
 
-		ModuleInterface *i = qobject_cast<ModuleInterface *>(o);
+        ModuleInterface *i = qobject_cast<ModuleInterface *>(o);
 
-		if (!i)
-			continue;
+        if (!i)
+            continue;
 
-		QString name = i->name();
+        QString name = i->name();
 
-		if (i->isStorageModule()) {
-			LOG_CTRACE("app") << "Load storage module:" << qPrintable(i->name());
-			m_storageModules.insert(name, i);
-		} else {
-			LOG_CTRACE("app") << "Load objective module:" << qPrintable(i->name());
-			m_objectiveModules.insert(name, i);
-		}
+        if (i->isStorageModule()) {
+            LOG_CTRACE("app") << "Load storage module:" << qPrintable(i->name());
+            m_storageModules.insert(name, i);
+        } else {
+            LOG_CTRACE("app") << "Load objective module:" << qPrintable(i->name());
+            m_objectiveModules.insert(name, i);
+        }
 
-		i->registerQmlTypes();
-	}
+        i->registerQmlTypes();
+    }
 
 }
 
@@ -548,7 +550,7 @@ void Application::loadModules()
 
 const QString &Application::userAgent() const
 {
-	return m_userAgent;
+    return m_userAgent;
 }
 
 
@@ -561,7 +563,7 @@ const QString &Application::userAgent() const
 
 const QString &Application::commandLineData() const
 {
-	return m_commandLineData;
+    return m_commandLineData;
 }
 
 
@@ -572,21 +574,21 @@ const QString &Application::commandLineData() const
 
 void Application::selectUrl(const QUrl &url)
 {
-	LOG_CDEBUG("app") << "Select APP url:" << url;
+    LOG_CDEBUG("app") << "Select APP url:" << url;
 
-	if (!m_client) {
-		LOG_CERROR("app") << "Missing client";
-		return;
-	}
+    if (!m_client) {
+        LOG_CERROR("app") << "Missing client";
+        return;
+    }
 
-	m_client->notifyWindow();
+    m_client->notifyWindow();
 
-	if (url.host().isEmpty())
-		return;
+    if (url.host().isEmpty())
+        return;
 
-	m_client->setParseUrl(url);
+    m_client->setParseUrl(url);
 
-	QMetaObject::invokeMethod(m_client.get(), "parseUrl", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(m_client.get(), "parseUrl", Qt::QueuedConnection);
 }
 
 
@@ -598,7 +600,7 @@ void Application::selectUrl(const QUrl &url)
 
 const Application::CommandLine &Application::commandLine() const
 {
-	return m_commandLine;
+    return m_commandLine;
 }
 
 
@@ -610,7 +612,7 @@ const Application::CommandLine &Application::commandLine() const
 
 const QHash<QString, ModuleInterface *> &Application::storageModules() const
 {
-	return m_storageModules;
+    return m_storageModules;
 }
 
 
@@ -623,7 +625,7 @@ const QHash<QString, ModuleInterface *> &Application::storageModules() const
 
 const QHash<QString, ModuleInterface *> &Application::objectiveModules() const
 {
-	return m_objectiveModules;
+    return m_objectiveModules;
 }
 
 
@@ -634,7 +636,7 @@ const QHash<QString, ModuleInterface *> &Application::objectiveModules() const
 
 bool Application::debug()
 {
-	return m_debug;
+    return m_debug;
 }
 
 
@@ -646,7 +648,7 @@ bool Application::debug()
 
 Application *Application::instance()
 {
-	return m_instance;
+    return m_instance;
 }
 
 
@@ -659,10 +661,10 @@ Application *Application::instance()
 
 void Application::messageInfo(const QString &text, const QString &title) const
 {
-	if (m_client)
-		m_client->messageInfo(text, title);
-	else
-		LOG_CINFO("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
+    if (m_client)
+        m_client->messageInfo(text, title);
+    else
+        LOG_CINFO("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
 }
 
 
@@ -674,10 +676,10 @@ void Application::messageInfo(const QString &text, const QString &title) const
 
 void Application::messageWarning(const QString &text, const QString &title) const
 {
-	if (m_client)
-		m_client->messageWarning(text, title);
-	else
-		LOG_CWARNING("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
+    if (m_client)
+        m_client->messageWarning(text, title);
+    else
+        LOG_CWARNING("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
 }
 
 
@@ -689,10 +691,10 @@ void Application::messageWarning(const QString &text, const QString &title) cons
 
 void Application::messageError(const QString &text, const QString &title) const
 {
-	if (m_client)
-		m_client->messageError(text, title);
-	else
-		LOG_CERROR("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
+    if (m_client)
+        m_client->messageError(text, title);
+    else
+        LOG_CERROR("app") << qPrintable(QStringLiteral("%1 (%2)").arg(text, title));
 }
 
 
@@ -703,6 +705,6 @@ void Application::messageError(const QString &text, const QString &title) const
 
 Client *Application::client() const
 {
-	return m_client.get();
+    return m_client.get();
 }
 

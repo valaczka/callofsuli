@@ -57,6 +57,7 @@
 #define CATEGORY_ITEM			Box2DFixture::Category4
 #define CATEGORY_ENEMY			Box2DFixture::Category5
 #define CATEGORY_OTHER			Box2DFixture::Category6
+#define CATEGORY_PLAYER_OTHER	Box2DFixture::Category7
 
 #define AUTHORITATIVE_STATE_CACHE_FACTOR  3
 
@@ -115,12 +116,15 @@ public:
     void setObjectType(const QString &newObjectType);
 
     virtual void onTimingTimerTimeout(const int &msec, const qreal &delayFactor);
+    virtual void onTimingTimerTimeoutMulti(const bool &hosted, const int &msec, const qreal &delayFactor);
     virtual void cacheCurrentState() {}
     virtual int getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId);
     virtual void setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force);
 
     virtual ObjectStateBase getCurrentState() const;
     virtual void setCurrentState(const ObjectStateBase &state, const bool &force);
+
+    virtual void init(ActionGame *game) { Q_UNUSED(game); }
 
     void interpolateState(const qint64 &currentTick, const ObjectStateBase *defaultState = nullptr);
     std::optional<ObjectStateBase> stateReconciliation(const ObjectStateBase &state);

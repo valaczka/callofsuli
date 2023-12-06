@@ -203,15 +203,15 @@ void ActionGame::createPlayer()
 
     QString character = m_client->server() ? m_client->server()->user()->character() : QStringLiteral("");
 
-    GamePlayer *player = GamePlayer::create(m_scene, character);
+    GamePlayer *player = GamePlayer::create<GamePlayer>(m_scene, QStringLiteral("GamePlayer.qml"), character);
     GameTerrain::PlayerPositionData pos = m_scene->getPlayerPosition();
     pos.point.setY(pos.point.y()-player->height());
 
     player->setPosition(pos.point);
     player->setMaxHp(startHP());
     player->setHp(startHP());
-    connect(player, &GamePlayer::died, this, &ActionGame::onPlayerDied);
-    connect(this, &ActionGame::runningChanged, player, &GamePlayer::onMovingFlagsChanged);
+
+    player->init(this);
 
     setPlayer(player);
 }

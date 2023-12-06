@@ -49,6 +49,9 @@ void MultiPlayerEngine::handleWebSocketMessage(WebSocketStream *stream, const QJ
     const QJsonObject &obj = message.toObject();
     const QString &cmd = obj.value(QStringLiteral("cmd")).toString();
 
+    const auto &id = obj.value(QStringLiteral("engine")).toInt(-1);
+    MultiPlayerEngine *engine = stream->engineGet<MultiPlayerEngine>(AbstractEngine::EngineMultiPlayer, id);
+
     LOG_CINFO("engine") << "HANDLE" << cmd << message;
 
     if (cmd == QStringLiteral("connect")) {
@@ -56,20 +59,19 @@ void MultiPlayerEngine::handleWebSocketMessage(WebSocketStream *stream, const QJ
 
         int eid = -1;
 
-        if (eList.isEmpty()) {
+        for (const auto &ptr : eList) {
+            if (ptr->type() == EngineMultiPlayer) {
+                eid = ptr->id();
+                break;
+            }
+        }
+
+        if (eid == -1) {
             const auto &ptr = createEngine(stream, handler);
             if (!ptr.expired())
                 eid = ptr.lock()->id();
         } else {
-            for (const auto &ptr : eList) {
-                if (ptr->type() == EngineMultiPlayer) {
-                    eid = ptr->id();
-                    break;
-                }
-            }
             auto engine = connectToEngine(eid, stream, handler);
-            if (!engine.expired())
-                eid = engine.lock()->id();
         }
 
         LOG_CINFO("engine") << "CONNECTED" << eid;
@@ -81,45 +83,40 @@ void MultiPlayerEngine::handleWebSocketMessage(WebSocketStream *stream, const QJ
 
     } else if (cmd == QStringLiteral("state")) {
         handler->engineTrigger(EngineMultiPlayer);
-    } else if (cmd == QStringLiteral("start")) {
-        const auto &id = message.toObject().value(QStringLiteral("engine")).toInt(-1);
-        MultiPlayerEngine *engine = stream->engineGet<MultiPlayerEngine>(AbstractEngine::EngineMultiPlayer, id);
-        if (engine) {
+    } else {
+        if (!engine) {
+            sendStreamJson(stream, QJsonObject{
+                                       { QStringLiteral("cmd"), cmd },
+                                       { QStringLiteral("error"), QStringLiteral("invalid engine") }
+                                   });
+            return;
+        }
+
+        if (cmd == QStringLiteral("start")) {
             engine->startGame(stream);
-        } else {
-            sendStreamJson(stream, QJsonObject{
-                                       { QStringLiteral("cmd"), cmd },
-                                       { QStringLiteral("error"), QStringLiteral("invalid engine") }
-                                   });
-        }
-
-    } else if (cmd == QStringLiteral("create")) {
-        const QJsonObject &obj = message.toObject();
-        const auto &id = obj.value(QStringLiteral("engine")).toInt(-1);
-        LOG_CTRACE("engine") << "GET ENGINE" << id;
-        MultiPlayerEngine *engine = stream->engineGet<MultiPlayerEngine>(AbstractEngine::EngineMultiPlayer, id);
-        if (engine) {
+        } else if (cmd == QStringLiteral("create")) {
             engine->createGame(stream, obj);
+        } else if (cmd == QStringLiteral("enroll")) {
+            int pid = engine->enrollPlayer(stream);
+            if (pid == -1)
+                sendStreamJson(stream, QJsonObject{
+                                           { QStringLiteral("cmd"), cmd },
+                                           { QStringLiteral("error"), QStringLiteral("enroll failed") }
+                                       });
+            else
+                sendStreamJson(stream, QJsonObject{
+                                           { QStringLiteral("cmd"), cmd },
+                                           { QStringLiteral("engine"), engine->id() },
+                                           { QStringLiteral("playerId"), pid }
+                                       });
+        } else if (cmd == QStringLiteral("prepare")) {
+            engine->prepareGame(stream, obj);
         } else {
             sendStreamJson(stream, QJsonObject{
                                        { QStringLiteral("cmd"), cmd },
-                                       { QStringLiteral("error"), QStringLiteral("invalid engine") }
+                                       { QStringLiteral("error"), QStringLiteral("invalid command") }
                                    });
         }
-
-    } else if (cmd == QStringLiteral("prepare")) {
-        const QJsonObject &obj = message.toObject();
-        const auto &id = obj.value(QStringLiteral("engine")).toInt(-1);
-        MultiPlayerEngine *engine = stream->engineGet<MultiPlayerEngine>(AbstractEngine::EngineMultiPlayer, id);
-        if (engine) {
-            engine->prepareGame(stream);
-        } else {
-            sendStreamJson(stream, QJsonObject{
-                                       { QStringLiteral("cmd"), cmd },
-                                       { QStringLiteral("error"), QStringLiteral("invalid engine") }
-                                   });
-        }
-
     }
 }
 
@@ -152,6 +149,7 @@ std::weak_ptr<MultiPlayerEngine> MultiPlayerEngine::createEngine(WebSocketStream
         LOG_CTRACE("engine") << "SET HOST" << ptr.get() << stream << ptr->m_id;
         ptr->setGameState(StateConnecting);
         handler->websocketEngineLink(stream, ptr);
+        ptr->enrollPlayer(stream);
     }
 
     handler->engineAdd(ptr);
@@ -179,11 +177,9 @@ std::weak_ptr<AbstractEngine> MultiPlayerEngine::connectToEngine(const int &id, 
     if (!ptr.expired()) {
         LOG_CTRACE("engine") << "Engine exists" << id;
         handler->websocketEngineLink(stream, ptr.lock());
-        return ptr;
-    } else {
-        LOG_CTRACE("engine") << "Engine not exists" << id;
-        return createEngine(stream, handler);
     }
+
+    return ptr;
 }
 
 
@@ -226,7 +222,7 @@ void MultiPlayerEngine::createGame(WebSocketStream *stream, const QJsonObject &d
     if (!stream)
         return;
 
-    if (m_gameState != StateCreating && m_gameState != StateConnecting) {
+    if (m_gameState != StateCreating) {
         return sendStreamJson(stream, QJsonObject{
                                           { QStringLiteral("cmd"), QStringLiteral("create") },
                                           { QStringLiteral("error"), QStringLiteral("invalid state") }
@@ -252,8 +248,17 @@ void MultiPlayerEngine::createGame(WebSocketStream *stream, const QJsonObject &d
                                       });
     }
 
-    // Start id from 1000
-    int entityId = 1000;
+    int entityId = 0;
+
+
+    // Randomize player entities
+    QVector<Player*> players;
+
+    players.reserve(m_players.size());
+    for (Player &p : m_players)
+        players.append(&p);
+
+    LOG_CERROR("engine") << "PLAYERS" << players;
 
     for (auto it=snap->list.begin(); it != snap->list.end(); ++it) {
         ObjectStateBase ptr = *it;
@@ -261,18 +266,37 @@ void MultiPlayerEngine::createGame(WebSocketStream *stream, const QJsonObject &d
         ptr.state = ObjectStateBase::StateActive;
         ptr.id = ++entityId;
 
-        LOG_CINFO("entine") << "++ ADD" << ptr.id << ptr.type << ptr.enemyState << ptr.position << ptr.size << ptr.facingLeft << ptr.subType;
 
         Entity e;
-        e.owner = QStringLiteral("");
         e.type = ptr.type;
         e.renderedStates.push_back(ptr);
+
+        if (ptr.type == ObjectStateBase::TypePlayer) {
+            if (players.isEmpty()) {
+                LOG_CDEBUG("engine") << "Skip player entity" << ptr.id;
+                continue;
+            }
+
+            Player *p = players.takeAt(QRandomGenerator::global()->bounded(players.size()));
+            p->entityId = ptr.id;
+            e.owner = p->username;
+        } else {
+            e.owner = QStringLiteral("");
+        }
+
+        LOG_CINFO("entine") << "++ ADD" << ptr.id << ptr.type << ptr.enemyState << ptr.position << ptr.size << ptr.facingLeft << ptr.subType;
+
+
 
         m_entities.insert({ptr.id, e});
     }
 
 
-    // PLAYERS?
+    // Check (?) -> state Error
+
+    for (const auto &p : m_players) {
+        LOG_CINFO("engine") << "Player" << p.id << "->" << p.entityId << "=" << p.stream;
+    }
 
     setGameState(StatePreparing);
 
@@ -288,7 +312,7 @@ void MultiPlayerEngine::createGame(WebSocketStream *stream, const QJsonObject &d
  * @param data
  */
 
-void MultiPlayerEngine::prepareGame(WebSocketStream *stream)
+void MultiPlayerEngine::prepareGame(WebSocketStream *stream, const QJsonObject &message)
 {
     if (m_gameState != StatePreparing) {
         return sendStreamJson(stream, QJsonObject{
@@ -297,16 +321,31 @@ void MultiPlayerEngine::prepareGame(WebSocketStream *stream)
                                       });
     }
 
-    const QString &baseData = QString::fromUtf8(getStates().toBase64());
+    if (message.value(QStringLiteral("ready")).toBool()) {
+        playerPrepared(stream);
+        return;
+    }
 
-    if (m_hostStream == stream)
-        QTimer::singleShot(5000, this, &MultiPlayerEngine::playGame);
+    const QString &baseData = QString::fromUtf8(getStates().toBase64());
 
     return sendStreamJson(stream, QJsonObject{
                                       { QStringLiteral("cmd"), QStringLiteral("prepare") },
                                       { QStringLiteral("engine"), m_id },
                                       { QStringLiteral("entities"), baseData }
                                   });
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::finishGame
+ */
+
+void MultiPlayerEngine::finishGame()
+{
+    LOG_CDEBUG("engine") << "Finish multiplayer game:" << m_id;
+
+    setGameState(StateFinished);
 }
 
 
@@ -319,14 +358,7 @@ void MultiPlayerEngine::prepareGame(WebSocketStream *stream)
 
 bool MultiPlayerEngine::canDelete(const int &useCount)
 {
-    LOG_CTRACE("engine") << "MultiPlayer use" << useCount << m_t;
-    if (useCount == 1)
-        ++m_t;
-
-    if (m_t > 2)
-        return true;
-
-    return false;
+    return (useCount == 1 && m_gameState == StateFinished);
 }
 
 
@@ -357,8 +389,10 @@ void MultiPlayerEngine::streamUnlinkedEvent(WebSocketStream *stream)
 {
     LOG_CTRACE("engine") << "MultiPlayerEngine stream disconnected:" << stream << (stream ? stream->credential().username() : "");
 
+    disconnectPlayerStream(stream);
+
     if (m_hostStream == stream) {
-        LOG_CTRACE("engine") << "HOST STREAM DISCONNECTED";
+        LOG_CTRACE("engine") << "Host stream disconnected";
 
         WebSocketStream *next = nullptr;
 
@@ -371,8 +405,9 @@ void MultiPlayerEngine::streamUnlinkedEvent(WebSocketStream *stream)
         }
 
         if (!next) {
-            LOG_CWARNING("engine") << "Host stream dismissed";
+            LOG_CWARNING("engine") << "All stream dismissed";
             setHostStream(nullptr);
+            finishGame();
         } else {
             LOG_CINFO("engine") << "Next host stream:" << next;
             setHostStream(next);
@@ -408,12 +443,28 @@ void MultiPlayerEngine::streamTriggerEvent(WebSocketStream *stream)
         ret.insert(QStringLiteral("tick"), currentTick());
     }
 
+
+    const auto &player = getPlayer(stream);
+
+    if (player) {
+        ret.insert(QStringLiteral("playerId"), player->id);
+        ret.insert(QStringLiteral("playerEntityId"), player->entityId);
+    }
+
+
     QJsonArray streams;
 
-    for (const auto &s : m_streams) {
-        if (!s) continue;
-        streams.append(s->credential().username());
+    int waitForPrepare = 0;
+
+    for (const auto &p : m_players) {
+        if (!p.prepared)
+            ++waitForPrepare;
+
+        streams.append(p.username);
     }
+
+    if (waitForPrepare > 0)
+        ret.insert(QStringLiteral("wait"), waitForPrepare);
 
     ret.insert(QStringLiteral("users"), streams);
 
@@ -508,18 +559,7 @@ void MultiPlayerEngine::renderStates()
                                         [&e = entityId](const auto &esPtr){ return (esPtr.id() == e); });
                 eIt != esList.cend()) {
 
-                EntityState statePtr(entity.renderedStates.back(), entity.owner);
-
-                if (eIt->state.tick < statePtr.state.tick) {
-                    LOG_CWARNING("engine") << "Cached state older than last rendered state" << entityId << entity.type;
-                    continue;
-                }
-
-                if (statePtr.updateFrom(*eIt)) {
-                    LOG_CTRACE("engine") << "   - " << tick << eIt->sender << eIt->state.position << eIt->state.size << eIt->state.enemyState << eIt->state.subType;
-                    entity.renderedStates.push_back(statePtr.state);
-                } else
-                    LOG_CERROR("engine") << "   ! " << tick << eIt->sender << eIt->state.position << eIt->state.size << eIt->state.enemyState << eIt->state.subType;
+                entity.addRenderedState(this, *eIt);
             }
         }
     }
@@ -614,6 +654,135 @@ void MultiPlayerEngine::playGame()
 
 
 /**
+ * @brief MultiPlayerEngine::enrollPlayer
+ * @param stream
+ * @return
+ */
+
+int MultiPlayerEngine::enrollPlayer(WebSocketStream *stream)
+{
+    if (!stream)
+        return -1;
+
+    if (m_playerLimit > 0 && m_players.size() >= m_playerLimit) {
+        LOG_CWARNING("engine") << "Players number full";
+        return -1;
+    }
+
+    int playerId = 1;
+
+    for (const auto &p : m_players) {
+        playerId = std::max(p.id+1, playerId);
+    }
+
+    const QString &username = stream->credential().username();
+
+    LOG_CDEBUG("engine") << "Enroll player" << playerId << stream << qPrintable(username);
+
+    m_players.push_back({playerId, username, stream});
+
+    m_handler->engineTriggerEngine(this);
+
+    return playerId;
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::connectPlayerStream
+ * @param playerId
+ * @param stream
+ */
+
+bool MultiPlayerEngine::connectPlayerStream(const int &playerId, WebSocketStream *stream)
+{
+    for (Player &p : m_players) {
+        if (p.id == playerId) {
+            if (p.stream == nullptr) {
+                p.stream = stream;
+                return true;
+            } else {
+                LOG_CWARNING("engine") << "Can't connect player stream" << stream << "to id" << playerId;
+                return false;
+            }
+        }
+    }
+
+    return false;
+}
+
+
+/**
+ * @brief MultiPlayerEngine::disconnectPlayerStream
+ * @param playerId
+ * @param stream
+ */
+
+void MultiPlayerEngine::disconnectPlayerStream(const int &playerId, WebSocketStream *stream)
+{
+    for (auto &p : m_players) {
+        if ((playerId == -1 && p.stream == stream) || (p.id == playerId))
+            p.stream = nullptr;
+    }
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::getPlayer
+ * @param stream
+ * @return
+ */
+
+std::optional<MultiPlayerEngine::Player> MultiPlayerEngine::getPlayer(WebSocketStream *stream) const
+{
+    if (!stream)
+        return std::nullopt;
+
+    for (const auto &p : m_players) {
+        if (p.stream == stream)
+            return p;
+    }
+
+    return std::nullopt;
+}
+
+
+
+/**
+ * @brief MultiPlayerEngine::playerPrepared
+ * @param stream
+ */
+
+void MultiPlayerEngine::playerPrepared(WebSocketStream *stream)
+{
+    if (!stream)
+        return;
+
+    LOG_CDEBUG("engine") << "Player prepared" << stream << qPrintable(stream->credential().username());
+
+    int w = 0;
+
+    for (auto &p : m_players) {
+        if (p.stream == stream)
+            p.prepared = true;
+        else if (!p.prepared)
+            ++w;
+    }
+
+    if (w) {
+        LOG_CTRACE("engine") << "Wait for" << w << "players to be prepared";
+        return;
+    }
+
+    playGame();
+}
+
+
+
+
+
+/**
  * @brief MultiPlayerEngine::gameState
  * @return
  */
@@ -701,17 +870,55 @@ qint64 MultiPlayerEngine::currentTick() const
 
 
 
+
 /**
- * @brief MultiPlayerEngine::EntityState::updateFrom
- * @param from
- * @param sender
+ * @brief MultiPlayerEngine::Entity::addRenderedState
+ * @param state
  * @return
  */
 
-bool MultiPlayerEngine::EntityState::updateFrom(const ObjectStateBase &from, const QString &sender)
+
+bool MultiPlayerEngine::Entity::addRenderedState(MultiPlayerEngine *engine, const EntityState &state)
 {
+    Q_ASSERT(engine);
+
+    ObjectStateBase old = renderedStates.back();
+
+    if (state.state.tick < old.tick) {
+        LOG_CWARNING("engine") << "Cached state older than last rendered state" << state.state.id << state.state.type << state.sender;
+        return false;
+    }
+
+
+    /// Server-hosted entities
+
+    if (owner.isEmpty()) {
+        if (!engine->m_hostStream) {
+            LOG_CWARNING("engine") << "Host stream missing";
+            return false;
+        }
+
+        if (engine->m_hostStream->credential().username() != state.sender) {
+            LOG_CWARNING("engine") << "Invalid state sender for server-hosted entity:" << state.state.id << state.state.type << state.sender;
+            return false;
+        }
+    } else {
+        if (owner != state.sender) {
+            LOG_CWARNING("engine") << "Unauthorized state changes";
+            return false;
+        }
+    }
+
     ObjectStateBase::Fields field = ObjectStateBase::FieldAll;
     field &= ~ObjectStateBase::FieldSubType;
 
-    return state.patch(from, field);
+    const bool success = old.patch(state.state, field);
+
+    if (success) {
+        LOG_CTRACE("engine") << "   - " << state.state.tick << state.sender << state.state.position << state.state.enemyState;
+        renderedStates.push_back(old);
+    } else
+        LOG_CERROR("engine") << "   ! " << state.state.tick << state.sender << state.state.position << state.state.enemyState;
+
+    return success;
 }

@@ -9,7 +9,7 @@ GameButton {
 	id: shotButton
 	size: 55
 
-	property GamePlayer player: null
+	property GamePlayerImpl player: null
 
 	width: Math.min(100, control.width*0.5)
 	height: Math.min(100, control.width*0.4)

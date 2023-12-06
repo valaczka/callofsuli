@@ -3,7 +3,7 @@
 
 #include "abstractengine.h"
 #include "objectstate.h"
-//#include "websocketstream.h"
+#include "qjsonobject.h"
 
 class ServerService;
 
@@ -27,7 +27,8 @@ public:
 
     void startGame(WebSocketStream *stream);
     void createGame(WebSocketStream *stream, const QJsonObject &data);
-    void prepareGame(WebSocketStream *stream);
+    void prepareGame(WebSocketStream *stream, const QJsonObject &message);
+    void finishGame();
 
     virtual bool canDelete(const int &useCount) override;
 
@@ -50,25 +51,6 @@ protected:
     virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) override;
 
 private:
-    void renderStates();
-    void sendStates();
-    QByteArray getStates();
-    void playGame();
-
-
-    /**
-     * @brief The Entity class
-     */
-
-    struct Entity {
-        Entity() {}
-        virtual ~Entity() = default;
-
-        ObjectStateBase::ObjectType type = ObjectStateBase::TypeInvalid;
-        QString owner;
-        std::vector<ObjectStateBase> renderedStates;
-    };
-
     /**
      * @brief The EntityState class
      */
@@ -86,11 +68,53 @@ private:
         ObjectStateBase state;
 
         qint64 id() const { return state.id; }
-
-        bool updateFrom(const ObjectStateBase &state, const QString &sender);
-        bool updateFrom(const EntityState &state) { return updateFrom(state.state, state.sender); }
     };
 
+
+    /**
+     * @brief The Entity class
+     */
+
+    struct Entity {
+        Entity() {}
+        virtual ~Entity() = default;
+
+        ObjectStateBase::ObjectType type = ObjectStateBase::TypeInvalid;
+        QString owner;
+        std::vector<ObjectStateBase> renderedStates;
+
+        bool addRenderedState(MultiPlayerEngine *engine, const EntityState &state);
+    };
+
+
+    /**
+     * @brief The Player class
+     */
+
+    struct Player {
+        Player(const int &_id, const QString &_user, WebSocketStream *_stream) : id(_id), username(_user), stream(_stream) {}
+        Player(const int &_id, WebSocketStream *_stream) : id(_id), stream(_stream) {}
+        Player(const int &_id) : id(_id) {}
+        virtual ~Player() = default;
+
+        int id = -1;
+        QString username;
+        qint64 entityId = -1;
+        WebSocketStream *stream = nullptr;
+        bool prepared = false;
+    };
+
+
+    void renderStates();
+    void sendStates();
+    QByteArray getStates();
+    void playGame();
+    int enrollPlayer(WebSocketStream *stream);
+    bool connectPlayerStream(const int &playerId, WebSocketStream *stream);
+    void disconnectPlayerStream(const int &playerId, WebSocketStream *stream = nullptr);
+    void disconnectPlayerStream(WebSocketStream *stream = nullptr) { disconnectPlayerStream(-1, stream); }
+    std::optional<Player> getPlayer(WebSocketStream *stream) const;
+    void playerPrepared(WebSocketStream *stream);
 
 
     MultiPlayerGameState m_gameState = StateInvalid;
@@ -100,11 +124,11 @@ private:
 
     std::map<qint64, Entity> m_entities;
     std::map<qint64, std::vector<EntityState>> m_states;
+    std::vector<Player> m_players;
 
     qint64 m_lastSentState = 0;
 
-
-    int m_t = 0;			/// tmp
+    friend struct Entity;
 };
 
 

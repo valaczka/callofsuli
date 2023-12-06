@@ -211,6 +211,7 @@ SOURCES += \
 	gameobject.cpp \
 	gamepickable.cpp \
 	gameplayer.cpp \
+	gameplayermulti.cpp \
 	gameplayerposition.cpp \
 	gamequestion.cpp \
 	gamequestioncomponent.cpp \
@@ -284,6 +285,7 @@ HEADERS += \
 	gameobject.h \
 	gamepickable.h \
 	gameplayer.h \
+	gameplayermulti.h \
 	gameplayerposition.h \
 	gamequestion.h \
 	gamequestioncomponent.h \
