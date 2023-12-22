@@ -111,8 +111,10 @@ public:
     virtual ObjectStateBase getCurrentState() const override;
     virtual void setCurrentState(const ObjectStateBase &state, const bool &force) override;
 
+    GamePlayer* forcedPlayer() const;
+    void setForcedPlayer(GamePlayer *newForcedPlayer);
+
 public slots:
-    void attackByPlayer(GamePlayer *player, const bool &questionEmpty = true);
     void missedByPlayer(GamePlayer *player);
     void turnToPlayer(GamePlayer *player);
 
@@ -129,12 +131,10 @@ signals:
     void questionChanged();
     void pickableChanged();
 
-private slots:
-    void onSceneConnected();
 
 protected:
+    virtual void onSceneConnected() override;
     virtual void enemyStateModified() {}
-    virtual void attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty);
     virtual ObjectStateBase interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to) override;
     virtual bool stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to) override;
 
@@ -151,6 +151,7 @@ protected:
     EnemyState m_enemyState = Invalid;
     bool m_aimedByPlayer = false;
     QPointer<GameEntity> m_player = nullptr;
+    QPointer<GameEntity> m_forcedPlayer = nullptr;
     qreal m_msecLeftToAttack = -1;
     ActionGame::QuestionLocation *m_question = nullptr;
     GamePickable::GamePickableData m_pickable;

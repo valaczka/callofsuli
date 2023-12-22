@@ -62,9 +62,7 @@ protected:
     virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
     virtual void enemyStateModified() override;
     virtual ObjectStateBase interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to) override;
-
-private slots:
-    void onSceneConnected();
+    virtual void onSceneConnected() override;
 
 signals:
     void msecBeforeTurnChanged();

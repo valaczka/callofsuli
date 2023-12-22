@@ -808,9 +808,9 @@ QPage {
 
 		QFileDialog {
 			title: qsTr("Dolgozat LaTeX fájl készítése")
-			filters: [ "*.tex" ]
+			filters: [ "*.tar" ]
 			isSave: true
-			suffix: ".tex"
+			suffix: ".tar"
 			onFileSelected: file => {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file, false, MapEditor.ExportExam)

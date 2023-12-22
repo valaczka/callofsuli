@@ -88,7 +88,10 @@ public:
 
     void createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint);
 
-    void tryAttack(GamePlayer *player, GameEnemy *enemy);
+    virtual void enemyAttackPlayer(GameEnemy *enemy, const bool &canProtect, GamePlayer *player);
+    virtual void enemyKillPlayer(GameEnemy *enemy, GamePlayer *player);
+    virtual void tryAttack(GamePlayer *player, GameEnemy *enemy);
+
     void operateReal(GamePlayer *player, GameObject *object);
     bool canOperate(const QString &type) const;
     bool canOperate(GameObject *object) const;

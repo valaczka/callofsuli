@@ -51,6 +51,13 @@ public:
     qint64 playerEntityId() const;
     void setPlayerEntityId(qint64 newPlayerEntityId);
 
+    qint64 getEntityId(GameObject *object) const;
+    GameObject *getEntity(const qint64 &entityId) const;
+
+    virtual void enemyAttackPlayer(GameEnemy *enemy, const bool &canProtect, GamePlayer *player) override;
+    virtual void enemyKillPlayer(GameEnemy *enemy, GamePlayer *player) override;
+    virtual void tryAttack(GamePlayer *player, GameEnemy *enemy) override;
+
 public slots:
     void gameAbort() override;
 
@@ -59,7 +66,6 @@ signals:
     void engineIdChanged();
     void multiPlayerGameStateChanged();
     void playerIdChanged();
-
     void playerEntityIdChanged();
 
 protected:
@@ -80,8 +86,6 @@ private:
     void playGameTrigger();
 
     void updateBody(GameObject *object, const bool &owned);
-
-    qint64 getObjectId(GameObject *object);
 
     QTimer m_timeSyncTimer;
     Mode m_multiPlayerMode = MultiPlayerClient;

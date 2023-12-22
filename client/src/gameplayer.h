@@ -159,9 +159,6 @@ public:
     virtual void init(ActionGame *game) override;
 
 public slots:
-    void hurtByEnemy(GameEnemy *, const bool &canProtect = false);
-    void killByEnemy(GameEnemy *);
-
     void setTerrainObject(const QString &type, GameObject *object);
     void onMovingFlagsChanged();
 
@@ -184,7 +181,6 @@ signals:
 
 private slots:
     void onEnemyKilled();
-    void onSceneConnected();
     void onBeginContact(Box2DFixture *other);
     void onEndContact(Box2DFixture *other);
     void onBaseGroundContacted();
@@ -192,6 +188,7 @@ private slots:
     void onHpOrShieldChanged();
 
 protected:
+    virtual void onSceneConnected() override;
     virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
     virtual void hpProgressValueSetup() override;
     void ladderMove(const bool &up, const qreal &delayFactor);

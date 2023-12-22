@@ -55,7 +55,7 @@ GameObject::GameObject(QQuickItem *parent)
         onSceneChanged();
     }
 
-    connect(this, &GameObject::sceneChanged, this, &GameObject::onSceneChanged);
+    //connect(this, &GameObject::sceneChanged, this, &GameObject::onSceneChanged);
 }
 
 
@@ -124,6 +124,8 @@ void GameObject::setScene(GameScene *newScene)
     m_scene = newScene;
     emit sceneChanged();
     emit gameChanged();
+
+    onSceneChanged();
 }
 
 
@@ -171,7 +173,7 @@ void GameObject::onSceneChanged()
 
         if (m_scene) {
             m_scene->gameObjectAdd(this);
-            emit sceneConnected();
+            onSceneConnected();
             m_sceneConnected = true;
         }
     }

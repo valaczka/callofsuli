@@ -45,17 +45,17 @@
  */
 
 GameScene::GameScene(QQuickItem *parent)
-	: QQuickItem(parent)
+    : QQuickItem(parent)
 {
-	LOG_CDEBUG("scene") << "Scene created" << this;
+    LOG_CDEBUG("scene") << "Scene created" << this;
 
-	setImplicitWidth(200);
-	setImplicitHeight(200);
+    setImplicitWidth(200);
+    setImplicitHeight(200);
 
-	loadGameData();
+    loadGameData();
 
-	connect(this, &GameScene::sceneStepSuccess, this, &GameScene::onSceneStepSuccess);
-	connect(this, &GameScene::sceneLoadFailed, this, &GameScene::onSceneLoadFailed);
+    connect(this, &GameScene::sceneStepSuccess, this, &GameScene::onSceneStepSuccess);
+    connect(this, &GameScene::sceneLoadFailed, this, &GameScene::onSceneLoadFailed);
 }
 
 
@@ -65,10 +65,10 @@ GameScene::GameScene(QQuickItem *parent)
 
 GameScene::~GameScene()
 {
-	m_grounds.clear();
-	m_ladders.clear();
-	m_childItems.clear();
-	LOG_CDEBUG("scene") << "Scene destroyed" << this;
+    m_grounds.clear();
+    m_ladders.clear();
+    m_childItems.clear();
+    LOG_CDEBUG("scene") << "Scene destroyed" << this;
 }
 
 
@@ -79,15 +79,15 @@ GameScene::~GameScene()
 
 ActionGame *GameScene::game() const
 {
-	return m_game;
+    return m_game;
 }
 
 void GameScene::setGame(ActionGame *newGame)
 {
-	if (m_game == newGame)
-		return;
-	m_game = newGame;
-	emit gameChanged();
+    if (m_game == newGame)
+        return;
+    m_game = newGame;
+    emit gameChanged();
 }
 
 
@@ -98,31 +98,31 @@ void GameScene::setGame(ActionGame *newGame)
 
 void GameScene::load()
 {
-	if (!m_game->missionLevel()) {
-		Application::instance()->messageError(tr("A küldetés nincs beállítva!"), tr("Nem lehet elindítani a játékot"));
-		emit sceneLoadFailed();
-		return;
-	}
+    if (!m_game->missionLevel()) {
+        Application::instance()->messageError(tr("A küldetés nincs beállítva!"), tr("Nem lehet elindítani a játékot"));
+        emit sceneLoadFailed();
+        return;
+    }
 
-	GameMapMissionLevel *ml = m_game->missionLevel();
+    GameMapMissionLevel *ml = m_game->missionLevel();
 
-	const QString &terrain = ml->terrain();
+    const QString &terrain = ml->terrain();
 
-	const QString &terrainDir = terrain.section("/", 0, -2);
-	const int &terrainLevel = terrain.section("/", -1, -1).toInt();
+    const QString &terrainDir = terrain.section("/", 0, -2);
+    const int &terrainLevel = terrain.section("/", -1, -1).toInt();
 
-	if (!m_terrain.loadMap(terrainDir, terrainLevel)) {
-		Application::instance()->messageError(tr("A harcmező nem tölthető be!"), tr("Nem lehet elindítani a játékot"));
-		emit sceneLoadFailed();
-		return;
-	}
+    if (!m_terrain.loadMap(terrainDir, terrainLevel)) {
+        Application::instance()->messageError(tr("A harcmező nem tölthető be!"), tr("Nem lehet elindítani a játékot"));
+        emit sceneLoadFailed();
+        return;
+    }
 
-	setWidth(m_terrain.width());
-	setHeight(m_terrain.height());
+    setWidth(m_terrain.width());
+    setHeight(m_terrain.height());
 
-	++m_sceneLoadSteps;
+    ++m_sceneLoadSteps;
 
-	emit sceneStepSuccess();
+    emit sceneStepSuccess();
 }
 
 
@@ -133,7 +133,7 @@ void GameScene::load()
 
 void GameScene::playSoundPlayerVoice(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel);
+    Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel);
 }
 
 
@@ -144,7 +144,7 @@ void GameScene::playSoundPlayerVoice(const QString &source)
 
 void GameScene::playSound(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel);
+    Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel);
 }
 
 
@@ -155,7 +155,7 @@ void GameScene::playSound(const QString &source)
 
 void GameScene::playSoundVoiceOver(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::VoiceoverChannel);
+    Application::instance()->client()->sound()->playSound(source, Sound::VoiceoverChannel);
 }
 
 
@@ -166,7 +166,7 @@ void GameScene::playSoundVoiceOver(const QString &source)
 
 void GameScene::playSoundMusic(const QString &source)
 {
-	Application::instance()->client()->sound()->playSound(source, Sound::MusicChannel);
+    Application::instance()->client()->sound()->playSound(source, Sound::MusicChannel);
 }
 
 
@@ -179,7 +179,7 @@ void GameScene::playSoundMusic(const QString &source)
 
 void GameScene::stopSoundMusic()
 {
-	Application::instance()->client()->sound()->stopMusic();
+    Application::instance()->client()->sound()->stopMusic();
 }
 
 
@@ -194,100 +194,100 @@ void GameScene::stopSoundMusic()
 
 void GameScene::keyPressEvent(QKeyEvent *event)
 {
-	/*if (!event->isAutoRepeat())
-		qDebug(lcScene).noquote() << tr("Key press event:") << event;*/
+    /*if (!event->isAutoRepeat())
+        qDebug(lcScene).noquote() << tr("Key press event:") << event;*/
 
-	const int &key = event->key();
-	GamePlayer *player = m_game->player();
+    const int &key = event->key();
+    GamePlayer *player = m_game->player();
 
-	if (!m_game->running() || m_sceneState != ScenePlay)
-		return;
+    if (!m_game->running() || m_sceneState != ScenePlay)
+        return;
 
-	switch (key) {
+    switch (key) {
 
-	case Qt::Key_Shift:
-		if (player) player->setMovingFlag(GamePlayer::SlowModifier);
-		break;
+    case Qt::Key_Shift:
+        if (player) player->setMovingFlag(GamePlayer::SlowModifier);
+        break;
 
-	case Qt::Key_Left:
-		if (player) {
-			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier);
-			player->setMovingFlag(GamePlayer::MoveLeft);
-		}
-		break;
+    case Qt::Key_Left:
+        if (player) {
+            if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier);
+            player->setMovingFlag(GamePlayer::MoveLeft);
+        }
+        break;
 
-	case Qt::Key_Right:
-		if (player) {
-			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier);
-			player->setMovingFlag(GamePlayer::MoveRight);
-		}
-		break;
+    case Qt::Key_Right:
+        if (player) {
+            if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier);
+            player->setMovingFlag(GamePlayer::MoveRight);
+        }
+        break;
 
-	case Qt::Key_Up:
-		if (player) player->setMovingFlag(GamePlayer::MoveUp);
-		break;
+    case Qt::Key_Up:
+        if (player) player->setMovingFlag(GamePlayer::MoveUp);
+        break;
 
-	case Qt::Key_Down:
-		if (player) player->setMovingFlag(GamePlayer::MoveDown);
-		break;
+    case Qt::Key_Down:
+        if (player) player->setMovingFlag(GamePlayer::MoveDown);
+        break;
 
-	case Qt::Key_Space:
-		if (player) player->shot();
-		return;
+    case Qt::Key_Space:
+        if (player) player->shot();
+        return;
 
-	case Qt::Key_Return:
-	case Qt::Key_Enter:
-		m_game->pickablePick();
-		break;
+    case Qt::Key_Return:
+    case Qt::Key_Enter:
+        m_game->pickablePick();
+        break;
 
-	case Qt::Key_F3:
-		zoomOverviewToggle();
-		break;
+    case Qt::Key_F3:
+        zoomOverviewToggle();
+        break;
 
-	case Qt::Key_W:
-		game()->toolUse(GamePickable::PickableWater);
-		break;
+    case Qt::Key_W:
+        game()->toolUse(GamePickable::PickableWater);
+        break;
 
-	case Qt::Key_P:
-		game()->toolUse(GamePickable::PickablePliers);
-		break;
+    case Qt::Key_P:
+        game()->toolUse(GamePickable::PickablePliers);
+        break;
 
-	case Qt::Key_I:
-		game()->toolUse(GamePickable::PickableCamouflage);
-		break;
+    case Qt::Key_I:
+        game()->toolUse(GamePickable::PickableCamouflage);
+        break;
 
-	}
-
-
+    }
 
 
-	if (Application::instance()->client()->debug()) {
-		switch (key) {
-		case Qt::Key_F10:
-			setShowObjects(true);
-			break;
 
-		case Qt::Key_F11:
-			setShowEnemies(true);
-			break;
 
-		case Qt::Key_D:
-			if (event->modifiers().testFlag(Qt::ShiftModifier))
-				setDebugView(!m_debugView);
-			break;
+    if (Application::instance()->client()->debug()) {
+        switch (key) {
+        case Qt::Key_F10:
+            setShowObjects(true);
+            break;
 
-		case Qt::Key_N:
-			if (event->modifiers().testFlag(Qt::ShiftModifier) && event->modifiers().testFlag(Qt::ControlModifier))
-				m_game->killAllEnemy();
-			break;
+        case Qt::Key_F11:
+            setShowEnemies(true);
+            break;
 
-		case Qt::Key_X:
-			if (event->modifiers().testFlag(Qt::ShiftModifier) && m_mouseArea && m_mouseArea->property("containsMouse").toBool() && player)
-				player->moveTo(m_mouseArea->property("mouseX").toReal(), m_mouseArea->property("mouseY").toReal(), true);
+        case Qt::Key_D:
+            if (event->modifiers().testFlag(Qt::ShiftModifier))
+                setDebugView(!m_debugView);
+            break;
 
-			break;
-		}
-	}
+        case Qt::Key_N:
+            if (event->modifiers().testFlag(Qt::ShiftModifier) && event->modifiers().testFlag(Qt::ControlModifier))
+                m_game->killAllEnemy();
+            break;
+
+        case Qt::Key_X:
+            if (event->modifiers().testFlag(Qt::ShiftModifier) && m_mouseArea && m_mouseArea->property("containsMouse").toBool() && player)
+                player->moveTo(m_mouseArea->property("mouseX").toReal(), m_mouseArea->property("mouseY").toReal(), true);
+
+            break;
+        }
+    }
 }
 
 
@@ -298,52 +298,52 @@ void GameScene::keyPressEvent(QKeyEvent *event)
 
 void GameScene::keyReleaseEvent(QKeyEvent *event)
 {
-	if (!m_game->running() || m_sceneState != ScenePlay)
-		return;
+    if (!m_game->running() || m_sceneState != ScenePlay)
+        return;
 
-	if (event->isAutoRepeat())
-		return;
+    if (event->isAutoRepeat())
+        return;
 
-	//qDebug(lcScene).noquote() << tr("Key release event:") << event;
+    //qDebug(lcScene).noquote() << tr("Key release event:") << event;
 
-	const int &key = event->key();
-	GamePlayer *player = m_game->player();
+    const int &key = event->key();
+    GamePlayer *player = m_game->player();
 
-	switch (key) {
-	case Qt::Key_Shift:
-		if (player) player->setMovingFlag(GamePlayer::SlowModifier, false);
-		break;
+    switch (key) {
+    case Qt::Key_Shift:
+        if (player) player->setMovingFlag(GamePlayer::SlowModifier, false);
+        break;
 
-	case Qt::Key_Left:
-		if (player) {
-			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier, false);
-			player->setMovingFlag(GamePlayer::MoveLeft, false);
-		}
-		break;
+    case Qt::Key_Left:
+        if (player) {
+            if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier, false);
+            player->setMovingFlag(GamePlayer::MoveLeft, false);
+        }
+        break;
 
-	case Qt::Key_Right:
-		if (player) {
-			if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier, false);
-			player->setMovingFlag(GamePlayer::MoveRight, false);
-		}
-		break;
+    case Qt::Key_Right:
+        if (player) {
+            if (event->modifiers().testFlag(Qt::ShiftModifier)) player->setMovingFlag(GamePlayer::SlowModifier, false);
+            player->setMovingFlag(GamePlayer::MoveRight, false);
+        }
+        break;
 
-	case Qt::Key_Up:
-		if (player) player->setMovingFlag(GamePlayer::MoveUp, false);
-		break;
+    case Qt::Key_Up:
+        if (player) player->setMovingFlag(GamePlayer::MoveUp, false);
+        break;
 
-	case Qt::Key_Down:
-		if (player) player->setMovingFlag(GamePlayer::MoveDown, false);
-		break;
+    case Qt::Key_Down:
+        if (player) player->setMovingFlag(GamePlayer::MoveDown, false);
+        break;
 
-	case Qt::Key_F10:
-		setShowObjects(false);
-		break;
+    case Qt::Key_F10:
+        setShowObjects(false);
+        break;
 
-	case Qt::Key_F11:
-		setShowEnemies(false);
-		break;
-	}
+    case Qt::Key_F11:
+        setShowEnemies(false);
+        break;
+    }
 
 }
 
@@ -355,16 +355,16 @@ void GameScene::keyReleaseEvent(QKeyEvent *event)
 
 void GameScene::loadGameData()
 {
-	const QString filename = QStringLiteral(":/internal/game/parameters.json");
+    const QString filename = QStringLiteral(":/internal/game/parameters.json");
 
-	const auto &c = Utils::fileToJsonObject(filename);
+    const auto &c = Utils::fileToJsonObject(filename);
 
-	if (c)
-		m_gameData = *c;
-	else
-		return;
+    if (c)
+        m_gameData = *c;
+    else
+        return;
 
-	LOG_CDEBUG("scene") << "Load game data from:" << filename;
+    LOG_CDEBUG("scene") << "Load game data from:" << filename;
 }
 
 
@@ -374,15 +374,15 @@ void GameScene::loadGameData()
 
 void GameScene::loadTiledLayers()
 {
-	if (!m_terrain.imageTerrain().isEmpty()) {
-		LOG_CDEBUG("scene") <<  "Load terrain tile image:" << qPrintable(m_terrain.imageTerrain());
-		emit imageTerrainChanged();
-	}
+    if (!m_terrain.imageTerrain().isEmpty()) {
+        LOG_CDEBUG("scene") <<  "Load terrain tile image:" << qPrintable(m_terrain.imageTerrain());
+        emit imageTerrainChanged();
+    }
 
-	if (!m_terrain.imageOver().isEmpty()) {
-		LOG_CDEBUG("scene") <<  "Load terrain over image:" << qPrintable(m_terrain.imageOver());
-		emit imageOverChanged();
-	}
+    if (!m_terrain.imageOver().isEmpty()) {
+        LOG_CDEBUG("scene") <<  "Load terrain over image:" << qPrintable(m_terrain.imageOver());
+        emit imageOverChanged();
+    }
 }
 
 
@@ -392,45 +392,45 @@ void GameScene::loadTiledLayers()
 
 void GameScene::loadGroundLayer()
 {
-	Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ground"));
+    Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ground"));
 
-	if (!layer) {
-		LOG_CWARNING("scene") << "Missing ground layer";
-		return;
-	}
+    if (!layer) {
+        LOG_CWARNING("scene") << "Missing ground layer";
+        return;
+    }
 
-	LOG_CDEBUG("scene") << "Load ground layer";
+    LOG_CDEBUG("scene") << "Load ground layer";
 
-	foreach (Tiled::MapObject *object, layer->objects()) {
-		QRectF rect(object->x(), object->y(), object->width(), object->height());
+    foreach (Tiled::MapObject *object, layer->objects()) {
+        QRectF rect(object->x(), object->y(), object->width(), object->height());
 
-		GameObject *item = new GameObject(this);
-		item->setX(rect.x());
-		item->setY(rect.y());
-		item->setZ(0);
-		item->setWidth(rect.width());
-		item->setHeight(rect.height());
-		item->setVisible(true);
+        GameObject *item = new GameObject(this);
+        item->setX(rect.x());
+        item->setY(rect.y());
+        item->setZ(0);
+        item->setWidth(rect.width());
+        item->setHeight(rect.height());
+        item->setVisible(true);
 
-		Box2DBox *fixture = new Box2DBox(item);
+        Box2DBox *fixture = new Box2DBox(item);
 
-		fixture->setX(0);
-		fixture->setY(0);
-		fixture->setWidth(rect.width());
-		fixture->setHeight(rect.height());
+        fixture->setX(0);
+        fixture->setY(0);
+        fixture->setWidth(rect.width());
+        fixture->setHeight(rect.height());
 
-		fixture->setDensity(1);
-		fixture->setFriction(1);
-		fixture->setRestitution(0);
-		fixture->setCategories(CATEGORY_GROUND);
-		fixture->setCollidesWith(CATEGORY_GROUND|CATEGORY_PLAYER|CATEGORY_ENEMY);
+        fixture->setDensity(1);
+        fixture->setFriction(1);
+        fixture->setRestitution(0);
+        fixture->setCategories(CATEGORY_GROUND);
+        fixture->setCollidesWith(CATEGORY_GROUND|CATEGORY_PLAYER|CATEGORY_ENEMY);
 
-		item->body()->addFixture(fixture);
+        item->body()->addFixture(fixture);
 
-		item->bodyComplete();
+        item->bodyComplete();
 
-		m_grounds.append(item);
-	}
+        m_grounds.append(item);
+    }
 
 }
 
@@ -442,47 +442,47 @@ void GameScene::loadGroundLayer()
 
 void GameScene::loadLadderLayer()
 {
-	Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ladders"));
+    Tiled::ObjectGroup *layer = objectLayer(QStringLiteral("Ladders"));
 
-	if (!layer) {
-		LOG_CWARNING("scene") << "Missing ladders layer";
-		return;
-	}
+    if (!layer) {
+        LOG_CWARNING("scene") << "Missing ladders layer";
+        return;
+    }
 
-	LOG_CDEBUG("scene") << "Load ladders layer";
+    LOG_CDEBUG("scene") << "Load ladders layer";
 
-	foreach (Tiled::MapObject *object, layer->objects()) {
-		if (object->shape() != Tiled::MapObject::Rectangle)
-			continue;
+    foreach (Tiled::MapObject *object, layer->objects()) {
+        if (object->shape() != Tiled::MapObject::Rectangle)
+            continue;
 
-		QRectF rect(object->x(), object->y(), object->width(), object->height());
+        QRectF rect(object->x(), object->y(), object->width(), object->height());
 
-		GameLadder *ladder = qobject_cast<GameLadder*>(GameObject::createFromFile(QStringLiteral("GameLadder.qml"), this, false));
+        GameLadder *ladder = qobject_cast<GameLadder*>(GameObject::createFromFile(QStringLiteral("GameLadder.qml"), this, false));
 
-		if (!ladder) {
-			LOG_CERROR("scene") << "Ladder creation error";
-			continue;
-		}
+        if (!ladder) {
+            LOG_CERROR("scene") << "Ladder creation error";
+            continue;
+        }
 
-		ladder->setParentItem(this);
-		ladder->setScene(this);
-		ladder->setBoundRect(rect);
+        ladder->setParentItem(this);
+        ladder->setScene(this);
+        ladder->setBoundRect(rect);
 
-		const int &blockTop = object->property("blockTop").toInt();
-		const int &blockBottom = object->property("blockBottom").toInt();
+        const int &blockTop = object->property("blockTop").toInt();
+        const int &blockBottom = object->property("blockBottom").toInt();
 
-		if (blockTop > 0 && blockBottom > 0) {
-			ladder->setBlockTop(blockTop);
-			ladder->setBlockBottom(blockBottom);
-			ladder->setActive(false);
-		} else {
-			ladder->setActive(true);
-		}
+        if (blockTop > 0 && blockBottom > 0) {
+            ladder->setBlockTop(blockTop);
+            ladder->setBlockBottom(blockBottom);
+            ladder->setActive(false);
+        } else {
+            ladder->setActive(true);
+        }
 
-		ladder->bodyComplete();
+        ladder->bodyComplete();
 
-		m_ladders.append(ladder);
-	}
+        m_ladders.append(ladder);
+    }
 }
 
 
@@ -492,45 +492,45 @@ void GameScene::loadLadderLayer()
 
 void GameScene::loadTerrainObjectsLayer()
 {
-	LOG_CDEBUG("scene") << "Load terrain objects layer";
+    LOG_CDEBUG("scene") << "Load terrain objects layer";
 
-	QHash<GameTerrain::ObjectType, QString> list;
+    QHash<GameTerrain::ObjectType, QString> list;
 
-	list.insert(GameTerrain::Fire, QStringLiteral("GameFire.qml"));
-	list.insert(GameTerrain::Fence, QStringLiteral("GameFence.qml"));
+    list.insert(GameTerrain::Fire, QStringLiteral("GameFire.qml"));
+    list.insert(GameTerrain::Fence, QStringLiteral("GameFence.qml"));
 
-	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
-		const GameTerrain::ObjectType &type = it.key();
-		const QString &qml = it.value();
+    for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
+        const GameTerrain::ObjectType &type = it.key();
+        const QString &qml = it.value();
 
-		foreach(const GameTerrain::ObjectData &data, m_terrain.objects(type)) {
-			GameObject *object = GameObject::createFromFile(qml, this, false);
+        foreach(const GameTerrain::ObjectData &data, m_terrain.objects(type)) {
+            GameObject *object = GameObject::createFromFile(qml, this, false);
 
-			if (!object) {
-				LOG_CERROR("scene") << "Terrain object creation error:" << type << qml;
-				continue;
-			}
+            if (!object) {
+                LOG_CERROR("scene") << "Terrain object creation error:" << type << qml;
+                continue;
+            }
 
-			object->setParentItem(this);
-			object->setScene(this);
+            object->setParentItem(this);
+            object->setScene(this);
 
-			switch (type) {
-			case GameTerrain::Fire:
-				object->setX(data.point.x()-(object->width()/2));
-				object->setY(data.point.y()-object->height()+10);                       // +10: az animáció korrekciója miatt lejjebb kell tenni
-				break;
-			case GameTerrain::Fence:
-				object->setX(data.point.x()-(object->width()/2));
-				object->setY(data.point.y()-object->height());
-				break;
+            switch (type) {
+            case GameTerrain::Fire:
+                object->setX(data.point.x()-(object->width()/2));
+                object->setY(data.point.y()-object->height()+10);                       // +10: az animáció korrekciója miatt lejjebb kell tenni
+                break;
+            case GameTerrain::Fence:
+                object->setX(data.point.x()-(object->width()/2));
+                object->setY(data.point.y()-object->height());
+                break;
 
-			default:
-				object->setPosition(data.point);
-			}
+            default:
+                object->setPosition(data.point);
+            }
 
-			object->bodyComplete();
-		}
-	}
+            object->bodyComplete();
+        }
+    }
 }
 
 
@@ -542,11 +542,11 @@ void GameScene::loadTerrainObjectsLayer()
 
 void GameScene::loadPlayerPositionLayer()
 {
-	LOG_CDEBUG("scene") << "Load player position layer";
+    LOG_CDEBUG("scene") << "Load player position layer";
 
-	foreach(const GameTerrain::PlayerPositionData &data, m_terrain.playerPositions()) {
-		m_grounds.append(new GamePlayerPosition(data, this));
-	}
+    foreach(const GameTerrain::PlayerPositionData &data, m_terrain.playerPositions()) {
+        m_grounds.append(new GamePlayerPosition(data, this));
+    }
 }
 
 
@@ -557,11 +557,11 @@ void GameScene::loadPlayerPositionLayer()
 
 void GameScene::loadPickablesLayer()
 {
-	LOG_CDEBUG("scene") << "Load pickables layer";
+    LOG_CDEBUG("scene") << "Load pickables layer";
 
-	foreach(const GameTerrain::PickableData &data, m_terrain.pickables()) {
-		m_game->createPickable(data.data, data.point);
-	}
+    foreach(const GameTerrain::PickableData &data, m_terrain.pickables()) {
+        m_game->createPickable(data.data, data.point);
+    }
 
 }
 
@@ -579,19 +579,19 @@ void GameScene::loadPickablesLayer()
 
 Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
 {
-	Tiled::Map *map = m_terrain.map();
+    Tiled::Map *map = m_terrain.map();
 
-	if (!map) {
-		LOG_CWARNING("scene") << "Invalid map";
-		return nullptr;
-	}
+    if (!map) {
+        LOG_CWARNING("scene") << "Invalid map";
+        return nullptr;
+    }
 
-	for (auto layer = map->objectGroups().begin(); layer != map->objectGroups().end(); ++layer) {
-		if (layer->name() == name)
-			return static_cast<Tiled::ObjectGroup*>(*layer);
-	}
+    for (auto layer = map->objectGroups().begin(); layer != map->objectGroups().end(); ++layer) {
+        if (layer->name() == name)
+            return static_cast<Tiled::ObjectGroup*>(*layer);
+    }
 
-	return nullptr;
+    return nullptr;
 }
 
 
@@ -604,39 +604,39 @@ Tiled::ObjectGroup *GameScene::objectLayer(const QString &name) const
 
 void GameScene::onTimerTimeout()
 {
-	qreal factor = 1.0;
+    qreal factor = 1.0;
 
-	if (!m_elapsedTimer.isValid())
-		m_elapsedTimer.start();
-	else {
-		const qreal &msec = m_elapsedTimer.restart();
-		const qreal &interval = m_timingTimerTimeoutMsec;
+    if (!m_elapsedTimer.isValid())
+        m_elapsedTimer.start();
+    else {
+        const qreal &msec = m_elapsedTimer.restart();
+        const qreal &interval = m_timingTimerTimeoutMsec;
 
-		factor = msec/interval;
+        factor = msec/interval;
 
-		const qreal &fpsFactor = (msec/1000.) * m_fpsList.at(m_fpsIndex);
+        const qreal &fpsFactor = (msec/1000.) * m_fpsList.at(m_fpsIndex);
 
 
-		if (fpsFactor >= 1.5) {
-			if (!m_performanceTimer.isValid())
-				m_performanceTimer.start();
-			else if (m_performanceTimer.elapsed() >= 2000) {
-				fpsDecrease();
-				m_performanceTimer.invalidate();
-			}
-		} else if (fpsFactor <= 0.8) {
-			if (!m_performanceTimer.isValid())
-				m_performanceTimer.start();
-			else if (m_performanceTimer.elapsed() >= 1000) {
-				fpsIncrease();
-				m_performanceTimer.invalidate();
-			}
-		} else if (m_performanceTimer.isValid())
-			m_performanceTimer.invalidate();
-	}
+        if (fpsFactor >= 1.5) {
+            if (!m_performanceTimer.isValid())
+                m_performanceTimer.start();
+            else if (m_performanceTimer.elapsed() >= 2000) {
+                fpsDecrease();
+                m_performanceTimer.invalidate();
+            }
+        } else if (fpsFactor <= 0.8) {
+            if (!m_performanceTimer.isValid())
+                m_performanceTimer.start();
+            else if (m_performanceTimer.elapsed() >= 1000) {
+                fpsIncrease();
+                m_performanceTimer.invalidate();
+            }
+        } else if (m_performanceTimer.isValid())
+            m_performanceTimer.invalidate();
+    }
 
-	if (m_game)
-		m_game->sceneTimerTimeout(m_timingTimerTimeoutMsec, factor);
+    if (m_game)
+        m_game->sceneTimerTimeout(m_timingTimerTimeoutMsec, factor);
 }
 
 
@@ -647,16 +647,16 @@ void GameScene::onTimerTimeout()
 
 void GameScene::fpsSet()
 {
-	double fps = m_fpsList.at(m_fpsIndex);
-	LOG_CINFO("scene") << "Set fps:" << fps;
+    double fps = m_fpsList.at(m_fpsIndex);
+    LOG_CINFO("scene") << "Set fps:" << fps;
 
 #ifdef QT_DEBUG
-	if (m_game)
-		m_game->message(QString("FPS SET %1").arg(fps));
+    if (m_game)
+        m_game->message(QString("FPS SET %1").arg(fps));
 #endif
 
-	if (m_world)
-		m_world->setTimeStep(1./fps);
+    if (m_world)
+        m_world->setTimeStep(1./fps);
 }
 
 
@@ -666,10 +666,10 @@ void GameScene::fpsSet()
 
 void GameScene::fpsIncrease()
 {
-	if (m_fpsIndex > 0) {
-		--m_fpsIndex;
-		fpsSet();
-	}
+    if (m_fpsIndex > 0) {
+        --m_fpsIndex;
+        fpsSet();
+    }
 }
 
 
@@ -679,10 +679,10 @@ void GameScene::fpsIncrease()
 
 void GameScene::fpsDecrease()
 {
-	if (m_fpsIndex < m_fpsList.size()-1) {
-		++m_fpsIndex;
-		fpsSet();
-	}
+    if (m_fpsIndex < m_fpsList.size()-1) {
+        ++m_fpsIndex;
+        fpsSet();
+    }
 }
 
 
@@ -695,7 +695,7 @@ void GameScene::fpsDecrease()
 
 const GameTerrainMap &GameScene::terrain() const
 {
-	return m_terrain;
+    return m_terrain;
 }
 
 
@@ -706,17 +706,17 @@ const GameTerrainMap &GameScene::terrain() const
 
 GameTerrain::PlayerPositionData GameScene::getPlayerPosition()
 {
-	while (!m_playerPositions.isEmpty()) {
-		GamePlayerPosition *p = m_playerPositions.top();
+    while (!m_playerPositions.isEmpty()) {
+        GamePlayerPosition *p = m_playerPositions.top();
 
-		if (m_game->closedBlocks().contains(p->data().block)) {
-			return p->data();
-		}
+        if (m_game->closedBlocks().contains(p->data().block)) {
+            return p->data();
+        }
 
-		m_playerPositions.pop();
-	}
+        m_playerPositions.pop();
+    }
 
-	return m_terrain.defaultPlayerPosition();
+    return m_terrain.defaultPlayerPosition();
 }
 
 
@@ -727,18 +727,18 @@ GameTerrain::PlayerPositionData GameScene::getPlayerPosition()
 
 GameScene::SceneState GameScene::sceneState() const
 {
-	return m_sceneState;
+    return m_sceneState;
 }
 
 void GameScene::setSceneState(SceneState newSceneState)
 {
-	if (m_sceneState == newSceneState)
-		return;
-	m_sceneState = newSceneState;
-	emit sceneStateChanged();
+    if (m_sceneState == newSceneState)
+        return;
+    m_sceneState = newSceneState;
+    emit sceneStateChanged();
 
-	if (m_sceneState == ScenePlay)
-		emit sceneStarted();
+    if (m_sceneState == ScenePlay)
+        emit sceneStarted();
 }
 
 
@@ -749,7 +749,7 @@ void GameScene::setSceneState(SceneState newSceneState)
 
 const QJsonObject &GameScene::gameData() const
 {
-	return m_gameData;
+    return m_gameData;
 }
 
 
@@ -763,23 +763,23 @@ const QJsonObject &GameScene::gameData() const
 
 QJsonObject GameScene::levelData(int level) const
 {
-	if (level < 0)
-		level = m_game->level();
+    if (level < 0)
+        level = m_game->level();
 
-	QJsonObject r;
+    QJsonObject r;
 
-	while (level > 0) {
-		const QString &key = QString::number(level);
+    while (level > 0) {
+        const QString &key = QString::number(level);
 
-		if (m_gameData.value(QStringLiteral("level")).toObject().contains(key)) {
-			r = m_gameData.value(QStringLiteral("level")).toObject().value(key).toObject();
-			break;
-		}
+        if (m_gameData.value(QStringLiteral("level")).toObject().contains(key)) {
+            r = m_gameData.value(QStringLiteral("level")).toObject().value(key).toObject();
+            break;
+        }
 
-		--level;
-	}
+        --level;
+    }
 
-	return r;
+    return r;
 }
 
 
@@ -794,7 +794,7 @@ QJsonObject GameScene::levelData(int level) const
 
 const QList<QPointer<GameLadder>> &GameScene::ladders() const
 {
-	return m_ladders;
+    return m_ladders;
 }
 
 
@@ -805,20 +805,20 @@ const QList<QPointer<GameLadder>> &GameScene::ladders() const
 
 Box2DWorld *GameScene::world() const
 {
-	return m_world;
+    return m_world;
 }
 
 void GameScene::setWorld(Box2DWorld *newWorld)
 {
-	if (m_world == newWorld)
-		return;
-	m_world = newWorld;
-	emit worldChanged();
+    if (m_world == newWorld)
+        return;
+    m_world = newWorld;
+    emit worldChanged();
 
-	if (m_world) {
-		fpsSet();
-		connect(m_world, &Box2DWorld::stepped, this, &GameScene::onTimerTimeout);
-	}
+    if (m_world) {
+        fpsSet();
+        connect(m_world, &Box2DWorld::stepped, this, &GameScene::onTimerTimeout);
+    }
 }
 
 
@@ -830,15 +830,15 @@ void GameScene::setWorld(Box2DWorld *newWorld)
 
 bool GameScene::zoomOverview() const
 {
-	return m_zoomOverview;
+    return m_zoomOverview;
 }
 
 void GameScene::setZoomOverview(bool newZoomOverview)
 {
-	if (m_zoomOverview == newZoomOverview)
-		return;
-	m_zoomOverview = newZoomOverview;
-	emit zoomOverviewChanged(m_zoomOverview);
+    if (m_zoomOverview == newZoomOverview)
+        return;
+    m_zoomOverview = newZoomOverview;
+    emit zoomOverviewChanged(m_zoomOverview);
 }
 
 
@@ -848,7 +848,7 @@ void GameScene::setZoomOverview(bool newZoomOverview)
 
 void GameScene::zoomOverviewToggle()
 {
-	setZoomOverview(!m_zoomOverview);
+    setZoomOverview(!m_zoomOverview);
 }
 
 
@@ -858,18 +858,18 @@ void GameScene::zoomOverviewToggle()
 
 void GameScene::onScenePrepared()
 {
-	LOG_CDEBUG("scene") << "Scene prepared";
+    LOG_CDEBUG("scene") << "Scene prepared";
 
-	loadTiledLayers();
-	loadGroundLayer();
-	loadLadderLayer();
-	loadPlayerPositionLayer();
-	loadTerrainObjectsLayer();
-	loadPickablesLayer();
+    loadTiledLayers();
+    loadGroundLayer();
+    loadLadderLayer();
+    loadPlayerPositionLayer();
+    loadTerrainObjectsLayer();
+    loadPickablesLayer();
 
-	++m_sceneLoadSteps;
+    ++m_sceneLoadSteps;
 
-	emit sceneStepSuccess();
+    emit sceneStepSuccess();
 }
 
 
@@ -879,12 +879,12 @@ void GameScene::onScenePrepared()
 
 void GameScene::onSceneStepSuccess()
 {
-	LOG_CDEBUG("scene") << "Scene step:" << m_sceneLoadSteps;
+    LOG_CDEBUG("scene") << "Scene step:" << m_sceneLoadSteps;
 
-	if (m_sceneLoadSteps < 2)
-		return;
+    if (m_sceneLoadSteps < 2)
+        return;
 
-	m_game->onSceneReady();
+    m_game->onSceneReady();
 }
 
 
@@ -894,17 +894,17 @@ void GameScene::onSceneStepSuccess()
 
 void GameScene::onSceneLoadFailed()
 {
-	m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
+    m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
 #if QT_VERSION < 0x060000
-	m_game->pageItem()->setProperty("onPageClose", QVariant::Invalid);
+    m_game->pageItem()->setProperty("onPageClose", QVariant::Invalid);
 #else
-	m_game->pageItem()->setProperty("onPageClose", QVariant(QMetaType::fromType<QJSValue>()));
+    m_game->pageItem()->setProperty("onPageClose", QVariant(QMetaType::fromType<QJSValue>()));
 #endif
-	m_game->pageItem()->setProperty("closeQuestion", QStringLiteral(""));
+    m_game->pageItem()->setProperty("closeQuestion", QStringLiteral(""));
 
-	m_game->unloadPageItem();
+    m_game->unloadPageItem();
 
-	emit m_game->gameFinished(AbstractGame::Fail);
+    emit m_game->gameFinished(AbstractGame::Fail);
 
 }
 
@@ -915,11 +915,11 @@ void GameScene::onSceneLoadFailed()
 
 void GameScene::onSceneAnimationReady()
 {
-	m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
+    m_game->pageItem()->setProperty("closeDisabled", QStringLiteral(""));
 
-	m_game->onSceneAnimationFinished();
+    m_game->onSceneAnimationFinished();
 
-	setSceneState(ScenePlay);
+    setSceneState(ScenePlay);
 }
 
 
@@ -930,15 +930,15 @@ void GameScene::onSceneAnimationReady()
 
 void GameScene::activateLaddersInBlock(const int &block)
 {
-	LOG_CDEBUG("scene") << "Activate ladders in block:" << block;
+    LOG_CDEBUG("scene") << "Activate ladders in block:" << block;
 
-	foreach (GameLadder *ladder, m_ladders) {
-		if (!ladder)
-			continue;
+    foreach (GameLadder *ladder, m_ladders) {
+        if (!ladder)
+            continue;
 
-		if (ladder->blockTop() == block || ladder->blockBottom() == block)
-			ladder->setActive(true);
-	}
+        if (ladder->blockTop() == block || ladder->blockBottom() == block)
+            ladder->setActive(true);
+    }
 }
 
 
@@ -949,10 +949,10 @@ void GameScene::activateLaddersInBlock(const int &block)
 
 void GameScene::setPlayerPosition(GamePlayerPosition *position)
 {
-	if (position && (m_playerPositions.isEmpty() || m_playerPositions.top() != position)) {
-		LOG_CDEBUG("scene") << "Player position reached:" << position->position();
-		m_playerPositions.push(position);
-	}
+    if (position && (m_playerPositions.isEmpty() || m_playerPositions.top() != position)) {
+        LOG_CDEBUG("scene") << "Player position reached:" << position->position();
+        m_playerPositions.push(position);
+    }
 }
 
 
@@ -963,80 +963,80 @@ void GameScene::setPlayerPosition(GamePlayerPosition *position)
 
 bool GameScene::debugView() const
 {
-	return m_debugView;
+    return m_debugView;
 }
 
 void GameScene::setDebugView(bool newDebugView)
 {
-	if (m_debugView == newDebugView)
-		return;
-	m_debugView = newDebugView;
-	emit debugViewChanged();
+    if (m_debugView == newDebugView)
+        return;
+    m_debugView = newDebugView;
+    emit debugViewChanged();
 }
 
 bool GameScene::showObjects() const
 {
-	return m_showObjects;
+    return m_showObjects;
 }
 
 void GameScene::setShowObjects(bool newShowObjects)
 {
-	if (m_showObjects == newShowObjects)
-		return;
-	m_showObjects = newShowObjects;
-	emit showObjectsChanged(m_showObjects);
+    if (m_showObjects == newShowObjects)
+        return;
+    m_showObjects = newShowObjects;
+    emit showObjectsChanged(m_showObjects);
 }
 
 bool GameScene::showEnemies() const
 {
-	return m_showEnemies;
+    return m_showEnemies;
 }
 
 void GameScene::setShowEnemies(bool newShowEnemies)
 {
-	if (m_showEnemies == newShowEnemies)
-		return;
-	m_showEnemies = newShowEnemies;
-	emit showEnemiesChanged(m_showEnemies);
+    if (m_showEnemies == newShowEnemies)
+        return;
+    m_showEnemies = newShowEnemies;
+    emit showEnemiesChanged(m_showEnemies);
 }
 
 
 QQuickItem *GameScene::mouseArea() const
 {
-	return m_mouseArea;
+    return m_mouseArea;
 }
 
 void GameScene::setMouseArea(QQuickItem *newMouseArea)
 {
-	if (m_mouseArea == newMouseArea)
-		return;
-	m_mouseArea = newMouseArea;
-	emit mouseAreaChanged();
+    if (m_mouseArea == newMouseArea)
+        return;
+    m_mouseArea = newMouseArea;
+    emit mouseAreaChanged();
 }
 
 QQuickItem *GameScene::messageList() const
 {
-	return m_messageList;
+    return m_messageList;
 }
 
 void GameScene::setMessageList(QQuickItem *newMessageList)
 {
-	if (m_messageList == newMessageList)
-		return;
-	m_messageList = newMessageList;
-	emit messageListChanged();
+    if (m_messageList == newMessageList)
+        return;
+    m_messageList = newMessageList;
+    emit messageListChanged();
 }
 
 
 
 const QString &GameScene::imageTerrain() const
 {
-	return m_terrain.imageTerrain();
+    return m_terrain.imageTerrain();
 }
 
 const QString &GameScene::imageOver() const
 {
-	return m_terrain.imageOver();
+    return m_terrain.imageOver();
 }
 
 
@@ -1047,16 +1047,16 @@ const QString &GameScene::imageOver() const
 
 void GameScene::gameObjectAdd(GameObject *object)
 {
-	if (!m_gameObjects.contains(object)) {
-		m_gameObjects.append(object);
-		connect(object, &GameObject::destroyed, this, [this, object]() {
-			for (auto it=m_gameObjects.begin(); it != m_gameObjects.end(); ) {
-				if (it->data() == object)
-					it = m_gameObjects.erase(it);
-				else
-					++it;
-			}
-		}, Qt::DirectConnection);
-	}
+    if (!m_gameObjects.contains(object)) {
+        m_gameObjects.append(object);
+        connect(object, &GameObject::destroyed, this, [this, object]() {
+            for (auto it=m_gameObjects.begin(); it != m_gameObjects.end(); ) {
+                if (it->data() == object)
+                    it = m_gameObjects.erase(it);
+                else
+                    ++it;
+            }
+        }, Qt::DirectConnection);
+    }
 }
 

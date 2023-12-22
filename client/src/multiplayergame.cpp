@@ -132,7 +132,7 @@ void MultiPlayerGame::timerEvent(QTimerEvent *)
     ObjectStateSnapshot snap;
 
     foreach (GameObject *o, m_scene->m_gameObjects) {
-        const qint64 id = getObjectId(o);
+        const qint64 id = getEntityId(o);
 
         if (o && id != -1) {
             o->getStateSnapshot(&snap, id);
@@ -412,8 +412,6 @@ void MultiPlayerGame::updateGameTrigger(const QByteArray &data)
             return e.id == prev.id;
         });
 
-        LOG_CINFO("game") << "---SNAP" << prev.id << prev.tick << prev.type << prev.playerState;
-
         const bool isSelf = (prev.type == ObjectStateBase::TypePlayer && prev.id == m_playerEntityId) ||
                             (prev.type == ObjectStateBase::TypeEnemySoldier && m_multiPlayerMode == MultiPlayerHost);
 
@@ -518,12 +516,12 @@ void MultiPlayerGame::updateBody(GameObject *object, const bool &owned)
 
 
 /**
- * @brief MultiPlayerGame::getObjectId
+ * @brief MultiPlayerGame::getEntityId
  * @param object
  * @return
  */
 
-qint64 MultiPlayerGame::getObjectId(GameObject *object)
+qint64 MultiPlayerGame::getEntityId(GameObject *object) const
 {
     if (!object)
         return -1;
@@ -534,6 +532,26 @@ qint64 MultiPlayerGame::getObjectId(GameObject *object)
     }
 
     return -1;
+}
+
+
+/**
+ * @brief MultiPlayerGame::getEntity
+ * @param entityId
+ * @return
+ */
+
+GameObject *MultiPlayerGame::getEntity(const qint64 &entityId) const
+{
+    if (entityId < 0)
+        return nullptr;
+
+    for (const auto &e : m_entities) {
+        if (e.id == entityId)
+            return e.object.get();
+    }
+
+    return nullptr;
 }
 
 qint64 MultiPlayerGame::playerEntityId() const
@@ -548,6 +566,56 @@ void MultiPlayerGame::setPlayerEntityId(qint64 newPlayerEntityId)
     m_playerEntityId = newPlayerEntityId;
     emit playerEntityIdChanged();
 }
+
+
+
+
+/**
+ * @brief MultiPlayerGame::enemyAttackPlayer
+ * @param enemy
+ * @param canProtect
+ * @param player
+ */
+
+void MultiPlayerGame::enemyAttackPlayer(GameEnemy *enemy, const bool &canProtect, GamePlayer *player)
+{
+    LOG_CERROR("game")    << "Enemy attack player" << enemy << canProtect << player;
+}
+
+
+
+/**
+ * @brief MultiPlayerGame::enemyKillPlayer
+ * @param enemy
+ * @param player
+ */
+
+void MultiPlayerGame::enemyKillPlayer(GameEnemy *enemy, GamePlayer *player)
+{
+    LOG_CERROR("game")    << "Enemy kill player" << enemy << player;
+}
+
+
+
+/**
+ * @brief MultiPlayerGame::tryAttack
+ * @param player
+ * @param enemy
+ */
+
+void MultiPlayerGame::tryAttack(GamePlayer *player, GameEnemy *enemy)
+{
+    LOG_CERROR("game")    << "Player try attack" << player << enemy;
+}
+
+
+
+
+
+/**
+ * @brief MultiPlayerGame::playerId
+ * @return
+ */
 
 int MultiPlayerGame::playerId() const
 {

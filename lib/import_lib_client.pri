@@ -123,3 +123,11 @@ include(qsyncable.pri)
 
 INCLUDEPATH += $$PWD/miniaudio
 
+
+
+# Tar_to_stream
+
+INCLUDEPATH += $$PWD/tar_to_stream
+
+HEADERS += \
+	$$PWD/tar_to_stream/tar_to_stream.h

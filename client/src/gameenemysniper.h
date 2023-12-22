@@ -31,45 +31,42 @@
 
 class GameEnemySniper : public GameEnemy
 {
-	Q_OBJECT
+    Q_OBJECT
 
-	Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
+    Q_PROPERTY(int msecBeforeTurn READ msecBeforeTurn WRITE setMsecBeforeTurn NOTIFY msecBeforeTurnChanged)
 
 public:
-	explicit GameEnemySniper(QQuickItem *parent = nullptr);
-	virtual ~GameEnemySniper();
+    explicit GameEnemySniper(QQuickItem *parent = nullptr);
+    virtual ~GameEnemySniper();
 
-	static GameEnemySniper* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
+    static GameEnemySniper* create(GameScene *scene, const GameTerrain::EnemyData &enemyData, const QString &type = "");
 
-	Q_INVOKABLE void attackPlayer();
+    Q_INVOKABLE void attackPlayer();
 
-	int msecBeforeTurn() const;
-	void setMsecBeforeTurn(int newMsecBeforeTurn);
+    int msecBeforeTurn() const;
+    void setMsecBeforeTurn(int newMsecBeforeTurn);
 
-	int turnElapsedMsec() const;
-	void setTurnElapsedMsec(int newTurnElapsedMsec);
+    int turnElapsedMsec() const;
+    void setTurnElapsedMsec(int newTurnElapsedMsec);
 
-	void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
+    void onTimingTimerTimeout(const int &msec, const qreal &delayFactor) override;
 
 protected:
-	virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
-	virtual void enemyStateModified() override;
-	virtual void attackedByPlayerEvent(GamePlayer *, const bool &) override;
-
-private slots:
-	void onSceneConnected();
+    virtual void rayCastReport(const QMultiMap<qreal, GameEntity *> &items) override;
+    virtual void enemyStateModified() override;
+    virtual void onSceneConnected() override;
 
 signals:
-	void msecBeforeTurnChanged();
-	void turnElapsedMsecChanged();
+    void msecBeforeTurnChanged();
+    void turnElapsedMsecChanged();
 
 private slots:
-	void onAttack();
+    void onAttack();
 
 private:
-	int m_msecBeforeTurn = 5000;
-	int m_turnElapsedMsec = -1;
-	int m_attackElapsedMsec = -1;
+    int m_msecBeforeTurn = 5000;
+    int m_turnElapsedMsec = -1;
+    int m_attackElapsedMsec = -1;
 };
 
 #endif // GAMEENEMYSNIPER_H

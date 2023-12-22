@@ -456,6 +456,51 @@ void ActionGame::createPickable(const GamePickable::GamePickableData &data, cons
 }
 
 
+
+
+/**
+ * @brief ActionGame::enemyAttackPlayer
+ * @param enemy
+ * @param player
+ */
+
+void ActionGame::enemyAttackPlayer(GameEnemy *enemy, const bool &canProtect, GamePlayer *player)
+{
+    Q_UNUSED(enemy);
+
+    if (!player)
+        return;
+
+    emit player->underAttack();
+
+    if (canProtect && player->shield() > 0) {
+        player->setShield(player->shield()-1);
+    } else {
+        player->decreaseHp();
+    }
+}
+
+
+/**
+ * @brief ActionGame::enemyKillPlayer
+ * @param enemy
+ * @param player
+ */
+
+void ActionGame::enemyKillPlayer(GameEnemy *enemy, GamePlayer *player)
+{
+    Q_UNUSED(enemy);
+
+    if (!player)
+        return;
+
+    player->setPlayerState(GamePlayer::Dead);
+    m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/dead.mp3"));
+
+    player->kill();
+}
+
+
 /**
  * @brief ActionGame::linkQuestionToEnemies
  * @param enemies
@@ -1015,7 +1060,7 @@ void ActionGame::onGameQuestionFailed(const QVariantMap &answer)
     addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
 
     if (m_player)
-        player()->hurtByEnemy(nullptr, false);
+        enemyAttackPlayer(nullptr, false, player());
 
     m_scene->playSoundVoiceOver(QStringLiteral("qrc:/sound/voiceover/loser.mp3"));
 
@@ -1182,6 +1227,7 @@ void ActionGame::sceneTimerTimeout(const int &msec, const qreal &delayFactor)
 
     foreach (GameObject *o, m_scene->m_gameObjects) {
         GameEntity *e = qobject_cast<GameEntity*>(o);
+
         if (e)
             e->performRayCast();
     }

@@ -108,6 +108,16 @@ QPage {
 
 			appBar.rightComponent: Row {
 				Qaterial.AppBarButton {
+					id: _filterButton
+					anchors.verticalCenter: parent.verticalCenter
+					icon.source: _scoreList.filterClassId === -1 ? Qaterial.Icons.filter : Qaterial.Icons.filterCheck
+					foregroundColor: _scoreList.filterClassId === -1 ? Qaterial.Style.primaryTextColor() : Qaterial.Style.accentColor
+
+					ToolTip.text: qsTr("Szűrés")
+
+					onClicked: _scoreList.selectFilter(_filterButton)
+				}
+				Qaterial.AppBarButton {
 					anchors.verticalCenter: parent.verticalCenter
 					icon.source: Qaterial.Icons.refresh
 					ToolTip.text: qsTr("Frissítés")

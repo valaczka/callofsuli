@@ -36,7 +36,6 @@ GameEnemySoldier::GameEnemySoldier(QQuickItem *parent)
     : GameEnemy(parent)
 {
     connect(this, &GameEnemy::attack, this, &GameEnemySoldier::onAttack);
-    connect(this, &GameObject::sceneConnected, this, &GameEnemySoldier::onSceneConnected);
 
 }
 
@@ -405,10 +404,11 @@ void GameEnemySoldier::attackPlayer()
 {
     emit attack();
 
-    //jumpToSprite(QStringLiteral("shot"));
+    ActionGame *g = game();
+    GamePlayer *p = player();
 
-    if (player() && player()->isAlive())
-        player()->hurtByEnemy(this, true);
+    if (g && p && p->isAlive())
+        g->enemyAttackPlayer(this, true, p);
 }
 
 
@@ -436,8 +436,15 @@ void GameEnemySoldier::rayCastReport(const QMultiMap<qreal, GameEntity *> &items
     }
 
     GamePlayer *oldPlayer = player();
+    GamePlayer *fPlayer = forcedPlayer();
 
-    setPlayer(_player);
+    if (fPlayer && fPlayer->isAlive() && !fPlayer->invisible() &&
+        _player && _player != fPlayer) {
+        LOG_CERROR("game") << "Skipping other player" << this << _player;
+        setPlayer(fPlayer);
+    } else {
+        setPlayer(_player);
+    }
 
     if ((m_enemyState == Attack || m_enemyState == WatchPlayer) && !_player) {
         if (oldPlayer)

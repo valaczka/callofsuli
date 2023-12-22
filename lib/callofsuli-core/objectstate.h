@@ -101,18 +101,19 @@ public:
         FieldEnemyState = 1 << 6,
         FieldEnemyRect = 1 << 7,
         FieldMSecToAttack = 1 << 8,
+        FieldWPlayerId = 1 << 9,
 
         /// EnemySoldier fields
-        FieldTurnElapsedMSec = 1 << 9,
-        FieldAttackElapsedMSec = 1 << 10,
+        FieldTurnElapsedMSec = 1 << 10,
+        FieldAttackElapsedMSec = 1 << 11,
 
         /// Player fields
-        FieldPlayerState = 1 << 11,
+        FieldPlayerState = 1 << 12,
 
         /// All
         FieldAll = FieldPosition | FieldSize |
                    FieldHp | FieldMaxHp | FieldFacingLeft | FieldSubType |
-                   FieldEnemyState | FieldEnemyRect | FieldMSecToAttack |
+                   FieldEnemyState | FieldEnemyRect | FieldMSecToAttack | FieldWPlayerId |
                    FieldTurnElapsedMSec | FieldAttackElapsedMSec |
                    FieldPlayerState
 
@@ -142,6 +143,7 @@ public:
     EnemyState enemyState = Invalid;
     QRectF enemyRect;
     double msecLeftToAttack = -1;
+    int enemyWatchingPlayerId = -1;
 
     int turnElapsedMsec = 0;
     int attackElapsedMsec = 0;
@@ -171,6 +173,7 @@ public:
         FIELD_TO_STREAM(fields, stream, FieldEnemyState, enemyState);
         FIELD_TO_STREAM(fields, stream, FieldEnemyRect, enemyRect);
         FIELD_TO_STREAM(fields, stream, FieldMSecToAttack, msecLeftToAttack);
+        FIELD_TO_STREAM(fields, stream, FieldWPlayerId, enemyWatchingPlayerId);
         FIELD_TO_STREAM(fields, stream, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_TO_STREAM(fields, stream, FieldAttackElapsedMSec, attackElapsedMsec);
         FIELD_TO_STREAM(fields, stream, FieldPlayerState, playerState);
@@ -225,6 +228,9 @@ public:
         if (fields.testFlag(FieldMSecToAttack)) data.append(QByteArrayLiteral("* "));
         data.append(QStringLiteral("msecLeftToAttack: %1\n").arg(msecLeftToAttack).toUtf8());
 
+        if (fields.testFlag(FieldWPlayerId)) data.append(QByteArrayLiteral("* "));
+        data.append(QStringLiteral("enemyWatchingPlayerId: %1\n").arg(enemyWatchingPlayerId).toUtf8());
+
 
         if (fields.testFlag(FieldTurnElapsedMSec)) data.append(QByteArrayLiteral("* "));
         data.append(QStringLiteral("turnElapsedMsec: %1\n").arg(turnElapsedMsec).toUtf8());
@@ -271,6 +277,7 @@ public:
         FIELD_FROM_STREAM(fields, stream, FieldEnemyState, enemyState);
         FIELD_FROM_STREAM(fields, stream, FieldEnemyRect, enemyRect);
         FIELD_FROM_STREAM(fields, stream, FieldMSecToAttack, msecLeftToAttack);
+        FIELD_FROM_STREAM(fields, stream, FieldWPlayerId, enemyWatchingPlayerId);
         FIELD_FROM_STREAM(fields, stream, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_FROM_STREAM(fields, stream, FieldAttackElapsedMSec, attackElapsedMsec);
         FIELD_FROM_STREAM(fields, stream, FieldPlayerState, playerState);
@@ -301,6 +308,7 @@ public:
         FIELD_DIFF(d.fields, to, FieldEnemyState, enemyState);
         FIELD_DIFF(d.fields, to, FieldEnemyRect, enemyRect);
         FIELD_DIFF(d.fields, to, FieldMSecToAttack, msecLeftToAttack);
+        FIELD_DIFF(d.fields, to, FieldWPlayerId, enemyWatchingPlayerId);
         FIELD_DIFF(d.fields, to, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_DIFF(d.fields, to, FieldAttackElapsedMSec, attackElapsedMsec);
         FIELD_DIFF(d.fields, to, FieldPlayerState, playerState);
@@ -332,6 +340,7 @@ public:
         FIELD_PATCH(patch, field, FieldEnemyState, enemyState);
         FIELD_PATCH(patch, field, FieldEnemyRect, enemyRect);
         FIELD_PATCH(patch, field, FieldMSecToAttack, msecLeftToAttack);
+        FIELD_PATCH(patch, field, FieldWPlayerId, enemyWatchingPlayerId);
         FIELD_PATCH(patch, field, FieldTurnElapsedMSec, turnElapsedMsec);
         FIELD_PATCH(patch, field, FieldAttackElapsedMSec, attackElapsedMsec);
         FIELD_PATCH(patch, field, FieldPlayerState, playerState);

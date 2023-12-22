@@ -147,14 +147,14 @@ void GamePlayerMulti::setStateFromSnapshot(const ObjectStateBase &ptr, const qin
         removeOldAuthoritativeStates(currentTick);
         m_authoritativeStates.insert({ptr.tick, ptr});
 
-        LOG_CDEBUG("game")  << "APPEND+++";
+/*        LOG_CDEBUG("game")  << "APPEND+++";
         LOG_CTRACE("game") << "AUTH STATES.........................................";
 
         for (const auto &[tick, s] : m_authoritativeStates)  {
             LOG_CINFO("game")  << "   #" << tick << s.position << s.playerState;
         }
 
-        LOG_CTRACE("game") << ".........................................";
+        LOG_CTRACE("game") << ".........................................";*/
 
         interpolateState(currentTick);
     }
@@ -223,7 +223,7 @@ void GamePlayerMulti::setCurrentState(const ObjectStateBase &state, const bool &
 void GamePlayerMulti::init(ActionGame *game)
 {
     if (!m_isSelf) {
-        setCategoryFixture(CATEGORY_PLAYER_OTHER);
+        setCategoryFixture(CATEGORY_PLAYER);
         setCategoryRayCast(Box2DFixture::None);
         setCategoryCollidesWith(Box2DFixture::None);
         setRayCastEnabled(false);
@@ -234,7 +234,6 @@ void GamePlayerMulti::init(ActionGame *game)
         setRayCastEnabled(true);
 
 
-        connect(this, &GameObject::sceneConnected, this, &GamePlayer::onSceneConnected);
         connect(this, &GameEntity::beginContact, this, &GamePlayer::onBeginContact);
         connect(this, &GameEntity::endContact, this, &GamePlayer::onEndContact);
         connect(this, &GameEntity::baseGroundContact, this, &GamePlayer::onBaseGroundContacted);
@@ -327,12 +326,10 @@ void GamePlayerMulti::performAttack()
     emit attack();
     jumpToSprite(QStringLiteral("shot"));		// Mindenképp kérjük
 
-    cacheCurrentState();
-
     if (!m_enemy)
         return;
 
-    ///m_scene->game()->tryAttack(this, m_enemy);
+    m_scene->game()->tryAttack(this, m_enemy);
 }
 
 

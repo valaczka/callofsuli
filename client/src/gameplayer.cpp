@@ -103,6 +103,7 @@ void GamePlayer::onSceneConnected()
 
     setRayCastElevation(data.value(QStringLiteral("rayCastElevation")).toDouble());
     setRayCastLength(data.value(QStringLiteral("rayCastLength")).toDouble());
+
     setHurtFall(data.value(QStringLiteral("hurtFall")).toDouble());
     setDeathlyFall(data.value(QStringLiteral("deathlyFall")).toDouble());
 }
@@ -305,7 +306,6 @@ void GamePlayer::init(ActionGame *game)
     setRayCastEnabled(true);
 
 
-    connect(this, &GameObject::sceneConnected, this, &GamePlayer::onSceneConnected);
     connect(this, &GameEntity::beginContact, this, &GamePlayer::onBeginContact);
     connect(this, &GameEntity::endContact, this, &GamePlayer::onEndContact);
     connect(this, &GameEntity::baseGroundContact, this, &GamePlayer::onBaseGroundContacted);
@@ -834,48 +834,6 @@ void GamePlayer::startInvisibility(const int &msec)
 }
 
 
-
-
-
-/**
- * @brief GamePlayer::hurtByEnemy
- * @param enemy
- * @param canProtect
- */
-
-void GamePlayer::hurtByEnemy(GameEnemy *, const bool &canProtect)
-{
-    emit underAttack();
-
-    /*if (m_cosGame && m_cosGame->gameMatch() && m_cosGame->gameMatch()->invincible()) {
-                    return;
-            }
-*/
-
-    if (canProtect && m_shield > 0) {
-        setShield(m_shield-1);
-    } else {
-        decreaseHp();
-    }
-}
-
-
-/**
- * @brief GamePlayer::killByEnemy
- * @param enemy
- */
-
-void GamePlayer::killByEnemy(GameEnemy *)
-{
-    /*if (m_cosGame && m_cosGame->gameMatch() && m_cosGame->gameMatch()->invincible()) {
-            return;
-    }*/
-
-    setPlayerState(Dead);
-    m_scene->playSoundPlayerVoice(QStringLiteral("qrc:/sound/sfx/dead.mp3"));
-
-    kill();
-}
 
 
 

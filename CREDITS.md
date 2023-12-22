@@ -20,6 +20,7 @@
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
 - Qzxing (https://github.com/ftylitak/qzxing) 
 - SortFilterProxyModel - (c) 2016 Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
+- Tar to stream - (c) 2023 Armchair-Software (https://github.com/Armchair-Software/tar_to_stream)
 - Tiled - Thorbjørn Lindeijer (https://github.com/mapeditor/tiled)
 
 **Image & Animation**

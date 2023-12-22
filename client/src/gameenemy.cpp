@@ -26,9 +26,11 @@
 
 #include "gameenemy.h"
 #include "Logger.h"
+#include "gameplayermulti.h"
 #include "gamescene.h"
 #include "application.h"
 #include "gameplayer.h"
+#include "multiplayergame.h"
 #include <qtimer.h>
 
 
@@ -58,7 +60,6 @@ GameEnemy::GameEnemy(QQuickItem *parent)
     setCategoryRayCast(CATEGORY_PLAYER);
     setRayCastEnabled(true);
 
-    connect(this, &GameObject::sceneConnected, this, &GameEnemy::onSceneConnected);
     connect(this, &GameEnemy::attack, this, &GameEnemy::playAttackSound);
 
     connect(this, &GameEnemy::allHpLost, this, [this](){
@@ -93,19 +94,6 @@ void GameEnemy::onSceneConnected()
 
 
 
-/**
- * @brief GameEnemy::attackedByPlayerEvent
- * @param player
- */
-
-void GameEnemy::attackedByPlayerEvent(GamePlayer *player, const bool &isQuestionEmpty)
-{
-    Q_ASSERT (player);
-
-    if (!isQuestionEmpty || !player->isAlive()) {
-        turnToPlayer(player);
-    }
-}
 
 
 /**
@@ -150,6 +138,9 @@ bool GameEnemy::stateReconciliation(const ObjectStateBase &from, const ObjectSta
     if (from.enemyState == ObjectStateBase::Dead)
         return false;
 
+    if (from.enemyWatchingPlayerId != to.enemyWatchingPlayerId)
+        return false;
+
     return true;
 }
 
@@ -163,6 +154,24 @@ bool GameEnemy::stateReconciliation(const ObjectStateBase &from, const ObjectSta
 void GameEnemy::playAttackSound()
 {
     Application::instance()->client()->sound()->playSound(shotSound(), Sound::SfxChannel);
+}
+
+
+
+/**
+ * @brief GameEnemy::forcedPlayer
+ * @return
+ */
+
+GamePlayer *GameEnemy::forcedPlayer() const
+{
+    return qobject_cast<GamePlayer*>(m_forcedPlayer);
+}
+
+void GameEnemy::setForcedPlayer(GamePlayer *newForcedPlayer)
+{
+    m_forcedPlayer = newForcedPlayer;
+    emit playerChanged();
 }
 
 
@@ -193,10 +202,23 @@ ObjectStateBase GameEnemy::getCurrentState() const
     b.fields.setFlag(ObjectStateBase::FieldEnemyState);
     b.fields.setFlag(ObjectStateBase::FieldEnemyRect);
     b.fields.setFlag(ObjectStateBase::FieldMSecToAttack);
+    b.fields.setFlag(ObjectStateBase::FieldWPlayerId);
 
     b.enemyState = m_stateHash.key(m_enemyState, ObjectStateBase::Invalid);
     b.enemyRect = m_terrainEnemyData.rect;
     b.msecLeftToAttack = m_msecLeftToAttack;
+
+    if (MultiPlayerGame *mGame = qobject_cast<MultiPlayerGame*>(game()); mGame) {
+        if (GamePlayerMulti *mp = qobject_cast<GamePlayerMulti*>(m_player); mp) {
+            const qint64 &id = mGame->getEntityId(mp);
+            b.enemyWatchingPlayerId = id;
+        } else {
+            b.enemyWatchingPlayerId = -1;
+        }
+    } else {
+        b.enemyWatchingPlayerId = -1;
+    }
+
 
     return b;
 }
@@ -223,6 +245,16 @@ void GameEnemy::setCurrentState(const ObjectStateBase &state, const bool &force)
 
         if (state.fields.testFlag(ObjectStateBase::FieldMSecToAttack))
             setMsecLeftToAttack(state.msecLeftToAttack);
+
+        if (MultiPlayerGame *mGame = qobject_cast<MultiPlayerGame*>(game());
+            mGame && state.fields.testFlag(ObjectStateBase::FieldWPlayerId)) {
+            GamePlayerMulti *mp = qobject_cast<GamePlayerMulti*>(mGame->getEntity(state.enemyWatchingPlayerId));
+            if (mp) {
+                setForcedPlayer(mp);
+            } else {
+                setForcedPlayer(nullptr);
+            }
+        }
     }
 }
 
@@ -372,6 +404,9 @@ void GameEnemy::setAimedByPlayer(bool newAimedByPlayer)
 
 GamePlayer *GameEnemy::player() const
 {
+    if (auto p = forcedPlayer(); p)
+        return p;
+
     return qobject_cast<GamePlayer*>(m_player);
 }
 
@@ -400,25 +435,6 @@ void GameEnemy::setMsecLeftToAttack(qreal newMsecLeftToAttack)
 
 
 /**
- * @brief GameEnemy::attackByPlayer
- * @param player
- * @param questionEmpty
- */
-
-void GameEnemy::attackByPlayer(GamePlayer *player, const bool &questionEmpty)
-{
-    decreaseHp();
-
-    attackedByPlayerEvent(player, questionEmpty);
-
-    if (isAlive())
-        return;
-
-    setAimedByPlayer(false);
-}
-
-
-/**
  * @brief GameEnemy::missedByPlayer
  * @param player
  */
@@ -433,7 +449,9 @@ void GameEnemy::missedByPlayer(GamePlayer *player)
 
     emit killMissed();
 
-    player->hurtByEnemy(this, false);
+    if (ActionGame *g = game(); g) {
+        g->enemyAttackPlayer(this, false, player);
+    }
 }
 
 

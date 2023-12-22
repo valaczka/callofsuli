@@ -138,10 +138,10 @@ private slots:
 signals:
     void sceneChanged();
     void gameChanged();
-    void sceneConnected();
     void objectTypeChanged();
 
 protected:
+    virtual void onSceneConnected() {}
     virtual ObjectStateBase interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to);
     virtual ObjectStateBase interpolateStates(const qint64 &currentTick, const ObjectStateBase *defaultState);
     virtual bool stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to);
