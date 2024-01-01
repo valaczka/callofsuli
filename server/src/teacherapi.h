@@ -113,6 +113,14 @@ public:
 	QHttpServerResponse taskUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse taskDelete(const Credential &credential, const QJsonArray &list);
 
+
+	QHttpServerResponse exam(const Credential &credential, const int &id, const int &groupId);
+	QHttpServerResponse examCreate(const Credential &credential, const int &group, const QJsonObject &json);
+	QHttpServerResponse examUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse examDelete(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse examCreateContent(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse examContent(const Credential &credential, const int &id, const QString &user);
+
 	QHttpServerResponse userPeers() const;
 
 
@@ -146,8 +154,6 @@ public:
 private:
 	QJsonObject _task(const int &id) const;
 	QJsonArray _taskList(const int &campaign) const;
-
-//	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
 
 };
 

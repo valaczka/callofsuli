@@ -466,8 +466,6 @@ void EngineHandlerPrivate::websocketEngineLink(WebSocketStream *stream, const st
 
 	stream->engineAdd(engine);
 	engine->streamSet(stream);
-
-	LOG_CTRACE("engine") << "ENGINE LINK FINISHED" << stream << engine.get() << engine.use_count();
 }
 
 

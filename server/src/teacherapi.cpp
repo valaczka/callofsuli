@@ -30,6 +30,7 @@
 #include "qjsonarray.h"
 #include "qsqlrecord.h"
 #include "serverservice.h"
+#include "querybuilder.hpp"
 
 
 
@@ -51,6 +52,12 @@
 	LAMBDA_SQL_ERROR("invalid id", \
 	QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=") \
 	.addValue(username).addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=").addValue(id).addQuery(")") \
+	.execCheckExists());
+
+#define CHECK_EXAM(username, id)	\
+	LAMBDA_SQL_ERROR("invalid id", \
+	QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=") \
+	.addValue(username).addQuery(" AND id=(SELECT groupid FROM exam WHERE id=").addValue(id).addQuery(")") \
 	.execCheckExists());
 
 
@@ -495,6 +502,107 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		return userPeers();
 	});
 
+
+
+
+	server->route(path+"exam/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return exam(*credential, id, -1);
+	});
+
+	server->route(path+"group/<arg>/exam", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &groupid, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return exam(*credential, -1, groupid);
+	});
+
+	server->route(path+"group/<arg>/exam/create", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examCreate(*credential, id, *jsonObject);
+	});
+
+	server->route(path+"exam/<arg>/campaign", QHttpServerRequest::Method::Put, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examCreate(*credential, id, *jsonObject);
+	});
+
+	server->route(path+"exam/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examUpdate(*credential, id, *jsonObject);
+	});
+
+	server->route(path+"exam/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examDelete(*credential, QJsonArray{id});
+	});
+
+	server->route(path+"exam/<arg>/create", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examCreateContent(*credential, id, *jsonObject);
+	});
+
+	server->route(path+"exam/<arg>/content/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QString &user, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examContent(*credential, id, user);
+	});
+
+	server->route(path+"exam/<arg>/content", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examContent(*credential, id, QStringLiteral(""));
+	});
+
+	server->route(path+"exam/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examDelete(*credential, QJsonArray{id});
+	});
+
+	server->route(path+"exam/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examDelete(*credential, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
+	server->route(path+"exam", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return exam(*credential, -1, -1);
+	});
+
+
+	/*server->route(path+"exam/<arg>/content", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examUpdate(*credential, id, *jsonObject);
+	});
+
+	server->route(path+"exam/<arg>/result/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_GET();
+		return campaignResultUser(*credential, id, username, jsonObject.value_or(QJsonObject{}));
+	});*/
+
+
+
+
+
+	server->route(path+"user/peers", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return userPeers();
+	});
+
+
+	// TODO: tag (get tags, get subtags, get tagged maps, delete tag with merge)
+	// TODO: map (add alias, delete alias, tag map)
+
 	/*server->route(path+"user/peers/live", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return responseFakeEventStream();
@@ -541,7 +649,7 @@ QHttpServerResponse TeacherAPI::groups(const Credential &credential)
 			const auto &l = QueryBuilder::q(db).addQuery("SELECT class.id, name FROM bindGroupClass "
 														 "LEFT JOIN class ON (class.id=bindGroupClass.classid) "
 														 "WHERE groupid=").addValue(id)
-					.execToJsonArray();
+							.execToJsonArray();
 
 			LAMBDA_SQL_ASSERT(l);
 
@@ -580,8 +688,8 @@ QHttpServerResponse TeacherAPI::group(const Credential &credential, const int &i
 
 
 	const auto &d = QueryBuilder::q(db).addQuery("SELECT id, name, active FROM studentgroup WHERE owner=").addValue(username)
-			.addQuery(" AND id=").addValue(id)
-			.execToJsonObject();
+					.addQuery(" AND id=").addValue(id)
+					.execToJsonObject();
 
 	LAMBDA_SQL_ASSERT(d);
 	LAMBDA_SQL_ERROR("invalid id", !d->isEmpty());
@@ -675,16 +783,16 @@ QHttpServerResponse TeacherAPI::groupCreate(const Credential &credential, const 
 	const QString &username = credential.username();
 
 	const auto &id = QueryBuilder::q(db)
-			.addQuery("INSERT INTO studentgroup(")
-			.setFieldPlaceholder()
-			.addQuery(") VALUES (")
-			.setValuePlaceholder()
-			.addQuery(")")
-			.addField("name", name)
-			.addField("owner", username)
-			.addField("active", json.value(QStringLiteral("active")).toBool(true))
-			.execInsertAsInt()
-			;
+					 .addQuery("INSERT INTO studentgroup(")
+					 .setFieldPlaceholder()
+					 .addQuery(") VALUES (")
+					 .setValuePlaceholder()
+					 .addQuery(")")
+					 .addField("name", name)
+					 .addField("owner", username)
+					 .addField("active", json.value(QStringLiteral("active")).toBool(true))
+					 .execInsertAsInt()
+					 ;
 
 	LAMBDA_SQL_ASSERT(id);
 
@@ -895,7 +1003,7 @@ QHttpServerResponse TeacherAPI::groupClassExclude(const Credential &credential, 
 													"(SELECT classid FROM bindGroupClass "
 													"LEFT JOIN class ON (class.id=bindGroupClass.classid) "
 													"WHERE groupid=").addValue(id).addQuery(")")
-			.execToJsonArray();
+					   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -1011,12 +1119,12 @@ QHttpServerResponse TeacherAPI::groupUserExclude(const Credential &credential, c
 	CHECK_GROUP(credential.username(), id);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT classid, user.username, familyName, givenName, nickname, picture, "
-					  "class.name as classname FROM user "
-					  "LEFT JOIN class ON (class.id=user.classid) WHERE user.active=TRUE "
-					  "AND user.isTeacher=false AND user.username NOT IN "
-					  "(SELECT username FROM bindGroupStudent WHERE groupid=").addValue(id).addQuery(")")
-			.execToJsonArray();
+					   .addQuery("SELECT classid, user.username, familyName, givenName, nickname, picture, "
+								 "class.name as classname FROM user "
+								 "LEFT JOIN class ON (class.id=user.classid) WHERE user.active=TRUE "
+								 "AND user.isTeacher=false AND user.username NOT IN "
+								 "(SELECT username FROM bindGroupStudent WHERE groupid=").addValue(id).addQuery(")")
+					   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -1057,14 +1165,14 @@ QHttpServerResponse TeacherAPI::groupResult(const Credential &credential, const 
 		const int &id = q.value("id").toInt();
 
 		const auto &resultList = QueryBuilder::q(db)
-				.addQuery("SELECT studentGroupInfo.username AS username, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
-						  "FROM studentGroupInfo "
-						  "LEFT JOIN campaignResult ON (campaignResult.campaignid=").addValue(id)
-				.addQuery(" AND campaignResult.username=studentGroupInfo.username) "
-						  "LEFT JOIN score ON (campaignResult.scoreid=score.id) "
-						  "WHERE active=true AND studentGroupInfo.id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(id)
-				.addQuery(")")
-				.execToJsonArray();
+								 .addQuery("SELECT studentGroupInfo.username AS username, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+										   "FROM studentGroupInfo "
+										   "LEFT JOIN campaignResult ON (campaignResult.campaignid=").addValue(id)
+								 .addQuery(" AND campaignResult.username=studentGroupInfo.username) "
+										   "LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+										   "WHERE active=true AND studentGroupInfo.id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(id)
+								 .addQuery(")")
+								 .execToJsonArray();
 
 		LAMBDA_SQL_ASSERT(resultList);
 
@@ -1174,6 +1282,8 @@ QHttpServerResponse TeacherAPI::map(const Credential &credential, const QString 
 	LAMBDA_THREAD_BEGIN(credential, uuid);
 
 	const QString &username = credential.username();
+
+	// TODO: aliases, tags
 
 	QueryBuilder q(db);
 	q.addQuery("SELECT mapdb.map.uuid, name, version, md5, CAST(strftime('%s', lastModified) AS INTEGER) AS lastModified, "
@@ -1634,12 +1744,12 @@ QHttpServerResponse TeacherAPI::campaign(const Credential &credential, const int
 	LAMBDA_THREAD_BEGIN(credential, id);
 
 	auto obj = QueryBuilder::q(db)
-			.addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
-					  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-					  "description, started, finished, defaultGrade, groupid "
-					  "FROM campaign WHERE id=").addValue(id)
-			.addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")")
-			.execToJsonObject();
+			   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+						 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
+						 "description, started, finished, defaultGrade, groupid "
+						 "FROM campaign WHERE id=").addValue(id)
+			   .addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")")
+			   .execToJsonObject();
 
 	LAMBDA_SQL_ASSERT(obj);
 	LAMBDA_SQL_ERROR("not found", !obj->isEmpty());
@@ -1917,10 +2027,10 @@ QHttpServerResponse TeacherAPI::campaignDuplicate(const Credential &credential, 
 		}
 
 		const auto &newId = QueryBuilder::q(db)
-				.addQuery("INSERT INTO campaign (groupid, endtime, description, defaultGrade) "
-						  "SELECT ").addValue(target)
-				.addQuery(", endtime, description, defaultGrade FROM campaign WHERE id=").addValue(id)
-				.execInsertAsInt();
+							.addQuery("INSERT INTO campaign (groupid, endtime, description, defaultGrade) "
+									  "SELECT ").addValue(target)
+							.addQuery(", endtime, description, defaultGrade FROM campaign WHERE id=").addValue(id)
+							.execInsertAsInt();
 
 		LAMBDA_SQL_ASSERT_ROLLBACK(newId);
 
@@ -1964,9 +2074,9 @@ QHttpServerResponse TeacherAPI::campaignResult(const Credential &credential, con
 	LAMBDA_THREAD_BEGIN(credential, id);
 
 	const auto &obj = QueryBuilder::q(db)
-			.addQuery("SELECT id, finished FROM campaign WHERE id=").addValue(id)
-			.addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")")
-			.execToJsonObject();
+					  .addQuery("SELECT id, finished FROM campaign WHERE id=").addValue(id)
+					  .addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")")
+					  .execToJsonObject();
 
 	LAMBDA_SQL_ASSERT(obj);
 
@@ -2086,8 +2196,8 @@ QHttpServerResponse TeacherAPI::campaignUser(const Credential &credential, const
 	CHECK_CAMPAIGN(credential.username(), id);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT username FROM campaignStudent WHERE campaignid=").addValue(id)
-			.execToJsonArray();
+					   .addQuery("SELECT username FROM campaignStudent WHERE campaignid=").addValue(id)
+					   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -2388,11 +2498,11 @@ QHttpServerResponse TeacherAPI::task(const Credential &credential, const int &id
 	LAMBDA_THREAD_BEGIN(credential, id);
 
 	LAMBDA_SQL_ERROR("invalid id", QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
-			.addValue(credential.username())
-			.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=(SELECT campaignid FROM task WHERE id=")
-			.addValue(id)
-			.addQuery("))")
-			.execCheckExists());
+					 .addValue(credential.username())
+					 .addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=(SELECT campaignid FROM task WHERE id=")
+					 .addValue(id)
+					 .addQuery("))")
+					 .execCheckExists());
 
 	response = QHttpServerResponse(_task(id));
 
@@ -2418,11 +2528,11 @@ QHttpServerResponse TeacherAPI::taskUpdate(const Credential &credential, const i
 	LAMBDA_THREAD_BEGIN(credential, id, json);
 
 	LAMBDA_SQL_ERROR("invalid id", QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
-			.addValue(credential.username())
-			.addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=(SELECT campaignid FROM task WHERE id=")
-			.addValue(id)
-			.addQuery("))")
-			.execCheckExists());
+					 .addValue(credential.username())
+					 .addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=(SELECT campaignid FROM task WHERE id=")
+					 .addValue(id)
+					 .addQuery("))")
+					 .execCheckExists());
 
 	QueryBuilder q(db);
 	q.addQuery("UPDATE task SET ").setCombinedPlaceholder();
@@ -2475,17 +2585,242 @@ QHttpServerResponse TeacherAPI::taskDelete(const Credential &credential, const Q
 	LAMBDA_THREAD_BEGIN(credential, list);
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).
-			addQuery("DELETE FROM task WHERE id IN "
-					 "(SELECT task.id FROM task LEFT JOIN campaign ON (campaign.id=task.campaignid) "
-					 "LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) WHERE task.id IN(")
-			.addList(list.toVariantList())
-			.addQuery(") AND studentgroup.owner=").addValue(credential.username())
-			.addQuery(")")
-			.exec());
+					  addQuery("DELETE FROM task WHERE id IN "
+							   "(SELECT task.id FROM task LEFT JOIN campaign ON (campaign.id=task.campaignid) "
+							   "LEFT JOIN studentgroup ON (studentgroup.id=campaign.groupid) WHERE task.id IN(")
+					  .addList(list.toVariantList())
+					  .addQuery(") AND studentgroup.owner=").addValue(credential.username())
+					  .addQuery(")")
+					  .exec());
 
 	LOG_CDEBUG("client") << "Tasks deleted:" << list;
 
 	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief TeacherAPI::exam
+ * @param credential
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::exam(const Credential &credential, const int &id, const int &groupId)
+{
+	LOG_CTRACE("client") << "Get exam" << id << "in group" << groupId;
+
+	LAMBDA_THREAD_BEGIN(credential, id, groupId);
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT id, mode, state, mapuuid, description, engineData, CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp "
+			   "FROM exam WHERE groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")");
+
+	if (id > 0)
+		q.addQuery(" AND id=").addValue(id);
+
+	if (groupId > 0)
+		q.addQuery(" AND groupid=").addValue(groupId);
+
+	const auto &list = q.execToJsonArray({
+											 { QStringLiteral("engineData"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+											   } }
+										 });
+
+	LAMBDA_SQL_ASSERT(list);
+
+	if (id <= 0)
+		response = responseResult("list", *list);
+	else if (list->isEmpty())
+		response = responseError("not found");
+	else
+		response = QHttpServerResponse(list->at(0).toObject());
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief TeacherAPI::examCreate
+ * @param credential
+ * @param group
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examCreate(const Credential &credential, const int &group, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Create exam in group" << group;
+
+	if (group <= 0)
+		return responseError("invalid group");
+
+	LAMBDA_THREAD_BEGIN(credential, group, json);
+
+	CHECK_GROUP(credential.username(), group);
+
+	QueryBuilder q(db);
+	q.addQuery("INSERT INTO exam(")
+			.setFieldPlaceholder()
+			.addQuery(") VALUES (")
+			.setValuePlaceholder()
+			.addQuery(")")
+			.addField("groupid", group)
+			.addField("mode", json.value(QStringLiteral("mode")).toInt(0))
+			;
+
+	if (json.contains(QStringLiteral("mapuuid")))
+		q.addField("mapuuid", json.value(QStringLiteral("mapuuid")).toString());
+
+	if (json.contains(QStringLiteral("description")))
+		q.addField("description", json.value(QStringLiteral("description")).toString());
+
+	const auto &id = q.execInsertAsInt();
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(id);
+
+	db.commit();
+
+	LOG_CDEBUG("client") << "Exam created:" << *id;
+
+	response = responseResult("id", *id);
+
+	LAMBDA_THREAD_END;
+}
+
+
+/**
+ * @brief TeacherAPI::examUpdate
+ * @param credential
+ * @param id
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examUpdate(const Credential &credential, const int &id, const QJsonObject &json)
+{
+
+}
+
+
+/**
+ * @brief TeacherAPI::examDelete
+ * @param credential
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examDelete(const Credential &credential, const QJsonArray &list)
+{
+
+}
+
+
+/**
+ * @brief TeacherAPI::examCreateContent
+ * @param credential
+ * @param id
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examCreateContent(const Credential &credential, const int &id, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Create content in exam" << id;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, id, json);
+
+	CHECK_EXAM(credential.username(), id);
+
+	db.transaction();
+
+	const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
+
+	for (const QJsonValue &v : list) {
+		const QJsonObject &obj = v.toObject();
+
+		const QString &user = obj.value(QStringLiteral("username")).toString();
+		const QJsonArray &qList = obj.value(QStringLiteral("q")).toArray();
+
+		LAMBDA_SQL_ERROR_ROLLBACK("missing username", !user.isEmpty());
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("INSERT OR REPLACE INTO examContent(")
+								   .setFieldPlaceholder()
+								   .addQuery(") VALUES (")
+								   .setValuePlaceholder()
+								   .addQuery(")")
+								   .addField("examid", id)
+								   .addField("username", user)
+								   .addNullField<double>("result")
+								   .addNullField<int>("gradeid")
+								   .addField("data", QString::fromUtf8(QJsonDocument(qList).toJson(QJsonDocument::Compact)))
+								   .exec());
+	}
+
+	db.commit();
+
+	LOG_CDEBUG("client") << "Exam content created:" << id;
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief TeacherAPI::examContent
+ * @param credential
+ * @param id
+ * @param user
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examContent(const Credential &credential, const int &id, const QString &user)
+{
+	LOG_CTRACE("client") << "Get content in exam" << id;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, id, user);
+
+	CHECK_EXAM(credential.username(), id);
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT examContent.id as id, username, data, result, gradeid, answer, correction "
+			   "FROM examContent LEFT JOIN examAnswer ON (examAnswer.contentid=examContent.id) "
+			   "WHERE examid=")
+			.addValue(id);
+
+	if (!user.isEmpty())
+		q.addQuery(" AND username=").addValue(user);
+
+	const auto &list = q.execToJsonArray({
+											 { QStringLiteral("data"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+											   } }
+										 });
+
+	LAMBDA_SQL_ASSERT(list);
+
+	if (user.isEmpty())
+		response = responseResult("list", *list);
+	else if (list->isEmpty())
+		response = responseError("not found");
+	else
+		response = QHttpServerResponse(list->at(0).toObject());
+
 
 	LAMBDA_THREAD_END;
 }
@@ -2613,9 +2948,9 @@ std::optional<bool> TeacherAPI::_evaluateCriterionXP(const AbstractAPI *api, con
 	QMutexLocker _locker(api->databaseMain()->mutex());
 
 	const auto &xp = QueryBuilder::q(db)
-			.addQuery("SELECT SUM(xp) AS xp FROM game LEFT JOIN score ON (game.scoreid=score.id) WHERE game.username=").addValue(username)
-			.addQuery(" AND campaignid=").addValue(campaign)
-			.execToValue("xp");
+					 .addQuery("SELECT SUM(xp) AS xp FROM game LEFT JOIN score ON (game.scoreid=score.id) WHERE game.username=").addValue(username)
+					 .addQuery(" AND campaignid=").addValue(campaign)
+					 .execToValue("xp");
 
 	if (!xp)
 		return std::nullopt;
@@ -2693,12 +3028,12 @@ std::optional<bool> TeacherAPI::_evaluateCriterionMapMission(const AbstractAPI *
 	QMutexLocker _locker(api->databaseMain()->mutex());
 
 	const auto &num = QueryBuilder::q(db)
-			.addQuery("WITH s AS (SELECT DISTINCT missionid FROM game WHERE success=true AND username=").addValue(username)
-			.addQuery(" AND campaignid=").addValue(campaign)
-			.addQuery(" AND mapid=").addValue(map)
-			.addQuery(") SELECT COUNT(*) AS num FROM s")
-			.execToValue("num")
-			;
+					  .addQuery("WITH s AS (SELECT DISTINCT missionid FROM game WHERE success=true AND username=").addValue(username)
+					  .addQuery(" AND campaignid=").addValue(campaign)
+					  .addQuery(" AND mapid=").addValue(map)
+					  .addQuery(") SELECT COUNT(*) AS num FROM s")
+					  .execToValue("num")
+					  ;
 
 	if (!num)
 		return std::nullopt;
@@ -2758,27 +3093,27 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 
 	if (withCriterion) {
 		list = QueryBuilder::q(db)
-				.addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, mapuuid, criterion, map.name as mapname, "
-						  "(taskSuccess.username IS NOT NULL) AS success FROM task "
-						  "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) "
-						  "LEFT JOIN grade ON (grade.id=task.gradeid) "
-						  "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
-				.addValue(username)
-				.addQuery(") WHERE campaignid=").addValue(campaign)
-				.execToJsonArray({
-									 { QStringLiteral("criterion"), [](const QVariant &v) {
-										   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-									   } }
-								 });
+			   .addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, mapuuid, criterion, map.name as mapname, "
+						 "(taskSuccess.username IS NOT NULL) AS success FROM task "
+						 "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) "
+						 "LEFT JOIN grade ON (grade.id=task.gradeid) "
+						 "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
+			   .addValue(username)
+			   .addQuery(") WHERE campaignid=").addValue(campaign)
+			   .execToJsonArray({
+									{ QStringLiteral("criterion"), [](const QVariant &v) {
+										  return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+									  } }
+								});
 	} else {
 		list = QueryBuilder::q(db)
-				.addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, "
-						  "(taskSuccess.username IS NOT NULL) AS success FROM task "
-						  "LEFT JOIN grade ON (grade.id=task.gradeid) "
-						  "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
-				.addValue(username)
-				.addQuery(") WHERE campaignid=").addValue(campaign)
-				.execToJsonArray();
+			   .addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, "
+						 "(taskSuccess.username IS NOT NULL) AS success FROM task "
+						 "LEFT JOIN grade ON (grade.id=task.gradeid) "
+						 "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
+			   .addValue(username)
+			   .addQuery(") WHERE campaignid=").addValue(campaign)
+			   .execToJsonArray();
 	}
 
 	if (!list)

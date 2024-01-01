@@ -132,8 +132,6 @@ public:
 		return userExists(api, username, true);
 	}
 
-//	void userPeersLive(const QRegularExpressionMatch &, const QJsonObject &, QPointer<HttpResponse> response) const;
-
 };
 
 #endif // ADMINAPI_H

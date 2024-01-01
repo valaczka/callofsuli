@@ -527,26 +527,11 @@ TestGame::QuestionResult TestGame::questionDataResult(const QVector<QuestionData
  * @return
  */
 
-QString TestGame::questionDataResultToHtml(const TestGame *game, const QuestionResult &result)
+QString TestGame::questionDataResultToHtml(const QString &header, const QuestionResult &result)
 {
-	Q_ASSERT(game);
-
 	QString html = QStringLiteral("<html><body>");
 
-
-	// Title
-
-	html += QStringLiteral("<h1>%1</h1>").arg(game->name());
-
-
-	// Result
-
-	const qreal &percent = result.maxPoints > 0 ? result.points/result.maxPoints : 0;
-
-	if (result.success)
-		html += QStringLiteral("<p class=\"resultSuccess\">%1 (%2%)</p>").arg(tr("Sikeres megoldás")).arg(qFloor(percent*100));
-	else
-		html += QStringLiteral("<p class=\"resultFail\">%1 (%2%)</p>").arg(tr("Sikertelen megoldás")).arg(qFloor(percent*100));
+	html += header;
 
 	// Questions
 
@@ -599,6 +584,33 @@ QString TestGame::questionDataResultToHtml(const TestGame *game, const QuestionR
 
 
 	return html;
+}
+
+
+
+/**
+ * @brief TestGame::questionDataResultToHtml
+ * @param result
+ * @return
+ */
+
+QString TestGame::questionDataResultToHtml(const QuestionResult &result) const
+{
+	QString html;
+
+	html += QStringLiteral("<h1>%1</h1>").arg(name());
+
+
+	// Result
+
+	const qreal &percent = result.maxPoints > 0 ? result.points/result.maxPoints : 0;
+
+	if (result.success)
+		html += QStringLiteral("<p class=\"resultSuccess\">%1 (%2%)</p>").arg(tr("Sikeres megoldás")).arg(qFloor(percent*100));
+	else
+		html += QStringLiteral("<p class=\"resultFail\">%1 (%2%)</p>").arg(tr("Sikertelen megoldás")).arg(qFloor(percent*100));
+
+	return questionDataResultToHtml(html, result);
 }
 
 

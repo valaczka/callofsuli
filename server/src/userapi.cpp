@@ -31,6 +31,7 @@
 #include "teacherapi.h"
 
 #include <QJsonObject>
+#include "querybuilder.hpp"
 
 
 

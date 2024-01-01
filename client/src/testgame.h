@@ -88,8 +88,8 @@ public:
 	static QuestionResult questionDataResult(const QVector<QuestionData> &list, const qreal &passed = 1.0);
 	QuestionResult questionDataResult(const qreal &passed = 1.0) { return questionDataResult(m_questionList, passed); }
 
-	static QString questionDataResultToHtml(const TestGame *game, const QuestionResult &result);
-	QString questionDataResultToHtml(const QuestionResult &result) const { return questionDataResultToHtml(this, result); }
+	static QString questionDataResultToHtml(const QString &header, const QuestionResult &result);
+	QString questionDataResultToHtml(const QuestionResult &result) const;
 
 	static const QString CheckOK;
 	static const QString CheckFailed;
@@ -123,7 +123,6 @@ signals:
 	void questionsChanged();
 	void currentQuestionChanged();
 	void resultChanged();
-
 	void hasResultChanged();
 
 protected:

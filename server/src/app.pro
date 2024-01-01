@@ -49,6 +49,7 @@ SOURCES += \
 	database.cpp \
 	databasemain.cpp \
 	enginehandler.cpp \
+	examengine.cpp \
 	generalapi.cpp \
 	googleoauth2authenticator.cpp \
 	handler.cpp \
@@ -79,6 +80,7 @@ HEADERS += \
 	database.h \
 	databasemain.h \
 	enginehandler.h \
+	examengine.h \
 	generalapi.h \
 	googleoauth2authenticator.h \
 	handler.h \
@@ -87,6 +89,7 @@ HEADERS += \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
 	peerengine.h \
+	querybuilder.hpp \
 	serverservice.h \
 	serversettings.h \
 	teacherapi.h \

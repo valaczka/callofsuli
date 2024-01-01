@@ -70,6 +70,14 @@ CREATE TABLE dailyLimitUser(
 	UNIQUE(username)
 );
 
+CREATE TABLE extraRole(
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	role TEXT NOT NULL
+);
+
+
+
+
 ----------------------------------
 --- Ranks
 ----------------------------------
@@ -140,6 +148,12 @@ CREATE TABLE grade(
 	value INTEGER NOT NULL DEFAULT 0 CHECK (value>=0)
 );
 
+CREATE TABLE grading(
+	id INTEGER NOT NULL PRIMARY KEY,
+	owner TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	name TEXT,
+	data TEXT
+);
 
 ----------------------------------
 --- Maps
@@ -151,7 +165,18 @@ CREATE TABLE mapOwner(
 	UNIQUE (mapuuid, username)
 );
 
+CREATE TABLE mapTag(
+	id INTEGER NOT NULL PRIMARY KEY,
+	tag TEXT NOT NULL,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	parentId INTEGER REFERENCES mapTag(id) ON UPDATE CASCADE ON DELETE CASCADE
+);
 
+CREATE TABLE mapTagBind(
+	mapuuid TEXT NOT NULL REFERENCES mapOwner(mapuuid) ON UPDATE CASCADE ON DELETE CASCADE,
+	tagid INTEGER REFERENCES mapTag(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	UNIQUE(mapuuid, tagid)
+);
 
 ----------------------------------
 --- Groups
@@ -234,6 +259,38 @@ CREATE TABLE campaignStudent(
 
 
 ----------------------------------
+--- Exam
+----------------------------------
+
+CREATE TABLE exam(
+	id INTEGER NOT NULL PRIMARY KEY,
+	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	mode INTEGER NOT NULL DEFAULT 0,
+	state INTEGER NOT NULL DEFAULT 0,
+	mapuuid TEXT,
+	description TEXT,
+	timestamp INTEGER,
+	engineData text
+);
+
+CREATE TABLE examContent(
+	id INTEGER NOT NULL PRIMARY KEY,
+	examid INTEGER NOT NULL REFERENCES exam(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	data TEXT,
+	result REAL,
+	gradeid INTEGER REFERENCES grade(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	UNIQUE (examid, username)
+);
+
+CREATE TABLE examAnswer(
+	id INTEGER NOT NULL PRIMARY KEY,
+	contentid INTEGER NOT NULL REFERENCES examContent(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	answer TEXT,
+	correction TEXT
+);
+
+----------------------------------
 --- Game
 ----------------------------------
 
@@ -294,4 +351,3 @@ WITH u AS (SELECT username, COALESCE((SELECT value FROM dailyLimitUser WHERE use
 	s AS (SELECT t.username, t.userLimit, SUM(duration)/1000 AS seconds FROM t
 		LEFT JOIN game ON (game.username=t.username AND date(game.timestamp) = date('now')) GROUP BY t.username)
 	SELECT username, userLimit, seconds, CASE WHEN userLimit > 0 THEN seconds*1.0/userLimit ELSE 0 END AS rate FROM s;
-

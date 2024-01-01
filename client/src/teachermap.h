@@ -73,7 +73,6 @@ public:
 signals:
 	void versionChanged();
 	void draftVersionChanged();
-	void cacheChanged();
 	void lastModifiedChanged();
 	void lastEditorChanged();
 

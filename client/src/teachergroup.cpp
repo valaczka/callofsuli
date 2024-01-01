@@ -227,6 +227,7 @@ CampaignList *TeacherGroup::campaignList() const
 
 
 
+
 /**
  * @brief TeacherGroupCampaignResultModel::TeacherGroupCampaignResultModel
  * @param parent

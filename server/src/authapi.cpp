@@ -25,6 +25,7 @@
  */
 
 #include "authapi.h"
+#include "querybuilder.hpp"
 #include "serverservice.h"
 #include "adminapi.h"
 
@@ -472,6 +473,19 @@ std::optional<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QSt
 			returnCredential.setRole(Credential::Student);
 			returnCredential.setRole(Credential::Admin, q.value("isAdmin").toBool());
 			returnCredential.setRole(Credential::Teacher, q.value("isTeacher").toBool());
+
+
+			// Load extra roles
+
+			QueryBuilder q(db);
+			q.addQuery("SELECT role FROM extraRole WHERE username=").addValue(username);
+			if (q.exec()) {
+				while (q.sqlQuery().next()) {
+					const QString &role = q.value("role").toString();
+					if (role == QStringLiteral("sni"))
+						returnCredential.setRole(Credential::SNI);
+				}
+			}
 		}
 
 		ret.resolve();

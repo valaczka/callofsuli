@@ -28,8 +28,8 @@
 #include "Logger.h"
 #include "qsqlquery.h"
 #include "utils_.h"
+#include "querybuilder.hpp"
 #include "serverservice.h"
-#include "adminapi.h"
 #include "rank.h"
 
 DatabaseMain::DatabaseMain(ServerService *service)
@@ -135,6 +135,70 @@ bool DatabaseMain::databaseAttach()
 	QDefer::await(ret);
 
 	return r;
+}
+
+
+
+/**
+ * @brief DatabaseMain::databaseUpgrade
+ * @param major
+ * @param minor
+ * @return
+ */
+
+bool DatabaseMain::databaseUpgrade(const int &major, const int &minor)
+{
+	for (int i=0; i<=2; ++i) {
+		QDefer ret;
+
+		std::unique_ptr<Database> db;
+
+		if (i==1) {
+			db.reset(new Database(QStringLiteral("mapsDb")));
+			db->databaseOpen(m_dbMapsFile);
+		} else if (i==2) {
+			db.reset(new Database(QStringLiteral("statDb")));
+			db->databaseOpen(m_dbStatFile);
+		}
+
+		QLambdaThreadWorker *worker = db ? db->worker() : m_worker.get();
+
+		worker->execInThread([ret, this, &major, &minor, ptr = db.get(), i]() mutable {
+			QSqlDatabase db = QSqlDatabase::database(ptr ? ptr->dbName() : m_dbName);
+
+			QMutexLocker mutexlocker(ptr ? ptr->mutex() : mutex());
+
+			if (QueryBuilder q(db); q.addQuery("SELECT versionMajor, versionMinor FROM system").exec()) {
+				if (!q.sqlQuery().first()) {
+					LOG_CERROR("db") << "Corrupt database";
+					return ret.reject();
+				}
+
+				const int &vMajor = q.value("versionMajor").toInt();
+				const int &vMinor = q.value("versionMinor").toInt();
+
+				if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode(major, minor)) {
+					if (!_upgradeTables(ptr ? ptr : this, i, vMajor, vMinor, major, minor)) {
+						LOG_CERROR("db") << "Upgrade failed";
+						return ret.reject();
+					}
+				}
+			}
+
+			ret.resolve();
+		});
+
+		QDefer::await(ret);
+
+		if (db)
+			db->databaseClose();
+
+		if (ret.state() != RESOLVED) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 
@@ -282,20 +346,15 @@ bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 		m_service->setServerName(q.value(QStringLiteral("serverName")).toString());
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeSystemTables(this, vMajor, vMinor))
+			if (_upgradeTables(this, 0, vMajor, vMinor))
 				return _checkSystemTable();
 			else
 				return false;
 		} else if (Utils::versionCode(vMajor, vMinor) == Utils::versionCode()) {
 			return true;
 		} else {
-#ifdef QT_DEBUG
-			LOG_CINFO("db") << "Database is newer than system service, skipped in debug";
+			LOG_CWARNING("db") << "Database is newer than system service";
 			return true;
-#else
-			LOG_CERROR("db") << "Database is newer than system service";
-			return false;
-#endif
 		}
 	} else {
 
@@ -357,20 +416,15 @@ bool DatabaseMain::_checkMapsSystemTable(Database *mapsDb)
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeMapsTables(mapsDb, vMajor, vMinor))
+			if (_upgradeTables(mapsDb, 1, vMajor, vMinor))
 				return _checkMapsSystemTable(mapsDb);
 			else
 				return false;
 		} else if (Utils::versionCode(vMajor, vMinor) == Utils::versionCode()) {
 			return true;
 		} else {
-#ifdef QT_DEBUG
-			LOG_CINFO("db") << "Maps database is newer than system service, skipped in debug";
+			LOG_CWARNING("db") << "Maps database is newer than system service";
 			return true;
-#else
-			LOG_CERROR("db") << "Maps database is newer than system service";
-			return false;
-#endif
 		}
 	} else {
 		db.transaction();
@@ -423,20 +477,15 @@ bool DatabaseMain::_checkStatSystemTable(Database *statDb)
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
-			if (_upgradeStatTables(statDb, vMajor, vMinor))
+			if (_upgradeTables(statDb, 2, vMajor, vMinor))
 				return _checkStatSystemTable(statDb);
 			else
 				return false;
 		} else if (Utils::versionCode(vMajor, vMinor) == Utils::versionCode()) {
 			return true;
 		} else {
-#ifdef QT_DEBUG
-			LOG_CINFO("db") << "Stat database is newer than system service, skipped in debug";
+			LOG_CWARNING("db") << "Stat database is newer than system service";
 			return true;
-#else
-			LOG_CERROR("db") << "Stat database is newer than system service";
-			return false;
-#endif
 		}
 	} else {
 		db.transaction();
@@ -577,57 +626,34 @@ bool DatabaseMain::_createStatTables(Database *db)
  */
 
 
-bool DatabaseMain::_upgradeSystemTables(Database *db, int fromMajor, int fromMinor)
+bool DatabaseMain::_upgradeTables(Database *db, const int &dbType, int fromMajor, int fromMinor, int toMajor, int toMinor)
 {
 	Q_ASSERT(db);
+	Q_ASSERT(dbType >= 0 && dbType <= 2);
 
-	static const QVector<Upgrade> list = {
-		Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_3.4_3.5.sql") }
+	if (toMajor == -1 || toMinor == -1) {
+		toMajor = m_service->versionMajor();
+		toMinor = m_service->versionMinor();
+	}
+
+	static const QVector<Upgrade> mainList = {
+		Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_3.4_3.5.sql") },
+		Upgrade {3, 5, 3, 6, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_3.5_3.6.sql") }
 	};
 
-	return db->performUpgrade(list,
+	static const QVector<Upgrade> mapsList = {
+		//Upgrade {3, 5, 3, 6, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/maps_3.5_3.6.sql") }
+	};
+
+	static const QVector<Upgrade> statList = {
+
+	};
+
+	return db->performUpgrade(dbType == 2 ? statList : dbType == 1 ? mapsList : mainList,
 							  QStringLiteral("UPDATE system SET versionMajor=%1, versionMinor=%2")
-							  .arg(m_service->versionMajor()).arg(m_service->versionMinor()),
-							  fromMajor, fromMinor);
-}
-
-
-/**
- * @brief DatabaseMain::_upgradeMapsTables
- * @return
- */
-
-bool DatabaseMain::_upgradeMapsTables(Database *mapsDb, int fromMajor, int fromMinor)
-{
-	Q_ASSERT(mapsDb);
-
-	static const QVector<Upgrade> list = {
-		/*Upgrade {2, 9, 3, 1, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},
-		Upgrade {3, 4, 3, 5, Database::Upgrade::UpgradeFromData, "SELECT TRUE"},*/
-	};
-
-	return mapsDb->performUpgrade(list,
-								  QStringLiteral("UPDATE system SET versionMajor=%1, versionMinor=%2")
-								  .arg(m_service->versionMajor()).arg(m_service->versionMinor()),
-								  fromMajor, fromMinor);
-}
-
-
-/**
- * @brief DatabaseMain::_upgradeStatTables
- * @return
- */
-
-bool DatabaseMain::_upgradeStatTables(Database *statDb, int fromMajor, int fromMinor)
-{
-	static const QVector<Upgrade> list = {
-
-	};
-
-	return statDb->performUpgrade(list,
-								  QStringLiteral("UPDATE system SET versionMajor=%1, versionMinor=%2")
-								  .arg(m_service->versionMajor()).arg(m_service->versionMinor()),
-								  fromMajor, fromMinor);
+							  .arg(toMajor).arg(toMinor),
+							  fromMajor, fromMinor,
+							  toMajor, toMinor);
 }
 
 
@@ -638,7 +664,6 @@ bool DatabaseMain::_upgradeStatTables(Database *statDb, int fromMajor, int fromM
 
 bool DatabaseMain::_createUsers()
 {
-#ifdef _COMPAT
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
 	AdminAPI::User user;
@@ -648,30 +673,15 @@ bool DatabaseMain::_createUsers()
 	user.isAdmin = true;
 	user.active = true;
 
-	QDefer ret;
-	bool success = false;
+	if (!AdminAPI::userAdd(this, user)) {
+		LOG_CERROR("db") << "Admin user create error";
+		return false;
+	}
 
-	AdminAPI::userAdd(this, user)
-			.fail([ret, &success]() mutable {
-		success = false;
-		ret.reject();
-	})
-			.done([this, user, ret, &success]() mutable {
-		AdminAPI::authAddPlain(this, user.username, user.username)
-				.fail([ret, &success]() mutable {
-			success = false;
-			ret.reject();
-		})
-				.done([ret, &success]() mutable {
-			success = true;
-			ret.resolve();
-		});
-	});
-
-	QDefer::await(ret);
-
-	return success;
-#endif
+	if (!AdminAPI::authAddPlain(this, user.username, user.username)) {
+		LOG_CERROR("db") << "Admin user auth error";
+		return false;
+	}
 
 	return true;
 }

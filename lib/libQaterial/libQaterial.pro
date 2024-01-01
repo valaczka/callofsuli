@@ -121,7 +121,8 @@ linux:!exists(QaterialIcons.qrc): {
 
 	message(Create QaterialIcons.qrc)
 	write_file(QaterialIcons.qrc, lines)
-	write_file($$PWD/../Qaterial/qml/Qaterial/Icons.qml, qmlLines)
+	lessThan(QT_MAJOR_VERSION, 6): write_file($$PWD/../Qaterial/qml/Qaterial/Icons.qml, qmlLines)
+	else: write_file($$PWD/../Qaterial/qml/Qaterial-Qt6/Icons.qml, qmlLines)
 }
 
 

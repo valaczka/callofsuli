@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets
+QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets pdf
 
 CONFIG += c++20
 CONFIG += separate_debug_info
@@ -200,6 +200,7 @@ SOURCES += \
 	client.cpp \
 	clientcache.cpp \
 	editorundostack.cpp \
+	exam.cpp \
 	examgame.cpp \
 	fetchmodel.cpp \
 	fontimage.cpp \
@@ -274,6 +275,7 @@ HEADERS += \
 	client.h \
 	clientcache.h \
 	editorundostack.h \
+	exam.h \
 	examgame.h \
 	fetchmodel.h \
 	fontimage.h \

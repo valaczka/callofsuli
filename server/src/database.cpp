@@ -29,6 +29,7 @@
 #include "utils_.h"
 #include <QSqlQuery>
 #include <QSqlRecord>
+#include "querybuilder.hpp"
 
 
 /**
@@ -137,9 +138,12 @@ void Database::databaseClose()
 	QDefer ret;
 
 	m_worker->execInThread([ret, this]() mutable {
-		LOG_CDEBUG("db") << "Close database:" << qPrintable(m_dbName);
+		auto db = QSqlDatabase::database(m_dbName);
 
-		QSqlDatabase::database(m_dbName).close();
+		if (db.isOpen()) {
+			LOG_CDEBUG("db") << "Close database:" << qPrintable(m_dbName);
+			QSqlDatabase::database(m_dbName).close();
+		}
 
 		ret.resolve();
 	});
@@ -313,19 +317,19 @@ bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
 				nextVersion = to;
 
 			switch (u.type) {
-			case Upgrade::UpgradeFromData:
-				if (!_batchFromData(u.content)) {
-					db.rollback();
-					return false;
-				}
-				break;
+				case Upgrade::UpgradeFromData:
+					if (!_batchFromData(u.content)) {
+						db.rollback();
+						return false;
+					}
+					break;
 
-			case Upgrade::UpgradeFromFile:
-				if (!_batchFromFile(u.content)) {
-					db.rollback();
-					return false;
-				}
-				break;
+				case Upgrade::UpgradeFromFile:
+					if (!_batchFromFile(u.content)) {
+						db.rollback();
+						return false;
+					}
+					break;
 			}
 		}
 
@@ -355,386 +359,3 @@ bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
 
 
 
-
-
-/**
- * @brief QueryBuilder::exec
- * @return
- */
-
-bool QueryBuilder::exec()
-{
-	QString q;
-
-	auto bit = m_bind.constBegin();
-
-	for (auto it = m_queryString.constBegin(), prev = m_queryString.constEnd(); it != m_queryString.constEnd(); prev=it, ++it) {
-		switch (it->type) {
-		case QueryString::Query:
-			q += (it->text ? it->text : "");
-			break;
-
-		case QueryString::Bind:
-			while (bit != m_bind.constEnd() && bit->type == Bind::Field)
-				++bit;
-
-			if (bit != m_bind.constEnd()) {
-				if (prev != m_queryString.constEnd() && prev->type == QueryString::Bind) {
-					if (bit->type == Bind::Positional)
-						q += QStringLiteral(",?");
-					else if (bit->type == Bind::List)
-						q += QStringLiteral(",?").repeated(bit->value.toList().size());
-					else if (bit->type == Bind::Named)
-						q += QStringLiteral(",").append(bit->name);
-				} else {
-					if (bit->type == Bind::Positional)
-						q += QStringLiteral("?");
-					else if (bit->type == Bind::List)
-						q += QStringLiteral("?")+QStringLiteral(",?").repeated(bit->value.toList().size()-1);
-					else if (bit->type == Bind::Named)
-						q += bit->name;
-				}
-
-				++bit;
-			} else {
-				LOG_CERROR("db") << "QueryBuilder error: invalid bind";
-				return false;
-			}
-			break;
-
-		case QueryString::FieldPlaceholder:
-		{
-			bool has = false;
-			foreach (const Bind &b, m_bind) {
-				if (b.type != Bind::Field)
-					continue;
-
-				if (has)	q += QStringLiteral(",");
-				q += b.name;
-				has = true;
-			}
-		}
-
-			break;
-
-		case QueryString::ValuePlaceholder:
-		{
-			bool has = false;
-			foreach (const Bind &b, m_bind) {
-				if (b.type != Bind::Field)
-					continue;
-
-				if (has)
-					q += QStringLiteral(",?");
-				else {
-					q += QStringLiteral("?");
-					has = true;
-				}
-			}
-		}
-
-			break;
-
-		case QueryString::CombinedPlaceholder:
-		{
-			bool has = false;
-			foreach (const Bind &b, m_bind) {
-				if (b.type != Bind::Field)
-					continue;
-
-				if (has)
-					q += QStringLiteral(",")+b.name+QStringLiteral("=?");
-				else {
-					q += b.name+QStringLiteral("=?");
-					has = true;
-				}
-			}
-		}
-
-			break;
-		}
-	}
-
-	m_sqlQuery.prepare(q);
-
-	foreach (const Bind &b, m_bind) {
-		if (b.type == Bind::Positional || b.type == Bind::Field)
-			m_sqlQuery.addBindValue(b.value);
-		else if (b.type == Bind::List) {
-			foreach (const QVariant &v, b.value.toList())
-				m_sqlQuery.addBindValue(v);
-		}else
-			m_sqlQuery.bindValue(b.name, b.value);
-	}
-
-
-	bool r = m_sqlQuery.exec();
-
-	if (r)
-		LOG_CTRACE("db") << "Sql query:" << qPrintable(m_sqlQuery.executedQuery().simplified());
-	else {
-		LOG_CTRACE("db") << "Sql query:" << qPrintable(m_sqlQuery.lastQuery().simplified());
-		QUERY_LOG_ERROR(m_sqlQuery);
-	}
-
-	return r;
-}
-
-
-/**
- * @brief QueryBuilder::execToJsonArray
- * @param err
- * @return
- */
-
-
-std::optional<QJsonArray> QueryBuilder::execToJsonArray()
-{
-	if (!exec())
-		return std::nullopt;
-
-	QJsonArray list;
-
-	while (m_sqlQuery.next()) {
-		const QSqlRecord &rec = m_sqlQuery.record();
-		QJsonObject obj;
-
-		for (int i=0; i<rec.count(); ++i)
-			obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
-
-		list.append(obj);
-	}
-
-	return list;
-}
-
-
-/**
- * @brief QueryBuilder::execToJsonObject
- * @param err
- * @return
- */
-
-std::optional<QJsonObject> QueryBuilder::execToJsonObject()
-{
-	if (!exec())
-		return std::nullopt;
-
-	if (m_sqlQuery.size() > 1) {
-		LOG_CWARNING("db") << "More than one row returned";
-		return std::nullopt;
-	}
-
-	QJsonObject obj;
-
-	if (m_sqlQuery.first()) {
-		const QSqlRecord &rec = m_sqlQuery.record();
-
-		for (int i=0; i<rec.count(); ++i)
-			obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
-	}
-
-	return obj;
-}
-
-
-/**
- * @brief QueryBuilder::execCheckExists
- * @return
- */
-
-bool QueryBuilder::execCheckExists()
-{
-	if (!exec()) return false;
-
-	if (!m_sqlQuery.first())
-		return false;
-
-	return true;
-}
-
-
-
-/**
- * @brief QueryBuilder::execInsert
- * @param err
- * @return
- */
-
-std::optional<QVariant> QueryBuilder::execInsert()
-{
-	if (!exec())
-		return std::nullopt;
-
-	return m_sqlQuery.lastInsertId();
-}
-
-
-/**
- * @brief QueryBuilder::execInsertInt
- * @param err
- * @return
- */
-
-std::optional<int> QueryBuilder::execInsertAsInt()
-{
-	const std::optional<QVariant> &v = execInsert();
-
-	if (v)
-		return v.value().toInt();
-	else
-		return std::nullopt;
-}
-
-
-/**
- * @brief QueryBuilder::execToJsonArray
- * @param map
- * @param err
- * @return
- */
-
-std::optional<QJsonArray> QueryBuilder::execToJsonArray(const QMap<QString, FieldConvertFunc> &map)
-{
-	if (!exec()) return std::nullopt;
-
-	QJsonArray list;
-
-	while (m_sqlQuery.next()) {
-		const QSqlRecord &rec = m_sqlQuery.record();
-		QJsonObject obj;
-
-		for (int i=0; i<rec.count(); ++i) {
-			const QString &f = rec.fieldName(i);
-			if (map.contains(f)) {
-				const FieldConvertFunc &func = map.value(f);
-				const QJsonValue &v = std::invoke(func, rec.value(i));
-				obj.insert(f, v);
-			} else {
-				obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
-			}
-		}
-
-		list.append(obj);
-	}
-
-	return list;
-}
-
-
-
-
-/**
- * @brief QueryBuilder::execToJsonObject
- * @param map
- * @param err
- * @return
- */
-
-std::optional<QJsonObject> QueryBuilder::execToJsonObject(const QMap<QString, FieldConvertFunc> &map)
-{
-	if (!exec()) return std::nullopt;
-
-	if (m_sqlQuery.size() > 1) {
-		LOG_CWARNING("db") << "More than one row returned";
-		return std::nullopt;
-	}
-
-	QJsonObject obj;
-
-	if (m_sqlQuery.first()) {
-		const QSqlRecord &rec = m_sqlQuery.record();
-
-		for (int i=0; i<rec.count(); ++i) {
-			const QString &f = rec.fieldName(i);
-			if (map.contains(f)) {
-				const FieldConvertFunc &func = map.value(f);
-				const QJsonValue &v = std::invoke(func, rec.value(i));
-				obj.insert(f, v);
-			} else {
-				obj.insert(rec.fieldName(i), rec.value(i).toJsonValue());
-			}
-		}
-	}
-
-	return obj;
-}
-
-
-
-/**
- * @brief QueryBuilder::execToValue
- * @param field
- * @param err
- * @return
- */
-
-std::optional<QVariant> QueryBuilder::execToValue(const char *field)
-{
-	if (!exec()) return std::nullopt;
-
-	if (m_sqlQuery.size() > 1) {
-		LOG_CWARNING("db") << "More than one row returned";
-		return std::nullopt;
-	}
-
-	if (m_sqlQuery.first())
-		return value(field);
-	else
-		return std::nullopt;
-
-}
-
-
-
-
-/**
- * @brief QueryBuilder::execToValue
- * @param field
- * @param defaultValue
- * @param err
- * @return
- */
-
-std::optional<QVariant> QueryBuilder::execToValue(const char *field, const QVariant &defaultValue)
-{
-	if (!exec()) return std::nullopt;
-
-	if (m_sqlQuery.size() > 1) {
-		LOG_CWARNING("db") << "More than one row returned";
-		return std::nullopt;
-	}
-
-	if (m_sqlQuery.first())
-		return value(field, defaultValue);
-	else
-		return defaultValue;
-}
-
-
-/**
- * @brief QueryBuilder::sqlQuery
- * @return
- */
-
-QSqlQuery &QueryBuilder::sqlQuery()
-{
-	return m_sqlQuery;
-}
-
-
-/**
- * @brief QueryBuilder::fields
- * @return
- */
-
-int QueryBuilder::fieldCount() const
-{
-	int r = 0;
-
-	foreach (const Bind &b, m_bind)
-		if (b.type == Bind::Field)
-			++r;
-
-	return r;
-}

@@ -46,6 +46,7 @@ public:
 		Student = 1,
 		Teacher = 1 << 1,
 		Panel = 1 << 2,
+		SNI = 1 << 3,
 		Admin = 1 << 8
 	};
 

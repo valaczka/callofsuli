@@ -26,6 +26,7 @@
 
 #include "adminapi.h"
 #include "peerengine.h"
+#include "querybuilder.hpp"
 #include "serverservice.h"
 #include "teacherapi.h"
 

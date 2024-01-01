@@ -126,7 +126,7 @@ void BaseMapHandler::reload()
  * @return
  */
 
-std::optional<QByteArray> BaseMapHandler::read(BaseMap *map) const
+std::optional<QByteArray> BaseMapHandler::read(const BaseMap *map) const
 {
 	if (!map) {
 		LOG_CERROR("client") << "Invalid map";

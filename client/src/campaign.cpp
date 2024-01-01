@@ -69,13 +69,13 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 		setStarted(object.value(QStringLiteral("started")).toVariant().toBool());
 
 	if (object.contains(QStringLiteral("starttime")) || allField) {
-		setStartTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("starttime")).toInt()));
+		setStartTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("starttime")).toInteger()));
 		if (!object.contains(QStringLiteral("started")))
 			setStarted(m_startTime <= QDateTime::currentDateTime());
 	}
 
 	if (object.contains(QStringLiteral("endtime")) || allField)
-		setEndTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("endtime")).toInt()));
+		setEndTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("endtime")).toInteger()));
 
 
 	if (object.contains(QStringLiteral("finished")) || allField)

@@ -66,6 +66,12 @@ QPage {
 			mapHandler: control.mapHandler
 		}
 
+		TeacherGroupExamList {
+			id: _examList
+			group: control.group
+			mapHandler: control.mapHandler
+		}
+
 		TeacherGroupResult {
 			id: _result
 			group: control.group
@@ -85,6 +91,7 @@ QPage {
 
 		Component.onCompleted: {
 			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.noteCheck, color: "red" })
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
 			model.append({ text: qsTr("Log"), source: Qaterial.Icons.paperRoll, color: "yellow" })
 		}

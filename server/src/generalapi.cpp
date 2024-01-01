@@ -25,6 +25,7 @@
  */
 
 #include "generalapi.h"
+#include "querybuilder.hpp"
 #include "rank.h"
 #include "Logger.h"
 #include "serverservice.h"

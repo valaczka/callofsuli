@@ -38,6 +38,7 @@
 #include <QOAuthHttpServerReplyHandler>
 #include <csignal>
 #include <QResource>
+#include "querybuilder.hpp"
 
 
 
@@ -58,53 +59,53 @@ ServerService *ServerService::m_instance = nullptr;
  */
 
 ServerService::ServerService(int &argc, char **argv)
-    : QObject()
-    , m_consoleAppender(new ColorConsoleAppender)
-    , m_application(new QCoreApplication(argc, argv))
-    , m_settings(new ServerSettings)
-    , m_networkManager(new QNetworkAccessManager(this))
-    , m_engineHandler(new EngineHandler(this))
+	: QObject()
+	, m_consoleAppender(new ColorConsoleAppender)
+	, m_application(new QCoreApplication(argc, argv))
+	, m_settings(new ServerSettings)
+	, m_networkManager(new QNetworkAccessManager(this))
+	, m_engineHandler(new EngineHandler(this))
 {
-    Q_ASSERT(!m_instance);
+	Q_ASSERT(!m_instance);
 
-    m_instance = this;
+	m_instance = this;
 
-    m_consoleAppender->setDetailsLevel(Logger::Info);
+	m_consoleAppender->setDetailsLevel(Logger::Info);
 
 #ifndef QT_NO_DEBUG
-    m_consoleAppender->setFormat(QString::fromStdString(
-                                     "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
-                                     ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
-                                     ColorConsoleAppender::magenta+"%{file}:%{line}"+
-                                     ColorConsoleAppender::green+">\n"));
+	m_consoleAppender->setFormat(QString::fromStdString(
+									 "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
+									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
+									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
+									 ColorConsoleAppender::green+">\n"));
 #else
-    m_consoleAppender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message}\n"));
+	m_consoleAppender->setFormat(QString::fromStdString("%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message}\n"));
 #endif
 
-    cuteLogger->registerAppender(m_consoleAppender);
+	cuteLogger->registerAppender(m_consoleAppender);
 
-    for (int i=0; i<argc; ++i) {
-        m_arguments.append(argv[i]);
-    }
+	for (int i=0; i<argc; ++i) {
+		m_arguments.append(argv[i]);
+	}
 
 #ifdef _MAIN_TIMER_TEST_MODE
-    LOG_CERROR("service") << "_MAIN_TIMER_TEST_MODE defined";
-    m_mainTimerInterval = 2000;
+	LOG_CERROR("service") << "_MAIN_TIMER_TEST_MODE defined";
+	m_mainTimerInterval = 2000;
 #else
-    m_mainTimerInterval = 500;
+	m_mainTimerInterval = 500;
 #endif
 
 
-    connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
-        m_mainTimer.stop();
-        m_engineHandler.reset();
-        m_webServer.reset();
-        m_networkManager.reset();
-        m_authenticators.clear();
-        m_databaseMain->databaseClose();
-        m_databaseMain.reset();
-        m_settings.reset();
-    });
+	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
+		m_mainTimer.stop();
+		m_engineHandler.reset();
+		m_webServer.reset();
+		m_networkManager.reset();
+		m_authenticators.clear();
+		m_databaseMain->databaseClose();
+		m_databaseMain.reset();
+		m_settings.reset();
+	});
 }
 
 
@@ -114,7 +115,7 @@ ServerService::ServerService(int &argc, char **argv)
 
 ServerService::~ServerService()
 {
-    m_instance = nullptr;
+	m_instance = nullptr;
 }
 
 
@@ -124,20 +125,20 @@ ServerService::~ServerService()
 
 void ServerService::initialize()
 {
-    QCoreApplication::setApplicationName(QStringLiteral("callofsuli-server"));
-    QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli-server"));
-    QCoreApplication::setApplicationVersion(m_version);
+	QCoreApplication::setApplicationName(QStringLiteral("callofsuli-server"));
+	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli-server"));
+	QCoreApplication::setApplicationVersion(m_version);
 
-    cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("app"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("engine"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
-    cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("app"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("credential"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("logger"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("engine"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
 }
 
 
@@ -152,32 +153,32 @@ void ServerService::initialize()
 
 bool ServerService::wasmLoad()
 {
-    QStringList wasmList;
+	QStringList wasmList;
 
-    wasmList.append(m_settings->dataDir().absoluteFilePath(QStringLiteral("wasm.rcc")));
-    wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/share/wasm.rcc"));
-    wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../share/wasm.rcc"));
-    wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../../share/wasm.rcc"));
-
-
-    auto it = std::find_if(wasmList.constBegin(), wasmList.constEnd(), [](const QString &s){
-        return QFile::exists(s);
-    });
+	wasmList.append(m_settings->dataDir().absoluteFilePath(QStringLiteral("wasm.rcc")));
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/share/wasm.rcc"));
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../share/wasm.rcc"));
+	wasmList.append(QCoreApplication::applicationDirPath()+QStringLiteral("/../../share/wasm.rcc"));
 
 
-    if (it == wasmList.constEnd()) {
-        LOG_CWARNING("service") << "Wasm resource not found";
-        return false;
-    } else {
-        if (QResource::registerResource(*it, QStringLiteral("/wasm"))) {
-            LOG_CDEBUG("service") << "Registering wasm resource:" << *it;
-            m_loadedWasmResource = *it;
-        } else {
-            LOG_CERROR("service") << "Wasm resource register error:" << *it;
-            return false;
-        }
-        return true;
-    }
+	auto it = std::find_if(wasmList.constBegin(), wasmList.constEnd(), [](const QString &s){
+		return QFile::exists(s);
+	});
+
+
+	if (it == wasmList.constEnd()) {
+		LOG_CWARNING("service") << "Wasm resource not found";
+		return false;
+	} else {
+		if (QResource::registerResource(*it, QStringLiteral("/wasm"))) {
+			LOG_CDEBUG("service") << "Registering wasm resource:" << *it;
+			m_loadedWasmResource = *it;
+		} else {
+			LOG_CERROR("service") << "Wasm resource register error:" << *it;
+			return false;
+		}
+		return true;
+	}
 }
 
 
@@ -188,21 +189,21 @@ bool ServerService::wasmLoad()
 
 bool ServerService::wasmUnload()
 {
-    if (m_loadedWasmResource.isEmpty()) {
-        LOG_CWARNING("service") << "Missing wasm resource";
-        return true;
-    }
+	if (m_loadedWasmResource.isEmpty()) {
+		LOG_CWARNING("service") << "Missing wasm resource";
+		return true;
+	}
 
-    if (QResource::unregisterResource(m_loadedWasmResource, QStringLiteral("/wasm"))) {
-        LOG_CDEBUG("service") << "Wasm resource unregistered:" << m_loadedWasmResource;
-        return true;
-    } else {
-        LOG_CERROR("service") << "Wasm resource unregister failed:" << m_loadedWasmResource;
-        return false;
-    }
+	if (QResource::unregisterResource(m_loadedWasmResource, QStringLiteral("/wasm"))) {
+		LOG_CDEBUG("service") << "Wasm resource unregistered:" << m_loadedWasmResource;
+		return true;
+	} else {
+		LOG_CERROR("service") << "Wasm resource unregister failed:" << m_loadedWasmResource;
+		return false;
+	}
 
 
-    return true;
+	return true;
 }
 
 
@@ -214,77 +215,77 @@ bool ServerService::wasmUnload()
 
 void ServerService::timerEvent(QTimerEvent *)
 {
-    LOG_CTRACE("service") << "Timer check";
+	LOG_CTRACE("service") << "Timer check";
 
-    m_engineHandler->timerEvent();
+	m_engineHandler->timerEvent();
 
-    const QDateTime &current = QDateTime::currentDateTime();
-    const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
+	const QDateTime &current = QDateTime::currentDateTime();
+	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
 
 #ifndef _MAIN_TIMER_TEST_MODE
-    if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
-        return;
+	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
+		return;
 #endif
 
-    m_mainTimerLastTick = dtMinute;
+	m_mainTimerLastTick = dtMinute;
 
-    m_engineHandler->timerMinuteEvent();
+	m_engineHandler->timerMinuteEvent();
 
 
 #ifdef _MAIN_TIMER_TEST_MODE
-    if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
-        return;
+	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
+		return;
 #endif
 
-    if (!m_databaseMain) {
-        LOG_CWARNING("service") << "Main database unavailable";
-        return;
-    }
+	if (!m_databaseMain) {
+		LOG_CWARNING("service") << "Main database unavailable";
+		return;
+	}
 
-    m_databaseMain->worker()->execInThread([this]() mutable {
-        QSqlDatabase db = QSqlDatabase::database(m_databaseMain->dbName());
+	m_databaseMain->worker()->execInThread([this]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(m_databaseMain->dbName());
 
-        QMutexLocker _locker(m_databaseMain->mutex());
+		QMutexLocker _locker(m_databaseMain->mutex());
 
-        // Finish campaigns
+		// Finish campaigns
 
-        LOG_CTRACE("service") << "Finish campaigns";
+		LOG_CTRACE("service") << "Finish campaigns";
 
-        QueryBuilder q(db);
-        q.addQuery("SELECT id FROM campaign WHERE started=true AND finished=false "
-                   "AND endTime IS NOT NULL AND endTime<").addValue(QDateTime::currentDateTimeUtc());
+		QueryBuilder q(db);
+		q.addQuery("SELECT id FROM campaign WHERE started=true AND finished=false "
+				   "AND endTime IS NOT NULL AND endTime<").addValue(QDateTime::currentDateTimeUtc());
 
-        if (!q.exec()) {
-            LOG_CERROR("service") << "Finish campaigns failed";
-            return;
-        }
-        while (q.sqlQuery().next()) {
-            const int id = q.value("id").toInt();
-            AdminAPI::campaignFinish(m_databaseMain.get(), id);
-        }
+		if (!q.exec()) {
+			LOG_CERROR("service") << "Finish campaigns failed";
+			return;
+		}
+		while (q.sqlQuery().next()) {
+			const int id = q.value("id").toInt();
+			AdminAPI::campaignFinish(m_databaseMain.get(), id);
+		}
 
 
-        // Start campaigns
+		// Start campaigns
 
-        LOG_CTRACE("service") << "Start campaigns";
+		LOG_CTRACE("service") << "Start campaigns";
 
-        QueryBuilder qq(db);
-        qq.addQuery("SELECT id FROM campaign WHERE started=false "
-                    "AND startTime IS NOT NULL AND startTime<").addValue(QDateTime::currentDateTimeUtc());
+		QueryBuilder qq(db);
+		qq.addQuery("SELECT id FROM campaign WHERE started=false "
+					"AND startTime IS NOT NULL AND startTime<").addValue(QDateTime::currentDateTimeUtc());
 
-        if (!qq.exec()) {
-            LOG_CERROR("service") << "Start campaigns failed";
-            return;
-        }
+		if (!qq.exec()) {
+			LOG_CERROR("service") << "Start campaigns failed";
+			return;
+		}
 
-        while (qq.sqlQuery().next()) {
-            const int id = qq.value("id").toInt();
-            AdminAPI::campaignStart(m_databaseMain.get(), id);
-        }
+		while (qq.sqlQuery().next()) {
+			const int id = qq.value("id").toInt();
+			AdminAPI::campaignStart(m_databaseMain.get(), id);
+		}
 
-    });
+	});
 
-    LOG_CTRACE("service") << "Timer check finished";
+	LOG_CTRACE("service") << "Timer check finished";
 }
 
 
@@ -296,21 +297,21 @@ void ServerService::timerEvent(QTimerEvent *)
 
 void ServerService::processSignal(int sig)
 {
-    if (!m_instance) {
-        LOG_CWARNING("service") << "Service instance missing";
-        return;
-    }
+	if (!m_instance) {
+		LOG_CWARNING("service") << "Service instance missing";
+		return;
+	}
 
-    if (sig == SIGTERM || sig == SIGINT)
-        m_instance->stop();
-    else if (sig == SIGHUP)
-        m_instance->reload();
-    else if (sig == SIGUSR1)
-        m_instance->pause();
-    else if (sig == SIGUSR2)
-        m_instance->resume();
-    else
-        LOG_CWARNING("service") << "Unknown signal" << sig;
+	if (sig == SIGTERM || sig == SIGINT)
+		m_instance->stop();
+	else if (sig == SIGHUP)
+		m_instance->reload();
+	else if (sig == SIGUSR1)
+		m_instance->pause();
+	else if (sig == SIGUSR2)
+		m_instance->resume();
+	else
+		LOG_CWARNING("service") << "Unknown signal" << sig;
 }
 
 
@@ -322,12 +323,12 @@ void ServerService::processSignal(int sig)
 
 int ServerService::imitateLatency() const
 {
-    return m_imitateLatency;
+	return m_imitateLatency;
 }
 
 void ServerService::setImitateLatency(int newImitateLatency)
 {
-    m_imitateLatency = newImitateLatency;
+	m_imitateLatency = newImitateLatency;
 }
 
 
@@ -340,7 +341,7 @@ void ServerService::setImitateLatency(int newImitateLatency)
 
 const QString &ServerService::importDb() const
 {
-    return m_importDb;
+	return m_importDb;
 }
 
 
@@ -351,7 +352,7 @@ const QString &ServerService::importDb() const
 
 QNetworkAccessManager *ServerService::networkManager() const
 {
-    return m_networkManager.get();
+	return m_networkManager.get();
 }
 
 
@@ -362,7 +363,7 @@ QNetworkAccessManager *ServerService::networkManager() const
 
 ServerConfig &ServerService::config()
 {
-    return m_config;
+	return m_config;
 }
 
 
@@ -377,7 +378,7 @@ ServerConfig &ServerService::config()
 
 std::weak_ptr<WebServer> ServerService::webServer() const
 {
-    return m_webServer;
+	return m_webServer;
 }
 
 
@@ -389,7 +390,7 @@ std::weak_ptr<WebServer> ServerService::webServer() const
 
 DatabaseMain *ServerService::databaseMain() const
 {
-    return m_databaseMain.get();
+	return m_databaseMain.get();
 }
 
 
@@ -400,10 +401,10 @@ DatabaseMain *ServerService::databaseMain() const
 
 QLambdaThreadWorker *ServerService::databaseMainWorker() const
 {
-    if (m_databaseMain)
-        return m_databaseMain->worker();
-    else
-        return nullptr;
+	if (m_databaseMain)
+		return m_databaseMain->worker();
+	else
+		return nullptr;
 }
 
 
@@ -414,131 +415,133 @@ QLambdaThreadWorker *ServerService::databaseMainWorker() const
 
 std::optional<int> ServerService::preStart()
 {
-    initialize();
+	m_settings->setDataDir(QCoreApplication::applicationDirPath());
 
-    m_settings->setDataDir(QCoreApplication::applicationDirPath());
+	QCommandLineParser parser;
+	parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2024 Valaczka János Pál")));
+	parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsCompactedShortOptions);
 
-    QCommandLineParser parser;
-    parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2023 Valaczka János Pál")));
-    parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsCompactedShortOptions);
+	auto helpOption = parser.addHelpOption();
+	auto versionOption = parser.addVersionOption();
 
-    auto helpOption = parser.addHelpOption();
-    auto versionOption = parser.addVersionOption();
-
-    parser.addOption({QStringLiteral("license"), QObject::tr("Licensz")});
-    parser.addOption({QStringLiteral("log"), QObject::tr("Naplózási limit (0 = nincs naplózás)"), QStringLiteral("num")});
-    parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
-    parser.addOption({{QStringLiteral("i"), QStringLiteral("import")}, QObject::tr("Adatbázis importálása"), QStringLiteral("database")});
+	parser.addOption({QStringLiteral("license"), QObject::tr("Licensz")});
+	parser.addOption({QStringLiteral("log"), QObject::tr("Naplózási limit (0 = nincs naplózás)"), QStringLiteral("num")});
+	parser.addOption({{QStringLiteral("d"), QStringLiteral("dir")}, QObject::tr("Adatbázis könyvtár"), QStringLiteral("database-directory")});
+	parser.addOption({{QStringLiteral("i"), QStringLiteral("import")}, QObject::tr("Adatbázis importálása"), QStringLiteral("database")});
 
 
-    parser.addOption({{QStringLiteral("q"), QStringLiteral("quiet")}, QObject::tr("Csendes üzemmód")});
-    parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
+	parser.addOption({{QStringLiteral("q"), QStringLiteral("quiet")}, QObject::tr("Csendes üzemmód")});
+	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
 
 #ifndef QT_DEBUG
-    parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
+	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #else
-    parser.addOption({{QStringLiteral("l"), QStringLiteral("latency")}, QObject::tr("Késleltett válaszadás"), QStringLiteral("msec")});
+	parser.addOption({{QStringLiteral("l"), QStringLiteral("latency")}, QObject::tr("Késleltett válaszadás"), QStringLiteral("msec")});
 #endif
 
-    parser.parse(m_arguments);
+	parser.addOption({{QStringLiteral("u"), QStringLiteral("upgrade")}, QObject::tr("Adatbázis frissítésének kényszerítése"), QStringLiteral("version")});
 
-    parser.clearPositionalArguments();
+	parser.parse(m_arguments);
 
-
-    if (parser.isSet(helpOption)) {
-        parser.showHelp(0);
-        return 0;
-    }
-
-    if (parser.isSet(versionOption)) {
-        parser.showVersion();
-        return 0;
-    }
+	parser.clearPositionalArguments();
 
 
-    if (parser.isSet(QStringLiteral("license"))) {
-        const std::optional<QByteArray> &b = Utils::fileContent(QStringLiteral(":/license.txt"));
+	if (parser.isSet(helpOption)) {
+		parser.showHelp(0);
+		return 0;
+	}
 
-        if (!b)
-            return 1;
-
-        QConsole::qStdOut()->write(*b);
-
-        return 0;
-    }
-
-    const QByteArray &envDir = qgetenv("SERVER_DIR");
-
-    if (parser.isSet(QStringLiteral("dir")))
-        m_settings->setDataDir(parser.value(QStringLiteral("dir")));
-    else if (!envDir.isEmpty())
-        m_settings->setDataDir(QString::fromUtf8(envDir));
-    else {
-        LOG_CERROR("service") << qPrintable(QCoreApplication::tr("You must specify main data directory"));
-
-        return 1;
-    }
+	if (parser.isSet(versionOption)) {
+		parser.showVersion();
+		return 0;
+	}
 
 
-    if (parser.isSet(QStringLiteral("quiet")))
-        m_consoleAppender->setDetailsLevel(Logger::Fatal);
-    else {
-        if (parser.isSet(QStringLiteral("trace")))
-            m_consoleAppender->setDetailsLevel(Logger::Trace);
+	if (parser.isSet(QStringLiteral("license"))) {
+		const std::optional<QByteArray> &b = Utils::fileContent(QStringLiteral(":/license.txt"));
+
+		if (!b)
+			return 1;
+
+		QConsole::qStdOut()->write(*b);
+
+		return 0;
+	}
+
+	const QByteArray &envDir = qgetenv("SERVER_DIR");
+
+	if (parser.isSet(QStringLiteral("dir")))
+		m_settings->setDataDir(parser.value(QStringLiteral("dir")));
+	else if (!envDir.isEmpty())
+		m_settings->setDataDir(QString::fromUtf8(envDir));
+	else {
+		LOG_CERROR("service") << qPrintable(QCoreApplication::tr("You must specify main data directory"));
+
+		return 1;
+	}
+
+
+	if (parser.isSet(QStringLiteral("quiet")))
+		m_consoleAppender->setDetailsLevel(Logger::Fatal);
+	else {
+		if (parser.isSet(QStringLiteral("trace")))
+			m_consoleAppender->setDetailsLevel(Logger::Trace);
 #ifdef QT_DEBUG
-        else
-            m_consoleAppender->setDetailsLevel(Logger::Debug);
+		else
+			m_consoleAppender->setDetailsLevel(Logger::Debug);
 #else
-        else if (parser.isSet(QStringLiteral("debug")))
-            m_consoleAppender->setDetailsLevel(Logger::Debug);
-        else
-            m_consoleAppender->setDetailsLevel(Logger::Info);
+		else if (parser.isSet(QStringLiteral("debug")))
+			m_consoleAppender->setDetailsLevel(Logger::Debug);
+		else
+			m_consoleAppender->setDetailsLevel(Logger::Info);
 #endif
-    }
+	}
 
 
-    if (parser.isSet(QStringLiteral("import")))
-        m_importDb = parser.value(QStringLiteral("import"));
+	if (parser.isSet(QStringLiteral("import")))
+		m_importDb = parser.value(QStringLiteral("import"));
+
+	if (parser.isSet(QStringLiteral("upgrade")))
+		m_forceUpgrade = parser.value(QStringLiteral("upgrade"));
 
 
 
+	m_settings->loadFromFile();
 
-    m_settings->loadFromFile();
-
-    if (m_settings->generateJwtSecret())
-        m_settings->saveToFile(true);
+	if (m_settings->generateJwtSecret())
+		m_settings->saveToFile(true);
 
 #ifdef QT_DEBUG
-    if (parser.isSet(QStringLiteral("latency"))) {
-        setImitateLatency(parser.value(QStringLiteral("latency")).toInt());
-        LOG_CDEBUG("service") << "Imitate latency:" << m_imitateLatency;
-    }
+	if (parser.isSet(QStringLiteral("latency"))) {
+		setImitateLatency(parser.value(QStringLiteral("latency")).toInt());
+		LOG_CDEBUG("service") << "Imitate latency:" << m_imitateLatency;
+	}
 #endif
 
-    if (parser.isSet(QStringLiteral("log")))
-        m_settings->setLogLimit(parser.value(QStringLiteral("log")).toInt());
+	if (parser.isSet(QStringLiteral("log")))
+		m_settings->setLogLimit(parser.value(QStringLiteral("log")).toInt());
 
-    int logLimit = m_settings->logLimit();
+	int logLimit = m_settings->logLimit();
 
-    if (logLimit > 0) {
-        const QString &logDir = QStringLiteral("log");
+	if (logLimit > 0) {
+		const QString &logDir = QStringLiteral("log");
 
-        if (!m_settings->dataDir().exists(logDir)) {
-            if (!m_settings->dataDir().mkdir(logDir)) {
-                LOG_CERROR("service") << "Directory create error:" << qPrintable(m_settings->dataDir().absoluteFilePath(logDir));
-                return 2;
-            }
-        }
+		if (!m_settings->dataDir().exists(logDir)) {
+			if (!m_settings->dataDir().mkdir(logDir)) {
+				LOG_CERROR("service") << "Directory create error:" << qPrintable(m_settings->dataDir().absoluteFilePath(logDir));
+				return 2;
+			}
+		}
 
-        RollingFileAppender* appender = new RollingFileAppender(m_settings->dataDir().absoluteFilePath(logDir+QStringLiteral("/server.log")));
-        appender->setFormat(QString::fromStdString("%{time}{yyyy-MM-dd hh:mm:ss} %{category:-10} [%{Type}] %{message}\n"));
-        appender->setDatePattern(RollingFileAppender::DailyRollover);
-        appender->setLogFilesLimit(logLimit);
-        appender->setDetailsLevel(Logger::Debug);
-        cuteLogger->registerAppender(appender);
-    }
+		RollingFileAppender* appender = new RollingFileAppender(m_settings->dataDir().absoluteFilePath(logDir+QStringLiteral("/server.log")));
+		appender->setFormat(QString::fromStdString("%{time}{yyyy-MM-dd hh:mm:ss} %{category:-10} [%{Type}] %{message}\n"));
+		appender->setDatePattern(RollingFileAppender::DailyRollover);
+		appender->setLogFilesLimit(logLimit);
+		appender->setDetailsLevel(Logger::Debug);
+		cuteLogger->registerAppender(appender);
+	}
 
-    return std::nullopt;
+	return std::nullopt;
 }
 
 
@@ -549,7 +552,7 @@ std::optional<int> ServerService::preStart()
 
 ServerSettings *ServerService::settings() const
 {
-    return m_settings.get();
+	return m_settings.get();
 }
 
 /**
@@ -559,7 +562,7 @@ ServerSettings *ServerService::settings() const
 
 const char *ServerService::version() const
 {
-    return m_version;
+	return m_version;
 }
 
 
@@ -570,74 +573,94 @@ const char *ServerService::version() const
 
 int ServerService::exec()
 {
-    for (const int &s : QVector<int>{SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2})
-        signal(s, &ServerService::processSignal);
+	for (const int &s : QVector<int>{SIGINT, SIGTERM, SIGHUP, SIGUSR1, SIGUSR2})
+		signal(s, &ServerService::processSignal);
 
-    m_state = ServerPrepared;
+	m_state = ServerPrepared;
 
 
 #ifdef Q_OS_LINUX
-    pid_t pid = getpid();
-    LOG_CDEBUG("service") << "Server service PID:" << pid;
+	pid_t pid = getpid();
+	LOG_CDEBUG("service") << "Server service PID:" << pid;
 #endif
 
-    m_settings->printConfig();
+	m_settings->printConfig();
 
-    wasmLoad();
+	wasmLoad();
 
-    // Load main DB
+	// Load main DB
 
-    m_databaseMain = std::make_unique<DatabaseMain>(this);
-    m_databaseMain->setDbFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("main.db")));
-    m_databaseMain->setDbMapsFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("maps.db")));
-    m_databaseMain->setDbStatFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("stat.db")));
-
-
-    if (QFile::exists(m_databaseMain->dbFile()) && !m_importDb.isEmpty()) {
-        LOG_CERROR("service") << "Import error, main database already exists";
-        return 4;
-    }
-
-    m_databaseMain->databaseOpen(m_databaseMain->dbFile());
-
-    if (!m_databaseMain->databasePrepare(m_importDb)) {
-        LOG_CERROR("service") << "Main database prepare error";
-        return 5;
-    }
-
-    if (!m_databaseMain->databaseAttach()) {
-        LOG_CERROR("service") << "Main database attach error";
-        return 6;
-    }
-
-    m_config.m_service = this;
+	m_databaseMain = std::make_unique<DatabaseMain>(this);
+	m_databaseMain->setDbFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("main.db")));
+	m_databaseMain->setDbMapsFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("maps.db")));
+	m_databaseMain->setDbStatFile(m_settings->dataDir().absoluteFilePath(QStringLiteral("stat.db")));
 
 
-    // Create authenticators
+	if (QFile::exists(m_databaseMain->dbFile()) && !m_importDb.isEmpty()) {
+		LOG_CERROR("service") << "Import error, main database already exists";
+		return 4;
+	}
 
-    for (auto it=m_settings->oauthMap().constBegin(); it != m_settings->oauthMap().constEnd(); ++it) {
-        std::shared_ptr<OAuth2Authenticator> authenticator;
+	m_databaseMain->databaseOpen(m_databaseMain->dbFile());
 
-        if (it.key() == QStringLiteral("google"))
-            authenticator = std::make_shared<GoogleOAuth2Authenticator>(this);
-        else if (it.key() == QStringLiteral("microsoft"))
-            authenticator = std::make_shared<MicrosoftOAuth2Authenticator>(this);
-
-        if (authenticator) {
-            authenticator->setOAuth(it.value());
-            m_authenticators.append(std::move(authenticator));
-        }
-    }
+	if (!m_databaseMain->databasePrepare(m_importDb)) {
+		LOG_CERROR("service") << "Main database prepare error";
+		return 5;
+	}
 
 
-    if (!start())
-        return 3;
+	// Force upgrade
 
-    int r = m_application->exec();
+	if (!m_forceUpgrade.isEmpty()) {
+		const QStringList &sList = m_forceUpgrade.split('.');
+		const int vMajor = sList.size() > 1 ? sList.at(0).toInt() : 0;
+		const int vMinor = sList.size() > 1 ? sList.at(1).toInt() : 0;
 
-    LOG_CDEBUG("service") << "Exit with code" << r;
+		if (vMajor > 0) {
+			LOG_CINFO("service") << "Upgrade database to version" << qPrintable(QString::number(vMajor).append('.').append(QString::number(vMinor)));
+			if (!m_databaseMain->databaseUpgrade(vMajor, vMinor)) {
+				LOG_CERROR("service") << "Upgrade error";
+				return 7;
+			}
+		} else {
+			LOG_CERROR("service") << "Invalid version code:" << m_forceUpgrade;
+		}
+	}
 
-    return r;
+
+	if (!m_databaseMain->databaseAttach()) {
+		LOG_CERROR("service") << "Main database attach error";
+		return 6;
+	}
+
+	m_config.m_service = this;
+
+
+	// Create authenticators
+
+	for (auto it=m_settings->oauthMap().constBegin(); it != m_settings->oauthMap().constEnd(); ++it) {
+		std::shared_ptr<OAuth2Authenticator> authenticator;
+
+		if (it.key() == QStringLiteral("google"))
+			authenticator = std::make_shared<GoogleOAuth2Authenticator>(this);
+		else if (it.key() == QStringLiteral("microsoft"))
+			authenticator = std::make_shared<MicrosoftOAuth2Authenticator>(this);
+
+		if (authenticator) {
+			authenticator->setOAuth(it.value());
+			m_authenticators.append(std::move(authenticator));
+		}
+	}
+
+
+	if (!start())
+		return 3;
+
+	int r = m_application->exec();
+
+	LOG_CDEBUG("service") << "Exit with code" << r;
+
+	return r;
 }
 
 
@@ -649,17 +672,17 @@ int ServerService::exec()
 
 int ServerService::versionBuild()
 {
-    return m_versionBuild;
+	return m_versionBuild;
 }
 
 int ServerService::versionMinor()
 {
-    return m_versionMinor;
+	return m_versionMinor;
 }
 
 int ServerService::versionMajor()
 {
-    return m_versionMajor;
+	return m_versionMajor;
 }
 
 
@@ -672,9 +695,9 @@ int ServerService::versionMajor()
 
 void ServerConfig::set(const char *key, const QJsonValue &value)
 {
-    m_data.insert(key, value);
-    if (m_db) m_db->saveConfig(m_data);
-    if (m_service) emit m_service->configChanged();
+	m_data.insert(key, value);
+	if (m_db) m_db->saveConfig(m_data);
+	if (m_service) emit m_service->configChanged();
 }
 
 
@@ -686,10 +709,10 @@ void ServerConfig::set(const char *key, const QJsonValue &value)
 
 void ServerConfig::set(const QJsonObject &object)
 {
-    for (auto it=object.constBegin(); it != object.constEnd(); ++it)
-        m_data.insert(it.key(), it.value());
-    if (m_db) m_db->saveConfig(m_data);
-    if (m_service) emit m_service->configChanged();
+	for (auto it=object.constBegin(); it != object.constEnd(); ++it)
+		m_data.insert(it.key(), it.value());
+	if (m_db) m_db->saveConfig(m_data);
+	if (m_service) emit m_service->configChanged();
 }
 
 
@@ -701,41 +724,41 @@ void ServerConfig::set(const QJsonObject &object)
 
 void ServerConfig::loadFromDb(DatabaseMain *db)
 {
-    Q_ASSERT(db);
+	Q_ASSERT(db);
 
-    LOG_CTRACE("db") << "Load config from database";
+	LOG_CTRACE("db") << "Load config from database";
 
-    m_db = db;
+	m_db = db;
 
-    QDefer ret;
+	QDefer ret;
 
-    m_db->worker()->execInThread([ret, this]() mutable {
-        QSqlDatabase db = QSqlDatabase::database(m_db->dbName());
+	m_db->worker()->execInThread([ret, this]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(m_db->dbName());
 
-        QMutexLocker _locker(m_db->mutex());
+		QMutexLocker _locker(m_db->mutex());
 
-        QSqlQuery q(db);
-        q.prepare("SELECT config FROM system");
+		QSqlQuery q(db);
+		q.prepare("SELECT config FROM system");
 
-        if (!q.exec() || !q.first()) {
-            ret.reject();
-            return;
-        }
+		if (!q.exec() || !q.first()) {
+			ret.reject();
+			return;
+		}
 
-        const QString &s = q.value(QStringLiteral("config")).toString();
+		const QString &s = q.value(QStringLiteral("config")).toString();
 
-        if (s.isEmpty() || !s.startsWith('{'))
-            m_data = QJsonObject();
-        else
-            m_data = Utils::byteArrayToJsonObject(s.toUtf8()).value_or(QJsonObject());
+		if (s.isEmpty() || !s.startsWith('{'))
+			m_data = QJsonObject();
+		else
+			m_data = Utils::byteArrayToJsonObject(s.toUtf8()).value_or(QJsonObject());
 
 
-        if (m_service) emit m_service->configChanged();
+		if (m_service) emit m_service->configChanged();
 
-        ret.resolve();
-    });
+		ret.resolve();
+	});
 
-    QDefer::await(ret);
+	QDefer::await(ret);
 }
 
 
@@ -752,29 +775,27 @@ void ServerConfig::loadFromDb(DatabaseMain *db)
 
 bool ServerService::start()
 {
-    if (m_state != ServerPrepared && m_state != ServerPaused) {
-        LOG_CERROR("service") << "Invalid state to start:" << m_state;
-        return false;
-    }
+	if (m_state != ServerPrepared && m_state != ServerPaused) {
+		LOG_CERROR("service") << "Invalid state to start:" << m_state;
+		return false;
+	}
 
-    m_config.loadFromDb(m_databaseMain.get());
+	m_config.loadFromDb(m_databaseMain.get());
 
-    m_webServer.reset(new WebServer(this));
+	m_webServer.reset(new WebServer(this));
 
-    LOG_CDEBUG("service") << "Server service started";
+	m_webServer->setRedirectHost(m_settings->redirectHost());
 
-    m_webServer->setRedirectHost(m_settings->redirectHost());
+	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
 
-    m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
+	LOG_CINFO("service") << "Server service started";
 
-    LOG_CINFO("service") << "Server service started successful";
-
-    if (m_webServer->start()) {
-        m_state = ServerRunning;
-        return true;
-    } else {
-        return false;
-    }
+	if (m_webServer->start()) {
+		m_state = ServerRunning;
+		return true;
+	} else {
+		return false;
+	}
 }
 
 
@@ -785,19 +806,19 @@ bool ServerService::start()
 
 void ServerService::stop()
 {
-    LOG_CINFO("service") << "Server service stopping";
+	LOG_CINFO("service") << "Server service stopping";
 
-    m_state = ServerFinished;
+	m_state = ServerFinished;
 
-    if (m_webServer) {
-        m_engineHandler->websocketCloseAll();
-        m_webServer.reset();
-    }
+	if (m_webServer) {
+		m_engineHandler->websocketCloseAll();
+		m_webServer.reset();
+	}
 
-    m_mainTimer.stop();
-    m_databaseMain->databaseClose();
+	m_mainTimer.stop();
+	m_databaseMain->databaseClose();
 
-    m_application->quit();
+	m_application->quit();
 }
 
 
@@ -807,22 +828,22 @@ void ServerService::stop()
 
 void ServerService::pause()
 {
-    if (m_state != ServerRunning) {
-        LOG_CERROR("service") << "Invalid state to pause:" << m_state;
-        return;
-    }
+	if (m_state != ServerRunning) {
+		LOG_CERROR("service") << "Invalid state to pause:" << m_state;
+		return;
+	}
 
-    LOG_CINFO("service") << "Server service pause";
+	LOG_CINFO("service") << "Server service pause";
 
-    if (m_webServer) {
-        m_engineHandler->websocketCloseAll();
-        m_webServer.reset();
-    }
+	if (m_webServer) {
+		m_engineHandler->websocketCloseAll();
+		m_webServer.reset();
+	}
 
-    m_state = ServerPaused;
+	m_state = ServerPaused;
 
-    m_mainTimer.stop();
-    m_databaseMain->databaseClose();
+	m_mainTimer.stop();
+	m_databaseMain->databaseClose();
 }
 
 
@@ -832,23 +853,23 @@ void ServerService::pause()
 
 void ServerService::resume()
 {
-    if (m_state != ServerPaused) {
-        LOG_CERROR("service") << "Invalid state to resume:" << m_state;
-        return;
-    }
+	if (m_state != ServerPaused) {
+		LOG_CERROR("service") << "Invalid state to resume:" << m_state;
+		return;
+	}
 
-    LOG_CINFO("service") << "Server service resume";
+	LOG_CINFO("service") << "Server service resume";
 
-    if (!m_databaseMain->databaseOpen(m_databaseMain->dbFile()))
-        return std::exit(10);
+	if (!m_databaseMain->databaseOpen(m_databaseMain->dbFile()))
+		return std::exit(10);
 
-    if (!m_databaseMain->databaseAttach())
-        return std::exit(10);
+	if (!m_databaseMain->databaseAttach())
+		return std::exit(10);
 
-    m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
+	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
 
-    if (!start())
-        m_application->quit();
+	if (!start())
+		m_application->quit();
 }
 
 
@@ -859,7 +880,7 @@ void ServerService::resume()
 
 int ServerService::mainTimerInterval() const
 {
-    return m_mainTimerInterval;
+	return m_mainTimerInterval;
 }
 
 
@@ -874,29 +895,29 @@ int ServerService::mainTimerInterval() const
 
 void ServerService::reload()
 {
-    if (m_state != ServerRunning && m_state != ServerPaused) {
-        LOG_CERROR("service") << "Invalid state to reload:" << m_state;
-        return;
-    }
+	if (m_state != ServerRunning && m_state != ServerPaused) {
+		LOG_CERROR("service") << "Invalid state to reload:" << m_state;
+		return;
+	}
 
-    LOG_CINFO("service") << "Server service reload";
+	LOG_CINFO("service") << "Server service reload";
 
-    if (m_state == ServerRunning) {
-        pause();
-    }
+	if (m_state == ServerRunning) {
+		pause();
+	}
 
-    wasmUnload();
+	wasmUnload();
 
-    wasmLoad();
+	wasmLoad();
 
-    resume();
+	resume();
 }
 
 
 
 const QVector<std::shared_ptr<OAuth2Authenticator> > &ServerService::authenticators() const
 {
-    return m_authenticators;
+	return m_authenticators;
 }
 
 
@@ -908,15 +929,15 @@ const QVector<std::shared_ptr<OAuth2Authenticator> > &ServerService::authenticat
 
 std::optional<std::weak_ptr<OAuth2Authenticator>> ServerService::oauth2Authenticator(const char *type) const
 {
-    const auto &it = std::find_if(m_authenticators.constBegin(), m_authenticators.constEnd(),
-                                  [&type](const std::shared_ptr<OAuth2Authenticator> &auth) {
-        return strcmp(auth->type(), type) == 0;
-    });
+	const auto &it = std::find_if(m_authenticators.constBegin(), m_authenticators.constEnd(),
+								  [&type](const std::shared_ptr<OAuth2Authenticator> &auth) {
+		return strcmp(auth->type(), type) == 0;
+	});
 
-    if (it != m_authenticators.constEnd())
-        return *it;
-    else
-        return std::nullopt;
+	if (it != m_authenticators.constEnd())
+		return *it;
+	else
+		return std::nullopt;
 }
 
 
@@ -928,15 +949,15 @@ std::optional<std::weak_ptr<OAuth2Authenticator>> ServerService::oauth2Authentic
 
 const QString &ServerService::serverName() const
 {
-    return m_serverName;
+	return m_serverName;
 }
 
 void ServerService::setServerName(const QString &newServerName)
 {
-    if (m_serverName == newServerName)
-        return;
-    m_serverName = newServerName;
-    emit serverNameChanged();
+	if (m_serverName == newServerName)
+		return;
+	m_serverName = newServerName;
+	emit serverNameChanged();
 }
 
 

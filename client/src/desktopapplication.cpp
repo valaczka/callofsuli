@@ -123,7 +123,7 @@ DesktopApplication::~DesktopApplication()
 void DesktopApplication::commandLineParse()
 {
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2023 Valaczka János Pál"));
+	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2024 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 

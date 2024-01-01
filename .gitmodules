@@ -52,3 +52,6 @@
 [submodule "lib/pulltorefreshhandler"]
 	path = lib/pulltorefreshhandler
 	url = https://github.com/mohammadhasanzadeh/pulltorefreshhandler.git
+[submodule "lib/SCodes"]
+	path = lib/SCodes
+	url = git@github.com:scytheStudio/SCodes.git

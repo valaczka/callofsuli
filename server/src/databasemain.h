@@ -44,6 +44,7 @@ public:
 
 	bool databasePrepare(const QString importDb = QString());
 	bool databaseAttach();
+	bool databaseUpgrade(const int &major, const int &minor);
 
 	void saveConfig(const QJsonObject &json);
 
@@ -63,9 +64,9 @@ private:
 	bool _createSytemTables();
 	bool _createMapsTables(Database *db);
 	bool _createStatTables(Database *db);
-	bool _upgradeSystemTables(Database *db, int fromMajor, int fromMinor);
-	bool _upgradeMapsTables(Database *mapsDb, int fromMajor, int fromMinor);
-	bool _upgradeStatTables(Database *statDb, int fromMajor, int fromMinor);
+	bool _upgradeTables(Database *db, const int &dbType, int fromMajor, int fromMinor, int toMajor = -1, int toMinor = -1);
+	/*bool _upgradeMapsTables(Database *mapsDb, int fromMajor, int fromMinor, int toMajor = -1, int toMinor = -1);
+	bool _upgradeStatTables(Database *statDb, int fromMajor, int fromMinor, int toMajor = -1, int toMinor = -1);*/
 	bool _createUsers();
 	bool _createRanksAndGrades();
 	bool _databaseImport(const QString &dbFile);

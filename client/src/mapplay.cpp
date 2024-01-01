@@ -261,6 +261,11 @@ void MapPlay::reloadMissionList()
 	foreach (GameMapMission *mission, m_gameMap->missions()) {
 		LOG_CTRACE("game") << "Load mission" << mission << mission->name() << mission->modes();
 
+		if (mission->modes().testFlag(GameMap::Exam)) {
+			LOG_CTRACE("game") << "Mission (exam) skipped:" << mission << mission->name();
+			continue;
+		}
+
 		MapPlayMission *pMission = new MapPlayMission(mission);
 		m_missionList->append(pMission);
 

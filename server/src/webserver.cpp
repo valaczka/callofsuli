@@ -45,7 +45,7 @@ WebServer::WebServer(ServerService *service)
 {
 	Q_ASSERT(m_service);
 
-	LOG_CDEBUG("service") << "Web server created:" << this;
+	LOG_CDEBUG("service") << "Web server created";
 }
 
 
@@ -106,7 +106,7 @@ bool WebServer::start()
 
 
 	LOG_CINFO("service") << qPrintable(tr("A szerver elindult, elérhető a következő címeken:"));
-	LOG_CINFO("service") << tr("====================================================");
+	LOG_CINFO("service") << qPrintable("====================================================");
 
 	foreach (QHostAddress h, QNetworkInterface::allAddresses()) {
 		if (!h.isGlobal())
@@ -128,7 +128,7 @@ bool WebServer::start()
 
 	}
 
-	LOG_CINFO("service") << tr("====================================================");
+	LOG_CINFO("service") << qPrintable("====================================================");
 
 	return true;
 }

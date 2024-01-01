@@ -77,6 +77,8 @@ QString Credential::createJWT(const QString &secret) const
 		list.append(QStringLiteral("panel"));
 	if (m_roles.testFlag(Admin))
 		list.append(QStringLiteral("admin"));
+	if (m_roles.testFlag(SNI))
+		list.append(QStringLiteral("sni"));
 
 	QDateTime exp = QDateTime::currentDateTimeUtc();
 
@@ -144,14 +146,16 @@ Credential Credential::fromJWT(const QString &jwt)
 	Roles roles;
 
 	foreach (const QString &s, r.split("|")) {
-		if (s == QLatin1String("student"))
+		if (s == QStringLiteral("student"))
 			roles.setFlag(Student);
-		else if (s == QLatin1String("teacher"))
+		else if (s == QStringLiteral("teacher"))
 			roles.setFlag(Teacher);
-		else if (s == QLatin1String("panel"))
+		else if (s == QStringLiteral("panel"))
 			roles.setFlag(Panel);
-		else if (s == QLatin1String("admin"))
+		else if (s == QStringLiteral("admin"))
 			roles.setFlag(Admin);
+		else if (s == QStringLiteral("sni"))
+			roles.setFlag(SNI);
 	}
 
 	c.setRoles(roles);

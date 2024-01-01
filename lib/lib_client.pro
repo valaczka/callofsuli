@@ -8,6 +8,7 @@ SUBDIRS += \
 	libQZXing \
 	libTiled \
 	libQtXlsxWriter \
+	libSCodes \
 	qml-box2d
 
 !wasm:!android:!ios: SUBDIRS += CuteLogger

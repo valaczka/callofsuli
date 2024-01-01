@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "serverservice.h"
 #include "utils_.h"
+#include "querybuilder.hpp"
 
 
 

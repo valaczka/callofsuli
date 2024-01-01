@@ -48,6 +48,14 @@ INCLUDEPATH += $$PWD/qzxing/src
 android: LIBS += -lQZXing_$${QT_ARCH}
 else: LIBS += -lQZXing
 
+INCLUDEPATH += \
+	$$PWD/SCodes/src/ \
+	$$PWD/SCodes/src/zxing-cpp/core/src/ \
+	$$PWD/SCodes/src/zxing-cpp/thirdparty/stb/
+
+android: LIBS += -lSCodes_$${QT_ARCH}
+else: LIBS += -lSCodes
+
 
 # QML-Box2D
 

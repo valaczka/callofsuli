@@ -111,29 +111,20 @@ bool Handler::loadRoutes()
 			responder.sendResponse(std::move(getStaticContent(request)));
 	});
 
+	server->afterRequest([] (QHttpServerResponse &&resp) { return std::move(resp); });
+
 
 	// Load APIs
 
-	addApi(new GeneralAPI(this, m_service));
-	addApi(new AdminAPI(this, m_service));
-	addApi(new AuthAPI(this, m_service));
-	addApi(new TeacherAPI(this, m_service));
-	addApi(new UserAPI(this, m_service));
+	addApi(std::make_unique<GeneralAPI>(this, m_service));
+	addApi(std::make_unique<AdminAPI>(this, m_service));
+	addApi(std::make_unique<AuthAPI>(this, m_service));
+	addApi(std::make_unique<TeacherAPI>(this, m_service));
+	addApi(std::make_unique<UserAPI>(this, m_service));
 
 	return true;
 }
 
-
-/**
- * @brief Handler::api
- * @param api
- * @return
- */
-
-AbstractAPI *Handler::api(const char *api) const
-{
-	return m_apis.value(api);
-}
 
 
 /**
@@ -385,10 +376,10 @@ QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
  * @param api
  */
 
-void Handler::addApi(AbstractAPI *api)
+void Handler::addApi(std::unique_ptr<AbstractAPI> api)
 {
-	LOG_CTRACE("service") << "Add API" << api->path() << api;
-	m_apis.insert(api->path(), std::move(api));
+	LOG_CTRACE("service") << "Add API" << api->path() << api.get();
+	m_apis.insert({api->path(), std::move(api)});
 }
 
 

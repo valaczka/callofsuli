@@ -181,6 +181,7 @@ private:
 
 	QString m_loadedWasmResource;
 	QString m_importDb;
+	QString m_forceUpgrade;
 	int m_imitateLatency = 0;
 
 	QBasicTimer m_mainTimer;

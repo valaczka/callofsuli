@@ -79,6 +79,8 @@ public:
 
 	const QVector<std::shared_ptr<AbstractEngine> > &engines() const { return d->m_engines; }
 
+	ServerService *service() const { return m_service; }
+
 	bool running() const;
 	void setRunning(bool newRunning);
 

@@ -135,7 +135,7 @@ QFormColumn {
 		id: _questionBlock
 		title: qsTr("Kérdés")
 		placeholderText: qsTr("Ez a kérdés fog megjelenni")
-		helperText: qsTr("A \%1 jelöli az elemnek, a \%2 a blokk nevének a helyét")
+		helperText: qsTr("A \%1 jelöli az elemnek, a \%2 a halmaz nevének a helyét")
 		text: qsTr("A(z) %1 a(z) %2 része")
 		field: "question"
 		width: parent.width

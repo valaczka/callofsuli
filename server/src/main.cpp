@@ -28,6 +28,8 @@
 
 int main(int argc, char *argv[])
 {
+	ServerService::initialize();
+
 	ServerService service(argc, argv);
 
 	const std::optional<int> &i = service.preStart();

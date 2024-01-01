@@ -1,36 +1,42 @@
 #ifndef EXAMGAME_H
 #define EXAMGAME_H
 
+#include "qtextdocument.h"
 #include "abstractgame.h"
 #include "question.h"
+#include "exam.h"
 
 class ExamGame : public AbstractGame
 {
 	Q_OBJECT
 
-	Q_PROPERTY(Mode mode READ mode WRITE setMode NOTIFY modeChanged)
+	Q_PROPERTY(Exam::Mode mode READ mode WRITE setMode NOTIFY modeChanged)
 
 public:
-	enum Mode {
-		ExamPaper,
-		ExamOnline
-	};
-
-	Q_ENUM(Mode);
-
 	struct PaperContent {
 		QString questions;
 		QString answers;
 	};
 
-	ExamGame(const Mode &mode, Client *client);
+	struct PdfConfig {
+		int examId = 0;
+		QString title;
+		int fontSize = 10;
+
+		int pagePerUser = 1;				// Min. oldalszám diákonként (üres lapokkal kiegészíti, ha kell)
+	};
+
+	ExamGame(const Exam::Mode &mode, Client *client);
 	virtual ~ExamGame();
 
 	static QVector<Question> createQuestions(GameMapMissionLevel *missionLevel);
+	static QJsonArray generatePaperQuestions(GameMapMissionLevel *missionLevel);
+	static void generatePdf(const QJsonArray &list, const PdfConfig &pdfConfig, TeacherGroup *group = nullptr);
+
 	static PaperContent generateQuestions(const QVector<Question> &list);
 
-	const Mode &mode() const;
-	void setMode(const Mode &newMode);
+	const Exam::Mode &mode() const;
+	void setMode(const Exam::Mode &newMode);
 
 signals:
 	void modeChanged();
@@ -41,7 +47,11 @@ protected:
 	virtual bool gameFinishEvent() override;
 
 private:
-	Mode m_mode = ExamPaper;
+	static QString pdfTitle(const QString &title, const QString &username,
+							const int &examId, const int &contentId, const bool &isFirstPage, QTextDocument *document);
+	static QString pdfSheet(const bool &addResource, QTextDocument *document);
+
+	Exam::Mode m_mode = Exam::ExamPaper;
 
 };
 

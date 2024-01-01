@@ -59,7 +59,7 @@ public:
 	static int versionMajor();
 	static int versionMinor();
 	static int versionBuild();
-	const char *version() const;
+	static const char *version();
 	static bool debug();
 
 	static void initialize();

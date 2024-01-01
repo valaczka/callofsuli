@@ -40,7 +40,7 @@ QPage {
 
 				padding: 20
 
-				text: qsTr("Verzió: ")+Qt.application.version+"\n© 2012-2023 Valaczka János Pál"
+				text: qsTr("Verzió: ")+Qt.application.version+"\n© 2012-2024 Valaczka János Pál"
 			}
 
 			Qaterial.LabelHeadline6 {

@@ -83,10 +83,9 @@ public:
 	UserList *userList() const;
 	UserList *memberList() const;
 	ClassList *classList() const;
+	CampaignList *campaignList() const;
 
 	QString fullName() const;
-
-	CampaignList *campaignList() const;
 
 signals:
 	void memberListReloaded();

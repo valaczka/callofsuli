@@ -59,6 +59,10 @@
 	<file alias="account-edit.svg">../MaterialDesignSvgo/svg/account-edit.svg</file>
 	<file alias="account-eye-outline.svg">../MaterialDesignSvgo/svg/account-eye-outline.svg</file>
 	<file alias="account-eye.svg">../MaterialDesignSvgo/svg/account-eye.svg</file>
+	<file alias="account-file-outline.svg">../MaterialDesignSvgo/svg/account-file-outline.svg</file>
+	<file alias="account-file-text-outline.svg">../MaterialDesignSvgo/svg/account-file-text-outline.svg</file>
+	<file alias="account-file-text.svg">../MaterialDesignSvgo/svg/account-file-text.svg</file>
+	<file alias="account-file.svg">../MaterialDesignSvgo/svg/account-file.svg</file>
 	<file alias="account-filter-outline.svg">../MaterialDesignSvgo/svg/account-filter-outline.svg</file>
 	<file alias="account-filter.svg">../MaterialDesignSvgo/svg/account-filter.svg</file>
 	<file alias="account-group-outline.svg">../MaterialDesignSvgo/svg/account-group-outline.svg</file>
@@ -1240,9 +1244,11 @@
 	<file alias="bus-multiple.svg">../MaterialDesignSvgo/svg/bus-multiple.svg</file>
 	<file alias="bus-school.svg">../MaterialDesignSvgo/svg/bus-school.svg</file>
 	<file alias="bus-side.svg">../MaterialDesignSvgo/svg/bus-side.svg</file>
+	<file alias="bus-sign.svg">../MaterialDesignSvgo/svg/bus-sign.svg</file>
 	<file alias="bus-stop-covered.svg">../MaterialDesignSvgo/svg/bus-stop-covered.svg</file>
 	<file alias="bus-stop-uncovered.svg">../MaterialDesignSvgo/svg/bus-stop-uncovered.svg</file>
 	<file alias="bus-stop.svg">../MaterialDesignSvgo/svg/bus-stop.svg</file>
+	<file alias="bus-wrench.svg">../MaterialDesignSvgo/svg/bus-wrench.svg</file>
 	<file alias="bus.svg">../MaterialDesignSvgo/svg/bus.svg</file>
 	<file alias="butterfly-outline.svg">../MaterialDesignSvgo/svg/butterfly-outline.svg</file>
 	<file alias="butterfly.svg">../MaterialDesignSvgo/svg/butterfly.svg</file>
@@ -1543,6 +1549,7 @@
 	<file alias="cash-100.svg">../MaterialDesignSvgo/svg/cash-100.svg</file>
 	<file alias="cash-check.svg">../MaterialDesignSvgo/svg/cash-check.svg</file>
 	<file alias="cash-clock.svg">../MaterialDesignSvgo/svg/cash-clock.svg</file>
+	<file alias="cash-edit.svg">../MaterialDesignSvgo/svg/cash-edit.svg</file>
 	<file alias="cash-fast.svg">../MaterialDesignSvgo/svg/cash-fast.svg</file>
 	<file alias="cash-lock-open.svg">../MaterialDesignSvgo/svg/cash-lock-open.svg</file>
 	<file alias="cash-lock.svg">../MaterialDesignSvgo/svg/cash-lock.svg</file>
@@ -2685,11 +2692,17 @@
 	<file alias="emoticon-kiss.svg">../MaterialDesignSvgo/svg/emoticon-kiss.svg</file>
 	<file alias="emoticon-lol-outline.svg">../MaterialDesignSvgo/svg/emoticon-lol-outline.svg</file>
 	<file alias="emoticon-lol.svg">../MaterialDesignSvgo/svg/emoticon-lol.svg</file>
+	<file alias="emoticon-minus-outline.svg">../MaterialDesignSvgo/svg/emoticon-minus-outline.svg</file>
+	<file alias="emoticon-minus.svg">../MaterialDesignSvgo/svg/emoticon-minus.svg</file>
 	<file alias="emoticon-neutral-outline.svg">../MaterialDesignSvgo/svg/emoticon-neutral-outline.svg</file>
 	<file alias="emoticon-neutral.svg">../MaterialDesignSvgo/svg/emoticon-neutral.svg</file>
 	<file alias="emoticon-outline.svg">../MaterialDesignSvgo/svg/emoticon-outline.svg</file>
+	<file alias="emoticon-plus-outline.svg">../MaterialDesignSvgo/svg/emoticon-plus-outline.svg</file>
+	<file alias="emoticon-plus.svg">../MaterialDesignSvgo/svg/emoticon-plus.svg</file>
 	<file alias="emoticon-poop-outline.svg">../MaterialDesignSvgo/svg/emoticon-poop-outline.svg</file>
 	<file alias="emoticon-poop.svg">../MaterialDesignSvgo/svg/emoticon-poop.svg</file>
+	<file alias="emoticon-remove-outline.svg">../MaterialDesignSvgo/svg/emoticon-remove-outline.svg</file>
+	<file alias="emoticon-remove.svg">../MaterialDesignSvgo/svg/emoticon-remove.svg</file>
 	<file alias="emoticon-sad-outline.svg">../MaterialDesignSvgo/svg/emoticon-sad-outline.svg</file>
 	<file alias="emoticon-sad.svg">../MaterialDesignSvgo/svg/emoticon-sad.svg</file>
 	<file alias="emoticon-sick-outline.svg">../MaterialDesignSvgo/svg/emoticon-sick-outline.svg</file>
@@ -3038,6 +3051,7 @@
 	<file alias="fire-hydrant-off.svg">../MaterialDesignSvgo/svg/fire-hydrant-off.svg</file>
 	<file alias="fire-hydrant.svg">../MaterialDesignSvgo/svg/fire-hydrant.svg</file>
 	<file alias="fire-off.svg">../MaterialDesignSvgo/svg/fire-off.svg</file>
+	<file alias="fire-station.svg">../MaterialDesignSvgo/svg/fire-station.svg</file>
 	<file alias="fire-truck.svg">../MaterialDesignSvgo/svg/fire-truck.svg</file>
 	<file alias="fire.svg">../MaterialDesignSvgo/svg/fire.svg</file>
 	<file alias="firebase.svg">../MaterialDesignSvgo/svg/firebase.svg</file>
@@ -3483,6 +3497,8 @@
 	<file alias="garage.svg">../MaterialDesignSvgo/svg/garage.svg</file>
 	<file alias="gas-burner.svg">../MaterialDesignSvgo/svg/gas-burner.svg</file>
 	<file alias="gas-cylinder.svg">../MaterialDesignSvgo/svg/gas-cylinder.svg</file>
+	<file alias="gas-station-in-use-outline.svg">../MaterialDesignSvgo/svg/gas-station-in-use-outline.svg</file>
+	<file alias="gas-station-in-use.svg">../MaterialDesignSvgo/svg/gas-station-in-use.svg</file>
 	<file alias="gas-station-off-outline.svg">../MaterialDesignSvgo/svg/gas-station-off-outline.svg</file>
 	<file alias="gas-station-off.svg">../MaterialDesignSvgo/svg/gas-station-off.svg</file>
 	<file alias="gas-station-outline.svg">../MaterialDesignSvgo/svg/gas-station-outline.svg</file>
@@ -4056,6 +4072,7 @@
 	<file alias="iron-outline.svg">../MaterialDesignSvgo/svg/iron-outline.svg</file>
 	<file alias="iron.svg">../MaterialDesignSvgo/svg/iron.svg</file>
 	<file alias="islam.svg">../MaterialDesignSvgo/svg/islam.svg</file>
+	<file alias="island-variant.svg">../MaterialDesignSvgo/svg/island-variant.svg</file>
 	<file alias="island.svg">../MaterialDesignSvgo/svg/island.svg</file>
 	<file alias="iv-bag.svg">../MaterialDesignSvgo/svg/iv-bag.svg</file>
 	<file alias="jabber.svg">../MaterialDesignSvgo/svg/jabber.svg</file>
@@ -4301,6 +4318,9 @@
 	<file alias="link-box-variant-outline.svg">../MaterialDesignSvgo/svg/link-box-variant-outline.svg</file>
 	<file alias="link-box-variant.svg">../MaterialDesignSvgo/svg/link-box-variant.svg</file>
 	<file alias="link-box.svg">../MaterialDesignSvgo/svg/link-box.svg</file>
+	<file alias="link-circle-outline.svg">../MaterialDesignSvgo/svg/link-circle-outline.svg</file>
+	<file alias="link-circle.svg">../MaterialDesignSvgo/svg/link-circle.svg</file>
+	<file alias="link-edit.svg">../MaterialDesignSvgo/svg/link-edit.svg</file>
 	<file alias="link-lock.svg">../MaterialDesignSvgo/svg/link-lock.svg</file>
 	<file alias="link-off.svg">../MaterialDesignSvgo/svg/link-off.svg</file>
 	<file alias="link-plus.svg">../MaterialDesignSvgo/svg/link-plus.svg</file>
@@ -5132,7 +5152,13 @@
 	<file alias="paragliding.svg">../MaterialDesignSvgo/svg/paragliding.svg</file>
 	<file alias="parking.svg">../MaterialDesignSvgo/svg/parking.svg</file>
 	<file alias="party-popper.svg">../MaterialDesignSvgo/svg/party-popper.svg</file>
+	<file alias="passport-alert.svg">../MaterialDesignSvgo/svg/passport-alert.svg</file>
 	<file alias="passport-biometric.svg">../MaterialDesignSvgo/svg/passport-biometric.svg</file>
+	<file alias="passport-cancel.svg">../MaterialDesignSvgo/svg/passport-cancel.svg</file>
+	<file alias="passport-check.svg">../MaterialDesignSvgo/svg/passport-check.svg</file>
+	<file alias="passport-minus.svg">../MaterialDesignSvgo/svg/passport-minus.svg</file>
+	<file alias="passport-plus.svg">../MaterialDesignSvgo/svg/passport-plus.svg</file>
+	<file alias="passport-remove.svg">../MaterialDesignSvgo/svg/passport-remove.svg</file>
 	<file alias="passport.svg">../MaterialDesignSvgo/svg/passport.svg</file>
 	<file alias="pasta.svg">../MaterialDesignSvgo/svg/pasta.svg</file>
 	<file alias="patio-heater.svg">../MaterialDesignSvgo/svg/patio-heater.svg</file>
@@ -5346,6 +5372,7 @@
 	<file alias="plus-outline.svg">../MaterialDesignSvgo/svg/plus-outline.svg</file>
 	<file alias="plus-thick.svg">../MaterialDesignSvgo/svg/plus-thick.svg</file>
 	<file alias="plus.svg">../MaterialDesignSvgo/svg/plus.svg</file>
+	<file alias="pocket.svg">../MaterialDesignSvgo/svg/pocket.svg</file>
 	<file alias="podcast.svg">../MaterialDesignSvgo/svg/podcast.svg</file>
 	<file alias="podium-bronze.svg">../MaterialDesignSvgo/svg/podium-bronze.svg</file>
 	<file alias="podium-gold.svg">../MaterialDesignSvgo/svg/podium-gold.svg</file>
@@ -5530,6 +5557,7 @@
 	<file alias="quality-high.svg">../MaterialDesignSvgo/svg/quality-high.svg</file>
 	<file alias="quality-low.svg">../MaterialDesignSvgo/svg/quality-low.svg</file>
 	<file alias="quality-medium.svg">../MaterialDesignSvgo/svg/quality-medium.svg</file>
+	<file alias="queue-first-in-last-out.svg">../MaterialDesignSvgo/svg/queue-first-in-last-out.svg</file>
 	<file alias="quora.svg">../MaterialDesignSvgo/svg/quora.svg</file>
 	<file alias="rabbit-variant-outline.svg">../MaterialDesignSvgo/svg/rabbit-variant-outline.svg</file>
 	<file alias="rabbit-variant.svg">../MaterialDesignSvgo/svg/rabbit-variant.svg</file>
@@ -6854,6 +6882,7 @@
 	<file alias="traffic-cone.svg">../MaterialDesignSvgo/svg/traffic-cone.svg</file>
 	<file alias="traffic-light-outline.svg">../MaterialDesignSvgo/svg/traffic-light-outline.svg</file>
 	<file alias="traffic-light.svg">../MaterialDesignSvgo/svg/traffic-light.svg</file>
+	<file alias="train-bus.svg">../MaterialDesignSvgo/svg/train-bus.svg</file>
 	<file alias="train-car-autorack.svg">../MaterialDesignSvgo/svg/train-car-autorack.svg</file>
 	<file alias="train-car-box-full.svg">../MaterialDesignSvgo/svg/train-car-box-full.svg</file>
 	<file alias="train-car-box-open.svg">../MaterialDesignSvgo/svg/train-car-box-open.svg</file>
@@ -7019,6 +7048,7 @@
 	<file alias="upload-off.svg">../MaterialDesignSvgo/svg/upload-off.svg</file>
 	<file alias="upload-outline.svg">../MaterialDesignSvgo/svg/upload-outline.svg</file>
 	<file alias="upload.svg">../MaterialDesignSvgo/svg/upload.svg</file>
+	<file alias="usb-c-port.svg">../MaterialDesignSvgo/svg/usb-c-port.svg</file>
 	<file alias="usb-flash-drive-outline.svg">../MaterialDesignSvgo/svg/usb-flash-drive-outline.svg</file>
 	<file alias="usb-flash-drive.svg">../MaterialDesignSvgo/svg/usb-flash-drive.svg</file>
 	<file alias="usb-port.svg">../MaterialDesignSvgo/svg/usb-port.svg</file>
@@ -7256,6 +7286,9 @@
 	<file alias="watering-can-outline.svg">../MaterialDesignSvgo/svg/watering-can-outline.svg</file>
 	<file alias="watering-can.svg">../MaterialDesignSvgo/svg/watering-can.svg</file>
 	<file alias="watermark.svg">../MaterialDesignSvgo/svg/watermark.svg</file>
+	<file alias="wave-arrow-down.svg">../MaterialDesignSvgo/svg/wave-arrow-down.svg</file>
+	<file alias="wave-arrow-up.svg">../MaterialDesignSvgo/svg/wave-arrow-up.svg</file>
+	<file alias="wave-undercurrent.svg">../MaterialDesignSvgo/svg/wave-undercurrent.svg</file>
 	<file alias="wave.svg">../MaterialDesignSvgo/svg/wave.svg</file>
 	<file alias="waveform.svg">../MaterialDesignSvgo/svg/waveform.svg</file>
 	<file alias="waves-arrow-left.svg">../MaterialDesignSvgo/svg/waves-arrow-left.svg</file>

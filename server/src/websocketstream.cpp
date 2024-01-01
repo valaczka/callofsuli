@@ -2,19 +2,22 @@
 #include "serverservice.h"
 #include "Logger.h"
 #include "multiplayerengine.h"
+#include "examengine.h"
 
 
 /// Static maps
 
 const QHash<AbstractEngine::Type, Credential::Roles> WebSocketStream::m_observerRoles = {
 	{ AbstractEngine::EnginePeer, Credential::Teacher|Credential::Admin },
-	{ AbstractEngine::EngineMultiPlayer, Credential::Student }
+	{ AbstractEngine::EngineMultiPlayer, Credential::Student },
+	{ AbstractEngine::EngineExam, Credential::Teacher|Credential::Student|Credential::Panel },
 };
 
 
 const QHash<QString, AbstractEngine::Type> WebSocketStream::m_observerMap = {
 	{ QStringLiteral("peers"), AbstractEngine::EnginePeer },
 	{ QStringLiteral("multiplayer"), AbstractEngine::EngineMultiPlayer },
+	{ QStringLiteral("exam"), AbstractEngine::EngineExam },
 };
 
 
@@ -269,6 +272,8 @@ void WebSocketStream::onJsonReceived(const QJsonObject &data)
 		timeSync(d.toObject());
 	else if (operation == QStringLiteral("multiplayer"))
 		MultiPlayerEngine::handleWebSocketMessage(this, d, m_handler);
+	else if (operation == QStringLiteral("exam"))
+		ExamEngine::handleWebSocketMessage(this, d, m_handler);
 	else {
 		LOG_CDEBUG("service") << "Invalid operation:" << operation << qPrintable(m_credential.username());
 		sendJson("error", QStringLiteral("invalid operation"));
@@ -412,9 +417,6 @@ void WebSocketStream::engineAdd(const std::shared_ptr<AbstractEngine> &engine)
 	LOG_CTRACE("service") << "WebSocket add engine" << this << engine.get() << engine->type() << engine->id();
 
 	std::shared_ptr<AbstractEngine> ptr = engine;
-
-	LOG_CTRACE("service") << "WebSocket add engine -- " << this << ptr.use_count();
-
 	m_engines.append(std::move(ptr));
 }
 

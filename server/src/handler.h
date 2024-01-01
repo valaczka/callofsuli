@@ -48,8 +48,6 @@ public:
 	std::weak_ptr<QHttpServer> httpServer() const;
 	bool loadRoutes();
 
-	AbstractAPI *api(const char *api) const;
-
 	std::optional<Credential> authorizeRequest(const QHttpServerRequest &request) const;
 	std::optional<Credential> authorizeRequestLog(const QHttpServerRequest &request) const;
 	QHttpServerResponse getErrorPage(const QString &errorString, const QHttpServerResponse::StatusCode &code = QHttpServerResponse::StatusCode::NotFound);
@@ -59,11 +57,11 @@ private:
 	QHttpServerResponse getStaticContent(const QHttpServerRequest &request);
 	QHttpServerResponse getCallback(const QHttpServerRequest &request);
 
-	void addApi(AbstractAPI *api);
+	void addApi(std::unique_ptr<AbstractAPI> api);
 
 	ServerService *m_service = nullptr;
 
-	QMap<const char*, AbstractAPI*> m_apis;
+	std::map<const char*, std::unique_ptr<AbstractAPI>> m_apis;
 };
 
 #endif // HANDLER_H

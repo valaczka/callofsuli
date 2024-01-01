@@ -37,7 +37,7 @@ const char *AbstractAPI::m_apiPath = "/api/";
  */
 
 AbstractAPI::AbstractAPI(const char *path, Handler *handler, ServerService *service)
-	: QObject(handler)
+	: QObject()
 	, m_service(service)
 	, m_handler(handler)
 	, m_path(path)

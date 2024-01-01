@@ -45,7 +45,7 @@ public:
 
 	Q_INVOKABLE void reload();
 
-	Q_INVOKABLE std::optional<QByteArray> read(BaseMap *map) const;
+	Q_INVOKABLE std::optional<QByteArray> read(const BaseMap *map) const;
 
 	Client *client() const;
 

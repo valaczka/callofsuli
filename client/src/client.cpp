@@ -29,6 +29,7 @@
 #include "application.h"
 #include "classobject.h"
 #include "client.h"
+#include "exam.h"
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
@@ -897,6 +898,7 @@ void Client::startCache()
 
 	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>, &OlmLoader::find<User>);
 	m_cache.addHandler<MapGame>(QStringLiteral("mapGame"), &OlmLoader::loadFromJsonArray<MapGame>, &OlmLoader::find<MapGame>);
+	m_cache.addHandler<Exam>(QStringLiteral("exam"), &OlmLoader::loadFromJsonArray<Exam>, &OlmLoader::find<Exam>);
 }
 
 
