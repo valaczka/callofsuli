@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "examgame.h"
 #include "application.h"
+#include "teachergroup.h"
 
 Exam::Exam(QObject *parent)
 	: SelectableObject{parent}
@@ -144,12 +145,30 @@ void Exam::generateRandom(TeacherMapHandler *handler, TeacherGroup *group) const
 
 void Exam::createPdf(const QJsonArray &list, TeacherGroup *group) const
 {
+	if (!group)
+		return;
+
 	ExamGame::PdfConfig config;
 	config.examId = m_examId;
-	config.title = m_description+QStringLiteral(" (")+group->fullName()+QStringLiteral(")");
-	//config.pagePerUser = 3;
+	//config.fontSize = 6;
+	config.title = m_description;
+	config.subject = group->fullName();
+	config.pagePerUser = 2;
 
-	ExamGame::generatePdf(list, config, group);
+	group->examGameHelper()->generatePdf(list, config, group);
+}
+
+
+/**
+ * @brief Exam::test
+ */
+
+void Exam::test(ExamGame *game) const
+{
+	if (!game)
+		return;
+
+	game->scanImageDir("/tmp/x");
 }
 
 

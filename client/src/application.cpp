@@ -27,6 +27,7 @@
 #include "Logger.h"
 #include "classobject.h"
 #include "exam.h"
+#include "examgame.h"
 #include "fetchmodel.h"
 #include "fontimage.h"
 #include "gameenemysniper.h"
@@ -352,6 +353,7 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+	qmlRegisterUncreatableType<ExamGame>("CallOfSuli", 1, 0, "ExamGame", "ExamGame is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
 	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
 	qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");

@@ -55,3 +55,6 @@
 [submodule "lib/SCodes"]
 	path = lib/SCodes
 	url = git@github.com:scytheStudio/SCodes.git
+[submodule "share/OMRChecker"]
+	path = share/OMRChecker
+	url = git@github.com:valaczka/OMRChecker.git

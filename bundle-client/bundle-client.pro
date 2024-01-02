@@ -72,6 +72,7 @@ else: extralib.commands = echo \"Create bundle...\"; \
 			-qmlDir $$QmlDir -enablePlugins multimedia ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
+			cp -r $$PWD/../share/OMRChecker $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
 			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}($${LddPath} $${LddBinFile} | \
 				grep \"=>\" | grep -i -v \"WINDOWS/SYSTEM32\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \

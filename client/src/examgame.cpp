@@ -3,20 +3,17 @@
 #include "Logger.h"
 #include "Matrix.h"
 #include "MultiFormatWriter.h"
-#include "stb_image_write.h"
 #include "qbuffer.h"
 #include "QPageSize"
 #include "application.h"
+#include "teachergroup.h"
 #include "utils_.h"
 #include <QPdfWriter>
 #include <QRandomGenerator>
+#include "stb_image_write.h"
 
-#ifndef ENABLE_ENCODER_GENERIC
-#	define ENABLE_ENCODER_GENERIC
-#endif
 
-#include <QZXing.h>
-
+const QString ExamGame::m_optionLetters = QStringLiteral("ABCDEF?????????????????????????????????????????????");
 
 
 /**
@@ -103,6 +100,8 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 		QStringLiteral("simplechoice"),
 		QStringLiteral("multichoice"),
 		QStringLiteral("pair"),
+		QStringLiteral("order"),
+		QStringLiteral("fillout"),
 	};
 
 
@@ -126,6 +125,7 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 		retList.append(json);
 	}
 
+	bool isFirst = true;
 
 	while (!complexList.isEmpty()) {
 		const Question &q = complexList.takeAt(QRandomGenerator::global()->bounded(complexList.size()));
@@ -134,6 +134,10 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 		QJsonObject json = QJsonObject::fromVariantMap(data);
 		json[QStringLiteral("uuid")] = q.uuid();
 		json[QStringLiteral("module")] = q.module();
+		if (isFirst) {
+			json[QStringLiteral("separator")] = true;
+			isFirst = false;
+		}
 		retList.append(json);
 	}
 
@@ -152,176 +156,131 @@ void ExamGame::generatePdf(const QJsonArray &list, const PdfConfig &pdfConfig, T
 {
 	LOG_CDEBUG("game") << "Generate paper exam pdf";
 
-	QTextDocument document;
+	m_worker.execInThread([this, list, pdfConfig, group]{
+		QByteArray content;
+		QBuffer buffer(&content);
+		buffer.open(QIODevice::WriteOnly);
 
-	QFont font(QStringLiteral("Rajdhani"), pdfConfig.fontSize);
+		QPdfWriter pdf(&buffer);
+		QPageLayout layout = pdf.pageLayout();
+		layout.setUnits(QPageLayout::Millimeter);
+		layout.setPageSize(QPageSize::A4);
+		layout.setMargins(QMarginsF(0, 10, 0, 10));
+		//layout.setMinimumMargins(QMarginsF(0, 0, 0, 0));
+		//layout.setMode(QPageLayout::FullPageMode);
 
-	document.setPageSize(QPageSize::sizePoints(QPageSize::A4));
-	document.setDefaultFont(font);
+		LOG_CERROR("game") << layout.fullRectPoints();
 
-	QString html;
+		pdf.setCreator(QStringLiteral("Call of Suli - v")+Application::version());
+		pdf.setTitle(pdfConfig.title);
+		pdf.setPageLayout(layout);
 
-	html.append(QStringLiteral("<html><body>"));
+		QTextDocument document;
 
-	int count = 0;
+		QFont font(QStringLiteral("Rajdhani"), pdfConfig.fontSize);
 
-	for (const QJsonValue &v : list) {
-		const QJsonObject &o = v.toObject();
-		QString username = o.value(QStringLiteral("username")).toString();
-		const int &id = o.value(QStringLiteral("id")).toInt();
-		const QJsonArray &qList = o.value(QStringLiteral("data")).toArray();
+		document.setPageSize(QPageSize::sizePoints(QPageSize::A4));
+		document.setDefaultFont(font);
 
-		if (group) {
-			if (User *u = OlmLoader::find<User>(group->memberList(), "username", username); u)
-				username = u->fullName();
+		document.setDefaultStyleSheet(QStringLiteral("p { margin-bottom: 0px; margin-top: 0px; }"));
+
+		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bg.png")));
+		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bg.png")), QVariant(image));
+
+		/*QImage imageR = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bgRight.png")));
+		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bgRight.png")), QVariant(imageR));*/
+
+		QString html;
+
+		html.append(QStringLiteral("<html><body>"));
+
+		int count = 0;
+
+		for (const QJsonValue &v : list) {
+			const QJsonObject &o = v.toObject();
+			QString username = o.value(QStringLiteral("username")).toString();
+			const int &id = o.value(QStringLiteral("id")).toInt();
+			const QJsonArray &qList = o.value(QStringLiteral("data")).toArray();
+
+			if (group) {
+				if (User *u = OlmLoader::find<User>(group->memberList(), "username", username); u)
+					username = u->fullName();
+			}
+
+			html += QStringLiteral("<table width=\"100%\"");
+			if (count>0)
+				html += QStringLiteral(" style=\"page-break-before: always;\"");
+
+			html += QStringLiteral("><tr><td><img src=\"imgdata://bg.png\"></td><td>");
+
+			html += pdfTitle(pdfConfig, username, id, count==0, &document);
+			html += pdfSheet(count==0, layout.paintRectPoints().width()-80, &document);
+			html += pdfQuestion(qList);
+
+			html += QStringLiteral("</td><td><img src=\"imgdata://bg.png\"></td></tr></table>");
+
+
+			// Check page
+
+			++count;
+
+			QString tmp = html + QStringLiteral("</body></html>");
+			document.setHtml(tmp);
+
+			int reqPages = pdfConfig.pagePerUser*count - document.pageCount();
+
+			if (reqPages > 0)
+				html += QStringLiteral("<p style=\"page-break-before: always;\">&nbsp;</p>").repeated(reqPages);
 		}
 
-		html += pdfTitle(pdfConfig.title, username, pdfConfig.examId, id, count==0, &document);
-		html += pdfSheet(count==0, &document);
+		html.append(QStringLiteral("</body></html>"));
 
-		html += "<p align=justify>"+QJsonDocument(qList).toJson()+"</p>";
+		document.setHtml(html);
+		document.print(&pdf);
 
+		buffer.close();
 
-		// Check page
+		QFile f("/tmp/out.pdf");
+		f.open(QIODevice::WriteOnly);
+		f.write(content);
+		f.close();
 
-		++count;
-
-		QString tmp = html + QStringLiteral("</body></html>");
-		document.setHtml(tmp);
-
-		int reqPages = pdfConfig.pagePerUser*count - document.pageCount();
-
-		if (reqPages > 0)
-			html += QStringLiteral("<p style=\"page-break-before: always;\">&nbsp;</p>").repeated(reqPages);
-	}
-
-	html.append(QStringLiteral("</body></html>"));
-
-	document.setHtml(html);
-
-
-	QByteArray content;
-	QBuffer buffer(&content);
-	buffer.open(QIODevice::WriteOnly);
-
-	QPdfWriter pdf(&buffer);
-	pdf.setCreator(QStringLiteral("Call of Suli - v")+Application::version());
-	pdf.setTitle(pdfConfig.title);
-
-	QPageLayout layout = pdf.pageLayout();
-	layout.setUnits(QPageLayout::Millimeter);
-	layout.setPageSize(QPageSize::A4);
-	layout.setMargins(QMarginsF(10, 10, 10, 10));
-	//layout.setMinimumMargins(QMarginsF(5, 5, 5, 5));
-	//layout.setMode(QPageLayout::FullPageMode);
-	pdf.setPageLayout(layout);
-
-
-	document.print(&pdf);
-
-	buffer.close();
-
-	QFile f("/tmp/out.pdf");
-	f.open(QIODevice::WriteOnly);
-	f.write(content);
-	f.close();
-
-	/*QString txt;
-
-	txt.append(QStringLiteral("<html><body>\n"));
-
-	txt.append(QStringLiteral("<h1>"))
-			.append(m_title)
-			.append(QStringLiteral("</h1>"));
-
-	txt.append(QStringLiteral("<h4>Jelenlegi jogviszony (piarista): <i>%1 év %2 nap</i><br/>")
-			   .arg(m_calculation.value(QStringLiteral("jobYears"), 0).toInt())
-			   .arg(m_calculation.value(QStringLiteral("jobDays"), 0).toInt())
-			   );
-
-	txt.append(QStringLiteral("Gyakorlati idő: <i>%1 év %2 nap</i><br/>")
-			   .arg(m_calculation.value(QStringLiteral("practiceYears"), 0).toInt())
-			   .arg(m_calculation.value(QStringLiteral("practiceDays"), 0).toInt())
-			   );
-
-	txt.append(QStringLiteral("Jubileumi jutalom: <i>%1 év %2 nap</i></h4>")
-			   .arg(m_calculation.value(QStringLiteral("prestigeYears"), 0).toInt())
-			   .arg(m_calculation.value(QStringLiteral("prestigeDays"), 0).toInt())
-			   );
-
-	if (const int nextY = m_calculation.value(QStringLiteral("nextPrestigeYears"), 0).toInt(); nextY > 0) {
-		txt.append(QStringLiteral("<h4>Következő jubileumi jutalom időpontja: <i>%1</i> (%2 év)</h4>")
-				   .arg(QLocale().toString(m_calculation.value(QStringLiteral("nextPrestige")).toDate(), QStringLiteral("yyyy. MMMM d.")))
-				   .arg(m_calculation.value(QStringLiteral("nextPrestigeYears"), 0).toInt())
-				   );
-	}
-
-	txt.append(QStringLiteral("<h3>&nbsp;</h3>"));
-
-	const QVariantList &list = m_model->storage();
-
-	for (const auto &v : list) {
-		const QVariantMap &map = v.toMap();
-
-		txt.append(QStringLiteral("<h3>"));
-		txt.append(map.value(QStringLiteral("name")).toString())
-				.append(QStringLiteral(" ("))
-				.append(QLocale().toString(map.value(QStringLiteral("start")).toDate(), QStringLiteral("yyyy. MMMM d.")))
-				.append(QStringLiteral(" – "));
-
-		if (map.contains(QStringLiteral("end")))
-			txt.append(QLocale().toString(map.value(QStringLiteral("end")).toDate(), QStringLiteral("yyyy. MMMM d.")));
-
-		txt.append(QStringLiteral(")</h3>"));
-
-		txt.append(QStringLiteral("<p>Foglalkoztatási jogviszony: <b>%1</b>, ").arg(map.value(QStringLiteral("type")).toString()))
-				.append(QStringLiteral("munkaidő: <b>%1 óra</b>, ").arg(map.value(QStringLiteral("hour")).toInt()))
-				.append(QStringLiteral("heti munkaóra: <b>%1 óra</b><br/>").arg(map.value(QStringLiteral("value")).toInt()));
-
-		txt.append(QStringLiteral("Munkáltató vagy megbízó:</p><p style=\"margin-left: 25px;\"><small>"));
-		txt.append(map.value(QStringLiteral("master")).toString().replace(QStringLiteral("\n"), QStringLiteral("<br/>")));
-		txt.append(QStringLiteral("</small></p>"));
-
-		txt.append(QStringLiteral("<p>Számított jelenlegi jogviszony (piarista): <b>%1 év %2 nap</b><br/>")
-				   .arg(map.value(QStringLiteral("jobYears"), 0).toInt())
-				   .arg(map.value(QStringLiteral("jobDays"), 0).toInt())
-				   );
-
-		txt.append(QStringLiteral("Számított gyakorlati idő: <b>%1 év %2 nap</b><br/>")
-				   .arg(map.value(QStringLiteral("practiceYears"), 0).toInt())
-				   .arg(map.value(QStringLiteral("practiceDays"), 0).toInt())
-				   );
-
-		txt.append(QStringLiteral("Számított jubileumi jutalom: <b>%1 év %2 nap</b></p>")
-				   .arg(map.value(QStringLiteral("prestigeYears"), 0).toInt())
-				   .arg(map.value(QStringLiteral("prestigeDays"), 0).toInt())
-				   );
-
-	}
-
-	txt.append(QStringLiteral("<p style=\"margin-top: 20px;\"><i>A munkáltató a mai napon a fenti, szakmai gyakorlati időre vonatkozó jogviszonyokat és köznevelési jubileumi jutalomra jogosító időket tartja nyilván.</i></p>"
-							  "<p style=\"margin-top: 20px;\">Kelt:</p>"
-							  "<p style=\"margin-top: 20px; margin-bottom: 80px;\">Aláírás (a munkáltató képviseletében):</p><p>&nbsp;</p>"));
-
-	txt.append(QStringLiteral("<table width=\"100%\"><tr><td style=\"border-top: 1px solid #cccccc; font-size: 2pt;\">&nbsp;</td></tr></table>"));
-
-	txt.append(QStringLiteral("<table width=\"100%\"><tr><td valign=middle><img height=20 src=\"imgdata://piar.png\"></td>"
-							  "<td width=\"100%\" valign=middle style=\"padding-left: 10px;\"><p style=\"font-size: 5pt;\">Gyarkolati idő kalkulátor v%2.%3<br/>"
-							  "Készült: %1</p>"
-							  "</td></tr></table>\n\n")
-			   .arg(QLocale().toString(QDateTime::currentDateTime(), QStringLiteral("yyyy. MMMM d. HH:mm:ss")))
-			   .arg(Application::versionMajor())
-			   .arg(Application::versionMinor())
-			   );
-
-	txt.append(QStringLiteral("</body></html>"));*/
-
+		emit pdfFileGenerated("/tmp/out.pdf");
+	});
 
 }
 
 
 
+/**
+ * @brief ExamGame::scanImageDir
+ * @param path
+ */
 
+void ExamGame::scanImageDir(const QString &path)
+{
+	if (!m_scanFiles.isEmpty()) {
+		LOG_CERROR("game") << "Scanning in progress";
+		return;
+	}
+
+	QDirIterator it(path, {
+						QStringLiteral("*.png"),
+						QStringLiteral("*.PNG"),
+						QStringLiteral("*.jpg"),
+						QStringLiteral("*.JPG"),
+						QStringLiteral("*.jpeg"),
+						QStringLiteral("*.JPEG"),
+					}, QDir::Files);
+
+	while (it.hasNext()) {
+		ScanFile s;
+		s.path = it.next();
+		m_scanFiles.append(s);
+	}
+
+	scanImages();
+}
 
 /**
  * @brief ExamGame::generateQuestions
@@ -329,6 +288,8 @@ void ExamGame::generatePdf(const QJsonArray &list, const PdfConfig &pdfConfig, T
 
 ExamGame::PaperContent ExamGame::generateQuestions(const QVector<Question> &list)
 {
+	LOG_CERROR("client") << "Deprecated function:" << __PRETTY_FUNCTION__;
+
 	PaperContent content;
 
 	QVector<Question> easyList;
@@ -578,18 +539,21 @@ bool ExamGame::gameFinishEvent()
  * @return
  */
 
-QString ExamGame::pdfTitle(const QString &title, const QString &username,
-						   const int &examId, const int &contentId,
+QString ExamGame::pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId,
 						   const bool &isFirstPage, QTextDocument *document)
 {
 	Q_ASSERT(document);
 
-	const QString id = QStringLiteral("%1/%2").arg(examId).arg(contentId);
+	const QString id = QStringLiteral("Call of Suli Exam %1/%2/%3/%4")
+					   .arg(Application::versionMajor()).arg(Application::versionMinor())
+					   .arg(pdfConfig.examId).arg(contentId);
 
-	ZXing::BarcodeFormat format = ZXing::BarcodeFormat::DataMatrix;
+	//QImage barcode = QZXing::encodeData(id, QZXing::EncoderFormat_QR_CODE, QSize(120,120));
+
+	ZXing::BarcodeFormat format = ZXing::BarcodeFormat::QRCode;
 	ZXing::MultiFormatWriter writer = ZXing::MultiFormatWriter(format).setMargin(0);
 
-	ZXing::Matrix<uint8_t> bitmap = ZXing::ToMatrix<uint8_t>(writer.encode(id.toStdWString(), 200, 200));
+	ZXing::Matrix<uint8_t> bitmap = ZXing::ToMatrix<uint8_t>(writer.encode(id.toStdWString(), 120, 120));
 
 	QImage image;
 
@@ -598,18 +562,22 @@ QString ExamGame::pdfTitle(const QString &title, const QString &username,
 		*img = QImage::fromData((const unsigned char *) data, size);
 	}, &image, bitmap.width(), bitmap.height(), 1, bitmap.data(), 0);
 
+
 	const QString imgName = QStringLiteral("imgdata://id%1.png").arg(contentId);
 
 	document->addResource(QTextDocument::ImageResource, QUrl(imgName), QVariant(image));
 
-	QString html = isFirstPage ? QStringLiteral("<table width=\"100%\">")
-							   : QStringLiteral("<table width=\"100%\" style=\"page-break-before: always;\">");
+	QString html = QStringLiteral("<table width=\"100%\" style=\"margin-left: 0px; margin-right: 30px;\">");
 
-	html += QStringLiteral("<tr><td valign=middle><img height=20 src=\"%1\"></td>"
+	/*QString html = isFirstPage ? QStringLiteral("<table width=\"100%\" style=\"margin-left: 35px; margin-right: 30px;\">")
+							   : QStringLiteral("<table width=\"100%\" style=\"margin-left: 35px; margin-right: 30px; "
+												"page-break-before: always;\">");*/
+
+	html += QStringLiteral("<tr><td valign=middle><img height=60 src=\"%1\"></td>"
 						   "<td width=\"100%\" valign=middle style=\"padding-left: 10px;\">"
-						   "<p><span style=\"font-size: large;\"><b>%2</b></span><br/><small>%3</small></p>"
+						   "<p><span style=\"font-size: large;\"><b>%2</b></span><br/>%3<br/><small>%4</small></p>"
 						   "</td></tr></table>\n\n")
-			.arg(imgName, username, title)
+			.arg(imgName, username, pdfConfig.title, pdfConfig.subject)
 			;
 
 	return html;
@@ -623,18 +591,459 @@ QString ExamGame::pdfTitle(const QString &title, const QString &username,
  * @return
  */
 
-QString ExamGame::pdfSheet(const bool &addResource, QTextDocument *document)
+QString ExamGame::pdfSheet(const bool &addResource, const int &width, QTextDocument *document)
 {
 	Q_ASSERT(document);
 
 	static const QString imgName = QStringLiteral("imgdata://sheet.svg");
 
 	if (addResource) {
-		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral("/tmp/4794.png")));
+		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/sheet50.png")));
 		document->addResource(QTextDocument::ImageResource, QUrl(imgName), QVariant(image));
 	}
 
-	return QStringLiteral("<center><img src=\"%1\" height=500></center>").arg(imgName);
+	return QStringLiteral("<center><img src=\"%1\" width=\"%2\"></center>").arg(imgName).arg(width);
 }
+
+
+
+/**
+ * @brief ExamGame::pdfQuestion
+ * @param list
+ * @return
+ */
+
+QString ExamGame::pdfQuestion(const QJsonArray &list)
+{
+	QString html;
+
+	int num = 1;
+
+	static const QStringList nonNumberedModules = {
+		QStringLiteral("pair"),
+		QStringLiteral("fillout"),
+		QStringLiteral("order"),
+	};
+
+	for (const QJsonValue &v : list) {
+		const QJsonObject &obj = v.toObject();
+		const QString &module = obj.value(QStringLiteral("module")).toString();
+		const QString &question = obj.value(QStringLiteral("question")).toString();
+		//const int &factor = qFloor(obj.value(QStringLiteral("xpFactor")).toDouble());
+
+		if (obj.value(QStringLiteral("separator")).toBool()) {
+			html += QStringLiteral("<p align=center style=\"margin-top: 20px; margin-bottom: 20px;\">===============</p>");
+		}
+
+		html += QStringLiteral("<p style=\"margin-top: 6px;\" "
+							   "align=justify><span style=\"font-weight: 600;\">");
+
+		if (!nonNumberedModules.contains(module))
+			html += QString::number(num++).append(QStringLiteral(". "));
+
+		html += question;
+		html += QStringLiteral("</span>");
+		//html += QObject::tr("[%1p]").arg(factor);
+
+		if (module == QStringLiteral("simplechoice") || module == QStringLiteral("multichoice")) {
+			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
+			for (int i=0; i<options.size(); ++i) {
+				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
+						+QStringLiteral(")</b> ")+options.at(i).toString();
+				if (i<options.size()-1)
+					html += QStringLiteral(",");
+			}
+		} else if (module == QStringLiteral("order")) {
+			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
+			for (int i=0; i<list.size(); ++i) {
+				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
+						+QStringLiteral(")</b> ")+list.at(i).toObject().value(QStringLiteral("text")).toString();
+				if (i<list.size()-1)
+					html += QStringLiteral(",");
+			}
+
+			html += QStringLiteral("</p>");
+			html += QStringLiteral("<p style=\"margin-left: 30px;\" align=justify>");
+
+			for (int i=0; i<list.size(); ++i) {
+				if (i>0)
+					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
+
+				html += QStringLiteral("<b>")+QString::number(num++)+QStringLiteral(".</b> ")
+						+QStringLiteral(" ___");
+
+				if (i==0)
+					html += QStringLiteral("(")+obj.value(QStringLiteral("placeholderMin")).toString()+QStringLiteral(")");
+				if (i==list.size()-1)
+					html += QStringLiteral("(")+obj.value(QStringLiteral("placeholderMax")).toString()+QStringLiteral(")");
+			}
+		} else if (module == QStringLiteral("pair")) {
+			html += QStringLiteral("</p>");
+			html += QStringLiteral("<p style=\"margin-left: 30px;\" align=justify>");
+
+			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
+			for (int i=0; i<list.size(); ++i) {
+				if (i>0)
+					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
+
+				html += QStringLiteral("<b>")+QString::number(num++)+QStringLiteral(".</b> ")
+						+list.at(i).toString()
+						+QStringLiteral(": ___");
+
+				if (i<list.size()-1)
+					html += QStringLiteral(",");
+			}
+
+			html += QStringLiteral("</p>");
+			html += QStringLiteral("<p style=\"margin-left: 30px;\" align=justify>");
+
+			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
+			for (int i=0; i<options.size(); ++i) {
+				if (i>0)
+					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
+
+				html += QStringLiteral("<b>(")+m_optionLetters.at(i)
+						+QStringLiteral(")</b> ")+options.at(i).toString();
+
+				if (i<options.size()-1)
+					html += QStringLiteral(",");
+			}
+
+		} else if (module == QStringLiteral("fillout")) {
+			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
+			for (const QJsonValue &v : list) {
+				const QJsonObject &data = v.toObject();
+
+				if (data.contains(QStringLiteral("w")))
+					html += QStringLiteral(" ")+data.value(QStringLiteral("w")).toString();
+				else
+					html += QStringLiteral(" <b>____(")+QString::number(num++)+QStringLiteral(".)</b>");
+			}
+
+			html += QStringLiteral("</p>");
+			html += QStringLiteral("<p style=\"margin-left: 30px;\" align=justify>");
+
+			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
+			for (int i=0; i<options.size(); ++i) {
+				if (i>0)
+					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
+
+				html += QStringLiteral("<b>(")+m_optionLetters.at(i)
+						+QStringLiteral(")</b> ")+options.at(i).toString();
+
+				if (i<options.size()-1)
+					html += QStringLiteral(",");
+			}
+
+		} else {
+			//html += QJsonDocument(obj).toJson();
+			html += QStringLiteral(" ___________");
+		}
+
+		html += QStringLiteral("</p>");
+	}
+
+	return html;
+}
+
+
+
+/**
+ * @brief ExamGame::scanImages
+ */
+
+void ExamGame::scanImages()
+{
+	LOG_CTRACE("game") << "Scan images";
+
+	m_worker.execInThread([this](){
+		QMutexLocker locker(&m_mutex);
+
+		for (auto it=m_scanFiles.begin(); it != m_scanFiles.end(); ++it) {
+			const auto &data = Utils::fileContent(it->path);
+
+			if (!data) {
+				it->state = ScanFileError;
+				continue;
+			}
+
+			QImage img = QImage::fromData(data.value());
+
+			if (img.isNull()) {
+				LOG_CERROR("game") << "Invalid image:" << qPrintable(it->path);
+				it->state = ScanFileError;
+				continue;
+			}
+
+			ExamSBarcodeDecoder *decoder = new ExamSBarcodeDecoder;
+			decoder->setPath(it->path);
+
+			decoder->setResolution(img.width(), img.height());
+			connect(decoder, &SBarcodeDecoder::isDecodingChanged, this, [this, decoder](bool d) {
+				if (!d) {
+					LOG_CTRACE("game") << "Decoding finished:" << decoder->path();
+					scanUpdateQR(decoder->path(), decoder->captured());
+					decoder->deleteLater();
+				}
+			});
+			decoder->process(img, ZXing::BarcodeFormat::QRCode);
+		}
+	});
+}
+
+
+
+/**
+ * @brief ExamGame::scanHasPendingQR
+ * @return
+ */
+
+bool ExamGame::scanHasPendingQR()
+{
+	QMutexLocker locker(&m_mutex);
+
+	for (const ScanFile &s : m_scanFiles) {
+		if (s.state == ScanFileLoaded)
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief ExamGame::scanUpdateQR
+ * @param path
+ * @param state
+ */
+
+void ExamGame::scanUpdateQR(const QString &path, const QString &qr)
+{
+	m_worker.execInThread([this, path, qr](){
+		QMutexLocker locker(&m_mutex);
+
+		for (auto it=m_scanFiles.begin(); it != m_scanFiles.end(); ++it) {
+			if (it->path != path)
+				continue;
+
+			static const QString prefix = QStringLiteral("Call of Suli Exam ");
+
+			if (!qr.startsWith(prefix)) {
+				LOG_CWARNING("game") << "Invalid QR code:" << qr << "file:" << path;
+				it->state = ScanFileInvalid;
+				continue;
+			}
+
+			QString code = qr;
+			code.remove(0, prefix.size());
+			QStringList fields = code.split('/');
+
+			if (fields.size() != 4) {
+				LOG_CWARNING("game") << "Invalid QR code:" << qr << "file:" << path;
+				it->state = ScanFileInvalid;
+				continue;
+			}
+
+			const int vMajor = fields.at(0).toInt();
+			const int vMinor = fields.at(1).toInt();
+
+			if (Utils::versionCode(vMajor, vMinor) != Utils::versionCode()) {
+				LOG_CWARNING("game") << "Wrong version:" << qr << "file:" << path;
+				it->state = ScanFileInvalid;
+				continue;
+			}
+
+			it->state = ScanFileReadQR;
+			it->examId = fields.at(2).toInt();
+			it->contentId = fields.at(3).toInt();
+
+			LOG_CTRACE("game") << "Loaded QR image:" << path;
+		}
+
+		if (scanHasPendingQR())
+			return;
+
+		emit scanQRfinished();
+
+		scanPreapareOMR();
+	});
+}
+
+
+/**
+ * @brief ExamGame::scanPreapareOMR
+ */
+
+void ExamGame::scanPreapareOMR()
+{
+	m_worker.execInThread([this](){
+		QMutexLocker locker(&m_mutex);
+
+		m_scanTempDir.reset(new QTemporaryDir);
+		m_scanTempDir->setAutoRemove(true);
+
+		LOG_CDEBUG("game") << "Prepare OMR to dir:" << qPrintable(m_scanTempDir->path());
+
+		const QString dirInput = m_scanTempDir->filePath(QStringLiteral("input"));
+
+		if (!QFile::exists(dirInput)) {
+			QDir dir;
+			if (!dir.mkpath(dirInput)) {
+				LOG_CERROR("game") << "Directory create error:" << qPrintable(dirInput);
+				return;
+			}
+		}
+
+		bool omr = false;
+
+		for (auto it=m_scanFiles.begin(); it != m_scanFiles.end(); ++it) {
+			if (it->state == ScanFileReadQR) {
+				QFileInfo f(it->path);
+				QString newName = dirInput+QStringLiteral("/id_%1_%2.%3").arg(it->examId).arg(it->contentId).arg(f.suffix());
+				if (QFile::copy(it->path, newName)) {
+					LOG_CTRACE("game") << "Copy:" << qPrintable(it->path) << "->" << qPrintable(newName);
+					it->state = ScanFileReadingOMR;
+					omr = true;
+				} else {
+					LOG_CERROR("game") << "Copy error:" << qPrintable(it->path) << "->" << qPrintable(newName);
+					it->state = ScanFileError;
+				}
+			}
+		}
+
+		if (!omr) {
+			LOG_CWARNING("game") << "Scannable image not found";
+			m_scanTempDir.reset();
+			return;
+		}
+
+		runOMR();
+	});
+}
+
+
+
+/**
+ * @brief ExamGame::runOMR
+ */
+
+void ExamGame::runOMR()
+{
+	m_worker.execInThread([this](){
+		if (m_omrProcess) {
+			LOG_CERROR("game") << "OMR in progress";
+			return;
+		}
+
+		if (!m_scanTempDir) {
+			LOG_CERROR("game") << "Missing image directory";
+			return;
+		}
+
+		if (!QFile::copy(QStringLiteral(":/internal/exam/template.json"), m_scanTempDir->filePath(QStringLiteral("input/template.json")))) {
+			LOG_CERROR("game") << "Template copy error";
+			return;
+		}
+
+		if (!QFile::copy(QStringLiteral(":/internal/exam/marker.png"), m_scanTempDir->filePath(QStringLiteral("input/marker.png")))) {
+			LOG_CERROR("game") << "Marker copy error";
+			return;
+		}
+
+		QStringList searchList;
+
+		QString binDir = QCoreApplication::applicationDirPath();
+
+		searchList.append(binDir);
+		searchList.append(binDir+"/share");
+
+#ifndef QT_NO_DEBUG
+		searchList.append(binDir+"/../callofsuli/share");
+		searchList.append(binDir+"/../../callofsuli/share");
+		searchList.append(binDir+"/../../../callofsuli/share");
+#endif
+
+		searchList.removeDuplicates();
+
+		QString program;
+
+		foreach (QString dir, searchList)
+		{
+			QString p = dir.append(QStringLiteral("/OMRChecker/main.py"));
+			if (QFile::exists(p)) {
+				program = p;
+				break;
+			}
+		}
+
+		if (program.isEmpty()) {
+			LOG_CERROR("game") << "OMR main.py not found";
+			return;
+		}
+
+
+		QStringList arguments;
+		arguments << program;
+		arguments << QStringLiteral("-i");
+		arguments << m_scanTempDir->filePath(QStringLiteral("input"));
+		arguments << QStringLiteral("-o");
+		arguments << m_scanTempDir->filePath(QStringLiteral("output"));
+
+		m_omrProcess = std::make_unique<QProcess>();
+		m_omrProcess->setProgram("/home/valaczka/usr/python/bin/python3");
+		m_omrProcess->setArguments(arguments);
+
+		connect(m_omrProcess.get(), &QProcess::finished, this, &ExamGame::onOmrFinished);
+
+		LOG_CINFO("game") << "Start OMR";
+
+		m_omrProcess->start();
+	});
+}
+
+
+
+
+
+/**
+ * @brief ExamGame::onOmrFinished
+ * @param exitCode
+ * @param exitStatus
+ */
+void ExamGame::onOmrFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+	if (m_omrProcess) {
+		auto p = m_omrProcess.release();
+		p->deleteLater();
+	}
+
+	if (!m_scanTempDir) {
+		LOG_CERROR("game") << "Missing image directory";
+		return;
+	}
+
+	if (exitStatus != QProcess::NormalExit || exitCode != 0) {
+		LOG_CERROR("game") << "OMR error";
+		return;
+	}
+
+	LOG_CINFO("game") << "OMR finished successful";
+
+	emit scanOMRfinished();
+
+	const QString &fResult = m_scanTempDir->filePath(QStringLiteral("output/Results/Results.csv"));
+	const QString &fError = m_scanTempDir->filePath(QStringLiteral("output/Manual/ErrorFiles.csv"));
+
+	const QByteArray &csvResult = Utils::fileContentRead(fResult);
+	const QByteArray &errorResult = Utils::fileContentRead(fError);
+
+	m_scanFiles.clear();
+
+	LOG_CINFO("game") << csvResult.constData();
+	LOG_CWARNING("game") << errorResult.constData();
+
+
+}
+
 
 

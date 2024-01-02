@@ -25,6 +25,7 @@ clean:
 
 %.cres: %.qrc
 	$(RCC) -binary $< -o $@
+	rm -f $<
 
 %.qrc: %
 	$(call GEN_MAP,$<,$<.qrc)

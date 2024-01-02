@@ -38,8 +38,6 @@ Item
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			refreshProgressVisible: Client.httpConnection.pending
-
 			model: SortFilterProxyModel {
 				sourceModel: group ? group.campaignList : null
 

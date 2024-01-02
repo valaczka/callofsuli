@@ -1,0 +1,96 @@
+{
+  "pageDimensions": [
+    1200,
+    440
+  ],
+  "bubbleDimensions": [
+    20,
+    20
+  ],
+  "preProcessors": [
+    {
+      "name": "GaussianBlur",
+      "options": {
+        "kSize": [
+          3,
+          3
+        ],
+        "sigmaX": 0
+      }
+    },
+    {
+      "name": "CropOnMarkers",
+      "options": {
+        "relativePath": "marker.png",
+        "sheetToMarkerWidthRatio": 17
+      }
+    }
+  ],
+  "fieldBlocks": {
+    "Block1": {
+      "bubbleValues": ["A", "B", "C", "D", "E", "F"],
+      "direction": "horizontal",
+      "origin": [
+        40,
+        51
+      ],
+      "bubblesGap": 28.6,
+      "labelsGap": 35.2,
+      "fieldLabels": [
+        "q1..10"
+      ]
+    },
+    "Block2": {
+      "bubbleValues": ["A", "B", "C", "D", "E", "F"],
+      "direction": "horizontal",
+      "origin": [
+        284,
+        51
+      ],
+      "bubblesGap": 28.6,
+      "labelsGap": 35.2,
+      "fieldLabels": [
+        "q11..20"
+      ]
+    },
+    "Block3": {
+      "bubbleValues": ["A", "B", "C", "D", "E", "F"],
+      "direction": "horizontal",
+      "origin": [
+        529,
+        51
+      ],
+      "bubblesGap": 28.6,
+      "labelsGap": 35.2,
+      "fieldLabels": [
+        "q21..30"
+      ]
+    },
+    "Block4": {
+      "bubbleValues": ["A", "B", "C", "D", "E", "F"],
+      "direction": "horizontal",
+      "origin": [
+        773,
+        51
+      ],
+      "bubblesGap": 28.6,
+      "labelsGap": 35.2,
+      "fieldLabels": [
+        "q31..40"
+      ]
+    },
+    "Block5": {
+      "bubbleValues": ["A", "B", "C", "D", "E", "F"],
+      "direction": "horizontal",
+      "origin": [
+        1018,
+        51
+      ],
+      "bubblesGap": 28.6,
+      "labelsGap": 35.2,
+      "fieldLabels": [
+        "q41..50"
+      ]
+    }
+  }
+}

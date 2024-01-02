@@ -42,8 +42,6 @@ Item
 
 			boundsBehavior: Flickable.StopAtBounds
 
-			refreshProgressVisible: Client.httpConnection.pending
-
 			model: SortFilterProxyModel {
 				sourceModel: _examList
 
@@ -116,16 +114,12 @@ Item
 
 				//onClicked: exam.generateRandom(mapHandler, group)
 
+				onPressAndHold: exam.test(group.examGameHelper)
+
 				onClicked: {
 					Client.send(HttpConnection.ApiTeacher, "exam/%1/content".arg(exam.examId))
 					.done(control, function(rr){
 						exam.createPdf(rr.list, group)
-						/*if (o)
-							Client.stackPushPage("PageTeacherCampaign.qml", {
-													 group: control.group,
-													 mapHandler: control.mapHandler,
-													 campaign: o
-												 })*/
 					})
 				}
 
@@ -191,6 +185,23 @@ Item
 				}
 			})
 			.fail(control, JS.failMessage(qsTr("Dolgozat létrehozása sikertelen")))
+		}
+	}
+
+
+	Connections {
+		target: group ? group.examGameHelper : null
+
+		function onPdfFileGenerated(file) {
+			Client.snack("PDF generated");
+		}
+
+		function onScanQRfinished() {
+			Client.snack("QR scan finished");
+		}
+
+		function onScanOMRfinished() {
+			Client.snack("OMR finished");
 		}
 	}
 

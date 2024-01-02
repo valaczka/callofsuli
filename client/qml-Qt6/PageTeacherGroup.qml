@@ -85,6 +85,11 @@ QPage {
 		}
 	}
 
+	QRefreshProgressBar {
+		anchors.top: parent.top
+		visible: Client.httpConnection.pending
+	}
+
 	footer: QTabBar {
 		id: tabBar
 		currentIndex: swipeView.currentIndex
