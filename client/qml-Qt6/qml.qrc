@@ -189,5 +189,6 @@
         <file>PageMultiPlayerGame.qml</file>
         <file>GamePlayerMulti.qml</file>
         <file>TeacherGroupExamList.qml</file>
+        <file>PageTeacherExamScanner.qml</file>
     </qresource>
 </RCC>

@@ -120,6 +120,7 @@ public:
 	QHttpServerResponse examDelete(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examCreateContent(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse examContent(const Credential &credential, const int &id, const QString &user);
+	QHttpServerResponse examContent(const Credential &credential, const QJsonArray &list);
 
 	QHttpServerResponse userPeers() const;
 

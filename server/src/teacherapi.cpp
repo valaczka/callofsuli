@@ -559,6 +559,19 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		return examContent(*credential, id, QStringLiteral(""));
 	});
 
+	server->route(path+"exam/content/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examContent(*credential, QJsonArray{id});
+	});
+
+	server->route(path+"exam/content", QHttpServerRequest::Method::Post,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examContent(*credential, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
 	server->route(path+"exam/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return examDelete(*credential, QJsonArray{id});
@@ -2809,6 +2822,12 @@ QHttpServerResponse TeacherAPI::examContent(const Credential &credential, const 
 	const auto &list = q.execToJsonArray({
 											 { QStringLiteral("data"), [](const QVariant &v) {
 												   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+											   } },
+											 { QStringLiteral("answer"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+											   } },
+											 { QStringLiteral("correction"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
 											   } }
 										 });
 
@@ -2820,6 +2839,51 @@ QHttpServerResponse TeacherAPI::examContent(const Credential &credential, const 
 		response = responseError("not found");
 	else
 		response = QHttpServerResponse(list->at(0).toObject());
+
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief TeacherAPI::examContent
+ * @param credential
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examContent(const Credential &credential, const QJsonArray &list)
+{
+	LOG_CTRACE("client") << "Get exam content" << list;
+
+	if (list.isEmpty())
+		return responseResult("list", QJsonArray{});
+
+	LAMBDA_THREAD_BEGIN(credential, list);
+
+	const auto &r = QueryBuilder::q(db)
+					.addQuery("SELECT examContent.id AS id, exam.id AS examId, username, mode, state, data, result, gradeid, answer, correction "
+							  "FROM examContent LEFT JOIN examAnswer ON (examAnswer.contentid=examContent.id) "
+							  "LEFT JOIN exam ON (exam.id=examContent.examid) "
+							  "WHERE examContent.id IN (").addList(list.toVariantList())
+					.addQuery(") AND EXISTS(SELECT studentgroup.id FROM studentgroup WHERE owner=").addValue(credential.username())
+					.addQuery(" AND studentgroup.id=(SELECT groupid FROM exam WHERE id=exam.id))")
+					.execToJsonArray({
+										 { QStringLiteral("data"), [](const QVariant &v) {
+											   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+										   } },
+										 { QStringLiteral("answer"), [](const QVariant &v) {
+											   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+										   } },
+										 { QStringLiteral("correction"), [](const QVariant &v) {
+											   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+										   } }
+									 });
+
+	LAMBDA_SQL_ASSERT(r);
+
+	response = responseResult("list", *r);
 
 
 	LAMBDA_THREAD_END;

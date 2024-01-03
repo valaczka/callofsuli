@@ -29,7 +29,7 @@
 
 #include "qdatetime.h"
 #include "qjsonobject.h"
-#include "teachermaphandler.h"
+#include "teachergroup.h"
 #include <selectableobject.h>
 
 #include <QObject>
@@ -42,23 +42,6 @@
 class Exam;
 using ExamList = qolm::QOlm<Exam>;
 Q_DECLARE_METATYPE(ExamList*)
-
-class TeacherGroup;
-class ExamGame;
-
-#if QT_VERSION >= 0x060000
-
-#ifndef OPAQUE_PTR_TeacherGroup
-#define OPAQUE_PTR_TeacherGroup
-Q_DECLARE_OPAQUE_POINTER(TeacherGroup*)
-#endif
-
-#ifndef OPAQUE_PTR_ExamGame
-#define OPAQUE_PTR_ExamGame
-Q_DECLARE_OPAQUE_POINTER(ExamGame*)
-#endif
-
-#endif
 
 
 class Exam : public SelectableObject
@@ -94,12 +77,9 @@ public:
 
 	Q_ENUM(Mode);
 
+	Q_INVOKABLE void generateRandom(TeacherMapHandler *handler, TeacherGroup *group) const;
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
-
-	Q_INVOKABLE void generateRandom(TeacherMapHandler *handler, TeacherGroup *group) const;
-	Q_INVOKABLE void createPdf(const QJsonArray &list, TeacherGroup *group) const;
-	Q_INVOKABLE void test(ExamGame *game) const;
 
 	int examId() const;
 	void setExamId(int newExamId);

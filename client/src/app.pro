@@ -241,6 +241,7 @@ SOURCES += \
 	studentmap.cpp \
 	studentmaphandler.cpp \
 	task.cpp \
+	teacherexam.cpp \
 	teachergroup.cpp \
 	teachermap.cpp \
 	teachermaphandler.cpp \
@@ -315,6 +316,7 @@ HEADERS += \
 	studentmap.h \
 	studentmaphandler.h \
 	task.h \
+	teacherexam.h \
 	teachergroup.h \
 	teachermap.h \
 	teachermaphandler.h \

@@ -47,6 +47,7 @@
 #include "studentgroup.h"
 #include "studentmap.h"
 #include "studentmaphandler.h"
+#include "teacherexam.h"
 #include "teachergroup.h"
 #include "teachermap.h"
 #include "teachermaphandler.h"
@@ -395,6 +396,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
 	qmlRegisterType<Exam>("CallOfSuli", 1, 0, "Exam");
 	qmlRegisterType<ExamList>("CallOfSuli", 1, 0, "ExamList");
+	qmlRegisterType<ExamScanData>("CallOfSuli", 1, 0, "ExamScanData");
+	qmlRegisterType<ExamScanDataList>("CallOfSuli", 1, 0, "ExamScanDataList");
 	qmlRegisterType<FetchModel>("CallOfSuli", 1, 0, "FetchModelImpl");
 	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
 	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
@@ -424,6 +427,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<StudentMapList>("CallOfSuli", 1, 0, "StudentMapList");
 	qmlRegisterType<Task>("CallOfSuli", 1, 0, "Task");
 	qmlRegisterType<TaskList>("CallOfSuli", 1, 0, "TaskList");
+	qmlRegisterType<TeacherExam>("CallOfSuli", 1, 0, "TeacherExam");
 	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
 	qmlRegisterType<TeacherGroupCampaignResultModel>("CallOfSuli", 1, 0, "TeacherGroupCampaignResultModel");
 	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");

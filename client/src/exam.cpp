@@ -138,40 +138,6 @@ void Exam::generateRandom(TeacherMapHandler *handler, TeacherGroup *group) const
 
 
 
-/**
- * @brief Exam::createPdf
- * @param list
- */
-
-void Exam::createPdf(const QJsonArray &list, TeacherGroup *group) const
-{
-	if (!group)
-		return;
-
-	ExamGame::PdfConfig config;
-	config.examId = m_examId;
-	//config.fontSize = 6;
-	config.title = m_description;
-	config.subject = group->fullName();
-	config.pagePerUser = 2;
-
-	group->examGameHelper()->generatePdf(list, config, group);
-}
-
-
-/**
- * @brief Exam::test
- */
-
-void Exam::test(ExamGame *game) const
-{
-	if (!game)
-		return;
-
-	game->scanImageDir("/tmp/x");
-}
-
-
 
 int Exam::examId() const
 {

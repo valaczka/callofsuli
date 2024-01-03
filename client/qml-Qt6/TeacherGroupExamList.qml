@@ -20,6 +20,10 @@ Item
 		id: _examList
 	}
 
+	TeacherExam {
+		id: _teacherExam
+	}
+
 	QScrollable {
 		anchors.fill: parent
 		topPadding: 0
@@ -112,14 +116,23 @@ Item
 					return ""
 				}
 
-				//onClicked: exam.generateRandom(mapHandler, group)
+				//onPressAndHold: exam.generateRandom(mapHandler, group)
 
-				onPressAndHold: exam.test(group.examGameHelper)
+				onPressAndHold: Client.stackPushPage("PageTeacherExamScanner.qml", {
+														 handler: mapHandler,
+														 group: group,
+														 acceptedExamIdList: [exam.examId],
+														 subtitle: text
+													 })
 
 				onClicked: {
 					Client.send(HttpConnection.ApiTeacher, "exam/%1/content".arg(exam.examId))
 					.done(control, function(rr){
-						exam.createPdf(rr.list, group)
+						_teacherExam.createPdf(rr.list, {
+												   examId: exam.examId,
+												   title: exam.description,
+												   subject: group.fullName
+											   }, group)
 					})
 				}
 
@@ -188,22 +201,6 @@ Item
 		}
 	}
 
-
-	Connections {
-		target: group ? group.examGameHelper : null
-
-		function onPdfFileGenerated(file) {
-			Client.snack("PDF generated");
-		}
-
-		function onScanQRfinished() {
-			Client.snack("QR scan finished");
-		}
-
-		function onScanOMRfinished() {
-			Client.snack("OMR finished");
-		}
-	}
 
 	function reload() {
 		if (!group)

@@ -29,7 +29,6 @@
 #include "clientcache.h"
 #include "application.h"
 #include "utils_.h"
-#include "examgame.h"
 
 
 TeacherGroup::TeacherGroup(QObject *parent)
@@ -38,7 +37,6 @@ TeacherGroup::TeacherGroup(QObject *parent)
 	, m_memberList(new UserList())
 	, m_classList(new ClassList())
 	, m_campaignList(new CampaignList())
-	, m_examGameHelper(new ExamGame(Exam::ExamPaper, Application::instance()->client()))
 {
 	LOG_CTRACE("client") << "TeacherGroup created" << this;
 
@@ -212,15 +210,6 @@ QString TeacherGroup::fullName() const
 	return QStringLiteral("%1 – %2").arg(m_name, l.join(QStringLiteral(", ")));
 }
 
-
-/**
- * @brief TeacherGroup::examGameHelper
- * @return
- */
-ExamGame *TeacherGroup::examGameHelper() const
-{
-	return m_examGameHelper.get();
-}
 
 
 

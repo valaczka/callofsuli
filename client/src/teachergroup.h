@@ -43,17 +43,8 @@ using TeacherGroupList = qolm::QOlm<TeacherGroup>;
 Q_DECLARE_METATYPE(TeacherGroupList*)
 
 class TeacherGroupCampaignResultModel;
-class ExamGame;
 
 
-#if QT_VERSION >= 0x060000
-
-#ifndef OPAQUE_PTR_ExamGame
-#define OPAQUE_PTR_ExamGame
-Q_DECLARE_OPAQUE_POINTER(ExamGame*)
-#endif
-
-#endif
 
 /**
  * @brief The TeacherGroup class
@@ -71,7 +62,6 @@ class TeacherGroup : public QObject
 	Q_PROPERTY(ClassList* classList READ classList CONSTANT)
 	Q_PROPERTY(CampaignList *campaignList READ campaignList CONSTANT)
 	Q_PROPERTY(QString fullName READ fullName NOTIFY fullNameChanged)
-	Q_PROPERTY(ExamGame *examGameHelper READ examGameHelper CONSTANT FINAL)
 
 public:
 	explicit TeacherGroup(QObject *parent = nullptr);
@@ -95,8 +85,6 @@ public:
 	UserList *memberList() const;
 	ClassList *classList() const;
 	CampaignList *campaignList() const;
-	ExamGame *examGameHelper() const;
-
 	QString fullName() const;
 
 signals:
@@ -115,7 +103,6 @@ private:
 	std::unique_ptr<UserList> m_memberList;
 	std::unique_ptr<ClassList> m_classList;
 	std::unique_ptr<CampaignList> m_campaignList;
-	std::unique_ptr<ExamGame> m_examGameHelper;
 };
 
 

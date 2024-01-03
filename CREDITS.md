@@ -1,5 +1,6 @@
 **Library**
 
+- Vince's CSV Parser - (c) 2017-2019 Vincent La (https://github.com/vincentlaucsb/csv-parser)
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)
 - David Robert Nadeau (http://NadeauSoftware.com)
 - HttpServer - (c) 2019 Addison Elliott (https://github.com/addisonElliott/HttpServer)
