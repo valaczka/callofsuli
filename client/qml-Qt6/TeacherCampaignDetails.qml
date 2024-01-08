@@ -42,7 +42,7 @@ Item {
 				{
 					QTextFieldInPlaceButtons {
 						setTo: campaign ? campaign.description : ""
-						onSaveRequest: {
+						onSaveRequest: text => {
 							Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 										{
 											description: text
@@ -67,7 +67,7 @@ Item {
 				canEdit: campaign && campaign.state < Campaign.Running
 				title: campaign && campaign.state < Campaign.Running ? qsTr("Automatikus indítás") : qsTr("Indítás ideje")
 				helperText: campaign && campaign.state >= Campaign.Running ? qsTr("A kihívás már elindult, az időpont nem módosítható") : ""
-				onSaveRequest: {
+				onSaveRequest: text => {
 					Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
 									starttime: hasDate ? Math.floor(date.getTime()/1000) : -1
@@ -96,7 +96,7 @@ Item {
 				helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A kihívás már befejeződött, az időpont nem módosítható") : ""
 				hour: 23
 				minute: 59
-				onSaveRequest: {
+				onSaveRequest: text => {
 					Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
 									endtime: hasDate ? Math.floor(date.getTime()/1000) : -1
@@ -212,7 +212,7 @@ Item {
 
 					anchors.verticalCenter: parent.verticalCenter
 
-					onSaveRequest: {
+					onSaveRequest: text => {
 						if (!campaign)
 							return
 

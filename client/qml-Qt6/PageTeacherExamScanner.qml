@@ -13,7 +13,7 @@ QPage {
 	property alias acceptedExamIdList: _teacherExam.acceptedExamIdList
 	property alias group: _teacherExam.teacherGroup
 
-	title:  _view.uploadableItems ? qsTr("%1 dolgozat feltöltése").arg(_view.uploadableItems) : qsTr("Dolgozatok beolvasása")
+	title:  _teacherExam.uploadableCount ? qsTr("%1 dolgozat feltöltése").arg(_teacherExam.uploadableCount) : qsTr("Dolgozatok beolvasása")
 
 	stackPopFunction: function() {
 		if (_actionSave.modified) {
@@ -63,20 +63,10 @@ QPage {
 
 		model: _teacherExam.scanData
 
-		property int uploadableItems: 0
-
 		delegate: QItemDelegate {
 			id: _delegate
 			property ExamScanData scanData: model.qtObject
 			selectableObject: scanData
-
-			Connections {
-				target: scanData
-
-				function onSelectedChanged() {
-					_view.recalculateSelected()
-				}
-			}
 
 			enabled: !_actionSave.modified
 			highlighted: ListView.isCurrentItem
@@ -89,14 +79,14 @@ QPage {
 
 			secondaryText: scanData.state == ExamScanData.ScanFileFinished ? scanData.path : ""
 
-			iconColor: {
+			iconColorBase: {
 				switch (scanData.state) {
 				case ExamScanData.ScanFileInvalid:
-					return Qaterial.Colors.orange400
+					return Qaterial.Colors.orange600
 				case ExamScanData.ScanFileError:
-					return Qaterial.Colors.red400
+					return Qaterial.Colors.red600
 				case ExamScanData.ScanFileFinished:
-					return Qaterial.Colors.green400
+					if (scanData.upload && scanData.serverAnswer.length) return Qaterial.Colors.green400
 				default:
 					Qaterial.Style.iconColor()
 				}
@@ -104,12 +94,12 @@ QPage {
 
 
 			textColor: scanData.state == ExamScanData.ScanFileFinished ?
-						   scanData.serverAnswer.length ? Qaterial.Colors.green400
-														: Qaterial.Style.colorTheme.primaryText : Qaterial.Style.disabledTextColor()
+						   (scanData.serverAnswer.length && scanData.upload) ? Qaterial.Colors.green400
+																			 : Qaterial.Style.colorTheme.primaryText : Qaterial.Style.disabledTextColor()
 
 			secondaryTextColor: scanData.state == ExamScanData.ScanFileFinished ?
-									scanData.serverAnswer.length ? Qaterial.Colors.green400
-																 : Qaterial.Style.colorTheme.secondaryText : Qaterial.Style.disabledTextColor()
+									(scanData.serverAnswer.length && scanData.upload) ? Qaterial.Colors.green400
+																					  : Qaterial.Style.colorTheme.secondaryText : Qaterial.Style.disabledTextColor()
 
 
 
@@ -126,10 +116,12 @@ QPage {
 				case ExamScanData.ScanFileError:
 					return Qaterial.Icons.alertOctagon
 				case ExamScanData.ScanFileFinished:
-					if (scanData.serverAnswer.length)
+					if (scanData.serverAnswer.length && scanData.upload)
 						return Qaterial.Icons.databaseCheck
-					else
+					else if (scanData.serverAnswer.length)
 						return Qaterial.Icons.paperRoll
+					else
+						return Qaterial.Icons.newspaperVariantOutline
 				default:
 					return ""
 				}
@@ -137,28 +129,29 @@ QPage {
 
 			onClicked: _view.currentIndex = index
 
+			Keys.onDeletePressed: _actionDelete.trigger()
+
+			Keys.onSpacePressed: scanData.upload = !scanData.upload
+
 		}
 
-		Keys.onDeletePressed: {
-			if (_teacherExam.scanState != TeacherExam.ScanFinished)
-				return
-
-			let l = getSelected()
-
-			for (let i=0; i<l.length; ++i) {
-				_teacherExam.scanData.remove(i)
-			}
+		Qaterial.Menu {
+			id: _contextMenu
+			QMenuItem { action: _view.actionSelectAll }
+			QMenuItem { action: _view.actionSelectNone }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: _actionUploadOn }
+			QMenuItem { action: _actionUploadOff }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: _actionDelete }
 		}
 
-		function recalculateSelected() {
-			let n = 0
-			for (let i=0; i<count; ++i) {
-				let o = modelGet(i)
-				if (o.selected && o.state === ExamScanData.ScanFileFinished && o.serverAnswer.length)
-					++n
-			}
-			uploadableItems = n
-		}
+		onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
+										if (index != -1)
+										currentIndex = index
+										_contextMenu.popup(mouseX, mouseY)
+									}
+
 	}
 
 	Qaterial.HorizontalLineSeparator {
@@ -348,8 +341,8 @@ QPage {
 				asynchronous: true
 				fillMode: Image.PreserveAspectFit
 				source: currentScan ? _imgOutput.checked && currentScan.outputPath != "" ? "file://"+currentScan.outputPath
-														 : _imgPath.checked ? "file://"+currentScan.path
-																			: "" : ""
+																						 : _imgPath.checked ? "file://"+currentScan.path
+																											: "" : ""
 
 			}
 		}
@@ -364,24 +357,45 @@ QPage {
 		text: qsTr("Beolvasás")
 		icon.source: Qaterial.Icons.scanner
 		enabled: _teacherExam.scanState == TeacherExam.ScanIdle
-		onTriggered: _teacherExam.scanImageDir("/tmp/x")
+		//onTriggered: _teacherExam.scanImageDir("/tmp/x")
+		onTriggered: {
+			/*if (Qt.platform.os == "wasm")
+				editor.exportData(MapEditor.ExportExam, "", {
+									  missionLevel: missionLevel
+								  })
+			else*/
+			Qaterial.DialogManager.openFromComponent(_cmpFolderSelect)
+		}
 	}
 
 	Action {
 		id: _actionUpdate
-		text: qsTr("Update")
+		text: qsTr("Frissítés")
 		icon.source: Qaterial.Icons.refresh
 		enabled: _teacherExam.scanState != TeacherExam.ScanRunning
 		onTriggered: _teacherExam.updateFromServerRequest()
-		shortcut: "F3"
+		shortcut: "Ctrl+R"
 	}
 
 	Action {
 		id: _actionUpload
 		text: qsTr("Feltöltés")
 		icon.source: Qaterial.Icons.uploadOutline
-		enabled: _view.uploadableItems
-		//onTriggered: _teacherExam.updateFromServerRequest()
+		enabled: _teacherExam.uploadableCount
+		shortcut: "F10"
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								_teacherExam.uploadResult()
+								_view.unselectAll()
+							},
+							text: qsTr("Biztosan feltöltesz %1 dolgozatot?").arg(_teacherExam.uploadableCount),
+							title: qsTr("Eredmények feltöltése"),
+							iconSource: Qaterial.Icons.upload
+						})
+		}
 	}
 
 	Action {
@@ -389,6 +403,8 @@ QPage {
 		icon.source: Qaterial.Icons.checkBold
 		enabled: currentScan
 		property bool modified: false
+
+		shortcut: "Ctrl+S"
 
 		onTriggered:  {
 			if (!modified)
@@ -422,24 +438,89 @@ QPage {
 		icon.source: Qaterial.Icons.cancel
 		enabled: currentScan
 
-		shortcut: "Ctrl+S"
-
 		onTriggered:  {
 			if (!_actionSave.modified)
 				return
 
 			let cs = currentScan.result
+			let tmp = currentScan.result
 
 			for (let i=0; i<_rptrQuestion.count; ++i) {
 				let q = _rptrQuestion.itemAt(i)
 
 				cs["q"+q.qNum] = q.originalAnswer
+				tmp["q"+q.qNum] = "----"
 			}
 
-			currentScan.result = {}
+			currentScan.result = tmp
 			currentScan.result = cs
 
 			_actionSave.modified = false
+		}
+	}
+
+
+	Action {
+		id: _actionDelete
+		icon.source: Qaterial.Icons.minus
+		text: qsTr("Eltávolítás")
+		enabled: _view.currentIndex != 1 || _view.selectEnabled
+		onTriggered: {
+			if (_view.selectEnabled) {
+				JS.questionDialog(
+							{
+								onAccepted: function()
+								{
+									_teacherExam.removeSelected()
+									_view.unselectAll()
+								},
+								text: qsTr("Biztosan eltávolítod a kijelölt %1 dolgozatot?").arg(Client.Utils.selectedCount(_teacherExam.scanData)),
+								title: qsTr("Eltávolítás"),
+								iconSource: Qaterial.Icons.delete_
+							})
+
+			} else {
+				JS.questionDialog(
+							{
+								onAccepted: function()
+								{
+									_teacherExam.remove(_view.modelGet(_view.currentIndex))
+									_view.unselectAll()
+								},
+								text: qsTr("Biztosan eltávolítod a dolgozatot?\n")+_view.modelGet(_view.currentIndex).path,
+								title: qsTr("Eltávolítás"),
+								iconSource: Qaterial.Icons.delete_
+							})
+			}
+
+		}
+	}
+
+	Action {
+		id: _actionUploadOn
+		icon.source: Qaterial.Icons.upload
+		text: qsTr("Feltöltés")
+		enabled: _view.currentIndex != 1 || _view.selectEnabled
+		onTriggered: {
+			let l = _view.getSelected()
+			for (let i=0; i<l.length; ++i)
+				l[i].upload = true
+
+			_view.unselectAll()
+		}
+	}
+
+	Action {
+		id: _actionUploadOff
+		icon.source: Qaterial.Icons.uploadOff
+		text: qsTr("Ne töltse fel")
+		enabled: _view.currentIndex != 1 || _view.selectEnabled
+		onTriggered: {
+			let l = _view.getSelected()
+			for (let i=0; i<l.length; ++i)
+				l[i].upload = false
+
+			_view.unselectAll()
 		}
 	}
 
@@ -458,4 +539,45 @@ QPage {
 		onTriggered: _imgOutput.checked = true
 	}
 
+
+
+
+	Component {
+		id: _cmpFolderSelect
+
+		QFileDialog {
+			title: qsTr("Képek beolvasása könyvtárból")
+			filters: ["*.jpg", "*.JPG", "*.jpeg", "*.JPEG", "*.png", "*.PNG"]
+			isDirectorySelect: true
+			onDirectorySelected: dir => {
+									 _teacherExam.scanImageDir(dir)
+									 Client.Utils.settingsSet("folder/scan", dir.toString())
+									 /*if (Client.Utils.fileExists(file))
+					overrideQuestion(file, false, MapEditor.ExportExam)
+				else
+					editor.exportData(MapEditor.ExportExam, file, {
+										  missionLevel: missionLevel
+									  })
+				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())*/
+								 }
+
+			folder: Client.Utils.settingsGet("folder/scan")
+		}
+	}
+
+	/*
+	function overrideQuestion(file, isNew, type) {
+		JS.questionDialog({
+							  onAccepted: function()
+							  {
+								  editor.exportData(type, file, {
+														missionLevel: missionLevel
+													})
+							  },
+							  text: qsTr("A fájl létezik. Felülírjuk?\n%1").arg(file),
+							  title: qsTr("Mentés másként"),
+							  iconSource: Qaterial.Icons.fileAlert
+						  })
+	}
+*/
 }

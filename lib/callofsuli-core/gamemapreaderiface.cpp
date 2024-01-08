@@ -537,7 +537,7 @@ void GameMapReaderIface::imagesToStream(QDataStream &stream, const QList<GameMap
 			}
 
 			foreach (GameMapStorageIface *s, storages) {
-				if (s->m_module != QLatin1String("images"))
+				if (s->m_module != QStringLiteral("images"))
 					continue;
 
 				const QVariantList &l = s->m_data.value(QStringLiteral("images")).toList();
@@ -603,13 +603,17 @@ bool GameMapReaderIface::objectivesFromStream(QDataStream &stream, GameMapChapte
 		QByteArray module;
 		qint32 storageId = -1;
 		qint32 storageCount = 0;
+		qint32 examPoint = 0;
 		QVariantMap data;
 		stream >> uuid >> module >> storageId >> data >> storageCount;
+
+		if (m_version >= 16)
+			stream >> examPoint;
 
 		if (uuid.isEmpty())
 			return false;
 
-		if (!chapter->ifaceAddObjective(uuid, module, storageId, storageCount, data))
+		if (!chapter->ifaceAddObjective(uuid, module, storageId, storageCount, data, examPoint))
 			return false;
 	}
 
@@ -796,6 +800,7 @@ void GameMapChapterIface::objectivesToStream(QDataStream &stream) const
 		stream << o->m_storageId;
 		stream << o->m_data;
 		stream << o->m_storageCount;
+		stream << o->m_examPoint;
 	}
 }
 

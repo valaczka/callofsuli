@@ -27,12 +27,10 @@
 #ifndef GAMEMAPREADERIFACE_H
 #define GAMEMAPREADERIFACE_H
 
-
-#include "qloggingcategory.h"
 #include <QDataStream>
 #include <QVariantMap>
 
-#define GAMEMAP_CURRENT_VERSION 15
+#define GAMEMAP_CURRENT_VERSION 16
 
 
 class GameMapChapterIface;
@@ -164,6 +162,7 @@ protected:
 	qint32 m_storageId;
 	qint32 m_storageCount;
 	QVariantMap m_data;
+	qint32 m_examPoint = 0;
 };
 
 
@@ -190,7 +189,8 @@ protected:
 													 const QString &m_module,
 													 const qint32 &m_storageId,
 													 const qint32 &m_storageCount,
-													 const QVariantMap &m_data) = 0;
+													 const QVariantMap &m_data,
+													 const qint32 &examPoint) = 0;
 
 	qint32 m_id;
 	QString m_name;

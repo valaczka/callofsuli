@@ -28,6 +28,8 @@
 #define TEACHEREXAM_H
 
 
+#include "exam.h"
+#include "gamemap.h"
 #include "qjsonarray.h"
 #include "qlambdathreadworker.h"
 #include "qprocess.h"
@@ -61,6 +63,7 @@ class ExamScanData : public SelectableObject
 	Q_PROPERTY(QString outputPath READ outputPath WRITE setOutputPath NOTIFY outputPathChanged FINAL)
 	Q_PROPERTY(QJsonArray serverAnswer READ serverAnswer WRITE setServerAnswer NOTIFY serverAnswerChanged FINAL)
 	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged FINAL)
+	Q_PROPERTY(bool upload READ upload WRITE setUpload NOTIFY uploadChanged FINAL)
 
 public:
 	explicit ExamScanData(QObject *parent = nullptr);
@@ -100,6 +103,9 @@ public:
 	QString username() const;
 	void setUsername(const QString &newUsername);
 
+	bool upload() const;
+	void setUpload(bool newUpload);
+
 signals:
 	void pathChanged();
 	void stateChanged();
@@ -109,6 +115,7 @@ signals:
 	void outputPathChanged();
 	void serverAnswerChanged();
 	void usernameChanged();
+	void uploadChanged();
 
 private:
 	QString m_path;
@@ -119,12 +126,47 @@ private:
 	QString m_outputPath;
 	QJsonArray m_serverAnswer;
 	QString m_username;
+	bool m_upload = false;
 };
 
 using ExamScanDataList = qolm::QOlm<ExamScanData>;
 Q_DECLARE_METATYPE(ExamScanDataList*)
 
 
+
+
+/**
+ * @brief The ExamUser class
+ */
+
+class ExamUser : public User
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QJsonArray examData READ examData WRITE setExamData NOTIFY examDataChanged FINAL)
+	Q_PROPERTY(int contentId READ contentId WRITE setContentId NOTIFY contentIdChanged FINAL)
+
+public:
+	ExamUser(QObject *parent = nullptr);
+
+	QJsonArray examData() const;
+	void setExamData(const QJsonArray &newExamData);
+
+	int contentId() const;
+	void setContentId(int newContentId);
+
+signals:
+	void examDataChanged();
+	void contentIdChanged();
+
+private:
+	QJsonArray m_examData;
+	int m_contentId = 0;
+};
+
+
+using ExamUserList = qolm::QOlm<ExamUser>;
+Q_DECLARE_METATYPE(ExamUserList*)
 
 
 
@@ -139,7 +181,14 @@ class TeacherExam : public QObject
 	Q_PROPERTY(ExamScanDataList* scanData READ scanData CONSTANT FINAL)
 	Q_PROPERTY(ScanState scanState READ scanState WRITE setScanState NOTIFY scanStateChanged FINAL)
 	Q_PROPERTY(QVariantList acceptedExamIdList READ acceptedExamIdList WRITE setAcceptedExamIdList NOTIFY acceptedExamIdListChanged FINAL)
+	Q_PROPERTY(int uploadableCount READ uploadableCount NOTIFY uploadableCountChanged FINAL)
 	Q_PROPERTY(TeacherGroup *teacherGroup READ teacherGroup WRITE setTeacherGroup NOTIFY teacherGroupChanged FINAL)
+	Q_PROPERTY(TeacherMapHandler *mapHandler READ mapHandler WRITE setMapHandler NOTIFY mapHandlerChanged FINAL)
+	Q_PROPERTY(Exam *exam READ exam WRITE setExam NOTIFY examChanged FINAL)
+	Q_PROPERTY(GameMap *gameMap READ gameMap NOTIFY gameMapChanged FINAL)
+	Q_PROPERTY(QString missionUuid READ missionUuid WRITE setMissionUuid NOTIFY missionUuidChanged FINAL)
+	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged FINAL)
+	Q_PROPERTY(ExamUserList*examUserList READ examUserList CONSTANT FINAL)
 
 public:
 	explicit TeacherExam(QObject *parent = nullptr);
@@ -164,10 +213,21 @@ public:
 
 	Q_ENUM(ScanState);
 
-	void createPdf(const QJsonArray &list, const PdfConfig &pdfConfig);
+	void createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfConfig);
 
-	Q_INVOKABLE void createPdf(const QJsonArray &list, const QVariantMap &pdfConfig);
-	Q_INVOKABLE void scanImageDir(const QString &path);
+	Q_INVOKABLE void createPdf(const QList<ExamUser *> &list, const QVariantMap &pdfConfig);
+	Q_INVOKABLE void scanImageDir(const QUrl &path);
+
+	Q_INVOKABLE void remove(ExamScanData *scan);
+	Q_INVOKABLE void removeSelected();
+
+	Q_INVOKABLE void uploadResult();
+
+	Q_INVOKABLE QVariantList getMissionLevelList();
+	Q_INVOKABLE void loadContentFromJson(const QJsonObject &object);
+
+	Q_INVOKABLE void generateExamContent(const QList<ExamUser*> &list);
+	Q_INVOKABLE void reloadExamContent();
 
 	ExamScanDataList* scanData() const;
 
@@ -180,6 +240,25 @@ public:
 	TeacherGroup *teacherGroup() const;
 	void setTeacherGroup(TeacherGroup *newTeacherGroup);
 
+	int uploadableCount() const;
+
+	TeacherMapHandler *mapHandler() const;
+	void setMapHandler(TeacherMapHandler *newMapHandler);
+
+	Exam *exam() const;
+	void setExam(Exam *newExam);
+
+	GameMap *gameMap() const;
+	void setGameMap(std::unique_ptr<GameMap> newGameMap);
+
+	QString missionUuid() const;
+	void setMissionUuid(const QString &newMissionUuid);
+
+	int level() const;
+	void setLevel(int newLevel);
+
+	ExamUserList*examUserList() const;
+
 signals:
 	void pdfFileGenerated(QString filename);
 	void scanQRfinished();
@@ -188,11 +267,21 @@ signals:
 	void updateFromServerRequest();
 	void acceptedExamIdListChanged();
 	void teacherGroupChanged();
+	void uploadableCountChanged();
+	void mapHandlerChanged();
+	void examChanged();
+	void missionLevelChanged();
+	void gameMapChanged();
+	void missionUuidChanged();
+	void levelChanged();
 
 private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
 	static QString pdfSheet(const bool &addResource, const int &width, QTextDocument *document);
 	static QString pdfQuestion(const QJsonArray &list);
+
+	void loadUserList();
+	void loadGameMap();
 
 	void scanImages();
 	bool scanHasPendingQR();
@@ -248,6 +337,7 @@ private:
 	static const QString m_optionLetters;
 
 	std::unique_ptr<ExamScanDataList> m_scanData;
+	std::unique_ptr<ExamUserList> m_examUserList;
 	std::unique_ptr<QTemporaryDir> m_scanTempDir;
 	std::unique_ptr<QProcess> m_omrProcess = nullptr;
 	QLambdaThreadWorker m_worker;
@@ -256,6 +346,11 @@ private:
 	QJsonArray m_scannedIdList;
 	QVariantList m_acceptedExamIdList;
 	QPointer<TeacherGroup> m_teacherGroup;
+	QPointer<TeacherMapHandler> m_mapHandler;
+	QPointer<Exam> m_exam;
+	std::unique_ptr<GameMap> m_gameMap;
+	QString m_missionUuid;
+	int m_level = -1;
 };
 
 

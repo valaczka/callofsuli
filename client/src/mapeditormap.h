@@ -362,7 +362,8 @@ protected:
 											 const QString &module,
 											 const qint32 &storageId,
 											 const qint32 &storageCount,
-											 const QVariantMap &data) override;
+											 const QVariantMap &data,
+											 const qint32 &examPoint) override;
 
 private:
 	MapEditorObjectiveList *const m_objectiveList;
@@ -388,6 +389,7 @@ class MapEditorObjective : public MapEditorObject, public GameMapObjectiveIface
 	Q_PROPERTY(qint32 storageCount READ storageCount WRITE setStorageCount NOTIFY storageCountChanged)
 	Q_PROPERTY(QVariantMap data READ data WRITE setData NOTIFY dataChanged)
 	Q_PROPERTY(MapEditorStorage* storage READ storage NOTIFY storageChanged)
+	Q_PROPERTY(qint32 examPoint READ examPoint WRITE setExamPoint NOTIFY examPointChanged FINAL)
 
 public:
 	explicit MapEditorObjective();
@@ -416,6 +418,9 @@ public:
 	const QVariantMap &data() const;
 	void setData(const QVariantMap &newData);
 
+	qint32 examPoint() const;
+	void setExamPoint(qint32 newExamPoint);
+
 signals:
 	void uuidChanged();
 	void moduleChanged();
@@ -423,6 +428,7 @@ signals:
 	void storageCountChanged();
 	void storageChanged();
 	void dataChanged();
+	void examPointChanged();
 };
 
 

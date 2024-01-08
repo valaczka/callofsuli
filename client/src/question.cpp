@@ -108,6 +108,7 @@ QVariantMap Question::generate() const
 	QVariantMap q = m_objective->generatedQuestions().takeAt(QRandomGenerator::global()->bounded(m_objective->generatedQuestions().size())).toMap();
 
 	q.insert(QStringLiteral("xpFactor"), mi->xpFactor());
+	q.insert(QStringLiteral("examPoint"), m_objective->examPoint());
 
 	return q;
 }

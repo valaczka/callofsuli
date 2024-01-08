@@ -287,7 +287,8 @@ CREATE TABLE examAnswer(
 	id INTEGER NOT NULL PRIMARY KEY,
 	contentid INTEGER NOT NULL REFERENCES examContent(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	answer TEXT,
-	correction TEXT
+	correction TEXT,
+	UNIQUE(contentid)
 );
 
 ----------------------------------

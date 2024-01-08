@@ -35,7 +35,7 @@
 
 FetchModel::FetchModel(QObject *parent)
 	: QObject{parent}
-	, m_model(new QSListModel(this))
+	, m_model(new QSListModel())
 {
 
 }

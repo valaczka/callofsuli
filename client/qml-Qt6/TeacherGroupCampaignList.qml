@@ -12,9 +12,17 @@ Item
 
 	property TeacherGroup group: null
 	property TeacherMapHandler mapHandler: null
-	property alias view: view
 
 	property alias actionCampaignAdd: actionCampaignAdd
+
+	property var stackPopFunction: function() {
+		if (view.selectEnabled) {
+			view.unselectAll()
+			return false
+		}
+
+		return true
+	}
 
 	QScrollable {
 		anchors.fill: parent
@@ -78,7 +86,7 @@ Item
 					}
 				}
 
-				iconColor: {
+				iconColorBase: {
 					if (!campaign)
 						return Qaterial.Style.disabledTextColor()
 					switch (campaign.state) {

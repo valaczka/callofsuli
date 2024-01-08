@@ -9,7 +9,7 @@ QItemDelegate {
 	property color color: Qaterial.Style.accentColor
 
 	textColor: color
-	iconColor: color
+	iconColorBase: color
 
 	outlinedIcon: true
 	fillIcon: false

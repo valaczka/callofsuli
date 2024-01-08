@@ -52,7 +52,7 @@ Qaterial.Page
 			{
 				QTextFieldInPlaceButtons {
 					setTo: classname
-					onSaveRequest: {
+					onSaveRequest: text => {
 						Client.send(HttpConnection.ApiAdmin, "class/%1/update".arg(classid),
 									{
 										name: text
@@ -103,7 +103,7 @@ Qaterial.Page
 
 				QTextFieldInPlaceButtons {
 					setTo: classcode
-					onSaveRequest: {
+					onSaveRequest: text => {
 						Client.send(HttpConnection.ApiAdmin, "class/%1/updateCode".arg(classid),
 									{
 										code: text

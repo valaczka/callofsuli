@@ -242,7 +242,8 @@ protected:
 											 const QString &module,
 											 const qint32 &storageId,
 											 const qint32 &storageCount,
-											 const QVariantMap &data) override;
+											 const QVariantMap &data,
+											 const qint32 &examPoint) override;
 
 private:
 	QList<GameMapObjective *> m_objectives;
@@ -266,11 +267,13 @@ class GameMapObjective : public GameMapObjectiveIface
 	Q_PROPERTY(qint32 storageId MEMBER m_storageId)
 	Q_PROPERTY(qint32 storageCount MEMBER m_storageCount)
 	Q_PROPERTY(QVariantMap data MEMBER m_data)
+	Q_PROPERTY(qint32 examPoint MEMBER m_examPoint)
 
 public:
 	explicit GameMapObjective(const QString &uuid, const QString &module,
 							  const qint32 &storageId, const qint32 &storageCount,
-							  const QVariantMap &data, GameMap *map);
+							  const QVariantMap &data, const qint32 &examPoint,
+							  GameMap *map);
 	virtual ~GameMapObjective() {}
 
 	const QString &uuid() const;
@@ -278,6 +281,7 @@ public:
 	qint32 storageId() const;
 	qint32 storageCount() const;
 	const QVariantMap &data() const;
+	qint32 examPoint() const { return m_examPoint; };
 
 	GameMapStorage *storage() const;
 

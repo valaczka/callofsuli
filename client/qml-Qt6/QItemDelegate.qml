@@ -8,7 +8,8 @@ Qaterial.ItemDelegate {
 	id: control
 
 	property bool setCurrentIndexEnabled: true
-	property url iconSource: ""						// Ezt használjuk az icon.source helyett
+	property url iconSource: ""									// Ezt használjuk az icon.source helyett
+	property color iconColorBase: Qaterial.Style.iconColor()	// Ezt használjuk az iconColor helyett
 	property SelectableObject selectableObject: null
 
 	checkable: false
@@ -23,7 +24,7 @@ Qaterial.ItemDelegate {
 	highlightedIcon: false
 
 	width: ListView.view.width
-	iconColor: highlightedIcon || (_view && _view.selectEnabled) ? Qaterial.Style.accentColor : Qaterial.Style.iconColor()
+	iconColor: highlightedIcon || (_view && _view.selectEnabled) ? Qaterial.Style.accentColor : iconColorBase
 
 	leftPadding: Math.max(!mirrored ? Qaterial.Style.delegate.leftPadding(control.type, control.lines) : Qaterial.Style.delegate
 	  .rightPadding(control.type, control.lines), Client.safeMarginLeft)
@@ -96,7 +97,7 @@ Qaterial.ItemDelegate {
 			}
 		}
 
-		onPressAndHold: {
+		onPressAndHold: mouse => {
 			var r = mapToItem(_view, mouse.x, mouse.y)
 			_view.rightClickOrPressAndHold(index, r.x, r.y)
 		}

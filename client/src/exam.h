@@ -61,7 +61,7 @@ public:
 	virtual ~Exam();
 
 	enum State {
-		Prepare,
+		Prepare = 0,
 		Assigned,
 		Active,
 		Grading,
@@ -71,13 +71,11 @@ public:
 	Q_ENUM(State);
 
 	enum Mode {
-		ExamPaper,
+		ExamPaper = 0,
 		ExamOnline
 	};
 
 	Q_ENUM(Mode);
-
-	Q_INVOKABLE void generateRandom(TeacherMapHandler *handler, TeacherGroup *group) const;
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
 

@@ -10,9 +10,10 @@ QPage {
 	id: control
 
 	stackPopFunction: function() {
-		if (_campaignList.view.selectEnabled) {
-			_campaignList.view.unselectAll()
-			return false
+		var item = swipeView.currentItem
+
+		if (item && item.stackPopFunction !== undefined) {
+			return item.stackPopFunction()
 		}
 
 		if (swipeView.currentIndex > 0) {

@@ -56,6 +56,12 @@ ListView {
 	Keys.onLeftPressed: decrementCurrentIndex()
 	Keys.onRightPressed: incrementCurrentIndex()
 
+	onCurrentIndexChanged: {
+		if (currentIndex != -1)
+			positionViewAtIndex(currentIndex, ListView.Contain)
+	}
+
+
 	height: contentHeight
 
 	QRefreshProgressBar {

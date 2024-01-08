@@ -398,6 +398,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<ExamList>("CallOfSuli", 1, 0, "ExamList");
 	qmlRegisterType<ExamScanData>("CallOfSuli", 1, 0, "ExamScanData");
 	qmlRegisterType<ExamScanDataList>("CallOfSuli", 1, 0, "ExamScanDataList");
+	qmlRegisterType<ExamUser>("CallOfSuli", 1, 0, "ExamUser");
 	qmlRegisterType<FetchModel>("CallOfSuli", 1, 0, "FetchModelImpl");
 	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
 	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");

@@ -52,7 +52,7 @@ Qaterial.Page
 			{
 				QTextFieldInPlaceButtons {
 					setTo: classname
-					onSaveRequest: {
+					onSaveRequest: text => {
 						Client.send(HttpConnection.ApiAdmin, "class/%1/update".arg(classid),
 									{
 										name: text
@@ -103,7 +103,7 @@ Qaterial.Page
 
 				QTextFieldInPlaceButtons {
 					setTo: classcode
-					onSaveRequest: {
+					onSaveRequest: text => {
 						Client.send(HttpConnection.ApiAdmin, "class/%1/updateCode".arg(classid),
 									{
 										code: text
@@ -206,7 +206,7 @@ Qaterial.Page
 															(user.roles & _roleTeacher) ? Qaterial.Colors.amber300 :
 																						  Qaterial.Style.colorTheme.primaryText) :
 							   Qaterial.Style.colorTheme.disabledText
-				iconColor: user ? (user.selected ?
+				iconColorBase: user ? (user.selected ?
 									   Qaterial.Style.accentColor :
 									   user.active ? ((user.roles & _roleAdmin) ?
 														  Qaterial.Colors.red300 :

@@ -36,6 +36,7 @@
 #include <QPdfWriter>
 #include "stb_image_write.h"
 #include "csv.hpp"
+#include "examgame.h"
 
 
 
@@ -55,6 +56,7 @@ const QString TeacherExam::m_optionLetters = QStringLiteral("ABCDEF?????????????
 TeacherExam::TeacherExam(QObject *parent)
 	: QObject{parent}
 	, m_scanData(new ExamScanDataList)
+	, m_examUserList(new ExamUserList)
 {
 	LOG_CTRACE("client") << "TeacherExam created" << this;
 
@@ -78,11 +80,11 @@ TeacherExam::~TeacherExam()
  * @param list
  */
 
-void TeacherExam::createPdf(const QJsonArray &list, const PdfConfig &pdfConfig)
+void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfConfig)
 {
 	LOG_CDEBUG("client") << "Generate paper exam pdf";
 
-	m_worker.execInThread([this, list, pdfConfig]{
+	m_worker.execInThread([this, list, pdfConfig]() {
 		QByteArray content;
 		QBuffer buffer(&content);
 		buffer.open(QIODevice::WriteOnly);
@@ -119,16 +121,23 @@ void TeacherExam::createPdf(const QJsonArray &list, const PdfConfig &pdfConfig)
 
 		int count = 0;
 
-		for (const QJsonValue &v : list) {
-			const QJsonObject &o = v.toObject();
-			QString username = o.value(QStringLiteral("username")).toString();
-			const int &id = o.value(QStringLiteral("id")).toInt();
-			const QJsonArray &qList = o.value(QStringLiteral("data")).toArray();
+		QList<ExamUser *> realList;
 
-			if (m_teacherGroup) {
-				if (User *u = OlmLoader::find<User>(m_teacherGroup->memberList(), "username", username); u)
-					username = u->fullName();
-			}
+		if (list.isEmpty()) {
+			realList.reserve(m_examUserList->size());
+			for (ExamUser *u : *m_examUserList)
+				realList.append(u);
+		} else {
+			realList = list;
+		}
+
+		for (const ExamUser *u : realList) {
+			if (u->examData().isEmpty())
+				continue;
+
+			const QString &username = u->fullName();
+			const int &id = u->contentId();
+			const QJsonArray &qList = u->examData();
 
 			html += QStringLiteral("<table width=\"100%\"");
 			if (count>0)
@@ -184,20 +193,18 @@ void TeacherExam::createPdf(const QJsonArray &list, const PdfConfig &pdfConfig)
  * @param group
  */
 
-void TeacherExam::createPdf(const QJsonArray &list, const QVariantMap &pdfConfig)
+void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdfConfig)
 {
 	PdfConfig c;
 
-	if (pdfConfig.contains(QStringLiteral("examId")))
-		c.examId = pdfConfig.value(QStringLiteral("examId")).toInt();
+	if (m_exam) {
+		c.examId = m_exam->examId();
+		c.title = m_exam->description();
+	}
 
-	if (pdfConfig.contains(QStringLiteral("title")))
-		c.title = pdfConfig.value(QStringLiteral("title")).toString();
-
-	if (pdfConfig.contains(QStringLiteral("subject")))
-		c.subject = pdfConfig.value(QStringLiteral("subject")).toString();
-	else if (m_teacherGroup)
+	if (m_teacherGroup) {
 		c.subject = m_teacherGroup->fullName();
+	}
 
 	if (pdfConfig.contains(QStringLiteral("fontSize")))
 		c.fontSize = pdfConfig.value(QStringLiteral("fontSize")).toInt();
@@ -212,7 +219,7 @@ void TeacherExam::createPdf(const QJsonArray &list, const QVariantMap &pdfConfig
  * @param path
  */
 
-void TeacherExam::scanImageDir(const QString &path)
+void TeacherExam::scanImageDir(const QUrl &path)
 {
 	if (m_scanState == ScanRunning) {
 		LOG_CERROR("client") << "Scanning in progress";
@@ -222,7 +229,7 @@ void TeacherExam::scanImageDir(const QString &path)
 	m_scanData->clear();
 	m_scanTempDir.reset();
 
-	QDirIterator it(path, {
+	QDirIterator it(path.toLocalFile(), {
 						QStringLiteral("*.png"),
 						QStringLiteral("*.PNG"),
 						QStringLiteral("*.jpg"),
@@ -234,14 +241,228 @@ void TeacherExam::scanImageDir(const QString &path)
 
 	while (it.hasNext()) {
 		ExamScanData *s = new ExamScanData;
+		connect(s, &ExamScanData::uploadChanged, this, &TeacherExam::uploadableCountChanged);
+		connect(s, &ExamScanData::stateChanged, this, &TeacherExam::uploadableCountChanged);
+		connect(s, &ExamScanData::serverAnswerChanged, this, &TeacherExam::uploadableCountChanged);
 		s->setPath(it.next());
 		m_scanData->append(s);
 	}
+
+	if (m_scanData->empty())
+		return;
 
 	setScanState(ScanRunning);
 
 	scanImages();
 }
+
+
+/**
+ * @brief TeacherExam::remove
+ * @param scan
+ */
+
+void TeacherExam::remove(ExamScanData *scan)
+{
+	if (!scan)
+		return;
+
+	m_worker.execInThread([this, scan](){
+		QMutexLocker locker(&m_mutex);
+
+		m_scanData->remove(scan);
+		emit uploadableCountChanged();
+	});
+}
+
+
+/**
+ * @brief TeacherExam::removeSelected
+ */
+
+void TeacherExam::removeSelected()
+{
+	LOG_CTRACE("client") << "Remove selected scans";
+
+	m_worker.execInThread([this](){
+		QMutexLocker locker(&m_mutex);
+
+		QVector<ExamScanData*> list;
+
+		list.reserve(m_scanData->size());
+
+		for (auto &s : *m_scanData) {
+			if (s->selected())
+				list.append(s);
+		}
+
+		list.squeeze();
+
+		foreach (auto s, list)
+			remove(s);
+	});
+}
+
+
+
+/**
+ * @brief TeacherExam::uploadResult
+ */
+
+void TeacherExam::uploadResult()
+{
+	LOG_CDEBUG("client") << "Upload exam results";
+
+	m_worker.execInThread([this](){
+		QMutexLocker locker(&m_mutex);
+
+		QVector<QPointer<ExamScanData>> list;
+
+		list.reserve(m_scanData->size());
+
+		for (auto &s : *m_scanData) {
+			if (s->state() == ExamScanData::ScanFileFinished && !s->serverAnswer().isEmpty() && s->upload())
+				list.append(s);
+		}
+
+		list.squeeze();
+
+		for (const auto &s : list) {
+			if (s) {
+				Application::instance()->client()->send(HttpConnection::ApiTeacher,
+														QStringLiteral("exam/answer/%1").arg(s->contentId()), {
+															{ QStringLiteral("answer"), s->serverAnswer() }
+														})
+						->done(this, [s, this](const QJsonObject &ret){
+					if (s && ret.value(QStringLiteral("status")).toString() == QStringLiteral("ok")) {
+						remove(s);
+					}
+				});
+			}
+		}
+
+		Application::instance()->messageInfo(tr("Eredmények feltöltve"));
+	});
+}
+
+
+
+/**
+ * @brief TeacherExam::getMissionLevelList
+ * @return
+ */
+
+QVariantList TeacherExam::getMissionLevelList()
+{
+	QVariantList list;
+
+	loadGameMap();
+
+	if (!m_gameMap)
+		return {};
+
+	for (GameMapMission *m : m_gameMap->missions()) {
+		for (GameMapMissionLevel *ml : m->levels()) {
+			list.append(QVariantMap{
+							{ QStringLiteral("name"), m->name() },
+							{ QStringLiteral("uuid"), m->uuid() },
+							{ QStringLiteral("level"), ml->level() },
+							{ QStringLiteral("missionLevel"), QVariant::fromValue(ml) }
+						});
+		}
+	}
+
+	return list;
+}
+
+
+
+
+
+/**
+ * @brief TeacherExam::loadContentFromJson
+ * @param object
+ */
+
+void TeacherExam::loadContentFromJson(const QJsonObject &object)
+{
+	LOG_CTRACE("client") << "Load exam content from json" << object;
+
+	const QJsonArray &list = object.value(QStringLiteral("list")).toArray();
+
+	for (ExamUser *u : *m_examUserList) {
+		const QString &username = u->username();
+
+		auto it = std::find_if(list.constBegin(), list.constEnd(), [username](const QJsonValue &v) {
+			return (v.toObject().value(QStringLiteral("username")).toString() == username);
+		});
+
+		if (it != list.constEnd()) {
+			const QJsonObject &o = it->toObject();
+			u->setExamData(o.value(QStringLiteral("data")).toArray());
+			u->setContentId(o.value(QStringLiteral("id")).toInt());
+		} else {
+			u->setExamData({});
+			u->setContentId(0);
+		}
+	}
+}
+
+
+
+/**
+ * @brief TeacherExam::generateExamContent
+ */
+
+void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
+{
+	LOG_CDEBUG("client") << "Generate exam content";
+
+	GameMapMissionLevel *ml = m_gameMap ? m_gameMap->missionLevel(m_missionUuid, m_level) : nullptr;
+
+	if (!ml || !m_exam) {
+		Application::instance()->messageWarning(tr("Nincs küldetés kiválasztva"), tr("Dolgozatok generálása"));
+		return;
+	}
+
+	QJsonArray data;
+
+	for (const ExamUser *u : list) {
+		QJsonObject userdata;
+		userdata[QStringLiteral("username")] = u->username();
+		userdata[QStringLiteral("q")] = ExamGame::generatePaperQuestions(ml);
+
+		data.append(userdata);
+	}
+
+	QJsonObject o;
+	o[QStringLiteral("list")] = data;
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
+											o)
+			->done(this, [this](const QJsonObject&){reloadExamContent();})
+			;
+}
+
+
+
+/**
+ * @brief TeacherExam::reloadExamContent
+ */
+
+void TeacherExam::reloadExamContent()
+{
+	if (!m_exam)
+		return;
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/content").arg(m_exam->examId()))
+			->done(this, &TeacherExam::loadContentFromJson)
+			;
+}
+
+
+
+
 
 
 
@@ -455,6 +676,84 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list)
 	}
 
 	return html;
+}
+
+
+
+/**
+ * @brief TeacherExam::loadUserList
+ */
+
+void TeacherExam::loadUserList()
+{
+	if (!m_teacherGroup) {
+		m_examUserList->clear();
+		return;
+	}
+
+	QList<ExamUser*> list;
+
+	for (User *u : *m_teacherGroup->memberList()) {
+		const QJsonObject &o = u->toJsonObject();
+		ExamUser *eUser = new ExamUser;
+		eUser->loadFromJson(o, true);
+		list.append(eUser);
+	}
+
+	m_examUserList->append(list);
+}
+
+
+
+
+
+/**
+ * @brief TeacherExam::loadGameMap
+ */
+
+void TeacherExam::loadGameMap()
+{
+	if (!m_exam || !m_mapHandler) {
+		LOG_CWARNING("client") << "Missing exam/mapHandler";
+		setGameMap({});
+		return;
+	}
+
+	if (m_exam->mapUuid().isEmpty()) {
+		Application::instance()->messageInfo(tr("Nincs beállítva pálya!"), tr("Dolgozat készítése"));
+		setGameMap({});
+		return;
+	}
+
+	auto mapList = m_mapHandler->mapList();
+
+	TeacherMap *map = OlmLoader::find<TeacherMap>(mapList, "uuid", m_exam->mapUuid());
+
+	if (!map) {
+		Application::instance()->messageInfo(tr("Érvénytelen pályaazonosító!"), tr("Dolgozat készítése"));
+		setGameMap({});
+	}
+
+	if (!map->downloaded()) {
+		Application::instance()->messageInfo(tr("A dolgozat elkészítéséhez a kiválasztott pályát előbb le kell tölteni. A letöltés elindult."), tr("Pálya letöltése"));
+		m_mapHandler->mapDownload(map);
+		setGameMap({});
+		return;
+	}
+
+	std::unique_ptr<GameMap> mapData;
+
+	if (const auto &data = m_mapHandler->read(map); data) {
+		mapData.reset(GameMap::fromBinaryData(data.value()));
+	}
+
+	if (!mapData) {
+		Application::instance()->messageInfo(tr("Érvénytelen pálya!"), tr("Dolgozat készítése"));
+		setGameMap({});
+		return;
+	}
+
+	setGameMap(std::move(mapData));
 }
 
 
@@ -1035,6 +1334,111 @@ void TeacherExam::updateResultFromServer()
 }
 
 
+
+/**
+ * @brief TeacherExam::examUserList
+ * @return
+ */
+
+ExamUserList*TeacherExam::examUserList() const
+{
+	return m_examUserList.get();
+}
+
+int TeacherExam::level() const
+{
+	return m_level;
+}
+
+void TeacherExam::setLevel(int newLevel)
+{
+	if (m_level == newLevel)
+		return;
+	m_level = newLevel;
+	emit levelChanged();
+}
+
+QString TeacherExam::missionUuid() const
+{
+	return m_missionUuid;
+}
+
+void TeacherExam::setMissionUuid(const QString &newMissionUuid)
+{
+	if (m_missionUuid == newMissionUuid)
+		return;
+	m_missionUuid = newMissionUuid;
+	emit missionUuidChanged();
+}
+
+
+/**
+ * @brief TeacherExam::gameMap
+ * @return
+ */
+
+GameMap*TeacherExam::gameMap() const
+{
+	return m_gameMap.get();
+}
+
+void TeacherExam::setGameMap(std::unique_ptr<GameMap> newGameMap)
+{
+	if (m_gameMap == newGameMap)
+		return;
+	m_gameMap = std::move(newGameMap);
+	emit gameMapChanged();
+	setMissionUuid(QStringLiteral(""));
+	setLevel(-1);
+}
+
+Exam *TeacherExam::exam() const
+{
+	return m_exam;
+}
+
+void TeacherExam::setExam(Exam *newExam)
+{
+	if (m_exam == newExam)
+		return;
+	m_exam = newExam;
+	emit examChanged();
+}
+
+TeacherMapHandler *TeacherExam::mapHandler() const
+{
+	return m_mapHandler;
+}
+
+void TeacherExam::setMapHandler(TeacherMapHandler *newMapHandler)
+{
+	if (m_mapHandler == newMapHandler)
+		return;
+	m_mapHandler = newMapHandler;
+	emit mapHandlerChanged();
+}
+
+
+
+/**
+ * @brief TeacherExam::uploadableCount
+ * @return
+ */
+
+int TeacherExam::uploadableCount() const
+{
+	int n = 0;
+
+	for (auto s : *m_scanData) {
+		if (s->state() == ExamScanData::ScanFileFinished && !s->serverAnswer().isEmpty() && s->upload())
+			++n;
+	}
+
+	return n;
+}
+
+
+
 /**
  * @brief TeacherExam::teacherGroup
  * @return
@@ -1051,6 +1455,8 @@ void TeacherExam::setTeacherGroup(TeacherGroup *newTeacherGroup)
 		return;
 	m_teacherGroup = newTeacherGroup;
 	emit teacherGroupChanged();
+
+	loadUserList();
 }
 
 
@@ -1221,4 +1627,62 @@ void ExamScanData::setUsername(const QString &newUsername)
 		return;
 	m_username = newUsername;
 	emit usernameChanged();
+}
+
+bool ExamScanData::upload() const
+{
+	return m_upload;
+}
+
+void ExamScanData::setUpload(bool newUpload)
+{
+	if (m_upload == newUpload)
+		return;
+	m_upload = newUpload;
+	emit uploadChanged();
+}
+
+
+
+/**
+ * @brief ExamUser::ExamUser
+ * @param parent
+ */
+
+ExamUser::ExamUser(QObject *parent)
+	: User(parent)
+{
+
+}
+
+
+/**
+ * @brief ExamUser::examData
+ * @return
+ */
+
+QJsonArray ExamUser::examData() const
+{
+	return m_examData;
+}
+
+void ExamUser::setExamData(const QJsonArray &newExamData)
+{
+	if (m_examData == newExamData)
+		return;
+	m_examData = newExamData;
+	emit examDataChanged();
+}
+
+int ExamUser::contentId() const
+{
+	return m_contentId;
+}
+
+void ExamUser::setContentId(int newContentId)
+{
+	if (m_contentId == newContentId)
+		return;
+	m_contentId = newContentId;
+	emit contentIdChanged();
 }

@@ -369,9 +369,9 @@ const QList<GameMapObjective *> &GameMapChapter::objectives() const
 
 GameMapObjectiveIface *GameMapChapter::ifaceAddObjective(const QString &uuid, const QString &module,
 														 const qint32 &storageId, const qint32 &storageCount,
-														 const QVariantMap &data)
+														 const QVariantMap &data, const qint32 &examPoint)
 {
-	GameMapObjective *o = new GameMapObjective(uuid, module, storageId, storageCount, data, m_map);
+	GameMapObjective *o = new GameMapObjective(uuid, module, storageId, storageCount, data, examPoint, m_map);
 	m_objectives.append(o);
 	return o;
 }
@@ -530,7 +530,7 @@ const GameMap::GameModes &GameMapMission::modes() const
 
 GameMapObjective::GameMapObjective(const QString &uuid, const QString &module,
 								   const qint32 &storageId, const qint32 &storageCount,
-								   const QVariantMap &data, GameMap *map)
+								   const QVariantMap &data, const qint32 &examPoint, GameMap *map)
 	: GameMapObjectiveIface()
 	, m_map(map)
 {
@@ -539,6 +539,7 @@ GameMapObjective::GameMapObjective(const QString &uuid, const QString &module,
 	m_storageId = storageId;
 	m_storageCount = storageCount;
 	m_data = data;
+	m_examPoint = examPoint;
 	m_map = map;
 }
 

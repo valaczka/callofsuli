@@ -803,6 +803,7 @@ QPage {
 	}
 
 
+
 	Component {
 		id: _cmpFileExportLatex
 
@@ -821,7 +822,7 @@ QPage {
 				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
 			}
 
-			folder: editor.currentFolder()
+			folder: Client.Utils.settingsGet("folder/mapEditor")
 		}
 	}
 

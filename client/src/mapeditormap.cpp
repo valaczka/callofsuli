@@ -547,7 +547,7 @@ QVariantMap MapEditorChapter::toVariantMap(const bool &onlyUpdate) const
 
 GameMapObjectiveIface *MapEditorChapter::ifaceAddObjective(const QString &uuid, const QString &module,
 														   const qint32 &storageId, const qint32 &storageCount,
-														   const QVariantMap &data)
+														   const QVariantMap &data, const qint32 &examPoint)
 {
 	MapEditorObjective *d = new MapEditorObjective(m_map);
 	d->setUuid(uuid);
@@ -555,6 +555,7 @@ GameMapObjectiveIface *MapEditorChapter::ifaceAddObjective(const QString &uuid, 
 	d->setStorageId(storageId);
 	d->setStorageCount(storageCount);
 	d->setData(data);
+	d->setExamPoint(examPoint);
 	m_objectiveList->append(d);
 	recalculateObjectiveCount();
 	d->recalculateStorage();
@@ -694,6 +695,7 @@ void MapEditorObjective::fromVariantMap(const QVariantMap &map, const bool &)
 	setStorageId(map.value(QStringLiteral("storageId")).toInt());
 	setStorageCount(map.value(QStringLiteral("storageCount")).toInt());
 	setData(map.value(QStringLiteral("data")).toMap());
+	setExamPoint(map.value(QStringLiteral("examPoint")).toInt());
 }
 
 
@@ -710,6 +712,7 @@ QVariantMap MapEditorObjective::toVariantMap(const bool &) const
 	m.insert(QStringLiteral("storageId"), m_storageId);
 	m.insert(QStringLiteral("storageCount"), m_storageCount);
 	m.insert(QStringLiteral("data"), m_data);
+	m.insert(QStringLiteral("examPoint"), m_examPoint);
 	return m;
 }
 
@@ -813,6 +816,19 @@ void MapEditorObjective::setData(const QVariantMap &newData)
 		return;
 	m_data = newData;
 	emit dataChanged();
+}
+
+qint32 MapEditorObjective::examPoint() const
+{
+	return m_examPoint;
+}
+
+void MapEditorObjective::setExamPoint(qint32 newExamPoint)
+{
+	if (m_examPoint == newExamPoint)
+		return;
+	m_examPoint = newExamPoint;
+	emit examPointChanged();
 }
 
 

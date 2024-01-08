@@ -190,5 +190,8 @@
         <file>GamePlayerMulti.qml</file>
         <file>TeacherGroupExamList.qml</file>
         <file>PageTeacherExamScanner.qml</file>
+        <file>PageTeacherExam.qml</file>
+        <file>TeacherExamDetails.qml</file>
+        <file>TeacherExamAssign.qml</file>
     </qresource>
 </RCC>

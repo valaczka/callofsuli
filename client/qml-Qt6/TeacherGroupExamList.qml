@@ -16,12 +16,33 @@ Item
 
 	property alias actionExamAdd: actionExamAdd
 
+	property var stackPopFunction: function() {
+		if (view.selectEnabled) {
+			view.unselectAll()
+			return false
+		}
+
+		return true
+	}
+
 	ExamList {
 		id: _examList
+
+		function reload() {
+			if (!group)
+				return
+
+			Client.send(HttpConnection.ApiTeacher, "group/%1/exam".arg(group.groupid))
+			.done(control, function(r){
+				Client.callReloadHandler("exam", _examList, r.list)
+			})
+			.fail(control, JS.failMessage(qsTr("Dolgozatlista letöltése sikertelen")))
+		}
 	}
 
 	TeacherExam {
 		id: _teacherExam
+		teacherGroup: group
 	}
 
 	QScrollable {
@@ -32,13 +53,13 @@ Item
 		rightPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: group.reload()
+		onRefreshRequest: _examList.reload()
 
 		QListView {
 			id: view
 
 			currentIndex: -1
-			autoSelectChange: false
+			autoSelectChange: true
 
 			height: contentHeight
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
@@ -86,7 +107,7 @@ Item
 					}
 				}
 
-				iconColor: {
+				iconColorBase: {
 					if (!exam)
 						return Qaterial.Style.disabledTextColor()
 					switch (exam.state) {
@@ -118,30 +139,45 @@ Item
 
 				//onPressAndHold: exam.generateRandom(mapHandler, group)
 
-				onPressAndHold: Client.stackPushPage("PageTeacherExamScanner.qml", {
+				/*onPressAndHold: Client.stackPushPage("PageTeacherExamScanner.qml", {
 														 handler: mapHandler,
 														 group: group,
 														 acceptedExamIdList: [exam.examId],
 														 subtitle: text
-													 })
+													 })*/
 
-				onClicked: {
+				/*onClicked: {
 					Client.send(HttpConnection.ApiTeacher, "exam/%1/content".arg(exam.examId))
 					.done(control, function(rr){
 						_teacherExam.createPdf(rr.list, {
 												   examId: exam.examId,
 												   title: exam.description,
 												   subject: group.fullName
-											   }, group)
+											   })
 					})
-				}
+				}*/
 
-				/*onClicked: Client.stackPushPage("PageTeacherCampaign.qml", {
+				onClicked: Client.stackPushPage("PageTeacherExam.qml", {
 													group: control.group,
-													campaign: campaign,
-													mapHandler: control.mapHandler
-												}) */
+													exam: exam,
+													mapHandler: control.mapHandler,
+													examList: _examList
+												})
 			}
+
+			Qaterial.Menu {
+				id: _contextMenu
+				QMenuItem { action: view.actionSelectAll }
+				QMenuItem { action: view.actionSelectNone }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: _actionDelete }
+			}
+
+			onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
+											if (index != -1)
+											currentIndex = index
+											_contextMenu.popup(mouseX, mouseY)
+										}
 		}
 
 	}
@@ -185,12 +221,14 @@ Item
 						Client.callReloadHandler("exam", _examList, rr.list)
 						var o = Client.findOlmObject(_examList, "examId", r.id)
 
-						/*if (o)
-							Client.stackPushPage("PageTeacherCampaign.qml", {
+						if (o)
+							Client.stackPushPage("PageTeacherExam.qml", {
 													 group: control.group,
+													 exam: o,
 													 mapHandler: control.mapHandler,
-													 campaign: o
-												 })*/
+													 examList: _examList
+												 })
+
 					})
 					.fail(control, JS.failMessage(qsTr("Dolgozatlista letöltése sikertelen")))
 
@@ -202,18 +240,39 @@ Item
 	}
 
 
-	function reload() {
-		if (!group)
-			return
+	Action {
+		id: _actionDelete
+		icon.source: Qaterial.Icons.delete_
+		text: qsTr("Eltávolítás")
+		enabled: view.currentIndex != 1 || view.selectEnabled
+		onTriggered: {
+			var l = view.getSelected()
+			if (!l.length)
+				return
 
-		Client.send(HttpConnection.ApiTeacher, "group/%1/exam".arg(group.groupid))
-		.done(control, function(r){
-			Client.callReloadHandler("exam", _examList, r.list)
-		})
-		.fail(control, JS.failMessage(qsTr("Dolgozatlista letöltése sikertelen")))
+			JS.questionDialogPlural(l, qsTr("Biztosan törlöd a kijelölt %1 dolgozatot?"), "description",
+									{
+										onAccepted: function()
+										{
+											Client.send(HttpConnection.ApiTeacher,  "exam/delete", {
+															list: JS.listGetFields(l, "examId")
+														})
+											.done(control, function(r){
+												_examList.reload()
+												view.unselectAll()
+											})
+											.fail(control, JS.failMessage("Törlés sikertelen"))
+
+										},
+										title: qsTr("Dolgozatok törlése"),
+										iconSource: Qaterial.Icons.delete_
+									})
+
+		}
 	}
 
-	StackView.onActivated: reload()
-	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) reload()
+
+	StackView.onActivated: _examList.reload()
+	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _examList.reload()
 
 }
