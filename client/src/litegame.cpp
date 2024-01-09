@@ -141,10 +141,16 @@ void LiteGame::onStarted()
 		msec += factor * SECOND_PER_QUESTION * 1000 * 2;
 	}
 
+	const qint64 sni = msec*0.5;
+
 	if (m_addExtraTime > 0.0) {
 		LOG_CDEBUG("game") << "Add extra time" << m_addExtraTime;
 		msec *= (1.0+m_addExtraTime);
 	}
+
+	if (m_client->server() && m_client->server()->user() &&
+			m_client->server()->user()->roles().testFlag(Credential::SNI))
+		msec += sni;
 
 	startWithRemainingTime(msec);
 

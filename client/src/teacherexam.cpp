@@ -420,7 +420,12 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
 
 	GameMapMissionLevel *ml = m_gameMap ? m_gameMap->missionLevel(m_missionUuid, m_level) : nullptr;
 
-	if (!ml || !m_exam) {
+	if (!m_exam) {
+		Application::instance()->messageError(tr("Nincs dolgozat beállítva"), tr("Belső hiba"));
+		return;
+	}
+
+	if (!ml) {
 		Application::instance()->messageWarning(tr("Nincs küldetés kiválasztva"), tr("Dolgozatok generálása"));
 		return;
 	}
@@ -440,8 +445,62 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
 
 	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
 											o)
-			->done(this, [this](const QJsonObject&){reloadExamContent();})
-			;
+			->done(this, [this](const QJsonObject&) {
+		reloadExamContent();
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherExam::pickUsers
+ * @param list
+ */
+
+void TeacherExam::pickUsers(QStringList userList, int count)
+{
+	// Get virtual exams data
+	/*Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
+											o)
+			->done(this, [this](const QJsonObject&) {
+		if (m_exam && m_exam->mode() == Exam::ExamVirtual) {
+			finish();
+		} else {
+			reloadExamContent();
+		}
+	});*/
+
+	QList<ExamUser*> list = pickUsersRandom(count, userList, {});			// TODO: from server
+
+	emit virtualListPicked(list);
+
+	QJsonArray data;
+
+	for (const ExamUser *u : *m_examUserList) {
+		if (!userList.contains(u->username()))
+			continue;
+
+		QJsonObject userdata;
+		QJsonObject qData;
+
+		qData[QStringLiteral("picked")] = list.contains(u);
+
+		userdata[QStringLiteral("username")] = u->username();
+		userdata[QStringLiteral("q")] = QJsonArray{qData};
+
+		data.append(userdata);
+	}
+
+	QJsonObject o;
+	o[QStringLiteral("list")] = data;
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
+											o)
+			->done(this, [this](const QJsonObject&) {
+		finish();
+		reloadExamContent();
+	});
 }
 
 
@@ -458,6 +517,98 @@ void TeacherExam::reloadExamContent()
 	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/content").arg(m_exam->examId()))
 			->done(this, &TeacherExam::loadContentFromJson)
 			;
+}
+
+
+/**
+ * @brief TeacherExam::reload
+ */
+
+void TeacherExam::reload()
+{
+	if (!m_exam) {
+		Application::instance()->messageError(tr("Nincs dolgozat kiválasztva"), tr("Belső hiba"));
+		return;
+	}
+
+	LOG_CTRACE("client") << "Reload exam" << m_exam->examId();
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1").arg(m_exam->examId()))
+			->done(this, [this](const QJsonObject &obj){
+		if (m_exam)
+			m_exam->loadFromJson(obj, true);
+	})
+			->fail(this, [](const QString &err) {
+		Application::instance()->client()->messageWarning(err, tr("Dolgozat letöltése"));
+	});
+}
+
+
+/**
+ * @brief TeacherExam::activate
+ */
+
+void TeacherExam::activate()
+{
+	if (!m_exam) {
+		Application::instance()->messageError(tr("Nincs dolgozat kiválasztva"), tr("Belső hiba"));
+		return;
+	}
+
+	LOG_CDEBUG("client") << "Activate exam" << m_exam->examId();
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/activate").arg(m_exam->examId()))
+			->done(this, [this](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Dolgozat aktiválva"));
+		emit examListReloadRequest();
+		emit examActivated();
+		reload();
+	});
+
+}
+
+
+/**
+ * @brief TeacherExam::inactivate
+ */
+
+void TeacherExam::inactivate()
+{
+	if (!m_exam) {
+		Application::instance()->messageError(tr("Nincs dolgozat kiválasztva"), tr("Belső hiba"));
+		return;
+	}
+
+	LOG_CDEBUG("client") << "Inactivate exam" << m_exam->examId();
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/inactivate").arg(m_exam->examId()))
+			->done(this, [this](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Dolgozat inaktiválva"));
+		emit examListReloadRequest();
+		reload();
+	});
+}
+
+
+/**
+ * @brief TeacherExam::finish
+ */
+
+void TeacherExam::finish()
+{
+	if (!m_exam) {
+		Application::instance()->messageError(tr("Nincs dolgozat kiválasztva"), tr("Belső hiba"));
+		return;
+	}
+
+	LOG_CDEBUG("client") << "Finish exam" << m_exam->examId();
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/finish").arg(m_exam->examId()))
+			->done(this, [this](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Dolgozat befejezve"));
+		emit examListReloadRequest();
+		reload();
+	});
 }
 
 
@@ -754,6 +905,28 @@ void TeacherExam::loadGameMap()
 	}
 
 	setGameMap(std::move(mapData));
+}
+
+
+/**
+ * @brief TeacherExam::pickUsersRandom
+ * @param userList
+ * @param data
+ */
+
+QList<ExamUser*> TeacherExam::pickUsersRandom(const int &count, QStringList userList, const QJsonObject &data)
+{
+	QList<ExamUser*> list;
+
+	while (!userList.isEmpty() && list.size() < count) {
+		const QString &u = userList.takeAt(QRandomGenerator::global()->bounded(userList.size()));
+		ExamUser *user = OlmLoader::find<ExamUser>(m_examUserList.get(), "username", u);
+		if (!user)
+			continue;
+		list.append(user);
+	}
+
+	return list;
 }
 
 

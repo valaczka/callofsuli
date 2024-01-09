@@ -193,5 +193,7 @@
         <file>PageTeacherExam.qml</file>
         <file>TeacherExamDetails.qml</file>
         <file>TeacherExamAssign.qml</file>
+        <file>PageTeacherExamRunVirtual.qml</file>
+        <file>StudentGroupExamList.qml</file>
     </qresource>
 </RCC>

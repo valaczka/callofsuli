@@ -43,6 +43,7 @@ Item
 	TeacherExam {
 		id: _teacherExam
 		teacherGroup: group
+		onExamListReloadRequest: _examList.reload()
 	}
 
 	QScrollable {
@@ -93,11 +94,9 @@ Item
 				property Exam exam: model.qtObject
 				selectableObject: exam
 
-				highlighted: ListView.isCurrentItem
+				highlighted: view.selectEnabled ? selected : ListView.isCurrentItem
 				iconSource: {
-					if (!exam)
-						return ""
-					switch (exam.state) {
+					switch (state) {
 					case Exam.Finished:
 						return Qaterial.Icons.checkBold
 					case Exam.Active:
@@ -108,9 +107,7 @@ Item
 				}
 
 				iconColorBase: {
-					if (!exam)
-						return Qaterial.Style.disabledTextColor()
-					switch (exam.state) {
+					switch (state) {
 					case Exam.Finished:
 						return Qaterial.Style.iconColor()
 					case Exam.Running:
@@ -120,18 +117,15 @@ Item
 					}
 				}
 
-				textColor: iconColor
-				secondaryTextColor: !exam || exam.state == Exam.Finished ?
+				textColor: iconColorBase
+				secondaryTextColor: state === Exam.Finished ?
 										Qaterial.Style.disabledTextColor() : Qaterial.Style.colorTheme.secondaryText
 
 
-				text: exam ? (exam.description != "" ? exam.description : qsTr("Dolgozat #%1").arg(exam.examId)) : ""
+				text: description != "" ? description : qsTr("Dolgozat #%1").arg(examId)
 				secondaryText: {
-					if (!exam)
-						return ""
-
-					if (exam.timestamp.getTime()) {
-						return exam.timestamp.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm")
+					if (timestamp.getTime()) {
+						return timestamp.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm")
 					}
 
 					return ""

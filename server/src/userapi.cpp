@@ -56,10 +56,21 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return group(*credential);
 	});
 
+	server->route(path+"exam", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return exam(*credential, -1);
+	});
+
 	server->route(path+"group/<arg>/score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return groupScore(id);
+	});
+
+	server->route(path+"group/<arg>/exam", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return exam(*credential, id);
 	});
 
 	server->route(path+"update", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
@@ -176,10 +187,10 @@ QHttpServerResponse UserAPI::group(const Credential &credential)
 	LAMBDA_THREAD_BEGIN(credential);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT id, name, owner, familyName AS ownerFamilyName, givenName AS ownerGivenName FROM studentGroupInfo "
-					  "LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
-					  "WHERE studentGroupInfo.active=true AND studentGroupInfo.username=").addValue(credential.username())
-			.execToJsonArray();
+					   .addQuery("SELECT id, name, owner, familyName AS ownerFamilyName, givenName AS ownerGivenName FROM studentGroupInfo "
+								 "LEFT JOIN user ON (user.username=studentGroupInfo.owner) "
+								 "WHERE studentGroupInfo.active=true AND studentGroupInfo.username=").addValue(credential.username())
+					   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -227,20 +238,20 @@ QHttpServerResponse UserAPI::campaigns(const Credential &credential)
 	LAMBDA_THREAD_BEGIN(credential);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
-					  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
-					  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-					  "description, finished, groupid,"
-					  "score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
-					  "FROM campaign "
-					  "LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id AND campaignResult.username=").addValue(credential.username())
-			.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
-					  "WHERE started=true AND groupid IN "
-					  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
-			.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
-					  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(credential.username())
-			.addQuery("))")
-			.execToJsonArray();
+					   .addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+								 "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+								 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
+								 "description, finished, groupid,"
+								 "score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+								 "FROM campaign "
+								 "LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id AND campaignResult.username=").addValue(credential.username())
+					   .addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+								 "WHERE started=true AND groupid IN "
+								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+					   .addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
+								 "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(credential.username())
+					   .addQuery("))")
+					   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -268,20 +279,20 @@ QHttpServerResponse UserAPI::campaign(const Credential &credential, const int &i
 	LAMBDA_THREAD_BEGIN(credential, id);
 
 	auto obj = QueryBuilder::q(db)
-			.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
-					  "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
-					  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-					  "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
-					  "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
-			.addValue(credential.username())
-			.addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
-					  "WHERE started=true AND campaign.id=").addValue(id)
-			.addQuery(" AND groupid IN "
-					  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
-			.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
-					  "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(credential.username())
-			.addQuery("))")
-			.execToJsonObject();
+			   .addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+						 "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+						 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
+						 "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+						 "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
+			   .addValue(credential.username())
+			   .addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
+						 "WHERE started=true AND campaign.id=").addValue(id)
+			   .addQuery(" AND groupid IN "
+						 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+			   .addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id) "
+						 "OR EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=campaign.id AND studentList.username=").addValue(credential.username())
+			   .addQuery("))")
+			   .execToJsonObject();
 
 	LAMBDA_SQL_ASSERT(obj);
 
@@ -350,19 +361,19 @@ QHttpServerResponse UserAPI::map(const Credential &credential)
 	LAMBDA_THREAD_BEGIN(credential);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT mapdb.map.uuid, name, md5, "
-					  "mapdb.cache.data AS cache, length(mapdb.map.data) as size "
-					  "FROM mapdb.map LEFT JOIN mapdb.cache ON (mapdb.cache.uuid=mapdb.map.uuid) "
-					  "WHERE mapdb.map.uuid IN "
-					  "(SELECT mapuuid FROM task WHERE campaignid IN "
-					  "(SELECT id FROM campaign WHERE groupid IN "
-					  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
-			.addQuery(")))")
-			.execToJsonArray({
-								 { QStringLiteral("cache"), [](const QVariant &v) {
-									   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-								   } }
-							 });
+					   .addQuery("SELECT mapdb.map.uuid, name, md5, "
+								 "mapdb.cache.data AS cache, length(mapdb.map.data) as size "
+								 "FROM mapdb.map LEFT JOIN mapdb.cache ON (mapdb.cache.uuid=mapdb.map.uuid) "
+								 "WHERE mapdb.map.uuid IN "
+								 "(SELECT mapuuid FROM task WHERE campaignid IN "
+								 "(SELECT id FROM campaign WHERE groupid IN "
+								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+					   .addQuery(")))")
+					   .execToJsonArray({
+											{ QStringLiteral("cache"), [](const QVariant &v) {
+												  return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+											  } }
+										});
 
 
 	LAMBDA_SQL_ASSERT(list);
@@ -445,20 +456,20 @@ QHttpServerResponse UserAPI::gameInfo(const Credential &credential, const QJsonO
 	LAMBDA_THREAD_BEGIN(credential, json);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT game.username, COUNT(*) AS num, MAX(duration) AS dMax, MIN(duration) as dMin, "
-					  "ROW_NUMBER() OVER (ORDER BY MIN(duration)) durationPos, "
-					  "ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, MIN(duration)) numPos, "
-					  "familyName, givenName, nickname, picture, rankid FROM game "
-					  "LEFT JOIN user ON (user.username=game.username) "
-					  "LEFT JOIN userRank ON (userRank.username=game.username) "
-					  "WHERE success=true AND user.active=true ")
-			.addQuery(" AND mapid=").addValue(json.value(QStringLiteral("map")).toString())
-			.addQuery(" AND missionid=").addValue(json.value(QStringLiteral("mission")).toString())
-			.addQuery(" AND game.level=").addValue(json.value(QStringLiteral("level")).toInt())
-			.addQuery(" AND mode=").addValue(json.value(QStringLiteral("mode")).toInt())
-			.addQuery(" AND deathmatch=").addValue(json.value(QStringLiteral("deathmatch")).toVariant().toBool())
-			.addQuery(" GROUP BY game.username, mapid, missionid, game.level, mode, deathmatch")
-			.execToJsonArray();
+					   .addQuery("SELECT game.username, COUNT(*) AS num, MAX(duration) AS dMax, MIN(duration) as dMin, "
+								 "ROW_NUMBER() OVER (ORDER BY MIN(duration)) durationPos, "
+								 "ROW_NUMBER() OVER (ORDER BY COUNT(*) DESC, MIN(duration)) numPos, "
+								 "familyName, givenName, nickname, picture, rankid FROM game "
+								 "LEFT JOIN user ON (user.username=game.username) "
+								 "LEFT JOIN userRank ON (userRank.username=game.username) "
+								 "WHERE success=true AND user.active=true ")
+					   .addQuery(" AND mapid=").addValue(json.value(QStringLiteral("map")).toString())
+					   .addQuery(" AND missionid=").addValue(json.value(QStringLiteral("mission")).toString())
+					   .addQuery(" AND game.level=").addValue(json.value(QStringLiteral("level")).toInt())
+					   .addQuery(" AND mode=").addValue(json.value(QStringLiteral("mode")).toInt())
+					   .addQuery(" AND deathmatch=").addValue(json.value(QStringLiteral("deathmatch")).toVariant().toBool())
+					   .addQuery(" GROUP BY game.username, mapid, missionid, game.level, mode, deathmatch")
+					   .execToJsonArray();
 
 
 	LAMBDA_SQL_ASSERT(list);
@@ -521,9 +532,9 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 	// Close running games
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT gameid, xp FROM runningGame LEFT JOIN game ON (game.id=runningGame.gameid) WHERE username=")
-			.addValue(username)
-			.execToJsonArray();
+					   .addQuery("SELECT gameid, xp FROM runningGame LEFT JOIN game ON (game.id=runningGame.gameid) WHERE username=")
+					   .addValue(username)
+					   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT_ROLLBACK(list);
 
@@ -539,12 +550,12 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 
 		if (xp > 0) {
 			const auto &s = QueryBuilder::q(db)
-					.addQuery("INSERT INTO score (").setFieldPlaceholder()
-					.addQuery(") VALUES (").setValuePlaceholder()
-					.addQuery(")")
-					.addField("username", username)
-					.addField("xp", xp)
-					.execInsertAsInt();
+							.addQuery("INSERT INTO score (").setFieldPlaceholder()
+							.addQuery(") VALUES (").setValuePlaceholder()
+							.addQuery(")")
+							.addField("username", username)
+							.addField("xp", xp)
+							.execInsertAsInt();
 
 			LAMBDA_SQL_ASSERT_ROLLBACK(s);
 
@@ -573,18 +584,18 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 	// Create game
 
 	const auto &gameId = QueryBuilder::q(db)
-			.addQuery("INSERT INTO game (").setFieldPlaceholder()
-			.addQuery(") VALUES (").setValuePlaceholder()
-			.addQuery(")")
-			.addField("username", username)
-			.addField("mapid", g.map)
-			.addField("missionid", g.mission)
-			.addField("campaignid", campaign)
-			.addField("level", g.level)
-			.addField("deathmatch", g.deathmatch)
-			.addField("success", false)
-			.addField("mode", g.mode)
-			.execInsertAsInt();
+						 .addQuery("INSERT INTO game (").setFieldPlaceholder()
+						 .addQuery(") VALUES (").setValuePlaceholder()
+						 .addQuery(")")
+						 .addField("username", username)
+						 .addField("mapid", g.map)
+						 .addField("missionid", g.mission)
+						 .addField("campaignid", campaign)
+						 .addField("level", g.level)
+						 .addField("deathmatch", g.deathmatch)
+						 .addField("success", false)
+						 .addField("mode", g.mode)
+						 .execInsertAsInt();
 
 	LAMBDA_SQL_ASSERT_ROLLBACK(gameId);
 
@@ -618,13 +629,13 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 							   .execToValue("value").value_or(0).toInt());
 
 			const auto &e = QueryBuilder::q(db)
-					.addQuery("WITH t AS (SELECT ").addValue(username)
-					.addQuery(" AS username, ").addValue(it.key())
-					.addQuery(" AS key, COALESCE((SELECT value FROM inventory WHERE username=").addValue(username)
-					.addQuery(" AND key=").addValue(it.key())
-					.addQuery("),0)-").addValue(realNum)
-					.addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) SELECT * FROM t")
-					.exec();
+							.addQuery("WITH t AS (SELECT ").addValue(username)
+							.addQuery(" AS username, ").addValue(it.key())
+							.addQuery(" AS key, COALESCE((SELECT value FROM inventory WHERE username=").addValue(username)
+							.addQuery(" AND key=").addValue(it.key())
+							.addQuery("),0)-").addValue(realNum)
+							.addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) SELECT * FROM t")
+							.exec();
 
 			LAMBDA_SQL_ASSERT_ROLLBACK(e);
 
@@ -762,13 +773,13 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		// Duration XP
 
 		const auto &s = QueryBuilder::q(db)
-				.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
-						  "WHERE success=true AND username=").addValue(username)
-				.addQuery(" AND mapid=").addValue(g.map)
-				.addQuery(" AND missionid=").addValue(g.mission)
-				.addQuery(" AND level=").addValue(g.level)
-				.addQuery(" AND mode=").addValue(g.mode)
-				.execToValue("duration");
+						.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
+								  "WHERE success=true AND username=").addValue(username)
+						.addQuery(" AND mapid=").addValue(g.map)
+						.addQuery(" AND missionid=").addValue(g.mission)
+						.addQuery(" AND level=").addValue(g.level)
+						.addQuery(" AND mode=").addValue(g.mode)
+						.execToValue("duration");
 
 		LAMBDA_SQL_ASSERT(s);
 
@@ -786,8 +797,8 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 
 
 		const auto &ss = QueryBuilder::q(db)
-				.addQuery("SELECT COALESCE(MAX(streak),0) AS streak FROM streak WHERE username=").addValue(username)
-				.execToValue("streak");
+						 .addQuery("SELECT COALESCE(MAX(streak),0) AS streak FROM streak WHERE username=").addValue(username)
+						 .execToValue("streak");
 
 		LAMBDA_SQL_ASSERT(ss);
 
@@ -830,12 +841,12 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 	db.transaction();
 
 	const auto &scoreId = QueryBuilder::q(db)
-			.addQuery("INSERT INTO score (").setFieldPlaceholder()
-			.addQuery(") VALUES (").setValuePlaceholder()
-			.addQuery(")")
-			.addField("username", username)
-			.addField("xp", sumXP)
-			.execInsertAsInt();
+						  .addQuery("INSERT INTO score (").setFieldPlaceholder()
+						  .addQuery(") VALUES (").setValuePlaceholder()
+						  .addQuery(")")
+						  .addField("username", username)
+						  .addField("xp", sumXP)
+						  .execInsertAsInt();
 
 	LAMBDA_SQL_ASSERT_ROLLBACK(scoreId);
 
@@ -927,8 +938,53 @@ QHttpServerResponse UserAPI::inventory(const Credential &credential)
 	LAMBDA_THREAD_BEGIN(credential);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT key, value FROM inventory WHERE username=").addValue(credential.username())
-			.execToJsonArray();
+					   .addQuery("SELECT key, value FROM inventory WHERE username=").addValue(credential.username())
+					   .execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(list);
+
+	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief UserAPI::exam
+ * @param credential
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse UserAPI::exam(const Credential &credential, const int &id)
+{
+	LOG_CTRACE("client") << "Get exams for" << credential.username() << "in group:" << id;
+
+	LAMBDA_THREAD_BEGIN(credential, id);
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT exam.id, mode, state, mapuuid, description, timestamp, data, result, gradeid, answer, correction "
+			   "FROM exam LEFT JOIN examContent ON (examContent.examid=exam.id AND username=").addValue(credential.username())
+			.addQuery(") LEFT JOIN examAnswer ON (examAnswer.contentid=examContent.id) "
+					  "WHERE state=4 AND (username IS NOT NULL OR mode=2)");
+
+	if (id > 0) {
+		q.addQuery(" AND exam.groupid=").addValue(id);
+	}
+
+	const auto &list = q.execToJsonArray({
+											 { QStringLiteral("data"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+											   } },
+											 { QStringLiteral("answer"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+											   } },
+											 { QStringLiteral("correction"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+											   } }
+										 });
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -1085,11 +1141,11 @@ std::optional<QJsonArray> UserAPI::getGroupScore(const DatabaseMain *database, c
 		QMutexLocker _locker(database->mutex());
 
 		list = QueryBuilder::q(db)
-				.addQuery(_SQL_get_user)
-				.addQuery("WHERE active=true AND user.username IN (SELECT username FROM studentGroupInfo WHERE active=true AND id=")
-				.addValue(id)
-				.addQuery(")")
-				.execToJsonArray();
+			   .addQuery(_SQL_get_user)
+			   .addQuery("WHERE active=true AND user.username IN (SELECT username FROM studentGroupInfo WHERE active=true AND id=")
+			   .addValue(id)
+			   .addQuery(")")
+			   .execToJsonArray();
 
 		ret.resolve();
 	});
@@ -1242,12 +1298,12 @@ std::optional<int> UserAPI::solverInfo(const AbstractAPI *api, const QString &us
 		QMutexLocker _locker(api->databaseMain()->mutex());
 
 		const auto &n = QueryBuilder::q(db)
-				.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
-				.addQuery(" AND success=true")
-				.addQuery(" AND mapid=").addValue(map)
-				.addQuery(" AND missionid=").addValue(mission)
-				.addQuery(" AND level=").addValue(level)
-				.execToValue("num");
+						.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
+						.addQuery(" AND success=true")
+						.addQuery(" AND mapid=").addValue(map)
+						.addQuery(" AND missionid=").addValue(mission)
+						.addQuery(" AND level=").addValue(level)
+						.execToValue("num");
 
 		if (n) {
 			retValue = n->toInt();
@@ -1288,13 +1344,13 @@ std::optional<int> UserAPI::_solverInfo(const AbstractAPI *api, const QString &u
 	QMutexLocker _locker(api->databaseMain()->mutex());
 
 	const auto &n = QueryBuilder::q(db)
-			.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
-			.addQuery(" AND success=true")
-			.addQuery(" AND mapid=").addValue(map)
-			.addQuery(" AND missionid=").addValue(mission)
-			.addQuery(" AND level=").addValue(level)
-			.addQuery(" AND deathmatch=").addValue(deathmatch)
-			.execToValue("num");
+					.addQuery("SELECT COUNT(*) AS num FROM game WHERE username=").addValue(username)
+					.addQuery(" AND success=true")
+					.addQuery(" AND mapid=").addValue(map)
+					.addQuery(" AND missionid=").addValue(mission)
+					.addQuery(" AND level=").addValue(level)
+					.addQuery(" AND deathmatch=").addValue(deathmatch)
+					.execToValue("num");
 
 	if (n)
 		return n->toInt();

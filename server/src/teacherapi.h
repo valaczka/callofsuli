@@ -123,6 +123,9 @@ public:
 	QHttpServerResponse examContent(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examAnswer(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse examGrading(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse examActivate(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse examInactivate(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse examFinish(const Credential &credential, const QJsonArray &list);
 
 	QHttpServerResponse userPeers() const;
 

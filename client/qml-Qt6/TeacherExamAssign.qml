@@ -28,6 +28,7 @@ Item {
 			id: _expPaper
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
+			expanded: true
 
 			header: QExpandableHeader {
 				text: qsTr("Létrehozás")
@@ -45,6 +46,18 @@ Item {
 					text: description != "" ? description : qsTr("Válassz ki egy küldetést...")
 					anchors.horizontalCenter: parent.horizontalCenter
 					padding: 10 * Qaterial.Style.pixelSizeRatio
+					visible: _exam && _exam.mode != Exam.ExamVirtual
+				}
+
+				QFormSpinBox {
+					id: _spinCount
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: qsTr("Dolgozatok száma:")
+					from: 1
+					to: teacherExam ? teacherExam.examUserList.count : 10
+					value: 10
+					visible: _exam && _exam.mode == Exam.ExamVirtual
+					onValueChanged: _actionGenerateVirtual.spinCount = value
 				}
 
 				QDashboardGrid {
@@ -53,7 +66,7 @@ Item {
 					QDashboardButton {
 						text: qsTr("Küldetés kiválasztása")
 
-						visible: !_btnGenerate.visible
+						visible: !_btnGenerate.visible && _exam && _exam.mode != Exam.ExamVirtual
 
 						icon.source: Qaterial.Icons.selectSearch
 
@@ -92,16 +105,28 @@ Item {
 					QDashboardButton {
 						id: _btnGenerate
 						action: _actionGenerate
-						visible: teacherExam && teacherExam.missionUuid != "" && teacherExam.level > 0
+						visible: teacherExam && teacherExam.missionUuid != "" && teacherExam.level > 0 &&
+								 _exam && _exam.mode != Exam.ExamVirtual
+					}
+
+					QDashboardButton {
+						action: _actionGenerateVirtual
+						visible: _exam && _exam.mode == Exam.ExamVirtual
 					}
 
 					QDashboardButton {
 						action: _actionRemove
+						visible: _exam && _exam.mode != Exam.ExamVirtual
 					}
 
 					QDashboardButton {
 						action: _actionPDF
-						visible: _exam && _exam.mode == 0
+						visible: _exam && _exam.mode == Exam.ExamPaper
+					}
+
+					QDashboardButton {
+						action: _actionStart
+						visible: _exam && _exam.mode != Exam.ExamVirtual
 					}
 
 				}
@@ -136,18 +161,18 @@ Item {
 				property ExamUser examUser: model.qtObject
 				selectableObject: examUser
 
-				highlighted: ListView.isCurrentItem
-				iconSource: examUser && examUser.examData.length ?
+				highlighted: selected
+				iconSource: examData.length ?
 								Qaterial.Icons.paperCutVertical :
 								Qaterial.Icons.accountOffOutline
 
-				iconColorBase: examUser && examUser.examData.length ?
+				iconColorBase: examData.length ?
 								   Qaterial.Colors.green400 :
 								   Qaterial.Style.disabledTextColor()
 
 				textColor: iconColorBase
 
-				text: examUser ? examUser.fullName : ""
+				text: fullName
 
 				/*onClicked: Client.stackPushPage("PageTeacherExam.qml", {
 													group: control.group,
@@ -163,6 +188,7 @@ Item {
 				QMenuItem { action: _view.actionSelectNone }
 				Qaterial.MenuSeparator {}
 				QMenuItem { action: _actionGenerate }
+				QMenuItem { action: _actionGenerateVirtual }
 				QMenuItem { action: _actionRemove }
 				QMenuItem { action: _actionPDF }
 			}
@@ -177,6 +203,14 @@ Item {
 	}
 
 
+	Connections {
+		target: teacherExam
+
+		function onVirtualListPicked(list) {
+			console.debug("VIRTUAL LIST PICKED", list)
+		}
+	}
+
 	Action {
 		id: _actionGenerate
 		icon.source: Qaterial.Icons.archiveCog
@@ -184,6 +218,7 @@ Item {
 		text: qsTr("Generálás")
 
 		enabled: teacherExam && teacherExam.missionUuid != "" && teacherExam.level > 0 &&
+				 _exam && _exam.state < Exam.Active &&
 				 (_view.currentIndex != -1 || _view.selectEnabled)
 
 		onTriggered: {
@@ -193,12 +228,50 @@ Item {
 	}
 
 	Action {
+		id: _actionGenerateVirtual
+		icon.source: Qaterial.Icons.pinwheel
+
+		property int spinCount: 10
+
+		text: qsTr("Sorsolás")
+
+		enabled: _exam && _exam.state < Exam.Active && _exam.mode == Exam.ExamVirtual
+
+		onTriggered: {
+			let l = []
+			let clearlist = []
+
+			for (let i=0; i<teacherExam.examUserList.count; ++i) {
+				let o = teacherExam.examUserList.get(i)
+				clearlist.push(o)
+				l.push(o)
+			}
+
+			if (_view.selectEnabled) {
+				l = _view.getSelected()
+				_view.unselectAll()
+			}
+
+
+			let clearusers = JS.listGetFields(clearlist, "username")
+
+			Client.send(HttpConnection.ApiTeacher, "exam/%1/content/delete".arg(_exam.examId), {
+							list: clearusers
+						})
+			.done(root, function(r){
+				teacherExam.pickUsers(JS.listGetFields(l, "username"), spinCount)
+			})
+		}
+	}
+
+	Action {
 		id: _actionRemove
 		icon.source: Qaterial.Icons.archiveMinus
 
 		text: qsTr("Törlés")
 
-		enabled: _view.currentIndex != -1 || _view.selectEnabled
+		enabled: _exam && _exam.state < Exam.Active &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
 
 		onTriggered: {
 			let l = JS.listGetFields(_view.getSelected(), "username")
@@ -214,7 +287,7 @@ Item {
 				teacherExam.reloadExamContent()
 				Client.messageInfo(qsTr("Dolgozatok törölve"), qsTr("Dolgozat"))
 			})
-			.fail(root, JS.failMessage(qsTr("Dolgozat letöltése sikertelen")))
+			.fail(root, JS.failMessage(qsTr("Dolgozat törlése sikertelen")))
 
 		}
 	}
@@ -239,6 +312,16 @@ Item {
 				teacherExam.createPdf([], {})
 			}
 		}
+	}
+
+	Action {
+		id: _actionStart
+		icon.source: Qaterial.Icons.play
+
+		text: qsTr("Indítás")
+		enabled: _exam && _exam.state < Exam.Active
+
+		onTriggered: teacherExam.activate()
 	}
 
 

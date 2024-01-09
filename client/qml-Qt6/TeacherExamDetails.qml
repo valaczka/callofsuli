@@ -35,8 +35,8 @@ Item {
 				leadingIconSource: Qaterial.Icons.renameBox
 				leadingIconInline: true
 				title: qsTr("A dolgozat neve")
-				//readOnly: !exam || exam.state >= Exam.Finished
-				//helperText: exam && exam.state >= Exam.Finished ? qsTr("A dolgozat véget ért, a név már nem módosítható") : ""
+				readOnly: !_exam || _exam.state >= Exam.Active
+				helperText: !_exam || _exam.state >= Exam.Active ? qsTr("A dolgozat már kiosztásra került, a név már nem módosítható") : ""
 
 				trailingContent: Qaterial.TextFieldButtonContainer
 				{
@@ -65,8 +65,10 @@ Item {
 
 			QDateTimePicker {
 				width: parent.width
-				canEdit: _exam && _exam.state < Exam.Finished
+				canEdit: _exam && _exam.state < Exam.Active
 				title: qsTr("Időpont")
+
+				helperText: !_exam || _exam.state >= Exam.Active ? qsTr("A dolgozat már kiosztásra került, az időpont már nem módosítható") : ""
 
 				onSaveRequest: text => {
 								   Client.send(HttpConnection.ApiTeacher, "exam/%1/update".arg(_exam.examId),
@@ -103,7 +105,7 @@ Item {
 
 				combo.width: Math.min(_form.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
 
-				inPlaceButtons.setTo: _exam ? _exam.mode : null
+				inPlaceButtons.setTo: _exam ? _exam.mode : -1
 
 				valueRole: "value"
 				textRole: "text"
@@ -140,6 +142,10 @@ Item {
 
 				combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 300*Qaterial.Style.pixelSizeRatio))
 
+				enabled: _exam && _exam.state < Exam.Active
+
+				visible: _exam && _exam.mode != Exam.ExamVirtual
+
 				valueRole: "uuid"
 				textRole: "name"
 
@@ -167,19 +173,8 @@ Item {
 	}
 
 	function reloadExam() {
-		if (!_exam)
-			return
-
-		Client.send(HttpConnection.ApiTeacher, "exam/%1".arg(_exam.examId))
-		.done(root, function(r){
-			if (r.id !== _exam.examId) {
-				Client.messageWarning(qsTr("Érvénytelen dolgozat"), qsTr("Belső hiba"))
-				return
-			}
-
-			_exam.loadFromJson(r, true)
-		})
-		.fail(root, JS.failMessage(qsTr("Dolgozat letöltése sikertelen")))
+		if (teacherExam)
+			teacherExam.reload()
 	}
 
 

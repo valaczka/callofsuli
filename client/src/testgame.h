@@ -97,8 +97,8 @@ public:
 	const QuestionResult &result() const;
 	void setResult(const QuestionResult &newResult);
 
-	Q_INVOKABLE void resultoToTextDocument(QTextDocument *document) const;
-	Q_INVOKABLE void resultoToQuickTextDocument(QQuickTextDocument *document) const;
+	Q_INVOKABLE void resultToTextDocument(QTextDocument *document) const;
+	Q_INVOKABLE void resultToQuickTextDocument(QQuickTextDocument *document) const;
 
 	bool hasResult() const;
 	void setHasResult(bool newHasResult);

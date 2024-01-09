@@ -345,7 +345,7 @@ void TestGame::setResult(const QuestionResult &newResult)
  * @param document
  */
 
-void TestGame::resultoToTextDocument(QTextDocument *document) const
+void TestGame::resultToTextDocument(QTextDocument *document) const
 {
 	if (!document) {
 		LOG_CERROR("game") << "Missing QTextDocument";
@@ -364,17 +364,6 @@ void TestGame::resultoToTextDocument(QTextDocument *document) const
 
 	document->addResource(QTextDocument::ImageResource, QUrl("imgdata://check.png"),
 						  QVariant(img));
-	/*
-	QPdfWriter pdf("/tmp/out.pdf");
-	pdf.setCreator("Valaczka János Pál");
-	//pdf.setPageLayout(QPageLayout(QPageSize(QPageSize::A4), QPageLayout::Portrait, QMarginsF(125, 125, 125, 125), QPageLayout::Millimeter));
-	pdf.setTitle("Ez a címe");
-	pdf.setCreator("Call of Suli");
-
-	LOG_CTRACE("client") << "RES" << pdf.resolution();
-
-	doc->print(&pdf);*/
-
 }
 
 
@@ -383,14 +372,14 @@ void TestGame::resultoToTextDocument(QTextDocument *document) const
  * @param document
  */
 
-void TestGame::resultoToQuickTextDocument(QQuickTextDocument *document) const
+void TestGame::resultToQuickTextDocument(QQuickTextDocument *document) const
 {
 	if (!document) {
 		LOG_CERROR("game") << "Missing QQuickTextDocument";
 		return;
 	}
 
-	resultoToTextDocument(document->textDocument());
+	resultToTextDocument(document->textDocument());
 }
 
 

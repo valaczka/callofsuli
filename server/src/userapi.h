@@ -57,6 +57,8 @@ public:
 
 	QHttpServerResponse inventory(const Credential &credential);
 
+	QHttpServerResponse exam(const Credential &credential, const int &id);
+
 
 	// Static members
 

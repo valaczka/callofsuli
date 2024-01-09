@@ -228,6 +228,12 @@ public:
 
 	Q_INVOKABLE void generateExamContent(const QList<ExamUser*> &list);
 	Q_INVOKABLE void reloadExamContent();
+	Q_INVOKABLE void pickUsers(QStringList userList, int count);
+
+	Q_INVOKABLE void reload();
+	Q_INVOKABLE void activate();
+	Q_INVOKABLE void inactivate();
+	Q_INVOKABLE void finish();
 
 	ExamScanDataList* scanData() const;
 
@@ -260,6 +266,9 @@ public:
 	ExamUserList*examUserList() const;
 
 signals:
+	void examListReloadRequest();
+	void virtualListPicked(QList<ExamUser*> list);
+	void examActivated();
 	void pdfFileGenerated(QString filename);
 	void scanQRfinished();
 	void scanOMRfinished();
@@ -282,6 +291,8 @@ private:
 
 	void loadUserList();
 	void loadGameMap();
+
+	QList<ExamUser *> pickUsersRandom(const int &count, QStringList userList, const QJsonObject &data);
 
 	void scanImages();
 	bool scanHasPendingQR();

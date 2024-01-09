@@ -116,8 +116,8 @@ Page {
 		refreshEnabled: false
 
 		GameTestResult {
+			id: _testResult
 			anchors.horizontalCenter: parent.horizontalCenter
-			game: control.game
 		}
 	}
 
@@ -208,6 +208,10 @@ Page {
 
 		function onTimeNotify() {
 			infoTime.marked = true
+		}
+
+		function onResultChanged() {
+			game.resultToQuickTextDocument(_testResult.textDocument)
 		}
 	}
 

@@ -27,10 +27,14 @@
 #ifndef EXAM_H
 #define EXAM_H
 
+#include "grade.h"
 #include "qdatetime.h"
+#include "qjsonarray.h"
 #include "qjsonobject.h"
-#include "teachergroup.h"
+#include "qquicktextdocument.h"
+#include "qtextdocument.h"
 #include <selectableobject.h>
+#include "testgame.h"
 
 #include <QObject>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -56,6 +60,12 @@ class Exam : public SelectableObject
 	Q_PROPERTY(QDateTime timestamp READ timestamp WRITE setTimestamp NOTIFY timestampChanged FINAL)
 	Q_PROPERTY(QJsonObject engineData READ engineData WRITE setEngineData NOTIFY engineDataChanged FINAL)
 
+	Q_PROPERTY(QJsonArray examData READ examData WRITE setExamData NOTIFY examDataChanged FINAL)
+	Q_PROPERTY(QJsonArray answerData READ answerData WRITE setAnswerData NOTIFY answerDataChanged FINAL)
+	Q_PROPERTY(QJsonArray correctionData READ correctionData WRITE setCorrectionData NOTIFY correctionDataChanged FINAL)
+	Q_PROPERTY(qreal result READ result WRITE setResult NOTIFY resultChanged FINAL)
+	Q_PROPERTY(Grade *resultGrade READ resultGrade WRITE setResultGrade NOTIFY resultGradeChanged FINAL)
+
 public:
 	explicit Exam(QObject *parent = nullptr);
 	virtual ~Exam();
@@ -72,12 +82,16 @@ public:
 
 	enum Mode {
 		ExamPaper = 0,
-		ExamOnline
+		ExamOnline,
+		ExamVirtual
 	};
 
 	Q_ENUM(Mode);
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
+
+	Q_INVOKABLE void resultToTextDocument(QTextDocument *document) const;
+	Q_INVOKABLE void resultToQuickTextDocument(QQuickTextDocument *document) const;
 
 	int examId() const;
 	void setExamId(int newExamId);
@@ -100,6 +114,21 @@ public:
 	QJsonObject engineData() const;
 	void setEngineData(const QJsonObject &newEngineData);
 
+	QJsonArray examData() const;
+	void setExamData(const QJsonArray &newExamData);
+
+	QJsonArray answerData() const;
+	void setAnswerData(const QJsonArray &newAnswerData);
+
+	QJsonArray correctionData() const;
+	void setCorrectionData(const QJsonArray &newCorrectionData);
+
+	qreal result() const;
+	void setResult(qreal newResult);
+
+	Grade *resultGrade() const;
+	void setResultGrade(Grade *newResultGrade);
+
 signals:
 	void examIdChanged();
 	void stateChanged();
@@ -108,8 +137,16 @@ signals:
 	void descriptionChanged();
 	void timestampChanged();
 	void engineDataChanged();
+	void examDataChanged();
+	void answerDataChanged();
+	void correctionDataChanged();
+	void resultChanged();
+	void resultGradeChanged();
 
 private:
+	QString toHtml() const;
+	QVector<TestGame::QuestionData> toQuestionData() const;
+
 	int m_examId = -1;
 	State m_state = Prepare;
 	Mode m_mode = ExamPaper;
@@ -117,6 +154,12 @@ private:
 	QString m_description;
 	QDateTime m_timestamp;
 	QJsonObject m_engineData;
+	QJsonArray m_examData;
+	QJsonArray m_answerData;
+	QJsonArray m_correctionData;
+	qreal m_result = -1;
+	Grade *m_resultGrade = nullptr;
+
 };
 
 #endif // EXAM_H

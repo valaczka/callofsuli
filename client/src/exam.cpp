@@ -25,10 +25,8 @@
  */
 
 #include "exam.h"
-#include "Logger.h"
-#include "examgame.h"
 #include "application.h"
-#include "teachergroup.h"
+#include "utils_.h"
 
 Exam::Exam(QObject *parent)
 	: SelectableObject{parent}
@@ -71,6 +69,68 @@ void Exam::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("engineData")) || allField)
 		setEngineData(object.value(QStringLiteral("engineData")).toObject());
 
+	// -- User --
+
+	if (object.contains(QStringLiteral("data")) || allField)
+		setExamData(object.value(QStringLiteral("data")).toArray());
+
+	if (object.contains(QStringLiteral("answer")) || allField)
+		setAnswerData(object.value(QStringLiteral("answer")).toArray());
+
+	if (object.contains(QStringLiteral("correction")) || allField)
+		setCorrectionData(object.value(QStringLiteral("correction")).toArray());
+
+	if (object.contains(QStringLiteral("result")) || allField)
+		setResult(object.value(QStringLiteral("result")).toDouble());
+
+	if (object.contains(QStringLiteral("gradeid")) || allField)
+		setResultGrade(qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
+																							   object.value(QStringLiteral("gradeid")).toInt())));
+
+
+}
+
+
+
+/**
+ * @brief Exam::resultoToTextDocument
+ * @param document
+ */
+
+void Exam::resultToTextDocument(QTextDocument *document) const
+{
+	if (!document) {
+		LOG_CERROR("client") << "Missing QTextDocument";
+		return;
+	}
+
+	QFont font(QStringLiteral("Rajdhani"), 14);
+
+	document->setDefaultFont(font);
+	document->setDefaultStyleSheet(Utils::fileContent(QStringLiteral(":/gametest.css")).value_or(QByteArrayLiteral("")));
+	document->setHtml(toHtml());
+
+	QImage img = QImage::fromData(Utils::fileContent(":/internal/img/checkmark_green.png").value_or(QByteArray{}));
+
+	document->addResource(QTextDocument::ImageResource, QUrl("imgdata://check.png"),
+						  QVariant(img));
+}
+
+
+
+/**
+ * @brief Exam::resultoToQuickTextDocument
+ * @param document
+ */
+
+void Exam::resultToQuickTextDocument(QQuickTextDocument *document) const
+{
+	if (!document) {
+		LOG_CERROR("client") << "Missing QQuickTextDocument";
+		return;
+	}
+
+	resultToTextDocument(document->textDocument());
 }
 
 
@@ -164,4 +224,120 @@ void Exam::setEngineData(const QJsonObject &newEngineData)
 		return;
 	m_engineData = newEngineData;
 	emit engineDataChanged();
+}
+
+QJsonArray Exam::examData() const
+{
+	return m_examData;
+}
+
+void Exam::setExamData(const QJsonArray &newExamData)
+{
+	if (m_examData == newExamData)
+		return;
+	m_examData = newExamData;
+	emit examDataChanged();
+}
+
+QJsonArray Exam::answerData() const
+{
+	return m_answerData;
+}
+
+void Exam::setAnswerData(const QJsonArray &newAnswerData)
+{
+	if (m_answerData == newAnswerData)
+		return;
+	m_answerData = newAnswerData;
+	emit answerDataChanged();
+}
+
+QJsonArray Exam::correctionData() const
+{
+	return m_correctionData;
+}
+
+void Exam::setCorrectionData(const QJsonArray &newCorrectionData)
+{
+	if (m_correctionData == newCorrectionData)
+		return;
+	m_correctionData = newCorrectionData;
+	emit correctionDataChanged();
+}
+
+qreal Exam::result() const
+{
+	return m_result;
+}
+
+void Exam::setResult(qreal newResult)
+{
+	if (qFuzzyCompare(m_result, newResult))
+		return;
+	m_result = newResult;
+	emit resultChanged();
+}
+
+Grade *Exam::resultGrade() const
+{
+	return m_resultGrade;
+}
+
+void Exam::setResultGrade(Grade *newResultGrade)
+{
+	if (m_resultGrade == newResultGrade)
+		return;
+	m_resultGrade = newResultGrade;
+	emit resultGradeChanged();
+}
+
+
+
+/**
+ * @brief Exam::toHtml
+ * @return
+ */
+
+QString Exam::toHtml() const
+{
+	TestGame::QuestionResult result;
+	result.resultData = toQuestionData();
+
+	QString html;
+
+	html += QStringLiteral("<h1>%1</h1>").arg(m_description);
+
+
+	// Result
+
+	const qreal &percent = result.maxPoints > 0 ? result.points/result.maxPoints : 0;
+
+	if (result.success)
+		html += QStringLiteral("<p class=\"resultSuccess\">%1 (%2%)</p>").arg(tr("Sikeres megoldás")).arg(qFloor(percent*100));
+	else
+		html += QStringLiteral("<p class=\"resultFail\">%1 (%2%)</p>").arg(tr("Sikertelen megoldás")).arg(qFloor(percent*100));
+
+	return TestGame::questionDataResultToHtml(html, result);
+}
+
+
+/**
+ * @brief Exam::toQuestionData
+ * @return
+ */
+
+QVector<TestGame::QuestionData> Exam::toQuestionData() const
+{
+	QVector<TestGame::QuestionData> list;
+
+	for (const QJsonValue &v : m_examData) {
+		const QJsonObject &obj = v.toObject();
+		TestGame::QuestionData d;
+		d.data = obj.toVariantMap();
+		d.module = obj.value(QStringLiteral("module")).toString();
+		d.uuid = obj.value(QStringLiteral("uuid")).toString();
+		list.append(d);
+	}
+
+	return list;
 }
