@@ -73,13 +73,16 @@ QPage {
 
 			width: ListView.view.width
 
-			text: scanData.state == ExamScanData.ScanFileFinished ?
+			text: scanData && scanData.state == ExamScanData.ScanFileFinished ?
 					  (scanData.username != "" ? scanData.username : qsTr("???")) + " (%1)".arg(scanData.examId) :
-					  scanData.path
+					  scanData ? scanData.path : ""
 
-			secondaryText: scanData.state == ExamScanData.ScanFileFinished ? scanData.path : ""
+			secondaryText:  scanData && scanData.state == ExamScanData.ScanFileFinished ? scanData.path : ""
 
 			iconColorBase: {
+				if (!scanData)
+					return Qaterial.Style.disabledTextColor()
+
 				switch (scanData.state) {
 				case ExamScanData.ScanFileInvalid:
 					return Qaterial.Colors.orange600
@@ -93,17 +96,20 @@ QPage {
 			}
 
 
-			textColor: scanData.state == ExamScanData.ScanFileFinished ?
+			textColor: scanData && scanData.state == ExamScanData.ScanFileFinished ?
 						   (scanData.serverAnswer.length && scanData.upload) ? Qaterial.Colors.green400
 																			 : Qaterial.Style.colorTheme.primaryText : Qaterial.Style.disabledTextColor()
 
-			secondaryTextColor: scanData.state == ExamScanData.ScanFileFinished ?
+			secondaryTextColor: scanData && scanData.state == ExamScanData.ScanFileFinished ?
 									(scanData.serverAnswer.length && scanData.upload) ? Qaterial.Colors.green400
 																					  : Qaterial.Style.colorTheme.secondaryText : Qaterial.Style.disabledTextColor()
 
 
 
 			iconSource: {
+				if (!scanData)
+					return ""
+
 				switch (scanData.state) {
 				case ExamScanData.ScanFileLoaded:
 					return Qaterial.Icons.loading

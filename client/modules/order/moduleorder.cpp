@@ -45,7 +45,9 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 {
 	QStringList options;
 
-	foreach (const QVariant &v, data.value(QStringLiteral("list")).toList()) {
+	const QVariantList &qList = data.value(QStringLiteral("list")).toList();
+
+	for (const QVariant &v : qList) {
 		const QVariantMap &m = v.toMap();
 		options.append(m.value(QStringLiteral("text")).toString());
 	}
@@ -55,17 +57,42 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 	html += QStringLiteral("</p>");
 
 	const QVariantList &aList = answer.value(QStringLiteral("list")).toList();
+	const QVariantList &correctList = data.value(QStringLiteral("answer")).toList();
 
-	for (int i=0; i<aList.size(); ++i) {
-		const QVariantMap &m = aList.at(i).toMap();
-
-		if (m.value(QStringLiteral("success"), false).toBool())
-			html += QStringLiteral("<p class=\"answer\">");
-		else
-			html += QStringLiteral("<p class=\"answerFail\">");
-
+	for (int i=0; i<qList.size(); ++i) {
+		html += QStringLiteral("<p>");
 		html += QStringLiteral("%1. ").arg(i+1);
-		html += m.value(QStringLiteral("answer")).toString();
+
+		bool success = false;
+
+		if (i < aList.size()) {
+			const QVariantMap &m = aList.at(i).toMap();
+			success = m.value(QStringLiteral("success"), false).toBool();
+			const int idx = m.value(QStringLiteral("answer"), -1).toInt();
+
+			if (success)
+				html += QStringLiteral("<span class=\"answer\">");
+			else
+				html += QStringLiteral("<span class=\"answerFail\">");
+
+			if (idx >= 0 && idx < qList.size())
+				html += qList.at(idx).toMap().value(QStringLiteral("text")).toString();
+
+			html += QStringLiteral("</span>");
+		}
+
+		if (!success && i < correctList.size()) {
+			const int idx = correctList.at(i).toInt();
+
+			for (const QVariant &v : qList) {
+				if (const QVariantMap &map = v.toMap(); map.value(QStringLiteral("num")).toInt() == idx) {
+					html += QStringLiteral(" <span class=\"answerCorrect\">");
+					html += map.value(QStringLiteral("text")).toString();
+					html += QStringLiteral("</span>");
+					break;
+				}
+			}
+		}
 
 		html += QStringLiteral("</p>");
 	}

@@ -529,16 +529,30 @@ QString TestGame::questionDataResultToHtml(const QString &header, const Question
 	int num = 1;
 
 	foreach (const QuestionData &q, result.resultData) {
-		const int &point = qFloor(q.data.value(QStringLiteral("xpFactor"), 1.0).toReal() * TEST_GAME_BASE_XP);
 		const QString &question = q.data.value(QStringLiteral("question")).toString();
 
 		html += QStringLiteral("<tr class=\"questionTitle\">");
 		html += QStringLiteral("<td class=\"questionNum\" align=right valign=top>%1.</td>").arg(num++);
 		html += QStringLiteral("<td class=\"question\" width=\"100%\" align=left valign=top>%1</td>").arg(question);
-		if (q.success)
-			html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top><span class=\"pointSuccess\">%1</span>/%2</td>").arg(point).arg(point);
-		else
-			html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top><span class=\"pointFail\">&ndash;</span>/%1</td>").arg(point);
+
+		if (result.isExam) {
+			const int &maxPoint = q.data.value(QStringLiteral("examPoint"), q.examPoint).toInt();
+			if (q.success)
+				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+									   "<span class=\"pointSuccess\">%1</span>/%2</td>").arg(q.examPoint).arg(maxPoint);
+			else
+				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+									   "<span class=\"pointFail\">%1</span>/%2</td>").arg(q.examPoint).arg(maxPoint);
+		} else {
+			const int &point = qFloor(q.data.value(QStringLiteral("xpFactor"), 1.0).toReal() * TEST_GAME_BASE_XP);
+			if (q.success)
+				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+									   "<span class=\"pointSuccess\">%1</span>/%2</td>").arg(point).arg(point);
+			else
+				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+									   "<span class=\"pointFail\">&ndash;</span>/%1</td>").arg(point);
+		}
+
 		html += QStringLiteral("</tr>");
 
 
@@ -550,7 +564,7 @@ QString TestGame::questionDataResultToHtml(const QString &header, const Question
 
 		if (!Application::instance()->objectiveModules().contains(q.module)) {
 			html += QStringLiteral("<p>%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(q.data))
-																					   .toJson(QJsonDocument::Indented)));
+																	  .toJson(QJsonDocument::Indented)));
 			html += QStringLiteral("<p class=\"answer\">%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(q.answer))
 																					   .toJson(QJsonDocument::Indented)));
 

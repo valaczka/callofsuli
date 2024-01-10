@@ -301,6 +301,7 @@ void Exam::setResultGrade(Grade *newResultGrade)
 QString Exam::toHtml() const
 {
 	TestGame::QuestionResult result;
+	result.isExam = true;
 	result.resultData = toQuestionData();
 
 	QString html;
@@ -330,12 +331,18 @@ QVector<TestGame::QuestionData> Exam::toQuestionData() const
 {
 	QVector<TestGame::QuestionData> list;
 
-	for (const QJsonValue &v : m_examData) {
-		const QJsonObject &obj = v.toObject();
+	for (int i=0; i<m_examData.size(); ++i) {
+		const QJsonObject &obj = m_examData.at(i).toObject();
 		TestGame::QuestionData d;
 		d.data = obj.toVariantMap();
 		d.module = obj.value(QStringLiteral("module")).toString();
 		d.uuid = obj.value(QStringLiteral("uuid")).toString();
+
+		if (i<m_answerData.size()) {
+			d.answer = m_answerData.at(i).toObject().toVariantMap();
+			d.success = d.answer.value(QStringLiteral("success"), false).toBool();
+		}
+
 		list.append(d);
 	}
 

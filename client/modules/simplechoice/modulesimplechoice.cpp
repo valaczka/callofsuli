@@ -40,18 +40,28 @@ QString ModuleSimplechoice::testResult(const QVariantMap &data, const QVariantMa
 	html += options.join(QStringLiteral(" • "));
 	html += QStringLiteral("</p>");
 
+	html += QStringLiteral("<p>");
+
 	if (answer.contains(QStringLiteral("index"))) {
 		const int &idx = answer.value(QStringLiteral("index"), -1).toInt();
 
 		if (idx >=0 && idx < options.size()) {
 			if (success)
-				html += QStringLiteral("<p class=\"answer\">");
+				html += QStringLiteral("<span class=\"answer\">");
 			else
-				html += QStringLiteral("<p class=\"answerFail\">");
+				html += QStringLiteral("<span class=\"answerFail\">");
 
-			html += options.at(idx) + QStringLiteral("</p>");
+			html += options.at(idx) + QStringLiteral("</span>");
+
 		}
 	}
+
+	if (const int cIdx = data.value(QStringLiteral("answer")).toInt(); !success && cIdx >=0 && cIdx < options.size()) {
+		html += QStringLiteral(" <span class=\"answerCorrect\">")
+				+ options.at(cIdx) + QStringLiteral("</span>");
+	}
+
+	html + QStringLiteral("</p>");
 
 	return html;
 }

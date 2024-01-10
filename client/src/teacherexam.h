@@ -62,6 +62,7 @@ class ExamScanData : public SelectableObject
 	Q_PROPERTY(QJsonObject result READ result WRITE setResult NOTIFY resultChanged FINAL)
 	Q_PROPERTY(QString outputPath READ outputPath WRITE setOutputPath NOTIFY outputPathChanged FINAL)
 	Q_PROPERTY(QJsonArray serverAnswer READ serverAnswer WRITE setServerAnswer NOTIFY serverAnswerChanged FINAL)
+	Q_PROPERTY(QJsonArray correction READ correction WRITE setCorrection NOTIFY correctionChanged FINAL)
 	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged FINAL)
 	Q_PROPERTY(bool upload READ upload WRITE setUpload NOTIFY uploadChanged FINAL)
 
@@ -106,6 +107,9 @@ public:
 	bool upload() const;
 	void setUpload(bool newUpload);
 
+	QJsonArray correction() const;
+	void setCorrection(const QJsonArray &newCorrection);
+
 signals:
 	void pathChanged();
 	void stateChanged();
@@ -116,6 +120,7 @@ signals:
 	void serverAnswerChanged();
 	void usernameChanged();
 	void uploadChanged();
+	void correctionChanged();
 
 private:
 	QString m_path;
@@ -125,6 +130,7 @@ private:
 	QJsonObject m_result;
 	QString m_outputPath;
 	QJsonArray m_serverAnswer;
+	QJsonArray m_correction;
 	QString m_username;
 	bool m_upload = false;
 };
@@ -302,7 +308,7 @@ private:
 	void onOmrFinished(int exitCode, QProcess::ExitStatus exitStatus);
 	void processOMRdata(const QJsonArray &data);
 	void generateAnswerResult(const QJsonObject &content);
-	QJsonArray getResult(const QJsonArray &qList, const QJsonObject &answer) const;
+	void getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction) const;
 	void updateResultFromServer();
 
 	static QVector<int> letterToOptions(const QString &options) {

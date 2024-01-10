@@ -48,6 +48,8 @@ QString ModuleMultichoice::testResult(const QVariantMap &data, const QVariantMap
 	html += options.join(QStringLiteral(" • "));
 	html += QStringLiteral("</p>");
 
+	html += QStringLiteral("<p>");
+
 	if (answer.contains(QStringLiteral("list"))) {
 		const QVariantList &list = answer.value(QStringLiteral("list")).toList();
 
@@ -64,12 +66,26 @@ QString ModuleMultichoice::testResult(const QVariantMap &data, const QVariantMap
 		}
 
 		if (success)
-			html += QStringLiteral("<p class=\"answer\">");
+			html += QStringLiteral("<span class=\"answer\">");
 		else
-			html += QStringLiteral("<p class=\"answerFail\">");
+			html += QStringLiteral("<span class=\"answerFail\">");
 
-		html += a.join(QStringLiteral(", ")) + QStringLiteral("</p>");
+		html += a.join(QStringLiteral(", ")) + QStringLiteral("</span>");
+
 	}
+
+	if (!success) {
+		html += QStringLiteral(" <span class=\"answerCorrect\">");
+		const QVariantList &aList = data.value(QStringLiteral("answer")).toList();
+		QStringList cList;
+		for (int i=0; i<options.size(); ++i) {
+			if (aList.contains(i))
+				cList.append(options.at(i));
+		}
+		html += cList.join(QStringLiteral(", ")) + QStringLiteral("</span>");
+	}
+
+	html += QStringLiteral("</p>");
 
 	return html;
 }

@@ -127,7 +127,7 @@ GameQuestionComponentImpl {
 				if (!toggleMode)
 					d.showAsError = true
 
-				a.answer = ""
+				a.answer = -1
 				a.success = false
 				a.dragIndex = -1
 
@@ -137,7 +137,7 @@ GameQuestionComponentImpl {
 
 				let s = (questionData.answer[i] === n)
 
-				a.answer = t
+				a.answer = n
 				a.dragIndex = d.currentDrag.dragIndex
 
 				if (s) {

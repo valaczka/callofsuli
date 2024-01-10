@@ -50,19 +50,28 @@ QString ModulePair::testResult(const QVariantMap &data, const QVariantMap &answe
 
 	const QStringList &qList = data.value(QStringLiteral("list")).toStringList();
 	const QVariantList &aList = answer.value(QStringLiteral("list")).toList();
+	const QVariantList &correctList = data.value(QStringLiteral("answer")).toMap().value(QStringLiteral("list")).toList();
 
 	for (int i=0; i<qList.size(); ++i) {
 		html += QStringLiteral("<p>") + qList.at(i) + QStringLiteral(" &ndash; ");
 
+		bool success = false;
+
 		if (i < aList.size()) {
 			const QVariantMap &m = aList.at(i).toMap();
+			success = m.value(QStringLiteral("success"), false).toBool();
 
-			if (m.value(QStringLiteral("success"), false).toBool())
+			if (success)
 				html += QStringLiteral("<span class=\"answer\">");
 			else
 				html += QStringLiteral("<span class=\"answerFail\">");
 
 			html += m.value(QStringLiteral("answer")).toString() + QStringLiteral("</span>");
+		}
+
+		if (!success && i < correctList.size()) {
+			html += QStringLiteral(" <span class=\"answerCorrect\">")
+					+ correctList.at(i).toString() + QStringLiteral("</span>");
 		}
 
 		html += QStringLiteral("</p>");

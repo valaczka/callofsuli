@@ -17,6 +17,8 @@ Qaterial.TextArea {
 
 	font: Qaterial.Style.textTheme.body1
 
+	selectByMouse: true
+
 	onFieldDataChanged: {
 		let t = watchModification
 		watchModification = false

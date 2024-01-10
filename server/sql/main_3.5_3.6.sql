@@ -14,6 +14,23 @@ CREATE TABLE extraRole(
 --- Maps
 ----------------------------------
 
+PRAGMA foreign_keys = OFF;
+
+CREATE TABLE mapOwnerT(
+	mapuuid TEXT NOT NULL PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	UNIQUE (mapuuid, username)
+);
+
+INSERT INTO mapOwnerT (mapuuid, username) SELECT mapuuid, username FROM mapOwner;
+
+DROP TABLE mapOwner;
+
+ALTER TABLE mapOwnerT RENAME TO mapOwner;
+
+PRAGMA foreign_keys = ON;
+
+
 CREATE TABLE mapTag(
 	id INTEGER NOT NULL PRIMARY KEY,
 	tag TEXT NOT NULL,

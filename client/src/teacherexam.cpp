@@ -112,8 +112,11 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 		document.setDefaultStyleSheet(QStringLiteral("p { margin-bottom: 0px; margin-top: 0px; }"));
 
-		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bg.png")));
-		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bg.png")), QVariant(image));
+		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bgL.png")));
+		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bgL.png")), QVariant(image));
+
+		QImage imageR = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bgR.png")));
+		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bgR.png")), QVariant(imageR));
 
 		QString html;
 
@@ -143,13 +146,13 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 			if (count>0)
 				html += QStringLiteral(" style=\"page-break-before: always;\"");
 
-			html += QStringLiteral("><tr><td><img width=30 src=\"imgdata://bg.png\"></td><td>");
+			html += QStringLiteral("><tr><td><img width=30 src=\"imgdata://bgL.png\"></td><td>");
 
 			html += pdfTitle(pdfConfig, username, id, &document);
 			html += pdfSheet(count==0, layout.paintRectPoints().width()-80, &document);
 			html += pdfQuestion(qList);
 
-			html += QStringLiteral("</td><td><img width=30 src=\"imgdata://bg.png\"></td></tr></table>");
+			html += QStringLiteral("</td><td><img width=30 src=\"imgdata://bgR.png\"></td></tr></table>");
 
 			++count;
 
@@ -331,7 +334,8 @@ void TeacherExam::uploadResult()
 			if (s) {
 				Application::instance()->client()->send(HttpConnection::ApiTeacher,
 														QStringLiteral("exam/answer/%1").arg(s->contentId()), {
-															{ QStringLiteral("answer"), s->serverAnswer() }
+															{ QStringLiteral("answer"), s->serverAnswer() },
+															{ QStringLiteral("correction"), s->correction() },
 														})
 						->done(this, [s, this](const QJsonObject &ret){
 					if (s && ret.value(QStringLiteral("status")).toString() == QStringLiteral("ok")) {
@@ -651,7 +655,6 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
 
 
 	const QString imgName = QStringLiteral("imgdata://id%1.png").arg(contentId);
-
 	document->addResource(QTextDocument::ImageResource, QUrl(imgName), QVariant(image));
 
 	return QStringLiteral("<table width=\"100%\" style=\"margin-left: 0px; margin-right: 30px;\">"
@@ -712,24 +715,36 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list)
 		const QJsonObject &obj = v.toObject();
 		const QString &module = obj.value(QStringLiteral("module")).toString();
 		const QString &question = obj.value(QStringLiteral("question")).toString();
-		//const int &factor = qFloor(obj.value(QStringLiteral("xpFactor")).toDouble());
+		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
 
 		if (obj.value(QStringLiteral("separator")).toBool()) {
 			html += QStringLiteral("<p align=center style=\"margin-top: 20px; margin-bottom: 20px;\">===============</p>");
 		}
 
-		html += QStringLiteral("<p style=\"margin-top: 6px;\" "
-							   "align=justify><span style=\"font-weight: 600;\">");
+		html += QStringLiteral("<p style=\"margin-top: 6px;\" align=justify>");
 
-		if (!nonNumberedModules.contains(module))
-			html += QString::number(num++).append(QStringLiteral(". "));
+		if (!nonNumberedModules.contains(module)) {
+			html += QStringLiteral("<span style=\"font-weight: 600;\">");
+			html += QString::number(num++).append(QStringLiteral("."));
+			html += QStringLiteral("</span>");
+		}
 
+		LOG_CINFO("client") << "Q" << module << question;
+
+		html += QStringLiteral("<i>");
+		html += QObject::tr(" [%1p]").arg(point);
+		html += QStringLiteral("</i>");
+
+		html += QStringLiteral(" <span style=\"font-weight: 600;\">");
 		html += question;
 		html += QStringLiteral("</span>");
-		//html += QObject::tr("[%1p]").arg(factor);
 
-		if (module == QStringLiteral("simplechoice") || module == QStringLiteral("multichoice")) {
-			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
+		if (module == QStringLiteral("simplechoice") ||
+				module == QStringLiteral("multichoice") ||
+				module == QStringLiteral("truefalse")) {
+			const QJsonArray &options = module == QStringLiteral("truefalse")
+										? QJsonArray{ tr("hamis"), tr("igaz") }
+										: obj.value(QStringLiteral("options")).toArray();
 			for (int i=0; i<options.size(); ++i) {
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
 						+QStringLiteral(")</b> ")+options.at(i).toString();
@@ -800,7 +815,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list)
 				if (data.contains(QStringLiteral("w")))
 					html += QStringLiteral(" ")+data.value(QStringLiteral("w")).toString();
 				else
-					html += QStringLiteral(" <b>____(")+QString::number(num++)+QStringLiteral(".)</b>");
+					html += QStringLiteral(" <b>(")+QString::number(num++)+QStringLiteral(".)____</b>");
 			}
 
 			html += QStringLiteral("</p>");
@@ -1371,9 +1386,11 @@ void TeacherExam::generateAnswerResult(const QJsonObject &content)
 					}
 
 					s->setUsername(username);
-					QJsonArray r = getResult(o.value(QStringLiteral("data")).toArray(), s->result());
+					QJsonArray r, corr;
+					getResult(o.value(QStringLiteral("data")).toArray(), s->result(), &r, &corr);
 					LOG_CDEBUG("client") << "Update server answer" << s->contentId() << s->username() << r;
 					s->setServerAnswer(r);
+					s->setCorrection(corr);
 					usedList.append(s);
 				}
 			}
@@ -1397,7 +1414,7 @@ void TeacherExam::generateAnswerResult(const QJsonObject &content)
 
 
 
-QJsonArray TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer) const
+void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction) const
 {
 	int num = 1;
 
@@ -1408,26 +1425,117 @@ QJsonArray TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &an
 	};*/
 
 	QJsonArray ret;
+	QJsonArray corr;
 
 	for (const QJsonValue &v : qList) {
 		const QJsonObject &obj = v.toObject();
 		const QString &module = obj.value(QStringLiteral("module")).toString();
 		const QString &question = obj.value(QStringLiteral("question")).toString();
-		//const int &factor = qFloor(obj.value(QStringLiteral("xpFactor")).toDouble());
+		const QJsonValue &correctAnswer = obj.value(QStringLiteral("answer"));
+		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
 
-		if (module == QStringLiteral("simplechoice")) {
-			ret.append(letterToInt(answer, num++));
+		if (module == QStringLiteral("truefalse")) {
+			const auto &aList = letterToOptions(answer, num++);
+			if (aList.size() != 1 || aList.at(0) == -1) {
+				ret.append(QJsonValue{});
+				corr.append(0);
+			} else {
+				const int &a = aList.at(0);
+				const bool success = (correctAnswer.toInt(-1) == a);
+
+				ret.append(QJsonObject{
+							   { QStringLiteral("index"), a },
+							   { QStringLiteral("success"), success }
+						   });
+				corr.append(success ? point : 0);
+			}
+
+		} else if (module == QStringLiteral("simplechoice")) {
+			const auto &aList = letterToOptions(answer, num++);
+			if (aList.size() != 1 || aList.at(0) == -1) {
+				ret.append(QJsonValue{});
+				corr.append(0);
+			} else {
+				const int &a = aList.at(0);
+				const bool success = (correctAnswer.toInt(-1) == a);
+
+				ret.append(QJsonObject{
+							   { QStringLiteral("index"), a },
+							   { QStringLiteral("success"), success }
+						   });
+				corr.append(success ? point : 0);
+			}
+
 		} else if (module == QStringLiteral("multichoice")) {
-			ret.append(letterToArray(answer, num++));
+			const auto &aList = letterToOptions(answer, num++);
+			QJsonArray r;
+			for (const int &i : aList) {
+				if (i != -1)
+					r.append(i);
+			}
+
+			bool success = false;
+
+			if (r.size() != correctAnswer.toArray().size()) {
+				corr.append(0);
+			} else {
+				for (const QJsonValue &v : correctAnswer.toArray()) {
+					if (auto it = std::find_if(r.begin(), r.end(), [v](const QJsonValue &q){
+											   return q.toInt(-1) == v.toInt(-2);
+				}); it != r.end()) {
+						r.erase(it);
+					}
+				}
+
+				success = r.isEmpty();
+				corr.append(success ? point : 0);
+			}
+
+			ret.append(QJsonObject{
+						   { QStringLiteral("list"), r },
+						   { QStringLiteral("success"), success }
+					   });
+
 		} else if (module == QStringLiteral("order")) {
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
 
-			QJsonArray l;
+			QJsonArray retList;
+			bool success = true;
 
-			for (int i=0; i<list.size(); ++i)
-				l.append(letterToInt(answer, num++));
+			for (int i=0; i<list.size(); ++i) {
+				const auto &v = letterToInt(answer, num++);
 
-			ret.append(l);
+				if (v.isNull()) {
+					retList.append(QJsonObject{
+									   { QStringLiteral("answer"), QJsonValue::Null },
+									   { QStringLiteral("success"), false }
+								   });
+					success = false;
+				} else {
+					const QJsonArray &aList = correctAnswer.toArray();
+					const int vv = i<aList.size() ? aList.at(i).toInt(-1) : -1;
+					if (const int &vInt = v.toInt(-2); vInt == vv) {
+						retList.append(QJsonObject{
+										   { QStringLiteral("answer"), vInt },
+										   { QStringLiteral("success"), true }
+									   });
+					} else {
+						retList.append(QJsonObject{
+										   { QStringLiteral("answer"), vInt },
+										   { QStringLiteral("success"), false }
+									   });
+						success = false;
+					}
+				}
+			}
+
+			ret.append(QJsonObject{
+						   { QStringLiteral("list"), retList },
+						   { QStringLiteral("success"), success }
+					   });
+
+			corr.append(success ? point : 0);
+
 		} else if (module == QStringLiteral("pair")) {
 			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
@@ -1447,7 +1555,34 @@ QJsonArray TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &an
 				}
 			}
 
-			ret.append(l);
+			QJsonArray retList;
+			bool success = true;
+			const QJsonArray &aList = correctAnswer.toObject().value(QStringLiteral("list")).toArray();
+			for (int i=0; i<aList.size(); ++i) {
+
+				if (i >= l.size() || l.at(i).isNull()) {
+					retList.append(QJsonObject{
+									   { QStringLiteral("answer"), QJsonValue::Null },
+									   { QStringLiteral("success"), false }
+								   });
+					success = false;
+				} else {
+					const bool s = (l.at(i).toString() == aList.at(i).toString());
+					retList.append(QJsonObject{
+									   { QStringLiteral("answer"), l.at(i).toString() },
+									   { QStringLiteral("success"), s }
+								   });
+					if (!s)
+						success = false;
+				}
+			}
+
+			ret.append(QJsonObject{
+						   { QStringLiteral("list"), retList },
+						   { QStringLiteral("success"), success }
+					   });
+
+			corr.append(success ? point : 0);
 		} else if (module == QStringLiteral("fillout")) {
 			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
@@ -1482,7 +1617,11 @@ QJsonArray TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &an
 		}
 	}
 
-	return ret;
+	if (result)
+		*result = ret;
+
+	if (correction)
+		*correction = corr;
 }
 
 
@@ -1813,6 +1952,19 @@ void ExamScanData::setUpload(bool newUpload)
 		return;
 	m_upload = newUpload;
 	emit uploadChanged();
+}
+
+QJsonArray ExamScanData::correction() const
+{
+	return m_correction;
+}
+
+void ExamScanData::setCorrection(const QJsonArray &newCorrection)
+{
+	if (m_correction == newCorrection)
+		return;
+	m_correction = newCorrection;
+	emit correctionChanged();
 }
 
 

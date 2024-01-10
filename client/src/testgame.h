@@ -71,6 +71,7 @@ public:
 		QVariantMap answer;
 		QString module;
 		bool success = false;
+		int examPoint = 0;
 	};
 
 
@@ -83,6 +84,7 @@ public:
 		qreal points = 0;
 		qreal maxPoints = 0;
 		bool success = false;
+		bool isExam = false;
 	};
 
 	static QuestionResult questionDataResult(const QVector<QuestionData> &list, const qreal &passed = 1.0);

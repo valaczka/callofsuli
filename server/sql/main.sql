@@ -160,7 +160,7 @@ CREATE TABLE grading(
 ----------------------------------
 
 CREATE TABLE mapOwner(
-	mapuuid TEXT NOT NULL,
+	mapuuid TEXT NOT NULL PRIMARY KEY,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	UNIQUE (mapuuid, username)
 );
