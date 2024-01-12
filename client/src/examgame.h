@@ -26,16 +26,6 @@ public:
 	const Exam::Mode &mode() const;
 	void setMode(const Exam::Mode &newMode);
 
-
-	// DEPRECATED
-
-	struct PaperContent {
-		QString questions;
-		QString answers;
-	};
-
-	static PaperContent generateQuestions(const QVector<Question> &list);
-
 signals:
 	void modeChanged();
 

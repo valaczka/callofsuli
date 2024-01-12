@@ -40,14 +40,18 @@ ModuleCalculator::ModuleCalculator(QObject *parent) : QObject(parent)
  * @return
  */
 
-QString ModuleCalculator::testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const
+QString ModuleCalculator::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const
 {
 	QString html;
 
+	html += QStringLiteral("<p>");
+
 	if (success)
-		html = QStringLiteral("<p class=\"answer\">");
+		html += QStringLiteral("<span class=\"answer\">");
 	else
-		html = QStringLiteral("<p class=\"answerFail\">");
+		html += QStringLiteral("<span class=\"answerFail\">");
+
+
 
 	if (answer.contains(QStringLiteral("first"))) {
 		const qreal &fReal = answer.value(QStringLiteral("first"), 0).toReal();
@@ -69,6 +73,36 @@ QString ModuleCalculator::testResult(const QVariantMap &, const QVariantMap &ans
 			html += QString::number(fInt);
 		else
 			html += QString::number(fReal);
+	}
+
+	html += QStringLiteral("</span>");
+
+
+
+	if (const QVariantMap &a = data.value(QStringLiteral("answer")).toMap(); !success && !a.isEmpty()) {
+		html += QStringLiteral(" <span class=\"answerCorrect\">");
+
+		const qreal &fReal = a.value(QStringLiteral("first"), 0).toReal();
+		const int &fInt = a.value(QStringLiteral("first"), 0).toInt();
+
+		if (fReal == (qreal) fInt)
+			html += QString::number(fInt);
+		else
+			html += QString::number(fReal);
+
+		if (data.value(QStringLiteral("twoLine")).toBool()) {
+			const qreal &fReal = a.value(QStringLiteral("second"), 0).toReal();
+			const int &fInt = a.value(QStringLiteral("second"), 0).toInt();
+
+			html += QStringLiteral("/");
+
+			if (fReal == (qreal) fInt)
+				html += QString::number(fInt);
+			else
+				html += QString::number(fReal);
+		}
+
+		html += QStringLiteral("</span>");
 	}
 
 	html += QStringLiteral("</p>");

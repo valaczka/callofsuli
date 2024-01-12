@@ -219,14 +219,14 @@ QPage {
 						enabled: !_isExam.checked
 					}
 
-					QFormCheckButton
+					/*QFormCheckButton
 					{
 						id: _isMultiPlayer
 						text: qsTr("Multiplayer")
 						checked: mission && (mission.modes & GameMap.MultiPlayer)
 						onToggled: _form.updateCheckButtons()
 						enabled: !_isExam.checked
-					}
+					}*/
 
 
 

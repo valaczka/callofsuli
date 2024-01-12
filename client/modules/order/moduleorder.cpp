@@ -68,15 +68,19 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 		if (i < aList.size()) {
 			const QVariantMap &m = aList.at(i).toMap();
 			success = m.value(QStringLiteral("success"), false).toBool();
-			const int idx = m.value(QStringLiteral("answer"), -1).toInt();
+			const auto &v = m.value(QStringLiteral("answer"), -2);
+			const int idx = v.isNull() ? -1 : v.toInt();
 
 			if (success)
 				html += QStringLiteral("<span class=\"answer\">");
 			else
 				html += QStringLiteral("<span class=\"answerFail\">");
 
-			if (idx >= 0 && idx < qList.size())
-				html += qList.at(idx).toMap().value(QStringLiteral("text")).toString();
+			if (const auto it = std::find_if(qList.cbegin(), qList.cend(), [idx](const QVariant &v){
+											 return v.toMap().value(QStringLiteral("num")).toInt() == idx;
+		}); it != qList.cend()) {
+				html += it->toMap().value(QStringLiteral("text")).toString();
+			}
 
 			html += QStringLiteral("</span>");
 		}
@@ -84,13 +88,12 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 		if (!success && i < correctList.size()) {
 			const int idx = correctList.at(i).toInt();
 
-			for (const QVariant &v : qList) {
-				if (const QVariantMap &map = v.toMap(); map.value(QStringLiteral("num")).toInt() == idx) {
-					html += QStringLiteral(" <span class=\"answerCorrect\">");
-					html += map.value(QStringLiteral("text")).toString();
-					html += QStringLiteral("</span>");
-					break;
-				}
+			if (const auto it = std::find_if(qList.cbegin(), qList.cend(), [idx](const QVariant &v){
+											 return v.toMap().value(QStringLiteral("num")).toInt() == idx;
+		}); it != qList.cend()) {
+				html += QStringLiteral(" <span class=\"answerCorrect\">");
+				html += it->toMap().value(QStringLiteral("text")).toString();
+				html += QStringLiteral("</span>");
 			}
 		}
 

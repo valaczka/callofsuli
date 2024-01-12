@@ -49,16 +49,26 @@ ModuleWriter::ModuleWriter(QObject *parent) : QObject(parent)
  * @return
  */
 
-QString ModuleWriter::testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const
+QString ModuleWriter::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const
 {
 	QString html;
 
+
+	html += QStringLiteral("<p>");
+
 	if (success)
-		html = QStringLiteral("<p class=\"answer\">");
+		html += QStringLiteral("<span class=\"answer\">");
 	else
-		html = QStringLiteral("<p class=\"answerFail\">");
+		html += QStringLiteral("<span class=\"answerFail\">");
 
 	html += answer.value(QStringLiteral("text")).toString();
+
+	html += QStringLiteral("</span>");
+
+	if (const QString &a = data.value(QStringLiteral("answer")).toString(); !success && !a.isEmpty()) {
+		html += QStringLiteral(" <span class=\"answerCorrect\">")
+				+ a + QStringLiteral("</span>");
+	}
 
 	html += QStringLiteral("</p>");
 
@@ -141,8 +151,8 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		QVariantMap m;
 		m[QStringLiteral("title")] = list.join(QStringLiteral(" "));
 		m[QStringLiteral("details")] = tr("Kiegészítendő: %1, további szavak: %2")
-				.arg(data.value(QStringLiteral("words")).toInt())
-				.arg(data.value(QStringLiteral("pad")).toInt());
+									   .arg(data.value(QStringLiteral("words")).toInt())
+									   .arg(data.value(QStringLiteral("pad")).toInt());
 		m[QStringLiteral("image")] = QStringLiteral("");
 
 		return m;

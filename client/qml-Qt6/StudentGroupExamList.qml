@@ -187,6 +187,7 @@ Item
 
 					exam.resultToQuickTextDocument(_testResult.textDocument)
 					_scrResult.visible = true
+					_scrResult.flickable.contentY = 0
 				}
 
 				/*onClicked: Client.stackPushPage("PageStudentCampaign.qml", {

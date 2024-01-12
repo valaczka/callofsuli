@@ -46,7 +46,7 @@ Item {
 					text: description != "" ? description : qsTr("Válassz ki egy küldetést...")
 					anchors.horizontalCenter: parent.horizontalCenter
 					padding: 10 * Qaterial.Style.pixelSizeRatio
-					visible: _exam && _exam.mode != Exam.ExamVirtual
+					visible: _btnSelect.visible
 				}
 
 				QFormSpinBox {
@@ -56,7 +56,7 @@ Item {
 					from: 1
 					to: teacherExam ? teacherExam.examUserList.count : 10
 					value: 10
-					visible: _exam && _exam.mode == Exam.ExamVirtual
+					visible: _exam && _exam.mode == Exam.ExamVirtual && _exam.state < Exam.Active
 					onValueChanged: _actionGenerateVirtual.spinCount = value
 				}
 
@@ -64,9 +64,10 @@ Item {
 					anchors.horizontalCenter: parent.horizontalCenter
 
 					QDashboardButton {
+						id: _btnSelect
 						text: qsTr("Küldetés kiválasztása")
 
-						visible: !_btnGenerate.visible && _exam && _exam.mode != Exam.ExamVirtual
+						visible: !_btnGenerate.visible && _exam && _exam.mode != Exam.ExamVirtual && _exam.state < Exam.Active
 
 						icon.source: Qaterial.Icons.selectSearch
 
@@ -116,7 +117,7 @@ Item {
 
 					QDashboardButton {
 						action: _actionRemove
-						visible: _exam && _exam.mode != Exam.ExamVirtual
+						visible: _exam && _exam.mode != Exam.ExamVirtual && _exam.state < Exam.Active
 					}
 
 					QDashboardButton {
@@ -127,6 +128,24 @@ Item {
 					QDashboardButton {
 						action: _actionStart
 						visible: _exam && _exam.mode != Exam.ExamVirtual
+						bgColor: Qaterial.Colors.green600
+					}
+
+					QDashboardButton {
+						action: _actionScan
+						visible: enabled
+					}
+
+					QDashboardButton {
+						action: _actionGrading
+						visible: _exam && _exam.mode != Exam.ExamVirtual && _exam.state == Exam.Active
+						bgColor: Qaterial.Colors.red600
+					}
+
+					QDashboardButton {
+						action: _actionFinish
+						visible: _exam && _exam.mode != Exam.ExamVirtual
+						bgColor: Qaterial.Colors.red600
 					}
 
 				}
@@ -295,7 +314,7 @@ Item {
 	Action {
 		id: _actionPDF
 		icon.source: Qaterial.Icons.filePdf
-		enabled: _exam && _exam.mode == 0
+		enabled: _exam && _exam.mode == Exam.ExamPaper
 
 		text: qsTr("PDF letöltése")
 
@@ -321,7 +340,80 @@ Item {
 		text: qsTr("Indítás")
 		enabled: _exam && _exam.state < Exam.Active
 
-		onTriggered: teacherExam.activate()
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								teacherExam.activate()
+							},
+							text: qsTr("Biztosan elindítod a dolgozatot?"),
+							title: qsTr("Dolgozat indítása"),
+							iconSource: Qaterial.Icons.play
+						})
+		}
+	}
+
+
+	Action {
+		id: _actionScan
+		icon.source: Qaterial.Icons.scanner
+		enabled: _exam && _exam.mode == Exam.ExamPaper && (_exam.state == Exam.Active || _exam.state == Exam.Grading)
+
+		text: qsTr("Beolvasás")
+
+		onTriggered: {
+			Client.stackPushPage("PageTeacherExamScanner.qml", {
+																	 handler: teacherExam.mapHandler,
+																	 group: teacherExam.teacherGroup,
+																	 acceptedExamIdList: [_exam.examId],
+																	 subtitle: _exam.description
+																 })
+		}
+	}
+
+
+	Action {
+		id: _actionGrading
+		icon.source: Qaterial.Icons.penOff
+
+		text: qsTr("Dolgozatírás befejezése")
+		enabled: _exam && _exam.state == Exam.Active
+
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								teacherExam.inactivate()
+							},
+							text: qsTr("Biztosan befejezet a megírási lehetőséget?"),
+							title: qsTr("Dolgozatírás befejezése"),
+							iconSource: Qaterial.Icons.penOff
+						})
+		}
+	}
+
+
+	Action {
+		id: _actionFinish
+		icon.source: Qaterial.Icons.stopCircleOutline
+
+		text: qsTr("Lezárás")
+		enabled: _exam && _exam.state < Exam.Finished
+
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								teacherExam.finish()
+							},
+							text: qsTr("Biztosan véglegesen lezárod a dolgozatot?"),
+							title: qsTr("Dolgozat lezárása"),
+							iconSource: Qaterial.Icons.stopCircleOutline
+						})
+		}
 	}
 
 

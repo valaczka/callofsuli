@@ -968,7 +968,7 @@ QHttpServerResponse UserAPI::exam(const Credential &credential, const int &id)
 	q.addQuery("SELECT exam.id, mode, state, mapuuid, description, timestamp, data, result, gradeid, answer, correction "
 			   "FROM exam LEFT JOIN examContent ON (examContent.examid=exam.id AND username=").addValue(credential.username())
 			.addQuery(") LEFT JOIN examAnswer ON (examAnswer.contentid=examContent.id) "
-					  "WHERE state=4 AND (username IS NOT NULL OR mode=2)");
+					  "WHERE state>=3 AND (username IS NOT NULL OR mode=2)");
 
 	if (id > 0) {
 		q.addQuery(" AND exam.groupid=").addValue(id);

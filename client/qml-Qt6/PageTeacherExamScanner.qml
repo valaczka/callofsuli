@@ -73,11 +73,28 @@ QPage {
 
 			width: ListView.view.width
 
-			text: scanData && scanData.state == ExamScanData.ScanFileFinished ?
-					  (scanData.username != "" ? scanData.username : qsTr("???")) + " (%1)".arg(scanData.examId) :
-					  scanData ? scanData.path : ""
+			text: {
+				if (!scanData)
+					return ""
 
-			secondaryText:  scanData && scanData.state == ExamScanData.ScanFileFinished ? scanData.path : ""
+				switch (scanData.state) {
+				case ExamScanData.ScanFileLoaded:
+					return qsTr("Megnyitás...")
+				case ExamScanData.ScanFileReadQR:
+					return qsTr("QR-kód keresés...")
+				case ExamScanData.ScanFileReadingOMR:
+					return qsTr("OMR felismerés..")
+				case ExamScanData.ScanFileInvalid:
+					return qsTr("[Érvénytelen dolgozat]")
+				case ExamScanData.ScanFileError:
+					return qsTr("[Hibás tartalom]")
+				case ExamScanData.ScanFileFinished:
+					return (scanData.username != "" ? scanData.username : qsTr("???")) + " (%1)".arg(scanData.examId)
+				}
+
+			}
+
+			secondaryText:  path//scanData && scanData.state == ExamScanData.ScanFileFinished ? scanData.path : ""
 
 			iconColorBase: {
 				if (!scanData)

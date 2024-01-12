@@ -145,7 +145,7 @@ signals:
 
 private:
 	QString toHtml() const;
-	QVector<TestGame::QuestionData> toQuestionData() const;
+	QVector<TestGame::QuestionData> toQuestionData(TestGame::QuestionResult *result) const;
 
 	int m_examId = -1;
 	State m_state = Prepare;

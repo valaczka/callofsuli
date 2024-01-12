@@ -40,7 +40,7 @@ ModuleTruefalse::ModuleTruefalse(QObject *parent) : QObject(parent)
  * @return
  */
 
-QString ModuleTruefalse::testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const
+QString ModuleTruefalse::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const
 {
 	QString html = QStringLiteral("<p>");
 	html += tr("Igaz vagy hamis? ");
@@ -53,12 +53,18 @@ QString ModuleTruefalse::testResult(const QVariantMap &, const QVariantMap &answ
 		else
 			html += QStringLiteral("<span class=\"answerFail\">");
 
-		if (idx > 0)
+		if (idx == 1)
 			html += tr("IGAZ");
-		else
+		else if (idx == 0)
 			html += tr("HAMIS");
 
 		html += QStringLiteral("</span>");
+	}
+
+	if (const int cIdx = data.value(QStringLiteral("answer")).toInt(); !success && cIdx>=0 && cIdx<2) {
+		static const QStringList list = { tr("Hamis"), tr("igaz")};
+		html += QStringLiteral(" <span class=\"answerCorrect\">")
+				+ list.at(cIdx) + QStringLiteral("</span>");
 	}
 
 	html += QStringLiteral("</p>");

@@ -129,7 +129,7 @@ QPage {
 			}
 
 
-			QButton {
+			/*QButton {
 				anchors.left: parent.left
 
 				enabled: editor && missionLevel
@@ -148,7 +148,7 @@ QPage {
 					else
 						Qaterial.DialogManager.openFromComponent(_cmpFileExportLatex)
 				}
-			}
+			}*/
 
 
 			Row {
@@ -474,6 +474,7 @@ QPage {
 						delegate: MapEditorChapterItem {
 							width: parent.width
 							chapter: modelData
+							isExam: mission && (mission.modes & GameMap.Exam)
 
 							onRemoveActionRequest: {
 								if (editor)

@@ -131,26 +131,6 @@ Item
 					return ""
 				}
 
-				//onPressAndHold: exam.generateRandom(mapHandler, group)
-
-				/*onPressAndHold: Client.stackPushPage("PageTeacherExamScanner.qml", {
-														 handler: mapHandler,
-														 group: group,
-														 acceptedExamIdList: [exam.examId],
-														 subtitle: text
-													 })*/
-
-				/*onClicked: {
-					Client.send(HttpConnection.ApiTeacher, "exam/%1/content".arg(exam.examId))
-					.done(control, function(rr){
-						_teacherExam.createPdf(rr.list, {
-												   examId: exam.examId,
-												   title: exam.description,
-												   subject: group.fullName
-											   })
-					})
-				}*/
-
 				onClicked: Client.stackPushPage("PageTeacherExam.qml", {
 													group: control.group,
 													exam: exam,

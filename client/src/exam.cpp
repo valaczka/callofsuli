@@ -302,7 +302,8 @@ QString Exam::toHtml() const
 {
 	TestGame::QuestionResult result;
 	result.isExam = true;
-	result.resultData = toQuestionData();
+	toQuestionData(&result);
+
 
 	QString html;
 
@@ -327,12 +328,17 @@ QString Exam::toHtml() const
  * @return
  */
 
-QVector<TestGame::QuestionData> Exam::toQuestionData() const
+QVector<TestGame::QuestionData> Exam::toQuestionData(TestGame::QuestionResult *result) const
 {
 	QVector<TestGame::QuestionData> list;
 
+	int p = 0;
+	int mp = 0;
+
 	for (int i=0; i<m_examData.size(); ++i) {
 		const QJsonObject &obj = m_examData.at(i).toObject();
+		mp += obj.value(QStringLiteral("examPoint")).toInt(0);
+
 		TestGame::QuestionData d;
 		d.data = obj.toVariantMap();
 		d.module = obj.value(QStringLiteral("module")).toString();
@@ -340,10 +346,22 @@ QVector<TestGame::QuestionData> Exam::toQuestionData() const
 
 		if (i<m_answerData.size()) {
 			d.answer = m_answerData.at(i).toObject().toVariantMap();
-			d.success = d.answer.value(QStringLiteral("success"), false).toBool();
+		}
+
+		if (i<m_correctionData.size()) {
+			const QJsonObject &c = m_correctionData.at(i).toObject();
+			d.success = c.value(QStringLiteral("success")).toBool(false);
+			d.examPoint = c.value(QStringLiteral("p")).toInt(0);
+			p += d.examPoint;
 		}
 
 		list.append(d);
+	}
+
+	if (result) {
+		result->resultData = list;
+		result->maxPoints = mp;
+		result->points = p;
 	}
 
 	return list;

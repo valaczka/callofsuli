@@ -310,6 +310,7 @@ private:
 	void generateAnswerResult(const QJsonObject &content);
 	void getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction) const;
 	void updateResultFromServer();
+	Q_INVOKABLE void uploadResultReal(QVector<QPointer<ExamScanData>> list);
 
 	static QVector<int> letterToOptions(const QString &options) {
 		QVector<int> list;
@@ -321,35 +322,6 @@ private:
 	static QVector<int> letterToOptions(const QJsonObject &data, const int &number) {
 		return letterToOptions(data.value(QStringLiteral("q")+QString::number(number)).toString());
 	}
-
-	static QJsonValue letterToInt(const QString &options) {
-		const auto &l = letterToOptions(options);
-		if (l.size() != 1 || l.at(0) == -1)
-			return QJsonValue{};
-		else
-			return l.at(0);
-	}
-
-	static QJsonValue letterToInt(const QJsonObject &data, const int &number) {
-		return letterToInt(data.value(QStringLiteral("q")+QString::number(number)).toString());
-	}
-
-	static QJsonArray letterToArray(const QString &options) {
-		const auto &l = letterToOptions(options);
-		QJsonArray r;
-		for (const int &i : l) {
-			if (i != -1)
-				r.append(i);
-			else
-				r.append(QJsonValue{});
-		}
-		return r;
-	}
-
-	static QJsonArray letterToArray(const QJsonObject &data, const int &number) {
-		return letterToArray(data.value(QStringLiteral("q")+QString::number(number)).toString());
-	}
-
 
 	static const QString m_optionLetters;
 

@@ -17,9 +17,9 @@ Item {
 
 		sourceModel: editor && editor.map ? editor.map.chapterList : null
 
-		sorters: StringSorter {
+		/*sorters: StringSorter {
 			roleName: "name"
-		}
+		}*/
 	}
 
 	QScrollable {

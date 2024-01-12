@@ -562,19 +562,7 @@ QString TestGame::questionDataResultToHtml(const QString &header, const Question
 		html += QStringLiteral("<td></td>");
 		html += QStringLiteral("<td class=\"answer\">");
 
-		if (!Application::instance()->objectiveModules().contains(q.module)) {
-			html += QStringLiteral("<p>%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(q.data))
-																	  .toJson(QJsonDocument::Indented)));
-			html += QStringLiteral("<p class=\"answer\">%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(q.answer))
-																					   .toJson(QJsonDocument::Indented)));
-
-		} else {
-
-			ModuleInterface *mi = Application::instance()->objectiveModules().value(q.module);
-
-			html += mi->testResult(q.data, q.answer, q.success);
-
-		}
+		html += questionDataResultToHtml(q);
 
 		html += QStringLiteral("</td>");
 		html += QStringLiteral("<td class=\"check\" align=right valign=top>%1</td>").arg(q.success ? CheckOK : CheckFailed);
@@ -614,6 +602,33 @@ QString TestGame::questionDataResultToHtml(const QuestionResult &result) const
 		html += QStringLiteral("<p class=\"resultFail\">%1 (%2%)</p>").arg(tr("Sikertelen megoldás")).arg(qFloor(percent*100));
 
 	return questionDataResultToHtml(html, result);
+}
+
+
+
+
+/**
+ * @brief TestGame::questionDataResultToHtml
+ * @param data
+ * @return
+ */
+
+QString TestGame::questionDataResultToHtml(const QuestionData &data)
+{
+	QString html;
+	if (!Application::instance()->objectiveModules().contains(data.module)) {
+		html += QStringLiteral("<p>%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(data.data))
+																  .toJson(QJsonDocument::Indented)));
+		html += QStringLiteral("<p class=\"answer\">%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(data.answer))
+																				   .toJson(QJsonDocument::Indented)));
+
+	} else {
+		ModuleInterface *mi = Application::instance()->objectiveModules().value(data.module);
+
+		html += mi->testResult(data.data, data.answer, data.success);
+	}
+
+	return html;
 }
 
 

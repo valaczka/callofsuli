@@ -330,22 +330,9 @@ void TeacherExam::uploadResult()
 
 		list.squeeze();
 
-		for (const auto &s : list) {
-			if (s) {
-				Application::instance()->client()->send(HttpConnection::ApiTeacher,
-														QStringLiteral("exam/answer/%1").arg(s->contentId()), {
-															{ QStringLiteral("answer"), s->serverAnswer() },
-															{ QStringLiteral("correction"), s->correction() },
-														})
-						->done(this, [s, this](const QJsonObject &ret){
-					if (s && ret.value(QStringLiteral("status")).toString() == QStringLiteral("ok")) {
-						remove(s);
-					}
-				});
-			}
-		}
+		QMetaObject::invokeMethod(this, "uploadResultReal", Qt::QueuedConnection,
+								  Q_ARG(QVector<QPointer<ExamScanData>>, list));
 
-		Application::instance()->messageInfo(tr("Eredmények feltöltve"));
 	});
 }
 
@@ -366,6 +353,9 @@ QVariantList TeacherExam::getMissionLevelList()
 		return {};
 
 	for (GameMapMission *m : m_gameMap->missions()) {
+		if (!m->modes().testFlag(GameMap::Exam))
+			continue;
+
 		for (GameMapMissionLevel *ml : m->levels()) {
 			list.append(QVariantMap{
 							{ QStringLiteral("name"), m->name() },
@@ -729,8 +719,6 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list)
 			html += QStringLiteral("</span>");
 		}
 
-		LOG_CINFO("client") << "Q" << module << question;
-
 		html += QStringLiteral("<i>");
 		html += QObject::tr(" [%1p]").arg(point);
 		html += QStringLiteral("</i>");
@@ -1028,7 +1016,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 
 			if (!qr.startsWith(prefix)) {
 				LOG_CWARNING("client") << "Invalid QR code:" << qr << "file:" << path;
-				it->setState(ExamScanData::ScanFileInvalid);
+				it->setState(ExamScanData::ScanFileError);
 				continue;
 			}
 
@@ -1038,7 +1026,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 
 			if (fields.size() != 4) {
 				LOG_CWARNING("client") << "Invalid QR code:" << qr << "file:" << path;
-				it->setState(ExamScanData::ScanFileInvalid);
+				it->setState(ExamScanData::ScanFileError);
 				continue;
 			}
 
@@ -1047,7 +1035,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 
 			if (Utils::versionCode(vMajor, vMinor) != Utils::versionCode()) {
 				LOG_CWARNING("client") << "Wrong version:" << qr << "file:" << path;
-				it->setState(ExamScanData::ScanFileInvalid);
+				it->setState(ExamScanData::ScanFileError);
 				continue;
 			}
 
@@ -1445,9 +1433,11 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 				ret.append(QJsonObject{
 							   { QStringLiteral("index"), a },
-							   { QStringLiteral("success"), success }
 						   });
-				corr.append(success ? point : 0);
+				corr.append(QJsonObject{
+								{ QStringLiteral("p"), success ? point : 0 },
+								{ QStringLiteral("success"), success }
+							});
 			}
 
 		} else if (module == QStringLiteral("simplechoice")) {
@@ -1461,9 +1451,11 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 				ret.append(QJsonObject{
 							   { QStringLiteral("index"), a },
-							   { QStringLiteral("success"), success }
 						   });
-				corr.append(success ? point : 0);
+				corr.append(QJsonObject{
+								{ QStringLiteral("p"), success ? point : 0 },
+								{ QStringLiteral("success"), success }
+							});
 			}
 
 		} else if (module == QStringLiteral("multichoice")) {
@@ -1477,7 +1469,10 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			bool success = false;
 
 			if (r.size() != correctAnswer.toArray().size()) {
-				corr.append(0);
+				corr.append(QJsonObject{
+								{ QStringLiteral("p"), 0 },
+								{ QStringLiteral("success"), false }
+							});
 			} else {
 				for (const QJsonValue &v : correctAnswer.toArray()) {
 					if (auto it = std::find_if(r.begin(), r.end(), [v](const QJsonValue &q){
@@ -1488,12 +1483,14 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				}
 
 				success = r.isEmpty();
-				corr.append(success ? point : 0);
+				corr.append(QJsonObject{
+								{ QStringLiteral("p"), success ? point : 0 },
+								{ QStringLiteral("success"), success }
+							});
 			}
 
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), r },
-						   { QStringLiteral("success"), success }
 					   });
 
 		} else if (module == QStringLiteral("order")) {
@@ -1502,19 +1499,23 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			QJsonArray retList;
 			bool success = true;
 
-			for (int i=0; i<list.size(); ++i) {
-				const auto &v = letterToInt(answer, num++);
+			const QJsonArray &aList = correctAnswer.toArray();
 
-				if (v.isNull()) {
+			for (int i=0; i<list.size(); ++i) {
+				const auto &aL = letterToOptions(answer, num++);
+				const int &idx = aL.size() == 1 ? aL.at(0) : -1;
+
+				if (idx < 0 || idx >= list.size()) {
 					retList.append(QJsonObject{
 									   { QStringLiteral("answer"), QJsonValue::Null },
 									   { QStringLiteral("success"), false }
 								   });
 					success = false;
 				} else {
-					const QJsonArray &aList = correctAnswer.toArray();
+					const int vInt = list.at(idx).toObject().value(QStringLiteral("num")).toInt(-2);
 					const int vv = i<aList.size() ? aList.at(i).toInt(-1) : -1;
-					if (const int &vInt = v.toInt(-2); vInt == vv) {
+
+					if (vInt == vv) {
 						retList.append(QJsonObject{
 										   { QStringLiteral("answer"), vInt },
 										   { QStringLiteral("success"), true }
@@ -1531,10 +1532,12 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },
-						   { QStringLiteral("success"), success }
 					   });
 
-			corr.append(success ? point : 0);
+			corr.append(QJsonObject{
+							{ QStringLiteral("p"), success ? point : 0 },
+							{ QStringLiteral("success"), success }
+						});
 
 		} else if (module == QStringLiteral("pair")) {
 			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
@@ -1542,12 +1545,11 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			QJsonArray l;
 
 			for (int i=0; i<list.size(); ++i) {
-				const auto &v = letterToInt(answer, num++);
-
-				if (v.isNull())
+				const auto &aList = letterToOptions(answer, num++);
+				if (aList.size() != 1 || aList.at(0) == -1) {
 					l.append(QJsonValue::Null);
-				else {
-					const int idx = v.toInt(-1);
+				} else {
+					const int idx = aList.at(0);
 					if (idx<0 || idx>=options.size())
 						l.append(QJsonValue::Null);
 					else
@@ -1579,17 +1581,24 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },
-						   { QStringLiteral("success"), success }
 					   });
 
-			corr.append(success ? point : 0);
+			corr.append(QJsonObject{
+							{ QStringLiteral("p"), success ? point : 0 },
+							{ QStringLiteral("success"), success }
+						});
+
 		} else if (module == QStringLiteral("fillout")) {
 			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
 
-			QJsonObject l;
+			QJsonArray retList;
+			bool success = true;
+			const QJsonObject &aObj = correctAnswer.toObject();
 
 			for (const QJsonValue &v : list) {
+				QJsonObject l;
+
 				const QJsonObject &data = v.toObject();
 
 				const QString &q = data.value(QStringLiteral("q")).toString();
@@ -1597,23 +1606,56 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				if (q.isEmpty())
 					continue;
 
-				const auto &i = letterToInt(answer, num++);
+				const auto &aList = letterToOptions(answer, num++);
+				if (aList.size() != 1 || aList.at(0) == -1) {
+					retList.append(QJsonObject{
+									   { QStringLiteral("q"), q },
+									   { QStringLiteral("answer"), QJsonValue::Null },
+									   { QStringLiteral("success"), false }
+								   });
+					success = false;
+				} else {
+					const int idx = aList.at(0);
+					if (idx<0 || idx>=options.size()) {
+						retList.append(QJsonObject{
+										   { QStringLiteral("q"), q },
+										   { QStringLiteral("answer"), QJsonValue::Null },
+										   { QStringLiteral("success"), false }
+									   });
+						success = false;
+					} else {
+						const QString &opt = options.at(idx).toString();
+						const bool s = (opt == aObj.value(q).toString());
+						retList.append(QJsonObject{
+										   { QStringLiteral("q"), q },
+										   { QStringLiteral("answer"), opt },
+										   { QStringLiteral("success"), s }
+									   });
 
-				if (i.isNull())
-					l.insert(q, QJsonValue::Null);
-				else {
-					const int idx = i.toInt(-1);
-					if (idx<0 || idx>=options.size())
-						l.insert(q, QJsonValue::Null);
-					else
-						l.insert(q, options.at(idx));
+						if (!s)
+							success = false;
+					}
 				}
 			}
 
-			ret.append(l);
+			ret.append(QJsonObject{
+						   { QStringLiteral("list"), retList },
+					   });
+
+			corr.append(QJsonObject{
+							{ QStringLiteral("p"), success ? point : 0 },
+							{ QStringLiteral("success"), success }
+						});
 
 		} else {
-			ret.append(QJsonValue::Null);
+			ret.append(QJsonObject{
+						   { QStringLiteral("_manual"), true },
+					   });
+
+			corr.append(QJsonObject{
+							{ QStringLiteral("p"), 0 },
+							{ QStringLiteral("success"), false }
+						});
 		}
 	}
 
@@ -1643,6 +1685,39 @@ void TeacherExam::updateResultFromServer()
 												{ QStringLiteral("list"), m_scannedIdList }
 											})
 			->done(this, &TeacherExam::generateAnswerResult);
+}
+
+
+
+/**
+ * @brief TeacherExam::uploadResult
+ * @param list
+ */
+
+void TeacherExam::uploadResultReal(QVector<QPointer<ExamScanData> > list)
+{
+	for (const auto &s : list) {
+		if (s) {
+			Application::instance()->client()->send(HttpConnection::ApiTeacher,
+													QStringLiteral("exam/answer/%1").arg(s->contentId()), {
+														{ QStringLiteral("answer"), s->serverAnswer() },
+														{ QStringLiteral("correction"), s->correction() },
+													})
+					->done(this, [s, this](const QJsonObject &ret){
+				if (s && ret.value(QStringLiteral("status")).toString() == QStringLiteral("ok")) {
+					remove(s);
+				} else {
+					s->setState(ExamScanData::ScanFileInvalid);
+				}
+			})
+					->fail(this, [s](const QString &) {
+				s->setState(ExamScanData::ScanFileInvalid);
+			})
+					;
+		}
+	}
+
+	Application::instance()->client()->snack(tr("Eredmények feltöltve"));
 }
 
 

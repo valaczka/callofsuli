@@ -61,7 +61,7 @@ public:
 		return "GQ_singlechoice.qml";
 #endif
 	}
-	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
+	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return {"binding", "numbers", "block"}; }
 

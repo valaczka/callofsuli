@@ -93,6 +93,8 @@ public:
 	static QString questionDataResultToHtml(const QString &header, const QuestionResult &result);
 	QString questionDataResultToHtml(const QuestionResult &result) const;
 
+	static QString questionDataResultToHtml(const QuestionData &data);
+
 	static const QString CheckOK;
 	static const QString CheckFailed;
 

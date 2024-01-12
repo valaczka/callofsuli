@@ -3118,7 +3118,7 @@ QHttpServerResponse TeacherAPI::examAnswer(const Credential &credential, const i
 	if (json.value(QStringLiteral("forced")).toBool()) {
 		CHECK_EXAM_CONTENT(credential.username(), id);
 	} else {
-		CHECK_EXAM_CONTENT_STATE(credential.username(), id, "state=2");
+		CHECK_EXAM_CONTENT_STATE(credential.username(), id, "(state=2 OR state=3)");
 	}
 
 	const QString &answer = QJsonDocument(json.value(QStringLiteral("answer")).toArray()).toJson(QJsonDocument::Compact);
