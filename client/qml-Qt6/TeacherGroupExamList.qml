@@ -12,9 +12,12 @@ Item
 
 	property TeacherGroup group: null
 	property TeacherMapHandler mapHandler: null
+	property ExamList examList: null
 	property alias view: view
 
-	property alias actionExamAdd: actionExamAdd
+	property alias actionExamAdd: _actionCreate
+
+	property int _lastExamId: -1
 
 	property var stackPopFunction: function() {
 		if (view.selectEnabled) {
@@ -25,25 +28,11 @@ Item
 		return true
 	}
 
-	ExamList {
-		id: _examList
-
-		function reload() {
-			if (!group)
-				return
-
-			Client.send(HttpConnection.ApiTeacher, "group/%1/exam".arg(group.groupid))
-			.done(control, function(r){
-				Client.callReloadHandler("exam", _examList, r.list)
-			})
-			.fail(control, JS.failMessage(qsTr("Dolgozatlista letöltése sikertelen")))
-		}
-	}
 
 	TeacherExam {
 		id: _teacherExam
 		teacherGroup: group
-		onExamListReloadRequest: _examList.reload()
+		onExamListReloadRequest: examList.reload()
 	}
 
 	QScrollable {
@@ -54,7 +43,7 @@ Item
 		rightPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: _examList.reload()
+		onRefreshRequest: examList.reload()
 
 		QListView {
 			id: view
@@ -69,25 +58,30 @@ Item
 			boundsBehavior: Flickable.StopAtBounds
 
 			model: SortFilterProxyModel {
-				sourceModel: _examList
+				sourceModel: examList
 
-				/*sorters: [
-					RoleSorter {
-						roleName: "finished"
-						sortOrder: Qt.AscendingOrder
+				sorters: [
+					FilterSorter {
+						ValueFilter {
+							roleName: "state"
+							value: Exam.Prepare
+						}
 						priority: 3
 					},
-					RoleSorter {
-						roleName: "started"
-						sortOrder: Qt.DescendingOrder
+					FilterSorter {
+						ValueFilter {
+							roleName: "state"
+							value: Exam.Finished
+							inverted: true
+						}
 						priority: 2
 					},
 					RoleSorter {
-						roleName: "startTime"
+						roleName: "timestamp"
 						sortOrder: Qt.AscendingOrder
 						priority: 1
 					}
-				]*/
+				]
 			}
 
 			delegate: QItemDelegate {
@@ -96,29 +90,35 @@ Item
 
 				highlighted: view.selectEnabled ? selected : ListView.isCurrentItem
 				iconSource: {
-					switch (state) {
-					case Exam.Finished:
-						return Qaterial.Icons.checkBold
-					case Exam.Active:
-						return Qaterial.Icons.playCircle
+					switch (mode) {
+					case Exam.ExamOnline:
+						return Qaterial.Icons.network
+					case Exam.ExamPaper:
+						return Qaterial.Icons.note
+					case Exam.ExamVirtual:
+						return Qaterial.Icons.magnet
 					default:
-						return Qaterial.Icons.account
+						return Qaterial.Icons.alert
 					}
 				}
 
 				iconColorBase: {
-					switch (state) {
+					switch (exam ? exam.state : 0) {
 					case Exam.Finished:
 						return Qaterial.Style.iconColor()
-					case Exam.Running:
+					case Exam.Active:
 						return Qaterial.Colors.green400
+					case Exam.Grading:
+						return Qaterial.Colors.orange400
+					case Exam.Assigned:
+						return Qaterial.Style.primaryTextColor()
 					default:
 						return Qaterial.Style.disabledTextColor()
 					}
 				}
 
 				textColor: iconColorBase
-				secondaryTextColor: state === Exam.Finished ?
+				secondaryTextColor: exam && exam.state === Exam.Finished ?
 										Qaterial.Style.disabledTextColor() : Qaterial.Style.colorTheme.secondaryText
 
 
@@ -131,12 +131,17 @@ Item
 					return ""
 				}
 
-				onClicked: Client.stackPushPage("PageTeacherExam.qml", {
+				onClicked: {
+					let o = Client.stackPushPage("PageTeacherExam.qml", {
 													group: control.group,
 													exam: exam,
 													mapHandler: control.mapHandler,
-													examList: _examList
+													examList: examList
 												})
+
+					if (o)
+						_lastExamId = examId
+				}
 			}
 
 			Qaterial.Menu {
@@ -169,39 +174,44 @@ Item
 
 		action1: qsTr("Létrehozás")
 
-		onAction1Clicked: actionExamAdd.trigger()
+		onAction1Clicked: _actionCreate.trigger()
 
 		enabled: group
-		visible: group && !_examList.length
+		visible: group && !examList.length
 	}
 
 	QFabButton {
 		visible: view.visible
-		action: actionExamAdd
+		action: _actionCreate
 	}
 
 
 	Action {
-		id: actionExamAdd
+		id: _actionCreate
 		enabled: group
 		text: qsTr("Új dolgozat")
 		icon.source: Qaterial.Icons.plus
 		onTriggered: {
-			Client.send(HttpConnection.ApiTeacher, "group/%1/exam/create".arg(group.groupid))
+			Client.send(HttpConnection.ApiTeacher, "group/%1/exam/create".arg(group.groupid), {
+							mode: Exam.ExamVirtual
+						})
 			.done(control, function(r){
 				if (r.id) {
 					Client.send(HttpConnection.ApiTeacher, "group/%1/exam".arg(group.groupid))
 					.done(control, function(rr){
-						Client.callReloadHandler("exam", _examList, rr.list)
-						var o = Client.findOlmObject(_examList, "examId", r.id)
+						Client.callReloadHandler("exam", examList, rr.list)
+						var o = Client.findOlmObject(examList, "examId", r.id)
 
-						if (o)
+						if (o) {
 							Client.stackPushPage("PageTeacherExam.qml", {
 													 group: control.group,
 													 exam: o,
 													 mapHandler: control.mapHandler,
-													 examList: _examList
+													 examList: examList
 												 })
+
+							_lastExamId = o.examId
+						}
 
 					})
 					.fail(control, JS.failMessage(qsTr("Dolgozatlista letöltése sikertelen")))
@@ -217,7 +227,7 @@ Item
 	Action {
 		id: _actionDelete
 		icon.source: Qaterial.Icons.delete_
-		text: qsTr("Eltávolítás")
+		text: qsTr("Törlés")
 		enabled: view.currentIndex != 1 || view.selectEnabled
 		onTriggered: {
 			var l = view.getSelected()
@@ -232,7 +242,7 @@ Item
 															list: JS.listGetFields(l, "examId")
 														})
 											.done(control, function(r){
-												_examList.reload()
+												examList.reload()
 												view.unselectAll()
 											})
 											.fail(control, JS.failMessage("Törlés sikertelen"))
@@ -245,8 +255,11 @@ Item
 		}
 	}
 
-
-	StackView.onActivated: _examList.reload()
-	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _examList.reload()
+	function selectById() {
+		for (let i=0; i<view.model.count; ++i) {
+			if (view.model.get(i).examId === _lastExamId)
+				view.currentIndex = i
+		}
+	}
 
 }

@@ -5,7 +5,6 @@ TEMPLATE = subdirs
 SUBDIRS += \
 	libQOlm \
 	libQaterial \
-	libQZXing \
 	libTiled \
 	libQtXlsxWriter \
 	libSCodes \

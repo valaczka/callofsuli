@@ -117,12 +117,13 @@ public:
 	QHttpServerResponse examCreate(const Credential &credential, const int &group, const QJsonObject &json);
 	QHttpServerResponse examUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse examDelete(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse examResult(const Credential &credential, const int &id, const int &groupId);
 	QHttpServerResponse examCreateContent(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse examRemoveContent(const Credential &credential, const int &id, const QJsonArray &list);
 	QHttpServerResponse examContent(const Credential &credential, const int &id, const QString &user);
 	QHttpServerResponse examContent(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examAnswer(const Credential &credential, const int &id, const QJsonObject &json);
-	QHttpServerResponse examGrading(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse examGrading(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examActivate(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examInactivate(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examFinish(const Credential &credential, const QJsonArray &list);

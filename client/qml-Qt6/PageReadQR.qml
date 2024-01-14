@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 import QtMultimedia
-import QZXing
 import CallOfSuli
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
@@ -18,18 +17,22 @@ QPage {
 
 	signal tagFound(string tag)
 
-	Camera
+	/*Camera
 	{
 		id: camera
 
 		active: true
 		focusMode: Camera.FocusModeAutoNear
-	}
+	}*/
 
-	CaptureSession {
+	/*CaptureSession {
 		camera: camera
 		videoOutput: videoOutput
-	}
+
+		imageCapture: ImageCapture {
+			id: imageCapture
+		}
+	}*/
 
 	VideoOutput
 	{
@@ -42,6 +45,9 @@ QPage {
 		property double captureRectFactorWidth: 0.8
 		property double captureRectFactorHeight: 0.8
 
+
+		focus: visible
+		fillMode: VideoOutput.PreserveAspectCrop
 
 		Rectangle {
 			id: blackRect
@@ -72,38 +78,53 @@ QPage {
 			opacity: 0.5
 		}
 
-		Component.onCompleted: { camera.active = false; camera.active = true; }
+		/*Component.onCompleted: {
+			camera.active = false
+			camera.active = true
+			scanner.setProcessing(true)
+		}*/
 	}
 
-	QZXingFilter
-	{
-		id: zxingFilter
+	SBarcodeScanner {
+		id: scanner
 
 		videoSink: videoOutput.videoSink
-		orientation: videoOutput.orientation
-		captureRect: {
-			videoOutput.sourceRect;
-			var r = Qt.rect(videoOutput.sourceRect.width * videoOutput.captureRectStartFactorX,
-							videoOutput.sourceRect.height * videoOutput.captureRectStartFactorY,
-							videoOutput.sourceRect.width * videoOutput.captureRectFactorWidth,
-							videoOutput.sourceRect.height * videoOutput.captureRectFactorHeight)
-			return r;
-		}
+		captureRect: Qt.rect(videoOutput.width * videoOutput.captureRectStartFactorX,
+							videoOutput.height * videoOutput.captureRectStartFactorY,
+							videoOutput.width * videoOutput.captureRectFactorWidth,
+							videoOutput.height * videoOutput.captureRectFactorHeight)
 
-		decoder {
-			enabledDecoders: QZXing.DecoderFormat_QR_CODE
+		onCaptureRectChanged: console.debug("-------", scanner.captureRect)
 
-			onTagFound: {
-				if (!captureEnabled)
-					return
 
-				console.debug("QR: "+tag);
 
-				tagFound(tag)
-			}
+		onCameraAvailableChanged: console.debug("***", cameraAvailable)
+		onErrorDescriptionChanged: console.error("!!!", errorDescription)
 
-			tryHarder: false
-		}
+		onCapturedChanged: {
+							   //if (!captureEnabled)
+							   //return
+
+							   console.debug("QR: "+captured);
+
+							   tagFound(captured)
+
+							   //imageCapture.capture()
+						   }
+
+	}
+
+	Image {
+		anchors.left: parent.left
+		anchors.bottom: parent.bottom
+		width: parent.width*0.25
+		height: parent.height*0.25
+		//source: imageCapture.preview
+	}
+
+	Component.onCompleted: {
+		console.debug("1***", scanner.cameraAvailable)
+		console.error("1!!!", scanner.errorDescription)
 	}
 
 }

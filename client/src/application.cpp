@@ -28,6 +28,7 @@
 #include "classobject.h"
 #include "exam.h"
 #include "examgame.h"
+#include "examresultmodel.h"
 #include "fetchmodel.h"
 #include "fontimage.h"
 #include "gameenemysniper.h"
@@ -61,12 +62,6 @@
 #include <QDebug>
 
 #include <Qaterial/Qaterial.hpp>
-
-#ifndef QZXING_QML
-#define QZXING_QML
-#endif
-
-#include <QZXing.h>
 #include <box2dplugin.h>
 
 #if defined(Q_OS_ANDROID) && QT_VERSION < 0x060000
@@ -350,8 +345,6 @@ void Application::registerQmlTypes()
 {
 	LOG_CTRACE("app") << "Register QML types";
 
-	QZXing::registerQMLTypes();
-
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<ExamGame>("CallOfSuli", 1, 0, "ExamGame", "ExamGame is uncreatable");
@@ -388,7 +381,6 @@ void Application::registerQmlTypes()
 	qmlRegisterType<QSJsonListModel>("QSyncable", 1, 0, "QSJsonListModel");
 	qmlRegisterType<QSListModel>("QSyncable", 1, 0, "QSListModel");
 
-
 	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
 	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
 	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
@@ -396,6 +388,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
 	qmlRegisterType<Exam>("CallOfSuli", 1, 0, "Exam");
 	qmlRegisterType<ExamList>("CallOfSuli", 1, 0, "ExamList");
+	qmlRegisterType<ExamResultModel>("CallOfSuli", 1, 0, "ExamResultModel");
 	qmlRegisterType<ExamScanData>("CallOfSuli", 1, 0, "ExamScanData");
 	qmlRegisterType<ExamScanDataList>("CallOfSuli", 1, 0, "ExamScanDataList");
 	qmlRegisterType<ExamUser>("CallOfSuli", 1, 0, "ExamUser");

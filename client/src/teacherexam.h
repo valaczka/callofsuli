@@ -151,9 +151,23 @@ class ExamUser : public User
 
 	Q_PROPERTY(QJsonArray examData READ examData WRITE setExamData NOTIFY examDataChanged FINAL)
 	Q_PROPERTY(int contentId READ contentId WRITE setContentId NOTIFY contentIdChanged FINAL)
+	Q_PROPERTY(Grade *grade READ grade WRITE setGrade NOTIFY gradeChanged FINAL)
+	Q_PROPERTY(qreal result READ result WRITE setResult NOTIFY resultChanged FINAL)
+	Q_PROPERTY(bool picked READ picked WRITE setPicked NOTIFY pickedChanged FINAL)
+	Q_PROPERTY(QJsonArray answer READ answer WRITE setAnswer NOTIFY answerChanged FINAL)
+	Q_PROPERTY(QJsonArray correction READ correction WRITE setCorrection NOTIFY correctionChanged FINAL)
+	Q_PROPERTY(QJsonArray pendingCorrection READ pendingCorrection WRITE setPendingCorrection NOTIFY pendingCorrectionChanged FINAL)
 
 public:
 	ExamUser(QObject *parent = nullptr);
+
+	Q_INVOKABLE void getContent(const int &index, QQuickTextDocument *document,
+								QQuickItem *checkBoxSuccess = nullptr, QQuickItem *spinPoint = nullptr) const;
+	Q_INVOKABLE bool isModified(const int &index) const;
+	Q_INVOKABLE void modify(const int &index, const bool &success, const int &point);
+	Q_INVOKABLE qreal recalculateResult();
+
+	QJsonArray mergeCorrection() const;
 
 	QJsonArray examData() const;
 	void setExamData(const QJsonArray &newExamData);
@@ -161,13 +175,43 @@ public:
 	int contentId() const;
 	void setContentId(int newContentId);
 
+	Grade *grade() const;
+	void setGrade(Grade *newGrade);
+
+	qreal result() const;
+	void setResult(qreal newResult);
+
+	bool picked() const;
+	void setPicked(bool newPicked);
+
+	QJsonArray answer() const;
+	void setAnswer(const QJsonArray &newAnswer);
+
+	QJsonArray correction() const;
+	void setCorrection(const QJsonArray &newCorrection);
+
+	QJsonArray pendingCorrection() const;
+	void setPendingCorrection(const QJsonArray &newPendingCorrection);
+
 signals:
 	void examDataChanged();
 	void contentIdChanged();
+	void gradeChanged();
+	void resultChanged();
+	void pickedChanged();
+	void answerChanged();
+	void correctionChanged();
+	void pendingCorrectionChanged();
 
 private:
 	QJsonArray m_examData;
+	QJsonArray m_answer;
+	QJsonArray m_correction;
+	QJsonArray m_pendingCorrection;
 	int m_contentId = 0;
+	qreal m_result = -1;
+	Grade *m_grade = nullptr;
+	bool m_picked = false;
 };
 
 
@@ -195,6 +239,7 @@ class TeacherExam : public QObject
 	Q_PROPERTY(QString missionUuid READ missionUuid WRITE setMissionUuid NOTIFY missionUuidChanged FINAL)
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged FINAL)
 	Q_PROPERTY(ExamUserList*examUserList READ examUserList CONSTANT FINAL)
+	Q_PROPERTY(bool hasPendingCorrection READ hasPendingCorrection NOTIFY hasPendingCorrectionChanged FINAL)
 
 public:
 	explicit TeacherExam(QObject *parent = nullptr);
@@ -205,6 +250,7 @@ public:
 		QString title;
 		QString subject;
 		int fontSize = 8;
+		QString file;
 	};
 
 	enum ScanState {
@@ -241,6 +287,9 @@ public:
 	Q_INVOKABLE void inactivate();
 	Q_INVOKABLE void finish();
 
+	Q_INVOKABLE void clearPendingCorrections();
+	Q_INVOKABLE void savePendingCorrections(const QList<ExamUser *> &list);
+
 	ExamScanDataList* scanData() const;
 
 	ScanState scanState() const;
@@ -269,7 +318,9 @@ public:
 	int level() const;
 	void setLevel(int newLevel);
 
-	ExamUserList*examUserList() const;
+	ExamUserList* examUserList() const;
+
+	bool hasPendingCorrection() const;
 
 signals:
 	void examListReloadRequest();
@@ -289,6 +340,7 @@ signals:
 	void gameMapChanged();
 	void missionUuidChanged();
 	void levelChanged();
+	void hasPendingCorrectionChanged();
 
 private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
@@ -298,7 +350,8 @@ private:
 	void loadUserList();
 	void loadGameMap();
 
-	QList<ExamUser *> pickUsersRandom(const int &count, QStringList userList, const QJsonObject &data);
+	void pickUsersRandom(const int &count, const QStringList &userList, const QJsonObject &data);
+	int getPicked(const QString &username, const QJsonArray &list) const;
 
 	void scanImages();
 	bool scanHasPendingQR();

@@ -82,7 +82,7 @@ TeacherExam::~TeacherExam()
 
 void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfConfig)
 {
-	LOG_CDEBUG("client") << "Generate paper exam pdf";
+	LOG_CDEBUG("client") << "Generate paper exam pdf" << pdfConfig.file;
 
 	m_worker.execInThread([this, list, pdfConfig]() {
 		QByteArray content;
@@ -94,10 +94,6 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 		layout.setUnits(QPageLayout::Millimeter);
 		layout.setPageSize(QPageSize::A4);
 		layout.setMargins(QMarginsF(0, 10, 0, 10));
-		//layout.setMinimumMargins(QMarginsF(0, 0, 0, 0));
-		//layout.setMode(QPageLayout::FullPageMode);
-
-		LOG_CERROR("client") << layout.fullRectPoints();
 
 		pdf.setCreator(QStringLiteral("Call of Suli - v")+Application::version());
 		pdf.setTitle(pdfConfig.title);
@@ -178,12 +174,14 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 		buffer.close();
 
-		QFile f("/tmp/out.pdf");
-		f.open(QIODevice::WriteOnly);
-		f.write(content);
-		f.close();
+		if (!pdfConfig.file.isEmpty()) {
+			QFile f(pdfConfig.file);
+			f.open(QIODevice::WriteOnly);
+			f.write(content);
+			f.close();
 
-		emit pdfFileGenerated("/tmp/out.pdf");
+			emit pdfFileGenerated(pdfConfig.file);
+		}
 	});
 
 }
@@ -211,6 +209,9 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 
 	if (pdfConfig.contains(QStringLiteral("fontSize")))
 		c.fontSize = pdfConfig.value(QStringLiteral("fontSize")).toInt();
+
+	if (pdfConfig.contains(QStringLiteral("file")))
+		c.file = pdfConfig.value(QStringLiteral("file")).toUrl().toLocalFile();
 
 	createPdf(list, c);
 }
@@ -393,11 +394,38 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 
 		if (it != list.constEnd()) {
 			const QJsonObject &o = it->toObject();
-			u->setExamData(o.value(QStringLiteral("data")).toArray());
+			const QJsonArray &eData = o.value(QStringLiteral("data")).toArray();
+			u->setExamData(eData);
 			u->setContentId(o.value(QStringLiteral("id")).toInt());
+
+			Grade *grade = qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
+																								   o.value(QStringLiteral("gradeid")).toInt()));
+
+			u->setGrade(grade);
+			if (const QJsonValue &v = o.value(QStringLiteral("result")); v.isNull())
+				u->setResult(-1);
+			else
+				u->setResult(v.toDouble());
+
+			if (eData.size() && eData.at(0).toObject().value(QStringLiteral("picked")).toBool())
+				u->setPicked(true);
+			else
+				u->setPicked(false);
+
+			LOG_CINFO("client") << "----" << username << o.value("answer");
+
+			u->setAnswer(o.value(QStringLiteral("answer")).toArray());
+			u->setCorrection(o.value(QStringLiteral("correction")).toArray());
+
 		} else {
 			u->setExamData({});
 			u->setContentId(0);
+			u->setGrade(nullptr);
+			u->setResult(-1);
+			u->setPicked(false);
+			u->setAnswer({});
+			u->setCorrection({});
+			u->setPendingCorrection({});
 		}
 	}
 }
@@ -454,46 +482,16 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
 
 void TeacherExam::pickUsers(QStringList userList, int count)
 {
-	// Get virtual exams data
-	/*Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
-											o)
-			->done(this, [this](const QJsonObject&) {
-		if (m_exam && m_exam->mode() == Exam::ExamVirtual) {
-			finish();
-		} else {
-			reloadExamContent();
-		}
-	});*/
+	Client *client = Application::instance()->client();
 
-	QList<ExamUser*> list = pickUsersRandom(count, userList, {});			// TODO: from server
 
-	emit virtualListPicked(list);
-
-	QJsonArray data;
-
-	for (const ExamUser *u : *m_examUserList) {
-		if (!userList.contains(u->username()))
-			continue;
-
-		QJsonObject userdata;
-		QJsonObject qData;
-
-		qData[QStringLiteral("picked")] = list.contains(u);
-
-		userdata[QStringLiteral("username")] = u->username();
-		userdata[QStringLiteral("q")] = QJsonArray{qData};
-
-		data.append(userdata);
-	}
-
-	QJsonObject o;
-	o[QStringLiteral("list")] = data;
-
-	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
-											o)
-			->done(this, [this](const QJsonObject&) {
-		finish();
-		reloadExamContent();
+	client->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/content/delete").arg(m_exam->examId()), QJsonObject{
+					 { QStringLiteral("list"), QJsonArray::fromStringList(userList) }
+				 })
+			->done(this, [client, this, count, userList](const QJsonObject&) {
+		client->send(HttpConnection::ApiTeacher, QStringLiteral("group/%1/exam/result").arg(m_teacherGroup->groupid()))
+				->fail(client, [client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
+				->done(this, std::bind(&TeacherExam::pickUsersRandom, this, count, userList, std::placeholders::_1));
 	});
 }
 
@@ -577,7 +575,7 @@ void TeacherExam::inactivate()
 
 	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/inactivate").arg(m_exam->examId()))
 			->done(this, [this](const QJsonObject &){
-		Application::instance()->client()->snack(tr("Dolgozat inaktiválva"));
+		//Application::instance()->client()->snack(tr("Dolgozat inaktiválva"));
 		emit examListReloadRequest();
 		reload();
 	});
@@ -603,6 +601,90 @@ void TeacherExam::finish()
 		emit examListReloadRequest();
 		reload();
 	});
+}
+
+
+
+
+
+
+
+/**
+ * @brief TeacherExam::clearPendingCorrections
+ */
+
+void TeacherExam::clearPendingCorrections()
+{
+	{
+		const QSignalBlocker blocker(this);
+		for (ExamUser *u : *m_examUserList.get()) {
+			u->setPendingCorrection({});
+		}
+	}
+
+	emit hasPendingCorrectionChanged();
+}
+
+
+
+/**
+ * @brief TeacherExam::savePendingCorrections
+ */
+
+void TeacherExam::savePendingCorrections(const QList<ExamUser*> &list)
+{
+	LOG_CTRACE("client") << "Save pending corrections";
+
+	QList<ExamUser*> realList;
+
+	if (list.isEmpty()) {
+		for (ExamUser *u : *m_examUserList.get()) {
+			if (!u->pendingCorrection().isEmpty())
+				realList.append(u);
+		}
+	} else {
+		for (ExamUser *u : list) {
+			if (!u->pendingCorrection().isEmpty())
+				realList.append(u);
+		}
+	}
+
+	if (realList.isEmpty()) {
+		LOG_CWARNING("client") << "Missing pending correction";
+		return;
+	}
+
+	// TODO: get grading
+
+	QJsonArray a;
+
+	for (ExamUser *u : realList) {
+		QJsonObject o;
+		o[QStringLiteral("id")] = u->contentId();
+		o[QStringLiteral("result")] = u->recalculateResult();
+		//o[QStringLiteral("gradeid")] = 0;
+		o[QStringLiteral("correction")] = u->mergeCorrection();
+		a.append(o);
+	}
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/grading"), QJsonObject{
+												{ QStringLiteral("list"), a }
+											})
+			->done(this, [this, realList](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Sikeres mentés"));
+
+		for (ExamUser *u : realList) {
+			u->setPendingCorrection({});
+		}
+
+		emit examListReloadRequest();
+		reloadExamContent();
+	})
+			->fail(this, [](const QString &err){
+		Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
+	})
+			;
+
 }
 
 
@@ -850,6 +932,7 @@ void TeacherExam::loadUserList()
 	for (User *u : *m_teacherGroup->memberList()) {
 		const QJsonObject &o = u->toJsonObject();
 		ExamUser *eUser = new ExamUser;
+		connect(eUser, &ExamUser::pendingCorrectionChanged, this, &TeacherExam::hasPendingCorrectionChanged);
 		eUser->loadFromJson(o, true);
 		list.append(eUser);
 	}
@@ -917,19 +1000,72 @@ void TeacherExam::loadGameMap()
  * @param data
  */
 
-QList<ExamUser*> TeacherExam::pickUsersRandom(const int &count, QStringList userList, const QJsonObject &data)
+void TeacherExam::pickUsersRandom(const int &count, const QStringList &userList, const QJsonObject &data)
 {
-	QList<ExamUser*> list;
+	QMultiMap<int, ExamUser*> userMap;
 
-	while (!userList.isEmpty() && list.size() < count) {
-		const QString &u = userList.takeAt(QRandomGenerator::global()->bounded(userList.size()));
-		ExamUser *user = OlmLoader::find<ExamUser>(m_examUserList.get(), "username", u);
-		if (!user)
+	QJsonArray uList;
+
+	const QJsonArray &dList = data.value(QStringLiteral("list")).toArray();
+
+	for (const QString &s : userList) {
+		ExamUser *u = OlmLoader::find<ExamUser>(m_examUserList.get(), "username", s);
+		if (!u)
 			continue;
-		list.append(user);
+
+		const int count = getPicked(s, dList);
+
+		userMap.insert(count, u);
 	}
 
-	return list;
+	QList<ExamUser *> retList;
+
+	// Randomize data
+
+	const QList<int> &keyList = userMap.uniqueKeys();
+
+	for (auto it = keyList.cbegin(); it != keyList.cend(); ++it) {
+
+		QList<ExamUser*> ul = userMap.values(*it);
+
+		// A következő csoportot is hozzáadjuk (pl. aki 0 vagy 1 alkalommal már ki lett választva, (ismét) kiválasztásra kerülhet)
+
+		if (it == keyList.cbegin() && std::next(it) != keyList.cend()) {
+			++it;
+			ul.append(userMap.values(*it));
+		}
+
+		while (!ul.isEmpty() && retList.size() < count) {
+			ExamUser *u = ul.takeAt(QRandomGenerator::global()->bounded(ul.size()));
+			retList.append(u);
+			LOG_CTRACE("client") << "Pick user:" << u->username();
+		}
+	}
+
+
+	emit virtualListPicked(retList);
+
+
+	for (auto it = userMap.cbegin(); it != userMap.cend(); ++it) {
+		QJsonObject userdata;
+		QJsonObject qData;
+
+		qData[QStringLiteral("picked")] = retList.contains(*it);
+
+		userdata[QStringLiteral("username")] = (*it)->username();
+		userdata[QStringLiteral("q")] = QJsonArray{qData};
+
+		uList.append(userdata);
+	}
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
+											QJsonObject{
+												{ QStringLiteral("list"), uList }
+											})
+			->done(this, [this](const QJsonObject&) {
+		inactivate();
+		reloadExamContent();
+	});
 }
 
 
@@ -1722,6 +1858,26 @@ void TeacherExam::uploadResultReal(QVector<QPointer<ExamScanData> > list)
 
 
 
+
+
+
+bool TeacherExam::hasPendingCorrection() const
+{
+	bool has = false;
+
+	for (const ExamUser *u : *m_examUserList.get()) {
+		if (!u->pendingCorrection().isEmpty()) {
+			has = true;
+			break;
+		}
+	}
+
+	return has;
+}
+
+
+
+
 /**
  * @brief TeacherExam::examUserList
  * @return
@@ -2057,6 +2213,174 @@ ExamUser::ExamUser(QObject *parent)
 
 
 /**
+ * @brief ExamUser::getContent
+ * @return
+ */
+
+void ExamUser::getContent(const int &index, QQuickTextDocument *document,
+						  QQuickItem *checkBoxSuccess, QQuickItem *spinPoint) const
+{
+	if (!document) {
+		LOG_CERROR("client") << "Missing QQuickTextDocument";
+		return;
+	}
+
+	auto doc = document->textDocument();
+
+	doc->setDefaultStyleSheet(Utils::fileContent(QStringLiteral(":/corrector.css")).value_or(QByteArrayLiteral("")));
+
+	if (index < 0 || index >= m_examData.size())
+		return doc->setPlainText(tr("-- [Adathiba] --"));
+
+
+	const QJsonObject &data = m_examData.at(index).toObject();
+
+	TestGame::QuestionData d;
+
+	d.data = data.toVariantMap();
+	d.module = data.value(QStringLiteral("module")).toString();
+
+	if (index < m_answer.size()) {
+		d.answer = m_answer.at(index).toObject().toVariantMap();
+	}
+
+	if (index < m_pendingCorrection.size() && !m_pendingCorrection.at(index).isNull()) {
+		const QJsonObject &c = m_pendingCorrection.at(index).toObject();
+		d.success = c.value(QStringLiteral("success")).toBool();
+		d.examPoint = c.value(QStringLiteral("p")).toInt();
+	} else if (index < m_correction.size()) {
+		const QJsonObject &c = m_correction.at(index).toObject();
+		d.success = c.value(QStringLiteral("success")).toBool();
+		d.examPoint = c.value(QStringLiteral("p")).toInt();
+	}
+
+	QString html = QStringLiteral("<html><body>");
+	html += QStringLiteral("<p class=\"question\">%1. ").arg(index+1);
+	html += data.value(QStringLiteral("question")).toString();
+	html += QStringLiteral("</p>");
+	html += TestGame::questionDataResultToHtml(d);
+	html += QStringLiteral("</body></html>");
+
+	doc->setHtml(html);
+
+	if (checkBoxSuccess)
+		checkBoxSuccess->setProperty("checked", d.success);
+
+	if (spinPoint) {
+		spinPoint->setProperty("value", d.examPoint);
+		spinPoint->setProperty("maxPoint", data.value(QStringLiteral("examPoint")).toInt());
+	}
+}
+
+
+/**
+ * @brief ExamUser::isModified
+ * @param index
+ * @return
+ */
+
+bool ExamUser::isModified(const int &index) const
+{
+	if (index < 0 || index >= m_examData.size())
+		return false;
+
+	if (index >= m_pendingCorrection.size())
+		return false;
+
+	return !m_pendingCorrection.at(index).isNull();
+}
+
+
+/**
+ * @brief ExamUser::modify
+ * @param index
+ * @param success
+ * @param point
+ */
+
+void ExamUser::modify(const int &index, const bool &success, const int &point)
+{
+	if (index < 0 || index >= m_examData.size()) {
+		LOG_CERROR("client") << "Index out of range" << index;
+		return;
+	}
+
+	if (m_pendingCorrection.isEmpty()) {
+		for (int i=0; i<m_examData.size(); ++i)
+			m_pendingCorrection.append(QJsonValue::Null);
+	}
+
+	m_pendingCorrection[index] = QJsonObject{
+	{ QStringLiteral("p"), point },
+	{ QStringLiteral("success"), success }
+};
+
+	recalculateResult();
+
+	emit pendingCorrectionChanged();
+}
+
+
+/**
+ * @brief ExamUser::recalculateResult
+ */
+
+qreal ExamUser::recalculateResult()
+{
+	qreal p = 0;
+	qreal max = 0;
+
+	for (int i=0; i<m_examData.size(); ++i) {
+		const QJsonObject &o = m_examData.at(i).toObject();
+		max += o.value(QStringLiteral("examPoint")).toInt();
+
+		if (i<m_pendingCorrection.size()) {
+			if (const QJsonValue &v = m_pendingCorrection.at(i); !v.isNull()) {
+				p += v.toObject().value(QStringLiteral("p")).toInt();
+				continue;
+			}
+		}
+
+		if (i<m_correction.size())
+			p += m_correction.at(i).toObject().value(QStringLiteral("p")).toInt();
+	}
+
+	qreal result = max > 0 ? p/max : 0;
+
+	setResult(result);
+
+	return result;
+}
+
+
+/**
+ * @brief ExamUser::mergeCorrection
+ * @return
+ */
+
+QJsonArray ExamUser::mergeCorrection() const
+{
+	QJsonArray list;
+
+	for (int i=0; i<m_examData.size(); ++i) {
+		if (i<m_pendingCorrection.size()) {
+			if (const QJsonValue &v = m_pendingCorrection.at(i); !v.isNull()) {
+				list.append(v);
+				continue;
+			}
+		}
+
+		if (i<m_correction.size())
+			list.append(m_correction.at(i));
+		else
+			list.append(QJsonValue::Null);
+	}
+
+	return list;
+}
+
+
+/**
  * @brief ExamUser::examData
  * @return
  */
@@ -2085,4 +2409,114 @@ void ExamUser::setContentId(int newContentId)
 		return;
 	m_contentId = newContentId;
 	emit contentIdChanged();
+}
+
+Grade *ExamUser::grade() const
+{
+	return m_grade;
+}
+
+void ExamUser::setGrade(Grade *newGrade)
+{
+	if (m_grade == newGrade)
+		return;
+	m_grade = newGrade;
+	emit gradeChanged();
+}
+
+qreal ExamUser::result() const
+{
+	return m_result;
+}
+
+void ExamUser::setResult(qreal newResult)
+{
+	if (qFuzzyCompare(m_result, newResult))
+		return;
+	m_result = newResult;
+	emit resultChanged();
+}
+
+bool ExamUser::picked() const
+{
+	return m_picked;
+}
+
+void ExamUser::setPicked(bool newPicked)
+{
+	if (m_picked == newPicked)
+		return;
+	m_picked = newPicked;
+	emit pickedChanged();
+}
+
+QJsonArray ExamUser::answer() const
+{
+	return m_answer;
+}
+
+void ExamUser::setAnswer(const QJsonArray &newAnswer)
+{
+	if (m_answer == newAnswer)
+		return;
+	m_answer = newAnswer;
+	emit answerChanged();
+}
+
+QJsonArray ExamUser::correction() const
+{
+	return m_correction;
+}
+
+void ExamUser::setCorrection(const QJsonArray &newCorrection)
+{
+	if (m_correction == newCorrection)
+		return;
+	m_correction = newCorrection;
+	emit correctionChanged();
+}
+
+QJsonArray ExamUser::pendingCorrection() const
+{
+	return m_pendingCorrection;
+}
+
+void ExamUser::setPendingCorrection(const QJsonArray &newPendingCorrection)
+{
+	if (m_pendingCorrection == newPendingCorrection)
+		return;
+	m_pendingCorrection = newPendingCorrection;
+	emit pendingCorrectionChanged();
+}
+
+
+/**
+ * @brief TeacherExam::getPicked
+ * @param username
+ * @param list
+ * @return
+ */
+
+int TeacherExam::getPicked(const QString &username, const QJsonArray &list) const
+{
+	int count = 0;
+
+	for (const QJsonValue &v : std::as_const(list)) {
+		const QJsonObject &obj = v.toObject();
+
+		const int mode = obj.value(QStringLiteral("mode")).toInt();
+		const QString &name = obj.value(QStringLiteral("username")).toString();
+
+		if (mode != Exam::ExamVirtual || name != username)
+			continue;
+
+		const QJsonArray &examData = obj.value(QStringLiteral("data")).toArray();
+
+		if (!examData.isEmpty()) {
+			if (const QJsonObject &o = examData.at(0).toObject(); o.value(QStringLiteral("picked")).toBool())
+				++count;
+		}
+	}
+
+	return count;
 }

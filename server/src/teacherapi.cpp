@@ -669,12 +669,25 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		return examAnswer(*credential, id, *jsonObject);
 	});
 
-	server->route(path+"exam/grading/", QHttpServerRequest::Method::Post,
-				  [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"exam/grading", QHttpServerRequest::Method::Post,
+				  [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return examGrading(*credential, id, *jsonObject);
+		return examGrading(*credential, jsonObject->value(QStringLiteral("list")).toArray());
 	});
+
+	server->route(path+"exam/result/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examResult(*credential, id, -1);
+	});
+
+	server->route(path+"group/<arg>/exam/result", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &groupid, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examResult(*credential, -1, groupid);
+	});
+
 
 	server->route(path+"exam/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -700,12 +713,7 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		return examUpdate(*credential, id, *jsonObject);
 	});
 
-	server->route(path+"exam/<arg>/result/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
-				  [this](const int &id, const QString &username, const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		JSON_OBJECT_GET();
-		return campaignResultUser(*credential, id, username, jsonObject.value_or(QJsonObject{}));
-	});*/
+	*/
 
 
 
@@ -2896,6 +2904,60 @@ QHttpServerResponse TeacherAPI::examDelete(const Credential &credential, const Q
 
 
 
+/**
+ * @brief TeacherAPI::examResult
+ * @param credential
+ * @param id
+ * @param groupId
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examResult(const Credential &credential, const int &id, const int &groupId)
+{
+	LOG_CTRACE("client") << "Get exam result" << id << "in group" << groupId;
+
+	LAMBDA_THREAD_BEGIN(credential, id, groupId);
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT id "
+			   "FROM exam WHERE groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")");
+
+	if (id > 0)
+		q.addQuery(" AND id=").addValue(id);
+
+	if (groupId > 0)
+		q.addQuery(" AND groupid=").addValue(groupId);
+
+
+	LAMBDA_SQL_ASSERT(q.exec());
+
+	QVariantList idList;
+
+	while (q.sqlQuery().next()) {
+		idList.append(q.value("id").toInt());
+	}
+
+	// Ha virtuális, akkor küldi a "data" tartalmát is, egyébként üresen hagyja
+	const auto &list = QueryBuilder::q(db)
+					   .addQuery("SELECT exam.id AS examid, exam.mode AS mode, state, username, result, gradeid, "
+								 "CASE WHEN exam.mode=2 THEN data ELSE NULL END data "
+								 "FROM exam LEFT JOIN examContent ON (examContent.examid=exam.id) "
+								 "WHERE exam.id IN (").addList(idList).addQuery(")")
+					   .execToJsonArray({
+											{ QStringLiteral("data"), [](const QVariant &v) {
+												  return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+											  } }
+										});
+
+	LAMBDA_SQL_ASSERT(list);
+
+	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
 
 /**
  * @brief TeacherAPI::examCreateContent
@@ -3161,59 +3223,63 @@ QHttpServerResponse TeacherAPI::examAnswer(const Credential &credential, const i
  * @return
  */
 
-QHttpServerResponse TeacherAPI::examGrading(const Credential &credential, const int &id, const QJsonObject &json)
+QHttpServerResponse TeacherAPI::examGrading(const Credential &credential, const QJsonArray &list)
 {
-	LOG_CTRACE("client") << "Exam grading" << id;
+	LOG_CTRACE("client") << "Exam grading";
 
-	if (id <= 0)
-		return responseError("invalid content id");
 
-	LAMBDA_THREAD_BEGIN(credential, id, json);
+	LAMBDA_THREAD_BEGIN(credential, list);
 
-	if (json.value(QStringLiteral("forced")).toBool()) {
-		CHECK_EXAM_CONTENT(credential.username(), id);
-	} else {
-		CHECK_EXAM_CONTENT_STATE(credential.username(), id, "state=3");
+	for (const QJsonValue &v : std::as_const(list)) {
+		const QJsonObject &json = v.toObject();
+		const int &id = json.value(QStringLiteral("id")).toInt();
+
+		LAMBDA_SQL_ERROR("invalid content id", id > 0);
+
+		if (json.value(QStringLiteral("forced")).toBool()) {
+			CHECK_EXAM_CONTENT(credential.username(), id);
+		} else {
+			CHECK_EXAM_CONTENT_STATE(credential.username(), id, "state=3");
+		}
+
+		const double &result = json.value(QStringLiteral("result")).toDouble(-1);
+		const int &gradeid = json.value(QStringLiteral("gradeid")).toInt(-1);
+
+		db.transaction();
+
+		QueryBuilder q(db);
+		q.addQuery("UPDATE examContent SET ")
+				.setCombinedPlaceholder();
+
+		if (result < 0)
+			q.addNullField<double>("result");
+		else
+			q.addField("result", result);
+
+		if (gradeid < 0)
+			q.addNullField<int>("gradeid");
+		else
+			q.addField("gradeid", gradeid);
+
+		q.addQuery(" WHERE id=").addValue(id);
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(q.exec());
+
+		if (const QString &key = QStringLiteral("correction"); json.contains(key)) {
+			const QString &correction = QJsonDocument(json.value(key).toArray()).toJson(QJsonDocument::Compact);
+			LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+									   .addQuery("UPDATE examAnswer SET ")
+									   .setCombinedPlaceholder()
+									   .addField("correction", correction)
+									   .addQuery(" WHERE contentid=").addValue(id)
+									   .exec());
+		}
+
+		db.commit();
+
 	}
 
-	const double &result = json.value(QStringLiteral("result")).toDouble(-1);
-	const int &gradeid = json.value(QStringLiteral("gradeid")).toInt(-1);
-
-	db.transaction();
-
-	QueryBuilder q(db);
-	q.addQuery("UPDATE examContent SET ")
-			.setCombinedPlaceholder();
-
-	if (result < 0)
-		q.addNullField<double>("result");
-	else
-		q.addField("result", result);
-
-	if (gradeid < 0)
-		q.addNullField<int>("gradeid");
-	else
-		q.addField("gradeid", gradeid);
-
-	q.addQuery(" WHERE id=").addValue(id);
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(q.exec());
-
-	if (const QString &key = QStringLiteral("correction"); json.contains(key)) {
-		const QString &correction = QJsonDocument(json.value(key).toArray()).toJson(QJsonDocument::Compact);
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-								   .addQuery("UPDATE examAnswer SET")
-								   .setCombinedPlaceholder()
-								   .addField("correction", correction)
-								   .addQuery(" WHERE contentid=").addValue(id)
-								   .exec());
-	}
-
-	db.commit();
-
-	response = responseOk({
-							  { QStringLiteral("id"), id }
-						  });
+	response = responseOk();
 
 	LAMBDA_THREAD_END;
 }
@@ -3234,12 +3300,12 @@ QHttpServerResponse TeacherAPI::examActivate(const Credential &credential, const
 	LAMBDA_THREAD_BEGIN(credential, list);
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
-			.addQuery("UPDATE exam SET state=2, timestamp=COALESCE(timestamp, datetime('now')) WHERE state<2 AND id IN "
-					  "(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
-					  "WHERE owner=").addValue(credential.username())
-			.addQuery(" AND exam.id IN (").addList(list.toVariantList())
-			.addQuery("))")
-			.exec());
+					  .addQuery("UPDATE exam SET state=2, timestamp=COALESCE(timestamp, datetime('now')) WHERE state<2 AND id IN "
+								"(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
+								"WHERE owner=").addValue(credential.username())
+					  .addQuery(" AND exam.id IN (").addList(list.toVariantList())
+					  .addQuery("))")
+					  .exec());
 
 	response = responseOk();
 
@@ -3262,12 +3328,12 @@ QHttpServerResponse TeacherAPI::examInactivate(const Credential &credential, con
 	LAMBDA_THREAD_BEGIN(credential, list);
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
-			.addQuery("UPDATE exam SET state=3 WHERE state=2 AND id IN "
-					  "(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
-					  "WHERE owner=").addValue(credential.username())
-			.addQuery(" AND exam.id IN (").addList(list.toVariantList())
-			.addQuery("))")
-			.exec());
+					  .addQuery("UPDATE exam SET state=3, timestamp=COALESCE(timestamp, datetime('now')) WHERE state<3 AND id IN "
+								"(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
+								"WHERE owner=").addValue(credential.username())
+					  .addQuery(" AND exam.id IN (").addList(list.toVariantList())
+					  .addQuery("))")
+					  .exec());
 
 	response = responseOk();
 
@@ -3290,12 +3356,12 @@ QHttpServerResponse TeacherAPI::examFinish(const Credential &credential, const Q
 	LAMBDA_THREAD_BEGIN(credential, list);
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
-			.addQuery("UPDATE exam SET state=4, timestamp=COALESCE(timestamp, datetime('now')) WHERE state<4 AND id IN "
-					  "(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
-					  "WHERE owner=").addValue(credential.username())
-			.addQuery(" AND exam.id IN (").addList(list.toVariantList())
-			.addQuery("))")
-			.exec());
+					  .addQuery("UPDATE exam SET state=4, timestamp=COALESCE(timestamp, datetime('now')) WHERE state<4 AND id IN "
+								"(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
+								"WHERE owner=").addValue(credential.username())
+					  .addQuery(" AND exam.id IN (").addList(list.toVariantList())
+					  .addQuery("))")
+					  .exec());
 
 	response = responseOk();
 

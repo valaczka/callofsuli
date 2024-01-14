@@ -27,10 +27,6 @@
 #include "qrimage.h"
 #include "Logger.h"
 
-#define ENABLE_ENCODER_GENERIC
-
-#include <QZXing.h>
-
 /**
  * @brief QrImage::QrImage
  */
@@ -58,9 +54,11 @@ QImage QrImage::requestImage(const QString &id, QSize *size, const QSize &reques
 
 	QString t = QString::fromUtf8(QByteArray::fromBase64(id.toLocal8Bit()));
 
+	LOG_CERROR("client") << "Missin implementation in" << __PRETTY_FUNCTION__;
+
 	LOG_CTRACE("client") << "Encode QR:" << t;
 
-	QImage result = QZXing::encodeData(t, QZXing::EncoderFormat_QR_CODE, s, QZXing::EncodeErrorCorrectionLevel_L, true, false);
+	QImage result; //= QZXing::encodeData(t, QZXing::EncoderFormat_QR_CODE, s, QZXing::EncodeErrorCorrectionLevel_L, true, false);
 
 	*size = result.size();
 

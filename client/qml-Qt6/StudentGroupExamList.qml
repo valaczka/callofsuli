@@ -100,7 +100,7 @@ Item
 				sorters: [
 					RoleSorter {
 						roleName: "timestamp"
-						sortOrder: Qt.DescendingOrder
+						sortOrder: Qt.AscendingOrder
 						priority: 1
 					}
 				]

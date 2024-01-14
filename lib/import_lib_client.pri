@@ -41,12 +41,7 @@ else: LIBS += -ltiled
 !wasm: LIBS += -lz
 
 
-# QZXing
-
-INCLUDEPATH += $$PWD/qzxing/src
-
-android: LIBS += -lQZXing_$${QT_ARCH}
-else: LIBS += -lQZXing
+# SCodes
 
 INCLUDEPATH += \
 	$$PWD/SCodes/src/ \

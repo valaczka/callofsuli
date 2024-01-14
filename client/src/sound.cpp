@@ -192,8 +192,10 @@ void Sound::stopSound(const QString &source, const ChannelType &channel)
 
 		if (channel == MusicChannel) {
 			ma_sound_stop_with_fade_in_milliseconds(ptr->sound(), 750);
-		} else
+		} else {
 			ma_sound_stop(ptr->sound());
+			ma_sound_seek_to_pcm_frame(ptr->sound(), 0);
+		}
 	}
 }
 

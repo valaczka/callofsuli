@@ -9,21 +9,6 @@ import "JScript.js" as JS
 QPage {
 	id: control
 
-	stackPopFunction: function() {
-		var item = swipeView.currentItem
-
-		if (item && item.stackPopFunction !== undefined) {
-			return item.stackPopFunction()
-		}
-
-		if (swipeView.currentIndex > 0) {
-			swipeView.setCurrentIndex(0)
-			return false
-		}
-
-		return true
-	}
-
 	title: group ? group.fullName : qsTr("Csoport")
 	subtitle: Client.server ? Client.server.serverName : ""
 
@@ -34,82 +19,85 @@ QPage {
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
 		icon.source: Qaterial.Icons.dotsVertical
-		onClicked: swipeView.currentIndex == 0 ? menuCampaign.open() : menuResult.open()
+		onClicked: _menu.open()
 
 		QMenu {
-			id: menuCampaign
+			id: _menu
 
 			QMenuItem { action: _actionGroupRename }
 			QMenuItem { action: _actionGroupRemove }
-			QMenuItem { action: _result.actionUserEdit }
-			Qaterial.MenuSeparator {}
-			QMenuItem { action: _campaignList.actionCampaignAdd }
-		}
-
-		QMenu {
-			id: menuResult
-
-			QMenuItem { action: _actionResultReload }
-			QMenuItem { action: _result.actionUserEdit }
+			QMenuItem { action: _actionUserEdit }
 		}
 	}
 
 
-	Qaterial.SwipeView
-	{
-		id: swipeView
+	QScrollable {
 		anchors.fill: parent
-		currentIndex: tabBar.currentIndex
+		contentCentered: true
 
-		TeacherGroupCampaignList {
-			id: _campaignList
-			group: control.group
-			mapHandler: control.mapHandler
+		Qaterial.LabelHeadline3 {
+			anchors.horizontalCenter: parent.horizontalCenter
+			topPadding: 30
+			width: Math.min(parent.width-100, Qaterial.Style.maxContainerSize)
+			horizontalAlignment: Qt.AlignHCenter
+			text: group ? group.fullName : ""
+			wrapMode: Text.Wrap
+			maximumLineCount: 2
+			elide: Text.ElideRight
 		}
 
-		TeacherGroupExamList {
-			id: _examList
-			group: control.group
-			mapHandler: control.mapHandler
-		}
+		QDashboardGrid {
+			anchors.horizontalCenter: parent.horizontalCenter
 
-		TeacherGroupResult {
-			id: _result
-			group: control.group
-			mapHandler: control.mapHandler
-		}
+			QDashboardButton {
+				text: qsTr("Kihívások")
+				icon.source: Qaterial.Icons.trophyVariantOutline
+				onClicked: {
+					Client.stackPushPage("PageTeacherGroupCampaign.qml", {
+											 group: group,
+											 mapHandler: mapHandler
+										 })
+				}
+			}
 
-		TeacherGroupLog {
-			id: _log
-			group: control.group
-			mapHandler: control.mapHandler
+			QDashboardButton {
+				text: qsTr("Dolgozatok")
+				icon.source: Qaterial.Icons.paperCutVertical
+				onClicked: {
+					Client.stackPushPage("PageTeacherGroupExam.qml", {
+											 group: group,
+											 mapHandler: mapHandler
+										 })
+				}
+			}
+
+			QDashboardButton {
+				action: _actionGroupRename
+				highlighted: false
+				outlined: true
+				flat: true
+				textColor: Qaterial.Colors.green400
+			}
+
+			QDashboardButton {
+				action: _actionUserEdit
+				highlighted: false
+				outlined: true
+				flat: true
+				textColor: Qaterial.Colors.green400
+			}
+
+			QDashboardButton {
+				action: _actionGroupRemove
+				highlighted: false
+				outlined: true
+				flat: true
+				textColor: Qaterial.Colors.red400
+			}
 		}
 	}
 
-	QRefreshProgressBar {
-		anchors.top: parent.top
-		visible: Client.httpConnection.pending
-	}
 
-	footer: QTabBar {
-		id: tabBar
-		currentIndex: swipeView.currentIndex
-
-		Component.onCompleted: {
-			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.noteCheck, color: "red" })
-			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
-			model.append({ text: qsTr("Log"), source: Qaterial.Icons.paperRoll, color: "yellow" })
-		}
-	}
-
-
-	Action {
-		id: _actionResultReload
-		text: qsTr("Frissítés")
-		icon.source: Qaterial.Icons.refresh
-		onTriggered: _result.resultModel.reloadContent()
-	}
 
 	Action {
 		id: _actionGroupRemove
@@ -162,6 +150,18 @@ QPage {
 		}
 	}
 
+
+	Action {
+		id: _actionUserEdit
+		icon.source: Qaterial.Icons.accountEdit
+		text: qsTr("Résztvevők")
+		onTriggered: {
+			Client.stackPushPage("PageTeacherGroupEdit.qml", {
+									 group: group
+								 })
+
+		}
+	}
 
 	Component.onCompleted: group.reload()
 }

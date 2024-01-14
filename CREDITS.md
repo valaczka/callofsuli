@@ -47,3 +47,4 @@
 - Male human pain/death sounds by Michel Baradari (https://opengameart.org/content/11-male-human-paindeath-sounds)
 - Voiceover Pack: Fighter by Kenney Vleugels - Kenney.nl (https://www.kenney.nl)
 - Won! by spuispuin (https://opengameart.org/content/won-orchestral-winning-jingle)
+- TheRandomSoundByte2637 - (https://freesound.org/people/TheRandomSoundByte2637)

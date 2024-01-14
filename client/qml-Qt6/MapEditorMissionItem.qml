@@ -260,8 +260,8 @@ QPage {
 					if (_isPractice.checked)
 						c |= GameMap.Practice
 
-					if (_isMultiPlayer.checked)
-						c |= GameMap.MultiPlayer
+					/*if (_isMultiPlayer.checked)
+						c |= GameMap.MultiPlayer*/
 				}
 
 				editor.missionModify(mission, function() {
