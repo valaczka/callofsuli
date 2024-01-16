@@ -90,8 +90,8 @@ public:
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
-	Q_INVOKABLE void resultToTextDocument(QTextDocument *document) const;
-	Q_INVOKABLE void resultToQuickTextDocument(QQuickTextDocument *document) const;
+	Q_INVOKABLE void resultToTextDocument(QTextDocument *document) const;	// TODO: add BaseMap*
+	Q_INVOKABLE void resultToQuickTextDocument(QQuickTextDocument *document) const;	// TODO: add BaseMap*
 
 	int examId() const;
 	void setExamId(int newExamId);

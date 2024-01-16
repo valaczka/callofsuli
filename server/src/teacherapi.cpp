@@ -638,6 +638,19 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		return examFinish(*credential, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
+	server->route(path+"exam/<arg>/reclaim", QHttpServerRequest::Method::Post,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return examReclaim(*credential, {id});
+	});
+
+	server->route(path+"exam/reclaim", QHttpServerRequest::Method::Post,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return examReclaim(*credential, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
 
 
 	server->route(path+"exam/<arg>/content/delete", QHttpServerRequest::Method::Post,
@@ -3185,6 +3198,8 @@ QHttpServerResponse TeacherAPI::examAnswer(const Credential &credential, const i
 
 	const QString &answer = QJsonDocument(json.value(QStringLiteral("answer")).toArray()).toJson(QJsonDocument::Compact);
 	const QString &correction = QJsonDocument(json.value(QStringLiteral("correction")).toArray()).toJson(QJsonDocument::Compact);
+	const double &result = json.value(QStringLiteral("result")).toDouble(-1);
+	const int &gradeid = json.value(QStringLiteral("gradeid")).toInt(-1);
 
 	db.transaction();
 
@@ -3199,10 +3214,24 @@ QHttpServerResponse TeacherAPI::examAnswer(const Credential &credential, const i
 							   .addField("contentid", id)
 							   .exec());
 
-	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-							   .addQuery("UPDATE examContent SET result=NULL, gradeid=NULL WHERE id=")
-							   .addValue(id)
-							   .exec());
+
+	QueryBuilder q(db);
+	q.addQuery("UPDATE examContent SET ")
+			.setCombinedPlaceholder();
+
+	if (result < 0)
+		q.addNullField<double>("result");
+	else
+		q.addField("result", result);
+
+	if (gradeid < 0)
+		q.addNullField<int>("gradeid");
+	else
+		q.addField("gradeid", gradeid);
+
+	q.addQuery(" WHERE id=").addValue(id);
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(q.exec());
 
 	db.commit();
 
@@ -3335,6 +3364,15 @@ QHttpServerResponse TeacherAPI::examInactivate(const Credential &credential, con
 					  .addQuery("))")
 					  .exec());
 
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+					  .addQuery("INSERT INTO examAnswer (contentid, answer, correction) "
+								"SELECT examContent.id, '[]', '[]' FROM examContent "
+								"LEFT JOIN examAnswer ON (examAnswer.contentid=examContent.id) "
+								"WHERE examid IN (").addList(list.toVariantList())
+					  .addQuery(") AND examAnswer.id IS NULL")
+					  .exec());
+
 	response = responseOk();
 
 	LAMBDA_THREAD_END;
@@ -3357,6 +3395,34 @@ QHttpServerResponse TeacherAPI::examFinish(const Credential &credential, const Q
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
 					  .addQuery("UPDATE exam SET state=4, timestamp=COALESCE(timestamp, datetime('now')) WHERE state<4 AND id IN "
+								"(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
+								"WHERE owner=").addValue(credential.username())
+					  .addQuery(" AND exam.id IN (").addList(list.toVariantList())
+					  .addQuery("))")
+					  .exec());
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief TeacherAPI::examReclaim
+ * @param credential
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::examReclaim(const Credential &credential, const QJsonArray &list)
+{
+	LOG_CTRACE("client") << "Exam reclaimg" << list;
+
+	LAMBDA_THREAD_BEGIN(credential, list);
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+					  .addQuery("UPDATE exam SET state=3 WHERE state=4 AND id IN "
 								"(SELECT exam.id FROM exam LEFT JOIN studentgroup ON (studentgroup.id=exam.groupid) "
 								"WHERE owner=").addValue(credential.username())
 					  .addQuery(" AND exam.id IN (").addList(list.toVariantList())

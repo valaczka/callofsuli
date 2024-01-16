@@ -27,6 +27,7 @@
 #ifndef GRADE_H
 #define GRADE_H
 
+#include "qjsonarray.h"
 #include <selectableobject.h>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -37,6 +38,11 @@
 class Grade;
 using GradeList = qolm::QOlm<Grade>;
 Q_DECLARE_METATYPE(GradeList*)
+
+
+class GradingConfig;
+using GradingConfigList = qolm::QOlm<GradingConfig>;
+Q_DECLARE_METATYPE(GradingConfigList*)
 
 
 /**
@@ -81,7 +87,41 @@ private:
 	QString m_shortname;
 	QString m_longname;
 	int m_value = 0;
+};
 
+
+
+
+/**
+ * @brief The GradingConfig class
+ */
+
+class GradingConfig : public SelectableObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QVariantList list READ list NOTIFY listChanged FINAL)
+
+public:
+	explicit GradingConfig(QObject *parent = nullptr);
+
+	void fromJson(const QJsonArray &list, GradeList *gradeList);
+	QJsonArray toJson() const;
+
+	Q_INVOKABLE void fill(GradeList *list);
+
+	Q_INVOKABLE Grade *grade(const qreal &num) const;
+
+	Q_INVOKABLE void gradeSet(Grade *grade, const qreal &num, const bool &set);
+	Q_INVOKABLE void gradeRemove(Grade *grade);
+
+	QVariantList list() const;
+
+signals:
+	void listChanged();
+
+private:
+	QHash<Grade*, QPair<qreal, bool>> m_gradeMap;
 };
 
 #endif // GRADE_H

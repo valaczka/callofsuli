@@ -11,6 +11,10 @@ QPage {
 
 	closeQuestion: teacherExam && teacherExam.hasPendingCorrection ? qsTr("Biztosan eldobod a módosításokat?") : ""
 
+	onPageClose: function() {
+		teacherExam.clearPendingCorrections()
+	}
+
 	property TeacherExam teacherExam: null
 	property ExamUser examUser: null
 	readonly property Exam _exam: teacherExam ? teacherExam.exam : null
@@ -133,7 +137,10 @@ QPage {
 		anchors.left: _titleRow.left
 		width: _titleRow.width
 
-		text: qsTr("Eredmény: %1%").arg(_currentUser ? Math.floor(_currentUser.result*100) : 0)
+		color: Qaterial.Style.iconColor()
+
+		text: qsTr("Eredmény: %1%").arg(_currentUser ? Math.floor(_currentUser.result*100) : 0) +
+			  (_currentUser.grade ? " - %1 (%2)".arg(_currentUser.grade.longname).arg(_currentUser.grade.shortname) : "")
 
 		topPadding: 5*Qaterial.Style.pixelSizeRatio
 		bottomPadding: 10*Qaterial.Style.pixelSizeRatio

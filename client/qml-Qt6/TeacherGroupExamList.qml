@@ -92,11 +92,11 @@ Item
 				iconSource: {
 					switch (mode) {
 					case Exam.ExamOnline:
-						return Qaterial.Icons.network
+						return Qaterial.Icons.laptopWindows
 					case Exam.ExamPaper:
-						return Qaterial.Icons.note
+						return Qaterial.Icons.fileDocumentEdit
 					case Exam.ExamVirtual:
-						return Qaterial.Icons.magnet
+						return Qaterial.Icons.stickerTextOutline
 					default:
 						return Qaterial.Icons.alert
 					}
@@ -125,7 +125,7 @@ Item
 				text: description != "" ? description : qsTr("Dolgozat #%1").arg(examId)
 				secondaryText: {
 					if (timestamp.getTime()) {
-						return timestamp.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm")
+						return timestamp.toLocaleString(Qt.locale(), "yyyy. MMMM d. HH:mm")
 					}
 
 					return ""

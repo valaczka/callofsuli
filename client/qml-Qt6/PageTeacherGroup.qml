@@ -62,7 +62,7 @@ QPage {
 
 			QDashboardButton {
 				text: qsTr("Dolgozatok")
-				icon.source: Qaterial.Icons.paperCutVertical
+				icon.source: Qaterial.Icons.fileDocumentMultiple
 				onClicked: {
 					Client.stackPushPage("PageTeacherGroupExam.qml", {
 											 group: group,

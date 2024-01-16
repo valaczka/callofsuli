@@ -63,7 +63,7 @@ public:
 	}
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
-	inline QStringList storageModules() const override { return {"text"}; }
+	inline QStringList storageModules() const override { return {"text", "sequence"}; }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
@@ -75,17 +75,15 @@ public:
 
 	void registerQmlTypes() const override;
 
-	static const QRegularExpression &expressionWord();
-
 	QVariantMap generateOne(const QVariantMap &data) const;
 	QVariantList generateText(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateSequence(const QVariantMap &data, const QVariantMap &storageData) const;
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); };
 
 signals:
 
 private:
-	static const QRegularExpression m_expressionWord;
 
 };
 

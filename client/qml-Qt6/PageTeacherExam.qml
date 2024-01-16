@@ -23,9 +23,6 @@ QPage {
 	property alias exam: _teacherExam.exam
 	property alias mapHandler: _teacherExam.mapHandler
 
-	TeacherExam {
-		id: _teacherExam
-	}
 
 
 	title: exam ? (exam.description != "" ? exam.description : qsTr("Dolgozat #%1").arg(exam.examId)) : ""
@@ -48,6 +45,29 @@ QPage {
 		}*/
 	}
 
+
+	TeacherExam {
+		id: _teacherExam
+	}
+
+	SortFilterProxyModel {
+		id: _model
+		sourceModel: _teacherExam.examUserList
+
+		sorters: [
+			StringSorter {
+				roleName: "fullName"
+			}
+		]
+
+		proxyRoles: [
+			ExpressionRole {
+				name: "fullNamePending"
+				expression: model.fullName + (model.pendingCorrection.length ? qsTr("*") : "")
+			}
+		]
+	}
+
 	QScrollable {
 		anchors.fill: parent
 
@@ -59,7 +79,7 @@ QPage {
 
 			header: QExpandableHeader {
 				text: qsTr("Alapadatok")
-				icon: Qaterial.Icons.cog
+				icon: Qaterial.Icons.tune
 				expandable: _expDetails
 			}
 
@@ -226,14 +246,14 @@ QPage {
 			expanded: true
 
 			header: QExpandableHeader {
-				text: qsTr("Létrehozás")
+				text: qsTr("Irányítás")
 				icon: Qaterial.Icons.cog
 				expandable: _expCreate
 			}
 
 			delegate: Column {
 				width: _expCreate.width
-				bottomPadding: 30 * Qaterial.Style.pixelSizeRatio
+				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 
 				Qaterial.LabelHeadline5 {
 					id: _tfMission
@@ -315,12 +335,12 @@ QPage {
 						id: _btnGenerate
 						action: _actionGenerate
 						visible: _teacherExam.missionUuid != "" && _teacherExam.level > 0 &&
-								 exam && exam.mode != Exam.ExamVirtual
+								 exam && exam.mode != Exam.ExamVirtual && exam.state < Exam.Active
 					}
 
 					QDashboardButton {
 						action: _actionGenerateVirtual
-						visible: exam && exam.mode == Exam.ExamVirtual
+						visible: exam && exam.mode == Exam.ExamVirtual && exam.state < Exam.Active
 					}
 
 					QDashboardButton {
@@ -335,7 +355,7 @@ QPage {
 
 					QDashboardButton {
 						action: _actionStart
-						visible: exam && exam.mode != Exam.ExamVirtual
+						visible: exam && exam.mode != Exam.ExamVirtual && exam.state < Exam.Active
 						bgColor: Qaterial.Colors.green600
 					}
 
@@ -347,17 +367,120 @@ QPage {
 					QDashboardButton {
 						action: _actionGrading
 						visible: exam && exam.mode != Exam.ExamVirtual && exam.state == Exam.Active
-						bgColor: Qaterial.Colors.amber600
+						bgColor: Qaterial.Colors.orange700
 					}
 
 					QDashboardButton {
 						action: _actionFinish
+						bgColor: Qaterial.Colors.red600
+						visible: enabled
+					}
+
+					QDashboardButton {
+						action: _actionReclaim
+						visible: enabled
 						bgColor: Qaterial.Colors.red600
 					}
 
 				}
 			}
 		}
+
+
+		Qaterial.Expandable {
+			id: _expGrading
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+			expanded: true
+
+			visible: exam && exam.mode != Exam.ExamVirtual && exam.state == Exam.Grading
+
+			header: QExpandableHeader {
+				text: qsTr("Értékelés")
+				icon: Qaterial.Icons.numeric5CircleOutline
+				expandable: _expGrading
+			}
+
+			delegate: Row {
+				width: _expGrading.width
+				bottomPadding: 30 * Qaterial.Style.pixelSizeRatio
+
+				spacing: 10 * Qaterial.Style.pixelSizeRatio
+
+				Column {
+					width: parent.width-parent.spacing-_btnGradeRow.width
+					anchors.verticalCenter: parent.verticalCenter
+
+					Repeater {
+						model: _teacherExam && _teacherExam.gradingConfig ? _teacherExam.gradingConfig.list : null
+
+						delegate: Row {
+							readonly property Grade _grade: modelData.grade
+
+							Qaterial.CheckButton {
+								id: _chGrade
+								width: 200 * Qaterial.Style.pixelSizeRatio
+								anchors.verticalCenter: parent.verticalCenter
+								font: Qaterial.Style.textTheme.body2
+								text: _grade ? "%1 (%2)".arg(_grade.longname).arg(_grade.shortname) : ""
+								checked: modelData.set
+								elide: Text.ElideRight
+								onToggled: _teacherExam.gradingConfig.gradeSet(_grade, _spinGrade.value/100.0, checked)
+							}
+
+							QSpinBox {
+								id: _spinGrade
+								anchors.verticalCenter: parent.verticalCenter
+
+								enabled: _chGrade.checked
+
+								from: 0
+								to: 100
+								stepSize: 5
+								editable: true
+
+								font: Qaterial.Style.textTheme.body2
+
+								value: modelData.value*100
+
+								/*textFromValue: function(value, locale) { return value+"%" }
+
+								valueFromText: function(text, locale) {
+									console.info("%%%%%", text, "?")
+									console.info("%%%%%", text, text.replace("%", ""))
+									return Number.fromLocaleString(locale, text.replace("%", ""))
+								}*/
+
+								onValueModified: _teacherExam.gradingConfig.gradeSet(_grade, value/100.0, _chGrade.checked)
+							}
+						}
+
+					}
+				}
+
+				Row {
+					id: _btnGradeRow
+					anchors.verticalCenter: parent.verticalCenter
+					QDashboardButton {
+						action: _actionGrade
+						anchors.verticalCenter: parent.verticalCenter
+					}
+
+					QDashboardButton {
+						action: _actionCancelAll
+						anchors.verticalCenter: parent.verticalCenter
+					}
+
+					QDashboardButton {
+						action: _actionSaveAll
+						anchors.verticalCenter: parent.verticalCenter
+						bgColor: Qaterial.Colors.green600
+					}
+				}
+			}
+		}
+
+
 
 		QExpandableHeader {
 			width: _view.width
@@ -381,49 +504,60 @@ QPage {
 			boundsMovement: Flickable.StopAtBounds
 			boundsBehavior: Flickable.StopAtBounds
 
-			model: SortFilterProxyModel {
-				sourceModel: _teacherExam.examUserList
-
-				sorters: [
-					StringSorter {
-						roleName: "fullName"
-					}
-				]
-			}
+			model: _model
 
 			delegate: QLoaderItemDelegate {
 				property ExamUser examUser: model.qtObject
 				selectableObject: examUser
 
-				highlighted: selected
+				highlighted: _view.selectEnabled ? selected : ListView.isCurrentItem
 				iconSource: examData.length ?
-								Qaterial.Icons.paperCutVertical :
+								Qaterial.Icons.accountCheck :
 								Qaterial.Icons.accountOffOutline
 
 				iconColorBase: examData.length ?
-								   Qaterial.Colors.green400 :
+								   Qaterial.Style.iconColor() :
 								   Qaterial.Style.disabledTextColor()
 
-				textColor: iconColorBase
+				textColor: pendingCorrection.length || pendingGrade ? Qaterial.Style.accentColor : iconColorBase
 
-				text: fullName
+				text: fullNamePending
 
 				rightSourceComponent: Row {
-					Qaterial.LabelHeadline6 {
+					Column {
 						visible: exam && exam.mode != Exam.ExamVirtual
 						anchors.verticalCenter: parent.verticalCenter
-						text: grade ? grade.shortname : ""
-						color: Qaterial.Style.accentColor
+						Qaterial.LabelHeadline5 {
+							anchors.right: parent.right
+							text: pendingGrade ? pendingGrade.shortname : grade ? grade.shortname : ""
+							color: pendingGrade ? Qaterial.Style.accentColor : Qaterial.Colors.green400
+						}
+						Qaterial.LabelHint1 {
+							anchors.right: parent.right
+							text: result>=0 ? Math.floor(result*100)+"%" : ""
+							color: Qaterial.Style.secondaryTextColor()
+						}
+					}
+
+
+					Qaterial.Icon {
+						visible: exam && exam.mode == Exam.ExamVirtual && joker
+						anchors.verticalCenter: parent.verticalCenter
+						icon: Qaterial.Icons.cards
+						color: Qaterial.Colors.amber400
+						size: 25 * Qaterial.Style.pixelSizeRatio
+						sourceSize: Qt.size(size*2, size*2)
 					}
 
 					Qaterial.Icon {
 						visible: exam && exam.mode == Exam.ExamVirtual && picked
 						anchors.verticalCenter: parent.verticalCenter
-						icon: Qaterial.Icons.checkCircle
-						color: Qaterial.Colors.green600
-						size: 30 * Qaterial.Style.pixelSizeRatio
+						icon: Qaterial.Icons.star
+						color: Qaterial.Colors.green400
+						size: 25 * Qaterial.Style.pixelSizeRatio
 						sourceSize: Qt.size(size*2, size*2)
 					}
+
 				}
 
 				onClicked: Client.stackPushPage("PageTeacherExamGrading.qml", {
@@ -441,6 +575,10 @@ QPage {
 				QMenuItem { action: _actionGenerateVirtual }
 				QMenuItem { action: _actionRemove }
 				QMenuItem { action: _actionPDF }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: _actionGrade}
+				QMenuItem { action: _actionCancelAll}
+				QMenuItem { action: _actionSaveAll}
 			}
 
 			onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
@@ -502,7 +640,7 @@ QPage {
 
 	Action {
 		id: _actionGenerate
-		icon.source: Qaterial.Icons.archiveCog
+		icon.source: Qaterial.Icons.fileCog
 
 		text: qsTr("Generálás")
 
@@ -551,7 +689,7 @@ QPage {
 
 	Action {
 		id: _actionRemove
-		icon.source: Qaterial.Icons.archiveMinus
+		icon.source: Qaterial.Icons.fileDocumentRemove
 
 		text: qsTr("Eltávolítás")
 
@@ -579,7 +717,7 @@ QPage {
 
 	Action {
 		id: _actionPDF
-		icon.source: Qaterial.Icons.filePdf
+		icon.source: Qaterial.Icons.filePdfOutline
 		enabled: exam && exam.mode == Exam.ExamPaper
 
 		property int pdfFontSize: 8
@@ -620,6 +758,7 @@ QPage {
 		id: _actionScan
 		icon.source: Qaterial.Icons.scanner
 		enabled: exam && exam.mode == Exam.ExamPaper && (exam.state == Exam.Active || exam.state == Exam.Grading)
+				 && Qt.platform.os === "linux"
 
 		text: qsTr("Beolvasás")
 
@@ -636,7 +775,7 @@ QPage {
 
 	Action {
 		id: _actionGrading
-		icon.source: Qaterial.Icons.penOff
+		icon.source: Qaterial.Icons.fileLock
 
 		text: qsTr("Dolgozatírás befejezése")
 		enabled: exam && exam.state == Exam.Active
@@ -648,9 +787,9 @@ QPage {
 							{
 								_teacherExam.inactivate()
 							},
-							text: qsTr("Biztosan befejezet a megírási lehetőséget?"),
+							text: qsTr("Biztosan befejezed a megírási lehetőséget?"),
 							title: qsTr("Dolgozatírás befejezése"),
-							iconSource: Qaterial.Icons.penOff
+							iconSource: Qaterial.Icons.fileLock
 						})
 		}
 	}
@@ -658,9 +797,9 @@ QPage {
 
 	Action {
 		id: _actionFinish
-		icon.source: Qaterial.Icons.stopCircleOutline
+		icon.source: Qaterial.Icons.accountMultipleCheck
 
-		text: qsTr("Lezárás")
+		text: qsTr("Visszaadás")
 		enabled: exam && exam.state < Exam.Finished
 
 		onTriggered: {
@@ -670,9 +809,30 @@ QPage {
 							{
 								_teacherExam.finish()
 							},
-							text: qsTr("Biztosan véglegesen lezárod a dolgozatot?"),
-							title: qsTr("Dolgozat lezárása"),
-							iconSource: Qaterial.Icons.stopCircleOutline
+							text: qsTr("Biztosan visszaadod a dolgozatot?"),
+							title: qsTr("Dolgozat visszaadása"),
+							iconSource: Qaterial.Icons.accountMultipleCheck
+						})
+		}
+	}
+
+	Action {
+		id: _actionReclaim
+		icon.source: Qaterial.Icons.fileRestoreOutline
+
+		text: qsTr("Visszavonás")
+		enabled: exam && exam.state == Exam.Finished
+
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								_teacherExam.reclaim()
+							},
+							text: qsTr("Biztosan visszakéred a dolgozatot?"),
+							title: qsTr("Dolgozat visszakérése"),
+							iconSource: Qaterial.Icons.fileRestoreOutline
 						})
 		}
 	}
@@ -709,8 +869,69 @@ QPage {
 							 },
 							 text: qsTr("Biztosan törlöd a dolgozatot?"),
 							 title: root.title,
-							 iconSource: Qaterial.Icons.closeCircle
+							 iconSource: Qaterial.Icons.delete_
 						 })
+	}
+
+
+	Action {
+		id: _actionGrade
+		icon.source: Qaterial.Icons.numeric5CircleOutline
+
+		text: qsTr("Osztályzás")
+
+		enabled: exam && exam.state == Exam.Grading && exam.mode != Exam.ExamVirtual && _teacherExam.gradingConfig &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+
+		onTriggered: {
+			let l = _view.getSelected()
+			for (let i=0; i<l.length; ++i) {
+				let u = l[i]
+				u.pendingGrade = _teacherExam.gradingConfig.grade(u.result)
+			}
+		}
+	}
+
+	Action {
+		id: _actionCancelAll
+		icon.source: Qaterial.Icons.cancel
+		text: qsTr("Függő jegyek törlése")
+		enabled: exam && exam.state == Exam.Grading && exam.mode != Exam.ExamVirtual && _teacherExam.gradingConfig &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								_teacherExam.clearPendingGrades()
+								_view.unselectAll()
+							},
+							text: qsTr("Biztosan törlöd a változtatásokat?"),
+							title: qsTr("Változtatások törlése"),
+							iconSource: Qaterial.Icons.delete_
+						})
+		}
+	}
+
+	Action {
+		id: _actionSaveAll
+		icon.source: Qaterial.Icons.checkBold
+		text: qsTr("Függő jegyek rözítése")
+		enabled: exam && exam.state == Exam.Grading && exam.mode != Exam.ExamVirtual && _teacherExam.gradingConfig &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								_teacherExam.savePendingGrades(_view.getSelected())
+								_view.unselectAll()
+							},
+							text: qsTr("Biztosan rögzíted a változtatásokat?"),
+							title: qsTr("Változtatások rögzítése"),
+							iconSource: Qaterial.Icons.checkBold
+						})
+		}
 	}
 
 

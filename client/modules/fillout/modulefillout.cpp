@@ -27,8 +27,8 @@
 #include "modulefillout.h"
 #include "fillouthighlighter.h"
 #include <QRandomGenerator>
+#include "../writer/modulewriter.h"
 
-const QRegularExpression ModuleFillout::m_expressionWord("(?<!\\\\)%((?:[^%\\\\]|\\\\.)+)%");
 
 
 ModuleFillout::ModuleFillout(QObject *parent) : QObject(parent)
@@ -155,6 +155,9 @@ QVariantList ModuleFillout::generateAll(const QVariantMap &data, ModuleInterface
 	if (storage->name() == QStringLiteral("text"))
 		return generateText(data, storageData);
 
+	if (storage->name() == QStringLiteral("sequence"))
+		return generateSequence(data, storageData);
+
 	return QVariantList();
 }
 
@@ -186,7 +189,7 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 
 	QVector<ItemStruct> items;
 
-	QRegularExpressionMatchIterator i = m_expressionWord.globalMatch(text);
+	QRegularExpressionMatchIterator i = ModuleWriter::m_expressionWord.globalMatch(text);
 
 	int _cptrd = 0;
 
@@ -216,7 +219,12 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 		items.append(ItemStruct(s.replace(QStringLiteral("\\%"), QStringLiteral("%")), false));
 
 
-	int maxQuestion = qMax(data.value(QStringLiteral("count"), -1).toInt(), qCount);
+	int maxQuestion = 0;
+
+	if (const int &c = data.value(QStringLiteral("count"), -1).toInt(); c > 0)
+		maxQuestion = qMin(c, qCount);
+	else
+		maxQuestion = qCount;
 
 	QVector<int> questionIndexList;
 
@@ -237,7 +245,12 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	}
 
 
-	int maxOptions = qMax(data.value(QStringLiteral("optionsCount"), -1).toInt(), options.size()+1);
+	int maxOptions = 0;
+
+	if (const int &c = data.value(QStringLiteral("optionsCount"), -1).toInt(); c > 0)
+		maxOptions = qMin(c, options.size()+1);
+	else
+		maxOptions = 0;
 
 	QStringList oList = data.value(QStringLiteral("options")).toStringList();
 
@@ -309,6 +322,98 @@ QVariantList ModuleFillout::generateText(const QVariantMap &data, const QVariant
 }
 
 
+
+
+/**
+ * @brief ModuleFillout::generateSequence
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleFillout::generateSequence(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	const QStringList &list = storageData.value(QStringLiteral("items")).toStringList();
+	const int &words = data.value(QStringLiteral("words")).toInt();
+	const int &maxQuestion = data.value(QStringLiteral("count"), -1).toInt();
+
+	int start = 0;
+	int end = list.size();
+
+	if (words > 0 && list.size() > words) {
+		start = QRandomGenerator::global()->bounded(list.size()-words);
+		end = start+words;
+	}
+
+	QVector<int> indices;
+
+	for (int i=start; i<end; ++i)
+		indices.append(i);
+
+
+	while (indices.size() && maxQuestion > 0 && indices.size() > maxQuestion)
+		indices.removeAt(QRandomGenerator::global()->bounded(indices.size()));
+
+
+	QVariantMap answer;
+	QVariantList wordList;
+
+	for (int i=start; i<end; ++i) {
+		if (indices.contains(i)) {
+			QString w = list.at(i).simplified();
+
+			QString wPunct, wPrep;
+
+			while (!w.isEmpty() && ModuleWriter::m_punctation.contains(w.at(0))) {
+				wPrep.append(w.at(0));
+				w.remove(0, 1);
+			}
+
+			while (!w.isEmpty() && ModuleWriter::m_punctation.contains(w.right(1))) {
+				wPunct.prepend(w.right(1));
+				w.chop(1);
+			}
+
+			if (!wPrep.isEmpty())
+				wordList.append(QVariantMap({{QStringLiteral("w"), wPrep}}));
+
+			const QString &id = QStringLiteral("%1").arg(i);
+
+			answer.insert(id, w);
+
+			wordList.append(QVariantMap({{QStringLiteral("q"), id}}));
+
+			if (!wPunct.isEmpty())
+				wordList.append(QVariantMap({{QStringLiteral("w"), wPunct}}));
+
+		} else {
+			wordList.append(QVariantMap({{QStringLiteral("w"), list.at(i).simplified()}}));
+		}
+	}
+
+
+	QStringList optList;
+
+	for (const QVariant &v : answer)
+		optList.append(v.toString());
+
+
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(optList.begin(), optList.end(), g);
+
+
+	QVariantMap ret;
+	ret[QStringLiteral("list")] = wordList;
+	ret[QStringLiteral("options")] = optList;
+	ret[QStringLiteral("answer")] = answer;
+	ret[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
+
+	return QVariantList{ret};
+
+}
+
+
 /**
  * @brief ModuleFillout::registerQmlTypes
  */
@@ -316,15 +421,4 @@ QVariantList ModuleFillout::generateText(const QVariantMap &data, const QVariant
 void ModuleFillout::registerQmlTypes() const
 {
 	qmlRegisterType<FilloutHighlighter>("CallOfSuli", 1, 0, "FilloutHighlighter");
-}
-
-
-/**
- * @brief ModuleFillout::expressionWord
- * @return
- */
-
-const QRegularExpression &ModuleFillout::expressionWord()
-{
-	return m_expressionWord;
 }

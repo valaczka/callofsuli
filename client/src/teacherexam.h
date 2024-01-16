@@ -65,6 +65,9 @@ class ExamScanData : public SelectableObject
 	Q_PROPERTY(QJsonArray correction READ correction WRITE setCorrection NOTIFY correctionChanged FINAL)
 	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged FINAL)
 	Q_PROPERTY(bool upload READ upload WRITE setUpload NOTIFY uploadChanged FINAL)
+	Q_PROPERTY(int maxPoint READ maxPoint WRITE setMaxPoint NOTIFY maxPointChanged FINAL)
+	Q_PROPERTY(int point READ point WRITE setPoint NOTIFY pointChanged FINAL)
+	Q_PROPERTY(int gradeId READ gradeId WRITE setGradeId NOTIFY gradeIdChanged FINAL)
 
 public:
 	explicit ExamScanData(QObject *parent = nullptr);
@@ -110,6 +113,15 @@ public:
 	QJsonArray correction() const;
 	void setCorrection(const QJsonArray &newCorrection);
 
+	int maxPoint() const;
+	void setMaxPoint(int newMaxPoint);
+
+	int point() const;
+	void setPoint(int newPoint);
+
+	int gradeId() const;
+	void setGradeId(int newGradeId);
+
 signals:
 	void pathChanged();
 	void stateChanged();
@@ -121,6 +133,9 @@ signals:
 	void usernameChanged();
 	void uploadChanged();
 	void correctionChanged();
+	void maxPointChanged();
+	void pointChanged();
+	void gradeIdChanged();
 
 private:
 	QString m_path;
@@ -133,12 +148,27 @@ private:
 	QJsonArray m_correction;
 	QString m_username;
 	bool m_upload = false;
+	int m_maxPoint = 0;
+	int m_point = 0;
+	int m_gradeId = -1;
 };
+
 
 using ExamScanDataList = qolm::QOlm<ExamScanData>;
 Q_DECLARE_METATYPE(ExamScanDataList*)
 
 
+
+class TeacherExam;
+
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_TeacherExam
+#define OPAQUE_PTR_TeacherExam
+  Q_DECLARE_OPAQUE_POINTER(TeacherExam*)
+#endif
+
+#endif
 
 
 /**
@@ -149,14 +179,17 @@ class ExamUser : public User
 {
 	Q_OBJECT
 
+	Q_PROPERTY(TeacherExam *teacherExam READ teacherExam WRITE setTeacherExam NOTIFY teacherExamChanged FINAL)
 	Q_PROPERTY(QJsonArray examData READ examData WRITE setExamData NOTIFY examDataChanged FINAL)
 	Q_PROPERTY(int contentId READ contentId WRITE setContentId NOTIFY contentIdChanged FINAL)
 	Q_PROPERTY(Grade *grade READ grade WRITE setGrade NOTIFY gradeChanged FINAL)
 	Q_PROPERTY(qreal result READ result WRITE setResult NOTIFY resultChanged FINAL)
 	Q_PROPERTY(bool picked READ picked WRITE setPicked NOTIFY pickedChanged FINAL)
+	Q_PROPERTY(bool joker READ joker WRITE setJoker NOTIFY jokerChanged FINAL)
 	Q_PROPERTY(QJsonArray answer READ answer WRITE setAnswer NOTIFY answerChanged FINAL)
 	Q_PROPERTY(QJsonArray correction READ correction WRITE setCorrection NOTIFY correctionChanged FINAL)
 	Q_PROPERTY(QJsonArray pendingCorrection READ pendingCorrection WRITE setPendingCorrection NOTIFY pendingCorrectionChanged FINAL)
+	Q_PROPERTY(Grade *pendingGrade READ pendingGrade WRITE setPendingGrade NOTIFY pendingGradeChanged FINAL)
 
 public:
 	ExamUser(QObject *parent = nullptr);
@@ -186,12 +219,20 @@ public:
 
 	QJsonArray answer() const;
 	void setAnswer(const QJsonArray &newAnswer);
-
 	QJsonArray correction() const;
 	void setCorrection(const QJsonArray &newCorrection);
 
 	QJsonArray pendingCorrection() const;
 	void setPendingCorrection(const QJsonArray &newPendingCorrection);
+
+	TeacherExam *teacherExam() const;
+	void setTeacherExam(TeacherExam *newTeacherExam);
+
+	Grade *pendingGrade() const;
+	void setPendingGrade(Grade *newPendingGrade);
+
+	bool joker() const;
+	void setJoker(bool newJoker);
 
 signals:
 	void examDataChanged();
@@ -202,6 +243,9 @@ signals:
 	void answerChanged();
 	void correctionChanged();
 	void pendingCorrectionChanged();
+	void teacherExamChanged();
+	void pendingGradeChanged();
+	void jokerChanged();
 
 private:
 	QJsonArray m_examData;
@@ -211,7 +255,10 @@ private:
 	int m_contentId = 0;
 	qreal m_result = -1;
 	Grade *m_grade = nullptr;
+	Grade *m_pendingGrade = nullptr;
 	bool m_picked = false;
+	bool m_joker = false;
+	TeacherExam *m_teacherExam = nullptr;
 };
 
 
@@ -240,6 +287,7 @@ class TeacherExam : public QObject
 	Q_PROPERTY(int level READ level WRITE setLevel NOTIFY levelChanged FINAL)
 	Q_PROPERTY(ExamUserList*examUserList READ examUserList CONSTANT FINAL)
 	Q_PROPERTY(bool hasPendingCorrection READ hasPendingCorrection NOTIFY hasPendingCorrectionChanged FINAL)
+	Q_PROPERTY(GradingConfig *gradingConfig READ gradingConfig WRITE setGradingConfig NOTIFY gradingConfigChanged FINAL)
 
 public:
 	explicit TeacherExam(QObject *parent = nullptr);
@@ -286,9 +334,13 @@ public:
 	Q_INVOKABLE void activate();
 	Q_INVOKABLE void inactivate();
 	Q_INVOKABLE void finish();
+	Q_INVOKABLE void reclaim();
 
 	Q_INVOKABLE void clearPendingCorrections();
 	Q_INVOKABLE void savePendingCorrections(const QList<ExamUser *> &list);
+
+	Q_INVOKABLE void clearPendingGrades();
+	Q_INVOKABLE void savePendingGrades(const QList<ExamUser *> &list);
 
 	ExamScanDataList* scanData() const;
 
@@ -322,6 +374,9 @@ public:
 
 	bool hasPendingCorrection() const;
 
+	GradingConfig *gradingConfig() const;
+	void setGradingConfig(GradingConfig *newGradingConfig);
+
 signals:
 	void examListReloadRequest();
 	void virtualListPicked(QList<ExamUser*> list);
@@ -342,6 +397,8 @@ signals:
 	void levelChanged();
 	void hasPendingCorrectionChanged();
 
+	void gradingConfigChanged();
+
 private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
 	static QString pdfSheet(const bool &addResource, const int &width, QTextDocument *document);
@@ -361,7 +418,8 @@ private:
 	void onOmrFinished(int exitCode, QProcess::ExitStatus exitStatus);
 	void processOMRdata(const QJsonArray &data);
 	void generateAnswerResult(const QJsonObject &content);
-	void getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction) const;
+	void getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction,
+				   int *ptrMax, int *ptrPoint) const;
 	void updateResultFromServer();
 	Q_INVOKABLE void uploadResultReal(QVector<QPointer<ExamScanData>> list);
 
@@ -393,6 +451,7 @@ private:
 	std::unique_ptr<GameMap> m_gameMap;
 	QString m_missionUuid;
 	int m_level = -1;
+	std::unique_ptr<GradingConfig> m_gradingConfig = nullptr;
 };
 
 

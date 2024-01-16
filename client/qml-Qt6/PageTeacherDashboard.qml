@@ -275,6 +275,7 @@ QPage {
 
 			QDashboardButton {
 				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
+						 && Qt.platform.os === "linux"
 				text: qsTr("Dolgozatok beolvasása")
 				icon.source: Qaterial.Icons.scanner
 				highlighted: false

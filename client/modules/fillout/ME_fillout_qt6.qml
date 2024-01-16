@@ -17,6 +17,7 @@ QFormColumn {
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
 	readonly property bool isText: storage && storage.module == "text"
+	readonly property bool isSequence: storage && storage.module == "sequence"
 
 	spacing: 10
 
@@ -46,7 +47,7 @@ QFormColumn {
 		width: parent.width
 		helperText: qsTr("A lehetséges pótolandó szavakat vagy kifejezéseket két százalékjel (%) közé kell tenni")
 
-		visible: !isText
+		visible: !isText && !isSequence
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -61,9 +62,23 @@ QFormColumn {
 		field: "options"
 		getData: function() { return text.split("\n") }
 
-		visible: !isText
+		visible: !isText && !isSequence
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormSpinBox {
+		id: _countWords
+		text: qsTr("Megjelenített szavak száma (0=mind):")
+		field: "words"
+
+		from: 0
+		to: 20
+		stepSize: 1
+
+		spin.editable: true
+
+		visible: isSequence
 	}
 
 	QFormSpinBox {
@@ -75,7 +90,7 @@ QFormColumn {
 
 		from: 1
 		value: 3
-		to: 99
+		to: isSequence && _countWords.value > 0 ? _countWords.value : 99
 		spin.editable: true
 
 		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
@@ -87,7 +102,7 @@ QFormColumn {
 		field: "optionsCount"
 		text: qsTr("Válaszlehetőségek száma:")
 
-		visible: !isText
+		visible: !isText && !isSequence
 
 		from: _spinCount.value
 		value: 5
@@ -97,15 +112,18 @@ QFormColumn {
 		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isText
+		visible: isText || isSequence
 	}
 
 
 
 	function loadData() {
-		let _items = isText ? [_question] : [_question, _area, _spinOptions, _spinCount]
+		let _items = isText ? [_question]
+							: isSequence ? [_question, _countWords, _spinCount]
+										 : [_question, _area, _spinOptions, _spinCount]
 
 		_countBinding.value = objective.storageCount
 
@@ -123,7 +141,9 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isText ? [_question] : [_question, _area, _spinOptions, _spinCount, _wrongAnswers]
+		let _items = isText ? [_question]
+							: isSequence ? [_question, _countWords, _spinCount]
+										 : [_question, _area, _spinOptions, _spinCount, _wrongAnswers]
 		return getItems(_items)
 	}
 }

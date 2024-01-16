@@ -368,7 +368,10 @@ QHttpServerResponse UserAPI::map(const Credential &credential)
 								 "(SELECT mapuuid FROM task WHERE campaignid IN "
 								 "(SELECT id FROM campaign WHERE groupid IN "
 								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
-					   .addQuery(")))")
+					   .addQuery("))) OR mapdb.map.uuid IN "
+								 "(SELECT mapuuid FROM examContent LEFT JOIN exam ON (examContent.examid=exam.id) "
+								 "WHERE examContent.username=").addValue(credential.username())
+					   .addQuery(")")
 					   .execToJsonArray({
 											{ QStringLiteral("cache"), [](const QVariant &v) {
 												  return QJsonDocument::fromJson(v.toString().toUtf8()).object();

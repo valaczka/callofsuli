@@ -127,6 +127,7 @@ public:
 	QHttpServerResponse examActivate(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examInactivate(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examFinish(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse examReclaim(const Credential &credential, const QJsonArray &list);
 
 	QHttpServerResponse userPeers() const;
 

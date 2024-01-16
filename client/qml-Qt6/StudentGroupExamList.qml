@@ -113,17 +113,20 @@ Item
 				width: view.width
 
 				property Exam exam: model.qtObject
+				property StudentMap _map : exam && mapHandler && exam.mapUuid != "" ?
+											   Client.findOlmObject(mapHandler.mapList, "uuid", exam.mapUuid) :
+											   null
 
 				highlighted: ListView.isCurrentItem
 
 				readonly property string iconSource: {
 					switch (mode) {
 					case Exam.ExamVirtual:
-						return Qaterial.Icons.checkBold
+						return Qaterial.Icons.stickerTextOutline
 					case Exam.ExamPaper:
-						return Qaterial.Icons.playCircle
+						return Qaterial.Icons.fileDocumentEdit
 					default:
-						return Qaterial.Icons.account
+						return Qaterial.Icons.laptopWindows
 					}
 				}
 
@@ -138,14 +141,13 @@ Item
 
 				textColor: iconColor
 
-				//secondaryTextColor: state === Exam.Finished ?
-				//						Qaterial.Style.disabledTextColor() : Qaterial.Style.colorTheme.secondaryText
+				secondaryTextColor: Qaterial.Style.secondaryTextColor()
 
 
 				text: description != "" ? description : qsTr("Dolgozat #%1").arg(examId)
 				secondaryText: {
 					if (timestamp.getTime()) {
-						return timestamp.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm")
+						return timestamp.toLocaleString(Qt.locale(), "yyyy. MMMM d. HH:mm")
 					}
 
 					return ""
@@ -162,41 +164,74 @@ Item
 					height: roundIcon ? roundSize : iconSize
 				}
 
-				rightSourceComponent: Qaterial.LabelHeadline5 {
-					visible: text != ""
-					text: {
-						if (_delegate.exam) {
-							if (_delegate.exam.resultGrade)
-								return _delegate.exam.resultGrade.shortname
 
-							if (_delegate.exam.mode == Exam.ExamVirtual) {
-								let ed = _delegate.exam.examData
-								if (ed.length && ed[0].picked === true)
-									return "X"
-							}
+				rightSourceComponent: Row {
+					Column {
+						visible: mode != Exam.ExamVirtual
+						anchors.verticalCenter: parent.verticalCenter
+						Qaterial.LabelHeadline5 {
+							anchors.right: parent.right
+							text: resultGrade ? resultGrade.shortname : ""
+							color: Qaterial.Colors.red400
 						}
-
-						return ""
+						Qaterial.LabelHint1 {
+							anchors.right: parent.right
+							text: result>=0 ? Math.floor(result*100)+"%" : ""
+							color: Qaterial.Style.primaryTextColor()
+						}
 					}
-					color: Qaterial.Style.accentColor
+
+					Qaterial.Icon {
+						visible: mode == Exam.ExamVirtual && examData.length
+								 && examData[0].joker === true
+						anchors.verticalCenter: parent.verticalCenter
+						icon: Qaterial.Icons.cards
+						color: Qaterial.Colors.amber400
+						size: 25 * Qaterial.Style.pixelSizeRatio
+						sourceSize: Qt.size(size*2, size*2)
+					}
+
+					Qaterial.Icon {
+						visible: mode == Exam.ExamVirtual && examData.length
+								 && examData[0].picked === true
+						anchors.verticalCenter: parent.verticalCenter
+						icon: Qaterial.Icons.star
+						color: Qaterial.Colors.green400
+						size: 25 * Qaterial.Style.pixelSizeRatio
+						sourceSize: Qt.size(size*2, size*2)
+					}
 				}
 
 				onClicked: {
 					if (mode == Exam.ExamVirtual)
 						return
 
+					if (!_map) {
+						Client.messageWarning(qsTr("A pálya nem található!"), qsTr("Belső hiba"))
+					} else if (!_map.downloaded) {
+						Client.snack(qsTr("Pálya letöltése..."))
+						_openAfterDownload = true
+						mapHandler.mapDownload(_map)
+						return
+					}
+
 					exam.resultToQuickTextDocument(_testResult.textDocument)
 					_scrResult.visible = true
 					_scrResult.flickable.contentY = 0
 				}
 
-				/*onClicked: Client.stackPushPage("PageStudentCampaign.qml", {
-													user: Client.server ? Client.server.user : null,
-													campaign: campaign,
-													studentMapHandler: control.mapHandler,
-													withResult: true,
-													title: group ? group.name : ""
-												})*/
+				property bool _openAfterDownload: false
+
+				Connections {
+					target: _delegate._map
+
+					function onDownloadedChanged() {
+						if (_delegate._openAfterDownload) {
+							_delegate._openAfterDownload = false
+							_delegate.clicked()
+						}
+					}
+				}
 			}
 		}
 

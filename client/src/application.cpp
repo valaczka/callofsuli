@@ -407,6 +407,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
 	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
+	qmlRegisterType<GradingConfig>("CallOfSuli", 1, 0, "GradingConfig");
 	qmlRegisterType<MapEditor>("CallOfSuli", 1, 0, "MapEditor");
 	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");

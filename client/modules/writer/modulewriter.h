@@ -86,6 +86,9 @@ private:
 	static const QRegularExpression m_expressionWord;
 	static const QString m_punctation;
 	static const QString m_placeholder;
+
+	friend class ModuleFillout;
+	friend class FilloutSyntaxHighlighter;
 };
 
 #endif // MODULEFILLOUT_H

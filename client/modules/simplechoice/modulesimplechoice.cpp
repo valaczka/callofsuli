@@ -345,6 +345,25 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 
 QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData) const
 {
+	const QString &mode = data.value(QStringLiteral("mode")).toString();
+
+	if (mode == QStringLiteral("simple"))
+		return generateBlockSimple(data, storageData);
+	else
+		return generateBlockContains(data, storageData);
+
+}
+
+
+/**
+ * @brief ModuleSimplechoice::generateBlockContains
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, const QVariantMap &storageData) const
+{
 	QVariantList ret;
 
 	const QString &question = data.value(QStringLiteral("question")).toString();
@@ -400,6 +419,70 @@ QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QV
 			ret.append(retMap);
 		}
 
+	}
+
+	return ret;
+}
+
+
+
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateBlockSimple
+ * @param data
+ * @param storageData
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData) const
+{
+	QVariantList ret;
+
+	const QString &question = data.value(QStringLiteral("question")).toString();
+
+
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
+		const QVariantMap &m = it->toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		if (question.isEmpty())
+			retMap[QStringLiteral("question")] = left;
+		else if (question.contains(QStringLiteral("%1")))
+			retMap[QStringLiteral("question")] = question.arg(left);
+		else
+			retMap[QStringLiteral("question")] = question;
+
+		const QString &correct = right.at(QRandomGenerator::global()->bounded(right.size()));
+
+		QStringList alist;
+
+		for (auto it2 = list.constBegin(); it2 != list.constEnd(); ++it2) {
+			if (it2 == it)
+				continue;
+
+			const QVariantMap &m = it2->toMap();
+			const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+			if (right.isEmpty())
+				continue;
+
+			alist.append(right.at(QRandomGenerator::global()->bounded(right.size())));
+		}
+
+		retMap.insert(generateOne(correct, alist));
+
+		ret.append(retMap);
 	}
 
 	return ret;

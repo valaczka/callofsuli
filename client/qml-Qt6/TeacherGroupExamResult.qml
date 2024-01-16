@@ -98,6 +98,8 @@ QTableView {
 	// Eredmények
 
 	delegate: Rectangle {
+		id: _delegate
+
 		color: {
 			if (isPlaceholder)
 				return "transparent"
@@ -116,13 +118,25 @@ QTableView {
 		implicitWidth: 50
 		implicitHeight: 50
 
-		Qaterial.Icon {
-			visible: !isPlaceholder && examMode === Exam.ExamVirtual && result.picked === 1
+		Row {
+			visible: !isPlaceholder && examMode === Exam.ExamVirtual
 			anchors.centerIn: parent
-			icon: Qaterial.Icons.checkCircle
-			color: Qaterial.Colors.green600
-			size: Math.min(parent.width, parent.height)*0.8
-			sourceSize: Qt.size(size*2, size*2)
+			Qaterial.Icon {
+				anchors.verticalCenter: parent.verticalCenter
+				visible: result.joker === true
+				icon: Qaterial.Icons.cards
+				color: Qaterial.Colors.amber400
+				size: Math.min(_delegate.width, _delegate.height)*0.8
+				sourceSize: Qt.size(size*2, size*2)
+			}
+			Qaterial.Icon {
+				anchors.verticalCenter: parent.verticalCenter
+				visible: result.picked === 1
+				icon: Qaterial.Icons.star
+				color: Qaterial.Colors.green400
+				size: Math.min(_delegate.width, _delegate.height)*0.8
+				sourceSize: Qt.size(size*2, size*2)
+			}
 		}
 
 		Qaterial.LabelHeadline5 {
@@ -179,18 +193,19 @@ QTableView {
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton
 
-		/*onClicked: {
+		onClicked: {
 			columnClicked(column)
 
-			let c = _model.campaignAt(column-1)
+			let c = _model.examAt(column-1)
 			if (c) {
-				Client.stackPushPage("PageTeacherCampaignResult.qml", {
+				Client.stackPushPage("PageTeacherExam.qml", {
 										 group: root.group,
-										 campaign: c,
-										 mapHandler: root.mapHandler
+										 exam: c,
+										 mapHandler: root.mapHandler,
+										 examList: root.examList
 									 })
 			}
-		}*/
+		}
 
 		Rectangle {
 			anchors.fill: parent

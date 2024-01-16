@@ -26,7 +26,7 @@
 
 #include "fillouthighlighter.h"
 #include <QRegularExpressionMatchIterator>
-#include "modulefillout.h"
+#include "../writer/modulewriter.h"
 
 
 FilloutHighlighter::FilloutHighlighter(QObject *parent)
@@ -59,7 +59,7 @@ FilloutSyntaxHighlighter::FilloutSyntaxHighlighter(FilloutHighlighter *parent)
 
 void FilloutSyntaxHighlighter::highlightBlock(const QString &text)
 {
-	QRegularExpressionMatchIterator i = ModuleFillout::expressionWord().globalMatch(text);
+	QRegularExpressionMatchIterator i = ModuleWriter::m_expressionWord.globalMatch(text);
 
 	while (i.hasNext())
 	{

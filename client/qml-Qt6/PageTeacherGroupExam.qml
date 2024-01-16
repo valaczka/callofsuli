@@ -102,7 +102,7 @@ QPage {
 		currentIndex: swipeView.currentIndex
 
 		Component.onCompleted: {
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.noteCheck, color: "red" })
+			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.fileDocumentMultiple, color: "red" })
 			model.append({ text: qsTr("Eredmények"), source: Qaterial.Icons.accountSupervisor, color: "green" })
 		}
 	}

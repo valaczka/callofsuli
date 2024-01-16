@@ -57,8 +57,13 @@ TeacherExam::TeacherExam(QObject *parent)
 	: QObject{parent}
 	, m_scanData(new ExamScanDataList)
 	, m_examUserList(new ExamUserList)
+	, m_gradingConfig(new GradingConfig)
 {
 	LOG_CTRACE("client") << "TeacherExam created" << this;
+
+	auto gList = dynamic_cast<GradeList*>(Application::instance()->client()->cache("gradeList"));
+	m_gradingConfig->fill(gList);
+	m_gradingConfig->fromJson(Utils::settingsGet(QStringLiteral("teacher/grading")).toJsonArray(), gList);
 
 	connect(this, &TeacherExam::updateFromServerRequest, this, &TeacherExam::updateResultFromServer);
 }
@@ -70,6 +75,8 @@ TeacherExam::TeacherExam(QObject *parent)
 
 TeacherExam::~TeacherExam()
 {
+	Utils::settingsSet(QStringLiteral("teacher/grading"), m_gradingConfig->toJson());
+
 	LOG_CTRACE("client") << "TeacherExam destroyed" << this;
 }
 
@@ -412,7 +419,10 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 			else
 				u->setPicked(false);
 
-			LOG_CINFO("client") << "----" << username << o.value("answer");
+			if (eData.size() && eData.at(0).toObject().value(QStringLiteral("joker")).toBool())
+				u->setJoker(true);
+			else
+				u->setJoker(false);
 
 			u->setAnswer(o.value(QStringLiteral("answer")).toArray());
 			u->setCorrection(o.value(QStringLiteral("correction")).toArray());
@@ -423,6 +433,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 			u->setGrade(nullptr);
 			u->setResult(-1);
 			u->setPicked(false);
+			u->setJoker(false);
 			u->setAnswer({});
 			u->setCorrection({});
 			u->setPendingCorrection({});
@@ -563,7 +574,6 @@ void TeacherExam::activate()
 /**
  * @brief TeacherExam::inactivate
  */
-
 void TeacherExam::inactivate()
 {
 	if (!m_exam) {
@@ -598,6 +608,29 @@ void TeacherExam::finish()
 	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/finish").arg(m_exam->examId()))
 			->done(this, [this](const QJsonObject &){
 		Application::instance()->client()->snack(tr("Dolgozat befejezve"));
+		emit examListReloadRequest();
+		reload();
+	});
+}
+
+
+
+/**
+ * @brief TeacherExam::reclaim
+ */
+
+void TeacherExam::reclaim()
+{
+	if (!m_exam) {
+		Application::instance()->messageError(tr("Nincs dolgozat kiválasztva"), tr("Belső hiba"));
+		return;
+	}
+
+	LOG_CDEBUG("client") << "Reclaim exam" << m_exam->examId();
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/reclaim").arg(m_exam->examId()))
+			->done(this, [this](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Dolgozat visszavonva"));
 		emit examListReloadRequest();
 		reload();
 	});
@@ -654,15 +687,13 @@ void TeacherExam::savePendingCorrections(const QList<ExamUser*> &list)
 		return;
 	}
 
-	// TODO: get grading
-
 	QJsonArray a;
 
 	for (ExamUser *u : realList) {
 		QJsonObject o;
 		o[QStringLiteral("id")] = u->contentId();
 		o[QStringLiteral("result")] = u->recalculateResult();
-		//o[QStringLiteral("gradeid")] = 0;
+		o[QStringLiteral("gradeid")] = u->grade() ? u->grade()->gradeid() : -1;
 		o[QStringLiteral("correction")] = u->mergeCorrection();
 		a.append(o);
 	}
@@ -685,6 +716,77 @@ void TeacherExam::savePendingCorrections(const QList<ExamUser*> &list)
 	})
 			;
 
+}
+
+
+
+/**
+ * @brief TeacherExam::clearPendingGrades
+ */
+
+void TeacherExam::clearPendingGrades()
+{
+	for (ExamUser *u : *m_examUserList.get()) {
+		u->setPendingGrade(nullptr);
+	}
+}
+
+
+/**
+ * @brief TeacherExam::savePendingGrades
+ * @param list
+ */
+
+void TeacherExam::savePendingGrades(const QList<ExamUser *> &list)
+{
+	LOG_CTRACE("client") << "Save pending grades";
+
+	QList<ExamUser*> realList;
+
+	if (list.isEmpty()) {
+		for (ExamUser *u : *m_examUserList.get()) {
+			if (u->pendingGrade())
+				realList.append(u);
+		}
+	} else {
+		for (ExamUser *u : list) {
+			if (u->pendingGrade())
+				realList.append(u);
+		}
+	}
+
+	if (realList.isEmpty()) {
+		LOG_CWARNING("client") << "Missing pending grade";
+		return;
+	}
+
+	QJsonArray a;
+
+	for (ExamUser *u : realList) {
+		QJsonObject o;
+		o[QStringLiteral("id")] = u->contentId();
+		o[QStringLiteral("result")] = u->result();
+		o[QStringLiteral("gradeid")] = u->pendingGrade()->gradeid();
+		a.append(o);
+	}
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/grading"), QJsonObject{
+												{ QStringLiteral("list"), a }
+											})
+			->done(this, [this, realList](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Sikeres mentés"));
+
+		for (ExamUser *u : realList) {
+			u->setPendingGrade(nullptr);
+		}
+
+		emit examListReloadRequest();
+		reloadExamContent();
+	})
+			->fail(this, [](const QString &err){
+		Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
+	})
+			;
 }
 
 
@@ -932,6 +1034,7 @@ void TeacherExam::loadUserList()
 	for (User *u : *m_teacherGroup->memberList()) {
 		const QJsonObject &o = u->toJsonObject();
 		ExamUser *eUser = new ExamUser;
+		eUser->setTeacherExam(this);
 		connect(eUser, &ExamUser::pendingCorrectionChanged, this, &TeacherExam::hasPendingCorrectionChanged);
 		eUser->loadFromJson(o, true);
 		list.append(eUser);
@@ -1351,7 +1454,7 @@ void TeacherExam::runOMR()
 		arguments << m_scanTempDir->filePath(QStringLiteral("output"));
 
 		m_omrProcess = std::make_unique<QProcess>();
-		m_omrProcess->setProgram("/home/valaczka/usr/python/bin/python3");
+		m_omrProcess->setProgram(Utils::settingsGet(QStringLiteral("external/python"), QStringLiteral("/usr/bin/python")).toString());
 		m_omrProcess->setArguments(arguments);
 
 		connect(m_omrProcess.get(), &QProcess::finished, this, &TeacherExam::onOmrFinished);
@@ -1511,10 +1614,21 @@ void TeacherExam::generateAnswerResult(const QJsonObject &content)
 
 					s->setUsername(username);
 					QJsonArray r, corr;
-					getResult(o.value(QStringLiteral("data")).toArray(), s->result(), &r, &corr);
+					int maxP = 0, sumP = 0;
+					getResult(o.value(QStringLiteral("data")).toArray(), s->result(), &r, &corr, &maxP, &sumP);
 					LOG_CDEBUG("client") << "Update server answer" << s->contentId() << s->username() << r;
 					s->setServerAnswer(r);
 					s->setCorrection(corr);
+					s->setMaxPoint(maxP);
+					s->setPoint(sumP);
+
+					if (m_gradingConfig) {
+						Grade *g = m_gradingConfig->grade(maxP > 0 ? (qreal)sumP/(qreal)maxP : 0);
+						s->setGradeId(g ? g->gradeid() : -1);
+					} else {
+						s->setGradeId(-1);
+					}
+
 					usedList.append(s);
 				}
 			}
@@ -1538,18 +1652,16 @@ void TeacherExam::generateAnswerResult(const QJsonObject &content)
 
 
 
-void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction) const
+void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction,
+							int *ptrMax, int *ptrPoint) const
 {
 	int num = 1;
 
-	/*static const QStringList nonNumberedModules = {
-		QStringLiteral("pair"),
-		QStringLiteral("fillout"),
-		QStringLiteral("order"),
-	};*/
-
 	QJsonArray ret;
 	QJsonArray corr;
+
+	int maxPoint = 0;
+	int sumPoint = 0;
 
 	for (const QJsonValue &v : qList) {
 		const QJsonObject &obj = v.toObject();
@@ -1557,6 +1669,8 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 		const QString &question = obj.value(QStringLiteral("question")).toString();
 		const QJsonValue &correctAnswer = obj.value(QStringLiteral("answer"));
 		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
+
+		maxPoint += point;
 
 		if (module == QStringLiteral("truefalse")) {
 			const auto &aList = letterToOptions(answer, num++);
@@ -1566,12 +1680,13 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			} else {
 				const int &a = aList.at(0);
 				const bool success = (correctAnswer.toInt(-1) == a);
+				const int p = success ? point : 0; sumPoint += p;
 
 				ret.append(QJsonObject{
 							   { QStringLiteral("index"), a },
 						   });
 				corr.append(QJsonObject{
-								{ QStringLiteral("p"), success ? point : 0 },
+								{ QStringLiteral("p"), p },
 								{ QStringLiteral("success"), success }
 							});
 			}
@@ -1584,12 +1699,13 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			} else {
 				const int &a = aList.at(0);
 				const bool success = (correctAnswer.toInt(-1) == a);
+				const int p = success ? point : 0; sumPoint += p;
 
 				ret.append(QJsonObject{
 							   { QStringLiteral("index"), a },
 						   });
 				corr.append(QJsonObject{
-								{ QStringLiteral("p"), success ? point : 0 },
+								{ QStringLiteral("p"), p },
 								{ QStringLiteral("success"), success }
 							});
 			}
@@ -1610,7 +1726,8 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 								{ QStringLiteral("success"), false }
 							});
 			} else {
-				for (const QJsonValue &v : correctAnswer.toArray()) {
+				const QJsonArray &arr = correctAnswer.toArray();
+				for (const QJsonValue &v : std::as_const(arr)) {
 					if (auto it = std::find_if(r.begin(), r.end(), [v](const QJsonValue &q){
 											   return q.toInt(-1) == v.toInt(-2);
 				}); it != r.end()) {
@@ -1619,8 +1736,11 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				}
 
 				success = r.isEmpty();
+
+				const int p = success ? point : 0; sumPoint += p;
+
 				corr.append(QJsonObject{
-								{ QStringLiteral("p"), success ? point : 0 },
+								{ QStringLiteral("p"), p },
 								{ QStringLiteral("success"), success }
 							});
 			}
@@ -1666,12 +1786,14 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				}
 			}
 
+			const int p = success ? point : 0; sumPoint += p;
+
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },
 					   });
 
 			corr.append(QJsonObject{
-							{ QStringLiteral("p"), success ? point : 0 },
+							{ QStringLiteral("p"), p },
 							{ QStringLiteral("success"), success }
 						});
 
@@ -1715,12 +1837,14 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				}
 			}
 
+			const int p = success ? point : 0; sumPoint += p;
+
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },
 					   });
 
 			corr.append(QJsonObject{
-							{ QStringLiteral("p"), success ? point : 0 },
+							{ QStringLiteral("p"), p },
 							{ QStringLiteral("success"), success }
 						});
 
@@ -1774,12 +1898,14 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				}
 			}
 
+			const int p = success ? point : 0; sumPoint += p;
+
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },
 					   });
 
 			corr.append(QJsonObject{
-							{ QStringLiteral("p"), success ? point : 0 },
+							{ QStringLiteral("p"), p },
 							{ QStringLiteral("success"), success }
 						});
 
@@ -1800,6 +1926,12 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 	if (correction)
 		*correction = corr;
+
+	if (ptrMax)
+		*ptrMax = maxPoint;
+
+	if (ptrPoint)
+		*ptrPoint = sumPoint;
 }
 
 
@@ -1834,10 +1966,14 @@ void TeacherExam::uploadResultReal(QVector<QPointer<ExamScanData> > list)
 {
 	for (const auto &s : list) {
 		if (s) {
+			const qreal r = s->maxPoint() > 0 ? (qreal)(s->point())/(qreal)(s->maxPoint()) : 0;
+
 			Application::instance()->client()->send(HttpConnection::ApiTeacher,
 													QStringLiteral("exam/answer/%1").arg(s->contentId()), {
 														{ QStringLiteral("answer"), s->serverAnswer() },
 														{ QStringLiteral("correction"), s->correction() },
+														{ QStringLiteral("result"), r },
+														{ QStringLiteral("gradeid"), s->gradeId() },
 													})
 					->done(this, [s, this](const QJsonObject &ret){
 				if (s && ret.value(QStringLiteral("status")).toString() == QStringLiteral("ok")) {
@@ -1854,6 +1990,32 @@ void TeacherExam::uploadResultReal(QVector<QPointer<ExamScanData> > list)
 	}
 
 	Application::instance()->client()->snack(tr("Eredmények feltöltve"));
+}
+
+
+
+/**
+ * @brief TeacherExam::gradingConfig
+ * @return
+ */
+
+GradingConfig *TeacherExam::gradingConfig() const
+{
+	return m_gradingConfig.get();
+}
+
+
+/**
+ * @brief TeacherExam::setGradingConfig
+ * @param newGradingConfig
+ */
+
+void TeacherExam::setGradingConfig(GradingConfig *newGradingConfig)
+{
+	if (m_gradingConfig.get() == newGradingConfig)
+		return;
+	m_gradingConfig.reset(newGradingConfig);
+	emit gradingConfigChanged();
 }
 
 
@@ -2198,6 +2360,45 @@ void ExamScanData::setCorrection(const QJsonArray &newCorrection)
 	emit correctionChanged();
 }
 
+int ExamScanData::maxPoint() const
+{
+	return m_maxPoint;
+}
+
+void ExamScanData::setMaxPoint(int newMaxPoint)
+{
+	if (m_maxPoint == newMaxPoint)
+		return;
+	m_maxPoint = newMaxPoint;
+	emit maxPointChanged();
+}
+
+int ExamScanData::point() const
+{
+	return m_point;
+}
+
+void ExamScanData::setPoint(int newPoint)
+{
+	if (m_point == newPoint)
+		return;
+	m_point = newPoint;
+	emit pointChanged();
+}
+
+int ExamScanData::gradeId() const
+{
+	return m_gradeId;
+}
+
+void ExamScanData::setGradeId(int newGradeId)
+{
+	if (m_gradeId == newGradeId)
+		return;
+	m_gradeId = newGradeId;
+	emit gradeIdChanged();
+}
+
 
 
 /**
@@ -2349,6 +2550,11 @@ qreal ExamUser::recalculateResult()
 
 	setResult(result);
 
+	if (m_teacherExam && m_teacherExam->gradingConfig()) {
+		Grade *g = m_teacherExam->gradingConfig()->grade(result);
+		setGrade(g);
+	}
+
 	return result;
 }
 
@@ -2487,6 +2693,45 @@ void ExamUser::setPendingCorrection(const QJsonArray &newPendingCorrection)
 		return;
 	m_pendingCorrection = newPendingCorrection;
 	emit pendingCorrectionChanged();
+}
+
+TeacherExam *ExamUser::teacherExam() const
+{
+	return m_teacherExam;
+}
+
+void ExamUser::setTeacherExam(TeacherExam *newTeacherExam)
+{
+	if (m_teacherExam == newTeacherExam)
+		return;
+	m_teacherExam = newTeacherExam;
+	emit teacherExamChanged();
+}
+
+Grade *ExamUser::pendingGrade() const
+{
+	return m_pendingGrade;
+}
+
+void ExamUser::setPendingGrade(Grade *newPendingGrade)
+{
+	if (m_pendingGrade == newPendingGrade)
+		return;
+	m_pendingGrade = newPendingGrade;
+	emit pendingGradeChanged();
+}
+
+bool ExamUser::joker() const
+{
+	return m_joker;
+}
+
+void ExamUser::setJoker(bool newJoker)
+{
+	if (m_joker == newJoker)
+		return;
+	m_joker = newJoker;
+	emit jokerChanged();
 }
 
 

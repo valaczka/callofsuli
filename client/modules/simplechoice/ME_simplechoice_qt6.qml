@@ -65,6 +65,27 @@ QFormColumn {
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormComboBox {
+		id: _modeBlock
+		text: qsTr("Kérdések készítése:")
+
+		visible: isBlock
+
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
+
+		field: "mode"
+
+		valueRole: "value"
+		textRole: "text"
+
+		model: [
+			{value: "contains", text: qsTr("Halmazba tartozás")},
+			{value: "simple", text: qsTr("Egyszerű választás")}
+		]
+
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
 
 	QFormTextField {
 		id: _question
@@ -108,12 +129,12 @@ QFormColumn {
 		id: _questionBlock
 		title: qsTr("Kérdés")
 		placeholderText: qsTr("Ez a kérdés fog megjelenni")
-		helperText: qsTr("A \%1 jelöli az elemnek, a \%2 a blokk nevének a helyét")
+		helperText: qsTr("A \%1 jelöli az elemnek a helyét")
 		field: "question"
 		width: parent.width
 		visible: isBlock
 
-		text: qsTr("Minek a része: %1?")
+		text: _modeBlock.currentValue === "simple" ?  "" : qsTr("Minek a része: %1?")
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -168,7 +189,7 @@ QFormColumn {
 								 isImages ? (objective.data.mode === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_questionBlock] :
+											isBlock ? [_modeBlock, _questionBlock] :
 													  [_question, _correctAnswer]
 
 		_countBinding.value = objective.storageCount
@@ -190,7 +211,7 @@ QFormColumn {
 								 isImages ? (_modeImages.currentValue === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_questionBlock] :
+											isBlock ? [_modeBlock, _questionBlock] :
 													  [_question, _correctAnswer, _answers]
 
 		return getItems(_items)

@@ -25,7 +25,9 @@
  */
 
 #include "grade.h"
+#include "Logger.h"
 #include "qjsonobject.h"
+#include "clientcache.h"
 
 Grade::Grade(QObject *parent)
 	: SelectableObject{parent}
@@ -113,3 +115,186 @@ void Grade::setValue(int newValue)
 	m_value = newValue;
 	emit valueChanged();
 }
+
+
+
+
+/**
+ * @brief GradingConfig::GradingConfig
+ * @param parent
+ */
+
+GradingConfig::GradingConfig(QObject *parent)
+	: SelectableObject(parent)
+{
+
+}
+
+
+/**
+ * @brief GradingConfig::fromJson
+ * @param list
+ * @return
+ */
+
+void GradingConfig::fromJson(const QJsonArray &list, GradeList *gradeList)
+{
+	if (!gradeList)
+		return;
+
+	for (const QJsonValue &v : std::as_const(list)) {
+		const QJsonObject &o = v.toObject();
+
+		const int &id = o.value(QStringLiteral("id")).toInt();
+
+		Grade *g = OlmLoader::find<Grade>(gradeList, "gradeid", id);
+
+		if (!g) {
+			LOG_CWARNING("client") << "GradeID not found" << id;
+			continue;
+		}
+
+		gradeSet(g, o.value(QStringLiteral("value")).toDouble(), o.value(QStringLiteral("set")).toBool());
+	}
+}
+
+
+/**
+ * @brief GradingConfig::fill
+ * @param list
+ */
+
+void GradingConfig::fill(GradeList *list)
+{
+	m_gradeMap.clear();
+
+	if (!list)
+		return;
+
+	for (Grade *g : *list) {
+		m_gradeMap.insert(g, qMakePair(0, false));
+	}
+
+	emit listChanged();
+}
+
+
+/**
+ * @brief GradingConfig::grade
+ * @param num
+ * @return
+ */
+
+Grade *GradingConfig::grade(const qreal &num) const
+{
+	Grade *g = nullptr;
+	qreal n = -1;
+
+	for (auto [grade, value] : m_gradeMap.asKeyValueRange()) {
+		if (!value.second)
+			continue;
+
+		if (!g && num >= value.first) {
+			g = grade;
+			n = value.first;
+		} else if (g && num >= value.first && value.first > n) {
+			g = grade;
+			n = value.first;
+		} else if (g && num >= value.first && value.first == n && grade->value() > g->value()) {
+			g = grade;
+			n = value.first;
+		}
+	}
+
+	return g;
+}
+
+
+
+
+/**
+ * @brief GradingConfig::gradeAdd
+ * @param grade
+ * @param num
+ */
+
+void GradingConfig::gradeSet(Grade *grade, const qreal &num, const bool &set)
+{
+	if (!grade)
+		return;
+
+	m_gradeMap.insert(grade, qMakePair(num, set));
+
+	emit listChanged();
+}
+
+
+
+/**
+ * @brief GradingConfig::gradeRemove
+ * @param grade
+ */
+
+void GradingConfig::gradeRemove(Grade *grade)
+{
+	m_gradeMap.remove(grade);
+	emit listChanged();
+}
+
+
+
+
+/**
+ * @brief GradingConfig::list
+ * @return
+ */
+
+QVariantList GradingConfig::list() const
+{
+	QVariantList list;
+
+	QMap<int, Grade*> tmp;
+	auto keyList = m_gradeMap.keys();
+
+	for (Grade *g : keyList)
+		tmp.insert(g->value(), g);
+
+	for (Grade *g : tmp) {
+		const auto &value = m_gradeMap.value(g);
+		list.append(QVariantMap{
+						{ QStringLiteral("grade"), QVariant::fromValue(g) },
+						{ QStringLiteral("value"), value.first },
+						{ QStringLiteral("set"), value.second },
+					});
+	}
+
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief GradingConfig::toJson
+ * @return
+ */
+
+QJsonArray GradingConfig::toJson() const
+{
+	QJsonArray list;
+
+	for (auto [grade, value] : m_gradeMap.asKeyValueRange()) {
+		if (!grade)
+			continue;
+
+		list.append(QJsonObject{
+						{ QStringLiteral("id"), grade->gradeid() },
+						{ QStringLiteral("value"), value.first },
+						{ QStringLiteral("set"), value.second },
+					});
+	}
+
+	return list;
+}
+

@@ -109,7 +109,7 @@ Qaterial.Expandable {
 										 })
 				}
 
-				onMenuRequest: _objectiveView.menuOpenFromDelegate(button)
+				onMenuRequest: (button) => _objectiveView.menuOpenFromDelegate(button)
 			}
 
 			footer: Qaterial.ItemDelegate {
@@ -193,8 +193,8 @@ Qaterial.Expandable {
 							}
 						}
 
-						onObjectAdded: _copyMenu.insertItem(index+2, object)
-						onObjectRemoved: _copyMenu.removeItem(object)
+						onObjectAdded: (index,object) => _copyMenu.insertItem(index+2, object)
+						onObjectRemoved: (object) => _copyMenu.removeItem(object)
 					}
 
 				}

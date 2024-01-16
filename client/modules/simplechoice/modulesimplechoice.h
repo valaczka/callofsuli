@@ -74,6 +74,8 @@ public:
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateBlockContains(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList) const;
 
 	QVariantMap preview(const QVariantList &generatedList) const override;
