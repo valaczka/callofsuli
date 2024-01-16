@@ -12,6 +12,7 @@ Rectangle {
 
 	property double horizontalPadding: 1 * Qaterial.Style.pixelSizeRatio
 	property double defaultSize: 6 * Qaterial.Style.pixelSizeRatio
+	property double pixelSize: Qaterial.Style.textTheme.hint1.pixelSize
 
 	width: Math.max(defaultSize, _label.implicitWidth, _label.implicitHeight)+2*root.horizontalPadding
 	height: width
@@ -21,7 +22,7 @@ Rectangle {
 		id: _label
 		anchors.centerIn: parent
 		text: root.num < 100 ? root.num : "99+"
-		font.pixelSize: Qaterial.Style.textTheme.hint1.pixelSize
+		font.pixelSize: root.pixelSize
 		font.family: Qaterial.Style.textTheme.hint1.family
 		font.weight: Font.Bold
 		color: root.textColor

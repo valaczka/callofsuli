@@ -12,6 +12,8 @@ QItemGradient {
 	property User user: null
 	property var userData: null
 
+	property bool _isFirst: true
+
 	appBar.rightComponent: Qaterial.AppBarButton {
 		icon.source: Qaterial.Icons.logoutVariant
 		ToolTip.text: qsTr("Kijelentkezés")
@@ -137,7 +139,12 @@ QItemGradient {
 
 
 
-	StackView.onActivated: { reload() }
+	StackView.onActivated: {
+		if (_isFirst) {
+			reload()
+			_isFirst = false
+		}
+	}
 
 	function reload() {
 		if (!userData || !userData.username)

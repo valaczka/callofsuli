@@ -1,0 +1,37 @@
+p {
+	padding: 0px;
+	margin: 0px;
+	font-size: medium;
+	font-weight: 400;
+}
+
+p.question {
+	font-weight: 500;
+}
+
+
+span.answer, p.answer {
+	font-family: "Special Elite";
+	color: "#7986CB";
+	font-weight: normal;
+}
+
+span.answerFail, p.answerFail {
+	font-family: "Special Elite";
+	color: "#F44336";
+	font-weight: normal;
+	text-decoration: underline;
+}
+
+span.answerCorrect, p.answerCorrect {
+	color: "#F44336";
+	font-weight: 500;
+	text-decoration: none;
+}
+
+p.options, td.answer p.options {
+	font-weight: 200;
+	font-size: small;
+	font-style: italic;
+	margin-bottom: 5px;
+}

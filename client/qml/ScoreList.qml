@@ -14,6 +14,7 @@ Qaterial.Page
 	implicitHeight: 200
 
 	property ClassList classList: Client.cache("classList")
+	readonly property alias filterClassId: _scoreList.filterClassId
 
 	property double paddingTop: 0
 
@@ -33,24 +34,9 @@ Qaterial.Page
 		onFilterClassIdChanged: _scrollable.flickable.contentY = 0
 	}
 
-	ListModel {
-		id: _preparedClassList
-
-		function reload() {
-			clear()
-
-			append({classid: -1, name: qsTr("Mindenki")})
-
-			for (var i=0; i<classList.length; i++) {
-				var o = classList.get(i)
-				append({classid: o.classid, name: o.name})
-			}
-		}
-	}
-
 	SortFilterProxyModel {
 		id: sortedClassList
-		sourceModel: _preparedClassList
+		sourceModel: classList
 
 		filters: [
 			RangeFilter {
@@ -60,13 +46,6 @@ Qaterial.Page
 		]
 
 		sorters: [
-			FilterSorter {
-				ValueFilter {
-					roleName: "classid"
-					value: -1
-				}
-				priority: 1
-			},
 			StringSorter {
 				roleName: "name"
 				sortOrder: Qt.AscendingOrder
@@ -237,33 +216,36 @@ Qaterial.Page
 
 	}
 
-	footer: Qaterial.ScrollableTabBar
-	{
-		id: tabBar
-		width: parent.width
-
-		onCurrentIndexChanged: {
-			if (currentIndex != -1) {
-				var o = model.get(currentIndex)
-				_scoreList.filterClassId = o.classid
-			}
-		}
-
-		onPrimary: true
-		model: sortedClassList
-
-		textRole: "name"
-
-		leftPadding: 0
-		rightPadding: 0
-
-	}
-
-	Component.onCompleted: {
-		Client.reloadCache("classList", control, function(){_preparedClassList.reload()})
-	}
 
 	function reload() {
 		_scoreList.reload()
+	}
+
+
+	QMenu {
+		id: _menuFilter
+
+		QMenuItem {
+			text: qsTr("Mindenki")
+			icon.source: Qaterial.Icons.filterRemove
+			onClicked: _scoreList.filterClassId = -1
+		}
+
+		Qaterial.MenuSeparator {}
+
+		Instantiator {
+			model: sortedClassList
+			delegate: QMenuItem {
+				text: model.name
+				onTriggered: _scoreList.filterClassId = model.classid
+			}
+
+			onObjectAdded: (index, object) => _menuFilter.insertItem(index+2, object)
+			onObjectRemoved: (index, object) => _menuFilter.removeItem(object)
+		}
+	}
+
+	function selectFilter(_parentItem) {
+		_menuFilter.popup(_parentItem, 0, _parentItem.height)
 	}
 }

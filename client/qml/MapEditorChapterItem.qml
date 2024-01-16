@@ -13,6 +13,7 @@ Qaterial.Expandable {
 	property bool separatorVisible: true
 	property bool actionAddVisible: false
 	property bool chapterDeleteAction: false
+	property bool isExam: false
 
 	readonly property MapEditor editor: chapter && chapter.map ? chapter.map.mapEditor : null
 
@@ -98,6 +99,7 @@ Qaterial.Expandable {
 			delegate: MapEditorObjectiveItem {
 				objective: model.qtObject
 				width: ListView.view.width
+				isExam: root.isExam
 
 				onClicked: {
 					Client.stackPushPage("MapEditorObjectiveEditor.qml", {
@@ -107,7 +109,7 @@ Qaterial.Expandable {
 										 })
 				}
 
-				onMenuRequest: _objectiveView.menuOpenFromDelegate(button)
+				onMenuRequest: (button) => _objectiveView.menuOpenFromDelegate(button)
 			}
 
 			footer: Qaterial.ItemDelegate {
@@ -191,8 +193,8 @@ Qaterial.Expandable {
 							}
 						}
 
-						onObjectAdded: _copyMenu.insertItem(index+2, object)
-						onObjectRemoved: _copyMenu.removeItem(object)
+						onObjectAdded: (index,object) => _copyMenu.insertItem(index+2, object)
+						onObjectRemoved: (object) => _copyMenu.removeItem(object)
 					}
 
 				}
@@ -233,8 +235,8 @@ Qaterial.Expandable {
 							}
 						}
 
-						onObjectAdded: _moveMenu.insertItem(index+2, object)
-						onObjectRemoved: _moveMenu.removeItem(object)
+						onObjectAdded: (index, object) => _moveMenu.insertItem(index+2, object)
+						onObjectRemoved: object => _moveMenu.removeItem(object)
 					}
 				}
 

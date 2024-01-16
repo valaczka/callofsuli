@@ -30,7 +30,7 @@ QPage {
 			id: menu
 
 			QMenuItem { action: actionAdd }
-			QMenuItem { action: actionQR }
+			//QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionDemo }
 			Qaterial.MenuSeparator {}
@@ -174,11 +174,11 @@ QPage {
 		outlinedIcon: true
 		highlightedIcon: true
 
-		action1: qsTr("QR-kód")
-		action2: qsTr("Hozzáadás")
+		//action1: qsTr("QR-kód")
+		action1: qsTr("Hozzáadás")
 
-		onAction1Clicked: actionQR.trigger()
-		onAction2Clicked: actionAdd.trigger()
+		//onAction1Clicked: actionQR.trigger()
+		onAction1Clicked: actionAdd.trigger()
 
 		enabled: !Client.serverList.length
 		visible: !Client.serverList.length
@@ -228,12 +228,12 @@ QPage {
 		onTriggered: Client.stackPushPage("ServerEdit.qml")
 	}
 
-	Action {
+	/*Action {
 		id: actionQR
 		text: qsTr("QR-kód beolvasás")
 		icon.source: Qaterial.Icons.qrcodeScan
 		onTriggered: Client.Utils.checkMediaPermissions()
-	}
+	}*/
 
 	Action {
 		id: actionEdit
@@ -321,7 +321,7 @@ QPage {
 	StackView.onActivated: view.forceActiveFocus()
 
 
-	Connections {
+	/*Connections {
 		target: Client.Utils
 
 		function onMediaPermissionsGranted() {
@@ -339,5 +339,5 @@ QPage {
 				}
 			})
 		}
-	}
+	}*/
 }

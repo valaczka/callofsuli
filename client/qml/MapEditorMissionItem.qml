@@ -219,6 +219,18 @@ QPage {
 						enabled: !_isExam.checked
 					}
 
+					/*QFormCheckButton
+					{
+						id: _isMultiPlayer
+						text: qsTr("Multiplayer")
+						checked: mission && (mission.modes & GameMap.MultiPlayer)
+						onToggled: _form.updateCheckButtons()
+						enabled: !_isExam.checked
+					}*/
+
+
+
+
 					QFormCheckButton
 					{
 						id: _isExam
@@ -226,6 +238,7 @@ QPage {
 						checked: mission && (mission.modes & GameMap.Exam)
 						onToggled: _form.updateCheckButtons()
 					}
+
 				}
 			}
 
@@ -246,6 +259,9 @@ QPage {
 
 					if (_isPractice.checked)
 						c |= GameMap.Practice
+
+					/*if (_isMultiPlayer.checked)
+						c |= GameMap.MultiPlayer*/
 				}
 
 				editor.missionModify(mission, function() {

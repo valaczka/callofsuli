@@ -12,6 +12,7 @@ Row {
 
 	property alias combo: _combo
 	property alias label: _label
+	property alias inPlaceButtons: _buttons
 
 	property alias text: _label.text
 	property alias model: _combo.model
@@ -19,6 +20,7 @@ Row {
 	property alias currentIndex: _combo.currentIndex
 	property alias valueRole: _combo.valueRole
 	property alias textRole: _combo.textRole
+	property alias inPlaceButtonsVisible: _buttons.visible
 
 	spacing: 5
 
@@ -42,5 +44,16 @@ Row {
 		font: Qaterial.Style.textTheme.body1
 
 		onActivated: if (_form && watchModification) _form.modified = true
+	}
+
+	QComboBoxInPlaceButtons {
+		id: _buttons
+		combo: _combo
+
+		visible: false
+		enabled: active
+		opacity: active ? 1.0 : 0.0
+
+		anchors.verticalCenter: parent.verticalCenter
 	}
 }

@@ -110,14 +110,20 @@ QPageGradient {
 
 			Column {
 				Repeater {
-					model: [
-						GameMap.Exam,
-						GameMap.Test,
-						GameMap.Action,
-						GameMap.Lite,
-						GameMap.Practice,
-						GameMap.Quiz
-					]
+					model: _mapPlayCampaign ? [
+												  GameMap.Exam,
+												  GameMap.Test,
+												  GameMap.Action,
+												  GameMap.Lite,
+												  GameMap.Practice,
+												  GameMap.Quiz,
+												  GameMap.MultiPlayer
+											  ] : [
+												  GameMap.Test,
+												  GameMap.Action,
+												  GameMap.Lite,
+												  GameMap.Practice
+											  ]
 
 					delegate: Qaterial.RadioButton {
 						id: _btn
@@ -145,6 +151,9 @@ QPageGradient {
 								break
 							case GameMap.Exam:
 								qsTr("Dolgozat")
+								break
+							case GameMap.MultiPlayer:
+								qsTr("Multiplayer")
 								break
 							default:
 								""

@@ -15,13 +15,13 @@ include(../../translations/translations.pri)
 
 DESTDIR = ../..
 
-#lessThan(QT_MAJOR_VERSION, 6) {
-#	QML_IMPORT_PATH += $$PWD/../qml
-#	QMLPATHS += $$PWD/../qml
-#} else {
+lessThan(QT_MAJOR_VERSION, 6) {
+	QML_IMPORT_PATH += $$PWD/../qml
+	QMLPATHS += $$PWD/../qml
+} else {
 	QML_IMPORT_PATH += $$PWD/../qml-Qt6
 	QMLPATHS += $$PWD/../qml-Qt6
-#}
+}
 
 DEFINES += CLIENT_UTILS
 
@@ -253,15 +253,15 @@ SOURCES += \
 	userloglist.cpp \
 	websocket.cpp
 
-#lessThan(QT_MAJOR_VERSION, 6): {
-#	RESOURCES += \
-#		../qml/qml.qrc \
-#		../qml/QaterialHelper.qrc
-#} else {
+lessThan(QT_MAJOR_VERSION, 6): {
+	RESOURCES += \
+		../qml/qml.qrc \
+		../qml/QaterialHelper.qrc
+} else {
 	RESOURCES += \
 		../qml-Qt6/qml.qrc \
 		../qml-Qt6/QaterialHelper.qrc
-#}
+}
 
 
 HEADERS += \

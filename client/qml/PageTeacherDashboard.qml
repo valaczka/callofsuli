@@ -274,6 +274,23 @@ QPage {
 
 
 			QDashboardButton {
+				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
+						 && Qt.platform.os === "linux"
+				text: qsTr("Dolgozatok beolvasása")
+				icon.source: Qaterial.Icons.scanner
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.amber500
+
+				onClicked: Client.stackPushPage("PageTeacherExamScanner.qml", {
+													handler: mapHandler
+												})
+			}
+
+
+			QDashboardButton {
 				text: qsTr("Profil")
 				icon.source: Qaterial.Icons.account
 				highlighted: false

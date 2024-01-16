@@ -7,12 +7,12 @@ Row {
 	id: control
 
 	property ComboBox combo: null
-	property int _storedIndex: -1
-	property int setTo: -1
+	property int _storedIndex: -2
+	property int setTo: -2
 	property bool active: false
 
 	onSetToChanged: set(setTo)
-	onComboChanged: if (setTo > -1) set(setTo)
+	onComboChanged: if (setTo > -2) set(setTo)
 
 	visible: active
 

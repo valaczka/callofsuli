@@ -21,6 +21,8 @@ Page {
 
 	property bool itemsVisible: false
 
+	readonly property MultiPlayerGame multiPlayerGame: game instanceof MultiPlayerGame ? game : null
+
 	layer.enabled: true
 
 	Image {
@@ -439,7 +441,7 @@ Page {
 
 			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
-			text: "%1 XP"
+			text: (multiPlayerGame ? "MULTIPLAYER " : "") + "%1 XP"
 
 			value: game ? game.xp : 0
 		}

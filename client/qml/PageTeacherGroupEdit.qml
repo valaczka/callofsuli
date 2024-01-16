@@ -65,7 +65,7 @@ QPage {
 				QTextFieldInPlaceButtons {
 					id: nameInPlace
 					setTo: group ? group.name: ""
-					onSaveRequest: {
+					onSaveRequest: text => {
 						Client.send(HttpConnection.ApiTeacher, "group/%1/update".arg(group.groupid),
 									{
 										name: text

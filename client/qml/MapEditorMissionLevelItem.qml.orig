@@ -129,7 +129,7 @@ QPage {
 			}
 
 
-			/*QButton {
+			QButton {
 				anchors.left: parent.left
 
 				enabled: editor && missionLevel
@@ -148,7 +148,7 @@ QPage {
 					else
 						Qaterial.DialogManager.openFromComponent(_cmpFileExportLatex)
 				}
-			}*/
+			}
 
 
 			Row {
@@ -472,7 +472,6 @@ QPage {
 						delegate: MapEditorChapterItem {
 							width: parent.width
 							chapter: modelData
-							isExam: mission && (mission.modes & GameMap.Exam)
 
 							onRemoveActionRequest: {
 								if (editor)
@@ -802,15 +801,14 @@ QPage {
 	}
 
 
-
 	Component {
 		id: _cmpFileExportLatex
 
 		QFileDialog {
 			title: qsTr("Dolgozat LaTeX fájl készítése")
-			filters: [ "*.tar" ]
+			filters: [ "*.tex" ]
 			isSave: true
-			suffix: ".tar"
+			suffix: ".tex"
 			onFileSelected: file => {
 				if (Client.Utils.fileExists(file))
 					overrideQuestion(file, false, MapEditor.ExportExam)
@@ -821,7 +819,7 @@ QPage {
 				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
 			}
 
-			folder: Client.Utils.settingsGet("folder/mapEditor")
+			folder: editor.currentFolder()
 		}
 	}
 

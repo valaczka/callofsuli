@@ -9,7 +9,7 @@ import "JScript.js" as JS
 Item {
 	id: root
 
-	property TestGame game: null
+	property alias textDocument: _textEdit.textDocument
 
 	implicitWidth: 200
 	implicitHeight: 200
@@ -45,13 +45,5 @@ Item {
 		font.pixelSize: Qaterial.Style.textTheme.body1.pixelSize
 		font.family: Qaterial.Style.textTheme.body1.family
 		font.weight: Qaterial.Style.textTheme.body1.weight
-	}
-
-	Connections {
-		target: game
-
-		function onResultChanged() {
-			game.resultoToQuickTextDocument(_textEdit.textDocument)
-		}
 	}
 }

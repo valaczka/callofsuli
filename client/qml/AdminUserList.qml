@@ -206,7 +206,7 @@ Qaterial.Page
 															(user.roles & _roleTeacher) ? Qaterial.Colors.amber300 :
 																						  Qaterial.Style.colorTheme.primaryText) :
 							   Qaterial.Style.colorTheme.disabledText
-				iconColor: user ? (user.selected ?
+				iconColorBase: user ? (user.selected ?
 									   Qaterial.Style.accentColor :
 									   user.active ? ((user.roles & _roleAdmin) ?
 														  Qaterial.Colors.red300 :

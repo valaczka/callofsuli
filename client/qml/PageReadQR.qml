@@ -47,6 +47,9 @@ QPage {
 		property double captureRectFactorHeight: 0.8
 
 
+		focus: visible
+		fillMode: VideoOutput.PreserveAspectCrop
+
 		Rectangle {
 			id: blackRect
 			color: Qaterial.Colors.black

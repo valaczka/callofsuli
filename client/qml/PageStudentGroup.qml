@@ -9,13 +9,20 @@ QPageGradient {
 	id: control
 
 	stackPopFunction: function() {
+		var item = swipeView.currentItem
+
+		if (item && item.stackPopFunction !== undefined) {
+			return item.stackPopFunction()
+		}
+
 		if (swipeView.currentIndex > 0) {
-			swipeView.setCurrentIndex(0)
+			swipeView.decrementCurrentIndex()
 			return false
 		}
 
 		return true
 	}
+
 
 	//title: group ? group.name : ""
 
@@ -39,6 +46,12 @@ QPageGradient {
 			topPadding: control.paddingTop
 		}
 
+		StudentGroupExamList {
+			group: control.group
+			mapHandler: control.mapHandler
+			topPadding: control.paddingTop
+		}
+
 		StudentGroupMemberList {
 			group: control.group
 			topPadding: control.paddingTop
@@ -54,9 +67,10 @@ QPageGradient {
 
 		Component.onCompleted: {
 			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
+			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.fileDocumentMultiple, color: "red" })
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
 			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.trophyBroken, color: "pink" })*/
+			*/
 		}
 	}
 
