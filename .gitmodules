@@ -54,10 +54,10 @@
 	url = https://github.com/mohammadhasanzadeh/pulltorefreshhandler.git
 [submodule "lib/SCodes"]
 	path = lib/SCodes
-	url = git@github.com:scytheStudio/SCodes.git
+	url = https://github.com/scytheStudio/SCodes.git
 [submodule "share/OMRChecker"]
 	path = share/OMRChecker
-	url = git@github.com:valaczka/OMRChecker.git
+	url = https://github.com/valaczka/OMRChecker.git
 [submodule "lib/csv-parser"]
 	path = lib/csv-parser
 	url = https://github.com/vincentlaucsb/csv-parser.git

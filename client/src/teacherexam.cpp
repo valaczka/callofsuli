@@ -93,6 +93,7 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this, list, pdfConfig]() {
+#endif
 		QByteArray content;
 		QBuffer buffer(&content);
 		buffer.open(QIODevice::WriteOnly);
@@ -190,6 +191,8 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 			emit pdfFileGenerated(pdfConfig.file);
 		}
+
+#ifndef Q_OS_WASM
 	});
 #endif
 }
@@ -282,9 +285,12 @@ void TeacherExam::remove(ExamScanData *scan)
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this, scan](){
 		QMutexLocker locker(&m_mutex);
+#endif
 
 		m_scanData->remove(scan);
 		emit uploadableCountChanged();
+
+#ifndef Q_OS_WASM
 	});
 #endif
 }
@@ -301,6 +307,7 @@ void TeacherExam::removeSelected()
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this](){
 		QMutexLocker locker(&m_mutex);
+#endif
 
 		QVector<ExamScanData*> list;
 
@@ -315,6 +322,8 @@ void TeacherExam::removeSelected()
 
 		foreach (auto s, list)
 			remove(s);
+
+#ifndef Q_OS_WASM
 	});
 #endif
 }
@@ -332,6 +341,7 @@ void TeacherExam::uploadResult()
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this](){
 		QMutexLocker locker(&m_mutex);
+#endif
 
 		QVector<QPointer<ExamScanData>> list;
 
@@ -347,6 +357,7 @@ void TeacherExam::uploadResult()
 		QMetaObject::invokeMethod(this, "uploadResultReal", Qt::QueuedConnection,
 								  Q_ARG(QVector<QPointer<ExamScanData>>, list));
 
+#ifndef Q_OS_WASM
 	});
 #endif
 }
@@ -1191,6 +1202,7 @@ void TeacherExam::scanImages()
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this](){
 		QMutexLocker locker(&m_mutex);
+#endif
 
 		for (auto it : *m_scanData) {
 			const auto &data = Utils::fileContent(it->path());
@@ -1221,6 +1233,8 @@ void TeacherExam::scanImages()
 			});
 			decoder->process(img, ZXing::BarcodeFormat::QRCode);
 		}
+
+#ifndef Q_OS_WASM
 	});
 #endif
 }
@@ -1234,7 +1248,9 @@ void TeacherExam::scanImages()
 
 bool TeacherExam::scanHasPendingQR()
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_mutex);
+#endif
 
 	for (const auto &s : *m_scanData) {
 		if (s->state() == ExamScanData::ScanFileLoaded)
@@ -1256,6 +1272,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this, path, qr](){
 		QMutexLocker locker(&m_mutex);
+#endif
 
 		for (auto it : *m_scanData) {
 			if (it->path() != path)
@@ -1330,11 +1347,18 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 
 		emit scanQRfinished();
 
+#ifdef WITH_OMR
 		scanPreapareOMR();
+#endif
+
+#ifndef Q_OS_WASM
 	});
 #endif
 }
 
+
+
+#ifdef WITH_OMR
 
 /**
  * @brief TeacherExam::scanPreapareOMR
@@ -1342,7 +1366,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 
 void TeacherExam::scanPreapareOMR()
 {
-#ifndef Q_OS_WASM
+
 	m_worker.execInThread([this](){
 		QMutexLocker locker(&m_mutex);
 
@@ -1388,8 +1412,8 @@ void TeacherExam::scanPreapareOMR()
 		}
 
 		runOMR();
+
 	});
-#endif
 }
 
 
@@ -1401,7 +1425,6 @@ void TeacherExam::scanPreapareOMR()
 
 void TeacherExam::runOMR()
 {
-#ifndef Q_OS_WASM
 	m_worker.execInThread([this](){
 		if (m_omrProcess) {
 			setScanState(ScanErrorOmrInProgress);
@@ -1481,7 +1504,6 @@ void TeacherExam::runOMR()
 
 		m_omrProcess->start();
 	});
-#endif
 }
 
 
@@ -1494,7 +1516,6 @@ void TeacherExam::runOMR()
  * @param exitStatus
  */
 
-#ifndef Q_OS_WASM
 void TeacherExam::onOmrFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
 	if (m_omrProcess) {
@@ -1552,9 +1573,8 @@ void TeacherExam::onOmrFinished(int exitCode, QProcess::ExitStatus exitStatus)
 
 	processOMRdata(answers);
 }
+
 #endif
-
-
 
 
 /**
@@ -1569,6 +1589,7 @@ void TeacherExam::processOMRdata(const QJsonArray &data)
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this, data]() {
 		QMutexLocker locker(&m_mutex);
+#endif
 
 		QJsonArray idList;
 
@@ -1599,6 +1620,8 @@ void TeacherExam::processOMRdata(const QJsonArray &data)
 		setScanState(ScanFinished);
 
 		emit updateFromServerRequest();
+
+#ifndef Q_OS_WASM
 	});
 #endif
 }
@@ -1618,6 +1641,7 @@ void TeacherExam::generateAnswerResult(const QJsonObject &content)
 #ifndef Q_OS_WASM
 	m_worker.execInThread([this, content]() {
 		QMutexLocker locker(&m_mutex);
+#endif
 
 		QVector<ExamScanData*> usedList;
 
@@ -1663,6 +1687,8 @@ void TeacherExam::generateAnswerResult(const QJsonObject &content)
 			if (s->state() == ExamScanData::ScanFileFinished && !usedList.contains(s))
 				s->setState(ExamScanData::ScanFileInvalid);
 		}
+
+#ifndef Q_OS_WASM
 	});
 #endif
 }

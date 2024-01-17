@@ -31,7 +31,6 @@
 #include "exam.h"
 #include "gamemap.h"
 #include "qjsonarray.h"
-#include "qlambdathreadworker.h"
 #include "qtemporarydir.h"
 #include "qtextdocument.h"
 #include "SBarcodeDecoder.h"
@@ -46,6 +45,16 @@
 #pragma GCC diagnostic warning "-Wunused-variable"
 
 #ifndef Q_OS_WASM
+#include "qlambdathreadworker.h"
+#endif
+
+
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN)
+#define WITH_OMR
+#endif
+
+
+#ifdef WITH_OMR
 #include "qprocess.h"
 #endif
 
@@ -414,11 +423,13 @@ private:
 	void scanImages();
 	bool scanHasPendingQR();
 	void processQRdata(const QString &path, const QString &qr);
+
+#ifdef WITH_OMR
 	void scanPreapareOMR();
 	void runOMR();
-#ifndef Q_OS_WASM
 	void onOmrFinished(int exitCode, QProcess::ExitStatus exitStatus);
 #endif
+
 	void processOMRdata(const QJsonArray &data);
 	void generateAnswerResult(const QJsonObject &content);
 	void getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction,
@@ -442,11 +453,16 @@ private:
 	std::unique_ptr<ExamScanDataList> m_scanData;
 	std::unique_ptr<ExamUserList> m_examUserList;
 	std::unique_ptr<QTemporaryDir> m_scanTempDir;
-#ifndef Q_OS_WASM
+
+#ifdef WITH_OMR
 	std::unique_ptr<QProcess> m_omrProcess = nullptr;
-	QLambdaThreadWorker m_worker;
 #endif
+
+#ifndef Q_OS_WASM
+	QLambdaThreadWorker m_worker;
 	QRecursiveMutex m_mutex;
+#endif
+
 	ScanState m_scanState = ScanIdle;
 	QJsonArray m_scannedIdList;
 	QVariantList m_acceptedExamIdList;
