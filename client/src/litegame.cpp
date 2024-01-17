@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "application.h"
 #include "client.h"
+#include "server.h"
 #include "gamequestion.h"
 #include <QRandomGenerator>
 

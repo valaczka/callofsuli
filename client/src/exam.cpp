@@ -64,7 +64,7 @@ void Exam::loadFromJson(const QJsonObject &object, const bool &allField)
 		setDescription(object.value(QStringLiteral("description")).toString());
 
 	if (object.contains(QStringLiteral("timestamp")) || allField)
-		setTimestamp(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("timestamp")).toInteger()));
+		setTimestamp(QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(object.value(QStringLiteral("timestamp")))));
 
 	if (object.contains(QStringLiteral("engineData")) || allField)
 		setEngineData(object.value(QStringLiteral("engineData")).toObject());
@@ -314,10 +314,13 @@ QString Exam::toHtml() const
 
 	const qreal &percent = result.maxPoints > 0 ? result.points/result.maxPoints : 0;
 
-	if (result.success)
-		html += QStringLiteral("<p class=\"resultSuccess\">%1 (%2%)</p>").arg(tr("Sikeres megoldás")).arg(qFloor(percent*100));
-	else
-		html += QStringLiteral("<p class=\"resultFail\">%1 (%2%)</p>").arg(tr("Sikertelen megoldás")).arg(qFloor(percent*100));
+	html += QStringLiteral("<p class=\"resultFail\">%1%").arg(qFloor(percent*100));
+
+	if (m_resultGrade) {
+		html += QStringLiteral(" (")+m_resultGrade->longname()+QStringLiteral(")");
+	}
+
+	html += QStringLiteral("</p>");
 
 	return TestGame::questionDataResultToHtml(html, result);
 }

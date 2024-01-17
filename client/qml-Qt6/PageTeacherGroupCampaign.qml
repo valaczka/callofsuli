@@ -88,7 +88,7 @@ QPage {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
-			model.append({ text: qsTr("Log"), source: Qaterial.Icons.paperRoll, color: "yellow" })
+			model.append({ text: qsTr("Log"), source: Qaterial.Icons.listBoxOutline, color: "yellow" })
 		}
 	}
 

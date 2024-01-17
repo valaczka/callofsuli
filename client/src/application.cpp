@@ -450,10 +450,6 @@ void Application::loadFonts()
 		QStringLiteral(":/internal/font/Academic.ttf"),
 		QStringLiteral(":/internal/font/AcademicI.ttf"),
 
-	#if QT_VERSION < 0x060000
-		QStringLiteral(":/internal/font/Material.ttf"),
-	#endif
-
 		QStringLiteral(":/internal/font/rajdhani-bold.ttf"),
 		QStringLiteral(":/internal/font/rajdhani-light.ttf"),
 		QStringLiteral(":/internal/font/rajdhani-regular.ttf"),

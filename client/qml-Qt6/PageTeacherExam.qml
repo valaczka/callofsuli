@@ -656,7 +656,7 @@ QPage {
 
 	Action {
 		id: _actionGenerateVirtual
-		icon.source: Qaterial.Icons.pinwheel
+		icon.source: Qaterial.Icons.humanCapacityDecrease
 
 		property int spinCount: 10
 
@@ -775,7 +775,7 @@ QPage {
 
 	Action {
 		id: _actionGrading
-		icon.source: Qaterial.Icons.fileLock
+		icon.source: Qaterial.Icons.playBoxLockOutline
 
 		text: qsTr("Dolgozatírás befejezése")
 		enabled: exam && exam.state == Exam.Active

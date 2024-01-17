@@ -117,7 +117,7 @@ QPageGradient {
 												  GameMap.Lite,
 												  GameMap.Practice,
 												  GameMap.Quiz,
-												  GameMap.MultiPlayer
+												  //GameMap.MultiPlayer
 											  ] : [
 												  GameMap.Test,
 												  GameMap.Action,

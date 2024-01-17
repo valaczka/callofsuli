@@ -32,7 +32,6 @@
 #include "gamemap.h"
 #include "qjsonarray.h"
 #include "qlambdathreadworker.h"
-#include "qprocess.h"
 #include "qtemporarydir.h"
 #include "qtextdocument.h"
 #include "SBarcodeDecoder.h"
@@ -46,6 +45,9 @@
 #pragma GCC diagnostic warning "-Wunused-parameter"
 #pragma GCC diagnostic warning "-Wunused-variable"
 
+#ifndef Q_OS_WASM
+#include "qprocess.h"
+#endif
 
 /**
  * @brief The ExamScanData class
@@ -396,7 +398,6 @@ signals:
 	void missionUuidChanged();
 	void levelChanged();
 	void hasPendingCorrectionChanged();
-
 	void gradingConfigChanged();
 
 private:
@@ -415,7 +416,9 @@ private:
 	void processQRdata(const QString &path, const QString &qr);
 	void scanPreapareOMR();
 	void runOMR();
+#ifndef Q_OS_WASM
 	void onOmrFinished(int exitCode, QProcess::ExitStatus exitStatus);
+#endif
 	void processOMRdata(const QJsonArray &data);
 	void generateAnswerResult(const QJsonObject &content);
 	void getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction,
@@ -439,8 +442,10 @@ private:
 	std::unique_ptr<ExamScanDataList> m_scanData;
 	std::unique_ptr<ExamUserList> m_examUserList;
 	std::unique_ptr<QTemporaryDir> m_scanTempDir;
+#ifndef Q_OS_WASM
 	std::unique_ptr<QProcess> m_omrProcess = nullptr;
 	QLambdaThreadWorker m_worker;
+#endif
 	QRecursiveMutex m_mutex;
 	ScanState m_scanState = ScanIdle;
 	QJsonArray m_scannedIdList;

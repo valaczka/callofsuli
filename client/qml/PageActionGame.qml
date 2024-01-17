@@ -441,7 +441,8 @@ Page {
 
 			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
-			text: (multiPlayerGame ? "MULTIPLAYER " : "") + "%1 XP"
+			//text: (multiPlayerGame ? "MULTIPLAYER " : "") + "%1 XP"
+			text: "%1 XP"
 
 			value: game ? game.xp : 0
 		}

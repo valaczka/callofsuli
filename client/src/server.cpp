@@ -26,6 +26,7 @@
 
 #include "server.h"
 #include "Logger.h"
+#include "application.h"
 #include "qjsonarray.h"
 #include "qjsonobject.h"
 
@@ -272,7 +273,7 @@ bool Server::isTokenValid(const QString &jwt)
 
 	const QJsonObject &object = token.getPayloadJDoc().object();
 
-	if (object.value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch()) {
+	if (JSON_TO_INTEGER(object.value(QStringLiteral("exp"))) <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CWARNING("client") << "Expired token:" << jwt;
 		return false;
 	}

@@ -26,6 +26,7 @@
 
 #include "rank.h"
 #include <math.h>
+#include <utility>
 
 Rank::Rank()
 {

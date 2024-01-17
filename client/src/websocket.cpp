@@ -274,7 +274,7 @@ void WebSocket::observerAddValue(const QString &type, const QJsonValue &value)
 
 void WebSocket::observerRemoveValue(const QString &type, const QJsonValue &value)
 {
-	for (auto it = m_observers.constBegin(); it != m_observers.constEnd(); ) {
+	for (auto it = m_observers.begin(); it != m_observers.end(); ) {
 		if (value == QJsonValue::Null && it->type == type) {
 			it = m_observers.erase(it);
 		} else if (it->type == type && it->data == value) {

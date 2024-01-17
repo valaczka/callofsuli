@@ -14,3 +14,4 @@ else: TARGET = SCodes
 DESTDIR = ../
 
 include($$PWD/../SCodes/src/SCodes.pri)
+wasm: QT -= concurrent

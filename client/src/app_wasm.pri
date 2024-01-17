@@ -8,8 +8,6 @@
 
 #########################
 
-DEFINES += NO_LAMBDA_THREAD
-
 SOURCES += \
 	onlineapplication.cpp \
 	onlineclient.cpp
@@ -21,7 +19,4 @@ HEADERS += \
 DESTDIR = ../html
 
 LIBS += -s EXIT_RUNTIME=1
-
-
-
 

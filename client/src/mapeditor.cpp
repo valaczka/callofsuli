@@ -35,6 +35,7 @@
 #include "gameterrain.h"
 #include "utils_.h"
 #include "tar_to_stream.h"
+#include <sstream>
 
 #ifdef Q_OS_WASM
 #include "onlineclient.h"

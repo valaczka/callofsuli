@@ -190,7 +190,13 @@ Grade *GradingConfig::grade(const qreal &num) const
 	Grade *g = nullptr;
 	qreal n = -1;
 
+#if QT_VERSION >= 0x060400
 	for (auto [grade, value] : m_gradeMap.asKeyValueRange()) {
+#else
+	for (auto it=m_gradeMap.constBegin(); it != m_gradeMap.constEnd(); ++it) {
+		auto grade = it.key();
+		auto value = it.value();
+#endif
 		if (!value.second)
 			continue;
 
@@ -284,7 +290,14 @@ QJsonArray GradingConfig::toJson() const
 {
 	QJsonArray list;
 
+#if QT_VERSION >= 0x060400
 	for (auto [grade, value] : m_gradeMap.asKeyValueRange()) {
+#else
+	for (auto it=m_gradeMap.constBegin(); it != m_gradeMap.constEnd(); ++it) {
+		auto grade = it.key();
+		auto value = it.value();
+#endif
+
 		if (!grade)
 			continue;
 

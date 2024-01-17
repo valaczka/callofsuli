@@ -35,7 +35,7 @@ QMAKE_CXXFLAGS += -Wno-unused-parameter -Wno-unused-lambda-capture -Wno-deprecat
 
 # Qrc
 lessThan(QT_MAJOR_VERSION, 6) {
-	linux:!exists(Qaterial.qrc): {
+	!exists(Qaterial.qrc): {
 		lines = <RCC>
 		lines += "<qresource prefix=\"/Qaterial\">"
 
@@ -50,7 +50,7 @@ lessThan(QT_MAJOR_VERSION, 6) {
 		write_file(Qaterial.qrc, lines)
 	}
 } else {
-	linux:!exists(Qaterial-Qt6.qrc): {
+	!exists(Qaterial-Qt6.qrc): {
 		lines = <RCC>
 		lines += "<qresource prefix=\"/Qaterial\">"
 
@@ -69,7 +69,10 @@ lessThan(QT_MAJOR_VERSION, 6) {
 
 # Icons
 
-linux:!exists(QaterialIcons.qrc): {
+lessThan(QT_MAJOR_VERSION, 6): ICONS_QML = $$PWD/../Qaterial/qml/Qaterial/Icons.qml
+else: ICONS_QML = $$PWD/../Qaterial/qml/Qaterial-Qt6/Icons.qml
+
+!exists(QaterialIcons.qrc)|!exists($$ICONS_QML): {
 
 	lines = <RCC>
 	lines += "<qresource prefix=\"/Qaterial/Icons\">"
@@ -119,10 +122,9 @@ linux:!exists(QaterialIcons.qrc): {
 
 	qmlLines += "}"
 
-	message(Create QaterialIcons.qrc)
+	message(Create QaterialIcons.qrc, $$ICONS_QML)
 	write_file(QaterialIcons.qrc, lines)
-	lessThan(QT_MAJOR_VERSION, 6): write_file($$PWD/../Qaterial/qml/Qaterial/Icons.qml, qmlLines)
-	else: write_file($$PWD/../Qaterial/qml/Qaterial-Qt6/Icons.qml, qmlLines)
+	write_file($$ICONS_QML, qmlLines)
 }
 
 

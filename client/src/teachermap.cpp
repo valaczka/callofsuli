@@ -25,6 +25,7 @@
  */
 
 #include "teachermap.h"
+#include "application.h"
 
 TeacherMap::TeacherMap(QObject *parent)
 	: BaseMap{parent}
@@ -48,7 +49,7 @@ void TeacherMap::loadFromJson(const QJsonObject &object, const bool &allField)
 		setDraftVersion(object.value(QStringLiteral("draftVersion")).toInt());
 
 	if (object.contains(QStringLiteral("lastModified")) || allField)
-		setLastModified(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("lastModified")).toInteger()));
+		setLastModified(QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(object.value(QStringLiteral("lastModified")))));
 
 	if (object.contains(QStringLiteral("lastEditor")) || allField)
 		setLastEditor(object.value(QStringLiteral("lastEditor")).toString());

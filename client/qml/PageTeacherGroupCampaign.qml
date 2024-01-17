@@ -1,9 +1,9 @@
-import QtQuick
-import QtQuick.Controls
-import QtQuick.Layouts
-import Qaterial as Qaterial
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
+import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 QPage {
@@ -88,7 +88,7 @@ QPage {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
-			model.append({ text: qsTr("Log"), source: Qaterial.Icons.paperRoll, color: "yellow" })
+			model.append({ text: qsTr("Log"), source: Qaterial.Icons.listBoxOutline, color: "yellow" })
 		}
 	}
 

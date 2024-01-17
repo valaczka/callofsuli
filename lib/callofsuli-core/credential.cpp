@@ -26,6 +26,7 @@
 
 #include "credential.h"
 #include "Logger.h"
+#include "application.h"
 #include "utils_.h"
 
 
@@ -141,7 +142,7 @@ Credential Credential::fromJWT(const QString &jwt)
 
 	const QString &r = obj.value(QStringLiteral("roles")).toString();
 
-	c.m_iat = obj.value(QStringLiteral("iat")).toInteger();
+	c.m_iat = JSON_TO_INTEGER(obj.value(QStringLiteral("iat")));
 
 	Roles roles;
 
@@ -181,10 +182,10 @@ bool Credential::verify(const QString &token, const QString &secret, const qint6
 
 	const QJsonObject &object = jwt.getPayloadJDoc().object();
 
-	if (firstIat > 0 && object.value(QStringLiteral("iat")).toInteger() < firstIat)
+	if (firstIat > 0 && JSON_TO_INTEGER(object.value(QStringLiteral("iat"))) < firstIat)
 		return false;
 
-	if (object.value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch())
+	if (JSON_TO_INTEGER(object.value(QStringLiteral("exp"))) <= QDateTime::currentSecsSinceEpoch())
 		return false;
 
 	if (object.value(QStringLiteral("iss")).toString() != JWT_ISSUER)

@@ -1,9 +1,9 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets pdf
+QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets
 
-CONFIG += c++20
+CONFIG += c++2a
 CONFIG += separate_debug_info
 CONFIG += permissions
 
@@ -21,6 +21,8 @@ lessThan(QT_MAJOR_VERSION, 6) {
 } else {
 	QML_IMPORT_PATH += $$PWD/../qml-Qt6
 	QMLPATHS += $$PWD/../qml-Qt6
+
+	linux|win32|macx:!android: QT += pdf
 }
 
 DEFINES += CLIENT_UTILS

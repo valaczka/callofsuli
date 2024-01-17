@@ -1,9 +1,9 @@
-import QtQuick
-import QtQuick.Controls
-import SortFilterProxyModel
-import Qaterial as Qaterial
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import SortFilterProxyModel 0.2
+import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli
+import CallOfSuli 1.0
 import "JScript.js" as JS
 
 QPage {
@@ -656,7 +656,7 @@ QPage {
 
 	Action {
 		id: _actionGenerateVirtual
-		icon.source: Qaterial.Icons.pinwheel
+		icon.source: Qaterial.Icons.humanCapacityDecrease
 
 		property int spinCount: 10
 
@@ -797,7 +797,7 @@ QPage {
 
 	Action {
 		id: _actionFinish
-		icon.source: Qaterial.Icons.accountMultipleCheck
+		icon.source: Qaterial.Icons.playBoxLockOutline
 
 		text: qsTr("Visszaadás")
 		enabled: exam && exam.state < Exam.Finished

@@ -187,7 +187,6 @@
         <file>TeacherGroupLog.qml</file>
         <file>corrector.css</file>
         <file>GamePlayerMulti.qml</file>
-        <file>MapEditorMissionLevelItem.qml.orig</file>
         <file>PageMultiPlayerGame.qml</file>
         <file>PageTeacherExam.qml</file>
         <file>PageTeacherExamGrading.qml</file>
@@ -195,12 +194,12 @@
         <file>PageTeacherExamScanner.qml</file>
         <file>PageTeacherGroupCampaign.qml</file>
         <file>PageTeacherGroupExam.qml</file>
-        <file>PageTestGame.qml.orig</file>
         <file>QaterialHelper.qml</file>
         <file>QLoaderItemDelegate.qml</file>
         <file>StudentGroupExamList.qml</file>
         <file>TeacherExamCorrector.qml</file>
         <file>TeacherGroupExamList.qml</file>
         <file>TeacherGroupExamResult.qml</file>
+        <file>QSpinBox.qml</file>
     </qresource>
 </RCC>

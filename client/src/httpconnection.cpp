@@ -46,7 +46,7 @@ HttpConnection::HttpConnection(Client *client)
 #ifndef QT_NO_SSL
 	if (!QSslSocket::supportsSsl())
 		LOG_CERROR("http") << "Platform doesn't support SSL";
-
+/*
 	QFile certFile(QStringLiteral(":/root_CallOfSuli_CA.crt"));
 
 	LOG_CTRACE("http") << "Cert file exists:" << certFile.exists();
@@ -62,7 +62,7 @@ HttpConnection::HttpConnection(Client *client)
 			m_rootCertificate = cert;
 			LOG_CTRACE("http") << "Root certificate added";
 		}
-	}
+	} */
 #else
 	LOG_CERROR("http") << "Qt built without SSL support";
 #endif
