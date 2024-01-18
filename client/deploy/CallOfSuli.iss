@@ -17,7 +17,7 @@ MinVersion={#WinMinVersion}
 OnlyBelowVersion={#WinMaxVersion}
 
 [Files]
-Source: "*"; DestDir: "{app}"; Excludes: "CallOfSuli.iss"; Flags: recursesubdirs
+Source: "*"; DestDir: "{app}"; Excludes: "CallOfSuli.iss"; Flags: recursesubdirs ignoreversion
 
 
 [Tasks]

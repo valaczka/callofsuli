@@ -37,6 +37,7 @@ A <i>Call of Suli</i> egy olyan digitális feladatlapkészítő és kiértékel�
 - ✅ **Azonnali visszajelzés**: Miközben teljesíted a kihívásokat, azonnali visszajelzést kapsz a megoldások helyességéről, így könnyen javítani tudod a hibáidat, és elmélyíteni a tudásodat.
 - 📈 **Előrehaladás**: Az alkalmazás figyeli a tanulási előrehaladásodat, és nyomon követheted azt is, hogy a kapott kihívások teljesítésében hol tartasz. Tanárként elég a kihívásokat összeállítanod, a tanulási folyamatot és az értékelést a *Call of Suli* magától elvégzi. A diákok előrehaladását folyamatosan követni tudod.  
 - 📐 **Egyedi beállítások és paraméterek**: Az alkalmazás lehetőséget nyújt, hogy tanárként egyedi paramétereket állíts be. Testre szabhatod a játékot a tananyaghoz és a diákok képességeihez. Állíts be nehézségi szinteket, időkorlátokat és egyéb speciális feltételeket a játékokhoz!
+- 📝 **Papír alapú dolgozatok**: A feladatok papír alapon, személyre szabott dolgozatok formájában is megoldhatóak, melyeket az alkalmazás automatikusan ki is tud értékelni.
 
 Kezdd el felfedezni a *Call of Suli* játékos oktatási világát, és tegyél szert új tudásra és készségekre a szórakozás és a tanulás kombinációjával! Töltsd le az alkalmazást most ingyenesen, és induljon a tanulás izgalmas utazása! Tanárként pedig a *Call of Suli*val varázsold játékká az okatatást!
 
@@ -59,7 +60,7 @@ Kezdd el felfedezni a *Call of Suli* játékos oktatási világát, és tegyél 
 
 ### Linux, Windows, Android
 ```
-git clone --recurse-submodules https://github.com/valaczka/callofsuli.git
+git clone --depth 1 --recurse-submodules https://github.com/valaczka/callofsuli.git
 cd callofsuli
 mkdir build && cd build
 qmake ../client.pro
@@ -69,7 +70,7 @@ make
 ### iOS
 
 ```
-git clone --recurse-submodules https://github.com/valaczka/callofsuli.git
+git clone --depth 1 --recurse-submodules https://github.com/valaczka/callofsuli.git
 cd callofsuli
 mkdir build && cd build
 qmake -config release -spec macx-ios-clang ../client.pro
