@@ -122,7 +122,7 @@ else: ICONS_QML = $$PWD/../Qaterial/qml/Qaterial-Qt6/Icons.qml
 
 	qmlLines += "}"
 
-	message(Create QaterialIcons.qrc, $$ICONS_QML)
+	message(Create QaterialIcons.qrc and $$ICONS_QML)
 	write_file(QaterialIcons.qrc, lines)
 	write_file($$ICONS_QML, qmlLines)
 }

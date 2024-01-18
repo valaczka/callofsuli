@@ -99,7 +99,7 @@ void User::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("dailyRate")) || allField)
 		setDailyRate(object.value(QStringLiteral("dailyRate")).toDouble());
 
-	Credential::Roles roles;
+	Credential::Roles roles = m_roles;
 
 	if (object.contains(QStringLiteral("isAdmin")) || allField)
 		roles.setFlag(Credential::Admin, object.value(QStringLiteral("isAdmin")).toInt());

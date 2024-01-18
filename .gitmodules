@@ -10,9 +10,6 @@
 [submodule "lib/Qaterial"]
 	path = lib/Qaterial
 	url = https://github.com/valaczka/Qaterial.git
-[submodule "lib/qzxing"]
-	path = lib/qzxing
-	url = https://github.com/valaczka/qzxing.git
 [submodule "lib/SortFilterProxyModel"]
 	path = lib/SortFilterProxyModel
 	url = https://github.com/valaczka/SortFilterProxyModel.git

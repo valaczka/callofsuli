@@ -286,6 +286,19 @@ QPageGradient {
 			}
 		}
 
+		Qaterial.IconLabel {
+			anchors.horizontalCenter: parent.horizontalCenter
+			width: Math.min(_inventoryUseView.width, implicitWidth, parent.width)
+			font: Qaterial.Style.textTheme.caption
+			icon.source: Qaterial.Icons.informationOutline
+			wrapMode: Text.Wrap
+			text: qsTr("A feladat teljesítésére 150% idő van biztosítva")
+			horizontalAlignment: Qt.AlignLeft
+			visible: Client.server && Client.server.user && (Client.server.user.roles & Credential.SNI) &&
+					 (_modeGroup.checkedButton.gameMode === GameMap.Lite || _modeGroup.checkedButton.gameMode === GameMap.Test)
+		}
+
+
 		Column {
 			id: _extraTimeCol
 

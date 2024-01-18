@@ -49,3 +49,7 @@ compile_commands.json
 
 # QtCreator local machine specific files for imported projects
 *creator.user*
+
+
+client/src/android-Qt6/AndroidManifest.xml
+client/src/android/AndroidManifest.xml

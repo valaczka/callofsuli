@@ -12,7 +12,7 @@
 
 	<supports-screens android:largeScreens=\"true\" android:normalScreens=\"true\" android:anyDensity=\"true\" android:smallScreens=\"true\"/>
 	<application android:hardwareAccelerated=\"true\" android:name=\"org.qtproject.qt5.android.bindings.QtApplication\" android:label=\"Call of Suli\" android:extractNativeLibs=\"true\" android:icon=\"@mipmap/ic_launcher\" android:requestLegacyExternalStorage=\"true\" android:usesCleartextTraffic=\"true\">
-		<activity android:configChanges=\"orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density\" android:name=\"hu.piarista.vjp.callofsuli.ClientActivity\" android:label=\"Call of Suli\" android:screenOrientation=\"unspecified\" android:windowSoftInputMode=\"adjustPan\" android:launchMode=\"singleInstance\" android:taskAffinity=\"\"
+		<activity android:configChanges=\"orientation|uiMode|screenLayout|screenSize|smallestScreenSize|layoutDirection|locale|fontScale|keyboard|keyboardHidden|navigation|mcc|mnc|density\" android:name=\"hu.piarista.vjp.callofsuli.ClientActivity\" android:label=\"Call of Suli\" android:screenOrientation=\"unspecified\" android:windowSoftInputMode=\"adjustResize\" android:launchMode=\"singleInstance\" android:taskAffinity=\"\"
 		android:exported=\"true\">
 			<intent-filter>
 				<action android:name=\"android.intent.action.MAIN\"/>

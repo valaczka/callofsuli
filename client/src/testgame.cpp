@@ -30,6 +30,7 @@
 #include "gamequestion.h"
 #include "application.h"
 #include <QRandomGenerator>
+#include "server.h"
 #include "utils_.h"
 
 #if QT_VERSION < 0x060000
@@ -119,7 +120,14 @@ void TestGame::onPageReady()
 
 void TestGame::onStarted()
 {
-	startWithRemainingTime(m_missionLevel->duration()*1000);
+	int sec = m_missionLevel->duration();
+	const int sni = sec*0.5;
+
+	if (m_client->server() && m_client->server()->user() &&
+			m_client->server()->user()->roles().testFlag(Credential::SNI))
+		sec += sni;
+
+	startWithRemainingTime(sec*1000);
 	setCurrentQuestion(0);
 	loadCurrentQuestion();
 }
