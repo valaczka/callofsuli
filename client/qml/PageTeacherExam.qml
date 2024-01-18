@@ -60,7 +60,7 @@ QPage {
 			}
 		]
 
-		proxyRoles: [
+		proxyRoles: [	// FIX: wasm
 			ExpressionRole {
 				name: "fullNamePending"
 				expression: model.fullName + (model.pendingCorrection.length ? qsTr("*") : "")

@@ -18,11 +18,11 @@ DESTDIR = ../..
 lessThan(QT_MAJOR_VERSION, 6) {
 	QML_IMPORT_PATH += $$PWD/../qml
 	QMLPATHS += $$PWD/../qml
-
-	QT += core5compat
 } else {
 	QML_IMPORT_PATH += $$PWD/../qml-Qt6
 	QMLPATHS += $$PWD/../qml-Qt6
+
+	QT += core5compat
 
 	linux|win32|macx:!android: QT += pdf
 }
@@ -242,6 +242,7 @@ SOURCES += \
 	scorelist.cpp \
 	server.cpp \
 	sound.cpp \
+	stb_helper.cpp \
 	studentgroup.cpp \
 	studentmap.cpp \
 	studentmaphandler.cpp \

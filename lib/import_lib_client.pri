@@ -141,3 +141,8 @@ HEADERS += \
 # CSV parser
 
 INCLUDEPATH += $$PWD/csv-parser/single_include
+
+
+# STB
+
+INCLUDEPATH += $$PWD/stb
