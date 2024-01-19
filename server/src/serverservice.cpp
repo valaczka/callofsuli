@@ -50,7 +50,7 @@ ServerService *ServerService::m_instance = nullptr;
 
 
 
-#define _MAIN_TIMER_TEST_MODE
+//#define _MAIN_TIMER_TEST_MODE
 
 /**
  * @brief ServerService::ServerService

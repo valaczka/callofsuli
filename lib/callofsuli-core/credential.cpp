@@ -26,9 +26,22 @@
 
 #include "credential.h"
 #include "Logger.h"
-#include "application.h"
 #include "utils_.h"
 
+
+// QJsonValue::toInteger() available since Qt 6.0
+
+#ifndef JSON_TO_INTEGER
+
+#if QT_VERSION >= 0x060000
+#define JSON_TO_INTEGER(x)	x.toInteger()
+#define JSON_TO_INTEGER_Y(x, y)	x.toInteger(y)
+#else
+#define JSON_TO_INTEGER(x)	x.toInt()
+#define JSON_TO_INTEGER_Y(x, y)	x.toInt(y)
+#endif
+
+#endif
 
 /**
  * @brief Credential::Credential

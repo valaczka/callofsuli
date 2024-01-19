@@ -194,7 +194,6 @@
         <file>PageTeacherExamScanner.qml</file>
         <file>PageTeacherGroupCampaign.qml</file>
         <file>PageTeacherGroupExam.qml</file>
-        <file>QaterialHelper.qml</file>
         <file>QLoaderItemDelegate.qml</file>
         <file>StudentGroupExamList.qml</file>
         <file>TeacherExamCorrector.qml</file>

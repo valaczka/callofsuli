@@ -1777,16 +1777,17 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 								{ QStringLiteral("success"), false }
 							});
 			} else {
+				QJsonArray r2 = r;
 				const QJsonArray &arr = correctAnswer.toArray();
 				for (const QJsonValue &v : std::as_const(arr)) {
-					if (auto it = std::find_if(r.begin(), r.end(), [v](const QJsonValue &q){
+					if (auto it = std::find_if(r2.begin(), r2.end(), [v](const QJsonValue &q){
 											   return q.toInt(-1) == v.toInt(-2);
-				}); it != r.end()) {
-						r.erase(it);
+				}); it != r2.end()) {
+						r2.erase(it);
 					}
 				}
 
-				success = r.isEmpty();
+				success = r2.isEmpty();
 
 				const int p = success ? point : 0; sumPoint += p;
 

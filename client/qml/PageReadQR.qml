@@ -48,7 +48,7 @@ QPage {
 
 
 		focus: visible
-		fillMode: VideoOutput.PreserveAspectCrop
+		//fillMode: VideoOutput.PreserveAspectCrop
 
 		Rectangle {
 			id: blackRect
