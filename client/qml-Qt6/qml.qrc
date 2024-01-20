@@ -200,5 +200,6 @@
         <file>PageTeacherExamGrading.qml</file>
         <file>TeacherExamCorrector.qml</file>
         <file>corrector.css</file>
+        <file>ConquestState.qml</file>
     </qresource>
 </RCC>

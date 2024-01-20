@@ -254,6 +254,7 @@ public:
 	Q_INVOKABLE void retranslate(const QString &language = QStringLiteral("hu"));
 
 
+	Q_INVOKABLE QVariantMap getConquest(const int &id) const;
 
 	Updater *updater() const;
 

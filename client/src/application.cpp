@@ -26,6 +26,7 @@
 
 #include "Logger.h"
 #include "classobject.h"
+#include "conqueststate.h"
 #include "exam.h"
 #include "examgame.h"
 #include "examresultmodel.h"
@@ -39,6 +40,7 @@
 #include "mapeditor.h"
 #include "mapgame.h"
 #include "mapplaycampaign.h"
+#include "maskedmousearea.h"
 #include "multiplayergame.h"
 #include "offsetmodel.h"
 #include "qapplication.h"
@@ -74,7 +76,6 @@
 #include "../modules/staticmodules.h"
 
 
-
 #include "abstractgame.h"
 #include "actiongame.h"
 #include "gameentity.h"
@@ -97,10 +98,10 @@ Application *Application::m_instance = nullptr;
 
 
 const QString Application::m_userAgent = QStringLiteral("CallOfSuli/%1.%2.%3 (%4; %5)")
-		.arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
-		.arg(QSysInfo::prettyProductName())
-		.arg(QSysInfo::currentCpuArchitecture())
-		;
+										 .arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
+										 .arg(QSysInfo::prettyProductName())
+										 .arg(QSysInfo::currentCpuArchitecture())
+										 ;
 
 
 
@@ -384,6 +385,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
 	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
 	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
+	qmlRegisterType<ConquestState>("CallOfSuli", 1, 0, "ConquestStateImpl");
 	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
 	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
 	qmlRegisterType<Exam>("CallOfSuli", 1, 0, "Exam");
@@ -411,6 +413,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<MapEditor>("CallOfSuli", 1, 0, "MapEditor");
 	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
+	qmlRegisterType<MaskedMouseArea>("CallOfSuli", 1, 0, "MaskedMouseArea");
 	qmlRegisterType<OffsetModel>("CallOfSuli", 1, 0, "OffsetModelImpl");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");

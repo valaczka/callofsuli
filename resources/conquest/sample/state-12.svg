@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="fantasyMap"
+   width="118.35004"
+   height="162.04308"
+   version="1.1"
+   background-color="#000000"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs115" />
+  <g
+     id="States_1705768885.696385"
+     style="display:inline"
+     transform="translate(-1865.2074,-561.47007)">
+    <path
+       id="state-border12"
+       d="m 1886,564 4,-2 4,1 15,17 15,-11 8,10 10,2 1,1 -4,21 6,3 v 14 l 16,3 -1,17 17,-1 4,12 2,2 -4,15 -12,4 -10,-6 -6,2 -6,22 v 0 l -3,8 14,18 -2,3 -15,4 -5,-1 4,-21 h -17 l -3,-7 -10,-5 2,-16 -18,-3 -2,-6 -8,-5 5,-18 -6,-6 -3,-1 -2,-12 -10,-5 11,-13 -4,-6 v -5 l 7,-7 3,-2 3,-20"
+       clip-path="url(#state-clip12)"
+       
+       style="fill:#ffffff" />
+  </g>
+</svg>
