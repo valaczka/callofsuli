@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import CallOfSuli
+import Tiled as Tiled
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
@@ -17,33 +18,20 @@ Page {
 		cache: true
 	}
 
-	Rectangle {
-		color: "black"
+
+	Image {
 		anchors.centerIn: parent
-		width: 400
-		height: 400
+		source: "qrc:/internal/game/drop.png"
 
-		Column {
-			spacing: 10
-			width: parent.width
+		opacity: rightCloudArea.containsMouse ? 0.3 : 1.0
 
-			TextField {
-				width: parent.width
-				activeFocusOnPress: true
-			}
-
-			TextField {
-				width: parent.width
-			}
-
-			Qaterial.TextField {
-				id: tf1
-				width: parent.width
-			}
+		MaskedMouseArea {
+			id: rightCloudArea
+			anchors.fill: parent
+			alphaThreshold: 0.4
+			maskSource: parent.source
 		}
 	}
-
-	Component.onCompleted: tf1.forceActiveFocus()
 }
 
 
