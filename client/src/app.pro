@@ -236,7 +236,6 @@ SOURCES += \
 	mapplay.cpp \
 	mapplaycampaign.cpp \
 	mapplaydemo.cpp \
-	maskedmousearea.cpp \
 	multiplayergame.cpp \
 	offsetmodel.cpp \
 	qrimage.cpp \
@@ -314,7 +313,6 @@ HEADERS += \
 	mapplay.h \
 	mapplaycampaign.h \
 	mapplaydemo.h \
-	maskedmousearea.h \
 	multiplayergame.h \
 	offsetmodel.h \
 	qrimage.h \
