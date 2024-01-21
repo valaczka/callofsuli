@@ -200,6 +200,8 @@
         <file>PageTeacherExamGrading.qml</file>
         <file>TeacherExamCorrector.qml</file>
         <file>corrector.css</file>
-        <file>ConquestState.qml</file>
+        <file>ConquestLand.qml</file>
+        <file>PageConquestGame.qml</file>
+        <file>ConquestScene.qml</file>
     </qresource>
 </RCC>

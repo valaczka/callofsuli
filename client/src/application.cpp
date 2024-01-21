@@ -26,7 +26,8 @@
 
 #include "Logger.h"
 #include "classobject.h"
-#include "conqueststate.h"
+#include "conquestgame.h"
+#include "conquestland.h"
 #include "exam.h"
 #include "examgame.h"
 #include "examresultmodel.h"
@@ -348,6 +349,7 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+	qmlRegisterUncreatableType<ConquestGame>("CallOfSuli", 1, 0, "ConquestGame", "ConquestGame is uncreatable");
 	qmlRegisterUncreatableType<ExamGame>("CallOfSuli", 1, 0, "ExamGame", "ExamGame is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
 	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
@@ -373,6 +375,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
+	qmlRegisterUncreatableType<ConquestConfig>("CallOfSuli", 1, 0, "ConquestConfig", "ConquestConfig is uncreatable");
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
 	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
@@ -385,7 +388,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<BaseMap>("CallOfSuli", 1, 0, "BaseMap");
 	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
 	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
-	qmlRegisterType<ConquestState>("CallOfSuli", 1, 0, "ConquestStateImpl");
+	qmlRegisterType<ConquestLand>("CallOfSuli", 1, 0, "ConquestLandImpl");
 	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
 	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
 	qmlRegisterType<Exam>("CallOfSuli", 1, 0, "Exam");
@@ -591,7 +594,7 @@ void Application::selectUrl(const QUrl &url)
 
 	m_client->setParseUrl(url);
 
-	QMetaObject::invokeMethod(m_client.get(), "parseUrl", Qt::QueuedConnection);
+	QMetaObject::invokeMethod(m_client.get(), &Client::parseUrl, Qt::QueuedConnection);
 }
 
 

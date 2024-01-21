@@ -998,10 +998,9 @@ QHttpServerResponse AdminAPI::usersProfileUpdate()
 			continue;
 		}
 
-		QMetaObject::invokeMethod(authenticator, "profileUpdate", Qt::QueuedConnection,
-								  Q_ARG(QString, username),
-								  Q_ARG(QJsonObject, oauthData)
-								  );
+		QMetaObject::invokeMethod(authenticator,
+								  std::bind(&OAuth2Authenticator::profileUpdate, authenticator, username, oauthData),
+								  Qt::QueuedConnection);
 	}
 
 	return responseOk();

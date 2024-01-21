@@ -5,7 +5,7 @@ import Qt5Compat.GraphicalEffects
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
-ConquestStateImpl {
+ConquestLandImpl {
 	id: root
 
 	property real mapScale: 1.0
@@ -81,7 +81,17 @@ ConquestStateImpl {
 		maskSource: _mapSource
 		alphaThreshold: 0.4
 		scaleImage: mapScale
-		onClicked: isActive = ! isActive
+		onClicked: {
+			if (!game)
+				return
+
+			game.sendWebSocketMessage({
+										  cmd: "test",
+										  engine: game.engineId,
+										  stateId: stateId,
+										  value: !isActive
+									  })
+		}
 	}
 
 }

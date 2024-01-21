@@ -354,8 +354,7 @@ void TeacherExam::uploadResult()
 
 		list.squeeze();
 
-		QMetaObject::invokeMethod(this, "uploadResultReal", Qt::QueuedConnection,
-								  Q_ARG(QVector<QPointer<ExamScanData>>, list));
+		QMetaObject::invokeMethod(this, std::bind(&TeacherExam::uploadResultReal, this, list), Qt::QueuedConnection);
 
 #ifndef Q_OS_WASM
 	});

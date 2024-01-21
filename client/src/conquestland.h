@@ -6,7 +6,7 @@
  * Created on: 2024. 01. 20.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ConquestState
+ * ConquestLand
  *
  *  This file is part of Call of Suli.
  *
@@ -24,12 +24,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef CONQUESTSTATE_H
-#define CONQUESTSTATE_H
+#ifndef CONQUESTLAND_H
+#define CONQUESTLAND_H
 
+#include "conquestgame.h"
 #include <QQuickItem>
 
-class ConquestState : public QQuickItem
+class ConquestLand : public QQuickItem
 {
 	Q_OBJECT
 
@@ -40,11 +41,12 @@ class ConquestState : public QQuickItem
 	Q_PROPERTY(qreal baseX READ baseX WRITE setBaseX NOTIFY baseXChanged FINAL)
 	Q_PROPERTY(qreal baseY READ baseY WRITE setBaseY NOTIFY baseYChanged FINAL)
 	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
+	Q_PROPERTY(ConquestGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 
 	QML_ELEMENT
 
 public:
-	ConquestState();
+	ConquestLand();
 
 	QString world() const;
 	void setWorld(const QString &newWorld);
@@ -66,6 +68,9 @@ public:
 	bool isActive() const;
 	void setIsActive(bool newIsActive);
 
+	ConquestGame *game() const;
+	void setGame(ConquestGame *newGame);
+
 signals:
 	void worldChanged();
 	void stateIdChanged();
@@ -73,8 +78,8 @@ signals:
 	void isValidChanged();
 	void baseXChanged();
 	void baseYChanged();
-
 	void isActiveChanged();
+	void gameChanged();
 
 private:
 	void reload();
@@ -87,6 +92,7 @@ private:
 	qreal m_baseX = 0;
 	qreal m_baseY = 0;
 	bool m_isActive = false;
+	ConquestGame *m_game = nullptr;
 };
 
-#endif // CONQUESTSTATE_H
+#endif // CONQUESTLAND_H

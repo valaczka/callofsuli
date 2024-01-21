@@ -17,7 +17,8 @@ public:
 		EngineInvalid = 0,
 		EnginePeer,
 		EngineMultiPlayer,
-		EngineExam
+		EngineExam,
+		EngineConquest
 	};
 
 	Q_ENUM(Type);

@@ -49,8 +49,9 @@ const char *ServerService::m_version = VERSION_FULL;
 ServerService *ServerService::m_instance = nullptr;
 
 
-
-//#define _MAIN_TIMER_TEST_MODE
+#ifndef QT_NO_DEBUG
+#	define _MAIN_TIMER_TEST_MODE
+#endif
 
 /**
  * @brief ServerService::ServerService

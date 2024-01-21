@@ -136,7 +136,7 @@ void EngineHandlerPrivate::engineRemove(const std::shared_ptr<AbstractEngine> &e
 
 	QMutexLocker locker(&m_mutex);
 
-	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
+	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
 		if (*it == engine)
 			it = m_engines.erase(it);
 		else
@@ -159,7 +159,7 @@ void EngineHandlerPrivate::engineRemove(AbstractEngine *engine)
 
 	QMutexLocker locker(&m_mutex);
 
-	for (auto it = m_engines.constBegin(); it != m_engines.constEnd(); ) {
+	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
 		if (it->get() == engine)
 			it = m_engines.erase(it);
 		else

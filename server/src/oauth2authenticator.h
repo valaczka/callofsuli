@@ -52,7 +52,7 @@ public:
 	virtual QJsonObject localAuthData() const = 0;
 	virtual bool parseResponse(const QUrlQuery &query) = 0;
 	virtual bool profileUpdateSupport() const = 0;
-	Q_INVOKABLE virtual bool profileUpdate(const QString &username, const QJsonObject &data) const = 0;
+	virtual bool profileUpdate(const QString &username, const QJsonObject &data) const = 0;
 	virtual void profileUpdateWithAccessToken(const QString &username, const QString &token) const = 0;
 
 	Q_INVOKABLE std::weak_ptr<OAuth2CodeFlow> addCodeFlow();

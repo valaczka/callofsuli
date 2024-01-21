@@ -247,10 +247,6 @@ public slots:
 	void abort();
 	void close();
 
-private slots:
-	void onReplyFinished();
-	void onErrorPresent(const QNetworkReply::NetworkError &error);
-
 signals:
 	void finished();
 	void failed(HttpReply *reply);
@@ -258,6 +254,10 @@ signals:
 	void uploadProgress(qreal percent);
 
 private:
+	void onReplyFinished();
+	void onErrorPresent(const QNetworkReply::NetworkError &error);
+
+
 	QPointer<QNetworkReply> m_reply = nullptr;
 	QPointer<HttpConnection> m_socket = nullptr;
 	bool m_pending = true;

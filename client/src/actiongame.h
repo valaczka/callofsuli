@@ -65,213 +65,169 @@ Q_DECLARE_OPAQUE_POINTER(GameEnemy*)
 
 class ActionGame : public AbstractLevelGame
 {
-    Q_OBJECT
+	Q_OBJECT
 
-    Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
-    Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
-    Q_PROPERTY(GameScene* scene READ scene WRITE setScene NOTIFY sceneChanged)
-    Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
-    Q_PROPERTY(GamePickable *pickable READ pickable NOTIFY pickableChanged)
-    Q_PROPERTY(QVariantList tools READ tools CONSTANT)
-    Q_PROPERTY(QVariantList toolListIcons READ toolListIcons NOTIFY toolListIconsChanged)
+	Q_PROPERTY(GamePlayer* player READ player WRITE setPlayer NOTIFY playerChanged)
+	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged)
+	Q_PROPERTY(GameScene* scene READ scene WRITE setScene NOTIFY sceneChanged)
+	Q_PROPERTY(int activeEnemies READ activeEnemies NOTIFY activeEnemiesChanged)
+	Q_PROPERTY(GamePickable *pickable READ pickable NOTIFY pickableChanged)
+	Q_PROPERTY(QVariantList tools READ tools CONSTANT)
+	Q_PROPERTY(QVariantList toolListIcons READ toolListIcons NOTIFY toolListIconsChanged)
 
 public:
-    explicit ActionGame(GameMapMissionLevel *missionLevel, Client *client, const GameMap::GameMode &mode);
-    explicit ActionGame(GameMapMissionLevel *missionLevel, Client *client) : ActionGame(missionLevel, client, GameMap::Action) {}
-    virtual ~ActionGame();
+	explicit ActionGame(GameMapMissionLevel *missionLevel, Client *client, const GameMap::GameMode &mode);
+	explicit ActionGame(GameMapMissionLevel *missionLevel, Client *client) : ActionGame(missionLevel, client, GameMap::Action) {}
+	virtual ~ActionGame();
 
-    class EnemyLocation;
-    class QuestionLocation;
+	class EnemyLocation;
+	class QuestionLocation;
 
-    virtual void onSceneReady();
-    virtual void onSceneAnimationFinished();
+	virtual void onSceneReady();
+	virtual void onSceneAnimationFinished();
 
-    void createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint);
+	void createPickable(const GamePickable::GamePickableData &data, const QPointF &bottomPoint);
 
-    virtual void enemyAttackPlayer(GameEnemy *enemy, const bool &canProtect, GamePlayer *player);
-    virtual void enemyKillPlayer(GameEnemy *enemy, GamePlayer *player);
-    virtual void tryAttack(GamePlayer *player, GameEnemy *enemy);
+	virtual void enemyAttackPlayer(GameEnemy *enemy, const bool &canProtect, GamePlayer *player);
+	virtual void enemyKillPlayer(GameEnemy *enemy, GamePlayer *player);
+	virtual void tryAttack(GamePlayer *player, GameEnemy *enemy);
 
-    void operateReal(GamePlayer *player, GameObject *object);
-    bool canOperate(const QString &type) const;
-    bool canOperate(GameObject *object) const;
+	void operateReal(GamePlayer *player, GameObject *object);
+	bool canOperate(const QString &type) const;
+	bool canOperate(GameObject *object) const;
 
-    GamePlayer *player() const;
-    void setPlayer(GamePlayer *newPlayer);
+	GamePlayer *player() const;
+	void setPlayer(GamePlayer *newPlayer);
 
-    bool running() const;
-    void setRunning(bool newRunning);
+	bool running() const;
+	void setRunning(bool newRunning);
 
-    GameScene* scene() const;
-    void setScene(GameScene* newScene);
+	GameScene* scene() const;
+	void setScene(GameScene* newScene);
 
-    int activeEnemies() const;
+	int activeEnemies() const;
 
-    const QVector<int> &closedBlocks() const;
+	const QVector<int> &closedBlocks() const;
 
-    GamePickable *pickable() const;
+	GamePickable *pickable() const;
 
-    void resetKillStreak();
-    void killAllEnemy();
+	void resetKillStreak();
+	void killAllEnemy();
 
-    Q_INVOKABLE int toolCount(const GamePickable::PickableType &type) const;
-    void toolAdd(const GamePickable::PickableType &type, const int &count = 1);
-    void toolRemove(const GamePickable::PickableType &type, const int &count = 1);
-    void toolClear(const GamePickable::PickableType &type);
-    QVariantList toolListIcons() const;
-    static QVariantList tools();
-    Q_INVOKABLE void toolUse(const GamePickable::PickableType &type);
-    const QHash<QString, QVector<GamePickable::PickableType> > &toolDependency() const;
+	Q_INVOKABLE int toolCount(const GamePickable::PickableType &type) const;
+	void toolAdd(const GamePickable::PickableType &type, const int &count = 1);
+	void toolRemove(const GamePickable::PickableType &type, const int &count = 1);
+	void toolClear(const GamePickable::PickableType &type);
+	QVariantList toolListIcons() const;
+	static QVariantList tools();
+	Q_INVOKABLE void toolUse(const GamePickable::PickableType &type);
+	const QHash<QString, QVector<GamePickable::PickableType> > &toolDependency() const;
 
-    static void reloadAvailableCharacters();
-    static const QStringList &availableCharacters();
+	static void reloadAvailableCharacters();
+	static const QStringList &availableCharacters();
 
-    virtual QJsonObject getExtendedData() const override;
+	virtual QJsonObject getExtendedData() const override;
 
-    static int tickInterval() { return TickTimer::interval(); }
-    qint64 currentTick() const { return m_tickTimer.currentTick(); }
+	static int tickInterval() { return TickTimer::interval(); }
+	qint64 currentTick() const { return m_tickTimer.currentTick(); }
 
-    virtual void sceneTimerTimeout(const int &msec, const qreal &delayFactor);
+	virtual void sceneTimerTimeout(const int &msec, const qreal &delayFactor);
 
-    void onPlayerDied(GameEntity *);
-    void onEnemyDied(GameEntity *entity);
+	void onPlayerDied(GameEntity *);
+	void onEnemyDied(GameEntity *entity);
 
 public slots:
-    void pickableAdd(GamePickable *pickable);
-    void pickableRemove(GamePickable *pickable);
-    void pickableRemoveAll();
-    void pickablePick();
-    void message(const QString &text, const QColor &color = "white");
-    void addMSec(const qint64 &msec);
-    void dialogMessageTooltip(const QString &text, const QString &icon, const QString &title = tr("Tudtad?"));
-    bool dialogMessageTooltipById(const QString &msgId);
-    void dialogMessageFinish(const QString &text, const QString &icon, const bool &success);
-    void gameAbort() override;
+	void pickableAdd(GamePickable *pickable);
+	void pickableRemove(GamePickable *pickable);
+	void pickableRemoveAll();
+	void pickablePick();
+	void message(const QString &text, const QColor &color = "white");
+	void addMSec(const qint64 &msec);
+	void dialogMessageTooltip(const QString &text, const QString &icon, const QString &title = tr("Tudtad?"));
+	bool dialogMessageTooltipById(const QString &msgId);
+	void dialogMessageFinish(const QString &text, const QString &icon, const bool &success);
+	void gameAbort() override;
 
 protected:
-    virtual QQuickItem *loadPage() override;
-    virtual void connectGameQuestion() override;
-    virtual bool gameFinishEvent() override;
-    virtual void onSceneAboutToStart();
+	virtual QQuickItem *loadPage() override;
+	virtual void connectGameQuestion() override;
+	virtual bool gameFinishEvent() override;
+	virtual void onSceneAboutToStart();
 
-    void createPlayer();
-    void createQuestions();
-    void createEnemyLocations();
-    void createFixEnemies();
-    void recreateEnemies();
-    void createInventory();
-    void createPickable(GameEnemy *enemy);
+	void createPlayer();
+	void createQuestions();
+	void createEnemyLocations();
+	void createFixEnemies();
+	void recreateEnemies();
+	void createInventory();
+	void createPickable(GameEnemy *enemy);
 
-    void linkQuestionToEnemies(QList<GameEnemy *> enemies);
-    void linkPickablesToEnemies(QList<GameEnemy *> enemies);
-    void relinkQuestionToEnemy(GameEnemy * enemy);
+	void linkQuestionToEnemies(QList<GameEnemy *> enemies);
+	void linkPickablesToEnemies(QList<GameEnemy *> enemies);
+	void relinkQuestionToEnemy(GameEnemy * enemy);
 
 signals:
-    void playerChanged();
-    void runningChanged();
-    void sceneChanged();
-    void activeEnemiesChanged();
-    void pickableChanged();
-    void timeNotify();
-    void toolChanged(GamePickable::PickableType type, int count);
-    void toolListIconsChanged();
+	void playerChanged();
+	void runningChanged();
+	void sceneChanged();
+	void activeEnemiesChanged();
+	void pickableChanged();
+	void timeNotify();
+	void toolChanged(GamePickable::PickableType type, int count);
+	void toolListIconsChanged();
 
 private:
-    void onSceneStarted();
-    void onMsecLeftChanged();
-    void onGameQuestionSuccess(const QVariantMap &answer);
-    void onGameQuestionFailed(const QVariantMap &answer);
-    void onGameQuestionStarted();
-    void onGameQuestionFinished();
-    void onGameTimeout();
-    void onGameSuccess();
-    void onGameFailed();
+	void onSceneStarted();
+	void onMsecLeftChanged();
+	void onGameQuestionSuccess(const QVariantMap &answer);
+	void onGameQuestionFailed(const QVariantMap &answer);
+	void onGameQuestionStarted();
+	void onGameQuestionFinished();
+	void onGameTimeout();
+	void onGameSuccess();
+	void onGameFailed();
 
 
 protected:
-    /**
-     * @brief The ActionGameTickTimer class
-     */
+	TickTimer m_tickTimer;
 
-    class TickTimer {
-    public:
-        TickTimer() {}
+	void timeNotifySendReset();
 
-        void start(ActionGame *game, const qint64 &startTick = 0) {
-            m_reference.invalidate();
-            m_reference.start();
-            m_startTick = startTick;
-            if (!m_timer.isActive())
-                m_timer.start(m_interval, Qt::PreciseTimer, game);
-        }
+	QPointer<GameScene> m_scene = nullptr;
+	QPointer<GameEntity> m_player = nullptr;
+	bool m_running = true;
+	std::vector<std::unique_ptr<QuestionLocation>> m_questions;
+	std::vector<std::unique_ptr<EnemyLocation>> m_enemies;
+	QVector<int> m_closedBlocks;
 
-        void stop() {
-            m_reference.invalidate();
-            m_timer.stop();
-        }
+	typedef QPair<GamePickable::GamePickableData, int> Inventory;
+	QVector<Inventory> m_inventory;
 
-        bool isValid() const { return m_reference.isValid(); }
+	QStack<GamePickable*> m_pickableStack;
+	QPointer<GameEntity> m_attackedEnemy = nullptr;
 
-        const qint64 &latency() const { return m_latency; }
-        void setLatency(const qint64 &latency) { m_latency = latency; }
+	static const QHash<QString, QVector<GamePickable::PickableType>> m_toolDependency;
+	QHash<GamePickable::PickableType, int> m_tools;
 
-        qint64 currentTick() const {
-            if (!m_reference.isValid())
-                return -1;
+	static QStringList m_availableCharacters;
 
-            const qint64 &elapsed = m_reference.elapsed();
-            return m_startTick+elapsed+m_latency;
-        }
-
-        static int interval() { return m_interval; }
-
-    private:
-        QBasicTimer m_timer;
-        QElapsedTimer m_reference;
-        qint64 m_startTick = 0;
-        qint64 m_latency = 0;
-        static const int m_interval;
-    };
-
-    TickTimer m_tickTimer;
-
-    void timeNotifySendReset();
-
-    QPointer<GameScene> m_scene = nullptr;
-    QPointer<GameEntity> m_player = nullptr;
-    bool m_running = true;
-    std::vector<std::unique_ptr<QuestionLocation>> m_questions;
-    std::vector<std::unique_ptr<EnemyLocation>> m_enemies;
-    QVector<int> m_closedBlocks;
-
-    typedef QPair<GamePickable::GamePickableData, int> Inventory;
-    QVector<Inventory> m_inventory;
-
-    QStack<GamePickable*> m_pickableStack;
-    QPointer<GameEntity> m_attackedEnemy = nullptr;
-
-    static const QHash<QString, QVector<GamePickable::PickableType>> m_toolDependency;
-    QHash<GamePickable::PickableType, int> m_tools;
-
-    static QStringList m_availableCharacters;
-
-    int m_timeNotifySendNext = -1;
-    int m_killStreak = 0;
+	int m_timeNotifySendNext = -1;
+	int m_killStreak = 0;
 
 private:
 
 
-    /**
-     * @brief The Tooltip class
-     */
+	/**
+	 * @brief The Tooltip class
+	 */
 
-    struct Tooltip {
-        QString icon;
-        QString title;
-        QString text;
-    };
+	struct Tooltip {
+		QString icon;
+		QString title;
+		QString text;
+	};
 
-    static const QHash<QString, Tooltip> m_tooltips;
+	static const QHash<QString, Tooltip> m_tooltips;
 };
 
 
@@ -283,19 +239,19 @@ private:
 
 class ActionGame::QuestionLocation {
 public:
-    const Question &question() const;
-    void setQuestion(const Question &newQuestion);
+	const Question &question() const;
+	void setQuestion(const Question &newQuestion);
 
-    GameEnemy* enemy() const;
-    void setEnemy(GameEnemy *newEnemy);
+	GameEnemy* enemy() const;
+	void setEnemy(GameEnemy *newEnemy);
 
-    int used() const;
-    void setUsed(int newUsed);
+	int used() const;
+	void setUsed(int newUsed);
 
 private:
-    Question m_question = Question(nullptr);
-    QPointer<GameEntity> m_enemy = nullptr;
-    int m_used = 0;
+	Question m_question = Question(nullptr);
+	QPointer<GameEntity> m_enemy = nullptr;
+	int m_used = 0;
 };
 
 
@@ -306,24 +262,24 @@ private:
  */
 
 class ActionGame::EnemyLocation {
-    Q_GADGET
+	Q_GADGET
 
-    Q_PROPERTY(GameTerrain::EnemyData enemyData READ enemyData)
-    Q_PROPERTY(GameEnemy* enemy READ enemy)
+	Q_PROPERTY(GameTerrain::EnemyData enemyData READ enemyData)
+	Q_PROPERTY(GameEnemy* enemy READ enemy)
 
 public:
-    EnemyLocation(const GameTerrain::EnemyData &enemyData = GameTerrain::EnemyData());
-    ~EnemyLocation();
+	EnemyLocation(const GameTerrain::EnemyData &enemyData = GameTerrain::EnemyData());
+	~EnemyLocation();
 
-    GameEnemy* enemy() const;
-    void setEnemy(GameEnemy *newEnemy);
+	GameEnemy* enemy() const;
+	void setEnemy(GameEnemy *newEnemy);
 
-    const GameTerrain::EnemyData &enemyData() const;
-    void setEnemyData(const GameTerrain::EnemyData &newEnemyData);
+	const GameTerrain::EnemyData &enemyData() const;
+	void setEnemyData(const GameTerrain::EnemyData &newEnemyData);
 
 private:
-    GameTerrain::EnemyData m_enemyData = GameTerrain::EnemyData();
-    QPointer<GameEntity> m_enemy = nullptr;
+	GameTerrain::EnemyData m_enemyData = GameTerrain::EnemyData();
+	QPointer<GameEntity> m_enemy = nullptr;
 };
 
 

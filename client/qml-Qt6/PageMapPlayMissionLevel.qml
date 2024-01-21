@@ -117,7 +117,8 @@ QPageGradient {
 												  GameMap.Lite,
 												  GameMap.Practice,
 												  GameMap.Quiz,
-												  //GameMap.MultiPlayer
+												  //GameMap.MultiPlayer,
+												  GameMap.Conquest
 											  ] : [
 												  GameMap.Test,
 												  GameMap.Action,
@@ -154,6 +155,9 @@ QPageGradient {
 								break
 							case GameMap.MultiPlayer:
 								qsTr("Multiplayer")
+								break
+							case GameMap.Conquest:
+								qsTr("Honfoglaló")
 								break
 							default:
 								""

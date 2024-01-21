@@ -27,6 +27,7 @@
 #ifndef ABSTRACTGAME_H
 #define ABSTRACTGAME_H
 
+#include "qbasictimer.h"
 #include "qelapsedtimer.h"
 #include "qquickitem.h"
 #include "gamemap.h"
@@ -84,6 +85,49 @@ public:
 		bool success = false;
 		int elapsed = 0;
 		bool uploaded = false;
+	};
+
+
+	// TickTimer
+
+	class TickTimer {
+	public:
+		TickTimer() {}
+
+		void start(AbstractGame *game, const qint64 &startTick = 0) {
+			m_reference.invalidate();
+			m_reference.start();
+			m_startTick = startTick;
+			if (!m_timer.isActive())
+				m_timer.start(m_interval, Qt::PreciseTimer, game);
+		}
+
+		void stop() {
+			m_reference.invalidate();
+			m_timer.stop();
+		}
+
+		bool isValid() const { return m_reference.isValid(); }
+
+		const qint64 &latency() const { return m_latency; }
+		void setLatency(const qint64 &latency) { m_latency = latency; }
+
+		qint64 currentTick() const {
+			if (!m_reference.isValid())
+				return -1;
+
+			const qint64 &elapsed = m_reference.elapsed();
+			return m_startTick+elapsed+m_latency;
+		}
+
+		static int interval() { return m_interval; }
+
+	private:
+		QBasicTimer m_timer;
+		QElapsedTimer m_reference;
+		qint64 m_startTick = 0;
+		qint64 m_latency = 0;
+		static const int m_interval;
 	};
 
 	explicit AbstractGame(const GameMap::GameMode &mode, Client *client);

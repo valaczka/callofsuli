@@ -151,33 +151,33 @@ QHttpServerResponse AuthAPI::loginOAuth2(const QString &provider, const QJsonObj
 		OAuth2CodeFlow *flow = ptr->lock().get();
 
 		switch (flow->authState()) {
-		case OAuth2CodeFlow::Invalid:
-			return responseError("invalid state");
-			break;
-		case OAuth2CodeFlow::Failed:
-		case OAuth2CodeFlow::UserExists:
-		case OAuth2CodeFlow::InvalidDomain:
-		case OAuth2CodeFlow::InvalidCode:
-			return responseError("authentication failed");
-			break;
-		case OAuth2CodeFlow::TokenReceived:
-			return QHttpServerResponse(QJsonObject{
-										   { QStringLiteral("pending"), true },
-										   { QStringLiteral("tokenReceived"), true }
-									   });
-			break;
-		case OAuth2CodeFlow::Authenticated:
-			if (flow->credential().isValid())
-				return QHttpServerResponse(getToken(flow->credential()));
-			else
+			case OAuth2CodeFlow::Invalid:
+				return responseError("invalid state");
+				break;
+			case OAuth2CodeFlow::Failed:
+			case OAuth2CodeFlow::UserExists:
+			case OAuth2CodeFlow::InvalidDomain:
+			case OAuth2CodeFlow::InvalidCode:
+				return responseError("authentication failed");
+				break;
+			case OAuth2CodeFlow::TokenReceived:
 				return QHttpServerResponse(QJsonObject{
 											   { QStringLiteral("pending"), true },
 											   { QStringLiteral("tokenReceived"), true }
 										   });
-			break;
-		case OAuth2CodeFlow::Pending:
-			return responseResult("pending", true);
-			break;
+				break;
+			case OAuth2CodeFlow::Authenticated:
+				if (flow->credential().isValid())
+					return QHttpServerResponse(getToken(flow->credential()));
+				else
+					return QHttpServerResponse(QJsonObject{
+												   { QStringLiteral("pending"), true },
+												   { QStringLiteral("tokenReceived"), true }
+											   });
+				break;
+			case OAuth2CodeFlow::Pending:
+				return responseResult("pending", true);
+				break;
 		}
 	}
 
@@ -293,41 +293,41 @@ QHttpServerResponse AuthAPI::registrationOAuth2(const QString &provider, const Q
 		OAuth2CodeFlow *flow = ptr->lock().get();
 
 		switch (flow->authState()) {
-		case OAuth2CodeFlow::Invalid:
-			return responseError("invalid state");
-			break;
-		case OAuth2CodeFlow::Failed:
-			return responseError("authentication failed");
-			break;
-		case OAuth2CodeFlow::UserExists:
-			return responseError("user exists");
-			break;
-		case OAuth2CodeFlow::InvalidCode:
-			return responseError("invalid code");
-			break;
-		case OAuth2CodeFlow::InvalidDomain:
-			return responseError("invalid domain");
-			break;
-		case OAuth2CodeFlow::TokenReceived:
-			return QHttpServerResponse(QJsonObject{
-										   { QStringLiteral("pending"), true },
-										   { QStringLiteral("tokenReceived"), true }
-									   });
-			break;
-		case OAuth2CodeFlow::Authenticated:
-			if (flow->credential().isValid())
-				return QHttpServerResponse(getToken(flow->credential()));
-			else
+			case OAuth2CodeFlow::Invalid:
+				return responseError("invalid state");
+				break;
+			case OAuth2CodeFlow::Failed:
+				return responseError("authentication failed");
+				break;
+			case OAuth2CodeFlow::UserExists:
+				return responseError("user exists");
+				break;
+			case OAuth2CodeFlow::InvalidCode:
+				return responseError("invalid code");
+				break;
+			case OAuth2CodeFlow::InvalidDomain:
+				return responseError("invalid domain");
+				break;
+			case OAuth2CodeFlow::TokenReceived:
 				return QHttpServerResponse(QJsonObject{
 											   { QStringLiteral("pending"), true },
 											   { QStringLiteral("tokenReceived"), true }
 										   });
-			break;
-		case OAuth2CodeFlow::Pending:
-			return QHttpServerResponse(QJsonObject{
-										   { QStringLiteral("pending"), true }
-									   });
-			break;
+				break;
+			case OAuth2CodeFlow::Authenticated:
+				if (flow->credential().isValid())
+					return QHttpServerResponse(getToken(flow->credential()));
+				else
+					return QHttpServerResponse(QJsonObject{
+												   { QStringLiteral("pending"), true },
+												   { QStringLiteral("tokenReceived"), true }
+											   });
+				break;
+			case OAuth2CodeFlow::Pending:
+				return QHttpServerResponse(QJsonObject{
+											   { QStringLiteral("pending"), true }
+										   });
+				break;
 		}
 	}
 
@@ -351,7 +351,7 @@ QHttpServerResponse AuthAPI::registrationOAuth2(const QString &provider, const Q
 		if (!user.username.isEmpty()) {
 
 			const QStringList &array = m_service->config().get("oauth2DomainList").toString().simplified()
-					.split(QStringLiteral(","), Qt::SkipEmptyParts);
+									   .split(QStringLiteral(","), Qt::SkipEmptyParts);
 
 			bool domainEnabled = array.isEmpty();
 
@@ -685,9 +685,9 @@ void AuthAPI::updateOAuth2UserData(OAuth2CodeFlow *flow) const
 
 		LOG_CTRACE("oauth2") << "Profile update" << flow;
 
-		QMetaObject::invokeMethod(flow->authenticator(), "profileUpdate", Qt::QueuedConnection,
-								  Q_ARG(QString, user.username),
-								  Q_ARG(QJsonObject, oauthData)
+		QMetaObject::invokeMethod(flow->authenticator(),
+								  std::bind(&OAuth2Authenticator::profileUpdate, flow->authenticator(), user.username, oauthData),
+								  Qt::QueuedConnection
 								  );
 	}
 }

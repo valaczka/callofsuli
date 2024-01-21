@@ -203,7 +203,8 @@ SOURCES += \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
-	conqueststate.cpp \
+	conquestgame.cpp \
+	conquestland.cpp \
 	editorundostack.cpp \
 	exam.cpp \
 	examgame.cpp \
@@ -282,7 +283,8 @@ HEADERS += \
 	classobject.h \
 	client.h \
 	clientcache.h \
-	conqueststate.h \
+	conquestgame.h \
+	conquestland.h \
 	editorundostack.h \
 	exam.h \
 	examgame.h \

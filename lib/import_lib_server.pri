@@ -18,4 +18,3 @@ LIBS += -lCuteLogger
 # QConsole
 
 include($$PWD/QConsole/qconsole.pri)
-

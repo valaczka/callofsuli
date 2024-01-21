@@ -11,6 +11,7 @@ android: INCLUDEPATH += $$PWD/../android_openssl/static/include
 # info: utils_.h includes selectableobject.h
 
 HEADERS += \
+	$$PWD/conquestconfig.h \
 	$$PWD/credential.h \
 	$$PWD/gamemap.h \
 	$$PWD/gamemapreaderiface.h \

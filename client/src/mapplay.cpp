@@ -26,6 +26,7 @@
 
 #include "mapplay.h"
 #include "abstractgame.h"
+#include "conquestgame.h"
 #include "litegame.h"
 #include "mapimage.h"
 #include "testgame.h"
@@ -305,26 +306,26 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 	AbstractLevelGame *g = nullptr;
 
 	switch (mode) {
-	case GameMap::Action:
-		g = new ActionGame(level->missionLevel(), m_client);
-		break;
+		case GameMap::Action:
+			g = new ActionGame(level->missionLevel(), m_client);
+			break;
 
-	case GameMap::Lite:
-		g = new LiteGame(level->missionLevel(), m_client);
-		break;
+		case GameMap::Lite:
+			g = new LiteGame(level->missionLevel(), m_client);
+			break;
 
-	case GameMap::Test:
-		g = new TestGame(level->missionLevel(), m_client);
-		break;
+		case GameMap::Test:
+			g = new TestGame(level->missionLevel(), m_client);
+			break;
 
-	case GameMap::Practice:
-		g = new LiteGame(level->missionLevel(), m_client, true);
-		break;
+		case GameMap::Practice:
+			g = new LiteGame(level->missionLevel(), m_client, true);
+			break;
 
-	default:
-		m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
-		return nullptr;
-		break;
+		default:
+			m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
+			return nullptr;
+			break;
 	}
 
 	g->setDeathmatch(level->deathmatch());
@@ -504,14 +505,35 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, co
 		return false;
 	}
 
-	AbstractLevelGame *g = createLevelGame(level, mode);
+	if (mode == GameMap::Conquest) {
+		ConquestGame *g = new ConquestGame(m_client);
 
-	if (!g)
-		return false;
+		if (!g)
+			return false;
 
-	connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
+		ConquestConfig config;
+		config.mapUuid = m_gameMap->uuid();
+		config.missionUuid = level->mission()->uuid();
+		config.missionLevel = level->level();
+		g->setConfig(config);
 
-	m_client->setCurrentGame(g);
+		connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
+
+		m_client->setCurrentGame(g);
+
+		setGameState(StateLoading);
+
+	} else {
+		AbstractLevelGame *g = createLevelGame(level, mode);
+
+		if (!g)
+			return false;
+
+		connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
+
+		m_client->setCurrentGame(g);
+
+	}
 
 	m_extendedData = extended;
 

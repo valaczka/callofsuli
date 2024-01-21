@@ -46,6 +46,7 @@ SOURCES += \
 	abstractengine.cpp \
 	adminapi.cpp \
 	authapi.cpp \
+	conquestengine.cpp \
 	database.cpp \
 	databasemain.cpp \
 	enginehandler.cpp \
@@ -77,6 +78,7 @@ HEADERS += \
 	abstractengine.h \
 	adminapi.h \
 	authapi.h \
+	conquestengine.h \
 	database.h \
 	databasemain.h \
 	enginehandler.h \

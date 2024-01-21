@@ -6,7 +6,7 @@
  * Created on: 2024. 01. 20.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ConquestState
+ * ConquestLand
  *
  *  This file is part of Call of Suli.
  *
@@ -24,21 +24,21 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "conqueststate.h"
+#include "conquestland.h"
 #include "utils_.h"
 
-ConquestState::ConquestState()
+ConquestLand::ConquestLand()
 	: m_color(Qt::green)
 {
 
 }
 
-QString ConquestState::world() const
+QString ConquestLand::world() const
 {
 	return m_world;
 }
 
-void ConquestState::setWorld(const QString &newWorld)
+void ConquestLand::setWorld(const QString &newWorld)
 {
 	if (m_world == newWorld)
 		return;
@@ -47,12 +47,12 @@ void ConquestState::setWorld(const QString &newWorld)
 	reload();
 }
 
-int ConquestState::stateId() const
+int ConquestLand::stateId() const
 {
 	return m_stateId;
 }
 
-void ConquestState::setStateId(int newStateId)
+void ConquestLand::setStateId(int newStateId)
 {
 	if (m_stateId == newStateId)
 		return;
@@ -61,12 +61,12 @@ void ConquestState::setStateId(int newStateId)
 	reload();
 }
 
-QColor ConquestState::color() const
+QColor ConquestLand::color() const
 {
 	return m_color;
 }
 
-void ConquestState::setColor(const QColor &newColor)
+void ConquestLand::setColor(const QColor &newColor)
 {
 	if (m_color == newColor)
 		return;
@@ -77,10 +77,10 @@ void ConquestState::setColor(const QColor &newColor)
 
 
 /**
- * @brief ConquestState::reload
+ * @brief ConquestLand::reload
  */
 
-void ConquestState::reload()
+void ConquestLand::reload()
 {
 	if (m_world.isEmpty() || m_stateId < 0)
 		return setIsValid(false);
@@ -104,11 +104,11 @@ void ConquestState::reload()
 
 
 /**
- * @brief ConquestState::setIsValid
+ * @brief ConquestLand::setIsValid
  * @param valid
  */
 
-void ConquestState::setIsValid(const bool &valid)
+void ConquestLand::setIsValid(const bool &valid)
 {
 	if (m_isValid == valid)
 		return;
@@ -116,12 +116,32 @@ void ConquestState::setIsValid(const bool &valid)
 	emit isValidChanged();
 }
 
-bool ConquestState::isActive() const
+ConquestGame *ConquestLand::game() const
+{
+	return m_game;
+}
+
+void ConquestLand::setGame(ConquestGame *newGame)
+{
+	if (m_game == newGame)
+		return;
+	m_game = newGame;
+	emit gameChanged();
+
+	if (m_game) {
+		connect(m_game, &ConquestGame::testImage, this, [this](const int id, const bool v) {
+			if (id == m_stateId)
+				setIsActive(v);
+		});
+	}
+}
+
+bool ConquestLand::isActive() const
 {
 	return m_isActive;
 }
 
-void ConquestState::setIsActive(bool newIsActive)
+void ConquestLand::setIsActive(bool newIsActive)
 {
 	if (m_isActive == newIsActive)
 		return;
@@ -129,12 +149,12 @@ void ConquestState::setIsActive(bool newIsActive)
 	emit isActiveChanged();
 }
 
-qreal ConquestState::baseY() const
+qreal ConquestLand::baseY() const
 {
 	return m_baseY;
 }
 
-void ConquestState::setBaseY(qreal newBaseY)
+void ConquestLand::setBaseY(qreal newBaseY)
 {
 	if (qFuzzyCompare(m_baseY, newBaseY))
 		return;
@@ -142,12 +162,12 @@ void ConquestState::setBaseY(qreal newBaseY)
 	emit baseYChanged();
 }
 
-qreal ConquestState::baseX() const
+qreal ConquestLand::baseX() const
 {
 	return m_baseX;
 }
 
-void ConquestState::setBaseX(qreal newBaseX)
+void ConquestLand::setBaseX(qreal newBaseX)
 {
 	if (qFuzzyCompare(m_baseX, newBaseX))
 		return;
@@ -157,11 +177,11 @@ void ConquestState::setBaseX(qreal newBaseX)
 
 
 /**
- * @brief ConquestState::isValid
+ * @brief ConquestLand::isValid
  * @return
  */
 
-bool ConquestState::isValid() const
+bool ConquestLand::isValid() const
 {
 	return m_isValid;
 }

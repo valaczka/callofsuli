@@ -592,7 +592,7 @@ HttpReply::HttpReply(const QNetworkReply::NetworkError &error, QObject *parent)
 {
 	LOG_CTRACE("http") << "HttpConnectionReply created" << error << this;
 
-	QMetaObject::invokeMethod(this, "onErrorPresent", Qt::QueuedConnection, Q_ARG(QNetworkReply::NetworkError, error));
+	QMetaObject::invokeMethod(this, std::bind(&HttpReply::onErrorPresent, this, error), Qt::QueuedConnection);
 }
 
 

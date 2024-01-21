@@ -25,7 +25,7 @@
  */
 
 #include "mapplaycampaign.h"
-#include "multiplayergame.h"
+#include "conquestgame.h"
 
 
 /**
@@ -155,7 +155,22 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		return;
 	}
 
+
+	// Conquest
+
+	ConquestGame *conquestGame = qobject_cast<ConquestGame*>(m_client->currentGame());
+
+	if (conquestGame) {
+		conquestGame->setHandler(m_handler);
+		conquestGame->load();
+		setGameState(StatePlay);
+		return;
+	}
+
+
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+
+	// Multiplayer
 
 	if (levelGame->mode() == GameMap::MultiPlayer) {
 		levelGame->load();
@@ -163,6 +178,9 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		setGameState(StatePlay);
 		return;
 	}
+
+
+	// Other
 
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
@@ -231,13 +249,30 @@ void MapPlayCampaign::onCurrentGameFinished()
 	if (!m_client || !m_client->currentGame())
 		return;
 
+
+	// Conquest
+
+	ConquestGame *conquestGame = qobject_cast<ConquestGame*>(m_client->currentGame());
+
+	if (conquestGame) {
+		destroyCurrentGame();
+		setGameState(StateFinished);
+		return;
+	}
+
+
+
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+
+	// MultiPlayer
 
 	if (levelGame->mode() == GameMap::MultiPlayer) {
 		destroyCurrentGame();
 		setGameState(StateFinished);
 		return;
 	}
+
+	// Other
 
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
@@ -401,30 +436,30 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 	AbstractLevelGame *g = nullptr;
 
 	switch (mode) {
-	case GameMap::Action:
-		g = new CampaignActionGame(level->missionLevel(), m_client);
-		break;
+		case GameMap::Action:
+			g = new CampaignActionGame(level->missionLevel(), m_client);
+			break;
 
-	case GameMap::Lite:
-		g = new CampaignLiteGame(level->missionLevel(), m_client);
-		break;
+		case GameMap::Lite:
+			g = new CampaignLiteGame(level->missionLevel(), m_client);
+			break;
 
-	case GameMap::Test:
-		g = new CampaignTestGame(level->missionLevel(), m_client);
-		break;
+		case GameMap::Test:
+			g = new CampaignTestGame(level->missionLevel(), m_client);
+			break;
 
-	case GameMap::Practice:
-		g = new CampaignLiteGame(level->missionLevel(), m_client, true);
-		break;
+		case GameMap::Practice:
+			g = new CampaignLiteGame(level->missionLevel(), m_client, true);
+			break;
 
-	case GameMap::MultiPlayer:
+			/*case GameMap::MultiPlayer:
 		g = new MultiPlayerGame(level->missionLevel(), m_client);
-		break;
+		break;*/
 
-	default:
-		m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
-		return nullptr;
-		break;
+		default:
+			m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));
+			return nullptr;
+			break;
 	}
 
 	g->setDeathmatch(level->deathmatch());

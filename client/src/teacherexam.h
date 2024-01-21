@@ -435,7 +435,7 @@ private:
 	void getResult(const QJsonArray &qList, const QJsonObject &answer, QJsonArray *result, QJsonArray *correction,
 				   int *ptrMax, int *ptrPoint) const;
 	void updateResultFromServer();
-	Q_INVOKABLE void uploadResultReal(QVector<QPointer<ExamScanData>> list);
+	void uploadResultReal(QVector<QPointer<ExamScanData>> list);
 
 	static QVector<int> letterToOptions(const QString &options) {
 		QVector<int> list;
