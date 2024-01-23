@@ -27,22 +27,87 @@
 #ifndef CONQUESTCONFIG_H
 #define CONQUESTCONFIG_H
 
-#include "qjsonobject.h"
+#include <QSerializer>
 #include <QString>
 
-struct ConquestConfig
+
+/**
+ * @brief The ConquestWorldInfo class
+ */
+
+class ConquestWorldInfo : public QSerializer
 {
 	Q_GADGET
 
-	Q_PROPERTY(GameState gameState MEMBER state)
-	Q_PROPERTY(QString world MEMBER world)
-	Q_PROPERTY(QString mapUuid MEMBER mapUuid)
-	Q_PROPERTY(QString missionUuid MEMBER missionUuid)
-	Q_PROPERTY(int missionLevel MEMBER missionLevel)
+public:
+	ConquestWorldInfo()
+		: playerCount(0)
+	{}
+
+	QS_SERIALIZABLE
+	QS_FIELD(int, playerCount)
+	QS_COLLECTION(QList, QString, landIdList)
+};
+
+
+
+/**
+ * @brief The ConquestWorld class
+ */
+
+class ConquestWorld : public QSerializer
+{
+	Q_GADGET
 
 public:
-	ConquestConfig() = default;
-	~ConquestConfig() = default;
+	ConquestWorld()
+		: playerCount(0)
+	{}
+
+	friend bool operator==(const ConquestWorld &w1, const ConquestWorld &w2) {
+		return w1.name == w2.name &&
+				w1.playerCount == w2.playerCount
+				;
+	}
+
+	QS_SERIALIZABLE
+	QS_FIELD(QString, name)
+	QS_COLLECTION(QList, QString, landIdList)
+	QS_FIELD(int, playerCount)
+
+	QS_COLLECTION_OBJECTS(QList, ConquestWorldInfo, infoList)
+};
+
+
+
+/**
+ * @brief The ConquestWordListHelper class
+ */
+
+class ConquestWordListHelper : public QSerializer
+{
+	Q_GADGET
+
+public:
+	QS_SERIALIZABLE
+	QS_COLLECTION_OBJECTS(QList, ConquestWorld, worldList);
+};
+
+
+/**
+ * @brief The ConquestConfig class
+ */
+
+class ConquestConfig : public QSerializer
+{
+	Q_GADGET
+
+public:
+	ConquestConfig()
+		: gameState(StateInvalid)
+		, missionLevel(-1)
+	{}
+
 
 	enum GameState {
 		StateInvalid = 0,
@@ -56,40 +121,8 @@ public:
 	Q_ENUM(GameState);
 
 
-	/**
-	 * @brief toJson
-	 * @return
-	 */
-
-	QJsonObject toJson() const {
-		QJsonObject o;
-		o[QStringLiteral("state")] = state;
-		o[QStringLiteral("world")] = world;
-		o[QStringLiteral("map")] = mapUuid;
-		o[QStringLiteral("mission")] = missionUuid;
-		o[QStringLiteral("level")] = missionLevel;
-		return o;
-	}
-
-	/**
-	 * @brief fromJson
-	 * @param o
-	 * @return
-	 */
-
-	static ConquestConfig fromJson(const QJsonObject &o) {
-		ConquestConfig c;
-		c.state = o.value(QStringLiteral("state")).toVariant().value<GameState>();
-		c.world = o.value(QStringLiteral("world")).toString();
-		c.mapUuid = o.value(QStringLiteral("map")).toString();
-		c.missionUuid = o.value(QStringLiteral("mission")).toString();
-		c.missionLevel = o.value(QStringLiteral("level")).toInt();
-		return c;
-	}
-
-
 	friend bool operator==(const ConquestConfig &c1, const ConquestConfig &c2) {
-		return c1.state == c2.state &&
+		return c1.gameState == c2.gameState &&
 				c1.world == c2.world &&
 				c1.mapUuid == c2.mapUuid &&
 				c1.missionUuid == c2.missionUuid &&
@@ -97,14 +130,15 @@ public:
 				;
 	}
 
-	// Members
-
-	GameState state = StateInvalid;
-	QString world;
-	QString mapUuid;
-	QString missionUuid;
-	int missionLevel = 0;
+	QS_SERIALIZABLE
+	QS_FIELD(GameState, gameState)
+	QS_FIELD(QString, mapUuid)
+	QS_FIELD(QString, missionUuid)
+	QS_FIELD(int, missionLevel)
+	QS_OBJECT(ConquestWorld, world)
 };
+
+
 
 
 #endif // CONQUESTCONFIG_H

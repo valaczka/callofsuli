@@ -20,7 +20,7 @@ QPage {
 
 	readonly property int stackViewIndex: StackView.index
 
-	property bool _mapVisible: false
+	property bool _mapVisible: game && game.config.gameState == ConquestConfig.StatePlay
 
 	QScrollable {
 		anchors.fill: parent
@@ -58,30 +58,46 @@ QPage {
 
 			QButton {
 				anchors.horizontalCenter: parent.horizontalCenter
-				text: "CONNECT"
+				text: "LIST"
 				enabled: game
-				onClicked: {
-					let c = game.config
-					game.sendWebSocketMessage({
-												  cmd: "connect",
-												  map: c.mapUuid,
-												  mission: c.missionUuid,
-												  level: c.missionLevel
-											  })
+				onClicked: game.getEngineList()
+			}
+
+			Repeater {
+				model: game ? game.engineModel : null
+
+				delegate: QButton {
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: "CONNECT (" + engineId + ") - " + owner
+					enabled: game
+					onClicked: {
+						console.warn("*****", engineId)
+						game.sendWebSocketMessage({
+													  cmd: "connect",
+													  engine: engineId
+												  })
+					}
 				}
 			}
 
 			QButton {
 				anchors.horizontalCenter: parent.horizontalCenter
+				text: "CREATE"
+				enabled: game && game.engineId < 0
+				onClicked: game.gameCreate()
+			}
+
+			QButton {
+				anchors.horizontalCenter: parent.horizontalCenter
 				text: "ENROLL "+(game ? game.playerId : "")
-				enabled: game && game.playerId === -1
+				enabled: game && game.engineId > 0 && game.playerId === -1
 				onClicked: game.sendWebSocketMessage({"cmd": "enroll", "engine": game.engineId})
 			}
 
 			QButton {
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: "START"
-				enabled: game && game.hostMode == ConquestGame.ModeHost
+				enabled: game && game.hostMode == ConquestGame.ModeHost && game.engineId > 0
 				onClicked: game.sendWebSocketMessage({"cmd": "start", "engine": game.engineId})
 			}
 		}
@@ -102,19 +118,4 @@ QPage {
 		onClicked: game.sendWebSocketMessage({"cmd": "prepare", "engine": game.engineId, "ready": true})
 	}
 
-
-	Connections {
-		target: game
-
-		function onConfigChanged() {
-			let c = game.config
-			console.info("*****", c.gameState, c.world)
-
-			if (c.world != "" && (c.gameState == ConquestConfig.StatePrepare || c.gameState == ConquestConfig.StatePlay)) {
-				console.warn("load", c.world)
-				_mapVisible = true
-				_scene.world = c.world
-			}
-		}
-	}
 }

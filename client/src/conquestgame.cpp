@@ -27,20 +27,28 @@
 #include "conquestgame.h"
 #include "application.h"
 #include "client.h"
+#include "utils_.h"
 
 ConquestGame::ConquestGame(Client *client)
 	: AbstractGame(GameMap::Conquest, client)
+	, m_landDataList(std::make_unique<ConquestLandDataList>())
+	, m_engineModel(std::make_unique<QSListModel>())
 {
 	LOG_CTRACE("game") << "ConquestGame created" << this;
 
+	m_engineModel->setRoleNames(QStringList{
+									QStringLiteral("engineId"),
+									QStringLiteral("owner")
+								});
+
 	if (m_client) {
 		connect(m_client->httpConnection()->webSocket(), &WebSocket::messageReceived, this, &ConquestGame::onJsonReceived);
-		connect(m_client->httpConnection()->webSocket(), &WebSocket::activeChanged, this, &ConquestGame::onActiveChanged);
+		connect(m_client->httpConnection()->webSocket(), &WebSocket::activeChanged, this, &ConquestGame::onWebSocketActiveChanged);
 
 		m_client->httpConnection()->webSocket()->observerAdd(QStringLiteral("conquest"));
 
 		if (m_client->httpConnection()->webSocket()->active())
-			onActiveChanged();
+			onWebSocketActiveChanged();
 		else
 			m_client->httpConnection()->webSocket()->connect();
 	}
@@ -90,6 +98,43 @@ void ConquestGame::sendWebSocketMessage(const QJsonValue &data)
 
 
 /**
+ * @brief ConquestGame::getEngineList
+ */
+
+void ConquestGame::getEngineList()
+{
+	LOG_CTRACE("game") << "Get engine list";
+
+	QJsonObject o = m_config.toJson();
+	o[QStringLiteral("cmd")] = QStringLiteral("list");
+
+	sendWebSocketMessage(o);
+}
+
+
+
+/**
+ * @brief ConquestGame::gameCreate
+ */
+
+void ConquestGame::gameCreate()
+{
+	LOG_CDEBUG("game") << "Create ConquestGame" << qPrintable(m_config.mapUuid)
+					   << qPrintable(m_config.missionUuid) << m_config.missionLevel;
+
+	const ConquestWordListHelper &helper = getWorldList();
+
+	QJsonObject o = m_config.toJson();
+	o[QStringLiteral("cmd")] = QStringLiteral("create");
+	o[QStringLiteral("worldList")] = helper.toJson().value(QStringLiteral("worldList")).toArray();
+
+	sendWebSocketMessage(o);
+}
+
+
+
+
+/**
  * @brief ConquestGame::gameAbort
  */
 
@@ -123,7 +168,7 @@ QQuickItem *ConquestGame::loadPage()
 
 void ConquestGame::timerEvent(QTimerEvent *)
 {
-	if (m_config.state != ConquestConfig::StatePlay)
+	if (m_config.gameState != ConquestConfig::StatePlay)
 		return;
 
 	LOG_CTRACE("game") << "TIMER EVENT" << m_tickTimer.currentTick();
@@ -200,26 +245,17 @@ void ConquestGame::onTimeSyncTimerTimeout()
 
 
 /**
- * @brief ConquestGame::onActiveChanged
+ * @brief ConquestGame::onWebSocketActiveChanged
  */
 
-void ConquestGame::onActiveChanged()
+void ConquestGame::onWebSocketActiveChanged()
 {
 	auto ws = m_client->httpConnection()->webSocket();
 
 	const bool active = ws->active();
 	LOG_CTRACE("game") << "MultiPlayerGame WebSocket active changed" << active;
 
-	/*if (active && !m_binarySignalConnected) {
-		connect(ws->socket(), &QWebSocket::binaryMessageReceived, this, &MultiPlayerGame::updateGameTrigger);
-		m_binarySignalConnected = true;
-	}*/
-
-	QJsonObject o = m_config.toJson();
-	o.insert(QStringLiteral("cmd"), QStringLiteral("connect"));
-
-	sendWebSocketMessage(o);
-
+	getEngineList();
 }
 
 
@@ -238,7 +274,6 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 
 		m_tickTimer.setLatency(clientTime/2);
 
-		LOG_CTRACE("game") << "ACTUAL SERVER LATENCY" << m_tickTimer.latency();
 	} else if (operation == QStringLiteral("conquest")) {
 		const QJsonObject &obj = data.toObject();
 		const QString &cmd = obj.value(QStringLiteral("cmd")).toString();
@@ -248,10 +283,13 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 		static const QHash<std::string, fnDef> fMap = {
 			{ "state", &ConquestGame::cmdState },
 			{ "start", &ConquestGame::cmdStart },
+			{ "list", &ConquestGame::cmdList },
+			{ "create", &ConquestGame::cmdCreate },
 			{ "connect", &ConquestGame::cmdConnect },
 			{ "prepare", &ConquestGame::cmdPrepare },
 			{ "questionRequest", &ConquestGame::cmdQuestionRequest },
-			{ "test", &ConquestGame::cmdTest },
+
+			{ "test", &ConquestGame::cmdTest },	////
 		};
 
 		auto fn = fMap.value(cmd.toStdString());
@@ -269,16 +307,16 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 
 
 /**
- * @brief ConquestGame::onGameStateChanged
+ * @brief ConquestGame::onConfigChanged
  */
 
-void ConquestGame::onGameStateChanged()
+void ConquestGame::onConfigChanged()
 {
-	LOG_CINFO("game") << "ConquestGame state:" << m_config.state;
+	LOG_CINFO("game") << "ConquestGame state:" << m_config.gameState;
 
-	if (m_config.state == ConquestConfig::StatePrepare) {
-		LOG_CDEBUG("game") << "Prepare world:" << qPrintable(m_config.world);
-
+	if ((m_config.gameState == ConquestConfig::StatePrepare || m_config.gameState == ConquestConfig::StatePlay) &&
+			m_config.world.name != m_loadedWorld) {
+		reloadLandList();
 	}
 
 	/*sendWebSocketMessage(QJsonObject{
@@ -286,6 +324,19 @@ void ConquestGame::onGameStateChanged()
 		{ QStringLiteral("engine"), m_engineId },
 		{ QStringLiteral("ready"), true }
 	});*/
+}
+
+
+
+/**
+ * @brief ConquestGame::cmdList
+ * @param data
+ */
+
+void ConquestGame::cmdList(const QJsonObject &data)
+{
+	Utils::patchSListModel(m_engineModel.get(), data.value(QStringLiteral("list")).toArray().toVariantList(),
+						   QStringLiteral("engineId"));
 }
 
 
@@ -304,7 +355,11 @@ void ConquestGame::cmdState(const QJsonObject &data)
 	}
 
 	setHostMode(data.value(QStringLiteral("host")).toVariant().toBool() ? HostMode::ModeHost : HostMode::ModeGuest);
-	setConfig(ConquestConfig::fromJson(data));
+	ConquestConfig c;
+	c.fromJson(data);
+	setConfig(c);
+
+	LOG_CERROR("game") << "THIS" << c.toJson();
 
 	if (data.contains(QStringLiteral("playerId")))
 		setPlayerId(data.value(QStringLiteral("playerId")).toInt());
@@ -329,6 +384,18 @@ void ConquestGame::cmdState(const QJsonObject &data)
 
 
 /**
+ * @brief ConquestGame::cmdCreate
+ * @param data
+ */
+
+void ConquestGame::cmdCreate(const QJsonObject &data)
+{
+	setEngineId(data.value(QStringLiteral("engine")).toInt(-1));
+	m_client->snack(tr("Engine %1 created").arg(m_engineId));
+}
+
+
+/**
  * @brief ConquestGame::cmdConnect
  * @param data
  */
@@ -336,6 +403,7 @@ void ConquestGame::cmdState(const QJsonObject &data)
 void ConquestGame::cmdConnect(const QJsonObject &data)
 {
 	setEngineId(data.value(QStringLiteral("engine")).toInt(-1));
+	m_client->snack(tr("Engine %1 connected").arg(m_engineId));
 }
 
 
@@ -371,9 +439,7 @@ void ConquestGame::cmdQuestionRequest(const QJsonObject &)
 {
 	LOG_CDEBUG("game") << "Generate questions";
 
-	m_client->messageInfo("generated");
-
-	QJsonArray tmp = {6,3,2,6};
+	QJsonArray tmp = {6,3};
 
 	sendWebSocketMessage(QJsonObject{
 							 { QStringLiteral("cmd"), QStringLiteral("questionRequest") },
@@ -381,6 +447,8 @@ void ConquestGame::cmdQuestionRequest(const QJsonObject &)
 							 { QStringLiteral("list"), tmp }
 						 });
 }
+
+
 
 
 
@@ -392,9 +460,172 @@ void ConquestGame::cmdQuestionRequest(const QJsonObject &)
 void ConquestGame::cmdTest(const QJsonObject &data)
 {
 	if (data.contains(QStringLiteral("stateId"))) {
-		emit testImage(data.value(QStringLiteral("stateId")).toInt(), data.value(QStringLiteral("value")).toBool());
+		//emit testImage(data.value(QStringLiteral("stateId")).toInt(), data.value(QStringLiteral("value")).toBool());
 	}
 }
+
+
+/**
+ * @brief ConquestGame::reloadLandList
+ */
+
+void ConquestGame::reloadLandList()
+{
+	LOG_CDEBUG("game") << "Reload land list:" << qPrintable(m_config.world.name) << m_config.world.playerCount;
+	m_landDataList->clear();
+
+	m_loadedWorld.clear();
+
+	if (m_config.world.name.isEmpty() || m_config.world.playerCount < 2)
+		return;
+
+	const auto &data = Utils::fileToJsonObject(QStringLiteral(":/conquest/%1/data.json").arg(m_config.world.name));
+
+	if (!data) {
+		m_client->messageError(tr("Hibás térkép"), tr("Belső hiba"));
+		return;
+	}
+
+	const QJsonObject &pData = data->value(QStringLiteral("player%1").arg(m_config.world.playerCount)).toObject();
+	const QJsonObject &lands = pData.value(QStringLiteral("lands")).toObject();
+
+	if (pData.isEmpty() || lands.isEmpty()) {
+		m_client->messageError(tr("Üres térkép"), tr("Belső hiba"));
+		return;
+	}
+
+	const QJsonObject &orig = data->value(QStringLiteral("orig")).toObject();
+
+	setWorldSize(QSize(
+					 orig.value(QStringLiteral("width")).toInt(),
+					 orig.value(QStringLiteral("height")).toInt()
+					 ));
+
+	QList<ConquestLandData*> landList;
+
+	landList.reserve(lands.keys().size());
+
+	for (const QString &id : lands.keys()) {
+		const QJsonObject &obj = lands.value(id).toObject();
+		ConquestLandData *land = new ConquestLandData;
+		land->setLandId(id);
+		land->setBaseX(obj.value(QStringLiteral("x")).toDouble());
+		land->setBaseY(obj.value(QStringLiteral("y")).toDouble());
+
+		land->setImgMap(QStringLiteral("qrc:/conquest/%1/player%2-land-%3.svg")
+						.arg(m_config.world.name).arg(m_config.world.playerCount).arg(id));
+		land->setImgBorder(QStringLiteral("qrc:/conquest/%1/player%2-land-%3-border.svg")
+						   .arg(m_config.world.name).arg(m_config.world.playerCount).arg(id));
+
+		landList.append(land);
+	}
+
+	LOG_CDEBUG("game") << "Loaded" << landList.size() << "lands";
+
+	m_landDataList->append(landList);
+
+	m_loadedWorld = m_config.world.name;
+
+}
+
+
+
+
+/**
+ * @brief ConquestGame::getWorldList
+ * @return
+ */
+
+ConquestWordListHelper ConquestGame::getWorldList() const
+{
+	QDirIterator it(QStringLiteral(":/conquest"), { QStringLiteral("data.json") }, QDir::Files, QDirIterator::Subdirectories);
+
+	static const QRegularExpression exp(R"(^player)");
+
+	ConquestWordListHelper wList;
+
+	while (it.hasNext()) {
+		const QString &jsonFile = it.next();
+		const QString &name = jsonFile.section('/',-2,-2);
+
+		const auto &data = Utils::fileToJsonObject(jsonFile);
+
+		if (!data) {
+			LOG_CERROR("game") << "Invalid JSON content:" << qPrintable(jsonFile);
+			continue;
+		}
+
+		ConquestWorld world;
+
+		world.name = name;
+
+		for (const QString &key : data->keys()) {
+			if (key == QStringLiteral("orig"))
+				continue;
+
+			QString k = key;
+
+			ConquestWorldInfo info;
+			info.playerCount = k.remove(exp).toInt();
+
+			if (info.playerCount < 1) {
+				LOG_CERROR("game") << "Invalid JSON content:" << key << qPrintable(jsonFile);
+				continue;
+			}
+
+			info.landIdList = data->value(key).toObject().value(QStringLiteral("lands")).toObject().keys();
+			world.infoList.append(info);
+		}
+
+		wList.worldList.append(world);
+	}
+
+	return wList;
+}
+
+
+/**
+ * @brief ConquestGame::engineModel
+ * @return
+ */
+
+QSListModel*ConquestGame::engineModel() const
+{
+	return m_engineModel.get();
+}
+
+
+
+/**
+ * @brief ConquestGame::worldSize
+ * @return
+ */
+
+QSize ConquestGame::worldSize() const
+{
+	return m_worldSize;
+}
+
+void ConquestGame::setWorldSize(const QSize &newWorldSize)
+{
+	if (m_worldSize == newWorldSize)
+		return;
+	m_worldSize = newWorldSize;
+	emit worldSizeChanged();
+}
+
+
+
+/**
+ * @brief ConquestGame::landDataList
+ * @return
+ */
+
+ConquestLandDataList*ConquestGame::landDataList() const
+{
+	return m_landDataList.get();
+}
+
 
 
 
@@ -473,7 +704,7 @@ void ConquestGame::setConfig(const ConquestConfig &newConfig)
 		return;
 	m_config = newConfig;
 	emit configChanged();
-	onGameStateChanged();
+	onConfigChanged();
 }
 
 

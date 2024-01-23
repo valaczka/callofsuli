@@ -10,30 +10,22 @@ ConquestLandImpl {
 
 	property real mapScale: 1.0
 
-	readonly property string _mapSource: stateId > 0 && world != "" ? "qrc:/conquest/"+world+"/state-%1.svg".arg(stateId) : ""
-	readonly property string _borderSource: stateId > 0 && world != "" ? "qrc:/conquest/"+world+"/state-%1-border.svg".arg(stateId) : ""
-
-	implicitWidth: _mapSource ? _imgMap.width : 100
-	implicitHeight: _mapSource ? _imgMap.height : 100
-
-	x: baseX*mapScale
-	y: baseY*mapScale
+	implicitWidth: _imgMap.source.toString() != "" ? _imgMap.width : 100
+	implicitHeight: _imgMap.source.toString() != "" ? _imgMap.height : 100
 
 	Image {
 		id: _imgMap
-		width: sourceSize.width*mapScale
-		height: sourceSize.height*mapScale
 		fillMode: Image.PreserveAspectFit
 		visible: false
-		source: _mapSource
+		source: landData ? landData.imgMap : ""
 	}
 
 	ColorOverlay {
 		anchors.fill: _imgMap
 		source: _imgMap
-		color: root.color
+		color: root.baseColor
 		opacity: 0.6
-		visible: isActive
+		visible: false//isActive
 	}
 
 
@@ -43,14 +35,14 @@ ConquestLandImpl {
 		height: _imgMap.height
 		fillMode: Image.PreserveAspectFit
 		visible: false
-		source: _borderSource
+		source: landData ? landData.imgBorder : ""
 	}
 
 	ColorOverlay {
 		id: _overlayBorder
 		anchors.fill: _imgBorder
 		source: _imgBorder
-		color: root.color
+		color: root.baseColor
 		visible: false
 	}
 
@@ -61,7 +53,7 @@ ConquestLandImpl {
 		source: _imgMap
 		color: Qaterial.Colors.white
 		opacity: _mouse.containsMouse ? 0.5 : 0.0
-		visible: _mapSource
+		visible: _imgMap.source.toString() != ""
 
 		Behavior on opacity {
 			NumberAnimation { duration: 250; easing.type: Easing.InQuad }
@@ -72,16 +64,16 @@ ConquestLandImpl {
 		anchors.fill: _overlayBorder
 		source: _overlayBorder
 		maskSource: _imgMap
-		visible: isActive
+		visible: false //isActive
 	}
 
 	MaskedMouseArea {
 		id: _mouse
 		anchors.fill: _imgMap
-		maskSource: _mapSource
-		alphaThreshold: 0.4
-		scaleImage: mapScale
-		onClicked: {
+		maskSource: _imgMap.source
+
+		//scaleImage: mapScale
+		/*onClicked: {
 			if (!game)
 				return
 
@@ -91,7 +83,7 @@ ConquestLandImpl {
 										  stateId: stateId,
 										  value: !isActive
 									  })
-		}
+		}*/
 	}
 
 }

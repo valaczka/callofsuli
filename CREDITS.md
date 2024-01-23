@@ -12,6 +12,7 @@
 - QDeferred - (c) 2017 Juan Gonzalez Burgos (https://github.com/juangburgos/QDeferred)
 - QJsonWebToken - (c) 2016 Juan Gonzalez Burgos (https://github.com/juangburgos/QJsonWebToken)
 - QOlm - (c) Olivier Le Doeuff (https://github.com/OlivierLDff/QOlm)
+- QSerializer - (c) 2020-2021 Agadzhanov Vladimir, (c) 2021 Jerry Jacobs (https://github.com/smurfomen/QSerializer.git)
 - QSingleInstance - (c) 2015 Felix Barz (https://github.com/Skycoder42/QSingleInstance)
 - QSyncable - (c) 2017 Ben Lau (https://github.com/benlau/qsyncable)
 - Qaterial - (c) 2020 Olivier Le Doeuff (https://github.com/OlivierLDff/Qaterial)

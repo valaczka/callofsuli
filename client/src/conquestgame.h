@@ -29,7 +29,14 @@
 
 #include "abstractgame.h"
 #include "conquestconfig.h"
+#include "conquestlanddata.h"
+#include "qslistmodel.h"
 #include "studentmaphandler.h"
+
+
+/**
+ * @brief The ConquestGame class
+ */
 
 class ConquestGame : public AbstractGame
 {
@@ -39,6 +46,9 @@ class ConquestGame : public AbstractGame
 	Q_PROPERTY(HostMode hostMode READ hostMode NOTIFY hostModeChanged FINAL)
 	Q_PROPERTY(int engineId READ engineId WRITE setEngineId NOTIFY engineIdChanged FINAL)
 	Q_PROPERTY(int playerId READ playerId WRITE setPlayerId NOTIFY playerIdChanged FINAL)
+	Q_PROPERTY(ConquestLandDataList *landDataList READ landDataList CONSTANT FINAL)
+	Q_PROPERTY(QSize worldSize READ worldSize WRITE setWorldSize NOTIFY worldSizeChanged FINAL)
+	Q_PROPERTY(QSListModel *engineModel READ engineModel CONSTANT FINAL)
 
 public:
 	explicit ConquestGame(Client *client);
@@ -52,10 +62,12 @@ public:
 	Q_ENUM(HostMode);
 
 	Q_INVOKABLE void sendWebSocketMessage(const QJsonValue &data = {});
+	Q_INVOKABLE void getEngineList();
+	Q_INVOKABLE void gameCreate();
 
 	virtual void gameAbort() override;
 
-	StudentMapHandler *handler() const;
+	StudentMapHandler* handler() const;
 	void setHandler(StudentMapHandler *newHandler);
 
 	ConquestConfig config() const;
@@ -70,16 +82,22 @@ public:
 	int playerId() const;
 	void setPlayerId(int newPlayerId);
 
+	ConquestLandDataList* landDataList() const;
+
+	QSize worldSize() const;
+	void setWorldSize(const QSize &newWorldSize);
+
+	QSListModel* engineModel() const;
 
 signals:
 	void configChanged();
 	void hostModeChanged();
 	void engineIdChanged();
 	void playerIdChanged();
-	void testImage(int id, bool value);
+	void worldSizeChanged();
 
 protected:
-	virtual QQuickItem *loadPage() override;
+	virtual QQuickItem* loadPage() override;
 	virtual void timerEvent(QTimerEvent *) override;
 	virtual void connectGameQuestion() override;
 	virtual bool gameStartEvent() override;
@@ -87,16 +105,22 @@ protected:
 
 private:
 	void onTimeSyncTimerTimeout();
-	void onActiveChanged();
+	void onWebSocketActiveChanged();
 	void onJsonReceived(const QString &operation, const QJsonValue &data);
-	void onGameStateChanged();
+	void onConfigChanged();
 
+	void cmdList(const QJsonObject &data);
 	void cmdState(const QJsonObject &data);
+	void cmdCreate(const QJsonObject &data);
 	void cmdConnect(const QJsonObject &data);
 	void cmdStart(const QJsonObject &data);
 	void cmdPrepare(const QJsonObject &data);
 	void cmdQuestionRequest(const QJsonObject &data);
-	void cmdTest(const QJsonObject &data);
+
+	void cmdTest(const QJsonObject &data);	///
+
+	void reloadLandList();
+	ConquestWordListHelper getWorldList() const;
 
 	QTimer m_timeSyncTimer;
 	TickTimer m_tickTimer;
@@ -105,6 +129,14 @@ private:
 	HostMode m_hostMode = ModeGuest;
 	int m_engineId = -1;
 	int m_playerId = -1;
+	std::unique_ptr<ConquestLandDataList> m_landDataList;
+	QString m_loadedWorld;
+	QSize m_worldSize;
+	std::unique_ptr<QSListModel> m_engineModel;
 };
+
+
+
+
 
 #endif // CONQUESTGAME_H

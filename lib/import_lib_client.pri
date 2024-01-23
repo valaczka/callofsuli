@@ -146,3 +146,9 @@ INCLUDEPATH += $$PWD/csv-parser/single_include
 # STB
 
 INCLUDEPATH += $$PWD/stb
+
+
+# QSerializer
+
+DEFINES += QS_HAS_JSON
+include($$PWD/QSerializer/qserializer.pri)

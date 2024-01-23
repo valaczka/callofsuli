@@ -25,164 +25,43 @@
  */
 
 #include "conquestland.h"
-#include "utils_.h"
 
 ConquestLand::ConquestLand()
-	: m_color(Qt::green)
+	: m_baseColor(Qt::transparent)
 {
 
 }
 
-QString ConquestLand::world() const
+ConquestLandData *ConquestLand::landData() const
 {
-	return m_world;
+	return m_landData;
 }
 
-void ConquestLand::setWorld(const QString &newWorld)
+void ConquestLand::setLandData(ConquestLandData *newLandData)
 {
-	if (m_world == newWorld)
+	if (m_landData == newLandData)
 		return;
-	m_world = newWorld;
-	emit worldChanged();
-	reload();
-}
+	m_landData = newLandData;
+	emit landDataChanged();
 
-int ConquestLand::stateId() const
-{
-	return m_stateId;
-}
-
-void ConquestLand::setStateId(int newStateId)
-{
-	if (m_stateId == newStateId)
-		return;
-	m_stateId = newStateId;
-	emit stateIdChanged();
-	reload();
-}
-
-QColor ConquestLand::color() const
-{
-	return m_color;
-}
-
-void ConquestLand::setColor(const QColor &newColor)
-{
-	if (m_color == newColor)
-		return;
-	m_color = newColor;
-	emit colorChanged();
-}
-
-
-
-/**
- * @brief ConquestLand::reload
- */
-
-void ConquestLand::reload()
-{
-	if (m_world.isEmpty() || m_stateId < 0)
-		return setIsValid(false);
-
-	const auto &data = Utils::fileToJsonObject(QStringLiteral(":/conquest/%1/data.json").arg(m_world));
-
-	if (!data || !data->contains(QStringLiteral("states"))) {
-		return setIsValid(false);
-	}
-
-	const QJsonObject &stateData = data->value(QStringLiteral("states")).toObject().value(QString::number(m_stateId)).toObject();
-
-	if (stateData.isEmpty()) {
-		return setIsValid(false);
-	}
-
-	setIsValid(true);
-	setBaseX(stateData.value(QStringLiteral("x")).toDouble());
-	setBaseY(stateData.value(QStringLiteral("y")).toDouble());
-}
-
-
-/**
- * @brief ConquestLand::setIsValid
- * @param valid
- */
-
-void ConquestLand::setIsValid(const bool &valid)
-{
-	if (m_isValid == valid)
-		return;
-	m_isValid = valid;
-	emit isValidChanged();
-}
-
-ConquestGame *ConquestLand::game() const
-{
-	return m_game;
-}
-
-void ConquestLand::setGame(ConquestGame *newGame)
-{
-	if (m_game == newGame)
-		return;
-	m_game = newGame;
-	emit gameChanged();
-
-	if (m_game) {
-		connect(m_game, &ConquestGame::testImage, this, [this](const int id, const bool v) {
-			if (id == m_stateId)
-				setIsActive(v);
-		});
+	if (m_landData) {
+		connect(m_landData, &ConquestLandData::baseXChanged, this, &ConquestLand::setX);
+		connect(m_landData, &ConquestLandData::baseYChanged, this, &ConquestLand::setY);
+		setX(m_landData->baseX());
+		setY(m_landData->baseY());
 	}
 }
 
-bool ConquestLand::isActive() const
+QColor ConquestLand::baseColor() const
 {
-	return m_isActive;
+	return m_baseColor;
 }
 
-void ConquestLand::setIsActive(bool newIsActive)
+void ConquestLand::setBaseColor(const QColor &newBaseColor)
 {
-	if (m_isActive == newIsActive)
+	if (m_baseColor == newBaseColor)
 		return;
-	m_isActive = newIsActive;
-	emit isActiveChanged();
-}
-
-qreal ConquestLand::baseY() const
-{
-	return m_baseY;
-}
-
-void ConquestLand::setBaseY(qreal newBaseY)
-{
-	if (qFuzzyCompare(m_baseY, newBaseY))
-		return;
-	m_baseY = newBaseY;
-	emit baseYChanged();
-}
-
-qreal ConquestLand::baseX() const
-{
-	return m_baseX;
-}
-
-void ConquestLand::setBaseX(qreal newBaseX)
-{
-	if (qFuzzyCompare(m_baseX, newBaseX))
-		return;
-	m_baseX = newBaseX;
-	emit baseXChanged();
-}
-
-
-/**
- * @brief ConquestLand::isValid
- * @return
- */
-
-bool ConquestLand::isValid() const
-{
-	return m_isValid;
+	m_baseColor = newBaseColor;
+	emit baseColorChanged();
 }
 

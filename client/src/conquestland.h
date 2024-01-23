@@ -27,72 +27,35 @@
 #ifndef CONQUESTLAND_H
 #define CONQUESTLAND_H
 
-#include "conquestgame.h"
+#include "conquestlanddata.h"
 #include <QQuickItem>
 
 class ConquestLand : public QQuickItem
 {
 	Q_OBJECT
 
-	Q_PROPERTY(QString world READ world WRITE setWorld NOTIFY worldChanged FINAL)
-	Q_PROPERTY(int stateId READ stateId WRITE setStateId NOTIFY stateIdChanged FINAL)
-	Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged FINAL)
-	Q_PROPERTY(bool isValid READ isValid NOTIFY isValidChanged FINAL)
-	Q_PROPERTY(qreal baseX READ baseX WRITE setBaseX NOTIFY baseXChanged FINAL)
-	Q_PROPERTY(qreal baseY READ baseY WRITE setBaseY NOTIFY baseYChanged FINAL)
-	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
-	Q_PROPERTY(ConquestGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
+	Q_PROPERTY(ConquestLandData *landData READ landData WRITE setLandData NOTIFY landDataChanged FINAL)
+	Q_PROPERTY(QColor baseColor READ baseColor WRITE setBaseColor NOTIFY baseColorChanged FINAL)
 
 	QML_ELEMENT
 
 public:
 	ConquestLand();
 
-	QString world() const;
-	void setWorld(const QString &newWorld);
+	ConquestLandData *landData() const;
+	void setLandData(ConquestLandData *newLandData);
 
-	int stateId() const;
-	void setStateId(int newStateId);
-
-	QColor color() const;
-	void setColor(const QColor &newColor);
-
-	bool isValid() const;
-
-	qreal baseX() const;
-	void setBaseX(qreal newBaseX);
-
-	qreal baseY() const;
-	void setBaseY(qreal newBaseY);
-
-	bool isActive() const;
-	void setIsActive(bool newIsActive);
-
-	ConquestGame *game() const;
-	void setGame(ConquestGame *newGame);
+	QColor baseColor() const;
+	void setBaseColor(const QColor &newBaseColor);
 
 signals:
-	void worldChanged();
-	void stateIdChanged();
-	void colorChanged();
-	void isValidChanged();
-	void baseXChanged();
-	void baseYChanged();
-	void isActiveChanged();
-	void gameChanged();
+	void landDataChanged();
+	void baseColorChanged();
 
 private:
-	void reload();
-	void setIsValid(const bool &valid);
+	QPointer<ConquestLandData> m_landData;
+	QColor m_baseColor;
 
-	QString m_world;
-	int m_stateId = -1;
-	QColor m_color;
-	bool m_isValid = false;
-	qreal m_baseX = 0;
-	qreal m_baseY = 0;
-	bool m_isActive = false;
-	ConquestGame *m_game = nullptr;
 };
 
 #endif // CONQUESTLAND_H

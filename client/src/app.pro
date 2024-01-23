@@ -205,6 +205,7 @@ SOURCES += \
 	clientcache.cpp \
 	conquestgame.cpp \
 	conquestland.cpp \
+	conquestlanddata.cpp \
 	editorundostack.cpp \
 	exam.cpp \
 	examgame.cpp \
@@ -285,6 +286,7 @@ HEADERS += \
 	clientcache.h \
 	conquestgame.h \
 	conquestland.h \
+	conquestlanddata.h \
 	editorundostack.h \
 	exam.h \
 	examgame.h \

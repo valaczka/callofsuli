@@ -106,10 +106,10 @@ public:
 	static std::weak_ptr<AbstractEngine> connectToEngine(const int &id, WebSocketStream *stream, EngineHandler *handler);
 
 
-	QJsonObject gameFinish(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
-	QJsonObject gameStart(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
-	QJsonObject gamePrepare(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
-	QJsonObject gamePlay(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
+	QJsonObject gameFinish(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject gameStart(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject gamePrepare(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject gamePlay(WebSocketStream *stream, const QJsonObject &message);
 
 
 	virtual bool canDelete(const int &useCount) override;
@@ -143,18 +143,21 @@ protected:
 	//virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) override;
 
 private:
+	static QJsonObject cmdList(const QJsonObject &message, EngineHandler *handler);
 	static QJsonObject cmdCreate(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
-	static QJsonObject cmdConnect(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler, ConquestEngine *engine);
+	static QJsonObject cmdConnect(WebSocketStream *stream, EngineHandler *handler, const int &id);
 
-	QJsonObject cmdState(WebSocketStream *stream, const QJsonObject &message, EngineHandler *);
-	QJsonObject cmdEnroll(WebSocketStream *stream, const QJsonObject &message, EngineHandler *);
-	QJsonObject cmdQuestionRequest(WebSocketStream *stream, const QJsonObject &message, EngineHandler *);
-	QJsonObject cmdTest(WebSocketStream *stream, const QJsonObject &message, EngineHandler *);
+	QJsonObject cmdState(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject cmdEnroll(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject cmdQuestionRequest(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject cmdTest(WebSocketStream *stream, const QJsonObject &message);
 
 	auto playerFind(const QString &username) const;
 	auto playerFind(const int &id) const;
 	auto playerFind(WebSocketStream *stream) const;
 	void onPlayerPrepared(WebSocketStream *stream);
+
+	void updatePlayerLimit();
 
 
 	WebSocketStream *m_hostStream = nullptr;
@@ -162,6 +165,7 @@ private:
 	qint64 m_startedAt = -1;
 	std::vector<Player> m_players;
 	ConquestConfig m_config;
+	QList<ConquestWorld> m_worldList;
 	static int m_nextId;
 	std::unique_ptr<ConquestQuestion> m_question;
 

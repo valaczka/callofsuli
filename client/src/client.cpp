@@ -1442,36 +1442,6 @@ void Client::retranslate(const QString &language)
 }
 
 
-/**
- * @brief Client::getConquest
- * @param id
- * @return
- */
-
-QVariantMap Client::getConquest(const int &id) const
-{
-	LOG_CINFO("client") << "Get conquest" << id;
-
-	const auto &data = Utils::fileToJsonObject(QStringLiteral(":/conquest/sample/data.json"));
-
-	if (!data || !data->contains(QStringLiteral("states"))) {
-		LOG_CERROR("client") << "ERROR";
-		return {};
-	}
-
-	const QJsonObject &stateData = data->value(QStringLiteral("states")).toObject().value(QString::number(id)).toObject();
-
-	if (stateData.isEmpty()) {
-		LOG_CWARNING("client") << "Missing state" << id;
-		return {};
-	}
-
-	QVariantMap ret = stateData.toVariantMap();
-	ret.insert(QStringLiteral("map"), QUrl::fromLocalFile(QStringLiteral(":/conquest/sample/state-%1.svg").arg(id)));
-	ret.insert(QStringLiteral("border"), QUrl::fromLocalFile(QStringLiteral(":/conquest/sample/state-%1-border.svg").arg(id)));
-
-	return ret;
-}
 
 
 

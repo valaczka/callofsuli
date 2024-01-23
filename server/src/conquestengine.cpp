@@ -82,9 +82,9 @@ void ConquestEngine::handleWebSocketMessage(WebSocketStream *stream, const QJson
 	const auto &id = obj.value(QStringLiteral("engine")).toInt(-1);
 	ConquestEngine *engine = stream->engineGet<ConquestEngine>(AbstractEngine::EngineConquest, id);
 
-	LOG_CINFO("engine") << "HANDLE" << cmd << message;
+	LOG_CINFO("engine") << "HANDLE" << cmd << message << id << engine;
 
-	using fnDef = QJsonObject (ConquestEngine::*)(WebSocketStream *, const QJsonObject &, EngineHandler *);
+	using fnDef = QJsonObject (ConquestEngine::*)(WebSocketStream *, const QJsonObject &);
 
 	static QHash<std::string, fnDef> fMap = {
 		{ "state", &ConquestEngine::cmdState },
@@ -94,7 +94,7 @@ void ConquestEngine::handleWebSocketMessage(WebSocketStream *stream, const QJson
 		{ "play", &ConquestEngine::gamePlay },
 		{ "questionRequest", &ConquestEngine::cmdQuestionRequest },
 		{ "finish", &ConquestEngine::gameFinish },
-		{ "test", &ConquestEngine::cmdTest },
+		{ "test", &ConquestEngine::cmdTest },	///
 	};
 
 	auto fn = fMap.value(cmd.toStdString());
@@ -103,12 +103,26 @@ void ConquestEngine::handleWebSocketMessage(WebSocketStream *stream, const QJson
 	QJsonObject ret;
 
 	if (cmd == QStringLiteral("create")) {
-		ret = cmdCreate(stream, obj, handler);
+		if (engine ){
+			ret = {
+				{ QStringLiteral("error"), QStringLiteral("engine already connected") }
+			};
+		} else {
+			ret = cmdCreate(stream, obj, handler);
+		}
+	} else if (cmd == QStringLiteral("list")) {
+		ret = cmdList(obj, handler);
 	} else if (cmd == QStringLiteral("connect")) {
-		ret = cmdConnect(stream, obj, handler, engine);
+		if (engine ){
+			ret = {
+				{ QStringLiteral("error"), QStringLiteral("engine already connected") }
+			};
+		} else {
+		ret = cmdConnect(stream, handler, id);
+		}
 	} else if (fn) {
 		if (engine)
-			ret = std::invoke(fn, engine, stream, obj, handler);
+			ret = std::invoke(fn, engine, stream, obj);
 		else
 			ret = {
 				{ QStringLiteral("error"), QStringLiteral("invalid engine") }
@@ -150,7 +164,7 @@ std::weak_ptr<ConquestEngine> ConquestEngine::createEngine(WebSocketStream *stre
 	if (stream) {
 		ptr->setHostStream(stream);
 		LOG_CINFO("engine") << "SET HOST" << ptr.get() << stream << ptr->m_id;
-		ptr->m_config.state = ConquestConfig::StateConnect;
+		ptr->m_config.gameState = ConquestConfig::StateConnect;
 		handler->websocketEngineLink(stream, ptr);
 		ptr->playerEnroll(stream);
 	}
@@ -198,11 +212,11 @@ std::weak_ptr<AbstractEngine> ConquestEngine::connectToEngine(const int &id, Web
  * @return
  */
 
-QJsonObject ConquestEngine::gameFinish(WebSocketStream *, const QJsonObject &, EngineHandler *)
+QJsonObject ConquestEngine::gameFinish(WebSocketStream *, const QJsonObject &)
 {
 	LOG_CDEBUG("engine") << "Finish conquest game:" << m_id;
 
-	m_config.state = ConquestConfig::StateFinished;
+	m_config.gameState = ConquestConfig::StateFinished;
 
 	m_handler->engineTriggerEngine(this);
 
@@ -220,9 +234,9 @@ QJsonObject ConquestEngine::gameFinish(WebSocketStream *, const QJsonObject &, E
  * @return
  */
 
-QJsonObject ConquestEngine::gameStart(WebSocketStream *stream, const QJsonObject &, EngineHandler *)
+QJsonObject ConquestEngine::gameStart(WebSocketStream *stream, const QJsonObject &)
 {
-	if (m_config.state != ConquestConfig::StateConnect)
+	if (m_config.gameState != ConquestConfig::StateConnect)
 		return {
 			{ QStringLiteral("error"), QStringLiteral("invalid state") }
 		};
@@ -239,11 +253,12 @@ QJsonObject ConquestEngine::gameStart(WebSocketStream *stream, const QJsonObject
 			{ QStringLiteral("error"), QStringLiteral("insufficient players") }
 		};
 
-	m_config.state = ConquestConfig::StatePrepare;
+	m_config.gameState = ConquestConfig::StatePrepare;
 
 	// TODO: getWorld by players number
 
-	m_config.world = "sample";
+	m_config.world.name = "sample";
+	m_config.world.playerCount = 2;
 
 	m_handler->engineTriggerEngine(this);
 
@@ -260,9 +275,9 @@ QJsonObject ConquestEngine::gameStart(WebSocketStream *stream, const QJsonObject
  * @return
  */
 
-QJsonObject ConquestEngine::gamePrepare(WebSocketStream *stream, const QJsonObject &message, EngineHandler *)
+QJsonObject ConquestEngine::gamePrepare(WebSocketStream *stream, const QJsonObject &message)
 {
-	if (m_config.state != ConquestConfig::StatePrepare)
+	if (m_config.gameState != ConquestConfig::StatePrepare)
 		return {
 			{ QStringLiteral("error"), QStringLiteral("invalid state") }
 		};
@@ -285,9 +300,9 @@ QJsonObject ConquestEngine::gamePrepare(WebSocketStream *stream, const QJsonObje
  * @return
  */
 
-QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject &, EngineHandler *)
+QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject &)
 {
-	if (m_config.state != ConquestConfig::StatePrepare)
+	if (m_config.gameState != ConquestConfig::StatePrepare)
 		return {
 			{ QStringLiteral("error"), QStringLiteral("invalid state") }
 		};
@@ -313,7 +328,7 @@ QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject 
 
 	m_startedAt = QDateTime::currentMSecsSinceEpoch();
 	m_elapsedTimer.start();
-	m_config.state = ConquestConfig::StatePlay;
+	m_config.gameState = ConquestConfig::StatePlay;
 
 	m_handler->engineTriggerEngine(this);
 
@@ -332,7 +347,7 @@ QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject 
 
 bool ConquestEngine::canDelete(const int &useCount)
 {
-	return (useCount == 1 && m_config.state == ConquestConfig::StateFinished);
+	return (useCount == 1 && m_config.gameState == ConquestConfig::StateFinished);
 }
 
 
@@ -345,7 +360,7 @@ void ConquestEngine::timerTick()
 {
 	LOG_CTRACE("engine") << "Timer tick" << this;
 
-	if (m_config.state != ConquestConfig::StatePrepare && m_config.state != ConquestConfig::StatePlay)
+	if (m_config.gameState != ConquestConfig::StatePrepare && m_config.gameState != ConquestConfig::StatePlay)
 		return;
 
 	m_question->check();
@@ -393,6 +408,7 @@ void ConquestEngine::streamTriggerEvent(WebSocketStream *stream)
 	ret.insert(QStringLiteral("engine"), m_id);
 	ret.insert(QStringLiteral("interval"), m_service->mainTimerInterval());
 	ret.insert(QStringLiteral("host"), (m_hostStream == stream ? true : false));
+	ret.insert(QStringLiteral("playerLimit"), (int) m_playerLimit);
 
 	if (m_startedAt != -1) {
 		ret.insert(QStringLiteral("startedAt"), m_startedAt);
@@ -626,7 +642,7 @@ void ConquestEngine::streamUnlinkedEvent(WebSocketStream *stream)
 		if (!next) {
 			LOG_CWARNING("engine") << "All stream dismissed";
 			setHostStream(nullptr);
-			gameFinish(stream, {}, m_handler);
+			gameFinish(stream, {});
 		} else {
 			LOG_CINFO("engine") << "Next host stream:" << next;
 			setHostStream(next);
@@ -634,6 +650,62 @@ void ConquestEngine::streamUnlinkedEvent(WebSocketStream *stream)
 
 		m_handler->engineTriggerEngine(this);
 	}
+}
+
+
+
+/**
+ * @brief ConquestEngine::cmdList
+ * @param stream
+ * @param message
+ * @param handler
+ * @return
+ */
+
+QJsonObject ConquestEngine::cmdList(const QJsonObject &message, EngineHandler *handler)
+{
+	LOG_CTRACE("engine") << "List ConquestEngines";
+
+	ConquestConfig config;
+	config.fromJson(message);
+
+	if (config.mapUuid.isEmpty())
+		return {
+			{ QStringLiteral("error"), QStringLiteral("missing mapuuid") }
+		};
+
+	if (config.missionUuid.isEmpty())
+		return {
+			{ QStringLiteral("error"), QStringLiteral("missing missionuuid") }
+		};
+
+	if (config.missionLevel <= 0)
+		return {
+			{ QStringLiteral("error"), QStringLiteral("missing level") }
+		};
+
+
+	const auto &list = handler->engineGet<ConquestEngine>(AbstractEngine::EngineConquest);
+
+	QJsonArray ret;
+
+	for (ConquestEngine *e : list) {
+		if (e->config().mapUuid != config.mapUuid ||
+				e->config().missionUuid != config.missionUuid ||
+				e->config().missionLevel != config.missionLevel
+				)
+			continue;
+
+		ret.append(QJsonObject{
+					   { QStringLiteral("engineId"), e->id() },
+					   { QStringLiteral("owner"), e->owner() },
+				   });
+
+	}
+
+	return {
+		{ QStringLiteral("list"), ret }
+	};
 }
 
 
@@ -650,24 +722,34 @@ void ConquestEngine::streamUnlinkedEvent(WebSocketStream *stream)
 
 QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler)
 {
-	const QString &map = message.value(QStringLiteral("map")).toString();
-	const QString &mission = message.value(QStringLiteral("mission")).toString();
-	const int &level = message.value(QStringLiteral("level")).toInt(0);
+	ConquestConfig config;
+	config.fromJson(message);
 
-	if (map.isEmpty())
+	if (config.mapUuid.isEmpty())
 		return {
 			{ QStringLiteral("error"), QStringLiteral("missing mapuuid") }
 		};
 
-	if (mission.isEmpty())
+	if (config.missionUuid.isEmpty())
 		return {
 			{ QStringLiteral("error"), QStringLiteral("missing missionuuid") }
 		};
 
-	if (level <= 0)
+	if (config.missionLevel <= 0)
 		return {
 			{ QStringLiteral("error"), QStringLiteral("missing level") }
 		};
+
+
+
+	ConquestWordListHelper worldHelper;
+	worldHelper.fromJson(message);
+
+	if (worldHelper.worldList.isEmpty())
+		return {
+			{ QStringLiteral("error"), QStringLiteral("missing worldList") }
+		};
+
 
 	auto ptr = createEngine(stream, handler);
 
@@ -679,13 +761,19 @@ QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject
 
 	auto engine = ptr.lock().get();
 
-	engine->m_config.mapUuid = map;
-	engine->m_config.missionUuid = mission;
-	engine->m_config.missionLevel = level;
+	engine->setOwner(stream->credential().username());
+	engine->m_config.mapUuid = config.mapUuid;
+	engine->m_config.missionUuid = config.missionUuid;
+	engine->m_config.missionLevel = config.missionLevel;
+	engine->m_worldList = worldHelper.worldList;
+
+	engine->updatePlayerLimit();
+
 
 	LOG_CINFO("engine") << "CREATED" << engine->id();
 
 	return {
+		{ QStringLiteral("created"), true },
 		{ QStringLiteral("engine"), engine->id() }
 	};
 }
@@ -699,39 +787,21 @@ QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject
  * @return
  */
 
-QJsonObject ConquestEngine::cmdConnect(WebSocketStream *stream, const QJsonObject &message,
-									   EngineHandler *handler, ConquestEngine *engine)
+QJsonObject ConquestEngine::cmdConnect(WebSocketStream *stream, EngineHandler *handler, const int &id)
 {
-	LOG_CTRACE("engine") << "Connect to ConquestEngine";
+	LOG_CTRACE("engine") << "Connect to ConquestEngine:" << id;
 
-	if (!engine) {
-		LOG_CERROR("engine") << "TEST CASE" << __PRETTY_FUNCTION__;
 
-		const auto &list = handler->engineGet<ConquestEngine>(EngineConquest);
-
-		LOG_CDEBUG("engine") << "Engines" << list;
-
-		if (list.isEmpty()) {
-			return cmdCreate(stream, message, handler);
-		}
-
-		/*return {
-			{ QStringLiteral("error"), QStringLiteral("invalid engine") }
-		};*/
-
-		engine = list.at(0);
-	}
-
-	if (const auto &e = connectToEngine(engine->id(), stream, handler); e.expired()) {
+	if (const auto &e = connectToEngine(id, stream, handler); e.expired()) {
 		return {
 			{ QStringLiteral("error"), QStringLiteral("internal error") }
 		};
 	}
 
-	LOG_CINFO("engine") << "CONNECTED" << engine->id();
+	LOG_CINFO("engine") << "CONNECTED" << id;
 
 	return {
-		{ QStringLiteral("engine"), engine->id() }
+		{ QStringLiteral("engine"), id }
 	};
 }
 
@@ -746,7 +816,7 @@ QJsonObject ConquestEngine::cmdConnect(WebSocketStream *stream, const QJsonObjec
  * @return
  */
 
-QJsonObject ConquestEngine::cmdState(WebSocketStream *, const QJsonObject &, EngineHandler *)
+QJsonObject ConquestEngine::cmdState(WebSocketStream *, const QJsonObject &)
 {
 	m_handler->engineTriggerEngine(this);
 	return {};
@@ -762,7 +832,7 @@ QJsonObject ConquestEngine::cmdState(WebSocketStream *, const QJsonObject &, Eng
  * @return
  */
 
-QJsonObject ConquestEngine::cmdEnroll(WebSocketStream *stream, const QJsonObject &, EngineHandler *)
+QJsonObject ConquestEngine::cmdEnroll(WebSocketStream *stream, const QJsonObject &)
 {
 	playerEnroll(stream);
 	m_handler->engineTriggerEngine(this);
@@ -778,11 +848,11 @@ QJsonObject ConquestEngine::cmdEnroll(WebSocketStream *stream, const QJsonObject
  * @return
  */
 
-QJsonObject ConquestEngine::cmdQuestionRequest(WebSocketStream *stream, const QJsonObject &message, EngineHandler *)
+QJsonObject ConquestEngine::cmdQuestionRequest(WebSocketStream *stream, const QJsonObject &message)
 {
 	LOG_CTRACE("engine") << "Upload questions";
 
-	if (m_config.state != ConquestConfig::StatePrepare && m_config.state != ConquestConfig::StatePlay)
+	if (m_config.gameState != ConquestConfig::StatePrepare && m_config.gameState != ConquestConfig::StatePlay)
 		return {
 			{ QStringLiteral("error"), QStringLiteral("invalid state") }
 		};
@@ -807,11 +877,11 @@ QJsonObject ConquestEngine::cmdQuestionRequest(WebSocketStream *stream, const QJ
  * @return
  */
 
-QJsonObject ConquestEngine::cmdTest(WebSocketStream *stream, const QJsonObject &message, EngineHandler *)
+QJsonObject ConquestEngine::cmdTest(WebSocketStream *stream, const QJsonObject &message)
 {
 	for (const auto &p : m_players) {
 		sendStreamJson(p.stream, QJsonObject{
-						  { QStringLiteral("cmd"), QStringLiteral("test") },
+						   { QStringLiteral("cmd"), QStringLiteral("test") },
 						   { QStringLiteral("stateId"), message.value("stateId") },
 						   { QStringLiteral("value"), message.value("value") },
 					   });
@@ -833,7 +903,30 @@ void ConquestEngine::onPlayerPrepared(WebSocketStream *stream)
 
 	LOG_CDEBUG("engine") << "Player prepared" << stream << qPrintable(stream->credential().username());
 
-	gamePlay(stream, {}, m_handler);
+	gamePlay(stream, {});
+}
+
+
+
+/**
+ * @brief ConquestEngine::updatePlayerLimit
+ */
+
+void ConquestEngine::updatePlayerLimit()
+{
+	m_playerLimit = 0;
+
+	for (const auto &w : m_worldList) {
+		for (const auto &p : w.infoList) {
+			if (p.playerCount < 0)
+				continue;
+
+			uint c = (uint) p.playerCount;
+
+			if (c > m_playerLimit)
+				m_playerLimit = c;
+		}
+	}
 }
 
 
@@ -881,7 +974,7 @@ void ConquestQuestion::check()
 		QMutexLocker locker(&m_mutex);
 		LOG_CTRACE("engine") << "Check questions" << m_questionArray.size();
 
-		if (m_questionArray.size() >= 4)
+		if (m_questionArray.size() >= 6)
 			return;
 
 		auto *ws = m_engine->m_hostStream;
@@ -898,7 +991,7 @@ void ConquestQuestion::check()
 		if (m_lastRequest == 0 || now-m_lastRequest > 4) {
 			LOG_CINFO("engine") << "REQUEST" << ws;
 			m_engine->sendStreamJson(ws, QJsonObject{
-										{ QStringLiteral("cmd"), QStringLiteral("questionRequest") }
+										 { QStringLiteral("cmd"), QStringLiteral("questionRequest") }
 									 });
 			m_lastRequest = now;
 		}

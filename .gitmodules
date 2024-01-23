@@ -58,3 +58,6 @@
 [submodule "lib/csv-parser"]
 	path = lib/csv-parser
 	url = https://github.com/vincentlaucsb/csv-parser.git
+[submodule "lib/QSerializer"]
+	path = lib/QSerializer
+	url = https://github.com/smurfomen/QSerializer.git

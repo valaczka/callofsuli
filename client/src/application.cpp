@@ -376,6 +376,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
 	qmlRegisterUncreatableType<ConquestConfig>("CallOfSuli", 1, 0, "ConquestConfig", "ConquestConfig is uncreatable");
+	qmlRegisterUncreatableType<ConquestWorld>("CallOfSuli", 1, 0, "ConquestWorld", "ConquestWorld is uncreatable");
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
 	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
@@ -389,6 +390,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<Campaign>("CallOfSuli", 1, 0, "Campaign");
 	qmlRegisterType<CampaignList>("CallOfSuli", 1, 0, "CampaignList");
 	qmlRegisterType<ConquestLand>("CallOfSuli", 1, 0, "ConquestLandImpl");
+	qmlRegisterType<ConquestLandData>("CallOfSuli", 1, 0, "ConquestLandData");
+	qmlRegisterType<ConquestLandDataList>("CallOfSuli", 1, 0, "ConquestLandDataList");
 	qmlRegisterType<ClassList>("CallOfSuli", 1, 0, "ClassList");
 	qmlRegisterType<ClassObject>("CallOfSuli", 1, 0, "ClassObject");
 	qmlRegisterType<Exam>("CallOfSuli", 1, 0, "Exam");

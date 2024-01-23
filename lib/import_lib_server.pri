@@ -18,3 +18,8 @@ LIBS += -lCuteLogger
 # QConsole
 
 include($$PWD/QConsole/qconsole.pri)
+
+# QSerializer
+
+DEFINES += QS_HAS_JSON
+include($$PWD/QSerializer/qserializer.pri)
