@@ -377,6 +377,8 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<ConquestConfig>("CallOfSuli", 1, 0, "ConquestConfig", "ConquestConfig is uncreatable");
 	qmlRegisterUncreatableType<ConquestWorld>("CallOfSuli", 1, 0, "ConquestWorld", "ConquestWorld is uncreatable");
+	qmlRegisterUncreatableType<ConquestWorldData>("CallOfSuli", 1, 0, "ConquestWorldData", "ConquestConfig is uncreatable");
+	qmlRegisterUncreatableType<ConquestTurn>("CallOfSuli", 1, 0, "ConquestTurn", "ConquestConfig is uncreatable");
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
 	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");

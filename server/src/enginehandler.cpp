@@ -137,10 +137,17 @@ void EngineHandlerPrivate::engineRemove(const std::shared_ptr<AbstractEngine> &e
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
-		if (*it == engine)
-			it = m_engines.erase(it);
-		else
+		if (*it == engine) {
+			if (!it->get()->m_engineMutex.tryLock(10000)) {
+				LOG_CERROR("service") << "Unable to unlock mutex" << it->get();
+				++it;
+			} else {
+				it->get()->m_engineMutex.unlock();
+				it = m_engines.erase(it);
+			}
+		} else {
 			++it;
+		}
 	}
 }
 
@@ -160,10 +167,17 @@ void EngineHandlerPrivate::engineRemove(AbstractEngine *engine)
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
-		if (it->get() == engine)
-			it = m_engines.erase(it);
-		else
+		if (it->get() == engine) {
+			if (!it->get()->m_engineMutex.tryLock(10000)) {
+				LOG_CERROR("service") << "Unable to unlock mutex" << it->get();
+				++it;
+			} else {
+				it->get()->m_engineMutex.unlock();
+				it = m_engines.erase(it);
+			}
+		} else {
 			++it;
+		}
 	}
 }
 
@@ -292,7 +306,7 @@ void EngineHandlerPrivate::websocketAdd(QWebSocket *socket)
 	connect(wsocket, &QWebSocket::textMessageReceived, ws.get(), &WebSocketStream::onTextReceived);
 	connect(wsocket, &QWebSocket::binaryMessageReceived, ws.get(), &WebSocketStream::onBinaryDataReceived);
 	auto sig = connect(wsocket, &QWebSocket::binaryMessageReceived, this,
-			std::bind(&EngineHandlerPrivate::onBinaryDataReceived, this, ws.get(), std::placeholders::_1));
+					   std::bind(&EngineHandlerPrivate::onBinaryDataReceived, this, ws.get(), std::placeholders::_1));
 	ws->m_signalHelper.append(sig);
 
 	LOG_CTRACE("service") << "WebSocketStream added" << &ws;
@@ -417,7 +431,7 @@ void EngineHandlerPrivate::websocketTrigger(WebSocketStream *stream)
 
 void EngineHandlerPrivate::websocketObserverAdded(WebSocketStream *stream, const AbstractEngine::Type &type)
 {
-	if (!stream)
+	/*if (!stream)
 		return;
 
 	QMutexLocker locker(&m_mutex);
@@ -426,7 +440,7 @@ void EngineHandlerPrivate::websocketObserverAdded(WebSocketStream *stream, const
 		if (e->type() == type) {
 			stream->engineAdd(e);
 		}
-	}
+	}*/
 }
 
 

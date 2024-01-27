@@ -13,6 +13,13 @@ ConquestLandImpl {
 	implicitWidth: _imgMap.source.toString() != "" ? _imgMap.width : 100
 	implicitHeight: _imgMap.source.toString() != "" ? _imgMap.height : 100
 
+
+	readonly property bool _pickable: landData && landData.game &&
+									  landData.game.currentTurn.canPick.includes(landData.landId) &&
+									  landData.game.currentTurn.player === landData.game.playerId
+
+	ownColor: Qaterial.Style.accentColor
+
 	Image {
 		id: _imgMap
 		fillMode: Image.PreserveAspectFit
@@ -25,7 +32,7 @@ ConquestLandImpl {
 		source: _imgMap
 		color: root.baseColor
 		opacity: 0.6
-		visible: false//isActive
+		visible: active
 	}
 
 
@@ -42,7 +49,7 @@ ConquestLandImpl {
 		id: _overlayBorder
 		anchors.fill: _imgBorder
 		source: _imgBorder
-		color: root.baseColor
+		color: _pickable ? root.ownColor : root.baseColor
 		visible: false
 	}
 
@@ -52,7 +59,7 @@ ConquestLandImpl {
 		anchors.fill: _imgMap
 		source: _imgMap
 		color: Qaterial.Colors.white
-		opacity: _mouse.containsMouse ? 0.5 : 0.0
+		opacity: _pickable && _mouse.containsMouse ? 0.5 : 0.0
 		visible: _imgMap.source.toString() != ""
 
 		Behavior on opacity {
@@ -64,26 +71,25 @@ ConquestLandImpl {
 		anchors.fill: _overlayBorder
 		source: _overlayBorder
 		maskSource: _imgMap
-		visible: false //isActive
+		visible: active || _pickable
 	}
 
 	MaskedMouseArea {
 		id: _mouse
 		anchors.fill: _imgMap
 		maskSource: _imgMap.source
+		enabled: _pickable
 
-		//scaleImage: mapScale
-		/*onClicked: {
-			if (!game)
+		onClicked: {
+			if (!landData || !landData.game)
 				return
 
-			game.sendWebSocketMessage({
-										  cmd: "test",
-										  engine: game.engineId,
-										  stateId: stateId,
-										  value: !isActive
+			landData.game.sendWebSocketMessage({
+										  cmd: "pick",
+										  engine: landData.game.engineId,
+										  id: landData.landId
 									  })
-		}*/
+		}
 	}
 
 }

@@ -32,6 +32,28 @@ ConquestLandData::ConquestLandData(QObject *parent)
 
 }
 
+
+
+/**
+ * @brief ConquestLandData::loadFromConfig
+ * @param data
+ */
+
+void ConquestLandData::loadFromConfig(const ConquestWorldData &data)
+{
+	if (data.id != m_landId)
+		return;
+
+	setProprietor(data.proprietor);
+}
+
+
+
+/**
+ * @brief ConquestLandData::landId
+ * @return
+ */
+
 QString ConquestLandData::landId() const
 {
 	return m_landId;
@@ -95,4 +117,37 @@ void ConquestLandData::setImgBorder(const QUrl &newImgBorder)
 		return;
 	m_imgBorder = newImgBorder;
 	emit imgBorderChanged();
+}
+
+int ConquestLandData::proprietor() const
+{
+	return m_proprietor;
+}
+
+void ConquestLandData::setProprietor(int newProprietor)
+{
+	if (m_proprietor == newProprietor)
+		return;
+	m_proprietor = newProprietor;
+	emit proprietorChanged();
+}
+
+
+
+/**
+ * @brief ConquestLandData::game
+ * @return
+ */
+
+ConquestGame *ConquestLandData::game() const
+{
+	return m_game;
+}
+
+void ConquestLandData::setGame(ConquestGame *newGame)
+{
+	if (m_game == newGame)
+		return;
+	m_game = newGame;
+	emit gameChanged();
 }

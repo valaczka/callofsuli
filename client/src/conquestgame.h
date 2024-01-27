@@ -49,6 +49,9 @@ class ConquestGame : public AbstractGame
 	Q_PROPERTY(ConquestLandDataList *landDataList READ landDataList CONSTANT FINAL)
 	Q_PROPERTY(QSize worldSize READ worldSize WRITE setWorldSize NOTIFY worldSizeChanged FINAL)
 	Q_PROPERTY(QSListModel *engineModel READ engineModel CONSTANT FINAL)
+	Q_PROPERTY(QSListModel *playersModel READ playersModel CONSTANT FINAL)
+	Q_PROPERTY(ConquestTurn currentTurn READ currentTurn WRITE setCurrentTurn NOTIFY currentTurnChanged FINAL)
+	Q_PROPERTY(ConquestTurn::Stage currentStage READ currentStage WRITE setCurrentStage NOTIFY currentStageChanged FINAL)
 
 public:
 	explicit ConquestGame(Client *client);
@@ -64,6 +67,7 @@ public:
 	Q_INVOKABLE void sendWebSocketMessage(const QJsonValue &data = {});
 	Q_INVOKABLE void getEngineList();
 	Q_INVOKABLE void gameCreate();
+	Q_INVOKABLE QColor getPlayerColor(const int &id) const;
 
 	virtual void gameAbort() override;
 
@@ -89,12 +93,22 @@ public:
 
 	QSListModel* engineModel() const;
 
+	QSListModel *playersModel() const;
+
+	ConquestTurn currentTurn() const;
+	void setCurrentTurn(const ConquestTurn &newCurrentTurn);
+
+	ConquestTurn::Stage currentStage() const;
+	void setCurrentStage(const ConquestTurn::Stage &newCurrentStage);
+
 signals:
 	void configChanged();
 	void hostModeChanged();
 	void engineIdChanged();
 	void playerIdChanged();
 	void worldSizeChanged();
+	void currentTurnChanged();
+	void currentStageChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -133,6 +147,9 @@ private:
 	QString m_loadedWorld;
 	QSize m_worldSize;
 	std::unique_ptr<QSListModel> m_engineModel;
+	std::unique_ptr<QSListModel> m_playersModel;
+	ConquestTurn m_currentTurn;
+	ConquestTurn::Stage m_currentStage = ConquestTurn::StageInvalid;
 };
 
 

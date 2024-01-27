@@ -32,23 +32,36 @@
 
 
 /**
- * @brief The ConquestWorldInfo class
+ * @brief The ConquestWorldData class
  */
 
-class ConquestWorldInfo : public QSerializer
+class ConquestWorldData : public QSerializer
 {
 	Q_GADGET
 
 public:
-	ConquestWorldInfo()
-		: playerCount(0)
+	ConquestWorldData()
+		: proprietor(-1)
+		, xp(0)
+		, xpOnce(0)
+		, fortress(-1)
 	{}
 
-	QS_SERIALIZABLE
-	QS_FIELD(int, playerCount)
-	QS_COLLECTION(QList, QString, landIdList)
-};
+	friend bool operator==(const ConquestWorldData &w1, const ConquestWorldData &w2) {
+		return w1.proprietor == w2.proprietor &&
+				w1.xp == w2.xp &&
+				w1.xpOnce == w2.xpOnce &&
+				w1.fortress == w2.fortress
+				;
+	}
 
+	QS_SERIALIZABLE
+	QS_FIELD(QString, id)
+	QS_FIELD(int, proprietor)
+	QS_FIELD(int, xp)
+	QS_FIELD(int, xpOnce)
+	QS_FIELD(int, fortress)
+};
 
 
 /**
@@ -64,6 +77,25 @@ public:
 		: playerCount(0)
 	{}
 
+
+	/**
+	 * @brief landFind
+	 * @param id
+	 * @return
+	 */
+
+	int landFind(const QString &id) const {
+		const auto &it = std::find_if(landList.constBegin(), landList.constEnd(), [id](const ConquestWorldData &d){
+			return d.id == id;
+		});
+
+		if (it == landList.constEnd())
+			return -1;
+		else
+			return it - landList.constBegin();
+	}
+
+
 	friend bool operator==(const ConquestWorld &w1, const ConquestWorld &w2) {
 		return w1.name == w2.name &&
 				w1.playerCount == w2.playerCount
@@ -72,26 +104,132 @@ public:
 
 	QS_SERIALIZABLE
 	QS_FIELD(QString, name)
-	QS_COLLECTION(QList, QString, landIdList)
+	QS_COLLECTION_OBJECTS(QList, ConquestWorldData, landList)
 	QS_FIELD(int, playerCount)
-
-	QS_COLLECTION_OBJECTS(QList, ConquestWorldInfo, infoList)
 };
 
 
 
 /**
- * @brief The ConquestWordListHelper class
+ * @brief The ConquestAnswer class
  */
 
-class ConquestWordListHelper : public QSerializer
+class ConquestAnswer : public QSerializer
 {
 	Q_GADGET
 
 public:
+	ConquestAnswer()
+		: player(-1)
+	{}
+
+	friend bool operator==(const ConquestAnswer &c1, const ConquestAnswer &c2) {
+		return c1.answer == c2.answer &&
+				c1.player == c2.player
+				;
+	}
+
 	QS_SERIALIZABLE
-	QS_COLLECTION_OBJECTS(QList, ConquestWorld, worldList);
+	QS_FIELD(int, player)
+	QS_FIELD(QJsonObject, answer)
 };
+
+
+
+
+
+/**
+ * @brief The ConquestTurn class
+ */
+
+class ConquestTurn : public QSerializer
+{
+	Q_GADGET
+
+public:
+	ConquestTurn()
+		: player(-1)
+		, subStage(SubStageInvalid)
+		, subStageEnd(0)
+	{}
+
+	enum Stage {
+		StageInvalid = 0,
+		StagePick,
+		StageBattle,
+		StageLastRound
+	};
+
+	Q_ENUM(Stage)
+
+
+	enum SubStage {
+		SubStageInvalid = 0,
+		SubStageUserSelect,
+		SubStageUserAnswer,
+		SubStageFinished
+	};
+
+	Q_ENUM(SubStage)
+
+	/**
+	 * @brief answerGet
+	 * @param playerId
+	 * @return
+	 */
+
+	std::optional<QJsonObject> answerGet(const int &playerId) const {
+		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
+			return a.player == playerId;
+		});
+
+		if (it == answerList.constEnd())
+			return std::nullopt;
+		else
+			return it->answer;
+	}
+
+
+
+	/**
+	 * @brief answerGetSuccess
+	 * @param playerId
+	 * @return
+	 */
+
+	std::optional<QJsonObject> answerGetSuccess(const int &playerId) const {
+		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
+			return a.player == playerId; //&& ANSWER SUCCESS == TRUE
+		});
+
+		if (it == answerList.constEnd())
+			return std::nullopt;
+		else
+			return it->answer;
+	}
+
+
+	friend bool operator==(const ConquestTurn &c1, const ConquestTurn &c2) {
+		return c1.player == c2.player &&
+				c1.subStage == c2.subStage &&
+				c1.subStageEnd == c2.subStageEnd &&
+				c1.pickedId == c2.pickedId &&
+				c1.answerList == c2.answerList &&
+				c1.canPick == c2.canPick
+				;
+	}
+
+	QS_SERIALIZABLE
+	QS_FIELD(int, player)
+	QS_FIELD(SubStage, subStage)
+	QS_FIELD(qint64, subStageEnd)
+	QS_FIELD(QString, pickedId)
+	QS_COLLECTION_OBJECTS(QList, ConquestAnswer, answerList)
+	QS_COLLECTION(QList, QString, canPick)
+};
+
+
+
 
 
 /**
@@ -106,6 +244,8 @@ public:
 	ConquestConfig()
 		: gameState(StateInvalid)
 		, missionLevel(-1)
+		, currentTurn(-1)
+		, currentStage(ConquestTurn::StageInvalid)
 	{}
 
 
@@ -126,7 +266,12 @@ public:
 				c1.world == c2.world &&
 				c1.mapUuid == c2.mapUuid &&
 				c1.missionUuid == c2.missionUuid &&
-				c1.missionLevel == c2.missionLevel
+				c1.missionLevel == c2.missionLevel &&
+				c1.turnList == c2.turnList &&
+				c1.currentTurn == c2.currentTurn &&
+				c1.currentStage == c2.currentStage &&
+				c1.order == c2.order &&
+				c1.currentQuestion == c2.currentQuestion
 				;
 	}
 
@@ -136,6 +281,102 @@ public:
 	QS_FIELD(QString, missionUuid)
 	QS_FIELD(int, missionLevel)
 	QS_OBJECT(ConquestWorld, world)
+	QS_COLLECTION(QList, int, order)
+	QS_COLLECTION_OBJECTS(QList, ConquestTurn, turnList)
+	QS_FIELD(int, currentTurn)
+	QS_FIELD(ConquestTurn::Stage, currentStage)
+	QS_FIELD(QJsonObject, currentQuestion)
+};
+
+
+
+
+
+/**
+ * @brief The ConquestPlayer class
+ */
+
+class ConquestPlayer : public QSerializer
+{
+	Q_GADGET
+
+public:
+	ConquestPlayer(const int &_id, const QString &_user)
+		: playerId(_id)
+		, username(_user)
+		, prepared(false)
+		, xp(0)
+	{}
+	ConquestPlayer(const int &_id) : ConquestPlayer(_id, QStringLiteral("")) {}
+	ConquestPlayer() : ConquestPlayer(-1) {}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, playerId);
+	QS_FIELD(QString, username);
+	QS_FIELD(bool, prepared)
+	QS_FIELD(int, xp)
+	QS_FIELD(QString, theme)
+};
+
+
+
+/// ---------------- HELPERS ----------------------
+
+
+/**
+ * @brief The ConquestWorldHelperInfo class
+ */
+
+class ConquestWorldHelperInfo : public QSerializer
+{
+	Q_GADGET
+
+public:
+	ConquestWorldHelperInfo()
+		: playerCount(0)
+	{}
+
+	QS_SERIALIZABLE
+	QS_FIELD(int, playerCount)
+	QS_COLLECTION(QList, QString, landIdList)
+
+	// TODO: adjacency list
+};
+
+
+
+
+/**
+ * @brief The ConquestWorldHelper class
+ */
+
+class ConquestWorldHelper : public QSerializer
+{
+	Q_GADGET
+
+public:
+	ConquestWorldHelper() = default;
+
+	QS_SERIALIZABLE
+	QS_FIELD(QString, name)
+	QS_COLLECTION_OBJECTS(QList, ConquestWorldHelperInfo, infoList)
+};
+
+
+
+
+/**
+ * @brief The ConquestWordListHelper class
+ */
+
+class ConquestWordListHelper : public QSerializer
+{
+	Q_GADGET
+
+public:
+	QS_SERIALIZABLE
+	QS_COLLECTION_OBJECTS(QList, ConquestWorldHelper, worldList);
 };
 
 

@@ -110,12 +110,55 @@ QPage {
 		game: root.game
 	}
 
+	Qaterial.LabelBody2 {
+		text: {
+			if (!game)
+				return ""
+
+			let c = game.config
+
+			let text="stage: " + c.currentStage + "\n"
+			text += "turn: " + c.currentTurn + "\n"
+
+			if (c.currentTurn >= 0 && c.currentTurn < c.turnList.length) {
+				let ct = c.turnList[c.currentTurn]
+				text += "turnPlayer: " + ct.player + "\n"
+				text += "turnSubStage: " + ct.subStage + "\n"
+				text += "turnSubStageEnd: " + ct.subStageEnd + "\n"
+			}
+
+			text += "q: " + JSON.stringify(c.currentQuestion) + "\n"
+
+			return text
+		}
+	}
+
+	ConquestTurnChart {
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
+		anchors.margins: 50
+		game: root.game
+	}
+
 	QButton {
 		anchors.right: parent.right
 		anchors.top: parent.top
 		text: "PREPARED"
 		enabled: game.config.gameState == ConquestConfig.StatePrepare
 		onClicked: game.sendWebSocketMessage({"cmd": "prepare", "engine": game.engineId, "ready": true})
+	}
+
+	QButton {
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
+		text: "ANSWER"
+		onClicked: {
+			game.sendWebSocketMessage({
+										  cmd: "answer",
+										  engine: game.engineId,
+										  answer: "hello"
+									  })
+		}
 	}
 
 }

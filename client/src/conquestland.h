@@ -36,6 +36,8 @@ class ConquestLand : public QQuickItem
 
 	Q_PROPERTY(ConquestLandData *landData READ landData WRITE setLandData NOTIFY landDataChanged FINAL)
 	Q_PROPERTY(QColor baseColor READ baseColor WRITE setBaseColor NOTIFY baseColorChanged FINAL)
+	Q_PROPERTY(QColor ownColor READ ownColor WRITE setOwnColor NOTIFY ownColorChanged FINAL)
+	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged FINAL)
 
 	QML_ELEMENT
 
@@ -48,14 +50,25 @@ public:
 	QColor baseColor() const;
 	void setBaseColor(const QColor &newBaseColor);
 
+	bool active() const;
+	void setActive(bool newActive);
+
+	QColor ownColor() const;
+	void setOwnColor(const QColor &newOwnColor);
+
 signals:
 	void landDataChanged();
 	void baseColorChanged();
+	void activeChanged();
+	void ownColorChanged();
 
 private:
+	void onProprietorChanged();
+
 	QPointer<ConquestLandData> m_landData;
 	QColor m_baseColor;
-
+	QColor m_ownColor;
+	bool m_active = false;
 };
 
 #endif // CONQUESTLAND_H

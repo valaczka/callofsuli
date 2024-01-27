@@ -33,6 +33,7 @@ ConquestGame::ConquestGame(Client *client)
 	: AbstractGame(GameMap::Conquest, client)
 	, m_landDataList(std::make_unique<ConquestLandDataList>())
 	, m_engineModel(std::make_unique<QSListModel>())
+	, m_playersModel(std::make_unique<QSListModel>())
 {
 	LOG_CTRACE("game") << "ConquestGame created" << this;
 
@@ -40,6 +41,8 @@ ConquestGame::ConquestGame(Client *client)
 									QStringLiteral("engineId"),
 									QStringLiteral("owner")
 								});
+
+	m_playersModel->setRoleNames(Utils::getRolesFromObject(ConquestPlayer().metaObject()));
 
 	if (m_client) {
 		connect(m_client->httpConnection()->webSocket(), &WebSocket::messageReceived, this, &ConquestGame::onJsonReceived);
@@ -129,6 +132,25 @@ void ConquestGame::gameCreate()
 	o[QStringLiteral("worldList")] = helper.toJson().value(QStringLiteral("worldList")).toArray();
 
 	sendWebSocketMessage(o);
+}
+
+
+/**
+ * @brief ConquestGame::getPlayerColor
+ * @param id
+ * @return
+ */
+
+QColor ConquestGame::getPlayerColor(const int &id) const
+{
+	for (const QVariant &v : m_playersModel->storage()) {
+		const QVariantMap &m = v.toMap();
+
+		if (m.value(QStringLiteral("playerId")).toInt() == id)
+			return QColor::fromString(m.value(QStringLiteral("theme")).toString());;
+	}
+
+	return Qt::black;
 }
 
 
@@ -314,9 +336,23 @@ void ConquestGame::onConfigChanged()
 {
 	LOG_CINFO("game") << "ConquestGame state:" << m_config.gameState;
 
+	if (m_config.currentTurn >= 0 && m_config.currentTurn < m_config.turnList.size())
+		setCurrentTurn(m_config.turnList.at(m_config.currentTurn));
+	else
+		setCurrentTurn({});
+
+	setCurrentStage(m_config.currentStage);
+
+
 	if ((m_config.gameState == ConquestConfig::StatePrepare || m_config.gameState == ConquestConfig::StatePlay) &&
 			m_config.world.name != m_loadedWorld) {
 		reloadLandList();
+	}
+
+	for (ConquestLandData *land : *m_landDataList) {
+		const int &idx = m_config.world.landFind(land->landId());
+		if (idx != -1)
+			land->loadFromConfig(m_config.world.landList[idx]);
 	}
 
 	/*sendWebSocketMessage(QJsonObject{
@@ -359,10 +395,17 @@ void ConquestGame::cmdState(const QJsonObject &data)
 	c.fromJson(data);
 	setConfig(c);
 
-	LOG_CERROR("game") << "THIS" << c.toJson();
+	///LOG_CERROR("game") << "THIS" << QJsonDocument(c.toJson()).toJson(QJsonDocument::Indented).constData();
+
+	Utils::patchSListModel(m_playersModel.get(), data.value(QStringLiteral("users")).toArray().toVariantList(),
+						   QStringLiteral("playerId"));
 
 	if (data.contains(QStringLiteral("playerId")))
 		setPlayerId(data.value(QStringLiteral("playerId")).toInt());
+
+
+
+
 
 
 	/*if (data.contains(QStringLiteral("gameState"))) {
@@ -439,7 +482,10 @@ void ConquestGame::cmdQuestionRequest(const QJsonObject &)
 {
 	LOG_CDEBUG("game") << "Generate questions";
 
-	QJsonArray tmp = {6,3};
+	QJsonArray tmp;
+
+	tmp.append(QJsonObject{{"q", "kérdés1"}});
+	tmp.append(QJsonObject{{"a", "válasz2"}});
 
 	sendWebSocketMessage(QJsonObject{
 							 { QStringLiteral("cmd"), QStringLiteral("questionRequest") },
@@ -508,6 +554,7 @@ void ConquestGame::reloadLandList()
 	for (const QString &id : lands.keys()) {
 		const QJsonObject &obj = lands.value(id).toObject();
 		ConquestLandData *land = new ConquestLandData;
+		land->setGame(this);
 		land->setLandId(id);
 		land->setBaseX(obj.value(QStringLiteral("x")).toDouble());
 		land->setBaseY(obj.value(QStringLiteral("y")).toDouble());
@@ -555,7 +602,7 @@ ConquestWordListHelper ConquestGame::getWorldList() const
 			continue;
 		}
 
-		ConquestWorld world;
+		ConquestWorldHelper world;
 
 		world.name = name;
 
@@ -565,7 +612,7 @@ ConquestWordListHelper ConquestGame::getWorldList() const
 
 			QString k = key;
 
-			ConquestWorldInfo info;
+			ConquestWorldHelperInfo info;
 			info.playerCount = k.remove(exp).toInt();
 
 			if (info.playerCount < 1) {
@@ -582,6 +629,52 @@ ConquestWordListHelper ConquestGame::getWorldList() const
 
 	return wList;
 }
+
+ConquestTurn::Stage ConquestGame::currentStage() const
+{
+	return m_currentStage;
+}
+
+
+
+/**
+ * @brief ConquestGame::setCurrentStage
+ * @param newCurrentStage
+ */
+
+void ConquestGame::setCurrentStage(const ConquestTurn::Stage &newCurrentStage)
+{
+	if (m_currentStage == newCurrentStage)
+		return;
+	m_currentStage = newCurrentStage;
+	emit currentStageChanged();
+}
+
+QSListModel*ConquestGame::playersModel() const
+{
+	return m_playersModel.get();
+}
+
+
+
+/**
+ * @brief ConquestGame::currentTurn
+ * @return
+ */
+
+ConquestTurn ConquestGame::currentTurn() const
+{
+	return m_currentTurn;
+}
+
+void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
+{
+	if (m_currentTurn == newCurrentTurn)
+		return;
+	m_currentTurn = newCurrentTurn;
+	emit currentTurnChanged();
+}
+
 
 
 /**

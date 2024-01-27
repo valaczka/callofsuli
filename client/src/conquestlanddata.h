@@ -29,6 +29,7 @@
 
 #include "qurl.h"
 #include <QObject>
+#include "conquestconfig.h"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
@@ -41,6 +42,23 @@ using ConquestLandDataList = qolm::QOlm<ConquestLandData>;
 Q_DECLARE_METATYPE(ConquestLandDataList*)
 
 
+class ConquestGame;
+
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_ConquestGame
+#define OPAQUE_PTR_ConquestGame
+  Q_DECLARE_OPAQUE_POINTER(ConquestGame*)
+#endif
+
+#endif
+
+
+
+/**
+ * @brief The ConquestLandData class
+ */
+
 class ConquestLandData : public QObject
 {
 	Q_OBJECT
@@ -50,9 +68,13 @@ class ConquestLandData : public QObject
 	Q_PROPERTY(qreal baseY READ baseY WRITE setBaseY NOTIFY baseYChanged FINAL)
 	Q_PROPERTY(QUrl imgMap READ imgMap WRITE setImgMap NOTIFY imgMapChanged FINAL)
 	Q_PROPERTY(QUrl imgBorder READ imgBorder WRITE setImgBorder NOTIFY imgBorderChanged FINAL)
+	Q_PROPERTY(int proprietor READ proprietor WRITE setProprietor NOTIFY proprietorChanged FINAL)
+	Q_PROPERTY(ConquestGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 
 public:
 	explicit ConquestLandData(QObject *parent = nullptr);
+
+	void loadFromConfig(const ConquestWorldData &data);
 
 	QString landId() const;
 	void setLandId(const QString &newLandId);
@@ -69,12 +91,20 @@ public:
 	QUrl imgBorder() const;
 	void setImgBorder(const QUrl &newImgBorder);
 
+	int proprietor() const;
+	void setProprietor(int newProprietor);
+
+	ConquestGame *game() const;
+	void setGame(ConquestGame *newGame);
+
 signals:
 	void landIdChanged();
 	void baseXChanged(qreal x);
 	void baseYChanged(qreal y);
 	void imgMapChanged();
 	void imgBorderChanged();
+	void proprietorChanged();
+	void gameChanged();
 
 private:
 	QString m_landId;
@@ -82,6 +112,8 @@ private:
 	qreal m_baseY = 0;
 	QUrl m_imgMap;
 	QUrl m_imgBorder;
+	int m_proprietor = -1;
+	ConquestGame *m_game = nullptr;
 };
 
 #endif // CONQUESTLANDDATA_H

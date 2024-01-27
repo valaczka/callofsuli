@@ -1,6 +1,7 @@
 #ifndef ABSTRACTENGINE_H
 #define ABSTRACTENGINE_H
 
+#include "qmutex.h"
 #include <QJsonValue>
 #include <QObject>
 
@@ -58,6 +59,8 @@ protected:
 	virtual void streamLinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 	virtual void streamUnlinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 	virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) { Q_UNUSED(data); Q_UNUSED(stream); }
+
+	QRecursiveMutex m_engineMutex;
 
 	EngineHandler *const m_handler;
 	ServerService *const m_service;

@@ -203,5 +203,6 @@
         <file>ConquestLand.qml</file>
         <file>PageConquestGame.qml</file>
         <file>ConquestScene.qml</file>
+        <file>ConquestTurnChart.qml</file>
     </qresource>
 </RCC>

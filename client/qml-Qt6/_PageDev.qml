@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import CallOfSuli
 import Qt5Compat.GraphicalEffects
+import QtCharts
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
@@ -21,37 +22,39 @@ Page {
 	}
 
 
-	Image {
-		id: _bgImg
-		source: "qrc:/conquest/sample/bg.png"
-		width: 2600*_scale
-		height: 1200*_scale
-		fillMode: Image.PreserveAspectFit
+
+
+	ConquestTurnChart {
+		id: _chart
 	}
 
-	Repeater {
-		model: 16
-		delegate: ConquestState {
-			world: "sample"
-			stateId: index+1
-			mapScale: _scale
+
+
+
+	property int num: -1
+
+	Row {
+		QButton {
+			text: "Next"
+			onClicked: {
+				++num
+			}
 		}
-	}
 
+		QButton {
+			text: "New"
+			onClicked: {
 
-	Image {
-		source: "qrc:/conquest/sample/over.png"
-		width: 2600*_scale
-		height: 1200*_scale
-		fillMode: Image.PreserveAspectFit
-	}
+			}
+		}
 
+		QButton {
+			text: "++"
+			onClicked: {
+				_series.append("PX", 1)
+			}
+		}
 
-	property int num: 3
-
-	QButton {
-		text: "Next"
-		onClicked: ++num
 	}
 
 
