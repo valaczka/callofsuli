@@ -29,6 +29,7 @@
 #include "application.h"
 #include "qjsonarray.h"
 #include "qjsonobject.h"
+#include "utils_.h"
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}

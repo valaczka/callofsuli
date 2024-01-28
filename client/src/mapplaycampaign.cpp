@@ -161,6 +161,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	ConquestGame *conquestGame = qobject_cast<ConquestGame*>(m_client->currentGame());
 
 	if (conquestGame) {
+		conquestGame->setMap(m_gameMap.get());
 		conquestGame->setHandler(m_handler);
 		conquestGame->load();
 		setGameState(StatePlay);

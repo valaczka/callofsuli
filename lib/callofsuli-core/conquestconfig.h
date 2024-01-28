@@ -29,6 +29,7 @@
 
 #include <QSerializer>
 #include <QString>
+#include "utils_.h"
 
 
 /**
@@ -129,6 +130,33 @@ public:
 				;
 	}
 
+	/**
+	 * @brief addDetails
+	 * @param json
+	 * @param success
+	 * @param elapsed
+	 * @return
+	 */
+
+	static void addDetails(QJsonObject *json, const bool &success, const qint64 &elapsed) {
+		Q_ASSERT(json);
+		json->insert(QStringLiteral("_success"), success);
+		json->insert(QStringLiteral("_elapsed"), elapsed);
+	}
+
+	/**
+	 * @brief loadDetails
+	 * @param json
+	 */
+
+	void loadDetails(const QJsonObject &json) {
+		success = json.value(QStringLiteral("_success")).toBool(false);
+		elapsed = JSON_TO_INTEGER(json.value(QStringLiteral("_elapsed")));
+	}
+
+	bool success = false;
+	qint64 elapsed = 0;
+
 	QS_SERIALIZABLE
 	QS_FIELD(int, player)
 	QS_FIELD(QJsonObject, answer)
@@ -150,6 +178,7 @@ public:
 	ConquestTurn()
 		: player(-1)
 		, subStage(SubStageInvalid)
+		, subStageStart(0)
 		, subStageEnd(0)
 	{}
 
@@ -171,6 +200,8 @@ public:
 	};
 
 	Q_ENUM(SubStage)
+
+
 
 	/**
 	 * @brief answerGet
@@ -199,19 +230,35 @@ public:
 
 	std::optional<QJsonObject> answerGetSuccess(const int &playerId) const {
 		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
-			return a.player == playerId; //&& ANSWER SUCCESS == TRUE
+			return a.player == playerId;
 		});
+
+		qWarning() << "---?" << (it == answerList.constEnd());
 
 		if (it == answerList.constEnd())
 			return std::nullopt;
-		else
-			return it->answer;
+
+		qWarning() << "---S" << it->success << it->elapsed;
+
+		if (!it->success)
+			return std::nullopt;
+
+		for (const ConquestAnswer &a : answerList) {
+
+			qWarning() << "---CH" << a.player << playerId << a.success;
+
+			if (a.player != playerId && a.success && a.elapsed < it->elapsed)
+				return std::nullopt;
+		}
+
+		return it->answer;
 	}
 
 
 	friend bool operator==(const ConquestTurn &c1, const ConquestTurn &c2) {
 		return c1.player == c2.player &&
 				c1.subStage == c2.subStage &&
+				c1.subStageStart == c2.subStageStart &&
 				c1.subStageEnd == c2.subStageEnd &&
 				c1.pickedId == c2.pickedId &&
 				c1.answerList == c2.answerList &&
@@ -222,11 +269,46 @@ public:
 	QS_SERIALIZABLE
 	QS_FIELD(int, player)
 	QS_FIELD(SubStage, subStage)
+	QS_FIELD(qint64, subStageStart)
 	QS_FIELD(qint64, subStageEnd)
 	QS_FIELD(QString, pickedId)
 	QS_COLLECTION_OBJECTS(QList, ConquestAnswer, answerList)
 	QS_COLLECTION(QList, QString, canPick)
 };
+
+
+
+
+
+
+
+/**
+ * @brief The ConquestPlayer class
+ */
+
+class ConquestPlayer : public QSerializer
+{
+	Q_GADGET
+
+public:
+	ConquestPlayer(const int &_id, const QString &_user)
+		: playerId(_id)
+		, username(_user)
+		, prepared(false)
+		, xp(0)
+	{}
+	ConquestPlayer(const int &_id) : ConquestPlayer(_id, QStringLiteral("")) {}
+	ConquestPlayer() : ConquestPlayer(-1) {}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, playerId);
+	QS_FIELD(QString, username);
+	QS_FIELD(bool, prepared)
+	QS_FIELD(int, xp)
+	QS_FIELD(QString, theme)
+};
+
 
 
 
@@ -261,6 +343,18 @@ public:
 	Q_ENUM(GameState);
 
 
+	/**
+	 * @brief landPick
+	 * @param landId
+	 * @param playerId
+	 * @return
+	 */
+
+	bool landPick(const QString &landId, const int &playerId, ConquestPlayer *player);
+	bool playerAnswer(const ConquestAnswer &answer);
+	bool landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld);
+	int getPickedLandProprietor(const int &turn) const;
+
 	friend bool operator==(const ConquestConfig &c1, const ConquestConfig &c2) {
 		return c1.gameState == c2.gameState &&
 				c1.world == c2.world &&
@@ -288,36 +382,6 @@ public:
 	QS_FIELD(QJsonObject, currentQuestion)
 };
 
-
-
-
-
-/**
- * @brief The ConquestPlayer class
- */
-
-class ConquestPlayer : public QSerializer
-{
-	Q_GADGET
-
-public:
-	ConquestPlayer(const int &_id, const QString &_user)
-		: playerId(_id)
-		, username(_user)
-		, prepared(false)
-		, xp(0)
-	{}
-	ConquestPlayer(const int &_id) : ConquestPlayer(_id, QStringLiteral("")) {}
-	ConquestPlayer() : ConquestPlayer(-1) {}
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(int, playerId);
-	QS_FIELD(QString, username);
-	QS_FIELD(bool, prepared)
-	QS_FIELD(int, xp)
-	QS_FIELD(QString, theme)
-};
 
 
 
@@ -379,6 +443,158 @@ public:
 	QS_COLLECTION_OBJECTS(QList, ConquestWorldHelper, worldList);
 };
 
+
+
+
+
+/// ------------- DEFINITIONS -------------------------
+
+
+
+/**
+ * @brief ConquestConfig::landPick
+ * @param landId
+ * @param playerId
+ * @return
+ */
+
+inline bool ConquestConfig::landPick(const QString &landId, const int &playerId, ConquestPlayer *player) {
+	if (currentTurn < 0 || currentTurn >= turnList.size())
+		return false;
+
+	ConquestTurn &turn = turnList[currentTurn];
+
+	if (turn.subStage != ConquestTurn::SubStageUserSelect || turn.player != playerId)
+		return false;
+
+	if (currentStage == ConquestTurn::StagePick) {
+		const int &idx = world.landFind(landId);
+
+		if (idx == -1)
+			return false;
+
+		ConquestWorldData &land = world.landList[idx];
+		turn.pickedId = landId;
+
+		if (land.proprietor != -1)
+			return false;
+
+		land.proprietor = playerId;
+
+		if (player) {
+			player->xp += land.xp;
+		}
+
+		return true;
+	} else if (currentStage == ConquestTurn::StageBattle) {
+		const int &idx = world.landFind(landId);
+
+		if (idx == -1)
+			return false;
+
+		turn.pickedId = landId;
+
+		return true;
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief ConquestConfig::playerAnswer
+ * @param answer
+ * @return
+ */
+
+inline bool ConquestConfig::playerAnswer(const ConquestAnswer &answer)
+{
+	if (currentTurn < 0 || currentTurn >= turnList.size())
+		return false;
+
+	ConquestTurn &turn = turnList[currentTurn];
+
+	if (turn.subStage != ConquestTurn::SubStageUserAnswer)
+		return false;
+
+	if (turn.answerGet(answer.player))
+		return false;
+
+	turn.answerList.append(answer);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief ConquestConfig::landSwapPlayer
+ * @param landId
+ * @param playerNew
+ * @param playerOld
+ * @return
+ */
+
+inline bool ConquestConfig::landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld)
+{
+	if (!playerNew)
+		return false;
+
+	if (currentTurn < 0 || currentTurn >= turnList.size())
+		return false;
+
+	ConquestTurn &turn = turnList[currentTurn];
+
+	if (turn.subStage != ConquestTurn::SubStageUserAnswer || turn.player != playerNew->playerId)
+		return false;
+
+	const int &idx = world.landFind(landId);
+
+	if (idx == -1)
+		return false;
+
+	ConquestWorldData &land = world.landList[idx];
+
+	if (land.proprietor == playerNew->playerId)
+		return false;
+
+	const int &old = land.proprietor;
+
+	land.proprietor = playerNew->playerId;
+	playerNew->xp += land.xp;
+	playerNew->xp += land.xpOnce;
+	land.xpOnce = 0;
+
+	if (playerOld && playerOld->playerId == old) {
+		playerOld->xp -= land.xp;
+	}
+
+	return true;
+}
+
+
+
+
+
+/**
+ * @brief ConquestConfig::getPickedLandProprietor
+ * @return
+ */
+
+inline int ConquestConfig::getPickedLandProprietor(const int &turn) const
+{
+	if (turn < 0 || turn >= turnList.size())
+		return -1;
+
+	const int &idx = world.landFind(turnList.at(turn).pickedId);
+
+	if (idx == -1)
+		return -1;
+
+	return world.landList[idx].proprietor;
+}
 
 
 

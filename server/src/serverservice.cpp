@@ -216,8 +216,6 @@ bool ServerService::wasmUnload()
 
 void ServerService::timerEvent(QTimerEvent *)
 {
-	LOG_CTRACE("service") << "Timer check";
-
 	m_engineHandler->timerEvent();
 
 	const QDateTime &current = QDateTime::currentDateTime();

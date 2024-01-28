@@ -141,7 +141,7 @@ public slots:
 	void pickableRemove(GamePickable *pickable);
 	void pickableRemoveAll();
 	void pickablePick();
-	void message(const QString &text, const QColor &color = "white");
+	void message(const QString &text, const QColor &color = Qt::white);
 	void addMSec(const qint64 &msec);
 	void dialogMessageTooltip(const QString &text, const QString &icon, const QString &title = tr("Tudtad?"));
 	bool dialogMessageTooltipById(const QString &msgId);

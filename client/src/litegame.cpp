@@ -135,7 +135,7 @@ void LiteGame::onStarted()
 
 		msec += SECOND_PER_QUESTION*1000;
 
-		qreal factor = iface->xpFactor()-1.0;
+		qreal factor = (iface->xpFactor()-1.0) * 1.2;
 
 		// Exponenciálisan növeljük
 

@@ -101,8 +101,10 @@ void GameQuestion::onShowAnimationFinished()
 {
 	LOG_CDEBUG("game") << "Game question show animation finished";
 
-	setEnabled(true);
-	m_questionComponent->forceActiveFocus(Qt::OtherFocusReason);
+	if (!m_permanentDisabled) {
+		setEnabled(true);
+		m_questionComponent->forceActiveFocus(Qt::OtherFocusReason);
+	}
 
 	m_elapsedTimer.start();
 	m_elapsedMsec = -1;
@@ -197,6 +199,21 @@ void GameQuestion::forceDestroy()
 	setEnabled(false);
 	setMsecBeforeHide(0);
 	finish();
+}
+
+bool GameQuestion::permanentDisabled() const
+{
+	return m_permanentDisabled;
+}
+
+void GameQuestion::setPermanentDisabled(bool newPermanentDisabled)
+{
+	if (m_permanentDisabled == newPermanentDisabled)
+		return;
+	m_permanentDisabled = newPermanentDisabled;
+	emit permanentDisabledChanged();
+	if (m_permanentDisabled)
+		setEnabled(false);
 }
 
 const QString &GameQuestion::module() const
@@ -439,12 +456,12 @@ GameMap::GameMode GameQuestion::gameMode() const
 bool GameQuestion::toggleMode() const
 {
 	switch (gameMode()) {
-	case GameMap::GameMode::Exam:
-	case GameMap::GameMode::Quiz:
-	case GameMap::GameMode::Test:
-		return true;
-	default:
-		return false;
+		case GameMap::GameMode::Exam:
+		case GameMap::GameMode::Quiz:
+		case GameMap::GameMode::Test:
+			return true;
+		default:
+			return false;
 	}
 }
 

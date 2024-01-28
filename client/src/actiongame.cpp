@@ -49,8 +49,6 @@
 
 
 
-const int ActionGame::TickTimer::m_interval = 200;
-
 
 // Tool dependency
 

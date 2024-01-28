@@ -29,6 +29,7 @@
 #include "rank.h"
 #include "server.h"
 #include "gamemap.h"
+#include "utils_.h"
 
 UserLogList::UserLogList(QObject *parent)
 	: QObject{parent}

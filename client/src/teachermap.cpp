@@ -26,6 +26,7 @@
 
 #include "teachermap.h"
 #include "application.h"
+#include "utils_.h"
 
 TeacherMap::TeacherMap(QObject *parent)
 	: BaseMap{parent}

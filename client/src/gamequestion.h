@@ -48,6 +48,7 @@ class GameQuestion : public QQuickItem
 	Q_PROPERTY(GameMap::GameMode gameMode READ gameMode NOTIFY gameModeChanged)
 	Q_PROPERTY(bool toggleMode READ toggleMode NOTIFY toggleModeChanged)
 	Q_PROPERTY(QVariantMap storedAnswer READ storedAnswer WRITE setStoredAnswer NOTIFY storedAnswerChanged)
+	Q_PROPERTY(bool permanentDisabled READ permanentDisabled WRITE setPermanentDisabled NOTIFY permanentDisabledChanged FINAL)
 
 public:
 	GameQuestion(QQuickItem *parent = nullptr);
@@ -90,6 +91,9 @@ public:
 	const QString &module() const;
 	void setModule(const QString &newModule);
 
+	bool permanentDisabled() const;
+	void setPermanentDisabled(bool newPermanentDisabled);
+
 public slots:
 	void onSuccess(const QVariantMap &answer);
 	void onFailed(const QVariantMap &answer);
@@ -120,6 +124,7 @@ signals:
 	void gameModeChanged();
 	void toggleModeChanged();
 	void storedAnswerChanged();
+	void permanentDisabledChanged();
 
 private:
 	AbstractGame *m_game = nullptr;
@@ -133,6 +138,7 @@ private:
 	bool m_postponeEnabled = false;
 	QVariantMap m_storedAnswer;
 	QString m_module;
+	bool m_permanentDisabled = false;
 };
 
 #endif // GAMEQUESTION_H

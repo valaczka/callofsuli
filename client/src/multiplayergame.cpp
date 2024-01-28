@@ -4,6 +4,7 @@
 #include "client.h"
 #include "gameenemysoldier.h"
 #include "gameplayermulti.h"
+#include "utils_.h"
 #include <QRandomGenerator>
 
 

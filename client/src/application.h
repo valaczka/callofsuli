@@ -33,17 +33,6 @@
 #include "../modules/interfaces.h"
 
 
-// QJsonValue::toInteger() available since Qt 6.0
-
-#if QT_VERSION >= 0x060000
-#define JSON_TO_INTEGER(x)	x.toInteger()
-#define JSON_TO_INTEGER_Y(x, y)	x.toInteger(y)
-#else
-#define JSON_TO_INTEGER(x)	x.toInt()
-#define JSON_TO_INTEGER_Y(x, y)	x.toInt(y)
-#endif
-
-
 /**
  * @brief The Application class
  */

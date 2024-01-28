@@ -29,6 +29,9 @@
 #include "gamequestion.h"
 #include "Logger.h"
 
+
+const int AbstractGame::TickTimer::m_interval = 100;
+
 /**
  * @brief Game::Game
  * @param client

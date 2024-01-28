@@ -52,6 +52,10 @@ class ConquestGame : public AbstractGame
 	Q_PROPERTY(QSListModel *playersModel READ playersModel CONSTANT FINAL)
 	Q_PROPERTY(ConquestTurn currentTurn READ currentTurn WRITE setCurrentTurn NOTIFY currentTurnChanged FINAL)
 	Q_PROPERTY(ConquestTurn::Stage currentStage READ currentStage WRITE setCurrentStage NOTIFY currentStageChanged FINAL)
+	Q_PROPERTY(QQuickItem* messageList READ messageList WRITE setMessageList NOTIFY messageListChanged)
+	Q_PROPERTY(QColor defaultMessageColor READ defaultMessageColor WRITE setDefaultMessageColor NOTIFY defaultMessageColorChanged FINAL)
+	Q_PROPERTY(int tickTimerInterval READ tickTimerInterval CONSTANT FINAL)
+	Q_PROPERTY(bool isAttacked READ isAttacked WRITE setIsAttacked NOTIFY isAttackedChanged FINAL)
 
 public:
 	explicit ConquestGame(Client *client);
@@ -68,6 +72,11 @@ public:
 	Q_INVOKABLE void getEngineList();
 	Q_INVOKABLE void gameCreate();
 	Q_INVOKABLE QColor getPlayerColor(const int &id) const;
+	Q_INVOKABLE void messageColor(const QString &text, const QColor &color);
+	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
+	Q_INVOKABLE qint64 currentTick() const { return m_tickTimer.currentTick(); }
+
+	int tickTimerInterval() const { return m_tickTimer.interval(); }
 
 	virtual void gameAbort() override;
 
@@ -101,6 +110,15 @@ public:
 	ConquestTurn::Stage currentStage() const;
 	void setCurrentStage(const ConquestTurn::Stage &newCurrentStage);
 
+	QQuickItem *messageList() const;
+	void setMessageList(QQuickItem *newMessageList);
+
+	QColor defaultMessageColor() const;
+	void setDefaultMessageColor(const QColor &newDefaultMessageColor);
+
+	bool isAttacked() const;
+	void setIsAttacked(bool newIsAttacked);
+
 signals:
 	void configChanged();
 	void hostModeChanged();
@@ -109,6 +127,10 @@ signals:
 	void worldSizeChanged();
 	void currentTurnChanged();
 	void currentStageChanged();
+	void messageListChanged();
+	void defaultMessageColorChanged();
+
+	void isAttackedChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -136,6 +158,12 @@ private:
 	void reloadLandList();
 	ConquestWordListHelper getWorldList() const;
 
+	void loadQuestion();
+	void revealQuestion();
+	void onGameQuestionSuccess(const QVariantMap &answer);
+	void onGameQuestionFailed(const QVariantMap &answer);
+	void onGameQuestionFinished();
+
 	QTimer m_timeSyncTimer;
 	TickTimer m_tickTimer;
 	QPointer<StudentMapHandler> m_handler;
@@ -150,6 +178,9 @@ private:
 	std::unique_ptr<QSListModel> m_playersModel;
 	ConquestTurn m_currentTurn;
 	ConquestTurn::Stage m_currentStage = ConquestTurn::StageInvalid;
+	QQuickItem *m_messageList = nullptr;
+	QColor m_defaultMessageColor = Qt::white;
+	bool m_isAttacked = false;
 };
 
 

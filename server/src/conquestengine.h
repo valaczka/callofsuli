@@ -120,7 +120,6 @@ public:
 	bool playerConnectStream(const int &playerId, WebSocketStream *stream);
 	void playerDisconnectStream(const int &playerId, WebSocketStream *stream = nullptr);
 	void playerDisconnectStream(WebSocketStream *stream = nullptr) { playerDisconnectStream(-1, stream); }
-	std::optional<ConquestEnginePlayer> playerGet(WebSocketStream *stream) const;
 	int playerGetId(const QString &username) const;
 	WebSocketStream *playerGetStream(const QString &username) const;
 
@@ -148,11 +147,9 @@ private:
 	QJsonObject cmdPick(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdAnswer(WebSocketStream *stream, const QJsonObject &message);
 
-	QJsonObject cmdTest(WebSocketStream *stream, const QJsonObject &message);		///
-
-	auto playerFind(const QString &username) const;
-	auto playerFind(const int &id) const;
-	auto playerFind(WebSocketStream *stream) const;
+	auto playerFind(const QString &username);
+	auto playerFind(const int &id);
+	auto playerFind(WebSocketStream *stream);
 	void onPlayerPrepared(WebSocketStream *stream);
 
 	void updatePlayerLimit();
@@ -191,7 +188,7 @@ private:
  * @param username
  */
 
-inline auto ConquestEngine::playerFind(const QString &username) const
+inline auto ConquestEngine::playerFind(const QString &username)
 {
 	return std::find_if(m_players.begin(), m_players.end(), [username](const ConquestEnginePlayer &p) {
 		return (p.username == username);
@@ -204,7 +201,7 @@ inline auto ConquestEngine::playerFind(const QString &username) const
  * @param id
  */
 
-inline auto ConquestEngine::playerFind(const int &id) const
+inline auto ConquestEngine::playerFind(const int &id)
 {
 	return std::find_if(m_players.begin(), m_players.end(), [id](const ConquestEnginePlayer &p) {
 		return (p.playerId == id);
@@ -217,7 +214,7 @@ inline auto ConquestEngine::playerFind(const int &id) const
  * @param stream
  */
 
-inline auto ConquestEngine::playerFind(WebSocketStream *stream) const
+inline auto ConquestEngine::playerFind(WebSocketStream *stream)
 {
 	return std::find_if(m_players.begin(), m_players.end(), [stream](const ConquestEnginePlayer &p) {
 		return (p.stream == stream);

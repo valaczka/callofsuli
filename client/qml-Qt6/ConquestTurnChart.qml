@@ -6,29 +6,36 @@ import QtCharts
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
-
-ChartView {
+Rectangle {
 	id: root
 
 	property ConquestGame game: null
 
-	width: 200 * Qaterial.Style.pixelSizeRatio
-	height: 200 * Qaterial.Style.pixelSizeRatio
-	antialiasing: true
-	animationOptions: ChartView.SeriesAnimations
-	backgroundColor: "transparent"
-	backgroundRoundness: 0
-	legend.visible: false
+	width: 150 * Qaterial.Style.pixelSizeRatio
+	height: 150 * Qaterial.Style.pixelSizeRatio
 
-	margins.top: 0
-	margins.bottom: 0
-	margins.left: 0
-	margins.right: 0
+	radius: Math.min(width, height)/2
 
-	PieSeries {
-		id: _series
-		holeSize: 0.6
-		size: 0.8
+	color: Client.Utils.colorSetAlpha(Qaterial.Style.dialogColor, 0.5)
+
+	ChartView {
+		anchors.fill: parent
+		antialiasing: true
+		animationOptions: ChartView.SeriesAnimations
+		backgroundColor: "transparent"
+		backgroundRoundness: 0
+		legend.visible: false
+
+		margins.top: 0
+		margins.bottom: 0
+		margins.left: 0
+		margins.right: 0
+
+		PieSeries {
+			id: _series
+			holeSize: 0.6
+			size: 0.85
+		}
 	}
 
 	onGameChanged: {
@@ -39,9 +46,7 @@ ChartView {
 				reload()
 			})
 		}
-
 	}
-
 
 	function reload() {
 		let list = game ? game.config.turnList : []

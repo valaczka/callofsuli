@@ -159,7 +159,6 @@ public:
 	bool readyToDestroy() const;
 	void setReadyToDestroy(bool newReadyToDestroy);
 
-
 	const FinishState &finishState() const;
 	void setFinishState(const FinishState &newFinishState);
 

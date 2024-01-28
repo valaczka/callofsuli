@@ -133,32 +133,107 @@ QPage {
 		}
 	}
 
-	ConquestTurnChart {
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
-		anchors.margins: 50
-		game: root.game
-	}
-
-	QButton {
+	Column {
 		anchors.right: parent.right
 		anchors.top: parent.top
-		text: "PREPARED"
-		enabled: game.config.gameState == ConquestConfig.StatePrepare
-		onClicked: game.sendWebSocketMessage({"cmd": "prepare", "engine": game.engineId, "ready": true})
-	}
 
-	QButton {
-		anchors.right: parent.right
-		anchors.bottom: parent.bottom
-		text: "ANSWER"
-		onClicked: {
-			game.sendWebSocketMessage({
-										  cmd: "answer",
-										  engine: game.engineId,
-										  answer: "hello"
-									  })
+		QButton {
+			text: "PREPARED"
+			enabled: game.config.gameState == ConquestConfig.StatePrepare
+			onClicked: game.sendWebSocketMessage({"cmd": "prepare", "engine": game.engineId, "ready": true})
+		}
+
+		Repeater {
+			model: game ? game.playersModel : null
+
+			delegate: Qaterial.LabelCaption {
+				text: username + " - " + theme + ": " + xp + " XP"
+			}
 		}
 	}
 
+	ConquestTurnChart {
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
+		anchors.margins: 20
+		game: root.game
+	}
+
+
+	GameQuestionAction {
+		id: _question
+
+		anchors.fill: parent
+		anchors.topMargin: Client.safeMarginTop + 20
+		anchors.bottomMargin: Client.safeMarginBottom
+		anchors.leftMargin: Client.safeMarginLeft
+		anchors.rightMargin: Client.safeMarginRight
+
+		game: root.game
+
+		z: 5
+	}
+
+
+	GameMessageList {
+		id: _messageList
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		y: parent.height*0.25
+
+		z: 6
+
+		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
+
+		//visible: !gameScene.zoomOverview && itemsVisible
+	}
+
+
+	Qaterial.ProgressBar {
+		id: _progress
+
+		readonly property bool _active: game &&
+										(game.currentTurn.player === game.playerId || game.isAttacked) &&
+										(game.currentTurn.subStage === ConquestTurn.SubStageUserSelect ||
+										 game.currentTurn.subStage === ConquestTurn.SubStageUserAnswer) &&
+										game.currentTurn.subStageStart > 0 && game.currentTurn.subStageEnd > 0
+
+		visible: _active
+
+		anchors.bottom: parent.bottom
+		width: parent.width
+		color: Qaterial.Style.iconColor()
+		from: game ? game.currentTurn.subStageStart : 0
+		to: game ? game.currentTurn.subStageEnd : 0
+
+		Behavior on value {
+			NumberAnimation {
+				duration: game ? game.tickTimerInterval : 100
+				easing.type: Easing.Linear
+			}
+		}
+
+		Timer {
+			running: _progress._active
+			interval: game ? game.tickTimerInterval : 0
+			repeat: true
+			triggeredOnStart: true
+			onTriggered: {
+				_progress.value = Math.max(_progress.from + _progress.to - game.currentTick(), _progress.from)
+			}
+		}
+	}
+
+	Component.onCompleted: {
+		if (game) {
+			game.messageList = _messageList
+			game.defaultMessageColor = Qaterial.Style.iconColor()
+		}
+	}
+
+	Component.onDestruction: {
+		if (game)
+			game.messageList = null
+	}
 }

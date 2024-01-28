@@ -29,6 +29,7 @@
 #include "clientcache.h"
 #include "application.h"
 #include "qjsonobject.h"
+#include "utils_.h"
 
 Campaign::Campaign(QObject *parent)
 	: SelectableObject{parent}
