@@ -35,6 +35,7 @@
 #include "utils_.h"
 #include "googleoauth2authenticator.h"
 #include "microsoftoauth2authenticator.h"
+#include "conquestengine.h"
 #include <QOAuthHttpServerReplyHandler>
 #include <csignal>
 #include <QResource>
@@ -93,7 +94,7 @@ ServerService::ServerService(int &argc, char **argv)
 	LOG_CERROR("service") << "_MAIN_TIMER_TEST_MODE defined";
 	m_mainTimerInterval = 2000;
 #else
-	m_mainTimerInterval = 500;
+	m_mainTimerInterval = 100;
 #endif
 
 
@@ -138,8 +139,7 @@ void ServerService::initialize()
 	cuteLogger->logToGlobalInstance(QStringLiteral("oauth2"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("engine"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.plugin.standard.backend"), true);
-	cuteLogger->logToGlobalInstance(QStringLiteral("qt.service.service"), true);
+	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
 }
 
 
@@ -651,6 +651,13 @@ int ServerService::exec()
 		}
 	}
 
+
+	// Restore backed up engines
+
+	const int &count = ConquestEngine::restoreEngines(this);
+
+	if (count > 0)
+		LOG_CINFO("service") << count << "ConquestEngines restored";
 
 	if (!start())
 		return 3;

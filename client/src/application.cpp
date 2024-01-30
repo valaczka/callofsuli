@@ -376,6 +376,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
 	qmlRegisterUncreatableType<ConquestConfig>("CallOfSuli", 1, 0, "ConquestConfig", "ConquestConfig is uncreatable");
+	qmlRegisterUncreatableType<ConquestPlayer>("CallOfSuli", 1, 0, "ConquestPlayer", "ConquestPlayer is uncreatable");
 	qmlRegisterUncreatableType<ConquestWorld>("CallOfSuli", 1, 0, "ConquestWorld", "ConquestWorld is uncreatable");
 	qmlRegisterUncreatableType<ConquestWorldData>("CallOfSuli", 1, 0, "ConquestWorldData", "ConquestConfig is uncreatable");
 	qmlRegisterUncreatableType<ConquestTurn>("CallOfSuli", 1, 0, "ConquestTurn", "ConquestConfig is uncreatable");

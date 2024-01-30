@@ -196,6 +196,8 @@ public:
 		SubStageInvalid = 0,
 		SubStageUserSelect,
 		SubStageUserAnswer,
+		SubStageWait,
+		SubStagePrepareBattle,
 		SubStageFinished
 	};
 
@@ -228,32 +230,35 @@ public:
 	 * @return
 	 */
 
-	std::optional<QJsonObject> answerGetSuccess(const int &playerId) const {
+	std::optional<QJsonObject> answerGetSuccess(const int &playerId, const Stage &gameStage) const {
 		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
 			return a.player == playerId;
 		});
 
-		qWarning() << "---?" << (it == answerList.constEnd());
-
 		if (it == answerList.constEnd())
 			return std::nullopt;
-
-		qWarning() << "---S" << it->success << it->elapsed;
 
 		if (!it->success)
 			return std::nullopt;
 
-		for (const ConquestAnswer &a : answerList) {
-
-			qWarning() << "---CH" << a.player << playerId << a.success;
-
-			if (a.player != playerId && a.success && a.elapsed < it->elapsed)
-				return std::nullopt;
+		if (gameStage == StageBattle) {
+			for (const ConquestAnswer &a : answerList) {
+				if (a.player != playerId && a.success && a.elapsed < it->elapsed)
+					return std::nullopt;
+			}
 		}
 
 		return it->answer;
 	}
 
+
+	void clear() {
+		subStageStart = 0;
+		subStageEnd = 0;
+		pickedId.clear();
+		answerList.clear();
+		canPick.clear();
+	}
 
 	friend bool operator==(const ConquestTurn &c1, const ConquestTurn &c2) {
 		return c1.player == c2.player &&
@@ -296,9 +301,22 @@ public:
 		, username(_user)
 		, prepared(false)
 		, xp(0)
+		, elapsed(0)
+		, winner(false)
 	{}
 	ConquestPlayer(const int &_id) : ConquestPlayer(_id, QStringLiteral("")) {}
 	ConquestPlayer() : ConquestPlayer(-1) {}
+
+	friend bool operator==(const ConquestPlayer &c1, const ConquestPlayer &c2) {
+		return c1.playerId == c2.playerId &&
+				c1.username == c2.username &&
+				c1.prepared == c2.prepared &&
+				c1.xp == c2.xp &&
+				c1.theme == c2.theme &&
+				c1.elapsed == c2.elapsed &&
+				c1.winner == c2.winner
+				;
+	}
 
 	QS_SERIALIZABLE
 
@@ -307,8 +325,31 @@ public:
 	QS_FIELD(bool, prepared)
 	QS_FIELD(int, xp)
 	QS_FIELD(QString, theme)
+	QS_FIELD(qint64, elapsed)
+	QS_FIELD(bool, winner)
 };
 
+
+
+/**
+ * @brief The ConquestConfigBase class
+ */
+
+class ConquestConfigBase : public QSerializer
+{
+	Q_GADGET
+
+public:
+	ConquestConfigBase()
+		: missionLevel(-1)
+	{}
+
+
+	QS_SERIALIZABLE
+	QS_FIELD(QString, mapUuid)
+	QS_FIELD(QString, missionUuid)
+	QS_FIELD(int, missionLevel)
+};
 
 
 
@@ -318,14 +359,14 @@ public:
  * @brief The ConquestConfig class
  */
 
-class ConquestConfig : public QSerializer
+class ConquestConfig : public ConquestConfigBase
 {
 	Q_GADGET
 
 public:
 	ConquestConfig()
-		: gameState(StateInvalid)
-		, missionLevel(-1)
+		: ConquestConfigBase()
+		, gameState(StateInvalid)
 		, currentTurn(-1)
 		, currentStage(ConquestTurn::StageInvalid)
 	{}
@@ -355,6 +396,8 @@ public:
 	bool landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld);
 	int getPickedLandProprietor(const int &turn) const;
 
+	QJsonObject toBaseJson() const { return ConquestConfigBase::toJson(); }
+
 	friend bool operator==(const ConquestConfig &c1, const ConquestConfig &c2) {
 		return c1.gameState == c2.gameState &&
 				c1.world == c2.world &&
@@ -371,9 +414,6 @@ public:
 
 	QS_SERIALIZABLE
 	QS_FIELD(GameState, gameState)
-	QS_FIELD(QString, mapUuid)
-	QS_FIELD(QString, missionUuid)
-	QS_FIELD(int, missionLevel)
 	QS_OBJECT(ConquestWorld, world)
 	QS_COLLECTION(QList, int, order)
 	QS_COLLECTION_OBJECTS(QList, ConquestTurn, turnList)
@@ -441,6 +481,7 @@ class ConquestWordListHelper : public QSerializer
 public:
 	QS_SERIALIZABLE
 	QS_COLLECTION_OBJECTS(QList, ConquestWorldHelper, worldList);
+	QS_COLLECTION(QList, QString, characterList);
 };
 
 

@@ -68,6 +68,7 @@ void WebSocket::connect()
 void WebSocket::close()
 {
 	m_forceClose = true;
+	m_timerConnect.stop();
 
 	if (m_socket) {
 		m_socket->close();

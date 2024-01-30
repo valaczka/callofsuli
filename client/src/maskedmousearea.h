@@ -48,7 +48,7 @@ class MaskedMouseArea : public QQuickItem
 public:
 	MaskedMouseArea(QQuickItem *parent = 0);
 
-	bool contains(const QPointF &point) const;
+	bool contains(const QPointF &point) const override;
 
 	bool isPressed() const { return m_pressed; }
 	bool containsMouse() const { return m_containsMouse; }
@@ -76,11 +76,12 @@ signals:
 protected:
 	void setPressed(bool pressed);
 	void setContainsMouse(bool containsMouse);
-	void mousePressEvent(QMouseEvent *event);
-	void mouseReleaseEvent(QMouseEvent *event);
-	void hoverEnterEvent(QHoverEvent *event);
-	void hoverLeaveEvent(QHoverEvent *event);
-	void mouseUngrabEvent();
+	void mousePressEvent(QMouseEvent *event) override;
+	void mouseReleaseEvent(QMouseEvent *event) override;
+	void hoverEnterEvent(QHoverEvent *event) override;
+	void hoverLeaveEvent(QHoverEvent *event) override;
+	void mouseUngrabEvent() override;
+	void touchEvent(QTouchEvent *event) override;
 
 private:
 	void updateScaledImage();
@@ -90,6 +91,7 @@ private:
 	QImage m_maskImage;
 	QImage m_scaledImage;
 	QPointF m_pressPoint;
+	QPointF m_touchPoint;
 	qreal m_alphaThreshold;
 	bool m_containsMouse;
 	qreal m_scaleImage = 1.0;

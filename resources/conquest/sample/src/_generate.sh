@@ -1,6 +1,16 @@
 #!/bin/bash
 
-### Inkscape: Edit XML -> Delete <def>
+### Inkscape
+### - crop image
+### - set DPI
+### - export over.png
+### - export bg.png
+### - move lands to new layers
+### - delete unused layers
+### - remove translates
+### - set white fill color, solid border color
+### - edit XML -> Delete <def>
+### - batch export land-[NUM] format
 
 json=../data.json
 

@@ -55,6 +55,8 @@ class ConquestGame : public AbstractGame
 	Q_PROPERTY(QQuickItem* messageList READ messageList WRITE setMessageList NOTIFY messageListChanged)
 	Q_PROPERTY(QColor defaultMessageColor READ defaultMessageColor WRITE setDefaultMessageColor NOTIFY defaultMessageColorChanged FINAL)
 	Q_PROPERTY(int tickTimerInterval READ tickTimerInterval CONSTANT FINAL)
+	Q_PROPERTY(ConquestPlayer fighter1 READ fighter1 WRITE setFighter1 NOTIFY fighter1Changed FINAL)
+	Q_PROPERTY(ConquestPlayer fighter2 READ fighter2 WRITE setFighter2 NOTIFY fighter2Changed FINAL)
 	Q_PROPERTY(bool isAttacked READ isAttacked WRITE setIsAttacked NOTIFY isAttackedChanged FINAL)
 
 public:
@@ -119,7 +121,20 @@ public:
 	bool isAttacked() const;
 	void setIsAttacked(bool newIsAttacked);
 
+	ConquestPlayer fighter1() const;
+	void setFighter1(const ConquestPlayer &newFighter1);
+
+	ConquestPlayer fighter2() const;
+	void setFighter2(const ConquestPlayer &newFighter2);
+
+public slots:
+	void onMapAnimationDownReady();
+	void onMapAnimationUpReady();
+
 signals:
+	void mapDownRequest();
+	void mapUpRequest();
+
 	void configChanged();
 	void hostModeChanged();
 	void engineIdChanged();
@@ -129,8 +144,9 @@ signals:
 	void currentStageChanged();
 	void messageListChanged();
 	void defaultMessageColorChanged();
-
 	void isAttackedChanged();
+	void fighter1Changed();
+	void fighter2Changed();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -152,8 +168,6 @@ private:
 	void cmdStart(const QJsonObject &data);
 	void cmdPrepare(const QJsonObject &data);
 	void cmdQuestionRequest(const QJsonObject &data);
-
-	void cmdTest(const QJsonObject &data);	///
 
 	void reloadLandList();
 	ConquestWordListHelper getWorldList() const;
@@ -181,6 +195,9 @@ private:
 	QQuickItem *m_messageList = nullptr;
 	QColor m_defaultMessageColor = Qt::white;
 	bool m_isAttacked = false;
+	QJsonObject m_loadedQuestion;
+	ConquestPlayer m_fighter1;
+	ConquestPlayer m_fighter2;
 };
 
 

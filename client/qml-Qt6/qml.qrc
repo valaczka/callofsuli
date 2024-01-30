@@ -204,5 +204,7 @@
         <file>PageConquestGame.qml</file>
         <file>ConquestScene.qml</file>
         <file>ConquestTurnChart.qml</file>
+        <file>ConquestPlayerItem.qml</file>
+        <file>ConquestProgressBar.qml</file>
     </qresource>
 </RCC>

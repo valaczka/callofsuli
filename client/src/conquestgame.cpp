@@ -117,7 +117,7 @@ void ConquestGame::getEngineList()
 {
 	LOG_CTRACE("game") << "Get engine list";
 
-	QJsonObject o = m_config.toJson();
+	QJsonObject o = m_config.toBaseJson();
 	o[QStringLiteral("cmd")] = QStringLiteral("list");
 
 	sendWebSocketMessage(o);
@@ -136,7 +136,7 @@ void ConquestGame::gameCreate()
 
 	const ConquestWordListHelper &helper = getWorldList();
 
-	QJsonObject o = m_config.toJson();
+	QJsonObject o = m_config.toBaseJson();
 	o[QStringLiteral("cmd")] = QStringLiteral("create");
 	o[QStringLiteral("worldList")] = helper.toJson().value(QStringLiteral("worldList")).toArray();
 
@@ -288,7 +288,16 @@ void ConquestGame::onWebSocketActiveChanged()
 	const bool active = ws->active();
 	LOG_CTRACE("game") << "MultiPlayerGame WebSocket active changed" << active;
 
-	getEngineList();
+	if (m_engineId == -1) {
+		getEngineList();
+	} else {
+		LOG_CDEBUG("game") << "Auto connect to engine" << m_engineId;
+		sendWebSocketMessage(QJsonObject({
+											 { QStringLiteral("cmd"), QStringLiteral("connect") },
+											 { QStringLiteral("engine"), m_engineId }
+										 }));
+	}
+
 }
 
 
@@ -321,8 +330,6 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 			{ "connect", &ConquestGame::cmdConnect },
 			{ "prepare", &ConquestGame::cmdPrepare },
 			{ "questionRequest", &ConquestGame::cmdQuestionRequest },
-
-			{ "test", &ConquestGame::cmdTest },	////
 		};
 
 		auto fn = fMap.value(cmd.toStdString());
@@ -365,12 +372,6 @@ void ConquestGame::onConfigChanged()
 		if (idx != -1)
 			land->loadFromConfig(m_config.world.landList[idx]);
 	}
-
-	/*sendWebSocketMessage(QJsonObject{
-		{ QStringLiteral("cmd"), QStringLiteral("prepare") },
-		{ QStringLiteral("engine"), m_engineId },
-		{ QStringLiteral("ready"), true }
-	});*/
 }
 
 
@@ -417,6 +418,14 @@ void ConquestGame::cmdState(const QJsonObject &data)
 
 	if (qint64 tick = JSON_TO_INTEGER_Y(data.value(QStringLiteral("tick")), -1); tick != -1) {
 		m_tickTimer.start(this, tick);
+	}
+
+	if (m_config.gameState == ConquestConfig::StatePrepare) {
+		sendWebSocketMessage(QJsonObject{
+								 { QStringLiteral("cmd"), QStringLiteral("prepare") },
+								 { QStringLiteral("engine"), m_engineId },
+								 { QStringLiteral("ready"), true }
+							 });
 	}
 
 	/*if (data.contains(QStringLiteral("interval"))) {
@@ -527,19 +536,6 @@ void ConquestGame::cmdQuestionRequest(const QJsonObject &)
 
 
 
-
-
-/**
- * @brief ConquestGame::cmdTest
- * @param data
- */
-
-void ConquestGame::cmdTest(const QJsonObject &data)
-{
-	if (data.contains(QStringLiteral("stateId"))) {
-		//emit testImage(data.value(QStringLiteral("stateId")).toInt(), data.value(QStringLiteral("value")).toBool());
-	}
-}
 
 
 /**
@@ -672,7 +668,14 @@ void ConquestGame::loadQuestion()
 	if (m_config.currentQuestion.isEmpty())
 		return;
 
-	LOG_CERROR("game") << QJsonDocument(m_config.currentQuestion).toJson().constData();
+	emit mapDownRequest();
+
+	if (m_config.currentQuestion == m_loadedQuestion) {
+		LOG_CDEBUG("game") << "Question already loaded, skip";
+		return;
+	}
+
+	m_loadedQuestion = {};
 
 	ModuleInterface *iface = Application::instance()->objectiveModules().value(m_config.currentQuestion.value(QStringLiteral("module")).toString());
 
@@ -686,12 +689,14 @@ void ConquestGame::loadQuestion()
 			m_gameQuestion->setPermanentDisabled(m_playerId != m_currentTurn.player && !m_isAttacked);
 		}
 
+		m_loadedQuestion = m_config.currentQuestion;
 
 		m_gameQuestion->loadQuestion(iface->name(), iface->qmlQuestion(),
 									 m_config.currentQuestion.toVariantMap(),
 									 m_config.currentQuestion.value(QStringLiteral("uuid")).toString());
+	} else {
+		m_loadedQuestion = {};
 	}
-
 }
 
 
@@ -708,25 +713,25 @@ void ConquestGame::revealQuestion()
 		LOG_CERROR("game") << a.player << a.success << a.elapsed << a.answer;
 	}
 
-	int pId = -1;
+	int answerId = -1;
 
 	if (m_currentStage == ConquestTurn::StageBattle) {
-		pId = m_config.getPickedLandProprietor(m_config.currentTurn);
+		if (m_fighter1.playerId == m_playerId || m_fighter2.playerId == m_playerId)
+			answerId = m_playerId;
+		else
+			answerId = m_currentTurn.player;
+	} else {
+		answerId = m_playerId;
 	}
 
-	QVariantMap answer;
+	const auto &answer = m_currentTurn.answerGet(answerId);
 
-	if (m_currentTurn.player == m_playerId || (pId != -1 && m_playerId == pId))
-		answer = m_currentTurn.answerGet(m_playerId).value_or(QJsonObject{})
-				 .value(QStringLiteral("answer")).toObject()
-				 .toVariantMap();
-	else
-		answer = m_currentTurn.answerGet(m_currentTurn.player).value_or(QJsonObject{})
-				 .value(QStringLiteral("answer")).toObject()
-				 .toVariantMap();
-
-	m_gameQuestion->answerReveal(answer);
-	m_gameQuestion->setMsecBeforeHide(1250);
+	if (answer) {
+		m_gameQuestion->answerReveal(answer->value(QStringLiteral("answer")).toObject().toVariantMap());
+		m_gameQuestion->setMsecBeforeHide(1250);
+	} else {
+		m_gameQuestion->setMsecBeforeHide(0);
+	}
 
 	m_gameQuestion->finish();
 }
@@ -805,8 +810,43 @@ void ConquestGame::onGameQuestionFailed(const QVariantMap &answer)
 
 void ConquestGame::onGameQuestionFinished()
 {
-	//LOG_CWARNING("game") << "Implementation empty";
+	emit mapUpRequest();
+	m_loadedQuestion = {};
 }
+
+
+/**
+ * @brief ConquestGame::fighter2
+ * @return
+ */
+
+ConquestPlayer ConquestGame::fighter2() const
+{
+	return m_fighter2;
+}
+
+void ConquestGame::setFighter2(const ConquestPlayer &newFighter2)
+{
+	if (m_fighter2 == newFighter2)
+		return;
+	m_fighter2 = newFighter2;
+	emit fighter2Changed();
+}
+
+ConquestPlayer ConquestGame::fighter1() const
+{
+	return m_fighter1;
+}
+
+void ConquestGame::setFighter1(const ConquestPlayer &newFighter1)
+{
+	if (m_fighter1 == newFighter1)
+		return;
+	m_fighter1 = newFighter1;
+	emit fighter1Changed();
+}
+
+
 
 bool ConquestGame::isAttacked() const
 {
@@ -819,6 +859,29 @@ void ConquestGame::setIsAttacked(bool newIsAttacked)
 		return;
 	m_isAttacked = newIsAttacked;
 	emit isAttackedChanged();
+}
+
+
+
+/**
+ * @brief ConquestGame::onMapAnimationDownReady
+ */
+
+void ConquestGame::onMapAnimationDownReady()
+{
+
+}
+
+
+
+
+/**
+ * @brief ConquestGame::onMapAnimationUpReady
+ */
+
+void ConquestGame::onMapAnimationUpReady()
+{
+
 }
 
 
@@ -902,7 +965,7 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 	m_currentTurn = newCurrentTurn;
 	emit currentTurnChanged();
 
-	if (m_currentTurn.subStage == ConquestTurn::SubStageFinished) {
+	if (m_currentTurn.subStage == ConquestTurn::SubStageWait) {
 		revealQuestion();
 		return;
 	}
@@ -916,11 +979,27 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 	if (m_gameQuestion)
 		m_gameQuestion->forceDestroy();
 
+
+	if (m_currentTurn.subStage == ConquestTurn::SubStagePrepareBattle ||
+			m_currentTurn.subStage == ConquestTurn::SubStageUserAnswer ||
+			m_currentTurn.subStage == ConquestTurn::SubStageWait) {
+
+		auto f1 = m_fighter1;
+		auto f2 = m_fighter2;
+
+		f1.playerId = m_currentTurn.player;
+		f2.playerId = pId;
+
+		setFighter1(f1);
+		setFighter2(f2);
+	} else {
+		setFighter1({});
+		setFighter2({});
+	}
+
 	if (m_currentTurn.subStage == ConquestTurn::SubStageUserSelect && m_currentTurn.player == m_playerId)
 		message(tr("Válassz területet"));
 	else if (m_currentTurn.subStage == ConquestTurn::SubStageUserAnswer) {
-		if (m_currentTurn.player == m_playerId)
-			message(tr("Kérdés"));
 		loadQuestion();
 	}
 }

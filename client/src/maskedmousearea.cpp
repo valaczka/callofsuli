@@ -38,6 +38,7 @@ MaskedMouseArea::MaskedMouseArea(QQuickItem *parent)
 {
 	setAcceptHoverEvents(true);
 	setAcceptedMouseButtons(Qt::LeftButton);
+	setAcceptTouchEvents(true);
 }
 
 void MaskedMouseArea::setPressed(bool pressed)
@@ -112,6 +113,28 @@ void MaskedMouseArea::mouseUngrabEvent()
 {
 	setPressed(false);
 	emit canceled();
+}
+
+
+/**
+ * @brief MaskedMouseArea::touchEvent
+ * @param event
+ */
+
+void MaskedMouseArea::touchEvent(QTouchEvent *event)
+{
+	if (event->pointCount() != 1)
+		return;
+
+	if (event->isBeginEvent())
+		m_touchPoint = event->point(0).position();
+	else if (event->isEndEvent()) {
+		const int threshold = qApp->styleHints()->startDragDistance();
+		const bool isClick = (threshold >= qAbs(event->point(0).position().x() - m_touchPoint.x()) &&
+							  threshold >= qAbs(event->point(0).position().y() - m_touchPoint.y()));
+		if (isClick)
+			emit clicked();
+	}
 }
 
 

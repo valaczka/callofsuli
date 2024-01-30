@@ -8,8 +8,6 @@ import "./QaterialHelper" as Qaterial
 ConquestLandImpl {
 	id: root
 
-	property real mapScale: 1.0
-
 	implicitWidth: _imgMap.source.toString() != "" ? _imgMap.width : 100
 	implicitHeight: _imgMap.source.toString() != "" ? _imgMap.height : 100
 
@@ -17,6 +15,9 @@ ConquestLandImpl {
 	readonly property bool _pickable: landData && landData.game &&
 									  landData.game.currentTurn.canPick.includes(landData.landId) &&
 									  landData.game.currentTurn.player === landData.game.playerId
+
+	readonly property bool _picked: landData && landData.game &&
+									 landData.game.currentTurn.pickedId === landData.landId
 
 	ownColor: Qaterial.Style.accentColor
 
@@ -49,7 +50,7 @@ ConquestLandImpl {
 		id: _overlayBorder
 		anchors.fill: _imgBorder
 		source: _imgBorder
-		color: _pickable ? root.ownColor : root.baseColor
+		color: _pickable || _picked ? root.ownColor : root.baseColor
 		visible: false
 	}
 
@@ -71,7 +72,7 @@ ConquestLandImpl {
 		anchors.fill: _overlayBorder
 		source: _overlayBorder
 		maskSource: _imgMap
-		visible: active || _pickable
+		visible: active || _pickable || _picked
 	}
 
 	MaskedMouseArea {
@@ -91,5 +92,4 @@ ConquestLandImpl {
 									  })
 		}
 	}
-
 }

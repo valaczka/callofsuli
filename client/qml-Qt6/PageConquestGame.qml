@@ -20,7 +20,7 @@ QPage {
 
 	readonly property int stackViewIndex: StackView.index
 
-	property bool _mapVisible: game && game.config.gameState == ConquestConfig.StatePlay
+	property bool _mapVisible: game && (game.config.gameState == ConquestConfig.StatePlay || game.config.gameState == ConquestConfig.StatePrepare)
 
 	QScrollable {
 		anchors.fill: parent
@@ -108,29 +108,11 @@ QPage {
 		visible: _mapVisible
 		anchors.fill: parent
 		game: root.game
-	}
 
-	Qaterial.LabelBody2 {
-		text: {
-			if (!game)
-				return ""
+		//pushMapDown: _question.questionComponent
 
-			let c = game.config
-
-			let text="stage: " + c.currentStage + "\n"
-			text += "turn: " + c.currentTurn + "\n"
-
-			if (c.currentTurn >= 0 && c.currentTurn < c.turnList.length) {
-				let ct = c.turnList[c.currentTurn]
-				text += "turnPlayer: " + ct.player + "\n"
-				text += "turnSubStage: " + ct.subStage + "\n"
-				text += "turnSubStageEnd: " + ct.subStageEnd + "\n"
-			}
-
-			text += "q: " + JSON.stringify(c.currentQuestion) + "\n"
-
-			return text
-		}
+		onAnimationDownReady: game.onMapAnimationDownReady()
+		onAnimationUpReady: game.onMapAnimationUpReady()
 	}
 
 	Column {
@@ -190,39 +172,10 @@ QPage {
 	}
 
 
-	Qaterial.ProgressBar {
-		id: _progress
-
-		readonly property bool _active: game &&
-										(game.currentTurn.player === game.playerId || game.isAttacked) &&
-										(game.currentTurn.subStage === ConquestTurn.SubStageUserSelect ||
-										 game.currentTurn.subStage === ConquestTurn.SubStageUserAnswer) &&
-										game.currentTurn.subStageStart > 0 && game.currentTurn.subStageEnd > 0
-
-		visible: _active
-
+	ConquestProgressBar {
 		anchors.bottom: parent.bottom
 		width: parent.width
-		color: Qaterial.Style.iconColor()
-		from: game ? game.currentTurn.subStageStart : 0
-		to: game ? game.currentTurn.subStageEnd : 0
-
-		Behavior on value {
-			NumberAnimation {
-				duration: game ? game.tickTimerInterval : 100
-				easing.type: Easing.Linear
-			}
-		}
-
-		Timer {
-			running: _progress._active
-			interval: game ? game.tickTimerInterval : 0
-			repeat: true
-			triggeredOnStart: true
-			onTriggered: {
-				_progress.value = Math.max(_progress.from + _progress.to - game.currentTick(), _progress.from)
-			}
-		}
+		game: root.game
 	}
 
 	Component.onCompleted: {

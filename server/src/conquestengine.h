@@ -51,6 +51,7 @@ public:
 	void upload(const QJsonArray &list);
 	QJsonValue next();
 	bool hasQuestion();
+	const QJsonArray &array() const { return m_questionArray; }
 
 private:
 	ConquestEngine *m_engine = nullptr;
@@ -77,6 +78,7 @@ public:
 	{}
 	ConquestEnginePlayer(const int &_id, WebSocketStream *_stream) : ConquestEnginePlayer(_id, QStringLiteral(""), _stream) {}
 	ConquestEnginePlayer(const int &_id) : ConquestEnginePlayer(_id, nullptr) {}
+	ConquestEnginePlayer() : ConquestEnginePlayer(-1) {}
 	virtual ~ConquestEnginePlayer() = default;
 
 	WebSocketStream *stream = nullptr;
@@ -99,7 +101,7 @@ public:
 
 	static std::weak_ptr<ConquestEngine> createEngine(WebSocketStream *stream, EngineHandler *handler);
 	static std::weak_ptr<AbstractEngine> connectToEngine(const int &id, WebSocketStream *stream, EngineHandler *handler);
-
+	static int restoreEngines(ServerService *service);
 
 	QJsonObject gameFinish(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject gameStart(WebSocketStream *stream, const QJsonObject &message);
@@ -117,6 +119,7 @@ public:
 	static int setNextId(const int &id) { m_nextId = id+1; return m_nextId; }
 
 	int playerEnroll(WebSocketStream *stream);
+	int playerLeave(WebSocketStream *stream, const bool &forced);
 	bool playerConnectStream(const int &playerId, WebSocketStream *stream);
 	void playerDisconnectStream(const int &playerId, WebSocketStream *stream = nullptr);
 	void playerDisconnectStream(WebSocketStream *stream = nullptr) { playerDisconnectStream(-1, stream); }
@@ -139,10 +142,18 @@ protected:
 private:
 	static QJsonObject cmdList(const QJsonObject &message, EngineHandler *handler);
 	static QJsonObject cmdCreate(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
-	static QJsonObject cmdConnect(WebSocketStream *stream, EngineHandler *handler, const int &id);
+	static QJsonObject cmdConnect(WebSocketStream *stream, EngineHandler *handler, const int &id, const bool &forced);
+
+	void engineBackup();
+	bool engineRestore(const QJsonObject &data);
+	static QString engineBackupFile(const ServerService *service, const int &id, const bool &createDir = false);
+	QString engineBackupFile(const bool &createDir = false) const {
+		return engineBackupFile(m_service, m_id, createDir);
+	}
 
 	QJsonObject cmdState(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdEnroll(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject cmdLeave(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdQuestionRequest(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdPick(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdAnswer(WebSocketStream *stream, const QJsonObject &message);
@@ -170,10 +181,12 @@ private:
 
 	WebSocketStream *m_hostStream = nullptr;
 	QElapsedTimer m_elapsedTimer;
+	bool m_elapsedTimerStartRequired = false;
 	qint64 m_startedAt = -1;
+	qint64 m_tickBegin = 0;
 	std::vector<ConquestEnginePlayer> m_players;
 	ConquestConfig m_config;
-	QList<ConquestWorldHelper> m_worldListHelper;
+	ConquestWordListHelper m_worldListHelper;
 	static int m_nextId;
 	std::unique_ptr<ConquestQuestion> m_question;
 

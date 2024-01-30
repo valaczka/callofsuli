@@ -35,10 +35,10 @@
 #define LAND_XP_ONCE		100
 
 #define MSEC_SELECT			5000
+#define MSEC_PREPARE		2000
 #define MSEC_ANSWER			15000
-#define MSEC_FINISH			2000
-#define MSEC_FINISH_WAIT	2000
-#define MSEC_GAME_TIMEOUT	10*60*1000
+#define MSEC_WAIT			2000
+#define MSEC_GAME_TIMEOUT	20*60*1000
 
 
 int ConquestEngine::m_nextId = 0;
@@ -100,6 +100,7 @@ void ConquestEngine::handleWebSocketMessage(WebSocketStream *stream, const QJson
 		{ "start", &ConquestEngine::gameStart },
 		{ "prepare", &ConquestEngine::gamePrepare },
 		{ "enroll", &ConquestEngine::cmdEnroll },
+		{ "leave", &ConquestEngine::cmdLeave },
 		{ "play", &ConquestEngine::gamePlay },
 		{ "questionRequest", &ConquestEngine::cmdQuestionRequest },
 		{ "finish", &ConquestEngine::gameFinish },
@@ -128,7 +129,8 @@ void ConquestEngine::handleWebSocketMessage(WebSocketStream *stream, const QJson
 				{ QStringLiteral("error"), QStringLiteral("engine already connected") }
 			};
 		} else {
-			ret = cmdConnect(stream, handler, id);
+			const bool &forced = obj.value(QStringLiteral("forced")).toBool(false);
+			ret = cmdConnect(stream, handler, id, forced);
 		}
 	} else if (fn) {
 		if (engine)
@@ -173,7 +175,6 @@ std::weak_ptr<ConquestEngine> ConquestEngine::createEngine(WebSocketStream *stre
 
 	if (stream) {
 		ptr->setHostStream(stream);
-		LOG_CINFO("engine") << "SET HOST" << ptr.get() << stream << ptr->m_id;
 		ptr->m_config.gameState = ConquestConfig::StateConnect;
 		handler->websocketEngineLink(stream, ptr);
 		ptr->playerEnroll(stream);
@@ -215,6 +216,64 @@ std::weak_ptr<AbstractEngine> ConquestEngine::connectToEngine(const int &id, Web
 
 
 /**
+ * @brief ConquestEngine::restoreEngines
+ * @return
+ */
+
+int ConquestEngine::restoreEngines(ServerService *service)
+{
+	Q_ASSERT(service);
+
+	LOG_CDEBUG("engine") << "Restore ConquestEngines";
+	int count = 0;
+
+	QDir dir = service->settings()->dataDir();
+	static const QString subdir = QStringLiteral("engineData");
+
+	QDirIterator it(dir.absoluteFilePath(subdir), {QStringLiteral("conquest.*.dat")}, QDir::Files|QDir::Readable);
+
+	int nextId = 0;
+
+	static const QRegularExpression exp(QStringLiteral(R"(/conquest\.(\d+)\.dat$)"));
+
+	while (it.hasNext()) {
+		const QString &f = it.next();
+
+		const QRegularExpressionMatch &match = exp.match(f);
+
+		if (!match.hasMatch())
+			continue;
+
+		const int &id = match.captured(1).toInt();
+
+		const auto &data = Utils::fileToJsonObject(f);
+
+		if (!data) {
+			LOG_CWARNING("engine") << "Invalid content:" << qPrintable(f);
+			continue;
+		}
+
+		if (id > nextId)
+			nextId = id;
+
+		auto ptr = std::make_shared<ConquestEngine>(service->engineHandler());
+
+		ptr->setId(id);
+		ptr->engineRestore(*data);
+		service->engineHandler()->engineAdd(ptr);
+
+		++count;
+		LOG_CINFO("engine") << "ConquestEngine" << id << "restored";
+	}
+
+	setNextId(nextId);
+
+	return count;
+}
+
+
+
+/**
  * @brief ConquestEngine::gameFinish
  * @param stream
  * @param message
@@ -232,6 +291,11 @@ QJsonObject ConquestEngine::gameFinish(WebSocketStream *, const QJsonObject &)
 		m_elapsedTimer.invalidate();
 
 	m_config.gameState = ConquestConfig::StateFinished;
+
+	if (const QString &filename = engineBackupFile(); QFile::exists(filename)) {
+		LOG_CTRACE("engine") << "Remove backup engine file:" << m_id << qPrintable(filename);
+		QFile::remove(filename);
+	}
 
 	m_handler->engineTriggerEngine(this);
 
@@ -364,7 +428,7 @@ QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject 
 	m_config.gameState = ConquestConfig::StatePlay;
 	m_config.currentStage = ConquestTurn::StagePick;
 
-	/*
+
 	if (!nextPick(false)) {
 		LOG_CERROR("engine") << "FINISH GAME ERROR";
 		gameFinish(nullptr, {});
@@ -373,7 +437,10 @@ QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject 
 			{ QStringLiteral("error"), QStringLiteral("play error") }
 		};
 	}
-*/
+
+
+	/*
+	////////
 
 	m_config.currentStage = ConquestTurn::StageBattle;
 
@@ -392,9 +459,8 @@ QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject 
 		};
 	}
 
-
-
 	/////////
+*/
 
 	m_handler->engineTriggerEngine(this);
 
@@ -437,31 +503,6 @@ void ConquestEngine::timerTick()
 
 	m_question->check();
 	checkTurn();
-
-	/*if (m_gameState != StatePlaying)
-		return;
-
-	QByteArray content;
-
-	for (const auto & [entityId, entity] : m_entities) {
-		content.append("=========================================\n");
-		content.append(QString("%1 - %2\n").arg(entityId).arg(entity.type).toUtf8());
-		content.append(entity.owner.toUtf8()).append("\n");
-		content.append("=========================================\n");
-		for (const auto &rs : entity.renderedStates) {
-			content.append(rs.toReadable());
-			content.append("---------------------------------\n");
-		}
-	}
-
-	QFile f("/tmp/_state.txt");
-	f.open(QIODevice::WriteOnly);
-	f.write(content);
-	f.close();
-
-	sendStates();
-
-	LOG_CTRACE("engine") << "States saved";*/
 }
 
 
@@ -474,6 +515,10 @@ void ConquestEngine::timerTick()
 void ConquestEngine::streamTriggerEvent(WebSocketStream *stream)
 {
 	LOG_CINFO("engine") << "Stream trigger" << this << stream << currentTick();
+
+	if (m_config.gameState == ConquestConfig::StatePlay) {
+		engineBackup();
+	}
 
 	QMutexLocker locker(&m_engineMutex);
 
@@ -519,7 +564,7 @@ void ConquestEngine::streamTriggerEvent(WebSocketStream *stream)
 qint64 ConquestEngine::currentTick() const
 {
 	if (m_elapsedTimer.isValid())
-		return m_elapsedTimer.elapsed();
+		return m_elapsedTimer.elapsed() + m_tickBegin;
 	else
 		return 0;
 }
@@ -545,8 +590,7 @@ int ConquestEngine::playerEnroll(WebSocketStream *stream)
 
 	if (id != -1) {
 		LOG_CWARNING("engine") << "Player already enrolled:" << qPrintable(stream->credential().username());
-
-		// playerConnectStream
+		return -1;
 	}
 
 	if (m_playerLimit > 0 && m_players.size() >= m_playerLimit) {
@@ -586,6 +630,44 @@ int ConquestEngine::playerEnroll(WebSocketStream *stream)
 	m_handler->engineTriggerEngine(this);
 
 	return playerId;
+}
+
+
+
+/**
+ * @brief ConquestEngine::playerLeave
+ * @param stream
+ * @return
+ */
+
+int ConquestEngine::playerLeave(WebSocketStream *stream, const bool &forced)
+{
+	QMutexLocker locker(&m_engineMutex);
+
+	if (!stream)
+		return -1;
+
+	auto it = playerFind(stream);
+
+	if (it == m_players.end())
+		return -1;
+
+	LOG_CDEBUG("engine") << "Leave player" << it->playerId << stream << qPrintable(it->username);
+
+	if ((m_config.gameState == ConquestConfig::StatePlay ||
+		 m_config.gameState == ConquestConfig::StatePrepare)
+			&& !forced) {
+		LOG_CWARNING("engine") << "Player leave must be forced in game state" << m_config.gameState;
+		return -1;
+	}
+
+	const int id = it->playerId;
+
+	m_players.erase(it);
+
+	m_handler->engineTriggerEngine(this);
+
+	return id;
 }
 
 
@@ -834,6 +916,11 @@ QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject
 			{ QStringLiteral("error"), QStringLiteral("missing worldList") }
 		};
 
+	/*if (worldHelper.characterList.isEmpty())
+		return {
+			{ QStringLiteral("error"), QStringLiteral("missing characterList") }
+		};*/
+
 
 	auto ptr = createEngine(stream, handler);
 
@@ -849,7 +936,7 @@ QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject
 	engine->m_config.mapUuid = config.mapUuid;
 	engine->m_config.missionUuid = config.missionUuid;
 	engine->m_config.missionLevel = config.missionLevel;
-	engine->m_worldListHelper = worldHelper.worldList;
+	engine->m_worldListHelper = worldHelper;
 
 	engine->updatePlayerLimit();
 
@@ -871,33 +958,157 @@ QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject
  * @return
  */
 
-QJsonObject ConquestEngine::cmdConnect(WebSocketStream *stream, EngineHandler *handler, const int &id)
+QJsonObject ConquestEngine::cmdConnect(WebSocketStream *stream, EngineHandler *handler, const int &id, const bool &forced)
 {
-	LOG_CTRACE("engine") << "Connect to ConquestEngine:" << id;
+	LOG_CTRACE("engine") << "Connect to ConquestEngine:" << id << "forced:" << forced;
 
 	const auto &e = connectToEngine(id, stream, handler);
 
 	if (e.expired()) {
 		return {
-			{ QStringLiteral("error"), QStringLiteral("internal error") }
+			{ QStringLiteral("error"), QStringLiteral("invalid engine") }
 		};
 	}
 
 	ConquestEngine *engine = qobject_cast<ConquestEngine*>(e.lock().get());
 
-	LOG_CINFO("engine") << "CONNECTED" << id  << engine;
+	QMutexLocker locker(&engine->m_engineMutex);
 
-	const int &pid = engine->playerGetId(stream->credential().username());
+	auto it = engine->playerFind(stream->credential().username());
 
-	if (pid != -1) {
-		LOG_CWARNING("engine") << "Player already enrolled, REENROLL:" << qPrintable(stream->credential().username());
+	if (it != engine->m_players.end()) {
+		LOG_CDEBUG("engine") << "Player already enrolled, connect streams:" << qPrintable(stream->credential().username());
 
-		// playerConnectStream
+		if (it->stream) {
+			if (forced) {
+				LOG_CINFO("engine") << "Player stream replace:" << qPrintable(it->username) << it->stream;
+				it->stream = nullptr;
+			} else {
+				LOG_CWARNING("engine") << "Player stream already connected:" << qPrintable(it->username) << it->stream;
+				return {
+					{ QStringLiteral("error"), QStringLiteral("already connected") }
+				};
+			}
+		}
+
+		it->stream = stream;
+
+		if (engine->m_elapsedTimerStartRequired) {
+			LOG_CINFO("engine") << "Continue ConquestEngine timer" << id;
+			engine->m_elapsedTimerStartRequired = false;
+			engine->m_elapsedTimer.start();
+		}
 	}
+
+	if (!engine->hostStream())
+		engine->setHostStream(stream);
 
 	return {
 		{ QStringLiteral("engine"), id }
 	};
+}
+
+
+
+/**
+ * @brief ConquestEngine::engineBackup
+ */
+
+void ConquestEngine::engineBackup()
+{
+	const QString &filename = engineBackupFile(true);
+
+	LOG_CTRACE("engine") << "Backup engine" << m_id << qPrintable(filename);
+
+	QMutexLocker locker(&m_engineMutex);
+
+	QJsonObject ret = m_config.toJson();
+
+	ret.insert(QStringLiteral("owner"), m_owner);
+	ret.insert(QStringLiteral("playerLimit"), (int) m_playerLimit);
+	ret.insert(QStringLiteral("startedAt"), m_startedAt);
+	ret.insert(QStringLiteral("tick"), currentTick());
+
+	QJsonArray players;
+
+	for (const auto &p : m_players)
+		players.append(p.toJson());
+
+	ret.insert(QStringLiteral("users"), players);
+
+	ret.insert(QStringLiteral("questionArray"), m_question->array());
+
+#ifdef QT_NO_DEBUG
+	const QByteArray &content = QJsonDocument(ret).toJson(QJsonDocument::Compact);
+#else
+	const QByteArray &content = QJsonDocument(ret).toJson(QJsonDocument::Indented);
+#endif
+
+	QFile f(filename);
+	if (!f.open(QIODevice::WriteOnly)) {
+		LOG_CERROR("engine") << "Engine backup error:" << qPrintable(filename);
+		return;
+	}
+
+	f.write(content);
+	f.flush();
+	f.close();
+}
+
+
+/**
+ * @brief ConquestEngine::engineRestore
+ * @param data
+ * @return
+ */
+
+bool ConquestEngine::engineRestore(const QJsonObject &data)
+{
+	LOG_CINFO("engine") << "Restore engine from data" << m_id;
+
+	ConquestConfig c;
+	c.fromJson(data);
+	setConfig(c);
+
+	setOwner(data.value(QStringLiteral("owner")).toString());
+	setPlayerLimit(data.value(QStringLiteral("playerLimit")).toInt());
+	m_startedAt = data.value(QStringLiteral("startedAt")).toInteger();
+	m_tickBegin = data.value(QStringLiteral("tick")).toInteger();
+
+	for (const QJsonValue &v : data.value(QStringLiteral("users")).toArray()) {
+		ConquestEnginePlayer player;
+		player.fromJson(v.toObject());
+		m_players.push_back(player);
+	}
+
+	m_question->upload(data.value(QStringLiteral("questionArray")).toArray());
+
+	m_elapsedTimerStartRequired = true;
+
+	return true;
+}
+
+
+
+/**
+ * @brief ConquestEngine::engineBackupFile
+ * @param createDir
+ * @return
+ */
+
+QString ConquestEngine::engineBackupFile(const ServerService *service, const int &id, const bool &createDir)
+{
+	Q_ASSERT(service);
+
+	QDir dir = service->settings()->dataDir();
+	static const QString subdir = QStringLiteral("engineData");
+
+	if (createDir && !QFile::exists(dir.absoluteFilePath(subdir))) {
+		LOG_CINFO("engine") << "Create path:" << qPrintable(dir.absoluteFilePath(subdir));
+		dir.mkdir(subdir);
+	}
+
+	return dir.absoluteFilePath(subdir+QStringLiteral("/conquest.%1.dat").arg(id));
 }
 
 
@@ -936,6 +1147,34 @@ QJsonObject ConquestEngine::cmdEnroll(WebSocketStream *stream, const QJsonObject
 	if (id == -1) {
 		return {
 			{ QStringLiteral("error"), QStringLiteral("enroll failed") }
+		};
+	}
+
+	m_handler->engineTriggerEngine(this);
+
+	return {
+		{ QStringLiteral("playerId"), id }
+	};
+}
+
+
+
+/**
+ * @brief ConquestEngine::cmdLeave
+ * @param stream
+ * @param message
+ * @return
+ */
+
+QJsonObject ConquestEngine::cmdLeave(WebSocketStream *stream, const QJsonObject &)
+{
+	QMutexLocker locker(&m_engineMutex);
+
+	const int &id = playerEnroll(stream);
+
+	if (id == -1) {
+		return {
+			{ QStringLiteral("error"), QStringLiteral("leave failed") }
 		};
 	}
 
@@ -1138,7 +1377,7 @@ void ConquestEngine::updatePlayerLimit()
 
 	m_playerLimit = 0;
 
-	for (const auto &w : m_worldListHelper) {
+	for (const auto &w : m_worldListHelper.worldList) {
 		for (const auto &p : w.infoList) {
 			if (p.playerCount < 0)
 				continue;
@@ -1176,7 +1415,7 @@ void ConquestEngine::prepareWorld()
 
 	QList<ConquestWorldHelper> list;
 
-	for (const auto &w : m_worldListHelper) {
+	for (const auto &w : m_worldListHelper.worldList) {
 		if (auto it = std::find_if(w.infoList.constBegin(), w.infoList.constEnd(),
 								   [s](const ConquestWorldHelperInfo &i){
 								   return i.playerCount == s;
@@ -1310,15 +1549,17 @@ void ConquestEngine::prepareTurns(const ConquestTurn::Stage &stage)
 
 
 	if (stage == ConquestTurn::StagePick) {
-		for (const auto &turnList : list) {
-			for (auto it = turnList.cbegin(); it != turnList.cend(); ++it) {
-				ConquestTurn turn;
-				turn.player = m_config.order.at(*it);
-				if (it == turnList.cbegin())
-					turn.subStage = ConquestTurn::SubStageUserAnswer;
-				else
-					turn.subStage = ConquestTurn::SubStageUserSelect;
-				m_config.turnList.append(turn);
+		for (int i=0; i<(pSize==2 ? 2 : 1); ++i) {
+			for (const auto &turnList : list) {
+				for (auto it = turnList.cbegin(); it != turnList.cend(); ++it) {
+					ConquestTurn turn;
+					turn.player = m_config.order.at(*it);
+					if (it == turnList.cbegin())
+						turn.subStage = ConquestTurn::SubStageUserAnswer;
+					else
+						turn.subStage = ConquestTurn::SubStageUserSelect;
+					m_config.turnList.append(turn);
+				}
 			}
 		}
 	} else if (stage == ConquestTurn::StageBattle) {
@@ -1519,33 +1760,46 @@ bool ConquestEngine::nextPick(const bool &subStage)
 		ConquestTurn &turn = m_config.turnList[m_config.currentTurn];
 
 		if (turn.subStage == ConquestTurn::SubStageUserAnswer) {
-			turn.subStage = ConquestTurn::SubStageUserSelect;
+			turn.subStage = ConquestTurn::SubStageWait;
+			turn.subStageStart = currentTick();
+			turn.subStageEnd = currentTick() + MSEC_WAIT;
 
 			nextTurn = m_config.currentTurn;
 
 			for (int i=m_config.currentTurn; i < m_config.turnList.size(); ++i) {
 				ConquestTurn &t = m_config.turnList[i];
 
-				if (t.subStage != ConquestTurn::SubStageUserSelect)
+				if (i > m_config.currentTurn && t.subStage != ConquestTurn::SubStageUserSelect)
 					break;
 
-				const auto &answer = turn.answerGetSuccess(t.player);			// !!! turn -> mert oda mentjük mindet!
+				const auto &answer = turn.answerGetSuccess(t.player, ConquestTurn::StagePick);			// !!! turn -> mert oda mentjük mindet!
 
 				if (!answer) {
 					t.player = -1;
-					t.subStage = ConquestTurn::SubStageFinished;
-					t.subStageEnd = 0;
-					t.subStageStart = 0;
+					if (i > m_config.currentTurn) {
+						t.subStage = ConquestTurn::SubStageFinished;
+						t.subStageEnd = 0;
+						t.subStageStart = 0;
+					}
 				}
 			}
 
 			questionClear();
+
+			return true;
+		} else if (turn.subStage == ConquestTurn::SubStageWait) {
+			nextTurn = m_config.currentTurn;
+
+			turn.subStage = ConquestTurn::SubStageUserSelect;
+			turn.subStageEnd = 0;
+			turn.subStageStart = 0;
 		} else {
 			turn.subStage = ConquestTurn::SubStageFinished;
 			turn.subStageEnd = 0;
 			turn.subStageStart = 0;
 		}
 
+		turn.clear();
 	}
 
 
@@ -1644,19 +1898,25 @@ bool ConquestEngine::nextBattle(const bool &subStage)
 				turn.subStageStart = 0;
 			} else {
 				turn.canPick.clear();
-				turn.subStage = ConquestTurn::SubStageUserAnswer;
+				turn.subStage = ConquestTurn::SubStagePrepareBattle;
 				turn.subStageStart = currentTick();
-				turn.subStageEnd = currentTick() + MSEC_ANSWER;
-
-				questionClear();
-
-				if (!questionNext())
-					return false;
-
+				turn.subStageEnd = currentTick() + MSEC_PREPARE;
 				return true;
 			}
+		} else if (turn.subStage == ConquestTurn::SubStagePrepareBattle) {
+
+			turn.subStage = ConquestTurn::SubStageUserAnswer;
+			turn.subStageStart = currentTick();
+			turn.subStageEnd = currentTick() + MSEC_ANSWER;
+
+			questionClear();
+
+			if (!questionNext())
+				return false;
+
+			return true;
 		} else if (turn.subStage == ConquestTurn::SubStageUserAnswer) {
-			const auto &answer = turn.answerGetSuccess(turn.player);
+			const auto &answer = turn.answerGetSuccess(turn.player, ConquestTurn::StageBattle);
 
 			LOG_CINFO("engine") << "ANSWER" << turn.player << (answer ? true : false);
 
@@ -1682,13 +1942,15 @@ bool ConquestEngine::nextBattle(const bool &subStage)
 																			ptrOld == m_players.end() ? nullptr : &*ptrOld);
 			}
 
-			turn.subStage = ConquestTurn::SubStageFinished;
+			turn.pickedId.clear();
+			turn.subStage = ConquestTurn::SubStageWait;
 			turn.subStageStart = currentTick();
-			turn.subStageEnd = currentTick() + MSEC_FINISH;
-
+			turn.subStageEnd = currentTick() + MSEC_WAIT;
 
 			return true;
 		}
+
+		turn.clear();
 	}
 
 	int nextTurn = m_config.currentTurn+1;
@@ -1841,23 +2103,23 @@ void ConquestQuestion::check()
 
 	m_worker.execInThread([this, now]{
 		QMutexLocker locker(&m_mutex);
-		LOG_CTRACE("engine") << "Check questions" << m_questionArray;
+		LOG_CTRACE("engine") << "Check questions" << m_questionArray.size();
 
-		if (m_questionArray.size() >= 6)
+		if (m_questionArray.size() >= 10)
 			return;
+
+		m_lastRequest = now;
 
 		auto *ws = m_engine->m_hostStream;
 
 		if (!ws) {
-			LOG_CINFO("engine") << "NO WS" << ws;
+			LOG_CWARNING("engine") << "ConquestEngine" << m_engine->id() << "host stream missing";
 			return;
 		}
 
-		LOG_CINFO("engine") << "REQUEST" << ws;
 		m_engine->sendStreamJson(ws, QJsonObject{
 									 { QStringLiteral("cmd"), QStringLiteral("questionRequest") }
 								 });
-		m_lastRequest = now;
 
 	});
 }
@@ -1877,7 +2139,7 @@ void ConquestQuestion::upload(const QJsonArray &list)
 		for (const QJsonValue &v : list)
 			m_questionArray.append(v);
 
-		LOG_CINFO("engine") << "Upload questions" << list << "=>" << m_questionArray;
+		LOG_CDEBUG("engine") << "Upload questions";
 	});
 }
 
@@ -1901,8 +2163,6 @@ QJsonValue ConquestQuestion::next()
 		if (!m_questionArray.isEmpty())
 			value = m_questionArray.takeAt(0);
 
-		LOG_CINFO("engine") << "Get next question" << value << m_questionArray;
-
 		ret.resolve();
 	});
 
@@ -1924,7 +2184,6 @@ bool ConquestQuestion::hasQuestion()
 
 	m_worker.execInThread([this, ret]() mutable {
 		QMutexLocker locker(&m_mutex);
-		LOG_CTRACE("engine") << "Check existing questions" ;
 
 		if (!m_questionArray.isEmpty())
 			ret.resolve();

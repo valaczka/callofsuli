@@ -44,7 +44,7 @@ RowLayout {
 
 		horizontalAlignment: Text.AlignHCenter
 
-		color: Qaterial.Colors.amber200
+		color: gameQuestion && !gameQuestion.permanentDisabled ? Qaterial.Colors.amber200 : Qaterial.Style.disabledTextColor()
 
 		textFormat: Text.RichText
 	}
