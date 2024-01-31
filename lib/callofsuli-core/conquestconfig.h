@@ -122,44 +122,24 @@ class ConquestAnswer : public QSerializer
 public:
 	ConquestAnswer()
 		: player(-1)
+		, success(false)
+		, elapsed(-1)
 	{}
 
 	friend bool operator==(const ConquestAnswer &c1, const ConquestAnswer &c2) {
 		return c1.answer == c2.answer &&
-				c1.player == c2.player
+				c1.player == c2.player &&
+				c1.success == c2.success &&
+				c1.elapsed == c2.elapsed
 				;
 	}
 
-	/**
-	 * @brief addDetails
-	 * @param json
-	 * @param success
-	 * @param elapsed
-	 * @return
-	 */
-
-	static void addDetails(QJsonObject *json, const bool &success, const qint64 &elapsed) {
-		Q_ASSERT(json);
-		json->insert(QStringLiteral("_success"), success);
-		json->insert(QStringLiteral("_elapsed"), elapsed);
-	}
-
-	/**
-	 * @brief loadDetails
-	 * @param json
-	 */
-
-	void loadDetails(const QJsonObject &json) {
-		success = json.value(QStringLiteral("_success")).toBool(false);
-		elapsed = JSON_TO_INTEGER(json.value(QStringLiteral("_elapsed")));
-	}
-
-	bool success = false;
-	qint64 elapsed = 0;
 
 	QS_SERIALIZABLE
 	QS_FIELD(int, player)
 	QS_FIELD(QJsonObject, answer)
+	QS_FIELD(bool, success)
+	QS_FIELD(qint64, elapsed)
 };
 
 
@@ -180,6 +160,7 @@ public:
 		, subStage(SubStageInvalid)
 		, subStageStart(0)
 		, subStageEnd(0)
+		, answerState(AnswerPending)
 	{}
 
 	enum Stage {
@@ -204,6 +185,14 @@ public:
 	Q_ENUM(SubStage)
 
 
+	enum AnswerState {
+		AnswerPending = 0,
+		AnswerPlayerWin,
+		AnswerPlayerLost
+	};
+
+	Q_ENUM(AnswerState)
+
 
 	/**
 	 * @brief answerGet
@@ -211,7 +200,7 @@ public:
 	 * @return
 	 */
 
-	std::optional<QJsonObject> answerGet(const int &playerId) const {
+	std::optional<ConquestAnswer> answerGet(const int &playerId) const {
 		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
 			return a.player == playerId;
 		});
@@ -219,7 +208,7 @@ public:
 		if (it == answerList.constEnd())
 			return std::nullopt;
 		else
-			return it->answer;
+			return *it;
 	}
 
 
@@ -230,25 +219,44 @@ public:
 	 * @return
 	 */
 
-	std::optional<QJsonObject> answerGetSuccess(const int &playerId, const Stage &gameStage) const {
+	bool answerIsSuccess(const int &playerId, const Stage &gameStage) const {
 		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
 			return a.player == playerId;
 		});
 
 		if (it == answerList.constEnd())
-			return std::nullopt;
+			return false;
 
 		if (!it->success)
-			return std::nullopt;
+			return false;
 
 		if (gameStage == StageBattle) {
 			for (const ConquestAnswer &a : answerList) {
 				if (a.player != playerId && a.success && a.elapsed < it->elapsed)
-					return std::nullopt;
+					return false;
 			}
 		}
 
-		return it->answer;
+		return true;
+	}
+
+
+
+	/**
+	 * @brief getElapsed
+	 * @param playerId
+	 * @return
+	 */
+
+	Q_INVOKABLE qint64 getElapsed(const int &playerId) const {
+		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
+			return a.player == playerId;
+		});
+
+		if (it == answerList.constEnd())
+			return -1;
+
+		return it->elapsed;
 	}
 
 
@@ -258,6 +266,7 @@ public:
 		pickedId.clear();
 		answerList.clear();
 		canPick.clear();
+		answerState = AnswerPending;
 	}
 
 	friend bool operator==(const ConquestTurn &c1, const ConquestTurn &c2) {
@@ -267,7 +276,8 @@ public:
 				c1.subStageEnd == c2.subStageEnd &&
 				c1.pickedId == c2.pickedId &&
 				c1.answerList == c2.answerList &&
-				c1.canPick == c2.canPick
+				c1.canPick == c2.canPick &&
+				c1.answerState == c2.answerState
 				;
 	}
 
@@ -277,6 +287,7 @@ public:
 	QS_FIELD(qint64, subStageStart)
 	QS_FIELD(qint64, subStageEnd)
 	QS_FIELD(QString, pickedId)
+	QS_FIELD(AnswerState, answerState)
 	QS_COLLECTION_OBJECTS(QList, ConquestAnswer, answerList)
 	QS_COLLECTION(QList, QString, canPick)
 };

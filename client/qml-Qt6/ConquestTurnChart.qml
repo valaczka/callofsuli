@@ -11,8 +11,10 @@ Rectangle {
 
 	property ConquestGame game: null
 
-	width: 150 * Qaterial.Style.pixelSizeRatio
-	height: 150 * Qaterial.Style.pixelSizeRatio
+	property real size: 90 * Qaterial.Style.pixelSizeRatio
+
+	width: size
+	height: size
 
 	radius: Math.min(width, height)/2
 
@@ -42,9 +44,35 @@ Rectangle {
 		if (game) {
 			game.configChanged.connect(reload)
 			game.currentStageChanged.connect(function(){
+				mark()
 				_series.clear()
 				reload()
 			})
+		}
+	}
+
+
+
+	SequentialAnimation {
+		id: _markAnimation
+		alwaysRunToEnd: true
+
+		PropertyAnimation {
+			target: root
+			properties: "width, height"
+			to: size*1.6
+			duration: 350
+		}
+
+		PauseAnimation {
+			duration: 2500
+		}
+
+		PropertyAnimation {
+			target: root
+			properties: "width, height"
+			to: size
+			duration: 650
 		}
 	}
 
@@ -69,9 +97,15 @@ Rectangle {
 			o.borderWidth = 2
 			o.color = game.getPlayerColor(list[i].player)
 
-			if (!active)
-				o.color = Qt.darker(o.color, 3.0)
+			if (game.config.currentTurn > i)
+				o.color = Qaterial.Colors.gray900
+			else if (game.config.currentTurn < i)
+				o.color = Qt.darker(o.color, 2.5)
 		}
+	}
+
+	function mark() {
+		_markAnimation.start()
 	}
 
 }

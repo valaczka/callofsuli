@@ -6,19 +6,14 @@ import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as J
 
-QPage {
+Page {
 	id: root
 
-	title: qsTr("Conquest ") +
-		   (game ? ((game.hostMode == ConquestGame.ModeHost ? "Host" : "Guest")+ " - " + game.engineId)
-				 : "???")
-
 	property ConquestGame game: null
+
 	//property string closeDisabled: qsTr("A játék előkészítése alatt nem lehet bezárni a lapot!")
 	//property string closeQuestion: qsTr("Biztosan megszakítod a játékot?")
 	property var onPageClose: function() { if (game) game.gameAbort() }
-
-	readonly property int stackViewIndex: StackView.index
 
 	property bool _mapVisible: game && (game.config.gameState == ConquestConfig.StatePlay || game.config.gameState == ConquestConfig.StatePrepare)
 
@@ -108,11 +103,7 @@ QPage {
 		visible: _mapVisible
 		anchors.fill: parent
 		game: root.game
-
-		//pushMapDown: _question.questionComponent
-
-		onAnimationDownReady: game.onMapAnimationDownReady()
-		onAnimationUpReady: game.onMapAnimationUpReady()
+		playerRowLeftMargin: _backButton.x+_backButton.width + 5*Qaterial.Style.pixelSizeRatio
 	}
 
 	Column {
@@ -134,10 +125,34 @@ QPage {
 		}
 	}
 
+
+	GameButton {
+		id: _backButton
+		size: 25
+
+		anchors.left: parent.left
+		anchors.leftMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
+		anchors.top: parent.top
+		anchors.topMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginTop)
+
+		color: Qaterial.Colors.red800
+		border.color: "white"
+		border.width: 1
+
+		fontImage.icon: Qaterial.Icons.close
+		fontImage.color: "white"
+		fontImageScale: 0.7
+
+		onClicked: {
+			Client.stackPop()
+		}
+	}
+
 	ConquestTurnChart {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
-		anchors.margins: 20
+		anchors.bottomMargin: Math.max(10 * Qaterial.Style.pixelSizeRatio, Client.safeMarginBottom)
+		anchors.rightMargin: Math.max(10 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
 		game: root.game
 	}
 
@@ -177,6 +192,24 @@ QPage {
 		width: parent.width
 		game: root.game
 	}
+
+
+
+
+	GamePainHud {
+		id: _painhudImage
+		anchors.fill: parent
+		z: 10
+	}
+
+	Connections {
+		target: game
+
+		function onAnswerFailed() {
+			_painhudImage.play()
+		}
+	}
+
 
 	Component.onCompleted: {
 		if (game) {

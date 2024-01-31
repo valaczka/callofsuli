@@ -31,6 +31,10 @@
 #include "utils_.h"
 #include "gamequestion.h"
 
+#ifndef Q_OS_WASM
+#include "standaloneclient.h"
+#endif
+
 
 /**
  * @brief ConquestGame::ConquestGame
@@ -362,6 +366,11 @@ void ConquestGame::onConfigChanged()
 	setCurrentStage(m_config.currentStage);
 
 
+	if (m_config.gameState == ConquestConfig::StatePlay && m_oldGameState != ConquestConfig::StatePlay)
+		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yourself.mp3"), Sound::VoiceoverChannel);
+
+	m_oldGameState = m_config.gameState;
+
 	if ((m_config.gameState == ConquestConfig::StatePrepare || m_config.gameState == ConquestConfig::StatePlay) &&
 			m_config.world.name != m_loadedWorld) {
 		reloadLandList();
@@ -668,8 +677,6 @@ void ConquestGame::loadQuestion()
 	if (m_config.currentQuestion.isEmpty())
 		return;
 
-	emit mapDownRequest();
-
 	if (m_config.currentQuestion == m_loadedQuestion) {
 		LOG_CDEBUG("game") << "Question already loaded, skip";
 		return;
@@ -684,9 +691,15 @@ void ConquestGame::loadQuestion()
 		return;
 	}
 
+	/*if (m_currentStage == ConquestTurn::StageBattle && (m_playerId == m_currentTurn.player || m_isAttacked))
+		emit mapDownRequest();*/
+
 	if (m_gameQuestion) {
 		if (m_currentStage == ConquestTurn::StageBattle) {
 			m_gameQuestion->setPermanentDisabled(m_playerId != m_currentTurn.player && !m_isAttacked);
+
+			if (m_isAttacked)
+				m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"), Sound::VoiceoverChannel);
 		}
 
 		m_loadedQuestion = m_config.currentQuestion;
@@ -707,8 +720,6 @@ void ConquestGame::loadQuestion()
 
 void ConquestGame::revealQuestion()
 {
-	LOG_CERROR("game") << "REVEAL";
-
 	for (const auto &a : m_currentTurn.answerList) {
 		LOG_CERROR("game") << a.player << a.success << a.elapsed << a.answer;
 	}
@@ -720,20 +731,49 @@ void ConquestGame::revealQuestion()
 			answerId = m_playerId;
 		else
 			answerId = m_currentTurn.player;
+
+		if ((m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin && m_fighter1.playerId == m_playerId) ||
+				(m_currentTurn.answerState == ConquestTurn::AnswerPlayerLost && m_fighter2.playerId == m_playerId))
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
+		/*else if ((m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin && m_fighter2.playerId == m_playerId) ||
+				 (m_currentTurn.answerState == ConquestTurn::AnswerPlayerLost && m_fighter1.playerId == m_playerId))
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);*/
 	} else {
 		answerId = m_playerId;
 	}
 
 	const auto &answer = m_currentTurn.answerGet(answerId);
 
+
 	if (answer) {
-		m_gameQuestion->answerReveal(answer->value(QStringLiteral("answer")).toObject().toVariantMap());
-		m_gameQuestion->setMsecBeforeHide(1250);
+		LOG_CINFO("game") << "ANS" << answerId << answer->toJson();
+
+		if (m_gameQuestion) {
+			m_gameQuestion->answerReveal(answer->answer.toVariantMap());
+			m_gameQuestion->setMsecBeforeHide(1250);
+		}
+
+		if (!answer->success && answerId == m_playerId)
+		{
+			emit answerFailed();
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
+
+#ifndef Q_OS_WASM
+			StandaloneClient *client = qobject_cast<StandaloneClient*>(m_client);
+			if (client)
+				client->performVibrate();
+#endif
+		} else if (answer->success && answerId == m_playerId) {
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
+		}
 	} else {
-		m_gameQuestion->setMsecBeforeHide(0);
+		if (m_gameQuestion) {
+			m_gameQuestion->setMsecBeforeHide(0);
+		}
 	}
 
-	m_gameQuestion->finish();
+	if (m_gameQuestion)
+		m_gameQuestion->finish();
 }
 
 
@@ -747,25 +787,14 @@ void ConquestGame::onGameQuestionSuccess(const QVariantMap &answer)
 {
 	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
 
-	/*int xp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * (qreal) LITE_GAME_BASE_XP;
-	setXp(m_xp+xp);
+	ConquestAnswer a;
+	a.answer = QJsonObject::fromVariantMap(answer);
+	a.elapsed = m_gameQuestion->elapsedMsec();
+	a.success = true;
 
-	if (!m_indices.isEmpty())
-		m_indices.takeFirst();
-	emit questionsChanged(); */
-
-	/*m_gameQuestion->answerReveal(answer);
-	m_gameQuestion->setMsecBeforeHide(0);
-	m_gameQuestion->finish();*/
-
-	const QJsonObject &answerData = QJsonObject::fromVariantMap(answer);
-	QJsonObject obj({
-						{ QStringLiteral("cmd"), QStringLiteral("answer") },
-						{ QStringLiteral("engine"), m_engineId },
-						{ QStringLiteral("answer"), answerData }
-					});
-
-	ConquestAnswer::addDetails(&obj, true, m_gameQuestion->elapsedMsec());
+	QJsonObject obj = a.toJson();
+	obj.insert(QStringLiteral("cmd"), QStringLiteral("answer"));
+	obj.insert(QStringLiteral("engine"), m_engineId);
 
 	sendWebSocketMessage(obj);
 }
@@ -778,27 +807,16 @@ void ConquestGame::onGameQuestionSuccess(const QVariantMap &answer)
 
 void ConquestGame::onGameQuestionFailed(const QVariantMap &answer)
 {
-	/*#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(m_client);
-	if (client)
-		client->performVibrate();
-#endif*/
-
 	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
 
-	/*m_gameQuestion->answerReveal(answer);
-	m_gameQuestion->setMsecBeforeHide(1250);
+	ConquestAnswer a;
+	a.answer = QJsonObject::fromVariantMap(answer);
+	a.elapsed = m_gameQuestion->elapsedMsec();
+	a.success = false;
 
-	m_gameQuestion->finish();*/
-
-	const QJsonObject &answerData = QJsonObject::fromVariantMap(answer);
-	QJsonObject obj({
-						{ QStringLiteral("cmd"), QStringLiteral("answer") },
-						{ QStringLiteral("engine"), m_engineId },
-						{ QStringLiteral("answer"), answerData }
-					});
-
-	ConquestAnswer::addDetails(&obj, false, m_gameQuestion->elapsedMsec());
+	QJsonObject obj = a.toJson();
+	obj.insert(QStringLiteral("cmd"), QStringLiteral("answer"));
+	obj.insert(QStringLiteral("engine"), m_engineId);
 
 	sendWebSocketMessage(obj);
 }
@@ -810,7 +828,7 @@ void ConquestGame::onGameQuestionFailed(const QVariantMap &answer)
 
 void ConquestGame::onGameQuestionFinished()
 {
-	emit mapUpRequest();
+	//emit mapUpRequest();
 	m_loadedQuestion = {};
 }
 
@@ -863,26 +881,6 @@ void ConquestGame::setIsAttacked(bool newIsAttacked)
 
 
 
-/**
- * @brief ConquestGame::onMapAnimationDownReady
- */
-
-void ConquestGame::onMapAnimationDownReady()
-{
-
-}
-
-
-
-
-/**
- * @brief ConquestGame::onMapAnimationUpReady
- */
-
-void ConquestGame::onMapAnimationUpReady()
-{
-
-}
 
 
 
@@ -926,8 +924,10 @@ void ConquestGame::setCurrentStage(const ConquestTurn::Stage &newCurrentStage)
 	switch (m_currentStage) {
 		case ConquestTurn::StagePick:
 			message(tr("Területválasztás"));
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/ready.mp3"), Sound::VoiceoverChannel);
 			break;
 		case ConquestTurn::StageBattle:
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
 			message(tr("Küzdelem"));
 			break;
 		default:
@@ -997,9 +997,11 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 		setFighter2({});
 	}
 
-	if (m_currentTurn.subStage == ConquestTurn::SubStageUserSelect && m_currentTurn.player == m_playerId)
+	if (m_currentTurn.subStage == ConquestTurn::SubStageUserSelect && m_currentTurn.player == m_playerId) {
+		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
+		emit mapUpRequest();
 		message(tr("Válassz területet"));
-	else if (m_currentTurn.subStage == ConquestTurn::SubStageUserAnswer) {
+	} else if (m_currentTurn.subStage == ConquestTurn::SubStageUserAnswer) {
 		loadQuestion();
 	}
 }

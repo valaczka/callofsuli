@@ -104,9 +104,9 @@ public:
 	static int restoreEngines(ServerService *service);
 
 	QJsonObject gameFinish(WebSocketStream *stream, const QJsonObject &message);
-	QJsonObject gameStart(WebSocketStream *stream, const QJsonObject &message);
-	QJsonObject gamePrepare(WebSocketStream *stream, const QJsonObject &message);
-	QJsonObject gamePlay(WebSocketStream *stream, const QJsonObject &message);
+        QJsonObject cmdStart(WebSocketStream *stream, const QJsonObject &message);
+        QJsonObject cmdPrepare(WebSocketStream *stream, const QJsonObject &message);
+        QJsonObject cmdPlay(WebSocketStream *stream, const QJsonObject &message);
 
 
 	virtual bool canDelete(const int &useCount) override;

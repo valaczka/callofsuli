@@ -8,18 +8,25 @@ import "./QaterialHelper" as Qaterial
 Rectangle {
 	id: root
 
-	implicitHeight: 100
-	implicitWidth: 200
+	implicitHeight: _col.implicitHeight
+	implicitWidth: 100
 
+	property ConquestGame game: null
 	property int playerId: -1
 	property string username: ""
 	property color theme: Qaterial.Colors.white
 	property int xp: 0
 
-	property alias playerItem: _playerItem
-	property alias placeholder: _placeholder
+	property Item targetFighter1: null
+	property Item targetFighter2: null
 
-	color: "black"
+	color: Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.3)
+
+	radius: 5
+
+	Behavior on xp {
+		NumberAnimation { duration: 250; easing.type: Easing.OutQuad }
+	}
 
 	Item {
 		id: _placeholder
@@ -40,16 +47,17 @@ Rectangle {
 	}
 
 	Column {
+		id: _col
 		anchors.left: _placeholder.right
 		anchors.right: parent.right
 		anchors.top: parent.top
 		anchors.bottom: parent.bottom
 
-		Qaterial.LabelCaption {
+		Qaterial.LabelBody2 {
 			id: _labelName
 
 			width: parent.width
-			wrapMode: Text.Wrap
+			elide: width < implicitWidth ? Text.ElideRight : Text.ElideNone
 			text: username
 		}
 
@@ -62,4 +70,53 @@ Rectangle {
 		}
 	}
 
+	readonly property bool _isFighter1: game && game.fighter1.playerId === playerId && playerId != -1 &&
+										game.currentStage == ConquestTurn.StageBattle &&
+										targetFighter1
+
+	readonly property bool _isFighter2: game && game.fighter2.playerId === playerId && playerId != -1 &&
+										game.currentStage == ConquestTurn.StageBattle &&
+										targetFighter2
+
+	states: [
+		State {
+			name: "nofight"
+			when: !_isFighter1 && !_isFighter2
+			ParentChange {
+				target: _playerItem
+				parent: _placeholder
+				x: (_placeholder.width- _playerItem.width)/2
+				y: (_placeholder.height- _playerItem.height)/2
+			}
+		},
+		State {
+			name: "reparented1"
+			when: _isFighter1
+			ParentChange {
+				target: _playerItem
+				parent: targetFighter1
+				x: (targetFighter1.width- _playerItem.width)/2
+				y: (targetFighter1.height- _playerItem.height)/2
+			}
+		},
+		State {
+			name: "reparented2"
+			when: _isFighter2
+			ParentChange {
+				target: _playerItem
+				parent: targetFighter2
+				x: (targetFighter2.width- _playerItem.width)/2
+				y: (targetFighter2.height- _playerItem.height)/2
+			}
+		}
+	]
+
+	transitions: Transition {
+		ParentAnimation {
+			NumberAnimation {
+				properties: "x,y"
+				duration: 350
+			}
+		}
+	}
 }

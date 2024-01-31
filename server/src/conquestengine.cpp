@@ -97,13 +97,12 @@ void ConquestEngine::handleWebSocketMessage(WebSocketStream *stream, const QJson
 
 	static QHash<std::string, fnDef> fMap = {
 		{ "state", &ConquestEngine::cmdState },
-		{ "start", &ConquestEngine::gameStart },
-		{ "prepare", &ConquestEngine::gamePrepare },
+		{ "start", &ConquestEngine::cmdStart },
+		{ "prepare", &ConquestEngine::cmdPrepare },
 		{ "enroll", &ConquestEngine::cmdEnroll },
 		{ "leave", &ConquestEngine::cmdLeave },
-		{ "play", &ConquestEngine::gamePlay },
+		{ "play", &ConquestEngine::cmdPlay },
 		{ "questionRequest", &ConquestEngine::cmdQuestionRequest },
-		{ "finish", &ConquestEngine::gameFinish },
 		{ "pick", &ConquestEngine::cmdPick },
 		{ "answer", &ConquestEngine::cmdAnswer },
 	};
@@ -306,14 +305,14 @@ QJsonObject ConquestEngine::gameFinish(WebSocketStream *, const QJsonObject &)
 
 
 /**
- * @brief ConquestEngine::gameStart
+ * @brief ConquestEngine::cmdStart
  * @param stream
  * @param message
  * @param handler
  * @return
  */
 
-QJsonObject ConquestEngine::gameStart(WebSocketStream *stream, const QJsonObject &)
+QJsonObject ConquestEngine::cmdStart(WebSocketStream *stream, const QJsonObject &)
 {
 	QMutexLocker locker(&m_engineMutex);
 
@@ -348,14 +347,14 @@ QJsonObject ConquestEngine::gameStart(WebSocketStream *stream, const QJsonObject
 
 
 /**
- * @brief ConquestEngine::gamePrepare
+ * @brief ConquestEngine::cmdPrepare
  * @param stream
  * @param message
  * @param handler
  * @return
  */
 
-QJsonObject ConquestEngine::gamePrepare(WebSocketStream *stream, const QJsonObject &message)
+QJsonObject ConquestEngine::cmdPrepare(WebSocketStream *stream, const QJsonObject &message)
 {
 	QMutexLocker locker(&m_engineMutex);
 
@@ -375,14 +374,14 @@ QJsonObject ConquestEngine::gamePrepare(WebSocketStream *stream, const QJsonObje
 
 
 /**
- * @brief ConquestEngine::gamePlay
+ * @brief ConquestEngine::cmdPlay
  * @param stream
  * @param message
  * @param handler
  * @return
  */
 
-QJsonObject ConquestEngine::gamePlay(WebSocketStream *stream, const QJsonObject &)
+QJsonObject ConquestEngine::cmdPlay(WebSocketStream *stream, const QJsonObject &)
 {
 	QMutexLocker locker(&m_engineMutex);
 
@@ -1213,6 +1212,8 @@ QJsonObject ConquestEngine::cmdQuestionRequest(WebSocketStream *stream, const QJ
 
 	m_question->upload(message.value(QStringLiteral("list")).toArray());
 
+	cmdPlay(stream, {});
+
 	return {};
 }
 
@@ -1311,9 +1312,8 @@ QJsonObject ConquestEngine::cmdAnswer(WebSocketStream *stream, const QJsonObject
 
 
 	ConquestAnswer answer;
+	answer.fromJson(message);
 	answer.player = player->playerId;
-	answer.answer = message;
-	answer.loadDetails(message);
 
 	if (!m_config.playerAnswer(answer)) {
 		LOG_CERROR("engine") << "Answer error:" << answer.player << answer.answer;
@@ -1362,7 +1362,7 @@ void ConquestEngine::onPlayerPrepared(WebSocketStream *stream)
 
 	LOG_CDEBUG("engine") << "Player prepared" << stream << qPrintable(stream->credential().username());
 
-	gamePlay(stream, {});
+	cmdPlay(stream, {});
 }
 
 
@@ -1772,7 +1772,7 @@ bool ConquestEngine::nextPick(const bool &subStage)
 				if (i > m_config.currentTurn && t.subStage != ConquestTurn::SubStageUserSelect)
 					break;
 
-				const auto &answer = turn.answerGetSuccess(t.player, ConquestTurn::StagePick);			// !!! turn -> mert oda mentjük mindet!
+				const bool &answer = turn.answerIsSuccess(t.player, ConquestTurn::StagePick);			// !!! turn -> mert oda mentjük mindet!
 
 				if (!answer) {
 					t.player = -1;
@@ -1832,14 +1832,14 @@ bool ConquestEngine::nextPick(const bool &subStage)
 			if (lands.isEmpty()) {
 				LOG_CTRACE("engine") << "No more pickable lands for player" << t.player;
 				break;
+			} else {
+				t.canPick = lands;
+				t.subStageStart = currentTick();
+				t.subStageEnd = currentTick() + MSEC_SELECT;
+				m_config.currentTurn = nextTurn;
+
+				return true;
 			}
-
-			t.canPick = lands;
-			t.subStageStart = currentTick();
-			t.subStageEnd = currentTick() + MSEC_SELECT;
-			m_config.currentTurn = nextTurn;
-
-			return true;
 		}
 	}
 
@@ -1848,7 +1848,6 @@ bool ConquestEngine::nextPick(const bool &subStage)
 							   [](const ConquestWorldData &d) {
 							   return d.proprietor == -1;
 }); it == m_config.world.landList.cend()) {
-		LOG_CWARNING("engine") << "No more lands";
 		m_config.currentStage = ConquestTurn::StageBattle;
 		m_config.currentTurn = -1;
 		m_config.turnList.clear();
@@ -1916,9 +1915,7 @@ bool ConquestEngine::nextBattle(const bool &subStage)
 
 			return true;
 		} else if (turn.subStage == ConquestTurn::SubStageUserAnswer) {
-			const auto &answer = turn.answerGetSuccess(turn.player, ConquestTurn::StageBattle);
-
-			LOG_CINFO("engine") << "ANSWER" << turn.player << (answer ? true : false);
+			const bool &answer = turn.answerIsSuccess(turn.player, ConquestTurn::StageBattle);
 
 			if (answer) {
 				const int &idx = m_config.world.landFind(turn.pickedId);
@@ -1927,6 +1924,8 @@ bool ConquestEngine::nextBattle(const bool &subStage)
 					LOG_CERROR("engine") << "Invalid land id" << turn.pickedId;
 					return false;
 				}
+
+				turn.answerState = ConquestTurn::AnswerPlayerWin;
 
 				ConquestWorldData &land = m_config.world.landList[idx];
 
@@ -1938,8 +1937,9 @@ bool ConquestEngine::nextBattle(const bool &subStage)
 					return false;
 				}
 
-				LOG_CWARNING("engine") << "SWAP" << m_config.landSwapPlayer(turn.pickedId, &*ptrNew,
-																			ptrOld == m_players.end() ? nullptr : &*ptrOld);
+				m_config.landSwapPlayer(turn.pickedId, &*ptrNew, ptrOld == m_players.end() ? nullptr : &*ptrOld);
+			} else {
+				turn.answerState = ConquestTurn::AnswerPlayerLost;
 			}
 
 			turn.pickedId.clear();

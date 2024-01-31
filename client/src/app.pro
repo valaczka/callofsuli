@@ -103,6 +103,8 @@ android {
 		alist.input = $$PWD/../deploy/AndroidManifest.xml.in
 		alist.output = $$PWD/android/AndroidManifest.xml
 
+		ANDROID_MIN_SDK_VERSION = 21
+
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 	} else {
 		QT += concurrent
@@ -113,6 +115,8 @@ android {
 
 		alist.input = $$PWD/../deploy/Qt6/AndroidManifest.xml.in
 		alist.output = $$PWD/android-Qt6/AndroidManifest.xml
+
+		ANDROID_MIN_SDK_VERSION = 26
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
 

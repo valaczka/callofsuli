@@ -127,13 +127,11 @@ public:
 	ConquestPlayer fighter2() const;
 	void setFighter2(const ConquestPlayer &newFighter2);
 
-public slots:
-	void onMapAnimationDownReady();
-	void onMapAnimationUpReady();
 
 signals:
 	void mapDownRequest();
 	void mapUpRequest();
+	void answerFailed();
 
 	void configChanged();
 	void hostModeChanged();
@@ -196,6 +194,7 @@ private:
 	QColor m_defaultMessageColor = Qt::white;
 	bool m_isAttacked = false;
 	QJsonObject m_loadedQuestion;
+		ConquestConfig::GameState m_oldGameState = ConquestConfig::StateInvalid;
 	ConquestPlayer m_fighter1;
 	ConquestPlayer m_fighter2;
 };
