@@ -70,7 +70,7 @@ Item {
 				onSaveRequest: text => {
 					Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
-									starttime: hasDate ? Math.floor(date.getTime()/1000) : -1
+									starttime: hasDate ? Math.floor(getDateTime()/1000) : -1
 								})
 					.done(control, function(r){
 						reloadCampaign()
@@ -99,7 +99,7 @@ Item {
 				onSaveRequest: text => {
 					Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
 								{
-									endtime: hasDate ? Math.floor(date.getTime()/1000) : -1
+									endtime: hasDate ? Math.floor(getDateTime()/1000) : -1
 								})
 					.done(control, function(r){
 						reloadCampaign()

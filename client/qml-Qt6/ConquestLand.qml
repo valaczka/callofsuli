@@ -19,7 +19,30 @@ ConquestLandImpl {
 	readonly property bool _picked: landData && landData.game &&
 									 landData.game.currentTurn.pickedId === landData.landId
 
-	ownColor: Qaterial.Style.accentColor
+	ownColor: Qaterial.Style.iconColor()
+
+	SequentialAnimation {
+		running: true
+		loops: Animation.Infinite
+
+		ColorAnimation {
+			target: root
+			property: "ownColor"
+			to: Qaterial.Style.accentColor
+			duration: 225
+		}
+
+		PauseAnimation {
+			duration: 125
+		}
+
+		ColorAnimation {
+			target: root
+			property: "ownColor"
+			to: Qaterial.Style.iconColor()
+			duration: 225
+		}
+	}
 
 	Image {
 		id: _imgMap
@@ -73,6 +96,24 @@ ConquestLandImpl {
 		source: _overlayBorder
 		maskSource: _imgMap
 		visible: active || _pickable || _picked
+	}
+
+	Qaterial.LabelHeadline5 {
+		id: _labelXP
+		anchors.centerIn: parent
+		text: landData ? landData.xp : ""
+		visible: _pickable || _picked
+		color: Qaterial.Colors.cyan200
+	}
+
+	Glow {
+		anchors.fill: _labelXP
+		source: _labelXP
+		color: Qaterial.Colors.black
+		radius: 2
+		spread: 0.5
+		samples: 5
+		visible: _labelXP.visible && _labelXP.text != ""
 	}
 
 	MaskedMouseArea {

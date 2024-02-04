@@ -72,13 +72,20 @@ class ConquestEnginePlayer : public ConquestPlayer
 	Q_GADGET
 
 public:
-	ConquestEnginePlayer(const int &_id, const QString &_user, WebSocketStream *_stream)
+	ConquestEnginePlayer(const int &_id, const QString &_user, const QString &_fullNickName, WebSocketStream *_stream)
 		: ConquestPlayer(_id, _user)
 		, stream(_stream)
-	{}
-	ConquestEnginePlayer(const int &_id, WebSocketStream *_stream) : ConquestEnginePlayer(_id, QStringLiteral(""), _stream) {}
-	ConquestEnginePlayer(const int &_id) : ConquestEnginePlayer(_id, nullptr) {}
-	ConquestEnginePlayer() : ConquestEnginePlayer(-1) {}
+	{
+		fullNickName = _fullNickName;
+	}
+	ConquestEnginePlayer(const int &_id, const QString &_user, WebSocketStream *_stream)
+		: ConquestEnginePlayer(_id, _user, QStringLiteral(""), _stream) {}
+	ConquestEnginePlayer(const int &_id, WebSocketStream *_stream)
+		: ConquestEnginePlayer(_id, QStringLiteral(""), _stream) {}
+	ConquestEnginePlayer(const int &_id)
+		: ConquestEnginePlayer(_id, nullptr) {}
+	ConquestEnginePlayer()
+		: ConquestEnginePlayer(-1) {}
 	virtual ~ConquestEnginePlayer() = default;
 
 	WebSocketStream *stream = nullptr;
@@ -99,26 +106,26 @@ public:
 
 	static void handleWebSocketMessage(WebSocketStream *stream, const QJsonValue &message, EngineHandler *handler);
 
-	static std::weak_ptr<ConquestEngine> createEngine(WebSocketStream *stream, EngineHandler *handler);
+	static std::shared_ptr<ConquestEngine> createEngine(WebSocketStream *stream, EngineHandler *handler);
 	static std::weak_ptr<AbstractEngine> connectToEngine(const int &id, WebSocketStream *stream, EngineHandler *handler);
 	static int restoreEngines(ServerService *service);
 
 	QJsonObject gameFinish(WebSocketStream *stream, const QJsonObject &message);
-        QJsonObject cmdStart(WebSocketStream *stream, const QJsonObject &message);
-        QJsonObject cmdPrepare(WebSocketStream *stream, const QJsonObject &message);
-        QJsonObject cmdPlay(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject cmdStart(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject cmdPrepare(WebSocketStream *stream, const QJsonObject &message);
+	QJsonObject cmdPlay(WebSocketStream *stream, const QJsonObject &message);
 
 
 	virtual bool canDelete(const int &useCount) override;
 	virtual void timerTick() override;
-	virtual void streamTriggerEvent(WebSocketStream *stream) override;
+	virtual void triggerEvent() override;
 
 	qint64 currentTick() const;
 
 	static int increaseNextId() { return ++m_nextId; }
 	static int setNextId(const int &id) { m_nextId = id+1; return m_nextId; }
 
-	int playerEnroll(WebSocketStream *stream);
+	int playerEnroll(WebSocketStream *stream, const QString &character);
 	int playerLeave(WebSocketStream *stream, const bool &forced);
 	bool playerConnectStream(const int &playerId, WebSocketStream *stream);
 	void playerDisconnectStream(const int &playerId, WebSocketStream *stream = nullptr);
@@ -162,14 +169,17 @@ private:
 	auto playerFind(const int &id);
 	auto playerFind(WebSocketStream *stream);
 	void onPlayerPrepared(WebSocketStream *stream);
+	QJsonArray playersToArray() const;
+	QString userGetFullNickName(const QString &username);
 
 	void updatePlayerLimit();
 	void prepareWorld();
 	void pickLands();
 	void prepareTurns(const ConquestTurn::Stage &stage);
 	void preparePlayerOrder();
-	void checkTurn();
+	bool checkTurn();
 	void nextSubStage();
+	void playBegin();
 
 	bool questionNext();
 	void questionClear();
@@ -189,6 +199,7 @@ private:
 	ConquestWordListHelper m_worldListHelper;
 	static int m_nextId;
 	std::unique_ptr<ConquestQuestion> m_question;
+	qint64 m_lastStateSent = 0;
 
 	friend class ConquestQuestion;
 };

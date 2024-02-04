@@ -14,18 +14,27 @@ Rectangle {
 	property ConquestGame game: null
 	property int playerId: -1
 	property string username: ""
-	property color theme: Qaterial.Colors.white
+	property string fullNickName: ""
+	property string character: "default"
 	property int xp: 0
 
 	property Item targetFighter1: null
 	property Item targetFighter2: null
 
-	color: Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.3)
+	color: game && playerId != -1 && game.currentTurn.player === playerId ?
+			   Client.Utils.colorSetAlpha(_playerColor, 0.85) :
+			   Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.85)
+
+	readonly property color _playerColor: game ? Qt.darker(game.getPlayerColor(playerId), 1.5) : Qaterial.Colors.black
 
 	radius: 5
 
 	Behavior on xp {
-		NumberAnimation { duration: 250; easing.type: Easing.OutQuad }
+		NumberAnimation { duration: 650; easing.type: Easing.OutQuad }
+	}
+
+	Behavior on color {
+		ColorAnimation { duration: 450 }
 	}
 
 	Item {
@@ -35,15 +44,17 @@ Rectangle {
 		anchors.left: parent.left
 		width: height
 
-		Rectangle {
+		Image {
 			id: _playerItem
-			color: root.theme
-			width: _placeholder.width*0.7
-			height: _placeholder.height*0.7
-			x: (parent.width-width)/2
-			y: (parent.height-height)/2
-		}
+			fillMode: Image.PreserveAspectFit
+			width: _placeholder.width*0.9
+			height: _placeholder.height*0.9
+			/*x: (parent.width-width)/2
+			y: (parent.height-height)/2*/
+			anchors.centerIn: parent
 
+			source: "qrc:/character/%1/thumbnail.png".arg(character)
+		}
 	}
 
 	Column {
@@ -53,20 +64,28 @@ Rectangle {
 		anchors.top: parent.top
 		anchors.bottom: parent.bottom
 
-		Qaterial.LabelBody2 {
+		Qaterial.LabelSubtitle2 {
 			id: _labelName
 
 			width: parent.width
 			elide: width < implicitWidth ? Text.ElideRight : Text.ElideNone
-			text: username
+			text: fullNickName
+			rightPadding: 5 * Qaterial.Style.pixelSizeRatio
+			color: Qaterial.Style.primaryTextColor()
 		}
 
-		Qaterial.LabelCaption {
-			id: _labelXP
+		Row {
+			anchors.left: parent.left
 
-			width: parent.width
+			Qaterial.LabelCaption {
+				id: _labelXP
+				anchors.verticalCenter: parent.verticalCenter
+				color: Qaterial.Style.primaryTextColor()
 
-			text: "%1 XP".arg(xp)
+				//width: parent.width
+
+				text: "%1 XP".arg(xp)
+			}
 		}
 	}
 
@@ -78,7 +97,7 @@ Rectangle {
 										game.currentStage == ConquestTurn.StageBattle &&
 										targetFighter2
 
-	states: [
+	/*states: [
 		State {
 			name: "nofight"
 			when: !_isFighter1 && !_isFighter2
@@ -118,5 +137,5 @@ Rectangle {
 				duration: 350
 			}
 		}
-	}
+	}*/
 }

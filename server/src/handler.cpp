@@ -438,3 +438,22 @@ QHttpServerResponse Handler::getErrorPage(const QString &message, const QHttpSer
 }
 
 
+
+/**
+ * @brief Handler::api
+ * @param path
+ * @return
+ */
+
+AbstractAPI *Handler::api(const char *path) const
+{
+	for (const auto &[p, ptr] : m_apis) {
+		if (std::strcmp(path, p) == 0) {
+			return ptr.get();
+		}
+	}
+
+	return nullptr;
+}
+
+

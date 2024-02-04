@@ -70,6 +70,7 @@ class ConquestLandData : public QObject
 	Q_PROPERTY(QUrl imgBorder READ imgBorder WRITE setImgBorder NOTIFY imgBorderChanged FINAL)
 	Q_PROPERTY(int proprietor READ proprietor WRITE setProprietor NOTIFY proprietorChanged FINAL)
 	Q_PROPERTY(ConquestGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
+	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged FINAL)
 
 public:
 	explicit ConquestLandData(QObject *parent = nullptr);
@@ -97,6 +98,9 @@ public:
 	ConquestGame *game() const;
 	void setGame(ConquestGame *newGame);
 
+	int xp() const;
+	void setXp(int newXp);
+
 signals:
 	void landIdChanged();
 	void baseXChanged(qreal x);
@@ -105,6 +109,7 @@ signals:
 	void imgBorderChanged();
 	void proprietorChanged();
 	void gameChanged();
+	void xpChanged();
 
 private:
 	QString m_landId;
@@ -114,6 +119,7 @@ private:
 	QUrl m_imgBorder;
 	int m_proprietor = -1;
 	ConquestGame *m_game = nullptr;
+	int m_xp = 0;
 };
 
 #endif // CONQUESTLANDDATA_H

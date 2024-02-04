@@ -1376,6 +1376,7 @@ QVariantMap Client::availableCharacters() const
 
 		QVariantMap m;
 		m[QStringLiteral("name")] = obj->contains(QStringLiteral("name")) ? obj->value(QStringLiteral("name")).toString() : s;
+		m[QStringLiteral("color")] = QColor::fromString(obj->value(QStringLiteral("color")).toString());
 		ret.insert(s, m);
 	}
 

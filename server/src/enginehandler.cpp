@@ -226,8 +226,7 @@ void EngineHandlerPrivate::engineTrigger(const AbstractEngine::Type &type)
 		if (e->type() != type)
 			continue;
 
-		for (const auto &s : e->streams())
-			e->streamTriggerEvent(s);
+		e->triggerEvent();
 	}
 }
 
@@ -248,8 +247,7 @@ void EngineHandlerPrivate::engineTriggerId(const AbstractEngine::Type &type, con
 		if (e->type() != type || e->id() != id)
 			continue;
 
-		for (const auto &s : e->streams())
-			e->streamTriggerEvent(s);
+		e->triggerEvent();
 	}
 }
 
@@ -266,12 +264,11 @@ void EngineHandlerPrivate::engineTriggerEngine(AbstractEngine *engine)
 	if (!engine)
 		return;
 
-	LOG_CTRACE("service") << "Engine trigger" << engine << engine->streams();
+	LOG_CTRACE("service") << "Engine trigger" << engine;
 
 	QMutexLocker locker(&m_mutex);
 
-	for (const auto &s : engine->streams())
-		engine->streamTriggerEvent(s);
+	engine->triggerEvent();
 }
 
 
@@ -417,7 +414,7 @@ void EngineHandlerPrivate::websocketTrigger(WebSocketStream *stream)
 	QMutexLocker locker(&m_mutex);
 
 	for (const auto &e : stream->engines()) {
-		e->streamTriggerEvent(stream);
+		e->triggerEvent();
 	}
 }
 

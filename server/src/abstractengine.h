@@ -52,8 +52,7 @@ public:
 
 	virtual void timerTick() {}
 	virtual void timerMinuteTick() {}
-
-	virtual void streamTriggerEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
+	virtual void triggerEvent() { }
 
 protected:
 	virtual void streamLinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }

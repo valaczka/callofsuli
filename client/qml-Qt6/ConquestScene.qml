@@ -74,9 +74,9 @@ Rectangle {
 
 		spacing: 5 * Qaterial.Style.pixelSizeRatio
 
-		readonly property real _itemWidth: Math.min((parent.width -x -Client.Utils.safeMarginRight)/
-													(game ? game.playersModel.count : 1),
-													300 * Qaterial.Style.pixelSizeRatio)
+		readonly property real _itemWidth: Math.min((root.width -x -Client.safeMarginRight)/
+													Math.max((game ? game.playersModel.count : 1), 1),
+													250 * Qaterial.Style.pixelSizeRatio)
 
 		Repeater {
 			model: SortFilterProxyModel {
@@ -101,7 +101,8 @@ Rectangle {
 				id: _cpItem
 				width: _playerRow._itemWidth - _playerRow.spacing
 				username: model.username
-				theme: model.theme
+				character: model.character
+				fullNickName: model.fullNickName
 				xp: model.xp
 				playerId: model.playerId
 				game: root.game
@@ -147,12 +148,60 @@ Rectangle {
 		}
 	}
 
-	WheelHandler {
-		target: _scene
-		acceptedModifiers: Qt.ControlModifier
-		property: "scale"
-		onWheel: _fitToScreen = false
+
+	ConquestTurnChart {
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
+		anchors.bottomMargin: Math.max(10 * Qaterial.Style.pixelSizeRatio, Client.safeMarginBottom)
+		anchors.rightMargin: Math.max(10 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
+		game: root.game
 	}
+
+
+	GameQuestionAction {
+		id: _question
+
+		anchors.fill: parent
+		anchors.topMargin: _playerRow.height
+		anchors.bottomMargin: Client.safeMarginBottom
+		anchors.leftMargin: Client.safeMarginLeft
+		anchors.rightMargin: Client.safeMarginRight
+
+		game: root.game
+
+		z: 5
+	}
+
+
+	GameMessageList {
+		id: _messageList
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		y: parent.height*0.25
+
+		z: 6
+
+		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
+
+		//visible: !gameScene.zoomOverview && itemsVisible
+	}
+
+
+	ConquestProgressBar {
+		anchors.bottom: parent.bottom
+		width: parent.width
+		game: root.game
+	}
+
+
+	GamePainHud {
+		id: _painhudImage
+		anchors.fill: parent
+		z: 10
+	}
+
+
 
 
 
@@ -296,6 +345,10 @@ Rectangle {
 			state = ""
 			state = "fit"
 		}
+
+		function onAnswerFailed() {
+			_painhudImage.play()
+		}
 	}
 
 	function fitToScreen() {
@@ -308,5 +361,18 @@ Rectangle {
 
 	onWidthChanged: if (_fitToScreen) fitToScreen()
 	onHeightChanged: if (_fitToScreen) fitToScreen()
+
+
+	Component.onCompleted: {
+		if (game) {
+			game.messageList = _messageList
+			game.defaultMessageColor = Qaterial.Style.iconColor()
+		}
+	}
+
+	Component.onDestruction: {
+		if (game)
+			game.messageList = null
+	}
 
 }

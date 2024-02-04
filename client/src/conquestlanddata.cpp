@@ -45,6 +45,7 @@ void ConquestLandData::loadFromConfig(const ConquestWorldData &data)
 		return;
 
 	setProprietor(data.proprietor);
+	setXp(data.xp + data.xpOnce);
 }
 
 
@@ -150,4 +151,17 @@ void ConquestLandData::setGame(ConquestGame *newGame)
 		return;
 	m_game = newGame;
 	emit gameChanged();
+}
+
+int ConquestLandData::xp() const
+{
+	return m_xp;
+}
+
+void ConquestLandData::setXp(int newXp)
+{
+	if (m_xp == newXp)
+		return;
+	m_xp = newXp;
+	emit xpChanged();
 }

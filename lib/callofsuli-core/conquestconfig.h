@@ -29,7 +29,18 @@
 
 #include <QSerializer>
 #include <QString>
-#include "utils_.h"
+
+#define MAX_PLAYERS_COUNT	4
+
+#define LAND_XP				50
+#define LAND_XP_ONCE		100
+
+#define MSEC_SELECT			7500
+#define MSEC_PREPARE		1500
+#define MSEC_ANSWER			20000
+#define MSEC_WAIT			2000
+#define MSEC_GAME_TIMEOUT	20*60*1000
+
 
 
 /**
@@ -165,6 +176,7 @@ public:
 
 	enum Stage {
 		StageInvalid = 0,
+		StagePrepare,
 		StagePick,
 		StageBattle,
 		StageLastRound
@@ -240,6 +252,23 @@ public:
 		return true;
 	}
 
+
+	/**
+	 * @brief getSuccess
+	 * @param playerId
+	 * @return
+	 */
+
+	Q_INVOKABLE bool getSuccess(const int &playerId) const {
+		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
+			return a.player == playerId;
+		});
+
+		if (it == answerList.constEnd())
+			return false;
+
+		return it->success;
+	}
 
 
 	/**
@@ -323,21 +352,23 @@ public:
 				c1.username == c2.username &&
 				c1.prepared == c2.prepared &&
 				c1.xp == c2.xp &&
-				c1.theme == c2.theme &&
+				c1.character == c2.character &&
 				c1.elapsed == c2.elapsed &&
-				c1.winner == c2.winner
+				c1.winner == c2.winner &&
+				c1.fullNickName == c2.fullNickName
 				;
 	}
 
 	QS_SERIALIZABLE
 
-	QS_FIELD(int, playerId);
-	QS_FIELD(QString, username);
+	QS_FIELD(int, playerId)
+	QS_FIELD(QString, username)
 	QS_FIELD(bool, prepared)
 	QS_FIELD(int, xp)
-	QS_FIELD(QString, theme)
+	QS_FIELD(QString, character)
 	QS_FIELD(qint64, elapsed)
 	QS_FIELD(bool, winner)
+	QS_FIELD(QString, fullNickName)
 };
 
 
@@ -405,7 +436,17 @@ public:
 	bool landPick(const QString &landId, const int &playerId, ConquestPlayer *player);
 	bool playerAnswer(const ConquestAnswer &answer);
 	bool landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld);
+	bool landDefended(const QString &landId, ConquestPlayer *playerOld);
 	int getPickedLandProprietor(const int &turn) const;
+	void reset() {
+		gameState = StateInvalid;
+		world = {};
+		order.clear();
+		turnList.clear();
+		currentTurn = -1;
+		currentStage = ConquestTurn::StageInvalid;
+		currentQuestion = {};
+	}
 
 	QJsonObject toBaseJson() const { return ConquestConfigBase::toJson(); }
 
@@ -612,7 +653,7 @@ inline bool ConquestConfig::landSwapPlayer(const QString &landId, ConquestPlayer
 	if (land.proprietor == playerNew->playerId)
 		return false;
 
-	const int &old = land.proprietor;
+	const int old = land.proprietor;
 
 	land.proprietor = playerNew->playerId;
 	playerNew->xp += land.xp;
@@ -622,6 +663,44 @@ inline bool ConquestConfig::landSwapPlayer(const QString &landId, ConquestPlayer
 	if (playerOld && playerOld->playerId == old) {
 		playerOld->xp -= land.xp;
 	}
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief ConquestConfig::landDefended
+ * @param landId
+ * @param playerOld
+ * @return
+ */
+
+inline bool ConquestConfig::landDefended(const QString &landId, ConquestPlayer *playerOld)
+{
+	if (!playerOld)
+		return false;
+
+	if (currentTurn < 0 || currentTurn >= turnList.size())
+		return false;
+
+	ConquestTurn &turn = turnList[currentTurn];
+
+	if (turn.subStage != ConquestTurn::SubStageUserAnswer)
+		return false;
+
+	const int &idx = world.landFind(landId);
+
+	if (idx == -1)
+		return false;
+
+	ConquestWorldData &land = world.landList[idx];
+
+	if (land.proprietor != playerOld->playerId)
+		return false;
+
+	playerOld->xp += land.xp/2;
 
 	return true;
 }

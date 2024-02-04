@@ -52,6 +52,9 @@ public:
 	QHttpServerResponse me(const std::optional<Credential> &credential);
 
 	QHttpServerResponse time(const QJsonObject &json);
+
+	static std::optional<QJsonArray> _user(const AbstractAPI *api, const QString &username,
+										   const Credential::Roles &roles = Credential::None);
 };
 
 

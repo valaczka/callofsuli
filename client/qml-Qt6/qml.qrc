@@ -209,5 +209,6 @@
         <file>ConquestBattleInfo.qml</file>
         <file>ConquestSceneMap.qml</file>
         <file>GamePainHud.qml</file>
+        <file>ConquestConnect.qml</file>
     </qresource>
 </RCC>

@@ -52,6 +52,8 @@ public:
 	std::optional<Credential> authorizeRequestLog(const QHttpServerRequest &request) const;
 	QHttpServerResponse getErrorPage(const QString &errorString, const QHttpServerResponse::StatusCode &code = QHttpServerResponse::StatusCode::NotFound);
 
+	AbstractAPI *api(const char *path) const;
+
 private:
 	QHttpServerResponse getFavicon(const QHttpServerRequest &request);
 	QHttpServerResponse getStaticContent(const QHttpServerRequest &request);

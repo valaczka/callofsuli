@@ -138,7 +138,7 @@ void WebSocket::onError(const QAbstractSocket::SocketError &error)
 
 void WebSocket::onTextReceived(const QString &text)
 {
-	LOG_CDEBUG("http") << "WebSocket received:" << text;
+	LOG_CTRACE("http") << "WebSocket received:" << text;
 
 	auto json = Utils::byteArrayToJsonObject(text.toUtf8());
 

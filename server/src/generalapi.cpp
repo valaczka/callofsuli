@@ -312,36 +312,7 @@ QHttpServerResponse GeneralAPI::user(const QString &username, const Credential::
 
 	LAMBDA_THREAD_BEGIN(username, roles);
 
-	QueryBuilder q(db);
-	q.addQuery(_SQL_get_user)
-			.addQuery("WHERE active=true");
-
-	if (!roles.testFlag(Credential::None)) {
-		QStringList list;
-		if (roles.testFlag(Credential::Teacher) && !roles.testFlag(Credential::Student))
-			list.append(QStringLiteral("isTeacher=true"));
-		if (!roles.testFlag(Credential::Teacher) && roles.testFlag(Credential::Student))
-			list.append(QStringLiteral("isTeacher=false"));
-		if (roles.testFlag(Credential::Admin))
-			list.append(QStringLiteral("isAdmin=true"));
-		if (roles.testFlag(Credential::Panel))
-			list.append(QStringLiteral("isPanel=true"));
-
-		if (!roles.testFlag(Credential::Panel))
-			q.addQuery(" AND isPanel=false");
-
-		if (!list.isEmpty()) {
-			QString str = QStringLiteral(" AND (")+list.join(QStringLiteral(" OR "))+QStringLiteral(")");
-			q.addQuery(str.toUtf8());
-		}
-	}
-
-	if (!username.isEmpty()) {
-		q.addQuery(" AND user.username=")
-				.addValue(username);
-	}
-
-	const std::optional<QJsonArray> &list = q.execToJsonArray();
+	const auto &list = _user(this, username, roles);
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -527,5 +498,52 @@ QHttpServerResponse GeneralAPI::time(const QJsonObject &json)
 	QJsonObject retJson = json;
 	retJson[QStringLiteral("serverTime")] = QDateTime::currentMSecsSinceEpoch();
 	return QHttpServerResponse(retJson, QHttpServerResponse::StatusCode::Ok);
+}
+
+
+/**
+ * @brief GeneralAPI::_user
+ * @param username
+ * @return
+ */
+
+std::optional<QJsonArray> GeneralAPI::_user(const AbstractAPI *api, const QString &username, const Credential::Roles &roles)
+{
+	Q_ASSERT(api);
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker _locker(api->databaseMain()->mutex());
+
+	QueryBuilder q(db);
+	q.addQuery(_SQL_get_user)
+			.addQuery("WHERE active=true");
+
+	if (!roles.testFlag(Credential::None)) {
+		QStringList list;
+		if (roles.testFlag(Credential::Teacher) && !roles.testFlag(Credential::Student))
+			list.append(QStringLiteral("isTeacher=true"));
+		if (!roles.testFlag(Credential::Teacher) && roles.testFlag(Credential::Student))
+			list.append(QStringLiteral("isTeacher=false"));
+		if (roles.testFlag(Credential::Admin))
+			list.append(QStringLiteral("isAdmin=true"));
+		if (roles.testFlag(Credential::Panel))
+			list.append(QStringLiteral("isPanel=true"));
+
+		if (!roles.testFlag(Credential::Panel))
+			q.addQuery(" AND isPanel=false");
+
+		if (!list.isEmpty()) {
+			QString str = QStringLiteral(" AND (")+list.join(QStringLiteral(" OR "))+QStringLiteral(")");
+			q.addQuery(str.toUtf8());
+		}
+	}
+
+	if (!username.isEmpty()) {
+		q.addQuery(" AND user.username=")
+				.addValue(username);
+	}
+
+	return q.execToJsonArray();
 }
 

@@ -39,15 +39,17 @@ void PeerEngine::timerMinuteTick()
 
 
 /**
- * @brief PeerEngine::streamTriggerEvent
+ * @brief PeerEngine::triggerEvent
  * @param stream
  */
 
-void PeerEngine::streamTriggerEvent(WebSocketStream *stream)
+void PeerEngine::triggerEvent()
 {
-	if (!stream)
-		return;
-	stream->sendJson("peers", PeerUser::toJson(m_peerUser));
+	const QJsonArray &list = PeerUser::toJson(m_peerUser);
+
+	for (const auto &stream : m_streams) {
+		stream->sendJson("peers", list);
+	}
 }
 
 

@@ -21,7 +21,9 @@ Rectangle {
 	color: Client.Utils.colorSetAlpha(Qaterial.Style.dialogColor, 0.5)
 
 	ChartView {
-		anchors.fill: parent
+		id: _view
+		width: parent.width
+		height: parent.height
 		antialiasing: true
 		animationOptions: ChartView.SeriesAnimations
 		backgroundColor: "transparent"
@@ -40,22 +42,30 @@ Rectangle {
 		}
 	}
 
-	onGameChanged: {
+	/*onGameChanged: {
 		if (game) {
 			game.configChanged.connect(reload)
 			game.currentStageChanged.connect(function(){
+				console.error("!!!!!", stageChanged, game.currentStage)
 				mark()
 				_series.clear()
 				reload()
 			})
 		}
-	}
+	}*/
 
 
 
 	SequentialAnimation {
 		id: _markAnimation
 		alwaysRunToEnd: true
+
+
+		PropertyAction {
+			target: _view
+			property: "animationOptions"
+			value: ChartView.NoAnimation
+		}
 
 		PropertyAnimation {
 			target: root
@@ -74,10 +84,19 @@ Rectangle {
 			to: size
 			duration: 650
 		}
+
+		PropertyAction {
+			target: _view
+			property: "animationOptions"
+			value: ChartView.SeriesAnimations
+		}
 	}
 
 	function reload() {
 		let list = game ? game.config.turnList : []
+
+		if (!_series)
+			return
 
 		if (list.length !== _series.count)
 			_series.clear()
@@ -94,7 +113,7 @@ Rectangle {
 
 			o.exploded = active
 			o.borderColor = Qaterial.Colors.black
-			o.borderWidth = 2
+			o.borderWidth = 1
 			o.color = game.getPlayerColor(list[i].player)
 
 			if (game.config.currentTurn > i)
@@ -104,8 +123,17 @@ Rectangle {
 		}
 	}
 
-	function mark() {
-		_markAnimation.start()
-	}
 
+
+
+	Component.onCompleted: {
+		if (game) {
+			game.configChanged.connect(reload)
+			game.currentStageChanged.connect(function(){
+				_markAnimation.start()
+				_series.clear()
+				reload()
+			})
+		}
+	}
 }

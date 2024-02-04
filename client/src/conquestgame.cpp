@@ -30,6 +30,7 @@
 #include "question.h"
 #include "utils_.h"
 #include "gamequestion.h"
+#include "actiongame.h"
 
 #ifndef Q_OS_WASM
 #include "standaloneclient.h"
@@ -133,16 +134,27 @@ void ConquestGame::getEngineList()
  * @brief ConquestGame::gameCreate
  */
 
-void ConquestGame::gameCreate()
+void ConquestGame::gameCreate(const QString &character)
 {
 	LOG_CDEBUG("game") << "Create ConquestGame" << qPrintable(m_config.mapUuid)
-					   << qPrintable(m_config.missionUuid) << m_config.missionLevel;
+					   << qPrintable(m_config.missionUuid) << m_config.missionLevel
+					   << character;
 
-	const ConquestWordListHelper &helper = getWorldList();
+	if (!ActionGame::availableCharacters().contains(character)) {
+		m_client->messageWarning(tr("Válassz érvényes karaktert"));
+		return;
+	}
+
+	ConquestWordListHelper helper;
+
+	getWorldList(&helper);
+	getCharacterList(&helper);
 
 	QJsonObject o = m_config.toBaseJson();
 	o[QStringLiteral("cmd")] = QStringLiteral("create");
 	o[QStringLiteral("worldList")] = helper.toJson().value(QStringLiteral("worldList")).toArray();
+	o[QStringLiteral("characterList")] = helper.toJson().value(QStringLiteral("characterList")).toArray();
+	o[QStringLiteral("character")] = character;
 
 	sendWebSocketMessage(o);
 }
@@ -159,8 +171,10 @@ QColor ConquestGame::getPlayerColor(const int &id) const
 	for (const QVariant &v : m_playersModel->storage()) {
 		const QVariantMap &m = v.toMap();
 
-		if (m.value(QStringLiteral("playerId")).toInt() == id)
-			return QColor::fromString(m.value(QStringLiteral("theme")).toString());;
+		if (m.value(QStringLiteral("playerId")).toInt() == id) {
+			const QString &ch = m.value(QStringLiteral("character")).toString();
+			return QColor::fromString(m_client->availableCharacters().value(ch).toMap().value(QStringLiteral("color")).toString());
+		}
 	}
 
 	return Qt::black;
@@ -333,6 +347,7 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 			{ "create", &ConquestGame::cmdCreate },
 			{ "connect", &ConquestGame::cmdConnect },
 			{ "prepare", &ConquestGame::cmdPrepare },
+			{ "leave", &ConquestGame::cmdLeave },
 			{ "questionRequest", &ConquestGame::cmdQuestionRequest },
 		};
 
@@ -356,7 +371,7 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 
 void ConquestGame::onConfigChanged()
 {
-	LOG_CINFO("game") << "ConquestGame state:" << m_config.gameState;
+	LOG_CDEBUG("game") << "ConquestGame state:" << m_config.gameState << m_config.currentStage << m_config.currentTurn;
 
 	if (m_config.currentTurn >= 0 && m_config.currentTurn < m_config.turnList.size())
 		setCurrentTurn(m_config.turnList.at(m_config.currentTurn));
@@ -365,6 +380,8 @@ void ConquestGame::onConfigChanged()
 
 	setCurrentStage(m_config.currentStage);
 
+	if (m_config.gameState == ConquestConfig::StateInvalid)
+		return;
 
 	if (m_config.gameState == ConquestConfig::StatePlay && m_oldGameState != ConquestConfig::StatePlay)
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yourself.mp3"), Sound::VoiceoverChannel);
@@ -405,24 +422,21 @@ void ConquestGame::cmdList(const QJsonObject &data)
 
 void ConquestGame::cmdState(const QJsonObject &data)
 {
-	//setEngineId(data.value(QStringLiteral("engine")).toInt(-1));
-
 	if (data.value(QStringLiteral("engine")).toInt(-1) != m_engineId) {
 		LOG_CWARNING("game") << "Game engine mismatch";
 	}
-
-	setHostMode(data.value(QStringLiteral("host")).toVariant().toBool() ? HostMode::ModeHost : HostMode::ModeGuest);
-	ConquestConfig c;
-	c.fromJson(data);
-	setConfig(c);
-
-	///LOG_CERROR("game") << "THIS" << QJsonDocument(c.toJson()).toJson(QJsonDocument::Indented).constData();
 
 	Utils::patchSListModel(m_playersModel.get(), data.value(QStringLiteral("users")).toArray().toVariantList(),
 						   QStringLiteral("playerId"));
 
 	if (data.contains(QStringLiteral("playerId")))
 		setPlayerId(data.value(QStringLiteral("playerId")).toInt());
+
+
+	setHostMode(data.value(QStringLiteral("host")).toVariant().toBool() ? HostMode::ModeHost : HostMode::ModeGuest);
+	ConquestConfig c;
+	c.fromJson(data);
+	setConfig(c);
 
 
 	if (qint64 tick = JSON_TO_INTEGER_Y(data.value(QStringLiteral("tick")), -1); tick != -1) {
@@ -436,10 +450,6 @@ void ConquestGame::cmdState(const QJsonObject &data)
 								 { QStringLiteral("ready"), true }
 							 });
 	}
-
-	/*if (data.contains(QStringLiteral("interval"))) {
-		setServerInterval(data.value(QStringLiteral("interval")).toInt());
-	}*/
 }
 
 
@@ -464,6 +474,10 @@ void ConquestGame::cmdConnect(const QJsonObject &data)
 {
 	setEngineId(data.value(QStringLiteral("engine")).toInt(-1));
 	m_client->snack(tr("Engine %1 connected").arg(m_engineId));
+
+	if (data.contains(QStringLiteral("users")))
+		Utils::patchSListModel(m_playersModel.get(), data.value(QStringLiteral("users")).toArray().toVariantList(),
+							   QStringLiteral("playerId"));
 }
 
 
@@ -472,7 +486,7 @@ void ConquestGame::cmdConnect(const QJsonObject &data)
  * @param data
  */
 
-void ConquestGame::cmdStart(const QJsonObject &data)
+void ConquestGame::cmdStart(const QJsonObject &)
 {
 
 }
@@ -483,9 +497,32 @@ void ConquestGame::cmdStart(const QJsonObject &data)
  * @param data
  */
 
-void ConquestGame::cmdPrepare(const QJsonObject &data)
+void ConquestGame::cmdPrepare(const QJsonObject &)
 {
 
+}
+
+
+/**
+ * @brief ConquestGame::cmdLeave
+ * @param data
+ */
+
+void ConquestGame::cmdLeave(const QJsonObject &)
+{
+	LOG_CDEBUG("game") << "Leave engine";
+	m_client->snack(tr("Engine %1 leaved").arg(m_engineId));
+	setEngineId(-1);
+	setPlayerId(-1);
+	setHostMode(ModeGuest);
+
+	m_config.reset();
+	emit configChanged();
+	onConfigChanged();
+
+	m_playersModel->clear();
+	m_engineModel->clear();
+	getEngineList();
 }
 
 
@@ -619,13 +656,15 @@ void ConquestGame::reloadLandList()
  * @return
  */
 
-ConquestWordListHelper ConquestGame::getWorldList() const
+void ConquestGame::getWorldList(ConquestWordListHelper *helper) const
 {
+	Q_ASSERT(helper);
+
+	helper->worldList.clear();
+
 	QDirIterator it(QStringLiteral(":/conquest"), { QStringLiteral("data.json") }, QDir::Files, QDirIterator::Subdirectories);
 
 	static const QRegularExpression exp(R"(^player)");
-
-	ConquestWordListHelper wList;
 
 	while (it.hasNext()) {
 		const QString &jsonFile = it.next();
@@ -660,10 +699,21 @@ ConquestWordListHelper ConquestGame::getWorldList() const
 			world.infoList.append(info);
 		}
 
-		wList.worldList.append(world);
+		helper->worldList.append(world);
 	}
+}
 
-	return wList;
+
+/**
+ * @brief ConquestGame::getCharacterList
+ * @param helper
+ */
+
+void ConquestGame::getCharacterList(ConquestWordListHelper *helper) const
+{
+	Q_ASSERT(helper);
+
+	helper->characterList = ActionGame::availableCharacters();
 }
 
 
@@ -720,10 +770,6 @@ void ConquestGame::loadQuestion()
 
 void ConquestGame::revealQuestion()
 {
-	for (const auto &a : m_currentTurn.answerList) {
-		LOG_CERROR("game") << a.player << a.success << a.elapsed << a.answer;
-	}
-
 	int answerId = -1;
 
 	if (m_currentStage == ConquestTurn::StageBattle) {
@@ -731,13 +777,6 @@ void ConquestGame::revealQuestion()
 			answerId = m_playerId;
 		else
 			answerId = m_currentTurn.player;
-
-		if ((m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin && m_fighter1.playerId == m_playerId) ||
-				(m_currentTurn.answerState == ConquestTurn::AnswerPlayerLost && m_fighter2.playerId == m_playerId))
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
-		/*else if ((m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin && m_fighter2.playerId == m_playerId) ||
-				 (m_currentTurn.answerState == ConquestTurn::AnswerPlayerLost && m_fighter1.playerId == m_playerId))
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);*/
 	} else {
 		answerId = m_playerId;
 	}
@@ -746,34 +785,37 @@ void ConquestGame::revealQuestion()
 
 
 	if (answer) {
-		LOG_CINFO("game") << "ANS" << answerId << answer->toJson();
+		if (m_gameQuestion) m_gameQuestion->answerReveal(answer->answer.toVariantMap());
 
-		if (m_gameQuestion) {
-			m_gameQuestion->answerReveal(answer->answer.toVariantMap());
-			m_gameQuestion->setMsecBeforeHide(1250);
-		}
+		if (answerId == m_playerId) {
+			if (answer->success) {
+				if (m_gameQuestion) m_gameQuestion->setMsecBeforeHide(0);
 
-		if (!answer->success && answerId == m_playerId)
-		{
-			emit answerFailed();
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
+				if (m_currentStage == ConquestTurn::StageBattle && m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin && m_fighter1.playerId == m_playerId) {
+					m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
+				} else {
+					m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
+				}
+			} else {
+				if (m_gameQuestion) m_gameQuestion->setMsecBeforeHide(1250);
+				emit answerFailed();
+
+				m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
 
 #ifndef Q_OS_WASM
-			StandaloneClient *client = qobject_cast<StandaloneClient*>(m_client);
-			if (client)
-				client->performVibrate();
+				StandaloneClient *client = qobject_cast<StandaloneClient*>(m_client);
+				if (client)
+					client->performVibrate();
 #endif
-		} else if (answer->success && answerId == m_playerId) {
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
+			}
+		} else {
+			if (m_gameQuestion) m_gameQuestion->setMsecBeforeHide(1250);
 		}
 	} else {
-		if (m_gameQuestion) {
-			m_gameQuestion->setMsecBeforeHide(0);
-		}
+		if (m_gameQuestion) m_gameQuestion->setMsecBeforeHide(0);
 	}
 
-	if (m_gameQuestion)
-		m_gameQuestion->finish();
+	if (m_gameQuestion) m_gameQuestion->finish();
 }
 
 
@@ -828,9 +870,33 @@ void ConquestGame::onGameQuestionFailed(const QVariantMap &answer)
 
 void ConquestGame::onGameQuestionFinished()
 {
-	//emit mapUpRequest();
 	m_loadedQuestion = {};
 }
+
+
+/**
+ * @brief ConquestGame::missionLevel
+ * @return
+ */
+
+int ConquestGame::missionLevel() const
+{
+	auto m = m_map ? m_map->missionLevel(m_config.missionUuid, m_config.missionLevel) : nullptr;
+	return m ? m->level() : -1;
+}
+
+
+/**
+ * @brief ConquestGame::mission
+ * @return
+ */
+
+QString ConquestGame::missionName() const
+{
+	auto m = m_map ? m_map->mission(m_config.missionUuid) : nullptr;
+	return m ? m->name() : QStringLiteral("");
+}
+
 
 
 /**
@@ -919,6 +985,7 @@ void ConquestGame::setCurrentStage(const ConquestTurn::Stage &newCurrentStage)
 	if (m_currentStage == newCurrentStage)
 		return;
 	m_currentStage = newCurrentStage;
+
 	emit currentStageChanged();
 
 	switch (m_currentStage) {
@@ -966,6 +1033,7 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 	emit currentTurnChanged();
 
 	if (m_currentTurn.subStage == ConquestTurn::SubStageWait) {
+		LOG_CDEBUG("game") << "Reveal question";
 		revealQuestion();
 		return;
 	}
@@ -976,7 +1044,7 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 	else
 		setIsAttacked(m_playerId == pId);
 
-	if (m_gameQuestion)
+	if (m_gameQuestion && m_config.currentQuestion.isEmpty())
 		m_gameQuestion->forceDestroy();
 
 
@@ -988,7 +1056,9 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 		auto f2 = m_fighter2;
 
 		f1.playerId = m_currentTurn.player;
+		f1.character = playerCharacter(f1.playerId);
 		f2.playerId = pId;
+		f2.character = playerCharacter(f2.playerId);
 
 		setFighter1(f1);
 		setFighter2(f2);
@@ -1172,6 +1242,23 @@ void ConquestGame::messageColor(const QString &text, const QColor &color)
 }
 
 
+
+/**
+ * @brief ConquestGame::playerCharacter
+ * @param id
+ * @return
+ */
+
+QString ConquestGame::playerCharacter(const int &id) const
+{
+	const int idx = m_playersModel->indexOf(QStringLiteral("playerId"), id);
+	if (idx == -1)
+		return QStringLiteral("");
+	else
+		return m_playersModel->storage().at(idx).toMap().value(QStringLiteral("character")).toString();
+}
+
+
 /**
  * @brief ConquestGame::messageList
  * @return
@@ -1188,4 +1275,15 @@ void ConquestGame::setMessageList(QQuickItem *newMessageList)
 		return;
 	m_messageList = newMessageList;
 	emit messageListChanged();
+}
+
+
+/**
+ * @brief ConquestGame::maxPlayersCount
+ * @return
+ */
+
+int ConquestGame::maxPlayersCount()
+{
+	return MAX_PLAYERS_COUNT;
 }

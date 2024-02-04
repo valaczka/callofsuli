@@ -80,7 +80,7 @@ Item {
 		Rotation {
 			id: _sceneRotation
 			origin.x: width/2
-			origin.y: height  ///2
+			origin.y: height
 			axis.x: 1
 			axis.y: 0
 			axis.z: 0
