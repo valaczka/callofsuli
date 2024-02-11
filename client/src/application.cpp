@@ -27,6 +27,7 @@
 #include "Logger.h"
 #include "classobject.h"
 #include "conquestgame.h"
+#include "conquestgameadjacencysetup.h"
 #include "conquestland.h"
 #include "exam.h"
 #include "examgame.h"
@@ -350,6 +351,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGame>("CallOfSuli", 1, 0, "ConquestGame", "ConquestGame is uncreatable");
+	qmlRegisterUncreatableType<ConquestGameAdjacencySetup>("CallOfSuli", 1, 0, "ConquestGameAdjacencySetup", "ConquestGameAdjacencySetup is uncreatable");
 	qmlRegisterUncreatableType<ExamGame>("CallOfSuli", 1, 0, "ExamGame", "ExamGame is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
 	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");

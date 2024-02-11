@@ -45,7 +45,10 @@ void ConquestLandData::loadFromConfig(const ConquestWorldData &data)
 		return;
 
 	setProprietor(data.proprietor);
-	setXp(data.xp + data.xpOnce);
+	if (data.xpOnce > 0)
+		setXp(data.xpOnce);
+	else
+		setXp(data.xp);
 }
 
 
@@ -164,4 +167,30 @@ void ConquestLandData::setXp(int newXp)
 		return;
 	m_xp = newXp;
 	emit xpChanged();
+}
+
+qreal ConquestLandData::overX() const
+{
+	return m_overX;
+}
+
+void ConquestLandData::setOverX(qreal newOverX)
+{
+	if (qFuzzyCompare(m_overX, newOverX))
+		return;
+	m_overX = newOverX;
+	emit overXChanged();
+}
+
+qreal ConquestLandData::overY() const
+{
+	return m_overY;
+}
+
+void ConquestLandData::setOverY(qreal newOverY)
+{
+	if (qFuzzyCompare(m_overY, newOverY))
+		return;
+	m_overY = newOverY;
+	emit overYChanged();
 }

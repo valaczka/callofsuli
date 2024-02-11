@@ -51,7 +51,8 @@ Item {
 
 
 	Image {
-		source: game && game.config.world.name != "" ? "qrc:/conquest/"+game.config.world.name+"/bg.png" : ""
+		//source: game && game.config.world.name != "" ? "qrc:/conquest/"+game.config.world.name+"/bg.png" : ""
+		source: game ? game.worldBgImage : ""
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectFit
 	}
@@ -70,9 +71,20 @@ Item {
 	}
 
 	Image {
-		source: game && game.config.world.name != "" ? "qrc:/conquest/"+game.config.world.name+"/over.png" : ""
+		//source: game && game.config.world.name != "" ? "qrc:/conquest/"+game.config.world.name+"/over.png" : ""
+		source: game ? game.worldOverImage : ""
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectFit
+	}
+
+
+	Repeater {
+		model: game ? game.landDataList : null
+
+		delegate: ConquestLandOver {
+			id: _landOver
+			landData: model.qtObject
+		}
 	}
 
 

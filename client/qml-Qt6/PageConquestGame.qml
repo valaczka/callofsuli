@@ -29,10 +29,25 @@ Page {
 		id: _stack
 		anchors.fill: parent
 
-		property Component activeComponent: game && (game.config.gameState === ConquestConfig.StatePrepare ||
-													 game.config.gameState === ConquestConfig.StatePlay) ?
-												_cmpScene :
-												_cmpConnect
+		property Component activeComponent: {
+			if (!game)
+				return _cmpConnect
+
+			switch (game.config.gameState) {
+			case ConquestConfig.StatePrepare:
+			case ConquestConfig.StatePlay:
+				return _cmpScene
+
+			case ConquestConfig.StateError:
+				return _cmpError
+
+			case ConquestConfig.StateWorldSelect:
+				return _cmpWorldSelect
+
+			default:
+				return _cmpConnect
+			}
+		}
 
 		onActiveComponentChanged: replace(null, activeComponent, {}, StackView.Immediate)
 	}
@@ -46,11 +61,27 @@ Page {
 	}
 
 	Component {
+		id: _cmpWorldSelect
+
+		ConquestWorldSelect {
+			game: root.game
+		}
+	}
+
+	Component {
 		id: _cmpScene
 
 		ConquestScene {
 			game: root.game
 			playerRowLeftMargin: _backButton.x+_backButton.width + 5*Qaterial.Style.pixelSizeRatio
+		}
+	}
+
+	Component {
+		id: _cmpError
+
+		ConquestError {
+			game: root.game
 		}
 	}
 
@@ -77,12 +108,12 @@ Page {
 		}
 	}
 
-	/*Connections {
+	Connections {
 		target: game
 
-		function onConfigChanged() {
-			if (game.config.gameState == ConquestConfig.StatePrepare || game.config.gameState == ConquestConfig.StatePlay)
-				_stack.replace(null, _cmpScene, {}, StackView.Immediate)
+		function onHostModeChanged() {
+			if (game.hostMode == ConquestGame.ModeHost)
+				Client.snack(qsTr("Te vagy a host"))
 		}
-	}*/
+	}
 }

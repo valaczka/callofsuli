@@ -17,11 +17,20 @@ Rectangle {
 	property string fullNickName: ""
 	property string character: "default"
 	property int xp: 0
+	property int hp: 0
+	property int streak: 0
 
 	property Item targetFighter1: null
 	property Item targetFighter2: null
 
-	color: game && playerId != -1 && game.currentTurn.player === playerId ?
+	border.width: 2
+	border.color: game && playerId != -1 && game.currentTurn.player === playerId &&
+		   (game.currentStage == ConquestTurn.StageBattle || game.currentStage == ConquestTurn.StageLastRound) ?
+			   _playerColor :
+			   "transparent"
+
+	color: game && playerId != -1 && game.currentTurn.player === playerId &&
+		   (game.currentStage == ConquestTurn.StageBattle || game.currentStage == ConquestTurn.StageLastRound) ?
 			   Client.Utils.colorSetAlpha(_playerColor, 0.85) :
 			   Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.85)
 
@@ -34,6 +43,10 @@ Rectangle {
 	}
 
 	Behavior on color {
+		ColorAnimation { duration: 450 }
+	}
+
+	Behavior on border.color {
 		ColorAnimation { duration: 450 }
 	}
 
@@ -63,6 +76,7 @@ Rectangle {
 		anchors.right: parent.right
 		anchors.top: parent.top
 		anchors.bottom: parent.bottom
+		padding: 2 * Qaterial.Style.pixelSizeRatio
 
 		Qaterial.LabelSubtitle2 {
 			id: _labelName
@@ -76,15 +90,47 @@ Rectangle {
 
 		Row {
 			anchors.left: parent.left
+			spacing: 2
+
+			Qaterial.Icon {
+				anchors.verticalCenter: parent.verticalCenter
+				icon: Qaterial.Icons.heartPulse
+				color: Qaterial.Colors.red400
+				width: Qaterial.Style.smallIcon*0.8
+				height: Qaterial.Style.smallIcon*0.8
+			}
+
+			Qaterial.LabelCaption {
+				anchors.verticalCenter: parent.verticalCenter
+				text: hp
+				color: Qaterial.Colors.red400
+				rightPadding: 5 * Qaterial.Style.pixelSizeRatio
+			}
+
+			Qaterial.Icon {
+				anchors.verticalCenter: parent.verticalCenter
+				icon: Qaterial.Icons.fire
+				color: Qaterial.Colors.orange500
+				width: Qaterial.Style.smallIcon*0.8
+				height: Qaterial.Style.smallIcon*0.8
+			}
+
+			Qaterial.LabelCaption {
+				anchors.verticalCenter: parent.verticalCenter
+				text: streak
+				color: Qaterial.Colors.orange500
+				rightPadding: 5 * Qaterial.Style.pixelSizeRatio
+			}
+
 
 			Qaterial.LabelCaption {
 				id: _labelXP
 				anchors.verticalCenter: parent.verticalCenter
 				color: Qaterial.Style.primaryTextColor()
 
-				//width: parent.width
-
 				text: "%1 XP".arg(xp)
+
+				//rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 			}
 		}
 	}

@@ -27,6 +27,7 @@ private:
 	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
 	void engineRemove(const std::shared_ptr<AbstractEngine> &engine);
 	void engineRemove(AbstractEngine *engine);
+	void engineRemoveUnused();
 
 	void engineAddStream(WebSocketStream *stream, const std::shared_ptr<AbstractEngine> &engine);
 	void engineRemoveStream(WebSocketStream *stream, AbstractEngine *engine);

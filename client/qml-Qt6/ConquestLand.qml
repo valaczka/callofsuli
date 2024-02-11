@@ -11,18 +11,24 @@ ConquestLandImpl {
 	implicitWidth: _imgMap.source.toString() != "" ? _imgMap.width : 100
 	implicitHeight: _imgMap.source.toString() != "" ? _imgMap.height : 100
 
+	readonly property ConquestGameAdjacencySetup _setup: landData && landData.game && landData.game instanceof ConquestGameAdjacencySetup ?
+															 landData.game :
+															 null
 
-	readonly property bool _pickable: landData && landData.game &&
-									  landData.game.currentTurn.canPick.includes(landData.landId) &&
-									  landData.game.currentTurn.player === landData.game.playerId
+	readonly property bool _setupPicked: _setup && landData && _setup.currentAdjacency.includes(landData.landId)
+
+	readonly property bool _pickable: (_setup && landData && landData.landId != _setup.currentLandId) ||
+									  (landData && landData.game &&
+									   landData.game.currentTurn.canPick.includes(landData.landId) &&
+									   landData.game.currentTurn.player === landData.game.playerId)
 
 	readonly property bool _picked: landData && landData.game &&
-									 landData.game.currentTurn.pickedId === landData.landId
+									landData.game.currentTurn.pickedId === landData.landId
 
 	ownColor: Qaterial.Style.iconColor()
 
 	SequentialAnimation {
-		running: true
+		running: !_setup
 		loops: Animation.Infinite
 
 		ColorAnimation {
@@ -54,9 +60,12 @@ ConquestLandImpl {
 	ColorOverlay {
 		anchors.fill: _imgMap
 		source: _imgMap
-		color: root.baseColor
+		color: _setupPicked ? Qaterial.Colors.green500 :
+							  landData && _setup && _setup.currentLandId == landData.landId ?
+								  Qaterial.Colors.amber400 :
+								  root.baseColor
 		opacity: 0.6
-		visible: active
+		visible: active || _setupPicked || landData && _setup && _setup.currentLandId == landData.landId
 	}
 
 
@@ -73,7 +82,10 @@ ConquestLandImpl {
 		id: _overlayBorder
 		anchors.fill: _imgBorder
 		source: _imgBorder
-		color: _pickable || _picked ? root.ownColor : root.baseColor
+		color: _setupPicked ? Qaterial.Colors.green500 :
+							  landData && _setup && _setup.currentLandId == landData.landId ?
+								  Qaterial.Colors.amber400 :
+								  _pickable || _picked ? root.ownColor : root.baseColor
 		visible: false
 	}
 
@@ -95,26 +107,9 @@ ConquestLandImpl {
 		anchors.fill: _overlayBorder
 		source: _overlayBorder
 		maskSource: _imgMap
-		visible: active || _pickable || _picked
+		visible: active || _pickable || _picked || _setupPicked || landData && _setup && _setup.currentLandId == landData.landId
 	}
 
-	Qaterial.LabelHeadline5 {
-		id: _labelXP
-		anchors.centerIn: parent
-		text: landData ? landData.xp : ""
-		visible: _pickable || _picked
-		color: Qaterial.Colors.cyan200
-	}
-
-	Glow {
-		anchors.fill: _labelXP
-		source: _labelXP
-		color: Qaterial.Colors.black
-		radius: 2
-		spread: 0.5
-		samples: 5
-		visible: _labelXP.visible && _labelXP.text != ""
-	}
 
 	MaskedMouseArea {
 		id: _mouse
@@ -126,11 +121,16 @@ ConquestLandImpl {
 			if (!landData || !landData.game)
 				return
 
+			if (_setup) {
+				_setup.adjacencyToggle(landData.landId)
+				return
+			}
+
 			landData.game.sendWebSocketMessage({
-										  cmd: "pick",
-										  engine: landData.game.engineId,
-										  id: landData.landId
-									  })
+												   cmd: "pick",
+												   engine: landData.game.engineId,
+												   id: landData.landId
+											   })
 		}
 	}
 }

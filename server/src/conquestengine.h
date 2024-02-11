@@ -89,6 +89,7 @@ public:
 	virtual ~ConquestEnginePlayer() = default;
 
 	WebSocketStream *stream = nullptr;
+	int gameId = -1;
 };
 
 
@@ -110,10 +111,11 @@ public:
 	static std::weak_ptr<AbstractEngine> connectToEngine(const int &id, WebSocketStream *stream, EngineHandler *handler);
 	static int restoreEngines(ServerService *service);
 
-	QJsonObject gameFinish(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdStart(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdPrepare(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdPlay(WebSocketStream *stream, const QJsonObject &message);
+
+	bool userCanConnect(const QString &username) const;
 
 
 	virtual bool canDelete(const int &useCount) override;
@@ -126,7 +128,7 @@ public:
 	static int setNextId(const int &id) { m_nextId = id+1; return m_nextId; }
 
 	int playerEnroll(WebSocketStream *stream, const QString &character);
-	int playerLeave(WebSocketStream *stream, const bool &forced);
+	bool playerLeave(WebSocketStream *stream, const bool &forced);
 	bool playerConnectStream(const int &playerId, WebSocketStream *stream);
 	void playerDisconnectStream(const int &playerId, WebSocketStream *stream = nullptr);
 	void playerDisconnectStream(WebSocketStream *stream = nullptr) { playerDisconnectStream(-1, stream); }
@@ -147,7 +149,7 @@ protected:
 	//virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) override;
 
 private:
-	static QJsonObject cmdList(const QJsonObject &message, EngineHandler *handler);
+	static QJsonObject cmdList(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
 	static QJsonObject cmdCreate(WebSocketStream *stream, const QJsonObject &message, EngineHandler *handler);
 	static QJsonObject cmdConnect(WebSocketStream *stream, EngineHandler *handler, const int &id, const bool &forced);
 
@@ -166,26 +168,29 @@ private:
 	QJsonObject cmdAnswer(WebSocketStream *stream, const QJsonObject &message);
 
 	auto playerFind(const QString &username);
+	auto playerFind(const QString &username) const;
 	auto playerFind(const int &id);
 	auto playerFind(WebSocketStream *stream);
+
+	bool playerExists(const QString &username) const;
+
 	void onPlayerPrepared(WebSocketStream *stream);
 	QJsonArray playersToArray() const;
 	QString userGetFullNickName(const QString &username);
 
-	void updatePlayerLimit();
-	void prepareWorld();
+	bool prepareWorld(const QString &world);
 	void pickLands();
 	void prepareTurns(const ConquestTurn::Stage &stage);
 	void preparePlayerOrder();
 	bool checkTurn();
 	void nextSubStage();
 	void playBegin();
+	void gameFinish(const bool &hasError);
 
 	bool questionNext();
 	void questionClear();
 	bool nextPick(const bool &subStage);
-	bool nextBattle(const bool &subStage);
-	bool nextLastRound(const bool &subStage);
+	bool nextBattle(const bool &subStage, const bool &isLastRound);
 	QStringList getPickableLands(const int &playerId);
 
 
@@ -215,6 +220,19 @@ private:
 inline auto ConquestEngine::playerFind(const QString &username)
 {
 	return std::find_if(m_players.begin(), m_players.end(), [username](const ConquestEnginePlayer &p) {
+		return (p.username == username);
+	});
+}
+
+
+/**
+ * @brief ConquestEngine::playerFind
+ * @param username
+ */
+
+inline auto ConquestEngine::playerFind(const QString &username) const
+{
+	return std::find_if(m_players.cbegin(), m_players.cend(), [username](const ConquestEnginePlayer &p) {
 		return (p.username == username);
 	});
 }

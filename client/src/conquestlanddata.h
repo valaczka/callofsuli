@@ -66,6 +66,8 @@ class ConquestLandData : public QObject
 	Q_PROPERTY(QString landId READ landId WRITE setLandId NOTIFY landIdChanged FINAL)
 	Q_PROPERTY(qreal baseX READ baseX WRITE setBaseX NOTIFY baseXChanged FINAL)
 	Q_PROPERTY(qreal baseY READ baseY WRITE setBaseY NOTIFY baseYChanged FINAL)
+	Q_PROPERTY(qreal overX READ overX WRITE setOverX NOTIFY overXChanged FINAL)
+	Q_PROPERTY(qreal overY READ overY WRITE setOverY NOTIFY overYChanged FINAL)
 	Q_PROPERTY(QUrl imgMap READ imgMap WRITE setImgMap NOTIFY imgMapChanged FINAL)
 	Q_PROPERTY(QUrl imgBorder READ imgBorder WRITE setImgBorder NOTIFY imgBorderChanged FINAL)
 	Q_PROPERTY(int proprietor READ proprietor WRITE setProprietor NOTIFY proprietorChanged FINAL)
@@ -101,6 +103,12 @@ public:
 	int xp() const;
 	void setXp(int newXp);
 
+	qreal overX() const;
+	void setOverX(qreal newOverX);
+
+	qreal overY() const;
+	void setOverY(qreal newOverY);
+
 signals:
 	void landIdChanged();
 	void baseXChanged(qreal x);
@@ -110,11 +118,15 @@ signals:
 	void proprietorChanged();
 	void gameChanged();
 	void xpChanged();
+	void overXChanged();
+	void overYChanged();
 
 private:
 	QString m_landId;
 	qreal m_baseX = 0;
 	qreal m_baseY = 0;
+	qreal m_overX = 0;
+	qreal m_overY = 0;
 	QUrl m_imgMap;
 	QUrl m_imgBorder;
 	int m_proprietor = -1;

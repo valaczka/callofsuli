@@ -9,7 +9,7 @@ QScrollable {
 	id: root
 
 	property ConquestGame game: null
-	readonly property real groupWidth: Math.min(parent.width, 450 * Qaterial.Style.pixelSizeRatio, Qaterial.Style.maxContainerSize)
+	readonly property real groupWidth: Math.min(width, 450 * Qaterial.Style.pixelSizeRatio, Qaterial.Style.maxContainerSize)
 
 	contentCentered: true
 
@@ -108,26 +108,40 @@ QScrollable {
 			Repeater {
 				model: game ? game.maxPlayersCount : null
 
-				delegate: Qaterial.IconLabel {
+				delegate: Qaterial.LoaderItemDelegate {
 					readonly property var _player: game && game.playersModel.count > index ? game.playersModel.get(index) : null
 
 					width: parent.width
 					anchors.horizontalCenter: parent.horizontalCenter
-					font: _player ? Qaterial.Style.textTheme.headline6 : Qaterial.Style.textTheme.body2
-					text: _player ? _player.fullNickName : qsTr("-- szabad hely --")
-					horizontalAlignment: Qt.AlignLeft
+					text: _player ? _player.fullNickName +
+									(game && game.config.userHost === _player.username ? qsTr(" (host)") : "")
+								  : qsTr("-- szabad hely --")
 
-					color: _player ? Qaterial.Style.iconColor() : Qaterial.Style.disabledTextColor()
-					icon.color: _player ? "transparent" : Qaterial.Style.disabledTextColor()
-					icon.source: _player ? "qrc:/character/%1/thumbnail.png".arg(_player.character) : Qaterial.Icons.accountQuestionOutline
-					icon.width: 32 * Qaterial.Style.pixelSizeRatio
-					icon.height: 32 * Qaterial.Style.pixelSizeRatio
+					highlighted: _player && Client.server && _player.username === Client.server.user.username
+
+					textColor: _player ? Qaterial.Style.iconColor() : Qaterial.Style.disabledTextColor()
+
+					leftSourceComponent: Qaterial.Icon
+					{
+						size: 32 * Qaterial.Style.pixelSizeRatio
+						icon: _player ? "qrc:/character/%1/thumbnail.png".arg(_player.character) : Qaterial.Icons.accountQuestionOutline
+						sourceSize: Qt.size(width, height)
+						color: _player ? "transparent" : Qaterial.Style.disabledTextColor()
+					}
 				}
 			}
 		}
 	}
 
+	QLabelInformative {
+		visible: _groupBoxCharacter.visible
+		text: qsTr("Válaszd ki a karakteredet:")
+		bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+		topPadding: 20 * Qaterial.Style.pixelSizeRatio
+	}
+
 	Qaterial.GroupBox {
+		id: _groupBoxCharacter
 		title: qsTr("Karakter")
 
 		width: groupWidth
@@ -197,6 +211,7 @@ QScrollable {
 			_repeaterCharacter.model = model
 		}
 	}
+
 
 	QDashboardGrid {
 		anchors.horizontalCenter: parent.horizontalCenter

@@ -210,5 +210,10 @@
         <file>ConquestSceneMap.qml</file>
         <file>GamePainHud.qml</file>
         <file>ConquestConnect.qml</file>
+        <file>ConquestBattleInfoPlayer.qml</file>
+        <file>ConquestLandOver.qml</file>
+        <file>PageConquestAdjacency.qml</file>
+        <file>ConquestWorldSelect.qml</file>
+        <file>ConquestError.qml</file>
     </qresource>
 </RCC>

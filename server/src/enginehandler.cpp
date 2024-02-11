@@ -132,7 +132,7 @@ void EngineHandlerPrivate::engineAdd(const std::shared_ptr<AbstractEngine> &engi
 
 void EngineHandlerPrivate::engineRemove(const std::shared_ptr<AbstractEngine> &engine)
 {
-	LOG_CTRACE("service") << "Remove engine:" << engine->type();
+	LOG_CTRACE("service") << "Remove engine:" << engine->type() << engine->id();
 
 	QMutexLocker locker(&m_mutex);
 
@@ -173,6 +173,34 @@ void EngineHandlerPrivate::engineRemove(AbstractEngine *engine)
 				++it;
 			} else {
 				it->get()->m_engineMutex.unlock();
+				it = m_engines.erase(it);
+			}
+		} else {
+			++it;
+		}
+	}
+}
+
+
+/**
+ * @brief EngineHandlerPrivate::engineRemoveUnused
+ */
+
+void EngineHandlerPrivate::engineRemoveUnused()
+{
+	//LOG_CTRACE("service") << "Remove unused engines";
+
+	QMutexLocker locker(&m_mutex);
+
+	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
+		auto e = it->get();
+		if (e->canDelete(it->use_count())) {
+			if (!e->m_engineMutex.tryLock(10000)) {
+				LOG_CERROR("service") << "Unable to unlock mutex" << e;
+				++it;
+			} else {
+				e->m_engineMutex.unlock();
+				LOG_CDEBUG("service") << "Remove unused engine" << e->type() << e->id();
 				it = m_engines.erase(it);
 			}
 		} else {
@@ -521,10 +549,7 @@ void EngineHandlerPrivate::timerMinuteEventRun()
 		e->timerMinuteTick();
 	}
 
-	for (const auto &e : m_engines) {
-		if (e->canDelete(e.use_count()))
-			engineRemove(e);
-	}
+	engineRemoveUnused();
 }
 
 

@@ -208,6 +208,7 @@ SOURCES += \
 	client.cpp \
 	clientcache.cpp \
 	conquestgame.cpp \
+	conquestgameadjacencysetup.cpp \
 	conquestland.cpp \
 	conquestlanddata.cpp \
 	editorundostack.cpp \
@@ -289,6 +290,7 @@ HEADERS += \
 	client.h \
 	clientcache.h \
 	conquestgame.h \
+	conquestgameadjacencysetup.h \
 	conquestland.h \
 	conquestlanddata.h \
 	editorundostack.h \

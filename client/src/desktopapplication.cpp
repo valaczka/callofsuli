@@ -136,9 +136,10 @@ void DesktopApplication::commandLineParse()
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("demo")}, QObject::tr("Demo pálya lejátszása")});
 
 
-#ifdef QT_DEBUG
+#ifndef QT_NO_DEBUG
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
 	parser.addOption({QStringLiteral("dev-page"), QObject::tr("_PageDev.qml betöltése")});
+	parser.addOption({QStringLiteral("adjacency"), QObject::tr("PageConquest adjacency setup"), QStringLiteral("world")});
 #else
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #endif
@@ -179,15 +180,19 @@ void DesktopApplication::commandLineParse()
 		m_commandLine = Play;
 		m_commandLineData = parser.value(QStringLiteral("play"));
 	}
-#ifdef QT_DEBUG
+#ifndef QT_NO_DEBUG
 	else if (parser.isSet(QStringLiteral("dev-page")))
 		m_commandLine = DevPage;
+	else if (parser.isSet(QStringLiteral("adjacency"))) {
+		m_commandLine = Adjacency;
+		m_commandLineData = parser.value(QStringLiteral("adjacency"));
+	}
 #endif
 
 	m_arguments = parser.positionalArguments();
 
 
-#ifdef QT_DEBUG
+#ifndef QT_NO_DEBUG
 #ifdef Q_OS_ANDROID
 	m_appender->setDetailsLevel(Logger::Trace);
 #else

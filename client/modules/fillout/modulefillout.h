@@ -69,7 +69,7 @@ public:
 
 	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	qreal xpFactor() const override { return 1.5; };
+	qreal xpFactor() const override { return 1.8; };
 
 	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
 

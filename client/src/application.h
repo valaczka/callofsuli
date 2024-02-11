@@ -50,7 +50,8 @@ public:
 		Map,
 		Play,
 		Demo,
-		DevPage
+		DevPage,
+		Adjacency
 	};
 
 	int run();

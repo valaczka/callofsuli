@@ -35,11 +35,13 @@
 #define LAND_XP				50
 #define LAND_XP_ONCE		100
 
-#define MSEC_SELECT			7500
+#define MSEC_SELECT			9000
 #define MSEC_PREPARE		1500
-#define MSEC_ANSWER			20000
+#define MSEC_ANSWER			12000
 #define MSEC_WAIT			2000
 #define MSEC_GAME_TIMEOUT	20*60*1000
+
+#define STREAK_SIZE			5
 
 
 
@@ -85,10 +87,7 @@ class ConquestWorld : public QSerializer
 	Q_GADGET
 
 public:
-	ConquestWorld()
-		: playerCount(0)
-	{}
-
+	ConquestWorld() = default;
 
 	/**
 	 * @brief landFind
@@ -109,15 +108,15 @@ public:
 
 
 	friend bool operator==(const ConquestWorld &w1, const ConquestWorld &w2) {
-		return w1.name == w2.name &&
-				w1.playerCount == w2.playerCount
+		return w1.name == w2.name
 				;
 	}
+
+	QHash<QString, QStringList> adjacencyMatrix;
 
 	QS_SERIALIZABLE
 	QS_FIELD(QString, name)
 	QS_COLLECTION_OBJECTS(QList, ConquestWorldData, landList)
-	QS_FIELD(int, playerCount)
 };
 
 
@@ -343,6 +342,8 @@ public:
 		, xp(0)
 		, elapsed(0)
 		, winner(false)
+		, hp(0)
+		, streak(0)
 	{}
 	ConquestPlayer(const int &_id) : ConquestPlayer(_id, QStringLiteral("")) {}
 	ConquestPlayer() : ConquestPlayer(-1) {}
@@ -355,7 +356,9 @@ public:
 				c1.character == c2.character &&
 				c1.elapsed == c2.elapsed &&
 				c1.winner == c2.winner &&
-				c1.fullNickName == c2.fullNickName
+				c1.fullNickName == c2.fullNickName &&
+				c1.hp == c2.hp &&
+				c1.streak == c2.streak
 				;
 	}
 
@@ -369,6 +372,8 @@ public:
 	QS_FIELD(qint64, elapsed)
 	QS_FIELD(bool, winner)
 	QS_FIELD(QString, fullNickName)
+	QS_FIELD(int, hp)
+	QS_FIELD(int, streak)
 };
 
 
@@ -411,12 +416,14 @@ public:
 		, gameState(StateInvalid)
 		, currentTurn(-1)
 		, currentStage(ConquestTurn::StageInvalid)
+		, startHp(0)
 	{}
 
 
 	enum GameState {
 		StateInvalid = 0,
 		StateConnect,
+		StateWorldSelect,
 		StatePrepare,
 		StatePlay,
 		StateFinished,
@@ -435,9 +442,11 @@ public:
 
 	bool landPick(const QString &landId, const int &playerId, ConquestPlayer *player);
 	bool playerAnswer(const ConquestAnswer &answer);
-	bool landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld);
+	bool landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld,
+						const bool &oppositeCorrect);
 	bool landDefended(const QString &landId, ConquestPlayer *playerOld);
 	int getPickedLandProprietor(const int &turn) const;
+
 	void reset() {
 		gameState = StateInvalid;
 		world = {};
@@ -446,6 +455,7 @@ public:
 		currentTurn = -1;
 		currentStage = ConquestTurn::StageInvalid;
 		currentQuestion = {};
+		startHp = 0;
 	}
 
 	QJsonObject toBaseJson() const { return ConquestConfigBase::toJson(); }
@@ -460,7 +470,9 @@ public:
 				c1.currentTurn == c2.currentTurn &&
 				c1.currentStage == c2.currentStage &&
 				c1.order == c2.order &&
-				c1.currentQuestion == c2.currentQuestion
+				c1.currentQuestion == c2.currentQuestion &&
+				c1.startHp == c2.startHp &&
+				c1.userHost == c2.userHost
 				;
 	}
 
@@ -472,35 +484,14 @@ public:
 	QS_FIELD(int, currentTurn)
 	QS_FIELD(ConquestTurn::Stage, currentStage)
 	QS_FIELD(QJsonObject, currentQuestion)
+	QS_FIELD(int, startHp)
+	QS_FIELD(QString, userHost)
 };
 
 
 
 
 /// ---------------- HELPERS ----------------------
-
-
-/**
- * @brief The ConquestWorldHelperInfo class
- */
-
-class ConquestWorldHelperInfo : public QSerializer
-{
-	Q_GADGET
-
-public:
-	ConquestWorldHelperInfo()
-		: playerCount(0)
-	{}
-
-	QS_SERIALIZABLE
-	QS_FIELD(int, playerCount)
-	QS_COLLECTION(QList, QString, landIdList)
-
-	// TODO: adjacency list
-};
-
-
 
 
 /**
@@ -512,12 +503,45 @@ class ConquestWorldHelper : public QSerializer
 	Q_GADGET
 
 public:
-	ConquestWorldHelper() = default;
+	ConquestWorldHelper() :
+		playerCount(0)
+	{}
+
+	static void adjacencyToMatrix(const QJsonObject &data, QHash<QString, QStringList> *dst);
+	QHash<QString, QStringList> adjacencyToMatrix() const {
+		QHash<QString, QStringList> matrix;
+		adjacencyToMatrix(adjacency, &matrix);
+		return matrix;
+	}
 
 	QS_SERIALIZABLE
 	QS_FIELD(QString, name)
-	QS_COLLECTION_OBJECTS(QList, ConquestWorldHelperInfo, infoList)
+	QS_COLLECTION(QList, QString, landIdList)
+	QS_FIELD(int, playerCount)
+	QS_FIELD(QJsonObject, adjacency)
 };
+
+
+/**
+ * @brief ConquestWorldHelper::adjacencyToMatrix
+ * @param adjacency
+ * @param dst
+ * @return
+ */
+
+inline void ConquestWorldHelper::adjacencyToMatrix(const QJsonObject &data, QHash<QString, QStringList> *dst)
+{
+	Q_ASSERT(dst);
+	dst->clear();
+
+	for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
+		const auto &array = it.value().toArray();
+		QStringList list;
+		for (const QJsonValue &v : array)
+			list.append(v.toString());
+		dst->insert(it.key(), list);
+	}
+}
 
 
 
@@ -579,7 +603,7 @@ inline bool ConquestConfig::landPick(const QString &landId, const int &playerId,
 		}
 
 		return true;
-	} else if (currentStage == ConquestTurn::StageBattle) {
+	} else if (currentStage == ConquestTurn::StageBattle || currentStage == ConquestTurn::StageLastRound) {
 		const int &idx = world.landFind(landId);
 
 		if (idx == -1)
@@ -630,7 +654,8 @@ inline bool ConquestConfig::playerAnswer(const ConquestAnswer &answer)
  * @return
  */
 
-inline bool ConquestConfig::landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld)
+inline bool ConquestConfig::landSwapPlayer(const QString &landId, ConquestPlayer *playerNew,
+										   ConquestPlayer *playerOld, const bool &oppositeCorrect)
 {
 	if (!playerNew)
 		return false;
@@ -656,12 +681,25 @@ inline bool ConquestConfig::landSwapPlayer(const QString &landId, ConquestPlayer
 	const int old = land.proprietor;
 
 	land.proprietor = playerNew->playerId;
-	playerNew->xp += land.xp;
-	playerNew->xp += land.xpOnce;
-	land.xpOnce = 0;
 
-	if (playerOld && playerOld->playerId == old) {
-		playerOld->xp -= land.xp;
+	if (land.xpOnce > 0) {
+		playerNew->xp += land.xpOnce;
+
+		if (playerOld && playerOld->playerId == old) {
+			playerOld->xp -= oppositeCorrect ? land.xpOnce/2 : land.xpOnce;
+			if (playerOld->xp < 0)
+				playerOld->xp = 0;
+		}
+
+		land.xpOnce = 0;
+	} else {
+		playerNew->xp += land.xp;
+
+		if (playerOld && playerOld->playerId == old) {
+			playerOld->xp -= oppositeCorrect ? land.xp/2 : land.xp;
+			if (playerOld->xp < 0)
+				playerOld->xp = 0;
+		}
 	}
 
 	return true;
@@ -700,7 +738,10 @@ inline bool ConquestConfig::landDefended(const QString &landId, ConquestPlayer *
 	if (land.proprietor != playerOld->playerId)
 		return false;
 
-	playerOld->xp += land.xp/2;
+	if (land.xpOnce > 0)
+		playerOld->xp += land.xpOnce;
+	else
+		playerOld->xp += land.xp;
 
 	return true;
 }

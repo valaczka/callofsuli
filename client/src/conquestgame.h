@@ -48,6 +48,8 @@ class ConquestGame : public AbstractGame
 	Q_PROPERTY(int playerId READ playerId WRITE setPlayerId NOTIFY playerIdChanged FINAL)
 	Q_PROPERTY(ConquestLandDataList *landDataList READ landDataList CONSTANT FINAL)
 	Q_PROPERTY(QSize worldSize READ worldSize WRITE setWorldSize NOTIFY worldSizeChanged FINAL)
+	Q_PROPERTY(QString worldBgImage READ worldBgImage WRITE setWorldBgImage NOTIFY worldBgImageChanged FINAL)
+	Q_PROPERTY(QString worldOverImage READ worldOverImage WRITE setWorldOverImage NOTIFY worldOverImageChanged FINAL)
 	Q_PROPERTY(QSListModel *engineModel READ engineModel CONSTANT FINAL)
 	Q_PROPERTY(QSListModel *playersModel READ playersModel CONSTANT FINAL)
 	Q_PROPERTY(ConquestTurn currentTurn READ currentTurn WRITE setCurrentTurn NOTIFY currentTurnChanged FINAL)
@@ -59,6 +61,9 @@ class ConquestGame : public AbstractGame
 	Q_PROPERTY(ConquestPlayer fighter2 READ fighter2 WRITE setFighter2 NOTIFY fighter2Changed FINAL)
 	Q_PROPERTY(bool isAttacked READ isAttacked WRITE setIsAttacked NOTIFY isAttackedChanged FINAL)
 	Q_PROPERTY(int maxPlayersCount READ maxPlayersCount CONSTANT FINAL)
+	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
+	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged FINAL)
+	Q_PROPERTY(QStringList worldListSelect READ worldListSelect WRITE setWorldListSelect NOTIFY worldListSelectChanged FINAL)
 
 public:
 	explicit ConquestGame(Client *client);
@@ -134,6 +139,21 @@ public:
 
 	static int maxPlayersCount();
 
+	int hp() const;
+	void setHp(int newHp);
+
+	int xp() const;
+	void setXp(int newXp);
+
+	QString worldBgImage() const;
+	void setWorldBgImage(const QString &newWorldBgImage);
+
+	QString worldOverImage() const;
+	void setWorldOverImage(const QString &newWorldOverImage);
+
+	QStringList worldListSelect() const;
+	void setWorldListSelect(const QStringList &newWorldListSelect);
+
 signals:
 	void mapDownRequest();
 	void mapUpRequest();
@@ -151,6 +171,11 @@ signals:
 	void isAttackedChanged();
 	void fighter1Changed();
 	void fighter2Changed();
+	void hpChanged();
+	void xpChanged();
+	void worldBgImageChanged();
+	void worldOverImageChanged();
+	void worldListSelectChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -158,12 +183,14 @@ protected:
 	virtual void connectGameQuestion() override;
 	virtual bool gameStartEvent() override;
 	virtual bool gameFinishEvent() override;
+	virtual void jsonOrigDataCheck(const QJsonObject &obj) { Q_UNUSED(obj); }
 
 private:
 	void onTimeSyncTimerTimeout();
 	void onWebSocketActiveChanged();
 	void onJsonReceived(const QString &operation, const QJsonValue &data);
 	void onConfigChanged();
+	void updatePlayer();
 
 	void cmdList(const QJsonObject &data);
 	void cmdState(const QJsonObject &data);
@@ -205,6 +232,11 @@ private:
 	ConquestConfig::GameState m_oldGameState = ConquestConfig::StateInvalid;
 	ConquestPlayer m_fighter1;
 	ConquestPlayer m_fighter2;
+	int m_hp = 0;
+	int m_xp = 0;
+	QString m_worldBgImage;
+	QString m_worldOverImage;
+	QStringList m_worldListSelect;
 };
 
 

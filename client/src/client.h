@@ -157,6 +157,7 @@ public:
 	void setCurrentGame(AbstractGame *newCurrentGame);
 
 	Q_INVOKABLE QQuickItem *loadDemoMap(const QUrl &url = QString());
+	Q_INVOKABLE QQuickItem *loadAdjacencySetup(const QString &world = QString());
 
 	Q_INVOKABLE void messageInfo(const QString &text, QString title = "") const;
 	Q_INVOKABLE void messageWarning(const QString &text, QString title = "") const;

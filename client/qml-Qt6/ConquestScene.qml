@@ -85,8 +85,9 @@ Rectangle {
 				sorters: [
 					FilterSorter {
 						filters: ValueFilter {
+							enabled: Client.server
 							roleName: "username"
-							value: Client.server.user.username
+							value: Client.server ? Client.server.user.username : ""
 						}
 						priority: 2
 					},
@@ -104,6 +105,8 @@ Rectangle {
 				character: model.character
 				fullNickName: model.fullNickName
 				xp: model.xp
+				hp: model.hp
+				streak: model.streak
 				playerId: model.playerId
 				game: root.game
 				targetFighter1: _battleRow.itemFighter1
@@ -157,6 +160,19 @@ Rectangle {
 		game: root.game
 	}
 
+	GameMessageList {
+		id: _messageList
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		y: parent.height*0.25
+
+		z: 6
+
+		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
+
+		//visible: !gameScene.zoomOverview && itemsVisible
+	}
 
 	GameQuestionAction {
 		id: _question
@@ -173,19 +189,6 @@ Rectangle {
 	}
 
 
-	GameMessageList {
-		id: _messageList
-
-		anchors.horizontalCenter: parent.horizontalCenter
-
-		y: parent.height*0.25
-
-		z: 6
-
-		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
-
-		//visible: !gameScene.zoomOverview && itemsVisible
-	}
 
 
 	ConquestProgressBar {
@@ -199,8 +202,37 @@ Rectangle {
 		id: _painhudImage
 		anchors.fill: parent
 		z: 10
+
+		property int _oldHP: -1
+		readonly property int hp: game ? game.hp : -1
+
+		onHpChanged: {
+			if (hp < _oldHP)
+				play()
+			else if (hp > _oldHP)
+				_messageList.message("+%1 HP".arg(hp-_oldHP), Qaterial.Colors.red400)
+
+			_oldHP = hp
+		}
 	}
 
+
+	property int _oldXP: -1
+	readonly property int xp: game ? game.xp : -1
+
+	onXpChanged: {
+		if (_oldXP != -1) {
+			let d = xp-_oldXP
+
+			if (d > 0) {
+				_messageList.message("+%1 XP".arg(d), Qaterial.Colors.green400)
+			} else {
+				_messageList.message("%1 XP".arg(d), Qaterial.Colors.red400)
+			}
+		}
+
+		_oldXP = xp
+	}
 
 
 
@@ -346,9 +378,9 @@ Rectangle {
 			state = "fit"
 		}
 
-		function onAnswerFailed() {
+		/*function onHurt() {
 			_painhudImage.play()
-		}
+		}*/
 	}
 
 	function fitToScreen() {

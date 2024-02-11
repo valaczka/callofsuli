@@ -29,6 +29,7 @@
 #include "application.h"
 #include "classobject.h"
 #include "client.h"
+#include "conquestgameadjacencysetup.h"
 #include "exam.h"
 #include "mapplay.h"
 #include "mapplaydemo.h"
@@ -388,27 +389,30 @@ void Client::onApplicationStarted()
 	ActionGame::reloadAvailableCharacters();
 
 	switch (m_application->commandLine()) {
-	case Application::Demo:
-		loadDemoMap();
-		break;
-	case Application::Editor:
-		stackPushPage(QStringLiteral("PageMapEditor.qml"));
-		break;
-	case Application::Map:
-		stackPushPage(QStringLiteral("PageMapEditor.qml"), {
-						  { QStringLiteral("loadFile"), QUrl::fromLocalFile(m_application->commandLineData()) }
-					  });
-		break;
-	case Application::Play:
-		loadDemoMap(QUrl::fromLocalFile(m_application->commandLineData()));
-		break;
-	case Application::DevPage:
-		stackPushPage(QStringLiteral("_PageDev.qml"));
-		break;
-	default:
-		m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
-		emit startPageLoaded();
-		break;
+		case Application::Demo:
+			loadDemoMap();
+			break;
+		case Application::Editor:
+			stackPushPage(QStringLiteral("PageMapEditor.qml"));
+			break;
+		case Application::Map:
+			stackPushPage(QStringLiteral("PageMapEditor.qml"), {
+							  { QStringLiteral("loadFile"), QUrl::fromLocalFile(m_application->commandLineData()) }
+						  });
+			break;
+		case Application::Play:
+			loadDemoMap(QUrl::fromLocalFile(m_application->commandLineData()));
+			break;
+		case Application::DevPage:
+			stackPushPage(QStringLiteral("_PageDev.qml"));
+			break;
+		case Application::Adjacency:
+			loadAdjacencySetup(m_application->commandLineData());
+			break;
+		default:
+			m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
+			emit startPageLoaded();
+			break;
 	}
 
 	m_updater->checkAvailableUpdates(false);
@@ -430,29 +434,29 @@ void Client::onHttpConnectionError(const QNetworkReply::NetworkError &code)
 	bool closeSocket = false;
 
 	switch (code) {
-	case QNetworkReply::ConnectionRefusedError:
-		errStr = tr("A szerver nem elérhető");
-		closeSocket = true;
-		break;
-	case QNetworkReply::RemoteHostClosedError:
-		errStr = tr("A szerver lezárta a kapcsolatot");
-		closeSocket = true;
-		break;
-	case QNetworkReply::HostNotFoundError:
-		errStr = tr("A szerver nem található");
-		closeSocket = true;
-		break;
-	case QNetworkReply::OperationCanceledError:
-		//errStr = tr("A művelet megszakadt");
-		return;
-		break;
-	case QNetworkReply::SslHandshakeFailedError:
-		//errStr = tr("Az SSL tanúsítvány hibás");
-		return;
-		break;
+		case QNetworkReply::ConnectionRefusedError:
+			errStr = tr("A szerver nem elérhető");
+			closeSocket = true;
+			break;
+		case QNetworkReply::RemoteHostClosedError:
+			errStr = tr("A szerver lezárta a kapcsolatot");
+			closeSocket = true;
+			break;
+		case QNetworkReply::HostNotFoundError:
+			errStr = tr("A szerver nem található");
+			closeSocket = true;
+			break;
+		case QNetworkReply::OperationCanceledError:
+			//errStr = tr("A művelet megszakadt");
+			return;
+			break;
+		case QNetworkReply::SslHandshakeFailedError:
+			//errStr = tr("Az SSL tanúsítvány hibás");
+			return;
+			break;
 
-	default:
-		errStr = QString::fromStdString(Utils::enumToString<QNetworkReply::NetworkError>(code));
+		default:
+			errStr = QString::fromStdString(Utils::enumToString<QNetworkReply::NetworkError>(code));
 	}
 
 
@@ -1753,6 +1757,37 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 	connect(page, &QQuickItem::destroyed, mapPlay.get(), &MapPlay::deleteLater);
 
 	mapPlay.release();
+
+	return page;
+}
+
+
+
+/**
+ * @brief Client::loadAdjacencySetup
+ * @param url
+ * @return
+ */
+
+QQuickItem *Client::loadAdjacencySetup(const QString &world)
+{
+	std::unique_ptr<ConquestGameAdjacencySetup> game(new ConquestGameAdjacencySetup(this));
+
+	game->loadFromFile(world);
+
+	QQuickItem *page = stackPushPage(QStringLiteral("PageConquestAdjacency.qml"), QVariantMap({
+					  { QStringLiteral("game"), QVariant::fromValue(game.get()) }
+				  }));
+
+
+	if (!page) {
+		messageError(tr("Nem lehet betölteni az oldalt!"));
+		return nullptr;
+	}
+
+	connect(page, &QQuickItem::destroyed, game.get(), &ConquestGameAdjacencySetup::deleteLater);
+
+	game.release();
 
 	return page;
 }

@@ -42,19 +42,6 @@ Rectangle {
 		}
 	}
 
-	/*onGameChanged: {
-		if (game) {
-			game.configChanged.connect(reload)
-			game.currentStageChanged.connect(function(){
-				console.error("!!!!!", stageChanged, game.currentStage)
-				mark()
-				_series.clear()
-				reload()
-			})
-		}
-	}*/
-
-
 
 	SequentialAnimation {
 		id: _markAnimation
@@ -95,9 +82,6 @@ Rectangle {
 	function reload() {
 		let list = game ? game.config.turnList : []
 
-		if (!_series)
-			return
-
 		if (list.length !== _series.count)
 			_series.clear()
 
@@ -124,16 +108,25 @@ Rectangle {
 	}
 
 
+	function reloadStage() {
+		_markAnimation.start()
+		_series.clear()
+		reload()
+	}
+
 
 
 	Component.onCompleted: {
 		if (game) {
 			game.configChanged.connect(reload)
-			game.currentStageChanged.connect(function(){
-				_markAnimation.start()
-				_series.clear()
-				reload()
-			})
+			game.currentStageChanged.connect(reloadStage)
+		}
+	}
+
+	Component.onDestruction: {
+		if (game) {
+			game.configChanged.disconnect(reload)
+			game.currentStageChanged.disconnect(reloadStage)
 		}
 	}
 }
