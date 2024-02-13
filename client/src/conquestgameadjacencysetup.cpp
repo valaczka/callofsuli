@@ -33,7 +33,7 @@
  */
 
 ConquestGameAdjacencySetup::ConquestGameAdjacencySetup(Client *client)
-	: ConquestGame(client)
+	: ConquestGame(nullptr, client)
 {
 
 }

@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "qjsonobject.h"
 #include "serverservice.h"
+#include "userapi.h"
 #include "websocketstream.h"
 #include "enginehandler.h"
 #include "generalapi.h"
@@ -283,7 +284,10 @@ void ConquestEngine::gameFinish(const bool &hasError)
 	if (m_config.gameState == ConquestConfig::StateError || m_config.gameState == ConquestConfig::StateFinished)
 		return;
 
-	LOG_CDEBUG("engine") << "Finish conquest game:" << m_id << "with error:" << hasError;
+	if (hasError)
+		LOG_CWARNING("engine") << "Finish conquest game:" << m_id << "with error";
+	else
+		LOG_CDEBUG("engine") << "Finish conquest game:" << m_id;
 
 	const qint64 elapsed = currentTick();
 
@@ -292,16 +296,41 @@ void ConquestEngine::gameFinish(const bool &hasError)
 
 	m_config.gameState = hasError ? ConquestConfig::StateError : ConquestConfig::StateFinished;
 
+	const auto api = qobject_cast<UserAPI*>(m_service->webServer().lock().get()->handler()->api("user"));
 
-	/// TODO
+	if (!api) {
+		LOG_CERROR("engine") << "API not found: user";
+		m_config.gameState = ConquestConfig::StateError;
+	}
 
-	LOG_CINFO("engine") << "Game finished:" << m_id << elapsed;
+
+	UserAPI::UserGame g;
+
+	g.map = m_config.mapUuid;
+	g.mission = m_config.missionUuid;
+	g.level = m_config.missionLevel;
+	g.deathmatch = false;
+	g.mode = GameMap::Conquest;
+
+
+	static const QJsonObject inventory;
+	static const QJsonArray statistics;
+	///const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
 
 	for (const auto &p : m_players) {
 		LOG_CINFO("engine") << "PLAYER" << p.username << p.xp << p.hp << "GameId" << p.gameId;
+
+		const bool success = p.hp > 0 && m_config.gameState == ConquestConfig::StateFinished;
+
+		if (api) {
+			bool okPtr = false;
+			api->gameFinish(p.username, p.gameId, g, inventory, statistics, success, p.xp, elapsed, &okPtr);
+			if (!okPtr) {
+				LOG_CERROR("engine") << "Game finish error" << p.gameId << p.username;
+			}
+		}
 	}
 
-	//////
 
 
 	if (const QString &filename = engineBackupFile(); QFile::exists(filename)) {
@@ -476,16 +505,56 @@ QJsonObject ConquestEngine::cmdPlay(WebSocketStream *stream, const QJsonObject &
 
 	LOG_CINFO("engine") << "Play ConquestEngine" << m_id;
 
+	const auto api = qobject_cast<UserAPI*>(m_service->webServer().lock().get()->handler()->api("user"));
+
+	if (!api) {
+		LOG_CERROR("engine") << "API not found: user";
+		gameFinish(true);
+		return {
+			{ QStringLiteral("error"), QStringLiteral("internal error") }
+		};
+	}
+
+
+	QMutexLocker pLocker(&m_playerMutex);
+
+	if (m_config.gameState == ConquestConfig::StatePlay)
+		return {};
+
+	UserAPI::UserGame g;
+
+	g.map = m_config.mapUuid;
+	g.mission = m_config.missionUuid;
+	g.level = m_config.missionLevel;
+	g.deathmatch = false;
+	g.mode = GameMap::Conquest;
+
+
+	static const QJsonObject inventory;
+	///const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
+
+
 	m_startedAt = QDateTime::currentMSecsSinceEpoch();
 	m_elapsedTimer.start();
 	m_config.currentTurn = -1;
 	m_config.gameState = ConquestConfig::StatePlay;
 	m_config.currentStage = ConquestTurn::StagePrepare;
 
-	m_config.startHp = m_players.size()+1;
-
 	for (auto &p : m_players) {
 		p.hp = m_config.startHp;
+
+		int gameId = -1;
+		api->gameCreate(p.username, m_config.campaign, g, inventory, &gameId);
+
+		if (gameId == -1) {
+			LOG_CERROR("engine") << "ConquestEngine play error" << m_id;
+			gameFinish(true);
+			return {
+				{ QStringLiteral("error"), QStringLiteral("internal error") }
+			};
+		}
+
+		p.gameId = gameId;
 	}
 
 	m_handler->engineTriggerEngine(this);
@@ -577,32 +646,39 @@ void ConquestEngine::triggerEvent()
 		engineBackup();
 	}
 
+	QJsonObject ret = m_config.toJson();
+
+	ret.insert(QStringLiteral("cmd"), QStringLiteral("state"));
+	ret.insert(QStringLiteral("engine"), m_id);
+	ret.insert(QStringLiteral("interval"), m_service->mainTimerInterval());
+	ret.insert(QStringLiteral("playerLimit"), (int) m_playerLimit);
+	ret.insert(QStringLiteral("users"), playersToArray());
+
+	if (m_startedAt != -1) {
+		ret.insert(QStringLiteral("startedAt"), m_startedAt);
+	}
+
 	for (const auto &stream : m_streams) {
-		QJsonObject ret = m_config.toJson();
-
-		ret.insert(QStringLiteral("cmd"), QStringLiteral("state"));
-		ret.insert(QStringLiteral("engine"), m_id);
-		ret.insert(QStringLiteral("interval"), m_service->mainTimerInterval());
-		ret.insert(QStringLiteral("host"), (m_hostStream == stream ? true : false));
-		ret.insert(QStringLiteral("playerLimit"), (int) m_playerLimit);
-
-		if (m_startedAt != -1) {
-			ret.insert(QStringLiteral("startedAt"), m_startedAt);
-		}
 
 		if (m_elapsedTimer.isValid()) {
 			ret.insert(QStringLiteral("tick"), currentTick());
+		} else {
+			ret.remove(QStringLiteral("tick"));
 		}
 
+		ret.insert(QStringLiteral("host"), (m_hostStream == stream ? true : false));
 		const auto &player = playerFind(stream);
 
 		if (player != m_players.end()) {
 			ret.insert(QStringLiteral("playerId"), player->playerId);
+		} else {
+			ret.remove(QStringLiteral("playerId"));
 		}
 
-		ret.insert(QStringLiteral("users"), playersToArray());
+		const QByteArray &data = QJsonDocument(ret).toJson(QJsonDocument::Compact);
+		const QByteArray &compressed = qCompress(data);
 
-		sendStreamJson(stream, ret);
+		stream->sendBinaryMessage(compressed);
 	}
 }
 
@@ -967,6 +1043,10 @@ QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject
 			{ QStringLiteral("error"), QStringLiteral("missing level") }
 		};
 
+	if (config.campaign <= 0)
+		return {
+			{ QStringLiteral("error"), QStringLiteral("missing campaign") }
+		};
 
 
 	ConquestWordListHelper worldHelper;
@@ -998,6 +1078,18 @@ QJsonObject ConquestEngine::cmdCreate(WebSocketStream *stream, const QJsonObject
 	engine->m_config.mapUuid = config.mapUuid;
 	engine->m_config.missionUuid = config.missionUuid;
 	engine->m_config.missionLevel = config.missionLevel;
+	engine->m_config.campaign = config.campaign;
+
+	if (config.startHp <= 0) {
+		if (config.missionLevel >= 3)
+			config.startHp = 4;
+		else if (config.missionLevel == 2)
+			config.startHp = 3;
+		else
+			config.startHp = 2;
+	}
+
+	engine->m_config.startHp = config.startHp;
 	engine->m_worldListHelper = worldHelper;
 
 	if (stream) {
@@ -1603,8 +1695,39 @@ void ConquestEngine::pickLands()
 	Q_ASSERT(idxList.size() > (qsizetype) m_players.size());
 
 	for (auto &p : m_players) {
-		const auto &idx = idxList.takeAt(QRandomGenerator::global()->bounded(idxList.size()));
-		m_config.world.landList[idx].proprietor = p.playerId;
+		int _index = 0;
+
+		// Avoid fortress adjacency
+
+		for (int i=0; i<10; ++i) {
+			_index = QRandomGenerator::global()->bounded(idxList.size());
+			const auto &idx = idxList.at(_index);
+			const auto &land = m_config.world.landList.at(idx);
+			const QStringList &list = m_config.world.adjacencyMatrix.value(land.id);
+			bool hasFortressAdjacency = false;
+			for (const QString &s : list) {
+				const int &idx = m_config.world.landFind(s);
+				if (idx == -1)
+					continue;
+
+				if (m_config.world.landList.at(idx).fortress != -1) {
+					hasFortressAdjacency = true;
+					break;
+				}
+			}
+			if (!hasFortressAdjacency)
+				break;
+
+			if (i==9)
+				LOG_CERROR("engine") << "Fortress adjacency check overrun";
+		};
+
+		const auto &idx = idxList.takeAt(_index);
+		auto &land = m_config.world.landList[idx];
+		land.proprietor = p.playerId;
+		land.fortress = INITIAL_FORTRESS_COUNT;
+		land.xp = 0;
+		land.xpOnce = 0;
 	}
 }
 
@@ -1721,6 +1844,10 @@ void ConquestEngine::prepareTurns(const ConquestTurn::Stage &stage)
 			ConquestTurn turn;
 			turn.player = p.playerId;
 			turn.subStage = ConquestTurn::SubStageUserSelect;
+
+			if (!m_config.checkPlayerLands(p.playerId))
+				turn.player = -1;
+
 			m_config.turnList.append(turn);
 		}
 	}
@@ -2104,12 +2231,14 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 			turn.subStage = ConquestTurn::SubStageUserAnswer;
 			turn.subStageStart = currentTick();
 			turn.subStageEnd = currentTick() + std::max(MSEC_ANSWER,
-													 m_config.currentQuestion.value(QStringLiteral("duration")).toInt());
+														m_config.currentQuestion.value(QStringLiteral("duration")).toInt());
 
 			return true;
 		} else if (turn.subStage == ConquestTurn::SubStageUserAnswer) {
 			const bool &answer = turn.answerIsSuccess(turn.player, ConquestTurn::StageBattle);
 			const int &idx = m_config.world.landFind(turn.pickedId);
+
+			bool clearPick = true;
 
 			if (idx == -1) {
 				LOG_CERROR("engine") << "Invalid land id" << turn.pickedId;
@@ -2157,9 +2286,23 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 					return false;
 				}
 
-				m_config.landSwapPlayer(turn.pickedId, &*ptrNew,
-										ptrOld == m_players.end() ? nullptr : &*ptrOld,
-										answerOpposite && answerOpposite->success);
+				if (land.fortress == -1) {
+					m_config.landSwapPlayer(turn.pickedId, &*ptrNew,
+											ptrOld == m_players.end() ? nullptr : &*ptrOld,
+											answerOpposite && answerOpposite->success);
+
+					checkAndRemovePlayersTurns();
+				} else {
+					--land.fortress;
+					if (land.fortress <= 0) {
+						land.xpOnce = LAND_XP_ONCE;
+						land.xp = LAND_XP;
+						land.fortress = 0;
+						m_config.allLandSwapPlayer(&*ptrNew, ptrOld == m_players.end() ? nullptr : &*ptrOld);
+						checkAndRemovePlayersTurns();
+					} else
+						clearPick = false;
+				}
 			} else {
 				turn.answerState = ConquestTurn::AnswerPlayerLost;
 
@@ -2168,12 +2311,35 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 			}
 
 
-			turn.pickedId.clear();
+			if (clearPick)
+				turn.pickedId.clear();
 			turn.subStage = ConquestTurn::SubStageWait;
 			turn.subStageStart = currentTick();
 			turn.subStageEnd = currentTick() + MSEC_WAIT;
 
 			return true;
+		} else if (turn.subStage == ConquestTurn::SubStageWait) {
+			const int &idx = m_config.world.landFind(turn.pickedId);
+
+			if (idx != -1) {
+				ConquestWorldData &land = m_config.world.landList[idx];
+
+				if (land.fortress > 0 && turn.answerState == ConquestTurn::AnswerPlayerWin) {
+					questionClear();
+
+					if (!questionNext())
+						return false;
+
+					turn.answerList.clear();
+					turn.answerState = ConquestTurn::AnswerPending;
+					turn.subStage = ConquestTurn::SubStageUserAnswer;
+					turn.subStageStart = currentTick();
+					turn.subStageEnd = currentTick() + std::max(MSEC_ANSWER,
+																m_config.currentQuestion.value(QStringLiteral("duration")).toInt());
+
+					return true;
+				}
+			}
 		}
 
 		turn.clear();
@@ -2186,6 +2352,21 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 	// Next turn
 
 	if (subStage) {
+		if (!checkOtherPlayerAvailable()) {
+			LOG_CINFO("engine") << "GAME FINSIHED: NO MORE LAND";
+			gameFinish(false);
+			return true;
+		}
+
+		while (nextTurn >= 0 && nextTurn < m_config.turnList.size()) {
+			ConquestTurn &t = m_config.turnList[nextTurn];
+			if (t.player != -1)
+				break;
+
+			++nextTurn;
+			LOG_CTRACE("engine") << "Skip to turn:" << nextTurn;
+		}
+
 		if (nextTurn >= 0 && nextTurn < m_config.turnList.size()) {
 			ConquestTurn &t = m_config.turnList[nextTurn];
 
@@ -2239,8 +2420,10 @@ QStringList ConquestEngine::getPickableLands(const int &playerId)
 {
 	QMutexLocker locker(&m_engineMutex);
 
-	QStringList list;
+	const bool isFirstRound = m_config.currentStage == ConquestTurn::StageBattle &&
+							  m_config.currentTurn < (int) m_players.size();
 
+	QStringList list;
 
 	QStringList tmp;
 
@@ -2255,8 +2438,10 @@ QStringList ConquestEngine::getPickableLands(const int &playerId)
 		if (m_config.currentStage == ConquestTurn::StagePick && l.proprietor != -1)
 			continue;
 
-		if (tmp.contains(l.id) && l.proprietor != playerId)
-			list.append(l.id);
+		if (tmp.contains(l.id) && l.proprietor != playerId) {
+			if (!isFirstRound || l.fortress == -1)
+				list.append(l.id);
+		}
 	}
 
 
@@ -2270,11 +2455,55 @@ QStringList ConquestEngine::getPickableLands(const int &playerId)
 			if (m_config.currentStage == ConquestTurn::StagePick && l.proprietor != -1)
 				continue;
 
-			list.append(l.id);
+			if (!isFirstRound || l.fortress == -1)
+				list.append(l.id);
 		}
 	}
 
 	return list;
+}
+
+
+
+/**
+ * @brief ConquestEngine::checkAndRemovePlayersTurns
+ */
+
+void ConquestEngine::checkAndRemovePlayersTurns()
+{
+	QMutexLocker locker(&m_engineMutex);
+
+	for (const ConquestEnginePlayer &p : m_players) {
+		if (!m_config.checkPlayerLands(p.playerId)) {
+			LOG_CTRACE("engine") << "Remove player" << p.playerId << "from next turns";
+			m_config.removePlayerFromNextTurns(p.playerId);
+		}
+	}
+}
+
+
+/**
+ * @brief ConquestEngine::checkOtherPlayerAvailable
+ * @return
+ */
+
+bool ConquestEngine::checkOtherPlayerAvailable()
+{
+	QMutexLocker locker(&m_engineMutex);
+
+	int pId = -1;
+
+	for (const auto &l : m_config.world.landList) {
+		if (pId == -1) {
+			pId = l.proprietor;
+			continue;
+		}
+
+		if (l.proprietor != -1 && l.proprietor != pId)
+			return true;
+	}
+
+	return false;
 }
 
 

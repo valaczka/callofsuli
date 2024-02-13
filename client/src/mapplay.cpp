@@ -505,35 +505,14 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, co
 		return false;
 	}
 
-	if (mode == GameMap::Conquest) {
-		ConquestGame *g = new ConquestGame(m_client);
+	AbstractLevelGame *g = createLevelGame(level, mode);
 
-		if (!g)
-			return false;
+	if (!g)
+		return false;
 
-		ConquestConfig config;
-		config.mapUuid = m_gameMap->uuid();
-		config.missionUuid = level->mission()->uuid();
-		config.missionLevel = level->level();
-		g->setConfig(config);
+	connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
 
-		connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
-
-		m_client->setCurrentGame(g);
-
-		setGameState(StateLoading);
-
-	} else {
-		AbstractLevelGame *g = createLevelGame(level, mode);
-
-		if (!g)
-			return false;
-
-		connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
-
-		m_client->setCurrentGame(g);
-
-	}
+	m_client->setCurrentGame(g);
 
 	m_extendedData = extended;
 

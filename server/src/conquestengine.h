@@ -192,6 +192,8 @@ private:
 	bool nextPick(const bool &subStage);
 	bool nextBattle(const bool &subStage, const bool &isLastRound);
 	QStringList getPickableLands(const int &playerId);
+	void checkAndRemovePlayersTurns();
+	bool checkOtherPlayerAvailable();
 
 
 	WebSocketStream *m_hostStream = nullptr;

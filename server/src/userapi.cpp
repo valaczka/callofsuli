@@ -495,7 +495,7 @@ QHttpServerResponse UserAPI::gameInfo(const Credential &credential, const QJsonO
 
 QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int &campaign, const QJsonObject &json)
 {
-	TeacherAPI::UserGame g;
+	UserGame g;
 
 	g.map = json.value(QStringLiteral("map")).toString();
 	g.mission = json.value(QStringLiteral("mission")).toString();
@@ -513,11 +513,30 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 		return responseError("invalid mode");
 
 
+	const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
 
-	LAMBDA_THREAD_BEGIN(campaign, g, json, credential);
+	return gameCreate(credential.username(), campaign, g, inventory);
+}
 
 
-	const QString &username = credential.username();
+
+/**
+ * @brief UserAPI::gameCreate
+ * @param credential
+ * @param campaign
+ * @param game
+ * @param inventory
+ * @param okPtr
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &campaign,
+										const UserGame &game, const QJsonObject &inventory, int *gameIdPtr)
+{
+	if (gameIdPtr)
+		*gameIdPtr = -1;
+
+	LAMBDA_THREAD_BEGIN(campaign, game, inventory, username, gameIdPtr);
 
 	LOG_CDEBUG("client") << "Create game for user:" << qPrintable(username) << "in campaign:" << campaign;
 
@@ -591,13 +610,13 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 						 .addQuery(") VALUES (").setValuePlaceholder()
 						 .addQuery(")")
 						 .addField("username", username)
-						 .addField("mapid", g.map)
-						 .addField("missionid", g.mission)
+						 .addField("mapid", game.map)
+						 .addField("missionid", game.mission)
 						 .addField("campaignid", campaign)
-						 .addField("level", g.level)
-						 .addField("deathmatch", g.deathmatch)
+						 .addField("level", game.level)
+						 .addField("deathmatch", game.deathmatch)
 						 .addField("success", false)
-						 .addField("mode", g.mode)
+						 .addField("mode", game.mode)
 						 .execInsertAsInt();
 
 	LAMBDA_SQL_ASSERT_ROLLBACK(gameId);
@@ -617,8 +636,7 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 	obj.insert(QStringLiteral("closedGames"), *list);
 
 
-	if (g.mode == GameMap::Action && g.deathmatch) {
-		const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
+	if (game.mode == GameMap::Action && game.deathmatch) {
 		QJsonObject iList;
 
 		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
@@ -652,6 +670,9 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 
 	response = QHttpServerResponse(obj);
 
+	if (gameIdPtr)
+		*gameIdPtr = *gameId;
+
 	LAMBDA_THREAD_END;
 }
 
@@ -672,7 +693,7 @@ QHttpServerResponse UserAPI::gameUpdate(const Credential &credential, const int 
 
 	LOG_CTRACE("client") << "Update game" << id << "for user:" << qPrintable(username);
 
-	LAMBDA_THREAD_BEGIN(username, json, id, credential);
+	LAMBDA_THREAD_BEGIN(username, json, id);
 
 	QueryBuilder qq(db);
 
@@ -689,12 +710,34 @@ QHttpServerResponse UserAPI::gameUpdate(const Credential &credential, const int 
 	// Statistics
 
 	if (json.contains(QStringLiteral("statistics")))
-		_addStatistics(credential, json.value(QStringLiteral("statistics")).toArray());
+		_addStatistics(username, json.value(QStringLiteral("statistics")).toArray());
 
 	// XP
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).addQuery("UPDATE runningGame SET xp=").addValue(json.value(QStringLiteral("xp")).toInt())
 					  .addQuery(" WHERE gameid=").addValue(id).exec());
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+/**
+ * @brief UserAPI::gameUpdateStatistics
+ * @param credential
+ * @param id
+ * @param statistics
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameUpdateStatistics(const QString &username, const QJsonArray &statistics)
+{
+	LOG_CTRACE("client") << "Update game statistics for user:" << qPrintable(username);
+
+	LAMBDA_THREAD_BEGIN(username, statistics);
+
+	_addStatistics(username, statistics);
 
 	response = responseOk();
 
@@ -718,10 +761,9 @@ QHttpServerResponse UserAPI::gameUpdate(const Credential &credential, const int 
 QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int &id, const QJsonObject &json)
 {
 	const QString &username = credential.username();
+	UserGame g;
 
-	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username);
-
-	LAMBDA_THREAD_BEGIN(username, json, id, credential);
+	LAMBDA_THREAD_BEGIN(username, id, &g);
 
 	QueryBuilder qq(db);
 
@@ -735,15 +777,6 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 
 	LAMBDA_SQL_ERROR("invalid game", qq.sqlQuery().first());
 
-
-	// Statistics
-
-	if (json.contains(QStringLiteral("statistics")))
-		_addStatistics(credential, json.value(QStringLiteral("statistics")).toArray());
-
-
-	TeacherAPI::UserGame g;
-
 	g.map = qq.value("mapid").toString();
 	g.mission = qq.value("missionid").toString();
 	g.level = qq.value("level").toInt();
@@ -751,24 +784,58 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 	g.mode = qq.value("mode").value<GameMap::GameMode>();
 	g.campaign = qq.value("campaignid", -1).toInt();
 
+	LAMBDA_THREAD_END;
 
 
+	const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
+	const QJsonArray &statistics = json.value(QStringLiteral("statistics")).toArray();
 	const bool &success = json.value(QStringLiteral("success")).toVariant().toBool();
 	const int &xp = json.value(QStringLiteral("xp")).toInt();
 	const int &duration = json.value(QStringLiteral("duration")).toInt();
+
+	return gameFinish(username, id, g, inventory, statistics, success, xp, duration);
+}
+
+
+
+
+/**
+ * @brief UserAPI::gameFinish
+ * @param credential
+ * @param game
+ * @param inventory
+ * @param okPtr
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, const UserGame &game,
+										const QJsonObject &inventory, const QJsonArray &statistics,
+										const bool &success, const int &xp, const int &duration,
+										bool *okPtr)
+{
+	if (okPtr)
+		*okPtr = false;
+
+	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username);
+
+	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr);
+
+	// Statistics
+
+	if (!statistics.isEmpty())
+		_addStatistics(username, statistics);
+
 	int sumXP = xp;
-
-
 
 	QJsonObject retObj;
 
 	const int &baseXP = m_service->config().get("gameBaseXP").toInt(100);
-	const int &oldSolved = _solverInfo(this, username, g.map, g.mission, g.level, g.deathmatch).value_or(0);
+	const int &oldSolved = _solverInfo(this, username, game.map, game.mission, game.level, game.deathmatch).value_or(0);
 
 	if (success) {
 		// Solved XP
 
-		const int &xpSolved = GameMap::computeSolvedXpFactor(g.level, g.deathmatch, oldSolved, g.mode) * baseXP;
+		const int &xpSolved = GameMap::computeSolvedXpFactor(game.level, game.deathmatch, oldSolved, game.mode) * baseXP;
 
 		sumXP += xpSolved;
 		retObj[QStringLiteral("xpSolved")] = xpSolved;
@@ -778,10 +845,10 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		const auto &s = QueryBuilder::q(db)
 						.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
 								  "WHERE success=true AND username=").addValue(username)
-						.addQuery(" AND mapid=").addValue(g.map)
-						.addQuery(" AND missionid=").addValue(g.mission)
-						.addQuery(" AND level=").addValue(g.level)
-						.addQuery(" AND mode=").addValue(g.mode)
+						.addQuery(" AND mapid=").addValue(game.map)
+						.addQuery(" AND missionid=").addValue(game.mission)
+						.addQuery(" AND level=").addValue(game.level)
+						.addQuery(" AND mode=").addValue(game.mode)
 						.execToValue("duration");
 
 		LAMBDA_SQL_ASSERT(s);
@@ -869,8 +936,7 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 
 	// Inventory
 
-	if (success && g.mode == GameMap::Action) {
-		const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
+	if (success && game.mode == GameMap::Action) {
 		QJsonArray iList;
 
 		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
@@ -918,10 +984,13 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 */
 
 	if (success) {
-		LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, g.campaign, username));
+		LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, game.campaign, username));
 	}
 
 	response = responseOk(retObj);
+
+	if (okPtr)
+		*okPtr = true;
 
 	LAMBDA_THREAD_END;
 }
@@ -1070,7 +1139,7 @@ QHttpServerResponse UserAPI::password(const Credential &credential, const QJsonO
  * @param list
  */
 
-void UserAPI::_addStatistics(const Credential &credential, const QJsonArray &list) const
+void UserAPI::_addStatistics(const QString &username, const QJsonArray &list) const
 {
 	if (list.isEmpty())
 		return;
@@ -1105,7 +1174,7 @@ void UserAPI::_addStatistics(const Credential &credential, const QJsonArray &lis
 			q.addField("module", o.value(QStringLiteral("module")).toString());
 
 		if (q.fieldCount())
-			q.addField("username", credential.username());
+			q.addField("username", username);
 		else
 			continue;
 

@@ -31,12 +31,23 @@ Rectangle {
 			id: _fighter1
 			flipped: true
 			character: game && game.fighter1.playerId !== -1 ? game.fighter1.character : ""
+			anchors.bottom: parent.bottom
+		}
 
+		ConquestFortress {
+			width: 300
+			height: 300
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			visible: game && game.fighter2Fortress >= 0
+			fortress: game ? game.fighter2Fortress : 0
 		}
 
 		ConquestBattleInfoPlayer {
 			id: _fighter2
 			character: game && game.fighter2.playerId !== -1 ? game.fighter2.character : ""
+			anchors.bottom: parent.bottom
 		}
 
 

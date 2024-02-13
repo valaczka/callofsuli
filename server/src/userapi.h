@@ -32,9 +32,24 @@
 
 class UserAPI : public AbstractAPI
 {
+	Q_OBJECT
+
 public:
 	UserAPI(Handler *handler, ServerService *service);
 	virtual ~UserAPI() {}
+
+	/**
+	 * @brief The UserGame class
+	 */
+
+	struct UserGame {
+		QString map;
+		QString mission;
+		int level = -1;
+		bool deathmatch = false;
+		GameMap::GameMode mode = GameMap::Invalid;
+		int campaign = -1;
+	};
 
 	QHttpServerResponse update(const Credential &credential, const QJsonObject &json);
 	QHttpServerResponse password(const Credential &credential, const QJsonObject &json);
@@ -52,15 +67,20 @@ public:
 
 	QHttpServerResponse gameInfo(const Credential &credential, const QJsonObject &json);
 	QHttpServerResponse gameCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
+	QHttpServerResponse gameCreate(const QString &username, const int &campaign,
+								   const UserGame &game, const QJsonObject &inventory,
+								   int *gameIdPtr = nullptr);
 	QHttpServerResponse gameUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse gameUpdateStatistics(const QString &username, const QJsonArray &statistics);
 	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse gameFinish(const QString &username, const int &id, const UserGame &game,
+								   const QJsonObject &inventory, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
+								   bool *okPtr = nullptr);
 
 	QHttpServerResponse inventory(const Credential &credential);
 
 	QHttpServerResponse exam(const Credential &credential, const int &id);
 
-
-	// Static members
 
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
 	static std::optional<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
@@ -74,7 +94,7 @@ public:
 						   const int &level, const bool &deathmatch);
 
 private:
-	void _addStatistics(const Credential &credential, const QJsonArray &list) const;
+	void _addStatistics(const QString &username, const QJsonArray &list) const;
 
 };
 

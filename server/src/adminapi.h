@@ -31,6 +31,8 @@
 
 class AdminAPI : public AbstractAPI
 {
+	Q_OBJECT
+
 public:
 
 	AdminAPI(Handler *handler, ServerService *service);

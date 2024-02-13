@@ -161,8 +161,14 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	ConquestGame *conquestGame = qobject_cast<ConquestGame*>(m_client->currentGame());
 
 	if (conquestGame) {
-		conquestGame->setMap(m_gameMap.get());
+		//conquestGame->setMap(m_gameMap.get());
 		conquestGame->setHandler(m_handler);
+
+		ConquestConfig c = conquestGame->config();
+		c.campaign = m_campaign->campaignid();
+		conquestGame->setConfig(c);
+		LOG_CERROR("game") << "CHGAME" << m_campaign->campaignid() << c.campaign << conquestGame->config().campaign;
+
 		conquestGame->load();
 		setGameState(StatePlay);
 		return;
@@ -451,6 +457,10 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 		case GameMap::Practice:
 			g = new CampaignLiteGame(level->missionLevel(), m_client, true);
+			break;
+
+		case GameMap::Conquest:
+			g = new CampaignConquestGame(level->missionLevel(), m_client);
 			break;
 
 			/*case GameMap::MultiPlayer:

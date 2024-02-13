@@ -32,6 +32,8 @@
 
 class AuthAPI : public AbstractAPI
 {
+	Q_OBJECT
+
 public:
 	AuthAPI(Handler *handler, ServerService *service);
 	virtual ~AuthAPI() {}

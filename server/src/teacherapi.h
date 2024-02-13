@@ -33,6 +33,8 @@
 
 class TeacherAPI : public AbstractAPI
 {
+	Q_OBJECT
+
 public:
 	TeacherAPI(Handler *handler, ServerService *service);
 	virtual ~TeacherAPI() {}
@@ -48,19 +50,6 @@ public:
 		QJsonArray tasks;
 	};
 
-
-	/**
-	 * @brief The UserGame class
-	 */
-
-	struct UserGame {
-		QString map;
-		QString mission;
-		int level = -1;
-		bool deathmatch = false;
-		GameMap::GameMode mode = GameMap::Invalid;
-		int campaign = -1;
-	};
 
 
 

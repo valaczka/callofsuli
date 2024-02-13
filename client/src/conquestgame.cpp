@@ -43,8 +43,8 @@
  */
 
 
-ConquestGame::ConquestGame(Client *client)
-	: AbstractGame(GameMap::Conquest, client)
+ConquestGame::ConquestGame(GameMapMissionLevel *missionLevel, Client *client)
+	: AbstractLevelGame(GameMap::Conquest, missionLevel, client)
 	, m_landDataList(std::make_unique<ConquestLandDataList>())
 	, m_engineModel(std::make_unique<QSListModel>())
 	, m_playersModel(std::make_unique<QSListModel>())
@@ -69,6 +69,14 @@ ConquestGame::ConquestGame(Client *client)
 		else
 			m_client->httpConnection()->webSocket()->connect();
 	}
+
+
+	if (m_missionLevel && m_missionLevel->map()) {
+		m_config.mapUuid = m_missionLevel->map()->uuid();
+		m_config.missionUuid = m_missionLevel->mission()->uuid();
+		m_config.missionLevel = m_missionLevel->level();
+	}
+
 
 	connect(&m_timeSyncTimer, &QTimer::timeout, this, &ConquestGame::onTimeSyncTimerTimeout);
 
@@ -220,7 +228,7 @@ void ConquestGame::timerEvent(QTimerEvent *)
 	if (m_config.gameState != ConquestConfig::StatePlay)
 		return;
 
-	LOG_CTRACE("game") << "TIMER EVENT" << m_tickTimer.currentTick();
+	///LOG_CTRACE("game") << "TIMER EVENT" << m_tickTimer.currentTick();
 
 	/*ObjectStateSnapshot snap;
 
@@ -308,6 +316,11 @@ void ConquestGame::onWebSocketActiveChanged()
 	const bool active = ws->active();
 	LOG_CTRACE("game") << "MultiPlayerGame WebSocket active changed" << active;
 
+	if (active && !m_binarySignalConnected) {
+		connect(ws->socket(), &QWebSocket::binaryMessageReceived, this, &ConquestGame::onBinaryMessageReceived);
+		m_binarySignalConnected = true;
+	}
+
 	if (m_engineId == -1) {
 		getEngineList();
 	} else {
@@ -365,6 +378,27 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 #endif
 		}
 	}
+}
+
+
+
+/**
+ * @brief ConquestGame::onBinaryMessageReceived
+ * @param message
+ */
+
+void ConquestGame::onBinaryMessageReceived(const QByteArray &message)
+{
+	LOG_CTRACE("game") << "Binary message received" << message.size();
+
+	QJsonDocument doc = QJsonDocument::fromJson(qUncompress(message));
+
+	if (doc.isNull()) {
+		LOG_CWARNING("game") << "Invalid binary message received";
+		return;
+	}
+
+	cmdState(doc.object());
 }
 
 
@@ -1110,13 +1144,26 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 	m_currentTurn = newCurrentTurn;
 	emit currentTurnChanged();
 
+	const int idx = (m_config.currentTurn >= 0 && m_config.currentTurn < m_config.turnList.size()) ?
+						m_config.world.landFind(m_config.turnList.at(m_config.currentTurn).pickedId) :
+						-1;
+
+
 	if (m_currentTurn.subStage == ConquestTurn::SubStageWait) {
 		LOG_CDEBUG("game") << "Reveal question";
 		revealQuestion();
+
+		if (idx != -1)
+			setFighter2Fortress(m_config.world.landList.at(idx).fortress);
+		else if (m_fighter2Fortress > 0 && m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin)
+			setFighter2Fortress(m_fighter2Fortress-1);
+
 		return;
 	}
 
-	const int &pId = m_config.getPickedLandProprietor(m_config.currentTurn);
+
+	const int pId = (idx == -1) ? -1 : m_config.world.landList.at(idx).proprietor;
+
 	if (pId == -1)
 		setIsAttacked(false);
 	else
@@ -1140,9 +1187,16 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 
 		setFighter1(f1);
 		setFighter2(f2);
+
+		if (idx != -1)
+			setFighter2Fortress(m_config.world.landList.at(idx).fortress);
+		else
+			setFighter2Fortress(-1);
+
 	} else {
 		setFighter1({});
 		setFighter2({});
+		setFighter2Fortress(-1);
 	}
 
 	if (m_currentTurn.subStage == ConquestTurn::SubStageUserSelect && m_currentTurn.player == m_playerId) {
@@ -1381,24 +1435,6 @@ void ConquestGame::setHp(int newHp)
 }
 
 
-/**
- * @brief ConquestGame::xp
- * @return
- */
-
-int ConquestGame::xp() const
-{
-	return m_xp;
-}
-
-void ConquestGame::setXp(int newXp)
-{
-	if (m_xp == newXp)
-		return;
-
-	m_xp = newXp;
-	emit xpChanged();
-}
 
 QString ConquestGame::worldBgImage() const
 {
@@ -1424,4 +1460,17 @@ void ConquestGame::setWorldOverImage(const QString &newWorldOverImage)
 		return;
 	m_worldOverImage = newWorldOverImage;
 	emit worldOverImageChanged();
+}
+
+int ConquestGame::fighter2Fortress() const
+{
+	return m_fighter2Fortress;
+}
+
+void ConquestGame::setFighter2Fortress(int newFighter2Fortress)
+{
+	if (m_fighter2Fortress == newFighter2Fortress)
+		return;
+	m_fighter2Fortress = newFighter2Fortress;
+	emit fighter2FortressChanged();
 }

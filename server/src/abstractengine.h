@@ -60,6 +60,7 @@ protected:
 	virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) { Q_UNUSED(data); Q_UNUSED(stream); }
 
 	QRecursiveMutex m_engineMutex;
+	QMutex m_playerMutex;
 
 	EngineHandler *const m_handler;
 	ServerService *const m_service;

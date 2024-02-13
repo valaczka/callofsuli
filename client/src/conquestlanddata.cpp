@@ -45,6 +45,7 @@ void ConquestLandData::loadFromConfig(const ConquestWorldData &data)
 		return;
 
 	setProprietor(data.proprietor);
+	setFortress(data.fortress);
 	if (data.xpOnce > 0)
 		setXp(data.xpOnce);
 	else
@@ -193,4 +194,17 @@ void ConquestLandData::setOverY(qreal newOverY)
 		return;
 	m_overY = newOverY;
 	emit overYChanged();
+}
+
+int ConquestLandData::fortress() const
+{
+	return m_fortress;
+}
+
+void ConquestLandData::setFortress(int newFortress)
+{
+	if (m_fortress == newFortress)
+		return;
+	m_fortress = newFortress;
+	emit fortressChanged();
 }

@@ -30,18 +30,19 @@
 #include <QSerializer>
 #include <QString>
 
-#define MAX_PLAYERS_COUNT	4
+#define MAX_PLAYERS_COUNT		4
 
-#define LAND_XP				50
-#define LAND_XP_ONCE		100
+#define LAND_XP					50
+#define LAND_XP_ONCE			100
 
-#define MSEC_SELECT			9000
-#define MSEC_PREPARE		1500
-#define MSEC_ANSWER			12000
-#define MSEC_WAIT			2000
-#define MSEC_GAME_TIMEOUT	20*60*1000
+#define MSEC_SELECT				9000
+#define MSEC_PREPARE			1250
+#define MSEC_ANSWER				12000
+#define MSEC_WAIT				2000
+#define MSEC_GAME_TIMEOUT		20*60*1000
 
-#define STREAK_SIZE			5
+#define INITIAL_FORTRESS_COUNT	3
+#define STREAK_SIZE				4
 
 
 
@@ -389,6 +390,8 @@ class ConquestConfigBase : public QSerializer
 public:
 	ConquestConfigBase()
 		: missionLevel(-1)
+		, startHp(0)
+		, campaign(-1)
 	{}
 
 
@@ -396,6 +399,8 @@ public:
 	QS_FIELD(QString, mapUuid)
 	QS_FIELD(QString, missionUuid)
 	QS_FIELD(int, missionLevel)
+	QS_FIELD(int, startHp)
+	QS_FIELD(int, campaign)
 };
 
 
@@ -416,7 +421,6 @@ public:
 		, gameState(StateInvalid)
 		, currentTurn(-1)
 		, currentStage(ConquestTurn::StageInvalid)
-		, startHp(0)
 	{}
 
 
@@ -444,8 +448,11 @@ public:
 	bool playerAnswer(const ConquestAnswer &answer);
 	bool landSwapPlayer(const QString &landId, ConquestPlayer *playerNew, ConquestPlayer *playerOld,
 						const bool &oppositeCorrect);
+	bool allLandSwapPlayer(ConquestPlayer *playerNew, ConquestPlayer *playerOld);
 	bool landDefended(const QString &landId, ConquestPlayer *playerOld);
 	int getPickedLandProprietor(const int &turn) const;
+	bool checkPlayerLands(const int &playerId) const;
+	void removePlayerFromNextTurns(const int &playerId);
 
 	void reset() {
 		gameState = StateInvalid;
@@ -455,7 +462,6 @@ public:
 		currentTurn = -1;
 		currentStage = ConquestTurn::StageInvalid;
 		currentQuestion = {};
-		startHp = 0;
 	}
 
 	QJsonObject toBaseJson() const { return ConquestConfigBase::toJson(); }
@@ -472,7 +478,8 @@ public:
 				c1.order == c2.order &&
 				c1.currentQuestion == c2.currentQuestion &&
 				c1.startHp == c2.startHp &&
-				c1.userHost == c2.userHost
+				c1.userHost == c2.userHost &&
+				c1.campaign == c2.campaign
 				;
 	}
 
@@ -484,7 +491,6 @@ public:
 	QS_FIELD(int, currentTurn)
 	QS_FIELD(ConquestTurn::Stage, currentStage)
 	QS_FIELD(QJsonObject, currentQuestion)
-	QS_FIELD(int, startHp)
 	QS_FIELD(QString, userHost)
 };
 
@@ -707,6 +713,43 @@ inline bool ConquestConfig::landSwapPlayer(const QString &landId, ConquestPlayer
 
 
 
+/**
+ * @brief ConquestConfig::allLandSwapPlayer
+ * @param playerNew
+ * @param playerOld
+ * @return
+ */
+
+inline bool ConquestConfig::allLandSwapPlayer(ConquestPlayer *playerNew, ConquestPlayer *playerOld)
+{
+	if (!playerNew || !playerOld)
+		return false;
+
+	for (ConquestWorldData &land : world.landList) {
+		if (land.proprietor != playerOld->playerId)
+			continue;
+
+		if (land.xpOnce > 0) {
+			playerNew->xp += land.xpOnce;
+			playerOld->xp -= land.xpOnce;
+			if (playerOld->xp < 0)
+				playerOld->xp = 0;
+			land.xpOnce = 0;
+		} else {
+			playerNew->xp += land.xp;
+			playerOld->xp -= land.xp;
+			if (playerOld->xp < 0)
+				playerOld->xp = 0;
+		}
+
+		land.proprietor = playerNew->playerId;
+	}
+
+	return true;
+}
+
+
+
 
 /**
  * @brief ConquestConfig::landDefended
@@ -765,8 +808,47 @@ inline int ConquestConfig::getPickedLandProprietor(const int &turn) const
 	if (idx == -1)
 		return -1;
 
-	return world.landList[idx].proprietor;
+	return world.landList.at(idx).proprietor;
 }
+
+
+
+/**
+ * @brief ConquestConfig::checkPlayerLands
+ * @param playerId
+ * @return
+ */
+
+inline bool ConquestConfig::checkPlayerLands(const int &playerId) const
+{
+	for (const ConquestWorldData &land : world.landList) {
+		if (land.proprietor == playerId)
+			return true;
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief ConquestConfig::removePlayerFromNextTurns
+ * @param playerId
+ */
+
+inline void ConquestConfig::removePlayerFromNextTurns(const int &playerId)
+{
+	if (currentTurn < 0 || currentTurn >= turnList.size())
+		return;
+
+	auto it = turnList.begin();
+
+	for (it += currentTurn+1; it != turnList.end(); ++it) {
+		if (it->player == playerId)
+			it->player = -1;
+	}
+}
+
 
 
 

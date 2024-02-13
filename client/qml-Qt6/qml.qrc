@@ -215,5 +215,6 @@
         <file>PageConquestAdjacency.qml</file>
         <file>ConquestWorldSelect.qml</file>
         <file>ConquestError.qml</file>
+        <file>ConquestFortress.qml</file>
     </qresource>
 </RCC>

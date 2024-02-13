@@ -37,6 +37,7 @@
 - WrathGames Studio (https://opengameart.org/content/wgstudio-fire-animation-loop, http://wrathgames.com/blog)
 - Free graphic resources for designers - (c) 2018-2023 Creazilla (https://creazilla.com)
 - Azgaar's Fantasy Map Generator - (c) 2017-2023 Max Haniyeu (https://azgaar.github.io/Fantasy-Map-Generator)
+- yd (https://opengameart.org/content/old-tower)
 
 **Music & SFX**
 

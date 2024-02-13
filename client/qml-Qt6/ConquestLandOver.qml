@@ -25,16 +25,29 @@ Item {
 
 	clip: false
 
+
+	ConquestFortress {
+		width: 150
+		height: 150
+
+		anchors.centerIn: parent
+
+		visible: landData && landData.fortress != -1
+		fortress: landData ? landData.fortress : 0
+	}
+
 	Label {
 		id: _label
 		anchors.centerIn: parent
 
 		font.family: Qaterial.Style.textTheme.headline4.family
 		font.pixelSize: Qaterial.Style.textTheme.headline4.pixelSize
-		font.weight: Font.DemiBold
+		font.weight: Font.Bold
 
 		text: landData ? landData.xp : ""
-		visible: (_pickable || _picked) && landData && landData.game && landData.game.config.currentStage === ConquestTurn.StageBattle
+		visible: (_pickable || _picked) && landData && landData.game &&
+				 landData.game.config.currentStage === ConquestTurn.StageBattle &&
+				 landData.fortress == -1
 		color: Qaterial.Colors.cyan200
 	}
 
@@ -49,6 +62,16 @@ Item {
 		visible: _label.visible && _label.text != ""
 	}
 
+	/*Label {
+		id: _fortress
+		anchors.centerIn: parent
+
+		font.family: Qaterial.Style.textTheme.headline3.family
+		font.pixelSize: Qaterial.Style.textTheme.headline3.pixelSize
+		font.weight: Font.Bold
+		text: landData ? "F"+landData.fortress : ""
+		visible: landData && landData.fortress != -1
+	}*/
 
 	SequentialAnimation {
 		running: true

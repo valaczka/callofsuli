@@ -73,6 +73,7 @@ class ConquestLandData : public QObject
 	Q_PROPERTY(int proprietor READ proprietor WRITE setProprietor NOTIFY proprietorChanged FINAL)
 	Q_PROPERTY(ConquestGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged FINAL)
+	Q_PROPERTY(int fortress READ fortress WRITE setFortress NOTIFY fortressChanged FINAL)
 
 public:
 	explicit ConquestLandData(QObject *parent = nullptr);
@@ -109,6 +110,9 @@ public:
 	qreal overY() const;
 	void setOverY(qreal newOverY);
 
+	int fortress() const;
+	void setFortress(int newFortress);
+
 signals:
 	void landIdChanged();
 	void baseXChanged(qreal x);
@@ -120,6 +124,7 @@ signals:
 	void xpChanged();
 	void overXChanged();
 	void overYChanged();
+	void fortressChanged();
 
 private:
 	QString m_landId;
@@ -132,6 +137,7 @@ private:
 	int m_proprietor = -1;
 	ConquestGame *m_game = nullptr;
 	int m_xp = 0;
+	int m_fortress = -1;
 };
 
 #endif // CONQUESTLANDDATA_H

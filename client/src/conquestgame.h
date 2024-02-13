@@ -27,9 +27,10 @@
 #ifndef CONQUESTGAME_H
 #define CONQUESTGAME_H
 
-#include "abstractgame.h"
+#include "abstractlevelgame.h"
 #include "conquestconfig.h"
 #include "conquestlanddata.h"
+#include "mapplay.h"
 #include "qslistmodel.h"
 #include "studentmaphandler.h"
 
@@ -38,7 +39,7 @@
  * @brief The ConquestGame class
  */
 
-class ConquestGame : public AbstractGame
+class ConquestGame : public AbstractLevelGame
 {
 	Q_OBJECT
 
@@ -59,14 +60,14 @@ class ConquestGame : public AbstractGame
 	Q_PROPERTY(int tickTimerInterval READ tickTimerInterval CONSTANT FINAL)
 	Q_PROPERTY(ConquestPlayer fighter1 READ fighter1 WRITE setFighter1 NOTIFY fighter1Changed FINAL)
 	Q_PROPERTY(ConquestPlayer fighter2 READ fighter2 WRITE setFighter2 NOTIFY fighter2Changed FINAL)
+	Q_PROPERTY(int fighter2Fortress READ fighter2Fortress WRITE setFighter2Fortress NOTIFY fighter2FortressChanged FINAL)
 	Q_PROPERTY(bool isAttacked READ isAttacked WRITE setIsAttacked NOTIFY isAttackedChanged FINAL)
 	Q_PROPERTY(int maxPlayersCount READ maxPlayersCount CONSTANT FINAL)
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
-	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged FINAL)
 	Q_PROPERTY(QStringList worldListSelect READ worldListSelect WRITE setWorldListSelect NOTIFY worldListSelectChanged FINAL)
 
 public:
-	explicit ConquestGame(Client *client);
+	explicit ConquestGame(GameMapMissionLevel *missionLevel, Client *client);
 	virtual ~ConquestGame();
 
 	enum HostMode {
@@ -142,9 +143,6 @@ public:
 	int hp() const;
 	void setHp(int newHp);
 
-	int xp() const;
-	void setXp(int newXp);
-
 	QString worldBgImage() const;
 	void setWorldBgImage(const QString &newWorldBgImage);
 
@@ -153,6 +151,9 @@ public:
 
 	QStringList worldListSelect() const;
 	void setWorldListSelect(const QStringList &newWorldListSelect);
+
+	int fighter2Fortress() const;
+	void setFighter2Fortress(int newFighter2Fortress);
 
 signals:
 	void mapDownRequest();
@@ -172,10 +173,10 @@ signals:
 	void fighter1Changed();
 	void fighter2Changed();
 	void hpChanged();
-	void xpChanged();
 	void worldBgImageChanged();
 	void worldOverImageChanged();
 	void worldListSelectChanged();
+	void fighter2FortressChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -189,6 +190,7 @@ private:
 	void onTimeSyncTimerTimeout();
 	void onWebSocketActiveChanged();
 	void onJsonReceived(const QString &operation, const QJsonValue &data);
+	void onBinaryMessageReceived(const QByteArray &message);
 	void onConfigChanged();
 	void updatePlayer();
 
@@ -211,6 +213,7 @@ private:
 	void onGameQuestionFailed(const QVariantMap &answer);
 	void onGameQuestionFinished();
 
+	bool m_binarySignalConnected = false;
 	QTimer m_timeSyncTimer;
 	TickTimer m_tickTimer;
 	QPointer<StudentMapHandler> m_handler;
@@ -232,8 +235,8 @@ private:
 	ConquestConfig::GameState m_oldGameState = ConquestConfig::StateInvalid;
 	ConquestPlayer m_fighter1;
 	ConquestPlayer m_fighter2;
+	int m_fighter2Fortress = -1;
 	int m_hp = 0;
-	int m_xp = 0;
 	QString m_worldBgImage;
 	QString m_worldOverImage;
 	QStringList m_worldListSelect;
