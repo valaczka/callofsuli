@@ -88,7 +88,7 @@ void ConquestEngine::handleWebSocketMessage(WebSocketStream *stream, const QJson
 	const auto &id = obj.value(QStringLiteral("engine")).toInt(-1);
 	ConquestEngine *engine = stream->engineGet<ConquestEngine>(AbstractEngine::EngineConquest, id);
 
-	LOG_CINFO("engine") << "HANDLE" << cmd << message << id << engine;
+	LOG_CTRACE("engine") << "ConquestEngine handle message" << cmd << message << id << engine;
 
 	using fnDef = QJsonObject (ConquestEngine::*)(WebSocketStream *, const QJsonObject &);
 
@@ -281,7 +281,7 @@ void ConquestEngine::gameFinish(const bool &hasError)
 {
 	QMutexLocker locker(&m_engineMutex);
 
-	if (m_config.gameState == ConquestConfig::StateError || m_config.gameState == ConquestConfig::StateFinished)
+	if (m_config.gameState != ConquestConfig::StatePlay)
 		return;
 
 	if (hasError)
@@ -317,16 +317,21 @@ void ConquestEngine::gameFinish(const bool &hasError)
 	static const QJsonArray statistics;
 	///const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
 
-	for (const auto &p : m_players) {
+	for (auto &p : m_players) {
 		LOG_CINFO("engine") << "PLAYER" << p.username << p.xp << p.hp << "GameId" << p.gameId;
 
-		const bool success = p.hp > 0 && m_config.gameState == ConquestConfig::StateFinished;
+		if (p.gameId == -1)
+			continue;
+
+		p.success = m_config.playerResult(p);
 
 		if (api) {
 			bool okPtr = false;
-			api->gameFinish(p.username, p.gameId, g, inventory, statistics, success, p.xp, elapsed, &okPtr);
+			api->gameFinish(p.username, p.gameId, g, inventory, statistics, p.success, p.xp, elapsed, &okPtr);
 			if (!okPtr) {
 				LOG_CERROR("engine") << "Game finish error" << p.gameId << p.username;
+			} else {
+				p.gameId = -1;
 			}
 		}
 	}
@@ -361,9 +366,6 @@ QJsonObject ConquestEngine::cmdStart(WebSocketStream *stream, const QJsonObject 
 			{ QStringLiteral("error"), QStringLiteral("invalid state") }
 		};
 
-	if (m_config.gameState == ConquestConfig::StateFinished) {
-		m_config.reset();
-	}
 
 	if (stream != m_hostStream)
 		return {
@@ -378,6 +380,28 @@ QJsonObject ConquestEngine::cmdStart(WebSocketStream *stream, const QJsonObject 
 			{ QStringLiteral("error"), QStringLiteral("insufficient players") }
 		};
 
+	if (m_config.gameState == ConquestConfig::StateFinished) {
+		int w = 0;
+
+		for (auto &p : m_players) {
+			if (p.prepared)
+				++w;
+		}
+
+		if (w) {
+			LOG_CTRACE("engine") << "Wait for" << w << "players to be unprepared";
+
+			return {
+				{ QStringLiteral("wait"), w }
+			};
+		}
+
+		m_config.reset();
+	}
+
+	for (auto &p : m_players) {
+		p.reset();
+	}
 
 	QStringList wList;
 
@@ -397,7 +421,6 @@ QJsonObject ConquestEngine::cmdStart(WebSocketStream *stream, const QJsonObject 
 			{ QStringLiteral("error"), QStringLiteral("no world") }
 		};
 	}
-
 
 	m_config.gameState = ConquestConfig::StateWorldSelect;
 
@@ -421,6 +444,22 @@ QJsonObject ConquestEngine::cmdStart(WebSocketStream *stream, const QJsonObject 
 QJsonObject ConquestEngine::cmdPrepare(WebSocketStream *stream, const QJsonObject &message)
 {
 	QMutexLocker locker(&m_engineMutex);
+
+	if (m_config.gameState == ConquestConfig::StateFinished && message.value(QStringLiteral("unprepare")).toBool()) {
+		bool modified = false;
+
+		for (auto &p : m_players) {
+			if (p.stream == stream) {
+				p.prepared = false;
+				modified = true;
+			}
+		}
+
+		if (modified)
+			m_handler->engineTriggerEngine(this);
+
+		return {};
+	}
 
 	if (m_config.gameState != ConquestConfig::StatePrepare && m_config.gameState != ConquestConfig::StatePlay)
 		return {
@@ -481,16 +520,22 @@ QJsonObject ConquestEngine::cmdPlay(WebSocketStream *stream, const QJsonObject &
 
 
 	int w = 0;
+	bool modified = false;
 
 	for (auto &p : m_players) {
-		if (p.stream == stream)
+		if (p.stream == stream) {
 			p.prepared = true;
-		else if (!p.prepared)
+			modified = true;
+		} else if (!p.prepared)
 			++w;
 	}
 
 	if (w) {
 		LOG_CTRACE("engine") << "Wait for" << w << "players to be prepared";
+
+		if (modified)
+			m_handler->engineTriggerEngine(this);
+
 		return {
 			{ QStringLiteral("wait"), w }
 		};
@@ -638,7 +683,7 @@ void ConquestEngine::timerTick()
 
 void ConquestEngine::triggerEvent()
 {
-	LOG_CINFO("engine") << "Stream trigger" << this << currentTick();
+	LOG_CTRACE("engine") << "Stream trigger" << this << currentTick();
 
 	QMutexLocker locker(&m_engineMutex);
 
@@ -1212,6 +1257,7 @@ void ConquestEngine::engineBackup()
 	ret.insert(QStringLiteral("users"), players);
 
 	ret.insert(QStringLiteral("questionArray"), m_question->array());
+	ret.insert(QStringLiteral("adjacency"), ConquestWorldHelper::adjacencyToJson(m_config.world.adjacencyMatrix));
 
 #ifdef QT_NO_DEBUG
 	const QByteArray &content = QJsonDocument(ret).toJson(QJsonDocument::Compact);
@@ -1243,6 +1289,10 @@ bool ConquestEngine::engineRestore(const QJsonObject &data)
 
 	ConquestConfig c;
 	c.fromJson(data);
+
+	ConquestWorldHelper::adjacencyToMatrix(data.value(QStringLiteral("adjacency")).toObject(),
+										   &c.world.adjacencyMatrix);
+
 	setConfig(c);
 
 	setOwner(data.value(QStringLiteral("owner")).toString());
@@ -2286,7 +2336,7 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 					return false;
 				}
 
-				if (land.fortress == -1) {
+				if (land.fortress <= 0) {
 					m_config.landSwapPlayer(turn.pickedId, &*ptrNew,
 											ptrOld == m_players.end() ? nullptr : &*ptrOld,
 											answerOpposite && answerOpposite->success);
@@ -2306,7 +2356,7 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 			} else {
 				turn.answerState = ConquestTurn::AnswerPlayerLost;
 
-				if (ptrOld != m_players.end())
+				if (ptrOld != m_players.end() && answerOpposite && answerOpposite->success)
 					m_config.landDefended(turn.pickedId, &*ptrOld);
 			}
 
@@ -2353,7 +2403,7 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 
 	if (subStage) {
 		if (!checkOtherPlayerAvailable()) {
-			LOG_CINFO("engine") << "GAME FINSIHED: NO MORE LAND";
+			LOG_CTRACE("engine") << "ConquestGame finished: no more lands" << m_id;
 			gameFinish(false);
 			return true;
 		}
@@ -2384,11 +2434,11 @@ bool ConquestEngine::nextBattle(const bool &subStage, const bool &isLastRound)
 
 			return true;
 		} else if (isLastRound) {
-			LOG_CINFO("engine") << "GAME FINSIHED SUCCESSFUL";
+			LOG_CTRACE("engine") << "ConquestGame finished successful" << m_id;
 			gameFinish(false);
 			return true;
 		} else {
-			LOG_CINFO("engine") << "GAME LAST ROUND";
+			LOG_CTRACE("engine") << "ConquestGame last round" << m_id;
 			m_config.currentStage = ConquestTurn::StageLastRound;
 			m_config.currentTurn = -1;
 			m_config.turnList.clear();
@@ -2504,6 +2554,17 @@ bool ConquestEngine::checkOtherPlayerAvailable()
 	}
 
 	return false;
+}
+
+
+
+/**
+ * @brief ConquestEngine::resetPlayers
+ */
+
+void ConquestEngine::resetPlayers()
+{
+
 }
 
 

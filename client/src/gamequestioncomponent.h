@@ -50,18 +50,26 @@ class GameQuestionComponent : public QQuickItem
 
 	Q_PROPERTY(QVariantMap questionData READ questionData NOTIFY questionDataChanged)
 	Q_PROPERTY(GameQuestion *question READ question WRITE setQuestion NOTIFY questionChanged)
-	Q_PROPERTY(bool toggleMode READ toggleMode NOTIFY toggleModeChanged)
+	Q_PROPERTY(ToggleMode toggleMode READ toggleMode NOTIFY toggleModeChanged)
 	Q_PROPERTY(QVariantMap storedAnswer READ storedAnswer NOTIFY storedAnswerChanged)
 
 public:
 	GameQuestionComponent(QQuickItem *parent = nullptr);
 	virtual ~GameQuestionComponent();
 
+	enum ToggleMode {
+		ToggleNone,					// nem mutatja a választ (pl. feladatmegoldás)
+		ToggleSelect,				// későbbi beküldéshez mutatja a választ (pl. teszt)
+		ToggleFeedback				// beküldi+mutatja a választ (pl. multiplayer)
+	};
+
+	Q_ENUM(ToggleMode)
+
 	QVariantMap questionData() const;
 
 	GameQuestion *question() const;
 	void setQuestion(GameQuestion *newQuestion);
-	bool toggleMode() const;
+	ToggleMode toggleMode() const;
 
 	QVariantMap storedAnswer() const;
 

@@ -27,8 +27,8 @@ Item {
 
 
 	ConquestFortress {
-		width: 150
-		height: 150
+		width: 110
+		height: 110
 
 		anchors.centerIn: parent
 
@@ -46,8 +46,9 @@ Item {
 
 		text: landData ? landData.xp : ""
 		visible: (_pickable || _picked) && landData && landData.game &&
-				 landData.game.config.currentStage === ConquestTurn.StageBattle &&
-				 landData.fortress == -1
+				 (landData.game.config.currentStage === ConquestTurn.StageBattle ||
+				  landData.game.config.currentStage === ConquestTurn.StageLastRound) &&
+				 landData.fortress <= 0
 		color: Qaterial.Colors.cyan200
 	}
 

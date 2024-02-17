@@ -216,5 +216,6 @@
         <file>ConquestWorldSelect.qml</file>
         <file>ConquestError.qml</file>
         <file>ConquestFortress.qml</file>
+        <file>ConquestFinishInfo.qml</file>
     </qresource>
 </RCC>

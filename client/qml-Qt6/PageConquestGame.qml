@@ -12,10 +12,25 @@ Page {
 	property ConquestGame game: null
 
 
-	///////property string closeQuestion: _mapVisible ? qsTr("Biztosan kilépsz a játékból?") : ""
+	property string closeQuestion: _mapVisible ? qsTr("Biztosan kilépsz a játékból?") : ""
 	property var onPageClose: function() { if (game) game.gameAbort() }
 
-	property bool _mapVisible: game && (game.config.gameState == ConquestConfig.StatePlay || game.config.gameState == ConquestConfig.StatePrepare)
+	property var stackPopFunction: function() {
+		if (game && game.config.gameState == ConquestConfig.StateFinished && _stack.activeComponent == _cmpScene) {
+			game.sendWebSocketMessage({
+										  cmd: "prepare",
+										  engine: game.engineId,
+										  unprepare: true
+									  })
+			_isUnprepared = true
+			return false
+		}
+
+		return true
+	}
+
+	readonly property bool _mapVisible: game && (game.config.gameState == ConquestConfig.StatePlay || game.config.gameState == ConquestConfig.StatePrepare)
+	property bool _isUnprepared: false
 
 	Image {
 		anchors.fill: parent
@@ -29,13 +44,17 @@ Page {
 		id: _stack
 		anchors.fill: parent
 
-		property Component activeComponent: {
+		readonly property Component activeComponent: {
 			if (!game)
+				return _cmpConnect
+
+			if (game.config.gameState == ConquestConfig.StateFinished && _isUnprepared)
 				return _cmpConnect
 
 			switch (game.config.gameState) {
 			case ConquestConfig.StatePrepare:
 			case ConquestConfig.StatePlay:
+			case ConquestConfig.StateFinished:
 				return _cmpScene
 
 			case ConquestConfig.StateError:
@@ -73,7 +92,8 @@ Page {
 
 		ConquestScene {
 			game: root.game
-			playerRowLeftMargin: _backButton.x+_backButton.width + 5*Qaterial.Style.pixelSizeRatio
+
+			StackView.onActivated: _isUnprepared = false
 		}
 	}
 
@@ -86,26 +106,18 @@ Page {
 	}
 
 
-	GameButton {
+	Qaterial.AppBarButton
+	{
 		id: _backButton
-		size: 25
-
 		anchors.left: parent.left
-		anchors.leftMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
+		anchors.leftMargin: Client.safeMarginLeft
 		anchors.top: parent.top
-		anchors.topMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginTop)
+		anchors.topMargin: Client.safeMarginTop
+		icon.source: Qaterial.Icons.arrowLeft
 
-		color: Qaterial.Colors.red800
-		border.color: "white"
-		border.width: 1
+		visible: _stack.activeComponent != _cmpScene
 
-		fontImage.icon: Qaterial.Icons.close
-		fontImage.color: "white"
-		fontImageScale: 0.7
-
-		onClicked: {
-			Client.stackPop()
-		}
+		onClicked: Client.stackPop()
 	}
 
 	Connections {
@@ -115,5 +127,10 @@ Page {
 			if (game.hostMode == ConquestGame.ModeHost)
 				Client.snack(qsTr("Te vagy a host"))
 		}
+	}
+
+	StackView.onRemoved: {
+		if (game)
+			game.stopMenuBgMusic()
 	}
 }

@@ -26,7 +26,7 @@ Rectangle {
 	border.width: 2
 	border.color: game && playerId != -1 && game.currentTurn.player === playerId &&
 		   (game.currentStage == ConquestTurn.StageBattle || game.currentStage == ConquestTurn.StageLastRound) ?
-			   _playerColor :
+			   Qt.lighter(_playerColor, 2.0) :
 			   "transparent"
 
 	color: game && playerId != -1 && game.currentTurn.player === playerId &&
@@ -107,7 +107,7 @@ Rectangle {
 				rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 			}
 
-			Qaterial.Icon {
+			/*Qaterial.Icon {
 				anchors.verticalCenter: parent.verticalCenter
 				icon: Qaterial.Icons.fire
 				color: Qaterial.Colors.orange500
@@ -120,7 +120,7 @@ Rectangle {
 				text: streak
 				color: Qaterial.Colors.orange500
 				rightPadding: 5 * Qaterial.Style.pixelSizeRatio
-			}
+			}*/
 
 
 			Qaterial.LabelCaption {

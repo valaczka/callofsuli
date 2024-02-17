@@ -197,11 +197,11 @@ QColor ConquestGame::getPlayerColor(const int &id) const
 
 void ConquestGame::gameAbort()
 {
-	setFinishState(Neutral);
+	setFinishState(Fail);
 
 	LOG_CINFO("game") << "Game aborted:" << this;
 
-	emit gameFinished(Neutral);
+	emit gameFinished(Fail);
 }
 
 
@@ -421,8 +421,17 @@ void ConquestGame::onConfigChanged()
 	if (m_config.gameState == ConquestConfig::StateInvalid)
 		return;
 
-	if (m_config.gameState == ConquestConfig::StatePlay && m_oldGameState != ConquestConfig::StatePlay)
+	if (m_config.gameState == ConquestConfig::StatePlay && m_oldGameState != ConquestConfig::StatePlay) {
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yourself.mp3"), Sound::VoiceoverChannel);
+		m_client->sound()->playSound(backgroundMusic(), Sound::MusicChannel);
+	}
+
+	if (m_config.gameState == ConquestConfig::StateFinished && m_oldGameState != ConquestConfig::StateFinished) {
+		m_client->sound()->stopMusic();
+		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/win.mp3"), Sound::VoiceoverChannel);
+		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
+	}
 
 	m_oldGameState = m_config.gameState;
 
@@ -436,6 +445,7 @@ void ConquestGame::onConfigChanged()
 		if (idx != -1)
 			land->loadFromConfig(m_config.world.landList[idx]);
 	}
+
 }
 
 
@@ -486,6 +496,8 @@ void ConquestGame::cmdState(const QJsonObject &data)
 	Utils::patchSListModel(m_playersModel.get(), data.value(QStringLiteral("users")).toArray().toVariantList(),
 						   QStringLiteral("playerId"));
 
+	emit playersModelChanged();
+
 	if (data.contains(QStringLiteral("playerId")))
 		setPlayerId(data.value(QStringLiteral("playerId")).toInt());
 
@@ -534,9 +546,11 @@ void ConquestGame::cmdConnect(const QJsonObject &data)
 	setEngineId(data.value(QStringLiteral("engine")).toInt(-1));
 	//m_client->snack(tr("Engine %1 connected").arg(m_engineId));
 
-	if (data.contains(QStringLiteral("users")))
+	if (data.contains(QStringLiteral("users"))) {
 		Utils::patchSListModel(m_playersModel.get(), data.value(QStringLiteral("users")).toArray().toVariantList(),
 							   QStringLiteral("playerId"));
+		emit playersModelChanged();
+	}
 }
 
 
@@ -1153,10 +1167,12 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 		LOG_CDEBUG("game") << "Reveal question";
 		revealQuestion();
 
-		if (idx != -1)
-			setFighter2Fortress(m_config.world.landList.at(idx).fortress);
-		else if (m_fighter2Fortress > 0 && m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin)
-			setFighter2Fortress(m_fighter2Fortress-1);
+		if (m_fighter2Fortress > 0) {
+			if (idx != -1)
+				setFighter2Fortress(m_config.world.landList.at(idx).fortress);
+			else if (m_currentTurn.answerState == ConquestTurn::AnswerPlayerWin)
+				setFighter2Fortress(m_fighter2Fortress-1);
+		}
 
 		return;
 	}
@@ -1188,7 +1204,7 @@ void ConquestGame::setCurrentTurn(const ConquestTurn &newCurrentTurn)
 		setFighter1(f1);
 		setFighter2(f2);
 
-		if (idx != -1)
+		if (idx != -1 && m_config.world.landList.at(idx).fortress > 0)
 			setFighter2Fortress(m_config.world.landList.at(idx).fortress);
 		else
 			setFighter2Fortress(-1);
@@ -1388,6 +1404,26 @@ QString ConquestGame::playerCharacter(const int &id) const
 		return QStringLiteral("");
 	else
 		return m_playersModel->storage().at(idx).toMap().value(QStringLiteral("character")).toString();
+}
+
+
+/**
+ * @brief ConquestGame::playMenuBgMusic
+ */
+
+void ConquestGame::playMenuBgMusic()
+{
+	m_client->sound()->playSound(QStringLiteral("qrc:/sound/menu/bg.mp3"), Sound::MusicChannel);
+}
+
+
+/**
+ * @brief ConquestGame::stopMenuBgMusic
+ */
+
+void ConquestGame::stopMenuBgMusic()
+{
+	m_client->sound()->stopMusic();
 }
 
 

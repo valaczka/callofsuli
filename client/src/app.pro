@@ -93,6 +93,11 @@ win32 {
 android {
 	androidCodeApi = 0
 
+	equals(QT_ARCH, armeabi-v7a): androidCodeApi = 100000
+	else:equals(QT_ARCH, arm64-v8a): androidCodeApi = 200000
+	else:equals(QT_ARCH, x86): androidCodeApi = 300000
+	else:equals(QT_ARCH, x86_64): androidCodeApi = 400000
+
 	lessThan(QT_MAJOR_VERSION, 6) {
 		QT += androidextras
 
@@ -106,6 +111,8 @@ android {
 		ANDROID_MIN_SDK_VERSION = 21
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+		androidCodeApi = $$num_add($$androidCodeApi,21000)
 	} else {
 		QT += concurrent
 
@@ -119,11 +126,6 @@ android {
 		ANDROID_MIN_SDK_VERSION = 26
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
-
-		equals(QT_ARCH, armeabi-v7a): androidCodeApi = 100000
-		else:equals(QT_ARCH, arm64-v8a): androidCodeApi = 200000
-		else:equals(QT_ARCH, x86): androidCodeApi = 300000
-		else:equals(QT_ARCH, x86_64): androidCodeApi = 400000
 
 		androidCodeApi = $$num_add($$androidCodeApi,26000)
 	}

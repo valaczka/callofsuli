@@ -194,6 +194,7 @@ private:
 	QStringList getPickableLands(const int &playerId);
 	void checkAndRemovePlayersTurns();
 	bool checkOtherPlayerAvailable();
+	void resetPlayers();
 
 
 	WebSocketStream *m_hostStream = nullptr;

@@ -345,6 +345,7 @@ public:
 		, winner(false)
 		, hp(0)
 		, streak(0)
+		, success(false)
 	{}
 	ConquestPlayer(const int &_id) : ConquestPlayer(_id, QStringLiteral("")) {}
 	ConquestPlayer() : ConquestPlayer(-1) {}
@@ -359,8 +360,19 @@ public:
 				c1.winner == c2.winner &&
 				c1.fullNickName == c2.fullNickName &&
 				c1.hp == c2.hp &&
-				c1.streak == c2.streak
+				c1.streak == c2.streak &&
+				c1.success == c2.success
 				;
+	}
+
+	void reset() {
+		prepared = false;
+		xp = 0;
+		elapsed = 0;
+		winner = false;
+		hp = 0;
+		streak = 0;
+		success = false;
 	}
 
 	QS_SERIALIZABLE
@@ -375,6 +387,7 @@ public:
 	QS_FIELD(QString, fullNickName)
 	QS_FIELD(int, hp)
 	QS_FIELD(int, streak)
+	QS_FIELD(bool, success)
 };
 
 
@@ -453,6 +466,7 @@ public:
 	int getPickedLandProprietor(const int &turn) const;
 	bool checkPlayerLands(const int &playerId) const;
 	void removePlayerFromNextTurns(const int &playerId);
+	bool playerResult(const ConquestPlayer &player) const;
 
 	void reset() {
 		gameState = StateInvalid;
@@ -513,6 +527,7 @@ public:
 		playerCount(0)
 	{}
 
+	static QJsonObject adjacencyToJson(const QHash<QString, QStringList> &matrix);
 	static void adjacencyToMatrix(const QJsonObject &data, QHash<QString, QStringList> *dst);
 	QHash<QString, QStringList> adjacencyToMatrix() const {
 		QHash<QString, QStringList> matrix;
@@ -527,6 +542,23 @@ public:
 	QS_FIELD(QJsonObject, adjacency)
 };
 
+
+/**
+ * @brief ConquestWorldHelper::adjacencyToJson
+ * @param matrix
+ * @return
+ */
+
+inline QJsonObject ConquestWorldHelper::adjacencyToJson(const QHash<QString, QStringList> &matrix)
+{
+	QJsonObject obj;
+
+	for (auto it = matrix.constBegin(); it != matrix.constEnd(); ++it) {
+		obj.insert(it.key(), QJsonArray::fromStringList(it.value()));
+	}
+
+	return obj;
+}
 
 /**
  * @brief ConquestWorldHelper::adjacencyToMatrix
@@ -847,6 +879,27 @@ inline void ConquestConfig::removePlayerFromNextTurns(const int &playerId)
 		if (it->player == playerId)
 			it->player = -1;
 	}
+}
+
+
+/**
+ * @brief ConquestConfig::playerResult
+ * @param player
+ * @return
+ */
+
+inline bool ConquestConfig::playerResult(const ConquestPlayer &player) const
+{
+	if (player.hp <= 0)
+		return false;
+
+	if (gameState != ConquestConfig::StateFinished)
+		return false;
+
+	if (!checkPlayerLands(player.playerId))
+		return false;
+
+	return true;
 }
 
 

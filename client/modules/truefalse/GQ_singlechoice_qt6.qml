@@ -19,8 +19,8 @@ GameQuestionComponentImpl {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		buttons: control.toggleMode
-		buttonOkEnabled: control.toggleMode && selectedButtonIndex != -1
+		buttons: control.toggleMode == GameQuestionComponentImpl.ToggleSelect
+		buttonOkEnabled: control.toggleMode == GameQuestionComponentImpl.ToggleSelect && selectedButtonIndex != -1
 
 		title: questionData.question
 
@@ -54,14 +54,19 @@ GameQuestionComponentImpl {
 					text: modelData
 					width: Math.max(implicitWidth, containerItem.buttonMinWidth)
 
-					buttonType: control.toggleMode ?
+					buttonType: control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+								control.toggleMode == GameQuestionComponentImpl.ToggleFeedback ?
 									(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :
 									GameQuestionButton.Neutral
 
 					onClicked: {
-						if (control.toggleMode) {
+						if (control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+								control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
 							control.selectedButtonIndex = index
-						} else {
+						}
+
+						if (control.toggleMode == GameQuestionComponentImpl.ToggleNone ||
+								control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
 							answer(index)
 						}
 					}
@@ -99,22 +104,24 @@ GameQuestionComponentImpl {
 
 
 	Keys.onPressed: event => {
-		var key = event.key
+						var key = event.key
 
-		if (toggleMode) {
-			if (selectedButtonIndex != -1 && (key === Qt.Key_Return || key === Qt.Key_Enter))
-				answer(selectedButtonIndex)
-			else if (key === Qt.Key_I || key === Qt.Key_Y)
-				selectedButtonIndex = 1
-			else if (key === Qt.Key_N || key === Qt.Key_H)
-				selectedButtonIndex = 0
-		} else {
-			if (key === Qt.Key_Return || key === Qt.Key_Enter || key === Qt.Key_I || key === Qt.Key_Y)
-				answer(1)
-			else if (key === Qt.Key_N || key === Qt.Key_H)
-				answer(0)
-		}
-	}
+						if (control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+							control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
+							if (key === Qt.Key_I || key === Qt.Key_Y)
+							selectedButtonIndex = 1
+							else if (key === Qt.Key_N || key === Qt.Key_H)
+							selectedButtonIndex = 0
+						}
+
+						if (control.toggleMode == GameQuestionComponentImpl.ToggleNone ||
+							control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
+							if (key === Qt.Key_I || key === Qt.Key_Y)
+							answer(1)
+							else if (key === Qt.Key_N || key === Qt.Key_H)
+							answer(0)
+						}
+					}
 
 
 }

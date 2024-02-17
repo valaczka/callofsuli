@@ -14,7 +14,8 @@ Rectangle {
 
 	readonly property int _answerState: game ? game.currentTurn.answerState : ConquestTurn.AnswerPending
 
-	visible: game && game.fighter1.playerId !== -1 && game.fighter2.playerId !== -1
+	visible: game && game.fighter1.playerId !== -1 && game.fighter2.playerId !== -1 &&
+			 game.config.gameState !== ConquestConfig.StateFinished
 	radius: 5
 
 	implicitHeight: _row.implicitHeight + 80 * Qaterial.Style.pixelSizeRatio
@@ -88,6 +89,15 @@ Rectangle {
 		target: game
 
 		function onCurrentTurnChanged() {
+
+			if (game.currentTurn.subStage !== ConquestTurn.SubStageWait) {
+				_fighter1.answerMsec = 0
+				_fighter2.answerMsec = 0
+				_fighter1.answerState = ConquestBattleInfoPlayer.AnswerInvalid
+				_fighter2.answerState = ConquestBattleInfoPlayer.AnswerInvalid
+				return
+			}
+
 			let ms1 = 0
 			let ms2 = 0
 			let s1 = false

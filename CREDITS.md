@@ -1,6 +1,5 @@
 **Library**
 
-- Vince's CSV Parser - (c) 2017-2019 Vincent La (https://github.com/vincentlaucsb/csv-parser)
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)
 - David Robert Nadeau (http://NadeauSoftware.com)
 - HttpServer - (c) 2019 Addison Elliott (https://github.com/addisonElliott/HttpServer)
@@ -25,6 +24,7 @@
 - SortFilterProxyModel - (c) 2016 Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
 - Tar to stream - (c) 2023 Armchair-Software (https://github.com/Armchair-Software/tar_to_stream)
 - Tiled - Thorbjørn Lindeijer (https://github.com/mapeditor/tiled)
+- Vince's CSV Parser - (c) 2017-2019 Vincent La (https://github.com/vincentlaucsb/csv-parser)
 
 **Image & Animation**
 

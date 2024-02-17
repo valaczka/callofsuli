@@ -763,29 +763,39 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 	const QString &username = credential.username();
 	UserGame g;
 
-	LAMBDA_THREAD_BEGIN(username, id, &g);
+	////LAMBDA_THREAD_BEGIN(username, id, &g);
 
-	QueryBuilder qq(db);
+	QDefer ret;
+	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);
 
-	qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid FROM game "
-				"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
-				"LEFT JOIN campaign ON (campaign.id=game.campaignid) "
-				"WHERE runningGame.gameid=game.id AND game.id=").addValue(id)
-			.addQuery(" AND username=").addValue(username);
+	databaseMainWorker()->execInThread([&response, ret, this, username, id, &g]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+		QMutexLocker _locker(databaseMain()->mutex());
 
-	LAMBDA_SQL_ASSERT(qq.exec());
+		QueryBuilder qq(db);
 
-	LAMBDA_SQL_ERROR("invalid game", qq.sqlQuery().first());
+		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid FROM game "
+					"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
+					"LEFT JOIN campaign ON (campaign.id=game.campaignid) "
+					"WHERE runningGame.gameid=game.id AND game.id=").addValue(id)
+				.addQuery(" AND username=").addValue(username);
 
-	g.map = qq.value("mapid").toString();
-	g.mission = qq.value("missionid").toString();
-	g.level = qq.value("level").toInt();
-	g.deathmatch = qq.value("deathmatch").toBool();
-	g.mode = qq.value("mode").value<GameMap::GameMode>();
-	g.campaign = qq.value("campaignid", -1).toInt();
+		LAMBDA_SQL_ASSERT(qq.exec());
 
-	LAMBDA_THREAD_END;
+		LAMBDA_SQL_ERROR("invalid game", qq.sqlQuery().first());
 
+		g.map = qq.value("mapid").toString();
+		g.mission = qq.value("missionid").toString();
+		g.level = qq.value("level").toInt();
+		g.deathmatch = qq.value("deathmatch").toBool();
+		g.mode = qq.value("mode").value<GameMap::GameMode>();
+		g.campaign = qq.value("campaignid", -1).toInt();
+
+		///LAMBDA_THREAD_END;				/// Nem lehet!!!
+
+		ret.resolve();
+	});
+	QDefer::await(ret);
 
 	const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
 	const QJsonArray &statistics = json.value(QStringLiteral("statistics")).toArray();

@@ -132,7 +132,7 @@ GameQuestionComponentImpl {
 			if (!d.currentDrag) {
 				success = false
 
-				if (!toggleMode)
+				if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 					d.showAsError = true
 
 				a.answer = ""
@@ -148,12 +148,12 @@ GameQuestionComponentImpl {
 
 				if (t === c) {
 					a.success = true
-					if (!toggleMode)
-					d.currentDrag.buttonType = GameQuestionButton.Correct
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
+						d.currentDrag.buttonType = GameQuestionButton.Correct
 				} else {
 					a.success = false
-					if (!toggleMode)
-					d.currentDrag.buttonType = GameQuestionButton.Wrong
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
+						d.currentDrag.buttonType = GameQuestionButton.Wrong
 					success = false
 				}
 			}
@@ -168,10 +168,10 @@ GameQuestionComponentImpl {
 	}
 
 	Keys.onPressed: event => {
-		var key = event.key
+						var key = event.key
 
-		if (key === Qt.Key_Return || key === Qt.Key_Enter)
-			titleRow.buttonOkClicked()
-	}
+						if (key === Qt.Key_Return || key === Qt.Key_Enter)
+						titleRow.buttonOkClicked()
+					}
 }
 

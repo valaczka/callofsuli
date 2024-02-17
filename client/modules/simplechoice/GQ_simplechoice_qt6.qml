@@ -25,8 +25,8 @@ GameQuestionComponentImpl {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		buttons: control.toggleMode
-		buttonOkEnabled: control.toggleMode && selectedButtonIndex != -1
+		buttons: control.toggleMode == GameQuestionComponentImpl.ToggleSelect
+		buttonOkEnabled: control.toggleMode == GameQuestionComponentImpl.ToggleSelect && selectedButtonIndex != -1
 
 		title: questionData.question
 
@@ -119,14 +119,19 @@ GameQuestionComponentImpl {
 			text: modelData
 			width: grid.width
 
-			buttonType: control.toggleMode ?
+			buttonType: control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+						control.toggleMode == GameQuestionComponentImpl.ToggleFeedback ?
 							(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :
 							GameQuestionButton.Neutral
 
 			onClicked: {
-				if (control.toggleMode) {
+				if (control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+						control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
 					control.selectedButtonIndex = index
-				} else {
+				}
+
+				if (control.toggleMode == GameQuestionComponentImpl.ToggleNone ||
+						control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
 					answer(index)
 				}
 			}
@@ -161,14 +166,19 @@ GameQuestionComponentImpl {
 
 			display: AbstractButton.IconOnly
 
-			buttonType: control.toggleMode ?
+			buttonType: control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+						control.toggleMode == GameQuestionComponentImpl.ToggleFeedback ?
 							(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :
 							GameQuestionButton.Neutral
 
 			onClicked: {
-				if (control.toggleMode) {
+				if (control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+						control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
 					control.selectedButtonIndex = index
-				} else {
+				}
+
+				if (control.toggleMode == GameQuestionComponentImpl.ToggleNone ||
+						control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
 					answer(index)
 				}
 			}
@@ -202,36 +212,42 @@ GameQuestionComponentImpl {
 
 
 	Keys.onPressed: event => {
-		var key = event.key
+						var key = event.key
 
-		if (toggleMode && selectedButtonIndex != -1 && (key === Qt.Key_Return || key === Qt.Key_Enter)) {
-			titleRow.buttonOkClicked()
-			return
-		}
+						if ((control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+							 control.toggleMode == GameQuestionComponentImpl.ToggleFeedback) &&
+							selectedButtonIndex != -1 && (key === Qt.Key_Return || key === Qt.Key_Enter)) {
+							titleRow.buttonOkClicked()
+							return
+						}
 
-		var n = -1
+						var n = -1
 
-		if (key === Qt.Key_1 || key === Qt.Key_A)
-			n = 0
-		else if (key === Qt.Key_2 || key === Qt.Key_B)
-			n = 1
-		else if (key === Qt.Key_3 || key === Qt.Key_C)
-			n = 2
-		else if (key === Qt.Key_4 || key === Qt.Key_D)
-			n = 3
-		else if (key === Qt.Key_5 || key === Qt.Key_E)
-			n = 4
-		else if (key === Qt.Key_6 || key === Qt.Key_F)
-			n = 5
+						if (key === Qt.Key_1 || key === Qt.Key_A)
+						n = 0
+						else if (key === Qt.Key_2 || key === Qt.Key_B)
+						n = 1
+						else if (key === Qt.Key_3 || key === Qt.Key_C)
+						n = 2
+						else if (key === Qt.Key_4 || key === Qt.Key_D)
+						n = 3
+						else if (key === Qt.Key_5 || key === Qt.Key_E)
+						n = 4
+						else if (key === Qt.Key_6 || key === Qt.Key_F)
+						n = 5
 
-		if (n < 0)
-			return
+						if (n < 0)
+						return
 
-		if (toggleMode) {
-			selectedButtonIndex = n
-		} else {
-			answer(n)
-		}
-	}
+						if (toggleMode == GameQuestionComponentImpl.ToggleSelect ||
+							toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
+							selectedButtonIndex = n
+						}
+
+						if (toggleMode == GameQuestionComponentImpl.ToggleNone ||
+							toggleMode == GameQuestionComponentImpl.ToggleFeedback) {
+							answer(n)
+						}
+					}
 }
 

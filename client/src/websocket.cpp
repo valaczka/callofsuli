@@ -355,6 +355,7 @@ void WebSocket::reconnect()
 		m_socket = std::make_unique<QWebSocket>();
 		m_state = WebSocketReset;
 
+#ifndef QT_NO_SSL
 		if (server && !server->certificate().isEmpty()) {
 			QSslCertificate cert(server->certificate(), QSsl::Pem);
 
@@ -370,7 +371,7 @@ void WebSocket::reconnect()
 				m_socket->ignoreSslErrors(ignoredErrors);
 			}
 		}
-
+#endif
 
 		//QObject::connect(m_socket.get(), &QWebSocket::destroyed, this, [this](){ qDebug() << "******" << sender(); });
 

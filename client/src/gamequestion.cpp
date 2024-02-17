@@ -453,15 +453,19 @@ GameMap::GameMode GameQuestion::gameMode() const
  * @return
  */
 
-bool GameQuestion::toggleMode() const
+GameQuestionComponent::ToggleMode GameQuestion::toggleMode() const
 {
 	switch (gameMode()) {
 		case GameMap::GameMode::Exam:
 		case GameMap::GameMode::Quiz:
 		case GameMap::GameMode::Test:
-			return true;
+			return GameQuestionComponent::ToggleSelect;
+
+		case GameMap::GameMode::Conquest:
+			return GameQuestionComponent::ToggleFeedback;
+
 		default:
-			return false;
+			return GameQuestionComponent::ToggleNone;
 	}
 }
 

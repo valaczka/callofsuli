@@ -124,7 +124,7 @@ GameQuestionComponentImpl {
 			if (!d.currentDrag) {
 				success = false
 
-				if (!toggleMode)
+				if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 					d.showAsError = true
 
 				a.answer = -1
@@ -142,11 +142,11 @@ GameQuestionComponentImpl {
 
 				if (s) {
 					a.success = true
-					if (!toggleMode)
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 						d.currentDrag.buttonType = GameQuestionButton.Correct
 				} else {
 					a.success = false
-					if (!toggleMode)
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 						d.currentDrag.buttonType = GameQuestionButton.Wrong
 					success = false
 				}

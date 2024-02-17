@@ -14,8 +14,6 @@ Rectangle {
 	property ConquestGame game: null
 	property bool pushMapDown: false
 
-	property alias playerRowLeftMargin: _playerRow.anchors.leftMargin
-
 
 	color: Qaterial.Colors.black
 
@@ -68,15 +66,36 @@ Rectangle {
 
 	Row {
 		id: _playerRow
+
 		anchors.left: parent.left
+		anchors.leftMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
 		anchors.top: parent.top
-		anchors.topMargin: 2
+		anchors.topMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginTop)
 
 		spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 		readonly property real _itemWidth: Math.min((root.width -x -Client.safeMarginRight)/
 													Math.max((game ? game.playersModel.count : 1), 1),
 													250 * Qaterial.Style.pixelSizeRatio)
+
+
+		GameButton {
+			size: 25
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: Qaterial.Colors.red800
+			border.color: "white"
+			border.width: 1
+
+			fontImage.icon: Qaterial.Icons.close
+			fontImage.color: "white"
+			fontImageScale: 0.7
+
+			onClicked: {
+				Client.stackPop()
+			}
+		}
 
 		Repeater {
 			model: SortFilterProxyModel {
@@ -101,6 +120,10 @@ Rectangle {
 			delegate: ConquestPlayerItem {
 				id: _cpItem
 				width: _playerRow._itemWidth - _playerRow.spacing
+				anchors.verticalCenter: parent.verticalCenter
+
+				visible: game && game.config.gameState !== ConquestConfig.StateFinished
+
 				username: model.username
 				character: model.character
 				fullNickName: model.fullNickName
@@ -111,6 +134,60 @@ Rectangle {
 				game: root.game
 				targetFighter1: _battleRow.itemFighter1
 				targetFighter2: _battleRow.itemFighter2
+			}
+		}
+	}
+
+
+
+	GameButton {
+		id: _setttingsButton
+		size: 30
+
+		anchors.right: parent.right
+		anchors.rightMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
+		anchors.top: (_playerRow.x+_playerRow.width >= x) ? _playerRow.bottom : parent.top
+		anchors.topMargin: (_playerRow.x+_playerRow.width >= x) ?
+							   5 * Qaterial.Style.pixelSizeRatio :
+							   Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginTop)
+
+
+		color: Qaterial.Colors.white
+		border.color: fontImage.color
+		border.width: 2
+
+		fontImage.icon: Qaterial.Icons.cog
+		fontImage.color: Qaterial.Colors.blueGray600
+		fontImageScale: 0.7
+
+		onClicked: {
+			Qaterial.DialogManager.openFromComponent(_settingsDialog)
+		}
+	}
+
+	Component {
+		id: _settingsDialog
+		Qaterial.ModalDialog
+		{
+
+			dialogImplicitWidth: 400 * Qaterial.Style.pixelSizeRatio
+
+			horizontalPadding: 0
+			bottomPadding: 1
+			drawSeparator: true
+
+			title: qsTr("Beállítások")
+
+			standardButtons: DialogButtonBox.Close
+			contentItem: QScrollable {
+				leftPadding: 10 * Qaterial.Style.pixelSizeRatio
+				rightPadding: 10 * Qaterial.Style.pixelSizeRatio
+				topPadding: 5 * Qaterial.Style.pixelSizeRatio
+				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+
+				SettingsSound {
+					width: parent.width
+				}
 			}
 		}
 	}
@@ -158,7 +235,25 @@ Rectangle {
 		anchors.bottomMargin: Math.max(10 * Qaterial.Style.pixelSizeRatio, Client.safeMarginBottom)
 		anchors.rightMargin: Math.max(10 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
 		game: root.game
+
+		visible: game && game.config.gameState !== ConquestConfig.StateFinished
 	}
+
+
+	ConquestFinishInfo {
+		anchors.centerIn: parent
+		width: Math.min(implicitWidth, parent.width
+						- Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
+						- Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight))
+		height: Math.min(implicitHeight, parent.height
+						 - Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginTop)
+						 - Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginBottom))
+		game: root.game
+
+		visible: game && game.config.gameState === ConquestConfig.StateFinished
+	}
+
+
 
 	GameMessageList {
 		id: _messageList

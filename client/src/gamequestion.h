@@ -83,7 +83,7 @@ public:
 
 	GameMap::GameMode gameMode() const;
 
-	bool toggleMode() const;
+	GameQuestionComponent::ToggleMode toggleMode() const;
 
 	const QVariantMap &storedAnswer() const;
 	void setStoredAnswer(const QVariantMap &newStoredAnswer);

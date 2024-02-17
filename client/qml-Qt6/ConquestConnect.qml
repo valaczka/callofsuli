@@ -128,10 +128,18 @@ QScrollable {
 						sourceSize: Qt.size(width, height)
 						color: _player ? "transparent" : Qaterial.Style.disabledTextColor()
 					}
+
+					rightSourceComponent: Qaterial.BusyIndicator {
+						width: 24 * Qaterial.Style.pixelSizeRatio
+						height: 24 * Qaterial.Style.pixelSizeRatio
+						padding: 0
+						visible: _player && _player.prepared
+					}
 				}
 			}
 		}
 	}
+
 
 	QLabelInformative {
 		visible: _groupBoxCharacter.visible
@@ -232,9 +240,9 @@ QScrollable {
 			text: qsTr("Csapat elhagyása")
 			visible: game && game.engineId !== -1
 			onClicked: game.sendWebSocketMessage({
-										  cmd: "leave",
-										  engine: game.engineId
-									  })
+													 cmd: "leave",
+													 engine: game.engineId
+												 })
 			bgColor: Qaterial.Colors.red500
 			textColor: Qaterial.Colors.white
 		}
@@ -244,7 +252,20 @@ QScrollable {
 			text: qsTr("Play")
 			visible: game && game.hostMode == ConquestGame.ModeHost
 			enabled: game && game.hostMode == ConquestGame.ModeHost && game.engineId > 0 && game.playersModel.count > 1
-			onClicked: game.sendWebSocketMessage({"cmd": "start", "engine": game.engineId})
+			onClicked: {
+				let c = 0
+
+				for (let i=0; i<game.playersModel.count; ++i) {
+					let _p = game.playersModel.get(i)
+					if (_p.prepared)
+						++c
+				}
+
+				if (c>0)
+					Client.messageWarning(qsTr("%1 játékos még nem lépett ki a játékból").arg(c))
+				else
+					game.sendWebSocketMessage({"cmd": "start", "engine": game.engineId})
+			}
 			bgColor: Qaterial.Colors.green500
 			textColor: Qaterial.Colors.white
 		}
@@ -258,5 +279,10 @@ QScrollable {
 			if (game.engineId === -1)
 				_btnNewGroup.aboutToCreate = false
 		}
+	}
+
+	StackView.onActivated: {
+		if (game)
+			game.playMenuBgMusic()
 	}
 }

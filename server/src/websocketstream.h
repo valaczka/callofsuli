@@ -2,7 +2,6 @@
 #define WEBSOCKETSTREAM_H
 
 #include <QWebSocket>
-#include "Logger.h"
 #include "abstractengine.h"
 #include "credential.h"
 #include <QJsonObject>
@@ -102,7 +101,6 @@ template<typename T>
 T *WebSocketStream::engineGet(const AbstractEngine::Type &type, const int &id)
 {
 	for (const auto &e : m_engines) {
-		LOG_CTRACE("engine") << "--CHECK" << type << id << e.get() << e->type() << e->id();
 		if (e && e->type() == type && e->id() == id) {
 			return qobject_cast<T*>(e.get());
 		}

@@ -83,9 +83,9 @@ void GameQuestionComponent::setQuestion(GameQuestion *newQuestion)
  * @return
  */
 
-bool GameQuestionComponent::toggleMode() const
+GameQuestionComponent::ToggleMode GameQuestionComponent::toggleMode() const
 {
-	return m_question ? m_question->toggleMode() : false;
+	return m_question ? m_question->toggleMode() : ToggleNone;
 }
 
 QVariantMap GameQuestionComponent::storedAnswer() const

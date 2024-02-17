@@ -52,7 +52,7 @@ class ConquestGame : public AbstractLevelGame
 	Q_PROPERTY(QString worldBgImage READ worldBgImage WRITE setWorldBgImage NOTIFY worldBgImageChanged FINAL)
 	Q_PROPERTY(QString worldOverImage READ worldOverImage WRITE setWorldOverImage NOTIFY worldOverImageChanged FINAL)
 	Q_PROPERTY(QSListModel *engineModel READ engineModel CONSTANT FINAL)
-	Q_PROPERTY(QSListModel *playersModel READ playersModel CONSTANT FINAL)
+	Q_PROPERTY(QSListModel *playersModel READ playersModel NOTIFY playersModelChanged FINAL)
 	Q_PROPERTY(ConquestTurn currentTurn READ currentTurn WRITE setCurrentTurn NOTIFY currentTurnChanged FINAL)
 	Q_PROPERTY(ConquestTurn::Stage currentStage READ currentStage WRITE setCurrentStage NOTIFY currentStageChanged FINAL)
 	Q_PROPERTY(QQuickItem* messageList READ messageList WRITE setMessageList NOTIFY messageListChanged)
@@ -85,6 +85,9 @@ public:
 	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
 	Q_INVOKABLE qint64 currentTick() const { return m_tickTimer.currentTick(); }
 	Q_INVOKABLE QString playerCharacter(const int &id) const;
+
+	Q_INVOKABLE void playMenuBgMusic();
+	Q_INVOKABLE void stopMenuBgMusic();
 
 	int tickTimerInterval() const { return m_tickTimer.interval(); }
 
@@ -177,6 +180,7 @@ signals:
 	void worldOverImageChanged();
 	void worldListSelectChanged();
 	void fighter2FortressChanged();
+	void playersModelChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;

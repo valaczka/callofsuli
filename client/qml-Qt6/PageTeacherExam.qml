@@ -59,13 +59,6 @@ QPage {
 				roleName: "fullName"
 			}
 		]
-
-		proxyRoles: [		// FIX: wasm error
-			ExpressionRole {
-				name: "fullNamePending"
-				expression: model.fullName + (model.pendingCorrection.length ? qsTr("*") : "")
-			}
-		]
 	}
 
 	QScrollable {
@@ -521,7 +514,7 @@ QPage {
 
 				textColor: pendingCorrection.length || pendingGrade ? Qaterial.Style.accentColor : iconColorBase
 
-				text: fullNamePending
+				text: fullName + (pendingCorrection.length ? qsTr("*") : "")
 
 				rightSourceComponent: Row {
 					Column {

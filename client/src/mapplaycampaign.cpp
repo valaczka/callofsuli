@@ -167,7 +167,6 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		ConquestConfig c = conquestGame->config();
 		c.campaign = m_campaign->campaignid();
 		conquestGame->setConfig(c);
-		LOG_CERROR("game") << "CHGAME" << m_campaign->campaignid() << c.campaign << conquestGame->config().campaign;
 
 		conquestGame->load();
 		setGameState(StatePlay);
@@ -263,7 +262,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 	if (conquestGame) {
 		destroyCurrentGame();
-		setGameState(StateFinished);
+		setGameState(StateSelect);
 		return;
 	}
 

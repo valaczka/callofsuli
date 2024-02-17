@@ -40,7 +40,7 @@ GameQuestionComponentImpl {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		buttons: _control.toggleMode
+		buttons: _control.toggleMode == GameQuestionComponentImpl.ToggleSelect
 		buttonOkVisible: false
 
 		title: questionData.question
