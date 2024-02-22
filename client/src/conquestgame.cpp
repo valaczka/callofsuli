@@ -430,10 +430,12 @@ void ConquestGame::onConfigChanged()
 		m_client->sound()->stopMusic();
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/win.mp3"), Sound::VoiceoverChannel);
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
-		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
+		if (m_gameSuccess)
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
+		else
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
 	}
 
-	m_oldGameState = m_config.gameState;
 
 	if ((m_config.gameState == ConquestConfig::StatePrepare || m_config.gameState == ConquestConfig::StatePlay) &&
 			m_config.world.name != m_loadedWorld) {
@@ -445,6 +447,16 @@ void ConquestGame::onConfigChanged()
 		if (idx != -1)
 			land->loadFromConfig(m_config.world.landList[idx]);
 	}
+
+	if (m_config.gameState == ConquestConfig::StatePrepare && m_oldGameState != ConquestConfig::StatePrepare) {
+		sendWebSocketMessage(QJsonObject{
+								 { QStringLiteral("cmd"), QStringLiteral("prepare") },
+								 { QStringLiteral("engine"), m_engineId },
+								 { QStringLiteral("ready"), true }
+							 });
+	}
+
+	m_oldGameState = m_config.gameState;
 
 }
 
@@ -461,6 +473,7 @@ void ConquestGame::updatePlayer()
 		if (m.value(QStringLiteral("playerId")).toInt() == m_playerId) {
 			setXp(m.value(QStringLiteral("xp")).toInt());
 			setHp(m.value(QStringLiteral("hp")).toInt());
+			setGameSuccess(m.value(QStringLiteral("success")).toBool());
 
 			return;
 		}
@@ -512,14 +525,6 @@ void ConquestGame::cmdState(const QJsonObject &data)
 
 	if (qint64 tick = JSON_TO_INTEGER_Y(data.value(QStringLiteral("tick")), -1); tick != -1) {
 		m_tickTimer.start(this, tick);
-	}
-
-	if (m_config.gameState == ConquestConfig::StatePrepare) {
-		sendWebSocketMessage(QJsonObject{
-								 { QStringLiteral("cmd"), QStringLiteral("prepare") },
-								 { QStringLiteral("engine"), m_engineId },
-								 { QStringLiteral("ready"), true }
-							 });
 	}
 }
 
@@ -1509,4 +1514,17 @@ void ConquestGame::setFighter2Fortress(int newFighter2Fortress)
 		return;
 	m_fighter2Fortress = newFighter2Fortress;
 	emit fighter2FortressChanged();
+}
+
+bool ConquestGame::gameSuccess() const
+{
+	return m_gameSuccess;
+}
+
+void ConquestGame::setGameSuccess(bool newGameSuccess)
+{
+	if (m_gameSuccess == newGameSuccess)
+		return;
+	m_gameSuccess = newGameSuccess;
+	emit gameSuccessChanged();
 }

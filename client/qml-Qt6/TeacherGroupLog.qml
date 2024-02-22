@@ -64,6 +64,9 @@ Item
 					case GameMap.Exam:
 						t += qsTr(" [dolgozat]")
 						break
+					case GameMap.Conquest:
+						t += qsTr(" [multiplayer]")
+						break
 					default:
 						break
 					}

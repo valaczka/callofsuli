@@ -110,6 +110,9 @@ public:
 		if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineTriggerId, d, type, id), Qt::QueuedConnection);
 	}
 
+	void engineRemoveUnused() {
+		if (m_running) QMetaObject::invokeMethod(d, &EngineHandlerPrivate::engineRemoveUnused, Qt::QueuedConnection);
+	}
 
 	void websocketAdd(QWebSocket *socket) {
 		if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketAdd, d, socket), Qt::QueuedConnection);

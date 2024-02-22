@@ -318,7 +318,7 @@ void ConquestEngine::gameFinish(const bool &hasError)
 	///const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
 
 	for (auto &p : m_players) {
-		LOG_CINFO("engine") << "PLAYER" << p.username << p.xp << p.hp << "GameId" << p.gameId;
+		//LOG_CTRACE("engine") << "PLAYER" << p.username << p.xp << p.hp << "GameId" << p.gameId;
 
 		if (p.gameId == -1)
 			continue;
@@ -637,7 +637,12 @@ bool ConquestEngine::userCanConnect(const QString &username) const
 
 bool ConquestEngine::canDelete(const int &useCount)
 {
-	return (useCount == 1 && (m_config.gameState == ConquestConfig::StateFinished || m_config.gameState == ConquestConfig::StateError));
+	return (useCount == 1 && (m_id == -1 ||
+							  m_config.gameState == ConquestConfig::StateFinished ||
+							  m_config.gameState == ConquestConfig::StateInvalid ||
+							  m_config.gameState == ConquestConfig::StateConnect ||
+							  m_config.gameState == ConquestConfig::StateError
+							  ));
 }
 
 
@@ -982,12 +987,14 @@ void ConquestEngine::streamUnlinkedEvent(WebSocketStream *stream)
 		}
 
 		if (!next) {
-			LOG_CWARNING("engine") << "ConquestEngine all stream dismissed" << m_id;
+			LOG_CINFO("engine") << "ConquestEngine all stream dismissed" << m_id;
 			setHostStream(nullptr);
 			gameFinish(true);
+			///m_handler->engineRemoveUnused();
+			setId(-1);
 			return;
 		} else {
-			LOG_CINFO("engine") << "Next host stream:" << next;
+			LOG_CDEBUG("engine") << "Next host stream:" << next;
 			setHostStream(next);
 		}
 
@@ -1035,7 +1042,8 @@ QJsonObject ConquestEngine::cmdList(WebSocketStream *stream, const QJsonObject &
 	QJsonArray ret;
 
 	for (ConquestEngine *e : list) {
-		if (e->config().mapUuid != config.mapUuid ||
+		if (e->id() == -1 ||
+				e->config().mapUuid != config.mapUuid ||
 				e->config().missionUuid != config.missionUuid ||
 				e->config().missionLevel != config.missionLevel ||
 				!e->userCanConnect(stream->credential().username())
@@ -1402,6 +1410,8 @@ QJsonObject ConquestEngine::cmdLeave(WebSocketStream *stream, const QJsonObject 
 			{ QStringLiteral("error"), QStringLiteral("leave failed") }
 		};
 	}
+
+	m_handler->engineRemoveUnused();
 
 	///m_handler->engineTriggerEngine(this);
 

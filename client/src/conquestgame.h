@@ -64,6 +64,7 @@ class ConquestGame : public AbstractLevelGame
 	Q_PROPERTY(bool isAttacked READ isAttacked WRITE setIsAttacked NOTIFY isAttackedChanged FINAL)
 	Q_PROPERTY(int maxPlayersCount READ maxPlayersCount CONSTANT FINAL)
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
+	Q_PROPERTY(bool gameSuccess READ gameSuccess WRITE setGameSuccess NOTIFY gameSuccessChanged FINAL)
 	Q_PROPERTY(QStringList worldListSelect READ worldListSelect WRITE setWorldListSelect NOTIFY worldListSelectChanged FINAL)
 
 public:
@@ -158,6 +159,9 @@ public:
 	int fighter2Fortress() const;
 	void setFighter2Fortress(int newFighter2Fortress);
 
+	bool gameSuccess() const;
+	void setGameSuccess(bool newGameSuccess);
+
 signals:
 	void mapDownRequest();
 	void mapUpRequest();
@@ -181,6 +185,7 @@ signals:
 	void worldListSelectChanged();
 	void fighter2FortressChanged();
 	void playersModelChanged();
+	void gameSuccessChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -244,6 +249,7 @@ private:
 	QString m_worldBgImage;
 	QString m_worldOverImage;
 	QStringList m_worldListSelect;
+	bool m_gameSuccess = false;
 };
 
 
