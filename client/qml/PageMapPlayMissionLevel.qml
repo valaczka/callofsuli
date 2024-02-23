@@ -117,7 +117,8 @@ QPageGradient {
 												  GameMap.Lite,
 												  GameMap.Practice,
 												  GameMap.Quiz,
-												  //GameMap.MultiPlayer
+												  //GameMap.MultiPlayer,
+												  GameMap.Conquest
 											  ] : [
 												  GameMap.Test,
 												  GameMap.Action,
@@ -152,7 +153,10 @@ QPageGradient {
 							case GameMap.Exam:
 								qsTr("Dolgozat")
 								break
-							case GameMap.MultiPlayer:
+							/*case GameMap.MultiPlayer:
+								qsTr("Multiplayer")
+								break*/
+							case GameMap.Conquest:
 								qsTr("Multiplayer")
 								break
 							default:
@@ -670,7 +674,7 @@ QPageGradient {
 			mapGameList: _mapGameList
 			positionType: MapPlayMissionLevelInfoList.Duration
 			showPlaceholders: _mapGameList.length === 0 && _firstLoad
-			visible: map && map.online && _modeGroup.checkedButton &&
+			visible: map && map.online && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode !== GameMap.Conquest &&
 					 (map.gameState == MapPlay.StateSelect)
 		}
 

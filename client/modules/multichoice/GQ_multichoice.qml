@@ -147,7 +147,7 @@ GameQuestionComponentImpl {
 	}
 
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		var key = event.key
 
 		var i = -1

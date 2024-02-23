@@ -194,7 +194,7 @@ Qaterial.Expandable {
 						}
 
 						onObjectAdded: (index,object) => _copyMenu.insertItem(index+2, object)
-						onObjectRemoved: (object) => _copyMenu.removeItem(object)
+						onObjectRemoved: (index,object) => _copyMenu.removeItem(object)
 					}
 
 				}
@@ -236,7 +236,7 @@ Qaterial.Expandable {
 						}
 
 						onObjectAdded: (index, object) => _moveMenu.insertItem(index+2, object)
-						onObjectRemoved: object => _moveMenu.removeItem(object)
+						onObjectRemoved: (index,object) =>  _moveMenu.removeItem(object)
 					}
 				}
 

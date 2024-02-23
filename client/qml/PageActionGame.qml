@@ -330,40 +330,12 @@ Page {
 
 	}
 
-	Image {
-		id: painhudImage
-		source: "qrc:/internal/game/painhud.png"
-		opacity: 0.0
-		visible: opacity
+
+	GamePainHud {
+		id: _painhudImage
 		anchors.fill: parent
-
-		sourceSize.width: width
-		sourceSize.height: height
-
 		z: 10
-
-		SequentialAnimation {
-			id: painhudImageAnim
-
-			PropertyAnimation {
-				target: painhudImage
-				property: "opacity"
-				from: 0.0
-				to: 1.0
-				duration: 100
-				easing.type: Easing.OutQuad
-			}
-			PropertyAnimation {
-				target: painhudImage
-				property: "opacity"
-				from: 1.0
-				to: 0.0
-				duration: 375
-				easing.type: Easing.InQuad
-			}
-		}
 	}
-
 
 
 	Image {
@@ -906,7 +878,7 @@ Page {
 		}
 
 		function onHurt() {
-			painhudImageAnim.start()
+			_painhudImage.play()
 		}
 
 		function onKilled() {

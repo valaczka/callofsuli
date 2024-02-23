@@ -150,6 +150,7 @@ QPage {
 		Client.reloadUser()
 		Client.reloadCache("studentGroupList")
 		Client.reloadCache("studentCampaignList")
+		Client.reloadCache("classList")
 		studentMapHandler.reload()
 	}
 }

@@ -200,5 +200,22 @@
         <file>TeacherGroupExamList.qml</file>
         <file>TeacherGroupExamResult.qml</file>
         <file>QSpinBox.qml</file>
+        <file>ConquestLand.qml</file>
+        <file>PageConquestGame.qml</file>
+        <file>ConquestScene.qml</file>
+        <file>ConquestTurnChart.qml</file>
+        <file>ConquestPlayerItem.qml</file>
+        <file>ConquestProgressBar.qml</file>
+        <file>ConquestBattleInfo.qml</file>
+        <file>ConquestSceneMap.qml</file>
+        <file>GamePainHud.qml</file>
+        <file>ConquestConnect.qml</file>
+        <file>ConquestBattleInfoPlayer.qml</file>
+        <file>ConquestLandOver.qml</file>
+        <file>PageConquestAdjacency.qml</file>
+        <file>ConquestWorldSelect.qml</file>
+        <file>ConquestError.qml</file>
+        <file>ConquestFortress.qml</file>
+        <file>ConquestFinishInfo.qml</file>
     </qresource>
 </RCC>

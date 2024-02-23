@@ -124,10 +124,10 @@ GameQuestionComponentImpl {
 			if (!d.currentDrag) {
 				success = false
 
-				if (!toggleMode)
+				if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 					d.showAsError = true
 
-				a.answer = ""
+				a.answer = -1
 				a.success = false
 				a.dragIndex = -1
 
@@ -137,16 +137,16 @@ GameQuestionComponentImpl {
 
 				let s = (questionData.answer[i] === n)
 
-				a.answer = t
+				a.answer = n
 				a.dragIndex = d.currentDrag.dragIndex
 
 				if (s) {
 					a.success = true
-					if (!toggleMode)
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 						d.currentDrag.buttonType = GameQuestionButton.Correct
 				} else {
 					a.success = false
-					if (!toggleMode)
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 						d.currentDrag.buttonType = GameQuestionButton.Wrong
 					success = false
 				}
@@ -163,7 +163,7 @@ GameQuestionComponentImpl {
 	}
 
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		var key = event.key
 
 		if (key === Qt.Key_Return || key === Qt.Key_Enter)

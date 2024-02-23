@@ -108,6 +108,12 @@ Item {
 													  color: Qaterial.Colors.purple500
 												  })
 
+									if (mission.modes & GameMap.Conquest)
+										list.push({
+													  text: qsTr("Honfoglaló"),
+													  color: Qaterial.Colors.brown400
+												  })
+
 									if (mission.modes & GameMap.Exam)
 										list.push({
 													  text: qsTr("Dolgozat"),

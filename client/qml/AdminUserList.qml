@@ -287,8 +287,8 @@ Qaterial.Page
 							}
 						}
 
-						onObjectAdded: submenu.insertItem(index, object)
-						onObjectRemoved: submenu.removeItem(object)
+						onObjectAdded: (index,object) => submenu.insertItem(index, object)
+						onObjectRemoved: (index,object) => submenu.removeItem(object)
 					}
 				}
 				QMenuItem { action: actionUserRemove }

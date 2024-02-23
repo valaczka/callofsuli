@@ -147,7 +147,7 @@ GameQuestionComponentImpl {
 
 			if (!d.currentDrag) {
 				success = false
-				if (!toggleMode)
+				if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 					d.showAsError = true
 
 				a.answer = ""
@@ -160,11 +160,11 @@ GameQuestionComponentImpl {
 
 				if (t === d.correctAnswer) {
 					a.success = true
-					if (!toggleMode)
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 						d.currentDrag.buttonType = GameQuestionButton.Correct
 				} else {
 					a.success = false
-					if (!toggleMode)
+					if (toggleMode == GameQuestionComponentImpl.ToggleNone)
 						d.currentDrag.buttonType = GameQuestionButton.Wrong
 					success = false
 				}
@@ -179,7 +179,7 @@ GameQuestionComponentImpl {
 			question.onFailed({"list": l})
 	}
 
-	Keys.onPressed: {
+	Keys.onPressed: event => {
 		var key = event.key
 
 		if (key === Qt.Key_Return || key === Qt.Key_Enter)

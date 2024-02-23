@@ -9,6 +9,8 @@ import "JScript.js" as JS
 Page {
 	id: root
 
+	property real _scale: width > height ? Math.min(1.0, width/2600) : Math.min(1.0, height/1200)
+
 	Image {
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectCrop

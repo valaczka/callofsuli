@@ -50,7 +50,7 @@ QPage {
 			}
 		]
 
-		proxyRoles: [	// FIX: wasm
+		proxyRoles: [
 			ExpressionRole {
 				name: "fullNamePending"
 				expression: model.fullName + (model.pendingCorrection.length ? qsTr("*") : "")
@@ -96,7 +96,7 @@ QPage {
 				elide: Text.ElideRight
 			}
 
-			textRole: "fullNamePending"
+			textRole: Qt.platform.os === "wasm" ? "fullName" : "fullNamePending"
 			valueRole: "qtObject"
 		}
 

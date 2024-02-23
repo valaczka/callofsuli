@@ -509,6 +509,9 @@ public:
 };
 
 
+Q_DECLARE_METATYPE(ConquestConfig)
+Q_DECLARE_METATYPE(ConquestTurn)
+Q_DECLARE_METATYPE(ConquestPlayer)
 
 
 /// ---------------- HELPERS ----------------------

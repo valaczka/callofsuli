@@ -1,11 +1,11 @@
-import QtQuick
-import QtQuick.Controls
-import Qt5Compat.GraphicalEffects
-import SortFilterProxyModel
-import Qt.labs.animation
-import CallOfSuli
-import Qaterial as Qaterial
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
+import CallOfSuli 1.0
+import SortFilterProxyModel 0.2
+import QtGraphicalEffects 1.15
+
 
 
 Rectangle {
@@ -52,11 +52,11 @@ Rectangle {
 			PinchHandler {
 				target: _scene
 				enabled: !pushMapDown
-				persistentTranslation: Qt.point(0,0)
+				xAxis.enabled: false
+				yAxis.enabled: false
 
-				scaleAxis.enabled: true
-				scaleAxis.minimum: 0.3
-				scaleAxis.maximum: 5.0
+				minimumScale: 0.3
+				maximumScale: 5.0
 
 				onScaleChanged: _fitToScreen = false
 				onRotationChanged: _fitToScreen = false

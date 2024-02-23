@@ -181,7 +181,7 @@ QColor ConquestGame::getPlayerColor(const int &id) const
 
 		if (m.value(QStringLiteral("playerId")).toInt() == id) {
 			const QString &ch = m.value(QStringLiteral("character")).toString();
-			return QColor::fromString(m_client->availableCharacters().value(ch).toMap().value(QStringLiteral("color")).toString());
+			return QColor(m_client->availableCharacters().value(ch).toMap().value(QStringLiteral("color")).toString());
 		}
 	}
 
@@ -355,7 +355,7 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 
 		using fnDef = void (ConquestGame::*)(const QJsonObject &);
 
-		static const QHash<std::string, fnDef> fMap = {
+		static const QMap<std::string, fnDef> fMap = {
 			{ "state", &ConquestGame::cmdState },
 			{ "start", &ConquestGame::cmdStart },
 			{ "list", &ConquestGame::cmdList },
@@ -440,6 +440,7 @@ void ConquestGame::onConfigChanged()
 	if ((m_config.gameState == ConquestConfig::StatePrepare || m_config.gameState == ConquestConfig::StatePlay) &&
 			m_config.world.name != m_loadedWorld) {
 		reloadLandList();
+		message(tr("Waiting fro other players..."));
 	}
 
 	for (ConquestLandData *land : *m_landDataList) {
@@ -862,7 +863,7 @@ void ConquestGame::loadQuestion()
 
 		m_loadedQuestion = m_config.currentQuestion;
 
-		m_gameQuestion->loadQuestion(iface->name(), iface->qmlQuestion(),
+		m_gameQuestion->loadQuestion(iface->name(), QStringLiteral("qrc:/")+iface->qmlQuestion(),
 									 m_config.currentQuestion.toVariantMap(),
 									 m_config.currentQuestion.value(QStringLiteral("uuid")).toString());
 	} else {
