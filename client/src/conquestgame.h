@@ -65,7 +65,7 @@ class ConquestGame : public AbstractLevelGame
 	Q_PROPERTY(int maxPlayersCount READ maxPlayersCount CONSTANT FINAL)
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
 	Q_PROPERTY(bool gameSuccess READ gameSuccess WRITE setGameSuccess NOTIFY gameSuccessChanged FINAL)
-	Q_PROPERTY(QStringList worldListSelect READ worldListSelect WRITE setWorldListSelect NOTIFY worldListSelectChanged FINAL)
+	Q_PROPERTY(QVariantList worldListSelect READ worldListSelect WRITE setWorldListSelect NOTIFY worldListSelectChanged FINAL)
 
 public:
 	explicit ConquestGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -153,8 +153,8 @@ public:
 	QString worldOverImage() const;
 	void setWorldOverImage(const QString &newWorldOverImage);
 
-	QStringList worldListSelect() const;
-	void setWorldListSelect(const QStringList &newWorldListSelect);
+	QVariantList worldListSelect() const;
+	void setWorldListSelect(const QVariantList &newWorldListSelect);
 
 	int fighter2Fortress() const;
 	void setFighter2Fortress(int newFighter2Fortress);
@@ -213,8 +213,7 @@ private:
 	void cmdQuestionRequest(const QJsonObject &data);
 
 	void reloadLandList();
-	void getWorldList(ConquestWordListHelper *helper) const;
-	void getCharacterList(ConquestWordListHelper *helper) const;
+	void getCharacterList(ConquestWorldListHelper *helper) const;
 
 	void loadQuestion();
 	void revealQuestion();
@@ -248,7 +247,7 @@ private:
 	int m_hp = 0;
 	QString m_worldBgImage;
 	QString m_worldOverImage;
-	QStringList m_worldListSelect;
+	QVariantList m_worldListSelect;
 	bool m_gameSuccess = false;
 };
 

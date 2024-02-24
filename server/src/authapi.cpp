@@ -191,6 +191,9 @@ QHttpServerResponse AuthAPI::loginOAuth2(const QString &provider, const QJsonObj
 
 	OAuth2CodeFlow *flow = ptr.lock().get();
 
+	if (data.value(QStringLiteral("wasm")).toBool())
+		flow->setIsWasm(true);
+
 	QObject::connect(flow, &OAuth2CodeFlow::authenticated, flow, [this, flow](){
 		QString email = flow->getUserInfo().username;
 

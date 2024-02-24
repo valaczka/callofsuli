@@ -228,6 +228,9 @@ void Server::setServerName(const QString &newServerName)
 	emit serverNameChanged();
 }
 
+
+
+
 const QJsonObject &Server::config() const
 {
 	return m_config;
@@ -329,6 +332,296 @@ void Server::setMaxUploadSize(int newMaxUploadSize)
 		return;
 	m_maxUploadSize = newMaxUploadSize;
 	emit maxUploadSizeChanged();
+}
+
+
+/**
+ * @brief Server::dynamicContentReady
+ * @return
+ */
+
+bool Server::dynamicContentReady() const
+{
+	return m_dynamicContentReady;
+}
+
+
+/**
+ * @brief Server::dynamicContentReset
+ */
+
+void Server::dynamicContentReset(const QJsonArray &list)
+{
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, list, ret]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+
+		unloadDynamicContents();
+
+		m_contentList.clear();
+
+		for (const QJsonValue &v : list) {
+			const QJsonObject &o = v.toObject();
+
+			DynamicContent content;
+			content.name = o.value(QStringLiteral("file")).toString();
+			content.md5 = o.value(QStringLiteral("md5")).toString();
+			content.size = JSON_TO_INTEGER(o.value(QStringLiteral("size")));
+			m_contentList.append(content);
+		}
+
+#ifndef Q_OS_WASM
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+}
+
+
+
+void Server::setDynamicContentReady(bool newDynamicContentReady)
+{
+	if (m_dynamicContentReady == newDynamicContentReady)
+		return;
+	m_dynamicContentReady = newDynamicContentReady;
+	emit dynamicContentReadyChanged();
+}
+
+QVector<Server::DynamicContent> Server::dynamicContentList() const
+{
+	return m_contentList;
+}
+
+
+
+
+/**
+ * @brief Server::dynamicContentCheck
+ * @return
+ */
+
+bool Server::dynamicContentCheck()
+{
+	static const QString subdir = "content";
+	QDir dir = m_directory;
+
+	if ((!dir.exists(subdir) && !dir.mkdir(subdir)) || !dir.cd(subdir)) {
+		Application::instance()->messageError(tr("Belső hiba"));
+		return false;
+	}
+
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, dir, ret]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		for (auto it = m_contentList.cbegin(); it != m_contentList.cend(); ) {
+			if (it->name.isEmpty()) {
+				++it;
+				continue;
+			}
+
+			const QString &filename = dir.absoluteFilePath(it->name);
+
+			LOG_CTRACE("client") << "Check:" << filename;
+
+			if (!QFile::exists(filename)) {
+				++it;
+				continue;
+			}
+
+			const auto &content = Utils::fileContent(filename);
+
+			if (!content) {
+				++it;
+				continue;
+			}
+
+			if (it->md5 == QString::fromLatin1(QCryptographicHash::hash(*content, QCryptographicHash::Md5).toHex()) &&
+					it->size == content->size()) {
+				LOG_CTRACE("client") << "Check success:" << qPrintable(filename);
+				loadDynamicContent(filename);
+				it = m_contentList.erase(it);
+			} else {
+				++it;
+			}
+		}
+
+#ifndef Q_OS_WASM
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+
+	return true;
+}
+
+
+
+/**
+ * @brief Server::dynamicContentRemove
+ * @param name
+ * @param data
+ * @return
+ */
+
+bool Server::dynamicContentRemove(const QString &name, const QByteArray &data)
+{
+	const QString &md5 = QString::fromLatin1(QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex());
+	const qint64 size = data.size();
+	bool found = false;
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, name, md5, size, &found, ret]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		for (auto it = m_contentList.cbegin(); it != m_contentList.cend(); ) {
+			if (it->name == name && it->md5 == md5 && it->size == size) {
+				it = m_contentList.erase(it);
+				found = true;
+			} else {
+				++it;
+			}
+		}
+
+#ifndef Q_OS_WASM
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+
+	return found;
+}
+
+
+
+/**
+ * @brief Server::dynamicContentSaveAndLoad
+ * @param name
+ * @param data
+ * @return
+ */
+
+bool Server::dynamicContentSaveAndLoad(const QString &name, const QByteArray &data)
+{
+	static const QString subdir = "content";
+	QDir dir = m_directory;
+
+	if ((!dir.exists(subdir) && !dir.mkdir(subdir)) || !dir.cd(subdir)) {
+		Application::instance()->messageError(tr("Belső hiba"));
+		return false;
+	}
+
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, dir, ret, name, data]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		const QString &filename = dir.absoluteFilePath(name);
+
+		LOG_CINFO("client") << "Save dynamic content:" << qPrintable(filename);
+
+		{
+			QFile f(filename);
+			if (!f.open(QIODevice::WriteOnly)) {
+				LOG_CERROR("client") << "Save failed:" << qPrintable(filename);
+#ifndef Q_OS_WASM
+				ret.reject();
+				return;
+#else
+				return false;
+#endif
+			}
+			f.write(data);
+			f.close();
+		}
+
+		loadDynamicContent(filename);
+
+#ifdef Q_OS_WASM
+		return true;
+#else
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return ret.state() == QDeferredState::RESOLVED;
+#endif
+
+}
+
+
+
+
+/**
+ * @brief Server::unloadDynamicContents
+ */
+
+void Server::unloadDynamicContents()
+{
+	LOG_CTRACE("client") << "Unload dynamic contents";
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, ret]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		for (const QString &s : m_loadedContentList) {
+			if (!QResource::unregisterResource(s, QStringLiteral("/content"))) {
+				LOG_CERROR("client") << "Unregister resource failed:" << qPrintable(s);
+			} else {
+				LOG_CTRACE("client") << "Unload dynamic content:" << qPrintable(s);
+			}
+		}
+
+		m_loadedContentList.clear();
+
+#ifndef Q_OS_WASM
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+}
+
+
+
+
+
+/**
+ * @brief Server::loadDynamicContent
+ * @param filename
+ */
+
+void Server::loadDynamicContent(const QString &filename)
+{
+	LOG_CDEBUG("client") << "Load dynamic content:" << qPrintable(filename);
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, filename, ret]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		if (!QResource::registerResource(filename, QStringLiteral("/content"))) {
+			LOG_CERROR("client") << "Register resource failed:" << qPrintable(filename);
+		} else {
+			m_loadedContentList.append(filename);
+		}
+
+#ifndef Q_OS_WASM
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
 }
 
 

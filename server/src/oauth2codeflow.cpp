@@ -231,6 +231,16 @@ void OAuth2CodeFlow::onRemoveTimerTimeout()
 		m_authenticator->removeCodeFlow(this);
 }
 
+bool OAuth2CodeFlow::isWasm() const
+{
+	return m_isWasm;
+}
+
+void OAuth2CodeFlow::setIsWasm(bool newIsWasm)
+{
+	m_isWasm = newIsWasm;
+}
+
 
 
 

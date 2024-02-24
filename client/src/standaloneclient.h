@@ -70,6 +70,8 @@ protected slots:
 	void onStartPageLoaded();
 	void onOAuthFinished() override;
 	void onOAuthStarted(const QUrl &url) override;
+	void onServerConnected() override;
+	void onUserLoggedIn() override;
 
 private slots:
 	void onMainWindowChanged();

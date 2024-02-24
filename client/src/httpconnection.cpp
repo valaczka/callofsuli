@@ -46,7 +46,7 @@ HttpConnection::HttpConnection(Client *client)
 #ifndef QT_NO_SSL
 	if (!QSslSocket::supportsSsl())
 		LOG_CERROR("http") << "Platform doesn't support SSL";
-/*
+	/*
 	QFile certFile(QStringLiteral(":/root_CallOfSuli_CA.crt"));
 
 	LOG_CTRACE("http") << "Cert file exists:" << certFile.exists();
@@ -226,6 +226,10 @@ void HttpConnection::close()
 		LOG_CTRACE("http") << "Close connection";
 		setState(Disconnected);
 		abortAllReplies();
+		if (m_server) {
+			m_server->dynamicContentReset();
+			m_server->setDynamicContentReady(false);
+		}
 		setServer(nullptr);
 		emit serverDisconnected();
 	}
@@ -244,6 +248,10 @@ void HttpConnection::abort()
 		m_client->stackPopToStartPage();
 		setState(Disconnected);
 		abortAllReplies();
+		if (m_server) {
+			m_server->dynamicContentReset();
+			m_server->setDynamicContentReady(false);
+		}
 		setServer(nullptr);
 		emit serverDisconnected();
 	}
@@ -310,15 +318,16 @@ void HttpConnection::setPending(bool newPending)
 
 QUrl HttpConnection::getUrl(const API &api, const QString &path) const
 {
-	QHash<API, const char*> apis;
-	apis[ApiServer] = "server";
-	apis[ApiGeneral] = "general";
-	apis[ApiClient] = "client";
-	apis[ApiAuth] = "auth";
-	apis[ApiUser] = "user";
-	apis[ApiTeacher] = "teacher";
-	apis[ApiPanel] = "panel";
-	apis[ApiAdmin] = "admin";
+	static const QHash<API, const char*> apis = {
+		{ ApiServer, "server" },
+		{ ApiGeneral , "general" },
+		{ ApiClient , "client" },
+		{ ApiAuth , "auth" },
+		{ ApiUser , "user" },
+		{ ApiTeacher , "teacher" },
+		{ ApiPanel , "panel" },
+		{ ApiAdmin , "admin" },
+	};
 
 	if (!apis.contains(api)) {
 		m_client->messageError(tr("Invalid api"));
@@ -677,7 +686,7 @@ void HttpReply::onReplyFinished()
 
 		foreach (auto func, m_jsvaluesError) {
 			if (func.first)
-			func.second.call({error});
+				func.second.call({error});
 		}
 
 		QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);
@@ -724,7 +733,7 @@ void HttpReply::onReplyFinished()
 
 		foreach (auto v, m_jsvalues) {
 			if (v.first)
-			v.second.call(list);
+				v.second.call(list);
 		}
 	} else {
 		LOG_CWARNING("http") << "Response error:" << errorString << this;
@@ -738,7 +747,7 @@ void HttpReply::onReplyFinished()
 
 		foreach (auto v, m_jsvaluesFail) {
 			if (v.first)
-			v.second.call({errorString});
+				v.second.call({errorString});
 		}
 	}
 
@@ -767,7 +776,7 @@ void HttpReply::onErrorPresent(const QNetworkReply::NetworkError &error)
 
 	foreach (auto v, m_jsvaluesError) {
 		if (v.first)
-		v.second.call({error});
+			v.second.call({error});
 	}
 
 	QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);

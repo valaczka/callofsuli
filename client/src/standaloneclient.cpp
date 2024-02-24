@@ -228,6 +228,28 @@ void StandaloneClient::onOAuthStarted(const QUrl &url)
 }
 
 
+/**
+ * @brief StandaloneClient::onServerConnected
+ */
+
+void StandaloneClient::onServerConnected()
+{
+	Client::onServerConnected();
+	serverListSave();
+}
+
+
+/**
+ * @brief StandaloneClient::onUserLoggedIn
+ */
+
+void StandaloneClient::onUserLoggedIn()
+{
+	Client::onUserLoggedIn();
+	serverListSave();
+}
+
+
 
 
 
@@ -284,6 +306,9 @@ void StandaloneClient::serverListSave(const QDir &dir)
 	LOG_CDEBUG("client") << "Save servers to:" << qPrintable(dir.absolutePath());
 
 	for (const Server *s : *m_serverList) {
+		if (s->temporary())
+			continue;
+
 		LOG_CTRACE("client") << "Server dir" << dir;
 
 		if (!dir.exists(s->name())) {

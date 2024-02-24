@@ -50,11 +50,27 @@ Item {
 	height: game ? game.worldSize.height : implicitHeight
 
 
+	QFetchLoaderGroup {
+		id: _loaderGroup
+		onAllLoadersLoaded: {
+			if (!game)
+				return
+			game.sendWebSocketMessage({
+										  cmd: "prepare",
+										  engine: game.engineId,
+										  ready: true
+									  })
+		}
+	}
+
 	Image {
-		//source: game && game.config.world.name != "" ? "qrc:/conquest/"+game.config.world.name+"/bg.png" : ""
+		id: _imgBg
 		source: game ? game.worldBgImage : ""
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectFit
+		asynchronous: true
+		Component.onCompleted: _loaderGroup.add(_imgBg)
+		onStatusChanged: if (status == Image.Ready) _loaderGroup.remove(_imgBg)
 	}
 
 	Repeater {
@@ -67,14 +83,19 @@ Item {
 				if (_picked)
 					zoomToLand(_land)
 			}
+			Component.onCompleted: _loaderGroup.add(_land)
+			onImageLoaded: _loaderGroup.remove(_land)
 		}
 	}
 
 	Image {
-		//source: game && game.config.world.name != "" ? "qrc:/conquest/"+game.config.world.name+"/over.png" : ""
+		id: _imgOver
 		source: game ? game.worldOverImage : ""
 		anchors.fill: parent
 		fillMode: Image.PreserveAspectFit
+		asynchronous: true
+		Component.onCompleted: _loaderGroup.add(_imgOver)
+		onStatusChanged: if (status == Image.Ready) _loaderGroup.remove(_imgOver)
 	}
 
 

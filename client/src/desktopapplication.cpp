@@ -139,7 +139,7 @@ void DesktopApplication::commandLineParse()
 #ifndef QT_NO_DEBUG
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
 	parser.addOption({QStringLiteral("dev-page"), QObject::tr("_PageDev.qml betöltése")});
-	parser.addOption({QStringLiteral("adjacency"), QObject::tr("PageConquest adjacency setup"), QStringLiteral("world")});
+	parser.addOption({QStringLiteral("adjacency"), QObject::tr("PageConquest adjacency setup"), QStringLiteral("file")});
 #else
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #endif

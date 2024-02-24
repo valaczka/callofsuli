@@ -49,6 +49,11 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		return config();
 	});
 
+	server->route(path+"content", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return dynamicContent();
+	});
+
 	server->route(path+"grade", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return grade();
@@ -233,6 +238,23 @@ QHttpServerResponse GeneralAPI::grade()
 
 	LAMBDA_THREAD_END;
 }
+
+
+/**
+ * @brief GeneralAPI::dynamicContent
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::dynamicContent()
+{
+	LOG_CTRACE("client") << "Get dynamic content";
+
+	QJsonObject r;
+	r.insert(QStringLiteral("list"), m_service->dynamicContent());
+
+	return QHttpServerResponse(r, QHttpServerResponse::StatusCode::Ok);
+}
+
 
 
 

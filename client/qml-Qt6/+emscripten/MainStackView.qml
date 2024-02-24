@@ -31,6 +31,7 @@ Qaterial.StackView
 				readonly property string _txt: qsTr("Betöltés")
 
 				Timer {
+					id: _timer
 					interval: 200
 					triggeredOnStart: true
 					running: true
@@ -69,6 +70,15 @@ Qaterial.StackView
 			property: "opacity"
 			from: 1.0
 			to: 0.0
+		}
+	}
+
+	Connections {
+		target: Client
+
+		function onAllResourceReady() {
+			_timer.stop()
+			loadingLabel.text = qsTr("Dinamikus tartalmak letöltése...")
 		}
 	}
 

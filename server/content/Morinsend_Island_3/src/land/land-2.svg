@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   background-color="#000000"
+   version="1.1"
+   height="265"
+   width="163.21942"
+   id="fantasyMap"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1339" />
+  <g
+     id="land_1708769975.498282"
+     style="display:inline"
+     transform="translate(-1796.1545,-470.745)">
+    <path
+       id="state-border2"
+       d="m 1816.823,486.245 4,-15 h 13 l 6,15 11,6 -4,13 2,2 26,1 v 0 l -16,17 8,10 v 4 l 12,4 8,14 -8,4 h -7 l -3,3 h -10 l -3,-2 -1,-3 -10,-6 h -3 l -6,4 h -2 l -8,3 v 1 l -9,7 -5,1 -9,-13 11,-13 v 0 l -17,-10 7,-13 -7,-10 8,-10 v -10 l 12,-4 m 123,226 1,2 -1,1 3,9 4,2 -2,9 h 13 l 1,-2 -3,-7 1,-3 -2,-10 1,-1 -1,-10 -2,-1 h -11 l -1,1 -1,10"
+       clip-path="url(#state-clip2)"
+       stroke="#b06345"
+       style="fill:#ffffff" />
+  </g>
+  <text
+     xml:space="preserve"
+     style="font-weight:600;font-size:14.6667px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Semi-Bold';text-align:center;text-anchor:middle;fill:#00ffff;stroke:#000000;stroke-width:10;paint-order:stroke fill markers"
+     x="37.156769"
+     y="56.767284"
+     id="text1522"><tspan
+       id="tspan1520"
+       x="37.156769"
+       y="56.767284">X</tspan></text>
+</svg>

@@ -557,6 +557,8 @@ void Client::onServerConnected()
 		});
 
 		reloadCache(QStringLiteral("gradeList"));
+
+		loadDynamicResources();
 	})
 			->fail(this, [this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
@@ -854,6 +856,112 @@ void Client::fullScreenHelperDisconnect(QQuickWindow *window)
 }
 
 
+/**
+ * @brief Client::loadDynamicResources
+ */
+
+void Client::loadDynamicResources()
+{
+	LOG_CDEBUG("client") << "Load dynamic resources";
+
+	if (!server())
+		return;
+
+	server()->setDynamicContentReady(false);
+	server()->dynamicContentReset();
+
+	send(HttpConnection::ApiGeneral, QStringLiteral("content"))
+			->done(this, [this](const QJsonObject &json)
+	{
+		if (!server())
+			return;
+
+		server()->dynamicContentReset(json.value(QStringLiteral("list")).toArray());
+
+#ifndef Q_OS_WASM
+		server()->dynamicContentCheck();
+#endif
+
+		if (server()->dynamicContentList().isEmpty())
+			server()->setDynamicContentReady(true);
+		else
+			downloadDynamicResources();
+	})
+			->fail(this, [](const QString &err){
+		LOG_CWARNING("client") << "Dynamic content download failed:" << qPrintable(err);
+	});
+}
+
+
+/**
+ * @brief Client::downloadDynamicResources
+ */
+
+void Client::downloadDynamicResources()
+{
+	if (!server())
+		return;
+
+	LOG_CDEBUG("client") << "Download dynamic resources";
+
+	const auto &list = server()->dynamicContentList();
+
+	for (const auto &c : list) {
+		QUrl url = server()->url();
+		url.setPath(QStringLiteral("/content/")+c.name);
+		QNetworkReply *r = m_httpConnection->networkManager()->get(QNetworkRequest(url));
+		connect(r, &QNetworkReply::finished, this, &Client::onDynamicResourceDownloaded);
+	}
+}
+
+
+/**
+ * @brief Client::onDynamicResourceDownloaded
+ */
+
+void Client::onDynamicResourceDownloaded()
+{
+	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
+	const QUrl &url = reply->url();
+
+	if (reply->error()) {
+		LOG_CWARNING("client") << "Nem sikerült a letöltés:" << url << qPrintable(reply->errorString());
+		return;
+	}
+
+	LOG_CTRACE("client") << "Dynamic resource downloaded:" << url;
+	const QByteArray &payload = reply->readAll();
+	static const QRegularExpression exp(R"(^/content/)");
+	QString filename = url.path().remove(exp);
+
+	saveDynamicResource(filename, payload);
+}
+
+
+/**
+ * @brief Client::saveDynamicResource
+ * @param name
+ * @param data
+ * @return
+ */
+
+bool Client::saveDynamicResource(const QString &name, const QByteArray &data)
+{
+	if (!server())
+		return false;
+
+	if (!server()->dynamicContentSaveAndLoad(name, data) || !server()->dynamicContentRemove(name, data)) {
+		messageError(tr("Fájl mentése sikertelen: %1").arg(name));
+		return false;
+	}
+
+	if (server()->dynamicContentList().isEmpty())
+		server()->setDynamicContentReady(true);
+
+	return true;
+}
+
+
 
 
 
@@ -1048,7 +1156,12 @@ void Client::loginOAuth2(const QString &provider)
 	m_oauthData.state = "";
 	m_oauthData.path = QStringLiteral("login/")+provider;
 
-	send(HttpConnection::ApiAuth, m_oauthData.path)
+
+	send(HttpConnection::ApiAuth, m_oauthData.path, {
+		 #ifdef Q_OS_WASM
+			 { QStringLiteral("wasm"), true }
+		 #endif
+		 })
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 }
@@ -1071,6 +1184,9 @@ void Client::registrationOAuth2(const QString &provider, const QString &code)
 
 
 	send(HttpConnection::ApiAuth, m_oauthData.path, {
+		 #ifdef Q_OS_WASM
+			 { QStringLiteral("wasm"), true },
+		 #endif
 			 { QStringLiteral("code"), code }
 		 })
 			->done(this, &Client::onLoginSuccess)
@@ -1773,11 +1889,21 @@ QQuickItem *Client::loadAdjacencySetup(const QString &world)
 {
 	std::unique_ptr<ConquestGameAdjacencySetup> game(new ConquestGameAdjacencySetup(this));
 
+	if (QFile::exists(world)) {
+		messageError(tr("Érvénytelen fájl: %1").arg(world));
+		return nullptr;
+	}
+
+	if (!QResource::registerResource(world, QStringLiteral(":/content"))) {
+		messageError(tr("Hibás fájl: %1").arg(world));
+		return nullptr;
+	}
+
 	game->loadFromFile(world);
 
 	QQuickItem *page = stackPushPage(QStringLiteral("PageConquestAdjacency.qml"), QVariantMap({
-					  { QStringLiteral("game"), QVariant::fromValue(game.get()) }
-				  }));
+																								  { QStringLiteral("game"), QVariant::fromValue(game.get()) }
+																							  }));
 
 
 	if (!page) {

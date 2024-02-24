@@ -50,7 +50,7 @@ public:
 
 	virtual void setCodeFlow(const std::weak_ptr<OAuth2CodeFlow> &flow) const = 0;
 	virtual QJsonObject localAuthData() const = 0;
-	virtual bool parseResponse(const QUrlQuery &query) = 0;
+	virtual OAuth2CodeFlow* parseResponse(const QUrlQuery &query) = 0;
 	virtual bool profileUpdateSupport() const = 0;
 	virtual bool profileUpdate(const QString &username, const QJsonObject &data) const = 0;
 	virtual void profileUpdateWithAccessToken(const QString &username, const QString &token) const = 0;

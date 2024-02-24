@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="fantasyMap"
+   width="244.11452"
+   height="221.40936"
+   version="1.1"
+   background-color="#000000"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs1393" />
+  <g
+     id="land_1708772912.5053158"
+     style="display:inline"
+     transform="translate(-127.30141,-479.37114)">
+    <path
+       id="state-border19"
+       d="m 194.823,490.245 -6,-10 -16,20 h -3 l -5,5 -12,1 -1,19 -2,1 -9,6 v 3 l -3,5 v 13 l -10,4 1,16 v 0 l 3,9 v 1 l 2,1 4,9 9,4 7,-3 3,-7 v -5 -2 l 2,-2 2,-10 5,-6 9,1 4,-6 13,3 2,-1 5,6 6,3 2,6 -3,4 5,12 9,-3 3,1 9,-6 2,1 6,7 v 3 l 3,6 1,7 4,2 3,5 6,2 13,-3 2,-2 8,-1 9,2 h 1 l 5,6 7,3 3,8 10,1 4,8 h 3 l 9,9 1,1 h 1 l 1,4 5,6 1,6 9,10 v 2 l 6,7 v 5 l 3,4 1,6 1,2 6,1 7,-7 -3,-7 1,-5 -2,-6 1,-3 2,-2 1,-4 -3,-9 -1,-1 -1,-11 -1,-1 1,-7 -10,-4 -3,1 -7,-11 v -1 l -10,-7 -1,-3 2,-13 4,-1 7,-17 -15,-8 v -8 l -22,-7 1,-6 -2,-4 -15,-7 -2,-7 -16,4 -6,-17 h -2 l -8,-17 h -11 l -4,-6 -18,8 -5,-4 -9,4 -6,-2 -15,1 2,-15"
+       clip-path="url(#state-clip19)"
+       
+       style="fill:none;stroke:#808080;stroke-width:10;stroke-dasharray:none" />
+  </g>
+</svg>

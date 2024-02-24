@@ -245,7 +245,7 @@ void GoogleOAuth2Authenticator::profileUpdateWithAccessToken(const QString &user
  * @return
  */
 
-bool GoogleOAuth2Authenticator::parseResponse(const QUrlQuery &query)
+OAuth2CodeFlow* GoogleOAuth2Authenticator::parseResponse(const QUrlQuery &query)
 
 {
 	const QString error = query.queryItemValue(QStringLiteral("error"));
@@ -256,28 +256,28 @@ bool GoogleOAuth2Authenticator::parseResponse(const QUrlQuery &query)
 		const QString description = query.queryItemValue(QStringLiteral("error_description"));
 
 		LOG_CERROR("oauth2") << "AuthenticationError:" << qPrintable(error) << qPrintable(uri) << qPrintable(description);
-		return false;
+		return nullptr;
 	}
 
 	if (code.isEmpty()) {
 		LOG_CERROR("oauth2") << "AuthenticationError: Code not received";
-		return false;
+		return nullptr;
 	}
 
 	if (receivedState.isEmpty()) {
 		LOG_CERROR("oauth2") << "State not received";
-		return false;
+		return nullptr;
 	}
 
 	const auto &ptr = getCodeFlowForState(receivedState);
 
 	if (!ptr) {
 		LOG_CDEBUG("oauth2") << "Flow not found for state:" << receivedState;
-		return false;
+		return nullptr;
 	}
 
 	OAuth2CodeFlow *flow = ptr->lock().get();
 
 	flow->requestAccesToken(code);
-	return true;
+	return flow;
 }

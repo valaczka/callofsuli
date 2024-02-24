@@ -4,7 +4,6 @@ import CallOfSuli
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
-
 Rectangle {
 	id: root
 
@@ -19,6 +18,7 @@ Rectangle {
 	property int xp: 0
 	property int hp: 0
 	property int streak: 0
+	property bool online: false
 
 	property Item targetFighter1: null
 	property Item targetFighter2: null
@@ -49,6 +49,8 @@ Rectangle {
 	Behavior on border.color {
 		ColorAnimation { duration: 450 }
 	}
+
+	opacity: online ? 1.0 : 0.5
 
 	Item {
 		id: _placeholder

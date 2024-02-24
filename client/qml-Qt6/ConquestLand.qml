@@ -27,6 +27,8 @@ ConquestLandImpl {
 
 	ownColor: Qaterial.Style.iconColor()
 
+	signal imageLoaded()
+
 	SequentialAnimation {
 		running: !_setup
 		loops: Animation.Infinite
@@ -55,6 +57,8 @@ ConquestLandImpl {
 		fillMode: Image.PreserveAspectFit
 		visible: false
 		source: landData ? landData.imgMap : ""
+		asynchronous: true
+		onStatusChanged: if (_imgMap.status == Image.Ready && _imgBorder.status == Image.Ready) imageLoaded()
 	}
 
 	ColorOverlay {
@@ -76,6 +80,8 @@ ConquestLandImpl {
 		fillMode: Image.PreserveAspectFit
 		visible: false
 		source: landData ? landData.imgBorder : ""
+		asynchronous: true
+		onStatusChanged: if (_imgMap.status == Image.Ready && _imgBorder.status == Image.Ready) imageLoaded()
 	}
 
 	ColorOverlay {

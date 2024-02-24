@@ -794,6 +794,8 @@ bool ServerService::start()
 
 	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
 
+	reloadDynamicContent();
+
 	LOG_CINFO("service") << "Server service started";
 
 	if (m_webServer->start()) {
@@ -880,6 +882,17 @@ void ServerService::resume()
 
 
 /**
+ * @brief ServerService::dynamicContent
+ * @return
+ */
+
+QJsonArray ServerService::dynamicContent() const
+{
+	return m_dynamicContent;
+}
+
+
+/**
  * @brief ServerService::mainTimerInterval
  * @return
  */
@@ -887,6 +900,64 @@ void ServerService::resume()
 int ServerService::mainTimerInterval() const
 {
 	return m_mainTimerInterval;
+}
+
+
+
+/**
+ * @brief ServerService::reloadDynamicContent
+ */
+
+void ServerService::reloadDynamicContent()
+{
+	m_dynamicContent = {};
+	ConquestEngine::m_helper.clear();
+
+	const QString &dir = m_settings->dataDir().absoluteFilePath(QStringLiteral("content"));
+
+	if (!QFile::exists(dir)) {
+		LOG_CDEBUG("service") << "Dynamic content directory missing";
+		return;
+	}
+
+	LOG_CINFO("service") << "Reload dynamic content:" << qPrintable(dir);
+
+	QDirIterator it(dir, { QStringLiteral("*.cres") }, QDir::Files);
+
+	while (it.hasNext()) {
+		const QString &file = it.next();
+
+		LOG_CTRACE("service") << "Load:" << qPrintable(file);
+
+		const auto &content = Utils::fileContent(file);
+
+		if (!content)
+			continue;
+
+		const QString &md5 = QString::fromLatin1(QCryptographicHash::hash(*content, QCryptographicHash::Md5).toHex());
+		const qint64 size = content->size();
+
+		if (!QResource::registerResource(file, QStringLiteral("/tmp"))) {
+			LOG_CERROR("service") << "Invalid resource:" << qPrintable(file);
+			continue;
+		}
+
+
+		m_dynamicContent.append(QJsonObject{
+									{ QStringLiteral("file"), it.fileName() },
+									{ QStringLiteral("md5"), md5 },
+									{ QStringLiteral("size"), size },
+								});
+
+
+		LOG_CDEBUG("service") << "Dynamic content registered:" << qPrintable(it.fileName());
+
+		ConquestEngine::loadWorldDataFromResource(QStringLiteral(":/tmp"));
+
+		if (!QResource::unregisterResource(file, QStringLiteral("/tmp"))) {
+			LOG_CERROR("service") << "Unregister resource error:" << file;
+		}
+	}
 }
 
 

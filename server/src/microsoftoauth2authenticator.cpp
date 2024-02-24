@@ -52,7 +52,7 @@ void MicrosoftOAuth2Authenticator::setCodeFlow(const std::weak_ptr<OAuth2CodeFlo
  * @return
  */
 
-bool MicrosoftOAuth2Authenticator::parseResponse(const QUrlQuery &query)
+OAuth2CodeFlow* MicrosoftOAuth2Authenticator::parseResponse(const QUrlQuery &query)
 {
 	const QString error = query.queryItemValue(QStringLiteral("error"));
 	const QString code = query.queryItemValue(QStringLiteral("code"));
@@ -63,17 +63,17 @@ bool MicrosoftOAuth2Authenticator::parseResponse(const QUrlQuery &query)
 		const QString description = query.queryItemValue(QStringLiteral("error_description"));
 
 		LOG_CERROR("oauth2") << "AuthenticationError:" << qPrintable(error) << qPrintable(uri) << qPrintable(description);
-		return false;
+		return nullptr;
 	}
 
 	if (code.isEmpty()) {
 		LOG_CERROR("oauth2") << "AuthenticationError: Code not received";
-		return false;
+		return nullptr;
 	}
 
 	if (receivedState.isEmpty()) {
 		LOG_CERROR("oauth2") << "State not received";
-		return false;
+		return nullptr;
 	}
 
 
@@ -81,12 +81,12 @@ bool MicrosoftOAuth2Authenticator::parseResponse(const QUrlQuery &query)
 
 	if (!ptr) {
 		LOG_CDEBUG("oauth2") << "Flow not found for state:" << receivedState;
-		return false;
+		return nullptr;
 	}
 
 	OAuth2CodeFlow *flow = ptr->lock().get();
 	flow->requestAccesToken(code);
-	return true;
+	return flow;
 }
 
 

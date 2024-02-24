@@ -27,6 +27,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include "qlambdathreadworker.h"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
@@ -62,6 +63,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
+	Q_PROPERTY(bool dynamicContentReady READ dynamicContentReady WRITE setDynamicContentReady NOTIFY dynamicContentReadyChanged FINAL)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -70,6 +72,12 @@ class Server : public SelectableObject
 public:
 	explicit Server(QObject *parent = nullptr);
 	virtual ~Server();
+
+	struct DynamicContent {
+		QString name;
+		QString md5;
+		qint64 size = 0;
+	};
 
 	static Server *fromJson(const QJsonObject &data, QObject *parent = nullptr);
 	QJsonObject toJson() const;
@@ -102,7 +110,7 @@ public:
 
 	Q_INVOKABLE QString host() const { return m_url.host(); }
 	Q_INVOKABLE int port() const { return m_url.port(); }
-	Q_INVOKABLE bool ssl() const { return m_url.scheme() == QLatin1String("https"); }
+	Q_INVOKABLE bool ssl() const { return m_url.scheme() == QStringLiteral("https"); }
 
 	const QJsonObject &config() const;
 	void setConfig(const QJsonObject &newConfig);
@@ -124,6 +132,17 @@ public:
 	int maxUploadSize() const;
 	void setMaxUploadSize(int newMaxUploadSize);
 
+	bool dynamicContentReady() const;
+	void setDynamicContentReady(bool newDynamicContentReady);
+
+	void dynamicContentReset(const QJsonArray &list = {});
+	QVector<DynamicContent> dynamicContentList() const;
+	bool dynamicContentCheck();
+	bool dynamicContentRemove(const QString &name, const QByteArray &data);
+	bool dynamicContentSaveAndLoad(const QString &name, const QByteArray &data);
+	void unloadDynamicContents();
+	void loadDynamicContent(const QString &filename);
+
 signals:
 	void urlChanged();
 	void directoryChanged();
@@ -137,6 +156,7 @@ signals:
 	void rankListChanged();
 	void temporaryChanged();
 	void maxUploadSizeChanged();
+	void dynamicContentReadyChanged();
 
 private:
 	QString m_name;
@@ -155,6 +175,17 @@ private:
 #endif
 	QByteArray m_certificate;
 	QJsonObject m_config;
+
+	// Dynamic content
+
+#ifndef Q_OS_WASM
+	QLambdaThreadWorker m_worker;
+	QRecursiveMutex m_mutex;
+#endif
+
+	QVector<DynamicContent> m_contentList;
+	QStringList m_loadedContentList;
+	bool m_dynamicContentReady = false;
 };
 
 

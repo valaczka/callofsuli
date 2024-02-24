@@ -84,6 +84,9 @@ public:
 	AdminAPI::User getUserInfo() const;
 	QJsonObject getJWT() const;
 
+	bool isWasm() const;
+	void setIsWasm(bool newIsWasm);
+
 signals:
 	void authenticated();
 
@@ -96,6 +99,7 @@ protected:
 	AuthState m_authState = Invalid;
 	Token m_token;
 	Credential m_credential;
+	bool m_isWasm = false;
 
 private:
 	QTimer m_removeTimer;

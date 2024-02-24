@@ -1,10 +1,9 @@
 import QtQuick
 import QtQuick.Controls
-import Qt5Compat.GraphicalEffects
-import SortFilterProxyModel
-import Qt.labs.animation
-import CallOfSuli
 import Qaterial as Qaterial
+import CallOfSuli
+import SortFilterProxyModel
+import Qt5Compat.GraphicalEffects
 import "./QaterialHelper" as Qaterial
 
 
@@ -131,6 +130,7 @@ Rectangle {
 				hp: model.hp
 				streak: model.streak
 				playerId: model.playerId
+				online: model.online
 				game: root.game
 				targetFighter1: _battleRow.itemFighter1
 				targetFighter2: _battleRow.itemFighter2
@@ -279,6 +279,25 @@ Rectangle {
 		game: root.game
 	}
 
+	Qaterial.Icon {
+		id: _iconBlock
+		color: Qaterial.Colors.red500
+		anchors.centerIn: _question
+		visible: false
+		size: 150 * Qaterial.Style.pixelSizeRatio
+		icon: Qaterial.Icons.blockHelper
+	}
+
+	DropShadow {
+		anchors.fill: _iconBlock
+		source: _iconBlock
+		visible: _question.permanentDisabled && _question.state === "started"
+		samples: 13
+		radius: 6
+		color: Qaterial.Colors.black
+		horizontalOffset: 6
+		verticalOffset: 6
+	}
 
 
 
@@ -300,7 +319,7 @@ Rectangle {
 		onHpChanged: {
 			if (hp < _oldHP)
 				play()
-			else if (hp > _oldHP)
+			else if (hp > _oldHP && _oldHP != -1)
 				_messageList.message("+%1 HP".arg(hp-_oldHP), Qaterial.Colors.red400)
 
 			_oldHP = hp

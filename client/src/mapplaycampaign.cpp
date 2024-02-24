@@ -275,6 +275,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 	if (levelGame->mode() == GameMap::MultiPlayer) {
 		destroyCurrentGame();
 		setGameState(StateFinished);
+		updateSolver();
 		return;
 	}
 

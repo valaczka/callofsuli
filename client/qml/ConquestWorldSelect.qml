@@ -38,12 +38,12 @@ QScrollable {
 				model: game ? game.worldListSelect : null
 
 				delegate: Qaterial.LoaderItemDelegate {
-					text: modelData
+					text: modelData ? modelData.description : ""
 
 					leftSourceComponent: Image
 					{
 						fillMode: Image.PreserveAspectFit
-						source: modelData ? "qrc:/conquest/%1/bg.png".arg(modelData) : ""
+						source: modelData ? "qrc:/content/%1/bg.png".arg(modelData.name) : ""
 						sourceSize: Qt.size(width, height)
 					}
 
@@ -53,7 +53,7 @@ QScrollable {
 							game.sendWebSocketMessage({
 														  cmd: "play",
 														  engine: game.engineId,
-														  world: modelData
+														  world: modelData.name
 													  })
 					}
 				}

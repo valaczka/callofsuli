@@ -227,7 +227,7 @@ Qaterial.Page
 
 		QMenuItem {
 			text: qsTr("Mindenki")
-			icon.source: Qaterial.Icons.filterRemove
+			icon.source: _scoreList.filterClassId == -1 ? Qaterial.Icons.filterOutline : Qaterial.Icons.filterRemove
 			onClicked: _scoreList.filterClassId = -1
 		}
 
@@ -237,6 +237,7 @@ Qaterial.Page
 			model: sortedClassList
 			delegate: QMenuItem {
 				text: model.name
+				icon.source: _scoreList.filterClassId === model.classid ? Qaterial.Icons.filterOutline : ""
 				onTriggered: _scoreList.filterClassId = model.classid
 			}
 

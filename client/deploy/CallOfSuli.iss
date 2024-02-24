@@ -10,14 +10,14 @@ OutputDir=..
 OutputBaseFilename={#COSexe}
 PrivilegesRequired=lowest
 LicenseFile=LICENSE
-AppCopyright=Copyright (C) 2012-2023 Valaczka János Pál
+AppCopyright=Copyright (C) 2012-2024 Valaczka János Pál
 DisableDirPage=auto
 DisableProgramGroupPage=auto
 MinVersion={#WinMinVersion}
 OnlyBelowVersion={#WinMaxVersion}
 
 [Files]
-Source: "*"; DestDir: "{app}"; Excludes: "CallOfSuli.iss"; Flags: recursesubdirs ignoreversion
+Source: "*"; DestDir: "{app}"; Excludes: "CallOfSuli.iss"; Flags: recursesubdirs
 
 
 [Tasks]

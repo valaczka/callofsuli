@@ -53,6 +53,7 @@ public:
 protected:
 	virtual void fullScreenHelperConnect(QQuickWindow *window) override;
 	virtual void fullScreenHelperDisconnect(QQuickWindow *window) override;
+	virtual bool saveDynamicResource(const QString &name, const QByteArray &data) override;
 
 protected slots:
 	virtual void onApplicationStarted() override;

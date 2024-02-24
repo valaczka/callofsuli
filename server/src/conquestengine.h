@@ -77,6 +77,7 @@ public:
 		, stream(_stream)
 	{
 		fullNickName = _fullNickName;
+		online = _stream ? true : false;
 	}
 	ConquestEnginePlayer(const int &_id, const QString &_user, WebSocketStream *_stream)
 		: ConquestEnginePlayer(_id, _user, QStringLiteral(""), _stream) {}
@@ -110,6 +111,7 @@ public:
 	static std::shared_ptr<ConquestEngine> createEngine(WebSocketStream *stream, EngineHandler *handler);
 	static std::weak_ptr<AbstractEngine> connectToEngine(const int &id, WebSocketStream *stream, EngineHandler *handler);
 	static int restoreEngines(ServerService *service);
+	static void loadWorldDataFromResource(const QString &path);
 
 	QJsonObject cmdStart(WebSocketStream *stream, const QJsonObject &message);
 	QJsonObject cmdPrepare(WebSocketStream *stream, const QJsonObject &message);
@@ -204,12 +206,14 @@ private:
 	qint64 m_tickBegin = 0;
 	std::vector<ConquestEnginePlayer> m_players;
 	ConquestConfig m_config;
-	ConquestWordListHelper m_worldListHelper;
+	ConquestWorldListHelper m_characterListHelper;
 	static int m_nextId;
 	std::unique_ptr<ConquestQuestion> m_question;
 	qint64 m_lastStateSent = 0;
+	static QList<ConquestWorldHelper> m_helper;
 
 	friend class ConquestQuestion;
+	friend class ServerService;
 };
 
 

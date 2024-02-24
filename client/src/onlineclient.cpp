@@ -257,10 +257,11 @@ void OnlineClient::onAllResourceReady()
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
 
+
 	if (m_demoMode)
 		m_startPage = loadDemoMap();
 	else
-		m_startPage = stackPushPage("PageStart.qml");
+		loadDynamicResources();
 }
 
 
@@ -338,6 +339,40 @@ void OnlineClient::fullScreenHelperConnect(QQuickWindow *window)
 void OnlineClient::fullScreenHelperDisconnect(QQuickWindow *window)
 {
 	Q_UNUSED(window);
+}
+
+
+/**
+ * @brief OnlineClient::saveDynamicResource
+ * @param name
+ * @param data
+ * @return
+ */
+
+bool OnlineClient::saveDynamicResource(const QString &name, const QByteArray &data)
+{
+	if (!server())
+		return false;
+
+	if (!server()->dynamicContentRemove(name, data)) {
+		messageError(tr("Fájl mentése sikertelen: %1").arg(name));
+		return false;
+	}
+
+	const std::size_t count = data.size();
+	unsigned char* resourceData = new unsigned char[count];
+	std::memcpy(resourceData, data.constData(), count);
+
+	QResource::registerResource(resourceData, QStringLiteral("/content"));
+
+	LOG_CINFO("client") << "Register resource:" << qPrintable(name);
+
+	if (server()->dynamicContentList().isEmpty()) {
+		server()->setDynamicContentReady(true);
+		m_startPage = stackPushPage("PageStart.qml");
+	}
+
+	return true;
 }
 
 

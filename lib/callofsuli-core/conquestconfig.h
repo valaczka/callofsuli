@@ -30,19 +30,20 @@
 #include <QSerializer>
 #include <QString>
 
-#define MAX_PLAYERS_COUNT		4
+#define MAX_PLAYERS_COUNT			4
 
-#define LAND_XP					50
-#define LAND_XP_ONCE			100
+#define LAND_XP						50
+#define LAND_XP_ONCE				100
 
-#define MSEC_SELECT				9000
-#define MSEC_PREPARE			1250
-#define MSEC_ANSWER				12000
-#define MSEC_WAIT				2000
-#define MSEC_GAME_TIMEOUT		20*60*1000
+#define MSEC_SELECT					9000
+#define MSEC_PREPARE				1250
+#define MSEC_ANSWER					12000
+#define MSEC_WAIT					2000
+#define MSEC_GAME_TIMEOUT			8*60*1000
 
-#define INITIAL_FORTRESS_COUNT	3
-#define STREAK_SIZE				4
+#define INITIAL_FORTRESS_COUNT		3
+#define INITIAL_FORTRESS_QUESTION	2
+#define STREAK_SIZE					4
 
 
 
@@ -231,7 +232,7 @@ public:
 	 * @return
 	 */
 
-	bool answerIsSuccess(const int &playerId, const Stage &gameStage) const {
+	bool answerIsSuccess(const int &playerId, const bool &checkTime) const {
 		auto it = std::find_if(answerList.constBegin(), answerList.constEnd(), [playerId](const ConquestAnswer &a){
 			return a.player == playerId;
 		});
@@ -242,7 +243,7 @@ public:
 		if (!it->success)
 			return false;
 
-		if (gameStage == StageBattle) {
+		if (checkTime) {
 			for (const ConquestAnswer &a : answerList) {
 				if (a.player != playerId && a.success && a.elapsed < it->elapsed)
 					return false;
@@ -296,6 +297,7 @@ public:
 		answerList.clear();
 		canPick.clear();
 		answerState = AnswerPending;
+		fortressQuestion = 0;
 	}
 
 	friend bool operator==(const ConquestTurn &c1, const ConquestTurn &c2) {
@@ -306,9 +308,12 @@ public:
 				c1.pickedId == c2.pickedId &&
 				c1.answerList == c2.answerList &&
 				c1.canPick == c2.canPick &&
-				c1.answerState == c2.answerState
+				c1.answerState == c2.answerState &&
+				c1.fortressQuestion == c2.fortressQuestion
 				;
 	}
+
+	int fortressQuestion = 0;
 
 	QS_SERIALIZABLE
 	QS_FIELD(int, player)
@@ -346,6 +351,7 @@ public:
 		, hp(0)
 		, streak(0)
 		, success(false)
+		, online(false)
 	{}
 	ConquestPlayer(const int &_id) : ConquestPlayer(_id, QStringLiteral("")) {}
 	ConquestPlayer() : ConquestPlayer(-1) {}
@@ -361,7 +367,8 @@ public:
 				c1.fullNickName == c2.fullNickName &&
 				c1.hp == c2.hp &&
 				c1.streak == c2.streak &&
-				c1.success == c2.success
+				c1.success == c2.success &&
+				c1.online == c2.online
 				;
 	}
 
@@ -388,6 +395,7 @@ public:
 	QS_FIELD(int, hp)
 	QS_FIELD(int, streak)
 	QS_FIELD(bool, success)
+	QS_FIELD(bool, online)
 };
 
 
@@ -543,6 +551,7 @@ public:
 	QS_COLLECTION(QList, QString, landIdList)
 	QS_FIELD(int, playerCount)
 	QS_FIELD(QJsonObject, adjacency)
+	QS_FIELD(QString, description)
 };
 
 
@@ -588,16 +597,16 @@ inline void ConquestWorldHelper::adjacencyToMatrix(const QJsonObject &data, QHas
 
 
 /**
- * @brief The ConquestWordListHelper class
+ * @brief The ConquestWorldListHelper class
  */
 
-class ConquestWordListHelper : public QSerializer
+class ConquestWorldListHelper : public QSerializer
 {
 	Q_GADGET
 
 public:
 	QS_SERIALIZABLE
-	QS_COLLECTION_OBJECTS(QList, ConquestWorldHelper, worldList);
+	//QS_COLLECTION_OBJECTS(QList, ConquestWorldHelper, worldList);
 	QS_COLLECTION(QList, QString, characterList);
 };
 

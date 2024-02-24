@@ -293,6 +293,10 @@ protected:
 	void _userAuthTokenReceived(const QString &token);
 	virtual void fullScreenHelperConnect(QQuickWindow *window);
 	virtual void fullScreenHelperDisconnect(QQuickWindow *window);
+	void loadDynamicResources();
+	void downloadDynamicResources();
+	void onDynamicResourceDownloaded();
+	virtual bool saveDynamicResource(const QString &name, const QByteArray &data);
 
 signals:
 	void loadRequestRegistration(const QString &oauth, const QString &code);

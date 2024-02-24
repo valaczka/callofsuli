@@ -8,5 +8,6 @@
         <file>../html/js/bootstrap.js</file>
         <file>../html/js/jquery-3.4.1.min.js</file>
         <file>../html/callback.html</file>
+        <file>../html/callback_wasm.html</file>
     </qresource>
 </RCC>

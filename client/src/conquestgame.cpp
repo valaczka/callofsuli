@@ -153,9 +153,8 @@ void ConquestGame::gameCreate(const QString &character)
 		return;
 	}
 
-	ConquestWordListHelper helper;
+	ConquestWorldListHelper helper;
 
-	getWorldList(&helper);
 	getCharacterList(&helper);
 
 	QJsonObject o = m_config.toBaseJson();
@@ -274,6 +273,8 @@ bool ConquestGame::gameStartEvent()
 
 bool ConquestGame::gameFinishEvent()
 {
+	m_loadedWorld.clear();
+	m_config.reset();
 	return true;
 }
 
@@ -440,7 +441,7 @@ void ConquestGame::onConfigChanged()
 	if ((m_config.gameState == ConquestConfig::StatePrepare || m_config.gameState == ConquestConfig::StatePlay) &&
 			m_config.world.name != m_loadedWorld) {
 		reloadLandList();
-		message(tr("Waiting fro other players..."));
+		message(tr("Waiting for other players..."));
 	}
 
 	for (ConquestLandData *land : *m_landDataList) {
@@ -449,13 +450,13 @@ void ConquestGame::onConfigChanged()
 			land->loadFromConfig(m_config.world.landList[idx]);
 	}
 
-	if (m_config.gameState == ConquestConfig::StatePrepare && m_oldGameState != ConquestConfig::StatePrepare) {
+	/*if (m_config.gameState == ConquestConfig::StatePrepare && m_oldGameState != ConquestConfig::StatePrepare) {
 		sendWebSocketMessage(QJsonObject{
 								 { QStringLiteral("cmd"), QStringLiteral("prepare") },
 								 { QStringLiteral("engine"), m_engineId },
 								 { QStringLiteral("ready"), true }
 							 });
-	}
+	}*/
 
 	m_oldGameState = m_config.gameState;
 
@@ -569,14 +570,9 @@ void ConquestGame::cmdStart(const QJsonObject &data)
 {
 	const QJsonArray &list = data.value(QStringLiteral("worldList")).toArray();
 
-	QStringList l;
+	LOG_CTRACE("game") << "Select world list:" << list;
 
-	for (const QJsonValue &v : list)
-		l.append(v.toString());
-
-	LOG_CTRACE("game") << "Select world list:" << l;
-
-	setWorldListSelect(l);
+	setWorldListSelect(list.toVariantList());
 }
 
 
@@ -699,7 +695,7 @@ void ConquestGame::reloadLandList()
 	if (m_config.world.name.isEmpty())
 		return;
 
-	const auto &data = Utils::fileToJsonObject(QStringLiteral(":/conquest/%1/data.json").arg(m_config.world.name));
+	const auto &data = Utils::fileToJsonObject(QStringLiteral(":/content/%1/data.json").arg(m_config.world.name));
 
 	if (!data) {
 		m_client->messageError(tr("Hibás térkép"), tr("Belső hiba"));
@@ -723,17 +719,17 @@ void ConquestGame::reloadLandList()
 	jsonOrigDataCheck(orig);
 
 	if (QString img = orig.value(QStringLiteral("bg")).toString(); !img.isEmpty()) {
-		img.prepend(QStringLiteral("qrc:/conquest/")+m_config.world.name+QStringLiteral("/"));
+		img.prepend(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/"));
 		setWorldBgImage(img);
 	} else {
-		setWorldBgImage(QStringLiteral("qrc:/conquest/")+m_config.world.name+QStringLiteral("/bg.png"));
+		setWorldBgImage(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/bg.png"));
 	}
 
 	if (QString img = orig.value(QStringLiteral("over")).toString(); !img.isEmpty()) {
-		img.prepend(QStringLiteral("qrc:/conquest/")+m_config.world.name+QStringLiteral("/"));
+		img.prepend(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/"));
 		setWorldOverImage(img);
 	} else {
-		setWorldOverImage(QStringLiteral("qrc:/conquest/")+m_config.world.name+QStringLiteral("/over.png"));
+		setWorldOverImage(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/over.png"));
 	}
 
 
@@ -755,9 +751,9 @@ void ConquestGame::reloadLandList()
 		land->setOverX(baseX + obj.value(QStringLiteral("textX")).toDouble());
 		land->setOverY(baseY + obj.value(QStringLiteral("textY")).toDouble());
 
-		land->setImgMap(QStringLiteral("qrc:/conquest/%1/land-%2.svg")
+		land->setImgMap(QStringLiteral("qrc:/content/%1/land-%2.svg")
 						.arg(m_config.world.name).arg(id));
-		land->setImgBorder(QStringLiteral("qrc:/conquest/%1/land-%2-border.svg")
+		land->setImgBorder(QStringLiteral("qrc:/content/%1/land-%2-border.svg")
 						   .arg(m_config.world.name).arg(id));
 
 		landList.append(land);
@@ -775,50 +771,11 @@ void ConquestGame::reloadLandList()
 
 
 /**
- * @brief ConquestGame::getWorldList
- * @return
- */
-
-void ConquestGame::getWorldList(ConquestWordListHelper *helper) const
-{
-	Q_ASSERT(helper);
-
-	helper->worldList.clear();
-
-	QDirIterator it(QStringLiteral(":/conquest"), { QStringLiteral("data.json") }, QDir::Files, QDirIterator::Subdirectories);
-
-	while (it.hasNext()) {
-		const QString &jsonFile = it.next();
-		const QString &name = jsonFile.section('/',-2,-2);
-
-		const auto &data = Utils::fileToJsonObject(jsonFile);
-
-		if (!data) {
-			LOG_CERROR("game") << "Invalid JSON content:" << qPrintable(jsonFile);
-			continue;
-		}
-
-		const QJsonObject &orig = data->value(QStringLiteral("orig")).toObject();
-
-		ConquestWorldHelper world;
-
-		world.fromJson(orig);
-
-		world.name = name;
-		world.landIdList = data->value(QStringLiteral("lands")).toObject().keys();
-		world.adjacency = orig.value(QStringLiteral("adjacency")).toObject();
-
-		helper->worldList.append(world);
-	}
-}
-
-
-/**
  * @brief ConquestGame::getCharacterList
  * @param helper
  */
 
-void ConquestGame::getCharacterList(ConquestWordListHelper *helper) const
+void ConquestGame::getCharacterList(ConquestWorldListHelper *helper) const
 {
 	Q_ASSERT(helper);
 
@@ -988,12 +945,12 @@ void ConquestGame::onGameQuestionFinished()
  * @return
  */
 
-QStringList ConquestGame::worldListSelect() const
+QVariantList ConquestGame::worldListSelect() const
 {
 	return m_worldListSelect;
 }
 
-void ConquestGame::setWorldListSelect(const QStringList &newWorldListSelect)
+void ConquestGame::setWorldListSelect(const QVariantList &newWorldListSelect)
 {
 	if (m_worldListSelect == newWorldListSelect)
 		return;

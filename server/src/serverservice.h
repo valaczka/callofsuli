@@ -138,10 +138,13 @@ public:
 
 	int mainTimerInterval() const;
 
+	void reloadDynamicContent();
+
 	void stop();
 	void pause();
 	void reload();
 
+	QJsonArray dynamicContent() const;
 
 signals:
 	void configChanged();
@@ -187,6 +190,8 @@ private:
 	QBasicTimer m_mainTimer;
 	QDateTime m_mainTimerLastTick;
 	int m_mainTimerInterval = 0;
+
+	QJsonArray m_dynamicContent;
 
 	static ServerService *m_instance;
 };

@@ -44,6 +44,9 @@ Page {
 		anchors.fill: parent
 
 		readonly property Component activeComponent: {
+			if (!Client.server || !Client.server.dynamicContentReady)
+				return _cmpDownload
+
 			if (!game)
 				return _cmpConnect
 
@@ -101,6 +104,23 @@ Page {
 
 		ConquestError {
 			game: root.game
+		}
+	}
+
+	Component {
+		id: _cmpDownload
+
+		QScrollable {
+			contentCentered: true
+
+			Qaterial.IconLabel {
+				anchors.horizontalCenter: parent.horizontalCenter
+				color: Qaterial.Style.accentColor
+				icon.source: Qaterial.Icons.download
+				icon.width: Qaterial.Style.dashboardButtonSize*0.4
+				icon.height: Qaterial.Style.dashboardButtonSize*0.4
+				text: qsTr("Pályák letöltése folyamatban...")
+			}
 		}
 	}
 

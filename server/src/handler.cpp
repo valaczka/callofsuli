@@ -98,6 +98,12 @@ bool Handler::loadRoutes()
 		return getFavicon(request);
 	});
 
+	server->route("/content/", QHttpServerRequest::Method::Get,
+				  [this](const QString &fname, const QHttpServerRequest &request){
+		return getDynamicContent(fname, request);
+	});
+
+
 	server->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
 		const QString &callbackPath = QStringLiteral("/")+OAuth2Authenticator::callbackPath()+QStringLiteral("/");
 		const QString &requestPath = request.url().path();
@@ -179,13 +185,13 @@ std::optional<Credential> Handler::authorizeRequestLog(const QHttpServerRequest 
 	QByteArray method;
 
 	switch (request.method()) {
-	case QHttpServerRequest::Method::Get: method = QByteArrayLiteral("GET"); break;
-	case QHttpServerRequest::Method::Put: method = QByteArrayLiteral("PUT"); break;
-	case QHttpServerRequest::Method::Post: method = QByteArrayLiteral("POST"); break;
-	case QHttpServerRequest::Method::Delete: method = QByteArrayLiteral("DELETE"); break;
-	case QHttpServerRequest::Method::Head: method = QByteArrayLiteral("HEAD"); break;
-	case QHttpServerRequest::Method::Patch: method = QByteArrayLiteral("PATCH"); break;
-	default: method = QByteArrayLiteral("INVALID"); break;
+		case QHttpServerRequest::Method::Get: method = QByteArrayLiteral("GET"); break;
+		case QHttpServerRequest::Method::Put: method = QByteArrayLiteral("PUT"); break;
+		case QHttpServerRequest::Method::Post: method = QByteArrayLiteral("POST"); break;
+		case QHttpServerRequest::Method::Delete: method = QByteArrayLiteral("DELETE"); break;
+		case QHttpServerRequest::Method::Head: method = QByteArrayLiteral("HEAD"); break;
+		case QHttpServerRequest::Method::Patch: method = QByteArrayLiteral("PATCH"); break;
+		default: method = QByteArrayLiteral("INVALID"); break;
 	}
 
 	LOG_CDEBUG("service") << method.constData() << qPrintable(request.url().path())
@@ -275,7 +281,7 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 			const auto &server= m_service->webServer().lock();
 
 			QByteArray hostname = QStringLiteral("callofsuli://%1:%2").arg(server ? server->redirectHost() : QStringLiteral("invalid"))
-					.arg(m_service->settings()->listenPort()).toUtf8();
+								  .arg(m_service->settings()->listenPort()).toUtf8();
 
 			if (m_service->settings()->ssl())
 				hostname.append(QByteArrayLiteral("/?ssl=1"));
@@ -324,7 +330,7 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 
 QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
 {
-	static QRegularExpression exp(QStringLiteral("^/cb/(\\w+)"));
+	static const QRegularExpression exp(QStringLiteral("^/cb/(\\w+)"));
 	const QRegularExpressionMatch &match = exp.match(request.url().path());
 
 	if (match.hasMatch()) {
@@ -338,26 +344,42 @@ QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
 		}
 
 		OAuth2Authenticator *authenticator = ptr->lock().get();
+		OAuth2CodeFlow *flow = authenticator->parseResponse(std::move(QUrlQuery(request.url())));
 
-		if (!authenticator->parseResponse(std::move(QUrlQuery(request.url()))))
+		if (!flow)
 			return AbstractAPI::responseError("invalid request", QHttpServerResponse::StatusCode::BadRequest);
 
 		QByteArray content;
-		QFile f(QStringLiteral(":/html/callback.html"));
-		if (f.open(QIODevice::ReadOnly)) {
-			content = f.readAll();
-			f.close();
+
+		if (flow->isWasm()) {
+			QFile f(QStringLiteral(":/html/callback_wasm.html"));
+			if (f.open(QIODevice::ReadOnly)) {
+				content = f.readAll();
+				f.close();
+			}
+		} else {
+			QFile f(QStringLiteral(":/html/callback.html"));
+			if (f.open(QIODevice::ReadOnly)) {
+				content = f.readAll();
+				f.close();
+			}
 		}
 
 		if (!content.isEmpty()) {
 			content.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8());
+		} else if (flow->isWasm()) {
+			content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body>"
+									 "<p>%1</p>"
+									 "</body></html>")
+					  .arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot."))
+					  .toUtf8();
 		} else {
 			content = QStringLiteral("<html><head><meta charset=\"UTF-8\"><title>Call of Suli</title></head><body>"
 									 "<p>%1</p>"
 									 "<p><a href=\"callofsuli://\">%2</a></p>"
 									 "</body></html>")
-					.arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot."), tr("Vissza az alkalmazásba"))
-					.toUtf8();
+					  .arg(tr("A kapcsolatfelvétel sikeres, zárd be ezt a lapot."), tr("Vissza az alkalmazásba"))
+					  .toUtf8();
 		}
 
 
@@ -365,8 +387,27 @@ QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
 
 	}
 
-	LOG_CWARNING("client") << "Invalid request:" << request.url().path();
+	LOG_CWARNING("service") << "Invalid request:" << request.url().path();
 	return AbstractAPI::responseError("invalid request", QHttpServerResponse::StatusCode::BadRequest);
+}
+
+
+/**
+ * @brief Handler::getDynamicContent
+ * @param request
+ * @return
+ */
+
+QHttpServerResponse Handler::getDynamicContent(const QString &fname, const QHttpServerRequest &request)
+{
+	authorizeRequestLog(request);
+
+	const QString &file = m_service->settings()->dataDir().absoluteFilePath(QStringLiteral("content/")+fname);
+
+	if (QFile::exists(file))
+		return QHttpServerResponse::fromFile(file);
+	else
+		return getErrorPage(tr("Hiányzó fájl"));
 }
 
 
@@ -404,7 +445,7 @@ QHttpServerResponse Handler::getErrorPage(const QString &message, const QHttpSer
 	const auto &server= m_service->webServer().lock();
 
 	QByteArray hostname = QStringLiteral("callofsuli://%1:%2").arg(server ? server->redirectHost() : QStringLiteral("invalid"))
-			.arg(m_service->settings()->listenPort()).toUtf8();
+						  .arg(m_service->settings()->listenPort()).toUtf8();
 
 	if (m_service->settings()->ssl())
 		hostname.append(QByteArrayLiteral("/?ssl=1"));
@@ -413,18 +454,18 @@ QHttpServerResponse Handler::getErrorPage(const QString &message, const QHttpSer
 	QByteArray str;
 
 	switch (code) {
-	case QHttpServerResponder::StatusCode::Ok:
-		str = tr("Ok").toUtf8();
-		break;
-	case QHttpServerResponder::StatusCode::NotFound:
-		str = tr("A kért oldal nem található").toUtf8();
-		break;
-	case QHttpServerResponder::StatusCode::Unauthorized:
-		str = tr("Azonosítás szükséges").toUtf8();
-		break;
-	default:
-		str = tr("Hibás kérés").toUtf8();
-		break;
+		case QHttpServerResponder::StatusCode::Ok:
+			str = tr("Ok").toUtf8();
+			break;
+		case QHttpServerResponder::StatusCode::NotFound:
+			str = tr("A kért oldal nem található").toUtf8();
+			break;
+		case QHttpServerResponder::StatusCode::Unauthorized:
+			str = tr("Azonosítás szükséges").toUtf8();
+			break;
+		default:
+			str = tr("Hibás kérés").toUtf8();
+			break;
 	}
 
 	b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8())

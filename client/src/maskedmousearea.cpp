@@ -102,16 +102,16 @@ void MaskedMouseArea::mouseReleaseEvent(QMouseEvent *event)
 {
 	setPressed(false);
 	emit released();
-	const int threshold = qApp->styleHints()->startDragDistance();
-#if QT_VERSION >= 0x060000
-	const bool isClick = (threshold >= qAbs(event->position().x() - m_pressPoint.x()) &&
-						  threshold >= qAbs(event->position().y() - m_pressPoint.y()));
-#else
-	const bool isClick = (threshold >= qAbs(event->localPos().x() - m_pressPoint.x()) &&
-						  threshold >= qAbs(event->localPos().y() - m_pressPoint.y()));
-#endif
 
-	if (isClick)
+#if QT_VERSION >= 0x060000
+	QPointF pos = event->position();
+#else
+	QPointF pos = event->localPos();
+#endif
+	pos -= m_pressPoint;
+
+	const int threshold = qApp->styleHints()->startDragDistance();
+	if (pos.manhattanLength() < 2*threshold)
 		emit clicked();
 }
 
@@ -129,19 +129,19 @@ void MaskedMouseArea::mouseUngrabEvent()
 
 void MaskedMouseArea::touchEvent(QTouchEvent *event)
 {
+	QPointF pos;
+
 #if QT_VERSION >= 0x060000
 	if (event->pointCount() != 1)
 		return;
 
-	if (event->isBeginEvent())
+	if (event->isBeginEvent()) {
 		m_touchPoint = event->point(0).position();
-	else if (event->isEndEvent()) {
-		const int threshold = qApp->styleHints()->startDragDistance();
-		const bool isClick = (threshold >= qAbs(event->point(0).position().x() - m_touchPoint.x()) &&
-							  threshold >= qAbs(event->point(0).position().y() - m_touchPoint.y()));
-		if (isClick)
-			emit clicked();
-	}
+		return;
+	} else if (event->isEndEvent()) {
+		pos = event->point(0).position();
+	} else
+		return;
 #else
 	const auto &tp = event->touchPoints();
 	if (tp.count() != 1)
@@ -150,14 +150,16 @@ void MaskedMouseArea::touchEvent(QTouchEvent *event)
 	if (event->type() == QEvent::TouchBegin)
 		m_touchPoint = tp.at(0).pos();
 	else if (event->type() == QEvent::TouchEnd) {
-		const int threshold = qApp->styleHints()->startDragDistance();
-		const bool isClick = (threshold >= qAbs(tp.at(0).pos().x() - m_touchPoint.x()) &&
-							  threshold >= qAbs(tp.at(0).pos().y() - m_touchPoint.y()));
-		if (isClick)
-			emit clicked();
-	}
-
+		pos = tp.at(0).pos();
+	} else
+		return;
 #endif
+
+	pos -= m_touchPoint;
+
+	const int threshold = qApp->styleHints()->startDragDistance();
+	if (pos.manhattanLength() < 2*threshold)
+		emit clicked();
 }
 
 

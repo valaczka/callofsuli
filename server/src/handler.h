@@ -58,6 +58,7 @@ private:
 	QHttpServerResponse getFavicon(const QHttpServerRequest &request);
 	QHttpServerResponse getStaticContent(const QHttpServerRequest &request);
 	QHttpServerResponse getCallback(const QHttpServerRequest &request);
+	QHttpServerResponse getDynamicContent(const QString &fname, const QHttpServerRequest &request);
 
 	void addApi(std::unique_ptr<AbstractAPI> api);
 
