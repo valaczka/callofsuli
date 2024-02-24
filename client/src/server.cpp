@@ -419,7 +419,7 @@ bool Server::dynamicContentCheck()
 	m_worker.execInThread([this, dir, ret]() mutable {
 		QMutexLocker locker(&m_mutex);
 #endif
-		for (auto it = m_contentList.cbegin(); it != m_contentList.cend(); ) {
+		for (auto it = m_contentList.begin(); it != m_contentList.end(); ) {
 			if (it->name.isEmpty()) {
 				++it;
 				continue;
@@ -481,7 +481,7 @@ bool Server::dynamicContentRemove(const QString &name, const QByteArray &data)
 	m_worker.execInThread([this, name, md5, size, &found, ret]() mutable {
 		QMutexLocker locker(&m_mutex);
 #endif
-		for (auto it = m_contentList.cbegin(); it != m_contentList.cend(); ) {
+		for (auto it = m_contentList.begin(); it != m_contentList.end(); ) {
 			if (it->name == name && it->md5 == md5 && it->size == size) {
 				it = m_contentList.erase(it);
 				found = true;

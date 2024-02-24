@@ -289,12 +289,13 @@ void EngineHandlerPrivate::engineTriggerId(const AbstractEngine::Type &type, con
 
 void EngineHandlerPrivate::engineTriggerEngine(AbstractEngine *engine)
 {
+	QMutexLocker locker(&m_mutex);
+
 	if (!engine)
 		return;
 
 	LOG_CTRACE("service") << "Engine trigger" << engine;
 
-	QMutexLocker locker(&m_mutex);
 
 	engine->triggerEvent();
 }

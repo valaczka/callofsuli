@@ -57,6 +57,8 @@ ConquestLandImpl {
 		fillMode: Image.PreserveAspectFit
 		visible: false
 		source: landData ? landData.imgMap : ""
+		width: sourceSize.width
+		height: sourceSize.height
 		asynchronous: true
 		onStatusChanged: if (_imgMap.status == Image.Ready && _imgBorder.status == Image.Ready) imageLoaded()
 	}
