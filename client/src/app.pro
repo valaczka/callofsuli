@@ -93,7 +93,7 @@ win32 {
 android {
 	androidCodeApi = 0
 
-	equals(QT_ARCH, armeabi-v7a): androidCodeApi = 100000
+	equals(QT_ARCH, armeabi-v7a)|equals(ANDROID_ABIS, armeabi-v7a): androidCodeApi = 100000
 	else:equals(QT_ARCH, arm64-v8a): androidCodeApi = 200000
 	else:equals(QT_ARCH, x86): androidCodeApi = 300000
 	else:equals(QT_ARCH, x86_64): androidCodeApi = 400000
@@ -131,7 +131,6 @@ android {
 	}
 
 	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)
-
 
 	QMAKE_SUBSTITUTES += alist
 
