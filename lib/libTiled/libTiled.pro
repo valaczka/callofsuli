@@ -4,14 +4,18 @@ android: TARGET = tiled_$${QT_ARCH}
 else: TARGET = tiled
 
 CONFIG += c++17
-
 CONFIG += separate_debug_info
+
+QT += quick
 
 DESTDIR = ..
 
 !wasm: LIBS += -lz
 
 SOURCE_DIR = $$PWD/../tiled/src/libtiled
+SOURCE_DIR_QUICK = $$PWD/../tiled/src/libtiledquick
+
+INCLUDEPATH += $$PWD/../tiled/src/libtiled
 
 DEFINES += \
 	TILED_LIBRARY \
@@ -20,7 +24,10 @@ DEFINES += \
 	QT_NO_CAST_TO_ASCII \
 	QT_NO_URL_CAST_FROM_STRING \
 	QT_NO_DEPRECATED_WARNINGS \
-	_USE_MATH_DEFINES
+	_USE_MATH_DEFINES \
+	TILED_QUICK_LIBRARY \
+	QT_NO_FOREACH
+
 
 HEADERS += \
 	$${SOURCE_DIR}/compression.h \
@@ -70,7 +77,13 @@ HEADERS += \
 	$${SOURCE_DIR}/tilesetmanager.h \
 	$${SOURCE_DIR}/varianttomapconverter.h \
 	$${SOURCE_DIR}/wangset.h \
-	$${SOURCE_DIR}/worldmanager.h
+	$${SOURCE_DIR}/world.h \
+	$${SOURCE_DIR_QUICK}/mapitem.h \
+	$${SOURCE_DIR_QUICK}/maploader.h \
+	$${SOURCE_DIR_QUICK}/mapref.h \
+	$${SOURCE_DIR_QUICK}/tiledquick_global.h \
+	$${SOURCE_DIR_QUICK}/tilelayeritem.h \
+	$${SOURCE_DIR_QUICK}/tilesnode.h
 
 SOURCES += \
 	$${SOURCE_DIR}/compression.cpp \
@@ -116,5 +129,9 @@ SOURCES += \
 	$${SOURCE_DIR}/tilesetmanager.cpp \
 	$${SOURCE_DIR}/varianttomapconverter.cpp \
 	$${SOURCE_DIR}/wangset.cpp \
-	$${SOURCE_DIR}/worldmanager.cpp
+	$${SOURCE_DIR}/world.cpp \
+	$${SOURCE_DIR_QUICK}/mapitem.cpp \
+	$${SOURCE_DIR_QUICK}/maploader.cpp \
+	$${SOURCE_DIR_QUICK}/tilelayeritem.cpp \
+	$${SOURCE_DIR_QUICK}/tilesnode.cpp
 

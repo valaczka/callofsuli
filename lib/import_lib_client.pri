@@ -33,7 +33,10 @@ DEFINES += QATERIAL_STATIC
 
 # Tiled
 
-INCLUDEPATH += $$PWD/tiled/src
+INCLUDEPATH += \
+	$$PWD/tiled/src \
+	$$PWD/tiled/src/libtiled \
+	$$PWD/tiled/src/libtiledquick
 
 android: LIBS += -ltiled_$${QT_ARCH}
 else: LIBS += -ltiled

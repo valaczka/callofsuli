@@ -910,7 +910,8 @@ Page {
 			else if (flags & GamePlayer.MoveDown)
 				py = 1.0
 
-			joystick.moveThumb(px*joystick.width, py*joystick.height)
+			//joystick.moveThumb(px*joystick.width, py*joystick.height)
+			joystick.moveThumbRelative(px, py)
 		}
 	}
 

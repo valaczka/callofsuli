@@ -15,17 +15,17 @@ include(../../translations/translations.pri)
 
 DESTDIR = ../..
 
-lessThan(QT_MAJOR_VERSION, 6) {
-	QML_IMPORT_PATH += $$PWD/../qml
-	QMLPATHS += $$PWD/../qml
-} else {
+#lessThan(QT_MAJOR_VERSION, 6) {
+#	QML_IMPORT_PATH += $$PWD/../qml
+#	QMLPATHS += $$PWD/../qml
+#} else {
 	QML_IMPORT_PATH += $$PWD/../qml-Qt6
 	QMLPATHS += $$PWD/../qml-Qt6
 
 	QT += core5compat
 
 	linux|win32|macx:!android: QT += pdf
-}
+#}
 
 DEFINES += CLIENT_UTILS
 
@@ -235,6 +235,7 @@ SOURCES += \
 	gameterrainmap.cpp \
 	grade.cpp \
 	httpconnection.cpp \
+	isogameobject.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -262,21 +263,24 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
+	tiledmapitem.cpp \
+	tiledmapobject.cpp \
+	tiledscene.cpp \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
 	userloglist.cpp \
 	websocket.cpp
 
-lessThan(QT_MAJOR_VERSION, 6): {
-	RESOURCES += \
-		../qml/qml.qrc \
-		../qml/QaterialHelper.qrc
-} else {
+#lessThan(QT_MAJOR_VERSION, 6): {
+#	RESOURCES += \
+#		../qml/qml.qrc \
+#		../qml/QaterialHelper.qrc
+#} else {
 	RESOURCES += \
 		../qml-Qt6/qml.qrc \
 		../qml-Qt6/QaterialHelper.qrc
-}
+#}
 
 HEADERS += \
 	../../version/version.h \
@@ -317,6 +321,7 @@ HEADERS += \
 	gameterrainmap.h \
 	grade.h \
 	httpconnection.h \
+	isogameobject.h \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \
@@ -342,6 +347,9 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
+	tiledmapitem.h \
+	tiledmapobject.h \
+	tiledscene.h \
 	updater.h \
 	user.h \
 	userimporter.h \

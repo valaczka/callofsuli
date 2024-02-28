@@ -1455,6 +1455,7 @@ void TeacherExam::runOMR()
 
 		searchList.append(binDir);
 		searchList.append(binDir+"/share");
+		searchList.append(binDir+"/../share");
 
 #ifndef QT_NO_DEBUG
 		searchList.append(binDir+"/../callofsuli/share");

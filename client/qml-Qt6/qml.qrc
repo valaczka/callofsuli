@@ -217,5 +217,7 @@
         <file>ConquestError.qml</file>
         <file>ConquestFortress.qml</file>
         <file>ConquestFinishInfo.qml</file>
+        <file>TiledMapObjectVisual.qml</file>
+        <file>TiledFlickableScene.qml</file>
     </qresource>
 </RCC>

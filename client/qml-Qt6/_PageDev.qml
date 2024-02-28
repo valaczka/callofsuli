@@ -2,75 +2,86 @@ import QtQuick
 import QtQuick.Controls
 import CallOfSuli
 import Qt5Compat.GraphicalEffects
-import QtCharts
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
+import Box2D
 
 Page {
 	id: root
 
-	property real _scale: width > height ? Math.min(1.0, width/2600) : Math.min(1.0, height/1200)
-
-	Image {
+	Rectangle {
 		anchors.fill: parent
-		fillMode: Image.PreserveAspectCrop
-		source: "qrc:/internal/img/villa.png"
-
-		cache: true
+		color: Qaterial.Colors.blue900
 	}
 
+	TiledFlickableScene {
+		id: _flick
+		anchors.fill: parent
+
+		joystick: _gameJoystick
+
+		followedItem: _character
+
+		scene.debugView: true
 
 
+		IsoGameObjectImpl {
+			id: _character
+			scene: _flick.scene
 
-	ConquestTurnChart {
-		id: _chart
+			x: 1800
+			y: 400
+
+			z: 1
+
+			body.fixtures: Circle {
+				radius: 15
+				x: (_character.width-2*radius)/2
+				y: (_character.height-2*radius)*0.8
+
+				density: 1
+				restitution: 0
+				friction: 1
+				categories: Box.Category2
+				collidesWith: (Box.Category1|Box.Category5)
+			}
+
+			Component.onCompleted: bodyComplete()
+		}
+
 	}
 
-
-
-
-	property int num: -1
 
 	Row {
 		QButton {
-			text: "Next"
-			onClicked: {
-				++num
-			}
+			text: "-"
+			onClicked: _flick.scene.scale -= 0.1
 		}
 
 		QButton {
-			text: "New"
-			onClicked: {
-
-			}
+			text: "+"
+			onClicked: _flick.scene.scale += 0.1
 		}
 
-		QButton {
-			text: "++"
-			onClicked: {
-				_series.append("PX", 1)
-			}
+		Qaterial.LabelBody1 {
+			text: "z: "+_character.z
 		}
-
 	}
 
+	GameJoystick {
+		id: _gameJoystick
+		anchors.bottom: parent.bottom
+		anchors.left: parent.left
+	}
 
-	/*Image {
-		anchors.centerIn: parent
-		source: "qrc:/internal/game/drop.png"
+	Component.onCompleted: {
+		_flick.scene.mapLoader.source = "file:///home/valaczka/teszt.tmx"
+		_flick.scene.forceActiveFocus()
+		_character.load()
+	}
 
-		opacity: rightCloudArea.containsMouse ? 0.3 : 1.0
-
-		MaskedMouseArea {
-			id: rightCloudArea
-			anchors.fill: parent
-			alphaThreshold: 0.4
-			maskSource: parent.source
-		}
-	}*/
 }
 
 

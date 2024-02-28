@@ -5,9 +5,15 @@ Item {
 	width: 160
 	height: 160
 
+
+	property real currentX: 0.0
+	property real currentY: 0.0
+	property real currentAngle: 0.0
+	property real currentDistance: 0.0
 	property bool hasTouch: false
 
 	signal joystickMoved(real x, real y)
+	signal directionChanged(real angle, real distance)
 
 
 	onWidthChanged: moveThumb(root.width/2, root.height/2)
@@ -75,16 +81,20 @@ Item {
 			NumberAnimation { duration: 200; easing.type: Easing.OutSine }
 		}
 
-		onXChanged: {
-			var dx = (2*x+width-root.width)/(root.width-width)
-			var dy = -(2*y+height-root.height)/(root.height-height)
-			joystickMoved(dx, dy)
-		}
+		onXChanged: calculate()
+		onYChanged: calculate()
 
-		onYChanged: {
+		function calculate() {
 			var dx = (2*x+width-root.width)/(root.width-width)
 			var dy = -(2*y+height-root.height)/(root.height-height)
-			joystickMoved(dx, dy)
+
+			currentX = dx
+			currentY = dy
+			currentAngle = Math.atan2(dy, dx)
+			currentDistance = Math.abs(-dx)+Math.abs(-dy)
+
+			joystickMoved(currentX, currentY)
+			directionChanged(currentAngle, currentDistance)
 		}
 	}
 
@@ -113,10 +123,13 @@ Item {
 	}
 
 
-
-
 	function moveThumb(centerX, centerY) {
 		thumb.x = Math.min(Math.max(0, centerX-thumb.width/2), root.width-thumb.width)
 		thumb.y = Math.min(Math.max(0, centerY-thumb.height/2), root.height-thumb.height)
+	}
+
+	function moveThumbRelative(dx, dy) {
+		thumb.x = Math.min(Math.max(0, (root.width*dx)-thumb.width/2), root.width-thumb.width)
+		thumb.y = Math.min(Math.max(0, (root.height*dy)-thumb.height/2), root.height-thumb.height)
 	}
 }
