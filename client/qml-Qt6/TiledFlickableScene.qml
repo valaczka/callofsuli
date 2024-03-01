@@ -12,10 +12,8 @@ Flickable {
 	id: flick
 
 	property alias scene: _scene
-	property alias world: _world
 	property alias joystick: _scene.joystick
-
-	property Item followedItem: null
+	property alias followedItem: _scene.followedItem
 
 	default property alias defaultItems: _scene.children
 
@@ -39,14 +37,43 @@ Flickable {
 
 			running: true
 
+			// BUG: timestep not available when in c++ instantiated
+
 			world: World {
-				id: _world
 				gravity: Qt.point(0.0, 0.0)
+				timeStep: 1./60.
 			}
 
 			visibleArea: Qt.rect(flick.contentX / scale, flick.contentY / scale ,
 								 flick.contentWidth / scale, flick.contentHeight / scale)
 
+			onTestPointsChanged: _canvas.requestPaint()
+
+			Canvas {
+				id: _canvas
+				anchors.fill: parent
+				z: 9998
+				onPaint: {
+					let ctx = _canvas.getContext("2d")
+					ctx.save()
+					ctx.clearRect(0, 0, _canvas.width, _canvas.height)
+					ctx.strokeStyle = Qaterial.Colors.pink300
+					ctx.lineWidth = 2;
+					ctx.beginPath();
+
+					for (let i=0; i<_scene.testPoints.length; ++i) {
+						let p=_scene.testPoints[i]
+						if (i==0)
+							ctx.moveTo(p.x, p.y)
+						else
+							ctx.lineTo(p.x, p.y)
+					}
+
+					ctx.stroke();
+
+					ctx.restore();
+				}
+			}
 
 			DebugDraw {
 				anchors.fill: parent

@@ -235,7 +235,8 @@ SOURCES += \
 	gameterrainmap.cpp \
 	grade.cpp \
 	httpconnection.cpp \
-	isogameobject.cpp \
+	isometricentity.cpp \
+	isometricobject.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -263,8 +264,8 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
-	tiledmapitem.cpp \
-	tiledmapobject.cpp \
+	tiledobject.cpp \
+	tiledpathmotor.cpp \
 	tiledscene.cpp \
 	updater.cpp \
 	user.cpp \
@@ -321,7 +322,8 @@ HEADERS += \
 	gameterrainmap.h \
 	grade.h \
 	httpconnection.h \
-	isogameobject.h \
+	isometricentity.h \
+	isometricobject.h \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \
@@ -347,8 +349,8 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
-	tiledmapitem.h \
-	tiledmapobject.h \
+	tiledobject.h \
+	tiledpathmotor.h \
 	tiledscene.h \
 	updater.h \
 	user.h \

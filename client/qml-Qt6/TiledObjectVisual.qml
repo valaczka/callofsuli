@@ -7,7 +7,7 @@ import CallOfSuli
 Item {
 	id: root
 
-	property TiledMapObjectImpl baseObject: null
+	property TiledObjectImpl baseObject: null
 
 	anchors.fill: parent
 

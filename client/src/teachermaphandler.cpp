@@ -354,7 +354,7 @@ TeacherMapEditor::TeacherMapEditor(QObject *parent)
 	: MapEditor(parent)
 {
 	connect(this, &MapEditor::saveRequest, this, &TeacherMapEditor::onSaveRequest);
-	connect(this, &MapEditor::autoSaveRequest, this, &TeacherMapEditor::onSaveRequest);
+	//connect(this, &MapEditor::autoSaveRequest, this, &TeacherMapEditor::onSaveRequest);
 }
 
 

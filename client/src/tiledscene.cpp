@@ -27,10 +27,10 @@
 #include "tiledscene.h"
 #include "Logger.h"
 #include "box2dfixture.h"
+#include "isometricentity.h"
 #include "maprenderer.h"
-#include "tiledmapobject.h"
+#include "tiledobject.h"
 #include "tilelayeritem.h"
-#include "tilesetmanager.h"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
@@ -82,6 +82,27 @@ int TiledScene::getDynamicZ(QQuickItem *item, const int &defaultValue) const
 
 
 /**
+ * @brief TiledScene::load
+ * @param url
+ * @return
+ */
+
+bool TiledScene::load(const QUrl &url)
+{
+	if (!url.isLocalFile()) {
+		LOG_CERROR("scene") << "Invalid URL:" << url;
+		return false;
+	}
+
+	LOG_CDEBUG("scene") << "Load TMX:" << qPrintable(url.toLocalFile());
+
+	m_mapLoader->setSource(url);
+
+	return true;
+}
+
+
+/**
  * @brief TiledScene::getDynamicZ
  * @param x
  * @param y
@@ -121,107 +142,17 @@ int TiledScene::getDynamicZ(const qreal &x, const qreal &y, const int &defaultVa
 
 bool TiledScene::running() const
 {
-	return m_running;
+	return m_world->isRunning();
 }
 
 void TiledScene::setRunning(bool newRunning)
 {
-	if (m_running == newRunning)
+	if (m_world->isRunning() == newRunning)
 		return;
-	m_running = newRunning;
+	m_world->setRunning(newRunning);
 	emit runningChanged();
 }
 
-
-/**
- * @brief TiledScene::world
- * @return
- */
-
-Box2DWorld *TiledScene::world() const
-{
-	return m_world;
-}
-
-void TiledScene::setWorld(Box2DWorld *newWorld)
-{
-	if (m_world == newWorld)
-		return;
-	m_world = newWorld;
-	emit worldChanged();
-
-	if (m_world) {
-		fpsSet();
-		connect(m_world, &Box2DWorld::stepped, this, &TiledScene::onWorldStepped);
-	}
-}
-
-
-
-/**
- * @brief TiledScene::onWorldStepped
- */
-
-void TiledScene::onWorldStepped()
-{
-	/*qreal factor = 1.0;
-
-	if (!m_elapsedTimer.isValid())
-		m_elapsedTimer.start();
-	else {
-		const qreal &msec = m_elapsedTimer.restart();
-		const qreal &interval = m_timingTimerTimeoutMsec;
-
-		factor = msec/interval;
-
-		const qreal &fpsFactor = (msec/1000.) * m_fpsList.at(m_fpsIndex);
-
-
-		if (fpsFactor >= 1.5) {
-			if (!m_performanceTimer.isValid())
-				m_performanceTimer.start();
-			else if (m_performanceTimer.elapsed() >= 2000) {
-				fpsDecrease();
-				m_performanceTimer.invalidate();
-			}
-		} else if (fpsFactor <= 0.8) {
-			if (!m_performanceTimer.isValid())
-				m_performanceTimer.start();
-			else if (m_performanceTimer.elapsed() >= 1000) {
-				fpsIncrease();
-				m_performanceTimer.invalidate();
-			}
-		} else if (m_performanceTimer.isValid())
-			m_performanceTimer.invalidate();
-	}
-
-	if (m_game)
-		m_game->sceneTimerTimeout(m_timingTimerTimeoutMsec, factor);*/
-
-
-}
-
-
-
-/**
- * @brief TiledScene::fpsSet
- */
-
-void TiledScene::fpsSet()
-{
-	/*double fps = m_fpsList.at(m_fpsIndex);
-	LOG_CINFO("scene") << "Set fps:" << fps;
-
-#ifndef QT_NO_DEBUG
-	if (m_game)
-		m_game->message(QString("FPS SET %1").arg(fps));
-#endif
-
-	if (m_world)
-		m_world->setTimeStep(1./fps);	*/
-
-	m_world->setTimeStep(1./60.);
-}
 
 
 
@@ -331,6 +262,57 @@ void TiledScene::onSceneStatusChanged(const TiledQuick::MapLoader::Status &statu
 		setMap(m_mapLoader->map());
 	}
 }
+
+
+/**
+ * @brief TiledScene::onWorldStepped
+ */
+
+void TiledScene::onWorldStepped()
+{
+	for (TiledObject *obj : m_tiledObjects)
+		obj->worldStep();
+}
+
+
+
+QQuickItem *TiledScene::followedItem() const
+{
+	return m_followedItem;
+}
+
+void TiledScene::setFollowedItem(QQuickItem *newFollowedItem)
+{
+	if (m_followedItem == newFollowedItem)
+		return;
+	m_followedItem = newFollowedItem;
+	emit followedItemChanged();
+}
+
+
+
+
+
+QVariantList TiledScene::testPoints() const
+{
+	return m_testPoints;
+}
+
+void TiledScene::setTestPoints(const QVariantList &newTestPoints)
+{
+	if (m_testPoints == newTestPoints)
+		return;
+	m_testPoints = newTestPoints;
+	emit testPointsChanged();
+}
+
+
+
+
+/**
+ * @brief TiledScene::debugView
+ * @return
+ */
 
 bool TiledScene::debugView() const
 {
@@ -471,6 +453,123 @@ void TiledScene::keyReleaseEvent(QKeyEvent *event)
 
 
 
+
+/**
+ * @brief TiledScene::loadObjectLayer
+ * @param group
+ */
+
+void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
+{
+	Q_ASSERT(group);
+
+	for (Tiled::MapObject *object : group->objects()) {
+		if (object->className() == "enemy") {
+			QPolygonF p = TiledObject::toPolygonF(object, mRenderer.get());
+			LOG_CINFO("scene") << "ENEMY" << object->name();
+
+			IsometricEntity *character = new IsometricEntity(this);
+			character->setScene(this);
+			character->motor().setPolygon(p);
+			character->motor().atBegin();
+
+			m_tiledObjects.append(character);
+			setFollowedItem(character);
+
+			QVariantList list;
+			for (const auto &point : p)
+				list.append(point);
+			setTestPoints(list);
+
+			continue;
+		}
+
+		loadGround(object);
+	}
+}
+
+
+
+/**
+ * @brief TiledScene::loadGround
+ * @param object
+ */
+
+void TiledScene::loadGround(Tiled::MapObject *object)
+{
+	TiledObject *mapObject = TiledObject::createFromMapObject(object, mRenderer.get(), this);
+
+	if (!mapObject)
+		return;
+
+	mapObject->defaultFixture()->setDensity(1);
+	mapObject->defaultFixture()->setFriction(1);
+	mapObject->defaultFixture()->setRestitution(0);
+	mapObject->defaultFixture()->setCategories(Box2DFixture::Category1);
+
+	if (object->hasProperty(QStringLiteral("dynamicZ"))) {
+		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
+
+			DynamicZ dz;
+			dz.polygon = p;
+
+			if (object->hasProperty(QStringLiteral("dynamicVertical")))
+				dz.vertical = object->property(QStringLiteral("dynamicVertical")).toBool();
+
+			if (object->hasProperty(QStringLiteral("dynamicHorizontal")))
+				dz.horizontal = object->property(QStringLiteral("dynamicHorizontal")).toBool();
+
+			m_dynamicZList[object->property(QStringLiteral("dynamicZ")).toInt()] = dz;
+		}
+	}
+
+	if (object->hasProperty(QStringLiteral("z"))) {
+		mapObject->setZ(object->property(QStringLiteral("z")).toInt());
+	} else {
+		mapObject->setZ(0);
+	}
+}
+
+Box2DWorld *TiledScene::world() const
+{
+	return m_world;
+}
+
+void TiledScene::setWorld(Box2DWorld *newWorld)
+{
+	if (m_world == newWorld)
+		return;
+	m_world = newWorld;
+	emit worldChanged();
+
+	if (m_world)
+		connect(m_world, &Box2DWorld::stepped, this, &TiledScene::onWorldStepped);
+}
+
+
+
+
+
+/**
+ * @brief TiledScene::tiledObjects
+ * @return
+ */
+
+QList<TiledObject *> TiledScene::tiledObjects() const
+{
+	return m_tiledObjects;
+}
+
+void TiledScene::setTiledObjects(const QList<TiledObject *> &newTiledObjects)
+{
+	if (m_tiledObjects == newTiledObjects)
+		return;
+	m_tiledObjects = newTiledObjects;
+	emit tiledObjectsChanged();
+}
+
+
+
 /**
  * @brief TiledScene::joystick
  * @return
@@ -537,38 +636,7 @@ void TiledScene::refresh()
 			}
 
 		} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
-			for (Tiled::MapObject *object : group->objects()) {
-				TiledMapObject *mapObject = TiledMapObject::createFromMapObject(object, mRenderer.get(), this);
-				if (!mapObject)
-					continue;
-
-				mapObject->defaultFixture()->setDensity(1);
-				mapObject->defaultFixture()->setFriction(1);
-				mapObject->defaultFixture()->setRestitution(0);
-				mapObject->defaultFixture()->setCategories(Box2DFixture::Category1);
-
-				if (object->hasProperty(QStringLiteral("dynamicZ"))) {
-					if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
-
-						DynamicZ dz;
-						dz.polygon = p;
-
-						if (object->hasProperty(QStringLiteral("dynamicVertical")))
-							dz.vertical = object->property(QStringLiteral("dynamicVertical")).toBool();
-
-						if (object->hasProperty(QStringLiteral("dynamicHorizontal")))
-							dz.horizontal = object->property(QStringLiteral("dynamicHorizontal")).toBool();
-
-						m_dynamicZList[object->property(QStringLiteral("dynamicZ")).toInt()] = dz;
-					}
-				}
-
-				if (object->hasProperty(QStringLiteral("z"))) {
-					mapObject->setZ(object->property(QStringLiteral("z")).toInt());
-				} else {
-					mapObject->setZ(0);
-				}
-			}
+			loadObjectLayer(group);
 		}
 	}
 

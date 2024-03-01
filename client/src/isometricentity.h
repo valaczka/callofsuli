@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * tiledmapitem.cpp
+ * isometricentity.h
  *
- * Created on: 2024. 02. 27.
+ * Created on: 2024. 03. 01.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TiledMapItem
+ * IsometricEntity
  *
  *  This file is part of Call of Suli.
  *
@@ -24,14 +24,44 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "tiledmapitem.h"
-#include "Logger.h"
-#include "libtiled/map.h"
-#include "libtiled/maprenderer.h"
-#include "libtiledquick/tilelayeritem.h"
+#ifndef ISOMETRICENTITY_H
+#define ISOMETRICENTITY_H
 
-TiledMapItem::TiledMapItem()
-	: TiledQuick::MapItem()
+#include "box2dfixture.h"
+#include "isometricobject.h"
+#include <QQmlEngine>
+
+class IsometricEntity : public IsometricObject
 {
+	Q_OBJECT
+	QML_ELEMENT
 
-}
+public:
+	explicit IsometricEntity(QQuickItem *parent = nullptr);
+
+	TiledPathMotor &motor();
+
+	virtual void worldStep() override;
+
+protected:
+	QPointF bodyCenterPoint() const;
+	void setBodyCenterPoint(const QPointF &pos);
+
+private:
+	void load();
+
+	void fixtureUpdate();
+
+	void nextAlteration();
+
+
+	void updateSprite();
+
+	TiledPathMotor m_motor;
+	Box2DCircle *m_fixture = nullptr;
+
+	bool m_isRun = false;
+	QString m_currentAlteration;
+};
+
+#endif // ISOMETRICENTITY_H

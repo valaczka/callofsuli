@@ -30,6 +30,7 @@
 #include "box2dworld.h"
 #include "libtiledquick/mapitem.h"
 #include "libtiledquick/maploader.h"
+#include "tiledobject.h"
 #include <QQuickItem>
 
 class TiledScene : public TiledQuick::MapItem
@@ -38,11 +39,11 @@ class TiledScene : public TiledQuick::MapItem
 	QML_ELEMENT
 
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
-	Q_PROPERTY(TiledQuick::MapLoader *mapLoader READ mapLoader CONSTANT FINAL)
-	Q_PROPERTY(Box2DWorld *world READ world WRITE setWorld NOTIFY worldChanged FINAL)
 	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
+	Q_PROPERTY(QQuickItem *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
 	Q_PROPERTY(JoystickState joystickState READ joystickState WRITE setJoystickState NOTIFY joystickStateChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
+	Q_PROPERTY(QList<TiledObject *> tiledObjects READ tiledObjects WRITE setTiledObjects NOTIFY tiledObjectsChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
@@ -74,11 +75,10 @@ public:
 	Q_INVOKABLE int getDynamicZ(const qreal &x, const qreal &y, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(QQuickItem *item, const int &defaultValue = 1) const;
 
+	Q_INVOKABLE bool load(const QUrl &url);
+
 	bool running() const;
 	void setRunning(bool newRunning);
-
-	Box2DWorld *world() const;
-	void setWorld(Box2DWorld *newWorld);
 
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);
@@ -86,27 +86,47 @@ public:
 	JoystickState joystickState() const;
 	void setJoystickState(const JoystickState &newJoystickState);
 
-	TiledQuick::MapLoader*mapLoader() const;
+	TiledQuick::MapLoader *mapLoader() const;
 
 	bool debugView() const;
 	void setDebugView(bool newDebugView);
 
+
+	QVariantList testPoints() const;
+	void setTestPoints(const QVariantList &newTestPoints);
+
+	TiledObject *testObject() const;
+	void setTestObject(TiledObject *newTestObject);
+
+	QList<TiledObject *> tiledObjects() const;
+	void setTiledObjects(const QList<TiledObject *> &newTiledObjects);
+
+	QQuickItem *followedItem() const;
+	void setFollowedItem(QQuickItem *newFollowedItem);
+
+
+	Box2DWorld *world() const;
+	void setWorld(Box2DWorld *newWorld);
+
 signals:
 	void runningChanged();
-	void worldChanged();
 	void joystickChanged();
 	void joystickStateChanged();
 	void debugViewChanged();
+	void tiledObjectsChanged();
+	void followedItemChanged();
+
+	void testPointsChanged();
+
+	void worldChanged();
 
 protected:
 	virtual void refresh() override;
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
-	virtual void onWorldStepped();
 
-	void fpsSet();
-	/*void fpsIncrease();
-	void fpsDecrease();*/
+	virtual void loadObjectLayer(Tiled::ObjectGroup *group);
+	virtual void loadGround(Tiled::MapObject *object);
 
 	struct DynamicZ {
 		QPolygonF polygon;
@@ -115,6 +135,9 @@ protected:
 	};
 
 	std::map<int, DynamicZ> m_dynamicZList;
+	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
+	Box2DWorld *m_world = nullptr;
+	QList<TiledObject*> m_tiledObjects;
 
 private:
 	struct KeyboardJoystickState {
@@ -127,16 +150,22 @@ private:
 	void updateKeyboardJoystick(const KeyboardJoystickState &state);
 
 	void onSceneStatusChanged(const TiledQuick::MapLoader::Status &status);
+	void onWorldStepped();
 
-	bool m_running = false;
-	Box2DWorld *m_world = nullptr;
+
+
 	QQuickItem *m_joystick = nullptr;
+	QQuickItem *m_followedItem = nullptr;
 	JoystickState m_joystickState;
 	KeyboardJoystickState m_keyboardJoystickState;
 
 	bool m_debugView = false;
 
-	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
+
+	QVariantList m_testPoints;
+	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
+
+	Q_PROPERTY(Box2DWorld *world READ world WRITE setWorld NOTIFY worldChanged FINAL)
 };
 
 #endif // TILEDSCENE_H

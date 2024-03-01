@@ -38,7 +38,7 @@
 #include "gameplayermulti.h"
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
-#include "isogameobject.h"
+#include "isometricobject.h"
 #include "libtiledquick/maploader.h"
 #include "litegame.h"
 #include "mapeditor.h"
@@ -59,8 +59,7 @@
 #include "teachermap.h"
 #include "teachermaphandler.h"
 #include "testgame.h"
-#include "tiledmapitem.h"
-#include "tiledmapobject.h"
+#include "tiledobject.h"
 #include "tiledscene.h"
 #include "userimporter.h"
 #include "userloglist.h"
@@ -423,7 +422,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
 	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
 	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
-	qmlRegisterType<IsoGameObject>("CallOfSuli", 1, 0, "IsoGameObjectImpl");
+	qmlRegisterType<IsometricObject>("CallOfSuli", 1, 0, "IsometricObjectImpl");
 	qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
 	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
 	qmlRegisterType<GradingConfig>("CallOfSuli", 1, 0, "GradingConfig");
@@ -450,9 +449,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
-	qmlRegisterType<TiledQuick::MapLoader>("CallOfSuli", 1, 0, "TiledMapLoader");
-	qmlRegisterType<TiledMapItem>("CallOfSuli", 1, 0, "TiledMapItem");
-	qmlRegisterType<TiledMapObject>("CallOfSuli", 1, 0, "TiledMapObjectImpl");
+	qmlRegisterType<TiledObject>("CallOfSuli", 1, 0, "TiledObjectImpl");
 	qmlRegisterType<TiledScene>("CallOfSuli", 1, 0, "TiledSceneImpl");
 	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
 	qmlRegisterType<UserImporter>("CallOfSuli", 1, 0, "UserImporter");
