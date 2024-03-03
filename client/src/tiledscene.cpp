@@ -27,7 +27,8 @@
 #include "tiledscene.h"
 #include "Logger.h"
 #include "box2dfixture.h"
-#include "isometricentity.h"
+#include "isometricenemy.h"
+#include "isometricplayer.h"
 #include "maprenderer.h"
 #include "tiledobject.h"
 #include "tilelayeritem.h"
@@ -47,6 +48,17 @@ TiledScene::TiledScene(QQuickItem *parent)
 	//setAcceptTouchEvents(true);
 
 	connect(m_mapLoader.get(), &TiledQuick::MapLoader::statusChanged, this, &TiledScene::onSceneStatusChanged);
+}
+
+
+/**
+ * @brief TiledScene::~TiledScene
+ */
+
+TiledScene::~TiledScene()
+{
+	LOG_CDEBUG("scene")	<< "REMOVE TILED SCENE";
+	m_mapLoader->setSource(QUrl{});
 }
 
 
@@ -89,10 +101,10 @@ int TiledScene::getDynamicZ(QQuickItem *item, const int &defaultValue) const
 
 bool TiledScene::load(const QUrl &url)
 {
-	if (!url.isLocalFile()) {
+	/*if (!url.isLocalFile()) {
 		LOG_CERROR("scene") << "Invalid URL:" << url;
 		return false;
-	}
+	}*/
 
 	LOG_CDEBUG("scene") << "Load TMX:" << qPrintable(url.toLocalFile());
 
@@ -272,6 +284,25 @@ void TiledScene::onWorldStepped()
 {
 	for (TiledObject *obj : m_tiledObjects)
 		obj->worldStep();
+}
+
+
+/**
+ * @brief TiledScene::controlledItem
+ * @return
+ */
+
+TiledObject *TiledScene::controlledItem() const
+{
+	return m_controlledItem;
+}
+
+void TiledScene::setControlledItem(TiledObject *newControlledItem)
+{
+	if (m_controlledItem == newControlledItem)
+		return;
+	m_controlledItem = newControlledItem;
+	emit controlledItemChanged();
 }
 
 
@@ -465,21 +496,51 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 
 	for (Tiled::MapObject *object : group->objects()) {
 		if (object->className() == "enemy") {
-			QPolygonF p = TiledObject::toPolygonF(object, mRenderer.get());
+			QPolygonF p = TiledObjectBase::toPolygon(object, mRenderer.get());
 			LOG_CINFO("scene") << "ENEMY" << object->name();
 
-			IsometricEntity *character = new IsometricEntity(this);
+			static bool b=false;
+
+			if (b)
+				continue;
+
+			if (!b)
+				b=true;
+
+			IsometricEnemy *character = IsometricEnemy::createEnemy(this);
+
+			Q_ASSERT(character);
+
 			character->setScene(this);
-			character->motor().setPolygon(p);
-			character->motor().atBegin();
+			character->loadPathMotor(p);
+
 
 			m_tiledObjects.append(character);
-			setFollowedItem(character);
 
-			QVariantList list;
+			/*QVariantList list;
 			for (const auto &point : p)
 				list.append(point);
-			setTestPoints(list);
+			setTestPoints(list);*/
+
+			continue;
+		} else 		if (object->className() == "player") {
+
+			LOG_CINFO("scene") << "PLAYER" << object->position();
+
+			IsometricPlayer *character = IsometricPlayer::createPlayer(this);
+
+			Q_ASSERT(character);
+
+			character->setScene(this);
+			character->emplace(mRenderer->pixelToScreenCoords(object->position()));
+			character->setCurrentDirection(IsometricObjectIface::South);
+
+			m_tiledObjects.append(character);
+
+			if (!m_followedItem)
+				setFollowedItem(character);
+
+			setControlledItem(character);
 
 			continue;
 		}
@@ -497,21 +558,22 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 
 void TiledScene::loadGround(Tiled::MapObject *object)
 {
-	TiledObject *mapObject = TiledObject::createFromMapObject(object, mRenderer.get(), this);
+	TiledObjectPolygon *mapObject = nullptr;
+	TiledObject::createFromMapObject<TiledObjectPolygon>(&mapObject, object, mRenderer.get(), this);
 
 	if (!mapObject)
 		return;
 
-	mapObject->defaultFixture()->setDensity(1);
-	mapObject->defaultFixture()->setFriction(1);
-	mapObject->defaultFixture()->setRestitution(0);
-	mapObject->defaultFixture()->setCategories(Box2DFixture::Category1);
+	mapObject->fixture()->setDensity(1);
+	mapObject->fixture()->setFriction(1);
+	mapObject->fixture()->setRestitution(0);
+	mapObject->fixture()->setCategories(Box2DFixture::Category1);
 
 	if (object->hasProperty(QStringLiteral("dynamicZ"))) {
 		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
 
 			DynamicZ dz;
-			dz.polygon = p;
+			dz.polygon = p.translated(mapObject->position()+mapObject->fixturePosition());
 
 			if (object->hasProperty(QStringLiteral("dynamicVertical")))
 				dz.vertical = object->property(QStringLiteral("dynamicVertical")).toBool();
@@ -529,6 +591,12 @@ void TiledScene::loadGround(Tiled::MapObject *object)
 		mapObject->setZ(0);
 	}
 }
+
+
+/**
+ * @brief TiledScene::world
+ * @return
+ */
 
 Box2DWorld *TiledScene::world() const
 {

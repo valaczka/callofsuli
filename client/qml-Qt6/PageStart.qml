@@ -32,6 +32,7 @@ QPage {
 			QMenuItem { action: actionAdd }
 			//QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionPageDev }
 			QMenuItem { action: actionDemo }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionSettings }
@@ -45,6 +46,7 @@ QPage {
 			QMenuItem { action: actionAdd }
 			//QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionPageDev }
 			QMenuItem { action: actionDemo }
 			QMenuItem { action: actionEditor }
 			Qaterial.MenuSeparator {}
@@ -258,6 +260,15 @@ QPage {
 		icon.source: Qaterial.Icons.qrcodeScan
 		onTriggered: Client.Utils.checkMediaPermissions()
 	}*/
+
+	Action {
+		id: actionPageDev
+		text: qsTr("_PageDev")
+		icon.source: Qaterial.Icons.developerBoard
+		onTriggered: {
+			onClicked: Client.stackPushPage("_PageDev.qml", {})
+		}
+	}
 
 	Action {
 		id: actionEdit

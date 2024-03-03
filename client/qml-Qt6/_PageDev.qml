@@ -12,7 +12,7 @@ Page {
 
 	Rectangle {
 		anchors.fill: parent
-		color: Qaterial.Colors.blue900
+		color: _flick.scene.debugView ? Qaterial.Colors.blue900 : "black"
 	}
 
 	TiledFlickableScene {
@@ -21,30 +21,29 @@ Page {
 
 		joystick: _gameJoystick
 		scene.debugView: true
-
 	}
 
+	Qaterial.AppBarButton
+	{
+		anchors.left: parent.left
+		anchors.leftMargin: Client.safeMarginLeft
+		anchors.top: parent.top
+		anchors.topMargin: Client.safeMarginTop
+		icon.source: Qaterial.Icons.arrowLeft
 
-	Row {
-		QButton {
-			text: "-"
-			onClicked: _flick.scene.scale -= 0.1
-		}
-
-		QButton {
-			text: "+"
-			onClicked: _flick.scene.scale += 0.1
-		}
+		onClicked: Client.stackPop()
 	}
+
 
 	GameJoystick {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
+		visible: _flick.scene.controlledItem
 	}
 
 	Component.onCompleted: {
-		_flick.scene.load("file:///home/valaczka/teszt.tmx")
+		_flick.scene.load("qrc:/teszt.tmx")
 		_flick.scene.forceActiveFocus()
 	}
 

@@ -27,41 +27,68 @@
 #ifndef ISOMETRICENTITY_H
 #define ISOMETRICENTITY_H
 
-#include "box2dfixture.h"
 #include "isometricobject.h"
 #include <QQmlEngine>
 
-class IsometricEntity : public IsometricObject
+
+/**
+ * @brief The IsometricEntity class
+ */
+
+class IsometricEntityIface
+{
+public:
+	IsometricEntityIface()
+	{}
+
+
+	IsometricObjectIface::Direction movingDirection() const;
+	void setMovingDirection(const IsometricObjectIface::Direction &newMovingDirection);
+
+protected:
+	void entityIfaceWorldStep(const QPointF &position, const IsometricObjectIface::Directions &availableDirections);
+	qreal normalize(const qreal &radian) const;
+	qreal unnormalize(const qreal &normal) const;
+
+	IsometricObjectIface::Direction m_movingDirection = IsometricObjectIface::Invalid;
+
+private:
+	QPointF m_lastPosition;
+};
+
+
+
+/**
+ * @brief The IsometricCircleEntity class
+ */
+
+class IsometricCircleEntity : public IsometricObjectCircle, public IsometricEntityIface
 {
 	Q_OBJECT
 	QML_ELEMENT
 
 public:
-	explicit IsometricEntity(QQuickItem *parent = nullptr);
-
-	TiledPathMotor &motor();
-
-	virtual void worldStep() override;
+	explicit IsometricCircleEntity(QQuickItem *parent = nullptr);
 
 protected:
-	QPointF bodyCenterPoint() const;
-	void setBodyCenterPoint(const QPointF &pos);
+	virtual void entityWorldStep() {}
+
+	void worldStep() override final {
+		//entityIfaceWorldStep(position(), m_availableDirections);
+		rotateBody();
+		entityWorldStep();
+	};
 
 private:
-	void load();
+	struct RotateAnimation {
+		bool running = false;
+		qreal destAngle = 0;
+		bool clockwise = true;
+	};
 
-	void fixtureUpdate();
+	RotateAnimation m_rotateAnimation;
 
-	void nextAlteration();
-
-
-	void updateSprite();
-
-	TiledPathMotor m_motor;
-	Box2DCircle *m_fixture = nullptr;
-
-	bool m_isRun = false;
-	QString m_currentAlteration;
+	void rotateBody();
 };
 
 #endif // ISOMETRICENTITY_H

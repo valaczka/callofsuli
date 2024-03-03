@@ -38,16 +38,18 @@ class TiledScene : public TiledQuick::MapItem
 	Q_OBJECT
 	QML_ELEMENT
 
+	Q_PROPERTY(Box2DWorld *world READ world WRITE setWorld NOTIFY worldChanged FINAL)
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
 	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
 	Q_PROPERTY(QQuickItem *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
+	Q_PROPERTY(TiledObject *controlledItem READ controlledItem WRITE setControlledItem NOTIFY controlledItemChanged FINAL)
 	Q_PROPERTY(JoystickState joystickState READ joystickState WRITE setJoystickState NOTIFY joystickStateChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QList<TiledObject *> tiledObjects READ tiledObjects WRITE setTiledObjects NOTIFY tiledObjectsChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
-	virtual ~TiledScene() {}
+	virtual ~TiledScene();
 
 	/**
 	 * @brief The JoystickState class
@@ -92,9 +94,6 @@ public:
 	void setDebugView(bool newDebugView);
 
 
-	QVariantList testPoints() const;
-	void setTestPoints(const QVariantList &newTestPoints);
-
 	TiledObject *testObject() const;
 	void setTestObject(TiledObject *newTestObject);
 
@@ -104,9 +103,15 @@ public:
 	QQuickItem *followedItem() const;
 	void setFollowedItem(QQuickItem *newFollowedItem);
 
-
 	Box2DWorld *world() const;
 	void setWorld(Box2DWorld *newWorld);
+
+	TiledObject *controlledItem() const;
+	void setControlledItem(TiledObject *newControlledItem);
+
+
+	QVariantList testPoints() const;
+	void setTestPoints(const QVariantList &newTestPoints);
 
 signals:
 	void runningChanged();
@@ -115,10 +120,12 @@ signals:
 	void debugViewChanged();
 	void tiledObjectsChanged();
 	void followedItemChanged();
+	void worldChanged();
+	void controlledItemChanged();
 
 	void testPointsChanged();
 
-	void worldChanged();
+
 
 protected:
 	virtual void refresh() override;
@@ -154,8 +161,10 @@ private:
 
 
 
-	QQuickItem *m_joystick = nullptr;
-	QQuickItem *m_followedItem = nullptr;
+	QPointer<QQuickItem> m_joystick;
+	QPointer<QQuickItem> m_followedItem;
+	QPointer<TiledObject> m_controlledItem;
+
 	JoystickState m_joystickState;
 	KeyboardJoystickState m_keyboardJoystickState;
 
@@ -164,8 +173,6 @@ private:
 
 	QVariantList m_testPoints;
 	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
-
-	Q_PROPERTY(Box2DWorld *world READ world WRITE setWorld NOTIFY worldChanged FINAL)
 };
 
 #endif // TILEDSCENE_H

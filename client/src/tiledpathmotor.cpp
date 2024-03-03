@@ -25,6 +25,7 @@
  */
 
 #include "tiledpathmotor.h"
+#include "isometricobject.h"
 #include <Logger.h>
 
 TiledPathMotor::TiledPathMotor(const QPolygonF &polygon, const Direction &direction)
@@ -94,10 +95,7 @@ qreal TiledPathMotor::currentAngle() const
 
 qreal TiledPathMotor::currentAngleRadian() const
 {
-	if (m_currentAngle <= 180.)
-		return m_currentAngle * M_PI / 180.;
-	else
-		return -(360-m_currentAngle) * M_PI / 180.;
+	return IsometricObjectIface::toRadian(m_currentAngle);
 }
 
 
@@ -111,6 +109,9 @@ void TiledPathMotor::loadLines()
 
 	m_fullDistance = 0;
 
+	if (m_polygon.isEmpty())
+		return;
+
 	auto prev = m_polygon.constBegin();
 	for (auto it = m_polygon.constBegin(); it != m_polygon.constEnd(); ++it) {
 		if (it == m_polygon.constBegin())
@@ -121,15 +122,40 @@ void TiledPathMotor::loadLines()
 		l.line.setP2(*it);
 		l.length = l.line.length();
 		l.angle = l.line.angle();
+		l.speed = IsometricObjectIface::factorFromDegree(l.angle);
 		m_fullDistance += l.length;
 		m_lines.append(l);
 
 		prev = it;
-
-		LOG_CDEBUG("scene") << "++" << l.line << l.length << l.angle;
 	}
+}
 
-	LOG_CINFO("scene") << "LOADED" << m_fullDistance << m_lines.size();
+
+/**
+ * @brief TiledPathMotor::angleFromLine
+ * @param line
+ * @return
+ */
+
+qreal TiledPathMotor::angleFromLine(const Line &line) const
+{
+	if (m_direction == Forward)
+		return line.angle;
+	else if (line.angle < 180)
+		return 180+line.angle;
+	else
+		return line.angle-180;
+}
+
+
+/**
+ * @brief TiledPathMotor::currentSegment
+ * @return
+ */
+
+int TiledPathMotor::currentSegment() const
+{
+	return m_currentSegment;
 }
 
 
@@ -156,6 +182,48 @@ qreal TiledPathMotor::fullDistance() const
 }
 
 
+/**
+ * @brief TiledPathMotor::toBegin
+ * @return
+ */
+
+bool TiledPathMotor::toBegin()
+{
+	if (m_lines.isEmpty())
+		return false;
+
+	const Line &line = m_lines.first();
+
+	m_currentDistance = 0;
+	m_currentPosition = line.line.p1();
+	m_currentAngle = angleFromLine(line);
+	m_currentSegment = 0;
+
+	return true;
+}
+
+
+/**
+ * @brief TiledPathMotor::toEnd
+ * @return
+ */
+
+bool TiledPathMotor::toEnd()
+{
+	if (m_lines.isEmpty())
+		return false;
+
+	const Line &line = m_lines.last();
+
+	m_currentDistance = m_fullDistance;
+	m_currentPosition = line.line.p2();
+	m_currentAngle = angleFromLine(line);
+	m_currentSegment = m_lines.size()-1;
+
+	return true;
+}
+
+
 
 
 /**
@@ -169,23 +237,22 @@ bool TiledPathMotor::toDistance(const qreal &distance)
 
 	for (int i=0; i<m_lines.size(); ++i) {
 		const Line &line = m_lines.at(i);
-		if (line.length < rest) {
+
+		if (i < m_lines.size()-1 && line.length < rest) {
 			rest -= line.length;
 			continue;
 		}
 
-		QLineF cLine = line.line;
-		cLine.setLength(rest);
+		if (i == m_lines.size()-1 && std::abs(rest-line.length) < 0.00001) {
+			m_currentPosition = line.line.p2();
+		} else {
+			QLineF cLine = line.line;
+			cLine.setLength(rest);
+			m_currentPosition = cLine.p2();
+		}
 
-		m_currentPosition = cLine.p2();
 		m_currentDistance = distance;
-
-		if (m_direction == Forward)
-			m_currentAngle = line.angle;
-		else if (line.angle < 180)
-			m_currentAngle = 180+line.angle;
-		else
-			m_currentAngle = line.angle-180;
+		m_currentAngle = angleFromLine(line);
 
 		return true;
 	}
@@ -215,27 +282,95 @@ bool TiledPathMotor::step(const qreal &distance)
 
 bool TiledPathMotor::step(const qreal &distance, const Direction &direction)
 {
-	qreal d = m_currentDistance;
+	if (m_currentSegment < 0 || m_currentSegment >= m_lines.size())
+		return false;
+
+	qreal rest = m_currentDistance;
+
+	for (int i=0; i<m_currentSegment; ++i)
+		rest -= m_lines.at(i).length;
+
 
 	if (direction == Forward) {
-		d += distance;
-		if (d > m_fullDistance) {
-			if (m_polygon.isClosed())
-				d = d-m_fullDistance;
-			else
-				d = m_fullDistance;
+		for (int i=m_currentSegment; i<m_lines.size(); ++i) {
+			const Line &line = m_lines.at(i);
+			const qreal fd = distance * line.speed;
+
+			if (i < m_lines.size()-1 && rest+fd > line.length) {
+				rest -= line.length;
+				continue;
+			}
+
+			if (rest+fd > line.length && m_polygon.isClosed()) {
+				rest -= line.length;
+				m_currentSegment = 0;
+				m_currentDistance = 0;
+				i=-1;
+				continue;
+			}
+
+			if (i == m_lines.size()-1 && rest+fd >= line.length) {
+				m_currentPosition = line.line.p2();
+				m_currentDistance = m_fullDistance;
+			} else {
+				QLineF cLine = line.line;
+				cLine.setLength(rest+fd);
+				m_currentPosition = cLine.p2();
+				m_currentDistance += fd;
+			}
+
+			m_currentAngle = angleFromLine(line);
+			m_currentSegment = i;
+
+			return true;
 		}
 	} else {
-		d -= distance;
-		if (d < 0.0) {
-			if (m_polygon.isClosed())
-				d = m_fullDistance - d;
-			else
-				d = 0.0;
+		qreal backDistance = 0;
+
+		for (int i=m_currentSegment; i>=0 && backDistance < distance; --i) {
+			const Line &line = m_lines.at(i);
+			const qreal fd = distance * line.speed;
+
+			if (rest < 0)
+				rest = line.length;
+
+			if (i > 0 && rest-fd < 0) {
+				backDistance += fd-rest;
+				rest = -1;
+				continue;
+			}
+
+			if (rest-fd < 0 && m_polygon.isClosed()) {
+				backDistance += fd-rest;
+				rest = -1;
+				m_currentSegment = m_lines.size()-1;
+				m_currentDistance = m_fullDistance;
+				i=m_lines.size();
+				continue;
+			}
+
+			if (i == 0 && rest-fd < 0) {
+				m_currentPosition = line.line.p1();
+				m_currentDistance = 0;
+				/*backDistance = distance;
+				rest = -1;*/
+			} else {
+				QLineF cLine = line.line;
+				cLine.setLength(rest-fd);
+				m_currentPosition = cLine.p2();
+				m_currentDistance -= fd;
+				/*backDistance += fd;
+				rest = -1;*/
+			}
+
+			m_currentAngle = angleFromLine(line);
+			m_currentSegment = i;
+
+			return true;
 		}
 	}
 
-	return toDistance(d);
+	return false;
 }
 
 

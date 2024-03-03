@@ -6,7 +6,7 @@
  * Created on: 2024. 02. 27.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * IsometricObject
+ * IsometricObjectIface
  *
  *  This file is part of Call of Suli.
  *
@@ -30,25 +30,54 @@
 #include "tiledscene.h"
 #include <QtMath>
 
-IsometricObject::IsometricObject(QQuickItem *parent)
-	: TiledObject(parent)
-{
-	m_body->setFixedRotation(true);
+IsometricObjectIface::IsometricObjectIface()
 
-	connect(this, &IsometricObject::xChanged, this, &IsometricObject::onXYChanged);
-	connect(this, &IsometricObject::yChanged, this, &IsometricObject::onXYChanged);
+{
+
+}
+
+
+/**
+ * @brief IsometricObjectIface::toRadian
+ * @param angle
+ * @return
+ */
+
+qreal IsometricObjectIface::toRadian(const qreal &angle)
+{
+	//return toRadians(angle);
+	if (angle <= 180.)
+		return angle * M_PI / 180.;
+	else
+		return -(360-angle) * M_PI / 180.;
+}
+
+
+/**
+ * @brief IsometricObjectIface::toDegree
+ * @param angle
+ * @return
+ */
+
+qreal IsometricObjectIface::toDegree(const qreal &angle)
+{
+	//return toDegrees(angle);
+	if (angle >= 0)
+		return angle * 180 / M_PI;
+	else
+		return 360+(angle * 180 / M_PI);
 }
 
 
 
 /**
- * @brief IsometricObject::angleFromDirection
+ * @brief IsometricObjectIface::radianFromDirection
  * @param directions
  * @param direction
  * @return
  */
 
-qreal IsometricObject::angleFromDirection(const Direction &direction)
+qreal IsometricObjectIface::radianFromDirection(const Direction &direction)
 {
 	switch (direction) {
 		case West: return M_PI; break;
@@ -66,16 +95,58 @@ qreal IsometricObject::angleFromDirection(const Direction &direction)
 }
 
 
+/**
+ * @brief IsometricObjectIface::factorFromDegree
+ * @param angle
+ * @param xyRatio
+ * @return
+ */
+
+qreal IsometricObjectIface::factorFromDegree(const qreal &angle, const qreal &xyRatio)
+{
+	return factorFromRadian(toRadian(angle), xyRatio);
+}
 
 
 /**
- * @brief IsometricObject::directionFromAngle
+ * @brief IsometricObjectIface::factorFromRadian
+ * @param angle
+ * @param xyRatio
+ * @return
+ */
+
+qreal IsometricObjectIface::factorFromRadian(const qreal &angle, const qreal &xyRatio)
+{
+	Q_ASSERT(xyRatio != 0);
+
+	if (angle == 0 || angle == M_PI)
+		return 1.0;
+
+	qreal r = 0.;
+
+	if (angle > M_PI_2)
+		r = (M_PI-angle)/M_PI_2;
+	else if (angle > 0)
+		r = angle/M_PI_2;
+	else if (angle > -M_PI_2)
+		r = -angle/M_PI_2;
+	else
+		r = (M_PI+angle)/M_PI_2;
+
+	return std::lerp(1., 0.7, r);
+}
+
+
+
+
+/**
+ * @brief IsometricObject::directionFromRadian
  * @param angle
  * @param directions
  * @return
  */
-
-IsometricObject::Direction IsometricObject::directionFromAngle(const Directions &directions, const qreal &angle)
+/*
+IsometricObject::Direction IsometricObject::directionFromRadian(const Directions &directions, const qreal &angle)
 {
 	static const std::map<qreal, Direction, std::greater<qreal>> map8 = {
 		{ M_PI * 7/8	, West },
@@ -122,26 +193,26 @@ IsometricObject::Direction IsometricObject::directionFromAngle(const Directions 
 
 	return Invalid;
 }
-
+*/
 
 /**
- * @brief IsometricObject::nearestDirectionFromAngle
+ * @brief IsometricObjectIface::nearestDirectionFromRadian
  * @param directions
  * @param angle
  * @return
  */
 
-IsometricObject::Direction IsometricObject::nearestDirectionFromAngle(const Directions &directions, const qreal &angle)
+IsometricObjectIface::Direction IsometricObjectIface::nearestDirectionFromRadian(const Directions &directions, const qreal &angle)
 {
 	static const std::map<qreal, Direction, std::greater<qreal>> map8 = {
 		{ M_PI			, West },
-		{ M_PI * 3/4	, NorthWest },
+		{ M_PI_4 * 3	, NorthWest },
 		{ M_PI_2		, North },
 		{ M_PI_4		, NorthEast },
 		{ 0				, East },
 		{ -M_PI_4		, SouthEast },
 		{ -M_PI_2		, South },
-		{ M_PI * -3/4	, SouthWest },
+		{ -M_PI_4 * 3	, SouthWest },
 		{ -M_PI			, West },
 	};
 
@@ -185,13 +256,43 @@ IsometricObject::Direction IsometricObject::nearestDirectionFromAngle(const Dire
 }
 
 
+/**
+ * @brief IsometricObjectIface::directionToRadian
+ * @param direction
+ * @return
+ */
 
-IsometricObject::Direction IsometricObject::currentDirection() const
+qreal IsometricObjectIface::directionToRadian(const Direction &direction)
+{
+	static const QMap<Direction, qreal> map8 = {
+		{ West ,		M_PI		},
+		{ NorthWest ,	M_PI_4 * 3	},
+		{ North ,		M_PI_2		},
+		{ NorthEast ,	M_PI_4		},
+		{ East ,		0			},
+		{ SouthEast ,	-M_PI_4		},
+		{ South ,		-M_PI_2		},
+		{ SouthWest ,	-M_PI_4 * 3	},
+		{ West ,		-M_PI		},
+	};
+
+	return map8.value(direction, 0);
+}
+
+
+
+
+/**
+ * @brief IsometricObjectIface::currentDirection
+ * @return
+ */
+
+IsometricObjectIface::Direction IsometricObjectIface::currentDirection() const
 {
 	return m_currentDirection;
 }
 
-void IsometricObject::setCurrentDirection(Direction newCurrentDirection)
+void IsometricObjectIface::setCurrentDirection(Direction newCurrentDirection)
 {
 	if (m_currentDirection == newCurrentDirection)
 		return;
@@ -205,16 +306,16 @@ void IsometricObject::setCurrentDirection(Direction newCurrentDirection)
 
 
 /**
- * @brief IsometricObject::availableDirections
+ * @brief IsometricObjectIface::availableDirections
  * @return
  */
 
-IsometricObject::Directions IsometricObject::availableDirections() const
+IsometricObjectIface::Directions IsometricObjectIface::availableDirections() const
 {
 	return m_availableDirections;
 }
 
-void IsometricObject::setAvailableDirections(Directions newAvailableDirections)
+void IsometricObjectIface::setAvailableDirections(Directions newAvailableDirections)
 {
 	if (m_availableDirections == newAvailableDirections)
 		return;
@@ -224,210 +325,40 @@ void IsometricObject::setAvailableDirections(Directions newAvailableDirections)
 
 
 
-
 /**
- * @brief IsometricObject::appendSprite
- * @param sprite
- * @param source
+ * @brief IsometricObjectIface::subZ
  * @return
  */
 
-bool IsometricObject::appendSprite(const QString &source, const IsometricObjectSprite &sprite)
+qreal IsometricObjectIface::subZ() const
 {
-	Q_ASSERT(m_visualItem);
-
-	for (int i=0; i<sprite.directions.size(); ++i) {
-		const int n = sprite.directions.at(i);
-		Direction direction = QVariant::fromValue(n).value<Direction>();
-
-		if (direction == Invalid) {
-			LOG_CERROR("scene") << "Sprite invalid direction:" << n << source;
-			return false;
-		}
-
-		TiledObjectSprite s2 = sprite;
-
-		if (sprite.startColumn >= 0) {
-			s2.frameX = sprite.startColumn + i*sprite.frameWidth;
-		} else if (sprite.startRow >= 0) {
-			s2.frameY = sprite.startRow + i*sprite.frameHeight;
-		}
-
-		const QString &spriteName = getSpriteName(sprite.name, direction);
-
-		if (m_availableSprites.contains(spriteName)) {
-			LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << direction << source;
-			return false;
-		}
-
-		s2.name = spriteName;
-		QJsonObject to2;
-		for (auto it = sprite.to.constBegin(); it != sprite.to.constEnd(); ++it) {
-			to2.insert(getSpriteName(it.key(), direction), it.value());
-		}
-		s2.to = to2;
-
-		QVariantMap data = s2.toJson().toVariantMap();
-
-		data[QStringLiteral("source")] = QUrl::fromLocalFile(source);
-
-		QMetaObject::invokeMethod(m_visualItem, "appendSprite", Qt::DirectConnection,
-								  Q_ARG(QVariant, data));
-
-		LOG_CTRACE("scene") << "Append sprite" << data;
-
-		m_availableSprites.append(spriteName);
-	}
-
-	return true;
+	return m_subZ;
 }
 
-
-
-
-/**
- * @brief IsometricObject::appendSpriteList
- * @param source
- * @param spriteList
- * @return
- */
-
-bool IsometricObject::appendSpriteList(const QString &source, const IsometricObjectSpriteList &spriteList)
+void IsometricObjectIface::setSubZ(qreal newSubZ)
 {
-	Q_ASSERT(m_visualItem);
+	if (newSubZ >= 1.0)
+		LOG_CERROR("scene") << "Invalid subZ value:" << newSubZ;
 
-	for (const auto &s : spriteList.sprites) {
-		if (!appendSprite(source, s)) {
-			LOG_CERROR("scene") << "Load sprite error:" << source;
-			return false;
-		}
-	}
-
-	return true;
+	if (qFuzzyCompare(m_subZ, newSubZ))
+		return;
+	m_subZ = newSubZ;
+	emit subZChanged();
 }
 
 
 
 /**
- * @brief IsometricObject::appendSprite
- * @param sprite
- * @param path
+ * @brief IsometricObjectIface::useDynamicZ
  * @return
  */
 
-bool IsometricObject::appendSprite(const IsometricObjectAlterableSprite &sprite, const QString &path)
-{
-	Q_ASSERT(m_visualItem);
-
-	for (const IsometricObjectSprite &s : sprite.sprites) {
-		for (auto it = sprite.alterations.constBegin(); it != sprite.alterations.constEnd(); ++it) {
-			const QString &alteration = it.key();
-
-			for (int i=0; i<s.directions.size(); ++i) {
-				const int n = s.directions.at(i);
-				Direction direction = QVariant::fromValue(n).value<Direction>();
-
-				if (direction == Invalid) {
-					LOG_CERROR("scene") << "Sprite invalid direction:" << n << path;
-					return false;
-				}
-
-				const QString &spriteName = getSpriteName(s.name, direction, alteration);
-
-				if (m_availableSprites.contains(spriteName)) {
-					LOG_CERROR("scene") << "Sprite already loaded:" << s.name << alteration << path << it.value();
-					return false;
-				}
-
-				TiledObjectSprite s2 = s;
-
-				if (s.startColumn >= 0) {
-					s2.frameX = s.startColumn + i*s.frameWidth;
-				} else if (s.startRow >= 0) {
-					s2.frameY = s.startRow + i*s.frameHeight;
-				}
-
-				s2.name = spriteName;
-				QJsonObject to2;
-				for (auto it = s.to.constBegin(); it != s.to.constEnd(); ++it) {
-					to2.insert(getSpriteName(it.key(), direction, alteration), it.value());
-				}
-				s2.to = to2;
-
-				QVariantMap data = s2.toJson().toVariantMap();
-
-				data[QStringLiteral("source")] = QUrl::fromLocalFile(path+it.value());
-
-				QMetaObject::invokeMethod(m_visualItem, "appendSprite", Qt::DirectConnection,
-										  Q_ARG(QVariant, data));
-
-				LOG_CTRACE("scene") << "Append sprite" << data;
-
-				m_availableSprites.append(spriteName);
-			}
-		}
-	}
-
-	m_availableAlterations.append(sprite.alterations.keys());
-
-	return true;
-}
-
-
-
-/**
- * @brief IsometricObject::appendSpriteList
- * @param sprite
- * @param path
- * @return
- */
-
-bool IsometricObject::appendSpriteList(const IsometricObjectAlterableSpriteList &sprite, const QString &path)
-{
-	Q_ASSERT(m_visualItem);
-
-	for (const auto &s : sprite.list) {
-		if (!appendSprite(s, path)) {
-			LOG_CERROR("scene") << "Load sprite error:" << path;
-			return false;
-		}
-	}
-
-	return true;
-}
-
-
-/**
- * @brief IsometricObject::getSpriteName
- * @param sprite
- * @param direction
- * @param alteration
- * @return
- */
-
-QString IsometricObject::getSpriteName(const QString &sprite, const Direction &direction, const QString &alteration)
-{
-	QString s = TiledObject::getSpriteName(sprite, alteration);
-
-	if (direction != Invalid)
-		s.append(QStringLiteral("-")).append(QString::number(direction));
-
-	return s;
-}
-
-
-
-/**
- * @brief IsometricObject::useDynamicZ
- * @return
- */
-
-bool IsometricObject::useDynamicZ() const
+bool IsometricObjectIface::useDynamicZ() const
 {
 	return m_useDynamicZ;
 }
 
-void IsometricObject::setUseDynamicZ(bool newUseDynamicZ)
+void IsometricObjectIface::setUseDynamicZ(bool newUseDynamicZ)
 {
 	if (m_useDynamicZ == newUseDynamicZ)
 		return;
@@ -437,34 +368,37 @@ void IsometricObject::setUseDynamicZ(bool newUseDynamicZ)
 
 
 
-/**
- * @brief IsometricObject::onXYChanged
- */
-
-void IsometricObject::onXYChanged()
-{
-	if (!m_scene || !m_useDynamicZ)
-		return;
-
-	QPointF p = position() + QPointF(width()/2, height()/2);
-	setZ(m_scene->getDynamicZ(p, m_defaultZ));
-}
 
 
 /**
- * @brief IsometricObject::defaultZ
+ * @brief IsometricObjectIface::defaultZ
  * @return
  */
 
-qreal IsometricObject::defaultZ() const
+qreal IsometricObjectIface::defaultZ() const
 {
 	return m_defaultZ;
 }
 
-void IsometricObject::setDefaultZ(qreal newDefaultZ)
+void IsometricObjectIface::setDefaultZ(qreal newDefaultZ)
 {
 	if (qFuzzyCompare(m_defaultZ, newDefaultZ))
 		return;
 	m_defaultZ = newDefaultZ;
 	emit defaultZChanged();
+}
+
+
+
+
+
+
+
+void IsometricObject::onXYChanged(IsometricObjectIface *isoobject, TiledObjectBase *object)
+{
+	if (!object || !object->scene() || !isoobject)
+		return;
+
+	QPointF p = object->position() + QPointF(object->width()/2, object->height()/2);
+	object->setZ(object->scene()->getDynamicZ(p, isoobject->defaultZ()) + isoobject->subZ());
 }

@@ -15,6 +15,14 @@ include(../../translations/translations.pri)
 
 DESTDIR = ../..
 
+
+### REMOVE ###
+
+RESOURCES += \
+	$$PWD/../../_teszt/_teszt.qrc
+
+
+
 #lessThan(QT_MAJOR_VERSION, 6) {
 #	QML_IMPORT_PATH += $$PWD/../qml
 #	QMLPATHS += $$PWD/../qml
@@ -235,8 +243,10 @@ SOURCES += \
 	gameterrainmap.cpp \
 	grade.cpp \
 	httpconnection.cpp \
+	isometricenemy.cpp \
 	isometricentity.cpp \
 	isometricobject.cpp \
+	isometricplayer.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -322,8 +332,11 @@ HEADERS += \
 	gameterrainmap.h \
 	grade.h \
 	httpconnection.h \
+	isometricenemy.h \
 	isometricentity.h \
 	isometricobject.h \
+	isometricobjectiface.h \
+	isometricplayer.h \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \
@@ -350,6 +363,7 @@ HEADERS += \
 	teachermaphandler.h \
 	testgame.h \
 	tiledobject.h \
+	tiledobjectspritedef.h \
 	tiledpathmotor.h \
 	tiledscene.h \
 	updater.h \

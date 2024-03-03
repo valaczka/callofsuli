@@ -13,6 +13,13 @@ Item {
 
 	property alias spriteSequence: spriteSequence
 
+	Rectangle {
+		color: "transparent"
+		border.color: "black"
+		border.width: 2
+		anchors.fill: parent
+	}
+
 	SpriteSequence {
 		id: spriteSequence
 

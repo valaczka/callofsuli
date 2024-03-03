@@ -27,107 +27,16 @@
 #ifndef TILEDOBJECT_H
 #define TILEDOBJECT_H
 
+#include "Logger.h"
 #include "box2dbody.h"
+#include "box2dfixture.h"
 #include <QQuickItem>
-#include <QSerializer>
+#include <libtiled/maprenderer.h>
 #include <libtiled/mapobject.h>
+#include "tiledobjectspritedef.h"
+#include "isometricobjectiface.h"
 
 
-class TiledObjectSprite : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledObjectSprite()
-		: duration(0)
-		, durationVariation(0)
-		, frameCount(0)
-		, frameDuration(0)
-		//, frameDurationVariation(0)
-		, frameHeight(0)
-		, frameWidth(0)
-		, frameX(0)
-		, frameY(0)
-		//, frameRate(0)
-		//, frameRateVariation(0)
-	{}
-
-	QS_SERIALIZABLE
-	QS_FIELD(int, duration)
-	QS_FIELD(int, durationVariation)
-	QS_FIELD(int, frameCount)
-	QS_FIELD(int, frameDuration)
-	//QS_FIELD(int, frameDurationVariation)
-	QS_FIELD(int, frameHeight)
-	QS_FIELD(int, frameWidth)
-	QS_FIELD(int, frameX)
-	QS_FIELD(int, frameY)
-	//QS_FIELD(qreal, frameRate)
-	//QS_FIELD(qreal, frameRateVariation)
-	QS_FIELD(QString, name)
-	QS_FIELD(QJsonObject, to)
-};
-
-
-
-
-/**
- * @brief The TiledObjectSpriteList class
- */
-
-class TiledObjectSpriteList : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledObjectSpriteList()
-	{}
-
-	QS_SERIALIZABLE
-
-	QS_COLLECTION_OBJECTS(QList, TiledObjectSprite, sprites)
-};
-
-
-
-
-/**
- * @brief The TiledMapObjectAlterableSprite class
- */
-
-class TiledMapObjectAlterableSprite : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledMapObjectAlterableSprite()
-	{}
-
-	QS_SERIALIZABLE
-	QS_QT_DICT(QMap, QString, QString, alterations)
-	QS_COLLECTION_OBJECTS(QList, TiledObjectSprite, sprites)
-};
-
-
-
-
-
-/**
- * @brief The TiledObjectAlterableSpriteList class
- */
-
-class TiledObjectAlterableSpriteList : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledObjectAlterableSpriteList()
-	{}
-
-	QS_SERIALIZABLE
-
-	QS_COLLECTION_OBJECTS(QList, TiledMapObjectAlterableSprite, list)
-};
 
 
 
@@ -137,10 +46,136 @@ class TiledScene;
 
 #ifndef OPAQUE_PTR_TiledScene
 #define OPAQUE_PTR_TiledScene
-  Q_DECLARE_OPAQUE_POINTER(TiledScene*)
+Q_DECLARE_OPAQUE_POINTER(TiledScene*)
 #endif
 
 #endif
+
+
+
+
+
+
+
+/**
+ * @brief The TiledObjectBody class
+ */
+
+
+class TiledObjectBody : public Box2DBody
+{
+	Q_OBJECT
+
+public:
+	explicit TiledObjectBody(QObject *parent = nullptr)
+		: Box2DBody(parent)
+	{}
+
+	void synchronize() override;
+};
+
+
+
+
+
+/**
+ * @brief The TiledObjectSensorPolygon class
+ */
+
+class TiledObjectSensorPolygon : public Box2DPolygon
+{
+	Q_OBJECT
+
+	Q_PROPERTY(qreal length READ length WRITE setLength NOTIFY lengthChanged FINAL)
+	Q_PROPERTY(qreal range READ range WRITE setRange NOTIFY rangeChanged FINAL)
+
+public:
+	explicit TiledObjectSensorPolygon(Box2DBody *body, QQuickItem *parent = nullptr);
+
+	qreal length() const;
+	void setLength(qreal newLength);
+
+	qreal range() const;
+	void setRange(qreal newRange);
+
+	Box2DCircle *virtualCircle() const;
+
+signals:
+	void lengthChanged();
+	void rangeChanged();
+
+private:
+	void recreateFixture();
+
+	qreal m_length = 50;
+	qreal m_range = M_PI_4;
+
+	std::unique_ptr<Box2DCircle> m_virtualCircle;
+	Box2DBody *const m_body;
+};
+
+
+
+
+
+
+
+
+/**
+ * @brief The TiledObjectPolygonIface class
+ */
+
+class TiledObjectPolygonIface
+{
+public:
+	TiledObjectPolygonIface()
+		: m_fixture(new Box2DPolygon)
+	{}
+
+	virtual Box2DPolygon *createFixture(const QPointF &pos, const QPolygonF &polygon);
+
+	Box2DPolygon* fixture() const { return m_fixture.get(); }
+
+protected:
+	std::unique_ptr<Box2DPolygon> m_fixture;
+
+
+public:
+	const QPolygonF &screenPolygon() const{ return m_screenPolygon; }
+	const QPolygonF &originalPolygon() const{ return m_originalPolygon; }
+	const QPointF &fixturePosition() const{ return m_fixturePosition; }
+
+protected:
+	QPolygonF m_originalPolygon;
+	QPolygonF m_screenPolygon;
+	QPointF m_fixturePosition;
+};
+
+
+
+
+
+
+
+/**
+ * @brief The TiledObjectCircleIface class
+ */
+
+class TiledObjectCircleIface
+{
+public:
+	TiledObjectCircleIface()
+		: m_fixture(new Box2DCircle)
+	{}
+
+	virtual Box2DCircle *createFixture(const QPointF &pos, const qreal &size);
+	Box2DCircle* fixture() const { return m_fixture.get(); }
+
+protected:
+	std::unique_ptr<Box2DCircle> m_fixture;
+};
+
+
 
 
 
@@ -165,11 +200,37 @@ public:
 	Q_INVOKABLE void bodyComplete() { m_body->componentComplete(); }
 	virtual void worldStep() {}
 
+	TiledObjectBody *body() const { return m_body.get(); }
 	TiledScene *scene() const;
 	void setScene(TiledScene *newScene);
 
-	Box2DBody *body() const;
-	Box2DFixture *defaultFixture() const;
+	TiledObjectSensorPolygon *sensorPolygon() const { return m_sensorPolygon.get(); }
+
+	static QPolygonF toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+
+	template <typename T>
+	static typename std::enable_if<std::is_base_of<TiledObjectPolygonIface, T>::value>::type
+	createFromPolygon(T** dest, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+					  QQuickItem *parent = nullptr);
+
+	template <typename T>
+	static typename std::enable_if<std::is_base_of<TiledObjectPolygonIface, T>::value>::type
+	createFromMapObject(T** dest, const Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+						QQuickItem *parent = nullptr);
+
+
+	template <typename T>
+	static typename std::enable_if<std::is_base_of<TiledObjectCircleIface, T>::value>::type
+	createFromCircle(T** dest, const QPointF &position, const qreal &size, Tiled::MapRenderer *renderer,
+					 QQuickItem *parent = nullptr);
+
+	template <typename T>
+	static typename std::enable_if<std::is_base_of<TiledObjectCircleIface, T>::value>::type
+	createFromMapObject(T** dest, const Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+						QQuickItem *parent = nullptr);
+
+
+	static void setPolygonVertices(Box2DPolygon *fixture, const QPolygonF &polygon);
 
 signals:
 	void sceneChanged();
@@ -177,10 +238,14 @@ signals:
 protected:
 	virtual void onSceneConnected() {}
 
+	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
+
 protected:
 	TiledScene *m_scene = nullptr;
-	std::unique_ptr<Box2DBody> m_body;
-	std::unique_ptr<Box2DFixture> m_defaultFixture;
+	std::unique_ptr<TiledObjectSensorPolygon> m_sensorPolygon;
+	std::unique_ptr<TiledObjectBody> m_body;
+
+	friend class TiledObjectBody;
 };
 
 
@@ -199,16 +264,8 @@ class TiledObject : public TiledObjectBase
 public:
 	explicit TiledObject(QQuickItem *parent = 0);
 
-	static TiledObject *createFromMapObject(const Tiled::MapObject *object, Tiled::MapRenderer *renderer,
-											   QQuickItem *parent = nullptr);
-	static TiledObject *createFromPolygon(const QPolygonF &polygon, Tiled::MapRenderer *renderer,
-											 QQuickItem *parent = nullptr);
-
-	static QPolygonF toPolygonF(const Tiled::MapObject *object, Tiled::MapRenderer *renderer);
-
 	Q_INVOKABLE void jumpToSprite(const QString &sprite) const;
 
-	QPolygonF screenPolygon() const;
 	QStringList availableSprites() const;
 	QStringList availableAlterations() const;
 
@@ -221,17 +278,255 @@ protected:
 	bool appendSpriteList(const TiledObjectAlterableSpriteList &spriteList, const QString &path = QStringLiteral(""));
 	static QString getSpriteName(const QString &sprite, const QString &alteration = QStringLiteral(""));
 
+	bool appendSprite(const QString &source, const IsometricObjectSprite &sprite);
+	bool appendSpriteList(const QString &source, const IsometricObjectSpriteList &spriteList);
+	bool appendSprite(const IsometricObjectAlterableSprite &sprite, const QString &path = QStringLiteral(""));
+	bool appendSpriteList(const IsometricObjectAlterableSpriteList &sprite, const QString &path = QStringLiteral(""));
+	static QString getSpriteName(const QString &sprite,
+								 const IsometricObjectIface::Direction &direction,
+								 const QString &alteration = QStringLiteral(""));
+
+
 protected slots:
 	virtual void onCurrentSpriteChanged(QString sprite);
 	void createVisual();
 
 protected:
-	QPolygonF m_screenPolygon;
-
 	QQuickItem *m_visualItem = nullptr;
 	QQuickItem *m_spriteSequence = nullptr;
 	QStringList m_availableSprites;
 	QStringList m_availableAlterations;
 };
+
+
+
+/**
+ * @brief TiledObject::createFromCircle
+ * @param dest
+ * @param position
+ * @param size
+ * @param renderer
+ * @param parent
+ * @return
+ */
+
+template<typename T>
+typename std::enable_if<std::is_base_of<TiledObjectCircleIface, T>::value>::type
+TiledObjectBase::createFromCircle(T **dest, const QPointF &position, const qreal &size, Tiled::MapRenderer *renderer, QQuickItem *parent)
+{
+	Q_ASSERT(dest);
+
+	const QPointF &pos = renderer ?
+							 renderer->pixelToScreenCoords(position) :
+							 position;
+
+
+	*dest = new T(parent);
+	(*dest)->setX(pos.x());
+	(*dest)->setY(pos.y());
+	(*dest)->setWidth(size);
+	(*dest)->setHeight(size);
+
+	(*dest)->createFixture(pos, size);
+
+	(*dest)->body()->addFixture((*dest)->fixture());
+	(*dest)->bodyComplete();
+}
+
+
+
+
+/**
+ * @brief TiledObject::createFromMapObject
+ * @param dest
+ * @param object
+ * @param renderer
+ * @param parent
+ * @return
+ */
+
+template<typename T>
+typename std::enable_if<std::is_base_of<TiledObjectPolygonIface, T>::value>::type
+TiledObjectBase::createFromMapObject(T **dest, const Tiled::MapObject *object, Tiled::MapRenderer *renderer, QQuickItem *parent)
+{
+	Q_ASSERT(dest);
+
+	if (!object) {
+		LOG_CERROR("scene") << "Empty Tiled::MapObject";
+		return;
+	}
+
+	switch (object->shape()) {
+		case Tiled::MapObject::Rectangle:
+			return createFromPolygon<T>(dest, object->bounds(), renderer, parent);
+		case Tiled::MapObject::Polygon:
+			return createFromPolygon<T>(dest, object->polygon().translated(object->position()), renderer, parent);
+		default:
+			LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
+	}
+}
+
+
+
+/**
+ * @brief TiledObject::createFromPolygon
+ * @param polygon
+ * @param renderer
+ * @param parent
+ * @return
+ */
+
+template<typename T>
+typename std::enable_if<std::is_base_of<TiledObjectPolygonIface, T>::value>::type
+TiledObjectBase::createFromPolygon(T **dest, const QPolygonF &polygon, Tiled::MapRenderer *renderer, QQuickItem *parent)
+{
+	Q_ASSERT(dest);
+
+	QPolygonF screenPolygon = renderer ? renderer->pixelToScreenCoords(polygon) : polygon;
+
+	const QRectF &boundingRect = screenPolygon.boundingRect();
+
+	*dest = new T(parent);
+
+	(*dest)->createFixture(-boundingRect.topLeft(), screenPolygon);
+
+	(*dest)->setX(boundingRect.x());
+	(*dest)->setY(boundingRect.y());
+	(*dest)->setWidth(boundingRect.width());
+	(*dest)->setHeight(boundingRect.height());
+
+	//screenPolygon.translate(-boundingRect.topLeft());
+
+	(*dest)->body()->addFixture((*dest)->fixture());
+	(*dest)->bodyComplete();
+
+}
+
+
+
+
+
+
+/**
+ * @brief TiledObject::createFromMapObject
+ * @param dest
+ * @param object
+ * @param renderer
+ * @param parent
+ * @return
+ */
+
+template<typename T>
+typename std::enable_if<std::is_base_of<TiledObjectCircleIface, T>::value>::type
+TiledObjectBase::createFromMapObject(T **dest, const Tiled::MapObject *object, Tiled::MapRenderer *renderer, QQuickItem *parent)
+{
+	Q_ASSERT(dest);
+
+	if (!object) {
+		LOG_CERROR("scene") << "Empty Tiled::MapObject";
+		return;
+	}
+
+	if (object->shape())
+		createFromPolygon<T>(dest, object->bounds(), renderer, parent);
+	else
+		LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
+
+}
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The TiledObjectBasePolygon class
+ */
+
+class TiledObjectBasePolygon : public TiledObjectBase, public TiledObjectPolygonIface
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+	Q_PROPERTY(Box2DPolygon* fixture READ fixture CONSTANT FINAL)
+
+public:
+	explicit TiledObjectBasePolygon(QQuickItem *parent = 0)
+		: TiledObjectBase(parent)
+		, TiledObjectPolygonIface()
+	{}
+};
+
+
+
+
+/**
+ * @brief The TiledObjectBasePolygon class
+ */
+
+class TiledObjectPolygon : public TiledObject, public TiledObjectPolygonIface
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+	Q_PROPERTY(Box2DPolygon* fixture READ fixture CONSTANT FINAL)
+
+public:
+	explicit TiledObjectPolygon(QQuickItem *parent = 0)
+		: TiledObject(parent)
+		, TiledObjectPolygonIface()
+	{ }
+};
+
+
+
+
+
+
+
+
+/**
+ * @brief The TiledObjectBasePolygon class
+ */
+
+class TiledObjectBaseCircle : public TiledObjectBase, public TiledObjectCircleIface
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+	Q_PROPERTY(Box2DCircle* fixture READ fixture CONSTANT FINAL)
+
+public:
+	explicit TiledObjectBaseCircle(QQuickItem *parent = 0)
+		: TiledObjectBase(parent)
+		, TiledObjectCircleIface()
+	{}
+};
+
+
+
+
+/**
+ * @brief The TiledObjectBasePolygon class
+ */
+
+class TiledObjectCircle : public TiledObject, public TiledObjectCircleIface
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+	Q_PROPERTY(Box2DCircle* fixture READ fixture CONSTANT FINAL)
+
+public:
+	explicit TiledObjectCircle(QQuickItem *parent = 0)
+		: TiledObject(parent)
+		, TiledObjectCircleIface()
+	{}
+};
+
 
 #endif // TILEDOBJECT_H

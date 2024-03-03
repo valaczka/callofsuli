@@ -59,26 +59,31 @@ public:
 	qreal currentAngleRadian() const;
 	qreal fullDistance() const;
 
-	bool toBegin() { return toDistance(0.); }
-	bool toEnd() { return toDistance(m_fullDistance); }
+	bool toBegin();
+	bool toEnd();
 	bool toDistance(const qreal &distance);
 	void toPercent(const qreal &percent) { toDistance(m_fullDistance*percent); }
 	bool step(const qreal &distance);
 	bool step(const qreal &distance, const Direction &direction);
 
-	bool atBegin() const { return m_currentDistance == 0.; }
+	bool atBegin() const { return m_currentDistance <= 0.; }
 	bool atEnd() const { return m_currentDistance >= m_fullDistance; }
 	bool isClosed() const { return m_polygon.isClosed(); }
 
 
-private:
-	void loadLines();
+	int currentSegment() const;
 
+private:
 	struct Line {
 		QLineF line;
 		qreal length = 0;
 		qreal angle = 0;
+		qreal speed = 1.0;
 	};
+
+	void loadLines();
+	qreal angleFromLine(const Line &line) const;
+
 
 	QPolygonF m_polygon;
 	Direction m_direction = Forward;
@@ -86,6 +91,7 @@ private:
 	qreal m_fullDistance = 0.0;
 	qreal m_currentAngle = 0.0;
 	QPointF m_currentPosition;
+	int m_currentSegment = -1;
 
 	QList<Line> m_lines;
 

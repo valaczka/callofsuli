@@ -20,6 +20,8 @@ Flickable {
 	contentWidth: _container.width
 	contentHeight: _container.height
 
+	interactive: !_pinch.active
+
 	boundsBehavior: Flickable.DragAndOvershootBounds
 	boundsMovement: Flickable.StopAtBounds
 	flickableDirection: Flickable.HorizontalAndVerticalFlick
@@ -35,6 +37,8 @@ Flickable {
 			anchors.horizontalCenter: parent.horizontalCenter
 			anchors.verticalCenter: parent.verticalCenter
 
+			transformOrigin: Item.Center
+
 			running: true
 
 			// BUG: timestep not available when in c++ instantiated
@@ -47,7 +51,7 @@ Flickable {
 			visibleArea: Qt.rect(flick.contentX / scale, flick.contentY / scale ,
 								 flick.contentWidth / scale, flick.contentHeight / scale)
 
-			onTestPointsChanged: _canvas.requestPaint()
+			/*onTestPointsChanged: _canvas.requestPaint()
 
 			Canvas {
 				id: _canvas
@@ -73,19 +77,37 @@ Flickable {
 
 					ctx.restore();
 				}
-			}
-
-			DebugDraw {
-				anchors.fill: parent
-				world: _scene.world
-				opacity: 0.5
-				visible: _scene.debugView
-				z: 9999
-			}
+			}*/
 		}
 
-	}
+		DebugDraw {
+			anchors.fill: _scene
+			world: _scene.world
+			opacity: 0.5
+			visible: _scene.debugView
+			scale: _scene.scale
+		}
 
+		PinchHandler {
+			id: _pinch
+			target: _scene
+			persistentTranslation: Qt.point(0,0)
+			persistentRotation: 0.
+
+			xAxis.enabled: true
+			yAxis.enabled: true
+			rotationAxis.enabled: false
+
+			scaleAxis.enabled: true
+			scaleAxis.minimum: 0.2
+			scaleAxis.maximum: 1.2
+
+			/*xAxis.onActiveValueChanged: (delta) => flick.contentX += delta
+				   yAxis.onActiveValueChanged: (delta) => flick.contentY += delta
+				   //rotationAxis.onActiveValueChanged: (delta) => parent.rotation += delta
+				   scaleAxis.onActiveValueChanged: (delta) => _scene.scale *= delta*/
+		}
+	}
 
 
 	SmoothedAnimation {
