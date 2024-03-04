@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * isometricobjectiface.h
+ * tiledreturnpathmotor.h
  *
- * Created on: 2024. 03. 03.
+ * Created on: 2024. 03. 04.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * %{Cpp:License:ClassName}
+ * TiledReturnPathMotor
  *
  *  This file is part of Call of Suli.
  *
@@ -24,45 +24,36 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ISOMETRICOBJECTIFACE_H
-#define ISOMETRICOBJECTIFACE_H
+#ifndef TILEDRETURNPATHMOTOR_H
+#define TILEDRETURNPATHMOTOR_H
 
-#include "qobjectdefs.h"
-#include "qtypes.h"
+#include "abstracttiledmotor.h"
+#include "tiledobject.h"
+#include "tiledpathmotor.h"
 
-/**
- * @brief The IsometricObjectIface class
- */
 
-class IsometricObjectIface
+class TiledReturnPathMotor : public AbstractTiledMotor
 {
-	Q_GADGET
-
 public:
-	IsometricObjectIface();
+	TiledReturnPathMotor();
 
-	qreal defaultZ() const;
-	void setDefaultZ(qreal newDefaultZ);
+	QPointF currentPosition() const override;
 
-	bool useDynamicZ() const;
-	void setUseDynamicZ(bool newUseDynamicZ);
+	void moveBody(TiledObjectBody *body, const float32 &angle, const qreal &radius);
+	void finish(TiledObjectBody *body);
+	bool stepBack(const qreal &radius);
 
-	qreal subZ() const;
-	void setSubZ(qreal newSubZ);
+	QPolygonF path() const;
 
-public:
-	virtual void onXYChanged() = 0;
-	virtual void defaultZChanged() = 0;
-	virtual void useDynamicZChanged() = 0;
-	virtual void subZChanged() = 0;
+	bool isReturning() const;
+	void setIsReturning(bool newIsReturning);
 
-protected:
-	qreal m_defaultZ = 0;
-	qreal m_subZ = 0;
-	bool m_useDynamicZ = true;
+
+private:
+	TiledPathMotor m_pathMotor;
+	QPolygonF m_path;
+	float32 m_lastAngle = 0;
+	bool m_isReturning = false;
 };
 
-
-
-
-#endif // ISOMETRICOBJECTIFACE_H
+#endif // TILEDRETURNPATHMOTOR_H

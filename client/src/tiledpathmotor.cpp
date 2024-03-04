@@ -25,11 +25,12 @@
  */
 
 #include "tiledpathmotor.h"
-#include "isometricobject.h"
+#include "tiledobject.h"
 #include <Logger.h>
 
 TiledPathMotor::TiledPathMotor(const QPolygonF &polygon, const Direction &direction)
-	: m_polygon(polygon)
+	: AbstractTiledMotor(PathMotor)
+	, m_polygon(polygon)
 	, m_direction(direction)
 {
 	loadLines();
@@ -95,7 +96,7 @@ qreal TiledPathMotor::currentAngle() const
 
 qreal TiledPathMotor::currentAngleRadian() const
 {
-	return IsometricObjectIface::toRadian(m_currentAngle);
+	return TiledObject::toRadian(m_currentAngle);
 }
 
 
@@ -122,7 +123,7 @@ void TiledPathMotor::loadLines()
 		l.line.setP2(*it);
 		l.length = l.line.length();
 		l.angle = l.line.angle();
-		l.speed = IsometricObjectIface::factorFromDegree(l.angle);
+		l.speed = TiledObject::factorFromDegree(l.angle);
 		m_fullDistance += l.length;
 		m_lines.append(l);
 

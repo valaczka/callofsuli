@@ -27,7 +27,9 @@
 #ifndef TILEDPATHMOTOR_H
 #define TILEDPATHMOTOR_H
 
+#include "abstracttiledmotor.h"
 #include "qline.h"
+#include "qobjectdefs.h"
 #include "qpolygon.h"
 
 
@@ -35,13 +37,17 @@
  * @brief The TiledPathMotor class
  */
 
-class TiledPathMotor
+class TiledPathMotor : public AbstractTiledMotor
 {
+	Q_GADGET
+
 public:
 	enum Direction {
 		Forward = 0,
 		Backward
 	};
+
+	Q_ENUM(Direction);
 
 	TiledPathMotor(const QPolygonF &polygon, const Direction &direction = Forward);
 	TiledPathMotor() : TiledPathMotor(QPolygonF()) {}
@@ -53,7 +59,7 @@ public:
 	Direction direction() const;
 	void setDirection(Direction newDirection);
 
-	QPointF currentPosition() const;
+	QPointF currentPosition() const override;
 	qreal currentDistance() const;
 	qreal currentAngle() const;
 	qreal currentAngleRadian() const;
@@ -69,7 +75,6 @@ public:
 	bool atBegin() const { return m_currentDistance <= 0.; }
 	bool atEnd() const { return m_currentDistance >= m_fullDistance; }
 	bool isClosed() const { return m_polygon.isClosed(); }
-
 
 	int currentSegment() const;
 
@@ -95,6 +100,7 @@ private:
 
 	QList<Line> m_lines;
 
+	friend class TiledReturnPathMotor;
 };
 
 #endif // TILEDPATHMOTOR_H

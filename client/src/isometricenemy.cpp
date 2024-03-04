@@ -26,6 +26,8 @@
 
 #include "isometricenemy.h"
 #include "box2dworld.h"
+#include "isometricplayer.h"
+#include "tiledscene.h"
 
 
 /**
@@ -35,10 +37,23 @@
 
 IsometricEnemy::IsometricEnemy(QQuickItem *parent)
 	: IsometricCircleEntity(parent)
-	//, IsometricEnemyIface()
+	, IsometricEnemyIface()
 {
-
+	connect(this, &IsometricEnemy::playerChanged, this, [this](){
+		if (m_player)
+			setGlowEnabled(true);
+		else
+			setGlowEnabled(false);
+	});
 }
+
+
+
+/**
+ * @brief IsometricEnemy::createEnemy
+ * @param parent
+ * @return
+ */
 
 IsometricEnemy *IsometricEnemy::createEnemy(QQuickItem *parent)
 {
@@ -54,45 +69,157 @@ IsometricEnemy *IsometricEnemy::createEnemy(QQuickItem *parent)
 
 
 
+
+/**
+ * @brief IsometricEnemy::entityWorldStep
+ */
+
 void IsometricEnemy::entityWorldStep()
 {
-	return;	/////
-
-
 	if (m_movingDirection != Invalid)
 		setCurrentDirection(m_movingDirection);
 
-	if (!m_pathMotor) {
-		LOG_CERROR("scene") << "NO MOTOR";
+
+	if (m_contactedPlayer) {
+		if (checkPlayerVisibility(m_body.get(), m_contactedPlayer)) {
+			setPlayer(m_contactedPlayer);
+
+			m_body->setLinearVelocity(QPointF{0,0});
+			m_body->setAngularVelocity(0.);
+
+			float32 angle = 0;
+			QPointF dest;
+
+			rotateToPlayer(m_player, &angle, &dest);
+			updateSprite();
+
+			if (QVector2D(dest).length() > 70) {			/// --- player distance
+				if (!m_returnPathMotor)
+					m_returnPathMotor.reset(new TiledReturnPathMotor);
+				qreal speed = 3 /** TiledObject::factorFromRadian(angle)*/;		/// --- pursuit speeed
+				m_returnPathMotor->moveBody(m_body.get(), angle, speed);
+			} else {
+				m_body->setLinearVelocity(QPointF{0,0});
+				m_body->setAngularVelocity(0.);
+			}
+
+
+			/*
+			QVariantList list;
+			list << m_body->bodyPosition() - QPointF(0, 64)
+				 << m_contactedPlayer->body()->bodyPosition() - QPointF(0, 64);
+
+			m_scene->setTestPoints(list);
+			*/
+
+			/*if (m_returnPathMotor) {
+				QVariantList list;
+				for (const auto &point : m_returnPathMotor->path())
+					list.append(point);
+				m_scene->setTestPoints(list);
+			}*/
+
+			return;
+		} else {
+			setPlayer(nullptr);
+		}
+	}
+
+	if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {
+		m_returnPathMotor->finish(m_body.get());
+
+		/*QVariantList list;
+		for (const auto &point : m_returnPathMotor->path())
+			list.append(point);
+		m_scene->setTestPoints(list);*/
+	}
+
+	rotateBody(directionToRadian(m_currentDirection));
+	stepMotor();
+
+	updateSprite();
+}
+
+
+
+
+/**
+ * @brief IsometricEnemy::onPathMotorLoaded
+ */
+
+void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
+{
+	m_body->emplace(m_motor->currentPosition());
+}
+
+
+
+/**
+ * @brief IsometricEnemy::stepMotor
+ */
+
+void IsometricEnemy::stepMotor()
+{
+	if (!m_motor) {
+		LOG_CERROR("scene") << "Missing motor" << this;
 		return;
 	}
 
-	//if (!m_scene->joystickState().hasKeyboard && !m_scene->joystickState().hasTouch) {
+	if (m_returnPathMotor) {
+		if (m_returnPathMotor->stepBack(2.)) {		///  --- returning speed
+			m_body->setLinearVelocity(maximizeSpeed(m_returnPathMotor->currentPosition() - m_body->bodyPosition()));
+			return;
+		} else {
+			/*QVariantList list;
+			for (const auto &point : m_returnPathMotor->path())
+				list.append(point);
+			m_scene->setTestPoints(list);*/
 
-		m_pathMotor->step(1.5);
+			m_returnPathMotor.reset();
+		}
+	}
 
-		if (m_pathMotor->direction() == TiledPathMotor::Backward && m_pathMotor->atBegin())
-			m_pathMotor->setDirection(TiledPathMotor::Forward);
-		else if (m_pathMotor->direction() == TiledPathMotor::Forward && m_pathMotor->atEnd())
-			m_pathMotor->setDirection(TiledPathMotor::Backward);
+	if (m_motor->type() == AbstractTiledMotor::PathMotor) {
+		TiledPathMotor *motor = pathMotor();
+		Q_ASSERT(motor);
 
-		//setBodyCenterPoint(m_pathMotor->currentPosition());
+		motor->step(1.8);				/// ----- speed
 
-		QPointF nextPoint = m_pathMotor->currentPosition() /*- bodyCenterPoint()*/;
-		if (nextPoint.x() > 10)
-			nextPoint.setX(10);
-		if (nextPoint.x() < -10)
-			nextPoint.setX(-10);
+		if (motor->direction() == TiledPathMotor::Backward && motor->atBegin())
+			motor->setDirection(TiledPathMotor::Forward);
+		else if (motor->direction() == TiledPathMotor::Forward && motor->atEnd())
+			motor->setDirection(TiledPathMotor::Backward);
 
-		if (nextPoint.y() > 10)
-			nextPoint.setY(10);
-		if (nextPoint.y() < -10)
-			nextPoint.setY(-10);
+		m_body->setLinearVelocity(maximizeSpeed(motor->currentPosition() - m_body->bodyPosition()));
+	}
+}
 
-		m_body->setLinearVelocity(nextPoint);
-	//}
 
-	updateSprite();
+
+
+
+/**
+ * @brief IsometricEnemy::rotateToPlayer
+ * @param player
+ */
+
+void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float32 *anglePtr, QPointF *vectorPtr)
+{
+	if (!player)
+		return;
+
+	QPointF p = player->body()->bodyPosition() - m_body->bodyPosition();
+
+	float32 angle = atan2(-p.y(), p.x());
+
+	setCurrentDirection(nearestDirectionFromRadian(angle));
+	m_body->body()->SetTransform(m_body->body()->GetPosition(), angle);
+
+	if (anglePtr)
+		*anglePtr = angle;
+
+	if (vectorPtr)
+		*vectorPtr = p;
 }
 
 
@@ -116,27 +243,38 @@ void IsometricEnemy::load()
 	m_fixture->setDensity(1);
 	m_fixture->setFriction(1);
 	m_fixture->setRestitution(0);
-	m_fixture->setCollidesWith(Box2DFixture::Category1);
+	m_fixture->setCategories(Box2DFixture::Category3);
+	//m_fixture->setCollidesWith(Box2DFixture::Category1);
 
-	TiledObjectSensorPolygon *p = addSensorPolygon(50);
+	TiledObjectSensorPolygon *p = addSensorPolygon(300);
 
 	Q_ASSERT(p);
 
-	static bool b = false;
 
-	if (!b) {
-	connect(p, &TiledObjectSensorPolygon::beginContact, this, [](Box2DFixture *other) {
-		if (!other->isSensor())
-		LOG_CINFO("scene") << "CONTACT" << other;
+	connect(p, &TiledObjectSensorPolygon::beginContact, this, [this](Box2DFixture *other) {
+		if (!other->categories().testFlag(Box2DFixture::Category2))
+			return;
+
+		IsometricPlayer *player = other->property("player").value<IsometricPlayer*>();
+
+		LOG_CINFO("scene") << "CONTACT" << other << player;
+
+		m_contactedPlayer = player;
+		if (!player)
+			setPlayer(nullptr);
 	});
 
-	connect(p, &TiledObjectSensorPolygon::endContact, this, [](Box2DFixture *other) {
-		if (!other->isSensor())
+	connect(p, &TiledObjectSensorPolygon::endContact, this, [this](Box2DFixture *other) {
+		if (!other->categories().testFlag(Box2DFixture::Category2))
+			return;
+
 		LOG_CINFO("scene") << "CONTACT END" << other;
+
+		m_contactedPlayer = nullptr;
+		setPlayer(nullptr);
 	});
 
-	b= true;
-	}
+
 
 	QString path = ":/";
 
@@ -186,6 +324,7 @@ void IsometricEnemy::load()
 
 	setWidth(128);
 	setHeight(128);
+	m_body->setBodyOffset(0, 0.45*64);
 
 
 	nextAlteration();
@@ -238,28 +377,71 @@ void IsometricEnemy::nextAlteration()
  * @param polygon
  */
 
-void IsometricEnemy::loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction)
+void IsometricEnemyIface::loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction)
 {
-	if (!m_pathMotor)
-		m_pathMotor.reset(new TiledPathMotor);
+	Q_ASSERT(!m_motor.get());
 
-	m_pathMotor->setPolygon(polygon);
-	m_pathMotor->setDirection(direction);
+	TiledPathMotor *motor = new TiledPathMotor;
+
+	motor->setPolygon(polygon);
+	motor->setDirection(direction);
 	if (direction == TiledPathMotor::Forward)
-		m_pathMotor->toBegin();
+		motor->toBegin();
 	else
-		m_pathMotor->toEnd();
+		motor->toEnd();
 
-	//setBodyCenterPoint(m_pathMotor->currentPosition());
+	m_motor.reset(motor);
+
+	onPathMotorLoaded(AbstractTiledMotor::PathMotor);
 }
 
 
 /**
- * @brief IsometricEnemyIface::pathMotor
+ * @brief IsometricEnemyBase::player
  * @return
  */
 
-TiledPathMotor*IsometricEnemy::pathMotor() const
+IsometricPlayer *IsometricEnemyIface::player() const
 {
-	return m_pathMotor.get();
+	return m_player;
 }
+
+void IsometricEnemyIface::setPlayer(IsometricPlayer *newPlayer)
+{
+	if (m_player == newPlayer)
+		return;
+	m_player = newPlayer;
+	emit playerChanged();
+}
+
+
+
+/**
+ * @brief IsometricEnemyIface::checkPlayerVisibility
+ * @param body
+ * @param player
+ * @return
+ */
+
+bool IsometricEnemyIface::checkPlayerVisibility(TiledObjectBody *body, TiledObjectBase *player)
+{
+	Q_ASSERT(body);
+	Q_ASSERT(player);
+
+	const TiledReportedFixtureMap &map = body->rayCast(player->body()->bodyPosition());
+
+	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
+		if (it->fixture->isSensor())
+			continue;
+
+		if (it->fixture->categories().testFlag(Box2DFixture::Category2))
+			return true;
+
+		if (it->fixture->categories().testFlag(Box2DFixture::Category1))
+			return false;
+	}
+
+	return false;
+}
+
+

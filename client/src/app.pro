@@ -276,6 +276,7 @@ SOURCES += \
 	testgame.cpp \
 	tiledobject.cpp \
 	tiledpathmotor.cpp \
+	tiledreturnpathmotor.cpp \
 	tiledscene.cpp \
 	updater.cpp \
 	user.cpp \
@@ -297,6 +298,7 @@ HEADERS += \
 	../../version/version.h \
 	abstractgame.h \
 	abstractlevelgame.h \
+	abstracttiledmotor.h \
 	actiongame.h \
 	application.h \
 	basemap.h \
@@ -365,6 +367,7 @@ HEADERS += \
 	tiledobject.h \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
+	tiledreturnpathmotor.h \
 	tiledscene.h \
 	updater.h \
 	user.h \

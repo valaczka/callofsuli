@@ -34,7 +34,6 @@
 #include <libtiled/maprenderer.h>
 #include <libtiled/mapobject.h>
 #include "tiledobjectspritedef.h"
-#include "isometricobjectiface.h"
 
 
 
@@ -55,6 +54,21 @@ Q_DECLARE_OPAQUE_POINTER(TiledScene*)
 
 
 
+/**
+ * @brief The TiledReportedFixture class
+ */
+
+struct TiledReportedFixture
+{
+	Box2DFixture *fixture = nullptr;
+	b2Vec2 point = {0,0};
+	b2Vec2 normal = {0,0};
+};
+
+
+typedef QMultiMap<float32, TiledReportedFixture> TiledReportedFixtureMap;
+
+
 
 
 /**
@@ -72,6 +86,22 @@ public:
 	{}
 
 	void synchronize() override;
+	void updateTransform() override;
+
+	QPointF bodyPosition() const;
+
+	void emplace(const QPointF &center);
+	void emplace(const qreal &centerX, const qreal &centerY) { emplace(QPointF(centerX, centerY)); }
+
+	QPointF bodyOffset() const;
+	void setBodyOffset(QPointF newBodyOffset);
+	void setBodyOffset(const qreal &x, const qreal &y) { setBodyOffset(QPointF(x, y)); }
+
+	TiledReportedFixtureMap rayCast(const QPointF &dest);
+
+private:
+	void emplace();
+	QPointF m_bodyOffset;
 };
 
 
@@ -132,23 +162,14 @@ public:
 		: m_fixture(new Box2DPolygon)
 	{}
 
-	virtual Box2DPolygon *createFixture(const QPointF &pos, const QPolygonF &polygon);
+	virtual Box2DPolygon *createFixture(const QPolygonF &polygon);
 
 	Box2DPolygon* fixture() const { return m_fixture.get(); }
+	const QPolygonF &screenPolygon() const{ return m_screenPolygon; }
 
 protected:
 	std::unique_ptr<Box2DPolygon> m_fixture;
-
-
-public:
-	const QPolygonF &screenPolygon() const{ return m_screenPolygon; }
-	const QPolygonF &originalPolygon() const{ return m_originalPolygon; }
-	const QPointF &fixturePosition() const{ return m_fixturePosition; }
-
-protected:
-	QPolygonF m_originalPolygon;
 	QPolygonF m_screenPolygon;
-	QPointF m_fixturePosition;
 };
 
 
@@ -192,10 +213,22 @@ class TiledObjectBase : public QQuickItem
 
 	Q_PROPERTY(TiledScene *scene READ scene WRITE setScene NOTIFY sceneChanged FINAL)
 	Q_PROPERTY(Box2DBody *body READ body CONSTANT FINAL)
+	Q_PROPERTY(RemoteMode remoteMode READ remoteMode WRITE setRemoteMode NOTIFY remoteModeChanged FINAL)
+	Q_PROPERTY(bool glowEnabled READ glowEnabled WRITE setGlowEnabled NOTIFY glowEnabledChanged FINAL)
+	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
 
 public:
 	explicit TiledObjectBase(QQuickItem *parent = 0);
 	virtual ~TiledObjectBase();
+
+	// For multiplayer
+
+	enum RemoteMode {
+		ObjectLocal = 0,
+		ObjectRemote
+	};
+
+	Q_ENUM(RemoteMode);
 
 	Q_INVOKABLE void bodyComplete() { m_body->componentComplete(); }
 	virtual void worldStep() {}
@@ -229,23 +262,54 @@ public:
 	createFromMapObject(T** dest, const Tiled::MapObject *object, Tiled::MapRenderer *renderer,
 						QQuickItem *parent = nullptr);
 
-
 	static void setPolygonVertices(Box2DPolygon *fixture, const QPolygonF &polygon);
+
+	static float32 normalizeFromRadian(const float32 &radian);
+	static float32 normalizeToRadian(const float32 &normal);
+
+
+	RemoteMode remoteMode() const;
+	void setRemoteMode(const RemoteMode &newRemoteMode);
+
+	bool glowEnabled() const;
+	void setGlowEnabled(bool newGlowEnabled);
+
+	bool overlayEnabled() const;
+	void setOverlayEnabled(bool newOverlayEnabled);
 
 signals:
 	void sceneChanged();
+	void remoteModeChanged();
+	void glowEnabledChanged();
+	void overlayEnabledChanged();
 
 protected:
 	virtual void onSceneConnected() {}
 
+	void rotateBody(const float32 &desiredRadian);
 	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
 
 protected:
 	TiledScene *m_scene = nullptr;
 	std::unique_ptr<TiledObjectSensorPolygon> m_sensorPolygon;
 	std::unique_ptr<TiledObjectBody> m_body;
+	RemoteMode m_remoteMode = ObjectLocal;
+	bool m_glowEnabled = false;
+	bool m_overlayEnabled = false;
 
 	friend class TiledObjectBody;
+
+
+private:
+	struct RotateAnimation {
+		bool running = false;
+		float32 destAngle = 0;
+		bool clockwise = true;
+
+		qreal speed = 0.2;				// 0.2 radian in 1/60 sec
+	};
+
+	RotateAnimation m_rotateAnimation;
 };
 
 
@@ -261,6 +325,9 @@ class TiledObject : public TiledObjectBase
 	Q_OBJECT
 	QML_ELEMENT
 
+	Q_PROPERTY(Direction currentDirection READ currentDirection WRITE setCurrentDirection NOTIFY currentDirectionChanged FINAL)
+	Q_PROPERTY(Directions availableDirections READ availableDirections WRITE setAvailableDirections NOTIFY availableDirectionsChanged FINAL)
+
 public:
 	explicit TiledObject(QQuickItem *parent = 0);
 
@@ -269,7 +336,56 @@ public:
 	QStringList availableSprites() const;
 	QStringList availableAlterations() const;
 
+	// Object moving (facing) directions
+
+	enum Direction {
+		Invalid		= 0,
+		NorthEast	= 45,
+		East		= 90,
+		SouthEast	= 135,
+		South		= 180,
+		SouthWest	= 225,
+		West		= 270,
+		NorthWest	= 315,
+		North		= 360,
+	};
+
+	Q_ENUM(Direction);
+
+
+	// Available sprite directions count
+
+	enum Directions {
+		None = 0,
+		Direction_4,			// N, E, S, W
+		Direction_8,			// N, NE, E, SE, S, SW, W, NW
+		Direction_Infinite
+	};
+
+	Q_ENUM(Directions);
+
+
+	static qreal toRadian(const qreal &angle);
+	static qreal toDegree(const qreal &angle);
+	static qreal radianFromDirection(const Direction &direction);
+	static qreal directionToRadian(const Direction &direction);
+	static qreal factorFromDegree(const qreal &angle, const qreal &xyRatio = 2.);
+	static qreal factorFromRadian(const qreal &angle, const qreal &xyRatio = 2.);
+
+	static Direction nearestDirectionFromRadian(const Directions &directions, const qreal &angle);
+	Direction nearestDirectionFromRadian(const qreal &angle) const { return nearestDirectionFromRadian(m_availableDirections, angle); };
+
+
+
+	Direction currentDirection() const;
+	void setCurrentDirection(const Direction &newCurrentDirection);
+
+	Directions availableDirections() const;
+	void setAvailableDirections(const Directions &newAvailableDirections);
+
 signals:
+	void currentDirectionChanged();
+	void availableDirectionsChanged();
 
 protected:
 	bool appendSprite(const QString &source, const TiledObjectSprite &sprite);
@@ -283,7 +399,7 @@ protected:
 	bool appendSprite(const IsometricObjectAlterableSprite &sprite, const QString &path = QStringLiteral(""));
 	bool appendSpriteList(const IsometricObjectAlterableSpriteList &sprite, const QString &path = QStringLiteral(""));
 	static QString getSpriteName(const QString &sprite,
-								 const IsometricObjectIface::Direction &direction,
+								 const Direction &direction,
 								 const QString &alteration = QStringLiteral(""));
 
 
@@ -296,6 +412,9 @@ protected:
 	QQuickItem *m_spriteSequence = nullptr;
 	QStringList m_availableSprites;
 	QStringList m_availableAlterations;
+	Direction m_currentDirection = Invalid;
+	Directions m_availableDirections = None;
+
 };
 
 
@@ -388,14 +507,12 @@ TiledObjectBase::createFromPolygon(T **dest, const QPolygonF &polygon, Tiled::Ma
 
 	*dest = new T(parent);
 
-	(*dest)->createFixture(-boundingRect.topLeft(), screenPolygon);
+	(*dest)->createFixture(screenPolygon);
 
 	(*dest)->setX(boundingRect.x());
 	(*dest)->setY(boundingRect.y());
 	(*dest)->setWidth(boundingRect.width());
 	(*dest)->setHeight(boundingRect.height());
-
-	//screenPolygon.translate(-boundingRect.topLeft());
 
 	(*dest)->body()->addFixture((*dest)->fixture());
 	(*dest)->bodyComplete();
@@ -437,8 +554,31 @@ TiledObjectBase::createFromMapObject(T **dest, const Tiled::MapObject *object, T
 
 
 
+/**
+ * @brief The TiledObjectRayCast class
+ */
+
+class TiledObjectRayCast : public b2RayCastCallback
+{
+public:
+	TiledObjectRayCast(Box2DWorld *world)
+		: m_world(world)
+	{
+		Q_ASSERT(m_world);
+	}
 
 
+	float32 ReportFixture(b2Fixture *fixture,
+						  const b2Vec2 &point,
+						  const b2Vec2 &normal,
+						  float32 fraction) override;
+
+	TiledReportedFixtureMap reportedFixtures() const;
+
+private:
+	const Box2DWorld *m_world;
+	TiledReportedFixtureMap m_reportedFixtures;
+};
 
 
 

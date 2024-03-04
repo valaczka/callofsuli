@@ -25,7 +25,6 @@
  */
 
 #include "isometricentity.h"
-#include "box2dworld.h"
 
 IsometricCircleEntity::IsometricCircleEntity(QQuickItem *parent)
 	: IsometricObjectCircle(parent)
@@ -36,110 +35,58 @@ IsometricCircleEntity::IsometricCircleEntity(QQuickItem *parent)
 }
 
 
+
+
 /**
- * @brief IsometricEntityIface::normalize
- * @param radian
+ * @brief IsometricEntityIface::maximumSpeed
  * @return
  */
 
-qreal IsometricEntityIface::normalize(const qreal &radian) const
+qreal IsometricEntityIface::maximumSpeed() const
 {
-	if (radian < -M_PI || radian > M_PI) {
-		LOG_CERROR("scene") << "Invalid radian:" << radian;
-		return 0.;
-	}
-
-	if (radian < 0)
-		return M_PI+M_PI+radian;
-	else
-		return radian;
+	return m_maximumSpeed;
 }
 
+void IsometricEntityIface::setMaximumSpeed(qreal newMaximumSpeed)
+{
+	m_maximumSpeed = newMaximumSpeed;
+}
+
+
+
+
 /**
- * @brief IsometricEntityIface::unnormalize
- * @param normal
+ * @brief IsometricEntityIface::maximizeSpeed
+ * @param point
  * @return
  */
 
-qreal IsometricEntityIface::unnormalize(const qreal &normal) const
+QPointF IsometricEntityIface::maximizeSpeed(const QPointF &point) const
 {
-	if (normal < 0 || normal > M_PI+M_PI) {
-		LOG_CERROR("scene") << "Invalid normal:" << normal;
-		return 0.;
-	}
+	QPointF p;
 
-	if (normal > M_PI)
-		return normal-M_PI-M_PI;
-	else
-		return normal;
+	p.setX(std::max(-m_maximumSpeed, std::min(point.x(), m_maximumSpeed)));
+	p.setY(std::max(-m_maximumSpeed, std::min(point.y(), m_maximumSpeed)));
+
+	return p;
 }
 
 
 
 /**
- * @brief IsometricCircleEntity::rotateBody
+ * @brief IsometricEntityIface::maximizeSpeed
+ * @param point
+ * @return
  */
 
-void IsometricCircleEntity::rotateBody()
+QPointF &IsometricEntityIface::maximizeSpeed(QPointF &point) const
 {
-	if (!m_sensorPolygon)
-		return;
-
-	const qreal desiredAngle = directionToRadian(m_currentDirection);
-	const qreal currentAngle = m_body->body()->GetAngle();
-
-	if (qFuzzyCompare(desiredAngle, currentAngle)) {
-		if (m_rotateAnimation.running)
-			m_rotateAnimation.running = false;
-		return;
-	}
-
-	const qreal currentNormal = normalize(currentAngle);
-	const qreal desiredNormal = normalize(desiredAngle);
-
-	if (!qFuzzyCompare(m_rotateAnimation.destAngle, desiredAngle) || !m_rotateAnimation.running) {
-		m_rotateAnimation.destAngle = desiredAngle;
-
-		const qreal diff = std::abs(currentNormal-desiredNormal);
-
-		if (desiredNormal > currentNormal)
-			m_rotateAnimation.clockwise = diff > M_PI;
-		else
-			m_rotateAnimation.clockwise = diff < M_PI;
-
-		m_rotateAnimation.running = true;
-	}
-
-
-	if (!m_rotateAnimation.running)
-		return;
-
-
-	const qreal delta = std::min(0.1 * m_body->world()->timeStep()*60., M_PI_4);
-	qreal newAngle = m_rotateAnimation.clockwise ? currentNormal - delta : currentNormal + delta;
-
-	m_body->setAngularVelocity(0);
-
-	// 0 átlépés miatt kell
-	const qreal d = (desiredNormal == 0 && newAngle > M_PI+M_PI) ? M_PI+M_PI : desiredNormal;
-
-
-	if ((newAngle > d && currentNormal < d) ||
-			(newAngle < d && currentNormal > d)) {
-		//////m_sensorPolygon->setRotation(desiredAngle);
-		m_body->body()->SetTransform(m_body->body()->GetPosition(), desiredAngle );
-		return;
-	}
-
-		if (newAngle > M_PI+M_PI)
-			newAngle -= M_PI+M_PI;
-		else if (newAngle < 0)
-			newAngle += M_PI+M_PI;
-
-		////m_sensorPolygon->setRotation(unnormalize(newAngle));
-		m_body->body()->SetTransform(m_body->body()->GetPosition(), unnormalize(newAngle) );
-
+	point.setX(std::max(-m_maximumSpeed, std::min(point.x(), m_maximumSpeed)));
+	point.setY(std::max(-m_maximumSpeed, std::min(point.y(), m_maximumSpeed)));
+	return point;
 }
+
+
 
 
 /**
@@ -147,14 +94,14 @@ void IsometricCircleEntity::rotateBody()
  * @param position
  */
 
-void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const IsometricObjectIface::Directions &availableDirections)
+void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections)
 {
 	if (qFuzzyCompare(position.x(), m_lastPosition.x()) && qFuzzyCompare(position.y(), m_lastPosition.y()))
-			return setMovingDirection(IsometricObjectIface::Invalid);
+		return setMovingDirection(TiledObject::Invalid);
 
 	QLineF line(m_lastPosition, position);
-		setMovingDirection(IsometricObjectIface::nearestDirectionFromRadian(availableDirections,
-																			IsometricObjectIface::toRadian(line.angle())));
+	setMovingDirection(TiledObject::nearestDirectionFromRadian(availableDirections,
+															   TiledObject::toRadian(line.angle())));
 
 	m_lastPosition = position;
 }
@@ -165,12 +112,12 @@ void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const I
  * @return
  */
 
-IsometricObjectIface::Direction IsometricEntityIface::movingDirection() const
+TiledObject::Direction IsometricEntityIface::movingDirection() const
 {
 	return m_movingDirection;
 }
 
-void IsometricEntityIface::setMovingDirection(const IsometricObjectIface::Direction &newMovingDirection)
+void IsometricEntityIface::setMovingDirection(const TiledObject::Direction &newMovingDirection)
 {
 	if (m_movingDirection == newMovingDirection)
 		return;

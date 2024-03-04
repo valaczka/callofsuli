@@ -20,7 +20,7 @@ Page {
 		anchors.fill: parent
 
 		joystick: _gameJoystick
-		scene.debugView: true
+		scene.debugView: false
 	}
 
 	Qaterial.AppBarButton

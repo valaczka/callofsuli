@@ -14,6 +14,7 @@ Item {
 	property alias spriteSequence: spriteSequence
 
 	Rectangle {
+		visible: baseObject && baseObject.scene.debugView
 		color: "transparent"
 		border.color: "black"
 		border.width: 2
@@ -28,40 +29,30 @@ Item {
 		width: root.width
 		height: root.height
 
-		running: true //baseObject && baseObject.scene && baseObject.scene.running
-
-		/*transform: Rotation {
-			id: rotation
-			origin.x: spriteSequence.width/2
-			origin.y: spriteSequence.height/2
-			axis.x: 0; axis.y: 1; axis.z: 0
-			angle: 0
-		}
-
-		state: ""
-
-		states: State {
-			name: "inverse"
-			//*when: entity && entity.facingLeft != entity.
-			PropertyChanges { target: rotation; angle: 180 }
-		}
-
-		transitions: Transition {
-			NumberAnimation { target: rotation; property: "angle"; duration: 150 }
-		}*/
-
+		running: baseObject && baseObject.scene && baseObject.scene.running
 
 		sprites: []
 	}
 
-	/*Glow {
-		id: glow
-		opacity: _glowForced || (entity && entity.glowEnabled) ? 1.0 : 0.0
-		visible: opacity != 0
-		color: entity ? entity.glowColor : "white"
+	ThresholdMask {
+		id: _threshold
+		visible: false
 
 		source: spriteSequence
+		maskSource: spriteSequence
 		anchors.fill: spriteSequence
+
+		threshold: 0.7
+	}
+
+	Glow {
+		id: glow
+		opacity: baseObject && baseObject.glowEnabled ? 1.0 : 0.0
+		visible: opacity != 0
+		color: "yellow" /*entity ? entity.glowColor : "white"*/
+
+		source: _threshold
+		anchors.fill: _threshold
 
 		radius: 4
 		samples: 9
@@ -69,73 +60,23 @@ Item {
 		Behavior on opacity {
 			NumberAnimation { duration: 200 }
 		}
-
-		transform: rotation
 	}
 
 
 	ColorOverlay {
 		id: overlay
-		source: spriteSequence
-		anchors.fill: spriteSequence
-		opacity: entity && entity.overlayEnabled ? 1.0 : 0.0
+
+		opacity: baseObject && baseObject.glowEnabled ? 0.5 : 0.0
 		visible: opacity != 0
-		color: entity ? entity.overlayColor : "white"
+		color: "yellow" /*entity ? entity.glowColor : "white"*/
+
+		source: _threshold
+		anchors.fill: _threshold
 
 		Behavior on opacity {
 			NumberAnimation { duration: 300 }
 		}
-
-		transform: rotation
-	}*/
-
-
-/*
-	Timer {
-		interval: 1500
-		repeat: false
-		running: true
-		triggeredOnStart: false
-		onTriggered: _glowForced = false
 	}
-*/
-
-	/*Connections {
-		target: entity
-
-		function onRayCastPerformed(rect) {
-			if (!entity.scene.debugView)
-				return
-
-			var k = mapFromItem(entity.scene, rect.x, rect.y)
-
-			rayRect.x = k.x
-			rayRect.y = k.y
-			rayRect.width = rect.width
-			rayRect.height = Math.max(rect.height, 1)
-			rayRect.visible = true
-			timerOff.start()
-		}
-	}
-
-
-
-	Rectangle {
-		id: rayRect
-		color: "blue"
-		visible: false
-		border.width: 1
-		border.color: "blue"
-
-		Timer {
-			id: timerOff
-			interval: 25
-			triggeredOnStart: false
-			running: false
-			repeat: false
-			onTriggered: rayRect.visible = false
-		}
-	}*/
 
 
 

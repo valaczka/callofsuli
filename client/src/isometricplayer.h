@@ -42,18 +42,12 @@ public:
 
 	virtual void entityWorldStep() override;
 
-	void emplace(const QPointF &pos) {
-		setPosition(pos);
-		//setBodyCenterPoint(pos);
-		updateSprite();
-	}
-
 protected:
 	void onSceneConnected() override;
+	void updateSprite() override;
 
 private:
 	void load();
-	void updateSprite();
 
 	void onJoystickStateChanged();
 

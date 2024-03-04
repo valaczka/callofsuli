@@ -499,14 +499,6 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 			QPolygonF p = TiledObjectBase::toPolygon(object, mRenderer.get());
 			LOG_CINFO("scene") << "ENEMY" << object->name();
 
-			static bool b=false;
-
-			if (b)
-				continue;
-
-			if (!b)
-				b=true;
-
 			IsometricEnemy *character = IsometricEnemy::createEnemy(this);
 
 			Q_ASSERT(character);
@@ -533,7 +525,7 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 
 			character->setScene(this);
 			character->emplace(mRenderer->pixelToScreenCoords(object->position()));
-			character->setCurrentDirection(IsometricObjectIface::South);
+			character->setCurrentDirection(TiledObject::South);
 
 			m_tiledObjects.append(character);
 
@@ -573,7 +565,9 @@ void TiledScene::loadGround(Tiled::MapObject *object)
 		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
 
 			DynamicZ dz;
-			dz.polygon = p.translated(mapObject->position()+mapObject->fixturePosition());
+			dz.polygon = p.translated(mapObject->position());
+
+			LOG_CINFO("scene") << "ADD POLYGON" << dz.polygon;
 
 			if (object->hasProperty(QStringLiteral("dynamicVertical")))
 				dz.vertical = object->property(QStringLiteral("dynamicVertical")).toBool();

@@ -28,36 +28,58 @@
 #define ISOMETRICENEMY_H
 
 #include "isometricentity.h"
+#include "isometricplayer.h"
 #include "tiledpathmotor.h"
+#include "tiledreturnpathmotor.h"
 #include <QQmlEngine>
 
 
 /**
- * @brief The IsometricEnemyIface class
+ * @brief The IsometricEnemyBase class
  */
 
-/*class IsometricEnemyIface
+class IsometricEnemyIface
 {
+
+
 public:
 	IsometricEnemyIface() {}
 
 	void loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction = TiledPathMotor::Forward);
 
-	TiledPathMotor *pathMotor() const;
+	AbstractTiledMotor *motor() const { return m_motor.get(); }
+	TiledPathMotor *pathMotor() const { return m_motor ? dynamic_cast<TiledPathMotor*>(m_motor.get()) : nullptr; }
+
+	IsometricPlayer *player() const;
+	void setPlayer(IsometricPlayer *newPlayer);
+
+	static bool checkPlayerVisibility(TiledObjectBody *body, TiledObjectBase *player);
+
+public:
+	virtual void playerChanged() = 0;
 
 protected:
-	std::unique_ptr<TiledPathMotor> m_pathMotor;
-};*/
+	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
+
+	std::unique_ptr<AbstractTiledMotor> m_motor;
+	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;
+	QPointer<IsometricPlayer> m_player;
+	QPointer<IsometricPlayer> m_contactedPlayer;
+};
+
+
 
 
 /**
  * @brief The IsometricEnemy class
  */
 
-class IsometricEnemy : public IsometricCircleEntity /*, public IsometricEnemyIface*/
+class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 {
 	Q_OBJECT
 	QML_ELEMENT
+
+	Q_PROPERTY(IsometricPlayer *player READ player WRITE setPlayer NOTIFY playerChanged FINAL)
 
 public:
 	explicit IsometricEnemy(QQuickItem *parent = nullptr);
@@ -66,17 +88,18 @@ public:
 
 	virtual void entityWorldStep() override;
 
-public:
-	void loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction = TiledPathMotor::Forward);
-
-	TiledPathMotor *pathMotor() const;
+signals:
+	void playerChanged() override;
 
 protected:
-	std::unique_ptr<TiledPathMotor> m_pathMotor;
+	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
+
+	void stepMotor();
+	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, QPointF *vectorPtr = nullptr);
 
 private:
 	void load();
-	void updateSprite();
+	void updateSprite() override;
 	void nextAlteration();
 
 	QString m_currentAlteration;

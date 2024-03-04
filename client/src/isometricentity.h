@@ -42,15 +42,23 @@ public:
 	{}
 
 
-	IsometricObjectIface::Direction movingDirection() const;
-	void setMovingDirection(const IsometricObjectIface::Direction &newMovingDirection);
+	TiledObject::Direction movingDirection() const;
+	void setMovingDirection(const TiledObject::Direction &newMovingDirection);
+
+	qreal maximumSpeed() const;
+	void setMaximumSpeed(qreal newMaximumSpeed);
+
+	QPointF maximizeSpeed(const QPointF &point) const;
+	QPointF &maximizeSpeed(QPointF &point) const;
+
 
 protected:
-	void entityIfaceWorldStep(const QPointF &position, const IsometricObjectIface::Directions &availableDirections);
-	qreal normalize(const qreal &radian) const;
-	qreal unnormalize(const qreal &normal) const;
+	void entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections);
 
-	IsometricObjectIface::Direction m_movingDirection = IsometricObjectIface::Invalid;
+	virtual void updateSprite() = 0;
+
+	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
+	qreal m_maximumSpeed = 10.;
 
 private:
 	QPointF m_lastPosition;
@@ -70,25 +78,19 @@ class IsometricCircleEntity : public IsometricObjectCircle, public IsometricEnti
 public:
 	explicit IsometricCircleEntity(QQuickItem *parent = nullptr);
 
+	void emplace(const QPointF &pos) {
+		m_body->emplace(pos);
+		updateSprite();
+	}
+
 protected:
 	virtual void entityWorldStep() {}
 
 	void worldStep() override final {
-		//entityIfaceWorldStep(position(), m_availableDirections);
-		rotateBody();
+		entityIfaceWorldStep(position(), m_availableDirections);
 		entityWorldStep();
 	};
 
-private:
-	struct RotateAnimation {
-		bool running = false;
-		qreal destAngle = 0;
-		bool clockwise = true;
-	};
-
-	RotateAnimation m_rotateAnimation;
-
-	void rotateBody();
 };
 
 #endif // ISOMETRICENTITY_H

@@ -1,9 +1,9 @@
 /*
  * ---- Call of Suli ----
  *
- * isometricobjectiface.h
+ * abstracttiledmotor.h
  *
- * Created on: 2024. 03. 03.
+ * Created on: 2024. 03. 04.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
  * %{Cpp:License:ClassName}
@@ -24,45 +24,31 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ISOMETRICOBJECTIFACE_H
-#define ISOMETRICOBJECTIFACE_H
+#ifndef ABSTRACTTILEDMOTOR_H
+#define ABSTRACTTILEDMOTOR_H
 
-#include "qobjectdefs.h"
-#include "qtypes.h"
+#include "qpoint.h"
 
-/**
- * @brief The IsometricObjectIface class
- */
 
-class IsometricObjectIface
+class AbstractTiledMotor
 {
-	Q_GADGET
-
 public:
-	IsometricObjectIface();
+	enum Type {
+		Invalid = 0,
+		PathMotor,
+		ReturnPathMotor
+	};
 
-	qreal defaultZ() const;
-	void setDefaultZ(qreal newDefaultZ);
+	AbstractTiledMotor(const Type &type)
+		: m_type(type)
+	{}
 
-	bool useDynamicZ() const;
-	void setUseDynamicZ(bool newUseDynamicZ);
+	const Type &type() const { return m_type; }
 
-	qreal subZ() const;
-	void setSubZ(qreal newSubZ);
-
-public:
-	virtual void onXYChanged() = 0;
-	virtual void defaultZChanged() = 0;
-	virtual void useDynamicZChanged() = 0;
-	virtual void subZChanged() = 0;
+	virtual QPointF currentPosition() const = 0;
 
 protected:
-	qreal m_defaultZ = 0;
-	qreal m_subZ = 0;
-	bool m_useDynamicZ = true;
+	const Type m_type;
 };
 
-
-
-
-#endif // ISOMETRICOBJECTIFACE_H
+#endif // ABSTRACTTILEDMOTOR_H

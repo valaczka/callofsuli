@@ -42,8 +42,6 @@ class IsometricObject : public TiledObject, public IsometricObjectIface
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(Direction currentDirection READ currentDirection WRITE setCurrentDirection NOTIFY currentDirectionChanged FINAL)
-	Q_PROPERTY(Directions availableDirections READ availableDirections WRITE setAvailableDirections NOTIFY availableDirectionsChanged FINAL)
 	Q_PROPERTY(qreal defaultZ READ defaultZ WRITE setDefaultZ NOTIFY defaultZChanged FINAL)
 	Q_PROPERTY(bool useDynamicZ READ useDynamicZ WRITE setUseDynamicZ NOTIFY useDynamicZChanged FINAL)
 	Q_PROPERTY(qreal subZ READ subZ WRITE setSubZ NOTIFY subZChanged FINAL)
@@ -52,20 +50,21 @@ public:
 	IsometricObject(QQuickItem *parent = nullptr)
 		: TiledObject(parent)
 		, IsometricObjectIface()
-	{}
+	{
+		connect(this, &IsometricObject::xChanged, this, &IsometricObject::onXYChanged);
+		connect(this, &IsometricObject::yChanged, this, &IsometricObject::onXYChanged);
+	}
 
 
-	static void onXYChanged(IsometricObjectIface *isoobject, TiledObjectBase *object);
+	static void xyChanged(IsometricObjectIface *isoobject, TiledObjectBase *object);
 
 signals:
-	void availableDirectionsChanged() override;
-	void currentDirectionChanged() override;
 	void defaultZChanged() override;
 	void useDynamicZChanged() override;
 	void subZChanged() override;
 
 protected:
-	void onXYChanged() override { onXYChanged(this, this); }
+	void onXYChanged() override { xyChanged(this, this); }
 };
 
 
@@ -79,8 +78,6 @@ class IsometricObjectCircle : public TiledObjectCircle, public IsometricObjectIf
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(Direction currentDirection READ currentDirection WRITE setCurrentDirection NOTIFY currentDirectionChanged FINAL)
-	Q_PROPERTY(Directions availableDirections READ availableDirections WRITE setAvailableDirections NOTIFY availableDirectionsChanged FINAL)
 	Q_PROPERTY(qreal defaultZ READ defaultZ WRITE setDefaultZ NOTIFY defaultZChanged FINAL)
 	Q_PROPERTY(bool useDynamicZ READ useDynamicZ WRITE setUseDynamicZ NOTIFY useDynamicZChanged FINAL)
 	Q_PROPERTY(qreal subZ READ subZ WRITE setSubZ NOTIFY subZChanged FINAL)
@@ -89,18 +86,19 @@ public:
 	explicit IsometricObjectCircle(QQuickItem *parent = 0)
 		: TiledObjectCircle(parent)
 		, IsometricObjectIface()
-	{}
+	{
+		connect(this, &IsometricObjectCircle::xChanged, this, &IsometricObjectCircle::onXYChanged);
+		connect(this, &IsometricObjectCircle::yChanged, this, &IsometricObjectCircle::onXYChanged);
+	}
 
 
 signals:
-	void availableDirectionsChanged() override;
-	void currentDirectionChanged() override;
 	void defaultZChanged() override;
 	void useDynamicZChanged() override;
 	void subZChanged() override;
 
 protected:
-	void onXYChanged() override { IsometricObject::onXYChanged(this, this); }
+	void onXYChanged() override { IsometricObject::xyChanged(this, this); }
 
 };
 #endif // ISOMETRICOBJECT_H

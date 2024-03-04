@@ -64,6 +64,7 @@ IsometricPlayer *IsometricPlayer::createPlayer(QQuickItem *parent)
 
 void IsometricPlayer::entityWorldStep()
 {
+	rotateBody(directionToRadian(m_currentDirection));
 	updateSprite();
 }
 
@@ -97,7 +98,8 @@ void IsometricPlayer::load()
 	m_fixture->setDensity(1);
 	m_fixture->setFriction(1);
 	m_fixture->setRestitution(0);
-	//mapObject->fixture()->setCategories(Box2DFixture::Category1);
+	m_fixture->setCategories(Box2DFixture::Category2);
+	m_fixture->setProperty("player", QVariant::fromValue(this));
 
 	///setFixtureCenterVertical(0.8);
 
@@ -150,6 +152,7 @@ void IsometricPlayer::load()
 
 	setWidth(128);
 	setHeight(128);
+	m_body->setBodyOffset(0, 0.4*64);
 }
 
 
@@ -181,12 +184,9 @@ void IsometricPlayer::onJoystickStateChanged()
 
 
 	if (m_scene->joystickState().distance > 0.9) {
-		/*QLineF l = QLineF::fromPolar(3, IsometricObject::radianToAngle(m_scene->joystickState().angle));
-		m_body->setLinearVelocity(l.p2());*/
 		QPointF dir;
-		const qreal radius = 6.;
+		const qreal radius = 6.;					/// speed
 
-		//const qreal d = m_scene->joystickState().angle;
 		const qreal d = m_scene->joystickState().angle;
 		dir.setX(radius * cos(d));
 		dir.setY(radius * -sin(d));

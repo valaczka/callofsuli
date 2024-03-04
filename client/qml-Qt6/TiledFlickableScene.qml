@@ -51,7 +51,7 @@ Flickable {
 			visibleArea: Qt.rect(flick.contentX / scale, flick.contentY / scale ,
 								 flick.contentWidth / scale, flick.contentHeight / scale)
 
-			/*onTestPointsChanged: _canvas.requestPaint()
+			onTestPointsChanged: _canvas.requestPaint()
 
 			Canvas {
 				id: _canvas
@@ -77,7 +77,7 @@ Flickable {
 
 					ctx.restore();
 				}
-			}*/
+			}
 		}
 
 		DebugDraw {
