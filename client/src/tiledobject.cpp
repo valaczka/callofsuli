@@ -29,9 +29,8 @@
 #include "Logger.h"
 #include "box2dfixture.h"
 #include "tiledscene.h"
+#include "tiledspritehandler.h"
 #include <libtiled/maprenderer.h>
-
-
 
 
 
@@ -117,6 +116,23 @@ QPolygonF TiledObjectBase::toPolygon(const Tiled::MapObject *object, Tiled::MapR
 		polygon << polygon.first();
 
 	return renderer->pixelToScreenCoords(polygon);
+}
+
+
+
+/**
+ * @brief TiledObjectBase::toPoint
+ * @param angle
+ * @param radius
+ * @return
+ */
+
+QPointF TiledObjectBase::toPoint(const qreal &angle, const qreal &radius)
+{
+	QPointF p;
+	p.setX(radius * cos(angle));
+	p.setY(radius * -sin(angle));
+	return p;
 }
 
 
@@ -277,6 +293,32 @@ TiledObjectSensorPolygon *TiledObjectBase::addSensorPolygon(const qreal &length,
 	return m_sensorPolygon.get();
 }
 
+QColor TiledObjectBase::overlayColor() const
+{
+	return m_overlayColor;
+}
+
+void TiledObjectBase::setOverlayColor(const QColor &newOverlayColor)
+{
+	if (m_overlayColor == newOverlayColor)
+		return;
+	m_overlayColor = newOverlayColor;
+	emit overlayColorChanged();
+}
+
+QColor TiledObjectBase::glowColor() const
+{
+	return m_glowColor;
+}
+
+void TiledObjectBase::setGlowColor(const QColor &newGlowColor)
+{
+	if (m_glowColor == newGlowColor)
+		return;
+	m_glowColor = newGlowColor;
+	emit glowColorChanged();
+}
+
 bool TiledObjectBase::overlayEnabled() const
 {
 	return m_overlayEnabled;
@@ -348,19 +390,31 @@ TiledObject::TiledObject(QQuickItem *parent)
  * @param sprite
  */
 
-void TiledObject::jumpToSprite(const QString &sprite) const
+void TiledObject::jumpToSprite(const QString &sprite, const Direction &direction, const QString &alteration) const
 {
-	if (!m_spriteSequence) {
-		LOG_CERROR("scene") << "Missing spriteSequence";
+	if (!m_spriteHandler) {
+		LOG_CERROR("scene") << "Missing spriteHandler";
 		return;
 	}
 
-	if (m_spriteSequence->property("currentSprite").toString() == sprite)
-		return;
+	m_spriteHandler->jumpToSprite(sprite, alteration, direction, TiledSpriteHandler::JumpImmediate);
+}
 
-	QMetaObject::invokeMethod(m_spriteSequence, "jumpTo", Qt::DirectConnection,
-							  Q_ARG(QString, sprite)
-							  );
+
+/**
+ * @brief TiledObject::jumpToSpriteLater
+ * @param sprite
+ * @param alteration
+ */
+
+void TiledObject::jumpToSpriteLater(const QString &sprite, const Direction &direction, const QString &alteration) const
+{
+	if (!m_spriteHandler) {
+		LOG_CERROR("scene") << "Missing spriteHandler";
+		return;
+	}
+
+	m_spriteHandler->jumpToSprite(sprite, alteration, direction, TiledSpriteHandler::JumpAtFinished);
 }
 
 
@@ -373,26 +427,14 @@ void TiledObject::jumpToSprite(const QString &sprite) const
 
 bool TiledObject::appendSprite(const QString &source, const TiledObjectSprite &sprite)
 {
-	Q_ASSERT(m_visualItem);
+	Q_ASSERT(m_spriteHandler);
 
-	if (m_availableSprites.contains(getSpriteName(sprite.name))) {
+	if (m_spriteHandler->spriteNames().contains(sprite.name)) {
 		LOG_CERROR("scene") << "Sprite already loaded:" << source << sprite.name;
 		return false;
 	}
 
-	QVariantMap data = sprite.toJson().toVariantMap();
-
-	if (source.startsWith(QStringLiteral(":/")))
-		data[QStringLiteral("source")] = QUrl(QStringLiteral("qrc")+source);
-	else
-		data[QStringLiteral("source")] = QUrl(source);
-
-	QMetaObject::invokeMethod(m_visualItem, "appendSprite", Qt::DirectConnection,
-							  Q_ARG(QVariant, data));
-
-	m_availableSprites.append(sprite.name);
-
-	return true;
+	return m_spriteHandler->addSprite(sprite, source);
 }
 
 
@@ -408,22 +450,8 @@ bool TiledObject::appendSpriteList(const QString &source, const TiledObjectSprit
 {
 	bool r = true;
 
-	const auto it = std::find_if(spriteList.sprites.constBegin(),
-								 spriteList.sprites.constEnd(),
-								 [](const TiledObjectSprite &s) {
-		return s.name == QStringLiteral("default");
-	});
-
-	if (it != spriteList.sprites.constEnd())
-		r &= appendSprite(source, *it);
-
-
-	for (const TiledObjectSprite &s : spriteList.sprites) {
-		if (s.name == QStringLiteral("default"))
-			continue;
-
-		r &= appendSprite(source, s);
-	}
+	for (const TiledObjectSprite &s : spriteList.sprites)
+		r &= m_spriteHandler->addSprite(s, source);
 
 	return r;
 }
@@ -441,43 +469,18 @@ bool TiledObject::appendSprite(const TiledMapObjectAlterableSprite &sprite, cons
 {
 	Q_ASSERT(m_visualItem);
 
+	bool r = true;
+
 	for (const TiledObjectSprite &s : sprite.sprites) {
 		for (auto it = sprite.alterations.constBegin(); it != sprite.alterations.constEnd(); ++it) {
 			const QString &alteration = it.key();
-			const QString &spriteName = getSpriteName(s.name, alteration);
-
-			if (m_availableSprites.contains(spriteName)) {
-				LOG_CERROR("scene") << "Sprite already loaded:" << s.name << alteration << path << it.value();
-				return false;
-			}
-
-			TiledObjectSprite s2 = s;
-			s2.name = spriteName;
-			QJsonObject to2;
-			for (auto it = s.to.constBegin(); it != s.to.constEnd(); ++it) {
-				to2.insert(getSpriteName(it.key(), alteration), it.value());
-			}
-			s2.to = to2;
-
-			QVariantMap data = s2.toJson().toVariantMap();
-
-			if (path.startsWith(QStringLiteral(":/")))
-				data[QStringLiteral("source")] = QUrl(QStringLiteral("qrc")+path+it.value());
-			else
-				data[QStringLiteral("source")] = QUrl(path+it.value());
-
-			QMetaObject::invokeMethod(m_visualItem, "appendSprite", Qt::DirectConnection,
-									  Q_ARG(QVariant, data));
-
-			LOG_CTRACE("scene") << "Append sprite" << data;
-
-			m_availableSprites.append(spriteName);
+			r &= m_spriteHandler->addSprite(s, alteration, path+it.value());
 		}
 	}
 
 	m_availableAlterations.append(sprite.alterations.keys());
 
-	return true;
+	return r;
 }
 
 
@@ -503,20 +506,9 @@ bool TiledObject::appendSpriteList(const TiledObjectAlterableSpriteList &spriteL
 }
 
 
-/**
- * @brief TiledObject::getSpriteName
- * @param sprite
- * @param alteration
- * @return
- */
 
-QString TiledObject::getSpriteName(const QString &sprite, const QString &alteration)
-{
-	if (alteration.isEmpty())
-		return sprite;
-	else
-		return alteration+QStringLiteral("-").append(sprite);
-}
+
+
 
 
 /**
@@ -527,8 +519,8 @@ void TiledObject::createVisual()
 {
 	Q_ASSERT(!m_visualItem);
 
-	setTransformOrigin(QQuickItem::Center);
-	setTransformOriginPoint(QPointF(0,0));
+	/*setTransformOrigin(QQuickItem::Center);
+	setTransformOriginPoint(QPointF(0,0));*/
 
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledObjectVisual.qml"), this);
 
@@ -541,24 +533,17 @@ void TiledObject::createVisual()
 		return;
 	}
 
-	m_spriteSequence = qvariant_cast<QQuickItem*>(m_visualItem->property("spriteSequence"));
+	m_spriteHandler = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandler"));
+	Q_ASSERT(m_spriteHandler);
+
 
 	m_visualItem->setParentItem(this);
 	m_visualItem->setProperty("baseObject", QVariant::fromValue(this));
+}
 
-	if (!m_spriteSequence) {
-		LOG_CERROR("scene") << "TiledObject SpriteSequence error";
-		return;
-	}
-
-	const QMetaObject *mo = m_spriteSequence->metaObject();
-
-	auto p = mo->property(mo->indexOfProperty("currentSprite"));
-	auto t = this->metaObject()->indexOfMethod("onCurrentSpriteChanged(QString)");
-
-	if (p.hasNotifySignal()) {
-		connect(m_spriteSequence, p.notifySignal(), this, this->metaObject()->method(t));
-	}
+TiledSpriteHandler *TiledObject::spriteHandler() const
+{
+	return m_spriteHandler;
 }
 
 TiledObject::Directions TiledObject::availableDirections() const
@@ -785,27 +770,6 @@ qreal TiledObject::directionToRadian(const Direction &direction)
 
 
 
-/**
- * @brief TiledObject::availableSprites
- * @return
- */
-
-QStringList TiledObject::availableSprites() const
-{
-	return m_availableSprites;
-}
-
-
-
-/**
- * @brief TiledObject::onCurrentSpriteChanged
- * @param sprite
- */
-
-void TiledObject::onCurrentSpriteChanged(QString sprite)
-{
-	//LOG_CTRACE("scene") << "Current sprite" << sprite;
-}
 
 
 
@@ -1004,6 +968,17 @@ void TiledObjectBody::emplace(const QPointF &center)
 }
 
 
+/**
+ * @brief TiledObjectBody::stop
+ */
+
+void TiledObjectBody::stop()
+{
+	setLinearVelocity(QPointF{0,0});
+	setAngularVelocity(0.);
+}
+
+
 
 /**
  * @brief TiledObjectBody::emplace
@@ -1123,7 +1098,9 @@ Box2DCircle *TiledObjectCircleIface::createFixture(const QPointF &pos, const qre
 
 bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprite &sprite)
 {
-	Q_ASSERT(m_visualItem);
+	Q_ASSERT(m_spriteHandler);
+
+	bool r = true;
 
 	for (int i=0; i<sprite.directions.size(); ++i) {
 		const int n = sprite.directions.at(i);
@@ -1137,41 +1114,15 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 		TiledObjectSprite s2 = sprite;
 
 		if (sprite.startColumn >= 0) {
-			s2.frameX = sprite.startColumn + i*sprite.frameWidth;
+			s2.x = sprite.startColumn + i*sprite.width;
 		} else if (sprite.startRow >= 0) {
-			s2.frameY = sprite.startRow + i*sprite.frameHeight;
+			s2.y = sprite.startRow + i*sprite.height;
 		}
 
-		const QString &spriteName = getSpriteName(sprite.name, direction);
-
-		if (m_availableSprites.contains(spriteName)) {
-			LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << direction << source;
-			return false;
-		}
-
-		s2.name = spriteName;
-		QJsonObject to2;
-		for (auto it = sprite.to.constBegin(); it != sprite.to.constEnd(); ++it) {
-			to2.insert(getSpriteName(it.key(), direction), it.value());
-		}
-		s2.to = to2;
-
-		QVariantMap data = s2.toJson().toVariantMap();
-
-		if (source.startsWith(QStringLiteral(":/")))
-			data[QStringLiteral("source")] = QUrl(QStringLiteral("qrc")+source);
-		else
-			data[QStringLiteral("source")] = QUrl(source);
-
-		QMetaObject::invokeMethod(m_visualItem, "appendSprite", Qt::DirectConnection,
-								  Q_ARG(QVariant, data));
-
-		LOG_CTRACE("scene") << "Append sprite" << data;
-
-		m_availableSprites.append(spriteName);
+		r &= m_spriteHandler->addSprite(s2, direction, source);
 	}
 
-	return true;
+	return r;
 }
 
 
@@ -1186,7 +1137,7 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 
 bool TiledObject::appendSpriteList(const QString &source, const IsometricObjectSpriteList &spriteList)
 {
-	Q_ASSERT(m_visualItem);
+	Q_ASSERT(m_spriteHandler);
 
 	for (const auto &s : spriteList.sprites) {
 		if (!appendSprite(source, s)) {
@@ -1209,7 +1160,9 @@ bool TiledObject::appendSpriteList(const QString &source, const IsometricObjectS
 
 bool TiledObject::appendSprite(const IsometricObjectAlterableSprite &sprite, const QString &path)
 {
-	Q_ASSERT(m_visualItem);
+	Q_ASSERT(m_spriteHandler);
+
+	bool r = true;
 
 	for (const IsometricObjectSprite &s : sprite.sprites) {
 		for (auto it = sprite.alterations.constBegin(); it != sprite.alterations.constEnd(); ++it) {
@@ -1224,48 +1177,22 @@ bool TiledObject::appendSprite(const IsometricObjectAlterableSprite &sprite, con
 					return false;
 				}
 
-				const QString &spriteName = getSpriteName(s.name, direction, alteration);
-
-				if (m_availableSprites.contains(spriteName)) {
-					LOG_CERROR("scene") << "Sprite already loaded:" << s.name << alteration << path << it.value();
-					return false;
-				}
-
 				TiledObjectSprite s2 = s;
 
 				if (s.startColumn >= 0) {
-					s2.frameX = s.startColumn + i*s.frameWidth;
+					s2.x = s.startColumn + i*s.width;
 				} else if (s.startRow >= 0) {
-					s2.frameY = s.startRow + i*s.frameHeight;
+					s2.y = s.startRow + i*s.height;
 				}
 
-				s2.name = spriteName;
-				QJsonObject to2;
-				for (auto it = s.to.constBegin(); it != s.to.constEnd(); ++it) {
-					to2.insert(getSpriteName(it.key(), direction, alteration), it.value());
-				}
-				s2.to = to2;
-
-				QVariantMap data = s2.toJson().toVariantMap();
-
-				if (path.startsWith(QStringLiteral(":/")))
-					data[QStringLiteral("source")] = QUrl(QStringLiteral("qrc")+path+it.value());
-				else
-					data[QStringLiteral("source")] = QUrl(path+it.value());
-
-				QMetaObject::invokeMethod(m_visualItem, "appendSprite", Qt::DirectConnection,
-										  Q_ARG(QVariant, data));
-
-				///LOG_CTRACE("scene") << "Append sprite" << data;
-
-				m_availableSprites.append(spriteName);
+				r &= m_spriteHandler->addSprite(s2, alteration, direction, path+it.value());
 			}
 		}
 	}
 
 	m_availableAlterations.append(sprite.alterations.keys());
 
-	return true;
+	return r;
 }
 
 
@@ -1279,7 +1206,7 @@ bool TiledObject::appendSprite(const IsometricObjectAlterableSprite &sprite, con
 
 bool TiledObject::appendSpriteList(const IsometricObjectAlterableSpriteList &sprite, const QString &path)
 {
-	Q_ASSERT(m_visualItem);
+	Q_ASSERT(m_spriteHandler);
 
 	for (const auto &s : sprite.list) {
 		if (!appendSprite(s, path)) {
@@ -1289,25 +1216,6 @@ bool TiledObject::appendSpriteList(const IsometricObjectAlterableSpriteList &spr
 	}
 
 	return true;
-}
-
-
-/**
- * @brief IsometricObjectIface::getSpriteName
- * @param sprite
- * @param direction
- * @param alteration
- * @return
- */
-
-QString TiledObject::getSpriteName(const QString &sprite, const Direction &direction, const QString &alteration)
-{
-	QString s = TiledObject::getSpriteName(sprite, alteration);
-
-	if (direction != Invalid)
-		s.append(QStringLiteral("-")).append(QString::number(direction));
-
-	return s;
 }
 
 

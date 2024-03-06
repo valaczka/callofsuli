@@ -42,16 +42,21 @@ public:
 
 	virtual void entityWorldStep() override;
 
+	void hurt();
+
+signals:
+	void hpChanged() override final;
+
 protected:
 	void onSceneConnected() override;
 	void updateSprite() override;
+	void onAlive() override;
+	void onDead() override;
 
 private:
 	void load();
 
 	void onJoystickStateChanged();
-
-
 };
 
 #endif // ISOMETRICPLAYER_H

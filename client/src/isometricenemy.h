@@ -55,16 +55,33 @@ public:
 
 	static bool checkPlayerVisibility(TiledObjectBody *body, TiledObjectBase *player);
 
+	float playerDistance() const;
+	void setPlayerDistance(float newPlayerDistance);
+
 public:
 	virtual void playerChanged() = 0;
+	virtual void playerDistanceChanged() = 0;
+
 
 protected:
+	virtual bool enemyWorldStep() = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
+
+	struct EnemyMetric {
+		qreal speed = 3.0;						// <=0: no move
+		qreal pursuitSpeed = 3.0;				// -1: =speed, 0: no pursuit, >0: pursuit speed
+		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
+		float playerDistance = 50;				// stop at distance
+		bool rotateToPlayer = true;
+	};
 
 	std::unique_ptr<AbstractTiledMotor> m_motor;
 	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;
 	QPointer<IsometricPlayer> m_player;
 	QPointer<IsometricPlayer> m_contactedPlayer;
+	EnemyMetric m_metric;
+	float m_playerDistance = -1;
+
 };
 
 
@@ -80,19 +97,25 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 	QML_ELEMENT
 
 	Q_PROPERTY(IsometricPlayer *player READ player WRITE setPlayer NOTIFY playerChanged FINAL)
+	Q_PROPERTY(qreal playerDistance READ playerDistance WRITE setPlayerDistance NOTIFY playerDistanceChanged FINAL)
 
 public:
 	explicit IsometricEnemy(QQuickItem *parent = nullptr);
 
 	static IsometricEnemy* createEnemy(QQuickItem *parent = nullptr);
 
-	virtual void entityWorldStep() override;
 
 signals:
-	void playerChanged() override;
+	void playerChanged() override final;
+	void playerDistanceChanged() override final;
+	void hpChanged() override final;
 
 protected:
+	virtual void entityWorldStep() override final;
+	virtual bool enemyWorldStep() override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
+	void onAlive() override;
+	void onDead() override;
 
 	void stepMotor();
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, QPointF *vectorPtr = nullptr);
@@ -103,6 +126,7 @@ private:
 	void nextAlteration();
 
 	QString m_currentAlteration;
+	QElapsedTimer m_hitTimer;
 
 };
 

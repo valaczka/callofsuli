@@ -107,6 +107,29 @@ void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const T
 }
 
 
+
+/**
+ * @brief IsometricEntityIface::hp
+ * @return
+ */
+
+int IsometricEntityIface::hp() const
+{
+	return m_hp;
+}
+
+void IsometricEntityIface::setHp(int newHp)
+{
+	if (m_hp == newHp)
+		return;
+	m_hp = newHp;
+	emit hpChanged();
+
+	if (m_hp <= 0)
+		onDead();
+}
+
+
 /**
  * @brief IsometricEntityIface::movingDirection
  * @return

@@ -10,17 +10,15 @@ import "JScript.js" as JS
 Page {
 	id: root
 
-	Rectangle {
+	/*Rectangle {
 		anchors.fill: parent
 		color: _flick.scene.debugView ? Qaterial.Colors.blue900 : "black"
-	}
+	}*/
 
-	TiledFlickableScene {
-		id: _flick
+	TiledGameImpl {
+		id: _game
 		anchors.fill: parent
-
 		joystick: _gameJoystick
-		scene.debugView: false
 	}
 
 	Qaterial.AppBarButton
@@ -39,12 +37,11 @@ Page {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		visible: _flick.scene.controlledItem
+		//visible: _flick.scene.controlledItem
 	}
 
 	Component.onCompleted: {
-		_flick.scene.load("qrc:/teszt.tmx")
-		_flick.scene.forceActiveFocus()
+		_game.load()
 	}
 
 }

@@ -8,10 +8,9 @@ Item {
 	id: root
 
 	property TiledObjectImpl baseObject: null
+	property alias spriteHandler: _spriteHandler
 
 	anchors.fill: parent
-
-	property alias spriteSequence: spriteSequence
 
 	Rectangle {
 		visible: baseObject && baseObject.scene.debugView
@@ -21,26 +20,18 @@ Item {
 		anchors.fill: parent
 	}
 
-	SpriteSequence {
-		id: spriteSequence
-
-		x: 0
-		y: 0
-		width: root.width
-		height: root.height
-
-		running: baseObject && baseObject.scene && baseObject.scene.running
-
-		sprites: []
+	TiledSpriteHandlerImpl {
+		id: _spriteHandler
+		anchors.fill: parent
 	}
 
 	ThresholdMask {
 		id: _threshold
 		visible: false
 
-		source: spriteSequence
-		maskSource: spriteSequence
-		anchors.fill: spriteSequence
+		source: _spriteHandler
+		maskSource: _spriteHandler
+		anchors.fill: _spriteHandler
 
 		threshold: 0.7
 	}
@@ -49,7 +40,7 @@ Item {
 		id: glow
 		opacity: baseObject && baseObject.glowEnabled ? 1.0 : 0.0
 		visible: opacity != 0
-		color: "yellow" /*entity ? entity.glowColor : "white"*/
+		color: baseObject ? baseObject.glowColor : "transparent"
 
 		source: _threshold
 		anchors.fill: _threshold
@@ -66,9 +57,9 @@ Item {
 	ColorOverlay {
 		id: overlay
 
-		opacity: baseObject && baseObject.glowEnabled ? 0.5 : 0.0
+		opacity: baseObject && baseObject.overlayEnabled ? 0.5 : 0.0
 		visible: opacity != 0
-		color: "yellow" /*entity ? entity.glowColor : "white"*/
+		color: baseObject ? baseObject.overlayColor : "transparent"
 
 		source: _threshold
 		anchors.fill: _threshold
@@ -77,19 +68,5 @@ Item {
 			NumberAnimation { duration: 300 }
 		}
 	}
-
-
-
-	Component {
-		id: componentSprite
-
-		Sprite {  }
-	}
-
-	function appendSprite(_data) {
-		let obj = componentSprite.createObject(spriteSequence, _data)
-		spriteSequence.sprites.push(obj)
-	}
-
 
 }

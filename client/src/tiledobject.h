@@ -40,6 +40,7 @@
 
 
 class TiledScene;
+class TiledSpriteHandler;
 
 #if QT_VERSION >= 0x060000
 
@@ -92,6 +93,8 @@ public:
 
 	void emplace(const QPointF &center);
 	void emplace(const qreal &centerX, const qreal &centerY) { emplace(QPointF(centerX, centerY)); }
+
+	void stop();
 
 	QPointF bodyOffset() const;
 	void setBodyOffset(QPointF newBodyOffset);
@@ -215,7 +218,9 @@ class TiledObjectBase : public QQuickItem
 	Q_PROPERTY(Box2DBody *body READ body CONSTANT FINAL)
 	Q_PROPERTY(RemoteMode remoteMode READ remoteMode WRITE setRemoteMode NOTIFY remoteModeChanged FINAL)
 	Q_PROPERTY(bool glowEnabled READ glowEnabled WRITE setGlowEnabled NOTIFY glowEnabledChanged FINAL)
+	Q_PROPERTY(QColor glowColor READ glowColor WRITE setGlowColor NOTIFY glowColorChanged FINAL)
 	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
+	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged FINAL)
 
 public:
 	explicit TiledObjectBase(QQuickItem *parent = 0);
@@ -240,6 +245,7 @@ public:
 	TiledObjectSensorPolygon *sensorPolygon() const { return m_sensorPolygon.get(); }
 
 	static QPolygonF toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	static QPointF toPoint(const qreal &angle, const qreal &radius);
 
 	template <typename T>
 	static typename std::enable_if<std::is_base_of<TiledObjectPolygonIface, T>::value>::type
@@ -277,11 +283,19 @@ public:
 	bool overlayEnabled() const;
 	void setOverlayEnabled(bool newOverlayEnabled);
 
+	QColor glowColor() const;
+	void setGlowColor(const QColor &newGlowColor);
+
+	QColor overlayColor() const;
+	void setOverlayColor(const QColor &newOverlayColor);
+
 signals:
 	void sceneChanged();
 	void remoteModeChanged();
 	void glowEnabledChanged();
 	void overlayEnabledChanged();
+	void glowColorChanged();
+	void overlayColorChanged();
 
 protected:
 	virtual void onSceneConnected() {}
@@ -296,6 +310,8 @@ protected:
 	RemoteMode m_remoteMode = ObjectLocal;
 	bool m_glowEnabled = false;
 	bool m_overlayEnabled = false;
+	QColor m_glowColor = QColor(Qt::yellow);
+	QColor m_overlayColor = QColor(Qt::white);
 
 	friend class TiledObjectBody;
 
@@ -331,11 +347,6 @@ class TiledObject : public TiledObjectBase
 public:
 	explicit TiledObject(QQuickItem *parent = 0);
 
-	Q_INVOKABLE void jumpToSprite(const QString &sprite) const;
-
-	QStringList availableSprites() const;
-	QStringList availableAlterations() const;
-
 	// Object moving (facing) directions
 
 	enum Direction {
@@ -364,6 +375,22 @@ public:
 
 	Q_ENUM(Directions);
 
+	Q_INVOKABLE void jumpToSprite(const QString &sprite, const Direction &direction,
+								  const QString &alteration = QStringLiteral("")) const;
+	Q_INVOKABLE void jumpToSpriteLater(const QString &sprite, const Direction &direction,
+									   const QString &alteration = QStringLiteral("")) const;
+	Q_INVOKABLE void jumpToSprite(const QString &sprite, const QString &alteration) const {
+		jumpToSprite(sprite, m_currentDirection, alteration);
+	}
+	Q_INVOKABLE void jumpToSpriteLater(const QString &sprite, const QString &alteration) const {
+		jumpToSpriteLater(sprite, m_currentDirection, alteration);
+	}
+
+
+	QStringList availableSprites() const;
+	QStringList availableAlterations() const;
+
+
 
 	static qreal toRadian(const qreal &angle);
 	static qreal toDegree(const qreal &angle);
@@ -375,7 +402,7 @@ public:
 	static Direction nearestDirectionFromRadian(const Directions &directions, const qreal &angle);
 	Direction nearestDirectionFromRadian(const qreal &angle) const { return nearestDirectionFromRadian(m_availableDirections, angle); };
 
-
+	TiledSpriteHandler *spriteHandler() const;
 
 	Direction currentDirection() const;
 	void setCurrentDirection(const Direction &newCurrentDirection);
@@ -392,30 +419,23 @@ protected:
 	bool appendSpriteList(const QString &source, const TiledObjectSpriteList &spriteList);
 	bool appendSprite(const TiledMapObjectAlterableSprite &sprite, const QString &path = QStringLiteral(""));
 	bool appendSpriteList(const TiledObjectAlterableSpriteList &spriteList, const QString &path = QStringLiteral(""));
-	static QString getSpriteName(const QString &sprite, const QString &alteration = QStringLiteral(""));
 
 	bool appendSprite(const QString &source, const IsometricObjectSprite &sprite);
 	bool appendSpriteList(const QString &source, const IsometricObjectSpriteList &spriteList);
 	bool appendSprite(const IsometricObjectAlterableSprite &sprite, const QString &path = QStringLiteral(""));
 	bool appendSpriteList(const IsometricObjectAlterableSpriteList &sprite, const QString &path = QStringLiteral(""));
-	static QString getSpriteName(const QString &sprite,
-								 const Direction &direction,
-								 const QString &alteration = QStringLiteral(""));
 
-
-protected slots:
-	virtual void onCurrentSpriteChanged(QString sprite);
 	void createVisual();
 
 protected:
 	QQuickItem *m_visualItem = nullptr;
-	QQuickItem *m_spriteSequence = nullptr;
-	QStringList m_availableSprites;
 	QStringList m_availableAlterations;
 	Direction m_currentDirection = Invalid;
 	Directions m_availableDirections = None;
-
+	TiledSpriteHandler *m_spriteHandler = nullptr;
 };
+
+
 
 
 

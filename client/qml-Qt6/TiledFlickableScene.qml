@@ -20,6 +20,10 @@ Flickable {
 	contentWidth: _container.width
 	contentHeight: _container.height
 
+	anchors.fill: parent
+
+	visible: false
+
 	interactive: !_pinch.active
 
 	boundsBehavior: Flickable.DragAndOvershootBounds
@@ -39,17 +43,18 @@ Flickable {
 
 			transformOrigin: Item.Center
 
-			running: true
+			running: active
 
 			// BUG: timestep not available when in c++ instantiated
 
-			world: World {
+			/*world: World {
 				gravity: Qt.point(0.0, 0.0)
 				timeStep: 1./60.
-			}
+			}*/
 
-			visibleArea: Qt.rect(flick.contentX / scale, flick.contentY / scale ,
-								 flick.contentWidth / scale, flick.contentHeight / scale)
+			visibleArea: active ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
+										  flick.contentWidth / scale, flick.contentHeight / scale) :
+								  Qt.rect(0,0,0,0)
 
 			onTestPointsChanged: _canvas.requestPaint()
 
@@ -84,7 +89,7 @@ Flickable {
 			anchors.fill: _scene
 			world: _scene.world
 			opacity: 0.5
-			visible: _scene.debugView
+			visible: flick.visible && _scene.debugView && _scene.active
 			scale: _scene.scale
 		}
 

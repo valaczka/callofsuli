@@ -37,33 +37,31 @@ class TiledObjectSprite : public QSerializer
 
 public:
 	TiledObjectSprite()
-		: duration(0)
-		, durationVariation(0)
-		, frameCount(0)
-		, frameDuration(0)
-		//, frameDurationVariation(0)
-		, frameHeight(0)
-		, frameWidth(0)
-		, frameX(0)
-		, frameY(0)
-		//, frameRate(0)
-		//, frameRateVariation(0)
+		: count(0)
+		, duration(0)
+		, height(0)
+		, width(0)
+		, x(0)
+		, y(0)
+		, loops(0)
 	{}
 
+	QUrl source() const { return m_source; }
+	void setSource(const QString &source) { m_source = QUrl(source); }
+
+private:
+	QUrl m_source;
+
 	QS_SERIALIZABLE
+	QS_FIELD(int, count)
 	QS_FIELD(int, duration)
-	QS_FIELD(int, durationVariation)
-	QS_FIELD(int, frameCount)
-	QS_FIELD(int, frameDuration)
-	//QS_FIELD(int, frameDurationVariation)
-	QS_FIELD(int, frameHeight)
-	QS_FIELD(int, frameWidth)
-	QS_FIELD(int, frameX)
-	QS_FIELD(int, frameY)
-	//QS_FIELD(qreal, frameRate)
-	//QS_FIELD(qreal, frameRateVariation)
+	QS_FIELD(int, height)
+	QS_FIELD(int, width)
+	QS_FIELD(int, x)
+	QS_FIELD(int, y)
+	QS_FIELD(int, loops)
 	QS_FIELD(QString, name)
-	QS_FIELD(QJsonObject, to)
+
 };
 
 

@@ -28,10 +28,10 @@
 #include "Logger.h"
 #include "box2dfixture.h"
 #include "isometricenemy.h"
-#include "isometricplayer.h"
 #include "maprenderer.h"
 #include "tiledobject.h"
 #include "tilelayeritem.h"
+#include "tiledgame.h"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
@@ -39,7 +39,15 @@
 TiledScene::TiledScene(QQuickItem *parent)
 	: TiledQuick::MapItem(parent)
 	, m_mapLoader(new TiledQuick::MapLoader)
+	, m_world(new Box2DWorld)
 {
+	LOG_CTRACE("scene") << "Scene created" << this;
+
+	m_world->setGravity(QPointF{0,0});
+	m_world->setTimeStep(1./60.);
+	connect(m_world, &Box2DWorld::stepped, this, &TiledScene::onWorldStepped);
+	m_world->componentComplete();
+
 	setImplicitHeight(100);
 	setImplicitWidth(100);
 
@@ -57,8 +65,9 @@ TiledScene::TiledScene(QQuickItem *parent)
 
 TiledScene::~TiledScene()
 {
-	LOG_CDEBUG("scene")	<< "REMOVE TILED SCENE";
 	m_mapLoader->setSource(QUrl{});
+
+	LOG_CTRACE("scene") << "Scene destroyed" << this;
 }
 
 
@@ -111,6 +120,28 @@ bool TiledScene::load(const QUrl &url)
 	m_mapLoader->setSource(url);
 
 	return true;
+}
+
+
+/**
+ * @brief TiledScene::appendToObjects
+ * @param object
+ */
+
+void TiledScene::appendToObjects(TiledObject *object)
+{
+	m_tiledObjects.append(object);
+}
+
+
+/**
+ * @brief TiledScene::removeFromObjects
+ * @param object
+ */
+
+void TiledScene::removeFromObjects(TiledObject *object)
+{
+	m_tiledObjects.removeAll(object);
 }
 
 
@@ -282,8 +313,80 @@ void TiledScene::onSceneStatusChanged(const TiledQuick::MapLoader::Status &statu
 
 void TiledScene::onWorldStepped()
 {
-	for (TiledObject *obj : m_tiledObjects)
+	for (TiledObject *obj : m_tiledObjects) {
 		obj->worldStep();
+	}
+
+	reorderObjectsZ();
+
+}
+
+
+/**
+ * @brief TiledScene::reorderObjectsZ
+ */
+
+void TiledScene::reorderObjectsZ()
+{
+	QHash<qreal, QMultiMap<qreal, TiledObject*>> map;
+
+	for (TiledObject *obj : m_tiledObjects) {
+		IsometricObjectIface *iso = dynamic_cast<IsometricObjectIface*>(obj);
+
+		qreal z = 0;
+		const qreal y = obj->body()->bodyPosition().y();
+
+		if (iso)
+			z = getDynamicZ(obj->body()->bodyPosition(), iso->defaultZ()) + iso->subZ();
+		else
+			z = obj->z();
+
+		map[z].insert(y, obj);
+	}
+
+	for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+		qreal subsubZ = 0.00001;
+
+		const qreal subZ = it.key();
+		const auto &subMap = it.value();
+
+		for (auto it2 = subMap.constBegin(); it2 != subMap.constEnd(); ++it2) {
+			it2.value()->setZ(subZ+subsubZ);
+			subsubZ += 0.00001;
+		}
+	}
+}
+
+TiledGame *TiledScene::game() const
+{
+	return m_game;
+}
+
+void TiledScene::setGame(TiledGame *newGame)
+{
+	if (m_game == newGame)
+		return;
+	m_game = newGame;
+	emit gameChanged();
+}
+
+
+/**
+ * @brief TiledScene::active
+ * @return
+ */
+
+bool TiledScene::active() const
+{
+	return m_active;
+}
+
+void TiledScene::setActive(bool newActive)
+{
+	if (m_active == newActive)
+		return;
+	m_active = newActive;
+	emit activeChanged();
 }
 
 
@@ -515,24 +618,19 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 			setTestPoints(list);*/
 
 			continue;
-		} else 		if (object->className() == "player") {
+		} else if (object->className() == "player") {
 
 			LOG_CINFO("scene") << "PLAYER" << object->position();
 
-			IsometricPlayer *character = IsometricPlayer::createPlayer(this);
+			if (m_game)
+				m_game->loadPlayer(this, mRenderer->pixelToScreenCoords(object->position()));
 
-			Q_ASSERT(character);
+			continue;
+		} else if (object->className() == "gate") {
 
-			character->setScene(this);
-			character->emplace(mRenderer->pixelToScreenCoords(object->position()));
-			character->setCurrentDirection(TiledObject::South);
+			LOG_CINFO("scene") << "GATE" << object->position();
 
-			m_tiledObjects.append(character);
-
-			if (!m_followedItem)
-				setFollowedItem(character);
-
-			setControlledItem(character);
+			loadGate(object);
 
 			continue;
 		}
@@ -550,12 +648,13 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 
 void TiledScene::loadGround(Tiled::MapObject *object)
 {
-	TiledObjectPolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectPolygon>(&mapObject, object, mRenderer.get(), this);
+	TiledObjectBasePolygon *mapObject = nullptr;
+	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, mRenderer.get());
 
 	if (!mapObject)
 		return;
 
+	mapObject->setScene(this);
 	mapObject->fixture()->setDensity(1);
 	mapObject->fixture()->setFriction(1);
 	mapObject->fixture()->setRestitution(0);
@@ -584,6 +683,25 @@ void TiledScene::loadGround(Tiled::MapObject *object)
 	} else {
 		mapObject->setZ(0);
 	}
+}
+
+
+/**
+ * @brief TiledScene::loadGate
+ * @param object
+ */
+
+void TiledScene::loadGate(Tiled::MapObject *object)
+{
+	TiledObjectPolygon *mapObject = nullptr;
+	TiledObject::createFromMapObject<TiledObjectPolygon>(&mapObject, object, mRenderer.get(), this);
+
+	if (!mapObject)
+		return;
+
+	mapObject->setScene(this);
+	mapObject->fixture()->setSensor(true);
+	mapObject->fixture()->setCategories(Box2DFixture::Category4);
 }
 
 
@@ -701,7 +819,6 @@ void TiledScene::refresh()
 			loadObjectLayer(group);
 		}
 	}
-
 
 
 	const QRect rect = mRenderer->mapBoundingRect();

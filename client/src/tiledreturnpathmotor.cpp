@@ -62,11 +62,7 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 
 	const QPointF &currentPoint = body->bodyPosition();
 
-	QPointF p;
-	p.setX(radius * cos(angle));
-	p.setY(radius * -sin(angle));
-
-	body->setLinearVelocity(p);
+	body->setLinearVelocity(TiledObjectBase::toPoint(angle, radius));
 
 	if (!m_path.isEmpty() && m_lastAngle == angle)
 		return;

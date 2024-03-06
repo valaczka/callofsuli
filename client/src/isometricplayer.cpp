@@ -26,6 +26,7 @@
 
 #include "isometricplayer.h"
 #include "tiledscene.h"
+#include "tiledspritehandler.h"
 
 /**
  * @brief IsometricPlayer::IsometricPlayer
@@ -70,6 +71,22 @@ void IsometricPlayer::entityWorldStep()
 
 
 /**
+ * @brief IsometricPlayer::hurt
+ */
+
+void IsometricPlayer::hurt()
+{
+	setHp(m_hp-1);
+
+	if (m_hp <= 0) {
+		jumpToSprite("die", m_currentDirection);
+	} else {
+		jumpToSprite("hurt", m_currentDirection);
+	}
+}
+
+
+/**
  * @brief IsometricPlayer::onSceneConnected
  */
 
@@ -94,21 +111,16 @@ void IsometricPlayer::load()
 	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.5);
+	setHp(25);
 
 	m_fixture->setDensity(1);
 	m_fixture->setFriction(1);
 	m_fixture->setRestitution(0);
-	m_fixture->setCategories(Box2DFixture::Category2);
 	m_fixture->setProperty("player", QVariant::fromValue(this));
-
-	///setFixtureCenterVertical(0.8);
-
-	//setFixtureCenterVertical(0.0);
-	//setFixtureCenterHorizontal(0.0);
+	onAlive();
 
 	addSensorPolygon(200);
 
-	//QString path = "/home/valaczka/Projektek/_callofsuli-resources/isometric/character/avatar/character_w_clothes.png";
 
 	QString path = ":/character_w_clothes.png";
 
@@ -121,25 +133,46 @@ void IsometricPlayer::load()
 		{
 			"name": "idle",
 			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
-			"frameX": 0,
-			"frameY": 0,
-			"frameCount": 4,
-			"frameWidth": 128,
-			"frameHeight": 128,
-			"frameDuration": 80,
-			"to": { "idle": 1 }
+			"x": 0,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 80
 		},
 
 		{
 			"name": "run",
 			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
-			"frameX": 512,
-			"frameY": 0,
-			"frameCount": 8,
-			"frameWidth": 128,
-			"frameHeight": 128,
-			"frameDuration": 60,
-			"to": { "run": 1 }
+			"x": 512,
+			"y": 0,
+			"count": 8,
+			"width": 128,
+			"height": 128,
+			"duration": 60
+		},
+
+		{
+			"name": "hurt",
+			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
+			"x": 2048,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 60
+		},
+
+		{
+			"name": "die",
+			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
+			"x": 2560,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 60,
+			"loops": 1
 		}
 	]
 	})";
@@ -162,10 +195,45 @@ void IsometricPlayer::load()
 
 void IsometricPlayer::updateSprite()
 {
-	QString sprite = m_movingDirection != Invalid ? getSpriteName("run", m_movingDirection) :
-													getSpriteName("idle", m_currentDirection);
+	if (m_hp <= 0) {
+		jumpToSprite("die", m_currentDirection);
+		return;
+	}
 
-	jumpToSprite(sprite);
+	if (m_spriteHandler->currentSprite() == "hurt")
+		jumpToSpriteLater("idle", m_currentDirection);
+	else if (m_movingDirection != Invalid)
+		jumpToSprite("run", m_movingDirection);
+	else
+		jumpToSprite("idle", m_currentDirection);
+}
+
+
+
+/**
+ * @brief IsometricPlayer::onAlive
+ */
+
+void IsometricPlayer::onAlive()
+{
+	LOG_CINFO("scene") << "ALIVE";
+	m_body->setBodyType(Box2DBody::Dynamic);
+	m_fixture->setCategories(Box2DFixture::Category2);
+	setSubZ(0.5);
+}
+
+
+/**
+ * @brief IsometricPlayer::onDead
+ */
+
+void IsometricPlayer::onDead()
+{
+	LOG_CINFO("scene") << "DEAD";
+	m_body->setBodyType(Box2DBody::Static);
+	m_fixture->setCategories(Box2DFixture::None);
+	m_fixture->setCollidesWith(Box2DFixture::None);
+	setSubZ(0.0);
 }
 
 
@@ -184,13 +252,8 @@ void IsometricPlayer::onJoystickStateChanged()
 
 
 	if (m_scene->joystickState().distance > 0.9) {
-		QPointF dir;
 		const qreal radius = 6.;					/// speed
-
-		const qreal d = m_scene->joystickState().angle;
-		dir.setX(radius * cos(d));
-		dir.setY(radius * -sin(d));
-		m_body->setLinearVelocity(dir);
+		m_body->setLinearVelocity(TiledObjectBase::toPoint(m_scene->joystickState().angle, radius));
 	} else {
 		m_body->setLinearVelocity(QPointF{0,0});
 	}

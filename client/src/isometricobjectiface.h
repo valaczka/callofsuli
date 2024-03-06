@@ -51,7 +51,6 @@ public:
 	void setSubZ(qreal newSubZ);
 
 public:
-	virtual void onXYChanged() = 0;
 	virtual void defaultZChanged() = 0;
 	virtual void useDynamicZChanged() = 0;
 	virtual void subZChanged() = 0;

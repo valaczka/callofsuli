@@ -51,14 +51,23 @@ public:
 	QPointF maximizeSpeed(const QPointF &point) const;
 	QPointF &maximizeSpeed(QPointF &point) const;
 
+	int hp() const;
+	void setHp(int newHp);
+
+public:
+	virtual void hpChanged() = 0;
 
 protected:
 	void entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections);
 
 	virtual void updateSprite() = 0;
+	virtual void onAlive() = 0;
+	virtual void onDead() = 0;
+
 
 	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
 	qreal m_maximumSpeed = 10.;
+	int m_hp = 0;
 
 private:
 	QPointF m_lastPosition;
@@ -74,6 +83,8 @@ class IsometricCircleEntity : public IsometricObjectCircle, public IsometricEnti
 {
 	Q_OBJECT
 	QML_ELEMENT
+
+	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
 
 public:
 	explicit IsometricCircleEntity(QQuickItem *parent = nullptr);

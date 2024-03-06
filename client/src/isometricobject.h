@@ -51,20 +51,13 @@ public:
 		: TiledObject(parent)
 		, IsometricObjectIface()
 	{
-		connect(this, &IsometricObject::xChanged, this, &IsometricObject::onXYChanged);
-		connect(this, &IsometricObject::yChanged, this, &IsometricObject::onXYChanged);
+
 	}
 
-
-	static void xyChanged(IsometricObjectIface *isoobject, TiledObjectBase *object);
-
 signals:
-	void defaultZChanged() override;
-	void useDynamicZChanged() override;
-	void subZChanged() override;
-
-protected:
-	void onXYChanged() override { xyChanged(this, this); }
+	void defaultZChanged() override final;
+	void useDynamicZChanged() override final;
+	void subZChanged() override final;
 };
 
 
@@ -87,18 +80,14 @@ public:
 		: TiledObjectCircle(parent)
 		, IsometricObjectIface()
 	{
-		connect(this, &IsometricObjectCircle::xChanged, this, &IsometricObjectCircle::onXYChanged);
-		connect(this, &IsometricObjectCircle::yChanged, this, &IsometricObjectCircle::onXYChanged);
+
 	}
 
 
 signals:
-	void defaultZChanged() override;
-	void useDynamicZChanged() override;
-	void subZChanged() override;
-
-protected:
-	void onXYChanged() override { IsometricObject::xyChanged(this, this); }
+	void defaultZChanged() override final;
+	void useDynamicZChanged() override final;
+	void subZChanged() override final;
 
 };
 #endif // ISOMETRICOBJECT_H

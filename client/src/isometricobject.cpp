@@ -27,6 +27,7 @@
 #include "isometricobject.h"
 #include "Logger.h"
 #include "tiledscene.h"
+#include "tiledspritehandler.h"
 #include <QtMath>
 
 IsometricObjectIface::IsometricObjectIface()
@@ -103,15 +104,3 @@ void IsometricObjectIface::setDefaultZ(qreal newDefaultZ)
 
 
 
-
-
-
-void IsometricObject::xyChanged(IsometricObjectIface *isoobject, TiledObjectBase *object)
-{
-	if (!object || !object->scene() || !isoobject)
-		return;
-
-	const QPointF &p = object->body()->bodyPosition();
-
-	object->setZ(object->scene()->getDynamicZ(p, isoobject->defaultZ()) + isoobject->subZ());
-}

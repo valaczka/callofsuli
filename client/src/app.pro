@@ -274,10 +274,12 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
+	tiledgame.cpp \
 	tiledobject.cpp \
 	tiledpathmotor.cpp \
 	tiledreturnpathmotor.cpp \
 	tiledscene.cpp \
+	tiledspritehandler.cpp \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
@@ -364,11 +366,13 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
+	tiledgame.h \
 	tiledobject.h \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
 	tiledreturnpathmotor.h \
 	tiledscene.h \
+	tiledspritehandler.h \
 	updater.h \
 	user.h \
 	userimporter.h \

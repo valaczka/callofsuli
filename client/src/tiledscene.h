@@ -33,6 +33,22 @@
 #include "tiledobject.h"
 #include <QQuickItem>
 
+
+class TiledGame;
+
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_TiledGame
+#define OPAQUE_PTR_TiledGame
+Q_DECLARE_OPAQUE_POINTER(TiledGame*)
+#endif
+
+#endif
+
+/**
+ * @brief The TiledScene class
+ */
+
 class TiledScene : public TiledQuick::MapItem
 {
 	Q_OBJECT
@@ -46,6 +62,8 @@ class TiledScene : public TiledQuick::MapItem
 	Q_PROPERTY(JoystickState joystickState READ joystickState WRITE setJoystickState NOTIFY joystickStateChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QList<TiledObject *> tiledObjects READ tiledObjects WRITE setTiledObjects NOTIFY tiledObjectsChanged FINAL)
+	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged FINAL)
+	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
@@ -79,6 +97,9 @@ public:
 
 	Q_INVOKABLE bool load(const QUrl &url);
 
+	void appendToObjects(TiledObject *object);
+	void removeFromObjects(TiledObject *object);
+
 	bool running() const;
 	void setRunning(bool newRunning);
 
@@ -94,9 +115,6 @@ public:
 	void setDebugView(bool newDebugView);
 
 
-	TiledObject *testObject() const;
-	void setTestObject(TiledObject *newTestObject);
-
 	QList<TiledObject *> tiledObjects() const;
 	void setTiledObjects(const QList<TiledObject *> &newTiledObjects);
 
@@ -109,9 +127,14 @@ public:
 	TiledObject *controlledItem() const;
 	void setControlledItem(TiledObject *newControlledItem);
 
-
 	QVariantList testPoints() const;
 	void setTestPoints(const QVariantList &newTestPoints);
+
+	bool active() const;
+	void setActive(bool newActive);
+
+	TiledGame *game() const;
+	void setGame(TiledGame *newGame);
 
 signals:
 	void runningChanged();
@@ -122,8 +145,12 @@ signals:
 	void followedItemChanged();
 	void worldChanged();
 	void controlledItemChanged();
+	void activeChanged();
+	void gameChanged();
 
 	void testPointsChanged();
+
+
 
 
 
@@ -134,6 +161,7 @@ protected:
 
 	virtual void loadObjectLayer(Tiled::ObjectGroup *group);
 	virtual void loadGround(Tiled::MapObject *object);
+	void loadGate(Tiled::MapObject *object);
 
 	struct DynamicZ {
 		QPolygonF polygon;
@@ -159,8 +187,11 @@ private:
 	void onSceneStatusChanged(const TiledQuick::MapLoader::Status &status);
 	void onWorldStepped();
 
+	void reorderObjectsZ();
 
 
+
+	TiledGame *m_game = nullptr;
 	QPointer<QQuickItem> m_joystick;
 	QPointer<QQuickItem> m_followedItem;
 	QPointer<TiledObject> m_controlledItem;
@@ -169,6 +200,7 @@ private:
 	KeyboardJoystickState m_keyboardJoystickState;
 
 	bool m_debugView = false;
+	bool m_active = false;
 
 
 	QVariantList m_testPoints;

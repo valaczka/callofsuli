@@ -27,7 +27,7 @@
 #include "isometricenemy.h"
 #include "box2dworld.h"
 #include "isometricplayer.h"
-#include "tiledscene.h"
+#include "tiledspritehandler.h"
 
 
 /**
@@ -39,12 +39,7 @@ IsometricEnemy::IsometricEnemy(QQuickItem *parent)
 	: IsometricCircleEntity(parent)
 	, IsometricEnemyIface()
 {
-	connect(this, &IsometricEnemy::playerChanged, this, [this](){
-		if (m_player)
-			setGlowEnabled(true);
-		else
-			setGlowEnabled(false);
-	});
+
 }
 
 
@@ -81,26 +76,35 @@ void IsometricEnemy::entityWorldStep()
 
 
 	if (m_contactedPlayer) {
-		if (checkPlayerVisibility(m_body.get(), m_contactedPlayer)) {
+		if (checkPlayerVisibility(m_body.get(), m_contactedPlayer) && m_contactedPlayer->hp() > 0) {
 			setPlayer(m_contactedPlayer);
-
-			m_body->setLinearVelocity(QPointF{0,0});
-			m_body->setAngularVelocity(0.);
 
 			float32 angle = 0;
 			QPointF dest;
 
 			rotateToPlayer(m_player, &angle, &dest);
-			updateSprite();
 
-			if (QVector2D(dest).length() > 70) {			/// --- player distance
-				if (!m_returnPathMotor)
-					m_returnPathMotor.reset(new TiledReturnPathMotor);
-				qreal speed = 3 /** TiledObject::factorFromRadian(angle)*/;		/// --- pursuit speeed
-				m_returnPathMotor->moveBody(m_body.get(), angle, speed);
+			const qreal &dist = QVector2D(dest).length();
+			setPlayerDistance(dist);
+
+			if (dist > m_metric.playerDistance) {
+				if (m_metric.pursuitSpeed > 0) {		// Pursuit
+					if (m_metric.returnSpeed != 0) {
+						if (!m_returnPathMotor)
+							m_returnPathMotor.reset(new TiledReturnPathMotor);
+						/** TiledObject::factorFromRadian(angle)*/		/// --- pursuit speeed
+						m_returnPathMotor->moveBody(m_body.get(), angle,
+													m_metric.pursuitSpeed > 0 ? m_metric.pursuitSpeed : m_metric.speed);
+					} else if (m_metric.speed > 0) {
+						m_body->setLinearVelocity(maximizeSpeed(TiledObjectBase::toPoint(angle, m_metric.speed)));
+					} else {
+						m_body->stop();
+					}
+				} else {								// No pursuit
+					m_body->stop();
+				}
 			} else {
-				m_body->setLinearVelocity(QPointF{0,0});
-				m_body->setAngularVelocity(0.);
+				m_body->stop();
 			}
 
 
@@ -119,9 +123,12 @@ void IsometricEnemy::entityWorldStep()
 				m_scene->setTestPoints(list);
 			}*/
 
+			enemyWorldStep();
+			updateSprite();
 			return;
 		} else {
 			setPlayer(nullptr);
+			setPlayerDistance(-1.);
 		}
 	}
 
@@ -134,10 +141,42 @@ void IsometricEnemy::entityWorldStep()
 		m_scene->setTestPoints(list);*/
 	}
 
-	rotateBody(directionToRadian(m_currentDirection));
-	stepMotor();
+	if (enemyWorldStep()) {
+		rotateBody(directionToRadian(m_currentDirection));
+		stepMotor();
+	}
 
 	updateSprite();
+}
+
+
+
+/**
+ * @brief IsometricEnemy::enemyWorldStep
+ */
+
+bool IsometricEnemy::enemyWorldStep()
+{
+	if (m_player && m_playerDistance <= m_metric.playerDistance && m_player->hp() > 0) {
+		m_body->stop();
+		if (m_hitTimer.isValid()) {
+			if (m_hitTimer.elapsed() > 1500) {
+				LOG_CWARNING("scene") << "HIT";
+				m_player->hurt();
+				jumpToSprite("hit", m_currentDirection, m_currentAlteration);
+				m_hitTimer.restart();
+			}
+		} else {
+			LOG_CWARNING("scene") << "HIT";
+			m_player->hurt();
+			jumpToSprite("hit", m_currentDirection, m_currentAlteration);
+			m_hitTimer.start();
+		}
+	} else {
+		m_hitTimer.invalidate();
+	}
+
+	return true;
 }
 
 
@@ -155,6 +194,22 @@ void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
 
 
 /**
+ * @brief IsometricEnemy::onAlive
+ */
+
+void IsometricEnemy::onAlive()
+{
+
+}
+
+void IsometricEnemy::onDead()
+{
+
+}
+
+
+
+/**
  * @brief IsometricEnemy::stepMotor
  */
 
@@ -166,7 +221,7 @@ void IsometricEnemy::stepMotor()
 	}
 
 	if (m_returnPathMotor) {
-		if (m_returnPathMotor->stepBack(2.)) {		///  --- returning speed
+		if (m_metric.returnSpeed != 0. && m_returnPathMotor->stepBack(m_metric.returnSpeed > 0. ? m_metric.returnSpeed : m_metric.speed)) {
 			m_body->setLinearVelocity(maximizeSpeed(m_returnPathMotor->currentPosition() - m_body->bodyPosition()));
 			return;
 		} else {
@@ -179,11 +234,14 @@ void IsometricEnemy::stepMotor()
 		}
 	}
 
+	if (m_metric.speed <= 0.)
+		return;
+
 	if (m_motor->type() == AbstractTiledMotor::PathMotor) {
 		TiledPathMotor *motor = pathMotor();
 		Q_ASSERT(motor);
 
-		motor->step(1.8);				/// ----- speed
+		motor->step(m_metric.speed);
 
 		if (motor->direction() == TiledPathMotor::Backward && motor->atBegin())
 			motor->setDirection(TiledPathMotor::Forward);
@@ -205,7 +263,7 @@ void IsometricEnemy::stepMotor()
 
 void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float32 *anglePtr, QPointF *vectorPtr)
 {
-	if (!player)
+	if (!player || !m_metric.rotateToPlayer)
 		return;
 
 	QPointF p = player->body()->bodyPosition() - m_body->bodyPosition();
@@ -236,7 +294,7 @@ void IsometricEnemy::load()
 
 	setZ(1);
 	setDefaultZ(1);
-	setSubZ(0.2);
+	setSubZ(0.5);
 
 	///setFixtureCenterVertical(0.8);
 
@@ -244,11 +302,16 @@ void IsometricEnemy::load()
 	m_fixture->setFriction(1);
 	m_fixture->setRestitution(0);
 	m_fixture->setCategories(Box2DFixture::Category3);
-	//m_fixture->setCollidesWith(Box2DFixture::Category1);
+	m_fixture->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category2);
 
 	TiledObjectSensorPolygon *p = addSensorPolygon(300);
 
 	Q_ASSERT(p);
+
+	m_metric.speed = 2.;
+	m_metric.returnSpeed = 3.;
+	m_metric.pursuitSpeed = 3.;
+
 
 
 	connect(p, &TiledObjectSensorPolygon::beginContact, this, [this](Box2DFixture *other) {
@@ -293,26 +356,59 @@ void IsometricEnemy::load()
 		{
 			"name": "idle",
 			"directions": [ 180, 135, 90, 45, 360, 315, 270, 225 ],
-			"frameX": 0,
-			"frameY": 0,
-			"frameCount": 4,
-			"frameWidth": 128,
-			"frameHeight": 128,
-			"frameDuration": 80,
-			"to": { "idle": 1 }
+			"x": 0,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 80
 		},
 
 		{
 			"name": "run",
 			"directions": [ 180, 135, 90, 45, 360, 315, 270, 225 ],
-			"frameX": 512,
-			"frameY": 0,
-			"frameCount": 8,
-			"frameWidth": 128,
-			"frameHeight": 128,
-			"frameDuration": 60,
-			"to": { "run": 1 }
+			"x": 512,
+			"y": 0,
+			"count": 8,
+			"width": 128,
+			"height": 128,
+			"duration": 60
+		},
+
+		{
+			"name": "hit",
+			"directions": [ 180, 135, 90, 45, 360, 315, 270, 225 ],
+			"x": 1536,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 80
+		},
+
+		{
+			"name": "hurt",
+			"directions": [ 180, 135, 90, 45, 360, 315, 270, 225 ],
+			"x": 2048,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 80
+		},
+
+
+		{
+			"name": "die",
+			"directions": [ 180, 135, 90, 45, 360, 315, 270, 225 ],
+			"x": 2560,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 80
 		}
+
 	]
 	})";
 
@@ -344,10 +440,12 @@ void IsometricEnemy::load()
 
 void IsometricEnemy::updateSprite()
 {
-	QString sprite = m_movingDirection != Invalid ? getSpriteName("run", m_movingDirection, m_currentAlteration) :
-													getSpriteName("idle", m_currentDirection, m_currentAlteration);
-
-	jumpToSprite(sprite);
+	if (m_spriteHandler->currentSprite() == "hit")
+		jumpToSpriteLater("idle", m_currentDirection, m_currentAlteration);
+	else if (m_movingDirection != Invalid)
+		jumpToSprite("run", m_movingDirection, m_currentAlteration);
+	else
+		jumpToSprite("idle", m_currentDirection, m_currentAlteration);
 }
 
 
@@ -442,6 +540,20 @@ bool IsometricEnemyIface::checkPlayerVisibility(TiledObjectBody *body, TiledObje
 	}
 
 	return false;
+}
+
+
+float IsometricEnemyIface::playerDistance() const
+{
+	return m_playerDistance;
+}
+
+void IsometricEnemyIface::setPlayerDistance(float newPlayerDistance)
+{
+	if (qFuzzyCompare(m_playerDistance, newPlayerDistance))
+		return;
+	m_playerDistance = newPlayerDistance;
+	emit playerDistanceChanged();
 }
 
 

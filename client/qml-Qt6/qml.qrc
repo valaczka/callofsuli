@@ -219,5 +219,6 @@
         <file>ConquestFinishInfo.qml</file>
         <file>TiledObjectVisual.qml</file>
         <file>TiledFlickableScene.qml</file>
+        <file>TiledSprite.qml</file>
     </qresource>
 </RCC>

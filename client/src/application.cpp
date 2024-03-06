@@ -39,7 +39,6 @@
 #include "gamequestioncomponent.h"
 #include "gamescene.h"
 #include "isometricobject.h"
-#include "libtiledquick/maploader.h"
 #include "litegame.h"
 #include "mapeditor.h"
 #include "mapgame.h"
@@ -59,8 +58,10 @@
 #include "teachermap.h"
 #include "teachermaphandler.h"
 #include "testgame.h"
+#include "tiledgame.h"
 #include "tiledobject.h"
 #include "tiledscene.h"
+#include "tiledspritehandler.h"
 #include "userimporter.h"
 #include "userloglist.h"
 #include "utils_.h"
@@ -449,8 +450,10 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
+	qmlRegisterType<TiledGame>("CallOfSuli", 1, 0, "TiledGameImpl");
 	qmlRegisterType<TiledObject>("CallOfSuli", 1, 0, "TiledObjectImpl");
 	qmlRegisterType<TiledScene>("CallOfSuli", 1, 0, "TiledSceneImpl");
+	qmlRegisterType<TiledSpriteHandler>("CallOfSuli", 1, 0, "TiledSpriteHandlerImpl");
 	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
 	qmlRegisterType<UserImporter>("CallOfSuli", 1, 0, "UserImporter");
 	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
