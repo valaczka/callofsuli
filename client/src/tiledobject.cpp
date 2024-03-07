@@ -41,7 +41,7 @@
 
 TiledObjectBase::TiledObjectBase(QQuickItem *parent)
 	: QQuickItem(parent)
-	, m_body(new TiledObjectBody)
+	, m_body(new TiledObjectBody(this))
 {
 	LOG_CTRACE("scene") << "TiledObjectBase created" << this;
 
@@ -84,7 +84,6 @@ void TiledObjectBase::setScene(TiledScene *newScene)
 		setParentItem(m_scene);
 		if (m_scene->world())
 			m_body->setWorld(m_scene->world());
-		onSceneConnected();
 	}
 }
 
@@ -587,7 +586,6 @@ QStringList TiledObject::availableAlterations() const
 
 qreal TiledObject::toRadian(const qreal &angle)
 {
-	//return toRadians(angle);
 	if (angle <= 180.)
 		return angle * M_PI / 180.;
 	else
@@ -604,7 +602,6 @@ qreal TiledObject::toRadian(const qreal &angle)
 
 qreal TiledObject::toDegree(const qreal &angle)
 {
-	//return toDegrees(angle);
 	if (angle >= 0)
 		return angle * 180 / M_PI;
 	else
@@ -964,7 +961,10 @@ void TiledObjectBody::emplace(const QPointF &center)
 	Q_ASSERT(mBody);
 	Q_ASSERT(mWorld);
 
+	setAngularVelocity(0.);
+	setLinearVelocity(QPointF{0.,0.});
 	mBody->SetTransform(mWorld->toMeters(center), mBody->GetAngle());
+	synchronize();
 }
 
 
@@ -1046,7 +1046,7 @@ Box2DPolygon *TiledObjectPolygonIface::createFixture(const QPolygonF &polygon)
 
 	const QRectF &box = polygon.boundingRect();
 
-	m_screenPolygon = polygon.translated(-box.topLeft());
+	m_screenPolygon = polygon.translated(-box.center());
 
 	TiledObjectBase::setPolygonVertices(m_fixture.get(), m_screenPolygon);
 

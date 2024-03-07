@@ -262,10 +262,9 @@ bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 	s.baseName = sprite.name;
 
 	item->setParentItem(this);
-	item->setProperty("spriteId", ++m_lastId);
-	m_spriteList.insert(m_lastId, s);
+	m_spriteList.insert(++m_lastId, s);
 
-	LOG_CTRACE("scene") << "Sprite created:" << m_lastId << s.baseName << s.alteration << s.direction << s.item;
+	//LOG_CTRACE("scene") << "Sprite created:" << m_lastId << s.baseName << s.alteration << s.direction << s.item;
 
 	return true;
 }
@@ -321,6 +320,9 @@ std::optional<TiledSpriteHandler::Sprite> TiledSpriteHandler::findSprite(const Q
 
 void TiledSpriteHandler::changeSprite(const int &id)
 {
+	if (m_currentId == id)
+		return;
+
 	QString name;
 	int current = -1;
 

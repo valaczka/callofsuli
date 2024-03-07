@@ -231,7 +231,7 @@ QPage {
 					QFormCheckButton
 					{
 						id: _isConquest
-						text: qsTr("Honfoglaló")
+						text: qsTr("Multiplayer")
 						checked: mission && (mission.modes & GameMap.Conquest)
 						onToggled: _form.updateCheckButtons()
 						enabled: !_isExam.checked

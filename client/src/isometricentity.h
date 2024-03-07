@@ -30,6 +30,7 @@
 #include "isometricobject.h"
 #include <QQmlEngine>
 
+class TiledGame;
 
 /**
  * @brief The IsometricEntity class
@@ -54,6 +55,9 @@ public:
 	int hp() const;
 	void setHp(int newHp);
 
+	TiledGame *game() const;
+	void setGame(TiledGame *newGame);
+
 public:
 	virtual void hpChanged() = 0;
 
@@ -65,6 +69,7 @@ protected:
 	virtual void onDead() = 0;
 
 
+	TiledGame *m_game = nullptr;
 	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
 	qreal m_maximumSpeed = 10.;
 	int m_hp = 0;
@@ -93,6 +98,9 @@ public:
 		m_body->emplace(pos);
 		updateSprite();
 	}
+
+signals:
+	void hpChanged() override final;
 
 protected:
 	virtual void entityWorldStep() {}

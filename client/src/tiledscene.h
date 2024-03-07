@@ -54,13 +54,8 @@ class TiledScene : public TiledQuick::MapItem
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(Box2DWorld *world READ world WRITE setWorld NOTIFY worldChanged FINAL)
+	Q_PROPERTY(Box2DWorld *world READ world CONSTANT FINAL)
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
-	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
-	Q_PROPERTY(QQuickItem *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
-	Q_PROPERTY(TiledObject *controlledItem READ controlledItem WRITE setControlledItem NOTIFY controlledItemChanged FINAL)
-	Q_PROPERTY(JoystickState joystickState READ joystickState WRITE setJoystickState NOTIFY joystickStateChanged FINAL)
-	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QList<TiledObject *> tiledObjects READ tiledObjects WRITE setTiledObjects NOTIFY tiledObjectsChanged FINAL)
 	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged FINAL)
 	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
@@ -69,27 +64,6 @@ public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
 	virtual ~TiledScene();
 
-	/**
-	 * @brief The JoystickState class
-	 */
-
-	struct JoystickState {
-		qreal dx = 0;
-		qreal dy = 0;
-		qreal angle = 0;
-		qreal distance = 0;
-		bool hasTouch = false;
-		bool hasKeyboard = false;
-
-		inline friend bool operator==(const JoystickState &s1, const JoystickState &s2) {
-			return s1.dx == s2.dx &&
-					s1.dy == s2.dy &&
-					s1.angle == s2.angle &&
-					s1.distance == s2.distance &&
-					s1.hasTouch == s2.hasTouch &&
-					s1.hasKeyboard == s2.hasKeyboard;
-		}
-	};
 
 	Q_INVOKABLE int getDynamicZ(const QPointF &point, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(const qreal &x, const qreal &y, const int &defaultValue = 1) const;
@@ -103,32 +77,12 @@ public:
 	bool running() const;
 	void setRunning(bool newRunning);
 
-	QQuickItem *joystick() const;
-	void setJoystick(QQuickItem *newJoystick);
-
-	JoystickState joystickState() const;
-	void setJoystickState(const JoystickState &newJoystickState);
-
 	TiledQuick::MapLoader *mapLoader() const;
-
-	bool debugView() const;
-	void setDebugView(bool newDebugView);
-
 
 	QList<TiledObject *> tiledObjects() const;
 	void setTiledObjects(const QList<TiledObject *> &newTiledObjects);
 
-	QQuickItem *followedItem() const;
-	void setFollowedItem(QQuickItem *newFollowedItem);
-
 	Box2DWorld *world() const;
-	void setWorld(Box2DWorld *newWorld);
-
-	TiledObject *controlledItem() const;
-	void setControlledItem(TiledObject *newControlledItem);
-
-	QVariantList testPoints() const;
-	void setTestPoints(const QVariantList &newTestPoints);
 
 	bool active() const;
 	void setActive(bool newActive);
@@ -136,15 +90,14 @@ public:
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
 
+
+
+	QVariantList testPoints() const;
+	void setTestPoints(const QVariantList &newTestPoints);
+
 signals:
 	void runningChanged();
-	void joystickChanged();
-	void joystickStateChanged();
-	void debugViewChanged();
 	void tiledObjectsChanged();
-	void followedItemChanged();
-	void worldChanged();
-	void controlledItemChanged();
 	void activeChanged();
 	void gameChanged();
 
@@ -156,8 +109,6 @@ signals:
 
 protected:
 	virtual void refresh() override;
-	virtual void keyPressEvent(QKeyEvent *event) override;
-	virtual void keyReleaseEvent(QKeyEvent *event) override;
 
 	virtual void loadObjectLayer(Tiled::ObjectGroup *group);
 	virtual void loadGround(Tiled::MapObject *object);
@@ -171,19 +122,10 @@ protected:
 
 	std::map<int, DynamicZ> m_dynamicZList;
 	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
-	Box2DWorld *m_world = nullptr;
+	std::unique_ptr<Box2DWorld> m_world;
 	QList<TiledObject*> m_tiledObjects;
 
 private:
-	struct KeyboardJoystickState {
-		qreal dx = 0.5;
-		qreal dy = 0.5;
-	};
-
-	void joystickConnect(const bool &connect = true);
-	Q_INVOKABLE void updateJoystick();
-	void updateKeyboardJoystick(const KeyboardJoystickState &state);
-
 	void onSceneStatusChanged(const TiledQuick::MapLoader::Status &status);
 	void onWorldStepped();
 
@@ -192,14 +134,6 @@ private:
 
 
 	TiledGame *m_game = nullptr;
-	QPointer<QQuickItem> m_joystick;
-	QPointer<QQuickItem> m_followedItem;
-	QPointer<TiledObject> m_controlledItem;
-
-	JoystickState m_joystickState;
-	KeyboardJoystickState m_keyboardJoystickState;
-
-	bool m_debugView = false;
 	bool m_active = false;
 
 

@@ -13,7 +13,7 @@ Item {
 	anchors.fill: parent
 
 	Rectangle {
-		visible: baseObject && baseObject.scene.debugView
+		visible: baseObject && baseObject.scene && baseObject.scene.game && baseObject.scene.game.debugView
 		color: "transparent"
 		border.color: "black"
 		border.width: 2

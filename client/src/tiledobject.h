@@ -41,6 +41,7 @@
 
 class TiledScene;
 class TiledSpriteHandler;
+class TiledObjectBase;
 
 #if QT_VERSION >= 0x060000
 
@@ -82,13 +83,17 @@ class TiledObjectBody : public Box2DBody
 	Q_OBJECT
 
 public:
-	explicit TiledObjectBody(QObject *parent = nullptr)
-		: Box2DBody(parent)
-	{}
+	explicit TiledObjectBody(TiledObjectBase *baseObject)
+		: Box2DBody()
+		, m_baseObject(baseObject)
+	{
+		Q_ASSERT(m_baseObject);
+	}
 
 	void synchronize() override;
 	void updateTransform() override;
 
+	TiledObjectBase *baseObject() const { return m_baseObject; }
 	QPointF bodyPosition() const;
 
 	void emplace(const QPointF &center);
@@ -105,6 +110,7 @@ public:
 private:
 	void emplace();
 	QPointF m_bodyOffset;
+	TiledObjectBase *const m_baseObject;
 };
 
 
@@ -215,7 +221,7 @@ class TiledObjectBase : public QQuickItem
 	QML_ELEMENT
 
 	Q_PROPERTY(TiledScene *scene READ scene WRITE setScene NOTIFY sceneChanged FINAL)
-	Q_PROPERTY(Box2DBody *body READ body CONSTANT FINAL)
+	Q_PROPERTY(TiledObjectBody *body READ body CONSTANT FINAL)
 	Q_PROPERTY(RemoteMode remoteMode READ remoteMode WRITE setRemoteMode NOTIFY remoteModeChanged FINAL)
 	Q_PROPERTY(bool glowEnabled READ glowEnabled WRITE setGlowEnabled NOTIFY glowEnabledChanged FINAL)
 	Q_PROPERTY(QColor glowColor READ glowColor WRITE setGlowColor NOTIFY glowColorChanged FINAL)
@@ -298,8 +304,6 @@ signals:
 	void overlayColorChanged();
 
 protected:
-	virtual void onSceneConnected() {}
-
 	void rotateBody(const float32 &desiredRadian);
 	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
 
@@ -521,7 +525,7 @@ TiledObjectBase::createFromPolygon(T **dest, const QPolygonF &polygon, Tiled::Ma
 {
 	Q_ASSERT(dest);
 
-	QPolygonF screenPolygon = renderer ? renderer->pixelToScreenCoords(polygon) : polygon;
+	const QPolygonF &screenPolygon = renderer ? renderer->pixelToScreenCoords(polygon) : polygon;
 
 	const QRectF &boundingRect = screenPolygon.boundingRect();
 
@@ -529,8 +533,8 @@ TiledObjectBase::createFromPolygon(T **dest, const QPolygonF &polygon, Tiled::Ma
 
 	(*dest)->createFixture(screenPolygon);
 
-	(*dest)->setX(boundingRect.x());
-	(*dest)->setY(boundingRect.y());
+	(*dest)->setX(boundingRect.center().x());
+	(*dest)->setY(boundingRect.center().y());
 	(*dest)->setWidth(boundingRect.width());
 	(*dest)->setHeight(boundingRect.height());
 

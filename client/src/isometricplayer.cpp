@@ -27,6 +27,7 @@
 #include "isometricplayer.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
+#include "tiledgame.h"
 
 /**
  * @brief IsometricPlayer::IsometricPlayer
@@ -78,26 +79,29 @@ void IsometricPlayer::hurt()
 {
 	setHp(m_hp-1);
 
+	if (m_hp < 3)
+		m_currentAlteration = "none";
+	else if (m_hp < 6)
+		m_currentAlteration = "sword";
+
 	if (m_hp <= 0) {
-		jumpToSprite("die", m_currentDirection);
-	} else {
-		jumpToSprite("hurt", m_currentDirection);
+		jumpToSprite("die", m_currentDirection, m_currentAlteration);
+	} else if (m_spriteHandler->currentSprite() != "swing") {
+		jumpToSprite("block", m_currentDirection, m_currentAlteration);
 	}
 }
 
 
 /**
- * @brief IsometricPlayer::onSceneConnected
+ * @brief IsometricPlayer::hit
  */
 
-void IsometricPlayer::onSceneConnected()
+void IsometricPlayer::hit()
 {
-	if (!m_scene)
-		return;
-
-	connect(m_scene, &TiledScene::joystickStateChanged, this, &IsometricPlayer::onJoystickStateChanged);
-
+	jumpToSprite("swing", m_currentDirection, m_currentAlteration);
 }
+
+
 
 
 /**
@@ -122,13 +126,19 @@ void IsometricPlayer::load()
 	addSensorPolygon(200);
 
 
-	QString path = ":/character_w_clothes.png";
+	QString path = ":/";
 
 	createVisual();
 	setAvailableDirections(Direction_8);
 
 
 	QString test = R"({
+					   "alterations": {
+		"none": "char_none.png",
+		"all": "char_all.png",
+		"shield": "char_shield.png",
+		"sword": "char_sword.png"
+	},
 	"sprites": [
 		{
 			"name": "idle",
@@ -153,22 +163,35 @@ void IsometricPlayer::load()
 		},
 
 		{
-			"name": "hurt",
+			"name": "swing",
 			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
-			"x": 2048,
+			"x": 1536,
 			"y": 0,
 			"count": 4,
 			"width": 128,
 			"height": 128,
-			"duration": 60
+			"duration": 60,
+			"loops": 1
+		},
+
+		{
+			"name": "block",
+			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
+			"x": 2048,
+			"y": 0,
+			"count": 2,
+			"width": 128,
+			"height": 128,
+			"duration": 60,
+			"loops": 1
 		},
 
 		{
 			"name": "die",
 			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
-			"x": 2560,
+			"x": 2304,
 			"y": 0,
-			"count": 4,
+			"count": 6,
 			"width": 128,
 			"height": 128,
 			"duration": 60,
@@ -178,14 +201,41 @@ void IsometricPlayer::load()
 	})";
 
 
-	IsometricObjectSpriteList json;
+	connect(m_fixture.get(), &Box2DCircle::beginContact, this, [this](Box2DFixture *other) {
+		if (!other->categories().testFlag(Box2DFixture::Category4))
+			return;
+
+		TiledObjectBody *body = qobject_cast<TiledObjectBody*>(other->getBody());
+		TiledObjectBase *base = body ? body->baseObject() : nullptr;
+		TiledTransport *transport = m_game ? m_game->transportList().find(base) : nullptr;
+
+		LOG_CINFO("scene") << "CONTACT" << other << transport << (transport ? transport->name() : nullptr);
+
+		setCurrentTransport(transport);
+	});
+
+
+	connect(m_fixture.get(), &Box2DCircle::endContact, this, [this](Box2DFixture *other) {
+		if (!other->categories().testFlag(Box2DFixture::Category4))
+			return;
+
+		LOG_CINFO("scene") << "CONTACT END" << other;
+
+		setCurrentTransport(nullptr);
+	});
+
+
+
+	IsometricObjectAlterableSprite json;
 	json.fromJson(QJsonDocument::fromJson(test.toUtf8()).object());
 
-	appendSpriteList(path, json);
+	appendSprite(json, path);
 
 	setWidth(128);
 	setHeight(128);
 	m_body->setBodyOffset(0, 0.4*64);
+
+	m_currentAlteration = "all";
 }
 
 
@@ -196,16 +246,16 @@ void IsometricPlayer::load()
 void IsometricPlayer::updateSprite()
 {
 	if (m_hp <= 0) {
-		jumpToSprite("die", m_currentDirection);
+		jumpToSprite("die", m_currentDirection, m_currentAlteration);
 		return;
 	}
 
-	if (m_spriteHandler->currentSprite() == "hurt")
-		jumpToSpriteLater("idle", m_currentDirection);
+	if (m_spriteHandler->currentSprite() == "block" || m_spriteHandler->currentSprite() == "swing")
+		jumpToSpriteLater("idle", m_currentDirection, m_currentAlteration);
 	else if (m_movingDirection != Invalid)
-		jumpToSprite("run", m_movingDirection);
+		jumpToSprite("run", m_movingDirection, m_currentAlteration);
 	else
-		jumpToSprite("idle", m_currentDirection);
+		jumpToSprite("idle", m_currentDirection, m_currentAlteration);
 }
 
 
@@ -244,17 +294,38 @@ void IsometricPlayer::onDead()
 
 void IsometricPlayer::onJoystickStateChanged()
 {
-	if (!m_scene || m_scene->controlledItem() != this)
-		return;
+	Q_ASSERT(m_game);
 
-	if (m_scene->joystickState().hasKeyboard || m_scene->joystickState().hasTouch)
-		setCurrentDirection(nearestDirectionFromRadian(m_scene->joystickState().angle));
+	const auto &state = m_game->joystickState();
+
+	if (state.hasKeyboard || state.hasTouch)
+		setCurrentDirection(nearestDirectionFromRadian(state.angle));
 
 
-	if (m_scene->joystickState().distance > 0.9) {
+	if (state.distance > 0.9) {
 		const qreal radius = 6.;					/// speed
-		m_body->setLinearVelocity(TiledObjectBase::toPoint(m_scene->joystickState().angle, radius));
+		m_body->setLinearVelocity(TiledObjectBase::toPoint(state.angle, radius));
 	} else {
 		m_body->setLinearVelocity(QPointF{0,0});
 	}
+}
+
+
+
+/**
+ * @brief IsometricPlayer::currentTransport
+ * @return
+ */
+
+TiledTransport *IsometricPlayer::currentTransport() const
+{
+	return m_currentTransport;
+}
+
+void IsometricPlayer::setCurrentTransport(TiledTransport *newCurrentTransport)
+{
+	if (m_currentTransport == newCurrentTransport)
+		return;
+	m_currentTransport = newCurrentTransport;
+	emit currentTransportChanged();
 }

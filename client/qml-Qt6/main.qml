@@ -13,6 +13,7 @@ import Qt.labs.folderlistmodel
 import Qt.labs.platform
 import Qt.labs.settings
 import Qt.labs.qmlmodels
+import Qt.labs.sharedimage
 
 // -----
 

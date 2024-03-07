@@ -45,7 +45,7 @@ TiledScene::TiledScene(QQuickItem *parent)
 
 	m_world->setGravity(QPointF{0,0});
 	m_world->setTimeStep(1./60.);
-	connect(m_world, &Box2DWorld::stepped, this, &TiledScene::onWorldStepped);
+	connect(m_world.get(), &Box2DWorld::stepped, this, &TiledScene::onWorldStepped);
 	m_world->componentComplete();
 
 	setImplicitHeight(100);
@@ -199,98 +199,8 @@ void TiledScene::setRunning(bool newRunning)
 
 
 
-/**
- * @brief TiledScene::joystickConnect
- */
-
-void TiledScene::joystickConnect(const bool &connect)
-{
-	if (!m_joystick)
-		return;
-
-	const int methodIndex = this->metaObject()->indexOfMethod("updateJoystick()");
-
-	LOG_CWARNING("scene") << "Joystick connect" << connect << methodIndex;
-
-	Q_ASSERT(methodIndex != -1);
-
-	const QMetaObject *mo = m_joystick->metaObject();
-
-	static const QList<const char*> propList = {
-		"currentX",
-		"currentY",
-		"currentAngle",
-		"currentDistance",
-		"hasTouch",
-	};
-
-	for (const char *prop : propList) {
-		auto p = mo->property(mo->indexOfProperty(prop));
-
-		if (p.hasNotifySignal()) {
-			if (connect)
-				QObject::connect(m_joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
-			else
-				QObject::disconnect(m_joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
-		}
-	}
-
-	if (connect)
-		LOG_CTRACE("scene") << "Joystick connected";
-	else
-		LOG_CTRACE("scene") << "Joystick disconnected";
-}
 
 
-
-/**
- * @brief TiledScene::updateJoystick
- */
-
-void TiledScene::updateJoystick()
-{
-	JoystickState state;
-
-	if (m_joystick) {
-		state.dx = m_joystick->property("currentX").toReal();
-		state.dy = m_joystick->property("currentY").toReal();
-		state.distance = m_joystick->property("currentDistance").toReal();
-		state.angle = m_joystick->property("currentAngle").toReal();
-		state.hasTouch = m_joystick->property("hasTouch").toBool();
-		state.hasKeyboard = m_joystickState.hasKeyboard;
-	}
-
-	setJoystickState(state);
-}
-
-
-/**
- * @brief TiledScene::updateKeyboardJoystick
- * @param state
- */
-
-void TiledScene::updateKeyboardJoystick(const KeyboardJoystickState &state)
-{
-	if (m_joystickState.hasTouch)
-		return;
-
-	if (state.dx == m_keyboardJoystickState.dx && state.dy == m_keyboardJoystickState.dy)
-		return;
-
-	m_keyboardJoystickState = state;
-
-	JoystickState jState = m_joystickState;
-	jState.hasKeyboard = state.dx != 0.5 || state.dy != 0.5;
-	setJoystickState(jState);
-
-	if (!m_joystick)
-		return;
-
-	QMetaObject::invokeMethod(m_joystick, "moveThumbRelative",
-							  Q_ARG(QVariant, state.dx),
-							  Q_ARG(QVariant, state.dy)
-							  );
-}
 
 
 /**
@@ -390,41 +300,6 @@ void TiledScene::setActive(bool newActive)
 }
 
 
-/**
- * @brief TiledScene::controlledItem
- * @return
- */
-
-TiledObject *TiledScene::controlledItem() const
-{
-	return m_controlledItem;
-}
-
-void TiledScene::setControlledItem(TiledObject *newControlledItem)
-{
-	if (m_controlledItem == newControlledItem)
-		return;
-	m_controlledItem = newControlledItem;
-	emit controlledItemChanged();
-}
-
-
-
-QQuickItem *TiledScene::followedItem() const
-{
-	return m_followedItem;
-}
-
-void TiledScene::setFollowedItem(QQuickItem *newFollowedItem)
-{
-	if (m_followedItem == newFollowedItem)
-		return;
-	m_followedItem = newFollowedItem;
-	emit followedItemChanged();
-}
-
-
-
 
 
 QVariantList TiledScene::testPoints() const
@@ -443,24 +318,6 @@ void TiledScene::setTestPoints(const QVariantList &newTestPoints)
 
 
 
-/**
- * @brief TiledScene::debugView
- * @return
- */
-
-bool TiledScene::debugView() const
-{
-	return m_debugView;
-}
-
-void TiledScene::setDebugView(bool newDebugView)
-{
-	if (m_debugView == newDebugView)
-		return;
-	m_debugView = newDebugView;
-	emit debugViewChanged();
-}
-
 
 /**
  * @brief TiledScene::mapLoader
@@ -473,117 +330,6 @@ TiledQuick::MapLoader*TiledScene::mapLoader() const
 }
 
 
-/**
- * @brief TiledScene::joystickState
- * @return
- */
-
-TiledScene::JoystickState TiledScene::joystickState() const
-{
-	return m_joystickState;
-}
-
-void TiledScene::setJoystickState(const JoystickState &newJoystickState)
-{
-	if (m_joystickState == newJoystickState)
-		return;
-	m_joystickState = newJoystickState;
-	emit joystickStateChanged();
-}
-
-
-
-/**
- * @brief TiledScene::keyPressEvent
- * @param event
- */
-
-void TiledScene::keyPressEvent(QKeyEvent *event)
-{
-	const int &key = event->key();
-
-	qreal dx = m_keyboardJoystickState.dx;
-	qreal dy = m_keyboardJoystickState.dy;
-
-	switch (key) {
-		case Qt::Key_Left:
-			dx = 0.;
-			break;
-
-		case Qt::Key_Right:
-			dx = 1.;
-			break;
-
-		case Qt::Key_Up:
-			dy = 0.;
-			break;
-
-		case Qt::Key_Down:
-			dy = 1.;
-			break;
-
-		case Qt::Key_Home:
-			dx = 0.;
-			dy = 0.;
-			break;
-
-		case Qt::Key_End:
-			dx = 0.;
-			dy = 1.;
-			break;
-
-		case Qt::Key_PageUp:
-			dx = 1.;
-			dy = 0.;
-			break;
-
-		case Qt::Key_PageDown:
-			dx = 1.;
-			dy = 1.;
-			break;
-	}
-
-	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
-}
-
-
-/**
- * @brief TiledScene::keyReleaseEvent
- * @param event
- */
-
-void TiledScene::keyReleaseEvent(QKeyEvent *event)
-{
-	const int &key = event->key();
-
-	if (event->isAutoRepeat())
-		return;
-
-	qreal dx = m_keyboardJoystickState.dx;
-	qreal dy = m_keyboardJoystickState.dy;
-
-	switch (key) {
-		case Qt::Key_Left:
-		case Qt::Key_Right:
-			dx = 0.5;
-			break;
-
-		case Qt::Key_Up:
-		case Qt::Key_Down:
-			dy = 0.5;
-			break;
-
-		case Qt::Key_Home:
-		case Qt::Key_End:
-		case Qt::Key_PageUp:
-		case Qt::Key_PageDown:
-			dx = 0.5;
-			dy = 0.5;
-			break;
-	}
-
-	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
-}
 
 
 
@@ -607,6 +353,7 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 			Q_ASSERT(character);
 
 			character->setScene(this);
+			character->setGame(m_game);
 			character->loadPathMotor(p);
 
 
@@ -693,8 +440,8 @@ void TiledScene::loadGround(Tiled::MapObject *object)
 
 void TiledScene::loadGate(Tiled::MapObject *object)
 {
-	TiledObjectPolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectPolygon>(&mapObject, object, mRenderer.get(), this);
+	TiledObjectBasePolygon *mapObject = nullptr;
+	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, mRenderer.get(), this);
 
 	if (!mapObject)
 		return;
@@ -702,6 +449,9 @@ void TiledScene::loadGate(Tiled::MapObject *object)
 	mapObject->setScene(this);
 	mapObject->fixture()->setSensor(true);
 	mapObject->fixture()->setCategories(Box2DFixture::Category4);
+
+	bool r = m_game->addGate(object->name(), this, mapObject);
+	LOG_CINFO("scene") << "Add gate" << object->name() << this << mapObject << r;
 }
 
 
@@ -712,20 +462,8 @@ void TiledScene::loadGate(Tiled::MapObject *object)
 
 Box2DWorld *TiledScene::world() const
 {
-	return m_world;
+	return m_world.get();
 }
-
-void TiledScene::setWorld(Box2DWorld *newWorld)
-{
-	if (m_world == newWorld)
-		return;
-	m_world = newWorld;
-	emit worldChanged();
-
-	if (m_world)
-		connect(m_world, &Box2DWorld::stepped, this, &TiledScene::onWorldStepped);
-}
-
 
 
 
@@ -746,33 +484,6 @@ void TiledScene::setTiledObjects(const QList<TiledObject *> &newTiledObjects)
 		return;
 	m_tiledObjects = newTiledObjects;
 	emit tiledObjectsChanged();
-}
-
-
-
-/**
- * @brief TiledScene::joystick
- * @return
- */
-
-QQuickItem *TiledScene::joystick() const
-{
-	return m_joystick;
-}
-
-void TiledScene::setJoystick(QQuickItem *newJoystick)
-{
-	if (m_joystick == newJoystick)
-		return;
-
-	if (m_joystick)
-		joystickConnect(false);
-
-	m_joystick = newJoystick;
-	emit joystickChanged();
-
-	if (m_joystick)
-		joystickConnect(true);
 }
 
 

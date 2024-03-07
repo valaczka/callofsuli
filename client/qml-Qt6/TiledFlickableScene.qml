@@ -12,8 +12,6 @@ Flickable {
 	id: flick
 
 	property alias scene: _scene
-	property alias joystick: _scene.joystick
-	property alias followedItem: _scene.followedItem
 
 	default property alias defaultItems: _scene.children
 
@@ -22,7 +20,7 @@ Flickable {
 
 	anchors.fill: parent
 
-	visible: false
+	visible: _scene.game && _scene.game.currentScene == _scene
 
 	interactive: !_pinch.active
 
@@ -45,14 +43,7 @@ Flickable {
 
 			running: active
 
-			// BUG: timestep not available when in c++ instantiated
-
-			/*world: World {
-				gravity: Qt.point(0.0, 0.0)
-				timeStep: 1./60.
-			}*/
-
-			visibleArea: active ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
+			visibleArea: active && flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
 										  flick.contentWidth / scale, flick.contentHeight / scale) :
 								  Qt.rect(0,0,0,0)
 
@@ -89,7 +80,7 @@ Flickable {
 			anchors.fill: _scene
 			world: _scene.world
 			opacity: 0.5
-			visible: flick.visible && _scene.debugView && _scene.active
+			visible: _scene.game.debugView
 			scale: _scene.scale
 		}
 
@@ -132,7 +123,7 @@ Flickable {
 
 
 	Connections {
-		target: followedItem
+		target: _scene.game ? _scene.game.followedItem : nullptr
 
 		function onXChanged() {
 			setXOffset()
@@ -146,13 +137,13 @@ Flickable {
 
 
 	function setXOffset() {
-		if (!followedItem)
+		if (!_scene.game || !_scene.game.followedItem || _scene.game.followedItem.scene != _scene)
 			return
 
 		var fw = flick.width
 		var spaceRequired = Math.min(fw*0.3, 250)
-		var px = followedItem.x*_scene.scale
-		var pw = followedItem.width*_scene.scale
+		var px = _scene.game.followedItem.x*_scene.scale
+		var pw = _scene.game.followedItem.width*_scene.scale
 		var cx = flick.contentX
 		var cw = flick.contentWidth
 		var x = -1
@@ -175,13 +166,13 @@ Flickable {
 
 
 	function setYOffset() {
-		if (!followedItem)
+		if (!_scene.game || !_scene.game.followedItem || _scene.game.followedItem.scene != _scene)
 			return
 
 		var fh = flick.height
 		var spaceRequired = Math.min(fh*0.3, 250)
-		var py = followedItem.y*_scene.scale
-		var ph = followedItem.height*_scene.scale
+		var py = _scene.game.followedItem.y*_scene.scale
+		var ph = _scene.game.followedItem.height*_scene.scale
 		var cy = flick.contentY
 		var ch = flick.contentHeight
 		var y = -1

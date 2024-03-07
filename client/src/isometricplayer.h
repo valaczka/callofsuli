@@ -28,12 +28,15 @@
 #define ISOMETRICPLAYER_H
 
 #include "isometricentity.h"
+#include "tiledtransport.h"
 #include <QQmlEngine>
 
 class IsometricPlayer : public IsometricCircleEntity
 {
 	Q_OBJECT
 	QML_ELEMENT
+
+	Q_PROPERTY(TiledTransport *currentTransport READ currentTransport WRITE setCurrentTransport NOTIFY currentTransportChanged FINAL)
 
 public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
@@ -43,12 +46,15 @@ public:
 	virtual void entityWorldStep() override;
 
 	void hurt();
+	Q_INVOKABLE void hit();
+
+	TiledTransport *currentTransport() const;
+	void setCurrentTransport(TiledTransport *newCurrentTransport);
 
 signals:
-	void hpChanged() override final;
+	void currentTransportChanged();
 
 protected:
-	void onSceneConnected() override;
 	void updateSprite() override;
 	void onAlive() override;
 	void onDead() override;
@@ -57,6 +63,11 @@ private:
 	void load();
 
 	void onJoystickStateChanged();
+
+	TiledTransport *m_currentTransport = nullptr;
+	QString m_currentAlteration;
+
+	friend class TiledGame;
 };
 
 #endif // ISOMETRICPLAYER_H

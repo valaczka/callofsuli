@@ -61,15 +61,67 @@ bool TiledGame::load()
 	}
 
 	const Scene &item = m_sceneList.first();
-	item.scene->setJoystick(m_joystick);
 	item.scene->setActive(true);
-	item.scene->setDebugView(true);
-	item.container->setVisible(true);
 
 	setCurrentScene(item.scene);
 	item.scene->forceActiveFocus();
 
 	return true;
+}
+
+
+
+/**
+ * @brief TiledGame::addGate
+ * @param name
+ * @param scene
+ * @param object
+ * @return
+ */
+
+bool TiledGame::addGate(const QString &name, TiledScene *scene, TiledObjectBase *object)
+{
+	return m_transportList.add(name, scene, object);
+}
+
+
+/**
+ * @brief TiledGame::switchScene
+ * @param character
+ */
+
+void TiledGame::switchScene()
+{
+	LOG_CDEBUG("scene") << "SWITCH";
+
+	TiledTransport *transport = m_player->currentTransport();
+
+	if (!transport) {
+		LOG_CWARNING("scene") << "No transport";
+		return;
+	}
+
+	TiledScene *oldScene = m_player->scene();
+	TiledScene *newScene = transport->otherScene(oldScene);
+	TiledObjectBase *newObject = transport->otherObject(oldScene);
+
+	if (!newScene || !newObject) {
+		LOG_CERROR("scene") << "Wrong transport object";
+		return;
+	}
+
+	oldScene->removeFromObjects(m_player.get());
+	//oldScene->setActive(false);
+
+	m_player->setScene(newScene);
+	m_player->emplace(newObject->body()->bodyPosition());
+
+
+	newScene->appendToObjects(m_player.get());
+	newScene->setActive(true);
+
+	setCurrentScene(newScene);
+	newScene->forceActiveFocus();
 }
 
 
@@ -87,51 +139,15 @@ void TiledGame::loadPlayer(TiledScene *scene, const QPointF &pos)
 	Q_ASSERT(m_player);
 
 	m_player->setScene(scene);
+	m_player->setGame(this);
 	m_player->emplace(pos);
 	m_player->setCurrentDirection(TiledObject::South);
 
 	scene->appendToObjects(m_player.get());
-	scene->setFollowedItem(m_player.get());
-	scene->setControlledItem(m_player.get());
+	setFollowedItem(m_player.get());
+	setControlledPlayer(m_player.get());
 }
 
-
-
-
-/**
- * @brief TiledGame::joystick
- * @return
- */
-
-QQuickItem *TiledGame::joystick() const
-{
-	return m_joystick;
-}
-
-void TiledGame::setJoystick(QQuickItem *newJoystick)
-{
-	if (m_joystick == newJoystick)
-		return;
-	m_joystick = newJoystick;
-	emit joystickChanged();
-
-	if (m_joystick && !m_sceneList.isEmpty())
-		m_sceneList.first().scene->setJoystick(m_joystick);
-
-}
-
-bool TiledGame::debugView() const
-{
-	return m_debugView;
-}
-
-void TiledGame::setDebugView(bool newDebugView)
-{
-		if (m_debugView == newDebugView)
-		return;
-	m_debugView = newDebugView;
-	emit debugViewChanged();
-}
 
 TiledScene *TiledGame::currentScene() const
 {
@@ -184,4 +200,330 @@ bool TiledGame::loadScene(const QString &file)
 	m_sceneList.append(item);
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief TiledGame::keyPressEvent
+ * @param event
+ */
+
+void TiledGame::keyPressEvent(QKeyEvent *event)
+{
+	const int &key = event->key();
+
+	qreal dx = m_keyboardJoystickState.dx;
+	qreal dy = m_keyboardJoystickState.dy;
+
+	switch (key) {
+		case Qt::Key_Left:
+			dx = 0.;
+			break;
+
+		case Qt::Key_Right:
+			dx = 1.;
+			break;
+
+		case Qt::Key_Up:
+			dy = 0.;
+			break;
+
+		case Qt::Key_Down:
+			dy = 1.;
+			break;
+
+		case Qt::Key_Home:
+			dx = 0.;
+			dy = 0.;
+			break;
+
+		case Qt::Key_End:
+			dx = 0.;
+			dy = 1.;
+			break;
+
+		case Qt::Key_PageUp:
+			dx = 1.;
+			dy = 0.;
+			break;
+
+		case Qt::Key_PageDown:
+			dx = 1.;
+			dy = 1.;
+			break;
+
+
+		case Qt::Key_S:
+			switchScene();
+			break;
+
+		case Qt::Key_D:
+			setDebugView(!m_debugView);
+			break;
+
+		case Qt::Key_Space:
+			if (m_controlledPlayer)
+				m_controlledPlayer->hit();
+			break;
+	}
+
+	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
+}
+
+
+/**
+ * @brief TiledGame::keyReleaseEvent
+ * @param event
+ */
+
+void TiledGame::keyReleaseEvent(QKeyEvent *event)
+{
+	const int &key = event->key();
+
+	if (event->isAutoRepeat())
+		return;
+
+	qreal dx = m_keyboardJoystickState.dx;
+	qreal dy = m_keyboardJoystickState.dy;
+
+	switch (key) {
+		case Qt::Key_Left:
+		case Qt::Key_Right:
+			dx = 0.5;
+			break;
+
+		case Qt::Key_Up:
+		case Qt::Key_Down:
+			dy = 0.5;
+			break;
+
+		case Qt::Key_Home:
+		case Qt::Key_End:
+		case Qt::Key_PageUp:
+		case Qt::Key_PageDown:
+			dx = 0.5;
+			dy = 0.5;
+			break;
+	}
+
+	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
+}
+
+
+
+
+
+/**
+ * @brief TiledGame::joystickConnect
+ * @param connect
+ */
+
+void TiledGame::joystickConnect(const bool &connect)
+{
+	if (!m_joystick)
+		return;
+
+	const int methodIndex = this->metaObject()->indexOfMethod("updateJoystick()");
+
+	Q_ASSERT(methodIndex != -1);
+
+	const QMetaObject *mo = m_joystick->metaObject();
+
+	static const QList<const char*> propList = {
+		"currentX",
+		"currentY",
+		"currentAngle",
+		"currentDistance",
+		"hasTouch",
+	};
+
+	for (const char *prop : propList) {
+		auto p = mo->property(mo->indexOfProperty(prop));
+
+		if (p.hasNotifySignal()) {
+			if (connect)
+				QObject::connect(m_joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
+			else
+				QObject::disconnect(m_joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
+		}
+	}
+
+	if (connect)
+		LOG_CTRACE("scene") << "Joystick connected";
+	else
+		LOG_CTRACE("scene") << "Joystick disconnected";
+}
+
+
+
+/**
+ * @brief TiledGame::updateJoystick
+ */
+
+void TiledGame::updateJoystick()
+{
+	JoystickState state;
+
+	if (m_joystick) {
+		state.dx = m_joystick->property("currentX").toReal();
+		state.dy = m_joystick->property("currentY").toReal();
+		state.distance = m_joystick->property("currentDistance").toReal();
+		state.angle = m_joystick->property("currentAngle").toReal();
+		state.hasTouch = m_joystick->property("hasTouch").toBool();
+		state.hasKeyboard = m_joystickState.hasKeyboard;
+	}
+
+	setJoystickState(state);
+}
+
+
+
+/**
+ * @brief TiledGame::updateKeyboardJoystick
+ * @param state
+ */
+
+void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
+{
+	if (m_joystickState.hasTouch)
+		return;
+
+	if (state.dx == m_keyboardJoystickState.dx && state.dy == m_keyboardJoystickState.dy)
+		return;
+
+	m_keyboardJoystickState = state;
+
+	JoystickState jState = m_joystickState;
+	jState.hasKeyboard = state.dx != 0.5 || state.dy != 0.5;
+	setJoystickState(jState);
+
+	if (!m_joystick)
+		return;
+
+	QMetaObject::invokeMethod(m_joystick, "moveThumbRelative",
+							  Q_ARG(QVariant, state.dx),
+							  Q_ARG(QVariant, state.dy)
+							  );
+}
+
+
+
+/**
+ * @brief TiledGame::followedItem
+ * @return
+ */
+
+TiledObject *TiledGame::followedItem() const
+{
+	return m_followedItem;
+}
+
+void TiledGame::setFollowedItem(TiledObject *newFollowedItem)
+{
+	if (m_followedItem == newFollowedItem)
+		return;
+	m_followedItem = newFollowedItem;
+	emit followedItemChanged();
+}
+
+
+/**
+ * @brief TiledGame::transportList
+ * @return
+ */
+
+const TiledTransportList &TiledGame::transportList() const
+{
+	return m_transportList;
+}
+
+
+
+/**
+ * @brief TiledGame::joystick
+ * @return
+ */
+
+QQuickItem *TiledGame::joystick() const
+{
+	return m_joystick;
+}
+
+void TiledGame::setJoystick(QQuickItem *newJoystick)
+{
+	if (m_joystick == newJoystick)
+		return;
+
+	if (m_joystick)
+		joystickConnect(false);
+
+	m_joystick = newJoystick;
+	emit joystickChanged();
+
+	if (m_joystick)
+		joystickConnect(true);
+}
+
+
+/**
+ * @brief TiledGame::controlledPlayer
+ * @return
+ */
+
+IsometricPlayer *TiledGame::controlledPlayer() const
+{
+	return m_controlledPlayer;
+}
+
+void TiledGame::setControlledPlayer(IsometricPlayer *newControlledItem)
+{
+	if (m_controlledPlayer == newControlledItem)
+		return;
+	m_controlledPlayer = newControlledItem;
+	emit controlledPlayerChanged();
+}
+
+
+
+/**
+ * @brief TiledGame::joystickState
+ * @return
+ */
+
+TiledGame::JoystickState TiledGame::joystickState() const
+{
+	return m_joystickState;
+}
+
+void TiledGame::setJoystickState(const JoystickState &newJoystickState)
+{
+	if (m_joystickState == newJoystickState)
+		return;
+	m_joystickState = newJoystickState;
+	emit joystickStateChanged();
+
+	if (m_controlledPlayer)
+		m_controlledPlayer->onJoystickStateChanged();
+}
+
+
+
+/**
+ * @brief TiledGame::debugView
+ * @return
+ */
+
+bool TiledGame::debugView() const
+{
+	return m_debugView;
+}
+
+void TiledGame::setDebugView(bool newDebugView)
+{
+	if (m_debugView == newDebugView)
+		return;
+	m_debugView = newDebugView;
+	emit debugViewChanged();
 }

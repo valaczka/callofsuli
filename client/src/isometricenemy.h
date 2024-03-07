@@ -108,7 +108,6 @@ public:
 signals:
 	void playerChanged() override final;
 	void playerDistanceChanged() override final;
-	void hpChanged() override final;
 
 protected:
 	virtual void entityWorldStep() override final;

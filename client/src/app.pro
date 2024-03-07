@@ -280,6 +280,7 @@ SOURCES += \
 	tiledreturnpathmotor.cpp \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
+	tiledtransport.cpp \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
@@ -373,6 +374,7 @@ HEADERS += \
 	tiledreturnpathmotor.h \
 	tiledscene.h \
 	tiledspritehandler.h \
+	tiledtransport.h \
 	updater.h \
 	user.h \
 	userimporter.h \
