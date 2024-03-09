@@ -4,7 +4,7 @@ TEMPLATE = aux
 
 AppVersionBuild = "$$cat(version_build.num)"
 
-linux {
+linux|wasm|win32|android: {
 	if($$AppVersionIncrement) {
 		AppVersionBuild = $$num_add($$AppVersionBuild,1)
 		write_file(version_build.num, AppVersionBuild)
