@@ -558,7 +558,9 @@ void Client::onServerConnected()
 
 		reloadCache(QStringLiteral("gradeList"));
 
+#ifndef Q_OS_WASM
 		loadDynamicResources();
+#endif
 	})
 			->fail(this, [this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
