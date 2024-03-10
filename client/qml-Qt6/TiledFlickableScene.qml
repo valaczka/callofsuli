@@ -22,7 +22,7 @@ Flickable {
 
 	visible: _scene.game && _scene.game.currentScene == _scene
 
-	interactive: !_pinch.active
+	interactive: !_pinch.active && _scene.game && !_scene.game.joystickState.hasTouch
 
 	boundsBehavior: Flickable.DragAndOvershootBounds
 	boundsMovement: Flickable.StopAtBounds
@@ -41,11 +41,9 @@ Flickable {
 
 			transformOrigin: Item.Center
 
-			running: active
-
-			visibleArea: active && flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
-										  flick.contentWidth / scale, flick.contentHeight / scale) :
-								  Qt.rect(0,0,0,0)
+			visibleArea: flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
+												 flick.contentWidth / scale, flick.contentHeight / scale) :
+										 Qt.rect(0,0,0,0)
 
 			onTestPointsChanged: _canvas.requestPaint()
 
@@ -80,7 +78,7 @@ Flickable {
 			anchors.fill: _scene
 			world: _scene.world
 			opacity: 0.5
-			visible: _scene.game.debugView
+			visible: _scene.game && _scene.game.debugView
 			scale: _scene.scale
 		}
 
@@ -123,7 +121,7 @@ Flickable {
 
 
 	Connections {
-		target: _scene.game ? _scene.game.followedItem : nullptr
+		target: _scene.game ? _scene.game.followedItem : null
 
 		function onXChanged() {
 			setXOffset()

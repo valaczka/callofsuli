@@ -50,12 +50,13 @@ IsometricEnemy::IsometricEnemy(QQuickItem *parent)
  * @return
  */
 
-IsometricEnemy *IsometricEnemy::createEnemy(QQuickItem *parent)
+IsometricEnemy *IsometricEnemy::createEnemy(TiledScene *scene)
 {
 	IsometricEnemy *enemy = nullptr;
-	TiledObjectBase::createFromCircle<IsometricEnemy>(&enemy, QPointF{}, 30, nullptr, parent);
+	TiledObjectBase::createFromCircle<IsometricEnemy>(&enemy, QPointF{}, 30, nullptr, scene);
 
 	if (enemy) {
+		enemy->setScene(scene);
 		enemy->load();
 	}
 
@@ -337,27 +338,6 @@ void IsometricEnemy::load()
 		setPlayer(nullptr);
 	});
 
-/*
-
-	QString s = path;
-	if (s.startsWith(QStringLiteral("qrc:/")))
-		s.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
-
-	QTemporaryFile *tmp = QTemporaryFile::createNativeFile(s);
-
-	if (tmp) {
-		tmp->setAutoRemove(false);
-		m_tmpPath = QDir::toNativeSeparators(tmp->fileName()).toUtf8();
-		delete tmp;
-	} else
-		m_tmpPath = QDir::toNativeSeparators(s).toUtf8();
-
-	image://shared/
-
-property string imagePrefix: Qt.resolvedUrl("../myimages/").replace("file://", "image://shared/")
-Image { source: imagePrefix + "myimage.png" }
-
-*/
 
 	QString path = ":/";
 

@@ -22,6 +22,7 @@ QPage {
 			id: menu
 
 			QMenuItem { action: actionDemo }
+			QMenuItem { action: actionPageDev }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionSettings }
 			QMenuItem { action: actionAbout }
@@ -53,6 +54,15 @@ QPage {
 		icon.source: Qaterial.Icons.presentationPlay
 		onTriggered: {
 			onClicked: Client.loadDemoMap()
+		}
+	}
+
+	Action {
+		id: actionPageDev
+		text: qsTr("_PageDev")
+		icon.source: Qaterial.Icons.developerBoard
+		onTriggered: {
+			onClicked: Client.stackPushPage("_PageDev.qml", {})
 		}
 	}
 

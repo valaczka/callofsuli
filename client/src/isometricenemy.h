@@ -29,6 +29,7 @@
 
 #include "isometricentity.h"
 #include "isometricplayer.h"
+#include "qelapsedtimer.h"
 #include "tiledpathmotor.h"
 #include "tiledreturnpathmotor.h"
 #include <QQmlEngine>
@@ -102,7 +103,7 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 public:
 	explicit IsometricEnemy(QQuickItem *parent = nullptr);
 
-	static IsometricEnemy* createEnemy(QQuickItem *parent = nullptr);
+	static IsometricEnemy* createEnemy(TiledScene *scene);
 
 
 signals:

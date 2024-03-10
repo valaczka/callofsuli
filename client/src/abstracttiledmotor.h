@@ -42,6 +42,7 @@ public:
 	AbstractTiledMotor(const Type &type)
 		: m_type(type)
 	{}
+	virtual ~AbstractTiledMotor() {}
 
 	const Type &type() const { return m_type; }
 

@@ -47,12 +47,13 @@ IsometricPlayer::IsometricPlayer(QQuickItem *parent)
  * @return
  */
 
-IsometricPlayer *IsometricPlayer::createPlayer(QQuickItem *parent)
+IsometricPlayer *IsometricPlayer::createPlayer(TiledScene *scene)
 {
 	IsometricPlayer *player = nullptr;
-	TiledObjectBase::createFromCircle<IsometricPlayer>(&player, QPointF{}, 30, nullptr, parent);
+	TiledObjectBase::createFromCircle<IsometricPlayer>(&player, QPointF{}, 30, nullptr, scene);
 
 	if (player) {
+		player->setScene(scene);
 		player->load();
 	}
 
@@ -205,9 +206,10 @@ void IsometricPlayer::load()
 		if (!other->categories().testFlag(Box2DFixture::Category4))
 			return;
 
+
 		TiledObjectBody *body = qobject_cast<TiledObjectBody*>(other->getBody());
 		TiledObjectBase *base = body ? body->baseObject() : nullptr;
-		TiledTransport *transport = m_game ? m_game->transportList().find(base) : nullptr;
+		TiledTransport *transport = m_scene->game() ? m_scene->game()->transportList().find(base) : nullptr;
 
 		LOG_CINFO("scene") << "CONTACT" << other << transport << (transport ? transport->name() : nullptr);
 
@@ -294,9 +296,10 @@ void IsometricPlayer::onDead()
 
 void IsometricPlayer::onJoystickStateChanged()
 {
-	Q_ASSERT(m_game);
+	Q_ASSERT(m_scene);
+	Q_ASSERT(m_scene->game());
 
-	const auto &state = m_game->joystickState();
+	const auto &state = m_scene->game()->joystickState();
 
 	if (state.hasKeyboard || state.hasTouch)
 		setCurrentDirection(nearestDirectionFromRadian(state.angle));

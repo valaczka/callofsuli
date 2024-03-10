@@ -41,7 +41,7 @@ class IsometricPlayer : public IsometricCircleEntity
 public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
 
-	static IsometricPlayer* createPlayer(QQuickItem *parent = nullptr);
+	static IsometricPlayer* createPlayer(TiledScene *scene);
 
 	virtual void entityWorldStep() override;
 

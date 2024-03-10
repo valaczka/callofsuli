@@ -61,7 +61,7 @@ bool TiledGame::load()
 	}
 
 	const Scene &item = m_sceneList.first();
-	item.scene->setActive(true);
+	///item.scene->setActive(true);
 
 	setCurrentScene(item.scene);
 	item.scene->forceActiveFocus();
@@ -111,14 +111,11 @@ void TiledGame::switchScene()
 	}
 
 	oldScene->removeFromObjects(m_player.get());
-	//oldScene->setActive(false);
 
 	m_player->setScene(newScene);
 	m_player->emplace(newObject->body()->bodyPosition());
 
-
 	newScene->appendToObjects(m_player.get());
-	newScene->setActive(true);
 
 	setCurrentScene(newScene);
 	newScene->forceActiveFocus();
@@ -134,18 +131,42 @@ void TiledGame::switchScene()
 
 void TiledGame::loadPlayer(TiledScene *scene, const QPointF &pos)
 {
-	m_player.reset(IsometricPlayer::createPlayer());
+	m_player.reset(IsometricPlayer::createPlayer(scene));
 
 	Q_ASSERT(m_player);
 
-	m_player->setScene(scene);
-	m_player->setGame(this);
 	m_player->emplace(pos);
 	m_player->setCurrentDirection(TiledObject::South);
 
 	scene->appendToObjects(m_player.get());
 	setFollowedItem(m_player.get());
 	setControlledPlayer(m_player.get());
+}
+
+
+/**
+ * @brief TiledGame::getTexture
+ * @param path
+ * @return
+ */
+
+std::shared_ptr<QSGTexture> TiledGame::getTexture(const QString &path)
+{
+	auto it = m_sharedTextures.find(path);
+
+	if (it != m_sharedTextures.end())
+		return *it;
+
+	QSGTexture *texture = window()->createTextureFromImage(QImage(path));
+
+	LOG_CTRACE("scene") << "Create texture from image:" << path;
+
+	std::shared_ptr<QSGTexture> s;
+	s.reset(texture);
+
+	m_sharedTextures.insert(path, s);
+
+	return s;
 }
 
 

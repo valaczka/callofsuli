@@ -49,6 +49,11 @@ TiledObjectBase::TiledObjectBase(QQuickItem *parent)
 	m_body->setTarget(this);
 	m_body->setActive(true);
 	m_body->setSleepingAllowed(true);
+
+	connect(this, &TiledObjectBase::xChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
+	connect(this, &TiledObjectBase::yChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
+	connect(this, &TiledObjectBase::widthChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
+	connect(this, &TiledObjectBase::heightChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
 }
 
 
@@ -77,6 +82,10 @@ void TiledObjectBase::setScene(TiledScene *newScene)
 {
 	if (m_scene == newScene)
 		return;
+
+	if (m_scene)
+		disconnect(m_scene, &TiledScene::visibleAreaChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
+
 	m_scene = newScene;
 	emit sceneChanged();
 
@@ -84,7 +93,10 @@ void TiledObjectBase::setScene(TiledScene *newScene)
 		setParentItem(m_scene);
 		if (m_scene->world())
 			m_body->setWorld(m_scene->world());
+
+		connect(m_scene, &TiledScene::visibleAreaChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
 	}
+
 }
 
 
@@ -291,6 +303,44 @@ TiledObjectSensorPolygon *TiledObjectBase::addSensorPolygon(const qreal &length,
 
 	return m_sensorPolygon.get();
 }
+
+
+
+/**
+ * @brief TiledObjectBase::onSceneVisibleAreaChanged
+ */
+
+void TiledObjectBase::onSceneVisibleAreaChanged()
+{
+	if (!m_scene)
+		return;
+
+	QRectF rect(x(), y(), width(), height());
+
+	setInVisibleArea(m_scene->visibleArea().intersects(rect));
+}
+
+
+
+/**
+ * @brief TiledObjectBase::inVisibleArea
+ * @return
+ */
+
+bool TiledObjectBase::inVisibleArea() const
+{
+	return m_inVisibleArea;
+}
+
+void TiledObjectBase::setInVisibleArea(bool newInVisibleArea)
+{
+	if (m_inVisibleArea == newInVisibleArea)
+		return;
+	m_inVisibleArea = newInVisibleArea;
+	emit inVisibleAreaChanged();
+}
+
+
 
 QColor TiledObjectBase::overlayColor() const
 {
@@ -517,9 +567,6 @@ bool TiledObject::appendSpriteList(const TiledObjectAlterableSpriteList &spriteL
 void TiledObject::createVisual()
 {
 	Q_ASSERT(!m_visualItem);
-
-	/*setTransformOrigin(QQuickItem::Center);
-	setTransformOriginPoint(QPointF(0,0));*/
 
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledObjectVisual.qml"), this);
 

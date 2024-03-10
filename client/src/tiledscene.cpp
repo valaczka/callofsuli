@@ -65,6 +65,15 @@ TiledScene::TiledScene(QQuickItem *parent)
 
 TiledScene::~TiledScene()
 {
+	LOG_CTRACE("scene") << "Destroy scene" << this;
+
+	for (TiledObject *o : m_tiledObjects)
+		if (o)
+			o->deleteLater();
+
+	m_tiledObjects.clear();
+
+	m_world->setRunning(false);
 	m_mapLoader->setSource(QUrl{});
 
 	LOG_CTRACE("scene") << "Scene destroyed" << this;
@@ -121,6 +130,7 @@ bool TiledScene::load(const QUrl &url)
 
 	return true;
 }
+
 
 
 /**
@@ -224,6 +234,9 @@ void TiledScene::onSceneStatusChanged(const TiledQuick::MapLoader::Status &statu
 void TiledScene::onWorldStepped()
 {
 	for (TiledObject *obj : m_tiledObjects) {
+		if (!obj)
+			continue;
+
 		obj->worldStep();
 	}
 
@@ -241,6 +254,9 @@ void TiledScene::reorderObjectsZ()
 	QHash<qreal, QMultiMap<qreal, TiledObject*>> map;
 
 	for (TiledObject *obj : m_tiledObjects) {
+		if (!obj || !obj->body())
+			continue;
+
 		IsometricObjectIface *iso = dynamic_cast<IsometricObjectIface*>(obj);
 
 		qreal z = 0;
@@ -280,24 +296,6 @@ void TiledScene::setGame(TiledGame *newGame)
 	emit gameChanged();
 }
 
-
-/**
- * @brief TiledScene::active
- * @return
- */
-
-bool TiledScene::active() const
-{
-	return m_active;
-}
-
-void TiledScene::setActive(bool newActive)
-{
-	if (m_active == newActive)
-		return;
-	m_active = newActive;
-	emit activeChanged();
-}
 
 
 
@@ -352,17 +350,9 @@ void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
 
 			Q_ASSERT(character);
 
-			character->setScene(this);
-			character->setGame(m_game);
 			character->loadPathMotor(p);
 
-
-			m_tiledObjects.append(character);
-
-			/*QVariantList list;
-			for (const auto &point : p)
-				list.append(point);
-			setTestPoints(list);*/
+			appendToObjects(character);
 
 			continue;
 		} else if (object->className() == "player") {
@@ -465,26 +455,6 @@ Box2DWorld *TiledScene::world() const
 	return m_world.get();
 }
 
-
-
-
-/**
- * @brief TiledScene::tiledObjects
- * @return
- */
-
-QList<TiledObject *> TiledScene::tiledObjects() const
-{
-	return m_tiledObjects;
-}
-
-void TiledScene::setTiledObjects(const QList<TiledObject *> &newTiledObjects)
-{
-	if (m_tiledObjects == newTiledObjects)
-		return;
-	m_tiledObjects = newTiledObjects;
-	emit tiledObjectsChanged();
-}
 
 
 

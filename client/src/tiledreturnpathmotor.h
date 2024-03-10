@@ -36,6 +36,7 @@ class TiledReturnPathMotor : public AbstractTiledMotor
 {
 public:
 	TiledReturnPathMotor();
+	virtual ~TiledReturnPathMotor() {}
 
 	QPointF currentPosition() const override;
 

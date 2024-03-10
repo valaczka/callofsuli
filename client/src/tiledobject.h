@@ -227,6 +227,7 @@ class TiledObjectBase : public QQuickItem
 	Q_PROPERTY(QColor glowColor READ glowColor WRITE setGlowColor NOTIFY glowColorChanged FINAL)
 	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
 	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged FINAL)
+	Q_PROPERTY(bool inVisibleArea READ inVisibleArea WRITE setInVisibleArea NOTIFY inVisibleAreaChanged FINAL)
 
 public:
 	explicit TiledObjectBase(QQuickItem *parent = 0);
@@ -295,6 +296,9 @@ public:
 	QColor overlayColor() const;
 	void setOverlayColor(const QColor &newOverlayColor);
 
+	bool inVisibleArea() const;
+	void setInVisibleArea(bool newInVisibleArea);
+
 signals:
 	void sceneChanged();
 	void remoteModeChanged();
@@ -302,10 +306,12 @@ signals:
 	void overlayEnabledChanged();
 	void glowColorChanged();
 	void overlayColorChanged();
+	void inVisibleAreaChanged();
 
 protected:
 	void rotateBody(const float32 &desiredRadian);
 	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
+	virtual void onSceneVisibleAreaChanged();
 
 protected:
 	TiledScene *m_scene = nullptr;
@@ -316,6 +322,7 @@ protected:
 	bool m_overlayEnabled = false;
 	QColor m_glowColor = QColor(Qt::yellow);
 	QColor m_overlayColor = QColor(Qt::white);
+	bool m_inVisibleArea = false;
 
 	friend class TiledObjectBody;
 

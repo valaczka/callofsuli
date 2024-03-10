@@ -100,7 +100,7 @@ Page {
 	}
 
 
-	Component.onCompleted: {
+	StackView.onActivated: {
 		_game.load()
 	}
 

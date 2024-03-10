@@ -107,22 +107,6 @@ void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const T
 }
 
 
-/**
- * @brief IsometricEntityIface::game
- * @return
- */
-
-TiledGame *IsometricEntityIface::game() const
-{
-	return m_game;
-}
-
-void IsometricEntityIface::setGame(TiledGame *newGame)
-{
-	m_game = newGame;
-}
-
-
 
 /**
  * @brief IsometricEntityIface::hp

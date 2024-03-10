@@ -28,6 +28,9 @@
 #define TILEDSPRITEHANDLER_H
 
 #include <QQuickItem>
+#include <QSGGeometryNode>
+#include <QSGTexture>
+#include "qbasictimer.h"
 #include "tiledobjectspritedef.h"
 #include "tiledobject.h"
 
@@ -37,9 +40,11 @@ class TiledSpriteHandler : public QQuickItem
 	QML_ELEMENT
 
 	Q_PROPERTY(QString currentSprite READ currentSprite WRITE setCurrentSprite NOTIFY currentSpriteChanged FINAL)
+	Q_PROPERTY(TiledObject *baseObject READ baseObject WRITE setBaseObject NOTIFY baseObjectChanged FINAL)
 
 public:
 	explicit TiledSpriteHandler(QQuickItem *parent = nullptr);
+	~TiledSpriteHandler() = default;
 
 	enum JumpMode {
 		JumpImmediate,
@@ -47,6 +52,8 @@ public:
 	};
 
 	Q_ENUM(JumpMode);
+
+	QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *) override;
 
 	bool addSprite(const TiledObjectSprite &sprite, const QString &source);
 	bool addSprite(const TiledObjectSprite &sprite, const QString &alteration, const QString &source);
@@ -63,19 +70,26 @@ public:
 	const QString &currentSprite() const;
 	void setCurrentSprite(const QString &newCurrentSprite);
 
+	TiledObject *baseObject() const;
+	void setBaseObject(TiledObject *newBaseObject);
+
 signals:
 	void currentSpriteChanged();
+	void baseObjectChanged();
 
-private:
-	Q_INVOKABLE void spriteFinished();
+protected:
+	void timerEvent(QTimerEvent *) override final;
 
 private:
 	struct Sprite {
-		QString baseName;
 		QString alteration;
 		TiledObject::Direction direction = TiledObject::Invalid;
-		QQuickItem *item = nullptr;
+		TiledObjectSprite data;
+		std::shared_ptr<QSGTexture> shr_texture;
+
+		QSGTexture *texture() const { return shr_texture.get(); }
 	};
+
 
 	bool createSpriteItem(const TiledObjectSprite &sprite, const QString &source,
 						  const QString &alteration = QStringLiteral(""),
@@ -97,6 +111,12 @@ private:
 	QString m_currentSprite;
 	int m_currentId = -1;
 	int m_jumpToId = -1;
+	QPointer<TiledObject> m_baseObject;
+	QBasicTimer m_timer;
+	int m_currentFrame = 0;
 };
+
+
+
 
 #endif // TILEDSPRITEHANDLER_H

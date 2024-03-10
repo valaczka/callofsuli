@@ -56,8 +56,6 @@ class TiledScene : public TiledQuick::MapItem
 
 	Q_PROPERTY(Box2DWorld *world READ world CONSTANT FINAL)
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
-	Q_PROPERTY(QList<TiledObject *> tiledObjects READ tiledObjects WRITE setTiledObjects NOTIFY tiledObjectsChanged FINAL)
-	Q_PROPERTY(bool active READ active WRITE setActive NOTIFY activeChanged FINAL)
 	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 
 public:
@@ -79,13 +77,7 @@ public:
 
 	TiledQuick::MapLoader *mapLoader() const;
 
-	QList<TiledObject *> tiledObjects() const;
-	void setTiledObjects(const QList<TiledObject *> &newTiledObjects);
-
 	Box2DWorld *world() const;
-
-	bool active() const;
-	void setActive(bool newActive);
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
@@ -97,13 +89,9 @@ public:
 
 signals:
 	void runningChanged();
-	void tiledObjectsChanged();
-	void activeChanged();
 	void gameChanged();
 
 	void testPointsChanged();
-
-
 
 
 
@@ -123,18 +111,16 @@ protected:
 	std::map<int, DynamicZ> m_dynamicZList;
 	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Box2DWorld> m_world;
-	QList<TiledObject*> m_tiledObjects;
+	QList<QPointer<TiledObject>> m_tiledObjects;
 
 private:
 	void onSceneStatusChanged(const TiledQuick::MapLoader::Status &status);
 	void onWorldStepped();
-
 	void reorderObjectsZ();
 
 
 
 	TiledGame *m_game = nullptr;
-	bool m_active = false;
 
 
 	QVariantList m_testPoints;

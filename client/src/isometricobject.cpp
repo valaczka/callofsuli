@@ -26,8 +26,6 @@
 
 #include "isometricobject.h"
 #include "Logger.h"
-#include "tiledscene.h"
-#include "tiledspritehandler.h"
 #include <QtMath>
 
 IsometricObjectIface::IsometricObjectIface()

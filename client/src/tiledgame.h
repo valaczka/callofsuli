@@ -28,6 +28,7 @@
 #define TILEDGAME_H
 
 #include "isometricplayer.h"
+#include "qsgtexture.h"
 #include "tiledscene.h"
 #include "tiledtransport.h"
 #include <QQuickItem>
@@ -78,6 +79,8 @@ public:
 
 	void loadPlayer(TiledScene *scene, const QPointF &pos);
 
+	std::shared_ptr<QSGTexture> getTexture(const QString &path);
+
 
 	TiledScene *currentScene() const;
 	void setCurrentScene(TiledScene *newCurrentScene);
@@ -123,6 +126,7 @@ protected:
 	TiledScene *m_currentScene = nullptr;
 	std::unique_ptr<IsometricPlayer> m_player;
 	TiledTransportList m_transportList;
+	QHash<QString, std::shared_ptr<QSGTexture>> m_sharedTextures;
 
 private:
 	struct KeyboardJoystickState {
@@ -141,5 +145,7 @@ private:
 	JoystickState m_joystickState;
 	bool m_debugView = false;
 };
+
+Q_DECLARE_METATYPE(TiledGame::JoystickState)
 
 #endif // TILEDGAME_H

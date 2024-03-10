@@ -55,9 +55,6 @@ public:
 	int hp() const;
 	void setHp(int newHp);
 
-	TiledGame *game() const;
-	void setGame(TiledGame *newGame);
-
 public:
 	virtual void hpChanged() = 0;
 
@@ -68,8 +65,6 @@ protected:
 	virtual void onAlive() = 0;
 	virtual void onDead() = 0;
 
-
-	TiledGame *m_game = nullptr;
 	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
 	qreal m_maximumSpeed = 10.;
 	int m_hp = 0;

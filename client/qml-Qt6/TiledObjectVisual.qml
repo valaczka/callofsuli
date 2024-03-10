@@ -23,6 +23,7 @@ Item {
 	TiledSpriteHandlerImpl {
 		id: _spriteHandler
 		anchors.fill: parent
+		baseObject: root.baseObject
 	}
 
 	ThresholdMask {

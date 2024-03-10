@@ -26,11 +26,94 @@
 
 #include "tiledspritehandler.h"
 #include "application.h"
+#include "tiledscene.h"
+#include "tiledgame.h"
+#include <QSGSimpleTextureNode>
+
+
+
+/**
+ * @brief TiledSpriteHandler::TiledSpriteHandler
+ * @param parent
+ */
 
 TiledSpriteHandler::TiledSpriteHandler(QQuickItem *parent)
 	: QQuickItem(parent)
 {
+	setFlag(ItemHasContents);
+	//setZ(position.y() * parent->map().mMap->tileHeight());
+}
 
+
+QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
+{
+	if (!node) {
+		node = new QSGNode;
+	}
+
+	bool isActive = m_baseObject && m_baseObject->inVisibleArea();
+
+	if (m_spriteList.isEmpty()) {
+		LOG_CERROR("scene") << "Empty sprite list";
+		isActive = false;
+	}
+
+	auto it = m_spriteList.find(m_currentId);
+
+	if (it == m_spriteList.end()) {
+		LOG_CERROR("scene") << "Sprite id not found:" << m_currentId;
+		isActive = false;
+	} else if (!it->texture()) {
+		LOG_CERROR("scene") << "Sprite texture not found:" << m_currentId;
+		isActive = false;
+	}
+
+	if (!isActive) {
+		if (node->childCount() > 0) {
+			node->removeAllChildNodes();
+		}
+
+		return node;
+	}
+
+
+	QSGSimpleTextureNode *imgNode = nullptr;
+
+	if (node->childCount() > 0) {
+		imgNode = dynamic_cast<QSGSimpleTextureNode*>(node->firstChild());
+	} else {
+		imgNode = new QSGSimpleTextureNode();
+		imgNode->setOwnsTexture(false);
+		imgNode->setFlag(QSGNode::OwnedByParent);
+		node->appendChildNode(imgNode);
+	}
+
+	if (!imgNode) {
+		LOG_CERROR("scene") << "Invalid texture node";
+		return node;
+	}
+
+	imgNode->setRect(boundingRect());
+
+	bool textureModified = false;
+
+	if (it->texture() != imgNode->texture()) {
+		imgNode->setTexture(it->texture());
+		textureModified = true;
+	}
+
+	QRectF rect(it->data.x,
+				it->data.y,
+				it->data.width,
+				it->data.height);
+
+	rect.translate(m_currentFrame * it->data.width, 0);
+
+	imgNode->setSourceRect(rect);
+
+	imgNode->markDirty(textureModified ? QSGNode::DirtyMaterial|QSGNode::DirtyGeometry : QSGNode::DirtyGeometry);
+
+	return node;
 }
 
 
@@ -171,7 +254,9 @@ bool TiledSpriteHandler::jumpToSprite(const QString &name,
 	const int id = find(name, alteration, direction);
 
 	if (id == -1) {
+#ifndef QT_NO_DEBUG
 		LOG_CWARNING("scene") << "Sprite not found" << name << alteration << direction;
+#endif
 		return false;
 	}
 
@@ -180,7 +265,6 @@ bool TiledSpriteHandler::jumpToSprite(const QString &name,
 		changeSprite(id);
 	} else {
 		if (m_currentId >= 0 && m_currentId < m_spriteList.size()) {
-			m_spriteList.value(m_currentId).item->setProperty("waitForEnd", true);
 			m_jumpToId = id;
 		} else {
 			LOG_CERROR("scene") << "Current sprite not found" << m_currentId;
@@ -216,55 +300,29 @@ bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 										  const QString &alteration,
 										  const TiledObject::Direction &direction)
 {
-	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledSprite.qml"), this);
-
-	if (!component.isReady()) {
-		LOG_CERROR("scene") << "Create sprite item error:" << component.errorString();
+	if (!m_baseObject || !m_baseObject->scene() || !m_baseObject->scene()->game()) {
+		LOG_CERROR("scene") << "Missing game";
 		return false;
 	}
 
-	QVariantMap prop;
-	prop[QStringLiteral("frameCount")] = sprite.count;
-	prop[QStringLiteral("frameDuration")] = sprite.duration;
-	prop[QStringLiteral("frameHeight")] = sprite.height;
-	prop[QStringLiteral("frameWidth")] = sprite.width;
-	prop[QStringLiteral("frameX")] = sprite.x;
-	prop[QStringLiteral("frameY")] = sprite.y;
-	prop[QStringLiteral("baseLoops")] = sprite.loops;
-
-	if (source.startsWith(QStringLiteral(":/")))
-		prop[QStringLiteral("source")] = QUrl(QStringLiteral("qrc")+source);
-	else
-		prop[QStringLiteral("source")] = QUrl(source);
-
-
-	// waitForEnd
-
-	QQuickItem *item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(prop));
-
-	if (!item) {
-		LOG_CERROR("scene") << "TiledSprite create error" << component.errorString();
-		return false;
-	}
-
-	const QMetaObject *mo = item->metaObject();
-	const QMetaObject *_this = this->metaObject();
-
-	const int signal = mo->indexOfSignal("finished()");
-	const int method = _this->indexOfMethod("spriteFinished()");
-
-	connect(item, mo->method(signal), this, _this->method(method));
+	QString path = source;
+	if (path.startsWith(QStringLiteral("qrc:/")))
+		path.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
 
 	Sprite s;
 	s.alteration = alteration;
 	s.direction = direction;
-	s.item = item;
-	s.baseName = sprite.name;
+	s.data = sprite;
+	s.shr_texture = m_baseObject->scene()->game()->getTexture(path);
 
-	item->setParentItem(this);
+	if (!s.shr_texture.get()) {
+		LOG_CERROR("scene") << "Invalid texture";
+		return false;
+	}
+
 	m_spriteList.insert(++m_lastId, s);
 
-	//LOG_CTRACE("scene") << "Sprite created:" << m_lastId << s.baseName << s.alteration << s.direction << s.item;
+	////LOG_CTRACE("scene") << "Sprite created:" << m_lastId << s.data.name << s.alteration << s.direction;
 
 	return true;
 }
@@ -285,7 +343,7 @@ int TiledSpriteHandler::find(const QString &baseName,
 {
 	auto it = std::find_if(m_spriteList.constBegin(), m_spriteList.constEnd(),
 						   [alteration, baseName, direction](const Sprite &s) {
-		return s.baseName == baseName && s.alteration == alteration && s.direction == direction;
+		return s.data.name == baseName && s.alteration == alteration && s.direction == direction;
 	});
 
 	if (it == m_spriteList.constEnd())
@@ -323,23 +381,78 @@ void TiledSpriteHandler::changeSprite(const int &id)
 	if (m_currentId == id)
 		return;
 
-	QString name;
-	int current = -1;
+	auto it = m_spriteList.find(id);
 
-	for (auto it = m_spriteList.begin(); it != m_spriteList.end(); ++it) {
-		if (it.key() == id) {
-			name = it->baseName;
-			current = id;
-			if (it->item)
-				it->item->setVisible(true);
-		} else {
-			if (it->item)
-				it->item->setVisible(false);
-		}
+	if (it == m_spriteList.end()) {
+		LOG_CERROR("scene") << "Sprite id not found:" << id;
+		m_timer.stop();
+		return;
 	}
 
-	m_currentId = current;
-	setCurrentSprite(name);
+	m_currentId = id;
+	setCurrentSprite(it->data.name);
+
+	m_currentFrame = 0;
+	m_timer.start(it->data.duration, Qt::PreciseTimer, this);
+	update();
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::baseObject
+ * @return
+ */
+
+TiledObject *TiledSpriteHandler::baseObject() const
+{
+	return m_baseObject;
+}
+
+void TiledSpriteHandler::setBaseObject(TiledObject *newBaseObject)
+{
+	if (m_baseObject == newBaseObject)
+		return;
+	m_baseObject = newBaseObject;
+	emit baseObjectChanged();
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::timerEvent
+ * @param event
+ */
+
+void TiledSpriteHandler::timerEvent(QTimerEvent *)
+{
+	auto it = m_spriteList.find(m_currentId);
+
+	if (it == m_spriteList.end()) {
+		LOG_CERROR("scene") << "Sprite id not found:" << m_currentId;
+		return;
+	}
+
+
+	// Todo: loop counting (?)
+
+	int nextFrame = m_currentFrame+1;
+
+	if (nextFrame >= it->data.count) {
+		if (m_jumpToId != -1) {
+			changeSprite(m_jumpToId);
+			m_jumpToId = -1;
+			return;
+		}
+
+		if (it->data.loops <= 0)
+			nextFrame = 0;
+		else
+			return m_timer.stop();
+	}
+
+	m_currentFrame = nextFrame;
+	update();
 }
 
 
@@ -359,27 +472,6 @@ void TiledSpriteHandler::setCurrentSprite(const QString &newCurrentSprite)
 		return;
 	m_currentSprite = newCurrentSprite;
 	emit currentSpriteChanged();
-
-	LOG_CTRACE("scene") << this << "CURRENT" << m_currentSprite;
-}
-
-
-/**
- * @brief TiledSpriteHandler::spriteFinished
- */
-
-void TiledSpriteHandler::spriteFinished()
-{
-	LOG_CWARNING("scene") << "Sprite finished, jump to:" << m_jumpToId;
-
-	if (m_currentId >= 0 && m_currentId < m_spriteList.size()) {
-		m_spriteList.value(m_currentId).item->setProperty("waitForEnd", false);
-	}
-
-	if (m_jumpToId != -1)
-		changeSprite(m_jumpToId);
-
-	m_jumpToId = -1;
 }
 
 
