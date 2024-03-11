@@ -57,11 +57,11 @@ class TiledScene : public TiledQuick::MapItem
 	Q_PROPERTY(Box2DWorld *world READ world CONSTANT FINAL)
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
 	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
+	Q_PROPERTY(int sceneId READ sceneId WRITE setSceneId NOTIFY sceneIdChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
 	virtual ~TiledScene();
-
 
 	Q_INVOKABLE int getDynamicZ(const QPointF &point, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(const qreal &x, const qreal &y, const int &defaultValue = 1) const;
@@ -82,25 +82,16 @@ public:
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
 
-
-
-	QVariantList testPoints() const;
-	void setTestPoints(const QVariantList &newTestPoints);
+	int sceneId() const;
+	void setSceneId(int newSceneId);
 
 signals:
 	void runningChanged();
 	void gameChanged();
-
-	void testPointsChanged();
-
-
+	void sceneIdChanged();
 
 protected:
 	virtual void refresh() override;
-
-	virtual void loadObjectLayer(Tiled::ObjectGroup *group);
-	virtual void loadGround(Tiled::MapObject *object);
-	void loadGate(Tiled::MapObject *object);
 
 	struct DynamicZ {
 		QPolygonF polygon;
@@ -114,17 +105,14 @@ protected:
 	QList<QPointer<TiledObject>> m_tiledObjects;
 
 private:
-	void onSceneStatusChanged(const TiledQuick::MapLoader::Status &status);
 	void onWorldStepped();
 	void reorderObjectsZ();
-
-
+	void repaintTilesets(Tiled::Tileset *tileset);
 
 	TiledGame *m_game = nullptr;
+	int m_sceneId = -1;
 
-
-	QVariantList m_testPoints;
-	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
+	friend class TiledGame;
 };
 
 #endif // TILEDSCENE_H

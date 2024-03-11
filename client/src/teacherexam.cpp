@@ -412,7 +412,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 	for (ExamUser *u : *m_examUserList) {
 		const QString &username = u->username();
 
-		auto it = std::find_if(list.constBegin(), list.constEnd(), [username](const QJsonValue &v) {
+		auto it = std::find_if(list.constBegin(), list.constEnd(), [&username](const QJsonValue &v) {
 			return (v.toObject().value(QStringLiteral("username")).toString() == username);
 		});
 
@@ -1780,7 +1780,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				QJsonArray r2 = r;
 				const QJsonArray &arr = correctAnswer.toArray();
 				for (const QJsonValue &v : std::as_const(arr)) {
-					if (auto it = std::find_if(r2.begin(), r2.end(), [v](const QJsonValue &q){
+					if (auto it = std::find_if(r2.begin(), r2.end(), [&v](const QJsonValue &q){
 											   return q.toInt(-1) == v.toInt(-2);
 				}); it != r2.end()) {
 						r2.erase(it);

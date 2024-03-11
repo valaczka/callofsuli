@@ -294,7 +294,7 @@ TiledTransport* TiledTransportList::find(const TiledScene *scene) const
 	if (!scene)
 		return nullptr;
 
-	auto it = std::find_if(this->cbegin(), this->cend(), [scene](const std::unique_ptr<TiledTransport> &t){
+	auto it = std::find_if(this->cbegin(), this->cend(), [&scene](const std::unique_ptr<TiledTransport> &t){
 		return t->sceneA() == scene || t->sceneB() == scene;
 	});
 
@@ -317,7 +317,7 @@ TiledTransport* TiledTransportList::find(const TiledObjectBase *object) const
 	if (!object)
 		return nullptr;
 
-	auto it = std::find_if(this->cbegin(), this->cend(), [object](const std::unique_ptr<TiledTransport> &t){
+	auto it = std::find_if(this->cbegin(), this->cend(), [&object](const std::unique_ptr<TiledTransport> &t){
 		return t->objectA() == object || t->objectB() == object;
 	});
 

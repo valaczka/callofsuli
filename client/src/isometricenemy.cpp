@@ -56,7 +56,8 @@ IsometricEnemy *IsometricEnemy::createEnemy(TiledScene *scene)
 	TiledObjectBase::createFromCircle<IsometricEnemy>(&enemy, QPointF{}, 30, nullptr, scene);
 
 	if (enemy) {
-		enemy->setScene(scene);
+		if (scene)
+			enemy->setScene(scene);
 		enemy->load();
 	}
 

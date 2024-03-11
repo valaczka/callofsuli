@@ -228,6 +228,7 @@ class TiledObjectBase : public QQuickItem
 	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
 	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged FINAL)
 	Q_PROPERTY(bool inVisibleArea READ inVisibleArea WRITE setInVisibleArea NOTIFY inVisibleAreaChanged FINAL)
+	Q_PROPERTY(int objectId READ objectId WRITE setObjectId NOTIFY objectIdChanged FINAL)
 
 public:
 	explicit TiledObjectBase(QQuickItem *parent = 0);
@@ -299,6 +300,9 @@ public:
 	bool inVisibleArea() const;
 	void setInVisibleArea(bool newInVisibleArea);
 
+	int objectId() const;
+	void setObjectId(int newObjectId);
+
 signals:
 	void sceneChanged();
 	void remoteModeChanged();
@@ -307,6 +311,7 @@ signals:
 	void glowColorChanged();
 	void overlayColorChanged();
 	void inVisibleAreaChanged();
+	void objectIdChanged();
 
 protected:
 	void rotateBody(const float32 &desiredRadian);
@@ -323,6 +328,7 @@ protected:
 	QColor m_glowColor = QColor(Qt::yellow);
 	QColor m_overlayColor = QColor(Qt::white);
 	bool m_inVisibleArea = false;
+	int m_objectId = -1;
 
 	friend class TiledObjectBody;
 
@@ -357,6 +363,7 @@ class TiledObject : public TiledObjectBase
 
 public:
 	explicit TiledObject(QQuickItem *parent = 0);
+	//virtual ~TiledObject();
 
 	// Object moving (facing) directions
 

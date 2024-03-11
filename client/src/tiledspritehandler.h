@@ -44,7 +44,7 @@ class TiledSpriteHandler : public QQuickItem
 
 public:
 	explicit TiledSpriteHandler(QQuickItem *parent = nullptr);
-	~TiledSpriteHandler() = default;
+	virtual ~TiledSpriteHandler();
 
 	enum JumpMode {
 		JumpImmediate,

@@ -320,6 +320,19 @@ void TiledObjectBase::onSceneVisibleAreaChanged()
 	setInVisibleArea(m_scene->visibleArea().intersects(rect));
 }
 
+int TiledObjectBase::objectId() const
+{
+	return m_objectId;
+}
+
+void TiledObjectBase::setObjectId(int newObjectId)
+{
+	if (m_objectId == newObjectId)
+		return;
+	m_objectId = newObjectId;
+	emit objectIdChanged();
+}
+
 
 
 /**
@@ -428,6 +441,8 @@ TiledObject::TiledObject(QQuickItem *parent)
 {
 
 }
+
+
 
 
 
@@ -570,8 +585,6 @@ void TiledObject::createVisual()
 
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledObjectVisual.qml"), this);
 
-	LOG_CDEBUG("scene") << "Create sprite item:" << component.isReady();
-
 	m_visualItem = qobject_cast<QQuickItem*>(component.create());
 
 	if (!m_visualItem) {
@@ -582,8 +595,8 @@ void TiledObject::createVisual()
 	m_spriteHandler = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandler"));
 	Q_ASSERT(m_spriteHandler);
 
-
 	m_visualItem->setParentItem(this);
+	m_visualItem->setParent(this);
 	m_visualItem->setProperty("baseObject", QVariant::fromValue(this));
 }
 

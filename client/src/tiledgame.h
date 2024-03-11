@@ -34,6 +34,52 @@
 #include <QQuickItem>
 
 
+#include <QSerializer>
+
+
+
+/**
+ * @brief The TiledSceneDefinition class
+ */
+
+class TiledSceneDefinition : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TiledSceneDefinition()
+		: id(-1)
+	{}
+
+	QS_SERIALIZABLE
+	QS_FIELD(int, id)
+	QS_FIELD(QString, file)
+};
+
+
+/**
+ * @brief The TiledGameDefinition class
+ */
+
+class TiledGameDefinition : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TiledGameDefinition()
+		: firstScene(-1)
+	{}
+
+	QS_SERIALIZABLE
+	QS_FIELD(int, firstScene)
+	QS_COLLECTION_OBJECTS(QVector, TiledSceneDefinition, scenes)
+};
+
+
+
+
+
+
 /**
  * @brief The TiledGame class
  */
@@ -72,15 +118,36 @@ public:
 		}
 	};
 
+
+	enum ObjectClass {
+		Invalid = 0,
+		Player,
+		EnemyWerebear
+	};
+
+	Q_ENUM(ObjectClass);
+
+
 	Q_INVOKABLE bool load();
+	bool load(const TiledGameDefinition &def);
+
+
 	bool addGate(const QString &name, TiledScene *scene, TiledObjectBase *object);
 
 	Q_INVOKABLE void switchScene();
 
 	void loadPlayer(TiledScene *scene, const QPointF &pos);
 
-	std::shared_ptr<QSGTexture> getTexture(const QString &path);
 
+
+
+
+
+	Tiled::TileLayer *loadSceneLayer(TiledScene *scene, Tiled::Layer *layer, Tiled::MapRenderer *renderer);
+
+	const std::shared_ptr<QSGTexture> &getTexture(const QString &path);
+
+	TiledScene *findScene(const int &id) const;
 
 	TiledScene *currentScene() const;
 	void setCurrentScene(TiledScene *newCurrentScene);
@@ -110,8 +177,13 @@ signals:
 	void joystickStateChanged();
 	void debugViewChanged();
 
-private:
-	bool loadScene(const QString &file);
+protected:
+	bool loadScene(const int sceneId, const QString &file);
+	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
+	bool loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);	//??
+
+
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 
@@ -122,11 +194,22 @@ protected:
 		TiledScene *scene = nullptr;
 	};
 
+	struct Object {
+		ObjectClass objectClass = Invalid;
+		int id = -1;
+		int sceneId = -1;					// Original scene id
+		TiledScene *scene = nullptr;		// Current scene (!)
+		TiledObject *object = nullptr;
+	};
+
 	QVector<Scene> m_sceneList;
 	TiledScene *m_currentScene = nullptr;
+
+	QVector<Object> m_objectList;
+
 	std::unique_ptr<IsometricPlayer> m_player;
+
 	TiledTransportList m_transportList;
-	QHash<QString, std::shared_ptr<QSGTexture>> m_sharedTextures;
 
 private:
 	struct KeyboardJoystickState {
@@ -138,11 +221,15 @@ private:
 	Q_INVOKABLE void updateJoystick();
 	void updateKeyboardJoystick(const KeyboardJoystickState &state);
 
+	int findObject(const int &id, const int &sceneId) const;
+
+
 	KeyboardJoystickState m_keyboardJoystickState;
 	QPointer<QQuickItem> m_joystick = nullptr;
 	QPointer<TiledObject> m_followedItem = nullptr;
 	QPointer<IsometricPlayer> m_controlledPlayer = nullptr;
 	JoystickState m_joystickState;
+	QHash<QString, std::shared_ptr<QSGTexture>> m_sharedTextures;
 	bool m_debugView = false;
 };
 

@@ -309,8 +309,6 @@ void StandaloneClient::serverListSave(const QDir &dir)
 		if (s->temporary())
 			continue;
 
-		LOG_CTRACE("client") << "Server dir" << dir;
-
 		if (!dir.exists(s->name())) {
 			if (!dir.mkpath(s->name())) {
 				LOG_CERROR("client") << "Can't create server directory:" << qPrintable(dir.absoluteFilePath(s->name()));

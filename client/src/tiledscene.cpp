@@ -26,15 +26,15 @@
 
 #include "tiledscene.h"
 #include "Logger.h"
-#include "box2dfixture.h"
-#include "isometricenemy.h"
 #include "maprenderer.h"
 #include "tiledobject.h"
 #include "tilelayeritem.h"
 #include "tiledgame.h"
+#include "tilesetmanager.h"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
+#include <libtiled/grouplayer.h>
 
 TiledScene::TiledScene(QQuickItem *parent)
 	: TiledQuick::MapItem(parent)
@@ -55,7 +55,10 @@ TiledScene::TiledScene(QQuickItem *parent)
 	//setAcceptedMouseButtons(Qt::LeftButton);
 	//setAcceptTouchEvents(true);
 
-	connect(m_mapLoader.get(), &TiledQuick::MapLoader::statusChanged, this, &TiledScene::onSceneStatusChanged);
+	Tiled::TilesetManager *manager = Tiled::TilesetManager::instance();
+	manager->setAnimateTiles(true);
+	connect(manager, &Tiled::TilesetManager::repaintTileset, this, &TiledScene::repaintTilesets);
+
 }
 
 
@@ -65,16 +68,8 @@ TiledScene::TiledScene(QQuickItem *parent)
 
 TiledScene::~TiledScene()
 {
-	LOG_CTRACE("scene") << "Destroy scene" << this;
-
-	for (TiledObject *o : m_tiledObjects)
-		if (o)
-			o->deleteLater();
-
-	m_tiledObjects.clear();
-
+	unsetMap();
 	m_world->setRunning(false);
-	m_mapLoader->setSource(QUrl{});
 
 	LOG_CTRACE("scene") << "Scene destroyed" << this;
 }
@@ -119,16 +114,16 @@ int TiledScene::getDynamicZ(QQuickItem *item, const int &defaultValue) const
 
 bool TiledScene::load(const QUrl &url)
 {
-	/*if (!url.isLocalFile()) {
-		LOG_CERROR("scene") << "Invalid URL:" << url;
-		return false;
-	}*/
-
-	LOG_CDEBUG("scene") << "Load TMX:" << qPrintable(url.toLocalFile());
+	LOG_CTRACE("scene") << "Load scene from:" << qPrintable(url.toDisplayString());
 
 	m_mapLoader->setSource(url);
 
-	return true;
+	if (m_mapLoader->status() == TiledQuick::MapLoader::Ready && m_mapLoader->map()) {
+		setMap(m_mapLoader->map());
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -214,20 +209,6 @@ void TiledScene::setRunning(bool newRunning)
 
 
 /**
- * @brief TiledScene::onSceneStatusChanged
- * @param status
- */
-void TiledScene::onSceneStatusChanged(const TiledQuick::MapLoader::Status &status)
-{
-	LOG_CDEBUG("scene") << "Status changed" << status;
-
-	if (m_mapLoader->map()) {
-		setMap(m_mapLoader->map());
-	}
-}
-
-
-/**
  * @brief TiledScene::onWorldStepped
  */
 
@@ -283,6 +264,48 @@ void TiledScene::reorderObjectsZ()
 	}
 }
 
+
+
+/**
+ * @brief TiledScene::repaintTilesets
+ */
+
+void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
+{
+	for (auto *mapItem : std::as_const(mTileLayerItems)) {
+		if (mapItem->tileLayer()->usedTilesets().contains(tileset->sharedPointer())) {
+			mapItem->update();
+		}
+	}
+}
+
+
+
+/**
+ * @brief TiledScene::sceneId
+ * @return
+ */
+
+int TiledScene::sceneId() const
+{
+	return m_sceneId;
+}
+
+void TiledScene::setSceneId(int newSceneId)
+{
+	if (m_sceneId == newSceneId)
+		return;
+	m_sceneId = newSceneId;
+	emit sceneIdChanged();
+}
+
+
+
+/**
+ * @brief TiledScene::game
+ * @return
+ */
+
 TiledGame *TiledScene::game() const
 {
 	return m_game;
@@ -300,21 +323,6 @@ void TiledScene::setGame(TiledGame *newGame)
 
 
 
-QVariantList TiledScene::testPoints() const
-{
-	return m_testPoints;
-}
-
-void TiledScene::setTestPoints(const QVariantList &newTestPoints)
-{
-	if (m_testPoints == newTestPoints)
-		return;
-	m_testPoints = newTestPoints;
-	emit testPointsChanged();
-}
-
-
-
 
 
 /**
@@ -329,122 +337,6 @@ TiledQuick::MapLoader*TiledScene::mapLoader() const
 
 
 
-
-
-
-/**
- * @brief TiledScene::loadObjectLayer
- * @param group
- */
-
-void TiledScene::loadObjectLayer(Tiled::ObjectGroup *group)
-{
-	Q_ASSERT(group);
-
-	for (Tiled::MapObject *object : group->objects()) {
-		if (object->className() == "enemy") {
-			QPolygonF p = TiledObjectBase::toPolygon(object, mRenderer.get());
-			LOG_CINFO("scene") << "ENEMY" << object->name();
-
-			IsometricEnemy *character = IsometricEnemy::createEnemy(this);
-
-			Q_ASSERT(character);
-
-			character->loadPathMotor(p);
-
-			appendToObjects(character);
-
-			continue;
-		} else if (object->className() == "player") {
-
-			LOG_CINFO("scene") << "PLAYER" << object->position();
-
-			if (m_game)
-				m_game->loadPlayer(this, mRenderer->pixelToScreenCoords(object->position()));
-
-			continue;
-		} else if (object->className() == "gate") {
-
-			LOG_CINFO("scene") << "GATE" << object->position();
-
-			loadGate(object);
-
-			continue;
-		}
-
-		loadGround(object);
-	}
-}
-
-
-
-/**
- * @brief TiledScene::loadGround
- * @param object
- */
-
-void TiledScene::loadGround(Tiled::MapObject *object)
-{
-	TiledObjectBasePolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, mRenderer.get());
-
-	if (!mapObject)
-		return;
-
-	mapObject->setScene(this);
-	mapObject->fixture()->setDensity(1);
-	mapObject->fixture()->setFriction(1);
-	mapObject->fixture()->setRestitution(0);
-	mapObject->fixture()->setCategories(Box2DFixture::Category1);
-
-	if (object->hasProperty(QStringLiteral("dynamicZ"))) {
-		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
-
-			DynamicZ dz;
-			dz.polygon = p.translated(mapObject->position());
-
-			LOG_CINFO("scene") << "ADD POLYGON" << dz.polygon;
-
-			if (object->hasProperty(QStringLiteral("dynamicVertical")))
-				dz.vertical = object->property(QStringLiteral("dynamicVertical")).toBool();
-
-			if (object->hasProperty(QStringLiteral("dynamicHorizontal")))
-				dz.horizontal = object->property(QStringLiteral("dynamicHorizontal")).toBool();
-
-			m_dynamicZList[object->property(QStringLiteral("dynamicZ")).toInt()] = dz;
-		}
-	}
-
-	if (object->hasProperty(QStringLiteral("z"))) {
-		mapObject->setZ(object->property(QStringLiteral("z")).toInt());
-	} else {
-		mapObject->setZ(0);
-	}
-}
-
-
-/**
- * @brief TiledScene::loadGate
- * @param object
- */
-
-void TiledScene::loadGate(Tiled::MapObject *object)
-{
-	TiledObjectBasePolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, mRenderer.get(), this);
-
-	if (!mapObject)
-		return;
-
-	mapObject->setScene(this);
-	mapObject->fixture()->setSensor(true);
-	mapObject->fixture()->setCategories(Box2DFixture::Category4);
-
-	bool r = m_game->addGate(object->name(), this, mapObject);
-	LOG_CINFO("scene") << "Add gate" << object->name() << this << mapObject << r;
-}
-
-
 /**
  * @brief TiledScene::world
  * @return
@@ -454,8 +346,6 @@ Box2DWorld *TiledScene::world() const
 {
 	return m_world.get();
 }
-
-
 
 
 
@@ -478,26 +368,21 @@ void TiledScene::refresh()
 	if (!mMap)
 		return;
 
-	/*Tiled::TilesetManager *manager = Tiled::TilesetManager::instance();
-	manager->setAnimateTiles(true);
-	connect(manager, &Tiled::TilesetManager::repaintTileset, layerItem, [this, layerItem](Tiled::Tileset *tileset) {
-		layerItem->update();
-	});*/
-
 	mRenderer = Tiled::MapRenderer::create(mMap);
 
 	for (Tiled::Layer *layer : mMap->layers()) {
-		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-			TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(tl, mRenderer.get(), this);
-			mTileLayerItems.append(layerItem);
-			if (tl->hasProperty(QStringLiteral("z"))) {
-				layerItem->setZ(tl->property(QStringLiteral("z")).toInt());
-			} else {
-				layerItem->setZ(0);
-			}
+		Tiled::TileLayer *tl = m_game->loadSceneLayer(this, layer, mRenderer.get());
 
-		} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
-			loadObjectLayer(group);
+		if (!tl)
+			continue;
+
+		TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(tl, mRenderer.get(), this);
+		mTileLayerItems.append(layerItem);
+
+		if (tl->hasProperty(QStringLiteral("z"))) {
+			layerItem->setZ(tl->property(QStringLiteral("z")).toInt());
+		} else {
+			layerItem->setZ(0);
 		}
 	}
 

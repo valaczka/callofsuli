@@ -76,7 +76,7 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 			else
 				html += QStringLiteral("<span class=\"answerFail\">");
 
-			if (const auto it = std::find_if(qList.cbegin(), qList.cend(), [idx](const QVariant &v){
+			if (const auto it = std::find_if(qList.cbegin(), qList.cend(), [&idx](const QVariant &v){
 											 return v.toMap().value(QStringLiteral("num")).toInt() == idx;
 		}); it != qList.cend()) {
 				html += it->toMap().value(QStringLiteral("text")).toString();
@@ -88,7 +88,7 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 		if (!success && i < correctList.size()) {
 			const int idx = correctList.at(i).toInt();
 
-			if (const auto it = std::find_if(qList.cbegin(), qList.cend(), [idx](const QVariant &v){
+			if (const auto it = std::find_if(qList.cbegin(), qList.cend(), [&idx](const QVariant &v){
 											 return v.toMap().value(QStringLiteral("num")).toInt() == idx;
 		}); it != qList.cend()) {
 				html += QStringLiteral(" <span class=\"answerCorrect\">");

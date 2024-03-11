@@ -25,7 +25,6 @@
  */
 
 #include "tiledspritehandler.h"
-#include "application.h"
 #include "tiledscene.h"
 #include "tiledgame.h"
 #include <QSGSimpleTextureNode>
@@ -45,6 +44,16 @@ TiledSpriteHandler::TiledSpriteHandler(QQuickItem *parent)
 }
 
 
+/**
+ * @brief TiledSpriteHandler::~TiledSpriteHandler
+ */
+
+TiledSpriteHandler::~TiledSpriteHandler()
+{
+	LOG_CTRACE("scene") << "TiledSpriteHandler destroyed" << this;
+}
+
+
 QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 {
 	if (!node) {
@@ -54,14 +63,14 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 	bool isActive = m_baseObject && m_baseObject->inVisibleArea();
 
 	if (m_spriteList.isEmpty()) {
-		LOG_CERROR("scene") << "Empty sprite list";
+		//LOG_CERROR("scene") << "Empty sprite list";
 		isActive = false;
 	}
 
 	auto it = m_spriteList.find(m_currentId);
 
 	if (it == m_spriteList.end()) {
-		LOG_CERROR("scene") << "Sprite id not found:" << m_currentId;
+		//LOG_CERROR("scene") << "Sprite id not found:" << m_currentId;
 		isActive = false;
 	} else if (!it->texture()) {
 		LOG_CERROR("scene") << "Sprite texture not found:" << m_currentId;
@@ -95,12 +104,8 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 
 	imgNode->setRect(boundingRect());
 
-	bool textureModified = false;
-
-	if (it->texture() != imgNode->texture()) {
+	if (it->texture() != imgNode->texture())
 		imgNode->setTexture(it->texture());
-		textureModified = true;
-	}
 
 	QRectF rect(it->data.x,
 				it->data.y,
@@ -111,7 +116,7 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 
 	imgNode->setSourceRect(rect);
 
-	imgNode->markDirty(textureModified ? QSGNode::DirtyMaterial|QSGNode::DirtyGeometry : QSGNode::DirtyGeometry);
+	imgNode->markDirty(QSGNode::DirtyGeometry);
 
 	return node;
 }
@@ -320,7 +325,7 @@ bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 		return false;
 	}
 
-	m_spriteList.insert(++m_lastId, s);
+	m_spriteList.insert(++m_lastId, std::move(s));
 
 	////LOG_CTRACE("scene") << "Sprite created:" << m_lastId << s.data.name << s.alteration << s.direction;
 
@@ -342,7 +347,7 @@ int TiledSpriteHandler::find(const QString &baseName,
 							 const TiledObject::Direction &direction) const
 {
 	auto it = std::find_if(m_spriteList.constBegin(), m_spriteList.constEnd(),
-						   [alteration, baseName, direction](const Sprite &s) {
+						   [&alteration, &baseName, &direction](const Sprite &s) {
 		return s.data.name == baseName && s.alteration == alteration && s.direction == direction;
 	});
 
