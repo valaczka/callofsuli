@@ -25,6 +25,7 @@
  */
 
 #include "isometricplayer.h"
+#include "isometricenemy.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
 #include "tiledgame.h"
@@ -50,7 +51,7 @@ IsometricPlayer::IsometricPlayer(QQuickItem *parent)
 IsometricPlayer *IsometricPlayer::createPlayer(TiledScene *scene)
 {
 	IsometricPlayer *player = nullptr;
-	TiledObjectBase::createFromCircle<IsometricPlayer>(&player, QPointF{}, 30, nullptr, scene);
+	TiledObjectBase::createFromCircle<IsometricPlayer>(&player, QPointF{}, 50, nullptr, scene);
 
 	if (player) {
 		player->setScene(scene);
@@ -67,6 +68,9 @@ IsometricPlayer *IsometricPlayer::createPlayer(TiledScene *scene)
 
 void IsometricPlayer::entityWorldStep()
 {
+	m_enemy = getVisibleEntity<IsometricEnemy>(m_body.get(), m_contactedEnemies, TiledObjectBody::FixtureEnemyBody);
+
+
 	rotateBody(directionToRadian(m_currentDirection));
 	updateSprite();
 }
@@ -100,6 +104,11 @@ void IsometricPlayer::hurt()
 void IsometricPlayer::hit()
 {
 	jumpToSprite("swing", m_currentDirection, m_currentAlteration);
+
+	LOG_CTRACE("scene") << "SWORD" << m_enemy;
+
+	if (m_enemy)
+		m_enemy->attackedByPlayer(this);
 }
 
 
@@ -124,7 +133,9 @@ void IsometricPlayer::load()
 	m_fixture->setProperty("player", QVariant::fromValue(this));
 	onAlive();
 
-	addSensorPolygon(200);
+	auto p = addSensorPolygon(200, M_PI_2);
+
+	p->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
 
 
 	QString path = ":/";
@@ -178,7 +189,7 @@ void IsometricPlayer::load()
 		{
 			"name": "block",
 			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
-			"x": 2048,
+			"x": 2304,
 			"y": 0,
 			"count": 2,
 			"width": 128,
@@ -202,8 +213,37 @@ void IsometricPlayer::load()
 	})";
 
 
+	connect(p, &TiledObjectSensorPolygon::beginContact, this, [this](Box2DFixture *other) {
+		LOG_CTRACE("scene") << "------contact" << other << other->categories() << other->property("enemy");
+		if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody))) {
+
+			IsometricEnemy *enemy = other->property("enemy").value<IsometricEnemy*>();
+
+			if (enemy && !m_contactedEnemies.contains(enemy))
+				m_contactedEnemies.append(enemy);
+
+			LOG_CINFO("scene") << "ENEMY CONTACT" << enemy;
+
+			return;
+		}
+	});
+
+	connect(p, &TiledObjectSensorPolygon::endContact, this, [this](Box2DFixture *other) {
+		if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody))) {
+
+			IsometricEnemy *enemy = other->property("enemy").value<IsometricEnemy*>();
+
+			if (enemy)
+				m_contactedEnemies.removeAll(enemy);
+
+			LOG_CTRACE("scene") << "ENEMY CONTACT END" << enemy;
+
+			return;
+		}
+	});
+
 	connect(m_fixture.get(), &Box2DCircle::beginContact, this, [this](Box2DFixture *other) {
-		if (!other->categories().testFlag(Box2DFixture::Category4))
+		if (!other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport)))
 			return;
 
 
@@ -218,7 +258,7 @@ void IsometricPlayer::load()
 
 
 	connect(m_fixture.get(), &Box2DCircle::endContact, this, [this](Box2DFixture *other) {
-		if (!other->categories().testFlag(Box2DFixture::Category4))
+		if (!other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport)))
 			return;
 
 		LOG_CINFO("scene") << "CONTACT END" << other;
@@ -270,7 +310,7 @@ void IsometricPlayer::onAlive()
 {
 	LOG_CINFO("scene") << "ALIVE";
 	m_body->setBodyType(Box2DBody::Dynamic);
-	m_fixture->setCategories(Box2DFixture::Category2);
+	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
 	setSubZ(0.5);
 }
 
@@ -294,16 +334,10 @@ void IsometricPlayer::onDead()
  * @brief IsometricPlayer::onJoystickStateChanged
  */
 
-void IsometricPlayer::onJoystickStateChanged()
+void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &state)
 {
-	Q_ASSERT(m_scene);
-	Q_ASSERT(m_scene->game());
-
-	const auto &state = m_scene->game()->joystickState();
-
 	if (state.hasKeyboard || state.hasTouch)
 		setCurrentDirection(nearestDirectionFromRadian(state.angle));
-
 
 	if (state.distance > 0.9) {
 		const qreal radius = 6.;					/// speed

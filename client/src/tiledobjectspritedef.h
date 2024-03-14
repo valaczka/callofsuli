@@ -29,7 +29,9 @@
 
 #include <QSerializer>
 
-
+/**
+ * @brief The TiledObjectSprite class
+ */
 
 class TiledObjectSprite : public QSerializer
 {

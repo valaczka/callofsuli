@@ -42,6 +42,13 @@ public:
 	IsometricEntityIface()
 	{}
 
+	static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObjectBase *entity,
+														const TiledObjectBody::FixtureCategory &category);
+
+	template <typename T>
+	static T* getVisibleEntity(TiledObjectBody *body, const QList<T*> &entities,
+							   const TiledObjectBody::FixtureCategory &category,
+							   QPointF *visiblePointPtr = nullptr);
 
 	TiledObject::Direction movingDirection() const;
 	void setMovingDirection(const TiledObject::Direction &newMovingDirection);
@@ -72,6 +79,45 @@ protected:
 private:
 	QPointF m_lastPosition;
 };
+
+
+
+
+/**
+ * @brief IsometricEntityIface::getVisibleEntity
+ * @param body
+ * @param entities
+ * @param visiblePointPtr
+ * @return
+ */
+
+template<typename T>
+T *IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T *> &entities,
+										  const TiledObjectBody::FixtureCategory &category, QPointF *visiblePointPtr)
+{
+	Q_ASSERT(body);
+
+	QMap<qreal, QPair<T*, QPointF>> list;
+
+	for (T *p : std::as_const(entities)) {
+		if (!p)
+			continue;
+
+		if (const auto &ptr = checkEntityVisibility(body, p, category); ptr && p->hp() > 0) {
+			const qreal &dist = QVector2D(p->body()->bodyPosition() - body->bodyPosition()).length();
+			list.insert(dist, qMakePair(p, ptr.value()));
+		}
+	}
+
+	if (list.isEmpty())
+		return nullptr;
+	else {
+		const auto &ptr = list.first();
+		if (visiblePointPtr)
+			*visiblePointPtr = ptr.second;
+		return ptr.first;
+	}
+}
 
 
 

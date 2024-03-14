@@ -36,6 +36,56 @@ TiledPathMotor::TiledPathMotor(const QPolygonF &polygon, const Direction &direct
 	loadLines();
 }
 
+
+/**
+ * @brief TiledPathMotor::toSerializer
+ * @return
+ */
+
+TiledPathMotorSerializer TiledPathMotor::toSerializer() const
+{
+	TiledPathMotorSerializer data;
+
+	data.distance = m_currentDistance;
+	data.forward = m_direction == Forward;
+
+	return data;
+}
+
+
+/**
+ * @brief TiledPathMotor::fromSerializer
+ * @param data
+ */
+
+void TiledPathMotor::fromSerializer(const TiledPathMotorSerializer &data)
+{
+	setDirection(data.forward ? Forward : Backward);
+	toDistance(data.distance);
+}
+
+
+/**
+ * @brief TiledPathMotor::linesToPolygon
+ * @return
+ */
+
+QPolygonF TiledPathMotor::linesToPolygon() const
+{
+	QPolygonF p;
+
+	for (auto it = m_lines.constBegin(); it != m_lines.constEnd(); ++it) {
+		if (it == m_lines.constBegin())
+			p.append(it->line.p1());
+
+		p.append(it->line.p2());
+	}
+
+	return p;
+}
+
+
+
 /**
  * @brief TiledPathMotor::polygon
  * @return
@@ -157,6 +207,23 @@ qreal TiledPathMotor::angleFromLine(const Line &line) const
 int TiledPathMotor::currentSegment() const
 {
 	return m_currentSegment;
+}
+
+
+/**
+ * @brief TiledPathMotor::removeAboveSegment
+ * @param segment
+ * @return
+ */
+
+bool TiledPathMotor::clearFromSegment(const int &segment)
+{
+	if (segment < 0 || segment >= m_lines.size())
+		return false;
+
+	m_lines.erase(m_lines.cbegin()+segment, m_lines.cend());
+
+	return true;
 }
 
 

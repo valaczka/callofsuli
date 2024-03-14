@@ -30,6 +30,13 @@
 #include "tiledspritehandler.h"
 
 
+
+const QHash<QString, IsometricEnemyIface::EnemyType> IsometricEnemyIface::m_typeHash = {
+	{ QStringLiteral("enemy"), EnemyWerebear }
+};
+
+
+
 /**
  * @brief IsometricEnemy::IsometricEnemy
  * @param parent
@@ -50,10 +57,19 @@ IsometricEnemy::IsometricEnemy(QQuickItem *parent)
  * @return
  */
 
-IsometricEnemy *IsometricEnemy::createEnemy(TiledScene *scene)
+IsometricEnemy *IsometricEnemy::createEnemy(const EnemyType &type, TiledScene *scene)
 {
 	IsometricEnemy *enemy = nullptr;
-	TiledObjectBase::createFromCircle<IsometricEnemy>(&enemy, QPointF{}, 30, nullptr, scene);
+
+	switch (type) {
+		case EnemyWerebear:
+			TiledObjectBase::createFromCircle<IsometricEnemy>(&enemy, QPointF{}, 30, nullptr, scene);
+			break;
+
+		case EnemyInvalid:
+			LOG_CERROR("game") << "Invalid enemy type" << type;
+			return nullptr;
+	}
 
 	if (enemy) {
 		if (scene)
@@ -65,6 +81,25 @@ IsometricEnemy *IsometricEnemy::createEnemy(TiledScene *scene)
 }
 
 
+/**
+ * @brief IsometricEnemy::attackedByPlayer
+ * @param player
+ */
+
+void IsometricEnemy::attackedByPlayer(IsometricPlayer *player)
+{
+	setHp(m_hp-1);
+
+	m_hitTimer.invalidate();
+
+	if (m_hp <= 0) {
+		jumpToSprite("die", m_currentDirection, m_currentAlteration);
+	} else {
+		jumpToSprite("hurt", m_currentDirection, m_currentAlteration);
+	}
+}
+
+
 
 
 /**
@@ -73,75 +108,108 @@ IsometricEnemy *IsometricEnemy::createEnemy(TiledScene *scene)
 
 void IsometricEnemy::entityWorldStep()
 {
+	if (m_hp <= 0) {
+		m_body->stop();
+		jumpToSprite("die", m_currentDirection, m_currentAlteration);
+		return;
+	}
+
 	if (m_movingDirection != Invalid)
 		setCurrentDirection(m_movingDirection);
 
 
-	if (m_contactedPlayer) {
-		if (checkPlayerVisibility(m_body.get(), m_contactedPlayer) && m_contactedPlayer->hp() > 0) {
-			setPlayer(m_contactedPlayer);
+	//QPointF visiblePoint;
+	IsometricPlayer *myPlayer = getVisibleEntity<IsometricPlayer>(m_body.get(), m_contactedPlayers,
+																  TiledObjectBody::FixturePlayerBody
+																  /*, &visiblePoint*/);
 
-			float32 angle = 0;
-			QPointF dest;
 
-			rotateToPlayer(m_player, &angle, &dest);
+	float32 angle = 0.;
+	bool isPursuit = false;
 
-			const qreal &dist = QVector2D(dest).length();
-			setPlayerDistance(dist);
+	if (myPlayer) {
+		setPlayer(myPlayer);
 
-			if (dist > m_metric.playerDistance) {
-				if (m_metric.pursuitSpeed > 0) {		// Pursuit
-					if (m_metric.returnSpeed != 0) {
-						if (!m_returnPathMotor)
-							m_returnPathMotor.reset(new TiledReturnPathMotor);
-						/** TiledObject::factorFromRadian(angle)*/		/// --- pursuit speeed
-						m_returnPathMotor->moveBody(m_body.get(), angle,
-													m_metric.pursuitSpeed > 0 ? m_metric.pursuitSpeed : m_metric.speed);
-					} else if (m_metric.speed > 0) {
-						m_body->setLinearVelocity(maximizeSpeed(TiledObjectBase::toPoint(angle, m_metric.speed)));
-					} else {
-						m_body->stop();
-					}
-				} else {								// No pursuit
-					m_body->stop();
-				}
-			} else {
+		if (m_returnPathMotor)
+			m_returnPathMotor->clearLastSeenPoint();
+
+		qreal dist;
+
+		rotateToPlayer(m_player, &angle, &dist);
+		setPlayerDistance(dist);
+
+		if (dist > m_metric.playerDistance) {
+			if (m_metric.pursuitSpeed > 0) {		// Pursuit
+				isPursuit = true;
+			} else {								// No pursuit
 				m_body->stop();
 			}
-
-
-			/*
-			QVariantList list;
-			list << m_body->bodyPosition() - QPointF(0, 64)
-				 << m_contactedPlayer->body()->bodyPosition() - QPointF(0, 64);
-
-			m_scene->setTestPoints(list);
-			*/
-
-			/*if (m_returnPathMotor) {
-				QVariantList list;
-				for (const auto &point : m_returnPathMotor->path())
-					list.append(point);
-				m_scene->setTestPoints(list);
-			}*/
-
-			enemyWorldStep();
-			updateSprite();
-			return;
 		} else {
+			m_body->stop();
+		}
+	} else {
+		if (m_player) {
+			if (m_returnPathMotor) {
+				m_returnPathMotor->setLastSeenPoint(m_player->body()->bodyPosition());
+				isPursuit = true;
+			}
+
 			setPlayer(nullptr);
 			setPlayerDistance(-1.);
 		}
+
+		if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {
+			const auto &ptr = m_returnPathMotor->lastSeenPoint();
+
+			if (ptr) {
+				const qreal &dist = distanceToPoint(ptr.value());
+
+				if (dist >= m_metric.playerDistance) {
+					rotateToPoint(ptr.value(), &angle);
+					isPursuit = true;
+				} else {
+					isPursuit = false;
+				}
+			}
+		}
+	}
+
+	TiledObjectBody::setFixtureCollidesWithFlag(m_fixture.get(), TiledObjectBody::FixtureGround, !m_returnPathMotor);
+
+
+	if (isPursuit) {
+		if (m_metric.returnSpeed != 0) {
+			if (!m_returnPathMotor)
+				m_returnPathMotor.reset(new TiledReturnPathMotor);
+
+			/** TiledObject::factorFromRadian(angle)*/		/// --- pursuit speeed
+			m_returnPathMotor->moveBody(m_body.get(), angle,
+										m_metric.pursuitSpeed > 0 ? m_metric.pursuitSpeed : m_metric.speed);
+		} else if (m_metric.speed > 0) {
+			m_body->setLinearVelocity(maximizeSpeed(TiledObjectBase::toPoint(angle, m_metric.speed)));
+		} else {
+			m_body->stop();
+		}
+
+		// --- show path ---
+		/*if (m_returnPathMotor) {
+			QVariantList list;
+			for (const auto &point : m_returnPathMotor->path())
+				list.append(point);
+			m_scene->setTestPoints(list);
+		}*/
+		// -----------
+
+
+		enemyWorldStep();
+		updateSprite();
+		return;
 	}
 
 	if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {
 		m_returnPathMotor->finish(m_body.get());
-
-		/*QVariantList list;
-		for (const auto &point : m_returnPathMotor->path())
-			list.append(point);
-		m_scene->setTestPoints(list);*/
 	}
+
 
 	if (enemyWorldStep()) {
 		rotateBody(directionToRadian(m_currentDirection));
@@ -168,8 +236,8 @@ bool IsometricEnemy::enemyWorldStep()
 				jumpToSprite("hit", m_currentDirection, m_currentAlteration);
 				m_hitTimer.restart();
 			}
-		} else {
-			LOG_CWARNING("scene") << "HIT";
+		} else if (m_spriteHandler->currentSprite() != QStringLiteral("hurt")) {
+			LOG_CWARNING("scene") << "HIT FIRST";
 			m_player->hurt();
 			jumpToSprite("hit", m_currentDirection, m_currentAlteration);
 			m_hitTimer.start();
@@ -201,12 +269,20 @@ void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
 
 void IsometricEnemy::onAlive()
 {
-
+	LOG_CINFO("scene") << "ALIVE" << this << "ENEMYBODY";
+	m_body->setBodyType(Box2DBody::Dynamic);
+	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
+	setSubZ(0.5);
 }
 
 void IsometricEnemy::onDead()
 {
-
+	LOG_CINFO("scene") << "DEAD";
+	m_body->setBodyType(Box2DBody::Static);
+	m_body->setActive(false);
+	m_fixture->setCategories(Box2DFixture::None);
+	m_fixture->setCollidesWith(Box2DFixture::None);
+	setSubZ(0.0);
 }
 
 
@@ -223,15 +299,14 @@ void IsometricEnemy::stepMotor()
 	}
 
 	if (m_returnPathMotor) {
+		if (m_returnPathMotor->isReturning() && !m_returnPathMotor->isReturnReady()) {
+			m_body->stop();
+			return;
+		}
 		if (m_metric.returnSpeed != 0. && m_returnPathMotor->stepBack(m_metric.returnSpeed > 0. ? m_metric.returnSpeed : m_metric.speed)) {
 			m_body->setLinearVelocity(maximizeSpeed(m_returnPathMotor->currentPosition() - m_body->bodyPosition()));
 			return;
 		} else {
-			/*QVariantList list;
-			for (const auto &point : m_returnPathMotor->path())
-				list.append(point);
-			m_scene->setTestPoints(list);*/
-
 			m_returnPathMotor.reset();
 		}
 	}
@@ -263,12 +338,26 @@ void IsometricEnemy::stepMotor()
  * @param player
  */
 
-void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float32 *anglePtr, QPointF *vectorPtr)
+void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float32 *anglePtr, qreal *distancePtr)
 {
 	if (!player || !m_metric.rotateToPlayer)
 		return;
 
-	QPointF p = player->body()->bodyPosition() - m_body->bodyPosition();
+	rotateToPoint(player->body()->bodyPosition(), anglePtr, distancePtr);
+}
+
+
+
+/**
+ * @brief IsometricEnemy::rotateToPoint
+ * @param point
+ * @param anglePtr
+ * @param vectorPtr
+ */
+
+void IsometricEnemy::rotateToPoint(const QPointF &point, float32 *anglePtr, qreal *distancePtr)
+{
+	const QPointF p = point - m_body->bodyPosition();
 
 	float32 angle = atan2(-p.y(), p.x());
 
@@ -278,8 +367,35 @@ void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float32 *anglePtr, 
 	if (anglePtr)
 		*anglePtr = angle;
 
-	if (vectorPtr)
-		*vectorPtr = p;
+	if (distancePtr)
+		*distancePtr = QVector2D(p).length();
+}
+
+
+
+/**
+ * @brief IsometricEnemy::angleToPoint
+ * @param point
+ * @return
+ */
+
+float32 IsometricEnemy::angleToPoint(const QPointF &point) const
+{
+	const QPointF p = point - m_body->bodyPosition();
+	return atan2(-p.y(), p.x());
+}
+
+
+
+/**
+ * @brief IsometricEnemy::distanceToPoint
+ * @param point
+ * @return
+ */
+
+qreal IsometricEnemy::distanceToPoint(const QPointF &point) const
+{
+	return QVector2D(point - m_body->bodyPosition()).length();
 }
 
 
@@ -298,17 +414,30 @@ void IsometricEnemy::load()
 	setDefaultZ(1);
 	setSubZ(0.5);
 
+	setHp(5);
+
 	///setFixtureCenterVertical(0.8);
+
+	connect(m_fixture.get(), &Box2DFixture::collidesWithChanged, this, [this]() {
+		LOG_CWARNING("scene") << "CWC" << m_fixture->collidesWith();
+	});
 
 	m_fixture->setDensity(1);
 	m_fixture->setFriction(1);
 	m_fixture->setRestitution(0);
-	m_fixture->setCategories(Box2DFixture::Category3);
-	m_fixture->setCollidesWith(Box2DFixture::Category1|Box2DFixture::Category2);
+	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
+	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
 
-	TiledObjectSensorPolygon *p = addSensorPolygon(300);
+	m_fixture->setProperty("enemy", QVariant::fromValue(this));
+	//onAlive();
+
+	TiledObjectSensorPolygon *p = addSensorPolygon(450);
 
 	Q_ASSERT(p);
+
+	p->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
 
 	m_metric.speed = 2.;
 	m_metric.returnSpeed = 3.;
@@ -316,27 +445,23 @@ void IsometricEnemy::load()
 
 
 
-	connect(p, &TiledObjectSensorPolygon::beginContact, this, [this](Box2DFixture *other) {
-		if (!other->categories().testFlag(Box2DFixture::Category2))
-			return;
 
+	connect(p, &TiledObjectSensorPolygon::beginContact, this, [this](Box2DFixture *other) {
 		IsometricPlayer *player = other->property("player").value<IsometricPlayer*>();
 
 		LOG_CINFO("scene") << "CONTACT" << other << player;
 
-		m_contactedPlayer = player;
-		if (!player)
-			setPlayer(nullptr);
+		if (player && !m_contactedPlayers.contains(player))
+			m_contactedPlayers.append(player);
 	});
 
 	connect(p, &TiledObjectSensorPolygon::endContact, this, [this](Box2DFixture *other) {
-		if (!other->categories().testFlag(Box2DFixture::Category2))
-			return;
+		IsometricPlayer *player = other->property("player").value<IsometricPlayer*>();
 
-		LOG_CINFO("scene") << "CONTACT END" << other;
+		LOG_CINFO("scene") << "CONTACT END" << other << player;
 
-		m_contactedPlayer = nullptr;
-		setPlayer(nullptr);
+		if (player && m_contactedPlayers.contains(player))
+			m_contactedPlayers.removeAll(player);
 	});
 
 
@@ -384,7 +509,8 @@ void IsometricEnemy::load()
 			"count": 4,
 			"width": 128,
 			"height": 128,
-			"duration": 80
+			"duration": 60,
+			"loops": 1
 		},
 
 		{
@@ -395,19 +521,21 @@ void IsometricEnemy::load()
 			"count": 4,
 			"width": 128,
 			"height": 128,
-			"duration": 80
+			"duration": 60,
+			"loops": 1
 		},
 
 
 		{
 			"name": "die",
 			"directions": [ 180, 135, 90, 45, 360, 315, 270, 225 ],
-			"x": 2560,
+			"x": 2048,
 			"y": 0,
-			"count": 4,
+			"count": 8,
 			"width": 128,
 			"height": 128,
-			"duration": 80
+			"duration": 60,
+			"loops": 1
 		}
 
 	]
@@ -441,7 +569,9 @@ void IsometricEnemy::load()
 
 void IsometricEnemy::updateSprite()
 {
-	if (m_spriteHandler->currentSprite() == "hit")
+	if (m_hp <= 0)
+		jumpToSprite("die", m_currentDirection, m_currentAlteration);
+	else if (m_spriteHandler->currentSprite() == QStringLiteral("hit") || m_spriteHandler->currentSprite() == QStringLiteral("hurt"))
 		jumpToSpriteLater("idle", m_currentDirection, m_currentAlteration);
 	else if (m_movingDirection != Invalid)
 		jumpToSprite("run", m_movingDirection, m_currentAlteration);
@@ -515,33 +645,6 @@ void IsometricEnemyIface::setPlayer(IsometricPlayer *newPlayer)
 
 
 
-/**
- * @brief IsometricEnemyIface::checkPlayerVisibility
- * @param body
- * @param player
- * @return
- */
-
-bool IsometricEnemyIface::checkPlayerVisibility(TiledObjectBody *body, TiledObjectBase *player)
-{
-	Q_ASSERT(body);
-	Q_ASSERT(player);
-
-	const TiledReportedFixtureMap &map = body->rayCast(player->body()->bodyPosition());
-
-	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
-		if (it->fixture->isSensor())
-			continue;
-
-		if (it->fixture->categories().testFlag(Box2DFixture::Category2))
-			return true;
-
-		if (it->fixture->categories().testFlag(Box2DFixture::Category1))
-			return false;
-	}
-
-	return false;
-}
 
 
 float IsometricEnemyIface::playerDistance() const
@@ -556,5 +659,6 @@ void IsometricEnemyIface::setPlayerDistance(float newPlayerDistance)
 	m_playerDistance = newPlayerDistance;
 	emit playerDistanceChanged();
 }
+
 
 

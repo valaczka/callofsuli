@@ -29,7 +29,10 @@
 
 #include "isometricentity.h"
 #include "tiledtransport.h"
+#include "tiledgame.h"
 #include <QQmlEngine>
+
+class IsometricEnemy;
 
 class IsometricPlayer : public IsometricCircleEntity
 {
@@ -42,6 +45,7 @@ public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
 
 	static IsometricPlayer* createPlayer(TiledScene *scene);
+	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
 	virtual void entityWorldStep() override;
 
@@ -62,10 +66,12 @@ protected:
 private:
 	void load();
 
-	void onJoystickStateChanged();
 
 	TiledTransport *m_currentTransport = nullptr;
 	QString m_currentAlteration;
+
+	IsometricEnemy *m_enemy = nullptr;
+	QList<IsometricEnemy*> m_contactedEnemies;
 
 	friend class TiledGame;
 };

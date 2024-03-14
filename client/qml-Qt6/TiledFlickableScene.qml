@@ -45,6 +45,7 @@ Flickable {
 												 flick.contentWidth / scale, flick.contentHeight / scale) :
 										 Qt.rect(0,0,0,0)
 
+			//------------------------------------------------
 			/*onTestPointsChanged: _canvas.requestPaint()
 
 			Canvas {
@@ -72,6 +73,7 @@ Flickable {
 					ctx.restore();
 				}
 			}*/
+			//------------------------------------------------
 		}
 
 		DebugDraw {
@@ -108,17 +110,25 @@ Flickable {
 		id: _animX
 		target: flick
 		property: "contentX"
-		duration: 300
+		duration: 250
 	}
 
 	SmoothedAnimation {
 		id: _animY
 		target: flick
 		property: "contentY"
-		duration: 300
+		duration: 250
 	}
 
 
+	Connections {
+		target: _scene.game
+
+		function onFollowedItemChanged() {
+			setXOffset()
+			setYOffset()
+		}
+	}
 
 	Connections {
 		target: _scene.game ? _scene.game.followedItem : null
@@ -131,6 +141,9 @@ Flickable {
 			setYOffset()
 		}
 	}
+
+	onWidthChanged: setXOffset()
+	onHeightChanged: setYOffset()
 
 
 

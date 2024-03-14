@@ -32,11 +32,40 @@
 #include "tiledpathmotor.h"
 
 
+
+
+/**
+ * @brief The TiledReturnPathMotorSerializer class
+ */
+
+class TiledReturnPathMotorSerializer : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TiledReturnPathMotorSerializer() {}
+
+	QS_SERIALIZABLE
+	QS_COLLECTION(QVector, qreal, points)
+	QS_FIELD(bool, returning)
+	QS_FIELD(qreal, distance)
+};
+
+
+
+
+/**
+ * @brief The TiledReturnPathMotor class
+ */
+
 class TiledReturnPathMotor : public AbstractTiledMotor
 {
 public:
 	TiledReturnPathMotor();
 	virtual ~TiledReturnPathMotor() {}
+
+	TiledReturnPathMotorSerializer toSerializer() const;
+	static TiledReturnPathMotor *fromSerializer(const TiledReturnPathMotorSerializer &data);
 
 	QPointF currentPosition() const override;
 
@@ -49,12 +78,23 @@ public:
 	bool isReturning() const;
 	void setIsReturning(bool newIsReturning);
 
+	qreal waitMsec() const;
+	void setWaitMsec(qreal newWaitMsec);
+
+	bool isReturnReady() const;
+
+	const std::optional<QPointF> &lastSeenPoint() const;
+	void setLastSeenPoint(const QPointF &newLastSeenPoint);
+	void clearLastSeenPoint();
 
 private:
 	TiledPathMotor m_pathMotor;
 	QPolygonF m_path;
 	float32 m_lastAngle = 0;
 	bool m_isReturning = false;
+	std::optional<QPointF> m_lastSeenPoint;
+	QElapsedTimer m_waitTimer;
+	qreal m_waitMsec = 2500;
 };
 
 #endif // TILEDRETURNPATHMOTOR_H

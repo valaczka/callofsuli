@@ -27,14 +27,17 @@
 #include "tiledgame.h"
 #include "Logger.h"
 #include "application.h"
-#include "isometricenemy.h"
-#include "isometricplayer.h"
 #include <libtiled/objectgroup.h>
 
 TiledGame::TiledGame(QQuickItem *parent)
 	: QQuickItem(parent)
 {
 	LOG_CTRACE("scene") << "TiledGame created" << this;
+
+	connect(this, &TiledGame::activeFocusChanged, this, [this](const bool &focus){
+		if (!focus)
+			updateKeyboardJoystick(KeyboardJoystickState{.5, .5});
+	});
 }
 
 
@@ -48,35 +51,6 @@ TiledGame::~TiledGame()
 }
 
 
-/**
- * @brief TiledGame::load
- * @return
- */
-
-bool TiledGame::load()
-{
-
-	QString test = R"({
-	"firstScene": 1,
-	"scenes": [
-		{
-			"id": 1,
-			"file": "qrc:/teszt.tmx"
-		},
-
-		{
-			"id": 2,
-			"file": "qrc:/teszt2.tmx"
-		}
-	]
-	})";
-
-
-	TiledGameDefinition def;
-	def.fromJson(QJsonDocument::fromJson(test.toUtf8()).object());
-
-	return load(def);
-}
 
 
 
@@ -93,96 +67,28 @@ bool TiledGame::load(const TiledGameDefinition &def)
 	for (const TiledSceneDefinition &s : def.scenes) {
 		if (loadScene(s.id, s.file))
 			LOG_CINFO("game") << "Scene loaded:" << s.id << qPrintable(s.file);
-		else
+		else {
+			emit gameLoadFailed();
 			return false;
+		}
 	}
 
 	TiledScene *firstScene = findScene(def.firstScene);
 
 	if (!firstScene) {
 		LOG_CERROR("game") << "Invalid scene id:" << def.firstScene;
+		emit gameLoadFailed();
 		return false;
 	}
 
 	setCurrentScene(firstScene);
 	firstScene->forceActiveFocus();
 
+	emit gameLoaded();
 	return true;
 }
 
 
-
-/**
- * @brief TiledGame::addGate
- * @param name
- * @param scene
- * @param object
- * @return
- */
-
-bool TiledGame::addGate(const QString &name, TiledScene *scene, TiledObjectBase *object)
-{
-	return m_transportList.add(name, scene, object);
-}
-
-
-/**
- * @brief TiledGame::switchScene
- * @param character
- */
-
-void TiledGame::switchScene()
-{
-	LOG_CDEBUG("scene") << "SWITCH";
-
-	TiledTransport *transport = m_player->currentTransport();
-
-	if (!transport) {
-		LOG_CWARNING("scene") << "No transport";
-		return;
-	}
-
-	TiledScene *oldScene = m_player->scene();
-	TiledScene *newScene = transport->otherScene(oldScene);
-	TiledObjectBase *newObject = transport->otherObject(oldScene);
-
-	if (!newScene || !newObject) {
-		LOG_CERROR("scene") << "Wrong transport object";
-		return;
-	}
-
-	oldScene->removeFromObjects(m_player.get());
-
-	m_player->setScene(newScene);
-	m_player->emplace(newObject->body()->bodyPosition());
-
-	newScene->appendToObjects(m_player.get());
-
-	setCurrentScene(newScene);
-	newScene->forceActiveFocus();
-}
-
-
-
-/**
- * @brief TiledGame::loadPlayer
- * @param scene
- * @param pos
- */
-
-void TiledGame::loadPlayer(TiledScene *scene, const QPointF &pos)
-{
-	m_player.reset(IsometricPlayer::createPlayer(scene));
-
-	Q_ASSERT(m_player);
-
-	m_player->emplace(pos);
-	m_player->setCurrentDirection(TiledObject::South);
-
-	scene->appendToObjects(m_player.get());
-	setFollowedItem(m_player.get());
-	setControlledPlayer(m_player.get());
-}
 
 
 
@@ -199,7 +105,7 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 	Q_ASSERT(layer);
 	Q_ASSERT(renderer);
 
-	LOG_CTRACE("game") << "Load layer" << layer->typeId() << layer->id() << layer->name() << "to scene" << scene->sceneId();
+	LOG_CTRACE("game") << "Load layer" << layer->id() << layer->name() << "to scene" << scene->sceneId();
 
 	if (Tiled::TileLayer *tl = layer->asTileLayer()) {
 		return tl;
@@ -335,42 +241,23 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 	Q_ASSERT(renderer);
 
 	for (Tiled::MapObject *object : group->objects()) {
-		int idx = findObject(object->id(), scene->sceneId());
+		int idx = findLoadedObject(object->id(), scene->sceneId());
 
 		if (idx != -1) {
 			LOG_CERROR("game") << "Object already created" << object->id() << scene->sceneId();
 			continue;
 		}
 
-		if (object->className() == "enemy") {
-			QPolygonF p = TiledObjectBase::toPolygon(object, renderer);
-			LOG_CINFO("scene") << "ENEMY" << object->id();
-
-			IsometricEnemy *character = IsometricEnemy::createEnemy(scene);
-			Q_ASSERT(character);
-
-			character->setObjectId(object->id());
-
-			m_objectList.append(Object{
-									EnemyWerebear,
-									object->id(),
-									scene->sceneId(),
-									scene,
-									character
-								});
-
-			character->loadPathMotor(p);
-			scene->appendToObjects(character);
-		} else if (object->className() == "player") {
-			LOG_CINFO("scene") << "PLAYER" << object->id();
-			loadPlayer(scene, renderer->pixelToScreenCoords(object->position()));
-		} else if (object->className() == "gate") {
-
-			LOG_CINFO("scene") << "GATE" << object->id();
-
+		if (object->className() == QStringLiteral("player")) {
+			addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
+			addLoadedObject(object->id(), scene->sceneId());
+		} else if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
 			loadTransport(scene, object, renderer);
-		} else if (object->className() == "ground" || (object->className().isEmpty() && group->className() == "ground")) {
-			loadGround(scene, object, renderer);
+		} else if (object->className() == QStringLiteral("ground") ||
+				   (object->className().isEmpty() && group->className() == QStringLiteral("ground"))) {
+			loadGround(scene, object, renderer);			/// TODO: controlled ground
+		} else {
+			loadObjectLayer(scene, object, renderer);
 		}
 	}
 
@@ -387,7 +274,7 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
  * @return
  */
 
-bool TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+TiledObjectBase *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
 	Q_ASSERT(scene);
 	Q_ASSERT(object);
@@ -397,13 +284,13 @@ bool TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer);
 
 	if (!mapObject)
-		return false;
+		return nullptr;
 
 	mapObject->setScene(scene);
 	mapObject->fixture()->setDensity(1);
 	mapObject->fixture()->setFriction(1);
 	mapObject->fixture()->setRestitution(0);
-	mapObject->fixture()->setCategories(Box2DFixture::Category1);
+	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround));
 
 	if (object->hasProperty(QStringLiteral("dynamicZ"))) {
 		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
@@ -427,7 +314,9 @@ bool TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 		mapObject->setZ(0);
 	}
 
-	return true;
+	addLoadedObject(object->id(), scene->sceneId());
+
+	return mapObject;
 }
 
 
@@ -450,9 +339,28 @@ bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled
 
 	mapObject->setScene(scene);
 	mapObject->fixture()->setSensor(true);
-	mapObject->fixture()->setCategories(Box2DFixture::Category4);
+	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport));
 
-	return addGate(object->name(), scene, mapObject);
+	if (!m_transportList.add(TiledTransport::typeFromString(object->className()), object->name(), scene, mapObject))
+		return false;
+
+	addLoadedObject(object->id(), scene->sceneId());
+
+	return true;
+}
+
+
+
+/**
+ * @brief TiledGame::loadObjectLayer
+ * @param scene
+ * @param object
+ * @param renderer
+ */
+
+void TiledGame::loadObjectLayer(TiledScene *, Tiled::MapObject *, Tiled::MapRenderer *)
+{
+	LOG_CERROR("game") << "Missing implementation:" << __PRETTY_FUNCTION__;
 }
 
 
@@ -507,19 +415,11 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 			dy = 1.;
 			break;
 
-
-		case Qt::Key_S:
-			switchScene();
-			break;
-
+#ifndef QT_NO_DEBUG
 		case Qt::Key_D:
 			setDebugView(!m_debugView);
 			break;
-
-		case Qt::Key_Space:
-			if (m_controlledPlayer)
-				m_controlledPlayer->hit();
-			break;
+#endif
 	}
 
 	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
@@ -562,6 +462,27 @@ void TiledGame::keyReleaseEvent(QKeyEvent *event)
 	}
 
 	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
+}
+
+
+
+
+/**
+ * @brief TiledGame::gameMode
+ * @return
+ */
+
+TiledGame::GameMode TiledGame::gameMode() const
+{
+	return m_gameMode;
+}
+
+void TiledGame::setGameMode(const GameMode &newGameMode)
+{
+	if (m_gameMode == newGameMode)
+		return;
+	m_gameMode = newGameMode;
+	emit gameModeChanged();
 }
 
 
@@ -665,23 +586,75 @@ void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
 
 
 /**
- * @brief TiledGame::findObject
+ * @brief TiledGame::findLoadedObject
  * @param id
  * @param sceneId
  * @return
  */
 
-int TiledGame::findObject(const int &id, const int &sceneId) const
+int TiledGame::findLoadedObject(const int &id, const int &sceneId) const
 {
-	auto it = std::find_if(m_objectList.cbegin(), m_objectList.cend(),
-						   [&id, &sceneId](const Object &o){
+	auto it = std::find_if(m_loadedObjectList.cbegin(), m_loadedObjectList.cend(),
+						   [&id, &sceneId](const TiledObjectBase::Object &o){
 		return o.sceneId == sceneId && o.id == id;
 	});
 
-	if (it == m_objectList.cend())
+	if (it == m_loadedObjectList.cend())
 		return -1;
 	else
-		return it-m_objectList.cbegin();
+		return it-m_loadedObjectList.cbegin();
+}
+
+
+
+
+/**
+ * @brief TiledGame::addLoadedObject
+ * @param id
+ * @param sceneId
+ * @return
+ */
+
+bool TiledGame::addLoadedObject(const int &id, const int &sceneId)
+{
+	auto it = std::find_if(m_loadedObjectList.cbegin(), m_loadedObjectList.cend(),
+						   [&id, &sceneId](const TiledObjectBase::Object &o){
+		return o.sceneId == sceneId && o.id == id;
+	});
+
+	if (it != m_loadedObjectList.cend())
+		return false;
+
+	m_loadedObjectList.append(TiledObjectBase::Object{ id, sceneId });
+
+	return true;
+}
+
+
+
+/**
+ * @brief TiledGame::addPlayerPosition
+ * @param scene
+ * @param position
+ */
+
+void TiledGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
+{
+	auto it = std::find_if(m_playerPositionList.constBegin(), m_playerPositionList.constEnd(),
+						   [scene, &position](const PlayerPosition &p){
+		return p.scene == scene && p.position == position;
+	});
+
+	if (it != m_playerPositionList.constEnd()) {
+		LOG_CDEBUG("game") << "Player position already loaded:" << it->sceneId << it->position;
+		return;
+	}
+
+	m_playerPositionList.append(PlayerPosition{
+									scene ? scene->sceneId() : -1,
+									scene,
+									position
+								});
 }
 
 
@@ -743,25 +716,6 @@ void TiledGame::setJoystick(QQuickItem *newJoystick)
 }
 
 
-/**
- * @brief TiledGame::controlledPlayer
- * @return
- */
-
-IsometricPlayer *TiledGame::controlledPlayer() const
-{
-	return m_controlledPlayer;
-}
-
-void TiledGame::setControlledPlayer(IsometricPlayer *newControlledItem)
-{
-	if (m_controlledPlayer == newControlledItem)
-		return;
-	m_controlledPlayer = newControlledItem;
-	emit controlledPlayerChanged();
-}
-
-
 
 /**
  * @brief TiledGame::joystickState
@@ -780,8 +734,7 @@ void TiledGame::setJoystickState(const JoystickState &newJoystickState)
 	m_joystickState = newJoystickState;
 	emit joystickStateChanged();
 
-	if (m_controlledPlayer)
-		m_controlledPlayer->onJoystickStateChanged();
+	joystickStateEvent(newJoystickState);
 }
 
 

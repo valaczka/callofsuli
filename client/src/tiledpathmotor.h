@@ -31,6 +31,32 @@
 #include "qline.h"
 #include "qobjectdefs.h"
 #include "qpolygon.h"
+#include <QSerializer>
+
+
+
+
+
+/**
+ * @brief The TiledPathMotorSerializer class
+ */
+
+class TiledPathMotorSerializer : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TiledPathMotorSerializer()
+		: distance(0.)
+		, forward(true)
+	{}
+
+	QS_SERIALIZABLE
+	QS_FIELD(qreal, distance)
+	QS_FIELD(bool, forward)
+};
+
+
 
 
 /**
@@ -53,6 +79,11 @@ public:
 	TiledPathMotor() : TiledPathMotor(QPolygonF()) {}
 
 
+	TiledPathMotorSerializer toSerializer() const;
+	void fromSerializer(const TiledPathMotorSerializer &data);
+
+	QPolygonF linesToPolygon() const;
+
 	QPolygonF polygon() const;
 	void setPolygon(const QPolygonF &newPolygon);
 
@@ -72,11 +103,12 @@ public:
 	bool step(const qreal &distance);
 	bool step(const qreal &distance, const Direction &direction);
 
-	bool atBegin() const { return m_currentDistance <= 0.; }
+	bool atBegin() const { return m_currentDistance <= 0.00001; }
 	bool atEnd() const { return m_currentDistance >= m_fullDistance; }
 	bool isClosed() const { return m_polygon.isClosed(); }
 
 	int currentSegment() const;
+	bool clearFromSegment(const int &segment);
 
 private:
 	struct Line {

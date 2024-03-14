@@ -320,17 +320,27 @@ void TiledObjectBase::onSceneVisibleAreaChanged()
 	setInVisibleArea(m_scene->visibleArea().intersects(rect));
 }
 
-int TiledObjectBase::objectId() const
+TiledGame *TiledObjectBase::game() const
+{
+	return m_game;
+}
+
+void TiledObjectBase::setGame(TiledGame *newGame)
+{
+	if (m_game == newGame)
+		return;
+	m_game = newGame;
+	emit gameChanged();
+}
+
+const TiledObjectBase::Object &TiledObjectBase::objectId() const
 {
 	return m_objectId;
 }
 
-void TiledObjectBase::setObjectId(int newObjectId)
+void TiledObjectBase::setObjectId(const Object &newObjectId)
 {
-	if (m_objectId == newObjectId)
-		return;
 	m_objectId = newObjectId;
-	emit objectIdChanged();
 }
 
 
@@ -454,7 +464,7 @@ TiledObject::TiledObject(QQuickItem *parent)
  * @param sprite
  */
 
-void TiledObject::jumpToSprite(const QString &sprite, const Direction &direction, const QString &alteration) const
+void TiledObject::jumpToSprite(const char *sprite, const Direction &direction, const QString &alteration) const
 {
 	if (!m_spriteHandler) {
 		LOG_CERROR("scene") << "Missing spriteHandler";
@@ -471,7 +481,7 @@ void TiledObject::jumpToSprite(const QString &sprite, const Direction &direction
  * @param alteration
  */
 
-void TiledObject::jumpToSpriteLater(const QString &sprite, const Direction &direction, const QString &alteration) const
+void TiledObject::jumpToSpriteLater(const char *sprite, const Direction &direction, const QString &alteration) const
 {
 	if (!m_spriteHandler) {
 		LOG_CERROR("scene") << "Missing spriteHandler";
@@ -843,8 +853,9 @@ TiledObjectSensorPolygon::TiledObjectSensorPolygon(Box2DBody *body, QQuickItem *
 	Q_ASSERT(m_body);
 
 	setSensor(true);
-	//setCategories(Box2DFixture::None);
-	setCollidesWith(Category1|Category2);
+	setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
+	//setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
+	//				TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
 
 	m_virtualCircle->setSensor(true);
 	m_virtualCircle->setCollidesWith(Box2DFixture::None);
@@ -937,6 +948,42 @@ void TiledObjectSensorPolygon::recreateFixture()
 Box2DCircle *TiledObjectSensorPolygon::virtualCircle() const
 {
 	return m_virtualCircle.get();
+}
+
+
+
+
+/**
+ * @brief TiledObjectBody::synchronize
+ */
+
+Box2DFixture::CategoryFlag TiledObjectBody::fixtureCategory(const FixtureCategory &category)
+{
+	static const QMap<FixtureCategory, Box2DFixture::CategoryFlag> map = {
+		{ FixtureGround, Box2DFixture::Category1 },
+		{ FixturePlayerBody, Box2DFixture::Category2 },
+		{ FixtureEnemyBody, Box2DFixture::Category3 },
+		{ FixtureTransport, Box2DFixture::Category4 },
+
+		{ FixtureSensor, Box2DFixture::Category16 },
+	};
+
+	return map.value(category, Box2DFixture::None);
+}
+
+
+/**
+ * @brief TiledObjectBody::setFixtureCollidesWithFlag
+ * @param fixture
+ * @param category
+ * @param on
+ */
+
+void TiledObjectBody::setFixtureCollidesWithFlag(Box2DFixture *fixture, const FixtureCategory &category, const bool &on)
+{
+	Q_ASSERT(fixture);
+	auto flag = fixture->collidesWith();
+	fixture->setCollidesWith(flag.setFlag(TiledObjectBody::fixtureCategory(category), on));
 }
 
 
@@ -1084,9 +1131,12 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest)
 {
 	Q_ASSERT(mWorld);
 
+	const b2Vec2 bPos = mBody->GetPosition();
+	const b2Vec2 tPos = mWorld->toMeters(dest);
+
 	TiledObjectRayCast ray(mWorld);
 
-	mWorld->world().RayCast(&ray, mBody->GetPosition(), mWorld->toMeters(dest));
+	mWorld->world().RayCast(&ray, bPos, tPos);
 
 	return ray.reportedFixtures();
 }

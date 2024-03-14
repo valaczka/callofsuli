@@ -45,11 +45,27 @@ class TiledTransport : public QObject
 	Q_PROPERTY(TiledObjectBase *objectA READ objectA WRITE setObjectA NOTIFY objectAChanged FINAL)
 	Q_PROPERTY(TiledScene *sceneB READ sceneB WRITE setSceneB NOTIFY sceneBChanged FINAL)
 	Q_PROPERTY(TiledObjectBase *objectB READ objectB WRITE setObjectB NOTIFY objectBChanged FINAL)
+	Q_PROPERTY(TransportType type READ type WRITE setType NOTIFY typeChanged FINAL)
 
 public:
+	enum TransportType {
+		TransportInvalid = 0,
+		TransportGate
+	};
+
+	Q_ENUM(TransportType);
+
+	TiledTransport(const TransportType &type, const QString &name,
+				   TiledScene *sceneA, TiledObjectBase *objectA,
+				   TiledScene *sceneB, TiledObjectBase *objectB);
+
 	TiledTransport(const QString &name,
-					   TiledScene *sceneA, TiledObjectBase *objectA,
-						TiledScene *sceneB, TiledObjectBase *objectB);
+				   TiledScene *sceneA, TiledObjectBase *objectA,
+				   TiledScene *sceneB, TiledObjectBase *objectB)
+		: TiledTransport(TransportInvalid, name, sceneA, objectA, sceneB, objectB) {}
+
+	TiledTransport(const TransportType &type, const QString &name, TiledScene *sceneA, TiledObjectBase *objectA)
+		: TiledTransport(type, name, sceneA, objectA, nullptr, nullptr) {}
 
 	TiledTransport(const QString &name, TiledScene *sceneA, TiledObjectBase *objectA)
 		: TiledTransport(name, sceneA, objectA, nullptr, nullptr) {}
@@ -60,6 +76,8 @@ public:
 	TiledTransport()
 		: TiledTransport(QStringLiteral("")) {}
 
+
+	static TransportType typeFromString(const QString &str);
 
 
 	bool addObject(TiledScene *scene, TiledObjectBase *object);
@@ -89,6 +107,9 @@ public:
 	bool isActive() const;
 	void setIsActive(bool newIsActive);
 
+	TransportType type() const;
+	void setType(const TransportType &newType);
+
 signals:
 	void nameChanged();
 	void sceneAChanged();
@@ -97,8 +118,10 @@ signals:
 	void objectBChanged();
 	void isOpenChanged();
 	void isActiveChanged();
+	void typeChanged();
 
 protected:
+	TransportType m_type = TransportInvalid;
 	QString m_name;
 	bool m_isOpen = true;
 	bool m_isActive = false;
@@ -125,6 +148,7 @@ public:
 		: std::vector<std::unique_ptr<TiledTransport>>()
 	{}
 
+	bool add(const TiledTransport::TransportType &type, const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 	bool add(const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 
 	TiledTransport* find(const QString &name) const;

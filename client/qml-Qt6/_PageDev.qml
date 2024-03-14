@@ -15,10 +15,12 @@ Page {
 		color: _flick.scene.debugView ? Qaterial.Colors.blue900 : "black"
 	}*/
 
-	TiledGameImpl {
+	TiledRpgGameImpl {
 		id: _game
 		anchors.fill: parent
 		joystick: _gameJoystick
+
+		onGameLoadFailed: Client.messageError("FAILED")
 	}
 
 	Qaterial.AppBarButton
@@ -74,10 +76,11 @@ Page {
 
 	GameButton {
 		id: _shot
-		size: 50
+		size: 60
 
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
+		anchors.margins: 10
 
 		visible: _game.controlledPlayer
 

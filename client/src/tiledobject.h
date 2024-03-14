@@ -38,12 +38,17 @@
 
 
 
-
+class TiledGame;
 class TiledScene;
 class TiledSpriteHandler;
 class TiledObjectBase;
 
 #if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_TiledGame
+#define OPAQUE_PTR_TiledGame
+Q_DECLARE_OPAQUE_POINTER(TiledGame*)
+#endif
 
 #ifndef OPAQUE_PTR_TiledScene
 #define OPAQUE_PTR_TiledScene
@@ -89,6 +94,25 @@ public:
 	{
 		Q_ASSERT(m_baseObject);
 	}
+
+
+	/**
+	 * @brief The FixtureCategory enum
+	 */
+
+	enum FixtureCategory {
+		FixtureInvalid = 0,
+		FixtureGround,
+		FixturePlayerBody,
+		FixtureEnemyBody,
+		FixtureTransport,
+		FixtureSensor
+	};
+
+	Q_ENUM(FixtureCategory);
+
+	static Box2DFixture::CategoryFlag fixtureCategory(const FixtureCategory &category);
+	static void setFixtureCollidesWithFlag(Box2DFixture *fixture, const FixtureCategory &category, const bool &on = true);
 
 	void synchronize() override;
 	void updateTransform() override;
@@ -147,7 +171,7 @@ private:
 	void recreateFixture();
 
 	qreal m_length = 50;
-	qreal m_range = M_PI_4;
+	qreal m_range = M_PI*2./3.;
 
 	std::unique_ptr<Box2DCircle> m_virtualCircle;
 	Box2DBody *const m_body;
@@ -220,6 +244,7 @@ class TiledObjectBase : public QQuickItem
 	Q_OBJECT
 	QML_ELEMENT
 
+	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 	Q_PROPERTY(TiledScene *scene READ scene WRITE setScene NOTIFY sceneChanged FINAL)
 	Q_PROPERTY(TiledObjectBody *body READ body CONSTANT FINAL)
 	Q_PROPERTY(RemoteMode remoteMode READ remoteMode WRITE setRemoteMode NOTIFY remoteModeChanged FINAL)
@@ -228,7 +253,6 @@ class TiledObjectBase : public QQuickItem
 	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
 	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged FINAL)
 	Q_PROPERTY(bool inVisibleArea READ inVisibleArea WRITE setInVisibleArea NOTIFY inVisibleAreaChanged FINAL)
-	Q_PROPERTY(int objectId READ objectId WRITE setObjectId NOTIFY objectIdChanged FINAL)
 
 public:
 	explicit TiledObjectBase(QQuickItem *parent = 0);
@@ -242,6 +266,14 @@ public:
 	};
 
 	Q_ENUM(RemoteMode);
+
+
+	// Object id
+
+	struct Object {
+		int id = -1;
+		int sceneId = -1;
+	};
 
 	Q_INVOKABLE void bodyComplete() { m_body->componentComplete(); }
 	virtual void worldStep() {}
@@ -300,8 +332,11 @@ public:
 	bool inVisibleArea() const;
 	void setInVisibleArea(bool newInVisibleArea);
 
-	int objectId() const;
-	void setObjectId(int newObjectId);
+	const Object &objectId() const;
+	void setObjectId(const Object &newObjectId);
+
+	TiledGame *game() const;
+	void setGame(TiledGame *newGame);
 
 signals:
 	void sceneChanged();
@@ -311,7 +346,7 @@ signals:
 	void glowColorChanged();
 	void overlayColorChanged();
 	void inVisibleAreaChanged();
-	void objectIdChanged();
+	void gameChanged();
 
 protected:
 	void rotateBody(const float32 &desiredRadian);
@@ -319,6 +354,7 @@ protected:
 	virtual void onSceneVisibleAreaChanged();
 
 protected:
+	TiledGame *m_game = nullptr;
 	TiledScene *m_scene = nullptr;
 	std::unique_ptr<TiledObjectSensorPolygon> m_sensorPolygon;
 	std::unique_ptr<TiledObjectBody> m_body;
@@ -328,7 +364,7 @@ protected:
 	QColor m_glowColor = QColor(Qt::yellow);
 	QColor m_overlayColor = QColor(Qt::white);
 	bool m_inVisibleArea = false;
-	int m_objectId = -1;
+	Object m_objectId;
 
 	friend class TiledObjectBody;
 
@@ -393,14 +429,14 @@ public:
 
 	Q_ENUM(Directions);
 
-	Q_INVOKABLE void jumpToSprite(const QString &sprite, const Direction &direction,
+	Q_INVOKABLE void jumpToSprite(const char *sprite, const Direction &direction,
 								  const QString &alteration = QStringLiteral("")) const;
-	Q_INVOKABLE void jumpToSpriteLater(const QString &sprite, const Direction &direction,
+	Q_INVOKABLE void jumpToSpriteLater(const char *sprite, const Direction &direction,
 									   const QString &alteration = QStringLiteral("")) const;
-	Q_INVOKABLE void jumpToSprite(const QString &sprite, const QString &alteration) const {
+	Q_INVOKABLE void jumpToSprite(const char *sprite, const QString &alteration) const {
 		jumpToSprite(sprite, m_currentDirection, alteration);
 	}
-	Q_INVOKABLE void jumpToSpriteLater(const QString &sprite, const QString &alteration) const {
+	Q_INVOKABLE void jumpToSpriteLater(const char *sprite, const QString &alteration) const {
 		jumpToSpriteLater(sprite, m_currentDirection, alteration);
 	}
 

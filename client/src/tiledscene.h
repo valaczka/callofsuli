@@ -104,6 +104,25 @@ protected:
 	std::unique_ptr<Box2DWorld> m_world;
 	QList<QPointer<TiledObject>> m_tiledObjects;
 
+
+
+/// TEST POINTS
+/*private:
+	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
+	QVariantList m_testPoints;
+signals:
+	void testPointsChanged();
+public:
+	QVariantList testPoints() const { return m_testPoints; }
+	void setTestPoints(const QVariantList &list) {
+		if (m_testPoints == list)
+			return;
+		m_testPoints = list;
+		emit testPointsChanged();
+	}*/
+/// ----
+
+
 private:
 	void onWorldStepped();
 	void reorderObjectsZ();

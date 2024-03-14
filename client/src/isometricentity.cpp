@@ -109,6 +109,98 @@ void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const T
 
 
 /**
+ * @brief IsometricEntityIface::checkEntityVisibility
+ * @param body
+ * @param entity
+ * @return
+ */
+
+std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBody *body, TiledObjectBase *entity,
+																   const TiledObjectBody::FixtureCategory &category)
+{
+	Q_ASSERT(body);
+	Q_ASSERT(entity);
+
+	const QPointF &entityPosition = entity->body()->bodyPosition();
+	/*
+	QList<QPointF> points;
+
+	points.append(playerPosition);
+
+	// Get tangents
+
+	TiledObjectCircle *circleObj = dynamic_cast<TiledObjectCircle*>(player);
+
+	if (circleObj) {
+		Box2DCircle *fixture = circleObj->fixture();
+		const float &radius = fixture->radius();
+		const float centerX = playerPosition.x();
+		const float centerY = playerPosition.y();
+
+		const float bX = (body->bodyPosition().x() - centerX) / radius;
+		const float bY = (body->bodyPosition().y() - centerY) / radius;
+
+		const float xy = bX*bX + bY*bY;
+
+
+		// point outside of circumfence, one tangent
+		if (xy > 1.0) {
+			float D = bY * sqrt(xy - 1.);
+
+			float tx0 = (bX - D) / xy;
+			float tx1 = (bX + D) / xy;
+
+			float x0, x1, y0, y1;
+
+			if (bY != 0.) {
+				y0 = centerY + radius * (1. - tx0 * bX) / bY;
+				y1 = centerY + radius * (1. - tx1 * bX) / bY;
+			} else {
+				D = radius * sqrt(1. - tx0 * tx0);
+				y0 = centerY + D;
+				y1 = centerY - D;
+			}
+
+			x0 = centerX + radius * tx0; //restore scale and position
+			x1 = centerX + radius * tx1;
+
+			points.append(QPointF{x0, y0});
+			points.append(QPointF{x1, y1});
+		}
+	}
+
+	for (const QPointF &p : points) {
+*/
+	const TiledReportedFixtureMap &map = body->rayCast(entityPosition /*p*/);
+
+	bool visible = false;
+
+	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
+		if (it->fixture->isSensor())
+			continue;
+
+		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(category))) {
+			visible = true;
+			break;
+		}
+
+		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {
+			visible = false;
+			break;
+		}
+	}
+
+	if (visible)
+		return entityPosition /*p*/;
+	/*	}*/
+
+	return std::nullopt;
+}
+
+
+
+
+/**
  * @brief IsometricEntityIface::hp
  * @return
  */

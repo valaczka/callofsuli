@@ -278,6 +278,7 @@ SOURCES += \
 	tiledobject.cpp \
 	tiledpathmotor.cpp \
 	tiledreturnpathmotor.cpp \
+	tiledrpggame.cpp \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
 	tiledtransport.cpp \
@@ -372,6 +373,7 @@ HEADERS += \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
 	tiledreturnpathmotor.h \
+	tiledrpggame.h \
 	tiledscene.h \
 	tiledspritehandler.h \
 	tiledtransport.h \

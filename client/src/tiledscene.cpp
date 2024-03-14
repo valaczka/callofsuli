@@ -31,6 +31,7 @@
 #include "tilelayeritem.h"
 #include "tiledgame.h"
 #include "tilesetmanager.h"
+#include "isometricobjectiface.h"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
@@ -56,7 +57,7 @@ TiledScene::TiledScene(QQuickItem *parent)
 	//setAcceptTouchEvents(true);
 
 	Tiled::TilesetManager *manager = Tiled::TilesetManager::instance();
-	manager->setAnimateTiles(true);
+	/// ENABLE: manager->setAnimateTiles(true);
 	connect(manager, &Tiled::TilesetManager::repaintTileset, this, &TiledScene::repaintTilesets);
 
 }
@@ -384,6 +385,8 @@ void TiledScene::refresh()
 		} else {
 			layerItem->setZ(0);
 		}
+
+		/// TODO: add controlled layer
 	}
 
 

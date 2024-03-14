@@ -41,10 +41,13 @@
 
 class IsometricEnemyIface
 {
-
-
 public:
 	IsometricEnemyIface() {}
+
+	enum EnemyType {
+		EnemyInvalid = 0,
+		EnemyWerebear
+	};
 
 	void loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction = TiledPathMotor::Forward);
 
@@ -54,19 +57,23 @@ public:
 	IsometricPlayer *player() const;
 	void setPlayer(IsometricPlayer *newPlayer);
 
-	static bool checkPlayerVisibility(TiledObjectBody *body, TiledObjectBase *player);
+
+	static QStringList availableTypes() { return m_typeHash.keys(); }
+	static EnemyType typeFromString(const QString &type) { return m_typeHash.value(type, EnemyInvalid); }
 
 	float playerDistance() const;
 	void setPlayerDistance(float newPlayerDistance);
+
+	virtual void attackedByPlayer(IsometricPlayer *player) = 0;
 
 public:
 	virtual void playerChanged() = 0;
 	virtual void playerDistanceChanged() = 0;
 
-
 protected:
 	virtual bool enemyWorldStep() = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
+
 
 	struct EnemyMetric {
 		qreal speed = 3.0;						// <=0: no move
@@ -79,9 +86,12 @@ protected:
 	std::unique_ptr<AbstractTiledMotor> m_motor;
 	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;
 	QPointer<IsometricPlayer> m_player;
-	QPointer<IsometricPlayer> m_contactedPlayer;
+	QList<IsometricPlayer*> m_contactedPlayers;
 	EnemyMetric m_metric;
 	float m_playerDistance = -1;
+
+private:
+	static const QHash<QString, EnemyType> m_typeHash;
 
 };
 
@@ -103,7 +113,9 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 public:
 	explicit IsometricEnemy(QQuickItem *parent = nullptr);
 
-	static IsometricEnemy* createEnemy(TiledScene *scene);
+	static IsometricEnemy* createEnemy(const EnemyType &type, TiledScene *scene);
+
+	void attackedByPlayer(IsometricPlayer *player) override;
 
 
 signals:
@@ -118,7 +130,10 @@ protected:
 	void onDead() override;
 
 	void stepMotor();
-	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, QPointF *vectorPtr = nullptr);
+	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
+	void rotateToPoint(const QPointF &point, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
+	float32 angleToPoint(const QPointF &point) const;
+	qreal distanceToPoint(const QPointF &point) const;
 
 private:
 	void load();

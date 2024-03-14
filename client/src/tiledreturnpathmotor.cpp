@@ -34,6 +34,57 @@ TiledReturnPathMotor::TiledReturnPathMotor()
 
 
 /**
+ * @brief TiledReturnPathMotor::toSerializer
+ * @return
+ */
+
+TiledReturnPathMotorSerializer TiledReturnPathMotor::toSerializer() const
+{
+	TiledReturnPathMotorSerializer data;
+
+	data.points.reserve(m_path.size()*2);
+	for (const QPointF &p : m_path) {
+		data.points << p.x() << p.y();
+	}
+
+	data.returning = m_isReturning;
+	data.distance = m_pathMotor.currentDistance();
+
+	return data;
+}
+
+
+
+/**
+ * @brief TiledReturnPathMotor::fromSerializer
+ * @param data
+ * @return
+ */
+
+TiledReturnPathMotor *TiledReturnPathMotor::fromSerializer(const TiledReturnPathMotorSerializer &data)
+{
+	TiledReturnPathMotor *motor = new TiledReturnPathMotor;
+
+	QPolygonF polygon;
+
+	for (auto it = data.points.constBegin(); it != data.points.constEnd(); ++it) {
+		qreal x = *it;
+		++it;
+		if (it != data.points.constEnd()) {
+			polygon << QPointF{x, *it};
+		}
+	}
+
+	motor->m_pathMotor.setPolygon(polygon);
+	motor->m_pathMotor.setDirection(TiledPathMotor::Backward);
+	motor->m_pathMotor.toDistance(data.distance);
+	motor->m_isReturning = data.returning;
+
+	return motor;
+}
+
+
+/**
  * @brief TiledReturnPathMotor::currentPosition
  * @return
  */
@@ -47,6 +98,9 @@ QPointF TiledReturnPathMotor::currentPosition() const
 }
 
 
+
+
+
 /**
  * @brief TiledReturnPathMotor::moveBody
  * @param body
@@ -58,7 +112,14 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 {
 	Q_ASSERT(body);
 
-	m_isReturning = false;
+	if (m_isReturning) {
+		if (m_pathMotor.currentSegment() >= 0)
+			m_pathMotor.clearFromSegment(m_pathMotor.currentSegment());
+		m_path = m_pathMotor.linesToPolygon();
+
+		m_isReturning = false;
+		m_waitTimer.invalidate();
+	}
 
 	const QPointF &currentPoint = body->bodyPosition();
 
@@ -69,13 +130,39 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 
 	if (!m_path.isEmpty()) {
 		QVector2D vector(m_path.last()-currentPoint);
-		if (vector.length() < 50)
+		if (vector.length() < 50.)
 			return;
+	}
+
+
+	// Check intersections
+
+	if (m_path.size() > 1) {
+		QLineF line(m_path.last(), currentPoint);
+
+		auto prev = m_path.constBegin();
+		for (auto it = m_path.constBegin(); it != m_path.constEnd(); ++it) {
+			if (it == m_path.constBegin())
+				continue;
+
+			QLineF l(*prev, *it);
+
+			QPointF isp;
+
+			if (l.intersects(line, &isp) == QLineF::BoundedIntersection) {
+				while (it != m_path.constEnd())
+					it = m_path.erase(it);
+
+				m_path.append(isp);
+				break;
+			}
+
+			prev = it;
+		}
 	}
 
 	m_path << currentPoint;
 	m_lastAngle = angle;
-
 }
 
 
@@ -89,12 +176,18 @@ void TiledReturnPathMotor::finish(TiledObjectBody *body)
 	Q_ASSERT(body);
 
 	const QPointF &currentPoint = body->bodyPosition();
-	m_path << currentPoint;
+
+	QVector2D vector(m_path.last()-currentPoint);
+
+	if (vector.length() >= 15.)
+		m_path << currentPoint;
 
 	m_pathMotor.setDirection(TiledPathMotor::Backward);
 	m_pathMotor.setPolygon(m_path);
 
+	m_waitTimer.restart();
 	m_isReturning = true;
+	clearLastSeenPoint();
 }
 
 
@@ -112,6 +205,13 @@ bool TiledReturnPathMotor::stepBack(const qreal &radius)
 		LOG_CERROR("scene") << "Not in returning state";
 		return false;
 	}
+
+	if (!isReturnReady()) {
+		LOG_CWARNING("scene") << "Return not ready";
+		return false;
+	}
+
+
 
 	if (m_pathMotor.atBegin())
 		return false;
@@ -136,3 +236,34 @@ void TiledReturnPathMotor::setIsReturning(bool newIsReturning)
 {
 	m_isReturning = newIsReturning;
 }
+
+qreal TiledReturnPathMotor::waitMsec() const
+{
+	return m_waitMsec;
+}
+
+void TiledReturnPathMotor::setWaitMsec(qreal newWaitMsec)
+{
+	m_waitMsec = newWaitMsec;
+}
+
+bool TiledReturnPathMotor::isReturnReady() const
+{
+	return m_waitTimer.isValid() && m_waitTimer.elapsed() >= m_waitMsec;
+}
+
+const std::optional<QPointF> &TiledReturnPathMotor::lastSeenPoint() const
+{
+	return m_lastSeenPoint;
+}
+
+void TiledReturnPathMotor::setLastSeenPoint(const QPointF &newLastSeenPoint)
+{
+	m_lastSeenPoint = newLastSeenPoint;
+}
+
+void TiledReturnPathMotor::clearLastSeenPoint()
+{
+	m_lastSeenPoint = std::nullopt;
+}
+
