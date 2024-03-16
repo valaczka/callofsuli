@@ -33,6 +33,12 @@
 #include <QQmlEngine>
 
 class IsometricEnemy;
+class IsometricPlayerPrivate;
+
+
+/**
+ * @brief The IsometricPlayer class
+ */
 
 class IsometricPlayer : public IsometricCircleEntity
 {
@@ -40,11 +46,13 @@ class IsometricPlayer : public IsometricCircleEntity
 	QML_ELEMENT
 
 	Q_PROPERTY(TiledTransport *currentTransport READ currentTransport WRITE setCurrentTransport NOTIFY currentTransportChanged FINAL)
+	Q_PROPERTY(qreal currentAngle READ currentAngle WRITE setCurrentAngle NOTIFY currentAngleChanged FINAL)
 
 public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
+	virtual ~IsometricPlayer();
 
-	static IsometricPlayer* createPlayer(TiledScene *scene);
+	static IsometricPlayer* createPlayer(TiledGame *game, TiledScene *scene);
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
 	virtual void entityWorldStep() override;
@@ -52,26 +60,33 @@ public:
 	void hurt();
 	Q_INVOKABLE void hit();
 
+	Q_INVOKABLE void shot();
+
 	TiledTransport *currentTransport() const;
 	void setCurrentTransport(TiledTransport *newCurrentTransport);
 
+	qreal currentAngle() const;
+	void setCurrentAngle(qreal newCurrentAngle);
+
 signals:
 	void currentTransportChanged();
+	void currentAngleChanged();
 
 protected:
 	void updateSprite() override;
 	void onAlive() override;
 	void onDead() override;
+	virtual void createMarkerItem();
 
 private:
-	void load();
+	void load();			/// virtual
 
 
 	TiledTransport *m_currentTransport = nullptr;
 	QString m_currentAlteration;
+	qreal m_currentAngle = 0.;
 
-	IsometricEnemy *m_enemy = nullptr;
-	QList<IsometricEnemy*> m_contactedEnemies;
+	IsometricPlayerPrivate *d = nullptr;
 
 	friend class TiledGame;
 };

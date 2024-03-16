@@ -193,13 +193,13 @@ void TiledReturnPathMotor::finish(TiledObjectBody *body)
 
 
 /**
- * @brief TiledReturnPathMotor::stepBack
+ * @brief TiledReturnPathMotor::step
  * @param body
- * @param radius
+ * @param distance
  * @return
  */
 
-bool TiledReturnPathMotor::stepBack(const qreal &radius)
+bool TiledReturnPathMotor::step(const qreal &distance)
 {
 	if (!m_isReturning) {
 		LOG_CERROR("scene") << "Not in returning state";
@@ -212,11 +212,10 @@ bool TiledReturnPathMotor::stepBack(const qreal &radius)
 	}
 
 
-
 	if (m_pathMotor.atBegin())
 		return false;
 
-	m_pathMotor.step(radius);
+	m_pathMotor.step(distance);
 	return true;
 }
 

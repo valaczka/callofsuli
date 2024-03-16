@@ -36,10 +36,12 @@ class TiledRpgGame : public TiledGame
 	Q_OBJECT
 	QML_ELEMENT
 
+	Q_PROPERTY(QList<IsometricPlayer *> players READ players WRITE setPlayers NOTIFY playersChanged FINAL)
 	Q_PROPERTY(IsometricPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 
 public:
 	explicit TiledRpgGame(QQuickItem *parent = nullptr);
+	virtual ~TiledRpgGame();
 
 
 	Q_INVOKABLE bool load();
@@ -47,8 +49,13 @@ public:
 	IsometricPlayer *controlledPlayer() const;
 	void setControlledPlayer(IsometricPlayer *newControlledPlayer);
 
+	QList<IsometricPlayer *> players() const;
+	void setPlayers(const QList<IsometricPlayer *> &newPlayers);
+
 signals:
 	void controlledPlayerChanged();
+
+	void playersChanged();
 
 protected:
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
@@ -62,13 +69,15 @@ private:
 		TiledObjectBase::Object object;
 		IsometricEnemyIface::EnemyType type = IsometricEnemyIface::EnemyInvalid;
 		QPolygonF path;
-		TiledScene *scene = nullptr;
-		IsometricEnemy *enemy = nullptr;
+		int defaultAngle = 0;
+		QPointer<TiledScene> scene;
+		QPointer<IsometricEnemy> enemy;
 	};
 
 	QVector<EnemyData> m_enemyDataList;
 
-	IsometricPlayer *m_controlledPlayer = nullptr;
+	QList<IsometricPlayer*> m_players;
+	QPointer<IsometricPlayer> m_controlledPlayer;
 };
 
 #endif // TILEDRPGGAME_H

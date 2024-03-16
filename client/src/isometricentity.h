@@ -46,7 +46,7 @@ public:
 														const TiledObjectBody::FixtureCategory &category);
 
 	template <typename T>
-	static T* getVisibleEntity(TiledObjectBody *body, const QList<T*> &entities,
+	static T getVisibleEntity(TiledObjectBody *body, const QList<T> &entities,
 							   const TiledObjectBody::FixtureCategory &category,
 							   QPointF *visiblePointPtr = nullptr);
 
@@ -56,25 +56,38 @@ public:
 	qreal maximumSpeed() const;
 	void setMaximumSpeed(qreal newMaximumSpeed);
 
-	QPointF maximizeSpeed(const QPointF &point) const;
-	QPointF &maximizeSpeed(QPointF &point) const;
+	static QPointF maximizeSpeed(const QPointF &point, const qreal &maximumSpeed);
+	static QPointF &maximizeSpeed(QPointF &point, const qreal &maximumSpeed);
+	QPointF maximizeSpeed(const QPointF &point) const {
+		return maximizeSpeed(point, m_maximumSpeed);
+	}
+	QPointF &maximizeSpeed(QPointF &point) const {
+		return maximizeSpeed(point, m_maximumSpeed);
+	}
 
 	int hp() const;
 	void setHp(int newHp);
 
+	int maxHp() const;
+	void setMaxHp(int newMaxHp);
+
+	virtual void updateSprite() = 0;
+
 public:
 	virtual void hpChanged() = 0;
+	virtual void maxHpChanged() = 0;
+
 
 protected:
 	void entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections);
 
-	virtual void updateSprite() = 0;
 	virtual void onAlive() = 0;
 	virtual void onDead() = 0;
 
 	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
 	qreal m_maximumSpeed = 10.;
-	int m_hp = 0;
+	int m_hp = 1;
+	int m_maxHp = 1;
 
 private:
 	QPointF m_lastPosition;
@@ -92,14 +105,14 @@ private:
  */
 
 template<typename T>
-T *IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T *> &entities,
+T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &entities,
 										  const TiledObjectBody::FixtureCategory &category, QPointF *visiblePointPtr)
 {
 	Q_ASSERT(body);
 
-	QMap<qreal, QPair<T*, QPointF>> list;
+	QMap<qreal, QPair<T, QPointF>> list;
 
-	for (T *p : std::as_const(entities)) {
+	for (const T &p : std::as_const(entities)) {
 		if (!p)
 			continue;
 
@@ -131,6 +144,7 @@ class IsometricCircleEntity : public IsometricObjectCircle, public IsometricEnti
 	QML_ELEMENT
 
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
+	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged FINAL)
 
 public:
 	explicit IsometricCircleEntity(QQuickItem *parent = nullptr);
@@ -142,6 +156,7 @@ public:
 
 signals:
 	void hpChanged() override final;
+	void maxHpChanged() override final;
 
 protected:
 	virtual void entityWorldStep() {}

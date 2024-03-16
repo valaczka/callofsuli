@@ -61,12 +61,15 @@ void IsometricEntityIface::setMaximumSpeed(qreal newMaximumSpeed)
  * @return
  */
 
-QPointF IsometricEntityIface::maximizeSpeed(const QPointF &point) const
+QPointF IsometricEntityIface::maximizeSpeed(const QPointF &point, const qreal &maximumSpeed)
 {
+	if (maximumSpeed <= 0.)
+		return point;
+
 	QPointF p;
 
-	p.setX(std::max(-m_maximumSpeed, std::min(point.x(), m_maximumSpeed)));
-	p.setY(std::max(-m_maximumSpeed, std::min(point.y(), m_maximumSpeed)));
+	p.setX(std::max(-maximumSpeed, std::min(point.x(), maximumSpeed)));
+	p.setY(std::max(-maximumSpeed, std::min(point.y(), maximumSpeed)));
 
 	return p;
 }
@@ -79,10 +82,12 @@ QPointF IsometricEntityIface::maximizeSpeed(const QPointF &point) const
  * @return
  */
 
-QPointF &IsometricEntityIface::maximizeSpeed(QPointF &point) const
+QPointF &IsometricEntityIface::maximizeSpeed(QPointF &point, const qreal &maximumSpeed)
 {
-	point.setX(std::max(-m_maximumSpeed, std::min(point.x(), m_maximumSpeed)));
-	point.setY(std::max(-m_maximumSpeed, std::min(point.y(), m_maximumSpeed)));
+	if (maximumSpeed > 0) {
+		point.setX(std::max(-maximumSpeed, std::min(point.x(), maximumSpeed)));
+		point.setY(std::max(-maximumSpeed, std::min(point.y(), maximumSpeed)));
+	}
 	return point;
 }
 
@@ -104,6 +109,19 @@ void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const T
 															   TiledObject::toRadian(line.angle())));
 
 	m_lastPosition = position;
+}
+
+int IsometricEntityIface::maxHp() const
+{
+	return m_maxHp;
+}
+
+void IsometricEntityIface::setMaxHp(int newMaxHp)
+{
+	if (m_maxHp == newMaxHp)
+		return;
+	m_maxHp = newMaxHp;
+	emit maxHpChanged();
 }
 
 

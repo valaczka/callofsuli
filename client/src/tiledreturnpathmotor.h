@@ -68,10 +68,11 @@ public:
 	static TiledReturnPathMotor *fromSerializer(const TiledReturnPathMotorSerializer &data);
 
 	QPointF currentPosition() const override;
+	void updateBody(TiledObject */*body*/, const qreal &/*maximumSpeed = 0.*/) override {}
 
 	void moveBody(TiledObjectBody *body, const float32 &angle, const qreal &radius);
 	void finish(TiledObjectBody *body);
-	bool stepBack(const qreal &radius);
+	bool step(const qreal &distance) override;
 
 	QPolygonF path() const;
 

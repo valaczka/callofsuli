@@ -22,24 +22,56 @@ Flickable {
 
 	visible: _scene.game && _scene.game.currentScene == _scene
 
-	interactive: !_pinch.active && _scene.game && !_scene.game.joystickState.hasTouch
-
 	boundsBehavior: Flickable.DragAndOvershootBounds
 	boundsMovement: Flickable.StopAtBounds
 	flickableDirection: Flickable.HorizontalAndVerticalFlick
+
+	property real minZoom: 0.2
+	property real maxZoom: 2.5
+	property real zoomStep: 0.2
 
 	Item {
 		id: _container
 		width: Math.max(_scene.width * _scene.scale, flick.width)
 		height: Math.max(_scene.height * _scene.scale, flick.height)
 
+
 		TiledSceneImpl {
 			id: _scene
 
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.verticalCenter: parent.verticalCenter
+			property real prevScale: 1.0
 
+			anchors.centerIn: parent
 			transformOrigin: Item.Center
+
+
+			onScaleChanged: {
+				if ((width * scale) > flick.width) {
+					var xoff = (flick.width / 2 + flick.contentX) * scale / prevScale;
+					flick.contentX = xoff - flick.width / 2
+				}
+				if ((height * scale) > flick.height) {
+					var yoff = (flick.height / 2 + flick.contentY) * scale / prevScale;
+					flick.contentY = yoff - flick.height / 2
+				}
+				prevScale=scale;
+			}
+
+
+			function zoomIn() {
+				if (_scene.scale<flick.maxZoom)
+					_scene.scale *= (1.0+zoomStep)
+				else
+					_scene.scale = flick.maxZoom
+				flick.returnToBounds();
+			}
+			function zoomOut() {
+				if (_scene.scale>flick.minZoom)
+					_scene.scale *= (1.0-zoomStep)
+				else
+					_scene.scale = flick.minZoom;
+				flick.returnToBounds();
+			}
 
 			visibleArea: flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
 												 flick.contentWidth / scale, flick.contentHeight / scale) :
@@ -84,24 +116,57 @@ Flickable {
 			scale: _scene.scale
 		}
 
-		PinchHandler {
-			id: _pinch
-			target: _scene
-			persistentTranslation: Qt.point(0,0)
-			persistentRotation: 0.
+	}
 
-			xAxis.enabled: true
-			yAxis.enabled: true
-			rotationAxis.enabled: false
+	PinchArea {
+		anchors.fill: parent
 
-			scaleAxis.enabled: true
-			scaleAxis.minimum: 0.2
-			scaleAxis.maximum: 1.2
+		enabled: _scene.game && !_scene.game.joystick.hasTouch
 
-			/*xAxis.onActiveValueChanged: (delta) => flick.contentX += delta
-				   yAxis.onActiveValueChanged: (delta) => flick.contentY += delta
-				   //rotationAxis.onActiveValueChanged: (delta) => parent.rotation += delta
-				   scaleAxis.onActiveValueChanged: (delta) => _scene.scale *= delta*/
+		pinch.target: _scene
+		pinch.minimumScale: flick.minZoom
+		pinch.maximumScale: flick.maxZoom
+
+		onPinchStarted: {
+			flick.interactive = false
+		}
+
+		onPinchUpdated: pinch => {
+			flick.contentX += pinch.previousCenter.x - pinch.center.x
+			flick.contentY += pinch.previousCenter.y - pinch.center.y
+		}
+
+		onPinchFinished: {
+			flick.interactive = true
+			flick.returnToBounds()
+		}
+
+		MouseArea {								// Workaround (https://bugreports.qt.io/browse/QTBUG-77629)
+			anchors.fill: parent
+
+			onWheel: wheel => {
+						 if (wheel.modifiers & Qt.ControlModifier) {
+							 if (wheel.angleDelta.y > 0) {
+								 _scene.zoomIn()
+							 } else if (wheel.angleDelta.y < 0) {
+								 _scene.zoomOut()
+							 }
+						 } else if ((wheel.modifiers & Qt.ShiftModifier) || (wheel.modifiers & Qt.AltModifier)) {
+							 if (wheel.angleDelta.y > 0) {
+								 flick.contentX -= flick.contentWidth * flick.visibleArea.widthRatio*0.1
+							 } else if (wheel.angleDelta.y < 0) {
+								 flick.contentX += flick.contentWidth * flick.visibleArea.widthRatio*0.1
+							 }
+							 flick.returnToBounds()
+						 } else {
+							 if (wheel.angleDelta.y > 0) {
+								 flick.contentY -= flick.contentHeight * flick.visibleArea.heightRatio*0.1
+							 } else if (wheel.angleDelta.y < 0) {
+								 flick.contentY += flick.contentHeight * flick.visibleArea.heightRatio*0.1
+							 }
+							 flick.returnToBounds()
+						 }
+					 }
 		}
 	}
 
@@ -152,9 +217,9 @@ Flickable {
 			return
 
 		var fw = flick.width
-		var spaceRequired = Math.min(fw*0.3, 250)
 		var px = _scene.game.followedItem.x*_scene.scale
 		var pw = _scene.game.followedItem.width*_scene.scale
+		var spaceRequired = Math.min((fw-pw)*0.45, 500)
 		var cx = flick.contentX
 		var cw = flick.contentWidth
 		var x = -1
@@ -181,9 +246,9 @@ Flickable {
 			return
 
 		var fh = flick.height
-		var spaceRequired = Math.min(fh*0.3, 250)
 		var py = _scene.game.followedItem.y*_scene.scale
 		var ph = _scene.game.followedItem.height*_scene.scale
+		var spaceRequired = Math.min((fh-ph)*0.45, 500)
 		var cy = flick.contentY
 		var ch = flick.contentHeight
 		var y = -1
@@ -226,8 +291,6 @@ Flickable {
 	}
 
 
-
-
 	function setOffsetTo(_x, _y) {
 		var fh = flick.height
 		var py = _y*_scene.scale
@@ -254,4 +317,5 @@ Flickable {
 
 		animateX(x)
 	}
+
 }

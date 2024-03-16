@@ -50,6 +50,7 @@ public:
 	};
 
 	void loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction = TiledPathMotor::Forward);
+	void loadFixPositionMotor(const QPointF &point, const TiledObject::Direction &direction = TiledObject::Invalid);
 
 	AbstractTiledMotor *motor() const { return m_motor.get(); }
 	TiledPathMotor *pathMotor() const { return m_motor ? dynamic_cast<TiledPathMotor*>(m_motor.get()) : nullptr; }
@@ -70,6 +71,7 @@ public:
 	virtual void playerChanged() = 0;
 	virtual void playerDistanceChanged() = 0;
 
+
 protected:
 	virtual bool enemyWorldStep() = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
@@ -81,18 +83,20 @@ protected:
 		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
 		float playerDistance = 50;				// stop at distance
 		bool rotateToPlayer = true;
+
+		qreal sensorLength = 450.;
+		qreal sensorRange = M_PI*2./3.;
 	};
 
 	std::unique_ptr<AbstractTiledMotor> m_motor;
 	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;
 	QPointer<IsometricPlayer> m_player;
-	QList<IsometricPlayer*> m_contactedPlayers;
+	QList<QPointer<IsometricPlayer>> m_contactedPlayers;
 	EnemyMetric m_metric;
 	float m_playerDistance = -1;
 
 private:
 	static const QHash<QString, EnemyType> m_typeHash;
-
 };
 
 
@@ -113,7 +117,7 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 public:
 	explicit IsometricEnemy(QQuickItem *parent = nullptr);
 
-	static IsometricEnemy* createEnemy(const EnemyType &type, TiledScene *scene);
+	static IsometricEnemy* createEnemy(const EnemyType &type, TiledGame *game, TiledScene *scene);
 
 	void attackedByPlayer(IsometricPlayer *player) override;
 
@@ -136,7 +140,7 @@ protected:
 	qreal distanceToPoint(const QPointF &point) const;
 
 private:
-	void load();
+	void load();					/// virtual
 	void updateSprite() override;
 	void nextAlteration();
 

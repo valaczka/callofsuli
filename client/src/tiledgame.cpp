@@ -27,7 +27,10 @@
 #include "tiledgame.h"
 #include "Logger.h"
 #include "application.h"
+#include "isometricentity.h"
 #include <libtiled/objectgroup.h>
+
+std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGame::m_sharedTextures;
 
 TiledGame::TiledGame(QQuickItem *parent)
 	: QQuickItem(parent)
@@ -47,6 +50,16 @@ TiledGame::TiledGame(QQuickItem *parent)
 
 TiledGame::~TiledGame()
 {
+	for (const auto &s : m_sceneList) {
+		s.scene->world()->setRunning(false);
+		if (s.scene->game() == this)
+			s.scene->setGame(nullptr);
+	}
+
+	m_currentScene = nullptr;
+	m_sceneList.clear();
+	m_loadedObjectList.clear();
+	m_playerPositionList.clear();
 	LOG_CTRACE("scene") << "TiledGame destroy" << this;
 }
 
@@ -120,27 +133,32 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 
 
 
-
 /**
  * @brief TiledGame::getTexture
  * @param path
  * @return
  */
 
-const std::shared_ptr<QSGTexture> &TiledGame::getTexture(const QString &path)
+QSGTexture *TiledGame::getTexture(const QString &path, QQuickWindow *window)
 {
+	Q_ASSERT(window);
+
 	auto it = m_sharedTextures.find(path);
 
 	if (it != m_sharedTextures.end())
-		return *it;
+		return it->second.get();
 
-	QSGTexture *texture = window()->createTextureFromImage(QImage(path));
+	QSGTexture *texture = window->createTextureFromImage(QImage(path));
 
 	LOG_CTRACE("scene") << "Create texture from image:" << path << texture;
 
-	std::shared_ptr<QSGTexture> s(texture);
+	std::unique_ptr<QSGTexture> s(texture);
 
-	return *(m_sharedTextures.insert(path, std::move(s)));
+	const auto &ptr = m_sharedTextures.insert({path, std::move(s)});
+
+	Q_ASSERT(ptr.second);
+
+	return ptr.first->second.get();
 }
 
 
@@ -197,7 +215,7 @@ bool TiledGame::loadScene(const int sceneId, const QString &file)
 {
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledFlickableScene.qml"), this);
 
-	LOG_CDEBUG("game") << "Create scene flickable item:" << component.isReady();
+	LOG_CDEBUG("game") << "Create scene flickable item:" << sceneId;
 
 	Scene item;
 
@@ -281,11 +299,12 @@ TiledObjectBase *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 	Q_ASSERT(renderer);
 
 	TiledObjectBasePolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer);
+	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer, scene);
 
 	if (!mapObject)
 		return nullptr;
 
+	mapObject->setParent(scene);
 	mapObject->setScene(scene);
 	mapObject->fixture()->setDensity(1);
 	mapObject->fixture()->setFriction(1);
@@ -332,11 +351,12 @@ TiledObjectBase *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
 	TiledObjectBasePolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer, this);
+	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer, scene);
 
 	if (!mapObject)
 		return false;
 
+	mapObject->setParent(scene);
 	mapObject->setScene(scene);
 	mapObject->fixture()->setSensor(true);
 	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport));
@@ -462,6 +482,32 @@ void TiledGame::keyReleaseEvent(QKeyEvent *event)
 	}
 
 	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
+}
+
+
+
+/**
+ * @brief TiledGame::transportBeforeEvent
+ * @param object
+ * @param transport
+ * @return
+ */
+
+bool TiledGame::transportBeforeEvent(TiledObject */*object*/, TiledTransport */*transport*/)
+{
+	return true;
+}
+
+
+
+/**
+ * @brief TiledGame::transportAfterEvent
+ * @return
+ */
+
+bool TiledGame::transportAfterEvent(TiledObject */*object*/, TiledScene */*newScene*/, TiledObjectBase */*newObject*/)
+{
+	return true;
 }
 
 
@@ -633,6 +679,34 @@ bool TiledGame::addLoadedObject(const int &id, const int &sceneId)
 
 
 /**
+ * @brief TiledGame::changeScene
+ * @param object
+ * @param from
+ * @param to
+ */
+
+void TiledGame::changeScene(TiledObject *object, TiledScene *from, TiledScene *to, const QPointF &toPoint)
+{
+	Q_ASSERT(object);
+	Q_ASSERT(from);
+	Q_ASSERT(to);
+
+	from->removeFromObjects(object);
+
+	object->setScene(to);
+	object->body()->emplace(toPoint);
+
+	to->appendToObjects(object);
+
+	IsometricEntityIface *entity = dynamic_cast<IsometricEntityIface*>(object);
+
+	if (entity)
+		entity->updateSprite();
+}
+
+
+
+/**
  * @brief TiledGame::addPlayerPosition
  * @param scene
  * @param position
@@ -686,6 +760,47 @@ void TiledGame::setFollowedItem(TiledObject *newFollowedItem)
 const TiledTransportList &TiledGame::transportList() const
 {
 	return m_transportList;
+}
+
+
+
+
+/**
+ * @brief TiledGame::transport
+ * @param object
+ * @param transport
+ * @return
+ */
+
+bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
+{
+	Q_ASSERT(object);
+
+	if (!transport)
+		return false;
+
+
+	TiledScene *oldScene = object->scene();
+	TiledScene *newScene = transport->otherScene(oldScene);
+	TiledObjectBase *newObject = transport->otherObject(oldScene);
+
+	if (!newScene || !newObject) {
+		LOG_CERROR("game") << "Broken transport object";
+		return false;
+	}
+
+	if (!transportBeforeEvent(object, transport))
+		return false;
+
+	changeScene(object, oldScene, newScene, newObject->body()->bodyPosition());
+
+	if (!transportAfterEvent(object, newScene, newObject))
+		return false;
+
+	setCurrentScene(newScene);
+	newScene->forceActiveFocus();
+
+	return true;
 }
 
 

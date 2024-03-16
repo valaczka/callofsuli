@@ -32,6 +32,7 @@
 #include "tiledtransport.h"
 #include <QQuickItem>
 #include <QSerializer>
+#include <unordered_map>
 
 
 
@@ -131,7 +132,7 @@ public:
 
 	Tiled::TileLayer *loadSceneLayer(TiledScene *scene, Tiled::Layer *layer, Tiled::MapRenderer *renderer);
 
-	const std::shared_ptr<QSGTexture> &getTexture(const QString &path);
+	static QSGTexture *getTexture(const QString &path, QQuickWindow *window);
 
 	TiledScene *findScene(const int &id) const;
 
@@ -139,6 +140,8 @@ public:
 	void setCurrentScene(TiledScene *newCurrentScene);
 
 	const TiledTransportList &transportList() const;
+
+	Q_INVOKABLE bool transport(TiledObject *object, TiledTransport *transport);
 
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);
@@ -169,17 +172,21 @@ protected:
 	bool loadScene(const int sceneId, const QString &file);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 	TiledObjectBase *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
-	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);	//??
+	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void addPlayerPosition(TiledScene *scene, const QPointF &position);
 
 	int findLoadedObject(const int &id, const int &sceneId) const;
 	bool addLoadedObject(const int &id, const int &sceneId);
+
+	void changeScene(TiledObject *object, TiledScene *from, TiledScene *to, const QPointF &toPoint);
 
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 	virtual void joystickStateEvent(const JoystickState &newJoystickState) { Q_UNUSED(newJoystickState);}
+	virtual bool transportBeforeEvent(TiledObject *object, TiledTransport *transport);
+	virtual bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject);
 
 
 protected:
@@ -225,7 +232,7 @@ private:
 	QPointer<QQuickItem> m_joystick = nullptr;
 	QPointer<TiledObject> m_followedItem = nullptr;
 	JoystickState m_joystickState;
-	QHash<QString, std::shared_ptr<QSGTexture>> m_sharedTextures;
+	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 	bool m_debugView = false;
 };
 

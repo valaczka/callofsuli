@@ -243,6 +243,7 @@ SOURCES += \
 	gameterrainmap.cpp \
 	grade.cpp \
 	httpconnection.cpp \
+	isometricbullet.cpp \
 	isometricenemy.cpp \
 	isometricentity.cpp \
 	isometricobject.cpp \
@@ -274,6 +275,7 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
+	tiledfixpositionmotor.cpp \
 	tiledgame.cpp \
 	tiledobject.cpp \
 	tiledpathmotor.cpp \
@@ -338,6 +340,7 @@ HEADERS += \
 	gameterrainmap.h \
 	grade.h \
 	httpconnection.h \
+	isometricbullet.h \
 	isometricenemy.h \
 	isometricentity.h \
 	isometricobject.h \
@@ -368,6 +371,7 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
+	tiledfixpositionmotor.h \
 	tiledgame.h \
 	tiledobject.h \
 	tiledobjectspritedef.h \

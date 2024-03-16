@@ -85,9 +85,7 @@ private:
 		QString alteration;
 		TiledObject::Direction direction = TiledObject::Invalid;
 		TiledObjectSprite data;
-		std::shared_ptr<QSGTexture> shr_texture;
-
-		QSGTexture *texture() const { return shr_texture.get(); }
+		QSGTexture *texture = nullptr;
 	};
 
 

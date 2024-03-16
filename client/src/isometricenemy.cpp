@@ -27,6 +27,7 @@
 #include "isometricenemy.h"
 #include "box2dworld.h"
 #include "isometricplayer.h"
+#include "tiledfixpositionmotor.h"
 #include "tiledspritehandler.h"
 
 
@@ -57,13 +58,13 @@ IsometricEnemy::IsometricEnemy(QQuickItem *parent)
  * @return
  */
 
-IsometricEnemy *IsometricEnemy::createEnemy(const EnemyType &type, TiledScene *scene)
+IsometricEnemy *IsometricEnemy::createEnemy(const EnemyType &type, TiledGame *game, TiledScene *scene)
 {
 	IsometricEnemy *enemy = nullptr;
 
 	switch (type) {
 		case EnemyWerebear:
-			TiledObjectBase::createFromCircle<IsometricEnemy>(&enemy, QPointF{}, 30, nullptr, scene);
+			TiledObjectBase::createFromCircle<IsometricEnemy>(&enemy, QPointF{}, 30, nullptr, game);
 			break;
 
 		case EnemyInvalid:
@@ -72,8 +73,9 @@ IsometricEnemy *IsometricEnemy::createEnemy(const EnemyType &type, TiledScene *s
 	}
 
 	if (enemy) {
-		if (scene)
-			enemy->setScene(scene);
+		enemy->setParent(game);
+		enemy->setGame(game);
+		enemy->setScene(scene);
 		enemy->load();
 	}
 
@@ -88,6 +90,12 @@ IsometricEnemy *IsometricEnemy::createEnemy(const EnemyType &type, TiledScene *s
 
 void IsometricEnemy::attackedByPlayer(IsometricPlayer *player)
 {
+	if (!m_contactedPlayers.contains(player))
+		m_contactedPlayers.append(player);
+
+	setPlayer(player);
+	rotateToPlayer(player);
+
 	setHp(m_hp-1);
 
 	m_hitTimer.invalidate();
@@ -119,7 +127,7 @@ void IsometricEnemy::entityWorldStep()
 
 
 	//QPointF visiblePoint;
-	IsometricPlayer *myPlayer = getVisibleEntity<IsometricPlayer>(m_body.get(), m_contactedPlayers,
+	IsometricPlayer *myPlayer = getVisibleEntity<QPointer<IsometricPlayer>>(m_body.get(), m_contactedPlayers,
 																  TiledObjectBody::FixturePlayerBody
 																  /*, &visiblePoint*/);
 
@@ -242,6 +250,8 @@ bool IsometricEnemy::enemyWorldStep()
 			jumpToSprite("hit", m_currentDirection, m_currentAlteration);
 			m_hitTimer.start();
 		}
+
+		return false;
 	} else {
 		m_hitTimer.invalidate();
 	}
@@ -283,6 +293,7 @@ void IsometricEnemy::onDead()
 	m_fixture->setCategories(Box2DFixture::None);
 	m_fixture->setCollidesWith(Box2DFixture::None);
 	setSubZ(0.0);
+	m_sensorPolygon->setLength(10.);
 }
 
 
@@ -294,7 +305,7 @@ void IsometricEnemy::onDead()
 void IsometricEnemy::stepMotor()
 {
 	if (!m_motor) {
-		LOG_CERROR("scene") << "Missing motor" << this;
+		LOG_CERROR("game") << "Missing enemy motor:" << m_objectId.sceneId << m_objectId.id;
 		return;
 	}
 
@@ -303,7 +314,7 @@ void IsometricEnemy::stepMotor()
 			m_body->stop();
 			return;
 		}
-		if (m_metric.returnSpeed != 0. && m_returnPathMotor->stepBack(m_metric.returnSpeed > 0. ? m_metric.returnSpeed : m_metric.speed)) {
+		if (m_metric.returnSpeed != 0. && m_returnPathMotor->step(m_metric.returnSpeed > 0. ? m_metric.returnSpeed : m_metric.speed)) {
 			m_body->setLinearVelocity(maximizeSpeed(m_returnPathMotor->currentPosition() - m_body->bodyPosition()));
 			return;
 		} else {
@@ -311,22 +322,8 @@ void IsometricEnemy::stepMotor()
 		}
 	}
 
-	if (m_metric.speed <= 0.)
-		return;
-
-	if (m_motor->type() == AbstractTiledMotor::PathMotor) {
-		TiledPathMotor *motor = pathMotor();
-		Q_ASSERT(motor);
-
-		motor->step(m_metric.speed);
-
-		if (motor->direction() == TiledPathMotor::Backward && motor->atBegin())
-			motor->setDirection(TiledPathMotor::Forward);
-		else if (motor->direction() == TiledPathMotor::Forward && motor->atEnd())
-			motor->setDirection(TiledPathMotor::Backward);
-
-		m_body->setLinearVelocity(maximizeSpeed(motor->currentPosition() - m_body->bodyPosition()));
-	}
+	m_motor->step(m_metric.speed);
+	m_motor->updateBody(this, m_maximumSpeed);
 }
 
 
@@ -416,12 +413,6 @@ void IsometricEnemy::load()
 
 	setHp(5);
 
-	///setFixtureCenterVertical(0.8);
-
-	connect(m_fixture.get(), &Box2DFixture::collidesWithChanged, this, [this]() {
-		LOG_CWARNING("scene") << "CWC" << m_fixture->collidesWith();
-	});
-
 	m_fixture->setDensity(1);
 	m_fixture->setFriction(1);
 	m_fixture->setRestitution(0);
@@ -433,7 +424,9 @@ void IsometricEnemy::load()
 	m_fixture->setProperty("enemy", QVariant::fromValue(this));
 	//onAlive();
 
-	TiledObjectSensorPolygon *p = addSensorPolygon(450);
+	TiledObjectSensorPolygon *p = addSensorPolygon(m_metric.sensorLength, m_metric.sensorRange);
+
+	addTargetCircle();
 
 	Q_ASSERT(p);
 
@@ -549,7 +542,7 @@ void IsometricEnemy::load()
 
 	setWidth(128);
 	setHeight(128);
-	m_body->setBodyOffset(0, 0.45*64);
+	setBodyOffset(0, 0.45*64);
 
 
 	nextAlteration();
@@ -614,6 +607,8 @@ void IsometricEnemyIface::loadPathMotor(const QPolygonF &polygon, const TiledPat
 
 	motor->setPolygon(polygon);
 	motor->setDirection(direction);
+	motor->setWaitAtBegin(3500);
+	motor->setWaitAtEnd(3500);
 	if (direction == TiledPathMotor::Forward)
 		motor->toBegin();
 	else
@@ -622,6 +617,27 @@ void IsometricEnemyIface::loadPathMotor(const QPolygonF &polygon, const TiledPat
 	m_motor.reset(motor);
 
 	onPathMotorLoaded(AbstractTiledMotor::PathMotor);
+}
+
+
+/**
+ * @brief IsometricEnemyIface::loadFixPositionMotor
+ * @param point
+ * @param defaultAngle
+ */
+
+void IsometricEnemyIface::loadFixPositionMotor(const QPointF &point, const TiledObject::Direction &direction)
+{
+	Q_ASSERT(!m_motor.get());
+
+	TiledFixPositionMotor *motor = new TiledFixPositionMotor;
+
+	motor->setPoint(point);
+	motor->setDirection(direction);
+
+	m_motor.reset(motor);
+
+	onPathMotorLoaded(AbstractTiledMotor::FixPositionMotor);
 }
 
 

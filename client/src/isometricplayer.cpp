@@ -25,10 +25,23 @@
  */
 
 #include "isometricplayer.h"
+#include "isometricbullet.h"
 #include "isometricenemy.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
 #include "tiledgame.h"
+#include "application.h"
+
+
+class IsometricPlayerPrivate {
+private:
+	QPointer<IsometricEnemy> m_enemy;
+	QList<QPointer<IsometricEnemy>> m_contactedEnemies;
+
+	friend class IsometricPlayer;
+};
+
+
 
 /**
  * @brief IsometricPlayer::IsometricPlayer
@@ -37,8 +50,19 @@
 
 IsometricPlayer::IsometricPlayer(QQuickItem *parent)
 	: IsometricCircleEntity(parent)
+	, d(new IsometricPlayerPrivate)
 {
 
+}
+
+
+/**
+ * @brief IsometricPlayer::~IsometricPlayer
+ */
+
+IsometricPlayer::~IsometricPlayer()
+{
+	delete d;
 }
 
 
@@ -48,12 +72,14 @@ IsometricPlayer::IsometricPlayer(QQuickItem *parent)
  * @return
  */
 
-IsometricPlayer *IsometricPlayer::createPlayer(TiledScene *scene)
+IsometricPlayer *IsometricPlayer::createPlayer(TiledGame *game, TiledScene *scene)
 {
 	IsometricPlayer *player = nullptr;
-	TiledObjectBase::createFromCircle<IsometricPlayer>(&player, QPointF{}, 50, nullptr, scene);
+	TiledObjectBase::createFromCircle<IsometricPlayer>(&player, QPointF{}, 50, nullptr, game);
 
 	if (player) {
+		player->setParent(game);
+		player->setGame(game);
 		player->setScene(scene);
 		player->load();
 	}
@@ -68,12 +94,23 @@ IsometricPlayer *IsometricPlayer::createPlayer(TiledScene *scene)
 
 void IsometricPlayer::entityWorldStep()
 {
-	m_enemy = getVisibleEntity<IsometricEnemy>(m_body.get(), m_contactedEnemies, TiledObjectBody::FixtureEnemyBody);
+	IsometricEnemy *e = getVisibleEntity<QPointer<IsometricEnemy>>(m_body.get(), d->m_contactedEnemies, TiledObjectBody::FixtureEnemyBody);
+
+	if (e != d->m_enemy) {
+		if (d->m_enemy)
+			d->m_enemy->setGlowEnabled(false);
+		d->m_enemy = e;
+		if (d->m_enemy) {
+			d->m_enemy->setGlowColor(Qt::red);
+			d->m_enemy->setGlowEnabled(true);
+		}
+	}
 
 
-	rotateBody(directionToRadian(m_currentDirection));
+	rotateBody(m_currentAngle);
 	updateSprite();
 }
+
 
 
 /**
@@ -91,7 +128,7 @@ void IsometricPlayer::hurt()
 
 	if (m_hp <= 0) {
 		jumpToSprite("die", m_currentDirection, m_currentAlteration);
-	} else if (m_spriteHandler->currentSprite() != "swing") {
+	} else if (m_spriteHandler->currentSprite() != "swing" && m_spriteHandler->currentSprite() != "shoot") {
 		jumpToSprite("block", m_currentDirection, m_currentAlteration);
 	}
 }
@@ -105,10 +142,32 @@ void IsometricPlayer::hit()
 {
 	jumpToSprite("swing", m_currentDirection, m_currentAlteration);
 
-	LOG_CTRACE("scene") << "SWORD" << m_enemy;
+	LOG_CTRACE("scene") << "SWORD" << d->m_enemy;
 
-	if (m_enemy)
-		m_enemy->attackedByPlayer(this);
+	if (d->m_enemy)
+		d->m_enemy->attackedByPlayer(this);
+}
+
+
+
+/**
+ * @brief IsometricPlayer::shot
+ */
+
+void IsometricPlayer::shot()
+{
+	IsometricBullet *bullet = IsometricBullet::createBullet(m_game, m_scene);
+
+	if (!bullet) {
+		LOG_CERROR("scene") << "Bullet error";
+		return;
+	}
+
+	jumpToSprite("shoot", m_currentDirection, m_currentAlteration);
+
+	m_scene->appendToObjects(bullet);
+
+	bullet->shot(m_body->bodyPosition(), m_currentAngle);
 }
 
 
@@ -125,6 +184,7 @@ void IsometricPlayer::load()
 	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.5);
+	setMaxHp(25);
 	setHp(25);
 
 	m_fixture->setDensity(1);
@@ -141,6 +201,7 @@ void IsometricPlayer::load()
 	QString path = ":/";
 
 	createVisual();
+	createMarkerItem();
 	setAvailableDirections(Direction_8);
 
 
@@ -160,7 +221,7 @@ void IsometricPlayer::load()
 			"count": 4,
 			"width": 128,
 			"height": 128,
-			"duration": 80
+			"duration": 120
 		},
 
 		{
@@ -171,7 +232,7 @@ void IsometricPlayer::load()
 			"count": 8,
 			"width": 128,
 			"height": 128,
-			"duration": 60
+			"duration": 66
 		},
 
 		{
@@ -199,6 +260,18 @@ void IsometricPlayer::load()
 		},
 
 		{
+			"name": "shoot",
+			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
+			"x": 3584,
+			"y": 0,
+			"count": 4,
+			"width": 128,
+			"height": 128,
+			"duration": 60,
+			"loops": 1
+		},
+
+		{
 			"name": "die",
 			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
 			"x": 2304,
@@ -206,7 +279,7 @@ void IsometricPlayer::load()
 			"count": 6,
 			"width": 128,
 			"height": 128,
-			"duration": 60,
+			"duration": 100,
 			"loops": 1
 		}
 	]
@@ -219,8 +292,8 @@ void IsometricPlayer::load()
 
 			IsometricEnemy *enemy = other->property("enemy").value<IsometricEnemy*>();
 
-			if (enemy && !m_contactedEnemies.contains(enemy))
-				m_contactedEnemies.append(enemy);
+			if (enemy && !d->m_contactedEnemies.contains(enemy))
+				d->m_contactedEnemies.append(enemy);
 
 			LOG_CINFO("scene") << "ENEMY CONTACT" << enemy;
 
@@ -234,7 +307,7 @@ void IsometricPlayer::load()
 			IsometricEnemy *enemy = other->property("enemy").value<IsometricEnemy*>();
 
 			if (enemy)
-				m_contactedEnemies.removeAll(enemy);
+				d->m_contactedEnemies.removeAll(enemy);
 
 			LOG_CTRACE("scene") << "ENEMY CONTACT END" << enemy;
 
@@ -275,9 +348,31 @@ void IsometricPlayer::load()
 
 	setWidth(128);
 	setHeight(128);
-	m_body->setBodyOffset(0, 0.4*64);
+	setBodyOffset(0, 0.4*64);
 
 	m_currentAlteration = "all";
+}
+
+
+
+/**
+ * @brief IsometricPlayer::currentAngle
+ * @return
+ */
+
+qreal IsometricPlayer::currentAngle() const
+{
+	return m_currentAngle;
+}
+
+void IsometricPlayer::setCurrentAngle(qreal newCurrentAngle)
+{
+	if (qFuzzyCompare(m_currentAngle, newCurrentAngle))
+		return;
+	m_currentAngle = newCurrentAngle;
+	emit currentAngleChanged();
+
+	setCurrentDirection(nearestDirectionFromRadian(m_currentAngle));
 }
 
 
@@ -292,7 +387,8 @@ void IsometricPlayer::updateSprite()
 		return;
 	}
 
-	if (m_spriteHandler->currentSprite() == "block" || m_spriteHandler->currentSprite() == "swing")
+	if (m_spriteHandler->currentSprite() == "block" || m_spriteHandler->currentSprite() == "swing" ||
+			m_spriteHandler->currentSprite() == "shoot")
 		jumpToSpriteLater("idle", m_currentDirection, m_currentAlteration);
 	else if (m_movingDirection != Invalid)
 		jumpToSprite("run", m_movingDirection, m_currentAlteration);
@@ -311,6 +407,11 @@ void IsometricPlayer::onAlive()
 	LOG_CINFO("scene") << "ALIVE";
 	m_body->setBodyType(Box2DBody::Dynamic);
 	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
+	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport)
+							   );
 	setSubZ(0.5);
 }
 
@@ -323,9 +424,32 @@ void IsometricPlayer::onDead()
 {
 	LOG_CINFO("scene") << "DEAD";
 	m_body->setBodyType(Box2DBody::Static);
+	m_body->setActive(false);
 	m_fixture->setCategories(Box2DFixture::None);
 	m_fixture->setCollidesWith(Box2DFixture::None);
 	setSubZ(0.0);
+}
+
+
+/**
+ * @brief IsometricPlayer::createMarkerItem
+ */
+
+void IsometricPlayer::createMarkerItem()
+{
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledPlayerMarker.qml"), this);
+
+	QQuickItem *item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(
+												 QVariantMap{
+													 { QStringLiteral("target"), QVariant::fromValue(this) }
+												 }));
+
+	if (!item) {
+		LOG_CERROR("scene") << "TiledPlayerMarker error" << component.errorString();
+		return;
+	}
+
+	item->setParent(this);
 }
 
 
@@ -336,8 +460,9 @@ void IsometricPlayer::onDead()
 
 void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &state)
 {
-	if (state.hasKeyboard || state.hasTouch)
-		setCurrentDirection(nearestDirectionFromRadian(state.angle));
+	if (state.hasKeyboard || state.hasTouch) {
+		setCurrentAngle(state.angle);
+	}
 
 	if (state.distance > 0.9) {
 		const qreal radius = 6.;					/// speed

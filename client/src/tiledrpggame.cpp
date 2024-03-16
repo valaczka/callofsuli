@@ -32,6 +32,22 @@ TiledRpgGame::TiledRpgGame(QQuickItem *parent)
 
 }
 
+TiledRpgGame::~TiledRpgGame()
+{
+	for (const auto &e : m_enemyDataList) {
+		if (e.enemy)
+			e.enemy->setGame(nullptr);
+	}
+
+	for (const auto &p : m_players) {
+		if (p)
+			p->setGame(nullptr);
+	}
+
+	m_enemyDataList.clear();
+	m_players.clear();
+}
+
 
 
 bool TiledRpgGame::load()
@@ -59,55 +75,57 @@ bool TiledRpgGame::load()
 		return false;
 
 
-	for (const auto &e : m_enemyDataList) {
+
+
+	for (auto &e : m_enemyDataList) {
 		LOG_CINFO("game") << "CREATE ENEMY" << e.object.id << e.object.sceneId;
-		IsometricEnemy *character = IsometricEnemy::createEnemy(e.type, e.scene);
+
+		Q_ASSERT(!e.path.isEmpty());
+
+		IsometricEnemy *character = IsometricEnemy::createEnemy(e.type, this, e.scene);
 
 		if (!character)
 			continue;
 
 		character->setObjectId(e.object);
 
-		character->loadPathMotor(e.path);
+		if (e.path.size() > 1)
+			character->loadPathMotor(e.path);
+		else
+			character->loadFixPositionMotor(e.path.first(), character->nearestDirectionFromRadian(e.defaultAngle));
+
 		e.scene->appendToObjects(character);
 
-		break;
+		e.enemy = character;
 	}
 
+
+	QList<IsometricPlayer*> list;
 
 	if (!m_playerPositionList.isEmpty()) {
 		const auto &p = m_playerPositionList.first();
 
-		auto player = IsometricPlayer::createPlayer(p.scene);
+		for (int i=0; i<3; ++i) {
+			auto player = IsometricPlayer::createPlayer(this, p.scene);
 
-		Q_ASSERT(player);
+			player->emplace(p.position+QPointF(i*15, i*15));
+			if (i == 0)
+				player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
+			else
+				player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::NorthEast));
 
-		player->emplace(p.position);
-		player->setCurrentDirection(TiledObject::South);
+			p.scene->appendToObjects(player);
 
-		p.scene->appendToObjects(player);
-		setFollowedItem(player);
-		setControlledPlayer(player);
+			if (i==0) {
+				setFollowedItem(player);
+				setControlledPlayer(player);
+			}
 
-
+			list.append(player);
+		}
 	}
 
-
-	/*
-
-
-		IsometricEnemy *character = IsometricEnemy::createEnemy(type, scene);
-
-		if (!character)
-			return;
-
-		addLoadedObject(object->id(), scene->sceneId());
-		character->setObjectId({object->id(), scene->sceneId()});
-
-		character->loadPathMotor(p);
-		scene->appendToObjects(character);
-
-*/
+	setPlayers(list);
 
 
 	return true;
@@ -129,19 +147,34 @@ void TiledRpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, 
 
 	if (const IsometricEnemyIface::EnemyType &type = IsometricEnemyIface::typeFromString(object->className());
 			type != IsometricEnemyIface::EnemyInvalid) {
-		QPolygonF p = TiledObjectBase::toPolygon(object, renderer);
+
+		QPolygonF p;
+
+		if (object->shape() == Tiled::MapObject::Polygon ||
+				object->shape() == Tiled::MapObject::Polyline)
+			p = TiledObjectBase::toPolygon(object, renderer);
+		else if (object->shape() == Tiled::MapObject::Point)
+			p << renderer->pixelToScreenCoords(object->position());
+
+
+		if (p.isEmpty()) {
+			LOG_CWARNING("scene") << "Invalid enemy polygon" << object->id() << scene->sceneId() << object->name();
+			return;
+		}
 
 		m_enemyDataList.append(EnemyData{
 								   TiledObjectBase::Object{object->id(), scene->sceneId()},
 								   type,
 								   p,
+								   object->property("direction").toInt(),
 								   scene,
 								   nullptr
 							   });
 
+
 		LOG_CINFO("scene") << "ENEMY" << object->id();
 	} else {
-		LOG_CWARNING("game") << "Invalid object type" << object->className() << object->name() << object->id();
+		LOG_CWARNING("game") << "Invalid object type" << object->className() << object->name() << object->id() << scene->sceneId();
 	}
 }
 
@@ -169,7 +202,14 @@ void TiledRpgGame::keyPressEvent(QKeyEvent *event)
 
 	switch (key) {
 		case Qt::Key_S:
-			//switchScene();
+			if (m_controlledPlayer && m_controlledPlayer->currentTransport())
+				transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
+			break;
+
+
+		case Qt::Key_Q:
+			if (m_controlledPlayer)
+				m_controlledPlayer->shot();
 			break;
 
 		case Qt::Key_Space:
@@ -177,10 +217,45 @@ void TiledRpgGame::keyPressEvent(QKeyEvent *event)
 				m_controlledPlayer->hit();
 			break;
 
+
+		case Qt::Key_X:
+			for (auto &e : m_enemyDataList) {
+				if (e.enemy) {
+					e.enemy->setHp(0);
+				}
+			}
+			break;
+
+		case Qt::Key_Y:
+			for (int i=1; i<m_players.size(); ++i) {
+				m_players.at(i)->setHp(0);
+			}
+			break;
+
+
 		default:
 			TiledGame::keyPressEvent(event);
 			break;
 	}
+}
+
+
+/**
+ * @brief TiledRpgGame::players
+ * @return
+ */
+
+QList<IsometricPlayer *> TiledRpgGame::players() const
+{
+	return m_players;
+}
+
+void TiledRpgGame::setPlayers(const QList<IsometricPlayer *> &newPlayers)
+{
+	if (m_players == newPlayers)
+		return;
+	m_players = newPlayers;
+	emit playersChanged();
 }
 
 
@@ -205,56 +280,3 @@ void TiledRpgGame::setControlledPlayer(IsometricPlayer *newControlledPlayer)
 
 
 
-
-
-
-
-/**
- * @brief TiledGame::switchScene
-
-void TiledGame::switchScene()
-{
-	LOG_CDEBUG("scene") << "SWITCH";
-
-	TiledTransport *transport = m_player->currentTransport();
-
-	if (!transport) {
-		LOG_CWARNING("scene") << "No transport";
-		return;
-	}
-
-	TiledScene *oldScene = m_player->scene();
-	TiledScene *newScene = transport->otherScene(oldScene);
-	TiledObjectBase *newObject = transport->otherObject(oldScene);
-
-	if (!newScene || !newObject) {
-		LOG_CERROR("scene") << "Wrong transport object";
-		return;
-	}
-
-	oldScene->removeFromObjects(m_player.get());
-
-	m_player->setScene(newScene);
-	m_player->emplace(newObject->body()->bodyPosition());
-
-	newScene->appendToObjects(m_player.get());
-
-	setCurrentScene(newScene);
-	newScene->forceActiveFocus();
-}
-
-
-void TiledGame::loadPlayer(TiledScene *scene, const QPointF &pos)
-{
-	m_player.reset(IsometricPlayer::createPlayer(scene));
-
-	Q_ASSERT(m_player);
-
-	m_player->emplace(pos);
-	m_player->setCurrentDirection(TiledObject::South);
-
-	scene->appendToObjects(m_player.get());
-	setFollowedItem(m_player.get());
-	setControlledPlayer(m_player.get());
-}
-*/

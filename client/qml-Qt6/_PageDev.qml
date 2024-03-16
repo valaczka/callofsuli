@@ -44,6 +44,34 @@ Page {
 
 
 
+	GameButton {
+		id: bowButton
+		size: 50
+
+		anchors.horizontalCenter: _shot.horizontalCenter
+		anchors.bottom: pickButton.top
+		anchors.bottomMargin: 5
+
+		visible: _game.controlledPlayer
+
+		//enabled: _game.controlledPlayer && _game.controlledPlayer.currentTransport && _game.controlledPlayer.currentTransport.
+
+		color: Qaterial.Colors.blue400
+		border.color: fontImage.color
+		border.width: 1
+
+		opacity: 1.0
+
+		fontImage.icon: Qaterial.Icons.bowArrow
+		fontImage.color: "white"
+		fontImageScale: 0.6
+		fontImage.anchors.horizontalCenterOffset: -2
+
+		onClicked: {
+			_game.controlledPlayer.shot()
+		}
+	}
+
 
 
 	GameButton {
@@ -70,7 +98,7 @@ Page {
 		fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
-			_game.switchScene()
+			_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
 		}
 	}
 
@@ -107,6 +135,10 @@ Page {
 		_game.load()
 	}
 
+
+	StackView.onDeactivating: {
+		_game.visible = false
+	}
 }
 
 

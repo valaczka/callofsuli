@@ -220,5 +220,6 @@
         <file>TiledObjectVisual.qml</file>
         <file>TiledFlickableScene.qml</file>
         <file>TiledSprite.qml</file>
+        <file>TiledPlayerMarker.qml</file>
     </qresource>
 </RCC>

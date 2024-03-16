@@ -28,6 +28,7 @@
 #define TILEDPATHMOTOR_H
 
 #include "abstracttiledmotor.h"
+#include "qelapsedtimer.h"
 #include "qline.h"
 #include "qobjectdefs.h"
 #include "qpolygon.h"
@@ -75,6 +76,15 @@ public:
 
 	Q_ENUM(Direction);
 
+
+	enum WaitTimerState {
+		Invalid = 0,
+		Running,
+		Overdue
+	};
+
+	Q_ENUM(WaitTimerState);
+
 	TiledPathMotor(const QPolygonF &polygon, const Direction &direction = Forward);
 	TiledPathMotor() : TiledPathMotor(QPolygonF()) {}
 
@@ -96,19 +106,32 @@ public:
 	qreal currentAngleRadian() const;
 	qreal fullDistance() const;
 
+	void updateBody(TiledObject *object, const qreal &maximumSpeed = 0.) override;
+
 	bool toBegin();
 	bool toEnd();
 	bool toDistance(const qreal &distance);
 	void toPercent(const qreal &percent) { toDistance(m_fullDistance*percent); }
-	bool step(const qreal &distance);
+	bool step(const qreal &distance) override;
 	bool step(const qreal &distance, const Direction &direction);
 
 	bool atBegin() const { return m_currentDistance <= 0.00001; }
 	bool atEnd() const { return m_currentDistance >= m_fullDistance; }
 	bool isClosed() const { return m_polygon.isClosed(); }
 
+	void waitTimerStart(const qint64 &msec);
+	void waitTimerStop();
+	WaitTimerState waitTimerState() const;
+
 	int currentSegment() const;
 	bool clearFromSegment(const int &segment);
+
+	qint64 waitAtEnd() const;
+	void setWaitAtEnd(qint64 newWaitAtEnd);
+
+	qint64 waitAtBegin() const;
+	void setWaitAtBegin(qint64 newWaitAtBegin);
+
 
 private:
 	struct Line {
@@ -129,7 +152,11 @@ private:
 	qreal m_currentAngle = 0.0;
 	QPointF m_currentPosition;
 	int m_currentSegment = -1;
+	qint64 m_waitAtEnd = 0;
+	qint64 m_waitAtBegin = 0;
 
+	QElapsedTimer m_waitTimer;
+	qint64 m_waitForMsec = 0;
 	QList<Line> m_lines;
 
 	friend class TiledReturnPathMotor;

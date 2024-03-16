@@ -28,6 +28,7 @@
 #define ABSTRACTTILEDMOTOR_H
 
 #include "qpoint.h"
+#include "tiledobject.h"
 
 
 class AbstractTiledMotor
@@ -36,7 +37,8 @@ public:
 	enum Type {
 		Invalid = 0,
 		PathMotor,
-		ReturnPathMotor
+		ReturnPathMotor,
+		FixPositionMotor
 	};
 
 	AbstractTiledMotor(const Type &type)
@@ -46,7 +48,9 @@ public:
 
 	const Type &type() const { return m_type; }
 
+	virtual bool step(const qreal &distance) = 0;
 	virtual QPointF currentPosition() const = 0;
+	virtual void updateBody(TiledObject *object, const qreal &maximumSpeed = 0.) = 0;
 
 protected:
 	const Type m_type;

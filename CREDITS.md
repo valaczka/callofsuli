@@ -38,6 +38,7 @@
 - Free graphic resources for designers - (c) 2018-2023 Creazilla (https://creazilla.com)
 - Azgaar's Fantasy Map Generator - (c) 2017-2023 Max Haniyeu (https://azgaar.github.io/Fantasy-Map-Generator)
 - yd (https://opengameart.org/content/old-tower)
+- Animated Spinning Gems - (c) 2017 Code Inferno Games - codeinferno.com (https://opengameart.org/content/animated-spinning-gems)
 
 **Music & SFX**
 

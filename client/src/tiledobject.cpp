@@ -43,7 +43,7 @@ TiledObjectBase::TiledObjectBase(QQuickItem *parent)
 	: QQuickItem(parent)
 	, m_body(new TiledObjectBody(this))
 {
-	LOG_CTRACE("scene") << "TiledObjectBase created" << this;
+	LOG_CTRACE("scene") << "TiledObjectBase created" << this << parentItem() << QQuickItem::parent();
 
 	m_body->setBodyType(Box2DBody::Static);
 	m_body->setTarget(this);
@@ -63,7 +63,7 @@ TiledObjectBase::TiledObjectBase(QQuickItem *parent)
 
 TiledObjectBase::~TiledObjectBase()
 {
-	LOG_CTRACE("scene") << "TiledObjectBase destroyed" << this;
+	LOG_CTRACE("scene") << "TiledObjectBase destroyed" << this << parentItem() << parent();
 }
 
 
@@ -211,6 +211,46 @@ float32 TiledObjectBase::normalizeToRadian(const float32 &normal)
 
 
 
+
+
+/**
+ * @brief TiledObjectBase::getFromFixture
+ * @param fixture
+ * @return
+ */
+
+TiledObjectBase *TiledObjectBase::getFromFixture(const Box2DFixture *fixture)
+{
+	if (!fixture)
+		return nullptr;
+
+	Box2DBody *body = fixture->getBody();
+
+	TiledObjectBody *b = dynamic_cast<TiledObjectBody*>(body);
+
+	if (!b)
+		return nullptr;
+
+	return b->baseObject();
+}
+
+
+
+/**
+ * @brief TiledObjectBase::setBodyOffset
+ * @param newBodyOffset
+ */
+
+void TiledObjectBase::setBodyOffset(QPointF newBodyOffset)
+{
+	if (m_body)
+		m_body->m_bodyOffset = newBodyOffset;
+
+	recalculateTargetCircle();
+}
+
+
+
 /**
  * @brief TiledObjectBase::rotateBody
  */
@@ -305,6 +345,35 @@ TiledObjectSensorPolygon *TiledObjectBase::addSensorPolygon(const qreal &length,
 }
 
 
+/**
+ * @brief TiledObjectBase::addTargetCircle
+ * @return
+ */
+
+Box2DCircle *TiledObjectBase::addTargetCircle(const qreal &radius)
+{
+	if (m_targetCircle || !m_body)
+		return nullptr;
+
+	m_targetCircle.reset(new Box2DCircle);
+
+
+	m_targetCircle->setCollidesWith(Box2DFixture::All);
+	m_targetCircle->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget));
+	m_targetCircle->setSensor(true);
+
+	m_targetCircle->setRadius(radius);
+	/*m_targetCircle->setX(-radius);
+	m_targetCircle->setY(-radius);*/
+
+	m_body->addFixture(m_targetCircle.get());
+
+	recalculateTargetCircle();
+
+	return m_targetCircle.get();
+}
+
+
 
 /**
  * @brief TiledObjectBase::onSceneVisibleAreaChanged
@@ -319,6 +388,36 @@ void TiledObjectBase::onSceneVisibleAreaChanged()
 
 	setInVisibleArea(m_scene->visibleArea().intersects(rect));
 }
+
+
+/**
+ * @brief TiledObjectBase::recalculateTargetCircle
+ */
+
+void TiledObjectBase::recalculateTargetCircle()
+{
+	if (!m_targetCircle)
+		return;
+
+	const qreal &r = m_targetCircle->radius();
+
+	/*if (m_body) {
+		const QPointF &p = m_body->m_bodyOffset;
+		m_targetCircle->setX(-r -p.x());
+		m_targetCircle->setY(-r -p.y());
+	} else {*/
+		m_targetCircle->setX(-r);
+		m_targetCircle->setY(-r);
+	//}
+}
+
+
+
+
+/**
+ * @brief TiledObjectBase::game
+ * @return
+ */
 
 TiledGame *TiledObjectBase::game() const
 {
@@ -450,6 +549,18 @@ TiledObject::TiledObject(QQuickItem *parent)
 	: TiledObjectBase(parent)
 {
 
+}
+
+
+/**
+ * @brief TiledObject::~TiledObject
+ */
+
+TiledObject::~TiledObject()
+{
+	if (m_spriteHandler) {
+		m_spriteHandler->setBaseObject(nullptr);
+	}
 }
 
 
@@ -681,12 +792,12 @@ qreal TiledObject::toDegree(const qreal &angle)
 
 
 /**
- * @brief TiledObject::radianFromDirection
+ * @brief TiledObject::directionToIsometricRaidan
  * @param direction
  * @return
  */
 
-qreal TiledObject::radianFromDirection(const Direction &direction)
+qreal TiledObject::directionToIsometricRaidan(const Direction &direction)
 {
 	switch (direction) {
 		case West: return M_PI; break;
@@ -959,16 +1070,17 @@ Box2DCircle *TiledObjectSensorPolygon::virtualCircle() const
 
 Box2DFixture::CategoryFlag TiledObjectBody::fixtureCategory(const FixtureCategory &category)
 {
-	static const QMap<FixtureCategory, Box2DFixture::CategoryFlag> map = {
-		{ FixtureGround, Box2DFixture::Category1 },
-		{ FixturePlayerBody, Box2DFixture::Category2 },
-		{ FixtureEnemyBody, Box2DFixture::Category3 },
-		{ FixtureTransport, Box2DFixture::Category4 },
+	switch (category) {
+		case FixtureGround:		return Box2DFixture::Category1;
+		case FixturePlayerBody:		return Box2DFixture::Category2;
+		case FixtureEnemyBody:		return Box2DFixture::Category3;
+		case FixtureTransport:		return Box2DFixture::Category4;
+		case FixtureTarget:		return Box2DFixture::Category5;
+		case FixtureSensor:		return Box2DFixture::Category16;
+		case FixtureInvalid:		return Box2DFixture::None;
+	}
 
-		{ FixtureSensor, Box2DFixture::Category16 },
-	};
-
-	return map.value(category, Box2DFixture::None);
+	return Box2DFixture::None;
 }
 
 
@@ -999,17 +1111,15 @@ void TiledObjectBody::synchronize()
 
 	if (mTarget) {
 		if (TiledObjectBase *object = qobject_cast<TiledObjectBase*>(mTarget)) {
-			if (object->m_sensorPolygon) {
-				b2Vec2 &value = mBodyDef.position;
-				const b2Vec2 &newValue = mBody->GetPosition();
+			b2Vec2 &value = mBodyDef.position;
+			const b2Vec2 &newValue = mBody->GetPosition();
 
-				if (qFuzzyCompare(value.x, newValue.x) && qFuzzyCompare(value.y, newValue.y))
-					return;
-
-				emplace();
-
+			if (qFuzzyCompare(value.x, newValue.x) && qFuzzyCompare(value.y, newValue.y))
 				return;
-			}
+
+			emplace();
+
+			return;
 		}
 	}
 
@@ -1116,10 +1226,6 @@ QPointF TiledObjectBody::bodyOffset() const
 	return m_bodyOffset;
 }
 
-void TiledObjectBody::setBodyOffset(QPointF newBodyOffset)
-{
-	m_bodyOffset = newBodyOffset;
-}
 
 
 /**

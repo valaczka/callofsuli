@@ -26,6 +26,7 @@
 
 #include "tiledpathmotor.h"
 #include "tiledobject.h"
+#include "isometricentity.h"
 #include <Logger.h>
 
 TiledPathMotor::TiledPathMotor(const QPolygonF &polygon, const Direction &direction)
@@ -198,6 +199,26 @@ qreal TiledPathMotor::angleFromLine(const Line &line) const
 		return line.angle-180;
 }
 
+qint64 TiledPathMotor::waitAtBegin() const
+{
+	return m_waitAtBegin;
+}
+
+void TiledPathMotor::setWaitAtBegin(qint64 newWaitAtBegin)
+{
+	m_waitAtBegin = newWaitAtBegin;
+}
+
+qint64 TiledPathMotor::waitAtEnd() const
+{
+	return m_waitAtEnd;
+}
+
+void TiledPathMotor::setWaitAtEnd(qint64 newWaitAtEnd)
+{
+	m_waitAtEnd = newWaitAtEnd;
+}
+
 
 /**
  * @brief TiledPathMotor::currentSegment
@@ -247,6 +268,57 @@ QPointF TiledPathMotor::currentPosition() const
 qreal TiledPathMotor::fullDistance() const
 {
 	return m_fullDistance;
+}
+
+
+
+
+/**
+ * @brief TiledPathMotor::updateBody
+ * @param object
+ * @param maximumSpeed
+ */
+
+void TiledPathMotor::updateBody(TiledObject *object, const qreal &maximumSpeed)
+{
+	Q_ASSERT(object);
+	Q_ASSERT(object->body());
+
+	TiledObjectBody *body = object->body();
+
+	if (!isClosed()) {
+		if (m_direction == Backward && atBegin()) {
+			const WaitTimerState &s = waitTimerState();
+
+			if (s == Invalid && m_waitAtBegin > 0) {
+				waitTimerStart(m_waitAtBegin);
+				body->stop();
+				return;
+			} else if (s == Running) {
+				body->stop();
+				return;
+			} else {
+				waitTimerStop();
+				setDirection(Forward);
+			}
+		} else 	if (m_direction == Forward && atEnd()) {
+			const WaitTimerState &s = waitTimerState();
+
+			if (s == Invalid && m_waitAtEnd > 0) {
+				waitTimerStart(m_waitAtEnd);
+				body->stop();
+				return;
+			} else if (s == Running) {
+				body->stop();
+				return;
+			} else {
+				waitTimerStop();
+				setDirection(Backward);
+			}
+		}
+	}
+
+	body->setLinearVelocity(IsometricEntityIface::maximizeSpeed(m_currentPosition - body->bodyPosition(), maximumSpeed));
 }
 
 
@@ -350,7 +422,7 @@ bool TiledPathMotor::step(const qreal &distance)
 
 bool TiledPathMotor::step(const qreal &distance, const Direction &direction)
 {
-	if (m_currentSegment < 0 || m_currentSegment >= m_lines.size())
+	if (m_currentSegment < 0 || m_currentSegment >= m_lines.size() || distance <= 0.)
 		return false;
 
 	qreal rest = m_currentDistance;
@@ -439,6 +511,50 @@ bool TiledPathMotor::step(const qreal &distance, const Direction &direction)
 	}
 
 	return false;
+}
+
+
+
+/**
+ * @brief TiledPathMotor::waitTimerStart
+ * @param msec
+ */
+
+void TiledPathMotor::waitTimerStart(const qint64 &msec)
+{
+	m_waitForMsec = msec;
+	if (msec > 0)
+		m_waitTimer.start();
+	else
+		m_waitTimer.invalidate();
+}
+
+
+/**
+ * @brief TiledPathMotor::waitTimerStop
+ */
+
+void TiledPathMotor::waitTimerStop()
+{
+	m_waitForMsec = 0;
+	m_waitTimer.invalidate();
+}
+
+
+
+/**
+ * @brief TiledPathMotor::waitTimerState
+ * @return
+ */
+
+TiledPathMotor::WaitTimerState TiledPathMotor::waitTimerState() const
+{
+	if (m_waitForMsec == 0 || !m_waitTimer.isValid())
+		return Invalid;
+	else if (m_waitTimer.elapsed() < m_waitForMsec)
+		return Running;
+	else
+		return Overdue;
 }
 
 

@@ -50,6 +50,7 @@ TiledSpriteHandler::TiledSpriteHandler(QQuickItem *parent)
 
 TiledSpriteHandler::~TiledSpriteHandler()
 {
+	m_timer.stop();
 	LOG_CTRACE("scene") << "TiledSpriteHandler destroyed" << this;
 }
 
@@ -72,7 +73,7 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 	if (it == m_spriteList.end()) {
 		//LOG_CERROR("scene") << "Sprite id not found:" << m_currentId;
 		isActive = false;
-	} else if (!it->texture()) {
+	} else if (!it->texture) {
 		LOG_CERROR("scene") << "Sprite texture not found:" << m_currentId;
 		isActive = false;
 	}
@@ -104,8 +105,8 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 
 	imgNode->setRect(boundingRect());
 
-	if (it->texture() != imgNode->texture())
-		imgNode->setTexture(it->texture());
+	if (it->texture != imgNode->texture())
+		imgNode->setTexture(it->texture);
 
 	QRectF rect(it->data.x,
 				it->data.y,
@@ -318,9 +319,9 @@ bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 	s.alteration = alteration;
 	s.direction = direction;
 	s.data = sprite;
-	s.shr_texture = m_baseObject->scene()->game()->getTexture(path);
+	s.texture = m_baseObject->scene()->game()->getTexture(path, window());
 
-	if (!s.shr_texture.get()) {
+	if (!s.texture) {
 		LOG_CERROR("scene") << "Invalid texture";
 		return false;
 	}
@@ -418,8 +419,15 @@ void TiledSpriteHandler::setBaseObject(TiledObject *newBaseObject)
 {
 	if (m_baseObject == newBaseObject)
 		return;
+
+	if (m_baseObject)
+		disconnect(m_baseObject, &TiledObject::inVisibleAreaChanged, this, &TiledSpriteHandler::update);
+
 	m_baseObject = newBaseObject;
 	emit baseObjectChanged();
+
+	if (m_baseObject)
+		connect(m_baseObject, &TiledObject::inVisibleAreaChanged, this, &TiledSpriteHandler::update);
 }
 
 

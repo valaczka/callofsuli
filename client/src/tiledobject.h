@@ -105,6 +105,7 @@ public:
 		FixtureGround,
 		FixturePlayerBody,
 		FixtureEnemyBody,
+		FixtureTarget,
 		FixtureTransport,
 		FixtureSensor
 	};
@@ -126,8 +127,6 @@ public:
 	void stop();
 
 	QPointF bodyOffset() const;
-	void setBodyOffset(QPointF newBodyOffset);
-	void setBodyOffset(const qreal &x, const qreal &y) { setBodyOffset(QPointF(x, y)); }
 
 	TiledReportedFixtureMap rayCast(const QPointF &dest);
 
@@ -135,6 +134,8 @@ private:
 	void emplace();
 	QPointF m_bodyOffset;
 	TiledObjectBase *const m_baseObject;
+
+	friend class TiledObjectBase;
 };
 
 
@@ -171,7 +172,7 @@ private:
 	void recreateFixture();
 
 	qreal m_length = 50;
-	qreal m_range = M_PI*2./3.;
+	qreal m_range = M_PI_4;
 
 	std::unique_ptr<Box2DCircle> m_virtualCircle;
 	Box2DBody *const m_body;
@@ -283,6 +284,7 @@ public:
 	void setScene(TiledScene *newScene);
 
 	TiledObjectSensorPolygon *sensorPolygon() const { return m_sensorPolygon.get(); }
+	Box2DCircle *targetCircle() const { return m_targetCircle.get(); }
 
 	static QPolygonF toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	static QPointF toPoint(const qreal &angle, const qreal &radius);
@@ -313,6 +315,12 @@ public:
 	static float32 normalizeFromRadian(const float32 &radian);
 	static float32 normalizeToRadian(const float32 &normal);
 
+	static TiledObjectBase *getFromFixture(const Box2DFixture *fixture);
+
+	void setBodyOffset(QPointF newBodyOffset);
+	void setBodyOffset(const qreal &x, const qreal &y) { setBodyOffset(QPointF(x, y)); }
+
+	void rotateBody(const float32 &desiredRadian);
 
 	RemoteMode remoteMode() const;
 	void setRemoteMode(const RemoteMode &newRemoteMode);
@@ -349,8 +357,8 @@ signals:
 	void gameChanged();
 
 protected:
-	void rotateBody(const float32 &desiredRadian);
 	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
+	Box2DCircle *addTargetCircle(const qreal &radius = 50.);
 	virtual void onSceneVisibleAreaChanged();
 
 protected:
@@ -358,6 +366,7 @@ protected:
 	TiledScene *m_scene = nullptr;
 	std::unique_ptr<TiledObjectSensorPolygon> m_sensorPolygon;
 	std::unique_ptr<TiledObjectBody> m_body;
+	std::unique_ptr<Box2DCircle> m_targetCircle;
 	RemoteMode m_remoteMode = ObjectLocal;
 	bool m_glowEnabled = false;
 	bool m_overlayEnabled = false;
@@ -367,9 +376,12 @@ protected:
 	Object m_objectId;
 
 	friend class TiledObjectBody;
+	friend class TiledScene;
 
 
 private:
+	void recalculateTargetCircle();
+
 	struct RotateAnimation {
 		bool running = false;
 		float32 destAngle = 0;
@@ -399,7 +411,7 @@ class TiledObject : public TiledObjectBase
 
 public:
 	explicit TiledObject(QQuickItem *parent = 0);
-	//virtual ~TiledObject();
+	virtual ~TiledObject();
 
 	// Object moving (facing) directions
 
@@ -448,7 +460,7 @@ public:
 
 	static qreal toRadian(const qreal &angle);
 	static qreal toDegree(const qreal &angle);
-	static qreal radianFromDirection(const Direction &direction);
+	static qreal directionToIsometricRaidan(const Direction &direction);
 	static qreal directionToRadian(const Direction &direction);
 	static qreal factorFromDegree(const qreal &angle, const qreal &xyRatio = 2.);
 	static qreal factorFromRadian(const qreal &angle, const qreal &xyRatio = 2.);

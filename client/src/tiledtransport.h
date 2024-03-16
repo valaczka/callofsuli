@@ -126,11 +126,11 @@ protected:
 	bool m_isOpen = true;
 	bool m_isActive = false;
 
-	TiledScene *m_sceneA = nullptr;
-	TiledObjectBase *m_objectA = nullptr;
+	QPointer<TiledScene> m_sceneA;
+	QPointer<TiledObjectBase> m_objectA;
 
-	TiledScene *m_sceneB = nullptr;
-	TiledObjectBase *m_objectB = nullptr;
+	QPointer<TiledScene> m_sceneB;
+	QPointer<TiledObjectBase> m_objectB;
 };
 
 

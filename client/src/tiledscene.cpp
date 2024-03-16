@@ -69,8 +69,18 @@ TiledScene::TiledScene(QQuickItem *parent)
 
 TiledScene::~TiledScene()
 {
-	unsetMap();
 	m_world->setRunning(false);
+	unsetMap();
+
+	for (const auto &o : m_tiledObjects) {
+		if (o && o->scene() == this)
+			o->setScene(nullptr);
+	}
+
+
+	qDeleteAll(mTileLayerItems);
+	mTileLayerItems.clear();
+	m_dynamicZList.clear();
 
 	LOG_CTRACE("scene") << "Scene destroyed" << this;
 }
@@ -253,14 +263,14 @@ void TiledScene::reorderObjectsZ()
 	}
 
 	for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
-		qreal subsubZ = 0.00001;
+		qreal subsubZ = 0.0001;
 
 		const qreal subZ = it.key();
 		const auto &subMap = it.value();
 
 		for (auto it2 = subMap.constBegin(); it2 != subMap.constEnd(); ++it2) {
 			it2.value()->setZ(subZ+subsubZ);
-			subsubZ += 0.00001;
+			subsubZ += 0.0001;
 		}
 	}
 }
@@ -279,6 +289,8 @@ void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 		}
 	}
 }
+
+
 
 
 
