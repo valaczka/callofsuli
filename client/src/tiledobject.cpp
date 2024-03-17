@@ -243,9 +243,7 @@ TiledObjectBase *TiledObjectBase::getFromFixture(const Box2DFixture *fixture)
 
 void TiledObjectBase::setBodyOffset(QPointF newBodyOffset)
 {
-	if (m_body)
-		m_body->m_bodyOffset = newBodyOffset;
-
+	m_body->setBodyOffset(newBodyOffset);
 	recalculateTargetCircle();
 }
 
@@ -255,10 +253,10 @@ void TiledObjectBase::setBodyOffset(QPointF newBodyOffset)
  * @brief TiledObjectBase::rotateBody
  */
 
-void TiledObjectBase::rotateBody(const float32 &desiredRadian)
+bool TiledObjectBase::rotateBody(const float32 &desiredRadian)
 {
 	if (!m_sensorPolygon)
-		return;
+		return false;
 
 	const float32 currentAngle = m_body->body()->GetAngle();
 
@@ -267,7 +265,7 @@ void TiledObjectBase::rotateBody(const float32 &desiredRadian)
 		if (m_rotateAnimation.running) {
 			m_rotateAnimation.running = false;
 		}
-		return;
+		return false;
 	}
 
 	const float32 currentNormal = normalizeFromRadian(currentAngle);
@@ -289,7 +287,7 @@ void TiledObjectBase::rotateBody(const float32 &desiredRadian)
 
 
 	if (!m_rotateAnimation.running)
-		return;
+		return false;
 
 
 	const float32 delta = std::min(m_rotateAnimation.speed * m_body->world()->timeStep()*60., M_PI_4);
@@ -307,7 +305,8 @@ void TiledObjectBase::rotateBody(const float32 &desiredRadian)
 	if ((newAngle >= d && currentNormal < d) ||
 			(newAngle <= d && currentNormal > d)) {
 		m_body->body()->SetTransform(m_body->body()->GetPosition(), desiredRadian );
-		return;
+		m_body->setAwake(true);
+		return true;
 	}
 
 	if (newAngle > pi2)
@@ -316,7 +315,9 @@ void TiledObjectBase::rotateBody(const float32 &desiredRadian)
 		newAngle += pi2;
 
 	m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(newAngle) );
+	m_body->setAwake(true);
 
+	return true;
 }
 
 
@@ -575,14 +576,14 @@ TiledObject::~TiledObject()
  * @param sprite
  */
 
-void TiledObject::jumpToSprite(const char *sprite, const Direction &direction, const QString &alteration) const
+void TiledObject::jumpToSprite(const char *sprite, const Direction &direction) const
 {
 	if (!m_spriteHandler) {
 		LOG_CERROR("scene") << "Missing spriteHandler";
 		return;
 	}
 
-	m_spriteHandler->jumpToSprite(sprite, alteration, direction, TiledSpriteHandler::JumpImmediate);
+	m_spriteHandler->jumpToSprite(sprite, direction, TiledSpriteHandler::JumpImmediate);
 }
 
 
@@ -592,14 +593,14 @@ void TiledObject::jumpToSprite(const char *sprite, const Direction &direction, c
  * @param alteration
  */
 
-void TiledObject::jumpToSpriteLater(const char *sprite, const Direction &direction, const QString &alteration) const
+void TiledObject::jumpToSpriteLater(const char *sprite, const Direction &direction) const
 {
 	if (!m_spriteHandler) {
 		LOG_CERROR("scene") << "Missing spriteHandler";
 		return;
 	}
 
-	m_spriteHandler->jumpToSprite(sprite, alteration, direction, TiledSpriteHandler::JumpAtFinished);
+	m_spriteHandler->jumpToSprite(sprite, direction, TiledSpriteHandler::JumpAtFinished);
 }
 
 
@@ -619,24 +620,24 @@ bool TiledObject::appendSprite(const QString &source, const TiledObjectSprite &s
 		return false;
 	}
 
-	return m_spriteHandler->addSprite(sprite, source);
+	return m_spriteHandler->addSprite(sprite, QStringLiteral("default"), source);
 }
 
 
 
 /**
- * @brief TiledObject::appendSpriteList
+ * @brief TiledObject::appendSprite
  * @param source
  * @param spriteList
  * @return
  */
 
-bool TiledObject::appendSpriteList(const QString &source, const TiledObjectSpriteList &spriteList)
+bool TiledObject::appendSprite(const QString &source, const TiledObjectSpriteList &spriteList)
 {
 	bool r = true;
 
 	for (const TiledObjectSprite &s : spriteList.sprites)
-		r &= m_spriteHandler->addSprite(s, source);
+		r &= m_spriteHandler->addSprite(s, QStringLiteral("default"), source);
 
 	return r;
 }
@@ -650,33 +651,33 @@ bool TiledObject::appendSpriteList(const QString &source, const TiledObjectSprit
  * @return
  */
 
-bool TiledObject::appendSprite(const TiledMapObjectAlterableSprite &sprite, const QString &path)
+bool TiledObject::appendSprite(const TiledMapObjectLayeredSprite &sprite, const QString &path)
 {
 	Q_ASSERT(m_visualItem);
 
 	bool r = true;
 
 	for (const TiledObjectSprite &s : sprite.sprites) {
-		for (auto it = sprite.alterations.constBegin(); it != sprite.alterations.constEnd(); ++it) {
+		for (auto it = sprite.layers.constBegin(); it != sprite.layers.constEnd(); ++it) {
 			const QString &alteration = it.key();
 			r &= m_spriteHandler->addSprite(s, alteration, path+it.value());
 		}
 	}
 
-	m_availableAlterations.append(sprite.alterations.keys());
+	//m_availableAlterations.append(sprite.layers.keys());
 
 	return r;
 }
 
 
 /**
- * @brief TiledObject::appendSpriteList
+ * @brief TiledObject::appendSprite
  * @param path
  * @param spriteList
  * @return
  */
 
-bool TiledObject::appendSpriteList(const TiledObjectAlterableSpriteList &spriteList, const QString &path)
+bool TiledObject::appendSprite(const TiledObjectLayeredSpriteList &spriteList, const QString &path)
 {
 	Q_ASSERT(m_visualItem);
 
@@ -716,9 +717,16 @@ void TiledObject::createVisual()
 	m_spriteHandler = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandler"));
 	Q_ASSERT(m_spriteHandler);
 
+	m_spriteHandlerAuxFront = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandlerAuxFront"));
+
 	m_visualItem->setParentItem(this);
 	m_visualItem->setParent(this);
 	m_visualItem->setProperty("baseObject", QVariant::fromValue(this));
+}
+
+TiledSpriteHandler *TiledObject::spriteHandlerAuxFront() const
+{
+	return m_spriteHandlerAuxFront;
 }
 
 TiledSpriteHandler *TiledObject::spriteHandler() const
@@ -751,12 +759,6 @@ void TiledObject::setCurrentDirection(const Direction &newCurrentDirection)
 	m_currentDirection = newCurrentDirection;
 	emit currentDirectionChanged();
 }
-
-QStringList TiledObject::availableAlterations() const
-{
-	return m_availableAlterations;
-}
-
 
 
 /**
@@ -1110,7 +1112,7 @@ void TiledObjectBody::synchronize()
 	Q_ASSERT(mBody);
 
 	if (mTarget) {
-		if (TiledObjectBase *object = qobject_cast<TiledObjectBase*>(mTarget)) {
+		//if (TiledObjectBase *object = qobject_cast<TiledObjectBase*>(mTarget)) {
 			b2Vec2 &value = mBodyDef.position;
 			const b2Vec2 &newValue = mBody->GetPosition();
 
@@ -1120,7 +1122,7 @@ void TiledObjectBody::synchronize()
 			emplace();
 
 			return;
-		}
+		//}
 	}
 
 	Box2DBody::synchronize();
@@ -1216,6 +1218,21 @@ void TiledObjectBody::emplace()
 
 	emit positionChanged();
 
+}
+
+
+
+/**
+ * @brief TiledObjectBody::setBodyOffset
+ * @param newBodyOffset
+ */
+
+void TiledObjectBody::setBodyOffset(QPointF newBodyOffset)
+{
+	if (m_bodyOffset == newBodyOffset)
+		return;
+	m_bodyOffset = newBodyOffset;
+	emit bodyOffsetChanged();
 }
 
 
@@ -1335,7 +1352,7 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 			s2.y = sprite.startRow + i*sprite.height;
 		}
 
-		r &= m_spriteHandler->addSprite(s2, direction, source);
+		r &= m_spriteHandler->addSprite(s2, QStringLiteral("default"), direction, source);
 	}
 
 	return r;
@@ -1345,13 +1362,13 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 
 
 /**
- * @brief IsometricObjectIface::appendSpriteList
+ * @brief IsometricObjectIface::appendSprite
  * @param source
  * @param spriteList
  * @return
  */
 
-bool TiledObject::appendSpriteList(const QString &source, const IsometricObjectSpriteList &spriteList)
+bool TiledObject::appendSprite(const QString &source, const IsometricObjectSpriteList &spriteList)
 {
 	Q_ASSERT(m_spriteHandler);
 
@@ -1374,14 +1391,14 @@ bool TiledObject::appendSpriteList(const QString &source, const IsometricObjectS
  * @return
  */
 
-bool TiledObject::appendSprite(const IsometricObjectAlterableSprite &sprite, const QString &path)
+bool TiledObject::appendSprite(const IsometricObjectLayeredSprite &sprite, const QString &path)
 {
 	Q_ASSERT(m_spriteHandler);
 
 	bool r = true;
 
 	for (const IsometricObjectSprite &s : sprite.sprites) {
-		for (auto it = sprite.alterations.constBegin(); it != sprite.alterations.constEnd(); ++it) {
+		for (auto it = sprite.layers.constBegin(); it != sprite.layers.constEnd(); ++it) {
 			const QString &alteration = it.key();
 
 			for (int i=0; i<s.directions.size(); ++i) {
@@ -1406,7 +1423,7 @@ bool TiledObject::appendSprite(const IsometricObjectAlterableSprite &sprite, con
 		}
 	}
 
-	m_availableAlterations.append(sprite.alterations.keys());
+	//m_availableAlterations.append(sprite.alterations.keys());
 
 	return r;
 }
@@ -1414,13 +1431,13 @@ bool TiledObject::appendSprite(const IsometricObjectAlterableSprite &sprite, con
 
 
 /**
- * @brief IsometricObjectIface::appendSpriteList
+ * @brief IsometricObjectIface::appendSprite
  * @param sprite
  * @param path
  * @return
  */
 
-bool TiledObject::appendSpriteList(const IsometricObjectAlterableSpriteList &sprite, const QString &path)
+bool TiledObject::appendSprite(const IsometricObjectLayeredSpriteList &sprite, const QString &path)
 {
 	Q_ASSERT(m_spriteHandler);
 
@@ -1430,6 +1447,30 @@ bool TiledObject::appendSpriteList(const IsometricObjectAlterableSpriteList &spr
 			return false;
 		}
 	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief TiledObject::playAuxSprite
+ * @param source
+ * @param sprite
+ * @return
+ */
+
+bool TiledObject::playAuxSprite(const QString &source, const TiledObjectSprite &sprite)
+{
+	Q_ASSERT(m_spriteHandlerAuxFront);
+
+	// ->property("alignToBody")
+
+	m_spriteHandlerAuxFront->setClearAtEnd(true);
+	m_spriteHandlerAuxFront->setWidth(sprite.width);
+	m_spriteHandlerAuxFront->setHeight(sprite.height);
+	m_spriteHandlerAuxFront->addSprite(sprite, QStringLiteral("default"), Direction::Invalid, source);
+	m_spriteHandlerAuxFront->jumpToSprite(sprite.name, Direction::Invalid, TiledSpriteHandler::JumpImmediate);
 
 	return true;
 }

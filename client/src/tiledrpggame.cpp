@@ -25,6 +25,7 @@
  */
 
 #include "tiledrpggame.h"
+#include "tiledspritehandler.h"
 
 TiledRpgGame::TiledRpgGame(QQuickItem *parent)
 	: TiledGame(parent)
@@ -82,7 +83,7 @@ bool TiledRpgGame::load()
 
 		Q_ASSERT(!e.path.isEmpty());
 
-		IsometricEnemy *character = IsometricEnemy::createEnemy(e.type, this, e.scene);
+		IsometricEnemy *character = IsometricEnemy::createEnemy(e.type, e.subtype, this, e.scene);
 
 		if (!character)
 			continue;
@@ -100,13 +101,13 @@ bool TiledRpgGame::load()
 	}
 
 
-	QList<IsometricPlayer*> list;
+	QList<RpgPlayer*> list;
 
 	if (!m_playerPositionList.isEmpty()) {
 		const auto &p = m_playerPositionList.first();
 
 		for (int i=0; i<3; ++i) {
-			auto player = IsometricPlayer::createPlayer(this, p.scene);
+			auto player = RpgPlayer::createPlayer(this, p.scene, "rpgDefault");
 
 			player->emplace(p.position+QPointF(i*15, i*15));
 			if (i == 0)
@@ -130,6 +131,53 @@ bool TiledRpgGame::load()
 
 	return true;
 }
+
+
+
+/**
+ * @brief TiledRpgGame::playerAttackEnemy
+ * @param player
+ * @param enemy
+ */
+
+void TiledRpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy)
+{
+	Q_ASSERT(player);
+	Q_ASSERT(enemy);
+
+	IsometricEnemy *e = qobject_cast<IsometricEnemy*>(enemy);
+	IsometricPlayer *p = qobject_cast<IsometricPlayer*>(player);
+
+	if (!e || !p)
+		return;
+
+	e->attackedByPlayer(p);
+}
+
+
+
+/**
+ * @brief TiledRpgGame::enemyAttackPlayer
+ * @param enemy
+ * @param player
+ */
+
+void TiledRpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player)
+{
+	Q_ASSERT(player);
+	Q_ASSERT(enemy);
+
+	IsometricEnemy *e = qobject_cast<IsometricEnemy*>(enemy);
+	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
+
+	if (!e || !p)
+		return;
+
+	p->attackedByEnemy(e);
+}
+
+
+
 
 
 
@@ -165,6 +213,7 @@ void TiledRpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, 
 		m_enemyDataList.append(EnemyData{
 								   TiledObjectBase::Object{object->id(), scene->sceneId()},
 								   type,
+								   "whiteShirt",
 								   p,
 								   object->property("direction").toInt(),
 								   scene,
@@ -206,7 +255,6 @@ void TiledRpgGame::keyPressEvent(QKeyEvent *event)
 				transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
 			break;
 
-
 		case Qt::Key_Q:
 			if (m_controlledPlayer)
 				m_controlledPlayer->shot();
@@ -245,12 +293,12 @@ void TiledRpgGame::keyPressEvent(QKeyEvent *event)
  * @return
  */
 
-QList<IsometricPlayer *> TiledRpgGame::players() const
+QList<RpgPlayer *> TiledRpgGame::players() const
 {
 	return m_players;
 }
 
-void TiledRpgGame::setPlayers(const QList<IsometricPlayer *> &newPlayers)
+void TiledRpgGame::setPlayers(const QList<RpgPlayer *> &newPlayers)
 {
 	if (m_players == newPlayers)
 		return;
@@ -264,12 +312,12 @@ void TiledRpgGame::setPlayers(const QList<IsometricPlayer *> &newPlayers)
  * @return
  */
 
-IsometricPlayer *TiledRpgGame::controlledPlayer() const
+RpgPlayer *TiledRpgGame::controlledPlayer() const
 {
 	return m_controlledPlayer;
 }
 
-void TiledRpgGame::setControlledPlayer(IsometricPlayer *newControlledPlayer)
+void TiledRpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 {
 	if (m_controlledPlayer == newControlledPlayer)
 		return;

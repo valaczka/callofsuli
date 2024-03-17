@@ -143,6 +143,13 @@ public:
 
 	Q_INVOKABLE bool transport(TiledObject *object, TiledTransport *transport);
 
+	virtual void playerAttackEnemy(TiledObject *player, TiledObject *enemy) = 0;
+	virtual void enemyAttackPlayer(TiledObject *enemy, TiledObject *player) = 0;
+
+
+	void playSfx(const QString &source, TiledScene *scene);
+	void playSfx(const QString &source, TiledScene *scene, const QPointF &position);
+
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);
 

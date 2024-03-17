@@ -87,6 +87,8 @@ class TiledObjectBody : public Box2DBody
 {
 	Q_OBJECT
 
+	Q_PROPERTY(QPointF bodyOffset READ bodyOffset WRITE setBodyOffset NOTIFY bodyOffsetChanged FINAL)
+
 public:
 	explicit TiledObjectBody(TiledObjectBase *baseObject)
 		: Box2DBody()
@@ -129,6 +131,11 @@ public:
 	QPointF bodyOffset() const;
 
 	TiledReportedFixtureMap rayCast(const QPointF &dest);
+
+	void setBodyOffset(QPointF newBodyOffset);
+
+signals:
+	void bodyOffsetChanged();
 
 private:
 	void emplace();
@@ -320,7 +327,7 @@ public:
 	void setBodyOffset(QPointF newBodyOffset);
 	void setBodyOffset(const qreal &x, const qreal &y) { setBodyOffset(QPointF(x, y)); }
 
-	void rotateBody(const float32 &desiredRadian);
+	bool rotateBody(const float32 &desiredRadian);
 
 	RemoteMode remoteMode() const;
 	void setRemoteMode(const RemoteMode &newRemoteMode);
@@ -358,7 +365,7 @@ signals:
 
 protected:
 	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
-	Box2DCircle *addTargetCircle(const qreal &radius = 50.);
+	Box2DCircle *addTargetCircle(const qreal &radius);
 	virtual void onSceneVisibleAreaChanged();
 
 protected:
@@ -441,20 +448,17 @@ public:
 
 	Q_ENUM(Directions);
 
-	Q_INVOKABLE void jumpToSprite(const char *sprite, const Direction &direction,
-								  const QString &alteration = QStringLiteral("")) const;
-	Q_INVOKABLE void jumpToSpriteLater(const char *sprite, const Direction &direction,
-									   const QString &alteration = QStringLiteral("")) const;
-	Q_INVOKABLE void jumpToSprite(const char *sprite, const QString &alteration) const {
-		jumpToSprite(sprite, m_currentDirection, alteration);
+	Q_INVOKABLE void jumpToSprite(const char *sprite, const Direction &direction) const;
+	Q_INVOKABLE void jumpToSpriteLater(const char *sprite, const Direction &direction) const;
+	Q_INVOKABLE void jumpToSprite(const char *sprite) const {
+		jumpToSprite(sprite, m_currentDirection);
 	}
-	Q_INVOKABLE void jumpToSpriteLater(const char *sprite, const QString &alteration) const {
-		jumpToSpriteLater(sprite, m_currentDirection, alteration);
+	Q_INVOKABLE void jumpToSpriteLater(const char *sprite) const {
+		jumpToSpriteLater(sprite, m_currentDirection);
 	}
 
 
 	QStringList availableSprites() const;
-	QStringList availableAlterations() const;
 
 
 
@@ -469,6 +473,7 @@ public:
 	Direction nearestDirectionFromRadian(const qreal &angle) const { return nearestDirectionFromRadian(m_availableDirections, angle); };
 
 	TiledSpriteHandler *spriteHandler() const;
+	TiledSpriteHandler *spriteHandlerAuxFront() const;
 
 	Direction currentDirection() const;
 	void setCurrentDirection(const Direction &newCurrentDirection);
@@ -476,29 +481,32 @@ public:
 	Directions availableDirections() const;
 	void setAvailableDirections(const Directions &newAvailableDirections);
 
+
 signals:
 	void currentDirectionChanged();
 	void availableDirectionsChanged();
 
 protected:
 	bool appendSprite(const QString &source, const TiledObjectSprite &sprite);
-	bool appendSpriteList(const QString &source, const TiledObjectSpriteList &spriteList);
-	bool appendSprite(const TiledMapObjectAlterableSprite &sprite, const QString &path = QStringLiteral(""));
-	bool appendSpriteList(const TiledObjectAlterableSpriteList &spriteList, const QString &path = QStringLiteral(""));
+	bool appendSprite(const QString &source, const TiledObjectSpriteList &spriteList);
+	bool appendSprite(const TiledMapObjectLayeredSprite &sprite, const QString &path = QStringLiteral(""));
+	bool appendSprite(const TiledObjectLayeredSpriteList &spriteList, const QString &path = QStringLiteral(""));
 
 	bool appendSprite(const QString &source, const IsometricObjectSprite &sprite);
-	bool appendSpriteList(const QString &source, const IsometricObjectSpriteList &spriteList);
-	bool appendSprite(const IsometricObjectAlterableSprite &sprite, const QString &path = QStringLiteral(""));
-	bool appendSpriteList(const IsometricObjectAlterableSpriteList &sprite, const QString &path = QStringLiteral(""));
+	bool appendSprite(const QString &source, const IsometricObjectSpriteList &spriteList);
+	bool appendSprite(const IsometricObjectLayeredSprite &sprite, const QString &path = QStringLiteral(""));
+	bool appendSprite(const IsometricObjectLayeredSpriteList &sprite, const QString &path = QStringLiteral(""));
+
+	bool playAuxSprite(const QString &source, const TiledObjectSprite &sprite);
 
 	void createVisual();
 
 protected:
 	QQuickItem *m_visualItem = nullptr;
-	QStringList m_availableAlterations;
 	Direction m_currentDirection = Invalid;
 	Directions m_availableDirections = None;
 	TiledSpriteHandler *m_spriteHandler = nullptr;
+	TiledSpriteHandler *m_spriteHandlerAuxFront = nullptr;
 };
 
 

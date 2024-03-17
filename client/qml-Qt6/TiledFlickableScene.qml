@@ -74,7 +74,7 @@ Flickable {
 			}
 
 			visibleArea: flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
-												 flick.contentWidth / scale, flick.contentHeight / scale) :
+												 flick.width / scale, flick.height / scale) :
 										 Qt.rect(0,0,0,0)
 
 			//------------------------------------------------

@@ -40,6 +40,7 @@
 #include "server.h"
 #include "utils_.h"
 #include "httpconnection.h"
+#include "rpgplayer.h"
 
 
 OnlineClient::OnlineClient(Application *app)
@@ -256,6 +257,7 @@ void OnlineClient::onAllResourceReady()
 	GameTerrain::reloadAvailableTerrains();
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
+	RpgPlayer::reloadAvailableCharacters();
 
 
 	if (m_demoMode)

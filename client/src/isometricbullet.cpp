@@ -29,6 +29,7 @@
 #include "qtimer.h"
 #include "tiledscene.h"
 #include "tiledgame.h"
+#include "tiledspritehandler.h"
 
 IsometricBullet::IsometricBullet(QQuickItem *parent)
 	: IsometricObjectCircle(parent)
@@ -87,7 +88,7 @@ void IsometricBullet::shot(const QPointF &from, const Direction &direction)
 	setCurrentDirection(direction);
 	m_direction = direction;
 	m_angle = 0.;
-	jumpToSprite("base", m_currentDirection, "none");
+	jumpToSprite("base", m_currentDirection);
 }
 
 
@@ -104,7 +105,7 @@ void IsometricBullet::shot(const QPointF &from, const qreal &angle)
 	setCurrentDirection(nearestDirectionFromRadian(angle));
 	m_direction = Invalid;
 	m_angle = angle;
-	jumpToSprite("base", m_currentDirection, "none");
+	jumpToSprite("base", m_currentDirection);
 }
 
 
@@ -134,7 +135,7 @@ void IsometricBullet::worldStep()
 		m_body->setLinearVelocity(TiledObjectBase::toPoint(m_angle, 30.));
 	}
 
-	jumpToSprite("base", m_currentDirection, "none");
+	jumpToSprite("base", m_currentDirection);
 }
 
 
@@ -169,9 +170,9 @@ void IsometricBullet::load()
 
 
 	QString test = R"({
-					   "alterations": {
+					   "layers": {
 		"none": "lightning.png",
-		"stuck": "arrow_stuck.png"
+		"arrow": "arrows.png"
 	},
 	"sprites": [
 		{
@@ -188,12 +189,14 @@ void IsometricBullet::load()
 	})";
 
 
-	IsometricObjectAlterableSprite json;
+	IsometricObjectLayeredSprite json;
 	json.fromJson(QJsonDocument::fromJson(test.toUtf8()).object());
 
 	appendSprite(json, path);
 
 	setBodyOffset(0, 25);
+
+	m_spriteHandler->setVisibleLayers({"none"});
 
 
 

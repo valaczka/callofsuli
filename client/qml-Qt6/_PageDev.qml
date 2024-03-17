@@ -39,8 +39,52 @@ Page {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		visible: _game.controlledPlayer
+		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0
 	}
+
+
+	GamePainHud {
+		id: _painhudImage
+		anchors.fill: parent
+		z: 10
+
+		Connections {
+			target: _game.controlledPlayer
+
+			function onHurt() {
+				_painhudImage.play()
+			}
+		}
+	}
+
+
+	GameSkullImage {
+		id: _skullImage
+		anchors.centerIn: parent
+		z: 9
+
+		Connections {
+			target: _game.controlledPlayer
+
+			function onBecameDead() {
+				_skullImage.play()
+			}
+		}
+	}
+
+
+	GameHpLabel {
+		id: infoHP
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.topMargin: Math.max(5, Client.safeMarginTop)
+		anchors.top: parent.top
+		value: _game.controlledPlayer ? _game.controlledPlayer.hp : 0
+		visible: _game.controlledPlayer
+		onValueChanged: marked = true
+	}
+
+
+
 
 
 

@@ -64,105 +64,75 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 	bool isActive = m_baseObject && m_baseObject->inVisibleArea();
 
 	if (m_spriteList.isEmpty()) {
-		//LOG_CERROR("scene") << "Empty sprite list";
+		///LOG_CERROR("scene") << "Empty sprite list";
 		isActive = false;
 	}
 
-	auto it = m_spriteList.find(m_currentId);
+	const auto &list = find(m_currentSprite, m_currentDirection);
 
-	if (it == m_spriteList.end()) {
-		//LOG_CERROR("scene") << "Sprite id not found:" << m_currentId;
-		isActive = false;
-	} else if (!it->texture) {
-		LOG_CERROR("scene") << "Sprite texture not found:" << m_currentId;
+	if (list.isEmpty()) {
+		///LOG_CERROR("scene") << "Sprite not found:" << m_currentSprite << m_currentDirection;
 		isActive = false;
 	}
 
-	if (!isActive) {
-		if (node->childCount() > 0) {
-			node->removeAllChildNodes();
+	if (node->childCount() > 0)
+		node->removeAllChildNodes();
+
+	if (!isActive)
+		return node;
+
+
+	for (const QString &layer : m_visibleLayers) {
+		for (const auto &it : std::as_const(list)) {
+			if (it->layer != layer)
+				continue;
+
+			if (!it->texture) {
+				LOG_CERROR("scene") << "Invalid texture" << it->data.name << it->direction << it->layer;
+				continue;
+			}
+
+			QSGSimpleTextureNode *imgNode = new QSGSimpleTextureNode();
+			imgNode->setOwnsTexture(false);
+			imgNode->setFlag(QSGNode::OwnedByParent);
+			node->appendChildNode(imgNode);
+
+			imgNode->setRect(boundingRect());
+
+			if (it->texture != imgNode->texture())
+				imgNode->setTexture(it->texture);
+
+			QRectF rect(it->data.x,
+						it->data.y,
+						it->data.width,
+						it->data.height);
+
+			rect.translate(m_currentFrame * it->data.width, 0);
+
+			imgNode->setSourceRect(rect);
+
+			imgNode->markDirty(QSGNode::DirtyGeometry);
 		}
-
-		return node;
 	}
-
-
-	QSGSimpleTextureNode *imgNode = nullptr;
-
-	if (node->childCount() > 0) {
-		imgNode = dynamic_cast<QSGSimpleTextureNode*>(node->firstChild());
-	} else {
-		imgNode = new QSGSimpleTextureNode();
-		imgNode->setOwnsTexture(false);
-		imgNode->setFlag(QSGNode::OwnedByParent);
-		node->appendChildNode(imgNode);
-	}
-
-	if (!imgNode) {
-		LOG_CERROR("scene") << "Invalid texture node";
-		return node;
-	}
-
-	imgNode->setRect(boundingRect());
-
-	if (it->texture != imgNode->texture())
-		imgNode->setTexture(it->texture);
-
-	QRectF rect(it->data.x,
-				it->data.y,
-				it->data.width,
-				it->data.height);
-
-	rect.translate(m_currentFrame * it->data.width, 0);
-
-	imgNode->setSourceRect(rect);
-
-	imgNode->markDirty(QSGNode::DirtyGeometry);
 
 	return node;
 }
 
 
-/**
- * @brief TiledSpriteHandler::addSprite
- * @param sprite
- */
-
-bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QString &source)
-{
-	if (find(sprite.name) != -1) {
-		LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << source;
-		return false;
-	}
-
-	if (source.isEmpty()) {
-		LOG_CERROR("scene") << "Empty sprite source:" << sprite.name;
-		return false;
-	}
-
-	if (!createSpriteItem(sprite, source))
-		return false;
-
-	if (!m_spriteNames.contains(sprite.name))
-		m_spriteNames.append(sprite.name);
-
-	return true;
-}
-
 
 
 /**
  * @brief TiledSpriteHandler::addSprite
  * @param sprite
- * @param alteration
+ * @param layer
  * @param source
  * @return
  */
 
-bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QString &alteration, const QString &source)
+bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QString &layer, const QString &source)
 {
-	if (find(sprite.name, alteration) != -1) {
-		LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << source << alteration;
+	if (exists(sprite.name, layer)) {
+		LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << source << layer;
 		return false;
 	}
 
@@ -171,7 +141,7 @@ bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QStrin
 		return false;
 	}
 
-	if (!createSpriteItem(sprite, source, alteration))
+	if (!createSpriteItem(sprite, source, layer))
 		return false;
 
 	if (!m_spriteNames.contains(sprite.name))
@@ -181,50 +151,21 @@ bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QStrin
 }
 
 
+
 /**
  * @brief TiledSpriteHandler::addSprite
  * @param sprite
+ * @param layer
  * @param direction
  * @param source
  * @return
  */
 
-bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const TiledObject::Direction &direction, const QString &source)
-{
-	if (find(sprite.name, QStringLiteral(""), direction) != -1) {
-		LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << source << direction;
-		return false;
-	}
-
-	if (source.isEmpty()) {
-		LOG_CERROR("scene") << "Empty sprite source:" << sprite.name;
-		return false;
-	}
-
-	if (!createSpriteItem(sprite, source, QStringLiteral(""), direction))
-		return false;
-
-	if (!m_spriteNames.contains(sprite.name))
-		m_spriteNames.append(sprite.name);
-
-	return true;
-}
-
-
-/**
- * @brief TiledSpriteHandler::addSprite
- * @param sprite
- * @param alteration
- * @param direction
- * @param source
- * @return
- */
-
-bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QString &alteration,
+bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QString &layer,
 								   const TiledObject::Direction &direction, const QString &source)
 {
-	if (find(sprite.name, alteration, direction) != -1) {
-		LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << source << alteration << direction;
+	if (exists(sprite.name, layer, direction)) {
+		LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << source << layer << direction;
 		return false;
 	}
 
@@ -233,7 +174,7 @@ bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QStrin
 		return false;
 	}
 
-	if (!createSpriteItem(sprite, source, alteration, direction))
+	if (!createSpriteItem(sprite, source, layer, direction))
 		return false;
 
 	if (!m_spriteNames.contains(sprite.name))
@@ -253,30 +194,22 @@ bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QStrin
  */
 
 bool TiledSpriteHandler::jumpToSprite(const QString &name,
-									  const QString &alteration,
 									  const TiledObject::Direction &direction,
 									  const JumpMode &mode)
 {
-	const int id = find(name, alteration, direction);
+	const auto &ptr = findFirst(name, direction);
 
-	if (id == -1) {
+	if (!ptr) {
 #ifndef QT_NO_DEBUG
-		LOG_CWARNING("scene") << "Sprite not found" << name << alteration << direction;
+		LOG_CWARNING("scene") << "Sprite not found" << name << direction;
 #endif
 		return false;
 	}
 
 	if (mode == JumpImmediate) {
-		m_jumpToId = -1;
-		changeSprite(id);
+		changeSprite(name, direction);
 	} else {
-		if (m_currentId >= 0 && m_currentId < m_spriteList.size()) {
-			m_jumpToId = id;
-		} else {
-			LOG_CERROR("scene") << "Current sprite not found" << m_currentId;
-			m_jumpToId = -1;
-			changeSprite(id);
-		}
+		m_jumpToSprite = *(ptr.value());
 	}
 
 	return true;
@@ -303,7 +236,7 @@ const QStringList &TiledSpriteHandler::spriteNames() const
 
 bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 										  const QString &source,
-										  const QString &alteration,
+										  const QString &layer,
 										  const TiledObject::Direction &direction)
 {
 	if (!m_baseObject || !m_baseObject->scene() || !m_baseObject->scene()->game()) {
@@ -316,7 +249,7 @@ bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 		path.replace(QStringLiteral("qrc:/"), QStringLiteral(":/"));
 
 	Sprite s;
-	s.alteration = alteration;
+	s.layer = layer;
 	s.direction = direction;
 	s.data = sprite;
 	s.texture = m_baseObject->scene()->game()->getTexture(path, window());
@@ -326,55 +259,93 @@ bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 		return false;
 	}
 
-	m_spriteList.insert(++m_lastId, std::move(s));
+	///LOG_CTRACE("scene") << "Sprite created:" << s.data.name << s.layer << s.direction;
 
-	////LOG_CTRACE("scene") << "Sprite created:" << m_lastId << s.data.name << s.alteration << s.direction;
+	m_spriteList.append(s);
 
 	return true;
 }
 
 
-
 /**
  * @brief TiledSpriteHandler::find
  * @param baseName
- * @param alteration
  * @param direction
  * @return
  */
 
-int TiledSpriteHandler::find(const QString &baseName,
-							 const QString &alteration,
-							 const TiledObject::Direction &direction) const
+
+QList<QVector<TiledSpriteHandler::Sprite>::const_iterator> TiledSpriteHandler::find(const QString &baseName,
+																					const TiledObject::Direction &direction) const
 {
-	auto it = std::find_if(m_spriteList.constBegin(), m_spriteList.constEnd(),
-						   [&alteration, &baseName, &direction](const Sprite &s) {
-		return s.data.name == baseName && s.alteration == alteration && s.direction == direction;
-	});
+	QList<QVector<Sprite>::const_iterator> list;
 
-	if (it == m_spriteList.constEnd())
-		return -1;
+	for (auto it = m_spriteList.constBegin(); it != m_spriteList.constEnd(); ++it) {
+		if (it->data.name == baseName && it->direction == direction)
+			list.append(it);
+	}
 
-	return it.key();
+	return list;
 }
 
 
 /**
- * @brief TiledSpriteHandler::findSprite
+ * @brief TiledSpriteHandler::findFirst
+ * @param baseName
+ * @param direction
+ * @return
+ */
+
+std::optional<QVector<TiledSpriteHandler::Sprite>::const_iterator>
+TiledSpriteHandler::findFirst(const QString &baseName, const TiledObject::Direction &direction) const
+{
+	for (auto it = m_spriteList.constBegin(); it != m_spriteList.constEnd(); ++it) {
+		if (it->data.name == baseName && it->direction == direction)
+			return it;
+	}
+
+	return std::nullopt;
+}
+
+
+/**
+ * @brief TiledSpriteHandler::exists
+ * @param baseName
+ * @param direction
+ * @return
+ */
+
+bool TiledSpriteHandler::exists(const QString &baseName, const TiledObject::Direction &direction) const
+{
+	for (const Sprite &s : std::as_const(m_spriteList)) {
+		if (s.data.name == baseName && s.direction == direction)
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief TiledSpriteHandler::exists
  * @param baseName
  * @param alteration
  * @param direction
  * @return
  */
 
-std::optional<TiledSpriteHandler::Sprite> TiledSpriteHandler::findSprite(const QString &baseName, const QString &alteration, const TiledObject::Direction &direction) const
+bool TiledSpriteHandler::exists(const QString &baseName, const QString &layer, const TiledObject::Direction &direction) const
 {
-	const int id = find(baseName, alteration, direction);
-	if (id == -1)
-		return std::nullopt;
-	else
-		return m_spriteList.value(id);
+	for (const Sprite &s : std::as_const(m_spriteList)) {
+		if (s.data.name == baseName && s.direction == direction && s.layer == layer)
+			return true;
+	}
+
+	return false;
 }
+
+
+
 
 
 /**
@@ -382,25 +353,91 @@ std::optional<TiledSpriteHandler::Sprite> TiledSpriteHandler::findSprite(const Q
  * @param id
  */
 
-void TiledSpriteHandler::changeSprite(const int &id)
+void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Direction &direction)
 {
-	if (m_currentId == id)
+
+	if (m_currentSprite == name && m_currentDirection == direction)
 		return;
 
-	auto it = m_spriteList.find(id);
+	const auto &ptr = findFirst(name, direction);
 
-	if (it == m_spriteList.end()) {
-		LOG_CERROR("scene") << "Sprite id not found:" << id;
+	if (!ptr) {
+		LOG_CERROR("scene") << "Sprite not found:" << name << direction;
 		m_timer.stop();
 		return;
 	}
 
-	m_currentId = id;
-	setCurrentSprite(it->data.name);
-
+	m_currentDirection = direction;
+	setCurrentSprite(name);
 	m_currentFrame = 0;
-	m_timer.start(it->data.duration, Qt::PreciseTimer, this);
+
+	m_timer.start(ptr.value()->data.duration, Qt::PreciseTimer, this);
 	update();
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::clear
+ */
+
+void TiledSpriteHandler::clear()
+{
+	m_timer.stop();
+	m_spriteList.clear();
+	m_spriteNames.clear();
+	m_currentSprite.clear();
+	m_currentDirection = TiledObject::Invalid;
+	m_layers.clear();
+	m_visibleLayers = { QStringLiteral("default") };
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::clearAtEnd
+ * @return
+ */
+
+bool TiledSpriteHandler::clearAtEnd() const
+{
+	return m_clearAtEnd;
+}
+
+void TiledSpriteHandler::setClearAtEnd(bool newClearAtEnd)
+{
+	if (m_clearAtEnd == newClearAtEnd)
+		return;
+	m_clearAtEnd = newClearAtEnd;
+	emit clearAtEndChanged();
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::visibleLayers
+ * @return
+ */
+
+const QStringList &TiledSpriteHandler::visibleLayers() const
+{
+	return m_visibleLayers;
+}
+
+void TiledSpriteHandler::setVisibleLayers(const QStringList &newVisibleLayers)
+{
+	m_visibleLayers = newVisibleLayers;
+}
+
+
+/**
+ * @brief TiledSpriteHandler::layers
+ * @return
+ */
+
+const QStringList &TiledSpriteHandler::layers() const
+{
+	return m_layers;
 }
 
 
@@ -439,10 +476,11 @@ void TiledSpriteHandler::setBaseObject(TiledObject *newBaseObject)
 
 void TiledSpriteHandler::timerEvent(QTimerEvent *)
 {
-	auto it = m_spriteList.find(m_currentId);
+	const auto &ptr = findFirst(m_currentSprite, m_currentDirection);
 
-	if (it == m_spriteList.end()) {
-		LOG_CERROR("scene") << "Sprite id not found:" << m_currentId;
+	if (!ptr) {
+		LOG_CERROR("scene") << "Sprite not found:" << m_currentSprite << m_currentDirection;
+		m_timer.stop();
 		return;
 	}
 
@@ -451,17 +489,23 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 
 	int nextFrame = m_currentFrame+1;
 
-	if (nextFrame >= it->data.count) {
-		if (m_jumpToId != -1) {
-			changeSprite(m_jumpToId);
-			m_jumpToId = -1;
+	if (nextFrame >= ptr.value()->data.count) {
+		if (!m_jumpToSprite.data.name.isEmpty()) {
+			changeSprite(m_jumpToSprite.data.name, m_jumpToSprite.direction);
+			m_jumpToSprite = Sprite{};
 			return;
 		}
 
-		if (it->data.loops <= 0)
+		if (ptr.value()->data.loops <= 0)
 			nextFrame = 0;
-		else
+		else {
+			if (m_clearAtEnd) {
+				clear();
+				return update();
+			}
+
 			return m_timer.stop();
+		}
 	}
 
 	m_currentFrame = nextFrame;

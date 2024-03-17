@@ -293,6 +293,32 @@ void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 
 
 
+/**
+ * @brief TiledScene::addTileLayer
+ * @param layer
+ * @param renderer
+ */
+
+TiledQuick::TileLayerItem *TiledScene::addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(layer);
+	Q_ASSERT(renderer);
+
+	TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(layer, renderer, this);
+	mTileLayerItems.append(layerItem);
+
+	if (layer->hasProperty(QStringLiteral("z"))) {
+		layerItem->setZ(layer->property(QStringLiteral("z")).toInt());
+	} else {
+		layerItem->setZ(0);
+	}
+
+	return layerItem;
+}
+
+
+
+
 
 /**
  * @brief TiledScene::sceneId
@@ -384,21 +410,7 @@ void TiledScene::refresh()
 	mRenderer = Tiled::MapRenderer::create(mMap);
 
 	for (Tiled::Layer *layer : mMap->layers()) {
-		Tiled::TileLayer *tl = m_game->loadSceneLayer(this, layer, mRenderer.get());
-
-		if (!tl)
-			continue;
-
-		TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(tl, mRenderer.get(), this);
-		mTileLayerItems.append(layerItem);
-
-		if (tl->hasProperty(QStringLiteral("z"))) {
-			layerItem->setZ(tl->property(QStringLiteral("z")).toInt());
-		} else {
-			layerItem->setZ(0);
-		}
-
-		/// TODO: add controlled layer
+		m_game->loadSceneLayer(this, layer, mRenderer.get());
 	}
 
 

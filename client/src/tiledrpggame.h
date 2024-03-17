@@ -27,6 +27,7 @@
 #ifndef TILEDRPGGAME_H
 #define TILEDRPGGAME_H
 
+#include "rpgplayer.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
 #include <QQmlEngine>
@@ -36,8 +37,8 @@ class TiledRpgGame : public TiledGame
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(QList<IsometricPlayer *> players READ players WRITE setPlayers NOTIFY playersChanged FINAL)
-	Q_PROPERTY(IsometricPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
+	Q_PROPERTY(QList<RpgPlayer *> players READ players WRITE setPlayers NOTIFY playersChanged FINAL)
+	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 
 public:
 	explicit TiledRpgGame(QQuickItem *parent = nullptr);
@@ -46,15 +47,18 @@ public:
 
 	Q_INVOKABLE bool load();
 
-	IsometricPlayer *controlledPlayer() const;
-	void setControlledPlayer(IsometricPlayer *newControlledPlayer);
+	void playerAttackEnemy(TiledObject *player, TiledObject *enemy) override final;
+	void enemyAttackPlayer(TiledObject *enemy, TiledObject *player) override final;
 
-	QList<IsometricPlayer *> players() const;
-	void setPlayers(const QList<IsometricPlayer *> &newPlayers);
+
+	RpgPlayer *controlledPlayer() const;
+	void setControlledPlayer(RpgPlayer *newControlledPlayer);
+
+	QList<RpgPlayer *> players() const;
+	void setPlayers(const QList<RpgPlayer *> &newPlayers);
 
 signals:
 	void controlledPlayerChanged();
-
 	void playersChanged();
 
 protected:
@@ -68,6 +72,7 @@ private:
 	struct EnemyData {
 		TiledObjectBase::Object object;
 		IsometricEnemyIface::EnemyType type = IsometricEnemyIface::EnemyInvalid;
+		QString subtype;
 		QPolygonF path;
 		int defaultAngle = 0;
 		QPointer<TiledScene> scene;
@@ -76,8 +81,8 @@ private:
 
 	QVector<EnemyData> m_enemyDataList;
 
-	QList<IsometricPlayer*> m_players;
-	QPointer<IsometricPlayer> m_controlledPlayer;
+	QList<RpgPlayer*> m_players;
+	QPointer<RpgPlayer> m_controlledPlayer;
 };
 
 #endif // TILEDRPGGAME_H

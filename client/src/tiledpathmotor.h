@@ -28,10 +28,10 @@
 #define TILEDPATHMOTOR_H
 
 #include "abstracttiledmotor.h"
-#include "qelapsedtimer.h"
 #include "qline.h"
 #include "qobjectdefs.h"
 #include "qpolygon.h"
+#include <QDeadlineTimer>
 #include <QSerializer>
 
 
@@ -155,8 +155,7 @@ private:
 	qint64 m_waitAtEnd = 0;
 	qint64 m_waitAtBegin = 0;
 
-	QElapsedTimer m_waitTimer;
-	qint64 m_waitForMsec = 0;
+	QDeadlineTimer m_waitTimer;
 	QList<Line> m_lines;
 
 	friend class TiledReturnPathMotor;

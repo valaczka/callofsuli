@@ -232,11 +232,16 @@ void IsometricEntityIface::setHp(int newHp)
 {
 	if (m_hp == newHp)
 		return;
+
+	const bool isHurt = (newHp < m_hp);
+
 	m_hp = newHp;
 	emit hpChanged();
 
 	if (m_hp <= 0)
 		onDead();
+	else if (isHurt)
+		emit hurt();
 }
 
 

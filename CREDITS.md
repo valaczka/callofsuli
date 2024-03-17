@@ -29,16 +29,19 @@
 **Image & Animation**
 
 - Hyptosis tileset by Daniel Harris "Hyptosis" (http://opengameart.org/users/hyptosis, http://www.lorestrome.com/pixel_archive/main.htm)
+- Isometric Hero and Heroine - (c) Clint Bellanger 2011 (https://opengameart.org/content/isometric-hero-and-heroine)
+- Flare - (c) 2010-2013 Clint Bellanger (https://github.com/flareteam/flare-game)
 - Free Game Assets (https://mobilegamegraphics.com/product/airplane-dogfight-assets-free-assets)
 - Game-icons.net by Lorc, Delapouite & contributors (https://opengameart.org/content/700-rpg-icons, https://game-icons.net)
 - Hansjörg Malthaner (http://opengameart.org/users/varkalandar)
 - Kingel's Creative Commons pixel art (https://forums.tigsource.com/index.php?topic=14166.0)
-- Sprites: Snk/Playmore, Black Zellyo3, Dk, Ivo, Ragey (https://www.spriters-resource.com)
 - WrathGames Studio (https://opengameart.org/content/wgstudio-fire-animation-loop, http://wrathgames.com/blog)
 - Free graphic resources for designers - (c) 2018-2023 Creazilla (https://creazilla.com)
 - Azgaar's Fantasy Map Generator - (c) 2017-2023 Max Haniyeu (https://azgaar.github.io/Fantasy-Map-Generator)
 - yd (https://opengameart.org/content/old-tower)
 - Animated Spinning Gems - (c) 2017 Code Inferno Games - codeinferno.com (https://opengameart.org/content/animated-spinning-gems)
+- Werebear FLARE sprite sheets - (c) 2011 John Harvey (https://opengameart.org/content/werebear-flare-sprite-sheets)
+
 
 **Music & SFX**
 

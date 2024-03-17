@@ -28,6 +28,7 @@
 #define ISOMETRICPLAYER_H
 
 #include "isometricentity.h"
+#include "qdeadlinetimer.h"
 #include "tiledtransport.h"
 #include "tiledgame.h"
 #include <QQmlEngine>
@@ -52,15 +53,16 @@ public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
 	virtual ~IsometricPlayer();
 
-	static IsometricPlayer* createPlayer(TiledGame *game, TiledScene *scene);
+	//static IsometricPlayer* createPlayer(TiledGame *game, TiledScene *scene);
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
 	virtual void entityWorldStep() override;
 
-	void hurt();
 	Q_INVOKABLE void hit();
-
 	Q_INVOKABLE void shot();
+
+	void initialize();
+	bool hasAbility() const;
 
 	TiledTransport *currentTransport() const;
 	void setCurrentTransport(TiledTransport *newCurrentTransport);
@@ -69,26 +71,48 @@ public:
 	void setCurrentAngle(qreal newCurrentAngle);
 
 signals:
+	void becameAlive();
+	void becameDead();
+
 	void currentTransportChanged();
 	void currentAngleChanged();
 
 protected:
-	void updateSprite() override;
+	//void updateSprite() override;
 	void onAlive() override;
 	void onDead() override;
+	void startInabililty();
+
 	virtual void createMarkerItem();
 
-private:
-	void load();			/// virtual
+	virtual void load() = 0;
+	virtual void attackedByEnemy(IsometricEnemy *enemy) = 0;
+	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
+	virtual void onEnemyLeft(IsometricEnemy *enemy) = 0;
+	virtual void onTransportReached(TiledTransport *transport) = 0;
+	virtual void onTransportLeft(TiledTransport *transport) = 0;
 
+
+	QDeadlineTimer m_inabilityTimer;
+	qreal m_sensorLength = 200.;
+	qreal m_sensorRange = M_PI * 0.33;
+	qreal m_targetCircleRadius = 50.;
+	qreal m_speedLength = 6.;
+	qint64 m_inabilityTime = 250;
+
+private:
+	void sensorBeginContact(Box2DFixture *other);
+	void sensorEndContact(Box2DFixture *other);
+	void fixtureBeginContact(Box2DFixture *other);
+	void fixtureEndContact(Box2DFixture *other);
 
 	TiledTransport *m_currentTransport = nullptr;
-	QString m_currentAlteration;
 	qreal m_currentAngle = 0.;
 
 	IsometricPlayerPrivate *d = nullptr;
 
 	friend class TiledGame;
+	friend class TiledRpgGame;
 };
 
 #endif // ISOMETRICPLAYER_H

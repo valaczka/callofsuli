@@ -46,6 +46,7 @@
 #include "actiongame.h"
 #include "updater.h"
 #include "server.h"
+#include "rpgplayer.h"
 #include <QScreen>
 
 #ifdef Q_OS_ANDROID
@@ -387,6 +388,7 @@ void Client::onApplicationStarted()
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
+	RpgPlayer::reloadAvailableCharacters();
 
 	switch (m_application->commandLine()) {
 		case Application::Demo:

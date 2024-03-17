@@ -90,19 +90,19 @@ public:
 
 
 /**
- * @brief The TiledMapObjectAlterableSprite class
+ * @brief The TiledMapObjectLayeredSprite class
  */
 
-class TiledMapObjectAlterableSprite : public QSerializer
+class TiledMapObjectLayeredSprite : public QSerializer
 {
 	Q_GADGET
 
 public:
-	TiledMapObjectAlterableSprite()
+	TiledMapObjectLayeredSprite()
 	{}
 
 	QS_SERIALIZABLE
-	QS_QT_DICT(QMap, QString, QString, alterations)
+	QS_QT_DICT(QMap, QString, QString, layers)
 	QS_COLLECTION_OBJECTS(QList, TiledObjectSprite, sprites)
 };
 
@@ -111,20 +111,20 @@ public:
 
 
 /**
- * @brief The TiledObjectAlterableSpriteList class
+ * @brief The TiledObjectLayeredSpriteList class
  */
 
-class TiledObjectAlterableSpriteList : public QSerializer
+class TiledObjectLayeredSpriteList : public QSerializer
 {
 	Q_GADGET
 
 public:
-	TiledObjectAlterableSpriteList()
+	TiledObjectLayeredSpriteList()
 	{}
 
 	QS_SERIALIZABLE
 
-	QS_COLLECTION_OBJECTS(QList, TiledMapObjectAlterableSprite, list)
+	QS_COLLECTION_OBJECTS(QList, TiledMapObjectLayeredSprite, list)
 };
 
 
@@ -182,16 +182,16 @@ public:
  * @brief The TiledMapObjectAlterableSprite class
  */
 
-class IsometricObjectAlterableSprite : public QSerializer
+class IsometricObjectLayeredSprite : public QSerializer
 {
 	Q_GADGET
 
 public:
-	IsometricObjectAlterableSprite()
+	IsometricObjectLayeredSprite()
 	{}
 
 	QS_SERIALIZABLE
-	QS_QT_DICT(QMap, QString, QString, alterations)
+	QS_QT_DICT(QMap, QString, QString, layers)
 	QS_COLLECTION_OBJECTS(QList, IsometricObjectSprite, sprites)
 };
 
@@ -203,17 +203,17 @@ public:
  * @brief The TiledMapObjectAlterableSpriteList class
  */
 
-class IsometricObjectAlterableSpriteList : public QSerializer
+class IsometricObjectLayeredSpriteList : public QSerializer
 {
 	Q_GADGET
 
 public:
-	IsometricObjectAlterableSpriteList()
+	IsometricObjectLayeredSpriteList()
 	{}
 
 	QS_SERIALIZABLE
 
-	QS_COLLECTION_OBJECTS(QList, IsometricObjectAlterableSprite, list)
+	QS_COLLECTION_OBJECTS(QList, IsometricObjectLayeredSprite, list)
 };
 
 

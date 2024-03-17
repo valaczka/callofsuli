@@ -71,9 +71,12 @@ public:
 	int maxHp() const;
 	void setMaxHp(int newMaxHp);
 
+	bool isAlive() const { return m_hp > 0; }
+
 	virtual void updateSprite() = 0;
 
 public:
+	virtual void hurt() = 0;
 	virtual void hpChanged() = 0;
 	virtual void maxHpChanged() = 0;
 
@@ -155,6 +158,7 @@ public:
 	}
 
 signals:
+	void hurt() override final;
 	void hpChanged() override final;
 	void maxHpChanged() override final;
 

@@ -44,7 +44,9 @@ TiledFixPositionMotorSerializer TiledFixPositionMotor::toSerializer() const
 {
 	TiledFixPositionMotorSerializer data;
 
-
+	data.x = m_point.x();
+	data.y = m_point.y();
+	data.direction = m_direction;
 
 	return data;
 }
@@ -60,6 +62,9 @@ TiledFixPositionMotorSerializer TiledFixPositionMotor::toSerializer() const
 TiledFixPositionMotor *TiledFixPositionMotor::fromSerializer(const TiledFixPositionMotorSerializer &data)
 {
 	TiledFixPositionMotor *motor = new TiledFixPositionMotor;
+
+	motor->setPoint(QPointF{data.x, data.y});
+	motor->setDirection(QVariant::fromValue(data.direction).value<TiledObject::Direction>());
 
 	return motor;
 }

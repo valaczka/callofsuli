@@ -29,7 +29,6 @@
 
 #include "isometricentity.h"
 #include "isometricplayer.h"
-#include "qelapsedtimer.h"
 #include "tiledpathmotor.h"
 #include "tiledreturnpathmotor.h"
 #include <QQmlEngine>
@@ -42,12 +41,15 @@
 class IsometricEnemyIface
 {
 public:
-	IsometricEnemyIface() {}
-
 	enum EnemyType {
 		EnemyInvalid = 0,
 		EnemyWerebear
 	};
+
+	IsometricEnemyIface(const EnemyType &type)
+		: m_enemyType(type)
+	{}
+
 
 	void loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction = TiledPathMotor::Forward);
 	void loadFixPositionMotor(const QPointF &point, const TiledObject::Direction &direction = TiledObject::Invalid);
@@ -58,6 +60,7 @@ public:
 	IsometricPlayer *player() const;
 	void setPlayer(IsometricPlayer *newPlayer);
 
+	const EnemyType &enemyType() const { return m_enemyType; }
 
 	static QStringList availableTypes() { return m_typeHash.keys(); }
 	static EnemyType typeFromString(const QString &type) { return m_typeHash.value(type, EnemyInvalid); }
@@ -81,17 +84,21 @@ protected:
 		qreal speed = 3.0;						// <=0: no move
 		qreal pursuitSpeed = 3.0;				// -1: =speed, 0: no pursuit, >0: pursuit speed
 		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
-		float playerDistance = 50;				// stop at distance
 		bool rotateToPlayer = true;
+		qint64 inabilityTime = 250;				// Inability after hit
+		qint64 autoHitTime = 1500;				// Repeated hit (or shoot) to player
 
 		qreal sensorLength = 450.;
 		qreal sensorRange = M_PI*2./3.;
+		qreal targetCircleRadius = 0.;
 	};
 
+	const EnemyType m_enemyType;
 	std::unique_ptr<AbstractTiledMotor> m_motor;
 	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;
 	QPointer<IsometricPlayer> m_player;
 	QList<QPointer<IsometricPlayer>> m_contactedPlayers;
+	QList<QPointer<IsometricPlayer>> m_reachedPlayers;
 	EnemyMetric m_metric;
 	float m_playerDistance = -1;
 
@@ -115,14 +122,22 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 	Q_PROPERTY(qreal playerDistance READ playerDistance WRITE setPlayerDistance NOTIFY playerDistanceChanged FINAL)
 
 public:
-	explicit IsometricEnemy(QQuickItem *parent = nullptr);
+	explicit IsometricEnemy(const EnemyType &type, QQuickItem *parent = nullptr);
 
-	static IsometricEnemy* createEnemy(const EnemyType &type, TiledGame *game, TiledScene *scene);
+	static IsometricEnemy* createEnemy(const EnemyType &type, const QString &subtype, TiledGame *game, TiledScene *scene);
+	static IsometricEnemy* createEnemy(const EnemyType &type, TiledGame *game, TiledScene *scene) {
+		return createEnemy(type, QStringLiteral(""), game, scene);
+	}
 
-	void attackedByPlayer(IsometricPlayer *player) override;
+	void initialize();
+
+	bool hasAbility() const;
 
 
 signals:
+	void becameAlive();
+	void becameDead();
+
 	void playerChanged() override final;
 	void playerDistanceChanged() override final;
 
@@ -130,8 +145,16 @@ protected:
 	virtual void entityWorldStep() override final;
 	virtual bool enemyWorldStep() override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
+
+	virtual void load() = 0;
 	void onAlive() override;
 	void onDead() override;
+
+	void attackedByPlayer(IsometricPlayer *player) override;
+	void startInabililty();
+
+	virtual void onPlayerReached(IsometricPlayer *player) = 0;
+	virtual void onPlayerLeft(IsometricPlayer *player) = 0;
 
 	void stepMotor();
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
@@ -139,14 +162,21 @@ protected:
 	float32 angleToPoint(const QPointF &point) const;
 	qreal distanceToPoint(const QPointF &point) const;
 
+	const char* m_autoAttackSprite = nullptr;
+
 private:
-	void load();					/// virtual
 	void updateSprite() override;
-	void nextAlteration();
+	void sensorBeginContact(Box2DFixture *other);
+	void sensorEndContact(Box2DFixture *other);
+	void fixtureBeginContact(Box2DFixture *other);
+	void fixtureEndContact(Box2DFixture *other);
 
-	QString m_currentAlteration;
-	QElapsedTimer m_hitTimer;
+protected:
+	QDeadlineTimer m_inabilityTimer;
+	QDeadlineTimer m_autoHitTimer;
 
+	friend class TiledGame;
+	friend class TiledRpgGame;
 };
 
 #endif // ISOMETRICENEMY_H

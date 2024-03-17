@@ -127,6 +127,7 @@ private:
 	void onWorldStepped();
 	void reorderObjectsZ();
 	void repaintTilesets(Tiled::Tileset *tileset);
+	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 
 	TiledGame *m_game = nullptr;
 	int m_sceneId = -1;

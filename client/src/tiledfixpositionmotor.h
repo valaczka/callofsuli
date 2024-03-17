@@ -44,7 +44,7 @@ public:
 	QS_SERIALIZABLE
 	QS_FIELD(qreal, x)
 	QS_FIELD(qreal, y)
-	QS_FIELD(int, angle)
+	QS_FIELD(int, direction)
 };
 
 

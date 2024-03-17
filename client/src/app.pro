@@ -248,6 +248,7 @@ SOURCES += \
 	isometricentity.cpp \
 	isometricobject.cpp \
 	isometricplayer.cpp \
+	isometricwerebear.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -262,6 +263,7 @@ SOURCES += \
 	offsetmodel.cpp \
 	qrimage.cpp \
 	question.cpp \
+	rpgplayer.cpp \
 	scorelist.cpp \
 	server.cpp \
 	sound.cpp \
@@ -346,6 +348,7 @@ HEADERS += \
 	isometricobject.h \
 	isometricobjectiface.h \
 	isometricplayer.h \
+	isometricwerebear.h \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \
@@ -359,6 +362,7 @@ HEADERS += \
 	offsetmodel.h \
 	qrimage.h \
 	question.h \
+	rpgplayer.h \
 	scorelist.h \
 	server.h \
 	sound.h \

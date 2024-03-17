@@ -109,7 +109,7 @@ Sound::~Sound()
  * @param soundType
  */
 
-void Sound::playSound(const QString &source, const ChannelType &channel)
+void Sound::playSound(const QString &source, const ChannelType &channel, const float &volume)
 {
 	LOG_CDEBUG("sound") << "Play sound" << qPrintable(source) << channel;
 
@@ -136,9 +136,9 @@ void Sound::playSound(const QString &source, const ChannelType &channel)
 	if (it == m_sound.end()) {
 		ma_sound_group *group = nullptr;
 		switch (channel) {
-		case SfxChannel: group = m_groupSfx.get(); break;
-		case MusicChannel: group = m_groupMusic.get(); break;
-		case VoiceoverChannel: group = m_groupVoiceOver.get(); break;
+			case SfxChannel: group = m_groupSfx.get(); break;
+			case MusicChannel: group = m_groupMusic.get(); break;
+			case VoiceoverChannel: group = m_groupVoiceOver.get(); break;
 		}
 
 		auto ptr = std::make_unique<MaSound>(m_engine.get(), source, channel, group);
@@ -168,7 +168,7 @@ void Sound::playSound(const QString &source, const ChannelType &channel)
 		return;
 	}
 
-	playSound(sndObj);
+	playSound(sndObj, volume);
 }
 
 
@@ -468,7 +468,7 @@ void Sound::engineCheck()
  * @param sound
  */
 
-void Sound::playSound(MaSound *sound)
+void Sound::playSound(MaSound *sound, const float &volume)
 {
 	if (!sound || !sound->sound()) {
 		LOG_CERROR("sound") << "Invalid MaSound";
@@ -501,14 +501,17 @@ void Sound::playSound(MaSound *sound)
 
 	} else if (sound->channel() == SfxChannel) {
 		if (ma_sound_is_playing(sound->sound())) {
-			LOG_CTRACE("sound") << "Duplicate playing sfx:" << qPrintable(sound->path());
+			LOG_CTRACE("sound") << "Duplicate playing sfx:" << qPrintable(sound->path()) << "volume:" << volume;
 
 			auto snd = sound->duplicate(m_groupSfx.get());
 
-			if (snd)
+			if (snd) {
+				ma_sound_set_volume(snd, volume);
 				ma_sound_start(snd);
+			}
 		} else {
-			LOG_CTRACE("sound") << "Start playing sfx:" << qPrintable(sound->path());
+			LOG_CTRACE("sound") << "Start playing sfx:" << qPrintable(sound->path()) << "volume:" << volume;
+			ma_sound_set_volume(sound->sound(), volume);
 			ma_sound_start(sound->sound());
 		}
 	} else if (sound->channel() == VoiceoverChannel) {

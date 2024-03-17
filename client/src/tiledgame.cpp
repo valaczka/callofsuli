@@ -121,7 +121,7 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 	LOG_CTRACE("game") << "Load layer" << layer->id() << layer->name() << "to scene" << scene->sceneId();
 
 	if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-		return tl;
+		scene->addTileLayer(tl, renderer);
 	} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
 		loadObjectLayer(scene, group, renderer);
 	} /*else if (Tiled::GroupLayer *group = layer->asGroupLayer()) {
@@ -801,6 +801,60 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 	newScene->forceActiveFocus();
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief TiledGame::playSfx
+ * @param source
+ */
+
+void TiledGame::playSfx(const QString &source, TiledScene *scene)
+{
+	if (!scene || !m_currentScene || m_currentScene != scene)
+		return;
+
+	const qreal &scale = m_currentScene->scale();
+	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale) : 1.0;
+
+	Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel, factor);
+}
+
+
+/**
+ * @brief TiledGame::playSfx
+ * @param source
+ * @param position
+ */
+
+void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF &position)
+{
+	if (!scene || !m_currentScene || m_currentScene != scene)
+		return;
+
+	static const std::map<qreal, float> distanceMap = {
+		{ 0, 1.0 },
+		{ 20, 0.8 },
+		{ 50, 0.7 },
+		{ 75, 0.5 },
+		{ 100, 0.4 },
+		{ 120, 0.3 },
+		{ 150, 0.2 }
+	};
+
+	const QRectF &rect = m_currentScene->visibleArea();
+	const qreal &scale = m_currentScene->scale();
+	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale) : 1.0;
+
+	for (const auto &[margin, volume] : distanceMap) {
+		if (rect.marginsAdded(QMarginsF{margin, margin, margin, margin}).contains(position)) {
+			Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel, volume*factor);
+			return;
+		}
+	}
+
 }
 
 

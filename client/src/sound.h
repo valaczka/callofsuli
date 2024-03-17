@@ -68,7 +68,7 @@ public:
 	explicit Sound(QObject *parent = nullptr);
 	virtual ~Sound();
 
-	Q_INVOKABLE void playSound(const QString &source, const Sound::ChannelType &channel);
+	Q_INVOKABLE void playSound(const QString &source, const Sound::ChannelType &channel, const float &volume = 1.0);
 	Q_INVOKABLE void stopSound(const QString &source, const Sound::ChannelType &channel);
 	Q_INVOKABLE void stopMusic();
 
@@ -144,7 +144,7 @@ private:
 	bool engineUninit();
 	void engineCheck();
 
-	void playSound(MaSound *sound);
+	void playSound(MaSound *sound, const float &volume);
 	QVector<MaSound *> currentMusic() const;
 	void updateVolumes();
 	void garbage();

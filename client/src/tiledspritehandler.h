@@ -41,6 +41,7 @@ class TiledSpriteHandler : public QQuickItem
 
 	Q_PROPERTY(QString currentSprite READ currentSprite WRITE setCurrentSprite NOTIFY currentSpriteChanged FINAL)
 	Q_PROPERTY(TiledObject *baseObject READ baseObject WRITE setBaseObject NOTIFY baseObjectChanged FINAL)
+	Q_PROPERTY(bool clearAtEnd READ clearAtEnd WRITE setClearAtEnd NOTIFY clearAtEndChanged FINAL)
 
 public:
 	explicit TiledSpriteHandler(QQuickItem *parent = nullptr);
@@ -55,17 +56,16 @@ public:
 
 	QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *) override;
 
-	bool addSprite(const TiledObjectSprite &sprite, const QString &source);
-	bool addSprite(const TiledObjectSprite &sprite, const QString &alteration, const QString &source);
-	bool addSprite(const TiledObjectSprite &sprite,
-				   const TiledObject::Direction &direction, const QString &source);
-	bool addSprite(const TiledObjectSprite &sprite, const QString &alteration,
+	bool addSprite(const TiledObjectSprite &sprite, const QString &layer, const QString &source);
+	bool addSprite(const TiledObjectSprite &sprite, const QString &layer,
 				   const TiledObject::Direction &direction, const QString &source);
 
-	bool jumpToSprite(const QString &name, const QString &alteration, const TiledObject::Direction &direction,
-					  const JumpMode &mode = JumpImmediate);
+	bool jumpToSprite(const QString &name, const TiledObject::Direction &direction, const JumpMode &mode = JumpImmediate);
+
+	void clear();
 
 	const QStringList &spriteNames() const;
+	const QStringList &layers() const;
 
 	const QString &currentSprite() const;
 	void setCurrentSprite(const QString &newCurrentSprite);
@@ -73,45 +73,62 @@ public:
 	TiledObject *baseObject() const;
 	void setBaseObject(TiledObject *newBaseObject);
 
+	const QStringList &visibleLayers() const;
+	QStringList &visibleLayers() { return m_visibleLayers; }
+	void setVisibleLayers(const QStringList &newVisibleLayers);
+
+	bool clearAtEnd() const;
+	void setClearAtEnd(bool newClearAtEnd);
+
 signals:
 	void currentSpriteChanged();
 	void baseObjectChanged();
+	void clearAtEndChanged();
 
 protected:
 	void timerEvent(QTimerEvent *) override final;
 
 private:
 	struct Sprite {
-		QString alteration;
+		QString layer;
 		TiledObject::Direction direction = TiledObject::Invalid;
 		TiledObjectSprite data;
 		QSGTexture *texture = nullptr;
 	};
 
-
 	bool createSpriteItem(const TiledObjectSprite &sprite, const QString &source,
-						  const QString &alteration = QStringLiteral(""),
+						  const QString &layer = QStringLiteral("default"),
 						  const TiledObject::Direction &direction = TiledObject::Invalid);
 
-	int find(const QString &baseName,
-			 const QString &alteration = QStringLiteral(""),
-			 const TiledObject::Direction &direction = TiledObject::Invalid) const;
+	QList<QVector<Sprite>::const_iterator> find(const QString &baseName,
+					const TiledObject::Direction &direction = TiledObject::Invalid) const;
 
-	std::optional<Sprite> findSprite(const QString &baseName,
-			 const QString &alteration = QStringLiteral(""),
-			 const TiledObject::Direction &direction = TiledObject::Invalid) const;
+	std::optional<QVector<Sprite>::const_iterator> findFirst(const QString &baseName,
+					const TiledObject::Direction &direction = TiledObject::Invalid) const;
 
-	void changeSprite(const int &id);
+	bool exists(const QString &baseName,
+			  const TiledObject::Direction &direction = TiledObject::Invalid) const;
 
-	int m_lastId = 0;
-	QHash<int, Sprite> m_spriteList;
+	bool exists(const QString &baseName, const QString &layer,
+			  const TiledObject::Direction &direction = TiledObject::Invalid) const;
+
+
+	void changeSprite(const QString &name, const TiledObject::Direction &direction);
+
+
+	QVector<Sprite> m_spriteList;
 	QStringList m_spriteNames;
 	QString m_currentSprite;
-	int m_currentId = -1;
-	int m_jumpToId = -1;
+	TiledObject::Direction m_currentDirection = TiledObject::Invalid;
+
+	QStringList m_layers;
+	QStringList m_visibleLayers = { QStringLiteral("default") };
+
+	Sprite m_jumpToSprite;
 	QPointer<TiledObject> m_baseObject;
 	QBasicTimer m_timer;
 	int m_currentFrame = 0;
+	bool m_clearAtEnd = false;
 };
 
 

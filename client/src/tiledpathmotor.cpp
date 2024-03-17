@@ -522,11 +522,10 @@ bool TiledPathMotor::step(const qreal &distance, const Direction &direction)
 
 void TiledPathMotor::waitTimerStart(const qint64 &msec)
 {
-	m_waitForMsec = msec;
 	if (msec > 0)
-		m_waitTimer.start();
+		m_waitTimer.setRemainingTime(msec);
 	else
-		m_waitTimer.invalidate();
+		m_waitTimer.setPreciseRemainingTime(-1);
 }
 
 
@@ -536,8 +535,7 @@ void TiledPathMotor::waitTimerStart(const qint64 &msec)
 
 void TiledPathMotor::waitTimerStop()
 {
-	m_waitForMsec = 0;
-	m_waitTimer.invalidate();
+	m_waitTimer.setRemainingTime(-1);
 }
 
 
@@ -549,12 +547,12 @@ void TiledPathMotor::waitTimerStop()
 
 TiledPathMotor::WaitTimerState TiledPathMotor::waitTimerState() const
 {
-	if (m_waitForMsec == 0 || !m_waitTimer.isValid())
+	if (m_waitTimer.isForever())
 		return Invalid;
-	else if (m_waitTimer.elapsed() < m_waitForMsec)
-		return Running;
-	else
+	else if (m_waitTimer.hasExpired())
 		return Overdue;
+	else
+		return Running;
 }
 
 
