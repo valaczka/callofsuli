@@ -30,22 +30,62 @@
 #include "isometricobject.h"
 #include <QQmlEngine>
 
+
+class IsometricBulletPrivate;
+class TiledWeapon;
+
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_TiledWeapon
+#define OPAQUE_PTR_TiledWeapon
+Q_DECLARE_OPAQUE_POINTER(TiledWeapon*)
+#endif
+
+#endif
+
+
+/**
+ * @brief The IsometricBullet class
+ */
+
 class IsometricBullet : public IsometricObjectCircle
 {
 	Q_OBJECT
 	QML_ELEMENT
 
+	Q_PROPERTY(Targets targets READ targets WRITE setTargets NOTIFY targetsChanged FINAL)
 	Q_PROPERTY(bool impacted READ impacted WRITE setImpacted NOTIFY impactedChanged FINAL)
 	Q_PROPERTY(qreal maxDistance READ maxDistance WRITE setMaxDistance NOTIFY maxDistanceChanged FINAL)
+	Q_PROPERTY(qint64 bulletId READ bulletId WRITE setBulletId NOTIFY bulletIdChanged FINAL)
+	Q_PROPERTY(bool autoDelete READ autoDelete WRITE setAutoDelete NOTIFY autoDeleteChanged FINAL)
+	Q_PROPERTY(TiledWeapon *fromWeapon READ fromWeapon WRITE setFromWeapon NOTIFY fromWeaponChanged FINAL)
 
 public:
 	explicit IsometricBullet(QQuickItem *parent = nullptr);
 	virtual ~IsometricBullet();
 
-	static IsometricBullet* createBullet(TiledGame *game, TiledScene *scene);
+	enum Target {
+		TargetNone = 0,
+		TargetEnemy = 1,
+		TargetPlayer = 1 << 1,
 
-	void shot(const QPointF &from, const Direction &direction);
-	void shot(const QPointF &from, const qreal &angle);
+		TargetAll = TargetEnemy|TargetPlayer
+	};
+
+	Q_ENUM(Target)
+	Q_DECLARE_FLAGS(Targets, Target)
+	Q_FLAG(Targets)
+
+
+	//static IsometricBullet* createBullet(TiledGame *game, TiledScene *scene);
+
+	void initialize();
+
+	virtual void shot(const QPointF &from, const Direction &direction);
+	virtual void shot(const QPointF &from, const qreal &angle);
+
+	void shot(const Targets &targets, const QPointF &from, const Direction &direction);
+	void shot(const Targets &targets, const QPointF &from, const qreal &angle);
 
 	void worldStep() override;
 
@@ -55,21 +95,54 @@ public:
 	qreal maxDistance() const;
 	void setMaxDistance(qreal newMaxDistance);
 
+	qint64 bulletId() const;
+	void setBulletId(qint64 newBulletId);
+
+	bool autoDelete() const;
+	void setAutoDelete(bool newAutoDelete);
+
+	Targets targets() const;
+	void setTargets(const Targets &newTargets);
+
+	TiledWeapon *fromWeapon() const;
+	void setFromWeapon(TiledWeapon *newFromWeapon);
+
 signals:
 	void impactedChanged();
 	void maxDistanceChanged();
+	void bulletIdChanged();
+	void autoDeleteChanged();
+	void targetsChanged();
+	void fromWeaponChanged();
 
 protected:
-	virtual void load();
+	virtual void load() = 0;
+	virtual void impactEvent(TiledObjectBase *base);
+	virtual void groundEvent(TiledObjectBase *base) { Q_UNUSED(base); }
+	virtual void overshootEvent() {}
+
+private:
+	void fixtureBeginContact(Box2DFixture *other);
+	//void fixtureEndContact(Box2DFixture *other);
+
+	void doAutoDelete();
 
 protected:
 	QPointF m_startPoint;
 	Direction m_direction = Invalid;
 	qreal m_angle = 0.;
-	qreal m_maxDistance = 725.;
+	qreal m_speed = 20.;
+	qreal m_maxDistance = 500.;
+	qint64 m_bulletId = 0;
+	Targets m_targets = TargetNone;
 
 private:
 	bool m_impacted = false;
+	bool m_autoDelete = true;
+	IsometricBulletPrivate *d;
 };
+
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(IsometricBullet::Targets);
 
 #endif // ISOMETRICBULLET_H

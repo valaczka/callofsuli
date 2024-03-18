@@ -30,6 +30,8 @@
 
 
 
+
+
 /**
  * @brief IsometricWerebear::IsometricWerebear
  * @param parent
@@ -37,14 +39,22 @@
 
 IsometricWerebear::IsometricWerebear(QQuickItem *parent)
 	: IsometricEnemy(EnemyWerebear, parent)
+	, m_sfxFootStep(this)
 {
 	m_metric.speed = 2.;
 	m_metric.returnSpeed = 3.;
 	m_metric.pursuitSpeed = 3.;
 	m_autoAttackSprite = "hit";
 
-	m_footSoundTimer.setInterval(450);
-	connect(&m_footSoundTimer, &QTimer::timeout, this, &IsometricWerebear::onFootSoundTimerTimeout);
+	m_sfxFootStep.setSoundList({
+								   QStringLiteral(":/enemies/werebear/stepdirt_7.wav"),
+								   QStringLiteral(":/enemies/werebear/stepdirt_8.wav"),
+							   });
+	m_sfxFootStep.setVolume(0.4);
+	m_sfxFootStep.setInterval(450);
+
+	m_defaultWeapon.reset(new IsometricWerebearWeaponHand);
+	m_defaultWeapon->setParentObject(this);
 }
 
 
@@ -118,27 +128,76 @@ void IsometricWerebear::load()
 	setBodyOffset(0, 0.45*64);
 
 
-	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, [this](){
-		if (m_spriteHandler->currentSprite() == "run" && !m_footSoundTimer.isActive()) {
-			onFootSoundTimerTimeout();
-			m_footSoundTimer.start();
-		} else if (m_spriteHandler->currentSprite() != "run" && m_footSoundTimer.isActive())
-			m_footSoundTimer.stop();
-	});
+	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &IsometricWerebear::onCurrentSpriteChanged);
 }
+
+
+
 
 
 /**
- * @brief IsometricWerebear::onFootSoundTimerTimeout
+ * @brief IsometricWerebear::attackedByPlayer
+ * @param player
+ * @param weaponType
  */
 
-void IsometricWerebear::onFootSoundTimerTimeout()
+void IsometricWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType)
 {
-	m_game->playSfx(QStringLiteral(":/enemies/werebear/stepdirt_%1.wav").arg(m_pNum++), m_scene, m_body->bodyPosition());
+	IsometricEnemy::attackedByPlayer(player, weaponType);
 
-	if (m_pNum>8)
-		m_pNum = 7;
+	if (!isAlive())
+		return;
+
+	int newHp = m_hp;
+
+	switch (weaponType) {
+		case TiledWeapon::WeaponSword:
+			newHp -= 1;
+			break;
+
+		case TiledWeapon::WeaponShortbow:
+			newHp -= 2;
+			break;
+
+		case TiledWeapon::WeaponHand:
+		case TiledWeapon::WeaponShield:
+		case TiledWeapon::WeaponInvalid:
+			break;
+	}
+
+	if (newHp == m_hp)
+		return;
+
+	setHp(std::max(0, newHp));
+
+	if (m_hp <= 0) {
+		jumpToSprite("die", m_currentDirection);
+	} else {
+		jumpToSprite("hurt", m_currentDirection);
+		startInabililty();
+	}
 }
+
+
+
+
+
+
+/**
+ * @brief IsometricWerebear::onCurrentSpriteChanged
+ */
+
+void IsometricWerebear::onCurrentSpriteChanged()
+{
+	const QString &sprite = m_spriteHandler->currentSprite();
+
+	if (sprite == QStringLiteral("run"))
+		m_sfxFootStep.startFromBegin();
+	else if (sprite != QStringLiteral("run"))
+		m_sfxFootStep.stop();
+}
+
+
 
 
 
@@ -173,4 +232,18 @@ void IsometricWerebear::setWerebearType(const QString &text)
 	};
 
 	setWerebearType(map.value(text, WerebearDefault));
+}
+
+
+
+/**
+ * @brief IsometricWerebearWeaponHand::eventAttack
+ */
+
+void IsometricWerebearWeaponHand::eventAttack()
+{
+	IsometricWerebear *wb = qobject_cast<IsometricWerebear*>(m_parentObject.get());
+	if (wb && wb->game())
+		wb->game()->playSfx(QStringLiteral(":/enemies/werebear/big_punch.wav"),
+							wb->scene(), wb->body()->bodyPosition());
 }

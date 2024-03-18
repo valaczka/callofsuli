@@ -37,6 +37,16 @@ class IsometricEnemy;
 class IsometricPlayerPrivate;
 
 
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_IsometricEnemy
+#define OPAQUE_PTR_IsometricEnemy
+  Q_DECLARE_OPAQUE_POINTER(IsometricEnemy*)
+#endif
+
+#endif
+
+
 /**
  * @brief The IsometricPlayer class
  */
@@ -48,6 +58,7 @@ class IsometricPlayer : public IsometricCircleEntity
 
 	Q_PROPERTY(TiledTransport *currentTransport READ currentTransport WRITE setCurrentTransport NOTIFY currentTransportChanged FINAL)
 	Q_PROPERTY(qreal currentAngle READ currentAngle WRITE setCurrentAngle NOTIFY currentAngleChanged FINAL)
+	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
 
 public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
@@ -58,9 +69,6 @@ public:
 
 	virtual void entityWorldStep() override;
 
-	Q_INVOKABLE void hit();
-	Q_INVOKABLE void shot();
-
 	void initialize();
 	bool hasAbility() const;
 
@@ -70,12 +78,16 @@ public:
 	qreal currentAngle() const;
 	void setCurrentAngle(qreal newCurrentAngle);
 
+	IsometricEnemy *enemy() const;
+	void setEnemy(IsometricEnemy *newEnemy);
+
 signals:
 	void becameAlive();
 	void becameDead();
 
 	void currentTransportChanged();
 	void currentAngleChanged();
+	void enemyChanged();
 
 protected:
 	//void updateSprite() override;
@@ -86,7 +98,7 @@ protected:
 	virtual void createMarkerItem();
 
 	virtual void load() = 0;
-	virtual void attackedByEnemy(IsometricEnemy *enemy) = 0;
+	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
 	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
 	virtual void onEnemyLeft(IsometricEnemy *enemy) = 0;
 	virtual void onTransportReached(TiledTransport *transport) = 0;
@@ -98,7 +110,7 @@ protected:
 	qreal m_sensorRange = M_PI * 0.33;
 	qreal m_targetCircleRadius = 50.;
 	qreal m_speedLength = 6.;
-	qint64 m_inabilityTime = 250;
+	qint64 m_inabilityTime = 1000;
 
 private:
 	void sensorBeginContact(Box2DFixture *other);

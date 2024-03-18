@@ -68,7 +68,7 @@ public:
 	float playerDistance() const;
 	void setPlayerDistance(float newPlayerDistance);
 
-	virtual void attackedByPlayer(IsometricPlayer *player) = 0;
+	virtual void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) = 0;
 
 public:
 	virtual void playerChanged() = 0;
@@ -85,8 +85,8 @@ protected:
 		qreal pursuitSpeed = 3.0;				// -1: =speed, 0: no pursuit, >0: pursuit speed
 		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
 		bool rotateToPlayer = true;
-		qint64 inabilityTime = 250;				// Inability after hit
-		qint64 autoHitTime = 1500;				// Repeated hit (or shoot) to player
+		qint64 inabilityTime = 1250;			// Inability after hit
+		qint64 autoAttackTime = 1500;			// Repeated attack to player
 
 		qreal sensorLength = 450.;
 		qreal sensorRange = M_PI*2./3.;
@@ -96,6 +96,7 @@ protected:
 	const EnemyType m_enemyType;
 	std::unique_ptr<AbstractTiledMotor> m_motor;
 	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;
+	std::unique_ptr<TiledWeapon> m_defaultWeapon;
 	QPointer<IsometricPlayer> m_player;
 	QList<QPointer<IsometricPlayer>> m_contactedPlayers;
 	QList<QPointer<IsometricPlayer>> m_reachedPlayers;
@@ -120,6 +121,7 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 
 	Q_PROPERTY(IsometricPlayer *player READ player WRITE setPlayer NOTIFY playerChanged FINAL)
 	Q_PROPERTY(qreal playerDistance READ playerDistance WRITE setPlayerDistance NOTIFY playerDistanceChanged FINAL)
+	Q_PROPERTY(TiledWeapon* defaultWeapon READ defaultWeapon CONSTANT FINAL)
 
 public:
 	explicit IsometricEnemy(const EnemyType &type, QQuickItem *parent = nullptr);
@@ -128,6 +130,8 @@ public:
 	static IsometricEnemy* createEnemy(const EnemyType &type, TiledGame *game, TiledScene *scene) {
 		return createEnemy(type, QStringLiteral(""), game, scene);
 	}
+
+	TiledWeapon *defaultWeapon() const { return m_defaultWeapon.get(); }
 
 	void initialize();
 
@@ -150,11 +154,13 @@ protected:
 	void onAlive() override;
 	void onDead() override;
 
-	void attackedByPlayer(IsometricPlayer *player) override;
+	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
 	void startInabililty();
 
 	virtual void onPlayerReached(IsometricPlayer *player) = 0;
 	virtual void onPlayerLeft(IsometricPlayer *player) = 0;
+
+	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
 
 	void stepMotor();
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);

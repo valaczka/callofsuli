@@ -47,9 +47,11 @@ public:
 
 	Q_INVOKABLE bool load();
 
-	void playerAttackEnemy(TiledObject *player, TiledObject *enemy) override final;
-	void enemyAttackPlayer(TiledObject *enemy, TiledObject *player) override final;
-
+	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
+	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;
+	bool canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
+	bool canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
+	bool canTransport(RpgPlayer *player, TiledTransport *transport);
 
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);

@@ -583,6 +583,9 @@ void TiledObject::jumpToSprite(const char *sprite, const Direction &direction) c
 		return;
 	}
 
+	/*if (m_spriteHandler->currentSprite() != sprite || m_spriteHandler->currentDirection() != direction)
+		LOG_CTRACE("scene") << "[SPRITE]" << this << sprite << direction;*/
+
 	m_spriteHandler->jumpToSprite(sprite, direction, TiledSpriteHandler::JumpImmediate);
 }
 

@@ -263,7 +263,10 @@ SOURCES += \
 	offsetmodel.cpp \
 	qrimage.cpp \
 	question.cpp \
+	rpgarrow.cpp \
+	rpglongsword.cpp \
 	rpgplayer.cpp \
+	rpgshortbow.cpp \
 	scorelist.cpp \
 	server.cpp \
 	sound.cpp \
@@ -279,6 +282,7 @@ SOURCES += \
 	testgame.cpp \
 	tiledfixpositionmotor.cpp \
 	tiledgame.cpp \
+	tiledgamesfx.cpp \
 	tiledobject.cpp \
 	tiledpathmotor.cpp \
 	tiledreturnpathmotor.cpp \
@@ -286,6 +290,7 @@ SOURCES += \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
 	tiledtransport.cpp \
+	tiledweapon.cpp \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
@@ -362,7 +367,10 @@ HEADERS += \
 	offsetmodel.h \
 	qrimage.h \
 	question.h \
+	rpgarrow.h \
+	rpglongsword.h \
 	rpgplayer.h \
+	rpgshortbow.h \
 	scorelist.h \
 	server.h \
 	sound.h \
@@ -377,6 +385,7 @@ HEADERS += \
 	testgame.h \
 	tiledfixpositionmotor.h \
 	tiledgame.h \
+	tiledgamesfx.h \
 	tiledobject.h \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
@@ -385,6 +394,7 @@ HEADERS += \
 	tiledscene.h \
 	tiledspritehandler.h \
 	tiledtransport.h \
+	tiledweapon.h \
 	updater.h \
 	user.h \
 	userimporter.h \

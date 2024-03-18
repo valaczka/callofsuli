@@ -77,6 +77,7 @@ public:
 
 public:
 	virtual void hurt() = 0;
+	virtual void healed() = 0;
 	virtual void hpChanged() = 0;
 	virtual void maxHpChanged() = 0;
 
@@ -159,6 +160,7 @@ public:
 
 signals:
 	void hurt() override final;
+	void healed() override final;
 	void hpChanged() override final;
 	void maxHpChanged() override final;
 

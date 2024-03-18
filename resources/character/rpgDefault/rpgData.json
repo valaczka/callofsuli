@@ -1,6 +1,8 @@
 {		
 "layers": {
-	"base": "character.png"
+	"base": "character.png",
+	"longsword": "longsword.png",
+	"shortbow": "greatbow.png"
 },
 
 "sprites": [

@@ -25,7 +25,6 @@
  */
 
 #include "tiledrpggame.h"
-#include "tiledspritehandler.h"
 
 TiledRpgGame::TiledRpgGame(QQuickItem *parent)
 	: TiledGame(parent)
@@ -140,18 +139,23 @@ bool TiledRpgGame::load()
  * @param enemy
  */
 
-void TiledRpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy)
+bool TiledRpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType)
 {
 	Q_ASSERT(player);
 	Q_ASSERT(enemy);
 
 	IsometricEnemy *e = qobject_cast<IsometricEnemy*>(enemy);
-	IsometricPlayer *p = qobject_cast<IsometricPlayer*>(player);
+	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
 
 	if (!e || !p)
-		return;
+		return false;
 
-	e->attackedByPlayer(p);
+	if (!canAttack(p, e, weaponType))
+		return false;
+
+	e->attackedByPlayer(p, weaponType);
+
+	return true;
 }
 
 
@@ -162,7 +166,7 @@ void TiledRpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy)
  * @param player
  */
 
-void TiledRpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player)
+bool TiledRpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType)
 {
 	Q_ASSERT(player);
 	Q_ASSERT(enemy);
@@ -171,9 +175,68 @@ void TiledRpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player)
 	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
 
 	if (!e || !p)
-		return;
+		return false;
 
-	p->attackedByEnemy(e);
+	if (!canAttack(e, p, weaponType))
+		return false;
+
+	p->attackedByEnemy(e, weaponType);
+
+	return true;
+}
+
+
+
+/**
+ * @brief TiledRpgGame::canAttack
+ * @param player
+ * @param enemy
+ * @return
+ */
+
+bool TiledRpgGame::canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
+{
+	if (!player || !enemy)
+		return false;
+
+	return true;
+}
+
+
+
+
+
+/**
+ * @brief TiledRpgGame::canAttack
+ * @param enemy
+ * @param player
+ * @return
+ */
+
+bool TiledRpgGame::canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType)
+{
+	if (!player || !enemy)
+		return false;
+
+
+	return true;
+}
+
+
+/**
+ * @brief TiledRpgGame::canTransport
+ * @param player
+ * @param transport
+ * @return
+ */
+
+bool TiledRpgGame::canTransport(RpgPlayer *player, TiledTransport *transport)
+{
+	if (!player || !transport)
+		return false;
+
+
+	return true;
 }
 
 
@@ -255,14 +318,20 @@ void TiledRpgGame::keyPressEvent(QKeyEvent *event)
 				transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
 			break;
 
-		case Qt::Key_Q:
-			if (m_controlledPlayer)
-				m_controlledPlayer->shot();
-			break;
-
 		case Qt::Key_Space:
 			if (m_controlledPlayer)
-				m_controlledPlayer->hit();
+				m_controlledPlayer->attackCurrentWeapon();
+			break;
+
+		case Qt::Key_Q:
+			if (m_controlledPlayer)
+				m_controlledPlayer->nextWeapon();
+			break;
+
+
+		case Qt::Key_H:
+			if (m_controlledPlayer)
+				m_controlledPlayer->setHp(m_controlledPlayer->hp()+3);
 			break;
 
 

@@ -811,13 +811,13 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
  * @param source
  */
 
-void TiledGame::playSfx(const QString &source, TiledScene *scene)
+void TiledGame::playSfx(const QString &source, TiledScene *scene, const float &baseVolume) const
 {
 	if (!scene || !m_currentScene || m_currentScene != scene)
 		return;
 
 	const qreal &scale = m_currentScene->scale();
-	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale) : 1.0;
+	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
 
 	Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel, factor);
 }
@@ -829,7 +829,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene)
  * @param position
  */
 
-void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF &position)
+void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume) const
 {
 	if (!scene || !m_currentScene || m_currentScene != scene)
 		return;
@@ -846,7 +846,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
 
 	const QRectF &rect = m_currentScene->visibleArea();
 	const qreal &scale = m_currentScene->scale();
-	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale) : 1.0;
+	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
 
 	for (const auto &[margin, volume] : distanceMap) {
 		if (rect.marginsAdded(QMarginsF{margin, margin, margin, margin}).contains(position)) {

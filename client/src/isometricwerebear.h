@@ -28,8 +28,13 @@
 #define ISOMETRICWEREBEAR_H
 
 #include "isometricenemy.h"
-#include "qtimer.h"
+#include "tiledgamesfx.h"
 #include <QQmlEngine>
+
+
+/**
+ * @brief The IsometricWerebear class
+ */
 
 class IsometricWerebear : public IsometricEnemy
 {
@@ -68,12 +73,35 @@ protected:
 	void onPlayerReached(IsometricPlayer */*player*/) override final {}
 	void onPlayerLeft(IsometricPlayer */*player*/) override final {}
 
+	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
+
 private:
-	void onFootSoundTimerTimeout();
+	void onCurrentSpriteChanged();
 
 	WerebearType m_werebearType = WerebearDefault;
-	QTimer m_footSoundTimer;
-	int m_pNum = 7;
+
+	TiledGameSfx m_sfxFootStep;
 };
+
+
+
+
+/**
+ * @brief The IsometricWerebearWeaponHand class
+ */
+
+class IsometricWerebearWeaponHand : public TiledWeaponHand
+{
+	Q_OBJECT
+
+public:
+	IsometricWerebearWeaponHand(QObject *parent = nullptr) : TiledWeaponHand(parent)
+	{}
+
+protected:
+	void eventAttack() override final;
+
+};
+
 
 #endif // ISOMETRICWEREBEAR_H

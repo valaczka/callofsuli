@@ -28,6 +28,8 @@
 #define RPGPLAYER_H
 
 #include "isometricplayer.h"
+#include "rpgshortbow.h"
+#include "tiledgamesfx.h"
 #include <QQmlEngine>
 
 class TiledRpgGame;
@@ -43,6 +45,8 @@ class RpgPlayer : public IsometricPlayer
 	QML_ELEMENT
 
 	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged FINAL)
+	Q_PROPERTY(TiledWeaponList* weaponList READ weaponList CONSTANT FINAL)
+	Q_PROPERTY(TiledWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
 
 public:
 	explicit RpgPlayer(QQuickItem *parent = nullptr);
@@ -53,33 +57,55 @@ public:
 	static void reloadAvailableCharacters();
 	static const QStringList &availableCharacters() { return m_availableCharacters; }
 
+	Q_INVOKABLE void attack(TiledWeapon *weapon);
+	Q_INVOKABLE void attackCurrentWeapon() { attack(m_currentWeapon); }
+
+	Q_INVOKABLE void nextWeapon();
+
 	QString character() const;
 	void setCharacter(const QString &newCharacter);
 
+	TiledWeaponList *weaponList() const;
+
+	TiledWeapon *weaponAdd(TiledWeapon *weapon);
+	void weaponRemove(TiledWeapon *weapon);
+
+	TiledWeapon *currentWeapon() const;
+	void setCurrentWeapon(TiledWeapon *newCurrentWeapon);
+
 signals:
 	void characterChanged();
+	void currentWeaponChanged();
 
 protected:
 	void load() override final;
 	void updateSprite() override final;
 
-	void onAlive() override final;
-	void onDead() override final;
-
-	void attackedByEnemy(IsometricEnemy */*enemy*/) override final;
+	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType) override final;
 	void onEnemyReached(IsometricEnemy */*enemy*/) override final {}
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
 	void onTransportReached(TiledTransport */*transport*/) override final {}
 	void onTransportLeft(TiledTransport */*transport*/) override final {}
 
 private:
-	void playHealEffect();
+	void loadDefaultWeapons();
+	void updateLayers();
+	void onCurrentSpriteChanged();
+	void playAliveEffect();
+	void playHurtEffect();
+	void playHealedEffect();
+	void playDeadEffect();
+	void playAttackEffect(TiledWeapon *weapon);
 
 private:
 	static QStringList m_availableCharacters;
 	QString m_character;
 
-	int m_pNum = 1;
+	TiledGameSfx m_sfxPain;
+	TiledGameSfx m_sfxFootStep;
+
+	std::unique_ptr<TiledWeaponList> m_weaponList;
+	TiledWeapon *m_currentWeapon = nullptr;
 
 	friend class TiledRpgGame;
 };

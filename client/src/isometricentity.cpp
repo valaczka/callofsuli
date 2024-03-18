@@ -234,6 +234,8 @@ void IsometricEntityIface::setHp(int newHp)
 		return;
 
 	const bool isHurt = (newHp < m_hp);
+	const bool isHealed = (newHp > m_hp);
+	const bool resurrected = (m_hp <= 0 && newHp > 0);
 
 	m_hp = newHp;
 	emit hpChanged();
@@ -242,6 +244,11 @@ void IsometricEntityIface::setHp(int newHp)
 		onDead();
 	else if (isHurt)
 		emit hurt();
+	else if (resurrected)
+		onAlive();
+	else if (isHealed)
+		emit healed();
+
 }
 
 

@@ -82,7 +82,7 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 		return node;
 
 
-	for (const QString &layer : m_visibleLayers) {
+	for (const QString &layer : std::as_const(m_visibleLayers)) {
 		for (const auto &it : std::as_const(list)) {
 			if (it->layer != layer)
 				continue;
@@ -207,6 +207,7 @@ bool TiledSpriteHandler::jumpToSprite(const QString &name,
 	}
 
 	if (mode == JumpImmediate) {
+		m_jumpToSprite = Sprite{};
 		changeSprite(name, direction);
 	} else {
 		m_jumpToSprite = *(ptr.value());

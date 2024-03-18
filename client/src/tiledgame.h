@@ -30,6 +30,7 @@
 #include "qsgtexture.h"
 #include "tiledscene.h"
 #include "tiledtransport.h"
+#include "tiledweapon.h"
 #include <QQuickItem>
 #include <QSerializer>
 #include <unordered_map>
@@ -143,12 +144,12 @@ public:
 
 	Q_INVOKABLE bool transport(TiledObject *object, TiledTransport *transport);
 
-	virtual void playerAttackEnemy(TiledObject *player, TiledObject *enemy) = 0;
-	virtual void enemyAttackPlayer(TiledObject *enemy, TiledObject *player) = 0;
+	virtual bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
+	virtual bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) = 0;
 
 
-	void playSfx(const QString &source, TiledScene *scene);
-	void playSfx(const QString &source, TiledScene *scene, const QPointF &position);
+	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
+	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
 
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);

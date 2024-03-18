@@ -55,3 +55,7 @@
 - Voiceover Pack: Fighter by Kenney Vleugels - Kenney.nl (https://www.kenney.nl)
 - Won! by spuispuin (https://opengameart.org/content/won-orchestral-winning-jingle)
 - TheRandomSoundByte2637 - (https://freesound.org/people/TheRandomSoundByte2637)
+
+
+- Metal Interactions - (c) qubodup (https://opengameart.org/content/metal-interactions)
+- Punches, hits, swords and squishes - (c) tarfmagougou 2015 (https://opengameart.org/content/punches-hits-swords-and-squishes)

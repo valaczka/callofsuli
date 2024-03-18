@@ -25,10 +25,8 @@
  */
 
 #include "isometricplayer.h"
-#include "isometricbullet.h"
 #include "isometricenemy.h"
 #include "tiledscene.h"
-#include "tiledspritehandler.h"
 #include "tiledgame.h"
 #include "application.h"
 
@@ -95,27 +93,6 @@ IsometricPlayer::~IsometricPlayer()
 }
 
 
-/**
- * @brief IsometricPlayer::createPlayer
- * @param parent
- * @return
- */
-
-/*IsometricPlayer *IsometricPlayer::createPlayer(TiledGame *game, TiledScene *scene)
-{
-	IsometricPlayer *player = nullptr;
-	TiledObjectBase::createFromCircle<IsometricPlayer>(&player, QPointF{}, 50, nullptr, game);
-
-	if (player) {
-		player->setParent(game);
-		player->setGame(game);
-		player->setScene(scene);
-		player->load();
-	}
-
-	return player;
-}*/
-
 
 /**
  * @brief IsometricPlayer::entityWorldStep
@@ -134,7 +111,7 @@ void IsometricPlayer::entityWorldStep()
 	if (e != d->m_enemy) {
 		if (d->m_enemy)
 			d->m_enemy->setGlowEnabled(false);
-		d->m_enemy = e;
+		setEnemy(e);
 		if (d->m_enemy) {
 			d->m_enemy->setGlowColor(Qt::red);
 			d->m_enemy->setGlowEnabled(true);
@@ -147,43 +124,6 @@ void IsometricPlayer::entityWorldStep()
 }
 
 
-
-
-/**
- * @brief IsometricPlayer::hit
- */
-
-void IsometricPlayer::hit()
-{
-	jumpToSprite("swing", m_currentDirection);
-
-	LOG_CTRACE("scene") << "SWORD" << d->m_enemy;
-
-	if (d->m_enemy)
-		m_game->playerAttackEnemy(this, d->m_enemy);
-}
-
-
-
-/**
- * @brief IsometricPlayer::shot
- */
-
-void IsometricPlayer::shot()
-{
-	IsometricBullet *bullet = IsometricBullet::createBullet(m_game, m_scene);
-
-	if (!bullet) {
-		LOG_CERROR("scene") << "Bullet error";
-		return;
-	}
-
-	jumpToSprite("shoot", m_currentDirection);
-
-	m_scene->appendToObjects(bullet);
-
-	bullet->shot(m_body->bodyPosition(), m_currentAngle);
-}
 
 
 
@@ -269,6 +209,7 @@ void IsometricPlayer::setCurrentAngle(qreal newCurrentAngle)
 void IsometricPlayer::onAlive()
 {
 	m_body->setBodyType(Box2DBody::Dynamic);
+	m_body->setActive(true);
 	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
 	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
@@ -482,4 +423,24 @@ void IsometricPlayer::setCurrentTransport(TiledTransport *newCurrentTransport)
 		return;
 	m_currentTransport = newCurrentTransport;
 	emit currentTransportChanged();
+}
+
+
+
+/**
+ * @brief IsometricPlayer::enemy
+ * @return
+ */
+
+IsometricEnemy *IsometricPlayer::enemy() const
+{
+	return d->m_enemy.get();
+}
+
+void IsometricPlayer::setEnemy(IsometricEnemy *newEnemy)
+{
+	if (d->m_enemy == newEnemy)
+		return;
+	d->m_enemy = newEnemy;
+	emit enemyChanged();
 }

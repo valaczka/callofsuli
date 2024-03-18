@@ -64,6 +64,8 @@ public:
 
 	void clear();
 
+	const TiledObject::Direction &currentDirection() const { return m_currentDirection; }
+
 	const QStringList &spriteNames() const;
 	const QStringList &layers() const;
 

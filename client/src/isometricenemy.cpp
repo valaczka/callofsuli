@@ -143,22 +143,16 @@ bool IsometricEnemy::hasAbility() const
  * @param player
  */
 
-void IsometricEnemy::attackedByPlayer(IsometricPlayer *player)
+void IsometricEnemy::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &/*weaponType*/)
 {
+	if (!isAlive())
+		return;
+
 	if (!m_contactedPlayers.contains(player))
 		m_contactedPlayers.append(player);
 
 	setPlayer(player);
 	rotateToPlayer(player);
-
-	setHp(m_hp-1);
-
-	if (m_hp <= 0) {
-		jumpToSprite("die", m_currentDirection);
-	} else {
-		jumpToSprite("hurt", m_currentDirection);
-		startInabililty();
-	}
 }
 
 
@@ -170,6 +164,29 @@ void IsometricEnemy::startInabililty()
 {
 	if (m_metric.inabilityTime > 0)
 		m_inabilityTimer.setRemainingTime(m_metric.inabilityTime);
+}
+
+
+
+/**
+ * @brief IsometricEnemy::attackPlayer
+ * @param player
+ */
+
+void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
+{
+	if (!weapon || !player)
+		return;
+
+	if (weapon->canHit()) {
+		LOG_CTRACE("game") << "Enemy hit player:" << this << player << weapon;
+		//m_game->enemyAttackPlayer(this, player, weapon->weaponType());
+		weapon->hit(player);
+		jumpToSprite(m_autoAttackSprite);			///TODO
+	} else if (weapon->canShot()) {
+		LOG_CTRACE("game") << "Enemy shot player:" << this << player << weapon;
+		weapon->shot(IsometricBullet::TargetPlayer, m_body->bodyPosition(), angleToPoint(player->body()->bodyPosition()));
+	}
 }
 
 
@@ -300,7 +317,10 @@ void IsometricEnemy::entityWorldStep()
 
 bool IsometricEnemy::enemyWorldStep()
 {
-	if (m_metric.autoHitTime <= 0 || !m_autoAttackSprite)
+	if (!isAlive())
+		return true;
+
+	if (m_metric.autoAttackTime <= 0 || !m_autoAttackSprite)
 		return true;
 
 	if (m_player && m_reachedPlayers.contains(m_player) && m_player->isAlive()) {
@@ -310,10 +330,8 @@ bool IsometricEnemy::enemyWorldStep()
 			return false;
 
 		if (m_autoHitTimer.hasExpired() || m_autoHitTimer.isForever()) {
-			LOG_CWARNING("scene") << "HIT" << m_autoAttackSprite;
-			m_game->enemyAttackPlayer(this, m_player);
-			jumpToSprite(m_autoAttackSprite);
-			m_autoHitTimer.setRemainingTime(m_metric.autoHitTime);
+			attackPlayer(m_player, m_defaultWeapon.get());
+			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);
 		}
 
 		return false;
@@ -347,6 +365,7 @@ void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
 void IsometricEnemy::onAlive()
 {
 	m_body->setBodyType(Box2DBody::Dynamic);
+	m_body->setActive(true);
 	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
 	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
