@@ -53,6 +53,8 @@ public:
 	QS_SERIALIZABLE
 	QS_FIELD(int, id)
 	QS_FIELD(QString, file)
+	QS_FIELD(QString, ambient)
+	QS_FIELD(QString, music)
 };
 
 
@@ -95,6 +97,8 @@ class TiledGame : public QQuickItem
 	Q_PROPERTY(TiledObject *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
 	Q_PROPERTY(JoystickState joystickState READ joystickState WRITE setJoystickState NOTIFY joystickStateChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
+	Q_PROPERTY(QQuickItem *messageList READ messageList WRITE setMessageList NOTIFY messageListChanged FINAL)
+	Q_PROPERTY(QColor defaultMessageColor READ defaultMessageColor WRITE setDefaultMessageColor NOTIFY defaultMessageColorChanged FINAL)
 
 public:
 	explicit TiledGame(QQuickItem *parent = nullptr);
@@ -146,10 +150,19 @@ public:
 
 	virtual bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
 	virtual bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) = 0;
+	virtual bool playerPickPickable(TiledObject *player, TiledObject *pickable) = 0;
+
+	virtual void onPlayerDead(TiledObject *player) = 0;
+	virtual void onEnemyDead(TiledObject *enemy) = 0;
+
 
 
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
+
+
+	Q_INVOKABLE void messageColor(const QString &text, const QColor &color);
+	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
 
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);
@@ -166,6 +179,12 @@ public:
 	GameMode gameMode() const;
 	void setGameMode(const GameMode &newGameMode);
 
+	QQuickItem *messageList() const;
+	void setMessageList(QQuickItem *newMessageList);
+
+	QColor defaultMessageColor() const;
+	void setDefaultMessageColor(const QColor &newDefaultMessageColor);
+
 signals:
 	void gameLoaded();
 	void gameLoadFailed();
@@ -175,9 +194,11 @@ signals:
 	void joystickStateChanged();
 	void debugViewChanged();
 	void gameModeChanged();
+	void messageListChanged();
+	void defaultMessageColorChanged();
 
 protected:
-	bool loadScene(const int sceneId, const QString &file);
+	bool loadScene(const TiledSceneDefinition &def);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 	TiledObjectBase *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -217,7 +238,7 @@ protected:
 
 	GameMode m_gameMode = SinglePlayer;
 	QVector<Scene> m_sceneList;
-	QVector<TiledObjectBase::Object> m_loadedObjectList;
+	QVector<TiledObjectBase::ObjectId> m_loadedObjectList;
 	QVector<PlayerPosition> m_playerPositionList;
 	TiledTransportList m_transportList;
 
@@ -242,6 +263,8 @@ private:
 	JoystickState m_joystickState;
 	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 	bool m_debugView = false;
+	QQuickItem *m_messageList = nullptr;
+	QColor m_defaultMessageColor = Qt::white;
 };
 
 Q_DECLARE_METATYPE(TiledGame::JoystickState)

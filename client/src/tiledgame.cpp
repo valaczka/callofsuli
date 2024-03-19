@@ -51,6 +51,7 @@ TiledGame::TiledGame(QQuickItem *parent)
 TiledGame::~TiledGame()
 {
 	for (const auto &s : m_sceneList) {
+		s.scene->stopMusic();
 		s.scene->world()->setRunning(false);
 		if (s.scene->game() == this)
 			s.scene->setGame(nullptr);
@@ -60,6 +61,7 @@ TiledGame::~TiledGame()
 	m_sceneList.clear();
 	m_loadedObjectList.clear();
 	m_playerPositionList.clear();
+
 	LOG_CTRACE("scene") << "TiledGame destroy" << this;
 }
 
@@ -78,7 +80,7 @@ bool TiledGame::load(const TiledGameDefinition &def)
 	LOG_CTRACE("game") << "Load game";
 
 	for (const TiledSceneDefinition &s : def.scenes) {
-		if (loadScene(s.id, s.file))
+		if (loadScene(s))
 			LOG_CINFO("game") << "Scene loaded:" << s.id << qPrintable(s.file);
 		else {
 			emit gameLoadFailed();
@@ -199,8 +201,15 @@ void TiledGame::setCurrentScene(TiledScene *newCurrentScene)
 {
 	if (m_currentScene == newCurrentScene)
 		return;
+
+	if (m_currentScene)
+		m_currentScene->stopMusic();
+
 	m_currentScene = newCurrentScene;
 	emit currentSceneChanged();
+
+	if (m_currentScene)
+		m_currentScene->startMusic();
 }
 
 
@@ -211,11 +220,11 @@ void TiledGame::setCurrentScene(TiledScene *newCurrentScene)
  * @return
  */
 
-bool TiledGame::loadScene(const int sceneId, const QString &file)
+bool TiledGame::loadScene(const TiledSceneDefinition &def)
 {
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledFlickableScene.qml"), this);
 
-	LOG_CDEBUG("game") << "Create scene flickable item:" << sceneId;
+	LOG_CDEBUG("game") << "Create scene flickable item:" << def.id;
 
 	Scene item;
 
@@ -229,16 +238,19 @@ bool TiledGame::loadScene(const int sceneId, const QString &file)
 	item.scene = qvariant_cast<TiledScene*>(item.container->property("scene"));
 	Q_ASSERT(item.scene);
 
-	item.scene->setSceneId(sceneId);
+	item.scene->setSceneId(def.id);
 	item.scene->setGame(this);
 	item.container->setParentItem(this);
 	item.container->setParent(this);
 
-	if (!item.scene->load(QUrl(file))) {
-		LOG_CERROR("game") << "Scene load error" << file;
+	if (!item.scene->load(QUrl(def.file))) {
+		LOG_CERROR("game") << "Scene load error" << def.file;
 		item.container->deleteLater();
 		return false;
 	}
+
+	item.scene->setAmbientSound(def.ambient);
+	item.scene->setBackgroundMusic(def.music);
 
 	m_sceneList.append(std::move(item));
 
@@ -628,6 +640,32 @@ void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
 							  );
 }
 
+QColor TiledGame::defaultMessageColor() const
+{
+	return m_defaultMessageColor;
+}
+
+void TiledGame::setDefaultMessageColor(const QColor &newDefaultMessageColor)
+{
+	if (m_defaultMessageColor == newDefaultMessageColor)
+		return;
+	m_defaultMessageColor = newDefaultMessageColor;
+	emit defaultMessageColorChanged();
+}
+
+QQuickItem *TiledGame::messageList() const
+{
+	return m_messageList;
+}
+
+void TiledGame::setMessageList(QQuickItem *newMessageList)
+{
+	if (m_messageList == newMessageList)
+		return;
+	m_messageList = newMessageList;
+	emit messageListChanged();
+}
+
 
 
 
@@ -641,7 +679,7 @@ void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
 int TiledGame::findLoadedObject(const int &id, const int &sceneId) const
 {
 	auto it = std::find_if(m_loadedObjectList.cbegin(), m_loadedObjectList.cend(),
-						   [&id, &sceneId](const TiledObjectBase::Object &o){
+						   [&id, &sceneId](const TiledObjectBase::ObjectId &o){
 		return o.sceneId == sceneId && o.id == id;
 	});
 
@@ -664,14 +702,14 @@ int TiledGame::findLoadedObject(const int &id, const int &sceneId) const
 bool TiledGame::addLoadedObject(const int &id, const int &sceneId)
 {
 	auto it = std::find_if(m_loadedObjectList.cbegin(), m_loadedObjectList.cend(),
-						   [&id, &sceneId](const TiledObjectBase::Object &o){
+						   [&id, &sceneId](const TiledObjectBase::ObjectId &o){
 		return o.sceneId == sceneId && o.id == id;
 	});
 
 	if (it != m_loadedObjectList.cend())
 		return false;
 
-	m_loadedObjectList.append(TiledObjectBase::Object{ id, sceneId });
+	m_loadedObjectList.append(TiledObjectBase::ObjectId{ id, sceneId });
 
 	return true;
 }
@@ -855,6 +893,28 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
 		}
 	}
 
+}
+
+
+
+/**
+ * @brief TiledGame::messageColor
+ * @param text
+ * @param color
+ */
+
+void TiledGame::messageColor(const QString &text, const QColor &color)
+{
+	if (!m_messageList) {
+		LOG_CINFO("game") << text;
+		return;
+	}
+
+	LOG_CDEBUG("game") << text;
+
+	QMetaObject::invokeMethod(m_messageList, "message", Qt::DirectConnection,
+							  Q_ARG(QVariant, text),
+							  Q_ARG(QVariant, color.name()));
 }
 
 

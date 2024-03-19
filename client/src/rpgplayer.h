@@ -28,6 +28,7 @@
 #define RPGPLAYER_H
 
 #include "isometricplayer.h"
+#include "rpgpickableobject.h"
 #include "rpgshortbow.h"
 #include "tiledgamesfx.h"
 #include <QQmlEngine>
@@ -62,10 +63,14 @@ public:
 
 	Q_INVOKABLE void nextWeapon();
 
+	Q_INVOKABLE void pick(RpgPickableObject *object);
+	Q_INVOKABLE void pickCurrentObject() { pick(qobject_cast<RpgPickableObject*>(currentPickable())); }
+
 	QString character() const;
 	void setCharacter(const QString &newCharacter);
 
 	TiledWeaponList *weaponList() const;
+	TiledWeapon *weaponFind(const TiledWeapon::WeaponType &type) const;
 
 	TiledWeapon *weaponAdd(TiledWeapon *weapon);
 	void weaponRemove(TiledWeapon *weapon);
@@ -81,6 +86,7 @@ protected:
 	void load() override final;
 	void updateSprite() override final;
 
+	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
 	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType) override final;
 	void onEnemyReached(IsometricEnemy */*enemy*/) override final {}
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}

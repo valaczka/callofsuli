@@ -92,7 +92,7 @@ void RpgShortbow::eventAttack()
 		return;
 
 	if (TiledGame *g = p->game()) {
-		g->playSfx(QStringLiteral(":/character/rpgShortbow/swish_2.wav"), p->scene(), p->body()->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/shortbow/swish_2.wav"), p->scene(), p->body()->bodyPosition());
 	}
 }
 

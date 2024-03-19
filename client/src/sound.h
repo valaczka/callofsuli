@@ -62,7 +62,7 @@ class Sound : public QObject
 	Q_PROPERTY(bool musicEnabled READ musicEnabled WRITE setMusicEnabled NOTIFY musicEnabledChanged)
 
 public:
-	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel };
+	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel, Music2Channel };
 	Q_ENUM(ChannelType)
 
 	explicit Sound(QObject *parent = nullptr);
@@ -71,8 +71,10 @@ public:
 	Q_INVOKABLE void playSound(const QString &source, const Sound::ChannelType &channel, const float &volume = 1.0);
 	Q_INVOKABLE void stopSound(const QString &source, const Sound::ChannelType &channel);
 	Q_INVOKABLE void stopMusic();
+	Q_INVOKABLE void stopMusic2();
 
 	Q_INVOKABLE bool isPlayingMusic() const;
+	Q_INVOKABLE bool isPlayingMusic2() const;
 
 	int volumeSfx() const;
 	void setVolumeSfx(int newVolumeSfx);
@@ -146,6 +148,7 @@ private:
 
 	void playSound(MaSound *sound, const float &volume);
 	QVector<MaSound *> currentMusic() const;
+	QVector<MaSound *> currentMusic2() const;
 	void updateVolumes();
 	void garbage();
 	void playNextVoiceOver();

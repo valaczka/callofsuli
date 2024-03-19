@@ -248,7 +248,6 @@ SOURCES += \
 	isometricentity.cpp \
 	isometricobject.cpp \
 	isometricplayer.cpp \
-	isometricwerebear.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -265,8 +264,11 @@ SOURCES += \
 	question.cpp \
 	rpgarrow.cpp \
 	rpglongsword.cpp \
+	rpgpickableobject.cpp \
 	rpgplayer.cpp \
+	rpgshield.cpp \
 	rpgshortbow.cpp \
+	rpgwerebear.cpp \
 	scorelist.cpp \
 	server.cpp \
 	sound.cpp \
@@ -353,7 +355,6 @@ HEADERS += \
 	isometricobject.h \
 	isometricobjectiface.h \
 	isometricplayer.h \
-	isometricwerebear.h \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \
@@ -368,9 +369,13 @@ HEADERS += \
 	qrimage.h \
 	question.h \
 	rpgarrow.h \
+	rpgenemyiface.h \
 	rpglongsword.h \
+	rpgpickableobject.h \
 	rpgplayer.h \
+	rpgshield.h \
 	rpgshortbow.h \
+	rpgwerebear.h \
 	scorelist.h \
 	server.h \
 	sound.h \
@@ -389,6 +394,7 @@ HEADERS += \
 	tiledobject.h \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
+	tiledpickableiface.h \
 	tiledreturnpathmotor.h \
 	tiledrpggame.h \
 	tiledscene.h \

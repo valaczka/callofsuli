@@ -211,7 +211,6 @@ Flickable {
 	onHeightChanged: setYOffset()
 
 
-
 	function setXOffset() {
 		if (!_scene.game || !_scene.game.followedItem || _scene.game.followedItem.scene != _scene)
 			return

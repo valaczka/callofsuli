@@ -283,8 +283,7 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
 	TiledTransport *base = this->find(name);
 
 	if (!base) {
-		std::unique_ptr<TiledTransport> base(new TiledTransport(type, name, scene, object));
-		this->push_back(std::move(base));
+		this->emplace_back(new TiledTransport(type, name, scene, object));
 		return true;
 	} else {
 		return base->addObject(scene, object);

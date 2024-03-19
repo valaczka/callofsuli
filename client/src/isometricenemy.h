@@ -41,13 +41,7 @@
 class IsometricEnemyIface
 {
 public:
-	enum EnemyType {
-		EnemyInvalid = 0,
-		EnemyWerebear
-	};
-
-	IsometricEnemyIface(const EnemyType &type)
-		: m_enemyType(type)
+	IsometricEnemyIface()
 	{}
 
 
@@ -60,15 +54,12 @@ public:
 	IsometricPlayer *player() const;
 	void setPlayer(IsometricPlayer *newPlayer);
 
-	const EnemyType &enemyType() const { return m_enemyType; }
-
-	static QStringList availableTypes() { return m_typeHash.keys(); }
-	static EnemyType typeFromString(const QString &type) { return m_typeHash.value(type, EnemyInvalid); }
 
 	float playerDistance() const;
 	void setPlayerDistance(float newPlayerDistance);
 
 	virtual void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) = 0;
+	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
 
 public:
 	virtual void playerChanged() = 0;
@@ -93,18 +84,13 @@ protected:
 		qreal targetCircleRadius = 0.;
 	};
 
-	const EnemyType m_enemyType;
 	std::unique_ptr<AbstractTiledMotor> m_motor;
 	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;
-	std::unique_ptr<TiledWeapon> m_defaultWeapon;
 	QPointer<IsometricPlayer> m_player;
 	QList<QPointer<IsometricPlayer>> m_contactedPlayers;
 	QList<QPointer<IsometricPlayer>> m_reachedPlayers;
 	EnemyMetric m_metric;
 	float m_playerDistance = -1;
-
-private:
-	static const QHash<QString, EnemyType> m_typeHash;
 };
 
 
@@ -124,19 +110,12 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 	Q_PROPERTY(TiledWeapon* defaultWeapon READ defaultWeapon CONSTANT FINAL)
 
 public:
-	explicit IsometricEnemy(const EnemyType &type, QQuickItem *parent = nullptr);
+	explicit IsometricEnemy(QQuickItem *parent = nullptr);
 
-	static IsometricEnemy* createEnemy(const EnemyType &type, const QString &subtype, TiledGame *game, TiledScene *scene);
-	static IsometricEnemy* createEnemy(const EnemyType &type, TiledGame *game, TiledScene *scene) {
-		return createEnemy(type, QStringLiteral(""), game, scene);
-	}
-
-	TiledWeapon *defaultWeapon() const { return m_defaultWeapon.get(); }
+	virtual TiledWeapon *defaultWeapon() const = 0;
 
 	void initialize();
-
 	bool hasAbility() const;
-
 
 signals:
 	void becameAlive();
@@ -154,13 +133,17 @@ protected:
 	void onAlive() override;
 	void onDead() override;
 
+	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override;
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
 	void startInabililty();
 
-	virtual void onPlayerReached(IsometricPlayer *player) = 0;
-	virtual void onPlayerLeft(IsometricPlayer *player) = 0;
+	virtual void eventPlayerReached(IsometricPlayer *player) = 0;
+	virtual void eventPlayerLeft(IsometricPlayer *player) = 0;
+	virtual void eventPlayerContacted(IsometricPlayer *player) { Q_UNUSED(player); }
+	virtual void eventPlayerDiscontacted(IsometricPlayer *player) { Q_UNUSED(player); }
 
 	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
+	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
 
 	void stepMotor();
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
@@ -168,10 +151,7 @@ protected:
 	float32 angleToPoint(const QPointF &point) const;
 	qreal distanceToPoint(const QPointF &point) const;
 
-	const char* m_autoAttackSprite = nullptr;
-
 private:
-	void updateSprite() override;
 	void sensorBeginContact(Box2DFixture *other);
 	void sensorEndContact(Box2DFixture *other);
 	void fixtureBeginContact(Box2DFixture *other);
@@ -180,6 +160,7 @@ private:
 protected:
 	QDeadlineTimer m_inabilityTimer;
 	QDeadlineTimer m_autoHitTimer;
+	std::vector<std::unique_ptr<TiledWeapon>> m_weapons;
 
 	friend class TiledGame;
 	friend class TiledRpgGame;

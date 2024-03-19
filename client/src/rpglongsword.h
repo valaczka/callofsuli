@@ -40,6 +40,7 @@ public:
 
 	bool protect(const WeaponType &weapon) override final;
 	bool canProtect(const WeaponType &weapon) const override final;
+	bool canAttack() const override final { return true; }
 
 protected:
 	IsometricBullet *createBullet() override final { return nullptr; }

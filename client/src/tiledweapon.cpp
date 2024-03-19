@@ -32,7 +32,7 @@ TiledWeapon::TiledWeapon(const WeaponType &type, QObject *parent)
 	: QObject(parent)
 	, m_weaponType(type)
 {
-
+	m_timerRepeater.setRemainingTime(-1);
 }
 
 TiledWeapon::WeaponType TiledWeapon::weaponType() const
@@ -54,6 +54,9 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_bulletCount == 0)
 		return false;
 
+	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+		return false;
+
 	IsometricBullet *bullet = createBullet();
 
 	if (!bullet) {
@@ -66,6 +69,9 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	bullet->setFromWeapon(this);
 	bullet->setTargets(targets);
 	bullet->shot(from, direction);
+
+	if (m_repeaterIdle > 0)
+		m_timerRepeater.setRemainingTime(m_repeaterIdle);
 
 	eventAttack();
 
@@ -86,6 +92,9 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_bulletCount == 0)
 		return false;
 
+	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+		return false;
+
 	IsometricBullet *bullet = createBullet();
 
 	if (!bullet) {
@@ -99,6 +108,9 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	bullet->setTargets(targets);
 	bullet->shot(from, angle);
 
+	if (m_repeaterIdle > 0)
+		m_timerRepeater.setRemainingTime(m_repeaterIdle);
+
 	eventAttack();
 
 	return true;
@@ -111,8 +123,11 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
  * @param target
  */
 
-void TiledWeapon::hit(TiledObject *target)
+bool TiledWeapon::hit(TiledObject *target)
 {
+	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+		return false;
+
 	if (target && m_parentObject) {
 		IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(m_parentObject);
 		IsometricPlayer *player = qobject_cast<IsometricPlayer*>(m_parentObject);
@@ -126,7 +141,12 @@ void TiledWeapon::hit(TiledObject *target)
 		/// TODO: player attacks player ?
 	}
 
+	if (m_repeaterIdle > 0)
+		m_timerRepeater.setRemainingTime(m_repeaterIdle);
+
 	eventAttack();
+
+	return true;
 }
 
 
@@ -174,6 +194,26 @@ void TiledWeapon::setIcon(const QString &newIcon)
 		return;
 	m_icon = newIcon;
 	emit iconChanged();
+}
+
+
+
+/**
+ * @brief TiledWeapon::repeaterIdle
+ * @return
+ */
+
+qint64 TiledWeapon::repeaterIdle() const
+{
+	return m_repeaterIdle;
+}
+
+void TiledWeapon::setRepeaterIdle(qint64 newRepeaterIdle)
+{
+	if (m_repeaterIdle == newRepeaterIdle)
+		return;
+	m_repeaterIdle = newRepeaterIdle;
+	emit repeaterIdleChanged();
 }
 
 

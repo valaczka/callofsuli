@@ -27,6 +27,7 @@
 #ifndef TILEDWEAPON_H
 #define TILEDWEAPON_H
 
+#include "qdeadlinetimer.h"
 #include "tiledobject.h"
 #include "isometricbullet.h"
 #include <QObject>
@@ -59,11 +60,13 @@ class TiledWeapon : public QObject
 	Q_PROPERTY(bool canShot READ canShot NOTIFY canShotChanged FINAL)
 	Q_PROPERTY(bool canHit READ canHit WRITE setCanHit NOTIFY canHitChanged FINAL)
 	Q_PROPERTY(QString icon READ icon WRITE setIcon NOTIFY iconChanged FINAL)
+	Q_PROPERTY(qint64 repeaterIdle READ repeaterIdle WRITE setRepeaterIdle NOTIFY repeaterIdleChanged FINAL)
 
 public:
 	enum WeaponType {
 		WeaponInvalid = 0,
 		WeaponHand,
+		WeaponGreatHand,
 		WeaponSword,
 		WeaponShortbow,
 		WeaponShield
@@ -83,8 +86,9 @@ public:
 
 	virtual bool protect(const WeaponType &weapon) = 0;
 	virtual bool canProtect(const WeaponType &weapon) const = 0;
+	virtual bool canAttack() const = 0;
 
-	void hit(TiledObject *target);
+	bool hit(TiledObject *target);
 
 	bool canHit() const;
 	void setCanHit(bool newCanHit);
@@ -98,25 +102,31 @@ public:
 	QString icon() const;
 	void setIcon(const QString &newIcon);
 
+	qint64 repeaterIdle() const;
+	void setRepeaterIdle(qint64 newRepeaterIdle);
+
 signals:
 	void parentObjectChanged();
 	void bulletCountChanged();
 	void canShotChanged();
 	void canHitChanged();
 	void iconChanged();
+	void repeaterIdleChanged();
 
 protected:
 	virtual IsometricBullet *createBullet() = 0;
 	virtual void eventAttack() {}
+	virtual void eventProtect() {}
 
 	QPointer<TiledObject> m_parentObject;
 	int m_bulletCount = 0;
 	bool m_canHit = false;
 	QString m_icon;
+	qint64 m_repeaterIdle = 125;
 
 private:
 	const WeaponType m_weaponType;
-
+	QDeadlineTimer m_timerRepeater;
 };
 
 
@@ -135,6 +145,7 @@ public:
 
 	bool protect(const WeaponType &) override final { return false; }
 	bool canProtect(const WeaponType &) const override final { return false; }
+	bool canAttack() const override final { return true; }
 
 protected:
 	IsometricBullet *createBullet() override final { return nullptr; }

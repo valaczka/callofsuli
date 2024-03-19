@@ -1,0 +1,26 @@
+{
+"sprites": [
+	{
+		"name": "spring",
+		"x": 0,
+		"y": 0,
+		"count": 6,
+		"width": 64,
+		"height": 128,
+		"duration": 120,
+		"loops": 1
+	},
+	{
+		"name": "default",
+		"x": 320,
+		"y": 0,
+		"count": 1,
+		"width": 64,
+		"height": 128,
+		"duration": 1,
+		"loops": 1
+	}
+]
+}
+
+

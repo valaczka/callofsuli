@@ -107,7 +107,7 @@ void IsometricBullet::initialize()
 {
 	setZ(1);
 	setDefaultZ(1);
-	setSubZ(0.7);
+	setSubZ(0.8);
 
 
 	m_body->setBodyType(Box2DBody::Dynamic);

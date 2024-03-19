@@ -407,8 +407,8 @@ void TiledObjectBase::recalculateTargetCircle()
 		m_targetCircle->setX(-r -p.x());
 		m_targetCircle->setY(-r -p.y());
 	} else {*/
-		m_targetCircle->setX(-r);
-		m_targetCircle->setY(-r);
+	m_targetCircle->setX(-r);
+	m_targetCircle->setY(-r);
 	//}
 }
 
@@ -433,12 +433,12 @@ void TiledObjectBase::setGame(TiledGame *newGame)
 	emit gameChanged();
 }
 
-const TiledObjectBase::Object &TiledObjectBase::objectId() const
+const TiledObjectBase::ObjectId &TiledObjectBase::objectId() const
 {
 	return m_objectId;
 }
 
-void TiledObjectBase::setObjectId(const Object &newObjectId)
+void TiledObjectBase::setObjectId(const ObjectId &newObjectId)
 {
 	m_objectId = newObjectId;
 }
@@ -1081,6 +1081,7 @@ Box2DFixture::CategoryFlag TiledObjectBody::fixtureCategory(const FixtureCategor
 		case FixtureEnemyBody:		return Box2DFixture::Category3;
 		case FixtureTransport:		return Box2DFixture::Category4;
 		case FixtureTarget:		return Box2DFixture::Category5;
+		case FixturePickable:		return Box2DFixture::Category6;
 		case FixtureSensor:		return Box2DFixture::Category16;
 		case FixtureInvalid:		return Box2DFixture::None;
 	}
@@ -1116,15 +1117,15 @@ void TiledObjectBody::synchronize()
 
 	if (mTarget) {
 		//if (TiledObjectBase *object = qobject_cast<TiledObjectBase*>(mTarget)) {
-			b2Vec2 &value = mBodyDef.position;
-			const b2Vec2 &newValue = mBody->GetPosition();
+		b2Vec2 &value = mBodyDef.position;
+		const b2Vec2 &newValue = mBody->GetPosition();
 
-			if (qFuzzyCompare(value.x, newValue.x) && qFuzzyCompare(value.y, newValue.y))
-				return;
-
-			emplace();
-
+		if (qFuzzyCompare(value.x, newValue.x) && qFuzzyCompare(value.y, newValue.y))
 			return;
+
+		emplace();
+
+		return;
 		//}
 	}
 
@@ -1463,11 +1464,16 @@ bool TiledObject::appendSprite(const IsometricObjectLayeredSpriteList &sprite, c
  * @return
  */
 
-bool TiledObject::playAuxSprite(const QString &source, const TiledObjectSprite &sprite)
+bool TiledObject::playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite)
 {
 	Q_ASSERT(m_spriteHandlerAuxFront);
 
 	// ->property("alignToBody")
+
+	if (!m_spriteHandlerAuxFront->currentSprite().isEmpty() && !replaceCurrentSprite)
+		return false;
+
+	m_spriteHandlerAuxFront->clear();
 
 	m_spriteHandlerAuxFront->setClearAtEnd(true);
 	m_spriteHandlerAuxFront->setWidth(sprite.width);

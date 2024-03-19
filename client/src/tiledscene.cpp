@@ -32,6 +32,7 @@
 #include "tiledgame.h"
 #include "tilesetmanager.h"
 #include "isometricobjectiface.h"
+#include "application.h"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
@@ -210,6 +211,36 @@ void TiledScene::setRunning(bool newRunning)
 		return;
 	m_world->setRunning(newRunning);
 	emit runningChanged();
+}
+
+
+
+/**
+ * @brief TiledScene::startMusic
+ */
+
+void TiledScene::startMusic()
+{
+	if (!m_ambientSound.isEmpty())
+		Application::instance()->client()->sound()->playSound(m_ambientSound, Sound::Music2Channel);
+
+	if (!m_backgroundMusic.isEmpty())
+		Application::instance()->client()->sound()->playSound(m_backgroundMusic, Sound::MusicChannel);
+}
+
+
+
+/**
+ * @brief TiledScene::stopMusic
+ */
+
+void TiledScene::stopMusic()
+{
+	if (!m_ambientSound.isEmpty())
+		Application::instance()->client()->sound()->stopSound(m_ambientSound, Sound::Music2Channel);
+
+	if (!m_backgroundMusic.isEmpty())
+		Application::instance()->client()->sound()->stopSound(m_backgroundMusic, Sound::MusicChannel);
 }
 
 
@@ -417,4 +448,30 @@ void TiledScene::refresh()
 	const QRect rect = mRenderer->mapBoundingRect();
 	setWidth(rect.width());
 	setHeight(rect.height());
+}
+
+QString TiledScene::backgroundMusic() const
+{
+	return m_backgroundMusic;
+}
+
+void TiledScene::setBackgroundMusic(const QString &newBackgroundMusic)
+{
+	if (m_backgroundMusic == newBackgroundMusic)
+		return;
+	m_backgroundMusic = newBackgroundMusic;
+	emit backgroundMusicChanged();
+}
+
+QString TiledScene::ambientSound() const
+{
+	return m_ambientSound;
+}
+
+void TiledScene::setAmbientSound(const QString &newAmbientSound)
+{
+	if (m_ambientSound == newAmbientSound)
+		return;
+	m_ambientSound = newAmbientSound;
+	emit ambientSoundChanged();
 }

@@ -28,6 +28,7 @@
 #define RPGARROW_H
 
 #include "isometricbullet.h"
+#include "rpgpickableobject.h"
 #include "tiledscene.h"
 #include <QQmlEngine>
 
@@ -50,6 +51,25 @@ public:
 protected:
 	void load() override final;
 	//void impactEvent(TiledObjectBase *base) override final;
+};
+
+
+
+/**
+ * @brief The RpgArrowPickable class
+ */
+
+class RpgArrowPickable : public RpgPickableObject
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+public:
+	RpgArrowPickable(QQuickItem *parent = nullptr);
+
+protected:
+	void load() override final;
+
 };
 
 #endif // RPGARROW_H

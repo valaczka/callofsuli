@@ -55,7 +55,9 @@
 - Voiceover Pack: Fighter by Kenney Vleugels - Kenney.nl (https://www.kenney.nl)
 - Won! by spuispuin (https://opengameart.org/content/won-orchestral-winning-jingle)
 - TheRandomSoundByte2637 - (https://freesound.org/people/TheRandomSoundByte2637)
-
-
 - Metal Interactions - (c) qubodup (https://opengameart.org/content/metal-interactions)
-- Punches, hits, swords and squishes - (c) tarfmagougou 2015 (https://opengameart.org/content/punches-hits-swords-and-squishes)
+- Punches, hits, swords and squishes - (c) 2015 tarfmagougou (https://opengameart.org/content/punches-hits-swords-and-squishes)
+- Battle Sound Effects - (c) 2010 artisticdude, Ogrebane (https://opengameart.org/content/battle-sound-effects) 
+- Monster Sound Pack, Volume 1 - (c) 2010 Ogrebane (https://opengameart.org/content/monster-sound-pack-volume-1)
+- Inventory Sound Effects - (c) 2010 artisticdude, Ogrebane (https://opengameart.org/content/inventory-sound-effects)
+- Ambient Bird Sounds - (c) isaiah658 (https://opengameart.org/content/ambient-bird-sounds)

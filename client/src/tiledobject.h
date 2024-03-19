@@ -102,6 +102,8 @@ public:
 	 * @brief The FixtureCategory enum
 	 */
 
+	// !!! set also in fixtureCategory()
+
 	enum FixtureCategory {
 		FixtureInvalid = 0,
 		FixtureGround,
@@ -109,6 +111,7 @@ public:
 		FixtureEnemyBody,
 		FixtureTarget,
 		FixtureTransport,
+		FixturePickable,
 		FixtureSensor
 	};
 
@@ -276,9 +279,9 @@ public:
 	Q_ENUM(RemoteMode);
 
 
-	// Object id
+	// ObjectId id
 
-	struct Object {
+	struct ObjectId {
 		int id = -1;
 		int sceneId = -1;
 	};
@@ -347,8 +350,8 @@ public:
 	bool inVisibleArea() const;
 	void setInVisibleArea(bool newInVisibleArea);
 
-	const Object &objectId() const;
-	void setObjectId(const Object &newObjectId);
+	const ObjectId &objectId() const;
+	void setObjectId(const ObjectId &newObjectId);
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
@@ -380,7 +383,7 @@ protected:
 	QColor m_glowColor = QColor(Qt::yellow);
 	QColor m_overlayColor = QColor(Qt::white);
 	bool m_inVisibleArea = false;
-	Object m_objectId;
+	ObjectId m_objectId;
 
 	friend class TiledObjectBody;
 	friend class TiledScene;
@@ -497,7 +500,7 @@ protected:
 	bool appendSprite(const IsometricObjectLayeredSprite &sprite, const QString &path = QStringLiteral(""));
 	bool appendSprite(const IsometricObjectLayeredSpriteList &sprite, const QString &path = QStringLiteral(""));
 
-	bool playAuxSprite(const QString &source, const TiledObjectSprite &sprite);
+	bool playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite = false);
 
 	void createVisual();
 

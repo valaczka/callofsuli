@@ -29,13 +29,9 @@
 #include "isometricplayer.h"
 #include "tiledfixpositionmotor.h"
 #include "tiledspritehandler.h"
-#include "isometricwerebear.h"
 
 
 
-const QHash<QString, IsometricEnemyIface::EnemyType> IsometricEnemyIface::m_typeHash = {
-	{ QStringLiteral("enemy"), EnemyWerebear }
-};
 
 
 
@@ -44,9 +40,9 @@ const QHash<QString, IsometricEnemyIface::EnemyType> IsometricEnemyIface::m_type
  * @param parent
  */
 
-IsometricEnemy::IsometricEnemy(const EnemyType &type, QQuickItem *parent)
+IsometricEnemy::IsometricEnemy(QQuickItem *parent)
 	: IsometricCircleEntity(parent)
-	, IsometricEnemyIface(type)
+	, IsometricEnemyIface()
 {
 	m_inabilityTimer.setRemainingTime(-1);
 	m_autoHitTimer.setRemainingTime(-1);
@@ -54,40 +50,6 @@ IsometricEnemy::IsometricEnemy(const EnemyType &type, QQuickItem *parent)
 }
 
 
-
-/**
- * @brief IsometricEnemy::createEnemy
- * @param parent
- * @return
- */
-
-IsometricEnemy *IsometricEnemy::createEnemy(const EnemyType &type, const QString &subtype, TiledGame *game, TiledScene *scene)
-{
-	IsometricEnemy *enemy = nullptr;
-
-	switch (type) {
-		case EnemyWerebear: {
-			IsometricWerebear *e = nullptr;
-			TiledObjectBase::createFromCircle<IsometricWerebear>(&e, QPointF{}, 30, nullptr, game);
-			e->setWerebearType(subtype);
-			enemy = e;
-			break;
-		}
-
-		case EnemyInvalid:
-			LOG_CERROR("game") << "Invalid enemy type" << type;
-			return nullptr;
-	}
-
-	if (enemy) {
-		enemy->setParent(game);
-		enemy->setGame(game);
-		enemy->setScene(scene);
-		enemy->initialize();
-	}
-
-	return enemy;
-}
 
 
 
@@ -180,12 +142,12 @@ void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
 
 	if (weapon->canHit()) {
 		LOG_CTRACE("game") << "Enemy hit player:" << this << player << weapon;
-		//m_game->enemyAttackPlayer(this, player, weapon->weaponType());
-		weapon->hit(player);
-		jumpToSprite(m_autoAttackSprite);			///TODO
+		if (weapon->hit(player))
+			playAttackEffect(weapon);
 	} else if (weapon->canShot()) {
 		LOG_CTRACE("game") << "Enemy shot player:" << this << player << weapon;
-		weapon->shot(IsometricBullet::TargetPlayer, m_body->bodyPosition(), angleToPoint(player->body()->bodyPosition()));
+		if (weapon->shot(IsometricBullet::TargetPlayer, m_body->bodyPosition(), angleToPoint(player->body()->bodyPosition())))
+			playAttackEffect(weapon);
 	}
 }
 
@@ -267,6 +229,12 @@ void IsometricEnemy::entityWorldStep()
 	TiledObjectBody::setFixtureCollidesWithFlag(m_fixture.get(), TiledObjectBody::FixtureGround, !m_returnPathMotor);
 
 
+	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+		m_body->stop();
+		updateSprite();
+		return;
+	}
+
 	if (isPursuit) {
 		if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
@@ -320,7 +288,7 @@ bool IsometricEnemy::enemyWorldStep()
 	if (!isAlive())
 		return true;
 
-	if (m_metric.autoAttackTime <= 0 || !m_autoAttackSprite)
+	if (m_metric.autoAttackTime <= 0)
 		return true;
 
 	if (m_player && m_reachedPlayers.contains(m_player) && m_player->isAlive()) {
@@ -330,7 +298,7 @@ bool IsometricEnemy::enemyWorldStep()
 			return false;
 
 		if (m_autoHitTimer.hasExpired() || m_autoHitTimer.isForever()) {
-			attackPlayer(m_player, m_defaultWeapon.get());
+			attackPlayer(m_player, defaultWeapon());
 			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);
 		}
 
@@ -396,7 +364,28 @@ void IsometricEnemy::onDead()
 	setSubZ(0.0);
 	m_sensorPolygon->setLength(10.);
 
+	m_game->onEnemyDead(this);
+
 	emit becameDead();
+}
+
+
+
+
+/**
+ * @brief IsometricEnemy::protectWeapon
+ * @param weaponType
+ * @return
+ */
+
+bool IsometricEnemy::protectWeapon(const TiledWeapon::WeaponType &weaponType)
+{
+	for (const auto &ptr : m_weapons) {
+		if (ptr->canProtect(weaponType) && ptr->protect(weaponType))
+			return true;
+	}
+
+	return false;
 }
 
 
@@ -504,24 +493,6 @@ qreal IsometricEnemy::distanceToPoint(const QPointF &point) const
 
 
 /**
- * @brief IsometricObject::updateSprite
- */
-
-void IsometricEnemy::updateSprite()
-{
-	if (m_hp <= 0)
-		jumpToSprite("die", m_currentDirection);
-	else if (m_spriteHandler->currentSprite() == QStringLiteral("hit") || m_spriteHandler->currentSprite() == QStringLiteral("hurt"))
-		jumpToSpriteLater("idle", m_currentDirection);
-	else if (m_movingDirection != Invalid)
-		jumpToSprite("run", m_movingDirection);
-	else
-		jumpToSprite("idle", m_currentDirection);
-}
-
-
-
-/**
  * @brief IsometricEnemy::sensorBeginContact
  * @param other
  */
@@ -534,8 +505,10 @@ void IsometricEnemy::sensorBeginContact(Box2DFixture *other)
 	if (!player)
 		return;
 
-	if (!m_contactedPlayers.contains(player))
+	if (!m_contactedPlayers.contains(player)) {
 		m_contactedPlayers.append(player);
+		eventPlayerContacted(player);
+	}
 }
 
 
@@ -554,6 +527,7 @@ void IsometricEnemy::sensorEndContact(Box2DFixture *other)
 		return;
 
 	m_contactedPlayers.removeAll(player);
+	eventPlayerDiscontacted(player);
 }
 
 
@@ -577,7 +551,7 @@ void IsometricEnemy::fixtureBeginContact(Box2DFixture *other)
 
 		if (!m_reachedPlayers.contains(player)) {
 			m_reachedPlayers.append(player);
-			onPlayerReached(player);
+			eventPlayerReached(player);
 		}
 	}
 }
@@ -602,7 +576,7 @@ void IsometricEnemy::fixtureEndContact(Box2DFixture *other)
 			return;
 
 		m_reachedPlayers.removeAll(player);
-		onPlayerLeft(player);
+		eventPlayerLeft(player);
 	}
 }
 

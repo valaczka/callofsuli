@@ -505,7 +505,9 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 				return update();
 			}
 
-			return m_timer.stop();
+			//return m_timer.stop();
+
+			return;
 		}
 	}
 

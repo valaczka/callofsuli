@@ -19,6 +19,8 @@ Page {
 		id: _game
 		anchors.fill: parent
 		joystick: _gameJoystick
+		messageList: _messageList
+		defaultMessageColor: Qaterial.Style.iconColor()
 
 		onGameLoadFailed: Client.messageError("FAILED")
 	}
@@ -73,6 +75,17 @@ Page {
 	}
 
 
+	GameMessageList {
+		id: _messageList
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		y: parent.height*0.25
+
+		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
+	}
+
+
 	GameHpLabel {
 		id: infoHP
 		anchors.horizontalCenter: parent.horizontalCenter
@@ -83,6 +96,33 @@ Page {
 		onValueChanged: marked = true
 	}
 
+
+	GameButton {
+		id: pickRButton
+		size: 50
+
+		anchors.horizontalCenter: _shot.horizontalCenter
+		anchors.bottom: weaponButton.top
+		anchors.bottomMargin: 5
+
+		visible: _game.controlledPlayer && _game.controlledPlayer.currentPickable
+
+		color: Qaterial.Colors.green600
+		border.color: fontImage.color
+		border.width: 1
+
+		opacity: 1.0
+
+		fontImage.icon: Qaterial.Icons.hand
+		fontImage.color: "white"
+		fontImageScale: 0.6
+		fontImage.anchors.horizontalCenterOffset: -2
+
+		onClicked: {
+			_game.controlledPlayer.pickCurrentObject()
+			//_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
+		}
+	}
 
 
 	GameButton {

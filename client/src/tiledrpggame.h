@@ -27,10 +27,17 @@
 #ifndef TILEDRPGGAME_H
 #define TILEDRPGGAME_H
 
+#include "rpgenemyiface.h"
 #include "rpgplayer.h"
+#include "rpgpickableobject.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
 #include <QQmlEngine>
+
+
+/**
+ * @brief The TiledRpgGame class
+ */
 
 class TiledRpgGame : public TiledGame
 {
@@ -49,9 +56,22 @@ public:
 
 	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
 	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;
+	bool playerPickPickable(TiledObject *player, TiledObject *pickable) override final;
+
+	void onPlayerDead(TiledObject *player) override final;
+	void onEnemyDead(TiledObject *enemy) override final;
+
 	bool canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
 	bool canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
 	bool canTransport(RpgPlayer *player, TiledTransport *transport);
+
+	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene);
+	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, TiledScene *scene) {
+		return createEnemy(type, QStringLiteral(""), scene);
+	}
+
+
+	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene);
 
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);
@@ -69,11 +89,9 @@ protected:
 	virtual void keyPressEvent(QKeyEvent *event) override final;
 
 private:
-	void addEnemyPosition(TiledScene *scene, const IsometricEnemyIface::EnemyType &type, const QPolygonF &position);
-
 	struct EnemyData {
-		TiledObjectBase::Object object;
-		IsometricEnemyIface::EnemyType type = IsometricEnemyIface::EnemyInvalid;
+		TiledObjectBase::ObjectId objectId;
+		RpgEnemyIface::RpgEnemyType type = RpgEnemyIface::EnemyInvalid;
 		QString subtype;
 		QPolygonF path;
 		int defaultAngle = 0;
@@ -81,7 +99,18 @@ private:
 		QPointer<IsometricEnemy> enemy;
 	};
 
+
+	struct PickableData {
+		TiledObjectBase::ObjectId objectId;
+		RpgPickableObject::PickableType type = RpgPickableObject::PickableInvalid;
+		QPointF position;
+		QPointer<TiledScene> scene;
+		QPointer<TiledObject> holder;
+		QPointer<RpgPickableObject> pickableObject;
+	};
+
 	QVector<EnemyData> m_enemyDataList;
+	QVector<PickableData> m_pickableDataList;
 
 	QList<RpgPlayer*> m_players;
 	QPointer<RpgPlayer> m_controlledPlayer;

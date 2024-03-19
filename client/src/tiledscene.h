@@ -58,6 +58,8 @@ class TiledScene : public TiledQuick::MapItem
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
 	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 	Q_PROPERTY(int sceneId READ sceneId WRITE setSceneId NOTIFY sceneIdChanged FINAL)
+	Q_PROPERTY(QString ambientSound READ ambientSound WRITE setAmbientSound NOTIFY ambientSoundChanged FINAL)
+	Q_PROPERTY(QString backgroundMusic READ backgroundMusic WRITE setBackgroundMusic NOTIFY backgroundMusicChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
@@ -75,6 +77,9 @@ public:
 	bool running() const;
 	void setRunning(bool newRunning);
 
+	void startMusic();
+	void stopMusic();
+
 	TiledQuick::MapLoader *mapLoader() const;
 
 	Box2DWorld *world() const;
@@ -85,10 +90,20 @@ public:
 	int sceneId() const;
 	void setSceneId(int newSceneId);
 
+	QString ambientSound() const;
+	void setAmbientSound(const QString &newAmbientSound);
+
+	QString backgroundMusic() const;
+	void setBackgroundMusic(const QString &newBackgroundMusic);
+
 signals:
 	void runningChanged();
 	void gameChanged();
 	void sceneIdChanged();
+
+	void ambientSoundChanged();
+
+	void backgroundMusicChanged();
 
 protected:
 	virtual void refresh() override;
@@ -103,6 +118,8 @@ protected:
 	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Box2DWorld> m_world;
 	QList<QPointer<TiledObject>> m_tiledObjects;
+	QString m_ambientSound;
+	QString m_backgroundMusic;
 
 
 

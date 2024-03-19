@@ -69,7 +69,7 @@ void RpgArrow::load()
 	createVisual();
 	setAvailableDirections(Direction_8);
 
-	QString test = R"({
+	static const QString test = R"({
 					   "layers": {
 		"none": "lightning.png",
 		"arrow": "arrows.png"
@@ -92,7 +92,7 @@ void RpgArrow::load()
 	IsometricObjectLayeredSprite json;
 	json.fromJson(QJsonDocument::fromJson(test.toUtf8()).object());
 
-	appendSprite(json, ":/");
+	appendSprite(json, QStringLiteral(":/rpg/arrow/"));
 
 	setWidth(64);
 	setHeight(64);
@@ -103,3 +103,26 @@ void RpgArrow::load()
 
 
 
+
+
+/**
+ * @brief RpgArrowPickable::RpgArrowPickable
+ * @param parent
+ */
+
+RpgArrowPickable::RpgArrowPickable(QQuickItem *parent)
+	: RpgPickableObject(PickableArrow, parent)
+{
+
+}
+
+
+
+/**
+ * @brief RpgArrowPickable::load
+ */
+
+void RpgArrowPickable::load()
+{
+
+}

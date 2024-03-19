@@ -92,6 +92,7 @@ protected:
 	qreal m_maximumSpeed = 10.;
 	int m_hp = 1;
 	int m_maxHp = 1;
+	QStringList m_moveDisabledSpriteList;		// At these sprites move disabled
 
 private:
 	QPointF m_lastPosition;

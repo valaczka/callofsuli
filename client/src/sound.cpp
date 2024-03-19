@@ -118,6 +118,7 @@ void Sound::playSound(const QString &source, const ChannelType &channel, const f
 	if (!m_engine ||
 			(channel == SfxChannel && !m_sfxEnabled) ||
 			(channel == MusicChannel && !m_musicEnabled) ||
+			(channel == Music2Channel && !m_musicEnabled) ||
 			(channel == VoiceoverChannel && !m_voiceOverEnabled)) {
 		LOG_CTRACE("sound") << "Sound disabled" << channel;
 		return;
@@ -138,12 +139,16 @@ void Sound::playSound(const QString &source, const ChannelType &channel, const f
 		switch (channel) {
 			case SfxChannel: group = m_groupSfx.get(); break;
 			case MusicChannel: group = m_groupMusic.get(); break;
+			case Music2Channel: group = m_groupMusic.get(); break;
 			case VoiceoverChannel: group = m_groupVoiceOver.get(); break;
 		}
 
-		auto ptr = std::make_unique<MaSound>(m_engine.get(), source, channel, group);
+		/*auto ptr = std::make_unique<MaSound>(m_engine.get(), source, channel, group);
 		sndObj = ptr.get();
-		m_sound.push_back(std::move(ptr));
+		m_sound.push_back(std::move(ptr));*/
+
+		const auto &ptr = m_sound.emplace_back(new MaSound(m_engine.get(), source, channel, group));
+		sndObj = ptr.get();
 
 		//updateVolumes();	// Bug?
 
@@ -190,7 +195,7 @@ void Sound::stopSound(const QString &source, const ChannelType &channel)
 		if (!source.isEmpty() && ptr->path() != source)
 			continue;
 
-		if (channel == MusicChannel) {
+		if (channel == MusicChannel || channel == Music2Channel) {
 			ma_sound_stop_with_fade_in_milliseconds(ptr->sound(), 750);
 		} else {
 			ma_sound_stop(ptr->sound());
@@ -211,6 +216,16 @@ void Sound::stopMusic()
 
 
 /**
+ * @brief Sound::stopMusic2
+ */
+
+void Sound::stopMusic2()
+{
+	stopSound(QStringLiteral(""), Music2Channel);
+}
+
+
+/**
  * @brief Sound::isPlayingMusic
  * @return
  */
@@ -220,6 +235,21 @@ bool Sound::isPlayingMusic() const
 	auto s = currentMusic();
 
 	LOG_CTRACE("sound") << "Current music:" << s;
+
+	return !s.isEmpty();
+}
+
+
+/**
+ * @brief Sound::isPlayingMusic2
+ * @return
+ */
+
+bool Sound::isPlayingMusic2() const
+{
+	auto s = currentMusic2();
+
+	LOG_CTRACE("sound") << "Current music2:" << s;
 
 	return !s.isEmpty();
 }
@@ -499,6 +529,30 @@ void Sound::playSound(MaSound *sound, const float &volume)
 			ma_sound_start(sound->sound());
 		}
 
+	} else if (sound->channel() == Music2Channel) {
+		bool isActive = false;
+
+		for (const auto &ptr : m_sound) {
+			if (ptr->channel() == Music2Channel && ptr->sound() && ma_sound_is_playing(ptr->sound())) {
+				if (ptr->path() == sound->path()) {
+					isActive = true;
+				} else {
+					LOG_CTRACE("sound") << "Stop currently playing music2:" << qPrintable(ptr->path());
+					ma_sound_stop(ptr->sound());
+				}
+			}
+		}
+
+		if (!isActive) {
+			LOG_CTRACE("sound") << "Start playing music2:" << qPrintable(sound->path());
+
+			// Bug: https://github.com/mackron/miniaudio/issues/714
+			ma_sound_set_stop_time_in_milliseconds(sound->sound(), ~(ma_uint64)0);
+			ma_sound_set_fade_in_milliseconds(sound->sound(), 1.0, 1.0, 0);
+			ma_sound_seek_to_pcm_frame(sound->sound(), 0);
+			ma_sound_start(sound->sound());
+		}
+
 	} else if (sound->channel() == SfxChannel) {
 		if (ma_sound_is_playing(sound->sound())) {
 			LOG_CTRACE("sound") << "Duplicate playing sfx:" << qPrintable(sound->path()) << "volume:" << volume;
@@ -540,6 +594,26 @@ QVector<Sound::MaSound *> Sound::currentMusic() const
 
 	for (const auto &ptr : m_sound) {
 		if (ptr->channel() == MusicChannel && ptr->sound() && ma_sound_is_playing(ptr->sound())) {
+			list.append(ptr.get());
+		}
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief Sound::currentMusic2
+ * @return
+ */
+
+QVector<Sound::MaSound *> Sound::currentMusic2() const
+{
+	QVector<Sound::MaSound *> list;
+
+	for (const auto &ptr : m_sound) {
+		if (ptr->channel() == Music2Channel && ptr->sound() && ma_sound_is_playing(ptr->sound())) {
 			list.append(ptr.get());
 		}
 	}
@@ -647,7 +721,7 @@ Sound::MaSound::MaSound(ma_engine *engine, const QString &path, const ChannelTyp
 	}
 
 
-	if (channel == MusicChannel) {
+	if (channel == MusicChannel || channel == Music2Channel) {
 		ma_sound_set_looping(m_sound.get(), true);
 	}
 }
