@@ -244,6 +244,23 @@ void TiledScene::stopMusic()
 }
 
 
+/**
+ * @brief TiledScene::isGroundContainsPoint
+ * @param ground
+ * @return
+ */
+
+bool TiledScene::isGroundContainsPoint(const QPointF &point) const
+{
+	for (TiledObjectBasePolygon *o : m_groundObjects) {
+		if (o->fixture()->containsPoint(point))
+			return true;
+	}
+
+	return false;
+}
+
+
 
 
 

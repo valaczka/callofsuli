@@ -262,7 +262,12 @@ SOURCES += \
 	offsetmodel.cpp \
 	qrimage.cpp \
 	question.cpp \
+	rpgarmory.cpp \
 	rpgarrow.cpp \
+	rpgcontrolgroup.cpp \
+	rpgcontrolgroupoverlay.cpp \
+	rpgenemybase.cpp \
+	rpggame.cpp \
 	rpglongsword.cpp \
 	rpgpickableobject.cpp \
 	rpgplayer.cpp \
@@ -282,13 +287,13 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
+	tiledeffect.cpp \
 	tiledfixpositionmotor.cpp \
 	tiledgame.cpp \
 	tiledgamesfx.cpp \
 	tiledobject.cpp \
 	tiledpathmotor.cpp \
 	tiledreturnpathmotor.cpp \
-	tiledrpggame.cpp \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
 	tiledtransport.cpp \
@@ -368,8 +373,13 @@ HEADERS += \
 	offsetmodel.h \
 	qrimage.h \
 	question.h \
+	rpgarmory.h \
 	rpgarrow.h \
+	rpgcontrolgroup.h \
+	rpgcontrolgroupoverlay.h \
+	rpgenemybase.h \
 	rpgenemyiface.h \
+	rpggame.h \
 	rpglongsword.h \
 	rpgpickableobject.h \
 	rpgplayer.h \
@@ -388,6 +398,7 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
+	tiledeffect.h \
 	tiledfixpositionmotor.h \
 	tiledgame.h \
 	tiledgamesfx.h \
@@ -396,7 +407,6 @@ HEADERS += \
 	tiledpathmotor.h \
 	tiledpickableiface.h \
 	tiledreturnpathmotor.h \
-	tiledrpggame.h \
 	tiledscene.h \
 	tiledspritehandler.h \
 	tiledtransport.h \

@@ -6,7 +6,7 @@
  * Created on: 2024. 03. 12.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TiledRpgGame
+ * RpgGame
  *
  *  This file is part of Call of Suli.
  *
@@ -24,9 +24,10 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TILEDRPGGAME_H
-#define TILEDRPGGAME_H
+#ifndef RPGGAME_H
+#define RPGGAME_H
 
+#include "rpgcontrolgroup.h"
 #include "rpgenemyiface.h"
 #include "rpgplayer.h"
 #include "rpgpickableobject.h"
@@ -36,10 +37,10 @@
 
 
 /**
- * @brief The TiledRpgGame class
+ * @brief The RpgGame class
  */
 
-class TiledRpgGame : public TiledGame
+class RpgGame : public TiledGame
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -48,8 +49,8 @@ class TiledRpgGame : public TiledGame
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 
 public:
-	explicit TiledRpgGame(QQuickItem *parent = nullptr);
-	virtual ~TiledRpgGame();
+	explicit RpgGame(QQuickItem *parent = nullptr);
+	virtual ~RpgGame();
 
 
 	Q_INVOKABLE bool load();
@@ -79,11 +80,26 @@ public:
 	QList<RpgPlayer *> players() const;
 	void setPlayers(const QList<RpgPlayer *> &newPlayers);
 
+	static const QByteArray &baseEntitySprite0() { return m_baseEntitySprite0; }
+	static const QByteArray &baseEntitySprite1() { return m_baseEntitySprite1; }
+	static const QByteArray &baseEntitySprite2() { return m_baseEntitySprite2; }
+	static QByteArray baseEntitySprite(const int &i) {
+		if (i==0)
+			return m_baseEntitySprite0;
+		else if (i==1)
+			return m_baseEntitySprite1;
+		else if (i==2)
+			return m_baseEntitySprite2;
+		else
+			return {};
+	}
+
 signals:
 	void controlledPlayerChanged();
 	void playersChanged();
 
 protected:
+	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
@@ -111,9 +127,14 @@ private:
 
 	QVector<EnemyData> m_enemyDataList;
 	QVector<PickableData> m_pickableDataList;
+	std::vector<std::unique_ptr<RpgControlGroup>> m_controlGroups;
 
 	QList<RpgPlayer*> m_players;
 	QPointer<RpgPlayer> m_controlledPlayer;
+
+	static const QByteArray m_baseEntitySprite0;
+	static const QByteArray m_baseEntitySprite1;
+	static const QByteArray m_baseEntitySprite2;
 };
 
-#endif // TILEDRPGGAME_H
+#endif // RPGGAME_H

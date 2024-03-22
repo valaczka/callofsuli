@@ -28,12 +28,14 @@
 #define RPGPLAYER_H
 
 #include "isometricplayer.h"
+#include "rpgarmory.h"
 #include "rpgpickableobject.h"
 #include "rpgshortbow.h"
+#include "tiledeffect.h"
 #include "tiledgamesfx.h"
 #include <QQmlEngine>
 
-class TiledRpgGame;
+class RpgGame;
 
 
 /**
@@ -46,22 +48,19 @@ class RpgPlayer : public IsometricPlayer
 	QML_ELEMENT
 
 	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged FINAL)
-	Q_PROPERTY(TiledWeaponList* weaponList READ weaponList CONSTANT FINAL)
-	Q_PROPERTY(TiledWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
+	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
 
 public:
 	explicit RpgPlayer(QQuickItem *parent = nullptr);
 	virtual ~RpgPlayer();
 
-	static RpgPlayer* createPlayer(TiledRpgGame *game, TiledScene *scene, const QString &character);
+	static RpgPlayer* createPlayer(RpgGame *game, TiledScene *scene, const QString &character);
 
 	static void reloadAvailableCharacters();
 	static const QStringList &availableCharacters() { return m_availableCharacters; }
 
 	Q_INVOKABLE void attack(TiledWeapon *weapon);
-	Q_INVOKABLE void attackCurrentWeapon() { attack(m_currentWeapon); }
-
-	Q_INVOKABLE void nextWeapon();
+	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
 
 	Q_INVOKABLE void pick(RpgPickableObject *object);
 	Q_INVOKABLE void pickCurrentObject() { pick(qobject_cast<RpgPickableObject*>(currentPickable())); }
@@ -69,25 +68,18 @@ public:
 	QString character() const;
 	void setCharacter(const QString &newCharacter);
 
-	TiledWeaponList *weaponList() const;
-	TiledWeapon *weaponFind(const TiledWeapon::WeaponType &type) const;
-
-	TiledWeapon *weaponAdd(TiledWeapon *weapon);
-	void weaponRemove(TiledWeapon *weapon);
-
-	TiledWeapon *currentWeapon() const;
-	void setCurrentWeapon(TiledWeapon *newCurrentWeapon);
+	RpgArmory *armory() const;
 
 signals:
 	void characterChanged();
-	void currentWeaponChanged();
 
 protected:
 	void load() override final;
 	void updateSprite() override final;
 
 	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
-	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType) override final;
+	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType,
+						 const bool &isProtected) override final;
 	void onEnemyReached(IsometricEnemy */*enemy*/) override final {}
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
 	void onTransportReached(TiledTransport */*transport*/) override final {}
@@ -95,13 +87,13 @@ protected:
 
 private:
 	void loadDefaultWeapons();
-	void updateLayers();
 	void onCurrentSpriteChanged();
 	void playAliveEffect();
 	void playHurtEffect();
 	void playHealedEffect();
 	void playDeadEffect();
 	void playAttackEffect(TiledWeapon *weapon);
+	void playWeaponChangedEffect();
 
 private:
 	static QStringList m_availableCharacters;
@@ -110,10 +102,11 @@ private:
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxFootStep;
 
-	std::unique_ptr<TiledWeaponList> m_weaponList;
-	TiledWeapon *m_currentWeapon = nullptr;
+	std::unique_ptr<RpgArmory> m_armory;
 
-	friend class TiledRpgGame;
+	TiledEffectHealed m_effectHealed;
+
+	friend class RpgGame;
 };
 
 #endif // RPGPLAYER_H

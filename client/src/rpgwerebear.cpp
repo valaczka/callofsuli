@@ -43,26 +43,26 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	, m_sfxPain(this)
 {
 	m_metric.speed = 2.;
-	m_metric.returnSpeed = 3.;
-	m_metric.pursuitSpeed = 3.;
+	m_metric.returnSpeed = 4.;
+	m_metric.pursuitSpeed = 4.;
 
 	m_sfxPain.setSoundList({
-							   QStringLiteral(":/rpg/werebear/monster-5.wav"),
+							   QStringLiteral(":/rpg/werebear/monster-5.mp3"),
 						   });
 
 	m_sfxPain.setPlayOneDeadline(600);
 
 
 	m_sfxFootStep.setSoundList({
-								   QStringLiteral(":/rpg/werebear/stepdirt_7.wav"),
-								   QStringLiteral(":/rpg/werebear/stepdirt_8.wav"),
+								   QStringLiteral(":/rpg/werebear/stepdirt_7.mp3"),
+								   QStringLiteral(":/rpg/werebear/stepdirt_8.mp3"),
 							   });
 	m_sfxFootStep.setVolume(0.4);
 	m_sfxFootStep.setInterval(450);
 
 	m_moveDisabledSpriteList = {
 		QStringLiteral("hurt"),
-		QStringLiteral("die")
+		QStringLiteral("death")
 	};
 
 	const auto &ptr = m_weapons.emplace_back(new RpgWerebearWeaponHand);
@@ -72,6 +72,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	//connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
 	//connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
 	connect(this, &RpgWerebear::becameDead, this, &RpgWerebear::playDeadEffect);
+	connect(this, &RpgWerebear::playerChanged, this, &RpgWerebear::playSeeEffect);
 }
 
 
@@ -144,18 +145,7 @@ void RpgWerebear::load()
 	setHeight(128);
 	setBodyOffset(0, 0.45*64);
 
-
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgWerebear::onCurrentSpriteChanged);
-}
-
-
-/**
- * @brief RpgWerebear::eventPlayerContacted
- */
-
-void RpgWerebear::eventPlayerContacted(IsometricPlayer *)
-{
-	m_game->playSfx(QStringLiteral(":/rpg/werebear/monster-1.wav"), m_scene, m_body->bodyPosition());
 }
 
 
@@ -199,7 +189,7 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 	setHp(std::max(0, newHp));
 
 	if (m_hp <= 0) {
-		jumpToSprite("die", m_currentDirection);
+		jumpToSprite("death", m_currentDirection);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
 		startInabililty();
@@ -232,7 +222,19 @@ void RpgWerebear::playAttackEffect(TiledWeapon *weapon)
 
 void RpgWerebear::playDeadEffect()
 {
-	m_game->playSfx(QStringLiteral(":/rpg/werebear/monster-6.wav"), m_scene, m_body->bodyPosition());
+	m_game->playSfx(QStringLiteral(":/rpg/werebear/monster-6.mp3"), m_scene, m_body->bodyPosition());
+}
+
+
+
+/**
+ * @brief RpgWerebear::playSeeEffect
+ */
+
+void RpgWerebear::playSeeEffect()
+{
+	if (m_player)
+		m_game->playSfx(QStringLiteral(":/rpg/werebear/monster-1.mp3"), m_scene, m_body->bodyPosition());
 }
 
 
@@ -326,7 +328,7 @@ TiledWeapon *RpgWerebear::defaultWeapon() const
 void RpgWerebear::updateSprite()
 {
 	if (m_hp <= 0)
-		jumpToSprite("die", m_currentDirection);
+		jumpToSprite("death", m_currentDirection);
 	else if (m_spriteHandler->currentSprite() == QStringLiteral("hit") || m_spriteHandler->currentSprite() == QStringLiteral("hurt"))
 		jumpToSpriteLater("idle", m_currentDirection);
 	else if (m_movingDirection != Invalid)
@@ -358,6 +360,6 @@ void RpgWerebearWeaponHand::eventAttack()
 {
 	RpgWerebear *wb = qobject_cast<RpgWerebear*>(m_parentObject.get());
 	if (wb && wb->game())
-		wb->game()->playSfx(QStringLiteral(":/rpg/werebear/big_punch.wav"),
+		wb->game()->playSfx(QStringLiteral(":/rpg/werebear/big_punch.mp3"),
 							wb->scene(), wb->body()->bodyPosition());
 }

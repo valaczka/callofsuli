@@ -41,6 +41,48 @@ TiledWeapon::WeaponType TiledWeapon::weaponType() const
 }
 
 
+/**
+ * @brief TiledWeapon::weaponName
+ * @param type
+ * @return
+ */
+
+QString TiledWeapon::weaponName(const WeaponType &type)
+{
+	switch (type) {
+		case WeaponShortbow: return tr("íj");
+			case WeaponGreatHand: return tr("kéz");
+			case WeaponHand: return tr("kéz");
+			case WeaponShield: return tr("pajzs");
+			case WeaponSword: return tr("kard");
+			case WeaponInvalid: return tr("érvénytelen");
+	}
+
+	return {};
+}
+
+
+/**
+ * @brief TiledWeapon::weaponNameEn
+ * @param type
+ * @return
+ */
+
+QString TiledWeapon::weaponNameEn(const WeaponType &type)
+{
+	switch (type) {
+		case WeaponShortbow: return QStringLiteral("shortbow");
+			case WeaponGreatHand: return QStringLiteral("hand");
+			case WeaponHand: return QStringLiteral("hand");
+			case WeaponShield: return QStringLiteral("shield");
+			case WeaponSword: return QStringLiteral("sword");
+			case WeaponInvalid: return QStringLiteral("invalid");
+	}
+
+	return {};
+}
+
+
 
 /**
  * @brief TiledWeapon::shot

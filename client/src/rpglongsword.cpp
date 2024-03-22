@@ -77,7 +77,7 @@ void RpgLongsword::eventAttack()
 		return;
 
 	if (TiledGame *g = p->game()) {
-		g->playSfx(QStringLiteral(":/rpg/longsword/swing.wav"), p->scene(), p->body()->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/longsword/swing.mp3"), p->scene(), p->body()->bodyPosition());
 	}
 }
 

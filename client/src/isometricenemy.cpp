@@ -162,7 +162,7 @@ void IsometricEnemy::entityWorldStep()
 {
 	if (!isAlive()) {
 		m_body->stop();
-		jumpToSprite("die", m_currentDirection);
+		jumpToSprite("death", m_currentDirection);
 		return;
 	}
 
@@ -226,6 +226,7 @@ void IsometricEnemy::entityWorldStep()
 		}
 	}
 
+
 	TiledObjectBody::setFixtureCollidesWithFlag(m_fixture.get(), TiledObjectBody::FixtureGround, !m_returnPathMotor);
 
 
@@ -242,9 +243,13 @@ void IsometricEnemy::entityWorldStep()
 
 			/** TiledObject::factorFromRadian(angle)*/		/// --- pursuit speeed
 			m_returnPathMotor->moveBody(m_body.get(), angle,
-										m_metric.pursuitSpeed > 0 ? m_metric.pursuitSpeed : m_metric.speed);
+										m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed ?
+											m_metric.pursuitSpeed : m_metric.speed);
 		} else if (m_metric.speed > 0) {
-			m_body->setLinearVelocity(maximizeSpeed(TiledObjectBase::toPoint(angle, m_metric.speed)));
+			m_body->setLinearVelocity(
+						TiledObjectBase::toPoint(angle,
+												 m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed ?
+													 m_metric.pursuitSpeed : m_metric.speed));
 		} else {
 			m_body->stop();
 		}
@@ -452,6 +457,7 @@ void IsometricEnemy::rotateToPoint(const QPointF &point, float32 *anglePtr, qrea
 
 	setCurrentDirection(nearestDirectionFromRadian(angle));
 	m_body->body()->SetTransform(m_body->body()->GetPosition(), angle);
+	m_body->setAwake(true);
 
 	if (anglePtr)
 		*anglePtr = angle;

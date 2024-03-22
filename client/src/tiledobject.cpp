@@ -970,8 +970,6 @@ TiledObjectSensorPolygon::TiledObjectSensorPolygon(Box2DBody *body, QQuickItem *
 
 	setSensor(true);
 	setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
-	//setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
-	//				TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
 
 	m_virtualCircle->setSensor(true);
 	m_virtualCircle->setCollidesWith(Box2DFixture::None);
@@ -1082,6 +1080,9 @@ Box2DFixture::CategoryFlag TiledObjectBody::fixtureCategory(const FixtureCategor
 		case FixtureTransport:		return Box2DFixture::Category4;
 		case FixtureTarget:		return Box2DFixture::Category5;
 		case FixturePickable:		return Box2DFixture::Category6;
+
+		case FixtureTrigger:		return Box2DFixture::Category14;
+		case FixtureVirtualCircle:		return Box2DFixture::Category15;
 		case FixtureSensor:		return Box2DFixture::Category16;
 		case FixtureInvalid:		return Box2DFixture::None;
 	}
@@ -1422,12 +1423,13 @@ bool TiledObject::appendSprite(const IsometricObjectLayeredSprite &sprite, const
 					s2.y = s.startRow + i*s.height;
 				}
 
-				r &= m_spriteHandler->addSprite(s2, alteration, direction, path+it.value());
+				if (it.value().startsWith(QStringLiteral(":/")) || it.value().startsWith(QStringLiteral("qrc:/")))
+					r &= m_spriteHandler->addSprite(s2, alteration, direction, it.value());
+				else
+					r &= m_spriteHandler->addSprite(s2, alteration, direction, path+it.value());
 			}
 		}
 	}
-
-	//m_availableAlterations.append(sprite.alterations.keys());
 
 	return r;
 }
@@ -1464,7 +1466,7 @@ bool TiledObject::appendSprite(const IsometricObjectLayeredSpriteList &sprite, c
  * @return
  */
 
-bool TiledObject::playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite)
+bool TiledObject::playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite) const
 {
 	Q_ASSERT(m_spriteHandlerAuxFront);
 

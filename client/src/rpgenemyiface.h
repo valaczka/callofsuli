@@ -37,7 +37,8 @@ class RpgEnemyIface
 public:
 	enum RpgEnemyType {
 		EnemyInvalid = 0,
-		EnemyWerebear
+		EnemyWerebear,
+		EnemyTest
 	};
 
 	RpgEnemyIface(const RpgEnemyType &type)
@@ -59,7 +60,7 @@ protected:
 private:
 	static const QHash<QString, RpgEnemyType> m_typeHash;
 
-	friend class TiledRpgGame;
+	friend class RpgGame;
 };
 
 

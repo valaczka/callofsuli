@@ -58,7 +58,7 @@
 #include "teachermap.h"
 #include "teachermaphandler.h"
 #include "testgame.h"
-#include "tiledrpggame.h"
+#include "rpggame.h"
 #include "tiledobject.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
@@ -376,6 +376,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<MultiPlayerGame>("CallOfSuli", 1, 0, "MultiPlayerGame", "MultiPlayerGame is uncreatable");
+	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
@@ -455,7 +456,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
-	qmlRegisterType<TiledRpgGame>("CallOfSuli", 1, 0, "TiledRpgGameImpl");
+	qmlRegisterType<RpgGame>("CallOfSuli", 1, 0, "RpgGameImpl");
 	qmlRegisterType<TiledObject>("CallOfSuli", 1, 0, "TiledObjectImpl");
 	qmlRegisterType<TiledScene>("CallOfSuli", 1, 0, "TiledSceneImpl");
 	qmlRegisterType<TiledSpriteHandler>("CallOfSuli", 1, 0, "TiledSpriteHandlerImpl");

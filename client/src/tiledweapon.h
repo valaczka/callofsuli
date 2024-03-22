@@ -79,6 +79,12 @@ public:
 
 	WeaponType weaponType() const;
 
+	static QString weaponName(const WeaponType &type);
+	QString weaponName() const { return weaponName(m_weaponType); }
+
+	static QString weaponNameEn(const WeaponType &type);
+	QString weaponNameEn() const { return weaponNameEn(m_weaponType); }
+
 	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction);
 	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle);
 

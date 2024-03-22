@@ -6,7 +6,7 @@
  * Created on: 2024. 03. 12.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TiledRpgGame
+ * RpgGame
  *
  *  This file is part of Call of Suli.
  *
@@ -24,27 +24,159 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "tiledrpggame.h"
+#include "rpgenemybase.h"
+#include "rpggame.h"
 #include "rpgshield.h"
 #include "rpgwerebear.h"
+
+#include <QRandomGenerator>
 
 
 
 /// Static hash
 
 const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
-	{ QStringLiteral("enemy"), EnemyWerebear }
+	{ QStringLiteral("enemy"), EnemyTest }
 };
+
+
+
+/// Base entity (special thanks to SKYZ0R)
+
+const QByteArray RpgGame::m_baseEntitySprite0 = R"(
+{
+"sprites": [
+	{
+		"name": "idle",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 0,
+		"y": 0,
+		"count": 4,
+		"width": 148,
+		"height": 130,
+		"duration": 250
+	},
+
+	{
+		"name": "attack",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 592,
+		"y": 0,
+		"count": 10,
+		"width": 148,
+		"height": 130,
+		"duration": 40,
+		"loops": 1
+	},
+
+	{
+		"name": "hurt",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 2072,
+		"y": 0,
+		"count": 4,
+		"width": 148,
+		"height": 130,
+		"duration": 60,
+		"loops": 1
+	},
+
+	{
+		"name": "death",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 2072,
+		"y": 0,
+		"count": 8,
+		"width": 148,
+		"height": 130,
+		"duration": 60,
+		"loops": 1
+	}
+
+]
+}
+)";
+
+
+
+
+
+
+
+const QByteArray RpgGame::m_baseEntitySprite1 = R"(
+{
+"sprites": [
+	{
+		"name": "walk",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 0,
+		"y": 0,
+		"count": 11,
+		"width": 148,
+		"height": 130,
+		"duration": 60
+	},
+
+	{
+		"name": "run",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 1628,
+		"y": 0,
+		"count": 10,
+		"width": 148,
+		"height": 130,
+		"duration": 60
+	}
+
+]
+}
+)";
+
+
+
+
+
+const QByteArray RpgGame::m_baseEntitySprite2 = R"(
+{
+"sprites": [
+	{
+		"name": "bow",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 0,
+		"y": 0,
+		"count": 9,
+		"width": 148,
+		"height": 130,
+		"duration": 40,
+		"loops": 1
+	},
+
+	{
+		"name": "cast",
+		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
+		"x": 1332,
+		"y": 0,
+		"count": 9,
+		"width": 148,
+		"height": 130,
+		"duration": 40,
+		"loops": 1
+	}
+]
+}
+)";
+
+
 
 
 
 
 /**
- * @brief TiledRpgGame::TiledRpgGame
+ * @brief RpgGame::RpgGame
  * @param parent
  */
 
-TiledRpgGame::TiledRpgGame(QQuickItem *parent)
+RpgGame::RpgGame(QQuickItem *parent)
 	: TiledGame(parent)
 {
 
@@ -52,10 +184,10 @@ TiledRpgGame::TiledRpgGame(QQuickItem *parent)
 
 
 /**
- * @brief TiledRpgGame::~TiledRpgGame
+ * @brief RpgGame::~RpgGame
  */
 
-TiledRpgGame::~TiledRpgGame()
+RpgGame::~RpgGame()
 {
 	for (const auto &e : m_enemyDataList) {
 		if (e.enemy)
@@ -73,7 +205,7 @@ TiledRpgGame::~TiledRpgGame()
 
 
 
-bool TiledRpgGame::load()
+bool RpgGame::load()
 {
 	QString test = R"({
 		"firstScene": 1,
@@ -106,7 +238,12 @@ bool TiledRpgGame::load()
 
 		Q_ASSERT(!e.path.isEmpty());
 
-		IsometricEnemy *character = createEnemy(e.type, e.subtype, e.scene);
+		IsometricEnemy *character;
+
+		if (QRandomGenerator::global()->bounded(2) % 2 == 0)
+		character = createEnemy(e.type, e.subtype, e.scene);
+		else
+		character = createEnemy(RpgEnemyIface::EnemyWerebear, e.subtype, e.scene);
 
 		if (!character)
 			continue;
@@ -176,12 +313,12 @@ bool TiledRpgGame::load()
 
 
 /**
- * @brief TiledRpgGame::playerAttackEnemy
+ * @brief RpgGame::playerAttackEnemy
  * @param player
  * @param enemy
  */
 
-bool TiledRpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType)
+bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType)
 {
 	Q_ASSERT(player);
 	Q_ASSERT(enemy);
@@ -206,12 +343,12 @@ bool TiledRpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, co
 
 
 /**
- * @brief TiledRpgGame::enemyAttackPlayer
+ * @brief RpgGame::enemyAttackPlayer
  * @param enemy
  * @param player
  */
 
-bool TiledRpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType)
+bool RpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType)
 {
 	Q_ASSERT(player);
 	Q_ASSERT(enemy);
@@ -225,10 +362,9 @@ bool TiledRpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, co
 	if (!canAttack(e, p, weaponType))
 		return false;
 
-	if (p->protectWeapon(weaponType))
-		return false;
+	const bool &prot = p->protectWeapon(weaponType);
 
-	p->attackedByEnemy(e, weaponType);
+	p->attackedByEnemy(e, weaponType, prot);
 
 	return true;
 }
@@ -236,13 +372,13 @@ bool TiledRpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, co
 
 
 /**
- * @brief TiledRpgGame::playerPickPickable
+ * @brief RpgGame::playerPickPickable
  * @param player
  * @param pickable
  * @return
  */
 
-bool TiledRpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
+bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 {
 	Q_ASSERT(player);
 
@@ -265,9 +401,9 @@ bool TiledRpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable
 
 	p->removePickable(object);
 
-	p->updateLayers();
+	p->armory()->updateLayers();
 
-	playSfx(QStringLiteral(":/rpg/common/leather_inventory.wav"), player->scene(), player->body()->bodyPosition());
+	playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), player->scene(), player->body()->bodyPosition());
 
 
 	return true;
@@ -276,11 +412,11 @@ bool TiledRpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable
 
 
 /**
- * @brief TiledRpgGame::onPlayerDead
+ * @brief RpgGame::onPlayerDead
  * @param player
  */
 
-void TiledRpgGame::onPlayerDead(TiledObject *player)
+void RpgGame::onPlayerDead(TiledObject *player)
 {
 
 }
@@ -291,11 +427,11 @@ void TiledRpgGame::onPlayerDead(TiledObject *player)
 
 
 /**
- * @brief TiledRpgGame::onEnemyDead
+ * @brief RpgGame::onEnemyDead
  * @param enemy
  */
 
-void TiledRpgGame::onEnemyDead(TiledObject *enemy)
+void RpgGame::onEnemyDead(TiledObject *enemy)
 {
 	if (!enemy)
 		return;
@@ -325,13 +461,13 @@ void TiledRpgGame::onEnemyDead(TiledObject *enemy)
 
 
 /**
- * @brief TiledRpgGame::canAttack
+ * @brief RpgGame::canAttack
  * @param player
  * @param enemy
  * @return
  */
 
-bool TiledRpgGame::canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
+bool RpgGame::canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
 {
 	if (!player || !enemy)
 		return false;
@@ -344,13 +480,13 @@ bool TiledRpgGame::canAttack(RpgPlayer *player, IsometricEnemy *enemy, const Til
 
 
 /**
- * @brief TiledRpgGame::canAttack
+ * @brief RpgGame::canAttack
  * @param enemy
  * @param player
  * @return
  */
 
-bool TiledRpgGame::canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType)
+bool RpgGame::canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType)
 {
 	if (!player || !enemy)
 		return false;
@@ -361,13 +497,13 @@ bool TiledRpgGame::canAttack(IsometricEnemy *enemy, RpgPlayer *player, const Til
 
 
 /**
- * @brief TiledRpgGame::canTransport
+ * @brief RpgGame::canTransport
  * @param player
  * @param transport
  * @return
  */
 
-bool TiledRpgGame::canTransport(RpgPlayer *player, TiledTransport *transport)
+bool RpgGame::canTransport(RpgPlayer *player, TiledTransport *transport)
 {
 	if (!player || !transport)
 		return false;
@@ -379,7 +515,7 @@ bool TiledRpgGame::canTransport(RpgPlayer *player, TiledTransport *transport)
 
 
 /**
- * @brief TiledRpgGame::createEnemy
+ * @brief RpgGame::createEnemy
  * @param type
  * @param subtype
  * @param game
@@ -387,15 +523,23 @@ bool TiledRpgGame::canTransport(RpgPlayer *player, TiledTransport *transport)
  * @return
  */
 
-IsometricEnemy *TiledRpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene)
+IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene)
 {
 	IsometricEnemy *enemy = nullptr;
 
 	switch (type) {
 		case RpgEnemyIface::EnemyWerebear: {
 			RpgWerebear *e = nullptr;
-			TiledObjectBase::createFromCircle<RpgWerebear>(&e, QPointF{}, 30, nullptr, this);
+			TiledObjectBase::createFromCircle<RpgWerebear>(&e, QPointF{}, 50, nullptr, this);
 			e->setWerebearType(subtype);
+			enemy = e;
+			break;
+		}
+
+		case RpgEnemyIface::EnemyTest: {
+			RpgEnemyBase *e = nullptr;
+			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 50, nullptr, this);
+			//e->setWerebearType(subtype);
 			enemy = e;
 			break;
 		}
@@ -418,13 +562,13 @@ IsometricEnemy *TiledRpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &typ
 
 
 /**
- * @brief TiledRpgGame::createPickable
+ * @brief RpgGame::createPickable
  * @param type
  * @param scene
  * @return
  */
 
-RpgPickableObject *TiledRpgGame::createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene)
+RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene)
 {
 	RpgPickableObject *pickable = nullptr;
 
@@ -455,14 +599,15 @@ RpgPickableObject *TiledRpgGame::createPickable(const RpgPickableObject::Pickabl
 
 
 /**
- * @brief TiledRpgGame::loadObjectLayer
+ * @brief RpgGame::loadObjectLayer
  * @param scene
  * @param object
  * @param renderer
  */
 
-void TiledRpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+void RpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
+	Q_ASSERT(scene);
 	Q_ASSERT(object);
 	Q_ASSERT(renderer);
 
@@ -530,12 +675,38 @@ void TiledRpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, 
 }
 
 
+
+
+
+
 /**
- * @brief TiledRpgGame::joystickStateEvent
+ * @brief RpgGame::loadGroupLayer
+ * @param scene
+ * @param group
+ * @param renderer
+ */
+
+void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(scene);
+	Q_ASSERT(group);
+	Q_ASSERT(renderer);
+
+	std::unique_ptr<RpgControlGroup> g(RpgControlGroup::fromGroupLayer(this, scene, group, renderer));
+
+	if (g)
+		m_controlGroups.push_back(std::move(g));
+}
+
+
+
+
+/**
+ * @brief RpgGame::joystickStateEvent
  * @param newJoystickState
  */
 
-void TiledRpgGame::joystickStateEvent(const JoystickState &state)
+void RpgGame::joystickStateEvent(const JoystickState &state)
 {
 	if (m_controlledPlayer)
 		m_controlledPlayer->onJoystickStateChanged(state);
@@ -543,11 +714,11 @@ void TiledRpgGame::joystickStateEvent(const JoystickState &state)
 
 
 /**
- * @brief TiledRpgGame::keyPressEvent
+ * @brief RpgGame::keyPressEvent
  * @param event
  */
 
-void TiledRpgGame::keyPressEvent(QKeyEvent *event)
+void RpgGame::keyPressEvent(QKeyEvent *event)
 {
 	const int &key = event->key();
 
@@ -564,7 +735,7 @@ void TiledRpgGame::keyPressEvent(QKeyEvent *event)
 
 		case Qt::Key_Q:
 			if (m_controlledPlayer)
-				m_controlledPlayer->nextWeapon();
+				m_controlledPlayer->armory()->nextWeapon();
 			break;
 
 
@@ -605,17 +776,19 @@ void TiledRpgGame::keyPressEvent(QKeyEvent *event)
 
 
 
+
+
 /**
- * @brief TiledRpgGame::players
+ * @brief RpgGame::players
  * @return
  */
 
-QList<RpgPlayer *> TiledRpgGame::players() const
+QList<RpgPlayer *> RpgGame::players() const
 {
 	return m_players;
 }
 
-void TiledRpgGame::setPlayers(const QList<RpgPlayer *> &newPlayers)
+void RpgGame::setPlayers(const QList<RpgPlayer *> &newPlayers)
 {
 	if (m_players == newPlayers)
 		return;
@@ -624,17 +797,18 @@ void TiledRpgGame::setPlayers(const QList<RpgPlayer *> &newPlayers)
 }
 
 
+
 /**
- * @brief TiledRpgGame::controlledPlayer
+ * @brief RpgGame::controlledPlayer
  * @return
  */
 
-RpgPlayer *TiledRpgGame::controlledPlayer() const
+RpgPlayer *RpgGame::controlledPlayer() const
 {
 	return m_controlledPlayer;
 }
 
-void TiledRpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
+void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 {
 	if (m_controlledPlayer == newControlledPlayer)
 		return;

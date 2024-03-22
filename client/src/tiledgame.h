@@ -99,6 +99,7 @@ class TiledGame : public QQuickItem
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QQuickItem *messageList READ messageList WRITE setMessageList NOTIFY messageListChanged FINAL)
 	Q_PROPERTY(QColor defaultMessageColor READ defaultMessageColor WRITE setDefaultMessageColor NOTIFY defaultMessageColorChanged FINAL)
+	Q_PROPERTY(qreal baseScale READ baseScale WRITE setBaseScale NOTIFY baseScaleChanged FINAL)
 
 public:
 	explicit TiledGame(QQuickItem *parent = nullptr);
@@ -155,8 +156,6 @@ public:
 	virtual void onPlayerDead(TiledObject *player) = 0;
 	virtual void onEnemyDead(TiledObject *enemy) = 0;
 
-
-
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
 
@@ -185,6 +184,9 @@ public:
 	QColor defaultMessageColor() const;
 	void setDefaultMessageColor(const QColor &newDefaultMessageColor);
 
+	qreal baseScale() const;
+	void setBaseScale(qreal newBaseScale);
+
 signals:
 	void gameLoaded();
 	void gameLoadFailed();
@@ -197,10 +199,12 @@ signals:
 	void messageListChanged();
 	void defaultMessageColorChanged();
 
+	void baseScaleChanged();
+
 protected:
 	bool loadScene(const TiledSceneDefinition &def);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
-	TiledObjectBase *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void addPlayerPosition(TiledScene *scene, const QPointF &position);
 
@@ -211,6 +215,7 @@ protected:
 
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 	virtual void joystickStateEvent(const JoystickState &newJoystickState) { Q_UNUSED(newJoystickState);}
@@ -265,6 +270,7 @@ private:
 	bool m_debugView = false;
 	QQuickItem *m_messageList = nullptr;
 	QColor m_defaultMessageColor = Qt::white;
+	qreal m_baseScale = 1.;
 };
 
 Q_DECLARE_METATYPE(TiledGame::JoystickState)

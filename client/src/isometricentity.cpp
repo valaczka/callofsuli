@@ -66,12 +66,17 @@ QPointF IsometricEntityIface::maximizeSpeed(const QPointF &point, const qreal &m
 	if (maximumSpeed <= 0.)
 		return point;
 
-	QPointF p;
+	QVector2D v(point);
+
+	if (v.length() > maximumSpeed)
+		v /= v.length()/maximumSpeed;
+
+	/*QPointF p;
 
 	p.setX(std::max(-maximumSpeed, std::min(point.x(), maximumSpeed)));
-	p.setY(std::max(-maximumSpeed, std::min(point.y(), maximumSpeed)));
+	p.setY(std::max(-maximumSpeed, std::min(point.y(), maximumSpeed)));*/
 
-	return p;
+	return v.toPointF();
 }
 
 
@@ -85,8 +90,14 @@ QPointF IsometricEntityIface::maximizeSpeed(const QPointF &point, const qreal &m
 QPointF &IsometricEntityIface::maximizeSpeed(QPointF &point, const qreal &maximumSpeed)
 {
 	if (maximumSpeed > 0) {
-		point.setX(std::max(-maximumSpeed, std::min(point.x(), maximumSpeed)));
-		point.setY(std::max(-maximumSpeed, std::min(point.y(), maximumSpeed)));
+		QVector2D v(point);
+
+		if (v.length() > maximumSpeed)
+			v /= v.length()/maximumSpeed;
+
+		point = v.toPointF();
+		//point.setX(std::max(-maximumSpeed, std::min(point.x(), maximumSpeed)));
+		//point.setY(std::max(-maximumSpeed, std::min(point.y(), maximumSpeed)));
 	}
 	return point;
 }
@@ -101,15 +112,43 @@ QPointF &IsometricEntityIface::maximizeSpeed(QPointF &point, const qreal &maximu
 
 void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections)
 {
-	if (qFuzzyCompare(position.x(), m_lastPosition.x()) && qFuzzyCompare(position.y(), m_lastPosition.y()))
-		return setMovingDirection(TiledObject::Invalid);
+	if (qFuzzyCompare(position.x(), m_lastPosition.x()) && qFuzzyCompare(position.y(), m_lastPosition.y())) {
+		setMovingDirection(TiledObject::Invalid);
+		setMovingSpeed(0.);
+		return;
+	}
 
 	QLineF line(m_lastPosition, position);
 	setMovingDirection(TiledObject::nearestDirectionFromRadian(availableDirections,
 															   TiledObject::toRadian(line.angle())));
 
+	setMovingSpeed(QVector2D(position-m_lastPosition).length());
 	m_lastPosition = position;
 }
+
+
+
+/**
+ * @brief IsometricEntityIface::movingSpeed
+ * @return
+ */
+
+qreal IsometricEntityIface::movingSpeed() const
+{
+	return m_movingSpeed;
+}
+
+void IsometricEntityIface::setMovingSpeed(qreal newMovingSpeed)
+{
+	m_movingSpeed = newMovingSpeed;
+}
+
+
+
+/**
+ * @brief IsometricEntityIface::maxHp
+ * @return
+ */
 
 int IsometricEntityIface::maxHp() const
 {
@@ -194,6 +233,7 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
 	bool visible = false;
 
 	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
+
 		if (it->fixture->isSensor())
 			continue;
 

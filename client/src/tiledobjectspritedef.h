@@ -40,29 +40,47 @@ class TiledObjectSprite : public QSerializer
 public:
 	TiledObjectSprite()
 		: count(0)
-		, duration(0)
-		, height(0)
-		, width(0)
 		, x(0)
 		, y(0)
+		, width(0)
+		, height(0)
+		, duration(0)
 		, loops(0)
 	{}
 
-	QUrl source() const { return m_source; }
-	void setSource(const QString &source) { m_source = QUrl(source); }
+	TiledObjectSprite(const QString &_name,
+					  const int &_count,
+					  const int &_x,
+					  const int &_y,
+					  const int &_width,
+					  const int &_height,
+					  const int &_duration,
+					  const int &_loops = 0)
+		: name(_name)
+		, count(_count)
+		, x(_x)
+		, y(_y)
+		, width(_width)
+		, height(_height)
+		, duration(_duration)
+		, loops(_loops)
+	{}
+
+	//QUrl source() const { return m_source; }
+	//void setSource(const QString &source) { m_source = QUrl(source); }
 
 private:
-	QUrl m_source;
+	//QUrl m_source;
 
 	QS_SERIALIZABLE
+	QS_FIELD(QString, name)
 	QS_FIELD(int, count)
-	QS_FIELD(int, duration)
-	QS_FIELD(int, height)
-	QS_FIELD(int, width)
 	QS_FIELD(int, x)
 	QS_FIELD(int, y)
+	QS_FIELD(int, width)
+	QS_FIELD(int, height)
+	QS_FIELD(int, duration)
 	QS_FIELD(int, loops)
-	QS_FIELD(QString, name)
 
 };
 
@@ -167,6 +185,11 @@ class IsometricObjectSpriteList : public QSerializer
 public:
 	IsometricObjectSpriteList()
 	{}
+
+	IsometricObjectSpriteList(const QByteArray &data)
+	{
+		this->fromJson(data);
+	}
 
 	QS_SERIALIZABLE
 

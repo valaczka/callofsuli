@@ -41,6 +41,8 @@
 - yd (https://opengameart.org/content/old-tower)
 - Animated Spinning Gems - (c) 2017 Code Inferno Games - codeinferno.com (https://opengameart.org/content/animated-spinning-gems)
 - Werebear FLARE sprite sheets - (c) 2011 John Harvey (https://opengameart.org/content/werebear-flare-sprite-sheets)
+- Bleed - (c) 2017 Remos Turcuman - (https://opengameart.org/users/bleed, http://remusprites.carbonmade.com)
+- 400+ Items - BaseHumanMale / Orc / Skeleton - (c) 2021 SKYZ0R (https://opengameart.org/content/400-items-basehumanmale-orc-skeleton)
 
 
 **Music & SFX**

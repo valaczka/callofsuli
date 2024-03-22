@@ -25,6 +25,8 @@
  */
 
 #include "rpgpickableobject.h"
+#include "rpgplayer.h"
+#include "rpggame.h"
 
 
 
@@ -41,7 +43,8 @@ RpgPickableObject::RpgPickableObject(const PickableType &type, QQuickItem *paren
 	, TiledPickableIface()
 	, m_pickableType(type)
 {
-
+	connect(m_fixture.get(), &Box2DCircle::beginContact, this, &RpgPickableObject::fixtureBeginContact);
+	connect(m_fixture.get(), &Box2DCircle::endContact, this, &RpgPickableObject::fixtureEndContact);
 }
 
 
@@ -89,6 +92,8 @@ void RpgPickableObject::onActivated()
 	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable));
 	m_fixture->setCollidesWith(Box2DFixture::All);
 	setSubZ(0.3);
+	if (m_activateEffect)
+		m_activateEffect->play();
 }
 
 
@@ -103,4 +108,54 @@ void RpgPickableObject::onDeactivated()
 	m_fixture->setCategories(Box2DFixture::None);
 	m_fixture->setCollidesWith(Box2DFixture::None);
 	setSubZ(0.);
+	if (m_deactivateEffect)
+		m_deactivateEffect->play();
+}
+
+
+
+/**
+ * @brief RpgPickableObject::fixtureBeginContact
+ * @param other
+ */
+
+void RpgPickableObject::fixtureBeginContact(Box2DFixture *other)
+{
+	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (!base || !g)
+		return;
+
+	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle))) {
+		if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(base)) {
+			if (player == g->controlledPlayer()) {
+				setGlowColor(QStringLiteral("#FFF59D"));
+				setGlowEnabled(true);
+			}
+		}
+	}
+}
+
+
+/**
+ * @brief RpgPickableObject::fixtureEndContact
+ * @param other
+ */
+
+void RpgPickableObject::fixtureEndContact(Box2DFixture *other)
+{
+	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (!base || !g)
+		return;
+
+	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle))) {
+		if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(base)) {
+			if (player == g->controlledPlayer()) {
+				setGlowEnabled(false);
+			}
+		}
+	}
 }

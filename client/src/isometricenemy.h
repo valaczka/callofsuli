@@ -73,6 +73,7 @@ protected:
 
 	struct EnemyMetric {
 		qreal speed = 3.0;						// <=0: no move
+		qreal runSpeed = -1.0;					// Over runSpeed activate "run" sprite
 		qreal pursuitSpeed = 3.0;				// -1: =speed, 0: no pursuit, >0: pursuit speed
 		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
 		bool rotateToPlayer = true;
@@ -163,7 +164,7 @@ protected:
 	std::vector<std::unique_ptr<TiledWeapon>> m_weapons;
 
 	friend class TiledGame;
-	friend class TiledRpgGame;
+	friend class RpgGame;
 };
 
 #endif // ISOMETRICENEMY_H

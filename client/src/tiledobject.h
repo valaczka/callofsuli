@@ -112,6 +112,8 @@ public:
 		FixtureTarget,
 		FixtureTransport,
 		FixturePickable,
+		FixtureTrigger,
+		FixtureVirtualCircle,
 		FixtureSensor
 	};
 
@@ -500,7 +502,7 @@ protected:
 	bool appendSprite(const IsometricObjectLayeredSprite &sprite, const QString &path = QStringLiteral(""));
 	bool appendSprite(const IsometricObjectLayeredSpriteList &sprite, const QString &path = QStringLiteral(""));
 
-	bool playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite = false);
+	bool playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite = false) const;
 
 	void createVisual();
 
@@ -510,6 +512,8 @@ protected:
 	Directions m_availableDirections = None;
 	TiledSpriteHandler *m_spriteHandler = nullptr;
 	TiledSpriteHandler *m_spriteHandlerAuxFront = nullptr;
+
+	friend class TiledEffect;
 };
 
 
@@ -543,10 +547,11 @@ TiledObjectBase::createFromCircle(T **dest, const QPointF &position, const qreal
 	(*dest)->setWidth(size);
 	(*dest)->setHeight(size);
 
-	(*dest)->createFixture(pos, size);
+	(*dest)->createFixture(QPointF{}, size);
 
 	(*dest)->body()->addFixture((*dest)->fixture());
 	(*dest)->bodyComplete();
+	(*dest)->body()->emplace(pos);
 }
 
 
@@ -632,7 +637,7 @@ TiledObjectBase::createFromPolygon(T **dest, const QPolygonF &polygon, Tiled::Ma
 
 template<typename T>
 typename std::enable_if<std::is_base_of<TiledObjectCircleIface, T>::value>::type
-TiledObjectBase::createFromMapObject(T **dest, const Tiled::MapObject *object, Tiled::MapRenderer *renderer, QQuickItem *parent)
+TiledObjectBase::createFromMapObject(T **dest, const Tiled::MapObject *object, Tiled::MapRenderer */*renderer*/, QQuickItem */*parent*/)
 {
 	Q_ASSERT(dest);
 
@@ -641,9 +646,9 @@ TiledObjectBase::createFromMapObject(T **dest, const Tiled::MapObject *object, T
 		return;
 	}
 
-	if (object->shape())
-		createFromPolygon<T>(dest, object->bounds(), renderer, parent);
-	else
+	/*if (object->shape())
+		createFromCircle<T>(dest, object->position(), object->radius(), renderer, parent);
+	else*/
 		LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
 
 }

@@ -76,12 +76,12 @@ protected:
 	void load() override final;
 	void eventPlayerReached(IsometricPlayer */*player*/) override final {}
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}
-	void eventPlayerContacted(IsometricPlayer */*player*/) override final;
 
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
 
 	void playAttackEffect(TiledWeapon *weapon) override final;
 	void playDeadEffect();
+	void playSeeEffect();
 
 	QPointF getPickablePosition() const override final;
 

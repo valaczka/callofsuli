@@ -110,7 +110,7 @@ protected:
 
 	virtual void load() = 0;
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
-	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
+	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, const bool &isProtected) = 0;
 	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
 	virtual void onEnemyLeft(IsometricEnemy *enemy) = 0;
 	virtual void onTransportReached(TiledTransport *transport) = 0;
@@ -123,7 +123,9 @@ protected:
 	qreal m_sensorLength = 200.;
 	qreal m_sensorRange = M_PI * 0.33;
 	qreal m_targetCircleRadius = 50.;
-	qreal m_speedLength = 6.;
+	qreal m_speedLength = 4.;
+	qreal m_speedRunLength = 7.;
+	qreal m_runSpeed = 3.;
 	qint64 m_inabilityTime = 1000;
 
 
@@ -141,7 +143,7 @@ private:
 	IsometricPlayerPrivate *d = nullptr;
 
 	friend class TiledGame;
-	friend class TiledRpgGame;
+	friend class RpgGame;
 };
 
 #endif // ISOMETRICPLAYER_H

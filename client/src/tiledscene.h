@@ -65,6 +65,8 @@ public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
 	virtual ~TiledScene();
 
+	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
+
 	Q_INVOKABLE int getDynamicZ(const QPointF &point, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(const qreal &x, const qreal &y, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(QQuickItem *item, const int &defaultValue = 1) const;
@@ -79,6 +81,8 @@ public:
 
 	void startMusic();
 	void stopMusic();
+
+	bool isGroundContainsPoint(const QPointF &point) const;
 
 	TiledQuick::MapLoader *mapLoader() const;
 
@@ -100,9 +104,7 @@ signals:
 	void runningChanged();
 	void gameChanged();
 	void sceneIdChanged();
-
 	void ambientSoundChanged();
-
 	void backgroundMusicChanged();
 
 protected:
@@ -117,7 +119,8 @@ protected:
 	std::map<int, DynamicZ> m_dynamicZList;
 	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Box2DWorld> m_world;
-	QList<QPointer<TiledObject>> m_tiledObjects;
+	QVector<QPointer<TiledObject>> m_tiledObjects;
+	QVector<QPointer<TiledObjectBasePolygon>> m_groundObjects;
 	QString m_ambientSound;
 	QString m_backgroundMusic;
 
@@ -144,7 +147,6 @@ private:
 	void onWorldStepped();
 	void reorderObjectsZ();
 	void repaintTilesets(Tiled::Tileset *tileset);
-	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 
 	TiledGame *m_game = nullptr;
 	int m_sceneId = -1;

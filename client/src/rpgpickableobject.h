@@ -27,6 +27,7 @@
 #ifndef RPGPICKABLEOBJECT_H
 #define RPGPICKABLEOBJECT_H
 
+#include "tiledeffect.h"
 #include "tiledpickableiface.h"
 #include "isometricobject.h"
 #include <QQmlEngine>
@@ -78,7 +79,13 @@ protected:
 
 	virtual void load() = 0;
 
+	std::unique_ptr<TiledEffect> m_activateEffect;
+	std::unique_ptr<TiledEffect> m_deactivateEffect;
+
 private:
+	void fixtureBeginContact(Box2DFixture *other);
+	void fixtureEndContact(Box2DFixture *other);
+
 	const PickableType m_pickableType;
 
 	static const QHash<QString, PickableType> m_typeHash;

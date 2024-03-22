@@ -167,6 +167,11 @@ void IsometricPlayer::initialize()
 					   TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable)
 					   );
 
+	p->virtualCircle()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle));
+	p->virtualCircle()->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTrigger) |
+										TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable)
+										);
+
 	connect(p, &TiledObjectSensorPolygon::beginContact, this, &IsometricPlayer::sensorBeginContact);
 	connect(p, &TiledObjectSensorPolygon::endContact, this, &IsometricPlayer::sensorEndContact);
 
@@ -353,11 +358,6 @@ void IsometricPlayer::sensorBeginContact(Box2DFixture *other)
 		if (!d->m_contactedEnemies.contains(enemy))
 			d->m_contactedEnemies.append(enemy);
 	}
-
-	if (dynamic_cast<TiledPickableIface*>(base)) {
-		base->setGlowColor(QStringLiteral("#FFF59D"));
-		base->setGlowEnabled(true);
-	}
 }
 
 
@@ -377,11 +377,6 @@ void IsometricPlayer::sensorEndContact(Box2DFixture *other)
 
 	if (enemy)
 		d->m_contactedEnemies.removeAll(enemy);
-
-	if (dynamic_cast<TiledPickableIface*>(base)) {
-		base->setGlowEnabled(false);
-	}
-
 }
 
 
@@ -546,7 +541,9 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 		setCurrentAngle(state.angle);
 	}
 
-	if (state.distance > 0.9) {
+	if (state.distance >= 1.) {
+		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedRunLength));
+	} else if (state.distance > 0.75) {
 		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedLength));
 	} else {
 		setCurrentVelocity({0.,0.});

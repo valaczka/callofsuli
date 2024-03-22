@@ -29,6 +29,7 @@
 
 #include "isometricobject.h"
 #include <QQmlEngine>
+#include "tiledscene.h"
 
 class TiledGame;
 
@@ -82,6 +83,9 @@ public:
 	virtual void maxHpChanged() = 0;
 
 
+	qreal movingSpeed() const;
+	void setMovingSpeed(qreal newMovingSpeed);
+
 protected:
 	void entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections);
 
@@ -89,6 +93,7 @@ protected:
 	virtual void onDead() = 0;
 
 	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
+	qreal m_movingSpeed = 0.;
 	qreal m_maximumSpeed = 10.;
 	int m_hp = 1;
 	int m_maxHp = 1;
@@ -114,6 +119,12 @@ T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &
 										  const TiledObjectBody::FixtureCategory &category, QPointF *visiblePointPtr)
 {
 	Q_ASSERT(body);
+
+	if (body->baseObject() && body->baseObject()->scene()->isGroundContainsPoint(body->bodyPosition())) {
+		LOG_CINFO("scene") << "IN GROUND";
+		return nullptr;
+	}
+
 
 	QMap<qreal, QPair<T, QPointF>> list;
 

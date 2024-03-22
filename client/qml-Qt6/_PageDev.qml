@@ -15,7 +15,22 @@ Page {
 		color: _flick.scene.debugView ? Qaterial.Colors.blue900 : "black"
 	}*/
 
-	TiledRpgGameImpl {
+	onWidthChanged: setBaseScale()
+
+	function setBaseScale() {
+		if (width < 576 * Qaterial.Style.devicePixelSizeCorrection)
+			_game.baseScale = 0.5
+		else if (width < 786 * Qaterial.Style.devicePixelSizeCorrection)
+			_game.baseScale = 0.6
+		else if (width < 992 * Qaterial.Style.devicePixelSizeCorrection)
+			_game.baseScale = 0.7
+		else if (width < 1200 * Qaterial.Style.devicePixelSizeCorrection)
+			_game.baseScale = 0.8
+		else
+			_game.baseScale = 1.0
+	}
+
+	RpgGameImpl {
 		id: _game
 		anchors.fill: parent
 		joystick: _gameJoystick
@@ -149,7 +164,7 @@ Page {
 		fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
-			_game.controlledPlayer.nextWeapon()
+			_game.controlledPlayer.armory.nextWeapon()
 		}
 	}
 
@@ -190,7 +205,7 @@ Page {
 		anchors.bottom: parent.bottom
 		anchors.margins: 10
 
-		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.currentWeapon : null
+		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
 		readonly property bool enemyAimed: _game.controlledPlayer && _game.controlledPlayer.enemy
 
 		visible: weapon

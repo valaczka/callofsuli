@@ -29,8 +29,7 @@
 #include "rpglongsword.h"
 #include "rpgshield.h"
 #include "tiledspritehandler.h"
-#include "tiledrpggame.h"
-#include "utils_.h"
+#include "rpggame.h"
 #include <QDirIterator>
 
 
@@ -46,8 +45,8 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	: IsometricPlayer(parent)
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
-	, m_weaponList(new TiledWeaponList)
-
+	, m_armory(new RpgArmory(this))
+	, m_effectHealed(this)
 {
 	m_sfxPain.setSoundList({
 							   QStringLiteral(":/sound/sfx/pain1.mp3"),
@@ -62,19 +61,21 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 								   QStringLiteral(":/sound/sfx/run1.mp3"),
 								   QStringLiteral(":/sound/sfx/run2.mp3"),
 							   });
-	m_sfxFootStep.setInterval(250);
+	m_sfxFootStep.setInterval(350);
 
 	m_moveDisabledSpriteList = {
-		QStringLiteral("die"),
-		QStringLiteral("block"),
-		QStringLiteral("swing"),
-		QStringLiteral("shoot")
+		QStringLiteral("attack"),
+		QStringLiteral("bow"),
+		QStringLiteral("cast"),
+		QStringLiteral("hurt"),
+		QStringLiteral("death")
 	};
 
 	connect(this, &RpgPlayer::hurt, this, &RpgPlayer::playHurtEffect);
 	connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
 	connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
 	connect(this, &RpgPlayer::becameDead, this, &RpgPlayer::playDeadEffect);
+	connect(m_armory.get(), &RpgArmory::currentWeaponChanged, this, &RpgPlayer::playWeaponChangedEffect);
 
 }
 
@@ -97,7 +98,7 @@ RpgPlayer::~RpgPlayer()
  * @return
  */
 
-RpgPlayer *RpgPlayer::createPlayer(TiledRpgGame *game, TiledScene *scene, const QString &character)
+RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const QString &character)
 {
 	RpgPlayer *player = nullptr;
 	TiledObjectBase::createFromCircle<RpgPlayer>(&player, QPointF{}, 50, nullptr, game);
@@ -161,46 +162,6 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 
 
 
-/**
- * @brief RpgPlayer::nextWeapon
- */
-
-void RpgPlayer::nextWeapon()
-{
-	if (m_weaponList->empty())
-		return;
-
-	const int index = m_weaponList->indexOf(m_currentWeapon);
-
-	int nextIndex = -1;
-
-	for (int i=index+1; i != index; ++i) {
-		if (i >= m_weaponList->size()) {
-			if (index == -1)
-				break;
-			else
-				i = 0;
-		}
-
-		const auto weapon = m_weaponList->at(i);
-
-		if (weapon && weapon->canAttack()) {
-			nextIndex = i;
-			break;
-		}
-
-	}
-
-	if (nextIndex == -1) {
-		LOG_CERROR("game") << "No available weapon";
-		return;
-	}
-
-	setCurrentWeapon(m_weaponList->at(nextIndex));
-}
-
-
-
 
 
 /**
@@ -247,29 +208,25 @@ void RpgPlayer::load()
 		return;
 	}
 
-	const QString directory = QStringLiteral(":/rpg/").append(m_character).append(QStringLiteral("/"));
 
-	const auto &ptr = Utils::fileToJsonObject(directory+QStringLiteral("character.json"));
-
-	if (!ptr) {
-		LOG_CERROR("game") << "Resource load error";
-		return;
+	for (int i=0; i<=2; ++i)
+	{
+		IsometricObjectLayeredSprite json;
+		json.fromJson(RpgGame::baseEntitySprite(i));
+		json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
+		RpgArmory::fillAvailableLayers(&json, i);
+		appendSprite(json, QStringLiteral(":/rpg/")+m_character+QStringLiteral("/"));
 	}
 
-	IsometricObjectLayeredSprite json;
-	json.fromJson(*ptr);
-
-	appendSprite(json, directory);
-
-	setWidth(128);
-	setHeight(128);
+	setWidth(148);
+	setHeight(130);
 	setBodyOffset(0, 0.45*64);
 
 	loadDefaultWeapons();
 
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgPlayer::onCurrentSpriteChanged);
 
-	updateLayers();
+	m_armory->updateLayers();
 }
 
 
@@ -283,16 +240,21 @@ void RpgPlayer::load()
 void RpgPlayer::updateSprite()
 {
 	if (m_hp <= 0) {
-		jumpToSprite("die", m_currentDirection);
+		jumpToSprite("death", m_currentDirection);
 		return;
 	}
 
-	if (m_spriteHandler->currentSprite() == "block" || m_spriteHandler->currentSprite() == "swing" ||
-			m_spriteHandler->currentSprite() == "shoot")
+	if (m_spriteHandler->currentSprite() == "attack" ||
+			m_spriteHandler->currentSprite() == "bow" ||
+			m_spriteHandler->currentSprite() == "hurt" ||
+			m_spriteHandler->currentSprite() == "cast")
 		jumpToSpriteLater("idle", m_currentDirection);
-	else if (m_movingDirection != Invalid)
-		jumpToSprite("run", m_movingDirection);
-	else
+	else if (m_movingDirection != Invalid) {
+		if (m_runSpeed >= 0. && m_movingSpeed >= m_runSpeed)
+			jumpToSprite("run", m_movingDirection);
+		else
+			jumpToSprite("walk", m_movingDirection);
+	} else
 		jumpToSprite("idle", m_currentDirection);
 }
 
@@ -306,10 +268,10 @@ void RpgPlayer::updateSprite()
 
 bool RpgPlayer::protectWeapon(const TiledWeapon::WeaponType &weaponType)
 {
-	const bool r = IsometricPlayer::protectWeapon(m_weaponList.get(), weaponType);
+	const bool r = IsometricPlayer::protectWeapon(m_armory->weaponList(), weaponType);
 
 	if (r)
-		updateLayers();
+		m_armory->updateLayers();
 
 	return r;
 }
@@ -322,27 +284,54 @@ bool RpgPlayer::protectWeapon(const TiledWeapon::WeaponType &weaponType)
  * @brief RpgPlayer::attackedByEnemy
  */
 
-void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType &weaponType)
+void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType &weaponType, const bool &isProtected)
 {
 	if (!isAlive())
 		return;
 
-	setHp(m_hp-1);
+	if (isProtected) {
+		QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){ jumpToSprite("hurt", m_currentDirection); });
+		return;
+	}
 
-	/*if (m_hp < 3)
-		m_currentAlteration = "none";
-	else if (m_hp < 6)
-		m_currentAlteration = "sword";*/
 
-	if (m_hp <= 0) {
-		jumpToSprite("die", m_currentDirection);
-	} else if (m_spriteHandler->currentSprite() != "swing" && m_spriteHandler->currentSprite() != "shoot") {
-		emit hurt();
-		jumpToSprite("block", m_currentDirection);
+	int hp = m_hp;
+
+	switch (weaponType) {
+		case TiledWeapon::WeaponSword:
+			hp -= 2;
+			break;
+
+		case TiledWeapon::WeaponShortbow:
+			hp -= 2;
+			break;
+
+		case TiledWeapon::WeaponHand:
+		case TiledWeapon::WeaponGreatHand:
+			hp -= 1;
+			break;
+
+		case TiledWeapon::WeaponShield:
+		case TiledWeapon::WeaponInvalid:
+			break;
+	}
+
+
+
+	if (hp <= 0) {
+		setHp(hp);
+		jumpToSprite("death", m_currentDirection);
+	} else if (m_spriteHandler->currentSprite() != "attack" &&
+			   m_spriteHandler->currentSprite() != "bow" &&
+			   m_spriteHandler->currentSprite() != "cast") {
+		QTimer::singleShot(200, Qt::PreciseTimer, this, [this, hp](){
+			setHp(hp);
+			jumpToSprite("hurt", m_currentDirection);
+		});
 		startInabililty();
 	}
 
-	updateLayers();
+	m_armory->updateLayers();
 }
 
 
@@ -353,52 +342,14 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 
 void RpgPlayer::loadDefaultWeapons()
 {
-	setCurrentWeapon(weaponAdd(new TiledWeaponHand));
-	weaponAdd(new RpgLongsword);
-	weaponAdd(new RpgShortbow)->setBulletCount(12);
-	weaponAdd(new RpgShield)->setBulletCount(10);
+	m_armory->setCurrentWeapon(m_armory->weaponAdd(new TiledWeaponHand));
+	m_armory->weaponAdd(new RpgLongsword);
+	m_armory->weaponAdd(new RpgShortbow)->setBulletCount(12);
+	m_armory->weaponAdd(new RpgShield)->setBulletCount(10);
 }
 
 
 
-/**
- * @brief RpgPlayer::updateLayers
- */
-
-void RpgPlayer::updateLayers()
-{
-	QStringList layers;
-	layers << QStringLiteral("base");
-
-
-	if (m_currentWeapon) {
-		switch (m_currentWeapon->weaponType()) {
-			case TiledWeapon::WeaponShortbow:
-				layers.append(QStringLiteral("shortbow"));
-				break;
-
-			case TiledWeapon::WeaponSword:
-				layers.append(QStringLiteral("longsword"));
-				break;
-
-			case TiledWeapon::WeaponShield:
-			case TiledWeapon::WeaponHand:
-			case TiledWeapon::WeaponGreatHand:
-			case TiledWeapon::WeaponInvalid:
-				break;
-		}
-	}
-
-	if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
-							   [](TiledWeapon *w) {
-							   return w->weaponType() == TiledWeapon::WeaponShield;
-}); it != m_weaponList->cend()) {
-		if ((*it)->bulletCount() > 0)
-			layers.append(QStringLiteral("shield"));
-	}
-
-	m_spriteHandler->setVisibleLayers(layers);
-}
 
 
 /**
@@ -443,22 +394,7 @@ void RpgPlayer::playHurtEffect()
 
 void RpgPlayer::playHealedEffect()
 {
-	static const QString test = R"({
-			"name": "base",
-			"x": 0,
-			"y": 0,
-			"count": 6,
-			"width": 64,
-			"height": 64,
-			"duration": 60,
-			"loops": 1
-	})";
-
-
-	TiledObjectSprite json;
-	json.fromJson(QJsonDocument::fromJson(test.toUtf8()).object());
-
-	playAuxSprite(QStringLiteral(":/rpg/common/heal.png"), json);
+	m_effectHealed.play();
 }
 
 
@@ -489,11 +425,11 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponSword:
-			jumpToSprite("swing", m_currentDirection);
+			jumpToSprite("attack", m_currentDirection);
 			break;
 
 		case TiledWeapon::WeaponShortbow:
-			jumpToSprite("shoot", m_currentDirection);
+			jumpToSprite("bow", m_currentDirection);
 			break;
 
 
@@ -505,85 +441,43 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 
 
 
-/**
- * @brief RpgPlayer::currentWeapon
- * @return
- */
-
-TiledWeapon *RpgPlayer::currentWeapon() const
-{
-	return m_currentWeapon;
-}
-
-void RpgPlayer::setCurrentWeapon(TiledWeapon *newCurrentWeapon)
-{
-	if (m_currentWeapon == newCurrentWeapon)
-		return;
-	m_currentWeapon = newCurrentWeapon;
-	emit currentWeaponChanged();
-	updateLayers();
-}
-
 
 /**
- * @brief RpgPlayer::weaponList
- * @return
+ * @brief RpgPlayer::playWeaponChangedEffect
  */
 
-TiledWeaponList *RpgPlayer::weaponList() const
+void RpgPlayer::playWeaponChangedEffect()
 {
-	return m_weaponList.get();
-}
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-
-/**
- * @brief RpgPlayer::weaponFind
- * @param type
- * @return
- */
-
-TiledWeapon *RpgPlayer::weaponFind(const TiledWeapon::WeaponType &type) const
-{
-	for (TiledWeapon *w : *m_weaponList) {
-		if (w->weaponType() == type)
-			return w;
-	}
-
-	return nullptr;
-}
-
-
-
-/**
- * @brief RpgPlayer::weaponAdd
- * @param weapon
- */
-
-TiledWeapon* RpgPlayer::weaponAdd(TiledWeapon *weapon)
-{
-	if (!weapon)
-		return nullptr;
-
-	m_weaponList->append(weapon);
-	weapon->setParentObject(this);
-	return weapon;
-}
-
-
-
-/**
- * @brief RpgPlayer::weaponRemove
- * @param weapon
- */
-
-void RpgPlayer::weaponRemove(TiledWeapon *weapon)
-{
-	if (!weapon)
+	if (!g || g->controlledPlayer() != this)
 		return;
 
-	weapon->setParentObject(nullptr);
-	m_weaponList->remove(weapon);
+	if (!armory()->currentWeapon())
+		return m_game->messageColor(tr("Without weapon"), QStringLiteral("EF5350"));
+
+
+	m_game->message(tr("Active weapon: ").append(armory()->currentWeapon()->weaponNameEn()));
 }
+
+
+
+
+
+/**
+ * @brief RpgPlayer::armory
+ * @return
+ */
+
+RpgArmory *RpgPlayer::armory() const
+{
+	return m_armory.get();
+}
+
+
+
+
+
 
 
 

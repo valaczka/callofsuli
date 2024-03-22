@@ -79,8 +79,6 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
 {
 	switch (weapon) {
 		case TiledWeapon::WeaponHand:
-			return true;
-
 		case TiledWeapon::WeaponShortbow:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponSword:
@@ -106,7 +104,7 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
 RpgShieldPickable::RpgShieldPickable(QQuickItem *parent)
 	: RpgPickableObject(PickableShield, parent)
 {
-
+	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }
 
 
@@ -124,10 +122,10 @@ void RpgShieldPickable::playerPick(RpgPlayer *player)
 
 	static const int num = 5;
 
-	TiledWeapon *weapon = player->weaponFind(TiledWeapon::WeaponShield);
+	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShield);
 
 	if (!weapon)
-		weapon = player->weaponAdd(new RpgShield);
+		weapon = player->armory()->weaponAdd(new RpgShield);
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
 

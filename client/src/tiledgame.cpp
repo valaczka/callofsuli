@@ -126,9 +126,9 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 		scene->addTileLayer(tl, renderer);
 	} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
 		loadObjectLayer(scene, group, renderer);
-	} /*else if (Tiled::GroupLayer *group = layer->asGroupLayer()) {
-		loadGroupLayer(group);
-	}*/
+	} else if (Tiled::GroupLayer *group = layer->asGroupLayer()) {
+		loadGroupLayer(scene, group, renderer);
+	}
 
 	return nullptr;
 }
@@ -304,7 +304,7 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
  * @return
  */
 
-TiledObjectBase *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
 	Q_ASSERT(scene);
 	Q_ASSERT(object);
@@ -322,6 +322,8 @@ TiledObjectBase *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 	mapObject->fixture()->setFriction(1);
 	mapObject->fixture()->setRestitution(0);
 	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround));
+
+	scene->m_groundObjects.append(mapObject);
 
 	if (object->hasProperty(QStringLiteral("dynamicZ"))) {
 		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
@@ -396,6 +398,19 @@ void TiledGame::loadObjectLayer(TiledScene *, Tiled::MapObject *, Tiled::MapRend
 }
 
 
+/**
+ * @brief TiledGame::loadGroupLayer
+ * @param scene
+ * @param group
+ * @param renderer
+ */
+
+void TiledGame::loadGroupLayer(TiledScene *, Tiled::GroupLayer *, Tiled::MapRenderer *)
+{
+LOG_CERROR("game") << "Missing implementation:" << __PRETTY_FUNCTION__;
+}
+
+
 
 
 /**
@@ -410,41 +425,43 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 	qreal dx = m_keyboardJoystickState.dx;
 	qreal dy = m_keyboardJoystickState.dy;
 
+	const bool isSlow = event->modifiers().testAnyFlag(Qt::ShiftModifier);
+
 	switch (key) {
 		case Qt::Key_Left:
-			dx = 0.;
+			dx = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_Right:
-			dx = 1.;
+			dx = isSlow ? 0.8 : 1.;
 			break;
 
 		case Qt::Key_Up:
-			dy = 0.;
+			dy = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_Down:
-			dy = 1.;
+			dy = isSlow ? 0.8 : 1.;
 			break;
 
 		case Qt::Key_Home:
-			dx = 0.;
-			dy = 0.;
+			dx = isSlow ? 0.2 : 0.;
+			dy = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_End:
-			dx = 0.;
-			dy = 1.;
+			dx = isSlow ? 0.2 : 0.;
+			dy = isSlow ? 0.8 : 1.;
 			break;
 
 		case Qt::Key_PageUp:
-			dx = 1.;
-			dy = 0.;
+			dx = isSlow ? 0.8 : 1.;
+			dy = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_PageDown:
-			dx = 1.;
-			dy = 1.;
+			dx = isSlow ? 0.8 : 1.;
+			dy = isSlow ? 0.8 : 1.;
 			break;
 
 #ifndef QT_NO_DEBUG
@@ -638,6 +655,19 @@ void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
 							  Q_ARG(QVariant, state.dx),
 							  Q_ARG(QVariant, state.dy)
 							  );
+}
+
+qreal TiledGame::baseScale() const
+{
+	return m_baseScale;
+}
+
+void TiledGame::setBaseScale(qreal newBaseScale)
+{
+	if (qFuzzyCompare(m_baseScale, newBaseScale))
+		return;
+	m_baseScale = newBaseScale;
+	emit baseScaleChanged();
 }
 
 QColor TiledGame::defaultMessageColor() const
@@ -854,7 +884,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const float &b
 	if (!scene || !m_currentScene || m_currentScene != scene)
 		return;
 
-	const qreal &scale = m_currentScene->scale();
+	const qreal &scale = m_currentScene->scale() + (1.-m_baseScale);
 	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
 
 	Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel, factor);
@@ -883,7 +913,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
 	};
 
 	const QRectF &rect = m_currentScene->visibleArea();
-	const qreal &scale = m_currentScene->scale();
+	const qreal &scale = m_currentScene->scale() + (1.-m_baseScale);
 	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
 
 	for (const auto &[margin, volume] : distanceMap) {

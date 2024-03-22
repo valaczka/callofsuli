@@ -44,6 +44,7 @@ Flickable {
 			anchors.centerIn: parent
 			transformOrigin: Item.Center
 
+			scale: game ? game.baseScale : 1.0
 
 			onScaleChanged: {
 				if ((width * scale) > flick.width) {
