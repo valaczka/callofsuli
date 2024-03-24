@@ -394,7 +394,7 @@ QVariantList ModuleFillout::generateSequence(const QVariantMap &data, const QVar
 
 	QStringList optList;
 
-	for (const QVariant &v : answer)
+	for (const QVariant &v : std::as_const(answer))
 		optList.append(v.toString());
 
 

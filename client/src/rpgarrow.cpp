@@ -25,7 +25,7 @@
  */
 
 #include "rpgarrow.h"
-#include "tiledspritehandler.h"
+#include "rpgplayer.h"
 
 
 RpgArrow::RpgArrow(QQuickItem *parent)
@@ -69,36 +69,31 @@ void RpgArrow::load()
 	createVisual();
 	setAvailableDirections(Direction_8);
 
-	static const QString test = R"({
-					   "layers": {
-		"none": "lightning.png",
-		"arrow": "arrows.png"
-	},
-	"sprites": [
+	static const QByteArray sprite = R"(
 		{
-			"name": "base",
+			"name": "default",
 			"directions": [ 270, 315, 360, 45, 90, 135, 180, 225 ],
 			"x": 0,
 			"y": 0,
-			"count": 4,
+			"count": 1,
 			"width": 64,
 			"height": 64,
-			"duration": 30
+			"duration": 1,
+			"loops": 1
 		}
-	]
-	})";
+	)";
 
 
-	IsometricObjectLayeredSprite json;
-	json.fromJson(QJsonDocument::fromJson(test.toUtf8()).object());
+	IsometricObjectSprite json;
+	json.fromJson(QJsonDocument::fromJson(sprite).object());
 
-	appendSprite(json, QStringLiteral(":/rpg/arrow/"));
+	appendSprite(QStringLiteral(":/rpg/arrow/arrow.png"), json);
 
 	setWidth(64);
 	setHeight(64);
-	setBodyOffset(0, 25);
+	setBodyOffset(0, 50);
 
-	m_spriteHandler->setVisibleLayers({"none"});
+	jumpToSprite("default");
 }
 
 
@@ -113,6 +108,45 @@ void RpgArrow::load()
 RpgArrowPickable::RpgArrowPickable(QQuickItem *parent)
 	: RpgPickableObject(PickableArrow, parent)
 {
+	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
+}
+
+
+
+/**
+ * @brief RpgArrowPickable::playerPick
+ * @param player
+ */
+
+void RpgArrowPickable::playerPick(RpgPlayer *player)
+{
+	if (!player)
+		return;
+
+	static const int num = 35;
+
+	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
+
+	if (!weapon)
+		weapon = player->armory()->weaponAdd(new RpgShortbow);
+
+	weapon->setBulletCount(weapon->bulletCount()+num);
+
+	if (m_game)
+		m_game->message(tr("%1 arrows gained").arg(num));
+
+	player->armory()->setCurrentWeapon(weapon);
+}
+
+
+
+/**
+ * @brief RpgArrowPickable::playerThrow
+ * @param player
+ */
+
+void RpgArrowPickable::playerThrow(RpgPlayer *player)
+{
 
 }
 
@@ -124,5 +158,6 @@ RpgArrowPickable::RpgArrowPickable(QQuickItem *parent)
 
 void RpgArrowPickable::load()
 {
-
+	loadDefault(QStringLiteral("arrow"));
 }
+

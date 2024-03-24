@@ -221,5 +221,8 @@
         <file>TiledFlickableScene.qml</file>
         <file>TiledPlayerMarker.qml</file>
         <file>GameSkullImage.qml</file>
+        <file>PageActionRpgGame.qml</file>
+        <file>RpgGameItem.qml</file>
+        <file>RpgCharacterSelect.qml</file>
     </qresource>
 </RCC>

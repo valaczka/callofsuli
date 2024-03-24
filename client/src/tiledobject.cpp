@@ -162,7 +162,7 @@ void TiledObjectBase::setPolygonVertices(Box2DPolygon *fixture, const QPolygonF 
 	QVariantList vert;
 	vert.reserve(polygon.size());
 
-	for (const QPointF &f : polygon)
+	for (const QPointF &f : std::as_const(polygon))
 		vert.append(f);
 
 	fixture->setVertices(vert);
@@ -639,7 +639,7 @@ bool TiledObject::appendSprite(const QString &source, const TiledObjectSpriteLis
 {
 	bool r = true;
 
-	for (const TiledObjectSprite &s : spriteList.sprites)
+	for (const TiledObjectSprite &s : std::as_const(spriteList.sprites))
 		r &= m_spriteHandler->addSprite(s, QStringLiteral("default"), source);
 
 	return r;
@@ -660,7 +660,7 @@ bool TiledObject::appendSprite(const TiledMapObjectLayeredSprite &sprite, const 
 
 	bool r = true;
 
-	for (const TiledObjectSprite &s : sprite.sprites) {
+	for (const TiledObjectSprite &s : std::as_const(sprite.sprites)) {
 		for (auto it = sprite.layers.constBegin(); it != sprite.layers.constEnd(); ++it) {
 			const QString &alteration = it.key();
 			r &= m_spriteHandler->addSprite(s, alteration, path+it.value());
@@ -684,7 +684,7 @@ bool TiledObject::appendSprite(const TiledObjectLayeredSpriteList &spriteList, c
 {
 	Q_ASSERT(m_visualItem);
 
-	for (const auto &s : spriteList.list) {
+	for (const auto &s : std::as_const(spriteList.list)) {
 		if (!appendSprite(s, path)) {
 			LOG_CERROR("scene") << "Load sprite error:" << path;
 			return false;
@@ -914,7 +914,7 @@ TiledObject::Direction TiledObject::nearestDirectionFromRadian(const Directions 
 	if (!ptr)
 		return Invalid;
 
-	for (const auto &[a, dir] : *ptr) {
+	for (const auto &[a, dir] : std::as_const(*ptr)) {
 		const qreal d = std::abs(a-angle);
 		if (diff == -1 || d < diff) {
 			diff = d;
@@ -1377,7 +1377,7 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 {
 	Q_ASSERT(m_spriteHandler);
 
-	for (const auto &s : spriteList.sprites) {
+	for (const auto &s : std::as_const(spriteList.sprites)) {
 		if (!appendSprite(source, s)) {
 			LOG_CERROR("scene") << "Load sprite error:" << source;
 			return false;
@@ -1402,7 +1402,7 @@ bool TiledObject::appendSprite(const IsometricObjectLayeredSprite &sprite, const
 
 	bool r = true;
 
-	for (const IsometricObjectSprite &s : sprite.sprites) {
+	for (const IsometricObjectSprite &s : std::as_const(sprite.sprites)) {
 		for (auto it = sprite.layers.constBegin(); it != sprite.layers.constEnd(); ++it) {
 			const QString &alteration = it.key();
 
@@ -1447,7 +1447,7 @@ bool TiledObject::appendSprite(const IsometricObjectLayeredSpriteList &sprite, c
 {
 	Q_ASSERT(m_spriteHandler);
 
-	for (const auto &s : sprite.list) {
+	for (const auto &s : std::as_const(sprite.list)) {
 		if (!appendSprite(s, path)) {
 			LOG_CERROR("scene") << "Load sprite error:" << path;
 			return false;

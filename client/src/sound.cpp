@@ -118,7 +118,7 @@ void Sound::playSound(const QString &source, const ChannelType &channel, const f
 	if (!m_engine ||
 			(channel == SfxChannel && !m_sfxEnabled) ||
 			(channel == MusicChannel && !m_musicEnabled) ||
-			(channel == Music2Channel && !m_musicEnabled) ||
+			(channel == Music2Channel && !m_sfxEnabled) ||
 			(channel == VoiceoverChannel && !m_voiceOverEnabled)) {
 		LOG_CTRACE("sound") << "Sound disabled" << channel;
 		return;
@@ -139,7 +139,7 @@ void Sound::playSound(const QString &source, const ChannelType &channel, const f
 		switch (channel) {
 			case SfxChannel: group = m_groupSfx.get(); break;
 			case MusicChannel: group = m_groupMusic.get(); break;
-			case Music2Channel: group = m_groupMusic.get(); break;
+			case Music2Channel: group = m_groupSfx.get(); break;
 			case VoiceoverChannel: group = m_groupVoiceOver.get(); break;
 		}
 

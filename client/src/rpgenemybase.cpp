@@ -37,6 +37,8 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	: IsometricEnemy(parent)
 	, RpgEnemyIface(type)
 {
+	m_armory.reset(new RpgArmory(this));
+
 	m_metric.speed = 2.;
 	m_metric.runSpeed = 3.;
 	m_metric.returnSpeed = 4.;
@@ -64,8 +66,6 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 		QStringLiteral("death")
 	};
 
-	const auto &ptr = m_weapons.emplace_back(new TiledWeaponHand);
-	ptr->setParentObject(this);
 
 	/*
 	connect(this, &RpgWerebear::hurt, &m_sfxPain, &TiledGameSfx::playOne);
@@ -90,7 +90,7 @@ RpgEnemyBase::~RpgEnemyBase()
 
 TiledWeapon *RpgEnemyBase::defaultWeapon() const
 {
-	return m_weapons.front().get();
+	return m_armory->currentWeapon();
 }
 
 
@@ -139,6 +139,7 @@ void RpgEnemyBase::load()
 		IsometricObjectLayeredSprite json;
 		json.fromJson(RpgGame::baseEntitySprite(i));
 		json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
+		RpgArmory::fillAvailableLayers(&json, i);
 		appendSprite(json, QStringLiteral(":/rpg/")+m_directory+QStringLiteral("/"));
 	}
 
@@ -196,12 +197,16 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 	int hp = origHp;
 
 	switch (weaponType) {
-		case TiledWeapon::WeaponSword:
+		case TiledWeapon::WeaponLongsword:
 			hp -= 1;
 			break;
 
 		case TiledWeapon::WeaponShortbow:
 			hp -= 2;
+			break;
+
+		case TiledWeapon::WeaponLongbow:
+			hp -= 3;
 			break;
 
 		case TiledWeapon::WeaponHand:
@@ -226,8 +231,8 @@ void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
 	if (!weapon)
 		return;
 
-	if (weapon->weaponType() == TiledWeapon::WeaponGreatHand || weapon->weaponType() == TiledWeapon::WeaponHand) {
-		jumpToSprite("attack", m_currentDirection);
+	if (const QString &sprite = RpgGame::getAttackSprite(weapon->weaponType()); !sprite.isEmpty()) {
+		jumpToSprite(sprite.toLatin1(), m_currentDirection);
 	}
 }
 
@@ -242,8 +247,59 @@ void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
 QPointF RpgEnemyBase::getPickablePosition() const
 {
 	QLineF line = QLineF::fromPolar(75., toDegree(directionToIsometricRaidan(m_currentDirection)));
-	line.translate(m_body->bodyPosition());
-	return line.p2();
+	line.translate(m_body->bodyPosition()-line.p2());
+	return line.p1();
+}
+
+
+
+
+
+/**
+ * @brief RpgEnemyBase::throwableWeapons
+ * @return
+ */
+
+QList<TiledWeapon *> RpgEnemyBase::throwableWeapons() const
+{
+	QList<TiledWeapon*> list;
+
+	for (TiledWeapon *w : std::as_const(*m_armory->weaponList())) {
+		if (w->canThrow() || w->canThrowBullet())
+			list.append(w);
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief RpgEnemyBase::throwWeapon
+ * @param weapon
+ */
+
+void RpgEnemyBase::throwWeapon(TiledWeapon *weapon)
+{
+	m_armory->weaponRemove(weapon);
+}
+
+
+
+/**
+ * @brief RpgEnemyBase::protectWeapon
+ * @param weaponType
+ * @return
+ */
+
+bool RpgEnemyBase::protectWeapon(const TiledWeapon::WeaponType &weaponType)
+{
+	for (TiledWeapon *w : std::as_const(*m_armory->weaponList())) {
+		if (w->canProtect(weaponType) && w->protect(weaponType))
+			return true;
+	}
+
+	return false;
 }
 
 

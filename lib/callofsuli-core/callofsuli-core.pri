@@ -17,6 +17,7 @@ HEADERS += \
 	$$PWD/gamemapreaderiface.h \
 	$$PWD/objectstate.h \
 	$$PWD/rank.h \
+	$$PWD/rpgconfig.h \
 	$$PWD/selectableobject.h \
 	$$PWD/../QJsonWebToken/src/qjsonwebtoken.h \
 	$$PWD/utils_.h

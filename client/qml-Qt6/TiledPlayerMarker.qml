@@ -12,7 +12,7 @@ AnimatedImage {
 
 	visible: target && target.game
 
-	y: target ? target.y-15 : 0
+	y: target ? target.y-25 : 0
 	x: target ? target.x+(target.width-width)/2 : 0
 
 	source: {

@@ -33,6 +33,29 @@
 #include <QQmlEngine>
 
 
+
+/**
+ * @brief The IsometricWerebearWeaponHand class
+ */
+
+class RpgWerebearWeaponHand : public TiledWeapon
+{
+	Q_OBJECT
+
+public:
+	RpgWerebearWeaponHand(QObject *parent = nullptr);
+
+	bool protect(const WeaponType &) override final { return false; }
+	bool canProtect(const WeaponType &) const override final { return false; }
+	bool canAttack() const override final { return true; }
+
+protected:
+	IsometricBullet *createBullet() override final { return nullptr; }
+	void eventAttack() override final;
+
+};
+
+
 /**
  * @brief The RpgWerebear class
  */
@@ -65,6 +88,8 @@ public:
 	void setWerebearType(const QString &text);
 
 	TiledWeapon *defaultWeapon() const override;
+	virtual QList<TiledWeapon*> throwableWeapons() const override final { return {}; }
+	virtual void throwWeapon(TiledWeapon *) override final {}
 
 signals:
 	void werebearTypeChanged();
@@ -85,6 +110,8 @@ protected:
 
 	QPointF getPickablePosition() const override final;
 
+	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
+
 private:
 	void onCurrentSpriteChanged();
 
@@ -92,31 +119,12 @@ private:
 
 	TiledGameSfx m_sfxFootStep;
 	TiledGameSfx m_sfxPain;
+
+	std::unique_ptr<RpgWerebearWeaponHand> m_weaponHand;
 };
 
 
 
-
-/**
- * @brief The IsometricWerebearWeaponHand class
- */
-
-class RpgWerebearWeaponHand : public TiledWeapon
-{
-	Q_OBJECT
-
-public:
-	RpgWerebearWeaponHand(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; }
-	bool canProtect(const WeaponType &) const override final { return false; }
-	bool canAttack() const override final { return true; }
-
-protected:
-	IsometricBullet *createBullet() override final { return nullptr; }
-	void eventAttack() override final;
-
-};
 
 
 #endif // RPGWEREBEAR_H

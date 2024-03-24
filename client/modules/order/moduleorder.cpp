@@ -47,7 +47,7 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 
 	const QVariantList &qList = data.value(QStringLiteral("list")).toList();
 
-	for (const QVariant &v : qList) {
+	for (const QVariant &v : std::as_const(qList)) {
 		const QVariantMap &m = v.toMap();
 		options.append(m.value(QStringLiteral("text")).toString());
 	}

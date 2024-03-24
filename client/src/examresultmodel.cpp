@@ -200,7 +200,7 @@ void ExamResultModel::reload()
 	if (m_teacherGroup->memberList()->size()) {
 		beginInsertRows(Utils::noParent(), 0, m_teacherGroup->memberList()->size()+1);
 
-		for (User *u : *m_teacherGroup->memberList())
+		for (User *u : std::as_const(*m_teacherGroup->memberList()))
 			m_userList.append(u);
 
 		std::sort(m_userList.begin(), m_userList.end(), [](User *left, User *right) {
@@ -216,7 +216,7 @@ void ExamResultModel::reload()
 	if (m_groupExamList && m_groupExamList->size()) {
 		beginInsertColumns(Utils::noParent(), 0, m_groupExamList->size()+1);
 
-		for (Exam *c : *m_groupExamList) {
+		for (Exam *c : std::as_const(*m_groupExamList)) {
 			if (c->state() >= Exam::Active)
 				m_examList.append(c);
 		}

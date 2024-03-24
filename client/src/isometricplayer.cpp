@@ -320,7 +320,7 @@ bool IsometricPlayer::protectWeapon(TiledWeaponList *weaponList, const TiledWeap
 
 	// Ordering weapons by enum
 
-	for (TiledWeapon *weapon : *weaponList) {
+	for (TiledWeapon *weapon : std::as_const(*weaponList)) {
 		if (weapon->canProtect(weaponType))
 			list.push_back(weapon);
 	}
@@ -543,7 +543,7 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 
 	if (state.distance >= 1.) {
 		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedRunLength));
-	} else if (state.distance > 0.75) {
+	} else if (state.distance > 0.65) {
 		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedLength));
 	} else {
 		setCurrentVelocity({0.,0.});
@@ -588,6 +588,4 @@ void IsometricPlayer::setEnemy(IsometricEnemy *newEnemy)
 		return;
 	d->m_enemy = newEnemy;
 	emit enemyChanged();
-
-	LOG_CINFO("game") << "Current enemy" << d->m_enemy.get();
 }

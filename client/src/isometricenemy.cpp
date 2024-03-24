@@ -154,6 +154,7 @@ void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
 
 
 
+
 /**
  * @brief IsometricEnemy::entityWorldStep
  */
@@ -207,7 +208,7 @@ void IsometricEnemy::entityWorldStep()
 			}
 
 			setPlayer(nullptr);
-			setPlayerDistance(-1.);
+			//setPlayerDistance(-1.);
 		}
 
 		if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {
@@ -237,6 +238,11 @@ void IsometricEnemy::entityWorldStep()
 	}
 
 	if (isPursuit) {
+		if (!enemyWorldStepOnVisiblePlayer(angle)) {
+			updateSprite();
+			return;
+		}
+
 		if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
 				m_returnPathMotor.reset(new TiledReturnPathMotor);
@@ -293,7 +299,7 @@ bool IsometricEnemy::enemyWorldStep()
 	if (!isAlive())
 		return true;
 
-	if (m_metric.autoAttackTime <= 0)
+	if (m_metric.autoAttackTime <= 0 || m_metric.firstAttackTime <= 0)
 		return true;
 
 	if (m_player && m_reachedPlayers.contains(m_player) && m_player->isAlive()) {
@@ -302,14 +308,58 @@ bool IsometricEnemy::enemyWorldStep()
 		if (!hasAbility())
 			return false;
 
-		if (m_autoHitTimer.hasExpired() || m_autoHitTimer.isForever()) {
+		if (m_autoHitTimer.hasExpired()) {
 			attackPlayer(m_player, defaultWeapon());
 			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);
+		} else if (m_autoHitTimer.isForever()) {
+			m_autoHitTimer.setRemainingTime(m_metric.firstAttackTime);
 		}
 
 		return false;
 	} else {
 		m_autoHitTimer.setRemainingTime(-1);
+	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief IsometricEnemy::enemyWorldStepOnVisiblePlayer
+ * @return
+ */
+
+bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle)
+{
+	if (!isAlive())
+		return false;
+
+	if (m_metric.autoAttackTime <= 0 || m_metric.firstAttackTime <= 0)
+		return true;
+
+	if (defaultWeapon() && defaultWeapon()->canShot() &&
+			m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive()) {
+		m_body->stop();
+
+		if (m_metric.returnSpeed != 0) {
+			if (!m_returnPathMotor)
+				m_returnPathMotor.reset(new TiledReturnPathMotor);
+		}
+
+		if (!hasAbility())
+			return false;
+
+		if (m_autoHitTimer.hasExpired()) {
+			attackPlayer(m_player, defaultWeapon());
+			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);
+		} else if (m_autoHitTimer.isForever()) {
+			m_autoHitTimer.setRemainingTime(m_metric.firstAttackTime);
+		}
+
+		return false;
+	} else {
+		//m_autoHitTimer.setRemainingTime(-1);
 	}
 
 	return true;
@@ -376,22 +426,6 @@ void IsometricEnemy::onDead()
 
 
 
-
-/**
- * @brief IsometricEnemy::protectWeapon
- * @param weaponType
- * @return
- */
-
-bool IsometricEnemy::protectWeapon(const TiledWeapon::WeaponType &weaponType)
-{
-	for (const auto &ptr : m_weapons) {
-		if (ptr->canProtect(weaponType) && ptr->protect(weaponType))
-			return true;
-	}
-
-	return false;
-}
 
 
 

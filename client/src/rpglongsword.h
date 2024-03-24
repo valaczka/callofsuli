@@ -28,10 +28,16 @@
 #define RPGLONGSWORD_H
 
 #include "tiledweapon.h"
+#include "rpgpickableobject.h"
 
 class RpgPlayer;
 
-class RpgLongsword : public TiledWeapon
+
+/**
+ * @brief The RpgLongsword class
+ */
+
+class RpgLongsword : public TiledWeapon, public RpgPickableWeaponIface
 {
 	Q_OBJECT
 
@@ -41,13 +47,35 @@ public:
 	bool protect(const WeaponType &weapon) override final;
 	bool canProtect(const WeaponType &weapon) const override final;
 	bool canAttack() const override final { return true; }
+	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableLongsword; }
+	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableInvalid; }
 
 protected:
 	IsometricBullet *createBullet() override final { return nullptr; }
 	void eventAttack() override final;
+};
 
-private:
-	RpgPlayer *player() const;
+
+
+
+/**
+ * @brief The RpgArrowPickable class
+ */
+
+class RpgLongswordPickable : public RpgPickableObject
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+public:
+	RpgLongswordPickable(QQuickItem *parent = nullptr);
+
+	void playerPick(RpgPlayer *player) override final;
+	void playerThrow(RpgPlayer *player) override final;
+
+protected:
+	void load() override final;
+
 };
 
 #endif // RPGLONGSWORD_H

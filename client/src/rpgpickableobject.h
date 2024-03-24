@@ -35,6 +35,7 @@
 
 class RpgPlayer;
 
+
 /**
  * @brief The RpgPickableObject class
  */
@@ -51,7 +52,10 @@ public:
 	enum PickableType {
 		PickableInvalid = 0,
 		PickableHp,
+		PickableShortbow,
+		PickableLongbow,
 		PickableArrow,
+		PickableFireball,
 		PickableLongsword,
 		PickableShield
 	};
@@ -64,6 +68,9 @@ public:
 	void initialize();
 
 	static PickableType typeFromString(const QString &type) { return m_typeHash.value(type, PickableInvalid); }
+
+	template <typename T>
+	static T* createPickable(QQuickItem *parent = nullptr);
 
 	PickableType pickableType() const;
 
@@ -79,6 +86,8 @@ protected:
 
 	virtual void load() = 0;
 
+	void loadDefault(const QString &directory);
+
 	std::unique_ptr<TiledEffect> m_activateEffect;
 	std::unique_ptr<TiledEffect> m_deactivateEffect;
 
@@ -90,5 +99,33 @@ private:
 
 	static const QHash<QString, PickableType> m_typeHash;
 };
+
+
+
+/**
+ * @brief The RpgEnemyPickableface class
+ */
+
+class RpgPickableWeaponIface
+{
+public:
+	virtual RpgPickableObject::PickableType toPickable() const = 0;
+	virtual RpgPickableObject::PickableType toBulletPickable() const = 0;
+};
+
+
+/**
+ * @brief RpgPickableObject::createPickable
+ * @param parent
+ * @return
+ */
+
+template<typename T>
+T *RpgPickableObject::createPickable(QQuickItem *parent)
+{
+	T* e = nullptr;
+	TiledObjectBase::createFromCircle<T>(&e, QPointF{}, 40, nullptr, parent);
+	return e;
+}
 
 #endif // RPGPICKABLEOBJECT_H

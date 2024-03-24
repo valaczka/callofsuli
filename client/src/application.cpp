@@ -25,6 +25,7 @@
  */
 
 #include "Logger.h"
+#include "actionrpggame.h"
 #include "classobject.h"
 #include "conquestgame.h"
 #include "conquestgameadjacencysetup.h"
@@ -355,6 +356,7 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
+	qmlRegisterUncreatableType<ActionRpgGame>("CallOfSuli", 1, 0, "ActionRpgGame", "ActionRpgGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGame>("CallOfSuli", 1, 0, "ConquestGame", "ConquestGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGameAdjacencySetup>("CallOfSuli", 1, 0, "ConquestGameAdjacencySetup", "ConquestGameAdjacencySetup is uncreatable");
 	qmlRegisterUncreatableType<ExamGame>("CallOfSuli", 1, 0, "ExamGame", "ExamGame is uncreatable");
@@ -398,6 +400,8 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
 	qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
+	qmlRegisterUncreatableType<RpgConfig>("CallOfSuli", 1, 0, "RpgConfig", "RpgConfig is uncreatable");
+	qmlRegisterUncreatableType<RpgPlayerConfig>("CallOfSuli", 1, 0, "RpgPlayerConfig", "RpgPlayerConfig is uncreatable");
 
 	qmlRegisterType<QSJsonListModel>("QSyncable", 1, 0, "QSJsonListModel");
 	qmlRegisterType<QSListModel>("QSyncable", 1, 0, "QSListModel");
@@ -491,7 +495,7 @@ void Application::loadFonts()
 		QStringLiteral(":/internal/font/RenegadeMaster.ttf"),
 	};
 
-	for (const QString &fontPath : fontsToLoad) {
+	for (const QString &fontPath : std::as_const(fontsToLoad)) {
 		if (QFontDatabase::addApplicationFont(fontPath) == -1) {
 			LOG_CWARNING("app") << "Failed to load font:" << qPrintable(fontPath);
 		} else {

@@ -67,9 +67,14 @@ class RpgArrowPickable : public RpgPickableObject
 public:
 	RpgArrowPickable(QQuickItem *parent = nullptr);
 
+	void playerPick(RpgPlayer *player) override final;
+	void playerThrow(RpgPlayer *player) override final;
+
 protected:
 	void load() override final;
 
 };
+
+
 
 #endif // RPGARROW_H

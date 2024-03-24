@@ -171,7 +171,7 @@ void TiledEffectSpark::play()
 
 	std::vector<Sprite> list;
 
-	for (const auto &[type, sprite] : map) {
+	for (const auto &[type, sprite] : std::as_const(map)) {
 		if (m_types.testFlag(type))
 			list.push_back(sprite);
 	}

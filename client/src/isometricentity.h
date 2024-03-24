@@ -121,7 +121,6 @@ T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &
 	Q_ASSERT(body);
 
 	if (body->baseObject() && body->baseObject()->scene()->isGroundContainsPoint(body->bodyPosition())) {
-		LOG_CINFO("scene") << "IN GROUND";
 		return nullptr;
 	}
 

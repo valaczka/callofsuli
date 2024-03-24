@@ -910,7 +910,7 @@ void Client::downloadDynamicResources()
 
 	const auto &list = server()->dynamicContentList();
 
-	for (const auto &c : list) {
+	for (const auto &c : std::as_const(list)) {
 		QUrl url = server()->url();
 		url.setPath(QStringLiteral("/content/")+c.name);
 		QNetworkReply *r = m_httpConnection->networkManager()->get(QNetworkRequest(url));

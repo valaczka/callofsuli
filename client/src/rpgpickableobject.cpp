@@ -27,13 +27,20 @@
 #include "rpgpickableobject.h"
 #include "rpgplayer.h"
 #include "rpggame.h"
+#include "utils_.h"
 
 
 
 /// Static hash
 
 const QHash<QString, RpgPickableObject::PickableType> RpgPickableObject::m_typeHash = {
-	{ QStringLiteral("shield"), PickableShield }
+	{ QStringLiteral("shield"), PickableShield },
+	{ QStringLiteral("arrow"), PickableArrow },
+	{ QStringLiteral("fireball"), PickableFireball },
+	{ QStringLiteral("hp"), PickableHp },
+	{ QStringLiteral("longbow"), PickableLongbow },
+	{ QStringLiteral("shortbow"), PickableShortbow },
+	{ QStringLiteral("longsword"), PickableLongsword },
 };
 
 
@@ -110,6 +117,33 @@ void RpgPickableObject::onDeactivated()
 	setSubZ(0.);
 	if (m_deactivateEffect)
 		m_deactivateEffect->play();
+}
+
+
+
+/**
+ * @brief RpgPickableObject::loadDefault
+ * @param directory
+ */
+
+void RpgPickableObject::loadDefault(const QString &directory)
+{
+	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/rpg/%1/pickable.json").arg(directory));
+
+	if (!ptr) {
+		LOG_CERROR("game") << "Resource load error:" << directory;
+		return;
+	}
+
+	TiledObjectSprite json;
+	json.fromJson(*ptr);
+
+	appendSprite(QStringLiteral(":/rpg/%1/pickable.png").arg(directory), json);
+
+	setWidth(json.width);
+	setHeight(json.height);
+
+	jumpToSprite("default");
 }
 
 

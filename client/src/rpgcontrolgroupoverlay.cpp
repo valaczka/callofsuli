@@ -39,7 +39,7 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 	Q_ASSERT(renderer);
 
 
-	for (Tiled::Layer *layer : *group) {
+	for (Tiled::Layer *layer : std::as_const(*group)) {
 		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
 			TiledQuick::TileLayerItem *item = scene->addTileLayer(tl, renderer);
 			item->setVisible(false);
@@ -48,7 +48,7 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 			LOG_CTRACE("game") << "Add tile layer" << tl->name() << "to control group:" << this;
 
 		} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
-			for (Tiled::MapObject *object : group->objects()) {
+			for (Tiled::MapObject *object : std::as_const(group->objects())) {
 				TiledObjectBase *base = nullptr;
 
 				if (object->className() != QStringLiteral("trigger")) {
@@ -150,6 +150,6 @@ void RpgControlGroupOverlay::updateLayers()
 {
 	const bool visible = !m_contactedFixtures.isEmpty();
 
-	for (TiledQuick::TileLayerItem *item : m_tileLayers)
+	for (TiledQuick::TileLayerItem *item : std::as_const(m_tileLayers))
 		item->setVisible(visible);
 }

@@ -268,7 +268,7 @@ QStringList Campaign::usedMapUuids() const
 {
 	QStringList list;
 
-	for (const Task *t : *m_taskList) {
+	for (const Task *t : std::as_const(*m_taskList)) {
 		if (!t->mapUuid().isEmpty() && !list.contains(t->mapUuid()))
 			list.append(t->mapUuid());
 	}
@@ -316,7 +316,7 @@ QString Campaign::readableShortResult(Grade *grade, int xp)
 
 bool Campaign::hasRequiredTask() const
 {
-	for (Task *t : *m_taskList) {
+	for (Task *t : std::as_const(*m_taskList)) {
 		if (t && t->required())
 			return true;
 	}
@@ -335,7 +335,7 @@ QList<TaskOrSection> Campaign::getOrderedTaskList() const
 {
 	QVector<Task*> tlist;
 
-	for (Task *t : *m_taskList)
+	for (Task *t : std::as_const(*m_taskList))
 		tlist.append(t);
 
 	std::sort(tlist.begin(), tlist.end(), [](Task *left, Task *right) {

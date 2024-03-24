@@ -73,7 +73,7 @@ TiledScene::~TiledScene()
 	m_world->setRunning(false);
 	unsetMap();
 
-	for (const auto &o : m_tiledObjects) {
+	for (const auto &o : std::as_const(m_tiledObjects)) {
 		if (o && o->scene() == this)
 			o->setScene(nullptr);
 	}
@@ -174,7 +174,7 @@ int TiledScene::getDynamicZ(const qreal &x, const qreal &y, const int &defaultVa
 {
 	int z = defaultValue;
 
-	for (const auto &[dZ, p] : m_dynamicZList) {
+	for (const auto &[dZ, p] : std::as_const(m_dynamicZList)) {
 		if (p.polygon.isEmpty())
 			continue;
 
@@ -252,7 +252,7 @@ void TiledScene::stopMusic()
 
 bool TiledScene::isGroundContainsPoint(const QPointF &point) const
 {
-	for (TiledObjectBasePolygon *o : m_groundObjects) {
+	for (TiledObjectBasePolygon *o : std::as_const(m_groundObjects)) {
 		if (o->fixture()->containsPoint(point))
 			return true;
 	}
@@ -273,7 +273,7 @@ bool TiledScene::isGroundContainsPoint(const QPointF &point) const
 
 void TiledScene::onWorldStepped()
 {
-	for (TiledObject *obj : m_tiledObjects) {
+	for (TiledObject *obj : std::as_const(m_tiledObjects)) {
 		if (!obj)
 			continue;
 
@@ -293,7 +293,7 @@ void TiledScene::reorderObjectsZ()
 {
 	QHash<qreal, QMultiMap<qreal, TiledObject*>> map;
 
-	for (TiledObject *obj : m_tiledObjects) {
+	for (TiledObject *obj : std::as_const(m_tiledObjects)) {
 		if (!obj || !obj->body())
 			continue;
 
@@ -457,7 +457,7 @@ void TiledScene::refresh()
 
 	mRenderer = Tiled::MapRenderer::create(mMap);
 
-	for (Tiled::Layer *layer : mMap->layers()) {
+	for (Tiled::Layer *layer : std::as_const(mMap->layers())) {
 		m_game->loadSceneLayer(this, layer, mRenderer.get());
 	}
 

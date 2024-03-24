@@ -59,7 +59,6 @@ public:
 	void setPlayerDistance(float newPlayerDistance);
 
 	virtual void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) = 0;
-	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
 
 public:
 	virtual void playerChanged() = 0;
@@ -68,7 +67,10 @@ public:
 
 protected:
 	virtual bool enemyWorldStep() = 0;
+	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle) = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
+
+
 
 
 	struct EnemyMetric {
@@ -78,6 +80,7 @@ protected:
 		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
 		bool rotateToPlayer = true;
 		qint64 inabilityTime = 1250;			// Inability after hit
+		qint64 firstAttackTime = 450;			// First attack to player
 		qint64 autoAttackTime = 1500;			// Repeated attack to player
 
 		qreal sensorLength = 450.;
@@ -128,13 +131,13 @@ signals:
 protected:
 	virtual void entityWorldStep() override final;
 	virtual bool enemyWorldStep() override;
+	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle) override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
 
 	virtual void load() = 0;
 	void onAlive() override;
 	void onDead() override;
 
-	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override;
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
 	void startInabililty();
 
@@ -161,7 +164,6 @@ private:
 protected:
 	QDeadlineTimer m_inabilityTimer;
 	QDeadlineTimer m_autoHitTimer;
-	std::vector<std::unique_ptr<TiledWeapon>> m_weapons;
 
 	friend class TiledGame;
 	friend class RpgGame;

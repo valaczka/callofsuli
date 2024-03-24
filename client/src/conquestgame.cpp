@@ -444,7 +444,7 @@ void ConquestGame::onConfigChanged()
 		message(tr("Waiting for other players..."));
 	}
 
-	for (ConquestLandData *land : *m_landDataList) {
+	for (ConquestLandData *land : std::as_const(*m_landDataList)) {
 		const int &idx = m_config.world.landFind(land->landId());
 		if (idx != -1)
 			land->loadFromConfig(m_config.world.landList[idx]);

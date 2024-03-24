@@ -60,19 +60,8 @@ Page {
 	}
 
 
-	GamePainHud {
-		id: _painhudImage
-		anchors.fill: parent
-		z: 10
 
-		Connections {
-			target: _game.controlledPlayer
 
-			function onHurt() {
-				_painhudImage.play()
-			}
-		}
-	}
 
 
 	GameSkullImage {
@@ -89,6 +78,51 @@ Page {
 		}
 	}
 
+	GamePainHud {
+		id: _painhudImage
+		anchors.fill: parent
+		z: 10
+
+		property int _oldHP: -1
+		readonly property int hp: _game.controlledPlayer ? _game.controlledPlayer.hp : -1
+
+		onHpChanged: {
+			if (hp < _oldHP)
+				play()
+			else if (hp > _oldHP && _oldHP != -1)
+				_messageList.message("+%1 HP".arg(hp-_oldHP), Qaterial.Colors.red400)
+
+			_oldHP = hp
+		}
+
+		Connections {
+			target: _game.controlledPlayer
+
+			function onHurt() {
+				_painhudImage.play()
+			}
+		}
+	}
+
+
+
+	property int _oldXP: -1
+	readonly property int xp: 0//_game.controlledPlayer ? _game.xp
+
+	onXpChanged: {
+		if (_oldXP != -1) {
+			let d = xp-_oldXP
+
+			if (d > 0) {
+				_messageList.message("+%1 XP".arg(d), Qaterial.Colors.green400)
+			} else {
+				_messageList.message("%1 XP".arg(d), Qaterial.Colors.red400)
+			}
+		}
+
+		_oldXP = xp
+	}
+
 
 	GameMessageList {
 		id: _messageList
@@ -96,6 +130,7 @@ Page {
 		anchors.horizontalCenter: parent.horizontalCenter
 
 		y: parent.height*0.25
+		z: 6
 
 		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
 	}

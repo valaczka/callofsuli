@@ -67,15 +67,16 @@ public:
 		WeaponInvalid = 0,
 		WeaponHand,
 		WeaponGreatHand,
-		WeaponSword,
+		WeaponLongsword,
 		WeaponShortbow,
+		WeaponLongbow,
 		WeaponShield
 	};
 
 	Q_ENUM (WeaponType);
 
 	explicit TiledWeapon(const WeaponType &type, QObject *parent = nullptr);
-	virtual ~TiledWeapon() {}
+	virtual ~TiledWeapon();
 
 	WeaponType weaponType() const;
 
@@ -88,7 +89,7 @@ public:
 	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction);
 	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle);
 
-	bool canShot() const { return m_bulletCount != 0; }
+	bool canShot() const { return !m_canHit && m_bulletCount != 0; }
 
 	virtual bool protect(const WeaponType &weapon) = 0;
 	virtual bool canProtect(const WeaponType &weapon) const = 0;
@@ -110,6 +111,12 @@ public:
 
 	qint64 repeaterIdle() const;
 	void setRepeaterIdle(qint64 newRepeaterIdle);
+
+	bool canThrow() const;
+	void setCanThrow(bool newCanThrow);
+
+	bool canThrowBullet() const;
+	void setCanThrowBullet(bool newCanThrowBullet);
 
 signals:
 	void parentObjectChanged();
@@ -133,6 +140,8 @@ protected:
 private:
 	const WeaponType m_weaponType;
 	QDeadlineTimer m_timerRepeater;
+	bool m_canThrow = false;
+	bool m_canThrowBullet = true;
 };
 
 

@@ -49,8 +49,13 @@ bool RpgShield::protect(const WeaponType &weapon)
 			return true;
 
 		case TiledWeapon::WeaponShortbow:
-		case TiledWeapon::WeaponSword:
+		case TiledWeapon::WeaponLongsword:
 			setBulletCount(m_bulletCount-1);
+			eventProtect();
+			return true;
+
+		case TiledWeapon::WeaponLongbow:
+			setBulletCount(m_bulletCount-3);
 			eventProtect();
 			return true;
 
@@ -81,8 +86,11 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponShortbow:
 		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponSword:
+		case TiledWeapon::WeaponLongsword:
 			return (m_bulletCount > 0);
+
+		case TiledWeapon::WeaponLongbow:
+			return (m_bulletCount > 2);
 
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:

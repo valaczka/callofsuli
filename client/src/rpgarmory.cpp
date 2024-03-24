@@ -31,8 +31,9 @@
 /// Static hash
 
 const QHash<TiledWeapon::WeaponType, QString> RpgArmory::m_layerInfoHash = {
-	{ TiledWeapon::WeaponSword, QStringLiteral("longsword") },
+	{ TiledWeapon::WeaponLongsword, QStringLiteral("longsword") },
 	{ TiledWeapon::WeaponShortbow, QStringLiteral("shortbow") },
+	{ TiledWeapon::WeaponLongbow, QStringLiteral("longbow") },
 	{ TiledWeapon::WeaponShield, QStringLiteral("shield") }
 };
 
@@ -173,7 +174,7 @@ TiledWeaponList *RpgArmory::weaponList() const
 
 TiledWeapon *RpgArmory::weaponFind(const TiledWeapon::WeaponType &type) const
 {
-	for (TiledWeapon *w : *m_weaponList) {
+	for (TiledWeapon *w : std::as_const(*m_weaponList)) {
 		if (w->weaponType() == type)
 			return w;
 	}
@@ -278,7 +279,11 @@ void RpgArmory::updateLayers()
 				layers.append(QStringLiteral("shortbow"));
 				break;
 
-			case TiledWeapon::WeaponSword:
+			case TiledWeapon::WeaponLongbow:
+				layers.append(QStringLiteral("longbow"));
+				break;
+
+			case TiledWeapon::WeaponLongsword:
 				layers.append(QStringLiteral("longsword"));
 				break;
 

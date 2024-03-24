@@ -42,6 +42,8 @@ public:
 	virtual ~RpgEnemyBase();
 
 	TiledWeapon *defaultWeapon() const override;
+	virtual QList<TiledWeapon*> throwableWeapons() const override;
+	virtual void throwWeapon(TiledWeapon *weapon) override;
 
 signals:
 
@@ -62,6 +64,8 @@ protected:
 	//void playSeeEffect();
 
 	QPointF getPickablePosition() const override final;
+
+	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override;
 
 	QString m_directory = QStringLiteral("base");
 

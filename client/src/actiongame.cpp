@@ -270,7 +270,7 @@ void ActionGame::createFixEnemies()
 
 	int n = 0;
 
-	for (auto &el : m_enemies) {
+	for (auto &el : std::as_const(m_enemies)) {
 		const GameTerrain::EnemyData &e = el->enemyData();
 		const GameTerrain::EnemyType &type = el->enemyData().type;
 
@@ -324,7 +324,7 @@ void ActionGame::recreateEnemies()
 
 	QList<GameEnemy *> soldiers;
 
-	for (auto &el : m_enemies) {
+	for (auto &el : std::as_const(m_enemies)) {
 		const GameTerrain::EnemyData &e = el->enemyData();
 		const GameTerrain::EnemyType &type = el->enemyData().type;
 
@@ -540,7 +540,7 @@ void ActionGame::linkQuestionToEnemies(QList<GameEnemy *> enemies)
 				qreal blockMax = 0;
 				int blockQuestions = 0;
 
-				for (auto &el : m_enemies) {
+				for (auto &el : std::as_const(m_enemies)) {
 					if (el->enemyData().block != block) {
 						continue;
 					}
@@ -598,7 +598,7 @@ void ActionGame::linkPickablesToEnemies(QList<GameEnemy *> enemies)
 
 	QVector<int> eBlocks;
 
-	for (auto &el : m_enemies) {
+	for (auto &el : std::as_const(m_enemies)) {
 		if (!el->enemy())
 			continue;
 
@@ -1295,7 +1295,7 @@ void ActionGame::resetKillStreak()
 
 void ActionGame::killAllEnemy()
 {
-	for (auto &e : m_enemies) {
+	for (auto &e : std::as_const(m_enemies)) {
 		if (e->enemy())
 			e->enemy()->kill();
 	}
@@ -1484,7 +1484,7 @@ int ActionGame::activeEnemies() const
 {
 	int n = 0;
 
-	for (auto &e : m_enemies) {
+	for (auto &e : std::as_const(m_enemies)) {
 		if (e->enemy())
 			++n;
 	}
@@ -1550,7 +1550,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 
 	int block = -1;
 
-	for (auto &el : m_enemies) {
+	for (auto &el : std::as_const(m_enemies)) {
 		if (el->enemy() == enemy) {
 			block = el->enemyData().block;
 			el->setEnemy(nullptr);
@@ -1574,7 +1574,7 @@ void ActionGame::onEnemyDied(GameEntity *entity)
 
 	// Close blocks
 
-	for (auto &el : m_enemies) {
+	for (auto &el : std::as_const(m_enemies)) {
 		if (el->enemyData().block == block && el->enemy()) {
 			return;
 		}

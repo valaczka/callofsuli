@@ -36,30 +36,6 @@ RpgShortbow::RpgShortbow(QObject *parent)
 
 
 
-/**
- * @brief RpgShortbow::protect
- * @param weapon
- * @return
- */
-
-bool RpgShortbow::protect(const WeaponType &/*weapon*/)
-{
-	return false;
-}
-
-
-/**
- * @brief RpgShortbow::canProtect
- * @param weapon
- * @return
- */
-
-bool RpgShortbow::canProtect(const WeaponType &/*weapon*/) const
-{
-	return false;
-}
-
-
 
 /**
  * @brief RpgShortbow::createBullet
@@ -69,11 +45,12 @@ bool RpgShortbow::canProtect(const WeaponType &/*weapon*/) const
 
 IsometricBullet *RpgShortbow::createBullet()
 {
-	RpgPlayer *p = player();
-	if (!p) {
-		LOG_CERROR("game") << "Missing player";
+	if (!m_parentObject) {
+		LOG_CERROR("game") << "Missing parent object" << this;
 		return nullptr;
 	}
+
+	TiledObject *p = m_parentObject.get();
 
 	return RpgArrow::createBullet(p->game(), p->scene());
 }
@@ -86,7 +63,7 @@ IsometricBullet *RpgShortbow::createBullet()
 
 void RpgShortbow::eventAttack()
 {
-	RpgPlayer *p = player();
+	TiledObject *p = m_parentObject.get();
 
 	if (!p)
 		return;
@@ -98,12 +75,65 @@ void RpgShortbow::eventAttack()
 
 
 
+
 /**
- * @brief RpgShortbow::player
- * @return
+ * @brief RpgShortbowPickable::RpgShortbowPickable
+ * @param parent
  */
 
-RpgPlayer *RpgShortbow::player() const
+RpgShortbowPickable::RpgShortbowPickable(QQuickItem *parent)
+	: RpgPickableObject(PickableShortbow, parent)
 {
-	return qobject_cast<RpgPlayer*>(m_parentObject.get());
+	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
+}
+
+
+
+
+/**
+ * @brief RpgShortbowPickable::playerPick
+ * @param player
+ */
+
+void RpgShortbowPickable::playerPick(RpgPlayer *player)
+{
+	if (!player)
+		return;
+
+	static const int num = 5;
+
+	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
+
+	if (!weapon)
+		weapon = player->armory()->weaponAdd(new RpgShortbow);
+
+	weapon->setBulletCount(weapon->bulletCount()+num);
+
+	if (m_game)
+		m_game->message(tr("1 shortbow gained"));
+
+	player->armory()->setCurrentWeapon(weapon);
+}
+
+
+
+/**
+ * @brief RpgShortbowPickable::playerThrow
+ * @param player
+ */
+
+void RpgShortbowPickable::playerThrow(RpgPlayer *player)
+{
+
+}
+
+
+
+/**
+ * @brief RpgShortbowPickable::load
+ */
+
+void RpgShortbowPickable::load()
+{
+	loadDefault(QStringLiteral("shortbow"));
 }

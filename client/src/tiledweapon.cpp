@@ -35,6 +35,23 @@ TiledWeapon::TiledWeapon(const WeaponType &type, QObject *parent)
 	m_timerRepeater.setRemainingTime(-1);
 }
 
+
+/**
+ * @brief TiledWeapon::~TiledWeapon
+ */
+
+TiledWeapon::~TiledWeapon()
+{
+
+}
+
+
+
+/**
+ * @brief TiledWeapon::weaponType
+ * @return
+ */
+
 TiledWeapon::WeaponType TiledWeapon::weaponType() const
 {
 	return m_weaponType;
@@ -51,11 +68,12 @@ QString TiledWeapon::weaponName(const WeaponType &type)
 {
 	switch (type) {
 		case WeaponShortbow: return tr("íj");
-			case WeaponGreatHand: return tr("kéz");
-			case WeaponHand: return tr("kéz");
-			case WeaponShield: return tr("pajzs");
-			case WeaponSword: return tr("kard");
-			case WeaponInvalid: return tr("érvénytelen");
+		case WeaponLongbow: return tr("longbow");
+		case WeaponGreatHand: return tr("kéz");
+		case WeaponHand: return tr("kéz");
+		case WeaponShield: return tr("pajzs");
+		case WeaponLongsword: return tr("kard");
+		case WeaponInvalid: return tr("érvénytelen");
 	}
 
 	return {};
@@ -71,12 +89,13 @@ QString TiledWeapon::weaponName(const WeaponType &type)
 QString TiledWeapon::weaponNameEn(const WeaponType &type)
 {
 	switch (type) {
-		case WeaponShortbow: return QStringLiteral("shortbow");
-			case WeaponGreatHand: return QStringLiteral("hand");
-			case WeaponHand: return QStringLiteral("hand");
-			case WeaponShield: return QStringLiteral("shield");
-			case WeaponSword: return QStringLiteral("sword");
-			case WeaponInvalid: return QStringLiteral("invalid");
+		case WeaponShortbow: return QStringLiteral("Shortbow");
+		case WeaponLongbow: return QStringLiteral("Longbow");
+		case WeaponGreatHand: return QStringLiteral("Hand");
+		case WeaponHand: return QStringLiteral("Hand");
+		case WeaponShield: return QStringLiteral("Shield");
+		case WeaponLongsword: return QStringLiteral("Sword");
+		case WeaponInvalid: return QStringLiteral("Invalid");
 	}
 
 	return {};
@@ -256,6 +275,38 @@ void TiledWeapon::setRepeaterIdle(qint64 newRepeaterIdle)
 		return;
 	m_repeaterIdle = newRepeaterIdle;
 	emit repeaterIdleChanged();
+}
+
+
+/**
+ * @brief TiledWeapon::canThrow
+ * @return
+ */
+
+bool TiledWeapon::canThrow() const
+{
+	return m_canThrow;
+}
+
+void TiledWeapon::setCanThrow(bool newCanThrow)
+{
+	m_canThrow = newCanThrow;
+}
+
+
+/**
+ * @brief TiledWeapon::canThrowBullet
+ * @return
+ */
+
+bool TiledWeapon::canThrowBullet() const
+{
+	return m_canThrowBullet;
+}
+
+void TiledWeapon::setCanThrowBullet(bool newCanThrowBullet)
+{
+	m_canThrowBullet = newCanThrowBullet;
 }
 
 

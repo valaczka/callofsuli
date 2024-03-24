@@ -198,7 +198,6 @@ signals:
 	void gameModeChanged();
 	void messageListChanged();
 	void defaultMessageColorChanged();
-
 	void baseScaleChanged();
 
 protected:

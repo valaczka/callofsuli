@@ -27,6 +27,7 @@
 #ifndef RPGSHORTBOW_H
 #define RPGSHORTBOW_H
 
+#include "rpgpickableobject.h"
 #include "tiledweapon.h"
 
 class RpgPlayer;
@@ -35,23 +36,46 @@ class RpgPlayer;
  * @brief The RpgShortbow class
  */
 
-class RpgShortbow : public TiledWeapon
+class RpgShortbow : public TiledWeapon, public RpgPickableWeaponIface
 {
 	Q_OBJECT
 
 public:
 	explicit RpgShortbow(QObject *parent = nullptr);
 
-	bool protect(const WeaponType &weapon) override final;
-	bool canProtect(const WeaponType &weapon) const override final;
+	bool protect(const WeaponType &) override final { return false; }
+	bool canProtect(const WeaponType &) const override final { return false; }
 	bool canAttack() const override final { return true; }
+
+	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableShortbow; }
+	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableArrow; }
 
 protected:
 	IsometricBullet *createBullet() override final;
 	void eventAttack() override final;
+};
 
-private:
-	RpgPlayer *player() const;
+
+
+
+/**
+ * @brief The RpgArrowPickable class
+ */
+
+class RpgShortbowPickable : public RpgPickableObject
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+public:
+	RpgShortbowPickable(QQuickItem *parent = nullptr);
+
+	void playerPick(RpgPlayer *player) override final;
+	void playerThrow(RpgPlayer *player) override final;
+
+protected:
+	void load() override final;
+
 };
 
 #endif // RPGSHORTBOW_H

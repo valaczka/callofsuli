@@ -24,10 +24,17 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "rpgarrow.h"
 #include "rpgenemybase.h"
+#include "rpgfireball.h"
 #include "rpggame.h"
+#include "rpghp.h"
+#include "rpglongbow.h"
+#include "rpglongsword.h"
 #include "rpgshield.h"
 #include "rpgwerebear.h"
+#include "sound.h"
+#include "application.h"
 
 #include <QRandomGenerator>
 
@@ -189,12 +196,12 @@ RpgGame::RpgGame(QQuickItem *parent)
 
 RpgGame::~RpgGame()
 {
-	for (const auto &e : m_enemyDataList) {
+	for (const auto &e : std::as_const(m_enemyDataList)) {
 		if (e.enemy)
 			e.enemy->setGame(nullptr);
 	}
 
-	for (const auto &p : m_players) {
+	for (const auto &p : std::as_const(m_players)) {
 		if (p)
 			p->setGame(nullptr);
 	}
@@ -203,6 +210,14 @@ RpgGame::~RpgGame()
 	m_players.clear();
 }
 
+
+
+
+
+/**
+ * @brief RpgGame::load
+ * @return
+ */
 
 
 bool RpgGame::load()
@@ -218,7 +233,8 @@ bool RpgGame::load()
 
 			{
 				"id": 2,
-				"file": "qrc:/teszt2.tmx"
+				"file": "qrc:/teszt2.tmx",
+				"music": "qrc:/sound/music/default_bg_music.mp3"
 			}
 		]
 		})";
@@ -240,10 +256,17 @@ bool RpgGame::load()
 
 		IsometricEnemy *character;
 
-		if (QRandomGenerator::global()->bounded(2) % 2 == 0)
-		character = createEnemy(e.type, e.subtype, e.scene);
-		else
-		character = createEnemy(RpgEnemyIface::EnemyWerebear, e.subtype, e.scene);
+		if (QRandomGenerator::global()->bounded(2) % 2 == 0) {
+			character = createEnemy(e.type, e.subtype, e.scene);
+			if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(character)) {
+				auto w = iface->armory()->weaponAdd(new RpgLongbow);
+				w->setBulletCount(-1);
+				//w->setCanThrow(true);
+				iface->armory()->setCurrentWeapon(w);
+			}
+		} else {
+			character = createEnemy(RpgEnemyIface::EnemyWerebear, e.subtype, e.scene);
+		}
 
 		if (!character)
 			continue;
@@ -254,6 +277,7 @@ bool RpgGame::load()
 			character->loadPathMotor(e.path);
 		else
 			character->loadFixPositionMotor(e.path.first(), character->nearestDirectionFromRadian(e.defaultAngle));
+
 
 		e.scene->appendToObjects(character);
 
@@ -267,13 +291,13 @@ bool RpgGame::load()
 		const auto &p = m_playerPositionList.first();
 
 		for (int i=0; i<3; ++i) {
-			auto player = RpgPlayer::createPlayer(this, p.scene, "default");
+			auto player = RpgPlayer::createPlayer(this, p.scene, i==0 ? "default" : "default2");
 
 			player->emplace(p.position+QPointF(i*15, i*15));
 			if (i == 0)
 				player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
 			else
-				player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::NorthEast));
+				player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::SouthEast));
 
 			p.scene->appendToObjects(player);
 
@@ -307,6 +331,9 @@ bool RpgGame::load()
 		pickable->setIsActive(true);
 	}
 
+
+	emit gameLoaded();
+
 	return true;
 }
 
@@ -324,15 +351,16 @@ bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const T
 	Q_ASSERT(enemy);
 
 	IsometricEnemy *e = qobject_cast<IsometricEnemy*>(enemy);
+	RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(enemy);
 	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
 
-	if (!e || !p)
+	if (!e || !p || !iface)
 		return false;
 
 	if (!canAttack(p, e, weaponType))
 		return false;
 
-	if (e->protectWeapon(weaponType))
+	if (iface->protectWeapon(weaponType))
 		return false;
 
 	e->attackedByPlayer(p, weaponType);
@@ -441,18 +469,29 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 	if (!iface)
 		return;
 
-	RpgPickableObject *pickable = createPickable(RpgPickableObject::PickableShield, enemy->scene());
+	for (TiledWeapon *w : iface->throwableWeapons()) {
+		if (RpgPickableWeaponIface *wIface = dynamic_cast<RpgPickableWeaponIface*>(w)) {
+			const RpgPickableObject::PickableType &wType = wIface->toPickable();
+			const RpgPickableObject::PickableType &bType = wIface->toBulletPickable();
 
-	if (!pickable)
-		return;
+			if (w->canThrowBullet() && bType != RpgPickableObject::PickableInvalid) {
+				if (RpgPickableObject *pickable = createPickable(bType, enemy->scene())) {
+					pickable->body()->emplace(iface->getPickablePosition());
+					enemy->scene()->appendToObjects(pickable);
+					pickable->setIsActive(true);
+				}
+			}
 
-	pickable->body()->emplace(iface->getPickablePosition());
-
-	enemy->scene()->appendToObjects(pickable);
-
-	///e.pickableObject = pickable;
-
-	pickable->setIsActive(true);
+			if (w->canThrow() && wType != RpgPickableObject::PickableInvalid) {
+				if (RpgPickableObject *pickable = createPickable(wType, enemy->scene())) {
+					pickable->body()->emplace(iface->getPickablePosition());
+					enemy->scene()->appendToObjects(pickable);
+					pickable->setIsActive(true);
+				}
+				iface->throwWeapon(w);
+			}
+		}
+	}
 }
 
 
@@ -573,13 +612,35 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 	RpgPickableObject *pickable = nullptr;
 
 	switch (type) {
-		case RpgPickableObject::PickableShield: {
-			RpgShieldPickable *e = nullptr;
-			TiledObjectBase::createFromCircle<RpgShieldPickable>(&e, QPointF{}, 30, nullptr, this);
-			pickable = e;
+		case RpgPickableObject::PickableShield:
+			pickable = RpgPickableObject::createPickable<RpgShieldPickable>(this);
 			break;
-		}
-		default:
+
+		case RpgPickableObject::PickableHp:
+			pickable = RpgPickableObject::createPickable<RpgHpPickable>(this);
+			break;
+
+		case RpgPickableObject::PickableArrow:
+			pickable = RpgPickableObject::createPickable<RpgArrowPickable>(this);
+			break;
+
+		case RpgPickableObject::PickableFireball:
+			pickable = RpgPickableObject::createPickable<RpgFireballPickable>(this);
+			break;
+
+		case RpgPickableObject::PickableShortbow:
+			pickable = RpgPickableObject::createPickable<RpgShortbowPickable>(this);
+			break;
+
+		case RpgPickableObject::PickableLongbow:
+			pickable = RpgPickableObject::createPickable<RpgLongbowPickable>(this);
+			break;
+
+		case RpgPickableObject::PickableLongsword:
+			pickable = RpgPickableObject::createPickable<RpgLongswordPickable>(this);
+			break;
+
+		case RpgPickableObject::PickableInvalid:
 			break;
 	}
 
@@ -776,6 +837,122 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 
 
 
+/**
+ * @brief RpgGame::onGameQuestionSuccess
+ * @param answer
+ */
+
+void RpgGame::onGameQuestionSuccess(const QVariantMap &answer)
+{
+	/*addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
+
+	int xp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * (qreal) ACTION_GAME_BASE_XP;
+	setXp(m_xp+xp);
+
+	m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
+
+	m_gameQuestion->answerReveal(answer);
+	m_gameQuestion->setMsecBeforeHide(0);
+
+	m_gameQuestion->finish();
+
+	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
+
+	if (m_attackedEnemy) {
+		m_attackedEnemy->kill();
+		m_attackedEnemy = nullptr;
+	}*/
+}
+
+
+
+/**
+ * @brief RpgGame::onGameQuestionFailed
+ * @param answer
+ */
+
+void RpgGame::onGameQuestionFailed(const QVariantMap &answer)
+{
+	/*
+#ifndef Q_OS_WASM
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(m_client);
+	if (client)
+		client->performVibrate();
+#endif
+
+	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
+
+	if (m_player)
+		enemyAttackPlayer(nullptr, false, player());
+
+	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
+
+	m_gameQuestion->answerReveal(answer);
+	m_gameQuestion->setMsecBeforeHide(1250);
+
+	GameEnemy *enemy = qobject_cast<GameEnemy*>(m_attackedEnemy);
+
+	if (enemy) {
+		m_attackedEnemy = nullptr;
+		enemy->missedByPlayer(player());
+		relinkQuestionToEnemy(enemy);
+	}
+
+	m_gameQuestion->finish();*/
+}
+
+
+/**
+ * @brief RpgGame::onGameQuestionStarted
+ */
+
+void RpgGame::onGameQuestionStarted()
+{
+	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"), Sound::VoiceoverChannel);
+}
+
+
+
+/**
+ * @brief RpgGame::onGameQuestionFinished
+ */
+
+void RpgGame::onGameQuestionFinished()
+{
+	//setRunning(true);
+	//m_scene->forceActiveFocus(Qt::OtherFocusReason);
+}
+
+
+
+/**
+ * @brief RpgGame::gameQuestion
+ * @return
+ */
+
+GameQuestion *RpgGame::gameQuestion() const
+{
+	return m_gameQuestion;
+}
+
+void RpgGame::setGameQuestion(GameQuestion *newGameQuestion)
+{
+	if (m_gameQuestion == newGameQuestion)
+		return;
+	m_gameQuestion = newGameQuestion;
+	emit gameQuestionChanged();
+
+	if (m_gameQuestion) {
+		connect(m_gameQuestion, &GameQuestion::success, this, &RpgGame::onGameQuestionSuccess);
+		connect(m_gameQuestion, &GameQuestion::failed, this, &RpgGame::onGameQuestionFailed);
+		connect(m_gameQuestion, &GameQuestion::finished, this, &RpgGame::onGameQuestionFinished);
+		connect(m_gameQuestion, &GameQuestion::started, this, &RpgGame::onGameQuestionStarted);
+	}
+}
+
+
+
+
 
 
 /**
@@ -794,6 +971,35 @@ void RpgGame::setPlayers(const QList<RpgPlayer *> &newPlayers)
 		return;
 	m_players = newPlayers;
 	emit playersChanged();
+}
+
+
+
+
+/**
+ * @brief RpgGame::getAttackSprite
+ * @param weaponType
+ * @return
+ */
+
+QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
+{
+	switch (weaponType) {
+		case TiledWeapon::WeaponHand:
+		case TiledWeapon::WeaponGreatHand:
+		case TiledWeapon::WeaponLongsword:
+			return QStringLiteral("attack");
+
+		case TiledWeapon::WeaponShortbow:
+		case TiledWeapon::WeaponLongbow:
+			return QStringLiteral("bow");
+
+		case TiledWeapon::WeaponShield:
+		case TiledWeapon::WeaponInvalid:
+			break;
+	}
+
+	return {};
 }
 
 

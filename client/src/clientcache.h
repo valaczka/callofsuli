@@ -273,7 +273,7 @@ void OlmLoader::loadFromJsonArray(qolm::QOlmBase *list, const QJsonArray &jsonAr
 	if (jsonField && property) {
 		QVector<T*> tmp;
 
-		for (T *u : *t)
+		for (T *u : std::as_const(*t))
 			tmp.append(u);
 
 		for (const QJsonValue &v : std::as_const(jsonArray)) {
@@ -301,7 +301,7 @@ void OlmLoader::loadFromJsonArray(qolm::QOlmBase *list, const QJsonArray &jsonAr
 			return;
 		}
 
-		for (T *o : *t)
+		for (T *o : std::as_const(*t))
 			o->deleteLater();
 
 		list->clear();
@@ -354,7 +354,7 @@ T *OlmLoader::find(qolm::QOlmBase *list, const char *property, const QVariant &v
 
 	qolm::QOlm<T> *t = dynamic_cast<qolm::QOlm<T>*>(list);
 
-	for (T *u : *t) {
+	for (T *u : std::as_const(*t)) {
 		if (u->property(property) == value)
 			return u;
 	}

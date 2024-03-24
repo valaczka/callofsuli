@@ -50,7 +50,7 @@ TiledGame::TiledGame(QQuickItem *parent)
 
 TiledGame::~TiledGame()
 {
-	for (const auto &s : m_sceneList) {
+	for (const auto &s : std::as_const(m_sceneList)) {
 		s.scene->stopMusic();
 		s.scene->world()->setRunning(false);
 		if (s.scene->game() == this)
@@ -79,7 +79,7 @@ bool TiledGame::load(const TiledGameDefinition &def)
 {
 	LOG_CTRACE("game") << "Load game";
 
-	for (const TiledSceneDefinition &s : def.scenes) {
+	for (const TiledSceneDefinition &s : std::as_const(def.scenes)) {
 		if (loadScene(s))
 			LOG_CINFO("game") << "Scene loaded:" << s.id << qPrintable(s.file);
 		else {
@@ -97,9 +97,7 @@ bool TiledGame::load(const TiledGameDefinition &def)
 	}
 
 	setCurrentScene(firstScene);
-	firstScene->forceActiveFocus();
 
-	emit gameLoaded();
 	return true;
 }
 
@@ -270,7 +268,7 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 	Q_ASSERT(group);
 	Q_ASSERT(renderer);
 
-	for (Tiled::MapObject *object : group->objects()) {
+	for (Tiled::MapObject *object : std::as_const(group->objects())) {
 		int idx = findLoadedObject(object->id(), scene->sceneId());
 
 		if (idx != -1) {
@@ -588,7 +586,7 @@ void TiledGame::joystickConnect(const bool &connect)
 		"hasTouch",
 	};
 
-	for (const char *prop : propList) {
+	for (const char *prop : std::as_const(propList)) {
 		auto p = mo->property(mo->indexOfProperty(prop));
 
 		if (p.hasNotifySignal()) {
@@ -866,7 +864,7 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 		return false;
 
 	setCurrentScene(newScene);
-	newScene->forceActiveFocus();
+	///newScene->forceActiveFocus();
 
 	return true;
 }
@@ -916,7 +914,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
 	const qreal &scale = m_currentScene->scale() + (1.-m_baseScale);
 	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
 
-	for (const auto &[margin, volume] : distanceMap) {
+	for (const auto &[margin, volume] : std::as_const(distanceMap)) {
 		if (rect.marginsAdded(QMarginsF{margin, margin, margin, margin}).contains(position)) {
 			Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel, volume*factor);
 			return;

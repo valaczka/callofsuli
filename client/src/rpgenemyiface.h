@@ -28,6 +28,8 @@
 #define RPGENEMYIFACE_H
 
 #include "qpoint.h"
+#include "rpgarmory.h"
+#include "tiledweapon.h"
 #include <QString>
 #include <QList>
 #include <QHash>
@@ -48,20 +50,26 @@ public:
 	static QStringList availableTypes() { return m_typeHash.keys(); }
 	static RpgEnemyType typeFromString(const QString &type) { return m_typeHash.value(type, EnemyInvalid); }
 
-
 	const RpgEnemyType &enemyType() const { return m_enemyType; }
+
+	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
+	virtual QList<TiledWeapon*> throwableWeapons() const = 0;
+	virtual void throwWeapon(TiledWeapon *weapon) = 0;
+
+	RpgArmory *armory() const { return m_armory.get(); }
 
 protected:
 	virtual QPointF getPickablePosition() const = 0;
-	//void throwPickable();
 
 	const RpgEnemyType m_enemyType;
+	std::unique_ptr<RpgArmory> m_armory;
 
 private:
 	static const QHash<QString, RpgEnemyType> m_typeHash;
 
 	friend class RpgGame;
 };
+
 
 
 #endif // RPGENEMYIFACE_H

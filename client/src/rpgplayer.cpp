@@ -27,7 +27,6 @@
 #include "rpgplayer.h"
 #include "isometricbullet.h"
 #include "rpglongsword.h"
-#include "rpgshield.h"
 #include "tiledspritehandler.h"
 #include "rpggame.h"
 #include <QDirIterator>
@@ -298,12 +297,16 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 	int hp = m_hp;
 
 	switch (weaponType) {
-		case TiledWeapon::WeaponSword:
+		case TiledWeapon::WeaponLongsword:
 			hp -= 2;
 			break;
 
 		case TiledWeapon::WeaponShortbow:
 			hp -= 2;
+			break;
+
+		case TiledWeapon::WeaponLongbow:
+			hp -= 3;
 			break;
 
 		case TiledWeapon::WeaponHand:
@@ -343,9 +346,6 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 void RpgPlayer::loadDefaultWeapons()
 {
 	m_armory->setCurrentWeapon(m_armory->weaponAdd(new TiledWeaponHand));
-	m_armory->weaponAdd(new RpgLongsword);
-	m_armory->weaponAdd(new RpgShortbow)->setBulletCount(12);
-	m_armory->weaponAdd(new RpgShield)->setBulletCount(10);
 }
 
 
@@ -424,10 +424,11 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 	switch (weapon->weaponType()) {
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponSword:
+		case TiledWeapon::WeaponLongsword:
 			jumpToSprite("attack", m_currentDirection);
 			break;
 
+		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponShortbow:
 			jumpToSprite("bow", m_currentDirection);
 			break;
@@ -454,10 +455,10 @@ void RpgPlayer::playWeaponChangedEffect()
 		return;
 
 	if (!armory()->currentWeapon())
-		return m_game->messageColor(tr("Without weapon"), QStringLiteral("EF5350"));
+		return m_game->messageColor(tr("Without weapon"), QStringLiteral("#EF5350"));
 
 
-	m_game->message(tr("Active weapon: ").append(armory()->currentWeapon()->weaponNameEn()));
+	m_game->message(armory()->currentWeapon()->weaponNameEn().append(tr(" activated")));
 }
 
 

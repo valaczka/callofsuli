@@ -209,6 +209,7 @@ SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
 	actiongame.cpp \
+	actionrpggame.cpp \
 	application.cpp \
 	basemap.cpp \
 	basemaphandler.cpp \
@@ -267,7 +268,10 @@ SOURCES += \
 	rpgcontrolgroup.cpp \
 	rpgcontrolgroupoverlay.cpp \
 	rpgenemybase.cpp \
+	rpgfireball.cpp \
 	rpggame.cpp \
+	rpghp.cpp \
+	rpglongbow.cpp \
 	rpglongsword.cpp \
 	rpgpickableobject.cpp \
 	rpgplayer.cpp \
@@ -320,6 +324,7 @@ HEADERS += \
 	abstractlevelgame.h \
 	abstracttiledmotor.h \
 	actiongame.h \
+	actionrpggame.h \
 	application.h \
 	basemap.h \
 	basemaphandler.h \
@@ -379,7 +384,10 @@ HEADERS += \
 	rpgcontrolgroupoverlay.h \
 	rpgenemybase.h \
 	rpgenemyiface.h \
+	rpgfireball.h \
 	rpggame.h \
+	rpghp.h \
+	rpglongbow.h \
 	rpglongsword.h \
 	rpgpickableobject.h \
 	rpgplayer.h \

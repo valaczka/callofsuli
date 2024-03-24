@@ -41,6 +41,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	, RpgEnemyIface(EnemyWerebear)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
+	, m_weaponHand(new RpgWerebearWeaponHand)
 {
 	m_metric.speed = 2.;
 	m_metric.returnSpeed = 4.;
@@ -65,8 +66,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 		QStringLiteral("death")
 	};
 
-	const auto &ptr = m_weapons.emplace_back(new RpgWerebearWeaponHand);
-	ptr->setParentObject(this);
+	m_weaponHand->setParentObject(this);
 
 	connect(this, &RpgWerebear::hurt, &m_sfxPain, &TiledGameSfx::playOne);
 	//connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
@@ -168,8 +168,12 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 	int newHp = m_hp;
 
 	switch (weaponType) {
-		case TiledWeapon::WeaponSword:
+		case TiledWeapon::WeaponLongsword:
 			newHp -= 1;
+			break;
+
+		case TiledWeapon::WeaponLongbow:
+			newHp -= 3;
 			break;
 
 		case TiledWeapon::WeaponShortbow:
@@ -248,8 +252,24 @@ void RpgWerebear::playSeeEffect()
 QPointF RpgWerebear::getPickablePosition() const
 {
 	QLineF line = QLineF::fromPolar(50., toDegree(directionToIsometricRaidan(m_currentDirection)));
-	line.translate(m_body->bodyPosition());
-	return line.p2();
+	line.translate(m_body->bodyPosition()-line.p2());
+	return line.p1();
+}
+
+
+
+/**
+ * @brief RpgWerebear::protectWeapon
+ * @param weaponType
+ * @return
+ */
+
+bool RpgWerebear::protectWeapon(const TiledWeapon::WeaponType &weaponType)
+{
+	if (m_weaponHand->canProtect(weaponType) && m_weaponHand->protect(weaponType))
+		return true;
+
+	return false;
 }
 
 
@@ -316,7 +336,7 @@ void RpgWerebear::setWerebearType(const QString &text)
 
 TiledWeapon *RpgWerebear::defaultWeapon() const
 {
-	return m_weapons.front().get();
+	return m_weaponHand.get();
 }
 
 

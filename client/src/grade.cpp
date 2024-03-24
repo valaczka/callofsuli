@@ -171,7 +171,7 @@ void GradingConfig::fill(GradeList *list)
 	if (!list)
 		return;
 
-	for (Grade *g : *list) {
+	for (Grade *g : std::as_const(*list)) {
 		m_gradeMap.insert(g, qMakePair(0, false));
 	}
 

@@ -40,22 +40,22 @@
 
 
 GameObject::GameObject(QQuickItem *parent)
-    : QQuickItem(parent)
-    , m_body(new Box2DBody(this))
+	: QQuickItem(parent)
+	, m_body(new Box2DBody(this))
 {
-    LOG_CDEBUG("scene") << "Create GameObject" << this;
-    setScene(static_cast<GameScene*>(parent));
+	LOG_CDEBUG("scene") << "Create GameObject" << this;
+	setScene(static_cast<GameScene*>(parent));
 
-    m_body->setBodyType(Box2DBody::Static);
-    m_body->setTarget(this);
-    m_body->setActive(true);
-    m_body->setSleepingAllowed(true);
+	m_body->setBodyType(Box2DBody::Static);
+	m_body->setTarget(this);
+	m_body->setActive(true);
+	m_body->setSleepingAllowed(true);
 
-    if (m_scene) {
-        onSceneChanged();
-    }
+	if (m_scene) {
+		onSceneChanged();
+	}
 
-    //connect(this, &GameObject::sceneChanged, this, &GameObject::onSceneChanged);
+	//connect(this, &GameObject::sceneChanged, this, &GameObject::onSceneChanged);
 }
 
 
@@ -67,7 +67,7 @@ GameObject::GameObject(QQuickItem *parent)
 
 GameObject::~GameObject()
 {
-    LOG_CDEBUG("scene") << "Destroy GameObject" << this;
+	LOG_CDEBUG("scene") << "Destroy GameObject" << this;
 }
 
 
@@ -79,34 +79,34 @@ GameObject::~GameObject()
 
 GameObject *GameObject::createFromFile(QString file, GameScene *scene, const bool &synchronous)
 {
-    if (file.startsWith(QStringLiteral(":")))
-        file.replace(QStringLiteral(":"), QStringLiteral("qrc:"));
-    else if (file.startsWith(QStringLiteral("/")))
-        file.replace(QStringLiteral("/"), QStringLiteral("qrc:/"));
-    else if (!file.startsWith(QStringLiteral("qrc:/")))
-        file.prepend(QStringLiteral("qrc:/"));
+	if (file.startsWith(QStringLiteral(":")))
+		file.replace(QStringLiteral(":"), QStringLiteral("qrc:"));
+	else if (file.startsWith(QStringLiteral("/")))
+		file.replace(QStringLiteral("/"), QStringLiteral("qrc:/"));
+	else if (!file.startsWith(QStringLiteral("qrc:/")))
+		file.prepend(QStringLiteral("qrc:/"));
 
 
-    QQmlComponent component(Application::instance()->engine(), file, scene);
+	QQmlComponent component(Application::instance()->engine(), file, scene);
 
-    LOG_CDEBUG("scene") << "Create object from file:" << file << component.isReady();
+	LOG_CDEBUG("scene") << "Create object from file:" << file << component.isReady();
 
-    // Synchronous
+	// Synchronous
 
-    if (synchronous)
-        return qobject_cast<GameObject*>(component.create());
+	if (synchronous)
+		return qobject_cast<GameObject*>(component.create());
 
 
-    // Asynchronous
+	// Asynchronous
 
-    QQmlIncubator incubator;
-    component.create(incubator, Application::instance()->engine()->contextForObject(scene));
+	QQmlIncubator incubator;
+	component.create(incubator, Application::instance()->engine()->contextForObject(scene));
 
-    while (!incubator.isReady()) {
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
-    }
+	while (!incubator.isReady()) {
+		QCoreApplication::processEvents(QEventLoop::AllEvents, 50);
+	}
 
-    return qobject_cast<GameObject*>(incubator.object());
+	return qobject_cast<GameObject*>(incubator.object());
 }
 
 
@@ -114,25 +114,25 @@ GameObject *GameObject::createFromFile(QString file, GameScene *scene, const boo
 
 GameScene *GameObject::scene() const
 {
-    return m_scene;
+	return m_scene;
 }
 
 void GameObject::setScene(GameScene *newScene)
 {
-    if (m_scene == newScene)
-        return;
-    m_scene = newScene;
-    emit sceneChanged();
-    emit gameChanged();
+	if (m_scene == newScene)
+		return;
+	m_scene = newScene;
+	emit sceneChanged();
+	emit gameChanged();
 
-    onSceneChanged();
+	onSceneChanged();
 }
 
 
 
 Box2DBody *GameObject::body() const
 {
-    return m_body.get();
+	return m_body.get();
 }
 
 
@@ -142,7 +142,7 @@ Box2DBody *GameObject::body() const
 
 void GameObject::bodyComplete()
 {
-    m_body->componentComplete();
+	m_body->componentComplete();
 }
 
 
@@ -153,7 +153,7 @@ void GameObject::bodyComplete()
 
 void GameObject::deleteSelf()
 {
-    this->deleteLater();
+	this->deleteLater();
 }
 
 
@@ -163,20 +163,20 @@ void GameObject::deleteSelf()
 
 void GameObject::onSceneChanged()
 {
-    if (m_sceneConnected)
-        return;
+	if (m_sceneConnected)
+		return;
 
-    if (m_scene) {
-        if (m_scene->world()) {
-            m_body->setWorld(m_scene->world());
-        }
+	if (m_scene) {
+		if (m_scene->world()) {
+			m_body->setWorld(m_scene->world());
+		}
 
-        if (m_scene) {
-            m_scene->gameObjectAdd(this);
-            onSceneConnected();
-            m_sceneConnected = true;
-        }
-    }
+		if (m_scene) {
+			m_scene->gameObjectAdd(this);
+			onSceneConnected();
+			m_sceneConnected = true;
+		}
+	}
 }
 
 
@@ -188,19 +188,19 @@ void GameObject::onSceneChanged()
 
 ObjectStateBase GameObject::interpolate(const qreal &t, const ObjectStateBase &from, const ObjectStateBase &to)
 {
-    ObjectStateBase b = from;
+	ObjectStateBase b = from;
 
-    if (from.fields.testFlag(ObjectStateBase::FieldSize)) {
-        b.size.setWidth(std::lerp(from.size.width(), to.size.width(), t));
-        b.size.setHeight(std::lerp(from.size.height(), to.size.height(), t));
-    }
+	if (from.fields.testFlag(ObjectStateBase::FieldSize)) {
+		b.size.setWidth(std::lerp(from.size.width(), to.size.width(), t));
+		b.size.setHeight(std::lerp(from.size.height(), to.size.height(), t));
+	}
 
-    if (from.fields.testFlag(ObjectStateBase::FieldPosition)) {
-        b.position.setX(std::lerp(from.position.x(), to.position.x(), t));
-        b.position.setY(std::lerp(from.position.y(), to.position.y(), t));
-    }
+	if (from.fields.testFlag(ObjectStateBase::FieldPosition)) {
+		b.position.setX(std::lerp(from.position.x(), to.position.x(), t));
+		b.position.setY(std::lerp(from.position.y(), to.position.y(), t));
+	}
 
-    return b;
+	return b;
 }
 
 
@@ -214,43 +214,43 @@ ObjectStateBase GameObject::interpolate(const qreal &t, const ObjectStateBase &f
 
 ObjectStateBase GameObject::interpolateStates(const qint64 &currentTick, const ObjectStateBase *defaultState)
 {
-    if (m_authoritativeStates.size() < 2) {
-        if (defaultState)
-            return *defaultState;
-        else
-            return ObjectStateBase();
-    }
+	if (m_authoritativeStates.size() < 2) {
+		if (defaultState)
+			return *defaultState;
+		else
+			return ObjectStateBase();
+	}
 
 
-    const qint64 virtualTick = currentTick-m_authoritativeStateInterval;
+	const qint64 virtualTick = currentTick-m_authoritativeStateInterval;
 
-    qint64 fromTick=-1, toTick=-1;
-    ObjectStateBase fromState, toState;
+	qint64 fromTick=-1, toTick=-1;
+	ObjectStateBase fromState, toState;
 
-    for (auto it = m_authoritativeStates.cbegin(); it != m_authoritativeStates.cend(); ++it) {
-        auto it2 = it;
-        ++it2;
+	for (auto it = m_authoritativeStates.cbegin(); it != m_authoritativeStates.cend(); ++it) {
+		auto it2 = it;
+		++it2;
 
-        if (it2 == m_authoritativeStates.cend())
-            break;
+		if (it2 == m_authoritativeStates.cend())
+			break;
 
-        if (fromTick != -1 && toTick > virtualTick)
-            break;
+		if (fromTick != -1 && toTick > virtualTick)
+			break;
 
-        fromTick = it->first;
-        fromState = it->second;
-        toTick = it2->first;
-        toState = it2->second;
-    }
+		fromTick = it->first;
+		fromState = it->second;
+		toTick = it2->first;
+		toState = it2->second;
+	}
 
-    if (fromTick > virtualTick || toTick < (currentTick-2*m_authoritativeStateInterval)) {
-        if (defaultState)
-            return *defaultState;
-        else
-            return ObjectStateBase();
-    }
+	if (fromTick > virtualTick || toTick < (currentTick-2*m_authoritativeStateInterval)) {
+		if (defaultState)
+			return *defaultState;
+		else
+			return ObjectStateBase();
+	}
 
-    return interpolate((qreal)(virtualTick-fromTick)/(qreal)(toTick-fromTick), fromState, toState);;
+	return interpolate((qreal)(virtualTick-fromTick)/(qreal)(toTick-fromTick), fromState, toState);;
 }
 
 
@@ -265,12 +265,12 @@ ObjectStateBase GameObject::interpolateStates(const qint64 &currentTick, const O
 
 bool GameObject::stateReconciliation(const ObjectStateBase &from, const ObjectStateBase &to)
 {
-    Q_UNUSED(to);
+	Q_UNUSED(to);
 
-    if (from.state == ObjectStateBase::StateInactive)
-        return false;
+	if (from.state == ObjectStateBase::StateInactive)
+		return false;
 
-    return true;
+	return true;
 }
 
 
@@ -281,14 +281,14 @@ bool GameObject::stateReconciliation(const ObjectStateBase &from, const ObjectSt
 
 void GameObject::removeOldAuthoritativeStates(const qint64 &currentTick)
 {
-    qint64 diff = m_authoritativeStateInterval * AUTHORITATIVE_STATE_CACHE_FACTOR;
+	qint64 diff = m_authoritativeStateInterval * AUTHORITATIVE_STATE_CACHE_FACTOR;
 
-    for (auto it = m_authoritativeStates.cbegin(); it != m_authoritativeStates.cend(); ) {
-        if (it->first < currentTick-diff)
-            it = m_authoritativeStates.erase(it);
-        else
-            ++it;
-    }
+	for (auto it = m_authoritativeStates.cbegin(); it != m_authoritativeStates.cend(); ) {
+		if (it->first < currentTick-diff)
+			it = m_authoritativeStates.erase(it);
+		else
+			++it;
+	}
 }
 
 
@@ -299,7 +299,7 @@ void GameObject::removeOldAuthoritativeStates(const qint64 &currentTick)
 
 qint64 GameObject::authoritativeStateInterval() const
 {
-    return m_authoritativeStateInterval;
+	return m_authoritativeStateInterval;
 }
 
 
@@ -310,8 +310,8 @@ qint64 GameObject::authoritativeStateInterval() const
 
 void GameObject::setAuthoritativeStateInterval(qint64 newAuthoritativeStateInterval)
 {
-    if (newAuthoritativeStateInterval > 0)
-        m_authoritativeStateInterval = newAuthoritativeStateInterval;
+	if (newAuthoritativeStateInterval > 0)
+		m_authoritativeStateInterval = newAuthoritativeStateInterval;
 }
 
 
@@ -326,22 +326,22 @@ void GameObject::setAuthoritativeStateInterval(qint64 newAuthoritativeStateInter
 
 std::optional<ObjectStateBase> GameObject::stateReconciliation(const ObjectStateBase &state)
 {
-    for (auto it = m_cachedStates.rbegin(); it != m_cachedStates.rend(); ++it) {
-        if (it->tick < state.tick)
-            m_cachedStates.erase(it.base()-1);
-    }
+	for (auto it = m_cachedStates.rbegin(); it != m_cachedStates.rend(); ++it) {
+		if (it->tick < state.tick)
+			m_cachedStates.erase(it.base()-1);
+	}
 
-    ObjectStateBase r = state;
+	ObjectStateBase r = state;
 
-    for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ++it) {
-        if (stateReconciliation(state, *it)) {
-            r = *it;
-        } else {
-            return std::nullopt;
-        }
-    }
+	for (auto it = m_cachedStates.begin(); it != m_cachedStates.end(); ++it) {
+		if (stateReconciliation(state, *it)) {
+			r = *it;
+		} else {
+			return std::nullopt;
+		}
+	}
 
-    return r;
+	return r;
 }
 
 
@@ -353,16 +353,16 @@ std::optional<ObjectStateBase> GameObject::stateReconciliation(const ObjectState
 
 ObjectStateBase GameObject::getCurrentState() const
 {
-    ObjectStateBase b;
-    b.type = ObjectStateBase::TypeBase;
+	ObjectStateBase b;
+	b.type = ObjectStateBase::TypeBase;
 
-    b.fields.setFlag(ObjectStateBase::FieldPosition);
-    b.fields.setFlag(ObjectStateBase::FieldSize);
+	b.fields.setFlag(ObjectStateBase::FieldPosition);
+	b.fields.setFlag(ObjectStateBase::FieldSize);
 
-    b.position = QPointF(x(), y()+height());
-    b.size = QSizeF(width(), height());
+	b.position = QPointF(x(), y()+height());
+	b.size = QSizeF(width(), height());
 
-    return b;
+	return b;
 }
 
 
@@ -376,23 +376,23 @@ ObjectStateBase GameObject::getCurrentState() const
 
 void GameObject::setCurrentState(const ObjectStateBase &state, const bool &force)
 {
-    Q_UNUSED(force);
+	Q_UNUSED(force);
 
-    if (state.fields.testFlag(ObjectStateBase::FieldSize)) {
-        setHeight(state.size.height());
-        setWidth(state.size.width());
-    }
+	if (state.fields.testFlag(ObjectStateBase::FieldSize)) {
+		setHeight(state.size.height());
+		setWidth(state.size.width());
+	}
 
-    if (state.fields.testFlag(ObjectStateBase::FieldPosition)) {
-        const qreal _x = state.position.x();
-        const qreal _y = state.position.y()-height();
+	if (state.fields.testFlag(ObjectStateBase::FieldPosition)) {
+		const qreal _x = state.position.x();
+		const qreal _y = state.position.y()-height();
 
-        if (_x != x() || _y != y()) {
-            setX(state.position.x());
-            setY(_y);
-            m_body->setAwake(true);
-        }
-    }
+		if (_x != x() || _y != y()) {
+			setX(state.position.x());
+			setY(_y);
+			m_body->setAwake(true);
+		}
+	}
 }
 
 
@@ -404,15 +404,15 @@ void GameObject::setCurrentState(const ObjectStateBase &state, const bool &force
 
 void GameObject::interpolateState(const qint64 &currentTick, const ObjectStateBase *defaultState)
 {
-    const ObjectStateBase &b = interpolateStates(currentTick, defaultState);
+	const ObjectStateBase &b = interpolateStates(currentTick, defaultState);
 
-    if (b.type != ObjectStateBase::TypeInvalid) {
-        setCurrentState(b, true);
-    } else if (defaultState) {
-        setCurrentState(*defaultState, true);
-    } else {
-        LOG_CTRACE("game") << "SKIP..." << currentTick << this;
-    }
+	if (b.type != ObjectStateBase::TypeInvalid) {
+		setCurrentState(b, true);
+	} else if (defaultState) {
+		setCurrentState(*defaultState, true);
+	} else {
+		LOG_CTRACE("game") << "SKIP..." << currentTick << this;
+	}
 }
 
 
@@ -427,7 +427,7 @@ void GameObject::interpolateState(const qint64 &currentTick, const ObjectStateBa
 
 ActionGame *GameObject::game() const
 {
-    return m_scene ? m_scene->game() : nullptr;
+	return m_scene ? m_scene->game() : nullptr;
 }
 
 
@@ -439,15 +439,15 @@ ActionGame *GameObject::game() const
 
 const QString &GameObject::objectType() const
 {
-    return m_objectType;
+	return m_objectType;
 }
 
 void GameObject::setObjectType(const QString &newObjectType)
 {
-    if (m_objectType == newObjectType)
-        return;
-    m_objectType = newObjectType;
-    emit objectTypeChanged();
+	if (m_objectType == newObjectType)
+		return;
+	m_objectType = newObjectType;
+	emit objectTypeChanged();
 }
 
 
@@ -460,8 +460,8 @@ void GameObject::setObjectType(const QString &newObjectType)
 
 void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 {
-    Q_UNUSED(msec)
-    Q_UNUSED(delayFactor)
+	Q_UNUSED(msec)
+	Q_UNUSED(delayFactor)
 }
 
 
@@ -474,9 +474,9 @@ void GameObject::onTimingTimerTimeout(const int &msec, const qreal &delayFactor)
 
 void GameObject::onTimingTimerTimeoutMulti(const bool &hosted, const int &msec, const qreal &delayFactor)
 {
-    Q_UNUSED(msec)
-    Q_UNUSED(delayFactor)
-    Q_UNUSED(hosted)
+	Q_UNUSED(msec)
+	Q_UNUSED(delayFactor)
+	Q_UNUSED(hosted)
 }
 
 
@@ -490,38 +490,38 @@ void GameObject::onTimingTimerTimeoutMulti(const bool &hosted, const int &msec, 
 
 int GameObject::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &entityId)
 {
-    ActionGame *_game = game();
+	ActionGame *_game = game();
 
-    if (!_game)
-        return -1;
+	if (!_game)
+		return -1;
 
-    if (snapshot) {
-        ObjectStateBase prev;
-        int num = 0;
+	if (snapshot) {
+		ObjectStateBase prev;
+		int num = 0;
 
-        for (ObjectStateBase s : m_cachedStates) {
-            s.id = entityId;
+		for (ObjectStateBase s : std::as_const(m_cachedStates)) {
+			s.id = entityId;
 
-            if (prev.type != ObjectStateBase::TypeInvalid) {
-                const auto &d = prev.diff(s);
+			if (prev.type != ObjectStateBase::TypeInvalid) {
+				const auto &d = prev.diff(s);
 
-                if (!d) {
-                    LOG_CERROR("game") << "State diff error" << entityId << s.type << s.tick;
-                } else {
-                    s = d.value();
-                }
-            }
+				if (!d) {
+					LOG_CERROR("game") << "State diff error" << entityId << s.type << s.tick;
+				} else {
+					s = d.value();
+				}
+			}
 
-            prev = s;
-            snapshot->append(s);
-            ++num;
-        }
+			prev = s;
+			snapshot->append(s);
+			++num;
+		}
 
-        return num;
-    }
+		return num;
+	}
 
 
-    return -1;
+	return -1;
 }
 
 
@@ -532,6 +532,6 @@ int GameObject::getStateSnapshot(ObjectStateSnapshot *snapshot, const qint64 &en
 
 void GameObject::setStateFromSnapshot(const ObjectStateBase &ptr, const qint64 &currentTick, const bool &force)
 {
-    setCurrentState(ptr, force);
+	setCurrentState(ptr, force);
 }
 

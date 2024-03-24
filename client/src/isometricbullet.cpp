@@ -147,7 +147,7 @@ void IsometricBullet::shot(const QPointF &from, const Direction &direction)
 	setCurrentDirection(direction);
 	m_direction = direction;
 	m_angle = 0.;
-	jumpToSprite("base", m_currentDirection);
+	jumpToSprite("default", m_currentDirection);
 	m_scene->appendToObjects(this);
 }
 
@@ -168,7 +168,7 @@ void IsometricBullet::shot(const QPointF &from, const qreal &angle)
 	setCurrentDirection(nearestDirectionFromRadian(angle));
 	m_direction = Invalid;
 	m_angle = angle;
-	jumpToSprite("base", m_currentDirection);
+	jumpToSprite("default", m_currentDirection);
 	m_scene->appendToObjects(this);
 }
 
@@ -228,7 +228,7 @@ void IsometricBullet::worldStep()
 		m_body->setLinearVelocity(TiledObjectBase::toPoint(m_angle, m_speed));
 	}
 
-	jumpToSprite("base", m_currentDirection);
+	jumpToSprite("default", m_currentDirection);
 }
 
 
@@ -341,8 +341,6 @@ void IsometricBullet::setFromWeapon(TiledWeapon *newFromWeapon)
 
 void IsometricBullet::impactEvent(TiledObjectBase *base)
 {
-	LOG_CINFO("game") << "IMPACTED" << base;
-
 	TiledWeapon *weapon = fromWeapon();
 	TiledObject *owner = weapon ? weapon->parentObject() : nullptr;
 

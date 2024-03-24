@@ -27,6 +27,7 @@
 #ifndef RPGGAME_H
 #define RPGGAME_H
 
+#include "gamequestion.h"
 #include "rpgcontrolgroup.h"
 #include "rpgenemyiface.h"
 #include "rpgplayer.h"
@@ -47,11 +48,11 @@ class RpgGame : public TiledGame
 
 	Q_PROPERTY(QList<RpgPlayer *> players READ players WRITE setPlayers NOTIFY playersChanged FINAL)
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
+	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged FINAL)
 
 public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
-
 
 	Q_INVOKABLE bool load();
 
@@ -94,9 +95,16 @@ public:
 			return {};
 	}
 
+
+	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
+
+	GameQuestion *gameQuestion() const;
+	void setGameQuestion(GameQuestion *newGameQuestion);
+
 signals:
 	void controlledPlayerChanged();
 	void playersChanged();
+	void gameQuestionChanged();
 
 protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
@@ -105,6 +113,11 @@ protected:
 	virtual void keyPressEvent(QKeyEvent *event) override final;
 
 private:
+	void onGameQuestionSuccess(const QVariantMap &answer);
+	void onGameQuestionFailed(const QVariantMap &answer);
+	void onGameQuestionStarted();
+	void onGameQuestionFinished();
+
 	struct EnemyData {
 		TiledObjectBase::ObjectId objectId;
 		RpgEnemyIface::RpgEnemyType type = RpgEnemyIface::EnemyInvalid;
@@ -131,10 +144,13 @@ private:
 
 	QList<RpgPlayer*> m_players;
 	QPointer<RpgPlayer> m_controlledPlayer;
+	QPointer<GameQuestion> m_gameQuestion;
 
 	static const QByteArray m_baseEntitySprite0;
 	static const QByteArray m_baseEntitySprite1;
 	static const QByteArray m_baseEntitySprite2;
 };
+
+
 
 #endif // RPGGAME_H

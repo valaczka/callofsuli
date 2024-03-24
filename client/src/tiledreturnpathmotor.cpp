@@ -43,7 +43,7 @@ TiledReturnPathMotorSerializer TiledReturnPathMotor::toSerializer() const
 	TiledReturnPathMotorSerializer data;
 
 	data.points.reserve(m_path.size()*2);
-	for (const QPointF &p : m_path) {
+	for (const QPointF &p : std::as_const(m_path)) {
 		data.points << p.x() << p.y();
 	}
 
@@ -128,8 +128,49 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 	if (!m_path.isEmpty() && m_lastAngle == angle)
 		return;
 
+	addPoint(currentPoint, angle);
+}
+
+
+/**
+ * @brief TiledReturnPathMotor::placeCurrentPosition
+ * @param body
+ */
+
+void TiledReturnPathMotor::placeCurrentPosition(TiledObjectBody *body, const float32 &angle)
+{
+	Q_ASSERT(body);
+
+	if (m_isReturning) {
+		if (m_pathMotor.currentSegment() >= 0)
+			m_pathMotor.clearFromSegment(m_pathMotor.currentSegment());
+		m_path = m_pathMotor.linesToPolygon();
+
+		m_isReturning = false;
+		m_waitTimer.invalidate();
+	}
+
+	const QPointF &currentPoint = body->bodyPosition();
+
+	addPoint(currentPoint, angle);
+}
+
+
+
+
+
+
+
+
+/**
+ * @brief TiledReturnPathMotor::addPoint
+ * @param point
+ * @param angle
+ */
+void TiledReturnPathMotor::addPoint(const QPointF &point, const float32 &angle)
+{
 	if (!m_path.isEmpty()) {
-		QVector2D vector(m_path.last()-currentPoint);
+		QVector2D vector(m_path.last()-point);
 		if (vector.length() < 50.)
 			return;
 	}
@@ -138,7 +179,7 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 	// Check intersections
 
 	if (m_path.size() > 1) {
-		QLineF line(m_path.last(), currentPoint);
+		QLineF line(m_path.last(), point);
 
 		auto prev = m_path.constBegin();
 		for (auto it = m_path.constBegin(); it != m_path.constEnd(); ++it) {
@@ -161,9 +202,14 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 		}
 	}
 
-	m_path << currentPoint;
+	m_path << point;
 	m_lastAngle = angle;
 }
+
+
+
+
+
 
 
 /**
@@ -177,15 +223,17 @@ void TiledReturnPathMotor::finish(TiledObjectBody *body)
 
 	const QPointF &currentPoint = body->bodyPosition();
 
-	QVector2D vector(m_path.last()-currentPoint);
+	if (!m_path.isEmpty()) {
+		QVector2D vector(m_path.last()-currentPoint);
 
-	if (vector.length() >= 15.)
-		m_path << currentPoint;
+		if (vector.length() >= 15.)
+			m_path << currentPoint;
 
-	m_pathMotor.setDirection(TiledPathMotor::Backward);
-	m_pathMotor.setPolygon(m_path);
+		m_pathMotor.setDirection(TiledPathMotor::Backward);
+		m_pathMotor.setPolygon(m_path);
+		m_waitTimer.restart();
+	}
 
-	m_waitTimer.restart();
 	m_isReturning = true;
 	clearLastSeenPoint();
 }
@@ -210,7 +258,6 @@ bool TiledReturnPathMotor::step(const qreal &distance)
 		LOG_CWARNING("scene") << "Return not ready";
 		return false;
 	}
-
 
 	if (m_pathMotor.atBegin())
 		return false;

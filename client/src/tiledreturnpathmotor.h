@@ -71,6 +71,7 @@ public:
 	void updateBody(TiledObject */*body*/, const qreal &/*maximumSpeed = 0.*/) override {}
 
 	void moveBody(TiledObjectBody *body, const float32 &angle, const qreal &radius);
+	void placeCurrentPosition(TiledObjectBody *body, const float32 &angle);
 	void finish(TiledObjectBody *body);
 	bool step(const qreal &distance) override;
 
@@ -89,6 +90,8 @@ public:
 	void clearLastSeenPoint();
 
 private:
+	void addPoint(const QPointF &point, const float32 &angle);
+
 	TiledPathMotor m_pathMotor;
 	QPolygonF m_path;
 	float32 m_lastAngle = 0;
