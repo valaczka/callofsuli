@@ -94,6 +94,7 @@ private:
 	void playDeadEffect();
 	void playAttackEffect(TiledWeapon *weapon);
 	void playWeaponChangedEffect();
+	void playShieldEffect();
 
 private:
 	static QStringList m_availableCharacters;
@@ -105,6 +106,7 @@ private:
 	std::unique_ptr<RpgArmory> m_armory;
 
 	TiledEffectHealed m_effectHealed;
+	TiledEffectShield m_effectShield;
 
 	friend class RpgGame;
 };

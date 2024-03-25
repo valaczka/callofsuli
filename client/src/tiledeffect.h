@@ -43,6 +43,7 @@ public:
 	virtual ~TiledEffect() = default;
 
 	virtual void play() = 0;
+	void clear();
 
 protected:
 	void playSprite(const QString &path, const TiledObjectSprite &sprite);
@@ -52,19 +53,43 @@ protected:
 	void playSprite(const QString &path, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite,
 					const QString &soundPath, const float &baseVolume = 1.);
 
+
 	const TiledObject *m_parentObject;
+	TiledObject::AuxHandler m_auxHandler = TiledObject::AuxFront;
+	bool m_alignToBody = false;
 };
 
 
 
 /**
- * @brief The TiledHealEffect class
+ * @brief The TiledEffectHealed class
  */
 
 class TiledEffectHealed : public TiledEffect
 {
 public:
 	TiledEffectHealed(TiledObject *parentObject) : TiledEffect(parentObject) {}
+	virtual void play() override;
+};
+
+
+
+
+
+
+
+/**
+ * @brief The TiledEffectShield class
+ */
+
+class TiledEffectShield : public TiledEffect
+{
+public:
+	TiledEffectShield(TiledObject *parentObject) : TiledEffect(parentObject) {
+		m_auxHandler = TiledObject::AuxBack;
+		m_alignToBody = true;
+	}
+
 	virtual void play() override;
 };
 

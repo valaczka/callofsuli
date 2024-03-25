@@ -61,6 +61,7 @@ class IsometricPlayer : public IsometricCircleEntity
 	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
 	Q_PROPERTY(QPointF currentVelocity READ currentVelocity WRITE setCurrentVelocity NOTIFY currentVelocityChanged FINAL)
 	Q_PROPERTY(TiledObject *currentPickable READ currentPickable WRITE setCurrentPickable NOTIFY currentPickableChanged FINAL)
+	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
 
 public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
@@ -90,6 +91,9 @@ public:
 	void setCurrentPickable(TiledObject *newCurrentPickable);
 	void removePickable(TiledObject *pickable);
 
+	bool isLocked() const;
+	void setIsLocked(bool newIsLocked);
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -99,6 +103,7 @@ signals:
 	void enemyChanged();
 	void currentVelocityChanged();
 	void currentPickableChanged();
+	void isLockedChanged();
 
 protected:
 	//void updateSprite() override;
@@ -127,6 +132,7 @@ protected:
 	qreal m_speedRunLength = 7.;
 	qreal m_runSpeed = 3.;
 	qint64 m_inabilityTime = 1000;
+	bool m_isLocked = false;
 
 
 private:

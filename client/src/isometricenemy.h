@@ -54,6 +54,7 @@ public:
 	IsometricPlayer *player() const;
 	void setPlayer(IsometricPlayer *newPlayer);
 
+	void removeContactedPlayer(IsometricPlayer *player);
 
 	float playerDistance() const;
 	void setPlayerDistance(float newPlayerDistance);
@@ -121,6 +122,8 @@ public:
 	void initialize();
 	bool hasAbility() const;
 
+	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -138,7 +141,6 @@ protected:
 	void onAlive() override;
 	void onDead() override;
 
-	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
 	void startInabililty();
 
 	virtual void eventPlayerReached(IsometricPlayer *player) = 0;

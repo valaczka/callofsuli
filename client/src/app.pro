@@ -275,6 +275,7 @@ SOURCES += \
 	rpglongsword.cpp \
 	rpgpickableobject.cpp \
 	rpgplayer.cpp \
+	rpgquestion.cpp \
 	rpgshield.cpp \
 	rpgshortbow.cpp \
 	rpgwerebear.cpp \
@@ -391,6 +392,7 @@ HEADERS += \
 	rpglongsword.h \
 	rpgpickableobject.h \
 	rpgplayer.h \
+	rpgquestion.h \
 	rpgshield.h \
 	rpgshortbow.h \
 	rpgwerebear.h \

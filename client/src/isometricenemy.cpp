@@ -111,7 +111,7 @@ void IsometricEnemy::attackedByPlayer(IsometricPlayer *player, const TiledWeapon
 		return;
 
 	if (!m_contactedPlayers.contains(player))
-		m_contactedPlayers.append(player);
+		m_contactedPlayers.append(QPointer(player));
 
 	setPlayer(player);
 	rotateToPlayer(player);
@@ -137,7 +137,7 @@ void IsometricEnemy::startInabililty()
 
 void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
 {
-	if (!weapon || !player)
+	if (!weapon || !player || player->isLocked())
 		return;
 
 	if (weapon->canHit()) {
@@ -181,7 +181,8 @@ void IsometricEnemy::entityWorldStep()
 	bool isPursuit = false;
 
 	if (myPlayer) {
-		setPlayer(myPlayer);
+		if (!m_player || !myPlayer->isLocked())
+			setPlayer(myPlayer);
 
 		if (m_returnPathMotor)
 			m_returnPathMotor->clearLastSeenPoint();
@@ -238,6 +239,12 @@ void IsometricEnemy::entityWorldStep()
 	}
 
 	if (isPursuit) {
+		if (m_player && m_player->isLocked()) {
+			m_body->stop();
+			updateSprite();
+			return;
+		}
+
 		if (!enemyWorldStepOnVisiblePlayer(angle)) {
 			updateSprite();
 			return;
@@ -308,6 +315,9 @@ bool IsometricEnemy::enemyWorldStep()
 		if (!hasAbility())
 			return false;
 
+		if (m_player->isLocked())
+			return false;
+
 		if (m_autoHitTimer.hasExpired()) {
 			attackPlayer(m_player, defaultWeapon());
 			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);
@@ -348,6 +358,9 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle)
 		}
 
 		if (!hasAbility())
+			return false;
+
+		if (m_player->isLocked())
 			return false;
 
 		if (m_autoHitTimer.hasExpired()) {
@@ -546,7 +559,7 @@ void IsometricEnemy::sensorBeginContact(Box2DFixture *other)
 		return;
 
 	if (!m_contactedPlayers.contains(player)) {
-		m_contactedPlayers.append(player);
+		m_contactedPlayers.append(QPointer(player));
 		eventPlayerContacted(player);
 	}
 }
@@ -566,7 +579,7 @@ void IsometricEnemy::sensorEndContact(Box2DFixture *other)
 	if (!player)
 		return;
 
-	m_contactedPlayers.removeAll(player);
+	removeContactedPlayer(player);
 	eventPlayerDiscontacted(player);
 }
 
@@ -590,7 +603,7 @@ void IsometricEnemy::fixtureBeginContact(Box2DFixture *other)
 			return;
 
 		if (!m_reachedPlayers.contains(player)) {
-			m_reachedPlayers.append(player);
+			m_reachedPlayers.append(QPointer(player));
 			eventPlayerReached(player);
 		}
 	}
@@ -615,7 +628,7 @@ void IsometricEnemy::fixtureEndContact(Box2DFixture *other)
 		if (!player)
 			return;
 
-		m_reachedPlayers.removeAll(player);
+		m_reachedPlayers.removeAll(QPointer(player));
 		eventPlayerLeft(player);
 	}
 }
@@ -688,6 +701,20 @@ void IsometricEnemyIface::setPlayer(IsometricPlayer *newPlayer)
 		return;
 	m_player = newPlayer;
 	emit playerChanged();
+}
+
+
+/**
+ * @brief IsometricEnemyIface::removeContactedPlayer
+ * @param player
+ */
+
+void IsometricEnemyIface::removeContactedPlayer(IsometricPlayer *player)
+{
+	if (!player)
+		return;
+
+	m_contactedPlayers.removeAll(QPointer(player));
 }
 
 

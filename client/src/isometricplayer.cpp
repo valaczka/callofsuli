@@ -340,6 +340,27 @@ bool IsometricPlayer::protectWeapon(TiledWeaponList *weaponList, const TiledWeap
 }
 
 
+/**
+ * @brief IsometricPlayer::isLocked
+ * @return
+ */
+
+bool IsometricPlayer::isLocked() const
+{
+	return m_isLocked;
+}
+
+void IsometricPlayer::setIsLocked(bool newIsLocked)
+{
+	if (m_isLocked == newIsLocked)
+		return;
+	m_isLocked = newIsLocked;
+	emit isLockedChanged();
+	if (m_isLocked)
+		m_body->stop();
+}
+
+
 
 
 /**
@@ -356,7 +377,7 @@ void IsometricPlayer::sensorBeginContact(Box2DFixture *other)
 
 	if (IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base)) {
 		if (!d->m_contactedEnemies.contains(enemy))
-			d->m_contactedEnemies.append(enemy);
+			d->m_contactedEnemies.append(QPointer(enemy));
 	}
 }
 
@@ -376,7 +397,7 @@ void IsometricPlayer::sensorEndContact(Box2DFixture *other)
 		return;
 
 	if (enemy)
-		d->m_contactedEnemies.removeAll(enemy);
+		d->m_contactedEnemies.removeAll(QPointer(enemy));
 }
 
 
@@ -399,7 +420,7 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 		IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
 
 		if (enemy && !d->m_reachedEnemies.contains(enemy)) {
-			d->m_reachedEnemies.append(enemy);
+			d->m_reachedEnemies.append(QPointer(enemy));
 			onEnemyReached(enemy);
 		}
 	}
@@ -415,7 +436,7 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 		TiledObject *object = qobject_cast<TiledObject*>(base);
 		TiledPickableIface *iface = dynamic_cast<TiledPickableIface*>(base);
 		if (object && iface) {
-			d->m_reachedPickables.enqueue(object);
+			d->m_reachedPickables.enqueue(QPointer(object));
 			if (!m_currentPickable)
 				setCurrentPickable(d->m_reachedPickables.dequeue());
 		}
@@ -444,7 +465,7 @@ void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 		IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
 
 		if (enemy) {
-			d->m_reachedEnemies.removeAll(enemy);
+			d->m_reachedEnemies.removeAll(QPointer(enemy));
 			onEnemyLeft(enemy);
 		}
 	}
@@ -495,7 +516,7 @@ void IsometricPlayer::setCurrentPickable(TiledObject *newCurrentPickable)
 
 void IsometricPlayer::removePickable(TiledObject *pickable)
 {
-	d->m_reachedPickables.removeAll(pickable);
+	d->m_reachedPickables.removeAll(QPointer(pickable));
 
 	if (m_currentPickable == pickable) {
 		if (d->m_reachedPickables.isEmpty())
@@ -536,6 +557,11 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 {
 	if (!isAlive())
 		return;
+
+	if (m_isLocked) {
+		m_body->stop();
+		return;
+	}
 
 	if (state.hasKeyboard || state.hasTouch) {
 		setCurrentAngle(state.angle);

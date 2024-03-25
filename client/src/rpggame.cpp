@@ -35,8 +35,13 @@
 #include "rpgwerebear.h"
 #include "sound.h"
 #include "application.h"
-
+#include "rpgquestion.h"
 #include <QRandomGenerator>
+
+#ifndef Q_OS_WASM
+#include "standaloneclient.h"
+#endif
+
 
 
 
@@ -259,10 +264,11 @@ bool RpgGame::load()
 		if (QRandomGenerator::global()->bounded(2) % 2 == 0) {
 			character = createEnemy(e.type, e.subtype, e.scene);
 			if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(character)) {
-				auto w = iface->armory()->weaponAdd(new RpgLongbow);
+				auto w = iface->armory()->weaponAdd(new RpgLongsword);
 				w->setBulletCount(-1);
 				//w->setCanThrow(true);
 				iface->armory()->setCurrentWeapon(w);
+				e.hasQuestion = true;
 			}
 		} else {
 			character = createEnemy(RpgEnemyIface::EnemyWerebear, e.subtype, e.scene);
@@ -363,6 +369,16 @@ bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const T
 	if (iface->protectWeapon(weaponType))
 		return false;
 
+	const auto &ptr = getEnemyData(e);
+	if (ptr) {
+		LOG_CWARNING("game") << "Enemy has question" << ptr->enemy;
+
+		if (m_rpgQuestion->nextQuestion(p, e, weaponType)) {
+			Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
+			return true;
+		}
+	}
+
 	e->attackedByPlayer(p, weaponType);
 
 	return true;
@@ -446,7 +462,14 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 
 void RpgGame::onPlayerDead(TiledObject *player)
 {
+	IsometricPlayer *isoPlayer = qobject_cast<IsometricPlayer*>(player);
 
+	if (isoPlayer) {
+		for (const EnemyData &e : m_enemyDataList) {
+			if (e.enemy)
+				e.enemy->removeContactedPlayer(isoPlayer);
+		}
+	}
 }
 
 
@@ -828,6 +851,17 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			break;
 
 
+		case Qt::Key_F2: {
+			int idx = m_players.indexOf(m_controlledPlayer);
+			++idx;
+			if (idx >= m_players.size())
+				idx = 0;
+			setFollowedItem(m_players.at(idx));
+			setControlledPlayer(m_players.at(idx));
+		}
+			break;
+
+
 		default:
 			TiledGame::keyPressEvent(event);
 			break;
@@ -844,24 +878,11 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 
 void RpgGame::onGameQuestionSuccess(const QVariantMap &answer)
 {
-	/*addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), true, m_gameQuestion->elapsedMsec());
+	if (m_rpgQuestion)
+		m_rpgQuestion->questionSuccess(answer);
 
-	int xp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * (qreal) ACTION_GAME_BASE_XP;
-	setXp(m_xp+xp);
-
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
-
-	m_gameQuestion->answerReveal(answer);
-	m_gameQuestion->setMsecBeforeHide(0);
-
-	m_gameQuestion->finish();
-
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
-
-	if (m_attackedEnemy) {
-		m_attackedEnemy->kill();
-		m_attackedEnemy = nullptr;
-	}*/
+	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
+	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
 }
 
 
@@ -873,32 +894,16 @@ void RpgGame::onGameQuestionSuccess(const QVariantMap &answer)
 
 void RpgGame::onGameQuestionFailed(const QVariantMap &answer)
 {
-	/*
 #ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(m_client);
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
 	if (client)
 		client->performVibrate();
 #endif
 
-	addStatistics(m_gameQuestion->module(), m_gameQuestion->objectiveUuid(), false, m_gameQuestion->elapsedMsec());
+	if (m_rpgQuestion)
+		m_rpgQuestion->questionFailed(answer);
 
-	if (m_player)
-		enemyAttackPlayer(nullptr, false, player());
-
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
-
-	m_gameQuestion->answerReveal(answer);
-	m_gameQuestion->setMsecBeforeHide(1250);
-
-	GameEnemy *enemy = qobject_cast<GameEnemy*>(m_attackedEnemy);
-
-	if (enemy) {
-		m_attackedEnemy = nullptr;
-		enemy->missedByPlayer(player());
-		relinkQuestionToEnemy(enemy);
-	}
-
-	m_gameQuestion->finish();*/
+	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
 }
 
 
@@ -919,8 +924,42 @@ void RpgGame::onGameQuestionStarted()
 
 void RpgGame::onGameQuestionFinished()
 {
-	//setRunning(true);
-	//m_scene->forceActiveFocus(Qt::OtherFocusReason);
+	if (m_rpgQuestion)
+		m_rpgQuestion->questionFinished();
+
+	this->forceActiveFocus(Qt::OtherFocusReason);
+}
+
+
+
+
+
+/**
+ * @brief RpgGame::getEnemyData
+ * @param enemy
+ * @return
+ */
+
+std::optional<RpgGame::EnemyData> RpgGame::getEnemyData(IsometricEnemy *enemy) const
+{
+	if (auto it = std::find_if(m_enemyDataList.constBegin(), m_enemyDataList.constEnd(),
+							   [enemy](const EnemyData &e)	{
+							   return e.enemy == enemy; }
+							   ); it != m_enemyDataList.constEnd()) {
+		return *it;
+	}
+
+	return std::nullopt;
+}
+
+RpgQuestion *RpgGame::rpgQuestion() const
+{
+	return m_rpgQuestion;
+}
+
+void RpgGame::setRpgQuestion(RpgQuestion *newRpgQuestion)
+{
+	m_rpgQuestion = newRpgQuestion;
 }
 
 
@@ -1018,6 +1057,10 @@ void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 {
 	if (m_controlledPlayer == newControlledPlayer)
 		return;
+
+	if (m_controlledPlayer)
+		m_controlledPlayer->onJoystickStateChanged({});
+
 	m_controlledPlayer = newControlledPlayer;
 	emit controlledPlayerChanged();
 }

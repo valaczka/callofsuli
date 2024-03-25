@@ -513,14 +513,14 @@ void Sound::playSound(MaSound *sound, const float &volume)
 				if (ptr->path() == sound->path()) {
 					isActive = true;
 				} else {
-					LOG_CTRACE("sound") << "Stop currently playing music:" << qPrintable(ptr->path());
+					//LOG_CTRACE("sound") << "Stop currently playing music:" << qPrintable(ptr->path());
 					ma_sound_stop(ptr->sound());
 				}
 			}
 		}
 
 		if (!isActive) {
-			LOG_CTRACE("sound") << "Start playing music:" << qPrintable(sound->path());
+			//LOG_CTRACE("sound") << "Start playing music:" << qPrintable(sound->path());
 
 			// Bug: https://github.com/mackron/miniaudio/issues/714
 			ma_sound_set_stop_time_in_milliseconds(sound->sound(), ~(ma_uint64)0);
@@ -537,14 +537,14 @@ void Sound::playSound(MaSound *sound, const float &volume)
 				if (ptr->path() == sound->path()) {
 					isActive = true;
 				} else {
-					LOG_CTRACE("sound") << "Stop currently playing music2:" << qPrintable(ptr->path());
+					//LOG_CTRACE("sound") << "Stop currently playing music2:" << qPrintable(ptr->path());
 					ma_sound_stop(ptr->sound());
 				}
 			}
 		}
 
 		if (!isActive) {
-			LOG_CTRACE("sound") << "Start playing music2:" << qPrintable(sound->path());
+			//LOG_CTRACE("sound") << "Start playing music2:" << qPrintable(sound->path());
 
 			// Bug: https://github.com/mackron/miniaudio/issues/714
 			ma_sound_set_stop_time_in_milliseconds(sound->sound(), ~(ma_uint64)0);
@@ -555,7 +555,7 @@ void Sound::playSound(MaSound *sound, const float &volume)
 
 	} else if (sound->channel() == SfxChannel) {
 		if (ma_sound_is_playing(sound->sound())) {
-			LOG_CTRACE("sound") << "Duplicate playing sfx:" << qPrintable(sound->path()) << "volume:" << volume;
+			//LOG_CTRACE("sound") << "Duplicate playing sfx:" << qPrintable(sound->path()) << "volume:" << volume;
 
 			auto snd = sound->duplicate(m_groupSfx.get());
 
@@ -564,7 +564,7 @@ void Sound::playSound(MaSound *sound, const float &volume)
 				ma_sound_start(snd);
 			}
 		} else {
-			LOG_CTRACE("sound") << "Start playing sfx:" << qPrintable(sound->path()) << "volume:" << volume;
+			//LOG_CTRACE("sound") << "Start playing sfx:" << qPrintable(sound->path()) << "volume:" << volume;
 			ma_sound_set_volume(sound->sound(), volume);
 			ma_sound_start(sound->sound());
 		}

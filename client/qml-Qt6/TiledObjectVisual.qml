@@ -10,8 +10,22 @@ Item {
 	property TiledObjectImpl baseObject: null
 	property alias spriteHandler: _spriteHandler
 	property alias spriteHandlerAuxFront: _spriteHandlerAuxFront
+	property alias spriteHandlerAuxBack: _spriteHandlerAuxBack
 
 	anchors.fill: parent
+
+	TiledSpriteHandlerImpl {
+		id: _spriteHandlerAuxBack
+
+		baseObject: root.baseObject
+
+		property bool alignToBody: false
+
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.verticalCenter: parent.verticalCenter
+		anchors.horizontalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.x : 0
+		anchors.verticalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.y : 0
+	}
 
 	Rectangle {
 		visible: baseObject && baseObject.scene && baseObject.scene.game && baseObject.scene.game.debugView

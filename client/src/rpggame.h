@@ -37,6 +37,8 @@
 #include <QQmlEngine>
 
 
+class RpgQuestion;
+
 /**
  * @brief The RpgGame class
  */
@@ -101,6 +103,9 @@ public:
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
 
+	RpgQuestion *rpgQuestion() const;
+	void setRpgQuestion(RpgQuestion *newRpgQuestion);
+
 signals:
 	void controlledPlayerChanged();
 	void playersChanged();
@@ -126,6 +131,7 @@ private:
 		int defaultAngle = 0;
 		QPointer<TiledScene> scene;
 		QPointer<IsometricEnemy> enemy;
+		bool hasQuestion = false;
 	};
 
 
@@ -138,6 +144,9 @@ private:
 		QPointer<RpgPickableObject> pickableObject;
 	};
 
+
+	std::optional<EnemyData> getEnemyData(IsometricEnemy *enemy) const;
+
 	QVector<EnemyData> m_enemyDataList;
 	QVector<PickableData> m_pickableDataList;
 	std::vector<std::unique_ptr<RpgControlGroup>> m_controlGroups;
@@ -145,6 +154,7 @@ private:
 	QList<RpgPlayer*> m_players;
 	QPointer<RpgPlayer> m_controlledPlayer;
 	QPointer<GameQuestion> m_gameQuestion;
+	RpgQuestion *m_rpgQuestion = nullptr;
 
 	static const QByteArray m_baseEntitySprite0;
 	static const QByteArray m_baseEntitySprite1;

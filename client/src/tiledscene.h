@@ -119,10 +119,13 @@ protected:
 	std::map<int, DynamicZ> m_dynamicZList;
 	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Box2DWorld> m_world;
-	QVector<QPointer<TiledObject>> m_tiledObjects;
 	QVector<QPointer<TiledObjectBasePolygon>> m_groundObjects;
 	QString m_ambientSound;
 	QString m_backgroundMusic;
+
+	QVector<QPointer<TiledObject>> m_tiledObjects;
+	QVector<QPointer<TiledObject>> m_tiledObjectsToAppend;
+	QVector<QPointer<TiledObject>> m_tiledObjectsToRemove;
 
 
 

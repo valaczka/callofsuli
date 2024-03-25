@@ -46,6 +46,7 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	, m_sfxFootStep(this)
 	, m_armory(new RpgArmory(this))
 	, m_effectHealed(this)
+	, m_effectShield(this)
 {
 	m_sfxPain.setSoundList({
 							   QStringLiteral(":/sound/sfx/pain1.mp3"),
@@ -74,6 +75,7 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
 	connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
 	connect(this, &RpgPlayer::becameDead, this, &RpgPlayer::playDeadEffect);
+	connect(this, &RpgPlayer::isLockedChanged, this, &RpgPlayer::playShieldEffect);
 	connect(m_armory.get(), &RpgArmory::currentWeaponChanged, this, &RpgPlayer::playWeaponChangedEffect);
 
 }
@@ -405,6 +407,7 @@ void RpgPlayer::playHealedEffect()
 void RpgPlayer::playDeadEffect()
 {
 	m_game->playSfx(QStringLiteral(":/sound/sfx/dead.mp3"), m_scene, m_body->bodyPosition());
+	playShieldEffect();
 }
 
 
@@ -459,6 +462,20 @@ void RpgPlayer::playWeaponChangedEffect()
 
 
 	m_game->message(armory()->currentWeapon()->weaponNameEn().append(tr(" activated")));
+}
+
+
+
+/**
+ * @brief RpgPlayer::playShieldEffect
+ */
+
+void RpgPlayer::playShieldEffect()
+{
+	if (m_isLocked && m_hp > 0)
+		m_effectShield.play();
+	else
+		m_effectShield.clear();
 }
 
 

@@ -43,6 +43,7 @@ FocusScope {
 		id: _game
 		anchors.fill: parent
 		joystick: _gameJoystick
+		gameQuestion: _gameQuestion
 		messageList: _messageList
 		defaultMessageColor: Qaterial.Style.iconColor()
 
@@ -200,6 +201,21 @@ FocusScope {
 		_oldXP = xp
 	}
 
+
+
+	GameQuestionAction {
+		id: _gameQuestion
+
+		anchors.fill: parent
+		anchors.topMargin: Client.safeMarginTop
+		anchors.bottomMargin: Client.safeMarginBottom
+		anchors.leftMargin: Client.safeMarginLeft
+		anchors.rightMargin: Client.safeMarginRight
+
+		game: root.game
+
+		z: 5
+	}
 
 	GameMessageList {
 		id: _messageList

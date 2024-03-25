@@ -27,7 +27,7 @@
 #include "actionrpggame.h"
 #include "Logger.h"
 #include "client.h"
-#include "gamequestion.h"
+#include "rpgquestion.h"
 
 
 /**
@@ -38,6 +38,7 @@
 
 ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	: AbstractLevelGame(GameMap::Rpg, missionLevel, client)
+	, m_rpgQuestion(new RpgQuestion(this))
 {
 	LOG_CTRACE("game") << "Action RPG game constructed" << this;
 
@@ -297,6 +298,7 @@ void ActionRpgGame::onConfigChanged()
 
 	if (m_config.gameState == RpgConfig::StatePlay && m_oldGameState != RpgConfig::StatePlay) {
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
+		gameStart();
 	}
 
 	/*if (m_config.gameState == ConquestConfig::StateFinished && m_oldGameState != ConquestConfig::StateFinished) {
@@ -382,6 +384,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 	if (m_rpgGame) {
 		setGameQuestion(nullptr);
 		disconnect(m_rpgGame, &RpgGame::gameLoaded, this, &ActionRpgGame::onGamePrepared);
+		m_rpgGame->setRpgQuestion(nullptr);
 	}
 
 	m_rpgGame = newRpgGame;
@@ -389,6 +392,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 
 	if (m_rpgGame) {
 		setGameQuestion(m_rpgGame->gameQuestion());
+		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
 		connect(m_rpgGame, &RpgGame::gameLoaded, this, &ActionRpgGame::onGamePrepared);
 	}
 }

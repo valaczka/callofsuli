@@ -283,7 +283,7 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			loadTransport(scene, object, renderer);
 		} else if (object->className() == QStringLiteral("ground") ||
 				   (object->className().isEmpty() && group->className() == QStringLiteral("ground"))) {
-			loadGround(scene, object, renderer);			/// TODO: controlled ground
+			loadGround(scene, object, renderer);
 		} else {
 			loadObjectLayer(scene, object, renderer);
 		}
@@ -321,7 +321,7 @@ TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObjec
 	mapObject->fixture()->setRestitution(0);
 	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround));
 
-	scene->m_groundObjects.append(mapObject);
+	scene->m_groundObjects.append(QPointer(mapObject));
 
 	if (object->hasProperty(QStringLiteral("dynamicZ"))) {
 		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {

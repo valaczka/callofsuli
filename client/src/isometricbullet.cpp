@@ -40,6 +40,7 @@ class IsometricBulletPrivate {
 private:
 	IsometricBulletPrivate()
 	{}
+	~IsometricBulletPrivate() = default;
 
 	QPointer<TiledWeapon> m_fromWeapon;
 
@@ -57,7 +58,7 @@ IsometricBullet::IsometricBullet(QQuickItem *parent)
 	: IsometricObjectCircle(parent)
 	, d(new IsometricBulletPrivate)
 {
-	LOG_CTRACE("scene") << "bullet create" << this;
+
 }
 
 
@@ -69,33 +70,8 @@ IsometricBullet::IsometricBullet(QQuickItem *parent)
 IsometricBullet::~IsometricBullet()
 {
 	delete d;
-	LOG_CTRACE("scene") << "bullet destroy" << this;
 }
 
-
-
-/**
- * @brief IsometricBullet::createBullet
- * @param game
- * @param scene
- * @return
- */
-/*
-IsometricBullet *IsometricBullet::createBullet(TiledGame *game, TiledScene *scene)
-{
-	IsometricBullet *bullet = nullptr;
-	TiledObjectBase::createFromCircle<IsometricBullet>(&bullet, QPointF{}, 20, nullptr, scene);
-
-	if (bullet) {
-		bullet->m_body->setBullet(true);
-		bullet->setGame(game);
-		bullet->setScene(scene);
-		bullet->load();
-	}
-
-	return bullet;
-}
-*/
 
 
 
@@ -293,8 +269,14 @@ void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
 	}
 
 
-	const bool hasTarget = (m_targets.testFlag(TargetEnemy) && qobject_cast<IsometricEnemy*>(base)) ||
-						   (m_targets.testFlag(TargetPlayer) && qobject_cast<IsometricPlayer*>(base));
+	bool hasTarget = false;
+
+
+	if (m_targets.testFlag(TargetEnemy) && qobject_cast<IsometricEnemy*>(base))
+		hasTarget = true;
+
+	if (IsometricPlayer *p = qobject_cast<IsometricPlayer*>(base); m_targets.testFlag(TargetPlayer) && p && !p->isLocked())
+		hasTarget = true;
 
 	if (!hasTarget)
 		return;
@@ -316,6 +298,7 @@ void IsometricBullet::doAutoDelete()
 	if (m_scene)
 		m_scene->removeFromObjects(this);
 
+	setVisible(false);
 	this->deleteLater();
 }
 

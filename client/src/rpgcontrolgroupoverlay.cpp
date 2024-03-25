@@ -43,7 +43,7 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
 			TiledQuick::TileLayerItem *item = scene->addTileLayer(tl, renderer);
 			item->setVisible(false);
-			m_tileLayers.append(item);
+			m_tileLayers.append(QPointer(item));
 
 			LOG_CTRACE("game") << "Add tile layer" << tl->name() << "to control group:" << this;
 
@@ -93,7 +93,7 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 void RpgControlGroupOverlay::onFixtureBeginContact(Box2DFixture *other)
 {
 	if (!m_contactedFixtures.contains(other)) {
-		m_contactedFixtures.append(other);
+		m_contactedFixtures.append(QPointer(other));
 		updateLayers();
 	}
 }
@@ -106,7 +106,7 @@ void RpgControlGroupOverlay::onFixtureBeginContact(Box2DFixture *other)
 
 void RpgControlGroupOverlay::onFixtureEndContact(Box2DFixture *other)
 {
-	m_contactedFixtures.removeAll(other);
+	m_contactedFixtures.removeAll(QPointer(other));
 	updateLayers();
 }
 

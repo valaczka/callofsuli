@@ -31,6 +31,11 @@
 #include "rpgconfig.h"
 #include "rpggame.h"
 
+
+/**
+ * @brief The ActionRpgGame class
+ */
+
 class ActionRpgGame : public AbstractLevelGame
 {
 	Q_OBJECT
@@ -85,9 +90,12 @@ protected:
 	RpgConfig m_config;
 	RpgGame *m_rpgGame = nullptr;
 	RpgPlayerConfig m_playerConfig;
+	std::unique_ptr<RpgQuestion> m_rpgQuestion;
 
 private:
 	RpgConfig::GameState m_oldGameState = RpgConfig::StateInvalid;
+
+	friend class RpgQuestion;
 
 };
 

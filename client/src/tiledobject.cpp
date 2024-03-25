@@ -721,10 +721,16 @@ void TiledObject::createVisual()
 	Q_ASSERT(m_spriteHandler);
 
 	m_spriteHandlerAuxFront = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandlerAuxFront"));
+	m_spriteHandlerAuxBack = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandlerAuxBack"));
 
 	m_visualItem->setParentItem(this);
 	m_visualItem->setParent(this);
 	m_visualItem->setProperty("baseObject", QVariant::fromValue(this));
+}
+
+TiledSpriteHandler *TiledObject::spriteHandlerAuxBack() const
+{
+	return m_spriteHandlerAuxBack;
 }
 
 TiledSpriteHandler *TiledObject::spriteHandlerAuxFront() const
@@ -1466,22 +1472,35 @@ bool TiledObject::appendSprite(const IsometricObjectLayeredSpriteList &sprite, c
  * @return
  */
 
-bool TiledObject::playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite) const
+bool TiledObject::playAuxSprite(const AuxHandler &auxHandler, const bool &alignToBody, const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite) const
 {
-	Q_ASSERT(m_spriteHandlerAuxFront);
+	TiledSpriteHandler *handler = nullptr;
+
+	switch (auxHandler) {
+		case AuxBack:
+			handler = m_spriteHandlerAuxBack;
+			break;
+
+		case AuxFront:
+			handler = m_spriteHandlerAuxFront;
+			break;
+	}
+
+	Q_ASSERT(handler);
 
 	// ->property("alignToBody")
 
-	if (!m_spriteHandlerAuxFront->currentSprite().isEmpty() && !replaceCurrentSprite)
+	if (!handler->currentSprite().isEmpty() && !replaceCurrentSprite)
 		return false;
 
-	m_spriteHandlerAuxFront->clear();
+	handler->clear();
 
-	m_spriteHandlerAuxFront->setClearAtEnd(true);
-	m_spriteHandlerAuxFront->setWidth(sprite.width);
-	m_spriteHandlerAuxFront->setHeight(sprite.height);
-	m_spriteHandlerAuxFront->addSprite(sprite, QStringLiteral("default"), Direction::Invalid, source);
-	m_spriteHandlerAuxFront->jumpToSprite(sprite.name, Direction::Invalid, TiledSpriteHandler::JumpImmediate);
+	handler->setClearAtEnd(true);
+	handler->setWidth(sprite.width);
+	handler->setHeight(sprite.height);
+	handler->addSprite(sprite, QStringLiteral("default"), Direction::Invalid, source);
+	handler->setProperty("alignToBody", alignToBody);
+	handler->jumpToSprite(sprite.name, Direction::Invalid, TiledSpriteHandler::JumpImmediate);
 
 	return true;
 }

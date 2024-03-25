@@ -147,7 +147,8 @@ bool TiledScene::load(const QUrl &url)
 
 void TiledScene::appendToObjects(TiledObject *object)
 {
-	m_tiledObjects.append(object);
+	//m_tiledObjects.append(QPointer(object));
+	m_tiledObjectsToAppend.append(QPointer(object));
 }
 
 
@@ -158,7 +159,8 @@ void TiledScene::appendToObjects(TiledObject *object)
 
 void TiledScene::removeFromObjects(TiledObject *object)
 {
-	m_tiledObjects.removeAll(object);
+	//m_tiledObjects.removeAll(QPointer(object));
+	m_tiledObjectsToRemove.append(QPointer(object));
 }
 
 
@@ -279,6 +281,18 @@ void TiledScene::onWorldStepped()
 
 		obj->worldStep();
 	}
+
+	for (const QPointer<TiledObject> &ptr : m_tiledObjectsToAppend) {
+		if (ptr)
+			m_tiledObjects.append(ptr);
+	}
+	m_tiledObjectsToAppend.clear();
+
+	for (const QPointer<TiledObject> &ptr : m_tiledObjectsToRemove) {
+		if (ptr)
+			m_tiledObjects.removeAll(ptr);
+	}
+	m_tiledObjectsToRemove.clear();
 
 	reorderObjectsZ();
 

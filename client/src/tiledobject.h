@@ -453,6 +453,14 @@ public:
 
 	Q_ENUM(Directions);
 
+
+
+	enum AuxHandler {
+		AuxFront = 0,
+		AuxBack
+	};
+
+
 	Q_INVOKABLE void jumpToSprite(const char *sprite, const Direction &direction) const;
 	Q_INVOKABLE void jumpToSpriteLater(const char *sprite, const Direction &direction) const;
 	Q_INVOKABLE void jumpToSprite(const char *sprite) const {
@@ -462,9 +470,7 @@ public:
 		jumpToSpriteLater(sprite, m_currentDirection);
 	}
 
-
 	QStringList availableSprites() const;
-
 
 
 	static qreal toRadian(const qreal &angle);
@@ -479,6 +485,7 @@ public:
 
 	TiledSpriteHandler *spriteHandler() const;
 	TiledSpriteHandler *spriteHandlerAuxFront() const;
+	TiledSpriteHandler *spriteHandlerAuxBack() const;
 
 	Direction currentDirection() const;
 	void setCurrentDirection(const Direction &newCurrentDirection);
@@ -492,6 +499,7 @@ signals:
 	void availableDirectionsChanged();
 
 protected:
+
 	bool appendSprite(const QString &source, const TiledObjectSprite &sprite);
 	bool appendSprite(const QString &source, const TiledObjectSpriteList &spriteList);
 	bool appendSprite(const TiledMapObjectLayeredSprite &sprite, const QString &path = QStringLiteral(""));
@@ -502,7 +510,11 @@ protected:
 	bool appendSprite(const IsometricObjectLayeredSprite &sprite, const QString &path = QStringLiteral(""));
 	bool appendSprite(const IsometricObjectLayeredSpriteList &sprite, const QString &path = QStringLiteral(""));
 
-	bool playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite = false) const;
+	bool playAuxSprite(const AuxHandler &auxHandler, const bool &alignToBody,
+					   const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite = false) const;
+	bool playAuxSprite(const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite = false) const {
+		return playAuxSprite(AuxFront, false, source, sprite, replaceCurrentSprite);
+	}
 
 	void createVisual();
 
@@ -512,6 +524,7 @@ protected:
 	Directions m_availableDirections = None;
 	TiledSpriteHandler *m_spriteHandler = nullptr;
 	TiledSpriteHandler *m_spriteHandlerAuxFront = nullptr;
+	TiledSpriteHandler *m_spriteHandlerAuxBack = nullptr;
 
 	friend class TiledEffect;
 };

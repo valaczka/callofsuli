@@ -27,6 +27,7 @@
 #include "tiledeffect.h"
 #include "qrandom.h"
 #include "tiledgame.h"
+#include "tiledspritehandler.h"
 
 TiledEffect::TiledEffect(TiledObject *parentObject)
 	: m_parentObject(parentObject)
@@ -45,7 +46,7 @@ void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprit
 {
 	if (!QFile::exists(path))
 		return;
-	m_parentObject->playAuxSprite(path, sprite);
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite);
 }
 
 
@@ -60,7 +61,7 @@ void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprit
 {
 	if (!QFile::exists(path))
 		return;
-	m_parentObject->playAuxSprite(path, sprite, replaceCurrentSprite);
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite, replaceCurrentSprite);
 }
 
 
@@ -78,7 +79,7 @@ void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprit
 {
 	if (!QFile::exists(path))
 		return;
-	m_parentObject->playAuxSprite(path, sprite);
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite);
 	m_parentObject->m_game->playSfx(soundPath,
 									m_parentObject->m_scene,
 									m_parentObject->m_body->bodyPosition(),
@@ -101,12 +102,33 @@ void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprit
 {
 	if (!QFile::exists(path))
 		return;
-	m_parentObject->playAuxSprite(path, sprite, replaceCurrentSprite);
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite, replaceCurrentSprite);
 	m_parentObject->m_game->playSfx(soundPath,
 									m_parentObject->m_scene,
 									m_parentObject->m_body->bodyPosition(),
 									baseVolume
 									);
+}
+
+
+
+/**
+ * @brief TiledEffect::clear
+ */
+
+void TiledEffect::clear()
+{
+	switch (m_auxHandler) {
+		case TiledObject::AuxFront:
+			m_parentObject->spriteHandlerAuxFront()->clear();
+			m_parentObject->spriteHandlerAuxFront()->update();
+			break;
+
+		case TiledObject::AuxBack:
+			m_parentObject->spriteHandlerAuxBack()->clear();
+			m_parentObject->spriteHandlerAuxBack()->update();
+			break;
+	}
 }
 
 
@@ -185,3 +207,21 @@ void TiledEffectSpark::play()
 }
 
 
+
+
+/**
+ * @brief TiledEffectShield::play
+ */
+
+void TiledEffectShield::play()
+{
+	static const TiledObjectSprite sprite = {
+		QStringLiteral("base"),
+		4,
+		0, 0, 128, 128,
+		60,
+		0
+	};
+
+	playSprite(QStringLiteral(":/rpg/common/shield.png"), sprite, true);
+}
