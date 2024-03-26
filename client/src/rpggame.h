@@ -51,6 +51,7 @@ class RpgGame : public TiledGame
 	Q_PROPERTY(QList<RpgPlayer *> players READ players WRITE setPlayers NOTIFY playersChanged FINAL)
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged FINAL)
+	Q_PROPERTY(int enemyCount READ enemyCount WRITE setEnemyCount NOTIFY enemyCountChanged FINAL)
 
 public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
@@ -100,28 +101,40 @@ public:
 
 	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
 
+
+	void resurrectEnemiesAndPlayer(RpgPlayer *player);
+	void resurrectEnemies(const QPointer<TiledScene> &scene);
+
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
 
 	RpgQuestion *rpgQuestion() const;
 	void setRpgQuestion(RpgQuestion *newRpgQuestion);
 
+	int enemyCount() const;
+	void setEnemyCount(int newEnemyCount);
+
 signals:
+	void gameSuccess();
+	void playerDead(RpgPlayer *player);
 	void controlledPlayerChanged();
 	void playersChanged();
 	void gameQuestionChanged();
+	void enemyCountChanged();
 
 protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
+	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject) override;
 
 private:
 	void onGameQuestionSuccess(const QVariantMap &answer);
 	void onGameQuestionFailed(const QVariantMap &answer);
 	void onGameQuestionStarted();
 	void onGameQuestionFinished();
+	int recalculateEnemies();
 
 	struct EnemyData {
 		TiledObjectBase::ObjectId objectId;
@@ -155,6 +168,7 @@ private:
 	QPointer<RpgPlayer> m_controlledPlayer;
 	QPointer<GameQuestion> m_gameQuestion;
 	RpgQuestion *m_rpgQuestion = nullptr;
+	int m_enemyCount = 0;
 
 	static const QByteArray m_baseEntitySprite0;
 	static const QByteArray m_baseEntitySprite1;

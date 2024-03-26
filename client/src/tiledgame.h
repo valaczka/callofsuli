@@ -91,7 +91,6 @@ class TiledGame : public QQuickItem
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged FINAL)
 	Q_PROPERTY(TiledScene *currentScene READ currentScene WRITE setCurrentScene NOTIFY currentSceneChanged FINAL)
 	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
 	Q_PROPERTY(TiledObject *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
@@ -104,16 +103,6 @@ class TiledGame : public QQuickItem
 public:
 	explicit TiledGame(QQuickItem *parent = nullptr);
 	virtual ~TiledGame();
-
-
-	enum GameMode {
-		SinglePlayer = 0,
-		MultiPlayerHost,
-		MultiPlayerGuest
-	};
-
-	Q_ENUM(GameMode);
-
 
 	struct JoystickState {
 		qreal dx = 0;
@@ -174,9 +163,6 @@ public:
 
 	TiledObject *followedItem() const;
 	void setFollowedItem(TiledObject *newFollowedItem);
-
-	GameMode gameMode() const;
-	void setGameMode(const GameMode &newGameMode);
 
 	QQuickItem *messageList() const;
 	void setMessageList(QQuickItem *newMessageList);
@@ -240,7 +226,6 @@ protected:
 		}
 	};
 
-	GameMode m_gameMode = SinglePlayer;
 	QVector<Scene> m_sceneList;
 	QVector<TiledObjectBase::ObjectId> m_loadedObjectList;
 	QVector<PlayerPosition> m_playerPositionList;

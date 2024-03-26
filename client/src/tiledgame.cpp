@@ -540,26 +540,6 @@ bool TiledGame::transportAfterEvent(TiledObject */*object*/, TiledScene */*newSc
 
 
 
-/**
- * @brief TiledGame::gameMode
- * @return
- */
-
-TiledGame::GameMode TiledGame::gameMode() const
-{
-	return m_gameMode;
-}
-
-void TiledGame::setGameMode(const GameMode &newGameMode)
-{
-	if (m_gameMode == newGameMode)
-		return;
-	m_gameMode = newGameMode;
-	emit gameModeChanged();
-}
-
-
-
 
 
 /**
@@ -864,7 +844,6 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 		return false;
 
 	setCurrentScene(newScene);
-	///newScene->forceActiveFocus();
 
 	return true;
 }

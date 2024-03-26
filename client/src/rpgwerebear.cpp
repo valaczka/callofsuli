@@ -41,6 +41,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	, RpgEnemyIface(EnemyWerebear)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
+	, m_effectHealed(this)
 	, m_weaponHand(new RpgWerebearWeaponHand)
 {
 	m_metric.speed = 2.;
@@ -69,8 +70,10 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	m_weaponHand->setParentObject(this);
 
 	connect(this, &RpgWerebear::hurt, &m_sfxPain, &TiledGameSfx::playOne);
-	//connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
-	//connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
+	//connect(this, &RpgWerebear::healed, this, [this]() { m_effectHealed.play(); });
+	connect(this, &RpgWerebear::becameAlive, this, [this]() {
+		m_effectHealed.play();
+	});
 	connect(this, &RpgWerebear::becameDead, this, &RpgWerebear::playDeadEffect);
 	connect(this, &RpgWerebear::playerChanged, this, &RpgWerebear::playSeeEffect);
 }
@@ -165,7 +168,34 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 	if (!isAlive())
 		return;
 
-	int newHp = m_hp;
+	int newHp = getNewHpAfterAttack(m_hp, weaponType, player);
+
+	if (newHp == m_hp)
+		return;
+
+	setHp(std::max(0, newHp));
+
+	if (m_hp <= 0) {
+		jumpToSprite("death", m_currentDirection);
+	} else {
+		jumpToSprite("hurt", m_currentDirection);
+		startInabililty();
+	}
+}
+
+
+
+/**
+ * @brief RpgWerebear::getNewHpAfterAttack
+ * @param origHp
+ * @param weaponType
+ * @param player
+ * @return
+ */
+
+int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType, IsometricPlayer */*player*/) const
+{
+	int newHp = origHp;
 
 	switch (weaponType) {
 		case TiledWeapon::WeaponLongsword:
@@ -187,17 +217,7 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 			break;
 	}
 
-	if (newHp == m_hp)
-		return;
-
-	setHp(std::max(0, newHp));
-
-	if (m_hp <= 0) {
-		jumpToSprite("death", m_currentDirection);
-	} else {
-		jumpToSprite("hurt", m_currentDirection);
-		startInabililty();
-	}
+	return newHp;
 }
 
 

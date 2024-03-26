@@ -324,15 +324,17 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 
 
 	if (hp <= 0) {
-		setHp(hp);
+		setHp(0);
 		jumpToSprite("death", m_currentDirection);
-	} else if (m_spriteHandler->currentSprite() != "attack" &&
-			   m_spriteHandler->currentSprite() != "bow" &&
-			   m_spriteHandler->currentSprite() != "cast") {
-		QTimer::singleShot(200, Qt::PreciseTimer, this, [this, hp](){
-			setHp(hp);
-			jumpToSprite("hurt", m_currentDirection);
-		});
+	} else {
+		setHp(hp);
+		if (m_spriteHandler->currentSprite() != "attack" &&
+				m_spriteHandler->currentSprite() != "bow" &&
+				m_spriteHandler->currentSprite() != "cast") {
+			QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){
+				jumpToSprite("hurt", m_currentDirection);
+			});
+		}
 		startInabililty();
 	}
 
@@ -476,6 +478,22 @@ void RpgPlayer::playShieldEffect()
 		m_effectShield.play();
 	else
 		m_effectShield.clear();
+}
+
+
+/**
+ * @brief RpgPlayer::currentSceneStartPosition
+ * @return
+ */
+
+QPointF RpgPlayer::currentSceneStartPosition() const
+{
+	return m_currentSceneStartPosition;
+}
+
+void RpgPlayer::setCurrentSceneStartPosition(QPointF newCurrentSceneStartPosition)
+{
+	m_currentSceneStartPosition = newCurrentSceneStartPosition;
 }
 
 

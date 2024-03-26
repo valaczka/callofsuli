@@ -52,7 +52,6 @@ class AbstractLevelGame : public AbstractGame
 	Q_PROPERTY(QString backgroundMusic READ backgroundMusic CONSTANT);
 	Q_PROPERTY(int msecLeft READ msecLeft NOTIFY msecLeftChanged)
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
-
 	Q_PROPERTY(bool isFlawless READ isFlawless WRITE setIsFlawless NOTIFY isFlawlessChanged)
 
 public:
@@ -115,9 +114,9 @@ protected:
 	bool m_closedSuccesfully = false;
 	bool m_isFlawless = true;
 	int m_xp = 0;
+	QTimer m_timerLeft;
 
 private:
-	QTimer m_timerLeft;
 	bool m_deadlineTimeout = false;
 	QString m_backgroundMusic;
 	static QStringList m_availableMusic;

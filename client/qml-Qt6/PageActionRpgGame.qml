@@ -13,7 +13,10 @@ Page {
 
 
 	property string closeQuestion: _rpgVisible ? qsTr("Biztosan kilépsz a játékból?") : ""
-	property var onPageClose: function() { if (game) game.gameAbort() }
+	property var onPageClose: function() {
+		if (game)
+			game.gameAbort()
+	}
 
 	property var stackPopFunction: function() {
 		/*if (game && game.config.gameState == ConquestConfig.StateFinished && _stack.activeComponent == _cmpScene) {
@@ -31,7 +34,8 @@ Page {
 
 	readonly property bool _rpgVisible: game && (game.config.gameState == RpgConfig.StatePlay ||
 												 game.config.gameState == RpgConfig.StatePrepare)
-	property bool _isUnprepared: false
+
+	//property bool _isUnprepared: false
 
 	/*Image {
 		anchors.fill: parent
@@ -59,15 +63,14 @@ Page {
 				return
 			}
 
-			if (game.config.gameState == RpgConfig.StateFinished && _isUnprepared) {
+			/*if (game.config.gameState == RpgConfig.StateFinished && _isUnprepared) {
 				_stack.activeComponent = _cmpConnect
 				return
-			}
+			}*/
 
 			switch (game.config.gameState) {
 			case RpgConfig.StatePrepare:
 			case RpgConfig.StatePlay:
-			case RpgConfig.StateFinished:
 				_stack.activeComponent = _cmpRpg
 				break
 
@@ -78,6 +81,10 @@ Page {
 			case RpgConfig.StateCharacterSelect:
 				_stack.activeComponent = _cmpCharacterSelect
 				break
+
+			case RpgConfig.StateFinished:
+				Client.stackPop(root)
+				return
 
 			default:
 				_stack.activeComponent = _cmpConnect
@@ -120,7 +127,7 @@ Page {
 		RpgGameItem {
 			game: root.game
 
-			StackView.onActivated: _isUnprepared = false
+			//StackView.onActivated: _isUnprepared = false
 		}
 	}
 
@@ -164,14 +171,30 @@ Page {
 		onClicked: Client.stackPop()
 	}
 
-	/*Connections {
+	Connections {
 		target: game
 
-		function onHostModeChanged() {
+		/*function onHostModeChanged() {
 			if (game.hostMode == ConquestGame.ModeHost)
 				Client.snack(qsTr("Te vagy a host"))
-		}
-	}*/
+		}*/
+
+		function onFinishDialogRequest(text, icon, success) {
+				Qaterial.DialogManager.showDialog(
+							{
+								onAccepted: function() { if (game) game.finishGame()  },
+								onRejected: function() { if (game) game.finishGame() },
+								text: text,
+								title: qsTr("Game over"),
+								iconSource: icon,
+								iconColor: success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
+								textColor: success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
+								iconFill: false,
+								iconSize: Qaterial.Style.roundIcon.size,
+								standardButtons: DialogButtonBox.Ok
+							})
+			}
+	}
 
 	StackView.onActivated: {
 		if (game)

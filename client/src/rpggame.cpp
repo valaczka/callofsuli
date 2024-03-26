@@ -238,8 +238,7 @@ bool RpgGame::load()
 
 			{
 				"id": 2,
-				"file": "qrc:/teszt2.tmx",
-				"music": "qrc:/sound/music/default_bg_music.mp3"
+				"file": "qrc:/teszt2.tmx"
 			}
 		]
 		})";
@@ -290,13 +289,15 @@ bool RpgGame::load()
 		e.enemy = character;
 	}
 
+	recalculateEnemies();
+
 
 	QList<RpgPlayer*> list;
 
 	if (!m_playerPositionList.isEmpty()) {
 		const auto &p = m_playerPositionList.first();
 
-		for (int i=0; i<3; ++i) {
+		for (int i=0; i<1; ++i) {
 			auto player = RpgPlayer::createPlayer(this, p.scene, i==0 ? "default" : "default2");
 
 			player->emplace(p.position+QPointF(i*15, i*15));
@@ -311,6 +312,8 @@ bool RpgGame::load()
 				setFollowedItem(player);
 				setControlledPlayer(player);
 			}
+
+			player->setCurrentSceneStartPosition(p.position);
 
 			list.append(player);
 		}
@@ -366,14 +369,18 @@ bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const T
 	if (!canAttack(p, e, weaponType))
 		return false;
 
+	if (p->isLocked())
+		return false;
+
 	if (iface->protectWeapon(weaponType))
 		return false;
 
 	const auto &ptr = getEnemyData(e);
-	if (ptr) {
+	if (ptr && ptr->hasQuestion) {
 		LOG_CWARNING("game") << "Enemy has question" << ptr->enemy;
 
-		if (m_rpgQuestion->nextQuestion(p, e, weaponType)) {
+		const int &hp = e->getNewHpAfterAttack(e->hp(), weaponType, p);
+		if (hp <= 0 && m_rpgQuestion->nextQuestion(p, e, weaponType)) {
 			Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
 			return true;
 		}
@@ -462,7 +469,7 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 
 void RpgGame::onPlayerDead(TiledObject *player)
 {
-	IsometricPlayer *isoPlayer = qobject_cast<IsometricPlayer*>(player);
+	RpgPlayer *isoPlayer = qobject_cast<RpgPlayer*>(player);
 
 	if (isoPlayer) {
 		for (const EnemyData &e : m_enemyDataList) {
@@ -470,6 +477,8 @@ void RpgGame::onPlayerDead(TiledObject *player)
 				e.enemy->removeContactedPlayer(isoPlayer);
 		}
 	}
+
+	emit playerDead(isoPlayer);
 }
 
 
@@ -515,6 +524,11 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 			}
 		}
 	}
+
+	const int &count = recalculateEnemies();
+
+	if (!count)
+		emit gameSuccess();
 }
 
 
@@ -869,6 +883,26 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 }
 
 
+/**
+ * @brief RpgGame::transportAfterEvent
+ * @param object
+ * @param newScene
+ * @param newObject
+ * @return
+ */
+
+bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/, TiledObjectBase *newObject)
+{
+	RpgPlayer *player = qobject_cast<RpgPlayer*>(object);
+
+	if (player) {
+		player->setCurrentSceneStartPosition(newObject->body()->bodyPosition());
+	}
+
+	return true;
+}
+
+
 
 
 /**
@@ -935,6 +969,26 @@ void RpgGame::onGameQuestionFinished()
 
 
 /**
+ * @brief RpgGame::recalculateEnemies
+ * @return
+ */
+
+int RpgGame::recalculateEnemies()
+{
+	int c = 0;
+	for (const EnemyData &e : m_enemyDataList) {
+		if (e.enemy && e.enemy->isAlive())
+			++c;
+	}
+	setEnemyCount(c);
+	return c;
+}
+
+
+
+
+
+/**
  * @brief RpgGame::getEnemyData
  * @param enemy
  * @return
@@ -950,6 +1004,26 @@ std::optional<RpgGame::EnemyData> RpgGame::getEnemyData(IsometricEnemy *enemy) c
 	}
 
 	return std::nullopt;
+}
+
+
+
+/**
+ * @brief RpgGame::enemyCount
+ * @return
+ */
+
+int RpgGame::enemyCount() const
+{
+	return m_enemyCount;
+}
+
+void RpgGame::setEnemyCount(int newEnemyCount)
+{
+	if (m_enemyCount == newEnemyCount)
+		return;
+	m_enemyCount = newEnemyCount;
+	emit enemyCountChanged();
 }
 
 RpgQuestion *RpgGame::rpgQuestion() const
@@ -1039,6 +1113,53 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 	}
 
 	return {};
+}
+
+
+
+/**
+ * @brief RpgGame::resurrectEnemiesAndPlayer
+ * @param player
+ */
+
+void RpgGame::resurrectEnemiesAndPlayer(RpgPlayer *player)
+{
+	if (!player)
+		return;
+
+	TiledScene *scene = player->scene();
+
+	if (!scene) {
+		LOG_CERROR("game") << "Missing player's scene" << player;
+		return;
+	}
+
+	player->body()->emplace(player->currentSceneStartPosition());
+	player->setHp(player->maxHp());
+
+	QTimer::singleShot(2000, this, [s = QPointer<TiledScene>(scene), this](){ this->resurrectEnemies(s); });
+}
+
+
+
+/**
+ * @brief RpgGame::resurrectEnemies
+ * @param scene
+ */
+
+void RpgGame::resurrectEnemies(const QPointer<TiledScene> &scene)
+{
+	if (!scene) {
+		LOG_CERROR("game") << "Missing scene" << scene;
+		return;
+	}
+
+	for (EnemyData &e : m_enemyDataList) {
+		if (e.scene == scene && e.enemy)
+			e.enemy->setHp(e.enemy->maxHp());
+	}
+
+	recalculateEnemies();
 }
 
 

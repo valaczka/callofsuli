@@ -29,6 +29,7 @@
 
 #include "isometricenemy.h"
 #include "rpgenemyiface.h"
+#include "tiledeffect.h"
 #include "tiledgamesfx.h"
 #include <QQmlEngine>
 
@@ -103,6 +104,8 @@ protected:
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}
 
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
+	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
+									IsometricPlayer *player = nullptr) const override;
 
 	void playAttackEffect(TiledWeapon *weapon) override final;
 	void playDeadEffect();
@@ -119,6 +122,7 @@ private:
 
 	TiledGameSfx m_sfxFootStep;
 	TiledGameSfx m_sfxPain;
+	TiledEffectHealed m_effectHealed;
 
 	std::unique_ptr<RpgWerebearWeaponHand> m_weaponHand;
 };

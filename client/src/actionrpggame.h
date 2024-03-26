@@ -40,6 +40,7 @@ class ActionRpgGame : public AbstractLevelGame
 {
 	Q_OBJECT
 
+	Q_PROPERTY(GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged FINAL)
 	Q_PROPERTY(RpgConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
@@ -48,6 +49,14 @@ public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
 	virtual ~ActionRpgGame();
 
+	enum GameMode {
+		SinglePlayer = 0,
+		MultiPlayerHost,
+		MultiPlayerGuest
+	};
+
+	Q_ENUM(GameMode);
+
 	virtual void gameAbort() override;
 
 	Q_INVOKABLE void playMenuBgMusic();
@@ -55,6 +64,9 @@ public:
 
 	Q_INVOKABLE void selectCharacter(const QString &character);
 	Q_INVOKABLE void rpgGameActivated();
+
+	Q_INVOKABLE void finishGame();
+	Q_INVOKABLE void gamePrepared();
 
 	RpgConfig config() const;
 	void setConfig(const RpgConfig &newConfig);
@@ -65,10 +77,15 @@ public:
 	RpgPlayerConfig playerConfig() const;
 	void setPlayerConfig(const RpgPlayerConfig &newPlayerConfig);
 
+	GameMode gameMode() const;
+	void setGameMode(const GameMode &newGameMode);
+
 signals:
+	void finishDialogRequest(QString text, QString icon, bool success);
 	void configChanged();
 	void rpgGameChanged();
 	void playerConfigChanged();
+	void gameModeChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -77,7 +94,7 @@ protected:
 	virtual bool gameStartEvent() override;
 	virtual bool gameFinishEvent() override;
 
-	virtual void onGamePrepared();
+	virtual void onPlayerDead(RpgPlayer *player);
 
 	void onGameTimeout();
 	void onGameSuccess();
@@ -86,17 +103,16 @@ protected:
 private:
 	void onConfigChanged();
 
-protected:
+private:
+	GameMode m_gameMode = SinglePlayer;
 	RpgConfig m_config;
 	RpgGame *m_rpgGame = nullptr;
 	RpgPlayerConfig m_playerConfig;
 	std::unique_ptr<RpgQuestion> m_rpgQuestion;
 
-private:
 	RpgConfig::GameState m_oldGameState = RpgConfig::StateInvalid;
 
 	friend class RpgQuestion;
-
 };
 
 #endif // ACTIONRPGGAME_H

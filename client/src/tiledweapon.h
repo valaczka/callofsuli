@@ -57,6 +57,7 @@ class TiledWeapon : public QObject
 	Q_PROPERTY(WeaponType weaponType READ weaponType CONSTANT FINAL)
 	Q_PROPERTY(TiledObject *parentObject READ parentObject WRITE setParentObject NOTIFY parentObjectChanged FINAL)
 	Q_PROPERTY(int bulletCount READ bulletCount WRITE setBulletCount NOTIFY bulletCountChanged FINAL)
+	Q_PROPERTY(int maxBulletCount READ maxBulletCount WRITE setMaxBulletCount NOTIFY maxBulletCountChanged FINAL)
 	Q_PROPERTY(bool canShot READ canShot NOTIFY canShotChanged FINAL)
 	Q_PROPERTY(bool canHit READ canHit WRITE setCanHit NOTIFY canHitChanged FINAL)
 	Q_PROPERTY(QString icon READ icon WRITE setIcon NOTIFY iconChanged FINAL)
@@ -118,6 +119,9 @@ public:
 	bool canThrowBullet() const;
 	void setCanThrowBullet(bool newCanThrowBullet);
 
+	int maxBulletCount() const;
+	void setMaxBulletCount(int newMaxBulletCount);
+
 signals:
 	void parentObjectChanged();
 	void bulletCountChanged();
@@ -125,6 +129,7 @@ signals:
 	void canHitChanged();
 	void iconChanged();
 	void repeaterIdleChanged();
+	void maxBulletCountChanged();
 
 protected:
 	virtual IsometricBullet *createBullet() = 0;
@@ -133,6 +138,7 @@ protected:
 
 	QPointer<TiledObject> m_parentObject;
 	int m_bulletCount = 0;
+	int m_maxBulletCount = 0;
 	bool m_canHit = false;
 	QString m_icon;
 	qint64 m_repeaterIdle = 125;

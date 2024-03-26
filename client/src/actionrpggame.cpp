@@ -48,8 +48,9 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 		m_config.missionLevel = m_missionLevel->level();
 	}
 
+	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionRpgGame::onGameTimeout);
+
 	/*connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionGame::onMsecLeftChanged);
-	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionGame::onGameTimeout);
 	connect(this, &ActionGame::toolChanged, this, &ActionGame::toolListIconsChanged);*/
 }
 
@@ -71,6 +72,17 @@ ActionRpgGame::~ActionRpgGame()
 
 void ActionRpgGame::gameAbort()
 {
+	if (m_config.gameState == RpgConfig::StateFinished)
+		return;
+	else if (m_config.gameState == RpgConfig::StateConnect || m_config.gameState == RpgConfig::StateCharacterSelect) {
+		setFinishState(Neutral);
+
+		LOG_CINFO("game") << "Game cancelled:" << this;
+
+		gameFinish();
+		return;
+	}
+
 	setFinishState(Fail);
 
 	LOG_CINFO("game") << "Game aborted:" << this;
@@ -90,7 +102,7 @@ void ActionRpgGame::gameAbort()
 
 void ActionRpgGame::playMenuBgMusic()
 {
-m_client->sound()->playSound(QStringLiteral("qrc:/sound/menu/bg.mp3"), Sound::MusicChannel);
+	m_client->sound()->playSound(QStringLiteral("qrc:/sound/menu/bg.mp3"), Sound::MusicChannel);
 }
 
 
@@ -136,6 +148,21 @@ void ActionRpgGame::rpgGameActivated()
 
 
 
+/**
+ * @brief ActionRpgGame::finishGame
+ */
+
+void ActionRpgGame::finishGame()
+{
+	LOG_CDEBUG("game") << "Finish game";
+
+	auto c = m_config;
+	c.gameState = RpgConfig::StateFinished;
+	setConfig(c);
+}
+
+
+
 
 /**
  * @brief ActionRpgGame::loadPage
@@ -146,8 +173,8 @@ QQuickItem *ActionRpgGame::loadPage()
 {
 
 	QQuickItem *item = m_client->stackPushPage(QStringLiteral("PageActionRpgGame.qml"), QVariantMap({
-																						   { QStringLiteral("game"), QVariant::fromValue(this) }
-																					   }));
+																										{ QStringLiteral("game"), QVariant::fromValue(this) }
+																									}));
 
 	if (!item)
 		return nullptr;
@@ -189,26 +216,46 @@ void ActionRpgGame::connectGameQuestion()
 
 bool ActionRpgGame::gameStartEvent()
 {
-return true;
+	return true;
 }
 
 bool ActionRpgGame::gameFinishEvent()
 {
+	m_timerLeft.stop();
 	return true;
 }
 
 
 /**
- * @brief ActionRpgGame::onGamePrepared
+ * @brief ActionRpgGame::gamePrepared
  */
 
-void ActionRpgGame::onGamePrepared()
+void ActionRpgGame::gamePrepared()
 {
-	LOG_CINFO("game") << "GAME PREPARED";
-
 	auto c = m_config;
 	c.gameState = RpgConfig::StatePlay;
 	setConfig(c);
+}
+
+
+
+/**
+ * @brief ActionRpgGame::onPlayerDead
+ * @param player
+ */
+
+void ActionRpgGame::onPlayerDead(RpgPlayer *player)
+{
+	LOG_CDEBUG("game") << "Player dead" << player;
+
+	/// TODO: check m_gameMode
+
+	if (deathmatch())
+		QTimer::singleShot(5000, this, &ActionRpgGame::onGameFailed);
+	else if (m_rpgGame)
+		QTimer::singleShot(5000, this, [this, p = QPointer<RpgPlayer>(player)]() {
+			m_rpgGame->resurrectEnemiesAndPlayer(p);
+		});
 }
 
 
@@ -221,13 +268,20 @@ void ActionRpgGame::onGamePrepared()
 
 void ActionRpgGame::onGameTimeout()
 {
-	//m_scene->stopSoundMusic();
+	Sound *sound = m_client->sound();
+
+	sound->stopMusic();
+	sound->stopMusic2();
 
 	setFinishState(Fail);
 	gameFinish();
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
-	//dialogMessageFinish(tr("Lejárt az idő"), "qrc:/Qaterial/Icons/timer-sand.svg", false);
+
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
+
+	emit finishDialogRequest(tr("Time out"),
+							 QStringLiteral("qrc:/Qaterial/Icons/timer-sand.svg"),
+							 false);
 }
 
 
@@ -238,18 +292,25 @@ void ActionRpgGame::onGameTimeout()
 
 void ActionRpgGame::onGameSuccess()
 {
-	//m_scene->stopSoundMusic();
+	Sound *sound = m_client->sound();
 
 	setFinishState(Success);
 	gameFinish();
 
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/win.mp3"), Sound::SfxChannel);
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
+	sound->stopMusic();
+	sound->stopMusic2();
+	sound->playSound(QStringLiteral("qrc:/sound/sfx/win.mp3"), Sound::SfxChannel);
 
-	/*QTimer::singleShot(2000, this, [this](){
-		dialogMessageFinish(m_isFlawless ? tr("Mission completed\nHibátlan győzelem!") : tr("Mission completed"), "qrc:/Qaterial/Icons/trophy.svg", true);
-	});*/
+
+	QTimer::singleShot(3000, this, [this, sound](){
+		sound->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+		sound->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
+
+		emit finishDialogRequest(m_isFlawless ? tr("Mission completed\nHibátlan győzelem!")
+											  : tr("Mission completed"),
+								 QStringLiteral("qrc:/Qaterial/Icons/trophy.svg"),
+								 true);
+	});
 }
 
 
@@ -260,13 +321,19 @@ void ActionRpgGame::onGameSuccess()
 
 void ActionRpgGame::onGameFailed()
 {
-	//m_scene->stopSoundMusic();
+	Sound *sound = m_client->sound();
+
+	sound->stopMusic();
+	sound->stopMusic2();
 
 	setFinishState(Fail);
 	gameFinish();
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
-	//dialogMessageFinish(tr("Your man has died"), "qrc:/Qaterial/Icons/skull-crossbones.svg", false);
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
+
+	emit finishDialogRequest(tr("Your man has died"),
+							 QStringLiteral("qrc:/Qaterial/Icons/skull-crossbones.svg"),
+							 false);
 }
 
 
@@ -297,8 +364,23 @@ void ActionRpgGame::onConfigChanged()
 	}
 
 	if (m_config.gameState == RpgConfig::StatePlay && m_oldGameState != RpgConfig::StatePlay) {
-		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
-		gameStart();
+		if (!m_rpgGame) {
+			auto c = m_config;
+			c.gameState = RpgConfig::StateError;
+			setConfig(c);
+			return;
+		}
+
+		startWithRemainingTime(m_missionLevel->duration()*1000);
+
+		if (m_deathmatch) {
+			m_rpgGame->message(tr("LEVEL %1").arg(level()));
+			m_rpgGame->message(tr("SUDDEN DEATH"));
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/sudden_death.mp3"), Sound::VoiceoverChannel);
+		} else {
+			m_rpgGame->message(tr("LEVEL %1").arg(level()));
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
+		}
 	}
 
 	/*if (m_config.gameState == ConquestConfig::StateFinished && m_oldGameState != ConquestConfig::StateFinished) {
@@ -334,6 +416,21 @@ void ActionRpgGame::onConfigChanged()
 	}*/
 
 	m_oldGameState = m_config.gameState;
+}
+
+
+
+ActionRpgGame::GameMode ActionRpgGame::gameMode() const
+{
+	return m_gameMode;
+}
+
+void ActionRpgGame::setGameMode(const GameMode &newGameMode)
+{
+	if (m_gameMode == newGameMode)
+		return;
+	m_gameMode = newGameMode;
+	emit gameModeChanged();
 }
 
 
@@ -383,7 +480,8 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 
 	if (m_rpgGame) {
 		setGameQuestion(nullptr);
-		disconnect(m_rpgGame, &RpgGame::gameLoaded, this, &ActionRpgGame::onGamePrepared);
+		disconnect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
+		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		m_rpgGame->setRpgQuestion(nullptr);
 	}
 
@@ -393,7 +491,8 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 	if (m_rpgGame) {
 		setGameQuestion(m_rpgGame->gameQuestion());
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
-		connect(m_rpgGame, &RpgGame::gameLoaded, this, &ActionRpgGame::onGamePrepared);
+		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
+		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 	}
 }
 

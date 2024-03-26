@@ -12,6 +12,12 @@ FocusScope {
 
 	property ActionRpgGame game: null
 
+	readonly property bool _isPrepared: _prGameSet && _prGameLoaded && _prCmpCompleted && _prStackActivated
+
+	property bool _prGameSet: false
+	property bool _prGameLoaded: false
+	property bool _prCmpCompleted: false
+	property bool _prStackActivated: false
 
 	onWidthChanged: setBaseScale()
 
@@ -30,8 +36,10 @@ FocusScope {
 
 
 	onGameChanged: {
-		if (game)
+		if (game) {
 			game.rpgGame = _game
+			_prGameSet = true
+		}
 	}
 
 	Rectangle {
@@ -51,25 +59,22 @@ FocusScope {
 
 		onGameLoadFailed: Client.messageError("FAILED")
 
+		onGameLoaded: _prGameLoaded = true
+
 		Component.onCompleted: forceActiveFocus()
 	}
 
 	Row {
-		id: _playerRow
+		id: rowTime
 
 		anchors.left: parent.left
-		anchors.leftMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
 		anchors.top: parent.top
-		anchors.topMargin: Math.max(5 * Qaterial.Style.pixelSizeRatio, Client.safeMarginTop)
-
-		spacing: 5 * Qaterial.Style.pixelSizeRatio
-
-		/*readonly property real _itemWidth: Math.min((root.width -x -Client.safeMarginRight)/
-													Math.max((game ? game.playersModel.count : 1), 1),
-													250 * Qaterial.Style.pixelSizeRatio)*/
-
+		anchors.margins: 5
+		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
+		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
 
 		GameButton {
+			id: _backButton
 			size: 25
 
 			anchors.verticalCenter: parent.verticalCenter
@@ -87,46 +92,18 @@ FocusScope {
 			}
 		}
 
-		/*Repeater {
-			model: SortFilterProxyModel {
-				sourceModel: game ? game.playersModel : null
+		GameLabel {
+			id: _infoTime
+			color: Qaterial.Colors.cyan300
 
-				sorters: [
-					FilterSorter {
-						filters: ValueFilter {
-							enabled: Client.server
-							roleName: "username"
-							value: Client.server ? Client.server.user.username : ""
-						}
-						priority: 2
-					},
-					RoleSorter {
-						roleName: "playerId"
-						priority: 1
-					}
-				]
+			anchors.verticalCenter: parent.verticalCenter
 
-			}
-			delegate: ConquestPlayerItem {
-				id: _cpItem
-				width: _playerRow._itemWidth - _playerRow.spacing
-				anchors.verticalCenter: parent.verticalCenter
+			iconLabel.icon.source: Qaterial.Icons.timerOutline
 
-				visible: game && game.config.gameState !== ConquestConfig.StateFinished
-
-				username: model.username
-				character: model.character
-				fullNickName: model.fullNickName
-				xp: model.xp
-				hp: model.hp
-				streak: model.streak
-				playerId: model.playerId
-				online: model.online
-				game: root.game
-				targetFighter1: _battleRow.itemFighter1
-				targetFighter2: _battleRow.itemFighter2
-			}
-		}*/
+			iconLabel.text: game.msecLeft >= 60000 ?
+								Client.Utils.formatMSecs(game.msecLeft) :
+								Client.Utils.formatMSecs(game.msecLeft, 1, false)
+		}
 	}
 
 
@@ -165,7 +142,7 @@ FocusScope {
 		readonly property int hp: _game.controlledPlayer ? _game.controlledPlayer.hp : -1
 
 		onHpChanged: {
-			if (hp < _oldHP)
+			if (hp < _oldHP && _oldHP != -1)
 				play()
 			else if (hp > _oldHP && _oldHP != -1)
 				_messageList.message("+%1 HP".arg(hp-_oldHP), Qaterial.Colors.red400)
@@ -203,29 +180,100 @@ FocusScope {
 
 
 
-	GameQuestionAction {
-		id: _gameQuestion
 
-		anchors.fill: parent
-		anchors.topMargin: Client.safeMarginTop
-		anchors.bottomMargin: Client.safeMarginBottom
-		anchors.leftMargin: Client.safeMarginLeft
-		anchors.rightMargin: Client.safeMarginRight
+	Column {
+		anchors.right: parent.right
+		anchors.top: parent.top
+		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
+		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
+		spacing: 5 * Qaterial.Style.pixelSizeRatio
 
-		game: root.game
+		GameLabel {
+			id: _labelXP
+			anchors.right: parent.right
+			color: "white"
 
-		z: 5
-	}
+			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
-	GameMessageList {
-		id: _messageList
+			//text: (multiPlayerGame ? "MULTIPLAYER " : "") + "%1 XP"
+			text: "%1 XP"
 
-		anchors.horizontalCenter: parent.horizontalCenter
+			value: game ? game.xp : 0
+		}
 
-		y: parent.height*0.25
-		z: 6
 
-		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
+
+		GameInfo {
+			id: _infoTarget
+			anchors.right: parent.right
+			color: Qaterial.Colors.orange700
+			iconLabel.icon.source: Qaterial.Icons.targetAccount
+			text: Math.floor(progressBar.value)
+
+			progressBar.from: 0
+			progressBar.to: 0
+			progressBar.value: enemies
+			progressBar.width: Math.min(root.width*0.125, 50)
+
+			property int enemies: _game ? _game.enemyCount : 0
+
+			onEnemiesChanged: {
+				_infoTarget.marked = true
+				if (enemies>progressBar.to)
+					progressBar.to = enemies
+			}
+		}
+
+		GameInfo {
+			id: _infoBullet
+			anchors.right: parent.right
+			color: Qaterial.Colors.green500
+			text: Math.floor(progressBar.value)
+			progressBar.from: 0
+			progressBar.to: maxBullet
+			progressBar.value: bullet
+			iconLabel.icon.source: Qaterial.Icons.bullet
+			progressBar.width: Math.min(root.width*0.125, 50)
+
+			opacity: canShot ? 1.0 : 0.0
+
+			readonly property bool canShot:  _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon &&
+											 _game.controlledPlayer.armory.currentWeapon.canShot
+
+			readonly property int bullet: canShot ?
+											  _game.controlledPlayer.armory.currentWeapon.bulletCount :
+											  0
+
+			readonly property int maxBullet: canShot ?
+												 _game.controlledPlayer.armory.currentWeapon.maxBulletCount :
+												 0
+
+			onBulletChanged: {
+				_infoBullet.marked = true
+			}
+		}
+
+
+
+		GameButton {
+			id: setttingsButton
+			size: 30
+
+			anchors.right: parent.right
+
+			color: Qaterial.Colors.white
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.cog
+			fontImage.color: Qaterial.Colors.blueGray600
+			fontImageScale: 0.7
+
+			onClicked: {
+				Qaterial.DialogManager.openFromComponent(_settingsDialog)
+			}
+		}
+
 	}
 
 
@@ -365,10 +413,102 @@ FocusScope {
 	}
 
 
+
+
+	GameQuestionAction {
+		id: _gameQuestion
+
+		anchors.fill: parent
+		anchors.topMargin: Client.safeMarginTop
+		anchors.bottomMargin: Client.safeMarginBottom
+		anchors.leftMargin: Client.safeMarginLeft
+		anchors.rightMargin: Client.safeMarginRight
+
+		game: root.game
+
+		z: 5
+	}
+
+	GameMessageList {
+		id: _messageList
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
+		y: parent.height*0.25
+		z: 6
+
+		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
+	}
+
+
+
+
+	Component {
+		id: _settingsDialog
+		Qaterial.ModalDialog
+		{
+			id: _dialog
+
+			dialogImplicitWidth: 400 * Qaterial.Style.pixelSizeRatio
+
+			horizontalPadding: 0
+			bottomPadding: 1
+			drawSeparator: true
+
+			title: qsTr("Beállítások")
+
+			standardButtons: DialogButtonBox.Close
+			contentItem: QScrollable {
+				leftPadding: 10 * Qaterial.Style.pixelSizeRatio
+				rightPadding: 10 * Qaterial.Style.pixelSizeRatio
+				topPadding: 5 * Qaterial.Style.pixelSizeRatio
+				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+				Row {
+					spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+					Qaterial.IconLabel {
+						icon.source: Qaterial.Icons.gamepad
+						anchors.verticalCenter: parent.verticalCenter
+						text: qsTr("Joystick:")
+					}
+
+					QSpinBox {
+						anchors.verticalCenter: parent.verticalCenter
+						from: 200
+						to: 600
+						stepSize: 10
+
+						font: Qaterial.Style.textTheme.body1
+
+						value: _game ? _game.joystick.size : 0
+
+						onValueModified: {
+							_game.joystick.size = value
+							Client.Utils.settingsSet("window/joystick", _game.joystick.size)
+						}
+					}
+				}
+
+				SettingsSound {
+					width: parent.width
+				}
+			}
+		}
+	}
+
+	Component.onCompleted: _prCmpCompleted = true
+
 	StackView.onActivated: {
+		_prStackActivated = true
 		if (game)
 			game.rpgGameActivated()
 	}
+
+	on_IsPreparedChanged: {
+		if (_isPrepared)
+			game.gamePrepared()
+	}
+
 
 
 	StackView.onDeactivating: {

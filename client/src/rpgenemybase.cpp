@@ -36,6 +36,7 @@
 RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	: IsometricEnemy(parent)
 	, RpgEnemyIface(type)
+	, m_effectHealed(this)
 {
 	m_armory.reset(new RpgArmory(this));
 
@@ -43,6 +44,7 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	m_metric.runSpeed = 3.;
 	m_metric.returnSpeed = 4.;
 	m_metric.pursuitSpeed = 6.;
+	m_metric.autoAttackTime = 850;
 
 	/*m_sfxPain.setSoundList({
 							   QStringLiteral(":/rpg/werebear/monster-5.mp3"),
@@ -66,6 +68,10 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 		QStringLiteral("death")
 	};
 
+
+	connect(this, &RpgEnemyBase::becameAlive, this, [this]() {
+		m_effectHealed.play();
+	});
 
 	/*
 	connect(this, &RpgWerebear::hurt, &m_sfxPain, &TiledGameSfx::playOne);

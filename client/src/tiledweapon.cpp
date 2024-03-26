@@ -242,7 +242,15 @@ void TiledWeapon::setBulletCount(int newBulletCount)
 	m_bulletCount = newBulletCount;
 	emit bulletCountChanged();
 	emit canShotChanged();
+
+	setMaxBulletCount(std::max(m_bulletCount, m_maxBulletCount));
 }
+
+
+/**
+ * @brief TiledWeapon::icon
+ * @return
+ */
 
 QString TiledWeapon::icon() const
 {
@@ -307,6 +315,19 @@ bool TiledWeapon::canThrowBullet() const
 void TiledWeapon::setCanThrowBullet(bool newCanThrowBullet)
 {
 	m_canThrowBullet = newCanThrowBullet;
+}
+
+int TiledWeapon::maxBulletCount() const
+{
+	return m_maxBulletCount;
+}
+
+void TiledWeapon::setMaxBulletCount(int newMaxBulletCount)
+{
+	if (m_maxBulletCount == newMaxBulletCount)
+		return;
+	m_maxBulletCount = newMaxBulletCount;
+	emit maxBulletCountChanged();
 }
 
 

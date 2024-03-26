@@ -380,6 +380,7 @@ class GameMapMissionLevel : public GameMapMissionLevelIface
 	Q_PROPERTY(qreal passed MEMBER m_passed)
 	Q_PROPERTY(QList<GameMapInventory *> inventories MEMBER m_inventories)
 	Q_PROPERTY(QList<qint32> chapterIds MEMBER m_chapterIds)
+	Q_PROPERTY(GameMapMission* mission MEMBER m_mission)
 
 public:
 	explicit GameMapMissionLevel() {}

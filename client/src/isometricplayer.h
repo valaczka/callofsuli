@@ -131,7 +131,7 @@ protected:
 	qreal m_speedLength = 4.;
 	qreal m_speedRunLength = 7.;
 	qreal m_runSpeed = 3.;
-	qint64 m_inabilityTime = 1000;
+	qint64 m_inabilityTime = 750;
 	bool m_isLocked = false;
 
 

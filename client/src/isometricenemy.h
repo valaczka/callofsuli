@@ -81,7 +81,7 @@ protected:
 		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
 		bool rotateToPlayer = true;
 		qint64 inabilityTime = 1250;			// Inability after hit
-		qint64 firstAttackTime = 450;			// First attack to player
+		qint64 firstAttackTime = 350;			// First attack to player
 		qint64 autoAttackTime = 1500;			// Repeated attack to player
 
 		qreal sensorLength = 450.;
@@ -150,6 +150,9 @@ protected:
 
 	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
 	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
+
+	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
+									IsometricPlayer *player = nullptr) const = 0;
 
 	void stepMotor();
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);

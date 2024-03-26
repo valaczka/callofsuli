@@ -70,6 +70,9 @@ public:
 
 	RpgArmory *armory() const;
 
+	QPointF currentSceneStartPosition() const;
+	void setCurrentSceneStartPosition(QPointF newCurrentSceneStartPosition);
+
 signals:
 	void characterChanged();
 
@@ -107,6 +110,8 @@ private:
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;
+
+	QPointF m_currentSceneStartPosition;
 
 	friend class RpgGame;
 };
