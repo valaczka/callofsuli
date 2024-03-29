@@ -74,6 +74,7 @@ public:
 	enum GameState {
 		StateInvalid = 0,
 		StateConnect,
+		StateDownloadContent,
 		StateCharacterSelect,
 		StatePrepare,
 		StatePlay,

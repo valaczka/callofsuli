@@ -42,6 +42,7 @@
 #include <selectableobject.h>
 #include "user.h"
 
+class Client;
 class Server;
 
 using ServerList = qolm::QOlm<Server>;
@@ -136,14 +137,26 @@ public:
 	void setDynamicContentReady(bool newDynamicContentReady);
 
 	void dynamicContentReset(const QJsonArray &list = {});
-	QVector<DynamicContent> dynamicContentList() const;
-	bool dynamicContentCheck();
-	bool dynamicContentRemove(const QString &name, const QByteArray &data);
+	const QVector<DynamicContent> &dynamicContentList() const;
+	bool dynamicContentCheck(QVector<DynamicContent> *listPtr);
+	bool dynamicContentCheck() { return dynamicContentCheck(&m_contentList); }
+	bool dynamicContentRemove(QVector<DynamicContent> *listPtr, const QString &name, const QByteArray &data);
+	bool dynamicContentRemove(const QString &name, const QByteArray &data) {
+		return dynamicContentRemove(&m_contentList, name, data);
+	}
 	bool dynamicContentSaveAndLoad(const QString &name, const QByteArray &data);
 	void unloadDynamicContents();
 	void loadDynamicContent(const QString &filename);
 
+	bool downloadLoadableContent(Client *client, const QVector<DynamicContent> &list);
+	void downloadLoadableContent(Client *client, const QStringList &fileList);
+	void downloadLoadableContentDict(Client *client, const QStringList &fileList);
+
 signals:
+	void loadableContentReady();
+	void loadableContentOneDownloaded(QString name);
+	void loadableContentError();
+
 	void urlChanged();
 	void directoryChanged();
 	void autoConnectChanged();
@@ -159,6 +172,8 @@ signals:
 	void dynamicContentReadyChanged();
 
 private:
+	void onDynamicResourceDownloaded();
+
 	QString m_name;
 	QString m_serverName;
 	QUrl m_url;
@@ -184,6 +199,11 @@ private:
 #endif
 
 	QVector<DynamicContent> m_contentList;
+	QVector<DynamicContent> m_loadableContentList;
+	QVector<DynamicContent> m_loadableContentListBase;
+
+	QJsonObject m_loadableContentDict;
+
 	QStringList m_loadedContentList;
 	bool m_dynamicContentReady = false;
 };

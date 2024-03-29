@@ -144,7 +144,11 @@ public:
 	void pause();
 	void reload();
 
-	QJsonArray dynamicContent() const;
+	const QJsonArray &dynamicContent() const;
+
+	const QJsonObject &dynamicContentDict() const;
+
+	const QJsonArray &loadableDynamicContent() const;
 
 signals:
 	void configChanged();
@@ -156,6 +160,7 @@ protected:
 	virtual void timerEvent(QTimerEvent *event) override;
 
 private:
+	void loadDynamicDictFromRcc(const QString &filename, const QString &path);
 	static void processSignal(int sig);
 
 	bool start();
@@ -192,6 +197,8 @@ private:
 	int m_mainTimerInterval = 0;
 
 	QJsonArray m_dynamicContent;
+	QJsonArray m_loadableDynamicContent;
+	QJsonObject m_dynamicContentDict;
 
 	static ServerService *m_instance;
 };

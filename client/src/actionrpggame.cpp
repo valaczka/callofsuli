@@ -74,7 +74,9 @@ void ActionRpgGame::gameAbort()
 {
 	if (m_config.gameState == RpgConfig::StateFinished)
 		return;
-	else if (m_config.gameState == RpgConfig::StateConnect || m_config.gameState == RpgConfig::StateCharacterSelect) {
+	else if (m_config.gameState == RpgConfig::StateConnect ||
+			 m_config.gameState == RpgConfig::StateDownloadContent ||
+			 m_config.gameState == RpgConfig::StateCharacterSelect) {
 		setFinishState(Neutral);
 
 		LOG_CINFO("game") << "Game cancelled:" << this;
@@ -143,7 +145,12 @@ void ActionRpgGame::rpgGameActivated()
 	if (!m_rpgGame)
 		return;
 
-	m_rpgGame->load();
+	const auto &ptr = RpgGame::readGameDefinition("sample");
+
+	if (!ptr)
+		return;
+
+	m_rpgGame->load(ptr.value());
 }
 
 
@@ -180,8 +187,10 @@ QQuickItem *ActionRpgGame::loadPage()
 		return nullptr;
 
 	auto c = m_config;
-	c.gameState = RpgConfig::StateCharacterSelect;
+	c.gameState = RpgConfig::StateDownloadContent;
 	setConfig(c);
+
+	downloadGameData();
 
 	return item;
 }
@@ -416,6 +425,63 @@ void ActionRpgGame::onConfigChanged()
 	}*/
 
 	m_oldGameState = m_config.gameState;
+}
+
+
+/**
+ * @brief ActionRpgGame::downloadGameData
+ */
+
+void ActionRpgGame::downloadGameData()
+{
+	Server *server = m_client->server();
+
+
+	if (!server) {
+		LOG_CERROR("game") << "Missing server";
+		setError();
+		return;
+	}
+
+	const auto &ptr = RpgGame::readGameDefinition("sample");
+
+	if (!ptr) {
+		LOG_CERROR("game") << "Invalid game";
+		setError();
+		return;
+	}
+
+	const auto &listPtr = TiledGame::getDynamicTilesets(ptr.value());
+
+	if (!listPtr)
+		return;
+
+
+	connect(server, &Server::loadableContentError, this, [this]() {
+		LOG_CWARNING("game") << "Loadable content error";
+		setError();
+	});
+
+	connect(server, &Server::loadableContentReady, this, [this]() {
+		LOG_CWARNING("game") << "Loadable content READY!!!";
+		auto c = m_config;
+		c.gameState = RpgConfig::StateCharacterSelect;
+		setConfig(c);
+	});
+
+	server->downloadLoadableContentDict(m_client, *listPtr);
+}
+
+
+/**
+ * @brief ActionRpgGame::setError
+ */
+
+void ActionRpgGame::setError()
+{
+	auto c = m_config;
+	c.gameState = RpgConfig::StateError;
+	setConfig(c);
 }
 
 

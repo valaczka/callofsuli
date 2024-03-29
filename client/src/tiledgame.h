@@ -71,6 +71,8 @@ public:
 		: firstScene(-1)
 	{}
 
+	QString basePath;
+
 	QS_SERIALIZABLE
 	QS_FIELD(int, firstScene)
 	QS_COLLECTION_OBJECTS(QVector, TiledSceneDefinition, scenes)
@@ -124,6 +126,8 @@ public:
 
 
 	bool load(const TiledGameDefinition &def);
+
+	static std::optional<QStringList> getDynamicTilesets(const TiledGameDefinition &def);
 
 	Tiled::TileLayer *loadSceneLayer(TiledScene *scene, Tiled::Layer *layer, Tiled::MapRenderer *renderer);
 
@@ -187,7 +191,7 @@ signals:
 	void baseScaleChanged();
 
 protected:
-	bool loadScene(const TiledSceneDefinition &def);
+	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 	TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);

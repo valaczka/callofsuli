@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="2" nextobjectid="1">
+ <tileset firstgid="1" source="../../tileset/rockShaded1/rockShaded1.tsx"/>
+ <tileset firstgid="105" source="../../tileset/rockShaded2/rockShaded2.tsx"/>
+ <tileset firstgid="161" source="../../tileset/rockShaded3/rockShaded3.tsx"/>
+ <tileset firstgid="257" source="../../tileset/groundGrass/groundGrass2Cloudy.tsx"/>
+ <layer id="1" name="1. csemperéteg" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJxjYIAAcyBmxIFlGUgHkiSqJ8cObCAHigcKLKWx+Yeh9GsgVgNGzkso/xWd7J+ORw7kHloDdPuVgXZy0cFeXPaDACOa/XI0dA+6/dqMCPtF6BAOLVjE0P1PS1AywPZjA/S0fyH9rBoFo2AUjIJRMApGwSgYBcMQAACwcgsQ
+  </data>
+ </layer>
+</map>

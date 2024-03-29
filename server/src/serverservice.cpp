@@ -290,6 +290,29 @@ void ServerService::timerEvent(QTimerEvent *)
 
 
 /**
+ * @brief ServerService::loadDynamicDictFromRcc
+ * @param path
+ */
+
+void ServerService::loadDynamicDictFromRcc(const QString &filename, const QString &path)
+{
+	QDirIterator it2(path, { QStringLiteral("*tsx") }, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it2.hasNext()) {
+		QString file = it2.next();
+		file.replace(path, QStringLiteral(""));
+
+		if (m_dynamicContentDict.contains(file)) {
+			LOG_CERROR("service") << "Dynamic content registry already exists:" << file;
+		} else {
+			m_dynamicContentDict.insert(file, filename);
+		}
+	}
+}
+
+
+
+/**
  * @brief ServerService::processSignal
  * @param sig
  */
@@ -882,11 +905,34 @@ void ServerService::resume()
 
 
 /**
+ * @brief ServerService::loadableDynamicContent
+ * @return
+ */
+
+const QJsonArray &ServerService::loadableDynamicContent() const
+{
+	return m_loadableDynamicContent;
+}
+
+
+/**
+ * @brief ServerService::dynamicContentDict
+ * @return
+ */
+
+const QJsonObject &ServerService::dynamicContentDict() const
+{
+	return m_dynamicContentDict;
+}
+
+
+
+/**
  * @brief ServerService::dynamicContent
  * @return
  */
 
-QJsonArray ServerService::dynamicContent() const
+const QJsonArray &ServerService::dynamicContent() const
 {
 	return m_dynamicContent;
 }
@@ -911,6 +957,8 @@ int ServerService::mainTimerInterval() const
 void ServerService::reloadDynamicContent()
 {
 	m_dynamicContent = {};
+	m_loadableDynamicContent = {};
+	m_dynamicContentDict = {};
 	ConquestEngine::m_helper.clear();
 
 	const QString &dir = m_settings->dataDir().absoluteFilePath(QStringLiteral("content"));
@@ -922,40 +970,55 @@ void ServerService::reloadDynamicContent()
 
 	LOG_CINFO("service") << "Reload dynamic content:" << qPrintable(dir);
 
-	QDirIterator it(dir, { QStringLiteral("*.cres") }, QDir::Files);
+	for (const bool isStatic : std::vector<bool>{true, false}) {
+		QDirIterator it(dir, {
+							isStatic ? QStringLiteral("*.cres") : QStringLiteral("*.dres")
+						}, QDir::Files);
 
-	while (it.hasNext()) {
-		const QString &file = it.next();
+		while (it.hasNext()) {
+			const QString &file = it.next();
 
-		LOG_CTRACE("service") << "Load:" << qPrintable(file);
+			LOG_CTRACE("service") << "Load:" << qPrintable(file);
 
-		const auto &content = Utils::fileContent(file);
+			const auto &content = Utils::fileContent(file);
 
-		if (!content)
-			continue;
+			if (!content)
+				continue;
 
-		const QString &md5 = QString::fromLatin1(QCryptographicHash::hash(*content, QCryptographicHash::Md5).toHex());
-		const qint64 size = content->size();
+			const QString &md5 = QString::fromLatin1(QCryptographicHash::hash(*content, QCryptographicHash::Md5).toHex());
+			const qint64 size = content->size();
 
-		if (!QResource::registerResource(file, QStringLiteral("/tmp"))) {
-			LOG_CERROR("service") << "Invalid resource:" << qPrintable(file);
-			continue;
-		}
-
-
-		m_dynamicContent.append(QJsonObject{
-									{ QStringLiteral("file"), it.fileName() },
-									{ QStringLiteral("md5"), md5 },
-									{ QStringLiteral("size"), size },
-								});
+			if (!QResource::registerResource(file, QStringLiteral("/tmp"))) {
+				LOG_CERROR("service") << "Invalid resource:" << qPrintable(file);
+				continue;
+			}
 
 
-		LOG_CDEBUG("service") << "Dynamic content registered:" << qPrintable(it.fileName());
+			if (isStatic)
+				m_dynamicContent.append(QJsonObject{
+											{ QStringLiteral("file"), it.fileName() },
+											{ QStringLiteral("md5"), md5 },
+											{ QStringLiteral("size"), size }
+										});
+			else
+				m_loadableDynamicContent.append(QJsonObject{
+													{ QStringLiteral("file"), it.fileName() },
+													{ QStringLiteral("md5"), md5 },
+													{ QStringLiteral("size"), size }
+												});
 
-		ConquestEngine::loadWorldDataFromResource(QStringLiteral(":/tmp"));
 
-		if (!QResource::unregisterResource(file, QStringLiteral("/tmp"))) {
-			LOG_CERROR("service") << "Unregister resource error:" << file;
+
+			LOG_CDEBUG("service") << "Dynamic content registered:" << qPrintable(it.fileName());
+
+			if (isStatic)
+				ConquestEngine::loadWorldDataFromResource(QStringLiteral(":/tmp"));
+			else
+				loadDynamicDictFromRcc(it.fileName(), QStringLiteral(":/tmp/"));
+
+			if (!QResource::unregisterResource(file, QStringLiteral("/tmp"))) {
+				LOG_CERROR("service") << "Unregister resource error:" << file;
+			}
 		}
 	}
 }

@@ -85,6 +85,9 @@ Item {
 		onYChanged: calculate()
 
 		function calculate() {
+			if (!hasTouch)
+				return
+
 			var dx = (2*x+width-root.width)/(root.width-width)
 			var dy = -(2*y+height-root.height)/(root.height-height)
 
@@ -111,15 +114,21 @@ Item {
 		]
 
 		onTouchUpdated: touchPoints => {
-			if (touchPoints.length) {
-				hasTouch = true
-				moveThumb(touchPoints[0].x, touchPoints[0].y)
-			} else {
-				hasTouch = false
-				moveThumb(root.width/2, root.height/2)
-			}
+							if (touchPoints.length) {
+								hasTouch = true
+								moveThumb(touchPoints[0].x, touchPoints[0].y)
+							} else {
+								hasTouch = false
+								moveThumb(root.width/2, root.height/2)
+								currentX = 0.0
+								currentY = 0.0
+								currentDistance = 0.0
 
-		}
+								joystickMoved(currentX, currentY)
+								directionChanged(currentAngle, currentDistance)
+							}
+
+						}
 	}
 
 

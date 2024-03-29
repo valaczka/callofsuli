@@ -16,13 +16,6 @@ include(../../translations/translations.pri)
 DESTDIR = ../..
 
 
-### REMOVE ###
-
-RESOURCES += \
-	$$PWD/../../_teszt/_teszt.qrc
-
-
-
 #lessThan(QT_MAJOR_VERSION, 6) {
 #	QML_IMPORT_PATH += $$PWD/../qml
 #	QMLPATHS += $$PWD/../qml

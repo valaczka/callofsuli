@@ -45,7 +45,13 @@
 - Bleed - (c) 2017 Remos Turcuman - (https://opengameart.org/users/bleed, http://remusprites.carbonmade.com)
 - 400+ Items - BaseHumanMale / Orc / Skeleton - (c) 2021 SKYZ0R (https://opengameart.org/content/400-items-basehumanmale-orc-skeleton)ú
 - Animated particle effects #1 - (c) 2014 para (https://opengameart.org/content/animated-particle-effects-1)
-
+- Trees - (c) RedFrost (https://www.blendswap.com/blends/view/78148)
+- Trees - (c) EugeneKiver (https://www.blendswap.com/blends/view/59269)
+- Trees - (c) yughues (https://opengameart.org/content/freebies-mundo-commissions)
+- Dead trees - (c) p0ss (https://opengameart.org/content/3-dead-trees)
+- Grassland tileset - (c) Clint Bellanger (https://opengameart.org/content/grassland-tileset)
+- Grassland tileset 1 - (c) 2019 rubberduck (https://opengameart.org/content/grassland-tileset-1)
+- Updated Grassland Tileset (stylized) - (c) 2021 rubberduck (https://opengameart.org/content/updated-grassland-tileset-stylized)
 
 **Music & SFX**
 

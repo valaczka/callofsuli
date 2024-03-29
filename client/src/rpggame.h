@@ -32,6 +32,7 @@
 #include "rpgenemyiface.h"
 #include "rpgplayer.h"
 #include "rpgpickableobject.h"
+#include "server.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
 #include <QQmlEngine>
@@ -57,7 +58,9 @@ public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
 
-	Q_INVOKABLE bool load();
+	Q_INVOKABLE bool load(const TiledGameDefinition &def);
+
+	static std::optional<TiledGameDefinition> readGameDefinition(const QString &map);
 
 	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
 	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;

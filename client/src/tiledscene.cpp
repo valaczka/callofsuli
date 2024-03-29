@@ -58,7 +58,7 @@ TiledScene::TiledScene(QQuickItem *parent)
 	//setAcceptTouchEvents(true);
 
 	Tiled::TilesetManager *manager = Tiled::TilesetManager::instance();
-	/// ENABLE: manager->setAnimateTiles(true);
+	manager->setAnimateTiles(true);
 	connect(manager, &Tiled::TilesetManager::repaintTileset, this, &TiledScene::repaintTilesets);
 
 }

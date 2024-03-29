@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="5" nextobjectid="2">
+ <tileset firstgid="1" source="../../tileset/groundDirt/groundDirt.tsx"/>
+ <tileset firstgid="321" source="../../tileset/groundGrass/groundGrass.tsx"/>
+ <tileset firstgid="641" source="../../tileset/groundSand/groundSand.tsx"/>
+ <tileset firstgid="801" source="../../tileset/groundWater/water.tsx"/>
+ <tileset firstgid="803" source="../../tileset/treeCloudy1/treeCloudy1.tsx"/>
+ <tileset firstgid="827" source="../../tileset/treeCloudy2/treeCloudy2.tsx"/>
+ <tileset firstgid="851" source="../../tileset/treeCloudy3/treeCloudy3.tsx"/>
+ <tileset firstgid="875" source="../../tileset/treeCloudy4/treeCloudy4.tsx"/>
+ <tileset firstgid="891" source="../../tileset/direction/directionYellow.tsx"/>
+ <layer id="3" name="3. csemperéteg" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJzt0rENADAIBDGkTML+S7JCaHm7vPqqgIv67Tpc4n+S+Z9k/ifZz/8DohoBaQ==
+  </data>
+ </layer>
+ <layer id="1" name="1. csemperéteg" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJwTYmBgEKIR1mEgDBhpiMVG7R9Q+yUG2H7RUftHtP0jPf2pAbHDANqP7I6BtB+E7QfYfhBWZcCsE+lpP8wNA2k/46j9o/aP2j9g9uvTwX5bBuIBrcN31P5R+0ftxw0A1s0HSQ==
+  </data>
+ </layer>
+ <layer id="2" name="2. csemperéteg" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFowACtjNTpr+IQv34wDEamg0CemSYb0ZDN2UgmR1LY7+PAvJAJiMDQwgQB0PpHEbKzFtBQjxnAe3yAuIAIHaH0hFQ+11onF5A/nYGYh8g9gZiDyB2QrKf1iAS6ncvqL2eUP+H0cn+GGiYg+z3g4YFyP5wGtpvjRSn0VB7A6Bu8IfS2MJ/JRMDwxQoXs1EHbdEQePcDRr/AdC0gM3+WUA7m4F4IRCvp5L90UjxDgp7RyB2BeJQJPvDmBH2twHxEzLyhAEOPXlAexKAOBZKx0FxPg7/twLxVCr5nVQwi4SwL6NBubGOivE+mIAFjrCqHmR19UhqOwQOcb+mAN2fOoj9oDyI3TYQoGuQhQc56R8AcuEoMQ==
+  </data>
+ </layer>
+ <objectgroup id="4" name="1. objektumréteg">
+  <object id="1" type="player" x="1042" y="906">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

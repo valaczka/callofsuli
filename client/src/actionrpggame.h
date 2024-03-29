@@ -102,6 +102,8 @@ protected:
 
 private:
 	void onConfigChanged();
+	void downloadGameData();
+	void setError();
 
 private:
 	GameMode m_gameMode = SinglePlayer;

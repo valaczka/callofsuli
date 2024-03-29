@@ -225,9 +225,9 @@ RpgGame::~RpgGame()
  */
 
 
-bool RpgGame::load()
+bool RpgGame::load(const TiledGameDefinition &def)
 {
-	QString test = R"({
+	/*QString test = R"({
 		"firstScene": 1,
 		"scenes": [
 			{
@@ -241,16 +241,11 @@ bool RpgGame::load()
 				"file": "qrc:/teszt2.tmx"
 			}
 		]
-		})";
+		})";*/
 
-
-	TiledGameDefinition def;
-	def.fromJson(QJsonDocument::fromJson(test.toUtf8()).object());
 
 	if (!TiledGame::load(def))
 		return false;
-
-
 
 
 	for (auto &e : m_enemyDataList) {
@@ -344,6 +339,33 @@ bool RpgGame::load()
 	emit gameLoaded();
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief RpgGame::readGameDefinition
+ * @param map
+ * @return
+ */
+
+std::optional<TiledGameDefinition> RpgGame::readGameDefinition(const QString &map)
+{
+	if (map.isEmpty())
+		return std::nullopt;
+
+	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/map/%1/game.json").arg(map));
+
+	if (!ptr)
+		return std::nullopt;
+
+	TiledGameDefinition def;
+	def.fromJson(ptr.value());
+
+	def.basePath = QStringLiteral("qrc:/map/").append(map);
+
+	return def;
 }
 
 

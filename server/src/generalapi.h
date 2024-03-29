@@ -40,7 +40,8 @@ public:
 	QHttpServerResponse config();
 	QHttpServerResponse rank(const int &id = -1);
 	QHttpServerResponse grade();
-	QHttpServerResponse dynamicContent();
+	QHttpServerResponse dynamicContent(const bool &loadable);
+	QHttpServerResponse dynamicContentDict();
 
 	QHttpServerResponse class_(const int &id = -1);
 	QHttpServerResponse classUsers(const int &id);

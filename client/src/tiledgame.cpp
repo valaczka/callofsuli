@@ -29,6 +29,8 @@
 #include "application.h"
 #include "isometricentity.h"
 #include <libtiled/objectgroup.h>
+#include <libtiled/mapreader.h>
+#include <libtiled/map.h>
 
 std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGame::m_sharedTextures;
 
@@ -77,10 +79,10 @@ TiledGame::~TiledGame()
 
 bool TiledGame::load(const TiledGameDefinition &def)
 {
-	LOG_CTRACE("game") << "Load game";
+	LOG_CTRACE("game") << "Load game with base path:" << def.basePath;
 
 	for (const TiledSceneDefinition &s : std::as_const(def.scenes)) {
-		if (loadScene(s))
+		if (loadScene(s, def.basePath))
 			LOG_CINFO("game") << "Scene loaded:" << s.id << qPrintable(s.file);
 		else {
 			emit gameLoadFailed();
@@ -99,6 +101,38 @@ bool TiledGame::load(const TiledGameDefinition &def)
 	setCurrentScene(firstScene);
 
 	return true;
+}
+
+
+/**
+ * @brief TiledGame::getDynamicTilesets
+ * @param def
+ * @param basePath
+ * @return
+ */
+
+std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefinition &def)
+{
+	Tiled::MapReader mapReader;
+	QStringList list;
+
+	for (const TiledSceneDefinition &s : def.scenes) {
+		LOG_CTRACE("game") << "Get dynamic tilesets from file:" << s.file;
+		std::unique_ptr<Tiled::Map> map(mapReader.readMap(Tiled::urlToLocalFileOrQrc(QUrl(def.basePath+QLatin1Char('/')+s.file))));
+
+		if (!map) {
+			LOG_CERROR("game") << "Game read error:" << def.basePath;
+			return std::nullopt;
+		}
+
+		for (const auto &t : (*map).tilesets()) {
+			QFileInfo fi(t->fileName());
+			list.append(fi.canonicalFilePath());
+		}
+	}
+
+	list.removeDuplicates();
+	return list;
 }
 
 
@@ -218,7 +252,7 @@ void TiledGame::setCurrentScene(TiledScene *newCurrentScene)
  * @return
  */
 
-bool TiledGame::loadScene(const TiledSceneDefinition &def)
+bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePath)
 {
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledFlickableScene.qml"), this);
 
@@ -241,7 +275,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def)
 	item.container->setParentItem(this);
 	item.container->setParent(this);
 
-	if (!item.scene->load(QUrl(def.file))) {
+	if (!item.scene->load(QUrl(basePath+QLatin1Char('/')+def.file))) {
 		LOG_CERROR("game") << "Scene load error" << def.file;
 		item.container->deleteLater();
 		return false;
@@ -405,7 +439,7 @@ void TiledGame::loadObjectLayer(TiledScene *, Tiled::MapObject *, Tiled::MapRend
 
 void TiledGame::loadGroupLayer(TiledScene *, Tiled::GroupLayer *, Tiled::MapRenderer *)
 {
-LOG_CERROR("game") << "Missing implementation:" << __PRETTY_FUNCTION__;
+	LOG_CERROR("game") << "Missing implementation:" << __PRETTY_FUNCTION__;
 }
 
 
@@ -624,6 +658,34 @@ void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
 
 	JoystickState jState = m_joystickState;
 	jState.hasKeyboard = state.dx != 0.5 || state.dy != 0.5;
+
+	if (state.dx < 0.3) {
+		jState.distance = (state.dx < 0.1 ? 1.0 : 0.7);
+		if (state.dy < 0.3)
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthWest);
+		else if (state.dy > 0.7)
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthWest);
+		else
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::West);
+	} else if (state.dx > 0.7) {
+		jState.distance = (state.dx > 0.9 ? 1.0 : 0.7);
+		if (state.dy < 0.3)
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthEast);
+		else if (state.dy > 0.7)
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthEast);
+		else
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::East);
+	} else {
+		jState.distance = (state.dy > 0.9 || state.dy < 0.1 ? 1.0 : 0.7);
+		if (state.dy < 0.3)
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::North);
+		else if (state.dy > 0.7)
+			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::South);
+		else
+			jState.distance = 0.0;
+	}
+
+
 	setJoystickState(jState);
 
 	if (!m_joystick)

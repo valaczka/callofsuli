@@ -882,9 +882,7 @@ void Client::loadDynamicResources()
 
 		server()->dynamicContentReset(json.value(QStringLiteral("list")).toArray());
 
-#ifndef Q_OS_WASM
 		server()->dynamicContentCheck();
-#endif
 
 		if (server()->dynamicContentList().isEmpty())
 			server()->setDynamicContentReady(true);
