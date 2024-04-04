@@ -163,6 +163,13 @@ QItemGradient {
 			visible: _chart._showPlaceholder
 		}
 
+		QButton {
+			text: "DEMO"
+			onClicked: {
+				onClicked: Client.loadDemoMap()
+			}
+		}
+
 
 		QDashboardGrid {
 			id: _grid

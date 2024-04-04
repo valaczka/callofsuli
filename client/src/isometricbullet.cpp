@@ -259,7 +259,8 @@ void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
 
 	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
 
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {
+	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround)) &&
+			base && base->body()->opaque()) {
 		setImpacted(true);
 		m_body->stop();
 		setCurrentDirection(Invalid);

@@ -110,13 +110,6 @@ signals:
 protected:
 	virtual void refresh() override;
 
-	struct DynamicZ {
-		QPolygonF polygon;
-		bool vertical = true;
-		bool horizontal = false;
-	};
-
-	std::map<int, DynamicZ> m_dynamicZList;
 	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Box2DWorld> m_world;
 	QVector<QPointer<TiledObjectBasePolygon>> m_groundObjects;
@@ -147,12 +140,29 @@ public:
 
 
 private:
+	struct DynamicZ {
+		QString name;
+		QVector<QRectF> areas;
+		int z = 1;
+
+		QPointF getMaxBottomRight() const;
+		QPointF getMinTopLeft() const;
+
+		bool isOver(const qreal &x, const qreal &y) const;
+		bool isOver(const QPointF &point) const { return isOver(point.x(), point.y()); }
+	};
+
+
+	void appendDynamicZ(const QString &name, const QRectF &area);
+	void setTileLayersZ();
 	void onWorldStepped();
 	void reorderObjectsZ();
 	void repaintTilesets(Tiled::Tileset *tileset);
 
 	TiledGame *m_game = nullptr;
 	int m_sceneId = -1;
+
+	std::vector<DynamicZ> m_dynamicZList;
 
 	friend class TiledGame;
 };

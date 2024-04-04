@@ -88,6 +88,7 @@ class TiledObjectBody : public Box2DBody
 	Q_OBJECT
 
 	Q_PROPERTY(QPointF bodyOffset READ bodyOffset WRITE setBodyOffset NOTIFY bodyOffsetChanged FINAL)
+	Q_PROPERTY(bool opaque READ opaque WRITE setOpaque NOTIFY opaqueChanged FINAL)
 
 public:
 	explicit TiledObjectBody(TiledObjectBase *baseObject)
@@ -139,13 +140,19 @@ public:
 
 	void setBodyOffset(QPointF newBodyOffset);
 
+	bool opaque() const;
+	void setOpaque(bool newOpaque);
+
 signals:
 	void bodyOffsetChanged();
+
+	void opaqueChanged();
 
 private:
 	void emplace();
 	QPointF m_bodyOffset;
 	TiledObjectBase *const m_baseObject;
+	bool m_opaque = true;
 
 	friend class TiledObjectBase;
 };

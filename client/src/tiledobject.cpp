@@ -1234,6 +1234,26 @@ void TiledObjectBody::emplace()
 
 
 /**
+ * @brief TiledObjectBody::opaque
+ * @return
+ */
+
+bool TiledObjectBody::opaque() const
+{
+	return m_opaque;
+}
+
+void TiledObjectBody::setOpaque(bool newOpaque)
+{
+	if (m_opaque == newOpaque)
+		return;
+	m_opaque = newOpaque;
+	emit opaqueChanged();
+}
+
+
+
+/**
  * @brief TiledObjectBody::setBodyOffset
  * @param newBodyOffset
  */

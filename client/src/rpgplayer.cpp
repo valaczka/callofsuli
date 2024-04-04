@@ -443,6 +443,8 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}
+
+	emit attackDone();
 }
 
 

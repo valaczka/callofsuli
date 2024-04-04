@@ -32,7 +32,6 @@
 #include "rpgenemyiface.h"
 #include "rpgplayer.h"
 #include "rpgpickableobject.h"
-#include "server.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
 #include <QQmlEngine>
@@ -127,12 +126,15 @@ signals:
 
 protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
-	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
+	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
 	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject) override;
 
 private:
+	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+
 	void onGameQuestionSuccess(const QVariantMap &answer);
 	void onGameQuestionFailed(const QVariantMap &answer);
 	void onGameQuestionStarted();
@@ -148,6 +150,7 @@ private:
 		QPointer<TiledScene> scene;
 		QPointer<IsometricEnemy> enemy;
 		bool hasQuestion = false;
+		QVector<RpgPickableObject::PickableType> pickables;
 	};
 
 
@@ -156,12 +159,12 @@ private:
 		RpgPickableObject::PickableType type = RpgPickableObject::PickableInvalid;
 		QPointF position;
 		QPointer<TiledScene> scene;
-		QPointer<TiledObject> holder;
 		QPointer<RpgPickableObject> pickableObject;
 	};
 
 
-	std::optional<EnemyData> getEnemyData(IsometricEnemy *enemy) const;
+	QVector<EnemyData>::iterator enemyFind(IsometricEnemy *enemy);
+	QVector<EnemyData>::const_iterator enemyFind(IsometricEnemy *enemy) const;
 
 	QVector<EnemyData> m_enemyDataList;
 	QVector<PickableData> m_pickableDataList;
@@ -172,6 +175,9 @@ private:
 	QPointer<GameQuestion> m_gameQuestion;
 	RpgQuestion *m_rpgQuestion = nullptr;
 	int m_enemyCount = 0;
+
+
+	// 3 részre daraboljuk, hogy ne haladja meg a textúra a 4096 px méretet
 
 	static const QByteArray m_baseEntitySprite0;
 	static const QByteArray m_baseEntitySprite1;

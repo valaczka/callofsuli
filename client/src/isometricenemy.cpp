@@ -172,8 +172,11 @@ void IsometricEnemy::entityWorldStep()
 
 
 	//QPointF visiblePoint;
+	float32 transparentGnd = -1.0;
+
 	IsometricPlayer *myPlayer = getVisibleEntity<QPointer<IsometricPlayer>>(m_body.get(), m_contactedPlayers,
-																			TiledObjectBody::FixturePlayerBody
+																			TiledObjectBody::FixturePlayerBody,
+																			&transparentGnd
 																			/*, &visiblePoint*/);
 
 
@@ -219,8 +222,12 @@ void IsometricEnemy::entityWorldStep()
 				const qreal &dist = distanceToPoint(ptr.value());
 
 				if (dist >= std::max(std::max(m_metric.pursuitSpeed, m_metric.speed), 10.)){
-					rotateToPoint(ptr.value(), &angle);
-					isPursuit = true;
+					if (const float32 &d = checkGroundDistance(m_body.get(), ptr.value()); d != -1. && d < 0.05) {
+						isPursuit = false;
+					} else {
+						rotateToPoint(ptr.value(), &angle);
+						isPursuit = true;
+					}
 				} else {
 					isPursuit = false;
 				}
@@ -250,7 +257,9 @@ void IsometricEnemy::entityWorldStep()
 			return;
 		}
 
-		if (m_metric.returnSpeed != 0) {
+		if (transparentGnd >= 0. && transparentGnd < 0.5) {
+			m_body->stop();
+		} else if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
 				m_returnPathMotor.reset(new TiledReturnPathMotor);
 

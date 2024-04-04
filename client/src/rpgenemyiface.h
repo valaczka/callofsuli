@@ -59,7 +59,7 @@ public:
 	RpgArmory *armory() const { return m_armory.get(); }
 
 protected:
-	virtual QPointF getPickablePosition() const = 0;
+	virtual QPointF getPickablePosition(const int &num) const = 0;
 
 	const RpgEnemyType m_enemyType;
 	std::unique_ptr<RpgArmory> m_armory;

@@ -108,49 +108,22 @@ void RpgArmory::fillLayer(IsometricObjectLayeredSprite *dest, const QString &lay
 }
 
 
+
+
 /**
- * @brief RpgArmory::nextWeapon
+ * @brief RpgArmory::changeToNextWeapon
  * @return
  */
 
-TiledWeapon *RpgArmory::nextWeapon()
+bool RpgArmory::changeToNextWeapon()
 {
-	if (m_weaponList->empty())
-		return nullptr;
+	if (!m_nextWeapon)
+		return false;
 
-	const int index = m_weaponList->indexOf(m_currentWeapon);
-
-	QVector<TiledWeapon *> wList;
-
-	auto start = m_weaponList->constBegin();
-
-	if (index != -1)
-		start += index;
-
-	auto it = (index != -1) ? start+1 : start;
-
-	if (it == m_weaponList->constEnd())
-		it = m_weaponList->constBegin();
-
-	do {
-		if ((*it)->canAttack())
-			wList.append(*it);
-
-		++it;
-
-		if (it == m_weaponList->constEnd())
-			it = m_weaponList->constBegin();
-	} while (it != start);
-
-	if (wList.isEmpty()) {
-		LOG_CERROR("game") << "No available weapon";
-		return nullptr;
-	}
-
-	TiledWeapon *w = wList.first();
-	setCurrentWeapon(w);
-	return w;
+	setCurrentWeapon(m_nextWeapon);
+	return true;
 }
+
 
 
 
@@ -214,8 +187,25 @@ void RpgArmory::weaponRemove(TiledWeapon *weapon)
 	weapon->setParentObject(nullptr);
 	m_weaponList->remove(weapon);
 
-	if (!nextWeapon())
-		setCurrentWeapon(nullptr);
+	if (m_currentWeapon == weapon) {
+		if (m_nextWeapon == weapon) {
+			setNextWeapon(nullptr);
+			if (m_weaponList->empty()) {
+				setCurrentWeapon(nullptr);
+			} else {
+				setCurrentWeapon(m_weaponList->first());
+			}
+		} else {
+			if (m_nextWeapon)
+				setCurrentWeapon(m_nextWeapon);
+			else if (m_weaponList->empty())
+				setCurrentWeapon(nullptr);
+			else
+				setCurrentWeapon(m_weaponList->first());
+		}
+	} else {
+		setNextWeapon(getNextWeapon());
+	}
 }
 
 
@@ -236,6 +226,8 @@ void RpgArmory::setCurrentWeapon(TiledWeapon *newCurrentWeapon)
 	m_currentWeapon = newCurrentWeapon;
 	emit currentWeaponChanged();
 	updateLayers();
+
+	setNextWeapon(getNextWeapon());
 }
 
 
@@ -256,6 +248,62 @@ void RpgArmory::setBaseLayers(const QStringList &newBaseLayers)
 	m_baseLayers = newBaseLayers;
 	emit baseLayersChanged();
 	updateLayers();
+}
+
+TiledWeapon *RpgArmory::nextWeapon() const
+{
+	return m_nextWeapon;
+}
+
+void RpgArmory::setNextWeapon(TiledWeapon *newNextWeapon)
+{
+	if (m_nextWeapon == newNextWeapon)
+		return;
+	m_nextWeapon = newNextWeapon;
+	emit nextWeaponChanged();
+}
+
+
+/**
+ * @brief RpgArmory::getNextWeapon
+ * @return
+ */
+
+TiledWeapon *RpgArmory::getNextWeapon() const
+{
+	if (m_weaponList->empty())
+		return nullptr;
+
+	const int index = m_weaponList->indexOf(m_currentWeapon);
+
+	QVector<TiledWeapon *> wList;
+
+	auto start = m_weaponList->constBegin();
+
+	if (index != -1)
+		start += index;
+
+	auto it = (index != -1) ? start+1 : start;
+
+	if (it == m_weaponList->constEnd())
+		it = m_weaponList->constBegin();
+
+	do {
+		if ((*it)->canAttack())
+			wList.append(*it);
+
+		++it;
+
+		if (it == m_weaponList->constEnd())
+			it = m_weaponList->constBegin();
+	} while (it != start);
+
+	if (wList.isEmpty()) {
+		LOG_CWARNING("game") << "No available weapon";
+		return nullptr;
+	}
+
+	return wList.first();
 }
 
 

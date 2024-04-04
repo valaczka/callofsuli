@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="20" height="20" tilewidth="128" tileheight="64" infinite="0" nextlayerid="5" nextobjectid="1">
+ <tileset firstgid="1" source="rockCloudy1.tsx"/>
+ <tileset firstgid="105" source=":/automap-tiles.tsx"/>
+ <layer id="1" name="input1_rock" width="20" height="20" locked="1">
+  <data encoding="base64" compression="zlib">
+   eJzNztlSAWAYgGEkipI2WmnfMaSihYqW+7+iZprndwffjPfkOX0zmflvmRvc5xlbfOSYH8FfqSWuc4+nvOMDR/wN/koVWeUuT3jLPt/4E/yVKnCNOzzmDe/5yu/gr9QiK6zziNfs8YVfsVuz8lxljU1esctnToO/Ugtc4TYbvGSHQ06Cv1I5lrnFQ14w/Q34GfyVyrLETR7wnG0+8T12678/go0KRA==
+  </data>
+ </layer>
+ <layer id="2" name="output1_rockOver" width="20" height="20" locked="1">
+  <data encoding="base64" compression="zlib">
+   eJzNlEsKwkAQBeeK8RuNMTGaz/1PIEhNEx4MverBt6nNLIoumJT+f0d4gT0c5d0AZ7gGOu13gGeofk+ofluslq2BJ+j5vWAtP+17gyXPfL9PrJZN+7bQ81titWza9wpLfrlvLT/t+4De/aZYLZv27aDnV+t/0b536PV9x2r99gV15Bm/
+  </data>
+ </layer>
+</map>

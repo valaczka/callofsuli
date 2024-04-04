@@ -111,7 +111,7 @@ protected:
 	void playDeadEffect();
 	void playSeeEffect();
 
-	QPointF getPickablePosition() const override final;
+	QPointF getPickablePosition(const int &num) const override final;
 
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
 

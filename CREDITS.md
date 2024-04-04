@@ -52,6 +52,12 @@
 - Grassland tileset - (c) Clint Bellanger (https://opengameart.org/content/grassland-tileset)
 - Grassland tileset 1 - (c) 2019 rubberduck (https://opengameart.org/content/grassland-tileset-1)
 - Updated Grassland Tileset (stylized) - (c) 2021 rubberduck (https://opengameart.org/content/updated-grassland-tileset-stylized)
+- Barricade tiles - (c) 2009 Clint Bellanger (https://opengameart.org/content/barricade-tiles)
+- Isometric buildings - (c) 2018 rubberduck (https://opengameart.org/content/isometric-buildings, https://www.blendswap.com/blends/view/77511, https://www.blendswap.com/blends/view/4500, https://www.blendswap.com/blends/view/54598, https://www.blendswap.com/blends/view/83351, https://www.blendswap.com/blends/view/74098)
+- Isometric medieval buildings #2 - (c) 2018 rubberduck (https://opengameart.org/content/isometric-medieval-buildings-2)
+- Old ruins tileset - (c) 2018 rubberduck (https://opengameart.org/content/old-ruins-tileset, https://www.blendswap.com/blends/view/74098, https://opengameart.org/content/gate-low-poly, https://opengameart.org/content/medieval-statue, https://opengameart.org/content/wall-mounted-torch, https://cloud.blender.org/p/hdri/57ff6a49e5e20f05e23ba15b)
+- Isometric log cabins - (c) 2020 rubberduck (https://opengameart.org/content/isometric-log-cabins)
+
 
 **Music & SFX**
 

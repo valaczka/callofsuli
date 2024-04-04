@@ -65,7 +65,7 @@ FocusScope {
 	}
 
 	Row {
-		id: rowTime
+		id: _rowTime
 
 		anchors.left: parent.left
 		anchors.top: parent.top
@@ -105,6 +105,11 @@ FocusScope {
 								Client.Utils.formatMSecs(game.msecLeft, 1, false)
 		}
 	}
+
+
+
+
+
 
 
 	GameJoystick {
@@ -288,12 +293,43 @@ FocusScope {
 	}
 
 
+
+
 	GameButton {
-		id: pickRButton
+		id: _nextWeaponButton
+		size: 40
+
+		anchors.left: _rowTime.left
+		anchors.top: _rowTime.bottom
+		anchors.topMargin: 5
+
+		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.nextWeapon : null
+
+		visible: weapon && _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon != weapon
+
+		color: Qaterial.Colors.blue600
+		border.color: fontImage.color
+		border.width: 1
+
+		opacity: 1.0
+
+		fontImage.icon: weapon ? weapon.icon : ""
+		fontImage.color: "white"
+		fontImageScale: 0.6
+		//fontImage.anchors.horizontalCenterOffset: -2
+
+		onClicked: {
+			_game.controlledPlayer.armory.changeToNextWeapon()
+		}
+	}
+
+
+	GameButton {
+		id: _pickButton
 		size: 50
 
-		anchors.horizontalCenter: _shot.horizontalCenter
-		anchors.bottom: weaponButton.top
+		anchors.horizontalCenter: _shotButton.horizontalCenter
+		anchors.bottom: _shotButton.top
 		anchors.bottomMargin: 5
 
 		visible: _game.controlledPlayer && _game.controlledPlayer.currentPickable
@@ -307,74 +343,83 @@ FocusScope {
 		fontImage.icon: Qaterial.Icons.hand
 		fontImage.color: "white"
 		fontImageScale: 0.6
-		fontImage.anchors.horizontalCenterOffset: -2
+		//fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
 			_game.controlledPlayer.pickCurrentObject()
-			//_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
 		}
 	}
 
 
-	GameButton {
-		id: weaponButton
-		size: 50
 
-		anchors.horizontalCenter: _shot.horizontalCenter
-		anchors.bottom: pickButton.top
-		anchors.bottomMargin: 5
+	Column {
+		id: _columnButtons
 
-		visible: _game.controlledPlayer
+		anchors.bottom: _shotButton.bottom
+		anchors.bottomMargin: (_shotButton.height-50)/2
+		anchors.right: _shotButton.left
 
-		//enabled: _game.controlledPlayer && _game.controlledPlayer.currentTransport && _game.controlledPlayer.currentTransport.
+		spacing: 30
 
-		color: Qaterial.Colors.blue600
-		border.color: fontImage.color
-		border.width: 1
+		/*GameButton {
+			id: btn
+			size: 50
+			width: size
+			height: size
 
-		opacity: 1.0
+			enabled: false
+			visible: false
 
-		fontImage.icon: Qaterial.Icons.arrowRightBold
-		fontImage.color: "white"
-		fontImageScale: 0.6
-		fontImage.anchors.horizontalCenterOffset: -2
+			anchors.horizontalCenter: parent.horizontalCenter
 
-		onClicked: {
-			_game.controlledPlayer.armory.nextWeapon()
+			color: enabled ? modelData.iconColor : "transparent"
+			border.color: enabled ? fontImage.color : "white"
+			border.width: 1
+
+			opacity:  gameScene.zoomOverview ? 0.2 : (enabled ? 1.0 : 0.6)
+
+			fontImage.icon: modelData.icon
+			fontImage.color: "white"
+			fontImageScale: 0.6
+
+			onClicked: game.toolUse(modelData.type)
+		}*/
+
+		GameButton {
+			id: _transportButton
+			size: 50
+
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			visible: _game.controlledPlayer && _game.controlledPlayer.currentTransport
+			enabled: _game.controlledPlayer && _game.controlledPlayer.currentTransport &&
+					 _game.controlledPlayer.currentTransport.isOpen
+
+			color: enabled ? Qaterial.Colors.green600 : "transparent"
+			border.color: enabled ? fontImage.color : "white"
+			border.width: 1
+
+			opacity: enabled ? 1.0 : 0.6
+
+			fontImage.icon: enabled ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
+			fontImage.color: "white"
+			fontImageScale: 0.6
+			//fontImage.anchors.horizontalCenterOffset: -2
+
+			onClicked: {
+				_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
+			}
 		}
+
+
 	}
 
 
-	GameButton {
-		id: pickButton
-		size: 50
 
-		anchors.horizontalCenter: _shot.horizontalCenter
-		anchors.bottom: _shot.top
-		anchors.bottomMargin: 5
 
-		visible: _game.controlledPlayer && _game.controlledPlayer.currentTransport
-
-		//enabled: _game.controlledPlayer && _game.controlledPlayer.currentTransport && _game.controlledPlayer.currentTransport.
-
-		color: Qaterial.Colors.green600
-		border.color: fontImage.color
-		border.width: 1
-
-		opacity: 1.0
-
-		fontImage.icon: Qaterial.Icons.doorOpen
-		fontImage.color: "white"
-		fontImageScale: 0.6
-		fontImage.anchors.horizontalCenterOffset: -2
-
-		onClicked: {
-			_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
-		}
-	}
 
 	GameButton {
-		id: _shot
+		id: _shotButton
 		size: 60
 
 		anchors.right: parent.right
@@ -403,13 +448,13 @@ FocusScope {
 				_game.controlledPlayer.attackCurrentWeapon()
 		}
 
-		/*Connections {
-			target: player
+		Connections {
+			target: _game.controlledPlayer
 
-			function onAttack() {
-				tapAnim.start()
+			function onAttackDone() {
+				_shotButton.tapAnim.start()
 			}
-		}*/
+		}
 	}
 
 

@@ -176,19 +176,17 @@ int TiledScene::getDynamicZ(const qreal &x, const qreal &y, const int &defaultVa
 {
 	int z = defaultValue;
 
-	for (const auto &[dZ, p] : std::as_const(m_dynamicZList)) {
-		if (p.polygon.isEmpty())
+	QPointF pos(x, y);
+
+	if (Tiled::MapRenderer *renderer = mRenderer.get()) {
+		pos = renderer->screenToPixelCoords(x, y);
+	}
+
+	for (const DynamicZ &p : std::as_const(m_dynamicZList)) {
+		if (!p.isOver(pos))
 			continue;
 
-		const QPointF &center = p.polygon.boundingRect().center();
-
-		if (p.vertical && y <= center.y())
-			continue;
-
-		if (p.horizontal && x <= center.x())
-			continue;
-
-		z = std::max(z, dZ+1);
+		z = std::max(z, p.z);
 	}
 
 	return z;
@@ -475,11 +473,71 @@ void TiledScene::refresh()
 		m_game->loadSceneLayer(this, layer, mRenderer.get());
 	}
 
+	setTileLayersZ();
+
 
 	const QRect rect = mRenderer->mapBoundingRect();
 	setWidth(rect.width());
 	setHeight(rect.height());
 }
+
+
+/**
+ * @brief TiledScene::appendDynamicZ
+ * @param name
+ * @param src
+ */
+
+void TiledScene::appendDynamicZ(const QString &name, const QRectF &area)
+{
+	auto it = std::find_if(m_dynamicZList.begin(), m_dynamicZList.end(), [&name](const DynamicZ &d) {
+		return (d.name == name);
+	});
+
+	if (it == m_dynamicZList.end()) {
+		m_dynamicZList.emplace_back(name, QVector<QRectF>{area}, 1);
+	} else {
+		it->areas.append(area);
+	}
+
+}
+
+
+
+
+/**
+ * @brief TiledScene::setTileLayersZ
+ */
+
+void TiledScene::setTileLayersZ()
+{
+	int i=2;
+
+	for (TiledQuick::TileLayerItem *layerItem : mTileLayerItems) {
+		if (Tiled::TileLayer *layer = layerItem->tileLayer()) {
+			const QString &name = layer->name();
+
+			auto it = std::find_if(m_dynamicZList.begin(), m_dynamicZList.end(), [&name](const DynamicZ &d) {
+				return (d.name == name);
+			});
+
+			if (it != m_dynamicZList.end()) {
+				layerItem->setZ(i);
+				it->z = i;
+				++i;
+			} else {
+				LOG_CTRACE("scene") << "Skip from dynamicZ" << name << layerItem->z();
+			}
+
+		}
+	}
+}
+
+
+/**
+ * @brief TiledScene::backgroundMusic
+ * @return
+ */
 
 QString TiledScene::backgroundMusic() const
 {
@@ -505,4 +563,74 @@ void TiledScene::setAmbientSound(const QString &newAmbientSound)
 		return;
 	m_ambientSound = newAmbientSound;
 	emit ambientSoundChanged();
+}
+
+
+/**
+ * @brief TiledScene::DynamicZ::getMaxBottomRight
+ * @return
+ */
+
+QPointF TiledScene::DynamicZ::getMaxBottomRight() const
+{
+	QPointF pos;
+
+	for (auto it = areas.constBegin(); it != areas.constEnd(); ++it) {
+		if (it == areas.constBegin())
+			pos = it->bottomRight();
+		else {
+			if (it->bottom() > pos.y())
+				pos.setY(it->bottom());
+			if (it->right() > pos.x())
+				pos.setX(it->right());
+		}
+	}
+
+	return pos;
+}
+
+
+/**
+ * @brief TiledScene::DynamicZ::getMinTopLeft
+ * @return
+ */
+
+QPointF TiledScene::DynamicZ::getMinTopLeft() const
+{
+	QPointF pos;
+
+	for (auto it = areas.constBegin(); it != areas.constEnd(); ++it) {
+		if (it == areas.constBegin())
+			pos = it->topLeft();
+		else {
+			if (it->top() < pos.y())
+				pos.setY(it->top());
+			if (it->left() < pos.x())
+				pos.setX(it->left());
+		}
+	}
+
+	return pos;
+}
+
+
+/**
+ * @brief TiledScene::DynamicZ::isOver
+ * @param x
+ * @return
+ */
+
+bool TiledScene::DynamicZ::isOver(const qreal &x, const qreal &y) const
+{
+	const QPointF &topLeft = getMinTopLeft();
+
+	for (const QRectF &a : areas) {
+		if (y < topLeft.y() || x < topLeft.x())
+			return false;
+
+		if (y <= a.bottom() && x <= a.right())
+			return false;
+	}
+
+	return true;
 }

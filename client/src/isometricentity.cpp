@@ -173,7 +173,8 @@ void IsometricEntityIface::setMaxHp(int newMaxHp)
  */
 
 std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBody *body, TiledObjectBase *entity,
-																   const TiledObjectBody::FixtureCategory &category)
+																   const TiledObjectBody::FixtureCategory &category,
+																   float32 *transparentGroundPtr)
 {
 	Q_ASSERT(body);
 	Q_ASSERT(entity);
@@ -243,8 +244,14 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
 		}
 
 		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {
-			visible = false;
-			break;
+			if (TiledObjectBody *body = qobject_cast<TiledObjectBody*>(it->fixture->getBody())) {
+				if (body->opaque()) {
+					visible = false;
+					break;
+				} else if (transparentGroundPtr) {
+					*transparentGroundPtr = it.key();
+				}
+			}
 		}
 	}
 
@@ -253,6 +260,36 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
 	/*	}*/
 
 	return std::nullopt;
+}
+
+
+
+/**
+ * @brief IsometricEntityIface::checkGroundDistance
+ * @param body
+ * @param targetPoint
+ * @return -1.: no ground
+ */
+
+float32 IsometricEntityIface::checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint)
+{
+	Q_ASSERT(body);
+
+	if (body->baseObject() && body->baseObject()->scene()->isGroundContainsPoint(body->bodyPosition()))
+		return 0.;
+
+	float32 dist = -1.;
+
+	const TiledReportedFixtureMap &map = body->rayCast(targetPoint);
+
+	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
+		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {
+			if (dist == -1. || it.key() < dist)
+				dist = it.key();
+		}
+	}
+
+	return dist;
 }
 
 

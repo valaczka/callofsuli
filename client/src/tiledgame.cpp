@@ -302,6 +302,11 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 	Q_ASSERT(group);
 	Q_ASSERT(renderer);
 
+	QString className = group->className();
+
+	if (className.isEmpty())
+		className = group->name();
+
 	for (Tiled::MapObject *object : std::as_const(group->objects())) {
 		int idx = findLoadedObject(object->id(), scene->sceneId());
 
@@ -310,16 +315,32 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			continue;
 		}
 
-		if (object->className() == QStringLiteral("player")) {
+		if (className == QStringLiteral("ground")) {
+			loadGround(scene, object, renderer);
+		} else if (className == QStringLiteral("dynamicZ")) {
+			loadDynamicZ(scene, object, renderer);
+		} else if (className == QStringLiteral("player")) {
 			addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 			addLoadedObject(object->id(), scene->sceneId());
-		} else if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
-			loadTransport(scene, object, renderer);
-		} else if (object->className() == QStringLiteral("ground") ||
-				   (object->className().isEmpty() && group->className() == QStringLiteral("ground"))) {
-			loadGround(scene, object, renderer);
+		} else if (className == QStringLiteral("transport")) {
+			if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
+				loadTransport(scene, object, renderer);
+			} else {
+				LOG_CWARNING("game") << "Invalid transport object:" << object->id() << object->name();
+			}
+		} else if (group->className().isEmpty()) {
+			if (object->className() == QStringLiteral("ground")) {
+				loadGround(scene, object, renderer);
+			} else if (object->className() == QStringLiteral("player")) {
+				addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
+				addLoadedObject(object->id(), scene->sceneId());
+			} else if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
+				loadTransport(scene, object, renderer);
+			} else {
+				loadObjectLayer(scene, object, className, renderer);
+			}
 		} else {
-			loadObjectLayer(scene, object, renderer);
+			loadObjectLayer(scene, object, className, renderer);
 		}
 	}
 
@@ -357,11 +378,10 @@ TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObjec
 
 	scene->m_groundObjects.append(QPointer(mapObject));
 
-	if (object->hasProperty(QStringLiteral("dynamicZ"))) {
-		if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
-
+	if (!object->name().isEmpty()) {
+		/*if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
 			TiledScene::DynamicZ dz;
-			dz.polygon = p.translated(mapObject->position());
+			dz.center = p.translated(mapObject->position()).boundingRect().center();
 
 			if (object->hasProperty(QStringLiteral("dynamicVertical")))
 				dz.vertical = object->property(QStringLiteral("dynamicVertical")).toBool();
@@ -369,7 +389,22 @@ TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObjec
 			if (object->hasProperty(QStringLiteral("dynamicHorizontal")))
 				dz.horizontal = object->property(QStringLiteral("dynamicHorizontal")).toBool();
 
-			scene->m_dynamicZList[object->property(QStringLiteral("dynamicZ")).toInt()] = dz;
+			//scene->m_dynamicZList[object->property(QStringLiteral("dynamicZ")).toInt()] = dz;
+
+			dz.name = object->name();
+			scene->appendTmpDynamicZ(dz);
+		}*/
+
+		switch (object->shape()) {
+			case Tiled::MapObject::Rectangle:
+				scene->appendDynamicZ(object->name(), object->bounds());
+				break;
+			case Tiled::MapObject::Polygon:
+				scene->appendDynamicZ(object->name(), object->polygon().translated(object->position()).boundingRect());
+				break;
+			default:
+				LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
+				break;
 		}
 	}
 
@@ -379,9 +414,59 @@ TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObjec
 		mapObject->setZ(0);
 	}
 
+	if (object->hasProperty(QStringLiteral("transparent")))
+		mapObject->body()->setOpaque(!object->property(QStringLiteral("transparent")).toBool());
+	else if (object->hasProperty(QStringLiteral("opaque")))
+		mapObject->body()->setOpaque(object->property(QStringLiteral("opaque")).toBool());
+
 	addLoadedObject(object->id(), scene->sceneId());
 
 	return mapObject;
+}
+
+
+/**
+ * @brief TiledGame::loadDynamicZ
+ * @param scene
+ * @param object
+ * @param renderer
+ * @return
+ */
+
+bool TiledGame::loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(scene);
+	Q_ASSERT(object);
+	Q_ASSERT(renderer);
+
+	if (object->name().isEmpty()) {
+		LOG_CERROR("scene") << "Invalid Tiled::MapObject name" << object->id();
+		return false;
+	}
+
+	if (object->className() == QStringLiteral("ground"))
+		return loadGround(scene, object, renderer);
+
+	QPolygonF polygon;
+
+
+	switch (object->shape()) {
+		case Tiled::MapObject::Rectangle:
+			scene->appendDynamicZ(object->name(), object->bounds());
+			break;
+		case Tiled::MapObject::Polygon:
+			scene->appendDynamicZ(object->name(), object->polygon().translated(object->position()).boundingRect());
+			break;
+		case Tiled::MapObject::Point:
+			scene->appendDynamicZ(object->name(), QRectF{object->position(), object->position()});
+			break;
+		default:
+			LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
+			break;
+	}
+
+
+	return true;
 }
 
 
@@ -424,7 +509,7 @@ bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled
  * @param renderer
  */
 
-void TiledGame::loadObjectLayer(TiledScene *, Tiled::MapObject *, Tiled::MapRenderer *)
+void TiledGame::loadObjectLayer(TiledScene *, Tiled::MapObject *, const QString &, Tiled::MapRenderer *)
 {
 	LOG_CERROR("game") << "Missing implementation:" << __PRETTY_FUNCTION__;
 }

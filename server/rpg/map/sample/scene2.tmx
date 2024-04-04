@@ -1,12 +1,107 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="2" nextobjectid="1">
- <tileset firstgid="1" source="../../tileset/rockShaded1/rockShaded1.tsx"/>
- <tileset firstgid="105" source="../../tileset/rockShaded2/rockShaded2.tsx"/>
- <tileset firstgid="161" source="../../tileset/rockShaded3/rockShaded3.tsx"/>
- <tileset firstgid="257" source="../../tileset/groundGrass/groundGrass2Cloudy.tsx"/>
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="22" nextobjectid="29">
+ <tileset firstgid="1" source="../../tileset/groundGrass/groundGrass2Cloudy.tsx"/>
+ <tileset firstgid="57" source="../../tileset/groundDirt/groundDirt.tsx"/>
+ <tileset firstgid="377" source="../../tileset/direction/directionYellow.tsx"/>
+ <tileset firstgid="497" source="../../tileset/groundGrass/groundGrass.tsx"/>
+ <tileset firstgid="817" source="../../tileset/groundSand/groundSand.tsx"/>
+ <tileset firstgid="977" source="../../tileset/rockShaded1/rockShaded1.tsx"/>
+ <tileset firstgid="1081" source="../../tileset/groundSnow/groundSnow.tsx"/>
+ <tileset firstgid="1241" source="../../tileset/ruinFrozen/ruinFrozen.tsx"/>
+ <tileset firstgid="1401" source="../../tileset/ruinFrozen/ruinFrozenFloor.tsx"/>
+ <tileset firstgid="1481" source="../../tileset/ruinFrozen/ruinFrozenGate.tsx"/>
+ <tileset firstgid="1489" source="../../tileset/treeCloudy4/treeCloudy4.tsx"/>
+ <tileset firstgid="1505" source="../../tileset/treeCloudy3/treeCloudy3.tsx"/>
+ <tileset firstgid="1529" source="../../tileset/treeCloudy2/treeCloudy2.tsx"/>
+ <tileset firstgid="1553" source="../../tileset/building006snowshaded/building006.tsx"/>
+ <tileset firstgid="1557" source="../../tileset/building014/building014.tsx"/>
+ <tileset firstgid="1558" source="../../tileset/building015/building015.tsx"/>
  <layer id="1" name="1. csemperéteg" width="32" height="32">
   <data encoding="base64" compression="zlib">
-   eJxjYIAAcyBmxIFlGUgHkiSqJ8cObCAHigcKLKWx+Yeh9GsgVgNGzkso/xWd7J+ORw7kHloDdPuVgXZy0cFeXPaDACOa/XI0dA+6/dqMCPtF6BAOLVjE0P1PS1AywPZjA/S0fyH9rBoFo2AUjIJRMApGwSgYBcMQAACwcgsQ
+   eJztz7ERgCAAwEAKlkJUFBTZfyKzBJ5FilSpPsUQFsq00kY7FTooTf4nVWp00U2dHhof/Nk+/fr169evX79+/fr169ev/w/+F1BSEhA=
   </data>
  </layer>
+ <layer id="10" name="rock" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztlMtKw0AUhgdCnql7V7rxASqCr1EvreD9UkyVem/rzqYL6VKt2vpm/Q/9DwYxYs+kunB++AhMmHznzCXOhYT8blqxc6fgPf4bfxPeVfA2pV/rPvesv4F5FdYw7bw+OARH4NnTXzH4D8ix0S9reAVqoGrwS+/7YA88Gvy691Vj/32uvbX/Bt3W/sX9Cp7AyOAfYs4L2ADrP5hfjpybA0vRZO7A6P1cw4B8FTkjJ7xfC/CWwHw0ebeFsV1P/zbm73zzDamvBxKwDO8iWIn8nNnk9aB9Cw8gBe34453+e9qe/edF+r4nPZ71hK4mz4zcnWvWMqs6JHXe9ZTnoEWf3NlNPi9m7O9yHVLuh6zFGu+trMNZZm/0vBbpV2+XezLiHugaaP91/g+Tgv1Zr+aW/hvQ4biem06B/mHO9+4wdlmwKyQkJOQ/ZgwvZl+/
+  </data>
+ </layer>
+ <layer id="11" name="rockOver" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFwxFcZB1oFwxP8GQ0XAmCS6NhNOzAaLofBaNgFNADvBota0gCD0fDaxTQCIz2I4Y3AADDsQYr
+  </data>
+ </layer>
+ <layer id="13" name="5. csemperéteg" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztwQENAAAAwqD3T20PBxQAAADwbhAAAAE=
+  </data>
+ </layer>
+ <layer id="14" name="building1" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztkTsKgDAQBVPE+5/LI/j/Y2/QmM4NPEHF1rV5A0PSTbJrDCF3BmtMebEVR6vXnsUFOnETK6V+Ix2PZsA9mibft8+/x94KPd6RKfy/wLxjdxJrMcfZKfUD3qC172d/R19j3m99h9lrzPtJj33/0SaEEEIIITocM90vAA==
+  </data>
+ </layer>
+ <layer id="15" name="building2" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzTsKACEQBNEOnAOILAbi5/7X2os4gZmRgQsL9aDosCXg3Bukx6Rq+w67/9/9I3txbfHSqn3wDwAAAAB/MwH2rgKm
+  </data>
+ </layer>
+ <layer id="16" name="building3" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztk8EKgzAMQHNo/YT9xJw6GIK4/z+JfyHuvlXnzQRbqLBrzNQ8eHjztdEAKAo/tQV4Wrn+DdtX4X4u3G9Ofv+j9mm3ssjHjw7n96d3jwZgQh36MuvzkL3h27/Q/3oH9IN2aGEXU7Ri7A++G2bgovu2zP8d9akbZkDPt9lu30s/33jW5F1g37hnrSiKouyLSyJ9gv9kBk6fIME=
+  </data>
+ </layer>
+ <layer id="19" name="building5" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzSEBAAAIA7ArPP3LvgWYrcASAAAA4MvOzVMZUgAY
+  </data>
+ </layer>
+ <layer id="17" name="building4" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzksKgDAMRdEMWnfgchT/u3cz4m9oxAod6Si0g3vgQUIhryIAAAAAUiuL1D/I1+hFup9M3q6/1duLE9k0u2YN86E53fNWGfYPersJqaP53e/0hv2x2X/vyNsFDk0Pjw==
+  </data>
+ </layer>
+ <objectgroup id="7" name="ground">
+  <object id="9" name="building1" x="171.5" y="406.5" width="194" height="414.5"/>
+  <object id="11" name="building1" x="345.5" y="444.5" width="90" height="304"/>
+  <object id="12" name="building1" x="227" y="248" width="460" height="313.5"/>
+  <object id="15" name="building2" x="893.5" y="252.5" width="508" height="122"/>
+  <object id="16" name="building4" x="838" y="1598.5" width="631.5" height="187.5"/>
+  <object id="18" name="building3" x="1084" y="856" width="448" height="220"/>
+  <object id="19" name="building3" x="1080.5" y="724" width="709" height="165.5"/>
+  <object id="20" name="building3" x="1553.5" y="251.5" width="237" height="494"/>
+  <object id="21" name="building3" x="1080.5" y="653" width="197.5" height="170.5"/>
+  <object id="27" name="building5" x="262.5" y="1604" width="248" height="233.5"/>
+  <object id="28" name="building5" x="510" y="1604" width="114" height="172"/>
+ </objectgroup>
+ <objectgroup color="#ff0000" id="2" name="enemy">
+  <object id="1" type="test" x="342" y="438">
+   <polygon points="141,195 153,415 700,680 1485,727 1566,-374 1129,-369 1121,95 574,178 612,372 435,245"/>
+  </object>
+  <object id="2" name="whiteShirt" type="werebear" x="1846" y="1966">
+   <point/>
+  </object>
+  <object id="3" name="whiteBare" type="werebear" x="80" y="1000">
+   <properties>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="3" name="transport">
+  <object id="4" name="gate1" type="gate" x="1094" y="1426" width="143" height="109"/>
+ </objectgroup>
+ <group id="4" name="1. réteg csoportosítása" class="overlayTrigger" visible="0">
+  <layer id="5" name="2. csemperéteg" width="32" height="32">
+   <data encoding="base64" compression="zlib">
+   eJzt0jENACAMAMEiGyUoQQmGmJuwU8idgh8+AgAA3tDb7YKzUbSL/6yir82iXWQbY2wCnQ==
+  </data>
+  </layer>
+  <objectgroup id="6" name="3. objektumréteg">
+   <object id="6" type="trigger" x="1174" y="1498">
+    <point/>
+   </object>
+  </objectgroup>
+ </group>
+ <objectgroup id="18" name="dynamicZ"/>
 </map>

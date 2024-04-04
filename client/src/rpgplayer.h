@@ -74,6 +74,7 @@ public:
 	void setCurrentSceneStartPosition(QPointF newCurrentSceneStartPosition);
 
 signals:
+	void attackDone();
 	void characterChanged();
 
 protected:

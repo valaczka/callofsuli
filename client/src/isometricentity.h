@@ -44,12 +44,16 @@ public:
 	{}
 
 	static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObjectBase *entity,
-														const TiledObjectBody::FixtureCategory &category);
+														const TiledObjectBody::FixtureCategory &category,
+														float32 *transparentGroundPtr);
+
+	static float32 checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint);
 
 	template <typename T>
 	static T getVisibleEntity(TiledObjectBody *body, const QList<T> &entities,
-							   const TiledObjectBody::FixtureCategory &category,
-							   QPointF *visiblePointPtr = nullptr);
+							  const TiledObjectBody::FixtureCategory &category,
+							  float32 *transparentGroundPtr,
+							  QPointF *visiblePointPtr = nullptr);
 
 	TiledObject::Direction movingDirection() const;
 	void setMovingDirection(const TiledObject::Direction &newMovingDirection);
@@ -116,7 +120,9 @@ private:
 
 template<typename T>
 T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &entities,
-										  const TiledObjectBody::FixtureCategory &category, QPointF *visiblePointPtr)
+										 const TiledObjectBody::FixtureCategory &category,
+										 float32 *transparentGroundPtr,
+										 QPointF *visiblePointPtr)
 {
 	Q_ASSERT(body);
 
@@ -127,15 +133,26 @@ T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &
 
 	QMap<qreal, QPair<T, QPointF>> list;
 
+	float32 transparentGroundDist = -1.0;
+
 	for (const T &p : std::as_const(entities)) {
 		if (!p)
 			continue;
 
-		if (const auto &ptr = checkEntityVisibility(body, p, category); ptr && p->hp() > 0) {
+		float32 dist = -1.0;
+
+		if (const auto &ptr = checkEntityVisibility(body, p, category, &dist); ptr && p->hp() > 0) {
 			const qreal &dist = QVector2D(p->body()->bodyPosition() - body->bodyPosition()).length();
 			list.insert(dist, qMakePair(p, ptr.value()));
 		}
+
+		if (dist >= 0. && (transparentGroundDist == -1.0 || dist < transparentGroundDist))
+			transparentGroundDist = dist;
 	}
+
+	if (transparentGroundPtr)
+		*transparentGroundPtr = transparentGroundDist;
+
 
 	if (list.isEmpty())
 		return nullptr;

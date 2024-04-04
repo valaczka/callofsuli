@@ -105,10 +105,10 @@ void IsometricPlayer::entityWorldStep()
 {
 	IsometricEnemy *e = nullptr;
 
-	if (d->isEnemyContanctedAndReached() && checkEntityVisibility(m_body.get(), d->m_enemy, TiledObjectBody::FixtureEnemyBody).has_value()) {
+	if (d->isEnemyContanctedAndReached() && checkEntityVisibility(m_body.get(), d->m_enemy, TiledObjectBody::FixtureEnemyBody, nullptr).has_value()) {
 		e = d->m_enemy;
 	} else {
-		e = getVisibleEntity<IsometricEnemy*>(m_body.get(), d->contactedAndReachedEnemies(), TiledObjectBody::FixtureEnemyBody);
+		e = getVisibleEntity<IsometricEnemy*>(m_body.get(), d->contactedAndReachedEnemies(), TiledObjectBody::FixtureEnemyBody, nullptr);
 	}
 
 	if (e != d->m_enemy) {

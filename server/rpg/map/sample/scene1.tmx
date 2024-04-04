@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="5" nextobjectid="2">
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="18" nextobjectid="51">
  <tileset firstgid="1" source="../../tileset/groundDirt/groundDirt.tsx"/>
  <tileset firstgid="321" source="../../tileset/groundGrass/groundGrass.tsx"/>
  <tileset firstgid="641" source="../../tileset/groundSand/groundSand.tsx"/>
@@ -19,14 +19,115 @@
    eJwTYmBgEKIR1mEgDBhpiMVG7R9Q+yUG2H7RUftHtP0jPf2pAbHDANqP7I6BtB+E7QfYfhBWZcCsE+lpP8wNA2k/46j9o/aP2j9g9uvTwX5bBuIBrcN31P5R+0ftxw0A1s0HSQ==
   </data>
  </layer>
- <layer id="2" name="2. csemperéteg" width="32" height="32">
+ <layer id="12" name="tree1" width="32" height="32">
   <data encoding="base64" compression="zlib">
-   eJxjYBgFowACtjNTpr+IQv34wDEamg0CemSYb0ZDN2UgmR1LY7+PAvJAJiMDQwgQB0PpHEbKzFtBQjxnAe3yAuIAIHaH0hFQ+11onF5A/nYGYh8g9gZiDyB2QrKf1iAS6ncvqL2eUP+H0cn+GGiYg+z3g4YFyP5wGtpvjRSn0VB7A6Bu8IfS2MJ/JRMDwxQoXs1EHbdEQePcDRr/AdC0gM3+WUA7m4F4IRCvp5L90UjxDgp7RyB2BeJQJPvDmBH2twHxEzLyhAEOPXlAexKAOBZKx0FxPg7/twLxVCr5nVQwi4SwL6NBubGOivE+mIAFjrCqHmR19UhqOwQOcb+mAN2fOoj9oDyI3TYQoGuQhQc56R8AcuEoMQ==
+   eJztzkEJAAAIBLADE9m/nAV8Cn62BEsAgE3X9wAA4M4A3LwANQ==
   </data>
  </layer>
+ <layer id="17" name="tree5" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzgEJAAAIA7CDnc1vDEW2BEsAAABu6NoewF8DqGwAeg==
+  </data>
+ </layer>
+ <layer id="16" name="tree4" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzkEJAAAIBLADu9o/ggV8Cn62BEsAAGDX9T0A4MoAdA8Aag==
+  </data>
+ </layer>
+ <layer id="14" name="tree2" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzgEJAAAIA7CDoezfzBhy2BIsAaDJzvcAAIBGB2RrADs=
+  </data>
+ </layer>
+ <layer id="15" name="tree3" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzgEJAAAIA7CDpeyfzBhy2BIsAQCATjvfA4AeB0MIADw=
+  </data>
+ </layer>
+ <objectgroup id="13" name="dynamicZ">
+  <object id="44" name="tree1" type="ground" x="624" y="809.333" width="47" height="43">
+   <properties>
+    <property name="transparent" type="bool" value="true"/>
+   </properties>
+  </object>
+  <object id="50" name="tree4" x="756.667" y="1211.33">
+   <point/>
+  </object>
+ </objectgroup>
+ <group id="7" name="1. réteg csoportosítása" class="overlayTrigger">
+  <layer id="8" name="4. csemperéteg" width="32" height="32">
+   <data encoding="base64" compression="zlib">
+   eJztzjENAAAIA7Al+LeFLk4UEJ5WQRNYXd8DAAAALgwCEgDK
+  </data>
+  </layer>
+  <objectgroup id="10" name="5. objektumréteg">
+   <object id="32" type="trigger" x="249" y="143">
+    <point/>
+   </object>
+  </objectgroup>
+ </group>
  <objectgroup id="4" name="1. objektumréteg">
   <object id="1" type="player" x="1042" y="906">
    <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="9" name="transport">
+  <object id="31" name="gate1" type="gate" x="143" y="28" width="172" height="65"/>
+ </objectgroup>
+ <objectgroup id="11" name="pickable">
+  <object id="33" type="shield" x="738" y="642">
+   <point/>
+  </object>
+  <object id="34" type="longbow" x="766" y="1038">
+   <point/>
+  </object>
+  <object id="35" type="hp" x="139" y="501">
+   <point/>
+  </object>
+  <object id="36" type="longsword" x="1798" y="1202">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="5" name="ground">
+  <object id="18" x="0" y="2034" width="1346" height="54"/>
+  <object id="19" x="1345" y="1895" width="84" height="332"/>
+  <object id="21" x="-63" y="-54" width="69" height="2144"/>
+  <object id="22" x="-20" y="-55" width="1558" height="79"/>
+  <object id="37" x="1854" y="922">
+   <polygon points="0,0 -168,-48 -201,-151 -299,-157 -339,-233 53,-317"/>
+  </object>
+  <object id="38" x="1343" y="1885">
+   <polygon points="0,0 4,-300 67,-347 453,-349 510,-418 679,-115"/>
+  </object>
+  <object id="39" x="1347" y="1612" width="785" height="301"/>
+  <object id="41" x="1857" y="556" width="319" height="1179"/>
+  <object id="42" x="1516" y="-33" width="573" height="725"/>
+  <object id="46" name="tree2" x="949.333" y="626.667" width="23.3333" height="26"/>
+  <object id="47" name="tree3" x="1268.67" y="1278.17" width="19.1667" height="18.5"/>
+  <object id="49" name="tree5" x="554.75" y="1551.75" width="36.5" height="34.5">
+   <properties>
+    <property name="transparent" type="bool" value="true"/>
+   </properties>
+  </object>
+ </objectgroup>
+ <objectgroup color="#ff0000" id="6" name="enemy">
+  <object id="26" name="brownBare" type="werebear" x="1449" y="107">
+   <properties>
+    <property name="direction" type="int" value="270"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="27" name="whiteArmor" type="werebear" x="1306" y="1978">
+   <point/>
+  </object>
+  <object id="28" name="fix" type="test" x="34" y="1996">
+   <point/>
+  </object>
+  <object id="29" type="test" x="338" y="1354">
+   <polyline points="0,0 -79,-437 -168,-820 68,-936 246,-974 205,-1225 641,-1257 987,-991 1115,-651"/>
+  </object>
+  <object id="30" type="test" x="580" y="1864">
+   <polygon points="0,0 305,7 445,-301 46,-602 -407,-801 -487,-601 -418,-150"/>
   </object>
  </objectgroup>
 </map>

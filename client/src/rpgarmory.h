@@ -36,6 +36,7 @@ class RpgArmory : public QObject
 
 	Q_PROPERTY(TiledWeaponList *weaponList READ weaponList CONSTANT FINAL)
 	Q_PROPERTY(TiledWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
+	Q_PROPERTY(TiledWeapon *nextWeapon READ nextWeapon WRITE setNextWeapon NOTIFY nextWeaponChanged FINAL)
 	Q_PROPERTY(QStringList baseLayers READ baseLayers WRITE setBaseLayers NOTIFY baseLayersChanged FINAL)
 
 public:
@@ -46,7 +47,7 @@ public:
 	static void fillLayer(IsometricObjectLayeredSprite *dest, const QString &layer, const int &spriteNum);
 	static void fillLayer(IsometricObjectLayeredSprite *dest, const QString &layer, const QString &subdir, const int &spriteNum);
 
-	Q_INVOKABLE TiledWeapon *nextWeapon();
+	Q_INVOKABLE bool changeToNextWeapon();
 
 	void updateLayers();
 
@@ -56,25 +57,30 @@ public:
 	TiledWeapon *weaponAdd(TiledWeapon *weapon);
 	void weaponRemove(TiledWeapon *weapon);
 
-
 	TiledWeapon *currentWeapon() const;
 	void setCurrentWeapon(TiledWeapon *newCurrentWeapon);
 
 	QStringList baseLayers() const;
 	void setBaseLayers(const QStringList &newBaseLayers);
 
+	TiledWeapon *nextWeapon() const;
+	void setNextWeapon(TiledWeapon *newNextWeapon);
+
 signals:
 	void currentWeaponChanged();
 	void baseLayersChanged();
+	void nextWeaponChanged();
 
 private:
+	TiledWeapon *getNextWeapon() const;
+
 	TiledObject *m_parentObject = nullptr;
 	std::unique_ptr<TiledWeaponList> m_weaponList;
 	TiledWeapon *m_currentWeapon = nullptr;
+	TiledWeapon *m_nextWeapon = nullptr;
 	QStringList m_baseLayers = { QStringLiteral("default") };
 
 	static const QHash<TiledWeapon::WeaponType, QString> m_layerInfoHash;
-
 };
 
 #endif // RPGARMORY_H

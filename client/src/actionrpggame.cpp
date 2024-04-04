@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "client.h"
 #include "rpgquestion.h"
+#include "server.h"
 
 
 /**

@@ -250,9 +250,9 @@ void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
  * @return
  */
 
-QPointF RpgEnemyBase::getPickablePosition() const
+QPointF RpgEnemyBase::getPickablePosition(const int &num) const
 {
-	QLineF line = QLineF::fromPolar(75., toDegree(directionToIsometricRaidan(m_currentDirection)));
+	QLineF line = QLineF::fromPolar(75. * num, toDegree(directionToIsometricRaidan(m_currentDirection)));
 	line.translate(m_body->bodyPosition()-line.p2());
 	return line.p1();
 }

@@ -22,10 +22,7 @@ dres: $(addsuffix .dres,$(TILEDIRS))
 distclean: clean
 
 clean: 
-	$(shell rm -f $(addsuffix .qrc,$(MAPDIRS)))
-	$(shell rm -f $(addsuffix .cres,$(MAPDIRS)))
-	$(shell rm -f $(addsuffix .qrc,$(TILEDIRS)))
-	$(shell rm -f $(addsuffix .dres,$(TILEDIRS)))
+	$(shell rm -f *.qrc *.cres *dres)
 
 
 %.cres: %.qrc

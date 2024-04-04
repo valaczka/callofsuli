@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="20" height="20" tilewidth="128" tileheight="64" infinite="0" nextlayerid="3" nextobjectid="1">
+ <tileset firstgid="1" source="../rockShaded2/rockShaded2.tsx"/>
+ <tileset firstgid="57" source="rockShaded1.tsx"/>
+ <layer id="1" name="input2_rock" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJzlzjUOAlAUAMGPBw8ePLhD8PvfjGau8Cq2mXZT+r+KbLDPGbe88sNb8FdUBdbZ45QbXvjmLvgrqjxr7HLCNc98cR78FVWOVXY45oonPjkI/ooqywrbHHHJIx9sch+3FlKGZbY45IIH3lniN24t/QC8aQWF
+  </data>
+ </layer>
+ <layer id="2" name="output2_rockOver" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJzVkjEOwCAMA/l+2wAq9MFd7MUSyoSEvZxOYQDiUs7PA87EK9jF3XKDY+F8b4CfnHPLBcbC+a4Gcu/v5nvtCvfXEmd/h8zdwv3VxEPYZe6SrM907TX/w6nXP9zwG4A=
+  </data>
+ </layer>
+</map>
