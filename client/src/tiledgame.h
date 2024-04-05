@@ -69,12 +69,14 @@ class TiledGameDefinition : public QSerializer
 public:
 	TiledGameDefinition()
 		: firstScene(-1)
+		, duration(0)
 	{}
 
 	QString basePath;
 
 	QS_SERIALIZABLE
 	QS_FIELD(int, firstScene)
+	QS_FIELD(int, duration)
 	QS_COLLECTION_OBJECTS(QVector, TiledSceneDefinition, scenes)
 };
 
@@ -133,6 +135,8 @@ public:
 
 	static QSGTexture *getTexture(const QString &path, QQuickWindow *window);
 
+	QVector<TiledScene*> sceneList() const;
+
 	TiledScene *findScene(const int &id) const;
 
 	TiledScene *currentScene() const;
@@ -155,6 +159,14 @@ public:
 
 	Q_INVOKABLE void messageColor(const QString &text, const QColor &color);
 	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
+
+
+	int playerPositionsCount(const int &sceneId) const;
+	int playerPositionsCount(TiledScene *scene) const;
+
+	std::optional<QPointF> playerPosition(const int &sceneId, const int &num) const;
+	std::optional<QPointF> playerPosition(TiledScene *scene, const int &num) const;
+
 
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);

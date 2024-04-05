@@ -68,7 +68,7 @@ public:
 
 protected:
 	virtual bool enemyWorldStep() = 0;
-	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle) = 0;
+	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle, const qreal &factor) = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
 
 
@@ -132,9 +132,9 @@ signals:
 	void playerDistanceChanged() override final;
 
 protected:
-	virtual void entityWorldStep() override final;
+	virtual void entityWorldStep(const qreal &factor) override final;
 	virtual bool enemyWorldStep() override;
-	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle) override;
+	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle, const qreal &factor) override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
 
 	virtual void load() = 0;
@@ -154,7 +154,7 @@ protected:
 	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
 									IsometricPlayer *player = nullptr) const = 0;
 
-	void stepMotor();
+	void stepMotor(const qreal &factor);
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
 	void rotateToPoint(const QPointF &point, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
 	float32 angleToPoint(const QPointF &point) const;

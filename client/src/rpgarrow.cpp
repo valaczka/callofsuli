@@ -118,17 +118,21 @@ RpgArrowPickable::RpgArrowPickable(QQuickItem *parent)
  * @param player
  */
 
-void RpgArrowPickable::playerPick(RpgPlayer *player)
+bool RpgArrowPickable::playerPick(RpgPlayer *player)
 {
 	if (!player)
-		return;
+		return false;
 
-	static const int num = 35;
+	static const int num = 5;
 
 	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
 
-	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgShortbow);
+	if (!weapon) {
+		if (m_game)
+			m_game->messageColor(tr("Shortbow missing"), QColor::fromRgbF(0.8, 0., 0.));
+		return false;
+	}
+		//weapon = player->armory()->weaponAdd(new RpgShortbow);
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
 
@@ -136,6 +140,8 @@ void RpgArrowPickable::playerPick(RpgPlayer *player)
 		m_game->message(tr("%1 arrows gained").arg(num));
 
 	player->armory()->setCurrentWeapon(weapon);
+
+	return true;
 }
 
 

@@ -134,7 +134,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_repeaterIdle > 0)
 		m_timerRepeater.setRemainingTime(m_repeaterIdle);
 
-	eventAttack();
+	eventAttack(nullptr);
 
 	return true;
 }
@@ -172,7 +172,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_repeaterIdle > 0)
 		m_timerRepeater.setRemainingTime(m_repeaterIdle);
 
-	eventAttack();
+	eventAttack(nullptr);
 
 	return true;
 }
@@ -205,7 +205,7 @@ bool TiledWeapon::hit(TiledObject *target)
 	if (m_repeaterIdle > 0)
 		m_timerRepeater.setRemainingTime(m_repeaterIdle);
 
-	eventAttack();
+	eventAttack(target);
 
 	return true;
 }
@@ -364,5 +364,26 @@ TiledWeaponHand::TiledWeaponHand(QObject *parent)
 	: TiledWeapon(WeaponHand, parent)
 {
 	m_canHit = true;
-	m_icon = QStringLiteral("qrc:/Qaterial/Icons/hand.svg");
+	m_icon = QStringLiteral("qrc:/internal/medal/Icon.3_31.png");
+}
+
+
+
+/**
+ * @brief TiledWeaponHand::eventAttack
+ * @param target
+ */
+
+void TiledWeaponHand::eventAttack(TiledObject *target)
+{
+	if (!m_parentObject) {
+		LOG_CERROR("game") << "Missing parent object" << this;
+		return;
+	}
+
+	TiledObject *p = m_parentObject.get();
+
+	if (TiledGame *g = p->game(); g && target) {
+		g->playSfx(QStringLiteral(":/rpg/common/hit.mp3"), p->scene(), p->body()->bodyPosition());
+	}
 }

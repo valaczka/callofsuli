@@ -130,8 +130,6 @@ Page {
 
 		RpgGameItem {
 			game: root.game
-
-			//StackView.onActivated: _isUnprepared = false
 		}
 	}
 
@@ -155,7 +153,7 @@ Page {
 				icon.source: Qaterial.Icons.download
 				icon.width: Qaterial.Style.dashboardButtonSize*0.4
 				icon.height: Qaterial.Style.dashboardButtonSize*0.4
-				text: qsTr("Pályák letöltése folyamatban...")
+				text: qsTr("Pályák letöltése folyamatban (%1%)...").arg(game ? Math.floor(game.downloadProgress*100.) : 0)
 			}
 		}
 	}
@@ -199,6 +197,7 @@ Page {
 						})
 		}
 	}
+
 
 	StackView.onActivated: {
 		if (game)

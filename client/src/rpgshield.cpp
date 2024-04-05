@@ -55,7 +55,7 @@ bool RpgShield::protect(const WeaponType &weapon)
 			return true;
 
 		case TiledWeapon::WeaponLongbow:
-			setBulletCount(m_bulletCount-3);
+			setBulletCount(m_bulletCount-5);
 			eventProtect();
 			return true;
 
@@ -123,10 +123,10 @@ RpgShieldPickable::RpgShieldPickable(QQuickItem *parent)
  * @param player
  */
 
-void RpgShieldPickable::playerPick(RpgPlayer *player)
+bool RpgShieldPickable::playerPick(RpgPlayer *player)
 {
 	if (!player)
-		return;
+		return false;
 
 	static const int num = 5;
 
@@ -138,7 +138,9 @@ void RpgShieldPickable::playerPick(RpgPlayer *player)
 	weapon->setBulletCount(weapon->bulletCount()+num);
 
 	if (m_game)
-		m_game->message(tr("%1 shield gained").arg(num));
+		m_game->message(tr("%1 shields gained").arg(num));
+
+	return true;
 }
 
 

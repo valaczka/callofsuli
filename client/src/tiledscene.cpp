@@ -273,11 +273,24 @@ bool TiledScene::isGroundContainsPoint(const QPointF &point) const
 
 void TiledScene::onWorldStepped()
 {
+	qreal factor = 1.f;
+
+	if (m_worldStepTimer.isValid()) {
+		const qint64 &msec = m_worldStepTimer.restart();
+
+		qreal f = msec/(1000.f/60.f);
+
+		if (f > 1.1f)
+			factor = f;
+	} else {
+		m_worldStepTimer.start();
+	}
+
 	for (TiledObject *obj : std::as_const(m_tiledObjects)) {
 		if (!obj)
 			continue;
 
-		obj->worldStep();
+		obj->worldStep(factor);
 	}
 
 	for (const QPointer<TiledObject> &ptr : m_tiledObjectsToAppend) {

@@ -65,7 +65,7 @@ class RpgFireballPickable : public RpgPickableObject
 public:
 	RpgFireballPickable(QQuickItem *parent = nullptr);
 
-	void playerPick(RpgPlayer *player) override final;
+	bool playerPick(RpgPlayer *player) override final;
 	void playerThrow(RpgPlayer *player) override final;
 
 protected:

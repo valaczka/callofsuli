@@ -135,8 +135,8 @@ void RpgEnemyBase::updateSprite()
 
 void RpgEnemyBase::load()
 {
-	setMaxHp(5);
-	setHp(5);
+	setMaxHp(9);
+	setHp(9);
 
 	setAvailableDirections(Direction_8);
 
@@ -183,7 +183,8 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 		jumpToSprite("death", m_currentDirection);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
-		startInabililty();
+		if (weaponType != TiledWeapon::WeaponHand)
+			startInabililty();
 	}
 }
 
@@ -204,19 +205,22 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 
 	switch (weaponType) {
 		case TiledWeapon::WeaponLongsword:
-			hp -= 1;
+			hp -= 3;
 			break;
 
 		case TiledWeapon::WeaponShortbow:
 			hp -= 2;
 			break;
 
-		case TiledWeapon::WeaponLongbow:
-			hp -= 3;
+		case TiledWeapon::WeaponHand:
+			hp -= 1;
 			break;
 
-		case TiledWeapon::WeaponHand:
+		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponGreatHand:
+			hp = (hp > 1) ? 1 : 0;
+			break;
+
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;

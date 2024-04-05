@@ -52,7 +52,7 @@ public:
 
 protected:
 	IsometricBullet *createBullet() override final { return nullptr; }
-	void eventAttack() override final;
+	void eventAttack(TiledObject *target) override final;
 
 };
 

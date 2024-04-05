@@ -99,17 +99,16 @@ RpgWerebear::~RpgWerebear()
 
 void RpgWerebear::load()
 {
-	setMaxHp(5);
-	setHp(5);
-
 	setAvailableDirections(Direction_8);
 
 	const char *file = nullptr;
 	const char *data = "data.json";
+	int hp = 9;
 
 	switch (m_werebearType) {
 		case WerebearBrownArmor:
 			file = "werebear_brown_armor.png";
+			hp = 12;
 			break;
 		case WerebearBrownBare:
 			file = "werebear_brown_bare.png";
@@ -119,6 +118,7 @@ void RpgWerebear::load()
 			break;
 		case WerebearWhiteArmor:
 			file = "werebear_white_armor.png";
+			hp = 12;
 			break;
 		case WerebearWhiteBare:
 			file = "werebear_white_bare.png";
@@ -131,6 +131,9 @@ void RpgWerebear::load()
 			data = "data0.json";
 			break;
 	}
+
+	setMaxHp(hp);
+	setHp(hp);
 
 	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/rpg/werebear/").append(data));
 
@@ -179,7 +182,8 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 		jumpToSprite("death", m_currentDirection);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
-		startInabililty();
+		if (weaponType != TiledWeapon::WeaponHand)
+			startInabililty();
 	}
 }
 
@@ -396,7 +400,7 @@ RpgWerebearWeaponHand::RpgWerebearWeaponHand(QObject *parent)
  * @brief RpgWerebearWeaponHand::eventAttack
  */
 
-void RpgWerebearWeaponHand::eventAttack()
+void RpgWerebearWeaponHand::eventAttack(TiledObject *)
 {
 	RpgWerebear *wb = qobject_cast<RpgWerebear*>(m_parentObject.get());
 	if (wb && wb->game())

@@ -57,7 +57,8 @@ public:
 		PickableArrow,
 		PickableFireball,
 		PickableLongsword,
-		PickableShield
+		PickableShield,
+		PickableTime
 	};
 
 	Q_ENUM(PickableType);
@@ -74,7 +75,7 @@ public:
 
 	PickableType pickableType() const;
 
-	virtual void playerPick(RpgPlayer *player) = 0;
+	virtual bool playerPick(RpgPlayer *player) = 0;
 	virtual void playerThrow(RpgPlayer *player) = 0;
 
 signals:

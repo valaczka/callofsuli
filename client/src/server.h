@@ -152,6 +152,8 @@ public:
 	void downloadLoadableContent(Client *client, const QStringList &fileList);
 	void downloadLoadableContentDict(Client *client, const QStringList &fileList);
 
+	int loadableContentSize() const { return m_loadedContentList.size(); }
+
 signals:
 	void loadableContentReady();
 	void loadableContentOneDownloaded(QString name);

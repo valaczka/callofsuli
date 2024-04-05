@@ -40,15 +40,14 @@ RpgHpPickable::RpgHpPickable(QQuickItem *parent)
  * @param player
  */
 
-void RpgHpPickable::playerPick(RpgPlayer *player)
+bool RpgHpPickable::playerPick(RpgPlayer *player)
 {
 	if (!player)
-		return;
+		return false;
 
 	player->setHp(player->hp()+1);
 
-	/*if (m_game)
-		m_game->messageColor(tr("1 HP gained"), QStringLiteral("#EF5350"));*/
+	return true;
 }
 
 

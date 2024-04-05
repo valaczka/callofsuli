@@ -159,7 +159,7 @@ void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
  * @brief IsometricEnemy::entityWorldStep
  */
 
-void IsometricEnemy::entityWorldStep()
+void IsometricEnemy::entityWorldStep(const qreal &factor)
 {
 	if (!isAlive()) {
 		m_body->stop();
@@ -221,7 +221,7 @@ void IsometricEnemy::entityWorldStep()
 			if (ptr) {
 				const qreal &dist = distanceToPoint(ptr.value());
 
-				if (dist >= std::max(std::max(m_metric.pursuitSpeed, m_metric.speed), 10.)){
+				if (dist >= std::max(std::max(m_metric.pursuitSpeed, m_metric.speed)*factor, 10.)){
 					if (const float32 &d = checkGroundDistance(m_body.get(), ptr.value()); d != -1. && d < 0.05) {
 						isPursuit = false;
 					} else {
@@ -252,7 +252,7 @@ void IsometricEnemy::entityWorldStep()
 			return;
 		}
 
-		if (!enemyWorldStepOnVisiblePlayer(angle)) {
+		if (!enemyWorldStepOnVisiblePlayer(angle, factor)) {
 			updateSprite();
 			return;
 		}
@@ -265,13 +265,13 @@ void IsometricEnemy::entityWorldStep()
 
 			/** TiledObject::factorFromRadian(angle)*/		/// --- pursuit speeed
 			m_returnPathMotor->moveBody(m_body.get(), angle,
-										m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed ?
-											m_metric.pursuitSpeed : m_metric.speed);
+										m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor ?
+											m_metric.pursuitSpeed*factor : m_metric.speed*factor);
 		} else if (m_metric.speed > 0) {
 			m_body->setLinearVelocity(
 						TiledObjectBase::toPoint(angle,
-												 m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed ?
-													 m_metric.pursuitSpeed : m_metric.speed));
+												 m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor ?
+													 m_metric.pursuitSpeed*factor : m_metric.speed*factor));
 		} else {
 			m_body->stop();
 		}
@@ -298,7 +298,7 @@ void IsometricEnemy::entityWorldStep()
 
 	if (enemyWorldStep()) {
 		rotateBody(directionToRadian(m_currentDirection));
-		stepMotor();
+		stepMotor(factor);
 	}
 
 	updateSprite();
@@ -349,8 +349,11 @@ bool IsometricEnemy::enemyWorldStep()
  * @return
  */
 
-bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle)
+bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle, const qreal &factor)
 {
+	Q_UNUSED(angle);
+	Q_UNUSED(factor);
+
 	if (!isAlive())
 		return false;
 
@@ -455,7 +458,7 @@ void IsometricEnemy::onDead()
  * @brief IsometricEnemy::stepMotor
  */
 
-void IsometricEnemy::stepMotor()
+void IsometricEnemy::stepMotor(const qreal &factor)
 {
 	if (!m_motor) {
 		LOG_CERROR("game") << "Missing enemy motor:" << m_objectId.sceneId << m_objectId.id;
@@ -467,7 +470,7 @@ void IsometricEnemy::stepMotor()
 			m_body->stop();
 			return;
 		}
-		if (m_metric.returnSpeed != 0. && m_returnPathMotor->step(m_metric.returnSpeed > 0. ? m_metric.returnSpeed : m_metric.speed)) {
+		if (m_metric.returnSpeed != 0. && m_returnPathMotor->step(m_metric.returnSpeed > 0. ? m_metric.returnSpeed*factor : m_metric.speed*factor)) {
 			m_body->setLinearVelocity(maximizeSpeed(m_returnPathMotor->currentPosition() - m_body->bodyPosition()));
 			return;
 		} else {
@@ -475,7 +478,7 @@ void IsometricEnemy::stepMotor()
 		}
 	}
 
-	m_motor->step(m_metric.speed);
+	m_motor->step(m_metric.speed*factor);
 	m_motor->updateBody(this, m_maximumSpeed);
 }
 

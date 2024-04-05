@@ -39,6 +39,9 @@
 
 class RpgQuestion;
 
+
+typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
+
 /**
  * @brief The RpgGame class
  */
@@ -104,6 +107,8 @@ public:
 	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
 
 
+	int setQuestions(TiledScene *scene, qreal factor);
+
 	void resurrectEnemiesAndPlayer(RpgPlayer *player);
 	void resurrectEnemies(const QPointer<TiledScene> &scene);
 
@@ -115,6 +120,9 @@ public:
 
 	int enemyCount() const;
 	void setEnemyCount(int newEnemyCount);
+
+	FuncPlayerPick funcPlayerPick() const;
+	void setFuncPlayerPick(const FuncPlayerPick &newFuncPlayerPick);
 
 signals:
 	void gameSuccess();
@@ -176,6 +184,9 @@ private:
 	RpgQuestion *m_rpgQuestion = nullptr;
 	int m_enemyCount = 0;
 
+
+	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
+	FuncPlayerPick m_funcPlayerPick;
 
 	// 3 részre daraboljuk, hogy ne haladja meg a textúra a 4096 px méretet
 

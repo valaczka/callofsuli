@@ -77,3 +77,4 @@
 - Monster Sound Pack, Volume 1 - (c) 2010 Ogrebane (https://opengameart.org/content/monster-sound-pack-volume-1)
 - Inventory Sound Effects - (c) 2010 artisticdude, Ogrebane (https://opengameart.org/content/inventory-sound-effects)
 - Ambient Bird Sounds - (c) isaiah658 (https://opengameart.org/content/ambient-bird-sounds)
+- Punch, slap, n' kick - (c) CGEffex (https://opengameart.org/content/punch-slap-n-kick, http://freesound.org/people/CGEffex/sounds/98341)

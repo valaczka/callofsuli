@@ -32,6 +32,7 @@
 #include "rpglongbow.h"
 #include "rpglongsword.h"
 #include "rpgshield.h"
+#include "rpgtimepickable.h"
 #include "rpgwerebear.h"
 #include "sound.h"
 #include "application.h"
@@ -229,23 +230,6 @@ RpgGame::~RpgGame()
 
 bool RpgGame::load(const TiledGameDefinition &def)
 {
-	/*QString test = R"({
-		"firstScene": 1,
-		"scenes": [
-			{
-				"id": 1,
-				"file": "qrc:/teszt.tmx",
-				"ambient": "qrc:/rpg/common/birds-isaiah658.mp3"
-			},
-
-			{
-				"id": 2,
-				"file": "qrc:/teszt2.tmx"
-			}
-		]
-		})";*/
-
-
 	if (!TiledGame::load(def))
 		return false;
 
@@ -257,14 +241,14 @@ bool RpgGame::load(const TiledGameDefinition &def)
 
 		IsometricEnemy *character;
 
-			character = createEnemy(e.type, e.subtype, e.scene);
-			if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(character); iface && e.type == RpgEnemyIface::EnemyTest) {
-				auto w = iface->armory()->weaponAdd(new RpgLongsword);
-				w->setBulletCount(-1);
-				//w->setCanThrow(true);
-				iface->armory()->setCurrentWeapon(w);
-				e.hasQuestion = true;
-			}
+		character = createEnemy(e.type, e.subtype, e.scene);
+		if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(character); iface && e.type == RpgEnemyIface::EnemyTest) {
+			auto w = iface->armory()->weaponAdd(new RpgLongsword);
+			w->setBulletCount(-1);
+			//w->setCanThrow(true);
+			iface->armory()->setCurrentWeapon(w);
+			//e.hasQuestion = true;
+		}
 
 		if (!character)
 			continue;
@@ -284,37 +268,6 @@ bool RpgGame::load(const TiledGameDefinition &def)
 
 	recalculateEnemies();
 
-
-	QList<RpgPlayer*> list;
-
-	if (!m_playerPositionList.isEmpty()) {
-		const auto &p = m_playerPositionList.first();
-
-		for (int i=0; i<1; ++i) {
-			auto player = RpgPlayer::createPlayer(this, p.scene, i==0 ? "default" : "default2");
-
-			player->emplace(p.position+QPointF(i*15, i*15));
-			if (i == 0)
-				player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
-			else
-				player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::SouthEast));
-
-			p.scene->appendToObjects(player);
-
-			if (i==0) {
-				setFollowedItem(player);
-				setControlledPlayer(player);
-			}
-
-			player->setCurrentSceneStartPosition(p.position);
-
-			list.append(player);
-		}
-	}
-
-	setPlayers(list);
-
-
 	for (auto &e : m_pickableDataList) {
 		LOG_CINFO("game") << "CREATE PICKABLE" << e.objectId.id << e.objectId.sceneId;
 
@@ -332,9 +285,6 @@ bool RpgGame::load(const TiledGameDefinition &def)
 
 		pickable->setIsActive(true);
 	}
-
-
-	emit gameLoaded();
 
 	return true;
 }
@@ -392,6 +342,8 @@ bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const T
 	if (p->isLocked())
 		return false;
 
+	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
+
 	if (iface->protectWeapon(weaponType))
 		return false;
 
@@ -427,6 +379,8 @@ bool RpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const T
 	if (!e || !p)
 		return false;
 
+	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
+
 	if (!canAttack(e, p, weaponType))
 		return false;
 
@@ -459,7 +413,12 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 	if (!object->isActive())
 		return false;
 
-	object->playerPick(p);
+	if (m_funcPlayerPick && !m_funcPlayerPick(p, object))
+		return false;
+
+	if (!object->playerPick(p))
+		return false;
+
 	object->setIsActive(false);
 
 	if (object->scene()) {
@@ -552,8 +511,8 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 				}
 
 				it->pickables.clear();
+				it->hasQuestion = false;
 			}
-
 		}
 	}
 
@@ -710,6 +669,10 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 
 		case RpgPickableObject::PickableLongsword:
 			pickable = RpgPickableObject::createPickable<RpgLongswordPickable>(this);
+			break;
+
+		case RpgPickableObject::PickableTime:
+			pickable = RpgPickableObject::createPickable<RpgTimePickable>(this);
 			break;
 
 		case RpgPickableObject::PickableInvalid:
@@ -1104,6 +1067,22 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 }
 
 
+/**
+ * @brief RpgGame::funcPlayerPick
+ * @return
+ */
+
+FuncPlayerPick RpgGame::funcPlayerPick() const
+{
+	return m_funcPlayerPick;
+}
+
+void RpgGame::setFuncPlayerPick(const FuncPlayerPick &newFuncPlayerPick)
+{
+	m_funcPlayerPick = newFuncPlayerPick;
+}
+
+
 
 /**
  * @brief RpgGame::enemyCount
@@ -1210,6 +1189,54 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 	}
 
 	return {};
+}
+
+
+/**
+ * @brief RpgGame::setQuestions
+ * @param scene
+ * @param factor
+ * @return
+ */
+
+int RpgGame::setQuestions(TiledScene *scene, qreal factor)
+{
+	if (!scene)
+		return -1;
+
+	int q = 0;
+	int count = 0;
+	int created = 0;
+
+	QVector<EnemyData*> eList;
+
+	for (EnemyData &e : m_enemyDataList) {
+		if (!e.scene || e.scene != scene)
+			continue;
+
+		++count;
+
+		if (e.hasQuestion)
+			++q;
+		else
+			eList.append(&e);
+	}
+
+	LOG_CINFO("game") << "*** SET QUESTIONS" << scene << factor;
+
+	if (!count)
+		return -1;
+
+	while (!eList.isEmpty() && ((qreal) (q+1) / (qreal) count <= factor)) {
+		EnemyData *e = eList.takeAt(QRandomGenerator::global()->bounded(eList.size()));
+		e->hasQuestion = true;
+		++q;
+		++created;
+
+		LOG_CINFO("game") << "+++++++>" << e->objectId.id << e->enemy;
+	}
+
+	return created;
 }
 
 

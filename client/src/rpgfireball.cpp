@@ -121,17 +121,23 @@ RpgFireballPickable::RpgFireballPickable(QQuickItem *parent)
  * @param player
  */
 
-void RpgFireballPickable::playerPick(RpgPlayer *player)
+bool RpgFireballPickable::playerPick(RpgPlayer *player)
 {
 	if (!player)
-		return;
+		return false;
 
-	static const int num = 35;
+	static const int num = 5;
 
 	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponLongbow);
 
-	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgLongbow);
+	//if (!weapon)
+	//	weapon = player->armory()->weaponAdd(new RpgLongbow);
+
+	if (!weapon) {
+		if (m_game)
+			m_game->messageColor(tr("Longbow missing"), QColor::fromRgbF(0.8, 0., 0.));
+		return false;
+	}
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
 
@@ -139,6 +145,8 @@ void RpgFireballPickable::playerPick(RpgPlayer *player)
 		m_game->message(tr("%1 fireballs gained").arg(num));
 
 	player->armory()->setCurrentWeapon(weapon);
+
+	return true;
 }
 
 

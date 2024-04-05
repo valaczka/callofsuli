@@ -42,6 +42,7 @@ public:
 	RpgConfigBase()
 		: missionLevel(-1)
 		, campaign(-1)
+		, duration(0)
 	{}
 
 
@@ -50,6 +51,7 @@ public:
 	QS_FIELD(QString, missionUuid)
 	QS_FIELD(int, missionLevel)
 	QS_FIELD(int, campaign)
+	QS_FIELD(int, duration)
 };
 
 
@@ -97,7 +99,8 @@ public:
 				c1.missionUuid == c2.missionUuid &&
 				c1.missionLevel == c2.missionLevel &&
 				c1.userHost == c2.userHost &&
-				c1.campaign == c2.campaign
+				c1.campaign == c2.campaign &&
+				c1.duration == c2.duration
 				;
 	}
 

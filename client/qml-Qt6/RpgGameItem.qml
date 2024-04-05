@@ -55,7 +55,10 @@ FocusScope {
 		messageList: _messageList
 		defaultMessageColor: Qaterial.Style.iconColor()
 
+		visible: _isPrepared
+
 		focus: true
+		layer.enabled: true
 
 		onGameLoadFailed: Client.messageError("FAILED")
 
@@ -72,6 +75,8 @@ FocusScope {
 		anchors.margins: 5
 		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
+
+		visible: _isPrepared
 
 		GameButton {
 			id: _backButton
@@ -116,7 +121,7 @@ FocusScope {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0
+		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
 	}
 
 
@@ -167,7 +172,7 @@ FocusScope {
 
 
 	property int _oldXP: -1
-	readonly property int xp: 0//_game.controlledPlayer ? _game.xp
+	readonly property int xp: game ? game.xp : 0
 
 	onXpChanged: {
 		if (_oldXP != -1) {
@@ -192,6 +197,8 @@ FocusScope {
 		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
 		spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+		visible: _isPrepared
 
 		GameLabel {
 			id: _labelXP
@@ -288,7 +295,7 @@ FocusScope {
 		anchors.topMargin: Math.max(5, Client.safeMarginTop)
 		anchors.top: parent.top
 		value: _game.controlledPlayer ? _game.controlledPlayer.hp : 0
-		visible: _game.controlledPlayer
+		visible: _game.controlledPlayer && _isPrepared
 		onValueChanged: marked = true
 	}
 
@@ -300,23 +307,21 @@ FocusScope {
 		size: 40
 
 		anchors.left: _rowTime.left
-		anchors.top: _rowTime.bottom
-		anchors.topMargin: 5
+		y: Math.min((parent.height-height)/2, _gameJoystick.y-10-height)
 
 		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.nextWeapon : null
 
-		visible: weapon && _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon != weapon
+		visible: weapon && _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon != weapon && _isPrepared
 
-		color: Qaterial.Colors.blue600
-		border.color: fontImage.color
+		color: "transparent" //Qaterial.Colors.blue600
+		border.color: Qaterial.Colors.white
 		border.width: 1
 
 		opacity: 1.0
 
 		fontImage.icon: weapon ? weapon.icon : ""
-		fontImage.color: "white"
-		fontImageScale: 0.6
-		//fontImage.anchors.horizontalCenterOffset: -2
+		fontImage.color: "transparent"
+		fontImageScale: 0.7
 
 		onClicked: {
 			_game.controlledPlayer.armory.changeToNextWeapon()
@@ -332,7 +337,7 @@ FocusScope {
 		anchors.bottom: _shotButton.top
 		anchors.bottomMargin: 5
 
-		visible: _game.controlledPlayer && _game.controlledPlayer.currentPickable
+		visible: _game.controlledPlayer && _game.controlledPlayer.currentPickable && _isPrepared
 
 		color: Qaterial.Colors.green600
 		border.color: fontImage.color
@@ -358,6 +363,9 @@ FocusScope {
 		anchors.bottom: _shotButton.bottom
 		anchors.bottomMargin: (_shotButton.height-50)/2
 		anchors.right: _shotButton.left
+		anchors.rightMargin: 10
+
+		visible: _isPrepared
 
 		spacing: 30
 
@@ -427,21 +435,19 @@ FocusScope {
 		anchors.margins: 10
 
 		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
-		readonly property bool enemyAimed: _game.controlledPlayer && _game.controlledPlayer.enemy
+		readonly property bool _canAttack: weapon && (weapon.canHit || weapon.canShot)
 
-		visible: weapon
+		visible: weapon && _isPrepared
 
-		enabled: weapon && (weapon.canHit || weapon.canShot)
+		color: _canAttack ? Qaterial.Colors.red800 : "transparent"
 
-		color: enemyAimed && enabled ? Client.Utils.colorSetAlpha(Qaterial.Colors.red700, 0.7) : "transparent"
-
-		border.color: enemyAimed && enabled ? Qaterial.Colors.black : Qaterial.Colors.white
+		border.color: _canAttack ? Qaterial.Colors.white : Qaterial.Colors.red800
 		border.width: 1
 
 		fontImage.icon: weapon ? weapon.icon : ""
-		fontImage.color: Qaterial.Colors.white
-		fontImage.opacity: enemyAimed ? 0.6 : 1.0
-		fontImage.anchors.horizontalCenterOffset: -2
+		fontImage.opacity: _canAttack ? 1.0 : 0.6
+		fontImage.color: "transparent"
+		fontImageScale: 0.7
 
 		tap.onTapped: {
 			if (_game.controlledPlayer)
@@ -541,24 +547,66 @@ FocusScope {
 		}
 	}
 
+	Rectangle {
+		id: _loadingRect
+		anchors.fill: parent
+		color: Qaterial.Colors.black
+		z: 999
+
+		Row {
+			spacing: 20
+			anchors.centerIn: parent
+
+			Qaterial.BusyIndicator {
+				anchors.verticalCenter: parent.verticalCenter
+				height: txt.height
+				width: txt.height
+			}
+
+			Qaterial.LabelBody1 {
+				id: txt
+				anchors.verticalCenter: parent.verticalCenter
+				text: qsTr("Betöltés")
+				color: Qaterial.Style.accentColor
+			}
+		}
+	}
+
+
 	Component.onCompleted: _prCmpCompleted = true
 
 	StackView.onActivated: {
 		_prStackActivated = true
 		if (game)
 			game.rpgGameActivated()
+		_delayTimer.start()
 	}
 
-	on_IsPreparedChanged: {
-		if (_isPrepared)
+	on_IsPreparedChanged: startGame()
+
+	Timer {
+		id: _delayTimer
+		interval: 1700
+		triggeredOnStart: false
+		running: false
+		repeat: false
+
+		property bool _finished: false
+
+		onTriggered: {
+			_finished = true
+			startGame()
+		}
+	}
+
+	function startGame() {
+		if (_isPrepared && _delayTimer._finished) {
 			game.gamePrepared()
+			_loadingRect.visible = false
+		}
 	}
 
 
-
-	StackView.onDeactivating: {
-		_game.visible = false
-	}
 
 }
 

@@ -31,7 +31,7 @@
 RpgShortbow::RpgShortbow(QObject *parent)
 	: TiledWeapon{WeaponShortbow, parent}
 {
-	m_icon = QStringLiteral("qrc:/Qaterial/Icons/bow-arrow.svg");
+	m_icon = QStringLiteral("qrc:/internal/medal/Icon.4_60.png");
 }
 
 
@@ -61,7 +61,7 @@ IsometricBullet *RpgShortbow::createBullet()
  * @brief RpgShortbow::eventAttack
  */
 
-void RpgShortbow::eventAttack()
+void RpgShortbow::eventAttack(TiledObject *)
 {
 	TiledObject *p = m_parentObject.get();
 
@@ -95,10 +95,10 @@ RpgShortbowPickable::RpgShortbowPickable(QQuickItem *parent)
  * @param player
  */
 
-void RpgShortbowPickable::playerPick(RpgPlayer *player)
+bool RpgShortbowPickable::playerPick(RpgPlayer *player)
 {
 	if (!player)
-		return;
+		return false;
 
 	static const int num = 5;
 
@@ -113,6 +113,8 @@ void RpgShortbowPickable::playerPick(RpgPlayer *player)
 		m_game->message(tr("1 shortbow gained"));
 
 	player->armory()->setCurrentWeapon(weapon);
+
+	return true;
 }
 
 

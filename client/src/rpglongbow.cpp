@@ -31,7 +31,7 @@
 RpgLongbow::RpgLongbow(QObject *parent)
 	: TiledWeapon{WeaponLongbow, parent}
 {
-	m_icon = QStringLiteral("qrc:/Qaterial/Icons/bow-arrow.svg");
+	m_icon = QStringLiteral("qrc:/internal/medal/Icon.2_76.png");
 }
 
 
@@ -56,7 +56,7 @@ IsometricBullet *RpgLongbow::createBullet()
  * @brief RpgLongbow::eventAttack
  */
 
-void RpgLongbow::eventAttack()
+void RpgLongbow::eventAttack(TiledObject *)
 {
 	if (!m_parentObject) {
 		LOG_CERROR("game") << "Missing parent object" << this;
@@ -90,10 +90,10 @@ RpgLongbowPickable::RpgLongbowPickable(QQuickItem *parent)
  * @param player
  */
 
-void RpgLongbowPickable::playerPick(RpgPlayer *player)
+bool RpgLongbowPickable::playerPick(RpgPlayer *player)
 {
 	if (!player)
-		return;
+		return false;
 
 	static const int num = 5;
 
@@ -108,6 +108,8 @@ void RpgLongbowPickable::playerPick(RpgPlayer *player)
 		m_game->message(tr("1 longbow gained"));
 
 	player->armory()->setCurrentWeapon(weapon);
+
+	return true;
 }
 
 

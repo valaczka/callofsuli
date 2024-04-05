@@ -99,6 +99,7 @@ private:
 	void playAttackEffect(TiledWeapon *weapon);
 	void playWeaponChangedEffect();
 	void playShieldEffect();
+	void messageEmptyBullet(TiledWeapon *weapon);
 
 private:
 	static QStringList m_availableCharacters;

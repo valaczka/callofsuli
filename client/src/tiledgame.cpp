@@ -196,6 +196,24 @@ QSGTexture *TiledGame::getTexture(const QString &path, QQuickWindow *window)
 }
 
 
+/**
+ * @brief TiledGame::sceneList
+ * @return
+ */
+
+QVector<TiledScene *> TiledGame::sceneList() const
+{
+	QVector<TiledScene *> list;
+
+	for (const Scene &s : m_sceneList) {
+		if (s.scene)
+			list.append(s.scene);
+	}
+
+	return list;
+}
+
+
 
 
 
@@ -1069,6 +1087,96 @@ void TiledGame::messageColor(const QString &text, const QColor &color)
 	QMetaObject::invokeMethod(m_messageList, "message", Qt::DirectConnection,
 							  Q_ARG(QVariant, text),
 							  Q_ARG(QVariant, color.name()));
+}
+
+
+
+/**
+ * @brief TiledGame::playerPositionsCount
+ * @param sceneId
+ * @return
+ */
+
+int TiledGame::playerPositionsCount(const int &sceneId) const
+{
+	int num = 0;
+
+	for (const PlayerPosition &p : m_playerPositionList) {
+		if (p.sceneId == sceneId)
+			++num;
+	}
+
+	return num;
+}
+
+
+/**
+ * @brief TiledGame::playerPositionsCount
+ * @param scene
+ * @return
+ */
+
+int TiledGame::playerPositionsCount(TiledScene *scene) const
+{
+	int num = 0;
+
+	for (const PlayerPosition &p : m_playerPositionList) {
+		if (p.scene == scene)
+			++num;
+	}
+
+	return num;
+}
+
+
+
+/**
+ * @brief TiledGame::playerPosition
+ * @param sceneId
+ * @param num
+ * @return
+ */
+
+std::optional<QPointF> TiledGame::playerPosition(const int &sceneId, const int &num) const
+{
+	int i = 0;
+
+	for (const PlayerPosition &p : m_playerPositionList) {
+		if (p.sceneId == sceneId) {
+			if (i==num)
+				return p.position;
+			else
+				++i;
+		}
+	}
+
+	return std::nullopt;
+}
+
+
+
+
+/**
+ * @brief TiledGame::playerPosition
+ * @param scene
+ * @param num
+ * @return
+ */
+
+std::optional<QPointF> TiledGame::playerPosition(TiledScene *scene, const int &num) const
+{
+	int i = 0;
+
+	for (const PlayerPosition &p : m_playerPositionList) {
+		if (p.scene == scene) {
+			if (i==num)
+				return p.position;
+			else
+				++i;
+		}
+	}
+
+	return std::nullopt;
 }
 
 

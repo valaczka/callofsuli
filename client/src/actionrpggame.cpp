@@ -50,9 +50,8 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	}
 
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionRpgGame::onGameTimeout);
-
-	/*connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionGame::onMsecLeftChanged);
-	connect(this, &ActionGame::toolChanged, this, &ActionGame::toolListIconsChanged);*/
+	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
+	/*connect(this, &ActionGame::toolChanged, this, &ActionGame::toolListIconsChanged);*/
 }
 
 
@@ -130,9 +129,8 @@ void ActionRpgGame::selectCharacter(const QString &character)
 {
 	LOG_CWARNING("game") << "Character selected:" << character << m_config.gameState;
 
-	auto c = m_config;
-	c.gameState = RpgConfig::StatePrepare;
-	setConfig(c);
+	m_config.gameState = RpgConfig::StatePrepare;
+	updateConfig();
 }
 
 
@@ -146,12 +144,54 @@ void ActionRpgGame::rpgGameActivated()
 	if (!m_rpgGame)
 		return;
 
-	const auto &ptr = RpgGame::readGameDefinition("sample");
+	const auto &ptr = RpgGame::readGameDefinition("next1");
 
 	if (!ptr)
 		return;
 
-	m_rpgGame->load(ptr.value());
+	m_config.duration = ptr->duration > 0 ? ptr->duration : m_missionLevel->duration();
+	updateConfig();
+
+	if (!m_rpgGame->load(ptr.value())) {
+		LOG_CERROR("game") << "Game load error";
+		return;
+	}
+
+	TiledScene *firstScene = m_rpgGame->findScene(ptr->firstScene);
+
+	if (!firstScene) {
+		LOG_CERROR("game") << "Game load error";
+		return;
+	}
+
+
+	const auto &ptrPos = m_rpgGame->playerPosition(firstScene, 0);
+
+	QList<RpgPlayer*> list;
+
+	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, "default");
+
+	player->setHp(m_missionLevel->startHP());
+	player->setMaxHp(m_missionLevel->startHP());
+
+	player->emplace(ptrPos.value_or(QPointF{0,0}));
+	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
+
+	firstScene->appendToObjects(player);
+	m_rpgGame->setFollowedItem(player);
+	m_rpgGame->setControlledPlayer(player);
+
+	player->setCurrentSceneStartPosition(ptrPos.value_or(QPointF{0,0}));
+
+	list.append(player);
+
+	m_rpgGame->setPlayers(list);
+
+	for (TiledScene *s : m_rpgGame->sceneList()) {
+		m_rpgGame->setQuestions(s, m_missionLevel->questions());
+	}
+
+	emit m_rpgGame->gameLoaded();
 }
 
 
@@ -164,9 +204,8 @@ void ActionRpgGame::finishGame()
 {
 	LOG_CDEBUG("game") << "Finish game";
 
-	auto c = m_config;
-	c.gameState = RpgConfig::StateFinished;
-	setConfig(c);
+	m_config.gameState = RpgConfig::StateFinished;
+	updateConfig();
 }
 
 
@@ -187,9 +226,8 @@ QQuickItem *ActionRpgGame::loadPage()
 	if (!item)
 		return nullptr;
 
-	auto c = m_config;
-	c.gameState = RpgConfig::StateDownloadContent;
-	setConfig(c);
+	m_config.gameState = RpgConfig::StateDownloadContent;
+	updateConfig();
 
 	downloadGameData();
 
@@ -242,9 +280,8 @@ bool ActionRpgGame::gameFinishEvent()
 
 void ActionRpgGame::gamePrepared()
 {
-	auto c = m_config;
-	c.gameState = RpgConfig::StatePlay;
-	setConfig(c);
+	m_config.gameState = RpgConfig::StatePlay;
+	updateConfig();
 }
 
 
@@ -264,6 +301,9 @@ void ActionRpgGame::onPlayerDead(RpgPlayer *player)
 		QTimer::singleShot(5000, this, &ActionRpgGame::onGameFailed);
 	else if (m_rpgGame)
 		QTimer::singleShot(5000, this, [this, p = QPointer<RpgPlayer>(player)]() {
+			if (p)
+				m_rpgGame->setQuestions(p->scene(), m_missionLevel->questions());
+
 			m_rpgGame->resurrectEnemiesAndPlayer(p);
 		});
 }
@@ -348,6 +388,18 @@ void ActionRpgGame::onGameFailed()
 
 
 
+/**
+ * @brief ActionRpgGame::updateConfig
+ */
+
+void ActionRpgGame::updateConfig()
+{
+	onConfigChanged();
+	emit configChanged();
+}
+
+
+
 
 /**
  * @brief ActionRpgGame::onConfigChanged
@@ -375,13 +427,13 @@ void ActionRpgGame::onConfigChanged()
 
 	if (m_config.gameState == RpgConfig::StatePlay && m_oldGameState != RpgConfig::StatePlay) {
 		if (!m_rpgGame) {
-			auto c = m_config;
-			c.gameState = RpgConfig::StateError;
-			setConfig(c);
+			m_config.gameState = RpgConfig::StateError;
+			updateConfig();
 			return;
 		}
 
-		startWithRemainingTime(m_missionLevel->duration()*1000);
+		LOG_CERROR("game") << "START WITH" << m_config.duration;
+		startWithRemainingTime(m_config.duration*1000);
 
 		if (m_deathmatch) {
 			m_rpgGame->message(tr("LEVEL %1").arg(level()));
@@ -444,7 +496,7 @@ void ActionRpgGame::downloadGameData()
 		return;
 	}
 
-	const auto &ptr = RpgGame::readGameDefinition("sample");
+	const auto &ptr = RpgGame::readGameDefinition("next1");
 
 	if (!ptr) {
 		LOG_CERROR("game") << "Invalid game";
@@ -458,16 +510,29 @@ void ActionRpgGame::downloadGameData()
 		return;
 
 
+	m_loadableContentCount = listPtr->size();
+	m_downloadProgress = 0.;
+	emit downloadProgressChanged();
+
+
 	connect(server, &Server::loadableContentError, this, [this]() {
-		LOG_CWARNING("game") << "Loadable content error";
+		LOG_CERROR("game") << "Loadable content error";
 		setError();
 	});
 
 	connect(server, &Server::loadableContentReady, this, [this]() {
-		LOG_CWARNING("game") << "Loadable content READY!!!";
-		auto c = m_config;
-		c.gameState = RpgConfig::StateCharacterSelect;
-		setConfig(c);
+		m_config.gameState = RpgConfig::StateCharacterSelect;
+		updateConfig();
+	});
+
+	connect(server, &Server::loadableContentOneDownloaded, this, [this](const QString &){
+		Server *s = qobject_cast<Server*>(sender());
+		if (!m_loadableContentCount || !s)
+			return;
+
+		qreal c = s->loadableContentSize();
+		m_downloadProgress = c / (qreal) m_loadableContentCount;
+		emit downloadProgressChanged();
 	});
 
 	server->downloadLoadableContentDict(m_client, *listPtr);
@@ -480,10 +545,105 @@ void ActionRpgGame::downloadGameData()
 
 void ActionRpgGame::setError()
 {
-	auto c = m_config;
-	c.gameState = RpgConfig::StateError;
-	setConfig(c);
+	m_config.gameState = RpgConfig::StateError;
+	updateConfig();
 }
+
+
+
+/**
+ * @brief ActionRpgGame::onMsecLeftChanged
+ */
+
+void ActionRpgGame::onMsecLeftChanged()
+{
+	const int &msec = msecLeft();
+
+	struct TimeNotify {
+		int msec;
+		QString message;
+		QString sound;
+	};
+
+	static const QVector<TimeNotify> notifications = {
+		TimeNotify{
+			30000,
+			tr("You have 30 seconds left"),
+			QStringLiteral("qrc:/sound/voiceover/final_round.mp3")
+		},
+		TimeNotify{
+			60000,
+			tr("You have 60 seconds left"),
+			QStringLiteral("qrc:/sound/voiceover/time.mp3")
+		}
+	};
+
+	if (m_msecNotifyAt == 0) {
+		for (const auto &n : notifications) {
+			if (n.msec > m_msecNotifyAt && n.msec < msec)
+				m_msecNotifyAt = n.msec;
+		}
+	}
+
+
+
+	if (m_msecNotifyAt > msec) {
+		const auto it = std::find_if(notifications.constBegin(), notifications.constEnd(),
+									 [this](const TimeNotify &n) {
+			return n.msec == m_msecNotifyAt;
+		});
+
+		if (it != notifications.constEnd()) {
+			m_rpgGame->messageColor(it->message, QStringLiteral("#00bcd4"));
+			m_client->sound()->playSound(it->sound, Sound::VoiceoverChannel);
+		}
+
+		m_msecNotifyAt = 0;
+	}
+}
+
+
+
+
+/**
+ * @brief ActionRpgGame::onPlayerPick
+ * @param player
+ * @param pickable
+ * @return
+ */
+
+bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
+{
+	if (!player || !pickable)
+		return false;
+
+
+	if (pickable->pickableType() == RpgPickableObject::PickableTime) {
+		static int sec = 30;
+		addToDeadline(sec*1000);
+		m_msecNotifyAt = 0;
+		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
+	}
+
+	/*if (pickable->pickableType() == RpgPickableObject::PickableLongsword) {
+		m_rpgGame->messageColor("Nem lehet", "#DD0000");
+		return false;
+	}*/
+
+	return true;
+}
+
+
+/**
+ * @brief ActionRpgGame::downloadProgress
+ * @return
+ */
+
+qreal ActionRpgGame::downloadProgress() const
+{
+	return m_downloadProgress;
+}
+
 
 
 
@@ -550,6 +710,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		disconnect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		m_rpgGame->setRpgQuestion(nullptr);
+		m_rpgGame->setFuncPlayerPick(nullptr);
 	}
 
 	m_rpgGame = newRpgGame;
@@ -560,6 +721,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
+		m_rpgGame->setFuncPlayerPick(std::bind(&ActionRpgGame::onPlayerPick, this, std::placeholders::_1, std::placeholders::_2));
 	}
 }
 
@@ -580,6 +742,5 @@ void ActionRpgGame::setConfig(const RpgConfig &newConfig)
 	if (m_config == newConfig)
 		return;
 	m_config = newConfig;
-	onConfigChanged();
-	emit configChanged();
+	updateConfig();
 }

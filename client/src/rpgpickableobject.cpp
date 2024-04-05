@@ -41,6 +41,7 @@ const QHash<QString, RpgPickableObject::PickableType> RpgPickableObject::m_typeH
 	{ QStringLiteral("longbow"), PickableLongbow },
 	{ QStringLiteral("shortbow"), PickableShortbow },
 	{ QStringLiteral("longsword"), PickableLongsword },
+	{ QStringLiteral("time"), PickableTime },
 };
 
 

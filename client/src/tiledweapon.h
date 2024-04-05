@@ -133,7 +133,7 @@ signals:
 
 protected:
 	virtual IsometricBullet *createBullet() = 0;
-	virtual void eventAttack() {}
+	virtual void eventAttack(TiledObject *target) { Q_UNUSED(target); }
 	virtual void eventProtect() {}
 
 	QPointer<TiledObject> m_parentObject;
@@ -170,6 +170,7 @@ public:
 
 protected:
 	IsometricBullet *createBullet() override final { return nullptr; }
+	virtual void eventAttack(TiledObject *target) override;
 
 };
 

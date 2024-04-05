@@ -101,7 +101,7 @@ IsometricPlayer::~IsometricPlayer()
  * @brief IsometricPlayer::entityWorldStep
  */
 
-void IsometricPlayer::entityWorldStep()
+void IsometricPlayer::entityWorldStep(const qreal &factor)
 {
 	IsometricEnemy *e = nullptr;
 
@@ -127,7 +127,9 @@ void IsometricPlayer::entityWorldStep()
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		m_body->stop();
 	} else {
-		m_body->setLinearVelocity(m_currentVelocity);
+		QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
+		line.setLength(line.length()*factor);
+		m_body->setLinearVelocity(line.p2());
 	}
 
 	updateSprite();

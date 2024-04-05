@@ -52,7 +52,7 @@ public:
 
 protected:
 	IsometricBullet *createBullet() override final { return nullptr; }
-	void eventAttack() override final;
+	void eventAttack(TiledObject *target) override final;
 };
 
 
@@ -70,7 +70,7 @@ class RpgLongswordPickable : public RpgPickableObject
 public:
 	RpgLongswordPickable(QQuickItem *parent = nullptr);
 
-	void playerPick(RpgPlayer *player) override final;
+	bool playerPick(RpgPlayer *player) override final;
 	void playerThrow(RpgPlayer *player) override final;
 
 protected:

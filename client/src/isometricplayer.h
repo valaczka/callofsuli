@@ -70,7 +70,7 @@ public:
 	//static IsometricPlayer* createPlayer(TiledGame *game, TiledScene *scene);
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
-	virtual void entityWorldStep() override;
+	virtual void entityWorldStep(const qreal &factor) override;
 
 	void initialize();
 	bool hasAbility() const;

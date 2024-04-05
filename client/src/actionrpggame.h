@@ -44,6 +44,7 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
+	Q_PROPERTY(qreal downloadProgress READ downloadProgress NOTIFY downloadProgressChanged FINAL)
 
 public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -80,12 +81,15 @@ public:
 	GameMode gameMode() const;
 	void setGameMode(const GameMode &newGameMode);
 
+	qreal downloadProgress() const;
+
 signals:
 	void finishDialogRequest(QString text, QString icon, bool success);
 	void configChanged();
 	void rpgGameChanged();
 	void playerConfigChanged();
 	void gameModeChanged();
+	void downloadProgressChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -100,10 +104,15 @@ protected:
 	void onGameSuccess();
 	void onGameFailed();
 
+
 private:
+	void updateConfig();
 	void onConfigChanged();
 	void downloadGameData();
 	void setError();
+	void onMsecLeftChanged();
+
+	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 
 private:
 	GameMode m_gameMode = SinglePlayer;
@@ -113,6 +122,10 @@ private:
 	std::unique_ptr<RpgQuestion> m_rpgQuestion;
 
 	RpgConfig::GameState m_oldGameState = RpgConfig::StateInvalid;
+	int m_loadableContentCount = 0;
+	qreal m_downloadProgress = 0.;
+
+	int m_msecNotifyAt = 0;
 
 	friend class RpgQuestion;
 };

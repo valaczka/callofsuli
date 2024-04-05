@@ -183,7 +183,7 @@ void IsometricBullet::shot(const Targets &targets, const QPointF &from, const qr
  * @brief IsometricBullet::worldStep
  */
 
-void IsometricBullet::worldStep()
+void IsometricBullet::worldStep(const qreal &factor)
 {
 	if (m_currentDirection == Invalid) {
 		m_body->stop();
@@ -199,9 +199,9 @@ void IsometricBullet::worldStep()
 	}
 
 	if (m_direction != Invalid) {
-		m_body->setLinearVelocity(TiledObjectBase::toPoint(directionToIsometricRaidan(m_direction), m_speed));
+		m_body->setLinearVelocity(TiledObjectBase::toPoint(directionToIsometricRaidan(m_direction), m_speed*factor));
 	} else {
-		m_body->setLinearVelocity(TiledObjectBase::toPoint(m_angle, m_speed));
+		m_body->setLinearVelocity(TiledObjectBase::toPoint(m_angle, m_speed*factor));
 	}
 
 	jumpToSprite("default", m_currentDirection);

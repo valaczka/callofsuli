@@ -152,7 +152,7 @@ private:
 	void emplace();
 	QPointF m_bodyOffset;
 	TiledObjectBase *const m_baseObject;
-	bool m_opaque = true;
+	bool m_opaque = false;
 
 	friend class TiledObjectBase;
 };
@@ -296,7 +296,7 @@ public:
 	};
 
 	Q_INVOKABLE void bodyComplete() { m_body->componentComplete(); }
-	virtual void worldStep() {}
+	virtual void worldStep(const qreal &factor) { Q_UNUSED(factor); }
 
 	TiledObjectBody *body() const { return m_body.get(); }
 	TiledScene *scene() const;

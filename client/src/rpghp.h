@@ -38,7 +38,7 @@ class RpgHpPickable : public RpgPickableObject
 public:
 	RpgHpPickable(QQuickItem *parent = nullptr);
 
-	void playerPick(RpgPlayer *player) override final;
+	bool playerPick(RpgPlayer *player) override final;
 	void playerThrow(RpgPlayer *player) override final;
 
 protected:

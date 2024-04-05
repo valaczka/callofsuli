@@ -152,6 +152,10 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 	if (weapon->canShot()) {
 		if (weapon->shot(IsometricBullet::TargetEnemy, m_body->bodyPosition(), currentAngle()))
 			playAttackEffect(weapon);
+
+		if (weapon->bulletCount() == 0)
+			messageEmptyBullet(weapon);
+
 	} else if (weapon->canHit()) {
 		if (!hasAbility())
 			return;
@@ -199,9 +203,6 @@ void RpgPlayer::pick(RpgPickableObject *object)
 
 void RpgPlayer::load()
 {
-	setMaxHp(25);
-	setHp(25);
-
 	setAvailableDirections(Direction_8);
 
 	if (m_character.isEmpty() || !m_availableCharacters.contains(m_character)) {
@@ -296,32 +297,7 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 	}
 
 
-	int hp = m_hp;
-
-	switch (weaponType) {
-		case TiledWeapon::WeaponLongsword:
-			hp -= 2;
-			break;
-
-		case TiledWeapon::WeaponShortbow:
-			hp -= 2;
-			break;
-
-		case TiledWeapon::WeaponLongbow:
-			hp -= 3;
-			break;
-
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponGreatHand:
-			hp -= 1;
-			break;
-
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponInvalid:
-			break;
-	}
-
-
+	int hp = m_hp-1;
 
 	if (hp <= 0) {
 		setHp(0);
@@ -480,6 +456,41 @@ void RpgPlayer::playShieldEffect()
 		m_effectShield.play();
 	else
 		m_effectShield.clear();
+}
+
+
+/**
+ * @brief RpgPlayer::messageEmptyBullet
+ * @param weapon
+ */
+
+void RpgPlayer::messageEmptyBullet(TiledWeapon *weapon)
+{
+	if (!weapon)
+		return;
+
+	QString msg;
+
+	switch (weapon->weaponType()) {
+		case TiledWeapon::WeaponLongbow:
+			msg = tr("All fireballs lost");
+			break;
+		case TiledWeapon::WeaponShortbow:
+			msg = tr("All arrows lost");
+			break;
+
+		case TiledWeapon::WeaponHand:
+		case TiledWeapon::WeaponGreatHand:
+		case TiledWeapon::WeaponLongsword:
+		case TiledWeapon::WeaponShield:
+		case TiledWeapon::WeaponInvalid:
+			break;
+	}
+
+	if (msg.isEmpty())
+		return;
+
+	m_game->messageColor(msg, QColor::fromRgbF(0.8, 0., 0.));
 }
 
 

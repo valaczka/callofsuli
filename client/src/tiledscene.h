@@ -32,6 +32,7 @@
 #include "libtiledquick/maploader.h"
 #include "tiledobject.h"
 #include <QQuickItem>
+#include <QElapsedTimer>
 
 
 class TiledGame;
@@ -141,6 +142,13 @@ public:
 
 private:
 	struct DynamicZ {
+		DynamicZ(const QString &_name, const QVector<QRectF> &_areas, const int &_z)
+			: name(_name)
+			, areas(_areas)
+			, z(_z)
+		{}
+		DynamicZ() {}
+
 		QString name;
 		QVector<QRectF> areas;
 		int z = 1;
@@ -163,6 +171,7 @@ private:
 	int m_sceneId = -1;
 
 	std::vector<DynamicZ> m_dynamicZList;
+	QElapsedTimer m_worldStepTimer;
 
 	friend class TiledGame;
 };

@@ -193,11 +193,11 @@ signals:
 	void maxHpChanged() override final;
 
 protected:
-	virtual void entityWorldStep() {}
+	virtual void entityWorldStep(const qreal &factor) { Q_UNUSED(factor); }
 
-	void worldStep() override final {
+	void worldStep(const qreal &factor) override final {
 		entityIfaceWorldStep(position(), m_availableDirections);
-		entityWorldStep();
+		entityWorldStep(factor);
 	};
 
 };
