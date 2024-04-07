@@ -52,6 +52,9 @@ Item
 					case GameMap.Action:
 						t += qsTr(" [akció]")
 						break
+					case GameMap.Rpg:
+						t += qsTr(" [RPG]")
+						break
 					case GameMap.Lite:
 						t += qsTr(" [feladatmegoldás]")
 						break

@@ -252,8 +252,10 @@ void TiledGame::setCurrentScene(TiledScene *newCurrentScene)
 	if (m_currentScene == newCurrentScene)
 		return;
 
-	if (m_currentScene)
-		m_currentScene->stopMusic();
+	if (m_currentScene) {
+		if (!newCurrentScene || newCurrentScene->m_ambientSound != m_currentScene->m_ambientSound)
+			m_currentScene->stopMusic();
+	}
 
 	m_currentScene = newCurrentScene;
 	emit currentSceneChanged();
@@ -564,37 +566,45 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 
 	switch (key) {
 		case Qt::Key_Left:
+		case Qt::Key_4:
 			dx = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_Right:
+		case Qt::Key_6:
 			dx = isSlow ? 0.8 : 1.;
 			break;
 
 		case Qt::Key_Up:
+		case Qt::Key_8:
 			dy = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_Down:
+		case Qt::Key_2:
 			dy = isSlow ? 0.8 : 1.;
 			break;
 
 		case Qt::Key_Home:
+		case Qt::Key_7:
 			dx = isSlow ? 0.2 : 0.;
 			dy = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_End:
+		case Qt::Key_1:
 			dx = isSlow ? 0.2 : 0.;
 			dy = isSlow ? 0.8 : 1.;
 			break;
 
 		case Qt::Key_PageUp:
+		case Qt::Key_9:
 			dx = isSlow ? 0.8 : 1.;
 			dy = isSlow ? 0.2 : 0.;
 			break;
 
 		case Qt::Key_PageDown:
+		case Qt::Key_3:
 			dx = isSlow ? 0.8 : 1.;
 			dy = isSlow ? 0.8 : 1.;
 			break;
@@ -627,19 +637,27 @@ void TiledGame::keyReleaseEvent(QKeyEvent *event)
 
 	switch (key) {
 		case Qt::Key_Left:
+		case Qt::Key_4:
 		case Qt::Key_Right:
+		case Qt::Key_6:
 			dx = 0.5;
 			break;
 
 		case Qt::Key_Up:
+		case Qt::Key_8:
 		case Qt::Key_Down:
+		case Qt::Key_2:
 			dy = 0.5;
 			break;
 
 		case Qt::Key_Home:
+		case Qt::Key_7:
 		case Qt::Key_End:
+		case Qt::Key_1:
 		case Qt::Key_PageUp:
+		case Qt::Key_9:
 		case Qt::Key_PageDown:
+		case Qt::Key_3:
 			dx = 0.5;
 			dy = 0.5;
 			break;

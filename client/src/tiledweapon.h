@@ -62,6 +62,7 @@ class TiledWeapon : public QObject
 	Q_PROPERTY(bool canHit READ canHit WRITE setCanHit NOTIFY canHitChanged FINAL)
 	Q_PROPERTY(QString icon READ icon WRITE setIcon NOTIFY iconChanged FINAL)
 	Q_PROPERTY(qint64 repeaterIdle READ repeaterIdle WRITE setRepeaterIdle NOTIFY repeaterIdleChanged FINAL)
+	Q_PROPERTY(bool excludeFromLayers READ excludeFromLayers WRITE setExcludeFromLayers NOTIFY excludeFromLayersChanged FINAL)
 
 public:
 	enum WeaponType {
@@ -122,6 +123,9 @@ public:
 	int maxBulletCount() const;
 	void setMaxBulletCount(int newMaxBulletCount);
 
+	bool excludeFromLayers() const;
+	void setExcludeFromLayers(bool newExcludeFromLayers);
+
 signals:
 	void parentObjectChanged();
 	void bulletCountChanged();
@@ -130,6 +134,8 @@ signals:
 	void iconChanged();
 	void repeaterIdleChanged();
 	void maxBulletCountChanged();
+
+	void excludeFromLayersChanged();
 
 protected:
 	virtual IsometricBullet *createBullet() = 0;
@@ -142,6 +148,7 @@ protected:
 	bool m_canHit = false;
 	QString m_icon;
 	qint64 m_repeaterIdle = 125;
+	bool m_excludeFromLayers = false;
 
 private:
 	const WeaponType m_weaponType;

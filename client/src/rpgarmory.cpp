@@ -321,7 +321,7 @@ void RpgArmory::updateLayers()
 
 	QStringList layers = m_baseLayers;
 
-	if (m_currentWeapon) {
+	if (m_currentWeapon && !m_currentWeapon->excludeFromLayers()) {
 		switch (m_currentWeapon->weaponType()) {
 			case TiledWeapon::WeaponShortbow:
 				layers.append(QStringLiteral("shortbow"));
@@ -345,11 +345,32 @@ void RpgArmory::updateLayers()
 
 	if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
 							   [](TiledWeapon *w) {
-							   return w->weaponType() == TiledWeapon::WeaponShield;
+							   return w->weaponType() == TiledWeapon::WeaponShield && !w->excludeFromLayers();
 }); it != m_weaponList->cend()) {
 		if ((*it)->bulletCount() > 0)
 			layers.append(QStringLiteral("shield"));
 	}
 
 	handler->setVisibleLayers(layers);
+}
+
+
+
+/**
+ * @brief RpgArmory::getShieldCount
+ * @return
+ */
+
+int RpgArmory::getShieldCount() const
+{
+	int n = 0;
+
+	for (TiledWeapon *w : *m_weaponList) {
+		if (w->weaponType() == TiledWeapon::WeaponShield) {
+			if (w->bulletCount() > 0)
+				n += w->bulletCount();
+		}
+	}
+
+	return n;
 }

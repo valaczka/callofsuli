@@ -128,7 +128,7 @@ bool RpgShieldPickable::playerPick(RpgPlayer *player)
 	if (!player)
 		return false;
 
-	static const int num = 5;
+	static const int num = 2;
 
 	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShield);
 

@@ -29,10 +29,11 @@
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
 #include "rpggame.h"
+#include "utils_.h"
 #include <QDirIterator>
 
 
-QStringList RpgPlayer::m_availableCharacters;
+QVector<RpgPlayer::CharacterData> RpgPlayer::m_availableCharacters;
 
 
 /**
@@ -102,7 +103,7 @@ RpgPlayer::~RpgPlayer()
 RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const QString &character)
 {
 	RpgPlayer *player = nullptr;
-	TiledObjectBase::createFromCircle<RpgPlayer>(&player, QPointF{}, 50, nullptr, game);
+	TiledObjectBase::createFromCircle<RpgPlayer>(&player, QPointF{}, 30, nullptr, game);
 
 	if (player) {
 		player->setParent(game);
@@ -129,8 +130,23 @@ void RpgPlayer::reloadAvailableCharacters()
 
 	QDirIterator it(QStringLiteral(":/rpg"), {QStringLiteral("character.json")}, QDir::Files, QDirIterator::Subdirectories);
 
-	while (it.hasNext())
-		m_availableCharacters.append(it.next().section('/',-2,-2));
+	while (it.hasNext()) {
+		const QString &f = it.next();
+
+		CharacterData data;
+		data.id = f.section('/',-2,-2);
+
+		if (const auto &ptr = Utils::fileToJsonObject(f)) {
+			const QString &name = ptr->value(QStringLiteral("name")).toString();
+			data.displayName = name.isEmpty() ? f : name;
+
+			if (const QString &image = ptr->value(QStringLiteral("image")).toString(); !image.isEmpty()) {
+				data.image = QStringLiteral("qrc:/")+f.section('/', 1, -2).append('/').append(image);
+			}
+		}
+
+		m_availableCharacters.append(data);
+	}
 
 	LOG_CDEBUG("game") << "...loaded " << m_availableCharacters.size() << " characters";
 }
@@ -154,7 +170,7 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 			playAttackEffect(weapon);
 
 		if (weapon->bulletCount() == 0)
-			messageEmptyBullet(weapon);
+			messageEmptyBullet(weapon->weaponType());
 
 	} else if (weapon->canHit()) {
 		if (!hasAbility())
@@ -162,6 +178,8 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 
 		if (weapon->hit(enemy()))
 			playAttackEffect(weapon);
+	} else {
+		m_game->messageColor(tr("Empty weapon"), QColor::fromRgbF(0.8, 0., 0.));
 	}
 }
 
@@ -183,12 +201,6 @@ void RpgPlayer::pick(RpgPickableObject *object)
 }
 
 
-/**
- * @brief RpgPlayer::pickCurrentObject
- */
-
-
-
 
 
 
@@ -205,7 +217,12 @@ void RpgPlayer::load()
 {
 	setAvailableDirections(Direction_8);
 
-	if (m_character.isEmpty() || !m_availableCharacters.contains(m_character)) {
+	auto ptr = std::find_if(m_availableCharacters.cbegin(), m_availableCharacters.cend(),
+							[this](const CharacterData &d) {
+		return d.id == m_character;
+	});
+
+	if (ptr == m_availableCharacters.cend()) {
 		LOG_CERROR("game") << "Invalid character:" << m_character;
 		return;
 	}
@@ -229,6 +246,8 @@ void RpgPlayer::load()
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgPlayer::onCurrentSpriteChanged);
 
 	m_armory->updateLayers();
+
+	setShieldCount(m_armory->getShieldCount());
 }
 
 
@@ -275,6 +294,8 @@ bool RpgPlayer::protectWeapon(const TiledWeapon::WeaponType &weaponType)
 	if (r)
 		m_armory->updateLayers();
 
+	setShieldCount(m_armory->getShieldCount());
+
 	return r;
 }
 
@@ -311,7 +332,7 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 				jumpToSprite("hurt", m_currentDirection);
 			});
 		}
-		startInabililty();
+		startInability();
 	}
 
 	m_armory->updateLayers();
@@ -461,17 +482,14 @@ void RpgPlayer::playShieldEffect()
 
 /**
  * @brief RpgPlayer::messageEmptyBullet
- * @param weapon
+ * @param weaponType
  */
 
-void RpgPlayer::messageEmptyBullet(TiledWeapon *weapon)
+void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 {
-	if (!weapon)
-		return;
-
 	QString msg;
 
-	switch (weapon->weaponType()) {
+	switch (weaponType) {
 		case TiledWeapon::WeaponLongbow:
 			msg = tr("All fireballs lost");
 			break;
@@ -479,10 +497,13 @@ void RpgPlayer::messageEmptyBullet(TiledWeapon *weapon)
 			msg = tr("All arrows lost");
 			break;
 
+		case TiledWeapon::WeaponShield:
+			msg = tr("All shields lost");
+			break;
+
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
-		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}
@@ -491,6 +512,28 @@ void RpgPlayer::messageEmptyBullet(TiledWeapon *weapon)
 		return;
 
 	m_game->messageColor(msg, QColor::fromRgbF(0.8, 0., 0.));
+}
+
+
+/**
+ * @brief RpgPlayer::shieldCount
+ * @return
+ */
+
+int RpgPlayer::shieldCount() const
+{
+	return m_shieldCount;
+}
+
+void RpgPlayer::setShieldCount(int newShieldCount)
+{
+	if (m_shieldCount == newShieldCount)
+		return;
+	m_shieldCount = newShieldCount;
+	emit shieldCountChanged();
+
+	if (m_shieldCount == 0)
+		messageEmptyBullet(TiledWeapon::WeaponShield);
 }
 
 

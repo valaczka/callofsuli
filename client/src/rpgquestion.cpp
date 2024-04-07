@@ -133,16 +133,12 @@ void RpgQuestion::questionSuccess(const QVariantMap &answer)
 
 	m_game->addStatistics(gq->module(), gq->objectiveUuid(), true, gq->elapsedMsec());
 
-	//int xp = gq->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * (qreal) ACTION_GAME_BASE_XP;
-	//setXp(m_xp+xp);
+	int xp = gq->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * 10.;
+
+	m_game->onQuestionSuccess(m_player, m_enemy, xp);
 
 	gq->answerReveal(answer);
 	gq->setMsecBeforeHide(0);
-
-	if (m_enemy)
-		m_enemy->setHp(0);
-		//m_enemy->attackedByPlayer(m_player, m_weaponType);
-
 	gq->finish();
 }
 
@@ -165,11 +161,10 @@ void RpgQuestion::questionFailed(const QVariantMap &answer)
 
 	m_game->addStatistics(gq->module(), gq->objectiveUuid(), false, gq->elapsedMsec());
 
+	m_game->onQuestionFailed(m_player, m_enemy);
+
 	gq->answerReveal(answer);
 	gq->setMsecBeforeHide(1250);
-
-	if (m_player)
-		m_player->setHp(std::max(0, m_player->hp()-1));
 
 	gq->finish();
 }

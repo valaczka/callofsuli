@@ -125,7 +125,7 @@ template<typename T>
 T *RpgPickableObject::createPickable(QQuickItem *parent)
 {
 	T* e = nullptr;
-	TiledObjectBase::createFromCircle<T>(&e, QPointF{}, 40, nullptr, parent);
+	TiledObjectBase::createFromCircle<T>(&e, QPointF{}, 70, nullptr, parent);
 	return e;
 }
 

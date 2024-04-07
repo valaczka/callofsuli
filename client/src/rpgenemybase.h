@@ -39,12 +39,15 @@ class RpgEnemyBase : public IsometricEnemy, public RpgEnemyIface
 
 public:
 	explicit RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent = nullptr);
-	explicit RpgEnemyBase(QQuickItem *parent = nullptr) : RpgEnemyBase(RpgEnemyIface::EnemyTest, parent) {}
+	explicit RpgEnemyBase(QQuickItem *parent = nullptr) : RpgEnemyBase(RpgEnemyIface::EnemyInvalid, parent) {}
 	virtual ~RpgEnemyBase();
 
 	TiledWeapon *defaultWeapon() const override;
 	virtual QList<TiledWeapon*> throwableWeapons() const override;
 	virtual void throwWeapon(TiledWeapon *weapon) override;
+
+	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
+									IsometricPlayer *player = nullptr) const override;
 
 signals:
 
@@ -52,17 +55,13 @@ protected:
 	void updateSprite() override final;
 
 	void load() override final;
-	void eventPlayerReached(IsometricPlayer */*player*/) override final {}
+	void eventPlayerReached(IsometricPlayer *player) override final;
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}
 
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
 
-	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
-									IsometricPlayer *player = nullptr) const override;
 
 	void playAttackEffect(TiledWeapon *weapon) override final;
-	//void playDeadEffect();
-	//void playSeeEffect();
 
 	QPointF getPickablePosition(const int &num) const override final;
 
@@ -72,9 +71,7 @@ protected:
 
 private:
 	void onCurrentSpriteChanged();
-
-	//TiledGameSfx m_sfxFootStep;
-	//TiledGameSfx m_sfxPain;
+	void loadType();
 
 	TiledEffectHealed m_effectHealed;
 };

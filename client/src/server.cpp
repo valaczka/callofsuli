@@ -390,6 +390,8 @@ void Server::setDynamicContentReady(bool newDynamicContentReady)
 	emit dynamicContentReadyChanged();
 }
 
+
+
 const QVector<Server::DynamicContent> &Server::dynamicContentList() const
 {
 	return m_contentList;

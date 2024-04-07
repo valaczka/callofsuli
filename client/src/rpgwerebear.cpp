@@ -108,7 +108,7 @@ void RpgWerebear::load()
 	switch (m_werebearType) {
 		case WerebearBrownArmor:
 			file = "werebear_brown_armor.png";
-			hp = 12;
+			hp = 11;
 			break;
 		case WerebearBrownBare:
 			file = "werebear_brown_bare.png";
@@ -118,7 +118,7 @@ void RpgWerebear::load()
 			break;
 		case WerebearWhiteArmor:
 			file = "werebear_white_armor.png";
-			hp = 12;
+			hp = 11;
 			break;
 		case WerebearWhiteBare:
 			file = "werebear_white_bare.png";
@@ -183,7 +183,7 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
 		if (weaponType != TiledWeapon::WeaponHand)
-			startInabililty();
+			startInability();
 	}
 }
 
@@ -207,7 +207,7 @@ int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weapo
 			break;
 
 		case TiledWeapon::WeaponLongbow:
-			newHp -= 3;
+			newHp = 0;
 			break;
 
 		case TiledWeapon::WeaponShortbow:

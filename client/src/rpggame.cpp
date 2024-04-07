@@ -51,9 +51,14 @@
 
 const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 	{ QStringLiteral("werebear"), EnemyWerebear },
-	{ QStringLiteral("test"), EnemyTest }
+	{ QStringLiteral("soldier01"), EnemySoldier01 },
+	{ QStringLiteral("soldier02"), EnemySoldier02 },
 };
 
+
+/// Static terrains
+
+QVector<RpgGame::TerrainData> RpgGame::m_availableTerrains;
 
 
 /// Base entity (special thanks to SKYZ0R)
@@ -223,54 +228,79 @@ RpgGame::~RpgGame()
 
 
 /**
+ * @brief RpgGame::reloadAvailableTerrains
+ */
+
+void RpgGame::reloadAvailableTerrains()
+{
+	LOG_CDEBUG("game") << "Reload available RPG terrains...";
+
+	m_availableTerrains.clear();
+
+	QDirIterator it(QStringLiteral(":/map"), {QStringLiteral("game.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext()) {
+		const QString &f = it.next();
+
+		TerrainData data;
+		data.id = f.section('/',-2,-2);
+
+		if (const auto &ptr = Utils::fileToJsonObject(f)) {
+			const QString &name = ptr->value(QStringLiteral("name")).toString();
+			data.displayName = name.isEmpty() ? data.id : name;
+
+			if (const QString &image = ptr->value(QStringLiteral("image")).toString(); !image.isEmpty()) {
+				data.image = f.section('/', 0, -2).append('/').append(image);
+			}
+
+			data.duration = ptr->value(QStringLiteral("duration")).toInt();
+		}
+
+		m_availableTerrains.append(data);
+	}
+
+	LOG_CDEBUG("game") << "...loaded " << m_availableTerrains.size() << " terrains";
+}
+
+
+
+
+
+/**
  * @brief RpgGame::load
  * @return
  */
 
 
-bool RpgGame::load(const TiledGameDefinition &def)
+bool RpgGame::load(const RpgGameDefinition &def)
 {
 	if (!TiledGame::load(def))
 		return false;
 
-
 	for (auto &e : m_enemyDataList) {
-		LOG_CINFO("game") << "CREATE ENEMY" << e.objectId.id << e.objectId.sceneId;
-
 		Q_ASSERT(!e.path.isEmpty());
 
-		IsometricEnemy *character;
+		IsometricEnemy *enemy = createEnemy(e.type, e.subtype, e.scene);
 
-		character = createEnemy(e.type, e.subtype, e.scene);
-		if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(character); iface && e.type == RpgEnemyIface::EnemyTest) {
-			auto w = iface->armory()->weaponAdd(new RpgLongsword);
-			w->setBulletCount(-1);
-			//w->setCanThrow(true);
-			iface->armory()->setCurrentWeapon(w);
-			//e.hasQuestion = true;
-		}
-
-		if (!character)
+		if (!enemy)
 			continue;
 
-		character->setObjectId(e.objectId);
+		enemy->setObjectId(e.objectId);
 
 		if (e.path.size() > 1)
-			character->loadPathMotor(e.path);
+			enemy->loadPathMotor(e.path);
 		else
-			character->loadFixPositionMotor(e.path.first(), character->nearestDirectionFromRadian(e.defaultAngle));
+			enemy->loadFixPositionMotor(e.path.first(),
+										enemy->nearestDirectionFromRadian(TiledObject::toRadian(e.defaultAngle)));
 
 
-		e.scene->appendToObjects(character);
-
-		e.enemy = character;
+		e.scene->appendToObjects(enemy);
+		e.enemy = enemy;
 	}
 
 	recalculateEnemies();
 
 	for (auto &e : m_pickableDataList) {
-		LOG_CINFO("game") << "CREATE PICKABLE" << e.objectId.id << e.objectId.sceneId;
-
 		RpgPickableObject *pickable = createPickable(e.type, e.scene);
 
 		if (!pickable)
@@ -280,9 +310,7 @@ bool RpgGame::load(const TiledGameDefinition &def)
 		pickable->body()->emplace(e.position);
 
 		e.scene->appendToObjects(pickable);
-
 		e.pickableObject = pickable;
-
 		pickable->setIsActive(true);
 	}
 
@@ -298,7 +326,7 @@ bool RpgGame::load(const TiledGameDefinition &def)
  * @return
  */
 
-std::optional<TiledGameDefinition> RpgGame::readGameDefinition(const QString &map)
+std::optional<RpgGameDefinition> RpgGame::readGameDefinition(const QString &map)
 {
 	if (map.isEmpty())
 		return std::nullopt;
@@ -308,7 +336,7 @@ std::optional<TiledGameDefinition> RpgGame::readGameDefinition(const QString &ma
 	if (!ptr)
 		return std::nullopt;
 
-	TiledGameDefinition def;
+	RpgGameDefinition def;
 	def.fromJson(ptr.value());
 
 	def.basePath = QStringLiteral("qrc:/map/").append(map);
@@ -342,22 +370,13 @@ bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const T
 	if (p->isLocked())
 		return false;
 
-	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
-
 	if (iface->protectWeapon(weaponType))
 		return false;
 
-	if (auto ptr = enemyFind(e); ptr != m_enemyDataList.end() && ptr->hasQuestion) {
-		const int &hp = e->getNewHpAfterAttack(e->hp(), weaponType, p);
-		if (hp <= 0 && m_rpgQuestion->nextQuestion(p, e, weaponType)) {
-			Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
-			return true;
-		}
-	}
-
-	e->attackedByPlayer(p, weaponType);
-
-	return true;
+	if (m_funcPlayerAttackEnemy)
+		return m_funcPlayerAttackEnemy(p, e, weaponType);
+	else
+		return false;
 }
 
 
@@ -429,6 +448,7 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 	p->removePickable(object);
 
 	p->armory()->updateLayers();
+	p->setShieldCount(p->armory()->getShieldCount());
 
 	playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), player->scene(), player->body()->bodyPosition());
 
@@ -510,7 +530,16 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 					}
 				}
 
-				it->pickables.clear();
+				for (const auto &p : it->pickablesOnce) {
+					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
+						pickable->body()->emplace(iface->getPickablePosition(num++));
+						enemy->scene()->appendToObjects(pickable);
+						pickable->setIsActive(true);
+					}
+				}
+
+				it->pickablesOnce.clear();
+
 				it->hasQuestion = false;
 			}
 		}
@@ -598,18 +627,18 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 	switch (type) {
 		case RpgEnemyIface::EnemyWerebear: {
 			RpgWerebear *e = nullptr;
-			TiledObjectBase::createFromCircle<RpgWerebear>(&e, QPointF{}, 50, nullptr, this);
+			TiledObjectBase::createFromCircle<RpgWerebear>(&e, QPointF{}, 30, nullptr, this);
 			e->setWerebearType(subtype);
 			enemy = e;
 			break;
 		}
 
-		case RpgEnemyIface::EnemyTest: {
+		case RpgEnemyIface::EnemySoldier01:
+		case RpgEnemyIface::EnemySoldier02:
+		{
 			RpgEnemyBase *e = nullptr;
-			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 50, nullptr, this);
-			if (subtype == "fix")
-				e->m_metric.pursuitSpeed = 0.;
-			//e->setWerebearType(subtype);
+			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 30, nullptr, this);
+			e->m_enemyType = type;
 			enemy = e;
 			break;
 		}
@@ -763,30 +792,25 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 
 	switch (key) {
 		case Qt::Key_S:
+		case Qt::Key_Clear:
+		case Qt::Key_5:
 			if (m_controlledPlayer && m_controlledPlayer->currentTransport())
 				transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
 			break;
 
 		case Qt::Key_Space:
+		case Qt::Key_Insert:
+		case Qt::Key_0:
 			if (m_controlledPlayer)
 				m_controlledPlayer->attackCurrentWeapon();
 			break;
 
 		case Qt::Key_Q:
+		case Qt::Key_Delete:
+		case Qt::Key_Comma:
 			if (m_controlledPlayer)
 				m_controlledPlayer->armory()->changeToNextWeapon();
 			break;
-
-
-
-			//------
-
-
-		case Qt::Key_H:
-			if (m_controlledPlayer)
-				m_controlledPlayer->setHp(m_controlledPlayer->hp()+3);
-			break;
-
 
 		case Qt::Key_Return:
 		case Qt::Key_Enter:
@@ -794,34 +818,17 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 				m_controlledPlayer->pickCurrentObject();
 			break;
 
-
-		case Qt::Key_X:
-			for (auto &e : m_enemyDataList) {
-				if (e.enemy) {
-					e.enemy->setHp(0);
+#ifndef QT_NO_DEBUG
+		case Qt::Key_N:
+			if (event->modifiers().testFlag(Qt::ShiftModifier) && event->modifiers().testFlag(Qt::ControlModifier)) {
+				for (auto &e : m_enemyDataList) {
+					if (e.enemy) {
+						e.enemy->setHp(0);
+					}
 				}
 			}
 			break;
-
-		case Qt::Key_Y:
-			for (int i=1; i<m_players.size(); ++i) {
-				m_players.at(i)->setHp(0);
-			}
-			break;
-
-
-		case Qt::Key_F2: {
-			int idx = m_players.indexOf(m_controlledPlayer);
-			++idx;
-			if (idx >= m_players.size())
-				idx = 0;
-			setFollowedItem(m_players.at(idx));
-			setControlledPlayer(m_players.at(idx));
-		}
-			break;
-
-
-			//-------
+#endif
 
 		default:
 			TiledGame::keyPressEvent(event);
@@ -889,9 +896,9 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 	QVector<RpgPickableObject::PickableType> pickableList;
 
 	if (object->hasProperty(QStringLiteral("pickable"))) {
-		const QStringList &pList = object->property(QStringLiteral("pickable")).toStringList();
+		const QStringList &pList = object->property(QStringLiteral("pickable")).toString().split(',', Qt::SkipEmptyParts);
 		for (const QString &s : pList) {
-			const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s);
+			const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
 
 			if (type == RpgPickableObject::PickableInvalid) {
 				LOG_CWARNING("scene") << "Invalid pickable type:" << s << object->id() << object->className() << object->name();
@@ -899,6 +906,22 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 			}
 
 			pickableList.append(type);
+		}
+	}
+
+	QVector<RpgPickableObject::PickableType> pickableOnceList;
+
+	if (object->hasProperty(QStringLiteral("oncePickable"))) {
+		const QStringList &pList = object->property(QStringLiteral("oncePickable")).toString().split(',', Qt::SkipEmptyParts);
+		for (const QString &s : pList) {
+			const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
+
+			if (type == RpgPickableObject::PickableInvalid) {
+				LOG_CWARNING("scene") << "Invalid pickable type:" << s << object->id() << object->className() << object->name();
+				continue;
+			}
+
+			pickableOnceList.append(type);
 		}
 	}
 
@@ -911,7 +934,8 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 							   scene,
 							   nullptr,
 							   false,
-							   pickableList
+							   pickableList,
+							   pickableOnceList
 						   });
 }
 
@@ -1035,6 +1059,8 @@ int RpgGame::recalculateEnemies()
 }
 
 
+
+
 /**
  * @brief RpgGame::enemyFind
  * @param enemy
@@ -1065,6 +1091,24 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 		return e.enemy == enemy; }
 	);
 }
+
+
+
+/**
+ * @brief RpgGame::funcPlayerAttackEnemy
+ * @return
+ */
+
+FuncPlayerAttackEnemy RpgGame::funcPlayerAttackEnemy() const
+{
+	return m_funcPlayerAttackEnemy;
+}
+
+void RpgGame::setFuncPlayerAttackEnemy(const FuncPlayerAttackEnemy &newFuncPlayerAttackEnemy)
+{
+	m_funcPlayerAttackEnemy = newFuncPlayerAttackEnemy;
+}
+
 
 
 /**

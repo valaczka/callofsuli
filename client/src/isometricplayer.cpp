@@ -269,10 +269,10 @@ void IsometricPlayer::onDead()
 
 
 /**
- * @brief IsometricPlayer::startInabililty
+ * @brief IsometricPlayer::startInability
  */
 
-void IsometricPlayer::startInabililty()
+void IsometricPlayer::startInability()
 {
 	if (m_inabilityTime > 0)
 		m_inabilityTimer.setRemainingTime(m_inabilityTime);

@@ -47,6 +47,7 @@
 #include "updater.h"
 #include "server.h"
 #include "rpgplayer.h"
+#include "rpggame.h"
 #include <QScreen>
 
 #ifdef Q_OS_ANDROID
@@ -389,6 +390,7 @@ void Client::onApplicationStarted()
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
 	RpgPlayer::reloadAvailableCharacters();
+	RpgGame::reloadAvailableTerrains();
 
 	switch (m_application->commandLine()) {
 		case Application::Demo:
@@ -430,7 +432,7 @@ void Client::onApplicationStarted()
 
 void Client::onHttpConnectionError(const QNetworkReply::NetworkError &code)
 {
-	LOG_CWARNING("client") << "Httpconnection error:" << code;
+	LOG_CWARNING("client") << "HttpConnection error:" << code;
 
 	QString errStr;
 	bool closeSocket = false;
@@ -957,8 +959,9 @@ bool Client::saveDynamicResource(const QString &name, const QByteArray &data)
 		return false;
 	}
 
-	if (server()->dynamicContentList().isEmpty())
+	if (server()->dynamicContentList().isEmpty()) {
 		server()->setDynamicContentReady(true);
+	}
 
 	return true;
 }

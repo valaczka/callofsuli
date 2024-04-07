@@ -22,7 +22,7 @@ QPage {
 			id: menu
 
 			QMenuItem { action: actionDemo }
-			QMenuItem { action: actionPageDev }
+//			QMenuItem { action: actionPageDev }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionSettings }
 			QMenuItem { action: actionAbout }

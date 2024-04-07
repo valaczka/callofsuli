@@ -51,6 +51,9 @@ public:
 	void questionFailed(const QVariantMap &answer);
 	void questionFinished();
 
+	IsometricEnemy *enemy() const { return m_enemy; }
+	RpgPlayer *player() const { return m_player; }
+
 private:
 	ActionRpgGame *const m_game;
 	QVector<Question> m_questionList;

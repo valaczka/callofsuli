@@ -29,8 +29,8 @@
 **Image & Animation**
 
 - Hyptosis tileset by Daniel Harris "Hyptosis" (http://opengameart.org/users/hyptosis, http://www.lorestrome.com/pixel_archive/main.htm)
+- 400+ Items - BaseHumanMale / Orc / Skeleton - (c) 2021 SKYZ0R (https://opengameart.org/content/400-items-basehumanmale-orc-skeleton)
 - Isometric Hero and Heroine - (c) Clint Bellanger 2011 (https://opengameart.org/content/isometric-hero-and-heroine)
-- Flare - (c) 2010-2013 Clint Bellanger (https://github.com/flareteam/flare-game)
 - Free Game Assets (https://mobilegamegraphics.com/product/airplane-dogfight-assets-free-assets)
 - Game-icons.net by Lorc, Delapouite & contributors (https://opengameart.org/content/700-rpg-icons, https://game-icons.net)
 - Hansjörg Malthaner (http://opengameart.org/users/varkalandar)
@@ -43,7 +43,6 @@
 - Animated Spinning Gems - (c) 2017 Code Inferno Games - codeinferno.com (https://opengameart.org/content/animated-spinning-gems)
 - Werebear FLARE sprite sheets - (c) 2011 John Harvey (https://opengameart.org/content/werebear-flare-sprite-sheets)
 - Bleed - (c) 2017 Remos Turcuman - (https://opengameart.org/users/bleed, http://remusprites.carbonmade.com)
-- 400+ Items - BaseHumanMale / Orc / Skeleton - (c) 2021 SKYZ0R (https://opengameart.org/content/400-items-basehumanmale-orc-skeleton)ú
 - Animated particle effects #1 - (c) 2014 para (https://opengameart.org/content/animated-particle-effects-1)
 - Trees - (c) RedFrost (https://www.blendswap.com/blends/view/78148)
 - Trees - (c) EugeneKiver (https://www.blendswap.com/blends/view/59269)
@@ -57,6 +56,7 @@
 - Isometric medieval buildings #2 - (c) 2018 rubberduck (https://opengameart.org/content/isometric-medieval-buildings-2)
 - Old ruins tileset - (c) 2018 rubberduck (https://opengameart.org/content/old-ruins-tileset, https://www.blendswap.com/blends/view/74098, https://opengameart.org/content/gate-low-poly, https://opengameart.org/content/medieval-statue, https://opengameart.org/content/wall-mounted-torch, https://cloud.blender.org/p/hdri/57ff6a49e5e20f05e23ba15b)
 - Isometric log cabins - (c) 2020 rubberduck (https://opengameart.org/content/isometric-log-cabins)
+- FREE Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
 
 
 **Music & SFX**

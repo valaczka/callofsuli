@@ -51,6 +51,8 @@ public:
 
 	void updateLayers();
 
+	int getShieldCount() const;
+
 	TiledWeaponList *weaponList() const;
 	TiledWeapon *weaponFind(const TiledWeapon::WeaponType &type) const;
 

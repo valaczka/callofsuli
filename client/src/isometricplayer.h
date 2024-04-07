@@ -109,7 +109,7 @@ protected:
 	//void updateSprite() override;
 	void onAlive() override;
 	void onDead() override;
-	void startInabililty();
+	void startInability();
 
 	virtual void createMarkerItem();
 
@@ -126,12 +126,12 @@ protected:
 
 	QDeadlineTimer m_inabilityTimer;
 	qreal m_sensorLength = 200.;
-	qreal m_sensorRange = M_PI * 0.33;
+	qreal m_sensorRange = M_PI_2;
 	qreal m_targetCircleRadius = 50.;
 	qreal m_speedLength = 4.;
 	qreal m_speedRunLength = 8.;
 	qreal m_runSpeed = 3.;
-	qint64 m_inabilityTime = 750;
+	qint64 m_inabilityTime = 200;
 	bool m_isLocked = false;
 
 

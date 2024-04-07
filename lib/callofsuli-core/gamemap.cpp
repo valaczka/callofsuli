@@ -147,12 +147,10 @@ GameMapObjective *GameMap::objective(const QString &uuid) const
 
 GameMap *GameMap::fromBinaryData(const QByteArray &data)
 {
-	GameMap *map = new GameMap();
+	std::unique_ptr<GameMap> map(new GameMap);
 
 	if (map->readBinaryData(data))
-		return map;
-
-	delete map;
+		return map.release();
 
 	return nullptr;
 }
@@ -256,7 +254,9 @@ GameMapChapterIface *GameMap::ifaceAddChapter(const qint32 &id, const QString &n
 GameMapMissionIface *GameMap::ifaceAddMission(const QByteArray &uuid, const QString &name,
 											  const QString &description, const QString &medalImage, const quint32 &gameModes)
 {
-	GameMapMission *s = new GameMapMission(uuid, name, description, medalImage, GameMap::GameModes(gameModes), this);
+	GameMapMission *s = new GameMapMission(uuid, name, description, medalImage,
+										   QVariant::fromValue(gameModes).value<GameMap::GameModes>(),
+										   this);
 
 	m_missions.append(s);
 	return s;

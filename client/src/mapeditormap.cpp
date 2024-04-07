@@ -154,7 +154,7 @@ GameMapMissionIface *MapEditorMap::ifaceAddMission(const QByteArray &uuid, const
 	d->setName(name);
 	d->setDescription(description);
 	d->setMedalImage(medalImage);
-	d->setModes((GameMap::GameModes) gameModes);
+	d->setModes(QVariant::fromValue(gameModes).value<GameMap::GameModes>());
 	m_missionList->append(d);
 	return d;
 }

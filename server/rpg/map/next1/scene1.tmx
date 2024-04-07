@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="33" nextobjectid="56">
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="34" nextobjectid="70">
  <tileset firstgid="1" source="../../tileset/groundGrass/groundGrass.tsx"/>
  <tileset firstgid="321" source="../../tileset/groundGrass/groundGrass2Shaded.tsx"/>
  <tileset firstgid="377" source="../../tileset/rockShaded1/rockShaded1.tsx"/>
@@ -7,7 +7,7 @@
  <tileset firstgid="483" source="../../tileset/building009/building.tsx"/>
  <tileset firstgid="487" source="../../tileset/building011/building.tsx"/>
  <tileset firstgid="491" source="../../tileset/groundDirt/groundDirt.tsx"/>
- <tileset firstgid="811" source="../../tileset/treeShaded4/treeShaded4.tsx"/>
+ <tileset firstgid="811" source="../../tileset/treeCloudy4/treeCloudy4.tsx"/>
  <tileset firstgid="827" source="../../tileset/direction/directionYellow.tsx"/>
  <layer id="4" name="water" width="32" height="32" locked="1">
   <data encoding="base64" compression="zlib">
@@ -16,12 +16,12 @@
  </layer>
  <layer id="3" name="rockWall" width="32" height="32" locked="1">
   <data encoding="base64" compression="zlib">
-   eJztVj1vwlAMTH42dGu7QUgqmBBMEZkC/VCHUCCAaMXfwlbPkmWlHSphV2ot3fScd7affU6S/C1bpUkyTeP4C+K+DeZvAmtQEe+WsCbMgmLIiffo/A5L4hoAB8KJcOfIz+9+Jjyh/u+Ee2f+Z8KEUBJ6hAdn/iaw5xbEu3OuubUcczcPrMEmWP9y57nr4o/qgRW0Jyp/nsGPoPxr4txD/zx1R0xyj6p9Cd1/C9TA37D7pQ4eGsTzNiRk2PuSc4F3uKYOS7+/YNfu1P6TGvykF+U/ZvhN/EtwP2Lfs1WG0+pgjXsz3K3rpc/53lfskeaLGEaGW74/4N2lNjr/AtrAteqrWckML5+P0898NsZH4m47NE77t/gXGiufkenJCnEwbgCrWwvlI+jBd2J82Uqc9RV3jfhbp5noikli74r5365rF98mb2M=
+   eJztVk1rwkAQTX628VZ7S2IiehJ7CsmpWpUe0vpZVPxbvqVvYFliBMGdgh14p2z2zbzdebNB8FwxC4NgHOrx5+B+UeavFTWowLsGvoCJUg4ZeH88n8MUXDGxBw5AzyO/OfczMKf+R+DVM/8CGAEF0AEGnvlrxTtXgnfjWXM3Mvbdm6IGK2X/yzz3XRO/1h2Y0Xu06jc9eFKq/x2cO/qfT9+RkNq1tC/o+9+KHvgXZr/o4MODTL8lQMq5LzXnPIdH+rDc9yVn7caaf6LBPXdR3jFJS/5Tcn9w3puoHM4mH4ypVeLoJfXE3PeTc6S+kkPf4Zb/9zx30cau38ymiFpFVq+kDq/5Pgx/61k5ayTvbUNt9vot30LDFv0r5mHQJVzfKq01gg7Xjhr2LvgtusH9H88TF11maNc=
   </data>
  </layer>
  <layer id="5" name="rockWallOver" width="32" height="32" locked="1">
   <data encoding="base64" compression="zlib">
-   eJzlV8sOgjAQpP//VaW8xFc8WAQF/RR3k9m4NsSDid2Dm2xoWGCm03ZaiuK/YnBFcXF2+A/C3hnht4RbUl6NNKgIs6bsKO8GHLj/zKEFbs5x8NC+BgeOfWZ8jpmuC9qHzPiMfaaMlBu0c+JbzXvB5/HPqXkawWjdafzG0P9Yfx6HnOtOh/UcYN8Nhv1vDXxHYoDvzpl9R+Jk4Pk6ouG+K1Eac/DALzN4UI1zhpx3AtLj3i818O511hqx1y6KRwMNvpmLoqGcpdbqAbVRrbUIDsKtS3zwiFqDFAxpyzsd1vCktJT7Hu+EBJuD1//Dvfh1Sf+P+C5r1YNrpbBrVZczzAQdS/CsFIfU4+R50Sb1ofS/IIIH5xa55lu9e8/Nh2cjar2qsy439NNiX9b9tPDlf48nMV+ZRQ==
+   eJztVlsKwjAQbO5/qjT2YX2AH6Y+aPUo7sIMxlIUBLOCDgyGJnUmm2Saovgt9K4oDs5O/yraayP9RnRL4dmoBgvRrISt8GLgQeevHhro5lwHj9pX8KDYZNZXDPI7or3NrK/ae2EULtHOqW+176mv65+z5lMEo3OX6teG+af113XIee5SWO8Bzd1gOP/GIHeIHrk7ZM4dYmeQ+Smi4XeXKI09eOiXGTKowj2D950Aejz7ZA28u9+1jvjWjomPGjV4Zy+yhrxLzfUH9B2Tsxbhgd7aSQ726KtBarDNd1qc4VNSSz73eCdMtPn/V3f3187Mv0OtOnhdJNoVdHlvifBQgjXG0cM04zietXmVQxE+lCtwbnznHrl8MjairzPKwD++Dzc0iJAu
   </data>
  </layer>
  <layer id="1" name="grass" width="32" height="32" locked="1">
@@ -123,14 +123,14 @@
    eJztzgENAAAIA6Dbv6ZBjKFukIAEAAC4rmt7AHw35JQA5g==
   </data>
  </layer>
- <layer id="17" name="building06" width="32" height="32">
-  <data encoding="base64" compression="zlib">
-   eJztzjENAAAIA7DhXyc++LlJeFoFTQDgVtf3AACAbQC5zwDn
-  </data>
- </layer>
  <layer id="7" name="building07" width="32" height="32">
   <data encoding="base64" compression="zlib">
    eJztzjERAAAIBKC3f02DOJjBc4EEJMCVru8BAADAGlvEAOY=
+  </data>
+ </layer>
+ <layer id="17" name="building06" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztzjENAAAIA7DhXyc++LlJeFoFTQDgVtf3AACAbQC5zwDn
   </data>
  </layer>
  <layer id="11" name="tree05" width="32" height="32">
@@ -143,43 +143,119 @@
    eJztzjENAAAIA7Al+MG/PG5+Ep5WQRMAAOBa1/cAYBvxFQAy
   </data>
  </layer>
+ <objectgroup color="#ff0000" id="30" name="enemy">
+  <object id="45" type="soldier01" x="1247.33" y="1248.67">
+   <polygon points="0,0 -26,140.667 -124,254.667 -393.333,230.667 -540,94.6667 -567.333,-123.333 -342.667,-145.333"/>
+  </object>
+  <object id="46" type="soldier01" x="196" y="852">
+   <properties>
+    <property name="pickable" value="shield,hp,arrow"/>
+   </properties>
+   <polygon points="0,0 67.3333,196.667 387.333,260.667 394.667,21.3333 256,-173.333 -6.66667,-164"/>
+  </object>
+  <object id="47" type="soldier01" x="136.667" y="1356.67">
+   <polyline points="0,0 265.333,137.333 439.333,51.3333"/>
+  </object>
+  <object id="48" type="soldier02" x="154" y="152.667">
+   <properties>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <polyline points="0,0 115.333,324.667 379.333,236.667 402.667,-21.3333"/>
+  </object>
+  <object id="49" type="soldier02" x="1006" y="775.333">
+   <properties>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <polyline points="0,0 -192,77.3333 -458,-107.333 -886.667,-108"/>
+  </object>
+  <object id="50" type="soldier01" x="1028" y="113.333">
+   <properties>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <polyline points="0,0 200,221.333 135.333,392.667 140.667,520.667 340,809.333 664.667,1170 769.333,1286.67 710,1394"/>
+  </object>
+  <object id="51" type="werebear" x="502.667" y="116">
+   <properties>
+    <property name="pickable" value="hp"/>
+   </properties>
+   <polyline points="0,0 369.333,44 462,463.333 1047.33,758 601.337,948 218.667,528 606,386 502.667,6.66667"/>
+  </object>
+  <object id="66" type="soldier02" x="667" y="573">
+   <properties>
+    <property name="direction" type="int" value="225"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="67" type="soldier02" x="1670" y="778">
+   <properties>
+    <property name="direction" type="int" value="135"/>
+    <property name="pickable" value="time"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="69" type="soldier02" x="147" y="965">
+   <properties>
+    <property name="direction" type="int" value="315"/>
+   </properties>
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="33" name="transport">
+  <object id="59" name="gate1" type="gate" x="932" y="15" width="159" height="77.5"/>
+ </objectgroup>
+ <objectgroup color="#ffff00" id="31" name="other">
+  <object id="52" type="player" x="1669.33" y="276">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#55ff00" id="32" name="pickable">
+  <object id="53" type="longsword" x="1327.33" y="139.333">
+   <point/>
+  </object>
+  <object id="54" type="shortbow" x="895.333" y="664.667">
+   <point/>
+  </object>
+  <object id="55" type="arrow" x="1364" y="1214.67">
+   <point/>
+  </object>
+ </objectgroup>
  <objectgroup id="23" name="ground">
-  <object id="1" name="building02" x="324" y="1286.25" width="87.75" height="94.75">
+  <object id="1" name="building02" x="314.667" y="1280.58" width="130.083" height="119.75">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="2" name="building05" x="840.25" y="1282" width="103.75" height="111.75">
+  <object id="2" name="building05" x="833.583" y="1274" width="118.75" height="133.083">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="3" name="building03" x="385.75" y="840.5" width="115.75" height="107.75">
+  <object id="3" name="building03" x="382.083" y="840.5" width="127.083" height="109.083">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="4" name="building04" x="641" y="325.5" width="106.5" height="175.5">
+  <object id="4" name="building04" x="632.333" y="325.5" width="115.167" height="175.5">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="5" name="building04" x="744" y="325.25" width="73.5" height="122">
+  <object id="5" name="building04" x="744" y="325.25" width="83.5" height="122">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="6" name="building01" x="326.25" y="131.5" width="109.25" height="116.25">
+  <object id="6" name="building01" x="326.25" y="126.167" width="109.25" height="126.583">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="7" name="building06" x="1415.33" y="583" width="105.667" height="107">
+  <object id="7" name="building06" x="1411" y="575.667" width="124.667" height="122">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
   </object>
-  <object id="8" name="building07" x="1482.33" y="198.667" width="101.667" height="112">
+  <object id="8" name="building07" x="1475.33" y="193.667" width="120" height="124.333">
    <properties>
     <property name="opaque" type="bool" value="true"/>
    </properties>
@@ -194,22 +270,13 @@
    <polygon points="4.33333,14.3333 -20,-302.667 159.333,-414 310.333,-267.667 303.333,24.6667"/>
   </object>
   <object id="18" x="1280.67" y="1612.67">
-   <polygon points="0,0 -6,-127.333 136.667,-270 268.667,-274 374,-136.667 320.667,-88.6667 392.667,7.33333"/>
+   <polygon points="0,0 -6,-127.333 136.667,-270 268.667,-274 374,-136.667 313.667,-83"/>
   </object>
   <object id="19" x="1780" y="1606.67">
    <polygon points="0,0 74.6667,-96 86.6667,1.33333"/>
   </object>
   <object id="20" x="1876.67" y="1366">
-   <polygon points="0,0 -96.6667,-95.3333 -96,-168 -226.667,-288 -222.667,-369.333 8.66667,-235.333"/>
-  </object>
-  <object id="21" x="1654.67" y="1001.33">
-   <polygon points="0,0 58,-60.6667 72.6667,-366 1.70833,-426.625 222.667,-332 231.333,123.333"/>
-  </object>
-  <object id="22" x="1653.33" y="574.667">
-   <polygon points="2.8125,-0.3125 0.666667,-74 -49,-101.667 -66,-150 68.3333,-264.333 127.333,-200.667"/>
-  </object>
-  <object id="23" x="1651.33" y="574">
-   <polygon points="4.9375,0.5625 130,-200.667 214,-199.333 227,98.3333"/>
+   <polygon points="-15,-86 -226.667,-288 -222.667,-369.333 -155.333,-419.333 -10.6667,-305.333"/>
   </object>
   <object id="24" x="1861.67" y="194.333">
    <polygon points="0,0 -126.5,-107.5 -142.333,-209.667 2.16667,-206.833"/>
@@ -226,44 +293,20 @@
   <object id="40" name="tree07" x="1402.56" y="399.377" width="9.60227" height="7.85227"/>
   <object id="41" name="tree06" x="1019.31" y="389.688" width="14" height="14.125"/>
   <object id="42" name="tree08" x="1708.44" y="1393.06" width="10.875" height="9.125"/>
- </objectgroup>
- <objectgroup color="#ff0000" id="30" name="enemy">
-  <object id="45" type="test" x="1247.33" y="1248.67">
-   <polygon points="0,0 -26,140.667 -124,254.667 -393.333,230.667 -540,94.6667 -567.333,-123.333 -342.667,-145.333"/>
+  <object id="60" x="1782" y="372.667">
+   <polygon points="0,0 -60,-66.6667 -195,72.3333 -120,133.333"/>
   </object>
-  <object id="46" type="test" x="196" y="852">
-   <polygon points="0,0 67.3333,196.667 387.333,260.667 394.667,21.3333 256,-173.333 -6.66667,-164"/>
+  <object id="61" x="1655" y="571.667">
+   <polygon points="3.20833,0.458333 5.66667,-67 124.909,-198.848 201.182,-196.212 199,89 66.1042,63.0625"/>
   </object>
-  <object id="47" type="test" x="136.667" y="1356.67">
-   <polyline points="0,0 265.333,137.333 439.333,51.3333"/>
+  <object id="63" x="1783" y="1269">
+   <polygon points="1,6 8,-64 82.25,2.75 76.5,72.5"/>
   </object>
-  <object id="48" type="test" x="154" y="152.667">
-   <polyline points="0,0 115.333,324.667 379.333,236.667 402.667,-21.3333"/>
+  <object id="64" x="1601" y="1520.33">
+   <polygon points="-57,-49.6667 73.6667,97 -308.667,75.3333"/>
   </object>
-  <object id="49" type="test" x="1006" y="775.333">
-   <polyline points="0,0 -192,77.3333 -458,-107.333 -886.667,-108"/>
-  </object>
-  <object id="50" type="test" x="1028" y="113.333">
-   <polyline points="0,0 200,221.333 135.333,392.667 140.667,520.667 340,809.333 664.667,1170 769.333,1286.67 710,1394"/>
-  </object>
-  <object id="51" type="werebear" x="502.667" y="116">
-   <polyline points="0,0 369.333,44 462,463.333 1047.33,758 1126.67,542.667 996.667,334 723.333,343.333 452,4"/>
-  </object>
- </objectgroup>
- <objectgroup color="#ffff00" id="31" name="other">
-  <object id="52" type="player" x="1709.33" y="208">
-   <point/>
-  </object>
- </objectgroup>
- <objectgroup color="#55ff00" id="32" name="pickable">
-  <object id="53" type="longsword" x="1327.33" y="139.333">
-   <point/>
-  </object>
-  <object id="54" type="shortbow" x="895.333" y="664.667">
-   <point/>
-  </object>
-  <object id="55" type="arrow" x="1364" y="1214.67">
-   <point/>
+  <object id="65" x="1861.33" y="660">
+   <polygon points="0,0 -142.333,-31 -141,291.667 6.66667,406.667"/>
   </object>
  </objectgroup>
 </map>

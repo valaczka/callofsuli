@@ -82,9 +82,9 @@ protected:
 		bool rotateToPlayer = true;
 		qint64 inabilityTime = 1250;			// Inability after hit
 		qint64 firstAttackTime = 350;			// First attack to player
-		qint64 autoAttackTime = 1500;			// Repeated attack to player
+		qint64 autoAttackTime = 750;			// Repeated attack to player
 
-		qreal sensorLength = 450.;
+		qreal sensorLength = 650.;
 		qreal sensorRange = M_PI*2./3.;
 		qreal targetCircleRadius = 0.;
 	};
@@ -124,6 +124,9 @@ public:
 
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
 
+	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
+									IsometricPlayer *player = nullptr) const = 0;
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -141,7 +144,7 @@ protected:
 	void onAlive() override;
 	void onDead() override;
 
-	void startInabililty();
+	void startInability();
 
 	virtual void eventPlayerReached(IsometricPlayer *player) = 0;
 	virtual void eventPlayerLeft(IsometricPlayer *player) = 0;
@@ -151,8 +154,6 @@ protected:
 	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
 	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
 
-	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
-									IsometricPlayer *player = nullptr) const = 0;
 
 	void stepMotor(const qreal &factor);
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);

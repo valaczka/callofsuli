@@ -119,10 +119,10 @@ void IsometricEnemy::attackedByPlayer(IsometricPlayer *player, const TiledWeapon
 
 
 /**
- * @brief IsometricEnemy::startInabililty
+ * @brief IsometricEnemy::startInability
  */
 
-void IsometricEnemy::startInabililty()
+void IsometricEnemy::startInability()
 {
 	if (m_metric.inabilityTime > 0)
 		m_inabilityTimer.setRemainingTime(m_metric.inabilityTime);
@@ -726,7 +726,8 @@ void IsometricEnemyIface::removeContactedPlayer(IsometricPlayer *player)
 	if (!player)
 		return;
 
-	m_contactedPlayers.removeAll(QPointer(player));
+	m_contactedPlayers.removeAll(player);
+	m_reachedPlayers.removeAll(player);
 }
 
 

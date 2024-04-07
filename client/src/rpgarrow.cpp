@@ -123,7 +123,7 @@ bool RpgArrowPickable::playerPick(RpgPlayer *player)
 	if (!player)
 		return false;
 
-	static const int num = 5;
+	static const int num = 10;
 
 	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
 

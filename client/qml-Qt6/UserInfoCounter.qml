@@ -97,6 +97,9 @@ Qaterial.Expandable {
 								case GameMap.Action:
 									qsTr("Akciójáték")
 									break
+								case GameMap.Rpg:
+									qsTr("RPG")
+									break
 								case GameMap.Lite:
 									qsTr("Feladatmegoldás")
 									break

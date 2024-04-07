@@ -330,6 +330,19 @@ void TiledWeapon::setMaxBulletCount(int newMaxBulletCount)
 	emit maxBulletCountChanged();
 }
 
+bool TiledWeapon::excludeFromLayers() const
+{
+	return m_excludeFromLayers;
+}
+
+void TiledWeapon::setExcludeFromLayers(bool newExcludeFromLayers)
+{
+	if (m_excludeFromLayers == newExcludeFromLayers)
+		return;
+	m_excludeFromLayers = newExcludeFromLayers;
+	emit excludeFromLayersChanged();
+}
+
 
 
 /**

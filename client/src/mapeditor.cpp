@@ -34,8 +34,8 @@
 #include "abstractlevelgame.h"
 #include "gameterrain.h"
 #include "utils_.h"
-#include "tar_to_stream.h"
 #include <sstream>
+#include "rpggame.h"
 
 #ifdef Q_OS_WASM
 #include "onlineclient.h"
@@ -155,7 +155,7 @@ void MapEditor::saveAs(const QUrl &file, const bool &createNew)
 	QByteArray data = m_map->toBinaryData(true);
 
 	if (createNew) {
-		GameMap *m = GameMap::fromBinaryData(data);
+		std::unique_ptr<GameMap> m(GameMap::fromBinaryData(data));
 
 		if (!m)
 			return m_client->messageError(tr("Hiba történt"));
@@ -163,8 +163,6 @@ void MapEditor::saveAs(const QUrl &file, const bool &createNew)
 		m->regenerateUuids();
 
 		data = m->toBinaryData(true);
-
-		delete m;
 	}
 
 
@@ -443,11 +441,24 @@ QStringList MapEditor::checkMap() const
 
 	for (MapEditorMission *m : *m_map->missionList()) {
 		for (MapEditorMissionLevel *ml : *m->levelList()) {
-			if (!GameTerrain::terrainAvailable(ml->terrain()))
-				errList.append(tr("Érvénytelen harcmező: %1 (%2 level %3)")
-							   .arg(ml->terrain())
-							   .arg(ml->editorMission()->name())
-							   .arg(ml->level()));
+			if (m->modes().testFlag(GameMap::Rpg)) {
+				const auto &tList = RpgGame::availableTerrains();
+
+				if (auto ptr = std::find_if(tList.cbegin(), tList.cend(), [t = ml->terrain()](const RpgGame::TerrainData &tdata){
+											return tdata.id == t;
+			}); ptr == tList.end()) {
+					errList.append(tr("Érvénytelen harcmező: %1 (%2 level %3)")
+								   .arg(ml->terrain())
+								   .arg(ml->editorMission()->name())
+								   .arg(ml->level()));
+				}
+			} else if (m->modes().testFlag(GameMap::Action)) {
+				if (!GameTerrain::terrainAvailable(ml->terrain()))
+					errList.append(tr("Érvénytelen harcmező: %1 (%2 level %3)")
+								   .arg(ml->terrain())
+								   .arg(ml->editorMission()->name())
+								   .arg(ml->level()));
+			}
 
 			for (MapEditorInventory *i : *ml->inventoryList()) {
 				if (!GamePickable::pickableDataHash().contains(i->module()))
@@ -1331,7 +1342,7 @@ QVariantList MapEditor::storageListAllModel() const
 
 	keys.sort();
 
-	foreach (const QString &k, keys) {
+	for (const QString &k : keys) {
 		const ModuleInterface *iface = Application::instance()->storageModules().value(k);
 		if (!iface)
 			continue;
@@ -1358,13 +1369,39 @@ QVariantList MapEditor::terrainListModel() const
 {
 	QVariantList list;
 
-	foreach (const GameTerrain &t, GameTerrain::availableTerrains()) {
+	for (const GameTerrain &t : GameTerrain::availableTerrains()) {
 		list.append(QVariantMap {
 						{ QStringLiteral("name"), t.name() },
 						{ QStringLiteral("fieldName"), t.name()+QStringLiteral("/%1").arg(t.level()) },
 						{ QStringLiteral("level"), t.level() },
 						{ QStringLiteral("displayName"), t.displayName() },
 						{ QStringLiteral("icon"), t.thumbnail() },
+					});
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief MapEditor::rpgTerrainListModel
+ * @return
+ */
+
+QVariantList MapEditor::rpgTerrainListModel() const
+{
+	QVariantList list;
+
+	for (RpgGame::TerrainData t : RpgGame::availableTerrains()) {
+		list.append(QVariantMap {
+						{ QStringLiteral("id"), t.id },
+						{ QStringLiteral("displayName"), t.displayName },
+						{ QStringLiteral("duration"), t.duration },
+						{ QStringLiteral("image"),
+						  t.image.startsWith(QStringLiteral("qrc:/")) ?
+						  t.image :
+						  t.image.replace(QStringLiteral(":/"), QStringLiteral("qrc:/")) },
 					});
 	}
 
@@ -2017,9 +2054,9 @@ void MapEditor::chapterAdd(const QString &name, MapEditorMissionLevel *missionLe
 
 		if (action->data().contains(QStringLiteral("missionUuid"))) {
 			MapEditorMissionLevel *ml = action->map()->missionLevel(
-						action->data().value(QStringLiteral("missionUuid")).toString(),
-						action->data().value(QStringLiteral("missionLevel")).toInt()
-						);
+											action->data().value(QStringLiteral("missionUuid")).toString(),
+											action->data().value(QStringLiteral("missionLevel")).toInt()
+											);
 
 			if (ml)
 				ml->chapterAdd(ch);
@@ -2036,9 +2073,9 @@ void MapEditor::chapterAdd(const QString &name, MapEditorMissionLevel *missionLe
 
 		if (action->data().contains(QStringLiteral("missionUuid"))) {
 			MapEditorMissionLevel *ml = action->map()->missionLevel(
-						action->data().value(QStringLiteral("missionUuid")).toString(),
-						action->data().value(QStringLiteral("missionLevel")).toInt()
-						);
+											action->data().value(QStringLiteral("missionUuid")).toString(),
+											action->data().value(QStringLiteral("missionLevel")).toInt()
+											);
 
 			if (ml)
 				ml->chapterRemove(ch);
@@ -2749,8 +2786,8 @@ void MapEditor::objectiveCopyOrMove(MapEditorChapter *chapter, const QList<MapEd
 		foreach (const QVariant &v, action->data().value(QStringLiteral("list")).toList()) {
 			const QVariantMap &data = v.toMap();
 			const QString &uuid = isCopy ?
-						data.value(QStringLiteral("newUuid")).toString() :
-						data.value(QStringLiteral("uuid")).toString();
+									  data.value(QStringLiteral("newUuid")).toString() :
+									  data.value(QStringLiteral("uuid")).toString();
 
 			MapEditorObjective *oTo = chTo->objective(uuid);
 
@@ -3046,9 +3083,9 @@ void MapEditor::missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, cons
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3065,9 +3102,9 @@ void MapEditor::missionLevelChapterAdd(MapEditorMissionLevel *missionLevel, cons
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3112,9 +3149,9 @@ void MapEditor::missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, c
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3131,9 +3168,9 @@ void MapEditor::missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, c
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3185,9 +3222,9 @@ void MapEditor::missionLevelInventoryAdd(MapEditorMissionLevel *missionLevel, co
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3202,9 +3239,9 @@ void MapEditor::missionLevelInventoryAdd(MapEditorMissionLevel *missionLevel, co
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3250,9 +3287,9 @@ void MapEditor::missionLevelInventoryRemove(MapEditorMissionLevel *missionLevel,
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3267,9 +3304,9 @@ void MapEditor::missionLevelInventoryRemove(MapEditorMissionLevel *missionLevel,
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3322,9 +3359,9 @@ void MapEditor::missionLevelInventoryModify(MapEditorMissionLevel *missionLevel,
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3341,9 +3378,9 @@ void MapEditor::missionLevelInventoryModify(MapEditorMissionLevel *missionLevel,
 			return;
 
 		MapEditorMissionLevel *ml = action->map()->missionLevel(
-					action->data().value(QStringLiteral("missionUuid")).toString(),
-					action->data().value(QStringLiteral("missionLevel")).toInt()
-					);
+										action->data().value(QStringLiteral("missionUuid")).toString(),
+										action->data().value(QStringLiteral("missionLevel")).toInt()
+										);
 
 		if (!ml)
 			return;
@@ -3373,7 +3410,7 @@ void MapEditor::missionLevelInventoryModify(MapEditorMissionLevel *missionLevel,
 
 void MapEditor::missionLevelPlay(MapEditorMissionLevel *missionLevel, int mode)
 {
-	LOG_CTRACE("client") << "PLAY" << missionLevel << mode;
+	LOG_CDEBUG("client") << "Play mission level" << missionLevel << mode;
 
 	if (!missionLevel)
 		return;

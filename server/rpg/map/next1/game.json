@@ -1,4 +1,5 @@
 {
+		"name": "Első pálya",
 		"firstScene": 1,
 		"duration": 300,
 		"scenes": [
@@ -6,6 +7,12 @@
 				"id": 1,
 				"file": "scene1.tmx",
 				"ambient": "qrc:/rpg/common/birds-isaiah658.mp3"
+			},
+			{
+				"id": 2,
+				"file": "scene2.tmx",
+				"ambient": "qrc:/rpg/common/birds-isaiah658.mp3"
 			}
+
 		]
 }

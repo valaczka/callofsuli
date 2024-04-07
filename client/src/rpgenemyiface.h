@@ -40,12 +40,14 @@ public:
 	enum RpgEnemyType {
 		EnemyInvalid = 0,
 		EnemyWerebear,
-		EnemyTest
+		EnemySoldier01,
+		EnemySoldier02,
 	};
 
 	RpgEnemyIface(const RpgEnemyType &type)
 		: m_enemyType(type)
 	{}
+	RpgEnemyIface() {}
 
 	static QStringList availableTypes() { return m_typeHash.keys(); }
 	static RpgEnemyType typeFromString(const QString &type) { return m_typeHash.value(type, EnemyInvalid); }
@@ -61,7 +63,7 @@ public:
 protected:
 	virtual QPointF getPickablePosition(const int &num) const = 0;
 
-	const RpgEnemyType m_enemyType;
+	RpgEnemyType m_enemyType = EnemyInvalid;
 	std::unique_ptr<RpgArmory> m_armory;
 
 private:

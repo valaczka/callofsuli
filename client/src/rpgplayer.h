@@ -49,6 +49,7 @@ class RpgPlayer : public IsometricPlayer
 
 	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged FINAL)
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
+	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
 
 public:
 	explicit RpgPlayer(QQuickItem *parent = nullptr);
@@ -56,8 +57,14 @@ public:
 
 	static RpgPlayer* createPlayer(RpgGame *game, TiledScene *scene, const QString &character);
 
+	struct CharacterData {
+		QString id;
+		QString displayName;
+		QString image;
+	};
+
 	static void reloadAvailableCharacters();
-	static const QStringList &availableCharacters() { return m_availableCharacters; }
+	static const QVector<CharacterData> &availableCharacters() { return m_availableCharacters; }
 
 	Q_INVOKABLE void attack(TiledWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
@@ -73,9 +80,14 @@ public:
 	QPointF currentSceneStartPosition() const;
 	void setCurrentSceneStartPosition(QPointF newCurrentSceneStartPosition);
 
+	int shieldCount() const;
+	void setShieldCount(int newShieldCount);
+
 signals:
 	void attackDone();
 	void characterChanged();
+
+	void shieldCountChanged();
 
 protected:
 	void load() override final;
@@ -99,10 +111,10 @@ private:
 	void playAttackEffect(TiledWeapon *weapon);
 	void playWeaponChangedEffect();
 	void playShieldEffect();
-	void messageEmptyBullet(TiledWeapon *weapon);
+	void messageEmptyBullet(const TiledWeapon::WeaponType &weaponType);
 
 private:
-	static QStringList m_availableCharacters;
+	static QVector<CharacterData> m_availableCharacters;
 	QString m_character;
 
 	TiledGameSfx m_sfxPain;
@@ -114,8 +126,10 @@ private:
 	TiledEffectShield m_effectShield;
 
 	QPointF m_currentSceneStartPosition;
+	int m_shieldCount = 0;
 
 	friend class RpgGame;
+	friend class ActionRpgGame;
 };
 
 #endif // RPGPLAYER_H

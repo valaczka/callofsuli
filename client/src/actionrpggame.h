@@ -45,6 +45,7 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
 	Q_PROPERTY(qreal downloadProgress READ downloadProgress NOTIFY downloadProgressChanged FINAL)
+	Q_PROPERTY(QVariantList characterList READ characterList CONSTANT FINAL)
 
 public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -83,6 +84,8 @@ public:
 
 	qreal downloadProgress() const;
 
+	QVariantList characterList() const;
+
 signals:
 	void finishDialogRequest(QString text, QString icon, bool success);
 	void configChanged();
@@ -113,6 +116,9 @@ private:
 	void onMsecLeftChanged();
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
+	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
+	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, int xp);
+	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy);
 
 private:
 	GameMode m_gameMode = SinglePlayer;

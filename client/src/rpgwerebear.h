@@ -92,6 +92,9 @@ public:
 	virtual QList<TiledWeapon*> throwableWeapons() const override final { return {}; }
 	virtual void throwWeapon(TiledWeapon *) override final {}
 
+	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
+									IsometricPlayer *player = nullptr) const override;
+
 signals:
 	void werebearTypeChanged();
 
@@ -104,8 +107,6 @@ protected:
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}
 
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
-	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
-									IsometricPlayer *player = nullptr) const override;
 
 	void playAttackEffect(TiledWeapon *weapon) override final;
 	void playDeadEffect();

@@ -185,6 +185,8 @@ void Sound::playSound(const QString &source, const ChannelType &channel, const f
 
 void Sound::stopSound(const QString &source, const ChannelType &channel)
 {
+	LOG_CDEBUG("sound") << "Stop sound" << qPrintable(source) << channel;
+
 	for (auto &ptr : m_sound) {
 		if (!ptr->sound() || !ma_sound_is_playing(ptr->sound()))
 			continue;

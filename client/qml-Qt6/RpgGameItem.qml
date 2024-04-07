@@ -171,25 +171,6 @@ FocusScope {
 
 
 
-	property int _oldXP: -1
-	readonly property int xp: game ? game.xp : 0
-
-	onXpChanged: {
-		if (_oldXP != -1) {
-			let d = xp-_oldXP
-
-			if (d > 0) {
-				_messageList.message("+%1 XP".arg(d), Qaterial.Colors.green400)
-			} else {
-				_messageList.message("%1 XP".arg(d), Qaterial.Colors.red400)
-			}
-		}
-
-		_oldXP = xp
-	}
-
-
-
 
 	Column {
 		anchors.right: parent.right
@@ -237,9 +218,30 @@ FocusScope {
 		}
 
 		GameInfo {
-			id: _infoBullet
+			id: _infoShield
 			anchors.right: parent.right
 			color: Qaterial.Colors.green500
+			text: Math.floor(progressBar.value)
+			progressBar.from: 0
+			progressBar.to: 0
+			progressBar.value: shield
+			iconLabel.icon.source: Qaterial.Icons.shield
+			progressBar.width: Math.min(root.width*0.125, 50)
+
+			visible: shield > 0
+
+			readonly property int shield: _game.controlledPlayer ? _game.controlledPlayer.shieldCount : 0
+
+			onShieldChanged: {
+				if (shield > progressBar.to)
+					progressBar.to = shield
+			}
+		}
+
+		GameInfo {
+			id: _infoBullet
+			anchors.right: parent.right
+			color: Qaterial.Colors.blue500
 			text: Math.floor(progressBar.value)
 			progressBar.from: 0
 			progressBar.to: maxBullet
@@ -485,7 +487,7 @@ FocusScope {
 
 		anchors.horizontalCenter: parent.horizontalCenter
 
-		y: parent.height*0.25
+		y: Math.max(infoHP.y+infoHP.height, parent.height*0.1)
 		z: 6
 
 		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)

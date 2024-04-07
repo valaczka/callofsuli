@@ -33,6 +33,8 @@
 #include "qtimer.h"
 #include "utils_.h"
 #include "server.h"
+#include "rpggame.h"
+#include "rpgplayer.h"
 
 HttpConnection::HttpConnection(Client *client)
 	: QObject()
@@ -119,12 +121,17 @@ void HttpConnection::setServer(Server *newServer)
 {
 	if (m_server == newServer)
 		return;
+
+	if (m_server)
+		disconnect(m_server, &Server::dynamicContentReadyChanged, this, &HttpConnection::onServerDynamicContentReadyChanged);
+
 	m_server = newServer;
 	emit serverChanged();
 
-	if (!m_server) {
+	if (!m_server)
 		m_webSocket->close();
-	}
+	else
+		connect(m_server, &Server::dynamicContentReadyChanged, this, &HttpConnection::onServerDynamicContentReadyChanged);
 }
 
 
@@ -780,6 +787,18 @@ void HttpReply::onErrorPresent(const QNetworkReply::NetworkError &error)
 	}
 
 	QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);
+}
+
+
+
+/**
+ * @brief HttpReply::onServerDynamicContentReadyChanged
+ */
+
+void HttpConnection::onServerDynamicContentReadyChanged()
+{
+	RpgGame::reloadAvailableTerrains();
+	RpgPlayer::reloadAvailableCharacters();
 }
 
 

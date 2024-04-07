@@ -185,6 +185,15 @@ QPage {
 
 					QFormCheckButton
 					{
+						id: _isRpg
+						text: qsTr("RPG")
+						checked: mission && (mission.modes & GameMap.Rpg)
+						onToggled: _form.updateCheckButtons()
+						enabled: !_isExam.checked
+					}
+
+					QFormCheckButton
+					{
 						id: _isAction
 						text: qsTr("Akciójáték")
 						checked: mission && (mission.modes & GameMap.Action)
@@ -257,6 +266,9 @@ QPage {
 				if (_isExam.checked)
 					c |= GameMap.Exam
 				else {
+					if (_isRpg.checked)
+						c |= GameMap.Rpg
+
 					if (_isAction.checked)
 						c |= GameMap.Action
 

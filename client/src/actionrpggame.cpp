@@ -76,6 +76,7 @@ void ActionRpgGame::gameAbort()
 		return;
 	else if (m_config.gameState == RpgConfig::StateConnect ||
 			 m_config.gameState == RpgConfig::StateDownloadContent ||
+			 m_config.gameState == RpgConfig::StateError ||
 			 m_config.gameState == RpgConfig::StateCharacterSelect) {
 		setFinishState(Neutral);
 
@@ -129,6 +130,8 @@ void ActionRpgGame::selectCharacter(const QString &character)
 {
 	LOG_CWARNING("game") << "Character selected:" << character << m_config.gameState;
 
+	m_playerConfig.character = character;
+
 	m_config.gameState = RpgConfig::StatePrepare;
 	updateConfig();
 }
@@ -144,7 +147,7 @@ void ActionRpgGame::rpgGameActivated()
 	if (!m_rpgGame)
 		return;
 
-	const auto &ptr = RpgGame::readGameDefinition("next1");
+	const auto &ptr = RpgGame::readGameDefinition(m_missionLevel->terrain());
 
 	if (!ptr)
 		return;
@@ -169,7 +172,7 @@ void ActionRpgGame::rpgGameActivated()
 
 	QList<RpgPlayer*> list;
 
-	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, "default");
+	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, m_playerConfig.character);
 
 	player->setHp(m_missionLevel->startHP());
 	player->setMaxHp(m_missionLevel->startHP());
@@ -301,6 +304,9 @@ void ActionRpgGame::onPlayerDead(RpgPlayer *player)
 		QTimer::singleShot(5000, this, &ActionRpgGame::onGameFailed);
 	else if (m_rpgGame)
 		QTimer::singleShot(5000, this, [this, p = QPointer<RpgPlayer>(player)]() {
+			if (finishState() == Fail || finishState() == Success)
+				return;
+
 			if (p)
 				m_rpgGame->setQuestions(p->scene(), m_missionLevel->questions());
 
@@ -432,7 +438,6 @@ void ActionRpgGame::onConfigChanged()
 			return;
 		}
 
-		LOG_CERROR("game") << "START WITH" << m_config.duration;
 		startWithRemainingTime(m_config.duration*1000);
 
 		if (m_deathmatch) {
@@ -496,7 +501,7 @@ void ActionRpgGame::downloadGameData()
 		return;
 	}
 
-	const auto &ptr = RpgGame::readGameDefinition("next1");
+	const auto &ptr = RpgGame::readGameDefinition(m_missionLevel->terrain());
 
 	if (!ptr) {
 		LOG_CERROR("game") << "Invalid game";
@@ -635,6 +640,93 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 
 
 /**
+ * @brief ActionRpgGame::onPlayerAttackEnemy
+ * @param player
+ * @param enemy
+ * @param weaponType
+ * @return
+ */
+
+bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
+{
+	if (!player || !enemy)
+		return false;
+
+	if (auto ptr = m_rpgGame->enemyFind(enemy); ptr != m_rpgGame->m_enemyDataList.end() && ptr->hasQuestion) {
+		const int &hp = enemy->getNewHpAfterAttack(enemy->hp(), weaponType, player);
+		if (hp <= 0 && m_rpgQuestion->nextQuestion(player, enemy, weaponType)) {
+			m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
+			return true;
+		}
+	}
+
+	int hp = enemy->hp();
+
+	enemy->attackedByPlayer(player, weaponType);
+
+	int xp = std::max(0, hp-enemy->hp());
+
+	setXp(m_xp+xp);
+
+	return true;
+}
+
+
+
+/**
+ * @brief ActionRpgGame::onQuestionSuccess
+ * @param player
+ * @param enemy
+ * @param xp
+ */
+
+void ActionRpgGame::onQuestionSuccess(RpgPlayer */*player*/, IsometricEnemy *enemy, int xp)
+{
+	if (enemy)
+		enemy->setHp(0);
+
+	setXp(m_xp+xp);
+}
+
+
+/**
+ * @brief ActionRpgGame::onQuestionFailed
+ * @param player
+ * @param enemy
+ */
+
+void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy */*enemy*/)
+{
+	if (player)
+		player->setHp(std::max(0, player->hp()-1));
+
+	setIsFlawless(false);
+}
+
+
+
+/**
+ * @brief ActionRpgGame::characterList
+ * @return
+ */
+
+QVariantList ActionRpgGame::characterList() const
+{
+	QVariantList list;
+
+	for (const RpgPlayer::CharacterData &ch : RpgPlayer::availableCharacters()) {
+		QVariantMap m;
+		m[QStringLiteral("id")] = ch.id;
+		m[QStringLiteral("displayName")] = ch.displayName;
+		m[QStringLiteral("image")] = ch.image;
+		list.append(m);
+	}
+
+	return list;
+}
+
+
+/**
  * @brief ActionRpgGame::downloadProgress
  * @return
  */
@@ -711,6 +803,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		m_rpgGame->setRpgQuestion(nullptr);
 		m_rpgGame->setFuncPlayerPick(nullptr);
+		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
 	}
 
 	m_rpgGame = newRpgGame;
@@ -722,6 +815,8 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		m_rpgGame->setFuncPlayerPick(std::bind(&ActionRpgGame::onPlayerPick, this, std::placeholders::_1, std::placeholders::_2));
+		m_rpgGame->setFuncPlayerAttackEnemy(std::bind(&ActionRpgGame::onPlayerAttackEnemy, this,
+													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 }
 

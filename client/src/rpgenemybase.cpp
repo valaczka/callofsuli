@@ -26,6 +26,7 @@
 
 #include "rpgenemybase.h"
 #include "rpggame.h"
+#include "rpglongsword.h"
 #include "tiledspritehandler.h"
 
 /**
@@ -44,21 +45,6 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	m_metric.runSpeed = 3.;
 	m_metric.returnSpeed = 4.;
 	m_metric.pursuitSpeed = 6.;
-	m_metric.autoAttackTime = 850;
-
-	/*m_sfxPain.setSoundList({
-							   QStringLiteral(":/rpg/werebear/monster-5.mp3"),
-						   });
-
-	m_sfxPain.setPlayOneDeadline(600);
-
-
-	m_sfxFootStep.setSoundList({
-								   QStringLiteral(":/rpg/werebear/stepdirt_7.mp3"),
-								   QStringLiteral(":/rpg/werebear/stepdirt_8.mp3"),
-							   });
-	m_sfxFootStep.setVolume(0.4);
-	m_sfxFootStep.setInterval(450);*/
 
 	m_moveDisabledSpriteList = {
 		QStringLiteral("attack"),
@@ -73,14 +59,12 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 		m_effectHealed.play();
 	});
 
-	/*
-	connect(this, &RpgWerebear::hurt, &m_sfxPain, &TiledGameSfx::playOne);
-	//connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
-	//connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
-	connect(this, &RpgWerebear::becameDead, this, &RpgWerebear::playDeadEffect);
-	connect(this, &RpgWerebear::playerChanged, this, &RpgWerebear::playSeeEffect);*/
-
 }
+
+
+/**
+ * @brief RpgEnemyBase::~RpgEnemyBase
+ */
 
 RpgEnemyBase::~RpgEnemyBase()
 {
@@ -140,12 +124,17 @@ void RpgEnemyBase::load()
 
 	setAvailableDirections(Direction_8);
 
+	loadType();
+
 	for (int i=0; i<=2; ++i)
 	{
 		IsometricObjectLayeredSprite json;
 		json.fromJson(RpgGame::baseEntitySprite(i));
 		json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
-		RpgArmory::fillAvailableLayers(&json, i);
+
+		// Ez nem biztos, hogy kell, ha nincs elvehető fegyver
+
+		//RpgArmory::fillAvailableLayers(&json, i);
 		appendSprite(json, QStringLiteral(":/rpg/")+m_directory+QStringLiteral("/"));
 	}
 
@@ -155,6 +144,14 @@ void RpgEnemyBase::load()
 	setBodyOffset(0, 0.45*64);
 
 	//connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgWerebear::onCurrentSpriteChanged);
+
+}
+
+
+
+void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
+{
+	rotateToPlayer(player);
 }
 
 
@@ -183,8 +180,8 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 		jumpToSprite("death", m_currentDirection);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
-		if (weaponType != TiledWeapon::WeaponHand)
-			startInabililty();
+		//if (weaponType != TiledWeapon::WeaponHand)
+		//	startInabililty();
 	}
 }
 
@@ -209,7 +206,7 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 			break;
 
 		case TiledWeapon::WeaponShortbow:
-			hp -= 2;
+			hp -= 3;
 			break;
 
 		case TiledWeapon::WeaponHand:
@@ -218,7 +215,7 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 
 		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponGreatHand:
-			hp = (hp > 1) ? 1 : 0;
+			hp = 0;
 			break;
 
 		case TiledWeapon::WeaponShield:
@@ -320,4 +317,26 @@ bool RpgEnemyBase::protectWeapon(const TiledWeapon::WeaponType &weaponType)
 void RpgEnemyBase::onCurrentSpriteChanged()
 {
 
+}
+
+
+
+/**
+ * @brief RpgEnemyBase::loadType
+ */
+
+void RpgEnemyBase::loadType()
+{
+	if (m_enemyType == EnemySoldier01)
+		m_directory = QStringLiteral("enemySoldier01");
+
+	if (m_enemyType == EnemySoldier02)
+		m_directory = QStringLiteral("enemySoldier02");
+
+	if (m_enemyType == EnemySoldier01 ||
+			m_enemyType == EnemySoldier02 ) {
+		auto w = m_armory->weaponAdd(new RpgLongsword);
+		w->setExcludeFromLayers(true);
+		m_armory->setCurrentWeapon(w);
+	}
 }

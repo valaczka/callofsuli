@@ -40,7 +40,32 @@
 class RpgQuestion;
 
 
+
+
+/**
+ * @brief The RpgGameDefinition class
+ */
+
+class RpgGameDefinition : public TiledGameDefinition
+{
+	Q_GADGET
+
+public:
+	RpgGameDefinition()
+		: TiledGameDefinition()
+	{}
+
+	QS_SERIALIZABLE
+
+};
+
+
+
+
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
+typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
+
+
 
 /**
  * @brief The RpgGame class
@@ -60,9 +85,19 @@ public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
 
-	Q_INVOKABLE bool load(const TiledGameDefinition &def);
+	struct TerrainData {
+		QString id;
+		QString displayName;
+		QString image;
+		int duration = 0;
+	};
 
-	static std::optional<TiledGameDefinition> readGameDefinition(const QString &map);
+	static void reloadAvailableTerrains();
+	static QVector<TerrainData> &availableTerrains() { return m_availableTerrains; }
+
+	Q_INVOKABLE bool load(const RpgGameDefinition &def);
+
+	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
 	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
 	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;
@@ -124,6 +159,9 @@ public:
 	FuncPlayerPick funcPlayerPick() const;
 	void setFuncPlayerPick(const FuncPlayerPick &newFuncPlayerPick);
 
+	FuncPlayerAttackEnemy funcPlayerAttackEnemy() const;
+	void setFuncPlayerAttackEnemy(const FuncPlayerAttackEnemy &newFuncPlayerAttackEnemy);
+
 signals:
 	void gameSuccess();
 	void playerDead(RpgPlayer *player);
@@ -159,6 +197,7 @@ private:
 		QPointer<IsometricEnemy> enemy;
 		bool hasQuestion = false;
 		QVector<RpgPickableObject::PickableType> pickables;
+		QVector<RpgPickableObject::PickableType> pickablesOnce;
 	};
 
 
@@ -187,12 +226,17 @@ private:
 
 	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
 	FuncPlayerPick m_funcPlayerPick;
+	FuncPlayerAttackEnemy m_funcPlayerAttackEnemy;
 
 	// 3 részre daraboljuk, hogy ne haladja meg a textúra a 4096 px méretet
 
 	static const QByteArray m_baseEntitySprite0;
 	static const QByteArray m_baseEntitySprite1;
 	static const QByteArray m_baseEntitySprite2;
+
+	static QVector<TerrainData> m_availableTerrains;
+
+	friend class ActionRpgGame;
 };
 
 
