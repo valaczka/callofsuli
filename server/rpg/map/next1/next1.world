@@ -13,6 +13,13 @@
             "width": 5120,
             "x": 896,
             "y": -1856
+        },
+        {
+            "fileName": "scene3.tmx",
+            "height": 2048,
+            "width": 4096,
+            "x": -2048,
+            "y": -1024
         }
     ],
     "onlyShowAdjacentMaps": false,

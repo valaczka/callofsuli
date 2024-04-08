@@ -1222,7 +1222,7 @@ void TeacherExam::scanImages()
 			ExamSBarcodeDecoder *decoder = new ExamSBarcodeDecoder;
 			decoder->setPath(it->path());
 
-			decoder->setResolution(img.width(), img.height());
+			decoder->setResolution(img.size());
 			connect(decoder, &SBarcodeDecoder::isDecodingChanged, this, [this, decoder](bool d) {
 				if (!d) {
 					LOG_CTRACE("client") << "Decoding finished:" << decoder->path();
@@ -1298,7 +1298,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 			const int vMajor = fields.at(0).toInt();
 			const int vMinor = fields.at(1).toInt();
 
-			if (Utils::versionCode(vMajor, vMinor) != Utils::versionCode()) {
+			if (Utils::versionCode(vMajor, vMinor) > Utils::versionCode()) {
 				LOG_CWARNING("client") << "Wrong version:" << qr << "file:" << path;
 				it->setState(ExamScanData::ScanFileError);
 				continue;

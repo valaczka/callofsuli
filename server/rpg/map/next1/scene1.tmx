@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="34" nextobjectid="70">
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="34" nextobjectid="71">
  <tileset firstgid="1" source="../../tileset/groundGrass/groundGrass.tsx"/>
  <tileset firstgid="321" source="../../tileset/groundGrass/groundGrass2Shaded.tsx"/>
  <tileset firstgid="377" source="../../tileset/rockShaded1/rockShaded1.tsx"/>
@@ -174,7 +174,7 @@
    </properties>
    <polyline points="0,0 200,221.333 135.333,392.667 140.667,520.667 340,809.333 664.667,1170 769.333,1286.67 710,1394"/>
   </object>
-  <object id="51" type="werebear" x="502.667" y="116">
+  <object id="51" type="soldier01" x="502.667" y="116">
    <properties>
     <property name="pickable" value="hp"/>
    </properties>
@@ -202,6 +202,7 @@
  </objectgroup>
  <objectgroup id="33" name="transport">
   <object id="59" name="gate1" type="gate" x="932" y="15" width="159" height="77.5"/>
+  <object id="70" name="gate2" type="gate" x="14.3333" y="595.667" width="82.6667" height="159.333"/>
  </objectgroup>
  <objectgroup color="#ffff00" id="31" name="other">
   <object id="52" type="player" x="1669.33" y="276">
@@ -283,7 +284,7 @@
   </object>
   <object id="25" x="-19.7576" y="-3.75758" width="919.697" height="68.1818"/>
   <object id="26" x="1112.67" y="-3.33333" width="627.333" height="64"/>
-  <object id="27" x="-76.6667" y="550" width="68" height="233.333"/>
+  <object id="27" x="-76.6667" y="550" width="87" height="233.333"/>
   <object id="29" x="874" y="-40.6667" width="244" height="54.6667"/>
   <object id="30" name="tree03" x="182.333" y="1179.33" width="18.6667" height="15.3333"/>
   <object id="33" name="tree04" x="628.333" y="1334.67" width="18.6667" height="15.3333"/>

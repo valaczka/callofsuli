@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="40" height="40" tilewidth="128" tileheight="64" infinite="0" nextlayerid="34" nextobjectid="88">
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="40" height="40" tilewidth="128" tileheight="64" infinite="0" nextlayerid="37" nextobjectid="90">
  <tileset firstgid="1" source="../../tileset/rockShaded1/rockShaded1.tsx"/>
  <tileset firstgid="105" source="../../tileset/groundDirt/groundDirt.tsx"/>
  <tileset firstgid="425" source="../../tileset/groundGrass/groundGrass.tsx"/>
@@ -27,6 +27,18 @@
   <layer id="32" name="26. csemperéteg" width="40" height="40">
    <data encoding="base64" compression="zlib">
    eJztyUEJAAAIBLADy9k/0SUwgLB9lwAAAAAAAPyzc18BITEATA==
+  </data>
+  </layer>
+ </group>
+ <group id="34" name="overlay2" class="overlayTrigger">
+  <objectgroup id="35" name="6. objektumréteg">
+   <object id="89" type="trigger" x="443" y="2483">
+    <point/>
+   </object>
+  </objectgroup>
+  <layer id="36" name="27. csemperéteg" width="40" height="40">
+   <data encoding="base64" compression="zlib">
+   eJztzkEJADAMALGDmpt/RTVR2CdRkAIAAAAAALjz5vegFj+pAEw=
   </data>
   </layer>
  </group>
@@ -150,6 +162,7 @@
  </layer>
  <objectgroup id="12" name="transport">
   <object id="1" name="gate1" type="gate" x="1999.33" y="2455.33" width="209.333" height="83.3333"/>
+  <object id="88" name="gate3" type="gate" x="328.5" y="2441.5" width="236" height="94"/>
  </objectgroup>
  <objectgroup id="13" name="ground">
   <object id="2" x="576.5" y="2509" width="1405.5" height="72"/>
