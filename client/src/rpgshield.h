@@ -54,7 +54,6 @@ protected:
 
 
 
-
 /**
  * @brief The RpgArrowPickable class
  */
@@ -69,6 +68,8 @@ public:
 
 	bool playerPick(RpgPlayer *player) override final;
 	void playerThrow(RpgPlayer *player) override final;
+
+	static void pick(RpgPlayer *player, TiledGame *game);
 
 protected:
 	void load() override final;

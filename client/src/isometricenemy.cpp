@@ -728,6 +728,8 @@ void IsometricEnemyIface::removeContactedPlayer(IsometricPlayer *player)
 
 	m_contactedPlayers.removeAll(player);
 	m_reachedPlayers.removeAll(player);
+	if (m_player == player)
+		setPlayer(nullptr);
 }
 
 

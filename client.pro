@@ -2,10 +2,14 @@ include(common.pri)
 
 android {
 	_NDK_PATH=$$(ANDROID_NDK_ROOT)
-	_NDK_VERSION=$$str_member($$_NDK_PATH, -12, -1)
 
-	lessThan(QT_MAJOR_VERSION, 6): _NDK_REQUIRED = 21.4.7075529
-	else: _NDK_REQUIRED = 25.1.8937393
+	lessThan(QT_MAJOR_VERSION, 6): {
+		_NDK_VERSION=$$str_member($$_NDK_PATH, -12, -1)
+		_NDK_REQUIRED = 21.4.7075529
+	} else: {
+		_NDK_VERSION=$$str_member($$_NDK_PATH, -13, -1)
+		_NDK_REQUIRED = 26.1.10909125
+	}
 
 	!isEqual(_NDK_VERSION, $$_NDK_REQUIRED): error(Invalid NDK: $$_NDK_VERSION)
 }

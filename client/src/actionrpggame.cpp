@@ -29,6 +29,7 @@
 #include "client.h"
 #include "rpgquestion.h"
 #include "server.h"
+#include "rpgshield.h"
 
 
 /**
@@ -176,6 +177,7 @@ void ActionRpgGame::rpgGameActivated()
 
 	player->setHp(m_missionLevel->startHP());
 	player->setMaxHp(m_missionLevel->startHP());
+	loadInventory(player);
 
 	player->emplace(ptrPos.value_or(QPointF{0,0}));
 	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
@@ -311,6 +313,7 @@ void ActionRpgGame::onPlayerDead(RpgPlayer *player)
 				m_rpgGame->setQuestions(p->scene(), m_missionLevel->questions());
 
 			m_rpgGame->resurrectEnemiesAndPlayer(p);
+			loadInventory(p);
 		});
 }
 
@@ -611,6 +614,67 @@ void ActionRpgGame::onMsecLeftChanged()
 
 
 /**
+ * @brief ActionRpgGame::loadInventory
+ * @param player
+ */
+
+void ActionRpgGame::loadInventory(RpgPlayer *player)
+{
+	if (!player)
+		return;
+
+	LOG_CTRACE("game") << "Load player inventory" << player;
+
+	for (const QString &s : player->m_config.inventoryOnce) {
+		loadInventory(player, RpgPickableObject::typeFromString(s));
+	}
+
+	player->m_config.inventoryOnce.clear();
+
+	for (const QString &s : player->m_config.inventory) {
+		loadInventory(player, RpgPickableObject::typeFromString(s));
+	}
+}
+
+
+
+/**
+ * @brief ActionRpgGame::loadInventory
+ * @param player
+ * @param pickableType
+ */
+
+void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType)
+{
+	if (!player)
+		return;
+
+	switch (pickableType) {
+		case RpgPickableObject::PickableShield:
+			RpgShieldPickable::pick(player, m_rpgGame);
+			break;
+
+		case RpgPickableObject::PickableHp:
+		case RpgPickableObject::PickableShortbow:
+		case RpgPickableObject::PickableLongbow:
+		case RpgPickableObject::PickableArrow:
+		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableTime:
+			LOG_CERROR("game") << "Inventory type not supported:" << pickableType;
+			break;
+
+		case RpgPickableObject::PickableInvalid:
+			LOG_CERROR("game") << "Invalid inventory type";
+			break;
+	}
+
+}
+
+
+
+
+/**
  * @brief ActionRpgGame::onPlayerPick
  * @param player
  * @param pickable
@@ -624,7 +688,7 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 
 
 	if (pickable->pickableType() == RpgPickableObject::PickableTime) {
-		static int sec = 30;
+		static int sec = 60;
 		addToDeadline(sec*1000);
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
@@ -717,8 +781,8 @@ QVariantList ActionRpgGame::characterList() const
 	for (const RpgPlayer::CharacterData &ch : RpgPlayer::availableCharacters()) {
 		QVariantMap m;
 		m[QStringLiteral("id")] = ch.id;
-		m[QStringLiteral("displayName")] = ch.displayName;
-		m[QStringLiteral("image")] = ch.image;
+		m[QStringLiteral("displayName")] = ch.config.name;
+		m[QStringLiteral("image")] = ch.config.image;
 		list.append(m);
 	}
 

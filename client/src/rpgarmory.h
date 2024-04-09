@@ -65,6 +65,9 @@ public:
 	QStringList baseLayers() const;
 	void setBaseLayers(const QStringList &newBaseLayers);
 
+	void updateNextWeapon();
+	void setCurrentWeaponIf(TiledWeapon *newCurrentWeapon, const TiledWeapon::WeaponType &currentType);
+
 	TiledWeapon *nextWeapon() const;
 	void setNextWeapon(TiledWeapon *newNextWeapon);
 

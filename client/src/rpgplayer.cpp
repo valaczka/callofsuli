@@ -31,6 +31,11 @@
 #include "rpggame.h"
 #include "utils_.h"
 #include <QDirIterator>
+#include "application.h"
+
+#ifndef Q_OS_WASM
+#include "standaloneclient.h"
+#endif
 
 
 QVector<RpgPlayer::CharacterData> RpgPlayer::m_availableCharacters;
@@ -45,24 +50,15 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	: IsometricPlayer(parent)
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
+	, m_sfxAccept(this)
+	, m_sfxDecline(this)
 	, m_armory(new RpgArmory(this))
 	, m_effectHealed(this)
 	, m_effectShield(this)
 {
-	m_sfxPain.setSoundList({
-							   QStringLiteral(":/sound/sfx/pain1.mp3"),
-							   QStringLiteral(":/sound/sfx/pain2.mp3"),
-							   QStringLiteral(":/sound/sfx/pain3.mp3"),
-						   });
-
-	m_sfxPain.setPlayOneDeadline(600);
-
-
-	m_sfxFootStep.setSoundList({
-								   QStringLiteral(":/sound/sfx/run1.mp3"),
-								   QStringLiteral(":/sound/sfx/run2.mp3"),
-							   });
-	m_sfxFootStep.setInterval(350);
+	m_sfxPain.setFollowPosition(false);
+	m_sfxAccept.setFollowPosition(false);
+	m_sfxDecline.setFollowPosition(false);
 
 	m_moveDisabledSpriteList = {
 		QStringLiteral("attack"),
@@ -136,14 +132,26 @@ void RpgPlayer::reloadAvailableCharacters()
 		CharacterData data;
 		data.id = f.section('/',-2,-2);
 
-		if (const auto &ptr = Utils::fileToJsonObject(f)) {
-			const QString &name = ptr->value(QStringLiteral("name")).toString();
-			data.displayName = name.isEmpty() ? f : name;
+		const auto &ptr = Utils::fileToJsonObject(f);
 
-			if (const QString &image = ptr->value(QStringLiteral("image")).toString(); !image.isEmpty()) {
-				data.image = QStringLiteral("qrc:/")+f.section('/', 1, -2).append('/').append(image);
-			}
+		if (!ptr) {
+			LOG_CERROR("game") << "Invalid config json:" << f;
+			continue;
 		}
+
+		QString prefixPath = QStringLiteral(":/")+f.section('/', 1, -2).append('/');
+
+		data.config.fromJson(ptr.value());
+
+		if (data.config.name.isEmpty())
+			data.config.name = f;
+
+
+		if (!data.config.image.isEmpty()) {
+			data.config.image.prepend(QStringLiteral("qrc")+prefixPath);
+		}
+
+		data.config.updateSfxPath(prefixPath);
 
 		m_availableCharacters.append(data);
 	}
@@ -179,7 +187,13 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 		if (weapon->hit(enemy()))
 			playAttackEffect(weapon);
 	} else {
-		m_game->messageColor(tr("Empty weapon"), QColor::fromRgbF(0.8, 0., 0.));
+#ifndef Q_OS_WASM
+		StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
+		if (client)
+			client->performVibrate();
+#endif
+		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
+		//m_game->messageColor(tr("Empty weapon"), QColor::fromRgbF(0.8, 0., 0.));
 	}
 }
 
@@ -197,7 +211,9 @@ void RpgPlayer::pick(RpgPickableObject *object)
 	if (!object || !isAlive())
 		return;
 
-	m_game->playerPickPickable(this, object);
+	if (!m_game->playerPickPickable(this, object)) {
+		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
+	}
 }
 
 
@@ -227,6 +243,8 @@ void RpgPlayer::load()
 		return;
 	}
 
+	m_config = ptr->config;
+
 
 	for (int i=0; i<=2; ++i)
 	{
@@ -241,6 +259,7 @@ void RpgPlayer::load()
 	setHeight(130);
 	setBodyOffset(0, 0.45*64);
 
+	loadSfx();
 	loadDefaultWeapons();
 
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgPlayer::onCurrentSpriteChanged);
@@ -352,6 +371,46 @@ void RpgPlayer::loadDefaultWeapons()
 
 
 
+/**
+ * @brief RpgPlayer::loadSfx
+ */
+
+void RpgPlayer::loadSfx()
+{
+	if (m_config.sfxPain.isEmpty()) {
+		m_sfxPain.setSoundList({
+								   QStringLiteral(":/sound/sfx/pain1.mp3"),
+								   QStringLiteral(":/sound/sfx/pain2.mp3"),
+								   QStringLiteral(":/sound/sfx/pain3.mp3"),
+							   });
+	} else {
+		m_sfxPain.setSoundList(m_config.sfxPain);
+	}
+
+	m_sfxPain.setPlayOneDeadline(600);
+
+
+	if (m_config.sfxFootStep.isEmpty()) {
+		m_sfxFootStep.setSoundList({
+									   QStringLiteral(":/sound/sfx/run1.mp3"),
+									   QStringLiteral(":/sound/sfx/run2.mp3"),
+								   });
+	} else {
+		m_sfxFootStep.setSoundList(m_config.sfxFootStep);
+	}
+
+	m_sfxAccept.setSoundList(m_config.sfxAccept);
+	m_sfxAccept.setPlayOneDeadline(1500);
+	m_sfxDecline.setSoundList(m_config.sfxDecline);
+	m_sfxDecline.setPlayOneDeadline(1500);
+
+	m_sfxFootStep.setInterval(350);
+}
+
+
+
+
+
 
 /**
  * @brief RpgPlayer::onCurrentSpriteChanged
@@ -405,7 +464,9 @@ void RpgPlayer::playHealedEffect()
 
 void RpgPlayer::playDeadEffect()
 {
-	m_game->playSfx(QStringLiteral(":/sound/sfx/dead.mp3"), m_scene, m_body->bodyPosition());
+	m_game->playSfx(m_config.sfxDead.isEmpty() ? QStringLiteral(":/sound/sfx/dead.mp3")
+											   : m_config.sfxDead
+												 , m_scene /*, m_body->bodyPosition()*/);
 	playShieldEffect();
 }
 
@@ -463,6 +524,9 @@ void RpgPlayer::playWeaponChangedEffect()
 
 
 	m_game->message(armory()->currentWeapon()->weaponNameEn().append(tr(" activated")));
+
+	if (!m_sfxAccept.soundList().isEmpty())
+		m_sfxAccept.playOne();
 }
 
 
@@ -512,6 +576,11 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 		return;
 
 	m_game->messageColor(msg, QColor::fromRgbF(0.8, 0., 0.));
+}
+
+const RpgPlayerCharacterConfig &RpgPlayer::config() const
+{
+	return m_config;
 }
 
 
@@ -589,4 +658,29 @@ void RpgPlayer::setCharacter(const QString &newCharacter)
 		return;
 	m_character = newCharacter;
 	emit characterChanged();
+}
+
+
+
+/**
+ * @brief RpgPlayerCharacterConfig::updateSfxPath
+ * @param prefix
+ */
+
+void RpgPlayerCharacterConfig::updateSfxPath(const QString &prefix)
+{
+	for (QStringList *ptr : std::vector<QStringList*>{
+		 &sfxAccept,
+		 &sfxDecline,
+		 &sfxFootStep,
+		 &sfxPain,
+}) {
+		for (QString &s : *ptr) {
+			if (!s.isEmpty() && !s.startsWith(QStringLiteral(":/")))
+				s.prepend(prefix);
+		}
+	}
+
+	if (!sfxDead.isEmpty() && !sfxDead.startsWith(QStringLiteral(":/")))
+		sfxDead.prepend(prefix);
 }

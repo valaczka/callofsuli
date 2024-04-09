@@ -212,7 +212,7 @@ void TiledGameSfx::onTimeout()
 	const QString &s = m_soundList.at(m_currentIndex);
 
 
-	if (m_tiledObject)
+	if (m_followPosition)
 		m_tiledObject->game()->playSfx(s, scene, m_tiledObject->body()->bodyPosition(), m_volume);
 	else
 		m_tiledObject->game()->playSfx(s, scene, m_volume);
@@ -253,6 +253,19 @@ void TiledGameSfx::startTimer()
 
 	onTimeout();
 	m_timer.start();
+}
+
+bool TiledGameSfx::followPosition() const
+{
+	return m_followPosition;
+}
+
+void TiledGameSfx::setFollowPosition(bool newFollowPosition)
+{
+	if (m_followPosition == newFollowPosition)
+		return;
+	m_followPosition = newFollowPosition;
+	emit followPositionChanged();
 }
 
 qint64 TiledGameSfx::playOneDeadline() const

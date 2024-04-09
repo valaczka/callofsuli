@@ -42,6 +42,7 @@ class TiledGameSfx : public QObject
 	Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY currentIndexChanged FINAL)
 	Q_PROPERTY(TiledObject *tiledObject READ tiledObject WRITE setTiledObject NOTIFY tiledObjectChanged FINAL)
 	Q_PROPERTY(qint64 playOneDeadline READ playOneDeadline WRITE setPlayOneDeadline NOTIFY playOneDeadlineChanged FINAL)
+	Q_PROPERTY(bool followPosition READ followPosition WRITE setFollowPosition NOTIFY followPositionChanged FINAL)
 
 public:
 	TiledGameSfx(const QStringList &soundList, const int &interval, const float &volume,
@@ -86,12 +87,17 @@ public:
 	qint64 playOneDeadline() const;
 	void setPlayOneDeadline(qint64 newPlayOneDeadline);
 
+	bool followPosition() const;
+	void setFollowPosition(bool newFollowPosition);
+
 signals:
 	void soundListChanged();
 	void volumeChanged();
 	void currentIndexChanged();
 	void tiledObjectChanged();
 	void playOneDeadlineChanged();
+
+	void followPositionChanged();
 
 private:
 	void onTimeout();
@@ -102,6 +108,7 @@ private:
 	QStringList m_soundList;
 	float m_volume = 1.0;
 	qint64 m_playOneDeadline = 0.;
+	bool m_followPosition = true;
 
 	QTimer m_timer;
 	QDeadlineTimer m_deadlineTimer;

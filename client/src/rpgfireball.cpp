@@ -144,7 +144,7 @@ bool RpgFireballPickable::playerPick(RpgPlayer *player)
 	if (m_game)
 		m_game->message(tr("%1 fireballs gained").arg(num));
 
-	player->armory()->setCurrentWeapon(weapon);
+	//player->armory()->setCurrentWeapon(weapon);
 
 	return true;
 }

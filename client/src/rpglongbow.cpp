@@ -107,7 +107,7 @@ bool RpgLongbowPickable::playerPick(RpgPlayer *player)
 	if (m_game)
 		m_game->message(tr("1 longbow gained"));
 
-	player->armory()->setCurrentWeapon(weapon);
+	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
 
 	return true;
 }

@@ -128,17 +128,7 @@ bool RpgShieldPickable::playerPick(RpgPlayer *player)
 	if (!player)
 		return false;
 
-	static const int num = 2;
-
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShield);
-
-	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgShield);
-
-	weapon->setBulletCount(weapon->bulletCount()+num);
-
-	if (m_game)
-		m_game->message(tr("%1 shields gained").arg(num));
+	pick(player, m_game);
 
 	return true;
 }
@@ -154,6 +144,32 @@ bool RpgShieldPickable::playerPick(RpgPlayer *player)
 void RpgShieldPickable::playerThrow(RpgPlayer *player)
 {
 
+}
+
+
+
+/**
+ * @brief RpgShieldPickable::pick
+ * @param player
+ * @param game
+ */
+
+void RpgShieldPickable::pick(RpgPlayer *player, TiledGame *game)
+{
+	if (!player)
+		return;
+
+	static const int num = 2;
+
+	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShield);
+
+	if (!weapon)
+		weapon = player->armory()->weaponAdd(new RpgShield);
+
+	weapon->setBulletCount(weapon->bulletCount()+num);
+
+	if (game)
+		game->message(tr("%1 shields gained").arg(num));
 }
 
 

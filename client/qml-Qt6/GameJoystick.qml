@@ -2,9 +2,10 @@ import QtQuick
 
 Item {
 	id: root
-	width: 160
-	height: 160
+	width: size
+	height: size
 
+	property real size: 160
 
 	property real currentX: 0.0
 	property real currentY: 0.0

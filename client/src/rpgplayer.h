@@ -39,6 +39,40 @@ class RpgGame;
 
 
 /**
+ * @brief The RpgPlayerConfig class
+ */
+
+class RpgPlayerCharacterConfig : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgPlayerCharacterConfig() : QSerializer() {}
+
+	void updateSfxPath(const QString &prefix);
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, name)
+	QS_FIELD(QString, image)
+
+	// Sfx sounds
+
+	QS_FIELD(QString, sfxDead)
+	QS_COLLECTION(QList, QString, sfxPain)
+	QS_COLLECTION(QList, QString, sfxFootStep)
+	QS_COLLECTION(QList, QString, sfxAccept)
+	QS_COLLECTION(QList, QString, sfxDecline)
+
+	// Inventory
+
+	QS_COLLECTION(QList, QString, inventory)
+	QS_COLLECTION(QList, QString, inventoryOnce)
+};
+
+
+
+/**
  * @brief The RpgPlayer class
  */
 
@@ -49,6 +83,7 @@ class RpgPlayer : public IsometricPlayer
 
 	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged FINAL)
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
+	Q_PROPERTY(RpgPlayerCharacterConfig config READ config CONSTANT FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
 
 public:
@@ -59,8 +94,7 @@ public:
 
 	struct CharacterData {
 		QString id;
-		QString displayName;
-		QString image;
+		RpgPlayerCharacterConfig config;
 	};
 
 	static void reloadAvailableCharacters();
@@ -71,6 +105,7 @@ public:
 
 	Q_INVOKABLE void pick(RpgPickableObject *object);
 	Q_INVOKABLE void pickCurrentObject() { pick(qobject_cast<RpgPickableObject*>(currentPickable())); }
+
 
 	QString character() const;
 	void setCharacter(const QString &newCharacter);
@@ -83,10 +118,11 @@ public:
 	int shieldCount() const;
 	void setShieldCount(int newShieldCount);
 
+	const RpgPlayerCharacterConfig &config() const;
+
 signals:
 	void attackDone();
 	void characterChanged();
-
 	void shieldCountChanged();
 
 protected:
@@ -103,6 +139,7 @@ protected:
 
 private:
 	void loadDefaultWeapons();
+	void loadSfx();
 	void onCurrentSpriteChanged();
 	void playAliveEffect();
 	void playHurtEffect();
@@ -117,8 +154,12 @@ private:
 	static QVector<CharacterData> m_availableCharacters;
 	QString m_character;
 
+	RpgPlayerCharacterConfig m_config;
+
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxFootStep;
+	TiledGameSfx m_sfxAccept;
+	TiledGameSfx m_sfxDecline;
 
 	std::unique_ptr<RpgArmory> m_armory;
 

@@ -250,6 +250,33 @@ void RpgArmory::setBaseLayers(const QStringList &newBaseLayers)
 	updateLayers();
 }
 
+
+/**
+ * @brief RpgArmory::updateNextWeapon
+ */
+
+void RpgArmory::updateNextWeapon()
+{
+	setNextWeapon(getNextWeapon());
+}
+
+
+/**
+ * @brief RpgArmory::setCurrentWeaponIf
+ * @param newCurrentWeapon
+ * @param currentType
+ */
+
+void RpgArmory::setCurrentWeaponIf(TiledWeapon *newCurrentWeapon, const TiledWeapon::WeaponType &currentType)
+{
+	if (!m_currentWeapon || m_currentWeapon->weaponType() == currentType)
+		setCurrentWeapon(newCurrentWeapon);
+	else
+		updateNextWeapon();
+}
+
+
+
 TiledWeapon *RpgArmory::nextWeapon() const
 {
 	return m_nextWeapon;
@@ -277,6 +304,7 @@ TiledWeapon *RpgArmory::getNextWeapon() const
 	const int index = m_weaponList->indexOf(m_currentWeapon);
 
 	QVector<TiledWeapon *> wList;
+	TiledWeapon *weaponHand = nullptr;
 
 	auto start = m_weaponList->constBegin();
 
@@ -289,8 +317,12 @@ TiledWeapon *RpgArmory::getNextWeapon() const
 		it = m_weaponList->constBegin();
 
 	do {
-		if ((*it)->canAttack())
-			wList.append(*it);
+		if ((*it)->canAttack()) {
+			if ((*it)->weaponType() == TiledWeapon::WeaponHand)
+				weaponHand = *it;
+			else
+				wList.append(*it);
+		}
 
 		++it;
 
@@ -299,6 +331,9 @@ TiledWeapon *RpgArmory::getNextWeapon() const
 	} while (it != start);
 
 	if (wList.isEmpty()) {
+		if (weaponHand)
+			return weaponHand;
+
 		LOG_CWARNING("game") << "No available weapon";
 		return nullptr;
 	}

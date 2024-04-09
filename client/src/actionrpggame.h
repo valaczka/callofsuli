@@ -115,6 +115,9 @@ private:
 	void setError();
 	void onMsecLeftChanged();
 
+	void loadInventory(RpgPlayer *player);
+	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
+
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
 	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, int xp);

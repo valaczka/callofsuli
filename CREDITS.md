@@ -78,3 +78,4 @@
 - Inventory Sound Effects - (c) 2010 artisticdude, Ogrebane (https://opengameart.org/content/inventory-sound-effects)
 - Ambient Bird Sounds - (c) isaiah658 (https://opengameart.org/content/ambient-bird-sounds)
 - Punch, slap, n' kick - (c) CGEffex (https://opengameart.org/content/punch-slap-n-kick, http://freesound.org/people/CGEffex/sounds/98341)
+- Voice Pack│Casual Voice lines - (c) Alba MacKenna (https://opengameart.org/content/voice-pack%E2%94%82casual-voice-lines)
