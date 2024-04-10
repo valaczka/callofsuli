@@ -1281,12 +1281,17 @@ QPointF TiledObjectBody::bodyOffset() const
  * @param dest
  */
 
-TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest)
+TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, float32 *lengthPtr)
 {
 	Q_ASSERT(mWorld);
 
 	const b2Vec2 bPos = mBody->GetPosition();
 	const b2Vec2 tPos = mWorld->toMeters(dest);
+
+	if (lengthPtr) {
+		b2Vec2 l = tPos-bPos;
+		*lengthPtr = mWorld->toPixels(l.Length());
+	}
 
 	TiledObjectRayCast ray(mWorld);
 

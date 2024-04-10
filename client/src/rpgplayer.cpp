@@ -170,6 +170,8 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 	if (!weapon || !isAlive())
 		return;
 
+	clearDestinationPoint();
+
 	if (!hasAbility())
 		return;
 
@@ -199,6 +201,33 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 
 
 
+/**
+ * @brief RpgPlayer::attackToPoint
+ * @param x
+ * @param y
+ */
+
+void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
+{
+	if (!isAlive())
+		return;
+
+	clearDestinationPoint();
+	m_pickAtDestination = false;
+
+	if (m_isLocked) {
+		m_body->stop();
+		return;
+	}
+
+	QLineF l(m_body->bodyPosition(), QPointF{x,y});
+	setCurrentAngle(toRadian(l.angle()));
+
+	attackCurrentWeapon();
+}
+
+
+
 
 
 /**
@@ -211,13 +240,12 @@ void RpgPlayer::pick(RpgPickableObject *object)
 	if (!object || !isAlive())
 		return;
 
+	clearDestinationPoint();
+
 	if (!m_game->playerPickPickable(this, object)) {
 		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
 	}
 }
-
-
-
 
 
 
@@ -355,6 +383,20 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 	}
 
 	m_armory->updateLayers();
+}
+
+
+
+/**
+ * @brief RpgPlayer::atDestinationPointEvent
+ */
+
+void RpgPlayer::atDestinationPointEvent()
+{
+	if (m_pickAtDestination)
+		pickCurrentObject();
+
+	m_pickAtDestination = false;
 }
 
 
@@ -542,6 +584,7 @@ void RpgPlayer::playShieldEffect()
 	else
 		m_effectShield.clear();
 }
+
 
 
 /**

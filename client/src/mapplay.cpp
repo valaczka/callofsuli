@@ -1074,7 +1074,7 @@ void AbstractMapPlaySolver::updateXP()
 			int xp = 0;
 
 			const QVector<GameMap::GameMode> &list = {
-				GameMap::Action, GameMap::Lite, GameMap::Test, GameMap::Quiz, GameMap::Exam
+				GameMap::Action, GameMap::Lite, GameMap::Test, GameMap::Quiz, GameMap::Exam, GameMap::Rpg
 			};
 
 			if (modes.testFlag(GameMap::Invalid))

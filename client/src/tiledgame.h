@@ -146,6 +146,8 @@ public:
 
 	Q_INVOKABLE bool transport(TiledObject *object, TiledTransport *transport);
 
+	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &modifiers);
+
 	virtual bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
 	virtual bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) = 0;
 	virtual bool playerPickPickable(TiledObject *player, TiledObject *pickable) = 0;

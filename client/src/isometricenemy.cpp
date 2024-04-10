@@ -257,7 +257,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			return;
 		}
 
-		if (transparentGnd >= 0. && transparentGnd < 0.5) {
+		if (transparentGnd >= 0. && transparentGnd < m_fixture->radius()*2.3) {
 			m_body->stop();
 		} else if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)

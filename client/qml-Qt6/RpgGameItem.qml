@@ -34,7 +34,6 @@ FocusScope {
 			_game.baseScale = 1.0
 	}
 
-
 	onGameChanged: {
 		if (game) {
 			game.rpgGame = _game
@@ -122,6 +121,7 @@ FocusScope {
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
+		size: Client.Utils.settingsGet("window/joystick", 160)
 	}
 
 
@@ -417,7 +417,7 @@ FocusScope {
 			//fontImage.anchors.horizontalCenterOffset: -2
 
 			onClicked: {
-				_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
+				_game.transportPlayer()
 			}
 		}
 
@@ -527,7 +527,7 @@ FocusScope {
 
 					QSpinBox {
 						anchors.verticalCenter: parent.verticalCenter
-						from: 200
+						from: 150
 						to: 600
 						stepSize: 10
 

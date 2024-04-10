@@ -70,6 +70,10 @@ public:
 	//static IsometricPlayer* createPlayer(TiledGame *game, TiledScene *scene);
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
+	void setDestinationPoint(const qreal &x, const qreal &y);
+	void setDestinationPoint(const QPointF &point) { setDestinationPoint(point.x(), point.y()); }
+	void clearDestinationPoint();
+
 	virtual void entityWorldStep(const qreal &factor) override;
 
 	void initialize();
@@ -121,6 +125,8 @@ protected:
 	virtual void onTransportReached(TiledTransport *transport) = 0;
 	virtual void onTransportLeft(TiledTransport *transport) = 0;
 
+	virtual void atDestinationPointEvent() {}
+
 	bool protectWeapon(TiledWeaponList *weaponList, const TiledWeapon::WeaponType &weaponType);
 
 
@@ -136,6 +142,7 @@ protected:
 
 
 private:
+	void clearData();
 	void sensorBeginContact(Box2DFixture *other);
 	void sensorEndContact(Box2DFixture *other);
 	void fixtureBeginContact(Box2DFixture *other);

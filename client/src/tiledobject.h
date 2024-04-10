@@ -136,7 +136,7 @@ public:
 
 	QPointF bodyOffset() const;
 
-	TiledReportedFixtureMap rayCast(const QPointF &dest);
+	TiledReportedFixtureMap rayCast(const QPointF &dest, float32 *lengthPtr = nullptr);
 
 	void setBodyOffset(QPointF newBodyOffset);
 

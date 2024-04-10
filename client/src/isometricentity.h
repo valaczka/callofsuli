@@ -47,7 +47,7 @@ public:
 														const TiledObjectBody::FixtureCategory &category,
 														float32 *transparentGroundPtr);
 
-	static float32 checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint);
+	static float32 checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float32 *lengthPtr = nullptr);
 
 	template <typename T>
 	static T getVisibleEntity(TiledObjectBody *body, const QList<T> &entities,

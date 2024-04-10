@@ -103,6 +103,9 @@ public:
 	Q_INVOKABLE void attack(TiledWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
 
+	void attackToPoint(const qreal &x, const qreal &y);
+	void attackToPoint(const QPointF &point) { attackToPoint(point.x(), point.y()); }
+
 	Q_INVOKABLE void pick(RpgPickableObject *object);
 	Q_INVOKABLE void pickCurrentObject() { pick(qobject_cast<RpgPickableObject*>(currentPickable())); }
 
@@ -137,6 +140,8 @@ protected:
 	void onTransportReached(TiledTransport */*transport*/) override final {}
 	void onTransportLeft(TiledTransport */*transport*/) override final {}
 
+	void atDestinationPointEvent() override final;
+
 private:
 	void loadDefaultWeapons();
 	void loadSfx();
@@ -167,6 +172,7 @@ private:
 	TiledEffectShield m_effectShield;
 
 	QPointF m_currentSceneStartPosition;
+	bool m_pickAtDestination = false;
 	int m_shieldCount = 0;
 
 	friend class RpgGame;

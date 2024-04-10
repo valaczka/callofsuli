@@ -1033,6 +1033,22 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 
 
 
+/**
+ * @brief TiledGame::onMouseClick
+ * @param x
+ * @param y
+ * @param modifiers
+ */
+
+void TiledGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
+{
+	Q_UNUSED(x);
+	Q_UNUSED(y);
+	Q_UNUSED(modifiers);
+}
+
+
+
 
 /**
  * @brief TiledGame::playSfx

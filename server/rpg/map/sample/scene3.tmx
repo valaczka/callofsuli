@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.10" tiledversion="1.10.2" orientation="isometric" renderorder="right-down" width="32" height="32" tilewidth="128" tileheight="64" infinite="0" nextlayerid="18" nextobjectid="33">
+ <tileset firstgid="1" source="../../tileset/groundGrass/groundGrass.tsx"/>
+ <tileset firstgid="321" source="../../tileset/plant03/plant03.tsx"/>
+ <tileset firstgid="369" source="../../tileset/groundGrass/groundGrass2Shaded.tsx"/>
+ <tileset firstgid="425" source="../../tileset/groundDirt/groundDirt.tsx"/>
+ <tileset firstgid="745" source="../../tileset/rockShaded1/rockShaded1.tsx"/>
+ <tileset firstgid="849" source="../../tileset/treeCloudy4/treeCloudy4.tsx"/>
+ <tileset firstgid="865" source="../../tileset/direction/directionYellow.tsx"/>
+ <layer id="1" name="grass" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJx9lwlu2zAQRXn/W2ixtVlLszhL08Ro0aJL2l6pJPAf+EWkMTCQRA5nONufcQj7349IHyJdi67s+0Z0/QZdiW7Ef6Pv62L9Nbz/e4i0RRojHSOtkU6RJls/6b3T+ii+PlKj9cGeo/bSua/v3CHZ/l18s52bJTc9D5Jbae0oSvdptV/pfdL3qDON9u7e0Y0tg6iWrMZ0Y9sovZWo1n0XOz/p7KK97j8+eBDPQfoPJmvRWisfYNekNeTWuk8tHyKn1RoxPRQ++CnbV9Gm8xBnfG2w+2DvIj2u82S+n+3ct0i/TDd2LeLvTQa+7iwWjXjIg8rW8Pcs6goaZNOd/O5+JZfI59piSC1sIce30xr3G80GfDebTvaTznvph2eTrirkGsDvtfhqsxc/Yeup2N+0P0l/VdzvLP292Uz++Br1xHqnPeSQs2vIuYmt1E0T9nX0OdLfSI8h48xi+7XpwNZVvPjvZDFfzH/UXYlD5EMfcv5/DBnTiAN1U+m7lvyj+Nqwr1FyZNQZ10+Nbia/LfRX4nP/cY/NqLK9ofAr9UJM3P/4jFxKvGfpfxQPfgPXe303kkNNH80efELdsj6YDOJKPja6w73ZD1aDUX3Y5wR4RBxZoy8Mxf4Ycr2RN2vIcR7N/15/4JfX+GQ+m00OeLyEnIfECQz0PlaF3APSesK/V/m/N16exJq445/a9rkHviaGxHqwe3I3MDCdvTX/Y5efbe0sPZdZYAk5x71myV986N+em8mGs/Q7LvKOz8Bcxw7ykrqkBrCXPsFZsHwN+1q9Nf87ngzGT52xz/cx5Fovc99nF/KUGsCuTvo9/zw29DF4kQkGgctH452MvIesJpdziSfVwJPxYDNYTy3Qd6j/TT4g5t73wbzV9kb79njcSz8x9xjSz+mL3u/B0NrOUCte/9iCDZ2dnUy/x41e0tsaMw+6t+Kd2vMZsw15PgQ//HsIuf+DX43pYubAz5PpJC8dg3tbAz/JW89Hcp/55zHkeibXkDuYTHDT5yHigmyfLVrjoT6IKX3uLP1gms8yYDs9jnlgDHu7wXdiCB/5wFlsB9PAn9+RXiJ9sTtTB8QDLGEeqwv54AX2Mzehi9ygd+JremD6/bE7HMIe1/w+Pp/UIec7MQVvvGf7zECPnQv96fcU9nNIZU/mR+qHuuD/FbhDfKlx9sDs2XhuC/0eC3CEJ/f3fl6F/Zzid2T+Jlb4gF7bvGF/eY9PRs+2dim+n43vYu8vxVmeF1Gaf/8BnK6QfQ==
+  </data>
+ </layer>
+ <layer id="3" name="path" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJyVlwlTFFcUhe3+d6IxARUlSDZkyV4aTQJKCItCERMojRqEQSIMEQUEDVsYpdwQo2bffk7uqfluzU3bEn1Vp273m/feufvr2bYtf3QlZflV8owFOeM3W/sD+D2z7/QLnNNvazsNxw3thmPsHTM5mZR5SoZVuPz5F8N1w7xhnT0dyPMvwD9ka4uGs4ZfDWtgFfmzYckwA9c1sGKYNTw0/A2f9JcOfdjU8Rx6SNdeuGXTnGHRsMCz5PfwbBoeBGwGbh8n7P0bdNhq9OHvduy/h41X8Kv4Ngz34fmH826ntsZw1TCN1PtMmJ8J8m6az1+E+0v478C7CLfzDSIHkDfsvGHDt4ZxwwXDJd6nDAXeJ5mb34L/M+Lkvp8nrusZW2XDhM2NKB72fBmuETjEd9EwyvN3rLmUw9+dlOutl1yXHrfxvbh/xPa2pGyrbLyWlt8nmJuCYxgU4CuAKfYNB/7jmXwYDPl51+RVwzS23yF+69ilM8bIqev4vMD54/BN4fMxdCsi5zL2tycV/xc502OvPL+Jj0c5vxhsKMA/jm+LIeZF1nsuuI6zhjPB9lPwnkEOkvveS24p723PoqHEmbfIdeWBcmDF5HJallq3xPtymHf5IN26H0mHPw2P0eEnwx+sXwh+HsYW5cAQ0PMX2HAywzGyBecQ+zR6kNLhEb3NddjAjhK5fjPU9Cj8k/Qb9XHdH+eok8jfmdHFdfX5U8i/Mn7QveIx95y6HPS4RzzEK32Uo+fpKwPop37Yk+HvzfHN58EPj6mFJ+hwnzivhVy/SF5cQQ9xHzZ5wPAqOJKW/RJHO33nkP1WH9Ye4P2jtOyHR9Tkk5APqv0J+L2+CtSHbD1ocrthP/iA8+Lwvqe1LwHtecVQZWhIK7GQDnOZfPC6GEGPC/ArTo0mazhT5+1GhyOc6XUoHxy1uVZDi6HZ0AQ+SZ+OxVzGDxvUXCmt9FjF+E2T1Ya3De8ZdhneMXya5ufdYXxfj//rQhzq0NvrYh4dSknle8f9sYn/G4PNH+LX9zmnkzyU/9vY/5bN78VX+4hZrWEHujdgl/vhRlK+J9wXJzhnklzXeXvYu5fzdO5raaXXD9A7NI7ie/d/K2giLoqF3xsxFiuZPtVFHzgIt3ywEx2E1zM52BF0P4Sv64PfY13UhVpSTm4Qj4XQIzROw7878MqvL+NH/8bV8G8ujUbitAffV/NejS37yemGYIP3qaWgw1hS8ee77K1l/xs5NdgZYtAaYtAc3ltAU8jh3kw8ljO1oeG1XUX88/j7g/89/70POTwe8TnGw2sj1mcXfvB8akH3+N/iHHXQHWpmJ/puJ2Y1vFfxm/c096vbFGvD+/VWw787NHrQ1f0c4+DPWdkcbPo6+W8+uB9W6RPCWqZnxDEU5rwOvB/l1YLHKXvHqJ5ch0XqU7k5i1/0Tb+ew9/PXaDRiJ9rkTuC73eRTzXEal9aqW/VRR/5FO+MaWp0CR3y+H2oFj5OK/0n5n1rePa7ojnMq0epl/i9qnzw/0kbPMf/L3kj7xtB/0tOgm5kD7ItrNXcMfiV+95b5BPdd2f/Jx99PM9/RR/if9Z/bI9nb/L0d9e/x93Fmg==
+  </data>
+ </layer>
+ <group id="10" name="overlay1" class="overlayTrigger">
+  <layer id="12" name="7. csemperéteg" width="32" height="32">
+   <data encoding="base64" compression="zlib">
+   eJztzjENAAAIA7Al+HeCSH5uEp5WQRO41fU9AAAAYBtpGACw
+  </data>
+  </layer>
+  <objectgroup id="11" name="3. objektumréteg">
+   <object id="13" type="trigger" x="1351.33" y="78">
+    <point/>
+   </object>
+  </objectgroup>
+ </group>
+ <group id="13" name="overlay2" class="overlayTrigger">
+  <layer id="14" name="7. csemperéteg" width="32" height="32">
+   <data encoding="base64" compression="zlib">
+   eJztzjENAAAIA7Al+DeGKg40EJ5WQRMAAADgStf3YA185QDO
+  </data>
+  </layer>
+  <objectgroup id="15" name="3. objektumréteg">
+   <object id="14" type="trigger" x="1992" y="1821.33">
+    <point/>
+   </object>
+  </objectgroup>
+ </group>
+ <layer id="4" name="plant" width="32" height="32" offsetx="18" offsety="-5">
+  <data encoding="base64" compression="zlib">
+   eJztld0KgCAMhd1D+le+/3NElFAHDTVMzX03Y4Kwsx2nEAzDvEXRESXdcw25oW/rqoEOaFAUjiZyPiI42ysxnXhHDqzfY8Dbs/Lkhxa08hbqxzrcmS8J9eG+zOltL28L3wXqXzupM4aM7O7S/nq9NsMHf8LB3G2Cfvw/cdf0snNyGMX/O9hnDRHnMvtfWAtJZZFJYwPiqRez
+  </data>
+ </layer>
+ <layer id="5" name="rock" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJzt00ELQEAQhuGx6+IgxUEKhTv//29xVXxz5mpG7ffU5ODwNnaJPPVRpIwvLz40oHcGkRrPDpMb9ke0VsyCyYz3Vhf2ntENDm096w1zBPu20t0np++uGsf2H+h/V3nuj/budPdUi36R8PkTERERUVpuo/AHBQ==
+  </data>
+ </layer>
+ <layer id="6" name="rockOver" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJzt00sKgDAMhOFAr6VQEbWCgvc/jRNQEHTbjND5IKsufvoye1uSWUkfCxV5c7y6M2YK7Ht7w+zB3VtGcyW1fe8Hpie0XSaeu4t+a3/D+OtPA9odsd/6/YuIiIhIW05UQQf8
+  </data>
+ </layer>
+ <layer id="7" name="tree" width="32" height="32">
+  <data encoding="base64" compression="zlib">
+   eJxjYBi8IJyZ/nZGDYCdo2Bkg7DRNDcKRsGAgIEu72NGeN4fiDp+FCBA6AgP/4HO/9EDbP9o/ht4EDkaByO+HhwoAACuyARP
+  </data>
+ </layer>
+ <objectgroup id="8" name="ground">
+  <object id="1" x="403" y="1980" width="1657" height="89"/>
+  <object id="2" x="-16" y="299" width="114" height="1189"/>
+  <object id="3" x="409" y="-51" width="802" height="110"/>
+  <object id="4" x="1474" y="-23" width="589" height="85"/>
+  <object id="5" x="1982" y="-32" width="86" height="1678"/>
+  <object id="6" x="2181" y="1607"/>
+  <object id="7" x="99" y="1489">
+   <polygon points="0,0 304.5,493.5 308,582 -99.5,311.5 -115,-9"/>
+  </object>
+  <object id="8" x="84.5" y="469.5">
+   <polygon points="0,0 397,-449 256.5,-506.5 -99,-513 -113.5,-60.5"/>
+  </object>
+  <object id="9" x="2032" y="1522.67" width="93.3333" height="546"/>
+  <object id="10" x="1197.33" y="-72.6667" width="291.333" height="80"/>
+  <object id="29" x="1729.5" y="-3.5">
+   <polygon points="0,0 283.5,464.5 293,21"/>
+  </object>
+  <object id="30" x="2004.5" y="1053.5">
+   <polygon points="0,0 -82,-84 -80,-432 -0.5,-497.5"/>
+  </object>
+ </objectgroup>
+ <objectgroup id="9" name="transport">
+  <object id="11" name="gate3" type="gate" x="1226" y="7.5" width="239" height="98.5"/>
+  <object id="12" name="gate2" type="gate" x="1929.67" y="1658.33" width="100" height="267"/>
+ </objectgroup>
+ <objectgroup color="#ff0000" id="16" name="enemy">
+  <object id="15" type="soldier01" x="1891.11" y="746.106">
+   <properties>
+    <property name="direction" type="int" value="135"/>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="16" type="soldier01" x="1886.64" y="918.091">
+   <properties>
+    <property name="direction" type="int" value="180"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="17" type="soldier01" x="506.303" y="117.939">
+   <properties>
+    <property name="direction" type="int" value="270"/>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="18" type="soldier02" x="174.485" y="498.242">
+   <properties>
+    <property name="direction" type="int" value="315"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="19" type="soldier01" x="929.03" y="1949.76">
+   <properties>
+    <property name="direction" type="int" value="0"/>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <point/>
+  </object>
+  <object id="20" type="soldier02" x="1851.33" y="1807.33">
+   <polyline points="0,0 -238.667,-38.6667 -1310.18,-1087.88 -1252.61,-1581.82 -861.697,-1651.52 -617.758,-1665.15"/>
+  </object>
+  <object id="21" type="soldier01" x="409" y="1867">
+   <properties>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <polyline points="0,0 -244,-364 -261,-1271"/>
+  </object>
+  <object id="22" type="soldier01" x="199" y="409">
+   <polyline points="0,0 231,-255"/>
+  </object>
+  <object id="23" type="soldier02" x="387" y="1533">
+   <properties>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <polyline points="0,0 758,2"/>
+  </object>
+  <object id="24" type="soldier01" x="1732" y="180">
+   <properties>
+    <property name="pickable" value="shield"/>
+   </properties>
+   <polyline points="0,0 -716,12 -689,429 -545,585 -353,597 -230,750 -207,1695"/>
+  </object>
+  <object id="31" type="soldier02" x="597" y="715">
+   <polyline points="-11,3 786,778"/>
+  </object>
+  <object id="32" type="soldier02" x="260" y="1144">
+   <polyline points="0,0 474,-2"/>
+  </object>
+ </objectgroup>
+ <objectgroup color="#55ff00" id="17" name="pickable">
+  <object id="25" type="time" x="281" y="659">
+   <point/>
+  </object>
+  <object id="26" type="shortbow" x="475" y="473">
+   <point/>
+  </object>
+  <object id="27" type="arrow" x="256" y="1512">
+   <point/>
+  </object>
+  <object id="28" type="hp" x="1656" y="840">
+   <point/>
+  </object>
+ </objectgroup>
+</map>

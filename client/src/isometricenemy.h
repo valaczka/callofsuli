@@ -84,7 +84,7 @@ protected:
 		qint64 firstAttackTime = 350;			// First attack to player
 		qint64 autoAttackTime = 750;			// Repeated attack to player
 
-		qreal sensorLength = 650.;
+		qreal sensorLength = 620.;
 		qreal sensorRange = M_PI*2./3.;
 		qreal targetCircleRadius = 0.;
 	};

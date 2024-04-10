@@ -109,6 +109,7 @@ Flickable {
 			//------------------------------------------------
 		}
 
+
 		DebugDraw {
 			anchors.fill: _scene
 			world: _scene.world
@@ -116,7 +117,6 @@ Flickable {
 			visible: _scene.game && _scene.game.debugView
 			scale: _scene.scale
 		}
-
 	}
 
 	PinchArea {
@@ -133,9 +133,9 @@ Flickable {
 		}
 
 		onPinchUpdated: pinch => {
-			flick.contentX += pinch.previousCenter.x - pinch.center.x
-			flick.contentY += pinch.previousCenter.y - pinch.center.y
-		}
+							flick.contentX += pinch.previousCenter.x - pinch.center.x
+							flick.contentY += pinch.previousCenter.y - pinch.center.y
+						}
 
 		onPinchFinished: {
 			flick.interactive = true
@@ -144,6 +144,18 @@ Flickable {
 
 		MouseArea {								// Workaround (https://bugreports.qt.io/browse/QTBUG-77629)
 			anchors.fill: parent
+
+			onClicked: event => {
+						   let sw = _scene.width * _scene.scale
+						   let diffX = sw < _container.width ? (_container.width-sw)/2 : 0
+						   let sh = _scene.height * _scene.scale
+						   let diffY = sh < _container.height ? (_container.height-sh)/2 : 0
+						   if (_scene.game) {
+							   _scene.game.onMouseClick((event.x-diffX)/_scene.scale,
+														(event.y-diffY)/_scene.scale,
+														event.modifiers)
+						   }
+					   }
 
 			onWheel: wheel => {
 						 if (wheel.modifiers & Qt.ControlModifier) {

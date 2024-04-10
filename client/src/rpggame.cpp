@@ -472,6 +472,8 @@ void RpgGame::onPlayerDead(TiledObject *player)
 			if (e.enemy)
 				e.enemy->removeContactedPlayer(isoPlayer);
 		}
+
+		isoPlayer->clearData();
 	}
 
 	emit playerDead(isoPlayer);
@@ -719,6 +721,25 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 }
 
 
+/**
+ * @brief RpgGame::transportPlayer
+ * @return
+ */
+
+bool RpgGame::transportPlayer()
+{
+	if (!m_controlledPlayer)
+		return false;
+
+	m_controlledPlayer->clearDestinationPoint();
+
+	if (m_controlledPlayer->currentTransport())
+		return transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
+
+	return false;
+}
+
+
 
 
 
@@ -794,8 +815,7 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_S:
 		case Qt::Key_Clear:
 		case Qt::Key_5:
-			if (m_controlledPlayer && m_controlledPlayer->currentTransport())
-				transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
+			transportPlayer();
 			break;
 
 		case Qt::Key_Space:
@@ -835,6 +855,7 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			break;
 	}
 }
+
 
 
 /**
@@ -1233,6 +1254,31 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 	}
 
 	return {};
+}
+
+
+
+/**
+ * @brief RpgGame::onMouseClick
+ * @param x
+ * @param y
+ */
+
+void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
+{
+	if (!m_controlledPlayer)
+		return;
+
+	if (modifiers & Qt::ControlModifier) {
+		m_controlledPlayer->attackToPoint(x, y);
+	} else {
+		if (modifiers & Qt::ShiftModifier)
+			m_controlledPlayer->m_pickAtDestination = true;
+		else
+			m_controlledPlayer->m_pickAtDestination = false;
+
+		m_controlledPlayer->setDestinationPoint(x, y);
+	}
 }
 
 

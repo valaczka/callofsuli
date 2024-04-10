@@ -229,7 +229,9 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
 
 	for (const QPointF &p : points) {
 */
-	const TiledReportedFixtureMap &map = body->rayCast(entityPosition /*p*/);
+
+	float32 rayLength = 0.;
+	const TiledReportedFixtureMap &map = body->rayCast(entityPosition, &rayLength);
 
 	bool visible = false;
 
@@ -249,7 +251,7 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
 					visible = false;
 					break;
 				} else if (transparentGroundPtr) {
-					*transparentGroundPtr = it.key();
+					*transparentGroundPtr = it.key() * rayLength;
 				}
 			}
 		}
@@ -271,7 +273,7 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
  * @return -1.: no ground
  */
 
-float32 IsometricEntityIface::checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint)
+float32 IsometricEntityIface::checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float32 *lengthPtr)
 {
 	Q_ASSERT(body);
 
@@ -280,7 +282,7 @@ float32 IsometricEntityIface::checkGroundDistance(TiledObjectBody *body, const Q
 
 	float32 dist = -1.;
 
-	const TiledReportedFixtureMap &map = body->rayCast(targetPoint);
+	const TiledReportedFixtureMap &map = body->rayCast(targetPoint, lengthPtr);
 
 	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
 		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {

@@ -63,10 +63,21 @@ private:
 		return list;
 	}
 
+
+	void clear() {
+		///m_enemy = nullptr;
+		m_contactedEnemies.clear();
+		m_reachedEnemies.clear();
+		m_reachedPickables.clear();
+		m_destinationPoint.reset();
+	}
+
 	QPointer<IsometricEnemy> m_enemy;
 	QList<QPointer<IsometricEnemy>> m_contactedEnemies;
 	QList<QPointer<IsometricEnemy>> m_reachedEnemies;
 	QQueue<QPointer<TiledObject>> m_reachedPickables;
+
+	std::optional<QPointF> m_destinationPoint;
 
 	friend class IsometricPlayer;
 };
@@ -127,9 +138,25 @@ void IsometricPlayer::entityWorldStep(const qreal &factor)
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		m_body->stop();
 	} else {
-		QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
-		line.setLength(line.length()*factor);
-		m_body->setLinearVelocity(line.p2());
+		if (d->m_destinationPoint) {
+			QLineF line(QPointF{0,0}, d->m_destinationPoint.value() - m_body->bodyPosition());
+			if (line.length() >= m_speedRunLength*factor) {
+				line.setLength(m_speedRunLength*factor);
+				m_body->setLinearVelocity(line.p2());
+			} else if (line.length() >= m_speedLength*factor) {
+				line.setLength(m_speedLength*factor);
+				m_body->setLinearVelocity(line.p2());
+			} else {
+				m_body->stop();
+				atDestinationPointEvent();
+				clearDestinationPoint();
+			}
+
+		} else {
+			QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
+			line.setLength(line.length()*factor);
+			m_body->setLinearVelocity(line.p2());
+		}
 	}
 
 	updateSprite();
@@ -339,6 +366,16 @@ bool IsometricPlayer::protectWeapon(TiledWeaponList *weaponList, const TiledWeap
 			return true;
 
 	return false;
+}
+
+
+/**
+ * @brief IsometricPlayer::clearData
+ */
+
+void IsometricPlayer::clearData()
+{
+	d->clear();
 }
 
 
@@ -560,6 +597,8 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 	if (!isAlive())
 		return;
 
+	clearDestinationPoint();
+
 	if (m_isLocked) {
 		m_body->stop();
 		return;
@@ -578,6 +617,39 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 	}
 }
 
+
+
+/**
+ * @brief IsometricPlayer::setDestinationPoint
+ * @param x
+ */
+
+void IsometricPlayer::setDestinationPoint(const qreal &x, const qreal &y)
+{
+	if (!isAlive())
+		return;
+
+	if (m_isLocked) {
+		clearDestinationPoint();
+		m_body->stop();
+		return;
+	}
+
+	QLineF l(m_body->bodyPosition(), QPointF{x,y});
+	setCurrentAngle(toRadian(l.angle()));
+
+	d->m_destinationPoint.emplace(x, y);
+}
+
+
+/**
+ * @brief IsometricPlayer::clearDestinationPoint
+ */
+
+void IsometricPlayer::clearDestinationPoint()
+{
+	d->m_destinationPoint.reset();
+}
 
 
 /**

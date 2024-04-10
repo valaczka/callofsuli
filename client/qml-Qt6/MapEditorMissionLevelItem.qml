@@ -235,7 +235,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & GameMap.Action)
+				visible: mission && ((mission.modes & GameMap.Action) || (mission.modes & GameMap.Rpg))
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText

@@ -1,2 +1,0 @@
-../../tileset/rockCloudy1/rules.txt
-../../tileset/rockShaded1/rules.txt

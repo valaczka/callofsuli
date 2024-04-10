@@ -97,6 +97,7 @@ public:
 
 	Q_INVOKABLE bool load(const RpgGameDefinition &def);
 
+
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
 	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
@@ -115,8 +116,9 @@ public:
 		return createEnemy(type, QStringLiteral(""), scene);
 	}
 
-
 	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene);
+
+	Q_INVOKABLE bool transportPlayer();
 
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);
@@ -141,6 +143,7 @@ public:
 
 	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
 
+	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &modifiers) override;
 
 	int setQuestions(TiledScene *scene, qreal factor);
 
@@ -175,6 +178,7 @@ protected:
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
+
 	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject) override;
 
 private:
