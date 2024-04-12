@@ -96,7 +96,6 @@ signals:
 	void currentIndexChanged();
 	void tiledObjectChanged();
 	void playOneDeadlineChanged();
-
 	void followPositionChanged();
 
 private:

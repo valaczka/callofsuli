@@ -135,4 +135,23 @@ private:
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(TiledEffectSpark::Types)
 
+
+
+
+
+/**
+ * @brief The TiledEffectFire class
+ */
+
+class TiledEffectFire : public TiledEffect
+{
+public:
+	TiledEffectFire(TiledObject *parentObject)
+		: TiledEffect(parentObject) {
+		m_alignToBody = false;
+	}
+	virtual void play() override;
+};
+
+
 #endif // TILEDEFFECT_H

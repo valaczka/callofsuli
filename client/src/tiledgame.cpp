@@ -28,20 +28,39 @@
 #include "Logger.h"
 #include "application.h"
 #include "isometricentity.h"
+#include "utils_.h"
 #include <libtiled/objectgroup.h>
 #include <libtiled/mapreader.h>
 #include <libtiled/map.h>
 
 std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGame::m_sharedTextures;
 
+
+
+/**
+ * @brief TiledGame::TiledGame
+ * @param parent
+ */
+
 TiledGame::TiledGame(QQuickItem *parent)
 	: QQuickItem(parent)
 {
 	LOG_CTRACE("scene") << "TiledGame created" << this;
 
+#if defined(Q_OS_IOS) || defined(Q_OS_ANDROID)
+	const bool defValue = false;
+#else
+	const bool defValue = true;
+#endif
+
+	setMouseNavigation(Utils::settingsGet(QStringLiteral("game/mouseNavigation"), defValue).toBool());
+
+
 	connect(this, &TiledGame::activeFocusChanged, this, [this](const bool &focus){
-		if (!focus)
-			updateKeyboardJoystick(KeyboardJoystickState{.5, .5});
+		if (!focus) {
+			m_keyboardJoystickState.clear();
+			updateKeyboardJoystick();
+		}
 	});
 }
 
@@ -559,54 +578,49 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 {
 	const int &key = event->key();
 
-	qreal dx = m_keyboardJoystickState.dx;
-	qreal dy = m_keyboardJoystickState.dy;
-
-	const bool isSlow = event->modifiers().testAnyFlag(Qt::ShiftModifier);
-
 	switch (key) {
+		case Qt::Key_Shift:
+			m_keyboardJoystickState.shift = true;
+			break;
+
 		case Qt::Key_Left:
 		case Qt::Key_4:
-			dx = isSlow ? 0.2 : 0.;
+			m_keyboardJoystickState.left = true;
 			break;
 
 		case Qt::Key_Right:
 		case Qt::Key_6:
-			dx = isSlow ? 0.8 : 1.;
+			m_keyboardJoystickState.right = true;
 			break;
 
 		case Qt::Key_Up:
 		case Qt::Key_8:
-			dy = isSlow ? 0.2 : 0.;
+			m_keyboardJoystickState.up = true;
 			break;
 
 		case Qt::Key_Down:
 		case Qt::Key_2:
-			dy = isSlow ? 0.8 : 1.;
+			m_keyboardJoystickState.down = true;
 			break;
 
 		case Qt::Key_Home:
 		case Qt::Key_7:
-			dx = isSlow ? 0.2 : 0.;
-			dy = isSlow ? 0.2 : 0.;
+			m_keyboardJoystickState.upLeft = true;
 			break;
 
 		case Qt::Key_End:
 		case Qt::Key_1:
-			dx = isSlow ? 0.2 : 0.;
-			dy = isSlow ? 0.8 : 1.;
+			m_keyboardJoystickState.downLeft = true;
 			break;
 
 		case Qt::Key_PageUp:
 		case Qt::Key_9:
-			dx = isSlow ? 0.8 : 1.;
-			dy = isSlow ? 0.2 : 0.;
+			m_keyboardJoystickState.upRight = true;
 			break;
 
 		case Qt::Key_PageDown:
 		case Qt::Key_3:
-			dx = isSlow ? 0.8 : 1.;
-			dy = isSlow ? 0.8 : 1.;
+			m_keyboardJoystickState.downRight = true;
 			break;
 
 #ifndef QT_NO_DEBUG
@@ -616,7 +630,7 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 #endif
 	}
 
-	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
+	updateKeyboardJoystick();
 }
 
 
@@ -632,38 +646,53 @@ void TiledGame::keyReleaseEvent(QKeyEvent *event)
 	if (event->isAutoRepeat())
 		return;
 
-	qreal dx = m_keyboardJoystickState.dx;
-	qreal dy = m_keyboardJoystickState.dy;
-
 	switch (key) {
+		case Qt::Key_Shift:
+			m_keyboardJoystickState.shift = false;
+			break;
+
 		case Qt::Key_Left:
 		case Qt::Key_4:
+			m_keyboardJoystickState.left = false;
+			break;
+
 		case Qt::Key_Right:
 		case Qt::Key_6:
-			dx = 0.5;
+			m_keyboardJoystickState.right = false;
 			break;
 
 		case Qt::Key_Up:
 		case Qt::Key_8:
+			m_keyboardJoystickState.up = false;
+			break;
+
 		case Qt::Key_Down:
 		case Qt::Key_2:
-			dy = 0.5;
+			m_keyboardJoystickState.down = false;
 			break;
 
 		case Qt::Key_Home:
 		case Qt::Key_7:
+			m_keyboardJoystickState.upLeft = false;
+			break;
+
 		case Qt::Key_End:
 		case Qt::Key_1:
+			m_keyboardJoystickState.downLeft = false;
+			break;
+
 		case Qt::Key_PageUp:
 		case Qt::Key_9:
+			m_keyboardJoystickState.upRight = false;
+			break;
+
 		case Qt::Key_PageDown:
 		case Qt::Key_3:
-			dx = 0.5;
-			dy = 0.5;
+			m_keyboardJoystickState.downRight = false;
 			break;
 	}
 
-	updateKeyboardJoystick(KeyboardJoystickState{dx, dy});
+	updateKeyboardJoystick();
 }
 
 
@@ -767,45 +796,70 @@ void TiledGame::updateJoystick()
  * @param state
  */
 
-void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
+void TiledGame::updateKeyboardJoystick()
 {
 	if (m_joystickState.hasTouch)
 		return;
 
-	if (state.dx == m_keyboardJoystickState.dx && state.dy == m_keyboardJoystickState.dy)
-		return;
-
-	m_keyboardJoystickState = state;
-
 	JoystickState jState = m_joystickState;
-	jState.hasKeyboard = state.dx != 0.5 || state.dy != 0.5;
+	jState.hasKeyboard = m_keyboardJoystickState.up ||
+						 m_keyboardJoystickState.down ||
+						 m_keyboardJoystickState.left ||
+						 m_keyboardJoystickState.right ||
+						 m_keyboardJoystickState.upLeft ||
+						 m_keyboardJoystickState.upRight ||
+						 m_keyboardJoystickState.downLeft ||
+						 m_keyboardJoystickState.downRight;
 
-	if (state.dx < 0.3) {
-		jState.distance = (state.dx < 0.1 ? 1.0 : 0.7);
-		if (state.dy < 0.3)
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthWest);
-		else if (state.dy > 0.7)
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthWest);
-		else
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::West);
-	} else if (state.dx > 0.7) {
-		jState.distance = (state.dx > 0.9 ? 1.0 : 0.7);
-		if (state.dy < 0.3)
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthEast);
-		else if (state.dy > 0.7)
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthEast);
-		else
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::East);
-	} else {
-		jState.distance = (state.dy > 0.9 || state.dy < 0.1 ? 1.0 : 0.7);
-		if (state.dy < 0.3)
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::North);
-		else if (state.dy > 0.7)
-			jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::South);
-		else
-			jState.distance = 0.0;
+	qreal dx = 0.;
+	qreal dy = 0.;
+
+	if ((m_keyboardJoystickState.up && m_keyboardJoystickState.left) || m_keyboardJoystickState.upLeft) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthWest);
+		dx = -0.5;
+		dy = -0.5;
+	} else if ((m_keyboardJoystickState.up && m_keyboardJoystickState.right) || m_keyboardJoystickState.upRight) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthEast);
+		dx = 0.5;
+		dy = -0.5;
+	} else if ((m_keyboardJoystickState.down && m_keyboardJoystickState.left) || m_keyboardJoystickState.downLeft) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthWest);
+		dx = -0.5;
+		dy = 0.5;
+	} else if ((m_keyboardJoystickState.down && m_keyboardJoystickState.right) || m_keyboardJoystickState.downRight) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthEast);
+		dx = 0.5;
+		dy = 0.5;
+	} else if (m_keyboardJoystickState.up) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::North);
+		dy = -0.5;
+	} else if (m_keyboardJoystickState.down) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::South);
+		dy = 0.5;
+	} else if (m_keyboardJoystickState.left) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::West);
+		dx = -0.5;
+	} else if (m_keyboardJoystickState.right) {
+		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::East);
+		dx = 0.5;
 	}
 
+
+	if (m_keyboardJoystickState.shift && jState.hasKeyboard) {
+		jState.distance = 0.7;
+		dx *= 0.4;
+		dy *= 0.4;
+	} else if (jState.hasKeyboard) {
+		jState.distance = 1.0;
+	} else {
+		jState.distance = 0.;
+		dx = 0.;
+		dy = 0.;
+	}
+
+
+	dx += 0.5;
+	dy += 0.5;
 
 	setJoystickState(jState);
 
@@ -813,10 +867,31 @@ void TiledGame::updateKeyboardJoystick(const KeyboardJoystickState &state)
 		return;
 
 	QMetaObject::invokeMethod(m_joystick, "moveThumbRelative",
-							  Q_ARG(QVariant, state.dx),
-							  Q_ARG(QVariant, state.dy)
+							  Q_ARG(QVariant, dx),
+							  Q_ARG(QVariant, dy)
 							  );
 }
+
+
+/**
+ * @brief TiledGame::mouseNavigation
+ * @return
+ */
+
+bool TiledGame::mouseNavigation() const
+{
+	return m_mouseNavigation;
+}
+
+void TiledGame::setMouseNavigation(bool newMouseNavigation)
+{
+	if (m_mouseNavigation == newMouseNavigation)
+		return;
+	m_mouseNavigation = newMouseNavigation;
+	emit mouseNavigationChanged();
+}
+
+
 
 qreal TiledGame::baseScale() const
 {

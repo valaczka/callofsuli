@@ -102,14 +102,39 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 			if (it->texture != imgNode->texture())
 				imgNode->setTexture(it->texture);
 
-			QRectF rect(it->data.x,
-						it->data.y,
-						it->data.width,
-						it->data.height);
 
-			rect.translate(m_currentFrame * it->data.width, 0);
+			if (!it->data.flow) {
+				QRectF rect(it->data.x,
+							it->data.y,
+							it->data.width,
+							it->data.height);
 
-			imgNode->setSourceRect(rect);
+				rect.translate(m_currentFrame * it->data.width, 0);
+
+				imgNode->setSourceRect(rect);
+			} else {
+				int frames = m_currentFrame;
+				int x = it->data.x;
+				int y = it->data.y;
+
+				const QSize &tSize = it->texture->textureSize();
+
+				while (x + ((frames+1) * it->data.width) > tSize.width()) {
+					const int f = std::floor((float) (tSize.width()-x) / (it->data.width));
+					frames -= f;
+					y += it->data.height;
+					x = 0;
+				}
+
+				x += frames * it->data.width;
+
+				QRectF rect(x,
+							y,
+							it->data.width,
+							it->data.height);
+
+				imgNode->setSourceRect(rect);
+			}
 
 			imgNode->markDirty(QSGNode::DirtyGeometry);
 		}

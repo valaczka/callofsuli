@@ -1266,6 +1266,9 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 
 void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
 {
+	if (!mouseNavigation())
+		return;
+
 	if (!m_controlledPlayer)
 		return;
 

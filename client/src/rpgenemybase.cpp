@@ -38,6 +38,7 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	: IsometricEnemy(parent)
 	, RpgEnemyIface(type)
 	, m_effectHealed(this)
+	, m_effectFire(this)
 {
 	m_armory.reset(new RpgArmory(this));
 
@@ -165,6 +166,9 @@ void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
 void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType)
 {
 	IsometricEnemy::attackedByPlayer(player, weaponType);
+
+	if (weaponType == TiledWeapon::WeaponLongbow)
+		m_effectFire.play();
 
 	if (!isAlive())
 		return;

@@ -542,6 +542,31 @@ FocusScope {
 					}
 				}
 
+				Row {
+					topPadding: 5 * Qaterial.Style.pixelSizeRatio
+
+					QFormSwitchButton
+					{
+						text: qsTr("Játékos mozgatása kattintással")
+						anchors.verticalCenter: parent.verticalCenter
+						checked: _game.mouseNavigation
+						onToggled: {
+							Client.Utils.settingsSet("game/mouseNavigation", checked)
+							_game.mouseNavigation = checked
+						}
+					}
+
+					Qaterial.Icon
+					{
+						icon: Client.vibrate ? Qaterial.Icons.vibrate : Qaterial.Icons.vibrateOff
+						implicitWidth: _label1.icon.width
+						implicitHeight: _label1.icon.height
+						color: Client.vibrate ? Qaterial.Style.primaryTextColor() : Qaterial.Style.disabledTextColor()
+						anchors.verticalCenter: parent.verticalCenter
+					}
+
+				}
+
 				SettingsSound {
 					width: parent.width
 				}

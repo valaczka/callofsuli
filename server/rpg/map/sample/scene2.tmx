@@ -386,6 +386,7 @@
   <object id="74" type="soldier01" x="809" y="775">
    <properties>
     <property name="direction" type="int" value="45"/>
+    <property name="oncePickable" value="arrow"/>
    </properties>
    <point/>
   </object>

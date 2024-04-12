@@ -772,7 +772,8 @@ void Server::downloadLoadableContentDict(Client *client, const QStringList &file
 			if (m_loadableContentDict.contains(s))
 				fList.append(m_loadableContentDict.value(s).toString());
 			else {
-				LOG_CWARNING("client") << "Invalid loadable file:" << s;
+				fList.append(s);
+				//LOG_CWARNING("client") << "Invalid loadable file:" << s;
 			}
 		}
 

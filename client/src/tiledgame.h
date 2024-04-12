@@ -103,6 +103,7 @@ class TiledGame : public QQuickItem
 	Q_PROPERTY(QQuickItem *messageList READ messageList WRITE setMessageList NOTIFY messageListChanged FINAL)
 	Q_PROPERTY(QColor defaultMessageColor READ defaultMessageColor WRITE setDefaultMessageColor NOTIFY defaultMessageColorChanged FINAL)
 	Q_PROPERTY(qreal baseScale READ baseScale WRITE setBaseScale NOTIFY baseScaleChanged FINAL)
+	Q_PROPERTY(bool mouseNavigation READ mouseNavigation WRITE setMouseNavigation NOTIFY mouseNavigationChanged FINAL)
 
 public:
 	explicit TiledGame(QQuickItem *parent = nullptr);
@@ -191,6 +192,9 @@ public:
 	qreal baseScale() const;
 	void setBaseScale(qreal newBaseScale);
 
+	bool mouseNavigation() const;
+	void setMouseNavigation(bool newMouseNavigation);
+
 signals:
 	void gameLoaded();
 	void gameLoadFailed();
@@ -203,6 +207,7 @@ signals:
 	void messageListChanged();
 	void defaultMessageColorChanged();
 	void baseScaleChanged();
+	void mouseNavigationChanged();
 
 protected:
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
@@ -256,13 +261,37 @@ protected:
 
 private:
 	struct KeyboardJoystickState {
-		qreal dx = 0.5;
-		qreal dy = 0.5;
+		bool left = false;
+		bool right = false;
+		bool up = false;
+		bool down = false;
+
+		bool upLeft = false;
+		bool upRight = false;
+		bool downLeft = false;
+		bool downRight = false;
+
+		bool shift = false;
+
+
+		void clear() {
+			left = false;
+			right = false;
+			up = false;
+			down = false;
+
+			upLeft = false;
+			upRight = false;
+			downLeft = false;
+			downRight = false;
+
+			shift = false;
+		}
 	};
 
 	void joystickConnect(const bool &connect = true);
 	Q_INVOKABLE void updateJoystick();
-	void updateKeyboardJoystick(const KeyboardJoystickState &state);
+	void updateKeyboardJoystick();
 
 
 	KeyboardJoystickState m_keyboardJoystickState;
@@ -271,6 +300,7 @@ private:
 	JoystickState m_joystickState;
 	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 	bool m_debugView = false;
+	bool m_mouseNavigation = false;
 	QQuickItem *m_messageList = nullptr;
 	QColor m_defaultMessageColor = Qt::white;
 	qreal m_baseScale = 1.;

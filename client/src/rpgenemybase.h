@@ -74,6 +74,7 @@ private:
 	void loadType();
 
 	TiledEffectHealed m_effectHealed;
+	TiledEffectFire m_effectFire;
 };
 
 #endif // RPGENEMYBASE_H

@@ -512,11 +512,12 @@ void ActionRpgGame::downloadGameData()
 		return;
 	}
 
-	const auto &listPtr = TiledGame::getDynamicTilesets(ptr.value());
+	auto listPtr = TiledGame::getDynamicTilesets(ptr.value());
 
 	if (!listPtr)
 		return;
 
+	listPtr->prepend(QStringLiteral("rpg.dres"));
 
 	m_loadableContentCount = listPtr->size();
 	m_downloadProgress = 0.;
@@ -529,6 +530,7 @@ void ActionRpgGame::downloadGameData()
 	});
 
 	connect(server, &Server::loadableContentReady, this, [this]() {
+		RpgPlayer::reloadAvailableCharacters();
 		m_config.gameState = RpgConfig::StateCharacterSelect;
 		updateConfig();
 	});

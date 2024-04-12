@@ -46,6 +46,7 @@ public:
 		, height(0)
 		, duration(0)
 		, loops(0)
+		, flow(false)
 	{}
 
 	TiledObjectSprite(const QString &_name,
@@ -55,7 +56,8 @@ public:
 					  const int &_width,
 					  const int &_height,
 					  const int &_duration,
-					  const int &_loops = 0)
+					  const int &_loops = 0,
+					  const bool &_flow = false)
 		: name(_name)
 		, count(_count)
 		, x(_x)
@@ -64,14 +66,10 @@ public:
 		, height(_height)
 		, duration(_duration)
 		, loops(_loops)
+		, flow(_flow)
 	{}
 
-	//QUrl source() const { return m_source; }
-	//void setSource(const QString &source) { m_source = QUrl(source); }
-
 private:
-	//QUrl m_source;
-
 	QS_SERIALIZABLE
 	QS_FIELD(QString, name)
 	QS_FIELD(int, count)
@@ -81,6 +79,7 @@ private:
 	QS_FIELD(int, height)
 	QS_FIELD(int, duration)
 	QS_FIELD(int, loops)
+	QS_FIELD(bool, flow)
 
 };
 

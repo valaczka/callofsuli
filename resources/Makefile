@@ -29,3 +29,7 @@ clean:
 
 %.qrc: %
 	$(call GEN_MAP,$<,$<.qrc)
+
+%.dres: %.qrc
+	$(RCC) -binary $< -o $@
+	rm -f $<
