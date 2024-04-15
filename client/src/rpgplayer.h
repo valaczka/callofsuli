@@ -85,6 +85,7 @@ class RpgPlayer : public IsometricPlayer
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
 	Q_PROPERTY(RpgPlayerCharacterConfig config READ config CONSTANT FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
+	Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
 
 public:
 	explicit RpgPlayer(QQuickItem *parent = nullptr);
@@ -109,7 +110,6 @@ public:
 	Q_INVOKABLE void pick(RpgPickableObject *object);
 	Q_INVOKABLE void pickCurrentObject() { pick(qobject_cast<RpgPickableObject*>(currentPickable())); }
 
-
 	QString character() const;
 	void setCharacter(const QString &newCharacter);
 
@@ -122,6 +122,15 @@ public:
 	void setShieldCount(int newShieldCount);
 
 	const RpgPlayerCharacterConfig &config() const;
+
+	void inventoryAdd(RpgPickableObject *object);
+	void inventoryAdd(const RpgPickableObject::PickableType &type, const QString &name = {});
+	void inventoryRemove(const RpgPickableObject::PickableType &type);
+	void inventoryRemove(const RpgPickableObject::PickableType &type, const QString &name);
+	bool inventoryContains(const RpgPickableObject::PickableType &type) const;
+	bool inventoryContains(const RpgPickableObject::PickableType &type, const QString &name) const;
+
+	RpgInventoryList *inventory() const;
 
 signals:
 	void attackDone();
@@ -141,6 +150,8 @@ protected:
 	void onTransportLeft(TiledTransport */*transport*/) override final {}
 
 	void atDestinationPointEvent() override final;
+
+	void onCurrentTransportChanged();
 
 private:
 	void loadDefaultWeapons();
@@ -167,6 +178,7 @@ private:
 	TiledGameSfx m_sfxDecline;
 
 	std::unique_ptr<RpgArmory> m_armory;
+	std::unique_ptr<RpgInventoryList> m_inventory;
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;

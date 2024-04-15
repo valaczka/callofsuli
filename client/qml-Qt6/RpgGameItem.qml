@@ -12,6 +12,8 @@ FocusScope {
 
 	property ActionRpgGame game: null
 
+	property alias minimapVisible: _mapRect.visible
+
 	readonly property bool _isPrepared: _prGameSet && _prGameLoaded && _prCmpCompleted && _prStackActivated
 
 	property bool _prGameSet: false
@@ -62,6 +64,8 @@ FocusScope {
 		onGameLoadFailed: Client.messageError("FAILED")
 
 		onGameLoaded: _prGameLoaded = true
+
+		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
 
 		Component.onCompleted: forceActiveFocus()
 	}
@@ -268,25 +272,82 @@ FocusScope {
 		}
 
 
+		Grid {
+			id: _inventoryGrid
+			anchors.right: parent.right
+			width: _infoShield.width
+			layoutDirection: Qt.RightToLeft
+			horizontalItemAlignment: Grid.AlignHCenter
+			verticalItemAlignment: Grid.AlignVCenter
 
-		GameButton {
-			id: setttingsButton
-			size: 30
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 
+			property real size: Qaterial.Style.pixelSize*1.3
+
+			spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+			columns: Math.floor(width/size)
+
+			Repeater {
+				model: _game.controlledPlayer ? _game.controlledPlayer.inventory : null
+
+				Qaterial.Icon {
+					size: _inventoryGrid.size
+					icon: model.icon
+					color: model.iconColor
+					visible: true
+					width: size
+					height: size
+				}
+			}
+
+		}
+
+
+		Row {
 			anchors.right: parent.right
 
-			color: Qaterial.Colors.white
-			border.color: fontImage.color
-			border.width: 2
+			spacing: 5
 
-			fontImage.icon: Qaterial.Icons.cog
-			fontImage.color: Qaterial.Colors.blueGray600
-			fontImageScale: 0.7
+			GameButton {
+				id: _mapButton
+				size: 30
 
-			onClicked: {
-				Qaterial.DialogManager.openFromComponent(_settingsDialog)
+				anchors.verticalCenter: parent.verticalCenter
+
+				color: "transparent"
+				border.color: fontImage.color
+				border.width: 2
+
+				fontImage.icon: Qaterial.Icons.map
+				fontImage.color: Qaterial.Colors.cyan300
+				fontImageScale: 0.7
+
+				onClicked: {
+					_mapRect.visible = !_mapRect.visible
+				}
+			}
+
+			GameButton {
+				id: _setttingsButton
+				size: 30
+
+				anchors.verticalCenter: parent.verticalCenter
+
+				color: Qaterial.Colors.white
+				border.color: fontImage.color
+				border.width: 2
+
+				fontImage.icon: Qaterial.Icons.cog
+				fontImage.color: Qaterial.Colors.blueGray600
+				fontImageScale: 0.7
+
+				onClicked: {
+					Qaterial.DialogManager.openFromComponent(_settingsDialog)
+				}
 			}
 		}
+
 
 	}
 
@@ -572,6 +633,19 @@ FocusScope {
 				}
 			}
 		}
+	}
+
+	RpgGameMinimap {
+		id: _mapRect
+
+		anchors.fill: parent
+		view.anchors.leftMargin: Math.max(20, Client.safeMarginLeft)
+		view.anchors.rightMargin: Math.max(20, Client.safeMarginRight)
+		view.anchors.topMargin: Math.max(20, Client.safeMarginTop, _rowTime.y+_backButton.y+_backButton.height)
+		view.anchors.bottomMargin: Math.max(20, Client.safeMarginBottom)
+
+		game: _game
+		visible: false
 	}
 
 	Rectangle {

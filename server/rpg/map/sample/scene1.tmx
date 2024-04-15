@@ -202,7 +202,11 @@
  </objectgroup>
  <objectgroup id="33" name="transport">
   <object id="59" name="gate1" type="gate" x="932" y="15" width="159" height="77.5"/>
-  <object id="70" name="gate2" type="gate" x="14.3333" y="595.667" width="82.6667" height="159.333"/>
+  <object id="70" name="gate2" type="gate" x="14.3333" y="595.667" width="82.6667" height="159.333">
+   <properties>
+    <property name="lock" value="key01"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup color="#ffff00" id="31" name="other">
   <object id="52" type="player" x="1669.33" y="276">
@@ -216,7 +220,7 @@
   <object id="54" type="shortbow" x="213.333" y="422.667">
    <point/>
   </object>
-  <object id="55" type="arrow" x="192" y="1322.67">
+  <object id="55" name="key01" type="key" x="192" y="1322.67">
    <point/>
   </object>
  </objectgroup>

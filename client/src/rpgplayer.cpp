@@ -53,6 +53,7 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	, m_sfxAccept(this)
 	, m_sfxDecline(this)
 	, m_armory(new RpgArmory(this))
+	, m_inventory(new RpgInventoryList)
 	, m_effectHealed(this)
 	, m_effectShield(this)
 {
@@ -73,6 +74,8 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
 	connect(this, &RpgPlayer::becameDead, this, &RpgPlayer::playDeadEffect);
 	connect(this, &RpgPlayer::isLockedChanged, this, &RpgPlayer::playShieldEffect);
+	connect(this, &RpgPlayer::currentTransportChanged, this, &RpgPlayer::onCurrentTransportChanged);
+
 	connect(m_armory.get(), &RpgArmory::currentWeaponChanged, this, &RpgPlayer::playWeaponChangedEffect);
 
 }
@@ -401,6 +404,27 @@ void RpgPlayer::atDestinationPointEvent()
 
 
 
+
+
+/**
+ * @brief RpgPlayer::onCurrentTransportChanged
+ */
+
+void RpgPlayer::onCurrentTransportChanged()
+{
+	auto t = currentTransport();
+
+	if (!t)
+		return;
+
+	if (!t->isOpen() && !t->lockName().isEmpty()) {
+		if (inventoryContains(RpgPickableObject::PickableKey, t->lockName()))
+			t->setIsOpen(true);
+	}
+}
+
+
+
 /**
  * @brief RpgPlayer::loadDefaultWeapons
  */
@@ -621,9 +645,145 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 	m_game->messageColor(msg, QColor::fromRgbF(0.8, 0., 0.));
 }
 
+
+
+/**
+ * @brief RpgPlayer::inventory
+ * @return
+ */
+
+RpgInventoryList*RpgPlayer::inventory() const
+{
+	return m_inventory.get();
+}
+
+
+
+
 const RpgPlayerCharacterConfig &RpgPlayer::config() const
 {
 	return m_config;
+}
+
+
+
+/**
+ * @brief RpgPlayer::inventoryAdd
+ * @param object
+ */
+
+void RpgPlayer::inventoryAdd(RpgPickableObject *object)
+{
+	if (!object)
+		return;
+
+	inventoryAdd(object->pickableType(), object->name());
+}
+
+
+/**
+ * @brief RpgPlayer::inventoryAdd
+ * @param type
+ * @param name
+ */
+
+void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const QString &name)
+{
+	switch (type) {
+		case RpgPickableObject::PickableKey:
+			m_inventory->append(new RpgInventory(type, name));
+			break;
+
+		case RpgPickableObject::PickableHp:
+		case RpgPickableObject::PickableShortbow:
+		case RpgPickableObject::PickableLongbow:
+		case RpgPickableObject::PickableArrow:
+		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableShield:
+		case RpgPickableObject::PickableTime:
+			break;
+
+		case RpgPickableObject::PickableInvalid:
+			LOG_CWARNING("game") << "Invalid inventory type";
+			break;
+	}
+
+	return;
+}
+
+
+/**
+ * @brief RpgPlayer::inventoryRemove
+ * @param type
+ */
+
+void RpgPlayer::inventoryRemove(const RpgPickableObject::PickableType &type)
+{
+	QList<RpgInventory*> list;
+
+	for (RpgInventory *i : *m_inventory) {
+		if (i->pickableType() == type)
+			list.append(i);
+	}
+
+	m_inventory->remove(list);
+}
+
+
+
+/**
+ * @brief RpgPlayer::inventoryRemove
+ * @param type
+ * @param name
+ */
+
+void RpgPlayer::inventoryRemove(const RpgPickableObject::PickableType &type, const QString &name)
+{
+	QList<RpgInventory*> list;
+
+	for (RpgInventory *i : *m_inventory) {
+		if (i->pickableType() == type && i->name() == name)
+			list.append(i);
+	}
+
+	m_inventory->remove(list);
+}
+
+
+
+/**
+ * @brief RpgPlayer::inventoryContains
+ * @param type
+ * @return
+ */
+
+bool RpgPlayer::inventoryContains(const RpgPickableObject::PickableType &type) const
+{
+	for (RpgInventory *i : *m_inventory) {
+		if (i->pickableType() == type)
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief RpgPlayer::inventoryContains
+ * @param type
+ * @param name
+ * @return
+ */
+
+bool RpgPlayer::inventoryContains(const RpgPickableObject::PickableType &type, const QString &name) const
+{
+	for (RpgInventory *i : *m_inventory) {
+		if (i->pickableType() == type && i->name() == name)
+			return true;
+	}
+
+	return false;
 }
 
 

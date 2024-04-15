@@ -170,6 +170,7 @@ public:
 	std::optional<QPointF> playerPosition(const int &sceneId, const int &num) const;
 	std::optional<QPointF> playerPosition(TiledScene *scene, const int &num) const;
 
+	virtual void onSceneWorldStepped(TiledScene *scene);
 
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);

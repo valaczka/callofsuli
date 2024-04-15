@@ -32,7 +32,6 @@
 #include "isometricobject.h"
 #include <QQmlEngine>
 
-
 class RpgPlayer;
 
 
@@ -47,6 +46,7 @@ class RpgPickableObject : public IsometricObjectCircle, public TiledPickableIfac
 
 	Q_PROPERTY(PickableType pickableType READ pickableType CONSTANT FINAL)
 	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
 
 public:
 	enum PickableType {
@@ -58,7 +58,8 @@ public:
 		PickableFireball,
 		PickableLongsword,
 		PickableShield,
-		PickableTime
+		PickableTime,
+		PickableKey,
 	};
 
 	Q_ENUM(PickableType);
@@ -78,8 +79,12 @@ public:
 	virtual bool playerPick(RpgPlayer *player) = 0;
 	virtual void playerThrow(RpgPlayer *player) = 0;
 
+	QString name() const;
+	void setName(const QString &newName);
+
 signals:
 	void isActiveChanged() override final;
+	void nameChanged();
 
 protected:
 	virtual void onActivated() override;
@@ -97,6 +102,7 @@ private:
 	void fixtureEndContact(Box2DFixture *other);
 
 	const PickableType m_pickableType;
+	QString m_name;
 
 	static const QHash<QString, PickableType> m_typeHash;
 };
@@ -113,6 +119,60 @@ public:
 	virtual RpgPickableObject::PickableType toPickable() const = 0;
 	virtual RpgPickableObject::PickableType toBulletPickable() const = 0;
 };
+
+
+
+/**
+ * @brief The RpgInventory class
+ */
+
+class RpgInventory : public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(RpgPickableObject::PickableType pickableType READ pickableType CONSTANT FINAL)
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
+	Q_PROPERTY(QString icon READ icon NOTIFY iconChanged FINAL)
+	Q_PROPERTY(QColor iconColor READ iconColor NOTIFY iconColorChanged FINAL)
+
+public:
+	RpgInventory(const RpgPickableObject::PickableType &type, const QString &name, QObject *parent = nullptr);
+	RpgInventory(const RpgPickableObject::PickableType &type, QObject *parent = nullptr) :
+		RpgInventory(type, QStringLiteral(""), parent) {}
+	virtual ~RpgInventory() {}
+
+	const RpgPickableObject::PickableType &pickableType() const { return m_pickableType; }
+
+	QString name() const;
+	void setName(const QString &newName);
+
+	QString icon() const;
+	QColor iconColor() const;
+
+signals:
+	void nameChanged();
+	void iconChanged();
+	void iconColorChanged();
+
+private:
+	const RpgPickableObject::PickableType m_pickableType;
+	QString m_name;
+};
+
+
+
+
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
+
+using RpgInventoryList = qolm::QOlm<RpgInventory>;
+Q_DECLARE_METATYPE(RpgInventoryList*)
+
+
 
 
 /**

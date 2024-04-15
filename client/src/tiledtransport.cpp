@@ -260,6 +260,19 @@ void TiledTransport::setType(const TransportType &newType)
 	emit typeChanged();
 }
 
+QString TiledTransport::lockName() const
+{
+	return m_lockName;
+}
+
+void TiledTransport::setLockName(const QString &newLockName)
+{
+	if (m_lockName == newLockName)
+		return;
+	m_lockName = newLockName;
+	emit lockNameChanged();
+}
+
 
 
 /**
@@ -268,7 +281,8 @@ void TiledTransport::setType(const TransportType &newType)
  * @return
  */
 
-bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, TiledScene *scene, TiledObjectBase *object)
+bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName,
+							 TiledScene *scene, TiledObjectBase *object)
 {
 	if (name.isEmpty()) {
 		LOG_CERROR("scene") << "Transport name missing";
@@ -283,7 +297,10 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
 	TiledTransport *base = this->find(name);
 
 	if (!base) {
-		this->emplace_back(new TiledTransport(type, name, scene, object));
+		TiledTransport *t = new TiledTransport(type, name, scene, object);
+		t->setLockName(lockName);
+		t->setIsOpen(lockName.isEmpty());
+		this->emplace_back(t);
 		return true;
 	} else {
 		return base->addObject(scene, object);
@@ -291,6 +308,31 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
 }
 
 
+
+/**
+ * @brief TiledTransportList::add
+ * @param type
+ * @param name
+ * @param scene
+ * @param object
+ * @return
+ */
+
+bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, TiledScene *scene, TiledObjectBase *object)
+{
+	return add(type, name, QStringLiteral(""), scene, object);
+}
+
+
+
+
+/**
+ * @brief TiledTransportList::add
+ * @param name
+ * @param scene
+ * @param object
+ * @return
+ */
 
 bool TiledTransportList::add(const QString &name, TiledScene *scene, TiledObjectBase *object)
 {

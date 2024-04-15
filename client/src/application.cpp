@@ -380,6 +380,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MultiPlayerGame>("CallOfSuli", 1, 0, "MultiPlayerGame", "MultiPlayerGame is uncreatable");
 	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
+	qmlRegisterUncreatableType<RpgInventory>("CallOfSuli", 1, 0, "RpgInventory", "RpgInventory is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");

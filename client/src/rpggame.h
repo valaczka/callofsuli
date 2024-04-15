@@ -35,6 +35,7 @@
 #include "tiledgame.h"
 #include "isometricenemy.h"
 #include <QQmlEngine>
+#include <QScatterSeries>
 
 
 class RpgQuestion;
@@ -57,6 +58,10 @@ public:
 
 	QS_SERIALIZABLE
 
+	// Inventory
+
+	QS_COLLECTION(QList, QString, inventory)
+	QS_COLLECTION(QList, QString, inventoryOnce)
 };
 
 
@@ -80,6 +85,9 @@ class RpgGame : public TiledGame
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged FINAL)
 	Q_PROPERTY(int enemyCount READ enemyCount WRITE setEnemyCount NOTIFY enemyCountChanged FINAL)
+
+	Q_PROPERTY(QScatterSeries *scatterSeriesPlayers READ scatterSeriesPlayers WRITE setScatterSeriesPlayers NOTIFY scatterSeriesPlayersChanged FINAL)
+	Q_PROPERTY(QScatterSeries *scatterSeriesEnemies READ scatterSeriesEnemies WRITE setScatterSeriesEnemies NOTIFY scatterSeriesEnemiesChanged FINAL)
 
 public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
@@ -116,7 +124,10 @@ public:
 		return createEnemy(type, QStringLiteral(""), scene);
 	}
 
-	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene);
+	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, const QString &name, TiledScene *scene);
+	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene) {
+		return createPickable(type, QStringLiteral(""), scene);
+	}
 
 	Q_INVOKABLE bool transportPlayer();
 
@@ -150,6 +161,8 @@ public:
 	void resurrectEnemiesAndPlayer(RpgPlayer *player);
 	void resurrectEnemies(const QPointer<TiledScene> &scene);
 
+	virtual void onSceneWorldStepped(TiledScene *scene) override;
+
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
 
@@ -165,13 +178,22 @@ public:
 	FuncPlayerAttackEnemy funcPlayerAttackEnemy() const;
 	void setFuncPlayerAttackEnemy(const FuncPlayerAttackEnemy &newFuncPlayerAttackEnemy);
 
+	QScatterSeries *scatterSeriesPlayers() const;
+	void setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers);
+
+	QScatterSeries *scatterSeriesEnemies() const;
+	void setScatterSeriesEnemies(QScatterSeries *newScatterSeriesEnemies);
+
 signals:
+	void minimapToggleRequest();
 	void gameSuccess();
 	void playerDead(RpgPlayer *player);
 	void controlledPlayerChanged();
 	void playersChanged();
 	void gameQuestionChanged();
 	void enemyCountChanged();
+	void scatterSeriesPlayersChanged();
+	void scatterSeriesEnemiesChanged();
 
 protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
@@ -191,6 +213,9 @@ private:
 	void onGameQuestionFinished();
 	int recalculateEnemies();
 
+	void updateScatterEnemies();
+	void updateScatterPlayers();
+
 	struct EnemyData {
 		TiledObjectBase::ObjectId objectId;
 		RpgEnemyIface::RpgEnemyType type = RpgEnemyIface::EnemyInvalid;
@@ -208,6 +233,7 @@ private:
 	struct PickableData {
 		TiledObjectBase::ObjectId objectId;
 		RpgPickableObject::PickableType type = RpgPickableObject::PickableInvalid;
+		QString name;
 		QPointF position;
 		QPointer<TiledScene> scene;
 		QPointer<RpgPickableObject> pickableObject;
@@ -216,6 +242,10 @@ private:
 
 	QVector<EnemyData>::iterator enemyFind(IsometricEnemy *enemy);
 	QVector<EnemyData>::const_iterator enemyFind(IsometricEnemy *enemy) const;
+
+
+
+	RpgGameDefinition m_gameDefinition;
 
 	QVector<EnemyData> m_enemyDataList;
 	QVector<PickableData> m_pickableDataList;
@@ -227,6 +257,9 @@ private:
 	RpgQuestion *m_rpgQuestion = nullptr;
 	int m_enemyCount = 0;
 
+
+	QPointer<QScatterSeries> m_scatterSeriesPlayers;
+	QPointer<QScatterSeries> m_scatterSeriesEnemies;
 
 	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
 	FuncPlayerPick m_funcPlayerPick;

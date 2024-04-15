@@ -19,5 +19,7 @@
 				"ambient": "qrc:/rpg/common/birds-isaiah658.mp3"
 			}
 
-		]
+		],
+		"inventory": [ "shield" ]
+
 }

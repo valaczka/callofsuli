@@ -57,7 +57,7 @@
 - Old ruins tileset - (c) 2018 rubberduck (https://opengameart.org/content/old-ruins-tileset, https://www.blendswap.com/blends/view/74098, https://opengameart.org/content/gate-low-poly, https://opengameart.org/content/medieval-statue, https://opengameart.org/content/wall-mounted-torch, https://cloud.blender.org/p/hdri/57ff6a49e5e20f05e23ba15b)
 - Isometric log cabins - (c) 2020 rubberduck (https://opengameart.org/content/isometric-log-cabins)
 - FREE Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
-
+- Gothic Archways - (c) 2019 Lukas Küstenmacher (https://opengameart.org/content/isometric-tileset-gothic-archways)
 
 **Music & SFX**
 

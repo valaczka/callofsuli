@@ -19,6 +19,14 @@ Page {
 	}
 
 	property var stackPopFunction: function() {
+		if (_stack.activeComponent == _cmpRpg) {
+			if (_stack.currentItem.minimapVisible === true) {
+				_stack.currentItem.minimapVisible = false
+				return false
+			}
+
+		}
+
 		/*if (game && game.config.gameState == ConquestConfig.StateFinished && _stack.activeComponent == _cmpScene) {
 			game.sendWebSocketMessage({
 										  cmd: "prepare",

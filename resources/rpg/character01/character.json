@@ -2,6 +2,5 @@
 	"name": "Storm shade",
 	"image": "thumbnail.png",
 	"sfxDecline": [ "decline01.mp3", "decline02.mp3", "decline03.mp3" ],
-	"sfxAccept": [ "accept01.mp3", "accept02.mp3", "accept03.mp3" ],
-	"inventory" : [ "shield" ]
+	"sfxAccept": [ "accept01.mp3", "accept02.mp3", "accept03.mp3" ]
 }

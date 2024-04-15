@@ -636,6 +636,19 @@ void ActionRpgGame::loadInventory(RpgPlayer *player)
 	for (const QString &s : player->m_config.inventory) {
 		loadInventory(player, RpgPickableObject::typeFromString(s));
 	}
+
+
+	// Game inventory
+
+	for (const QString &s : m_rpgGame->m_gameDefinition.inventoryOnce) {
+		loadInventory(player, RpgPickableObject::typeFromString(s));
+	}
+
+	m_rpgGame->m_gameDefinition.inventoryOnce.clear();
+
+	for (const QString &s : m_rpgGame->m_gameDefinition.inventory) {
+		loadInventory(player, RpgPickableObject::typeFromString(s));
+	}
 }
 
 
@@ -654,6 +667,10 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 	switch (pickableType) {
 		case RpgPickableObject::PickableShield:
 			RpgShieldPickable::pick(player, m_rpgGame);
+			break;
+
+		case RpgPickableObject::PickableKey:
+			player->inventoryAdd(pickableType);
 			break;
 
 		case RpgPickableObject::PickableHp:

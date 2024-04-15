@@ -167,6 +167,7 @@ void RpgShieldPickable::pick(RpgPlayer *player, TiledGame *game)
 		weapon = player->armory()->weaponAdd(new RpgShield);
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
+	player->armory()->updateLayers();
 
 	if (game)
 		game->message(tr("%1 shields gained").arg(num));

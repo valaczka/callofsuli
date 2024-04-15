@@ -42,6 +42,7 @@ const QHash<QString, RpgPickableObject::PickableType> RpgPickableObject::m_typeH
 	{ QStringLiteral("shortbow"), PickableShortbow },
 	{ QStringLiteral("longsword"), PickableLongsword },
 	{ QStringLiteral("time"), PickableTime },
+	{ QStringLiteral("key"), PickableKey },
 };
 
 
@@ -193,4 +194,104 @@ void RpgPickableObject::fixtureEndContact(Box2DFixture *other)
 			}
 		}
 	}
+}
+
+QString RpgPickableObject::name() const
+{
+	return m_name;
+}
+
+void RpgPickableObject::setName(const QString &newName)
+{
+	if (m_name == newName)
+		return;
+	m_name = newName;
+	emit nameChanged();
+}
+
+
+
+/**
+ * @brief RpgInventory::RpgInventory
+ * @param type
+ * @param name
+ * @param parent
+ */
+
+RpgInventory::RpgInventory(const RpgPickableObject::PickableType &type, const QString &name, QObject *parent)
+	: QObject(parent)
+	, m_pickableType(type)
+	, m_name(name)
+{
+
+}
+
+QString RpgInventory::name() const
+{
+	return m_name;
+}
+
+void RpgInventory::setName(const QString &newName)
+{
+	if (m_name == newName)
+		return;
+	m_name = newName;
+	emit nameChanged();
+	emit iconChanged();
+	emit iconColorChanged();
+}
+
+
+
+/**
+ * @brief RpgInventory::icon
+ * @return
+ */
+
+QString RpgInventory::icon() const
+{
+	switch (m_pickableType) {
+		case RpgPickableObject::PickableKey:
+			return QStringLiteral("qrc:/Qaterial/Icons/key-chain.svg");
+
+		case RpgPickableObject::PickableHp:
+		case RpgPickableObject::PickableShortbow:
+		case RpgPickableObject::PickableLongbow:
+		case RpgPickableObject::PickableArrow:
+		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableShield:
+		case RpgPickableObject::PickableTime:
+		case RpgPickableObject::PickableInvalid:
+			break;
+	}
+	return QStringLiteral("qrc:/Qaterial/Icons/help-box-outline.svg");
+}
+
+
+
+/**
+ * @brief RpgInventory::iconColor
+ * @return
+ */
+
+QColor RpgInventory::iconColor() const
+{
+	switch (m_pickableType) {
+		case RpgPickableObject::PickableKey:
+			return QColor::fromString(QStringLiteral("#FF8F00"));
+
+		case RpgPickableObject::PickableHp:
+		case RpgPickableObject::PickableShortbow:
+		case RpgPickableObject::PickableLongbow:
+		case RpgPickableObject::PickableArrow:
+		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableShield:
+		case RpgPickableObject::PickableTime:
+		case RpgPickableObject::PickableInvalid:
+			break;
+	}
+
+	return QColor::fromRgbF(0.8, 0., 0.);
 }

@@ -40,6 +40,7 @@ class TiledTransport : public QObject
 
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
 	Q_PROPERTY(bool isOpen READ isOpen WRITE setIsOpen NOTIFY isOpenChanged FINAL)
+	Q_PROPERTY(QString lockName READ lockName WRITE setLockName NOTIFY lockNameChanged FINAL)
 	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
 	Q_PROPERTY(TiledScene *sceneA READ sceneA WRITE setSceneA NOTIFY sceneAChanged FINAL)
 	Q_PROPERTY(TiledObjectBase *objectA READ objectA WRITE setObjectA NOTIFY objectAChanged FINAL)
@@ -110,6 +111,9 @@ public:
 	TransportType type() const;
 	void setType(const TransportType &newType);
 
+	QString lockName() const;
+	void setLockName(const QString &newLockName);
+
 signals:
 	void nameChanged();
 	void sceneAChanged();
@@ -119,12 +123,14 @@ signals:
 	void isOpenChanged();
 	void isActiveChanged();
 	void typeChanged();
+	void lockNameChanged();
 
 protected:
 	TransportType m_type = TransportInvalid;
 	QString m_name;
 	bool m_isOpen = true;
 	bool m_isActive = false;
+	QString m_lockName;
 
 	QPointer<TiledScene> m_sceneA;
 	QPointer<TiledObjectBase> m_objectA;
@@ -148,6 +154,8 @@ public:
 		: std::vector<std::unique_ptr<TiledTransport>>()
 	{}
 
+	bool add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName,
+			 TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 	bool add(const TiledTransport::TransportType &type, const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 	bool add(const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 

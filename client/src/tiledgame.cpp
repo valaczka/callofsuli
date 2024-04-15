@@ -137,7 +137,7 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 
 	for (const TiledSceneDefinition &s : def.scenes) {
 		LOG_CTRACE("game") << "Get dynamic tilesets from file:" << s.file;
-		std::unique_ptr<Tiled::Map> map(mapReader.readMap(Tiled::urlToLocalFileOrQrc(QUrl(def.basePath+QLatin1Char('/')+s.file))));
+		std::unique_ptr<Tiled::Map> map(mapReader.readMap(Tiled::urlToLocalFileOrQrc(QUrl(def.basePath+'/'+s.file))));
 
 		if (!map) {
 			LOG_CERROR("game") << "Game read error:" << def.basePath;
@@ -314,7 +314,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 	item.container->setParentItem(this);
 	item.container->setParent(this);
 
-	if (!item.scene->load(QUrl(basePath+QLatin1Char('/')+def.file))) {
+	if (!item.scene->load(QUrl(basePath+'/'+def.file))) {
 		LOG_CERROR("game") << "Scene load error" << def.file;
 		item.container->deleteLater();
 		return false;
@@ -531,7 +531,9 @@ bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled
 	mapObject->fixture()->setSensor(true);
 	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport));
 
-	if (!m_transportList.add(TiledTransport::typeFromString(object->className()), object->name(), scene, mapObject))
+	if (!m_transportList.add(TiledTransport::typeFromString(object->className()), object->name(),
+							 object->property(QStringLiteral("lock")).toString(),
+							 scene, mapObject))
 		return false;
 
 	addLoadedObject(object->id(), scene->sceneId());
@@ -1083,7 +1085,6 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 	if (!transport)
 		return false;
 
-
 	TiledScene *oldScene = object->scene();
 	TiledScene *newScene = transport->otherScene(oldScene);
 	TiledObjectBase *newObject = transport->otherObject(oldScene);
@@ -1094,6 +1095,9 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 	}
 
 	if (!transportBeforeEvent(object, transport))
+		return false;
+
+	if (!transport->isOpen())
 		return false;
 
 	changeScene(object, oldScene, newScene, newObject->body()->bodyPosition());
@@ -1286,6 +1290,17 @@ std::optional<QPointF> TiledGame::playerPosition(TiledScene *scene, const int &n
 	}
 
 	return std::nullopt;
+}
+
+
+/**
+ * @brief TiledGame::onSceneWorldStepped
+ * @param scene
+ */
+
+void TiledGame::onSceneWorldStepped(TiledScene *scene)
+{
+	Q_UNUSED(scene);
 }
 
 

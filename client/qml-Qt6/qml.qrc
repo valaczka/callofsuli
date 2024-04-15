@@ -224,5 +224,6 @@
         <file>PageActionRpgGame.qml</file>
         <file>RpgGameItem.qml</file>
         <file>RpgCharacterSelect.qml</file>
+        <file>RpgGameMinimap.qml</file>
     </qresource>
 </RCC>

@@ -29,6 +29,7 @@
 #include "rpgfireball.h"
 #include "rpggame.h"
 #include "rpghp.h"
+#include "rpgkeypickable.h"
 #include "rpglongbow.h"
 #include "rpglongsword.h"
 #include "rpgshield.h"
@@ -301,18 +302,21 @@ bool RpgGame::load(const RpgGameDefinition &def)
 	recalculateEnemies();
 
 	for (auto &e : m_pickableDataList) {
-		RpgPickableObject *pickable = createPickable(e.type, e.scene);
+		RpgPickableObject *pickable = createPickable(e.type, e.name, e.scene);
 
 		if (!pickable)
 			continue;
 
 		pickable->setObjectId(e.objectId);
+		pickable->setName(e.name);
 		pickable->body()->emplace(e.position);
 
 		e.scene->appendToObjects(pickable);
 		e.pickableObject = pickable;
 		pickable->setIsActive(true);
 	}
+
+	m_gameDefinition = def;
 
 	return true;
 }
@@ -446,6 +450,7 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 	}
 
 	p->removePickable(object);
+	p->inventoryAdd(object);
 
 	p->armory()->updateLayers();
 	p->setShieldCount(p->armory()->getShieldCount());
@@ -669,7 +674,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
  * @return
  */
 
-RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene)
+RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType &type, const QString &name, TiledScene *scene)
 {
 	RpgPickableObject *pickable = nullptr;
 
@@ -706,6 +711,10 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 			pickable = RpgPickableObject::createPickable<RpgTimePickable>(this);
 			break;
 
+		case RpgPickableObject::PickableKey:
+			pickable = RpgPickableObject::createPickable<RpgKeyPickable>(this);
+			break;
+
 		case RpgPickableObject::PickableInvalid:
 			break;
 	}
@@ -714,6 +723,7 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 		pickable->setParent(this);
 		pickable->setGame(this);
 		pickable->setScene(scene);
+		pickable->setName(name);
 		pickable->initialize();
 	}
 
@@ -731,10 +741,23 @@ bool RpgGame::transportPlayer()
 	if (!m_controlledPlayer)
 		return false;
 
-	m_controlledPlayer->clearDestinationPoint();
 
-	if (m_controlledPlayer->currentTransport())
-		return transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
+	if (m_controlledPlayer->currentTransport()) {
+		const bool s = transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
+
+		if (!s) {
+			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())
+				m_controlledPlayer->m_sfxDecline.playOne();
+			messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
+		} else {
+			for (const EnemyData &e : m_enemyDataList) {
+				if (e.enemy)
+					e.enemy->removeContactedPlayer(m_controlledPlayer);
+			}
+
+			m_controlledPlayer->clearDestinationPoint();
+		}
+	}
 
 	return false;
 }
@@ -836,6 +859,10 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_Enter:
 			if (m_controlledPlayer)
 				m_controlledPlayer->pickCurrentObject();
+			break;
+
+		case Qt::Key_Tab:
+			emit minimapToggleRequest();
 			break;
 
 #ifndef QT_NO_DEBUG
@@ -991,6 +1018,7 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 	m_pickableDataList.append(PickableData{
 								  TiledObjectBase::ObjectId{object->id(), scene->sceneId()},
 								  type,
+								  object->name(),
 								  point,
 								  scene,
 								  nullptr
@@ -1081,6 +1109,72 @@ int RpgGame::recalculateEnemies()
 
 
 
+/**
+ * @brief RpgGame::updateScatterEnemies
+ */
+
+void RpgGame::updateScatterEnemies()
+{
+	if (!m_scatterSeriesEnemies)
+		return;
+
+	QList<QPointF> list;
+
+	for (const EnemyData &e : m_enemyDataList) {
+		if (e.scene != m_currentScene || !e.enemy || !e.enemy->isAlive())
+			continue;
+
+		QPointF pos = e.enemy->body()->bodyPosition();
+		pos.setY(m_currentScene->height()-pos.y());
+
+		list.append(pos);
+	}
+
+	m_scatterSeriesEnemies->replace(list);
+
+
+}
+
+
+/**
+ * @brief RpgGame::updateScatterPlayers
+ */
+
+void RpgGame::updateScatterPlayers()
+{
+	if (!m_scatterSeriesPlayers)
+		return;
+
+	QList<QPointF> list;
+	int playerIndex = -1;
+
+
+	for (const RpgPlayer *p : m_players) {
+		if (!p || p->scene() != m_currentScene || !p->isAlive())
+			continue;
+
+		QPointF pos = p->body()->bodyPosition();
+		pos.setY(m_currentScene->height()-pos.y());
+
+		list.append(pos);
+
+		if (p == m_controlledPlayer)
+			playerIndex = list.size()-1;
+
+	}
+
+	m_scatterSeriesPlayers->replace(list);
+
+	if (playerIndex != -1) {
+		static const QColor color = QColor::fromString(QStringLiteral("#43A047"));
+
+		m_scatterSeriesPlayers->setPointConfiguration(playerIndex, QXYSeries::PointConfiguration::Color, color);
+	}
+
+}
+
+
+
 
 /**
  * @brief RpgGame::enemyFind
@@ -1111,6 +1205,47 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 						[enemy](const EnemyData &e)	{
 		return e.enemy == enemy; }
 	);
+}
+
+
+
+
+/**
+ * @brief RpgGame::scatterSeriesEnemies
+ * @return
+ */
+
+QScatterSeries *RpgGame::scatterSeriesEnemies() const
+{
+	return m_scatterSeriesEnemies.get();
+}
+
+void RpgGame::setScatterSeriesEnemies(QScatterSeries *newScatterSeriesEnemies)
+{
+	if (m_scatterSeriesEnemies == newScatterSeriesEnemies)
+		return;
+	m_scatterSeriesEnemies = newScatterSeriesEnemies;
+	emit scatterSeriesEnemiesChanged();
+}
+
+
+
+/**
+ * @brief RpgGame::scatterSeriesPlayers
+ * @return
+ */
+
+QScatterSeries *RpgGame::scatterSeriesPlayers() const
+{
+	return m_scatterSeriesPlayers.get();
+}
+
+void RpgGame::setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers)
+{
+	if (m_scatterSeriesPlayers == newScatterSeriesPlayers)
+		return;
+	m_scatterSeriesPlayers = newScatterSeriesPlayers;
+	emit scatterSeriesPlayersChanged();
 }
 
 
@@ -1315,8 +1450,6 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 			eList.append(&e);
 	}
 
-	LOG_CINFO("game") << "*** SET QUESTIONS" << scene << factor;
-
 	if (!count)
 		return -1;
 
@@ -1325,8 +1458,6 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 		e->hasQuestion = true;
 		++q;
 		++created;
-
-		LOG_CINFO("game") << "+++++++>" << e->objectId.id << e->enemy;
 	}
 
 	return created;
@@ -1377,6 +1508,23 @@ void RpgGame::resurrectEnemies(const QPointer<TiledScene> &scene)
 	}
 
 	recalculateEnemies();
+}
+
+
+
+/**
+ * @brief RpgGame::onSceneWorldStepped
+ * @param scene
+ */
+
+void RpgGame::onSceneWorldStepped(TiledScene *scene)
+{
+	if (!scene || scene != m_currentScene)
+		return;
+
+	updateScatterEnemies();
+	updateScatterPlayers();
+
 }
 
 

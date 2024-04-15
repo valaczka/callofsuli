@@ -84,7 +84,11 @@
  </objectgroup>
  <objectgroup id="9" name="transport">
   <object id="11" name="gate3" type="gate" x="1226" y="7.5" width="239" height="98.5"/>
-  <object id="12" name="gate2" type="gate" x="1929.67" y="1658.33" width="100" height="267"/>
+  <object id="12" name="gate2" type="gate" x="1929.67" y="1658.33" width="100" height="267">
+   <properties>
+    <property name="lock" value="key01"/>
+   </properties>
+  </object>
  </objectgroup>
  <objectgroup color="#ff0000" id="16" name="enemy">
   <object id="15" type="soldier01" x="1891.11" y="746.106">

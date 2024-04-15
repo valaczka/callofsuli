@@ -307,6 +307,8 @@ void TiledScene::onWorldStepped()
 
 	reorderObjectsZ();
 
+	if (m_game)
+		m_game->onSceneWorldStepped(this);
 }
 
 

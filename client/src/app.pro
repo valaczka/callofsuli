@@ -264,6 +264,7 @@ SOURCES += \
 	rpgfireball.cpp \
 	rpggame.cpp \
 	rpghp.cpp \
+	rpgkeypickable.cpp \
 	rpglongbow.cpp \
 	rpglongsword.cpp \
 	rpgpickableobject.cpp \
@@ -382,6 +383,7 @@ HEADERS += \
 	rpgfireball.h \
 	rpggame.h \
 	rpghp.h \
+	rpgkeypickable.h \
 	rpglongbow.h \
 	rpglongsword.h \
 	rpgpickableobject.h \
