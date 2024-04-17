@@ -107,6 +107,7 @@ signals:
 	void sceneIdChanged();
 	void ambientSoundChanged();
 	void backgroundMusicChanged();
+	void worldStepped();
 
 protected:
 	virtual void refresh() override;

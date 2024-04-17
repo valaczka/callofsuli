@@ -95,10 +95,10 @@ Qaterial.Expandable {
 							text: {
 								switch (modelData.mode) {
 								case GameMap.Action:
-									qsTr("Akciójáték")
+									qsTr("Régi akciójáték")
 									break
 								case GameMap.Rpg:
-									qsTr("RPG")
+									qsTr("Akciójáték")
 									break
 								case GameMap.Lite:
 									qsTr("Feladatmegoldás")

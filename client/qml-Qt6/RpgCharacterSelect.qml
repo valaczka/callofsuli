@@ -16,14 +16,14 @@ QScrollable {
 
 	QLabelInformative {
 		visible: _groupBoxCharacter.visible
-		text: qsTr("Válassz játékost:")
+		text: qsTr("Válassz karaktert:")
 		bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 		topPadding: root.paddingTop
 	}
 
 	Qaterial.GroupBox {
 		id: _groupBoxCharacter
-		title: qsTr("Játékos")
+		title: qsTr("Karakter")
 
 		width: groupWidth
 
@@ -101,6 +101,7 @@ QScrollable {
 					[ "Enter_Alt", "Enter_Tall" ], qsTr("Tárgy felvétele"),
 					[ "Del", "Q" ], qsTr("Fegyver váltás"),
 					[ "5", "S" ], qsTr("Átjáró használata"),
+					[ "Tab" ], qsTr("Térkép")
 				]
 
 				delegate: Item {

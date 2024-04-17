@@ -410,6 +410,7 @@ TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObjec
 
 	mapObject->setParent(scene);
 	mapObject->setScene(scene);
+	mapObject->setGame(this);
 	mapObject->fixture()->setDensity(1);
 	mapObject->fixture()->setFriction(1);
 	mapObject->fixture()->setRestitution(0);
@@ -1157,7 +1158,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
 	if (!scene || !m_currentScene || m_currentScene != scene)
 		return;
 
-	static const std::map<qreal, float> distanceMap = {
+	/*static const std::map<qreal, float> distanceMap = {
 		{ 0, 1.0 },
 		{ 20, 0.8 },
 		{ 50, 0.7 },
@@ -1176,8 +1177,49 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
 			Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel, volume*factor);
 			return;
 		}
+	}*/
+
+	if (const auto &ptr = getSfxVolume(scene, position, baseVolume, m_baseScale))
+		Application::instance()->client()->sound()->playSound(source, Sound::SfxChannel, *ptr);
+
+}
+
+
+
+/**
+ * @brief TiledGame::getSfxVolume
+ * @param scene
+ * @param position
+ * @param baseVolume
+ * @return
+ */
+
+std::optional<qreal> TiledGame::getSfxVolume(TiledScene *scene, const QPointF &position, const float &baseVolume, const qreal &baseScale)
+{
+	if (!scene)
+		return std::nullopt;
+
+	static const std::map<qreal, float> distanceMap = {
+		{ 0, 1.0 },
+		{ 20, 0.8 },
+		{ 50, 0.7 },
+		{ 75, 0.5 },
+		{ 100, 0.4 },
+		{ 120, 0.3 },
+		{ 150, 0.2 }
+	};
+
+	const QRectF &rect = scene->visibleArea();
+	const qreal &scale = scene->scale() + (1.-baseScale);
+	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
+
+	for (const auto &[margin, volume] : std::as_const(distanceMap)) {
+		if (rect.marginsAdded(QMarginsF{margin, margin, margin, margin}).contains(position)) {
+			return volume*factor;
+		}
 	}
 
+	return std::nullopt;
 }
 
 

@@ -159,6 +159,9 @@ public:
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
 
+	static std::optional<qreal> getSfxVolume(TiledScene *scene, const QPointF &position, const float &baseVolume = 1.,
+											 const qreal &baseScale = 1.);
+
 
 	Q_INVOKABLE void messageColor(const QString &text, const QColor &color);
 	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
@@ -213,7 +216,7 @@ signals:
 protected:
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
-	TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void addPlayerPosition(TiledScene *scene, const QPointF &position);

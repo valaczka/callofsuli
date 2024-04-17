@@ -53,6 +53,12 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionRpgGame::onGameTimeout);
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
 	/*connect(this, &ActionGame::toolChanged, this, &ActionGame::toolListIconsChanged);*/
+
+
+	// Az elején ideiglenes letiltjuk az effekteket, hogy ne szólaljon meg feleslegesen rövid időre az előkészítés alatt
+
+	m_tmpSoundSfxVolume = m_client->sound()->volumeSfx();
+	m_client->sound()->setVolumeSfx(0);
 }
 
 
@@ -450,6 +456,7 @@ void ActionRpgGame::onConfigChanged()
 		} else {
 			m_rpgGame->message(tr("LEVEL %1").arg(level()));
 			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
+			m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
 		}
 	}
 
@@ -518,6 +525,7 @@ void ActionRpgGame::downloadGameData()
 		return;
 
 	listPtr->prepend(QStringLiteral("rpg.dres"));
+	listPtr->append(ptr->required);
 
 	m_loadableContentCount = listPtr->size();
 	m_downloadProgress = 0.;

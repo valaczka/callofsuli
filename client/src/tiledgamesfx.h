@@ -32,6 +32,7 @@
 #include "tiledobject.h"
 #include <QObject>
 #include <QString>
+#include "sound.h"
 
 class TiledGameSfx : public QObject
 {
@@ -114,5 +115,48 @@ private:
 
 	int m_currentIndex = -1;
 };
+
+
+
+
+
+/**
+ * @brief The TiledGameSfxLocation class
+ */
+
+class TiledGameSfxLocation : public QObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(float baseVolume READ baseVolume WRITE setBaseVolume NOTIFY baseVolumeChanged FINAL)
+
+public:
+	TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObjectBase *tiledObject,
+						 const Sound::ChannelType &channel = Sound::Music2Channel);
+	virtual ~TiledGameSfxLocation();
+
+	float baseVolume() const;
+	void setBaseVolume(float newBaseVolume);
+
+signals:
+	void baseVolumeChanged();
+
+private:
+	void onSceneChanged();
+	void updateSound();
+	void checkPosition();
+
+	QPointer<TiledObjectBase> m_object;
+	std::unique_ptr<Sound::ExternalSound> m_sound;
+	float m_baseVolume = 1.;
+
+	TiledScene *m_connectedScene = nullptr;
+	QPointF m_lastPoint;
+	QRectF m_lastVisibleArea;
+	qreal m_lastVolume = 0.;
+};
+
+
+
 
 #endif // TILEDGAMESFX_H

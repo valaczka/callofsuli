@@ -145,7 +145,6 @@ public:
 
 signals:
 	void bodyOffsetChanged();
-
 	void opaqueChanged();
 
 private:

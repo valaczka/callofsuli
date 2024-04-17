@@ -9,6 +9,7 @@
  <tileset firstgid="491" source="../../tileset/groundDirt/groundDirt.tsx"/>
  <tileset firstgid="811" source="../../tileset/treeCloudy4/treeCloudy4.tsx"/>
  <tileset firstgid="827" source="../../tileset/direction/directionYellow.tsx"/>
+ <tileset firstgid="947" source="../../tileset/fountain03/fountain03shadow.tsx"/>
  <layer id="4" name="water" width="32" height="32" locked="1">
   <data encoding="base64" compression="zlib">
    eJxjYBgFo2AUjAL6gkeMA+2CUTCSwWj6GwUjGYym/1EwksFo+h8FgxGgp0tCfErFAarrCN8=
@@ -105,7 +106,7 @@
  </layer>
  <layer id="12" name="tree04" width="32" height="32">
   <data encoding="base64" compression="zlib">
-   eJztzkEJAAAIBLADG9k/nF8DCH62BEsAAICt63sAcG8AEZgANg==
+   eJztzgEJAAAIA7CD/ePYzxiKbAmWAADAHV3bA4CfBu0qALk=
   </data>
  </layer>
  <layer id="10" name="tree06" width="32" height="32">
@@ -177,6 +178,7 @@
   </object>
   <object id="51" type="soldier01" x="502.667" y="116">
    <properties>
+    <property name="dieForever" type="bool" value="true"/>
     <property name="pickable" value="hp"/>
    </properties>
    <polyline points="0,0 369.333,44 462,463.333 1047.33,758 601.337,948 218.667,528 606,386 502.667,6.66667"/>
@@ -291,7 +293,11 @@
   <object id="27" x="-76.6667" y="550" width="87" height="233.333"/>
   <object id="29" x="874" y="-40.6667" width="244" height="54.6667"/>
   <object id="30" name="tree03" x="182.333" y="1179.33" width="18.6667" height="15.3333"/>
-  <object id="33" name="tree04" x="628.333" y="1334.67" width="18.6667" height="15.3333"/>
+  <object id="33" name="tree04" x="471.833" y="1181.17" width="125.667" height="117.333">
+   <properties>
+    <property name="sound" value=":/tileset/fountain03/sound.wav"/>
+   </properties>
+  </object>
   <object id="35" name="tree01" x="169.875" y="507.25" width="10.875" height="9.125"/>
   <object id="38" name="tree02" x="489.813" y="508.188" width="10.875" height="9.125"/>
   <object id="39" name="tree05" x="1144.56" y="1345.81" width="16" height="16.625"/>

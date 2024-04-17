@@ -789,6 +789,28 @@ void RpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const
 
 
 
+/**
+ * @brief RpgGame::loadGround
+ * @param scene
+ * @param object
+ * @param renderer
+ * @return
+*/
+
+TiledObjectBasePolygon *RpgGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+{
+	TiledObjectBasePolygon *p = TiledGame::loadGround(scene, object, renderer);
+
+	if (object->hasProperty(QStringLiteral("sound")) && p) {
+		addLocationSound(p, object->propertyAsString(QStringLiteral("sound")));
+	}
+
+	return p;
+}
+
+
+
+
 
 
 /**
@@ -959,8 +981,8 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 
 	QVector<RpgPickableObject::PickableType> pickableOnceList;
 
-	if (object->hasProperty(QStringLiteral("oncePickable"))) {
-		const QStringList &pList = object->property(QStringLiteral("oncePickable")).toString().split(',', Qt::SkipEmptyParts);
+	if (object->hasProperty(QStringLiteral("pickableOnce"))) {
+		const QStringList &pList = object->property(QStringLiteral("pickableOnce")).toString().split(',', Qt::SkipEmptyParts);
 		for (const QString &s : pList) {
 			const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
 
@@ -982,6 +1004,7 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 							   scene,
 							   nullptr,
 							   false,
+							   object->property(QStringLiteral("dieForever")).toBool(),
 							   pickableList,
 							   pickableOnceList
 						   });
@@ -1023,6 +1046,23 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 								  scene,
 								  nullptr
 							  });
+}
+
+
+
+/**
+ * @brief RpgGame::addLocationSound
+ * @param object
+ * @param sound
+ * @param baseVolume
+ * @param channel
+ */
+
+void RpgGame::addLocationSound(TiledObjectBase *object, const QString &sound, const qreal &baseVolume, const Sound::ChannelType &channel)
+{
+	LOG_CTRACE("game") << "Add location sound" << sound << baseVolume << object << channel;
+	m_sfxLocations.emplace_back(new TiledGameSfxLocation(sound, baseVolume, object, channel));
+
 }
 
 
@@ -1503,7 +1543,7 @@ void RpgGame::resurrectEnemies(const QPointer<TiledScene> &scene)
 	}
 
 	for (EnemyData &e : m_enemyDataList) {
-		if (e.scene == scene && e.enemy)
+		if (e.scene == scene && e.enemy && !e.dieForever)
 			e.enemy->setHp(e.enemy->maxHp());
 	}
 

@@ -309,6 +309,8 @@ void TiledScene::onWorldStepped()
 
 	if (m_game)
 		m_game->onSceneWorldStepped(this);
+
+	emit worldStepped();
 }
 
 

@@ -136,6 +136,8 @@ private:
 
 	int m_msecNotifyAt = 0;
 
+	int m_tmpSoundSfxVolume = 0;
+
 	friend class RpgQuestion;
 };
 

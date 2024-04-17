@@ -195,7 +195,7 @@ QPage {
 					QFormCheckButton
 					{
 						id: _isAction
-						text: qsTr("Akciójáték")
+						text: qsTr("Akciójáték (elavult)")
 						checked: mission && (mission.modes & GameMap.Action)
 						onToggled: _form.updateCheckButtons()
 						enabled: !_isExam.checked

@@ -69,10 +69,10 @@ QPage {
 					let t = JS.readableTimestamp(model.timestamp)
 					switch (model.mode) {
 					case GameMap.Action:
-						t += qsTr(" [akció]")
+						t += qsTr(" [régi akció]")
 						break
 					case GameMap.Rpg:
-						t += qsTr(" [RPG]")
+						t += qsTr(" [akció]")
 						break
 					case GameMap.Lite:
 						t += qsTr(" [feladatmegoldás]")

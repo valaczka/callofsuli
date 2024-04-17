@@ -26,6 +26,7 @@
 
 #include "tiledgamesfx.h"
 #include "tiledgame.h"
+#include "application.h"
 
 
 
@@ -293,3 +294,170 @@ void TiledGameSfx::setTiledObject(TiledObject *newTiledObject)
 	m_tiledObject = newTiledObject;
 	emit tiledObjectChanged();
 }
+
+
+
+/**
+ * @brief TiledGameSfxLocation::TiledGameSfxLocation
+ * @param path
+ * @param baseVolume
+ * @param tiledObject
+ */
+
+TiledGameSfxLocation::TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObjectBase *tiledObject,
+										   const Sound::ChannelType &channel)
+	: QObject(tiledObject)
+	, m_object(tiledObject)
+	, m_sound(Application::instance()->client()->sound()->externalSoundAdd(path, channel))
+	, m_baseVolume(baseVolume)
+{
+	Q_ASSERT(tiledObject);
+
+	LOG_CTRACE("sound") << "Create TiledGameSfxLocation" << this;
+
+	connect(tiledObject, &TiledObjectBase::sceneChanged, this, &TiledGameSfxLocation::onSceneChanged);
+
+	onSceneChanged();
+}
+
+
+/**
+ * @brief TiledGameSfxLocation::~TiledGameSfxLocation
+ */
+
+TiledGameSfxLocation::~TiledGameSfxLocation()
+{
+	LOG_CTRACE("sound") << "Delete TiledGameSfxLocation" << this;
+}
+
+
+/**
+ * @brief TiledGameSfxLocation::updateSound
+ */
+
+void TiledGameSfxLocation::updateSound()
+{
+	if (!m_sound)
+		return;
+
+	ma_sound *snd = m_sound->sound();
+
+	if (!snd)
+		return;
+
+	const bool isCurrentScene = m_object && m_object->scene() && m_object->game() && m_object->game()->currentScene() == m_object->scene();
+
+
+	if (!isCurrentScene || m_baseVolume <= 0.) {
+		if (ma_sound_is_playing(snd)) {
+			ma_sound_stop(snd);
+			ma_sound_seek_to_pcm_frame(snd, 0);
+		}
+		m_lastVolume = 0.;
+		return;
+	}
+
+	const qreal vol = TiledGame::getSfxVolume(m_object->scene(), m_object->body()->bodyPosition(), m_baseVolume, m_object->game()->baseScale()).value_or(0.);
+
+	if (qFuzzyCompare(vol, m_lastVolume))
+		return;
+
+	if (vol <= 0.) {
+		if (ma_sound_is_playing(snd)) {
+			ma_sound_stop(snd);
+			ma_sound_seek_to_pcm_frame(snd, 0);
+		}
+		m_lastVolume = 0.;
+		return;
+	}
+
+	ma_sound_set_volume(snd, vol);
+
+	if (!ma_sound_is_playing(snd))
+		ma_sound_start(snd);
+
+	m_lastVolume = vol;
+}
+
+
+
+
+
+/**
+ * @brief TiledGameSfxLocation::baseVolume
+ * @return
+ */
+
+float TiledGameSfxLocation::baseVolume() const
+{
+	return m_baseVolume;
+}
+
+void TiledGameSfxLocation::setBaseVolume(float newBaseVolume)
+{
+	if (qFuzzyCompare(m_baseVolume, newBaseVolume))
+		return;
+	m_baseVolume = newBaseVolume;
+	emit baseVolumeChanged();
+}
+
+
+
+/**
+ * @brief TiledGameSfxLocation::onSceneChanged
+ */
+
+void TiledGameSfxLocation::onSceneChanged()
+{
+	TiledScene *scene = m_object ? m_object->scene() : nullptr;
+
+	if (scene == m_connectedScene)
+		return;
+
+	if (m_connectedScene) {
+		disconnect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
+		disconnect(m_connectedScene, &TiledScene::visibleAreaChanged, this, &TiledGameSfxLocation::checkPosition);
+	}
+
+	m_connectedScene = scene;
+
+	if (m_connectedScene) {
+		connect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
+		connect(m_connectedScene, &TiledScene::visibleAreaChanged, this, &TiledGameSfxLocation::checkPosition);
+	}
+
+	updateSound();
+}
+
+
+
+
+
+
+
+/**
+ * @brief TiledGameSfxLocation::checkPosition
+ */
+
+void TiledGameSfxLocation::checkPosition()
+{
+	if (!m_connectedScene || !m_object)
+		return;
+
+	const QPointF &p = m_object->body()->bodyPosition();
+
+	if (p != m_lastPoint) {
+		m_lastPoint = p;
+		updateSound();
+		return;
+	}
+
+	const QRectF &r = m_connectedScene->visibleArea();
+
+	if (r != m_lastVisibleArea) {
+		m_lastVisibleArea = r;
+		updateSound();
+		return;
+	}
+}
+

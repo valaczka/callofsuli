@@ -65,45 +65,8 @@ public:
 	enum ChannelType { MusicChannel, SfxChannel, VoiceoverChannel, Music2Channel };
 	Q_ENUM(ChannelType)
 
-	explicit Sound(QObject *parent = nullptr);
-	virtual ~Sound();
-
-	Q_INVOKABLE void playSound(const QString &source, const Sound::ChannelType &channel, const float &volume = 1.0);
-	Q_INVOKABLE void stopSound(const QString &source, const Sound::ChannelType &channel);
-	Q_INVOKABLE void stopMusic();
-	Q_INVOKABLE void stopMusic2();
-
-	Q_INVOKABLE bool isPlayingMusic() const;
-	Q_INVOKABLE bool isPlayingMusic2() const;
-
-	int volumeSfx() const;
-	void setVolumeSfx(int newVolumeSfx);
-
-	int volumeVoiceOver() const;
-	void setVolumeVoiceOver(int newVolumeVoiceOver);
-
-	int volumeMusic() const;
-	void setVolumeMusic(int newVolumeMusic);
-
-	bool sfxEnabled() const;
-	void setSfxEnabled(bool newSfxEnabled);
-
-	bool voiceOverEnabled() const;
-	void setVoiceOverEnabled(bool newVoiceOverEnabled);
-
-	bool musicEnabled() const;
-	void setMusicEnabled(bool newMusicEnabled);
-
-signals:
-	void volumeSfxChanged();
-	void volumeVoiceOverChanged();
-	void volumeMusicChanged();
-	void sfxEnabledChanged();
-	void voiceOverEnabledChanged();
-	void musicEnabledChanged();
 
 private:
-
 	/**
 	 * @brief The MaSound class
 	 */
@@ -142,6 +105,76 @@ private:
 		QByteArray m_tmpPath;
 	};
 
+
+public:
+
+	explicit Sound(QObject *parent = nullptr);
+	virtual ~Sound();
+
+
+	/**
+	 * @brief The ExternalSound class
+	 */
+
+	class ExternalSound
+	{
+	private:
+		ExternalSound(Sound *sound, const QString &source, const Sound::ChannelType &channel);
+
+	public:
+		~ExternalSound();
+
+		QString path() const { return m_maSound ? m_maSound->path() : QStringLiteral(""); }
+		ChannelType channel() const { return m_maSound ? m_maSound->channel() : SfxChannel; }
+		ma_sound *sound() const { return m_maSound ? m_maSound->sound() : nullptr; }
+
+	private:
+		void soundRemove(Sound *snd);
+		Sound *m_sound = nullptr;
+		std::unique_ptr<MaSound> m_maSound;
+
+		friend class Sound;
+	};
+
+
+	ExternalSound *externalSoundAdd(const QString &source, const Sound::ChannelType &channel);
+	void externalSoundRemove(ExternalSound *sound);
+
+	Q_INVOKABLE void playSound(const QString &source, const Sound::ChannelType &channel, const float &volume = 1.0);
+	Q_INVOKABLE void stopSound(const QString &source, const Sound::ChannelType &channel);
+	Q_INVOKABLE void stopMusic();
+	Q_INVOKABLE void stopMusic2();
+
+	Q_INVOKABLE bool isPlayingMusic() const;
+	Q_INVOKABLE bool isPlayingMusic2() const;
+
+	int volumeSfx() const;
+	void setVolumeSfx(int newVolumeSfx);
+
+	int volumeVoiceOver() const;
+	void setVolumeVoiceOver(int newVolumeVoiceOver);
+
+	int volumeMusic() const;
+	void setVolumeMusic(int newVolumeMusic);
+
+	bool sfxEnabled() const;
+	void setSfxEnabled(bool newSfxEnabled);
+
+	bool voiceOverEnabled() const;
+	void setVoiceOverEnabled(bool newVoiceOverEnabled);
+
+	bool musicEnabled() const;
+	void setMusicEnabled(bool newMusicEnabled);
+
+signals:
+	void volumeSfxChanged();
+	void volumeVoiceOverChanged();
+	void volumeMusicChanged();
+	void sfxEnabledChanged();
+	void voiceOverEnabledChanged();
+	void musicEnabledChanged();
+
+private:
 	bool engineInit();
 	bool engineUninit();
 	void engineCheck();
@@ -166,6 +199,7 @@ private:
 	std::unique_ptr<ma_sound_group> m_groupVoiceOver;
 
 	std::vector<std::unique_ptr<MaSound> > m_sound;
+	QVector<ExternalSound*> m_externalSounds;
 
 	QQueue<MaSound *> m_queue;
 

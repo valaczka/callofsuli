@@ -103,6 +103,40 @@ Sound::~Sound()
 
 
 
+
+/**
+ * @brief Sound::externalSoundAdd
+ * @param source
+ * @param channel
+ * @return
+ */
+
+Sound::ExternalSound *Sound::externalSoundAdd(const QString &source, const ChannelType &channel)
+{
+	LOG_CDEBUG("sound") << "Add external sound" << qPrintable(source) << channel;
+
+	QMutexLocker locker(&m_mutex);
+
+	ExternalSound *snd = new ExternalSound(this, source, channel);
+	if (snd)
+		m_externalSounds.append(snd);
+	return snd;
+}
+
+
+/**
+ * @brief Sound::externalSoundRemove
+ * @param sound
+ */
+
+void Sound::externalSoundRemove(ExternalSound *sound)
+{
+	QMutexLocker locker(&m_mutex);
+	m_externalSounds.removeAll(sound);
+}
+
+
+
 /**
  * @brief Sound::playSound
  * @param source
@@ -142,10 +176,6 @@ void Sound::playSound(const QString &source, const ChannelType &channel, const f
 			case Music2Channel: group = m_groupSfx.get(); break;
 			case VoiceoverChannel: group = m_groupVoiceOver.get(); break;
 		}
-
-		/*auto ptr = std::make_unique<MaSound>(m_engine.get(), source, channel, group);
-		sndObj = ptr.get();
-		m_sound.push_back(std::move(ptr));*/
 
 		const auto &ptr = m_sound.emplace_back(new MaSound(m_engine.get(), source, channel, group));
 		sndObj = ptr.get();
@@ -420,9 +450,6 @@ bool Sound::engineUninit()
 	LOG_CTRACE("sound") << "Clear playlist queue";
 
 	m_queue.clear();
-
-	LOG_CTRACE("sound") << "Stop garbage timer";
-
 	m_garbageTimer.stop();
 
 	LOG_CTRACE("sound") << "Delete sounds";
@@ -434,9 +461,16 @@ bool Sound::engineUninit()
 		ptr.reset();
 	}
 
-	LOG_CTRACE("sound") << "Clear sounds";
-
 	m_sound.clear();
+
+
+	LOG_CTRACE("sound") << "Delete external sounds";
+
+	for (ExternalSound *s : m_externalSounds) {
+		s->soundRemove(this);
+	}
+
+	m_externalSounds.clear();
 
 	LOG_CTRACE("sound") << "Delete group music";
 
@@ -876,3 +910,58 @@ void Sound::MaSound::removeChild(ma_sound *sound)
 	}
 }
 
+
+
+/**
+ * @brief Sound::ExternalSound::ExternalSound
+ * @param sound
+ * @param source
+ * @param channel
+ */
+
+Sound::ExternalSound::ExternalSound(Sound *sound, const QString &source, const ChannelType &channel)
+	: m_sound(sound)
+{
+	Q_ASSERT(sound);
+
+	ma_sound_group *group = nullptr;
+	switch (channel) {
+		case SfxChannel: group = sound->m_groupSfx.get(); break;
+		case MusicChannel: group = sound->m_groupMusic.get(); break;
+		case Music2Channel: group = sound->m_groupSfx.get(); break;
+		case VoiceoverChannel: group = sound->m_groupVoiceOver.get(); break;
+	}
+
+	m_maSound.reset(new MaSound(sound->m_engine.get(), source, channel, group));
+
+	if (!m_maSound->sound()) {
+		LOG_CERROR("sound") << "Can't play sound" << qPrintable(source);
+		m_maSound.reset();
+	}
+}
+
+
+/**
+ * @brief Sound::ExternalSound::~ExternalSound
+ */
+
+Sound::ExternalSound::~ExternalSound()
+{
+	if (m_sound)
+		m_sound->externalSoundRemove(this);
+
+}
+
+
+/**
+ * @brief Sound::ExternalSound::soundRemove
+ * @param snd
+ */
+
+void Sound::ExternalSound::soundRemove(Sound *snd)
+{
+	if (m_sound == snd) {
+		m_maSound.reset();
+		m_sound = nullptr;
+	}
+}

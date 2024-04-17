@@ -463,16 +463,17 @@ FocusScope {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: _game.controlledPlayer && _game.controlledPlayer.currentTransport
-			enabled: _game.controlledPlayer && _game.controlledPlayer.currentTransport &&
-					 _game.controlledPlayer.currentTransport.isOpen
 
-			color: enabled ? Qaterial.Colors.green600 : "transparent"
-			border.color: enabled ? fontImage.color : "white"
+			readonly property bool isOpen: _game.controlledPlayer && _game.controlledPlayer.currentTransport &&
+										   _game.controlledPlayer.currentTransport.isOpen
+
+			color: isOpen ? Qaterial.Colors.green600 : "transparent"
+			border.color: isOpen ? fontImage.color : "white"
 			border.width: 1
 
-			opacity: enabled ? 1.0 : 0.6
+			opacity: isOpen ? 1.0 : 0.6
 
-			fontImage.icon: enabled ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
+			fontImage.icon: isOpen ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
 			fontImage.color: "white"
 			fontImageScale: 0.6
 			//fontImage.anchors.horizontalCenterOffset: -2
@@ -603,30 +604,18 @@ FocusScope {
 					}
 				}
 
-				Row {
-					topPadding: 5 * Qaterial.Style.pixelSizeRatio
+				QFormSwitchButton
+				{
+					text: qsTr("Karakter mozgatása kattintással")
 
-					QFormSwitchButton
-					{
-						text: qsTr("Játékos mozgatása kattintással")
-						anchors.verticalCenter: parent.verticalCenter
-						checked: _game.mouseNavigation
-						onToggled: {
-							Client.Utils.settingsSet("game/mouseNavigation", checked)
-							_game.mouseNavigation = checked
-						}
+					checked: _game.mouseNavigation
+					onToggled: {
+						Client.Utils.settingsSet("game/mouseNavigation", checked)
+						_game.mouseNavigation = checked
 					}
-
-					Qaterial.Icon
-					{
-						icon: Client.vibrate ? Qaterial.Icons.vibrate : Qaterial.Icons.vibrateOff
-						implicitWidth: _label1.icon.width
-						implicitHeight: _label1.icon.height
-						color: Client.vibrate ? Qaterial.Style.primaryTextColor() : Qaterial.Style.disabledTextColor()
-						anchors.verticalCenter: parent.verticalCenter
-					}
-
 				}
+
+
 
 				SettingsSound {
 					width: parent.width

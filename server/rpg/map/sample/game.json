@@ -20,6 +20,7 @@
 			}
 
 		],
-		"inventory": [ "shield" ]
+		"inventory": [ "shield" ],
+		"required": [ "fountain03.dres", "fountain02.dres" ]
 
 }

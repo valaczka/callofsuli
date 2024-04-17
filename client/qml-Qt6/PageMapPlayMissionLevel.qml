@@ -137,11 +137,8 @@ QPageGradient {
 
 						text: {
 							switch (modelData) {
-							case GameMap.Action:
-								qsTr("Akciójáték")
-								break
 							case GameMap.Rpg:
-								qsTr("RPG")
+								qsTr("Akciójáték")
 								break
 							case GameMap.Lite:
 								qsTr("Csak feladatmegoldás")
@@ -163,6 +160,9 @@ QPageGradient {
 								break*/
 							case GameMap.Conquest:
 								qsTr("Multiplayer")
+								break
+							case GameMap.Action:
+								qsTr("Régi akciójáték")
 								break
 							default:
 								""

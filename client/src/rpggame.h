@@ -62,6 +62,10 @@ public:
 
 	QS_COLLECTION(QList, QString, inventory)
 	QS_COLLECTION(QList, QString, inventoryOnce)
+
+	// Required tileset
+
+	QS_COLLECTION(QList, QString, required)
 };
 
 
@@ -198,6 +202,7 @@ signals:
 protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
+	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
 
@@ -206,6 +211,9 @@ protected:
 private:
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	void addLocationSound(TiledObjectBase *object, const QString &sound,
+						  const qreal &baseVolume = 1.,
+						  const Sound::ChannelType &channel = Sound::Music2Channel);
 
 	void onGameQuestionSuccess(const QVariantMap &answer);
 	void onGameQuestionFailed(const QVariantMap &answer);
@@ -225,6 +233,7 @@ private:
 		QPointer<TiledScene> scene;
 		QPointer<IsometricEnemy> enemy;
 		bool hasQuestion = false;
+		bool dieForever = false;
 		QVector<RpgPickableObject::PickableType> pickables;
 		QVector<RpgPickableObject::PickableType> pickablesOnce;
 	};
@@ -256,6 +265,8 @@ private:
 	QPointer<GameQuestion> m_gameQuestion;
 	RpgQuestion *m_rpgQuestion = nullptr;
 	int m_enemyCount = 0;
+
+	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
 
 
 	QPointer<QScatterSeries> m_scatterSeriesPlayers;
