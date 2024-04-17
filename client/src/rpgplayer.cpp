@@ -61,7 +61,7 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	m_sfxAccept.setFollowPosition(false);
 	m_sfxDecline.setFollowPosition(false);
 
-	m_moveDisabledSpriteList = {
+	m_moveDisabledSpriteList = QStringList{
 		QStringLiteral("attack"),
 		QStringLiteral("bow"),
 		QStringLiteral("cast"),
@@ -872,7 +872,7 @@ void RpgPlayer::setCharacter(const QString &newCharacter)
 
 void RpgPlayerCharacterConfig::updateSfxPath(const QString &prefix)
 {
-	for (QStringList *ptr : std::vector<QStringList*>{
+	for (QList<QString> *ptr : std::vector<QList<QString>*>{
 		 &sfxAccept,
 		 &sfxDecline,
 		 &sfxFootStep,

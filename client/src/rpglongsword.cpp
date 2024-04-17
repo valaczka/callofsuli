@@ -71,7 +71,7 @@ bool RpgLongsword::canProtect(const WeaponType &) const
 
 void RpgLongsword::eventAttack(TiledObject *target)
 {
-	TiledObject *p = m_parentObject.get();
+	TiledObject *p = m_parentObject.data();
 
 	if (!p)
 		return;

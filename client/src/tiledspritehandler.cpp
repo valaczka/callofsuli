@@ -415,7 +415,7 @@ void TiledSpriteHandler::clear()
 	m_currentSprite.clear();
 	m_currentDirection = TiledObject::Invalid;
 	m_layers.clear();
-	m_visibleLayers = { QStringLiteral("default") };
+	m_visibleLayers = QStringList{ QStringLiteral("default") };
 }
 
 

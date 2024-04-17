@@ -242,7 +242,7 @@ bool TiledPathMotor::clearFromSegment(const int &segment)
 	if (segment < 0 || segment >= m_lines.size())
 		return false;
 
-	m_lines.erase(m_lines.cbegin()+segment, m_lines.cend());
+	m_lines.erase(m_lines.begin()+segment, m_lines.end());
 
 	return true;
 }

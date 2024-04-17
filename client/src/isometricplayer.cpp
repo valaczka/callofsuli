@@ -56,8 +56,8 @@ private:
 			if (!ptr)
 				continue;
 
-			if (m_contactedEnemies.contains(ptr.get()))
-				list.append(ptr.get());
+			if (m_contactedEnemies.contains(ptr.data()))
+				list.append(ptr.data());
 		}
 
 		return list;
@@ -679,7 +679,7 @@ void IsometricPlayer::setCurrentTransport(TiledTransport *newCurrentTransport)
 
 IsometricEnemy *IsometricPlayer::enemy() const
 {
-	return d->m_enemy.get();
+	return d->m_enemy.data();
 }
 
 void IsometricPlayer::setEnemy(IsometricEnemy *newEnemy)

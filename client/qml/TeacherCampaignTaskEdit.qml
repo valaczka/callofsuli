@@ -111,7 +111,7 @@ QPage {
 
 					anchors.verticalCenter: parent.verticalCenter
 					from: 0
-					to: 1000
+					to: 10000
 					stepSize: 10
 
 					editable: true

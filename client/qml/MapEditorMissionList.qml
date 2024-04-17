@@ -102,15 +102,15 @@ Item {
 													  color: Qaterial.Colors.green800
 												  })
 
-									if (mission.modes & GameMap.MultiPlayer)
+									/*if (mission.modes & GameMap.MultiPlayer)
 										list.push({
 													  text: qsTr("Multiplayer"),
 													  color: Qaterial.Colors.purple500
-												  })
+												  })*/
 
 									if (mission.modes & GameMap.Conquest)
 										list.push({
-													  text: qsTr("Honfoglaló"),
+													  text: qsTr("Multiplayer"),
 													  color: Qaterial.Colors.brown400
 												  })
 

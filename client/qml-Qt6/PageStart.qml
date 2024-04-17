@@ -46,7 +46,7 @@ QPage {
 			QMenuItem { action: actionAdd }
 			//QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
-			QMenuItem { action: actionPageDev }
+			//QMenuItem { action: actionPageDev }
 			QMenuItem { action: actionDemo }
 			QMenuItem { action: actionEditor }
 			Qaterial.MenuSeparator {}

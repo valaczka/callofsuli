@@ -62,7 +62,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	m_sfxFootStep.setVolume(0.4);
 	m_sfxFootStep.setInterval(450);
 
-	m_moveDisabledSpriteList = {
+	m_moveDisabledSpriteList = QStringList{
 		QStringLiteral("hurt"),
 		QStringLiteral("death")
 	};
@@ -402,7 +402,7 @@ RpgWerebearWeaponHand::RpgWerebearWeaponHand(QObject *parent)
 
 void RpgWerebearWeaponHand::eventAttack(TiledObject *)
 {
-	RpgWerebear *wb = qobject_cast<RpgWerebear*>(m_parentObject.get());
+	RpgWerebear *wb = qobject_cast<RpgWerebear*>(m_parentObject.data());
 	if (wb && wb->game())
 		wb->game()->playSfx(QStringLiteral(":/rpg/werebear/big_punch.mp3"),
 							wb->scene(), wb->body()->bodyPosition());

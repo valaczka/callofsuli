@@ -63,7 +63,7 @@ void RpgLongbow::eventAttack(TiledObject *)
 		return;
 	}
 
-	TiledObject *p = m_parentObject.get();
+	TiledObject *p = m_parentObject.data();
 
 	if (TiledGame *g = p->game()) {
 		g->playSfx(QStringLiteral(":/rpg/shortbow/swish_2.mp3"), p->scene(), p->body()->bodyPosition());

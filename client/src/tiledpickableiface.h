@@ -27,7 +27,7 @@
 #ifndef TILEDPICKABLEIFACE_H
 #define TILEDPICKABLEIFACE_H
 
-#include "qtmetamacros.h"
+#include "qobjectdefs.h"
 
 
 class TiledPickableIface

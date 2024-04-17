@@ -113,6 +113,7 @@ QPageGradient {
 					model: _mapPlayCampaign ? [
 												  GameMap.Exam,
 												  GameMap.Test,
+												  GameMap.Rpg,
 												  GameMap.Action,
 												  GameMap.Lite,
 												  GameMap.Practice,
@@ -121,6 +122,7 @@ QPageGradient {
 												  GameMap.Conquest
 											  ] : [
 												  GameMap.Test,
+												  GameMap.Rpg,
 												  GameMap.Action,
 												  GameMap.Lite,
 												  GameMap.Practice
@@ -135,7 +137,7 @@ QPageGradient {
 
 						text: {
 							switch (modelData) {
-							case GameMap.Action:
+							case GameMap.Rpg:
 								qsTr("Akciójáték")
 								break
 							case GameMap.Lite:
@@ -158,6 +160,9 @@ QPageGradient {
 								break*/
 							case GameMap.Conquest:
 								qsTr("Multiplayer")
+								break
+							case GameMap.Action:
+								qsTr("Régi akciójáték")
 								break
 							default:
 								""

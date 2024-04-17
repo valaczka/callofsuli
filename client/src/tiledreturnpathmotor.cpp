@@ -181,9 +181,9 @@ void TiledReturnPathMotor::addPoint(const QPointF &point, const float32 &angle)
 	if (m_path.size() > 1) {
 		QLineF line(m_path.last(), point);
 
-		auto prev = m_path.constBegin();
-		for (auto it = m_path.constBegin(); it != m_path.constEnd(); ++it) {
-			if (it == m_path.constBegin())
+		auto prev = m_path.begin();
+		for (auto it = m_path.begin(); it != m_path.end(); ++it) {
+			if (it == m_path.begin())
 				continue;
 
 			QLineF l(*prev, *it);
@@ -191,7 +191,7 @@ void TiledReturnPathMotor::addPoint(const QPointF &point, const float32 &angle)
 			QPointF isp;
 
 			if (l.intersects(line, &isp) == QLineF::BoundedIntersection) {
-				while (it != m_path.constEnd())
+				while (it != m_path.end())
 					it = m_path.erase(it);
 
 				m_path.append(isp);

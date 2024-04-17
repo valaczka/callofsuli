@@ -1206,9 +1206,15 @@ void RpgGame::updateScatterPlayers()
 	m_scatterSeriesPlayers->replace(list);
 
 	if (playerIndex != -1) {
+#if QT_VERSION >= 0x060000
 		static const QColor color = QColor::fromString(QStringLiteral("#43A047"));
+#else
+		static const QColor color(QStringLiteral("#43A047"));
+#endif
 
+#if QT_VERSION >= 0x060000
 		m_scatterSeriesPlayers->setPointConfiguration(playerIndex, QXYSeries::PointConfiguration::Color, color);
+#endif
 	}
 
 }
@@ -1257,7 +1263,7 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 
 QScatterSeries *RpgGame::scatterSeriesEnemies() const
 {
-	return m_scatterSeriesEnemies.get();
+	return m_scatterSeriesEnemies.data();
 }
 
 void RpgGame::setScatterSeriesEnemies(QScatterSeries *newScatterSeriesEnemies)
@@ -1277,7 +1283,7 @@ void RpgGame::setScatterSeriesEnemies(QScatterSeries *newScatterSeriesEnemies)
 
 QScatterSeries *RpgGame::scatterSeriesPlayers() const
 {
-	return m_scatterSeriesPlayers.get();
+	return m_scatterSeriesPlayers.data();
 }
 
 void RpgGame::setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers)

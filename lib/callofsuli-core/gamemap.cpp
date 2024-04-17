@@ -254,8 +254,13 @@ GameMapChapterIface *GameMap::ifaceAddChapter(const qint32 &id, const QString &n
 GameMapMissionIface *GameMap::ifaceAddMission(const QByteArray &uuid, const QString &name,
 											  const QString &description, const QString &medalImage, const quint32 &gameModes)
 {
+	GameModes m = QVariant::fromValue(gameModes).value<GameMap::GameModes>();
+
+	if (m == Invalid)
+		m = (GameModes) gameModes;
+
 	GameMapMission *s = new GameMapMission(uuid, name, description, medalImage,
-										   QVariant::fromValue(gameModes).value<GameMap::GameModes>(),
+										   m,
 										   this);
 
 	m_missions.append(s);

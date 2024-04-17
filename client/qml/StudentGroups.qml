@@ -55,7 +55,8 @@ QItemGradient {
 					highlighted: true
 
 					onClicked: Client.stackPushPage("PageStudentGroup.qml", {
-														//user: root.user,
+														//
+														user: root.user,
 														group: group,
 														mapHandler: root.studentMapHandler
 													})

@@ -47,7 +47,7 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	m_metric.returnSpeed = 4.;
 	m_metric.pursuitSpeed = 6.;
 
-	m_moveDisabledSpriteList = {
+	m_moveDisabledSpriteList = QStringList{
 		QStringLiteral("attack"),
 		QStringLiteral("bow"),
 		QStringLiteral("cast"),

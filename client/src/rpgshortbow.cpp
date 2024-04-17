@@ -50,7 +50,7 @@ IsometricBullet *RpgShortbow::createBullet()
 		return nullptr;
 	}
 
-	TiledObject *p = m_parentObject.get();
+	TiledObject *p = m_parentObject.data();
 
 	return RpgArrow::createBullet(p->game(), p->scene());
 }
@@ -63,7 +63,7 @@ IsometricBullet *RpgShortbow::createBullet()
 
 void RpgShortbow::eventAttack(TiledObject *)
 {
-	TiledObject *p = m_parentObject.get();
+	TiledObject *p = m_parentObject.data();
 
 	if (!p)
 		return;

@@ -28,7 +28,10 @@
 #define ISOMETRICOBJECTIFACE_H
 
 #include "qobjectdefs.h"
+
+#if QT_VERSION >= 0x060000
 #include "qtypes.h"
+#endif
 
 /**
  * @brief The IsometricObjectIface class

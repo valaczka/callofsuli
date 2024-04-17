@@ -149,12 +149,17 @@ GameMapChapterIface *MapEditorMap::ifaceAddChapter(const qint32 &id, const QStri
 GameMapMissionIface *MapEditorMap::ifaceAddMission(const QByteArray &uuid, const QString &name, const QString &description,
 												   const QString &medalImage, const quint32 &gameModes)
 {
+	GameMap::GameModes m = QVariant::fromValue(gameModes).value<GameMap::GameModes>();
+
+	if (m == GameMap::Invalid)
+		m = (GameMap::GameModes) gameModes;
+
 	MapEditorMission *d = new MapEditorMission(this);
 	d->setUuid(uuid);
 	d->setName(name);
 	d->setDescription(description);
 	d->setMedalImage(medalImage);
-	d->setModes(QVariant::fromValue(gameModes).value<GameMap::GameModes>());
+	d->setModes(m);
 	m_missionList->append(d);
 	return d;
 }

@@ -9,12 +9,12 @@
 
 # App Version
 
-AppVersionMajor = 3
-AppVersionMinor = 9
+AppVersionMajor = 4
+AppVersionMinor = 0
 
 # Automatic version increment (build)
 
-AppVersionIncrement = true
+AppVersionIncrement = false
 
 
 

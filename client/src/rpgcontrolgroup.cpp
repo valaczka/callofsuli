@@ -25,7 +25,6 @@
  */
 
 #include "rpgcontrolgroup.h"
-#include "qassert.h"
 #include "rpgcontrolgroupoverlay.h"
 #include <libtiled/grouplayer.h>
 

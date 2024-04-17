@@ -394,7 +394,7 @@ void TiledWeaponHand::eventAttack(TiledObject *target)
 		return;
 	}
 
-	TiledObject *p = m_parentObject.get();
+	TiledObject *p = m_parentObject.data();
 
 	if (TiledGame *g = p->game(); g && target) {
 		g->playSfx(QStringLiteral(":/rpg/common/hit.mp3"), p->scene(), p->body()->bodyPosition());
