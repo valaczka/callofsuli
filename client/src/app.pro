@@ -110,6 +110,7 @@ android {
 		alist.output = $$PWD/android/AndroidManifest.xml
 
 		ANDROID_MIN_SDK_VERSION = 21
+		ANDROID_TARGET_SDK_VERSION = 33
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
@@ -125,6 +126,7 @@ android {
 		alist.output = $$PWD/android-Qt6/AndroidManifest.xml
 
 		ANDROID_MIN_SDK_VERSION = 26
+		ANDROID_TARGET_SDK_VERSION = 34
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
 
@@ -134,8 +136,6 @@ android {
 	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)
 
 	QMAKE_SUBSTITUTES += alist
-
-	ANDROID_TARGET_SDK_VERSION = 33
 
 	ANDROID_VERSION_CODE = $${androidCodeApi}
 	ANDROID_VERSION_NAME = $$VERSION
