@@ -88,8 +88,10 @@ public:
 	static QString weaponNameEn(const WeaponType &type);
 	QString weaponNameEn() const { return weaponNameEn(m_weaponType); }
 
-	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction);
-	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle);
+	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction,
+			  const qreal &distance = 0.);
+	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle,
+			  const qreal &distance = 0.);
 
 	bool canShot() const { return !m_canHit && m_bulletCount != 0; }
 
@@ -138,7 +140,7 @@ signals:
 	void excludeFromLayersChanged();
 
 protected:
-	virtual IsometricBullet *createBullet() = 0;
+	virtual IsometricBullet *createBullet(const qreal &distance = 0.) = 0;
 	virtual void eventAttack(TiledObject *target) { Q_UNUSED(target); }
 	virtual void eventProtect() {}
 
@@ -176,7 +178,7 @@ public:
 	bool canAttack() const override final { return true; }
 
 protected:
-	IsometricBullet *createBullet() override final { return nullptr; }
+	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 	virtual void eventAttack(TiledObject *target) override;
 
 };

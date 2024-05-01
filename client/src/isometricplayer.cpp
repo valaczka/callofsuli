@@ -198,7 +198,8 @@ void IsometricPlayer::initialize()
 
 	p->virtualCircle()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle));
 	p->virtualCircle()->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTrigger) |
-										TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable)
+										TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable) |
+										TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer)
 										);
 
 	connect(p, &TiledObjectSensorPolygon::beginContact, this, &IsometricPlayer::sensorBeginContact);
@@ -262,7 +263,8 @@ void IsometricPlayer::onAlive()
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport)
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer)
 							   );
 
 	m_sensorPolygon->setLength(m_sensorLength);
@@ -370,6 +372,38 @@ bool IsometricPlayer::protectWeapon(TiledWeaponList *weaponList, const TiledWeap
 
 
 /**
+ * @brief IsometricPlayer::reachedEnemies
+ * @return
+ */
+
+QList<IsometricEnemy *> IsometricPlayer::reachedEnemies() const
+{
+	if (d->m_reachedEnemies.isEmpty())
+		return {};
+
+	QList<IsometricEnemy *> list;
+	list.reserve(d->m_reachedEnemies.size());
+
+	for (const auto &ptr : d->m_reachedEnemies)
+		list.append(ptr.data());
+
+	return list;
+}
+
+
+
+/**
+ * @brief IsometricPlayer::contactedAndReachedEnemies
+ * @return
+ */
+
+QList<IsometricEnemy *> IsometricPlayer::contactedAndReachedEnemies() const
+{
+	return d->contactedAndReachedEnemies();
+}
+
+
+/**
  * @brief IsometricPlayer::clearData
  */
 
@@ -467,8 +501,10 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport))) {
 		TiledTransport *transport = m_scene->game() ? m_scene->game()->transportList().find(base) : nullptr;
 
-		if (!m_currentTransport && transport)
+		if (!m_currentTransport && transport) {
 			setCurrentTransport(transport);
+			m_currentTransportBase = base;
+		}
 	}
 
 	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable))) {
@@ -479,6 +515,13 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 			if (!m_currentPickable)
 				setCurrentPickable(d->m_reachedPickables.dequeue());
 		}
+	}
+
+	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer))) {
+		TiledContainer *container = base->property("tiledContainer").value<TiledContainer*>();
+
+		if (!m_currentContainer && container)
+			setCurrentContainer(container);
 	}
 }
 
@@ -512,8 +555,10 @@ void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport))) {
 		TiledTransport *transport = m_scene->game() ? m_scene->game()->transportList().find(base) : nullptr;
 
-		if (m_currentTransport == transport && transport)
+		if (m_currentTransport == transport && transport) {
 			setCurrentTransport(nullptr);
+			m_currentTransportBase = nullptr;
+		}
 	}
 
 	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable))) {
@@ -523,7 +568,36 @@ void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 			removePickable(object);
 		}
 	}
+
+	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer))) {
+		TiledContainer *container = base->property("tiledContainer").value<TiledContainer*>();
+
+		if (m_currentContainer == container && container)
+			setCurrentContainer(nullptr);
+	}
 }
+
+
+
+
+/**
+ * @brief IsometricPlayer::currentContainer
+ * @return
+ */
+
+TiledContainer *IsometricPlayer::currentContainer() const
+{
+	return m_currentContainer;
+}
+
+void IsometricPlayer::setCurrentContainer(TiledContainer *newCurrentContainer)
+{
+	if (m_currentContainer == newCurrentContainer)
+		return;
+	m_currentContainer = newCurrentContainer;
+	emit currentContainerChanged();
+}
+
 
 
 

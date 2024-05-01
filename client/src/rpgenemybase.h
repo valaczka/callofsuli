@@ -46,10 +46,14 @@ public:
 	virtual QList<TiledWeapon*> throwableWeapons() const override;
 	virtual void throwWeapon(TiledWeapon *weapon) override;
 
+	virtual bool canBulletImpact(const TiledWeapon::WeaponType &type) const override;
+
 	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
 									IsometricPlayer *player = nullptr) const override;
 
-signals:
+	QString subType() const;
+	void setSubType(const QString &newSubType);
+
 
 protected:
 	void updateSprite() override final;
@@ -67,6 +71,7 @@ protected:
 
 	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override;
 
+	QString m_subType;
 	QString m_directory = QStringLiteral("base");
 
 private:

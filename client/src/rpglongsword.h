@@ -51,7 +51,7 @@ public:
 	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableInvalid; }
 
 protected:
-	IsometricBullet *createBullet() override final { return nullptr; }
+	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 	void eventAttack(TiledObject *target) override final;
 };
 

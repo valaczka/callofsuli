@@ -48,12 +48,12 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	m_metric.pursuitSpeed = 6.;
 
 	m_moveDisabledSpriteList = QStringList{
-		QStringLiteral("attack"),
-		QStringLiteral("bow"),
-		QStringLiteral("cast"),
-		QStringLiteral("hurt"),
-		QStringLiteral("death")
-	};
+							   QStringLiteral("attack"),
+							   QStringLiteral("bow"),
+							   QStringLiteral("cast"),
+							   QStringLiteral("hurt"),
+							   QStringLiteral("death")
+};
 
 
 	connect(this, &RpgEnemyBase::becameAlive, this, [this]() {
@@ -296,6 +296,21 @@ void RpgEnemyBase::throwWeapon(TiledWeapon *weapon)
 }
 
 
+/**
+ * @brief RpgEnemyBase::canBulletImpact
+ * @param type
+ * @return
+ */
+
+bool RpgEnemyBase::canBulletImpact(const TiledWeapon::WeaponType &type) const
+{
+	if (m_enemyType == EnemySkeleton && type == TiledWeapon::WeaponShortbow)
+		return false;
+
+	return true;
+}
+
+
 
 /**
  * @brief RpgEnemyBase::protectWeapon
@@ -311,6 +326,16 @@ bool RpgEnemyBase::protectWeapon(const TiledWeapon::WeaponType &weaponType)
 	}
 
 	return false;
+}
+
+QString RpgEnemyBase::subType() const
+{
+	return m_subType;
+}
+
+void RpgEnemyBase::setSubType(const QString &newSubType)
+{
+	m_subType = newSubType;
 }
 
 
@@ -331,14 +356,37 @@ void RpgEnemyBase::onCurrentSpriteChanged()
 
 void RpgEnemyBase::loadType()
 {
-	if (m_enemyType == EnemySoldier01)
-		m_directory = QStringLiteral("enemySoldier01");
+	if (m_enemyType == EnemySoldier) {
+		static const QString &strSoldier = QStringLiteral("soldier");
 
-	if (m_enemyType == EnemySoldier02)
-		m_directory = QStringLiteral("enemySoldier02");
+		if (m_subType.startsWith(strSoldier)) {
+			m_directory = m_subType;
+			m_directory.replace(strSoldier, QStringLiteral("enemySoldier"));
+		}
 
-	if (m_enemyType == EnemySoldier01 ||
-			m_enemyType == EnemySoldier02 ) {
+		auto w = m_armory->weaponAdd(new RpgLongsword);
+		w->setExcludeFromLayers(true);
+		m_armory->setCurrentWeapon(w);
+	} else if (m_enemyType == EnemyArcher) {
+		static const QString &strSoldier = QStringLiteral("archer");
+
+		if (m_subType.startsWith(strSoldier)) {
+			m_directory = m_subType;
+			m_directory.replace(strSoldier, QStringLiteral("enemyArcher"));
+		}
+
+		auto w = m_armory->weaponAdd(new RpgShortbow);
+		w->setExcludeFromLayers(true);
+		w->setBulletCount(-1);
+		m_armory->setCurrentWeapon(w);
+	} else if (m_enemyType == EnemySkeleton) {
+		static const QString &strSoldier = QStringLiteral("skeleton");
+
+		if (m_subType.startsWith(strSoldier)) {
+			m_directory = m_subType;
+			m_directory.replace(strSoldier, QStringLiteral("enemySkeleton"));
+		}
+
 		auto w = m_armory->weaponAdd(new RpgLongsword);
 		w->setExcludeFromLayers(true);
 		m_armory->setCurrentWeapon(w);

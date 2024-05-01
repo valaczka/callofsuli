@@ -44,8 +44,10 @@ class TiledTransport : public QObject
 	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
 	Q_PROPERTY(TiledScene *sceneA READ sceneA WRITE setSceneA NOTIFY sceneAChanged FINAL)
 	Q_PROPERTY(TiledObjectBase *objectA READ objectA WRITE setObjectA NOTIFY objectAChanged FINAL)
+	Q_PROPERTY(int directionA READ directionA WRITE setDirectionA NOTIFY directionAChanged FINAL)
 	Q_PROPERTY(TiledScene *sceneB READ sceneB WRITE setSceneB NOTIFY sceneBChanged FINAL)
 	Q_PROPERTY(TiledObjectBase *objectB READ objectB WRITE setObjectB NOTIFY objectBChanged FINAL)
+	Q_PROPERTY(int directionB READ directionB WRITE setDirectionB NOTIFY directionBChanged FINAL)
 	Q_PROPERTY(TransportType type READ type WRITE setType NOTIFY typeChanged FINAL)
 
 public:
@@ -86,6 +88,7 @@ public:
 	TiledScene *otherScene(TiledObjectBase *object) const;
 	TiledObjectBase *otherObject(TiledScene *scene) const;
 	TiledObjectBase *otherObject(TiledObjectBase *object) const;
+	int otherDirection(TiledObjectBase *object) const;
 
 	QString name() const;
 	void setName(const QString &newName);
@@ -114,6 +117,12 @@ public:
 	QString lockName() const;
 	void setLockName(const QString &newLockName);
 
+	int directionA() const;
+	void setDirectionA(int newDirectionA);
+
+	int directionB() const;
+	void setDirectionB(int newDirectionB);
+
 signals:
 	void nameChanged();
 	void sceneAChanged();
@@ -124,6 +133,8 @@ signals:
 	void isActiveChanged();
 	void typeChanged();
 	void lockNameChanged();
+	void directionAChanged();
+	void directionBChanged();
 
 protected:
 	TransportType m_type = TransportInvalid;
@@ -134,9 +145,12 @@ protected:
 
 	QPointer<TiledScene> m_sceneA;
 	QPointer<TiledObjectBase> m_objectA;
+	int m_directionA = -1;
 
 	QPointer<TiledScene> m_sceneB;
 	QPointer<TiledObjectBase> m_objectB;
+	int m_directionB = -1;
+
 };
 
 
@@ -155,8 +169,9 @@ public:
 	{}
 
 	bool add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName,
-			 TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
-	bool add(const TiledTransport::TransportType &type, const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
+			 const int &direction = -1, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
+	bool add(const TiledTransport::TransportType &type, const QString &name,
+			 const int &direction = -1, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 	bool add(const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 
 	TiledTransport* find(const QString &name) const;

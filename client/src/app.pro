@@ -259,6 +259,7 @@ SOURCES += \
 	rpgarmory.cpp \
 	rpgarrow.cpp \
 	rpgcontrolgroup.cpp \
+	rpgcontrolgroupcontainer.cpp \
 	rpgcontrolgroupoverlay.cpp \
 	rpgenemybase.cpp \
 	rpgfireball.cpp \
@@ -287,6 +288,7 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
+	tiledcontainer.cpp \
 	tiledeffect.cpp \
 	tiledfixpositionmotor.cpp \
 	tiledgame.cpp \
@@ -377,6 +379,7 @@ HEADERS += \
 	rpgarmory.h \
 	rpgarrow.h \
 	rpgcontrolgroup.h \
+	rpgcontrolgroupcontainer.h \
 	rpgcontrolgroupoverlay.h \
 	rpgenemybase.h \
 	rpgenemyiface.h \
@@ -405,6 +408,7 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
+	tiledcontainer.h \
 	tiledeffect.h \
 	tiledfixpositionmotor.h \
 	tiledgame.h \

@@ -456,6 +456,7 @@ bool Server::dynamicContentCheck(QVector<DynamicContent> *listPtr)
 
 				if (m_loadedContentList.contains(filename)) {
 					LOG_CTRACE("client") << "Content already loaded:" << filename;
+					emit loadableContentOneDownloaded(filename);
 					it = listPtr->erase(it);
 					continue;
 				}

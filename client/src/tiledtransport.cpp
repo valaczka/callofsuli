@@ -156,6 +156,25 @@ TiledObjectBase *TiledTransport::otherObject(TiledObjectBase *object) const
 	return nullptr;
 }
 
+
+/**
+ * @brief TiledTransport::otherDirection
+ * @param object
+ * @return
+ */
+
+int TiledTransport::otherDirection(TiledObjectBase *object) const
+{
+	if (m_objectA == object)
+		return m_directionB;
+	else if (m_objectB == object)
+		return m_directionA;
+
+	return -1;
+}
+
+
+
 QString TiledTransport::name() const
 {
 	return m_name;
@@ -276,12 +295,45 @@ void TiledTransport::setLockName(const QString &newLockName)
 
 
 /**
+ * @brief TiledTransport::directionA
+ * @return
+ */
+
+int TiledTransport::directionA() const
+{
+	return m_directionA;
+}
+
+void TiledTransport::setDirectionA(int newDirectionA)
+{
+	if (m_directionA == newDirectionA)
+		return;
+	m_directionA = newDirectionA;
+	emit directionAChanged();
+}
+
+int TiledTransport::directionB() const
+{
+	return m_directionB;
+}
+
+void TiledTransport::setDirectionB(int newDirectionB)
+{
+	if (m_directionB == newDirectionB)
+		return;
+	m_directionB = newDirectionB;
+	emit directionBChanged();
+}
+
+
+
+/**
  * @brief TiledTransportList::find
  * @param name
  * @return
  */
 
-bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName,
+bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName, const int &direction,
 							 TiledScene *scene, TiledObjectBase *object)
 {
 	if (name.isEmpty()) {
@@ -300,9 +352,13 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
 		TiledTransport *t = new TiledTransport(type, name, scene, object);
 		t->setLockName(lockName);
 		t->setIsOpen(lockName.isEmpty());
+		if (direction != -1.)
+			t->setDirectionA(direction);
 		this->emplace_back(t);
 		return true;
 	} else {
+		if (direction != -1.)
+			base->setDirectionB(direction);
 		return base->addObject(scene, object);
 	}
 }
@@ -318,9 +374,9 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
  * @return
  */
 
-bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, TiledScene *scene, TiledObjectBase *object)
+bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const int &direction, TiledScene *scene, TiledObjectBase *object)
 {
-	return add(type, name, QStringLiteral(""), scene, object);
+	return add(type, name, QStringLiteral(""), direction, scene, object);
 }
 
 
@@ -336,7 +392,7 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
 
 bool TiledTransportList::add(const QString &name, TiledScene *scene, TiledObjectBase *object)
 {
-	return add (TiledTransport::TransportInvalid, name, scene, object);
+	return add (TiledTransport::TransportInvalid, name, -1, scene, object);
 }
 
 

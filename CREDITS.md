@@ -58,6 +58,7 @@
 - Isometric log cabins - (c) 2020 rubberduck (https://opengameart.org/content/isometric-log-cabins)
 - FREE Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
 - Gothic Archways - (c) 2019 Lukas Küstenmacher (https://opengameart.org/content/isometric-tileset-gothic-archways)
+- Animated Fire - (c) 2018 BenHickling (https://opengameart.org/content/animated-fire)
 
 **Music & SFX**
 

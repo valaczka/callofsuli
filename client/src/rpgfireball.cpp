@@ -27,7 +27,6 @@
 #include "rpgfireball.h"
 #include "rpgplayer.h"
 #include "tiledscene.h"
-#include "rpglongbow.h"
 
 
 /**

@@ -31,12 +31,16 @@
 
 
 RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
-	: RpgControlGroup(ControlGroupOverlay, game)
+	: RpgControlGroup(ControlGroupOverlay, game, scene)
 {
 	Q_ASSERT(game);
 	Q_ASSERT(scene);
 	Q_ASSERT(group);
 	Q_ASSERT(renderer);
+
+	QObject::connect(game, &RpgGame::controlledPlayerChanged, game, [this](){
+		this->onControlledPlayerChanged();
+	});
 
 
 	for (Tiled::Layer *layer : std::as_const(*group)) {
@@ -79,6 +83,24 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 				base->setScene(scene);
 			}
 
+		}
+	}
+}
+
+
+/**
+ * @brief RpgControlGroupOverlay::removePlayerFixture
+ * @param player
+ */
+
+void RpgControlGroupOverlay::removePlayerFixture(RpgPlayer *player)
+{
+	if (!player)
+		return;
+
+	if (auto *p = player->sensorPolygon()) {
+		if (auto *c = p->virtualCircle()) {
+			onFixtureEndContact(c);
 		}
 	}
 }

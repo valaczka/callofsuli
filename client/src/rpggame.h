@@ -62,6 +62,10 @@ public:
 
 	QS_SERIALIZABLE
 
+	// Base
+
+	QS_FIELD(QString, minVersion)
+
 	// Inventory
 
 	QS_COLLECTION(QList, QString, inventory)
@@ -76,6 +80,7 @@ public:
 
 
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
+typedef std::function<bool(RpgPlayer*, TiledContainer*)> FuncPlayerUseContainer;
 typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
 
 
@@ -127,6 +132,9 @@ public:
 	bool canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
 	bool canTransport(RpgPlayer *player, TiledTransport *transport);
 
+	bool playerTryUseContainer(RpgPlayer *player, TiledContainer *container);
+	void playerUseContainer(RpgPlayer *player, TiledContainer *container);
+
 	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene);
 	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, TiledScene *scene) {
 		return createEnemy(type, QStringLiteral(""), scene);
@@ -138,6 +146,7 @@ public:
 	}
 
 	Q_INVOKABLE bool transportPlayer();
+	Q_INVOKABLE bool useContainer();
 
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);
@@ -186,11 +195,15 @@ public:
 	FuncPlayerAttackEnemy funcPlayerAttackEnemy() const;
 	void setFuncPlayerAttackEnemy(const FuncPlayerAttackEnemy &newFuncPlayerAttackEnemy);
 
+	FuncPlayerUseContainer funcPlayerUseContainer() const;
+	void setFuncPlayerUseContainer(const FuncPlayerUseContainer &newFuncPlayerUseContainer);
+
 	QScatterSeries *scatterSeriesPlayers() const;
 	void setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers);
 
 	QScatterSeries *scatterSeriesEnemies() const;
 	void setScatterSeriesEnemies(QScatterSeries *newScatterSeriesEnemies);
+
 
 signals:
 	void minimapToggleRequest();
@@ -210,6 +223,7 @@ protected:
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
 
+	bool transportBeforeEvent(TiledObject *object, TiledTransport *transport) override;
 	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject) override;
 
 private:
@@ -279,6 +293,7 @@ private:
 	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
 	FuncPlayerPick m_funcPlayerPick;
 	FuncPlayerAttackEnemy m_funcPlayerAttackEnemy;
+	FuncPlayerUseContainer m_funcPlayerUseContainer;
 
 	// 3 részre daraboljuk, hogy ne haladja meg a textúra a 4096 px méretet
 

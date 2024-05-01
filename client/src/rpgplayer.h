@@ -110,6 +110,10 @@ public:
 	Q_INVOKABLE void pick(RpgPickableObject *object);
 	Q_INVOKABLE void pickCurrentObject() { pick(qobject_cast<RpgPickableObject*>(currentPickable())); }
 
+	Q_INVOKABLE void useContainer(TiledContainer *container);
+	Q_INVOKABLE void useCurrentContainer() { useContainer(currentContainer()); }
+	Q_INVOKABLE void pickOrUseCurrentObjects();
+
 	QString character() const;
 	void setCharacter(const QString &newCharacter);
 

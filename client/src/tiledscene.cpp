@@ -395,6 +395,44 @@ TiledQuick::TileLayerItem *TiledScene::addTileLayer(Tiled::TileLayer *layer, Til
 
 
 
+/**
+ * @brief TiledScene::addVisualTileLayer
+ * @param layer
+ * @param renderer
+ * @return
+ */
+
+QQuickItem *TiledScene::addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(layer);
+	Q_ASSERT(renderer);
+
+
+	TiledQuick::TileLayerItem *layerItem = addTileLayer(layer, renderer);
+
+	if (!layerItem) {
+		LOG_CERROR("scene") << "TileLayer createVisual layerItem error";
+		return nullptr;
+	}
+
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledLayerVisual.qml"), this);
+
+	QQuickItem *item = qobject_cast<QQuickItem*>(component.create());
+
+	if (!item) {
+		LOG_CERROR("scene") << "TileLayer createVisual error" << component.errorString();
+		return nullptr;
+	}
+
+	item->setParentItem(this);
+	item->setParent(this);
+	item->setProperty("baseItem", QVariant::fromValue(layerItem));
+
+	return item;
+}
+
+
+
 
 
 /**
@@ -540,6 +578,9 @@ void TiledScene::setTileLayersZ()
 			});
 
 			if (it != m_dynamicZList.end()) {
+				if (layer->hasProperty(QStringLiteral("dynamicZ"))) {
+					i = std::max(i, layer->property(QStringLiteral("dynamicZ")).toInt());
+				}
 				layerItem->setZ(i);
 				it->z = i;
 				++i;

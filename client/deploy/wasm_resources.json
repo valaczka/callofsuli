@@ -2,7 +2,6 @@
 	"resources": [
 		"internal.cres",
 		"character.cres",
-		"rpg.cres",
 		"snipers.cres",
 		"soldiers.cres",
 		"sound.cres",

@@ -728,6 +728,60 @@ void TiledObject::createVisual()
 	m_visualItem->setProperty("baseObject", QVariant::fromValue(this));
 }
 
+
+
+/**
+ * @brief TiledObject::rotateToPoint
+ * @param point
+ * @param anglePtr
+ * @param distancePtr
+ */
+
+void TiledObject::rotateToPoint(const QPointF &point, float32 *anglePtr, qreal *distancePtr)
+{
+	const QPointF p = point - m_body->bodyPosition();
+
+	float32 angle = atan2(-p.y(), p.x());
+
+	setCurrentDirection(nearestDirectionFromRadian(angle));
+	m_body->body()->SetTransform(m_body->body()->GetPosition(), angle);
+	m_body->setAwake(true);
+
+	if (anglePtr)
+		*anglePtr = angle;
+
+	if (distancePtr)
+		*distancePtr = QVector2D(p).length();
+}
+
+
+
+/**
+ * @brief TiledObject::angleToPoint
+ * @param point
+ * @return
+ */
+
+float32 TiledObject::angleToPoint(const QPointF &point) const
+{
+	const QPointF p = point - m_body->bodyPosition();
+	return atan2(-p.y(), p.x());
+}
+
+
+/**
+ * @brief TiledObject::distanceToPoint
+ * @param point
+ * @return
+ */
+
+qreal TiledObject::distanceToPoint(const QPointF &point) const
+{
+	return QVector2D(point - m_body->bodyPosition()).length();
+}
+
+
+
 TiledSpriteHandler *TiledObject::spriteHandlerAuxBack() const
 {
 	return m_spriteHandlerAuxBack;
@@ -1086,6 +1140,7 @@ Box2DFixture::CategoryFlag TiledObjectBody::fixtureCategory(const FixtureCategor
 		case FixtureTransport:		return Box2DFixture::Category4;
 		case FixtureTarget:		return Box2DFixture::Category5;
 		case FixturePickable:		return Box2DFixture::Category6;
+		case FixtureContainer:	return Box2DFixture::Category7;
 
 		case FixtureTrigger:		return Box2DFixture::Category14;
 		case FixtureVirtualCircle:		return Box2DFixture::Category15;

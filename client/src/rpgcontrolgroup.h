@@ -36,18 +36,22 @@ class RpgControlGroup
 public:
 	enum Type {
 		ControlGroupInvalid = 0,
-		ControlGroupOverlay
+		ControlGroupOverlay,
+		ControlGroupContainer
 	};
 
-	RpgControlGroup(const Type &type, RpgGame *game);
+	RpgControlGroup(const Type &type, RpgGame *game, TiledScene *scene);
 	virtual ~RpgControlGroup() = default;
 
 	static RpgControlGroup* fromGroupLayer(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 
 	Type type() const;
 
+	TiledScene *scene() const { return m_scene; }
+
 protected:
 	RpgGame *const m_game;
+	TiledScene *const m_scene;
 
 private:
 	const Type m_type;

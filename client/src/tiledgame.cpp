@@ -534,6 +534,9 @@ bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled
 
 	if (!m_transportList.add(TiledTransport::typeFromString(object->className()), object->name(),
 							 object->property(QStringLiteral("lock")).toString(),
+							 object->hasProperty(QStringLiteral("direction")) ?
+							 object->property(QStringLiteral("direction")).toInt() :
+							 -1,
 							 scene, mapObject))
 		return false;
 
@@ -998,12 +1001,16 @@ void TiledGame::changeScene(TiledObject *object, TiledScene *from, TiledScene *t
 	Q_ASSERT(from);
 	Q_ASSERT(to);
 
-	from->removeFromObjects(object);
+	if (from == to) {
+		object->body()->emplace(toPoint);
+	} else {
+		from->removeFromObjects(object);
 
-	object->setScene(to);
-	object->body()->emplace(toPoint);
+		object->setScene(to);
+		object->body()->emplace(toPoint);
 
-	to->appendToObjects(object);
+		to->appendToObjects(object);
+	}
 
 	IsometricEntityIface *entity = dynamic_cast<IsometricEntityIface*>(object);
 
@@ -1079,7 +1086,7 @@ const TiledTransportList &TiledGame::transportList() const
  * @return
  */
 
-bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
+bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase)
 {
 	Q_ASSERT(object);
 
@@ -1087,8 +1094,9 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 		return false;
 
 	TiledScene *oldScene = object->scene();
-	TiledScene *newScene = transport->otherScene(oldScene);
-	TiledObjectBase *newObject = transport->otherObject(oldScene);
+	TiledScene *newScene = transportBase ? transport->otherScene(transportBase) : transport->otherScene(oldScene);
+	TiledObjectBase *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
+	const int newDirection = transportBase ? transport->otherDirection(transportBase) : -1;
 
 	if (!newScene || !newObject) {
 		LOG_CERROR("game") << "Broken transport object";
@@ -1102,6 +1110,9 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport)
 		return false;
 
 	changeScene(object, oldScene, newScene, newObject->body()->bodyPosition());
+
+	if (newDirection != -1)
+		object->setCurrentDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
 
 	if (!transportAfterEvent(object, newScene, newObject))
 		return false;

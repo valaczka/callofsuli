@@ -53,12 +53,6 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionRpgGame::onGameTimeout);
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
 	/*connect(this, &ActionGame::toolChanged, this, &ActionGame::toolListIconsChanged);*/
-
-
-	// Az elején ideiglenes letiltjuk az effekteket, hogy ne szólaljon meg feleslegesen rövid időre az előkészítés alatt
-
-	m_tmpSoundSfxVolume = m_client->sound()->volumeSfx();
-	m_client->sound()->setVolumeSfx(0);
 }
 
 
@@ -438,9 +432,13 @@ void ActionRpgGame::onConfigChanged()
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yourself.mp3"), Sound::VoiceoverChannel);
 		//m_client->sound()->playSound(backgroundMusic(), Sound::MusicChannel);
 		stopMenuBgMusic();
+		m_tmpSoundSfxVolume = m_client->sound()->volumeSfx();
+		m_client->sound()->setVolumeSfx(0);
 	}
 
 	if (m_config.gameState == RpgConfig::StatePlay && m_oldGameState != RpgConfig::StatePlay) {
+		m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
+
 		if (!m_rpgGame) {
 			m_config.gameState = RpgConfig::StateError;
 			updateConfig();
@@ -456,7 +454,7 @@ void ActionRpgGame::onConfigChanged()
 		} else {
 			m_rpgGame->message(tr("LEVEL %1").arg(level()));
 			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
-			m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
+			///m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
 		}
 	}
 
@@ -678,7 +676,7 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 			break;
 
 		case RpgPickableObject::PickableKey:
-			player->inventoryAdd(pickableType);
+			player->inventoryAdd(pickableType /*, name ???? */);		/// TODO: name handling
 			break;
 
 		case RpgPickableObject::PickableHp:
@@ -763,6 +761,27 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy
 }
 
 
+/**
+ * @brief ActionRpgGame::onPlayerUseContainer
+ * @param player
+ * @param container
+ * @return
+ */
+
+bool ActionRpgGame::onPlayerUseContainer(RpgPlayer *player, TiledContainer *container)
+{
+	if (!player || !container)
+		return false;
+
+	if (m_rpgQuestion->nextQuestion(player, nullptr, TiledWeapon::WeaponInvalid, container)) {
+		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
+		return true;
+	}
+
+	return false;
+}
+
+
 
 /**
  * @brief ActionRpgGame::onQuestionSuccess
@@ -771,10 +790,13 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy
  * @param xp
  */
 
-void ActionRpgGame::onQuestionSuccess(RpgPlayer */*player*/, IsometricEnemy *enemy, int xp)
+void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container, int xp)
 {
 	if (enemy)
 		enemy->setHp(0);
+
+	if (container)
+		m_rpgGame->playerUseContainer(player, container);
 
 	setXp(m_xp+xp);
 }
@@ -786,7 +808,7 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer */*player*/, IsometricEnemy *ene
  * @param enemy
  */
 
-void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy */*enemy*/)
+void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy */*enemy*/, TiledContainer *container)
 {
 	if (player)
 		player->setHp(std::max(0, player->hp()-1));
@@ -895,6 +917,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setRpgQuestion(nullptr);
 		m_rpgGame->setFuncPlayerPick(nullptr);
 		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
+		m_rpgGame->setFuncPlayerUseContainer(nullptr);
 	}
 
 	m_rpgGame = newRpgGame;
@@ -908,6 +931,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setFuncPlayerPick(std::bind(&ActionRpgGame::onPlayerPick, this, std::placeholders::_1, std::placeholders::_2));
 		m_rpgGame->setFuncPlayerAttackEnemy(std::bind(&ActionRpgGame::onPlayerAttackEnemy, this,
 													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+		m_rpgGame->setFuncPlayerUseContainer(std::bind(&ActionRpgGame::onPlayerUseContainer, this, std::placeholders::_1, std::placeholders::_2));
 	}
 }
 

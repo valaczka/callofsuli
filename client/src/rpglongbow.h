@@ -48,7 +48,7 @@ public:
 	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableFireball; }
 
 protected:
-	IsometricBullet *createBullet() override final;
+	IsometricBullet *createBullet(const qreal &distance = 0.) override final;
 	void eventAttack(TiledObject *target) override final;
 };
 

@@ -45,7 +45,8 @@ public:
 	~RpgQuestion() = default;
 
 	void reloadQuestions();
-	bool nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
+	bool nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType,
+					  TiledContainer *container = nullptr);
 
 	void questionSuccess(const QVariantMap &answer);
 	void questionFailed(const QVariantMap &answer);
@@ -61,6 +62,7 @@ private:
 
 	QPointer<RpgPlayer> m_player;
 	QPointer<IsometricEnemy> m_enemy;
+	QPointer<TiledContainer> m_container;
 	TiledWeapon::WeaponType m_weaponType = TiledWeapon::WeaponInvalid;
 };
 

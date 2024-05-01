@@ -273,8 +273,11 @@ void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
 	bool hasTarget = false;
 
 
-	if (m_targets.testFlag(TargetEnemy) && qobject_cast<IsometricEnemy*>(base))
-		hasTarget = true;
+	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
+
+	if (m_targets.testFlag(TargetEnemy) && enemy) {
+		hasTarget = fromWeapon() ? enemy->canBulletImpact(fromWeapon()->weaponType()) : true;
+	}
 
 	if (IsometricPlayer *p = qobject_cast<IsometricPlayer*>(base); m_targets.testFlag(TargetPlayer) && p && !p->isLocked())
 		hasTarget = true;

@@ -120,8 +120,9 @@ private:
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
-	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, int xp);
-	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy);
+	bool onPlayerUseContainer(RpgPlayer *player, TiledContainer *container);
+	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container, int xp);
+	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container);
 
 private:
 	GameMode m_gameMode = SinglePlayer;

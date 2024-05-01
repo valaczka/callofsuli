@@ -501,59 +501,6 @@ void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float32 *anglePtr, 
 
 
 
-/**
- * @brief IsometricEnemy::rotateToPoint
- * @param point
- * @param anglePtr
- * @param vectorPtr
- */
-
-void IsometricEnemy::rotateToPoint(const QPointF &point, float32 *anglePtr, qreal *distancePtr)
-{
-	const QPointF p = point - m_body->bodyPosition();
-
-	float32 angle = atan2(-p.y(), p.x());
-
-	setCurrentDirection(nearestDirectionFromRadian(angle));
-	m_body->body()->SetTransform(m_body->body()->GetPosition(), angle);
-	m_body->setAwake(true);
-
-	if (anglePtr)
-		*anglePtr = angle;
-
-	if (distancePtr)
-		*distancePtr = QVector2D(p).length();
-}
-
-
-
-/**
- * @brief IsometricEnemy::angleToPoint
- * @param point
- * @return
- */
-
-float32 IsometricEnemy::angleToPoint(const QPointF &point) const
-{
-	const QPointF p = point - m_body->bodyPosition();
-	return atan2(-p.y(), p.x());
-}
-
-
-
-/**
- * @brief IsometricEnemy::distanceToPoint
- * @param point
- * @return
- */
-
-qreal IsometricEnemy::distanceToPoint(const QPointF &point) const
-{
-	return QVector2D(point - m_body->bodyPosition()).length();
-}
-
-
-
 
 
 

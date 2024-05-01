@@ -115,7 +115,8 @@ public:
 		FixturePickable,
 		FixtureTrigger,
 		FixtureVirtualCircle,
-		FixtureSensor
+		FixtureSensor,
+		FixtureContainer
 	};
 
 	Q_ENUM(FixtureCategory);
@@ -151,7 +152,7 @@ private:
 	void emplace();
 	QPointF m_bodyOffset;
 	TiledObjectBase *const m_baseObject;
-	bool m_opaque = false;
+	bool m_opaque = true;
 
 	friend class TiledObjectBase;
 };
@@ -523,6 +524,11 @@ protected:
 	}
 
 	void createVisual();
+
+
+	void rotateToPoint(const QPointF &point, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
+	float32 angleToPoint(const QPointF &point) const;
+	qreal distanceToPoint(const QPointF &point) const;
 
 protected:
 	QQuickItem *m_visualItem = nullptr;

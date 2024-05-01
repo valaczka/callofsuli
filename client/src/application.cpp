@@ -384,6 +384,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
+	qmlRegisterUncreatableType<TiledContainer>("CallOfSuli", 1, 0, "TiledContainer", "TiledContainer is uncreatable");
 	qmlRegisterUncreatableType<TiledObjectBody>("CallOfSuli", 1, 0, "TiledObjectBody", "TiledObjectBody is uncreatable");
 	qmlRegisterUncreatableType<TiledGame>("CallOfSuli", 1, 0, "TiledGame", "TiledGame is uncreatable");
 	qmlRegisterUncreatableType<TiledTransport>("CallOfSuli", 1, 0, "TiledTransport", "TiledTransport is uncreatable");
@@ -391,6 +392,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
 	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
+
 
 	qmlRegisterUncreatableType<ConquestConfig>("CallOfSuli", 1, 0, "ConquestConfig", "ConquestConfig is uncreatable");
 	qmlRegisterUncreatableType<ConquestPlayer>("CallOfSuli", 1, 0, "ConquestPlayer", "ConquestPlayer is uncreatable");

@@ -110,7 +110,7 @@ QString TiledWeapon::weaponNameEn(const WeaponType &type)
  * @param direction
  */
 
-bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction)
+bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction, const qreal &distance)
 {
 	if (m_bulletCount == 0)
 		return false;
@@ -118,7 +118,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
 		return false;
 
-	IsometricBullet *bullet = createBullet();
+	IsometricBullet *bullet = createBullet(distance);
 
 	if (!bullet) {
 		LOG_CWARNING("game") << "Can't create bullet";
@@ -148,7 +148,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
  */
 
 
-bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle)
+bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle, const qreal &distance)
 {
 	if (m_bulletCount == 0)
 		return false;
@@ -156,7 +156,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
 		return false;
 
-	IsometricBullet *bullet = createBullet();
+	IsometricBullet *bullet = createBullet(distance);
 
 	if (!bullet) {
 		LOG_CWARNING("game") << "Can't create bullet";

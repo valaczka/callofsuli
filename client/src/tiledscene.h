@@ -67,6 +67,7 @@ public:
 	virtual ~TiledScene();
 
 	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
+	QQuickItem *addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 
 	Q_INVOKABLE int getDynamicZ(const QPointF &point, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(const qreal &x, const qreal &y, const int &defaultValue = 1) const;

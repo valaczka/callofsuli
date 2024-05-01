@@ -122,6 +122,8 @@ public:
 	void initialize();
 	bool hasAbility() const;
 
+	virtual bool canBulletImpact(const TiledWeapon::WeaponType &/*type*/) const { return true; }
+
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
 
 	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
@@ -157,9 +159,6 @@ protected:
 
 	void stepMotor(const qreal &factor);
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
-	void rotateToPoint(const QPointF &point, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
-	float32 angleToPoint(const QPointF &point) const;
-	qreal distanceToPoint(const QPointF &point) const;
 
 private:
 	void sensorBeginContact(Box2DFixture *other);

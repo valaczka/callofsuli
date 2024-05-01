@@ -51,7 +51,7 @@ public:
 	bool canAttack() const override final { return true; }
 
 protected:
-	IsometricBullet *createBullet() override final { return nullptr; }
+	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 	void eventAttack(TiledObject *target) override final;
 
 };

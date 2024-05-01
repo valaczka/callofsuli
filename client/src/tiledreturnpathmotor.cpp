@@ -231,8 +231,9 @@ void TiledReturnPathMotor::finish(TiledObjectBody *body)
 
 		m_pathMotor.setDirection(TiledPathMotor::Backward);
 		m_pathMotor.setPolygon(m_path);
-		m_waitTimer.restart();
 	}
+
+	m_waitTimer.restart();
 
 	m_isReturning = true;
 	clearLastSeenPoint();

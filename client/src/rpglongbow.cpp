@@ -40,14 +40,23 @@ RpgLongbow::RpgLongbow(QObject *parent)
  * @return
  */
 
-IsometricBullet *RpgLongbow::createBullet()
+IsometricBullet *RpgLongbow::createBullet(const qreal &distance)
 {
 	if (!m_parentObject) {
 		LOG_CERROR("game") << "Missing parent object" << this;
 		return nullptr;
 	}
 
-	return RpgFireball::createBullet(m_parentObject->game(), m_parentObject->scene());
+	RpgFireball *fb = RpgFireball::createBullet(m_parentObject->game(), m_parentObject->scene());
+
+	if (fb && distance > 0.) {
+		if (distance < 1.)
+			fb->setMaxDistance(fb->maxDistance() * distance);
+		else
+			fb->setMaxDistance(distance);
+	}
+
+	return fb;
 }
 
 

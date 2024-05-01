@@ -222,5 +222,6 @@
         <file>RpgGameItem.qml</file>
         <file>RpgCharacterSelect.qml</file>
         <file>RpgGameMinimap.qml</file>
+        <file>TiledLayerVisual.qml</file>
     </qresource>
 </RCC>

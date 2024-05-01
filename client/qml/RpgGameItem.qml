@@ -483,6 +483,29 @@ FocusScope {
 			}
 		}
 
+		GameButton {
+			id: _containerButton
+			size: 50
+
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			visible: _game.controlledPlayer && _game.controlledPlayer.currentContainer &&
+										   _game.controlledPlayer.currentContainer.isActive
+
+			color: Qaterial.Colors.amber500
+			border.color: fontImage.color
+			border.width: 1
+
+			fontImage.icon: Qaterial.Icons.eye
+			fontImage.color: "white"
+			fontImageScale: 0.6
+			//fontImage.anchors.horizontalCenterOffset: -2
+
+			onClicked: {
+				_game.useContainer()
+			}
+		}
+
 
 	}
 

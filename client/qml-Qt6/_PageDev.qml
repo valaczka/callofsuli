@@ -228,7 +228,8 @@ Page {
 		fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
-			_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
+			//_game.transport(_game.controlledPlayer, _game.controlledPlayer.currentTransport)
+			_game.transportPlayer()
 		}
 	}
 

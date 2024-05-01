@@ -29,6 +29,7 @@
 
 #include "isometricentity.h"
 #include "qdeadlinetimer.h"
+#include "tiledcontainer.h"
 #include "tiledtransport.h"
 #include "tiledgame.h"
 #include <QQmlEngine>
@@ -57,6 +58,7 @@ class IsometricPlayer : public IsometricCircleEntity
 	QML_ELEMENT
 
 	Q_PROPERTY(TiledTransport *currentTransport READ currentTransport WRITE setCurrentTransport NOTIFY currentTransportChanged FINAL)
+	Q_PROPERTY(TiledContainer *currentContainer READ currentContainer WRITE setCurrentContainer NOTIFY currentContainerChanged FINAL)
 	Q_PROPERTY(qreal currentAngle READ currentAngle WRITE setCurrentAngle NOTIFY currentAngleChanged FINAL)
 	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
 	Q_PROPERTY(QPointF currentVelocity READ currentVelocity WRITE setCurrentVelocity NOTIFY currentVelocityChanged FINAL)
@@ -67,7 +69,6 @@ public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
 	virtual ~IsometricPlayer();
 
-	//static IsometricPlayer* createPlayer(TiledGame *game, TiledScene *scene);
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
 	void setDestinationPoint(const qreal &x, const qreal &y);
@@ -81,6 +82,8 @@ public:
 
 	TiledTransport *currentTransport() const;
 	void setCurrentTransport(TiledTransport *newCurrentTransport);
+
+	TiledObjectBase *currentTransportBase() const { return m_currentTransportBase; }
 
 	qreal currentAngle() const;
 	void setCurrentAngle(qreal newCurrentAngle);
@@ -98,6 +101,9 @@ public:
 	bool isLocked() const;
 	void setIsLocked(bool newIsLocked);
 
+	TiledContainer *currentContainer() const;
+	void setCurrentContainer(TiledContainer *newCurrentContainer);
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -108,6 +114,7 @@ signals:
 	void currentVelocityChanged();
 	void currentPickableChanged();
 	void isLockedChanged();
+	void currentContainerChanged();
 
 protected:
 	//void updateSprite() override;
@@ -129,6 +136,9 @@ protected:
 
 	bool protectWeapon(TiledWeaponList *weaponList, const TiledWeapon::WeaponType &weaponType);
 
+	QList<IsometricEnemy*> reachedEnemies() const;
+	QList<IsometricEnemy*> contactedAndReachedEnemies() const;
+
 
 	QDeadlineTimer m_inabilityTimer;
 	qreal m_sensorLength = 200.;
@@ -149,7 +159,10 @@ private:
 	void fixtureEndContact(Box2DFixture *other);
 
 	QPointer<TiledTransport> m_currentTransport = nullptr;
+	QPointer<TiledObjectBase> m_currentTransportBase;
 	QPointer<TiledObject> m_currentPickable = nullptr;
+	QPointer<TiledContainer> m_currentContainer = nullptr;
+
 	qreal m_currentAngle = 0.;
 	QPointF m_currentVelocity;
 

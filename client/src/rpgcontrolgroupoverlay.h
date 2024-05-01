@@ -28,6 +28,7 @@
 #define RPGCONTROLGROUPOVERLAY_H
 
 #include "rpgcontrolgroup.h"
+#include "rpgplayer.h"
 #include <libtiledquick/tilelayeritem.h>
 
 
@@ -40,6 +41,8 @@ class RpgControlGroupOverlay : public RpgControlGroup
 public:
 	RpgControlGroupOverlay(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 
+	void removePlayerFixture(RpgPlayer *player);
+
 private:
 	void onFixtureBeginContact(Box2DFixture *other);
 	void onFixtureEndContact(Box2DFixture *other);
@@ -49,7 +52,6 @@ private:
 
 	QVector<QPointer<TiledQuick::TileLayerItem>> m_tileLayers;
 	QVector<QPointer<Box2DFixture>> m_contactedFixtures;
-
 };
 
 #endif // RPGCONTROLGROUPOVERLAY_H

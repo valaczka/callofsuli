@@ -132,7 +132,7 @@ protected:
 	Direction m_direction = Invalid;
 	qreal m_angle = 0.;
 	qreal m_speed = 20.;
-	qreal m_maxDistance = 500.;
+	qreal m_maxDistance = 700.;
 	qint64 m_bulletId = 0;
 	Targets m_targets = TargetNone;
 

@@ -62,12 +62,12 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	m_sfxDecline.setFollowPosition(false);
 
 	m_moveDisabledSpriteList = QStringList{
-		QStringLiteral("attack"),
-		QStringLiteral("bow"),
-		QStringLiteral("cast"),
-		QStringLiteral("hurt"),
-		QStringLiteral("death")
-	};
+							   QStringLiteral("attack"),
+							   QStringLiteral("bow"),
+							   QStringLiteral("cast"),
+							   QStringLiteral("hurt"),
+							   QStringLiteral("death")
+};
 
 	connect(this, &RpgPlayer::hurt, this, &RpgPlayer::playHurtEffect);
 	connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
@@ -189,6 +189,20 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 		if (!hasAbility())
 			return;
 
+		if (!enemy()) {
+			const QList<IsometricEnemy*> &list = reachedEnemies();
+
+			for (IsometricEnemy *e : list) {
+				if (e && e->player() == this) {
+					setDestinationPoint(e->body()->bodyPosition());
+					break;
+				}
+			}
+		} else {
+			clearDestinationPoint();
+			m_body->stop();
+		}
+
 		if (weapon->hit(enemy()))
 			playAttackEffect(weapon);
 	} else {
@@ -248,6 +262,48 @@ void RpgPlayer::pick(RpgPickableObject *object)
 	if (!m_game->playerPickPickable(this, object)) {
 		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
 	}
+}
+
+/**
+ * @brief RpgPlayer::useContainer
+ * @param container
+ */
+
+void RpgPlayer::useContainer(TiledContainer *container)
+{
+	if (!container || !isAlive())
+		return;
+
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	clearDestinationPoint();
+
+	if (!g || !container->isActive())
+		return;
+
+	g->playerTryUseContainer(this, container);
+}
+
+
+/**
+ * @brief RpgPlayer::pickOrUseCurrentObjects
+ */
+
+void RpgPlayer::pickOrUseCurrentObjects()
+{
+	if (currentPickable())
+		return pickCurrentObject();
+
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (currentContainer() && currentContainer()->isActive() && g) {
+		g->playerTryUseContainer(this, currentContainer());
+		return;
+	}
+
+	if (currentTransport() && g)
+		g->transportPlayer();
+
 }
 
 
@@ -397,7 +453,7 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 void RpgPlayer::atDestinationPointEvent()
 {
 	if (m_pickAtDestination)
-		pickCurrentObject();
+		pickOrUseCurrentObjects();
 
 	m_pickAtDestination = false;
 }

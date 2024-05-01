@@ -40,8 +40,9 @@ public:
 	enum RpgEnemyType {
 		EnemyInvalid = 0,
 		EnemyWerebear,
-		EnemySoldier01,
-		EnemySoldier02,
+		EnemySoldier,
+		EnemyArcher,
+		EnemySkeleton
 	};
 
 	RpgEnemyIface(const RpgEnemyType &type)

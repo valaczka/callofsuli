@@ -145,7 +145,7 @@ public:
 
 	const TiledTransportList &transportList() const;
 
-	Q_INVOKABLE bool transport(TiledObject *object, TiledTransport *transport);
+	bool transport(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase = nullptr);
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &modifiers);
 

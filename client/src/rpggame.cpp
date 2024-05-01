@@ -25,6 +25,8 @@
  */
 
 #include "rpgarrow.h"
+#include "rpgcontrolgroupcontainer.h"
+#include "rpgcontrolgroupoverlay.h"
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
 #include "rpggame.h"
@@ -40,6 +42,7 @@
 #include "rpgquestion.h"
 #include "utils_.h"
 #include <QRandomGenerator>
+#include "tiledcontainer.h"
 
 #ifndef Q_OS_WASM
 #include "standaloneclient.h"
@@ -52,8 +55,9 @@
 
 const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 	{ QStringLiteral("werebear"), EnemyWerebear },
-	{ QStringLiteral("soldier01"), EnemySoldier01 },
-	{ QStringLiteral("soldier02"), EnemySoldier02 },
+	{ QStringLiteral("soldier"), EnemySoldier },
+	{ QStringLiteral("archer"), EnemyArcher },
+	{ QStringLiteral("skeleton"), EnemySkeleton },
 };
 
 
@@ -277,6 +281,24 @@ bool RpgGame::load(const RpgGameDefinition &def)
 {
 	if (!TiledGame::load(def))
 		return false;
+
+	if (!def.minVersion.isEmpty()) {
+		int vMaj = 0;
+		int vMin = 0;
+		QStringList vData = def.minVersion.split(QChar('.'), Qt::SkipEmptyParts);
+		if (vData.size() > 1) {
+			vMaj = vData.at(0).toInt();
+			vMin = vData.at(1).toInt();
+		} else if (vData.size()) {
+			vMaj = vData.at(0).toInt();
+		}
+
+		if (vMaj > 0 && Utils::versionCode(vMaj, vMin) > Utils::versionCode()) {
+			LOG_CWARNING("game") << "Required version:" << vMaj << vMin;
+			emit gameLoadFailed();
+			return false;
+		}
+	}
 
 	for (auto &e : m_enemyDataList) {
 		Q_ASSERT(!e.path.isEmpty());
@@ -619,6 +641,79 @@ bool RpgGame::canTransport(RpgPlayer *player, TiledTransport *transport)
 
 
 /**
+ * @brief RpgGame::playerTryUseContainer
+ * @param container
+ * @return
+ */
+
+bool RpgGame::playerTryUseContainer(RpgPlayer *player, TiledContainer *container)
+{
+	if (!player || !container) {
+		if (player && !player->m_sfxDecline.soundList().isEmpty())
+			player->m_sfxDecline.playOne();
+		messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
+		return false;
+	}
+
+	if (m_funcPlayerUseContainer)
+		return m_funcPlayerUseContainer(player, container);
+	else
+		return false;
+}
+
+
+/**
+ * @brief RpgGame::playerUseContainer
+ * @param player
+ * @param container
+ */
+
+void RpgGame::playerUseContainer(RpgPlayer *player, TiledContainer *container)
+{
+	if (!container)
+		return;
+
+	container->setIsActive(false);
+
+	if (player)
+		player->setCurrentContainer(nullptr);
+
+	if (!container->scene())
+		return;
+
+	if (RpgChestContainer *chestContainer = qobject_cast<RpgChestContainer*>(container)) {
+		const auto &pList = chestContainer->pickableList();
+
+		int i = 0;
+		static const int delta = 30;
+		const int &count = pList.size();
+
+		QPointF startPos = chestContainer->centerPoint();
+
+		if (count > 1) {
+			startPos.setX(startPos.x()-(count/2)*delta);
+		}
+
+		for (const auto &pType : pList) {
+			RpgPickableObject *pickable = createPickable(pType, container->scene());
+			if (!pickable)
+				continue;
+
+			QPointF pos = startPos;
+			pos.setX(pos.x()+(i*delta));
+
+			++i;
+
+			pickable->body()->emplace(pos);
+			container->scene()->appendToObjects(pickable);
+			pickable->setIsActive(true);
+		}
+	}
+}
+
+
+
+/**
  * @brief RpgGame::createEnemy
  * @param type
  * @param subtype
@@ -640,12 +735,14 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 			break;
 		}
 
-		case RpgEnemyIface::EnemySoldier01:
-		case RpgEnemyIface::EnemySoldier02:
+		case RpgEnemyIface::EnemySoldier:
+		case RpgEnemyIface::EnemyArcher:
+		case RpgEnemyIface::EnemySkeleton:
 		{
 			RpgEnemyBase *e = nullptr;
 			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 30, nullptr, this);
 			e->m_enemyType = type;
+			e->setSubType(subtype);
 			enemy = e;
 			break;
 		}
@@ -743,7 +840,7 @@ bool RpgGame::transportPlayer()
 
 
 	if (m_controlledPlayer->currentTransport()) {
-		const bool s = transport(m_controlledPlayer, m_controlledPlayer->currentTransport());
+		const bool s = transport(m_controlledPlayer, m_controlledPlayer->currentTransport(), m_controlledPlayer->currentTransportBase());
 
 		if (!s) {
 			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())
@@ -760,6 +857,21 @@ bool RpgGame::transportPlayer()
 	}
 
 	return false;
+}
+
+
+
+/**
+ * @brief RpgGame::useContainer
+ * @return
+ */
+
+bool RpgGame::useContainer()
+{
+	if (!m_controlledPlayer)
+		return false;
+
+	return playerTryUseContainer(m_controlledPlayer, m_controlledPlayer->currentContainer());
 }
 
 
@@ -880,7 +992,7 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_Return:
 		case Qt::Key_Enter:
 			if (m_controlledPlayer)
-				m_controlledPlayer->pickCurrentObject();
+				m_controlledPlayer->pickOrUseCurrentObjects();
 			break;
 
 		case Qt::Key_Tab:
@@ -906,6 +1018,34 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 }
 
 
+/**
+ * @brief RpgGame::transportBeforeEvent
+ * @param object
+ * @param transport
+ * @return
+ */
+
+bool RpgGame::transportBeforeEvent(TiledObject *object, TiledTransport */*transport*/)
+{
+	RpgPlayer *player = qobject_cast<RpgPlayer*>(object);
+
+	if (!player)
+		return false;
+
+	auto *s = player->scene();
+
+	for (const auto &ptr : m_controlGroups) {
+		RpgControlGroupOverlay *ol = dynamic_cast<RpgControlGroupOverlay*>(ptr.get());
+		if (!ol || (s && ol->scene() != s))
+			continue;
+
+		ol->removePlayerFixture(player);
+	}
+
+	return true;
+}
+
+
 
 /**
  * @brief RpgGame::transportAfterEvent
@@ -921,6 +1061,7 @@ bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/,
 
 	if (player) {
 		player->setCurrentSceneStartPosition(newObject->body()->bodyPosition());
+		player->m_currentTransportBase = newObject;
 	}
 
 	return true;
@@ -1251,6 +1392,23 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 						[enemy](const EnemyData &e)	{
 		return e.enemy == enemy; }
 	);
+}
+
+
+
+/**
+ * @brief RpgGame::funcPlayerUseContainer
+ * @return
+ */
+
+FuncPlayerUseContainer RpgGame::funcPlayerUseContainer() const
+{
+	return m_funcPlayerUseContainer;
+}
+
+void RpgGame::setFuncPlayerUseContainer(const FuncPlayerUseContainer &newFuncPlayerUseContainer)
+{
+	m_funcPlayerUseContainer = newFuncPlayerUseContainer;
 }
 
 
