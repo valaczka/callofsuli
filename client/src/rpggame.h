@@ -175,6 +175,8 @@ public:
 
 	int setQuestions(TiledScene *scene, qreal factor);
 
+	bool enemySetDieForever(IsometricEnemy *enemy, const bool &dieForever);
+
 	void resurrectEnemiesAndPlayer(RpgPlayer *player);
 	void resurrectEnemies(const QPointer<TiledScene> &scene);
 

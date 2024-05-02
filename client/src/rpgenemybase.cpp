@@ -182,6 +182,11 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 
 	if (m_hp <= 0) {
 		jumpToSprite("death", m_currentDirection);
+
+		if (weaponType == TiledWeapon::WeaponLongbow) {
+			if (RpgGame *game = qobject_cast<RpgGame*>(m_game))
+				game->enemySetDieForever(this, true);
+		}
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
 		//if (weaponType != TiledWeapon::WeaponHand)
@@ -356,7 +361,7 @@ void RpgEnemyBase::onCurrentSpriteChanged()
 
 void RpgEnemyBase::loadType()
 {
-	if (m_enemyType == EnemySoldier) {
+	if (m_enemyType == EnemySoldier || m_enemyType == EnemySoldierFix) {
 		static const QString &strSoldier = QStringLiteral("soldier");
 
 		if (m_subType.startsWith(strSoldier)) {
@@ -367,7 +372,7 @@ void RpgEnemyBase::loadType()
 		auto w = m_armory->weaponAdd(new RpgLongsword);
 		w->setExcludeFromLayers(true);
 		m_armory->setCurrentWeapon(w);
-	} else if (m_enemyType == EnemyArcher) {
+	} else if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix) {
 		static const QString &strSoldier = QStringLiteral("archer");
 
 		if (m_subType.startsWith(strSoldier)) {
@@ -379,6 +384,8 @@ void RpgEnemyBase::loadType()
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);
+		m_metric.firstAttackTime = 500;
+		m_metric.autoAttackTime = 1250;
 	} else if (m_enemyType == EnemySkeleton) {
 		static const QString &strSoldier = QStringLiteral("skeleton");
 

@@ -37,7 +37,7 @@ Page {
 		messageList: _messageList
 		defaultMessageColor: Qaterial.Style.iconColor()
 
-		onGameLoadFailed: Client.messageError("FAILED")
+		onGameLoadFailed: errorString => Client.messageError(errorString, qsTr("Pálya betöltése sikertelen"))
 	}
 
 	Qaterial.AppBarButton

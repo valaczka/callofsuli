@@ -182,6 +182,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 
 	float32 angle = 0.;
 	bool isPursuit = false;
+	bool attackWithoutPursuit = false;
 
 	if (myPlayer) {
 		if (!m_player || !myPlayer->isLocked())
@@ -199,6 +200,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			if (m_metric.pursuitSpeed > 0) {		// Pursuit
 				isPursuit = true;
 			} else {								// No pursuit
+				attackWithoutPursuit = true;
 				m_body->stop();
 			}
 		} else {
@@ -289,6 +291,11 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 		enemyWorldStep();
 		updateSprite();
 		return;
+	} else if (attackWithoutPursuit) {
+		if (!enemyWorldStepOnVisiblePlayer(angle, factor)) {
+			updateSprite();
+			return;
+		}
 	}
 
 	if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {

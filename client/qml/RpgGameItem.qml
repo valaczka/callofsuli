@@ -61,7 +61,7 @@ FocusScope {
 		focus: true
 		layer.enabled: true
 
-		onGameLoadFailed: Client.messageError("Hiba történt, a pályát nem lehet betölteni!")
+		onGameLoadFailed: errorString => Client.messageError(errorString, qsTr("Pálya betöltése sikertelen"))
 
 		onGameLoaded: _prGameLoaded = true
 

@@ -104,7 +104,7 @@ bool TiledGame::load(const TiledGameDefinition &def)
 		if (loadScene(s, def.basePath))
 			LOG_CINFO("game") << "Scene loaded:" << s.id << qPrintable(s.file);
 		else {
-			emit gameLoadFailed();
+			emit gameLoadFailed(tr("Hibás pálya"));
 			return false;
 		}
 	}
@@ -113,7 +113,7 @@ bool TiledGame::load(const TiledGameDefinition &def)
 
 	if (!firstScene) {
 		LOG_CERROR("game") << "Invalid scene id:" << def.firstScene;
-		emit gameLoadFailed();
+		emit gameLoadFailed(tr("Kezdőpont nincs beállítva"));
 		return false;
 	}
 

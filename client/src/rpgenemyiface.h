@@ -42,6 +42,8 @@ public:
 		EnemyWerebear,
 		EnemySoldier,
 		EnemyArcher,
+		EnemySoldierFix,
+		EnemyArcherFix,
 		EnemySkeleton
 	};
 

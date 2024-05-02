@@ -106,6 +106,7 @@ protected:
 	void onGameTimeout();
 	void onGameSuccess();
 	void onGameFailed();
+	void onGameLoadFailed(const QString &);
 
 
 private:

@@ -25,6 +25,7 @@
  */
 
 #include "rpgwerebear.h"
+#include "rpggame.h"
 #include "tiledspritehandler.h"
 #include "utils_.h"
 
@@ -180,6 +181,11 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 
 	if (m_hp <= 0) {
 		jumpToSprite("death", m_currentDirection);
+
+		if (weaponType == TiledWeapon::WeaponLongbow) {
+			if (RpgGame *game = qobject_cast<RpgGame*>(m_game))
+				game->enemySetDieForever(this, true);
+		}
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
 		if (weaponType != TiledWeapon::WeaponHand)

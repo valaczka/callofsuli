@@ -153,7 +153,7 @@ void ActionRpgGame::rpgGameActivated()
 	if (!ptr)
 		return;
 
-	m_config.duration = ptr->duration > 0 ? ptr->duration : m_missionLevel->duration();
+	m_config.duration = ptr->duration + m_missionLevel->duration();
 	updateConfig();
 
 	if (!m_rpgGame->load(ptr.value())) {
@@ -195,6 +195,9 @@ void ActionRpgGame::rpgGameActivated()
 	for (TiledScene *s : m_rpgGame->sceneList()) {
 		m_rpgGame->setQuestions(s, m_missionLevel->questions());
 	}
+
+	if (!m_rpgGame->m_gameDefinition.music.isEmpty())
+		m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);
 
 	emit m_rpgGame->gameLoaded();
 }
@@ -393,6 +396,17 @@ void ActionRpgGame::onGameFailed()
 	emit finishDialogRequest(tr("Your man has died"),
 							 QStringLiteral("qrc:/Qaterial/Icons/skull-crossbones.svg"),
 							 false);
+}
+
+
+
+/**
+ * @brief ActionRpgGame::onGameLoadFailed
+ */
+
+void ActionRpgGame::onGameLoadFailed(const QString &)
+{
+	m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
 }
 
 
@@ -914,6 +928,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		setGameQuestion(nullptr);
 		disconnect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
+		disconnect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
 		m_rpgGame->setRpgQuestion(nullptr);
 		m_rpgGame->setFuncPlayerPick(nullptr);
 		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
@@ -928,6 +943,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
+		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
 		m_rpgGame->setFuncPlayerPick(std::bind(&ActionRpgGame::onPlayerPick, this, std::placeholders::_1, std::placeholders::_2));
 		m_rpgGame->setFuncPlayerAttackEnemy(std::bind(&ActionRpgGame::onPlayerAttackEnemy, this,
 													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));

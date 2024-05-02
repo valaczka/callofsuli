@@ -77,6 +77,7 @@ public:
 	QS_SERIALIZABLE
 	QS_FIELD(int, firstScene)
 	QS_FIELD(int, duration)
+	QS_FIELD(QString, music)
 	QS_COLLECTION_OBJECTS(QVector, TiledSceneDefinition, scenes)
 };
 
@@ -201,7 +202,7 @@ public:
 
 signals:
 	void gameLoaded();
-	void gameLoadFailed();
+	void gameLoadFailed(const QString &errorString);
 	void currentSceneChanged();
 	void joystickChanged();
 	void followedItemChanged();

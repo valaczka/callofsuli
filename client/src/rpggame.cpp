@@ -57,6 +57,8 @@ const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 	{ QStringLiteral("werebear"), EnemyWerebear },
 	{ QStringLiteral("soldier"), EnemySoldier },
 	{ QStringLiteral("archer"), EnemyArcher },
+	{ QStringLiteral("soldierFix"), EnemySoldierFix },
+	{ QStringLiteral("archerFix"), EnemyArcherFix },
 	{ QStringLiteral("skeleton"), EnemySkeleton },
 };
 
@@ -295,7 +297,7 @@ bool RpgGame::load(const RpgGameDefinition &def)
 
 		if (vMaj > 0 && Utils::versionCode(vMaj, vMin) > Utils::versionCode()) {
 			LOG_CWARNING("game") << "Required version:" << vMaj << vMin;
-			emit gameLoadFailed();
+			emit gameLoadFailed(tr("Szükséges verzió: %1.%2").arg(vMaj).arg(vMin));
 			return false;
 		}
 	}
@@ -743,6 +745,18 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 30, nullptr, this);
 			e->m_enemyType = type;
 			e->setSubType(subtype);
+			enemy = e;
+			break;
+		}
+
+		case RpgEnemyIface::EnemySoldierFix:
+		case RpgEnemyIface::EnemyArcherFix:
+		{
+			RpgEnemyBase *e = nullptr;
+			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 30, nullptr, this);
+			e->m_enemyType = type;
+			e->setSubType(subtype);
+			e->m_metric.pursuitSpeed = 0;
 			enemy = e;
 			break;
 		}
@@ -1665,6 +1679,26 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 	}
 
 	return created;
+}
+
+
+/**
+ * @brief RpgGame::enemySetDieForever
+ * @param enemy
+ * @param dieForever
+ * @return
+ */
+
+bool RpgGame::enemySetDieForever(IsometricEnemy *enemy, const bool &dieForever)
+{
+	auto it = enemyFind(enemy);
+
+	if (it == m_enemyDataList.end())
+		return false;
+
+	it->dieForever = dieForever;
+
+	return true;
 }
 
 
