@@ -14,7 +14,7 @@ AppVersionMinor = 0
 
 # Automatic version increment (build)
 
-AppVersionIncrement = true
+AppVersionIncrement = false
 
 
 
