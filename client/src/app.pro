@@ -110,7 +110,7 @@ android {
 		alist.output = $$PWD/android/AndroidManifest.xml
 
 		ANDROID_MIN_SDK_VERSION = 21
-		ANDROID_TARGET_SDK_VERSION = 33
+		ANDROID_TARGET_SDK_VERSION = 34
 
 		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
@@ -177,6 +177,10 @@ ios {
 	QMAKE_SUBSTITUTES += plist
 
 	QMAKE_INFO_PLIST = $$OUT_PWD/Info.plist
+
+
+	app_privacy_declarations.files = $$PWD/../deploy/PrivacyInfo.xcprivacy
+	QMAKE_BUNDLE_DATA += app_privacy_declarations
 
 	SOURCES += sound_helper.mm
 }

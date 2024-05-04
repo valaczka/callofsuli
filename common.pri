@@ -24,7 +24,7 @@ AppVersionIncrement = false
 
 # Android
 
-AndroidVersionCode = 45
+AndroidVersionCode = 46
 
 
 #########################################################################
