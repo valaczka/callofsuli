@@ -132,6 +132,28 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 }
 
 
+/**
+ * @brief ExamGame::clearQuestions
+ * @param missionLevel
+ */
+
+void ExamGame::clearQuestions(GameMapMissionLevel *missionLevel)
+{
+	LOG_CDEBUG("game") << "Clear questions";
+
+	if (!missionLevel) {
+		LOG_CWARNING("game") << "Missing game map, don't cleared any question";
+		return;
+	}
+
+	foreach (GameMapChapter *chapter, missionLevel->chapters()) {
+		foreach (GameMapObjective *objective, chapter->objectives()) {
+			objective->generatedQuestions().clear();
+		}
+	}
+}
+
+
 
 /**
  * @brief ExamGame::mode

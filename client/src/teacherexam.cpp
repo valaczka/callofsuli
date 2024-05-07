@@ -483,6 +483,8 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
 	QJsonArray data;
 
 	for (const ExamUser *u : list) {
+		ExamGame::clearQuestions(ml);
+
 		QJsonObject userdata;
 		userdata[QStringLiteral("username")] = u->username();
 		userdata[QStringLiteral("q")] = ExamGame::generatePaperQuestions(ml);

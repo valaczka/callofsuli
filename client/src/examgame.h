@@ -22,6 +22,7 @@ public:
 
 	static QVector<Question> createQuestions(GameMapMissionLevel *missionLevel);
 	static QJsonArray generatePaperQuestions(GameMapMissionLevel *missionLevel);
+	static void clearQuestions(GameMapMissionLevel *missionLevel);
 
 	const Exam::Mode &mode() const;
 	void setMode(const Exam::Mode &newMode);
