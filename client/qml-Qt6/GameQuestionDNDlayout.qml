@@ -13,13 +13,19 @@ GridLayout {
 
 	property alias dndFlow: _flow
 
-	property double flowSplit: 0.35
+	//property double flowSplit: 0.35
+	property real flowSize: columns > 1 ? width * 0.5 : height * 0.5
 
 	property list<GameQuestionDNDdrop> drops
 	property list<Item> drags
 
 	readonly property double implicitContentWidth: _contentItem.width-2*_contentItem.padding
 	readonly property double implicitContentHeight: _contentItem.height-2*_contentItem.padding
+
+	readonly property double availableWidth: width-2*_contentItem.padding
+	readonly property double availableHeight: height-2*_contentItem.padding
+
+	readonly property alias contentPadding: _contentItem.padding
 
 	columns: parent.width > parent.height ? 2 : 1
 
@@ -56,14 +62,14 @@ GridLayout {
 		}
 
 		Qaterial.VerticalLineSeparator {
-			visible: root.columns > 1
+			visible: root.columns > 1 && _flow.visible
 			anchors.right: parent.right
 			height: parent.height*0.9
 			anchors.verticalCenter: parent.verticalCenter
 		}
 
 		Qaterial.HorizontalLineSeparator {
-			visible: root.columns == 1
+			visible: root.columns == 1 && _flow.visible
 			anchors.bottom: parent.bottom
 			anchors.horizontalCenter: parent.horizontalCenter
 			width: parent.width*0.9
@@ -75,9 +81,9 @@ GridLayout {
 	GameQuestionDNDflow {
 		id: _flow
 		Layout.fillWidth: !(root.columns > 1)
-		Layout.preferredWidth: (root.columns > 1) ? root.parent.width*root.flowSplit : -1
+		Layout.preferredWidth: (root.columns > 1) ? flowSize : -1
 		Layout.fillHeight: (root.columns > 1)
-		Layout.preferredHeight: (root.columns > 1) ? -1 : root.parent.height*root.flowSplit
+		Layout.preferredHeight: (root.columns > 1) ? -1 : flowSize
 	}
 
 	function createDND(_cmp, _container, _prop) {

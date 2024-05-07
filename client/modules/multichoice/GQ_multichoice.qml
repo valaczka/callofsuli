@@ -12,7 +12,7 @@ GameQuestionComponentImpl {
 					+(col.spacing*rptr.model.length)
 					+35
 
-	implicitWidth: 700
+	implicitWidth: 700 * Qaterial.Style.pixelSizeRatio
 
 	property var selectedItems: []
 

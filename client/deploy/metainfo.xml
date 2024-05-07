@@ -1,53 +1,53 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
   <id>hu.piarista.vjp.callofsuli</id>
-  
+
   <name>Call of Suli</name>
-  <summary>A Call of Suli egy olyan digitális feladatlapkészítő és kiértékelő alkalmazás, ami a feladatokat izgalmas akciójátékká alakítja át, így egyszerre tanulási és számonkérési eszköz, és egyszerre játék.</summary>
-  
+  <summary>A Call of Suli egy olyan digitális feladatlapkészítő és kiértékelő alkalmazás, ami a feladatokat izgalmas akciójátékká alakítja át, így egyszerre tanulási és számonkérési eszköz, és egyszerre játék</summary>
+
   <metadata_license>CC-BY-SA-4.0</metadata_license>
   <project_license>GPL-3.0-or-later</project_license>
-  
+
   <supports>
-    <control>pointing</control>
-    <control>keyboard</control>
-    <control>touch</control>
+	<control>pointing</control>
+	<control>keyboard</control>
+	<control>touch</control>
   </supports>
-  
+
   <description>
-    <p>
-      ✨ Lehetőségek
-    </p>
-    <p>
-      🚀 Feladatlapok játékká alakítása: Az alkalmazás lehetővé teszi, hogy a tanárok a feladatokat játékos formába öntve adhassák meg. Tanárként egyszerűen készítsd el a feladatokat az alkalmazásban, és az automatikusan létrehozza a megfelelő játékelemeket. Diákként pedig szórakoztató és interaktív módon tanulhatsz, miközben a tananyagot teljesíted.
-    </p>
-    <p>
-      🎮 Játékmódok: Az alkalmazás különböző játékmódokra is lehetőséget kínál. Az akciójátékon túl a feladatokat önmagukban is megoldhatod, és lehetőséged van arra is, hogy egy klasszikus tesztet tölts ki belőlük.
-    </p>
-    <p>
-      📄 Témák: Az alkalmazásban nincsenek előre elkészített témakörök és feladatok, ezeket tanárként magadnak kell elkészítened. A Call of Suli képes ugyanabból az adatbankból különféle feladattípusokat készíteni is kiértékelni, így az ismétlődő tudáselemeket elég egyféleképpen rögzítened, és többször, többféleképpen is visszakérdezheted.
-    </p>
-    <p>
-      🏆 Interaktív feladatok és kihívások: A játék során interaktív feladatok várnak rád, hogy teszteld és elmélyítsd a tudásodat. A játékos kihívások segítenek megerősíteni a megszerzett ismereteket, és motiválnak a fejlődésre. Szerezd meg a pontokat és a kitüntetéseket, és versenyezz az osztálytársaiddal!
-    </p>
-    <p>
-      ✅ Azonnali visszajelzés: Miközben teljesíted a kihívásokat, azonnali visszajelzést kapsz a megoldások helyességéről, így könnyen javítani tudod a hibáidat, és elmélyíteni a tudásodat.
-    </p>
-    <p>
-      📈 Előrehaladás: Az alkalmazás figyeli a tanulási előrehaladásodat, és nyomon követheted azt is, hogy a kapott kihívások teljesítésében hol tartasz. Tanárként elég a kihívásokat összeállítanod, a tanulási folyamatot és az értékelést a Call of Suli magától elvégzi. A diákok előrehaladását folyamatosan követni tudod.
-    </p>
-    <p>
-      📐 Egyedi beállítások és paraméterek: Az alkalmazás lehetőséget nyújt, hogy tanárként egyedi paramétereket állíts be. Testre szabhatod a játékot a tananyaghoz és a diákok képességeihez. Állíts be nehézségi szinteket, időkorlátokat és egyéb speciális feltételeket a játékokhoz!
-    </p>
+	<p>
+	  ✨ Lehetőségek
+	</p>
+	<p>
+	  🚀 Feladatlapok játékká alakítása: Az alkalmazás lehetővé teszi, hogy a tanárok a feladatokat játékos formába öntve adhassák meg. Tanárként egyszerűen készítsd el a feladatokat az alkalmazásban, és az automatikusan létrehozza a megfelelő játékelemeket. Diákként pedig szórakoztató és interaktív módon tanulhatsz, miközben a tananyagot teljesíted.
+	</p>
+	<p>
+	  🎮 Játékmódok: Az alkalmazás különböző játékmódokra is lehetőséget kínál. Az akciójátékon túl a feladatokat önmagukban is megoldhatod, és lehetőséged van arra is, hogy egy klasszikus tesztet tölts ki belőlük.
+	</p>
+	<p>
+	  📄 Témák: Az alkalmazásban nincsenek előre elkészített témakörök és feladatok, ezeket tanárként magadnak kell elkészítened. A Call of Suli képes ugyanabból az adatbankból különféle feladattípusokat készíteni is kiértékelni, így az ismétlődő tudáselemeket elég egyféleképpen rögzítened, és többször, többféleképpen is visszakérdezheted.
+	</p>
+	<p>
+	  🏆 Interaktív feladatok és kihívások: A játék során interaktív feladatok várnak rád, hogy teszteld és elmélyítsd a tudásodat. A játékos kihívások segítenek megerősíteni a megszerzett ismereteket, és motiválnak a fejlődésre. Szerezd meg a pontokat és a kitüntetéseket, és versenyezz az osztálytársaiddal!
+	</p>
+	<p>
+	  ✅ Azonnali visszajelzés: Miközben teljesíted a kihívásokat, azonnali visszajelzést kapsz a megoldások helyességéről, így könnyen javítani tudod a hibáidat, és elmélyíteni a tudásodat.
+	</p>
+	<p>
+	  📈 Előrehaladás: Az alkalmazás figyeli a tanulási előrehaladásodat, és nyomon követheted azt is, hogy a kapott kihívások teljesítésében hol tartasz. Tanárként elég a kihívásokat összeállítanod, a tanulási folyamatot és az értékelést a Call of Suli magától elvégzi. A diákok előrehaladását folyamatosan követni tudod.
+	</p>
+	<p>
+	  📐 Egyedi beállítások és paraméterek: Az alkalmazás lehetőséget nyújt, hogy tanárként egyedi paramétereket állíts be. Testre szabhatod a játékot a tananyaghoz és a diákok képességeihez. Állíts be nehézségi szinteket, időkorlátokat és egyéb speciális feltételeket a játékokhoz!
+	</p>
   </description>
-  
+
   <launchable type="desktop-id">callofsuli.desktop</launchable>
   <screenshots>
-    <screenshot type="default">
-      <image>https://valaczka.github.io/callofsuli/screenshot/img01.png</image>
-    </screenshot>
-    <screenshot>
-      <image>https://valaczka.github.io/callofsuli/screenshot/img02.png</image>
-    </screenshot>
+	<screenshot type="default">
+	  <image>https://valaczka.github.io/callofsuli/screenshot/img01.png</image>
+	</screenshot>
+	<screenshot>
+	  <image>https://valaczka.github.io/callofsuli/screenshot/img02.png</image>
+	</screenshot>
   </screenshots>
 </component>

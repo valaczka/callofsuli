@@ -8,8 +8,10 @@ import "./QaterialHelper" as Qaterial
 GameQuestionComponentImpl {
 	id: control
 
-	implicitHeight: 450
-	implicitWidth: 650
+	implicitHeight: titleRow.implicitHeight
+					+containerItem.requiredContentHeight
+					+45
+	implicitWidth: 650 * Qaterial.Style.pixelSizeRatio
 
 	GameQuestionTitle {
 		id: titleRow
@@ -35,12 +37,19 @@ GameQuestionComponentImpl {
 		anchors.bottom: titleRow.top
 		anchors.topMargin: 15
 
-		flowSplit: 0.5
+		readonly property int _spacing: 3
+		readonly property real requiredContentHeight: Qaterial.Style.gameButtonImplicitHeight*(control.questionData ? control.questionData.list.length : 0)
+													  + _spacing * Math.max(0, (control.questionData ? control.questionData.list.length-1 : 0))
+													  + contentPadding
+
+		flowSize: columns > 1 ? availableWidth*0.5 : Math.max(
+									availableHeight-requiredContentHeight,
+									0.35 * availableHeight)
 
 		contentSourceComponent: Column {
 			id: _column
 			width: containerItem.implicitContentWidth
-			spacing: 3
+			spacing: containerItem._spacing
 
 			Component {
 				id: _cmpDrop
@@ -97,10 +106,10 @@ GameQuestionComponentImpl {
 		for (var i=0; i<questionData.list.length; i++) {
 			var t = questionData.list[i]
 			containerItem.createDND(_cmp, control, {
-												text: t.text,
-												num: t.num,
-												dragIndex: i
-											})
+										text: t.text,
+										num: t.num,
+										dragIndex: i
+									})
 		}
 
 		loadStoredAnswer()
@@ -160,14 +169,16 @@ GameQuestionComponentImpl {
 		else
 			question.onFailed({"list": l})
 
+		if (toggleMode == GameQuestionComponentImpl.ToggleNone)
+			containerItem.dndFlow.visible = false
 	}
 
 
 	Keys.onPressed: event => {
-		var key = event.key
+						var key = event.key
 
-		if (key === Qt.Key_Return || key === Qt.Key_Enter)
-			titleRow.buttonOkClicked()
-	}
+						if (key === Qt.Key_Return || key === Qt.Key_Enter)
+						titleRow.buttonOkClicked()
+					}
 }
 

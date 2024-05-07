@@ -8,8 +8,10 @@ import "./QaterialHelper" as Qaterial
 GameQuestionComponentImpl {
 	id: control
 
-	implicitHeight: 550
-	implicitWidth: 800
+	implicitHeight: titleRow.implicitHeight
+					+containerItem.requiredContentHeight
+					+45
+	implicitWidth: 800 * Qaterial.Style.pixelSizeRatio
 
 	GameQuestionTitle {
 		id: titleRow
@@ -35,12 +37,21 @@ GameQuestionComponentImpl {
 		anchors.bottom: titleRow.top
 		anchors.topMargin: 15
 
+		readonly property int _spacing: 3
+		readonly property real requiredContentHeight: Qaterial.Style.gameButtonImplicitHeight*(control.questionData ? control.questionData.list.length : 0)
+													  + _spacing * Math.max(0, (control.questionData ? control.questionData.list.length-1 : 0))
+													  + contentPadding
+
+		flowSize: columns > 1 ? availableWidth*0.35 : Math.max(
+									availableHeight-requiredContentHeight,
+									0.35 * availableHeight)
+
 		contentSourceComponent: GridLayout {
 			id: _grid
 			width: containerItem.implicitContentWidth
 			columns: 3
 			columnSpacing: 15
-			rowSpacing: 3
+			rowSpacing: containerItem._spacing
 
 			Component {
 				id: _cmpLabel

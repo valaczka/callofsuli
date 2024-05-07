@@ -8,7 +8,7 @@ GameQuestionComponentImpl {
 	id: control
 
 	implicitHeight: titleRow.implicitHeight+row.implicitHeight+150
-	implicitWidth: 700
+	implicitWidth: 700 * Qaterial.Style.pixelSizeRatio
 
 	property int selectedButtonIndex: -1
 

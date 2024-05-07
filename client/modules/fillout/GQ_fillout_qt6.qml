@@ -8,8 +8,8 @@ import "./QaterialHelper" as Qaterial
 GameQuestionComponentImpl {
 	id: control
 
-	implicitHeight: 500
-	implicitWidth: 650
+	implicitHeight: 500 * Qaterial.Style.pixelSizeRatio
+	implicitWidth: 650 * Qaterial.Style.pixelSizeRatio
 
 	GameQuestionTitle {
 		id: titleRow

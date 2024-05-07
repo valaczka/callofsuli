@@ -15,7 +15,6 @@ include(../../translations/translations.pri)
 
 DESTDIR = ../..
 
-
 lessThan(QT_MAJOR_VERSION, 6) {
 	QML_IMPORT_PATH += $$PWD/../qml
 	QMLPATHS += $$PWD/../qml
