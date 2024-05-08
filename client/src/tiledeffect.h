@@ -76,6 +76,18 @@ public:
 
 
 
+/**
+ * @brief The TiledEffectHealed class
+ */
+
+class TiledEffectSleep : public TiledEffect
+{
+public:
+	TiledEffectSleep(TiledObject *parentObject) : TiledEffect(parentObject) {}
+	virtual void play() override;
+};
+
+
 
 
 /**

@@ -88,6 +88,8 @@ public:
 	qreal currentAngle() const;
 	void setCurrentAngle(qreal newCurrentAngle);
 
+	void removeEnemy(IsometricEnemy *enemy);
+
 	IsometricEnemy *enemy() const;
 	void setEnemy(IsometricEnemy *newEnemy);
 
@@ -138,7 +140,6 @@ protected:
 
 	QList<IsometricEnemy*> reachedEnemies() const;
 	QList<IsometricEnemy*> contactedAndReachedEnemies() const;
-
 
 	QDeadlineTimer m_inabilityTimer;
 	qreal m_sensorLength = 200.;

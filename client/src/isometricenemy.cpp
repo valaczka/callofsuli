@@ -101,13 +101,24 @@ bool IsometricEnemy::hasAbility() const
 
 
 /**
+ * @brief IsometricEnemy::isSleeping
+ * @return
+ */
+
+bool IsometricEnemy::isSleeping() const
+{
+	return !m_sleepingTimer.isForever() && !m_sleepingTimer.hasExpired();
+}
+
+
+/**
  * @brief IsometricEnemy::attackedByPlayer
  * @param player
  */
 
 void IsometricEnemy::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &/*weaponType*/)
 {
-	if (!isAlive())
+	if (!isAlive() || isSleeping())
 		return;
 
 	if (!m_contactedPlayers.contains(player))
@@ -126,6 +137,38 @@ void IsometricEnemy::startInability()
 {
 	if (m_metric.inabilityTime > 0)
 		m_inabilityTimer.setRemainingTime(m_metric.inabilityTime);
+}
+
+
+/**
+ * @brief IsometricEnemy::startSleeping
+ */
+
+bool IsometricEnemy::startSleeping()
+{
+	if (m_metric.sleepingTime > 0) {
+		m_sleepingTimer.setRemainingTime(m_metric.sleepingTime);
+		if (!m_isSleeping)
+			onSleepingBegin();
+		return true;
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief IsometricEnemy::eventKilledByPlayer
+ * @param player
+ */
+
+void IsometricEnemy::eventKilledByPlayer(IsometricPlayer *player)
+{
+	if (player)
+		player->removeEnemy(this);
+
+	setPlayer(nullptr);
 }
 
 
@@ -161,11 +204,14 @@ void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
 
 void IsometricEnemy::entityWorldStep(const qreal &factor)
 {
-	if (!isAlive()) {
+	if (!isAlive() || isSleeping()) {
 		m_body->stop();
 		jumpToSprite("death", m_currentDirection);
 		return;
 	}
+
+	if (m_isSleeping)
+		onSleepingEnd();
 
 	if (m_movingDirection != Invalid)
 		setCurrentDirection(m_movingDirection);
@@ -319,7 +365,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 
 bool IsometricEnemy::enemyWorldStep()
 {
-	if (!isAlive())
+	if (!isAlive() || isSleeping())
 		return true;
 
 	if (m_metric.autoAttackTime <= 0 || m_metric.firstAttackTime <= 0)
@@ -361,7 +407,7 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle, const q
 	Q_UNUSED(angle);
 	Q_UNUSED(factor);
 
-	if (!isAlive())
+	if (!isAlive() || isSleeping())
 		return false;
 
 	if (m_metric.autoAttackTime <= 0 || m_metric.firstAttackTime <= 0)
@@ -454,6 +500,53 @@ void IsometricEnemy::onDead()
 	m_game->onEnemyDead(this);
 
 	emit becameDead();
+}
+
+
+
+/**
+ * @brief IsometricEnemy::onSleepingBegin
+ */
+
+void IsometricEnemy::onSleepingBegin()
+{
+	m_isSleeping = true;
+
+	m_body->setBodyType(Box2DBody::Static);
+	m_body->setActive(false);
+	m_fixture->setCategories(Box2DFixture::None);
+	m_fixture->setCollidesWith(Box2DFixture::None);
+	setSubZ(0.0);
+
+	m_game->onEnemySleepingStart(this);
+
+	emit becameAsleep();
+}
+
+
+
+
+/**
+ * @brief IsometricEnemy::onSleepingEnd
+ */
+
+void IsometricEnemy::onSleepingEnd()
+{
+	m_body->setBodyType(Box2DBody::Dynamic);
+	m_body->setActive(true);
+	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
+	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget) |
+							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
+
+	setSubZ(0.5);
+
+	m_isSleeping = false;
+
+	m_game->onEnemySleepingEnd(this);
+
+	emit becameAwake();
 }
 
 

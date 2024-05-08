@@ -196,8 +196,8 @@ void ActionRpgGame::rpgGameActivated()
 		m_rpgGame->setQuestions(s, m_missionLevel->questions());
 	}
 
-	if (!m_rpgGame->m_gameDefinition.music.isEmpty())
-		m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);
+	/*if (!m_rpgGame->m_gameDefinition.music.isEmpty())
+		m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);*/
 
 	emit m_rpgGame->gameLoaded();
 }
@@ -460,6 +460,9 @@ void ActionRpgGame::onConfigChanged()
 		}
 
 		startWithRemainingTime(m_config.duration*1000);
+
+		if (!m_rpgGame->m_gameDefinition.music.isEmpty())
+			m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);
 
 		if (m_deathmatch) {
 			m_rpgGame->message(tr("LEVEL %1").arg(level()));

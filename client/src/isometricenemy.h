@@ -83,6 +83,7 @@ protected:
 		qint64 inabilityTime = 1250;			// Inability after hit
 		qint64 firstAttackTime = 350;			// First attack to player
 		qint64 autoAttackTime = 750;			// Repeated attack to player
+		qint64 sleepingTime = 10000;			// Sleeping after hit (hand), 0: no sleeping
 
 		qreal sensorLength = 620.;
 		qreal sensorRange = M_PI*2./3.;
@@ -121,6 +122,7 @@ public:
 
 	void initialize();
 	bool hasAbility() const;
+	bool isSleeping() const;
 
 	virtual bool canBulletImpact(const TiledWeapon::WeaponType &/*type*/) const { return true; }
 
@@ -132,6 +134,8 @@ public:
 signals:
 	void becameAlive();
 	void becameDead();
+	void becameAsleep();
+	void becameAwake();
 
 	void playerChanged() override final;
 	void playerDistanceChanged() override final;
@@ -145,13 +149,17 @@ protected:
 	virtual void load() = 0;
 	void onAlive() override;
 	void onDead() override;
+	void onSleepingBegin();
+	void onSleepingEnd();
 
 	void startInability();
+	bool startSleeping();
 
 	virtual void eventPlayerReached(IsometricPlayer *player) = 0;
 	virtual void eventPlayerLeft(IsometricPlayer *player) = 0;
 	virtual void eventPlayerContacted(IsometricPlayer *player) { Q_UNUSED(player); }
 	virtual void eventPlayerDiscontacted(IsometricPlayer *player) { Q_UNUSED(player); }
+	virtual void eventKilledByPlayer(IsometricPlayer *player);
 
 	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
 	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
@@ -169,6 +177,8 @@ private:
 protected:
 	QDeadlineTimer m_inabilityTimer;
 	QDeadlineTimer m_autoHitTimer;
+	QDeadlineTimer m_sleepingTimer;
+	bool m_isSleeping = false;
 
 	friend class TiledGame;
 	friend class RpgGame;

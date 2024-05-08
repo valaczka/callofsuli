@@ -488,6 +488,31 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 
 
 /**
+ * @brief RpgGame::saveSceneState
+ * @param player
+ */
+
+void RpgGame::saveSceneState(RpgPlayer *player)
+{
+	if (!player)
+		return;
+
+	messageColor(tr("State saved"), QColor::fromRgbF(0., 0.9, 0.));
+
+	playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene(), player->body()->bodyPosition());
+
+	for (EnemyData &e : m_enemyDataList) {
+		if (!e.enemy)
+			continue;
+
+		if (e.enemy->hp() <= 0)
+			e.dieForever = true;
+	}
+}
+
+
+
+/**
  * @brief RpgGame::onPlayerDead
  * @param player
  */
@@ -581,6 +606,29 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 
 	if (!count)
 		emit gameSuccess();
+}
+
+
+/**
+ * @brief RpgGame::onEnemySleepingStart
+ * @param enemy
+ */
+
+void RpgGame::onEnemySleepingStart(TiledObject *enemy)
+{
+	Q_UNUSED(enemy);
+}
+
+
+
+/**
+ * @brief RpgGame::onEnemySleepingEnd
+ * @param enemy
+ */
+
+void RpgGame::onEnemySleepingEnd(TiledObject *enemy)
+{
+	Q_UNUSED(enemy);
 }
 
 

@@ -250,3 +250,23 @@ void TiledEffectFire::play()
 
 	playSprite(QStringLiteral(":/rpg/common/explosion_fire_smoke.png"), sprite, true);
 }
+
+
+
+
+/**
+ * @brief TiledEffectSleep::play
+ */
+
+void TiledEffectSleep::play()
+{
+	static const TiledObjectSprite sprite = {
+		QStringLiteral("base"),
+		21,
+		0, 0, 128, 128,
+		30,
+		0
+	};
+
+	playSprite(QStringLiteral(":/rpg/common/sparkle.png"), sprite);
+}

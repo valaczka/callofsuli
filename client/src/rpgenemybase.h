@@ -80,6 +80,7 @@ private:
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectFire m_effectFire;
+	TiledEffectSleep m_effectSleep;
 };
 
 #endif // RPGENEMYBASE_H

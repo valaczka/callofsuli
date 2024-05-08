@@ -39,6 +39,7 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	, RpgEnemyIface(type)
 	, m_effectHealed(this)
 	, m_effectFire(this)
+	, m_effectSleep(this)
 {
 	m_armory.reset(new RpgArmory(this));
 
@@ -60,6 +61,13 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 		m_effectHealed.play();
 	});
 
+	connect(this, &RpgEnemyBase::becameAsleep, this, [this]() {
+		m_effectSleep.play();
+	});
+
+	connect(this, &RpgEnemyBase::becameAwake, this, [this]() {
+		m_effectSleep.clear();
+	});
 }
 
 
@@ -165,12 +173,17 @@ void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
 
 void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType)
 {
+	if (isAlive() && weaponType == TiledWeapon::WeaponHand) {
+		if (startSleeping())
+			return;
+	}
+
 	IsometricEnemy::attackedByPlayer(player, weaponType);
 
 	if (weaponType == TiledWeapon::WeaponLongbow)
 		m_effectFire.play();
 
-	if (!isAlive())
+	if (!isAlive() || isSleeping())
 		return;
 
 	int newHp = getNewHpAfterAttack(m_hp, weaponType, player);
@@ -187,6 +200,8 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 			if (RpgGame *game = qobject_cast<RpgGame*>(m_game))
 				game->enemySetDieForever(this, true);
 		}
+
+		eventKilledByPlayer(player);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
 		//if (weaponType != TiledWeapon::WeaponHand)
@@ -218,15 +233,12 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 			hp -= 3;
 			break;
 
-		case TiledWeapon::WeaponHand:
-			hp -= 1;
-			break;
-
 		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponGreatHand:
 			hp = 0;
 			break;
 
+		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;

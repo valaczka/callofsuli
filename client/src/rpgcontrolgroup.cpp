@@ -27,6 +27,7 @@
 #include "rpgcontrolgroup.h"
 #include "rpgcontrolgroupcontainer.h"
 #include "rpgcontrolgroupoverlay.h"
+#include "rpgcontrolgroupsave.h"
 #include <libtiled/grouplayer.h>
 
 
@@ -50,12 +51,15 @@ RpgControlGroup::RpgControlGroup(const Type &type, RpgGame *game, TiledScene *sc
 
 RpgControlGroup *RpgControlGroup::fromGroupLayer(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
 {
-	const QString &cname = group->className();
+	const QString &
+			cname = group->className();
 
 	if (cname == QStringLiteral("overlayTrigger"))
 		return new RpgControlGroupOverlay(game, scene, group, renderer);
 	else if (cname == QStringLiteral("container"))
 		return new RpgControlGroupContainer(game, scene, group, renderer);
+	else if (cname == QStringLiteral("save"))
+		return new RpgControlGroupSave(game, scene, group, renderer);
 
 
 	LOG_CWARNING("game") << "Invalid group layer:" << cname;

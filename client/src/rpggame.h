@@ -124,9 +124,12 @@ public:
 	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
 	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;
 	bool playerPickPickable(TiledObject *player, TiledObject *pickable) override final;
+	void saveSceneState(RpgPlayer *player);
 
 	void onPlayerDead(TiledObject *player) override final;
 	void onEnemyDead(TiledObject *enemy) override final;
+	void onEnemySleepingStart(TiledObject *enemy) override final;
+	void onEnemySleepingEnd(TiledObject *enemy) override final;
 
 	bool canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
 	bool canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);

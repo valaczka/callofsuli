@@ -48,6 +48,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	m_metric.speed = 2.;
 	m_metric.returnSpeed = 4.;
 	m_metric.pursuitSpeed = 4.;
+	m_metric.sleepingTime = 0;
 
 	m_sfxPain.setSoundList({
 							   QStringLiteral(":/rpg/werebear/monster-5.mp3"),
@@ -169,7 +170,7 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 {
 	IsometricEnemy::attackedByPlayer(player, weaponType);
 
-	if (!isAlive())
+	if (!isAlive() || isSleeping())
 		return;
 
 	int newHp = getNewHpAfterAttack(m_hp, weaponType, player);
@@ -186,6 +187,8 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 			if (RpgGame *game = qobject_cast<RpgGame*>(m_game))
 				game->enemySetDieForever(this, true);
 		}
+
+		eventKilledByPlayer(player);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
 		if (weaponType != TiledWeapon::WeaponHand)

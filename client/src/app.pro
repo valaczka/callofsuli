@@ -264,6 +264,7 @@ SOURCES += \
 	rpgcontrolgroup.cpp \
 	rpgcontrolgroupcontainer.cpp \
 	rpgcontrolgroupoverlay.cpp \
+	rpgcontrolgroupsave.cpp \
 	rpgenemybase.cpp \
 	rpgfireball.cpp \
 	rpggame.cpp \
@@ -384,6 +385,7 @@ HEADERS += \
 	rpgcontrolgroup.h \
 	rpgcontrolgroupcontainer.h \
 	rpgcontrolgroupoverlay.h \
+	rpgcontrolgroupsave.h \
 	rpgenemybase.h \
 	rpgenemyiface.h \
 	rpgfireball.h \

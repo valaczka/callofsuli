@@ -37,7 +37,8 @@ public:
 	enum Type {
 		ControlGroupInvalid = 0,
 		ControlGroupOverlay,
-		ControlGroupContainer
+		ControlGroupContainer,
+		ControlGroupSave
 	};
 
 	RpgControlGroup(const Type &type, RpgGame *game, TiledScene *scene);

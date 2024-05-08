@@ -64,6 +64,17 @@ private:
 	}
 
 
+	/**
+	 * @brief removeEnemy
+	 * @param enemy
+	 */
+
+	void removeEnemy(IsometricEnemy *enemy) {
+		m_contactedEnemies.removeAll(enemy);
+		m_reachedEnemies.removeAll(enemy);
+	}
+
+
 	void clear() {
 		///m_enemy = nullptr;
 		m_contactedEnemies.clear();
@@ -245,6 +256,17 @@ void IsometricPlayer::setCurrentAngle(qreal newCurrentAngle)
 	emit currentAngleChanged();
 
 	setCurrentDirection(nearestDirectionFromRadian(m_currentAngle));
+}
+
+
+/**
+ * @brief IsometricPlayer::removeEnemy
+ * @param enemy
+ */
+
+void IsometricPlayer::removeEnemy(IsometricEnemy *enemy)
+{
+	d->removeEnemy(enemy);
 }
 
 

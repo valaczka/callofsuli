@@ -156,6 +156,8 @@ public:
 
 	virtual void onPlayerDead(TiledObject *player) = 0;
 	virtual void onEnemyDead(TiledObject *enemy) = 0;
+	virtual void onEnemySleepingStart(TiledObject *enemy) = 0;
+	virtual void onEnemySleepingEnd(TiledObject *enemy) = 0;
 
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
