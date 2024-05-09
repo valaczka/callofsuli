@@ -1031,7 +1031,7 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 	const int &key = event->key();
 
 	switch (key) {
-		case Qt::Key_S:
+		case Qt::Key_X:
 		case Qt::Key_Clear:
 		case Qt::Key_5:
 			transportPlayer();
@@ -1053,6 +1053,7 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 
 		case Qt::Key_Return:
 		case Qt::Key_Enter:
+		case Qt::Key_E:
 			if (m_controlledPlayer)
 				m_controlledPlayer->pickOrUseCurrentObjects();
 			break;
@@ -1667,10 +1668,15 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 
 void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
 {
-	if (!mouseNavigation())
+	if (!m_controlledPlayer)
 		return;
 
-	if (!m_controlledPlayer)
+	if (mouseAttack()) {
+		m_controlledPlayer->attackToPoint(x, y);
+		return;
+	}
+
+	if (!mouseNavigation())
 		return;
 
 	if (modifiers & Qt::ControlModifier) {

@@ -54,7 +54,7 @@ TiledGame::TiledGame(QQuickItem *parent)
 #endif
 
 	setMouseNavigation(Utils::settingsGet(QStringLiteral("game/mouseNavigation"), defValue).toBool());
-
+	setMouseAttack(Utils::settingsGet(QStringLiteral("game/mouseAttack"), false).toBool());
 
 	connect(this, &TiledGame::activeFocusChanged, this, [this](const bool &focus){
 		if (!focus) {
@@ -591,21 +591,25 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 
 		case Qt::Key_Left:
 		case Qt::Key_4:
+		case Qt::Key_A:
 			m_keyboardJoystickState.left = true;
 			break;
 
 		case Qt::Key_Right:
 		case Qt::Key_6:
+		case Qt::Key_D:
 			m_keyboardJoystickState.right = true;
 			break;
 
 		case Qt::Key_Up:
 		case Qt::Key_8:
+		case Qt::Key_W:
 			m_keyboardJoystickState.up = true;
 			break;
 
 		case Qt::Key_Down:
 		case Qt::Key_2:
+		case Qt::Key_S:
 			m_keyboardJoystickState.down = true;
 			break;
 
@@ -630,7 +634,7 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 			break;
 
 #ifndef QT_NO_DEBUG
-		case Qt::Key_D:
+		case Qt::Key_P:
 			setDebugView(!m_debugView);
 			break;
 #endif
@@ -659,21 +663,25 @@ void TiledGame::keyReleaseEvent(QKeyEvent *event)
 
 		case Qt::Key_Left:
 		case Qt::Key_4:
+		case Qt::Key_A:
 			m_keyboardJoystickState.left = false;
 			break;
 
 		case Qt::Key_Right:
 		case Qt::Key_6:
+		case Qt::Key_D:
 			m_keyboardJoystickState.right = false;
 			break;
 
 		case Qt::Key_Up:
 		case Qt::Key_8:
+		case Qt::Key_W:
 			m_keyboardJoystickState.up = false;
 			break;
 
 		case Qt::Key_Down:
 		case Qt::Key_2:
+		case Qt::Key_S:
 			m_keyboardJoystickState.down = false;
 			break;
 
@@ -880,6 +888,28 @@ void TiledGame::updateKeyboardJoystick()
 
 
 /**
+ * @brief TiledGame::mouseAttack
+ * @return
+ */
+
+bool TiledGame::mouseAttack() const
+{
+	return m_mouseAttack;
+}
+
+void TiledGame::setMouseAttack(bool newMouseAttack)
+{
+	if (m_mouseAttack == newMouseAttack)
+		return;
+	m_mouseAttack = newMouseAttack;
+	emit mouseAttackChanged();
+
+	if (m_mouseAttack)
+		setMouseNavigation(false);
+}
+
+
+/**
  * @brief TiledGame::mouseNavigation
  * @return
  */
@@ -895,6 +925,9 @@ void TiledGame::setMouseNavigation(bool newMouseNavigation)
 		return;
 	m_mouseNavigation = newMouseNavigation;
 	emit mouseNavigationChanged();
+
+	if (m_mouseNavigation)
+		setMouseAttack(false);
 }
 
 

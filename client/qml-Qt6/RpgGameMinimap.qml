@@ -72,7 +72,7 @@ Rectangle {
 			axisX: _xAxis
 
 			borderWidth: 0
-			markerSize: 9
+			markerSize: 11
 		}
 
 		ScatterSeries {
