@@ -1771,33 +1771,30 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 					r.append(i);
 			}
 
-			bool success = false;
+			QJsonArray r2 = r;
+			QJsonArray arr = correctAnswer.toArray();
 
-			if (r.size() != correctAnswer.toArray().size()) {
-				corr.append(QJsonObject{
-								{ QStringLiteral("p"), 0 },
-								{ QStringLiteral("success"), false }
-							});
-			} else {
-				QJsonArray r2 = r;
-				const QJsonArray &arr = correctAnswer.toArray();
-				for (const QJsonValue &v : std::as_const(arr)) {
-					if (auto it = std::find_if(r2.begin(), r2.end(), [&v](const QJsonValue &q){
-											   return q.toInt(-1) == v.toInt(-2);
-				}); it != r2.end()) {
-						r2.erase(it);
-					}
+			for (auto it=arr.begin(); it != arr.end();) {
+				if (auto itR = std::find_if(r2.begin(), r2.end(),
+											[num = it->toInt(-2)](const QJsonValue &q){
+											return q.toInt(-1) == num;
+			}); itR != r2.end()) {
+					r2.erase(itR);
+					it = arr.erase(it);
+				} else {
+					++it;
 				}
-
-				success = r2.isEmpty();
-
-				const int p = success ? point : 0; sumPoint += p;
-
-				corr.append(QJsonObject{
-								{ QStringLiteral("p"), p },
-								{ QStringLiteral("success"), success }
-							});
 			}
+
+			bool success = r2.isEmpty() && arr.isEmpty();
+			int p = std::max(point - (int)r2.size() - (int)arr.size(), 0);
+
+			sumPoint += p;
+
+			corr.append(QJsonObject{
+							{ QStringLiteral("p"), p },
+							{ QStringLiteral("success"), success }
+						});
 
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), r },
@@ -1808,6 +1805,8 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 			QJsonArray retList;
 			bool success = true;
+			int p = point;
+			bool firstError = true;
 
 			const QJsonArray &aList = correctAnswer.toArray();
 
@@ -1821,6 +1820,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 									   { QStringLiteral("success"), false }
 								   });
 					success = false;
+					--p;
 				} else {
 					const int vInt = list.at(idx).toObject().value(QStringLiteral("num")).toInt(-2);
 					const int vv = i<aList.size() ? aList.at(i).toInt(-1) : -1;
@@ -1836,11 +1836,25 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 										   { QStringLiteral("success"), false }
 									   });
 						success = false;
+
+						// Csak 1 pontot vonunk le, ha kettőt felcserél
+
+						if (firstError)
+							firstError = false;
+						else
+							--p;
 					}
 				}
 			}
 
-			const int p = success ? point : 0; sumPoint += p;
+			// Ha csak 1 hiba van (tehát nem felcserélés történt), akkor azért vonjunk le egy pontot
+
+			if (!firstError && p == point)
+				--p;
+
+			p = std::max(p, 0);
+
+			sumPoint += p;
 
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },
@@ -1871,6 +1885,8 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 			QJsonArray retList;
 			bool success = true;
+			int p = point;
+
 			const QJsonArray &aList = correctAnswer.toObject().value(QStringLiteral("list")).toArray();
 			for (int i=0; i<aList.size(); ++i) {
 
@@ -1880,18 +1896,22 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 									   { QStringLiteral("success"), false }
 								   });
 					success = false;
+					--p;
 				} else {
 					const bool s = (l.at(i).toString() == aList.at(i).toString());
 					retList.append(QJsonObject{
 									   { QStringLiteral("answer"), l.at(i).toString() },
 									   { QStringLiteral("success"), s }
 								   });
-					if (!s)
+					if (!s) {
 						success = false;
+						--p;
+					}
 				}
 			}
 
-			const int p = success ? point : 0; sumPoint += p;
+			p = std::max(p, 0);
+			sumPoint += p;
 
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },
@@ -1908,6 +1928,8 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 
 			QJsonArray retList;
 			bool success = true;
+			int p = point;
+
 			const QJsonObject &aObj = correctAnswer.toObject();
 
 			for (const QJsonValue &v : list) {
@@ -1928,6 +1950,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 									   { QStringLiteral("success"), false }
 								   });
 					success = false;
+					--p;
 				} else {
 					const int idx = aList.at(0);
 					if (idx<0 || idx>=options.size()) {
@@ -1937,6 +1960,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 										   { QStringLiteral("success"), false }
 									   });
 						success = false;
+						--p;
 					} else {
 						const QString &opt = options.at(idx).toString();
 						const bool s = (opt == aObj.value(q).toString());
@@ -1946,13 +1970,16 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 										   { QStringLiteral("success"), s }
 									   });
 
-						if (!s)
+						if (!s) {
 							success = false;
+							--p;
+						}
 					}
 				}
 			}
 
-			const int p = success ? point : 0; sumPoint += p;
+			p = std::max(p, 0);
+			sumPoint += p;
 
 			ret.append(QJsonObject{
 						   { QStringLiteral("list"), retList },

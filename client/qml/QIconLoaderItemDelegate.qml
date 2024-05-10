@@ -95,7 +95,7 @@ Qaterial.LoaderItemDelegate {
 		anchors.fill: parent
 		acceptedButtons: Qt.LeftButton
 		enabled: _view && _view.selectEnabled
-		onClicked: {
+		onClicked: mouse => {
 			if (mouse.modifiers & Qt.ShiftModifier) {
 				var i1 = Math.min(Math.max(_view.currentIndex,0), index)
 				var i2 = Math.max(Math.max(_view.currentIndex,0), index)

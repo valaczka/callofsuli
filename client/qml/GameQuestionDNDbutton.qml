@@ -75,6 +75,22 @@ GameQuestionButton {
 	}
 
 
+	Connections {
+		target: dndDrop
+		enabled: dndDrop && !dndDrop.allowResizeToContent
+
+		function onWidthChanged() {
+			_requiredWidth = dndDrop.width
+			_requiredHeight = dndDrop.height
+		}
+
+		function onHeightChanged() {
+			_requiredWidth = dndDrop.width
+			_requiredHeight = dndDrop.height
+		}
+	}
+
+
 	DragHandler {
 		id: _handler
 		enabled: dndFlow && questionItem

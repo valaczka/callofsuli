@@ -639,6 +639,18 @@ FocusScope {
 				}
 
 
+				QFormSwitchButton
+				{
+					text: qsTr("Lövés kattintással")
+
+					checked: _game.mouseAttack
+					onToggled: {
+						Client.Utils.settingsSet("game/mouseAttack", checked)
+						_game.mouseAttack = checked
+					}
+				}
+
+
 
 				SettingsSound {
 					width: parent.width

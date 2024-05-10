@@ -85,7 +85,7 @@ DropArea {
 		object.y = 0
 	}
 
-	onDropped: {
+	onDropped: drop => {
 		var d = drop.source
 
 		if (!d)

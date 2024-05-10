@@ -96,12 +96,14 @@ QScrollable {
 
 			Repeater {
 				model: [
-					[ "1", "2", "3", "4", "6", "7", "8", "9",
-					 "Arrow_Up", "Arrow_Down", "Arrow_Left", "Arrow_Right", "Page_Up", "Page_Down", "Home", "End" ], qsTr("Mozgás"),
+					[ "W", "A", "S", "D",
+						"1", "2", "3", "4", "6", "7", "8", "9",
+					 "Arrow_Up", "Arrow_Down", "Arrow_Left", "Arrow_Right", "Page_Up", "Page_Down", "Home", "End",
+					], qsTr("Mozgás"),
 					[ "0", "Space", "Insert" ], qsTr("Lövés, vágás, ütés"),
-					[ "Enter_Alt", "Enter_Tall" ], qsTr("Tárgy felvétele"),
+					[ "E", "Enter_Alt", "Enter_Tall" ], qsTr("Tárgy felvétele"),
 					[ "Del", "Q" ], qsTr("Fegyver váltás"),
-					[ "5", "S" ], qsTr("Átjáró használata"),
+					[ "5", "X" ], qsTr("Átjáró használata"),
 					[ "Tab" ], qsTr("Térkép")
 				]
 

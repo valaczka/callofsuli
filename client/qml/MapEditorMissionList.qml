@@ -84,6 +84,12 @@ Item {
 								function reloadModel() {
 									var list = []
 
+									if (mission.modes & GameMap.Rpg)
+										list.push({
+													  text: qsTr("RPG"),
+													  color: Qaterial.Colors.blue800
+												  })
+
 									if (mission.modes & GameMap.Action)
 										list.push({
 													  text: qsTr("Akciójáték"),
