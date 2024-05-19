@@ -48,6 +48,11 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	m_metric.returnSpeed = 4.;
 	m_metric.pursuitSpeed = 6.;
 
+	if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix) {
+		m_metric.firstAttackTime = 500;
+		m_metric.autoAttackTime = 1250;
+	}
+
 	m_moveDisabledSpriteList = QStringList{
 							   QStringLiteral("attack"),
 							   QStringLiteral("bow"),
@@ -396,8 +401,6 @@ void RpgEnemyBase::loadType()
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);
-		m_metric.firstAttackTime = 500;
-		m_metric.autoAttackTime = 1250;
 	} else if (m_enemyType == EnemySkeleton) {
 		static const QString &strSoldier = QStringLiteral("skeleton");
 

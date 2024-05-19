@@ -86,14 +86,22 @@ GameQuestionComponentImpl {
 			boundsBehavior: Flickable.StopAtBounds
 			flickableDirection: Flickable.VerticalFlick
 
-			ScrollIndicator.vertical: ScrollIndicator { active: flick.movingVertically || flick.contentHeight > flick.height }
+			//ScrollIndicator.vertical: ScrollIndicator { active: flick.movingVertically || flick.contentHeight > flick.height }
+			ScrollBar.vertical: ScrollBar {
+				id: _scrollBar
+				parent: containerItem
+				anchors.top: flick.top
+				anchors.right: flick.right
+				anchors.bottom: flick.bottom
+				policy: flick.contentHeight > flick.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+			}
 
 
 
 			Grid {
 				id: grid
 
-				width: flick.width
+				width: flick.width - (_scrollBar.visible ? _scrollBar.width : 0)
 
 				y: Math.max((flick.height-height)/2, 0)
 				rowSpacing: 3

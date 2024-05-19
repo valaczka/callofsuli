@@ -51,6 +51,28 @@ Page {
 
 		visible: itemsVisible
 
+
+		GameInfo {
+			id: infoTarget
+			anchors.right: parent.right
+			color: Qaterial.Colors.orange700
+			iconLabel.icon.source: Qaterial.Icons.targetAccount
+			text: Math.floor(progressBar.value)
+
+			progressBar.from: 0
+			progressBar.to: 0
+			progressBar.value: enemies
+			progressBar.width: Math.min(control.width*0.125, 50)
+
+			property int enemies: game ? game.questions : 0
+
+			onEnemiesChanged: {
+				infoTarget.marked = true
+				if (enemies>progressBar.to)
+					progressBar.to = enemies
+			}
+		}
+
 		GameLabel {
 			id: labelXP
 			anchors.right: parent.right
@@ -63,27 +85,6 @@ Page {
 			value: game ? game.xp : 0
 
 			visible: game && game.mode != GameMap.Practice
-		}
-
-		GameInfo {
-			id: infoTarget
-			anchors.right: parent.right
-			color: Qaterial.Colors.orange700
-			iconLabel.icon.source: Qaterial.Icons.targetAccount
-			text: Math.floor(progressBar.value)
-
-			progressBar.from: 0
-			progressBar.to: 0
-			progressBar.value: enemies
-			progressBar.width: Math.min(control.width*0.125, 100)
-
-			property int enemies: game ? game.questions : 0
-
-			onEnemiesChanged: {
-				infoTarget.marked = true
-				if (enemies>progressBar.to)
-					progressBar.to = enemies
-			}
 		}
 	}
 

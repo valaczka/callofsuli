@@ -6,7 +6,6 @@ import Qaterial 1.0 as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
-
 QScrollable {
 	id: root
 
@@ -60,11 +59,20 @@ QScrollable {
 
 					onClicked: {
 						_groupBoxCharacter.enabled = false
-						onClicked: game.selectCharacter(modelData.id)
+						_groupBoxCharacter.visible = false
+						_busyIndicator.visible = true
+						game.selectCharacter(modelData.id)
 					}
 				}
 			}
 		}
+	}
+
+
+	Qaterial.BusyIndicator {
+		id: _busyIndicator
+		anchors.horizontalCenter: parent.horizontalCenter
+		visible: false
 	}
 
 

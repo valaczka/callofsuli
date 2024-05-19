@@ -145,8 +145,8 @@ protected:
 	qreal m_sensorLength = 200.;
 	qreal m_sensorRange = M_PI_2;
 	qreal m_targetCircleRadius = 50.;
-	qreal m_speedLength = 4.;
-	qreal m_speedRunLength = 8.;
+	qreal m_speedLength = 3.;
+	qreal m_speedRunLength = 7.5;
 	qreal m_runSpeed = 3.;
 	qint64 m_inabilityTime = 200;
 	bool m_isLocked = false;

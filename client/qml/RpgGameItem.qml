@@ -612,7 +612,7 @@ FocusScope {
 
 					QSpinBox {
 						anchors.verticalCenter: parent.verticalCenter
-						from: 150
+						from: 90
 						to: 600
 						stepSize: 10
 

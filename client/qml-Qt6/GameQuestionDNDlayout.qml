@@ -19,10 +19,12 @@ GridLayout {
 	property list<GameQuestionDNDdrop> drops
 	property list<Item> drags
 
-	readonly property double implicitContentWidth: _contentItem.width-2*_contentItem.padding
+	readonly property double implicitContentWidth: _contentItem.width-_contentItem.padding
+												   -Math.max(_contentItem.padding, _scrollBar.width)
 	readonly property double implicitContentHeight: _contentItem.height-2*_contentItem.padding
 
-	readonly property double availableWidth: width-2*_contentItem.padding
+	readonly property double availableWidth: width-_contentItem.padding
+											 -Math.max(_contentItem.padding, _scrollBar.width)
 	readonly property double availableHeight: height-2*_contentItem.padding
 
 	readonly property alias contentPadding: _contentItem.padding
@@ -44,13 +46,22 @@ GridLayout {
 
 			anchors.fill: parent
 			anchors.margins: _contentItem.padding
+			anchors.rightMargin: Math.max(_contentItem.padding, _scrollBar.width)
 
 			clip: true
 
 			boundsBehavior: Flickable.StopAtBounds
 			flickableDirection: Flickable.VerticalFlick
 
-			ScrollIndicator.vertical: ScrollIndicator { active: _flick.movingVertically || _flick.contentHeight > _flick.height }
+			//ScrollIndicator.vertical: ScrollIndicator { active: _flick.movingVertically || _flick.contentHeight > _flick.height }
+			ScrollBar.vertical: ScrollBar {
+				id: _scrollBar
+				parent: _contentItem
+				anchors.top: _flick.top
+				anchors.left: _flick.right
+				anchors.bottom: _flick.bottom
+				policy: _flick.contentHeight > _flick.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+			}
 
 			contentWidth: _loader.item ? _loader.item.width : 0
 			contentHeight: _loader.item ? _loader.item.height: 0
@@ -62,7 +73,7 @@ GridLayout {
 		}
 
 		Qaterial.VerticalLineSeparator {
-			visible: root.columns > 1 && _flow.visible
+			visible: root.columns > 1 && _flow.visible && !_scrollBar.visible
 			anchors.right: parent.right
 			height: parent.height*0.9
 			anchors.verticalCenter: parent.verticalCenter

@@ -34,6 +34,53 @@
 #include <QQmlEngine>
 
 
+
+/**
+ * @brief The EnemyMetric class
+ */
+
+class EnemyMetric : public QSerializer
+{
+	Q_GADGET
+
+public:
+	EnemyMetric()
+	{
+		speed = 3.0;					// <=0: no move
+		runSpeed = -1.0;				// Over runSpeed activate "run" sprite
+		pursuitSpeed = 3.0;				// -1: =speed, 0: no pursuit, >0: pursuit speed
+		returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
+		rotateToPlayer = true;
+		inabilityTime = 1250;			// Inability after hit
+		firstAttackTime = 350;			// First attack to player
+		autoAttackTime = 750;			// Repeated attack to player
+		sleepingTime = 10000;			// Sleeping after hit (hand), 0: no sleeping
+
+		sensorLength = 620.;
+		sensorRange = M_PI*2./3.;
+		targetCircleRadius = 0.;
+	}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(qreal, speed)
+	QS_FIELD(qreal, runSpeed)
+	QS_FIELD(qreal, pursuitSpeed)
+	QS_FIELD(qreal, returnSpeed)
+	QS_FIELD(bool, rotateToPlayer)
+	QS_FIELD(qint64, inabilityTime)
+	QS_FIELD(qint64, firstAttackTime)
+	QS_FIELD(qint64, autoAttackTime)
+	QS_FIELD(qint64, sleepingTime)
+
+	QS_FIELD(qreal, sensorLength)
+	QS_FIELD(qreal, sensorRange)
+	QS_FIELD(qreal, targetCircleRadius)
+};
+
+
+
+
 /**
  * @brief The IsometricEnemyBase class
  */
@@ -59,6 +106,9 @@ public:
 	float playerDistance() const;
 	void setPlayerDistance(float newPlayerDistance);
 
+	const EnemyMetric &metric() const { return m_metric; }
+	void setMetric(const EnemyMetric &metric) { m_metric = metric; }
+
 	virtual void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) = 0;
 
 public:
@@ -70,25 +120,6 @@ protected:
 	virtual bool enemyWorldStep() = 0;
 	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle, const qreal &factor) = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
-
-
-
-
-	struct EnemyMetric {
-		qreal speed = 3.0;						// <=0: no move
-		qreal runSpeed = -1.0;					// Over runSpeed activate "run" sprite
-		qreal pursuitSpeed = 3.0;				// -1: =speed, 0: no pursuit, >0: pursuit speed
-		qreal returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
-		bool rotateToPlayer = true;
-		qint64 inabilityTime = 1250;			// Inability after hit
-		qint64 firstAttackTime = 350;			// First attack to player
-		qint64 autoAttackTime = 750;			// Repeated attack to player
-		qint64 sleepingTime = 10000;			// Sleeping after hit (hand), 0: no sleeping
-
-		qreal sensorLength = 620.;
-		qreal sensorRange = M_PI*2./3.;
-		qreal targetCircleRadius = 0.;
-	};
 
 	std::unique_ptr<AbstractTiledMotor> m_motor;
 	std::unique_ptr<TiledReturnPathMotor> m_returnPathMotor;

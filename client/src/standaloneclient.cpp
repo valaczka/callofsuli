@@ -37,6 +37,8 @@
 #endif
 
 
+#define _URL_SERVERS QStringLiteral("https://valaczka.github.io/callofsuli/servers.json")
+
 
 /**
  * @brief StandaloneClient::StandaloneClient
@@ -53,6 +55,7 @@ StandaloneClient::StandaloneClient(Application *app)
 	connect(this, &Client::mainWindowChanged, this, &StandaloneClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &StandaloneClient::onStartPageLoaded);
 
+	authorizedServersGet();
 	serverListLoad();
 
 	QSettings s;
@@ -206,12 +209,12 @@ void StandaloneClient::onOAuthStarted(const QUrl &url)
 	QString title;
 
 	switch (m_oauthData.type) {
-	case Client::OAuthData::Login:
-		title = tr("Bejelentkezés");
-		break;
-	case Client::OAuthData::Registration:
-		title = tr("Regisztráció");
-		break;
+		case Client::OAuthData::Login:
+			title = tr("Bejelentkezés");
+			break;
+		case Client::OAuthData::Registration:
+			title = tr("Regisztráció");
+			break;
 	}
 
 	QQuickItem *page = stackPushPage(QStringLiteral("PageWebView.qml"),
@@ -320,6 +323,61 @@ void StandaloneClient::serverListSave(const QDir &dir)
 			LOG_CERROR("client") << "Can't save server data:" << qPrintable(dir.absoluteFilePath(s->name()));
 		}
 	}
+}
+
+
+/**
+ * @brief StandaloneClient::authorizedServersGet
+ */
+
+void StandaloneClient::authorizedServersGet()
+{
+	HttpConnection *HttpConnection = m_httpConnection.get();
+
+	if (!HttpConnection)
+		return;
+
+	QNetworkRequest r(QUrl(_URL_SERVERS));
+
+	QNetworkReply *reply = HttpConnection->networkManager()->get(r);
+
+	HttpReply *wr = new HttpReply(reply, HttpConnection);
+	connect(wr, &HttpReply::finished, HttpConnection, &HttpConnection::checkPending);
+
+	LOG_CDEBUG("client") << "Download authorized servers";
+
+	wr->done(this, [this](const QJsonObject &data){
+		QVariantList list;
+
+		for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
+			list << it.value().toObject().toVariantMap();
+		}
+
+		LOG_CTRACE("client") << "Authorized servers:" << list;
+
+		setAuthorizedServers(list);
+	})
+			->error(this, [](const QNetworkReply::NetworkError &err){
+		LOG_CERROR("client") << "Authorized servers download error:" << err;
+	});
+
+}
+
+
+
+
+
+QVariantList StandaloneClient::authorizedServers() const
+{
+	return m_authorizedServers;
+}
+
+void StandaloneClient::setAuthorizedServers(const QVariantList &newAuthorizedServers)
+{
+	if (m_authorizedServers == newAuthorizedServers)
+		return;
+	m_authorizedServers = newAuthorizedServers;
+	emit authorizedServersChanged();
 }
 
 

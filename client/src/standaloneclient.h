@@ -43,6 +43,7 @@ class StandaloneClient : public Client
 	Q_PROPERTY(ServerList *serverList READ serverList CONSTANT)
 	Q_PROPERTY(int serverListSelectedCount READ serverListSelectedCount NOTIFY serverListSelectedCountChanged)
 	Q_PROPERTY(bool vibrate READ vibrate WRITE setVibrate NOTIFY vibrateChanged)
+	Q_PROPERTY(QVariantList authorizedServers READ authorizedServers WRITE setAuthorizedServers NOTIFY authorizedServersChanged FINAL)
 
 
 public:
@@ -63,6 +64,9 @@ public:
 	bool vibrate() const;
 	void setVibrate(bool newVibrate);
 
+	QVariantList authorizedServers() const;
+	void setAuthorizedServers(const QVariantList &newAuthorizedServers);
+
 public slots:
 	void performVibrate() const;
 
@@ -80,14 +84,17 @@ private slots:
 private:
 	void serverListLoad(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
 	void serverListSave(const QDir &dir = Utils::standardPath(QStringLiteral("servers")));
+	void authorizedServersGet();
 
 signals:
 	void serverListSelectedCountChanged();
 	void vibrateChanged();
+	void authorizedServersChanged();
 
 private:
 	std::unique_ptr<ServerList> m_serverList = nullptr;
 	bool m_vibrate = true;
+	QVariantList m_authorizedServers;
 
 };
 

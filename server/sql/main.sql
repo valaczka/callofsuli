@@ -330,10 +330,15 @@ CREATE TABLE inventoryLimit(
 );
 
 INSERT INTO inventoryLimit VALUES ('hp', 50);
+
 INSERT INTO inventoryLimit VALUES ('shield', 50);
+
 INSERT INTO inventoryLimit VALUES ('water', 50);
+
 INSERT INTO inventoryLimit VALUES ('camouflage', 50);
+
 INSERT INTO inventoryLimit VALUES ('pliers', 2);
+
 INSERT INTO inventoryLimit VALUES ('teleporter', 2);
 
 

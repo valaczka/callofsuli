@@ -39,7 +39,15 @@ Item {
 		contentWidth: _flowItem.width
 		contentHeight: _flowItem.height
 
-		ScrollIndicator.vertical: ScrollIndicator { active: _flick.movingVertically || _flick.contentHeight > _flick.height }
+		//ScrollIndicator.vertical: ScrollIndicator { active: _flick.movingVertically || _flick.contentHeight > _flick.height }
+		ScrollBar.vertical: ScrollBar {
+			id: _scrollBar
+			parent: root
+			anchors.top: _flick.top
+			anchors.right: _flick.right
+			anchors.bottom: _flick.bottom
+			policy: _flick.contentHeight > _flick.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+		}
 
 		Item {
 			id: _flowItem
@@ -51,7 +59,7 @@ Item {
 
 				x: root.leftPadding
 				y: root.topPadding
-				width: _flowItem.width-root.leftPadding-root.rightPadding
+				width: _flowItem.width-root.leftPadding-root.rightPadding-_scrollBar.width
 
 				spacing: 15
 

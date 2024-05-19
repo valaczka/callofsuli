@@ -1,0 +1,13 @@
+{
+	"soldier": {
+		"default": {
+			"sensorLength": 550.0
+		}
+	},
+	"archer": {
+		"default": {
+			"firstAttackTime": 3500,
+			"autoAttackTime": 1250
+		}
+	}
+}

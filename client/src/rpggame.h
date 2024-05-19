@@ -79,6 +79,30 @@ public:
 
 
 
+
+
+/**
+ * @brief The RpgEnemyMetricDefinition class
+ */
+
+class RpgEnemyMetricDefinition : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgEnemyMetricDefinition() {}
+
+	QS_SERIALIZABLE
+
+	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, soldier)
+	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, archer)
+	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, werebear)
+	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, skeleton)
+};
+
+
+
+
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
 typedef std::function<bool(RpgPlayer*, TiledContainer*)> FuncPlayerUseContainer;
 typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
@@ -232,6 +256,9 @@ protected:
 	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject) override;
 
 private:
+	void loadMetricDefinition();
+	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype = QStringLiteral(""), const int &level = 1);
+
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void addLocationSound(TiledObjectBase *object, const QString &sound,
@@ -278,6 +305,7 @@ private:
 
 
 	RpgGameDefinition m_gameDefinition;
+	QVector<RpgEnemyMetricDefinition> m_metricDefinition;
 
 	QVector<EnemyData> m_enemyDataList;
 	QVector<PickableData> m_pickableDataList;

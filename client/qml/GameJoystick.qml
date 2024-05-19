@@ -10,7 +10,7 @@ Item {
 	property real currentX: 0.0
 	property real currentY: 0.0
 	property real currentAngle: 0.0
-	property real currentDistance: 0.0
+	property real currentDistance: 0.0			// x*x + y*y (!!!)
 	property bool hasTouch: false
 
 	signal joystickMoved(real x, real y)
@@ -95,7 +95,7 @@ Item {
 			currentX = dx
 			currentY = dy
 			currentAngle = Math.atan2(dy, dx)
-			currentDistance = Math.abs(-dx)+Math.abs(-dy)
+			currentDistance = dx*dx + dy*dy//Math.abs(-dx)+Math.abs(-dy)
 
 			joystickMoved(currentX, currentY)
 			directionChanged(currentAngle, currentDistance)

@@ -32,7 +32,7 @@ QPage {
 			QMenuItem { action: actionAdd }
 			//QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
-//			QMenuItem { action: actionPageDev }
+			//			QMenuItem { action: actionPageDev }
 			QMenuItem { action: actionDemo }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionSettings }
@@ -54,7 +54,7 @@ QPage {
 			QMenuItem { action: actionAbout }
 			QMenuItem { action: actionExit }
 		}
- }
+	}
 
 
 	Action {
@@ -141,10 +141,10 @@ QPage {
 		}
 
 		onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
-			if (index != -1)
-				currentIndex = index
-			contextMenu.popup(mouseX, mouseY)
-		}
+										if (index != -1)
+										currentIndex = index
+										contextMenu.popup(mouseX, mouseY)
+									}
 	}
 
 
@@ -194,7 +194,7 @@ QPage {
 		anchors.top: parent.top
 		width: parent.width
 		drawSeparator: true
-		text: qsTr("Még egyetlen szerver sincsen felvéve. Olvasd be a QR-kódot, vagy add hozzá kézzel.")
+		text: qsTr("Még egyetlen szerver sincsen felvéve.")
 		iconSource: Qaterial.Icons.desktopClassic
 		fillIcon: false
 		outlinedIcon: true
@@ -251,7 +251,62 @@ QPage {
 		id: actionAdd
 		text: qsTr("Hozzáadás")
 		icon.source: Qaterial.Icons.plus
-		onTriggered: Client.stackPushPage("ServerEdit.qml")
+		onTriggered: {
+			if (Client.authorizedServers.length === 0) {
+				Client.stackPushPage("ServerEdit.qml")
+				return
+			}
+
+			_authServersModel.clear()
+
+			for (let i=0; i<Client.authorizedServers.length; ++i) {
+				let l = Client.authorizedServers[i]
+				_authServersModel.append({
+							  text: l.name,
+							  secondaryText: l.url,
+							  icon: Qaterial.Icons.desktopClassic,
+							  url: l.url
+						  })
+			}
+
+			_authServersModel.append({
+						  text: qsTr("-- saját szerver --"),
+						  secondaryText: "",
+						  icon: Qaterial.Icons.serverPlusOutline,
+						  url: ""
+					  })
+
+
+			Qaterial.DialogManager.openListView(
+						{
+							onAccepted: function(index)
+							{
+								if (index < 0)
+									return
+
+								let server = _authServersModel.get(index)
+
+								if (server.url === "") {
+									Client.stackPushPage("ServerEdit.qml")
+									return
+								} else {
+									let s = Client.serverAdd()
+									s.serverName = server.text
+									s.url = server.url
+									Client.serverSetAutoConnect(s)
+									Client.connectToServer(s)
+								}
+							},
+							title: qsTr("Új szerver hozzáadása"),
+							standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
+							model: _authServersModel
+						})
+
+		}
+	}
+
+	ListModel {
+		id: _authServersModel
 	}
 
 	/*Action {

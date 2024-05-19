@@ -206,7 +206,7 @@ const QByteArray RpgGame::m_baseEntitySprite2 = R"(
 RpgGame::RpgGame(QQuickItem *parent)
 	: TiledGame(parent)
 {
-
+	loadMetricDefinition();
 }
 
 
@@ -787,24 +787,14 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 
 		case RpgEnemyIface::EnemySoldier:
 		case RpgEnemyIface::EnemyArcher:
+		case RpgEnemyIface::EnemySoldierFix:
+		case RpgEnemyIface::EnemyArcherFix:
 		case RpgEnemyIface::EnemySkeleton:
 		{
 			RpgEnemyBase *e = nullptr;
 			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 30, nullptr, this);
 			e->m_enemyType = type;
 			e->setSubType(subtype);
-			enemy = e;
-			break;
-		}
-
-		case RpgEnemyIface::EnemySoldierFix:
-		case RpgEnemyIface::EnemyArcherFix:
-		{
-			RpgEnemyBase *e = nullptr;
-			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 30, nullptr, this);
-			e->m_enemyType = type;
-			e->setSubType(subtype);
-			e->m_metric.pursuitSpeed = 0;
 			enemy = e;
 			break;
 		}
@@ -818,6 +808,13 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		enemy->setParent(this);
 		enemy->setGame(this);
 		enemy->setScene(scene);
+		enemy->setMetric(getMetric(enemy->m_metric, type, subtype /*, level*/));				// TODO: level
+
+		if (type == RpgEnemyIface::EnemySoldierFix ||
+				type == RpgEnemyIface::EnemyArcherFix) {
+			enemy->m_metric.pursuitSpeed = 0;
+		}
+
 		enemy->initialize();
 	}
 
@@ -1128,6 +1125,87 @@ bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/,
 	}
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief RpgGame::loadMetricDefinition
+ */
+
+void RpgGame::loadMetricDefinition()
+{
+	LOG_CTRACE("game") << "Load metric definition";
+
+	static const QStringList levelDefList = {
+		QStringLiteral(":/rpg/common/metric1.json"),
+		QStringLiteral(":/rpg/common/metric2.json"),
+		QStringLiteral(":/rpg/common/metric3.json"),
+	};
+
+	m_metricDefinition.clear();
+
+	for (const QString &l : levelDefList) {
+		RpgEnemyMetricDefinition metric;
+
+		if (const auto &ptr = Utils::fileToJsonObject(l); ptr.has_value()) {
+			metric.fromJson(ptr.value());
+		}
+
+		m_metricDefinition.append(metric);
+	}
+}
+
+
+
+/**
+ * @brief RpgGame::getMetric
+ * @param type
+ * @param subtype
+ * @return
+ */
+
+EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, const int &level)
+{
+	if (m_metricDefinition.isEmpty())
+		return {};
+
+	for (int i=0; i<level && i<m_metricDefinition.size(); ++i) {
+		const RpgEnemyMetricDefinition &def = m_metricDefinition.at(i);
+		QHash<QString, EnemyMetric> ptr;
+
+		switch (type) {
+			case RpgEnemyIface::EnemyWerebear:
+				ptr = def.werebear;
+				break;
+
+			case RpgEnemyIface::EnemySoldier:
+			case RpgEnemyIface::EnemySoldierFix:
+				ptr = def.soldier;
+				break;
+
+			case RpgEnemyIface::EnemyArcher:
+			case RpgEnemyIface::EnemyArcherFix:
+				ptr = def.archer;
+				break;
+
+			case RpgEnemyIface::EnemySkeleton:
+				ptr = def.skeleton;
+				break;
+
+			case RpgEnemyIface::EnemyInvalid:
+				LOG_CERROR("game") << "Invalid enemy type" << type;
+				break;
+		}
+
+		if (ptr.contains(subtype))
+			baseMetric = ptr.value(subtype);
+		else if (ptr.contains(QStringLiteral("default")))
+			baseMetric = ptr.value(QStringLiteral("default"));
+	}
+
+	return baseMetric;
 }
 
 
