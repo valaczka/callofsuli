@@ -209,6 +209,11 @@ CREATE VIEW studentGroupInfo AS
 		INNER JOIN bindGroupClass ON (bindGroupClass.groupid = studentgroup.id)
 		INNER JOIN user ON (user.classid = bindGroupClass.classid);
 
+CREATE TABLE freeplay(
+	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
+	mapuuid TEXT NOT NULL,
+	UNIQUE(groupid, mapuuid)
+);
 
 ----------------------------------
 --- Campaign

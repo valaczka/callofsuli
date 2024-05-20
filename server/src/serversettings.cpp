@@ -326,8 +326,6 @@ ServerSettings::OAuth ServerSettings::OAuth::fromSettings(QSettings *settings, c
 	r.clientId = settings->value(QStringLiteral("clientId")).toString();
 	r.clientKey = settings->value(QStringLiteral("clientKey")).toString();
 	r.path = settings->value(QStringLiteral("path")).toString();
-	r.localClientId = settings->value(QStringLiteral("localClientId")).toString();
-	r.localClientKey = settings->value(QStringLiteral("localClientKey")).toString();
 	r.tenant = settings->value(QStringLiteral("tenant")).toString();
 
 	settings->endGroup();
@@ -350,8 +348,6 @@ void ServerSettings::OAuth::toSettings(QSettings *settings, const QString &group
 	settings->setValue(QStringLiteral("clientId"), clientId);
 	settings->setValue(QStringLiteral("clientKey"), clientKey);
 	settings->setValue(QStringLiteral("path"), path);
-	settings->setValue(QStringLiteral("localClientId"), localClientId);
-	settings->setValue(QStringLiteral("localClientKey"), localClientKey);
 	settings->setValue(QStringLiteral("tenant"), tenant);
 
 	settings->endGroup();

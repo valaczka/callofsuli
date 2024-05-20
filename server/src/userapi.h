@@ -61,6 +61,8 @@ public:
 	QHttpServerResponse campaign(const Credential &credential, const int &id);
 	QHttpServerResponse campaignResult(const Credential &credential, const int &id, const QJsonObject &json);
 
+	QHttpServerResponse freePlay(const Credential &credential);
+
 	QHttpServerResponse map(const Credential &credential);
 	QHttpServerResponse mapContent(const Credential &credential, const QString &uuid);
 	QHttpServerResponse mapSolver(const Credential &credential, const QString &uuid);

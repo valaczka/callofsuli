@@ -53,28 +53,6 @@ void GoogleOAuth2Authenticator::setCodeFlow(const std::weak_ptr<OAuth2CodeFlow> 
 
 
 
-/**
- * @brief GoogleOAuth2Authenticator::localAuthData
- * @return
- */
-
-QJsonObject GoogleOAuth2Authenticator::localAuthData() const
-{
-	QJsonObject d;
-
-	if (m_oauth.localClientId.isEmpty() || m_oauth.localClientKey.isEmpty())
-		return d;
-
-	d[QStringLiteral("authorization_url")] = QStringLiteral("https://accounts.google.com/o/oauth2/auth");
-	d[QStringLiteral("access_token_url")] = QStringLiteral("https://oauth2.googleapis.com/token");
-	d[QStringLiteral("scope")] = QStringLiteral("email+profile");
-	d[QStringLiteral("client_id")] = m_oauth.localClientId;
-	d[QStringLiteral("client_key")] = m_oauth.localClientKey;
-
-	return d;
-}
-
-
 
 
 

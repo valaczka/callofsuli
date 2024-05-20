@@ -92,7 +92,7 @@ bool MapPlayCampaign::load(Campaign *campaign, StudentMap *map)
 
 	updateSolver();
 
-	if (m_campaign->finished() || !m_campaign->started())
+	if (m_campaign && (m_campaign->finished() || !m_campaign->started()))
 		setReadOnly(true);
 
 	return true;
@@ -150,10 +150,10 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	if (!m_client || !m_gameMap || !m_client->currentGame())
 		return;
 
-	if (!m_campaign) {
+	/*if (!m_campaign) {
 		LOG_CERROR("client") << "Missing campaign";
 		return;
-	}
+	}*/
 
 
 	// Conquest
@@ -165,7 +165,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		conquestGame->setHandler(m_handler);
 
 		ConquestConfig c = conquestGame->config();
-		c.campaign = m_campaign->campaignid();
+		c.campaign = m_campaign ? m_campaign->campaignid() : -1;
 		conquestGame->setConfig(c);
 
 		conquestGame->load();
@@ -208,7 +208,9 @@ void MapPlayCampaign::onCurrentGamePrepared()
 				lg->setAddExtraTime(m_extraTimeFactor);
 		}
 
-		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/create").arg(m_campaign->campaignid()), {
+		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/create").arg(
+						   m_campaign ? m_campaign->campaignid() : 0
+						   ), {
 						   { QStringLiteral("map"), m_gameMap->uuid() },
 						   { QStringLiteral("mission"), levelGame->uuid() },
 						   { QStringLiteral("level"), levelGame->level() },

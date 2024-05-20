@@ -102,6 +102,9 @@ public:
 	QHttpServerResponse taskUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse taskDelete(const Credential &credential, const QJsonArray &list);
 
+	QHttpServerResponse freePlayAdd(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse freePlayRemove(const Credential &credential, const int &id, const QJsonArray &list);
+
 	QHttpServerResponse exam(const Credential &credential, const int &id, const int &groupId);
 	QHttpServerResponse examCreate(const Credential &credential, const int &group, const QJsonObject &json);
 	QHttpServerResponse examUpdate(const Credential &credential, const int &id, const QJsonObject &json);

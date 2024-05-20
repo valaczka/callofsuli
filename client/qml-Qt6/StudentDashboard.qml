@@ -216,6 +216,21 @@ QItemGradient {
 					rectangleRadius: 5
 				}
 			}
+
+			QDashboardButton {
+				text: qsTr("Szabad játék")
+				visible: !_grid.showPlaceholders
+				icon.source: Qaterial.Icons.controller
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.green500
+
+				onClicked: Client.stackPushPage("PageStudentFreePlay.qml", {
+													studentMapHandler: studentMapHandler
+												})
+			}
 		}
 
 	}

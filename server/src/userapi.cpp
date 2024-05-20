@@ -61,6 +61,11 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return exam(*credential, -1);
 	});
 
+	server->route(path+"freeplay", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return freePlay(*credential);
+	});
+
 	server->route(path+"group/<arg>/score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -349,6 +354,40 @@ QHttpServerResponse UserAPI::campaignResult(const Credential &credential, const 
 
 
 /**
+ * @brief UserAPI::freePlay
+ * @param credential
+ * @return
+ */
+
+QHttpServerResponse UserAPI::freePlay(const Credential &credential)
+{
+	LOG_CTRACE("client") << "Get user freeplays";
+
+	LAMBDA_THREAD_BEGIN(credential);
+
+	QJsonArray list;
+
+	QueryBuilder q(db);
+
+	q.addQuery("SELECT DISTINCT mapuuid FROM freeplay WHERE groupid IN ("
+			   "SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+			.addQuery(")");
+
+	LAMBDA_SQL_ASSERT(q.exec());
+
+	while (q.sqlQuery().next())
+		list.append(q.value("mapuuid").toString());
+
+	response = responseResult("list", list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+/**
  * @brief UserAPI::map
  * @param credential
  * @return
@@ -371,7 +410,10 @@ QHttpServerResponse UserAPI::map(const Credential &credential)
 					   .addQuery("))) OR mapdb.map.uuid IN "
 								 "(SELECT mapuuid FROM examContent LEFT JOIN exam ON (examContent.examid=exam.id) "
 								 "WHERE examContent.username=").addValue(credential.username())
-					   .addQuery(")")
+					   .addQuery(") OR mapdb.map.uuid IN "
+								 "(SELECT mapuuid FROM freeplay WHERE groupid IN ("
+								 "SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+					   .addQuery("))")
 					   .execToJsonArray({
 											{ QStringLiteral("cache"), [](const QVariant &v) {
 												  return QJsonDocument::fromJson(v.toString().toUtf8()).object();
@@ -540,12 +582,14 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 
 	LOG_CDEBUG("client") << "Create game for user:" << qPrintable(username) << "in campaign:" << campaign;
 
-	LAMBDA_SQL_ERROR("invalid campaign",
-					 QueryBuilder::q(db)
-					 .addQuery("SELECT id FROM campaign WHERE started=true AND finished=false AND groupid IN "
-							   "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
-					 .addQuery(")")
-					 .execCheckExists());
+	if (campaign > 0) {
+		LAMBDA_SQL_ERROR("invalid campaign",
+						 QueryBuilder::q(db)
+						 .addQuery("SELECT id FROM campaign WHERE started=true AND finished=false AND groupid IN "
+								   "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
+						 .addQuery(")")
+						 .execCheckExists());
+	}
 
 
 
@@ -612,7 +656,7 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 						 .addField("username", username)
 						 .addField("mapid", game.map)
 						 .addField("missionid", game.mission)
-						 .addField("campaignid", campaign)
+						 .addField("campaignid", campaign > 0 ? campaign : QVariant(QMetaType::fromType<int>()))
 						 .addField("level", game.level)
 						 .addField("deathmatch", game.deathmatch)
 						 .addField("success", false)

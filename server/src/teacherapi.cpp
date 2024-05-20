@@ -526,6 +526,51 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 
 
 
+	// Freeplay
+
+	server->route(path+"group/<arg>/freeplay/add/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QString &map, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return freePlayAdd(*credential, id, QJsonArray{map});
+	});
+
+	server->route(path+"group/<arg>/freeplay/", QHttpServerRequest::Method::Put,
+				  [this](const int &id, const QString &map, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return freePlayAdd(*credential, id, QJsonArray{map});
+	});
+
+	server->route(path+"group/<arg>/freeplay/add", QHttpServerRequest::Method::Post,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return freePlayAdd(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
+	server->route(path+"group/<arg>/freeplay/remove/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QString &map, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return freePlayRemove(*credential, id, QJsonArray{map});
+	});
+
+	server->route(path+"group/<arg>/freeplay/", QHttpServerRequest::Method::Delete,
+				  [this](const int &id, const QString &map, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return freePlayRemove(*credential, id, QJsonArray{map});
+	});
+
+	server->route(path+"group/<arg>/freeplay/remove", QHttpServerRequest::Method::Post,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return freePlayRemove(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
+
+
+
+	// Exam
+
 	server->route(path+"exam/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -854,6 +899,13 @@ QHttpServerResponse TeacherAPI::group(const Credential &credential, const int &i
 										 "LEFT JOIN user ON (user.username=studentGroupInfo.username) "
 										 "LEFT JOIN class ON (class.id=user.classid) "
 										 "WHERE user.active=true AND studentGroupInfo.id=").addValue(id)
+			.execToJsonArray().value_or(QJsonArray{});
+
+	data[QStringLiteral("freePlayList")] =
+			QueryBuilder::q(db).addQuery("SELECT mapuuid, map.name as mapname "
+										 "FROM freeplay "
+										 "LEFT JOIN mapdb.map ON (mapdb.map.uuid=freeplay.mapuuid) "
+										 "WHERE groupid=").addValue(id)
 			.execToJsonArray().value_or(QJsonArray{});
 
 
@@ -2733,6 +2785,93 @@ QHttpServerResponse TeacherAPI::taskDelete(const Credential &credential, const Q
 
 	LOG_CDEBUG("client") << "Tasks deleted:" << list;
 
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::freePlayAdd
+ * @param credential
+ * @param id
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::freePlayAdd(const Credential &credential, const int &id, const QJsonArray &list)
+{
+	LOG_CTRACE("client") << "Freeplay add map" << id << list;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	if (list.isEmpty())
+		return responseError("invalid mapuuid");
+
+	LAMBDA_THREAD_BEGIN(credential, list, id);
+
+	CHECK_GROUP(credential.username(), id);
+
+	for (const QJsonValue &v : std::as_const(list)) {
+		const QString &map = v.toString();
+
+		LAMBDA_SQL_ERROR("invalid map", !map.isEmpty()) {
+			LAMBDA_SQL_ASSERT(QueryBuilder::q(db).addQuery("INSERT OR IGNORE INTO freeplay(")
+							  .setFieldPlaceholder()
+							  .addQuery(") VALUES (")
+							  .setValuePlaceholder()
+							  .addQuery(")")
+							  .addField("groupid", id)
+							  .addField("mapuuid", map)
+							  .exec());
+		}
+	}
+
+	LOG_CDEBUG("client") << "Map added to freeplay:" << id << list;
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::freePlayRemove
+ * @param credential
+ * @param id
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::freePlayRemove(const Credential &credential, const int &id, const QJsonArray &list)
+{
+	LOG_CTRACE("client") << "Freeplay remove map" << id << list;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	if (list.isEmpty())
+		return responseError("invalid mapuuid");
+
+	LAMBDA_THREAD_BEGIN(credential, list, id);
+
+	const QString &username = credential.username();
+
+	CHECK_GROUP(username, id);
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).
+					  addQuery("DELETE FROM freeplay WHERE groupid=").addValue(id)
+					  .addQuery(" AND mapuuid IN (").addList(list.toVariantList())
+					  .addQuery(") AND (SELECT owner FROM studentgroup WHERE id=").addValue(id)
+					  .addQuery(")=").addValue(username)
+					  .exec());
+
+
+	LOG_CDEBUG("client") << "Map removed from freeplay:" << id << list;
 	response = responseOk();
 
 	LAMBDA_THREAD_END;

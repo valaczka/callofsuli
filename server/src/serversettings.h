@@ -45,8 +45,6 @@ public:
 		QString clientId;
 		QString clientKey;
 		QString path;
-		QString localClientId;
-		QString localClientKey;
 		QString tenant;
 
 		static OAuth fromSettings(QSettings *settings, const QString &group = "");

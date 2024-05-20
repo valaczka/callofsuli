@@ -72,6 +72,17 @@ QPage {
 			}
 
 			QDashboardButton {
+				text: qsTr("Szabad játék")
+				icon.source: Qaterial.Icons.controller
+				onClicked: {
+					Client.stackPushPage("PageTeacherGroupFreePlay.qml", {
+											 group: group,
+											 handler: mapHandler
+										 })
+				}
+			}
+
+			QDashboardButton {
 				action: _actionGroupRename
 				highlighted: false
 				outlined: true

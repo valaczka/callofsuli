@@ -110,7 +110,7 @@ void StudentMapHandler::getUserCampaign(Campaign *campaign)
 
 void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 {
-	if (!campaign || !map)
+	if (!map)
 		return;
 
 	if (m_client->currentGame()) {

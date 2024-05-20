@@ -87,6 +87,16 @@ void TeacherGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 		OlmLoader::loadFromJsonArray<Campaign>(m_campaignList.get(), object.value(QStringLiteral("campaignList")).toArray(), "id", "campaignid", true);
 		emit campaignListReloaded();
 	}
+
+	if (object.contains(QStringLiteral("freePlayList")) || allField) {
+		const QJsonArray &list = object.value(QStringLiteral("freePlayList")).toArray();
+		QStringList mapList;
+		for (const QJsonValue &v : list) {
+			const QJsonObject &o = v.toObject();
+			mapList.append(o.value(QStringLiteral("mapuuid")).toString());
+		}
+		setFreePlayMapList(mapList);
+	}
 }
 
 
@@ -1334,4 +1344,23 @@ void TeacherGroupResultModel::setTeacherGroup(TeacherGroup *newTeacherGroup)
 	}
 
 	reload();
+}
+
+
+/**
+ * @brief TeacherGroup::freePlayMapList
+ * @return
+ */
+
+QStringList TeacherGroup::freePlayMapList() const
+{
+	return m_freePlayMapList;
+}
+
+void TeacherGroup::setFreePlayMapList(const QStringList &newFreePlayMapList)
+{
+	if (m_freePlayMapList == newFreePlayMapList)
+		return;
+	m_freePlayMapList = newFreePlayMapList;
+	emit freePlayMapListChanged();
 }

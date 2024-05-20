@@ -90,30 +90,6 @@ OAuth2CodeFlow* MicrosoftOAuth2Authenticator::parseResponse(const QUrlQuery &que
 }
 
 
-
-/**
- * @brief MicrosoftOAuth2Authenticator::localAuthData
- * @return
- */
-
-QJsonObject MicrosoftOAuth2Authenticator::localAuthData() const
-{
-	QJsonObject d;
-
-	if (m_oauth.clientId.isEmpty() || m_oauth.clientKey.isEmpty())
-		return d;
-
-	d[QStringLiteral("authorization_url")] = QStringLiteral("https://login.microsoftonline.com/%1/oauth2/v2.0/authorize").arg(m_oauth.tenant);
-	d[QStringLiteral("access_token_url")] = QStringLiteral("https://login.microsoftonline.com/%1/oauth2/v2.0/token").arg(m_oauth.tenant);
-	d[QStringLiteral("scope")] = QStringLiteral("openid+email+profile");
-	d[QStringLiteral("client_id")] = m_oauth.clientId;
-	d[QStringLiteral("client_key")] = m_oauth.clientKey;
-
-	return d;
-}
-
-
-
 /**
  * @brief MicrosoftOAuth2Authenticator::getUserInfoFromIdToken
  * @param data

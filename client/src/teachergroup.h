@@ -62,6 +62,7 @@ class TeacherGroup : public QObject
 	Q_PROPERTY(ClassList* classList READ classList CONSTANT)
 	Q_PROPERTY(CampaignList *campaignList READ campaignList CONSTANT)
 	Q_PROPERTY(QString fullName READ fullName NOTIFY fullNameChanged)
+	Q_PROPERTY(QStringList freePlayMapList READ freePlayMapList WRITE setFreePlayMapList NOTIFY freePlayMapListChanged FINAL)
 
 public:
 	explicit TeacherGroup(QObject *parent = nullptr);
@@ -87,6 +88,9 @@ public:
 	CampaignList *campaignList() const;
 	QString fullName() const;
 
+	QStringList freePlayMapList() const;
+	void setFreePlayMapList(const QStringList &newFreePlayMapList);
+
 signals:
 	void memberListReloaded();
 	void campaignListReloaded();
@@ -94,6 +98,7 @@ signals:
 	void nameChanged();
 	void activeChanged();
 	void fullNameChanged();
+	void freePlayMapListChanged();
 
 private:
 	int m_groupid = -1;
@@ -103,6 +108,7 @@ private:
 	std::unique_ptr<UserList> m_memberList;
 	std::unique_ptr<ClassList> m_classList;
 	std::unique_ptr<CampaignList> m_campaignList;
+	QStringList m_freePlayMapList;
 };
 
 

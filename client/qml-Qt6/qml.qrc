@@ -226,5 +226,7 @@
         <file>RpgCharacterSelect.qml</file>
         <file>RpgGameMinimap.qml</file>
         <file>TiledLayerVisual.qml</file>
+        <file>PageStudentFreePlay.qml</file>
+        <file>PageTeacherGroupFreePlay.qml</file>
     </qresource>
 </RCC>

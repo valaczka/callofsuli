@@ -7,5 +7,6 @@
         <file>../sql/stat.sql</file>
         <file>../sql/main_3.4_3.5.sql</file>
         <file>../sql/main_3.5_3.6.sql</file>
+        <file>../sql/main_4.0_4.1.sql</file>
     </qresource>
 </RCC>
