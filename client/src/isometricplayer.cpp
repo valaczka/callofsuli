@@ -704,9 +704,9 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 		setCurrentAngle(state.angle);
 	}
 
-	if (state.distance >= 1.) {
+	if (state.distance > 0.95) {
 		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedRunLength));
-	} else if (state.distance > 0.55*0.55) {
+	} else if (state.distance > 0.45) {
 		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedLength));
 	} else {
 		setCurrentVelocity({0.,0.});

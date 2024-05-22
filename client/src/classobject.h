@@ -49,6 +49,7 @@ class ClassObject : public SelectableObject
 
 	Q_PROPERTY(int classid READ classid WRITE setClassid NOTIFY classidChanged)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
+	Q_PROPERTY(int dailyLimit READ dailyLimit WRITE setDailyLimit NOTIFY dailyLimitChanged FINAL)
 
 public:
 	explicit ClassObject(QObject *parent = nullptr);
@@ -62,13 +63,18 @@ public:
 	int classid() const;
 	void setClassid(int newClassid);
 
+	int dailyLimit() const;
+	void setDailyLimit(int newDailyLimit);
+
 signals:
 	void nameChanged();
 	void classidChanged();
+	void dailyLimitChanged();
 
 private:
 	int m_classid = -1;
 	QString m_name;
+	int m_dailyLimit;
 };
 
 #endif // CLASSOBJECT_H

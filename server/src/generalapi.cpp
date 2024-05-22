@@ -297,7 +297,8 @@ QHttpServerResponse GeneralAPI::class_(const int &id)
 	LAMBDA_THREAD_BEGIN(id);
 
 	QueryBuilder q(db);
-	q.addQuery("SELECT id, name FROM class");
+	q.addQuery("SELECT id, name, dailyLimitClass.value as dailyLimit FROM class "
+			   "LEFT JOIN dailyLimitClass ON (dailyLimitClass.classid=class.id)");
 
 	if (id != -1)
 		q.addQuery(" WHERE id=").addValue(id);

@@ -187,6 +187,7 @@ QPage {
 															list: JS.listGetFields(l, "uuid")
 														})
 											.done(control, function(r){
+												view.unselectAll()
 												group.reloadAndCall(control, function() { reloadList()() } )
 											})
 											.fail(control, JS.failMessage("Eltávolítás sikertelen"))

@@ -88,6 +88,7 @@ public:
 	QHttpServerResponse classUpdate(const int &id, const QJsonObject &json);
 	QHttpServerResponse classCode(const int &id = 0);
 	QHttpServerResponse classUpdateCode(const int &id, const QJsonObject &json);
+	QHttpServerResponse classUpdateLimit(const int &id, const int &limit);
 	QHttpServerResponse classDelete(const QJsonArray &idList);
 
 
@@ -95,6 +96,7 @@ public:
 	QHttpServerResponse userCreate(const QJsonObject &json);
 	QHttpServerResponse userCreateClass(QJsonObject json, const int &classid);
 	QHttpServerResponse userUpdate(const QString &username, const QJsonObject &json);
+	QHttpServerResponse userUpdateLimit(const QString &username, const int &limit);
 	QHttpServerResponse userDelete(const QJsonArray &userList);
 	QHttpServerResponse userPassword(const QString &username, const QJsonObject &json);
 	QHttpServerResponse userActivate(const QJsonArray &userList, const bool &active);

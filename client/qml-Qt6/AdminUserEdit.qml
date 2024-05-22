@@ -252,6 +252,40 @@ QPage {
 					}
 				}
 			}
+
+			Qaterial.TextField {
+				id: _tfTimeLimit
+
+				width: parent.width
+
+				leadingIconSource: Qaterial.Icons.timerAlert
+				leadingIconInline: true
+				title: qsTr("Napi időkorlát")
+				helperText: qsTr("Naponta játszható idő másodpercben")
+
+				trailingContent: Qaterial.TextFieldButtonContainer
+				{
+					Qaterial.TextFieldClearButton { }
+
+					QTextFieldInPlaceButtons {
+						setTo: user ? user.dailyLimit : 0
+						onSaveRequest: text => {
+							Client.send(HttpConnection.ApiAdmin, "user/%1/updateLimit".arg(user.username),
+										{
+											value: Number(text)
+										})
+							.done(control, function(r){
+								saved()
+							})
+							.fail(control, function(err) {
+								Client.messageWarning(err, "Időkorlát módosítása sikertelen")
+								revert()
+							})
+						}
+
+					}
+				}
+			}
 		}
 
 	}

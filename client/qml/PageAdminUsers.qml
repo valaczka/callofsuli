@@ -69,13 +69,14 @@ QPage {
 
 		AdminClassList {
 			id: _class
-			onClassSelected: {
-				_user.view.unselectAll()
-				_class.view.unselectAll()
-				_user.classid = classid
-				_user.classname = classname
-				swipeView.setCurrentIndex(1)
-			}
+			onClassSelected: (classid, classObject) => {
+								 _user.view.unselectAll()
+								 _class.view.unselectAll()
+								 _user.classid = classid
+								 //_user.classname = classname
+								 _user.classObject = classObject
+								 swipeView.setCurrentIndex(1)
+							 }
 		}
 
 		AdminUserList {

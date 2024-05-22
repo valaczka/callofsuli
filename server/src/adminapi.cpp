@@ -33,9 +33,10 @@
 
 #define _SQL_QUERY_USERS "SELECT user.username, familyName, givenName, active, user.classid, class.name as className, " \
 	"isTeacher, isAdmin, isPanel, nickname, character, picture," \
-	"oauth, oauthData " \
+	"oauth, oauthData, dailyLimitUser.value as dailyLimit " \
 	"FROM user LEFT JOIN auth ON (auth.username=user.username) " \
-	"LEFT JOIN class ON (class.id=user.classid)"
+	"LEFT JOIN class ON (class.id=user.classid) " \
+	"LEFT JOIN dailyLimitUser ON (dailyLimitUser.username=user.username) "
 
 
 /**
@@ -128,6 +129,12 @@ AdminAPI::AdminAPI(Handler *handler, ServerService *service)
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
 		return userUpdate(username, *jsonObject);
+	});
+
+	server->route(path+"user/<arg>/updateLimit", QHttpServerRequest::Method::Post, [this](const QString &username, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return userUpdateLimit(username, jsonObject->value(QStringLiteral("value")).toInt());
 	});
 
 	server->route(path+"user/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QString &username, const QHttpServerRequest &request){
@@ -234,6 +241,12 @@ AdminAPI::AdminAPI(Handler *handler, ServerService *service)
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
 		return classUpdateCode(id, *jsonObject);
+	});
+
+	server->route(path+"class/<arg>/updateLimit", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return classUpdateLimit(id, jsonObject->value(QStringLiteral("value")).toInt());
 	});
 
 	server->route(path+"class/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const int &id, const QHttpServerRequest &request){
@@ -440,6 +453,49 @@ QHttpServerResponse AdminAPI::classUpdateCode(const int &id, const QJsonObject &
 
 
 /**
+ * @brief AdminAPI::classUpdateLimit
+ * @param id
+ * @param limit
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::classUpdateLimit(const int &id, const int &limit)
+{
+	LOG_CTRACE("client") << "Class update limit" << id << limit;
+
+	LAMBDA_THREAD_BEGIN(id, limit);
+
+	if (limit > 0) {
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("INSERT OR REPLACE INTO dailyLimitClass(")
+								   .setFieldPlaceholder()
+								   .addQuery(") VALUES (")
+								   .setValuePlaceholder()
+								   .addQuery(")")
+								   .addField("classid", id)
+								   .addField("value", limit)
+								   .exec());
+
+		LOG_CDEBUG("client") << "Class update limit" << id << limit;
+
+	} else {
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("DELETE FROM dailyLimitClass WHERE classid=").addValue(id)
+								   .exec());
+
+		LOG_CDEBUG("client") << "Class remove limit" << id;
+	}
+
+	db.commit();
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
  * @brief AdminAPI::classDelete
  * @param idList
  * @return
@@ -484,9 +540,9 @@ QHttpServerResponse AdminAPI::user(const QString &username)
 	LAMBDA_THREAD_BEGIN(username);
 
 	const auto &obj = QueryBuilder::q(db)
-			.addQuery(_SQL_QUERY_USERS)
-			.addQuery("WHERE user.username=").addValue(username)
-			.execToJsonObject();
+					  .addQuery(_SQL_QUERY_USERS)
+					  .addQuery("WHERE user.username=").addValue(username)
+					  .execToJsonObject();
 
 	LAMBDA_SQL_ASSERT(obj);
 
@@ -620,6 +676,59 @@ QHttpServerResponse AdminAPI::userUpdate(const QString &username, const QJsonObj
 	db.commit();
 
 	response = responseOk({{QStringLiteral("username"), username}});
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief AdminAPI::userUpdateLimit
+ * @param username
+ * @param limit
+ * @return
+ */
+
+QHttpServerResponse AdminAPI::userUpdateLimit(const QString &username, const int &limit)
+{
+	LOG_CTRACE("client") << "User update limit" << username << limit;
+
+	if (username.isEmpty())
+		return responseError("invalid username");
+
+	LAMBDA_THREAD_BEGIN(username, limit);
+
+	db.transaction();
+
+	LAMBDA_SQL_ERROR_ROLLBACK("not found", QueryBuilder::q(db).addQuery("SELECT username FROM user WHERE username=").addValue(username).execCheckExists());
+
+	if (limit > 0) {
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("INSERT OR REPLACE INTO dailyLimitUser(")
+								   .setFieldPlaceholder()
+								   .addQuery(") VALUES (")
+								   .setValuePlaceholder()
+								   .addQuery(")")
+								   .addField("username", username)
+								   .addField("value", limit)
+								   .exec());
+
+		LOG_CDEBUG("client") << "User update limit" << username << limit;
+
+	} else {
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("DELETE FROM dailyLimitUser WHERE username=").addValue(username)
+								   .exec());
+
+		LOG_CDEBUG("client") << "User remove limit" << username;
+	}
+
+	db.commit();
+
+	response = responseOk({
+							  { QStringLiteral("username"), username },
+							  { QStringLiteral("limit"), limit }
+						  });
 
 	LAMBDA_THREAD_END;
 }
@@ -966,7 +1075,7 @@ QHttpServerResponse AdminAPI::usersProfileUpdate()
 		QMutexLocker _locker(databaseMain()->mutex());
 
 		userList = QueryBuilder::q(db).addQuery("SELECT username, oauth, oauthData FROM auth WHERE oauth IS NOT NULL AND oauthData IS NOT NULL")
-				.execToJsonArray();
+				   .execToJsonArray();
 
 		ret.resolve();
 	});
@@ -1039,13 +1148,13 @@ std::optional<int> AdminAPI::_classCreate(const AbstractAPI *api, const Class &_
 		db.transaction();
 
 		const auto &id = QueryBuilder::q(db)
-				.addQuery("INSERT INTO class(")
-				.setFieldPlaceholder()
-				.addQuery(") VALUES (")
-				.setValuePlaceholder()
-				.addQuery(")")
-				.addField("name", _class.name)
-				.execInsertAsInt();
+						 .addQuery("INSERT INTO class(")
+						 .setFieldPlaceholder()
+						 .addQuery(") VALUES (")
+						 .setValuePlaceholder()
+						 .addQuery(")")
+						 .addField("name", _class.name)
+						 .execInsertAsInt();
 
 		if (!id) {
 			LOG_CWARNING("client") << "Class create error:" << qPrintable(_class.name);
@@ -1583,14 +1692,14 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 
 			if (result->xp > 0) {
 				const auto &sId = QueryBuilder::q(db)
-						.addQuery("INSERT OR REPLACE INTO score (")
-						.setFieldPlaceholder()
-						.addQuery(") VALUES (")
-						.setValuePlaceholder()
-						.addQuery(")")
-						.addField("username", username)
-						.addField("xp", result->xp)
-						.execInsertAsInt();
+								  .addQuery("INSERT OR REPLACE INTO score (")
+								  .setFieldPlaceholder()
+								  .addQuery(") VALUES (")
+								  .setValuePlaceholder()
+								  .addQuery(")")
+								  .addField("username", username)
+								  .addField("xp", result->xp)
+								  .execInsertAsInt();
 
 				if (!sId) {
 					LOG_CERROR("client") << "Campaign finish error:" << campaign;
@@ -1660,9 +1769,9 @@ bool AdminAPI::userExists(const AbstractAPI *api, const QString &username, const
 		QMutexLocker _locker(api->databaseMain()->mutex());
 
 		const auto &r = QueryBuilder::q(db)
-				.addQuery("SELECT username FROM user WHERE username=")
-				.addValue(username)
-				.execCheckExists();
+						.addQuery("SELECT username FROM user WHERE username=")
+						.addValue(username)
+						.execCheckExists();
 
 		if (!r != !inverse)
 			ret.resolve();

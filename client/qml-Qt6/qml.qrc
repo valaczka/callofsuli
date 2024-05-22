@@ -228,5 +228,6 @@
         <file>TiledLayerVisual.qml</file>
         <file>PageStudentFreePlay.qml</file>
         <file>PageTeacherGroupFreePlay.qml</file>
+        <file>RpgShotButton.qml</file>
     </qresource>
 </RCC>

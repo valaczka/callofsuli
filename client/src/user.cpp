@@ -99,6 +99,9 @@ void User::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("dailyRate")) || allField)
 		setDailyRate(object.value(QStringLiteral("dailyRate")).toDouble());
 
+	if (object.contains(QStringLiteral("dailyLimit")) || allField)
+		setDailyLimit(object.value(QStringLiteral("dailyLimit")).toInt());
+
 	Credential::Roles roles = m_roles;
 
 	if (object.contains(QStringLiteral("isAdmin")) || allField)
@@ -416,4 +419,17 @@ void User::setTrophy(int newTrophy)
 		return;
 	m_trophy = newTrophy;
 	emit trophyChanged();
+}
+
+int User::dailyLimit() const
+{
+	return m_dailyLimit;
+}
+
+void User::setDailyLimit(int newDailyLimit)
+{
+	if (m_dailyLimit == newDailyLimit)
+		return;
+	m_dailyLimit = newDailyLimit;
+	emit dailyLimitChanged();
 }

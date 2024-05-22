@@ -47,6 +47,9 @@ void ClassObject::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("name")) || allField)
 		setName(object.value(QStringLiteral("name")).toString());
+
+	if (object.contains(QStringLiteral("dailyLimit")) || allField)
+		setDailyLimit(object.value(QStringLiteral("dailyLimit")).toInt());
 }
 
 
@@ -75,4 +78,17 @@ void ClassObject::setClassid(int newClassid)
 		return;
 	m_classid = newClassid;
 	emit classidChanged();
+}
+
+int ClassObject::dailyLimit() const
+{
+	return m_dailyLimit;
+}
+
+void ClassObject::setDailyLimit(int newDailyLimit)
+{
+	if (m_dailyLimit == newDailyLimit)
+		return;
+	m_dailyLimit = newDailyLimit;
+	emit dailyLimitChanged();
 }

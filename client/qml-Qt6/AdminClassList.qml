@@ -16,7 +16,7 @@ Qaterial.Page
 
 	property alias view: view
 
-	signal classSelected(int classid, string classname)
+	signal classSelected(int classid, ClassObject classObject)
 
 	QListView {
 		id: view
@@ -58,7 +58,7 @@ Qaterial.Page
 
 				width: view.width
 
-				onClicked: classSelected(-1, "")
+				onClicked: classSelected(-1, null)
 			}
 
 			QItemDelegate {
@@ -67,7 +67,7 @@ Qaterial.Page
 
 				width: view.width
 
-				onClicked: classSelected(-2, "")
+				onClicked: classSelected(-2, null)
 			}
 		}
 
@@ -82,7 +82,7 @@ Qaterial.Page
 			text: classObject ? classObject.name : ""
 
 			onClicked: if (!view.selectEnabled)
-						   classSelected(classObject.classid, classObject.name)
+						   classSelected(classObject.classid, classObject)
 		}
 
 		Qaterial.Menu {

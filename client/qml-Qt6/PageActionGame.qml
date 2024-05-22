@@ -601,11 +601,11 @@ Page {
 
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		anchors.bottomMargin: 2 //Math.max(5, mainWindow.safeMargins.bottom)
-		anchors.leftMargin: 2 //Math.max(5, mainWindow.safeMargins.left)
+		anchors.bottomMargin: Math.max(5, mainWindow.safeMargins.bottom)
+		anchors.leftMargin: Math.max(5, mainWindow.safeMargins.left)
 
-		width: Math.min(size, control.width*0.5)
-		height: Math.min((130/175)*size, control.width*0.4)
+		//width: Math.min(size, control.width*0.5)
+		//height: Math.min((130/175)*size, control.width*0.4)
 
 		visible: game && game.player && game.player.isAlive
 

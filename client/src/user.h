@@ -61,6 +61,7 @@ class User : public SelectableObject
 	Q_PROPERTY(QString nickName READ nickName WRITE setNickName NOTIFY nickNameChanged)
 	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged)
 	Q_PROPERTY(qreal dailyRate READ dailyRate WRITE setDailyRate NOTIFY dailyRateChanged)
+	Q_PROPERTY(int dailyLimit READ dailyLimit WRITE setDailyLimit NOTIFY dailyLimitChanged FINAL)
 
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 	Q_PROPERTY(int streak READ streak WRITE setStreak NOTIFY streakChanged)
@@ -143,6 +144,9 @@ public:
 	qreal dailyRate() const;
 	void setDailyRate(qreal newDailyRate);
 
+	int dailyLimit() const;
+	void setDailyLimit(int newDailyLimit);
+
 public slots:
 	void clear();
 
@@ -167,6 +171,7 @@ signals:
 	void characterChanged();
 	void trophyChanged();
 	void dailyRateChanged();
+	void dailyLimitChanged();
 
 private:
 	QString m_username;
@@ -187,6 +192,7 @@ private:
 	QString m_character;
 	int m_trophy = 0;
 	qreal m_dailyRate = 0.0;
+	int m_dailyLimit;
 };
 
 

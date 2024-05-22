@@ -27,6 +27,8 @@
 #include "teachermaphandler.h"
 #include "gamemap.h"
 #include "utils_.h"
+#include <sstream>
+#include "tar_to_stream.h"
 
 #ifdef Q_OS_WASM
 #include "onlineclient.h"
@@ -96,6 +98,52 @@ void TeacherMapHandler::checkDownloads()
 {
 	for (TeacherMap *map : *m_mapList)
 		BaseMapHandler::check(map);
+}
+
+
+/**
+ * @brief TeacherMapHandler::mapExport
+ * @param file
+ * @param list
+ * @return
+ */
+
+bool TeacherMapHandler::mapExport(const QUrl &file, const QList<TeacherMap *> &list) const
+{
+	QFile f(file.toLocalFile());
+
+	if (!f.open(QIODevice::WriteOnly)) {
+		m_client->messageError(tr("Nem lehet létrehozni a fájlt:\n%1").arg(file.toLocalFile()), tr("Belső hiba"));
+		return false;
+	}
+
+	std::ostringstream _stream;
+
+	for (const TeacherMap *map : list) {
+		if (!map)
+			continue;
+
+		const auto &data = read(map);
+
+		if (!data) {
+			m_client->messageWarning(tr("A pálya nem olvasható: %1").arg(map->name()), tr("Hiba"));
+			continue;
+		}
+
+		const QByteArray fname = map->name().toUtf8()+QByteArrayLiteral(" - ")+map->uuid().toUtf8()+QByteArrayLiteral(".map");
+
+		tar_to_stream(_stream, fname.constData(), data->constData(), data->size(), static_cast<uint64_t>(std::time(0)));
+
+		LOG_CDEBUG("client") << "Map" << map->uuid() << "exported:" << qPrintable(f.fileName());
+	}
+
+	tar_to_stream_tail(_stream);
+
+	f.write(QByteArray::fromStdString(_stream.str()));
+
+	f.close();
+
+	return true;
 }
 
 

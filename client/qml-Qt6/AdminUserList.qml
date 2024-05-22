@@ -22,7 +22,8 @@ Qaterial.Page
 	// <-1: out of class
 
 	property int classid: -1
-	property string classname: ""
+	//property string classname: ""
+	property ClassObject classObject: null
 	property string classcode: ""
 
 
@@ -51,7 +52,7 @@ Qaterial.Page
 			trailingContent: Qaterial.TextFieldButtonContainer
 			{
 				QTextFieldInPlaceButtons {
-					setTo: classname
+					setTo: classObject ? classObject.name : ""
 					onSaveRequest: text => {
 						Client.send(HttpConnection.ApiAdmin, "class/%1/update".arg(classid),
 									{
@@ -122,6 +123,48 @@ Qaterial.Page
 
 			}
 
+		}
+
+
+		Qaterial.TextField {
+			id: textFieldTimeLimit
+
+			visible: classid != -1
+			enabled: classid != -1
+
+			width: view.width
+			anchors.left: view.left
+
+			leadingIconSource: Qaterial.Icons.timerAlert
+			leadingIconInline: true
+			title: qsTr("Napi időkorlát")
+			helperText: qsTr("Naponta játszható idő másodpercben")
+			backgroundBorderHeight: 1
+			backgroundColor: "transparent"
+
+			trailingContent: Qaterial.TextFieldButtonContainer
+			{
+				Qaterial.TextFieldClearButton { }
+
+				QTextFieldInPlaceButtons {
+					setTo: classObject ? classObject.dailyLimit : 0
+					onSaveRequest: text => {
+						Client.send(HttpConnection.ApiAdmin, "class/%1/updateLimit".arg(classid),
+									{
+										value: Number(text)
+									})
+						.done(control, function(r){
+							Client.reloadCache("classList")
+							saved()
+						})
+						.fail(control, function(err) {
+							Client.messageWarning(err, "Időkorlát módosítása sikertelen")
+							revert()
+						})
+					}
+
+				}
+			}
 		}
 
 		Qaterial.LabelHeadline5 {

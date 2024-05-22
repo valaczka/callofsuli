@@ -21,7 +21,14 @@ FocusScope {
 	property bool _prCmpCompleted: false
 	property bool _prStackActivated: false
 
-	onWidthChanged: setBaseScale()
+	onWidthChanged: {
+		setBaseScale()
+		_shotButton.reset()
+	}
+
+	onHeightChanged: {
+		_shotButton.reset()
+	}
 
 	function setBaseScale() {
 		if (width < 576 * Qaterial.Style.devicePixelSizeCorrection)
@@ -124,8 +131,14 @@ FocusScope {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
+		anchors.leftMargin: Math.max(Client.safeMarginLeft,
+							   (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 50 : 0
+							   )
+		anchors.bottomMargin: Math.max(Client.safeMarginBottom,
+							   (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 50 : 0
+							   )
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
-		size: Client.Utils.settingsGet("window/joystick", 160)
+		//size: Client.Utils.settingsGet("window/joystick", 160)
 	}
 
 
@@ -192,7 +205,6 @@ FocusScope {
 
 			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
-			//text: (multiPlayerGame ? "MULTIPLAYER " : "") + "%1 XP"
 			text: "%1 XP"
 
 			value: game ? game.xp : 0
@@ -311,7 +323,7 @@ FocusScope {
 
 			GameButton {
 				id: _mapButton
-				size: 30
+				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
 
 				anchors.verticalCenter: parent.verticalCenter
 
@@ -330,7 +342,7 @@ FocusScope {
 
 			GameButton {
 				id: _setttingsButton
-				size: 30
+				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
 
 				anchors.verticalCenter: parent.verticalCenter
 
@@ -513,13 +525,15 @@ FocusScope {
 
 
 
-	GameButton {
+
+	RpgShotButton {
 		id: _shotButton
 		size: 60
 
-		anchors.right: parent.right
+		/*anchors.right: parent.right
 		anchors.bottom: parent.bottom
-		anchors.margins: 10
+		anchors.margins: Math.max(10, Client.safeMarginRight, Client.safeMarginBottom,
+								  (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 30 : 0)*/
 
 		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
 		readonly property bool _canAttack: weapon && (weapon.canHit || weapon.canShot)
@@ -536,7 +550,7 @@ FocusScope {
 		fontImage.color: "transparent"
 		fontImageScale: 0.7
 
-		tap.onTapped: {
+		onClicked: {
 			if (_game.controlledPlayer)
 				_game.controlledPlayer.attackCurrentWeapon()
 		}
@@ -601,7 +615,7 @@ FocusScope {
 				rightPadding: 10 * Qaterial.Style.pixelSizeRatio
 				topPadding: 5 * Qaterial.Style.pixelSizeRatio
 				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
-				Row {
+				/*Row {
 					spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 					Qaterial.IconLabel {
@@ -625,7 +639,7 @@ FocusScope {
 							Client.Utils.settingsSet("window/joystick", _game.joystick.size)
 						}
 					}
-				}
+				}*/
 
 				QFormSwitchButton
 				{

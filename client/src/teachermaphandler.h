@@ -55,6 +55,8 @@ public:
 	Q_INVOKABLE void mapEdit(TeacherMap *map);
 	Q_INVOKABLE void checkDownloads();
 
+	Q_INVOKABLE bool mapExport(const QUrl &file, const QList<TeacherMap*> &list) const;
+
 	TeacherMapList *mapList() const;
 
 	TeacherMapEditor *mapEditor() const;

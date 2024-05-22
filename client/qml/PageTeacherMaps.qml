@@ -35,6 +35,9 @@ QPage {
 			QMenuItem { action: actionMapAdd }
 			QMenuItem { action: actionMapRename }
 			QMenuItem { action: actionMapRemove }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionMapDownload }
+			QMenuItem { action: actionMapExport }
 		}
 	}
 
@@ -111,13 +114,16 @@ QPage {
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionMapPublish }
 			QMenuItem { action: actionMapDeleteDraft }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionMapDownload }
+			QMenuItem { action: actionMapExport }
 		}
 
 		onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
-			if (index != -1)
-				currentIndex = index
-			contextMenu.popup(mouseX, mouseY)
-		}
+										if (index != -1)
+										currentIndex = index
+										contextMenu.popup(mouseX, mouseY)
+									}
 	}
 
 	Qaterial.Banner
@@ -153,9 +159,9 @@ QPage {
 			title: qsTr("Pálya importálása")
 			filters: [ "*.map" ]
 			onFileSelected: file => {
-				handler.mapImport(file)
-				Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
-			}
+								handler.mapImport(file)
+								Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
+							}
 			folder: Client.Utils.settingsGet("folder/teacherMap", "")
 		}
 
@@ -235,6 +241,60 @@ QPage {
 		}
 	}
 
+
+	Action {
+		id: actionMapDownload
+		text: qsTr("Letöltés")
+		icon.source: Qaterial.Icons.download
+		onTriggered: {
+			var l = view.getSelected()
+			for (let i=0; i<l.length; ++i)
+				handler.mapDownload(l[i])
+			view.unselectAll()
+		}
+	}
+
+
+	Action {
+		id: actionMapExport
+		text: qsTr("Exportálás")
+		icon.source: Qaterial.Icons.export_
+		onTriggered: {
+			var l = view.getSelected()
+			for (let i=0; i<l.length; ++i) {
+				if (!l[i].downloaded) {
+					Client.messageWarning(qsTr("%1 pály nincs letöltve").arg(l[i].name), qsTr("Exportálás"))
+					return
+				}
+			}
+
+			/*if (Qt.platform.os == "wasm")
+				mapEditor.wasmSaveAs(false)
+			else*/
+				Qaterial.DialogManager.openFromComponent(_cmpFileExport)
+		}
+	}
+
+
+	Component {
+		id: _cmpFileExport
+
+		QFileDialog {
+			title: qsTr("Pályák exportálás")
+			filters: [ "*.tar" ]
+			isSave: true
+			suffix: ".tar"
+			onFileSelected: file => {
+				if (Client.Utils.fileExists(file))
+					overrideQuestion(file)
+				else
+					exportToFile(file)
+				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+			}
+
+			folder: Client.Utils.settingsGet("folder/mapEditor")
+		}
+	}
 
 
 	Action {
@@ -328,6 +388,36 @@ QPage {
 
 		}
 	}
+
+
+
+	function overrideQuestion(file) {
+		JS.questionDialog({
+							  onAccepted: function()
+							  {
+								  exportToFile(file)
+							  },
+							  text: qsTr("A fájl létezik. Felülírjuk?\n%1").arg(file),
+							  title: qsTr("Mentés másként"),
+							  iconSource: Qaterial.Icons.fileAlert
+						  })
+	}
+
+
+
+	function exportToFile(file) {
+		var l = view.getSelected()
+		if (!l.length)
+			return
+
+		if (handler.mapExport(file, l)) {
+			Client.messageInfo(qsTr("Az exportálás sikerült: %1").arg(file.toString()))
+			view.unselectAll()
+		} else {
+			Client.messageWarning(qsTr("Az exportálás sikertelen"), qsTr("Hiba"))
+		}
+	}
+
 
 	function reload() {
 		view.unselectAll()
