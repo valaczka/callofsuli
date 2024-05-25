@@ -404,7 +404,7 @@ FocusScope {
 	}
 
 
-	GameButton {
+	/*GameButton {
 		id: _pickButton
 		size: 50
 
@@ -428,7 +428,7 @@ FocusScope {
 		onClicked: {
 			_game.controlledPlayer.pickCurrentObject()
 		}
-	}
+	}*/
 
 
 

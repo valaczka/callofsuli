@@ -62,7 +62,6 @@ class IsometricPlayer : public IsometricCircleEntity
 	Q_PROPERTY(qreal currentAngle READ currentAngle WRITE setCurrentAngle NOTIFY currentAngleChanged FINAL)
 	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
 	Q_PROPERTY(QPointF currentVelocity READ currentVelocity WRITE setCurrentVelocity NOTIFY currentVelocityChanged FINAL)
-	Q_PROPERTY(TiledObject *currentPickable READ currentPickable WRITE setCurrentPickable NOTIFY currentPickableChanged FINAL)
 	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
 
 public:
@@ -96,10 +95,6 @@ public:
 	QPointF currentVelocity() const;
 	void setCurrentVelocity(QPointF newCurrentVelocity);
 
-	TiledObject *currentPickable() const;
-	void setCurrentPickable(TiledObject *newCurrentPickable);
-	void removePickable(TiledObject *pickable);
-
 	bool isLocked() const;
 	void setIsLocked(bool newIsLocked);
 
@@ -114,7 +109,6 @@ signals:
 	void currentAngleChanged();
 	void enemyChanged();
 	void currentVelocityChanged();
-	void currentPickableChanged();
 	void isLockedChanged();
 	void currentContainerChanged();
 
@@ -129,6 +123,8 @@ protected:
 	virtual void load() = 0;
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
 	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, const bool &isProtected) = 0;
+	virtual void onPickableReached(TiledObject *object) = 0;
+	virtual void onPickableLeft(TiledObject *object) = 0;
 	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
 	virtual void onEnemyLeft(IsometricEnemy *enemy) = 0;
 	virtual void onTransportReached(TiledTransport *transport) = 0;
@@ -161,7 +157,6 @@ private:
 
 	QPointer<TiledTransport> m_currentTransport = nullptr;
 	QPointer<TiledObjectBase> m_currentTransportBase;
-	QPointer<TiledObject> m_currentPickable = nullptr;
 	QPointer<TiledContainer> m_currentContainer = nullptr;
 
 	qreal m_currentAngle = 0.;

@@ -108,11 +108,10 @@ public:
 	void attackToPoint(const QPointF &point) { attackToPoint(point.x(), point.y()); }
 
 	Q_INVOKABLE void pick(RpgPickableObject *object);
-	Q_INVOKABLE void pickCurrentObject() { pick(qobject_cast<RpgPickableObject*>(currentPickable())); }
 
 	Q_INVOKABLE void useContainer(TiledContainer *container);
 	Q_INVOKABLE void useCurrentContainer() { useContainer(currentContainer()); }
-	Q_INVOKABLE void pickOrUseCurrentObjects();
+	Q_INVOKABLE void useCurrentObjects();
 
 	QString character() const;
 	void setCharacter(const QString &newCharacter);
@@ -148,6 +147,8 @@ protected:
 	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
 	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType,
 						 const bool &isProtected) override final;
+	void onPickableReached(TiledObject *object) override final;
+	void onPickableLeft(TiledObject */*object*/) override final {};
 	void onEnemyReached(IsometricEnemy */*enemy*/) override final {}
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
 	void onTransportReached(TiledTransport */*transport*/) override final {}

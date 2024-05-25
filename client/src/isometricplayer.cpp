@@ -79,14 +79,12 @@ private:
 		///m_enemy = nullptr;
 		m_contactedEnemies.clear();
 		m_reachedEnemies.clear();
-		m_reachedPickables.clear();
 		m_destinationPoint.reset();
 	}
 
 	QPointer<IsometricEnemy> m_enemy;
 	QList<QPointer<IsometricEnemy>> m_contactedEnemies;
 	QList<QPointer<IsometricEnemy>> m_reachedEnemies;
-	QQueue<QPointer<TiledObject>> m_reachedPickables;
 
 	std::optional<QPointF> m_destinationPoint;
 
@@ -533,9 +531,7 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 		TiledObject *object = qobject_cast<TiledObject*>(base);
 		TiledPickableIface *iface = dynamic_cast<TiledPickableIface*>(base);
 		if (object && iface) {
-			d->m_reachedPickables.enqueue(QPointer(object));
-			if (!m_currentPickable)
-				setCurrentPickable(d->m_reachedPickables.dequeue());
+			onPickableReached(object);
 		}
 	}
 
@@ -587,7 +583,8 @@ void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 		TiledObject *object = qobject_cast<TiledObject*>(base);
 		TiledPickableIface *iface = dynamic_cast<TiledPickableIface*>(base);
 		if (object && iface) {
-			removePickable(object);
+			//removePickable(object);
+			onPickableLeft(object);
 		}
 	}
 
@@ -620,46 +617,6 @@ void IsometricPlayer::setCurrentContainer(TiledContainer *newCurrentContainer)
 	emit currentContainerChanged();
 }
 
-
-
-
-
-/**
- * @brief IsometricPlayer::currentPickable
- * @return
- */
-
-TiledObject *IsometricPlayer::currentPickable() const
-{
-	return m_currentPickable;
-}
-
-void IsometricPlayer::setCurrentPickable(TiledObject *newCurrentPickable)
-{
-	if (m_currentPickable == newCurrentPickable)
-		return;
-	m_currentPickable = newCurrentPickable;
-	emit currentPickableChanged();
-}
-
-
-
-/**
- * @brief IsometricPlayer::removePickable
- * @param pickable
- */
-
-void IsometricPlayer::removePickable(TiledObject *pickable)
-{
-	d->m_reachedPickables.removeAll(QPointer(pickable));
-
-	if (m_currentPickable == pickable) {
-		if (d->m_reachedPickables.isEmpty())
-			setCurrentPickable(nullptr);
-		else
-			setCurrentPickable(d->m_reachedPickables.dequeue());
-	}
-}
 
 
 

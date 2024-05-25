@@ -66,7 +66,7 @@ ServerService::ServerService(int &argc, char **argv)
 	, m_application(new QCoreApplication(argc, argv))
 	, m_settings(new ServerSettings)
 	, m_networkManager(new QNetworkAccessManager(this))
-	, m_engineHandler(new EngineHandler(this))
+	//, m_engineHandler(new EngineHandler(this))
 {
 	Q_ASSERT(!m_instance);
 
@@ -96,7 +96,6 @@ ServerService::ServerService(int &argc, char **argv)
 #else
 	m_mainTimerInterval = 100;
 #endif
-
 
 	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
 		m_mainTimer.stop();
@@ -526,6 +525,8 @@ std::optional<int> ServerService::preStart()
 	if (parser.isSet(QStringLiteral("upgrade")))
 		m_forceUpgrade = parser.value(QStringLiteral("upgrade"));
 
+
+	m_engineHandler.reset(new EngineHandler(this));
 
 
 	m_settings->loadFromFile();

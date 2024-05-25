@@ -257,12 +257,14 @@ void RpgPlayer::pick(RpgPickableObject *object)
 	if (!object || !isAlive())
 		return;
 
-	clearDestinationPoint();
+	//clearDestinationPoint();
 
 	if (!m_game->playerPickPickable(this, object)) {
 		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
 	}
 }
+
+
 
 /**
  * @brief RpgPlayer::useContainer
@@ -286,14 +288,11 @@ void RpgPlayer::useContainer(TiledContainer *container)
 
 
 /**
- * @brief RpgPlayer::pickOrUseCurrentObjects
+ * @brief RpgPlayer::useCurrentObjects
  */
 
-void RpgPlayer::pickOrUseCurrentObjects()
+void RpgPlayer::useCurrentObjects()
 {
-	if (currentPickable())
-		return pickCurrentObject();
-
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
 	if (currentContainer() && currentContainer()->isActive() && g) {
@@ -447,13 +446,27 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 
 
 /**
+ * @brief RpgPlayer::onPickableReached
+ * @param object
+ */
+
+void RpgPlayer::onPickableReached(TiledObject *object)
+{
+	RpgPickableObject *pickable = qobject_cast<RpgPickableObject*>(object);
+	if (pickable)
+		pick(pickable);
+}
+
+
+
+/**
  * @brief RpgPlayer::atDestinationPointEvent
  */
 
 void RpgPlayer::atDestinationPointEvent()
 {
 	if (m_pickAtDestination)
-		pickOrUseCurrentObjects();
+		useCurrentObjects();
 
 	m_pickAtDestination = false;
 }

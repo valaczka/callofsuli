@@ -1052,7 +1052,7 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_Enter:
 		case Qt::Key_E:
 			if (m_controlledPlayer)
-				m_controlledPlayer->pickOrUseCurrentObjects();
+				m_controlledPlayer->useCurrentObjects();
 			break;
 
 		case Qt::Key_Tab:
