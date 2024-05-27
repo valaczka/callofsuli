@@ -28,6 +28,7 @@
 #define ACTIONRPGGAME_H
 
 #include "abstractlevelgame.h"
+#include "downloader.h"
 #include "rpgconfig.h"
 #include "rpggame.h"
 
@@ -44,8 +45,8 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
-	Q_PROPERTY(qreal downloadProgress READ downloadProgress NOTIFY downloadProgressChanged FINAL)
 	Q_PROPERTY(QVariantList characterList READ characterList CONSTANT FINAL)
+	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
 
 public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -70,6 +71,8 @@ public:
 	Q_INVOKABLE void finishGame();
 	Q_INVOKABLE void gamePrepared();
 
+	Q_INVOKABLE void clearSharedTextures();
+
 	RpgConfig config() const;
 	void setConfig(const RpgConfig &newConfig);
 
@@ -82,9 +85,9 @@ public:
 	GameMode gameMode() const;
 	void setGameMode(const GameMode &newGameMode);
 
-	qreal downloadProgress() const;
-
 	QVariantList characterList() const;
+
+	Downloader *downloader() const;
 
 signals:
 	void finishDialogRequest(QString text, QString icon, bool success);
@@ -92,7 +95,6 @@ signals:
 	void rpgGameChanged();
 	void playerConfigChanged();
 	void gameModeChanged();
-	void downloadProgressChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -116,6 +118,9 @@ private:
 	void setError();
 	void onMsecLeftChanged();
 
+	void downloadLoadableContentDict(const QStringList &fileList);
+	void downloadLoadableContent(const QStringList &fileList);
+
 	void loadInventory(RpgPlayer *player);
 	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
 
@@ -131,10 +136,12 @@ private:
 	RpgGame *m_rpgGame = nullptr;
 	RpgPlayerConfig m_playerConfig;
 	std::unique_ptr<RpgQuestion> m_rpgQuestion;
+	std::unique_ptr<Downloader> m_downloader;
+
+	QJsonObject m_loadableContentDict;
+	QVector<Server::DynamicContent> m_loadableContentListBase;
 
 	RpgConfig::GameState m_oldGameState = RpgConfig::StateInvalid;
-	int m_loadableContentCount = 0;
-	qreal m_downloadProgress = 0.;
 
 	int m_msecNotifyAt = 0;
 

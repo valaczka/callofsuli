@@ -32,6 +32,7 @@
 #include <libtiled/objectgroup.h>
 #include <libtiled/mapreader.h>
 #include <libtiled/map.h>
+#include <libtiled/imagecache.h>
 
 std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGame::m_sharedTextures;
 
@@ -132,21 +133,47 @@ bool TiledGame::load(const TiledGameDefinition &def)
 
 std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefinition &def)
 {
-	Tiled::MapReader mapReader;
 	QStringList list;
 
 	for (const TiledSceneDefinition &s : def.scenes) {
 		LOG_CTRACE("game") << "Get dynamic tilesets from file:" << s.file;
-		std::unique_ptr<Tiled::Map> map(mapReader.readMap(Tiled::urlToLocalFileOrQrc(QUrl(def.basePath+'/'+s.file))));
 
-		if (!map) {
-			LOG_CERROR("game") << "Game read error:" << def.basePath;
+		const QString filename = Tiled::urlToLocalFileOrQrc(QUrl(def.basePath+'/'+s.file));
+
+		QDir path;
+		path.setPath(QFileInfo(filename).absolutePath());
+
+		QFile f(filename);
+
+		if (!f.exists()) {
+			LOG_CERROR("game") << "Read error:" << filename;
 			return std::nullopt;
 		}
 
-		for (const auto &t : (*map).tilesets()) {
-			QFileInfo fi(t->fileName());
-			list.append(fi.canonicalFilePath());
+		if (!f.open(QFile::ReadOnly | QFile::Text)) {
+			LOG_CERROR("game") << "Read error:" << filename;
+			return std::nullopt;
+		}
+
+		QXmlStreamReader xml;
+
+		xml.setDevice(&f);
+
+		if (xml.readNextStartElement() && xml.name() == QStringLiteral("map")) {
+			while (xml.readNextStartElement()) {
+				if (xml.name() == QStringLiteral("tileset")) {
+					const QXmlStreamAttributes atts = xml.attributes();
+					const QString source = atts.value(QStringLiteral("source")).toString();
+
+					if (!source.isEmpty())
+						list.append(QFileInfo(QDir::cleanPath(path.filePath(source))).canonicalFilePath());
+
+					xml.skipCurrentElement();
+				}
+			}
+		} else {
+			LOG_CERROR("game") << "Invalid file:" << filename;
+			return std::nullopt;
 		}
 	}
 
@@ -1085,12 +1112,12 @@ void TiledGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
  * @return
  */
 
-TiledObject *TiledGame::followedItem() const
+TiledObjectBase *TiledGame::followedItem() const
 {
 	return m_followedItem;
 }
 
-void TiledGame::setFollowedItem(TiledObject *newFollowedItem)
+void TiledGame::setFollowedItem(TiledObjectBase *newFollowedItem)
 {
 	if (m_followedItem == newFollowedItem)
 		return;

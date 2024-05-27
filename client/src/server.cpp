@@ -409,19 +409,10 @@ bool Server::dynamicContentCheck(QVector<DynamicContent> *listPtr)
 {
 	Q_ASSERT(listPtr);
 
-	static const QString subdir = "content";
+	const auto &dir = getContentDir();
 
-#ifdef Q_OS_WASM
-	QDir dir = QStringLiteral("/");
-#else
-	QDir dir = m_directory;
-
-	if ((!dir.exists(subdir) && !dir.mkdir(subdir)) || !dir.cd(subdir)) {
-		Application::instance()->messageError(tr("Belső hiba"));
+	if (!dir)
 		return false;
-	}
-#endif
-
 
 #ifndef Q_OS_WASM
 	QDefer ret;
@@ -434,7 +425,7 @@ bool Server::dynamicContentCheck(QVector<DynamicContent> *listPtr)
 				continue;
 			}
 
-			const QString &filename = dir.absoluteFilePath(it->name);
+			const QString &filename = dir->absoluteFilePath(it->name);
 
 			LOG_CTRACE("client") << "Check:" << filename;
 
@@ -456,7 +447,7 @@ bool Server::dynamicContentCheck(QVector<DynamicContent> *listPtr)
 
 				if (m_loadedContentList.contains(filename)) {
 					LOG_CTRACE("client") << "Content already loaded:" << filename;
-					emit loadableContentOneDownloaded(filename);
+					//emit loadableContentOneDownloaded(filename);
 					it = listPtr->erase(it);
 					continue;
 				}
@@ -530,26 +521,17 @@ bool Server::dynamicContentRemove(QVector<DynamicContent> *listPtr, const QStrin
 
 bool Server::dynamicContentSaveAndLoad(const QString &name, const QByteArray &data)
 {
-	static const QString subdir = "content";
+	const auto &dir = getContentDir();
 
-#ifdef Q_OS_WASM
-	QDir dir = QStringLiteral("/");
-#else
-	QDir dir = m_directory;
-
-	if ((!dir.exists(subdir) && !dir.mkdir(subdir)) || !dir.cd(subdir)) {
-		Application::instance()->messageError(tr("Belső hiba"));
+	if (!dir)
 		return false;
-	}
-#endif
-
 
 #ifndef Q_OS_WASM
 	QDefer ret;
 	m_worker.execInThread([this, dir, ret, name, data]() mutable {
 		QMutexLocker locker(&m_mutex);
 #endif
-		const QString &filename = dir.absoluteFilePath(name);
+		const QString &filename = dir->absoluteFilePath(name);
 
 		LOG_CINFO("client") << "Save dynamic content:" << qPrintable(filename);
 
@@ -569,6 +551,66 @@ bool Server::dynamicContentSaveAndLoad(const QString &name, const QByteArray &da
 		}
 
 		loadDynamicContent(filename);
+
+#ifdef Q_OS_WASM
+		return true;
+#else
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return ret.state() == QDeferredState::RESOLVED;
+#endif
+
+}
+
+
+
+
+/**
+ * @brief Server::dynamicContentUnload
+ * @param name
+ * @return
+ */
+
+bool Server::dynamicContentUnload(const QString &name)
+{
+	const auto &dir = getContentDir();
+
+	if (!dir)
+		return false;
+
+	const QString &filename = dir->absoluteFilePath(name);
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, ret, filename]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+
+		if (!m_loadedContentList.contains(filename)) {
+			LOG_CERROR("client") << "Unload failed:" << qPrintable(filename);
+#ifndef Q_OS_WASM
+			ret.reject();
+			return;
+#else
+			return false;
+#endif
+		}
+
+		if (!QResource::unregisterResource(filename, QStringLiteral("/content"))) {
+			LOG_CERROR("client") << "Unregister resource failed:" << qPrintable(filename);
+#ifndef Q_OS_WASM
+			ret.reject();
+			return;
+#else
+			return false;
+#endif
+		} else {
+			LOG_CTRACE("client") << "Unload dynamic content:" << qPrintable(filename);
+		}
+
+		m_loadedContentList.removeAll(filename);
 
 #ifdef Q_OS_WASM
 		return true;
@@ -650,175 +692,29 @@ void Server::loadDynamicContent(const QString &filename)
 
 
 
-/**
- * @brief Server::downloadLoadableContent
- * @param list
- */
-
-bool Server::downloadLoadableContent(Client *client, const QVector<DynamicContent> &list)
-{
-	Q_ASSERT(client);
-
-	if (!m_loadableContentList.isEmpty()) {
-		LOG_CERROR("client") << "Loadable resource download already in progress";
-		return false;
-	}
-
-	LOG_CDEBUG("client") << "Download loadable resources";
-
-	m_loadableContentList = list;
-
-	dynamicContentCheck(&m_loadableContentList);
-
-	if (m_loadableContentList.isEmpty())
-		emit loadableContentReady();
-	else {
-		for (const auto &c : std::as_const(m_loadableContentList)) {
-			QUrl url = m_url;
-			url.setPath(QStringLiteral("/content/")+c.name);
-			QNetworkReply *r = client->httpConnection()->networkManager()->get(QNetworkRequest(url));
-			connect(r, &QNetworkReply::finished, this, &Server::onDynamicResourceDownloaded);
-		}
-	}
-
-	return true;
-}
-
-
 
 /**
- * @brief Server::downloadLoadableContent
- * @param client
- * @param fileList
+ * @brief Server::getContentDir
  * @return
  */
 
-void Server::downloadLoadableContent(Client *client, const QStringList &fileList)
+std::optional<QDir> Server::getContentDir() const
 {
-	LOG_CTRACE("client") << "Download loadable content:" << fileList;
+	static const QString subdir = "content";
 
-	if (m_loadableContentListBase.isEmpty()) {
-		client->send(HttpConnection::ApiGeneral, QStringLiteral("content/loadable"))
-				->done(this, [this, fileList, client](const QJsonObject &json)
-		{
-			m_loadableContentListBase.clear();
+#ifdef Q_OS_WASM
+	QDir dir = QStringLiteral("/");
+#else
+	QDir dir = m_directory;
 
-			const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
-			for (const QJsonValue &v : list) {
-				const QJsonObject &o = v.toObject();
-
-				DynamicContent content;
-				content.name = o.value(QStringLiteral("file")).toString();
-				content.md5 = o.value(QStringLiteral("md5")).toString();
-				content.size = JSON_TO_INTEGER(o.value(QStringLiteral("size")));
-				m_loadableContentListBase.append(content);
-			}
-
-			downloadLoadableContent(client, fileList);
-		})
-				->fail(this, [this](const QString &err){
-			LOG_CWARNING("client") << "Dynamic content download failed:" << qPrintable(err);
-			emit loadableContentError();
-		});
-	} else {
-		QVector<DynamicContent> list;
-
-		for (const QString &s : fileList) {
-			auto it = std::find_if(m_loadableContentListBase.constBegin(),
-								   m_loadableContentListBase.constEnd(),
-								   [&s](const DynamicContent &c) {
-				return c.name == s;
-			});
-
-			if (it == m_loadableContentListBase.constEnd()) {
-				LOG_CERROR("client") << "Invalid loadable resource:" << qPrintable(s);
-				emit loadableContentError();
-				return;
-			}
-
-			list.append(*it);
-		}
-
-		downloadLoadableContent(client, list);
+	if ((!dir.exists(subdir) && !dir.mkdir(subdir)) || !dir.cd(subdir)) {
+		Application::instance()->messageError(tr("Belső hiba"));
+		return std::nullopt;
 	}
+#endif
+
+	return dir;
 }
-
-
-
-/**
- * @brief Server::downloadLoadableContentDict
- * @param client
- * @param fileList
- */
-
-void Server::downloadLoadableContentDict(Client *client, const QStringList &fileList)
-{
-	if (m_loadableContentDict.isEmpty()) {
-		client->send(HttpConnection::ApiGeneral, QStringLiteral("content/loadableDict"))
-				->done(this, [this, fileList, client](const QJsonObject &json)
-		{
-			m_loadableContentDict = json;
-
-			downloadLoadableContentDict(client, fileList);
-		})
-				->fail(this, [this](const QString &err){
-			LOG_CWARNING("client") << "Dynamic content download failed:" << qPrintable(err);
-			emit loadableContentError();
-		});
-	} else {
-		QStringList fList;
-
-		for (QString s : fileList) {
-			s.replace(QStringLiteral(":/"), QStringLiteral(""));
-			if (m_loadableContentDict.contains(s))
-				fList.append(m_loadableContentDict.value(s).toString());
-			else {
-				fList.append(s);
-				//LOG_CWARNING("client") << "Invalid loadable file:" << s;
-			}
-		}
-
-		fList.removeDuplicates();
-
-		downloadLoadableContent(client, fList);
-	}
-}
-
-
-
-
-/**
- * @brief Server::onDynamicResourceDownloaded
- */
-
-void Server::onDynamicResourceDownloaded()
-{
-	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
-	const QUrl &url = reply->url();
-
-	if (reply->error()) {
-		LOG_CWARNING("client") << "Nem sikerült a letöltés:" << url << qPrintable(reply->errorString());
-		return;
-	}
-
-	LOG_CTRACE("client") << "Dynamic resource downloaded:" << url;
-	const QByteArray &payload = reply->readAll();
-	static const QRegularExpression exp(R"(^/content/)");
-	QString filename = url.path().remove(exp);
-
-	if (!dynamicContentSaveAndLoad(filename, payload) || !dynamicContentRemove(&m_loadableContentList, filename, payload)) {
-		Application::instance()->messageError(tr("Fájl mentése sikertelen: %1").arg(filename));
-		emit loadableContentError();
-		return;
-	} else {
-		emit loadableContentOneDownloaded(filename);
-	}
-
-	if (m_loadableContentList.isEmpty())
-		emit loadableContentReady();
-}
-
-
 
 
 

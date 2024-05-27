@@ -460,6 +460,52 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QByte
 
 
 
+/**
+ * @brief HttpConnection::get
+ * @param path
+ * @return
+ */
+
+HttpReply *HttpConnection::get(const QString &path)
+{
+	if (!m_server) {
+		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
+		return new HttpReply(QNetworkReply::InternalServerError);
+	}
+
+	QUrl url = m_server->url();
+	url.setPath(path);
+
+	QNetworkRequest r(url);
+
+#ifndef QT_NO_SSL
+	if (!m_rootCertificate.isNull()) {
+		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
+		config.addCaCertificate(m_rootCertificate);
+		r.setSslConfiguration(config);
+	}
+#endif
+
+	if (!m_server->token().isEmpty()) {
+		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+	}
+
+	//r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
+	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
+
+	QNetworkReply *reply = m_networkManager->get(r);
+
+	LOG_CTRACE("http") << "SEND:" << qPrintable(path) << this;
+
+	HttpReply *wr = new HttpReply(reply, this);
+	connect(wr, &HttpReply::finished, this, &HttpConnection::checkPending);
+	return wr;
+}
+
+
+
+
+
 
 
 /**

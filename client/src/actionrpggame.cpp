@@ -30,6 +30,9 @@
 #include "rpgquestion.h"
 #include "server.h"
 #include "rpgshield.h"
+#include "tilelayeritem.h"
+#include <libtiled/imagecache.h>
+#include "utils_.h"
 
 
 /**
@@ -41,6 +44,7 @@
 ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	: AbstractLevelGame(GameMap::Rpg, missionLevel, client)
 	, m_rpgQuestion(new RpgQuestion(this))
+	, m_downloader(new Downloader)
 {
 	LOG_CTRACE("game") << "Action RPG game constructed" << this;
 
@@ -52,7 +56,12 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionRpgGame::onGameTimeout);
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
-	/*connect(this, &ActionGame::toolChanged, this, &ActionGame::toolListIconsChanged);*/
+
+	connect(m_downloader.get(), &Downloader::contentDownloaded, this, [this]() {
+		RpgPlayer::reloadAvailableCharacters();
+		m_config.gameState = RpgConfig::StateCharacterSelect;
+		updateConfig();
+	});
 }
 
 
@@ -63,7 +72,7 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 
 ActionRpgGame::~ActionRpgGame()
 {
-
+	clearSharedTextures();
 }
 
 
@@ -129,12 +138,14 @@ void ActionRpgGame::stopMenuBgMusic()
 
 void ActionRpgGame::selectCharacter(const QString &character)
 {
-	LOG_CWARNING("game") << "Character selected:" << character << m_config.gameState;
+	LOG_CDEBUG("game") << "Character selected:" << character << m_config.gameState;
 
 	m_playerConfig.character = character;
 
 	m_config.gameState = RpgConfig::StatePrepare;
-	updateConfig();
+
+	QTimer::singleShot(200, this, &ActionRpgGame::updateConfig);
+	//updateConfig();
 }
 
 
@@ -226,7 +237,6 @@ void ActionRpgGame::finishGame()
 
 QQuickItem *ActionRpgGame::loadPage()
 {
-
 	QQuickItem *item = m_client->stackPushPage(QStringLiteral("PageActionRpgGame.qml"), QVariantMap({
 																										{ QStringLiteral("game"), QVariant::fromValue(this) }
 																									}));
@@ -290,6 +300,20 @@ void ActionRpgGame::gamePrepared()
 {
 	m_config.gameState = RpgConfig::StatePlay;
 	updateConfig();
+}
+
+
+/**
+ * @brief ActionRpgGame::clearSharedTextures
+ */
+
+void ActionRpgGame::clearSharedTextures()
+{
+	LOG_CTRACE("game") << "Clear shared textures";
+
+	TiledQuick::TileLayerItem::clearSharedTextures();
+	TiledGame::clearSharedTextures();
+	Tiled::ImageCache::clear();
 }
 
 
@@ -519,7 +543,6 @@ void ActionRpgGame::downloadGameData()
 {
 	Server *server = m_client->server();
 
-
 	if (!server) {
 		LOG_CERROR("game") << "Missing server";
 		setError();
@@ -539,37 +562,117 @@ void ActionRpgGame::downloadGameData()
 	if (!listPtr)
 		return;
 
+	m_downloader->setServer(server);
+
 	listPtr->prepend(QStringLiteral("rpg.dres"));
 	listPtr->append(ptr->required);
 
-	m_loadableContentCount = listPtr->size();
-	m_downloadProgress = 0.;
-	emit downloadProgressChanged();
-
-
-	connect(server, &Server::loadableContentError, this, [this]() {
-		LOG_CERROR("game") << "Loadable content error";
-		setError();
-	});
-
-	connect(server, &Server::loadableContentReady, this, [this]() {
-		RpgPlayer::reloadAvailableCharacters();
-		m_config.gameState = RpgConfig::StateCharacterSelect;
-		updateConfig();
-	});
-
-	connect(server, &Server::loadableContentOneDownloaded, this, [this](const QString &){
-		Server *s = qobject_cast<Server*>(sender());
-		if (!m_loadableContentCount || !s)
-			return;
-
-		qreal c = s->loadableContentSize();
-		m_downloadProgress = c / (qreal) m_loadableContentCount;
-		emit downloadProgressChanged();
-	});
-
-	server->downloadLoadableContentDict(m_client, *listPtr);
+	downloadLoadableContentDict(*listPtr);
 }
+
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::downloadLoadableContentDict
+ * @param fileList
+ */
+
+void ActionRpgGame::downloadLoadableContentDict(const QStringList &fileList)
+{
+	if (m_loadableContentDict.isEmpty()) {
+		m_client->send(HttpConnection::ApiGeneral, QStringLiteral("content/loadableDict"))
+				->done(this, [this, fileList](const QJsonObject &json)
+		{
+			m_loadableContentDict = json;
+
+			downloadLoadableContentDict(fileList);
+		})
+				->fail(this, [this](const QString &err){
+			LOG_CERROR("game") << "Loadable content error" << qPrintable(err);
+			setError();
+		});
+	} else {
+		QStringList fList;
+
+		for (QString s : fileList) {
+			s.replace(QStringLiteral(":/"), QStringLiteral(""));
+			if (m_loadableContentDict.contains(s))
+				fList.append(m_loadableContentDict.value(s).toString());
+			else {
+				fList.append(s);
+				//LOG_CWARNING("client") << "Invalid loadable file:" << s;
+			}
+		}
+
+		fList.removeDuplicates();
+
+		downloadLoadableContent(fList);
+	}
+}
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::downloadLoadableContent
+ * @param fileList
+ */
+
+void ActionRpgGame::downloadLoadableContent(const QStringList &fileList)
+{
+	LOG_CTRACE("game") << "Download loadable content:" << fileList;
+
+	if (m_loadableContentListBase.isEmpty()) {
+		m_client->send(HttpConnection::ApiGeneral, QStringLiteral("content/loadable"))
+				->done(this, [this, fileList](const QJsonObject &json)
+		{
+			m_loadableContentListBase.clear();
+
+			const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
+			for (const QJsonValue &v : list) {
+				const QJsonObject &o = v.toObject();
+
+				Server::DynamicContent content;
+				content.name = o.value(QStringLiteral("file")).toString();
+				content.md5 = o.value(QStringLiteral("md5")).toString();
+				content.size = JSON_TO_INTEGER(o.value(QStringLiteral("size")));
+				m_loadableContentListBase.append(content);
+			}
+
+			downloadLoadableContent(fileList);
+		})
+				->fail(this, [this](const QString &err){
+			LOG_CERROR("game") << "Loadable content error" << qPrintable(err);
+			setError();
+		});
+	} else {
+		m_downloader->contentClear();
+
+		for (const QString &s : fileList) {
+			auto it = std::find_if(m_loadableContentListBase.constBegin(),
+								   m_loadableContentListBase.constEnd(),
+								   [&s](const Server::DynamicContent &c) {
+				return c.name == s;
+			});
+
+			if (it == m_loadableContentListBase.constEnd()) {
+				LOG_CERROR("game") << "Invalid loadable resource:" << qPrintable(s);
+				setError();
+				return;
+			}
+
+			m_downloader->contentAdd(*it);
+		}
+
+		m_downloader->download();
+	}
+}
+
+
 
 
 /**
@@ -834,6 +937,17 @@ void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy */*enemy*
 }
 
 
+/**
+ * @brief ActionRpgGame::downloader
+ * @return
+ */
+
+Downloader *ActionRpgGame::downloader() const
+{
+	return m_downloader.get();
+}
+
+
 
 /**
  * @brief ActionRpgGame::characterList
@@ -855,16 +969,6 @@ QVariantList ActionRpgGame::characterList() const
 	return list;
 }
 
-
-/**
- * @brief ActionRpgGame::downloadProgress
- * @return
- */
-
-qreal ActionRpgGame::downloadProgress() const
-{
-	return m_downloadProgress;
-}
 
 
 

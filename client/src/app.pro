@@ -217,6 +217,7 @@ SOURCES += \
 	conquestgameadjacencysetup.cpp \
 	conquestland.cpp \
 	conquestlanddata.cpp \
+	downloader.cpp \
 	editorundostack.cpp \
 	exam.cpp \
 	examgame.cpp \
@@ -338,6 +339,7 @@ HEADERS += \
 	conquestgameadjacencysetup.h \
 	conquestland.h \
 	conquestlanddata.h \
+	downloader.h \
 	editorundostack.h \
 	exam.h \
 	examgame.h \

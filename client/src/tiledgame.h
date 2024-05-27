@@ -98,7 +98,7 @@ class TiledGame : public QQuickItem
 
 	Q_PROPERTY(TiledScene *currentScene READ currentScene WRITE setCurrentScene NOTIFY currentSceneChanged FINAL)
 	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
-	Q_PROPERTY(TiledObject *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
+	Q_PROPERTY(TiledObjectBase *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
 	Q_PROPERTY(JoystickState joystickState READ joystickState WRITE setJoystickState NOTIFY joystickStateChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QQuickItem *messageList READ messageList WRITE setMessageList NOTIFY messageListChanged FINAL)
@@ -137,6 +137,7 @@ public:
 	Tiled::TileLayer *loadSceneLayer(TiledScene *scene, Tiled::Layer *layer, Tiled::MapRenderer *renderer);
 
 	static QSGTexture *getTexture(const QString &path, QQuickWindow *window);
+	static void clearSharedTextures() {  m_sharedTextures.clear(); }
 
 	QVector<TiledScene*> sceneList() const;
 
@@ -188,8 +189,8 @@ public:
 	bool debugView() const;
 	void setDebugView(bool newDebugView);
 
-	TiledObject *followedItem() const;
-	void setFollowedItem(TiledObject *newFollowedItem);
+	TiledObjectBase *followedItem() const;
+	void setFollowedItem(TiledObjectBase *newFollowedItem);
 
 	QQuickItem *messageList() const;
 	void setMessageList(QQuickItem *newMessageList);
@@ -308,7 +309,7 @@ private:
 
 	KeyboardJoystickState m_keyboardJoystickState;
 	QPointer<QQuickItem> m_joystick = nullptr;
-	QPointer<TiledObject> m_followedItem = nullptr;
+	QPointer<TiledObjectBase> m_followedItem = nullptr;
 	JoystickState m_joystickState;
 	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 	bool m_debugView = false;

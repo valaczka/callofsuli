@@ -37,10 +37,10 @@
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
 #include <libtiled/grouplayer.h>
+#include <libtiled/mapreader.h>
 
 TiledScene::TiledScene(QQuickItem *parent)
 	: TiledQuick::MapItem(parent)
-	, m_mapLoader(new TiledQuick::MapLoader)
 	, m_world(new Box2DWorld)
 {
 	LOG_CTRACE("scene") << "Scene created" << this;
@@ -128,10 +128,12 @@ bool TiledScene::load(const QUrl &url)
 {
 	LOG_CTRACE("scene") << "Load scene from:" << qPrintable(url.toDisplayString());
 
-	m_mapLoader->setSource(url);
+	Tiled::MapReader mapReader;
 
-	if (m_mapLoader->status() == TiledQuick::MapLoader::Ready && m_mapLoader->map()) {
-		setMap(m_mapLoader->map());
+	m_map = mapReader.readMap(Tiled::urlToLocalFileOrQrc(url));
+
+	if (m_map) {
+		setMap(m_map.get());
 		return true;
 	}
 
@@ -147,8 +149,7 @@ bool TiledScene::load(const QUrl &url)
 
 void TiledScene::appendToObjects(TiledObject *object)
 {
-	//m_tiledObjects.append(QPointer(object));
-	m_tiledObjectsToAppend.append(QPointer(object));
+	m_tiledObjectsToAppend.append(object);
 }
 
 
@@ -159,8 +160,7 @@ void TiledScene::appendToObjects(TiledObject *object)
 
 void TiledScene::removeFromObjects(TiledObject *object)
 {
-	//m_tiledObjects.removeAll(QPointer(object));
-	m_tiledObjectsToRemove.append(QPointer(object));
+	m_tiledObjectsToRemove.append(object);
 }
 
 
@@ -475,19 +475,6 @@ void TiledScene::setGame(TiledGame *newGame)
 
 
 
-
-
-
-
-/**
- * @brief TiledScene::mapLoader
- * @return
- */
-
-TiledQuick::MapLoader*TiledScene::mapLoader() const
-{
-	return m_mapLoader.get();
-}
 
 
 

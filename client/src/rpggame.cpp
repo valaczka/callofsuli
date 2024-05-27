@@ -473,7 +473,6 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 		object->setScene(nullptr);
 	}
 
-	p->removePickable(object);
 	p->inventoryAdd(object);
 
 	p->armory()->updateLayers();

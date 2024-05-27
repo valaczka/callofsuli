@@ -78,6 +78,10 @@ public:
 		QString name;
 		QString md5;
 		qint64 size = 0;
+
+		friend bool operator==(const DynamicContent &c1, const DynamicContent &c2) {
+			return c1.name == c2.name && c1.md5 == c2.md5 && c1.size == c2.size;
+		}
 	};
 
 	static Server *fromJson(const QJsonObject &data, QObject *parent = nullptr);
@@ -145,20 +149,11 @@ public:
 		return dynamicContentRemove(&m_contentList, name, data);
 	}
 	bool dynamicContentSaveAndLoad(const QString &name, const QByteArray &data);
+	bool dynamicContentUnload(const QString &name);
 	void unloadDynamicContents();
 	void loadDynamicContent(const QString &filename);
 
-	bool downloadLoadableContent(Client *client, const QVector<DynamicContent> &list);
-	void downloadLoadableContent(Client *client, const QStringList &fileList);
-	void downloadLoadableContentDict(Client *client, const QStringList &fileList);
-
-	int loadableContentSize() const { return m_loadedContentList.size(); }
-
 signals:
-	void loadableContentReady();
-	void loadableContentOneDownloaded(QString name);
-	void loadableContentError();
-
 	void urlChanged();
 	void directoryChanged();
 	void autoConnectChanged();
@@ -174,7 +169,7 @@ signals:
 	void dynamicContentReadyChanged();
 
 private:
-	void onDynamicResourceDownloaded();
+	std::optional<QDir> getContentDir() const;
 
 	QString m_name;
 	QString m_serverName;
@@ -201,12 +196,8 @@ private:
 #endif
 
 	QVector<DynamicContent> m_contentList;
-	QVector<DynamicContent> m_loadableContentList;
-	QVector<DynamicContent> m_loadableContentListBase;
-
-	QJsonObject m_loadableContentDict;
-
 	QStringList m_loadedContentList;
+
 	bool m_dynamicContentReady = false;
 };
 

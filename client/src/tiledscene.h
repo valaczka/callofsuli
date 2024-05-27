@@ -86,8 +86,6 @@ public:
 
 	bool isGroundContainsPoint(const QPointF &point) const;
 
-	TiledQuick::MapLoader *mapLoader() const;
-
 	Box2DWorld *world() const;
 
 	TiledGame *game() const;
@@ -113,7 +111,8 @@ signals:
 protected:
 	virtual void refresh() override;
 
-	std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
+	//std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
+	std::unique_ptr<Tiled::Map> m_map;
 	std::unique_ptr<Box2DWorld> m_world;
 	QVector<QPointer<TiledObjectBasePolygon>> m_groundObjects;
 	QString m_ambientSound;

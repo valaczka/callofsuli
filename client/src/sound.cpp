@@ -72,6 +72,10 @@ Sound::Sound(QObject *parent)
 	m_garbageTimer.setInterval(500);
 	connect(&m_garbageTimer, &QTimer::timeout, this, &Sound::garbage);
 
+	m_clearTimer.setInterval(10000);
+	connect(&m_clearTimer, &QTimer::timeout, this, &Sound::clearUnusedSounds);
+	m_clearTimer.start();
+
 	LOG_CTRACE("sound") << "Sound object initialized" << this;
 
 }
@@ -284,6 +288,29 @@ bool Sound::isPlayingMusic2() const
 	LOG_CTRACE("sound") << "Current music2:" << s;
 
 	return !s.isEmpty();
+}
+
+
+/**
+ * @brief Sound::clearUnusedSounds
+ */
+
+void Sound::clearUnusedSounds()
+{
+	LOG_CTRACE("sound") << "Clear unused sounds";
+
+	QMutexLocker locker(&m_mutex);
+
+	for (auto it = m_sound.begin(); it != m_sound.end(); ) {
+		if (MaSound *s = it->get()) {
+			if (ma_sound_is_playing(s->sound()) || m_queue.contains(s)) {
+				++it;
+				continue;
+			}
+		}
+
+		it = m_sound.erase(it);
+	}
 }
 
 

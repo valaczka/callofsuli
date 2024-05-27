@@ -359,6 +359,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<ActionRpgGame>("CallOfSuli", 1, 0, "ActionRpgGame", "ActionRpgGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGame>("CallOfSuli", 1, 0, "ConquestGame", "ConquestGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGameAdjacencySetup>("CallOfSuli", 1, 0, "ConquestGameAdjacencySetup", "ConquestGameAdjacencySetup is uncreatable");
+	qmlRegisterUncreatableType<Downloader>("CallOfSuli", 1, 0, "Downloader", "Downloader is uncreatable");
 	qmlRegisterUncreatableType<ExamGame>("CallOfSuli", 1, 0, "ExamGame", "ExamGame is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
 	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");

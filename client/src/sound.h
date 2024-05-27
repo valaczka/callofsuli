@@ -148,6 +148,8 @@ public:
 	Q_INVOKABLE bool isPlayingMusic() const;
 	Q_INVOKABLE bool isPlayingMusic2() const;
 
+	void clearUnusedSounds();
+
 	int volumeSfx() const;
 	void setVolumeSfx(int newVolumeSfx);
 
@@ -204,6 +206,7 @@ private:
 	QQueue<MaSound *> m_queue;
 
 	QTimer m_garbageTimer;
+	QTimer m_clearTimer;
 	QRecursiveMutex m_mutex;
 };
 

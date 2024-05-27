@@ -43,6 +43,9 @@ Page {
 	readonly property bool _rpgVisible: game && (game.config.gameState == RpgConfig.StatePlay ||
 												 game.config.gameState == RpgConfig.StatePrepare)
 
+
+	property int _oldWindowState: Window.AutomaticVisibility
+
 	//property bool _isUnprepared: false
 
 	/*Image {
@@ -62,48 +65,6 @@ Page {
 		onActiveComponentChanged: replace(null, activeComponent, {}, StackView.Immediate)
 	}
 
-	Connections {
-		target: game
-
-		function onConfigChanged() {
-			if (Client.server && !Client.server.dynamicContentReady) {
-				_stack.activeComponent = _cmpDownload
-				return
-			}
-
-			/*if (game.config.gameState == RpgConfig.StateFinished && _isUnprepared) {
-				_stack.activeComponent = _cmpConnect
-				return
-			}*/
-
-			switch (game.config.gameState) {
-			case RpgConfig.StatePrepare:
-			case RpgConfig.StatePlay:
-				_stack.activeComponent = _cmpRpg
-				break
-
-			case RpgConfig.StateError:
-				_stack.activeComponent = _cmpError
-				break
-
-			case RpgConfig.StateCharacterSelect:
-				_stack.activeComponent = _cmpCharacterSelect
-				break
-
-			case RpgConfig.StateFinished:
-				Client.stackPop(root)
-				return
-
-			case RpgConfig.StateDownloadContent:
-				_stack.activeComponent = _cmpDownload
-				return
-
-			default:
-				_stack.activeComponent = _cmpConnect
-				break
-			}
-		}
-	}
 
 	Component {
 		id: _cmpConnect
@@ -154,14 +115,33 @@ Page {
 
 		QScrollable {
 			contentCentered: true
+			spacing: 30 * Qaterial.Style.pixelSizeRatio
 
 			Qaterial.IconLabel {
+				readonly property real _progress: game && game.downloader.fullSize > 0 ?
+													  game.downloader.downloadedSize/game.downloader.fullSize :
+													  0.
+
 				anchors.horizontalCenter: parent.horizontalCenter
 				color: Qaterial.Style.accentColor
 				icon.source: Qaterial.Icons.download
 				icon.width: Qaterial.Style.dashboardButtonSize*0.4
 				icon.height: Qaterial.Style.dashboardButtonSize*0.4
-				text: qsTr("Tartalom letöltése folyamatban (%1%)...").arg(game ? Math.floor(game.downloadProgress*100.) : 0)
+				text: qsTr("Tartalom letöltése folyamatban...\n%1%").arg(game ? Math.floor(_progress*100.) : 0)
+			}
+
+			Qaterial.ProgressBar
+			{
+				width: Math.min(250 * Qaterial.Style.pixelSizeRatio, parent.width*0.75)
+				anchors.horizontalCenter: parent.horizontalCenter
+				from: 0
+				to: game ? game.downloader.fullSize : 0
+				value: game ? game.downloader.downloadedSize : 0
+				color: Qaterial.Colors.green400
+
+				Behavior on value {
+					NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+				}
 			}
 		}
 	}
@@ -189,6 +169,45 @@ Page {
 				Client.snack(qsTr("Te vagy a host"))
 		}*/
 
+		function onConfigChanged() {
+			if (Client.server && !Client.server.dynamicContentReady) {
+				_stack.activeComponent = _cmpDownload
+				return
+			}
+
+			/*if (game.config.gameState == RpgConfig.StateFinished && _isUnprepared) {
+				_stack.activeComponent = _cmpConnect
+				return
+			}*/
+
+			switch (game.config.gameState) {
+			case RpgConfig.StatePrepare:
+			case RpgConfig.StatePlay:
+				_stack.activeComponent = _cmpRpg
+				break
+
+			case RpgConfig.StateError:
+				_stack.activeComponent = _cmpError
+				break
+
+			case RpgConfig.StateCharacterSelect:
+				_stack.activeComponent = _cmpCharacterSelect
+				break
+
+			case RpgConfig.StateFinished:
+				Client.stackPop(root)
+				return
+
+			case RpgConfig.StateDownloadContent:
+				_stack.activeComponent = _cmpDownload
+				return
+
+			default:
+				_stack.activeComponent = _cmpConnect
+				break
+			}
+		}
+
 		function onFinishDialogRequest(text, icon, success) {
 			Qaterial.DialogManager.showDialog(
 						{
@@ -210,10 +229,21 @@ Page {
 	StackView.onActivated: {
 		if (game)
 			game.playMenuBgMusic()
+
+		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
+			_oldWindowState = Client.mainWindow.visibility
+			Client.mainWindow.showFullScreen()
+		}
 	}
 
 	StackView.onRemoved: {
-		if (game)
+		if (game) {
 			game.stopMenuBgMusic()
+		}
+
+		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
+			if (_oldWindowState != Window.FullScreen)
+				Client.mainWindow.showMaximized()
+		}
 	}
 }

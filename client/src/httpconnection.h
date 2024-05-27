@@ -121,6 +121,7 @@ public slots:
 
 	HttpReply *send(const HttpConnection::API &api, const QString &path, const QJsonObject &data = {});
 	HttpReply *send(const HttpConnection::API &api, const QString &path, const QByteArray &content);
+	HttpReply *get(const QString &path);
 
 	void checkPending();
 	void acceptPendingSslErrors();
