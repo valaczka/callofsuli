@@ -78,7 +78,7 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 
 				if (object->shape() == Tiled::MapObject::Point) {
 					TiledObjectBaseCircle *ptr = nullptr;
-					TiledObject::createFromCircle<TiledObjectBaseCircle>(&ptr, object->position(), 40., renderer, scene);
+					TiledObject::createFromCircle<TiledObjectBaseCircle>(&ptr, object->position(), 60., renderer, scene);
 					//ptr->body()->emplace(renderer->pixelToScreenCoords(object->position()));
 					connectFixture(ptr->fixture());
 					base = ptr;

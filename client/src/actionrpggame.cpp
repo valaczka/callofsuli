@@ -203,6 +203,8 @@ void ActionRpgGame::rpgGameActivated()
 
 	m_rpgGame->setPlayers(list);
 
+	m_rpgQuestion->initialize();
+
 	for (TiledScene *s : m_rpgGame->sceneList()) {
 		m_rpgGame->setQuestions(s, m_missionLevel->questions());
 	}
@@ -892,6 +894,11 @@ bool ActionRpgGame::onPlayerUseContainer(RpgPlayer *player, TiledContainer *cont
 {
 	if (!player || !container)
 		return false;
+
+	if (container && m_rpgQuestion->emptyQuestions()) {
+		m_rpgGame->playerUseContainer(player, container);
+		return true;
+	}
 
 	if (m_rpgQuestion->nextQuestion(player, nullptr, TiledWeapon::WeaponInvalid, container)) {
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);

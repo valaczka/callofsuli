@@ -69,6 +69,8 @@ class RpgControlGroupContainer : public RpgControlGroup
 public:
 	RpgControlGroupContainer(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 
+	RpgChestContainer *chestContainer() const { return m_container.get(); }
+
 private:
 	void onFixtureBeginContact(Box2DFixture *other);
 	void onFixtureEndContact(Box2DFixture *other);

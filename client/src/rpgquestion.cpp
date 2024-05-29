@@ -186,3 +186,33 @@ void RpgQuestion::questionFinished()
 	m_container = nullptr;
 	m_weaponType = TiledWeapon::WeaponInvalid;
 }
+
+
+/**
+ * @brief RpgQuestion::initialize
+ */
+
+void RpgQuestion::initialize()
+{
+	LOG_CTRACE("game") << "Initialize questions";
+
+	reloadQuestions();
+
+	if (m_questionList.isEmpty()) {
+		m_emptyQuestions = true;
+	} else {
+		m_emptyQuestions = false;
+	}
+}
+
+
+
+/**
+ * @brief RpgQuestion::emptyQuestions
+ * @return
+ */
+
+bool RpgQuestion::emptyQuestions() const
+{
+	return m_emptyQuestions;
+}

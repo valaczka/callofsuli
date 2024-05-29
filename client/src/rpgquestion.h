@@ -55,6 +55,10 @@ public:
 	IsometricEnemy *enemy() const { return m_enemy; }
 	RpgPlayer *player() const { return m_player; }
 
+	void initialize();
+
+	bool emptyQuestions() const;
+
 private:
 	ActionRpgGame *const m_game;
 	QVector<Question> m_questionList;
@@ -64,6 +68,8 @@ private:
 	QPointer<IsometricEnemy> m_enemy;
 	QPointer<TiledContainer> m_container;
 	TiledWeapon::WeaponType m_weaponType = TiledWeapon::WeaponInvalid;
+
+	bool m_emptyQuestions = true;
 };
 
 #endif // RPGQUESTION_H

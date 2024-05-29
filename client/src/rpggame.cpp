@@ -1781,6 +1781,13 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 	if (!scene)
 		return -1;
 
+	if (m_rpgQuestion && m_rpgQuestion->emptyQuestions()) {
+		for (EnemyData &e : m_enemyDataList)
+			e.hasQuestion = false;
+
+		return 0;
+	}
+
 	int q = 0;
 	int count = 0;
 	int created = 0;

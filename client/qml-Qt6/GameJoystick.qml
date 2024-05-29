@@ -3,8 +3,8 @@ import Qaterial as Qaterial
 
 Item {
 	id: root
-	width: size
-	height: size
+	width: size*2.5
+	height: size*2.5
 
 	property real size: 120 * Qaterial.Style.pixelSizeRatio
 	property real thumbSize: 40 * Qaterial.Style.pixelSizeRatio
@@ -15,15 +15,17 @@ Item {
 	property real currentDistance: 0.0
 	property bool hasTouch: false
 
-	readonly property real _circleRadius: (Math.min(width, height)-thumbSize)/2
+	readonly property real _circleRadius: (size-thumbSize)/2
+	readonly property real _innerHPadding: (width-size)/2
+	readonly property real _innerVPadding: (height-size)/2
 
 	signal joystickMoved(real x, real y)
 	signal directionChanged(real angle, real distance)
 
 	onWidthChanged: moveThumb(root.width/2, root.height/2)
 	onHeightChanged: moveThumb(root.width/2, root.height/2)
-	onXChanged: _translate.dstX = x
-	onYChanged: _translate.dstY = y
+	onXChanged: reset()
+	onYChanged: reset()
 
 	transform: Translate {
 		id: _translate
@@ -32,21 +34,26 @@ Item {
 		property real dstY: 0
 
 		Behavior on x {
+			id: _behaviorX
 			NumberAnimation { duration: 1200; easing.type: Easing.OutSine }
 		}
 
 		Behavior on y {
+			id: _behaviorY
 			NumberAnimation { duration: 1200; easing.type: Easing.OutSine }
 		}
 	}
 
 	Timer {
+		id: _timer
 		running: true
 		interval: 400
 		repeat: true
 		onTriggered: {
-			_translate.x = Math.max(-root.x, Math.min(_translate.dstX-root.x, root.parent.width-root.x-root.width))
-			_translate.y = Math.max(-root.y, Math.min(_translate.dstY-root.y, root.parent.height-root.y-root.height))
+			_translate.x = Math.max(-root.x-_innerHPadding,
+									Math.min(_translate.dstX-root.x, root.parent.width+_innerHPadding-root.x-root.width))
+			_translate.y = Math.max(-root.y-_innerVPadding,
+									Math.min(_translate.dstY-root.y, root.parent.height+_innerHPadding-root.y-root.height))
 		}
 	}
 
@@ -101,8 +108,19 @@ Item {
 
 		onTouchUpdated: touchPoints => {
 							if (touchPoints.length) {
+								if (hasTouch) {
+									moveThumb(touchPoints[0].x, touchPoints[0].y)
+								} else {
+									_behaviorX.enabled = false
+									_behaviorY.enabled = false
+									_translate.dstX = root.x + _translate.x + touchPoints[0].x - root.width/2
+									_translate.dstY = root.y + _translate.y + touchPoints[0].y - root.height/2
+									_timer.triggered()
+									_behaviorX.enabled = true
+									_behaviorY.enabled = true
+								}
+
 								hasTouch = true
-								moveThumb(touchPoints[0].x, touchPoints[0].y)
 							} else {
 								hasTouch = false
 								moveThumb(root.width/2, root.height/2)
@@ -119,8 +137,8 @@ Item {
 
 
 	function moveThumb(centerX, centerY) {
-		let dx = centerX/(root.width*0.5) - 1.
-		let dy = centerY/(root.height*0.5) - 1.
+		let dx = (centerX-_innerHPadding)/(size*0.5) - 1.
+		let dy = (centerY-_innerVPadding)/(size*0.5) - 1.
 
 		let angle = Math.atan2(-dy, dx)
 		let distance = Math.sqrt(dx*dx + dy*dy)
@@ -133,9 +151,9 @@ Item {
 		if (!hasTouch)
 			return
 
-		if (distance > 1) {
-			_translate.dstX = root.x + _translate.x + (distance-1.) * _circleRadius * Math.cos(angle)
-			_translate.dstY = root.y + _translate.y - (distance-1.) * _circleRadius * Math.sin(angle)
+		if (distance > 1.3) {
+			_translate.dstX = root.x + _translate.x + (distance-1.1) * _circleRadius * Math.cos(angle)
+			_translate.dstY = root.y + _translate.y - (distance-1.1) * _circleRadius * Math.sin(angle)
 		}
 
 		currentX = dx
@@ -150,4 +168,17 @@ Item {
 	function moveThumbRelative(dx, dy) {
 		moveThumb(root.width*dx, root.height*dy)
 	}
+
+	function reset() {
+		_behaviorX.enabled = false
+		_behaviorY.enabled = false
+		_translate.y = x - _innerHPadding
+		_translate.x = y + _innerVPadding
+		_translate.dstX = x - _innerHPadding
+		_translate.dstY = y + _innerVPadding
+		_behaviorX.enabled = true
+		_behaviorY.enabled = true
+	}
+
+	Component.onCompleted: reset()
 }

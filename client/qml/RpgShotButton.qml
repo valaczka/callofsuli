@@ -75,8 +75,7 @@ GameButton {
 
 
 	function reset() {
-		let padding = Math.max(10, Client.safeMarginRight, Client.safeMarginBottom,
-							   (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 30 : 0)
+		let padding = 10+Math.max(Client.safeMarginRight, Client.safeMarginBottom)
 
 		_animationEnabled = false
 

@@ -131,12 +131,6 @@ FocusScope {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		anchors.leftMargin: Math.max(Client.safeMarginLeft,
-							   (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 50 : 0
-							   )
-		anchors.bottomMargin: Math.max(Client.safeMarginBottom,
-							   (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 50 : 0
-							   )
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
 		//size: Client.Utils.settingsGet("window/joystick", 160)
 	}
@@ -382,7 +376,8 @@ FocusScope {
 		size: 40
 
 		anchors.left: _rowTime.left
-		y: Math.min((parent.height-height)/2, _gameJoystick.y-10-height)
+		//y: Math.min((parent.height-height)/2, _gameJoystick.y-10-height)
+		anchors.verticalCenter: parent.verticalCenter
 
 		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.nextWeapon : null
 
