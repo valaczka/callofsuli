@@ -428,6 +428,10 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle, const q
 		if (m_player->isLocked())
 			return false;
 
+		if (m_playerDistance < m_metric.sensorLength*0.2 &&
+				(m_autoHitTimer.isForever() || m_autoHitTimer.remainingTime() > m_metric.autoAttackTime))
+			m_autoHitTimer.setRemainingTime(0);
+
 		if (m_autoHitTimer.hasExpired()) {
 			attackPlayer(m_player, defaultWeapon());
 			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);

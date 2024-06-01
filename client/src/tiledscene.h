@@ -173,6 +173,7 @@ private:
 
 	std::vector<DynamicZ> m_dynamicZList;
 	QElapsedTimer m_worldStepTimer;
+	std::vector<qreal> m_stepFactors;
 
 	friend class TiledGame;
 };

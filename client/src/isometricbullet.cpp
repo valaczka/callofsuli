@@ -92,6 +92,7 @@ void IsometricBullet::initialize()
 	m_fixture->setDensity(1);
 	m_fixture->setFriction(1);
 	m_fixture->setRestitution(0);
+	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget));
 	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody) |

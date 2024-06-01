@@ -45,10 +45,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	, m_effectHealed(this)
 	, m_weaponHand(new RpgWerebearWeaponHand)
 {
-	m_metric.speed = 2.;
-	m_metric.returnSpeed = 4.;
-	m_metric.pursuitSpeed = 4.;
-	m_metric.sleepingTime = 0;
+	setMetric(RpgGame::defaultEnemyMetric().werebear.value(QStringLiteral("default")));
 
 	m_sfxPain.setSoundList({
 							   QStringLiteral(":/rpg/werebear/monster-5.mp3"),

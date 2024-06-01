@@ -3,8 +3,11 @@ import Qaterial 1.0 as Qaterial
 
 Item {
 	id: root
-	width: size*2.5
-	height: size*2.5
+
+	property bool extendedSize: false
+
+	width: extendedSize ? size*3 : size*1.3
+	height: extendedSize ? size*3 : size*1.3
 
 	property real size: 120 * Qaterial.Style.pixelSizeRatio
 	property real thumbSize: 40 * Qaterial.Style.pixelSizeRatio

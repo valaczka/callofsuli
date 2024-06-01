@@ -221,12 +221,15 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 
 QSGTexture *TiledGame::getTexture(const QString &path, QQuickWindow *window)
 {
-	Q_ASSERT(window);
-
 	auto it = m_sharedTextures.find(path);
 
 	if (it != m_sharedTextures.end())
 		return it->second.get();
+
+	if (!window) {
+		LOG_CERROR("scene") << "Can't create texture:" << path;
+		return nullptr;
+	}
 
 	QSGTexture *texture = window->createTextureFromImage(QImage(path));
 

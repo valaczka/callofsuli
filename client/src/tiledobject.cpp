@@ -1254,6 +1254,17 @@ void TiledObjectBody::emplace(const QPointF &center)
 
 
 /**
+ * @brief TiledObjectBody::setSpeed
+ * @param point
+ */
+
+void TiledObjectBody::setSpeed(const QPointF &point)
+{
+	setLinearVelocity(point * mWorld->metersPerPixel());
+}
+
+
+/**
  * @brief TiledObjectBody::stop
  */
 

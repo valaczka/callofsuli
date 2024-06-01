@@ -78,6 +78,8 @@ public:
 
 	bool isAlive() const { return m_hp > 0; }
 
+	static qreal toMovingSpeed(const qreal &speed) { return speed * 0.53334f; }
+
 	virtual void updateSprite() = 0;
 
 public:
@@ -91,7 +93,7 @@ public:
 	void setMovingSpeed(qreal newMovingSpeed);
 
 protected:
-	void entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections);
+	void entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections);
 
 	virtual void onAlive() = 0;
 	virtual void onDead() = 0;
@@ -196,7 +198,7 @@ protected:
 	virtual void entityWorldStep(const qreal &factor) { Q_UNUSED(factor); }
 
 	void worldStep(const qreal &factor) override final {
-		entityIfaceWorldStep(position(), m_availableDirections);
+		entityIfaceWorldStep(factor, position(), m_availableDirections);
 		entityWorldStep(factor);
 	};
 

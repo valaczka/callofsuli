@@ -112,6 +112,7 @@ protected:
 
 
 private:
+	void rpgGameActivated_();
 	void updateConfig();
 	void onConfigChanged();
 	void downloadGameData();

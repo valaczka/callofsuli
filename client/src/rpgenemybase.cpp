@@ -43,14 +43,10 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 {
 	m_armory.reset(new RpgArmory(this));
 
-	m_metric.speed = 2.;
-	m_metric.runSpeed = 3.;
-	m_metric.returnSpeed = 4.;
-	m_metric.pursuitSpeed = 6.;
+	setMetric(RpgGame::defaultEnemyMetric().soldier.value(QStringLiteral("default")));
 
 	if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix) {
-		m_metric.firstAttackTime = 500;
-		m_metric.autoAttackTime = 1250;
+		setMetric(RpgGame::defaultEnemyMetric().archer.value(QStringLiteral("default")));
 	}
 
 	m_moveDisabledSpriteList = QStringList{

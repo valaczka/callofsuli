@@ -132,6 +132,7 @@ FocusScope {
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
+		extendedSize: !_game.mouseAttack && !_game.mouseNavigation
 		//size: Client.Utils.settingsGet("window/joystick", 160)
 	}
 

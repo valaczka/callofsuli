@@ -143,8 +143,9 @@ void ActionRpgGame::selectCharacter(const QString &character)
 	m_playerConfig.character = character;
 
 	m_config.gameState = RpgConfig::StatePrepare;
+	QMetaObject::invokeMethod(this, &ActionRpgGame::updateConfig, Qt::QueuedConnection);
 
-	QTimer::singleShot(200, this, &ActionRpgGame::updateConfig);
+	//QTimer::singleShot(200, this, &ActionRpgGame::updateConfig);
 	//updateConfig();
 }
 
@@ -159,60 +160,7 @@ void ActionRpgGame::rpgGameActivated()
 	if (!m_rpgGame)
 		return;
 
-	const auto &ptr = RpgGame::readGameDefinition(m_missionLevel->terrain());
-
-	if (!ptr)
-		return;
-
-	m_config.duration = ptr->duration + m_missionLevel->duration();
-	updateConfig();
-
-	if (!m_rpgGame->load(ptr.value())) {
-		LOG_CERROR("game") << "Game load error";
-		return;
-	}
-
-	TiledScene *firstScene = m_rpgGame->findScene(ptr->firstScene);
-
-	if (!firstScene) {
-		LOG_CERROR("game") << "Game load error";
-		return;
-	}
-
-
-	const auto &ptrPos = m_rpgGame->playerPosition(firstScene, 0);
-
-	QList<RpgPlayer*> list;
-
-	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, m_playerConfig.character);
-
-	player->setHp(m_missionLevel->startHP());
-	player->setMaxHp(m_missionLevel->startHP());
-	loadInventory(player);
-
-	player->emplace(ptrPos.value_or(QPointF{0,0}));
-	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
-
-	firstScene->appendToObjects(player);
-	m_rpgGame->setFollowedItem(player);
-	m_rpgGame->setControlledPlayer(player);
-
-	player->setCurrentSceneStartPosition(ptrPos.value_or(QPointF{0,0}));
-
-	list.append(player);
-
-	m_rpgGame->setPlayers(list);
-
-	m_rpgQuestion->initialize();
-
-	for (TiledScene *s : m_rpgGame->sceneList()) {
-		m_rpgGame->setQuestions(s, m_missionLevel->questions());
-	}
-
-	/*if (!m_rpgGame->m_gameDefinition.music.isEmpty())
-		m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);*/
-
-	emit m_rpgGame->gameLoaded();
+	QMetaObject::invokeMethod(this, &ActionRpgGame::rpgGameActivated_, Qt::QueuedConnection);
 }
 
 
@@ -301,7 +249,7 @@ bool ActionRpgGame::gameFinishEvent()
 void ActionRpgGame::gamePrepared()
 {
 	m_config.gameState = RpgConfig::StatePlay;
-	updateConfig();
+	QMetaObject::invokeMethod(this, &ActionRpgGame::updateConfig, Qt::QueuedConnection);
 }
 
 
@@ -433,6 +381,72 @@ void ActionRpgGame::onGameFailed()
 void ActionRpgGame::onGameLoadFailed(const QString &)
 {
 	m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
+}
+
+
+/**
+ * @brief ActionRpgGame::rpgGameActivated_
+ */
+
+void ActionRpgGame::rpgGameActivated_()
+{
+	if (!m_rpgGame)
+		return;
+
+	const auto &ptr = RpgGame::readGameDefinition(m_missionLevel->terrain());
+
+	if (!ptr)
+		return;
+
+	m_config.duration = ptr->duration + m_missionLevel->duration();
+	updateConfig();
+
+	if (!m_rpgGame->load(ptr.value())) {
+		LOG_CERROR("game") << "Game load error";
+		return;
+	}
+
+	TiledScene *firstScene = m_rpgGame->findScene(ptr->firstScene);
+
+	if (!firstScene) {
+		LOG_CERROR("game") << "Game load error";
+		return;
+	}
+
+
+	const auto &ptrPos = m_rpgGame->playerPosition(firstScene, 0);
+
+	QList<RpgPlayer*> list;
+
+	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, m_playerConfig.character);
+
+	player->setHp(m_missionLevel->startHP());
+	player->setMaxHp(m_missionLevel->startHP());
+	loadInventory(player);
+
+	player->emplace(ptrPos.value_or(QPointF{0,0}));
+	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
+
+	firstScene->appendToObjects(player);
+	m_rpgGame->setFollowedItem(player);
+	m_rpgGame->setControlledPlayer(player);
+
+	player->setCurrentSceneStartPosition(ptrPos.value_or(QPointF{0,0}));
+
+	list.append(player);
+
+	m_rpgGame->setPlayers(list);
+
+	m_rpgQuestion->initialize();
+
+	for (TiledScene *s : m_rpgGame->sceneList()) {
+		m_rpgGame->setQuestions(s, m_missionLevel->questions());
+	}
+
+	/*if (!m_rpgGame->m_gameDefinition.music.isEmpty())
+		m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);*/
+
+	emit m_rpgGame->gameLoaded();
 }
 
 

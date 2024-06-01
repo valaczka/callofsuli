@@ -47,7 +47,7 @@ TiledScene::TiledScene(QQuickItem *parent)
 
 	m_world->setGravity(QPointF{0,0});
 	m_world->setTimeStep(1./60.);
-	connect(m_world.get(), &Box2DWorld::stepped, this, &TiledScene::onWorldStepped);
+	connect(m_world.get(), &Box2DWorld::stepped, this, &TiledScene::onWorldStepped, Qt::DirectConnection);
 	m_world->componentComplete();
 
 	setImplicitHeight(100);
@@ -280,13 +280,20 @@ void TiledScene::onWorldStepped()
 
 		qreal f = msec/(1000.f/60.f);
 
-		if (f > 1.1f)
-			factor = f;
+		m_stepFactors.push_back(f);
 	} else {
 		m_worldStepTimer.start();
 	}
 
-	for (TiledObject *obj : std::as_const(m_tiledObjects)) {
+	if (m_stepFactors.size() > 6) {
+		m_stepFactors.erase(m_stepFactors.begin());
+		const qreal f = std::accumulate(m_stepFactors.cbegin(), m_stepFactors.cend(), 0.f) /
+						m_stepFactors.size();
+		if (f > 1.1f)
+			factor = f;
+	}
+
+	for (TiledObject *obj : m_tiledObjects) {
 		if (!obj)
 			continue;
 
@@ -322,7 +329,7 @@ void TiledScene::reorderObjectsZ()
 {
 	QHash<qreal, QMultiMap<qreal, TiledObject*>> map;
 
-	for (TiledObject *obj : std::as_const(m_tiledObjects)) {
+	for (TiledObject *obj : m_tiledObjects) {
 		if (!obj || !obj->body())
 			continue;
 
@@ -360,7 +367,7 @@ void TiledScene::reorderObjectsZ()
 
 void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 {
-	for (auto *mapItem : std::as_const(mTileLayerItems)) {
+	for (auto *mapItem : mTileLayerItems) {
 		if (mapItem->tileLayer()->usedTilesets().contains(tileset->sharedPointer())) {
 			mapItem->update();
 		}
@@ -511,7 +518,7 @@ void TiledScene::refresh()
 
 	mRenderer = Tiled::MapRenderer::create(mMap);
 
-	for (Tiled::Layer *layer : std::as_const(mMap->layers())) {
+	for (Tiled::Layer *layer : mMap->layers()) {
 		m_game->loadSceneLayer(this, layer, mRenderer.get());
 	}
 

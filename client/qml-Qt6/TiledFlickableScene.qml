@@ -74,9 +74,12 @@ Flickable {
 				flick.returnToBounds();
 			}
 
-			visibleArea: flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
-												 flick.width / scale, flick.height / scale) :
+			visibleArea: flick.visible ? Qt.rect(0, 0, width, height) :
 										 Qt.rect(0,0,0,0)
+
+			/*visibleArea: flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
+												 flick.width / scale, flick.height / scale) :
+										 Qt.rect(0,0,0,0)*/
 
 			//------------------------------------------------
 			/*onTestPointsChanged: _canvas.requestPaint()

@@ -110,7 +110,7 @@ QPointF &IsometricEntityIface::maximizeSpeed(QPointF &point, const qreal &maximu
  * @param position
  */
 
-void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const TiledObject::Directions &availableDirections)
+void IsometricEntityIface::entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections)
 {
 	if (qFuzzyCompare(position.x(), m_lastPosition.x()) && qFuzzyCompare(position.y(), m_lastPosition.y())) {
 		setMovingDirection(TiledObject::Invalid);
@@ -122,7 +122,7 @@ void IsometricEntityIface::entityIfaceWorldStep(const QPointF &position, const T
 	setMovingDirection(TiledObject::nearestDirectionFromRadian(availableDirections,
 															   TiledObject::toRadian(line.angle())));
 
-	setMovingSpeed(QVector2D(position-m_lastPosition).length());
+	setMovingSpeed(line.length() / factor);
 	m_lastPosition = position;
 }
 

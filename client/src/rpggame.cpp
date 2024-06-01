@@ -1145,11 +1145,50 @@ void RpgGame::loadMetricDefinition()
 
 	m_metricDefinition.clear();
 
-	for (const QString &l : levelDefList) {
-		RpgEnemyMetricDefinition metric;
+	RpgEnemyMetricDefinition metric;
 
+	static const RpgEnemyMetricDefinition defaultMetric = defaultEnemyMetric();
+	static const std::vector<const QHash<QString, EnemyMetric>*> defM = {
+		&defaultMetric.soldier,
+		&defaultMetric.archer,
+		&defaultMetric.skeleton,
+		&defaultMetric.werebear
+	};
+	static const QStringList keyList = {
+		QStringLiteral("soldier"),
+		QStringLiteral("archer"),
+		QStringLiteral("skeleton"),
+		QStringLiteral("werebear"),
+	};
+
+	for (const QString &l : levelDefList) {
 		if (const auto &ptr = Utils::fileToJsonObject(l); ptr.has_value()) {
-			metric.fromJson(ptr.value());
+			std::vector<QHash<QString, EnemyMetric>*> dst = {
+				&metric.soldier,
+				&metric.archer,
+				&metric.skeleton,
+				&metric.werebear
+			};
+
+
+			for (int i=0; i<keyList.size(); ++i) {
+				const QJsonObject sPtr = ptr->value(keyList.at(i)).toObject();
+				auto dPtr = dst.at(i);
+
+				for (auto it=sPtr.constBegin(); it != sPtr.constEnd(); ++it) {
+					auto dstIt = dPtr->find(it.key());
+
+					EnemyMetric baseMetric = defM.at(i)->value(QStringLiteral("default"));
+					baseMetric.fromJson(it.value());
+
+					if (dstIt == dPtr->end()) {
+						dPtr->insert(it.key(), baseMetric);
+					} else {
+						*dstIt = baseMetric;
+					}
+				}
+
+			}
 		}
 
 		m_metricDefinition.append(metric);
@@ -1733,6 +1772,47 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 	}
 
 	return {};
+}
+
+
+/**
+ * @brief RpgGame::defaultEnemyMetric
+ * @return
+ */
+
+RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
+{
+	// TODO: LPC metric
+
+	static RpgEnemyMetricDefinition *def = nullptr;
+
+	if (!def) {
+		def = new RpgEnemyMetricDefinition;
+
+		EnemyMetric soldier;
+		soldier.speed = 2.;
+		soldier.runSpeed = IsometricEntityIface::toMovingSpeed(4.5);
+		soldier.returnSpeed = 3.5;
+		soldier.pursuitSpeed = 5.5;
+
+		EnemyMetric archer = soldier;
+		archer.firstAttackTime = 500;
+		archer.autoAttackTime = 1250;
+
+		EnemyMetric werebear;
+		werebear.speed = 2.;
+		werebear.returnSpeed = 4.;
+		werebear.pursuitSpeed = 4.;
+		werebear.sleepingTime = 0;
+
+		def->soldier.insert(QStringLiteral("default"), soldier);
+		def->archer.insert(QStringLiteral("default"), archer);
+		def->werebear.insert(QStringLiteral("default"), werebear);
+		def->skeleton.insert(QStringLiteral("default"), soldier);
+	}
+
+
+	return *def;
 }
 
 

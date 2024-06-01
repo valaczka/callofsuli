@@ -133,6 +133,7 @@ public:
 	void emplace(const QPointF &center);
 	void emplace(const qreal &centerX, const qreal &centerY) { emplace(QPointF(centerX, centerY)); }
 
+	void setSpeed(const QPointF &point);
 	void stop();
 
 	QPointF bodyOffset() const;
