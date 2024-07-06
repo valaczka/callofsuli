@@ -49,9 +49,10 @@
 #endif
 
 
-
-
 /// Static hash
+
+QHash<QString, RpgGameDefinition> RpgGame::m_terrains;
+QHash<QString, RpgPlayerCharacterConfig> RpgGame::m_characters;
 
 const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 	{ QStringLiteral("werebear"), EnemyWerebear },
@@ -62,10 +63,6 @@ const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 	{ QStringLiteral("skeleton"), EnemySkeleton },
 };
 
-
-/// Static terrains
-
-QVector<RpgGame::TerrainData> RpgGame::m_availableTerrains;
 
 
 /// Base entity (special thanks to SKYZ0R)
@@ -230,44 +227,6 @@ RpgGame::~RpgGame()
 	m_players.clear();
 }
 
-
-
-
-
-/**
- * @brief RpgGame::reloadAvailableTerrains
- */
-
-void RpgGame::reloadAvailableTerrains()
-{
-	LOG_CDEBUG("game") << "Reload available RPG terrains...";
-
-	m_availableTerrains.clear();
-
-	QDirIterator it(QStringLiteral(":/map"), {QStringLiteral("game.json")}, QDir::Files, QDirIterator::Subdirectories);
-
-	while (it.hasNext()) {
-		const QString &f = it.next();
-
-		TerrainData data;
-		data.id = f.section('/',-2,-2);
-
-		if (const auto &ptr = Utils::fileToJsonObject(f)) {
-			const QString &name = ptr->value(QStringLiteral("name")).toString();
-			data.displayName = name.isEmpty() ? data.id : name;
-
-			if (const QString &image = ptr->value(QStringLiteral("image")).toString(); !image.isEmpty()) {
-				data.image = f.section('/', 0, -2).append('/').append(image);
-			}
-
-			data.duration = ptr->value(QStringLiteral("duration")).toInt();
-		}
-
-		m_availableTerrains.append(data);
-	}
-
-	LOG_CDEBUG("game") << "...loaded " << m_availableTerrains.size() << " terrains";
-}
 
 
 
@@ -550,31 +509,6 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 	int num = 0;
 
 	if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(enemy)) {
-		for (TiledWeapon *w : iface->throwableWeapons()) {
-			if (RpgPickableWeaponIface *wIface = dynamic_cast<RpgPickableWeaponIface*>(w)) {
-				const RpgPickableObject::PickableType &wType = wIface->toPickable();
-				const RpgPickableObject::PickableType &bType = wIface->toBulletPickable();
-
-				if (w->canThrowBullet() && bType != RpgPickableObject::PickableInvalid) {
-					if (RpgPickableObject *pickable = createPickable(bType, enemy->scene())) {
-						pickable->body()->emplace(iface->getPickablePosition(num++));
-						enemy->scene()->appendToObjects(pickable);
-						pickable->setIsActive(true);
-					}
-				}
-
-				if (w->canThrow() && wType != RpgPickableObject::PickableInvalid) {
-					if (RpgPickableObject *pickable = createPickable(wType, enemy->scene())) {
-						pickable->body()->emplace(iface->getPickablePosition(num++));
-						enemy->scene()->appendToObjects(pickable);
-						pickable->setIsActive(true);
-					}
-					iface->throwWeapon(w);
-				}
-			}
-		}
-
-
 		if (IsometricEnemy *isoEnemy = qobject_cast<IsometricEnemy*>(enemy)) {
 			if (auto it = enemyFind(isoEnemy); it != m_enemyDataList.end()) {
 				for (const auto &p : it->pickables) {
@@ -1571,6 +1505,122 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 						[enemy](const EnemyData &e)	{
 		return e.enemy == enemy; }
 	);
+}
+
+
+/**
+ * @brief RpgGame::terrains
+ * @return
+ */
+
+const QHash<QString, RpgGameDefinition> &RpgGame::terrains()
+{
+	return m_terrains;
+}
+
+
+
+/**
+ * @brief RpgGame::reloadTerrains
+ */
+
+void RpgGame::reloadTerrains()
+{
+	LOG_CDEBUG("game") << "Reload available RPG terrains...";
+
+	m_terrains.clear();
+
+	QDirIterator it(QStringLiteral(":/map"), {QStringLiteral("game.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext()) {
+		const QString &f = it.next();
+
+		QString id = f.section('/',-2,-2);
+
+		if (const auto &ptr = readGameDefinition(id)) {
+			m_terrains.insert(id, ptr.value());
+		} else {
+			LOG_CWARNING("game") << "Invalid RPG terrain:" << qPrintable(f);
+		}
+	}
+
+	LOG_CDEBUG("game") << "...loaded " << m_terrains.size() << " terrains";
+}
+
+
+/**
+ * @brief RpgGame::characters
+ * @return
+ */
+
+const QHash<QString, RpgPlayerCharacterConfig> &RpgGame::characters()
+{
+	return m_characters;
+}
+
+
+
+
+/**
+ * @brief RpgGame::reloadCharacters
+ */
+
+void RpgGame::reloadCharacters()
+{
+	LOG_CDEBUG("game") << "Reload available RPG characters...";
+
+	m_characters.clear();
+
+	QDirIterator it(QStringLiteral(":/character"), {QStringLiteral("character.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+	static const auto writeOnConfig = [](RpgPlayerCharacterConfig *cfg, const QJsonObject &obj, const QString &path) {
+		Q_ASSERT(cfg);
+		cfg->fromJson(obj);
+
+		if (cfg->name.isEmpty())
+			cfg->name = path;
+
+		cfg->prefixPath = QStringLiteral(":/character/").append(path).append('/');
+
+		if (!cfg->image.isEmpty()) {
+			cfg->image.prepend(QStringLiteral("qrc")+cfg->prefixPath);
+		}
+
+		cfg->updateSfxPath(cfg->prefixPath);
+	};
+
+	while (it.hasNext()) {
+		const QString &f = it.next();
+
+		QString id = f.section('/',-2,-2);
+
+		const auto &ptr = Utils::fileToJsonObject(f);
+
+		if (!ptr) {
+			LOG_CERROR("game") << "Invalid config json:" << f;
+			continue;
+		}
+
+		RpgPlayerCharacterConfig config;
+
+		if (!config.base.isEmpty()) {
+			QString basePath = QStringLiteral(":/character/").append(config.base).append(QStringLiteral("/character.json"));
+
+			const auto &basePtr = Utils::fileToJsonObject(basePath);
+
+			if (!basePtr) {
+				LOG_CERROR("game") << "Invalid config base:" << config.base << "in:" << f;
+			} else {
+				writeOnConfig(&config, basePtr.value(), config.base);
+			}
+		}
+
+		writeOnConfig(&config, ptr.value(), f);
+
+		m_characters.insert(id, config);
+	}
+
+	LOG_CDEBUG("game") << "...loaded " << m_characters.size() << " characters";
 }
 
 

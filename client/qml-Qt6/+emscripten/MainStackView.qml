@@ -73,14 +73,14 @@ Qaterial.StackView
 		}
 	}
 
-	Connections {
+	/*Connections {
 		target: Client
 
 		function onAllResourceReady() {
 			_timer.stop()
 			loadingLabel.text = qsTr("Dinamikus tartalmak letöltése...")
 		}
-	}
+	}*/
 
 	pushEnter: transitionEnter
 	pushExit: transitionExit

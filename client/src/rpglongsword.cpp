@@ -127,17 +127,6 @@ bool RpgLongswordPickable::playerPick(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgLongswordPickable::playerThrow
- * @param player
- */
-
-void RpgLongswordPickable::playerThrow(RpgPlayer *player)
-{
-
-}
-
-
 
 /**
  * @brief RpgLongswordPickable::load

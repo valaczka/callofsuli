@@ -128,7 +128,6 @@ public slots:
 
 private:
 	void abortAllReplies();
-	void onServerDynamicContentReadyChanged();
 
 signals:
 	void serverConnected();

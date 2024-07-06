@@ -173,4 +173,56 @@ public:
 
 Q_DECLARE_METATYPE(RpgPlayerConfig)
 
+
+
+
+
+/**
+ * @brief The RpgMarket class
+ */
+
+class RpgMarket : public QSerializer
+{
+	Q_GADGET
+
+public:
+	enum Repeat {
+		None = 0,
+		Game,
+		Day
+	};
+
+	Q_ENUM(Repeat);
+
+	RpgMarket()
+		: QSerializer()
+		, cost(0)
+		, rank(0)
+		, amount(1)
+		, repeat(None)
+		, num(0)
+		, exp(0)
+	{}
+
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, cost)
+	QS_FIELD(int, rank)
+
+	QS_FIELD(int, amount)
+
+	// Maximize
+
+	QS_FIELD(Repeat, repeat)
+	QS_FIELD(int, num)
+
+	// Expiry
+
+	QS_FIELD(int, exp)			// minutes
+};
+
+Q_DECLARE_METATYPE(RpgMarket)
+
+
 #endif // RPGCONFIG_H

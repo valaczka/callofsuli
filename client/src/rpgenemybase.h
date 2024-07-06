@@ -43,9 +43,6 @@ public:
 	virtual ~RpgEnemyBase();
 
 	TiledWeapon *defaultWeapon() const override;
-	virtual QList<TiledWeapon*> throwableWeapons() const override;
-	virtual void throwWeapon(TiledWeapon *weapon) override;
-
 	virtual bool canBulletImpact(const TiledWeapon::WeaponType &type) const override;
 
 	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,

@@ -52,16 +52,6 @@ bool RpgHpPickable::playerPick(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgHpPickable::playerThrow
- * @param player
- */
-
-void RpgHpPickable::playerThrow(RpgPlayer *player)
-{
-
-}
-
 
 
 /**

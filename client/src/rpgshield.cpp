@@ -136,17 +136,6 @@ bool RpgShieldPickable::playerPick(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgShieldPickable::playerThrow
- * @param player
- */
-
-void RpgShieldPickable::playerThrow(RpgPlayer *player)
-{
-
-}
-
-
 
 /**
  * @brief RpgShieldPickable::pick

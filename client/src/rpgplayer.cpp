@@ -29,7 +29,6 @@
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
 #include "rpggame.h"
-#include "utils_.h"
 #include <QDirIterator>
 #include "application.h"
 
@@ -37,8 +36,6 @@
 #include "standaloneclient.h"
 #endif
 
-
-QVector<RpgPlayer::CharacterData> RpgPlayer::m_availableCharacters;
 
 
 /**
@@ -95,11 +92,11 @@ RpgPlayer::~RpgPlayer()
  * @brief RpgPlayer::createPlayer
  * @param game
  * @param scene
- * @param character
+ * @param config
  * @return
  */
 
-RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const QString &character)
+RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const RpgPlayerCharacterConfig &config)
 {
 	RpgPlayer *player = nullptr;
 	TiledObjectBase::createFromCircle<RpgPlayer>(&player, QPointF{}, 30, nullptr, game);
@@ -108,59 +105,13 @@ RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const QStri
 		player->setParent(game);
 		player->setGame(game);
 		player->setScene(scene);
-		player->setCharacter(character);
+		player->setConfig(config);
 		player->initialize();
 	}
 
 	return player;
 }
 
-
-
-/**
- * @brief RpgPlayer::reloadAvailableCharacters
- */
-
-void RpgPlayer::reloadAvailableCharacters()
-{
-	LOG_CDEBUG("game") << "Reload available RPG characters...";
-
-	m_availableCharacters.clear();
-
-	QDirIterator it(QStringLiteral(":/rpg"), {QStringLiteral("character.json")}, QDir::Files, QDirIterator::Subdirectories);
-
-	while (it.hasNext()) {
-		const QString &f = it.next();
-
-		CharacterData data;
-		data.id = f.section('/',-2,-2);
-
-		const auto &ptr = Utils::fileToJsonObject(f);
-
-		if (!ptr) {
-			LOG_CERROR("game") << "Invalid config json:" << f;
-			continue;
-		}
-
-		QString prefixPath = QStringLiteral(":/")+f.section('/', 1, -2).append('/');
-
-		data.config.fromJson(ptr.value());
-
-		if (data.config.name.isEmpty())
-			data.config.name = f;
-
-
-		if (!data.config.image.isEmpty()) {
-			data.config.image.prepend(QStringLiteral("qrc")+prefixPath);
-		}
-
-		data.config.updateSfxPath(prefixPath);
-
-		m_availableCharacters.append(data);
-	}
-
-	LOG_CDEBUG("game") << "...loaded " << m_availableCharacters.size() << " characters";
-}
 
 
 /**
@@ -319,26 +270,13 @@ void RpgPlayer::load()
 {
 	setAvailableDirections(Direction_8);
 
-	auto ptr = std::find_if(m_availableCharacters.cbegin(), m_availableCharacters.cend(),
-							[this](const CharacterData &d) {
-		return d.id == m_character;
-	});
-
-	if (ptr == m_availableCharacters.cend()) {
-		LOG_CERROR("game") << "Invalid character:" << m_character;
-		return;
-	}
-
-	m_config = ptr->config;
-
-
 	for (int i=0; i<=2; ++i)
 	{
 		IsometricObjectLayeredSprite json;
 		json.fromJson(RpgGame::baseEntitySprite(i));
 		json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
 		RpgArmory::fillAvailableLayers(&json, i);
-		appendSprite(json, QStringLiteral(":/rpg/")+m_character+QStringLiteral("/"));
+		appendSprite(json, m_config.prefixPath);
 	}
 
 	setWidth(148);
@@ -716,6 +654,14 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 
 
 
+void RpgPlayer::setConfig(const RpgPlayerCharacterConfig &newConfig)
+{
+	m_config = newConfig;
+	emit configChanged();
+}
+
+
+
 /**
  * @brief RpgPlayer::inventory
  * @return
@@ -728,11 +674,6 @@ RpgInventoryList*RpgPlayer::inventory() const
 
 
 
-
-const RpgPlayerCharacterConfig &RpgPlayer::config() const
-{
-	return m_config;
-}
 
 
 
@@ -879,6 +820,17 @@ void RpgPlayer::setShieldCount(int newShieldCount)
 
 
 /**
+ * @brief RpgPlayer::config
+ * @return
+ */
+
+const RpgPlayerCharacterConfig &RpgPlayer::config() const
+{
+	return m_config;
+}
+
+
+/**
  * @brief RpgPlayer::currentSceneStartPosition
  * @return
  */
@@ -913,27 +865,6 @@ RpgArmory *RpgPlayer::armory() const
 
 
 
-
-/**
- * @brief RpgPlayer::character
- * @return
- */
-
-QString RpgPlayer::character() const
-{
-	return m_character;
-}
-
-void RpgPlayer::setCharacter(const QString &newCharacter)
-{
-	if (m_character == newCharacter)
-		return;
-	m_character = newCharacter;
-	emit characterChanged();
-}
-
-
-
 /**
  * @brief RpgPlayerCharacterConfig::updateSfxPath
  * @param prefix
@@ -956,3 +887,4 @@ void RpgPlayerCharacterConfig::updateSfxPath(const QString &prefix)
 	if (!sfxDead.isEmpty() && !sfxDead.startsWith(QStringLiteral(":/")))
 		sfxDead.prepend(prefix);
 }
+

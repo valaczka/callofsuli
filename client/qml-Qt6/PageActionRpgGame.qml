@@ -44,7 +44,7 @@ Page {
 												 game.config.gameState == RpgConfig.StatePrepare)
 
 
-	property int _oldWindowState: Window.AutomaticVisibility
+	property bool _oldWindowState: Client.fullScreenHelper
 
 	//property bool _isUnprepared: false
 
@@ -170,16 +170,6 @@ Page {
 		}*/
 
 		function onConfigChanged() {
-			if (Client.server && !Client.server.dynamicContentReady) {
-				_stack.activeComponent = _cmpDownload
-				return
-			}
-
-			/*if (game.config.gameState == RpgConfig.StateFinished && _isUnprepared) {
-				_stack.activeComponent = _cmpConnect
-				return
-			}*/
-
 			switch (game.config.gameState) {
 			case RpgConfig.StatePrepare:
 			case RpgConfig.StatePlay:
@@ -231,8 +221,8 @@ Page {
 			game.playMenuBgMusic()
 
 		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
-			_oldWindowState = Client.mainWindow.visibility
-			Client.mainWindow.showFullScreen()
+			_oldWindowState = Client.fullScreenHelper
+			Client.fullScreenHelper = true
 		}
 	}
 
@@ -242,8 +232,8 @@ Page {
 		}
 
 		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
-			if (_oldWindowState != Window.FullScreen)
-				Client.mainWindow.showMaximized()
+			if (_oldWindowState != Client.fullScreenHelper)
+				Client.fullScreenHelper = false
 		}
 	}
 }

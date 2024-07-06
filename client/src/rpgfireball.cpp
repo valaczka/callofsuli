@@ -150,16 +150,6 @@ bool RpgFireballPickable::playerPick(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgFireballPickable::playerThrow
- * @param player
- */
-
-void RpgFireballPickable::playerThrow(RpgPlayer *player)
-{
-
-}
-
 
 
 /**

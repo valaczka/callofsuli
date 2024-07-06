@@ -58,8 +58,6 @@ public:
 	const RpgEnemyType &enemyType() const { return m_enemyType; }
 
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
-	virtual QList<TiledWeapon*> throwableWeapons() const = 0;
-	virtual void throwWeapon(TiledWeapon *weapon) = 0;
 
 	RpgArmory *armory() const { return m_armory.get(); }
 

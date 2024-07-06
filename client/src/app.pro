@@ -312,9 +312,9 @@ SOURCES += \
 	websocket.cpp
 
 lessThan(QT_MAJOR_VERSION, 6): {
-	RESOURCES += \
-		../qml/qml.qrc \
-		../qml/QaterialHelper.qrc
+#	RESOURCES += \
+#		../qml/qml.qrc \
+#		../qml/QaterialHelper.qrc
 } else {
 	RESOURCES += \
 		../qml-Qt6/qml.qrc \

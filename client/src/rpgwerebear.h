@@ -89,8 +89,6 @@ public:
 	void setWerebearType(const QString &text);
 
 	TiledWeapon *defaultWeapon() const override;
-	virtual QList<TiledWeapon*> throwableWeapons() const override final { return {}; }
-	virtual void throwWeapon(TiledWeapon *) override final {}
 
 	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
 									IsometricPlayer *player = nullptr) const override;

@@ -231,6 +231,21 @@ QItemGradient {
 													studentMapHandler: studentMapHandler
 												})
 			}
+
+
+
+			QDashboardButton {
+				text: qsTr("DOWNLOAD")
+				visible: !_grid.showPlaceholders
+				icon.source: Qaterial.Icons.controller
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.green500
+
+				onClicked: Client.downloader.download()
+			}
 		}
 
 	}

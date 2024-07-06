@@ -1,3 +1,0 @@
-ruleClear.tmx
-rule.tmx
-rule2.tmx

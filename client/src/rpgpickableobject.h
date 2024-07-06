@@ -77,7 +77,6 @@ public:
 	PickableType pickableType() const;
 
 	virtual bool playerPick(RpgPlayer *player) = 0;
-	virtual void playerThrow(RpgPlayer *player) = 0;
 
 	QString name() const;
 	void setName(const QString &newName);

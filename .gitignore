@@ -56,3 +56,5 @@ client/src/android/AndroidManifest.xml
 
 *.orig
 *.rej
+
+build/*

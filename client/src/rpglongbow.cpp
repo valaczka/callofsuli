@@ -123,17 +123,6 @@ bool RpgLongbowPickable::playerPick(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgLongbowPickable::playerThrow
- * @param player
- */
-
-void RpgLongbowPickable::playerThrow(RpgPlayer *player)
-{
-
-}
-
-
 
 /**
  * @brief RpgLongbowPickable::load

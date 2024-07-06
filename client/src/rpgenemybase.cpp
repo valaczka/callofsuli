@@ -285,36 +285,6 @@ QPointF RpgEnemyBase::getPickablePosition(const int &num) const
 
 
 /**
- * @brief RpgEnemyBase::throwableWeapons
- * @return
- */
-
-QList<TiledWeapon *> RpgEnemyBase::throwableWeapons() const
-{
-	QList<TiledWeapon*> list;
-
-	for (TiledWeapon *w : std::as_const(*m_armory->weaponList())) {
-		if (w->canThrow() || w->canThrowBullet())
-			list.append(w);
-	}
-
-	return list;
-}
-
-
-
-/**
- * @brief RpgEnemyBase::throwWeapon
- * @param weapon
- */
-
-void RpgEnemyBase::throwWeapon(TiledWeapon *weapon)
-{
-	m_armory->weaponRemove(weapon);
-}
-
-
-/**
  * @brief RpgEnemyBase::canBulletImpact
  * @param type
  * @return

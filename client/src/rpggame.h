@@ -66,6 +66,10 @@ public:
 
 	QS_FIELD(QString, minVersion)
 
+	// Market
+
+	QS_OBJECT(RpgMarket, market)
+
 	// Inventory
 
 	QS_COLLECTION(QList, QString, inventory)
@@ -130,18 +134,13 @@ public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
 
-	struct TerrainData {
-		QString id;
-		QString displayName;
-		QString image;
-		int duration = 0;
-	};
-
-	static void reloadAvailableTerrains();
-	static QVector<TerrainData> &availableTerrains() { return m_availableTerrains; }
-
 	Q_INVOKABLE bool load(const RpgGameDefinition &def);
 
+	static const QHash<QString, RpgGameDefinition> &terrains();
+	static void reloadTerrains();
+
+	static const QHash<QString, RpgPlayerCharacterConfig> &characters();
+	static void reloadCharacters();
 
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
@@ -335,7 +334,8 @@ private:
 	static const QByteArray m_baseEntitySprite1;
 	static const QByteArray m_baseEntitySprite2;
 
-	static QVector<TerrainData> m_availableTerrains;
+	static QHash<QString, RpgGameDefinition> m_terrains;
+	static QHash<QString, RpgPlayerCharacterConfig> m_characters;
 
 	friend class ActionRpgGame;
 };

@@ -57,11 +57,11 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionRpgGame::onGameTimeout);
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
 
-	connect(m_downloader.get(), &Downloader::contentDownloaded, this, [this]() {
+	/*connect(m_downloader.get(), &Downloader::contentDownloaded, this, [this]() {
 		RpgPlayer::reloadAvailableCharacters();
 		m_config.gameState = RpgConfig::StateCharacterSelect;
 		updateConfig();
-	});
+	});*/
 }
 
 
@@ -196,6 +196,14 @@ QQuickItem *ActionRpgGame::loadPage()
 
 	m_config.gameState = RpgConfig::StateDownloadContent;
 	updateConfig();
+
+
+	/*
+
+	if server->dyanmicContentReady else download
+	RpgGame::reloadAvailableTerrains();
+	RpgPlayer::reloadAvailableCharacters();
+	*/
 
 	downloadGameData();
 
@@ -409,16 +417,23 @@ void ActionRpgGame::rpgGameActivated_()
 	TiledScene *firstScene = m_rpgGame->findScene(ptr->firstScene);
 
 	if (!firstScene) {
-		LOG_CERROR("game") << "Game load error";
+		LOG_CERROR("game") << "Game load error: missing first scene";
 		return;
 	}
 
+
+	const auto characterPtr = RpgGame::characters().find(m_playerConfig.character);
+
+	if (characterPtr == RpgGame::characters().constEnd()) {
+		LOG_CERROR("game") << "Game load error: invalid character";
+		return;
+	}
 
 	const auto &ptrPos = m_rpgGame->playerPosition(firstScene, 0);
 
 	QList<RpgPlayer*> list;
 
-	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, m_playerConfig.character);
+	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, *characterPtr);
 
 	player->setHp(m_missionLevel->startHP());
 	player->setMaxHp(m_missionLevel->startHP());
@@ -580,7 +595,9 @@ void ActionRpgGame::downloadGameData()
 
 	m_downloader->setServer(server);
 
-	listPtr->prepend(QStringLiteral("rpg.dres"));
+
+	// TODO: prepend character.full.dres
+
 	listPtr->append(ptr->required);
 
 	downloadLoadableContentDict(*listPtr);
@@ -979,13 +996,13 @@ QVariantList ActionRpgGame::characterList() const
 {
 	QVariantList list;
 
-	for (const RpgPlayer::CharacterData &ch : RpgPlayer::availableCharacters()) {
+	/*for (const RpgPlayer::CharacterData &ch : RpgPlayer::availableCharacters()) {
 		QVariantMap m;
 		m[QStringLiteral("id")] = ch.id;
 		m[QStringLiteral("displayName")] = ch.config.name;
 		m[QStringLiteral("image")] = ch.config.image;
 		list.append(m);
-	}
+	}*/
 
 	return list;
 }

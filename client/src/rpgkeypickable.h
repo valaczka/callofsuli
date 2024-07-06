@@ -41,7 +41,6 @@ public:
 	RpgKeyPickable(QQuickItem *parent = nullptr);
 
 	bool playerPick(RpgPlayer *) override final;
-	void playerThrow(RpgPlayer *) override final {}
 
 protected:
 	void load() override final;

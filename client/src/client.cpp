@@ -65,6 +65,7 @@ Client::Client(Application *app)
 	, m_utils(new Utils(this))
 	, m_httpConnection(new HttpConnection(this))
 	, m_updater(new Updater(this))
+	, m_downloader(new Downloader)
 	, m_sound(new Sound(nullptr))
 {
 	Q_ASSERT(app);
@@ -81,6 +82,9 @@ Client::Client(Application *app)
 	connect(m_httpConnection.get(), &HttpConnection::serverChanged, this, &Client::serverChanged);
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
+
+	connect(m_downloader.get(), &Downloader::contentDownloaded, &RpgGame::reloadTerrains);
+	connect(m_downloader.get(), &Downloader::contentDownloaded, &RpgGame::reloadCharacters);
 
 	startCache();
 
@@ -389,8 +393,6 @@ void Client::onApplicationStarted()
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
 	ActionGame::reloadAvailableCharacters();
-	RpgPlayer::reloadAvailableCharacters();
-	RpgGame::reloadAvailableTerrains();
 
 	switch (m_application->commandLine()) {
 		case Application::Demo:
@@ -562,9 +564,7 @@ void Client::onServerConnected()
 
 		reloadCache(QStringLiteral("gradeList"));
 
-#ifndef Q_OS_WASM
-		loadDynamicResources();
-#endif
+		initializeDynamicResources();
 	})
 			->fail(this, [this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
@@ -589,6 +589,11 @@ void Client::onServerDisconnected()
 	stackPopToStartPage();
 
 	m_cache.clear();
+
+	m_downloader->contentClear();
+	m_downloader->setServer(nullptr);
+	RpgGame::reloadTerrains();
+	RpgGame::reloadCharacters();
 }
 
 
@@ -863,18 +868,18 @@ void Client::fullScreenHelperDisconnect(QQuickWindow *window)
 
 
 /**
- * @brief Client::loadDynamicResources
+ * @brief Client::initializeDynamicResources
  */
 
-void Client::loadDynamicResources()
+void Client::initializeDynamicResources()
 {
-	LOG_CDEBUG("client") << "Load dynamic resources";
+	LOG_CDEBUG("client") << "Initialize dynamic resources";
 
 	if (!server())
 		return;
 
-	server()->setDynamicContentReady(false);
-	server()->dynamicContentReset();
+	m_downloader->contentClear();
+	m_downloader->setServer(server());
 
 	send(HttpConnection::ApiGeneral, QStringLiteral("content"))
 			->done(this, [this](const QJsonObject &json)
@@ -882,88 +887,23 @@ void Client::loadDynamicResources()
 		if (!server())
 			return;
 
-		server()->dynamicContentReset(json.value(QStringLiteral("list")).toArray());
+		const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
 
-		server()->dynamicContentCheck();
+		for (const QJsonValue &v : list) {
+			const QJsonObject &o = v.toObject();
 
-		if (server()->dynamicContentList().isEmpty())
-			server()->setDynamicContentReady(true);
-		else
-			downloadDynamicResources();
+			Server::DynamicContent content;
+			content.name = o.value(QStringLiteral("file")).toString();
+			content.md5 = o.value(QStringLiteral("md5")).toString();
+			content.size = JSON_TO_INTEGER(o.value(QStringLiteral("size")));
+
+			m_downloader->contentAdd(content);
+		}
+
 	})
-			->fail(this, [](const QString &err){
-		LOG_CWARNING("client") << "Dynamic content download failed:" << qPrintable(err);
+			->fail(this, [this](const QString &err){
+		messageError(tr("Dynamic content download failed:\n").append(err));
 	});
-}
-
-
-/**
- * @brief Client::downloadDynamicResources
- */
-
-void Client::downloadDynamicResources()
-{
-	if (!server())
-		return;
-
-	LOG_CDEBUG("client") << "Download dynamic resources";
-
-	const auto &list = server()->dynamicContentList();
-
-	for (const auto &c : std::as_const(list)) {
-		QUrl url = server()->url();
-		url.setPath(QStringLiteral("/content/")+c.name);
-		QNetworkReply *r = m_httpConnection->networkManager()->get(QNetworkRequest(url));
-		connect(r, &QNetworkReply::finished, this, &Client::onDynamicResourceDownloaded);
-	}
-}
-
-
-/**
- * @brief Client::onDynamicResourceDownloaded
- */
-
-void Client::onDynamicResourceDownloaded()
-{
-	QNetworkReply *reply = qobject_cast<QNetworkReply*>(sender());
-	const QUrl &url = reply->url();
-
-	if (reply->error()) {
-		LOG_CWARNING("client") << "Nem sikerült a letöltés:" << url << qPrintable(reply->errorString());
-		return;
-	}
-
-	LOG_CTRACE("client") << "Dynamic resource downloaded:" << url;
-	const QByteArray &payload = reply->readAll();
-	static const QRegularExpression exp(R"(^/content/)");
-	QString filename = url.path().remove(exp);
-
-	saveDynamicResource(filename, payload);
-}
-
-
-/**
- * @brief Client::saveDynamicResource
- * @param name
- * @param data
- * @return
- */
-
-bool Client::saveDynamicResource(const QString &name, const QByteArray &data)
-{
-	if (!server())
-		return false;
-
-	if (!server()->dynamicContentSaveAndLoad(name, data) || !server()->dynamicContentRemove(name, data)) {
-		messageError(tr("Fájl mentése sikertelen: %1").arg(name));
-		return false;
-	}
-
-	if (server()->dynamicContentList().isEmpty()) {
-		server()->setDynamicContentReady(true);
-	}
-
-	return true;
 }
 
 
@@ -1566,6 +1506,19 @@ void Client::retranslate(const QString &language)
 		LOG_CWARNING("client") << "Can't load translator language:" << qPrintable(locale.name());
 	}
 }
+
+
+
+/**
+ * @brief Client::downloader
+ * @return
+ */
+
+Downloader *Client::downloader() const
+{
+	return m_downloader.get();
+}
+
 
 
 

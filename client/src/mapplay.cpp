@@ -132,16 +132,7 @@ bool MapPlay::checkTerrains(GameMap *map)
 		foreach (GameMapMissionLevel *ml, m->levels()) {
 			const QString &terrain = ml->terrain();
 
-			if (m->modes().testFlag(GameMap::Rpg)) {
-				const auto &tList = RpgGame::availableTerrains();
-
-				if (auto ptr = std::find_if(tList.cbegin(), tList.cend(), [&terrain](const RpgGame::TerrainData &tdata){
-											return tdata.id == terrain;
-			}); ptr == tList.end()) {
-					LOG_CWARNING("game") << "Missing terrain:" << terrain;
-					return false;
-				}
-			} else if (m->modes().testFlag(GameMap::Action)) {
+			if (m->modes().testFlag(GameMap::Action)) {
 				if (!GameTerrain::terrainAvailable(terrain)) {
 					LOG_CWARNING("game") << "Missing terrain:" << terrain;
 					return false;

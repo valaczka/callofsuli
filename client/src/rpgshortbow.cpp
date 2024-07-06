@@ -128,16 +128,6 @@ bool RpgShortbowPickable::playerPick(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgShortbowPickable::playerThrow
- * @param player
- */
-
-void RpgShortbowPickable::playerThrow(RpgPlayer *player)
-{
-
-}
-
 
 
 /**

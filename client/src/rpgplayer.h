@@ -29,6 +29,7 @@
 
 #include "isometricplayer.h"
 #include "rpgarmory.h"
+#include "rpgconfig.h"
 #include "rpgpickableobject.h"
 #include "rpgshortbow.h"
 #include "tiledeffect.h"
@@ -47,14 +48,22 @@ class RpgPlayerCharacterConfig : public QSerializer
 	Q_GADGET
 
 public:
-	RpgPlayerCharacterConfig() : QSerializer() {}
+	RpgPlayerCharacterConfig() : QSerializer()
+	{}
 
 	void updateSfxPath(const QString &prefix);
+
+	QString prefixPath;
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(QString, name)
 	QS_FIELD(QString, image)
+	QS_FIELD(QString, base)			// Based on character (e.g. sfx, inventory,...)
+
+	// Market
+
+	QS_OBJECT(RpgMarket, market)
 
 	// Sfx sounds
 
@@ -81,9 +90,8 @@ class RpgPlayer : public IsometricPlayer
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(QString character READ character WRITE setCharacter NOTIFY characterChanged FINAL)
+	Q_PROPERTY(RpgPlayerCharacterConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
-	Q_PROPERTY(RpgPlayerCharacterConfig config READ config CONSTANT FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
 	Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
 
@@ -91,15 +99,7 @@ public:
 	explicit RpgPlayer(QQuickItem *parent = nullptr);
 	virtual ~RpgPlayer();
 
-	static RpgPlayer* createPlayer(RpgGame *game, TiledScene *scene, const QString &character);
-
-	struct CharacterData {
-		QString id;
-		RpgPlayerCharacterConfig config;
-	};
-
-	static void reloadAvailableCharacters();
-	static const QVector<CharacterData> &availableCharacters() { return m_availableCharacters; }
+	static RpgPlayer* createPlayer(RpgGame *game, TiledScene *scene, const RpgPlayerCharacterConfig &config);
 
 	Q_INVOKABLE void attack(TiledWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
@@ -113,9 +113,6 @@ public:
 	Q_INVOKABLE void useCurrentContainer() { useContainer(currentContainer()); }
 	Q_INVOKABLE void useCurrentObjects();
 
-	QString character() const;
-	void setCharacter(const QString &newCharacter);
-
 	RpgArmory *armory() const;
 
 	QPointF currentSceneStartPosition() const;
@@ -125,6 +122,7 @@ public:
 	void setShieldCount(int newShieldCount);
 
 	const RpgPlayerCharacterConfig &config() const;
+	void setConfig(const RpgPlayerCharacterConfig &newConfig);
 
 	void inventoryAdd(RpgPickableObject *object);
 	void inventoryAdd(const RpgPickableObject::PickableType &type, const QString &name = {});
@@ -135,10 +133,12 @@ public:
 
 	RpgInventoryList *inventory() const;
 
+
 signals:
 	void attackDone();
 	void characterChanged();
 	void shieldCountChanged();
+	void configChanged();
 
 protected:
 	void load() override final;
@@ -172,9 +172,6 @@ private:
 	void messageEmptyBullet(const TiledWeapon::WeaponType &weaponType);
 
 private:
-	static QVector<CharacterData> m_availableCharacters;
-	QString m_character;
-
 	RpgPlayerCharacterConfig m_config;
 
 	TiledGameSfx m_sfxPain;

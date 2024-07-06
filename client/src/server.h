@@ -64,7 +64,6 @@ class Server : public SelectableObject
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
-	Q_PROPERTY(bool dynamicContentReady READ dynamicContentReady WRITE setDynamicContentReady NOTIFY dynamicContentReadyChanged FINAL)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -137,17 +136,8 @@ public:
 	int maxUploadSize() const;
 	void setMaxUploadSize(int newMaxUploadSize);
 
-	bool dynamicContentReady() const;
-	void setDynamicContentReady(bool newDynamicContentReady);
-
-	void dynamicContentReset(const QJsonArray &list = {});
-	const QVector<DynamicContent> &dynamicContentList() const;
 	bool dynamicContentCheck(QVector<DynamicContent> *listPtr);
-	bool dynamicContentCheck() { return dynamicContentCheck(&m_contentList); }
 	bool dynamicContentRemove(QVector<DynamicContent> *listPtr, const QString &name, const QByteArray &data);
-	bool dynamicContentRemove(const QString &name, const QByteArray &data) {
-		return dynamicContentRemove(&m_contentList, name, data);
-	}
 	bool dynamicContentSaveAndLoad(const QString &name, const QByteArray &data);
 	bool dynamicContentUnload(const QString &name);
 	void unloadDynamicContents();
@@ -195,10 +185,7 @@ private:
 	QRecursiveMutex m_mutex;
 #endif
 
-	QVector<DynamicContent> m_contentList;
 	QStringList m_loadedContentList;
-
-	bool m_dynamicContentReady = false;
 };
 
 

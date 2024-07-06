@@ -31,7 +31,7 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
-#include "qmutex.h"
+#include "downloader.h"
 #include "qtimer.h"
 #include "httpconnection.h"
 #include <QAbstractSocket>
@@ -98,6 +98,7 @@ class Client : public QObject
 	Q_PROPERTY(HttpConnection *httpConnection READ httpConnection CONSTANT)
 	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
 	Q_PROPERTY(Sound *sound READ sound NOTIFY soundChanged)
+	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
 
 
 
@@ -254,6 +255,7 @@ public:
 	Q_INVOKABLE QVariantMap userToMap(const QJsonObject &data) const;
 	Q_INVOKABLE void retranslate(const QString &language = QStringLiteral("hu"));
 
+	Downloader *downloader() const;
 
 	Updater *updater() const;
 
@@ -293,10 +295,7 @@ protected:
 	void _userAuthTokenReceived(const QString &token);
 	virtual void fullScreenHelperConnect(QQuickWindow *window);
 	virtual void fullScreenHelperDisconnect(QQuickWindow *window);
-	void loadDynamicResources();
-	void downloadDynamicResources();
-	void onDynamicResourceDownloaded();
-	virtual bool saveDynamicResource(const QString &name, const QByteArray &data);
+	void initializeDynamicResources();
 
 signals:
 	void loadRequestRegistration(const QString &oauth, const QString &code);
@@ -349,6 +348,7 @@ protected:
 
 	std::unique_ptr<Updater> m_updater;
 	std::unique_ptr<QTranslator> m_translator;
+	std::unique_ptr<Downloader> m_downloader;
 
 private:
 	std::unique_ptr<Sound> m_sound;

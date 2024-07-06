@@ -122,16 +122,11 @@ void HttpConnection::setServer(Server *newServer)
 	if (m_server == newServer)
 		return;
 
-	if (m_server)
-		disconnect(m_server, &Server::dynamicContentReadyChanged, this, &HttpConnection::onServerDynamicContentReadyChanged);
-
 	m_server = newServer;
 	emit serverChanged();
 
 	if (!m_server)
 		m_webSocket->close();
-	else
-		connect(m_server, &Server::dynamicContentReadyChanged, this, &HttpConnection::onServerDynamicContentReadyChanged);
 }
 
 
@@ -231,14 +226,11 @@ void HttpConnection::close()
 {
 	if (m_state != Disconnected) {
 		LOG_CTRACE("http") << "Close connection";
+		if (m_server)
+			m_server->unloadDynamicContents();
 		setState(Disconnected);
 		abortAllReplies();
-		if (m_server) {
-			m_server->dynamicContentReset();
-			m_server->setDynamicContentReady(false);
-		}
 		setServer(nullptr);
-		emit serverDisconnected();
 	}
 }
 
@@ -253,14 +245,11 @@ void HttpConnection::abort()
 	if (m_state != Disconnected) {
 		LOG_CTRACE("http") << "Abort connection";
 		m_client->stackPopToStartPage();
+		if (m_server)
+			m_server->unloadDynamicContents();
 		setState(Disconnected);
 		abortAllReplies();
-		if (m_server) {
-			m_server->dynamicContentReset();
-			m_server->setDynamicContentReady(false);
-		}
 		setServer(nullptr);
-		emit serverDisconnected();
 	}
 }
 
@@ -836,16 +825,6 @@ void HttpReply::onErrorPresent(const QNetworkReply::NetworkError &error)
 }
 
 
-
-/**
- * @brief HttpReply::onServerDynamicContentReadyChanged
- */
-
-void HttpConnection::onServerDynamicContentReadyChanged()
-{
-	RpgGame::reloadAvailableTerrains();
-	RpgPlayer::reloadAvailableCharacters();
-}
 
 
 /**

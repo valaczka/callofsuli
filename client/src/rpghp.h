@@ -39,7 +39,6 @@ public:
 	RpgHpPickable(QQuickItem *parent = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
-	void playerThrow(RpgPlayer *player) override final;
 
 protected:
 	void load() override final;

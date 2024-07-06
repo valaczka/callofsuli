@@ -146,16 +146,6 @@ bool RpgArrowPickable::playerPick(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgArrowPickable::playerThrow
- * @param player
- */
-
-void RpgArrowPickable::playerThrow(RpgPlayer *player)
-{
-
-}
-
 
 
 /**

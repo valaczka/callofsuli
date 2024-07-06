@@ -74,7 +74,7 @@ Server *Server::fromJson(const QJsonObject &data, QObject *parent)
 
 	QList<QSslError::SslError> errList;
 
-	for (const QJsonValue &v : std::as_const(list)) {
+	for (const QJsonValue &v : list) {
 		QSslError::SslError e = v.toVariant().value<QSslError::SslError>();
 		if (!errList.contains(e))
 			errList.append(e);
@@ -107,7 +107,7 @@ QJsonObject Server::toJson() const
 #ifndef QT_NO_SSL
 	QJsonArray list;
 
-	foreach (const QSslError::SslError &e, m_ignoredSslErrors)
+	for (const QSslError::SslError &e : m_ignoredSslErrors)
 		list.append(e);
 
 	o[QStringLiteral("ignoredSslErrors")] = list;
@@ -294,9 +294,10 @@ bool Server::isTokenValid(const QString &jwt)
 
 Rank Server::rank(const int &id) const
 {
-	foreach (const Rank &r, m_rankList)
-		if (r.id() == id)
-			return r;
+	if (const auto it = std::find_if(m_rankList.cbegin(), m_rankList.cend(), [&id](const Rank &r){
+									 return r.id() == id;
+}); it != m_rankList.cend())
+		return *it;
 
 	return Rank();
 }
@@ -332,69 +333,6 @@ void Server::setMaxUploadSize(int newMaxUploadSize)
 		return;
 	m_maxUploadSize = newMaxUploadSize;
 	emit maxUploadSizeChanged();
-}
-
-
-/**
- * @brief Server::dynamicContentReady
- * @return
- */
-
-bool Server::dynamicContentReady() const
-{
-	return m_dynamicContentReady;
-}
-
-
-/**
- * @brief Server::dynamicContentReset
- */
-
-void Server::dynamicContentReset(const QJsonArray &list)
-{
-#ifndef Q_OS_WASM
-	QDefer ret;
-	m_worker.execInThread([this, list, ret]() mutable {
-		QMutexLocker locker(&m_mutex);
-#endif
-
-		unloadDynamicContents();
-
-		m_contentList.clear();
-
-		for (const QJsonValue &v : list) {
-			const QJsonObject &o = v.toObject();
-
-			DynamicContent content;
-			content.name = o.value(QStringLiteral("file")).toString();
-			content.md5 = o.value(QStringLiteral("md5")).toString();
-			content.size = JSON_TO_INTEGER(o.value(QStringLiteral("size")));
-			m_contentList.append(content);
-		}
-
-#ifndef Q_OS_WASM
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-#endif
-}
-
-
-
-void Server::setDynamicContentReady(bool newDynamicContentReady)
-{
-	if (m_dynamicContentReady == newDynamicContentReady)
-		return;
-	m_dynamicContentReady = newDynamicContentReady;
-	emit dynamicContentReadyChanged();
-}
-
-
-
-const QVector<Server::DynamicContent> &Server::dynamicContentList() const
-{
-	return m_contentList;
 }
 
 
@@ -598,7 +536,7 @@ bool Server::dynamicContentUnload(const QString &name)
 #endif
 		}
 
-		if (!QResource::unregisterResource(filename, QStringLiteral("/content"))) {
+		if (!QResource::unregisterResource(filename)) {
 			LOG_CERROR("client") << "Unregister resource failed:" << qPrintable(filename);
 #ifndef Q_OS_WASM
 			ret.reject();
@@ -641,7 +579,7 @@ void Server::unloadDynamicContents()
 		QMutexLocker locker(&m_mutex);
 #endif
 		for (const QString &s : m_loadedContentList) {
-			if (!QResource::unregisterResource(s, QStringLiteral("/content"))) {
+			if (!QResource::unregisterResource(s)) {
 				LOG_CERROR("client") << "Unregister resource failed:" << qPrintable(s);
 			} else {
 				LOG_CTRACE("client") << "Unload dynamic content:" << qPrintable(s);
@@ -676,7 +614,7 @@ void Server::loadDynamicContent(const QString &filename)
 	m_worker.execInThread([this, filename, ret]() mutable {
 		QMutexLocker locker(&m_mutex);
 #endif
-		if (!QResource::registerResource(filename, QStringLiteral("/content"))) {
+		if (!QResource::registerResource(filename)) {
 			LOG_CERROR("client") << "Register resource failed:" << qPrintable(filename);
 		} else {
 			m_loadedContentList.append(filename);

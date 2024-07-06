@@ -136,7 +136,6 @@ signals:
 	void iconChanged();
 	void repeaterIdleChanged();
 	void maxBulletCountChanged();
-
 	void excludeFromLayersChanged();
 
 protected:
