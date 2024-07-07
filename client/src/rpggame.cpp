@@ -1603,6 +1603,9 @@ void RpgGame::reloadCharacters()
 
 		RpgPlayerCharacterConfig config;
 
+		writeOnConfig(&config, ptr.value(), id);
+
+
 		if (!config.base.isEmpty()) {
 			QString basePath = QStringLiteral(":/character/").append(config.base).append(QStringLiteral("/character.json"));
 
@@ -1611,11 +1614,12 @@ void RpgGame::reloadCharacters()
 			if (!basePtr) {
 				LOG_CERROR("game") << "Invalid config base:" << config.base << "in:" << f;
 			} else {
-				writeOnConfig(&config, basePtr.value(), config.base);
+				QString base = config.base;
+				config = RpgPlayerCharacterConfig{};
+				writeOnConfig(&config, basePtr.value(), base);
+				writeOnConfig(&config, ptr.value(), id);
 			}
 		}
-
-		writeOnConfig(&config, ptr.value(), f);
 
 		m_characters.insert(id, config);
 	}
@@ -1810,6 +1814,8 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
+		case TiledWeapon::WeaponBroadsword:
+		case TiledWeapon::WeaponDagger:
 			return QStringLiteral("attack");
 
 		case TiledWeapon::WeaponShortbow:

@@ -275,7 +275,13 @@ void RpgPlayer::load()
 		IsometricObjectLayeredSprite json;
 		json.fromJson(RpgGame::baseEntitySprite(i));
 		json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
+
 		RpgArmory::fillAvailableLayers(&json, i);
+		if (m_config.shield.isEmpty())
+			RpgArmory::fillLayer(&json, QStringLiteral("shield"), i);
+		else
+			RpgArmory::fillLayer(&json, QStringLiteral("shield"), m_config.shield, i);
+
 		appendSprite(json, m_config.prefixPath);
 	}
 
@@ -561,6 +567,8 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
+		case TiledWeapon::WeaponBroadsword:
+		case TiledWeapon::WeaponDagger:
 			jumpToSprite("attack", m_currentDirection);
 			break;
 
@@ -642,6 +650,8 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
+		case TiledWeapon::WeaponBroadsword:
+		case TiledWeapon::WeaponDagger:
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}

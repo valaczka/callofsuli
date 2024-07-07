@@ -229,5 +229,9 @@
         <file>PageStudentFreePlay.qml</file>
         <file>PageTeacherGroupFreePlay.qml</file>
         <file>RpgShotButton.qml</file>
+        <file>RpgSelectCard.qml</file>
+        <file>DownloaderItem.qml</file>
+        <file>RpgSelectTitle.qml</file>
+        <file>RpgSelectView.qml</file>
     </qresource>
 </RCC>

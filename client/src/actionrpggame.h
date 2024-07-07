@@ -45,7 +45,6 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
-	Q_PROPERTY(QVariantList characterList READ characterList CONSTANT FINAL)
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
 
 public:
@@ -65,7 +64,7 @@ public:
 	Q_INVOKABLE void playMenuBgMusic();
 	Q_INVOKABLE void stopMenuBgMusic();
 
-	Q_INVOKABLE void selectCharacter(const QString &character);
+	Q_INVOKABLE void selectCharacter(const QString &terrain, const QString &character, const QStringList &weaponList);
 	Q_INVOKABLE void rpgGameActivated();
 
 	Q_INVOKABLE void finishGame();
@@ -85,7 +84,9 @@ public:
 	GameMode gameMode() const;
 	void setGameMode(const GameMode &newGameMode);
 
-	QVariantList characterList() const;
+	Q_INVOKABLE QJsonArray getTerrainList() const;
+	Q_INVOKABLE QJsonArray getCharacterList() const;
+	Q_INVOKABLE QJsonArray getWeaponList() const;
 
 	Downloader *downloader() const;
 
@@ -124,6 +125,7 @@ private:
 
 	void loadInventory(RpgPlayer *player);
 	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
+	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);

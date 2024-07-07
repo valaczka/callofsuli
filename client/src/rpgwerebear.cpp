@@ -62,9 +62,9 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	m_sfxFootStep.setInterval(450);
 
 	m_moveDisabledSpriteList = QStringList{
-		QStringLiteral("hurt"),
-		QStringLiteral("death")
-	};
+							   QStringLiteral("hurt"),
+							   QStringLiteral("death")
+};
 
 	m_weaponHand->setParentObject(this);
 
@@ -220,8 +220,13 @@ int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weapo
 			newHp -= 2;
 			break;
 
+		case TiledWeapon::WeaponBroadsword:
+			newHp -= 3;
+			break;
+
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
+		case TiledWeapon::WeaponDagger:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;

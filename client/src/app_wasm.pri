@@ -8,6 +8,9 @@
 
 #########################
 
+QMAKE_CXXFLAGS += -oz -flto
+QMAKE_LFLAGS += -flto
+
 SOURCES += \
 	onlineapplication.cpp \
 	onlineclient.cpp

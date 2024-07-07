@@ -57,6 +57,7 @@ public:
 		PickableArrow,
 		PickableFireball,
 		PickableLongsword,
+		PickableDagger,
 		PickableShield,
 		PickableTime,
 		PickableKey,

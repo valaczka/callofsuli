@@ -72,6 +72,8 @@ public:
 		WeaponLongsword,
 		WeaponShortbow,
 		WeaponLongbow,
+		WeaponDagger,
+		WeaponBroadsword,
 		WeaponShield
 	};
 

@@ -64,6 +64,7 @@ public:
 
 	// Base
 
+	QS_FIELD(QString, name)
 	QS_FIELD(QString, minVersion)
 
 	// Market

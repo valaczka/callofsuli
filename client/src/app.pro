@@ -262,10 +262,12 @@ SOURCES += \
 	question.cpp \
 	rpgarmory.cpp \
 	rpgarrow.cpp \
+	rpgbroadsword.cpp \
 	rpgcontrolgroup.cpp \
 	rpgcontrolgroupcontainer.cpp \
 	rpgcontrolgroupoverlay.cpp \
 	rpgcontrolgroupsave.cpp \
+	rpgdagger.cpp \
 	rpgenemybase.cpp \
 	rpgfireball.cpp \
 	rpggame.cpp \
@@ -384,10 +386,12 @@ HEADERS += \
 	question.h \
 	rpgarmory.h \
 	rpgarrow.h \
+	rpgbroadsword.h \
 	rpgcontrolgroup.h \
 	rpgcontrolgroupcontainer.h \
 	rpgcontrolgroupoverlay.h \
 	rpgcontrolgroupsave.h \
+	rpgdagger.h \
 	rpgenemybase.h \
 	rpgenemyiface.h \
 	rpgfireball.h \

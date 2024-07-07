@@ -34,7 +34,9 @@ const QHash<TiledWeapon::WeaponType, QString> RpgArmory::m_layerInfoHash = {
 	{ TiledWeapon::WeaponLongsword, QStringLiteral("longsword") },
 	{ TiledWeapon::WeaponShortbow, QStringLiteral("shortbow") },
 	{ TiledWeapon::WeaponLongbow, QStringLiteral("longbow") },
-	{ TiledWeapon::WeaponShield, QStringLiteral("shield") }
+	{ TiledWeapon::WeaponDagger, QStringLiteral("dagger") },
+	{ TiledWeapon::WeaponBroadsword, QStringLiteral("broadsword") },
+	/*{ TiledWeapon::WeaponShield, QStringLiteral("shield") }*/
 };
 
 
@@ -359,15 +361,11 @@ void RpgArmory::updateLayers()
 	if (m_currentWeapon && !m_currentWeapon->excludeFromLayers()) {
 		switch (m_currentWeapon->weaponType()) {
 			case TiledWeapon::WeaponShortbow:
-				layers.append(QStringLiteral("shortbow"));
-				break;
-
 			case TiledWeapon::WeaponLongbow:
-				layers.append(QStringLiteral("longbow"));
-				break;
-
 			case TiledWeapon::WeaponLongsword:
-				layers.append(QStringLiteral("longsword"));
+			case TiledWeapon::WeaponDagger:
+			case TiledWeapon::WeaponBroadsword:
+				layers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
 				break;
 
 			case TiledWeapon::WeaponShield:

@@ -205,8 +205,9 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 		eventKilledByPlayer(player);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
-		//if (weaponType != TiledWeapon::WeaponHand)
-		//	startInabililty();
+
+		if (weaponType == TiledWeapon::WeaponBroadsword)
+			startInability();
 	}
 }
 
@@ -226,6 +227,10 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 	int hp = origHp;
 
 	switch (weaponType) {
+		case TiledWeapon::WeaponDagger:
+			hp -= 1;
+			break;
+
 		case TiledWeapon::WeaponLongsword:
 			hp -= 3;
 			break;
@@ -237,6 +242,10 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponGreatHand:
 			hp = 0;
+			break;
+
+		case TiledWeapon::WeaponBroadsword:
+			hp = hp > 1 ? 1 : 0;
 			break;
 
 		case TiledWeapon::WeaponHand:

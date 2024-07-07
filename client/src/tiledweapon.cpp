@@ -73,6 +73,8 @@ QString TiledWeapon::weaponName(const WeaponType &type)
 		case WeaponHand: return tr("kéz");
 		case WeaponShield: return tr("pajzs");
 		case WeaponLongsword: return tr("kard");
+		case WeaponDagger: return tr("tőr");
+		case WeaponBroadsword: return tr("pallos");
 		case WeaponInvalid: return tr("érvénytelen");
 	}
 
@@ -95,6 +97,8 @@ QString TiledWeapon::weaponNameEn(const WeaponType &type)
 		case WeaponHand: return QStringLiteral("Hand");
 		case WeaponShield: return QStringLiteral("Shield");
 		case WeaponLongsword: return QStringLiteral("Sword");
+		case WeaponBroadsword: return QStringLiteral("Broadsword");
+		case WeaponDagger: return QStringLiteral("Dagger");
 		case WeaponInvalid: return QStringLiteral("Invalid");
 	}
 

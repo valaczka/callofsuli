@@ -27,11 +27,15 @@
 #include "actionrpggame.h"
 #include "Logger.h"
 #include "client.h"
+#include "rpgbroadsword.h"
+#include "rpgdagger.h"
+#include "rpglongsword.h"
 #include "rpgquestion.h"
 #include "server.h"
 #include "rpgshield.h"
 #include "tilelayeritem.h"
 #include <libtiled/imagecache.h>
+#include "rpglongbow.h"
 #include "utils_.h"
 
 
@@ -57,11 +61,20 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	connect(this, &AbstractLevelGame::gameTimeout, this, &ActionRpgGame::onGameTimeout);
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
 
-	/*connect(m_downloader.get(), &Downloader::contentDownloaded, this, [this]() {
-		RpgPlayer::reloadAvailableCharacters();
+	connect(client->downloader(), &Downloader::contentDownloaded, this, [this]() {
+		RpgGame::reloadTerrains();
+		RpgGame::reloadCharacters();
 		m_config.gameState = RpgConfig::StateCharacterSelect;
 		updateConfig();
-	});*/
+	});
+
+	connect(client->downloader(), &Downloader::downloadError, this, &ActionRpgGame::setError);
+
+
+	connect(m_downloader.get(), &Downloader::contentDownloaded, this, [this]() {
+		m_config.gameState = RpgConfig::StatePrepare;
+		QMetaObject::invokeMethod(this, &ActionRpgGame::updateConfig, Qt::QueuedConnection);
+	});
 }
 
 
@@ -133,20 +146,26 @@ void ActionRpgGame::stopMenuBgMusic()
 
 /**
  * @brief ActionRpgGame::selectCharacter
+ * @param world
  * @param character
+ * @param weaponList
  */
 
-void ActionRpgGame::selectCharacter(const QString &character)
+void ActionRpgGame::selectCharacter(const QString &terrain, const QString &character, const QStringList &weaponList)
 {
-	LOG_CDEBUG("game") << "Character selected:" << character << m_config.gameState;
+	LOG_CDEBUG("game") << "World/Skin/Weapons selected:" << terrain << character << weaponList;
 
+	m_playerConfig.terrain = terrain;
 	m_playerConfig.character = character;
+	m_playerConfig.weapons = weaponList;
 
-	m_config.gameState = RpgConfig::StatePrepare;
-	QMetaObject::invokeMethod(this, &ActionRpgGame::updateConfig, Qt::QueuedConnection);
+	m_config.gameState = RpgConfig::StateDownloadContent;
+	updateConfig();
 
-	//QTimer::singleShot(200, this, &ActionRpgGame::updateConfig);
-	//updateConfig();
+	downloadGameData();
+
+	//////m_config.gameState = RpgConfig::StatePrepare;
+	///////QMetaObject::invokeMethod(this, &ActionRpgGame::updateConfig, Qt::QueuedConnection);
 }
 
 
@@ -194,18 +213,10 @@ QQuickItem *ActionRpgGame::loadPage()
 	if (!item)
 		return nullptr;
 
-	m_config.gameState = RpgConfig::StateDownloadContent;
+	m_config.gameState = RpgConfig::StateDownloadStatic;
 	updateConfig();
 
-
-	/*
-
-	if server->dyanmicContentReady else download
-	RpgGame::reloadAvailableTerrains();
-	RpgPlayer::reloadAvailableCharacters();
-	*/
-
-	downloadGameData();
+	m_client->downloader()->download();
 
 	return item;
 }
@@ -401,10 +412,12 @@ void ActionRpgGame::rpgGameActivated_()
 	if (!m_rpgGame)
 		return;
 
-	const auto &ptr = RpgGame::readGameDefinition(m_missionLevel->terrain());
+	const auto &ptr = RpgGame::terrains().find(m_playerConfig.terrain);
 
-	if (!ptr)
+	if (ptr == RpgGame::terrains().constEnd()) {
+		LOG_CERROR("game") << "Game load error: invalid terrain" << m_playerConfig.terrain;
 		return;
+	}
 
 	m_config.duration = ptr->duration + m_missionLevel->duration();
 	updateConfig();
@@ -425,7 +438,7 @@ void ActionRpgGame::rpgGameActivated_()
 	const auto characterPtr = RpgGame::characters().find(m_playerConfig.character);
 
 	if (characterPtr == RpgGame::characters().constEnd()) {
-		LOG_CERROR("game") << "Game load error: invalid character";
+		LOG_CERROR("game") << "Game load error: invalid character" << m_playerConfig.character;
 		return;
 	}
 
@@ -438,6 +451,28 @@ void ActionRpgGame::rpgGameActivated_()
 	player->setHp(m_missionLevel->startHP());
 	player->setMaxHp(m_missionLevel->startHP());
 	loadInventory(player);
+
+
+	for (const QString &s : m_playerConfig.weapons) {
+		TiledWeapon::WeaponType type = TiledWeapon::WeaponInvalid;
+		if (s == "longsword")
+			type = TiledWeapon::WeaponLongsword;
+		else if (s == "dagger")
+			type = TiledWeapon::WeaponDagger;
+		else if (s == "broadsword")
+			type = TiledWeapon::WeaponBroadsword;
+		else if (s == "longbow")
+			type = TiledWeapon::WeaponLongbow;
+		else if (s == "shortbow")
+			type = TiledWeapon::WeaponShortbow;
+		else {
+			LOG_CERROR("game") << "Invalid weapon" << s;
+			continue;
+		}
+
+		loadWeapon(player, type, 20);
+	}
+
 
 	player->emplace(ptrPos.value_or(QPointF{0,0}));
 	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
@@ -457,9 +492,6 @@ void ActionRpgGame::rpgGameActivated_()
 	for (TiledScene *s : m_rpgGame->sceneList()) {
 		m_rpgGame->setQuestions(s, m_missionLevel->questions());
 	}
-
-	/*if (!m_rpgGame->m_gameDefinition.music.isEmpty())
-		m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);*/
 
 	emit m_rpgGame->gameLoaded();
 }
@@ -530,38 +562,6 @@ void ActionRpgGame::onConfigChanged()
 		}
 	}
 
-	/*if (m_config.gameState == ConquestConfig::StateFinished && m_oldGameState != ConquestConfig::StateFinished) {
-		m_client->sound()->stopMusic();
-		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/win.mp3"), Sound::VoiceoverChannel);
-		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
-		if (m_gameSuccess)
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
-		else
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
-	}
-
-
-	if ((m_config.gameState == ConquestConfig::StatePrepare || m_config.gameState == ConquestConfig::StatePlay) &&
-			m_config.world.name != m_loadedWorld) {
-		reloadLandList();
-		message(tr("Waiting for other players..."));
-	}
-
-	for (ConquestLandData *land : *m_landDataList) {
-		const int &idx = m_config.world.landFind(land->landId());
-		if (idx != -1)
-			land->loadFromConfig(m_config.world.landList[idx]);
-	}
-	*/
-
-	/*if (m_config.gameState == ConquestConfig::StatePrepare && m_oldGameState != ConquestConfig::StatePrepare) {
-		sendWebSocketMessage(QJsonObject{
-								 { QStringLiteral("cmd"), QStringLiteral("prepare") },
-								 { QStringLiteral("engine"), m_engineId },
-								 { QStringLiteral("ready"), true }
-							 });
-	}*/
-
 	m_oldGameState = m_config.gameState;
 }
 
@@ -580,9 +580,9 @@ void ActionRpgGame::downloadGameData()
 		return;
 	}
 
-	const auto &ptr = RpgGame::readGameDefinition(m_missionLevel->terrain());
+	const auto &ptr = RpgGame::terrains().find(m_playerConfig.terrain);
 
-	if (!ptr) {
+	if (ptr == RpgGame::terrains().constEnd()) {
 		LOG_CERROR("game") << "Invalid game";
 		setError();
 		return;
@@ -596,7 +596,11 @@ void ActionRpgGame::downloadGameData()
 	m_downloader->setServer(server);
 
 
-	// TODO: prepend character.full.dres
+	listPtr->append(m_playerConfig.character+QStringLiteral(".full.dres"));
+
+	if (auto it = RpgGame::characters().find(m_playerConfig.character); it != RpgGame::characters().constEnd() && !it->base.isEmpty()) {
+		listPtr->append(it->base+QStringLiteral(".full.dres"));
+	}
 
 	listPtr->append(ptr->required);
 
@@ -851,6 +855,56 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 
 
 
+/**
+ * @brief ActionRpgGame::loadWeapon
+ * @param player
+ * @param type
+ * @param bullet
+ */
+
+void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet)
+{
+	TiledWeapon *weapon = player->armory()->weaponFind(type);
+
+	if (!weapon) {
+		switch (type) {
+			case TiledWeapon::WeaponLongsword:
+				weapon = player->armory()->weaponAdd(new RpgLongsword);
+				break;
+
+			case TiledWeapon::WeaponShortbow:
+				weapon = player->armory()->weaponAdd(new RpgShortbow);
+				break;
+
+			case TiledWeapon::WeaponLongbow:
+				weapon = player->armory()->weaponAdd(new RpgLongbow);
+				break;
+
+			case TiledWeapon::WeaponDagger:
+				weapon = player->armory()->weaponAdd(new RpgDagger);
+				break;
+
+			case TiledWeapon::WeaponBroadsword:
+				weapon = player->armory()->weaponAdd(new RpgBroadsword);
+				break;
+
+			case TiledWeapon::WeaponHand:
+			case TiledWeapon::WeaponGreatHand:
+			case TiledWeapon::WeaponShield:
+			case TiledWeapon::WeaponInvalid:
+				LOG_CERROR("game") << "Invalid weapon type" << type;
+				return;
+
+		}
+	}
+
+	weapon->setBulletCount(weapon->bulletCount()+bullet);
+
+	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
+}
+
+
+
 
 /**
  * @brief ActionRpgGame::onPlayerPick
@@ -987,29 +1041,6 @@ Downloader *ActionRpgGame::downloader() const
 
 
 
-/**
- * @brief ActionRpgGame::characterList
- * @return
- */
-
-QVariantList ActionRpgGame::characterList() const
-{
-	QVariantList list;
-
-	/*for (const RpgPlayer::CharacterData &ch : RpgPlayer::availableCharacters()) {
-		QVariantMap m;
-		m[QStringLiteral("id")] = ch.id;
-		m[QStringLiteral("displayName")] = ch.config.name;
-		m[QStringLiteral("image")] = ch.config.image;
-		list.append(m);
-	}*/
-
-	return list;
-}
-
-
-
-
 
 ActionRpgGame::GameMode ActionRpgGame::gameMode() const
 {
@@ -1022,6 +1053,93 @@ void ActionRpgGame::setGameMode(const GameMode &newGameMode)
 		return;
 	m_gameMode = newGameMode;
 	emit gameModeChanged();
+}
+
+
+/**
+ * @brief ActionRpgGame::getTerrainList
+ * @return
+ */
+
+QJsonArray ActionRpgGame::getTerrainList() const
+{
+	QJsonArray list;
+
+	int i=0;
+
+	for (auto it=RpgGame::terrains().constBegin(); it != RpgGame::terrains().constEnd(); ++it) {
+		QJsonObject obj = it->toJson();
+		obj.insert(QStringLiteral("terrainId"), it.key());
+		obj.insert(QStringLiteral("available"), i++%3 == 0 ? false : true);
+		list.append(obj);
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief ActionRpgGame::getCharacterList
+ * @return
+ */
+
+QJsonArray ActionRpgGame::getCharacterList() const
+{
+	QJsonArray list;
+
+	for (auto it=RpgGame::characters().constBegin(); it != RpgGame::characters().constEnd(); ++it) {
+		QJsonObject obj = it->toJson();
+		obj.insert(QStringLiteral("characterId"), it.key());
+		obj.insert(QStringLiteral("available"), it!=RpgGame::characters().constBegin());
+		list.append(obj);
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief ActionRpgGame::getWeaponList
+ * @return
+ */
+
+QJsonArray ActionRpgGame::getWeaponList() const
+{
+	QJsonArray list;
+
+	list.append(QJsonObject{
+					{ "weaponId", "dagger" },
+					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger) },
+					{ "bullet",	-1 },
+				});
+
+	list.append(QJsonObject{
+					{ "weaponId", "longsword" },
+					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword) },
+					{ "bullet",	-1 },
+				});
+
+	list.append(QJsonObject{
+					{ "weaponId", "shortbow" },
+					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponShortbow) },
+					{ "bullet",	0 },
+				});
+
+	list.append(QJsonObject{
+					{ "weaponId", "longbow" },
+					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow) },
+					{ "bullet",	128 },
+				});
+
+	list.append(QJsonObject{
+					{ "weaponId", "broadsword" },
+					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponBroadsword) },
+					{ "bullet",	-1 },
+				});
+
+
+	return list;
 }
 
 

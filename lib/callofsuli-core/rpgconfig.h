@@ -75,6 +75,7 @@ public:
 
 	enum GameState {
 		StateInvalid = 0,
+		StateDownloadStatic,
 		StateConnect,
 		StateDownloadContent,
 		StateCharacterSelect,
@@ -163,7 +164,11 @@ public:
 	QS_FIELD(QString, username)
 	QS_FIELD(bool, prepared)
 	QS_FIELD(int, xp)
+
+	QS_FIELD(QString, terrain)
 	QS_FIELD(QString, character)
+	QS_FIELD(QStringList, weapons)
+
 	QS_FIELD(QString, fullNickName)
 	QS_FIELD(int, hp)
 	QS_FIELD(int, streak)

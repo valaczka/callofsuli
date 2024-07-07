@@ -60,6 +60,7 @@ public:
 	QS_FIELD(QString, name)
 	QS_FIELD(QString, image)
 	QS_FIELD(QString, base)			// Based on character (e.g. sfx, inventory,...)
+	QS_FIELD(QString, shield)		// Character specific shield
 
 	// Market
 
