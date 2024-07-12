@@ -129,50 +129,18 @@ public:
 	RpgPlayerConfig(const int &_id, const QString &_user)
 		: playerId(_id)
 		, username(_user)
-		, prepared(false)
-		, xp(0)
-		, hp(0)
-		, streak(0)
-		, online(false)
 	{}
 	RpgPlayerConfig(const int &_id) : RpgPlayerConfig(_id, QStringLiteral("")) {}
 	RpgPlayerConfig() : RpgPlayerConfig(-1) {}
-
-	friend bool operator==(const RpgPlayerConfig &c1, const RpgPlayerConfig &c2) {
-		return c1.playerId == c2.playerId &&
-				c1.username == c2.username &&
-				c1.prepared == c2.prepared &&
-				c1.xp == c2.xp &&
-				c1.character == c2.character &&
-				c1.fullNickName == c2.fullNickName &&
-				c1.hp == c2.hp &&
-				c1.streak == c2.streak &&
-				c1.online == c2.online
-				;
-	}
-
-	void reset() {
-		prepared = false;
-		xp = 0;
-		hp = 0;
-		streak = 0;
-	}
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, playerId)
 	QS_FIELD(QString, username)
-	QS_FIELD(bool, prepared)
-	QS_FIELD(int, xp)
 
 	QS_FIELD(QString, terrain)
 	QS_FIELD(QString, character)
 	QS_FIELD(QStringList, weapons)
-
-	QS_FIELD(QString, fullNickName)
-	QS_FIELD(int, hp)
-	QS_FIELD(int, streak)
-	QS_FIELD(bool, online)
 };
 
 
@@ -191,26 +159,45 @@ class RpgMarket : public QSerializer
 	Q_GADGET
 
 public:
-	enum Repeat {
-		None = 0,
-		Game,
-		Day
+	enum Type {
+		Invalid		= 0,
+		Map			= 1,
+		Skin		= 2,
+		Weapon		= 3,
+		Bullet		= 4,
+		Hp			= 5,
+		Time		= 6,
+		Xp			= 7,
+		Pickable	= 8,
+		Other = 999
 	};
 
-	Q_ENUM(Repeat);
+	Q_ENUM(Type);
+
+	enum Rollover {
+		None		= 0,
+		Game		= 1,
+		Day			= 2
+	};
+
+	Q_ENUM(Rollover);
 
 	RpgMarket()
 		: QSerializer()
+		, type(Invalid)
 		, cost(0)
 		, rank(0)
 		, amount(1)
-		, repeat(None)
+		, rollover(None)
 		, num(0)
 		, exp(0)
 	{}
 
 
 	QS_SERIALIZABLE
+
+	QS_FIELD(Type, type)
+	QS_FIELD(QString, name)
 
 	QS_FIELD(int, cost)
 	QS_FIELD(int, rank)
@@ -219,15 +206,75 @@ public:
 
 	// Maximize
 
-	QS_FIELD(Repeat, repeat)
+	QS_FIELD(Rollover, rollover)
 	QS_FIELD(int, num)
 
 	// Expiry
 
 	QS_FIELD(int, exp)			// minutes
+
+	friend bool operator==(const RpgMarket &c1, const RpgMarket &c2) {
+		return c1.type == c2.type &&
+				c1.name == c2.name &&
+				c1.cost == c2.cost &&
+				c1.rank == c2.rank &&
+				c1.amount == c2.amount &&
+				c1.rollover == c2.rollover &&
+				c1.num == c2.num
+				;
+	}
 };
 
 Q_DECLARE_METATYPE(RpgMarket)
+
+
+/**
+ * @brief The RpgMarketList class
+ */
+
+class RpgMarketList : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgMarketList()
+		: QSerializer()
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QVector, RpgMarket, list)
+};
+
+Q_DECLARE_METATYPE(RpgMarketList)
+
+
+
+
+
+/**
+ * @brief The RpgWallet class
+ */
+
+class RpgWallet : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgWallet()
+		: QSerializer()
+		, type(RpgMarket::Invalid)
+		, amount(0)
+		, expiry(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(RpgMarket::Type, type)
+	QS_FIELD(QString, name)
+	QS_FIELD(int, amount)
+	QS_FIELD(qint64, expiry)
+};
 
 
 #endif // RPGCONFIG_H

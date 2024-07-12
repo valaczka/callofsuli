@@ -35,6 +35,7 @@
 #include "webserver.h"
 #include "oauth2authenticator.h"
 #include "enginehandler.h"
+#include "rpgconfig.h"
 
 class ServerService;
 
@@ -145,10 +146,11 @@ public:
 	void reload();
 
 	const QJsonArray &dynamicContent() const;
-
 	const QJsonObject &dynamicContentDict() const;
-
 	const QJsonArray &loadableDynamicContent() const;
+
+	const RpgMarketList &market() const;
+	void setMarket(const RpgMarketList &newMarket);
 
 signals:
 	void configChanged();
@@ -161,6 +163,8 @@ protected:
 
 private:
 	void loadDynamicDictFromRcc(const QString &filename, const QString &path);
+	RpgMarketList loadMarket() const;
+	RpgMarketList loadMarket(const QString &filename) const;
 	static void processSignal(int sig);
 
 	bool start();
@@ -199,6 +203,8 @@ private:
 	QJsonArray m_dynamicContent;
 	QJsonArray m_loadableDynamicContent;
 	QJsonObject m_dynamicContentDict;
+
+	RpgMarketList m_market;
 
 	static ServerService *m_instance;
 };

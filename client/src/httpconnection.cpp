@@ -774,7 +774,7 @@ void HttpReply::onReplyFinished()
 			LOG_CERROR("http") << "Invalid JSEngine";
 
 		foreach (auto v, m_jsvalues) {
-			if (v.first)
+			if (v.first && v.second.isCallable())
 				v.second.call(list);
 		}
 	} else {

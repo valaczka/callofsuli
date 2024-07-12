@@ -116,13 +116,19 @@ bool IsometricEnemy::isSleeping() const
  * @param player
  */
 
-void IsometricEnemy::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &/*weaponType*/)
+void IsometricEnemy::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType)
 {
 	if (!isAlive() || isSleeping())
 		return;
 
 	if (!m_contactedPlayers.contains(player))
 		m_contactedPlayers.append(QPointer(player));
+
+	// Skip rotate on dagger
+
+	if (weaponType == TiledWeapon::WeaponDagger) {
+		return;
+	}
 
 	setPlayer(player);
 	rotateToPlayer(player);

@@ -67,10 +67,6 @@ public:
 	QS_FIELD(QString, name)
 	QS_FIELD(QString, minVersion)
 
-	// Market
-
-	QS_OBJECT(RpgMarket, market)
-
 	// Inventory
 
 	QS_COLLECTION(QList, QString, inventory)
@@ -127,6 +123,7 @@ class RpgGame : public TiledGame
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged FINAL)
 	Q_PROPERTY(int enemyCount READ enemyCount WRITE setEnemyCount NOTIFY enemyCountChanged FINAL)
+	Q_PROPERTY(int deadEnemyCount READ deadEnemyCount WRITE setDeadEnemyCount NOTIFY deadEnemyCountChanged FINAL)
 
 	Q_PROPERTY(QScatterSeries *scatterSeriesPlayers READ scatterSeriesPlayers WRITE setScatterSeriesPlayers NOTIFY scatterSeriesPlayersChanged FINAL)
 	Q_PROPERTY(QScatterSeries *scatterSeriesEnemies READ scatterSeriesEnemies WRITE setScatterSeriesEnemies NOTIFY scatterSeriesEnemiesChanged FINAL)
@@ -203,8 +200,6 @@ public:
 
 	int setQuestions(TiledScene *scene, qreal factor);
 
-	bool enemySetDieForever(IsometricEnemy *enemy, const bool &dieForever);
-
 	void resurrectEnemiesAndPlayer(RpgPlayer *player);
 	void resurrectEnemies(const QPointer<TiledScene> &scene);
 
@@ -234,6 +229,8 @@ public:
 	QScatterSeries *scatterSeriesEnemies() const;
 	void setScatterSeriesEnemies(QScatterSeries *newScatterSeriesEnemies);
 
+	int deadEnemyCount() const;
+	void setDeadEnemyCount(int newDeadEnemyCount);
 
 signals:
 	void minimapToggleRequest();
@@ -245,6 +242,7 @@ signals:
 	void enemyCountChanged();
 	void scatterSeriesPlayersChanged();
 	void scatterSeriesEnemiesChanged();
+	void deadEnemyCountChanged();
 
 protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
@@ -317,6 +315,7 @@ private:
 	QPointer<GameQuestion> m_gameQuestion;
 	RpgQuestion *m_rpgQuestion = nullptr;
 	int m_enemyCount = 0;
+	int m_deadEnemyCount = 0;
 
 	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
 

@@ -12,6 +12,8 @@ QItemGradient {
 
 	property ActionRpgGame game: null
 
+	property bool _isFirst: true
+
 	title: game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
 	appBar.rightComponent: Qaterial.AppBarButton {
@@ -35,9 +37,9 @@ QItemGradient {
 		leftPadding: 0
 		rightPadding: 0
 
-		/*refreshEnabled: true
-		onRefreshRequest: if (map)
-							  map.updateSolver()*/
+		refreshEnabled: true
+		onRefreshRequest: if (Client.server)
+							  Client.server.user.wallet.reload()
 
 		Item {
 			width: parent.width
@@ -59,23 +61,24 @@ QItemGradient {
 			implicitHeight: 125*Qaterial.Style.pixelSizeRatio
 
 			delegate: RpgSelectCard {
+				property RpgUserWallet wallet: model.qtObject
+
 				height: _viewTerrain.implicitHeight
 				width: _viewTerrain.implicitHeight
-				text: name
-				image: "qrc:/internal/img/metalbg3.png"
-				locked: !available
-				selected: _viewTerrain.currentIndex == index
-				onClicked: selectIndex(_viewTerrain, index)
+				text: wallet.readableName
+				image: wallet.image
+				locked: !wallet.available
+				selected: wallet.market.name === _viewTerrain.selected
+				onClicked: _viewTerrain.selectOne(wallet)
 			}
 
 			model: SortFilterProxyModel {
-				sourceModel: _modelTerrain
+				sourceModel: Client.server ? Client.server.user.wallet : null
 
-				/*filters: ValueFilter {
-					roleName: "lockDepth"
-					value: -1
-					inverted: true
-				}*/
+				filters: ValueFilter {
+					roleName: "marketType"
+					value: RpgMarket.Map
+				}
 
 				sorters: [
 					RoleSorter {
@@ -85,7 +88,7 @@ QItemGradient {
 					},
 
 					StringSorter {
-						roleName: "name"
+						roleName: "sortName"
 						priority: 0
 						sortOrder: Qt.AscendingOrder
 					}
@@ -108,22 +111,23 @@ QItemGradient {
 			implicitHeight: 150*Qaterial.Style.pixelSizeRatio
 
 			delegate: RpgSelectCard {
+				property RpgUserWallet wallet: model.qtObject
 				height: _viewCharacter.implicitHeight
 				width: _viewCharacter.implicitHeight
-				text: name
-				image: model.image
-				locked: !available
-				selected: _viewCharacter.currentIndex == index
-				onClicked: selectIndex(_viewCharacter, index)
+				text: wallet.readableName
+				image: wallet.image
+				locked: !wallet.available
+				selected: wallet.market.name === _viewCharacter.selected
+				onClicked: _viewCharacter.selectOne(wallet)
 			}
 
 			model: SortFilterProxyModel {
-				sourceModel: _modelCharacter
+				sourceModel: Client.server ? Client.server.user.wallet : null
 
-				/*filters: ValueFilter {
-					roleName: "available"
-					value: true
-				}*/
+				filters: ValueFilter {
+					roleName: "marketType"
+					value: RpgMarket.Skin
+				}
 
 				sorters: [
 					RoleSorter {
@@ -133,7 +137,7 @@ QItemGradient {
 					},
 
 					StringSorter {
-						roleName: "name"
+						roleName: "sortName"
 						priority: 0
 						sortOrder: Qt.AscendingOrder
 					}
@@ -153,16 +157,44 @@ QItemGradient {
 			width: root.width
 
 			delegate: RpgSelectCard {
+				property RpgUserWallet wallet: model.qtObject
+
 				height: _viewWeapons.implicitHeight
 				width: _viewWeapons.implicitHeight
-				text: name
-				image: "qrc:/rpg/"+weaponId+"/market.jpg"
-				bulletCount: bullet
-				selected: model.selected
-				onClicked: _viewWeapons.model.setProperty(index, "selected", !selected)
+				text: wallet.readableName
+				image: wallet.image
+				bulletCount: wallet.bullet ? wallet.bullet.amount : -1
+				selected: _viewWeapons.selectedList.includes(wallet.market.name)
+				onClicked: {
+					if (selected)
+						_viewWeapons.unselectMore([wallet])
+					else
+						_viewWeapons.selectMore([wallet])
+				}
 			}
 
-			model: _modelWeapons
+			model: SortFilterProxyModel {
+				sourceModel: Client.server ? Client.server.user.wallet : null
+
+				filters: AllOf {
+					ValueFilter {
+						roleName: "marketType"
+						value: RpgMarket.Weapon
+					}
+					ValueFilter {
+						roleName: "available"
+						value: true
+					}
+				}
+
+				sorters: [
+					StringSorter {
+						roleName: "sortName"
+						priority: 0
+						sortOrder: Qt.AscendingOrder
+					}
+				]
+			}
 		}
 
 		Item {
@@ -188,34 +220,27 @@ QItemGradient {
 
 			outlined: !enabled
 
-			enabled: _viewCharacter.currentIndex != -1 && _viewTerrain.currentIndex != -1
+			enabled: _viewCharacter.selected != "" && _viewTerrain.selected != ""
 			text: qsTr("Play")
 
 			onClicked: {
-				let ch = _viewCharacter.model.get(_viewCharacter.currentIndex).characterId
-				Client.Utils.settingsSet("rpg/skin", ch)
+				Client.Utils.settingsSet("rpg/skin", _viewCharacter.selected)
+				Client.Utils.settingsSet("rpg/world", _viewTerrain.selected)
 
-				let t = _viewTerrain.model.get(_viewTerrain.currentIndex).terrainId
-				Client.Utils.settingsSet("rpg/world", t)
-
-				let w = []
 				let noW = []
 
 				for (let i=0; i<_viewWeapons.model.count; ++i) {
 					let wpn = _viewWeapons.model.get(i)
-					if (wpn.selected)
-						w.push(wpn.weaponId)
-					else
-						noW.push(wpn.weaponId)
+					if (!_viewWeapons.selectedList.includes(wpn.market.name))
+						noW.push(wpn.market.name)
 				}
-
 
 				Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))
 
 				_scrollable.visible = false
 				_busyIndicator.visible = true
 
-				game.selectCharacter(t, ch, w)
+				game.selectCharacter(_viewTerrain.selected, _viewCharacter.selected, _viewWeapons.selectedList)
 			}
 		}
 
@@ -304,113 +329,48 @@ QItemGradient {
 	}
 
 
-	ListModel {
-		id: _modelTerrain
+	function getWallet(_model, _name) {
+		for (let n=0; n<_model.count; ++n) {
+			let w = _model.get(n)
+			if (w.market.name === _name)
+				return w
+		}
 
-		function reload() {
-			clear()
-			_viewTerrain.currentIndex = -1
+		return null
+	}
 
-			if (!game)
+
+	Connections {
+		target: Client.server ? Client.server.user.wallet : null
+
+		function onReloaded() {
+			if (!_isFirst)
 				return
 
-			let list = game.getTerrainList()
+			_viewCharacter.selectOne(getWallet(_viewCharacter.model, Client.Utils.settingsGet("rpg/skin", "")))
+			_viewTerrain.selectOne(getWallet(_viewTerrain.model, Client.Utils.settingsGet("rpg/world", "")))
 
-			for (let i=0; i<list.length; ++i) {
-				append(list[i])
+			let sList = []
+
+			let wList = Client.Utils.settingsGet("rpg/disabledWeapons", "").split(",")
+			for (let n=0; n<_viewWeapons.model.count; ++n) {
+				let w = _viewWeapons.model.get(n)
+				if (!wList.includes(w.market.name))
+					sList.push(w)
 			}
+
+			_viewWeapons.selectMore(sList)
+
+			_isFirst = false
 		}
-	}
-
-	ListModel {
-		id: _modelCharacter
-
-		function reload() {
-			clear()
-
-			_viewCharacter.currentIndex = -1
-
-			if (!game)
-				return
-
-			let list = game.getCharacterList()
-
-			for (let i=0; i<list.length; ++i) {
-				append(list[i])
-			}
-		}
-	}
-
-
-	ListModel {
-		id: _modelWeapons
-
-		function reload() {
-			clear()
-
-			if (!game)
-				return
-
-			let list = game.getWeaponList()
-
-			for (let i=0; i<list.length; ++i) {
-				let l=list[i]
-				l.selected = true
-				append(l)
-			}
-		}
-	}
-
-
-	function selectIndex(_view, _index)
-	{
-		if (_index >= 0 && _index < _view.model.count &&
-				_view.model.get(_index).available === true) {
-			_view.currentIndex = _index
-			_view.positionViewAtIndex(_index, ListView.Contain)
-		} else
-			_view.currentIndex = -1
-	}
-
-
-
-	function selectItem(_view, _field, _item)
-	{
-		if (_item === "") {
-			_view.currentIndex = -1
-			return
-		}
-
-		for (let n=0; n<_view.model.count; ++n) {
-			let p = _view.model.get(n)
-			if (p[_field] === _item &&
-					p.available === true) {
-				_view.currentIndex = n
-				_view.positionViewAtIndex(n, ListView.Contain)
-				return
-			}
-		}
-
-		_view.currentIndex = -1
-	}
-
-
-	Component.onCompleted: {
-		_modelTerrain.reload()
-		_modelCharacter.reload()
-		_modelWeapons.reload()
 	}
 
 	StackView.onActivated: {
 		Client.sound.playSound("qrc:/sound/voiceover/choose_your_character.mp3", Sound.VoiceoverChannel)
 
-		selectItem(_viewCharacter, "characterId", Client.Utils.settingsGet("rpg/skin", ""))
-		selectItem(_viewTerrain, "terrainId", Client.Utils.settingsGet("rpg/world", ""))
-		let wList = Client.Utils.settingsGet("rpg/disabledWeapons", "").split(",")
-		for (let n=0; n<_viewWeapons.model.count; ++n) {
-			let w = _viewWeapons.model.get(n).weaponId
-			if (wList.includes(w))
-				_viewWeapons.model.setProperty(n, "selected", false)
-		}
+		if (!Client.server)
+			return
+
+		Client.server.user.wallet.reload()
 	}
 }

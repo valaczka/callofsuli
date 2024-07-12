@@ -356,7 +356,7 @@ bool RpgPlayer::protectWeapon(const TiledWeapon::WeaponType &weaponType)
  * @brief RpgPlayer::attackedByEnemy
  */
 
-void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType &weaponType, const bool &isProtected)
+void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType &/*weaponType*/, const bool &isProtected)
 {
 	if (!isAlive())
 		return;
@@ -381,7 +381,11 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 				jumpToSprite("hurt", m_currentDirection);
 			});
 		}
-		startInability();
+
+		if (m_armory->currentWeapon() && m_armory->currentWeapon()->weaponType() == TiledWeapon::WeaponHand)
+			startInability(3*m_inabilityTime);
+		else
+			startInability();
 	}
 
 	m_armory->updateLayers();
@@ -720,6 +724,7 @@ void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const 
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
 		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:
 		case RpgPickableObject::PickableTime:
 			break;

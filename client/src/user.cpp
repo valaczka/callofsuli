@@ -27,9 +27,37 @@
 #include "user.h"
 #include "application.h"
 #include "server.h"
+#include "rpguserwallet.h"
+
+
+
+/**
+ * @brief The UserPrivate class
+ */
+
+class UserPrivate
+{
+private:
+	UserPrivate()
+		: m_wallet(new RpgUserWalletList)
+	{}
+	~UserPrivate() = default;
+
+	std::unique_ptr<RpgUserWalletList> m_wallet;
+
+	friend class User;
+};
+
+
+
+/**
+ * @brief User::User
+ * @param parent
+ */
 
 User::User(QObject *parent)
 	: SelectableObject{parent}
+	, d(new UserPrivate)
 {
 	m_mapConvertFuncs.insert(QStringLiteral("rank"), [](const QVariant &v) -> QVariantMap {
 		return qvariant_cast<Rank>(v).toJson().toVariantMap();
@@ -38,6 +66,16 @@ User::User(QObject *parent)
 	m_jsonConvertFuncs.insert(QStringLiteral("rank"), [](const QVariant &v) -> QJsonObject {
 		return qvariant_cast<Rank>(v).toJson();
 	});
+}
+
+
+/**
+ * @brief User::~User
+ */
+
+User::~User()
+{
+	delete d;
 }
 
 
@@ -232,6 +270,18 @@ void User::clear()
 	setRank(Rank());
 	setRoles(Credential::None);
 	setLoginState(LoggedOut);
+	d->m_wallet->clear();
+}
+
+
+/**
+ * @brief User::wallet
+ * @return
+ */
+
+RpgUserWalletList* User::wallet() const
+{
+	return d->m_wallet.get();
 }
 
 qreal User::dailyRate() const

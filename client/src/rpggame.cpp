@@ -466,6 +466,8 @@ void RpgGame::saveSceneState(RpgPlayer *player)
 		if (e.enemy->hp() <= 0)
 			e.dieForever = true;
 	}
+
+	recalculateEnemies();
 }
 
 
@@ -531,6 +533,24 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 
 				it->hasQuestion = false;
 			}
+
+			// on all of enemies in the same scene are dead -> set die forever
+
+			QVector<EnemyData*> eList;
+			bool isAllDead = true;
+
+			for (auto it = m_enemyDataList.begin(); it != m_enemyDataList.end(); ++it) {
+				if (it->enemy && it->enemy->scene() == isoEnemy->scene()) {
+					eList.append(&*it);
+					if (it->enemy->isAlive())
+						isAllDead = false;
+				}
+			}
+
+			if (isAllDead) {
+				for (EnemyData *e : eList)
+					e->dieForever = true;
+			}
 		}
 	}
 
@@ -595,7 +615,7 @@ bool RpgGame::canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWea
  * @return
  */
 
-bool RpgGame::canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType)
+bool RpgGame::canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &/*weaponType*/)
 {
 	if (!player || !enemy)
 		return false;
@@ -804,6 +824,7 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 			pickable = RpgPickableObject::createPickable<RpgKeyPickable>(this);
 			break;
 
+		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableInvalid:
 			break;
 	}
@@ -1393,11 +1414,28 @@ void RpgGame::onGameQuestionFinished()
 int RpgGame::recalculateEnemies()
 {
 	int c = 0;
+	int d = 0;
+	int all = 0;
+
 	for (const EnemyData &e : m_enemyDataList) {
-		if (e.enemy && e.enemy->isAlive())
+		if (!e.enemy)
+			continue;
+
+		++all;
+
+		if (e.enemy->isAlive())
 			++c;
+		else if (e.dieForever)
+			++d;
 	}
+
 	setEnemyCount(c);
+
+	if (c==0)
+		d=all;
+
+	setDeadEnemyCount(d);
+
 	return c;
 }
 
@@ -1505,6 +1543,19 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 						[enemy](const EnemyData &e)	{
 		return e.enemy == enemy; }
 	);
+}
+
+int RpgGame::deadEnemyCount() const
+{
+	return m_deadEnemyCount;
+}
+
+void RpgGame::setDeadEnemyCount(int newDeadEnemyCount)
+{
+	if (m_deadEnemyCount == newDeadEnemyCount)
+		return;
+	m_deadEnemyCount = newDeadEnemyCount;
+	emit deadEnemyCountChanged();
 }
 
 
@@ -1955,25 +2006,6 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 	return created;
 }
 
-
-/**
- * @brief RpgGame::enemySetDieForever
- * @param enemy
- * @param dieForever
- * @return
- */
-
-bool RpgGame::enemySetDieForever(IsometricEnemy *enemy, const bool &dieForever)
-{
-	auto it = enemyFind(enemy);
-
-	if (it == m_enemyDataList.end())
-		return false;
-
-	it->dieForever = dieForever;
-
-	return true;
-}
 
 
 

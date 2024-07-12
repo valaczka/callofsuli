@@ -328,6 +328,18 @@ void IsometricPlayer::startInability()
 }
 
 
+/**
+ * @brief IsometricPlayer::startInability
+ * @param msec
+ */
+
+void IsometricPlayer::startInability(const int &msec)
+{
+	if (m_inabilityTime > 0)
+		m_inabilityTimer.setRemainingTime(msec);
+}
+
+
 
 
 /**

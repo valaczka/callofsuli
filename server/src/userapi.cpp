@@ -170,6 +170,12 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return inventory(*credential);
 	});
 
+
+	server->route(path+"wallet", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return wallet(*credential);
+	});
+
 	/*server->route(path+"group/<arg>/score/live", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -1115,6 +1121,36 @@ QHttpServerResponse UserAPI::exam(const Credential &credential, const int &id)
 	LAMBDA_SQL_ASSERT(list);
 
 	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief UserAPI::wallet
+ * @param credential
+ * @return
+ */
+
+QHttpServerResponse UserAPI::wallet(const Credential &credential)
+{
+	LOG_CTRACE("client") << "Get wallet for" << credential.username();
+
+	LAMBDA_THREAD_BEGIN(credential);
+
+	const auto &ptr = TeacherAPI::_wallet(this, credential.username());
+
+	LAMBDA_SQL_ASSERT(ptr);
+
+	QJsonArray list;
+
+	for (const RpgWallet &w : *ptr) {
+		list.append(w.toJson());
+	}
+
+	response = responseResult("list", list);
 
 	LAMBDA_THREAD_END;
 }

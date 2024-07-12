@@ -83,6 +83,8 @@ public:
 
 	QHttpServerResponse exam(const Credential &credential, const int &id);
 
+	QHttpServerResponse wallet(const Credential &credential);
+
 
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
 	static std::optional<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);

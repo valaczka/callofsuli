@@ -177,14 +177,8 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 
 	setHp(std::max(0, newHp));
 
-	if (m_hp <= 0) {
+	if (newHp <= 0) {
 		jumpToSprite("death", m_currentDirection);
-
-		if (weaponType == TiledWeapon::WeaponLongbow) {
-			if (RpgGame *game = qobject_cast<RpgGame*>(m_game))
-				game->enemySetDieForever(this, true);
-		}
-
 		eventKilledByPlayer(player);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);

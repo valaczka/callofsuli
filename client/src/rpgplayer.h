@@ -62,10 +62,6 @@ public:
 	QS_FIELD(QString, base)			// Based on character (e.g. sfx, inventory,...)
 	QS_FIELD(QString, shield)		// Character specific shield
 
-	// Market
-
-	QS_OBJECT(RpgMarket, market)
-
 	// Sfx sounds
 
 	QS_FIELD(QString, sfxDead)

@@ -68,12 +68,12 @@ public:
 	enum WeaponType {
 		WeaponInvalid = 0,
 		WeaponHand,
-		WeaponGreatHand,
+		WeaponDagger,
 		WeaponLongsword,
 		WeaponShortbow,
 		WeaponLongbow,
-		WeaponDagger,
 		WeaponBroadsword,
+		WeaponGreatHand,
 		WeaponShield
 	};
 

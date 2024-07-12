@@ -25,7 +25,14 @@ Qaterial.Card {
 		target: control
 		property: "backgroundColor"
 		value: "transparent"
-		when: locked
+		when: locked && !selected
+	}
+
+	Binding {
+		target: control
+		property: "backgroundColor"
+		value: Qaterial.Colors.cyan700
+		when: selected && !locked
 	}
 
 	borderColor: "transparent"
@@ -39,7 +46,7 @@ Qaterial.Card {
 		NumberAnimation { duration: 125 }
 	}
 
-	readonly property color textColor: selected ? Qaterial.Colors.cyan300 :
+	readonly property color textColor: selected ? Qaterial.Colors.amber300 :
 												  locked ? Qaterial.Style.colorTheme.disabledText :
 														   Qaterial.Style.primaryTextColor()
 
@@ -93,7 +100,7 @@ Qaterial.Card {
 			icon: Qaterial.Icons.lock
 			visible: locked
 			size: parent.height*0.4
-			enabled: false
+			color: Qaterial.Colors.cyan800
 		}
 
 		Qaterial.Label
@@ -166,7 +173,7 @@ Qaterial.Card {
 		Glow {
 			anchors.fill: _label
 			source: _label
-			visible: !locked && selected
+			//visible: !locked && selected
 			color: "black"
 			radius: 1
 			spread: 0.9

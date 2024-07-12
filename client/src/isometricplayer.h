@@ -117,6 +117,7 @@ protected:
 	void onAlive() override;
 	void onDead() override;
 	void startInability();
+	void startInability(const int &msec);
 
 	virtual void createMarkerItem();
 

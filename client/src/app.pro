@@ -281,6 +281,7 @@ SOURCES += \
 	rpgshield.cpp \
 	rpgshortbow.cpp \
 	rpgtimepickable.cpp \
+	rpguserwallet.cpp \
 	rpgwerebear.cpp \
 	scorelist.cpp \
 	server.cpp \
@@ -406,6 +407,7 @@ HEADERS += \
 	rpgshield.h \
 	rpgshortbow.h \
 	rpgtimepickable.h \
+	rpguserwallet.h \
 	rpgwerebear.h \
 	scorelist.h \
 	server.h \

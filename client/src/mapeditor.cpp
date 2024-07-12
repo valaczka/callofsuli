@@ -26,7 +26,6 @@
 
 #include "mapeditor.h"
 #include "application.h"
-#include "examgame.h"
 #include "mapimage.h"
 #include "gamepickable.h"
 #include "qimagereader.h"
@@ -35,7 +34,6 @@
 #include "gameterrain.h"
 #include "utils_.h"
 #include <sstream>
-#include "rpggame.h"
 
 #ifdef Q_OS_WASM
 #include "onlineclient.h"
@@ -1372,18 +1370,6 @@ QVariantList MapEditor::terrainListModel() const
 }
 
 
-
-/**
- * @brief MapEditor::rpgTerrainListModel
- * @return
- */
-
-QVariantList MapEditor::rpgTerrainListModel() const
-{
-	static const QVariantList list;
-
-	return list;
-}
 
 
 

@@ -46,6 +46,7 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
+	Q_PROPERTY(int currency READ currency WRITE setCurrency NOTIFY currencyChanged FINAL)
 
 public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -84,11 +85,10 @@ public:
 	GameMode gameMode() const;
 	void setGameMode(const GameMode &newGameMode);
 
-	Q_INVOKABLE QJsonArray getTerrainList() const;
-	Q_INVOKABLE QJsonArray getCharacterList() const;
-	Q_INVOKABLE QJsonArray getWeaponList() const;
-
 	Downloader *downloader() const;
+
+	int currency() const;
+	void setCurrency(int newCurrency);
 
 signals:
 	void finishDialogRequest(QString text, QString icon, bool success);
@@ -96,6 +96,7 @@ signals:
 	void rpgGameChanged();
 	void playerConfigChanged();
 	void gameModeChanged();
+	void currencyChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -132,6 +133,8 @@ private:
 	bool onPlayerUseContainer(RpgPlayer *player, TiledContainer *container);
 	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container, int xp);
 	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container);
+	void onDeadEnemyCountChanged();
+	void checkQuests();
 
 private:
 	GameMode m_gameMode = SinglePlayer;
@@ -140,6 +143,7 @@ private:
 	RpgPlayerConfig m_playerConfig;
 	std::unique_ptr<RpgQuestion> m_rpgQuestion;
 	std::unique_ptr<Downloader> m_downloader;
+	int m_currency = 0;
 
 	QJsonObject m_loadableContentDict;
 	QVector<Server::DynamicContent> m_loadableContentListBase;
@@ -147,7 +151,6 @@ private:
 	RpgConfig::GameState m_oldGameState = RpgConfig::StateInvalid;
 
 	int m_msecNotifyAt = 0;
-
 	int m_tmpSoundSfxVolume = 0;
 
 	friend class RpgQuestion;

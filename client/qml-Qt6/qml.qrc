@@ -233,5 +233,7 @@
         <file>DownloaderItem.qml</file>
         <file>RpgSelectTitle.qml</file>
         <file>RpgSelectView.qml</file>
+        <file>PageMarket.qml</file>
+        <file>RpgMarketCard.qml</file>
     </qresource>
 </RCC>

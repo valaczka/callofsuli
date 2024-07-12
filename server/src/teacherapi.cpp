@@ -3794,6 +3794,62 @@ std::optional<bool> TeacherAPI::_evaluateCriterionMapMission(const AbstractAPI *
 
 
 
+/**
+ * @brief TeacherAPI::_wallet
+ * @param api
+ * @param username
+ * @return
+ */
+
+std::optional<QVector<RpgWallet> > TeacherAPI::_wallet(const AbstractAPI *api, const QString &username)
+{
+	Q_ASSERT(api);
+	return _wallet(api->databaseMain(), username);
+}
+
+
+
+/**
+ * @brief TeacherAPI::_wallet
+ * @param dbMain
+ * @param username
+ * @return
+ */
+
+std::optional<QVector<RpgWallet> > TeacherAPI::_wallet(const DatabaseMain *dbMain, const QString &username)
+{
+	Q_ASSERT(dbMain);
+
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+	QMutexLocker _locker(dbMain->mutex());
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT type, name, amount, CAST(strftime('%s', expiry) AS INTEGER) AS expiry "
+			   "FROM wallet WHERE username=")
+			   .addValue(username)
+			   ;
+
+	if (!q.exec())
+		return std::nullopt;
+
+	QVector<RpgWallet> list;
+
+	while (q.sqlQuery().next()) {
+		RpgWallet wallet;
+		wallet.type = q.value("type", RpgMarket::Invalid).value<RpgMarket::Type>();
+		wallet.name = q.value("name").toString();
+		wallet.amount = q.value("amount", 0).toInt();
+		wallet.expiry = q.value("expiry", 0).toLongLong();
+
+		list.append(wallet);
+	}
+
+	return list;
+}
+
+
+
 
 
 

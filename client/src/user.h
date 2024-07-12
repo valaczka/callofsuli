@@ -41,6 +41,20 @@ class User;
 using UserList = qolm::QOlm<User>;
 Q_DECLARE_METATYPE(UserList*)
 
+
+class UserPrivate;
+class RpgUserWalletList;
+
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_RpgUserWalletList
+#define OPAQUE_PTR_RpgUserWalletList
+  Q_DECLARE_OPAQUE_POINTER(RpgUserWalletList*)
+#endif
+
+#endif
+
+
 /**
  * @brief The User class
  */
@@ -72,10 +86,11 @@ class User : public SelectableObject
 	Q_PROPERTY(QString oauth READ oauth WRITE setOauth NOTIFY oauthChanged)
 
 	Q_PROPERTY(QString className READ className NOTIFY classNameChanged)
+	Q_PROPERTY(RpgUserWalletList* wallet READ wallet STORED false CONSTANT FINAL)
 
 public:
 	explicit User(QObject *parent = nullptr);
-	virtual ~User() {}
+	virtual ~User();
 
 	enum LoginState {
 		LoggedOut,
@@ -147,6 +162,8 @@ public:
 	int dailyLimit() const;
 	void setDailyLimit(int newDailyLimit);
 
+	RpgUserWalletList* wallet() const;
+
 public slots:
 	void clear();
 
@@ -193,6 +210,8 @@ private:
 	int m_trophy = 0;
 	qreal m_dailyRate = 0.0;
 	int m_dailyLimit;
+
+	UserPrivate *d = nullptr;
 };
 
 

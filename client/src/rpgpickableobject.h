@@ -71,6 +71,7 @@ public:
 	void initialize();
 
 	static PickableType typeFromString(const QString &type) { return m_typeHash.value(type, PickableInvalid); }
+	static const QHash<QString, PickableType> &typeHash() { return m_typeHash; }
 
 	template <typename T>
 	static T* createPickable(QQuickItem *parent = nullptr);

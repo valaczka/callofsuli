@@ -50,6 +50,7 @@
 #include "qapplication.h"
 #include "qrimage.h"
 #include "qsjsonlistmodel.h"
+#include "rpguserwallet.h"
 #include "scorelist.h"
 #include "studentgroup.h"
 #include "studentmap.h"
@@ -382,6 +383,8 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgInventory>("CallOfSuli", 1, 0, "RpgInventory", "RpgInventory is uncreatable");
+	qmlRegisterUncreatableType<RpgMarket>("CallOfSuli", 1, 0, "RpgMarket", "RpgMarket is uncreatable");
+	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
@@ -447,6 +450,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
 	qmlRegisterType<MaskedMouseArea>("CallOfSuli", 1, 0, "MaskedMouseArea");
 	qmlRegisterType<OffsetModel>("CallOfSuli", 1, 0, "OffsetModelImpl");
+	qmlRegisterType<RpgUserWalletList>("CallOfSuli", 1, 0, "RpgUserWalletList");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<StudentCampaignOffsetModel>("CallOfSuli", 1, 0, "StudentCampaignOffsetModelImpl");

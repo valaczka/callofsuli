@@ -105,7 +105,6 @@ public:
 	Q_INVOKABLE QVariantList storageModel(const QString &storageModule) const;
 	Q_INVOKABLE QVariantList storageListAllModel() const;
 	Q_INVOKABLE QVariantList terrainListModel() const;
-	Q_INVOKABLE QVariantList rpgTerrainListModel() const;		// DEPRECATED
 
 	Q_INVOKABLE MapEditorImage *uploadImage(const QUrl &url);
 	Q_INVOKABLE QVariantList uploadImageDirectory(const QUrl &url);

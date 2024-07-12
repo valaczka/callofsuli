@@ -260,6 +260,7 @@ QString RpgInventory::icon() const
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
 		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:
 		case RpgPickableObject::PickableTime:
 		case RpgPickableObject::PickableInvalid:
@@ -291,6 +292,7 @@ QColor RpgInventory::iconColor() const
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
 		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:
 		case RpgPickableObject::PickableTime:
 		case RpgPickableObject::PickableInvalid:

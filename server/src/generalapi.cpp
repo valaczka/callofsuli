@@ -140,6 +140,10 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		return time(jsonObject.value_or(QJsonObject{}));
 	});
 
+	server->route(path+"market", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return market();
+	});
 }
 
 
@@ -547,6 +551,17 @@ QHttpServerResponse GeneralAPI::time(const QJsonObject &json)
 	QJsonObject retJson = json;
 	retJson[QStringLiteral("serverTime")] = QDateTime::currentMSecsSinceEpoch();
 	return QHttpServerResponse(retJson, QHttpServerResponse::StatusCode::Ok);
+}
+
+
+/**
+ * @brief GeneralAPI::market
+ * @return
+ */
+
+QHttpServerResponse GeneralAPI::market()
+{
+	return QHttpServerResponse(m_service->market().toJson(), QHttpServerResponse::StatusCode::Ok);
 }
 
 

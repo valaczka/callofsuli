@@ -34,6 +34,7 @@
 #include "mapplay.h"
 #include "mapplaydemo.h"
 #include "qquickwindow.h"
+#include "rpguserwallet.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include "httpconnection.h"
@@ -82,6 +83,9 @@ Client::Client(Application *app)
 	connect(m_httpConnection.get(), &HttpConnection::serverChanged, this, &Client::serverChanged);
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
+
+	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadTerrains);
+	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
 
 	startCache();
 
@@ -647,6 +651,7 @@ void Client::onUserLoggedIn()
 			return;
 
 		server()->user()->loadFromJson(json);
+		server()->user()->wallet()->reload();
 
 		if (server()->user()->roles().testFlag(Credential::Panel))
 			stackPushPage(QStringLiteral("PagePanel.qml"));

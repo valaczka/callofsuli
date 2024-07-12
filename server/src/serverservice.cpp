@@ -312,6 +312,97 @@ void ServerService::loadDynamicDictFromRcc(const QString &filename, const QStrin
 
 
 /**
+ * @brief ServerService::loadMarket
+ * @return
+ */
+
+RpgMarketList ServerService::loadMarket() const
+{
+	LOG_CDEBUG("service") << "Load market";
+
+	const QString &dir = m_settings->dataDir().absoluteFilePath(QStringLiteral("content"));
+
+	if (!QFile::exists(dir)) {
+		LOG_CTRACE("service") << "Dynamic content directory missing";
+		return {};
+	}
+
+	RpgMarketList ret;
+
+	QDirIterator it(dir, {
+						QStringLiteral("*.cres"), QStringLiteral("*.dres")
+					}, QDir::Files);
+
+	while (it.hasNext()) {
+		const QString &file = it.next();
+
+		LOG_CTRACE("service") << "Load:" << qPrintable(file);
+
+		if (!QResource::registerResource(file, QStringLiteral("/tmp"))) {
+			LOG_CERROR("service") << "Invalid resource:" << qPrintable(file);
+			continue;
+		}
+
+		{
+			QDirIterator it2(QStringLiteral(":/tmp"), { QStringLiteral("market.json") }, QDir::Files, QDirIterator::Subdirectories);
+
+			while (it2.hasNext()) {
+				const QString &file = it2.next();
+				const QString &name = file.section('/', -2, -2);
+
+				LOG_CTRACE("service") << "Load market data from" << file;
+
+				const auto &ptr = Utils::fileToJsonObject(file);
+
+				if (!ptr) {
+					LOG_CERROR("service") << "Invalid market data:" << qPrintable(file);
+					continue;
+				}
+
+				RpgMarket market;
+				market.fromJson(*ptr);
+				if (market.name.isEmpty())
+					market.name = name;
+
+				ret.list.append(market);
+			}
+		}
+
+		if (!QResource::unregisterResource(file, QStringLiteral("/tmp"))) {
+			LOG_CERROR("service") << "Unregister resource error:" << file;
+		}
+	}
+
+	return ret;
+}
+
+
+/**
+ * @brief ServerService::loadMarket
+ * @param filename
+ * @return
+ */
+
+RpgMarketList ServerService::loadMarket(const QString &filename) const
+{
+	LOG_CDEBUG("service") << "Load market from file:" << qPrintable(filename);
+
+	const auto &ptr = Utils::fileToJsonObject(filename);
+
+	if (!ptr) {
+		LOG_CERROR("service") << "Invalid market data:" << qPrintable(filename);
+		return {};
+	}
+
+	RpgMarketList list;
+	list.fromJson(*ptr);
+	return list;
+}
+
+
+
+
+/**
  * @brief ServerService::processSignal
  * @param sig
  */
@@ -462,10 +553,11 @@ std::optional<int> ServerService::preStart()
 
 	parser.addOption({{QStringLiteral("u"), QStringLiteral("upgrade")}, QObject::tr("Adatbázis frissítésének kényszerítése"), QStringLiteral("version")});
 
+	parser.addOption({{QStringLiteral("m"), QStringLiteral("market")}, QObject::tr("Market adatbázis készítése")});
+
+	parser.addPositionalArgument(QStringLiteral("dir"), QObject::tr("Adatbázis könyvtár"), QStringLiteral("[dir]"));
+
 	parser.parse(m_arguments);
-
-	parser.clearPositionalArguments();
-
 
 	if (parser.isSet(helpOption)) {
 		parser.showHelp(0);
@@ -493,6 +585,8 @@ std::optional<int> ServerService::preStart()
 
 	if (parser.isSet(QStringLiteral("dir")))
 		m_settings->setDataDir(parser.value(QStringLiteral("dir")));
+	else if (const QStringList &list = parser.positionalArguments(); !list.isEmpty())
+		m_settings->setDataDir(list.first());
 	else if (!envDir.isEmpty())
 		m_settings->setDataDir(QString::fromUtf8(envDir));
 	else {
@@ -516,6 +610,13 @@ std::optional<int> ServerService::preStart()
 		else
 			m_consoleAppender->setDetailsLevel(Logger::Info);
 #endif
+	}
+
+
+	if (parser.isSet(QStringLiteral("market"))) {
+		QJsonDocument doc(loadMarket().toJson());
+		QConsole::qStdOut()->write(doc.toJson());
+		return 0;
 	}
 
 
@@ -820,6 +921,14 @@ bool ServerService::start()
 
 	reloadDynamicContent();
 
+
+	const QString &marketFile = m_settings->dataDir().absoluteFilePath(QStringLiteral("market.json"));
+
+	if (QFile::exists(marketFile))
+		setMarket(loadMarket(marketFile));
+	else
+		setMarket(loadMarket());
+
 	LOG_CINFO("service") << "Server service started";
 
 	if (m_webServer->start()) {
@@ -902,6 +1011,22 @@ void ServerService::resume()
 
 	if (!start())
 		m_application->quit();
+}
+
+
+/**
+ * @brief ServerService::market
+ * @return
+ */
+
+const RpgMarketList &ServerService::market() const
+{
+	return m_market;
+}
+
+void ServerService::setMarket(const RpgMarketList &newMarket)
+{
+	m_market = newMarket;
 }
 
 

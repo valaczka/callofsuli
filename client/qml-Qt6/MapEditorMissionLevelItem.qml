@@ -235,7 +235,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && ((mission.modes & GameMap.Action) || (mission.modes & GameMap.Rpg))
+				visible: mission && (mission.modes & GameMap.Action)
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -306,94 +306,6 @@ QPage {
 					onValueModified: editor.missionLevelModify(missionLevel, function() {
 						missionLevel.passed = value/100.0
 					})
-				}
-			}
-
-			Row {
-				anchors.left: parent.left
-
-				visible: mission && (mission.modes & GameMap.Rpg)
-
-				Qaterial.ColorIcon {
-					color: Qaterial.Style.colorTheme.primaryText
-					source: Qaterial.Icons.swordCross
-					iconSize: Qaterial.Style.textField.iconSize
-					width: Qaterial.Style.textField.iconWidth
-					height: Qaterial.Style.textField.iconWidth
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				Qaterial.LabelBody2 {
-					text: qsTr("RPG harcmező:")
-					anchors.verticalCenter: parent.verticalCenter
-					rightPadding: 10 * Qaterial.Style.pixelSizeRatio
-				}
-
-				Qaterial.ComboBox {
-					anchors.verticalCenter: parent.verticalCenter
-					font: Qaterial.Style.textTheme.body1
-					editable: true
-
-					implicitWidth: 300 * Qaterial.Style.pixelSizeRatio
-
-					textRole: "fullName"
-					valueRole: "id"
-
-					ListModel {
-						id: _rpgTerrainModel
-
-						function addOne(name) {
-							append({
-									   id: name,
-									   displayName: name,
-									   fullName: name+qsTr(" [nem található]"),
-									   duration: 0
-								   })
-						}
-					}
-
-					model: SortFilterProxyModel {
-						sourceModel: _rpgTerrainModel
-
-						sorters: StringSorter {
-							roleName: "displayName"
-						}
-					}
-
-					onAccepted: {
-						_rpgTerrainModel.addOne(editText)
-
-						editor.missionLevelModify(missionLevel, function() {
-							missionLevel.terrain = editText
-						})
-					}
-
-					onActivated: editor.missionLevelModify(missionLevel, function() {
-						missionLevel.terrain = currentValue
-					})
-
-					Component.onCompleted: {
-						_rpgTerrainModel.clear()
-
-						let m = editor.rpgTerrainListModel()
-						let found = false
-
-						for (let i=0; i<m.length; ++i) {
-							let d = m[i]
-							d.fullName = d.displayName+qsTr(" (%1) [%2]").arg(d.id).arg(Client.Utils.formatMSecs(d.duration*1000))
-							_rpgTerrainModel.append(d)
-
-							if (d.id === missionLevel.terrain) {
-								editText = d.displayName
-								found = true
-							}
-						}
-
-						if (!found) {
-							_rpgTerrainModel.addOne(missionLevel.terrain)
-							editText = missionLevel.terrain
-						}
-					}
 				}
 			}
 

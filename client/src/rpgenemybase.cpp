@@ -161,6 +161,15 @@ void RpgEnemyBase::load()
 
 void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
 {
+	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
+
+	// Skip rotate on dagger
+
+	if (p && p->armory()->currentWeapon() &&
+			p->armory()->currentWeapon()->weaponType() == TiledWeapon::WeaponDagger) {
+		return;
+	}
+
 	rotateToPlayer(player);
 }
 
@@ -194,14 +203,8 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 
 	setHp(std::max(0, newHp));
 
-	if (m_hp <= 0) {
+	if (newHp <= 0) {
 		jumpToSprite("death", m_currentDirection);
-
-		if (weaponType == TiledWeapon::WeaponLongbow) {
-			if (RpgGame *game = qobject_cast<RpgGame*>(m_game))
-				game->enemySetDieForever(this, true);
-		}
-
 		eventKilledByPlayer(player);
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
@@ -209,6 +212,7 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 		if (weaponType == TiledWeapon::WeaponBroadsword)
 			startInability();
 	}
+
 }
 
 
@@ -222,13 +226,17 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
  * @return
  */
 
-int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType, IsometricPlayer */*player*/) const
+int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType, IsometricPlayer *player) const
 {
 	int hp = origHp;
 
 	switch (weaponType) {
 		case TiledWeapon::WeaponDagger:
-			hp -= 1;
+			if (!m_player || m_player != player) {
+				hp = 0;
+			} else {
+				hp -= 1;
+			}
 			break;
 
 		case TiledWeapon::WeaponLongsword:

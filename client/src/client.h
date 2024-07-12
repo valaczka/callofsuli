@@ -350,6 +350,7 @@ protected:
 	std::unique_ptr<QTranslator> m_translator;
 	std::unique_ptr<Downloader> m_downloader;
 
+
 private:
 	std::unique_ptr<Sound> m_sound;
 };

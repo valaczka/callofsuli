@@ -162,6 +162,8 @@ public:
 	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
 									IsometricPlayer *player = nullptr) const = 0;
 
+	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -195,9 +197,7 @@ protected:
 	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
 	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
 
-
 	void stepMotor(const qreal &factor);
-	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
 
 private:
 	void sensorBeginContact(Box2DFixture *other);

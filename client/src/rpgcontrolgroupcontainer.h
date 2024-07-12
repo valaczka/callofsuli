@@ -53,7 +53,7 @@ public:
 	void setCenterPoint(QPointF newCenterPoint);
 
 private:
-	QVector<RpgPickableObject::PickableType> m_pickableList;
+	QVector<RpgPickableObject::PickableType> m_pickableList;			// TODO: add name handling (i.e. key)
 	QPointF m_centerPoint;
 };
 

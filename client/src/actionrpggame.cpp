@@ -62,8 +62,6 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
 
 	connect(client->downloader(), &Downloader::contentDownloaded, this, [this]() {
-		RpgGame::reloadTerrains();
-		RpgGame::reloadCharacters();
 		m_config.gameState = RpgConfig::StateCharacterSelect;
 		updateConfig();
 	});
@@ -453,6 +451,8 @@ void ActionRpgGame::rpgGameActivated_()
 	loadInventory(player);
 
 
+	// From wallet
+
 	for (const QString &s : m_playerConfig.weapons) {
 		TiledWeapon::WeaponType type = TiledWeapon::WeaponInvalid;
 		if (s == "longsword")
@@ -489,8 +489,15 @@ void ActionRpgGame::rpgGameActivated_()
 
 	m_rpgQuestion->initialize();
 
+	qreal factor = 0.35;
+
+	if (m_missionLevel->level() > 2)
+		factor = 0.45;
+	else if (m_missionLevel->level() == 2)
+		factor = 0.4;
+
 	for (TiledScene *s : m_rpgGame->sceneList()) {
-		m_rpgGame->setQuestions(s, m_missionLevel->questions());
+		m_rpgGame->setQuestions(s, /*m_missionLevel->questions()*/ factor);
 	}
 
 	emit m_rpgGame->gameLoaded();
@@ -842,6 +849,7 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
 		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableTime:
 			LOG_CERROR("game") << "Inventory type not supported:" << pickableType;
 			break;
@@ -1020,12 +1028,59 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, 
  * @param enemy
  */
 
-void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy */*enemy*/, TiledContainer *container)
+void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer */*container*/)
 {
 	if (player)
 		player->setHp(std::max(0, player->hp()-1));
 
 	setIsFlawless(false);
+
+	if (enemy && player && !enemy->player()) {
+		enemy->rotateToPlayer(player);
+	}
+}
+
+
+/**
+ * @brief ActionRpgGame::onDeadEnemyCountChanged
+ */
+
+void ActionRpgGame::onDeadEnemyCountChanged()
+{
+	LOG_CDEBUG("game") << "Dead enemy count changed:" << m_rpgGame->deadEnemyCount();
+
+	checkQuests();
+}
+
+
+/**
+ * @brief ActionRpgGame::checkQuests
+ */
+
+void ActionRpgGame::checkQuests()
+{
+	LOG_CTRACE("game") << "Check quests";
+
+	LOG_CWARNING("game") << "******";
+}
+
+
+/**
+ * @brief ActionRpgGame::currency
+ * @return
+ */
+
+int ActionRpgGame::currency() const
+{
+	return m_currency;
+}
+
+void ActionRpgGame::setCurrency(int newCurrency)
+{
+	if (m_currency == newCurrency)
+		return;
+	m_currency = newCurrency;
+	emit currencyChanged();
 }
 
 
@@ -1057,94 +1112,6 @@ void ActionRpgGame::setGameMode(const GameMode &newGameMode)
 
 
 /**
- * @brief ActionRpgGame::getTerrainList
- * @return
- */
-
-QJsonArray ActionRpgGame::getTerrainList() const
-{
-	QJsonArray list;
-
-	int i=0;
-
-	for (auto it=RpgGame::terrains().constBegin(); it != RpgGame::terrains().constEnd(); ++it) {
-		QJsonObject obj = it->toJson();
-		obj.insert(QStringLiteral("terrainId"), it.key());
-		obj.insert(QStringLiteral("available"), i++%3 == 0 ? false : true);
-		list.append(obj);
-	}
-
-	return list;
-}
-
-
-
-/**
- * @brief ActionRpgGame::getCharacterList
- * @return
- */
-
-QJsonArray ActionRpgGame::getCharacterList() const
-{
-	QJsonArray list;
-
-	for (auto it=RpgGame::characters().constBegin(); it != RpgGame::characters().constEnd(); ++it) {
-		QJsonObject obj = it->toJson();
-		obj.insert(QStringLiteral("characterId"), it.key());
-		obj.insert(QStringLiteral("available"), it!=RpgGame::characters().constBegin());
-		list.append(obj);
-	}
-
-	return list;
-}
-
-
-/**
- * @brief ActionRpgGame::getWeaponList
- * @return
- */
-
-QJsonArray ActionRpgGame::getWeaponList() const
-{
-	QJsonArray list;
-
-	list.append(QJsonObject{
-					{ "weaponId", "dagger" },
-					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger) },
-					{ "bullet",	-1 },
-				});
-
-	list.append(QJsonObject{
-					{ "weaponId", "longsword" },
-					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword) },
-					{ "bullet",	-1 },
-				});
-
-	list.append(QJsonObject{
-					{ "weaponId", "shortbow" },
-					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponShortbow) },
-					{ "bullet",	0 },
-				});
-
-	list.append(QJsonObject{
-					{ "weaponId", "longbow" },
-					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow) },
-					{ "bullet",	128 },
-				});
-
-	list.append(QJsonObject{
-					{ "weaponId", "broadsword" },
-					{ "name", TiledWeapon::weaponNameEn(TiledWeapon::WeaponBroadsword) },
-					{ "bullet",	-1 },
-				});
-
-
-	return list;
-}
-
-
-
-/**
  * @brief ActionRpgGame::playerConfig
  * @return
  */
@@ -1156,8 +1123,6 @@ RpgPlayerConfig ActionRpgGame::playerConfig() const
 
 void ActionRpgGame::setPlayerConfig(const RpgPlayerConfig &newPlayerConfig)
 {
-	if (m_playerConfig == newPlayerConfig)
-		return;
 	m_playerConfig = newPlayerConfig;
 	emit playerConfigChanged();
 }
@@ -1192,6 +1157,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		disconnect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		disconnect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
+		disconnect(m_rpgGame, &RpgGame::deadEnemyCountChanged, this, &ActionRpgGame::onDeadEnemyCountChanged);
 		m_rpgGame->setRpgQuestion(nullptr);
 		m_rpgGame->setFuncPlayerPick(nullptr);
 		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
@@ -1207,6 +1173,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
+		connect(m_rpgGame, &RpgGame::deadEnemyCountChanged, this, &ActionRpgGame::onDeadEnemyCountChanged);
 		m_rpgGame->setFuncPlayerPick(std::bind(&ActionRpgGame::onPlayerPick, this, std::placeholders::_1, std::placeholders::_2));
 		m_rpgGame->setFuncPlayerAttackEnemy(std::bind(&ActionRpgGame::onPlayerAttackEnemy, this,
 													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));

@@ -235,16 +235,16 @@ QItemGradient {
 
 
 			QDashboardButton {
-				text: qsTr("DOWNLOAD")
+				text: qsTr("Shop")
 				visible: !_grid.showPlaceholders
-				icon.source: Qaterial.Icons.controller
+				icon.source: Qaterial.Icons.bank
 				highlighted: false
 				outlined: true
 				flat: true
 
-				textColor: Qaterial.Colors.green500
+				textColor: Qaterial.Colors.yellow400
 
-				onClicked: Client.downloader.download()
+				onClicked: Client.stackPushPage("PageMarket.qml")
 			}
 		}
 
