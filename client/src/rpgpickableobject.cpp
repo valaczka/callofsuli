@@ -77,6 +77,58 @@ void RpgPickableObject::initialize()
 }
 
 
+/**
+ * @brief RpgPickableObject::pickableName
+ * @param type
+ * @return
+ */
+
+QString RpgPickableObject::pickableName(const PickableType &type)
+{
+	switch (type) {
+		case PickableHp: return QStringLiteral("HP");
+		case PickableShortbow: return TiledWeapon::weaponName(TiledWeapon::WeaponShortbow);
+		case PickableLongbow: return TiledWeapon::weaponName(TiledWeapon::WeaponLongbow);
+		case PickableArrow: return QStringLiteral("Nyíl");
+		case PickableFireball: return QStringLiteral("Tűzgolyó");
+		case PickableLongsword: return TiledWeapon::weaponName(TiledWeapon::WeaponLongsword);
+		case PickableDagger: return TiledWeapon::weaponName(TiledWeapon::WeaponDagger);
+		case PickableShield: return QStringLiteral("Pajzs");
+		case PickableTime: return QStringLiteral("Idő");
+		case PickableKey: return QStringLiteral("Kulcs");
+		case PickableInvalid: return QStringLiteral("");
+	}
+
+	return {};
+}
+
+
+/**
+ * @brief RpgPickableObject::pickableNameEn
+ * @param type
+ * @return
+ */
+
+QString RpgPickableObject::pickableNameEn(const PickableType &type)
+{
+	switch (type) {
+		case PickableHp: return QStringLiteral("HP");
+		case PickableShortbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponShortbow);
+		case PickableLongbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow);
+		case PickableArrow: return QStringLiteral("Arrow");
+		case PickableFireball: return QStringLiteral("Fireball");
+		case PickableLongsword: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword);
+		case PickableDagger: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger);
+		case PickableShield: return QStringLiteral("Shield");
+		case PickableTime: return QStringLiteral("Time");
+		case PickableKey: return QStringLiteral("Key");
+		case PickableInvalid: return QStringLiteral("");
+	}
+
+	return {};
+}
+
+
 
 /**
  * @brief RpgPickableObject::pickableType

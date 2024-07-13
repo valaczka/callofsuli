@@ -17,8 +17,9 @@ QItemGradient {
 	title: game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
 	appBar.rightComponent: Qaterial.AppBarButton {
-		icon.source: Qaterial.Icons.shopping
-		//onClicked: Client.stackPushPage("PageStudentSettings.qml")
+		icon.source: Qaterial.Icons.bank
+		enabled: game
+		onClicked: game.marketRequest()
 	}
 
 	Qaterial.BusyIndicator {
@@ -75,9 +76,15 @@ QItemGradient {
 			model: SortFilterProxyModel {
 				sourceModel: Client.server ? Client.server.user.wallet : null
 
-				filters: ValueFilter {
-					roleName: "marketType"
-					value: RpgMarket.Map
+				filters: AllOf {
+					ValueFilter {
+						roleName: "marketType"
+						value: RpgMarket.Map
+					}
+					ValueFilter {
+						roleName: "available"
+						value: true
+					}
 				}
 
 				sorters: [
@@ -124,9 +131,15 @@ QItemGradient {
 			model: SortFilterProxyModel {
 				sourceModel: Client.server ? Client.server.user.wallet : null
 
-				filters: ValueFilter {
-					roleName: "marketType"
-					value: RpgMarket.Skin
+				filters: AllOf {
+					ValueFilter {
+						roleName: "marketType"
+						value: RpgMarket.Skin
+					}
+					ValueFilter {
+						roleName: "available"
+						value: true
+					}
 				}
 
 				sorters: [

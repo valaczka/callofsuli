@@ -19,6 +19,11 @@ Page {
 	}
 
 	property var stackPopFunction: function() {
+		if (_marketLoader.status != Loader.Null) {
+			_marketLoader.source = ""
+			return false
+		}
+
 		if (_stack.activeComponent == _cmpRpg) {
 			if (_stack.currentItem.minimapVisible === true) {
 				_stack.currentItem.minimapVisible = false
@@ -40,6 +45,8 @@ Page {
 	StackView {
 		id: _stack
 		anchors.fill: parent
+
+		visible: _marketLoader.status != Loader.Ready
 
 		property Component activeComponent: null
 
@@ -122,6 +129,33 @@ Page {
 		onClicked: Client.stackPop()
 	}
 
+
+
+	Loader {
+		id: _marketLoader
+
+		anchors.fill: parent
+		z: 10
+
+		onLoaded: {
+			item.activate()
+			item.enabled = true
+			item.forceActiveFocus()
+			game.marketLoaded()
+		}
+
+		onStatusChanged: {
+			if (status != Loader.Ready)
+				game.marketUnloaded()
+		}
+
+		function loadMarket() {
+			setSource("PageMarket.qml", {
+						  game: root.game
+					  })
+		}
+	}
+
 	Connections {
 		target: game
 
@@ -129,6 +163,11 @@ Page {
 			if (game.hostMode == ConquestGame.ModeHost)
 				Client.snack(qsTr("Te vagy a host"))
 		}*/
+
+
+		function onMarketRequest() {
+			_marketLoader.loadMarket()
+		}
 
 		function onConfigChanged() {
 			switch (game.config.gameState) {

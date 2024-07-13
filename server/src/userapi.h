@@ -84,6 +84,7 @@ public:
 	QHttpServerResponse exam(const Credential &credential, const int &id);
 
 	QHttpServerResponse wallet(const Credential &credential);
+	QHttpServerResponse buy(const Credential &credential, const QJsonObject &json);
 
 
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
@@ -99,6 +100,7 @@ public:
 
 private:
 	void _addStatistics(const QString &username, const QJsonArray &list) const;
+	void _addWallet(const QString &username, const int &gameid, const QJsonArray &list) const;
 
 };
 

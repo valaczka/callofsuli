@@ -27,10 +27,12 @@
 #include "actionrpggame.h"
 #include "Logger.h"
 #include "client.h"
+#include "mapplaycampaign.h"
 #include "rpgbroadsword.h"
 #include "rpgdagger.h"
 #include "rpglongsword.h"
 #include "rpgquestion.h"
+#include "rpguserwallet.h"
 #include "server.h"
 #include "rpgshield.h"
 #include "tilelayeritem.h"
@@ -284,6 +286,70 @@ void ActionRpgGame::clearSharedTextures()
 }
 
 
+/**
+ * @brief ActionRpgGame::addWallet
+ * @param wallet
+ */
+
+void ActionRpgGame::addWallet(RpgUserWallet *wallet)
+{
+	if (!wallet || !m_rpgGame)
+		return;
+
+	RpgPlayer *player = m_rpgGame->controlledPlayer();
+
+	if (!player)
+		return;
+
+	LOG_CDEBUG("game") << "Add wallet" << wallet->market().type << wallet->market().name;
+
+	switch (wallet->market().type) {
+		case RpgMarket::Weapon: {
+			const TiledWeapon::WeaponType type = RpgArmory::weaponHash().key(wallet->market().name, TiledWeapon::WeaponInvalid);
+			if (type == TiledWeapon::WeaponInvalid) {
+				LOG_CERROR("game") << "Invalid weapon" << wallet->market().name;
+				return;
+			}
+
+			TiledWeapon *weapon = player->armory()->weaponFind(type);
+
+			if (weapon) {
+				LOG_CDEBUG("game") << "Weapon already exists";
+				return;
+			}
+
+			loadWeapon(player, type, wallet->bullet() ? wallet->bullet()->amount() : 0);
+
+			return;
+		}
+
+		case RpgMarket::Bullet: {
+			const RpgPickableObject::PickableType ptype = RpgPickableObject::typeFromString(wallet->market().name);
+			loadBullet(player, ptype, wallet->market().amount);
+			return;
+		}
+
+		case RpgMarket::Hp:
+			player->setHp(player->hp() + wallet->market().amount);
+			return;
+
+		case RpgMarket::Time:
+			addToDeadline(wallet->market().amount * 1000);
+			return;
+
+
+		case RpgMarket::Map:
+		case RpgMarket::Skin:
+		case RpgMarket::Xp:
+		case RpgMarket::Pickable:
+		case RpgMarket::Other:
+		case RpgMarket::Invalid:
+			LOG_CTRACE("game") << "Wallet skipped";
+			break;
+	}
+}
+
+
 
 /**
  * @brief ActionRpgGame::onPlayerDead
@@ -453,24 +519,22 @@ void ActionRpgGame::rpgGameActivated_()
 
 	// From wallet
 
-	for (const QString &s : m_playerConfig.weapons) {
-		TiledWeapon::WeaponType type = TiledWeapon::WeaponInvalid;
-		if (s == "longsword")
-			type = TiledWeapon::WeaponLongsword;
-		else if (s == "dagger")
-			type = TiledWeapon::WeaponDagger;
-		else if (s == "broadsword")
-			type = TiledWeapon::WeaponBroadsword;
-		else if (s == "longbow")
-			type = TiledWeapon::WeaponLongbow;
-		else if (s == "shortbow")
-			type = TiledWeapon::WeaponShortbow;
-		else {
-			LOG_CERROR("game") << "Invalid weapon" << s;
-			continue;
-		}
+	RpgUserWalletList* wallet = m_client->server() ? m_client->server()->user()->wallet() : nullptr;
 
-		loadWeapon(player, type, 20);
+	if (wallet) {
+		for (const QString &s : m_playerConfig.weapons) {
+			const auto it = std::find_if(wallet->constBegin(), wallet->constEnd(), [&s](RpgUserWallet *w) {
+							return w->market().type == RpgMarket::Weapon && w->market().name == s;
+		});
+			if (it == wallet->constEnd()) {
+				LOG_CERROR("game") << "Missing weapon" << s;
+				continue;
+			}
+
+			loadWeapon(player,
+					   RpgArmory::weaponHash().key(s, TiledWeapon::WeaponInvalid),
+					   (*it)->bullet() ? (*it)->bullet()->amount() : 0);
+		}
 	}
 
 
@@ -913,6 +977,52 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 
 
 
+/**
+ * @brief ActionRpgGame::loadBullet
+ * @param player
+ * @param bulletType
+ * @param count
+ */
+
+void ActionRpgGame::loadBullet(RpgPlayer *player, const RpgPickableObject::PickableType &bulletType, const int &count)
+{
+	if (!player)
+		return;
+
+	TiledWeapon *weapon = nullptr;
+
+	switch (bulletType) {
+		case RpgPickableObject::PickableArrow:
+			weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
+			break;
+
+		case RpgPickableObject::PickableFireball:
+			weapon = player->armory()->weaponFind(TiledWeapon::WeaponLongbow);
+			break;
+
+		case RpgPickableObject::PickableShield:
+		case RpgPickableObject::PickableKey:
+		case RpgPickableObject::PickableHp:
+		case RpgPickableObject::PickableShortbow:
+		case RpgPickableObject::PickableLongbow:
+		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableDagger:
+		case RpgPickableObject::PickableTime:
+		case RpgPickableObject::PickableInvalid:
+			LOG_CERROR("game") << "Invalid bullet type";
+			break;
+	}
+
+	if (!weapon)
+		return;
+
+	weapon->setBulletCount(weapon->bulletCount()+count);
+
+	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
+}
+
+
+
 
 /**
  * @brief ActionRpgGame::onPlayerPick
@@ -1085,6 +1195,21 @@ void ActionRpgGame::setCurrency(int newCurrency)
 
 
 /**
+ * @brief ActionRpgGame::gameid
+ * @return
+ */
+
+int ActionRpgGame::gameid() const
+{
+	if (const CampaignGameIface *iface = dynamic_cast<const CampaignGameIface*>(this)) {
+		return iface->gameId();
+	}
+
+	return -1;
+}
+
+
+/**
  * @brief ActionRpgGame::downloader
  * @return
  */
@@ -1158,6 +1283,9 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		disconnect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
 		disconnect(m_rpgGame, &RpgGame::deadEnemyCountChanged, this, &ActionRpgGame::onDeadEnemyCountChanged);
+		disconnect(m_rpgGame, &RpgGame::marketRequest, this, &ActionRpgGame::marketRequest);
+		disconnect(this, &ActionRpgGame::marketUnloaded, m_rpgGame, &RpgGame::onMarketUnloaded);
+		disconnect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);
 		m_rpgGame->setRpgQuestion(nullptr);
 		m_rpgGame->setFuncPlayerPick(nullptr);
 		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
@@ -1174,6 +1302,9 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
 		connect(m_rpgGame, &RpgGame::deadEnemyCountChanged, this, &ActionRpgGame::onDeadEnemyCountChanged);
+		connect(m_rpgGame, &RpgGame::marketRequest, this, &ActionRpgGame::marketRequest);
+		connect(this, &ActionRpgGame::marketUnloaded, m_rpgGame, &RpgGame::onMarketUnloaded);
+		connect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);
 		m_rpgGame->setFuncPlayerPick(std::bind(&ActionRpgGame::onPlayerPick, this, std::placeholders::_1, std::placeholders::_2));
 		m_rpgGame->setFuncPlayerAttackEnemy(std::bind(&ActionRpgGame::onPlayerAttackEnemy, this,
 													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));

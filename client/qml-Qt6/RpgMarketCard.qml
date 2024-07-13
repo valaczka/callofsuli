@@ -11,8 +11,12 @@ Qaterial.Card {
 
 	property RpgUserWallet wallet: null
 	property bool resourceLoaded: false
+	property int availableCurrency: 0
 
-	width: ListView.view ? ListView.view.implicitHeight * (220/350) : 50
+	signal buyRequest()
+
+
+	width: ListView.view ? ListView.view.implicitHeight * (180/300) : 50
 	height: ListView.view ? ListView.view.implicitHeight : 50
 
 	outlined: true
@@ -135,7 +139,7 @@ Qaterial.Card {
 
 			property int size: Math.min(120 * Qaterial.Style.pixelSizeRatio, parent.width*0.75)
 
-			visible: wallet && wallet.market.cost > 0
+			visible: wallet && wallet.market.cost > 0 && (!wallet.available || wallet.buyable)
 
 			color: Qaterial.Colors.orange800
 
@@ -190,16 +194,30 @@ Qaterial.Card {
 			height: _amountLabel.height + 2*Qaterial.Style.card.horizontalPadding
 			anchors.centerIn: _amountLabel
 
-			visible: _amountLabel.visible
+			visible: _amountLabel.visible && !_amountLabel._isCentered
 		}
 
 		Column {
 			id: _amountLabel
 
+			readonly property bool _isCentered: !_btnBuy.visible && !_expLabel.visible
+
 			anchors.top: parent.top
 			anchors.right: parent.right
 			anchors.rightMargin: Qaterial.Style.card.horizontalPadding
 			anchors.topMargin: Qaterial.Style.card.horizontalPadding
+
+			states: State {
+				when: _amountLabel._isCentered
+
+				AnchorChanges {
+					target: _amountLabel
+					anchors.top: undefined
+					anchors.right: undefined
+					anchors.horizontalCenter: _btnBuy.horizontalCenter
+					anchors.verticalCenter: _btnBuy.verticalCenter
+				}
+			}
 
 			property color textColor: Qaterial.Colors.green300
 
@@ -216,7 +234,7 @@ Qaterial.Card {
 
 			Qaterial.Label {
 				anchors.horizontalCenter: parent.horizontalCenter
-				text: wallet && wallet.amount > 1 ? "x"+wallet.amount : ""
+				text: wallet && wallet.amount > 1 ? "×"+wallet.amount : ""
 				color: _amountLabel.textColor
 				font.family: Qaterial.Style.textTheme.subtitle1.family
 				font.pixelSize: Qaterial.Style.textTheme.subtitle1.pixelSize
@@ -230,7 +248,7 @@ Qaterial.Card {
 
 			anchors.horizontalCenter: parent.horizontalCenter
 			anchors.top: _imgHolder.bottom
-			anchors.topMargin: 5 * Qaterial.Style.pixelSizeRatio
+			anchors.topMargin: Qaterial.Style.card.verticalPadding
 
 			visible: wallet && wallet.market.rank > 0
 
@@ -258,6 +276,30 @@ Qaterial.Card {
 
 		}
 
+		Row {
+			id: _expLabel
+
+			anchors.centerIn: _btnBuy
+
+			visible: wallet && new Date(wallet.expiry).getTime() > 0 && wallet.available
+
+			spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+			Qaterial.Icon {
+				icon: Qaterial.Icons.timerAlert
+				color: _amountLabel.textColor
+				size: 20 * Qaterial.Style.pixelSizeRatio
+				anchors.verticalCenter: parent.verticalCenter
+			}
+
+			Qaterial.LabelHint1 {
+				anchors.verticalCenter: parent.verticalCenter
+				text: wallet ? JS.readableTimestampMin(wallet.expiry) : ""
+				color: _amountLabel.textColor
+			}
+
+		}
+
 		QButton {
 			id: _btnBuy
 
@@ -267,7 +309,11 @@ Qaterial.Card {
 
 			text: qsTr("Vásárlás")
 			icon.source: enabled ? Qaterial.Icons.cart : Qaterial.Icons.lockOutline
-			enabled: wallet && wallet.buyable
+			enabled: wallet && wallet.buyable && wallet.market.cost <= availableCurrency
+
+			visible: wallet && (!wallet.available || wallet.buyable)
+
+			onClicked: control.buyRequest()
 		}
 
 
@@ -280,17 +326,19 @@ Qaterial.Card {
 			font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
 			font.weight: Font.Bold
 
-			text: wallet && wallet.market.amount > 1 ? "x"+wallet.market.amount : ""
+			text: wallet && wallet.market.amount > 1 ? qsTr("%1 db").arg(wallet.market.amount) : ""
 			color: Qaterial.Style.accentColor
 		}
 
 		Row {
+			id: _expInfo
+
 			anchors.bottom: parent.bottom
 			anchors.right: parent.right
 			anchors.rightMargin: Qaterial.Style.card.horizontalPadding
 			anchors.bottomMargin: Qaterial.Style.card.verticalPadding
 
-			visible: wallet && wallet.market.exp > 0
+			visible: wallet && wallet.market.exp > 0 && (!wallet.available || wallet.buyable)
 
 			spacing: 5 * Qaterial.Style.pixelSizeRatio
 
@@ -304,7 +352,7 @@ Qaterial.Card {
 			Qaterial.LabelHint1 {
 				anchors.verticalCenter: parent.verticalCenter
 				text: wallet ? Client.Utils.formatMSecs(wallet.market.exp*1000) : ""
-				color: _amountLabel.textColor
+				color: Qaterial.Style.iconColor()
 			}
 		}
 

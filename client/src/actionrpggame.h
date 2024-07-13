@@ -31,6 +31,7 @@
 #include "downloader.h"
 #include "rpgconfig.h"
 #include "rpggame.h"
+#include "rpguserwallet.h"
 
 
 /**
@@ -47,6 +48,7 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
 	Q_PROPERTY(int currency READ currency WRITE setCurrency NOTIFY currencyChanged FINAL)
+	Q_PROPERTY(int gameid READ gameid CONSTANT FINAL)
 
 public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -73,6 +75,8 @@ public:
 
 	Q_INVOKABLE void clearSharedTextures();
 
+	Q_INVOKABLE void addWallet(RpgUserWallet *wallet);
+
 	RpgConfig config() const;
 	void setConfig(const RpgConfig &newConfig);
 
@@ -90,7 +94,12 @@ public:
 	int currency() const;
 	void setCurrency(int newCurrency);
 
+	int gameid() const;
+
 signals:
+	void marketRequest();
+	void marketLoaded();
+	void marketUnloaded();
 	void finishDialogRequest(QString text, QString icon, bool success);
 	void configChanged();
 	void rpgGameChanged();
@@ -127,6 +136,7 @@ private:
 	void loadInventory(RpgPlayer *player);
 	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
 	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
+	void loadBullet(RpgPlayer *player, const RpgPickableObject::PickableType &bulletType, const int &count);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);

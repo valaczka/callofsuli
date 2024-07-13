@@ -40,7 +40,7 @@
 #include <csignal>
 #include <QResource>
 #include "querybuilder.hpp"
-
+#include "teacherapi.h"
 
 
 const int ServerService::m_versionMajor = VERSION_MAJOR;
@@ -225,15 +225,14 @@ void ServerService::timerEvent(QTimerEvent *)
 		return;
 #endif
 
-	m_mainTimerLastTick = dtMinute;
-
 	m_engineHandler->timerMinuteEvent();
-
 
 #ifdef _MAIN_TIMER_TEST_MODE
 	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
 		return;
 #endif
+
+	m_mainTimerLastTick = dtMinute;
 
 	if (!m_databaseMain) {
 		LOG_CWARNING("service") << "Main database unavailable";
@@ -281,6 +280,10 @@ void ServerService::timerEvent(QTimerEvent *)
 			AdminAPI::campaignStart(m_databaseMain.get(), id);
 		}
 
+
+		// Clear wallet
+
+		TeacherAPI::_clearWallet(m_databaseMain.get(), this);
 	});
 
 	LOG_CTRACE("service") << "Timer check finished";

@@ -40,6 +40,21 @@ RpgUserWallet::RpgUserWallet(QObject *parent)
 
 
 /**
+ * @brief RpgUserWallet::getJson
+ * @return
+ */
+
+QJsonObject RpgUserWallet::getJson() const
+{
+	RpgWallet w;
+	w.type = m_market.type;
+	w.name = m_market.name;
+	w.amount = 1;
+	return w.toJson();
+}
+
+
+/**
  * @brief RpgUserWallet::market
  * @return
  */
@@ -181,16 +196,28 @@ void RpgUserWallet::setRank(const Rank &newRank)
 
 bool RpgUserWallet::buyable() const
 {
+	const bool a = available();
+
+	if (m_market.type == RpgMarket::Weapon && a)
+		return false;
+
+	if (m_market.type == RpgMarket::Map && a)
+		return false;
+
+	if (m_market.type == RpgMarket::Skin && a)
+		return false;
+
+
+	if (m_market.rollover != RpgMarket::None && m_amount >= m_market.num)
+		return false;
+
 	Server *s = Application::instance()->client()->server();
 
 	if (!s)
 		return false;
 
 	return m_market.rank <= 0 || s->user()->rank().id() >= m_market.rank;
-
-	// TODO: Rollover check
 }
-
 
 
 
@@ -302,6 +329,9 @@ void RpgUserWalletList::loadWallet(const QJsonObject &json)
 {
 	const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
 
+	if (json.contains(QStringLiteral("currency")))
+		setCurrency(json.value(QStringLiteral("currency")).toInt());
+
 	QVector<RpgWallet> mList;
 
 	for (const QJsonValue &v : list) {
@@ -352,6 +382,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 	if (it == end()) {
 		std::unique_ptr<RpgUserWallet> w(new RpgUserWallet);
 		w->setMarket(market);
+		w->m_walletList = this;
 
 		if (market.type == RpgMarket::Map) {
 			const auto t = RpgGame::terrains().find(market.name);
@@ -386,6 +417,17 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 
 			w->setReadableName(TiledWeapon::weaponNameEn(t));
 			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
+
+		} else if (market.type == RpgMarket::Bullet) {
+			const auto t = RpgPickableObject::typeFromString(market.name);
+
+			if (t == RpgPickableObject::PickableInvalid) {
+				LOG_CTRACE("game") << "Weapon not found:" << market.name;
+				return;
+			}
+
+			w->setReadableName(RpgPickableObject::pickableNameEn(t));
+			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
 		}
 
 		ptr = w.release();
@@ -415,6 +457,17 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 	} else if (market.type == RpgMarket::Weapon || market.type == RpgMarket::Bullet) {
 		if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"); QFile::exists(s)) {
 			ptr->setImage(QStringLiteral("qrc")+s);
+		}
+	} else if (market.type == RpgMarket::Xp || market.type == RpgMarket::Hp || market.type == RpgMarket::Time) {
+		for (const QString &s : QStringList{
+			 QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.png"),
+			 QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"),
+	}
+			 ) {
+			if (QFile::exists(s)) {
+				ptr->setImage(QStringLiteral("qrc")+s);
+				break;
+			}
 		}
 	}
 }
@@ -523,4 +576,17 @@ void RpgUserWalletList::updateBullets()
 			}
 		}
 	}
+}
+
+int RpgUserWalletList::currency() const
+{
+	return m_currency;
+}
+
+void RpgUserWalletList::setCurrency(int newCurrency)
+{
+	if (m_currency == newCurrency)
+		return;
+	m_currency = newCurrency;
+	emit currencyChanged();
 }

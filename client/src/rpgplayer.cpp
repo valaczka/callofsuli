@@ -130,8 +130,10 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 		return;
 
 	if (weapon->canShot()) {
-		if (weapon->shot(IsometricBullet::TargetEnemy, m_body->bodyPosition(), currentAngle()))
+		if (weapon->shot(IsometricBullet::TargetEnemy, m_body->bodyPosition(), currentAngle())) {
 			playAttackEffect(weapon);
+			m_game->
+		}
 
 		if (weapon->bulletCount() == 0)
 			messageEmptyBullet(weapon->weaponType());

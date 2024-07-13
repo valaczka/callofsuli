@@ -340,6 +340,7 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
+	ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame());
 
 	if (m_gameState != StatePlay)
 		return;
@@ -358,6 +359,8 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 
 	if (stat.isEmpty() && m_lastXP == xp)
 		return;
+
+	//// GET WALLET STATE ----
 
 	m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/update").arg(game->gameId()), {
 					   { QStringLiteral("xp"), xp },

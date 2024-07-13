@@ -3825,10 +3825,12 @@ std::optional<QVector<RpgWallet> > TeacherAPI::_wallet(const DatabaseMain *dbMai
 	QMutexLocker _locker(dbMain->mutex());
 
 	QueryBuilder q(db);
-	q.addQuery("SELECT type, name, amount, CAST(strftime('%s', expiry) AS INTEGER) AS expiry "
+	q.addQuery("SELECT type, name, SUM(amount) AS amount, CAST(strftime('%s', MAX(expiry)) AS INTEGER) AS expiry "
 			   "FROM wallet WHERE username=")
-			   .addValue(username)
-			   ;
+			.addValue(username)
+			.addQuery(" AND (expiry IS NULL OR expiry >= datetime('now')) "
+					  "GROUP BY type, name")
+			;
 
 	if (!q.exec())
 		return std::nullopt;
@@ -3846,6 +3848,98 @@ std::optional<QVector<RpgWallet> > TeacherAPI::_wallet(const DatabaseMain *dbMai
 	}
 
 	return list;
+}
+
+
+/**
+ * @brief TeacherAPI::_clearWallet
+ * @param dbMain
+ * @return
+ */
+
+bool TeacherAPI::_clearWallet(const DatabaseMain *dbMain, ServerService *service)
+{
+	Q_ASSERT(dbMain);
+	Q_ASSERT(service);
+
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+	LOG_CTRACE("client") << "Clear wallet";
+
+	QMutexLocker _locker(dbMain->mutex());
+
+	// Game rollover
+
+	QVariantList gameList, dailyList;
+
+	for (const RpgMarket &m : service->market().list) {
+		if (m.rollover == RpgMarket::Game)
+			gameList.append((int) m.type);
+		else if (m.rollover == RpgMarket::Day)
+			dailyList.append((int) m.type);
+	}
+
+
+	if (!gameList.isEmpty() && !QueryBuilder::q(db)
+			.addQuery("DELETE FROM wallet WHERE type IN (").addList(gameList)
+			.addQuery(") AND gameid NOT IN (SELECT gameid FROM runningGame)")
+			.exec()) {
+		LOG_CERROR("service") << "Game rollover clear failed";
+		return false;
+	}
+
+	if (!dailyList.isEmpty() && !QueryBuilder::q(db)
+			.addQuery("DELETE FROM wallet WHERE type IN (").addList(dailyList)
+			.addQuery(") AND date(timestamp)<>date('now')")
+			.exec()) {
+		LOG_CERROR("service") << "Daily rollover clear failed";
+		return false;
+	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief TeacherAPI::_currency
+ * @param api
+ * @param username
+ * @return
+ */
+
+std::optional<int> TeacherAPI::_currency(const AbstractAPI *api, const QString &username)
+{
+	Q_ASSERT(api);
+	return _currency(api->databaseMain(), username);
+}
+
+
+
+/**
+ * @brief TeacherAPI::_currency
+ * @param dbMain
+ * @param username
+ * @return
+ */
+
+std::optional<int> TeacherAPI::_currency(const DatabaseMain *dbMain, const QString &username)
+{
+	Q_ASSERT(dbMain);
+
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+	QMutexLocker _locker(dbMain->mutex());
+
+	const auto ptr = QueryBuilder::q(db)
+					 .addQuery("SELECT SUM(amount) AS amount FROM currency WHERE username=").addValue(username)
+					 .execToValue("amount", 0)
+					 ;
+
+	if (!ptr)
+		return std::nullopt;
+
+	return ptr->toInt();
 }
 
 

@@ -153,6 +153,10 @@ public:
 
 	static std::optional<QVector<RpgWallet>> _wallet(const AbstractAPI *api, const QString &username);
 	static std::optional<QVector<RpgWallet>> _wallet(const DatabaseMain *dbMain, const QString &username);
+	static bool _clearWallet(const DatabaseMain *dbMain, ServerService *service);
+
+	static std::optional<int> _currency(const AbstractAPI *api, const QString &username);
+	static std::optional<int> _currency(const DatabaseMain *dbMain, const QString &username);
 
 
 private:

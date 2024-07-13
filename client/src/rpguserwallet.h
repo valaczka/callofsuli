@@ -38,6 +38,7 @@
 #pragma GCC diagnostic warning "-Wunused-variable"
 
 class Client;
+class RpgUserWalletList;
 
 
 /**
@@ -63,6 +64,8 @@ class RpgUserWallet : public QObject
 public:
 	explicit RpgUserWallet(QObject *parent = nullptr);
 	virtual ~RpgUserWallet() {}
+
+	Q_INVOKABLE QJsonObject getJson() const;
 
 	RpgMarket market() const;
 	void setMarket(const RpgMarket &newMarket);
@@ -105,7 +108,6 @@ signals:
 	void imageChanged();
 	void sortNameChanged();
 	void rankChanged();
-
 	void buyableChanged();
 
 private:
@@ -117,6 +119,9 @@ private:
 	QString m_image;
 	QString m_sortName;
 	Rank m_rank;
+	RpgUserWalletList *m_walletList = nullptr;
+
+	friend class RpgUserWalletList;
 };
 
 
@@ -130,6 +135,8 @@ class RpgUserWalletList : public qolm::QOlm<RpgUserWallet>
 {
 	Q_OBJECT
 
+	Q_PROPERTY(int currency READ currency WRITE setCurrency NOTIFY currencyChanged FINAL)
+
 public:
 	RpgUserWalletList(QObject *parent = nullptr);
 	virtual ~RpgUserWalletList();
@@ -138,8 +145,13 @@ public:
 	void reloadMarket();
 	void reloadWallet();
 
+	int currency() const;
+	void setCurrency(int newCurrency);
+
 signals:
 	void reloaded();
+
+	void currencyChanged();
 
 private:
 	void loadMarket(const QJsonObject &json);
@@ -149,6 +161,7 @@ private:
 	void removeMissing(const QVector<RpgMarket> &list);
 	void updateBullets();
 
+	int m_currency = 0;
 };
 
 

@@ -1014,6 +1014,10 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			break;
 
 #ifndef QT_NO_DEBUG
+		case Qt::Key_M:
+			emit marketRequest();
+			break;
+
 		case Qt::Key_N:
 			if (event->modifiers().testFlag(Qt::ShiftModifier) && event->modifiers().testFlag(Qt::ControlModifier)) {
 				for (auto &e : m_enemyDataList) {
@@ -1437,6 +1441,30 @@ int RpgGame::recalculateEnemies()
 	setDeadEnemyCount(d);
 
 	return c;
+}
+
+
+/**
+ * @brief RpgGame::onMarketLoaded
+ */
+
+void RpgGame::onMarketLoaded()
+{
+	if (m_controlledPlayer)
+		m_controlledPlayer->setIsLocked(true);
+}
+
+
+/**
+ * @brief RpgGame::onMarketUnloaded
+ */
+
+void RpgGame::onMarketUnloaded()
+{
+	this->forceActiveFocus(Qt::OtherFocusReason);
+
+	if (m_controlledPlayer)
+		m_controlledPlayer->setIsLocked(false);
 }
 
 

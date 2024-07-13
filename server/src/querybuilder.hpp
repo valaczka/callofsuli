@@ -206,7 +206,8 @@ public:
 
 	QVariant value(const char *field) { return m_sqlQuery.value(field); }
 	QVariant value(const char *field, const QVariant &defaultValue) {
-		return m_sqlQuery.value(field).isNull() ? defaultValue : m_sqlQuery.value(field) ;
+		const auto v = m_sqlQuery.value(field);
+		return v.isNull() ? defaultValue : v ;
 	}
 
 	int fieldCount() const;

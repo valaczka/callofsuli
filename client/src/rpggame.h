@@ -234,6 +234,7 @@ public:
 
 signals:
 	void minimapToggleRequest();
+	void marketRequest();
 	void gameSuccess();
 	void playerDead(RpgPlayer *player);
 	void controlledPlayerChanged();
@@ -269,6 +270,8 @@ private:
 	void onGameQuestionStarted();
 	void onGameQuestionFinished();
 	int recalculateEnemies();
+	void onMarketLoaded();
+	void onMarketUnloaded();
 
 	void updateScatterEnemies();
 	void updateScatterPlayers();
