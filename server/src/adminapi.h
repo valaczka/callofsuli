@@ -129,6 +129,9 @@ public:
 	static bool campaignFinish(const AbstractAPI *api, const int &campaign);
 	static bool campaignFinish(const DatabaseMain *dbMain, const int &campaign);
 
+	static bool zapWallet(const AbstractAPI *api);
+	static bool zapWallet(const DatabaseMain *dbMain);
+
 	static std::optional<int> getClassIdFromCode(const AbstractAPI *api, const QString &code);
 
 	static bool userExists(const AbstractAPI *api, const QString &username, const bool &inverse = false);

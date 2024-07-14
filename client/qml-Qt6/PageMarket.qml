@@ -26,7 +26,7 @@ QPageGradient {
 			anchors.verticalCenter: parent.verticalCenter
 		}
 
-		Qaterial.LabelHeadline4 {
+		Qaterial.LabelHeadline5 {
 			id: _labelCurrency
 			color: Qaterial.Colors.amber400
 
@@ -80,7 +80,7 @@ QPageGradient {
 		ListElement {
 			type: RpgMarket.Xp
 			title: qsTr("XP")
-			icon: "qrc:/Qaterial/Icons/bullet.svg"
+			icon: "qrc:/Qaterial/Icons/chart-timeline-variant-shimmer.svg"
 		}
 	}
 
@@ -97,13 +97,13 @@ QPageGradient {
 		ListElement {
 			type: RpgMarket.Hp
 			title: qsTr("HP")
-			icon: "qrc:/Qaterial/Icons/bullet.svg"
+			icon: "qrc:/Qaterial/Icons/heart.svg"
 		}
 
 		ListElement {
 			type: RpgMarket.Time
 			title: qsTr("Time")
-			icon: "qrc:/Qaterial/Icons/bullet.svg"
+			icon: "qrc:/Qaterial/Icons/clock.svg"
 		}
 
 		ListElement {
@@ -139,6 +139,8 @@ QPageGradient {
 				property int filter: model.type
 
 				width: parent.width
+
+				visible: _viewTerrain.model.count > 0
 
 				RpgSelectTitle {
 					anchors.left: parent.left

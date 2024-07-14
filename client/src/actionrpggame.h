@@ -47,7 +47,6 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
-	Q_PROPERTY(int currency READ currency WRITE setCurrency NOTIFY currencyChanged FINAL)
 	Q_PROPERTY(int gameid READ gameid CONSTANT FINAL)
 
 public:
@@ -91,9 +90,6 @@ public:
 
 	Downloader *downloader() const;
 
-	int currency() const;
-	void setCurrency(int newCurrency);
-
 	int gameid() const;
 
 signals:
@@ -105,7 +101,6 @@ signals:
 	void rpgGameChanged();
 	void playerConfigChanged();
 	void gameModeChanged();
-	void currencyChanged();
 
 protected:
 	virtual QQuickItem* loadPage() override;
@@ -143,8 +138,6 @@ private:
 	bool onPlayerUseContainer(RpgPlayer *player, TiledContainer *container);
 	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container, int xp);
 	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container);
-	void onDeadEnemyCountChanged();
-	void checkQuests();
 
 private:
 	GameMode m_gameMode = SinglePlayer;
@@ -153,7 +146,6 @@ private:
 	RpgPlayerConfig m_playerConfig;
 	std::unique_ptr<RpgQuestion> m_rpgQuestion;
 	std::unique_ptr<Downloader> m_downloader;
-	int m_currency = 0;
 
 	QJsonObject m_loadableContentDict;
 	QVector<Server::DynamicContent> m_loadableContentListBase;

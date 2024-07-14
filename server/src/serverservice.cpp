@@ -932,6 +932,9 @@ bool ServerService::start()
 	else
 		setMarket(loadMarket());
 
+
+	AdminAPI::zapWallet(m_databaseMain.get());
+
 	LOG_CINFO("service") << "Server service started";
 
 	if (m_webServer->start()) {

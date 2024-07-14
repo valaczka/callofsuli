@@ -169,7 +169,7 @@ public:
 		Time		= 6,
 		Xp			= 7,
 		Pickable	= 8,
-		Other = 999
+		Other		= 999,
 	};
 
 	Q_ENUM(Type);
@@ -275,6 +275,53 @@ public:
 	QS_FIELD(int, amount)
 	QS_FIELD(qint64, expiry)
 };
+
+
+
+
+
+/**
+ * @brief The RpgQuest class
+ */
+
+class RpgQuest : public QSerializer
+{
+	Q_GADGET
+
+	Q_PROPERTY(int success MEMBER success)
+
+public:
+	enum Type {
+		Invalid			= 0,
+		EnemyDefault	= 1,
+		WinnerDefault	= 2
+	};
+
+	Q_ENUM(Type);
+
+	RpgQuest(const Type &_type = Invalid, const int &_amount = 0, const int &_currency = 0,
+			 const QJsonObject &_data = {})
+		: QSerializer()
+		, type(_type)
+		, amount(_amount)
+		, currency(_currency)
+		, data(_data)
+	{}
+
+
+	int success = 0;
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(Type, type)
+	QS_FIELD(int, amount)
+	QS_FIELD(int, currency)
+	QS_FIELD(QJsonObject, data)
+
+};
+
+Q_DECLARE_METATYPE(RpgQuest)
+
 
 
 #endif // RPGCONFIG_H

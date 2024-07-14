@@ -428,6 +428,12 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 
 			w->setReadableName(RpgPickableObject::pickableNameEn(t));
 			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
+		} else if (market.type == RpgMarket::Hp) {
+			w->setReadableName(tr("HP"));
+		} else if (market.type == RpgMarket::Time) {
+			w->setReadableName(tr("Second"));
+		} else if (market.type == RpgMarket::Xp) {
+			w->setReadableName(tr("XP"));
 		}
 
 		ptr = w.release();

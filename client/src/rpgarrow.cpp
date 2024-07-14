@@ -135,6 +135,7 @@ bool RpgArrowPickable::playerPick(RpgPlayer *player)
 		//weapon = player->armory()->weaponAdd(new RpgShortbow);
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
+	weapon->setPickedBulletCount(weapon->pickedBulletCount()+num);
 
 	if (m_game)
 		m_game->message(tr("%1 arrows gained").arg(num));

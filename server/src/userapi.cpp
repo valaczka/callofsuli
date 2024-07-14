@@ -769,9 +769,11 @@ QHttpServerResponse UserAPI::gameUpdate(const Credential &credential, const int 
 	if (json.contains(QStringLiteral("statistics")))
 		_addStatistics(username, json.value(QStringLiteral("statistics")).toArray());
 
-	// Wallet
+	// Wallet, currency
 
 	_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
+	if (json.contains(QStringLiteral("currency")))
+		_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());
 
 	// XP
 
@@ -829,7 +831,7 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 	QDefer ret;
 	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);
 
-	databaseMainWorker()->execInThread([&response, ret, this, username, id, &g]() mutable {
+	databaseMainWorker()->execInThread([&response, ret, this, username, id, &g, json]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 		QMutexLocker _locker(databaseMain()->mutex());
 
@@ -851,6 +853,13 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		g.deathmatch = qq.value("deathmatch").toBool();
 		g.mode = qq.value("mode").value<GameMap::GameMode>();
 		g.campaign = qq.value("campaignid", -1).toInt();
+
+
+		// Wallet, currency
+
+		_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
+		if (json.contains(QStringLiteral("currency")))
+			_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());
 
 		///LAMBDA_THREAD_END;				/// Nem lehet!!!
 
@@ -1057,6 +1066,11 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 	if (success) {
 		LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, game.campaign, username));
 	}
+
+
+	// Clear wallet
+
+	TeacherAPI::_clearWallet(databaseMain(), m_service);
 
 	response = responseOk(retObj);
 
@@ -1487,6 +1501,30 @@ void UserAPI::_addWallet(const QString &username, const int &gameid, const QJson
 		}
 	}
 
+}
+
+
+/**
+ * @brief UserAPI::_setCurrency
+ * @param username
+ * @param gameid
+ * @param amount
+ */
+
+void UserAPI::_setCurrency(const QString &username, const int &gameid, const int &amount) const
+{
+	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+	QMutexLocker _locker(databaseMain()->mutex());
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT OR REPLACE INTO currency(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
+			.addField("username", username)
+			.addField("amount", amount)
+			.addField("gameid", gameid)
+			.exec()) {
+		LOG_CERROR("client") << "Game currency update error" << gameid << qPrintable(username);
+	}
 }
 
 

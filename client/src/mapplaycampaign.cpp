@@ -319,6 +319,13 @@ void MapPlayCampaign::onCurrentGameFinished()
 										 { QStringLiteral("extended"), extended },
 									 });
 
+		if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
+			if (RpgGame *g = rpgGame->rpgGame()) {
+				m_finishObject.insert(QStringLiteral("wallet"), g->usedWalletAsArray());
+				m_finishObject.insert(QStringLiteral("currency"), g->currency());
+			}
+		}
+
 		levelGame->clearStatistics(stat);
 
 		m_finishTries = 0;
@@ -340,7 +347,6 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
-	ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame());
 
 	if (m_gameState != StatePlay)
 		return;
@@ -357,15 +363,21 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 	const QJsonArray &stat = levelGame->getStatistics();
 	int xp = levelGame->xp();
 
-	if (stat.isEmpty() && m_lastXP == xp)
+	QJsonObject data {
+		{ QStringLiteral("xp"), xp },
+		{ QStringLiteral("statistics"), stat }
+	};
+
+	if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
+		if (RpgGame *g = rpgGame->rpgGame()) {
+			data.insert(QStringLiteral("wallet"), g->usedWalletAsArray());
+			data.insert(QStringLiteral("currency"), g->currency());
+		}
+	} else if (stat.isEmpty() && m_lastXP == xp) {
 		return;
+	}
 
-	//// GET WALLET STATE ----
-
-	m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/update").arg(game->gameId()), {
-					   { QStringLiteral("xp"), xp },
-					   { QStringLiteral("statistics"), stat }
-				   })
+	m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/update").arg(game->gameId()), data)
 			->fail(this, [stat, this](const QString &err){
 		LOG_CWARNING("client") << "Game update error:" << qPrintable(err);
 

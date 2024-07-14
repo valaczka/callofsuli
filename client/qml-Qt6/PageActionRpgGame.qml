@@ -201,22 +201,6 @@ Page {
 				break
 			}
 		}
-
-		function onFinishDialogRequest(text, icon, success) {
-			Qaterial.DialogManager.showDialog(
-						{
-							onAccepted: function() { if (game) game.finishGame()  },
-							onRejected: function() { if (game) game.finishGame() },
-							text: text,
-							title: qsTr("Game over"),
-							iconSource: icon,
-							iconColor: success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
-							textColor: success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
-							iconFill: false,
-							iconSize: Qaterial.Style.roundIcon.size,
-							standardButtons: DialogButtonBox.Ok
-						})
-		}
 	}
 
 

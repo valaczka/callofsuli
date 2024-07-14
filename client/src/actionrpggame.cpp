@@ -517,6 +517,13 @@ void ActionRpgGame::rpgGameActivated_()
 	loadInventory(player);
 
 
+	// Set user name
+
+	if (Server *s = m_client->server()) {
+		player->setName(s->user()->fullNickName());
+	}
+
+
 	// From wallet
 
 	RpgUserWalletList* wallet = m_client->server() ? m_client->server()->user()->wallet() : nullptr;
@@ -560,9 +567,13 @@ void ActionRpgGame::rpgGameActivated_()
 	else if (m_missionLevel->level() == 2)
 		factor = 0.4;
 
+	int sum = 0;
+
 	for (TiledScene *s : m_rpgGame->sceneList()) {
-		m_rpgGame->setQuestions(s, /*m_missionLevel->questions()*/ factor);
+		sum += m_rpgGame->setQuestions(s, /*m_missionLevel->questions()*/ factor);
 	}
+
+	m_rpgGame->loadDefaultQuests(sum);
 
 	emit m_rpgGame->gameLoaded();
 }
@@ -1151,48 +1162,6 @@ void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, T
 }
 
 
-/**
- * @brief ActionRpgGame::onDeadEnemyCountChanged
- */
-
-void ActionRpgGame::onDeadEnemyCountChanged()
-{
-	LOG_CDEBUG("game") << "Dead enemy count changed:" << m_rpgGame->deadEnemyCount();
-
-	checkQuests();
-}
-
-
-/**
- * @brief ActionRpgGame::checkQuests
- */
-
-void ActionRpgGame::checkQuests()
-{
-	LOG_CTRACE("game") << "Check quests";
-
-	LOG_CWARNING("game") << "******";
-}
-
-
-/**
- * @brief ActionRpgGame::currency
- * @return
- */
-
-int ActionRpgGame::currency() const
-{
-	return m_currency;
-}
-
-void ActionRpgGame::setCurrency(int newCurrency)
-{
-	if (m_currency == newCurrency)
-		return;
-	m_currency = newCurrency;
-	emit currencyChanged();
-}
-
 
 /**
  * @brief ActionRpgGame::gameid
@@ -1282,7 +1251,6 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		disconnect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		disconnect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
-		disconnect(m_rpgGame, &RpgGame::deadEnemyCountChanged, this, &ActionRpgGame::onDeadEnemyCountChanged);
 		disconnect(m_rpgGame, &RpgGame::marketRequest, this, &ActionRpgGame::marketRequest);
 		disconnect(this, &ActionRpgGame::marketUnloaded, m_rpgGame, &RpgGame::onMarketUnloaded);
 		disconnect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);
@@ -1301,7 +1269,6 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
-		connect(m_rpgGame, &RpgGame::deadEnemyCountChanged, this, &ActionRpgGame::onDeadEnemyCountChanged);
 		connect(m_rpgGame, &RpgGame::marketRequest, this, &ActionRpgGame::marketRequest);
 		connect(this, &ActionRpgGame::marketUnloaded, m_rpgGame, &RpgGame::onMarketUnloaded);
 		connect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);

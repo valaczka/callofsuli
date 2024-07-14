@@ -1740,6 +1740,142 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 
 
 
+/**
+ * @brief AdminAPI::zapWallet
+ * @param api
+ * @return
+ */
+
+bool AdminAPI::zapWallet(const AbstractAPI *api)
+{
+	Q_ASSERT(api);
+	return zapWallet(api->databaseMain());
+}
+
+
+/**
+ * @brief AdminAPI::zapWallet
+ * @param dbMain
+ * @return
+ */
+
+bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
+{
+	Q_ASSERT(dbMain);
+
+	LOG_CDEBUG("service") << "Zap wallet";
+
+	QDefer ret;
+
+#define ZAP_INTERVAL	"date('now')"
+
+	dbMain->worker()->execInThread([ret, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		// ZAP WALLET
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("CREATE TEMPORARY TABLE tmpWallet AS "
+						  "SELECT username, type, name, SUM(amount) AS amount, MAX(expiry) AS expiry "
+						  "FROM wallet WHERE timestamp<"
+						  ZAP_INTERVAL
+						  "AND gameid IS NULL OR gameid NOT IN (SELECT gameid FROM runningGame) "
+						  "GROUP BY username, type, name"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DELETE FROM wallet WHERE timestamp<"
+						  ZAP_INTERVAL
+						  " AND gameid IS NULL OR gameid NOT IN (SELECT gameid FROM runningGame)"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT INTO wallet(username, type, name, amount, expiry) "
+						  "SELECT * FROM tmpWallet"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DROP TABLE tmpWallet")
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+
+
+		// ZAP CURRENCY
+
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("CREATE TEMPORARY TABLE tmpCurrency AS "
+						  "SELECT username, SUM(amount) AS amount "
+						  "FROM currency WHERE timestamp<"
+						  ZAP_INTERVAL
+						  "AND gameid IS NULL OR gameid NOT IN (SELECT gameid FROM runningGame) "
+						  "GROUP BY username"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DELETE FROM currency WHERE timestamp<"
+						  ZAP_INTERVAL
+						  " AND gameid IS NULL OR gameid NOT IN (SELECT gameid FROM runningGame)"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT INTO currency(username, amount) "
+						  "SELECT * FROM tmpCurrency"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DROP TABLE tmpCurrency")
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
+}
+
+
+
 
 
 

@@ -63,6 +63,7 @@ class IsometricPlayer : public IsometricCircleEntity
 	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
 	Q_PROPERTY(QPointF currentVelocity READ currentVelocity WRITE setCurrentVelocity NOTIFY currentVelocityChanged FINAL)
 	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
 
 public:
 	explicit IsometricPlayer(QQuickItem *parent = nullptr);
@@ -101,6 +102,9 @@ public:
 	TiledContainer *currentContainer() const;
 	void setCurrentContainer(TiledContainer *newCurrentContainer);
 
+	QString name() const;
+	void setName(const QString &newName);
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -111,6 +115,7 @@ signals:
 	void currentVelocityChanged();
 	void isLockedChanged();
 	void currentContainerChanged();
+	void nameChanged();
 
 protected:
 	//void updateSprite() override;
@@ -147,6 +152,7 @@ protected:
 	qreal m_runSpeed = toMovingSpeed(5.);
 	qint64 m_inabilityTime = 200;
 	bool m_isLocked = false;
+	QString m_name;
 
 
 private:

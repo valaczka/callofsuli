@@ -301,6 +301,8 @@ bool RpgGame::load(const RpgGameDefinition &def)
 
 	m_gameDefinition = def;
 
+
+
 	return true;
 }
 
@@ -1013,10 +1015,15 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			emit minimapToggleRequest();
 			break;
 
+		case Qt::Key_F10:
+			emit questsRequest();
+			break;
+
 #ifndef QT_NO_DEBUG
 		case Qt::Key_M:
 			emit marketRequest();
 			break;
+
 
 		case Qt::Key_N:
 			if (event->modifiers().testFlag(Qt::ShiftModifier) && event->modifiers().testFlag(Qt::ControlModifier)) {
@@ -1346,6 +1353,48 @@ void RpgGame::addLocationSound(TiledObjectBase *object, const QString &sound, co
 
 
 
+/**
+ * @brief RpgGame::loadDefaultQuests
+ */
+
+void RpgGame::loadDefaultQuests(const int &questions)
+{
+	LOG_CTRACE("game") << "Load default quests";
+
+	// Winner streak quests
+
+	if (questions >= 10) {
+		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 3, 75 });
+		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 5, 100 });
+		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 7, 175 });
+
+		for (int i=2;; ++i) {
+			int q = 5*i;
+
+			if (q >= questions) {
+				m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, questions, (i+5) * 100 });
+				break;
+			}
+
+			m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, i*5, i * 100 });
+		}
+	}
+
+	// Enemy quests
+
+	if (m_enemyCount >= 5) {
+		m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, 5, 2 });
+
+		for (int i=10; i<=m_enemyCount; i+=5) {
+			m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, i, i-5 });
+		}
+	}
+
+	emit questsChanged();
+}
+
+
+
 
 /**
  * @brief RpgGame::onGameQuestionSuccess
@@ -1356,6 +1405,9 @@ void RpgGame::onGameQuestionSuccess(const QVariantMap &answer)
 {
 	if (m_rpgQuestion)
 		m_rpgQuestion->questionSuccess(answer);
+
+	setWinnerStreak(m_winnerStreak+1);
+	checkQuests();
 
 	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
 	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
@@ -1378,6 +1430,9 @@ void RpgGame::onGameQuestionFailed(const QVariantMap &answer)
 
 	if (m_rpgQuestion)
 		m_rpgQuestion->questionFailed(answer);
+
+	setWinnerStreak(0);
+	checkQuests();
 
 	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
 }
@@ -1439,6 +1494,7 @@ int RpgGame::recalculateEnemies()
 		d=all;
 
 	setDeadEnemyCount(d);
+	checkQuests();
 
 	return c;
 }
@@ -1465,6 +1521,107 @@ void RpgGame::onMarketUnloaded()
 
 	if (m_controlledPlayer)
 		m_controlledPlayer->setIsLocked(false);
+}
+
+
+
+/**
+ * @brief RpgGame::checkQuests
+ */
+
+void RpgGame::checkQuests()
+{
+	checkEnemyQuests(m_deadEnemyCount);
+	checkWinnerQuests(m_winnerStreak);
+}
+
+
+
+/**
+ * @brief RpgGame::checkEnemyQuests
+ * @param count
+ */
+
+void RpgGame::checkEnemyQuests(const int &count)
+{
+	auto found = m_gameDefinition.quests.end();
+
+	for (auto it = m_gameDefinition.quests.begin(); it != m_gameDefinition.quests.end(); ++it) {
+		if (it->type != RpgQuest::EnemyDefault)
+			continue;
+
+		if (it->amount > count)
+			continue;
+
+		if (it->success > 0)
+			continue;
+
+		if (found == m_gameDefinition.quests.end())
+			found = it;
+		else if (it->amount > found->amount)
+			found = it;
+
+		questSuccess(&*it);
+	}
+
+	if (found == m_gameDefinition.quests.end())
+		return;
+
+	messageColor(tr("%1 killed enemies").arg(found->amount), QColor::fromString(QStringLiteral("#BA68C8")));
+
+}
+
+
+/**
+ * @brief RpgGame::checkWinnerQuests
+ * @param count
+ */
+
+void RpgGame::checkWinnerQuests(const int &count)
+{
+	if (count < m_lastWinnerStreak)
+		m_lastWinnerStreak = 0;
+
+	auto found = m_gameDefinition.quests.end();
+
+	for (auto it = m_gameDefinition.quests.begin(); it != m_gameDefinition.quests.end(); ++it) {
+		if (it->type != RpgQuest::WinnerDefault)
+			continue;
+
+		if (it->amount > count)
+			continue;
+
+		if (found == m_gameDefinition.quests.end())
+			found = it;
+		else if (it->amount > found->amount)
+			found = it;
+	}
+
+	if (found == m_gameDefinition.quests.end())
+		return;
+
+	if (found->amount == m_lastWinnerStreak)
+		return;
+
+	questSuccess(&*found);
+
+	messageColor(tr("Winner streak: %1").arg(found->amount), QColor::fromString(QStringLiteral("#BA68C8")));
+
+	m_lastWinnerStreak = found->amount;
+}
+
+
+/**
+ * @brief RpgGame::questSuccess
+ * @param quest
+ */
+
+void RpgGame::questSuccess(RpgQuest *quest)
+{
+	Q_ASSERT(quest);
+
+	quest->success++;
+	setCurrency(m_currency+quest->currency);
 }
 
 
@@ -1572,6 +1729,46 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 		return e.enemy == enemy; }
 	);
 }
+
+
+/**
+ * @brief RpgGame::winnerStreak
+ * @return
+ */
+
+int RpgGame::winnerStreak() const
+{
+	return m_winnerStreak;
+}
+
+void RpgGame::setWinnerStreak(int newWinnerStreak)
+{
+	if (m_winnerStreak == newWinnerStreak)
+		return;
+	m_winnerStreak = newWinnerStreak;
+	emit winnerStreakChanged();
+}
+
+
+/**
+ * @brief RpgGame::currency
+ * @return
+ */
+
+int RpgGame::currency() const
+{
+	return m_currency;
+}
+
+void RpgGame::setCurrency(int newCurrency)
+{
+	if (m_currency == newCurrency)
+		return;
+	m_currency = newCurrency;
+	emit currencyChanged();
+}
+
+
 
 int RpgGame::deadEnemyCount() const
 {
@@ -2100,6 +2297,53 @@ void RpgGame::onSceneWorldStepped(TiledScene *scene)
 }
 
 
+/**
+ * @brief RpgGame::useBullet
+ * @param type
+ */
+
+void RpgGame::useBullet(const RpgPickableObject::PickableType &type)
+{
+	if (type == RpgPickableObject::PickableInvalid) {
+		LOG_CERROR("game") << "Invalid bullet" << type;
+		return;
+	}
+
+	const QString name = RpgPickableObject::typeHash().key(type);
+
+	auto it = std::find_if(m_usedWallet.begin(), m_usedWallet.end(), [&name](const RpgWallet &w) {
+		return w.type == RpgMarket::Bullet && w.name == name;
+	});
+
+	if (it == m_usedWallet.end()) {
+		RpgWallet w;
+		w.type = RpgMarket::Bullet;
+		w.name = name;
+		w.amount = 1;
+		m_usedWallet.append(w);
+	} else {
+		it->amount++;
+	}
+}
+
+
+/**
+ * @brief RpgGame::usedWalletAsArray
+ * @return
+ */
+
+QJsonArray RpgGame::usedWalletAsArray() const
+{
+	QJsonArray list;
+
+	for (const RpgWallet &w : m_usedWallet) {
+		list.append(w.toJson());
+	}
+
+	return list;
+}
+
+
 
 /**
  * @brief RpgGame::controlledPlayer
@@ -2125,4 +2369,7 @@ void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 
 
 
-
+const QList<RpgQuest> &RpgGame::quests() const
+{
+	return m_gameDefinition.quests;
+}

@@ -347,6 +347,16 @@ void TiledWeapon::setExcludeFromLayers(bool newExcludeFromLayers)
 	emit excludeFromLayersChanged();
 }
 
+int TiledWeapon::pickedBulletCount() const
+{
+	return m_pickedBulletCount;
+}
+
+void TiledWeapon::setPickedBulletCount(int newPickedBulletCount)
+{
+	m_pickedBulletCount = newPickedBulletCount;
+}
+
 
 
 /**

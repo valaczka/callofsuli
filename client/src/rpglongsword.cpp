@@ -114,6 +114,7 @@ bool RpgLongswordPickable::playerPick(RpgPlayer *player)
 		weapon = player->armory()->weaponAdd(new RpgLongsword);
 
 	weapon->setBulletCount(weapon->bulletCount()+1);
+	weapon->setPickedBulletCount(weapon->pickedBulletCount()+1);
 
 	if (m_game)
 		m_game->message(tr("1 sword gained"));

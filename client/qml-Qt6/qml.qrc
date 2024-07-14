@@ -235,5 +235,6 @@
         <file>RpgSelectView.qml</file>
         <file>PageMarket.qml</file>
         <file>RpgMarketCard.qml</file>
+        <file>RpgQuestsDialog.qml</file>
     </qresource>
 </RCC>

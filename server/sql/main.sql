@@ -360,7 +360,7 @@ CREATE TABLE wallet(
 	expiry TEXT,
 	gameid INTEGER REFERENCES game(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-	UNIQUE (username, gameid)
+	UNIQUE (username, gameid, type, name)
 );
 
 

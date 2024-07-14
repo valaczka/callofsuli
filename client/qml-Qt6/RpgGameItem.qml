@@ -74,6 +74,8 @@ FocusScope {
 
 		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
 
+		onQuestsRequest: showQuests()
+
 		Component.onCompleted: forceActiveFocus()
 	}
 
@@ -192,6 +194,20 @@ FocusScope {
 		spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 		visible: _isPrepared
+
+		GameLabel {
+			id: _infoCurrency
+
+			anchors.right: parent.right
+
+			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
+
+			color: Qaterial.Colors.yellow500
+			iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
+			iconLabel.icon.color: "transparent"
+
+			value: game && game.rpgGame ? game.rpgGame.currency : 0
+		}
 
 		GameLabel {
 			id: _labelXP
@@ -333,6 +349,23 @@ FocusScope {
 				onClicked: {
 					_mapRect.visible = !_mapRect.visible
 				}
+			}
+
+			GameButton {
+				id: _questsButton
+				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
+
+				anchors.verticalCenter: parent.verticalCenter
+
+				color: "transparent"
+				border.color: fontImage.color
+				border.width: 2
+
+				fontImage.icon: Qaterial.Icons.crosshairsQuestion
+				fontImage.color: Qaterial.Colors.purple300
+				fontImageScale: 0.7
+
+				onClicked: showQuests()
 			}
 
 			GameButton {
@@ -498,7 +531,7 @@ FocusScope {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: _game.controlledPlayer && _game.controlledPlayer.currentContainer &&
-										   _game.controlledPlayer.currentContainer.isActive
+					 _game.controlledPlayer.currentContainer.isActive
 
 			color: Qaterial.Colors.amber500
 			border.color: fontImage.color
@@ -734,15 +767,67 @@ FocusScope {
 		}
 	}
 
+
+
+	Connections {
+		target: game
+
+		function onFinishDialogRequest(text, icon, success) {
+			_finishIcon = icon
+			_finishText = text
+			_finishSuccess = success
+
+			Qaterial.DialogManager.openFromComponent(_cmpFinishQuests)
+		}
+	}
+
 	function startGame() {
 		if (_isPrepared && _delayTimer._finished) {
 			game.gamePrepared()
 			_loadingRect.visible = false
+			//showQuests()
 		}
 	}
 
 
 
+	function showQuests() {
+		Qaterial.DialogManager.openFromComponent(_cmpQuests)
+	}
+
+
+	Component {
+		id: _cmpQuests
+
+		RpgQuestsDialog {
+			game: root.game ? root.game.rpgGame : null
+		}
+
+	}
+
+	property string _finishIcon: ""
+	property string _finishText: ""
+	property bool _finishSuccess: false
+
+	Component {
+		id: _cmpFinishQuests
+
+		RpgQuestsDialog {
+			game: root.game ? root.game.rpgGame : null
+
+			onAccepted: if (root.game) root.game.finishGame()
+			onRejected: if (root.game) root.game.finishGame()
+
+			title: qsTr("Game over")
+
+			text: _finishText
+			iconColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
+			textColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
+			iconSize: Qaterial.Style.roundIcon.size
+			iconSource: _finishIcon
+		}
+
+	}
 }
 
 

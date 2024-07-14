@@ -434,6 +434,19 @@ QList<IsometricEnemy *> IsometricPlayer::contactedAndReachedEnemies() const
 	return d->contactedAndReachedEnemies();
 }
 
+QString IsometricPlayer::name() const
+{
+	return m_name;
+}
+
+void IsometricPlayer::setName(const QString &newName)
+{
+	if (m_name == newName)
+		return;
+	m_name = newName;
+	emit nameChanged();
+}
+
 
 /**
  * @brief IsometricPlayer::clearData

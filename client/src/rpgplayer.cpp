@@ -132,7 +132,18 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 	if (weapon->canShot()) {
 		if (weapon->shot(IsometricBullet::TargetEnemy, m_body->bodyPosition(), currentAngle())) {
 			playAttackEffect(weapon);
-			m_game->
+
+			if (weapon->pickedBulletCount() > 0) {
+				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
+			} else if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
+				if (RpgPickableWeaponIface *iface = dynamic_cast<RpgPickableWeaponIface*>(weapon)) {
+					g->useBullet(iface->toBulletPickable());
+				} else {
+					LOG_CERROR("game") << "Invalid weapon cast";
+				}
+			} else {
+				LOG_CERROR("game") << "Invalid RpgGame cast";
+			}
 		}
 
 		if (weapon->bulletCount() == 0)

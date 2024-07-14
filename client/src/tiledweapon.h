@@ -130,6 +130,9 @@ public:
 	bool excludeFromLayers() const;
 	void setExcludeFromLayers(bool newExcludeFromLayers);
 
+	int pickedBulletCount() const;
+	void setPickedBulletCount(int newPickedBulletCount);
+
 signals:
 	void parentObjectChanged();
 	void bulletCountChanged();
@@ -158,6 +161,7 @@ private:
 	QDeadlineTimer m_timerRepeater;
 	bool m_canThrow = false;
 	bool m_canThrowBullet = true;
+	int m_pickedBulletCount = 0;
 };
 
 

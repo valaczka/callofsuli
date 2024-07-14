@@ -139,6 +139,7 @@ bool RpgFireballPickable::playerPick(RpgPlayer *player)
 	}
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
+	weapon->setPickedBulletCount(weapon->pickedBulletCount()+num);
 
 	if (m_game)
 		m_game->message(tr("%1 fireballs gained").arg(num));
