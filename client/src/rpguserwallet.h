@@ -60,6 +60,7 @@ class RpgUserWallet : public QObject
 	Q_PROPERTY(QString image READ image WRITE setImage NOTIFY imageChanged FINAL)
 	Q_PROPERTY(QString sortName READ sortName WRITE setSortName NOTIFY sortNameChanged FINAL)
 	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged FINAL)
+	Q_PROPERTY(QVariantList extendedInfo READ extendedInfo WRITE setExtendedInfo NOTIFY extendedInfoChanged FINAL)
 
 public:
 	explicit RpgUserWallet(QObject *parent = nullptr);
@@ -97,6 +98,9 @@ public:
 
 	bool buyable() const;
 
+	QVariantList extendedInfo() const;
+	void setExtendedInfo(const QVariantList &newExtendedInfo);
+
 signals:
 	void marketChanged();
 	void amountChanged();
@@ -110,6 +114,8 @@ signals:
 	void rankChanged();
 	void buyableChanged();
 
+	void extendedInfoChanged();
+
 private:
 	RpgMarket m_market;
 	int m_amount = 0;
@@ -120,6 +126,7 @@ private:
 	QString m_sortName;
 	Rank m_rank;
 	RpgUserWalletList *m_walletList = nullptr;
+	QVariantList m_extendedInfo;
 
 	friend class RpgUserWalletList;
 };

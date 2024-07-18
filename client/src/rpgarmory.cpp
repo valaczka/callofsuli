@@ -322,7 +322,7 @@ TiledWeapon *RpgArmory::getNextWeapon() const
 		if ((*it)->canAttack()) {
 			if ((*it)->weaponType() == TiledWeapon::WeaponHand)
 				weaponHand = *it;
-			else
+			else if ((*it)->canHit() || (*it)->canShot())
 				wList.append(*it);
 		}
 

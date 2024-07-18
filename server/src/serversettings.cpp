@@ -71,6 +71,9 @@ void ServerSettings::printConfig() const
 	if (m_logLimit > 0)
 		LOG_CINFO("service") << "Log limit:" << m_logLimit;
 
+	if (!m_smtpUser.isEmpty() && !m_smtpHost.isEmpty())
+		LOG_CINFO("service") << "Smtp email:" << qPrintable(m_smtpUser);
+
 	LOG_CINFO("service") << "-----------------------------------------------------";
 }
 
@@ -124,6 +127,24 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("log/limit")))
 		setLogLimit(s.value(QStringLiteral("log/limit")).toInt());
 
+
+	if (s.contains(QStringLiteral("smtp/host")))
+		setSmtpHost(s.value(QStringLiteral("smtp/host")).toString());
+
+	if (s.contains(QStringLiteral("smtp/user")))
+		setSmtpUser(s.value(QStringLiteral("smtp/user")).toString());
+
+	if (s.contains(QStringLiteral("smtp/port")))
+		setSmtpPort(s.value(QStringLiteral("smtp/port")).toInt());
+
+	if (s.contains(QStringLiteral("smtp/password")))
+		setSmtpPassword(s.value(QStringLiteral("smtp/password")).toString());
+
+	if (s.contains(QStringLiteral("smtp/ssl")))
+		setSmtpSsl(s.value(QStringLiteral("smtp/ssl")).toBool());
+
+
+
 	LOG_CINFO("service") << "Configuration loaded from:" << qPrintable(f);
 }
 
@@ -167,6 +188,12 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("ssl/key"), m_certKeyFile);
 
 	s.setValue(QStringLiteral("log/limit"), m_logLimit);
+
+	s.setValue(QStringLiteral("smtp/host"), m_smtpHost);
+	s.setValue(QStringLiteral("smtp/port"), m_smtpPort);
+	s.setValue(QStringLiteral("smtp/user"), m_smtpUser);
+	s.setValue(QStringLiteral("smtp/password"), m_smtpPassword);
+	s.setValue(QStringLiteral("smtp/ssl"), m_smtpSsl);
 
 	for (auto it=m_oauthMap.constBegin(); it != m_oauthMap.constEnd(); ++it)
 		it->toSettings(&s, it.key());
@@ -304,6 +331,56 @@ const QHash<QString, ServerSettings::OAuth> &ServerSettings::oauthMap() const
 void ServerSettings::setOauthMap(const QHash<QString, OAuth> &newOauthMap)
 {
 	m_oauthMap = newOauthMap;
+}
+
+QString ServerSettings::smtpHost() const
+{
+	return m_smtpHost;
+}
+
+void ServerSettings::setSmtpHost(const QString &newSmtpHost)
+{
+	m_smtpHost = newSmtpHost;
+}
+
+int ServerSettings::smtpPort() const
+{
+	return m_smtpPort;
+}
+
+void ServerSettings::setSmtpPort(int newSmtpPort)
+{
+	m_smtpPort = newSmtpPort;
+}
+
+QString ServerSettings::smtpUser() const
+{
+	return m_smtpUser;
+}
+
+void ServerSettings::setSmtpUser(const QString &newSmtpUser)
+{
+	m_smtpUser = newSmtpUser;
+}
+
+QString ServerSettings::smtpPassword() const
+{
+	return m_smtpPassword;
+}
+
+void ServerSettings::setSmtpPassword(const QString &newSmtpPassword)
+{
+	m_smtpPassword = newSmtpPassword;
+}
+
+bool ServerSettings::smtpSsl() const
+{
+	return m_smtpSsl;
+}
+
+void ServerSettings::setSmtpSsl(bool newSmtpSsl)
+{
+	m_smtpSsl = newSmtpSsl;
 }
 
 

@@ -91,6 +91,21 @@ public:
 	const QHash<QString, OAuth> &oauthMap() const;
 	void setOauthMap(const QHash<QString, OAuth> &newOauthMap);
 
+	QString smtpHost() const;
+	void setSmtpHost(const QString &newSmtpHost);
+
+	int smtpPort() const;
+	void setSmtpPort(int newSmtpPort);
+
+	QString smtpUser() const;
+	void setSmtpUser(const QString &newSmtpUser);
+
+	QString smtpPassword() const;
+	void setSmtpPassword(const QString &newSmtpPassword);
+
+	bool smtpSsl() const;
+	void setSmtpSsl(bool newSmtpSsl);
+
 private:
 	QDir m_dataDir;
 
@@ -107,6 +122,12 @@ private:
 	QHash<QString, OAuth> m_oauthMap;
 
 	int m_logLimit = 14;
+
+	QString m_smtpHost;
+	int m_smtpPort = 0;
+	QString m_smtpUser;
+	QString m_smtpPassword;
+	bool m_smtpSsl = true;
 
 	static const QStringList m_supportedProviders;
 

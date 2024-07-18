@@ -48,6 +48,54 @@ QItemGradient {
 		}
 
 
+		QButton {
+			id: _btnPlay
+
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			icon.source: Qaterial.Icons.play
+			icon.width: 28 * Qaterial.Style.pixelSizeRatio
+			icon.height: 28 * Qaterial.Style.pixelSizeRatio
+
+			bgColor: Qaterial.Colors.green700
+			textColor: Qaterial.Colors.white
+			topPadding: 10 * Qaterial.Style.pixelSizeRatio
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+			leftPadding: 40 * Qaterial.Style.pixelSizeRatio
+			rightPadding: 40 * Qaterial.Style.pixelSizeRatio
+
+			outlined: !enabled
+
+			enabled: _viewCharacter.selected != "" && _viewTerrain.selected != ""
+			text: qsTr("Play")
+
+			onClicked: {
+				Client.Utils.settingsSet("rpg/skin", _viewCharacter.selected)
+				Client.Utils.settingsSet("rpg/world", _viewTerrain.selected)
+
+				let noW = []
+
+				for (let i=0; i<_viewWeapons.model.count; ++i) {
+					let wpn = _viewWeapons.model.get(i)
+					if (!_viewWeapons.selectedList.includes(wpn.market.name))
+						noW.push(wpn.market.name)
+				}
+
+				Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))
+
+				_scrollable.visible = false
+				_busyIndicator.visible = true
+
+				game.selectCharacter(_viewTerrain.selected, _viewCharacter.selected, _viewWeapons.selectedList)
+			}
+		}
+
+		Item {
+			height: 20 * Qaterial.Style.pixelSizeRatio
+			width: parent.width
+		}
+
+
 		RpgSelectTitle {
 			anchors.left: parent.left
 			icon.source: Qaterial.Icons.earth
@@ -211,50 +259,8 @@ QItemGradient {
 		}
 
 		Item {
-			height: 40 * Qaterial.Style.pixelSizeRatio
+			height: 20 * Qaterial.Style.pixelSizeRatio
 			width: parent.width
-		}
-
-		QButton {
-			id: _btnPlay
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			icon.source: Qaterial.Icons.play
-			icon.width: 28 * Qaterial.Style.pixelSizeRatio
-			icon.height: 28 * Qaterial.Style.pixelSizeRatio
-
-			bgColor: Qaterial.Colors.green700
-			textColor: Qaterial.Colors.white
-			topPadding: 10 * Qaterial.Style.pixelSizeRatio
-			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
-			leftPadding: 40 * Qaterial.Style.pixelSizeRatio
-			rightPadding: 40 * Qaterial.Style.pixelSizeRatio
-
-			outlined: !enabled
-
-			enabled: _viewCharacter.selected != "" && _viewTerrain.selected != ""
-			text: qsTr("Play")
-
-			onClicked: {
-				Client.Utils.settingsSet("rpg/skin", _viewCharacter.selected)
-				Client.Utils.settingsSet("rpg/world", _viewTerrain.selected)
-
-				let noW = []
-
-				for (let i=0; i<_viewWeapons.model.count; ++i) {
-					let wpn = _viewWeapons.model.get(i)
-					if (!_viewWeapons.selectedList.includes(wpn.market.name))
-						noW.push(wpn.market.name)
-				}
-
-				Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))
-
-				_scrollable.visible = false
-				_busyIndicator.visible = true
-
-				game.selectCharacter(_viewTerrain.selected, _viewCharacter.selected, _viewWeapons.selectedList)
-			}
 		}
 
 

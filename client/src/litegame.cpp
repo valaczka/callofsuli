@@ -332,7 +332,7 @@ void LiteGame::onGameQuestionFailed(const QVariantMap &answer)
 	}
 
 	m_gameQuestion->answerReveal(answer);
-	m_gameQuestion->setMsecBeforeHide(m_mode == GameMap::Practice ? 2000 : 1250);
+	m_gameQuestion->setMsecBeforeHide(m_mode == GameMap::Practice ? 3000 : 1250);
 
 	m_gameQuestion->finish();
 }

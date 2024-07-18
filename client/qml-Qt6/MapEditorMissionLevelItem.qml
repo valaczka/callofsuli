@@ -408,15 +408,15 @@ QPage {
 				}
 			}
 
-			QFormSwitchButton
+			/*QFormSwitchButton							// DEPRECATED
 			{
-				visible: mission && (mission.modes & GameMap.Action)
+				visible: mission && (mission.modes & GameMap.Rpg)
 				text: qsTr("Sudden death mód engedélyezve")
 				checked: missionLevel && missionLevel.canDeathmatch
 				onToggled: editor.missionLevelModify(missionLevel, function() {
 					missionLevel.canDeathmatch = checked
 				})
-			}
+			}*/
 
 
 

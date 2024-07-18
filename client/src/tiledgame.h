@@ -210,6 +210,7 @@ public:
 signals:
 	void gameLoaded();
 	void gameLoadFailed(const QString &errorString);
+	void marketRequest();
 	void currentSceneChanged();
 	void joystickChanged();
 	void followedItemChanged();

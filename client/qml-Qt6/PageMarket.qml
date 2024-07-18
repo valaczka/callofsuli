@@ -18,6 +18,8 @@ QPageGradient {
 	appBar.rightComponent: Row {
 		spacing: 10 * Qaterial.Style.pixelSizeRatio
 
+		visible: _scrollable.visible
+
 		Image {
 			source: _scrollable.visible ? "qrc:/rpg/coin/coins.png" : ""
 			fillMode: Image.PreserveAspectFit
@@ -154,8 +156,8 @@ QPageGradient {
 					width: root.width
 
 					implicitHeight: Math.max(Math.min(300 * Qaterial.Style.pixelSizeRatio,
-													  root.height/2),
-											 220 * Qaterial.Style.pixelSizeRatio)
+													  root.height*0.4),
+											 240 * Qaterial.Style.pixelSizeRatio)
 
 					spacing: 10 * Qaterial.Style.pixelSizeRatio
 
@@ -369,6 +371,20 @@ QPageGradient {
 							  color: Qaterial.Colors.amber400,
 							  image: "qrc:/rpg/coin/coin.png"
 						  })
+
+
+				for (let i=0; i<_currentWallet.extendedInfo.length; ++i) {
+					let o = _currentWallet.extendedInfo[i]
+
+					list.push({
+								  icon: o.icon,
+								  text: o.text,
+								  font: Qaterial.Style.textTheme.body2,
+								  value: o.value,
+								  color: Qaterial.Style.secondaryTextColor(),
+								  image: o.image
+							  })
+				}
 
 				_rptr.model = list
 			}

@@ -63,5 +63,6 @@
 	url = https://github.com/smurfomen/QSerializer.git
 [submodule "lib/SCodes/"]
 	url = git@github.com:valaczka/SCodes.git
-[submodule "SCodes/"]
-	url = git@github.com:valaczka/SCodes.git
+[submodule "lib/simple-mail"]
+	path = lib/simple-mail
+	url = https://github.com/valaczka/simple-mail.git

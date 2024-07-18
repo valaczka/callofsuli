@@ -271,6 +271,11 @@ bool RpgGame::load(const RpgGameDefinition &def)
 
 		enemy->setObjectId(e.objectId);
 
+		if (!e.displayName.isEmpty()) {
+			enemy->setDisplayName(e.displayName);
+			enemy->createMarkerItem();
+		}
+
 		if (e.path.size() > 1)
 			enemy->loadPathMotor(e.path);
 		else
@@ -293,6 +298,11 @@ bool RpgGame::load(const RpgGameDefinition &def)
 		pickable->setObjectId(e.objectId);
 		pickable->setName(e.name);
 		pickable->body()->emplace(e.position);
+
+		if (!e.displayName.isEmpty()) {
+			pickable->setDisplayName(e.displayName);
+			pickable->createMarkerItem();
+		}
 
 		e.scene->appendToObjects(pickable);
 		e.pickableObject = pickable;
@@ -461,6 +471,18 @@ void RpgGame::saveSceneState(RpgPlayer *player)
 
 	playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene(), player->body()->bodyPosition());
 
+	saveSceneState();
+}
+
+
+
+
+/**
+ * @brief RpgGame::saveSceneState
+ */
+
+void RpgGame::saveSceneState()
+{
 	for (EnemyData &e : m_enemyDataList) {
 		if (!e.enemy)
 			continue;
@@ -490,6 +512,11 @@ void RpgGame::onPlayerDead(TiledObject *player)
 		}
 
 		isoPlayer->clearData();
+	}
+
+	for (RpgQuest &q : m_gameDefinition.quests) {
+		if (q.type == RpgQuest::SuddenDeath)
+			q.success = -1;
 	}
 
 	emit playerDead(isoPlayer);
@@ -1292,7 +1319,8 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 							   false,
 							   object->property(QStringLiteral("dieForever")).toBool(),
 							   pickableList,
-							   pickableOnceList
+							   pickableOnceList,
+							   object->propertyAsString(QStringLiteral("displayName"))
 						   });
 }
 
@@ -1330,7 +1358,8 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 								  object->name(),
 								  point,
 								  scene,
-								  nullptr
+								  nullptr,
+								  object->propertyAsString(QStringLiteral("displayName"))
 							  });
 }
 
@@ -1387,6 +1416,16 @@ void RpgGame::loadDefaultQuests(const int &questions)
 
 		for (int i=10; i<=m_enemyCount; i+=5) {
 			m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, i, i-5 });
+		}
+	}
+
+
+	// Quests override on empty questions
+
+	if (m_rpgQuestion->emptyQuestions()) {
+		for (RpgQuest &q : m_gameDefinition.quests) {
+			if (q.type == RpgQuest::SuddenDeath)
+				q.currency = std::min(95, std::max(10, (int) (q.currency * 0.1)));
 		}
 	}
 
@@ -1609,6 +1648,22 @@ void RpgGame::checkWinnerQuests(const int &count)
 
 	m_lastWinnerStreak = found->amount;
 }
+
+
+
+
+/**
+ * @brief RpgGame::checkFinalQuests
+ */
+
+void RpgGame::checkFinalQuests()
+{
+	for (RpgQuest &q : m_gameDefinition.quests) {
+		if (q.type == RpgQuest::SuddenDeath && q.success == 0)
+			questSuccess(&q);
+	}
+}
+
 
 
 /**

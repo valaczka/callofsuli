@@ -360,11 +360,11 @@ void ActionRpgGame::onPlayerDead(RpgPlayer *player)
 {
 	LOG_CDEBUG("game") << "Player dead" << player;
 
-	/// TODO: check m_gameMode
-
-	if (deathmatch())
+	/*if (deathmatch())
 		QTimer::singleShot(5000, this, &ActionRpgGame::onGameFailed);
-	else if (m_rpgGame)
+	else*/
+
+	if (m_rpgGame)
 		QTimer::singleShot(5000, this, [this, p = QPointer<RpgPlayer>(player)]() {
 			if (finishState() == Fail || finishState() == Success)
 				return;
@@ -413,6 +413,8 @@ void ActionRpgGame::onGameSuccess()
 {
 	Sound *sound = m_client->sound();
 
+	m_rpgGame->checkFinalQuests();
+
 	setFinishState(Success);
 	gameFinish();
 
@@ -440,6 +442,10 @@ void ActionRpgGame::onGameSuccess()
 
 void ActionRpgGame::onGameFailed()
 {
+	if (m_rpgGame) {
+		m_rpgGame->saveSceneState();
+	}
+
 	Sound *sound = m_client->sound();
 
 	sound->stopMusic();
@@ -520,7 +526,7 @@ void ActionRpgGame::rpgGameActivated_()
 	// Set user name
 
 	if (Server *s = m_client->server()) {
-		player->setName(s->user()->fullNickName());
+		player->setDisplayName(s->user()->fullNickName());
 	}
 
 

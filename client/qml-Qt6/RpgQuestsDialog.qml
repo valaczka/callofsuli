@@ -16,6 +16,7 @@ Qaterial.ListDialog
 	property color iconColor: Qaterial.Style.accentColor
 	property color textColor: Qaterial.Style.primaryTextColor()
 	property int iconSize: 32 * Qaterial.Style.pixelSizeRatio
+	property bool showFailed: false
 
 	title: qsTr("Quests")
 
@@ -37,7 +38,7 @@ Qaterial.ListDialog
 			id: _headerItem
 
 			width: ListView.view.width
-			height: Math.max(_icon.implicitHeight, _text.implicitHeight, 65 * Qaterial.Style.pixelSizeRatio)
+			height: Math.max(_icon.implicitHeight, _text.implicitHeight, 70 * Qaterial.Style.pixelSizeRatio)
 
 			Row {
 				anchors.centerIn: parent
@@ -90,14 +91,14 @@ Qaterial.ListDialog
 			text: switch (quest.type) {
 				  case RpgQuest.EnemyDefault: return qsTr("%1 killed enemies").arg(quest.amount)
 				  case RpgQuest.WinnerDefault: return qsTr("%1 winner streak").arg(quest.amount)
+				  case RpgQuest.SuddenDeath: return qsTr("Sudden death")
 				  default: "--- invalid ---"
 				  }
 
-			/*secondaryText: switch (quest.type) {
-						   case RpgQuest.EnemyDefault: return ""
-						   case RpgQuest.WinnerDefault: return qsTr("megismételhető")
-						   default: "--- invalid ---"
-						   }*/
+			secondaryText: switch (quest.type) {
+						   case RpgQuest.SuddenDeath: return qsTr("You can't die")
+						   default: ""
+						   }
 
 			width: ListView.view.width
 
@@ -116,6 +117,7 @@ Qaterial.ListDialog
 				source: switch (_delegate.quest.type){
 						case RpgQuest.EnemyDefault:		return Qaterial.Icons.targetAccount
 						case RpgQuest.WinnerDefault:	return Qaterial.Icons.checkBoxMultipleOutline
+						case RpgQuest.SuddenDeath:		return Qaterial.Icons.skullScanOutline
 						default: return ""
 						}
 
@@ -123,6 +125,14 @@ Qaterial.ListDialog
 
 			rightSourceComponent: Row {
 				spacing: 0
+
+				Qaterial.Icon {
+					visible: (_delegate.quest.success === 0 && showFailed) || (_delegate.quest.success < 0)
+					icon: Qaterial.Icons.close
+					color: Qaterial.Colors.red500
+					size: Qaterial.Style.mediumIcon
+					anchors.verticalCenter: parent.verticalCenter
+				}
 
 				Qaterial.Icon {
 					visible: _delegate.quest.success > 0

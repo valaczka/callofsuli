@@ -8,11 +8,13 @@ import CallOfSuli
 Column {
 	id: root
 
-	required property IsometricPlayer target
+	required property TiledObjectImpl target
+
+	readonly property bool _isEntity: target && target.hp !== undefined
 
 	parent: target.scene
 
-	visible: target && target.game
+	visible: target && target.game && (!_isEntity || target.hp > 0)
 
 	y: target ? target.y-20 : 0
 	x: target ? target.x+(target.width-width)/2 : 0
@@ -35,7 +37,7 @@ Column {
 			color: "white"
 			//elide: implicitWidth > width ? Text.ElideRight : Text.ElideNone
 			wrapMode: Text.Wrap
-			text: target ? target.name : ""
+			text: target ? target.displayName : ""
 			width: root.width
 			horizontalAlignment: Text.AlignHCenter
 		}
@@ -53,24 +55,24 @@ Column {
 
 	ProgressBar {
 		id: _progress
-		visible: true
+		visible: _isEntity
 		anchors.horizontalCenter: parent.horizontalCenter
 		width: Math.min(40, parent.width)
 
 		from: 0
-		to: target ? target.maxHp : 0
-		value: target ? target.hp : 0
+		to: _isEntity ? target.maxHp : 0
+		value: _isEntity ? target.hp : 0
 
 		Material.accent: color
 
 		readonly property color color: {
-			if (!target || !target.game)
+			if (!target || !target.game || !_isEntity)
 				return Qaterial.Colors.gray
 
 			let p = target.hp/target.maxHp
 
-			if (target.game.followedItem != target)
-				return Qaterial.Colors.blue500
+			/*if (target.game.followedItem != target)
+				return Qaterial.Colors.blue500*/
 
 			if (p > 0.5)
 				return Qaterial.Colors.green500
@@ -86,39 +88,6 @@ Column {
 	}
 
 }
-
-/*AnimatedImage {
-	id: root
-
-	required property IsometricPlayer target
-
-	parent: target.scene
-
-	visible: target && target.game
-
-	y: target ? target.y-25 : 0
-	x: target ? target.x+(target.width-width)/2 : 0
-
-	source: {
-		if (!target || !target.game)
-			return ""
-
-		let p = target.hp/target.maxHp
-
-		if (target.game.followedItem != target || target.hp <= 0)
-			return "qrc:/internal/game/markerClear.gif"
-
-		if (p > 0.5)
-			return "qrc:/internal/game/markerGreen.gif"
-		else if (p > 0.3)
-			return "qrc:/internal/game/markerYellow.gif"
-		else
-			return "qrc:/internal/game/markerRed.gif"
-	}
-
-	z: 99
-
-}*/
 
 
 

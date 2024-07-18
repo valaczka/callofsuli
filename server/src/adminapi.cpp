@@ -25,10 +25,12 @@
  */
 
 #include "adminapi.h"
+#include "mimehtml.h"
 #include "peerengine.h"
 #include "querybuilder.hpp"
 #include "serverservice.h"
 #include "teacherapi.h"
+#include "SimpleMail"
 
 
 #define _SQL_QUERY_USERS "SELECT user.username, familyName, givenName, active, user.classid, class.name as className, " \
@@ -1767,7 +1769,7 @@ bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 
 	QDefer ret;
 
-#define ZAP_INTERVAL	"date('now')"
+#define ZAP_INTERVAL	"date('now', '-5 days')"
 
 	dbMain->worker()->execInThread([ret, dbMain]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
@@ -1877,6 +1879,256 @@ bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 
 
 
+/**
+ * @brief AdminAPI::sendNotifications
+ * @param api
+ * @return
+ */
+
+bool AdminAPI::sendNotifications(const AbstractAPI *api, ServerService *service)
+{
+	Q_ASSERT(api);
+	return sendNotifications(api->databaseMain(), service);
+}
+
+
+/**
+ * @brief AdminAPI::sendNotification
+ * @param dbMain
+ * @return
+ */
+
+bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *service)
+{
+	Q_ASSERT(dbMain);
+	Q_ASSERT(service);
+
+	if (!service->smtpServer())
+		return false;
+
+	LOG_CDEBUG("service") << "Send notifications";
+
+	QDefer ret;
+
+	enum Type {
+		Invalid = 0,
+		Started,
+		Hour24,
+		Hour48,
+		Week1
+	};
+
+	struct CampaignData {
+		int id = 0;
+		QString description;
+		Type type = Invalid;
+		QDateTime endTime;
+		QVector<UserInfo> users;
+	};
+
+	auto contentPtr = Utils::fileContent(QStringLiteral(":/html/email-campaign.html"));
+
+	if (!contentPtr) {
+		LOG_CERROR("service") << "Invalid email content";
+		return false;
+	}
+
+	QVector<CampaignData> cDataList;
+
+	dbMain->worker()->execInThread([ret, dbMain, &cDataList]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		const auto fnAppend = [](QVector<CampaignData> *dst, CampaignData &d, const Type &t, const DatabaseMain *db) -> bool {
+			d.type = t;
+			if (const auto &ptr = _getNotificationList(db, t, d.id))
+				d.users = ptr.value();
+			else
+				return false;
+
+			dst->append(d);
+			return true;
+		};
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT id, description, endtime "
+				   "FROM campaign WHERE started IS TRUE AND finished IS FALSE");
+
+		if (!q.exec()) {
+			return ret.reject();
+		}
+
+		while (q.sqlQuery().next()) {
+			CampaignData cdata;
+			cdata.id = q.value("id").toInt();
+			cdata.description = q.value("description").toString();
+			cdata.endTime = q.value("endtime").toDateTime();
+
+			if (!fnAppend(&cDataList, cdata, Started, dbMain)) return ret.reject();
+
+			if (cdata.endTime.isNull())
+				continue;
+
+			if (QDateTime::currentDateTime().secsTo(cdata.endTime) <= 60*60*24) {
+				if (!fnAppend(&cDataList, cdata, Hour24, dbMain)) return ret.reject();
+			} else if (QDateTime::currentDateTime().secsTo(cdata.endTime) <= 60*60*48) {
+				if (!fnAppend(&cDataList, cdata, Hour48, dbMain)) return ret.reject();
+			} else if (QDateTime::currentDateTime().daysTo(cdata.endTime) <= 7) {
+				if (!fnAppend(&cDataList, cdata, Week1, dbMain)) return ret.reject();
+			} else
+				continue;
+		}
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	if (ret.state() != RESOLVED)
+		return false;
+
+
+	QLocale locale;
+
+	for (const auto &p : cDataList) {
+		const QString description = p.description.isEmpty() ?
+										tr("Kihívás #%1").arg(p.id) :
+										p.description;
+
+		for (const auto &u : p.users) {
+			if (u.email != "valaczka.janos@budapest.piarista.hu")
+				continue;
+
+			auto html = std::make_shared<SimpleMail::MimeHtml>();
+
+			QUrl url;
+			url.setScheme(service->settings()->ssl() ? QStringLiteral("https") : QStringLiteral("http"));
+			url.setHost(service->settings()->redirectHost());
+			url.setPort(service->settings()->listenPort());
+
+			QString content = QString::fromUtf8(contentPtr.value());
+
+			content
+					.replace(QStringLiteral("${server:name}"), service->serverName())
+					.replace(QStringLiteral("${server:url}"), url.toString())
+					.replace(QStringLiteral("${user:familyName}"), u.familyname)
+					.replace(QStringLiteral("${user:givenName}"), u.givenname)
+					.replace(QStringLiteral("${campaign:name}"), p.description)
+					//.replace(QStringLiteral("${campaign:endTime}"), p.endTime.toString())
+					;
+
+			if (p.endTime.isValid()) {
+				content.replace(QStringLiteral("${campaign:endTime}"),
+								locale.toString(p.endTime, QStringLiteral("yyyy. MMMM d. ddd hh:mm")));
+			} else {
+				content.replace(QStringLiteral("${campaign:endTime}"), tr("egyelőre nincs megadva"));
+			}
+
+			SimpleMail::MimeMessage message;
+			message.setSender(SimpleMail::EmailAddress(service->settings()->smtpUser(),
+													   "Call of Suli"));
+			message.addTo(SimpleMail::EmailAddress(u.email, u.familyname+" "+u.givenname));
+
+			switch (p.type) {
+				case Started:
+					message.setSubject(tr("Új kihívás: ").append(description));
+					content.replace(QStringLiteral("${message:preheader}"),
+									tr("A Call of Suli | %1 szerveren új kihívás indult el: %2.")
+									.arg(service->serverName(), description))
+							.replace(QStringLiteral("${message:main}"),
+									 tr("Értesítünk, hogy a <i>Call of Suli | %1</i> szerveren új kihívás indult el: <b>%2</b>")
+									 .arg(service->serverName(), description));
+					break;
+
+				case Hour24:
+					message.setSubject(tr("1 nap van hátra: ").append(description));
+					content.replace(QStringLiteral("${message:preheader}"),
+									tr("A %1 kihívás már csak kevesebb, mint egy napig teljesíthető.")
+									.arg(description))
+							.replace(QStringLiteral("${message:main}"),
+									 tr("Értesítünk, hogy a <i>Call of Suli | %1</i> szerveren a(z) <b>%2</b> kihívás teljesítésére kevesebb, mint egy nap van hátra.")
+									 .arg(service->serverName(), description));
+					break;
+
+				case Hour48:
+					message.setSubject(tr("2 nap van hátra: ").append(description));
+					content.replace(QStringLiteral("${message:preheader}"),
+									tr("A %1 kihívás már csak kevesebb, mint két napig teljesíthető.")
+									.arg(description))
+							.replace(QStringLiteral("${message:main}"),
+									 tr("Értesítünk, hogy a <i>Call of Suli | %1</i> szerveren a(z) <b>%2</b> kihívás teljesítésére kevesebb, mint 2 nap áll rendelkezésre.")
+									 .arg(service->serverName(), description));
+					break;
+
+				case Week1:
+					message.setSubject(tr("Még 1 hét van hátra: ").append(description));
+					content.replace(QStringLiteral("${message:preheader}"),
+									tr("A %1 kihívás még egy hétig teljesíthető.")
+									.arg(description))
+							.replace(QStringLiteral("${message:main}"),
+									 tr("Értesítünk, hogy a <i>Call of Suli | %1</i> szerveren a(z) <b>%2</b> kihívást még 1 hétig lehet teljesíteni.")
+									 .arg(service->serverName(), description));
+					break;
+
+				default:
+					message.setSubject(tr("Értesítés: ").append(description));
+					break;
+			}
+
+			html->setHtml(content);
+
+			message.setContent(html);
+
+			SimpleMail::ServerReply *reply = service->smtpServer()->sendMail(message);
+			QObject::connect(reply, &SimpleMail::ServerReply::finished, [reply, email = u.email] {
+				if (reply->error())
+					LOG_CERROR("service") << "SMTP error:" << qPrintable(email) << qPrintable(reply->responseText());
+				else
+					LOG_CDEBUG("service") << "Email sent:" << qPrintable(email) << qPrintable(reply->responseText());
+				reply->deleteLater();
+			});
+
+		}
+	}
+
+	QDefer ret2;
+
+	dbMain->worker()->execInThread([ret2, dbMain, &cDataList]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		bool ok = true;
+
+		for (const auto &p : cDataList) {
+			for (const auto &u : p.users) {
+				if (!QueryBuilder::q(db)
+						.addQuery("INSERT INTO notificationSent(").setFieldPlaceholder()
+						.addQuery(") VALUES (").setValuePlaceholder()
+						.addQuery(")")
+						.addField("username", u.email)
+						.addField("type", p.type)
+						.addField("campaignid", p.id)
+						.exec()) {
+					ok = false;
+				}
+			}
+		}
+
+		if (ok)
+			ret2.resolve();
+		else
+			ret2.reject();
+	});
+
+	QDefer::await(ret2);
+	return ret2.state() == RESOLVED;
+}
+
+
+
+
 
 
 
@@ -1917,6 +2169,64 @@ bool AdminAPI::userExists(const AbstractAPI *api, const QString &username, const
 
 	QDefer::await(ret);
 	return (ret.state() == RESOLVED);
+}
+
+
+
+/**
+ * @brief AdminAPI::_getNotificationList
+ * @param dbMain
+ * @param type
+ * @param campaign
+ * @return
+ */
+
+std::optional<QVector<AdminAPI::UserInfo> > AdminAPI::_getNotificationList(const DatabaseMain *dbMain, const int &type, const int &campaign)
+{
+	Q_ASSERT(dbMain);
+
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+	QMutexLocker _locker(dbMain->mutex());
+
+	QueryBuilder q(db);
+	q.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+			   "SELECT studentGroupInfo.username AS username, familyName, givenName FROM studentGroupInfo "
+			   "INNER JOIN notification ON (notification.username=studentGroupInfo.username) "
+			   "LEFT JOIN user ON (user.username=notification.username) "
+			   "WHERE studentGroupInfo.id=(SELECT groupid FROM campaign WHERE id=").addValue(campaign)
+			.addQuery(") AND user.active=true AND notification.type=").addValue(type)
+			.addQuery(" AND notification.username NOT IN "
+					  "(SELECT username FROM notificationSent WHERE notificationSent.type=").addValue(type)
+			.addQuery(" AND notificationSent.campaignid=").addValue(campaign)
+			.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+			.addQuery(") OR notification.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+			.addQuery("))");
+
+	if (!q.exec()) {
+		return std::nullopt;
+	}
+
+	QVector<UserInfo> list;
+
+	static const QRegularExpression exp(R"([_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4}))");
+
+	while (q.sqlQuery().next()) {
+		UserInfo u;
+		u.email = q.value("username").toString();
+
+		if (!exp.match(u.email).hasMatch()) {
+			LOG_CERROR("service") << "Invalid email address:" << u.email;
+			continue;
+		}
+
+		u.familyname = q.value("familyName").toString();
+		u.givenname = q.value("givenName").toString();
+
+		list.append(u);
+	}
+
+	return list;
 }
 
 

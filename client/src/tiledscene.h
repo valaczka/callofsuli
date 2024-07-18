@@ -61,6 +61,7 @@ class TiledScene : public TiledQuick::MapItem
 	Q_PROPERTY(int sceneId READ sceneId WRITE setSceneId NOTIFY sceneIdChanged FINAL)
 	Q_PROPERTY(QString ambientSound READ ambientSound WRITE setAmbientSound NOTIFY ambientSoundChanged FINAL)
 	Q_PROPERTY(QString backgroundMusic READ backgroundMusic WRITE setBackgroundMusic NOTIFY backgroundMusicChanged FINAL)
+	Q_PROPERTY(QRectF onScreenArea READ onScreenArea WRITE setOnScreenArea NOTIFY onScreenAreaChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
@@ -100,6 +101,9 @@ public:
 	QString backgroundMusic() const;
 	void setBackgroundMusic(const QString &newBackgroundMusic);
 
+	QRectF onScreenArea() const;
+	void setOnScreenArea(const QRectF &newOnScreenArea);
+
 signals:
 	void runningChanged();
 	void gameChanged();
@@ -107,6 +111,7 @@ signals:
 	void ambientSoundChanged();
 	void backgroundMusicChanged();
 	void worldStepped();
+	void onScreenAreaChanged();
 
 protected:
 	virtual void refresh() override;
@@ -117,6 +122,7 @@ protected:
 	QVector<QPointer<TiledObjectBasePolygon>> m_groundObjects;
 	QString m_ambientSound;
 	QString m_backgroundMusic;
+	QRectF m_onScreenArea;
 
 	QVector<QPointer<TiledObject>> m_tiledObjects;
 	QVector<QPointer<TiledObject>> m_tiledObjectsToAppend;

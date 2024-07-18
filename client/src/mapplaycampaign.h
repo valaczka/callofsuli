@@ -54,7 +54,7 @@ public:
 	bool load(Campaign *campaign, StudentMap *map);
 
 	Q_INVOKABLE virtual void updateSolver() override;
-	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel *missionLevel) const override;
+	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel *missionLevel) const override;				// DEPRECATED
 
 	qreal extraTimeFactor() const;
 	void setExtraTimeFactor(qreal newExtraTimeFactor);
@@ -80,7 +80,7 @@ private:
 	QTimer m_finishTimer;
 	QJsonObject m_finishObject;
 	int m_finishTries = 0;
-	QHash<GameMapMissionLevel *, int> m_shortTimeHelper;
+	QHash<GameMapMissionLevel *, int> m_shortTimeHelper;			// DEPRECATED
 	qreal m_extraTimeFactor = 0.0;
 };
 

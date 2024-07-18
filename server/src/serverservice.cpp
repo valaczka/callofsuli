@@ -130,6 +130,8 @@ void ServerService::initialize()
 	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli-server"));
 	QCoreApplication::setApplicationVersion(m_version);
 
+	QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
+
 	cuteLogger->logToGlobalInstance(QStringLiteral("service"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("app"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("db"), true);
@@ -280,11 +282,14 @@ void ServerService::timerEvent(QTimerEvent *)
 			AdminAPI::campaignStart(m_databaseMain.get(), id);
 		}
 
-
 		// Clear wallet
 
 		TeacherAPI::_clearWallet(m_databaseMain.get(), this);
 	});
+
+	// Send notifications
+
+	AdminAPI::sendNotifications(m_databaseMain.get(), this);
 
 	LOG_CTRACE("service") << "Timer check finished";
 }
@@ -427,6 +432,27 @@ void ServerService::processSignal(int sig)
 		m_instance->resume();
 	else
 		LOG_CWARNING("service") << "Unknown signal" << sig;
+}
+
+
+/**
+ * @brief ServerService::loadSmtpServer
+ */
+
+void ServerService::loadSmtpServer()
+{
+	if (m_settings->smtpHost().isEmpty() || m_settings->smtpUser().isEmpty())
+		return;
+
+	m_smtpServer.reset(new SimpleMail::Server);
+
+	m_smtpServer->setHost(m_settings->smtpHost());
+	m_smtpServer->setPort(m_settings->smtpPort());
+	m_smtpServer->setConnectionType(m_settings->smtpSsl() ? SimpleMail::Server::SslConnection : SimpleMail::Server::TcpConnection);
+	m_smtpServer->setUsername(m_settings->smtpUser());
+	m_smtpServer->setPassword(m_settings->smtpPassword());
+
+	LOG_CDEBUG("service") << "SMTP server started";
 }
 
 
@@ -667,6 +693,8 @@ std::optional<int> ServerService::preStart()
 		appender->setDetailsLevel(Logger::Debug);
 		cuteLogger->registerAppender(appender);
 	}
+
+	loadSmtpServer();
 
 	return std::nullopt;
 }

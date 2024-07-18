@@ -416,14 +416,14 @@ void TiledGameSfxLocation::onSceneChanged()
 
 	if (m_connectedScene) {
 		disconnect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
-		disconnect(m_connectedScene, &TiledScene::visibleAreaChanged, this, &TiledGameSfxLocation::checkPosition);
+		disconnect(m_connectedScene, &TiledScene::onScreenAreaChanged, this, &TiledGameSfxLocation::checkPosition);
 	}
 
 	m_connectedScene = scene;
 
 	if (m_connectedScene) {
 		connect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
-		connect(m_connectedScene, &TiledScene::visibleAreaChanged, this, &TiledGameSfxLocation::checkPosition);
+		connect(m_connectedScene, &TiledScene::onScreenAreaChanged, this, &TiledGameSfxLocation::checkPosition);
 	}
 
 	updateSound();
@@ -452,7 +452,7 @@ void TiledGameSfxLocation::checkPosition()
 		return;
 	}
 
-	const QRectF &r = m_connectedScene->visibleArea();
+	const QRectF &r = m_connectedScene->onScreenArea();
 
 	if (r != m_lastVisibleArea) {
 		m_lastVisibleArea = r;

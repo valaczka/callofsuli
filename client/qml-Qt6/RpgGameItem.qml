@@ -124,6 +124,70 @@ FocusScope {
 	}
 
 
+	Row {
+		anchors.left: _rowTime.left
+		anchors.top: _rowTime.bottom
+		anchors.topMargin: 15 * Qaterial.Style.pixelSizeRatio
+
+		spacing: 5
+
+		GameButton {
+			id: _setttingsButton
+			size: 30//Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: Qaterial.Colors.white
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.cog
+			fontImage.color: Qaterial.Colors.blueGray600
+			fontImageScale: 0.7
+
+			onClicked: {
+				Qaterial.DialogManager.openFromComponent(_settingsDialog)
+			}
+		}
+
+		GameButton {
+			id: _questsButton
+			size: 30//Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: "transparent"
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.crosshairsQuestion
+			fontImage.color: Qaterial.Colors.purple300
+			fontImageScale: 0.7
+
+			onClicked: showQuests()
+		}
+
+		GameButton {
+			id: _mapButton
+			size: 30//Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: "transparent"
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.map
+			fontImage.color: Qaterial.Colors.cyan300
+			fontImageScale: 0.7
+
+			onClicked: {
+				_mapRect.visible = !_mapRect.visible
+			}
+		}
+	}
+
+
 
 
 
@@ -325,69 +389,6 @@ FocusScope {
 			}
 
 		}
-
-
-		Row {
-			anchors.right: parent.right
-
-			spacing: 5
-
-			GameButton {
-				id: _mapButton
-				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				color: "transparent"
-				border.color: fontImage.color
-				border.width: 2
-
-				fontImage.icon: Qaterial.Icons.map
-				fontImage.color: Qaterial.Colors.cyan300
-				fontImageScale: 0.7
-
-				onClicked: {
-					_mapRect.visible = !_mapRect.visible
-				}
-			}
-
-			GameButton {
-				id: _questsButton
-				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				color: "transparent"
-				border.color: fontImage.color
-				border.width: 2
-
-				fontImage.icon: Qaterial.Icons.crosshairsQuestion
-				fontImage.color: Qaterial.Colors.purple300
-				fontImageScale: 0.7
-
-				onClicked: showQuests()
-			}
-
-			GameButton {
-				id: _setttingsButton
-				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				color: Qaterial.Colors.white
-				border.color: fontImage.color
-				border.width: 2
-
-				fontImage.icon: Qaterial.Icons.cog
-				fontImage.color: Qaterial.Colors.blueGray600
-				fontImageScale: 0.7
-
-				onClicked: {
-					Qaterial.DialogManager.openFromComponent(_settingsDialog)
-				}
-			}
-		}
-
 
 	}
 
@@ -823,8 +824,10 @@ FocusScope {
 			text: _finishText
 			iconColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
 			textColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
+
 			iconSize: Qaterial.Style.roundIcon.size
 			iconSource: _finishIcon
+			showFailed: true
 		}
 
 	}

@@ -153,6 +153,7 @@ public:
 	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;
 	bool playerPickPickable(TiledObject *player, TiledObject *pickable) override final;
 	void saveSceneState(RpgPlayer *player);
+	void saveSceneState();
 
 	void onPlayerDead(TiledObject *player) override final;
 	void onEnemyDead(TiledObject *enemy) override final;
@@ -253,7 +254,6 @@ public:
 
 signals:
 	void minimapToggleRequest();
-	void marketRequest();
 	void questsRequest();
 	void gameSuccess();
 	void playerDead(RpgPlayer *player);
@@ -300,6 +300,7 @@ private:
 	void checkQuests();
 	void checkEnemyQuests(const int &count);
 	void checkWinnerQuests(const int &count);
+	void checkFinalQuests();
 	void questSuccess(RpgQuest *quest);
 
 	void updateScatterEnemies();
@@ -317,6 +318,7 @@ private:
 		bool dieForever = false;
 		QVector<RpgPickableObject::PickableType> pickables;
 		QVector<RpgPickableObject::PickableType> pickablesOnce;
+		QString displayName;
 	};
 
 
@@ -327,6 +329,7 @@ private:
 		QPointF position;
 		QPointer<TiledScene> scene;
 		QPointer<RpgPickableObject> pickableObject;
+		QString displayName;
 	};
 
 

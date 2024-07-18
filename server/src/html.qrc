@@ -9,5 +9,6 @@
         <file>../html/js/jquery-3.4.1.min.js</file>
         <file>../html/callback.html</file>
         <file>../html/callback_wasm.html</file>
+        <file>../html/email-campaign.html</file>
     </qresource>
 </RCC>

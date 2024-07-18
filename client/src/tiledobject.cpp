@@ -390,6 +390,19 @@ void TiledObjectBase::onSceneVisibleAreaChanged()
 	setInVisibleArea(m_scene->visibleArea().intersects(rect));
 }
 
+QString TiledObjectBase::displayName() const
+{
+	return m_displayName;
+}
+
+void TiledObjectBase::setDisplayName(const QString &newDisplayName)
+{
+	if (m_displayName == newDisplayName)
+		return;
+	m_displayName = newDisplayName;
+	emit displayNameChanged();
+}
+
 
 /**
  * @brief TiledObjectBase::recalculateTargetCircle
@@ -726,6 +739,29 @@ void TiledObject::createVisual()
 	m_visualItem->setParentItem(this);
 	m_visualItem->setParent(this);
 	m_visualItem->setProperty("baseObject", QVariant::fromValue(this));
+}
+
+
+
+/**
+ * @brief TiledObject::createMarkerItem
+ */
+
+void TiledObject::createMarkerItem()
+{
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledPlayerMarker.qml"), this);
+
+	QQuickItem *item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(
+													 QVariantMap{
+														 { QStringLiteral("target"), QVariant::fromValue(this) }
+													 }));
+
+	if (!item) {
+		LOG_CERROR("scene") << "TiledPlayerMarker error" << component.errorString();
+		return;
+	}
+
+	item->setParent(this);
 }
 
 
@@ -1631,3 +1667,4 @@ TiledReportedFixtureMap TiledObjectRayCast::reportedFixtures() const
 {
 	return m_reportedFixtures;
 }
+

@@ -220,6 +220,25 @@ bool RpgUserWallet::buyable() const
 }
 
 
+/**
+ * @brief RpgUserWallet::extendedInfo
+ * @return
+ */
+
+QVariantList RpgUserWallet::extendedInfo() const
+{
+	return m_extendedInfo;
+}
+
+void RpgUserWallet::setExtendedInfo(const QVariantList &newExtendedInfo)
+{
+	if (m_extendedInfo == newExtendedInfo)
+		return;
+	m_extendedInfo = newExtendedInfo;
+	emit extendedInfoChanged();
+}
+
+
 
 
 
@@ -394,6 +413,23 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 
 			w->setReadableName(t->name);
 			w->setSortName(market.name);
+
+			QVariantList extInfo;							// TODO: improve
+
+			for (const RpgQuest &q : t->quests) {
+				if (q.type == RpgQuest::SuddenDeath) {
+					QJsonObject o {
+						{"text",  tr("Sudden death quest:") },
+						{"icon",  "qrc:/Qaterial/Icons/skull-scan-outline.svg" },
+						{"value", QString::number(q.currency) },
+						{"image", "qrc:/rpg/coin/coin.png"}
+					};
+
+					extInfo.append(o);
+				}
+			}
+
+			w->setExtendedInfo(extInfo);
 
 		} else if (market.type == RpgMarket::Skin) {
 			const auto t = RpgGame::characters().find(market.name);

@@ -342,27 +342,6 @@ void IsometricPlayer::startInability(const int &msec)
 
 
 
-/**
- * @brief IsometricPlayer::createMarkerItem
- */
-
-void IsometricPlayer::createMarkerItem()
-{
-	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledPlayerMarker.qml"), this);
-
-	QQuickItem *item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(
-													 QVariantMap{
-														 { QStringLiteral("target"), QVariant::fromValue(this) }
-													 }));
-
-	if (!item) {
-		LOG_CERROR("scene") << "TiledPlayerMarker error" << component.errorString();
-		return;
-	}
-
-	item->setParent(this);
-}
-
 
 
 /**
@@ -432,19 +411,6 @@ QList<IsometricEnemy *> IsometricPlayer::reachedEnemies() const
 QList<IsometricEnemy *> IsometricPlayer::contactedAndReachedEnemies() const
 {
 	return d->contactedAndReachedEnemies();
-}
-
-QString IsometricPlayer::name() const
-{
-	return m_name;
-}
-
-void IsometricPlayer::setName(const QString &newName)
-{
-	if (m_name == newName)
-		return;
-	m_name = newName;
-	emit nameChanged();
 }
 
 

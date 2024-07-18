@@ -94,7 +94,7 @@ Rectangle {
 		border.width: 2
 		color: "transparent"
 
-		readonly property rect _sceneRect: game && game.currentScene ? game.currentScene.visibleArea : Qt.rect(0,0,0,0)
+		readonly property rect _sceneRect: game && game.currentScene ? game.currentScene.onScreenArea : Qt.rect(0,0,0,0)
 		readonly property real _scaleX: game && game.currentScene ? _view.width/game.currentScene.width : 0
 		readonly property real _scaleY: game && game.currentScene ? _view.height/game.currentScene.height : 0
 

@@ -132,12 +132,26 @@ public:
 	static bool zapWallet(const AbstractAPI *api);
 	static bool zapWallet(const DatabaseMain *dbMain);
 
+	static bool sendNotifications(const AbstractAPI *api, ServerService *service);
+	static bool sendNotifications(const DatabaseMain *dbMain, ServerService *service);
+
 	static std::optional<int> getClassIdFromCode(const AbstractAPI *api, const QString &code);
 
 	static bool userExists(const AbstractAPI *api, const QString &username, const bool &inverse = false);
 	static bool userNotExists(const AbstractAPI *api, const QString &username) {
 		return userExists(api, username, true);
 	}
+
+private:
+	struct UserInfo {
+		QString familyname;
+		QString givenname;
+		QString email;
+	};
+
+	static std::optional<QVector<UserInfo>> _getNotificationList(const DatabaseMain *dbMain,
+																 const int &type,
+																 const int &campaign);
 
 };
 

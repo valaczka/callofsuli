@@ -274,6 +274,7 @@ class TiledObjectBase : public QQuickItem
 	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
 	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged FINAL)
 	Q_PROPERTY(bool inVisibleArea READ inVisibleArea WRITE setInVisibleArea NOTIFY inVisibleAreaChanged FINAL)
+	Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged FINAL)
 
 public:
 	explicit TiledObjectBase(QQuickItem *parent = 0);
@@ -366,6 +367,9 @@ public:
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
 
+	QString displayName() const;
+	void setDisplayName(const QString &newDisplayName);
+
 signals:
 	void sceneChanged();
 	void remoteModeChanged();
@@ -375,6 +379,7 @@ signals:
 	void overlayColorChanged();
 	void inVisibleAreaChanged();
 	void gameChanged();
+	void displayNameChanged();
 
 protected:
 	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
@@ -394,6 +399,7 @@ protected:
 	QColor m_overlayColor = QColor(Qt::white);
 	bool m_inVisibleArea = false;
 	ObjectId m_objectId;
+	QString m_displayName;
 
 	friend class TiledObjectBody;
 	friend class TiledScene;
@@ -495,6 +501,8 @@ public:
 	TiledSpriteHandler *spriteHandlerAuxFront() const;
 	TiledSpriteHandler *spriteHandlerAuxBack() const;
 
+	virtual void createMarkerItem();
+
 	Direction currentDirection() const;
 	void setCurrentDirection(const Direction &newCurrentDirection);
 
@@ -525,7 +533,6 @@ protected:
 	}
 
 	void createVisual();
-
 
 	void rotateToPoint(const QPointF &point, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
 	float32 angleToPoint(const QPointF &point) const;

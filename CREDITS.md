@@ -21,6 +21,7 @@
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
 - Qzxing (https://github.com/ftylitak/qzxing) 
 - SCodes - (c) Scythe Studio (https://github.com/scytheStudio/SCodes)
+- SMTP Client for Qt - (c) 2011-2024 Tőkés Attila (https://github.com/bluetiger9/SmtpClient-for-Qt)
 - SortFilterProxyModel - (c) 2016 Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
 - Tar to stream - (c) 2023 Armchair-Software (https://github.com/Armchair-Software/tar_to_stream)
 - Tiled - Thorbjørn Lindeijer (https://github.com/mapeditor/tiled)
@@ -39,7 +40,7 @@
 - Free graphic resources for designers - (c) 2018-2023 Creazilla (https://creazilla.com)
 - Openclipart (https://openclipart.com)
 - Azgaar's Fantasy Map Generator - (c) 2017-2023 Max Haniyeu (https://azgaar.github.io/Fantasy-Map-Generator)
-- yd (https://opengameart.org/content/old-tower)
+- Old Tower - (c) yd (https://opengameart.org/content/old-tower)
 - Animated Spinning Gems - (c) 2017 Code Inferno Games - codeinferno.com (https://opengameart.org/content/animated-spinning-gems)
 - Werebear FLARE sprite sheets - (c) 2011 John Harvey (https://opengameart.org/content/werebear-flare-sprite-sheets)
 - Bleed - (c) 2017 Remos Turcuman - (https://opengameart.org/users/bleed, http://remusprites.carbonmade.com)
@@ -59,7 +60,6 @@
 - FREE Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
 - Gothic Archways - (c) 2019 Lukas Küstenmacher (https://opengameart.org/content/isometric-tileset-gothic-archways)
 - Animated Fire - (c) 2018 BenHickling (https://opengameart.org/content/animated-fire)
-- Magic Fire Impact - (c) EminYILDIRIM (https://freesound.org/s/626120)
 
 **Music & SFX**
 
@@ -82,3 +82,5 @@
 - Punch, slap, n' kick - (c) CGEffex (https://opengameart.org/content/punch-slap-n-kick, http://freesound.org/people/CGEffex/sounds/98341)
 - Voice Pack│Casual Voice lines - (c) Alba MacKenna (https://opengameart.org/content/voice-pack | casual-voice-lines)
 - Water fountain - (c) davilca (https://freesound.org/people/davilca/sounds/677229/)
+- Broadswords Clashing - (c) GaelanW (https://freesound.org/s/490065/)
+- Magic Fire Impact - (c) EminYILDIRIM (https://freesound.org/s/626120)

@@ -294,7 +294,8 @@ public:
 	enum Type {
 		Invalid			= 0,
 		EnemyDefault	= 1,
-		WinnerDefault	= 2
+		WinnerDefault	= 2,
+		SuddenDeath		= 3
 	};
 
 	Q_ENUM(Type);

@@ -3,7 +3,8 @@ include(../common.pri)
 TEMPLATE = subdirs
 
 SUBDIRS = \
-	CuteLogger
+	CuteLogger \
+	libSimpleMail
 
 CONFIG += ordered
 

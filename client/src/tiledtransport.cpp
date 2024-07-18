@@ -52,7 +52,8 @@ TiledTransport::TiledTransport(const TransportType &type, const QString &name,
 TiledTransport::TransportType TiledTransport::typeFromString(const QString &str)
 {
 	static const QHash<QString, TransportType> hash = {
-		{ QStringLiteral("gate"), TransportGate }
+		{ QStringLiteral("gate"), TransportGate },
+		{ QStringLiteral("market"), TransportMarket }
 	};
 
 	return hash.value(str, TransportInvalid);

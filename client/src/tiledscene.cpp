@@ -530,6 +530,19 @@ void TiledScene::refresh()
 	setHeight(rect.height());
 }
 
+QRectF TiledScene::onScreenArea() const
+{
+	return m_onScreenArea;
+}
+
+void TiledScene::setOnScreenArea(const QRectF &newOnScreenArea)
+{
+	if (m_onScreenArea == newOnScreenArea)
+		return;
+	m_onScreenArea = newOnScreenArea;
+	emit onScreenAreaChanged();
+}
+
 
 
 /**

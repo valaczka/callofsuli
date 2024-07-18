@@ -38,6 +38,7 @@ RpgBroadsword::RpgBroadsword(QObject *parent)
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;
+	m_repeaterIdle = 375;
 }
 
 
@@ -47,7 +48,7 @@ RpgBroadsword::RpgBroadsword(QObject *parent)
  * @param target
  */
 
-void RpgBroadsword::eventAttack(TiledObject */*target*/)
+void RpgBroadsword::eventAttack(TiledObject *target)
 {
 	TiledObject *p = m_parentObject.data();
 
@@ -55,6 +56,7 @@ void RpgBroadsword::eventAttack(TiledObject */*target*/)
 		return;
 
 	if (TiledGame *g = p->game()) {
-		g->playSfx(QStringLiteral(":/rpg/broadsword/broadsword1.mp3"), p->scene(), p->body()->bodyPosition());
+		g->playSfx(target ? QStringLiteral(":/rpg/broadsword/broadsword2.mp3") : QStringLiteral(":/rpg/broadsword/broadsword1.mp3"),
+				   p->scene(), p->body()->bodyPosition());
 	}
 }

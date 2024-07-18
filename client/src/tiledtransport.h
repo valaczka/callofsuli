@@ -53,7 +53,8 @@ class TiledTransport : public QObject
 public:
 	enum TransportType {
 		TransportInvalid = 0,
-		TransportGate
+		TransportGate,
+		TransportMarket
 	};
 
 	Q_ENUM(TransportType);

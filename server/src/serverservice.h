@@ -30,6 +30,7 @@
 #include <QPointer>
 #include "ColorConsoleAppender.h"
 #include "qnetworkaccessmanager.h"
+#include "server.h"
 #include "serversettings.h"
 #include "databasemain.h"
 #include "webserver.h"
@@ -119,6 +120,7 @@ public:
 	QLambdaThreadWorker *databaseMainWorker() const;
 	std::weak_ptr<WebServer> webServer() const;
 	EngineHandler *engineHandler() const { return m_engineHandler.get(); }
+	SimpleMail::Server *smtpServer() const { return m_smtpServer.get(); }
 
 	ServerConfig &config();
 
@@ -166,6 +168,7 @@ private:
 	RpgMarketList loadMarket() const;
 	RpgMarketList loadMarket(const QString &filename) const;
 	static void processSignal(int sig);
+	void loadSmtpServer();
 
 	bool start();
 	void resume();
@@ -190,6 +193,7 @@ private:
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
 	std::shared_ptr<WebServer> m_webServer;
 	std::unique_ptr<EngineHandler> m_engineHandler;
+	std::unique_ptr<SimpleMail::Server> m_smtpServer;
 
 	QString m_loadedWasmResource;
 	QString m_importDb;

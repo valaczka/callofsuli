@@ -282,10 +282,11 @@ void MapPlay::reloadMissionList()
 			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, false);
 			pMission->missionLevelList()->append(pLevel);
 
-			if (mLevel->canDeathmatch() && mission->modes().testFlag(GameMap::Action)) {
+			// DEPRECATED: ---> sudden death quest
+			/*if (mLevel->canDeathmatch() && mission->modes().testFlag(GameMap::Rpg)) {
 				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, true);
 				pMission->missionLevelList()->append(pLevel);
-			}
+			}*/
 		}
 	}
 }

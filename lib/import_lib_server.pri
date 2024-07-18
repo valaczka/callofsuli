@@ -23,3 +23,8 @@ include($$PWD/QConsole/qconsole.pri)
 
 DEFINES += QS_HAS_JSON
 include($$PWD/QSerializer/qserializer.pri)
+
+# SmtpClient
+
+INCLUDEPATH += $$PWD/simple-mail/src
+LIBS += -lsimplemail

@@ -286,7 +286,7 @@ Qaterial.Card {
 			spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 			Qaterial.Icon {
-				icon: Qaterial.Icons.timerAlert
+				icon: Qaterial.Icons.clockAlertOutline
 				color: _amountLabel.textColor
 				size: 20 * Qaterial.Style.pixelSizeRatio
 				anchors.verticalCenter: parent.verticalCenter

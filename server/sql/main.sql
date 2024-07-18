@@ -375,6 +375,27 @@ CREATE TABLE currency(
 
 
 
+----------------------------------
+--- Notifications
+----------------------------------
+
+CREATE TABLE notification(
+	id INTEGER NOT NULL PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	type INTEGER NOT NULL,
+	UNIQUE (username, type)
+);
+
+CREATE TABLE notificationSent(
+	id INTEGER NOT NULL PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	type INTEGER NOT NULL,
+	campaignid INTEGER REFERENCES campaign(id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+
+
+
 CREATE VIEW streak AS
 WITH game_date AS (SELECT DISTINCT username, date(timestamp) AS date FROM game WHERE success=true),
 	game_ranked AS (SELECT *, RANK() OVER(PARTITION BY username ORDER BY date) AS rank FROM game_date),

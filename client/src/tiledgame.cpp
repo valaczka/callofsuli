@@ -1156,6 +1156,11 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
 	if (!transport)
 		return false;
 
+	if (transport->type() == TiledTransport::TransportMarket) {
+		emit marketRequest();
+		return true;
+	}
+
 	TiledScene *oldScene = object->scene();
 	TiledScene *newScene = transportBase ? transport->otherScene(transportBase) : transport->otherScene(oldScene);
 	TiledObjectBase *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
@@ -1242,7 +1247,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
 		{ 150, 0.2 }
 	};
 
-	const QRectF &rect = m_currentScene->visibleArea();
+	const QRectF &rect = m_currentScene->onScreenArea();
 	const qreal &scale = m_currentScene->scale() + (1.-m_baseScale);
 	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
 
@@ -1283,9 +1288,13 @@ std::optional<qreal> TiledGame::getSfxVolume(TiledScene *scene, const QPointF &p
 		{ 150, 0.2 }
 	};
 
-	const QRectF &rect = scene->visibleArea();
-	const qreal &scale = scene->scale() + (1.-baseScale);
-	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;
+	const QRectF &rect = scene->onScreenArea();
+
+	// DISABLE VOLUME DECREASE BY SCENE SCALE
+
+	/*const qreal &scale = scene->scale() + (1.-baseScale);
+	const qreal &factor = scale < 1.0 ? std::max(0.1, -1.+2.*scale)*baseVolume : baseVolume;*/
+	static const qreal factor = 1.0;
 
 	for (const auto &[margin, volume] : std::as_const(distanceMap)) {
 		if (rect.marginsAdded(QMarginsF{margin, margin, margin, margin}).contains(position)) {

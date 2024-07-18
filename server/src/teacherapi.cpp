@@ -3870,31 +3870,28 @@ bool TeacherAPI::_clearWallet(const DatabaseMain *dbMain, ServerService *service
 
 	// Game rollover
 
-	QVariantList gameList, dailyList;
-
 	for (const RpgMarket &m : service->market().list) {
-		if (m.rollover == RpgMarket::Game)
-			gameList.append((int) m.type);
-		else if (m.rollover == RpgMarket::Day)
-			dailyList.append((int) m.type);
+		if (m.rollover == RpgMarket::Game && !QueryBuilder::q(db)
+				.addQuery("DELETE FROM wallet WHERE type=").addValue(m.type)
+				.addQuery(" AND name=").addValue(m.name)
+				.addQuery(" AND gameid NOT IN (SELECT gameid FROM runningGame)")
+				.exec()) {
+			LOG_CERROR("service") << "Game rollover clear failed";
+			return false;
+		}
+
+		if (m.rollover == RpgMarket::Day && !QueryBuilder::q(db)
+				.addQuery("DELETE FROM wallet WHERE type=").addValue(m.type)
+				.addQuery(" AND name=").addValue(m.name)
+				.addQuery(" AND date(timestamp)<>date('now')")
+				.exec()) {
+			LOG_CERROR("service") << "Daily rollover clear failed";
+			return false;
+		}
 	}
 
 
-	if (!gameList.isEmpty() && !QueryBuilder::q(db)
-			.addQuery("DELETE FROM wallet WHERE type IN (").addList(gameList)
-			.addQuery(") AND gameid NOT IN (SELECT gameid FROM runningGame)")
-			.exec()) {
-		LOG_CERROR("service") << "Game rollover clear failed";
-		return false;
-	}
 
-	if (!dailyList.isEmpty() && !QueryBuilder::q(db)
-			.addQuery("DELETE FROM wallet WHERE type IN (").addList(dailyList)
-			.addQuery(") AND date(timestamp)<>date('now')")
-			.exec()) {
-		LOG_CERROR("service") << "Daily rollover clear failed";
-		return false;
-	}
 
 	return true;
 }

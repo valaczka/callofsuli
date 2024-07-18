@@ -20,6 +20,7 @@ QScrollable {
 		anchors.horizontalCenter: parent.horizontalCenter
 		color: Qaterial.Style.accentColor
 		text: qsTr("Tartalom letöltése folyamatban...\n%1%").arg(downloader ? Math.floor(_progress*100.) : 0)
+		horizontalAlignment: Text.AlignHCenter
 	}
 
 	Qaterial.ProgressBar
