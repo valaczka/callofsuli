@@ -708,7 +708,7 @@ void ActionRpgGame::downloadGameData()
 void ActionRpgGame::downloadLoadableContentDict(const QStringList &fileList)
 {
 	if (m_loadableContentDict.isEmpty()) {
-		m_client->send(HttpConnection::ApiGeneral, QStringLiteral("content/loadableDict"))
+		m_client->send(HttpConnection::ApiGeneral, QStringLiteral("loadableDict"))
 				->done(this, [this, fileList](const QJsonObject &json)
 		{
 			m_loadableContentDict = json;
@@ -752,7 +752,7 @@ void ActionRpgGame::downloadLoadableContent(const QStringList &fileList)
 	LOG_CTRACE("game") << "Download loadable content:" << fileList;
 
 	if (m_loadableContentListBase.isEmpty()) {
-		m_client->send(HttpConnection::ApiGeneral, QStringLiteral("content/loadable"))
+		m_client->send(HttpConnection::ApiGeneral, QStringLiteral("loadable"))
 				->done(this, [this, fileList](const QJsonObject &json)
 		{
 			m_loadableContentListBase.clear();

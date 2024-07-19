@@ -21,9 +21,9 @@ QPage {
 		QMenu {
 			id: menu
 
-			QMenuItem { action: actionDemo }
+//			QMenuItem { action: actionDemo }
 //			QMenuItem { action: actionPageDev }
-			Qaterial.MenuSeparator {}
+//			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionSettings }
 			QMenuItem { action: actionAbout }
 			QMenuItem { action: actionExit }

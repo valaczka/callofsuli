@@ -643,6 +643,18 @@ std::optional<QDir> Server::getContentDir() const
 #ifdef Q_OS_WASM
 	QDir dir = QStringLiteral("/");
 #else
+	if (m_isStatic) {
+		if (m_staticTmpDir.isValid()) {
+			QDir dir;
+			dir.setPath(m_staticTmpDir.path());
+			return dir;
+		} else {
+			LOG_CERROR("client") << "Invalid temporary directory";
+			Application::instance()->messageError(tr("Belső hiba"));
+			return std::nullopt;
+		}
+	}
+
 	QDir dir = m_directory;
 
 	if ((!dir.exists(subdir) && !dir.mkdir(subdir)) || !dir.cd(subdir)) {
@@ -652,6 +664,25 @@ std::optional<QDir> Server::getContentDir() const
 #endif
 
 	return dir;
+}
+
+
+/**
+ * @brief Server::isStatic
+ * @return
+ */
+
+bool Server::isStatic() const
+{
+	return m_isStatic;
+}
+
+void Server::setIsStatic(bool newIsStatic)
+{
+	if (m_isStatic == newIsStatic)
+		return;
+	m_isStatic = newIsStatic;
+	emit isStaticChanged();
 }
 
 

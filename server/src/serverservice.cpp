@@ -452,7 +452,7 @@ void ServerService::loadSmtpServer()
 	m_smtpServer->setUsername(m_settings->smtpUser());
 	m_smtpServer->setPassword(m_settings->smtpPassword());
 
-	LOG_CDEBUG("service") << "SMTP server started";
+	LOG_CDEBUG("service") << "SMTP client started";
 }
 
 

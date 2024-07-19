@@ -109,23 +109,6 @@ protected:
 
 
 
-/**
- * @brief The CampaignLevelGame class
- */
-
-class CampaignActionGame : public ActionGame, public CampaignGameIface
-{
-	Q_OBJECT
-
-public:
-	explicit CampaignActionGame(GameMapMissionLevel *missionLevel, Client *client)
-		: ActionGame(missionLevel, client) {}
-	virtual ~CampaignActionGame() {}
-
-	virtual QJsonObject getServerExtendedData() const { return m_serverExtended; };
-};
-
-
 
 
 /**

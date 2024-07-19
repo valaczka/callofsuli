@@ -54,6 +54,9 @@ public:
 	QHttpServerResponse update(const Credential &credential, const QJsonObject &json);
 	QHttpServerResponse password(const Credential &credential, const QJsonObject &json);
 
+	QHttpServerResponse notification(const Credential &credential);
+	QHttpServerResponse notificationUpdate(const Credential &credential, const QJsonObject &json);
+
 	QHttpServerResponse group(const Credential &credential);
 	QHttpServerResponse groupScore(const int &id);
 

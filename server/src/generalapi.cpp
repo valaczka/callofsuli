@@ -64,6 +64,16 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		return dynamicContentDict();
 	});
 
+	server->route(path+"loadable", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return dynamicContent(true);
+	});
+
+	server->route(path+"loadableDict", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return dynamicContentDict();
+	});
+
 	server->route(path+"grade", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return grade();

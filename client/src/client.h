@@ -319,6 +319,8 @@ private:
 	void startCache();
 	void onSoundEffectTimeout();
 	void onGameDestroyRequest();
+	void onDemoMapDestroyed();
+	Server *getStaticServer();
 
 
 protected:
@@ -349,6 +351,8 @@ protected:
 	std::unique_ptr<Updater> m_updater;
 	std::unique_ptr<QTranslator> m_translator;
 	std::unique_ptr<Downloader> m_downloader;
+
+	std::unique_ptr<Server> m_staticServer;
 
 
 private:

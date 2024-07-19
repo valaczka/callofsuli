@@ -526,6 +526,11 @@ void Client::onServerConnected()
 {
 	LOG_CINFO("client") << "Server connected:" << m_httpConnection->server()->url();
 
+	if (server()->isStatic()) {
+		initializeDynamicResources();
+		return;
+	}
+
 	server()->user()->setLoginState(User::LoggedOut);
 
 	m_mainPage = stackPushPage(QStringLiteral("PageMain.qml"));
@@ -1809,7 +1814,6 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 
 	std::unique_ptr<MapPlayDemo> mapPlay(new MapPlayDemo(this));
 
-
 	bool success = false;
 
 	if (url.isEmpty())
@@ -1819,6 +1823,12 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 
 	if (!success)
 		return nullptr;
+
+
+	if (!server()) {
+		LOG_CINFO("client") << "Connect to static server";
+		connectToServer(getStaticServer());
+	}
 
 	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
 																						{ QStringLiteral("title"), tr("Demó pálya") },
@@ -1831,6 +1841,7 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 	}
 
 	connect(page, &QQuickItem::destroyed, mapPlay.get(), &MapPlay::deleteLater);
+	connect(page, &QQuickItem::destroyed, this, &Client::onDemoMapDestroyed);
 
 	mapPlay.release();
 
@@ -1910,6 +1921,42 @@ void Client::onGameDestroyRequest()
 		return;
 
 	m_currentGame.reset();
+}
+
+
+
+/**
+ * @brief Client::onDemoMapDestroyed
+ */
+
+void Client::onDemoMapDestroyed()
+{
+	LOG_CTRACE("client") << "Demo map destroyed";
+
+	if (server() == getStaticServer()) {
+		LOG_CINFO("client") << "Disconnect from static server";
+		m_httpConnection->close();
+	}
+}
+
+
+/**
+ * @brief Client::getStaticServer
+ * @return
+ */
+
+Server *Client::getStaticServer()
+{
+	if (m_staticServer)
+		return m_staticServer.get();
+
+	m_staticServer.reset(new Server);
+
+	m_staticServer->setUrl(QStringLiteral("https://valaczka.github.io/callofsuli/demo"));
+	m_staticServer->setIsStatic(true);
+	m_staticServer->setTemporary(true);
+
+	return m_staticServer.get();
 }
 
 

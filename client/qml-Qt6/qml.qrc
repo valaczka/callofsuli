@@ -236,5 +236,6 @@
         <file>PageMarket.qml</file>
         <file>RpgMarketCard.qml</file>
         <file>RpgQuestsDialog.qml</file>
+        <file>UserInfoNotification.qml</file>
     </qresource>
 </RCC>

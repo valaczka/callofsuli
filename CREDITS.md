@@ -2,6 +2,7 @@
 
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)
 - David Robert Nadeau (http://NadeauSoftware.com)
+- Free Responsive HTML Email Template - (c) 2024 Lee Munroe (https://github.com/leemunroe/responsive-html-email-template)
 - HttpServer - (c) 2019 Addison Elliott (https://github.com/addisonElliott/HttpServer)
 - Material Design Svgo - (c) Olivier Le Doeuff (https://github.com/OlivierLDff/MaterialDesignSvgo)
 - Miniaudio - (c) 2023 David Reid (https://github.com/mackron/miniaudio)
@@ -22,6 +23,7 @@
 - Qzxing (https://github.com/ftylitak/qzxing) 
 - SCodes - (c) Scythe Studio (https://github.com/scytheStudio/SCodes)
 - SMTP Client for Qt - (c) 2011-2024 Tőkés Attila (https://github.com/bluetiger9/SmtpClient-for-Qt)
+- SimpleMail - (c) Cutelyst (https://github.com/cutelyst/simple-mail)
 - SortFilterProxyModel - (c) 2016 Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
 - Tar to stream - (c) 2023 Armchair-Software (https://github.com/Armchair-Software/tar_to_stream)
 - Tiled - Thorbjørn Lindeijer (https://github.com/mapeditor/tiled)
@@ -57,7 +59,7 @@
 - Isometric medieval buildings #2 - (c) 2018 rubberduck (https://opengameart.org/content/isometric-medieval-buildings-2)
 - Old ruins tileset - (c) 2018 rubberduck (https://opengameart.org/content/old-ruins-tileset, https://www.blendswap.com/blends/view/74098, https://opengameart.org/content/gate-low-poly, https://opengameart.org/content/medieval-statue, https://opengameart.org/content/wall-mounted-torch, https://cloud.blender.org/p/hdri/57ff6a49e5e20f05e23ba15b)
 - Isometric log cabins - (c) 2020 rubberduck (https://opengameart.org/content/isometric-log-cabins)
-- FREE Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
+- Free Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
 - Gothic Archways - (c) 2019 Lukas Küstenmacher (https://opengameart.org/content/isometric-tileset-gothic-archways)
 - Animated Fire - (c) 2018 BenHickling (https://opengameart.org/content/animated-fire)
 

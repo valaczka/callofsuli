@@ -460,10 +460,6 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 	AbstractLevelGame *g = nullptr;
 
 	switch (mode) {
-		case GameMap::Action:
-			g = new CampaignActionGame(level->missionLevel(), m_client);
-			break;
-
 		case GameMap::Rpg:
 			g = new CampaignActionRpgGame(level->missionLevel(), m_client);
 			break;

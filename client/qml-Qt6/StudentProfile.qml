@@ -92,8 +92,6 @@ QItemGradient {
 
 			expanded: false
 
-			property bool editable: false
-
 			header: QExpandableHeader {
 				text: qsTr("Jelszó megváltoztatása")
 				icon: Qaterial.Icons.security
@@ -102,6 +100,28 @@ QItemGradient {
 
 			delegate: UserInfoPassword {
 				id: _formPassword
+			}
+		}
+
+		Qaterial.Expandable {
+			id: _expNotification
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			visible: user && user.oauth != ""
+
+			expanded: false
+
+			header: QExpandableHeader {
+				text: qsTr("Emailes értesítések")
+				icon: Qaterial.Icons.emailAlertOutline
+				expandable: _expNotification
+			}
+
+			delegate: UserInfoNotification {
+				id: _formNotification
+				width: _expNotification.width
+				username: userData ? userData.username : ""
 			}
 		}
 

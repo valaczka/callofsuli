@@ -7,12 +7,14 @@
 	<style media="all" type="text/css">
 @media all {
   .btn-primary table td:hover {
-	background-color: #0867ec !important;
+	background-color: #80DEEA !important;
+	color: #000000 !important;
   }
 
   .btn-primary a:hover {
-	background-color: #0867ec !important;
-	border-color: #42A9B6 !important;
+	background-color: #80DEEA !important;
+	border-color: #00BCD4 !important;
+	color: #000000 !important;
   }
 }
 @media only screen and (max-width: 640px) {
@@ -103,7 +105,7 @@
 				<td class="wrapper" style="font-family: Helvetica, sans-serif; font-size: 16px; vertical-align: top; box-sizing: border-box; padding: 24px;" valign="top">
 				  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Kedves ${user:givenName}!</p>
 				  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">${message:main}</p>
-				  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Befejezés: <b>${campaign:endTime}</b></p>
+				  <p style="font-family: Helvetica, sans-serif; font-size: 16px; font-weight: normal; margin: 0; margin-bottom: 16px;">Befejezés időpontja: <b>${campaign:endTime}</b></p>
 				  <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; box-sizing: border-box; width: 100%; min-width: 100%;" width="100%">
 					<tbody>
 					  <tr>
@@ -111,7 +113,7 @@
 						  <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: auto;">
 							<tbody>
 							  <tr>
-								<td style="font-family: Helvetica, sans-serif; font-size: 16px; vertical-align: top; border-radius: 4px; text-align: center; background-color: #42A9B6;" valign="top" align="center" bgcolor="#42A9B6"> <a href="${server:url}" target="_blank" style="border: solid 2px #0867ec; border-radius: 4px; box-sizing: border-box; cursor: pointer; display: inline-block; font-size: 16px; font-weight: bold; margin: 0; padding: 12px 24px; text-decoration: none; text-transform: capitalize; background-color: #42A9B6; border-color: #0867ec; color: #ffffff;">Megnézem</a> </td>
+								<td style="font-family: Helvetica, sans-serif; font-size: 16px; vertical-align: top; border-radius: 4px; text-align: center; background-color: #00BCD4;" valign="top" align="center" bgcolor="#00BCD4"> <a href="${server:url}" target="_blank" style="border: solid 2px #80DEEA; border-radius: 4px; box-sizing: border-box; cursor: pointer; display: inline-block; font-size: 16px; font-weight: bold; margin: 0; padding: 12px 24px; text-decoration: none; text-transform: capitalize; background-color: #00BCD4; border-color: #80DEEA; color: #ffffff;">Megnézem</a> </td>
 							  </tr>
 							</tbody>
 						  </table>
@@ -119,8 +121,8 @@
 					  </tr>
 					</tbody>
 				  </table>
-				  <p style="font-family: Helvetica, sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 14px;">Ezt az emailt automatikusan küldtük, mert a Call of Suliban bekapcsoltad az emailes értesítéseket.</p>
-				  <p style="font-family: Helvetica, sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 14px;">Sok sikert a kihívás teljesítéséhez!</p>
+				  <p style="font-family: Helvetica, sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 14px;">Ezt az emailt automatikusan küldtük, mert a Call of Suliban bekapcsoltad az emailes értesítéseket. Kérjük, ne válaszolj rá.</p>
+				  <p style="font-family: Helvetica, sans-serif; font-size: 14px; font-weight: normal; margin: 0; margin-bottom: 14px;">Sok sikert kívánunk a kihívás teljesítéséhez!</p>
 				</td>
 			  </tr>
 
@@ -131,14 +133,13 @@
 			<div class="footer" style="clear: both; padding-top: 24px; text-align: center; width: 100%;">
 			  <table role="presentation" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%;" width="100%">
 				<tr>
-				  <td class="content-block" style="font-family: Helvetica, sans-serif; vertical-align: top; color: #9a9ea6; font-size: 13px; text-align: center;" valign="top" align="center">
-					<span class="apple-link" style="color: #9a9ea6; font-size: 13px; text-align: center;">Call of Suli | ${server:name}</span>
-					<br>Nem szeretnél hasonló emaileket kapni? A Call of Suliban ki tudod kapcsolni az emailes értesítéseket.
+				  <td class="content-block" style="font-family: Helvetica, sans-serif; vertical-align: top; color: #9a9ea6; font-size: 12px; text-align: center;" valign="top" align="center">
+					Nem szeretnél hasonló emaileket kapni? A Call of Suliban ki tudod kapcsolni az emailes értesítéseket.
 				  </td>
 				</tr>
 				<tr>
 				  <td class="content-block powered-by" style="font-family: Helvetica, sans-serif; vertical-align: top; color: #9a9ea6; font-size: 12px; text-align: center;" valign="top" align="center">
-					Powered by <a href="${server:url}" style="color: #9a9ea6; font-size: 12px; text-align: center; text-decoration: none;"><b>Call of Suli</b></a>
+					Powered by <a href="https://valaczka.github.io/callofsuli" style="color: #9a9ea6; font-size: 12px; text-align: center; text-decoration: none;"><b>Call of Suli</b></a>
 				  </td>
 				</tr>
 			  </table>

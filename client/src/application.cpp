@@ -27,6 +27,7 @@
 #include "Logger.h"
 #include "actionrpggame.h"
 #include "classobject.h"
+#include "commonsettings.h"
 #include "conquestgame.h"
 #include "conquestgameadjacencysetup.h"
 #include "conquestland.h"
@@ -411,6 +412,9 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 	qmlRegisterUncreatableType<RpgConfig>("CallOfSuli", 1, 0, "RpgConfig", "RpgConfig is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayerConfig>("CallOfSuli", 1, 0, "RpgPlayerConfig", "RpgPlayerConfig is uncreatable");
+
+
+	qmlRegisterUncreatableMetaObject(CallOfSuli::staticMetaObject, "CallOfSuli", 1, 0, "NotificationType", "NotificationType is uncreatable");
 
 	qmlRegisterType<QSJsonListModel>("QSyncable", 1, 0, "QSJsonListModel");
 	qmlRegisterType<QSListModel>("QSyncable", 1, 0, "QSListModel");

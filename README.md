@@ -24,7 +24,9 @@ A <i>Call of Suli</i> egy olyan digitális feladatlapkészítő és kiértékel�
 - [![Static Badge](https://img.shields.io/badge/iOS-brown?logo=Appstore&logoColor=white)](https://github.com/valaczka/callofsuli) Apple App Store [link](https://apps.apple.com/us/app/call-of-suli/id1639323717)
 - [![Static Badge](https://img.shields.io/badge/Liunx-darkmagenta?logo=Linux&logoColor=pink)](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli-x86_64.AppImage) Linux AppImage [link](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli-x86_64.AppImage)
 - [![Static Badge](https://img.shields.io/badge/Windows-cyan?logo=Microsoft&logoColor=white)](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli_x64_install.exe) Windows telepítő [link](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli_x64_install.exe)
+<!--
 - [![Static Badge](https://img.shields.io/badge/macOS-orange?logo=Apple&logoColor=white)](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli_x64_install.exe) macOS lemezképfájl [link](https://github.com/valaczka/callofsuli/releases/latest/download/Call_of_Suli.dmg)
+-->
 - Korábbi verziók és forráskód [link](https://github.com/valaczka/callofsuli/releases)
 
 

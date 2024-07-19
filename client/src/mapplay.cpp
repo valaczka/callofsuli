@@ -306,14 +306,9 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 	Q_ASSERT(level->missionLevel());
 	Q_ASSERT(m_client);
 
-
 	AbstractLevelGame *g = nullptr;
 
 	switch (mode) {
-		case GameMap::Action:
-			g = new ActionGame(level->missionLevel(), m_client);
-			break;
-
 		case GameMap::Rpg:
 			g = new ActionRpgGame(level->missionLevel(), m_client);
 			break;

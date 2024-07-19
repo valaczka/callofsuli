@@ -25,6 +25,7 @@
  */
 
 #include "userapi.h"
+#include "commonsettings.h"
 #include "generalapi.h"
 #include "qjsonarray.h"
 #include "serverservice.h"
@@ -88,6 +89,18 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
 		return password(*credential, *jsonObject);
+	});
+
+	server->route(path+"notification", QHttpServerRequest::Method::Post | QHttpServerRequest::Method::Get,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return notification(*credential);
+	});
+
+	server->route(path+"notification/update", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return notificationUpdate(*credential, *jsonObject);
 	});
 
 
@@ -1409,6 +1422,89 @@ QHttpServerResponse UserAPI::password(const Credential &credential, const QJsonO
 		return responseOk();
 	else
 		return responseError("failed");
+}
+
+
+/**
+ * @brief UserAPI::notification
+ * @param credential
+ * @return
+ */
+
+QHttpServerResponse UserAPI::notification(const Credential &credential)
+{
+	LOG_CTRACE("client") << "Get user notifications";
+
+	LAMBDA_THREAD_BEGIN(credential);
+
+	QueryBuilder q(db);
+	q.addQuery("SELECT type FROM notification WHERE username=").addValue(credential.username());
+
+	LAMBDA_SQL_ASSERT(q.exec());
+
+	QJsonArray list;
+
+	while (q.sqlQuery().next()) {
+		const CallOfSuli::NotificationType notification = q.value("type").value<CallOfSuli::NotificationType>();
+		if (notification != CallOfSuli::NotificationInvalid)
+			list.append(notification);
+	}
+
+	response = responseResult("list", list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::notificationUpdate
+ * @param credential
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::notificationUpdate(const Credential &credential, const QJsonObject &json)
+{
+	const QString &username = credential.username();
+
+	LOG_CTRACE("client") << "Modify notification settings:" << qPrintable(username);
+
+	LAMBDA_THREAD_BEGIN(username, json);
+
+	const QJsonArray enable = json.value(QStringLiteral("enable")).toArray();
+	const QJsonArray disable = json.value(QStringLiteral("disable")).toArray();
+
+	db.transaction();
+
+	for (const QJsonValue &v : enable) {
+		const CallOfSuli::NotificationType notification = v.toVariant().value<CallOfSuli::NotificationType>();
+		LAMBDA_SQL_ERROR_ROLLBACK("invalid notification type", notification != CallOfSuli::NotificationInvalid);
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("INSERT OR IGNORE INTO notification(").setFieldPlaceholder()
+								   .addQuery(") VALUES (").setValuePlaceholder()
+								   .addQuery(")")
+								   .addField("username", username)
+								   .addField("type", notification)
+								   .exec());
+	}
+
+	for (const QJsonValue &v : disable) {
+		const CallOfSuli::NotificationType notification = v.toVariant().value<CallOfSuli::NotificationType>();
+		LAMBDA_SQL_ERROR_ROLLBACK("invalid notification type", notification != CallOfSuli::NotificationInvalid);
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("DELETE FROM notification WHERE username=").addValue(username)
+								   .addQuery(" AND type=").addValue(notification)
+								   .exec());
+	}
+
+	db.commit();
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
 }
 
 

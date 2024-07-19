@@ -331,7 +331,11 @@ QUrl HttpConnection::getUrl(const API &api, const QString &path) const
 	}
 
 	QUrl url = m_server->url();
-	url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
+
+	if (m_server->isStatic())
+		url.setPath(QStringLiteral("%3/api/%1/%2").arg(apis.value(api), path, url.path()));
+	else
+		url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
 	return url;
 }
 
@@ -361,6 +365,10 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QJson
 	if (!m_server) {
 		m_client->messageError(tr("Nincs szerver beállítva!"), tr("Hálózati hiba"));
 		return new HttpReply(QNetworkReply::InternalServerError);
+	}
+
+	if (m_server->isStatic()) {
+		return get(getUrl(api, path).path());
 	}
 
 	const QByteArray &content = QJsonDocument(data).toJson();

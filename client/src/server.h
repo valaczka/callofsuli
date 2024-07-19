@@ -28,6 +28,7 @@
 #define SERVER_H
 
 #include "qlambdathreadworker.h"
+#include "qtemporarydir.h"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
@@ -64,6 +65,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
+	Q_PROPERTY(bool isStatic READ isStatic WRITE setIsStatic NOTIFY isStaticChanged FINAL)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -143,6 +145,9 @@ public:
 	void unloadDynamicContents();
 	void loadDynamicContent(const QString &filename);
 
+	bool isStatic() const;
+	void setIsStatic(bool newIsStatic);
+
 signals:
 	void urlChanged();
 	void directoryChanged();
@@ -157,6 +162,7 @@ signals:
 	void temporaryChanged();
 	void maxUploadSizeChanged();
 	void dynamicContentReadyChanged();
+	void isStaticChanged();
 
 private:
 	std::optional<QDir> getContentDir() const;
@@ -171,6 +177,8 @@ private:
 	RankList m_rankList;
 	bool m_temporary = false;
 	int m_maxUploadSize = 0;
+	bool m_isStatic = false;
+	QTemporaryDir m_staticTmpDir;
 
 #ifndef QT_NO_SSL
 	QList<QSslError::SslError> m_ignoredSslErrors;

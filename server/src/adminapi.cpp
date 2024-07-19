@@ -25,6 +25,7 @@
  */
 
 #include "adminapi.h"
+#include "commonsettings.h"
 #include "mimehtml.h"
 #include "peerengine.h"
 #include "querybuilder.hpp"
@@ -1906,22 +1907,14 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 	if (!service->smtpServer())
 		return false;
 
-	LOG_CDEBUG("service") << "Send notifications";
+	LOG_CTRACE("service") << "Send notifications";
 
 	QDefer ret;
-
-	enum Type {
-		Invalid = 0,
-		Started,
-		Hour24,
-		Hour48,
-		Week1
-	};
 
 	struct CampaignData {
 		int id = 0;
 		QString description;
-		Type type = Invalid;
+		CallOfSuli::NotificationType type = CallOfSuli::NotificationInvalid;
 		QDateTime endTime;
 		QVector<UserInfo> users;
 	};
@@ -1938,7 +1931,8 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 	dbMain->worker()->execInThread([ret, dbMain, &cDataList]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
 
-		const auto fnAppend = [](QVector<CampaignData> *dst, CampaignData &d, const Type &t, const DatabaseMain *db) -> bool {
+		const auto fnAppend = [](QVector<CampaignData> *dst, CampaignData &d,
+				const CallOfSuli::NotificationType &t, const DatabaseMain *db) -> bool {
 			d.type = t;
 			if (const auto &ptr = _getNotificationList(db, t, d.id))
 				d.users = ptr.value();
@@ -1966,17 +1960,17 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 			cdata.description = q.value("description").toString();
 			cdata.endTime = q.value("endtime").toDateTime();
 
-			if (!fnAppend(&cDataList, cdata, Started, dbMain)) return ret.reject();
+			if (!fnAppend(&cDataList, cdata, CallOfSuli::NotificationStarted, dbMain)) return ret.reject();
 
 			if (cdata.endTime.isNull())
 				continue;
 
 			if (QDateTime::currentDateTime().secsTo(cdata.endTime) <= 60*60*24) {
-				if (!fnAppend(&cDataList, cdata, Hour24, dbMain)) return ret.reject();
+				if (!fnAppend(&cDataList, cdata, CallOfSuli::NotificationHour24, dbMain)) return ret.reject();
 			} else if (QDateTime::currentDateTime().secsTo(cdata.endTime) <= 60*60*48) {
-				if (!fnAppend(&cDataList, cdata, Hour48, dbMain)) return ret.reject();
+				if (!fnAppend(&cDataList, cdata, CallOfSuli::NotificationHour48, dbMain)) return ret.reject();
 			} else if (QDateTime::currentDateTime().daysTo(cdata.endTime) <= 7) {
-				if (!fnAppend(&cDataList, cdata, Week1, dbMain)) return ret.reject();
+				if (!fnAppend(&cDataList, cdata, CallOfSuli::NotificationWeek1, dbMain)) return ret.reject();
 			} else
 				continue;
 		}
@@ -2006,6 +2000,7 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 			url.setScheme(service->settings()->ssl() ? QStringLiteral("https") : QStringLiteral("http"));
 			url.setHost(service->settings()->redirectHost());
 			url.setPort(service->settings()->listenPort());
+			url.setPath(QStringLiteral("/callofsuli.html"));
 
 			QString content = QString::fromUtf8(contentPtr.value());
 
@@ -2020,7 +2015,7 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 
 			if (p.endTime.isValid()) {
 				content.replace(QStringLiteral("${campaign:endTime}"),
-								locale.toString(p.endTime, QStringLiteral("yyyy. MMMM d. ddd hh:mm")));
+								locale.toString(p.endTime.toLocalTime(), QStringLiteral("yyyy. MMMM d. ddd hh:mm")));
 			} else {
 				content.replace(QStringLiteral("${campaign:endTime}"), tr("egyelőre nincs megadva"));
 			}
@@ -2031,7 +2026,7 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 			message.addTo(SimpleMail::EmailAddress(u.email, u.familyname+" "+u.givenname));
 
 			switch (p.type) {
-				case Started:
+				case CallOfSuli::NotificationStarted:
 					message.setSubject(tr("Új kihívás: ").append(description));
 					content.replace(QStringLiteral("${message:preheader}"),
 									tr("A Call of Suli | %1 szerveren új kihívás indult el: %2.")
@@ -2041,30 +2036,30 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 									 .arg(service->serverName(), description));
 					break;
 
-				case Hour24:
+				case CallOfSuli::NotificationHour24:
 					message.setSubject(tr("1 nap van hátra: ").append(description));
 					content.replace(QStringLiteral("${message:preheader}"),
-									tr("A %1 kihívás már csak kevesebb, mint egy napig teljesíthető.")
+									tr("A(z) %1 kihívás már csak kevesebb, mint egy napig teljesíthető.")
 									.arg(description))
 							.replace(QStringLiteral("${message:main}"),
 									 tr("Értesítünk, hogy a <i>Call of Suli | %1</i> szerveren a(z) <b>%2</b> kihívás teljesítésére kevesebb, mint egy nap van hátra.")
 									 .arg(service->serverName(), description));
 					break;
 
-				case Hour48:
+				case CallOfSuli::NotificationHour48:
 					message.setSubject(tr("2 nap van hátra: ").append(description));
 					content.replace(QStringLiteral("${message:preheader}"),
-									tr("A %1 kihívás már csak kevesebb, mint két napig teljesíthető.")
+									tr("A(z) %1 kihívás már csak kevesebb, mint két napig teljesíthető.")
 									.arg(description))
 							.replace(QStringLiteral("${message:main}"),
 									 tr("Értesítünk, hogy a <i>Call of Suli | %1</i> szerveren a(z) <b>%2</b> kihívás teljesítésére kevesebb, mint 2 nap áll rendelkezésre.")
 									 .arg(service->serverName(), description));
 					break;
 
-				case Week1:
+				case CallOfSuli::NotificationWeek1:
 					message.setSubject(tr("Még 1 hét van hátra: ").append(description));
 					content.replace(QStringLiteral("${message:preheader}"),
-									tr("A %1 kihívás még egy hétig teljesíthető.")
+									tr("A(z) %1 kihívás még egy hétig teljesíthető.")
 									.arg(description))
 							.replace(QStringLiteral("${message:main}"),
 									 tr("Értesítünk, hogy a <i>Call of Suli | %1</i> szerveren a(z) <b>%2</b> kihívást még 1 hétig lehet teljesíteni.")
@@ -2085,7 +2080,7 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 				if (reply->error())
 					LOG_CERROR("service") << "SMTP error:" << qPrintable(email) << qPrintable(reply->responseText());
 				else
-					LOG_CDEBUG("service") << "Email sent:" << qPrintable(email) << qPrintable(reply->responseText());
+					LOG_CINFO("service") << "Notification sent:" << qPrintable(email) << qPrintable(reply->responseText());
 				reply->deleteLater();
 			});
 
