@@ -297,9 +297,10 @@ QItemGradient {
 						 "Arrow_Up", "Arrow_Down", "Arrow_Left", "Arrow_Right", "Page_Up", "Page_Down", "Home", "End",
 						], qsTr("Mozgás"),
 						[ "0", "Space", "Insert" ], qsTr("Lövés, vágás, ütés"),
-						[ "E", "Enter_Alt", "Enter_Tall" ], qsTr("Tárgy felvétele"),
+						[ "E", "Enter_Alt", "Enter_Tall" ], qsTr("Láda kinyitása"),
 						[ "Del", "Q" ], qsTr("Fegyver váltás"),
 						[ "5", "X" ], qsTr("Átjáró használata"),
+						[ "C" ], qsTr("Varázsbot használata"),
 						[ "Tab" ], qsTr("Térkép")
 					]
 

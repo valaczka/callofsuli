@@ -11,6 +11,7 @@ Column {
 	required property TiledObjectImpl target
 
 	readonly property bool _isEntity: target && target.hp !== undefined
+	property alias progressBar: _progress
 
 	parent: target.scene
 
@@ -65,7 +66,7 @@ Column {
 
 		Material.accent: color
 
-		readonly property color color: {
+		property color color: {
 			if (!target || !target.game || !_isEntity)
 				return Qaterial.Colors.gray
 

@@ -75,6 +75,7 @@ QString TiledWeapon::weaponName(const WeaponType &type)
 		case WeaponLongsword: return tr("kard");
 		case WeaponDagger: return tr("tőr");
 		case WeaponBroadsword: return tr("pallos");
+		case WeaponMageStaff: return QStringLiteral("varázsbot");
 		case WeaponInvalid: return tr("érvénytelen");
 	}
 
@@ -99,6 +100,7 @@ QString TiledWeapon::weaponNameEn(const WeaponType &type)
 		case WeaponLongsword: return QStringLiteral("Sword");
 		case WeaponBroadsword: return QStringLiteral("Broadsword");
 		case WeaponDagger: return QStringLiteral("Dagger");
+		case WeaponMageStaff: return QStringLiteral("Mage staff");
 		case WeaponInvalid: return QStringLiteral("Invalid");
 	}
 
@@ -213,6 +215,7 @@ bool TiledWeapon::hit(TiledObject *target)
 
 	return true;
 }
+
 
 
 
@@ -355,6 +358,19 @@ int TiledWeapon::pickedBulletCount() const
 void TiledWeapon::setPickedBulletCount(int newPickedBulletCount)
 {
 	m_pickedBulletCount = newPickedBulletCount;
+}
+
+bool TiledWeapon::canCast() const
+{
+	return m_canCast;
+}
+
+void TiledWeapon::setCanCast(bool newCanCast)
+{
+	if (m_canCast == newCanCast)
+		return;
+	m_canCast = newCanCast;
+	emit canCastChanged();
 }
 
 

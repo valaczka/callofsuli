@@ -53,6 +53,7 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	, m_inventory(new RpgInventoryList)
 	, m_effectHealed(this)
 	, m_effectShield(this)
+	, m_effectSmoke(this)
 {
 	m_sfxPain.setFollowPosition(false);
 	m_sfxAccept.setFollowPosition(false);
@@ -66,6 +67,8 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 							   QStringLiteral("death")
 };
 
+	m_castTimer.setInterval(100);
+
 	connect(this, &RpgPlayer::hurt, this, &RpgPlayer::playHurtEffect);
 	connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
 	connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
@@ -75,6 +78,7 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 
 	connect(m_armory.get(), &RpgArmory::currentWeaponChanged, this, &RpgPlayer::playWeaponChangedEffect);
 
+	connect(&m_castTimer, &QTimer::timeout, this, &RpgPlayer::onCastTimerTimeout);
 }
 
 
@@ -107,6 +111,8 @@ RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const RpgPl
 		player->setScene(scene);
 		player->setConfig(config);
 		player->initialize();
+
+		player->setMaxMp(config.mpMax);
 	}
 
 	return player;
@@ -128,6 +134,11 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 
 	if (!hasAbility())
 		return;
+
+	if (weapon->weaponType() == TiledWeapon::WeaponMageStaff) {
+		cast();
+		return;
+	}
 
 	if (weapon->canShot()) {
 		if (weapon->shot(IsometricBullet::TargetEnemy, m_body->bodyPosition(), currentAngle())) {
@@ -178,6 +189,37 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
 		//m_game->messageColor(tr("Empty weapon"), QColor::fromRgbF(0.8, 0., 0.));
 	}
+}
+
+
+
+
+/**
+ * @brief RpgPlayer::cast
+ */
+
+void RpgPlayer::cast()
+{
+	TiledWeapon *w = m_armory->weaponFind(TiledWeapon::WeaponMageStaff);
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+		return;
+
+	if (m_mp > 0 && w && g) {
+		if (g->playerUseCast(this)) {
+			m_timerRepeater.setRemainingTime(125);
+			return;
+		}
+	}
+
+#ifndef Q_OS_WASM
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
+	if (client)
+		client->performVibrate();
+#endif
+	if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
+
 }
 
 
@@ -563,7 +605,7 @@ void RpgPlayer::playDeadEffect()
 	m_game->playSfx(m_config.sfxDead.isEmpty() ? QStringLiteral(":/sound/sfx/dead.mp3")
 											   : m_config.sfxDead
 												 , m_scene /*, m_body->bodyPosition()*/);
-	playShieldEffect();
+	m_effectShield.stop();
 }
 
 
@@ -594,6 +636,9 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 			jumpToSprite("bow", m_currentDirection);
 			break;
 
+		case TiledWeapon::WeaponMageStaff:
+			jumpToSprite("cast", m_currentDirection);
+			return;											// Nem kell az attack!
 
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
@@ -635,11 +680,13 @@ void RpgPlayer::playWeaponChangedEffect()
 
 void RpgPlayer::playShieldEffect()
 {
-	if (m_isLocked && m_hp > 0)
-		m_effectShield.play();
-	else
-		m_effectShield.clear();
+	if (m_isLocked && m_hp > 0) {
+		if (!m_effectSmoke.isRunning())
+			m_effectShield.play();
+	} else
+		m_effectShield.stop();
 }
+
 
 
 
@@ -664,6 +711,10 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 			msg = tr("All shields lost");
 			break;
 
+		case TiledWeapon::WeaponMageStaff:
+			msg = tr("Missing MP");
+			break;
+
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
@@ -677,6 +728,73 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 		return;
 
 	m_game->messageColor(msg, QColor::fromRgbF(0.8, 0., 0.));
+}
+
+
+
+
+/**
+ * @brief RpgPlayer::onCastTimerTimeout
+ */
+
+void RpgPlayer::onCastTimerTimeout()
+{
+	if (m_isLocked)
+		return;
+
+	int nextMp = m_mp - std::max(1, m_config.mpLoss);
+
+	if (nextMp <= 0) {
+		setMp(0);
+
+		if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
+			g->playerFinishCast(this);
+		}
+		return;
+	}
+
+	setMp(nextMp);
+}
+
+
+
+int RpgPlayer::maxMp() const
+{
+	return m_maxMp;
+}
+
+void RpgPlayer::setMaxMp(int newMaxMp)
+{
+	if (m_maxMp == newMaxMp)
+		return;
+	m_maxMp = newMaxMp;
+	emit maxMpChanged();
+}
+
+
+
+/**
+ * @brief RpgPlayer::isDiscoverable
+ * @return
+ */
+
+bool RpgPlayer::isDiscoverable() const
+{
+	return !(m_config.cast == RpgPlayerCharacterConfig::CastInvisible && m_castTimer.isActive());
+}
+
+
+int RpgPlayer::mp() const
+{
+	return m_mp;
+}
+
+void RpgPlayer::setMp(int newMp)
+{
+	if (m_mp == newMp)
+		return;
+	m_mp = newMp;
+	emit mpChanged();
 }
 
 
@@ -732,6 +850,7 @@ void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const 
 			break;
 
 		case RpgPickableObject::PickableHp:
+			case RpgPickableObject::PickableMp:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:

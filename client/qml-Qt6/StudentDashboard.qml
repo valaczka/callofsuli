@@ -161,8 +161,8 @@ QItemGradient {
 
 			readonly property bool showPlaceholders: _campaignList.count === 0 && _firstRun
 
-			visible: _campaignList.count || showPlaceholders
-			contentItems: showPlaceholders ? 3 : _campaignList.count
+			//visible: _campaignList.count || showPlaceholders
+			//contentItems: showPlaceholders ? 3 : _campaignList.count
 
 			Repeater {
 				model: _grid.showPlaceholders ? 3 : _campaignList

@@ -29,10 +29,62 @@
 #include "tiledgame.h"
 #include "tiledspritehandler.h"
 
-TiledEffect::TiledEffect(TiledObject *parentObject)
+const QString TiledEffectHealed::m_staticSpriteName = QStringLiteral("healed");
+const QString TiledEffectSleep::m_staticSpriteName = QStringLiteral("sleep");
+const QString TiledEffectShield::m_staticSpriteName = QStringLiteral("shield");
+const QString TiledEffectSpark::m_staticSpriteName = QStringLiteral("spark");
+const QString TiledEffectFire::m_staticSpriteName = QStringLiteral("fire");
+
+
+
+/**
+ * @brief TiledEffect::TiledEffect
+ * @param parentObject
+ * @param spriteName
+ */
+
+TiledEffect::TiledEffect(TiledObject *parentObject, const QString &spriteName)
 	: m_parentObject(parentObject)
+	, m_spriteName(spriteName)
 {
 	Q_ASSERT(m_parentObject);
+}
+
+
+/**
+ * @brief TiledEffect::stop
+ */
+
+void TiledEffect::stop()
+{
+	TiledSpriteHandler *handler = m_auxHandler == TiledObject::AuxFront ? m_parentObject->spriteHandlerAuxFront() :
+																		  m_parentObject->spriteHandlerAuxBack();
+
+	Q_ASSERT(handler);
+
+	if (!m_spriteName.isEmpty() && handler->currentSprite() != m_spriteName)
+		return;
+
+	handler->clear();
+}
+
+
+/**
+ * @brief TiledEffect::active
+ * @return
+ */
+
+bool TiledEffect::active() const
+{
+	if (m_spriteName.isEmpty())
+		return false;
+
+	TiledSpriteHandler *handler = m_auxHandler == TiledObject::AuxFront ? m_parentObject->spriteHandlerAuxFront() :
+																		  m_parentObject->spriteHandlerAuxBack();
+
+	Q_ASSERT(handler);
+
+	return (handler->currentSprite() == m_spriteName);
 }
 
 
@@ -121,12 +173,10 @@ void TiledEffect::clear()
 	switch (m_auxHandler) {
 		case TiledObject::AuxFront:
 			m_parentObject->spriteHandlerAuxFront()->clear();
-			m_parentObject->spriteHandlerAuxFront()->update();
 			break;
 
 		case TiledObject::AuxBack:
 			m_parentObject->spriteHandlerAuxBack()->clear();
-			m_parentObject->spriteHandlerAuxBack()->update();
 			break;
 	}
 }
@@ -143,7 +193,7 @@ void TiledEffect::clear()
 void TiledEffectHealed::play()
 {
 	static const TiledObjectSprite sprite = {
-		QStringLiteral("base"),
+		m_staticSpriteName,
 		6,
 		0, 0, 64, 64,
 		60,
@@ -162,7 +212,7 @@ void TiledEffectHealed::play()
 void TiledEffectSpark::play()
 {
 	static const TiledObjectSprite spriteRow1 = {
-		QStringLiteral("base"),
+		m_staticSpriteName,
 		4,
 		0, 0, 64, 64,
 		90,
@@ -170,7 +220,7 @@ void TiledEffectSpark::play()
 	};
 
 	static const TiledObjectSprite spriteRow2 = {
-		QStringLiteral("base"),
+		m_staticSpriteName,
 		4,
 		0, 64, 64, 64,
 		90,
@@ -216,7 +266,7 @@ void TiledEffectSpark::play()
 void TiledEffectShield::play()
 {
 	static const TiledObjectSprite sprite = {
-		QStringLiteral("base"),
+		m_staticSpriteName,
 		4,
 		0, 0, 128, 128,
 		60,
@@ -240,7 +290,7 @@ void TiledEffectShield::play()
 void TiledEffectFire::play()
 {
 	static const TiledObjectSprite sprite = {
-		QStringLiteral("base"),
+		m_staticSpriteName,
 		25,
 		256, 0, 128, 126,
 		30,
@@ -261,7 +311,7 @@ void TiledEffectFire::play()
 void TiledEffectSleep::play()
 {
 	static const TiledObjectSprite sprite = {
-		QStringLiteral("base"),
+		m_staticSpriteName,
 		21,
 		0, 0, 128, 128,
 		30,
@@ -270,3 +320,128 @@ void TiledEffectSleep::play()
 
 	playSprite(QStringLiteral(":/rpg/common/sparkle.png"), sprite);
 }
+
+
+
+
+/**
+ * @brief TiledEffectSmoke::play
+ */
+
+void TiledEffectSmoke::play()
+{
+	static const TiledObjectSprite spriteStart = {
+		QStringLiteral("smokeStart"),
+		24,
+		0, 0, 128, 128,
+		30,
+		1,
+		true
+	};
+
+	static const TiledObjectSprite spriteMain = {
+		QStringLiteral("smokeMain"),
+		8,
+		0, 3*128, 128, 128,
+		60,
+		-1,
+		true
+	};
+
+	static const TiledObjectSprite spriteEnd = {
+		QStringLiteral("smokeEnd"),
+		32,
+		0, 4*128, 128, 128,
+		15,
+		1,
+		true
+	};
+
+	static const QString &source = QStringLiteral(":/rpg/common/smoke.png");
+
+	TiledSpriteHandler *front = m_parentObject->spriteHandlerAuxFront();
+	TiledSpriteHandler *back = m_parentObject->spriteHandlerAuxBack();
+
+	Q_ASSERT(front);
+	Q_ASSERT(back);
+
+	front->clear();
+	front->setOpacityMask(TiledSpriteHandler::MaskBottom);
+	front->setClearAtEnd(false);
+	front->setWidth(128);
+	front->setHeight(128);
+	front->addSprite(spriteStart, QStringLiteral("default"), TiledObject::Direction::Invalid, source);
+	front->addSprite(spriteMain, QStringLiteral("default"), TiledObject::Direction::Invalid, source);
+	front->addSprite(spriteEnd, QStringLiteral("default"), TiledObject::Direction::Invalid, source);
+	front->setProperty("alignToBody", true);
+
+	back->clear();
+	back->setOpacityMask(TiledSpriteHandler::MaskTop);
+	back->setClearAtEnd(false);
+	back->setWidth(128);
+	back->setHeight(128);
+	back->addSprite(spriteStart, QStringLiteral("default"), TiledObject::Direction::Invalid, source);
+	back->addSprite(spriteMain, QStringLiteral("default"), TiledObject::Direction::Invalid, source);
+	back->addSprite(spriteEnd, QStringLiteral("default"), TiledObject::Direction::Invalid, source);
+	back->setProperty("alignToBody", true);
+
+	front->setSyncHandlers(true);
+	front->jumpToSprite(QStringLiteral("smokeStart"), TiledObject::Direction::Invalid, TiledSpriteHandler::JumpImmediate);
+	front->jumpToSprite(QStringLiteral("smokeMain"), TiledObject::Direction::Invalid, TiledSpriteHandler::JumpAtFinished);
+}
+
+
+/**
+ * @brief TiledEffectSmoke::stop
+ */
+
+void TiledEffectSmoke::stop()
+{
+	TiledSpriteHandler *front = m_parentObject->spriteHandlerAuxFront();
+	Q_ASSERT(front);
+
+	if (!isRunning())
+		return;
+
+	front->setSyncHandlers(true);
+	front->setClearAtEnd(true);
+	front->jumpToSprite(QStringLiteral("smokeEnd"), TiledObject::Direction::Invalid, TiledSpriteHandler::JumpAtFinished);
+}
+
+
+/**
+ * @brief TiledEffectSmoke::active
+ * @return
+ */
+
+bool TiledEffectSmoke::active() const
+{
+	TiledSpriteHandler *front = m_parentObject->spriteHandlerAuxFront();
+
+	Q_ASSERT(front);
+
+	return (front->currentSprite() == QStringLiteral("smokeStart") ||
+			front->currentSprite() == QStringLiteral("smokeMain") ||
+			front->currentSprite() == QStringLiteral("smokeEnd"));
+}
+
+
+
+
+/**
+ * @brief TiledEffectSmoke::isRunning
+ * @return
+ */
+
+bool TiledEffectSmoke::isRunning() const
+{
+	TiledSpriteHandler *front = m_parentObject->spriteHandlerAuxFront();
+
+	Q_ASSERT(front);
+
+	return (front->currentSprite() == QStringLiteral("smokeStart") ||
+			front->currentSprite() == QStringLiteral("smokeMain"));
+
+}
+
+

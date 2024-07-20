@@ -42,6 +42,10 @@ class TiledSpriteHandler : public QQuickItem
 	Q_PROPERTY(QString currentSprite READ currentSprite WRITE setCurrentSprite NOTIFY currentSpriteChanged FINAL)
 	Q_PROPERTY(TiledObject *baseObject READ baseObject WRITE setBaseObject NOTIFY baseObjectChanged FINAL)
 	Q_PROPERTY(bool clearAtEnd READ clearAtEnd WRITE setClearAtEnd NOTIFY clearAtEndChanged FINAL)
+	Q_PROPERTY(TiledSpriteHandler *handlerMaster READ handlerMaster WRITE setHandlerMaster NOTIFY handlerMasterChanged FINAL)
+	Q_PROPERTY(TiledSpriteHandler *handlerSlave READ handlerSlave WRITE setHandlerSlave NOTIFY handlerSlaveChanged FINAL)
+	Q_PROPERTY(bool syncHandlers READ syncHandlers WRITE setSyncHandlers NOTIFY syncHandlersChanged FINAL)
+	Q_PROPERTY(OpacityMask opacityMask READ opacityMask WRITE setOpacityMask NOTIFY opacityMaskChanged FINAL)
 
 public:
 	explicit TiledSpriteHandler(QQuickItem *parent = nullptr);
@@ -53,6 +57,14 @@ public:
 	};
 
 	Q_ENUM(JumpMode);
+
+	enum OpacityMask {
+		MaskFull,
+		MaskTop,
+		MaskBottom
+	};
+
+	Q_ENUM(OpacityMask);
 
 	QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *) override;
 
@@ -82,10 +94,27 @@ public:
 	bool clearAtEnd() const;
 	void setClearAtEnd(bool newClearAtEnd);
 
+	TiledSpriteHandler *handlerMaster() const;
+	void setHandlerMaster(TiledSpriteHandler *newHandlerMaster);
+
+	bool syncHandlers() const;
+	void setSyncHandlers(bool newSyncHandlers);
+
+	TiledSpriteHandler *handlerSlave() const;
+	void setHandlerSlave(TiledSpriteHandler *newHandlerSlave);
+
+	OpacityMask opacityMask() const;
+	void setOpacityMask(const OpacityMask &newOpacityMask);
+
 signals:
+	void cleared();
 	void currentSpriteChanged();
 	void baseObjectChanged();
 	void clearAtEndChanged();
+	void handlerMasterChanged();
+	void syncHandlersChanged();
+	void handlerSlaveChanged();
+	void opacityMaskChanged();
 
 protected:
 	void timerEvent(QTimerEvent *) override final;
@@ -130,7 +159,14 @@ private:
 	QPointer<TiledObject> m_baseObject;
 	QBasicTimer m_timer;
 	int m_currentFrame = 0;
+	bool m_isReverse = false;
 	bool m_clearAtEnd = false;
+
+	TiledSpriteHandler *m_handlerMaster = nullptr;
+	TiledSpriteHandler *m_handlerSlave = nullptr;
+	bool m_syncHandlers = false;
+
+	OpacityMask m_opacityMask = MaskFull;
 };
 
 

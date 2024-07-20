@@ -133,8 +133,26 @@ bool RpgUserWallet::available() const
 
 RpgMarket::Type RpgUserWallet::marketType() const
 {
+	switch (m_market.type) {
+		case RpgMarket::Time:
+		case RpgMarket::Hp:
+		case RpgMarket::Mp:
+		case RpgMarket::Pickable:
+		case RpgMarket::Other:
+			return RpgMarket::Other;
+
+		default:
+			return m_market.type;
+	}
+
 	return m_market.type;
 }
+
+
+/**
+ * @brief RpgUserWallet::readableName
+ * @return
+ */
 
 QString RpgUserWallet::readableName() const
 {
@@ -470,6 +488,8 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			w->setReadableName(tr("Second"));
 		} else if (market.type == RpgMarket::Xp) {
 			w->setReadableName(tr("XP"));
+		} else if (market.type == RpgMarket::Mp) {
+			w->setReadableName(tr("MP"));
 		}
 
 		ptr = w.release();
@@ -500,7 +520,8 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 		if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"); QFile::exists(s)) {
 			ptr->setImage(QStringLiteral("qrc")+s);
 		}
-	} else if (market.type == RpgMarket::Xp || market.type == RpgMarket::Hp || market.type == RpgMarket::Time) {
+	} else if (market.type == RpgMarket::Xp || market.type == RpgMarket::Hp ||
+			   market.type == RpgMarket::Time || market.type == RpgMarket::Mp) {
 		for (const QString &s : QStringList{
 			 QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.png"),
 			 QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"),
@@ -599,6 +620,7 @@ void RpgUserWalletList::updateBullets()
 			case TiledWeapon::WeaponHand:
 			case TiledWeapon::WeaponGreatHand:
 			case TiledWeapon::WeaponShield:
+			case TiledWeapon::WeaponMageStaff:
 				break;
 
 			case TiledWeapon::WeaponInvalid:

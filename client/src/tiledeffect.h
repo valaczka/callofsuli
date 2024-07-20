@@ -39,10 +39,13 @@ class TiledEffect
 {
 
 public:
-	TiledEffect(TiledObject *parentObject);
+	TiledEffect(TiledObject *parentObject, const QString &spriteName = {});
 	virtual ~TiledEffect() = default;
 
 	virtual void play() = 0;
+	virtual void stop();
+	virtual bool active() const;
+
 	void clear();
 
 protected:
@@ -55,6 +58,7 @@ protected:
 
 
 	const TiledObject *m_parentObject;
+	const QString m_spriteName;
 	TiledObject::AuxHandler m_auxHandler = TiledObject::AuxFront;
 	bool m_alignToBody = false;
 };
@@ -68,8 +72,11 @@ protected:
 class TiledEffectHealed : public TiledEffect
 {
 public:
-	TiledEffectHealed(TiledObject *parentObject) : TiledEffect(parentObject) {}
+	TiledEffectHealed(TiledObject *parentObject) : TiledEffect(parentObject, m_staticSpriteName) {}
 	virtual void play() override;
+
+private:
+	static const QString m_staticSpriteName;
 };
 
 
@@ -83,8 +90,11 @@ public:
 class TiledEffectSleep : public TiledEffect
 {
 public:
-	TiledEffectSleep(TiledObject *parentObject) : TiledEffect(parentObject) {}
+	TiledEffectSleep(TiledObject *parentObject) : TiledEffect(parentObject, m_staticSpriteName) {}
 	virtual void play() override;
+
+private:
+	static const QString m_staticSpriteName;
 };
 
 
@@ -97,12 +107,15 @@ public:
 class TiledEffectShield : public TiledEffect
 {
 public:
-	TiledEffectShield(TiledObject *parentObject) : TiledEffect(parentObject) {
+	TiledEffectShield(TiledObject *parentObject) : TiledEffect(parentObject, m_staticSpriteName) {
 		m_auxHandler = TiledObject::AuxBack;
 		m_alignToBody = true;
 	}
 
 	virtual void play() override;
+
+private:
+	static const QString m_staticSpriteName;
 };
 
 
@@ -135,13 +148,14 @@ public:
 	Q_DECLARE_FLAGS(Types, Type);
 
 	TiledEffectSpark(const Types &types, TiledObject *parentObject)
-		: TiledEffect(parentObject)
+		: TiledEffect(parentObject, m_staticSpriteName)
 		, m_types(types)
 	{}
 	virtual void play() override;
 
 private:
 	Types m_types;
+	static const QString m_staticSpriteName;
 };
 
 
@@ -159,11 +173,34 @@ class TiledEffectFire : public TiledEffect
 {
 public:
 	TiledEffectFire(TiledObject *parentObject)
-		: TiledEffect(parentObject) {
+		: TiledEffect(parentObject, m_staticSpriteName) {
 		m_alignToBody = false;
 	}
 	virtual void play() override;
+
+private:
+	static const QString m_staticSpriteName;
 };
 
+
+
+
+
+/**
+ * @brief The TiledEffectSmoke class
+ */
+
+class TiledEffectSmoke : public TiledEffect
+{
+public:
+	TiledEffectSmoke(TiledObject *parentObject) : TiledEffect(parentObject)
+	{}
+
+	virtual void play() override;
+	void stop() override;
+	bool active() const override;
+
+	bool isRunning() const;
+};
 
 #endif // TILEDEFFECT_H

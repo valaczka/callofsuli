@@ -112,7 +112,7 @@ Qaterial.ListDialog
 				fill: true
 				width: roundIcon ? roundSize : iconSize
 				height: roundIcon ? roundSize : iconSize
-				color: Qaterial.Colors.purple400
+				color: _delegate.quest.success > 0 ? Qaterial.Style.accentColor : Qaterial.Colors.purple500
 
 				source: switch (_delegate.quest.type){
 						case RpgQuest.EnemyDefault:		return Qaterial.Icons.targetAccount

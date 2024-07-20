@@ -275,6 +275,8 @@ SOURCES += \
 	rpgkeypickable.cpp \
 	rpglongbow.cpp \
 	rpglongsword.cpp \
+	rpgmagestaff.cpp \
+	rpgmp.cpp \
 	rpgpickableobject.cpp \
 	rpgplayer.cpp \
 	rpgquestion.cpp \
@@ -401,6 +403,8 @@ HEADERS += \
 	rpgkeypickable.h \
 	rpglongbow.h \
 	rpglongsword.h \
+	rpgmagestaff.h \
+	rpgmp.h \
 	rpgpickableobject.h \
 	rpgplayer.h \
 	rpgquestion.h \

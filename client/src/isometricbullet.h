@@ -58,7 +58,6 @@ class IsometricBullet : public IsometricObjectCircle
 	Q_PROPERTY(qreal maxDistance READ maxDistance WRITE setMaxDistance NOTIFY maxDistanceChanged FINAL)
 	Q_PROPERTY(qint64 bulletId READ bulletId WRITE setBulletId NOTIFY bulletIdChanged FINAL)
 	Q_PROPERTY(bool autoDelete READ autoDelete WRITE setAutoDelete NOTIFY autoDeleteChanged FINAL)
-	Q_PROPERTY(TiledWeapon *fromWeapon READ fromWeapon WRITE setFromWeapon NOTIFY fromWeaponChanged FINAL)
 
 public:
 	explicit IsometricBullet(QQuickItem *parent = nullptr);
@@ -104,7 +103,6 @@ public:
 	Targets targets() const;
 	void setTargets(const Targets &newTargets);
 
-	TiledWeapon *fromWeapon() const;
 	void setFromWeapon(TiledWeapon *newFromWeapon);
 
 signals:
@@ -113,7 +111,6 @@ signals:
 	void bulletIdChanged();
 	void autoDeleteChanged();
 	void targetsChanged();
-	void fromWeaponChanged();
 
 protected:
 	virtual void load() = 0;

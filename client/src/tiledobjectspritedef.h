@@ -78,7 +78,7 @@ private:
 	QS_FIELD(int, width)
 	QS_FIELD(int, height)
 	QS_FIELD(int, duration)
-	QS_FIELD(int, loops)
+	QS_FIELD(int, loops)					// 0: forever, -1: forever forward+reverse
 	QS_FIELD(bool, flow)
 
 };

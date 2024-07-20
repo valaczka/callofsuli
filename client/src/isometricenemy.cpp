@@ -237,10 +237,10 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 	bool attackWithoutPursuit = false;
 
 	if (myPlayer) {
-		if (!m_player || !myPlayer->isLocked())
+		if (!m_player)
 			setPlayer(myPlayer);
 
-		if (m_returnPathMotor)
+		if (m_returnPathMotor && !myPlayer->isLocked())
 			m_returnPathMotor->clearLastSeenPoint();
 
 		qreal dist;

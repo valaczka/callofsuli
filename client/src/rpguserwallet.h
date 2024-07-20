@@ -113,7 +113,6 @@ signals:
 	void sortNameChanged();
 	void rankChanged();
 	void buyableChanged();
-
 	void extendedInfoChanged();
 
 private:

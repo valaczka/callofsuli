@@ -43,6 +43,8 @@ private:
 	~IsometricBulletPrivate() = default;
 
 	QPointer<TiledWeapon> m_fromWeapon;
+	QPointer<TiledObject> m_owner;
+	TiledWeapon::WeaponType m_fromWeaponType = TiledWeapon::WeaponInvalid;
 
 	friend class IsometricBullet;
 };
@@ -277,7 +279,7 @@ void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
 	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
 
 	if (m_targets.testFlag(TargetEnemy) && enemy) {
-		hasTarget = fromWeapon() ? enemy->canBulletImpact(fromWeapon()->weaponType()) : true;
+		hasTarget = enemy->canBulletImpact(d->m_fromWeaponType);
 	}
 
 	if (IsometricPlayer *p = qobject_cast<IsometricPlayer*>(base); m_targets.testFlag(TargetPlayer) && p && !p->isLocked())
@@ -307,17 +309,18 @@ void IsometricBullet::doAutoDelete()
 	this->deleteLater();
 }
 
-TiledWeapon *IsometricBullet::fromWeapon() const
-{
-	return d->m_fromWeapon;
-}
+
+
+/**
+ * @brief IsometricBullet::setFromWeapon
+ * @param newFromWeapon
+ */
 
 void IsometricBullet::setFromWeapon(TiledWeapon *newFromWeapon)
 {
-	if (d->m_fromWeapon == newFromWeapon)
-		return;
 	d->m_fromWeapon = newFromWeapon;
-	emit fromWeaponChanged();
+	d->m_fromWeaponType = newFromWeapon ? newFromWeapon->weaponType() : TiledWeapon::WeaponInvalid;
+	d->m_owner = newFromWeapon ? newFromWeapon->parentObject() : nullptr;
 }
 
 
@@ -329,15 +332,12 @@ void IsometricBullet::setFromWeapon(TiledWeapon *newFromWeapon)
 
 void IsometricBullet::impactEvent(TiledObjectBase *base)
 {
-	TiledWeapon *weapon = fromWeapon();
-	TiledObject *owner = weapon ? weapon->parentObject() : nullptr;
-
-	if (!owner) {
+	if (!d->m_owner) {
 		LOG_CWARNING("game") << "Missing owner, bullet automatic impact event failed";
 		return;
 	}
 
-	TiledGame *game = owner->game();
+	TiledGame *game = d->m_owner->game();
 
 	if (!game) {
 		LOG_CWARNING("game") << "Missing game, bullet automatic impact event failed";
@@ -348,10 +348,10 @@ void IsometricBullet::impactEvent(TiledObjectBase *base)
 	IsometricPlayer *player = qobject_cast<IsometricPlayer*>(base);
 
 	if (enemy)
-		game->playerAttackEnemy(owner, enemy, weapon->weaponType());
+		game->playerAttackEnemy(d->m_owner, enemy, d->m_fromWeaponType);
 
 	if (player)
-		game->enemyAttackPlayer(owner, player, weapon->weaponType());
+		game->enemyAttackPlayer(d->m_owner, player, d->m_fromWeaponType);
 
 	/// TODO: player attack player?
 }

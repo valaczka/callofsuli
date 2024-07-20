@@ -168,7 +168,8 @@ public:
 		Hp			= 5,
 		Time		= 6,
 		Xp			= 7,
-		Pickable	= 8,
+		Mp			= 8,
+		Pickable	= 9,
 		Other		= 999,
 	};
 

@@ -54,66 +54,56 @@ QPageGradient {
 	}
 
 	ListModel {
-		id: _modelBase
+		id: _model
 		ListElement {
 			type: RpgMarket.Map
 			title: qsTr("World")
 			icon: "qrc:/Qaterial/Icons/earth.svg"
+			inBase: true
+			inGame: false
 		}
 
 		ListElement {
 			type: RpgMarket.Skin
 			title: qsTr("Skin")
 			icon: "qrc:/Qaterial/Icons/human-male.svg"
+			inBase: true
+			inGame: false
+		}
+
+		ListElement {
+			type: RpgMarket.Other
+			title: qsTr("Item")
+			icon: "qrc:/Qaterial/Icons/sword-cross.svg"
+			inBase: false
+			inGame: true
 		}
 
 		ListElement {
 			type: RpgMarket.Weapon
 			title: qsTr("Weapon")
 			icon: "qrc:/Qaterial/Icons/sword-cross.svg"
+			inBase: true
+			inGame: true
 		}
 
 		ListElement {
 			type: RpgMarket.Bullet
 			title: qsTr("Ammunition")
 			icon: "qrc:/Qaterial/Icons/bullet.svg"
+			inBase: true
+			inGame: true
 		}
 
 		ListElement {
 			type: RpgMarket.Xp
 			title: qsTr("XP")
 			icon: "qrc:/Qaterial/Icons/chart-timeline-variant-shimmer.svg"
+			inBase: true
+			inGame: false
 		}
 	}
 
-
-	ListModel {
-		id: _modelGame
-
-		ListElement {
-			type: RpgMarket.Bullet
-			title: qsTr("Ammunition")
-			icon: "qrc:/Qaterial/Icons/bullet.svg"
-		}
-
-		ListElement {
-			type: RpgMarket.Hp
-			title: qsTr("HP")
-			icon: "qrc:/Qaterial/Icons/heart.svg"
-		}
-
-		ListElement {
-			type: RpgMarket.Time
-			title: qsTr("Time")
-			icon: "qrc:/Qaterial/Icons/clock.svg"
-		}
-
-		ListElement {
-			type: RpgMarket.Weapon
-			title: qsTr("Weapon")
-			icon: "qrc:/Qaterial/Icons/sword-cross.svg"
-		}
-	}
 
 	QScrollable {
 		id: _scrollable
@@ -133,7 +123,23 @@ QPageGradient {
 
 
 		Repeater {
-			model: game && game.config.gameState === RpgConfig.StatePlay ? _modelGame : _modelBase
+			model: SortFilterProxyModel {
+				sourceModel: _model
+
+				filters: AnyOf {
+					ValueFilter {
+						roleName: "inBase"
+						value: true
+						enabled: !(game && game.config.gameState === RpgConfig.StatePlay)
+					}
+					ValueFilter {
+						roleName: "inGame"
+						value: true
+						enabled: game && game.config.gameState === RpgConfig.StatePlay
+					}
+				}
+			}
+
 
 			delegate: Column {
 				id: _col

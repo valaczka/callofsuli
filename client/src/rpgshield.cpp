@@ -66,6 +66,7 @@ bool RpgShield::protect(const WeaponType &weapon)
 			eventProtect();
 			return true;
 
+			case TiledWeapon::WeaponMageStaff:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;
@@ -96,6 +97,7 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
 		case TiledWeapon::WeaponBroadsword:
 			return (m_bulletCount > 2);
 
+			case TiledWeapon::WeaponMageStaff:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;

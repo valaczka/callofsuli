@@ -501,7 +501,7 @@ public:
 	TiledSpriteHandler *spriteHandlerAuxFront() const;
 	TiledSpriteHandler *spriteHandlerAuxBack() const;
 
-	virtual void createMarkerItem();
+	virtual QQuickItem *createMarkerItem(const QString &qrc = QStringLiteral("qrc:/TiledPlayerMarker.qml"));
 
 	Direction currentDirection() const;
 	void setCurrentDirection(const Direction &newCurrentDirection);

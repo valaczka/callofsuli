@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "application.h"
 #include "isometricentity.h"
+#include "rpgenemyiface.h"
 #include "utils_.h"
 #include <libtiled/objectgroup.h>
 #include <libtiled/mapreader.h>
@@ -168,8 +169,24 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 					if (!source.isEmpty())
 						list.append(QFileInfo(QDir::cleanPath(path.filePath(source))).canonicalFilePath());
 
-					xml.skipCurrentElement();
+				} else if (xml.name() == QStringLiteral("objectgroup") &&
+						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("enemy")) {
+
+					while (xml.readNextStartElement()) {
+						if (xml.name() == QStringLiteral("object")) {
+							const QXmlStreamAttributes atts = xml.attributes();
+							const QString type = atts.value(QStringLiteral("type")).toString();
+							const QString name = atts.value(QStringLiteral("name")).toString();
+
+							list.append(RpgEnemyIface::directoryBaseName(RpgEnemyIface::typeFromString(type),
+																		 name) + QStringLiteral(".dres"));
+						}
+						xml.skipCurrentElement();
+					}
 				}
+
+				xml.skipCurrentElement();
+
 			}
 		} else {
 			LOG_CERROR("game") << "Invalid file:" << filename;

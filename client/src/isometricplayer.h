@@ -42,7 +42,7 @@ class IsometricPlayerPrivate;
 
 #ifndef OPAQUE_PTR_IsometricEnemy
 #define OPAQUE_PTR_IsometricEnemy
-  Q_DECLARE_OPAQUE_POINTER(IsometricEnemy*)
+Q_DECLARE_OPAQUE_POINTER(IsometricEnemy*)
 #endif
 
 #endif

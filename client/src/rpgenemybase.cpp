@@ -145,7 +145,7 @@ void RpgEnemyBase::load()
 		// Ez nem biztos, hogy kell, ha nincs elvehető fegyver
 
 		//RpgArmory::fillAvailableLayers(&json, i);
-		appendSprite(json, QStringLiteral(":/rpg/")+m_directory+QStringLiteral("/"));
+		appendSprite(json, QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/"));
 	}
 
 
@@ -256,6 +256,7 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 			hp = hp > 1 ? 1 : 0;
 			break;
 
+			case TiledWeapon::WeaponMageStaff:
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
@@ -361,37 +362,20 @@ void RpgEnemyBase::onCurrentSpriteChanged()
 
 void RpgEnemyBase::loadType()
 {
+	m_directory = directoryBaseName(m_enemyType, m_subType);
+
 	if (m_enemyType == EnemySoldier || m_enemyType == EnemySoldierFix) {
-		static const QString &strSoldier = QStringLiteral("soldier");
-
-		if (m_subType.startsWith(strSoldier)) {
-			m_directory = m_subType;
-			m_directory.replace(strSoldier, QStringLiteral("enemySoldier"));
-		}
-
 		auto w = m_armory->weaponAdd(new RpgLongsword);
 		w->setExcludeFromLayers(true);
 		m_armory->setCurrentWeapon(w);
+
 	} else if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix) {
-		static const QString &strSoldier = QStringLiteral("archer");
-
-		if (m_subType.startsWith(strSoldier)) {
-			m_directory = m_subType;
-			m_directory.replace(strSoldier, QStringLiteral("enemyArcher"));
-		}
-
 		auto w = m_armory->weaponAdd(new RpgShortbow);
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);
+
 	} else if (m_enemyType == EnemySkeleton) {
-		static const QString &strSoldier = QStringLiteral("skeleton");
-
-		if (m_subType.startsWith(strSoldier)) {
-			m_directory = m_subType;
-			m_directory.replace(strSoldier, QStringLiteral("enemySkeleton"));
-		}
-
 		auto w = m_armory->weaponAdd(new RpgLongsword);
 		w->setExcludeFromLayers(true);
 		m_armory->setCurrentWeapon(w);

@@ -237,5 +237,6 @@
         <file>RpgMarketCard.qml</file>
         <file>RpgQuestsDialog.qml</file>
         <file>UserInfoNotification.qml</file>
+        <file>TiledEnemyMarker.qml</file>
     </qresource>
 </RCC>

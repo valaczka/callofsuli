@@ -30,6 +30,17 @@
 #include "tiledweapon.h"
 #include <QObject>
 
+class RpgMageStaff;
+
+#if QT_VERSION >= 0x060000
+
+#ifndef OPAQUE_PTR_RpgMageStaff
+#define OPAQUE_PTR_RpgMageStaff
+  Q_DECLARE_OPAQUE_POINTER(RpgMageStaff*)
+#endif
+
+#endif
+
 class RpgArmory : public QObject
 {
 	Q_OBJECT
@@ -38,6 +49,7 @@ class RpgArmory : public QObject
 	Q_PROPERTY(TiledWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
 	Q_PROPERTY(TiledWeapon *nextWeapon READ nextWeapon WRITE setNextWeapon NOTIFY nextWeaponChanged FINAL)
 	Q_PROPERTY(QStringList baseLayers READ baseLayers WRITE setBaseLayers NOTIFY baseLayersChanged FINAL)
+	Q_PROPERTY(RpgMageStaff *mageStaff READ mageStaff NOTIFY mageStaffChanged FINAL)
 
 public:
 	explicit RpgArmory(TiledObject *parentObject, QObject *parent = nullptr);
@@ -72,10 +84,13 @@ public:
 	TiledWeapon *nextWeapon() const;
 	void setNextWeapon(TiledWeapon *newNextWeapon);
 
+	RpgMageStaff *mageStaff() const;
+
 signals:
 	void currentWeaponChanged();
 	void baseLayersChanged();
 	void nextWeaponChanged();
+	void mageStaffChanged();
 
 private:
 	TiledWeapon *getNextWeapon() const;
@@ -87,6 +102,7 @@ private:
 	QStringList m_baseLayers = { QStringLiteral("default") };
 
 	static const QHash<TiledWeapon::WeaponType, QString> m_layerInfoHash;
+
 };
 
 #endif // RPGARMORY_H

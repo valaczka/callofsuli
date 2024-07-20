@@ -26,6 +26,7 @@
 
 #include "rpgarmory.h"
 #include "tiledspritehandler.h"
+#include "rpgmagestaff.h"
 
 
 /// Static hash
@@ -36,6 +37,7 @@ const QHash<TiledWeapon::WeaponType, QString> RpgArmory::m_layerInfoHash = {
 	{ TiledWeapon::WeaponLongbow, QStringLiteral("longbow") },
 	{ TiledWeapon::WeaponDagger, QStringLiteral("dagger") },
 	{ TiledWeapon::WeaponBroadsword, QStringLiteral("broadsword") },
+	{ TiledWeapon::WeaponMageStaff, QStringLiteral("magestaff") },
 	/*{ TiledWeapon::WeaponShield, QStringLiteral("shield") }*/
 };
 
@@ -172,6 +174,10 @@ TiledWeapon *RpgArmory::weaponAdd(TiledWeapon *weapon)
 	m_weaponList->append(weapon);
 	weapon->setParentObject(m_parentObject);
 	updateLayers();
+
+	if (weapon->weaponType() == TiledWeapon::WeaponMageStaff)
+		emit mageStaffChanged();
+
 	return weapon;
 }
 
@@ -188,6 +194,9 @@ void RpgArmory::weaponRemove(TiledWeapon *weapon)
 
 	weapon->setParentObject(nullptr);
 	m_weaponList->remove(weapon);
+
+	if (weapon->weaponType() == TiledWeapon::WeaponMageStaff)
+		emit mageStaffChanged();
 
 	if (m_currentWeapon == weapon) {
 		if (m_nextWeapon == weapon) {
@@ -322,8 +331,14 @@ TiledWeapon *RpgArmory::getNextWeapon() const
 		if ((*it)->canAttack()) {
 			if ((*it)->weaponType() == TiledWeapon::WeaponHand)
 				weaponHand = *it;
-			else if ((*it)->canHit() || (*it)->canShot())
-				wList.append(*it);
+			else if ((*it)->canHit() || (*it)->canShot()) {
+				if (RpgPlayer *p = qobject_cast<RpgPlayer*>(m_parentObject); p && (*it)->weaponType() == TiledWeapon::WeaponMageStaff) {
+					if (p->mp() > 0)
+						wList.append(*it);
+				} else {
+					wList.append(*it);
+				}
+			}
 		}
 
 		++it;
@@ -344,6 +359,18 @@ TiledWeapon *RpgArmory::getNextWeapon() const
 }
 
 
+/**
+ * @brief RpgArmory::mageStaff
+ * @return
+ */
+
+RpgMageStaff *RpgArmory::mageStaff() const
+{
+	return qobject_cast<RpgMageStaff*>(weaponFind(TiledWeapon::WeaponMageStaff));
+}
+
+
+
 
 /**
  * @brief RpgArmory::updateLayers
@@ -358,6 +385,8 @@ void RpgArmory::updateLayers()
 
 	QStringList layers = m_baseLayers;
 
+	bool addMageStaff = false;
+
 	if (m_currentWeapon && !m_currentWeapon->excludeFromLayers()) {
 		switch (m_currentWeapon->weaponType()) {
 			case TiledWeapon::WeaponShortbow:
@@ -368,13 +397,25 @@ void RpgArmory::updateLayers()
 				layers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
 				break;
 
+			case TiledWeapon::WeaponMageStaff:
 			case TiledWeapon::WeaponShield:
 			case TiledWeapon::WeaponHand:
 			case TiledWeapon::WeaponGreatHand:
 			case TiledWeapon::WeaponInvalid:
+				addMageStaff = true;
 				break;
 		}
 	}
+
+	if (addMageStaff) {
+		if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
+								   [](TiledWeapon *w) {
+								   return w->weaponType() == TiledWeapon::WeaponMageStaff && !w->excludeFromLayers();
+	}); it != m_weaponList->cend()) {
+			layers.append(m_layerInfoHash.value(TiledWeapon::WeaponMageStaff));
+		}
+	}
+
 
 	if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
 							   [](TiledWeapon *w) {

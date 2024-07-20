@@ -31,6 +31,7 @@
 #include "rpgbroadsword.h"
 #include "rpgdagger.h"
 #include "rpglongsword.h"
+#include "rpgmagestaff.h"
 #include "rpgquestion.h"
 #include "rpguserwallet.h"
 #include "server.h"
@@ -333,6 +334,10 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 			player->setHp(player->hp() + wallet->market().amount);
 			return;
 
+		case RpgMarket::Mp:
+			player->setMp(player->mp() + wallet->market().amount);
+			return;
+
 		case RpgMarket::Time:
 			addToDeadline(wallet->market().amount * 1000);
 			return;
@@ -522,6 +527,12 @@ void ActionRpgGame::rpgGameActivated_()
 	player->setMaxHp(m_missionLevel->startHP());
 	loadInventory(player);
 
+	auto c = player->config();
+	c.cast = RpgPlayerCharacterConfig::CastFireball;
+	player->setConfig(c);
+	loadWeapon(player, TiledWeapon::WeaponMageStaff);
+	player->setMaxMp(500);
+
 
 	// Set user name
 
@@ -549,6 +560,7 @@ void ActionRpgGame::rpgGameActivated_()
 					   (*it)->bullet() ? (*it)->bullet()->amount() : 0);
 		}
 	}
+
 
 
 	player->emplace(ptrPos.value_or(QPointF{0,0}));
@@ -924,6 +936,7 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 			player->inventoryAdd(pickableType /*, name ???? */);		/// TODO: name handling
 			break;
 
+		case RpgPickableObject::PickableMp:
 		case RpgPickableObject::PickableHp:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
@@ -953,6 +966,9 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 
 void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet)
 {
+	if (type == TiledWeapon::WeaponMageStaff && player->config().cast == RpgPlayerCharacterConfig::CastInvalid)
+		return;
+
 	TiledWeapon *weapon = player->armory()->weaponFind(type);
 
 	if (!weapon) {
@@ -977,6 +993,13 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 				weapon = player->armory()->weaponAdd(new RpgBroadsword);
 				break;
 
+			case TiledWeapon::WeaponMageStaff: {
+				RpgMageStaff *m = new RpgMageStaff;
+				m->setFromCast(player->config().cast);
+				weapon = player->armory()->weaponAdd(m);
+				break;
+			}
+
 			case TiledWeapon::WeaponHand:
 			case TiledWeapon::WeaponGreatHand:
 			case TiledWeapon::WeaponShield:
@@ -989,7 +1012,8 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 
 	weapon->setBulletCount(weapon->bulletCount()+bullet);
 
-	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
+	if (type != TiledWeapon::WeaponMageStaff)
+		player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
 }
 
 
@@ -1020,6 +1044,7 @@ void ActionRpgGame::loadBullet(RpgPlayer *player, const RpgPickableObject::Picka
 		case RpgPickableObject::PickableShield:
 		case RpgPickableObject::PickableKey:
 		case RpgPickableObject::PickableHp:
+			case RpgPickableObject::PickableMp:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableLongsword:
@@ -1126,6 +1151,86 @@ bool ActionRpgGame::onPlayerUseContainer(RpgPlayer *player, TiledContainer *cont
 	}
 
 	return false;
+}
+
+
+/**
+ * @brief ActionRpgGame::onPlayerUseCast
+ * @param player
+ * @param weaponType
+ * @return
+ */
+
+bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
+{
+	if (!player)
+		return false;
+
+	RpgMageStaff *m = qobject_cast<RpgMageStaff*>(player->armory()->weaponFind(TiledWeapon::WeaponMageStaff));
+
+	if (!m)
+		return false;
+
+
+	switch (player->config().cast) {
+		case RpgPlayerCharacterConfig::CastInvisible:
+			if (player->castTimerActive()) {
+				return onPlayerFinishCast(player);
+			} else {
+				player->m_castTimer.start();
+				player->m_effectSmoke.play();
+			}
+			break;
+
+		case RpgPlayerCharacterConfig::CastFireball: {
+			RpgLongbow w;
+			w.setParentObject(player);
+			w.setBulletCount(-1);
+			if (w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), player->currentAngle())) {
+				player->setMp(std::max(0, player->mp() - 45 * player->config().mpLoss));
+			} else {
+				return false;
+			}
+			break;
+		}
+		case RpgPlayerCharacterConfig::CastInvalid:
+			return false;
+	}
+
+	player->playAttackEffect(m);
+	m->eventUseCast(player->config().cast);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief ActionRpgGame::onPlayerFinishCast
+ * @param player
+ * @return
+ */
+
+bool ActionRpgGame::onPlayerFinishCast(RpgPlayer *player)
+{
+	if (!player)
+		return false;
+
+	switch (player->config().cast) {
+		case RpgPlayerCharacterConfig::CastInvisible:
+			if (player->castTimerActive()) {
+				player->m_castTimer.stop();
+				player->m_effectSmoke.stop();
+			}
+			break;
+
+		case RpgPlayerCharacterConfig::CastFireball:
+		case RpgPlayerCharacterConfig::CastInvalid:
+			return false;
+	}
+
+	return true;
 }
 
 
@@ -1264,6 +1369,8 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setFuncPlayerPick(nullptr);
 		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
 		m_rpgGame->setFuncPlayerUseContainer(nullptr);
+		m_rpgGame->setFuncPlayerUseCast(nullptr);
+		m_rpgGame->setFuncPlayerFinishCast(nullptr);
 	}
 
 	m_rpgGame = newRpgGame;
@@ -1282,6 +1389,8 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setFuncPlayerAttackEnemy(std::bind(&ActionRpgGame::onPlayerAttackEnemy, this,
 													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		m_rpgGame->setFuncPlayerUseContainer(std::bind(&ActionRpgGame::onPlayerUseContainer, this, std::placeholders::_1, std::placeholders::_2));
+		m_rpgGame->setFuncPlayerUseCast(std::bind(&ActionRpgGame::onPlayerUseCast, this, std::placeholders::_1));
+		m_rpgGame->setFuncPlayerFinishCast(std::bind(&ActionRpgGame::onPlayerFinishCast, this, std::placeholders::_1));
 	}
 }
 

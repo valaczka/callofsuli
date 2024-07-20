@@ -77,6 +77,7 @@ public:
 	void setMaxHp(int newMaxHp);
 
 	bool isAlive() const { return m_hp > 0; }
+	virtual bool isDiscoverable() const { return true; }
 
 	static qreal toMovingSpeed(const qreal &speed) { return speed * 0.53334f; }
 
@@ -139,6 +140,9 @@ T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &
 
 	for (const T &p : std::as_const(entities)) {
 		if (!p)
+			continue;
+
+		if (!p->isDiscoverable())
 			continue;
 
 		float32 dist = -1.0;

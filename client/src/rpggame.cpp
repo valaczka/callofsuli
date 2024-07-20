@@ -34,6 +34,7 @@
 #include "rpgkeypickable.h"
 #include "rpglongbow.h"
 #include "rpglongsword.h"
+#include "rpgmp.h"
 #include "rpgshield.h"
 #include "rpgtimepickable.h"
 #include "rpgwerebear.h"
@@ -183,7 +184,7 @@ const QByteArray RpgGame::m_baseEntitySprite2 = R"(
 		"count": 9,
 		"width": 148,
 		"height": 130,
-		"duration": 40,
+		"duration": 60,
 		"loops": 1
 	}
 ]
@@ -273,8 +274,9 @@ bool RpgGame::load(const RpgGameDefinition &def)
 
 		if (!e.displayName.isEmpty()) {
 			enemy->setDisplayName(e.displayName);
-			enemy->createMarkerItem();
 		}
+
+		enemy->createMarkerItem(QStringLiteral("qrc:/TiledEnemyMarker.qml"));
 
 		if (e.path.size() > 1)
 			enemy->loadPathMotor(e.path);
@@ -363,9 +365,6 @@ bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const T
 	if (!e || !p || !iface)
 		return false;
 
-	if (!canAttack(p, e, weaponType))
-		return false;
-
 	if (p->isLocked())
 		return false;
 
@@ -395,11 +394,6 @@ bool RpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const T
 	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
 
 	if (!e || !p)
-		return false;
-
-	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
-
-	if (!canAttack(e, p, weaponType))
 		return false;
 
 	const bool &prot = p->protectWeapon(weaponType);
@@ -453,6 +447,46 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 
 
 	return true;
+}
+
+
+
+
+
+/**
+ * @brief RpgGame::playerUseCast
+ * @param player
+ * @return
+ */
+
+bool RpgGame::playerUseCast(RpgPlayer *player)
+{
+	Q_ASSERT(player);
+
+	if (player->isLocked())
+		return false;
+
+	if (m_funcPlayerUseCast)
+		return m_funcPlayerUseCast(player);
+	else
+		return false;
+}
+
+
+/**
+ * @brief RpgGame::playerFinishCast
+ * @param player
+ * @return
+ */
+
+bool RpgGame::playerFinishCast(RpgPlayer *player)
+{
+	Q_ASSERT(player);
+
+	if (m_funcPlayerFinishCast)
+		return m_funcPlayerFinishCast(player);
+	else
+		return false;
 }
 
 
@@ -512,6 +546,8 @@ void RpgGame::onPlayerDead(TiledObject *player)
 		}
 
 		isoPlayer->clearData();
+
+		playerFinishCast(isoPlayer);
 	}
 
 	for (RpgQuest &q : m_gameDefinition.quests) {
@@ -617,58 +653,6 @@ void RpgGame::onEnemySleepingEnd(TiledObject *enemy)
 
 
 
-
-/**
- * @brief RpgGame::canAttack
- * @param player
- * @param enemy
- * @return
- */
-
-bool RpgGame::canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
-{
-	if (!player || !enemy)
-		return false;
-
-	return true;
-}
-
-
-
-
-
-/**
- * @brief RpgGame::canAttack
- * @param enemy
- * @param player
- * @return
- */
-
-bool RpgGame::canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &/*weaponType*/)
-{
-	if (!player || !enemy)
-		return false;
-
-
-	return true;
-}
-
-
-/**
- * @brief RpgGame::canTransport
- * @param player
- * @param transport
- * @return
- */
-
-bool RpgGame::canTransport(RpgPlayer *player, TiledTransport *transport)
-{
-	if (!player || !transport)
-		return false;
-
-
-	return true;
-}
 
 
 
@@ -825,6 +809,10 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 			pickable = RpgPickableObject::createPickable<RpgHpPickable>(this);
 			break;
 
+		case RpgPickableObject::PickableMp:
+			pickable = RpgPickableObject::createPickable<RpgMpPickable>(this);
+			break;
+
 		case RpgPickableObject::PickableArrow:
 			pickable = RpgPickableObject::createPickable<RpgArrowPickable>(this);
 			break;
@@ -881,13 +869,17 @@ bool RpgGame::transportPlayer()
 		return false;
 
 
-	if (m_controlledPlayer->currentTransport()) {
-		const bool s = transport(m_controlledPlayer, m_controlledPlayer->currentTransport(), m_controlledPlayer->currentTransportBase());
+	if (TiledTransport *t = m_controlledPlayer->currentTransport()) {
+		const bool s = transport(m_controlledPlayer, t, m_controlledPlayer->currentTransportBase());
 
 		if (!s) {
 			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())
 				m_controlledPlayer->m_sfxDecline.playOne();
 			messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
+
+		} else if (t->type() == TiledTransport::TransportMarket) {
+			return true;
+
 		} else {
 			for (const EnemyData &e : m_enemyDataList) {
 				if (e.enemy)
@@ -895,6 +887,8 @@ bool RpgGame::transportPlayer()
 			}
 
 			m_controlledPlayer->clearDestinationPoint();
+
+			return true;
 		}
 	}
 
@@ -1038,6 +1032,12 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 				m_controlledPlayer->useCurrentObjects();
 			break;
 
+
+		case Qt::Key_C:
+			if (m_controlledPlayer)
+				m_controlledPlayer->cast();
+			break;
+
 		case Qt::Key_Tab:
 			emit minimapToggleRequest();
 			break;
@@ -1049,6 +1049,12 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 #ifndef QT_NO_DEBUG
 		case Qt::Key_M:
 			emit marketRequest();
+			break;
+
+
+		case Qt::Key_F:
+			if (m_controlledPlayer)
+				m_controlledPlayer->setIsLocked(!m_controlledPlayer->isLocked());
 			break;
 
 
@@ -1606,7 +1612,7 @@ void RpgGame::checkEnemyQuests(const int &count)
 	if (found == m_gameDefinition.quests.end())
 		return;
 
-	messageColor(tr("%1 killed enemies").arg(found->amount), QColor::fromString(QStringLiteral("#BA68C8")));
+	messageColor(tr("%1 killed enemies").arg(found->amount), QColor::fromString(QStringLiteral("#9C27B0")));
 
 }
 
@@ -1644,7 +1650,7 @@ void RpgGame::checkWinnerQuests(const int &count)
 
 	questSuccess(&*found);
 
-	messageColor(tr("Winner streak: %1").arg(found->amount), QColor::fromString(QStringLiteral("#BA68C8")));
+	messageColor(tr("Winner streak: %1").arg(found->amount), QColor::fromString(QStringLiteral("#9C27B0")));
 
 	m_lastWinnerStreak = found->amount;
 }
@@ -1783,6 +1789,39 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 						[enemy](const EnemyData &e)	{
 		return e.enemy == enemy; }
 	);
+}
+
+
+/**
+ * @brief RpgGame::funcPlayerFinishCast
+ * @return
+ */
+
+FuncPlayerUseCast RpgGame::funcPlayerFinishCast() const
+{
+	return m_funcPlayerFinishCast;
+}
+
+void RpgGame::setFuncPlayerFinishCast(const FuncPlayerUseCast &newFuncPlayerFinishCast)
+{
+	m_funcPlayerFinishCast = newFuncPlayerFinishCast;
+}
+
+
+
+/**
+ * @brief RpgGame::funcPlayerUseCast
+ * @return
+ */
+
+FuncPlayerUseCast RpgGame::funcPlayerUseCast() const
+{
+	return m_funcPlayerUseCast;
+}
+
+void RpgGame::setFuncPlayerUseCast(const FuncPlayerUseCast &newFuncPlayerUseMana)
+{
+	m_funcPlayerUseCast = newFuncPlayerUseMana;
 }
 
 
@@ -2152,6 +2191,9 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 		case TiledWeapon::WeaponShortbow:
 		case TiledWeapon::WeaponLongbow:
 			return QStringLiteral("bow");
+
+		case TiledWeapon::WeaponMageStaff:
+			return QStringLiteral("cast");
 
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:

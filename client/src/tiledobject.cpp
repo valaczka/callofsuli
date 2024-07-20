@@ -747,9 +747,11 @@ void TiledObject::createVisual()
  * @brief TiledObject::createMarkerItem
  */
 
-void TiledObject::createMarkerItem()
+QQuickItem *TiledObject::createMarkerItem(const QString &qrc)
 {
-	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledPlayerMarker.qml"), this);
+	Q_ASSERT(!qrc.isEmpty());
+
+	QQmlComponent component(Application::instance()->engine(), qrc, this);
 
 	QQuickItem *item = qobject_cast<QQuickItem*>(component.createWithInitialProperties(
 													 QVariantMap{
@@ -758,10 +760,12 @@ void TiledObject::createMarkerItem()
 
 	if (!item) {
 		LOG_CERROR("scene") << "TiledPlayerMarker error" << component.errorString();
-		return;
+		return nullptr;
 	}
 
 	item->setParent(this);
+
+	return item;
 }
 
 

@@ -60,6 +60,7 @@ public:
 		PickableDagger,
 		PickableShield,
 		PickableTime,
+		PickableMp,
 		PickableKey,
 	};
 

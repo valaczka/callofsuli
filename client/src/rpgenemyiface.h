@@ -54,6 +54,7 @@ public:
 
 	static QStringList availableTypes() { return m_typeHash.keys(); }
 	static RpgEnemyType typeFromString(const QString &type) { return m_typeHash.value(type, EnemyInvalid); }
+	static QString directoryBaseName(const RpgEnemyType type, const QString &subType = {});
 
 	const RpgEnemyType &enemyType() const { return m_enemyType; }
 
@@ -72,6 +73,59 @@ private:
 
 	friend class RpgGame;
 };
+
+
+
+
+/**
+ * @brief RpgEnemyIface::directory
+ * @param type
+ * @param subType
+ * @return
+ */
+
+inline QString RpgEnemyIface::directoryBaseName(const RpgEnemyType type, const QString &subType)
+{
+	switch (type) {
+		case EnemySoldier:
+		case EnemySoldierFix:
+		{
+			static const QString &str = QStringLiteral("soldier");
+			if (subType.startsWith(str)) {
+				QString s = subType;
+				return s.replace(str, QStringLiteral("enemySoldier"));
+			}
+			break;
+		}
+
+		case EnemyArcher:
+		case EnemyArcherFix:
+		{
+			static const QString &str = QStringLiteral("archer");
+			if (subType.startsWith(str)) {
+				QString s = subType;
+				return s.replace(str, QStringLiteral("enemyArcher"));
+			}
+			break;
+		}
+
+		case EnemySkeleton:
+		{
+			static const QString &str = QStringLiteral("skeleton");
+			if (subType.startsWith(str)) {
+				QString s = subType;
+				return s.replace(str, QStringLiteral("enemySkeleton"));
+			}
+			break;
+		}
+
+		case EnemyWerebear:
+			case EnemyInvalid:
+			break;
+	}
+
+	return subType;
+}
 
 
 

@@ -48,15 +48,15 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	setMetric(RpgGame::defaultEnemyMetric().werebear.value(QStringLiteral("default")));
 
 	m_sfxPain.setSoundList({
-							   QStringLiteral(":/rpg/werebear/monster-5.mp3"),
+							   QStringLiteral(":/enemy/werebear/monster-5.mp3"),
 						   });
 
 	m_sfxPain.setPlayOneDeadline(600);
 
 
 	m_sfxFootStep.setSoundList({
-								   QStringLiteral(":/rpg/werebear/stepdirt_7.mp3"),
-								   QStringLiteral(":/rpg/werebear/stepdirt_8.mp3"),
+								   QStringLiteral(":/enemy/werebear/stepdirt_7.mp3"),
+								   QStringLiteral(":/enemy/werebear/stepdirt_8.mp3"),
 							   });
 	m_sfxFootStep.setVolume(0.4);
 	m_sfxFootStep.setInterval(450);
@@ -134,7 +134,7 @@ void RpgWerebear::load()
 	setMaxHp(hp);
 	setHp(hp);
 
-	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/rpg/werebear/").append(data));
+	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/enemy/werebear/").append(data));
 
 	if (!ptr) {
 		LOG_CERROR("game") << "Resource load error";
@@ -144,7 +144,7 @@ void RpgWerebear::load()
 	IsometricObjectSpriteList json;
 	json.fromJson(*ptr);
 
-	appendSprite(QStringLiteral(":/rpg/werebear/").append(file), json);
+	appendSprite(QStringLiteral(":/enemy/werebear/").append(file), json);
 
 	setWidth(128);
 	setHeight(128);
@@ -222,6 +222,7 @@ int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weapo
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponDagger:
 		case TiledWeapon::WeaponShield:
+			case TiledWeapon::WeaponMageStaff:
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}
@@ -255,7 +256,7 @@ void RpgWerebear::playAttackEffect(TiledWeapon *weapon)
 
 void RpgWerebear::playDeadEffect()
 {
-	m_game->playSfx(QStringLiteral(":/rpg/werebear/monster-6.mp3"), m_scene, m_body->bodyPosition());
+	m_game->playSfx(QStringLiteral(":/enemy/werebear/monster-6.mp3"), m_scene, m_body->bodyPosition());
 }
 
 
@@ -267,7 +268,7 @@ void RpgWerebear::playDeadEffect()
 void RpgWerebear::playSeeEffect()
 {
 	if (m_player)
-		m_game->playSfx(QStringLiteral(":/rpg/werebear/monster-1.mp3"), m_scene, m_body->bodyPosition());
+		m_game->playSfx(QStringLiteral(":/enemy/werebear/monster-1.mp3"), m_scene, m_body->bodyPosition());
 }
 
 
@@ -409,6 +410,6 @@ void RpgWerebearWeaponHand::eventAttack(TiledObject *)
 {
 	RpgWerebear *wb = qobject_cast<RpgWerebear*>(m_parentObject.data());
 	if (wb && wb->game())
-		wb->game()->playSfx(QStringLiteral(":/rpg/werebear/big_punch.mp3"),
+		wb->game()->playSfx(QStringLiteral(":/enemy/werebear/big_punch.mp3"),
 							wb->scene(), wb->body()->bodyPosition());
 }

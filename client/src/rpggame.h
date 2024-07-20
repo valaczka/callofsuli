@@ -111,6 +111,7 @@ public:
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
 typedef std::function<bool(RpgPlayer*, TiledContainer*)> FuncPlayerUseContainer;
 typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
+typedef std::function<bool(RpgPlayer*)> FuncPlayerUseCast;
 
 
 
@@ -152,6 +153,10 @@ public:
 	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
 	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;
 	bool playerPickPickable(TiledObject *player, TiledObject *pickable) override final;
+
+	bool playerUseCast(RpgPlayer *player);
+	bool playerFinishCast(RpgPlayer *player);
+
 	void saveSceneState(RpgPlayer *player);
 	void saveSceneState();
 
@@ -159,10 +164,6 @@ public:
 	void onEnemyDead(TiledObject *enemy) override final;
 	void onEnemySleepingStart(TiledObject *enemy) override final;
 	void onEnemySleepingEnd(TiledObject *enemy) override final;
-
-	bool canAttack(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
-	bool canAttack(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
-	bool canTransport(RpgPlayer *player, TiledTransport *transport);
 
 	bool playerTryUseContainer(RpgPlayer *player, TiledContainer *container);
 	void playerUseContainer(RpgPlayer *player, TiledContainer *container);
@@ -234,6 +235,12 @@ public:
 
 	FuncPlayerUseContainer funcPlayerUseContainer() const;
 	void setFuncPlayerUseContainer(const FuncPlayerUseContainer &newFuncPlayerUseContainer);
+
+	FuncPlayerUseCast funcPlayerUseCast() const;
+	void setFuncPlayerUseCast(const FuncPlayerUseCast &newFuncPlayerUseMana);
+
+	FuncPlayerUseCast funcPlayerFinishCast() const;
+	void setFuncPlayerFinishCast(const FuncPlayerUseCast &newFuncPlayerFinishCast);
 
 	QScatterSeries *scatterSeriesPlayers() const;
 	void setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers);
@@ -368,6 +375,8 @@ private:
 	FuncPlayerPick m_funcPlayerPick;
 	FuncPlayerAttackEnemy m_funcPlayerAttackEnemy;
 	FuncPlayerUseContainer m_funcPlayerUseContainer;
+	FuncPlayerUseCast m_funcPlayerUseCast;
+	FuncPlayerUseCast m_funcPlayerFinishCast;
 
 	// 3 részre daraboljuk, hogy ne haladja meg a textúra a 4096 px méretet
 

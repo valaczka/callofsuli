@@ -68,6 +68,12 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 		isActive = false;
 	}
 
+	if (m_handlerMaster && m_handlerMaster->syncHandlers()) {
+		setCurrentSprite(m_handlerMaster->m_currentSprite);
+		m_currentDirection = m_handlerMaster->m_currentDirection;
+		m_currentFrame = m_handlerMaster->m_currentFrame;
+	}
+
 	const auto &list = find(m_currentSprite, m_currentDirection);
 
 	if (list.isEmpty()) {
@@ -97,7 +103,26 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 			imgNode->setFlag(QSGNode::OwnedByParent);
 			node->appendChildNode(imgNode);
 
-			imgNode->setRect(boundingRect());
+			switch (m_opacityMask) {
+				case MaskTop: {
+					QRectF r = boundingRect();
+					r.setHeight(r.height()*0.5);
+					imgNode->setRect(r);
+					break;
+				}
+				case MaskBottom: {
+					QRectF r = boundingRect();
+					const qreal h = r.height()*0.5;
+					r.setHeight(h);
+					r.moveTop(h);
+					imgNode->setRect(r);
+					break;
+				}
+				case MaskFull:
+					imgNode->setRect(boundingRect());
+					break;
+			}
+
 
 			if (it->texture != imgNode->texture())
 				imgNode->setTexture(it->texture);
@@ -110,6 +135,22 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 							it->data.height);
 
 				rect.translate(m_currentFrame * it->data.width, 0);
+
+				switch (m_opacityMask) {
+					case MaskTop:
+						rect.setHeight(rect.height()*0.5);
+						break;
+					case MaskBottom: {
+						const qreal h = it->data.height*0.5;
+						rect = QRectF(it->data.x,
+									  it->data.y+h,
+									  it->data.width,
+									  h);
+						break;
+					}
+					case MaskFull:
+						break;
+				}
 
 				imgNode->setSourceRect(rect);
 			} else {
@@ -132,6 +173,22 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 							y,
 							it->data.width,
 							it->data.height);
+
+				switch (m_opacityMask) {
+					case MaskTop:
+						rect.setHeight(rect.height()*0.5);
+						break;
+					case MaskBottom: {
+						const qreal h = it->data.height*0.5;
+						rect = QRectF(x,
+									  y+h,
+									  it->data.width,
+									  h);
+						break;
+					}
+					case MaskFull:
+						break;
+				}
 
 				imgNode->setSourceRect(rect);
 			}
@@ -381,7 +438,6 @@ bool TiledSpriteHandler::exists(const QString &baseName, const QString &layer, c
 
 void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Direction &direction)
 {
-
 	if (m_currentSprite == name && m_currentDirection == direction)
 		return;
 
@@ -396,9 +452,89 @@ void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Di
 	m_currentDirection = direction;
 	setCurrentSprite(name);
 	m_currentFrame = 0;
+	m_isReverse = false;
 
 	m_timer.start(ptr.value()->data.duration, Qt::PreciseTimer, this);
 	update();
+
+	if (m_handlerSlave && m_syncHandlers)
+		m_handlerSlave->update();
+}
+
+TiledSpriteHandler::OpacityMask TiledSpriteHandler::opacityMask() const
+{
+	return m_opacityMask;
+}
+
+void TiledSpriteHandler::setOpacityMask(const OpacityMask &newOpacityMask)
+{
+	if (m_opacityMask == newOpacityMask)
+		return;
+	m_opacityMask = newOpacityMask;
+	emit opacityMaskChanged();
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::handlerSlave
+ * @return
+ */
+
+TiledSpriteHandler *TiledSpriteHandler::handlerSlave() const
+{
+	return m_handlerSlave;
+}
+
+void TiledSpriteHandler::setHandlerSlave(TiledSpriteHandler *newHandlerSlave)
+{
+	if (newHandlerSlave == this) {
+		LOG_CERROR("scene") << "Self handler master" << this;
+		return;
+	}
+
+	if (m_handlerSlave == newHandlerSlave)
+		return;
+	m_handlerSlave = newHandlerSlave;
+	emit handlerSlaveChanged();
+}
+
+
+bool TiledSpriteHandler::syncHandlers() const
+{
+	return m_syncHandlers;
+}
+
+void TiledSpriteHandler::setSyncHandlers(bool newSyncHandlers)
+{
+	if (m_syncHandlers == newSyncHandlers)
+		return;
+	m_syncHandlers = newSyncHandlers;
+	emit syncHandlersChanged();
+}
+
+
+/**
+ * @brief TiledSpriteHandler::handlerMaster
+ * @return
+ */
+
+TiledSpriteHandler *TiledSpriteHandler::handlerMaster() const
+{
+	return m_handlerMaster;
+}
+
+void TiledSpriteHandler::setHandlerMaster(TiledSpriteHandler *newHandlerMaster)
+{
+	if (newHandlerMaster == this) {
+		LOG_CERROR("scene") << "Self handler master" << this;
+		return;
+	}
+
+	if (m_handlerMaster == newHandlerMaster)
+		return;
+	m_handlerMaster = newHandlerMaster;
+	emit handlerMasterChanged();
 }
 
 
@@ -415,7 +551,19 @@ void TiledSpriteHandler::clear()
 	m_currentSprite.clear();
 	m_currentDirection = TiledObject::Invalid;
 	m_layers.clear();
+	setOpacityMask(MaskFull);
 	m_visibleLayers = QStringList{ QStringLiteral("default") };
+
+	if (m_handlerMaster && m_handlerMaster->syncHandlers()) {
+		m_handlerMaster->setSyncHandlers(false);
+		m_handlerMaster->clear();
+	}
+
+	if (m_handlerSlave && m_syncHandlers)
+		m_handlerSlave->clear();
+
+	setSyncHandlers(false);
+	update();
 }
 
 
@@ -502,6 +650,11 @@ void TiledSpriteHandler::setBaseObject(TiledObject *newBaseObject)
 
 void TiledSpriteHandler::timerEvent(QTimerEvent *)
 {
+	if (m_handlerMaster && m_handlerMaster->syncHandlers()) {
+		m_timer.stop();
+		return;
+	}
+
 	const auto &ptr = findFirst(m_currentSprite, m_currentDirection);
 
 	if (!ptr) {
@@ -511,33 +664,49 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 	}
 
 
-	// Todo: loop counting (?)
+	for (int dir = 0; dir<2; ++dir) {
+		int nextFrame = m_isReverse ? m_currentFrame-1 : m_currentFrame+1;
 
-	int nextFrame = m_currentFrame+1;
-
-	if (nextFrame >= ptr.value()->data.count) {
-		if (!m_jumpToSprite.data.name.isEmpty()) {
-			changeSprite(m_jumpToSprite.data.name, m_jumpToSprite.direction);
-			m_jumpToSprite = Sprite{};
-			return;
-		}
-
-		if (ptr.value()->data.loops <= 0)
-			nextFrame = 0;
-		else {
-			if (m_clearAtEnd) {
-				clear();
-				return update();
+		if (!m_isReverse && nextFrame >= ptr.value()->data.count) {
+			if (!m_jumpToSprite.data.name.isEmpty()) {
+				changeSprite(m_jumpToSprite.data.name, m_jumpToSprite.direction);
+				m_jumpToSprite = Sprite{};
+				return;
 			}
 
-			//return m_timer.stop();
+			if (ptr.value()->data.loops < 0) {
+				m_isReverse = true;
+				continue;
+			} else if (ptr.value()->data.loops == 0) {
+				nextFrame = 0;
+			} else {
+				if (m_clearAtEnd) {
+					clear();
+					update();
 
-			return;
+					if (m_handlerSlave && m_syncHandlers) {
+						m_handlerSlave->clear();
+						m_handlerSlave->update();
+					}
+
+					return;
+				}
+
+				return;
+			}
+		} else if (m_isReverse && nextFrame < 0) {
+			m_isReverse = false;
+			continue;
 		}
+
+		m_currentFrame = nextFrame;
+		break;
 	}
 
-	m_currentFrame = nextFrame;
 	update();
+
+	if (m_handlerSlave && m_syncHandlers)
+		m_handlerSlave->update();
 }
 
 

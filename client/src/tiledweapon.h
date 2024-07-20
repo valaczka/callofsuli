@@ -60,6 +60,7 @@ class TiledWeapon : public QObject
 	Q_PROPERTY(int maxBulletCount READ maxBulletCount WRITE setMaxBulletCount NOTIFY maxBulletCountChanged FINAL)
 	Q_PROPERTY(bool canShot READ canShot NOTIFY canShotChanged FINAL)
 	Q_PROPERTY(bool canHit READ canHit WRITE setCanHit NOTIFY canHitChanged FINAL)
+	Q_PROPERTY(bool canCast READ canCast WRITE setCanCast NOTIFY canCastChanged FINAL)
 	Q_PROPERTY(QString icon READ icon WRITE setIcon NOTIFY iconChanged FINAL)
 	Q_PROPERTY(qint64 repeaterIdle READ repeaterIdle WRITE setRepeaterIdle NOTIFY repeaterIdleChanged FINAL)
 	Q_PROPERTY(bool excludeFromLayers READ excludeFromLayers WRITE setExcludeFromLayers NOTIFY excludeFromLayersChanged FINAL)
@@ -74,6 +75,7 @@ public:
 		WeaponLongbow,
 		WeaponBroadsword,
 		WeaponGreatHand,
+		WeaponMageStaff,
 		WeaponShield
 	};
 
@@ -101,10 +103,10 @@ public:
 	virtual bool canProtect(const WeaponType &weapon) const = 0;
 	virtual bool canAttack() const = 0;
 
-	bool hit(TiledObject *target);
-
 	bool canHit() const;
 	void setCanHit(bool newCanHit);
+
+	bool hit(TiledObject *target);
 
 	TiledObject *parentObject() const;
 	void setParentObject(TiledObject *newParentObject);
@@ -133,6 +135,9 @@ public:
 	int pickedBulletCount() const;
 	void setPickedBulletCount(int newPickedBulletCount);
 
+	bool canCast() const;
+	void setCanCast(bool newCanCast);
+
 signals:
 	void parentObjectChanged();
 	void bulletCountChanged();
@@ -142,6 +147,7 @@ signals:
 	void repeaterIdleChanged();
 	void maxBulletCountChanged();
 	void excludeFromLayersChanged();
+	void canCastChanged();
 
 protected:
 	virtual IsometricBullet *createBullet(const qreal &distance = 0.) = 0;
@@ -152,6 +158,7 @@ protected:
 	int m_bulletCount = 0;
 	int m_maxBulletCount = 0;
 	bool m_canHit = false;
+	bool m_canCast = false;
 	QString m_icon;
 	qint64 m_repeaterIdle = 125;
 	bool m_excludeFromLayers = false;

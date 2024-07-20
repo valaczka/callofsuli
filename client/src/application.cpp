@@ -51,6 +51,7 @@
 #include "qapplication.h"
 #include "qrimage.h"
 #include "qsjsonlistmodel.h"
+#include "rpgmagestaff.h"
 #include "rpguserwallet.h"
 #include "scorelist.h"
 #include "studentgroup.h"
@@ -367,6 +368,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
 	qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");
 	qmlRegisterUncreatableType<IsometricPlayer>("CallOfSuli", 1, 0, "IsometricPlayer", "IsometricPlayer is uncreatable");
+	qmlRegisterUncreatableType<IsometricEnemy>("CallOfSuli", 1, 0, "IsometricEnemy", "IsometricEnemy is uncreatable");
 	qmlRegisterUncreatableType<LiteGame>("CallOfSuli", 1, 0, "LiteGame", "LiteGame is uncreatable");
 	qmlRegisterUncreatableType<MapEditorChapter>("CallOfSuli", 1, 0, "MapEditorChapter", "MapEditorChapter is uncreatable");
 	qmlRegisterUncreatableType<MapEditorImage>("CallOfSuli", 1, 0, "MapEditorImage", "MapEditorImage is uncreatable");
@@ -384,6 +386,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgInventory>("CallOfSuli", 1, 0, "RpgInventory", "RpgInventory is uncreatable");
+	qmlRegisterUncreatableType<RpgMageStaff>("CallOfSuli", 1, 0, "RpgMageStaff", "RpgMageStaff is uncreatable");
 	qmlRegisterUncreatableType<RpgMarket>("CallOfSuli", 1, 0, "RpgMarket", "RpgMarket is uncreatable");
 	qmlRegisterUncreatableType<RpgQuest>("CallOfSuli", 1, 0, "RpgQuest", "RpgQuest is uncreatable");
 	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");

@@ -48,7 +48,19 @@ class RpgPlayerCharacterConfig : public QSerializer
 	Q_GADGET
 
 public:
+	enum CastType {
+		CastInvalid			= 0,
+		CastInvisible		= 1,
+		CastFireball		= 2
+	};
+
+	Q_ENUM(CastType);
+
 	RpgPlayerCharacterConfig() : QSerializer()
+	  , cast(CastInvalid)
+	  , mpLoss(1)					// MP loss / 0.1 mp
+	  , mpMax(100)
+	  , mpStart(10)
 	{}
 
 	void updateSfxPath(const QString &prefix);
@@ -74,6 +86,13 @@ public:
 
 	QS_COLLECTION(QList, QString, inventory)
 	QS_COLLECTION(QList, QString, inventoryOnce)
+
+	// Cast
+
+	QS_FIELD(CastType, cast)
+	QS_FIELD(int, mpLoss)
+	QS_FIELD(int, mpMax)
+	QS_FIELD(int, mpStart)
 };
 
 
@@ -91,6 +110,8 @@ class RpgPlayer : public IsometricPlayer
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
 	Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
+	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
+	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
 
 public:
 	explicit RpgPlayer(QQuickItem *parent = nullptr);
@@ -100,6 +121,8 @@ public:
 
 	Q_INVOKABLE void attack(TiledWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
+
+	Q_INVOKABLE void cast();
 
 	void attackToPoint(const qreal &x, const qreal &y);
 	void attackToPoint(const QPointF &point) { attackToPoint(point.x(), point.y()); }
@@ -130,12 +153,23 @@ public:
 
 	RpgInventoryList *inventory() const;
 
+	int mp() const;
+	void setMp(int newMp);
+
+	int maxMp() const;
+	void setMaxMp(int newMaxMp);
+
+	bool isDiscoverable() const override final;
+
+	bool castTimerActive() const { return m_castTimer.isActive(); }
 
 signals:
 	void attackDone();
 	void characterChanged();
 	void shieldCountChanged();
 	void configChanged();
+	void mpChanged();
+	void maxMpChanged();
 
 protected:
 	void load() override final;
@@ -167,6 +201,7 @@ private:
 	void playWeaponChangedEffect();
 	void playShieldEffect();
 	void messageEmptyBullet(const TiledWeapon::WeaponType &weaponType);
+	void onCastTimerTimeout();
 
 private:
 	RpgPlayerCharacterConfig m_config;
@@ -181,10 +216,16 @@ private:
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;
+	TiledEffectSmoke m_effectSmoke;
 
 	QPointF m_currentSceneStartPosition;
 	bool m_pickAtDestination = false;
 	int m_shieldCount = 0;
+	int m_mp = 0;
+	int m_maxMp = 0;
+
+	QTimer m_castTimer;
+	QDeadlineTimer m_timerRepeater;
 
 	friend class RpgGame;
 	friend class ActionRpgGame;

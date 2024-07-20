@@ -1,4 +1,4 @@
-import QtQuick
+		import QtQuick
 import QtQuick.Controls
 import CallOfSuli
 import Qt5Compat.GraphicalEffects
@@ -161,7 +161,7 @@ FocusScope {
 			border.width: 2
 
 			fontImage.icon: Qaterial.Icons.crosshairsQuestion
-			fontImage.color: Qaterial.Colors.purple300
+			fontImage.color: Qaterial.Colors.purple400
 			fontImageScale: 0.7
 
 			onClicked: showQuests()
@@ -343,7 +343,8 @@ FocusScope {
 			opacity: canShot ? 1.0 : 0.0
 
 			readonly property bool canShot:  _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon &&
-											 _game.controlledPlayer.armory.currentWeapon.canShot
+											 _game.controlledPlayer.armory.currentWeapon.canShot &&
+											 _game.controlledPlayer.armory.currentWeapon.weaponType != TiledWeapon.WeaponMageStaff
 
 			readonly property int bullet: canShot ?
 											  _game.controlledPlayer.armory.currentWeapon.bulletCount :
@@ -400,7 +401,23 @@ FocusScope {
 		anchors.top: parent.top
 		value: _game.controlledPlayer ? _game.controlledPlayer.hp : 0
 		visible: _game.controlledPlayer && _isPrepared
-		onValueChanged: marked = true
+		//onValueChanged: marked = true
+	}
+
+	GameInfo {
+		id: _infoMP
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.top: infoHP.bottom
+		color: Qaterial.Colors.pink300
+		iconLabel.icon.source: Qaterial.Icons.shimmer
+		text: qsTr("%1/%2 MP").arg(Math.floor(progressBar.value)).arg(progressBar.to)
+
+		visible: _game.controlledPlayer && _game.controlledPlayer.armory.mageStaff
+
+		progressBar.from: 0
+		progressBar.to: _game.controlledPlayer ? _game.controlledPlayer.maxMp : 0
+		progressBar.value: _game.controlledPlayer ? _game.controlledPlayer.mp : 0
+		progressBar.width: Math.min(root.width*0.3, 85)
 	}
 
 
@@ -434,31 +451,34 @@ FocusScope {
 	}
 
 
-	/*GameButton {
-		id: _pickButton
-		size: 50
+	GameButton {
+		id: _castButton
+		size: 45
 
 		anchors.horizontalCenter: _shotButton.horizontalCenter
 		anchors.bottom: _shotButton.top
-		anchors.bottomMargin: 5
+		anchors.bottomMargin: 10
 
-		visible: _game.controlledPlayer && _game.controlledPlayer.currentPickable && _isPrepared
+		visible: _game.controlledPlayer && _game.controlledPlayer.armory.mageStaff &&
+				 _game.controlledPlayer.armory.currentWeapon != _game.controlledPlayer.armory.mageStaff &&
+				 _isPrepared
 
-		color: Qaterial.Colors.green600
-		border.color: fontImage.color
+		readonly property bool _canAttack: _game.controlledPlayer && _game.controlledPlayer.mp > 0
+
+		color: _canAttack ? Qaterial.Colors.pink300 : "transparent"
+
+		border.color: _canAttack ? Qaterial.Colors.white : Qaterial.Colors.red800
 		border.width: 1
 
-		opacity: 1.0
-
-		fontImage.icon: Qaterial.Icons.hand
-		fontImage.color: "white"
+		fontImage.icon: "qrc:/internal/medal/Icon.3_03.png"
+		fontImage.opacity: _canAttack ? 1.0 : 0.6
+		fontImage.color: "transparent"
 		fontImageScale: 0.6
-		//fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
-			_game.controlledPlayer.pickCurrentObject()
+			_game.controlledPlayer.cast()
 		}
-	}*/
+	}
 
 
 
