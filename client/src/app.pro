@@ -263,6 +263,7 @@ SOURCES += \
 	rpgarmory.cpp \
 	rpgarrow.cpp \
 	rpgbroadsword.cpp \
+	rpgcoin.cpp \
 	rpgcontrolgroup.cpp \
 	rpgcontrolgroupcontainer.cpp \
 	rpgcontrolgroupoverlay.cpp \
@@ -390,6 +391,7 @@ HEADERS += \
 	rpgarmory.h \
 	rpgarrow.h \
 	rpgbroadsword.h \
+	rpgcoin.h \
 	rpgcontrolgroup.h \
 	rpgcontrolgroupcontainer.h \
 	rpgcontrolgroupoverlay.h \

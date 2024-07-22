@@ -212,6 +212,9 @@ public:
 	void resurrectEnemiesAndPlayer(RpgPlayer *player);
 	void resurrectEnemies(const QPointer<TiledScene> &scene);
 
+	static void saveTerrainInfo();
+	static std::optional<RpgMarket> saveTerrainInfo(const RpgGameDefinition &def);
+
 	virtual void onSceneWorldStepped(TiledScene *scene) override;
 
 	void useBullet(const RpgPickableObject::PickableType &type);
@@ -312,6 +315,8 @@ private:
 
 	void updateScatterEnemies();
 	void updateScatterPlayers();
+
+	static QVector<RpgPickableObject::PickableType> getPickablesFromPropertyValue(const QString &value);
 
 	struct EnemyData {
 		TiledObjectBase::ObjectId objectId;

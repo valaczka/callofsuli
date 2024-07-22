@@ -14,6 +14,7 @@ Qaterial.Card {
 	property int availableCurrency: 0
 
 	signal buyRequest()
+	signal clicked()
 
 
 	width: ListView.view ? ListView.view.implicitHeight * (180/300) : 50
@@ -33,6 +34,12 @@ Qaterial.Card {
 
 
 	elevation: Qaterial.Style.card.activeElevation
+
+	scale: _area.pressed ? 0.85 : 1.0
+
+	Behavior on scale {
+		NumberAnimation { duration: 125 }
+	}
 
 
 	/*readonly property color textColor: selected ? Qaterial.Colors.cyan300 :
@@ -300,21 +307,6 @@ Qaterial.Card {
 
 		}
 
-		QButton {
-			id: _btnBuy
-
-			anchors.horizontalCenter: parent.horizontalCenter
-			y: _imgHolder.height +
-			   (parent.height-_imgHolder.height-height)/2
-
-			text: qsTr("Vásárlás")
-			icon.source: enabled ? Qaterial.Icons.cart : Qaterial.Icons.lockOutline
-			enabled: wallet && wallet.buyable && wallet.market.cost <= availableCurrency
-
-			visible: wallet && (!wallet.available || wallet.buyable)
-
-			onClicked: control.buyRequest()
-		}
 
 
 		Qaterial.Label {
@@ -357,6 +349,29 @@ Qaterial.Card {
 		}
 
 
+		MouseArea {
+			id: _area
+			anchors.fill: parent
+			acceptedButtons: Qt.LeftButton
+
+			onClicked: control.clicked()
+		}
+
+		QButton {
+			id: _btnBuy
+
+			anchors.horizontalCenter: parent.horizontalCenter
+			y: _imgHolder.height +
+			   (parent.height-_imgHolder.height-height)/2
+
+			text: qsTr("Vásárlás")
+			icon.source: enabled ? Qaterial.Icons.cart : Qaterial.Icons.lockOutline
+			enabled: wallet && wallet.buyable && wallet.market.cost <= availableCurrency
+
+			visible: wallet && (!wallet.available || wallet.buyable)
+
+			onClicked: control.buyRequest()
+		}
 
 
 		Rectangle {

@@ -31,6 +31,7 @@
 #include "rpgarmory.h"
 #include "rpgpickableobject.h"
 #include "rpggame.h"
+#include "utils_.h"
 
 RpgUserWallet::RpgUserWallet(QObject *parent)
 	: QObject{parent}
@@ -243,12 +244,13 @@ bool RpgUserWallet::buyable() const
  * @return
  */
 
-QVariantList RpgUserWallet::extendedInfo() const
+QList<RpgMarketExtendedInfo> RpgUserWallet::extendedInfo() const
 {
 	return m_extendedInfo;
 }
 
-void RpgUserWallet::setExtendedInfo(const QVariantList &newExtendedInfo)
+
+void RpgUserWallet::setExtendedInfo(const QList<RpgMarketExtendedInfo> &newExtendedInfo)
 {
 	if (m_extendedInfo == newExtendedInfo)
 		return;
@@ -256,6 +258,171 @@ void RpgUserWallet::setExtendedInfo(const QVariantList &newExtendedInfo)
 	emit extendedInfoChanged();
 }
 
+
+/**
+ * @brief RpgUserWallet::getExtendedInfo
+ * @param def
+ * @return
+ */
+
+QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgGameDefinition &def)
+{
+	QList<RpgMarketExtendedInfo> list;
+
+	for (const RpgQuest &q : def.quests) {
+		if (q.type == RpgQuest::SuddenDeath) {
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/skull-scan-outline.svg"),
+							tr("Sudden death quest:"),
+							QString::number(q.currency),
+							QStringLiteral("qrc:/rpg/coin/coin.png"),
+						});
+		}
+	}
+
+
+	return list;
+}
+
+
+/**
+ * @brief RpgUserWallet::getExtendedInfo
+ * @param market
+ * @return
+ */
+
+QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &market)
+{
+	QList<RpgMarketExtendedInfo> list;
+
+	if (market.type == RpgMarket::Map) {
+		if (market.info.isEmpty())
+			return list;
+
+		if (const int v = market.info.value("duration").toInt(); v > 0)
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/timer-sand.svg"),
+							tr("Időtartam:"),
+							Utils::formatMSecs(v*1000),
+						});
+
+		if (const int v = market.info.value("enemyCount").toInt(); v > 0)
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/target-account.svg"),
+							tr("Ellenfél:"),
+							QString::number(v)
+						});
+
+		if (const int v = market.info.value("mpCount").toInt(); v > 0)
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/shimmer.svg"),
+							tr("Szerezhető MP:"),
+							QString::number(v)
+						});
+
+		if (const int v = market.info.value("currencyCount").toInt(); v > 0)
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/cash-usd-outline.svg"),
+							tr("Szerezhető pénz:"),
+							QString::number(v),
+							QStringLiteral("qrc:/rpg/coin/coin.png"),
+						});
+
+		if (market.info.value("hasMarket").toBool())
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/bank.svg"),
+							tr("Bank")
+						});
+
+	} else if (market.type == RpgMarket::Bullet) {
+		TiledWeapon::WeaponType w = TiledWeapon::WeaponInvalid;
+
+		switch (RpgPickableObject::typeFromString(market.name)) {
+			case RpgPickableObject::PickableArrow:
+				w = TiledWeapon::WeaponShortbow;
+				break;
+
+			case RpgPickableObject::PickableFireball:
+				w = TiledWeapon::WeaponLongbow;
+				break;
+
+			case RpgPickableObject::PickableShield:
+			case RpgPickableObject::PickableKey:
+			case RpgPickableObject::PickableHp:
+			case RpgPickableObject::PickableMp:
+			case RpgPickableObject::PickableCoin:
+			case RpgPickableObject::PickableShortbow:
+			case RpgPickableObject::PickableLongbow:
+			case RpgPickableObject::PickableLongsword:
+			case RpgPickableObject::PickableDagger:
+			case RpgPickableObject::PickableTime:
+			case RpgPickableObject::PickableInvalid:
+				break;
+		}
+
+		if (w != TiledWeapon::WeaponInvalid)
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/sword-cross.svg"),
+							tr("Fegyver:"),
+							TiledWeapon::weaponNameEn(w),
+							QStringLiteral("qrc:/rpg/")+RpgArmory::weaponHash().value(w)+ QStringLiteral("/market.jpg"),
+							60
+						});
+
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief RpgUserWallet::getExtendedInfo
+ * @param player
+ * @return
+ */
+
+QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgPlayerCharacterConfig &player)
+{
+	QList<RpgMarketExtendedInfo> list;
+
+	if (player.cast != RpgPlayerCharacterConfig::CastInvalid) {
+		if (player.mpMax > 0)
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/shimmer.svg"),
+							tr("Max. MP:"),
+							QString::number(player.mpMax)
+						});
+
+		QString name;
+		QString image;
+
+		switch (player.cast) {
+			case RpgPlayerCharacterConfig::CastInvisible:
+				name = tr("Invisibility");
+				image = QStringLiteral("qrc:/rpg/castIcon/invisibility.png");
+				break;
+
+			case RpgPlayerCharacterConfig::CastFireball:
+				name = tr("Fireball");
+				image = QStringLiteral("qrc:/rpg/castIcon/fireball.png");
+				break;
+
+			case RpgPlayerCharacterConfig::CastInvalid:
+				break;
+		}
+
+		if (!name.isEmpty())
+			list.append(RpgMarketExtendedInfo{
+							{},
+							tr("Super power:"),
+							name,
+							image,
+							60
+						});
+	}
+
+	return list;
+}
 
 
 
@@ -421,6 +588,8 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 		w->setMarket(market);
 		w->m_walletList = this;
 
+		QList<RpgMarketExtendedInfo> info;
+
 		if (market.type == RpgMarket::Map) {
 			const auto t = RpgGame::terrains().find(market.name);
 
@@ -432,22 +601,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			w->setReadableName(t->name);
 			w->setSortName(market.name);
 
-			QVariantList extInfo;							// TODO: improve
-
-			for (const RpgQuest &q : t->quests) {
-				if (q.type == RpgQuest::SuddenDeath) {
-					QJsonObject o {
-						{"text",  tr("Sudden death quest:") },
-						{"icon",  "qrc:/Qaterial/Icons/skull-scan-outline.svg" },
-						{"value", QString::number(q.currency) },
-						{"image", "qrc:/rpg/coin/coin.png"}
-					};
-
-					extInfo.append(o);
-				}
-			}
-
-			w->setExtendedInfo(extInfo);
+			info.append(RpgUserWallet::getExtendedInfo(*t));
 
 		} else if (market.type == RpgMarket::Skin) {
 			const auto t = RpgGame::characters().find(market.name);
@@ -460,6 +614,8 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			w->setReadableName(t->name);
 			w->setSortName(market.name);
 			w->setImage(t->image);
+
+			info.append(RpgUserWallet::getExtendedInfo(*t));
 
 		} else if (market.type == RpgMarket::Weapon) {
 			const auto t = RpgArmory::weaponHash().key(market.name, TiledWeapon::WeaponInvalid);
@@ -491,6 +647,10 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 		} else if (market.type == RpgMarket::Mp) {
 			w->setReadableName(tr("MP"));
 		}
+
+		info.append(RpgUserWallet::getExtendedInfo(market));
+
+		w->setExtendedInfo(info);
 
 		ptr = w.release();
 		this->append(ptr);

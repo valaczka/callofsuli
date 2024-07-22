@@ -46,6 +46,7 @@
 #include "tiledcontainer.h"
 
 #ifndef Q_OS_WASM
+#include "rpgcoin.h"
 #include "standaloneclient.h"
 #endif
 
@@ -813,6 +814,10 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 			pickable = RpgPickableObject::createPickable<RpgMpPickable>(this);
 			break;
 
+		case RpgPickableObject::PickableCoin:
+			pickable = RpgPickableObject::createPickable<RpgCoinPickable>(this);
+			break;
+
 		case RpgPickableObject::PickableArrow:
 			pickable = RpgPickableObject::createPickable<RpgArrowPickable>(this);
 			break;
@@ -1285,34 +1290,15 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 	QVector<RpgPickableObject::PickableType> pickableList;
 
 	if (object->hasProperty(QStringLiteral("pickable"))) {
-		const QStringList &pList = object->property(QStringLiteral("pickable")).toString().split(',', Qt::SkipEmptyParts);
-		for (const QString &s : pList) {
-			const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
-
-			if (type == RpgPickableObject::PickableInvalid) {
-				LOG_CWARNING("scene") << "Invalid pickable type:" << s << object->id() << object->className() << object->name();
-				continue;
-			}
-
-			pickableList.append(type);
-		}
+		pickableList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickable")).toString());
 	}
 
 	QVector<RpgPickableObject::PickableType> pickableOnceList;
 
 	if (object->hasProperty(QStringLiteral("pickableOnce"))) {
-		const QStringList &pList = object->property(QStringLiteral("pickableOnce")).toString().split(',', Qt::SkipEmptyParts);
-		for (const QString &s : pList) {
-			const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
-
-			if (type == RpgPickableObject::PickableInvalid) {
-				LOG_CWARNING("scene") << "Invalid pickable type:" << s << object->id() << object->className() << object->name();
-				continue;
-			}
-
-			pickableOnceList.append(type);
-		}
+		pickableOnceList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickableOnce")).toString());
 	}
+
 
 	m_enemyDataList.append(EnemyData{
 							   TiledObjectBase::ObjectId{object->id(), scene->sceneId()},
@@ -1755,6 +1741,33 @@ void RpgGame::updateScatterPlayers()
 #endif
 	}
 
+}
+
+
+
+/**
+ * @brief RpgGame::getPickablesFromPropertyValue
+ * @param value
+ * @return
+ */
+
+QVector<RpgPickableObject::PickableType> RpgGame::getPickablesFromPropertyValue(const QString &value)
+{
+	QVector<RpgPickableObject::PickableType> pickableList;
+
+	const QStringList &pList = value.split(',', Qt::SkipEmptyParts);
+	for (const QString &s : pList) {
+		const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
+
+		if (type == RpgPickableObject::PickableInvalid) {
+			LOG_CWARNING("scene") << "Invalid pickable type:" << s;
+			continue;
+		}
+
+		pickableList.append(type);
+	}
+
+	return pickableList;
 }
 
 
@@ -2374,6 +2387,225 @@ void RpgGame::resurrectEnemies(const QPointer<TiledScene> &scene)
 	}
 
 	recalculateEnemies();
+}
+
+
+
+/**
+ * @brief RpgGame::saveTerrainInfo
+ */
+
+void RpgGame::saveTerrainInfo()
+{
+	QDir dir = QDir::temp();
+
+	static const QString subdir("callofsuli-terrain-info");
+
+	if (dir.exists(subdir)) {
+		LOG_CDEBUG("game") << "Directory already exists, try remove:" << dir.absoluteFilePath(subdir);
+
+		if (!dir.cd(subdir)) {
+			LOG_CERROR("game") << "Directory change error:" << dir.absoluteFilePath(subdir);
+			return;
+		}
+
+		if (!dir.removeRecursively()) {
+			LOG_CERROR("game") << "Directory remove error:" << dir.absolutePath();
+			return;
+		}
+
+		dir.cdUp();
+	}
+
+	if (!dir.mkdir(subdir)) {
+		LOG_CERROR("game") << "Directory create error:" << dir.absoluteFilePath(subdir);
+		return;
+	}
+
+	if (!dir.cd(subdir)) {
+		LOG_CERROR("game") << "Directory change error:" << dir.absoluteFilePath(subdir);
+		return;
+	}
+
+	LOG_CINFO("game") << "Save terrain info to:" << dir.absolutePath();
+
+	for (auto it = m_terrains.constBegin(); it != m_terrains.constEnd(); ++it) {
+		QDir d = dir;
+		d.mkdir(it.key());
+		d.cd(it.key());
+		static const QString filename("market.json");
+
+		const auto &ptr = saveTerrainInfo(it.value());
+
+		if (!ptr) {
+			LOG_CERROR("game") << "Terrain save error:" << it.key();
+			continue;
+		}
+
+		if (const QString f = d.absoluteFilePath(filename); Utils::jsonObjectToFile(ptr.value().toJson(), f)) {
+			LOG_CDEBUG("game") << "Terrain saved:" << f;
+		} else {
+			LOG_CERROR("game") << "Terrain save error:" << f;
+		}
+	}
+}
+
+
+
+/**
+ * @brief RpgGame::saveTerrainInfo
+ * @param def
+ * @return
+ */
+
+std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
+{
+	RpgMarket market;
+
+	const QString marketFile = Tiled::urlToLocalFileOrQrc(QUrl(def.basePath+QStringLiteral("/market.json")));
+
+	if (QFile::exists(marketFile)) {
+		LOG_CTRACE("game") << "Read market data from:" << marketFile;
+
+		const auto &ptr = Utils::fileToJsonObject(marketFile);
+
+		if (ptr) {
+			market.fromJson(ptr.value());
+		} else {
+			LOG_CWARNING("game") << "File read error:" << marketFile;
+		}
+	}
+
+	market.type = RpgMarket::Map;
+	market.name.clear();
+
+
+	QVector<RpgPickableObject::PickableType> pickableList;
+
+	int enemyCount = 0;
+	int currencyCount = 0;
+	int mpCount = 0;
+	bool hasMarket = false;
+
+
+	for (const TiledSceneDefinition &s : def.scenes) {
+		const QString filename = Tiled::urlToLocalFileOrQrc(QUrl(def.basePath+'/'+s.file));
+
+		LOG_CTRACE("game") << "Read scene from file:" << filename;
+
+		QFile f(filename);
+
+		if (!f.exists()) {
+			LOG_CERROR("game") << "Read error:" << filename;
+			return std::nullopt;
+		}
+
+		if (!f.open(QFile::ReadOnly | QFile::Text)) {
+			LOG_CERROR("game") << "Read error:" << filename;
+			return std::nullopt;
+		}
+
+		QXmlStreamReader xml;
+
+		xml.setDevice(&f);
+
+		if (xml.readNextStartElement() && xml.name() == QStringLiteral("map")) {
+			while (xml.readNextStartElement()) {
+				if (xml.name() == QStringLiteral("objectgroup") &&
+						xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("enemy")) {
+
+					while (xml.readNextStartElement()) {
+						if (xml.name() == QStringLiteral("object")) {
+							const QString type = xml.attributes().value(QStringLiteral("type")).toString();
+
+							if (RpgEnemyIface::typeFromString(type) != RpgEnemyIface::EnemyInvalid) {
+								++enemyCount;
+
+								while (xml.readNextStartElement()) {
+									if (xml.name() == QStringLiteral("properties")) {
+										while (xml.readNextStartElement()) {
+											if (xml.name() == QStringLiteral("property") &&
+													(xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickable") ||
+													 xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickableOnce")
+													 )) {
+
+												pickableList.append(getPickablesFromPropertyValue(
+																		xml.attributes().value(QStringLiteral("value")).toString()
+																		));
+											}
+
+											xml.skipCurrentElement();
+										}
+									} else {
+										xml.skipCurrentElement();
+									}
+
+								}
+							} else {
+								xml.skipCurrentElement();
+							}
+						} else {
+							xml.skipCurrentElement();
+						}
+
+					}
+
+				} else if (xml.name() == QStringLiteral("objectgroup") &&
+						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("transport")) {
+
+					while (xml.readNextStartElement()) {
+						if (xml.name() == QStringLiteral("object") &&
+								xml.attributes().value(QStringLiteral("type")).toString() == QStringLiteral("market")) {
+							hasMarket = true;
+						}
+
+						xml.skipCurrentElement();
+					}
+
+				} else if (xml.name() == QStringLiteral("objectgroup") &&
+						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickable")) {
+
+					while (xml.readNextStartElement()) {
+						if (xml.name() == QStringLiteral("object")) {
+							const QString type = xml.attributes().value(QStringLiteral("type")).toString();
+							if (const RpgPickableObject::PickableType &p = RpgPickableObject::typeFromString(type.simplified());
+									p != RpgPickableObject::PickableInvalid) {
+								pickableList.append(p);
+							}
+						}
+
+						xml.skipCurrentElement();
+					}
+				} else {
+					xml.skipCurrentElement();
+				}
+
+			}
+
+		} else {
+			LOG_CERROR("game") << "Invalid file:" << filename;
+			return std::nullopt;
+		}
+	}
+
+
+	for (const auto &p : pickableList) {
+		if (p == RpgPickableObject::PickableMp)
+			++mpCount;
+		else if (p == RpgPickableObject::PickableCoin)
+			++currencyCount;
+	}
+
+	QJsonObject info;
+	info.insert(QStringLiteral("hasMarket"), hasMarket);
+	info.insert(QStringLiteral("enemyCount"), enemyCount);
+	info.insert(QStringLiteral("currencyCount"), currencyCount * RpgCoinPickable::amount());
+	info.insert(QStringLiteral("mpCount"), mpCount * RpgMpPickable::amount());
+	info.insert(QStringLiteral("duration"), def.duration);
+
+	market.info = info;
+
+	return market;
 }
 
 

@@ -39,6 +39,7 @@ const QHash<QString, RpgPickableObject::PickableType> RpgPickableObject::m_typeH
 	{ QStringLiteral("fireball"), PickableFireball },
 	{ QStringLiteral("hp"), PickableHp },
 	{ QStringLiteral("mp"), PickableMp },
+	{ QStringLiteral("coin"), PickableCoin },
 	{ QStringLiteral("longbow"), PickableLongbow },
 	{ QStringLiteral("shortbow"), PickableShortbow },
 	{ QStringLiteral("longsword"), PickableLongsword },
@@ -97,6 +98,7 @@ QString RpgPickableObject::pickableName(const PickableType &type)
 		case PickableShield: return QStringLiteral("Pajzs");
 		case PickableTime: return QStringLiteral("Idő");
 		case PickableMp: return QStringLiteral("MP");
+		case PickableCoin: return QStringLiteral("Pénz");
 		case PickableKey: return QStringLiteral("Kulcs");
 		case PickableInvalid: return QStringLiteral("");
 	}
@@ -125,6 +127,7 @@ QString RpgPickableObject::pickableNameEn(const PickableType &type)
 		case PickableTime: return QStringLiteral("Time");
 		case PickableKey: return QStringLiteral("Key");
 		case PickableMp: return QStringLiteral("MP");
+		case PickableCoin: return QStringLiteral("Coin");
 		case PickableInvalid: return QStringLiteral("");
 	}
 
@@ -311,6 +314,7 @@ QString RpgInventory::icon() const
 
 		case RpgPickableObject::PickableHp:
 		case RpgPickableObject::PickableMp:
+		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:
@@ -344,6 +348,7 @@ QColor RpgInventory::iconColor() const
 
 		case RpgPickableObject::PickableHp:
 		case RpgPickableObject::PickableMp:
+		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:

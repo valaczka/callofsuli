@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgmp.h
+ * rpgcoin.h
  *
- * Created on: 2024. 07. 20.
+ * Created on: 2024. 07. 22.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgMpPickable
+ * RpgCoinPickable
  *
  *  This file is part of Call of Suli.
  *
@@ -24,17 +24,17 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef RPGMP_H
-#define RPGMP_H
+#ifndef RPGCOIN_H
+#define RPGCOIN_H
 
 #include "rpgpickableobject.h"
 
-class RpgMpPickable : public RpgPickableObject
+class RpgCoinPickable : public RpgPickableObject
 {
 	Q_OBJECT
 
 public:
-	RpgMpPickable(QQuickItem *parent = nullptr);
+	RpgCoinPickable(QQuickItem *parent = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 
@@ -47,4 +47,5 @@ private:
 	static const int m_amount;
 };
 
-#endif // RPGMP_H
+
+#endif // RPGCOIN_H

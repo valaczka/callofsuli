@@ -169,6 +169,8 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 					if (!source.isEmpty())
 						list.append(QFileInfo(QDir::cleanPath(path.filePath(source))).canonicalFilePath());
 
+					xml.skipCurrentElement();
+
 				} else if (xml.name() == QStringLiteral("objectgroup") &&
 						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("enemy")) {
 
@@ -181,11 +183,12 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 							list.append(RpgEnemyIface::directoryBaseName(RpgEnemyIface::typeFromString(type),
 																		 name) + QStringLiteral(".dres"));
 						}
+
 						xml.skipCurrentElement();
 					}
+				} else {
+					xml.skipCurrentElement();
 				}
-
-				xml.skipCurrentElement();
 
 			}
 		} else {

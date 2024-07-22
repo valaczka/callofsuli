@@ -11,7 +11,7 @@ QPageGradient {
 
 	property ActionRpgGame game: null
 
-	title: qsTr("Shop")
+	title: qsTr("Bank")
 
 	progressBarEnabled: true
 
@@ -19,6 +19,12 @@ QPageGradient {
 		spacing: 10 * Qaterial.Style.pixelSizeRatio
 
 		visible: _scrollable.visible
+
+		Qaterial.AppBarButton {
+			icon.source: Qaterial.Icons.export_
+			visible: Client.debug && game
+			onClicked: game.saveTerrainInfo()
+		}
 
 		Image {
 			source: _scrollable.visible ? "qrc:/rpg/coin/coins.png" : ""
@@ -74,7 +80,7 @@ QPageGradient {
 		ListElement {
 			type: RpgMarket.Other
 			title: qsTr("Item")
-			icon: "qrc:/Qaterial/Icons/sword-cross.svg"
+			icon: "qrc:/Qaterial/Icons/chess-knight.svg"
 			inBase: false
 			inGame: true
 		}
@@ -175,9 +181,17 @@ QPageGradient {
 						availableCurrency: Client.server ? Client.server.user.wallet.currency : 0
 
 						onBuyRequest: if (wallet) {
+										  root._isBuy = true
 										  root._currentWallet = wallet
 										  Qaterial.DialogManager.openFromComponent(_cmpBuyDialog)
 									  }
+
+
+						onClicked: if (wallet) {
+									   root._isBuy = false
+									   root._currentWallet = wallet
+									   Qaterial.DialogManager.openFromComponent(_cmpBuyDialog)
+								   }
 					}
 
 					model: SortFilterProxyModel {
@@ -219,6 +233,7 @@ QPageGradient {
 	}
 
 	property RpgUserWallet _currentWallet: null
+	property bool _isBuy: false
 
 	Component {
 		id: _cmpBuyDialog
@@ -228,9 +243,10 @@ QPageGradient {
 			id: _dialog
 			//horizontalPadding: 0
 
-			title: qsTr("Vásárlás: %1").arg(_currentWallet.readableName)
+			title: _isBuy ? qsTr("Vásárlás: %1").arg(_currentWallet.readableName)
+						  : qsTr("Információk: %1").arg(_currentWallet.readableName)
 
-			dialogImplicitWidth: Math.max(350, Math.min(350, _image.implicitWidth) * 2)
+			dialogImplicitWidth: Math.max(400, Math.min(350, _image.implicitWidth) * 2)
 			autoFocusButtons: true
 
 			contentItem: Item
@@ -275,12 +291,14 @@ QPageGradient {
 							required property string icon
 							required property color color
 							required property string image
+							required property int imageSize
 
 							Qaterial.IconLabel {
 								id: _icon
 								icon.source: _rw.icon
 								text: _rw.text
 								color: Qaterial.Style.secondaryTextColor()
+								wrapMode: Text.Wrap
 								anchors.verticalCenter: parent.verticalCenter
 							}
 
@@ -300,7 +318,7 @@ QPageGradient {
 								id: _image2
 								source: _rw.image
 								fillMode: Image.PreserveAspectFit
-								height: _rw.font.pixelSize * 0.8
+								height: _rw.imageSize > 0 ? _rw.imageSize : _rw.font.pixelSize * 0.8
 								width: height
 
 								anchors.verticalCenter: parent.verticalCenter
@@ -321,7 +339,8 @@ QPageGradient {
 								  font: Qaterial.Style.textTheme.body2,
 								  value: qsTr("%1 db").arg(_currentWallet.amount),
 								  color: Qaterial.Style.secondaryTextColor(),
-								  image: ""
+								  image: "",
+								  imageSize: 0
 							  })
 				}
 
@@ -332,7 +351,8 @@ QPageGradient {
 								  font: Qaterial.Style.textTheme.body2,
 								  value: qsTr("%1 db").arg(_currentWallet.market.amount),
 								  color: Qaterial.Style.primaryTextColor(),
-								  image: ""
+								  image: "",
+								  imageSize: 0
 							  })
 				}
 
@@ -346,7 +366,8 @@ QPageGradient {
 								  font: Qaterial.Style.textTheme.body2,
 								  value: JS.readableTimestampMin(d),
 								  color: Qaterial.Style.primaryTextColor(),
-								  image: ""
+								  image: "",
+								  imageSize: 0
 							  })
 				}
 
@@ -364,7 +385,8 @@ QPageGradient {
 								  font: Qaterial.Style.textTheme.body2,
 								  value: _currentWallet.market.num + t,
 								  color: Qaterial.Style.primaryTextColor(),
-								  image: ""
+								  image: "",
+								  imageSize: 0
 							  })
 				}
 
@@ -375,29 +397,47 @@ QPageGradient {
 							  font: Qaterial.Style.textTheme.headline5,
 							  value: _currentWallet.market.cost,
 							  color: Qaterial.Colors.amber400,
-							  image: "qrc:/rpg/coin/coin.png"
+							  image: "qrc:/rpg/coin/coin.png",
+							  imageSize: 0
 						  })
+
+				if (_currentWallet.market.rank > 0) {
+					let r = Client.server.rank(_currentWallet.market.rank)
+
+					if (r.id > 0) {
+						list.push({
+									  icon: Qaterial.Icons.medal,
+									  text: qsTr("Rank:"),
+									  font: Qaterial.Style.textTheme.body1,
+									  value: r.name + qsTr(" lvl %1").arg(r.sublevel),
+									  color: Qaterial.Colors.cyan400,
+									  image: "qrc:/internal/rank/"+r.level+".svg",
+									  imageSize: Qaterial.Style.textTheme.body1.pixelSize * 1.1
+								  })
+					}
+				}
 
 
 				for (let i=0; i<_currentWallet.extendedInfo.length; ++i) {
-					let o = _currentWallet.extendedInfo[i]
+					let o = {}
+					let keys = Object.keys(_currentWallet.extendedInfo[i])
 
-					list.push({
-								  icon: o.icon,
-								  text: o.text,
-								  font: Qaterial.Style.textTheme.body2,
-								  value: o.value,
-								  color: Qaterial.Style.secondaryTextColor(),
-								  image: o.image
-							  })
+					for (let n=0; n<keys.length; ++n)
+						o[keys[n]] = _currentWallet.extendedInfo[i][keys[n]]
+
+					o.font = Qaterial.Style.textTheme.body2
+					o.color = Qaterial.Style.primaryTextColor()
+
+					list.push(o)
 				}
 
 				_rptr.model = list
 			}
 
-			standardButtons: DialogButtonBox.No | DialogButtonBox.Yes
+			standardButtons: _isBuy ? DialogButtonBox.No | DialogButtonBox.Yes : DialogButtonBox.Ok
 
-			onAccepted: root.buyWallet(_currentWallet)
+			onAccepted: if (_isBuy)
+							root.buyWallet(_currentWallet)
 
 		}
 

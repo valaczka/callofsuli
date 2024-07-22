@@ -274,7 +274,7 @@ QItemGradient {
 
 
 			QDashboardButton {
-				text: qsTr("Shop")
+				text: qsTr("Bank")
 				visible: !_grid.showPlaceholders
 				icon.source: Qaterial.Icons.bank
 				highlighted: false

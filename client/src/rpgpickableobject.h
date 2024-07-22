@@ -61,6 +61,7 @@ public:
 		PickableShield,
 		PickableTime,
 		PickableMp,
+		PickableCoin,
 		PickableKey,
 	};
 

@@ -29,6 +29,7 @@
 
 #include "rank.h"
 #include "rpgconfig.h"
+#include "rpggame.h"
 #include <QObject>
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -60,7 +61,7 @@ class RpgUserWallet : public QObject
 	Q_PROPERTY(QString image READ image WRITE setImage NOTIFY imageChanged FINAL)
 	Q_PROPERTY(QString sortName READ sortName WRITE setSortName NOTIFY sortNameChanged FINAL)
 	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged FINAL)
-	Q_PROPERTY(QVariantList extendedInfo READ extendedInfo WRITE setExtendedInfo NOTIFY extendedInfoChanged FINAL)
+	Q_PROPERTY(QList<RpgMarketExtendedInfo> extendedInfo READ extendedInfo WRITE setExtendedInfo NOTIFY extendedInfoChanged FINAL)
 
 public:
 	explicit RpgUserWallet(QObject *parent = nullptr);
@@ -98,8 +99,8 @@ public:
 
 	bool buyable() const;
 
-	QVariantList extendedInfo() const;
-	void setExtendedInfo(const QVariantList &newExtendedInfo);
+	QList<RpgMarketExtendedInfo> extendedInfo() const;
+	void setExtendedInfo(const QList<RpgMarketExtendedInfo> &newExtendedInfo);
 
 signals:
 	void marketChanged();
@@ -116,6 +117,10 @@ signals:
 	void extendedInfoChanged();
 
 private:
+	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgGameDefinition &def);
+	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgMarket &market);
+	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgPlayerCharacterConfig &player);
+
 	RpgMarket m_market;
 	int m_amount = 0;
 	QDateTime m_expiry;
@@ -125,7 +130,7 @@ private:
 	QString m_sortName;
 	Rank m_rank;
 	RpgUserWalletList *m_walletList = nullptr;
-	QVariantList m_extendedInfo;
+	QList<RpgMarketExtendedInfo> m_extendedInfo;
 
 	friend class RpgUserWalletList;
 };

@@ -113,6 +113,7 @@ RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const RpgPl
 		player->initialize();
 
 		player->setMaxMp(config.mpMax);
+		player->setMp(config.mpStart);
 	}
 
 	return player;
@@ -791,6 +792,7 @@ int RpgPlayer::mp() const
 
 void RpgPlayer::setMp(int newMp)
 {
+	newMp = std::min(newMp, m_maxMp);
 	if (m_mp == newMp)
 		return;
 	m_mp = newMp;
@@ -850,7 +852,8 @@ void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const 
 			break;
 
 		case RpgPickableObject::PickableHp:
-			case RpgPickableObject::PickableMp:
+		case RpgPickableObject::PickableMp:
+		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:

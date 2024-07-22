@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgmp.cpp
+ * rpgcoin.cpp
  *
- * Created on: 2024. 07. 20.
+ * Created on: 2024. 07. 22.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgMpPickable
+ * RpgCoinPickable
  *
  *  This file is part of Call of Suli.
  *
@@ -24,59 +24,38 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "rpgmp.h"
+#include "rpgcoin.h"
 #include "rpgplayer.h"
 
+const int RpgCoinPickable::m_amount = 100;
 
-const int RpgMpPickable::m_amount = 25;
 
-
-RpgMpPickable::RpgMpPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableMp, parent)
+RpgCoinPickable::RpgCoinPickable(QQuickItem *parent)
+	: RpgPickableObject(PickableCoin, parent)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }
 
 
+
 /**
- * @brief RpgMpPickable::playerPick
+ * @brief RpgCoinPickable::playerPick
  * @param player
  * @return
  */
 
-bool RpgMpPickable::playerPick(RpgPlayer *player)
+bool RpgCoinPickable::playerPick(RpgPlayer */*player*/)
 {
-	if (!player)
-		return false;
-
-
-	player->setMp(player->mp() + m_amount);
-
-	if (player->config().cast == RpgPlayerCharacterConfig::CastInvalid) {
-		if (m_game)
-			m_game->messageColor(tr("No superpower"), QColor::fromRgbF(0.8, 0., 0.));
-		return false;
-	}
-
-	if (m_game)
-		m_game->messageColor(tr("+%1 MP gained").arg(m_amount), QColor::fromString(QStringLiteral("#F06292")));
-
 	return true;
 }
 
 
 
 /**
- * @brief RpgMpPickable::load
+ * @brief RpgCoinPickable::load
  */
 
-void RpgMpPickable::load()
+void RpgCoinPickable::load()
 {
-	loadDefault(QStringLiteral("mp"));
+	loadDefault(QStringLiteral("coin"));
 }
-
-
-
-
-
-

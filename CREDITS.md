@@ -31,7 +31,7 @@
 
 **Image & Animation**
 
-- Hyptosis tileset by Daniel Harris "Hyptosis" (http://opengameart.org/users/hyptosis, http://www.lorestrome.com/pixel_archive/main.htm)
+- Hyptosis tileset - (c) Daniel Harris "Hyptosis" (http://opengameart.org/users/hyptosis, http://www.lorestrome.com/pixel_archive/main.htm)
 - 400+ Items - BaseHumanMale / Orc / Skeleton - (c) 2021 SKYZ0R (https://opengameart.org/content/400-items-basehumanmale-orc-skeleton)
 - Isometric Hero and Heroine - (c) Clint Bellanger 2011 (https://opengameart.org/content/isometric-hero-and-heroine)
 - Free Game Assets (https://mobilegamegraphics.com/product/airplane-dogfight-assets-free-assets)
@@ -62,6 +62,7 @@
 - Free Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
 - Gothic Archways - (c) 2019 Lukas Küstenmacher (https://opengameart.org/content/isometric-tileset-gothic-archways)
 - Animated Fire - (c) 2018 BenHickling (https://opengameart.org/content/animated-fire)
+- Painterly Spell Icons - (c) 2011 J. W. Bjerk "eleazzaar" (https://opengameart.org/content/painterly-spell-icons-part-1, https://www.jwbjerk.com/art)
 
 **Music & SFX**
 

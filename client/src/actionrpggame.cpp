@@ -38,6 +38,7 @@
 #include "rpgshield.h"
 #include "tilelayeritem.h"
 #include <libtiled/imagecache.h>
+#include "rpgcoin.h"
 #include "rpglongbow.h"
 #include "utils_.h"
 
@@ -527,13 +528,6 @@ void ActionRpgGame::rpgGameActivated_()
 	player->setMaxHp(m_missionLevel->startHP());
 	loadInventory(player);
 
-	auto c = player->config();
-	c.cast = RpgPlayerCharacterConfig::CastFireball;
-	player->setConfig(c);
-	loadWeapon(player, TiledWeapon::WeaponMageStaff);
-	player->setMaxMp(500);
-
-
 	// Set user name
 
 	if (Server *s = m_client->server()) {
@@ -938,6 +932,7 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 
 		case RpgPickableObject::PickableMp:
 		case RpgPickableObject::PickableHp:
+		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:
@@ -1044,7 +1039,8 @@ void ActionRpgGame::loadBullet(RpgPlayer *player, const RpgPickableObject::Picka
 		case RpgPickableObject::PickableShield:
 		case RpgPickableObject::PickableKey:
 		case RpgPickableObject::PickableHp:
-			case RpgPickableObject::PickableMp:
+		case RpgPickableObject::PickableMp:
+		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableLongsword:
@@ -1084,6 +1080,9 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 		addToDeadline(sec*1000);
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
+	} else if (pickable->pickableType() == RpgPickableObject::PickableCoin) {
+		m_rpgGame->setCurrency(m_rpgGame->currency()+RpgCoinPickable::amount());
+		m_rpgGame->messageColor(tr("%1 coins gained").arg(RpgCoinPickable::amount()), QStringLiteral("#FB8C00"));
 	}
 
 	/*if (pickable->pickableType() == RpgPickableObject::PickableLongsword) {

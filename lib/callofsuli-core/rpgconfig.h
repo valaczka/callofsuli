@@ -151,6 +151,61 @@ Q_DECLARE_METATYPE(RpgPlayerConfig)
 
 
 /**
+ * @brief The RpgWalletExtendedInfo class
+ */
+
+class RpgMarketExtendedInfo : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgMarketExtendedInfo(const QString &_icon, const QString &_text, const QString &_value,
+						  const QString &_image = {}, const int &_imageSize = 0)
+		: QSerializer()
+		, icon(_icon)
+		, text(_text)
+		, value(_value)
+		, image(_image)
+		, imageSize(_imageSize)
+	{}
+
+	RpgMarketExtendedInfo(const QString &_value)
+		: RpgMarketExtendedInfo(QString{}, QString{}, _value)
+	{}
+
+	RpgMarketExtendedInfo(const QString &_icon, const QString &_text)
+		: RpgMarketExtendedInfo(_icon, _text, QString{})
+	{}
+
+	RpgMarketExtendedInfo()
+		: RpgMarketExtendedInfo(QString{})
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, icon);
+	QS_FIELD(QString, text);
+	QS_FIELD(QString, value);
+	QS_FIELD(QString, image);
+	QS_FIELD(int, imageSize);
+
+	friend bool operator==(const RpgMarketExtendedInfo &e1, const RpgMarketExtendedInfo &e2) {
+		return e1.icon == e2.icon &&
+				e1.text == e2.text &&
+				e1.value == e2.value &&
+				e1.image == e2.image &&
+				e1.imageSize == e2.imageSize
+				;
+	}
+};
+
+
+Q_DECLARE_METATYPE(RpgMarketExtendedInfo)
+
+
+
+
+/**
  * @brief The RpgMarket class
  */
 
@@ -214,6 +269,11 @@ public:
 
 	QS_FIELD(int, exp)			// minutes
 
+	// Extended info
+
+	QS_FIELD(QJsonObject, info)
+
+
 	friend bool operator==(const RpgMarket &c1, const RpgMarket &c2) {
 		return c1.type == c2.type &&
 				c1.name == c2.name &&
@@ -221,7 +281,8 @@ public:
 				c1.rank == c2.rank &&
 				c1.amount == c2.amount &&
 				c1.rollover == c2.rollover &&
-				c1.num == c2.num
+				c1.num == c2.num &&
+				c1.exp == c2.exp
 				;
 	}
 };
@@ -269,6 +330,7 @@ public:
 		, expiry(0)
 	{}
 
+
 	QS_SERIALIZABLE
 
 	QS_FIELD(RpgMarket::Type, type)
@@ -276,7 +338,6 @@ public:
 	QS_FIELD(int, amount)
 	QS_FIELD(qint64, expiry)
 };
-
 
 
 

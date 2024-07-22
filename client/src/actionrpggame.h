@@ -76,6 +76,8 @@ public:
 
 	Q_INVOKABLE void addWallet(RpgUserWallet *wallet);
 
+	Q_INVOKABLE void saveTerrainInfo() { RpgGame::saveTerrainInfo(); }
+
 	RpgConfig config() const;
 	void setConfig(const RpgConfig &newConfig);
 
