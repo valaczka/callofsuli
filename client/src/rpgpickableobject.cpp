@@ -93,6 +93,7 @@ QString RpgPickableObject::pickableName(const PickableType &type)
 		case PickableLongbow: return TiledWeapon::weaponName(TiledWeapon::WeaponLongbow);
 		case PickableArrow: return QStringLiteral("Nyíl");
 		case PickableFireball: return QStringLiteral("Tűzgolyó");
+		case PickableLightning: return TiledWeapon::weaponName(TiledWeapon::WeaponLightningWeapon);
 		case PickableLongsword: return TiledWeapon::weaponName(TiledWeapon::WeaponLongsword);
 		case PickableDagger: return TiledWeapon::weaponName(TiledWeapon::WeaponDagger);
 		case PickableShield: return QStringLiteral("Pajzs");
@@ -121,6 +122,7 @@ QString RpgPickableObject::pickableNameEn(const PickableType &type)
 		case PickableLongbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow);
 		case PickableArrow: return QStringLiteral("Arrow");
 		case PickableFireball: return QStringLiteral("Fireball");
+		case PickableLightning: return TiledWeapon::weaponName(TiledWeapon::WeaponLightningWeapon);
 		case PickableLongsword: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword);
 		case PickableDagger: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger);
 		case PickableShield: return QStringLiteral("Shield");
@@ -319,6 +321,7 @@ QString RpgInventory::icon() const
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:
@@ -353,6 +356,7 @@ QColor RpgInventory::iconColor() const
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:

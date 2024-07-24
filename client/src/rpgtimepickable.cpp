@@ -29,7 +29,7 @@
 RpgTimePickable::RpgTimePickable(QQuickItem *parent)
 	: RpgPickableObject(PickableTime, parent)
 {
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
+	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }
 
 

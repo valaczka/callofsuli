@@ -29,6 +29,13 @@
 
 #include "rpgpickableobject.h"
 
+class RpgGame;
+
+
+/**
+ * @brief The RpgMpPickable class
+ */
+
 class RpgMpPickable : public RpgPickableObject
 {
 	Q_OBJECT
@@ -37,6 +44,8 @@ public:
 	RpgMpPickable(QQuickItem *parent = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
+
+	static bool pick(RpgPlayer *player, const int &amount);
 
 	static int amount() { return m_amount; }
 

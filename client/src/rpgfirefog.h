@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgshortbow.h
+ * rpgfirefog.h
  *
- * Created on: 2024. 03. 18.
+ * Created on: 2024. 07. 24.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgShortbow
+ * RpgFireFog
  *
  *  This file is part of Call of Suli.
  *
@@ -24,60 +24,29 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef RPGSHORTBOW_H
-#define RPGSHORTBOW_H
+#ifndef RPGFIREFOG_H
+#define RPGFIREFOG_H
 
 #include "rpgpickableobject.h"
 #include "tiledweapon.h"
 
-class RpgPlayer;
 
-/**
- * @brief The RpgShortbow class
- */
 
-class RpgShortbow : public TiledWeapon, public RpgPickableWeaponIface
+class RpgFireFogWeapon : public TiledWeapon, public RpgPickableWeaponIface
 {
 	Q_OBJECT
 
 public:
-	explicit RpgShortbow(QObject *parent = nullptr);
+	explicit RpgFireFogWeapon(QObject *parent = nullptr);
 
 	bool protect(const WeaponType &) override final { return false; }
 	bool canProtect(const WeaponType &) const override final { return false; }
 	bool canAttack() const override final { return true; }
-
-	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableShortbow; }
-	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableArrow; }
-
-protected:
-	IsometricBullet *createBullet(const qreal &distance = 0.) override final;
-	void eventAttack(TiledObject *target) override final;
-
-private:
-	bool m_effectPlayed = false;
-};
-
-
-
-
-/**
- * @brief The RpgArrowPickable class
- */
-
-class RpgShortbowPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-	RpgShortbowPickable(QQuickItem *parent = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
+	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableInvalid; }
+	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableInvalid; }
 
 protected:
-	void load() override final;
-
+	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 };
 
-#endif // RPGSHORTBOW_H
+#endif // RPGFIREFOG_H

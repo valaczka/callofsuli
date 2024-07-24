@@ -39,7 +39,9 @@
 #include "tilelayeritem.h"
 #include <libtiled/imagecache.h>
 #include "rpgcoin.h"
+#include "rpglightning.h"
 #include "rpglongbow.h"
+#include "rpgmp.h"
 #include "utils_.h"
 
 
@@ -495,10 +497,17 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
+	const auto characterPtr = RpgGame::characters().find(m_playerConfig.character);
+
+	if (characterPtr == RpgGame::characters().constEnd()) {
+		LOG_CERROR("game") << "Game load error: invalid character" << m_playerConfig.character;
+		return;
+	}
+
 	m_config.duration = ptr->duration + m_missionLevel->duration();
 	updateConfig();
 
-	if (!m_rpgGame->load(ptr.value())) {
+	if (!m_rpgGame->load(ptr.value(), characterPtr.value())) {
 		LOG_CERROR("game") << "Game load error";
 		return;
 	}
@@ -507,14 +516,6 @@ void ActionRpgGame::rpgGameActivated_()
 
 	if (!firstScene) {
 		LOG_CERROR("game") << "Game load error: missing first scene";
-		return;
-	}
-
-
-	const auto characterPtr = RpgGame::characters().find(m_playerConfig.character);
-
-	if (characterPtr == RpgGame::characters().constEnd()) {
-		LOG_CERROR("game") << "Game load error: invalid character" << m_playerConfig.character;
 		return;
 	}
 
@@ -937,6 +938,7 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableTime:
@@ -998,6 +1000,8 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 			case TiledWeapon::WeaponHand:
 			case TiledWeapon::WeaponGreatHand:
 			case TiledWeapon::WeaponShield:
+			case TiledWeapon::WeaponLightningWeapon:
+			case TiledWeapon::WeaponFireFogWeapon:
 			case TiledWeapon::WeaponInvalid:
 				LOG_CERROR("game") << "Invalid weapon type" << type;
 				return;
@@ -1007,7 +1011,7 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 
 	weapon->setBulletCount(weapon->bulletCount()+bullet);
 
-	if (type != TiledWeapon::WeaponMageStaff)
+	if (type != TiledWeapon::WeaponMageStaff || !weapon->canCast())
 		player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
 }
 
@@ -1044,6 +1048,7 @@ void ActionRpgGame::loadBullet(RpgPlayer *player, const RpgPickableObject::Picka
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableLongsword:
+		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableTime:
 		case RpgPickableObject::PickableInvalid:
@@ -1081,8 +1086,9 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
 	} else if (pickable->pickableType() == RpgPickableObject::PickableCoin) {
-		m_rpgGame->setCurrency(m_rpgGame->currency()+RpgCoinPickable::amount());
-		m_rpgGame->messageColor(tr("%1 coins gained").arg(RpgCoinPickable::amount()), QStringLiteral("#FB8C00"));
+		const auto num = RpgCoinPickable::amount(!m_rpgQuestion->emptyQuestions());
+		m_rpgGame->setCurrency(m_rpgGame->currency()+num);
+		m_rpgGame->messageColor(tr("%1 coins gained").arg(num), QStringLiteral("#FB8C00"));
 	}
 
 	/*if (pickable->pickableType() == RpgPickableObject::PickableLongsword) {
@@ -1111,7 +1117,7 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy
 		const int &hp = enemy->getNewHpAfterAttack(enemy->hp(), weaponType, player);
 		if (hp <= 0 && m_rpgQuestion->nextQuestion(player, enemy, weaponType)) {
 			m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
-			return true;
+			return false;
 		}
 	}
 
@@ -1174,10 +1180,11 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 	switch (player->config().cast) {
 		case RpgPlayerCharacterConfig::CastInvisible:
 			if (player->castTimerActive()) {
-				return onPlayerFinishCast(player);
+				onPlayerFinishCast(player);
 			} else {
 				player->m_castTimer.start();
-				player->m_effectSmoke.play();
+				player->m_effectRing.setSource(QStringLiteral(":/rpg/common/smoke.png"));
+				player->m_effectRing.play();
 			}
 			break;
 
@@ -1186,12 +1193,95 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 			w.setParentObject(player);
 			w.setBulletCount(-1);
 			if (w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), player->currentAngle())) {
-				player->setMp(std::max(0, player->mp() - 45 * player->config().mpLoss));
+				player->setMp(std::max(0, player->mp() - 45));
 			} else {
 				return false;
 			}
 			break;
 		}
+
+		case RpgPlayerCharacterConfig::CastFireballTriple: {
+			RpgLongbow w;
+			w.setParentObject(player);
+			w.setBulletCount(-1);
+			w.setDisableTimerRepeater(true);
+
+			const qreal origAngle = player->currentAngle();
+
+			for (const qreal &angle : std::vector<qreal>{
+				 origAngle - (M_PI * 12.5 / 180.),
+				 origAngle + (M_PI * 12.5 / 180.),
+				 origAngle
+			}) {
+				if (!w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), angle)) {
+					return false;
+				}
+				player->setMp(std::max(0, player->mp() - 125/3));
+			}
+
+			break;
+		}
+
+
+		case RpgPlayerCharacterConfig::CastLightning: {
+			RpgLightningWeapon w;
+			w.setParentObject(player);
+			w.setBulletCount(-1);
+			if (w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), player->currentAngle())) {
+				player->setMp(std::max(0, player->mp() - 50));
+			} else {
+				return false;
+			}
+			break;
+		}
+
+
+		case RpgPlayerCharacterConfig::CastFireFog:
+			if (player->castTimerActive()) {
+				onPlayerFinishCast(player);
+			} else {
+				player->m_castTimer.start();
+				player->m_effectRing.setSource(QStringLiteral(":/rpg/common/firefog.png"));
+				player->m_effectRing.play();
+				player->attackReachedEnemies(TiledWeapon::WeaponFireFogWeapon);
+			}
+			break;
+
+
+		case RpgPlayerCharacterConfig::CastArrowQuintuple: {
+			RpgShortbow w;
+			w.setParentObject(player);
+			w.setBulletCount(-1);
+			w.setDisableTimerRepeater(true);
+
+			const qreal origAngle = player->currentAngle();
+
+			for (const qreal &angle : std::vector<qreal>{
+				 origAngle - (M_PI * 12 / 180.),
+				 origAngle - (M_PI * 6 / 180.),
+				 origAngle + (M_PI * 6 / 180.),
+				 origAngle + (M_PI * 12 / 180.),
+				 origAngle
+			}) {
+				if (!w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), angle)) {
+					return false;
+				}
+				player->setMp(std::max(0, player->mp() - 70/5));
+			}
+
+			break;
+		}
+
+		case RpgPlayerCharacterConfig::CastProtect:
+			if (player->castTimerActive()) {
+				onPlayerFinishCast(player);
+			} else {
+				player->m_castTimer.start();
+				player->m_effectRing.setSource(QStringLiteral(":/rpg/common/protect.png"));
+				player->m_effectRing.play();
+			}
+			break;
+
 		case RpgPlayerCharacterConfig::CastInvalid:
 			return false;
 	}
@@ -1218,16 +1308,22 @@ bool ActionRpgGame::onPlayerFinishCast(RpgPlayer *player)
 
 	switch (player->config().cast) {
 		case RpgPlayerCharacterConfig::CastInvisible:
+		case RpgPlayerCharacterConfig::CastFireFog:
+		case RpgPlayerCharacterConfig::CastProtect:
 			if (player->castTimerActive()) {
 				player->m_castTimer.stop();
-				player->m_effectSmoke.stop();
+				player->m_effectRing.stop();
 			}
 			break;
 
 		case RpgPlayerCharacterConfig::CastFireball:
+		case RpgPlayerCharacterConfig::CastFireballTriple:
+		case RpgPlayerCharacterConfig::CastArrowQuintuple:
+		case RpgPlayerCharacterConfig::CastLightning:
 		case RpgPlayerCharacterConfig::CastInvalid:
 			return false;
 	}
+
 
 	return true;
 }
@@ -1250,6 +1346,12 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, 
 		m_rpgGame->playerUseContainer(player, container);
 
 	setXp(m_xp+xp);
+
+	if (player->config().cast != RpgPlayerCharacterConfig::CastInvalid && m_gameQuestion) {
+		const int mp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() *
+					   RpgMpPickable::amount() * (7 + (0.33*m_missionLevel->level()));
+		RpgMpPickable::pick(player, mp);
+	}
 }
 
 

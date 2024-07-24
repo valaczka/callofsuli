@@ -401,6 +401,8 @@ void RpgArmory::updateLayers()
 			case TiledWeapon::WeaponShield:
 			case TiledWeapon::WeaponHand:
 			case TiledWeapon::WeaponGreatHand:
+			case TiledWeapon::WeaponLightningWeapon:
+			case TiledWeapon::WeaponFireFogWeapon:
 			case TiledWeapon::WeaponInvalid:
 				addMageStaff = true;
 				break;

@@ -34,7 +34,7 @@ const int RpgMpPickable::m_amount = 25;
 RpgMpPickable::RpgMpPickable(QQuickItem *parent)
 	: RpgPickableObject(PickableMp, parent)
 {
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
+	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }
 
 
@@ -49,17 +49,36 @@ bool RpgMpPickable::playerPick(RpgPlayer *player)
 	if (!player)
 		return false;
 
-
-	player->setMp(player->mp() + m_amount);
-
 	if (player->config().cast == RpgPlayerCharacterConfig::CastInvalid) {
 		if (m_game)
 			m_game->messageColor(tr("No superpower"), QColor::fromRgbF(0.8, 0., 0.));
 		return false;
 	}
 
-	if (m_game)
-		m_game->messageColor(tr("+%1 MP gained").arg(m_amount), QColor::fromString(QStringLiteral("#F06292")));
+	return pick(player, m_amount);
+}
+
+
+
+/**
+ * @brief RpgMpPickable::pick
+ * @param player
+ * @param game
+ * @param amount
+ * @return
+ */
+
+bool RpgMpPickable::pick(RpgPlayer *player, const int &amount)
+{
+	if (!player)
+		return false;
+
+	TiledGame *game = player->game();
+
+	player->setMp(player->mp() + amount);
+
+	if (game)
+		game->messageColor(tr("+%1 MP gained").arg(amount), QColor::fromString(QStringLiteral("#F06292")));
 
 	return true;
 }

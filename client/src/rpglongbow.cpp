@@ -72,6 +72,13 @@ void RpgLongbow::eventAttack(TiledObject *)
 		return;
 	}
 
+	if (m_disableTimerRepeater) {
+		if (m_effectPlayed)
+			return;
+
+		m_effectPlayed = true;
+	}
+
 	TiledObject *p = m_parentObject.data();
 
 	if (TiledGame *g = p->game()) {

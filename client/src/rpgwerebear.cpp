@@ -207,6 +207,8 @@ int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weapo
 			break;
 
 		case TiledWeapon::WeaponLongbow:
+		case TiledWeapon::WeaponLightningWeapon:
+		case TiledWeapon::WeaponFireFogWeapon:
 			newHp = 0;
 			break;
 
@@ -222,7 +224,7 @@ int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weapo
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponDagger:
 		case TiledWeapon::WeaponShield:
-			case TiledWeapon::WeaponMageStaff:
+		case TiledWeapon::WeaponMageStaff:
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}

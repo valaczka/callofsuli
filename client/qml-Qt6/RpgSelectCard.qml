@@ -13,11 +13,9 @@ Qaterial.Card {
 	property int bulletCount: -1
 	property alias image: _image.source
 	property alias text: _label.text
+	property alias mouseArea: _area
 
 	signal clicked()
-
-	width: ListView.view ? ListView.view.implicitHeight : 50
-	height: ListView.view ? ListView.view.implicitHeight : 50
 
 	outlined: true
 
@@ -37,6 +35,8 @@ Qaterial.Card {
 
 	borderColor: "transparent"
 
+	implicitWidth: 150
+	implicitHeight: 150
 
 	elevation: locked ? 0 : Qaterial.Style.card.activeElevation
 
@@ -68,9 +68,13 @@ Qaterial.Card {
 		Image
 		{
 			id: _image
-			height: Math.min(sourceSize.height, parent.height)
-			width: parent.width
+
 			fillMode: Image.PreserveAspectCrop
+			horizontalAlignment: Image.AlignHCenter
+			verticalAlignment: Image.AlignVCenter
+			width: Math.min(parent.width, sourceSize.width)
+			height: Math.min(parent.height, sourceSize.height)
+			anchors.centerIn: parent
 
 			visible: !locked
 

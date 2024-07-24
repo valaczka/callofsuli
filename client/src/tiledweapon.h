@@ -76,6 +76,8 @@ public:
 		WeaponBroadsword,
 		WeaponGreatHand,
 		WeaponMageStaff,
+		WeaponLightningWeapon,
+		WeaponFireFogWeapon,
 		WeaponShield
 	};
 
@@ -138,6 +140,9 @@ public:
 	bool canCast() const;
 	void setCanCast(bool newCanCast);
 
+	bool disableTimerRepeater() const;
+	void setDisableTimerRepeater(bool newDisableTimerRepeater);
+
 signals:
 	void parentObjectChanged();
 	void bulletCountChanged();
@@ -162,6 +167,7 @@ protected:
 	QString m_icon;
 	qint64 m_repeaterIdle = 125;
 	bool m_excludeFromLayers = false;
+	bool m_disableTimerRepeater = false;
 
 private:
 	const WeaponType m_weaponType;

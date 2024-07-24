@@ -271,9 +271,11 @@ SOURCES += \
 	rpgdagger.cpp \
 	rpgenemybase.cpp \
 	rpgfireball.cpp \
+	rpgfirefog.cpp \
 	rpggame.cpp \
 	rpghp.cpp \
 	rpgkeypickable.cpp \
+	rpglightning.cpp \
 	rpglongbow.cpp \
 	rpglongsword.cpp \
 	rpgmagestaff.cpp \
@@ -370,6 +372,7 @@ HEADERS += \
 	grade.h \
 	httpconnection.h \
 	isometricbullet.h \
+	isometricbullet_p.h \
 	isometricenemy.h \
 	isometricentity.h \
 	isometricobject.h \
@@ -400,9 +403,11 @@ HEADERS += \
 	rpgenemybase.h \
 	rpgenemyiface.h \
 	rpgfireball.h \
+	rpgfirefog.h \
 	rpggame.h \
 	rpghp.h \
 	rpgkeypickable.h \
+	rpglightning.h \
 	rpglongbow.h \
 	rpglongsword.h \
 	rpgmagestaff.h \

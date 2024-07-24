@@ -45,11 +45,16 @@ void RpgMageStaff::setFromCast(const RpgPlayerCharacterConfig::CastType &cast)
 {
 	switch (cast) {
 		case RpgPlayerCharacterConfig::CastInvisible:
+		case RpgPlayerCharacterConfig::CastFireFog:
+		case RpgPlayerCharacterConfig::CastProtect:
 			setCanCast(true);
 			setBulletCount(0);
 			break;
 
 		case RpgPlayerCharacterConfig::CastFireball:
+		case RpgPlayerCharacterConfig::CastFireballTriple:
+		case RpgPlayerCharacterConfig::CastLightning:
+		case RpgPlayerCharacterConfig::CastArrowQuintuple:
 			setCanCast(false);
 			setBulletCount(-1);
 			break;
@@ -82,11 +87,16 @@ void RpgMageStaff::eventUseCast(const RpgPlayerCharacterConfig::CastType &cast, 
 
 		switch (cast) {
 			case RpgPlayerCharacterConfig::CastInvisible:
-				g->playSfx(QStringLiteral(":/rpg/broadsword/broadsword1.mp3"),
+			case RpgPlayerCharacterConfig::CastFireFog:
+			case RpgPlayerCharacterConfig::CastProtect:
+				g->playSfx(QStringLiteral(":/rpg/common/cast.mp3"),
 						   p->scene(), p->body()->bodyPosition());
 				break;
 
 			case RpgPlayerCharacterConfig::CastFireball:
+			case RpgPlayerCharacterConfig::CastFireballTriple:
+			case RpgPlayerCharacterConfig::CastArrowQuintuple:
+			case RpgPlayerCharacterConfig::CastLightning:
 			case RpgPlayerCharacterConfig::CastInvalid:
 				break;
 		}

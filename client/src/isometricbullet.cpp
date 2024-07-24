@@ -25,29 +25,9 @@
  */
 
 #include "isometricbullet.h"
+#include "isometricbullet_p.h"
 #include "isometricenemy.h"
 #include "tiledscene.h"
-
-
-
-/**
- * @brief IsometricBullet::IsometricBullet
- * @param parent
- * @return
- */
-
-class IsometricBulletPrivate {
-private:
-	IsometricBulletPrivate()
-	{}
-	~IsometricBulletPrivate() = default;
-
-	QPointer<TiledWeapon> m_fromWeapon;
-	QPointer<TiledObject> m_owner;
-	TiledWeapon::WeaponType m_fromWeaponType = TiledWeapon::WeaponInvalid;
-
-	friend class IsometricBullet;
-};
 
 
 
@@ -288,11 +268,7 @@ void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
 	if (!hasTarget)
 		return;
 
-	setImpacted(true);
-	m_body->stop();
-	setCurrentDirection(Invalid);
 	impactEvent(base);
-	doAutoDelete();
 }
 
 
@@ -354,6 +330,11 @@ void IsometricBullet::impactEvent(TiledObjectBase *base)
 		game->enemyAttackPlayer(d->m_owner, player, d->m_fromWeaponType);
 
 	/// TODO: player attack player?
+
+	setImpacted(true);
+	m_body->stop();
+	setCurrentDirection(Invalid);
+	doAutoDelete();
 }
 
 

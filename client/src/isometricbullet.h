@@ -118,11 +118,11 @@ protected:
 	virtual void groundEvent(TiledObjectBase *base) { Q_UNUSED(base); }
 	virtual void overshootEvent() {}
 
+	void doAutoDelete();
+
 private:
 	void fixtureBeginContact(Box2DFixture *other);
 	//void fixtureEndContact(Box2DFixture *other);
-
-	void doAutoDelete();
 
 protected:
 	QPointF m_startPoint;
@@ -133,10 +133,11 @@ protected:
 	qint64 m_bulletId = 0;
 	Targets m_targets = TargetNone;
 
+	IsometricBulletPrivate *d;
+
 private:
 	bool m_impacted = false;
 	bool m_autoDelete = true;
-	IsometricBulletPrivate *d;
 };
 
 

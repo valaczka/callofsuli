@@ -238,5 +238,6 @@
         <file>RpgQuestsDialog.qml</file>
         <file>UserInfoNotification.qml</file>
         <file>TiledEnemyMarker.qml</file>
+        <file>RpgKeyboardInfoDialog.qml</file>
     </qresource>
 </RCC>

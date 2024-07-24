@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgcoin.cpp
+ * rpgfirefog.cpp
  *
- * Created on: 2024. 07. 22.
+ * Created on: 2024. 07. 24.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgCoinPickable
+ * RpgFireFog
  *
  *  This file is part of Call of Suli.
  *
@@ -24,53 +24,10 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "rpgcoin.h"
-#include "rpgplayer.h"
+#include "rpgfirefog.h"
 
-const int RpgCoinPickable::m_amount = 100;
-
-
-RpgCoinPickable::RpgCoinPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableCoin, parent)
+RpgFireFogWeapon::RpgFireFogWeapon(QObject *parent)
+	: TiledWeapon{WeaponFireFogWeapon, parent}
 {
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
-}
-
-
-
-/**
- * @brief RpgCoinPickable::playerPick
- * @param player
- * @return
- */
-
-bool RpgCoinPickable::playerPick(RpgPlayer */*player*/)
-{
-	return true;
-}
-
-
-/**
- * @brief RpgCoinPickable::amount
- * @param hasQuestions
- * @return
- */
-
-int RpgCoinPickable::amount(const bool &hasQuestions)
-{
-	if (hasQuestions)
-		return m_amount;
-	else
-		return m_amount * 0.1;
-}
-
-
-
-/**
- * @brief RpgCoinPickable::load
- */
-
-void RpgCoinPickable::load()
-{
-	loadDefault(QStringLiteral("coin"));
+	m_canHit = true;
 }

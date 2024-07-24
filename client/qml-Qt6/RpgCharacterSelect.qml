@@ -16,343 +16,391 @@ QItemGradient {
 
 	title: game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
-	appBar.rightComponent: Qaterial.AppBarButton {
-		icon.source: Qaterial.Icons.bank
-		enabled: game
-		onClicked: game.marketRequest()
-	}
-
 	Qaterial.BusyIndicator {
 		id: _busyIndicator
 		anchors.centerIn: parent
 		visible: false
 	}
 
-	QScrollable {
-		id: _scrollable
+	Item {
+		id: _content
+
+		property real horizontalPadding: Qaterial.Style.horizontalPadding
+		property real verticalPadding: Qaterial.Style.horizontalPadding
+
+		anchors.leftMargin: Math.max(horizontalPadding, Client.safeMarginLeft)
+		anchors.rightMargin: Math.max(horizontalPadding, Client.safeMarginRight)
+		anchors.topMargin: Math.max(verticalPadding, Client.safeMarginTop, root.paddingTop)
+		anchors.bottomMargin: Math.max(verticalPadding, Client.safeMarginBottom)
 
 		anchors.fill: parent
 
-		horizontalPadding: 0
-		verticalPadding: 0
-		leftPadding: 0
-		rightPadding: 0
+		Qaterial.Card {
+			outlined: true
 
-		refreshEnabled: true
-		onRefreshRequest: if (Client.server)
-							  Client.server.user.wallet.reload()
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			height: Math.min(parent.height, 600)
 
-		Item {
-			width: parent.width
-			height: root.paddingTop
-		}
+			anchors.centerIn: parent
 
+			contentItem: Item {
+				GridLayout {
+					id: _grid1
 
-		QButton {
-			id: _btnPlay
+					columns: width > height ? 3 : 2
+					columnSpacing: 10
+					rowSpacing: 10
+					width: parent.width - 2 * Qaterial.Style.card.horizontalPadding
+					height: parent.height - 2 * Qaterial.Style.card.verticalPadding
 
-			anchors.horizontalCenter: parent.horizontalCenter
+					anchors.centerIn: parent
 
-			icon.source: Qaterial.Icons.play
-			icon.width: 28 * Qaterial.Style.pixelSizeRatio
-			icon.height: 28 * Qaterial.Style.pixelSizeRatio
+					RpgSelectCard {
+						id: _selectTerrain
+						property RpgUserWallet wallet: null
 
-			bgColor: Qaterial.Colors.green700
-			textColor: Qaterial.Colors.white
-			topPadding: 10 * Qaterial.Style.pixelSizeRatio
-			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
-			leftPadding: 40 * Qaterial.Style.pixelSizeRatio
-			rightPadding: 40 * Qaterial.Style.pixelSizeRatio
-
-			outlined: !enabled
-
-			enabled: _viewCharacter.selected != "" && _viewTerrain.selected != ""
-			text: qsTr("Play")
-
-			onClicked: {
-				Client.Utils.settingsSet("rpg/skin", _viewCharacter.selected)
-				Client.Utils.settingsSet("rpg/world", _viewTerrain.selected)
-
-				let noW = []
-
-				for (let i=0; i<_viewWeapons.model.count; ++i) {
-					let wpn = _viewWeapons.model.get(i)
-					if (!_viewWeapons.selectedList.includes(wpn.market.name))
-						noW.push(wpn.market.name)
-				}
-
-				Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))
-
-				_scrollable.visible = false
-				_busyIndicator.visible = true
-
-				game.selectCharacter(_viewTerrain.selected, _viewCharacter.selected, _viewWeapons.selectedList)
-			}
-		}
-
-		Item {
-			height: 20 * Qaterial.Style.pixelSizeRatio
-			width: parent.width
-		}
-
-
-		RpgSelectTitle {
-			anchors.left: parent.left
-			icon.source: Qaterial.Icons.earth
-			text: qsTr("World")
-		}
-
-
-		RpgSelectView {
-			id: _viewTerrain
-			width: root.width
-
-			implicitHeight: 125*Qaterial.Style.pixelSizeRatio
-
-			delegate: RpgSelectCard {
-				property RpgUserWallet wallet: model.qtObject
-
-				height: _viewTerrain.implicitHeight
-				width: _viewTerrain.implicitHeight
-				text: wallet.readableName
-				image: wallet.image
-				locked: !wallet.available
-				selected: wallet.market.name === _viewTerrain.selected
-				onClicked: _viewTerrain.selectOne(wallet)
-			}
-
-			model: SortFilterProxyModel {
-				sourceModel: Client.server ? Client.server.user.wallet : null
-
-				filters: AllOf {
-					ValueFilter {
-						roleName: "marketType"
-						value: RpgMarket.Map
-					}
-					ValueFilter {
-						roleName: "available"
-						value: true
-					}
-				}
-
-				sorters: [
-					RoleSorter {
-						roleName: "available"
-						priority: 1
-						sortOrder: Qt.DescendingOrder
-					},
-
-					StringSorter {
-						roleName: "sortName"
-						priority: 0
-						sortOrder: Qt.AscendingOrder
-					}
-				]
-			}
-		}
-
-
-		RpgSelectTitle {
-			anchors.left: parent.left
-			icon.source: Qaterial.Icons.humanMale
-			text: qsTr("Skin")
-		}
-
-
-		RpgSelectView {
-			id: _viewCharacter
-			width: root.width
-
-			implicitHeight: 150*Qaterial.Style.pixelSizeRatio
-
-			delegate: RpgSelectCard {
-				property RpgUserWallet wallet: model.qtObject
-				height: _viewCharacter.implicitHeight
-				width: _viewCharacter.implicitHeight
-				text: wallet.readableName
-				image: wallet.image
-				locked: !wallet.available
-				selected: wallet.market.name === _viewCharacter.selected
-				onClicked: _viewCharacter.selectOne(wallet)
-			}
-
-			model: SortFilterProxyModel {
-				sourceModel: Client.server ? Client.server.user.wallet : null
-
-				filters: AllOf {
-					ValueFilter {
-						roleName: "marketType"
-						value: RpgMarket.Skin
-					}
-					ValueFilter {
-						roleName: "available"
-						value: true
-					}
-				}
-
-				sorters: [
-					RoleSorter {
-						roleName: "available"
-						priority: 1
-						sortOrder: Qt.DescendingOrder
-					},
-
-					StringSorter {
-						roleName: "sortName"
-						priority: 0
-						sortOrder: Qt.AscendingOrder
-					}
-				]
-			}
-		}
-
-		RpgSelectTitle {
-			anchors.left: parent.left
-			icon.source: Qaterial.Icons.swordCross
-			text: qsTr("Weapons")
-		}
-
-
-		RpgSelectView {
-			id: _viewWeapons
-			width: root.width
-
-			delegate: RpgSelectCard {
-				property RpgUserWallet wallet: model.qtObject
-
-				height: _viewWeapons.implicitHeight
-				width: _viewWeapons.implicitHeight
-				text: wallet.readableName
-				image: wallet.image
-				bulletCount: wallet.bullet ? wallet.bullet.amount : -1
-				selected: _viewWeapons.selectedList.includes(wallet.market.name)
-				onClicked: {
-					if (selected)
-						_viewWeapons.unselectMore([wallet])
-					else
-						_viewWeapons.selectMore([wallet])
-				}
-			}
-
-			model: SortFilterProxyModel {
-				sourceModel: Client.server ? Client.server.user.wallet : null
-
-				filters: AllOf {
-					ValueFilter {
-						roleName: "marketType"
-						value: RpgMarket.Weapon
-					}
-					ValueFilter {
-						roleName: "available"
-						value: true
-					}
-				}
-
-				sorters: [
-					StringSorter {
-						roleName: "sortName"
-						priority: 0
-						sortOrder: Qt.AscendingOrder
-					}
-				]
-			}
-		}
-
-		Item {
-			height: 20 * Qaterial.Style.pixelSizeRatio
-			width: parent.width
-		}
-
-
-		Qaterial.Expandable {
-			id: _expKeyboard
-			width: Math.min(root.width, 450 * Qaterial.Style.pixelSizeRatio, Qaterial.Style.maxContainerSize)
-
-			visible: Qt.platform.os === "linux" ||
-					 Qt.platform.os === "windows" ||
-					 Qt.platform.os === "osx" ||
-					 Qt.platform.os === "wasm"
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			expanded: false
-
-			header: QExpandableHeader {
-				text: qsTr("Segítség a billentyűzet használatához")
-				icon: Qaterial.Icons.keyboardOutline
-				expandable: _expKeyboard
-				topPadding: 20
-			}
-
-			delegate: GridLayout {
-				width: _expKeyboard.width
-				columns: 2
-				columnSpacing: 5
-				rowSpacing: 3
-
-				Repeater {
-					model: [
-						[ "W", "A", "S", "D",
-						 "1", "2", "3", "4", "6", "7", "8", "9",
-						 "Arrow_Up", "Arrow_Down", "Arrow_Left", "Arrow_Right", "Page_Up", "Page_Down", "Home", "End",
-						], qsTr("Mozgás"),
-						[ "0", "Space", "Insert" ], qsTr("Lövés, vágás, ütés"),
-						[ "E", "Enter_Alt", "Enter_Tall" ], qsTr("Láda kinyitása"),
-						[ "Del", "Q" ], qsTr("Fegyver váltás"),
-						[ "5", "X" ], qsTr("Átjáró használata"),
-						[ "C" ], qsTr("Varázsbot használata"),
-						[ "Tab" ], qsTr("Térkép")
-					]
-
-					delegate: Item {
-						id: _helperItem
-						readonly property bool isKeyItem: index % 2 == 0
-						readonly property var keys: isKeyItem ? modelData : null
-						readonly property string text: isKeyItem ? "" : modelData
-
-						implicitWidth: isKeyItem ? _flow.implicitWidth : _text.implicitWidth
-						implicitHeight: isKeyItem ? _flow.implicitHeight : _text.implicitHeight
-
-						Layout.maximumWidth: isKeyItem ? _expKeyboard.width*0.4 : -1
+						Layout.fillHeight: true
 						Layout.fillWidth: true
 
-						Flow {
-							id: _flow
-							anchors.fill: parent
-							visible: _helperItem.isKeyItem
-							spacing: 0
+						text: wallet ? wallet.readableName : qsTr("Válassz...")
+						image: wallet ? wallet.image : ""
+						locked: !wallet || !wallet.available
+						selected: true
+						onClicked: {
+							_modelSelector.marketType = RpgMarket.Map
+							_dialogWallet = _selectTerrain.wallet
+							_dialogAcceptFunc = function(w) {
+								_selectTerrain.wallet = w
+							}
 
-							Repeater {
-								model: _helperItem.isKeyItem ? _helperItem.keys : null
-								delegate: Image {
-									source: "qrc:/internal/keyboard/%1_Key_Dark.png".arg(modelData)
-									fillMode: Image.Pad
-									smooth: false
-									width: 40
-									height: 40
+							Qaterial.DialogManager.openFromComponent(_cmpSelectDialog)
+						}
+
+						RpgSelectTitle {
+							anchors.horizontalCenter: parent.horizontalCenter
+							icon.source: Qaterial.Icons.earth
+							text: qsTr("World")
+						}
+					}
+
+
+					RpgSelectCard {
+						id: _selectCharacter
+						property RpgUserWallet wallet: null
+
+						Layout.fillHeight: true
+						Layout.fillWidth: true
+
+						text: wallet ? wallet.readableName : qsTr("Válassz...")
+						image: wallet ? wallet.image : ""
+						locked: !wallet || !wallet.available
+						selected: true
+						onClicked: {
+							_modelSelector.marketType = RpgMarket.Skin
+							_dialogWallet = _selectCharacter.wallet
+							_dialogAcceptFunc = function(w) {
+								_selectCharacter.wallet = w
+							}
+
+							Qaterial.DialogManager.openFromComponent(_cmpSelectDialog)
+						}
+
+						RpgSelectTitle {
+							anchors.horizontalCenter: parent.horizontalCenter
+							icon.source: Qaterial.Icons.humanMale
+							text: qsTr("Character")
+						}
+					}
+
+
+					Item {
+						Layout.fillHeight: true
+						Layout.fillWidth: true
+						Layout.columnSpan: _grid1.columns === 2 ? 2 : 1
+
+						implicitHeight: _buttonCol.implicitHeight
+						implicitWidth: _buttonCol.implicitWidth
+
+						Column {
+							id: _buttonCol
+							anchors.centerIn: parent
+							spacing: 10 * Qaterial.Style.pixelSizeRatio
+
+							QButton {
+								id: _btnPlay
+
+								anchors.horizontalCenter: parent.horizontalCenter
+
+								icon.source: Qaterial.Icons.play
+								icon.width: 28 * Qaterial.Style.pixelSizeRatio
+								icon.height: 28 * Qaterial.Style.pixelSizeRatio
+
+								bgColor: Qaterial.Colors.green700
+								textColor: Qaterial.Colors.white
+								topPadding: 10 * Qaterial.Style.pixelSizeRatio
+								bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+								leftPadding: 40 * Qaterial.Style.pixelSizeRatio
+								rightPadding: 40 * Qaterial.Style.pixelSizeRatio
+
+								outlined: !enabled
+
+								enabled: _selectTerrain.wallet && _selectCharacter.wallet
+								text: qsTr("Play")
+
+								onClicked: {
+									Client.Utils.settingsSet("rpg/skin", _selectCharacter.wallet.market.name)
+									Client.Utils.settingsSet("rpg/world", _selectTerrain.wallet.market.name)
+
+									let noW = []
+
+									for (let i=0; i<_viewWeapons.model.count; ++i) {
+										let wpn = _viewWeapons.model.get(i)
+										if (!_viewWeapons.selectedList.includes(wpn.market.name))
+											noW.push(wpn.market.name)
+									}
+
+									Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))
+
+									_grid1.visible = false
+									_busyIndicator.visible = true
+
+									game.selectCharacter(_selectTerrain.wallet.market.name,
+														 _selectCharacter.wallet.market.name,
+														 _viewWeapons.selectedList)
 								}
+							}
+
+							Row {
+								anchors.horizontalCenter: parent.horizontalCenter
+								spacing: 15 * Qaterial.Style.pixelSizeRatio
+
+								Qaterial.AppBarButton {
+									icon.source: Qaterial.Icons.help
+									ToolTip.text: qsTr("Súgó")
+									onClicked: Qaterial.DialogManager.openFromComponent(_cmpKeyboardDialog)
+									icon.width: Qaterial.Style.mediumIcon
+									icon.height: Qaterial.Style.mediumIcon
+									icon.color: Qaterial.Style.iconColor()
+								}
+
+								Qaterial.AppBarButton {
+									icon.source: Qaterial.Icons.bank
+									ToolTip.text: qsTr("Bank")
+									onClicked: game.marketRequest()
+									icon.width: Qaterial.Style.mediumIcon
+									icon.height: Qaterial.Style.mediumIcon
+									icon.color: Qaterial.Style.iconColor()
+								}
+							}
+
+						}
+
+					}
+
+
+					Item {
+						id: _weaponItem
+
+						Layout.fillHeight: true
+						Layout.fillWidth: true
+						Layout.columnSpan: _grid1.columns
+
+						implicitWidth: 150
+						implicitHeight: 150
+
+						RpgSelectTitle {
+							id: _weaponTitle
+							anchors.left: parent.left
+
+							icon.source: Qaterial.Icons.swordCross
+							text: qsTr("Weapons")
+						}
+
+						RpgSelectView {
+							id: _viewWeapons
+
+							anchors.left: parent.left
+							anchors.right: parent.right
+							//anchors.bottom: parent.bottom
+							//anchors.top: _weaponTitle.bottom
+
+							readonly property real _height: _weaponItem.height-_weaponTitle.height
+
+							height: Math.min(_height, 200)
+
+							y: _weaponTitle.height + Math.max(0, (_height-height)/2)
+
+
+							delegate: RpgSelectCard {
+								property RpgUserWallet wallet: model.qtObject
+
+								height: _viewWeapons.height
+								width: _viewWeapons.height
+								text: wallet.readableName
+								image: wallet.image
+								bulletCount: wallet.bullet ? wallet.bullet.amount : -1
+								selected: _viewWeapons.selectedList.includes(wallet.market.name)
+								onClicked: {
+									if (selected)
+										_viewWeapons.unselectMore([wallet])
+									else
+										_viewWeapons.selectMore([wallet])
+								}
+							}
+
+							model: SortFilterProxyModel {
+								sourceModel: Client.server ? Client.server.user.wallet : null
+
+								filters: AllOf {
+									ValueFilter {
+										roleName: "marketType"
+										value: RpgMarket.Weapon
+									}
+									ValueFilter {
+										roleName: "available"
+										value: true
+									}
+								}
+
+								sorters: [
+									StringSorter {
+										roleName: "sortName"
+										priority: 0
+										sortOrder: Qt.AscendingOrder
+									}
+								]
 							}
 						}
 
-						Qaterial.LabelBody1 {
-							id: _text
-							anchors.fill: parent
-							visible: !_helperItem.isKeyItem
-							text: _helperItem.text
-							color: Qaterial.Style.secondaryTextColor()
-						}
 					}
 				}
+
+			}
+		}
+	}
+
+	SortFilterProxyModel {
+		id: _modelSelector
+		sourceModel: Client.server ? Client.server.user.wallet : null
+
+		property int marketType: 0
+
+		filters: AllOf {
+			ValueFilter {
+				roleName: "marketType"
+				value: _modelSelector.marketType > 0 ? _modelSelector.marketType : RpgMarket.Invalid
+				enabled: _modelSelector.marketType > 0
+			}
+			ValueFilter {
+				roleName: "available"
+				value: true
 			}
 		}
 
+		sorters: [
+			RoleSorter {
+				roleName: "available"
+				priority: 1
+				sortOrder: Qt.DescendingOrder
+			},
+
+			StringSorter {
+				roleName: "sortName"
+				priority: 0
+				sortOrder: Qt.AscendingOrder
+			}
+		]
 	}
 
 
-	function getWallet(_model, _name) {
+	property RpgUserWallet _dialogWallet: null
+	property var _dialogAcceptFunc: null
+
+	Component {
+		id: _cmpSelectDialog
+
+		Qaterial.ModalDialog
+		{
+			id: _dialog
+			//horizontalPadding: 0
+
+			title: switch (_modelSelector.marketType) {
+				   case RpgMarket.Map:
+					   return qsTr("World")
+				   case RpgMarket.Skin:
+					   return qsTr("Character")
+				   default:
+					   return ""
+				   }
+
+			dialogImplicitWidth: 1200
+
+			property RpgUserWallet selectedWallet: _dialogWallet
+
+			contentItem: RpgSelectView {
+				id: _dialogView
+
+				implicitHeight: 200*Qaterial.Style.pixelSizeRatio
+
+				delegate: RpgSelectCard {
+					property RpgUserWallet wallet: model.qtObject
+					height: _dialogView.height
+					width: _dialogView.height
+					text: wallet.readableName
+					image: wallet.image
+					locked: !wallet.available
+					selected: wallet == _dialog.selectedWallet
+					onClicked: {
+						if (wallet && wallet.available)
+							_dialog.selectedWallet = wallet
+						else
+							_dialog.selectedWallet = null
+					}
+				}
+
+				model: _modelSelector
+			}
+
+			onSelectedWalletChanged: {
+				let idx = -1
+				if (selectedWallet) {
+					for (let i=0; i<_modelSelector.count; ++i) {
+						if (_modelSelector.get(i).qtObject === selectedWallet) {
+							idx = i
+							break
+						}
+					}
+				}
+
+				if (idx != -1)
+					_dialogView.positionViewAtIndex(idx, ListView.Contain)
+			}
+
+			standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok
+
+			onAccepted: if (_dialogAcceptFunc && selectedWallet && selectedWallet.available)
+							_dialogAcceptFunc(selectedWallet)
+
+			Component.onCompleted: selectedWalletChanged()
+		}
+	}
+
+	Component {
+		id: _cmpKeyboardDialog
+
+		RpgKeyboardInfoDialog { }
+	}
+
+
+	function getWallet(_type, _name) {
+		if (!Client.server)
+			return
+
+		let _model = Client.server.user.wallet
+
 		for (let n=0; n<_model.count; ++n) {
 			let w = _model.get(n)
-			if (w.market.name === _name)
+			if (w.market.type === _type && w.market.name === _name)
 				return w
 		}
 
@@ -367,8 +415,8 @@ QItemGradient {
 			if (!_isFirst)
 				return
 
-			_viewCharacter.selectOne(getWallet(_viewCharacter.model, Client.Utils.settingsGet("rpg/skin", "")))
-			_viewTerrain.selectOne(getWallet(_viewTerrain.model, Client.Utils.settingsGet("rpg/world", "")))
+			_selectTerrain.wallet = getWallet(RpgMarket.Map, Client.Utils.settingsGet("rpg/world", ""))
+			_selectCharacter.wallet = getWallet(RpgMarket.Skin, Client.Utils.settingsGet("rpg/skin", ""))
 
 			let sList = []
 

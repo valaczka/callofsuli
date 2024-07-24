@@ -26,6 +26,7 @@
 
 #include "rpgplayer.h"
 #include "isometricbullet.h"
+#include "rpgfirefog.h"
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
 #include "rpggame.h"
@@ -53,7 +54,7 @@ RpgPlayer::RpgPlayer(QQuickItem *parent)
 	, m_inventory(new RpgInventoryList)
 	, m_effectHealed(this)
 	, m_effectShield(this)
-	, m_effectSmoke(this)
+	, m_effectRing(this)
 {
 	m_sfxPain.setFollowPosition(false);
 	m_sfxAccept.setFollowPosition(false);
@@ -394,6 +395,10 @@ void RpgPlayer::updateSprite()
 
 bool RpgPlayer::protectWeapon(const TiledWeapon::WeaponType &weaponType)
 {
+	if (m_config.cast == RpgPlayerCharacterConfig::CastProtect && m_castTimer.isActive()) {
+		return true;
+	}
+
 	const bool r = IsometricPlayer::protectWeapon(m_armory->weaponList(), weaponType);
 
 	if (r)
@@ -459,6 +464,24 @@ void RpgPlayer::onPickableReached(TiledObject *object)
 	RpgPickableObject *pickable = qobject_cast<RpgPickableObject*>(object);
 	if (pickable)
 		pick(pickable);
+}
+
+
+/**
+ * @brief RpgPlayer::onEnemyReached
+ * @param enemy
+ */
+
+void RpgPlayer::onEnemyReached(IsometricEnemy *enemy)
+{
+	if (m_config.cast == RpgPlayerCharacterConfig::CastFireFog && m_castTimer.isActive()) {
+		RpgFireFogWeapon w;
+		w.setParentObject(this);
+		w.setBulletCount(-1);
+
+		if (w.hit(enemy))
+			playAttackEffect(&w);
+	}
 }
 
 
@@ -642,6 +665,8 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 			return;											// Nem kell az attack!
 
 		case TiledWeapon::WeaponShield:
+		case TiledWeapon::WeaponLightningWeapon:
+		case TiledWeapon::WeaponFireFogWeapon:
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}
@@ -682,7 +707,7 @@ void RpgPlayer::playWeaponChangedEffect()
 void RpgPlayer::playShieldEffect()
 {
 	if (m_isLocked && m_hp > 0) {
-		if (!m_effectSmoke.isRunning())
+		if (!m_effectRing.active())
 			m_effectShield.play();
 	} else
 		m_effectShield.stop();
@@ -721,6 +746,8 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 		case TiledWeapon::WeaponLongsword:
 		case TiledWeapon::WeaponBroadsword:
 		case TiledWeapon::WeaponDagger:
+		case TiledWeapon::WeaponFireFogWeapon:
+		case TiledWeapon::WeaponLightningWeapon:
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}
@@ -743,7 +770,31 @@ void RpgPlayer::onCastTimerTimeout()
 	if (m_isLocked)
 		return;
 
-	int nextMp = m_mp - std::max(1, m_config.mpLoss);
+
+	int loss = 1;
+
+	switch (m_config.cast) {
+		case RpgPlayerCharacterConfig::CastInvisible:
+			loss = 3;
+			break;
+
+		case RpgPlayerCharacterConfig::CastFireFog:
+			loss = 13;
+			break;
+
+		case RpgPlayerCharacterConfig::CastProtect:
+			loss = 6;
+			break;
+
+		case RpgPlayerCharacterConfig::CastFireball:
+		case RpgPlayerCharacterConfig::CastFireballTriple:
+		case RpgPlayerCharacterConfig::CastLightning:
+		case RpgPlayerCharacterConfig::CastArrowQuintuple:
+		case RpgPlayerCharacterConfig::CastInvalid:
+			break;
+	}
+
+	int nextMp = m_mp - loss;
 
 	if (nextMp <= 0) {
 		setMp(0);
@@ -755,6 +806,33 @@ void RpgPlayer::onCastTimerTimeout()
 	}
 
 	setMp(nextMp);
+}
+
+
+/**
+ * @brief RpgPlayer::attackReachedEnemies
+ * @param weaponType
+ */
+
+void RpgPlayer::attackReachedEnemies(const TiledWeapon::WeaponType &weaponType)
+{
+	if (weaponType == TiledWeapon::WeaponFireFogWeapon) {
+		if (m_config.cast == RpgPlayerCharacterConfig::CastFireFog && m_castTimer.isActive()) {
+			RpgFireFogWeapon w;
+			w.setParentObject(this);
+			w.setBulletCount(-1);
+			w.setDisableTimerRepeater(true);
+
+			for (IsometricEnemy *e : reachedEnemies()) {
+				if (!e)
+					continue;
+				if (w.hit(e))
+					playAttackEffect(&w);
+			}
+		}
+	} else {
+		LOG_CERROR("game") << "Weapon not supported:" << weaponType;
+	}
 }
 
 
@@ -858,6 +936,7 @@ void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const 
 		case RpgPickableObject::PickableLongbow:
 		case RpgPickableObject::PickableArrow:
 		case RpgPickableObject::PickableFireball:
+		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:

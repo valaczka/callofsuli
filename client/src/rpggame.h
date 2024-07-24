@@ -34,6 +34,7 @@
 #include "rpgpickableobject.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
+#include "rpgconfig.h"
 #include <QQmlEngine>
 #include <QScatterSeries>
 
@@ -140,7 +141,7 @@ public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
 
-	Q_INVOKABLE bool load(const RpgGameDefinition &def);
+	Q_INVOKABLE bool load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig &playerConfig);
 
 	static const QHash<QString, RpgGameDefinition> &terrains();
 	static void reloadTerrains();
@@ -367,6 +368,7 @@ private:
 	int m_currency = 0;
 	int m_winnerStreak = 0;
 	int m_lastWinnerStreak = 0;
+	int m_baseMp = 150;
 
 	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
 

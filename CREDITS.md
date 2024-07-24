@@ -63,6 +63,7 @@
 - Gothic Archways - (c) 2019 Lukas Küstenmacher (https://opengameart.org/content/isometric-tileset-gothic-archways)
 - Animated Fire - (c) 2018 BenHickling (https://opengameart.org/content/animated-fire)
 - Painterly Spell Icons - (c) 2011 J. W. Bjerk "eleazzaar" (https://opengameart.org/content/painterly-spell-icons-part-1, https://www.jwbjerk.com/art)
+- 2D spell effects - (c) 2013 Martin Jelinek (https://opengameart.org/content/2d-spell-effects)
 
 **Music & SFX**
 
@@ -87,3 +88,4 @@
 - Water fountain - (c) davilca (https://freesound.org/people/davilca/sounds/677229/)
 - Broadswords Clashing - (c) GaelanW (https://freesound.org/s/490065/)
 - Magic Fire Impact - (c) EminYILDIRIM (https://freesound.org/s/626120)
+- Laser gun sound effect #2 - (c) soundslikewillem (https://freesound.org/people/soundslikewillem/sounds/645681)

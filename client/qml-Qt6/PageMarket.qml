@@ -71,7 +71,7 @@ QPageGradient {
 
 		ListElement {
 			type: RpgMarket.Skin
-			title: qsTr("Skin")
+			title: qsTr("Character")
 			icon: "qrc:/Qaterial/Icons/human-male.svg"
 			inBase: true
 			inGame: false
@@ -246,7 +246,7 @@ QPageGradient {
 			title: _isBuy ? qsTr("Vásárlás: %1").arg(_currentWallet.readableName)
 						  : qsTr("Információk: %1").arg(_currentWallet.readableName)
 
-			dialogImplicitWidth: Math.max(400, Math.min(350, _image.implicitWidth) * 2)
+			dialogImplicitWidth: Math.max(450, Math.min(350, _image.implicitWidth) * 2)
 			autoFocusButtons: true
 
 			contentItem: Item

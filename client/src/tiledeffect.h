@@ -137,12 +137,13 @@ public:
 		SparkBlue2 = 1 << 3,
 		SparkRed1 = 1 << 4,
 		SparkRed2 = 1 << 5,
+		SparkBall1 = 1 << 6,
 
 		SparkAllOrange = SparkOrange1 | SparkOrange2,
 		SparkAllBlue = SparkBlue1 | SparkBlue2,
 		SparkAllRed = SparkRed1 | SparkRed2,
 
-		SparkAll = SparkAllOrange | SparkAllBlue | SparkAllRed
+		SparkAll = SparkAllOrange | SparkAllBlue | SparkAllRed | SparkBall1
 	};
 
 	Q_DECLARE_FLAGS(Types, Type);
@@ -187,20 +188,26 @@ private:
 
 
 /**
- * @brief The TiledEffectSmoke class
+ * @brief The TiledEffectRing class
  */
 
-class TiledEffectSmoke : public TiledEffect
+class TiledEffectRing : public TiledEffect
 {
 public:
-	TiledEffectSmoke(TiledObject *parentObject) : TiledEffect(parentObject)
+	TiledEffectRing(TiledObject *parentObject, const QString &source = {})
+		: TiledEffect(parentObject, m_staticSpriteName)
+		, m_source(source)
 	{}
 
 	virtual void play() override;
-	void stop() override;
-	bool active() const override;
 
-	bool isRunning() const;
+	void setSource(const QString &source) { m_source = source; }
+	const QString &source() const { return m_source; }
+
+private:
+	static const QString m_staticSpriteName;
+	QString m_source;
 };
+
 
 #endif // TILEDEFFECT_H

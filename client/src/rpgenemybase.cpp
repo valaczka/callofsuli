@@ -190,7 +190,7 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 
 	IsometricEnemy::attackedByPlayer(player, weaponType);
 
-	if (weaponType == TiledWeapon::WeaponLongbow)
+	if (weaponType == TiledWeapon::WeaponLongbow || weaponType == TiledWeapon::WeaponFireFogWeapon)
 		m_effectFire.play();
 
 	if (!isAlive() || isSleeping())
@@ -248,6 +248,8 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 			break;
 
 		case TiledWeapon::WeaponLongbow:
+		case TiledWeapon::WeaponLightningWeapon:
+		case TiledWeapon::WeaponFireFogWeapon:
 		case TiledWeapon::WeaponGreatHand:
 			hp = 0;
 			break;
@@ -256,7 +258,7 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 			hp = hp > 1 ? 1 : 0;
 			break;
 
-			case TiledWeapon::WeaponMageStaff:
+		case TiledWeapon::WeaponMageStaff:
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:

@@ -66,7 +66,9 @@ bool RpgShield::protect(const WeaponType &weapon)
 			eventProtect();
 			return true;
 
-			case TiledWeapon::WeaponMageStaff:
+		case TiledWeapon::WeaponMageStaff:
+		case TiledWeapon::WeaponLightningWeapon:
+		case TiledWeapon::WeaponFireFogWeapon:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;
@@ -97,7 +99,9 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
 		case TiledWeapon::WeaponBroadsword:
 			return (m_bulletCount > 2);
 
-			case TiledWeapon::WeaponMageStaff:
+		case TiledWeapon::WeaponMageStaff:
+		case TiledWeapon::WeaponLightningWeapon:
+		case TiledWeapon::WeaponFireFogWeapon:
 		case TiledWeapon::WeaponShield:
 		case TiledWeapon::WeaponInvalid:
 			break;
@@ -118,7 +122,7 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
 RpgShieldPickable::RpgShieldPickable(QQuickItem *parent)
 	: RpgPickableObject(PickableShield, parent)
 {
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
+	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }
 
 

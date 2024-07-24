@@ -77,6 +77,13 @@ void RpgShortbow::eventAttack(TiledObject *)
 	if (!p)
 		return;
 
+	if (m_disableTimerRepeater) {
+		if (m_effectPlayed)
+			return;
+
+		m_effectPlayed = true;
+	}
+
 	if (TiledGame *g = p->game()) {
 		g->playSfx(QStringLiteral(":/rpg/shortbow/swish_2.mp3"), p->scene(), p->body()->bodyPosition());
 	}

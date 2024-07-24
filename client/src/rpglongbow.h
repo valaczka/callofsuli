@@ -50,6 +50,9 @@ public:
 protected:
 	IsometricBullet *createBullet(const qreal &distance = 0.) override final;
 	void eventAttack(TiledObject *target) override final;
+
+private:
+	bool m_effectPlayed = false;
 };
 
 

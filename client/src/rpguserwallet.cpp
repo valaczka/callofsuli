@@ -356,6 +356,7 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 			case RpgPickableObject::PickableLongsword:
 			case RpgPickableObject::PickableDagger:
 			case RpgPickableObject::PickableTime:
+			case RpgPickableObject::PickableLightning:
 			case RpgPickableObject::PickableInvalid:
 				break;
 		}
@@ -405,6 +406,31 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgPlayerChara
 			case RpgPlayerCharacterConfig::CastFireball:
 				name = tr("Fireball");
 				image = QStringLiteral("qrc:/rpg/castIcon/fireball.png");
+				break;
+
+			case RpgPlayerCharacterConfig::CastFireballTriple:
+				name = tr("Triple fireball");
+				image = QStringLiteral("qrc:/rpg/castIcon/fireball-3.png");
+				break;
+
+			case RpgPlayerCharacterConfig::CastLightning:
+				name = tr("Lightning");
+				image = QStringLiteral("qrc:/rpg/castIcon/lightning.png");
+				break;
+
+			case RpgPlayerCharacterConfig::CastFireFog:
+				name = tr("Fire fog");
+				image = QStringLiteral("qrc:/rpg/castIcon/firefog.png");
+				break;
+
+			case RpgPlayerCharacterConfig::CastArrowQuintuple:
+				name = tr("5x arrow");
+				image = QStringLiteral("qrc:/rpg/castIcon/arrow-5.png");
+				break;
+
+			case RpgPlayerCharacterConfig::CastProtect:
+				name = tr("Protect");
+				image = QStringLiteral("qrc:/rpg/castIcon/protect.png");
 				break;
 
 			case RpgPlayerCharacterConfig::CastInvalid:
@@ -781,6 +807,8 @@ void RpgUserWalletList::updateBullets()
 			case TiledWeapon::WeaponGreatHand:
 			case TiledWeapon::WeaponShield:
 			case TiledWeapon::WeaponMageStaff:
+			case TiledWeapon::WeaponLightningWeapon:
+			case TiledWeapon::WeaponFireFogWeapon:
 				break;
 
 			case TiledWeapon::WeaponInvalid:

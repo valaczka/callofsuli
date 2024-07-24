@@ -240,7 +240,7 @@ RpgGame::~RpgGame()
  */
 
 
-bool RpgGame::load(const RpgGameDefinition &def)
+bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig &playerConfig)
 {
 	if (!TiledGame::load(def))
 		return false;
@@ -265,6 +265,20 @@ bool RpgGame::load(const RpgGameDefinition &def)
 
 	for (auto &e : m_enemyDataList) {
 		Q_ASSERT(!e.path.isEmpty());
+
+		// Replace pickables if character has no cast
+
+		if (playerConfig.cast == RpgPlayerCharacterConfig::CastInvalid) {
+			for (auto &p : e.pickables) {
+				if (p == RpgPickableObject::PickableMp)
+					p = RpgPickableObject::PickableShield;
+			}
+
+			for (auto &p : e.pickablesOnce) {
+				if (p == RpgPickableObject::PickableMp)
+					p = RpgPickableObject::PickableShield;
+			}
+		}
 
 		IsometricEnemy *enemy = createEnemy(e.type, e.subtype, e.scene);
 
@@ -293,6 +307,12 @@ bool RpgGame::load(const RpgGameDefinition &def)
 	recalculateEnemies();
 
 	for (auto &e : m_pickableDataList) {
+
+		// Replace if character has no cast
+
+		if (e.type == RpgPickableObject::PickableMp)
+			e.type = RpgPickableObject::PickableShield;
+
 		RpgPickableObject *pickable = createPickable(e.type, e.name, e.scene);
 
 		if (!pickable)
@@ -847,6 +867,7 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 			break;
 
 		case RpgPickableObject::PickableDagger:
+		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableInvalid:
 			break;
 	}
@@ -2209,6 +2230,8 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 			return QStringLiteral("cast");
 
 		case TiledWeapon::WeaponShield:
+		case TiledWeapon::WeaponLightningWeapon:
+		case TiledWeapon::WeaponFireFogWeapon:
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}
@@ -2599,7 +2622,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 	QJsonObject info;
 	info.insert(QStringLiteral("hasMarket"), hasMarket);
 	info.insert(QStringLiteral("enemyCount"), enemyCount);
-	info.insert(QStringLiteral("currencyCount"), currencyCount * RpgCoinPickable::amount());
+	info.insert(QStringLiteral("currencyCount"), currencyCount * RpgCoinPickable::amount(true));
 	info.insert(QStringLiteral("mpCount"), mpCount * RpgMpPickable::amount());
 	info.insert(QStringLiteral("duration"), def.duration);
 

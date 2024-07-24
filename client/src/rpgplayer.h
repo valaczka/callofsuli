@@ -29,7 +29,6 @@
 
 #include "isometricplayer.h"
 #include "rpgarmory.h"
-#include "rpgconfig.h"
 #include "rpgpickableobject.h"
 #include "rpgshortbow.h"
 #include "tiledeffect.h"
@@ -51,14 +50,18 @@ public:
 	enum CastType {
 		CastInvalid			= 0,
 		CastInvisible		= 1,
-		CastFireball		= 2
+		CastFireball		= 2,
+		CastFireballTriple	= 3,
+		CastLightning		= 4,
+		CastFireFog			= 5,
+		CastArrowQuintuple	= 6,
+		CastProtect			= 7,
 	};
 
 	Q_ENUM(CastType);
 
 	RpgPlayerCharacterConfig() : QSerializer()
 	  , cast(CastInvalid)
-	  , mpLoss(1)					// MP loss / 0.1 mp
 	  , mpMax(100)
 	  , mpStart(10)
 	{}
@@ -90,7 +93,6 @@ public:
 	// Cast
 
 	QS_FIELD(CastType, cast)
-	QS_FIELD(int, mpLoss)
 	QS_FIELD(int, mpMax)
 	QS_FIELD(int, mpStart)
 };
@@ -180,7 +182,7 @@ protected:
 						 const bool &isProtected) override final;
 	void onPickableReached(TiledObject *object) override final;
 	void onPickableLeft(TiledObject */*object*/) override final {};
-	void onEnemyReached(IsometricEnemy */*enemy*/) override final {}
+	void onEnemyReached(IsometricEnemy *enemy) override final;
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
 	void onTransportReached(TiledTransport */*transport*/) override final {}
 	void onTransportLeft(TiledTransport */*transport*/) override final {}
@@ -202,6 +204,7 @@ private:
 	void playShieldEffect();
 	void messageEmptyBullet(const TiledWeapon::WeaponType &weaponType);
 	void onCastTimerTimeout();
+	void attackReachedEnemies(const TiledWeapon::WeaponType &weaponType);
 
 private:
 	RpgPlayerCharacterConfig m_config;
@@ -216,7 +219,7 @@ private:
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;
-	TiledEffectSmoke m_effectSmoke;
+	TiledEffectRing m_effectRing;
 
 	QPointF m_currentSceneStartPosition;
 	bool m_pickAtDestination = false;

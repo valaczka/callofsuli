@@ -38,7 +38,7 @@ public:
 
 	bool playerPick(RpgPlayer *player) override final;
 
-	static int amount() { return m_amount; }
+	static int amount(const bool &hasQuestions);
 
 protected:
 	void load() override final;

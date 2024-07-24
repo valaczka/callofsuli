@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgcoin.cpp
+ * isometricbullet_p.h
  *
- * Created on: 2024. 07. 22.
+ * Created on: 2024. 07. 24.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgCoinPickable
+ * %{Cpp:License:ClassName}
  *
  *  This file is part of Call of Suli.
  *
@@ -24,53 +24,33 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "rpgcoin.h"
-#include "rpgplayer.h"
+#ifndef ISOMETRICBULLET_P_H
+#define ISOMETRICBULLET_P_H
 
-const int RpgCoinPickable::m_amount = 100;
-
-
-RpgCoinPickable::RpgCoinPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableCoin, parent)
-{
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
-}
-
-
+#include "tiledweapon.h"
 
 /**
- * @brief RpgCoinPickable::playerPick
- * @param player
- * @return
+ * @brief The IsometricBulletPrivate class
  */
 
-bool RpgCoinPickable::playerPick(RpgPlayer */*player*/)
-{
-	return true;
-}
+class IsometricBulletPrivate {
+public:
+	TiledWeapon *fromWeapon() const { return m_fromWeapon.get(); }
+	const TiledWeapon::WeaponType &fromWeaponType() const { return m_fromWeaponType; }
+	TiledObject *owner() const { return m_owner.get(); }
 
+private:
+	IsometricBulletPrivate()
+	{}
+	~IsometricBulletPrivate() = default;
 
-/**
- * @brief RpgCoinPickable::amount
- * @param hasQuestions
- * @return
- */
+	QPointer<TiledWeapon> m_fromWeapon;
+	QPointer<TiledObject> m_owner;
+	TiledWeapon::WeaponType m_fromWeaponType = TiledWeapon::WeaponInvalid;
 
-int RpgCoinPickable::amount(const bool &hasQuestions)
-{
-	if (hasQuestions)
-		return m_amount;
-	else
-		return m_amount * 0.1;
-}
+	friend class IsometricBullet;
+};
 
 
 
-/**
- * @brief RpgCoinPickable::load
- */
-
-void RpgCoinPickable::load()
-{
-	loadDefault(QStringLiteral("coin"));
-}
+#endif // ISOMETRICBULLET_P_H

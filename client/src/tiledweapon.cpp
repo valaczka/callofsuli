@@ -76,6 +76,8 @@ QString TiledWeapon::weaponName(const WeaponType &type)
 		case WeaponDagger: return tr("tőr");
 		case WeaponBroadsword: return tr("pallos");
 		case WeaponMageStaff: return QStringLiteral("varázsbot");
+		case WeaponLightningWeapon: return QStringLiteral("villám");
+		case WeaponFireFogWeapon: return QStringLiteral("tűz");
 		case WeaponInvalid: return tr("érvénytelen");
 	}
 
@@ -101,6 +103,8 @@ QString TiledWeapon::weaponNameEn(const WeaponType &type)
 		case WeaponBroadsword: return QStringLiteral("Broadsword");
 		case WeaponDagger: return QStringLiteral("Dagger");
 		case WeaponMageStaff: return QStringLiteral("Mage staff");
+		case WeaponLightningWeapon: return QStringLiteral("Lightning");
+		case WeaponFireFogWeapon: return QStringLiteral("Fire fog");
 		case WeaponInvalid: return QStringLiteral("Invalid");
 	}
 
@@ -121,7 +125,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_bulletCount == 0)
 		return false;
 
-	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+	if (!m_disableTimerRepeater && !m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
 		return false;
 
 	IsometricBullet *bullet = createBullet(distance);
@@ -159,7 +163,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_bulletCount == 0)
 		return false;
 
-	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+	if (!m_disableTimerRepeater && !m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
 		return false;
 
 	IsometricBullet *bullet = createBullet(distance);
@@ -192,7 +196,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 
 bool TiledWeapon::hit(TiledObject *target)
 {
-	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+	if (!m_disableTimerRepeater && !m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
 		return false;
 
 	if (target && m_parentObject) {
@@ -371,6 +375,16 @@ void TiledWeapon::setCanCast(bool newCanCast)
 		return;
 	m_canCast = newCanCast;
 	emit canCastChanged();
+}
+
+bool TiledWeapon::disableTimerRepeater() const
+{
+	return m_disableTimerRepeater;
+}
+
+void TiledWeapon::setDisableTimerRepeater(bool newDisableTimerRepeater)
+{
+	m_disableTimerRepeater = newDisableTimerRepeater;
 }
 
 

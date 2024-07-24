@@ -31,7 +31,7 @@
 RpgHpPickable::RpgHpPickable(QQuickItem *parent)
 	: RpgPickableObject(PickableHp, parent)
 {
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
+	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }
 
 
