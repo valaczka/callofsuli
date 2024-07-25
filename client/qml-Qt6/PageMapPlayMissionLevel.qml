@@ -297,7 +297,7 @@ QPageGradient {
 
 		Qaterial.IconLabel {
 			anchors.horizontalCenter: parent.horizontalCenter
-			width: Math.min(implicitWidth, parent.width)
+			width: Math.min(implicitWidth, parent.width, 100)
 			font: Qaterial.Style.textTheme.caption
 			icon.source: Qaterial.Icons.informationOutline
 			wrapMode: Text.Wrap

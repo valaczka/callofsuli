@@ -26,8 +26,10 @@
 
 #include "grade.h"
 #include "Logger.h"
+#include "qjsondocument.h"
 #include "qjsonobject.h"
 #include "clientcache.h"
+#include "utils_.h"
 
 Grade::Grade(QObject *parent)
 	: SelectableObject{parent}
@@ -229,9 +231,12 @@ void GradingConfig::gradeSet(Grade *grade, const qreal &num, const bool &set)
 	if (!grade)
 		return;
 
-	m_gradeMap.insert(grade, qMakePair(num, set));
-
-	emit listChanged();
+	if (m_gradeMap.contains(grade))
+		m_gradeMap[grade] = qMakePair(num, set);
+	else {
+		m_gradeMap.insert(grade, qMakePair(num, set));
+		emit listChanged();
+	}
 }
 
 
@@ -245,6 +250,18 @@ void GradingConfig::gradeRemove(Grade *grade)
 {
 	m_gradeMap.remove(grade);
 	emit listChanged();
+}
+
+
+
+/**
+ * @brief GradingConfig::save
+ */
+
+void GradingConfig::save() const
+{
+	QJsonDocument doc(toJson());
+	Utils::settingsSet(QStringLiteral("teacher/grading"), QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
 }
 
 
@@ -291,7 +308,7 @@ QJsonArray GradingConfig::toJson() const
 	QJsonArray list;
 
 #if QT_VERSION >= 0x060400
-	for (auto [grade, value] : m_gradeMap.asKeyValueRange()) {
+	for (const auto &[grade, value] : m_gradeMap.asKeyValueRange()) {
 #else
 	for (auto it=m_gradeMap.constBegin(); it != m_gradeMap.constEnd(); ++it) {
 		auto grade = it.key();

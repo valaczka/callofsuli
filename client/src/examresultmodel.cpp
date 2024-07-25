@@ -349,6 +349,7 @@ void ExamResultModel::reloadFromJson(const QJsonObject &data)
 
 	emit dataChanged(index(0, 0), index(m_userList.size(), m_examList.size()));
 
+	emit contentReloaded();
 }
 
 

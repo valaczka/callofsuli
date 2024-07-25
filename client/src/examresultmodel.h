@@ -74,6 +74,12 @@ class ExamResultModel : public QAbstractTableModel
 public:
 	explicit ExamResultModel(QObject *parent = nullptr);
 
+	struct ExamResult {
+		QPointer<User> user;
+		QPointer<Exam> exam;
+		ExamResultResult result;
+	};
+
 	int rowCount(const QModelIndex & = QModelIndex()) const override { return m_showHeaderPlaceholders ? 10 : m_userList.size()+1; }
 	int columnCount(const QModelIndex & = QModelIndex()) const override { return m_showHeaderPlaceholders ? 5 : m_examList.size()+1; }
 	QVariant data(const QModelIndex &index, int role) const override;
@@ -94,27 +100,23 @@ public:
 	ExamList *groupExamList() const;
 	void setGroupExamList(ExamList *newGroupExamList);
 
+	const QVector<ExamResult> &resultList() const { return m_resultList; }
+
 public slots:
 	void reload();
 	void reloadContent();
 
 signals:
 	void modelReloaded();
+	void contentReloaded();
 
 	void teacherGroupChanged();
 	void showHeaderPlaceholdersChanged();
 	void showCellPlaceholdersChanged();
 	void groupExamListChanged();
 
-
 private:
 	void reloadFromJson(const QJsonObject &data);
-
-	struct ExamResult {
-		QPointer<User> user;
-		QPointer<Exam> exam;
-		ExamResultResult result;
-	};
 
 	int findResult(const User *user, const Exam *exam) const;
 	int findResult(const QString &username, const int &examid) const;

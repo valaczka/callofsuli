@@ -3131,7 +3131,7 @@ QHttpServerResponse TeacherAPI::examCreateContent(const Credential &credential, 
 	if (json.value(QStringLiteral("forced")).toBool()) {
 		CHECK_EXAM(credential.username(), id);
 	} else {
-		CHECK_EXAM_STATE(credential.username(), id, "state<2");
+		CHECK_EXAM_STATE(credential.username(), id, "state<4");
 	}
 
 	db.transaction();
@@ -3159,9 +3159,9 @@ QHttpServerResponse TeacherAPI::examCreateContent(const Credential &credential, 
 								   .addField("data", QString::fromUtf8(QJsonDocument(qList).toJson(QJsonDocument::Compact)))
 								   .exec());
 
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+		/*LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
 								   .addQuery("UPDATE exam SET state=1 WHERE id=").addValue(id)
-								   .exec());
+								   .exec());*/
 	}
 
 	db.commit();

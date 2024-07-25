@@ -36,6 +36,7 @@
 #include "SBarcodeDecoder.h"
 #include "qjsonobject.h"
 #include "teachergroup.h"
+#include "examresultmodel.h"
 #include <QObject>
 #include <selectableobject.h>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -353,6 +354,10 @@ public:
 	Q_INVOKABLE void clearPendingGrades();
 	Q_INVOKABLE void savePendingGrades(const QList<ExamUser *> &list);
 
+	Q_INVOKABLE void setJoker(const QList<ExamUser *> &list, const bool &set = true);
+	Q_INVOKABLE QList<ExamUser *> jokerShow(ExamResultModel *resultModel,
+											const int &addLimit, const int &denyLimit) const;
+
 	ExamScanDataList* scanData() const;
 
 	ScanState scanState() const;
@@ -419,6 +424,8 @@ private:
 
 	void pickUsersRandom(const int &count, const QStringList &userList, const QJsonObject &data);
 	int getPicked(const QString &username, const QJsonArray &list) const;
+	QMap<bool, int> getUserJokerStreak(const QString &username,
+									   const QMap<QDateTime, Exam*> &examList, ExamResultModel *model) const;
 
 	void scanImages();
 	bool scanHasPendingQR();

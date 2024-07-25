@@ -63,7 +63,11 @@ TeacherExam::TeacherExam(QObject *parent)
 
 	auto gList = dynamic_cast<GradeList*>(Application::instance()->client()->cache("gradeList"));
 	m_gradingConfig->fill(gList);
-	m_gradingConfig->fromJson(Utils::settingsGet(QStringLiteral("teacher/grading")).toJsonArray(), gList);
+
+	const auto &docPtr = Utils::byteArrayToJsonArray(Utils::settingsGet(QStringLiteral("teacher/grading")).toString().toUtf8());
+
+	if (docPtr)
+		m_gradingConfig->fromJson(*docPtr, gList);
 
 	connect(this, &TeacherExam::updateFromServerRequest, this, &TeacherExam::updateResultFromServer);
 }
@@ -75,8 +79,6 @@ TeacherExam::TeacherExam(QObject *parent)
 
 TeacherExam::~TeacherExam()
 {
-	Utils::settingsSet(QStringLiteral("teacher/grading"), m_gradingConfig->toJson());
-
 	LOG_CTRACE("client") << "TeacherExam destroyed" << this;
 }
 
@@ -514,15 +516,9 @@ void TeacherExam::pickUsers(QStringList userList, int count)
 {
 	Client *client = Application::instance()->client();
 
-
-	client->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/content/delete").arg(m_exam->examId()), QJsonObject{
-					 { QStringLiteral("list"), QJsonArray::fromStringList(userList) }
-				 })
-			->done(this, [client, this, count, userList](const QJsonObject&) {
-		client->send(HttpConnection::ApiTeacher, QStringLiteral("group/%1/exam/result").arg(m_teacherGroup->groupid()))
-				->fail(client, [client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
-				->done(this, std::bind(&TeacherExam::pickUsersRandom, this, count, userList, std::placeholders::_1));
-	});
+	client->send(HttpConnection::ApiTeacher, QStringLiteral("group/%1/exam/result").arg(m_teacherGroup->groupid()))
+			->fail(client, [client](const QString &err){client->messageWarning(err, tr("Letöltési hiba"));})
+			->done(this, std::bind(&TeacherExam::pickUsersRandom, this, count, userList, std::placeholders::_1));
 }
 
 
@@ -806,6 +802,92 @@ void TeacherExam::savePendingGrades(const QList<ExamUser *> &list)
 		Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
 	})
 			;
+}
+
+
+
+/**
+ * @brief TeacherExam::setJoker
+ * @param list
+ * @param set
+ */
+
+void TeacherExam::setJoker(const QList<ExamUser *> &list, const bool &set)
+{
+	LOG_CTRACE("client") << "Set jokers:" << set;
+
+	if (list.isEmpty()) {
+		LOG_CWARNING("client") << "Missing users";
+		return;
+	}
+
+
+	QJsonArray uList;
+
+	for (ExamUser *it : list) {
+		QJsonArray eData = it->examData();
+
+		if (eData.isEmpty())
+			eData.append(QJsonObject{
+							 { QStringLiteral("joker"), set }
+						 });
+		else {
+			QJsonObject o = eData.first().toObject();
+			o[QStringLiteral("joker")] = set;
+			eData.replace(0, o);
+		}
+
+		uList.append(QJsonObject{
+						 { QStringLiteral("username"), it->username() },
+						 { QStringLiteral("q"), eData },
+					 });
+	}
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
+											QJsonObject{
+												{ QStringLiteral("list"), uList }
+											})
+			->done(this, [this](const QJsonObject&) {
+		reloadExamContent();
+	});
+}
+
+
+
+
+/**
+ * @brief TeacherExam::jokerShow
+ * @return
+ */
+
+QList<ExamUser *> TeacherExam::jokerShow(ExamResultModel *resultModel, const int &addLimit, const int &denyLimit) const
+{
+	LOG_CTRACE("client") << "Show jokers";
+
+	if (!resultModel)
+		return {};
+
+	QMap<QDateTime, Exam*> orderedList;
+
+	for (Exam *e : *resultModel->groupExamList()) {
+		if (e && e->mode() == Exam::ExamVirtual) {
+			if (e != m_exam || m_exam->state() == Exam::Finished)
+				orderedList.insert(e->timestamp(), e);
+		}
+	}
+
+	QList<ExamUser *> list;
+
+	for (ExamUser *u : *m_examUserList.get()) {
+		const auto map = getUserJokerStreak(u->username(), orderedList, resultModel);
+
+		LOG_CTRACE("client") << "Check" << u->username() << map.value(true) << map.value(false);
+
+		if (map.value(true) >= addLimit || map.value(false) >= denyLimit)
+			list.append(u);
+	}
+
+	return list;
 }
 
 
@@ -1126,7 +1208,6 @@ void TeacherExam::pickUsersRandom(const int &count, const QStringList &userList,
 {
 	QMultiMap<int, ExamUser*> userMap;
 
-	QJsonArray uList;
 
 	const QJsonArray &dList = data.value(QStringLiteral("list")).toArray();
 
@@ -1165,28 +1246,36 @@ void TeacherExam::pickUsersRandom(const int &count, const QStringList &userList,
 	}
 
 
-	emit virtualListPicked(retList);
+	QJsonArray uList;
 
+	for (ExamUser *it : userMap) {
+		QJsonArray eData = it->examData();
 
-	for (auto it = userMap.cbegin(); it != userMap.cend(); ++it) {
-		QJsonObject userdata;
-		QJsonObject qData;
+		if (eData.isEmpty())
+			eData.append(QJsonObject{
+							 { QStringLiteral("picked"), retList.contains(it) }
+						 });
+		else {
+			QJsonObject o = eData.first().toObject();
+			o[QStringLiteral("picked")] = retList.contains(it);
+			eData.replace(0, o);
+		}
 
-		qData[QStringLiteral("picked")] = retList.contains(*it);
-
-		userdata[QStringLiteral("username")] = (*it)->username();
-		userdata[QStringLiteral("q")] = QJsonArray{qData};
-
-		uList.append(userdata);
+		uList.append(QJsonObject{
+						 { QStringLiteral("username"), it->username() },
+						 { QStringLiteral("q"), eData },
+					 });
 	}
 
 	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/%1/create").arg(m_exam->examId()),
 											QJsonObject{
 												{ QStringLiteral("list"), uList }
 											})
-			->done(this, [this](const QJsonObject&) {
+			->done(this, [this, retList](const QJsonObject&) {
 		inactivate();
 		reloadExamContent();
+
+		emit virtualListPicked(retList);
 	});
 }
 
@@ -2845,4 +2934,53 @@ int TeacherExam::getPicked(const QString &username, const QJsonArray &list) cons
 	}
 
 	return count;
+}
+
+
+
+/**
+ * @brief TeacherExam::getUserJokerStreak
+ * @param examList
+ * @param model
+ * @return
+ */
+
+QMap<bool, int> TeacherExam::getUserJokerStreak(const QString &username, const QMap<QDateTime, Exam *> &examList, ExamResultModel *model) const
+{
+	if (!model)
+		return {};
+
+	int addCount = 0;
+	int denyCount = 0;
+
+	for (Exam *exam : examList) {
+		const QVector<ExamResultModel::ExamResult> &result = model->resultList();
+
+		auto it = std::find_if(result.constBegin(), result.constEnd(), [username, exam](const ExamResultModel::ExamResult &r){
+			return r.user && r.user->username() == username && r.exam == exam;
+		});
+
+		if (it == result.constEnd())
+			continue;
+
+
+		/// Megszámoljuk, hogy az előző joker óta hányszor nem szedtük be, ill. egymás után zsinórban hányszor szedtük be
+		/// NB: result.picked == -1, ha nem volt ott az órán (nem vett részt a sorsolásban)
+
+		if (it->result.joker) {
+			addCount = 0;
+			denyCount = 0;
+		} else if (it->result.picked == 0) {
+			++addCount;
+			denyCount = 0;
+		} else if (it->result.picked > 0) {
+			++denyCount;
+		}
+	}
+
+
+	return QMap<bool, int>{
+		{ true, addCount },
+		{ false, denyCount }
+	};
 }

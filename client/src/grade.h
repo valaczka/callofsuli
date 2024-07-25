@@ -115,6 +115,8 @@ public:
 	Q_INVOKABLE void gradeSet(Grade *grade, const qreal &num, const bool &set);
 	Q_INVOKABLE void gradeRemove(Grade *grade);
 
+	Q_INVOKABLE void save() const;
+
 	QVariantList list() const;
 
 signals:

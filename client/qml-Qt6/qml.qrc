@@ -239,5 +239,6 @@
         <file>UserInfoNotification.qml</file>
         <file>TiledEnemyMarker.qml</file>
         <file>RpgKeyboardInfoDialog.qml</file>
+        <file>PageTeacherExamShowJoker.qml</file>
     </qresource>
 </RCC>
