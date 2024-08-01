@@ -188,20 +188,20 @@ public:
 	QList<RpgPlayer *> players() const;
 	void setPlayers(const QList<RpgPlayer *> &newPlayers);
 
-	static const QByteArray &baseEntitySprite0() { return m_baseEntitySprite0; }
-	static const QByteArray &baseEntitySprite1() { return m_baseEntitySprite1; }
-	static const QByteArray &baseEntitySprite2() { return m_baseEntitySprite2; }
-	static QByteArray baseEntitySprite(const int &i) {
-		if (i==0)
-			return m_baseEntitySprite0;
-		else if (i==1)
-			return m_baseEntitySprite1;
-		else if (i==2)
-			return m_baseEntitySprite2;
-		else
-			return {};
-	}
 
+	// Sprite texture helper
+
+	static bool loadBaseTextureSprites(TiledSpriteHandler *handler,
+									   const QString &path,
+									   const QString &layer = QStringLiteral("default"));
+
+	static bool loadTextureSpritesWithHurt(TiledSpriteHandler *handler,
+										   const QVector<TextureSpriteMapper> &mapper,
+										   const QString &path,
+										   const QString &layer = QStringLiteral("default"));
+
+
+	static const QVector<TextureSpriteMapper> &baseEntitySprite();
 
 	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
 	static RpgEnemyMetricDefinition defaultEnemyMetric();
@@ -384,12 +384,6 @@ private:
 	FuncPlayerUseContainer m_funcPlayerUseContainer;
 	FuncPlayerUseCast m_funcPlayerUseCast;
 	FuncPlayerUseCast m_funcPlayerFinishCast;
-
-	// 3 részre daraboljuk, hogy ne haladja meg a textúra a 4096 px méretet
-
-	static const QByteArray m_baseEntitySprite0;
-	static const QByteArray m_baseEntitySprite1;
-	static const QByteArray m_baseEntitySprite2;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerCharacterConfig> m_characters;

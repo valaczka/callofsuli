@@ -120,7 +120,9 @@ inline QString RpgEnemyIface::directoryBaseName(const RpgEnemyType type, const Q
 		}
 
 		case EnemyWerebear:
-			case EnemyInvalid:
+			return QStringLiteral("werebear");
+
+		case EnemyInvalid:
 			break;
 	}
 

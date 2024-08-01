@@ -27,6 +27,7 @@
 #include "rpgarmory.h"
 #include "tiledspritehandler.h"
 #include "rpgmagestaff.h"
+#include "rpggame.h"
 
 
 /// Static hash
@@ -66,52 +67,6 @@ RpgArmory::~RpgArmory()
 {
 
 }
-
-
-/**
- * @brief RpgArmory::fillAvailableLayers
- * @param dest
- */
-
-void RpgArmory::fillAvailableLayers(IsometricObjectLayeredSprite *dest, const int &spriteNum)
-{
-	Q_ASSERT(dest);
-
-	for (const QString &s : m_layerInfoHash)
-		fillLayer(dest, s, spriteNum);
-}
-
-
-/**
- * @brief RpgArmory::fillLayer
- * @param dest
- * @param layer
- * @param spriteNum
- */
-
-void RpgArmory::fillLayer(IsometricObjectLayeredSprite *dest, const QString &layer, const int &spriteNum)
-{
-	Q_ASSERT(dest);
-	dest->layers.insert(layer, QStringLiteral(":/rpg/%1/_sprite%2.png").arg(layer).arg(spriteNum));
-}
-
-
-
-/**
- * @brief RpgArmory::fillLayer
- * @param dest
- * @param layer
- * @param subdir
- * @param spriteNum
- */
-
-void RpgArmory::fillLayer(IsometricObjectLayeredSprite *dest, const QString &layer, const QString &subdir, const int &spriteNum)
-{
-	Q_ASSERT(dest);
-	dest->layers.insert(layer, QStringLiteral(":/rpg/%1/_sprite%2.png").arg(subdir).arg(spriteNum));
-}
-
-
 
 
 /**
@@ -384,6 +339,7 @@ void RpgArmory::updateLayers()
 	TiledSpriteHandler *handler = m_parentObject->spriteHandler();
 
 	QStringList layers = m_baseLayers;
+	QStringList loadableLayers;
 
 	bool addMageStaff = false;
 
@@ -395,6 +351,7 @@ void RpgArmory::updateLayers()
 			case TiledWeapon::WeaponDagger:
 			case TiledWeapon::WeaponBroadsword:
 				layers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
+				loadableLayers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
 				break;
 
 			case TiledWeapon::WeaponMageStaff:
@@ -415,9 +372,9 @@ void RpgArmory::updateLayers()
 								   return w->weaponType() == TiledWeapon::WeaponMageStaff && !w->excludeFromLayers();
 	}); it != m_weaponList->cend()) {
 			layers.append(m_layerInfoHash.value(TiledWeapon::WeaponMageStaff));
+			loadableLayers.append(m_layerInfoHash.value(TiledWeapon::WeaponMageStaff));
 		}
 	}
-
 
 	if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
 							   [](TiledWeapon *w) {
@@ -425,6 +382,13 @@ void RpgArmory::updateLayers()
 }); it != m_weaponList->cend()) {
 		if ((*it)->bulletCount() > 0)
 			layers.append(QStringLiteral("shield"));
+	}
+
+
+	for (const QString &s : loadableLayers) {
+		if (auto *h = m_parentObject->spriteHandler(); !h->layers().contains(s)) {
+			RpgGame::loadBaseTextureSprites(h, QStringLiteral(":/rpg/")+s+QStringLiteral("/"), s);
+		}
 	}
 
 	handler->setVisibleLayers(layers);

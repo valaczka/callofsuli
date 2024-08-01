@@ -29,6 +29,8 @@
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
 
+#include "utils_.h"
+
 /**
  * @brief RpgEnemyBase::RpgEnemyBase
  * @param parent
@@ -136,27 +138,19 @@ void RpgEnemyBase::load()
 
 	loadType();
 
-	for (int i=0; i<=2; ++i)
-	{
-		IsometricObjectLayeredSprite json;
-		json.fromJson(RpgGame::baseEntitySprite(i));
-		json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
-
-		// Ez nem biztos, hogy kell, ha nincs elvehető fegyver
-
-		//RpgArmory::fillAvailableLayers(&json, i);
-		appendSprite(json, QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/"));
-	}
-
+	RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/"));
 
 	setWidth(148);
 	setHeight(130);
 	setBodyOffset(0, 0.45*64);
-
-	//connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgWerebear::onCurrentSpriteChanged);
-
 }
 
+
+
+/**
+ * @brief RpgEnemyBase::eventPlayerReached
+ * @param player
+ */
 
 
 void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)

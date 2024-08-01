@@ -56,6 +56,12 @@ protected:
 	void playSprite(const QString &path, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite,
 					const QString &soundPath, const float &baseVolume = 1.);
 
+	void playSprite(const QString &path, const TextureSprite &sprite);
+	void playSprite(const QString &path, const TextureSprite &sprite, const bool &replaceCurrentSprite);
+	void playSprite(const QString &path, const TextureSprite &sprite,
+					const QString &soundPath, const float &baseVolume = 1.);
+	void playSprite(const QString &path, const TextureSprite &sprite, const bool &replaceCurrentSprite,
+					const QString &soundPath, const float &baseVolume = 1.);
 
 	const TiledObject *m_parentObject;
 	const QString m_spriteName;

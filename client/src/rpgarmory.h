@@ -55,9 +55,6 @@ public:
 	explicit RpgArmory(TiledObject *parentObject, QObject *parent = nullptr);
 	virtual ~RpgArmory();
 
-	static void fillAvailableLayers(IsometricObjectLayeredSprite *dest, const int &spriteNum);
-	static void fillLayer(IsometricObjectLayeredSprite *dest, const QString &layer, const int &spriteNum);
-	static void fillLayer(IsometricObjectLayeredSprite *dest, const QString &layer, const QString &subdir, const int &spriteNum);
 	static const QHash<TiledWeapon::WeaponType, QString> &weaponHash() { return m_layerInfoHash; }
 
 	Q_INVOKABLE bool changeToNextWeapon();

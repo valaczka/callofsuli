@@ -88,8 +88,10 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 		return node;
 
 
-	for (const QString &layer : std::as_const(m_visibleLayers)) {
-		for (const auto &it : std::as_const(list)) {
+	// TODO: layer order (shield, weapon, body)
+
+	for (const QString &layer : m_visibleLayers) {
+		for (const auto &it : list) {
 			if (it->layer != layer)
 				continue;
 
@@ -97,6 +99,15 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 				LOG_CERROR("scene") << "Invalid texture" << it->data.name << it->direction << it->layer;
 				continue;
 			}
+
+			if (m_currentFrame < 0 || m_currentFrame >= it->data.frames.size()) {
+				LOG_CERROR("scene") << "Invalid frame" << m_currentFrame << it->data.name << it->direction << it->layer;
+				continue;
+			}
+
+			const TextureSpriteFrame &frame = it->data.frames.at(m_currentFrame);
+
+
 
 			QSGSimpleTextureNode *imgNode = new QSGSimpleTextureNode();
 			imgNode->setOwnsTexture(false);
@@ -106,21 +117,58 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 			switch (m_opacityMask) {
 				case MaskTop: {
 					QRectF r = boundingRect();
-					r.setHeight(r.height()*0.5);
+					const qreal h = r.height()*0.5;
+
+					r.setX(r.x() + frame.spriteSourceSize.x);
+					r.setY(r.y() + frame.spriteSourceSize.y);
+					r.setWidth(frame.spriteSourceSize.w);
+					r.setHeight(h - frame.spriteSourceSize.y);
+
 					imgNode->setRect(r);
+					imgNode->setSourceRect(
+								frame.frame.x,
+								frame.frame.y,
+								frame.frame.w,
+								std::min((qreal)frame.frame.h, h - frame.spriteSourceSize.y)
+								);
 					break;
 				}
 				case MaskBottom: {
 					QRectF r = boundingRect();
 					const qreal h = r.height()*0.5;
+
+					r.setX(r.x() + frame.spriteSourceSize.x);
+					r.setY(r.y() + h);
+					r.setWidth(frame.spriteSourceSize.w);
 					r.setHeight(h);
-					r.moveTop(h);
+
 					imgNode->setRect(r);
+					imgNode->setSourceRect(
+								frame.frame.x,
+								frame.frame.y + h - frame.spriteSourceSize.y,
+								frame.frame.w,
+								frame.frame.h - (h - frame.spriteSourceSize.y)
+								);
+
+
 					break;
 				}
-				case MaskFull:
-					imgNode->setRect(boundingRect());
+				case MaskFull: {
+					QRectF r = boundingRect();
+					r.setX(r.x() + frame.spriteSourceSize.x);
+					r.setY(r.y() + frame.spriteSourceSize.y);
+					r.setWidth(frame.spriteSourceSize.w);
+					r.setHeight(frame.spriteSourceSize.h);
+
+					imgNode->setRect(r);
+					imgNode->setSourceRect(
+								frame.frame.x,
+								frame.frame.y,
+								frame.frame.w,
+								frame.frame.h
+								);
 					break;
+				}
 			}
 
 
@@ -128,7 +176,7 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 				imgNode->setTexture(it->texture);
 
 
-			if (!it->data.flow) {
+			/*if (!it->data.flow) {
 				QRectF rect(it->data.x,
 							it->data.y,
 							it->data.width,
@@ -191,7 +239,7 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 				}
 
 				imgNode->setSourceRect(rect);
-			}
+			}*/
 
 			imgNode->markDirty(QSGNode::DirtyGeometry);
 		}
@@ -211,7 +259,7 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
  * @return
  */
 
-bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QString &layer, const QString &source)
+bool TiledSpriteHandler::addSprite(const TextureSprite &sprite, const QString &layer, const QString &source)
 {
 	if (exists(sprite.name, layer)) {
 		LOG_CERROR("scene") << "Sprite already loaded:" << sprite.name << source << layer;
@@ -243,7 +291,7 @@ bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QStrin
  * @return
  */
 
-bool TiledSpriteHandler::addSprite(const TiledObjectSprite &sprite, const QString &layer,
+bool TiledSpriteHandler::addSprite(const TextureSprite &sprite, const QString &layer,
 								   const TiledObject::Direction &direction, const QString &source)
 {
 	if (exists(sprite.name, layer, direction)) {
@@ -317,7 +365,7 @@ const QStringList &TiledSpriteHandler::spriteNames() const
  * @return
  */
 
-bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
+bool TiledSpriteHandler::createSpriteItem(const TextureSprite &sprite,
 										  const QString &source,
 										  const QString &layer,
 										  const TiledObject::Direction &direction)
@@ -343,6 +391,9 @@ bool TiledSpriteHandler::createSpriteItem(const TiledObjectSprite &sprite,
 	}
 
 	///LOG_CTRACE("scene") << "Sprite created:" << s.data.name << s.layer << s.direction;
+
+	if (!m_layers.contains(layer))
+		m_layers.append(layer);
 
 	m_spriteList.append(s);
 
@@ -667,7 +718,7 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 	for (int dir = 0; dir<2; ++dir) {
 		int nextFrame = m_isReverse ? m_currentFrame-1 : m_currentFrame+1;
 
-		if (!m_isReverse && nextFrame >= ptr.value()->data.count) {
+		if (!m_isReverse && nextFrame >= ptr.value()->data.frames.size()) {
 			if (!m_jumpToSprite.data.name.isEmpty()) {
 				changeSprite(m_jumpToSprite.data.name, m_jumpToSprite.direction);
 				m_jumpToSprite = Sprite{};

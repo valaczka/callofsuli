@@ -27,10 +27,65 @@
 #include "rpgwerebear.h"
 #include "rpggame.h"
 #include "tiledspritehandler.h"
-#include "utils_.h"
 
 
+namespace RpgWerebearNS {
 
+static const QVector<TiledGame::TextureSpriteMapper> &mapperBase(const bool &isZero = false) {
+	static std::unique_ptr<QVector<TiledGame::TextureSpriteMapper>> mapper;
+
+	if (mapper)
+		return *(mapper.get());
+
+	mapper.reset(new QVector<TiledGame::TextureSpriteMapper>);
+
+	struct BaseMapper {
+		QString name;
+		int count = 0;
+		int duration = 0;
+		int loops = 0;
+	};
+
+	static const QVector<TiledObject::Direction> directions = {
+		TiledObject::South, TiledObject::SouthEast, TiledObject::East, TiledObject::NorthEast, TiledObject::North,
+		TiledObject::NorthWest, TiledObject::West, TiledObject::SouthWest
+	};
+
+	static const QVector<TiledObject::Direction> directions0 = {
+		TiledObject::West, TiledObject::NorthWest, TiledObject::North, TiledObject::NorthEast, TiledObject::East,
+		TiledObject::SouthEast, TiledObject::South, TiledObject::SouthWest
+	};
+
+
+	static const QVector<BaseMapper> baseMapper = {
+		{ QStringLiteral("idle"), 4, 120, 0 },
+		{ QStringLiteral("run"), 8, 90, 0 },
+		{ QStringLiteral("hit"), 4, 60, 1 },
+		{ QStringLiteral("death"), 8, 60, 1 },
+		{ QStringLiteral("ignored"), 4, 60, 1 },
+	};
+
+	const QVector<TiledObject::Direction> &dir = isZero ? directions0 : directions;
+
+	for (const auto &d : dir) {
+		for (const auto &m : baseMapper) {
+			TiledGame::TextureSpriteMapper dst;
+			dst.name = m.name;
+			dst.direction = d;
+			dst.width = 128;
+			dst.height = 128;
+			dst.duration = m.duration;
+			dst.loops = m.loops;
+
+			for (int i=0; i<m.count; ++i)
+				mapper->append(dst);
+		}
+	}
+
+	return *(mapper.get());
+}
+
+};
 
 /**
  * @brief RpgWerebear::RpgWerebear
@@ -101,50 +156,41 @@ void RpgWerebear::load()
 	setAvailableDirections(Direction_8);
 
 	const char *file = nullptr;
-	const char *data = "data.json";
 	int hp = 9;
 
 	switch (m_werebearType) {
 		case WerebearBrownArmor:
-			file = "werebear_brown_armor.png";
+			file = "werebear_brown_armor_texture";
 			hp = 11;
 			break;
 		case WerebearBrownBare:
-			file = "werebear_brown_bare.png";
+			file = "werebear_brown_bare_texture";
 			break;
 		case WerebearBrownShirt:
-			file = "werebear_brown_shirt.png";
+			file = "werebear_brown_shirt_texture";
 			break;
 		case WerebearWhiteArmor:
-			file = "werebear_white_armor.png";
+			file = "werebear_white_armor_texture";
 			hp = 11;
 			break;
 		case WerebearWhiteBare:
-			file = "werebear_white_bare.png";
+			file = "werebear_white_bare_texture";
 			break;
 		case WerebearWhiteShirt:
-			file = "werebear_white_shirt.png";
+			file = "werebear_white_shirt_texture";
 			break;
 		case WerebearDefault:
-			file = "werebear_0.png";
-			data = "data0.json";
+			file = "werebear_0_texture";
 			break;
 	}
 
 	setMaxHp(hp);
 	setHp(hp);
 
-	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/enemy/werebear/").append(data));
 
-	if (!ptr) {
-		LOG_CERROR("game") << "Resource load error";
-		return;
-	}
-
-	IsometricObjectSpriteList json;
-	json.fromJson(*ptr);
-
-	appendSprite(QStringLiteral(":/enemy/werebear/").append(file), json);
+	RpgGame::loadTextureSpritesWithHurt(m_spriteHandler,
+										RpgWerebearNS::mapperBase(m_werebearType == WerebearDefault),
+										QStringLiteral(":/enemy/werebear/").append(file));
 
 	setWidth(128);
 	setHeight(128);

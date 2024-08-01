@@ -29,6 +29,7 @@
 #include "application.h"
 #include "isometricentity.h"
 #include "rpgenemyiface.h"
+#include "tiledspritehandler.h"
 #include "utils_.h"
 #include <libtiled/objectgroup.h>
 #include <libtiled/mapreader.h>
@@ -109,6 +110,8 @@ bool TiledGame::load(const TiledGameDefinition &def)
 			emit gameLoadFailed(tr("Hibás pálya"));
 			return false;
 		}
+
+		Tiled::ImageCache::clear();
 	}
 
 	TiledScene *firstScene = findScene(def.firstScene);
@@ -355,6 +358,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 		LOG_CERROR("game") << "Scene create error" << component.errorString();
 		return false;
 	}
+
 
 	item.scene = qvariant_cast<TiledScene*>(item.container->property("scene"));
 	Q_ASSERT(item.scene);
@@ -1293,7 +1297,7 @@ void TiledGame::playSfx(const QString &source, TiledScene *scene, const QPointF 
  * @return
  */
 
-std::optional<qreal> TiledGame::getSfxVolume(TiledScene *scene, const QPointF &position, const float &baseVolume, const qreal &baseScale)
+std::optional<qreal> TiledGame::getSfxVolume(TiledScene *scene, const QPointF &position, const float &/*baseVolume*/, const qreal &/*baseScale*/)
 {
 	if (!scene)
 		return std::nullopt;
@@ -1516,3 +1520,207 @@ void TiledGame::setDebugView(bool newDebugView)
 	m_debugView = newDebugView;
 	emit debugViewChanged();
 }
+
+
+
+
+/**
+ * @brief TiledGame::loadTextureSprites
+ * @param handler
+ * @param mapper
+ * @param path
+ * @param layer
+ * @return
+ */
+
+bool TiledGame::loadTextureSprites(TiledSpriteHandler *handler, const QVector<TextureSpriteMapper> &mapper,
+								   const QString &path, const QString &layer)
+{
+	Q_ASSERT(handler);
+
+	LOG_CDEBUG("game") << "Load sprite texture" << path << layer;
+
+	const auto &ptr = Utils::fileToJsonObject(
+						  path.endsWith('/') ?
+							  path+QStringLiteral("/texture.json") :
+							  path+QStringLiteral(".json")
+							  );
+
+	if (!ptr)
+		return false;
+
+	TextureSpriteDef def;
+	def.fromJson(*ptr);
+
+	const auto &sprites = spritesFromMapper(mapper, def);
+
+	return appendToSpriteHandler(handler, sprites,
+								 path.endsWith('/') ?
+									 path+QStringLiteral("/texture.png") :
+									 path+QStringLiteral(".png"),
+								 layer);
+}
+
+
+
+/**
+ * @brief TiledGame::spriteFromMapper
+ * @param mapper
+ * @param def
+ * @param name
+ * @param direction
+ * @param maxCount
+ * @return
+ */
+
+TextureSprite TiledGame::spriteFromMapper(const QVector<TextureSpriteMapper> &mapper,
+										const TextureSpriteDef &def,
+										const QString &name,
+										const TiledObject::Direction &direction,
+										const int &maxCount)
+{
+	TextureSprite sprite;
+	sprite.name = name;
+
+	for (auto it = mapper.cbegin(); it != mapper.cend() && (maxCount == 0 || sprite.frames.size() < maxCount); ++it) {
+		if (it->name != name || it->direction != direction)
+			continue;
+
+		const int frameNum = it - mapper.cbegin();
+
+		const auto frameIt = def.frames.find(frameNum+1);				// Azért +1, mert a json frames számozása 1-től indul
+
+		if (frameIt == def.frames.constEnd()) {
+			LOG_CERROR("game") << "Invalid frame" << frameNum << it->name << it->direction;
+			continue;
+		}
+
+		sprite.frames.append(*frameIt);
+		sprite.duration = it->duration;
+		sprite.loops = it->loops;
+		sprite.size.w = it->width;
+		sprite.size.h = it->height;
+	}
+
+	return sprite;
+}
+
+
+/**
+ * @brief TiledGame::spritesFromMapper
+ * @param mapper
+ * @param def
+ * @return
+ */
+
+QVector<TiledGame::TextureSpriteDirection> TiledGame::spritesFromMapper(const QVector<TextureSpriteMapper> &mapper, const TextureSpriteDef &def)
+{
+	QVector<TextureSpriteDirection> list;
+
+	const QStringList sprites = spriteNamesFromMapper(mapper);
+
+	for (const QString &s : sprites) {
+		const QVector<TiledObject::Direction> directions = directionsFromMapper(mapper, s);
+
+		for (const auto &d : directions) {
+			TextureSpriteDirection data;
+			data.sprite = spriteFromMapper(mapper, def, s, d);
+			data.direction = d;
+			list.append(data);
+		}
+	}
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief TiledGame::spriteNamesFromMapper
+ * @param mapper
+ * @return
+ */
+
+QStringList TiledGame::spriteNamesFromMapper(const QVector<TextureSpriteMapper> &mapper)
+{
+	QStringList list;
+
+	for (const auto &m : mapper) {
+		if (!list.contains(m.name))
+			list.append(m.name);
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief TiledGame::directionsFromMapper
+ * @param mapper
+ * @param name
+ * @return
+ */
+
+
+QVector<TiledObject::Direction> TiledGame::directionsFromMapper(const QVector<TextureSpriteMapper> &mapper, const QString &name)
+{
+	QVector<TiledObject::Direction> list;
+
+	for (const auto &m : mapper) {
+		if (m.name == name && !list.contains(m.direction))
+			list.append(m.direction);
+	}
+
+	return list;
+}
+
+
+
+/**
+ * @brief TiledGame::appendToSpriteHandler
+ * @param handler
+ * @param sprites
+ * @param source
+ * @param layer
+ * @return
+ */
+
+bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector<TextureSpriteDirection> &sprites, const QString &source,
+									const QString &layer)
+{
+	Q_ASSERT(handler);
+
+	for (const auto &d : sprites) {
+		if (!handler->addSprite(d.sprite, layer, d.direction, source))
+			return false;
+	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief TiledGame::appendToSpriteHandler
+ * @param handler
+ * @param sprites
+ * @param source
+ * @param layer
+ * @return
+ */
+
+bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector<TextureSprite> &sprites, const QString &source,
+									const QString &layer)
+{
+	Q_ASSERT(handler);
+
+	for (const auto &s : sprites) {
+		if (!handler->addSprite(s, layer, source))
+			return false;
+	}
+
+	return true;
+}
+

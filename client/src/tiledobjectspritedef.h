@@ -29,6 +29,110 @@
 
 #include <QSerializer>
 
+
+/**
+ * @brief The TextureSpriteFrameRect class
+ */
+
+class TextureSpriteFrameRect : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TextureSpriteFrameRect()
+		: QSerializer()
+		, x(0)
+		, y(0)
+		, w(0)
+		, h(0)
+	{}
+
+private:
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, x)
+	QS_FIELD(int, y)
+	QS_FIELD(int, w)
+	QS_FIELD(int, h)
+};
+
+
+
+
+/**
+ * @brief The TextureSpriteFrameSize class
+ */
+
+class TextureSpriteFrameSize : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TextureSpriteFrameSize(int _w = 0, int _h = 0)
+		: QSerializer()
+		, w(_w)
+		, h(_h)
+	{}
+
+private:
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, w)
+	QS_FIELD(int, h)
+};
+
+
+
+
+
+/**
+ * @brief The TextureSpriteFrame class
+ */
+
+class TextureSpriteFrame : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TextureSpriteFrame()
+		: QSerializer()
+	{}
+
+private:
+	QS_SERIALIZABLE
+
+	QS_OBJECT(TextureSpriteFrameRect, frame)
+	QS_OBJECT(TextureSpriteFrameRect, spriteSourceSize)
+	QS_OBJECT(TextureSpriteFrameSize, sourceSize)
+};
+
+
+
+
+
+/**
+ * @brief The TextureSpriteDef class
+ */
+
+class TextureSpriteDef : public QSerializer
+{
+	Q_GADGET
+
+public:
+	TextureSpriteDef()
+		: QSerializer()
+	{}
+
+private:
+	QS_SERIALIZABLE
+
+	QS_FIELD(QJsonObject, meta)
+	QS_QT_DICT_OBJECTS(QMap, int, TextureSpriteFrame, frames)
+};
+
+
+
+
 /**
  * @brief The TiledObjectSprite class
  */
@@ -106,48 +210,6 @@ public:
 
 
 
-/**
- * @brief The TiledMapObjectLayeredSprite class
- */
-
-class TiledMapObjectLayeredSprite : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledMapObjectLayeredSprite()
-	{}
-
-	QS_SERIALIZABLE
-	QS_QT_DICT(QMap, QString, QString, layers)
-	QS_COLLECTION_OBJECTS(QList, TiledObjectSprite, sprites)
-};
-
-
-
-
-
-/**
- * @brief The TiledObjectLayeredSpriteList class
- */
-
-class TiledObjectLayeredSpriteList : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledObjectLayeredSpriteList()
-	{}
-
-	QS_SERIALIZABLE
-
-	QS_COLLECTION_OBJECTS(QList, TiledMapObjectLayeredSprite, list)
-};
-
-
-
-
-
 
 
 /**
@@ -201,44 +263,58 @@ public:
 
 
 /**
- * @brief The TiledMapObjectAlterableSprite class
+ * @brief The TextureSprite class
  */
 
-class IsometricObjectLayeredSprite : public QSerializer
+class TextureSprite : public QSerializer
 {
 	Q_GADGET
 
 public:
-	IsometricObjectLayeredSprite()
+	TextureSprite()
+		: QSerializer()
+		, duration(0)
+		, loops(0)
 	{}
 
-	QS_SERIALIZABLE
-	QS_QT_DICT(QMap, QString, QString, layers)
-	QS_COLLECTION_OBJECTS(QList, IsometricObjectSprite, sprites)
-};
-
-
-
-
-
-/**
- * @brief The TiledMapObjectAlterableSpriteList class
- */
-
-class IsometricObjectLayeredSpriteList : public QSerializer
-{
-	Q_GADGET
-
-public:
-	IsometricObjectLayeredSpriteList()
+	TextureSprite(const QString &_name,
+				  const int &_width,
+				  const int &_height,
+				  const int &_duration,
+				  const QVector<TextureSpriteFrame> &_frames,
+				  const int &_loops = 0)
+		: QSerializer()
+		, name(_name)
+		, size({_width, _height})
+		, frames(_frames)
+		, duration(_duration)
+		, loops(_loops)
 	{}
 
+	TextureSprite(const QString &_name,
+				  const int &_width,
+				  const int &_height,
+				  const int &_duration,
+				  const int &_loops,
+				  const QVector<TextureSpriteFrame> &_frames)
+		: QSerializer()
+		, name(_name)
+		, size({_width, _height})
+		, frames(_frames)
+		, duration(_duration)
+		, loops(_loops)
+	{}
+
+private:
 	QS_SERIALIZABLE
 
-	QS_COLLECTION_OBJECTS(QList, IsometricObjectLayeredSprite, list)
+	QS_FIELD(QString, name)
+	QS_OBJECT(TextureSpriteFrameSize, size)
+	QS_COLLECTION_OBJECTS(QVector, TextureSpriteFrame, frames)
+
+	QS_FIELD(int, duration)
+	QS_FIELD(int, loops)					// 0: forever, -1: forever forward+reverse
+
 };
-
-
-
 
 #endif // TILEDOBJECTSPRITEDEF_H

@@ -44,6 +44,7 @@
 #include "utils_.h"
 #include <QRandomGenerator>
 #include "tiledcontainer.h"
+#include "tiledspritehandler.h"
 
 #ifndef Q_OS_WASM
 #include "rpgcoin.h"
@@ -64,135 +65,6 @@ const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 	{ QStringLiteral("archerFix"), EnemyArcherFix },
 	{ QStringLiteral("skeleton"), EnemySkeleton },
 };
-
-
-
-/// Base entity (special thanks to SKYZ0R)
-
-const QByteArray RpgGame::m_baseEntitySprite0 = R"(
-{
-"sprites": [
-	{
-		"name": "idle",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 0,
-		"y": 0,
-		"count": 4,
-		"width": 148,
-		"height": 130,
-		"duration": 250
-	},
-
-	{
-		"name": "attack",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 592,
-		"y": 0,
-		"count": 10,
-		"width": 148,
-		"height": 130,
-		"duration": 40,
-		"loops": 1
-	},
-
-	{
-		"name": "hurt",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 2072,
-		"y": 0,
-		"count": 4,
-		"width": 148,
-		"height": 130,
-		"duration": 60,
-		"loops": 1
-	},
-
-	{
-		"name": "death",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 2072,
-		"y": 0,
-		"count": 8,
-		"width": 148,
-		"height": 130,
-		"duration": 60,
-		"loops": 1
-	}
-
-]
-}
-)";
-
-
-
-
-
-
-
-const QByteArray RpgGame::m_baseEntitySprite1 = R"(
-{
-"sprites": [
-	{
-		"name": "walk",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 0,
-		"y": 0,
-		"count": 11,
-		"width": 148,
-		"height": 130,
-		"duration": 60
-	},
-
-	{
-		"name": "run",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 1628,
-		"y": 0,
-		"count": 10,
-		"width": 148,
-		"height": 130,
-		"duration": 60
-	}
-
-]
-}
-)";
-
-
-
-
-
-const QByteArray RpgGame::m_baseEntitySprite2 = R"(
-{
-"sprites": [
-	{
-		"name": "bow",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 0,
-		"y": 0,
-		"count": 9,
-		"width": 148,
-		"height": 130,
-		"duration": 40,
-		"loops": 1
-	},
-
-	{
-		"name": "cast",
-		"directions": [ 225, 270, 315, 360, 45, 90, 135, 180 ],
-		"x": 1332,
-		"y": 0,
-		"count": 9,
-		"width": 148,
-		"height": 130,
-		"duration": 60,
-		"loops": 1
-	}
-]
-}
-)";
-
-
 
 
 
@@ -804,6 +676,8 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 
 		enemy->initialize();
 	}
+
+	QCoreApplication::processEvents();
 
 	return enemy;
 }
@@ -2202,6 +2076,133 @@ void RpgGame::setPlayers(const QList<RpgPlayer *> &newPlayers)
 	m_players = newPlayers;
 	emit playersChanged();
 }
+
+
+
+/**
+ * @brief RpgGame::baseEntitySprite
+ * @return
+ */
+
+const QVector<RpgGame::TextureSpriteMapper> &RpgGame::baseEntitySprite()
+{
+	static std::unique_ptr<QVector<TextureSpriteMapper>> mapper;
+
+	if (mapper)
+		return *(mapper.get());
+
+	mapper.reset(new QVector<TextureSpriteMapper>);
+
+	struct BaseMapper {
+		QString name;
+		int count = 0;
+		int duration = 0;
+		int loops = 0;
+	};
+
+	static const QVector<TiledObject::Direction> directions = {
+		TiledObject::SouthWest, TiledObject::West, TiledObject::NorthWest, TiledObject::North, TiledObject::NorthEast,
+		TiledObject::East, TiledObject::SouthEast, TiledObject::South
+	};
+
+
+	static const QVector<BaseMapper> baseMapper = {
+		{ QStringLiteral("idle"), 4, 250, 0 },
+		{ QStringLiteral("attack"), 10, 40, 1 },
+		{ QStringLiteral("bow"), 9, 40, 1 },
+		{ QStringLiteral("cast"), 9, 60, 1 },
+		{ QStringLiteral("walk"), 11, 60, 0 },
+		{ QStringLiteral("run"), 10, 60, 0 },
+		{ QStringLiteral("death"), 8, 60, 1 },
+	};
+
+
+	for (const auto &d : directions) {
+		for (const auto &m : baseMapper) {
+			TextureSpriteMapper dst;
+			dst.name = m.name;
+			dst.direction = d;
+			dst.width = 148;
+			dst.height = 130;
+			dst.duration = m.duration;
+			dst.loops = m.loops;
+
+			for (int i=0; i<m.count; ++i)
+				mapper->append(dst);
+		}
+	}
+
+	return *(mapper.get());
+}
+
+
+
+
+
+/**
+ * @brief RpgGame::loadBaseTextureSprites
+ * @param handler
+ * @param path
+ * @param layer
+ * @return
+ */
+
+bool RpgGame::loadBaseTextureSprites(TiledSpriteHandler *handler, const QString &path, const QString &layer)
+{
+	return loadTextureSpritesWithHurt(handler, baseEntitySprite(), path, layer);
+}
+
+
+
+
+
+/**
+ * @brief RpgGame::loadTextureSpritesWithHurt
+ * @param handler
+ * @param mapper
+ * @param path
+ * @param layer
+ * @return
+ */
+
+bool RpgGame::loadTextureSpritesWithHurt(TiledSpriteHandler *handler, const QVector<TextureSpriteMapper> &mapper, const QString &path, const QString &layer)
+{
+	Q_ASSERT(handler);
+
+	LOG_CDEBUG("game") << "Load extended sprite texture" << path << layer;
+
+	const auto &ptr = Utils::fileToJsonObject(
+						  path.endsWith('/') ?
+							  path+QStringLiteral("/texture.json") :
+							  path+QStringLiteral(".json"));
+
+	if (!ptr)
+		return false;
+
+	TextureSpriteDef def;
+	def.fromJson(*ptr);
+
+	auto sprites = spritesFromMapper(mapper, def);
+
+	// Add hurt virtual sprites
+
+	const QVector<TiledObject::Direction> directions = directionsFromMapper(mapper, QStringLiteral("death"));
+
+	for (const auto &d : directions) {
+		TextureSpriteDirection data;
+		data.sprite = spriteFromMapper(mapper, def, QStringLiteral("death"), d, 4);
+		data.sprite.name = QStringLiteral("hurt");
+		data.direction = d;
+		sprites.append(data);
+	}
+
+	return appendToSpriteHandler(handler, sprites,
+								 path.endsWith('/') ?
+									 path+QStringLiteral("/texture.png") :
+									 path+QStringLiteral(".png"),
+								 layer);
+}
+
 
 
 

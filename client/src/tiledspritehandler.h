@@ -68,8 +68,8 @@ public:
 
 	QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *) override;
 
-	bool addSprite(const TiledObjectSprite &sprite, const QString &layer, const QString &source);
-	bool addSprite(const TiledObjectSprite &sprite, const QString &layer,
+	bool addSprite(const TextureSprite &sprite, const QString &layer, const QString &source);
+	bool addSprite(const TextureSprite &sprite, const QString &layer,
 				   const TiledObject::Direction &direction, const QString &source);
 
 	bool jumpToSprite(const QString &name, const TiledObject::Direction &direction, const JumpMode &mode = JumpImmediate);
@@ -123,11 +123,11 @@ private:
 	struct Sprite {
 		QString layer;
 		TiledObject::Direction direction = TiledObject::Invalid;
-		TiledObjectSprite data;
+		TextureSprite data;
 		QSGTexture *texture = nullptr;
 	};
 
-	bool createSpriteItem(const TiledObjectSprite &sprite, const QString &source,
+	bool createSpriteItem(const TextureSprite &sprite, const QString &source,
 						  const QString &layer = QStringLiteral("default"),
 						  const TiledObject::Direction &direction = TiledObject::Invalid);
 

@@ -28,6 +28,7 @@
 #include "qrandom.h"
 #include "tiledgame.h"
 #include "tiledspritehandler.h"
+#include "utils_.h"
 
 const QString TiledEffectHealed::m_staticSpriteName = QStringLiteral("healed");
 const QString TiledEffectSleep::m_staticSpriteName = QStringLiteral("sleep");
@@ -36,6 +37,32 @@ const QString TiledEffectSpark::m_staticSpriteName = QStringLiteral("spark");
 const QString TiledEffectFire::m_staticSpriteName = QStringLiteral("fire");
 const QString TiledEffectRing::m_staticSpriteName = QStringLiteral("ring");
 
+
+
+/**
+ * @brief fromSprite
+ * @param sprite
+ * @return
+ */
+
+namespace TiledEffectNS {
+static QVector<TiledGame::TextureSpriteMapper> fromSprite(const TiledObjectSprite &sprite, const QString &name) {
+	QVector<TiledGame::TextureSpriteMapper> mapper;
+
+	TiledGame::TextureSpriteMapper m;
+	m.name = name;
+	m.width = sprite.width;
+	m.height = sprite.height;
+	m.duration = sprite.duration;
+	m.loops = sprite.loops;
+
+	for (int i=0; i<sprite.count; ++i) {
+		mapper.append(m);
+	}
+
+	return mapper;
+}
+}
 
 
 /**
@@ -152,6 +179,81 @@ void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprit
  */
 
 void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite, const QString &soundPath, const float &baseVolume)
+{
+	if (!QFile::exists(path))
+		return;
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite, replaceCurrentSprite);
+	m_parentObject->m_game->playSfx(soundPath,
+									m_parentObject->m_scene,
+									m_parentObject->m_body->bodyPosition(),
+									baseVolume
+									);
+}
+
+
+
+/**
+ * @brief TiledEffect::playSprite
+ * @param path
+ * @param sprite
+ */
+
+void TiledEffect::playSprite(const QString &path, const TextureSprite &sprite)
+{
+	if (!QFile::exists(path))
+		return;
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite);
+}
+
+
+/**
+ * @brief TiledEffect::playSprite
+ * @param path
+ * @param sprite
+ * @param replaceCurrentSprite
+ */
+
+void TiledEffect::playSprite(const QString &path, const TextureSprite &sprite, const bool &replaceCurrentSprite)
+{
+	if (!QFile::exists(path))
+		return;
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite, replaceCurrentSprite);
+}
+
+
+/**
+ * @brief TiledEffect::playSprite
+ * @param path
+ * @param sprite
+ * @param soundPath
+ * @param baseVolume
+ */
+
+void TiledEffect::playSprite(const QString &path, const TextureSprite &sprite,
+							 const QString &soundPath, const float &baseVolume)
+{
+	if (!QFile::exists(path))
+		return;
+	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite);
+	m_parentObject->m_game->playSfx(soundPath,
+									m_parentObject->m_scene,
+									m_parentObject->m_body->bodyPosition(),
+									baseVolume
+									);
+}
+
+
+/**
+ * @brief TiledEffect::playSprite
+ * @param path
+ * @param sprite
+ * @param replaceCurrentSprite
+ * @param soundPath
+ * @param baseVolume
+ */
+
+void TiledEffect::playSprite(const QString &path, const TextureSprite &sprite, const bool &replaceCurrentSprite,
+							 const QString &soundPath, const float &baseVolume)
 {
 	if (!QFile::exists(path))
 		return;
@@ -309,7 +411,18 @@ void TiledEffectFire::play()
 		true
 	};
 
-	playSprite(QStringLiteral(":/rpg/common/explosion_fire_smoke.png"), sprite, true);
+	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/rpg/common/explosion_texture.json"));
+
+	if (!ptr)
+		return;
+
+	TextureSpriteDef def;
+	def.fromJson(*ptr);
+
+	TextureSprite s = TiledGame::spriteFromMapper(TiledEffectNS::fromSprite(sprite, QStringLiteral("default")),
+												  def, QStringLiteral("default"));
+
+	playSprite(QStringLiteral(":/rpg/common/explosion_texture.png"), s, true);
 }
 
 
@@ -329,7 +442,18 @@ void TiledEffectSleep::play()
 		0
 	};
 
-	playSprite(QStringLiteral(":/rpg/common/sparkle.png"), sprite);
+	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/rpg/common/sparkle_texture.json"));
+
+	if (!ptr)
+		return;
+
+	TextureSpriteDef def;
+	def.fromJson(*ptr);
+
+	TextureSprite s = TiledGame::spriteFromMapper(TiledEffectNS::fromSprite(sprite, QStringLiteral("default")),
+												  def, QStringLiteral("default"));
+
+	playSprite(QStringLiteral(":/rpg/common/sparkle_texture.png"), s);
 }
 
 
@@ -356,18 +480,23 @@ void TiledEffectRing::play()
 	Q_ASSERT(front);
 	Q_ASSERT(back);
 
+	const auto &ptr = TiledObject::toTextureSprite(sprite, m_source);
+
+	if (!ptr)
+		return;
+
 	front->clear();
 	front->setOpacityMask(TiledSpriteHandler::MaskBottom);
 	front->setWidth(128);
 	front->setHeight(128);
-	front->addSprite(sprite, QStringLiteral("default"), TiledObject::Direction::Invalid, m_source);
+	front->addSprite(ptr.value(), QStringLiteral("default"), TiledObject::Direction::Invalid, m_source);
 	front->setProperty("alignToBody", true);
 
 	back->clear();
 	back->setOpacityMask(TiledSpriteHandler::MaskTop);
 	back->setWidth(128);
 	back->setHeight(128);
-	back->addSprite(sprite, QStringLiteral("default"), TiledObject::Direction::Invalid, m_source);
+	back->addSprite(ptr.value(), QStringLiteral("default"), TiledObject::Direction::Invalid, m_source);
 	back->setProperty("alignToBody", true);
 
 	front->setSyncHandlers(true);

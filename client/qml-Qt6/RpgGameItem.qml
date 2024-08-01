@@ -133,7 +133,7 @@ FocusScope {
 
 		GameButton {
 			id: _setttingsButton
-			size: 30//Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
 
 			anchors.verticalCenter: parent.verticalCenter
 
@@ -152,7 +152,7 @@ FocusScope {
 
 		GameButton {
 			id: _questsButton
-			size: 30//Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
 
 			anchors.verticalCenter: parent.verticalCenter
 
@@ -169,7 +169,7 @@ FocusScope {
 
 		GameButton {
 			id: _mapButton
-			size: 30//Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
 
 			anchors.verticalCenter: parent.verticalCenter
 
@@ -199,7 +199,6 @@ FocusScope {
 		anchors.left: parent.left
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
 		extendedSize: !_game.mouseAttack && !_game.mouseNavigation
-		//size: Client.Utils.settingsGet("window/joystick", 160)
 	}
 
 
@@ -425,7 +424,7 @@ FocusScope {
 
 	GameButton {
 		id: _nextWeaponButton
-		size: 40
+		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 40
 
 		anchors.left: _rowTime.left
 		//y: Math.min((parent.height-height)/2, _gameJoystick.y-10-height)
@@ -453,7 +452,7 @@ FocusScope {
 
 	GameButton {
 		id: _castButton
-		size: 45
+		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 45
 
 		anchors.horizontalCenter: _shotButton.horizontalCenter
 		anchors.bottom: _shotButton.top

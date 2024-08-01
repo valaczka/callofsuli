@@ -178,6 +178,57 @@ public:
 	std::optional<QPointF> playerPosition(const int &sceneId, const int &num) const;
 	std::optional<QPointF> playerPosition(TiledScene *scene, const int &num) const;
 
+
+
+	// Sprite texture helper
+
+	struct TextureSpriteMapper
+	{
+		QString name;
+		TiledObject::Direction direction = TiledObject::Invalid;
+		int width = 0;
+		int height = 0;
+		int duration = 0;
+		int loops = 0;
+	};
+
+	struct TextureSpriteDirection {
+		TextureSprite sprite;
+		TiledObject::Direction direction = TiledObject::Invalid;
+	};
+
+	static bool loadTextureSprites(TiledSpriteHandler *handler,
+								   const QVector<TextureSpriteMapper> &mapper,
+								   const QString &path,
+								   const QString &layer = QStringLiteral("default"));
+
+
+	static TextureSprite spriteFromMapper(
+			const QVector<TextureSpriteMapper> &mapper,
+			const TextureSpriteDef &def,
+			const QString &name,
+			const TiledObject::Direction &direction = TiledObject::Invalid,
+			const int &maxCount = 0);
+
+	static QVector<TextureSpriteDirection> spritesFromMapper(
+			const QVector<TextureSpriteMapper> &mapper,
+			const TextureSpriteDef &def);
+
+	static QStringList spriteNamesFromMapper(const QVector<TextureSpriteMapper> &mapper);
+	static QVector<TiledObject::Direction> directionsFromMapper(const QVector<TextureSpriteMapper> &mapper, const QString &name);
+
+	static bool appendToSpriteHandler(TiledSpriteHandler *handler,
+									  const QVector<TextureSpriteDirection> &sprites,
+									  const QString &source,
+									  const QString &layer = QStringLiteral("default"));
+
+	static bool appendToSpriteHandler(TiledSpriteHandler *handler,
+									  const QVector<TextureSprite> &sprites,
+									  const QString &source,
+									  const QString &layer = QStringLiteral("default"));
+
+
+
 	virtual void onSceneWorldStepped(TiledScene *scene);
 
 	QQuickItem *joystick() const;

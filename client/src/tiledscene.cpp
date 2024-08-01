@@ -33,6 +33,7 @@
 #include "tilesetmanager.h"
 #include "isometricobjectiface.h"
 #include "application.h"
+#include "utils_.h"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
@@ -373,6 +374,7 @@ void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 		}
 	}
 }
+
 
 
 

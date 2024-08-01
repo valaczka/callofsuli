@@ -28,6 +28,7 @@
 #include "application.h"
 #include "Logger.h"
 #include "box2dfixture.h"
+#include "tiledgame.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
 #include <libtiled/maprenderer.h>
@@ -631,12 +632,12 @@ bool TiledObject::appendSprite(const QString &source, const TiledObjectSprite &s
 {
 	Q_ASSERT(m_spriteHandler);
 
-	if (m_spriteHandler->spriteNames().contains(sprite.name)) {
-		LOG_CERROR("scene") << "Sprite already loaded:" << source << sprite.name;
-		return false;
-	}
+	const auto &ptr = toTextureSprite(sprite, source);
 
-	return m_spriteHandler->addSprite(sprite, QStringLiteral("default"), source);
+	if (!ptr)
+		return false;
+
+	return TiledGame::appendToSpriteHandler(m_spriteHandler, { ptr.value() }, source);
 }
 
 
@@ -650,64 +651,17 @@ bool TiledObject::appendSprite(const QString &source, const TiledObjectSprite &s
 
 bool TiledObject::appendSprite(const QString &source, const TiledObjectSpriteList &spriteList)
 {
-	bool r = true;
-
-	for (const TiledObjectSprite &s : std::as_const(spriteList.sprites))
-		r &= m_spriteHandler->addSprite(s, QStringLiteral("default"), source);
-
-	return r;
-}
-
-
-
-/**
- * @brief TiledObject::appendSprite
- * @param path
- * @param sprite
- * @return
- */
-
-bool TiledObject::appendSprite(const TiledMapObjectLayeredSprite &sprite, const QString &path)
-{
-	Q_ASSERT(m_visualItem);
-
-	bool r = true;
-
-	for (const TiledObjectSprite &s : std::as_const(sprite.sprites)) {
-		for (auto it = sprite.layers.constBegin(); it != sprite.layers.constEnd(); ++it) {
-			const QString &alteration = it.key();
-			r &= m_spriteHandler->addSprite(s, alteration, path+it.value());
-		}
-	}
-
-	//m_availableAlterations.append(sprite.layers.keys());
-
-	return r;
-}
-
-
-/**
- * @brief TiledObject::appendSprite
- * @param path
- * @param spriteList
- * @return
- */
-
-bool TiledObject::appendSprite(const TiledObjectLayeredSpriteList &spriteList, const QString &path)
-{
-	Q_ASSERT(m_visualItem);
-
-	for (const auto &s : std::as_const(spriteList.list)) {
-		if (!appendSprite(s, path)) {
-			LOG_CERROR("scene") << "Load sprite error:" << path;
+	for (const TiledObjectSprite &s : spriteList.sprites) {
+		const auto &ptr = toTextureSprite(s, source);
+		if (!ptr)
 			return false;
-		}
+
+		if (!TiledGame::appendToSpriteHandler(m_spriteHandler, { ptr.value() }, source))
+			return false;
 	}
 
 	return true;
 }
-
-
 
 
 
@@ -1475,8 +1429,6 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 {
 	Q_ASSERT(m_spriteHandler);
 
-	bool r = true;
-
 	for (int i=0; i<sprite.directions.size(); ++i) {
 		const int n = sprite.directions.at(i);
 		Direction direction = QVariant::fromValue(n).value<Direction>();
@@ -1494,10 +1446,16 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 			s2.y = sprite.startRow + i*sprite.height;
 		}
 
-		r &= m_spriteHandler->addSprite(s2, QStringLiteral("default"), direction, source);
+		const auto &ptr = toTextureSprite(s2, source);
+
+		if (!ptr)
+			return false;
+
+		if (!m_spriteHandler->addSprite(ptr.value(), QStringLiteral("default"), direction, source))
+			return false;
 	}
 
-	return r;
+	return true;
 }
 
 
@@ -1514,7 +1472,7 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 {
 	Q_ASSERT(m_spriteHandler);
 
-	for (const auto &s : std::as_const(spriteList.sprites)) {
+	for (const auto &s : spriteList.sprites) {
 		if (!appendSprite(source, s)) {
 			LOG_CERROR("scene") << "Load sprite error:" << source;
 			return false;
@@ -1527,66 +1485,33 @@ bool TiledObject::appendSprite(const QString &source, const IsometricObjectSprit
 
 
 /**
- * @brief IsometricObjectIface::appendSprite
+ * @brief TiledObject::appendSprite
+ * @param source
  * @param sprite
- * @param path
  * @return
  */
 
-bool TiledObject::appendSprite(const IsometricObjectLayeredSprite &sprite, const QString &path)
+bool TiledObject::appendSprite(const QString &source, const TextureSprite &sprite)
 {
 	Q_ASSERT(m_spriteHandler);
-
-	bool r = true;
-
-	for (const IsometricObjectSprite &s : std::as_const(sprite.sprites)) {
-		for (auto it = sprite.layers.constBegin(); it != sprite.layers.constEnd(); ++it) {
-			const QString &alteration = it.key();
-
-			for (int i=0; i<s.directions.size(); ++i) {
-				const int n = s.directions.at(i);
-				Direction direction = QVariant::fromValue(n).value<Direction>();
-
-				if (direction == Invalid) {
-					LOG_CERROR("scene") << "Sprite invalid direction:" << n << path;
-					return false;
-				}
-
-				TiledObjectSprite s2 = s;
-
-				if (s.startColumn >= 0) {
-					s2.x = s.startColumn + i*s.width;
-				} else if (s.startRow >= 0) {
-					s2.y = s.startRow + i*s.height;
-				}
-
-				if (it.value().startsWith(QStringLiteral(":/")) || it.value().startsWith(QStringLiteral("qrc:/")))
-					r &= m_spriteHandler->addSprite(s2, alteration, direction, it.value());
-				else
-					r &= m_spriteHandler->addSprite(s2, alteration, direction, path+it.value());
-			}
-		}
-	}
-
-	return r;
+	return m_spriteHandler->addSprite(sprite, QStringLiteral("default"), source);
 }
 
 
 
+
 /**
- * @brief IsometricObjectIface::appendSprite
- * @param sprite
- * @param path
+ * @brief TiledObject::appendSprite
+ * @param source
+ * @param spriteList
  * @return
  */
 
-bool TiledObject::appendSprite(const IsometricObjectLayeredSpriteList &sprite, const QString &path)
+bool TiledObject::appendSprite(const QString &source, const QVector<TextureSprite> &spriteList)
 {
-	Q_ASSERT(m_spriteHandler);
-
-	for (const auto &s : std::as_const(sprite.list)) {
-		if (!appendSprite(s, path)) {
-			LOG_CERROR("scene") << "Load sprite error:" << path;
+	for (const auto &s : spriteList) {
+		if (!appendSprite(source, s)) {
+			LOG_CERROR("scene") << "Load sprite error:" << source;
 			return false;
 		}
 	}
@@ -1603,7 +1528,31 @@ bool TiledObject::appendSprite(const IsometricObjectLayeredSpriteList &sprite, c
  * @return
  */
 
-bool TiledObject::playAuxSprite(const AuxHandler &auxHandler, const bool &alignToBody, const QString &source, const TiledObjectSprite &sprite, const bool &replaceCurrentSprite) const
+bool TiledObject::playAuxSprite(const AuxHandler &auxHandler, const bool &alignToBody, const QString &source,
+								const TiledObjectSprite &sprite, const bool &replaceCurrentSprite) const
+{
+	const auto &ptr = toTextureSprite(sprite, source);
+
+	if (!ptr)
+		return false;
+
+	return playAuxSprite(auxHandler, alignToBody, source, ptr.value(), replaceCurrentSprite);
+}
+
+
+
+/**
+ * @brief TiledObject::playAuxSprite
+ * @param auxHandler
+ * @param alignToBody
+ * @param source
+ * @param sprite
+ * @param replaceCurrentSprite
+ * @return
+ */
+
+bool TiledObject::playAuxSprite(const AuxHandler &auxHandler, const bool &alignToBody, const QString &source,
+								const TextureSprite &sprite, const bool &replaceCurrentSprite) const
 {
 	TiledSpriteHandler *handler = nullptr;
 
@@ -1619,21 +1568,80 @@ bool TiledObject::playAuxSprite(const AuxHandler &auxHandler, const bool &alignT
 
 	Q_ASSERT(handler);
 
-	// ->property("alignToBody")
-
 	if (!handler->currentSprite().isEmpty() && !replaceCurrentSprite)
 		return false;
 
 	handler->clear();
-
 	handler->setClearAtEnd(true);
-	handler->setWidth(sprite.width);
-	handler->setHeight(sprite.height);
+	handler->setWidth(sprite.size.w);
+	handler->setHeight(sprite.size.h);
 	handler->addSprite(sprite, QStringLiteral("default"), Direction::Invalid, source);
 	handler->setProperty("alignToBody", alignToBody);
 	handler->jumpToSprite(sprite.name, Direction::Invalid, TiledSpriteHandler::JumpImmediate);
 
 	return true;
+}
+
+
+
+/**
+ * @brief TiledObject::toTextureSprite
+ * @param sprite
+ * @param source
+ * @return
+ */
+
+std::optional<TextureSprite> TiledObject::toTextureSprite(const TiledObjectSprite &sprite, const QString &source)
+{
+	int sourceWidth = 0;
+
+	if (sprite.flow) {
+		QImage img(source);
+		if (img.isNull()) {
+			LOG_CERROR("scene") << "Invalid image:" << source;
+			return std::nullopt;
+		}
+		sourceWidth = img.width();
+	}
+
+	TextureSprite s;
+
+	s.name = sprite.name;
+	s.size.w = sprite.width;
+	s.size.h = sprite.height;
+	s.duration = sprite.duration;
+	s.loops = sprite.loops;
+
+
+	int x = sprite.x;
+	int y = sprite.y;
+
+	for (int i=0; i<sprite.count; ++i) {
+		TextureSpriteFrame frame;
+		frame.frame.x = x;
+		frame.frame.y = y;
+		frame.frame.w = sprite.width;
+		frame.frame.h = sprite.height;
+
+		frame.spriteSourceSize.x = 0;
+		frame.spriteSourceSize.y = 0;
+		frame.spriteSourceSize.w = sprite.width;
+		frame.spriteSourceSize.h = sprite.height;
+
+		frame.sourceSize.w = sprite.width;
+		frame.sourceSize.h = sprite.height;
+
+		s.frames.append(frame);
+
+		x += sprite.width;
+
+		if (sprite.flow && sourceWidth > 0 && x >= sourceWidth) {
+			x = 0;
+			y += sprite.height;
+		}
+	}
+
+	return s;
 }
 
 

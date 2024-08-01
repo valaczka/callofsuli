@@ -327,11 +327,12 @@ void RpgPlayer::load()
 {
 	setAvailableDirections(Direction_8);
 
-	for (int i=0; i<=2; ++i)
+	/*for (int i=0; i<=2; ++i)
 	{
 		IsometricObjectLayeredSprite json;
 		json.fromJson(RpgGame::baseEntitySprite(i));
-		json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
+		//json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
+		json.layers.insert(QStringLiteral("default"), QStringLiteral("texture.png"));
 
 		RpgArmory::fillAvailableLayers(&json, i);
 		if (m_config.shield.isEmpty())
@@ -340,7 +341,15 @@ void RpgPlayer::load()
 			RpgArmory::fillLayer(&json, QStringLiteral("shield"), m_config.shield, i);
 
 		appendSprite(json, m_config.prefixPath);
-	}
+	}*/
+
+	RpgGame::loadBaseTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"));
+
+	if (m_config.shield.isEmpty())
+		RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/shield/"), QStringLiteral("shield"));
+	else
+		RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/")+m_config.shield+QStringLiteral("/"),
+										QStringLiteral("shield"));
 
 	setWidth(148);
 	setHeight(130);
