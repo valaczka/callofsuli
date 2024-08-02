@@ -667,7 +667,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		enemy->setParent(this);
 		enemy->setGame(this);
 		enemy->setScene(scene);
-		enemy->setMetric(getMetric(enemy->m_metric, type, subtype /*, level*/));				// TODO: level
+		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
 
 		if (type == RpgEnemyIface::EnemySoldierFix ||
 				type == RpgEnemyIface::EnemyArcherFix) {
@@ -1044,7 +1044,6 @@ void RpgGame::loadMetricDefinition()
 
 	m_metricDefinition.clear();
 
-	RpgEnemyMetricDefinition metric;
 
 	static const RpgEnemyMetricDefinition defaultMetric = defaultEnemyMetric();
 	static const std::vector<const QHash<QString, EnemyMetric>*> defM = {
@@ -1059,6 +1058,10 @@ void RpgGame::loadMetricDefinition()
 		QStringLiteral("skeleton"),
 		QStringLiteral("werebear"),
 	};
+
+
+	RpgEnemyMetricDefinition metric;
+	metric.playerCast = defaultMetric.playerCast;
 
 	for (const QString &l : levelDefList) {
 		if (const auto &ptr = Utils::fileToJsonObject(l); ptr.has_value()) {
@@ -1088,6 +1091,14 @@ void RpgGame::loadMetricDefinition()
 				}
 
 			}
+
+			RpgEnemyMetricDefinition tmp;
+			tmp.fromJson(ptr.value());
+
+			for (auto it = tmp.playerCast.cbegin(); it != tmp.playerCast.cend(); ++it) {
+				if (it.value() > 0)
+					metric.playerCast.insert(it.key(), it.value());
+			}
 		}
 
 		m_metricDefinition.append(metric);
@@ -1103,12 +1114,12 @@ void RpgGame::loadMetricDefinition()
  * @return
  */
 
-EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, const int &level)
+EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype)
 {
 	if (m_metricDefinition.isEmpty())
 		return {};
 
-	for (int i=0; i<level && i<m_metricDefinition.size(); ++i) {
+	for (int i=0; i<std::max(1, m_level) && i<m_metricDefinition.size(); ++i) {
 		const RpgEnemyMetricDefinition &def = m_metricDefinition.at(i);
 		QHash<QString, EnemyMetric> ptr;
 
@@ -1143,6 +1154,33 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgE
 	}
 
 	return baseMetric;
+}
+
+
+
+
+/**
+ * @brief RpgGame::getMetric
+ * @param cast
+ * @param level
+ * @return
+ */
+
+int RpgGame::getMetric(const RpgPlayerCharacterConfig::CastType &cast) const
+{
+	int value = defaultEnemyMetric().playerCast.value(cast);
+
+	if (m_metricDefinition.isEmpty())
+		return value;
+
+	for (int i=0; i<std::max(1, m_level) && i<m_metricDefinition.size(); ++i) {
+		const int v = m_metricDefinition.at(i).playerCast.value(cast);
+
+		if (v > 0)
+			value = v;
+	}
+
+	return value;
 }
 
 
@@ -1699,6 +1737,22 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 	);
 }
 
+FuncPlayerUseCast RpgGame::funcPlayerCastTimeout() const
+{
+	return m_funcPlayerCastTimeout;
+}
+
+void RpgGame::setFuncPlayerCastTimeout(const FuncPlayerUseCast &newFuncPlayerCastTimeout)
+{
+	m_funcPlayerCastTimeout = newFuncPlayerCastTimeout;
+}
+
+void RpgGame::onPlayerCastTimeout(RpgPlayer *player) const
+{
+	if (m_funcPlayerCastTimeout)
+		m_funcPlayerCastTimeout(player);
+}
+
 
 /**
  * @brief RpgGame::funcPlayerFinishCast
@@ -2169,7 +2223,7 @@ bool RpgGame::loadTextureSpritesWithHurt(TiledSpriteHandler *handler, const QVec
 {
 	Q_ASSERT(handler);
 
-	LOG_CDEBUG("game") << "Load extended sprite texture" << path << layer;
+	LOG_CTRACE("game") << "Load extended sprite texture" << path << layer;
 
 	const auto &ptr = Utils::fileToJsonObject(
 						  path.endsWith('/') ?
@@ -2275,6 +2329,22 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 		def->archer.insert(QStringLiteral("default"), archer);
 		def->werebear.insert(QStringLiteral("default"), werebear);
 		def->skeleton.insert(QStringLiteral("default"), soldier);
+
+
+
+		// Player cast with timer
+
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastInvalid, 0);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastInvisible, 3);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireFog, 13);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastProtect, 6);
+
+		// Player cast with shot
+
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireball, 45);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireballTriple, 125/3);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastLightning, 50);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastArrowQuintuple, 70/5);
 	}
 
 

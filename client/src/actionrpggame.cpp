@@ -490,6 +490,8 @@ void ActionRpgGame::rpgGameActivated_()
 	if (!m_rpgGame)
 		return;
 
+	m_rpgGame->m_level = level();
+
 	const auto &ptr = RpgGame::terrains().find(m_playerConfig.terrain);
 
 	if (ptr == RpgGame::terrains().constEnd()) {
@@ -1177,6 +1179,8 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 		return false;
 
 
+	const int castValue = m_rpgGame->getMetric(player->config().cast);
+
 	switch (player->config().cast) {
 		case RpgPlayerCharacterConfig::CastInvisible:
 			if (player->castTimerActive()) {
@@ -1193,7 +1197,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 			w.setParentObject(player);
 			w.setBulletCount(-1);
 			if (w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), player->currentAngle())) {
-				player->setMp(std::max(0, player->mp() - 45));
+				player->setMp(std::max(0, player->mp() - castValue));
 			} else {
 				return false;
 			}
@@ -1216,7 +1220,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 				if (!w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), angle)) {
 					return false;
 				}
-				player->setMp(std::max(0, player->mp() - 125/3));
+				player->setMp(std::max(0, player->mp() - castValue));
 			}
 
 			break;
@@ -1228,7 +1232,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 			w.setParentObject(player);
 			w.setBulletCount(-1);
 			if (w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), player->currentAngle())) {
-				player->setMp(std::max(0, player->mp() - 50));
+				player->setMp(std::max(0, player->mp() - castValue));
 			} else {
 				return false;
 			}
@@ -1266,7 +1270,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 				if (!w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), angle)) {
 					return false;
 				}
-				player->setMp(std::max(0, player->mp() - 70/5));
+				player->setMp(std::max(0, player->mp() - castValue));
 			}
 
 			break;
@@ -1288,6 +1292,35 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 
 	player->playAttackEffect(m);
 	m->eventUseCast(player->config().cast);
+
+	return true;
+}
+
+
+
+/**
+ * @brief ActionRpgGame::onPlayerCastTimeout
+ * @param player
+ * @return
+ */
+
+bool ActionRpgGame::onPlayerCastTimeout(RpgPlayer *player)
+{
+	if (!player || player->m_isLocked)
+		return false;
+
+	const int castValue = m_rpgGame->getMetric(player->config().cast);
+
+	int nextMp = player->m_mp - castValue;
+
+	if (nextMp <= 0) {
+		player->setMp(0);
+
+		m_rpgGame->playerFinishCast(player);
+		return true;
+	}
+
+	player->setMp(nextMp);
 
 	return true;
 }
@@ -1471,6 +1504,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
 		m_rpgGame->setFuncPlayerUseContainer(nullptr);
 		m_rpgGame->setFuncPlayerUseCast(nullptr);
+		m_rpgGame->setFuncPlayerCastTimeout(nullptr);
 		m_rpgGame->setFuncPlayerFinishCast(nullptr);
 	}
 
@@ -1491,6 +1525,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		m_rpgGame->setFuncPlayerUseContainer(std::bind(&ActionRpgGame::onPlayerUseContainer, this, std::placeholders::_1, std::placeholders::_2));
 		m_rpgGame->setFuncPlayerUseCast(std::bind(&ActionRpgGame::onPlayerUseCast, this, std::placeholders::_1));
+		m_rpgGame->setFuncPlayerCastTimeout(std::bind(&ActionRpgGame::onPlayerCastTimeout, this, std::placeholders::_1));
 		m_rpgGame->setFuncPlayerFinishCast(std::bind(&ActionRpgGame::onPlayerFinishCast, this, std::placeholders::_1));
 	}
 }

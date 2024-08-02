@@ -779,42 +779,8 @@ void RpgPlayer::onCastTimerTimeout()
 	if (m_isLocked)
 		return;
 
-
-	int loss = 1;
-
-	switch (m_config.cast) {
-		case RpgPlayerCharacterConfig::CastInvisible:
-			loss = 3;
-			break;
-
-		case RpgPlayerCharacterConfig::CastFireFog:
-			loss = 13;
-			break;
-
-		case RpgPlayerCharacterConfig::CastProtect:
-			loss = 6;
-			break;
-
-		case RpgPlayerCharacterConfig::CastFireball:
-		case RpgPlayerCharacterConfig::CastFireballTriple:
-		case RpgPlayerCharacterConfig::CastLightning:
-		case RpgPlayerCharacterConfig::CastArrowQuintuple:
-		case RpgPlayerCharacterConfig::CastInvalid:
-			break;
-	}
-
-	int nextMp = m_mp - loss;
-
-	if (nextMp <= 0) {
-		setMp(0);
-
-		if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
-			g->playerFinishCast(this);
-		}
-		return;
-	}
-
-	setMp(nextMp);
+	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
+		g->onPlayerCastTimeout(this);
 }
 
 

@@ -166,6 +166,15 @@ Application::Application(QApplication *app)
 	});
 
 	m_engine = std::make_unique<QQmlApplicationEngine>();
+
+#ifndef QT_NO_DEBUG
+	QTimer *timer = new QTimer(m_application);
+	timer->setInterval(1000);
+	QObject::connect(timer, &QTimer::timeout, m_application, [](){
+		LOG_CINFO("app") << "USED MEMORY:" << Utils::getCurrentRSS();
+	});
+	timer->start();
+#endif
 }
 
 

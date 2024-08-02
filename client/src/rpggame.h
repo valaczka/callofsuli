@@ -104,6 +104,8 @@ public:
 	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, archer)
 	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, werebear)
 	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, skeleton)
+
+	QS_QT_DICT(QHash, RpgPlayerCharacterConfig::CastType, int, playerCast)
 };
 
 
@@ -246,6 +248,10 @@ public:
 	FuncPlayerUseCast funcPlayerFinishCast() const;
 	void setFuncPlayerFinishCast(const FuncPlayerUseCast &newFuncPlayerFinishCast);
 
+	FuncPlayerUseCast funcPlayerCastTimeout() const;
+	void setFuncPlayerCastTimeout(const FuncPlayerUseCast &newFuncPlayerCastTimeout);
+	void onPlayerCastTimeout(RpgPlayer *player) const;
+
 	QScatterSeries *scatterSeriesPlayers() const;
 	void setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers);
 
@@ -262,6 +268,10 @@ public:
 	void setWinnerStreak(int newWinnerStreak);
 
 	const QList<RpgQuest> &quests() const;
+
+	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
+	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype = QStringLiteral(""));
+
 
 signals:
 	void minimapToggleRequest();
@@ -291,7 +301,6 @@ protected:
 
 private:
 	void loadMetricDefinition();
-	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype = QStringLiteral(""), const int &level = 1);
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -370,6 +379,8 @@ private:
 	int m_lastWinnerStreak = 0;
 	int m_baseMp = 150;
 
+	int m_level = 0;
+
 	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
 
 
@@ -383,6 +394,7 @@ private:
 	FuncPlayerAttackEnemy m_funcPlayerAttackEnemy;
 	FuncPlayerUseContainer m_funcPlayerUseContainer;
 	FuncPlayerUseCast m_funcPlayerUseCast;
+	FuncPlayerUseCast m_funcPlayerCastTimeout;
 	FuncPlayerUseCast m_funcPlayerFinishCast;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;

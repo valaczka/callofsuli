@@ -88,161 +88,24 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 		return node;
 
 
-	// TODO: layer order (shield, weapon, body)
+	// Ordering layers
 
-	for (const QString &layer : m_visibleLayers) {
-		for (const auto &it : list) {
-			if (it->layer != layer)
-				continue;
+	static const QHash<TiledObject::Direction, QVector<Filter>> filterOrder = {
+		{ TiledObject::Invalid, { FilterNone } },
+		{ TiledObject::NorthEast, { FilterDefault, FilterOther, FilterShield } },
+		{ TiledObject::East, { FilterDefault, FilterShield, FilterOther } },
+		{ TiledObject::SouthEast, { FilterDefault, FilterShield, FilterOther } },
+		{ TiledObject::South, { FilterDefault, FilterShield, FilterOther } },
+		{ TiledObject::SouthWest, { FilterDefault, FilterOther, FilterShield } },
+		{ TiledObject::West, { FilterDefault, FilterOther, FilterShield } },
+		{ TiledObject::NorthWest, { FilterDefault, FilterOther, FilterShield } },
+		{ TiledObject::North, { FilterDefault, FilterOther, FilterShield } },
+	};
 
-			if (!it->texture) {
-				LOG_CERROR("scene") << "Invalid texture" << it->data.name << it->direction << it->layer;
-				continue;
-			}
+	const auto &filter = filterOrder.value(m_currentDirection);
 
-			if (m_currentFrame < 0 || m_currentFrame >= it->data.frames.size()) {
-				LOG_CERROR("scene") << "Invalid frame" << m_currentFrame << it->data.name << it->direction << it->layer;
-				continue;
-			}
-
-			const TextureSpriteFrame &frame = it->data.frames.at(m_currentFrame);
-
-
-
-			QSGSimpleTextureNode *imgNode = new QSGSimpleTextureNode();
-			imgNode->setOwnsTexture(false);
-			imgNode->setFlag(QSGNode::OwnedByParent);
-			node->appendChildNode(imgNode);
-
-			switch (m_opacityMask) {
-				case MaskTop: {
-					QRectF r = boundingRect();
-					const qreal h = r.height()*0.5;
-
-					r.setX(r.x() + frame.spriteSourceSize.x);
-					r.setY(r.y() + frame.spriteSourceSize.y);
-					r.setWidth(frame.spriteSourceSize.w);
-					r.setHeight(h - frame.spriteSourceSize.y);
-
-					imgNode->setRect(r);
-					imgNode->setSourceRect(
-								frame.frame.x,
-								frame.frame.y,
-								frame.frame.w,
-								std::min((qreal)frame.frame.h, h - frame.spriteSourceSize.y)
-								);
-					break;
-				}
-				case MaskBottom: {
-					QRectF r = boundingRect();
-					const qreal h = r.height()*0.5;
-
-					r.setX(r.x() + frame.spriteSourceSize.x);
-					r.setY(r.y() + h);
-					r.setWidth(frame.spriteSourceSize.w);
-					r.setHeight(h);
-
-					imgNode->setRect(r);
-					imgNode->setSourceRect(
-								frame.frame.x,
-								frame.frame.y + h - frame.spriteSourceSize.y,
-								frame.frame.w,
-								frame.frame.h - (h - frame.spriteSourceSize.y)
-								);
-
-
-					break;
-				}
-				case MaskFull: {
-					QRectF r = boundingRect();
-					r.setX(r.x() + frame.spriteSourceSize.x);
-					r.setY(r.y() + frame.spriteSourceSize.y);
-					r.setWidth(frame.spriteSourceSize.w);
-					r.setHeight(frame.spriteSourceSize.h);
-
-					imgNode->setRect(r);
-					imgNode->setSourceRect(
-								frame.frame.x,
-								frame.frame.y,
-								frame.frame.w,
-								frame.frame.h
-								);
-					break;
-				}
-			}
-
-
-			if (it->texture != imgNode->texture())
-				imgNode->setTexture(it->texture);
-
-
-			/*if (!it->data.flow) {
-				QRectF rect(it->data.x,
-							it->data.y,
-							it->data.width,
-							it->data.height);
-
-				rect.translate(m_currentFrame * it->data.width, 0);
-
-				switch (m_opacityMask) {
-					case MaskTop:
-						rect.setHeight(rect.height()*0.5);
-						break;
-					case MaskBottom: {
-						const qreal h = it->data.height*0.5;
-						rect = QRectF(it->data.x,
-									  it->data.y+h,
-									  it->data.width,
-									  h);
-						break;
-					}
-					case MaskFull:
-						break;
-				}
-
-				imgNode->setSourceRect(rect);
-			} else {
-				int frames = m_currentFrame;
-				int x = it->data.x;
-				int y = it->data.y;
-
-				const QSize &tSize = it->texture->textureSize();
-
-				while (x + ((frames+1) * it->data.width) > tSize.width()) {
-					const int f = std::floor((float) (tSize.width()-x) / (it->data.width));
-					frames -= f;
-					y += it->data.height;
-					x = 0;
-				}
-
-				x += frames * it->data.width;
-
-				QRectF rect(x,
-							y,
-							it->data.width,
-							it->data.height);
-
-				switch (m_opacityMask) {
-					case MaskTop:
-						rect.setHeight(rect.height()*0.5);
-						break;
-					case MaskBottom: {
-						const qreal h = it->data.height*0.5;
-						rect = QRectF(x,
-									  y+h,
-									  it->data.width,
-									  h);
-						break;
-					}
-					case MaskFull:
-						break;
-				}
-
-				imgNode->setSourceRect(rect);
-			}*/
-
-			imgNode->markDirty(QSGNode::DirtyGeometry);
-		}
+	for (const Filter &f : filter) {
+		createNodes(node, f, list);
 	}
 
 	return node;
@@ -510,6 +373,130 @@ void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Di
 
 	if (m_handlerSlave && m_syncHandlers)
 		m_handlerSlave->update();
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::createNodes
+ */
+
+void TiledSpriteHandler::createNodes(QSGNode *node, const Filter &filter,
+									 const QList<QVector<TiledSpriteHandler::Sprite>::const_iterator> &iteratorList)
+{
+	Q_ASSERT(node);
+
+	for (const QString &layer : m_visibleLayers) {
+		// Filter layers
+
+		switch (filter) {
+			case FilterDefault:
+				if (layer != QStringLiteral("default"))
+					continue;
+				break;
+
+			case FilterShield:
+				if (layer != QStringLiteral("shield"))
+					continue;
+				break;
+
+			case FilterOther:
+				if (layer == QStringLiteral("default") ||
+						layer == QStringLiteral("shield"))
+					continue;
+				break;
+
+			case FilterNone:
+				break;
+		}
+
+		for (const auto &it : iteratorList) {
+			if (it->layer != layer)
+				continue;
+
+			if (!it->texture) {
+				LOG_CERROR("scene") << "Invalid texture" << it->data.name << it->direction << it->layer;
+				continue;
+			}
+
+			if (m_currentFrame < 0 || m_currentFrame >= it->data.frames.size()) {
+				LOG_CERROR("scene") << "Invalid frame" << m_currentFrame << it->data.name << it->direction << it->layer;
+				continue;
+			}
+
+			const TextureSpriteFrame &frame = it->data.frames.at(m_currentFrame);
+
+
+			QSGSimpleTextureNode *imgNode = new QSGSimpleTextureNode();
+			imgNode->setOwnsTexture(false);
+			imgNode->setFlag(QSGNode::OwnedByParent);
+			node->appendChildNode(imgNode);
+
+			switch (m_opacityMask) {
+				case MaskTop: {
+					QRectF r = boundingRect();
+					const qreal h = r.height()*0.5;
+
+					r.setX(r.x() + frame.spriteSourceSize.x);
+					r.setY(r.y() + frame.spriteSourceSize.y);
+					r.setWidth(frame.spriteSourceSize.w);
+					r.setHeight(h - frame.spriteSourceSize.y);
+
+					imgNode->setRect(r);
+					imgNode->setSourceRect(
+								frame.frame.x,
+								frame.frame.y,
+								frame.frame.w,
+								std::min((qreal)frame.frame.h, h - frame.spriteSourceSize.y)
+								);
+					break;
+				}
+				case MaskBottom: {
+					QRectF r = boundingRect();
+					const qreal h = r.height()*0.5;
+
+					r.setX(r.x() + frame.spriteSourceSize.x);
+					r.setY(r.y() + h);
+					r.setWidth(frame.spriteSourceSize.w);
+					r.setHeight(h);
+
+					imgNode->setRect(r);
+					imgNode->setSourceRect(
+								frame.frame.x,
+								frame.frame.y + h - frame.spriteSourceSize.y,
+								frame.frame.w,
+								frame.frame.h - (h - frame.spriteSourceSize.y)
+								);
+
+
+					break;
+				}
+				case MaskFull: {
+					QRectF r = boundingRect();
+					r.setX(r.x() + frame.spriteSourceSize.x);
+					r.setY(r.y() + frame.spriteSourceSize.y);
+					r.setWidth(frame.spriteSourceSize.w);
+					r.setHeight(frame.spriteSourceSize.h);
+
+					imgNode->setRect(r);
+					imgNode->setSourceRect(
+								frame.frame.x,
+								frame.frame.y,
+								frame.frame.w,
+								frame.frame.h
+								);
+					break;
+				}
+			}
+
+
+			if (it->texture != imgNode->texture())
+				imgNode->setTexture(it->texture);
+
+
+			imgNode->markDirty(QSGNode::DirtyGeometry);
+		}
+	}
 }
 
 TiledSpriteHandler::OpacityMask TiledSpriteHandler::opacityMask() const

@@ -139,6 +139,7 @@ private:
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
 	bool onPlayerUseContainer(RpgPlayer *player, TiledContainer *container);
 	bool onPlayerUseCast(RpgPlayer *player);
+	bool onPlayerCastTimeout(RpgPlayer *player);
 	bool onPlayerFinishCast(RpgPlayer *player);
 	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container, int xp);
 	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container);

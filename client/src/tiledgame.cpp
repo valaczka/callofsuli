@@ -1538,7 +1538,7 @@ bool TiledGame::loadTextureSprites(TiledSpriteHandler *handler, const QVector<Te
 {
 	Q_ASSERT(handler);
 
-	LOG_CDEBUG("game") << "Load sprite texture" << path << layer;
+	LOG_CTRACE("game") << "Load sprite texture" << path << layer;
 
 	const auto &ptr = Utils::fileToJsonObject(
 						  path.endsWith('/') ?
