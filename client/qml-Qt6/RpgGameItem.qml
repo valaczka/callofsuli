@@ -1,4 +1,4 @@
-		import QtQuick
+import QtQuick
 import QtQuick.Controls
 import CallOfSuli
 import Qt5Compat.GraphicalEffects

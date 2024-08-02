@@ -32,7 +32,6 @@
 #include "mapplay.h"
 #include "studentmaphandler.h"
 #include "campaign.h"
-#include "actiongame.h"
 #include "litegame.h"
 #include "testgame.h"
 

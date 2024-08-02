@@ -83,10 +83,6 @@ QPage {
 							title: qsTr("RPG")
 						}
 						ListElement {
-							mode: GameMap.Action
-							title: qsTr("Akciójáték")
-						}
-						ListElement {
 							mode: GameMap.Lite
 							title: qsTr("Feladatmegoldás")
 						}
@@ -133,32 +129,11 @@ QPage {
 			}
 
 
-			/*QButton {
-				anchors.left: parent.left
-
-				enabled: editor && missionLevel
-
-				visible: mission && (mission.modes & (GameMap.Exam))
-
-				text: qsTr("LaTeX fájl készítése")
-
-				icon.source: Qaterial.Icons.signText
-
-				onClicked: {
-					if (Qt.platform.os == "wasm")
-						editor.exportData(MapEditor.ExportExam, "", {
-											  missionLevel: missionLevel
-										  })
-					else
-						Qaterial.DialogManager.openFromComponent(_cmpFileExportLatex)
-				}
-			}*/
-
 
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & (GameMap.Action|GameMap.Test|GameMap.Rpg))
+				visible: mission && (mission.modes & (GameMap.Test|GameMap.Rpg))
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -196,7 +171,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & (GameMap.Action|GameMap.Lite))
+				visible: mission && (mission.modes & GameMap.Lite)
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -232,42 +207,7 @@ QPage {
 
 
 
-			Row {
-				anchors.left: parent.left
 
-				visible: mission && (mission.modes & GameMap.Action)
-
-				Qaterial.ColorIcon {
-					color: Qaterial.Style.colorTheme.primaryText
-					source: Qaterial.Icons.messageQuestion
-					iconSize: Qaterial.Style.textField.iconSize
-					width: Qaterial.Style.textField.iconWidth
-					height: Qaterial.Style.textField.iconWidth
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				Qaterial.LabelBody2 {
-					text: qsTr("Kérdések aránya")
-					anchors.verticalCenter: parent.verticalCenter
-					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
-				}
-
-				QSpinBox {
-					anchors.verticalCenter: parent.verticalCenter
-					from: 10
-					to: 100
-					stepSize: 5
-					font: Qaterial.Style.textTheme.body1
-
-					value: missionLevel ? missionLevel.questions*100 : from
-
-					textFromValue: function(value, locale) { return value+"%" }
-
-					onValueModified: editor.missionLevelModify(missionLevel, function() {
-						missionLevel.questions = value/100.0
-					})
-				}
-			}
 
 
 
@@ -306,150 +246,6 @@ QPage {
 					onValueModified: editor.missionLevelModify(missionLevel, function() {
 						missionLevel.passed = value/100.0
 					})
-				}
-			}
-
-
-			Row {
-				anchors.left: parent.left
-
-				visible: mission && (mission.modes & GameMap.Action)
-
-				Qaterial.ColorIcon {
-					color: Qaterial.Style.colorTheme.primaryText
-					source: Qaterial.Icons.swordCross
-					iconSize: Qaterial.Style.textField.iconSize
-					width: Qaterial.Style.textField.iconWidth
-					height: Qaterial.Style.textField.iconWidth
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				Qaterial.LabelBody2 {
-					text: qsTr("Harcmező:")
-					anchors.verticalCenter: parent.verticalCenter
-					rightPadding: 10 * Qaterial.Style.pixelSizeRatio
-				}
-
-				MouseArea {
-					id: _area
-					width: _terrainRow.implicitWidth
-					height: _terrainRow.implicitHeight
-
-					hoverEnabled: true
-
-					acceptedButtons: Qt.LeftButton
-
-					onClicked: _terrainAddButton.clicked()
-
-					Row {
-						id: _terrainRow
-
-						spacing: 15
-
-						Qaterial.Icon
-						{
-							icon: missionLevel ? (missionLevel.terrainData.name !== "" ? missionLevel.terrainData.thumbnail : Qaterial.Icons.alert): ""
-							color: missionLevel && missionLevel.terrainData.name !== "" ? "transparent" : Qaterial.Colors.red500
-							width: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*4.5 : Qaterial.Style.mediumIcon
-							height: missionLevel && missionLevel.terrainData.name !== "" ? Qaterial.Style.pixelSize*3 : Qaterial.Style.mediumIcon
-						}
-
-						Qaterial.LabelWithCaption {
-							anchors.verticalCenter: parent.verticalCenter
-							text: missionLevel ? missionLevel.terrainData.displayName : ""
-							caption: missionLevel && missionLevel.terrainData.level > 0 ? qsTr("level %1").arg(missionLevel.terrainData.level) : ""
-							textColor: Qaterial.Style.foregroundColor
-							captionColor: textColor
-						}
-
-						Qaterial.RoundButton {
-							id: _terrainAddButton
-							anchors.verticalCenter: parent.verticalCenter
-							icon.source: Qaterial.Icons.pencil
-							enabled: missionLevel
-							onClicked: {
-								let idx = -1
-
-								for (let i=0; i<_sortedTerrainModel.count; ++i) {
-									if (_sortedTerrainModel.get(i).fieldName === missionLevel.terrain)
-										idx = i
-								}
-
-								Qaterial.DialogManager.openListView(
-											{
-												onAccepted: function(index)
-												{
-													if (index < 0)
-														return
-
-													editor.missionLevelModify(missionLevel, function() {
-														missionLevel.terrain = _sortedTerrainModel.get(index).fieldName
-													})
-
-												},
-												title: qsTr("Harcmező kiválasztása"),
-												model: _sortedTerrainModel,
-												currentIndex: idx,
-												delegate: _terrainDelegate
-											})
-							}
-						}
-					}
-
-					Qaterial.ListDelegateBackground
-					{
-						anchors.fill: parent
-						type: Qaterial.Style.DelegateType.Icon
-						lines: 1
-						pressed: _area.pressed
-						rippleActive: _area.containsMouse
-						rippleAnchor: _area
-					}
-				}
-			}
-
-			/*QFormSwitchButton							// DEPRECATED
-			{
-				visible: mission && (mission.modes & GameMap.Rpg)
-				text: qsTr("Sudden death mód engedélyezve")
-				checked: missionLevel && missionLevel.canDeathmatch
-				onToggled: editor.missionLevelModify(missionLevel, function() {
-					missionLevel.canDeathmatch = checked
-				})
-			}*/
-
-
-
-			Row {
-				anchors.left: parent.left
-
-				visible: mission && (mission.modes & GameMap.Action)
-
-				Qaterial.ColorIcon {
-					color: Qaterial.Style.colorTheme.primaryText
-					source: Qaterial.Icons.image
-					iconSize: Qaterial.Style.textField.iconSize
-					width: Qaterial.Style.textField.iconWidth
-					height: Qaterial.Style.textField.iconWidth
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				Qaterial.LabelBody2 {
-					text: qsTr("Egyéni háttérkép")
-					anchors.verticalCenter: parent.verticalCenter
-					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
-				}
-
-				MapEditorFormImage {
-					editor: root.editor
-					image: missionLevel ? missionLevel.editorImage : null
-
-					anchors.verticalCenter: parent.verticalCenter
-
-					onModified: editor.missionLevelModify(missionLevel, function() {
-						missionLevel.image = id
-					})
-
 				}
 			}
 
@@ -541,146 +337,6 @@ QPage {
 				}
 			}
 
-
-
-			Qaterial.Expandable {
-				id: _expInventory
-				width: parent.width
-
-				visible: mission && (mission.modes & GameMap.Action)
-
-				header: QExpandableHeader {
-					text: qsTr("Felszerelés")
-					icon: Qaterial.Icons.bagPersonal
-					expandable: _expInventory
-					topPadding: 20
-
-					rightSourceComponent: Qaterial.RoundButton {
-						icon.source: Qaterial.Icons.dotsVertical
-						icon.color: Qaterial.Style.iconColor()
-						onClicked: root._inventoryView ? contextMenu.popup() : contextMenuSimple.popup()
-
-						Qaterial.Menu {
-							id: contextMenu
-							QMenuItem { action: root._inventoryView ? root._inventoryView.actionSelectAll : null}
-							QMenuItem { action: root._inventoryView ? root._inventoryView.actionSelectNone : null }
-							Qaterial.MenuSeparator {}
-							QMenuItem { action: actionInventoryAdd }
-							QMenuItem {
-								text: qsTr("Törlés")
-								icon.source: Qaterial.Icons.delete_
-								enabled: root._inventoryView
-								onClicked: {
-									if (!editor)
-										return
-
-									let l = root._inventoryView.getSelected()
-
-									if (l.length)
-										editor.missionLevelInventoryRemove(missionLevel, l)
-
-									root._inventoryView.unselectAll()
-								}
-							}
-						}
-
-						Qaterial.Menu {
-							id: contextMenuSimple
-							QMenuItem { action: actionInventoryAdd }
-						}
-					}
-				}
-
-				delegate: QListView {
-					id: _inventoryView
-
-					width: _form.width
-
-					height: contentHeight
-					boundsBehavior: Flickable.StopAtBounds
-
-					autoSelectChange: true
-
-					model: SortFilterProxyModel {
-						sourceModel: missionLevel ? missionLevel.inventoryList : null
-
-						sorters: RoleSorter {
-							roleName: "inventoryid"
-						}
-					}
-
-					delegate: MapEditorInventoryItem {
-						inventory: model.qtObject
-						width: ListView.view.width
-						onMenuRequest: _inventoryView.menuOpenFromDelegate(button)
-					}
-
-					footer: Qaterial.ItemDelegate {
-						width: ListView.view.width
-						textColor: Qaterial.Colors.blue700
-						iconColor: textColor
-						action: actionInventoryAdd
-					}
-
-					Qaterial.Menu {
-						id: _inventoryContextMenu
-						QMenuItem {
-							text: qsTr("Törlés")
-							icon.source: Qaterial.Icons.delete_
-							onClicked: {
-								if (!editor)
-									return
-
-								let l = _inventoryView.getSelected()
-
-								if (l.length)
-									editor.missionLevelInventoryRemove(missionLevel, l)
-
-								_inventoryView.unselectAll()
-							}
-						}
-
-						Qaterial.Menu {
-							title: qsTr("Elhelyezés")
-
-							Repeater {
-								model: 5
-
-								QMenuItem {
-									text: index > 0 ? qsTr("%1. csatatéren").arg(index) : qsTr("Bárhol")
-									onClicked: {
-										if (!editor || _inventoryView.currentIndex == -1)
-											return
-
-										let inventory = _inventoryView.modelGet(_inventoryView.currentIndex)
-
-										editor.missionLevelInventoryModify(missionLevel, inventory, function() {
-											inventory.block = (index > 0 ? index : -1)
-										})
-									}
-								}
-							}
-						}
-					}
-
-					onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
-													if (index != -1)
-													currentIndex = index
-
-													_inventoryContextMenu.popup(mouseX, mouseY)
-												}
-
-					function menuOpenFromDelegate(_item) {
-						var p = mapFromItem(_item, _item.x, _item.y+_item.height)
-
-						_inventoryContextMenu.popup(p.x, p.y)
-					}
-
-					Component.onCompleted: root._inventoryView = _inventoryView
-					Component.onDestruction: root._inventoryView = null
-				}
-
-			}
 
 			Action {
 				id: actionInventoryAdd

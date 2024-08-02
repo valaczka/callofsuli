@@ -27,11 +27,9 @@
 #include "mapeditor.h"
 #include "application.h"
 #include "mapimage.h"
-#include "gamepickable.h"
 #include "qimagereader.h"
 #include "question.h"
 #include "abstractlevelgame.h"
-#include "gameterrain.h"
 #include "utils_.h"
 #include <sstream>
 
@@ -434,30 +432,6 @@ QStringList MapEditor::checkMap() const
 	}
 
 
-
-	// Check terrains
-
-	for (MapEditorMission *m : *m_map->missionList()) {
-		for (MapEditorMissionLevel *ml : *m->levelList()) {
-			if (m->modes().testFlag(GameMap::Action)) {
-				if (!GameTerrain::terrainAvailable(ml->terrain()))
-					errList.append(tr("Érvénytelen harcmező: %1 (%2 level %3)")
-								   .arg(ml->terrain())
-								   .arg(ml->editorMission()->name())
-								   .arg(ml->level()));
-			}
-
-			for (MapEditorInventory *i : *ml->inventoryList()) {
-				if (!GamePickable::pickableDataHash().contains(i->module()))
-					errList.append(tr("Érvénytelen felszerelés: %1 (%2 level %3)")
-								   .arg(i->module())
-								   .arg(ml->editorMission()->name())
-								   .arg(ml->level()));
-			}
-		}
-	}
-
-
 	// Check modules
 
 	for (MapEditorChapter *ch : *m_map->chapterList()) {
@@ -483,46 +457,6 @@ QStringList MapEditor::checkMap() const
 }
 
 
-
-
-/**
- * @brief MapEditor::getNextTerrain
- * @param terrain
- * @return
- */
-
-GameTerrain MapEditor::getNextTerrain(const QString &terrain) const
-{
-	const QVector<GameTerrain> &list = GameTerrain::availableTerrains();
-
-	const GameTerrain &t = GameTerrain::terrain(terrain);
-
-	if (!t.isValid()) {
-		QVector<GameTerrain> level1list;
-		foreach (const GameTerrain &gt, list)
-			if (gt.level() == 1)
-				level1list.append(gt);
-
-		if (level1list.isEmpty())
-			return GameTerrain();
-
-		return level1list.at(QRandomGenerator::global()->bounded(level1list.size()));
-	} else {
-		GameTerrain nextTerrain;
-
-		foreach (const GameTerrain &gt, list) {
-			if (gt.name() != t.name() || gt.level() <= t.level())
-				continue;
-
-			if (!nextTerrain.isValid())
-				nextTerrain = gt;
-			else if (gt.level() < nextTerrain.level())
-				nextTerrain = gt;
-		}
-
-		return nextTerrain.isValid() ? nextTerrain : t;
-	}
-}
 
 
 
@@ -1185,21 +1119,8 @@ QString MapEditor::storageQml(MapEditorStorage *storage) const
 
 QVariantMap MapEditor::inventoryInfo(MapEditorInventory *inventory) const
 {
-	if (!inventory)
-		return QVariantMap();
-
-	const GamePickable::GamePickableData &data = GamePickable::pickableDataHash().value(inventory->module());
-
-	if (data.type == GamePickable::PickableInvalid)
-		return QVariantMap {
-			{ QStringLiteral("name"), tr("Érvénytelen modul: %1").arg(inventory->module()) },
-			{ QStringLiteral("icon"), QStringLiteral("") }
-		};
-	else
-		return QVariantMap {
-			{ QStringLiteral("name"), data.name },
-			{ QStringLiteral("icon"), data.image }
-		};
+	// DEPRECATED
+	return QVariantMap();
 }
 
 
@@ -1211,14 +1132,8 @@ QVariantMap MapEditor::inventoryInfo(MapEditorInventory *inventory) const
 
 QVariantList MapEditor::pickableListModel() const
 {
+	// DEPREACTED
 	QVariantList list;
-
-	foreach (const GamePickable::GamePickableData &data, GamePickable::pickableDataTypes())
-		list.append(QVariantMap {
-						{ QStringLiteral("id"), data.id },
-						{ QStringLiteral("text"), data.name },
-						{ QStringLiteral("icon"), data.image },
-					});
 
 	return list;
 }
@@ -1354,18 +1269,8 @@ QVariantList MapEditor::storageListAllModel() const
 
 QVariantList MapEditor::terrainListModel() const
 {
+	// DEPRECATED
 	QVariantList list;
-
-	for (const GameTerrain &t : GameTerrain::availableTerrains()) {
-		list.append(QVariantMap {
-						{ QStringLiteral("name"), t.name() },
-						{ QStringLiteral("fieldName"), t.name()+QStringLiteral("/%1").arg(t.level()) },
-						{ QStringLiteral("level"), t.level() },
-						{ QStringLiteral("displayName"), t.displayName() },
-						{ QStringLiteral("icon"), t.thumbnail() },
-					});
-	}
-
 	return list;
 }
 
@@ -1527,12 +1432,10 @@ MapEditorMission* MapEditor::missionAdd(const QString &name)
 	mission.setName(name.isEmpty() ? tr("Új küldetés") : name);
 	mission.setModes(GameMap::Lite|GameMap::Action);
 
-	const GameTerrain &t = getNextTerrain();
-
 	MapEditorMissionLevel *level = mission.createNextLevel(m_map);
 	level->setLevel(1);
 	level->setCanDeathmatch(true);
-	level->setTerrain(t.name()+QStringLiteral("/%1").arg(t.level()));
+	//level->setTerrain(t.name()+QStringLiteral("/%1").arg(t.level()));
 
 	mission.levelList()->append(level);
 
@@ -2836,10 +2739,6 @@ MapEditorMissionLevel *MapEditor::missionLevelAdd(MapEditorMission *mission)
 
 	MapEditorMissionLevel *level = mission->createNextLevel(m_map);
 
-	const GameTerrain &t = getNextTerrain(maxLevel ? maxLevel->terrain() : QStringLiteral(""));
-
-	level->setTerrain(t.name()+QStringLiteral("/%1").arg(t.level()));
-
 	if (!level)
 		return nullptr;
 
@@ -3159,13 +3058,13 @@ void MapEditor::missionLevelChapterRemove(MapEditorMissionLevel *missionLevel, c
 
 void MapEditor::missionLevelInventoryAdd(MapEditorMissionLevel *missionLevel, const QString &type)
 {
-	if (!m_map || !missionLevel || !missionLevel->editorMission())
+	// DEPRECATED
+
+	return;
+
+	/*if (!m_map || !missionLevel || !missionLevel->editorMission())
 		return;
 
-	const GamePickable::GamePickableData &pickable = GamePickable::pickableDataHash().value(type);
-
-	if (pickable.type == GamePickable::PickableInvalid)
-		return;
 
 	MapEditorInventory inventory(m_map);
 	inventory.setInventoryid(m_map->nextIndexInventory());
@@ -3212,7 +3111,7 @@ void MapEditor::missionLevelInventoryAdd(MapEditorMissionLevel *missionLevel, co
 		ml->inventoryRemove(action->data().value(QStringLiteral("id")).toInt());
 	});
 
-	m_undoStack->call(action);
+	m_undoStack->call(action);*/
 }
 
 

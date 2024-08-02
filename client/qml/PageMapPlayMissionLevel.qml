@@ -41,7 +41,7 @@ QPageGradient {
 	QScrollable {
 		anchors.fill: parent
 
-		contentCentered: map && map.gameState != MapPlay.StateSelect
+		//contentCentered: map && map.gameState != MapPlay.StateSelect
 
 		Item {
 			width: parent.width
@@ -114,7 +114,6 @@ QPageGradient {
 												  GameMap.Exam,
 												  GameMap.Test,
 												  GameMap.Rpg,
-												  GameMap.Action,
 												  GameMap.Lite,
 												  GameMap.Practice,
 												  GameMap.Quiz,
@@ -123,7 +122,6 @@ QPageGradient {
 											  ] : [
 												  GameMap.Test,
 												  GameMap.Rpg,
-												  GameMap.Action,
 												  GameMap.Lite,
 												  GameMap.Practice
 											  ]
@@ -133,7 +131,7 @@ QPageGradient {
 						readonly property int gameMode: modelData
 						//width: parent.width
 
-						visible: mission && mission.modeEnabled(gameMode) && (!missionLevel.deathmatch || gameMode == GameMap.Action)
+						visible: mission && mission.modeEnabled(gameMode) && (!missionLevel.deathmatch || gameMode == GameMap.Rpg)
 
 						text: {
 							switch (modelData) {
@@ -155,14 +153,8 @@ QPageGradient {
 							case GameMap.Exam:
 								qsTr("Dolgozat")
 								break
-							/*case GameMap.MultiPlayer:
-								qsTr("Multiplayer")
-								break*/
 							case GameMap.Conquest:
 								qsTr("Multiplayer")
-								break
-							case GameMap.Action:
-								qsTr("Régi akciójáték")
 								break
 							default:
 								""
@@ -203,9 +195,9 @@ QPageGradient {
 		}
 
 
-		// Using Inventory
+		// Using Inventory				// DEPRECATED
 
-		QExpandableHeader {
+		/*QExpandableHeader {
 			text: qsTr("Felhasználandó felszerelés")
 			icon: Qaterial.Icons.bagPersonal
 
@@ -293,11 +285,11 @@ QPageGradient {
 					}
 				}
 			}
-		}
+		} */
 
 		Qaterial.IconLabel {
 			anchors.horizontalCenter: parent.horizontalCenter
-			width: Math.min(_inventoryUseView.width, implicitWidth, parent.width)
+			width: Math.min(implicitWidth, parent.width, 100)
 			font: Qaterial.Style.textTheme.caption
 			icon.source: Qaterial.Icons.informationOutline
 			wrapMode: Text.Wrap
@@ -307,7 +299,7 @@ QPageGradient {
 					 (_modeGroup.checkedButton.gameMode === GameMap.Lite || _modeGroup.checkedButton.gameMode === GameMap.Test)
 		}
 
-		Column {
+		/*Column {				// DEPRECATED
 			id: _extraTimeCol
 
 			anchors.horizontalCenter: parent.horizontalCenter
@@ -335,7 +327,7 @@ QPageGradient {
 			}
 
 			bottomPadding: 15 * Qaterial.Style.pixelSizeRatio
-		}
+		}*/
 
 
 		QButton {
@@ -367,7 +359,7 @@ QPageGradient {
 			onClicked: {
 				let d = {}
 
-				if (missionLevel.deathmatch) {
+				/*if (missionLevel.deathmatch) {				// DEPRECATED
 					for (let i=0; i<_inventoryUseModel.count; ++i) {
 						let item = _inventoryUseView.itemAtIndex(i)
 
@@ -375,11 +367,11 @@ QPageGradient {
 							d[item.module] = item.usedValue
 					}
 
-				}
+				}*/
 
-				if (_mapPlayCampaign)
+				/*if (_mapPlayCampaign)				// DEPRECATED
 					_mapPlayCampaign.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
-								_extraTimeSwitch.timeFactor : 0.0
+								_extraTimeSwitch.timeFactor : 0.0*/
 
 				map.play(missionLevel, _modeGroup.checkedButton.gameMode, d)
 			}
@@ -769,7 +761,7 @@ QPageGradient {
 					})
 		.fail(root, JS.failMessage("Letöltés sikertelen"))
 
-		if (!missionLevel.deathmatch)
+		/*if (!missionLevel.deathmatch)			// DEPRECATED
 			_inventoryUseModel.clear()
 		else {
 			Client.send(HttpConnection.ApiUser, "inventory").done(root, function(r) {
@@ -781,7 +773,7 @@ QPageGradient {
 				}
 			})
 			.fail(root, JS.failMessage("Letöltés sikertelen"))
-		}
+		}*/
 	}
 
 	StackView.onActivated: {
@@ -832,7 +824,7 @@ QPageGradient {
 				if (!ml)
 					continue
 
-				if (ml.mission.modeEnabled(gameMode) && (!ml.deathmatch || gameMode === GameMap.Action)) {
+				if (ml.mission.modeEnabled(gameMode) && !ml.deathmatch) {
 
 					let xp = map.calculateXP(ml, gameMode)
 
@@ -924,10 +916,11 @@ QPageGradient {
 	}
 
 	function reloadExtraTimeSwitch() {
-		if (_mapPlayCampaign && root.missionLevel) {
+		// DEPRECATED
+		/*if (_mapPlayCampaign && root.missionLevel) {
 			let num = _mapPlayCampaign.getShortTimeHelper(root.missionLevel)
 			_extraTimeSwitch.enabled = (num >= _mapPlayLiteExtraTimeTries)
-		}
+		}*/
 	}
 
 	on_MapPlayCampaignChanged: reloadExtraTimeSwitch()

@@ -90,12 +90,6 @@ Item {
 													  color: Qaterial.Colors.blue800
 												  })
 
-									if (mission.modes & GameMap.Action)
-										list.push({
-													  text: qsTr("Akciójáték"),
-													  color: Qaterial.Colors.amber800
-												  })
-
 									if (mission.modes & GameMap.Lite)
 										list.push({
 													  text: qsTr("Feladatmegoldás"),

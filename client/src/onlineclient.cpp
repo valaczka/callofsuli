@@ -36,7 +36,7 @@
 #include "QResource"
 #include "application.h"
 #include "gameterrain.h"
-#include "actiongame.h"
+#include "conquestgame.h"
 #include "server.h"
 #include "utils_.h"
 #include "httpconnection.h"
@@ -255,9 +255,8 @@ void OnlineClient::onAllResourceReady()
 
 	LOG_CINFO("client") << "Az alkalmazás sikeresen elindult";
 
-	GameTerrain::reloadAvailableTerrains();
 	AbstractLevelGame::reloadAvailableMedal();
-	ActionGame::reloadAvailableCharacters();
+	ConquestGame::reloadAvailableCharacters();
 
 	if (m_demoMode)
 		m_startPage = loadDemoMap();

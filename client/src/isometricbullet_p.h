@@ -35,9 +35,9 @@
 
 class IsometricBulletPrivate {
 public:
-	TiledWeapon *fromWeapon() const { return m_fromWeapon.get(); }
+	TiledWeapon *fromWeapon() const { return m_fromWeapon.data(); }
 	const TiledWeapon::WeaponType &fromWeaponType() const { return m_fromWeaponType; }
-	TiledObject *owner() const { return m_owner.get(); }
+	TiledObject *owner() const { return m_owner.data(); }
 
 private:
 	IsometricBulletPrivate()

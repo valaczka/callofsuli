@@ -1,7 +1,7 @@
 /*
  * ---- Call of Suli ----
  *
- * tiledactiongame.h
+ * rpggame.h
  *
  * Created on: 2024. 03. 12.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>

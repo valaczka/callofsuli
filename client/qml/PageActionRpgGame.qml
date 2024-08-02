@@ -20,6 +20,11 @@ Page {
 	}
 
 	property var stackPopFunction: function() {
+		if (_marketLoader.status != Loader.Null) {
+			_marketLoader.source = ""
+			return false
+		}
+
 		if (_stack.activeComponent == _cmpRpg) {
 			if (_stack.currentItem.minimapVisible === true) {
 				_stack.currentItem.minimapVisible = false
@@ -28,16 +33,6 @@ Page {
 
 		}
 
-		/*if (game && game.config.gameState == ConquestConfig.StateFinished && _stack.activeComponent == _cmpScene) {
-			game.sendWebSocketMessage({
-										  cmd: "prepare",
-										  engine: game.engineId,
-										  unprepare: true
-									  })
-			_isUnprepared = true
-			return false
-		}*/
-
 		return true
 	}
 
@@ -45,21 +40,14 @@ Page {
 												 game.config.gameState == RpgConfig.StatePrepare)
 
 
-	property int _oldWindowState: Window.AutomaticVisibility
+	property bool _oldWindowState: Client.fullScreenHelper
 
-	//property bool _isUnprepared: false
-
-	/*Image {
-		anchors.fill: parent
-		cache: true
-
-		source: "qrc:/internal/img/bgConquest.jpg"
-		fillMode: Image.PreserveAspectCrop
-	}*/
 
 	StackView {
 		id: _stack
 		anchors.fill: parent
+
+		visible: _marketLoader.status != Loader.Ready
 
 		property Component activeComponent: null
 
@@ -114,36 +102,16 @@ Page {
 	Component {
 		id: _cmpDownload
 
-		QScrollable {
-			contentCentered: true
-			spacing: 30 * Qaterial.Style.pixelSizeRatio
+		DownloaderItem {
+			downloader: game ? game.downloader : null
+		}
+	}
 
-			Qaterial.IconLabel {
-				readonly property real _progress: game && game.downloader.fullSize > 0 ?
-													  game.downloader.downloadedSize/game.downloader.fullSize :
-													  0.
+	Component {
+		id: _cmpStaticDownload
 
-				anchors.horizontalCenter: parent.horizontalCenter
-				color: Qaterial.Style.accentColor
-				icon.source: Qaterial.Icons.download
-				icon.width: Qaterial.Style.dashboardButtonSize*0.4
-				icon.height: Qaterial.Style.dashboardButtonSize*0.4
-				text: qsTr("Tartalom letöltése folyamatban...\n%1%").arg(game ? Math.floor(_progress*100.) : 0)
-			}
-
-			Qaterial.ProgressBar
-			{
-				width: Math.min(250 * Qaterial.Style.pixelSizeRatio, parent.width*0.75)
-				anchors.horizontalCenter: parent.horizontalCenter
-				from: 0
-				to: game ? game.downloader.fullSize : 0
-				value: game ? game.downloader.downloadedSize : 0
-				color: Qaterial.Colors.green400
-
-				Behavior on value {
-					NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
-				}
-			}
+		DownloaderItem {
+			downloader: Client.downloader
 		}
 	}
 
@@ -162,6 +130,33 @@ Page {
 		onClicked: Client.stackPop()
 	}
 
+
+
+	Loader {
+		id: _marketLoader
+
+		anchors.fill: parent
+		z: 10
+
+		onLoaded: {
+			item.activate()
+			item.enabled = true
+			item.forceActiveFocus()
+			game.marketLoaded()
+		}
+
+		onStatusChanged: {
+			if (status != Loader.Ready)
+				game.marketUnloaded()
+		}
+
+		function loadMarket() {
+			setSource("PageMarket.qml", {
+						  game: root.game
+					  })
+		}
+	}
+
 	Connections {
 		target: game
 
@@ -170,17 +165,12 @@ Page {
 				Client.snack(qsTr("Te vagy a host"))
 		}*/
 
+
+		function onMarketRequest() {
+			_marketLoader.loadMarket()
+		}
+
 		function onConfigChanged() {
-			if (Client.server && !Client.server.dynamicContentReady) {
-				_stack.activeComponent = _cmpDownload
-				return
-			}
-
-			/*if (game.config.gameState == RpgConfig.StateFinished && _isUnprepared) {
-				_stack.activeComponent = _cmpConnect
-				return
-			}*/
-
 			switch (game.config.gameState) {
 			case RpgConfig.StatePrepare:
 			case RpgConfig.StatePlay:
@@ -199,6 +189,10 @@ Page {
 				Client.stackPop(root)
 				return
 
+			case RpgConfig.StateDownloadStatic:
+				_stack.activeComponent = _cmpStaticDownload
+				return
+
 			case RpgConfig.StateDownloadContent:
 				_stack.activeComponent = _cmpDownload
 				return
@@ -208,22 +202,6 @@ Page {
 				break
 			}
 		}
-
-		function onFinishDialogRequest(text, icon, success) {
-			Qaterial.DialogManager.showDialog(
-						{
-							onAccepted: function() { if (game) game.finishGame()  },
-							onRejected: function() { if (game) game.finishGame() },
-							text: text,
-							title: qsTr("Game over"),
-							iconSource: icon,
-							iconColor: success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
-							textColor: success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
-							iconFill: false,
-							iconSize: Qaterial.Style.roundIcon.size,
-							standardButtons: DialogButtonBox.Ok
-						})
-		}
 	}
 
 
@@ -232,8 +210,8 @@ Page {
 			game.playMenuBgMusic()
 
 		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
-			_oldWindowState = Client.mainWindow.visibility
-			Client.mainWindow.showFullScreen()
+			_oldWindowState = Client.fullScreenHelper
+			Client.fullScreenHelper = true
 		}
 	}
 
@@ -243,8 +221,8 @@ Page {
 		}
 
 		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
-			if (_oldWindowState != Window.FullScreen)
-				Client.mainWindow.showMaximized()
+			if (_oldWindowState != Client.fullScreenHelper)
+				Client.fullScreenHelper = false
 		}
 	}
 }

@@ -25,6 +25,8 @@ Item {
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.horizontalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.x : 0
 		anchors.verticalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.y : 0
+
+		handlerMaster: _spriteHandlerAuxFront
 	}
 
 	Rectangle {
@@ -34,13 +36,6 @@ Item {
 		border.width: 2
 		anchors.fill: parent
 	}
-
-	/*BusyIndicator {
-		anchors.horizontalCenter: parent.horizontalCenter
-		anchors.verticalCenter: parent.verticalCenter
-		anchors.horizontalCenterOffset: root.baseObject ? root.baseObject.body.bodyOffset.x : 0
-		anchors.verticalCenterOffset: root.baseObject ? root.baseObject.body.bodyOffset.y : 0
-	}*/
 
 	TiledSpriteHandlerImpl {
 		id: _spriteHandler
@@ -103,6 +98,8 @@ Item {
 		anchors.verticalCenter: parent.verticalCenter
 		anchors.horizontalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.x : 0
 		anchors.verticalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.y : 0
+
+		handlerSlave: _spriteHandlerAuxBack
 	}
 
 }

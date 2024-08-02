@@ -33,8 +33,6 @@
 #include "utils_.h"
 #include "application.h"
 #include "gamemap.h"
-#include "gameterrain.h"
-#include "actiongame.h"
 #include <QScopedPointer>
 #include <Logger.h>
 
@@ -128,7 +126,7 @@ bool MapPlay::checkTerrains(GameMap *map)
 	if (!map)
 		return false;
 
-	foreach (GameMapMission *m, map->missions()) {
+	/*foreach (GameMapMission *m, map->missions()) {
 		foreach (GameMapMissionLevel *ml, m->levels()) {
 			const QString &terrain = ml->terrain();
 
@@ -140,7 +138,7 @@ bool MapPlay::checkTerrains(GameMap *map)
 			}
 
 		}
-	}
+	}*/
 
 	return true;
 
@@ -630,7 +628,7 @@ MapPlayMissionLevel *MapPlay::getNextLevel(MapPlayMissionLevel *currentLevel, co
 
 QVariantMap MapPlay::inventoryInfo(const QString &module) const
 {
-	GamePickable::GamePickableData data;
+	/*GamePickable::GamePickableData data;
 
 	if (module == QStringLiteral("hp"))
 		data = GamePickable::pickableDataDetails(GamePickable::PickableHealth);
@@ -649,7 +647,9 @@ QVariantMap MapPlay::inventoryInfo(const QString &module) const
 		return QVariantMap {
 			{ QStringLiteral("name"), data.name },
 			{ QStringLiteral("icon"), data.image }
-		};
+		};*/
+
+	return {};
 }
 
 

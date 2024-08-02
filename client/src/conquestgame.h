@@ -162,6 +162,9 @@ public:
 	bool gameSuccess() const;
 	void setGameSuccess(bool newGameSuccess);
 
+	static void reloadAvailableCharacters();
+	static const QStringList &availableCharacters() { return m_availableCharacters; }
+
 signals:
 	void mapDownRequest();
 	void mapUpRequest();
@@ -249,6 +252,8 @@ private:
 	QString m_worldOverImage;
 	QVariantList m_worldListSelect;
 	bool m_gameSuccess = false;
+
+	static QStringList m_availableCharacters;
 };
 
 

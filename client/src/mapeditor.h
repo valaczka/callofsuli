@@ -30,7 +30,6 @@
 #include <QObject>
 #include <QTimer>
 #include "client.h"
-#include "gameterrain.h"
 #include "mapeditormap.h"
 #include "editorundostack.h"
 #include "mapplay.h"
@@ -85,8 +84,6 @@ public:
 	Q_INVOKABLE QString currentFileName() const { return m_currentFileName; }
 
 	Q_INVOKABLE QStringList checkMap() const;
-
-	GameTerrain getNextTerrain(const QString &terrain = QStringLiteral("")) const;
 
 	EditorUndoStack *undoStack() const;
 

@@ -27,7 +27,6 @@
 #include "mapeditormap.h"
 #include "Logger.h"
 #include "clientcache.h"
-#include "gameterrain.h"
 #include "utils_.h"
 #include "abstractlevelgame.h"
 
@@ -1527,7 +1526,7 @@ GameMapInventoryIface *MapEditorMissionLevel::ifaceAddInventory(const qint32 &bl
 
 QVariantMap MapEditorMissionLevel::terrainData() const
 {
-	const GameTerrain &t = GameTerrain::terrain(m_terrain);
+	/*const GameTerrain &t = GameTerrain::terrain(m_terrain);
 
 	QVariantMap m;
 
@@ -1543,7 +1542,11 @@ QVariantMap MapEditorMissionLevel::terrainData() const
 		m.insert(QStringLiteral("thumbnail"), QStringLiteral(""));
 	}
 
-	return m;
+	return m;*/
+
+	// DEPRECATED
+
+	return {};
 }
 
 

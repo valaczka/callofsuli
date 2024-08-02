@@ -1,7 +1,7 @@
 /*
  * ---- Call of Suli ----
  *
- * tiledactiongame.cpp
+ * rpggame.cpp
  *
  * Created on: 2024. 03. 12.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
@@ -1531,7 +1531,13 @@ void RpgGame::checkEnemyQuests(const int &count)
 	if (found == m_gameDefinition.quests.end())
 		return;
 
-	messageColor(tr("%1 killed enemies").arg(found->amount), QColor::fromString(QStringLiteral("#9C27B0")));
+#if QT_VERSION >= 0x060000
+		static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
+#else
+		static const QColor color(QStringLiteral("#9C27B0"));
+#endif
+
+	messageColor(tr("%1 killed enemies").arg(found->amount), color);
 
 }
 
@@ -1569,7 +1575,13 @@ void RpgGame::checkWinnerQuests(const int &count)
 
 	questSuccess(&*found);
 
-	messageColor(tr("Winner streak: %1").arg(found->amount), QColor::fromString(QStringLiteral("#9C27B0")));
+#if QT_VERSION >= 0x060000
+		static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
+#else
+		static const QColor color(QStringLiteral("#9C27B0"));
+#endif
+
+	messageColor(tr("Winner streak: %1").arg(found->amount), color);
 
 	m_lastWinnerStreak = found->amount;
 }

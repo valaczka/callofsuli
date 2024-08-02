@@ -50,6 +50,26 @@ QPage {
 		id: _teacherExam
 	}
 
+	ExamResultModel {
+		id: _examResultModel
+		teacherGroup: _teacherExam.teacherGroup
+		groupExamList: examList
+
+		onContentReloaded: {
+			// JOKER limit
+
+			let addLimit = 3
+			let denyLimit = 3
+
+			_actionJokerShow.isLoading = false
+			let list = _teacherExam.jokerShow(_examResultModel, addLimit, denyLimit)
+
+			Client.stackPushPage("PageTeacherExamShowJoker.qml", {
+									 userList: list
+								 })
+		}
+	}
+
 	SortFilterProxyModel {
 		id: _model
 		sourceModel: _teacherExam.examUserList
@@ -339,6 +359,11 @@ QPage {
 					}
 
 					QDashboardButton {
+						action: _actionJokerShow
+						visible: exam && exam.mode == Exam.ExamVirtual
+					}
+
+					QDashboardButton {
 						action: _actionGenerateVirtual
 						visible: exam && exam.mode == Exam.ExamVirtual && exam.state < Exam.Active
 					}
@@ -425,7 +450,10 @@ QPage {
 								text: _grade ? "%1 (%2)".arg(_grade.longname).arg(_grade.shortname) : ""
 								checked: modelData.set
 								elide: Text.ElideRight
-								onToggled: _teacherExam.gradingConfig.gradeSet(_grade, _spinGrade.value/100.0, checked)
+								onToggled: {
+									_teacherExam.gradingConfig.gradeSet(_grade, _spinGrade.value/100.0, checked)
+									_teacherExam.gradingConfig.save()
+								}
 							}
 
 							QSpinBox {
@@ -451,7 +479,10 @@ QPage {
 									return Number.fromLocaleString(locale, text.replace("%", ""))
 								}*/
 
-								onValueModified: _teacherExam.gradingConfig.gradeSet(_grade, value/100.0, _chGrade.checked)
+								onValueModified: {
+									_teacherExam.gradingConfig.gradeSet(_grade, value/100.0, _chGrade.checked)
+									_teacherExam.gradingConfig.save()
+								}
 							}
 						}
 
@@ -575,6 +606,9 @@ QPage {
 				QMenuItem { action: _actionGenerateVirtual }
 				QMenuItem { action: _actionRemove }
 				QMenuItem { action: _actionPDF }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: _actionJokerSet}
+				QMenuItem { action: _actionJokerUnset}
 				Qaterial.MenuSeparator {}
 				QMenuItem { action: _actionGrade}
 				QMenuItem { action: _actionCancelAll}
@@ -931,6 +965,65 @@ QPage {
 							title: qsTr("Változtatások rögzítése"),
 							iconSource: Qaterial.Icons.checkBold
 						})
+		}
+	}
+
+	Action {
+		id: _actionJokerSet
+		icon.source: Qaterial.Icons.cardPlus
+		text: qsTr("Joker rögzítése")
+		enabled: exam && exam.state != Exam.Finished && exam.mode == Exam.ExamVirtual &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								_teacherExam.setJoker(_view.getSelected(), true)
+								_view.unselectAll()
+							},
+							text: qsTr("Biztosan rögzíted a jokereket?"),
+							title: qsTr("Jokerek rögzítése"),
+							iconSource: Qaterial.Icons.cardPlusOutline
+						})
+		}
+	}
+
+	Action {
+		id: _actionJokerUnset
+		icon.source: Qaterial.Icons.cardMinus
+		text: qsTr("Joker törlése")
+		enabled: exam && exam.state != Exam.Finished && exam.mode == Exam.ExamVirtual &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								_teacherExam.setJoker(_view.getSelected(), false)
+								_view.unselectAll()
+							},
+							text: qsTr("Biztosan törlöd a jokereket?"),
+							title: qsTr("Jokerek törlése"),
+							iconSource: Qaterial.Icons.cardMinusOutline
+						})
+		}
+	}
+
+
+
+	Action {
+		id: _actionJokerShow
+		icon.source: Qaterial.Icons.play
+
+		text: qsTr("Joker mutatása")
+		enabled: exam && exam.mode == Exam.ExamVirtual && !isLoading
+
+		property bool isLoading: false
+
+		onTriggered: {
+			isLoading = true
+			_examResultModel.reload()
 		}
 	}
 

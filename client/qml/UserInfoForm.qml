@@ -90,137 +90,8 @@ QFormColumn {
 
 
 
-	Row {
-		anchors.left: parent.left
-		topPadding: 5
-
-		spacing: 15
-
-		Qaterial.LabelBody2 {
-			text: qsTr("Karakter:")
-			anchors.verticalCenter: parent.verticalCenter
-		}
-
-		MouseArea {
-			id: _area
-			width: _characterRow.implicitWidth
-			height: _characterRow.implicitHeight
-
-			anchors.verticalCenter: parent.verticalCenter
-
-			hoverEnabled: true
-
-			acceptedButtons: Qt.LeftButton
-
-			onClicked: _changeBtn.clicked()
-
-			Row {
-				id: _characterRow
-
-				property string character: "default"
-
-				spacing: 15
-
-				Qaterial.Icon
-				{
-					icon: "qrc:/character/%1/thumbnail.png".arg(_characterRow.character)
-					color: "transparent"
-					width: Qaterial.Style.largeIcon
-					height: Qaterial.Style.largeIcon
-					anchors.verticalCenter: parent.verticalCenter
-				}
-
-				Qaterial.LabelBody1 {
-					anchors.verticalCenter: parent.verticalCenter
-					text: Client.availableCharacters()[_characterRow.character].name
-					color: Qaterial.Style.foregroundColor
-				}
-
-				Qaterial.RoundButton {
-					id: _changeBtn
-					anchors.verticalCenter: parent.verticalCenter
-					icon.source: Qaterial.Icons.pencil
-					onClicked: {
-						let idx = -1
-
-						let list = Object.keys(Client.availableCharacters())
-
-						let model = []
-
-
-						for (let i=0; i<list.length; ++i) {
-							model.push({
-										   id: list[i],
-										   name: Client.availableCharacters()[list[i]].name
-									   })
-
-							if (list[i] === _characterRow.character)
-								idx = i
-						}
-
-						Qaterial.DialogManager.openListView(
-									{
-										onAccepted: function(index)
-										{
-											if (index < 0)
-												return
-
-											_characterRow.character = model[index].id
-											_form.modified = true
-										},
-										title: qsTr("Karakter kiválasztása"),
-										model: model,
-										currentIndex: idx,
-										delegate: _characterDelegate
-									})
-					}
-				}
-			}
-
-			Qaterial.ListDelegateBackground
-			{
-				anchors.fill: parent
-				type: Qaterial.Style.DelegateType.Icon
-				lines: 1
-				pressed: _area.pressed
-				rippleActive: _area.containsMouse
-				rippleAnchor: _area
-			}
-		}
-	}
-
-
-	Component {
-		id: _characterDelegate
-
-		Qaterial.LoaderItemDelegate {
-			highlighted: ListView.isCurrentItem
-			text: modelData ? modelData.name : ""
-
-			leftSourceComponent: Image
-			{
-				fillMode: Image.PreserveAspectFit
-				source: modelData ? "qrc:/character/%1/thumbnail.png".arg(modelData.id) : ""
-				sourceSize: Qt.size(width, height)
-			}
-
-			width: ListView.view.width
-			onClicked: ListView.view.select(index)
-		}
-	}
-
-
-
-
-
 	function loadData(user) {
 		_form.setItems([_username, _familyName, _givenName, _nickName, _picture], user)
-
-		if (Client.availableCharacters()[user.character] !== undefined)
-			_characterRow.character = user.character
-		else
-			_characterRow.character = "default"
-
 		_form.modified = false
 	}
 
@@ -242,7 +113,6 @@ QFormColumn {
 			}
 
 			d.nickname = _nickName.text
-			d.character = _characterRow.character
 
 			if (pictureEditable)
 				d.picture = _picture.text

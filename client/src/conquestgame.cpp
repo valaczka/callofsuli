@@ -30,11 +30,12 @@
 #include "question.h"
 #include "utils_.h"
 #include "gamequestion.h"
-#include "actiongame.h"
 
 #ifndef Q_OS_WASM
 #include "standaloneclient.h"
 #endif
+
+QStringList ConquestGame::m_availableCharacters;
 
 
 /**
@@ -148,7 +149,7 @@ void ConquestGame::gameCreate(const QString &character)
 					   << qPrintable(m_config.missionUuid) << m_config.missionLevel
 					   << character;
 
-	if (!ActionGame::availableCharacters().contains(character)) {
+	if (!m_availableCharacters.contains(character)) {
 		m_client->messageWarning(tr("Válassz érvényes karaktert"));
 		return;
 	}
@@ -779,7 +780,7 @@ void ConquestGame::getCharacterList(ConquestWorldListHelper *helper) const
 {
 	Q_ASSERT(helper);
 
-	helper->characterList = ActionGame::availableCharacters();
+	helper->characterList = m_availableCharacters;
 }
 
 
@@ -1485,4 +1486,18 @@ void ConquestGame::setGameSuccess(bool newGameSuccess)
 		return;
 	m_gameSuccess = newGameSuccess;
 	emit gameSuccessChanged();
+}
+
+void ConquestGame::reloadAvailableCharacters()
+{
+	LOG_CDEBUG("game") << "Reload available characters...";
+
+	m_availableCharacters.clear();
+
+	QDirIterator it(QStringLiteral(":/character"), {QStringLiteral("data.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+	while (it.hasNext())
+		m_availableCharacters.append(it.next().section('/',-2,-2));
+
+	LOG_CDEBUG("game") << "...loaded " << m_availableCharacters.size() << " characters";
 }

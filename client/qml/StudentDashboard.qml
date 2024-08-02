@@ -16,6 +16,7 @@ QItemGradient {
 	property bool _firstRun: true
 	property bool _notifyDailyRate80: false
 	property bool _notifyDailyRate100: false
+	property date _referenceDate: new Date()
 
 	appBar.rightComponent: Qaterial.AppBarButton {
 		icon.source: Qaterial.Icons.cogOutline
@@ -125,16 +126,6 @@ QItemGradient {
 		}
 
 
-		StudentXpChart {
-			id: _chart
-			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.85)
-			anchors.horizontalCenter: parent.horizontalCenter
-			visible: false
-
-			property bool _showPlaceholder: true
-		}
-
-
 		QAnimatedProgressBar {
 			id: _progressLimit
 			width: Math.min(parent.width-40, Qaterial.Style.maxContainerSize, 450)
@@ -170,8 +161,8 @@ QItemGradient {
 
 			readonly property bool showPlaceholders: _campaignList.count === 0 && _firstRun
 
-			visible: _campaignList.count || showPlaceholders
-			contentItems: showPlaceholders ? 3 : _campaignList.count
+			//visible: _campaignList.count || showPlaceholders
+			//contentItems: showPlaceholders ? 3 : _campaignList.count
 
 			Repeater {
 				model: _grid.showPlaceholders ? 3 : _campaignList
@@ -188,6 +179,54 @@ QItemGradient {
 					text: campaign ? campaign.readableName : ""
 
 					icon.source: Qaterial.Icons.trophyBroken
+
+					QTagList {
+						anchors.right: parent.right
+						anchors.top: parent.top
+						anchors.rightMargin: Qaterial.Style.card.horizontalPadding
+						anchors.topMargin: Qaterial.Style.card.horizontalPadding
+
+						readonly property int msecLeft: _btn.campaign && _btn.campaign.endTime.getTime() ?
+															_btn.campaign.endTime - _referenceDate.getTime():
+															0
+
+						visible: msecLeft > 0 && msecLeft < 8 * 24 * 60 * 60 * 1000
+
+						readonly property string stateString: {
+							let d = Math.floor(msecLeft / (24*60*60*1000))
+
+							if (d > 5)
+								return qsTr(">5 nap")
+							else if (d > 0)
+								return qsTr("%1 nap").arg(d)
+							else if (msecLeft > 60*60*1000) {
+								let h = Math.floor(msecLeft / (60*60*1000))
+								return qsTr("%1 óra").arg(h)
+							} else {
+								return qsTr("<1 óra")
+							}
+						}
+
+						readonly property color stateColor: {
+							if (msecLeft > 4 * 24 * 60 * 60 * 1000)
+								return Qaterial.Colors.green600
+							else if (msecLeft > 2 * 24 * 60 * 60 * 1000)
+								return Qaterial.Colors.orange800
+							else
+								return Qaterial.Colors.red500
+						}
+
+						z: 99
+
+						model: [
+							{
+								"text": stateString,
+								"color": stateColor,
+								"textColor": Qaterial.Colors.white
+							}
+
+						]
+					}
 
 					onClicked: {
 						let group = null
@@ -231,8 +270,32 @@ QItemGradient {
 													studentMapHandler: studentMapHandler
 												})
 			}
+
+
+
+			QDashboardButton {
+				text: qsTr("Bank")
+				visible: !_grid.showPlaceholders
+				icon.source: Qaterial.Icons.bank
+				highlighted: false
+				outlined: true
+				flat: true
+
+				textColor: Qaterial.Colors.yellow400
+
+				onClicked: Client.stackPushPage("PageMarket.qml")
+			}
 		}
 
+
+		StudentXpChart {
+			id: _chart
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.85)
+			anchors.horizontalCenter: parent.horizontalCenter
+			visible: false
+
+			property bool _showPlaceholder: true
+		}
 	}
 
 	SortFilterProxyModel {
@@ -294,6 +357,7 @@ QItemGradient {
 		Client.reloadUser()
 		Client.reloadCache("studentCampaignList", root, function() {
 			_firstRun = false
+			_referenceDate = new Date()
 		})
 		Client.send(HttpConnection.ApiGeneral, "user/%1/log/xp".arg(user.username))
 		.done(root, function(r){

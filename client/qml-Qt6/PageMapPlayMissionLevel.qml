@@ -114,7 +114,6 @@ QPageGradient {
 												  GameMap.Exam,
 												  GameMap.Test,
 												  GameMap.Rpg,
-												  GameMap.Action,
 												  GameMap.Lite,
 												  GameMap.Practice,
 												  GameMap.Quiz,
@@ -123,7 +122,6 @@ QPageGradient {
 											  ] : [
 												  GameMap.Test,
 												  GameMap.Rpg,
-												  GameMap.Action,
 												  GameMap.Lite,
 												  GameMap.Practice
 											  ]
@@ -155,14 +153,8 @@ QPageGradient {
 							case GameMap.Exam:
 								qsTr("Dolgozat")
 								break
-							/*case GameMap.MultiPlayer:
-								qsTr("Multiplayer")
-								break*/
 							case GameMap.Conquest:
 								qsTr("Multiplayer")
-								break
-							case GameMap.Action:
-								qsTr("Régi akciójáték")
 								break
 							default:
 								""
@@ -845,7 +837,7 @@ QPageGradient {
 				if (!ml)
 					continue
 
-				if (ml.mission.modeEnabled(gameMode) && (!ml.deathmatch || gameMode === GameMap.Action)) {
+				if (ml.mission.modeEnabled(gameMode) && !ml.deathmatch) {
 
 					let xp = map.calculateXP(ml, gameMode)
 

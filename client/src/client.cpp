@@ -38,13 +38,11 @@
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include "httpconnection.h"
-#include "gameterrain.h"
 #include "qquickwindow.h"
 #include "qapplication.h"
 #include <qpa/qplatformwindow.h>
 #include "Logger.h"
 #include "mapgame.h"
-#include "actiongame.h"
 #include "updater.h"
 #include "server.h"
 #include "rpgplayer.h"
@@ -390,10 +388,9 @@ void Client::onApplicationStarted()
 
 	QCoreApplication::processEvents();
 
-	GameTerrain::reloadAvailableTerrains();
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
-	ActionGame::reloadAvailableCharacters();
+	ConquestGame::reloadAvailableCharacters();
 
 	switch (m_application->commandLine()) {
 		case Application::Demo:
@@ -1438,7 +1435,7 @@ QVariantMap Client::availableCharacters() const
 {
 	QVariantMap ret;
 
-	const QStringList &l = ActionGame::availableCharacters();
+	const QStringList &l = ConquestGame::availableCharacters();
 
 	foreach (const QString &s, l) {
 		const auto &obj = Utils::fileToJsonObject(QStringLiteral(":/character/%1/data.json").arg(s));

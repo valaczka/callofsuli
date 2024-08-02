@@ -74,6 +74,8 @@ FocusScope {
 
 		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
 
+		onQuestsRequest: showQuests()
+
 		Component.onCompleted: forceActiveFocus()
 	}
 
@@ -122,6 +124,70 @@ FocusScope {
 	}
 
 
+	Row {
+		anchors.left: _rowTime.left
+		anchors.top: _rowTime.bottom
+		anchors.topMargin: 15 * Qaterial.Style.pixelSizeRatio
+
+		spacing: 5
+
+		GameButton {
+			id: _setttingsButton
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: Qaterial.Colors.white
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.cog
+			fontImage.color: Qaterial.Colors.blueGray600
+			fontImageScale: 0.7
+
+			onClicked: {
+				Qaterial.DialogManager.openFromComponent(_settingsDialog)
+			}
+		}
+
+		GameButton {
+			id: _questsButton
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: "transparent"
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.crosshairsQuestion
+			fontImage.color: Qaterial.Colors.purple400
+			fontImageScale: 0.7
+
+			onClicked: showQuests()
+		}
+
+		GameButton {
+			id: _mapButton
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			color: "transparent"
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.map
+			fontImage.color: Qaterial.Colors.cyan300
+			fontImageScale: 0.7
+
+			onClicked: {
+				_mapRect.visible = !_mapRect.visible
+			}
+		}
+	}
+
+
 
 
 
@@ -133,7 +199,6 @@ FocusScope {
 		anchors.left: parent.left
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
 		extendedSize: !_game.mouseAttack && !_game.mouseNavigation
-		//size: Client.Utils.settingsGet("window/joystick", 160)
 	}
 
 
@@ -192,6 +257,20 @@ FocusScope {
 		spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 		visible: _isPrepared
+
+		GameLabel {
+			id: _infoCurrency
+
+			anchors.right: parent.right
+
+			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
+
+			color: Qaterial.Colors.yellow500
+			iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
+			iconLabel.icon.color: "transparent"
+
+			value: game && game.rpgGame ? game.rpgGame.currency : 0
+		}
 
 		GameLabel {
 			id: _labelXP
@@ -263,7 +342,8 @@ FocusScope {
 			opacity: canShot ? 1.0 : 0.0
 
 			readonly property bool canShot:  _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon &&
-											 _game.controlledPlayer.armory.currentWeapon.canShot
+											 _game.controlledPlayer.armory.currentWeapon.canShot &&
+											 _game.controlledPlayer.armory.currentWeapon.weaponType != TiledWeapon.WeaponMageStaff
 
 			readonly property int bullet: canShot ?
 											  _game.controlledPlayer.armory.currentWeapon.bulletCount :
@@ -310,52 +390,6 @@ FocusScope {
 
 		}
 
-
-		Row {
-			anchors.right: parent.right
-
-			spacing: 5
-
-			GameButton {
-				id: _mapButton
-				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				color: "transparent"
-				border.color: fontImage.color
-				border.width: 2
-
-				fontImage.icon: Qaterial.Icons.map
-				fontImage.color: Qaterial.Colors.cyan300
-				fontImageScale: 0.7
-
-				onClicked: {
-					_mapRect.visible = !_mapRect.visible
-				}
-			}
-
-			GameButton {
-				id: _setttingsButton
-				size: Qt.platform.os == "android" || Qt.platform.os == "ios" ? 40 : 30
-
-				anchors.verticalCenter: parent.verticalCenter
-
-				color: Qaterial.Colors.white
-				border.color: fontImage.color
-				border.width: 2
-
-				fontImage.icon: Qaterial.Icons.cog
-				fontImage.color: Qaterial.Colors.blueGray600
-				fontImageScale: 0.7
-
-				onClicked: {
-					Qaterial.DialogManager.openFromComponent(_settingsDialog)
-				}
-			}
-		}
-
-
 	}
 
 
@@ -366,7 +400,23 @@ FocusScope {
 		anchors.top: parent.top
 		value: _game.controlledPlayer ? _game.controlledPlayer.hp : 0
 		visible: _game.controlledPlayer && _isPrepared
-		onValueChanged: marked = true
+		//onValueChanged: marked = true
+	}
+
+	GameInfo {
+		id: _infoMP
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.top: infoHP.bottom
+		color: Qaterial.Colors.pink300
+		iconLabel.icon.source: Qaterial.Icons.shimmer
+		text: qsTr("%1/%2 MP").arg(Math.floor(progressBar.value)).arg(progressBar.to)
+
+		visible: _game.controlledPlayer && _game.controlledPlayer.armory.mageStaff
+
+		progressBar.from: 0
+		progressBar.to: _game.controlledPlayer ? _game.controlledPlayer.maxMp : 0
+		progressBar.value: _game.controlledPlayer ? _game.controlledPlayer.mp : 0
+		progressBar.width: Math.min(root.width*0.3, 85)
 	}
 
 
@@ -374,7 +424,7 @@ FocusScope {
 
 	GameButton {
 		id: _nextWeaponButton
-		size: 40
+		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 40
 
 		anchors.left: _rowTime.left
 		//y: Math.min((parent.height-height)/2, _gameJoystick.y-10-height)
@@ -400,31 +450,34 @@ FocusScope {
 	}
 
 
-	/*GameButton {
-		id: _pickButton
-		size: 50
+	GameButton {
+		id: _castButton
+		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 45
 
 		anchors.horizontalCenter: _shotButton.horizontalCenter
 		anchors.bottom: _shotButton.top
-		anchors.bottomMargin: 5
+		anchors.bottomMargin: 10
 
-		visible: _game.controlledPlayer && _game.controlledPlayer.currentPickable && _isPrepared
+		visible: _game.controlledPlayer && _game.controlledPlayer.armory.mageStaff &&
+				 _game.controlledPlayer.armory.currentWeapon != _game.controlledPlayer.armory.mageStaff &&
+				 _isPrepared
 
-		color: Qaterial.Colors.green600
-		border.color: fontImage.color
+		readonly property bool _canAttack: _game.controlledPlayer && _game.controlledPlayer.mp > 0
+
+		color: _canAttack ? Qaterial.Colors.pink300 : "transparent"
+
+		border.color: _canAttack ? Qaterial.Colors.white : Qaterial.Colors.red800
 		border.width: 1
 
-		opacity: 1.0
-
-		fontImage.icon: Qaterial.Icons.hand
-		fontImage.color: "white"
+		fontImage.icon: "qrc:/internal/medal/Icon.3_03.png"
+		fontImage.opacity: _canAttack ? 1.0 : 0.6
+		fontImage.color: "transparent"
 		fontImageScale: 0.6
-		//fontImage.anchors.horizontalCenterOffset: -2
 
 		onClicked: {
-			_game.controlledPlayer.pickCurrentObject()
+			_game.controlledPlayer.cast()
 		}
-	}*/
+	}
 
 
 
@@ -498,7 +551,7 @@ FocusScope {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: _game.controlledPlayer && _game.controlledPlayer.currentContainer &&
-										   _game.controlledPlayer.currentContainer.isActive
+					 _game.controlledPlayer.currentContainer.isActive
 
 			color: Qaterial.Colors.amber500
 			border.color: fontImage.color
@@ -734,15 +787,69 @@ FocusScope {
 		}
 	}
 
+
+
+	Connections {
+		target: game
+
+		function onFinishDialogRequest(text, icon, success) {
+			_finishIcon = icon
+			_finishText = text
+			_finishSuccess = success
+
+			Qaterial.DialogManager.openFromComponent(_cmpFinishQuests)
+		}
+	}
+
 	function startGame() {
 		if (_isPrepared && _delayTimer._finished) {
 			game.gamePrepared()
 			_loadingRect.visible = false
+			//showQuests()
 		}
 	}
 
 
 
+	function showQuests() {
+		Qaterial.DialogManager.openFromComponent(_cmpQuests)
+	}
+
+
+	Component {
+		id: _cmpQuests
+
+		RpgQuestsDialog {
+			game: root.game ? root.game.rpgGame : null
+		}
+
+	}
+
+	property string _finishIcon: ""
+	property string _finishText: ""
+	property bool _finishSuccess: false
+
+	Component {
+		id: _cmpFinishQuests
+
+		RpgQuestsDialog {
+			game: root.game ? root.game.rpgGame : null
+
+			onAccepted: if (root.game) root.game.finishGame()
+			onRejected: if (root.game) root.game.finishGame()
+
+			title: qsTr("Game over")
+
+			text: _finishText
+			iconColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
+			textColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
+
+			iconSize: Qaterial.Style.roundIcon.size
+			iconSource: _finishIcon
+			showFailed: true
+		}
+
+	}
 }
 
 

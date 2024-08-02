@@ -9,24 +9,12 @@
         <file>MainStackView.qml</file>
         <file>callofsuli.svg</file>
         <file>QPage.qml</file>
-        <file>PageActionGame.qml</file>
-        <file>GameScene.qml</file>
-        <file>GameLadder.qml</file>
-        <file>GameEnemySoldier.qml</file>
-        <file>GameEntitySpriteSequence.qml</file>
-        <file>GameEntityRay.qml</file>
-        <file>GamePlayer.qml</file>
-        <file>GamePlayerLocator.qml</file>
-        <file>GameEnemyMarker.qml</file>
         <file>GameJoystick.qml</file>
         <file>GameButton.qml</file>
         <file>GameShotButton.qml</file>
         <file>GameLabel.qml</file>
-        <file>GameFire.qml</file>
         <file>GameInfo.qml</file>
         <file>GameHpLabel.qml</file>
-        <file>GameFence.qml</file>
-        <file>GamePickable.qml</file>
         <file>GameMessageList.qml</file>
         <file>GameQuestionBase.qml</file>
         <file>GameQuestionDefaultComponent.qml</file>
@@ -36,8 +24,6 @@
         <file>GameQuestionTitle.qml</file>
         <file>GameQuestionButtonOk.qml</file>
         <file>GameQuestionButtonPostpone.qml</file>
-        <file>GameEnemySniper.qml</file>
-        <file>GameEnemySniperCrosshair.qml</file>
         <file>PageMapPlay.qml</file>
         <file>AppBar.qml</file>
         <file>QMenu.qml</file>
@@ -116,6 +102,7 @@
         <file>GameQuestionTest.qml</file>
         <file>GameQuestionTestFinishComponent.qml</file>
         <file>GameTestResult.qml</file>
+        <file>_PageDev.qml</file>
         <file>gametest.css</file>
         <file>PageMapEditor.qml</file>
         <file>MapEditorMissionList.qml</file>
@@ -182,21 +169,20 @@
         <file>PageTeacherPeers.qml</file>
         <file>UserInfoCounter.qml</file>
         <file>TeacherGroupLog.qml</file>
-        <file>corrector.css</file>
-        <file>GamePlayerMulti.qml</file>
+        <file>QSpinBox.qml</file>
         <file>PageMultiPlayerGame.qml</file>
-        <file>PageTeacherExam.qml</file>
-        <file>PageTeacherExamGrading.qml</file>
-        <file>PageTeacherExamRunVirtual.qml</file>
+        <file>TeacherGroupExamList.qml</file>
         <file>PageTeacherExamScanner.qml</file>
+        <file>PageTeacherExam.qml</file>
+        <file>PageTeacherExamRunVirtual.qml</file>
+        <file>StudentGroupExamList.qml</file>
         <file>PageTeacherGroupCampaign.qml</file>
         <file>PageTeacherGroupExam.qml</file>
-        <file>QLoaderItemDelegate.qml</file>
-        <file>StudentGroupExamList.qml</file>
-        <file>TeacherExamCorrector.qml</file>
-        <file>TeacherGroupExamList.qml</file>
         <file>TeacherGroupExamResult.qml</file>
-        <file>QSpinBox.qml</file>
+        <file>QLoaderItemDelegate.qml</file>
+        <file>PageTeacherExamGrading.qml</file>
+        <file>TeacherExamCorrector.qml</file>
+        <file>corrector.css</file>
         <file>ConquestLand.qml</file>
         <file>PageConquestGame.qml</file>
         <file>ConquestScene.qml</file>
@@ -226,5 +212,16 @@
         <file>PageStudentFreePlay.qml</file>
         <file>PageTeacherGroupFreePlay.qml</file>
         <file>RpgShotButton.qml</file>
+        <file>RpgSelectCard.qml</file>
+        <file>DownloaderItem.qml</file>
+        <file>RpgSelectTitle.qml</file>
+        <file>RpgSelectView.qml</file>
+        <file>PageMarket.qml</file>
+        <file>RpgMarketCard.qml</file>
+        <file>RpgQuestsDialog.qml</file>
+        <file>UserInfoNotification.qml</file>
+        <file>TiledEnemyMarker.qml</file>
+        <file>RpgKeyboardInfoDialog.qml</file>
+        <file>PageTeacherExamShowJoker.qml</file>
     </qresource>
 </RCC>

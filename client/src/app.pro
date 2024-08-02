@@ -208,7 +208,6 @@ macx {
 SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
-	actiongame.cpp \
 	actionrpggame.cpp \
 	application.cpp \
 	basemap.cpp \
@@ -228,21 +227,8 @@ SOURCES += \
 	examresultmodel.cpp \
 	fetchmodel.cpp \
 	fontimage.cpp \
-	gameenemy.cpp \
-	gameenemysniper.cpp \
-	gameenemysoldier.cpp \
-	gameentity.cpp \
-	gameladder.cpp \
-	gameobject.cpp \
-	gamepickable.cpp \
-	gameplayer.cpp \
-	gameplayermulti.cpp \
-	gameplayerposition.cpp \
 	gamequestion.cpp \
 	gamequestioncomponent.cpp \
-	gamescene.cpp \
-	gameterrain.cpp \
-	gameterrainmap.cpp \
 	grade.cpp \
 	httpconnection.cpp \
 	isometricbullet.cpp \
@@ -260,7 +246,6 @@ SOURCES += \
 	mapplaycampaign.cpp \
 	mapplaydemo.cpp \
 	maskedmousearea.cpp \
-	multiplayergame.cpp \
 	offsetmodel.cpp \
 	qrimage.cpp \
 	question.cpp \
@@ -338,7 +323,6 @@ HEADERS += \
 	abstractgame.h \
 	abstractlevelgame.h \
 	abstracttiledmotor.h \
-	actiongame.h \
 	actionrpggame.h \
 	application.h \
 	basemap.h \
@@ -358,21 +342,8 @@ HEADERS += \
 	examresultmodel.h \
 	fetchmodel.h \
 	fontimage.h \
-	gameenemy.h \
-	gameenemysniper.h \
-	gameenemysoldier.h \
-	gameentity.h \
-	gameladder.h \
-	gameobject.h \
-	gamepickable.h \
-	gameplayer.h \
-	gameplayermulti.h \
-	gameplayerposition.h \
 	gamequestion.h \
 	gamequestioncomponent.h \
-	gamescene.h \
-	gameterrain.h \
-	gameterrainmap.h \
 	grade.h \
 	httpconnection.h \
 	isometricbullet.h \
@@ -391,7 +362,6 @@ HEADERS += \
 	mapplaycampaign.h \
 	mapplaydemo.h \
 	maskedmousearea.h \
-	multiplayergame.h \
 	offsetmodel.h \
 	qrimage.h \
 	question.h \

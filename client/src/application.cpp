@@ -36,17 +36,13 @@
 #include "examresultmodel.h"
 #include "fetchmodel.h"
 #include "fontimage.h"
-#include "gameenemysniper.h"
-#include "gameplayermulti.h"
 #include "gamequestioncomponent.h"
-#include "gamescene.h"
 #include "isometricobject.h"
 #include "litegame.h"
 #include "mapeditor.h"
 #include "mapgame.h"
 #include "mapplaycampaign.h"
 #include "maskedmousearea.h"
-#include "multiplayergame.h"
 #include "offsetmodel.h"
 #include "qapplication.h"
 #include "qrimage.h"
@@ -88,13 +84,6 @@
 
 
 #include "abstractgame.h"
-#include "actiongame.h"
-#include "gameentity.h"
-#include "gameenemysoldier.h"
-#include "gameladder.h"
-#include "gameobject.h"
-#include "gameplayer.h"
-#include "gamepickable.h"
 #include "gamequestion.h"
 #include "mapplay.h"
 #include "httpconnection.h"
@@ -367,7 +356,6 @@ void Application::registerQmlTypes()
 	LOG_CTRACE("app") << "Register QML types";
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
-	qmlRegisterUncreatableType<ActionGame>("CallOfSuli", 1, 0, "ActionGame", "ActionGame is uncreatable");
 	qmlRegisterUncreatableType<ActionRpgGame>("CallOfSuli", 1, 0, "ActionRpgGame", "ActionRpgGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGame>("CallOfSuli", 1, 0, "ConquestGame", "ConquestGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGameAdjacencySetup>("CallOfSuli", 1, 0, "ConquestGameAdjacencySetup", "ConquestGameAdjacencySetup is uncreatable");
@@ -391,7 +379,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayCampaign>("CallOfSuli", 1, 0, "MapPlayCampaign", "MapPlayCampaign is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
-	qmlRegisterUncreatableType<MultiPlayerGame>("CallOfSuli", 1, 0, "MultiPlayerGame", "MultiPlayerGame is uncreatable");
 	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgInventory>("CallOfSuli", 1, 0, "RpgInventory", "RpgInventory is uncreatable");
@@ -447,18 +434,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<ExamScanDataList>("CallOfSuli", 1, 0, "ExamScanDataList");
 	qmlRegisterType<ExamUser>("CallOfSuli", 1, 0, "ExamUser");
 	qmlRegisterType<FetchModel>("CallOfSuli", 1, 0, "FetchModelImpl");
-	qmlRegisterType<GameEnemy>("CallOfSuli", 1, 0, "GameEnemyImpl");
-	qmlRegisterType<GameEnemySniper>("CallOfSuli", 1, 0, "GameEnemySniperImpl");
-	qmlRegisterType<GameEnemySoldier>("CallOfSuli", 1, 0, "GameEnemySoldierImpl");
-	qmlRegisterType<GameEntity>("CallOfSuli", 1, 0, "GameEntityImpl");
-	qmlRegisterType<GameLadder>("CallOfSuli", 1, 0, "GameLadderImpl");
-	qmlRegisterType<GameObject>("CallOfSuli", 1, 0, "GameObject");
-	qmlRegisterType<GamePickable>("CallOfSuli", 1, 0, "GamePickableImpl");
-	qmlRegisterType<GamePlayer>("CallOfSuli", 1, 0, "GamePlayerImpl");
-	qmlRegisterType<GamePlayerMulti>("CallOfSuli", 1, 0, "GamePlayerMultiImpl");
 	qmlRegisterType<GameQuestion>("CallOfSuli", 1, 0, "GameQuestionImpl");
 	qmlRegisterType<GameQuestionComponent>("CallOfSuli", 1, 0, "GameQuestionComponentImpl");
-	qmlRegisterType<GameScene>("CallOfSuli", 1, 0, "GameSceneImpl");
 	qmlRegisterType<IsometricObject>("CallOfSuli", 1, 0, "IsometricObjectImpl");
 	qmlRegisterType<Grade>("CallOfSuli", 1, 0, "Grade");
 	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");

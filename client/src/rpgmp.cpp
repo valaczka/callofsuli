@@ -77,8 +77,14 @@ bool RpgMpPickable::pick(RpgPlayer *player, const int &amount)
 
 	player->setMp(player->mp() + amount);
 
+#if QT_VERSION >= 0x060000
+		static const QColor color = QColor::fromString(QStringLiteral("#F06292"));
+#else
+		static const QColor color(QStringLiteral("#F06292"));
+#endif
+
 	if (game)
-		game->messageColor(tr("+%1 MP gained").arg(amount), QColor::fromString(QStringLiteral("#F06292")));
+		game->messageColor(tr("+%1 MP gained").arg(amount), color);
 
 	return true;
 }

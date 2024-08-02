@@ -183,7 +183,12 @@ QPage {
 	}
 
 	StackView.onActivated: if (teacherExam) teacherExam.pickUsers(userList, count)
-	StackView.onDeactivated: Client.sound.stopSound("", Sound.SfxChannel)
+	StackView.onDeactivated: {
+		if (teacherExam)
+			teacherExam.finish()
+
+		Client.sound.stopSound("", Sound.SfxChannel)
+	}
 
 	Component.onCompleted: {
 		if (!teacherExam || !teacherExam.teacherGroup || !teacherExam.teacherGroup)

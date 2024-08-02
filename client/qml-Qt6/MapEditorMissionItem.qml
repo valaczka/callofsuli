@@ -192,15 +192,6 @@ QPage {
 						enabled: !_isExam.checked
 					}
 
-					/*QFormCheckButton
-					{
-						id: _isAction
-						text: qsTr("Akciójáték (elavult)")
-						checked: mission && (mission.modes & GameMap.Action)
-						onToggled: _form.updateCheckButtons()
-						enabled: !_isExam.checked
-					}*/
-
 					QFormCheckButton
 					{
 						id: _isLite
@@ -269,9 +260,6 @@ QPage {
 					if (_isRpg.checked)
 						c |= GameMap.Rpg
 
-					/*if (_isAction.checked)
-						c |= GameMap.Action*/
-
 					if (_isLite.checked)
 						c |= GameMap.Lite
 
@@ -283,9 +271,6 @@ QPage {
 
 					if (_isConquest.checked)
 						c |= GameMap.Conquest
-
-					/*if (_isMultiPlayer.checked)
-						c |= GameMap.MultiPlayer*/
 				}
 
 				editor.missionModify(mission, function() {
