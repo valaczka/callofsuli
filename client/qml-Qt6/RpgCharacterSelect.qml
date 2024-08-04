@@ -144,7 +144,9 @@ QItemGradient {
 
 								outlined: !enabled
 
-								enabled: _selectTerrain.wallet && _selectCharacter.wallet
+								enabled: _selectTerrain.wallet && _selectCharacter.wallet &&
+										 _selectTerrain.wallet.available && _selectCharacter.wallet.available
+
 								text: qsTr("Play")
 
 								onClicked: {

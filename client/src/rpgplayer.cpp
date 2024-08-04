@@ -386,7 +386,7 @@ void RpgPlayer::updateSprite()
 			m_spriteHandler->currentSprite() == "cast")
 		jumpToSpriteLater("idle", m_currentDirection);
 	else if (m_movingDirection != Invalid) {
-		if (m_runSpeed >= 0. && m_movingSpeed >= m_runSpeed)
+		if (m_body->isRunning())
 			jumpToSprite("run", m_movingDirection);
 		else
 			jumpToSprite("walk", m_movingDirection);
@@ -426,7 +426,7 @@ bool RpgPlayer::protectWeapon(const TiledWeapon::WeaponType &weaponType)
  * @brief RpgPlayer::attackedByEnemy
  */
 
-void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType &/*weaponType*/, const bool &isProtected)
+void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType &weaponType, const bool &isProtected)
 {
 	if (!isAlive())
 		return;
@@ -452,7 +452,9 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 			});
 		}
 
-		if (m_armory->currentWeapon() && m_armory->currentWeapon()->weaponType() == TiledWeapon::WeaponHand)
+		if (weaponType == TiledWeapon::WeaponGreatHand)
+			startInability(4*m_inabilityTime);
+		else if (m_armory->currentWeapon() && m_armory->currentWeapon()->weaponType() == TiledWeapon::WeaponHand)
 			startInability(3*m_inabilityTime);
 		else
 			startInability();
@@ -660,6 +662,9 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
 		case TiledWeapon::WeaponBroadsword:
+		case TiledWeapon::WeaponAxe:
+		case TiledWeapon::WeaponMace:
+		case TiledWeapon::WeaponHammer:
 		case TiledWeapon::WeaponDagger:
 			jumpToSprite("attack", m_currentDirection);
 			break;
@@ -755,6 +760,9 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 		case TiledWeapon::WeaponLongsword:
 		case TiledWeapon::WeaponBroadsword:
 		case TiledWeapon::WeaponDagger:
+		case TiledWeapon::WeaponAxe:
+		case TiledWeapon::WeaponMace:
+		case TiledWeapon::WeaponHammer:
 		case TiledWeapon::WeaponFireFogWeapon:
 		case TiledWeapon::WeaponLightningWeapon:
 		case TiledWeapon::WeaponInvalid:

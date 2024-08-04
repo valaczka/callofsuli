@@ -104,6 +104,9 @@ public:
 	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, archer)
 	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, werebear)
 	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, skeleton)
+	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, butcher)
+	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, smith)
+	QS_QT_DICT_OBJECTS(QHash, QString, EnemyMetric, barbarian)
 
 	QS_QT_DICT(QHash, RpgPlayerCharacterConfig::CastType, int, playerCast)
 };

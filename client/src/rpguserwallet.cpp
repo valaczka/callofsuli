@@ -316,14 +316,14 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 		if (const int v = market.info.value("mpCount").toInt(); v > 0)
 			list.append(RpgMarketExtendedInfo{
 							QStringLiteral("qrc:/Qaterial/Icons/shimmer.svg"),
-							tr("Szerezhető MP:"),
+							tr("Elhelyezett MP:"),
 							QString::number(v)
 						});
 
 		if (const int v = market.info.value("currencyCount").toInt(); v > 0)
 			list.append(RpgMarketExtendedInfo{
 							QStringLiteral("qrc:/Qaterial/Icons/cash-usd-outline.svg"),
-							tr("Szerezhető pénz:"),
+							tr("Elhelyezett pénz:"),
 							QString::number(v),
 							QStringLiteral("qrc:/rpg/coin/coin.png"),
 						});
@@ -804,6 +804,9 @@ void RpgUserWalletList::updateBullets()
 			case TiledWeapon::WeaponDagger:
 			case TiledWeapon::WeaponBroadsword:
 			case TiledWeapon::WeaponHand:
+			case TiledWeapon::WeaponAxe:
+			case TiledWeapon::WeaponMace:
+			case TiledWeapon::WeaponHammer:
 			case TiledWeapon::WeaponGreatHand:
 			case TiledWeapon::WeaponShield:
 			case TiledWeapon::WeaponMageStaff:

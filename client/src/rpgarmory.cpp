@@ -39,6 +39,9 @@ const QHash<TiledWeapon::WeaponType, QString> RpgArmory::m_layerInfoHash = {
 	{ TiledWeapon::WeaponDagger, QStringLiteral("dagger") },
 	{ TiledWeapon::WeaponBroadsword, QStringLiteral("broadsword") },
 	{ TiledWeapon::WeaponMageStaff, QStringLiteral("magestaff") },
+	{ TiledWeapon::WeaponAxe, QStringLiteral("axe") },
+	{ TiledWeapon::WeaponMace, QStringLiteral("mace") },
+	{ TiledWeapon::WeaponHammer, QStringLiteral("hammer") },
 	/*{ TiledWeapon::WeaponShield, QStringLiteral("shield") }*/
 };
 
@@ -350,6 +353,9 @@ void RpgArmory::updateLayers()
 			case TiledWeapon::WeaponLongsword:
 			case TiledWeapon::WeaponDagger:
 			case TiledWeapon::WeaponBroadsword:
+			case TiledWeapon::WeaponAxe:
+			case TiledWeapon::WeaponMace:
+			case TiledWeapon::WeaponHammer:
 				layers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
 				loadableLayers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
 				break;

@@ -60,10 +60,16 @@ QHash<QString, RpgPlayerCharacterConfig> RpgGame::m_characters;
 const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 	{ QStringLiteral("werebear"), EnemyWerebear },
 	{ QStringLiteral("soldier"), EnemySoldier },
-	{ QStringLiteral("archer"), EnemyArcher },
 	{ QStringLiteral("soldierFix"), EnemySoldierFix },
+	{ QStringLiteral("archer"), EnemyArcher },
 	{ QStringLiteral("archerFix"), EnemyArcherFix },
 	{ QStringLiteral("skeleton"), EnemySkeleton },
+	{ QStringLiteral("smith"), EnemySmith },
+	{ QStringLiteral("smithFix"), EnemySmithFix },
+	{ QStringLiteral("barbarian"), EnemyBarbarian },
+	{ QStringLiteral("barbarianFix"), EnemyBarbarianFix },
+	{ QStringLiteral("butcher"), EnemyButcher },
+	{ QStringLiteral("butcherFix"), EnemyButcherFix },
 };
 
 
@@ -334,7 +340,7 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 	p->inventoryAdd(object);
 
 	p->armory()->updateLayers();
-	p->setShieldCount(p->armory()->getShieldCount());
+	//p->setShieldCount(p->armory()->getShieldCount());
 
 	playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), player->scene(), player->body()->bodyPosition());
 
@@ -639,7 +645,6 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		case RpgEnemyIface::EnemyWerebear: {
 			RpgWerebear *e = nullptr;
 			TiledObjectBase::createFromCircle<RpgWerebear>(&e, QPointF{}, 30, nullptr, this);
-			e->setWerebearType(subtype);
 			enemy = e;
 			break;
 		}
@@ -648,6 +653,12 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		case RpgEnemyIface::EnemyArcher:
 		case RpgEnemyIface::EnemySoldierFix:
 		case RpgEnemyIface::EnemyArcherFix:
+		case RpgEnemyIface::EnemySmith:
+		case RpgEnemyIface::EnemySmithFix:
+		case RpgEnemyIface::EnemyButcher:
+		case RpgEnemyIface::EnemyButcherFix:
+		case RpgEnemyIface::EnemyBarbarian:
+		case RpgEnemyIface::EnemyBarbarianFix:
 		case RpgEnemyIface::EnemySkeleton:
 		{
 			RpgEnemyBase *e = nullptr;
@@ -670,14 +681,16 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
 
 		if (type == RpgEnemyIface::EnemySoldierFix ||
-				type == RpgEnemyIface::EnemyArcherFix) {
+				type == RpgEnemyIface::EnemyArcherFix ||
+				type == RpgEnemyIface::EnemySmithFix ||
+				type == RpgEnemyIface::EnemyButcherFix ||
+				type == RpgEnemyIface::EnemyBarbarianFix
+				) {
 			enemy->m_metric.pursuitSpeed = 0;
 		}
 
 		enemy->initialize();
 	}
-
-	QCoreApplication::processEvents();
 
 	return enemy;
 }
@@ -1138,6 +1151,21 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgE
 				ptr = def.archer;
 				break;
 
+			case RpgEnemyIface::EnemySmith:
+			case RpgEnemyIface::EnemySmithFix:
+				ptr = def.smith;
+				break;
+
+			case RpgEnemyIface::EnemyButcher:
+			case RpgEnemyIface::EnemyButcherFix:
+				ptr = def.butcher;
+				break;
+
+			case RpgEnemyIface::EnemyBarbarian:
+			case RpgEnemyIface::EnemyBarbarianFix:
+				ptr = def.barbarian;
+				break;
+
 			case RpgEnemyIface::EnemySkeleton:
 				ptr = def.skeleton;
 				break;
@@ -1532,9 +1560,9 @@ void RpgGame::checkEnemyQuests(const int &count)
 		return;
 
 #if QT_VERSION >= 0x060000
-		static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
+	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
 #else
-		static const QColor color(QStringLiteral("#9C27B0"));
+	static const QColor color(QStringLiteral("#9C27B0"));
 #endif
 
 	messageColor(tr("%1 killed enemies").arg(found->amount), color);
@@ -1576,9 +1604,9 @@ void RpgGame::checkWinnerQuests(const int &count)
 	questSuccess(&*found);
 
 #if QT_VERSION >= 0x060000
-		static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
+	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
 #else
-		static const QColor color(QStringLiteral("#9C27B0"));
+	static const QColor color(QStringLiteral("#9C27B0"));
 #endif
 
 	messageColor(tr("Winner streak: %1").arg(found->amount), color);
@@ -2286,6 +2314,9 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
 		case TiledWeapon::WeaponBroadsword:
+		case TiledWeapon::WeaponAxe:
+		case TiledWeapon::WeaponMace:
+		case TiledWeapon::WeaponHammer:
 		case TiledWeapon::WeaponDagger:
 			return QStringLiteral("attack");
 
@@ -2323,19 +2354,24 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 
 		EnemyMetric soldier;
 		soldier.speed = 2.;
-		soldier.runSpeed = IsometricEntityIface::toMovingSpeed(4.5);
 		soldier.returnSpeed = 3.5;
 		soldier.pursuitSpeed = 5.5;
+		soldier.sensorRange = M_PI*0.5;
 
 		EnemyMetric archer = soldier;
 		archer.firstAttackTime = 500;
 		archer.autoAttackTime = 1250;
+		archer.sensorRange = M_PI*0.6;
 
 		EnemyMetric werebear;
-		werebear.speed = 2.;
-		werebear.returnSpeed = 4.;
-		werebear.pursuitSpeed = 4.;
+		werebear.speed = 3.;
+		werebear.returnSpeed = 3.;
+		werebear.pursuitSpeed = 7.;
 		werebear.sleepingTime = 0;
+		werebear.firstAttackTime = 750;
+		werebear.autoAttackTime = 1000;
+		werebear.sensorRange = M_PI*0.35;
+		werebear.targetCircleRadius = 65.;
 
 		def->soldier.insert(QStringLiteral("default"), soldier);
 		def->archer.insert(QStringLiteral("default"), archer);

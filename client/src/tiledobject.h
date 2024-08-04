@@ -89,6 +89,7 @@ class TiledObjectBody : public Box2DBody
 
 	Q_PROPERTY(QPointF bodyOffset READ bodyOffset WRITE setBodyOffset NOTIFY bodyOffsetChanged FINAL)
 	Q_PROPERTY(bool opaque READ opaque WRITE setOpaque NOTIFY opaqueChanged FINAL)
+	Q_PROPERTY(bool isRunning READ isRunning WRITE setIsRunning NOTIFY isRunningChanged FINAL)
 
 public:
 	explicit TiledObjectBody(TiledObjectBase *baseObject)
@@ -145,15 +146,20 @@ public:
 	bool opaque() const;
 	void setOpaque(bool newOpaque);
 
+	bool isRunning() const;
+	void setIsRunning(bool newIsRunning);
+
 signals:
 	void bodyOffsetChanged();
 	void opaqueChanged();
+	void isRunningChanged();
 
 private:
 	void emplace();
 	QPointF m_bodyOffset;
 	TiledObjectBase *const m_baseObject;
 	bool m_opaque = true;
+	bool m_isRunning = false;
 
 	friend class TiledObjectBase;
 };

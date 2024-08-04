@@ -66,43 +66,22 @@ class RpgWerebear : public IsometricEnemy, public RpgEnemyIface
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(WerebearType werebearType READ werebearType NOTIFY werebearTypeChanged FINAL)
-
 public:
 	explicit RpgWerebear(QQuickItem *parent = nullptr);
 	virtual ~RpgWerebear();
-
-	enum WerebearType {
-		WerebearDefault = 0,
-		WerebearBrownArmor,
-		WerebearBrownBare,
-		WerebearBrownShirt,
-		WerebearWhiteArmor,
-		WerebearWhiteBare,
-		WerebearWhiteShirt,
-	};
-
-	Q_ENUM(WerebearType);
-
-	WerebearType werebearType() const;
-	void setWerebearType(const WerebearType &newWerebearType);
-	void setWerebearType(const QString &text);
 
 	TiledWeapon *defaultWeapon() const override;
 
 	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
 									IsometricPlayer *player = nullptr) const override;
 
-signals:
-	void werebearTypeChanged();
-
 protected:
 	//bool enemyWorldStep() override final;
 	void updateSprite() override final;
 
 	void load() override final;
-	void eventPlayerReached(IsometricPlayer */*player*/) override final {}
-	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}
+	void eventPlayerReached(IsometricPlayer */*player*/) override final;
+	void eventPlayerLeft(IsometricPlayer */*player*/) override final;
 
 	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
 
@@ -114,16 +93,21 @@ protected:
 
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
 
+	virtual int enemyType() const override { return RpgEnemyIface::enemyType(); }
+
 private:
 	void onCurrentSpriteChanged();
-
-	WerebearType m_werebearType = WerebearDefault;
+	bool isStanding() const;
+	void toDeathSprite();
 
 	TiledGameSfx m_sfxFootStep;
 	TiledGameSfx m_sfxPain;
+	TiledGameSfx m_sfxRoar;
 	TiledEffectHealed m_effectHealed;
 
 	std::unique_ptr<RpgWerebearWeaponHand> m_weaponHand;
+
+	int m_nextHit = 1;
 };
 
 

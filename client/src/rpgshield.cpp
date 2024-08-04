@@ -55,6 +55,17 @@ bool RpgShield::protect(const WeaponType &weapon)
 			eventProtect();
 			return true;
 
+		case TiledWeapon::WeaponAxe:
+			setBulletCount(m_bulletCount-3);
+			eventProtect();
+			return true;
+
+		case TiledWeapon::WeaponMace:
+		case TiledWeapon::WeaponHammer:
+			setBulletCount(m_bulletCount-2);
+			eventProtect();
+			return true;
+
 		case TiledWeapon::WeaponLongbow:
 			setBulletCount(m_bulletCount-5);
 			eventProtect();
@@ -97,7 +108,12 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
 
 		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponBroadsword:
+		case TiledWeapon::WeaponAxe:
 			return (m_bulletCount > 2);
+
+		case TiledWeapon::WeaponHammer:
+		case TiledWeapon::WeaponMace:
+			return (m_bulletCount > 1);
 
 		case TiledWeapon::WeaponMageStaff:
 		case TiledWeapon::WeaponLightningWeapon:
@@ -167,6 +183,7 @@ void RpgShieldPickable::pick(RpgPlayer *player, TiledGame *game)
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
 	player->armory()->updateLayers();
+	player->setShieldCount(player->armory()->getShieldCount());
 
 	if (game)
 		game->message(tr("%1 shields gained").arg(num));

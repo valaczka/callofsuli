@@ -47,7 +47,6 @@ public:
 	EnemyMetric()
 	{
 		speed = 3.0;					// <=0: no move
-		runSpeed = -1.0;				// Over runSpeed activate "run" sprite
 		pursuitSpeed = 3.0;				// -1: =speed, 0: no pursuit, >0: pursuit speed
 		returnSpeed = -1.0;				// -1: =speed, 0: no return, >0: return speed
 		rotateToPlayer = true;
@@ -64,7 +63,6 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(qreal, speed)
-	QS_FIELD(qreal, runSpeed)
 	QS_FIELD(qreal, pursuitSpeed)
 	QS_FIELD(qreal, returnSpeed)
 	QS_FIELD(bool, rotateToPlayer)
@@ -145,6 +143,7 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 	Q_PROPERTY(IsometricPlayer *player READ player WRITE setPlayer NOTIFY playerChanged FINAL)
 	Q_PROPERTY(qreal playerDistance READ playerDistance WRITE setPlayerDistance NOTIFY playerDistanceChanged FINAL)
 	Q_PROPERTY(TiledWeapon* defaultWeapon READ defaultWeapon CONSTANT FINAL)
+	Q_PROPERTY(int enemyType READ enemyType CONSTANT FINAL)
 
 public:
 	explicit IsometricEnemy(QQuickItem *parent = nullptr);
@@ -163,6 +162,8 @@ public:
 									IsometricPlayer *player = nullptr) const = 0;
 
 	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
+
+	virtual int enemyType() const = 0;
 
 signals:
 	void becameAlive();

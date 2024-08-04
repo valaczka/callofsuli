@@ -51,6 +51,8 @@ public:
 	QString subType() const;
 	void setSubType(const QString &newSubType);
 
+	virtual int enemyType() const override { return RpgEnemyIface::enemyType(); }
+
 
 protected:
 	void updateSprite() override final;

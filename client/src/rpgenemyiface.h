@@ -44,7 +44,13 @@ public:
 		EnemyArcher,
 		EnemySoldierFix,
 		EnemyArcherFix,
-		EnemySkeleton
+		EnemySkeleton,
+		EnemySmith,
+		EnemySmithFix,
+		EnemyBarbarian,
+		EnemyBarbarianFix,
+		EnemyButcher,
+		EnemyButcherFix,
 	};
 
 	RpgEnemyIface(const RpgEnemyType &type)
@@ -86,47 +92,10 @@ private:
 
 inline QString RpgEnemyIface::directoryBaseName(const RpgEnemyType type, const QString &subType)
 {
-	switch (type) {
-		case EnemySoldier:
-		case EnemySoldierFix:
-		{
-			static const QString &str = QStringLiteral("soldier");
-			if (subType.startsWith(str)) {
-				QString s = subType;
-				return s.replace(str, QStringLiteral("enemySoldier"));
-			}
-			break;
-		}
-
-		case EnemyArcher:
-		case EnemyArcherFix:
-		{
-			static const QString &str = QStringLiteral("archer");
-			if (subType.startsWith(str)) {
-				QString s = subType;
-				return s.replace(str, QStringLiteral("enemyArcher"));
-			}
-			break;
-		}
-
-		case EnemySkeleton:
-		{
-			static const QString &str = QStringLiteral("skeleton");
-			if (subType.startsWith(str)) {
-				QString s = subType;
-				return s.replace(str, QStringLiteral("enemySkeleton"));
-			}
-			break;
-		}
-
-		case EnemyWerebear:
-			return QStringLiteral("werebear");
-
-		case EnemyInvalid:
-			break;
-	}
-
-	return subType;
+	if (type == EnemyWerebear)
+		return QStringLiteral("werebear");
+	else
+		return subType;
 }
 
 

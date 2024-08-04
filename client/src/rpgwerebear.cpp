@@ -31,7 +31,7 @@
 
 namespace RpgWerebearNS {
 
-static const QVector<TiledGame::TextureSpriteMapper> &mapperBase(const bool &isZero = false) {
+static const QVector<TiledGame::TextureSpriteMapper> &mapperBase() {
 	static std::unique_ptr<QVector<TiledGame::TextureSpriteMapper>> mapper;
 
 	if (mapper)
@@ -47,33 +47,31 @@ static const QVector<TiledGame::TextureSpriteMapper> &mapperBase(const bool &isZ
 	};
 
 	static const QVector<TiledObject::Direction> directions = {
-		TiledObject::South, TiledObject::SouthEast, TiledObject::East, TiledObject::NorthEast, TiledObject::North,
-		TiledObject::NorthWest, TiledObject::West, TiledObject::SouthWest
-	};
-
-	static const QVector<TiledObject::Direction> directions0 = {
-		TiledObject::West, TiledObject::NorthWest, TiledObject::North, TiledObject::NorthEast, TiledObject::East,
-		TiledObject::SouthEast, TiledObject::South, TiledObject::SouthWest
+		TiledObject::North, TiledObject::SouthEast, TiledObject::South, TiledObject::SouthWest, TiledObject::West,
+		TiledObject::NorthWest, TiledObject::NorthEast, TiledObject::East
 	};
 
 
 	static const QVector<BaseMapper> baseMapper = {
 		{ QStringLiteral("idle"), 4, 120, 0 },
-		{ QStringLiteral("run"), 8, 90, 0 },
-		{ QStringLiteral("hit"), 4, 60, 1 },
+		{ QStringLiteral("walk"), 8, 90, 0 },
+		{ QStringLiteral("run"), 8, 60, 0 },
+		{ QStringLiteral("up"), 8, 60, 1 },
+		{ QStringLiteral("down"), 8, 60, 1 },
+		{ QStringLiteral("hit1"), 8, 80, 1 },
+		{ QStringLiteral("hit2"), 8, 80, 1 },
+		{ QStringLiteral("hit3"), 8, 80, 1 },
 		{ QStringLiteral("death"), 8, 60, 1 },
-		{ QStringLiteral("ignored"), 4, 60, 1 },
+		{ QStringLiteral("stand"), 8, 60, 0 },
 	};
 
-	const QVector<TiledObject::Direction> &dir = isZero ? directions0 : directions;
-
-	for (const auto &d : dir) {
-		for (const auto &m : baseMapper) {
+	for (const auto &m : baseMapper) {
+		for (const auto &d : directions) {
 			TiledGame::TextureSpriteMapper dst;
 			dst.name = m.name;
 			dst.direction = d;
-			dst.width = 128;
-			dst.height = 128;
+			dst.width = 256;
+			dst.height = 256;
 			dst.duration = m.duration;
 			dst.loops = m.loops;
 
@@ -97,6 +95,7 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	, RpgEnemyIface(EnemyWerebear)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
+	, m_sfxRoar(this)
 	, m_effectHealed(this)
 	, m_weaponHand(new RpgWerebearWeaponHand)
 {
@@ -116,8 +115,19 @@ RpgWerebear::RpgWerebear(QQuickItem *parent)
 	m_sfxFootStep.setVolume(0.4);
 	m_sfxFootStep.setInterval(450);
 
+	m_sfxRoar.setSoundList({
+							   QStringLiteral(":/enemy/werebear/monster-1.mp3"),
+						   });
+
+	m_sfxRoar.setPlayOneDeadline(600);
+
 	m_moveDisabledSpriteList = QStringList{
-							   QStringLiteral("hurt"),
+							   QStringLiteral("up"),
+							   QStringLiteral("down"),
+							   QStringLiteral("hit1"),
+							   QStringLiteral("hit2"),
+							   QStringLiteral("hit3"),
+							   QStringLiteral("stand"),
 							   QStringLiteral("death")
 };
 
@@ -155,48 +165,46 @@ void RpgWerebear::load()
 {
 	setAvailableDirections(Direction_8);
 
-	const char *file = nullptr;
 	int hp = 9;
-
-	switch (m_werebearType) {
-		case WerebearBrownArmor:
-			file = "werebear_brown_armor_texture";
-			hp = 11;
-			break;
-		case WerebearBrownBare:
-			file = "werebear_brown_bare_texture";
-			break;
-		case WerebearBrownShirt:
-			file = "werebear_brown_shirt_texture";
-			break;
-		case WerebearWhiteArmor:
-			file = "werebear_white_armor_texture";
-			hp = 11;
-			break;
-		case WerebearWhiteBare:
-			file = "werebear_white_bare_texture";
-			break;
-		case WerebearWhiteShirt:
-			file = "werebear_white_shirt_texture";
-			break;
-		case WerebearDefault:
-			file = "werebear_0_texture";
-			break;
-	}
 
 	setMaxHp(hp);
 	setHp(hp);
 
-
 	RpgGame::loadTextureSpritesWithHurt(m_spriteHandler,
-										RpgWerebearNS::mapperBase(m_werebearType == WerebearDefault),
-										QStringLiteral(":/enemy/werebear/").append(file));
+										RpgWerebearNS::mapperBase(),
+										QStringLiteral(":/enemy/werebear/"));
 
-	setWidth(128);
-	setHeight(128);
-	setBodyOffset(0, 0.45*64);
+	setWidth(256);
+	setHeight(256);
+	setBodyOffset(0, 0.40*128);
 
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgWerebear::onCurrentSpriteChanged);
+}
+
+
+
+/**
+ * @brief RpgWerebear::eventPlayerReached
+ */
+
+void RpgWerebear::eventPlayerReached(IsometricPlayer *)
+{
+	if (!isStanding())
+		jumpToSprite("up", m_currentDirection);
+
+	if (m_player)
+		m_sfxRoar.playOne();
+}
+
+
+/**
+ * @brief RpgWerebear::eventPlayerLeft
+ */
+
+void RpgWerebear::eventPlayerLeft(IsometricPlayer *)
+{
+	if (isStanding())
+		jumpToSprite("down", m_currentDirection);
 }
 
 
@@ -224,11 +232,12 @@ void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::W
 	setHp(std::max(0, newHp));
 
 	if (newHp <= 0) {
-		jumpToSprite("death", m_currentDirection);
+		toDeathSprite();
 		eventKilledByPlayer(player);
 	} else {
-		jumpToSprite("hurt", m_currentDirection);
-		if (weaponType != TiledWeapon::WeaponHand)
+		//jumpToSprite("hurt", m_currentDirection);
+		if (weaponType == TiledWeapon::WeaponBroadsword ||
+				weaponType == TiledWeapon::WeaponAxe)
 			startInability();
 	}
 }
@@ -248,23 +257,30 @@ int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weapo
 	int newHp = origHp;
 
 	switch (weaponType) {
+		case TiledWeapon::WeaponMace:
+		case TiledWeapon::WeaponHammer:
 		case TiledWeapon::WeaponLongsword:
 			newHp -= 1;
 			break;
 
-		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponLightningWeapon:
 		case TiledWeapon::WeaponFireFogWeapon:
 			newHp = 0;
 			break;
 
 		case TiledWeapon::WeaponShortbow:
-			newHp -= 2;
+			newHp -= 1;
 			break;
 
+		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponBroadsword:
 			newHp -= 3;
 			break;
+
+		case TiledWeapon::WeaponAxe:
+			newHp -= 2;
+			break;
+
 
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
@@ -291,7 +307,9 @@ void RpgWerebear::playAttackEffect(TiledWeapon *weapon)
 		return;
 
 	if (weapon->weaponType() == TiledWeapon::WeaponGreatHand || weapon->weaponType() == TiledWeapon::WeaponHand) {
-		jumpToSprite("hit", m_currentDirection);
+		jumpToSprite(QStringLiteral("hit%1").arg(m_nextHit++).toLatin1(), m_currentDirection);
+		if (m_nextHit > 3)
+			m_nextHit = 1;
 	}
 }
 
@@ -316,7 +334,7 @@ void RpgWerebear::playDeadEffect()
 void RpgWerebear::playSeeEffect()
 {
 	if (m_player)
-		m_game->playSfx(QStringLiteral(":/enemy/werebear/monster-1.mp3"), m_scene, m_body->bodyPosition());
+		m_sfxRoar.playOne();
 }
 
 
@@ -363,48 +381,49 @@ void RpgWerebear::onCurrentSpriteChanged()
 {
 	const QString &sprite = m_spriteHandler->currentSprite();
 
-	if (sprite == QStringLiteral("run"))
+	LOG_CDEBUG("app") << sprite;
+
+	if (sprite == QStringLiteral("run") || sprite == QStringLiteral("walk"))
 		m_sfxFootStep.startFromBegin();
-	else if (sprite != QStringLiteral("run"))
+	else if (sprite != QStringLiteral("run") && sprite != QStringLiteral("walk"))
 		m_sfxFootStep.stop();
 }
 
 
+/**
+ * @brief RpgWerebear::isStanding
+ * @return
+ */
 
-
-
-RpgWerebear::WerebearType RpgWerebear::werebearType() const
+bool RpgWerebear::isStanding() const
 {
-	return m_werebearType;
-}
-
-void RpgWerebear::setWerebearType(const WerebearType &newWerebearType)
-{
-	if (m_werebearType == newWerebearType)
-		return;
-	m_werebearType = newWerebearType;
-	emit werebearTypeChanged();
+	return (m_spriteHandler->currentSprite() == QStringLiteral("up") ||
+			//m_spriteHandler->currentSprite() == QStringLiteral("down") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("hit1") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("hit2") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("hit3") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("stand")
+			);
 }
 
 
 /**
- * @brief RpgWerebear::setWerebearType
- * @param text
+ * @brief RpgWerebear::toDeathSprite
  */
 
-void RpgWerebear::setWerebearType(const QString &text)
+void RpgWerebear::toDeathSprite()
 {
-	static const QMap<QString, WerebearType> map = {
-		{ QStringLiteral("brownArmor"),	WerebearBrownArmor },
-		{ QStringLiteral("brownBare"),	WerebearBrownBare },
-		{ QStringLiteral("brownShirt"),	WerebearBrownShirt },
-		{ QStringLiteral("whiteArmor"),	WerebearWhiteArmor },
-		{ QStringLiteral("whiteBare"),	WerebearWhiteBare },
-		{ QStringLiteral("whiteShirt"),	WerebearWhiteShirt },
-	};
-
-	setWerebearType(map.value(text, WerebearDefault));
+	if (isStanding()) {
+		jumpToSprite("down", m_currentDirection);
+		jumpToSpriteLater("death", m_currentDirection);
+	} else if (m_spriteHandler->currentSprite() == QStringLiteral("down"))
+		jumpToSpriteLater("death", m_currentDirection);
+	else
+		jumpToSprite("death", m_currentDirection);
 }
+
+
+
 
 
 /**
@@ -426,12 +445,20 @@ TiledWeapon *RpgWerebear::defaultWeapon() const
 void RpgWerebear::updateSprite()
 {
 	if (m_hp <= 0)
-		jumpToSprite("death", m_currentDirection);
-	else if (m_spriteHandler->currentSprite() == QStringLiteral("hit") || m_spriteHandler->currentSprite() == QStringLiteral("hurt"))
-		jumpToSpriteLater("idle", m_currentDirection);
-	else if (m_movingDirection != Invalid)
-		jumpToSprite("run", m_movingDirection);
-	else
+		return toDeathSprite();
+	else if (m_spriteHandler->currentSprite() == QStringLiteral("hit1") ||
+			 m_spriteHandler->currentSprite() == QStringLiteral("hit2") ||
+			 m_spriteHandler->currentSprite() == QStringLiteral("hit3") ||
+			 m_spriteHandler->currentSprite() == QStringLiteral("up"))
+		jumpToSpriteLater("stand", m_currentDirection);
+	else if (isStanding())
+		jumpToSprite("stand", m_currentDirection);
+	else if (m_movingDirection != Invalid) {
+		if (m_body->isRunning())
+			jumpToSprite("run", m_movingDirection);
+		else
+			jumpToSprite("walk", m_movingDirection);
+	} else
 		jumpToSprite("idle", m_currentDirection);
 }
 

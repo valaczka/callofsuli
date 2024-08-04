@@ -293,12 +293,6 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 	TiledObjectBody::setFixtureCollidesWithFlag(m_fixture.get(), TiledObjectBody::FixtureGround, !m_returnPathMotor);
 
 
-	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
-		m_body->stop();
-		updateSprite();
-		return;
-	}
-
 	if (isPursuit) {
 		if (m_player && m_player->isLocked()) {
 			m_body->stop();
@@ -311,21 +305,36 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			return;
 		}
 
+		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+			m_body->stop();
+			updateSprite();
+			return;
+		}
+
 		if (transparentGnd >= 0. && transparentGnd < m_fixture->radius()*2.3) {
 			m_body->stop();
 		} else if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
 				m_returnPathMotor.reset(new TiledReturnPathMotor);
 
-			/** TiledObject::factorFromRadian(angle)*/		/// --- pursuit speeed
-			m_returnPathMotor->moveBody(m_body.get(), angle,
-										m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor ?
-											m_metric.pursuitSpeed*factor : m_metric.speed*factor);
+			if (m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor) {
+				m_body->setIsRunning(true);
+				m_returnPathMotor->moveBody(m_body.get(), angle, m_metric.pursuitSpeed*factor);
+			} else {
+				m_body->setIsRunning(false);
+				m_returnPathMotor->moveBody(m_body.get(), angle, m_metric.speed*factor);
+			}
 		} else if (m_metric.speed > 0) {
-			m_body->setLinearVelocity(
-						TiledObjectBase::toPoint(angle,
-												 m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor ?
-													 m_metric.pursuitSpeed*factor : m_metric.speed*factor));
+			if (m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor) {
+				m_body->setIsRunning(true);
+				m_body->setLinearVelocity(
+							TiledObjectBase::toPoint(angle, m_metric.pursuitSpeed*factor));
+
+			} else {
+				m_body->setIsRunning(false);
+				m_body->setLinearVelocity(
+							TiledObjectBase::toPoint(angle, m_metric.speed*factor));
+			}
 		} else {
 			m_body->stop();
 		}
@@ -348,6 +357,12 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			updateSprite();
 			return;
 		}
+
+		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+			m_body->stop();
+			updateSprite();
+			return;
+		}
 	}
 
 	if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {
@@ -356,7 +371,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 
 
 	if (enemyWorldStep()) {
-		rotateBody(directionToRadian(m_currentDirection));
+		//rotateBody(directionToRadian(m_currentDirection));
 		stepMotor(factor);
 	}
 
@@ -578,18 +593,23 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 	if (m_returnPathMotor) {
 		if (m_returnPathMotor->isReturning() && !m_returnPathMotor->isReturnReady()) {
 			m_body->stop();
+			rotateBody(directionToRadian(m_currentDirection));
 			return;
 		}
 		if (m_metric.returnSpeed != 0. && m_returnPathMotor->step(m_metric.returnSpeed > 0. ? m_metric.returnSpeed*factor : m_metric.speed*factor)) {
 			m_body->setLinearVelocity(maximizeSpeed(m_returnPathMotor->currentPosition() - m_body->bodyPosition()));
+			rotateBody(directionToRadian(m_currentDirection));
 			return;
 		} else {
 			m_returnPathMotor.reset();
 		}
 	}
 
+
 	m_motor->step(m_metric.speed*factor);
 	m_motor->updateBody(this, m_maximumSpeed);
+
+	rotateBody(directionToRadian(m_currentDirection));
 }
 
 

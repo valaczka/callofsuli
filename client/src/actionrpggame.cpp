@@ -28,9 +28,12 @@
 #include "Logger.h"
 #include "client.h"
 #include "mapplaycampaign.h"
+#include "rpgaxe.h"
 #include "rpgbroadsword.h"
 #include "rpgdagger.h"
+#include "rpghammer.h"
 #include "rpglongsword.h"
+#include "rpgmace.h"
 #include "rpgmagestaff.h"
 #include "rpgquestion.h"
 #include "rpguserwallet.h"
@@ -527,6 +530,10 @@ void ActionRpgGame::rpgGameActivated_()
 
 	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, *characterPtr);
 
+	if (characterPtr->cast != RpgPlayerCharacterConfig::CastInvalid) {
+		loadWeapon(player, TiledWeapon::WeaponMageStaff);
+	}
+
 	player->setHp(m_missionLevel->startHP());
 	player->setMaxHp(m_missionLevel->startHP());
 	loadInventory(player);
@@ -990,6 +997,18 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 
 			case TiledWeapon::WeaponBroadsword:
 				weapon = player->armory()->weaponAdd(new RpgBroadsword);
+				break;
+
+			case TiledWeapon::WeaponAxe:
+				weapon = player->armory()->weaponAdd(new RpgAxe);
+				break;
+
+			case TiledWeapon::WeaponMace:
+				weapon = player->armory()->weaponAdd(new RpgMace);
+				break;
+
+			case TiledWeapon::WeaponHammer:
+				weapon = player->armory()->weaponAdd(new RpgHammer);
 				break;
 
 			case TiledWeapon::WeaponMageStaff: {

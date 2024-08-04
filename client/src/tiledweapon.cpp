@@ -78,6 +78,9 @@ QString TiledWeapon::weaponName(const WeaponType &type)
 		case WeaponMageStaff: return QStringLiteral("varázsbot");
 		case WeaponLightningWeapon: return QStringLiteral("villám");
 		case WeaponFireFogWeapon: return QStringLiteral("tűz");
+		case WeaponAxe: return tr("balta");
+		case WeaponMace: return tr("buzogány");
+		case WeaponHammer: return tr("kalapács");
 		case WeaponInvalid: return tr("érvénytelen");
 	}
 
@@ -103,6 +106,9 @@ QString TiledWeapon::weaponNameEn(const WeaponType &type)
 		case WeaponBroadsword: return QStringLiteral("Broadsword");
 		case WeaponDagger: return QStringLiteral("Dagger");
 		case WeaponMageStaff: return QStringLiteral("Mage staff");
+		case WeaponAxe: return tr("Axe");
+		case WeaponMace: return tr("Mace");
+		case WeaponHammer: return tr("Hammer");
 		case WeaponLightningWeapon: return QStringLiteral("Lightning");
 		case WeaponFireFogWeapon: return QStringLiteral("Fire fog");
 		case WeaponInvalid: return QStringLiteral("Invalid");

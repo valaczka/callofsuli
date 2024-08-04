@@ -251,6 +251,7 @@ SOURCES += \
 	question.cpp \
 	rpgarmory.cpp \
 	rpgarrow.cpp \
+	rpgaxe.cpp \
 	rpgbroadsword.cpp \
 	rpgcoin.cpp \
 	rpgcontrolgroup.cpp \
@@ -262,11 +263,13 @@ SOURCES += \
 	rpgfireball.cpp \
 	rpgfirefog.cpp \
 	rpggame.cpp \
+	rpghammer.cpp \
 	rpghp.cpp \
 	rpgkeypickable.cpp \
 	rpglightning.cpp \
 	rpglongbow.cpp \
 	rpglongsword.cpp \
+	rpgmace.cpp \
 	rpgmagestaff.cpp \
 	rpgmp.cpp \
 	rpgpickableobject.cpp \
@@ -367,6 +370,7 @@ HEADERS += \
 	question.h \
 	rpgarmory.h \
 	rpgarrow.h \
+	rpgaxe.h \
 	rpgbroadsword.h \
 	rpgcoin.h \
 	rpgcontrolgroup.h \
@@ -379,11 +383,13 @@ HEADERS += \
 	rpgfireball.h \
 	rpgfirefog.h \
 	rpggame.h \
+	rpghammer.h \
 	rpghp.h \
 	rpgkeypickable.h \
 	rpglightning.h \
 	rpglongbow.h \
 	rpglongsword.h \
+	rpgmace.h \
 	rpgmagestaff.h \
 	rpgmp.h \
 	rpgpickableobject.h \

@@ -29,6 +29,9 @@
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
 
+#include "rpgaxe.h"
+#include "rpghammer.h"
+#include "rpgmace.h"
 #include "utils_.h"
 
 /**
@@ -115,7 +118,7 @@ void RpgEnemyBase::updateSprite()
 			m_spriteHandler->currentSprite() == "cast")
 		jumpToSpriteLater("idle", m_currentDirection);
 	else if (m_movingDirection != Invalid) {
-		if (m_metric.runSpeed >= 0. && m_movingSpeed >= m_metric.runSpeed)
+		if (m_body->isRunning())
 			jumpToSprite("run", m_movingDirection);
 		else
 			jumpToSprite("walk", m_movingDirection);
@@ -203,7 +206,7 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 	} else {
 		jumpToSprite("hurt", m_currentDirection);
 
-		if (weaponType == TiledWeapon::WeaponBroadsword)
+		if (weaponType == TiledWeapon::WeaponBroadsword || weaponType == TiledWeapon::WeaponAxe)
 			startInability();
 	}
 
@@ -234,11 +237,23 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
 			break;
 
 		case TiledWeapon::WeaponLongsword:
-			hp -= 3;
+			hp -= 2;
 			break;
 
 		case TiledWeapon::WeaponShortbow:
 			hp -= 3;
+			break;
+
+		case TiledWeapon::WeaponAxe:
+			hp -= 3;
+			break;
+
+		case TiledWeapon::WeaponMace:
+			hp -= 1;
+			break;
+
+		case TiledWeapon::WeaponHammer:
+			hp -= 2;
 			break;
 
 		case TiledWeapon::WeaponLongbow:
@@ -375,5 +390,24 @@ void RpgEnemyBase::loadType()
 		auto w = m_armory->weaponAdd(new RpgLongsword);
 		w->setExcludeFromLayers(true);
 		m_armory->setCurrentWeapon(w);
+
+	} else if (m_enemyType == EnemySmith || m_enemyType == EnemySmithFix) {
+		auto w = m_armory->weaponAdd(new RpgHammer);
+		w->setExcludeFromLayers(true);
+		w->setBulletCount(-1);
+		m_armory->setCurrentWeapon(w);
+
+	} else if (m_enemyType == EnemyButcher || m_enemyType == EnemyButcherFix) {
+		auto w = m_armory->weaponAdd(new RpgAxe);
+		w->setExcludeFromLayers(true);
+		w->setBulletCount(-1);
+		m_armory->setCurrentWeapon(w);
+
+	} else if (m_enemyType == EnemyBarbarian || m_enemyType == EnemyBarbarianFix) {
+		auto w = m_armory->weaponAdd(new RpgMace);
+		w->setExcludeFromLayers(true);
+		w->setBulletCount(-1);
+		m_armory->setCurrentWeapon(w);
+
 	}
 }

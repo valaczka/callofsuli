@@ -1242,6 +1242,7 @@ void TiledObjectBody::emplace(const QPointF &center)
 
 	setAngularVelocity(0.);
 	setLinearVelocity(QPointF{0.,0.});
+	setIsRunning(false);
 	mBody->SetTransform(mWorld->toMeters(center), mBody->GetAngle());
 	synchronize();
 }
@@ -1266,6 +1267,7 @@ void TiledObjectBody::stop()
 {
 	setLinearVelocity(QPointF{0,0});
 	setAngularVelocity(0.);
+	setIsRunning(false);
 }
 
 
@@ -1289,6 +1291,25 @@ void TiledObjectBody::emplace()
 
 	emit positionChanged();
 
+}
+
+
+/**
+ * @brief TiledObjectBody::isRunning
+ * @return
+ */
+
+bool TiledObjectBody::isRunning() const
+{
+	return m_isRunning;
+}
+
+void TiledObjectBody::setIsRunning(bool newIsRunning)
+{
+	if (m_isRunning == newIsRunning)
+		return;
+	m_isRunning = newIsRunning;
+	emit isRunningChanged();
 }
 
 
