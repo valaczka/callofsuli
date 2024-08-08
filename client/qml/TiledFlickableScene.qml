@@ -112,6 +112,15 @@ Flickable {
 			//------------------------------------------------
 		}
 
+		TiledSceneEffectSnow {
+			visible: _scene.sceneEffect == TiledSceneDefinition.EffectSnow
+			anchors.fill: _container
+		}
+
+		TiledSceneEffectRain {
+			visible: _scene.sceneEffect == TiledSceneDefinition.EffectRain
+			anchors.fill: _container
+		}
 
 		DebugDraw {
 			anchors.fill: _scene

@@ -56,7 +56,6 @@ SOURCES += \
 	handler.cpp \
 	main.cpp \
 	microsoftoauth2authenticator.cpp \
-	multiplayerengine.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
 	peerengine.cpp \
@@ -87,7 +86,6 @@ HEADERS += \
 	googleoauth2authenticator.h \
 	handler.h \
 	microsoftoauth2authenticator.h \
-	multiplayerengine.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
 	peerengine.h \

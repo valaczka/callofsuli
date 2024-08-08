@@ -41,6 +41,7 @@
 #include <QResource>
 #include "querybuilder.hpp"
 #include "teacherapi.h"
+#include "authapi.h"
 
 
 const int ServerService::m_versionMajor = VERSION_MAJOR;
@@ -217,6 +218,9 @@ bool ServerService::wasmUnload()
 
 void ServerService::timerEvent(QTimerEvent *)
 {
+	if (m_state != ServerRunning)
+		return;
+
 	m_engineHandler->timerEvent();
 
 	const QDateTime &current = QDateTime::currentDateTime();
@@ -574,15 +578,18 @@ std::optional<int> ServerService::preStart()
 	parser.addOption({{QStringLiteral("q"), QStringLiteral("quiet")}, QObject::tr("Csendes üzemmód")});
 	parser.addOption({QStringLiteral("trace"), QObject::tr("Trace üzenetek megjelenítése")});
 
-#ifndef QT_DEBUG
+#ifdef QT_NO_DEBUG
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #else
 	parser.addOption({{QStringLiteral("l"), QStringLiteral("latency")}, QObject::tr("Késleltett válaszadás"), QStringLiteral("msec")});
+	parser.addOption({{QStringLiteral("t"), QStringLiteral("token")}, QObject::tr("Create token"), QStringLiteral("username")});
 #endif
 
 	parser.addOption({{QStringLiteral("u"), QStringLiteral("upgrade")}, QObject::tr("Adatbázis frissítésének kényszerítése"), QStringLiteral("version")});
 
 	parser.addOption({{QStringLiteral("m"), QStringLiteral("market")}, QObject::tr("Market adatbázis készítése")});
+
+	parser.addOption({{QStringLiteral("z"), QStringLiteral("zap")}, QObject::tr("Felhasználói adatok TÖRLÉSE (hadjárat, dolgozat)")});
 
 	parser.addPositionalArgument(QStringLiteral("dir"), QObject::tr("Adatbázis könyvtár"), QStringLiteral("[dir]"));
 
@@ -630,7 +637,7 @@ std::optional<int> ServerService::preStart()
 	else {
 		if (parser.isSet(QStringLiteral("trace")))
 			m_consoleAppender->setDetailsLevel(Logger::Trace);
-#ifdef QT_DEBUG
+#ifndef QT_NO_DEBUG
 		else
 			m_consoleAppender->setDetailsLevel(Logger::Debug);
 #else
@@ -648,6 +655,7 @@ std::optional<int> ServerService::preStart()
 		return 0;
 	}
 
+	m_zap = parser.isSet(QStringLiteral("zap"));
 
 	if (parser.isSet(QStringLiteral("import")))
 		m_importDb = parser.value(QStringLiteral("import"));
@@ -664,10 +672,14 @@ std::optional<int> ServerService::preStart()
 	if (m_settings->generateJwtSecret())
 		m_settings->saveToFile(true);
 
-#ifdef QT_DEBUG
+#ifndef QT_NO_DEBUG
 	if (parser.isSet(QStringLiteral("latency"))) {
 		setImitateLatency(parser.value(QStringLiteral("latency")).toInt());
 		LOG_CDEBUG("service") << "Imitate latency:" << m_imitateLatency;
+	}
+
+	if (parser.isSet(QStringLiteral("token"))) {
+		m_createToken = parser.value(QStringLiteral("token"));
 	}
 #endif
 
@@ -962,6 +974,28 @@ bool ServerService::start()
 
 
 	AdminAPI::zapWallet(m_databaseMain.get());
+
+	if (!m_createToken.isEmpty()) {
+		if (const auto &cred = AuthAPI::getCredential(m_databaseMain.get(), m_createToken)) {
+			LOG_CDEBUG("service") << "Create token for:" << qPrintable(m_createToken);
+			const QString &token = cred->createJWT(m_settings->jwtSecret());
+			QConsole::qStdOut()->write(token.toLatin1());
+		} else {
+			LOG_CERROR("service") << "Invalid username:" << qPrintable(m_createToken);
+		}
+
+		return false;
+	}
+
+
+	if (m_zap) {
+		if (!AdminAPI::zapUserData(m_databaseMain.get()))
+			LOG_CERROR("service") << "Zap data error";
+		else
+			LOG_CINFO("service") << "Database zapped";
+
+		return false;
+	}
 
 	LOG_CINFO("service") << "Server service started";
 

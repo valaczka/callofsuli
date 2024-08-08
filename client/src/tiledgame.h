@@ -38,27 +38,6 @@
 
 
 /**
- * @brief The TiledSceneDefinition class
- */
-
-class TiledSceneDefinition : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledSceneDefinition()
-		: id(-1)
-	{}
-
-	QS_SERIALIZABLE
-	QS_FIELD(int, id)
-	QS_FIELD(QString, file)
-	QS_FIELD(QString, ambient)
-	QS_FIELD(QString, music)
-};
-
-
-/**
  * @brief The TiledGameDefinition class
  */
 

@@ -1,6 +1,6 @@
 RCC = rcc
 
-CRES_DIRS = internal terrain character soldiers sound snipers
+CRES_DIRS = internal character sound
 CRES_FILES = $(addsuffix .cres,$(CRES_DIRS))
 
 all: $(CRES_FILES)

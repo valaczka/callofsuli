@@ -532,6 +532,19 @@ void TiledScene::refresh()
 	setHeight(rect.height());
 }
 
+TiledSceneDefinition::SceneEffect TiledScene::sceneEffect() const
+{
+	return m_sceneEffect;
+}
+
+void TiledScene::setSceneEffect(TiledSceneDefinition::SceneEffect newSceneEffect)
+{
+	if (m_sceneEffect == newSceneEffect)
+		return;
+	m_sceneEffect = newSceneEffect;
+	emit sceneEffectChanged();
+}
+
 QRectF TiledScene::onScreenArea() const
 {
 	return m_onScreenArea;

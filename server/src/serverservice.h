@@ -199,6 +199,8 @@ private:
 	QString m_importDb;
 	QString m_forceUpgrade;
 	int m_imitateLatency = 0;
+	QString m_createToken;
+	bool m_zap = false;
 
 	QBasicTimer m_mainTimer;
 	QDateTime m_mainTimerLastTick;

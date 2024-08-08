@@ -223,5 +223,7 @@
         <file>TiledEnemyMarker.qml</file>
         <file>RpgKeyboardInfoDialog.qml</file>
         <file>PageTeacherExamShowJoker.qml</file>
+        <file>TiledSceneEffectRain.qml</file>
+        <file>TiledSceneEffectSnow.qml</file>
     </qresource>
 </RCC>

@@ -17,7 +17,6 @@ public:
 	enum Type {
 		EngineInvalid = 0,
 		EnginePeer,
-		EngineMultiPlayer,			// DEPRECATED
 		EngineExam,
 		EngineConquest
 	};

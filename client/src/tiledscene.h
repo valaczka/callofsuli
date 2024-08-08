@@ -46,6 +46,43 @@ Q_DECLARE_OPAQUE_POINTER(TiledGame*)
 
 #endif
 
+
+
+
+
+
+/**
+ * @brief The TiledSceneDefinition class
+ */
+
+class TiledSceneDefinition : public QSerializer
+{
+	Q_GADGET
+
+public:
+	enum SceneEffect {
+		EffectNone		= 0,
+		EffectRain		= 1,
+		EffectSnow		= 2
+	};
+
+	Q_ENUM(SceneEffect)
+
+	TiledSceneDefinition()
+		: id(-1)
+		, effect(EffectNone)
+	{}
+
+	QS_SERIALIZABLE
+	QS_FIELD(int, id)
+	QS_FIELD(QString, file)
+	QS_FIELD(QString, ambient)
+	QS_FIELD(QString, music)
+	QS_FIELD(SceneEffect, effect)
+};
+
+
+
 /**
  * @brief The TiledScene class
  */
@@ -62,6 +99,7 @@ class TiledScene : public TiledQuick::MapItem
 	Q_PROPERTY(QString ambientSound READ ambientSound WRITE setAmbientSound NOTIFY ambientSoundChanged FINAL)
 	Q_PROPERTY(QString backgroundMusic READ backgroundMusic WRITE setBackgroundMusic NOTIFY backgroundMusicChanged FINAL)
 	Q_PROPERTY(QRectF onScreenArea READ onScreenArea WRITE setOnScreenArea NOTIFY onScreenAreaChanged FINAL)
+	Q_PROPERTY(TiledSceneDefinition::SceneEffect sceneEffect READ sceneEffect WRITE setSceneEffect NOTIFY sceneEffectChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
@@ -104,6 +142,9 @@ public:
 	QRectF onScreenArea() const;
 	void setOnScreenArea(const QRectF &newOnScreenArea);
 
+	TiledSceneDefinition::SceneEffect sceneEffect() const;
+	void setSceneEffect(TiledSceneDefinition::SceneEffect newSceneEffect);
+
 signals:
 	void runningChanged();
 	void gameChanged();
@@ -112,6 +153,7 @@ signals:
 	void backgroundMusicChanged();
 	void worldStepped();
 	void onScreenAreaChanged();
+	void sceneEffectChanged();
 
 protected:
 	virtual void refresh() override;
@@ -122,6 +164,7 @@ protected:
 	QVector<QPointer<TiledObjectBasePolygon>> m_groundObjects;
 	QString m_ambientSound;
 	QString m_backgroundMusic;
+	TiledSceneDefinition::SceneEffect m_sceneEffect = TiledSceneDefinition::EffectNone;
 	QRectF m_onScreenArea;
 
 	QVector<QPointer<TiledObject>> m_tiledObjects;

@@ -1,7 +1,6 @@
 #include "websocketstream.h"
 #include "serverservice.h"
 #include "Logger.h"
-#include "multiplayerengine.h"
 #include "examengine.h"
 #include "conquestengine.h"
 
@@ -10,7 +9,6 @@
 
 const QHash<AbstractEngine::Type, Credential::Roles> WebSocketStream::m_observerRoles = {
 	{ AbstractEngine::EnginePeer, Credential::Teacher|Credential::Admin },
-	{ AbstractEngine::EngineMultiPlayer, Credential::Student },
 	{ AbstractEngine::EngineConquest, Credential::Student },
 	{ AbstractEngine::EngineExam, Credential::Teacher|Credential::Student|Credential::Panel },
 };
@@ -18,7 +16,6 @@ const QHash<AbstractEngine::Type, Credential::Roles> WebSocketStream::m_observer
 
 const QHash<QString, AbstractEngine::Type> WebSocketStream::m_observerMap = {
 	{ QStringLiteral("peers"), AbstractEngine::EnginePeer },
-	{ QStringLiteral("multiplayer"), AbstractEngine::EngineMultiPlayer },
 	{ QStringLiteral("exam"), AbstractEngine::EngineExam },
 	{ QStringLiteral("conquest"), AbstractEngine::EngineConquest },
 };
@@ -273,8 +270,6 @@ void WebSocketStream::onJsonReceived(const QJsonObject &data)
 		observerRemove(d);
 	else if (operation == QStringLiteral("timeSync"))
 		timeSync(d.toObject());
-	/*else if (operation == QStringLiteral("multiplayer"))
-		MultiPlayerEngine::handleWebSocketMessage(this, d, m_handler);*/
 	else if (operation == QStringLiteral("conquest"))
 		ConquestEngine::handleWebSocketMessage(this, d, m_handler);
 	else if (operation == QStringLiteral("exam"))

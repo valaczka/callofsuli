@@ -393,6 +393,8 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<TiledContainer>("CallOfSuli", 1, 0, "TiledContainer", "TiledContainer is uncreatable");
 	qmlRegisterUncreatableType<TiledObjectBody>("CallOfSuli", 1, 0, "TiledObjectBody", "TiledObjectBody is uncreatable");
 	qmlRegisterUncreatableType<TiledGame>("CallOfSuli", 1, 0, "TiledGame", "TiledGame is uncreatable");
+	qmlRegisterUncreatableType<TiledGameDefinition>("CallOfSuli", 1, 0, "TiledGameDefinition", "TiledGameDefinition is uncreatable");
+	qmlRegisterUncreatableType<TiledSceneDefinition>("CallOfSuli", 1, 0, "TiledSceneDefinition", "TiledGameDefinition is uncreatable");
 	qmlRegisterUncreatableType<TiledTransport>("CallOfSuli", 1, 0, "TiledTransport", "TiledTransport is uncreatable");
 	qmlRegisterUncreatableType<TiledWeapon>("CallOfSuli", 1, 0, "TiledWeapon", "TiledWeapon is uncreatable");
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");

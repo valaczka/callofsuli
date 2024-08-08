@@ -132,6 +132,9 @@ public:
 	static bool zapWallet(const AbstractAPI *api);
 	static bool zapWallet(const DatabaseMain *dbMain);
 
+	static bool zapUserData(const AbstractAPI *api);
+	static bool zapUserData(const DatabaseMain *dbMain);
+
 	static bool sendNotifications(const AbstractAPI *api, ServerService *service);
 	static bool sendNotifications(const DatabaseMain *dbMain, ServerService *service);
 

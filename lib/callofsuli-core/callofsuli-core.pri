@@ -16,7 +16,6 @@ HEADERS += \
 	$$PWD/credential.h \
 	$$PWD/gamemap.h \
 	$$PWD/gamemapreaderiface.h \
-	$$PWD/objectstate.h \
 	$$PWD/rank.h \
 	$$PWD/rpgconfig.h \
 	$$PWD/selectableobject.h \

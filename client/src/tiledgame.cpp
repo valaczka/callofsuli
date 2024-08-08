@@ -376,6 +376,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 
 	item.scene->setAmbientSound(def.ambient);
 	item.scene->setBackgroundMusic(def.music);
+	item.scene->setSceneEffect(def.effect);
 
 	m_sceneList.append(std::move(item));
 

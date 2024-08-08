@@ -1770,7 +1770,7 @@ bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 
 	QDefer ret;
 
-#define ZAP_INTERVAL	"date('now', '-5 days')"
+#define ZAP_INTERVAL	"date('now', '-7 days')"
 
 	dbMain->worker()->execInThread([ret, dbMain]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
@@ -1869,6 +1869,138 @@ bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 		}
 
 		db.commit();
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
+}
+
+
+
+/**
+ * @brief AdminAPI::zapUserData
+ * @param api
+ * @return
+ */
+
+bool AdminAPI::zapUserData(const AbstractAPI *api)
+{
+	Q_ASSERT(api);
+	return zapUserData(api->databaseMain());
+}
+
+
+/**
+ * @brief AdminAPI::zapUserData
+ * @param dbMain
+ * @return
+ */
+
+bool AdminAPI::zapUserData(const DatabaseMain *dbMain)
+{
+	Q_ASSERT(dbMain);
+
+	LOG_CINFO("service") << "Zap user data";
+
+	QDefer ret;
+
+	dbMain->worker()->execInThread([ret, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE game SET scoreid=NULL"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE campaignResult SET scoreid=NULL"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		LOG_CTRACE("service") << "Create temporary score table";
+
+		if (!QueryBuilder::q(db)
+				.addQuery("CREATE TEMPORARY TABLE tmpScore AS "
+						  "SELECT username, SUM(xp) AS xp FROM score GROUP BY username"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		LOG_CTRACE("service") << "Delete score";
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DELETE FROM score"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		LOG_CTRACE("service") << "Add scores";
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT INTO score(username, xp) "
+						  "SELECT * FROM tmpScore"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		LOG_CTRACE("service") << "Drop temporary score table";
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DROP TABLE tmpScore")
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		LOG_CTRACE("service") << "Delete campaigns";
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DELETE FROM campaign"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		LOG_CTRACE("service") << "Delete exams";
+
+		if (!QueryBuilder::q(db)
+				.addQuery("DELETE FROM exam"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+
+		LOG_CTRACE("service") << "Vacuum";
+
+		if (!QueryBuilder::q(db)
+				.addQuery("VACUUM"
+						  )
+				.exec()) {
+			return ret.reject();
+		}
 
 		ret.resolve();
 	});
@@ -1991,9 +2123,6 @@ bool AdminAPI::sendNotifications(const DatabaseMain *dbMain, ServerService *serv
 										p.description;
 
 		for (const auto &u : p.users) {
-			if (u.email != "valaczka.janos@budapest.piarista.hu")
-				continue;
-
 			auto html = std::make_shared<SimpleMail::MimeHtml>();
 
 			QUrl url;

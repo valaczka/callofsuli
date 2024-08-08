@@ -31,7 +31,7 @@
 
 
 ExamEngine::ExamEngine(EngineHandler *handler, QObject *parent)
-	: AbstractEngine{EngineMultiPlayer, handler, parent}
+	: AbstractEngine{EngineExam, handler, parent}
 {
 
 }
