@@ -1279,6 +1279,7 @@ void Client::parseUrl()
 
 	const QUrlQuery q(m_parseUrl);
 
+
 	if (!server()) {
 		Server *server = serverAddWithUrl(m_parseUrl);
 

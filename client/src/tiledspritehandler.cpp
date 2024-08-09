@@ -25,6 +25,7 @@
  */
 
 #include "tiledspritehandler.h"
+#include "qrandom.h"
 #include "tiledscene.h"
 #include "tiledgame.h"
 #include <QSGSimpleTextureNode>
@@ -365,7 +366,14 @@ void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Di
 
 	m_currentDirection = direction;
 	setCurrentSprite(name);
-	m_currentFrame = 0;
+
+	if (m_startFrameSeed < 0. || m_startFrameSeed >= 1.) {
+		LOG_CERROR("scene")	<< "Invalid frame seed" << m_startFrameSeed;
+		m_currentFrame = 0;
+	} else {
+		m_currentFrame = std::floor((qreal) ptr.value()->data.frames.size() * m_startFrameSeed);
+	}
+
 	m_isReverse = false;
 
 	m_timer.start(ptr.value()->data.duration, Qt::PreciseTimer, this);
@@ -591,6 +599,7 @@ void TiledSpriteHandler::clear()
 	m_layers.clear();
 	setOpacityMask(MaskFull);
 	m_visibleLayers = QStringList{ QStringLiteral("default") };
+	m_startFrameSeed = 0.;
 
 	if (m_handlerMaster && m_handlerMaster->syncHandlers()) {
 		m_handlerMaster->setSyncHandlers(false);
@@ -602,6 +611,21 @@ void TiledSpriteHandler::clear()
 
 	setSyncHandlers(false);
 	update();
+}
+
+
+/**
+ * @brief TiledSpriteHandler::setStartFrameSeed
+ * @param percent
+ */
+
+void TiledSpriteHandler::setStartFrameSeed(const qreal &percent)
+{
+	if (percent < 0. || percent >= 1.) {
+		m_startFrameSeed = QRandomGenerator::global()->bounded(1.);
+	} else {
+		m_startFrameSeed = percent;
+	}
 }
 
 

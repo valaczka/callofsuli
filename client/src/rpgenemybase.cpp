@@ -143,6 +143,8 @@ void RpgEnemyBase::load()
 
 	RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/"));
 
+	m_spriteHandler->setStartFrameSeed();
+
 	setWidth(148);
 	setHeight(130);
 	setBodyOffset(0, 0.45*64);

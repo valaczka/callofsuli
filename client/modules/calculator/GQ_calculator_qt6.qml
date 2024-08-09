@@ -37,6 +37,7 @@ GameQuestionComponentImpl {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
+			gameQuestion: control.question
 			buttons: false
 			buttonOkEnabled: false
 

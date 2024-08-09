@@ -76,6 +76,8 @@ public:
 
 	void clear();
 
+	void setStartFrameSeed(const qreal &percent = -1.);
+
 	const TiledObject::Direction &currentDirection() const { return m_currentDirection; }
 
 	const QStringList &spriteNames() const;
@@ -168,6 +170,7 @@ private:
 	QPointer<TiledObject> m_baseObject;
 	QBasicTimer m_timer;
 	int m_currentFrame = 0;
+	qreal m_startFrameSeed = 0.;
 	bool m_isReverse = false;
 	bool m_clearAtEnd = false;
 

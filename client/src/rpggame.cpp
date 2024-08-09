@@ -38,6 +38,7 @@
 #include "rpgshield.h"
 #include "rpgtimepickable.h"
 #include "rpgwerebear.h"
+#include "rpgcoin.h"
 #include "sound.h"
 #include "application.h"
 #include "rpgquestion.h"
@@ -2383,15 +2384,15 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 		// Player cast with timer
 
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastInvalid, 0);
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastInvisible, 3);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastInvisible, 4);
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireFog, 13);
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastProtect, 6);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastProtect, 9);
 
 		// Player cast with shot
 
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireball, 45);
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireballTriple, 125/3);
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastLightning, 50);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastLightning, 105);
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastArrowQuintuple, 70/5);
 	}
 

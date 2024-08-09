@@ -705,7 +705,7 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 	obj.insert(QStringLiteral("id"), *gameId);
 	obj.insert(QStringLiteral("closedGames"), *list);
 
-
+	/*
 	if (game.mode == GameMap::Action && game.deathmatch) {
 		QJsonObject iList;
 
@@ -734,7 +734,7 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 		}
 
 		obj.insert(QStringLiteral("extended"), iList);
-	}
+	}*/
 
 	db.commit();
 
@@ -880,13 +880,18 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 	});
 	QDefer::await(ret);
 
-	const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
 	const QJsonArray &statistics = json.value(QStringLiteral("statistics")).toArray();
-	const bool &success = json.value(QStringLiteral("success")).toVariant().toBool();
-	const int &xp = json.value(QStringLiteral("xp")).toInt();
 	const int &duration = json.value(QStringLiteral("duration")).toInt();
 
-	return gameFinish(username, id, g, inventory, statistics, success, xp, duration);
+	if (ret.state() == QDeferredState::RESOLVED) {
+		const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
+		const bool &success = json.value(QStringLiteral("success")).toVariant().toBool();
+		const int &xp = json.value(QStringLiteral("xp")).toInt();
+
+		return gameFinish(username, id, g, inventory, statistics, success, xp, duration);
+	} else {
+		return gameFinish(username, id, g, {}, statistics, false, 0, duration);
+	}
 }
 
 

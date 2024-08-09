@@ -394,6 +394,15 @@ QItemGradient {
 	}
 
 
+	Timer {
+		id: _reloadTimer
+		interval: 30000
+		repeat: true
+		triggeredOnStart: true
+		onTriggered: Client.server.user.wallet.reload()
+	}
+
+
 	function getWallet(_type, _name) {
 		if (!Client.server)
 			return
@@ -441,6 +450,6 @@ QItemGradient {
 		if (!Client.server)
 			return
 
-		Client.server.user.wallet.reload()
+		_reloadTimer.start()
 	}
 }

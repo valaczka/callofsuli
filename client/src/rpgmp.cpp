@@ -28,7 +28,7 @@
 #include "rpgplayer.h"
 
 
-const int RpgMpPickable::m_amount = 25;
+const int RpgMpPickable::m_amount = 75;
 
 
 RpgMpPickable::RpgMpPickable(QQuickItem *parent)

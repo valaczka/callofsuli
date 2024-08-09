@@ -35,7 +35,6 @@
 #include "qnetworkrequest.h"
 #include "QResource"
 #include "application.h"
-#include "gameterrain.h"
 #include "conquestgame.h"
 #include "server.h"
 #include "utils_.h"
@@ -197,6 +196,9 @@ void OnlineClient::onResourceDownloaded()
 			m_httpConnection->setServer(s);
 			s->setUrl(url);
 
+			if (m_demoMode)
+				s->setIsStatic(true);
+
 			QSettings settings;
 
 			const QString &token = settings.value(QStringLiteral("usertoken")).toString();
@@ -255,8 +257,11 @@ void OnlineClient::onAllResourceReady()
 
 	LOG_CINFO("client") << "Az alkalmazás sikeresen elindult";
 
+
 	AbstractLevelGame::reloadAvailableMedal();
 	ConquestGame::reloadAvailableCharacters();
+
+	initializeDynamicResources();
 
 	if (m_demoMode)
 		m_startPage = loadDemoMap();

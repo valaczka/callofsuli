@@ -14,7 +14,7 @@ RowLayout {
 	property alias buttonOkEnabled: btnOk.enabled
 	property alias buttonOkVisible: btnOk.visible
 
-	readonly property GameQuestionImpl gameQuestion: (parent instanceof GameQuestionComponentImpl) ? parent.question : null
+	property GameQuestionImpl gameQuestion: (parent instanceof GameQuestionComponentImpl) ? parent.question : null
 
 	signal buttonOkClicked()
 
