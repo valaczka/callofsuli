@@ -22,6 +22,7 @@
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
 - Qzxing (https://github.com/ftylitak/qzxing) 
 - SCodes - (c) Scythe Studio (https://github.com/scytheStudio/SCodes)
+- Single-file MIT licensed libraries for C/C++ - (c) 2017 Sean Barrett (https://github.com/nothings/stb)
 - SMTP Client for Qt - (c) 2011-2024 Tőkés Attila (https://github.com/bluetiger9/SmtpClient-for-Qt)
 - SimpleMail - (c) Cutelyst (https://github.com/cutelyst/simple-mail)
 - SortFilterProxyModel - (c) 2016 Pierre-Yves Siret (https://github.com/oKcerG/SortFilterProxyModel)
@@ -90,3 +91,5 @@
 - Broadswords Clashing - (c) GaelanW (https://freesound.org/s/490065/)
 - Magic Fire Impact - (c) EminYILDIRIM (https://freesound.org/s/626120)
 - Laser gun sound effect #2 - (c) soundslikewillem (https://freesound.org/people/soundslikewillem/sounds/645681)
+- Rain (loopable) - (c) 2016 Ylmir (https://opengameart.org/content/rain-loopable)
+- Loopable Dungeon Ambience - (c) 2014 JaggedStone (https://opengameart.org/content/loopable-dungeon-ambience)

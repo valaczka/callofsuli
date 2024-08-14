@@ -1346,20 +1346,23 @@ void RpgGame::loadDefaultQuests(const int &questions)
 
 	// Winner streak quests
 
-	if (questions >= 10) {
+	if (questions >= 5) {
 		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 3, 75 });
 		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 5, 100 });
-		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 7, 175 });
 
-		for (int i=2;; ++i) {
-			int q = 5*i;
+		if (questions >= 10) {
+			m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 7, 175 });
 
-			if (q >= questions) {
-				m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, questions, (i+5) * 100 });
-				break;
+			for (int i=2;; ++i) {
+				int q = 5*i;
+
+				if (q >= questions) {
+					m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, questions, (i+5) * 100 });
+					break;
+				}
+
+				m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, i*5, i * 100 });
 			}
-
-			m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, i*5, i * 100 });
 		}
 	}
 
@@ -2385,15 +2388,15 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastInvalid, 0);
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastInvisible, 4);
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireFog, 13);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireFog, 23);
 		def->playerCast.insert(RpgPlayerCharacterConfig::CastProtect, 9);
 
 		// Player cast with shot
 
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireball, 45);
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireballTriple, 125/3);
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastLightning, 105);
-		def->playerCast.insert(RpgPlayerCharacterConfig::CastArrowQuintuple, 70/5);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireball, 145);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastFireballTriple, 175/3);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastLightning, 315);
+		def->playerCast.insert(RpgPlayerCharacterConfig::CastArrowQuintuple, 95/5);
 	}
 
 

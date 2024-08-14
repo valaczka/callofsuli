@@ -380,7 +380,7 @@ QPageGradient {
 					}
 
 					list.push({
-								  icon: Qaterial.Icons.abacus,
+								  icon: Qaterial.Icons.gaugeFull,
 								  text: qsTr("Limit:"),
 								  font: Qaterial.Style.textTheme.body2,
 								  value: _currentWallet.market.num + t,

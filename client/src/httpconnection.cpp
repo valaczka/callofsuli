@@ -332,10 +332,7 @@ QUrl HttpConnection::getUrl(const API &api, const QString &path) const
 
 	QUrl url = m_server->url();
 
-	if (m_server->isStatic())
-		url.setPath(QStringLiteral("%3/api/%1/%2").arg(apis.value(api), path, url.path()));
-	else
-		url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
+	url.setPath(QStringLiteral("/api/%1/%2").arg(apis.value(api), path));
 	return url;
 }
 
@@ -471,7 +468,11 @@ HttpReply *HttpConnection::get(const QString &path)
 	}
 
 	QUrl url = m_server->url();
-	url.setPath(path);
+
+	if (m_server->isStatic())
+		url.setPath(url.path()+QStringLiteral("/")+path);
+	else
+		url.setPath(path);
 
 	QNetworkRequest r(url);
 

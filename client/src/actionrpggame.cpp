@@ -1400,7 +1400,7 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, 
 	setXp(m_xp+xp);
 
 	if (player->config().cast != RpgPlayerCharacterConfig::CastInvalid && m_gameQuestion && !container) {
-		const int mp = m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() *
+		const int mp = /*m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * */
 					   RpgMpPickable::amount() * (2 + (0.33*m_missionLevel->level()));
 		RpgMpPickable::pick(player, mp);
 	}
