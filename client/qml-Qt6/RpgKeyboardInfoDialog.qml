@@ -51,7 +51,7 @@ Qaterial.ModalDialog
 					[ "E", "Enter_Alt", "Enter_Tall" ], qsTr("Láda kinyitása"),
 					[ "Del", "Q" ], qsTr("Fegyver váltás"),
 					[ "5", "X" ], qsTr("Átjáró használata"),
-					[ "C" ], qsTr("Varázsbot használata"),
+					[ "C" ], qsTr("Super power"),
 					[ "Tab" ], qsTr("Térkép")
 				]
 

@@ -187,10 +187,7 @@ void OnlineClient::onResourceDownloaded()
 
 			m_demoMode = o.value(QStringLiteral("demo")).toBool(false);
 
-			QUrl url;
-			url.setScheme(m_parseUrl.scheme());
-			url.setHost(m_parseUrl.host());
-			url.setPort(m_parseUrl.port());
+			QUrl url = m_parseUrl.adjusted(QUrl::RemoveFilename|QUrl::RemoveQuery|QUrl::RemoveUserInfo);
 
 			Server *s = new Server(this);
 			m_httpConnection->setServer(s);
