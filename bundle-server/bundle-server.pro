@@ -4,7 +4,6 @@ include(../common.pri)
 include(../version/version.pri)
 
 isEmpty(CQtDeployerPath): error(Missing CQtDeployerPath)
-isEmpty(LddPath): error(Missing LddPath)
 
 BinFile = callofsuli-server
 
@@ -39,7 +38,7 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
-			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}($${LddPath} $${LddBinFile} | \
+			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(ldd.exe $${LddBinFile} | \
 				grep \"=>\" | grep -i -v \"WINDOWS/SYSTEM32\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \
 				echo \"---> $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \
 				test -f $${LddLibDir}/$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f) || \
@@ -52,7 +51,7 @@ else: extralib.commands = echo \"Create bundle...\"; \
 			-qmake $$QMAKE_QMAKE ;\
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
-			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}($${LddPath} $${LddBinFile} | \
+			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(ldd $${LddBinFile} | \
 				grep \"=>\" | grep -i -v \"WINDOWS/SYSTEM32\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \
 				echo \"---> $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \
 				test -f $${LddLibDir}/$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f) || \

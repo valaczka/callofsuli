@@ -4,7 +4,6 @@ include(../common.pri)
 include(../version/version.pri)
 
 isEmpty(CQtDeployerPath): error(Missing CQtDeployerPath)
-isEmpty(LddPath): error(Missing LddPath)
 
 BinFile = callofsuli
 
@@ -36,9 +35,6 @@ win32 {
 win32: LibExtension = dll
 else: LibExtension = so
 
-win32: LddBinFile = $${CQtTargetDir}/usr/$${BinFile}
-else: LddBinFile = $${CQtTargetDir}/usr/bin/$${BinFile}
-
 win32: LddLibDir = $${CQtTargetDir}/usr
 else: LddLibDir = $${CQtTargetDir}/usr/lib
 
@@ -46,14 +42,18 @@ lessThan(QT_MAJOR_VERSION, 6): QmlDir = $$PWD/../client/qml
 else: QmlDir = $$PWD/../client/qml-Qt6
 
 win32: extralib.commands = echo \"Create bundle...\"; \
-			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
-			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter,QOlm \
-			-qmake $$QMAKE_QMAKE \
-			-qmlDir $$QmlDir -enablePlugins multimedia ; \
+			$${CQtDeployerPath} -dir $${CQtTargetDir}/usr  \
+			--qmake $$QMAKE_QMAKE \
+			--qmldir $$QmlDir \
+			--no-translations --release --plugindir $${CQtTargetDir}/usr/plugins \
+			../$${BinFile} ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
-			$${LddPath} $${LddBinFile} >./_tmp_dll.txt ; \
+			cp ../$${BinFile} $${LddLibDir} ; \
+			cp ../lib/*dll $${LddLibDir} ; \
+			cp $$PWD/../client/deploy/qt.conf $${LddLibDir} ; \
+			ldd.exe $${LddLibDir}/$${BinFile} >./_tmp_dll.txt ; \
 			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(cat ./_tmp_dll.txt | \
 				grep \"=>\" | grep -i -v \"WINDOWS/\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \
 				echo \"---> $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \
@@ -74,7 +74,7 @@ else: extralib.commands = echo \"Create bundle...\"; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp -r $$PWD/../share/OMRChecker $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
-			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}($${LddPath} $${LddBinFile} | \
+			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(ldd $${CQtTargetDir}/usr/bin/$${BinFile} | \
 				grep \"=>\" | grep -i -v \"WINDOWS/SYSTEM32\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \
 				echo \"---> $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \
 				test -f $${LddLibDir}/$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f) || \

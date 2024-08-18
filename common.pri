@@ -38,12 +38,5 @@ CreateBundle = true
 
 # CQtDeployer path
 
-win32: CQtDeployerPath = ~/cqtdeployer/CQtDeployer
-else: CQtDeployerPath = cqtdeployer
-
-# LDD path
-
-LddPath = ldd
-
-
-
+win32: CQtDeployerPath = windeployqt6.exe
+else: CQtDeployerPath = ~/bin/CQtDeployer
