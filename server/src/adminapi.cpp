@@ -1880,6 +1880,66 @@ bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 
 
 /**
+ * @brief AdminAPI::fillCurrency
+ * @param api
+ * @return
+ */
+
+bool AdminAPI::fillCurrency(const AbstractAPI *api)
+{
+	Q_ASSERT(api);
+	return fillCurrency(api->databaseMain());
+}
+
+
+
+/**
+ * @brief AdminAPI::fillCurrency
+ * @param dbMain
+ * @return
+ */
+
+bool AdminAPI::fillCurrency(const DatabaseMain *dbMain)
+{
+	Q_ASSERT(dbMain);
+
+#define MIN_CURRENCY	500
+
+	LOG_CDEBUG("service") << "Fill currency to" << MIN_CURRENCY;
+
+	QDefer ret;
+
+	dbMain->worker()->execInThread([ret, dbMain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		db.transaction();
+
+		if (!QueryBuilder::q(db)
+				.addQuery("WITH t AS (SELECT user.username, ")
+				.addValue(MIN_CURRENCY)
+				.addQuery("-COALESCE(SUM(amount), 0) AS amount FROM user "
+						  "LEFT JOIN currency ON (currency.username=user.username) WHERE active=true GROUP BY user.username) "
+						  "INSERT INTO currency (username, amount) SELECT username, amount FROM t WHERE amount > 0"
+						  )
+				.exec()) {
+			db.rollback();
+			return ret.reject();
+		}
+
+		db.commit();
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
+}
+
+
+
+/**
  * @brief AdminAPI::zapUserData
  * @param api
  * @return

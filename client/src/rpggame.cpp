@@ -2509,6 +2509,7 @@ void RpgGame::resurrectEnemiesAndPlayer(RpgPlayer *player)
 
 	player->body()->emplace(player->currentSceneStartPosition());
 	player->setHp(player->maxHp());
+	player->setMp(std::max(player->config().mpStart, player->mp()));
 
 	QTimer::singleShot(2000, this, [s = QPointer<TiledScene>(scene), this](){ this->resurrectEnemies(s); });
 }

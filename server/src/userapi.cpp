@@ -1008,28 +1008,36 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 
 	db.transaction();
 
-	const auto &scoreId = QueryBuilder::q(db)
-						  .addQuery("INSERT INTO score (").setFieldPlaceholder()
-						  .addQuery(") VALUES (").setValuePlaceholder()
-						  .addQuery(")")
-						  .addField("username", username)
-						  .addField("xp", sumXP)
-						  .execInsertAsInt();
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(scoreId);
-
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-							   .addQuery("UPDATE game SET ").setCombinedPlaceholder()
-							   .addField("duration", duration)
-							   .addField("success", success)
-							   .addField("scoreid", *scoreId)
-							   .addQuery(" WHERE id=")
-							   .addValue(id)
-							   .exec());
-
-
 	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db).addQuery("DELETE FROM runningGame WHERE gameid=").addValue(id).exec());
+
+	if (sumXP <= 0 && duration < 5 && !success) {
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("DELETE FROM game WHERE id=")
+								   .addValue(id)
+								   .exec());
+	} else {
+		const auto &scoreId = QueryBuilder::q(db)
+							  .addQuery("INSERT INTO score (").setFieldPlaceholder()
+							  .addQuery(") VALUES (").setValuePlaceholder()
+							  .addQuery(")")
+							  .addField("username", username)
+							  .addField("xp", sumXP)
+							  .execInsertAsInt();
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(scoreId);
+
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("UPDATE game SET ").setCombinedPlaceholder()
+								   .addField("duration", duration)
+								   .addField("success", success)
+								   .addField("scoreid", *scoreId)
+								   .addQuery(" WHERE id=")
+								   .addValue(id)
+								   .exec());
+	}
+
+
 
 
 	// Inventory

@@ -343,7 +343,20 @@ Qaterial.Card {
 
 			Qaterial.LabelHint1 {
 				anchors.verticalCenter: parent.verticalCenter
-				text: wallet ? Client.Utils.formatMSecs(wallet.market.exp*1000) : ""
+				text: {
+					if (!wallet)
+						return ""
+
+					let exp = wallet.market.exp
+
+					if (exp <= 1440)
+						return Client.Utils.formatMSecs(wallet.market.exp*1000)
+					else {
+						let d = Math.floor(exp/(24*60))
+						return qsTr("%1 nap").arg(d)
+					}
+
+				}
 				color: Qaterial.Style.iconColor()
 			}
 		}

@@ -114,7 +114,6 @@ RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const RpgPl
 		player->initialize();
 
 		player->setMaxMp(config.mpMax);
-		player->setMp(config.mpStart);
 	}
 
 	return player;

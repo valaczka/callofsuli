@@ -536,6 +536,7 @@ void ActionRpgGame::rpgGameActivated_()
 
 	player->setHp(m_missionLevel->startHP());
 	player->setMaxHp(m_missionLevel->startHP());
+	player->setMp(characterPtr->mpStart);
 	loadInventory(player);
 
 	// Set user name
@@ -1189,7 +1190,7 @@ bool ActionRpgGame::onPlayerUseContainer(RpgPlayer *player, TiledContainer *cont
 
 bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 {
-	if (!player)
+	if (!player || !player->isAlive())
 		return false;
 
 	RpgMageStaff *m = qobject_cast<RpgMageStaff*>(player->armory()->weaponFind(TiledWeapon::WeaponMageStaff));
