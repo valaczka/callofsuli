@@ -1792,7 +1792,7 @@ QHttpServerResponse TeacherAPI::mapUpload(const Credential &credential, const QS
 
 	LOG_CDEBUG("client") << "Map modified:" << uuid;
 
-	response = responseOk(QJsonObject{{QStringLiteral("version"), version}});
+	response = responseOk(QJsonObject{{QStringLiteral("version"), version+1}});
 
 	LAMBDA_THREAD_END;
 }

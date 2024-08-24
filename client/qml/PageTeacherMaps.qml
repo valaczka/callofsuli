@@ -146,10 +146,10 @@ QPage {
 		visible: handler && !handler.mapList.length
 	}
 
-	QFabButton {
+	/*QFabButton {
 		visible: view.visible
 		action: actionMapAdd
-	}
+	}*/
 
 
 	Component {

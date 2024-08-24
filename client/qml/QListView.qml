@@ -84,7 +84,7 @@ ListView {
 		acceptedButtons: Qt.RightButton
 		onClicked: {
 			// Ha van header, akkor nem jó indexet ad vissza. +originY korrekció kell, de csak oda
-			view.rightClickOrPressAndHold(view.indexAt(mouse.x, mouse.y+view.originY), mouse.x, mouse.y)
+			view.rightClickOrPressAndHold(view.indexAt(mouse.x, mouse.y+view.originY+view.contentY), mouse.x, mouse.y)
 		}
 	}
 

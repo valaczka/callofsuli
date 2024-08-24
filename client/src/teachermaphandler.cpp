@@ -402,7 +402,7 @@ TeacherMapEditor::TeacherMapEditor(QObject *parent)
 	: MapEditor(parent)
 {
 	connect(this, &MapEditor::saveRequest, this, &TeacherMapEditor::onSaveRequest);
-	//connect(this, &MapEditor::autoSaveRequest, this, &TeacherMapEditor::onSaveRequest);
+	connect(this, &MapEditor::autoSaveRequest, this, &TeacherMapEditor::onSaveRequest);
 }
 
 
@@ -438,7 +438,7 @@ void TeacherMapEditor::onSaveRequest()
 			->done(this, [this](const QJsonObject &data){
 		onSaved(true);
 		if (data.contains(QStringLiteral("version")))
-			m_draftVersion = data.value(QStringLiteral("version")).toInt();
+			setDraftVersion(data.value(QStringLiteral("version")).toInt());
 
 		LOG_CTRACE("client") << "Map saved, new draftVersion:" << m_draftVersion;
 	});

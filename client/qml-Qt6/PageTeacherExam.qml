@@ -181,11 +181,11 @@ QPage {
 					valueRole: "value"
 					textRole: "text"
 
-					model: [
-						{ value: 0, text: qsTr("Papír") },
-						{ value: 1, text: qsTr("Digitális") },
-						{ value: 2, text: qsTr("Virtuális") }
-					]
+					model: ListModel {
+						ListElement { value: 0; text: qsTr("Papír") }
+						ListElement { value: 1; text: qsTr("Digitális") }
+						ListElement { value: 2; text: qsTr("Virtuális") }
+					}
 
 					inPlaceButtonsVisible: true
 					inPlaceButtons.onSaveRequest: text => {
