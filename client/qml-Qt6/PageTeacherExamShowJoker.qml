@@ -45,7 +45,15 @@ QPage {
 
 				Qaterial.Label {
 					anchors.fill: parent
-					text: user.fullName
+
+					readonly property bool _canAdd: user.jokerOptions & ExamUser.JokerCanAdd
+					readonly property bool _canDeny: user.jokerOptions & ExamUser.JokerCanDeny
+
+					text: user.fullName + " ("
+						  + (_canAdd ? "+" : "")
+						  + (_canDeny ? "−" : "")
+						  + ")"
+
 
 					font.family: Qaterial.Style.textTheme.headline1.family
 					font.pixelSize: Math.min(85*Qaterial.Style.pixelSizeRatio, parent.height*0.8/2)
@@ -66,6 +74,5 @@ QPage {
 				}
 			}
 		}
-
 	}
 }

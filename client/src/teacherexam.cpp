@@ -883,7 +883,17 @@ QList<ExamUser *> TeacherExam::jokerShow(ExamResultModel *resultModel, const int
 
 		LOG_CTRACE("client") << "Check" << u->username() << map.value(true) << map.value(false);
 
-		if (map.value(true) >= addLimit || map.value(false) >= denyLimit)
+		ExamUser::JokerOptions opts = ExamUser::JokerUnavailable;
+
+		if (map.value(true) >= addLimit)
+			opts.setFlag(ExamUser::JokerCanAdd);
+
+		if (map.value(false) >= denyLimit)
+			opts.setFlag(ExamUser::JokerCanDeny);
+
+		u->setJokerOptions(opts);
+
+		if (opts != ExamUser::JokerUnavailable)
 			list.append(u);
 	}
 
@@ -2983,4 +2993,26 @@ QMap<bool, int> TeacherExam::getUserJokerStreak(const QString &username, const Q
 		{ true, addCount },
 		{ false, denyCount }
 	};
+}
+
+
+
+
+/**
+ * @brief ExamUser::jokerOptions
+ * @return
+ */
+
+ExamUser::JokerOptions ExamUser::jokerOptions() const
+{
+	return m_jokerOptions;
+}
+
+
+void ExamUser::setJokerOptions(const JokerOptions &newJokerOptions)
+{
+	if (m_jokerOptions == newJokerOptions)
+		return;
+	m_jokerOptions = newJokerOptions;
+	emit jokerOptionsChanged();
 }

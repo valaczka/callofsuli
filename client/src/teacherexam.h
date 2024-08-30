@@ -202,9 +202,20 @@ class ExamUser : public User
 	Q_PROPERTY(QJsonArray correction READ correction WRITE setCorrection NOTIFY correctionChanged FINAL)
 	Q_PROPERTY(QJsonArray pendingCorrection READ pendingCorrection WRITE setPendingCorrection NOTIFY pendingCorrectionChanged FINAL)
 	Q_PROPERTY(Grade *pendingGrade READ pendingGrade WRITE setPendingGrade NOTIFY pendingGradeChanged FINAL)
+	Q_PROPERTY(JokerOptions jokerOptions READ jokerOptions NOTIFY jokerOptionsChanged FINAL)
 
 public:
 	ExamUser(QObject *parent = nullptr);
+
+	enum JokerOption {
+		JokerUnavailable	= 0,
+		JokerCanAdd			= 1,
+		JokerCanDeny		= 1 << 1
+	};
+
+	Q_ENUM(JokerOption);
+
+	Q_DECLARE_FLAGS(JokerOptions, JokerOption);
 
 	Q_INVOKABLE void getContent(const int &index, QQuickTextDocument *document,
 								QQuickItem *checkBoxSuccess = nullptr, QQuickItem *spinPoint = nullptr) const;
@@ -246,6 +257,9 @@ public:
 	bool joker() const;
 	void setJoker(bool newJoker);
 
+	JokerOptions jokerOptions() const;
+	void setJokerOptions(const JokerOptions &newJokerOptions);
+
 signals:
 	void examDataChanged();
 	void contentIdChanged();
@@ -258,6 +272,7 @@ signals:
 	void teacherExamChanged();
 	void pendingGradeChanged();
 	void jokerChanged();
+	void jokerOptionsChanged();
 
 private:
 	QJsonArray m_examData;
@@ -271,6 +286,7 @@ private:
 	bool m_picked = false;
 	bool m_joker = false;
 	TeacherExam *m_teacherExam = nullptr;
+	JokerOptions m_jokerOptions = JokerUnavailable;
 };
 
 
@@ -483,6 +499,8 @@ private:
 };
 
 
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(ExamUser::JokerOptions);
 
 
 /**
