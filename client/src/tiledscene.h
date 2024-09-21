@@ -37,15 +37,10 @@
 
 class TiledGame;
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_TiledGame
 #define OPAQUE_PTR_TiledGame
 Q_DECLARE_OPAQUE_POINTER(TiledGame*)
 #endif
-
-#endif
-
 
 
 

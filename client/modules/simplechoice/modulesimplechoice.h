@@ -47,20 +47,9 @@ public:
 	inline QString readableName() const override { return tr("Egyszerű választás"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/checkbox-multiple-marked-outline.svg"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_simplechoice_qt6.qml";
-#else
-		return "ME_simplechoice.qml";
-#endif
-	}
-	inline QString qmlQuestion() const override {
-#if QT_VERSION >= 0x060000
-		return "GQ_simplechoice_qt6.qml";
-#else
-		return "GQ_simplechoice.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_simplechoice_qt6.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_simplechoice_qt6.qml"; }
+
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return {"binding", "numbers", "images", "block" }; }

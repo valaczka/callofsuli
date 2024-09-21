@@ -32,11 +32,7 @@
 
 #ifdef Q_OS_WIN
 #include <Windows.h>
-#if QT_VERSION >= 0x060000
 #include <private/qguiapplication_p.h>
-#else
-#include <QtPlatformHeaders/QWindowsWindowFunctions>
-#endif
 #endif
 
 
@@ -53,14 +49,9 @@ DesktopApplication::DesktopApplication(QApplication *app)
 #ifdef Q_OS_WIN
 	SetConsoleOutputCP(CP_UTF8);
 
-#if QT_VERSION >= 0x060000
 	if(auto inf = qApp->nativeInterface<QNativeInterface::Private::QWindowsApplication>()) {
 		inf->setWindowActivationBehavior(QNativeInterface::Private::QWindowsApplication::AlwaysActivateWindow);
 	}
-#else
-	QWindowsWindowFunctions::setWindowActivationBehavior(QWindowsWindowFunctions::AlwaysActivateWindow);
-#endif
-
 #endif
 
 	m_appender->setDetailsLevel(Logger::Info);

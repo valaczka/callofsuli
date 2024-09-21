@@ -37,14 +37,9 @@
 class IsometricEnemy;
 class IsometricPlayerPrivate;
 
-
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_IsometricEnemy
 #define OPAQUE_PTR_IsometricEnemy
 Q_DECLARE_OPAQUE_POINTER(IsometricEnemy*)
-#endif
-
 #endif
 
 

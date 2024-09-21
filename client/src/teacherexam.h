@@ -173,14 +173,12 @@ Q_DECLARE_METATYPE(ExamScanDataList*)
 
 class TeacherExam;
 
-#if QT_VERSION >= 0x060000
 
 #ifndef OPAQUE_PTR_TeacherExam
 #define OPAQUE_PTR_TeacherExam
   Q_DECLARE_OPAQUE_POINTER(TeacherExam*)
 #endif
 
-#endif
 
 
 /**

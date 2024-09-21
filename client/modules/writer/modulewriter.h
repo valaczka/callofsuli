@@ -47,20 +47,8 @@ public:
 	inline QString readableName() const override { return tr("Szöveges válasz"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/receipt-text-edit.svg"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_writer_qt6.qml";
-#else
-		return "ME_writer.qml";
-#endif
-	}
-	inline QString qmlQuestion() const override {
-#if QT_VERSION >= 0x060000
-		return "GQ_writer_qt6.qml";
-#else
-		return "GQ_writer.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_writer_qt6.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_writer_qt6.qml"; }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return {"binding", "images", "sequence", "text"}; }

@@ -47,8 +47,6 @@ class Updater;
 class Utils;
 
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_AbstractGame
 #define OPAQUE_PTR_AbstractGame
   Q_DECLARE_OPAQUE_POINTER(AbstractGame*)
@@ -68,8 +66,6 @@ class Utils;
 #ifndef OPAQUE_PTR_Utils
 #define OPAQUE_PTR_Utils
   Q_DECLARE_OPAQUE_POINTER(Utils*)
-#endif
-
 #endif
 
 /**

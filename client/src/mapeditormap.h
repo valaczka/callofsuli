@@ -71,13 +71,9 @@ Q_DECLARE_METATYPE(MapEditorInventoryList*)
 
 class MapEditor;
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_MapEditor
 #define OPAQUE_PTR_MapEditor
   Q_DECLARE_OPAQUE_POINTER(MapEditor*)
-#endif
-
 #endif
 
 /**

@@ -103,11 +103,7 @@ void MaskedMouseArea::mouseReleaseEvent(QMouseEvent *event)
 	setPressed(false);
 	emit released();
 
-#if QT_VERSION >= 0x060000
 	QPointF pos = event->position();
-#else
-	QPointF pos = event->localPos();
-#endif
 	pos -= m_pressPoint;
 
 	const int threshold = qApp->styleHints()->startDragDistance();
@@ -131,7 +127,6 @@ void MaskedMouseArea::touchEvent(QTouchEvent *event)
 {
 	QPointF pos;
 
-#if QT_VERSION >= 0x060000
 	if (event->pointCount() != 1)
 		return;
 
@@ -142,18 +137,6 @@ void MaskedMouseArea::touchEvent(QTouchEvent *event)
 		pos = event->point(0).position();
 	} else
 		return;
-#else
-	const auto &tp = event->touchPoints();
-	if (tp.count() != 1)
-		return;
-
-	if (event->type() == QEvent::TouchBegin)
-		m_touchPoint = tp.at(0).pos();
-	else if (event->type() == QEvent::TouchEnd) {
-		pos = tp.at(0).pos();
-	} else
-		return;
-#endif
 
 	pos -= m_touchPoint;
 

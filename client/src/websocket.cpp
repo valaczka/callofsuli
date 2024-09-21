@@ -377,11 +377,7 @@ void WebSocket::reconnect()
 
 		QObject::connect(m_socket.get(), &QWebSocket::connected, this, &WebSocket::onConnected);
 		QObject::connect(m_socket.get(), &QWebSocket::disconnected, this, &WebSocket::onDisconnected);
-#if QT_VERSION >= 0x060000
 		QObject::connect(m_socket.get(), &QWebSocket::errorOccurred, this, &WebSocket::onError);
-#else
-		QObject::connect(m_socket.get(), QOverload<QAbstractSocket::SocketError>::of(&QWebSocket::error), this, &WebSocket::onError);
-#endif
 		QObject::connect(m_socket.get(), &QWebSocket::textMessageReceived, this, &WebSocket::onTextReceived);
 
 #ifndef QT_NO_SSL

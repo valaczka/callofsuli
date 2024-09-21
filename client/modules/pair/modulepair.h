@@ -47,20 +47,9 @@ public:
 	inline QString readableName() const override { return tr("Párosítás"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/vector-link.svg"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_pair_qt6.qml";
-#else
-		return "ME_pair.qml";
-#endif
-	}
-	inline QString qmlQuestion() const override {
-#if QT_VERSION >= 0x060000
-		return "GQ_pair_qt6.qml";
-#else
-		return "GQ_pair.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_pair_qt6.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_pair_qt6.qml"; }
+
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
 	inline QStringList storageModules() const override { return { "binding", "numbers", "block" }; }

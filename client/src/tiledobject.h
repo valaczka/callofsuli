@@ -43,8 +43,6 @@ class TiledScene;
 class TiledSpriteHandler;
 class TiledObjectBase;
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_TiledGame
 #define OPAQUE_PTR_TiledGame
 Q_DECLARE_OPAQUE_POINTER(TiledGame*)
@@ -53,8 +51,6 @@ Q_DECLARE_OPAQUE_POINTER(TiledGame*)
 #ifndef OPAQUE_PTR_TiledScene
 #define OPAQUE_PTR_TiledScene
 Q_DECLARE_OPAQUE_POINTER(TiledScene*)
-#endif
-
 #endif
 
 

@@ -343,11 +343,7 @@ QColor RpgInventory::iconColor() const
 {
 	switch (m_pickableType) {
 		case RpgPickableObject::PickableKey:
-#if QT_VERSION >= 0x060000
 			return QColor::fromString(QStringLiteral("#FF8F00"));
-#else
-			return QColor(QStringLiteral("#FF8F00"));
-#endif
 
 		case RpgPickableObject::PickableHp:
 		case RpgPickableObject::PickableMp:

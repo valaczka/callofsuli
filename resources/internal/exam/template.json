@@ -22,7 +22,7 @@
       "name": "CropOnMarkers",
       "options": {
         "relativePath": "marker.png",
-        "sheetToMarkerWidthRatio": 17
+        "sheetToMarkerWidthRatio": 30
       }
     }
   ],

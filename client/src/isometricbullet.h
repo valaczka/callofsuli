@@ -34,13 +34,10 @@
 class IsometricBulletPrivate;
 class TiledWeapon;
 
-#if QT_VERSION >= 0x060000
 
 #ifndef OPAQUE_PTR_TiledWeapon
 #define OPAQUE_PTR_TiledWeapon
 Q_DECLARE_OPAQUE_POINTER(TiledWeapon*)
-#endif
-
 #endif
 
 

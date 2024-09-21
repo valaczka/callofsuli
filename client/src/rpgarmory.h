@@ -32,13 +32,9 @@
 
 class RpgMageStaff;
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_RpgMageStaff
 #define OPAQUE_PTR_RpgMageStaff
   Q_DECLARE_OPAQUE_POINTER(RpgMageStaff*)
-#endif
-
 #endif
 
 class RpgArmory : public QObject

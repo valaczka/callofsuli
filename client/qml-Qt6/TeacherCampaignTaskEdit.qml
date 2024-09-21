@@ -141,11 +141,11 @@ QPage {
 				valueRole: "value"
 				textRole: "text"
 
-				model: [
-					{value: "xp", text: qsTr("XP összegyűjtése")},
-					{value: "mission", text: qsTr("Küldetés (konkrét) teljesítése")},
-					{value: "mapmission", text: qsTr("Küldetések (darab) teljesítése egy pályán")}
-				]
+				model: ListModel {
+					ListElement {value: "xp"; text: qsTr("XP összegyűjtése")}
+					ListElement {value: "mission"; text: qsTr("Küldetés (konkrét) teljesítése")}
+					ListElement {value: "mapmission"; text: qsTr("Küldetések (darab) teljesítése egy pályán")}
+				}
 
 			}
 
@@ -176,7 +176,7 @@ QPage {
 				function reloadMissionList() {
 					let m = mapHandler.mapList.get(currentIndex)
 
-					let list = []
+					_missionModel.clear()
 
 					for (let i=0; i<m.cache.missions.length; ++i) {
 						let mis = m.cache.missions[i]
@@ -184,7 +184,7 @@ QPage {
 						for (let j=0; j<mis.levels.length; ++j) {
 							let level = mis.levels[j].l
 
-							list.push({
+							_missionModel.append({
 										  uuid: mis.uuid,
 										  name: mis.name,
 										  display: mis.name+qsTr(" - Level %1").arg(level),
@@ -193,7 +193,7 @@ QPage {
 									  })
 
 							if (mis.levels[j].dm) {
-								list.push({
+								_missionModel.append({
 											  uuid: mis.uuid,
 											  name: mis.name,
 											  display: mis.name+qsTr(" - Level %1 DM").arg(level),
@@ -205,8 +205,6 @@ QPage {
 
 
 					}
-
-					_mission.model = list
 				}
 
 			}
@@ -222,7 +220,9 @@ QPage {
 
 				textRole: "display"
 
-				model: null
+				model: ListModel {
+					id: _missionModel
+				}
 
 			}
 
@@ -309,7 +309,7 @@ QPage {
 					criterion.module = _module.currentValue
 
 					if (_mission.visible && _mission.currentIndex != -1) {
-						let ml = _mission.model[_mission.currentIndex]
+						let ml = _missionModel.get(_mission.currentIndex)
 
 						criterion.mission = ml.uuid
 						criterion.level = ml.level
@@ -377,8 +377,8 @@ QPage {
 			_map.reloadMissionList()
 
 			if (task.criterion.mission !== undefined) {
-				for (let j=0; j<_mission.model.length; ++j) {
-					let ml = _mission.model[j]
+				for (let j=0; j<_missionModel.count; ++j) {
+					let ml = _missionModel.get(j)
 
 					if (ml.uuid === task.criterion.mission && ml.level === task.criterion.level && ml.deathmatch === task.criterion.deathmatch) {
 						_mission.currentIndex = j

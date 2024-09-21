@@ -1595,11 +1595,7 @@ void TeacherExam::runOMR()
 		m_omrProcess->setProgram(Utils::settingsGet(QStringLiteral("external/python"), QStringLiteral("/usr/bin/python")).toString());
 		m_omrProcess->setArguments(arguments);
 
-#if QT_VERSION >= 0x060000
 		connect(m_omrProcess.get(), &QProcess::finished, this, &TeacherExam::onOmrFinished);
-#else
-		connect(m_omrProcess.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &TeacherExam::onOmrFinished);
-#endif
 
 		LOG_CINFO("client") << "Start OMR";
 

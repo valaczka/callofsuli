@@ -47,21 +47,9 @@ public:
 	inline QString readableName() const override { return tr("Numerikus válasz"); }
 	inline QString icon() const override { return "image://font/AcademicI/\uf127"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_calculator_qt6.qml";
-#else
-		return "ME_calculator.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_calculator_qt6.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_calculator_qt6.qml"; }
 
-	inline QString qmlQuestion() const override {
-#if QT_VERSION >= 0x060000
-		return "GQ_calculator_qt6.qml";
-#else
-		return "GQ_calculator.qml";
-#endif
-	}
 	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return {"plusminus", "numbers"}; }

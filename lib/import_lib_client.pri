@@ -129,8 +129,6 @@ include(qsyncable.pri)
 
 INCLUDEPATH += $$PWD/miniaudio
 
-lessThan(QT_MAJOR_VERSION, 6): LIBS += -latomic
-
 
 # Tar_to_stream
 

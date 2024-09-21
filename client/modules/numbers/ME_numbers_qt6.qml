@@ -56,6 +56,14 @@ QFormColumn {
 			bindingField: _binding
 
 			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+
+			Keys.onPressed: event => {
+								if (event.matches(StandardKey.Paste)) {
+									if (pasteData())
+									event.accepted = true
+									return
+								}
+							}
 		}
 
 		rightComponent: QFormBindingTextField {
@@ -75,7 +83,41 @@ QFormColumn {
 			saveData: function saveData(d) { return Number(text) }
 
 			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+
+			Keys.onPressed: event => {
+								if (event.matches(StandardKey.Paste)) {
+									if (pasteData())
+									event.accepted = true
+									return
+								}
+							}
 		}
+	}
+
+
+	function pasteData() {
+		let txt = Client.Utils.clipboardText()
+
+		if (!txt || txt === undefined || txt === "") {
+			Client.messageWarning(qsTr("A vágólap tartalma üres vagy érvénytelen"))
+			return false
+		}
+
+		let found = false
+
+		let rows = txt.split("\n")
+
+		for (let i=0; i<rows.length; ++i) {
+			let cols = rows[i].split("\t")
+
+			if (cols.length < 2)
+				continue
+
+			_binding._addItem(cols[0], Number(cols[1]))
+			found = true
+		}
+
+		return found
 	}
 
 

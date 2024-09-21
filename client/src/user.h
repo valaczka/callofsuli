@@ -45,13 +45,9 @@ Q_DECLARE_METATYPE(UserList*)
 class UserPrivate;
 class RpgUserWalletList;
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_RpgUserWalletList
 #define OPAQUE_PTR_RpgUserWalletList
   Q_DECLARE_OPAQUE_POINTER(RpgUserWalletList*)
-#endif
-
 #endif
 
 

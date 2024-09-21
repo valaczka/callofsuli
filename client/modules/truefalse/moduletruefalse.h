@@ -47,20 +47,8 @@ public:
 	inline QString readableName() const override { return tr("Igaz/hamis"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/list-status.svg"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_singlechoice_qt6.qml";
-#else
-		return "ME_singlechoice.qml";
-#endif
-	}
-	inline QString qmlQuestion() const override {
-#if QT_VERSION >= 0x060000
-		return "GQ_singlechoice_qt6.qml";
-#else
-		return "GQ_singlechoice.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_singlechoice_qt6.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_singlechoice_qt6.qml"; }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override { return {"binding", "numbers", "block"}; }

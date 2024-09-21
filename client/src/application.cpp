@@ -73,11 +73,6 @@
 #include <Qaterial/Qaterial.hpp>
 #include <box2dplugin.h>
 
-#if defined(Q_OS_ANDROID) && QT_VERSION < 0x060000
-#include <QtAndroid>
-//#include "AndroidAppender.h"
-#endif
-
 #include "application.h"
 #include "../../version/version.h"
 #include "../modules/staticmodules.h"
@@ -121,10 +116,6 @@ const bool Application::m_debug = true;
 
 void Application::initialize()
 {
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-	QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-#endif
-
 	QCoreApplication::setApplicationName(QStringLiteral("callofsuli"));
 	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli"));
 	QCoreApplication::setApplicationVersion(m_version);
@@ -160,7 +151,7 @@ Application::Application(QApplication *app)
 	QTimer *timer = new QTimer(m_application);
 	timer->setInterval(1000);
 	QObject::connect(timer, &QTimer::timeout, m_application, [](){
-		LOG_CINFO("app") << "USED MEMORY:" << Utils::getCurrentRSS();
+		LOG_CTRACE("app") << "USED MEMORY:" << Utils::getCurrentRSS();
 	});
 	timer->start();
 #endif
@@ -279,11 +270,7 @@ bool Application::loadMainQml()
 			QCoreApplication::exit(-1);
 
 #if defined(Q_OS_ANDROID)
-#if QT_VERSION < 0x060000
-		QtAndroid::hideSplashScreen();
-#else
 		QNativeInterface::QAndroidApplication::hideSplashScreen();
-#endif
 #endif
 	}, Qt::QueuedConnection);
 

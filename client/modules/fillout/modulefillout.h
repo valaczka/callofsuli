@@ -47,20 +47,9 @@ public:
 	inline QString readableName() const override { return tr("Szövegkitöltés"); }
 	inline QString icon() const override { return "image://font/Academic/\uf182"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_fillout_qt6.qml";
-#else
-		return "ME_fillout.qml";
-#endif
-	}
-	inline QString qmlQuestion() const override {
-#if QT_VERSION >= 0x060000
-		return "GQ_fillout_qt6.qml";
-#else
-		return "GQ_fillout.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_fillout_qt6.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_fillout_qt6.qml"; }
+
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
 	inline QStringList storageModules() const override { return {"text", "sequence"}; }

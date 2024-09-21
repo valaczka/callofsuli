@@ -47,13 +47,7 @@ public:
 	inline QString readableName() const override { return tr("Numerikus összerendelés"); }
 	inline QString icon() const override { return "image://font/School/\uf179"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_numbers_qt6.qml";
-#else
-		return "ME_numbers.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_numbers_qt6.qml"; }
 	inline QString qmlQuestion() const override { return QStringLiteral(""); }
 	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
 

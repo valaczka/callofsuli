@@ -1,5 +1,9 @@
 include(common.pri)
 
+lessThan(QT_MAJOR_VERSION, 6): {
+	error(Qt 6 required)
+}
+
 android {
 	_NDK_PATH=$$(ANDROID_NDK_ROOT)
 

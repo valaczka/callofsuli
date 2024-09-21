@@ -47,13 +47,7 @@ public:
 	inline QString readableName() const override { return tr("Képválasztás"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/camera-image.svg"; }
 
-	inline QString qmlEditor() const override {
-#if QT_VERSION >= 0x060000
-		return "ME_images_qt6.qml";
-#else
-		return "ME_images.qml";
-#endif
-	}
+	inline QString qmlEditor() const override { return "ME_images_qt6.qml"; }
 	inline QString qmlQuestion() const override { return QStringLiteral(""); }
 	QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
 

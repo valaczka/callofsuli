@@ -344,11 +344,7 @@ void Updater::githubUpdateCheck(const bool &force)
 	QString platform;
 
 #if defined(Q_OS_WIN)
-	#if QT_VERSION >= 0x060000
-		platform = QStringLiteral("windows");
-	#else
-		platform = QStringLiteral("win7");
-	#endif
+	platform = QStringLiteral("windows");
 #elif defined(Q_OS_IOS)
 	platform = QStringLiteral("ios");
 #elif defined(Q_OS_ANDROID)

@@ -1563,11 +1563,7 @@ void RpgGame::checkEnemyQuests(const int &count)
 	if (found == m_gameDefinition.quests.end())
 		return;
 
-#if QT_VERSION >= 0x060000
 	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
-#else
-	static const QColor color(QStringLiteral("#9C27B0"));
-#endif
 
 	messageColor(tr("%1 killed enemies").arg(found->amount), color);
 
@@ -1607,11 +1603,7 @@ void RpgGame::checkWinnerQuests(const int &count)
 
 	questSuccess(&*found);
 
-#if QT_VERSION >= 0x060000
 	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
-#else
-	static const QColor color(QStringLiteral("#9C27B0"));
-#endif
 
 	messageColor(tr("Winner streak: %1").arg(found->amount), color);
 
@@ -1707,15 +1699,9 @@ void RpgGame::updateScatterPlayers()
 	m_scatterSeriesPlayers->replace(list);
 
 	if (playerIndex != -1) {
-#if QT_VERSION >= 0x060000
 		static const QColor color = QColor::fromString(QStringLiteral("#43A047"));
-#else
-		static const QColor color(QStringLiteral("#43A047"));
-#endif
 
-#if QT_VERSION >= 0x060000
 		m_scatterSeriesPlayers->setPointConfiguration(playerIndex, QXYSeries::PointConfiguration::Color, color);
-#endif
 	}
 
 }

@@ -28,14 +28,7 @@
 #include "Logger.h"
 #include "qdebug.h"
 #include "application.h"
-
-#if QT_VERSION < 0x060000
-#include "qandroidfunctions.h"
-#include "qscreen.h"
-#else
 #include <QtCore/private/qandroidextras_p.h>
-#endif
-
 #include "qurl.h"
 
 
@@ -78,14 +71,9 @@ void openUrl(const std::string &url)
 
 void MobileUtils::vibrate(const int &milliseconds)
 {
-#if QT_VERSION >= 0x060000
 	using QAndroidJniObject = QJniObject;
 	int apiLevel = QNativeInterface::QAndroidApplication::sdkVersion();
 	QAndroidJniObject activity = QNativeInterface::QAndroidApplication::context();
-#else
-	int apiLevel = QtAndroid::androidSdkVersion();
-	QAndroidJniObject activity = QtAndroid::androidActivity();
-#endif
 
 
 	if (!activity.isValid()) {
@@ -144,12 +132,8 @@ void MobileUtils::vibrate(const int &milliseconds)
 
 QString MobileUtils::checkPendingIntents()
 {
-#if QT_VERSION >= 0x060000
 	QJniObject activity = QNativeInterface::QAndroidApplication::context();
 	const QJniObject &uri = activity.callObjectMethod<jstring>("checkPendingIntents");
-#else
-	QAndroidJniObject uri = QtAndroid::androidActivity().callObjectMethod<jstring>("checkPendingIntents");
-#endif
 
 	QString uriStr = uri.toString();
 
@@ -173,12 +157,8 @@ QMarginsF MobileUtils::getSafeMargins()
 	QMarginsF margins;
 	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
 
-#if QT_VERSION >= 0x060000
 	QJniObject activity = QNativeInterface::QAndroidApplication::context();
 	QJniObject rect = activity.callObjectMethod<jobject>("getSafeArea");
-#else
-	QAndroidJniObject rect = QtAndroid::androidActivity().callObjectMethod<jobject>("getSafeArea");
-#endif
 
 	const double left = static_cast<double>(rect.getField<jint>("left"));
 	const double top = static_cast<double>(rect.getField<jint>("top"));

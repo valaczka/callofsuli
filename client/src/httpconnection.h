@@ -42,13 +42,9 @@ class Server;
 class HttpReply;
 
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_Server
 #define OPAQUE_PTR_Server
   Q_DECLARE_OPAQUE_POINTER(Server*)
-#endif
-
 #endif
 
 /**

@@ -222,8 +222,14 @@ GameQuestionComponentImpl {
 
 
 	Keys.onPressed: event => {
-		if (_engine.enabled)
-			_engine.pressKey(event.text)
-	}
+						if (event.matches(StandardKey.Paste)) {
+							console.info("Paste disabled")
+							event.accepted = true
+							return
+						}
+
+						if (_engine.enabled)
+							_engine.pressKey(event.text)
+					}
 }
 

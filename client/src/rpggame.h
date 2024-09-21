@@ -39,12 +39,7 @@
 #include <QScatterSeries>
 
 
-#if QT_VERSION < 0x060000
-using QScatterSeries = QtCharts::QScatterSeries;
-#endif
-
 class RpgQuestion;
-
 
 
 

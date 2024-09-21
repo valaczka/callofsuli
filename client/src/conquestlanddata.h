@@ -44,13 +44,9 @@ Q_DECLARE_METATYPE(ConquestLandDataList*)
 
 class ConquestGame;
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_ConquestGame
 #define OPAQUE_PTR_ConquestGame
   Q_DECLARE_OPAQUE_POINTER(ConquestGame*)
-#endif
-
 #endif
 
 

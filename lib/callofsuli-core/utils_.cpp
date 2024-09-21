@@ -53,13 +53,6 @@ const quint32 Utils::m_versionBuild = VERSION_BUILD;
 #include "mobileutils.h"
 #endif
 
-#ifdef Q_OS_ANDROID
-#if QT_VERSION < 0x060000
-#include <QAndroidJniObject>
-#include "qandroidfunctions.h"
-#endif
-#endif
-
 
 /**
  * @brief Utils::Utils
@@ -415,13 +408,9 @@ QString Utils::standardPath(const QString &path)
 QString Utils::genericDataPath(const QString &path)
 {
 #ifdef Q_OS_ANDROID
-#if QT_VERSION >= 0x060000
 	QJniObject mediaDir = QJniObject::callStaticObjectMethod("android/os/Environment", "getExternalStorageDirectory", "()Ljava/io/File;");
 	QJniObject mediaPath = mediaDir.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
-#else
-	QAndroidJniObject mediaDir = QAndroidJniObject::callStaticObjectMethod("android/os/Environment", "getExternalStorageDirectory", "()Ljava/io/File;");
-	QAndroidJniObject mediaPath = mediaDir.callObjectMethod( "getAbsolutePath", "()Ljava/lang/String;" );
-#endif
+
 	if (!path.isEmpty())
 		return QStringLiteral("file://")+mediaPath.toString()+QStringLiteral("/")+path;
 	else
@@ -645,31 +634,8 @@ void Utils::checkStoragePermissions()
 {
 #ifdef Q_OS_ANDROID
 
-#if QT_VERSION < 0x060000
-	QtAndroid::PermissionResult result1 = QtAndroid::checkPermission("android.permission.READ_EXTERNAL_STORAGE");
-	QtAndroid::PermissionResult result2 = QtAndroid::checkPermission("android.permission.WRITE_EXTERNAL_STORAGE");
-
-	QStringList permissions;
-
-	if (result1 == QtAndroid::PermissionResult::Denied)
-		permissions.append("android.permission.READ_EXTERNAL_STORAGE");
-
-	if (result2 == QtAndroid::PermissionResult::Denied)
-		permissions.append("android.permission.WRITE_EXTERNAL_STORAGE");
-
-	if (!permissions.isEmpty()) {
-		QtAndroid::PermissionResultMap resultHash = QtAndroid::requestPermissionsSync(permissions, 30000);
-
-		QList<QtAndroid::PermissionResult> results = resultHash.values();
-		if (results.isEmpty() || results.contains(QtAndroid::PermissionResult::Denied)) {
-			emit storagePermissionsDenied();
-			return;
-		}
-	}
-#else
 	emit storagePermissionsDenied();
 	return;
-#endif
 #else
 
 #endif
@@ -689,24 +655,6 @@ void Utils::checkMediaPermissions()
 {
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS) || defined (Q_OS_MAC)
 
-#if QT_VERSION < 0x060000 && defined(Q_OS_ANDROID)
-	QtAndroid::PermissionResult result0 = QtAndroid::checkPermission("android.permission.CAMERA");
-
-	QStringList permissions;
-
-	if (result0 == QtAndroid::PermissionResult::Denied)
-		permissions.append("android.permission.CAMERA");
-
-	if (!permissions.isEmpty()) {
-		QtAndroid::PermissionResultMap resultHash = QtAndroid::requestPermissionsSync(permissions, 30000);
-
-		QList<QtAndroid::PermissionResult> results = resultHash.values();
-		if (results.isEmpty() || results.contains(QtAndroid::PermissionResult::Denied)) {
-			emit mediaPermissionsDenied();
-			return;
-		}
-	}
-#elif QT_VERSION >= 0x060000
 	switch (qApp->checkPermission(QCameraPermission{}))
 	{
 	case Qt::PermissionStatus::Undetermined:
@@ -729,8 +677,6 @@ void Utils::checkMediaPermissions()
 
 	return;
 
-
-#endif
 
 #endif
 

@@ -15,17 +15,13 @@ include(../../translations/translations.pri)
 
 DESTDIR = ../..
 
-lessThan(QT_MAJOR_VERSION, 6) {
-	QML_IMPORT_PATH += $$PWD/../qml
-	QMLPATHS += $$PWD/../qml
-} else {
-	QML_IMPORT_PATH += $$PWD/../qml-Qt6
-	QMLPATHS += $$PWD/../qml-Qt6
+QML_IMPORT_PATH += $$PWD/../qml-Qt6
+QMLPATHS += $$PWD/../qml-Qt6
 
-	QT += core5compat
+QT += core5compat
 
-	linux|win32|macx:!android: QT += pdf
-}
+linux|win32|macx:!android: QT += pdf
+
 
 DEFINES += CLIENT_UTILS
 
@@ -98,39 +94,22 @@ android {
 	else:equals(QT_ARCH, x86): androidCodeApi = 300000
 	else:equals(QT_ARCH, x86_64): androidCodeApi = 400000
 
-	lessThan(QT_MAJOR_VERSION, 6) {
-		QT += androidextras
 
-		DISTFILES += \
-			android/res/drawable/splashscreen.xml \
-			android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
+	QT += concurrent
 
-		alist.input = $$PWD/../deploy/AndroidManifest.xml.in
-		alist.output = $$PWD/android/AndroidManifest.xml
+	DISTFILES += \
+		android-Qt6/res/drawable/splashscreen.xml \
+		android-Qt6/src/hu/piarista/vjp/callofsuli/ClientActivity.java
 
-		ANDROID_MIN_SDK_VERSION = 21
-		ANDROID_TARGET_SDK_VERSION = 34
+	alist.input = $$PWD/../deploy/Qt6/AndroidManifest.xml.in
+	alist.output = $$PWD/android-Qt6/AndroidManifest.xml
 
-		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+	ANDROID_MIN_SDK_VERSION = 26
+	ANDROID_TARGET_SDK_VERSION = 34
 
-		androidCodeApi = $$num_add($$androidCodeApi,21000)
-	} else {
-		QT += concurrent
+	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
 
-		DISTFILES += \
-			android-Qt6/res/drawable/splashscreen.xml \
-			android-Qt6/src/hu/piarista/vjp/callofsuli/ClientActivity.java
-
-		alist.input = $$PWD/../deploy/Qt6/AndroidManifest.xml.in
-		alist.output = $$PWD/android-Qt6/AndroidManifest.xml
-
-		ANDROID_MIN_SDK_VERSION = 26
-		ANDROID_TARGET_SDK_VERSION = 34
-
-		ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
-
-		androidCodeApi = $$num_add($$androidCodeApi,26000)
-	}
+	androidCodeApi = $$num_add($$androidCodeApi,26000)
 
 	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)
 
@@ -158,8 +137,7 @@ ios {
 	Q_ENTITLEMENTS.value = $$PWD/../deploy/callofsuli.entitlements
 	QMAKE_MAC_XCODE_SETTINGS += Q_ENTITLEMENTS
 
-	lessThan(QT_MAJOR_VERSION, 6): QMAKE_IOS_DEPLOYMENT_TARGET = 12.0
-	else: QMAKE_IOS_DEPLOYMENT_TARGET = 14.0
+	QMAKE_IOS_DEPLOYMENT_TARGET = 14.0
 
 	QMAKE_APPLE_TARGETED_DEVICE_FAMILY = 1,2
 
@@ -311,15 +289,9 @@ SOURCES += \
 	userloglist.cpp \
 	websocket.cpp
 
-lessThan(QT_MAJOR_VERSION, 6): {
-#	RESOURCES += \
-#		../qml/qml.qrc \
-#		../qml/QaterialHelper.qrc
-} else {
-	RESOURCES += \
-		../qml-Qt6/qml.qrc \
-		../qml-Qt6/QaterialHelper.qrc
-}
+RESOURCES += \
+	../qml-Qt6/qml.qrc \
+	../qml-Qt6/QaterialHelper.qrc
 
 HEADERS += \
 	../../version/version.h \

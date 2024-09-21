@@ -9,13 +9,9 @@
 
 class HttpConnection;
 
-#if QT_VERSION >= 0x060000
-
 #ifndef OPAQUE_PTR_HttpConnection
 #define OPAQUE_PTR_HttpConnection
 Q_DECLARE_OPAQUE_POINTER(HttpConnection*)
-#endif
-
 #endif
 
 

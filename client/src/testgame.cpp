@@ -33,13 +33,9 @@
 #include "server.h"
 #include "utils_.h"
 
-#if QT_VERSION < 0x060000
-const QString TestGame::CheckOK = QStringLiteral("<span class=\"checkOK\">\ue5ca</span>");
-const QString TestGame::CheckFailed = QStringLiteral("<span class=\"checkFail\">\ue5cd</span>");
-#else
+
 const QString TestGame::CheckOK = QStringLiteral("<img src=\"imgdata://check.png\" width=\"30\" align=right valign=top/>");
 const QString TestGame::CheckFailed = QStringLiteral(" ");
-#endif
 
 
 TestGame::TestGame(GameMapMissionLevel *missionLevel, Client *client)
@@ -77,11 +73,7 @@ void TestGame::onPageReady()
 	if (list.isEmpty()) {
 		m_client->messageError(tr("Nem lehet előkészíteni a kérdéseket!"), tr("Nem lehet elindítani a játékot"));
 		pageItem()->setProperty("closeDisabled", QStringLiteral(""));
-#if QT_VERSION < 0x060000
-		pageItem()->setProperty("onPageClose", QVariant::Invalid);
-#else
 		pageItem()->setProperty("onPageClose", QVariant(QMetaType::fromType<QJSValue>()));
-#endif
 		pageItem()->setProperty("closeQuestion", QStringLiteral(""));
 
 		unloadPageItem();
