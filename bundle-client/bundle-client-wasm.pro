@@ -26,7 +26,7 @@ WasmRccFiles += \
 	$$PWD/../resources/internal/img/cos.png \
 	$$PWD/../client/deploy/wasm_resources.json
 
-WasmRccFiles += $$PWD/../client/deploy/Qt6/callofsuli.html
+WasmRccFiles += $$PWD/../client/deploy/callofsuli.html
 
 extralib.commands = $(COPY_FILE) $$shell_path($$WasmRccFiles) $$shell_path($$OUT_PWD/../client/html/) ; $${RCC} -binary $${TARGET_QRC} -o $${TARGET_RCC}
 

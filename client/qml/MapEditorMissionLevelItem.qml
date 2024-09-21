@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import SortFilterProxyModel
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 QPage {
@@ -147,11 +147,12 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Időtartam")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
-				SpinBox {
+				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
-					from: 30
+					from: mission && (mission.modes & GameMap.Rpg) ? 0 : 30
 					to: 600
 					stepSize: 30
 
@@ -184,9 +185,10 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Kezdő HP")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
-				SpinBox {
+				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
 					from: 1
 					to: 10
@@ -201,6 +203,10 @@ QPage {
 					})
 				}
 			}
+
+
+
+
 
 
 
@@ -222,9 +228,10 @@ QPage {
 				Qaterial.LabelBody2 {
 					text: qsTr("Sikeres teljesítés")
 					anchors.verticalCenter: parent.verticalCenter
+					rightPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}
 
-				SpinBox {
+				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
 					from: 10
 					to: 100
@@ -241,6 +248,7 @@ QPage {
 					})
 				}
 			}
+
 
 
 
@@ -285,7 +293,7 @@ QPage {
 							Qaterial.DialogManager.showTextFieldDialog({
 																		   textTitle: qsTr("Feladatcsoport neve"),
 																		   title: qsTr("Új feladatcsoport létrehozása"),
-																		   standardButtons: Dialog.Cancel | Dialog.Ok,
+																		   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 																		   onAccepted: function(_text, _noerror) {
 																			   if (_noerror && _text.length) {
 																				   editor.chapterAdd(_text, missionLevel)
@@ -321,7 +329,7 @@ QPage {
 												editor.missionLevelChapterAdd(missionLevel, l)
 											},
 											title: qsTr("Feladatcsoport hozzáadása"),
-											standardButtons: Dialog.Cancel | Dialog.Ok,
+											standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 											model: _sortedChapterModel
 										})
 						}

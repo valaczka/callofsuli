@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 QPage {
@@ -145,7 +145,7 @@ QPage {
 														   textTitle: qsTr("Csoport neve"),
 														   title: qsTr("Csoport átnevezése"),
 														   text: group.name,
-														   standardButtons: Dialog.Cancel | Dialog.Ok,
+														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
 																   Client.send(HttpConnection.ApiTeacher, "group/%1/update".arg(group.groupid),

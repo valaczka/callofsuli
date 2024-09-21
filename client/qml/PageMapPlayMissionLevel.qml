@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import CallOfSuli 1.0
-import SortFilterProxyModel 0.2
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import CallOfSuli
+import SortFilterProxyModel
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
@@ -298,6 +298,7 @@ QPageGradient {
 			visible: Client.server && Client.server.user && (Client.server.user.roles & Credential.SNI) &&
 					 (_modeGroup.checkedButton.gameMode === GameMap.Lite || _modeGroup.checkedButton.gameMode === GameMap.Test)
 		}
+
 
 		/*Column {				// DEPRECATED
 			id: _extraTimeCol
@@ -638,6 +639,18 @@ QPageGradient {
 			}
 		}
 
+		Qaterial.IconLabel {
+			anchors.left: _inventoryView.left
+			anchors.right: _inventoryView.right
+			visible: _inventoryView.visible
+			font: Qaterial.Style.textTheme.caption
+			icon.source: Qaterial.Icons.informationOutline
+			wrapMode: Text.Wrap
+			text: qsTr("A megszerzett felszerelés bármelyik Sudden Death szinten felhasználható")
+			enabled: false
+			horizontalAlignment: Qt.AlignLeft
+		}
+
 
 
 
@@ -859,7 +872,6 @@ QPageGradient {
 			reloadExtraTimeSwitch()
 		}
 	}
-
 
 	function reloadFinishedData() {
 		_unlockView._forceShow = false

@@ -1,6 +1,6 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
 Qaterial.ModalDialog
@@ -68,7 +68,7 @@ Qaterial.ModalDialog
 	bottomPadding: 1
 	drawSeparator: grid.height < grid.contentHeight
 
-	standardButtons: Dialog.Ok | Dialog.Cancel
+	standardButtons: DialogButtonBox.Ok | DialogButtonBox.Cancel
 	contentItem: GridView {
 		id: grid
 

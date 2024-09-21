@@ -1,10 +1,10 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import SortFilterProxyModel 0.2
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import SortFilterProxyModel
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 Item {
@@ -71,7 +71,7 @@ Item {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Feladatcsoport neve"),
 														   title: qsTr("Új feladatcsoport létrehozása"),
-														   standardButtons: Dialog.Cancel | Dialog.Ok,
+														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length) {
 																   editor.chapterAdd(_text)

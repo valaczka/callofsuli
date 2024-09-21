@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtGraphicalEffects 1.0
-import CallOfSuli 1.0
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qt5Compat.GraphicalEffects
+import CallOfSuli
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
@@ -352,7 +352,7 @@ Page {
 						textColor: _success ? Qaterial.Colors.green500 : Qaterial.Colors.red500,
 						iconFill: false,
 						iconSize: Qaterial.Style.roundIcon.size,
-						standardButtons: Dialog.Ok
+						standardButtons: DialogButtonBox.Ok
 					})
 	}
 

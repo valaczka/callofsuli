@@ -125,7 +125,7 @@ void HttpConnection::setServer(Server *newServer)
 	m_server = newServer;
 	emit serverChanged();
 
-	if (!m_server)
+	if (!m_server && m_webSocket)
 		m_webSocket->close();
 }
 

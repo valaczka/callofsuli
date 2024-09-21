@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
-import SortFilterProxyModel 0.2
+import CallOfSuli
+import SortFilterProxyModel
 import "JScript.js" as JS
 
 QPage {
@@ -380,7 +380,7 @@ QPage {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Csoport neve"),
 														   title: qsTr("Új csoport létrehozása"),
-														   standardButtons: Dialog.Cancel | Dialog.Ok,
+														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
 																   Client.send(HttpConnection.ApiTeacher, "group/create", { name: _text })

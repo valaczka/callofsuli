@@ -15,8 +15,8 @@ include(../../translations/translations.pri)
 
 DESTDIR = ../..
 
-QML_IMPORT_PATH += $$PWD/../qml-Qt6
-QMLPATHS += $$PWD/../qml-Qt6
+QML_IMPORT_PATH += $$PWD/../qml
+QMLPATHS += $$PWD/../qml
 
 QT += core5compat
 
@@ -98,16 +98,16 @@ android {
 	QT += concurrent
 
 	DISTFILES += \
-		android-Qt6/res/drawable/splashscreen.xml \
-		android-Qt6/src/hu/piarista/vjp/callofsuli/ClientActivity.java
+		android/res/drawable/splashscreen.xml \
+		android/src/hu/piarista/vjp/callofsuli/ClientActivity.java
 
-	alist.input = $$PWD/../deploy/Qt6/AndroidManifest.xml.in
-	alist.output = $$PWD/android-Qt6/AndroidManifest.xml
+	alist.input = $$PWD/../deploy/AndroidManifest.xml.in
+	alist.output = $$PWD/android/AndroidManifest.xml
 
 	ANDROID_MIN_SDK_VERSION = 26
 	ANDROID_TARGET_SDK_VERSION = 34
 
-	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android-Qt6
+	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 	androidCodeApi = $$num_add($$androidCodeApi,26000)
 
@@ -290,8 +290,8 @@ SOURCES += \
 	websocket.cpp
 
 RESOURCES += \
-	../qml-Qt6/qml.qrc \
-	../qml-Qt6/QaterialHelper.qrc
+	../qml/qml.qrc \
+	../qml/QaterialHelper.qrc
 
 HEADERS += \
 	../../version/version.h \

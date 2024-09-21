@@ -33,6 +33,7 @@
         <file>MapPlayMissionLevelCard.qml</file>
         <file>../root_CallOfSuli_CA.crt</file>
         <file>PageWebView.qml</file>
+        <file>+emscripten/PageStart.qml</file>
         <file>QButton.qml</file>
         <file>QListView.qml</file>
         <file>QItemDelegate.qml</file>
@@ -63,6 +64,7 @@
         <file>AdminUserList.qml</file>
         <file>AdminUserEdit.qml</file>
         <file>PageTeacherGroup.qml</file>
+        <file>+emscripten/MainStackView.qml</file>
         <file>TeacherGroupMemberList.qml</file>
         <file>PageTeacherGroupEdit.qml</file>
         <file>QColoredItemDelegate.qml</file>

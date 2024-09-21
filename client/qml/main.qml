@@ -1,19 +1,18 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Window 2.15
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Window
 import Box2D 2.0
-import Qaterial 1.0 as Qaterial
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
 
 // ----- For QtDeployer
 
-import Qt.labs.folderlistmodel 2.15
-import Qt.labs.platform 1.1
-import Qt.labs.settings 1.1
-import Qt.labs.calendar 1.0
-import Qt.labs.qmlmodels 1.0
+import Qt.labs.folderlistmodel
+import Qt.labs.platform
+import Qt.labs.settings
+import Qt.labs.qmlmodels
 
 // -----
 
@@ -28,10 +27,11 @@ Qaterial.ApplicationWindow
 	minimumWidth: 320
 	minimumHeight: 240
 
-    color: "black"
+	color: "black"
 
 	property bool _completed: false
 	readonly property bool _allLoaded: mainStackView._loaded && _completed
+
 
 	MainStackView {
 		id: mainStackView
@@ -98,16 +98,11 @@ Qaterial.ApplicationWindow
 	property Action actionFullScreen: Action {
 		shortcut: "Ctrl+F11"
 		text: qsTr("Teljes képernyő")
-		icon.source: mainWindow.visibility === Window.FullScreen ? Qaterial.Icons.fullscreenExit : Qaterial.Icons.fullscreen
-		checked: mainWindow.visibility === Window.FullScreen
+		icon.source: Client.fullScreenHelper ? Qaterial.Icons.fullscreenExit : Qaterial.Icons.fullscreen
+		checked: Client.fullScreenHelper
 		checkable: true
 
-		onTriggered: {
-			if (checked)
-				mainWindow.showFullScreen()
-			else
-				mainWindow.showMaximized()
-		}
+		onTriggered: Client.fullScreenHelper = checked
 	}
 
 	Connections {
@@ -156,7 +151,7 @@ Qaterial.ApplicationWindow
 												  textColor: Qaterial.Colors.green500,
 												  iconFill: false,
 												  iconSize: Qaterial.Style.roundIcon.size,
-												  standardButtons: Dialog.Cancel | Dialog.Ok,
+												  standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 												  text: qsTr("Sikeres frissítés, zárd be az alkalmazást"),
 												  title: qsTr("Applikáció frissítve"),
 												  onAccepted: function() {
@@ -214,7 +209,7 @@ Qaterial.ApplicationWindow
 												  textColor: Qaterial.Colors.green500,
 												  iconFill: false,
 												  iconSize: Qaterial.Style.roundIcon.size,
-												  standardButtons: Dialog.Cancel | Dialog.Ok,
+												  standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 												  text: qsTr("A telepítő elindult, zárd be az alkalmazást"),
 												  title: qsTr("Frissítés telepítése"),
 												  onAccepted: function() {
@@ -282,7 +277,7 @@ Qaterial.ApplicationWindow
 
 	}
 
-	onClosing: {
+	onClosing: close => {
 		if (Client.closeWindow()) {
 			if (mainStackView.currentItem.onPageClose) {
 				console.info(qsTr("Lap bezárási funkció meghívása:"), mainStackView.currentItem)
@@ -318,7 +313,7 @@ Qaterial.ApplicationWindow
 						textColor: _color,
 						iconFill: false,
 						iconSize: Qaterial.Style.roundIcon.size,
-						standardButtons: Dialog.Ok
+						standardButtons: DialogButtonBox.Ok
 					})
 	}
 
@@ -340,7 +335,7 @@ Qaterial.ApplicationWindow
 						textColor: Qaterial.Colors.orange500,
 						iconFill: false,
 						iconSize: Qaterial.Style.roundIcon.size,
-						standardButtons: Dialog.No | Dialog.Yes
+						standardButtons: DialogButtonBox.No | DialogButtonBox.Yes
 					})
 	}
 

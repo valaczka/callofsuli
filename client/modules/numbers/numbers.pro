@@ -13,4 +13,4 @@ HEADERS += \
 	modulenumbers.h
 
 RESOURCES += \
-	qml_numbers_qt$${QT_MAJOR_VERSION}.qrc
+	qml_numbers.qrc

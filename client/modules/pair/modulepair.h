@@ -47,8 +47,8 @@ public:
 	inline QString readableName() const override { return tr("Párosítás"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/vector-link.svg"; }
 
-	inline QString qmlEditor() const override { return "ME_pair_qt6.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_pair_qt6.qml"; }
+	inline QString qmlEditor() const override { return "ME_pair.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_pair.qml"; }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 

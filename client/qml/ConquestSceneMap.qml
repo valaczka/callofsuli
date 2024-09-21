@@ -1,11 +1,11 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qt5Compat.GraphicalEffects
+import SortFilterProxyModel
+import Qt.labs.animation
+import CallOfSuli
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
-import SortFilterProxyModel 0.2
-import QtGraphicalEffects 1.15
-import Qt.labs.animation 1.0
 
 
 Item {

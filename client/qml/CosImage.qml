@@ -1,6 +1,6 @@
-import QtQuick 2.7
-import QtGraphicalEffects 1.0
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import Qt5Compat.GraphicalEffects
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
 Item {

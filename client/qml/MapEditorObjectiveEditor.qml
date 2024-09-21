@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import SortFilterProxyModel
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 QPage {

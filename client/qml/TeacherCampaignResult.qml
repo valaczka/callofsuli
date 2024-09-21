@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
-import SortFilterProxyModel 0.2
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
+import SortFilterProxyModel
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 
@@ -155,7 +155,7 @@ QTableView {
 		hoverEnabled: true
 		acceptedButtons: Qt.LeftButton | Qt.RightButton
 
-		onClicked: {
+		onClicked: mouse => {
 			if (mouse.button == Qt.RightButton) {
 				_contextMenu.currentUser = _model.userAt(row-1)
 				_contextMenu.open()
@@ -395,7 +395,7 @@ QTableView {
 
 							},
 							title: qsTr("Hadjárat megismétlése a kapott jegyek szerint"),
-							standardButtons: Dialog.Cancel | Dialog.Ok,
+							standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 							model: _sortedGradeList
 						})
 		}

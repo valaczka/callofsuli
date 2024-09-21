@@ -1,10 +1,10 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
-import QtCharts 2.15
+import QtCharts
 
 ChartView {
 	id: _chart

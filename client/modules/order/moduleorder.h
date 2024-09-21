@@ -47,8 +47,8 @@ public:
 	inline QString readableName() const override { return tr("Sorbarendezés"); }
 	inline QString icon() const override { return "image://font/AcademicI/\uf145"; }
 
-	inline QString qmlEditor() const override { return "ME_order_qt6.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_order_qt6.qml"; }
+	inline QString qmlEditor() const override { return "ME_order.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_order.qml"; }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 

@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import CallOfSuli 1.0
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import CallOfSuli
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
 
@@ -222,8 +222,14 @@ GameQuestionComponentImpl {
 
 
 	Keys.onPressed: event => {
-		if (_engine.enabled)
-			_engine.pressKey(event.text)
-	}
+						if (event.matches(StandardKey.Paste)) {
+							console.info("Paste disabled")
+							event.accepted = true
+							return
+						}
+
+						if (_engine.enabled)
+							_engine.pressKey(event.text)
+					}
 }
 

@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 
 QScrollable
 {
@@ -56,7 +56,6 @@ QScrollable
 		color: Client.Utils.colorSetAlpha("black", 0.7)
 
 
-
 		Column {
 			width: parent.width-2*spacing
 			anchors.horizontalCenter: parent.horizontalCenter
@@ -94,7 +93,10 @@ QScrollable
 				anchors.horizontalCenter: parent.horizontalCenter
 				text: qsTr("Bejelentkezés jelszóval")
 
-				onClicked: _loginFields.visible = true
+				onClicked: {
+					_loginFields.visible = true
+					_user.forceActiveFocus()
+				}
 			}
 
 			QFormColumn {
@@ -109,6 +111,7 @@ QScrollable
 					title: qsTr("Felhasználónév")
 					onAccepted: _password.forceActiveFocus()
 					text: Client.server && Client.server.user && Client.server.user.oauth == "" ? Client.server.user.username : ""
+					inputMethodHints: Qt.ImhNoPredictiveText
 				}
 
 				QFormTextField {

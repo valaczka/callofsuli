@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import Qt.labs.qmlmodels 1.0
-import CallOfSuli 1.0
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Qt.labs.qmlmodels
+import CallOfSuli
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
 GameQuestionComponentImpl {
@@ -37,6 +37,7 @@ GameQuestionComponentImpl {
 			Layout.fillWidth: true
 			Layout.fillHeight: true
 
+			gameQuestion: control.question
 			buttons: false
 			buttonOkEnabled: false
 

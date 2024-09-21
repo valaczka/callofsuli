@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 QFormColumn {
@@ -27,6 +27,7 @@ QFormColumn {
 		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni a hitelesítő kódot")
 		leadingIconSource: Qaterial.Icons.keyOutline
+		inputMethodHints: Qt.ImhSensitiveData
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{
 			Qaterial.TextFieldAlertIcon {  }
@@ -68,6 +69,7 @@ QFormColumn {
 		visible: _radioPlain.checked
 		validator: RegularExpressionValidator { regularExpression: /.+/ }
 		errorText: qsTr("Meg kell adni egy felhasználónevet")
+		inputMethodHints: Qt.ImhNoPredictiveText
 		//leadingIconSource: Qaterial.Icons.remoteDesktop
 		trailingContent: Qaterial.TextFieldButtonContainer
 		{

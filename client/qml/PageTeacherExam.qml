@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import SortFilterProxyModel
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 QPage {
@@ -77,13 +77,6 @@ QPage {
 		sorters: [
 			StringSorter {
 				roleName: "fullName"
-			}
-		]
-
-		proxyRoles: [	// FIX: wasm
-			ExpressionRole {
-				name: "fullNamePending"
-				expression: model.fullName + (model.pendingCorrection.length ? qsTr("*") : "")
 			}
 		]
 	}
@@ -552,7 +545,7 @@ QPage {
 
 				textColor: pendingCorrection.length || pendingGrade ? Qaterial.Style.accentColor : iconColorBase
 
-				text: fullNamePending
+				text: fullName + (pendingCorrection.length ? qsTr("*") : "")
 
 				rightSourceComponent: Row {
 					Column {
@@ -809,7 +802,7 @@ QPage {
 
 	Action {
 		id: _actionGrading
-		icon.source: Qaterial.Icons.fileLock
+		icon.source: Qaterial.Icons.playBoxLockOutline
 
 		text: qsTr("Dolgozatírás befejezése")
 		enabled: exam && exam.state == Exam.Active
@@ -831,7 +824,7 @@ QPage {
 
 	Action {
 		id: _actionFinish
-		icon.source: Qaterial.Icons.playBoxLockOutline
+		icon.source: Qaterial.Icons.accountMultipleCheck
 
 		text: qsTr("Visszaadás")
 		enabled: exam && exam.state < Exam.Finished

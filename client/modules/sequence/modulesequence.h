@@ -47,7 +47,7 @@ public:
 	inline QString readableName() const override { return tr("Sorozat"); }
 	inline QString icon() const override { return "image://font/AcademicI/\uf100"; }
 
-	inline QString qmlEditor() const override { return "ME_sequence_qt6.qml"; }
+	inline QString qmlEditor() const override { return "ME_sequence.qml"; }
 	inline QString qmlQuestion() const override { return QStringLiteral(""); }
 	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
 

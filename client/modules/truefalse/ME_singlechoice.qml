@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 
@@ -135,7 +135,7 @@ QFormColumn {
 		id: _questionBlock
 		title: qsTr("Kérdés")
 		placeholderText: qsTr("Ez a kérdés fog megjelenni")
-		helperText: qsTr("A \%1 jelöli az elemnek, a \%2 a blokk nevének a helyét")
+		helperText: qsTr("A \%1 jelöli az elemnek, a \%2 a halmaz nevének a helyét")
 		text: qsTr("A(z) %1 a(z) %2 része")
 		field: "question"
 		width: parent.width

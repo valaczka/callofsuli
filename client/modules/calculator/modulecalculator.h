@@ -47,8 +47,8 @@ public:
 	inline QString readableName() const override { return tr("Numerikus válasz"); }
 	inline QString icon() const override { return "image://font/AcademicI/\uf127"; }
 
-	inline QString qmlEditor() const override { return "ME_calculator_qt6.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_calculator_qt6.qml"; }
+	inline QString qmlEditor() const override { return "ME_calculator.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_calculator.qml"; }
 
 	QString testResult(const QVariantMap &, const QVariantMap &answer, const bool &success) const override;
 

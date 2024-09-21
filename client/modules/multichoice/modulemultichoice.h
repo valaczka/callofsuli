@@ -47,8 +47,8 @@ public:
 	inline QString readableName() const override { return tr("Többszörös választás"); }
 	inline QString icon() const override { return "image://font/Academic/\uf155"; }
 
-	inline QString qmlEditor() const override { return "ME_multichoice_qt6.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_multichoice_qt6.qml"; }
+	inline QString qmlEditor() const override { return "ME_multichoice.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_multichoice.qml"; }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 

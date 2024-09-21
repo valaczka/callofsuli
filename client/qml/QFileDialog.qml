@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Layouts 1.15
-import Qt.labs.folderlistmodel 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Qt.labs.folderlistmodel
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
 Qaterial.ModalDialog
@@ -220,9 +220,9 @@ Qaterial.ModalDialog
 
 	}
 
-	standardButtons: itemNoPermissions.visible ? Dialog.Close :
-												 control.isDirectorySelect ? Dialog.Ok | Dialog.Cancel :
-												 isSave ? Dialog.Save | Dialog.Cancel : Dialog.Cancel
+	standardButtons: itemNoPermissions.visible ? DialogButtonBox.Close :
+												 control.isDirectorySelect ? DialogButtonBox.Ok | DialogButtonBox.Cancel :
+												 isSave ? DialogButtonBox.Save | DialogButtonBox.Cancel : DialogButtonBox.Cancel
 
 	Component.onCompleted: {
 		Client.Utils.checkStoragePermissions()

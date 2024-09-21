@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import SortFilterProxyModel
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 QPage {
@@ -176,7 +176,7 @@ QPage {
 			Qaterial.DialogManager.showTextFieldDialog({
 														   textTitle: qsTr("Pálya neve"),
 														   title: qsTr("Új pálya létrehozása"),
-														   standardButtons: Dialog.Cancel | Dialog.Ok,
+														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
 																   handler.mapCreate(_text)
@@ -226,7 +226,7 @@ QPage {
 														   textTitle: qsTr("Pálya neve"),
 														   title: qsTr("Pálya átnevezése"),
 														   text: o.name,
-														   standardButtons: Dialog.Cancel | Dialog.Ok,
+														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
 														   onAccepted: function(_text, _noerror) {
 															   if (_noerror && _text.length)
 																   Client.send(HttpConnection.ApiTeacher, "map/%1/update".arg(o.uuid), {

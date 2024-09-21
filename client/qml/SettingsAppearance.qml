@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 Column {
@@ -46,7 +46,7 @@ Column {
 	Qaterial.SwitchButton {
 		anchors.horizontalCenter: parent.horizontalCenter
 		action: Client.mainWindow.actionFullScreen
-		visible: Qt.platform.os == "osx" || Qt.platform.os == "windows" || Qt.platform.os == "linux"
+		visible: Qt.platform.os == "osx" || Qt.platform.os == "windows" || Qt.platform.os == "linux" || Qt.platform.os == "wasm"
 	}
 
 	QButton {

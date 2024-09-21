@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 import "JScript.js" as JS
 
 QPage {
@@ -363,7 +363,7 @@ QPage {
 						textColor: Qaterial.Colors.orange500,
 						iconFill: false,
 						iconSize: Qaterial.Style.roundIcon.size,
-						standardButtons: Dialog.No | Dialog.Yes | Dialog.Cancel
+						standardButtons: DialogButtonBox.No | DialogButtonBox.Yes | DialogButtonBox.Cancel
 					})
 	}
 

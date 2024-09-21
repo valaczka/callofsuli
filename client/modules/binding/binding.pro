@@ -13,4 +13,4 @@ HEADERS += \
 	modulebinding.h
 
 RESOURCES += \
-	qml_binding_qt$${QT_MAJOR_VERSION}.qrc
+	qml_binding.qrc

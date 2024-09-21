@@ -13,4 +13,4 @@ HEADERS += \
 	moduletext.h
 
 RESOURCES += \
-	qml_text_qt$${QT_MAJOR_VERSION}.qrc
+	qml_text.qrc

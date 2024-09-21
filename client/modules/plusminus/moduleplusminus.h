@@ -47,7 +47,7 @@ public:
 	inline QString readableName() const override { return tr("Összeadás-kivonás"); }
 	inline QString icon() const override { return "image://font/Special Elite/\u00b1"; }
 
-	inline QString qmlEditor() const override { return "ME_plusminus_qt6.qml"; }
+	inline QString qmlEditor() const override { return "ME_plusminus.qml"; }
 	inline QString qmlQuestion() const override { return QStringLiteral(""); }
 	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
 

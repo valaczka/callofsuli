@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
+import CallOfSuli
 
 Qaterial.ItemDelegate {
 	id: control
@@ -82,7 +82,7 @@ Qaterial.ItemDelegate {
 		anchors.fill: parent
 		acceptedButtons: Qt.LeftButton
 		enabled: _view && _view.selectEnabled
-		onClicked: {
+		onClicked: mouse => {
 			if (mouse.modifiers & Qt.ShiftModifier) {
 				var i1 = Math.min(Math.max(_view.currentIndex,0), index)
 				var i2 = Math.max(Math.max(_view.currentIndex,0), index)

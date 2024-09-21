@@ -13,4 +13,4 @@ HEADERS += \
 	moduletruefalse.h
 
 RESOURCES += \
-	qml_truefalse_qt$${QT_MAJOR_VERSION}.qrc
+	qml_truefalse.qrc

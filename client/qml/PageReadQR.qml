@@ -1,10 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtGraphicalEffects 1.0
-import QtMultimedia 5.15
-import QZXing 3.3
-import CallOfSuli 1.0
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import Qt5Compat.GraphicalEffects
+import QtMultimedia
+import CallOfSuli
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
 QPage {
@@ -18,28 +17,28 @@ QPage {
 
 	signal tagFound(string tag)
 
-	Camera
+	/*Camera
 	{
-		id:camera
+		id: camera
 
-		focus {
-			focusMode: CameraFocus.FocusContinuous
-			focusPointMode: CameraFocus.FocusPointCenter
+		active: true
+		focusMode: Camera.FocusModeAutoNear
+	}*/
+
+	/*CaptureSession {
+		camera: camera
+		videoOutput: videoOutput
+
+		imageCapture: ImageCapture {
+			id: imageCapture
 		}
-	}
+	}*/
 
 	VideoOutput
 	{
 		id: videoOutput
-		source: camera
-		/*anchors.top: hdr.bottom
-		   anchors.bottom: parent.bottom
-		   anchors.left: parent.left
-		   anchors.right: parent.right*/
+
 		anchors.fill: parent
-		autoOrientation: true
-		fillMode: VideoOutput.Stretch
-		filters: [ zxingFilter ]
 
 		property double captureRectStartFactorX: 0.1
 		property double captureRectStartFactorY: 0.1
@@ -48,7 +47,7 @@ QPage {
 
 
 		focus: visible
-		//fillMode: VideoOutput.PreserveAspectCrop
+		fillMode: VideoOutput.PreserveAspectCrop
 
 		Rectangle {
 			id: blackRect
@@ -78,35 +77,54 @@ QPage {
 			invert: true
 			opacity: 0.5
 		}
+
+		/*Component.onCompleted: {
+			camera.active = false
+			camera.active = true
+			scanner.setProcessing(true)
+		}*/
 	}
 
-	QZXingFilter
-	{
-		id: zxingFilter
-		orientation: videoOutput.orientation
-		captureRect: {
-			videoOutput.sourceRect;
-			var r = Qt.rect(videoOutput.sourceRect.width * videoOutput.captureRectStartFactorX,
-							videoOutput.sourceRect.height * videoOutput.captureRectStartFactorY,
-							videoOutput.sourceRect.width * videoOutput.captureRectFactorWidth,
-							videoOutput.sourceRect.height * videoOutput.captureRectFactorHeight)
-			return r;
-		}
+	SBarcodeScanner {
+		id: scanner
 
-		decoder {
-			enabledDecoders: QZXing.DecoderFormat_QR_CODE
+		videoSink: videoOutput.videoSink
+		captureRect: Qt.rect(videoOutput.width * videoOutput.captureRectStartFactorX,
+							videoOutput.height * videoOutput.captureRectStartFactorY,
+							videoOutput.width * videoOutput.captureRectFactorWidth,
+							videoOutput.height * videoOutput.captureRectFactorHeight)
 
-			onTagFound: {
-				if (!captureEnabled)
-					return
+		onCaptureRectChanged: console.debug("-------", scanner.captureRect)
 
-				console.debug("QR: "+tag);
 
-				tagFound(tag)
-			}
 
-			tryHarder: false
-		}
+		onCameraAvailableChanged: console.debug("***", cameraAvailable)
+		onErrorDescriptionChanged: console.error("!!!", errorDescription)
+
+		onCapturedChanged: {
+							   //if (!captureEnabled)
+							   //return
+
+							   console.debug("QR: "+captured);
+
+							   tagFound(captured)
+
+							   //imageCapture.capture()
+						   }
+
+	}
+
+	Image {
+		anchors.left: parent.left
+		anchors.bottom: parent.bottom
+		width: parent.width*0.25
+		height: parent.height*0.25
+		//source: imageCapture.preview
+	}
+
+	Component.onCompleted: {
+		console.debug("1***", scanner.cameraAvailable)
+		console.error("1!!!", scanner.errorDescription)
 	}
 
 }

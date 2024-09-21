@@ -13,4 +13,4 @@ HEADERS += \
 	modulesequence.h
 
 RESOURCES += \
-	qml_sequence_qt$${QT_MAJOR_VERSION}.qrc
+	qml_sequence.qrc

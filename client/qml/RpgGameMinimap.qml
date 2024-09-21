@@ -1,9 +1,9 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtGraphicalEffects 1.0
-import QtCharts 2.15
-import CallOfSuli 1.0
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import CallOfSuli
+import Qt5Compat.GraphicalEffects
+import QtCharts
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 

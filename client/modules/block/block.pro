@@ -13,4 +13,4 @@ HEADERS += \
 	moduleblock.h
 
 RESOURCES += \
-	qml_block_qt$${QT_MAJOR_VERSION}.qrc
+	qml_block.qrc

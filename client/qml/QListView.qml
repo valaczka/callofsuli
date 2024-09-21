@@ -1,7 +1,7 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import QtQuick.Controls.Material 2.12
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Controls.Material
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
 ListView {
@@ -82,7 +82,7 @@ ListView {
 		id: areaRightButton
 		anchors.fill: parent
 		acceptedButtons: Qt.RightButton
-		onClicked: {
+		onClicked: mouse => {
 			// Ha van header, akkor nem jó indexet ad vissza. +originY korrekció kell, de csak oda
 			view.rightClickOrPressAndHold(view.indexAt(mouse.x, mouse.y+view.originY+view.contentY), mouse.x, mouse.y)
 		}

@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import SortFilterProxyModel 0.2
-import CallOfSuli 1.0
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import SortFilterProxyModel
+import CallOfSuli
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
 
@@ -285,13 +285,13 @@ QPageGradient {
 							spacing: 5 * Qaterial.Style.pixelSizeRatio
 							width: parent.width
 
-							property string text: modelData.text
-							property font font: modelData.font
-							property string value: modelData.value
-							property string icon: modelData.icon
-							property color color: modelData.color
-							property string image: modelData.image
-							property int imageSize: modelData.imageSize
+							required property string text
+							required property font font
+							required property string value
+							required property string icon
+							required property color color
+							required property string image
+							required property int imageSize
 
 							Qaterial.IconLabel {
 								id: _icon
@@ -380,7 +380,7 @@ QPageGradient {
 					}
 
 					list.push({
-								  icon: Qaterial.Icons.abacus,
+								  icon: Qaterial.Icons.gaugeFull,
 								  text: qsTr("Limit:"),
 								  font: Qaterial.Style.textTheme.body2,
 								  value: _currentWallet.market.num + t,

@@ -19,4 +19,4 @@ HEADERS += \
 	writerengine.h
 
 RESOURCES += \
-	qml_writer_qt$${QT_MAJOR_VERSION}.qrc
+	qml_writer.qrc

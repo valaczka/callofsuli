@@ -13,4 +13,4 @@ HEADERS += \
 	modulesimplechoice.h
 
 RESOURCES += \
-	qml_simplechoice_qt$${QT_MAJOR_VERSION}.qrc
+	qml_simplechoice.qrc

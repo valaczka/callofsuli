@@ -1,8 +1,8 @@
-import QtQuick 2.15
-import QtQuick.Controls 2.15
-import Qaterial 1.0 as Qaterial
+import QtQuick
+import QtQuick.Controls
+import CallOfSuli
+import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import CallOfSuli 1.0
 
 Rectangle {
 	id: root
@@ -36,8 +36,8 @@ Rectangle {
 		}
 
 		ConquestFortress {
-			width: 250
-			height: 250
+			width: 300
+			height: 300
 
 			anchors.verticalCenter: parent.verticalCenter
 

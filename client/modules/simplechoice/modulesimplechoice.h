@@ -47,8 +47,8 @@ public:
 	inline QString readableName() const override { return tr("Egyszerű választás"); }
 	inline QString icon() const override { return "qrc:/Qaterial/Icons/checkbox-multiple-marked-outline.svg"; }
 
-	inline QString qmlEditor() const override { return "ME_simplechoice_qt6.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_simplechoice_qt6.qml"; }
+	inline QString qmlEditor() const override { return "ME_simplechoice.qml"; }
+	inline QString qmlQuestion() const override { return "GQ_simplechoice.qml"; }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
