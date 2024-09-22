@@ -6,8 +6,11 @@ Item {
 
 	property bool extendedSize: false
 
-	width: extendedSize ? size*3 : size*1.3
-	height: extendedSize ? size*3 : size*1.3
+	width: Math.min(extendedSize ? size*3 : size*1.3,
+					maxWidth > 0 ? maxWidth : parent.width)
+
+	height: Math.min(extendedSize ? size*3 : size*1.3,
+					 maxHeight > 0 ? maxHeight : parent.height)
 
 	property real size: 120 * Qaterial.Style.pixelSizeRatio
 	property real thumbSize: 40 * Qaterial.Style.pixelSizeRatio
@@ -17,6 +20,9 @@ Item {
 	property real currentAngle: 0.0
 	property real currentDistance: 0.0
 	property bool hasTouch: false
+
+	property real maxHeight: 0
+	property real maxWidth: 0
 
 	readonly property real _circleRadius: (size-thumbSize)/2
 	readonly property real _innerHPadding: (width-size)/2
@@ -155,8 +161,14 @@ Item {
 			return
 
 		if (distance > 1.3) {
-			_translate.dstX = root.x + _translate.x + (distance-1.1) * _circleRadius * Math.cos(angle)
-			_translate.dstY = root.y + _translate.y - (distance-1.1) * _circleRadius * Math.sin(angle)
+			_translate.dstX = Math.min(
+						root.x + _translate.x + (distance-1.1) * _circleRadius * Math.cos(angle),
+						(maxWidth > 0 ? maxWidth : root.parent.width) - root.width/2
+						)
+			_translate.dstY = Math.max(
+						root.parent.height - maxHeight - root.height/2,
+						_translate.dstY = root.y + _translate.y - (distance-1.1) * _circleRadius * Math.sin(angle)
+						)
 		}
 
 		currentX = dx
@@ -175,10 +187,9 @@ Item {
 	function reset() {
 		_behaviorX.enabled = false
 		_behaviorY.enabled = false
-		_translate.y = x - _innerHPadding
-		_translate.x = y + _innerVPadding
 		_translate.dstX = x - _innerHPadding
 		_translate.dstY = y + _innerVPadding
+		_timer.triggered()
 		_behaviorX.enabled = true
 		_behaviorY.enabled = true
 	}

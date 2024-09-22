@@ -10,6 +10,7 @@ Qaterial.Card {
 
 	property bool locked: false
 	property bool selected: false
+	property bool disabled: false
 	property int bulletCount: -1
 	property alias image: _image.source
 	property alias text: _label.text
@@ -30,7 +31,7 @@ Qaterial.Card {
 		target: control
 		property: "backgroundColor"
 		value: Qaterial.Colors.cyan700
-		when: selected && !locked
+		when: selected && !locked && !disabled
 	}
 
 	borderColor: "transparent"
@@ -76,7 +77,7 @@ Qaterial.Card {
 			height: Math.min(parent.height, sourceSize.height)
 			anchors.centerIn: parent
 
-			visible: !locked
+			visible: !locked && !disabled
 
 			opacity: selected ? 1.0 : 0.7
 
@@ -88,7 +89,7 @@ Qaterial.Card {
 		Desaturate {
 			id: _saturate
 
-			visible: locked
+			visible: locked || disabled
 
 			anchors.fill: _image
 			source: _image
@@ -193,6 +194,15 @@ Qaterial.Card {
 									 control.enabled ? Qaterial.Style.dividersColor() :
 													   Qaterial.Style.disabledDividersColor()
 			visible: !locked
+		}
+
+
+		Qaterial.Icon {
+			anchors.centerIn: parent
+			icon: Qaterial.Icons.close
+			visible: control.disabled && !locked
+			size: parent.height*0.7
+			color: Qaterial.Colors.red600
 		}
 
 		MouseArea {

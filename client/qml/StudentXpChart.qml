@@ -107,7 +107,7 @@ ChartView {
 			if (Number(d.diff) > diff)
 				diff = Number(d.diff)
 
-			if (Number(d.xp) > _yAxis.max)
+			if (Number(d.diff) < 31 && Number(d.xp) > _yAxis.max)
 				_yAxis.max = Number(d.xp)
 		}
 

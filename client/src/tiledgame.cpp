@@ -58,6 +58,7 @@ TiledGame::TiledGame(QQuickItem *parent)
 
 	setMouseNavigation(Utils::settingsGet(QStringLiteral("game/mouseNavigation"), defValue).toBool());
 	setMouseAttack(Utils::settingsGet(QStringLiteral("game/mouseAttack"), false).toBool());
+	setFlickableInteractive(Utils::settingsGet(QStringLiteral("game/flickableInteractive"), true).toBool());
 
 	connect(this, &TiledGame::activeFocusChanged, this, [this](const bool &focus){
 		if (!focus) {
@@ -939,6 +940,19 @@ void TiledGame::updateKeyboardJoystick()
 							  Q_ARG(QVariant, dx),
 							  Q_ARG(QVariant, dy)
 							  );
+}
+
+bool TiledGame::flickableInteractive() const
+{
+	return m_flickableInteractive;
+}
+
+void TiledGame::setFlickableInteractive(bool newFlickableInteractive)
+{
+	if (m_flickableInteractive == newFlickableInteractive)
+		return;
+	m_flickableInteractive = newFlickableInteractive;
+	emit flickableInteractiveChanged();
 }
 
 

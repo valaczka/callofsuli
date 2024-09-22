@@ -27,6 +27,7 @@
 #include "rpgarrow.h"
 #include "rpgcontrolgroupcontainer.h"
 #include "rpgcontrolgroupoverlay.h"
+#include "rpgcontrolgroupsave.h"
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
 #include "rpggame.h"
@@ -1709,6 +1710,43 @@ void RpgGame::updateScatterPlayers()
 
 
 /**
+ * @brief RpgGame::updateScatterPoints
+ */
+
+void RpgGame::updateScatterPoints()
+{
+	if (!m_scatterSeriesPoints)
+		return;
+
+	QList<QPointF> list;
+
+	for (const auto &ptr : m_controlGroups) {
+		if (!ptr)
+			continue;
+
+		RpgControlGroup *g = ptr.get();
+
+		if (g->type() == RpgControlGroup::ControlGroupSave) {
+			RpgControlGroupSave *s = dynamic_cast<RpgControlGroupSave*>(g);
+
+			if (!s->isActive())
+				continue;
+
+			QPointF pos = s->position();
+			pos.setY(m_currentScene->height()-pos.y());
+
+			list.append(pos);
+		}
+	}
+
+	m_scatterSeriesPoints->setMarkerShape(QScatterSeries::MarkerShapeTriangle);
+	m_scatterSeriesPoints->replace(list);
+}
+
+
+
+
+/**
  * @brief RpgGame::getPickablesFromPropertyValue
  * @param value
  * @return
@@ -2495,7 +2533,7 @@ void RpgGame::resurrectEnemiesAndPlayer(RpgPlayer *player)
 
 	player->body()->emplace(player->currentSceneStartPosition());
 	player->setHp(player->maxHp());
-	player->setMp(std::max(player->config().mpStart, player->mp()));
+	//player->setMp(std::max(player->config().mpStart, player->mp()));
 
 	QTimer::singleShot(2000, this, [s = QPointer<TiledScene>(scene), this](){ this->resurrectEnemies(s); });
 }
@@ -2755,6 +2793,7 @@ void RpgGame::onSceneWorldStepped(TiledScene *scene)
 
 	updateScatterEnemies();
 	updateScatterPlayers();
+	updateScatterPoints();
 
 }
 
@@ -2834,4 +2873,19 @@ void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 const QList<RpgQuest> &RpgGame::quests() const
 {
 	return m_gameDefinition.quests;
+}
+
+
+
+QScatterSeries *RpgGame::scatterSeriesPoints() const
+{
+	return m_scatterSeriesPoints;
+}
+
+void RpgGame::setScatterSeriesPoints(QScatterSeries *newScatterSeriesPoints)
+{
+	if (m_scatterSeriesPoints == newScatterSeriesPoints)
+		return;
+	m_scatterSeriesPoints = newScatterSeriesPoints;
+	emit scatterSeriesPointsChanged();
 }

@@ -234,6 +234,8 @@ QItemGradient {
 
 
 							delegate: RpgSelectCard {
+								id: _selectWeapon
+
 								property RpgUserWallet wallet: model.qtObject
 
 								height: _viewWeapons.height
@@ -247,6 +249,27 @@ QItemGradient {
 										_viewWeapons.unselectMore([wallet])
 									else
 										_viewWeapons.selectMore([wallet])
+								}
+
+								onWalletChanged: checkDisabled()
+
+								Connections {
+									target: _selectCharacter
+
+									function onWalletChanged() {
+										_selectWeapon.checkDisabled()
+									}
+								}
+
+								function checkDisabled() {
+									if (!wallet || !game || !_selectCharacter.wallet) {
+										disabled = false
+										return
+									}
+
+									let wList = game.getDisabledWeapons(_selectCharacter.wallet.market.name)
+
+									disabled = wList.includes(wallet.market.name)
 								}
 							}
 

@@ -64,6 +64,18 @@ Rectangle {
 		]
 
 		ScatterSeries {
+			id: _seriesPoints
+
+			color: Qaterial.Colors.green400
+
+			axisY: _yAxis
+			axisX: _xAxis
+
+			borderWidth: 0
+			markerSize: 10
+		}
+
+		ScatterSeries {
 			id: _seriesEnemies
 
 			color: Qaterial.Colors.red600
@@ -131,6 +143,7 @@ Rectangle {
 		if (game) {
 			game.scatterSeriesEnemies = _seriesEnemies
 			game.scatterSeriesPlayers = _seriesPlayer
+			game.scatterSeriesPoints = _seriesPoints
 		}
 	}
 }

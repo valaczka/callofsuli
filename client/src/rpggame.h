@@ -54,6 +54,7 @@ class RpgGameDefinition : public TiledGameDefinition
 public:
 	RpgGameDefinition()
 		: TiledGameDefinition()
+		, playerHP(0)
 	{}
 
 	QS_SERIALIZABLE
@@ -67,6 +68,9 @@ public:
 
 	QS_COLLECTION(QList, QString, inventory)
 	QS_COLLECTION(QList, QString, inventoryOnce)
+
+	// Player HP
+	QS_FIELD(int, playerHP)
 
 	// Required tileset
 
@@ -136,6 +140,7 @@ class RpgGame : public TiledGame
 
 	Q_PROPERTY(QScatterSeries *scatterSeriesPlayers READ scatterSeriesPlayers WRITE setScatterSeriesPlayers NOTIFY scatterSeriesPlayersChanged FINAL)
 	Q_PROPERTY(QScatterSeries *scatterSeriesEnemies READ scatterSeriesEnemies WRITE setScatterSeriesEnemies NOTIFY scatterSeriesEnemiesChanged FINAL)
+	Q_PROPERTY(QScatterSeries *scatterSeriesPoints READ scatterSeriesPoints WRITE setScatterSeriesPoints NOTIFY scatterSeriesPointsChanged FINAL)
 
 public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
@@ -256,6 +261,9 @@ public:
 	QScatterSeries *scatterSeriesEnemies() const;
 	void setScatterSeriesEnemies(QScatterSeries *newScatterSeriesEnemies);
 
+	QScatterSeries *scatterSeriesPoints() const;
+	void setScatterSeriesPoints(QScatterSeries *newScatterSeriesPoints);
+
 	int deadEnemyCount() const;
 	void setDeadEnemyCount(int newDeadEnemyCount);
 
@@ -270,7 +278,6 @@ public:
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
 	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype = QStringLiteral(""));
 
-
 signals:
 	void minimapToggleRequest();
 	void questsRequest();
@@ -282,6 +289,7 @@ signals:
 	void enemyCountChanged();
 	void scatterSeriesPlayersChanged();
 	void scatterSeriesEnemiesChanged();
+	void scatterSeriesPointsChanged();
 	void deadEnemyCountChanged();
 	void currencyChanged();
 	void winnerStreakChanged();
@@ -323,6 +331,7 @@ private:
 
 	void updateScatterEnemies();
 	void updateScatterPlayers();
+	void updateScatterPoints();
 
 	static QVector<RpgPickableObject::PickableType> getPickablesFromPropertyValue(const QString &value);
 
@@ -386,6 +395,7 @@ private:
 
 	QPointer<QScatterSeries> m_scatterSeriesPlayers;
 	QPointer<QScatterSeries> m_scatterSeriesEnemies;
+	QPointer<QScatterSeries> m_scatterSeriesPoints;
 
 	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
 	FuncPlayerPick m_funcPlayerPick;

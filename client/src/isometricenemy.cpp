@@ -59,7 +59,7 @@ IsometricEnemy::IsometricEnemy(QQuickItem *parent)
 
 void IsometricEnemy::initialize()
 {
-	m_body->setBodyType(Box2DBody::Dynamic);
+	m_body->setBodyType(Box2DBody::Kinematic);
 
 	setZ(1);
 	setDefaultZ(1);
@@ -212,6 +212,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 {
 	if (!isAlive() || isSleeping()) {
 		m_body->stop();
+		m_body->setIsRunning(false);
 		jumpToSprite("death", m_currentDirection);
 		return;
 	}
@@ -254,9 +255,11 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			} else {								// No pursuit
 				attackWithoutPursuit = true;
 				m_body->stop();
+				m_body->setIsRunning(false);
 			}
 		} else {
 			m_body->stop();
+			m_body->setIsRunning(false);
 		}
 	} else {
 		if (m_player) {
@@ -296,6 +299,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 	if (isPursuit) {
 		if (m_player && m_player->isLocked()) {
 			m_body->stop();
+			m_body->setIsRunning(false);
 			updateSprite();
 			return;
 		}
@@ -307,12 +311,14 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 
 		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 			m_body->stop();
+			m_body->setIsRunning(false);
 			updateSprite();
 			return;
 		}
 
 		if (transparentGnd >= 0. && transparentGnd < m_fixture->radius()*2.3) {
 			m_body->stop();
+			m_body->setIsRunning(false);
 		} else if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
 				m_returnPathMotor.reset(new TiledReturnPathMotor);
@@ -337,6 +343,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			}
 		} else {
 			m_body->stop();
+			m_body->setIsRunning(false);
 		}
 
 		// --- show path ---
@@ -360,6 +367,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 
 		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 			m_body->stop();
+			m_body->setIsRunning(false);
 			updateSprite();
 			return;
 		}
@@ -394,6 +402,7 @@ bool IsometricEnemy::enemyWorldStep()
 
 	if (m_player && m_reachedPlayers.contains(m_player) && m_player->isAlive()) {
 		m_body->stop();
+		m_body->setIsRunning(false);
 
 		if (!hasAbility())
 			return false;
@@ -437,6 +446,7 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle, const q
 	if (defaultWeapon() && defaultWeapon()->canShot() &&
 			m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive()) {
 		m_body->stop();
+		m_body->setIsRunning(false);
 
 		if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
@@ -490,7 +500,7 @@ void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
 
 void IsometricEnemy::onAlive()
 {
-	m_body->setBodyType(Box2DBody::Dynamic);
+	m_body->setBodyType(Box2DBody::Kinematic);
 	m_body->setActive(true);
 	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
 	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
@@ -557,7 +567,7 @@ void IsometricEnemy::onSleepingBegin()
 
 void IsometricEnemy::onSleepingEnd()
 {
-	m_body->setBodyType(Box2DBody::Dynamic);
+	m_body->setBodyType(Box2DBody::Kinematic);
 	m_body->setActive(true);
 	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
 	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
@@ -593,6 +603,7 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 	if (m_returnPathMotor) {
 		if (m_returnPathMotor->isReturning() && !m_returnPathMotor->isReturnReady()) {
 			m_body->stop();
+			m_body->setIsRunning(false);
 			rotateBody(directionToRadian(m_currentDirection));
 			return;
 		}

@@ -45,6 +45,9 @@ public:
 	int count() const;
 	void setCount(int newCount);
 
+	const QPointF &position() const { return m_position; };
+	const bool &isActive() const { return m_active; }
+
 private:
 	void onFixtureBeginContact(Box2DFixture *other);
 	void connectFixture(Box2DFixture *fixture);
@@ -60,6 +63,8 @@ private:
 	bool m_active = true;
 
 	QTimer m_timer;
+
+	QPointF m_position;
 };
 
 

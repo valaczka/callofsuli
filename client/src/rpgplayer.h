@@ -95,6 +95,10 @@ public:
 	QS_FIELD(CastType, cast)
 	QS_FIELD(int, mpMax)
 	QS_FIELD(int, mpStart)
+
+	// Disabled weapons
+
+	QS_COLLECTION(QList, QString, disabledWeapons)
 };
 
 

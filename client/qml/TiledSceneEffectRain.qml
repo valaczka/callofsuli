@@ -9,7 +9,10 @@ Item {
 
 	readonly property real hFactor: Math.max(0.8, Math.min(height/800, 1.))
 
-	ParticleSystem { id: sys }
+	ParticleSystem {
+		id: sys
+		running: control.visible
+	}
 
 	ImageParticle {
 		anchors.fill: parent

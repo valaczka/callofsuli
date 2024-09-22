@@ -17,6 +17,7 @@ Qaterial.Page
 	readonly property alias filterClassId: _scoreList.filterClassId
 
 	property double paddingTop: 0
+	property bool showFullNames: false
 
 	background: null
 
@@ -139,6 +140,7 @@ Qaterial.Page
 					width: _ldr.ListView.view.width
 
 					text: (index+1)+". "+fullNickName
+						  +(showFullNames && fullNickName != fullName ? " ["+fullName+ "]" : "")
 					secondaryText: rank.name + (rank.sublevel > 0 ? qsTr(" (level %1)").arg(rank.sublevel) : "")
 					highlighted: Client.server && Client.server.user && username === Client.server.user.username
 

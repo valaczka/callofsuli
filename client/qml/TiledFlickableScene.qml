@@ -26,6 +26,10 @@ Flickable {
 	boundsMovement: Flickable.StopAtBounds
 	flickableDirection: Flickable.HorizontalAndVerticalFlick
 
+	property bool _interactiveDisabled: false
+
+	interactive: _scene.game && _scene.game.flickableInteractive && !_interactiveDisabled
+
 	property real minZoom: 0.2
 	property real maxZoom: 2.5
 	property real zoomStep: 0.2
@@ -56,6 +60,16 @@ Flickable {
 					flick.contentY = yoff - flick.height / 2
 				}
 				prevScale=scale;
+			}
+
+			onScaleResetRequest: {
+				scale = game ? game.baseScale : 1.0
+				prevScale = scale
+
+				flick.returnToBounds();
+
+				setXOffset()
+				setYOffset()
 			}
 
 
@@ -141,7 +155,7 @@ Flickable {
 		pinch.maximumScale: flick.maxZoom
 
 		onPinchStarted: {
-			flick.interactive = false
+			flick._interactiveDisabled = true
 		}
 
 		onPinchUpdated: pinch => {
@@ -150,7 +164,7 @@ Flickable {
 						}
 
 		onPinchFinished: {
-			flick.interactive = true
+			flick._interactiveDisabled = false
 			flick.returnToBounds()
 		}
 

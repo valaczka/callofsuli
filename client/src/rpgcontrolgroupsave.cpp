@@ -91,6 +91,7 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 
 				base->setParent(m_game);
 				base->setScene(scene);
+				m_position = base->position();
 			}
 
 		}

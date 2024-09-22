@@ -181,8 +181,32 @@ FocusScope {
 			fontImage.color: Qaterial.Colors.cyan300
 			fontImageScale: 0.7
 
+
 			onClicked: {
 				_mapRect.visible = !_mapRect.visible
+			}
+		}
+
+
+		GameButton {
+			id: _resetZoomButton
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			visible: _game.currentScene && _game.currentScene.scale !== _game.baseScale
+
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+
+			color: "transparent"
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.magnifyClose
+			fontImage.color: Qaterial.Colors.white
+			fontImageScale: 0.7
+
+			onClicked: {
+				_game.currentScene.scaleResetRequest()
 			}
 		}
 	}
@@ -199,6 +223,9 @@ FocusScope {
 		anchors.left: parent.left
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
 		extendedSize: !_game.mouseAttack && !_game.mouseNavigation
+
+		maxWidth: parent.width*0.4
+		maxHeight: parent.height*0.4
 	}
 
 
@@ -689,6 +716,17 @@ FocusScope {
 						}
 					}
 				}*/
+
+				QFormSwitchButton
+				{
+					text: qsTr("Pálya szabad mozgatása")
+
+					checked: _game.flickableInteractive
+					onToggled: {
+						Client.Utils.settingsSet("game/flickableInteractive", checked)
+						_game.flickableInteractive = checked
+					}
+				}
 
 				QFormSwitchButton
 				{

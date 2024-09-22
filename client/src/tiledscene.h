@@ -141,6 +141,7 @@ public:
 	void setSceneEffect(TiledSceneDefinition::SceneEffect newSceneEffect);
 
 signals:
+	void scaleResetRequest();
 	void runningChanged();
 	void gameChanged();
 	void sceneIdChanged();

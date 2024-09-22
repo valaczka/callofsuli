@@ -85,6 +85,7 @@ class TiledGame : public QQuickItem
 	Q_PROPERTY(qreal baseScale READ baseScale WRITE setBaseScale NOTIFY baseScaleChanged FINAL)
 	Q_PROPERTY(bool mouseNavigation READ mouseNavigation WRITE setMouseNavigation NOTIFY mouseNavigationChanged FINAL)
 	Q_PROPERTY(bool mouseAttack READ mouseAttack WRITE setMouseAttack NOTIFY mouseAttackChanged FINAL)
+	Q_PROPERTY(bool flickableInteractive READ flickableInteractive WRITE setFlickableInteractive NOTIFY flickableInteractiveChanged FINAL)
 
 public:
 	explicit TiledGame(QQuickItem *parent = nullptr);
@@ -237,6 +238,9 @@ public:
 	bool mouseAttack() const;
 	void setMouseAttack(bool newMouseAttack);
 
+	bool flickableInteractive() const;
+	void setFlickableInteractive(bool newFlickableInteractive);
+
 signals:
 	void gameLoaded();
 	void gameLoadFailed(const QString &errorString);
@@ -252,6 +256,7 @@ signals:
 	void baseScaleChanged();
 	void mouseNavigationChanged();
 	void mouseAttackChanged();
+	void flickableInteractiveChanged();
 
 protected:
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
@@ -346,6 +351,7 @@ private:
 	bool m_debugView = false;
 	bool m_mouseNavigation = false;
 	bool m_mouseAttack = false;
+	bool m_flickableInteractive = true;
 	QQuickItem *m_messageList = nullptr;
 	QColor m_defaultMessageColor = Qt::white;
 	qreal m_baseScale = 1.;

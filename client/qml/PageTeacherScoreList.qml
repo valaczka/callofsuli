@@ -33,6 +33,7 @@ QPage {
 	ScoreList {
 		id: _scoreList
 		anchors.fill: parent
+		showFullNames: true
 	}
 
 

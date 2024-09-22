@@ -78,6 +78,8 @@ public:
 
 	Q_INVOKABLE void saveTerrainInfo() { RpgGame::saveTerrainInfo(); }
 
+	Q_INVOKABLE static QStringList getDisabledWeapons(const QString &character);
+
 	RpgConfig config() const;
 	void setConfig(const RpgConfig &newConfig);
 

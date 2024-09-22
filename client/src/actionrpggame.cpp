@@ -361,6 +361,25 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 }
 
 
+/**
+ * @brief ActionRpgGame::getDisabledWeapons
+ * @param character
+ * @return
+ */
+
+QStringList ActionRpgGame::getDisabledWeapons(const QString &character)
+{
+	const auto characterPtr = RpgGame::characters().find(character);
+
+	if (characterPtr == RpgGame::characters().constEnd()) {
+		LOG_CERROR("game") << "Invalid character" << character;
+		return {};
+	}
+
+	return characterPtr->disabledWeapons;
+}
+
+
 
 /**
  * @brief ActionRpgGame::onPlayerDead
@@ -534,8 +553,10 @@ void ActionRpgGame::rpgGameActivated_()
 		loadWeapon(player, TiledWeapon::WeaponMageStaff);
 	}
 
-	player->setHp(m_missionLevel->startHP());
-	player->setMaxHp(m_missionLevel->startHP());
+	const int hp = m_missionLevel->startHP() + ptr->playerHP;
+
+	player->setHp(hp);
+	player->setMaxHp(hp);
 	player->setMp(characterPtr->mpStart);
 	loadInventory(player);
 
@@ -557,6 +578,11 @@ void ActionRpgGame::rpgGameActivated_()
 		});
 			if (it == wallet->constEnd()) {
 				LOG_CERROR("game") << "Missing weapon" << s;
+				continue;
+			}
+
+			if (characterPtr->disabledWeapons.contains(s)) {
+				LOG_CWARNING("game") << "Weapon" << s << "disabled for character" << characterPtr->name;
 				continue;
 			}
 

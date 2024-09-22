@@ -152,11 +152,14 @@ void IsometricPlayer::entityWorldStep(const qreal &factor)
 			if (line.length() >= m_speedRunLength*factor) {
 				line.setLength(m_speedRunLength*factor);
 				m_body->setLinearVelocity(line.p2());
+				m_body->setIsRunning(true);
 			} else if (line.length() >= m_speedLength*factor) {
 				line.setLength(m_speedLength*factor);
 				m_body->setLinearVelocity(line.p2());
+				m_body->setIsRunning(false);
 			} else {
 				m_body->stop();
+				m_body->setIsRunning(false);
 				atDestinationPointEvent();
 				clearDestinationPoint();
 			}

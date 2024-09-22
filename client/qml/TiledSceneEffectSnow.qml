@@ -7,7 +7,10 @@ Item {
 	implicitWidth: 800
 	implicitHeight: 800
 
-	ParticleSystem { id: sys }
+	ParticleSystem {
+		id: sys
+		running: control.visible
+	}
 
 	ImageParticle {
 		anchors.fill: parent
