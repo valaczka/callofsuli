@@ -83,13 +83,21 @@ protected:
 
 #define AUTHORIZE_API()	\
 	const auto &credential = m_handler->authorizeRequestLog(request);\
-	if (m_validateRole != Credential::None && (!credential || !(credential->roles() & m_validateRole)))\
-		return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
+	if (m_validateRole != Credential::None) {\
+		if (!m_handler->verifyPeer(request))\
+			return responseError("unverified client", QHttpServerResponse::StatusCode::Unauthorized);\
+		if (!credential || !(credential->roles() & m_validateRole))\
+			return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);\
+	}
 
 #define AUTHORIZE_API_X(role)	\
 	const auto &credential = m_handler->authorizeRequestLog(request);\
-	if ((role) != Credential::None && (!credential || !(credential->roles() & (role))))\
-		return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);
+	if ((role) != Credential::None) {\
+		if (!m_handler->verifyPeer(request))\
+			return responseError("unverified client", QHttpServerResponse::StatusCode::Unauthorized);\
+		if (!credential || !(credential->roles() & (role)))\
+			return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);\
+	}
 
 
 // CONTENT

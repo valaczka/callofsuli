@@ -106,6 +106,9 @@ public:
 	bool smtpSsl() const;
 	void setSmtpSsl(bool newSmtpSsl);
 
+	bool verifyPeer() const;
+	void setVerifyPeer(bool newVerifyPeer);
+
 private:
 	QDir m_dataDir;
 
@@ -128,6 +131,8 @@ private:
 	QString m_smtpUser;
 	QString m_smtpPassword;
 	bool m_smtpSsl = true;
+
+	bool m_verifyPeer = false;
 
 	static const QStringList m_supportedProviders;
 

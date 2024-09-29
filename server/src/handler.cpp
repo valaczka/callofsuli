@@ -498,3 +498,35 @@ AbstractAPI *Handler::api(const char *path) const
 }
 
 
+/**
+ * @brief Handler::verifyPeer
+ * @param request
+ * @return
+ */
+
+bool Handler::verifyPeer(const QHttpServerRequest &request) const
+{
+	const auto &message = request.body();
+
+	if (!m_service->settings()->verifyPeer())
+		return true;
+
+	const QByteArray &userAgentSign = request.value(QByteArrayLiteral("User-Agent-Sign"));
+
+
+	const auto &list = m_service->agentSignatures();
+
+	for (const QByteArray &key : list) {
+		if (QMessageAuthenticationCode::hash(message, key, QCryptographicHash::Sha3_256).toBase64() == userAgentSign) {
+			return true;
+		}
+	}
+
+	LOG_CWARNING("service") << "Peer verification failed"
+						  << qPrintable(request.remoteAddress().toString()) << request.remotePort()
+						  << (userAgentSign.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgentSign+QByteArrayLiteral("]")).constData());
+
+	return false;
+}
+
+

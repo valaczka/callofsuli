@@ -108,8 +108,6 @@ const bool Application::m_debug = true;
 
 
 
-
-
 /**
  * @brief Application::initialize
  */
@@ -575,9 +573,41 @@ void Application::loadModules()
  * @return
  */
 
-const QString &Application::userAgent() const
+const QString &Application::userAgent()
 {
 	return m_userAgent;
+}
+
+
+
+
+/**
+ * @brief Application::userAgentSign
+ * @param content
+ * @return
+ */
+
+const QByteArray Application::userAgentSign(const QByteArray &content)
+{
+	static const QString fname(":/sign/agent_sign.dat");
+	static QByteArray key;
+	static bool isFirst = true;
+
+	if (isFirst) {
+		QFile f(fname);
+
+		if (f.open(QIODevice::ReadOnly)) {
+			key = f.readAll();
+			f.close();
+		}
+
+		isFirst = false;
+	}
+
+	if (key.isEmpty())
+		return {};
+
+	return QMessageAuthenticationCode::hash(content, key, QCryptographicHash::Sha3_256).toBase64();
 }
 
 

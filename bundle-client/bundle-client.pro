@@ -38,8 +38,7 @@ else: LibExtension = so
 win32: LddLibDir = $${CQtTargetDir}/usr
 else: LddLibDir = $${CQtTargetDir}/usr/lib
 
-lessThan(QT_MAJOR_VERSION, 6): QmlDir = $$PWD/../client/qml
-else: QmlDir = $$PWD/../client/qml-Qt6
+QmlDir = $$PWD/../client/qml
 
 win32: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -dir $${CQtTargetDir}/usr  \

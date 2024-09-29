@@ -54,6 +54,8 @@ public:
 
 	AbstractAPI *api(const char *path) const;
 
+	bool verifyPeer(const QHttpServerRequest &request) const;
+
 private:
 	QHttpServerResponse getFavicon(const QHttpServerRequest &request);
 	QHttpServerResponse getStaticContent(const QHttpServerRequest &request);

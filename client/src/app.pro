@@ -50,6 +50,8 @@ include(../../lib/import_lib_client.pri)
 
 wasm:include(app_wasm.pri)
 
+include(app_sign.pri)
+
 
 ##### Modules
 

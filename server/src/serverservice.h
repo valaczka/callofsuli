@@ -154,6 +154,8 @@ public:
 	const RpgMarketList &market() const;
 	void setMarket(const RpgMarketList &newMarket);
 
+	const QList<QByteArray> &agentSignatures() const;
+
 signals:
 	void configChanged();
 	void serverNameChanged();
@@ -161,6 +163,10 @@ signals:
 protected:
 	bool wasmLoad();
 	bool wasmUnload();
+
+	void agentSignLoad();
+	void agentSignUnload();
+
 	virtual void timerEvent(QTimerEvent *event) override;
 
 private:
@@ -213,6 +219,8 @@ private:
 	RpgMarketList m_market;
 
 	static ServerService *m_instance;
+
+	QList<QByteArray> m_agentSignatures;
 };
 
 

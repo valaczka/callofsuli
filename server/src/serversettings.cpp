@@ -107,6 +107,9 @@ void ServerSettings::loadFromFile(const QString &filename)
 	if (s.contains(QStringLiteral("server/redirectHost")))
 		setRedirectHost(s.value(QStringLiteral("server/redirectHost")).toString());
 
+	if (s.contains(QStringLiteral("server/verifyPeer")))
+		setVerifyPeer(s.value(QStringLiteral("server/verifyPeer")).toBool());
+
 
 	if (s.contains(QStringLiteral("ssl/enabled")))
 		setSsl(s.value(QStringLiteral("ssl/enabled")).toBool());
@@ -142,7 +145,6 @@ void ServerSettings::loadFromFile(const QString &filename)
 
 	if (s.contains(QStringLiteral("smtp/ssl")))
 		setSmtpSsl(s.value(QStringLiteral("smtp/ssl")).toBool());
-
 
 
 	LOG_CINFO("service") << "Configuration loaded from:" << qPrintable(f);
@@ -182,6 +184,7 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("server/port"), m_listenPort);
 	s.setValue(QStringLiteral("server/jwtSecret"), m_jwtSecret);
 	s.setValue(QStringLiteral("server/redirectHost"), m_redirectHost);
+	s.setValue(QStringLiteral("server/verifyPeer"), m_verifyPeer);
 
 	s.setValue(QStringLiteral("ssl/enabled"), m_ssl);
 	s.setValue(QStringLiteral("ssl/certificate"), m_certFile);
@@ -381,6 +384,16 @@ bool ServerSettings::smtpSsl() const
 void ServerSettings::setSmtpSsl(bool newSmtpSsl)
 {
 	m_smtpSsl = newSmtpSsl;
+}
+
+bool ServerSettings::verifyPeer() const
+{
+	return m_verifyPeer;
+}
+
+void ServerSettings::setVerifyPeer(bool newVerifyPeer)
+{
+	m_verifyPeer = newVerifyPeer;
 }
 
 

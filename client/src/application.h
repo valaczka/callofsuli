@@ -82,7 +82,8 @@ public:
 
 	void selectUrl(const QUrl &url);
 
-	const QString &userAgent() const;
+	static const QString &userAgent();
+	static const QByteArray userAgentSign(const QByteArray &content);
 
 protected:
 	virtual bool loadMainQml();

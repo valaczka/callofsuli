@@ -33,8 +33,11 @@
 #include "qtimer.h"
 #include "utils_.h"
 #include "server.h"
-#include "rpggame.h"
-#include "rpgplayer.h"
+
+
+
+#define USER_AGENT_SIGN_HEADER		QByteArrayLiteral("User-Agent-Sign")
+
 
 HttpConnection::HttpConnection(Client *client)
 	: QObject()
@@ -378,9 +381,9 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QJson
 	QNetworkRequest r(getUrl(api, path));
 
 #ifndef QT_NO_SSL
-	if (!m_rootCertificate.isNull()) {
+	if (!m_peerCertificate.isNull()) {
 		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-		config.addCaCertificate(m_rootCertificate);
+		config.setLocalCertificate(m_peerCertificate);
 		r.setSslConfiguration(config);
 	}
 #endif
@@ -389,8 +392,11 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QJson
 		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
 	}
 
+
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
 	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
+	if (const auto &h = Application::userAgentSign(content); !h.isEmpty())
+		r.setRawHeader(USER_AGENT_SIGN_HEADER, h);
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
@@ -426,9 +432,9 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QByte
 	QNetworkRequest r(getUrl(api, path));
 
 #ifndef QT_NO_SSL
-	if (!m_rootCertificate.isNull()) {
+	if (!m_peerCertificate.isNull()) {
 		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-		config.addCaCertificate(m_rootCertificate);
+		config.setLocalCertificate(m_peerCertificate);
 		r.setSslConfiguration(config);
 	}
 #endif
@@ -439,6 +445,8 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QByte
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/octet-stream"));
 	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
+	if (const auto &h = Application::userAgentSign(content); !h.isEmpty())
+		r.setRawHeader(USER_AGENT_SIGN_HEADER, h);
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
@@ -477,9 +485,9 @@ HttpReply *HttpConnection::get(const QString &path)
 	QNetworkRequest r(url);
 
 #ifndef QT_NO_SSL
-	if (!m_rootCertificate.isNull()) {
+	if (!m_peerCertificate.isNull()) {
 		QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-		config.addCaCertificate(m_rootCertificate);
+		config.setLocalCertificate(m_peerCertificate);
 		r.setSslConfiguration(config);
 	}
 #endif
@@ -488,7 +496,6 @@ HttpReply *HttpConnection::get(const QString &path)
 		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
 	}
 
-	//r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
 	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
 
 	QNetworkReply *reply = m_networkManager->get(r);

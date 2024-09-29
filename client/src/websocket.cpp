@@ -384,9 +384,9 @@ void WebSocket::reconnect()
 		if (!QSslSocket::supportsSsl())
 			LOG_CERROR("http") << "Platform doesn't support SSL";
 		else {
-			if (!m_connection->m_rootCertificate.isNull()) {
+			if (!m_connection->m_peerCertificate.isNull()) {
 				QSslConfiguration config = QSslConfiguration::defaultConfiguration();
-				config.addCaCertificate(m_connection->m_rootCertificate);
+				config.setLocalCertificate(m_connection->m_peerCertificate);
 				m_socket->setSslConfiguration(config);
 			}
 

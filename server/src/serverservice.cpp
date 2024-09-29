@@ -212,6 +212,43 @@ bool ServerService::wasmUnload()
 
 
 /**
+ * @brief ServerService::agentSignLoad
+ */
+
+void ServerService::agentSignLoad()
+{
+	LOG_CWARNING("service") << m_settings->dataDir().absoluteFilePath(QStringLiteral("agentSign"));
+
+	QDirIterator it(m_settings->dataDir().absoluteFilePath(QStringLiteral("agentSign")), QDir::Files);
+
+	while (it.hasNext()) {
+		const QString &file = it.next();
+		const auto &ptr = Utils::fileContent(file);
+
+		if (!ptr) {
+			LOG_CERROR("service") << "Read error:" << file;
+			continue;
+		}
+
+		LOG_CDEBUG("service") << "Add agent signature" << file;
+		m_agentSignatures.append(ptr->data());
+	}
+}
+
+
+/**
+ * @brief ServerService::agentSignUnload
+ */
+
+void ServerService::agentSignUnload()
+{
+	LOG_CDEBUG("service") << "Unload agent signatures";
+	m_agentSignatures.clear();
+}
+
+
+
+/**
  * @brief ServerService::timerEvent
  * @param event
  */
@@ -754,6 +791,7 @@ int ServerService::exec()
 	m_settings->printConfig();
 
 	wasmLoad();
+	agentSignLoad();
 
 	// Load main DB
 
@@ -1084,6 +1122,17 @@ void ServerService::resume()
 
 
 /**
+ * @brief ServerService::agentSignatures
+ * @return
+ */
+
+const QList<QByteArray> &ServerService::agentSignatures() const
+{
+	return m_agentSignatures;
+}
+
+
+/**
  * @brief ServerService::market
  * @return
  */
@@ -1242,8 +1291,10 @@ void ServerService::reload()
 	}
 
 	wasmUnload();
+	agentSignUnload();
 
 	wasmLoad();
+	agentSignLoad();
 
 	resume();
 }

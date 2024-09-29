@@ -146,7 +146,7 @@ private:
 	int m_signalUnavailableNum = 0;
 
 #ifndef QT_NO_SSL
-	QSslCertificate m_rootCertificate;
+	QSslCertificate m_peerCertificate;
 	QList<QSslError> m_pendingSslErrors;
 #endif
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
