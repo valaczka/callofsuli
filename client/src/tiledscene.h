@@ -95,6 +95,7 @@ class TiledScene : public TiledQuick::MapItem
 	Q_PROPERTY(QString backgroundMusic READ backgroundMusic WRITE setBackgroundMusic NOTIFY backgroundMusicChanged FINAL)
 	Q_PROPERTY(QRectF onScreenArea READ onScreenArea WRITE setOnScreenArea NOTIFY onScreenAreaChanged FINAL)
 	Q_PROPERTY(TiledSceneDefinition::SceneEffect sceneEffect READ sceneEffect WRITE setSceneEffect NOTIFY sceneEffectChanged FINAL)
+	Q_PROPERTY(QRectF viewport READ viewport WRITE setViewport NOTIFY viewportChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
@@ -140,6 +141,9 @@ public:
 	TiledSceneDefinition::SceneEffect sceneEffect() const;
 	void setSceneEffect(TiledSceneDefinition::SceneEffect newSceneEffect);
 
+	QRectF viewport() const;
+	void setViewport(const QRectF &newViewport);
+
 signals:
 	void scaleResetRequest();
 	void runningChanged();
@@ -150,6 +154,7 @@ signals:
 	void worldStepped();
 	void onScreenAreaChanged();
 	void sceneEffectChanged();
+	void viewportChanged();
 
 protected:
 	virtual void refresh() override;
@@ -162,6 +167,7 @@ protected:
 	QString m_backgroundMusic;
 	TiledSceneDefinition::SceneEffect m_sceneEffect = TiledSceneDefinition::EffectNone;
 	QRectF m_onScreenArea;
+	QRectF m_viewport;
 
 	QVector<QPointer<TiledObject>> m_tiledObjects;
 	QVector<QPointer<TiledObject>> m_tiledObjectsToAppend;

@@ -2440,6 +2440,12 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
 	if (!m_controlledPlayer)
 		return;
 
+#ifndef QT_NO_DEBUG
+	if (modifiers & Qt::AltModifier) {
+		m_controlledPlayer->body()->emplace(x, y);
+	}
+#endif
+
 	if (mouseAttack()) {
 		m_controlledPlayer->attackToPoint(x, y);
 		return;

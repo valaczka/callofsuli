@@ -402,6 +402,8 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 	if (className.isEmpty())
 		className = group->name();
 
+	QRectF tmpViewport;
+
 	for (Tiled::MapObject *object : std::as_const(group->objects())) {
 		int idx = findLoadedObject(object->id(), scene->sceneId());
 
@@ -417,6 +419,11 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 		} else if (className == QStringLiteral("player")) {
 			addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 			addLoadedObject(object->id(), scene->sceneId());
+		} else if (className == QStringLiteral("viewport")) {
+			if (object->name() == QStringLiteral("topLeft"))
+				tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("bottomRight"))
+				tmpViewport.setBottomRight(renderer->pixelToScreenCoords(object->position()));
 		} else if (className == QStringLiteral("transport")) {
 			if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
 				loadTransport(scene, object, renderer);
@@ -429,6 +436,11 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			} else if (object->className() == QStringLiteral("player")) {
 				addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 				addLoadedObject(object->id(), scene->sceneId());
+			} else if (object->className() == QStringLiteral("viewport")) {
+				if (object->name() == QStringLiteral("topLeft"))
+					tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
+				else if (object->name() == QStringLiteral("bottomRight"))
+					tmpViewport.setBottomRight(renderer->pixelToScreenCoords(object->position()));
 			} else if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
 				loadTransport(scene, object, renderer);
 			} else {
@@ -437,6 +449,11 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 		} else {
 			loadObjectLayer(scene, object, className, renderer);
 		}
+	}
+
+	if (!tmpViewport.isEmpty()) {
+		LOG_CDEBUG("scene") << "Set viewport on scene" << scene->sceneId() << tmpViewport;
+		scene->setViewport(tmpViewport);
 	}
 
 	return true;

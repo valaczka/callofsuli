@@ -15,10 +15,12 @@ Flickable {
 
 	default property alias defaultItems: _scene.children
 
-	contentWidth: _container.width
-	contentHeight: _container.height
+	contentWidth: _scene.viewport.width * _scene.scale
+	contentHeight: _scene.viewport.height * _scene.scale
 
-	anchors.fill: parent
+	anchors.centerIn: parent
+	width: parent ? Math.min(_container.width, parent.width) : _container.width
+	height: parent ? Math.min(_container.height, parent.height) : _container.height
 
 	visible: _scene.game && _scene.game.currentScene == _scene
 
@@ -30,15 +32,21 @@ Flickable {
 
 	interactive: _scene.game && _scene.game.flickableInteractive && !_interactiveDisabled
 
-	property real minZoom: 0.2
-	property real maxZoom: 2.5
-	property real zoomStep: 0.2
+	readonly property real minZoom: _scene.viewport.width > 0 && _scene.viewport.height > 0 && parent ?
+							   Math.min(1.0, Math.max(0.2,
+													  flick.parent.width/_scene.viewport.width,
+													  flick.parent.height/_scene.viewport.height,
+													  )) :
+							   0.2
+	readonly property real maxZoom: 2.5
+	readonly property real zoomStep: 0.2
 
 	Item {
 		id: _container
-		width: Math.max(_scene.width * _scene.scale, flick.width)
-		height: Math.max(_scene.height * _scene.scale, flick.height)
-
+		width: _scene.width * _scene.scale
+		height: _scene.height * _scene.scale
+		x: -_scene.viewport.x * _scene.scale
+		y: -_scene.viewport.y * _scene.scale
 
 		TiledSceneImpl {
 			id: _scene
@@ -74,25 +82,21 @@ Flickable {
 
 
 			function zoomIn() {
-				if (_scene.scale<flick.maxZoom)
-					_scene.scale *= (1.0+zoomStep)
-				else
-					_scene.scale = flick.maxZoom
-				flick.returnToBounds();
-			}
-			function zoomOut() {
-				if (_scene.scale>flick.minZoom)
-					_scene.scale *= (1.0-zoomStep)
-				else
-					_scene.scale = flick.minZoom;
+				_scene.scale = Math.min(_scene.scale * (1.0+zoomStep), flick.maxZoom)
 				flick.returnToBounds();
 			}
 
-			visibleArea: flick.visible ? Qt.rect(0, 0, width, height) :
+			function zoomOut() {
+				_scene.scale = Math.max(_scene.scale * (1.0-zoomStep), flick.minZoom)
+				flick.returnToBounds();
+			}
+
+			visibleArea: flick.visible ? Qt.rect(0, 0, _scene.width, _scene.height) :
 										 Qt.rect(0,0,0,0)
 
-			onScreenArea: flick.visible ? Qt.rect(flick.contentX / scale, flick.contentY / scale ,
-												 flick.width / scale, flick.height / scale) :
+			onScreenArea: flick.visible ? Qt.rect((flick.contentX - _container.x) / _scene.scale,
+												  (flick.contentY - _container.y) / _scene.scale ,
+												 flick.width / _scene.scale, flick.height / _scene.scale) :
 										 Qt.rect(0,0,0,0)
 
 			//------------------------------------------------
@@ -172,13 +176,9 @@ Flickable {
 			anchors.fill: parent
 
 			onClicked: event => {
-						   let sw = _scene.width * _scene.scale
-						   let diffX = sw < _container.width ? (_container.width-sw)/2 : 0
-						   let sh = _scene.height * _scene.scale
-						   let diffY = sh < _container.height ? (_container.height-sh)/2 : 0
 						   if (_scene.game) {
-							   _scene.game.onMouseClick((event.x-diffX)/_scene.scale,
-														(event.y-diffY)/_scene.scale,
+							   _scene.game.onMouseClick(_scene.viewport.x + (event.x / _scene.scale),
+														_scene.viewport.y + (event.y / _scene.scale),
 														event.modifiers)
 						   }
 					   }
@@ -255,7 +255,7 @@ Flickable {
 			return
 
 		var fw = flick.width
-		var px = _scene.game.followedItem.x*_scene.scale
+		var px = _scene.game.followedItem.x*_scene.scale + _container.x
 		var pw = _scene.game.followedItem.width*_scene.scale
 		var spaceRequired = Math.min((fw-pw)*0.45, 500)
 		var cx = flick.contentX
@@ -284,7 +284,7 @@ Flickable {
 			return
 
 		var fh = flick.height
-		var py = _scene.game.followedItem.y*_scene.scale
+		var py = _scene.game.followedItem.y*_scene.scale + _container.y
 		var ph = _scene.game.followedItem.height*_scene.scale
 		var spaceRequired = Math.min((fh-ph)*0.45, 500)
 		var cy = flick.contentY
@@ -326,34 +326,6 @@ Flickable {
 		} else {
 			flick.contentY = _y
 		}
-	}
-
-
-	function setOffsetTo(_x, _y) {
-		var fh = flick.height
-		var py = _y*_scene.scale
-		var ch = flick.contentHeight
-		var y = py-fh/2
-
-		if (y<0)
-			y = 0
-
-		if (y+fh > ch)
-			y = ch-fh
-
-		animateY(y)
-
-		var fw = flick.width
-		var px = _x*_scene.scale
-		var cw = flick.contentWidth
-		var x = px-fw/2
-
-		if (x<0)
-			x = 0
-		if (x+fw > cw)
-			x = cw-fw
-
-		animateX(x)
 	}
 
 }

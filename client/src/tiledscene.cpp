@@ -530,7 +530,11 @@ void TiledScene::refresh()
 	const QRect rect = mRenderer->mapBoundingRect();
 	setWidth(rect.width());
 	setHeight(rect.height());
+
+	if (m_viewport.isEmpty())
+		setViewport(rect);
 }
+
 
 TiledSceneDefinition::SceneEffect TiledScene::sceneEffect() const
 {
@@ -714,4 +718,23 @@ bool TiledScene::DynamicZ::isOver(const qreal &x, const qreal &y) const
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief TiledScene::viewport
+ * @return
+ */
+
+QRectF TiledScene::viewport() const
+{
+	return m_viewport;
+}
+
+void TiledScene::setViewport(const QRectF &newViewport)
+{
+	if (m_viewport == newViewport)
+		return;
+	m_viewport = newViewport;
+	emit viewportChanged();
 }

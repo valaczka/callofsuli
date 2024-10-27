@@ -107,16 +107,21 @@ Rectangle {
 		color: "transparent"
 
 		readonly property rect _sceneRect: game && game.currentScene ? game.currentScene.onScreenArea : Qt.rect(0,0,0,0)
-		readonly property real _scaleX: game && game.currentScene ? _view.width/game.currentScene.width : 0
-		readonly property real _scaleY: game && game.currentScene ? _view.height/game.currentScene.height : 0
 
-		readonly property real _sceneX: _sceneRect.x * _scaleX
-		readonly property real _sceneY: _sceneRect.y * _scaleY
+		x: game && game.currentScene
+		   ? _view.x + _view.plotArea.x + ((_sceneRect.x - game.currentScene.viewport.x) / game.currentScene.viewport.width) * _view.plotArea.width
+		   : 0
+		y: game && game.currentScene
+		   ? _view.y + _view.plotArea.y + ((_sceneRect.y - game.currentScene.viewport.y) / game.currentScene.viewport.height) * _view.plotArea.height
+		   : 0
 
-		x: _view.x + _view.plotArea.x + Math.max(_sceneX, 0)
-		y: _view.y + _view.plotArea.y + Math.max(_sceneY, 0)
-		width: Math.min(_sceneRect.width * _scaleX, _view.plotArea.width-_sceneX)
-		height: Math.min(_sceneRect.height * _scaleY, _view.plotArea.height-_sceneY)
+		width: game && game.currentScene
+			   ? (_sceneRect.width / game.currentScene.viewport.width) * _view.plotArea.width
+			   : 100
+
+		height: game && game.currentScene
+				? (_sceneRect.height / game.currentScene.viewport.height) * _view.plotArea.height
+				: 100
 	}
 
 	Connections {
@@ -126,10 +131,10 @@ Rectangle {
 			if (!game.currentScene)
 				return
 
-			_xAxis.max = game.currentScene.width
-			_xAxis.min = 0
-			_yAxis.max = game.currentScene.height
-			_yAxis.min = 0
+			_xAxis.max = game.currentScene.viewport.x + game.currentScene.viewport.width
+			_xAxis.min = game.currentScene.viewport.x
+			_yAxis.max = game.currentScene.height - game.currentScene.viewport.y
+			_yAxis.min = game.currentScene.height - (game.currentScene.viewport.y + game.currentScene.viewport.height)
 		}
 	}
 

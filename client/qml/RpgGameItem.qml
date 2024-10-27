@@ -734,8 +734,9 @@ FocusScope {
 
 					checked: _game.mouseNavigation
 					onToggled: {
-						Client.Utils.settingsSet("game/mouseNavigation", checked)
 						_game.mouseNavigation = checked
+						Client.Utils.settingsSet("game/mouseNavigation", _game.mouseNavigation)
+						Client.Utils.settingsSet("game/mouseAttack", _game.mouseAttack)
 					}
 				}
 
@@ -746,8 +747,9 @@ FocusScope {
 
 					checked: _game.mouseAttack
 					onToggled: {
-						Client.Utils.settingsSet("game/mouseAttack", checked)
 						_game.mouseAttack = checked
+						Client.Utils.settingsSet("game/mouseNavigation", _game.mouseNavigation)
+						Client.Utils.settingsSet("game/mouseAttack", _game.mouseAttack)
 					}
 				}
 

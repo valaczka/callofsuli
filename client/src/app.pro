@@ -16,6 +16,7 @@ include(../../translations/translations.pri)
 DESTDIR = ../..
 
 QML_IMPORT_PATH += $$PWD/../qml
+QML2_IMPORT_PATH += $$PWD/../qml
 QMLPATHS += $$PWD/../qml
 
 QT += core5compat
