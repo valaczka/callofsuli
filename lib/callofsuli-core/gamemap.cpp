@@ -180,13 +180,13 @@ qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &le
  * @return
  */
 
-qreal GameMap::computeSolvedXpFactor(const int &level, const bool &deathmatch, const int &solved, const GameMode &mode)
+qreal GameMap::computeSolvedXpFactor(const int &level, const bool &/*deathmatch*/, const int &solved, const GameMode &mode)
 {
 	qreal factor = XP_FACTOR_LEVEL*level;
 
 	if (mode == Practice) {
 		return 0.0;
-	} else if (mode == Action || mode == Rpg) {
+	} /*else if (mode == Action || mode == Rpg) {
 		if (deathmatch)
 			factor *= XP_FACTOR_DEATHMATCH;
 
@@ -195,9 +195,9 @@ qreal GameMap::computeSolvedXpFactor(const int &level, const bool &deathmatch, c
 	} else if (mode == Lite) {
 		if (solved < 1)
 			factor *= XP_FACTOR_SOLVED_FIRST * 0.85;
-	} else {
+	} */else {
 		if (solved < 1)
-			factor *= XP_FACTOR_SOLVED_FIRST * 0.5;
+			factor *= XP_FACTOR_SOLVED_FIRST;
 	}
 
 	if (solved > SOLVED_MAX) {

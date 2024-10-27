@@ -81,6 +81,7 @@ HEADERS += \
 	database.h \
 	databasemain.h \
 	enginehandler.h \
+	enginehandler_p.h \
 	examengine.h \
 	generalapi.h \
 	googleoauth2authenticator.h \

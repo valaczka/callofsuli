@@ -44,7 +44,7 @@
 UserAPI::UserAPI(Handler *handler, ServerService *service)
 	: AbstractAPI("user", handler, service)
 {
-	auto server = m_handler->httpServer().lock().get();
+	auto server = m_handler->httpServer();
 
 	Q_ASSERT(server);
 

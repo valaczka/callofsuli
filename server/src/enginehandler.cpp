@@ -1,6 +1,15 @@
 #include "enginehandler.h"
+#include "enginehandler_p.h"
 #include "Logger.h"
 #include "peerengine.h"
+
+
+
+
+/**
+ * @brief EngineHandler::EngineHandler
+ * @param service
+ */
 
 EngineHandler::EngineHandler(ServerService *service)
 	: m_service(service)
@@ -28,6 +37,7 @@ EngineHandler::~EngineHandler()
 
 	LOG_CTRACE("service") << "EngineHandler destroyed";
 }
+
 
 
 /**
@@ -63,6 +73,78 @@ std::weak_ptr<AbstractEngine> EngineHandler::engineGet(const AbstractEngine::Typ
 	}
 	return std::weak_ptr<AbstractEngine>();
 }
+
+
+
+
+/**
+ * Queued private functions
+ */
+
+const QVector<std::shared_ptr<AbstractEngine> > &EngineHandler::engines() const { return d->m_engines; }
+
+void EngineHandler::engineAdd(const std::shared_ptr<AbstractEngine> &engine) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineAdd, d, engine), Qt::QueuedConnection);
+}
+
+void EngineHandler::engineTriggerEngine(AbstractEngine *engine) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineTriggerEngine, d, engine), Qt::QueuedConnection);
+}
+
+void EngineHandler::engineTrigger(const AbstractEngine::Type &type) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineTrigger, d, type), Qt::QueuedConnection);
+}
+
+void EngineHandler::engineTrigger(const AbstractEngine::Type &type, const int &id) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineTriggerId, d, type, id), Qt::QueuedConnection);
+}
+
+void EngineHandler::engineRemoveUnused() {
+	if (m_running) QMetaObject::invokeMethod(d, &EngineHandlerPrivate::engineRemoveUnused, Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketAdd(QWebSocket *socket) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketAdd, d, socket), Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketCloseAll() {
+	if (m_running) QMetaObject::invokeMethod(d, &EngineHandlerPrivate::websocketCloseAll, Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketDisconnected(WebSocketStream *stream) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketDisconnected, d, stream), Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketTrigger(WebSocketStream *stream) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketTrigger, d, stream), Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketObserverAdded(WebSocketStream *stream, const AbstractEngine::Type &type) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketObserverAdded, d, stream, type), Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketObserverRemoved(WebSocketStream *stream, const AbstractEngine::Type &type) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketObserverRemoved, d, stream, type), Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketEngineLink(WebSocketStream *stream, const std::shared_ptr<AbstractEngine> &engine) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketEngineLink, d, stream, engine), Qt::QueuedConnection);
+}
+
+void EngineHandler::websocketEngineUnlink(WebSocketStream *stream, AbstractEngine *engine) {
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketEngineUnlink, d, stream, engine), Qt::QueuedConnection);
+}
+
+void EngineHandler::timerEvent() {
+	if (m_running) QMetaObject::invokeMethod(d, &EngineHandlerPrivate::timerEventRun, Qt::QueuedConnection);
+}
+
+void EngineHandler::timerMinuteEvent() {
+	if (m_running) QMetaObject::invokeMethod(d, &EngineHandlerPrivate::timerMinuteEventRun, Qt::QueuedConnection);
+}
+
+
+
 
 
 

@@ -66,6 +66,8 @@
 - Animated Fire - (c) 2018 BenHickling (https://opengameart.org/content/animated-fire)
 - Painterly Spell Icons - (c) 2011 J. W. Bjerk "eleazzaar" (https://opengameart.org/content/painterly-spell-icons-part-1, https://www.jwbjerk.com/art)
 - 2D spell effects - (c) 2013 Martin Jelinek (https://opengameart.org/content/2d-spell-effects)
+- Rural medieval romanesque church - (c) ramonduran (https://blendswap.com/blend/19459)
+- Medieval Modular Design: Windows - (c) Daniel74 (https://blendswap.com/blend/13014)
 
 **Music & SFX**
 

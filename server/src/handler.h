@@ -45,7 +45,7 @@ public:
 	explicit Handler(ServerService *service, QObject *parent = nullptr);
 	virtual ~Handler();
 
-	std::weak_ptr<QHttpServer> httpServer() const;
+	QHttpServer* httpServer() const;
 	bool loadRoutes();
 
 	std::optional<Credential> authorizeRequest(const QHttpServerRequest &request) const;

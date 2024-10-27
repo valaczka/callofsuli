@@ -66,7 +66,7 @@ Handler::~Handler()
  * @return
  */
 
-std::weak_ptr<QHttpServer> Handler::httpServer() const
+QHttpServer *Handler::httpServer() const
 {
 	const auto &ptr = m_service->webServer().lock().get();
 
@@ -89,7 +89,7 @@ bool Handler::loadRoutes()
 {
 	LOG_CTRACE("service") << "Load routes";
 
-	auto server = httpServer().lock().get();
+	auto server = httpServer();
 
 	if (!server)
 		return false;
@@ -104,7 +104,7 @@ bool Handler::loadRoutes()
 	});
 
 
-	server->setMissingHandler([this](const QHttpServerRequest &request, QHttpServerResponder &&responder){
+	server->setMissingHandler(server, [this](const QHttpServerRequest &request, QHttpServerResponder &responder){
 		const QString &callbackPath = QStringLiteral("/")+OAuth2Authenticator::callbackPath()+QStringLiteral("/");
 		const QString &requestPath = request.url().path();
 
@@ -116,8 +116,6 @@ bool Handler::loadRoutes()
 		} else
 			responder.sendResponse(std::move(getStaticContent(request)));
 	});
-
-	server->afterRequest([] (QHttpServerResponse &&resp) { return std::move(resp); });
 
 
 	// Load APIs

@@ -56,7 +56,7 @@ public:
 	const QString &redirectHost() const;
 	void setRedirectHost(const QString &newRedirectHost);
 
-	std::weak_ptr<QHttpServer> server() const;
+	QHttpServer* server() const;
 
 	Handler* handler() const;
 
@@ -66,8 +66,9 @@ private slots:
 private:
 	ServerService *const m_service;
 	QString m_redirectHost;
-	std::shared_ptr<QHttpServer> m_server;
+	std::unique_ptr<QHttpServer> m_server;
 	std::unique_ptr<Handler> m_handler;
+	std::unique_ptr<QTcpServer> m_tcpServer;
 };
 
 #endif // WEBSERVER_H

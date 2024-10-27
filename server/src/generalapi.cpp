@@ -38,7 +38,7 @@
 GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 	: AbstractAPI("general", handler, service)
 {
-	auto server = m_handler->httpServer().lock().get();
+	auto server = m_handler->httpServer();
 
 	Q_ASSERT(server);
 

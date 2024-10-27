@@ -70,7 +70,7 @@ bool WebServer::start()
 {
 	ServerSettings *settings = m_service->settings();
 
-	m_server = std::make_shared<QHttpServer>(this);
+	m_server.reset(new QHttpServer);
 
 	m_handler->loadRoutes();
 
@@ -94,13 +94,27 @@ bool WebServer::start()
 			return false;
 		}
 
-		m_server->sslSetup(configuration.value());
+
+		QSslServer *s = new QSslServer;
+		s->setSslConfiguration(configuration.value());
+		m_tcpServer.reset(s);
+
+	} else {
+		m_tcpServer.reset(new QTcpServer);
 	}
+
+
+	Q_ASSERT(m_tcpServer);
 
 	// Listen
 
-	if (!m_server->listen(settings->listenAddress(), settings->listenPort()))	{
+	if (!m_tcpServer->listen(settings->listenAddress(), settings->listenPort()))	{
 		LOG_CERROR("service") << "Can't listening on host " << settings->listenAddress() << " port " << settings->listenPort();
+		return false;
+	}
+
+	if (!m_server->bind(m_tcpServer.get())) {
+		LOG_CERROR("service") << "Can't bind QTcpServer";
 		return false;
 	}
 
@@ -216,9 +230,9 @@ void WebServer::setRedirectHost(const QString &newRedirectUrl)
  * @return
  */
 
-std::weak_ptr<QHttpServer> WebServer::server() const
+QHttpServer *WebServer::server() const
 {
-	return m_server;
+	return m_server.get();
 }
 
 Handler* WebServer::handler() const

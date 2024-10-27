@@ -50,7 +50,7 @@
 AdminAPI::AdminAPI(Handler *handler, ServerService *service)
 	: AbstractAPI("admin", handler, service)
 {
-	auto server = m_handler->httpServer().lock().get();
+	auto server = m_handler->httpServer();
 
 	Q_ASSERT(server);
 

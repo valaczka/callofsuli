@@ -1012,7 +1012,7 @@ bool ServerService::start()
 
 
 	AdminAPI::zapWallet(m_databaseMain.get());
-	AdminAPI::fillCurrency(m_databaseMain.get());
+	//AdminAPI::fillCurrency(m_databaseMain.get());
 
 	if (!m_createToken.isEmpty()) {
 		if (const auto &cred = AuthAPI::getCredential(m_databaseMain.get(), m_createToken)) {
