@@ -1,5 +1,9 @@
 include(common.pri)
 
+!versionAtLeast(QT_VERSION, 6.8): {
+	error(Qt 6.8 required)
+}
+
 TEMPLATE = subdirs
 
 server_lib.file = lib/lib_server.pro

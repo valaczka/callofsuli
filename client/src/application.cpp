@@ -62,6 +62,7 @@
 #include "tiledobject.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
+#include "tiledvisualitem.h"
 #include "userimporter.h"
 #include "userloglist.h"
 #include "utils_.h"
@@ -82,6 +83,12 @@
 #include "gamequestion.h"
 #include "mapplay.h"
 #include "httpconnection.h"
+
+// IOS bug
+
+#ifdef Q_OS_IOS
+#include <QtQuickEffects/6.8.0/QtQuickEffects/private/qgfxsourceproxy_p.h>
+#endif
 
 
 
@@ -454,11 +461,18 @@ void Application::registerQmlTypes()
 	qmlRegisterType<RpgGame>("CallOfSuli", 1, 0, "RpgGameImpl");
 	qmlRegisterType<TiledObject>("CallOfSuli", 1, 0, "TiledObjectImpl");
 	qmlRegisterType<TiledScene>("CallOfSuli", 1, 0, "TiledSceneImpl");
+	qmlRegisterType<TiledVisualItem>("CallOfSuli", 1, 0, "TiledVisualItemImpl");
 	qmlRegisterType<TiledSpriteHandler>("CallOfSuli", 1, 0, "TiledSpriteHandlerImpl");
 	qmlRegisterType<User>("CallOfSuli", 1, 0, "User");
 	qmlRegisterType<UserImporter>("CallOfSuli", 1, 0, "UserImporter");
 	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
 	qmlRegisterType<UserLogList>("CallOfSuli", 1, 0, "UserLogListImpl");
+
+	// IOS bug
+
+#ifdef Q_OS_IOS
+	qmlRegisterType<QGfxSourceProxy>(QByteArrayLiteral("Qt5Compat.GraphicalEffects.private"), 1, 0, "SourceProxy");
+#endif
 }
 
 /**

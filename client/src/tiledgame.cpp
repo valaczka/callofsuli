@@ -230,6 +230,8 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 		loadObjectLayer(scene, group, renderer);
 	} else if (Tiled::GroupLayer *group = layer->asGroupLayer()) {
 		loadGroupLayer(scene, group, renderer);
+	} else if (Tiled::ImageLayer *image= layer->asImageLayer()) {
+		loadImageLayer(scene, image, renderer);
 	}
 
 	return nullptr;
@@ -641,6 +643,19 @@ void TiledGame::loadObjectLayer(TiledScene *, Tiled::MapObject *, const QString 
  */
 
 void TiledGame::loadGroupLayer(TiledScene *, Tiled::GroupLayer *, Tiled::MapRenderer *)
+{
+	LOG_CERROR("game") << "Missing implementation:" << __PRETTY_FUNCTION__;
+}
+
+
+/**
+ * @brief TiledGame::loadImageLayer
+ * @param scene
+ * @param image
+ * @param renderer
+ */
+
+void TiledGame::loadImageLayer(TiledScene *, Tiled::ImageLayer *, Tiled::MapRenderer *)
 {
 	LOG_CERROR("game") << "Missing implementation:" << __PRETTY_FUNCTION__;
 }
@@ -1217,6 +1232,9 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
 		return true;
 	}
 
+	if (!transportBeforeEvent(object, transport))
+		return false;
+
 	TiledScene *oldScene = object->scene();
 	TiledScene *newScene = transportBase ? transport->otherScene(transportBase) : transport->otherScene(oldScene);
 	TiledObjectBase *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
@@ -1226,9 +1244,6 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
 		LOG_CERROR("game") << "Broken transport object";
 		return false;
 	}
-
-	if (!transportBeforeEvent(object, transport))
-		return false;
 
 	if (!transport->isOpen())
 		return false;

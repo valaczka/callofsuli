@@ -226,5 +226,6 @@
         <file>PageTeacherExamShowJoker.qml</file>
         <file>TiledSceneEffectRain.qml</file>
         <file>TiledSceneEffectSnow.qml</file>
+        <file>TiledImage.qml</file>
     </qresource>
 </RCC>

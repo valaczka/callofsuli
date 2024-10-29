@@ -47,6 +47,7 @@
 #include <QRandomGenerator>
 #include "tiledcontainer.h"
 #include "tiledspritehandler.h"
+#include <libtiled/imagelayer.h>
 
 #ifndef Q_OS_WASM
 #include "rpgcoin.h"
@@ -847,6 +848,25 @@ void RpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const
 		return loadEnemy(scene, object, renderer);
 	else if (groupClass == QStringLiteral("pickable"))
 		return loadPickable(scene, object, renderer);
+}
+
+
+/**
+ * @brief RpgGame::loadImageLayer
+ * @param scene
+ * @param image
+ * @param renderer
+ */
+
+void RpgGame::loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(scene);
+	Q_ASSERT(image);
+	Q_ASSERT(renderer);
+
+	LOG_CDEBUG("scene") << "Add image layer" << image->imageSource() << image->name();
+
+	scene->addVisualItem(image);
 }
 
 

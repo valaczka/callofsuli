@@ -26,19 +26,20 @@
 
 #include "tiledscene.h"
 #include "Logger.h"
-#include "maprenderer.h"
 #include "tiledobject.h"
+#include "tiledvisualitem.h"
 #include "tilelayeritem.h"
 #include "tiledgame.h"
 #include "tilesetmanager.h"
 #include "isometricobjectiface.h"
 #include "application.h"
-#include "utils_.h"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
 #include <libtiled/grouplayer.h>
 #include <libtiled/mapreader.h>
+#include <libtiled/imagelayer.h>
+#include <libtiled/maprenderer.h>
 
 TiledScene::TiledScene(QQuickItem *parent)
 	: TiledQuick::MapItem(parent)
@@ -80,8 +81,8 @@ TiledScene::~TiledScene()
 	}
 
 
-	qDeleteAll(mTileLayerItems);
-	mTileLayerItems.clear();
+	qDeleteAll(m_visualItems);
+	m_visualItems.clear();
 	m_dynamicZList.clear();
 
 	LOG_CTRACE("scene") << "Scene destroyed" << this;
@@ -368,9 +369,11 @@ void TiledScene::reorderObjectsZ()
 
 void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 {
-	for (auto *mapItem : mTileLayerItems) {
-		if (mapItem->tileLayer()->usedTilesets().contains(tileset->sharedPointer())) {
-			mapItem->update();
+	for (auto *item : m_visualItems) {
+		if (TiledQuick::TileLayerItem *mapItem = qobject_cast<TiledQuick::TileLayerItem *>(item)) {
+			if (mapItem->tileLayer()->usedTilesets().contains(tileset->sharedPointer())) {
+				mapItem->update();
+			}
 		}
 	}
 }
@@ -391,7 +394,7 @@ TiledQuick::TileLayerItem *TiledScene::addTileLayer(Tiled::TileLayer *layer, Til
 	Q_ASSERT(renderer);
 
 	TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(layer, renderer, this);
-	mTileLayerItems.append(layerItem);
+	m_visualItems.append(layerItem);
 
 	if (layer->hasProperty(QStringLiteral("z"))) {
 		layerItem->setZ(layer->property(QStringLiteral("z")).toInt());
@@ -416,6 +419,7 @@ QQuickItem *TiledScene::addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRe
 	Q_ASSERT(layer);
 	Q_ASSERT(renderer);
 
+	LOG_CERROR("scene") << "DEPRECATED" << __PRETTY_FUNCTION__;
 
 	TiledQuick::TileLayerItem *layerItem = addTileLayer(layer, renderer);
 
@@ -438,6 +442,64 @@ QQuickItem *TiledScene::addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRe
 	item->setProperty("baseItem", QVariant::fromValue(layerItem));
 
 	return item;
+}
+
+
+/**
+ * @brief TiledScene::addVisualItem
+ * @return
+ */
+
+TiledVisualItem *TiledScene::addVisualItem()
+{
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledImage.qml"), this);
+
+	auto img = qobject_cast<TiledVisualItem*>(component.create());
+
+	if (!img) {
+		LOG_CERROR("scene") << "TiledVisualItem create error" << component.errorString();
+		return nullptr;
+	}
+
+	img->setParentItem(this);
+	img->setParent(this);
+	img->setScene(this);
+
+	m_visualItems.append(img);
+
+	return img;
+}
+
+
+
+
+/**
+ * @brief TiledScene::addVisualItem
+ * @param layer
+ * @return
+ */
+
+TiledVisualItem *TiledScene::addVisualItem(Tiled::ImageLayer *layer)
+{
+	TiledVisualItem *img = addVisualItem();
+
+	if (!img)
+		return nullptr;
+
+	if (!layer)
+		return img;
+
+	img->setPosition(layer->position() + layer->offset());
+	img->setSource(layer->imageSource());
+	img->setName(layer->name());
+
+	if (layer->hasProperty(QStringLiteral("z"))) {
+		img->setZ(layer->property(QStringLiteral("z")).toInt());
+	} else {
+		img->setZ(0);
+	}
+
+	return img;
 }
 
 
@@ -509,8 +571,8 @@ void TiledScene::refresh()
 	if (!isComponentComplete())
 		return;
 
-	qDeleteAll(mTileLayerItems);
-	mTileLayerItems.clear();
+	qDeleteAll(m_visualItems);
+	m_visualItems.clear();
 	m_dynamicZList.clear();
 
 	mRenderer = nullptr;
@@ -595,25 +657,37 @@ void TiledScene::setTileLayersZ()
 {
 	int i=2;
 
-	for (TiledQuick::TileLayerItem *layerItem : mTileLayerItems) {
-		if (Tiled::TileLayer *layer = layerItem->tileLayer()) {
-			const QString &name = layer->name();
+	for (QQuickItem *item : m_visualItems) {
+		QString name;
+		int dynamicZ = -1;
 
-			auto it = std::find_if(m_dynamicZList.begin(), m_dynamicZList.end(), [&name](const DynamicZ &d) {
-				return (d.name == name);
-			});
-
-			if (it != m_dynamicZList.end()) {
+		if (TiledQuick::TileLayerItem *layerItem = qobject_cast<TiledQuick::TileLayerItem *>(item)) {
+			if (Tiled::TileLayer *layer = layerItem->tileLayer()) {
+				name = layer->name();
 				if (layer->hasProperty(QStringLiteral("dynamicZ"))) {
-					i = std::max(i, layer->property(QStringLiteral("dynamicZ")).toInt());
+					dynamicZ = layer->property(QStringLiteral("dynamicZ")).toInt();
 				}
-				layerItem->setZ(i);
-				it->z = i;
-				++i;
-			} else {
-				LOG_CTRACE("scene") << "Skip from dynamicZ" << name << layerItem->z();
 			}
+		} else if (TiledVisualItem *visualItem = qobject_cast<TiledVisualItem *>(item)) {
+			name = visualItem->name();
+			if (visualItem->dynamicZ() != -1) {
+				dynamicZ = visualItem->dynamicZ();
+			}
+		}
 
+		auto it = std::find_if(m_dynamicZList.begin(), m_dynamicZList.end(), [&name](const DynamicZ &d) {
+			return (d.name == name);
+		});
+
+		if (it != m_dynamicZList.end()) {
+			if (dynamicZ != -1) {
+				i = std::max(i, dynamicZ);
+			}
+			item->setZ(i);
+			it->z = i;
+			++i;
+		} else {
+			LOG_CTRACE("scene") << "Skip from dynamicZ" << name << item->z();
 		}
 	}
 }

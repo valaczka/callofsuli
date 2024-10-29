@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets
+QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets core5compat
 
 CONFIG += c++2a
 CONFIG += separate_debug_info
@@ -18,8 +18,6 @@ DESTDIR = ../..
 QML_IMPORT_PATH += $$PWD/../qml
 QML2_IMPORT_PATH += $$PWD/../qml
 QMLPATHS += $$PWD/../qml
-
-QT += core5compat
 
 linux|win32|macx:!android: QT += pdf
 
@@ -167,6 +165,21 @@ ios {
 	QMAKE_BUNDLE_DATA += app_privacy_declarations
 
 	SOURCES += sound_helper.mm
+
+	LIBS += -L$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg -lavcodec -lavformat -lavutil -lswresample -lswscale
+
+	dyffmpeg.files = \
+		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavcodec.61.dylib \
+		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavformat.61.dylib \
+		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavutil.59.dylib \
+		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswresample.5.dylib \
+		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswscale.8.dylib
+
+
+	dyffmpeg.path = Frameworks
+	QMAKE_BUNDLE_DATA += dyffmpeg
+
+	QMAKE_LFLAGS += -rpath @executable_path
 }
 
 
@@ -239,6 +252,7 @@ SOURCES += \
 	rpgcontrolgroupcontainer.cpp \
 	rpgcontrolgroupoverlay.cpp \
 	rpgcontrolgroupsave.cpp \
+	rpgcontrolgroupstate.cpp \
 	rpgdagger.cpp \
 	rpgenemybase.cpp \
 	rpgfireball.cpp \
@@ -285,6 +299,7 @@ SOURCES += \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
 	tiledtransport.cpp \
+	tiledvisualitem.cpp \
 	tiledweapon.cpp \
 	updater.cpp \
 	user.cpp \
@@ -352,6 +367,7 @@ HEADERS += \
 	rpgcontrolgroupcontainer.h \
 	rpgcontrolgroupoverlay.h \
 	rpgcontrolgroupsave.h \
+	rpgcontrolgroupstate.h \
 	rpgdagger.h \
 	rpgenemybase.h \
 	rpgenemyiface.h \
@@ -400,6 +416,7 @@ HEADERS += \
 	tiledscene.h \
 	tiledspritehandler.h \
 	tiledtransport.h \
+	tiledvisualitem.h \
 	tiledweapon.h \
 	updater.h \
 	user.h \

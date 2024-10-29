@@ -29,7 +29,6 @@
 
 #include "box2dworld.h"
 #include "libtiledquick/mapitem.h"
-#include "libtiledquick/maploader.h"
 #include "tiledobject.h"
 #include <QQuickItem>
 #include <QElapsedTimer>
@@ -40,6 +39,14 @@ class TiledGame;
 #ifndef OPAQUE_PTR_TiledGame
 #define OPAQUE_PTR_TiledGame
 Q_DECLARE_OPAQUE_POINTER(TiledGame*)
+#endif
+
+
+class TiledVisualItem;
+
+#ifndef OPAQUE_PTR_TiledVisualItem
+#define OPAQUE_PTR_TiledVisualItem
+Q_DECLARE_OPAQUE_POINTER(TiledVisualItem*)
 #endif
 
 
@@ -103,6 +110,8 @@ public:
 
 	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 	QQuickItem *addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
+	TiledVisualItem *addVisualItem();
+	TiledVisualItem *addVisualItem(Tiled::ImageLayer *layer);
 
 	Q_INVOKABLE int getDynamicZ(const QPointF &point, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(const qreal &x, const qreal &y, const int &defaultValue = 1) const;
@@ -158,6 +167,8 @@ signals:
 
 protected:
 	virtual void refresh() override;
+
+	QList<QQuickItem*> m_visualItems;
 
 	//std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Tiled::Map> m_map;

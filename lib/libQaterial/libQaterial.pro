@@ -5,6 +5,8 @@ INCLUDEPATH += \
 CONFIG += c++17 static
 CONFIG += separate_debug_info
 
+QT += gui quick qml core5compat
+
 TEMPLATE = lib
 
 android: TARGET = Qaterial_$${QT_ARCH}
