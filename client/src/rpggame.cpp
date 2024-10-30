@@ -26,6 +26,7 @@
 
 #include "rpgarrow.h"
 #include "rpgcontrolgroupcontainer.h"
+#include "rpgcontrolgroupdoor.h"
 #include "rpgcontrolgroupoverlay.h"
 #include "rpgcontrolgroupsave.h"
 #include "rpgenemybase.h"
@@ -880,9 +881,9 @@ void RpgGame::loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled:
  * @return
 */
 
-TiledObjectBasePolygon *RpgGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+TiledObjectBasePolygon *RpgGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
 {
-	TiledObjectBasePolygon *p = TiledGame::loadGround(scene, object, renderer);
+	TiledObjectBasePolygon *p = TiledGame::loadGround(scene, object, renderer, translate);
 
 	if (object->hasProperty(QStringLiteral("sound")) && p) {
 		addLocationSound(p, object->propertyAsString(QStringLiteral("sound")));
@@ -1056,6 +1057,52 @@ bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/,
 		player->setCurrentSceneStartPosition(newObject->body()->bodyPosition());
 		player->m_currentTransportBase = newObject;
 	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgGame::transportDoor
+ * @param object
+ * @param transport
+ * @return
+ */
+
+bool RpgGame::transportDoor(TiledObject *object, TiledTransport *transport)
+{
+	Q_ASSERT(object);
+	Q_ASSERT(transport);
+
+	if (!transport->isOpen())
+		return false;
+
+	const auto &it = std::find_if(m_controlGroups.cbegin(), m_controlGroups.cend(),
+								  [transport](const std::unique_ptr<RpgControlGroup> &ptr) {
+		RpgControlGroupDoor *door = dynamic_cast<RpgControlGroupDoor*>(ptr.get());
+		if (!door)
+			return false;
+
+		return door->transport() == transport;
+	}
+	);
+
+	if (it == m_controlGroups.cend()) {
+		LOG_CERROR("game") << "Door not found" << transport->name();
+		return false;
+	}
+
+	RpgControlGroupDoor *door = dynamic_cast<RpgControlGroupDoor*>(it->get());
+
+	Q_ASSERT(door);
+
+	if (door->openState() == RpgControlGroupDoor::StateOpened)
+		door->doorClose();
+	else if (door->openState() == RpgControlGroupDoor::StateClosed)
+		door->doorOpen();
+	else
+		return false;
 
 	return true;
 }

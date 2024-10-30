@@ -259,18 +259,32 @@ bool TiledObjectBase::rotateBody(const float32 &desiredRadian)
 	if (!m_sensorPolygon)
 		return false;
 
-	const float32 currentAngle = m_body->body()->GetAngle();
+	const float32 desiredNormal = normalizeFromRadian(desiredRadian);
+	m_rotateAnimation.running = false;
+	m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(desiredNormal) );
+	m_body->setAwake(true);
+	return true;
+
+	// REMOVED...
+
+/*	const float32 currentAngle = m_body->body()->GetAngle();
 
 
 	if (qFuzzyCompare(desiredRadian, currentAngle)) {
-		if (m_rotateAnimation.running) {
-			m_rotateAnimation.running = false;
-		}
+		m_rotateAnimation.running = false;
 		return false;
 	}
 
 	const float32 currentNormal = normalizeFromRadian(currentAngle);
 	const float32 desiredNormal = normalizeFromRadian(desiredRadian);
+
+	if (std::abs(desiredRadian - currentAngle) < M_PI_4*.5) {
+		m_rotateAnimation.running = false;
+		m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(desiredNormal) );
+		m_body->setAwake(true);
+		return true;
+	}
+
 
 
 	if (!qFuzzyCompare(m_rotateAnimation.destAngle, desiredRadian) || !m_rotateAnimation.running) {
@@ -318,7 +332,7 @@ bool TiledObjectBase::rotateBody(const float32 &desiredRadian)
 	m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(newAngle) );
 	m_body->setAwake(true);
 
-	return true;
+	return true;*/
 }
 
 
@@ -389,6 +403,11 @@ void TiledObjectBase::onSceneVisibleAreaChanged()
 	QRectF rect(x(), y(), width(), height());
 
 	setInVisibleArea(m_scene->visibleArea().intersects(rect));
+}
+
+void TiledObjectBase::stopRotateAnimation()
+{
+	m_rotateAnimation.running = false;
 }
 
 QString TiledObjectBase::displayName() const
@@ -740,6 +759,7 @@ void TiledObject::rotateToPoint(const QPointF &point, float32 *anglePtr, qreal *
 	setCurrentDirection(nearestDirectionFromRadian(angle));
 	m_body->body()->SetTransform(m_body->body()->GetPosition(), angle);
 	m_body->setAwake(true);
+	stopRotateAnimation();
 
 	if (anglePtr)
 		*anglePtr = angle;
@@ -1267,6 +1287,7 @@ void TiledObjectBody::stop()
 {
 	setLinearVelocity(QPointF{0,0});
 	setAngularVelocity(0.);
+	m_baseObject->stopRotateAnimation();
 	///setIsRunning(false);
 }
 

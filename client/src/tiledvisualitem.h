@@ -102,7 +102,6 @@ private:
 	bool m_overlayEnabled = false;
 	QColor m_overlayColor;
 	TiledScene *m_scene = nullptr;
-	QTimer m_tmpTimer;
 	QString m_name;
 	int m_dynamicZ = -1;
 };

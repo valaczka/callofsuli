@@ -250,9 +250,9 @@ SOURCES += \
 	rpgcoin.cpp \
 	rpgcontrolgroup.cpp \
 	rpgcontrolgroupcontainer.cpp \
+	rpgcontrolgroupdoor.cpp \
 	rpgcontrolgroupoverlay.cpp \
 	rpgcontrolgroupsave.cpp \
-	rpgcontrolgroupstate.cpp \
 	rpgdagger.cpp \
 	rpgenemybase.cpp \
 	rpgfireball.cpp \
@@ -365,6 +365,7 @@ HEADERS += \
 	rpgcoin.h \
 	rpgcontrolgroup.h \
 	rpgcontrolgroupcontainer.h \
+	rpgcontrolgroupdoor.h \
 	rpgcontrolgroupoverlay.h \
 	rpgcontrolgroupsave.h \
 	rpgcontrolgroupstate.h \

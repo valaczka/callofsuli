@@ -53,7 +53,8 @@ class TiledTransport : public QObject
 public:
 	enum TransportType {
 		TransportInvalid = 0,
-		TransportGate,
+		TransportGate,					// From one scene to other
+		TransportDoor,					// Simple door (or gate) in scene
 		TransportMarket
 	};
 
@@ -169,11 +170,11 @@ public:
 		: std::vector<std::unique_ptr<TiledTransport>>()
 	{}
 
-	bool add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName,
+	TiledTransport* add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName,
 			 const int &direction = -1, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
-	bool add(const TiledTransport::TransportType &type, const QString &name,
+	TiledTransport* add(const TiledTransport::TransportType &type, const QString &name,
 			 const int &direction = -1, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
-	bool add(const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
+	TiledTransport* add(const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
 
 	TiledTransport* find(const QString &name) const;
 	TiledTransport* find(const TiledScene *scene) const;

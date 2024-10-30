@@ -387,6 +387,7 @@ protected:
 	TiledObjectSensorPolygon *addSensorPolygon(const qreal &length = -1, const qreal &range = -1);
 	Box2DCircle *addTargetCircle(const qreal &radius);
 	virtual void onSceneVisibleAreaChanged();
+	void stopRotateAnimation();
 
 protected:
 	TiledGame *m_game = nullptr;

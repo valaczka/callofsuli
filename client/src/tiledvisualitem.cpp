@@ -30,14 +30,7 @@
 TiledVisualItem::TiledVisualItem(QQuickItem *parent)
 	: QQuickItem(parent)
 {
-	connect(&m_tmpTimer, &QTimer::timeout, this, [this](){
-		setGlowEnabled(!m_glowEnabled);
-	});
 
-	m_tmpTimer.setInterval(1000);
-	m_tmpTimer.start();
-
-	setGlowColor(QColor::fromString("red"));
 }
 
 QUrl TiledVisualItem::source() const

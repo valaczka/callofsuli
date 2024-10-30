@@ -471,7 +471,7 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
  * @return
  */
 
-TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
 {
 	Q_ASSERT(scene);
 	Q_ASSERT(object);
@@ -491,31 +491,23 @@ TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObjec
 	mapObject->fixture()->setRestitution(0);
 	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround));
 
+
+	QPointF delta;
+
+	if (!translate.isNull()) {
+		mapObject->body()->emplace(mapObject->body()->bodyPosition() + translate);
+		delta = renderer->screenToPixelCoords(renderer->tileToScreenCoords(0,0) + translate);
+	}
+
 	scene->m_groundObjects.append(QPointer(mapObject));
 
 	if (!object->name().isEmpty()) {
-		/*if (const QPolygonF &p = mapObject->screenPolygon(); !p.isEmpty()) {
-			TiledScene::DynamicZ dz;
-			dz.center = p.translated(mapObject->position()).boundingRect().center();
-
-			if (object->hasProperty(QStringLiteral("dynamicVertical")))
-				dz.vertical = object->property(QStringLiteral("dynamicVertical")).toBool();
-
-			if (object->hasProperty(QStringLiteral("dynamicHorizontal")))
-				dz.horizontal = object->property(QStringLiteral("dynamicHorizontal")).toBool();
-
-			//scene->m_dynamicZList[object->property(QStringLiteral("dynamicZ")).toInt()] = dz;
-
-			dz.name = object->name();
-			scene->appendTmpDynamicZ(dz);
-		}*/
-
 		switch (object->shape()) {
 			case Tiled::MapObject::Rectangle:
-				scene->appendDynamicZ(object->name(), object->bounds());
+				scene->appendDynamicZ(object->name(), object->bounds().translated(delta));
 				break;
 			case Tiled::MapObject::Polygon:
-				scene->appendDynamicZ(object->name(), object->polygon().translated(object->position()).boundingRect());
+				scene->appendDynamicZ(object->name(), object->polygon().translated(object->position()+delta).boundingRect());
 				break;
 			default:
 				LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
@@ -821,6 +813,71 @@ bool TiledGame::transportBeforeEvent(TiledObject */*object*/, TiledTransport */*
 bool TiledGame::transportAfterEvent(TiledObject */*object*/, TiledScene */*newScene*/, TiledObjectBase */*newObject*/)
 {
 	return true;
+}
+
+
+/**
+ * @brief TiledGame::transportMarket
+ * @return
+ */
+
+bool TiledGame::transportMarket()
+{
+	emit marketRequest();
+	return true;
+}
+
+
+/**
+ * @brief TiledGame::transportGate
+ * @param object
+ * @param transport
+ * @return
+ */
+
+bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase)
+{
+	Q_ASSERT(object);
+	Q_ASSERT(transport);
+	Q_ASSERT(transportBase);
+
+	TiledScene *oldScene = object->scene();
+	TiledScene *newScene = transportBase ? transport->otherScene(transportBase) : transport->otherScene(oldScene);
+	TiledObjectBase *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
+	const int newDirection = transportBase ? transport->otherDirection(transportBase) : -1;
+
+	if (!newScene || !newObject) {
+		LOG_CERROR("game") << "Broken transport object";
+		return false;
+	}
+
+	if (!transport->isOpen())
+		return false;
+
+	changeScene(object, oldScene, newScene, newObject->body()->bodyPosition());
+
+	if (newDirection != -1)
+		object->setCurrentDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
+
+	if (!transportAfterEvent(object, newScene, newObject))
+		return false;
+
+	setCurrentScene(newScene);
+
+	return true;
+}
+
+
+/**
+ * @brief TiledGame::transportDoor
+ * @param object
+ * @param transport
+ * @return
+ */
+
+bool TiledGame::transportDoor(TiledObject */*object*/, TiledTransport */*transport*/)
+{
+	return false;
 }
 
 
@@ -1211,6 +1268,17 @@ const TiledTransportList &TiledGame::transportList() const
 }
 
 
+/**
+ * @brief TiledGame::transportList
+ * @return
+ */
+
+TiledTransportList &TiledGame::transportList()
+{
+	return m_transportList;
+}
+
+
 
 
 /**
@@ -1228,35 +1296,23 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
 		return false;
 
 	if (transport->type() == TiledTransport::TransportMarket) {
-		emit marketRequest();
-		return true;
+		return transportMarket();
 	}
 
 	if (!transportBeforeEvent(object, transport))
 		return false;
 
-	TiledScene *oldScene = object->scene();
-	TiledScene *newScene = transportBase ? transport->otherScene(transportBase) : transport->otherScene(oldScene);
-	TiledObjectBase *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
-	const int newDirection = transportBase ? transport->otherDirection(transportBase) : -1;
+	switch (transport->type()) {
+		case TiledTransport::TransportGate:
+			return transportGate(object, transport, transportBase);
 
-	if (!newScene || !newObject) {
-		LOG_CERROR("game") << "Broken transport object";
-		return false;
+		case TiledTransport::TransportDoor:
+			return transportDoor(object, transport);
+
+		case TiledTransport::TransportInvalid:
+		case TiledTransport::TransportMarket:
+			return false;
 	}
-
-	if (!transport->isOpen())
-		return false;
-
-	changeScene(object, oldScene, newScene, newObject->body()->bodyPosition());
-
-	if (newDirection != -1)
-		object->setCurrentDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
-
-	if (!transportAfterEvent(object, newScene, newObject))
-		return false;
-
-	setCurrentScene(newScene);
 
 	return true;
 }
@@ -1621,10 +1677,10 @@ bool TiledGame::loadTextureSprites(TiledSpriteHandler *handler, const QVector<Te
  */
 
 TextureSprite TiledGame::spriteFromMapper(const QVector<TextureSpriteMapper> &mapper,
-										const TextureSpriteDef &def,
-										const QString &name,
-										const TiledObject::Direction &direction,
-										const int &maxCount)
+										  const TextureSpriteDef &def,
+										  const QString &name,
+										  const TiledObject::Direction &direction,
+										  const int &maxCount)
 {
 	TextureSprite sprite;
 	sprite.name = name;
@@ -1735,7 +1791,7 @@ QVector<TiledObject::Direction> TiledGame::directionsFromMapper(const QVector<Te
  */
 
 bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector<TextureSpriteDirection> &sprites, const QString &source,
-									const QString &layer)
+									  const QString &layer)
 {
 	Q_ASSERT(handler);
 
@@ -1759,7 +1815,7 @@ bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector
  */
 
 bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector<TextureSprite> &sprites, const QString &source,
-									const QString &layer)
+									  const QString &layer)
 {
 	Q_ASSERT(handler);
 

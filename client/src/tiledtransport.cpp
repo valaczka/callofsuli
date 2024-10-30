@@ -53,6 +53,7 @@ TiledTransport::TransportType TiledTransport::typeFromString(const QString &str)
 {
 	static const QHash<QString, TransportType> hash = {
 		{ QStringLiteral("gate"), TransportGate },
+		{ QStringLiteral("door"), TransportDoor },
 		{ QStringLiteral("market"), TransportMarket }
 	};
 
@@ -334,17 +335,17 @@ void TiledTransport::setDirectionB(int newDirectionB)
  * @return
  */
 
-bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName, const int &direction,
+TiledTransport *TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName, const int &direction,
 							 TiledScene *scene, TiledObjectBase *object)
 {
 	if (name.isEmpty()) {
 		LOG_CERROR("scene") << "Transport name missing";
-		return false;
+		return nullptr;
 	}
 
 	if (find(object)) {
 		LOG_CERROR("scene") << "Transport object already registered";
-		return false;
+		return nullptr;
 	}
 
 	TiledTransport *base = this->find(name);
@@ -356,11 +357,11 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
 		if (direction != -1.)
 			t->setDirectionA(direction);
 		this->emplace_back(t);
-		return true;
+		return t;
 	} else {
 		if (direction != -1.)
 			base->setDirectionB(direction);
-		return base->addObject(scene, object);
+		return base->addObject(scene, object) ? base : nullptr;
 	}
 }
 
@@ -375,7 +376,7 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
  * @return
  */
 
-bool TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const int &direction, TiledScene *scene, TiledObjectBase *object)
+TiledTransport *TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const int &direction, TiledScene *scene, TiledObjectBase *object)
 {
 	return add(type, name, QStringLiteral(""), direction, scene, object);
 }
@@ -391,7 +392,7 @@ bool TiledTransportList::add(const TiledTransport::TransportType &type, const QS
  * @return
  */
 
-bool TiledTransportList::add(const QString &name, TiledScene *scene, TiledObjectBase *object)
+TiledTransport *TiledTransportList::add(const QString &name, TiledScene *scene, TiledObjectBase *object)
 {
 	return add (TiledTransport::TransportInvalid, name, -1, scene, object);
 }

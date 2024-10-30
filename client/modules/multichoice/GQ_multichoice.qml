@@ -167,23 +167,23 @@ GameQuestionComponentImpl {
 			return
 		}
 
-		else if (key === Qt.Key_1 || key === Qt.Key_A)
+		else if (key === Qt.Key_1)
 			i = 0
-		else if (key === Qt.Key_2 || key === Qt.Key_B)
+		else if (key === Qt.Key_2)
 			i = 1
-		else if (key === Qt.Key_3 || key === Qt.Key_C)
+		else if (key === Qt.Key_3)
 			i = 2
-		else if (key === Qt.Key_4 || key === Qt.Key_D)
+		else if (key === Qt.Key_4)
 			i = 3
-		else if (key === Qt.Key_5 || key === Qt.Key_E)
+		else if (key === Qt.Key_5)
 			i = 4
-		else if (key === Qt.Key_6 || key === Qt.Key_F)
+		else if (key === Qt.Key_6)
 			i = 5
-		else if (key === Qt.Key_7 || key === Qt.Key_G)
+		else if (key === Qt.Key_7)
 			i = 6
-		else if (key === Qt.Key_8 || key === Qt.Key_H)
+		else if (key === Qt.Key_8)
 			i = 7
-		else if (key === Qt.Key_9 || key === Qt.Key_I)
+		else if (key === Qt.Key_9)
 			i = 8
 
 		var idx = selectedItems.indexOf(i)

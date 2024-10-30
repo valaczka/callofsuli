@@ -221,6 +221,9 @@ public:
 	static void saveTerrainInfo();
 	static std::optional<RpgMarket> saveTerrainInfo(const RpgGameDefinition &def);
 
+	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+											   const QPointF &translate = {}) override;
+
 	virtual void onSceneWorldStepped(TiledScene *scene) override;
 
 	void useBullet(const RpgPickableObject::PickableType &type);
@@ -299,12 +302,12 @@ protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer) override;
-	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
 
 	bool transportBeforeEvent(TiledObject *object, TiledTransport *transport) override;
 	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject) override;
+	bool transportDoor(TiledObject *object, TiledTransport *transport) override;
 
 private:
 	void loadMetricDefinition();

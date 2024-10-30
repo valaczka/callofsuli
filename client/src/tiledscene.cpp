@@ -255,7 +255,7 @@ void TiledScene::stopMusic()
 bool TiledScene::isGroundContainsPoint(const QPointF &point) const
 {
 	for (TiledObjectBasePolygon *o : std::as_const(m_groundObjects)) {
-		if (o->fixture()->containsPoint(point))
+		if (o->body()->isActive() && o->fixture()->containsPoint(point))
 			return true;
 	}
 

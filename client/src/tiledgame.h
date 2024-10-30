@@ -127,6 +127,7 @@ public:
 	void setCurrentScene(TiledScene *newCurrentScene);
 
 	const TiledTransportList &transportList() const;
+	TiledTransportList &transportList();
 
 	bool transport(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase = nullptr);
 
@@ -158,6 +159,9 @@ public:
 	std::optional<QPointF> playerPosition(const int &sceneId, const int &num) const;
 	std::optional<QPointF> playerPosition(TiledScene *scene, const int &num) const;
 
+
+	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+											   const QPointF &translate = {});
 
 
 	// Sprite texture helper
@@ -261,7 +265,6 @@ signals:
 protected:
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
-	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void addPlayerPosition(TiledScene *scene, const QPointF &position);
@@ -278,8 +281,12 @@ protected:
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 	virtual void joystickStateEvent(const JoystickState &newJoystickState) { Q_UNUSED(newJoystickState);}
+
 	virtual bool transportBeforeEvent(TiledObject *object, TiledTransport *transport);
 	virtual bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject);
+	virtual bool transportMarket();
+	virtual bool transportGate(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase);
+	virtual bool transportDoor(TiledObject *object, TiledTransport *transport);
 
 
 protected:

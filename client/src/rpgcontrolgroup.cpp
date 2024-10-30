@@ -26,9 +26,9 @@
 
 #include "rpgcontrolgroup.h"
 #include "rpgcontrolgroupcontainer.h"
+#include "rpgcontrolgroupdoor.h"
 #include "rpgcontrolgroupoverlay.h"
 #include "rpgcontrolgroupsave.h"
-#include "rpgcontrolgroupstate.h"
 #include <libtiled/grouplayer.h>
 
 
@@ -60,8 +60,8 @@ RpgControlGroup *RpgControlGroup::fromGroupLayer(RpgGame *game, TiledScene *scen
 		return new RpgControlGroupContainer(game, scene, group, renderer);
 	else if (cname == QStringLiteral("save"))
 		return new RpgControlGroupSave(game, scene, group, renderer);
-	/*else if (cname == QStringLiteral("state"))
-		return new RpgControlGroupState(ControlGroupState, game, scene, group);*/
+	else if (cname == QStringLiteral("door"))
+		return new RpgControlGroupDoor(game, scene, group, renderer);
 
 
 	LOG_CWARNING("game") << "Invalid group layer:" << cname;

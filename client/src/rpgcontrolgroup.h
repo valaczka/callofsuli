@@ -38,7 +38,8 @@ public:
 		ControlGroupInvalid = 0,
 		ControlGroupOverlay,
 		ControlGroupContainer,
-		ControlGroupSave
+		ControlGroupSave,
+		ControlGroupDoor
 	};
 
 	RpgControlGroup(const Type &type, RpgGame *game, TiledScene *scene);

@@ -231,17 +231,17 @@ GameQuestionComponentImpl {
 
 						var n = -1
 
-						if (key === Qt.Key_1 || key === Qt.Key_A)
+						if (key === Qt.Key_1)
 						n = 0
-						else if (key === Qt.Key_2 || key === Qt.Key_B)
+						else if (key === Qt.Key_2)
 						n = 1
-						else if (key === Qt.Key_3 || key === Qt.Key_C)
+						else if (key === Qt.Key_3)
 						n = 2
-						else if (key === Qt.Key_4 || key === Qt.Key_D)
+						else if (key === Qt.Key_4)
 						n = 3
-						else if (key === Qt.Key_5 || key === Qt.Key_E)
+						else if (key === Qt.Key_5)
 						n = 4
-						else if (key === Qt.Key_6 || key === Qt.Key_F)
+						else if (key === Qt.Key_6)
 						n = 5
 
 						if (n < 0)
