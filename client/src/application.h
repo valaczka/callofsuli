@@ -56,10 +56,7 @@ public:
 
 	int run();
 
-	static int versionMajor();
-	static int versionMinor();
-	static int versionBuild();
-	static const char *version();
+	static const QVersionNumber version();
 	static bool debug();
 
 	static void initialize();
@@ -98,11 +95,6 @@ protected:
 
 	friend class Client;
 	friend class OnlineClient;
-
-	static const int m_versionMajor;
-	static const int m_versionMinor;
-	static const int m_versionBuild;
-	static const char* m_version;
 
 	CommandLine m_commandLine = Normal;
 	QString m_commandLineData;

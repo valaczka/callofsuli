@@ -33,6 +33,7 @@
 #include "tilesetmanager.h"
 #include "isometricobjectiface.h"
 #include "application.h"
+#include "libtcod/path.hpp"
 
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
@@ -143,6 +144,133 @@ bool TiledScene::load(const QUrl &url)
 }
 
 
+/**
+ * @brief TiledScene::findShortestPath
+ * @param from
+ * @param to
+ * @return
+ */
+
+std::optional<QPolygonF> TiledScene::findShortestPath(const QPointF &from, const QPointF &to) const
+{
+	return findShortestPath(from.x(), from.y(), to.x(), to.y());
+}
+
+
+
+/**
+ * @brief TiledScene::findShortestPath
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @return
+ */
+
+std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const
+{
+	if (!m_tcodMap.map)
+		return std::nullopt;
+
+	if (qFuzzyCompare(x1, x2) && qFuzzyCompare(y1, y2))
+		return std::nullopt;
+
+	TCODPath path(m_tcodMap.map.get());
+
+	const int chX1 = std::floor(x1/m_tcodMap.chunkWidth);
+	const int chX2 = std::floor(x2/m_tcodMap.chunkWidth);
+	const int chY1 = std::floor(y1/m_tcodMap.chunkHeight);
+	const int chY2 = std::floor(y2/m_tcodMap.chunkHeight);
+
+	if (!path.compute(chX1, chY1, chX2, chY2))
+		return std::nullopt;
+
+	QPolygonF polygon;
+
+	polygon << QPointF(x1, y1);
+
+	for (int i=0; i<path.size(); ++i) {
+		int x, y;
+		path.get(i, &x, &y);
+		polygon << QPointF(
+					   (x+0.5) * m_tcodMap.chunkWidth,
+					   (y+0.5) * m_tcodMap.chunkHeight
+					   );
+	}
+
+	polygon << QPointF(x2, y2);
+
+	/*
+	struct TmpPolygon {
+		int x = 0;
+		int y = 0;
+		QPointF point;
+		bool add = false;
+	};
+
+	QList<TmpPolygon> tmpPolygon;
+
+	static const auto fnCheck = [](const QRectF &area, const QLineF &line) -> bool {
+		return line.intersects(QLineF{area.topLeft(), area.topRight()}) == QLineF::BoundedIntersection ||
+				line.intersects(QLineF{area.topRight(), area.bottomRight()}) == QLineF::BoundedIntersection ||
+				line.intersects(QLineF{area.bottomLeft(), area.bottomRight()}) == QLineF::BoundedIntersection ||
+				line.intersects(QLineF{area.topLeft(), area.bottomLeft()}) == QLineF::BoundedIntersection
+				;
+	};
+
+	tmpPolygon.emplace_back(-1, -1, QPointF{x1, y1}, true);
+	int lastIndex = 1;
+
+	for (int i=0; i<=path.size(); ++i) {
+		QPointF currentPoint;
+		int x, y;
+
+		if (i < path.size()) {
+			path.get(i, &x, &y);
+
+			currentPoint.setX((x+0.5) * m_tcodMap.chunkWidth);
+			currentPoint.setY((y+0.5) * m_tcodMap.chunkHeight);
+		} else {
+			x = -1;
+			y = -1;
+			currentPoint.setX(x2);
+			currentPoint.setY(y2);
+		}
+
+		if (lastIndex < tmpPolygon.size()) {
+			QList<TmpPolygon>::iterator lastPtr = tmpPolygon.begin() + lastIndex;
+
+			const QLineF line(lastPtr->point, currentPoint);
+
+			int idx = lastIndex;
+
+			for (auto it = lastPtr; it != tmpPolygon.end(); ++it) {
+				const QRectF chunk(QPointF(m_tcodMap.chunkWidth * it->x, m_tcodMap.chunkHeight * it->y),
+								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight));
+
+				if (!fnCheck(chunk, line)) {
+					tmpPolygon.last().add = true;
+					lastIndex = idx+1;
+					break;
+				}
+
+				++idx;
+			}
+		}
+
+		tmpPolygon.emplace_back(x, y, currentPoint, i == path.size());
+	}
+
+	QPolygonF polygon;
+
+	for (const TmpPolygon &p : tmpPolygon) {
+		if (p.add)
+			polygon.append(p.point);
+	}
+	*/
+
+	return polygon;
+}
 
 /**
  * @brief TiledScene::appendToObjects
@@ -379,6 +507,46 @@ void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 }
 
 
+/**
+ * @brief TiledScene::reloadTcodMap
+ */
+
+void TiledScene::reloadTcodMap()
+{
+	m_tcodMap.map.reset();
+
+	static const qreal chunkSize = 30.;
+
+	const int wSize = std::ceil(m_viewport.width() / chunkSize);
+	const int hSize = std::ceil(m_viewport.height() / chunkSize);
+
+	LOG_CDEBUG("scene") << "Create tcod map" << wSize << hSize;
+
+	m_tcodMap.chunkWidth = m_viewport.width() / wSize;
+	m_tcodMap.chunkHeight = m_viewport.height() / hSize;
+
+	m_tcodMap.map.reset(new TCODMap(wSize, hSize));
+
+	Q_ASSERT(m_tcodMap.map.get());
+
+	m_tcodMap.map->clear(true, true);
+
+	for (int i=0; i<wSize; ++i) {
+		for (int j=0; j<hSize; ++j) {
+			QPolygonF chunk(QRectF(QPointF(m_tcodMap.chunkWidth*i, m_tcodMap.chunkHeight*j),
+								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight)));
+
+			for (TiledObjectBasePolygon *o : std::as_const(m_groundObjects)) {
+				if (o->body()->isActive() && chunk.intersects(o->screenPolygon().translated(o->body()->bodyPosition()))) {
+					m_tcodMap.map->setProperties(i, j, true, false);
+					break;
+				}
+			}
+		}
+	}
+}
+
+
 
 
 
@@ -595,6 +763,8 @@ void TiledScene::refresh()
 
 	if (m_viewport.isEmpty())
 		setViewport(rect);
+
+	reloadTcodMap();
 }
 
 

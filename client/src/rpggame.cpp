@@ -50,6 +50,9 @@
 #include "tiledspritehandler.h"
 #include <libtiled/imagelayer.h>
 
+#include <libtcod/path.hpp>
+#include <libtcod/fov.hpp>
+
 #ifndef Q_OS_WASM
 #include "rpgcoin.h"
 #include "standaloneclient.h"
@@ -128,19 +131,11 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 		return false;
 
 	if (!def.minVersion.isEmpty()) {
-		int vMaj = 0;
-		int vMin = 0;
-		QStringList vData = def.minVersion.split(QChar('.'), Qt::SkipEmptyParts);
-		if (vData.size() > 1) {
-			vMaj = vData.at(0).toInt();
-			vMin = vData.at(1).toInt();
-		} else if (vData.size()) {
-			vMaj = vData.at(0).toInt();
-		}
+		const QVersionNumber v = QVersionNumber::fromString(def.minVersion).normalized();
 
-		if (vMaj > 0 && Utils::versionCode(vMaj, vMin) > Utils::versionCode()) {
-			LOG_CWARNING("game") << "Required version:" << vMaj << vMin;
-			emit gameLoadFailed(tr("Szükséges verzió: %1.%2").arg(vMaj).arg(vMin));
+		if (!v.isNull() && v > Utils::versionNumber()) {
+			LOG_CWARNING("game") << "Required version:" << v.majorVersion() << v.minorVersion();
+			emit gameLoadFailed(tr("Szükséges verzió: %1.%2").arg(v.majorVersion()).arg(v.minorVersion()));
 			return false;
 		}
 	}
@@ -929,6 +924,7 @@ void RpgGame::joystickStateEvent(const JoystickState &state)
 	if (m_controlledPlayer)
 		m_controlledPlayer->onJoystickStateChanged(state);
 }
+
 
 
 /**
@@ -2502,14 +2498,21 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
  * @param y
  */
 
-void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
+void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers)
 {
 	if (!m_controlledPlayer)
 		return;
 
+	if (buttons.testAnyFlag(Qt::RightButton)) {
+		m_controlledPlayer->clearDestinationPoint();
+		return;
+	}
+
 #ifndef QT_NO_DEBUG
 	if (modifiers & Qt::AltModifier) {
+		m_controlledPlayer->clearDestinationPoint();
 		m_controlledPlayer->body()->emplace(x, y);
+		return;
 	}
 #endif
 
@@ -2529,7 +2532,18 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
 		else
 			m_controlledPlayer->m_pickAtDestination = false;
 
-		m_controlledPlayer->setDestinationPoint(x, y);
+		if (const auto &ptr = m_currentScene->findShortestPath(m_controlledPlayer->body()->bodyPosition(), QPointF(x,y))) {
+			m_controlledPlayer->setDestinationPoint(ptr.value());
+
+			if (!m_controlledPlayer->m_sfxAccept.soundList().isEmpty())
+				m_controlledPlayer->m_sfxAccept.playOne();
+
+		} else {
+			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())
+				m_controlledPlayer->m_sfxDecline.playOne();
+
+			m_controlledPlayer->clearDestinationPoint();
+		}
 	}
 }
 

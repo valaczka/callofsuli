@@ -79,14 +79,14 @@ private:
 		///m_enemy = nullptr;
 		m_contactedEnemies.clear();
 		m_reachedEnemies.clear();
-		m_destinationPoint.reset();
+		m_destinationMotor.reset();
 	}
 
 	QPointer<IsometricEnemy> m_enemy;
 	QList<QPointer<IsometricEnemy>> m_contactedEnemies;
 	QList<QPointer<IsometricEnemy>> m_reachedEnemies;
 
-	std::optional<QPointF> m_destinationPoint;
+	std::unique_ptr<TiledPathMotor> m_destinationMotor;
 
 	friend class IsometricPlayer;
 };
@@ -145,25 +145,36 @@ void IsometricPlayer::entityWorldStep(const qreal &factor)
 
 
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+		clearDestinationPoint();
 		m_body->stop();
 	} else {
-		if (d->m_destinationPoint) {
-			QLineF line(QPointF{0,0}, d->m_destinationPoint.value() - m_body->bodyPosition());
-			if (line.length() >= m_speedRunLength*factor) {
-				line.setLength(m_speedRunLength*factor);
-				m_body->setLinearVelocity(line.p2());
-				m_body->setIsRunning(true);
-			} else if (line.length() >= m_speedLength*factor) {
-				line.setLength(m_speedLength*factor);
-				m_body->setLinearVelocity(line.p2());
-				m_body->setIsRunning(false);
+		if (d->m_destinationMotor) {
+			if (const QPolygonF &polygon = d->m_destinationMotor->polygon(); !polygon.isEmpty()) {
+				QLineF line(QPointF{0,0}, polygon.last() - m_body->bodyPosition());
+
+				// Nem tudom, miért kell a 0.5-ös szorzó, de anélkül túl gyorsan fut...
+
+				if (line.length() >= m_speedRunLength*factor*0.5) {
+					m_body->setIsRunning(true);
+					d->m_destinationMotor->step(m_speedRunLength*factor*0.5);
+					d->m_destinationMotor->updateBody(this, m_maximumSpeed);
+				} else {
+					m_body->setIsRunning(false);
+					d->m_destinationMotor->step(m_speedLength*factor*0.5);
+					d->m_destinationMotor->updateBody(this, m_maximumSpeed);
+				}
+
+				if (d->m_destinationMotor && d->m_destinationMotor->atEnd()) {
+					m_body->stop();
+					m_body->setIsRunning(false);
+					clearDestinationPoint();
+					atDestinationPointEvent();
+				}
 			} else {
 				m_body->stop();
 				m_body->setIsRunning(false);
-				atDestinationPointEvent();
 				clearDestinationPoint();
 			}
-
 		} else {
 			QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
 			line.setLength(line.length()*factor);
@@ -326,8 +337,10 @@ void IsometricPlayer::onDead()
 
 void IsometricPlayer::startInability()
 {
-	if (m_inabilityTime > 0)
+	if (m_inabilityTime > 0) {
 		m_inabilityTimer.setRemainingTime(m_inabilityTime);
+		clearDestinationPoint();
+	}
 }
 
 
@@ -338,8 +351,10 @@ void IsometricPlayer::startInability()
 
 void IsometricPlayer::startInability(const int &msec)
 {
-	if (m_inabilityTime > 0)
+	if (m_inabilityTime > 0) {
 		m_inabilityTimer.setRemainingTime(msec);
+		clearDestinationPoint();
+	}
 }
 
 
@@ -443,8 +458,10 @@ void IsometricPlayer::setIsLocked(bool newIsLocked)
 		return;
 	m_isLocked = newIsLocked;
 	emit isLockedChanged();
-	if (m_isLocked)
+	if (m_isLocked) {
 		m_body->stop();
+		clearDestinationPoint();
+	}
 }
 
 
@@ -671,10 +688,10 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 
 /**
  * @brief IsometricPlayer::setDestinationPoint
- * @param x
+ * @param polygon
  */
 
-void IsometricPlayer::setDestinationPoint(const qreal &x, const qreal &y)
+void IsometricPlayer::setDestinationPoint(const QPolygonF &polygon)
 {
 	if (!isAlive())
 		return;
@@ -685,10 +702,8 @@ void IsometricPlayer::setDestinationPoint(const qreal &x, const qreal &y)
 		return;
 	}
 
-	QLineF l(m_body->bodyPosition(), QPointF{x,y});
-	setCurrentAngle(toRadian(l.angle()));
-
-	d->m_destinationPoint.emplace(x, y);
+	d->m_destinationMotor.reset(new TiledPathMotor(polygon));
+	d->m_destinationMotor->toBegin();
 }
 
 
@@ -698,7 +713,10 @@ void IsometricPlayer::setDestinationPoint(const qreal &x, const qreal &y)
 
 void IsometricPlayer::clearDestinationPoint()
 {
-	d->m_destinationPoint.reset();
+	if (d->m_destinationMotor) {
+		LOG_CDEBUG("game") << "Destination cleared";
+		d->m_destinationMotor.reset();
+	}
 }
 
 

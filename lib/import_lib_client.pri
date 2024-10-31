@@ -153,3 +153,11 @@ INCLUDEPATH += $$PWD/stb
 
 DEFINES += QS_HAS_JSON
 include($$PWD/QSerializer/qserializer.pri)
+
+
+# tcod
+
+INCLUDEPATH += $$PWD/libtcod/libtcod/src/
+
+android: LIBS += -ltcod_$${QT_ARCH}
+else: LIBS += -ltcod

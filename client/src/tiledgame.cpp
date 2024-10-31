@@ -1326,11 +1326,12 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
  * @param modifiers
  */
 
-void TiledGame::onMouseClick(const qreal &x, const qreal &y, const int &modifiers)
+void TiledGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers)
 {
 	Q_UNUSED(x);
 	Q_UNUSED(y);
 	Q_UNUSED(modifiers);
+	Q_UNUSED(buttons);
 }
 
 

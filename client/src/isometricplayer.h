@@ -65,8 +65,7 @@ public:
 
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
-	void setDestinationPoint(const qreal &x, const qreal &y);
-	void setDestinationPoint(const QPointF &point) { setDestinationPoint(point.x(), point.y()); }
+	void setDestinationPoint(const QPolygonF &polygon);
 	void clearDestinationPoint();
 
 	virtual void entityWorldStep(const qreal &factor) override;

@@ -179,6 +179,7 @@ Flickable {
 						   if (_scene.game) {
 							   _scene.game.onMouseClick(_scene.viewport.x + (event.x / _scene.scale),
 														_scene.viewport.y + (event.y / _scene.scale),
+														event.buttons,
 														event.modifiers)
 						   }
 					   }

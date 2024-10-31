@@ -211,7 +211,7 @@ public:
 	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
 	static RpgEnemyMetricDefinition defaultEnemyMetric();
 
-	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &modifiers) override;
+	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers) override;
 
 	int setQuestions(TiledScene *scene, qreal factor);
 

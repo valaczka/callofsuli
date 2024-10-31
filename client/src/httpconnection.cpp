@@ -178,7 +178,7 @@ void HttpConnection::connectToServer(Server *server)
 			return;
 		}
 
-		if (Utils::versionCode(vMajor, vMinor) > Utils::versionCode()) {
+		if (QVersionNumber(vMajor, vMinor).normalized() > Utils::versionNumber()) {
 			m_client->messageWarning(tr("A szerver verziója újabb az alkamazásnál, frissítsd az applikációt!"), tr("Szoftverfrissítés szükséges"));
 		}
 

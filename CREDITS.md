@@ -4,6 +4,7 @@
 - David Robert Nadeau (http://NadeauSoftware.com)
 - Free Responsive HTML Email Template - (c) 2024 Lee Munroe (https://github.com/leemunroe/responsive-html-email-template)
 - HttpServer - (c) 2019 Addison Elliott (https://github.com/addisonElliott/HttpServer)
+- libtcod - (c) 2008-2023 Jice and the libtcod contributors (https://github.com/libtcod/libtcod)
 - Material Design Svgo - (c) Olivier Le Doeuff (https://github.com/OlivierLDff/MaterialDesignSvgo)
 - Miniaudio - (c) 2023 David Reid (https://github.com/mackron/miniaudio)
 - PullToRefreshHandler - (c) 2020 Mohammad Hasanzadeh (https://github.com/mohammadhasanzadeh/pulltorefreshhandler)

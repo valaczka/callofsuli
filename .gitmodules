@@ -66,3 +66,6 @@
 [submodule "lib/simple-mail"]
 	path = lib/simple-mail
 	url = https://github.com/valaczka/simple-mail.git
+[submodule "lib/libtcod/libtcod"]
+	path = lib/libtcod/libtcod
+	url = https://github.com/valaczka/libtcod.git

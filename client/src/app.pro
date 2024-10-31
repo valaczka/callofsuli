@@ -428,4 +428,3 @@ HEADERS += \
 DISTFILES += \
 	translation.pri
 
-

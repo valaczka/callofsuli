@@ -27,6 +27,7 @@
 #ifndef UTILS__H
 #define UTILS__H
 
+#include "qversionnumber.h"
 #include <QObject>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -131,11 +132,12 @@ public:
 	Q_INVOKABLE void checkMediaPermissions();
 #endif
 
-	Q_INVOKABLE static quint32 versionMajor();
-	Q_INVOKABLE static quint32 versionMinor();
-	Q_INVOKABLE static quint32 versionBuild();
-	Q_INVOKABLE static quint32 versionCode();
-	Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
+	[[deprecated]] Q_INVOKABLE static quint32 versionMajor();
+	[[deprecated]] Q_INVOKABLE static quint32 versionMinor();
+	[[deprecated]] Q_INVOKABLE static quint32 versionBuild();
+	[[deprecated]] Q_INVOKABLE static quint32 versionCode();
+	[[deprecated]] Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
+	Q_INVOKABLE static QVersionNumber versionNumber();
 
 
 	Q_INVOKABLE static void vibrate();

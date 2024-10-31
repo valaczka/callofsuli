@@ -74,6 +74,11 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
 	connect(this, &RpgEnemyBase::becameAwake, this, [this]() {
 		m_effectSleep.clear();
 	});
+
+	connect(this, &RpgEnemyBase::playerChanged, this, [this]() {
+		if (m_player && !m_sfxRoar.soundList().isEmpty())
+			m_sfxRoar.playOne();
+	});
 }
 
 
@@ -148,6 +153,19 @@ void RpgEnemyBase::load()
 	setWidth(148);
 	setHeight(130);
 	setBodyOffset(0, 0.45*64);
+
+	QStringList soundList;
+
+	for (int i=0; i<10; ++i) {
+		const QString fname = i == 0 ? QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/roar.mp3")
+									 : QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/roar-%d.mp3").arg(i);
+
+		if (QFile::exists(fname))
+			soundList.append(fname);
+	}
+
+	m_sfxRoar.setSoundList(soundList);
+	m_sfxRoar.setPlayOneDeadline(600);
 }
 
 

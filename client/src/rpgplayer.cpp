@@ -170,7 +170,8 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 
 			for (IsometricEnemy *e : list) {
 				if (e && e->player() == this) {
-					setDestinationPoint(e->body()->bodyPosition());
+					if (const auto &ptr = m_scene->findShortestPath(m_body->bodyPosition(), e->body()->bodyPosition()))
+						setDestinationPoint(ptr.value());
 					break;
 				}
 			}
@@ -435,6 +436,7 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 		return;
 	}
 
+	clearDestinationPoint();
 
 	int hp = m_hp-1;
 

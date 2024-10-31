@@ -106,7 +106,7 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 		layout.setPageSize(QPageSize(QPageSize::A4));
 		layout.setMargins(QMarginsF(0, 10, 0, 10));
 
-		pdf.setCreator(QStringLiteral("Call of Suli - v")+Application::version());
+		pdf.setCreator(QStringLiteral("Call of Suli - v")+Application::version().toString());
 		pdf.setTitle(pdfConfig.title);
 		pdf.setPageLayout(layout);
 
@@ -923,7 +923,7 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
 	Q_ASSERT(document);
 
 	const QString id = QStringLiteral("Call of Suli Exam %1/%2/%3/%4")
-					   .arg(Application::versionMajor()).arg(Application::versionMinor())
+					   .arg(Utils::versionNumber().majorVersion()).arg(Utils::versionNumber().minorVersion())
 					   .arg(pdfConfig.examId).arg(contentId);
 
 	ZXing::BarcodeFormat format = ZXing::BarcodeFormat::QRCode;
@@ -1399,7 +1399,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 			const int vMajor = fields.at(0).toInt();
 			const int vMinor = fields.at(1).toInt();
 
-			if (Utils::versionCode(vMajor, vMinor) > Utils::versionCode()) {
+			if (QVersionNumber(vMajor, vMinor).normalized() > Utils::versionNumber()) {
 				LOG_CWARNING("client") << "Wrong version:" << qr << "file:" << path;
 				it->setState(ExamScanData::ScanFileError);
 				continue;

@@ -75,8 +75,8 @@
 #include <box2dplugin.h>
 
 #include "application.h"
-#include "../../version/version.h"
 #include "../modules/staticmodules.h"
+#include "utils_.h"
 
 
 #include "abstractgame.h"
@@ -91,16 +91,10 @@
 #endif
 
 
-
-const int Application::m_versionMajor = VERSION_MAJOR;
-const int Application::m_versionMinor = VERSION_MINOR;
-const int Application::m_versionBuild = VERSION_BUILD;
-const char *Application::m_version = VERSION_FULL;
 Application *Application::m_instance = nullptr;
 
-
-const QString Application::m_userAgent = QStringLiteral("CallOfSuli/%1.%2.%3 (%4; %5)")
-										 .arg(m_versionMajor).arg(m_versionMinor).arg(m_versionBuild)
+const QString Application::m_userAgent = QStringLiteral("CallOfSuli/%1 (%2; %3)")
+										 .arg(Utils::versionNumber().toString())
 										 .arg(QSysInfo::prettyProductName())
 										 .arg(QSysInfo::currentCpuArchitecture())
 										 ;
@@ -123,7 +117,7 @@ void Application::initialize()
 {
 	QCoreApplication::setApplicationName(QStringLiteral("callofsuli"));
 	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli"));
-	QCoreApplication::setApplicationVersion(m_version);
+	QCoreApplication::setApplicationVersion(Utils::versionNumber().toString());
 	QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
 	QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
@@ -218,27 +212,6 @@ int Application::run()
 
 
 
-int Application::versionMajor()
-{
-	return m_versionMajor;
-}
-
-int Application::versionMinor()
-{
-	return m_versionMinor;
-}
-
-int Application::versionBuild()
-{
-	return m_versionBuild;
-}
-
-const char *Application::version()
-{
-	return m_version;
-}
-
-
 /**
  * @brief Application::application
  * @return
@@ -260,6 +233,11 @@ QQmlApplicationEngine *Application::engine() const
 	return m_engine.get();
 }
 
+
+const QVersionNumber Application::version()
+{
+	return Utils::versionNumber();
+}
 
 /**
  * @brief Application::loadMainQml

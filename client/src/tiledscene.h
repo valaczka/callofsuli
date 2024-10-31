@@ -28,6 +28,7 @@
 #define TILEDSCENE_H
 
 #include "box2dworld.h"
+#include "libtcod/fov.hpp"
 #include "libtiledquick/mapitem.h"
 #include "tiledobject.h"
 #include <QQuickItem>
@@ -119,6 +120,10 @@ public:
 
 	Q_INVOKABLE bool load(const QUrl &url);
 
+	void reloadTcodMap();
+	std::optional<QPolygonF> findShortestPath(const QPointF &from, const QPointF &to) const;
+	std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
+
 	void appendToObjects(TiledObject *object);
 	void removeFromObjects(TiledObject *object);
 
@@ -168,6 +173,12 @@ signals:
 protected:
 	virtual void refresh() override;
 
+	struct TcodMapData {
+		std::unique_ptr<TCODMap> map;
+		qreal chunkWidth = 0.;
+		qreal chunkHeight = 0.;
+	};
+
 	QList<QQuickItem*> m_visualItems;
 
 	//std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
@@ -184,6 +195,7 @@ protected:
 	QVector<QPointer<TiledObject>> m_tiledObjectsToAppend;
 	QVector<QPointer<TiledObject>> m_tiledObjectsToRemove;
 
+	TcodMapData m_tcodMap;
 
 
 /// TEST POINTS

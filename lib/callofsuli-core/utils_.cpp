@@ -737,6 +737,17 @@ quint32 Utils::versionCode(const int &major, const int &minor)
 }
 
 
+/**
+ * @brief Utils::versionNumber
+ * @return
+ */
+
+QVersionNumber Utils::versionNumber()
+{
+	return QVersionNumber(m_versionMajor, m_versionMinor, m_versionBuild).normalized();
+}
+
+
 
 
 /**

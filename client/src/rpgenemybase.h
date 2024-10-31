@@ -30,6 +30,7 @@
 #include "isometricenemy.h"
 #include "rpgenemyiface.h"
 #include "tiledeffect.h"
+#include "tiledgamesfx.h"
 #include <QQmlEngine>
 
 class RpgEnemyBase : public IsometricEnemy, public RpgEnemyIface
@@ -80,6 +81,8 @@ private:
 	TiledEffectHealed m_effectHealed;
 	TiledEffectFire m_effectFire;
 	TiledEffectSleep m_effectSleep;
+
+	TiledGameSfx m_sfxRoar;
 };
 
 #endif // RPGENEMYBASE_H

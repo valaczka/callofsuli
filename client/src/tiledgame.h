@@ -131,7 +131,7 @@ public:
 
 	bool transport(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase = nullptr);
 
-	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &modifiers);
+	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers);
 
 	virtual bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
 	virtual bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) = 0;
