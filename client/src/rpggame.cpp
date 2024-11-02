@@ -41,6 +41,7 @@
 #include "rpgtimepickable.h"
 #include "rpgwerebear.h"
 #include "rpgcoin.h"
+#include "rpguserwallet.h"
 #include "sound.h"
 #include "application.h"
 #include "rpgquestion.h"
@@ -2091,6 +2092,28 @@ void RpgGame::reloadCharacters()
 }
 
 
+/**
+ * @brief RpgGame::reloadWorld
+ */
+
+void RpgGame::reloadWorld()
+{
+	Server *s = Application::instance()->client()->server();
+
+	if (!s) {
+		LOG_CTRACE("game") << "Missing server";
+		return;
+	}
+
+	if (!s->user() || !s->user()->wallet()) {
+		LOG_CTRACE("game") << "Missing user or wallet";
+		return;
+	}
+
+	s->user()->wallet()->loadWorld();
+}
+
+
 
 /**
  * @brief RpgGame::funcPlayerUseContainer
@@ -2503,7 +2526,7 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 	if (!m_controlledPlayer)
 		return;
 
-	if (buttons.testAnyFlag(Qt::RightButton)) {
+	if (buttons.testFlag(Qt::RightButton)) {
 		m_controlledPlayer->clearDestinationPoint();
 		return;
 	}
@@ -2515,6 +2538,9 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 		return;
 	}
 #endif
+
+	if (!m_controlledPlayer->isAlive())
+		return;
 
 	if (mouseAttack()) {
 		m_controlledPlayer->attackToPoint(x, y);

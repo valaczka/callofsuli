@@ -61,13 +61,13 @@ QPageGradient {
 
 	ListModel {
 		id: _model
-		ListElement {
+		/*ListElement {
 			type: RpgMarket.Map
 			title: qsTr("World")
 			icon: "qrc:/Qaterial/Icons/earth.svg"
 			inBase: true
 			inGame: false
-		}
+		}*/
 
 		ListElement {
 			type: RpgMarket.Skin

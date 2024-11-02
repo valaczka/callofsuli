@@ -64,16 +64,25 @@ QItemGradient {
 
 						text: wallet ? wallet.readableName : qsTr("Válassz...")
 						image: wallet ? wallet.image : ""
-						locked: !wallet || !wallet.available
+						locked: !wallet
 						selected: true
 						onClicked: {
-							_modelSelector.marketType = RpgMarket.Map
+							if (!Client.server.user.wallet.world) {
+								Client.messageWarning(qsTr("Nem sikerült betölteni a világokat!"))
+								return
+							}
+
+							/*_modelSelector.marketType = RpgMarket.Map
 							_dialogWallet = _selectTerrain.wallet
 							_dialogAcceptFunc = function(w) {
 								_selectTerrain.wallet = w
 							}
 
-							Qaterial.DialogManager.openFromComponent(_cmpSelectDialog)
+							Qaterial.DialogManager.openFromComponent(_cmpSelectDialog)*/
+
+							Client.stackPushPage("RpgWorldSelect.qml", {
+													 world: Client.server.user.wallet.world
+												 })
 						}
 
 						RpgSelectTitle {
@@ -145,7 +154,7 @@ QItemGradient {
 								outlined: !enabled
 
 								enabled: _selectTerrain.wallet && _selectCharacter.wallet &&
-										 _selectTerrain.wallet.available && _selectCharacter.wallet.available
+										 _selectCharacter.wallet.available
 
 								text: qsTr("Play")
 
@@ -442,6 +451,16 @@ QItemGradient {
 	}
 
 
+
+	Connections {
+		target: Client.server ? Client.server.user.wallet.world : null
+
+		function onSelectedLandChanged() {
+			_selectTerrain.wallet = Client.server.user.wallet.worldGetSelectedWallet()
+		}
+	}
+
+
 	Connections {
 		target: Client.server ? Client.server.user.wallet : null
 
@@ -449,8 +468,10 @@ QItemGradient {
 			if (!_isFirst)
 				return
 
-			_selectTerrain.wallet = getWallet(RpgMarket.Map, Client.Utils.settingsGet("rpg/world", ""))
 			_selectCharacter.wallet = getWallet(RpgMarket.Skin, Client.Utils.settingsGet("rpg/skin", ""))
+			//_selectTerrain.wallet = getWallet(RpgMarket.Map, Client.Utils.settingsGet("rpg/world", ""))
+			if (Client.server.user.wallet.world)
+				Client.server.user.wallet.world.select(Client.Utils.settingsGet("rpg/world", ""))
 
 			let sList = []
 

@@ -118,6 +118,12 @@ ConquestLandImpl {
 		visible: active || _pickable || _picked || _setupPicked || landData && _setup && _setup.currentLandId == landData.landId
 	}
 
+	Qaterial.LabelHeadline4 {
+		anchors.centerIn: _imgMap
+		visible: _setup && landData
+		text: landData ? landData.landId : ""
+		color: Qaterial.Colors.amber400
+	}
 
 	MaskedMouseArea {
 		id: _mouse

@@ -169,10 +169,10 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const QPointF &from, const
 
 std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const
 {
-	if (!m_tcodMap.map)
+	if (qFuzzyCompare(x1, x2) && qFuzzyCompare(y1, y2))
 		return std::nullopt;
 
-	if (qFuzzyCompare(x1, x2) && qFuzzyCompare(y1, y2))
+	if (!m_tcodMap.map)
 		return std::nullopt;
 
 	TCODPath path(m_tcodMap.map.get());
@@ -182,6 +182,11 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 	const int chY1 = std::floor(y1/m_tcodMap.chunkHeight);
 	const int chY2 = std::floor(y2/m_tcodMap.chunkHeight);
 
+	// Ha közel vagyunk (same chunk), nem is számolunk
+
+	if (chX1 == chX2 && chY1 == chY2)
+		return QPolygonF() << QPointF(x1, y1) << QPointF(x2, y2);
+
 	if (!path.compute(chX1, chY1, chX2, chY2))
 		return std::nullopt;
 
@@ -189,7 +194,7 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 
 	polygon << QPointF(x1, y1);
 
-	for (int i=0; i<path.size(); ++i) {
+	for (int i=1; i<path.size()-1; ++i) {
 		int x, y;
 		path.get(i, &x, &y);
 		polygon << QPointF(

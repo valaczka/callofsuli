@@ -158,7 +158,7 @@ void RpgEnemyBase::load()
 
 	for (int i=0; i<10; ++i) {
 		const QString fname = i == 0 ? QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/roar.mp3")
-									 : QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/roar-%d.mp3").arg(i);
+									 : QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/roar-%1.mp3").arg(i);
 
 		if (QFile::exists(fname))
 			soundList.append(fname);

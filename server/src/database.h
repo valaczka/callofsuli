@@ -84,9 +84,8 @@ public:
 
 	virtual bool performUpgrade(const QVector<Upgrade> &upgrades, const QString &defaultUpgradeData,
 								const quint32 &fromVersionMajor, const quint32 &fromVersionMinor,
-								const quint32 &toVersionMajor = Utils::versionMajor(),
-								const quint32 &toVersionMinor = Utils::versionMinor());
-
+								const quint32 &toVersionMajor = Utils::versionNumber().majorVersion(),
+								const quint32 &toVersionMinor = Utils::versionNumber().minorVersion());
 protected:
 	bool databaseInit();
 

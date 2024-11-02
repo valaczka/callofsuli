@@ -612,6 +612,7 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 			rotateBody(directionToRadian(m_currentDirection));
 			return;
 		} else {
+			m_body->stop();
 			m_returnPathMotor.reset();
 		}
 	}

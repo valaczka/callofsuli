@@ -275,6 +275,7 @@ SOURCES += \
 	rpgtimepickable.cpp \
 	rpguserwallet.cpp \
 	rpgwerebear.cpp \
+	rpgworldlanddata.cpp \
 	scorelist.cpp \
 	server.cpp \
 	sound.cpp \
@@ -392,6 +393,8 @@ HEADERS += \
 	rpgtimepickable.h \
 	rpguserwallet.h \
 	rpgwerebear.h \
+	rpgworldlanddata.h \
+	rpgworldlanddata_p.h \
 	scorelist.h \
 	server.h \
 	sound.h \

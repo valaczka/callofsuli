@@ -259,15 +259,7 @@ bool TiledObjectBase::rotateBody(const float32 &desiredRadian)
 	if (!m_sensorPolygon)
 		return false;
 
-	const float32 desiredNormal = normalizeFromRadian(desiredRadian);
-	m_rotateAnimation.running = false;
-	m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(desiredNormal) );
-	m_body->setAwake(true);
-	return true;
-
-	// REMOVED...
-
-/*	const float32 currentAngle = m_body->body()->GetAngle();
+	const float32 currentAngle = m_body->body()->GetAngle();
 
 
 	if (qFuzzyCompare(desiredRadian, currentAngle)) {
@@ -277,14 +269,6 @@ bool TiledObjectBase::rotateBody(const float32 &desiredRadian)
 
 	const float32 currentNormal = normalizeFromRadian(currentAngle);
 	const float32 desiredNormal = normalizeFromRadian(desiredRadian);
-
-	if (std::abs(desiredRadian - currentAngle) < M_PI_4*.5) {
-		m_rotateAnimation.running = false;
-		m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(desiredNormal) );
-		m_body->setAwake(true);
-		return true;
-	}
-
 
 
 	if (!qFuzzyCompare(m_rotateAnimation.destAngle, desiredRadian) || !m_rotateAnimation.running) {
@@ -332,7 +316,7 @@ bool TiledObjectBase::rotateBody(const float32 &desiredRadian)
 	m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(newAngle) );
 	m_body->setAwake(true);
 
-	return true;*/
+	return true;
 }
 
 

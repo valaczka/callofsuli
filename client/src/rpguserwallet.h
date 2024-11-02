@@ -30,6 +30,7 @@
 #include "rank.h"
 #include "rpgconfig.h"
 #include "rpggame.h"
+#include "rpgworldlanddata.h"
 #include <QObject>
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -139,6 +140,62 @@ private:
 
 
 /**
+ * @brief The RpgUserWorld class
+ */
+
+class RpgUserWorld : public QObject, public RpgWorld
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString basePath READ basePath WRITE setBasePath NOTIFY basePathChanged FINAL)
+	Q_PROPERTY(QSize worldSize READ worldSize WRITE setWorldSize NOTIFY worldSizeChanged FINAL)
+	Q_PROPERTY(RpgWorldLandDataList *landList READ landList CONSTANT FINAL)
+	Q_PROPERTY(RpgWorldLandData *selectedLand READ selectedLand WRITE setSelectedLand NOTIFY selectedLandChanged FINAL)
+	Q_PROPERTY(QUrl imageBackground READ imageBackground NOTIFY imageBackgroundChanged FINAL)
+	Q_PROPERTY(QUrl imageOver READ imageOver NOTIFY imageOverChanged FINAL)
+
+public:
+	RpgUserWorld(const RpgWorld &worldData, QObject *parent = nullptr);
+	virtual ~RpgUserWorld();
+
+	void reloadLands(const QString &path);
+	void updateWallet(RpgUserWalletList *wallet);
+
+	Q_INVOKABLE void selectFromWallet(RpgUserWallet *wallet);
+	Q_INVOKABLE void select(const QString &map);
+	Q_INVOKABLE void selectLand(RpgWorldLandData *land);
+
+	QSize worldSize() const;
+	void setWorldSize(const QSize &newWorldSize);
+
+	QString basePath() const;
+	void setBasePath(const QString &newBasePath);
+
+	RpgWorldLandDataList *landList() const;
+
+	RpgWorldLandData *selectedLand() const;
+	void setSelectedLand(RpgWorldLandData *newSelectedLand);
+
+	QUrl imageBackground() const;
+	QUrl imageOver() const;
+
+signals:
+	void worldSizeChanged();
+	void basePathChanged();
+	void selectedLandChanged();
+	void imageBackgroundChanged();
+	void imageOverChanged();
+
+private:
+	QString m_basePath;
+	QSize m_worldSize;
+	std::unique_ptr<RpgWorldLandDataList> m_landList;
+	QPointer<RpgWorldLandData> m_selectedLand;
+};
+
+
+
+/**
  * @brief The RpgUserWalletList class
  */
 
@@ -147,6 +204,7 @@ class RpgUserWalletList : public qolm::QOlm<RpgUserWallet>
 	Q_OBJECT
 
 	Q_PROPERTY(int currency READ currency WRITE setCurrency NOTIFY currencyChanged FINAL)
+	Q_PROPERTY(RpgUserWorld *world READ world NOTIFY worldChanged FINAL)
 
 public:
 	RpgUserWalletList(QObject *parent = nullptr);
@@ -156,13 +214,20 @@ public:
 	void reloadMarket();
 	void reloadWallet();
 
+	void loadWorld();
+	void unloadWorld();
+
 	int currency() const;
 	void setCurrency(int newCurrency);
+
+	RpgUserWorld *world() const;
+	Q_INVOKABLE RpgUserWallet *worldGetSelectedWallet() const;
 
 signals:
 	void reloaded();
 
 	void currencyChanged();
+	void worldChanged();
 
 private:
 	void loadMarket(const QJsonObject &json);
@@ -173,6 +238,9 @@ private:
 	void updateBullets();
 
 	int m_currency = 0;
+
+	std::unique_ptr<RpgUserWorld> m_world;
+
 };
 
 

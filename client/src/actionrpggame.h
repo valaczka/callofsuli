@@ -62,6 +62,7 @@ public:
 	Q_ENUM(GameMode);
 
 	virtual void gameAbort() override;
+	virtual QJsonObject getExtendedData() const override;
 
 	Q_INVOKABLE void playMenuBgMusic();
 	Q_INVOKABLE void stopMenuBgMusic();

@@ -135,8 +135,8 @@ public:
 	[[deprecated]] Q_INVOKABLE static quint32 versionMajor();
 	[[deprecated]] Q_INVOKABLE static quint32 versionMinor();
 	[[deprecated]] Q_INVOKABLE static quint32 versionBuild();
-	[[deprecated]] Q_INVOKABLE static quint32 versionCode();
-	[[deprecated]] Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
+	Q_INVOKABLE static quint32 versionCode();
+	Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
 	Q_INVOKABLE static QVersionNumber versionNumber();
 
 

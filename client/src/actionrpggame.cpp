@@ -127,6 +127,19 @@ void ActionRpgGame::gameAbort()
 }
 
 
+/**
+ * @brief ActionRpgGame::getExtendedData
+ * @return
+ */
+
+QJsonObject ActionRpgGame::getExtendedData() const
+{
+	return {
+		{ QStringLiteral("map"), m_playerConfig.terrain }
+	};
+}
+
+
 
 
 /**

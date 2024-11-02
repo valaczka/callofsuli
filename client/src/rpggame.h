@@ -154,6 +154,8 @@ public:
 	static const QHash<QString, RpgPlayerCharacterConfig> &characters();
 	static void reloadCharacters();
 
+	static void reloadWorld();
+
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
 	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;

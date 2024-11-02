@@ -67,6 +67,7 @@ signals:
 	void released();
 	void clicked();
 	void canceled();
+	void doubleClicked();
 	void pressedChanged();
 	void maskSourceChanged();
 	void containsMouseChanged();
@@ -80,6 +81,7 @@ protected:
 	void mouseReleaseEvent(QMouseEvent *event) override;
 	void hoverEnterEvent(QHoverEvent *event) override;
 	void hoverLeaveEvent(QHoverEvent *event) override;
+	void mouseDoubleClickEvent(QMouseEvent *event) override;
 	void mouseUngrabEvent() override;
 	void touchEvent(QTouchEvent *event) override;
 

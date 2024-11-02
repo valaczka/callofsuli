@@ -49,6 +49,7 @@
 #include "qsjsonlistmodel.h"
 #include "rpgmagestaff.h"
 #include "rpguserwallet.h"
+#include "rpgworldlanddata.h"
 #include "scorelist.h"
 #include "studentgroup.h"
 #include "studentmap.h"
@@ -209,6 +210,7 @@ int Application::run()
 
 	return r;
 }
+
 
 
 
@@ -437,6 +439,9 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
 	qmlRegisterType<RpgGame>("CallOfSuli", 1, 0, "RpgGameImpl");
+	qmlRegisterType<RpgUserWorld>("CallOfSuli", 1, 0, "RpgUserWorld");
+	qmlRegisterType<RpgWorldLandData>("CallOfSuli", 1, 0, "RpgWorldLandData");
+	qmlRegisterType<RpgWorldLandDataList>("CallOfSuli", 1, 0, "RpgWorldLandDataList");
 	qmlRegisterType<TiledObject>("CallOfSuli", 1, 0, "TiledObjectImpl");
 	qmlRegisterType<TiledScene>("CallOfSuli", 1, 0, "TiledSceneImpl");
 	qmlRegisterType<TiledVisualItem>("CallOfSuli", 1, 0, "TiledVisualItemImpl");

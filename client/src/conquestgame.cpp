@@ -696,7 +696,7 @@ void ConquestGame::reloadLandList()
 	if (m_config.world.name.isEmpty())
 		return;
 
-	const auto &data = Utils::fileToJsonObject(QStringLiteral(":/content/%1/data.json").arg(m_config.world.name));
+	const auto &data = Utils::fileToJsonObject(QStringLiteral(":/world/%1/data.json").arg(m_config.world.name));
 
 	if (!data) {
 		m_client->messageError(tr("Hibás térkép"), tr("Belső hiba"));
@@ -720,17 +720,17 @@ void ConquestGame::reloadLandList()
 	jsonOrigDataCheck(orig);
 
 	if (QString img = orig.value(QStringLiteral("bg")).toString(); !img.isEmpty()) {
-		img.prepend(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/"));
+		img.prepend(QStringLiteral("qrc:/world/")+m_config.world.name+QStringLiteral("/"));
 		setWorldBgImage(img);
 	} else {
-		setWorldBgImage(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/bg.png"));
+		setWorldBgImage(QStringLiteral("qrc:/world/")+m_config.world.name+QStringLiteral("/bg.png"));
 	}
 
 	if (QString img = orig.value(QStringLiteral("over")).toString(); !img.isEmpty()) {
-		img.prepend(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/"));
+		img.prepend(QStringLiteral("qrc:/world/")+m_config.world.name+QStringLiteral("/"));
 		setWorldOverImage(img);
 	} else {
-		setWorldOverImage(QStringLiteral("qrc:/content/")+m_config.world.name+QStringLiteral("/over.png"));
+		setWorldOverImage(QStringLiteral("qrc:/world/")+m_config.world.name+QStringLiteral("/over.png"));
 	}
 
 
@@ -752,9 +752,9 @@ void ConquestGame::reloadLandList()
 		land->setOverX(baseX + obj.value(QStringLiteral("textX")).toDouble());
 		land->setOverY(baseY + obj.value(QStringLiteral("textY")).toDouble());
 
-		land->setImgMap(QStringLiteral("qrc:/content/%1/land-%2.svg")
+		land->setImgMap(QStringLiteral("qrc:/world/%1/land-%2.svg")
 						.arg(m_config.world.name).arg(id));
-		land->setImgBorder(QStringLiteral("qrc:/content/%1/land-%2-border.svg")
+		land->setImgBorder(QStringLiteral("qrc:/world/%1/land-%2-border.svg")
 						   .arg(m_config.world.name).arg(id));
 
 		landList.append(land);

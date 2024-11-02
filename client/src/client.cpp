@@ -84,6 +84,7 @@ Client::Client(Application *app)
 
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadTerrains);
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
+	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadWorld);
 
 	startCache();
 
@@ -592,6 +593,8 @@ void Client::onServerDisconnected()
 	stackPopToStartPage();
 
 	m_cache.clear();
+
+	server()->user()->wallet()->unloadWorld();
 
 	m_downloader->contentClear();
 	m_downloader->setServer(nullptr);
@@ -1858,12 +1861,12 @@ QQuickItem *Client::loadAdjacencySetup(const QString &world)
 {
 	std::unique_ptr<ConquestGameAdjacencySetup> game(new ConquestGameAdjacencySetup(this));
 
-	if (QFile::exists(world)) {
+	if (!QFile::exists(world)) {
 		messageError(tr("Érvénytelen fájl: %1").arg(world));
 		return nullptr;
 	}
 
-	if (!QResource::registerResource(world, QStringLiteral(":/content"))) {
+	if (!QResource::registerResource(world)) {
 		messageError(tr("Hibás fájl: %1").arg(world));
 		return nullptr;
 	}

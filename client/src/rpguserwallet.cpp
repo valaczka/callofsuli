@@ -518,6 +518,43 @@ void RpgUserWalletList::reloadWallet()
 
 
 /**
+ * @brief RpgUserWalletList::loadWorld
+ */
+
+void RpgUserWalletList::loadWorld()
+{
+	LOG_CDEBUG("game") << "Load world...";
+
+	const auto &ptr = Utils::fileToJsonObject(":/world/world01_Hungary/data.json");
+
+	if (ptr) {
+		RpgWorld world;
+		world.fromJson(ptr.value());
+
+		m_world.reset(new RpgUserWorld(world));
+		m_world->reloadLands("qrc:/world/world01_Hungary");
+		m_world->updateWallet(this);
+	} else {
+		return unloadWorld();
+	}
+
+	emit worldChanged();
+}
+
+
+/**
+ * @brief RpgUserWalletList::unloadWorld
+ */
+
+void RpgUserWalletList::unloadWorld()
+{
+	LOG_CDEBUG("game") << "Unload world...";
+	m_world.reset();
+	emit worldChanged();
+}
+
+
+/**
  * @brief RpgUserWalletList::loadMarket
  * @param json
  */
@@ -589,6 +626,9 @@ void RpgUserWalletList::loadWallet(const QJsonObject &json)
 			emit w->availableChanged();
 		}
 	}
+
+	if (m_world)
+		m_world->updateWallet(this);
 
 	emit reloaded();
 }
@@ -833,6 +873,40 @@ void RpgUserWalletList::updateBullets()
 	}
 }
 
+
+/**
+ * @brief RpgUserWalletList::world
+ * @return
+ */
+
+RpgUserWorld *RpgUserWalletList::world() const
+{
+	return m_world.get();
+}
+
+
+/**
+ * @brief RpgUserWalletList::worldGetSelectedWallet
+ * @return
+ */
+
+RpgUserWallet *RpgUserWalletList::worldGetSelectedWallet() const
+{
+	if (!m_world || !m_world->selectedLand())
+		return nullptr;
+
+	const auto it = std::find_if(this->constBegin(), this->constEnd(),
+								 [land = m_world->selectedLand()](RpgUserWallet *w){
+		return (w->market().type == RpgMarket::Map && w->market().name == land->bindedMap());
+	});
+
+	if (it != this->constEnd())
+		return *it;
+
+	return nullptr;
+}
+
+
 int RpgUserWalletList::currency() const
 {
 	return m_currency;
@@ -844,4 +918,235 @@ void RpgUserWalletList::setCurrency(int newCurrency)
 		return;
 	m_currency = newCurrency;
 	emit currencyChanged();
+}
+
+
+
+/**
+ * @brief RpgUserWorld::RpgUserWorld
+ * @param parent
+ */
+
+RpgUserWorld::RpgUserWorld(const RpgWorld &worldData, QObject *parent)
+	: QObject(parent)
+	, RpgWorld(worldData)
+	, m_landList(std::make_unique<RpgWorldLandDataList>())
+{
+	setWorldSize(QSize(worldData.orig.width, worldData.orig.height));
+}
+
+
+
+/**
+ * @brief RpgUserWorld::~RpgUserWorld
+ */
+
+RpgUserWorld::~RpgUserWorld()
+{
+
+}
+
+
+/**
+ * @brief RpgUserWorld::reloadLands
+ */
+
+void RpgUserWorld::reloadLands(const QString &path)
+{
+	LOG_CDEBUG("game") << "Reload land list:" << qPrintable(orig.description);
+	m_landList->clear();
+
+	setBasePath(path);
+
+	for (const auto &[id, geom] : lands.asKeyValueRange()) {
+		RpgWorldLandData *land = new RpgWorldLandData(this);
+		land->setLandId(id);
+		land->setLandGeometry(geom);
+		land->setMapBinding(binding.value(id));
+
+		m_landList->append(land);
+	}
+
+	LOG_CDEBUG("game") << "Loaded" << m_landList->size() << "lands";
+
+	emit imageBackgroundChanged();
+	emit imageOverChanged();
+
+}
+
+
+
+/**
+ * @brief RpgUserWorld::updateWallet
+ * @param wallet
+ */
+
+void RpgUserWorld::updateWallet(RpgUserWalletList *wallet)
+{
+	LOG_CTRACE("game") << "Update wallet";
+
+	for (RpgWorldLandData *land : *m_landList) {
+		land->updateWallet(wallet);
+	}
+
+	// Open adjacent lands
+
+	LOG_CTRACE("game") << "Open adjacent lands";
+
+	for (RpgWorldLandData *land : *m_landList) {
+		if (land->landState() != RpgWorldLandData::LandAchieved)
+			continue;
+
+		const QJsonArray array = orig.adjacency.value(land->landId());
+		for (const QJsonValue &v : array) {
+			const QString &id = v.toString();
+
+			const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(), [&id](RpgWorldLandData *d){
+							return d->landId() == id;
+		});
+
+			if (it != m_landList->constEnd() && (*it)->landState() == RpgWorldLandData::LandLocked)
+				(*it)->setLandState(RpgWorldLandData::LandSelectable);
+		}
+	}
+}
+
+
+/**
+ * @brief RpgUserWorld::selectFromWallet
+ * @param wallet
+ */
+
+void RpgUserWorld::selectFromWallet(RpgUserWallet *wallet)
+{
+	if (!wallet || !wallet->available() || wallet->market().type != RpgMarket::Map)
+		return setSelectedLand(nullptr);
+
+	const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(), [wallet](RpgWorldLandData *d){
+					return d->landId() == wallet->market().name &&
+					(d->landState() == RpgWorldLandData::LandSelectable ||
+					 d->landState() == RpgWorldLandData::LandAchieved);
+});
+
+	if (it != m_landList->constEnd())
+		return setSelectedLand(*it);
+
+	setSelectedLand(nullptr);
+}
+
+
+/**
+ * @brief RpgUserWorld::select
+ * @param map
+ */
+
+void RpgUserWorld::select(const QString &map)
+{
+	const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(), [&map](RpgWorldLandData *d){
+					return d->bindedMap() == map &&
+					(d->landState() == RpgWorldLandData::LandSelectable ||
+					 d->landState() == RpgWorldLandData::LandAchieved);
+});
+
+	if (it != m_landList->constEnd())
+		return setSelectedLand(*it);
+
+	setSelectedLand(nullptr);
+}
+
+
+/**
+ * @brief RpgUserWorld::selectLand
+ * @param land
+ */
+
+void RpgUserWorld::selectLand(RpgWorldLandData *land)
+{
+	if (land && (land->landState() == RpgWorldLandData::LandSelectable ||
+				 land->landState() == RpgWorldLandData::LandAchieved))
+		setSelectedLand(land);
+	else
+		setSelectedLand(nullptr);
+}
+
+
+
+
+QSize RpgUserWorld::worldSize() const
+{
+	return m_worldSize;
+}
+
+void RpgUserWorld::setWorldSize(const QSize &newWorldSize)
+{
+	if (m_worldSize == newWorldSize)
+		return;
+	m_worldSize = newWorldSize;
+	emit worldSizeChanged();
+}
+
+QString RpgUserWorld::basePath() const
+{
+	return m_basePath;
+}
+
+void RpgUserWorld::setBasePath(const QString &newBasePath)
+{
+	if (m_basePath == newBasePath)
+		return;
+	m_basePath = newBasePath;
+	emit basePathChanged();
+}
+
+
+/**
+ * @brief RpgUserWorld::landList
+ * @return
+ */
+
+RpgWorldLandDataList *RpgUserWorld::landList() const
+{
+	return m_landList.get();
+}
+
+
+/**
+ * @brief RpgUserWorld::selectedLand
+ * @return
+ */
+
+RpgWorldLandData *RpgUserWorld::selectedLand() const
+{
+	return m_selectedLand;
+}
+
+void RpgUserWorld::setSelectedLand(RpgWorldLandData *newSelectedLand)
+{
+	if (m_selectedLand == newSelectedLand)
+		return;
+	m_selectedLand = newSelectedLand;
+	emit selectedLandChanged();
+}
+
+
+
+/**
+ * @brief RpgUserWorld::imageBackground
+ * @return
+ */
+
+QUrl RpgUserWorld::imageBackground() const
+{
+	return orig.background.isEmpty() ? QUrl() : m_basePath+QStringLiteral("/")+orig.background;
+}
+
+
+/**
+ * @brief RpgUserWorld::imageOver
+ * @return
+ */
+
+QUrl RpgUserWorld::imageOver() const
+{
+	return orig.over.isEmpty() ? QUrl() : m_basePath+QStringLiteral("/")+orig.over;
 }

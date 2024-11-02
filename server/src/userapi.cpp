@@ -1071,6 +1071,27 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		retObj[QStringLiteral("inventory")] = iList;
 	}
 
+	if (success && game.mode == GameMap::Rpg) {
+		QJsonArray iList;
+
+		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
+			if (it.key() == QStringLiteral("map")) {
+				LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+										   .addQuery("INSERT OR IGNORE INTO wallet(").setFieldPlaceholder()
+										   .addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
+										   .addField("username", username)
+										   .addField("type", (int) RpgMarket::Map)
+										   .addField("name", it.value().toString())
+										   .addField("amount", 1)
+										   .exec()
+										   );
+
+
+				LOG_CDEBUG("client") << "Achieved map:" << it.value().toString() << qPrintable(username);
+			}
+		}
+	}
+
 	db.commit();
 
 	/*

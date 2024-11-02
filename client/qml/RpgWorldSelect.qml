@@ -11,7 +11,7 @@ QPage {
 	property alias world: _map.world
 
 	title: _map.selectedLand ? (_map.selectedLand.name != "" ?
-									_map.selectedLand.name :
+									_map.selectedLand.name.split("\n").join(" ") :
 									qsTr("[névtelen terület]"))
 							 : ""
 

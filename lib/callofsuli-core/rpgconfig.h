@@ -387,4 +387,110 @@ Q_DECLARE_METATYPE(RpgQuest)
 
 
 
+
+
+
+
+/**
+ * @brief The RpgWorldLandGeometry class
+ */
+
+
+class RpgWorldLandGeometry : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgWorldLandGeometry()
+		: QSerializer()
+		, x(0.)
+		, y(0.)
+		, textX(0.)
+		, textY(0.)
+		, rotate(0.)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(qreal, x)
+	QS_FIELD(qreal, y)
+	QS_FIELD(qreal, textX)
+	QS_FIELD(qreal, textY)
+	QS_FIELD(qreal, rotate)
+};
+
+
+
+/**
+ * @brief The RpgWorldOrig class
+ */
+
+class RpgWorldOrig : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgWorldOrig()
+		: QSerializer()
+		, width(0.)
+		, height(0.)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(qreal, width)
+	QS_FIELD(qreal, height)
+	QS_FIELD(QString, description)
+	QS_FIELD(QString, background)
+	QS_FIELD(QString, over)
+	QS_QT_DICT(QMap, QString, QJsonArray, adjacency)
+
+};
+
+
+
+
+
+/**
+ * @brief The RpgWorldLandMap class
+ */
+
+class RpgWorldMapBinding : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgWorldMapBinding()
+		: QSerializer()
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, map)
+	QS_FIELD(bool, free)					// Szabadon játszható
+};
+
+
+
+/**
+ * @brief The RpgWorld class
+ */
+
+
+class RpgWorld : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgWorld()
+		: QSerializer()
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_OBJECT(RpgWorldOrig, orig)
+	QS_QT_DICT_OBJECTS(QMap, QString, RpgWorldLandGeometry, lands)
+	QS_QT_DICT_OBJECTS(QMap, QString, RpgWorldMapBinding, binding)
+};
+
 #endif // RPGCONFIG_H

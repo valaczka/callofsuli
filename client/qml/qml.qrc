@@ -227,5 +227,9 @@
         <file>TiledSceneEffectRain.qml</file>
         <file>TiledSceneEffectSnow.qml</file>
         <file>TiledImage.qml</file>
+        <file>RpgUserWorldMap.qml</file>
+        <file>RpgUserWorldLand.qml</file>
+        <file>RpgWorldSelect.qml</file>
+        <file>RpgUserWorldLandOver.qml</file>
     </qresource>
 </RCC>

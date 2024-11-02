@@ -185,3 +185,15 @@ void MaskedMouseArea::hoverLeaveEvent(QHoverEvent *event)
 	Q_UNUSED(event);
 	setContainsMouse(false);
 }
+
+
+/**
+ * @brief MaskedMouseArea::mouseDoubleClickEvent
+ * @param event
+ */
+
+void MaskedMouseArea::mouseDoubleClickEvent(QMouseEvent *event)
+{
+	Q_UNUSED(event);
+	emit doubleClicked();
+}
