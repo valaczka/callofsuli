@@ -49,6 +49,8 @@ void GoogleOAuth2Authenticator::setCodeFlow(const std::weak_ptr<OAuth2CodeFlow> 
 
 	f->setClientIdentifier(m_oauth.clientId);
 	f->setClientIdentifierSharedKey(m_oauth.clientKey);
+
+	f->setPkceMethod(QOAuth2AuthorizationCodeFlow::PkceMethod::None);
 }
 
 
