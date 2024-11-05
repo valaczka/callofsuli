@@ -251,7 +251,7 @@ QItemGradient {
 								width: _viewWeapons.height
 								text: wallet.readableName
 								image: wallet.image
-								bulletCount: wallet.bullet ? wallet.bullet.amount : -1
+								bulletCount: wallet.market.cost == 0 ? -1 : wallet.amount //wallet.bullet ? wallet.bullet.amount : -1
 								selected: _viewWeapons.selectedList.includes(wallet.market.name)
 								onClicked: {
 									if (selected)

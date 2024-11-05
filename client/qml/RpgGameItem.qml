@@ -369,7 +369,7 @@ FocusScope {
 			opacity: canShot ? 1.0 : 0.0
 
 			readonly property bool canShot:  _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon &&
-											 _game.controlledPlayer.armory.currentWeapon.canShot &&
+											 _game.controlledPlayer.armory.currentWeapon.bulletCount != -1 &&
 											 _game.controlledPlayer.armory.currentWeapon.weaponType != TiledWeapon.WeaponMageStaff
 
 			readonly property int bullet: canShot ?

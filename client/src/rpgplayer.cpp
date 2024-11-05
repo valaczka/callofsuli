@@ -149,9 +149,9 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
 			} else if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
 				if (RpgPickableWeaponIface *iface = dynamic_cast<RpgPickableWeaponIface*>(weapon)) {
-					g->useBullet(iface->toBulletPickable());
+					g->useWeapon(iface->toPickable());
 				} else {
-					LOG_CERROR("game") << "Invalid weapon cast";
+					LOG_CTRACE("game") << "Invalid weapon cast" << weapon->weaponType();
 				}
 			} else {
 				LOG_CERROR("game") << "Invalid RpgGame cast";
@@ -181,8 +181,18 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 			m_body->stop();
 		}
 
-		if (weapon->hit(enemy()))
+		if (weapon->hit(enemy())) {
+			if (weapon->pickedBulletCount() > 0)
+				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
+			else if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
+				if (RpgPickableWeaponIface *iface = dynamic_cast<RpgPickableWeaponIface*>(weapon)) {
+					g->useWeapon(iface->toPickable());
+				} else {
+					LOG_CTRACE("game") << "Invalid weapon cast" << weapon->weaponType();
+				}
+			}
 			playAttackEffect(weapon);
+		}
 	} else {
 #ifndef Q_OS_WASM
 		StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
@@ -767,6 +777,9 @@ void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
 		case TiledWeapon::WeaponHammer:
 		case TiledWeapon::WeaponFireFogWeapon:
 		case TiledWeapon::WeaponLightningWeapon:
+			msg = tr("Weapon lost");
+			break;
+
 		case TiledWeapon::WeaponInvalid:
 			break;
 	}

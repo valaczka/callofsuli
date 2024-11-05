@@ -205,15 +205,24 @@ bool TiledWeapon::hit(TiledObject *target)
 	if (!m_disableTimerRepeater && !m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
 		return false;
 
+	if (m_bulletCount == 0)
+		return false;
+
 	if (target && m_parentObject) {
 		IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(m_parentObject);
 		IsometricPlayer *player = qobject_cast<IsometricPlayer*>(m_parentObject);
 
-		if (player)
+		if (player) {
+			if (m_bulletCount > 0)
+				setBulletCount(m_bulletCount-1);
 			m_parentObject->game()->playerAttackEnemy(m_parentObject, target, m_weaponType);
+		}
 
-		if (enemy)
+		if (enemy) {
+			if (m_bulletCount > 0)
+				setBulletCount(m_bulletCount-1);
 			m_parentObject->game()->enemyAttackPlayer(m_parentObject, target, m_weaponType);
+		}
 
 		/// TODO: player attacks player ?
 	}
@@ -400,10 +409,7 @@ void TiledWeapon::setDisableTimerRepeater(bool newDisableTimerRepeater)
  * @return
  */
 
-bool TiledWeapon::canHit() const
-{
-	return m_canHit;
-}
+
 
 void TiledWeapon::setCanHit(bool newCanHit)
 {
@@ -426,6 +432,7 @@ void TiledWeapon::setCanHit(bool newCanHit)
 TiledWeaponHand::TiledWeaponHand(QObject *parent)
 	: TiledWeapon(WeaponHand, parent)
 {
+	m_bulletCount = -1;
 	m_canHit = true;
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.3_31.png");
 }

@@ -395,39 +395,25 @@ void RpgEnemyBase::loadType()
 {
 	m_directory = directoryBaseName(m_enemyType, m_subType);
 
-	if (m_enemyType == EnemySoldier || m_enemyType == EnemySoldierFix) {
-		auto w = m_armory->weaponAdd(new RpgLongsword);
-		w->setExcludeFromLayers(true);
-		m_armory->setCurrentWeapon(w);
+	TiledWeapon *w = nullptr;
 
-	} else if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix) {
-		auto w = m_armory->weaponAdd(new RpgShortbow);
-		w->setExcludeFromLayers(true);
-		w->setBulletCount(-1);
-		m_armory->setCurrentWeapon(w);
+	if (m_enemyType == EnemySoldier || m_enemyType == EnemySoldierFix)
+		w = m_armory->weaponAdd(new RpgLongsword);
+	else if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix)
+		w = m_armory->weaponAdd(new RpgShortbow);
+	else if (m_enemyType == EnemySkeleton)
+		w = m_armory->weaponAdd(new RpgLongsword);
+	else if (m_enemyType == EnemySmith || m_enemyType == EnemySmithFix)
+		w = m_armory->weaponAdd(new RpgHammer);
+	else if (m_enemyType == EnemyButcher || m_enemyType == EnemyButcherFix)
+		w = m_armory->weaponAdd(new RpgAxe);
+	else if (m_enemyType == EnemyBarbarian || m_enemyType == EnemyBarbarianFix)
+		w = m_armory->weaponAdd(new RpgMace);
 
-	} else if (m_enemyType == EnemySkeleton) {
-		auto w = m_armory->weaponAdd(new RpgLongsword);
-		w->setExcludeFromLayers(true);
-		m_armory->setCurrentWeapon(w);
 
-	} else if (m_enemyType == EnemySmith || m_enemyType == EnemySmithFix) {
-		auto w = m_armory->weaponAdd(new RpgHammer);
-		w->setExcludeFromLayers(true);
-		w->setBulletCount(-1);
-		m_armory->setCurrentWeapon(w);
-
-	} else if (m_enemyType == EnemyButcher || m_enemyType == EnemyButcherFix) {
-		auto w = m_armory->weaponAdd(new RpgAxe);
+	if (w) {
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);
-
-	} else if (m_enemyType == EnemyBarbarian || m_enemyType == EnemyBarbarianFix) {
-		auto w = m_armory->weaponAdd(new RpgMace);
-		w->setExcludeFromLayers(true);
-		w->setBulletCount(-1);
-		m_armory->setCurrentWeapon(w);
-
 	}
 }

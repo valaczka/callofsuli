@@ -55,7 +55,6 @@ class RpgUserWallet : public QObject
 	Q_PROPERTY(RpgMarket::Type marketType READ marketType NOTIFY marketTypeChanged FINAL)
 	Q_PROPERTY(int amount READ amount WRITE setAmount NOTIFY amountChanged FINAL)
 	Q_PROPERTY(QDateTime expiry READ expiry WRITE setExpiry NOTIFY expiryChanged FINAL)
-	Q_PROPERTY(RpgUserWallet *bullet READ bullet WRITE setBullet NOTIFY bulletChanged FINAL)
 	Q_PROPERTY(bool available READ available NOTIFY availableChanged FINAL)
 	Q_PROPERTY(bool buyable READ buyable NOTIFY buyableChanged FINAL)
 	Q_PROPERTY(QString readableName READ readableName WRITE setReadableName NOTIFY readableNameChanged FINAL)
@@ -78,9 +77,6 @@ public:
 
 	QDateTime expiry() const;
 	void setExpiry(const QDateTime &newExpiry);
-
-	RpgUserWallet *bullet() const;
-	void setBullet(RpgUserWallet *newBullet);
 
 	bool available() const;
 
@@ -107,7 +103,6 @@ signals:
 	void marketChanged();
 	void amountChanged();
 	void expiryChanged();
-	void bulletChanged();
 	void availableChanged();
 	void marketTypeChanged();
 	void readableNameChanged();
@@ -125,7 +120,6 @@ private:
 	RpgMarket m_market;
 	int m_amount = 0;
 	QDateTime m_expiry;
-	RpgUserWallet *m_bullet = nullptr;
 	QString m_readableName;
 	QString m_image;
 	QString m_sortName;
@@ -235,7 +229,6 @@ private:
 	void updateMarket(const RpgMarket &market);
 	void updateMarket(const RpgWallet &wallet);
 	void removeMissing(const QVector<RpgMarket> &list);
-	void updateBullets();
 
 	int m_currency = 0;
 

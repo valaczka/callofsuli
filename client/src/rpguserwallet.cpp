@@ -100,19 +100,6 @@ void RpgUserWallet::setExpiry(const QDateTime &newExpiry)
 	emit expiryChanged();
 }
 
-RpgUserWallet *RpgUserWallet::bullet() const
-{
-	return m_bullet;
-}
-
-void RpgUserWallet::setBullet(RpgUserWallet *newBullet)
-{
-	if (m_bullet == newBullet)
-		return;
-	m_bullet = newBullet;
-	emit bulletChanged();
-}
-
 
 /**
  * @brief RpgUserWallet::available
@@ -217,8 +204,8 @@ bool RpgUserWallet::buyable() const
 {
 	const bool a = available();
 
-	if (m_market.type == RpgMarket::Weapon && a)
-		return false;
+	/*if (m_market.type == RpgMarket::Weapon && a)
+		return false;*/
 
 	if (m_market.type == RpgMarket::Map && a)
 		return false;
@@ -334,7 +321,7 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 							tr("Bank")
 						});
 
-	} else if (market.type == RpgMarket::Bullet) {
+	} /*else if (market.type == RpgMarket::Bullet) {
 		TiledWeapon::WeaponType w = TiledWeapon::WeaponInvalid;
 
 		switch (RpgPickableObject::typeFromString(market.name)) {
@@ -370,7 +357,7 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 							60
 						});
 
-	}
+	}*/
 
 	return list;
 }
@@ -580,8 +567,6 @@ void RpgUserWalletList::loadMarket(const QJsonObject &json)
 	}
 
 	removeMissing(mList);
-	updateBullets();
-
 	reloadWallet();
 }
 
@@ -694,7 +679,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			w->setReadableName(TiledWeapon::weaponNameEn(t));
 			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
 
-		} else if (market.type == RpgMarket::Bullet) {
+		} /*else if (market.type == RpgMarket::Bullet) {
 			const auto t = RpgPickableObject::typeFromString(market.name);
 
 			if (t == RpgPickableObject::PickableInvalid) {
@@ -704,7 +689,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 
 			w->setReadableName(RpgPickableObject::pickableNameEn(t));
 			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
-		} else if (market.type == RpgMarket::Hp) {
+		} */ else if (market.type == RpgMarket::Hp) {
 			w->setReadableName(tr("HP"));
 		} else if (market.type == RpgMarket::Time) {
 			w->setReadableName(tr("Second"));
@@ -742,7 +727,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 				break;
 			}
 		}
-	} else if (market.type == RpgMarket::Weapon || market.type == RpgMarket::Bullet) {
+	} else if (market.type == RpgMarket::Weapon /*|| market.type == RpgMarket::Bullet*/) {
 		if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"); QFile::exists(s)) {
 			ptr->setImage(QStringLiteral("qrc")+s);
 		}
@@ -803,75 +788,11 @@ void RpgUserWalletList::removeMissing(const QVector<RpgMarket> &list)
 			r.append(w);
 	}
 
-	for (RpgUserWallet *w : *this) {
-		if (r.contains(w->bullet()))
-			w->setBullet(nullptr);
-	}
-
 	this->remove(r);
 }
 
 
 
-/**
- * @brief RpgUserWalletList::updateBullets
- */
-
-void RpgUserWalletList::updateBullets()
-{
-	const auto &hash = RpgArmory::weaponHash();
-
-	for (RpgUserWallet *w : *this) {
-		if (w->market().type != RpgMarket::Weapon) {
-			w->setBullet(nullptr);
-			continue;
-		}
-
-		const TiledWeapon::WeaponType weapon = hash.key(w->market().name, TiledWeapon::WeaponInvalid);
-		RpgPickableObject::PickableType pickable = RpgPickableObject::PickableInvalid;
-
-
-		switch (weapon) {
-			case TiledWeapon::WeaponShortbow:
-				pickable = RpgPickableObject::PickableArrow;
-				break;
-
-			case TiledWeapon::WeaponLongbow:
-				pickable = RpgPickableObject::PickableFireball;
-				break;
-
-			case TiledWeapon::WeaponLongsword:
-			case TiledWeapon::WeaponDagger:
-			case TiledWeapon::WeaponBroadsword:
-			case TiledWeapon::WeaponHand:
-			case TiledWeapon::WeaponAxe:
-			case TiledWeapon::WeaponMace:
-			case TiledWeapon::WeaponHammer:
-			case TiledWeapon::WeaponGreatHand:
-			case TiledWeapon::WeaponShield:
-			case TiledWeapon::WeaponMageStaff:
-			case TiledWeapon::WeaponLightningWeapon:
-			case TiledWeapon::WeaponFireFogWeapon:
-				break;
-
-			case TiledWeapon::WeaponInvalid:
-				LOG_CERROR("client") << "Invalid weapon in market" << w->market().name;
-				break;
-		}
-
-
-		if (pickable == RpgPickableObject::PickableInvalid)
-			w->setBullet(nullptr);
-		else {
-			for (RpgUserWallet *w2 : *this) {
-				if (w2->market().type == RpgMarket::Bullet && RpgPickableObject::typeFromString(w2->market().name) == pickable) {
-					w->setBullet(w2);
-					break;
-				}
-			}
-		}
-	}
-}
 
 
 /**

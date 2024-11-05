@@ -769,11 +769,8 @@ void IsometricPlayer::setDestinationPoint(const QPointF &point)
 
 void IsometricPlayer::clearDestinationPoint()
 {
-	if (d->m_destinationMotor) {
-		LOG_CDEBUG("game") << "Destination cleared";
-		d->m_destinationMotor.reset();
-		d->m_destinationPoint.reset();
-	}
+	d->m_destinationMotor.reset();
+	d->m_destinationPoint.reset();
 }
 
 

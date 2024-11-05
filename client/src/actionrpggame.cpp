@@ -338,14 +338,9 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 				return;
 			}
 
-			loadWeapon(player, type, wallet->bullet() ? wallet->bullet()->amount() : 0);
+			loadWeapon(player, type, wallet->market().cost == 0 ? -1 : wallet->amount()
+					   /*wallet->bullet() ? wallet->bullet()->amount() : 0*/);
 
-			return;
-		}
-
-		case RpgMarket::Bullet: {
-			const RpgPickableObject::PickableType ptype = RpgPickableObject::typeFromString(wallet->market().name);
-			loadBullet(player, ptype, wallet->market().amount);
 			return;
 		}
 
@@ -601,7 +596,8 @@ void ActionRpgGame::rpgGameActivated_()
 
 			loadWeapon(player,
 					   RpgArmory::weaponHash().key(s, TiledWeapon::WeaponInvalid),
-					   (*it)->bullet() ? (*it)->bullet()->amount() : 0);
+					   /*(*it)->bullet() ? (*it)->bullet()->amount() : 0*/
+					   (*it)->market().cost == 0 ? -1 : (*it)->amount());
 		}
 	}
 
@@ -1070,7 +1066,10 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 		}
 	}
 
-	weapon->setBulletCount(weapon->bulletCount()+bullet);
+	if (bullet == -1)
+		weapon->setBulletCount(-1);
+	else if (weapon->bulletCount() != -1)
+		weapon->setBulletCount(weapon->bulletCount()+bullet);
 
 	if (type != TiledWeapon::WeaponMageStaff || !weapon->canCast())
 		player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);

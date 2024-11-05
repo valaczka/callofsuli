@@ -2911,27 +2911,28 @@ void RpgGame::onSceneWorldStepped(TiledScene *scene)
 }
 
 
+
 /**
- * @brief RpgGame::useBullet
+ * @brief RpgGame::useWeapon
  * @param type
  */
 
-void RpgGame::useBullet(const RpgPickableObject::PickableType &type)
+void RpgGame::useWeapon(const RpgPickableObject::PickableType &type)
 {
 	if (type == RpgPickableObject::PickableInvalid) {
-		LOG_CERROR("game") << "Invalid bullet" << type;
+		LOG_CERROR("game") << "Invalid weapon" << type;
 		return;
 	}
 
 	const QString name = RpgPickableObject::typeHash().key(type);
 
 	auto it = std::find_if(m_usedWallet.begin(), m_usedWallet.end(), [&name](const RpgWallet &w) {
-		return w.type == RpgMarket::Bullet && w.name == name;
+		return w.type == RpgMarket::Weapon && w.name == name;
 	});
 
 	if (it == m_usedWallet.end()) {
 		RpgWallet w;
-		w.type = RpgMarket::Bullet;
+		w.type = RpgMarket::Weapon;
 		w.name = name;
 		w.amount = 1;
 		m_usedWallet.append(w);

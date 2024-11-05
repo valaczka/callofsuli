@@ -93,13 +93,13 @@ QPageGradient {
 			inGame: true
 		}
 
-		ListElement {
+		/*ListElement {
 			type: RpgMarket.Bullet
 			title: qsTr("Ammunition")
 			icon: "qrc:/Qaterial/Icons/bullet.svg"
 			inBase: true
 			inGame: true
-		}
+		}*/
 
 		ListElement {
 			type: RpgMarket.Xp

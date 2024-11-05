@@ -108,7 +108,8 @@ public:
 	virtual bool canProtect(const WeaponType &weapon) const = 0;
 	virtual bool canAttack() const = 0;
 
-	bool canHit() const;
+	bool canHit() const { return m_canHit && m_bulletCount != 0; }
+
 	void setCanHit(bool newCanHit);
 
 	bool hit(TiledObject *target);

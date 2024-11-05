@@ -219,7 +219,7 @@ public:
 		Map			= 1,
 		Skin		= 2,
 		Weapon		= 3,
-		Bullet		= 4,
+		Bullet [[deprecated]]		= 4,
 		Hp			= 5,
 		Time		= 6,
 		Xp			= 7,
