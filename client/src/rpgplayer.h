@@ -33,6 +33,7 @@
 #include "rpgshortbow.h"
 #include "tiledeffect.h"
 #include "tiledgamesfx.h"
+#include "tiledpathmotor.h"
 #include <QQmlEngine>
 
 class RpgGame;
@@ -233,6 +234,8 @@ private:
 
 	QTimer m_castTimer;
 	QDeadlineTimer m_timerRepeater;
+
+	TiledPathMotor m_testMotor;
 
 	friend class RpgGame;
 	friend class ActionRpgGame;

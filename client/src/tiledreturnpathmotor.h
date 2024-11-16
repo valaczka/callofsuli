@@ -35,70 +35,49 @@
 
 
 /**
- * @brief The TiledReturnPathMotorSerializer class
- */
-
-class TiledReturnPathMotorSerializer : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledReturnPathMotorSerializer() {}
-
-	QS_SERIALIZABLE
-	QS_COLLECTION(QVector, qreal, points)
-	QS_FIELD(bool, returning)
-	QS_FIELD(qreal, distance)
-};
-
-
-
-
-/**
  * @brief The TiledReturnPathMotor class
  */
 
 class TiledReturnPathMotor : public AbstractTiledMotor
 {
 public:
-	TiledReturnPathMotor();
+	TiledReturnPathMotor(const QPointF &basePoint);
 	virtual ~TiledReturnPathMotor() {}
 
-	TiledReturnPathMotorSerializer toSerializer() const;
-	static TiledReturnPathMotor *fromSerializer(const TiledReturnPathMotorSerializer &data);
-
-	QPointF currentPosition() const override;
-	void updateBody(TiledObject */*body*/, const qreal &/*maximumSpeed = 0.*/) override {}
+	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
+	QPointF basePoint() override;
 
 	void moveBody(TiledObjectBody *body, const float32 &angle, const qreal &radius);
-	void placeCurrentPosition(TiledObjectBody *body, const float32 &angle);
-	void finish(TiledObjectBody *body);
-	bool step(const qreal &distance) override;
+	void finish(TiledObjectBody *body, AbstractGame::TickTimer *timer);
 
 	QPolygonF path() const;
 
 	bool isReturning() const;
 	void setIsReturning(bool newIsReturning);
+	bool hasReturned() const;
 
-	qreal waitMsec() const;
-	void setWaitMsec(qreal newWaitMsec);
+	qint64 waitMsec() const;
+	void setWaitMsec(qint64 newWaitMsec);
 
-	bool isReturnReady() const;
+	bool isReturnReady(AbstractGame::TickTimer *timer) const;
 
 	const std::optional<QPointF> &lastSeenPoint() const;
 	void setLastSeenPoint(const QPointF &newLastSeenPoint);
 	void clearLastSeenPoint();
 
 private:
-	void addPoint(const QPointF &point, const float32 &angle);
+	void addPoint(const QPointF &point, const float &angle);
 
-	TiledPathMotor m_pathMotor;
-	QPolygonF m_path;
-	float32 m_lastAngle = 0;
+	QPointF m_basePoint;
+	std::unique_ptr<TiledPathMotor> m_pathMotor;
 	bool m_isReturning = false;
+	bool m_hasReturned = false;
 	std::optional<QPointF> m_lastSeenPoint;
-	QElapsedTimer m_waitTimer;
-	qreal m_waitMsec = 2500;
+	qint64 m_waitMsec = 2500;
+	qint64 m_waitEnd = 0;
+
+	QPolygonF m_path;
+	float m_lastAngle = 0.;
 };
 
 #endif // TILEDRETURNPATHMOTOR_H

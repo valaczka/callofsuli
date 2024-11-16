@@ -35,53 +35,6 @@ TiledFixPositionMotor::TiledFixPositionMotor()
 
 
 
-/**
- * @brief TiledFixPositionMotor::toSerializer
- * @return
- */
-
-TiledFixPositionMotorSerializer TiledFixPositionMotor::toSerializer() const
-{
-	TiledFixPositionMotorSerializer data;
-
-	data.x = m_point.x();
-	data.y = m_point.y();
-	data.direction = m_direction;
-
-	return data;
-}
-
-
-
-/**
- * @brief TiledFixPositionMotor::fromSerializer
- * @param data
- * @return
- */
-
-TiledFixPositionMotor *TiledFixPositionMotor::fromSerializer(const TiledFixPositionMotorSerializer &data)
-{
-	TiledFixPositionMotor *motor = new TiledFixPositionMotor;
-
-	motor->setPoint(QPointF{data.x, data.y});
-	motor->setDirection(QVariant::fromValue(data.direction).value<TiledObject::Direction>());
-
-	return motor;
-}
-
-
-
-/**
- * @brief TiledFixPositionMotor::currentPosition
- * @return
- */
-
-QPointF TiledFixPositionMotor::currentPosition() const
-{
-	return m_point;
-}
-
-
 
 /**
  * @brief TiledFixPositionMotor::updateBody
@@ -89,25 +42,12 @@ QPointF TiledFixPositionMotor::currentPosition() const
  * @param maximumSpeed
  */
 
-void TiledFixPositionMotor::updateBody(TiledObject *object, const qreal &/*maximumSpeed*/)
+void TiledFixPositionMotor::updateBody(TiledObject *object, const float &, AbstractGame::TickTimer *)
 {
 	Q_ASSERT(object);
 	object->body()->stop();
 	if (m_direction != TiledObject::Invalid)
 		object->setCurrentDirection(m_direction);
-}
-
-
-
-/**
- * @brief TiledFixPositionMotor::step
- * @param distance
- * @return
- */
-
-bool TiledFixPositionMotor::step(const qreal &/*distance*/)
-{
-	return false;
 }
 
 

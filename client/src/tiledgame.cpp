@@ -60,6 +60,8 @@ TiledGame::TiledGame(QQuickItem *parent)
 	setMouseAttack(Utils::settingsGet(QStringLiteral("game/mouseAttack"), false).toBool());
 	setFlickableInteractive(Utils::settingsGet(QStringLiteral("game/flickableInteractive"), true).toBool());
 
+	m_tickTimer.reset(new AbstractGame::TickTimer);
+
 	connect(this, &TiledGame::activeFocusChanged, this, [this](const bool &focus){
 		if (!focus) {
 			m_keyboardJoystickState.clear();

@@ -141,8 +141,14 @@ void MaskedMouseArea::touchEvent(QTouchEvent *event)
 	pos -= m_touchPoint;
 
 	const int threshold = qApp->styleHints()->startDragDistance();
-	if (pos.manhattanLength() < 2*threshold)
+	if (pos.manhattanLength() < 2*threshold) {
 		emit clicked();
+
+		if (event->timestamp() - m_lastTouch < (quint64) qApp->styleHints()->mouseDoubleClickInterval())
+			emit doubleClicked();
+	}
+
+	m_lastTouch = event->timestamp();
 }
 
 

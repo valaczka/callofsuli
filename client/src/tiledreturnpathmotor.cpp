@@ -25,77 +25,63 @@
  */
 
 #include "tiledreturnpathmotor.h"
+#include "tiledscene.h"
+#include "utils_.h"
 
-TiledReturnPathMotor::TiledReturnPathMotor()
+TiledReturnPathMotor::TiledReturnPathMotor(const QPointF &basePoint)
 	: AbstractTiledMotor(ReturnPathMotor)
+	, m_basePoint(basePoint)
 {
 
 }
 
 
-/**
- * @brief TiledReturnPathMotor::toSerializer
- * @return
- */
-
-TiledReturnPathMotorSerializer TiledReturnPathMotor::toSerializer() const
-{
-	TiledReturnPathMotorSerializer data;
-
-	data.points.reserve(m_path.size()*2);
-	for (const QPointF &p : std::as_const(m_path)) {
-		data.points << p.x() << p.y();
-	}
-
-	data.returning = m_isReturning;
-	data.distance = m_pathMotor.currentDistance();
-
-	return data;
-}
-
-
 
 /**
- * @brief TiledReturnPathMotor::fromSerializer
- * @param data
- * @return
+ * @brief TiledReturnPathMotor::updateBody
+ * @param object
+ * @param distance
+ * @param timer
  */
 
-TiledReturnPathMotor *TiledReturnPathMotor::fromSerializer(const TiledReturnPathMotorSerializer &data)
+void TiledReturnPathMotor::updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer)
 {
-	TiledReturnPathMotor *motor = new TiledReturnPathMotor;
+	Q_ASSERT (object);
 
-	QPolygonF polygon;
-
-	for (auto it = data.points.constBegin(); it != data.points.constEnd(); ++it) {
-		qreal x = *it;
-		++it;
-		if (it != data.points.constEnd()) {
-			polygon << QPointF{x, *it};
-		}
-	}
-
-	motor->m_pathMotor.setPolygon(polygon);
-	motor->m_pathMotor.setDirection(TiledPathMotor::Backward);
-	motor->m_pathMotor.toDistance(data.distance);
-	motor->m_isReturning = data.returning;
-
-	return motor;
-}
-
-
-/**
- * @brief TiledReturnPathMotor::currentPosition
- * @return
- */
-
-QPointF TiledReturnPathMotor::currentPosition() const
-{
 	if (!m_isReturning)
-		return {0,0};
+		return;
 
-	return m_pathMotor.currentPosition();
+	if (m_pathMotor) {
+		if (m_pathMotor->atEnd()) {
+			object->body()->stop();
+			object->body()->setIsRunning(false);
+			m_pathMotor.reset();
+			m_hasReturned = true;
+			m_path.clear();
+			setIsReturning(false);
+		} else {
+			m_pathMotor->updateBody(object, distance, timer);
+			object->rotateBody(m_pathMotor->currentAngleRadian());
+		}
+	} else {
+		setIsReturning(false);
+	}
 }
+
+
+
+
+/**
+ * @brief TiledReturnPathMotor::basePoint
+ * @return
+ */
+
+QPointF TiledReturnPathMotor::basePoint()
+{
+	return m_basePoint;
+}
+
+
 
 
 
@@ -113,51 +99,103 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 	Q_ASSERT(body);
 
 	if (m_isReturning) {
-		if (m_pathMotor.currentSegment() >= 0)
-			m_pathMotor.clearFromSegment(m_pathMotor.currentSegment());
-		m_path = m_pathMotor.linesToPolygon();
-
 		m_isReturning = false;
-		m_waitTimer.invalidate();
+		m_waitEnd = 0;
+
+		if (m_path.size() > 1) {
+			const int last = TiledPathMotor::getShortestSegment(m_path, body->bodyPosition());
+
+			if (last != -1)
+				TiledPathMotor::clearFromSegment(&m_path, last+1);
+		}
+
+		if (m_pathMotor)
+			m_pathMotor.reset();
 	}
 
-	const QPointF &currentPoint = body->bodyPosition();
+	m_hasReturned = false;
 
 	body->setLinearVelocity(TiledObjectBase::toPoint(angle, radius));
 
-	if (!m_path.isEmpty() && m_lastAngle == angle)
-		return;
-
-	addPoint(currentPoint, angle);
+	addPoint(body->bodyPosition(), angle);
 }
+
+
+
+
+
+
+
+
 
 
 /**
- * @brief TiledReturnPathMotor::placeCurrentPosition
+ * @brief TiledReturnPathMotor::finish
  * @param body
  */
 
-void TiledReturnPathMotor::placeCurrentPosition(TiledObjectBody *body, const float32 &angle)
+void TiledReturnPathMotor::finish(TiledObjectBody *body, AbstractGame::TickTimer *timer)
 {
 	Q_ASSERT(body);
+	Q_ASSERT(body->baseObject());
 
-	if (m_isReturning) {
-		if (m_pathMotor.currentSegment() >= 0)
-			m_pathMotor.clearFromSegment(m_pathMotor.currentSegment());
-		m_path = m_pathMotor.linesToPolygon();
+	TiledScene *scene = body->baseObject()->scene();
 
-		m_isReturning = false;
-		m_waitTimer.invalidate();
+	if (!scene) {
+		LOG_CERROR("scene") << "Missing scene" << body << body->baseObject();
+		return;
 	}
 
-	const QPointF &currentPoint = body->bodyPosition();
+	m_pathMotor.reset(new TiledPathMotor);
+	m_pathMotor->setDirection(TiledPathMotor::Forward);
 
-	addPoint(currentPoint, angle);
+	const auto &ptr = scene->findShortestPath(body->bodyPosition(), m_basePoint);
+
+	if (!ptr) {
+		LOG_CTRACE("scene") << "No path from" << body->bodyPosition() << "to" << m_basePoint;
+
+		const QPointF &currentPoint = body->bodyPosition();
+
+		if (!m_path.isEmpty()) {
+			if (m_path.size() < 2 || QVector2D(m_path.last()).distanceToPoint(QVector2D(currentPoint)) >= 15.)
+				m_path << currentPoint;
+
+			QPolygonF rpath;
+			rpath.reserve(m_path.size());
+
+			std::reverse_copy(m_path.cbegin(), m_path.cend(), std::back_inserter(rpath));
+
+			if (rpath.last() != m_basePoint)
+				rpath << m_basePoint;
+
+			m_pathMotor->setPolygon(rpath);
+		} else {
+			LOG_CERROR("scene") << "Missing return path";
+		}
+
+	} else if (ptr.value().size() < 2) {
+		QPolygonF p;
+		p << body->bodyPosition() << ptr.value();
+		m_pathMotor->setPolygon(p);
+	} else {
+		m_pathMotor->setPolygon(ptr.value());
+	}
+
+
+	if (timer)
+		m_waitEnd = timer->currentTick() + m_waitMsec;
+
+	m_isReturning = true;
+	m_hasReturned = false;
+	clearLastSeenPoint();
+
+
+	QVariantList list;
+	for (const auto &point : m_pathMotor->polygon())
+		list.append(point);
+
+	scene->setTestPoints(list);
 }
-
-
-
-
 
 
 
@@ -167,14 +205,14 @@ void TiledReturnPathMotor::placeCurrentPosition(TiledObjectBody *body, const flo
  * @param point
  * @param angle
  */
-void TiledReturnPathMotor::addPoint(const QPointF &point, const float32 &angle)
-{
-	if (!m_path.isEmpty()) {
-		QVector2D vector(m_path.last()-point);
-		if (vector.length() < 50.)
-			return;
-	}
 
+void TiledReturnPathMotor::addPoint(const QPointF &point, const float &angle)
+{
+	if (m_path.size() > 1 && m_lastAngle == angle)
+		return;
+
+	if (m_path.size() > 1 && QVector2D(point).distanceToPoint(QVector2D(m_path.last())) < 50.)
+		return;
 
 	// Check intersections
 
@@ -208,72 +246,6 @@ void TiledReturnPathMotor::addPoint(const QPointF &point, const float32 &angle)
 
 
 
-
-
-
-
-/**
- * @brief TiledReturnPathMotor::finish
- * @param body
- */
-
-void TiledReturnPathMotor::finish(TiledObjectBody *body)
-{
-	Q_ASSERT(body);
-
-	const QPointF &currentPoint = body->bodyPosition();
-
-	if (!m_path.isEmpty()) {
-		QVector2D vector(m_path.last()-currentPoint);
-
-		if (vector.length() >= 15.)
-			m_path << currentPoint;
-
-		m_pathMotor.setDirection(TiledPathMotor::Backward);
-		m_pathMotor.setPolygon(m_path);
-	}
-
-	m_waitTimer.restart();
-
-	m_isReturning = true;
-	clearLastSeenPoint();
-}
-
-
-
-/**
- * @brief TiledReturnPathMotor::step
- * @param body
- * @param distance
- * @return
- */
-
-bool TiledReturnPathMotor::step(const qreal &distance)
-{
-	if (!m_isReturning) {
-		LOG_CERROR("scene") << "Not in returning state";
-		return false;
-	}
-
-	if (!isReturnReady()) {
-		LOG_CWARNING("scene") << "Return not ready";
-		return false;
-	}
-
-	if (m_pathMotor.atBegin())
-		return false;
-
-	m_pathMotor.step(distance);
-	return true;
-}
-
-
-
-QPolygonF TiledReturnPathMotor::path() const
-{
-	return m_path;
-}
-
 bool TiledReturnPathMotor::isReturning() const
 {
 	return m_isReturning;
@@ -284,20 +256,45 @@ void TiledReturnPathMotor::setIsReturning(bool newIsReturning)
 	m_isReturning = newIsReturning;
 }
 
-qreal TiledReturnPathMotor::waitMsec() const
+
+/**
+ * @brief TiledReturnPathMotor::hasReturned
+ * @return
+ */
+
+bool TiledReturnPathMotor::hasReturned() const
+{
+	return m_hasReturned;
+}
+
+
+
+qint64 TiledReturnPathMotor::waitMsec() const
 {
 	return m_waitMsec;
 }
 
-void TiledReturnPathMotor::setWaitMsec(qreal newWaitMsec)
+void TiledReturnPathMotor::setWaitMsec(qint64 newWaitMsec)
 {
 	m_waitMsec = newWaitMsec;
 }
 
-bool TiledReturnPathMotor::isReturnReady() const
+
+/**
+ * @brief TiledReturnPathMotor::isReturnReady
+ * @return
+ */
+
+bool TiledReturnPathMotor::isReturnReady(AbstractGame::TickTimer *timer) const
 {
-	return m_waitTimer.isValid() && m_waitTimer.elapsed() >= m_waitMsec;
+	return !timer || m_waitEnd <= 0 || timer->currentTick() > m_waitEnd;
 }
+
+
+/**
+ * @brief TiledReturnPathMotor::lastSeenPoint
+ * @return
+ */
 
 const std::optional<QPointF> &TiledReturnPathMotor::lastSeenPoint() const
 {

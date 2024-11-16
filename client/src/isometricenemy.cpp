@@ -321,7 +321,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			m_body->setIsRunning(false);
 		} else if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
-				m_returnPathMotor.reset(new TiledReturnPathMotor);
+				m_returnPathMotor.reset(new TiledReturnPathMotor(m_body->bodyPosition()));
 
 			if (m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor) {
 				m_body->setIsRunning(true);
@@ -373,8 +373,8 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 		}
 	}
 
-	if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {
-		m_returnPathMotor->finish(m_body.get());
+	if (m_returnPathMotor && !m_returnPathMotor->isReturning() && !m_returnPathMotor->hasReturned()) {
+		m_returnPathMotor->finish(m_body.get(), m_game->tickTimer());
 	}
 
 
@@ -450,7 +450,7 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle, const q
 
 		if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
-				m_returnPathMotor.reset(new TiledReturnPathMotor);
+				m_returnPathMotor.reset(new TiledReturnPathMotor(m_body->bodyPosition()));
 		}
 
 		if (!hasAbility())
@@ -487,7 +487,7 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle, const q
 
 void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
 {
-	m_body->emplace(m_motor->currentPosition());
+	m_body->emplace(m_motor->basePoint());
 }
 
 
@@ -601,25 +601,26 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 	}
 
 	if (m_returnPathMotor) {
-		if (m_returnPathMotor->isReturning() && !m_returnPathMotor->isReturnReady()) {
+		if (m_returnPathMotor->isReturning() && !m_returnPathMotor->isReturnReady(m_game->tickTimer())) {
 			m_body->stop();
 			m_body->setIsRunning(false);
 			rotateBody(directionToRadian(m_currentDirection));
 			return;
 		}
-		if (m_metric.returnSpeed != 0. && m_returnPathMotor->step(m_metric.returnSpeed > 0. ? m_metric.returnSpeed*factor : m_metric.speed*factor)) {
-			m_body->setLinearVelocity(maximizeSpeed(m_returnPathMotor->currentPosition() - m_body->bodyPosition()));
-			rotateBody(directionToRadian(m_currentDirection));
-			return;
-		} else {
+
+		if (m_returnPathMotor->hasReturned() || m_metric.returnSpeed == 0.) {
 			m_body->stop();
 			m_returnPathMotor.reset();
+		} else {
+			m_body->setIsRunning(false);
+			m_returnPathMotor->updateBody(this, m_metric.returnSpeed > 0. ? m_metric.returnSpeed*factor : m_metric.speed*factor, m_game->tickTimer());
+			return;
 		}
+
 	}
 
-
-	m_motor->step(m_metric.speed*factor);
-	m_motor->updateBody(this, m_maximumSpeed);
+	m_body->setIsRunning(false);
+	m_motor->updateBody(this, m_metric.speed*factor, m_game->tickTimer());
 
 	rotateBody(directionToRadian(m_currentDirection));
 }
@@ -754,10 +755,6 @@ void IsometricEnemyIface::loadPathMotor(const QPolygonF &polygon, const TiledPat
 	motor->setDirection(direction);
 	motor->setWaitAtBegin(3500);
 	motor->setWaitAtEnd(3500);
-	if (direction == TiledPathMotor::Forward)
-		motor->toBegin();
-	else
-		motor->toEnd();
 
 	m_motor.reset(motor);
 

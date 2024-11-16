@@ -97,6 +97,7 @@ private:
 	qreal m_alphaThreshold;
 	bool m_containsMouse;
 	qreal m_scaleImage = 1.0;
+	quint64 m_lastTouch = 0;
 };
 
 #endif // MASKEDMOUSEAREA_H

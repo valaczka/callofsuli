@@ -110,7 +110,7 @@ public:
 	virtual ~TiledScene();
 
 	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
-	QQuickItem *addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
+	[[deprecated]] QQuickItem *addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 	TiledVisualItem *addVisualItem();
 	TiledVisualItem *addVisualItem(Tiled::ImageLayer *layer);
 
@@ -199,7 +199,7 @@ protected:
 
 
 /// TEST POINTS
-/*private:
+private:
 	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
 	QVariantList m_testPoints;
 signals:
@@ -207,11 +207,15 @@ signals:
 public:
 	QVariantList testPoints() const { return m_testPoints; }
 	void setTestPoints(const QVariantList &list) {
+#ifdef QT_NO_DEBUG
+		Q_UNUSED(list);
+#else
 		if (m_testPoints == list)
 			return;
 		m_testPoints = list;
 		emit testPointsChanged();
-	}*/
+	}
+#endif
 /// ----
 
 

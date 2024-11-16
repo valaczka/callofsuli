@@ -2459,17 +2459,15 @@ QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
 
 RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 {
-	// TODO: LPC metric
-
 	static RpgEnemyMetricDefinition *def = nullptr;
 
 	if (!def) {
 		def = new RpgEnemyMetricDefinition;
 
 		EnemyMetric soldier;
-		soldier.speed = 2.;
+		soldier.speed = 3.;
 		soldier.returnSpeed = 3.5;
-		soldier.pursuitSpeed = 5.5;
+		soldier.pursuitSpeed = 5.;
 		soldier.sensorRange = M_PI*0.5;
 
 		EnemyMetric archer = soldier;
@@ -2478,8 +2476,8 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 		archer.sensorRange = M_PI*0.6;
 
 		EnemyMetric werebear;
-		werebear.speed = 3.;
-		werebear.returnSpeed = 3.;
+		werebear.speed = 4.;
+		werebear.returnSpeed = 4.;
 		werebear.pursuitSpeed = 7.;
 		werebear.sleepingTime = 0;
 		werebear.firstAttackTime = 750;

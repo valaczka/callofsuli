@@ -104,6 +104,18 @@ public:
 			m_timer.stop();
 		}
 
+		qint64 pause() {
+			m_pausedTick = currentTick();
+			m_reference.invalidate();
+			return m_pausedTick;
+		}
+
+		void resume() {
+			m_reference.invalidate();
+			m_reference.start();
+			m_startTick = m_pausedTick;
+		}
+
 		bool isValid() const { return m_reference.isValid(); }
 
 		const qint64 &latency() const { return m_latency; }
@@ -124,6 +136,7 @@ public:
 		QElapsedTimer m_reference;
 		qint64 m_startTick = 0;
 		qint64 m_latency = 0;
+		qint64 m_pausedTick = 0;
 		static const int m_interval;
 	};
 

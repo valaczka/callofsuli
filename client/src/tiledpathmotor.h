@@ -37,29 +37,6 @@
 
 
 
-
-/**
- * @brief The TiledPathMotorSerializer class
- */
-
-class TiledPathMotorSerializer : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledPathMotorSerializer()
-		: distance(0.)
-		, forward(true)
-	{}
-
-	QS_SERIALIZABLE
-	QS_FIELD(qreal, distance)
-	QS_FIELD(bool, forward)
-};
-
-
-
-
 /**
  * @brief The TiledPathMotor class
  */
@@ -88,10 +65,6 @@ public:
 	TiledPathMotor(const QPolygonF &polygon, const Direction &direction = Forward);
 	TiledPathMotor() : TiledPathMotor(QPolygonF()) {}
 
-
-	TiledPathMotorSerializer toSerializer() const;
-	void fromSerializer(const TiledPathMotorSerializer &data);
-
 	QPolygonF linesToPolygon() const;
 
 	QPolygonF polygon() const;
@@ -100,31 +73,30 @@ public:
 	Direction direction() const;
 	void setDirection(Direction newDirection);
 
-	QPointF currentPosition() const override;
 	qreal currentDistance() const;
 	qreal currentAngle() const;
 	qreal currentAngleRadian() const;
 	qreal fullDistance() const;
 
-	void updateBody(TiledObject *object, const qreal &maximumSpeed = 0.) override;
+	QVector2D getShortestPoint(const QPointF &pos, float *dstDistance = nullptr, int *dstSegment = nullptr, float *dstFactor = nullptr);
+	std::optional<QVector2D> getLastSegmentPoint();
 
-	bool toBegin();
-	bool toEnd();
-	bool toDistance(const qreal &distance);
-	void toPercent(const qreal &percent) { toDistance(m_fullDistance*percent); }
-	bool step(const qreal &distance) override;
-	bool step(const qreal &distance, const Direction &direction);
+	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
+	QPointF basePoint() override;
 
-	bool atBegin() const { return m_currentDistance <= 0.00001; }
-	bool atEnd() const { return m_currentDistance >= m_fullDistance; }
+
+	bool atBegin() const;
+	bool atEnd() const;
 	bool isClosed() const { return m_polygon.isClosed(); }
 
-	void waitTimerStart(const qint64 &msec);
-	void waitTimerStop();
-	WaitTimerState waitTimerState() const;
+	WaitTimerState waitTimerState(AbstractGame::TickTimer *timer) const;
 
-	int currentSegment() const;
+	static int getShortestSegment(const QPolygonF &polygon, const QPointF &pos);
+	static bool clearFromSegment(QPolygonF *polygon, const int &segment);
+	static bool clearToSegment(QPolygonF *polygon, const int &segment);
+
 	bool clearFromSegment(const int &segment);
+	bool clearToSegment(const int &segment);
 
 	qint64 waitAtEnd() const;
 	void setWaitAtEnd(qint64 newWaitAtEnd);
@@ -132,13 +104,14 @@ public:
 	qint64 waitAtBegin() const;
 	void setWaitAtBegin(qint64 newWaitAtBegin);
 
+	int lastSegment() const;
+
+	float lastSegmentFactor() const;
 
 private:
 	struct Line {
 		QLineF line;
-		qreal length = 0;
 		qreal angle = 0;
-		qreal speed = 1.0;
 	};
 
 	void loadLines();
@@ -147,16 +120,15 @@ private:
 
 	QPolygonF m_polygon;
 	Direction m_direction = Forward;
-	qreal m_currentDistance = 0.0;
-	qreal m_fullDistance = 0.0;
 	qreal m_currentAngle = 0.0;
-	QPointF m_currentPosition;
-	int m_currentSegment = -1;
 	qint64 m_waitAtEnd = 0;
 	qint64 m_waitAtBegin = 0;
 
-	QDeadlineTimer m_waitTimer;
+	qint64 m_waitTimerEnd = 0;
 	QList<Line> m_lines;
+
+	int m_lastSegment = -1;
+	float m_lastSegmentFactor = 0.;
 
 	friend class TiledReturnPathMotor;
 };

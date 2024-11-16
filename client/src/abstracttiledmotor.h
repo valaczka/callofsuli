@@ -27,8 +27,8 @@
 #ifndef ABSTRACTTILEDMOTOR_H
 #define ABSTRACTTILEDMOTOR_H
 
-#include "qpoint.h"
 #include "tiledobject.h"
+#include "abstractgame.h"
 
 
 class AbstractTiledMotor
@@ -48,9 +48,8 @@ public:
 
 	const Type &type() const { return m_type; }
 
-	virtual bool step(const qreal &distance) = 0;
-	virtual QPointF currentPosition() const = 0;
-	virtual void updateBody(TiledObject *object, const qreal &maximumSpeed = 0.) = 0;
+	virtual void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) = 0;
+	virtual QPointF basePoint() = 0;
 
 protected:
 	const Type m_type;

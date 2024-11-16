@@ -568,6 +568,7 @@ void ActionRpgGame::rpgGameActivated_()
 	player->setMp(characterPtr->mpStart);
 	loadInventory(player);
 
+
 	// Set user name
 
 	if (Server *s = m_client->server()) {
@@ -687,6 +688,7 @@ void ActionRpgGame::onConfigChanged()
 		}
 
 		startWithRemainingTime(m_config.duration*1000);
+		m_rpgGame->tickTimer()->start(this, 0);
 
 		if (!m_rpgGame->m_gameDefinition.music.isEmpty())
 			m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);

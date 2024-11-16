@@ -26,7 +26,6 @@
 
 #include "tiledpathmotor.h"
 #include "tiledobject.h"
-#include "isometricentity.h"
 #include <Logger.h>
 
 TiledPathMotor::TiledPathMotor(const QPolygonF &polygon, const Direction &direction)
@@ -35,34 +34,6 @@ TiledPathMotor::TiledPathMotor(const QPolygonF &polygon, const Direction &direct
 	, m_direction(direction)
 {
 	loadLines();
-}
-
-
-/**
- * @brief TiledPathMotor::toSerializer
- * @return
- */
-
-TiledPathMotorSerializer TiledPathMotor::toSerializer() const
-{
-	TiledPathMotorSerializer data;
-
-	data.distance = m_currentDistance;
-	data.forward = m_direction == Forward;
-
-	return data;
-}
-
-
-/**
- * @brief TiledPathMotor::fromSerializer
- * @param data
- */
-
-void TiledPathMotor::fromSerializer(const TiledPathMotorSerializer &data)
-{
-	setDirection(data.forward ? Forward : Backward);
-	toDistance(data.distance);
 }
 
 
@@ -100,11 +71,11 @@ QPolygonF TiledPathMotor::polygon() const
 void TiledPathMotor::setPolygon(const QPolygonF &newPolygon)
 {
 	m_polygon = newPolygon;
+
+	if (m_polygon.isEmpty())
+		LOG_CERROR("scene") << "Empty path";
+
 	loadLines();
-	if (m_direction == Forward)
-		toBegin();
-	else
-		toEnd();
 }
 
 
@@ -124,15 +95,12 @@ void TiledPathMotor::setDirection(Direction newDirection)
 }
 
 
+
+
 /**
- * @brief TiledPathMotor::currentDistance
+ * @brief TiledPathMotor::currentAngle
  * @return
  */
-
-qreal TiledPathMotor::currentDistance() const
-{
-	return m_currentDistance;
-}
 
 qreal TiledPathMotor::currentAngle() const
 {
@@ -159,11 +127,6 @@ void TiledPathMotor::loadLines()
 {
 	m_lines.clear();
 
-	m_fullDistance = 0;
-
-	if (m_polygon.isEmpty())
-		return;
-
 	auto prev = m_polygon.constBegin();
 	for (auto it = m_polygon.constBegin(); it != m_polygon.constEnd(); ++it) {
 		if (it == m_polygon.constBegin())
@@ -172,10 +135,7 @@ void TiledPathMotor::loadLines()
 		Line l;
 		l.line.setP1(*prev);
 		l.line.setP2(*it);
-		l.length = l.line.length();
 		l.angle = l.line.angle();
-		l.speed = TiledObject::factorFromDegree(l.angle);
-		m_fullDistance += l.length;
 		m_lines.append(l);
 
 		prev = it;
@@ -199,6 +159,16 @@ qreal TiledPathMotor::angleFromLine(const Line &line) const
 		return line.angle-180;
 }
 
+float TiledPathMotor::lastSegmentFactor() const
+{
+	return m_lastSegmentFactor;
+}
+
+int TiledPathMotor::lastSegment() const
+{
+	return m_lastSegment;
+}
+
 qint64 TiledPathMotor::waitAtBegin() const
 {
 	return m_waitAtBegin;
@@ -220,16 +190,6 @@ void TiledPathMotor::setWaitAtEnd(qint64 newWaitAtEnd)
 }
 
 
-/**
- * @brief TiledPathMotor::currentSegment
- * @return
- */
-
-int TiledPathMotor::currentSegment() const
-{
-	return m_currentSegment;
-}
-
 
 /**
  * @brief TiledPathMotor::removeAboveSegment
@@ -248,26 +208,79 @@ bool TiledPathMotor::clearFromSegment(const int &segment)
 }
 
 
-
 /**
- * @brief TiledPathMotor::currentPosition
+ * @brief TiledPathMotor::clearToSegment
+ * @param segment
  * @return
  */
 
-QPointF TiledPathMotor::currentPosition() const
+bool TiledPathMotor::clearToSegment(const int &segment)
 {
-	return m_currentPosition;
+	if (segment < 0 || segment >= m_lines.size())
+		return false;
+
+	m_lines.erase(m_lines.begin(), m_lines.begin()+segment);
+
+	return true;
+}
+
+
+
+
+
+/**
+ * @brief TiledPathMotor::getShortestPoint
+ * @param pos
+ */
+
+QVector2D TiledPathMotor::getShortestPoint(const QPointF &pos, float *dstDistance, int *dstSegment, float *dstFactor)
+{
+	float distance = -1;
+	QVector2D vector;
+	int segment = -1;
+	int n = 0;
+	float factor = -1;
+
+	for (const Line &l : m_lines) {
+		QVector2D dest;
+		float f = -1.;
+
+		float d = TiledObjectBase::shortestDistance(pos, l.line, &dest, &f);
+
+		if (distance == -1 || d < distance) {
+			distance = d;
+			vector = dest;
+			segment = n;
+			factor = f;
+		}
+
+		++n;
+	}
+
+	if (dstDistance)
+		*dstDistance = distance;
+
+	if (dstSegment)
+		*dstSegment = segment;
+
+	if (dstFactor)
+		*dstFactor = factor;
+
+	return vector;
 }
 
 
 /**
- * @brief TiledPathMotor::fullDistance
+ * @brief TiledPathMotor::getLastSegmentPoint
  * @return
  */
 
-qreal TiledPathMotor::fullDistance() const
+std::optional<QVector2D> TiledPathMotor::getLastSegmentPoint()
 {
-	return m_fullDistance;
+	if (m_lastSegment < 0 || m_lastSegment >= m_lines.size())
+		return std::nullopt;
+
+	return QVector2D(m_lines.at(m_lastSegment).line.pointAt(m_lastSegmentFactor));
 }
 
 
@@ -279,280 +292,281 @@ qreal TiledPathMotor::fullDistance() const
  * @param maximumSpeed
  */
 
-void TiledPathMotor::updateBody(TiledObject *object, const qreal &maximumSpeed)
+void TiledPathMotor::updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer)
 {
 	Q_ASSERT(object);
 	Q_ASSERT(object->body());
 
 	TiledObjectBody *body = object->body();
 
-	if (!isClosed()) {
-		if (m_direction == Backward && atBegin()) {
-			const WaitTimerState &s = waitTimerState();
 
+	if (m_lastSegment >= 0 && m_lastSegment < m_lines.size()) {
+		float factor = -1.;
+		float d = TiledObjectBase::shortestDistance(body->bodyPosition(), m_lines.at(m_lastSegment).line, nullptr, &factor);
+
+		if (d > distance) {
+			m_lastSegment = -1;
+			m_lastSegmentFactor = -1.;
+		} else {
+			m_lastSegmentFactor = factor;
+		}
+	}
+
+	const auto lastPoint = getLastSegmentPoint();
+
+	if (!lastPoint || lastPoint.value().distanceToPoint(QVector2D(body->bodyPosition())) > distance) {
+		int dstSegment = -1;
+		float dstDistance = -1;
+		float dstFactor = -1.;
+		QVector2D dst = getShortestPoint(body->bodyPosition(), &dstDistance, &dstSegment, &dstFactor);
+
+		if (dstSegment < 0) {
+			LOG_CERROR("scene") << "Invalid line segment" << object << m_lines.size();
+			return;
+		}
+
+		if (dstDistance < distance) {
+			m_lastSegment = dstSegment;
+			m_lastSegmentFactor = std::max(dstFactor, (float) 0.);
+		}
+
+		QLineF line(body->bodyPosition(), dst.toPointF());
+		body->setLinearVelocity(TiledObjectBase::toPoint(TiledObject::toRadian(line.angle()), std::min(distance, dstDistance)));
+		m_currentAngle = line.angle();
+
+		return;
+	}
+
+
+	// Ha nincs zárva és a végén vagyunk
+
+	if (!isClosed()) {
+		const WaitTimerState s = waitTimerState(timer);
+
+		if (m_direction == Backward && atBegin()) {
 			if (s == Invalid && m_waitAtBegin > 0) {
-				waitTimerStart(m_waitAtBegin);
+				m_waitTimerEnd = timer->currentTick()+m_waitAtBegin;
 				body->stop();
 				return;
 			} else if (s == Running) {
 				body->stop();
 				return;
 			} else {
-				waitTimerStop();
+				m_waitTimerEnd = 0;
 				setDirection(Forward);
 			}
-		} else 	if (m_direction == Forward && atEnd()) {
-			const WaitTimerState &s = waitTimerState();
-
+		} else if (m_direction == Forward && atEnd()) {
 			if (s == Invalid && m_waitAtEnd > 0) {
-				waitTimerStart(m_waitAtEnd);
+				m_waitTimerEnd = timer->currentTick()+m_waitAtBegin;
 				body->stop();
 				return;
 			} else if (s == Running) {
 				body->stop();
 				return;
 			} else {
-				waitTimerStop();
+				m_waitTimerEnd = 0;
 				setDirection(Backward);
 			}
+
+			setDirection(Backward);
 		}
 	}
 
-	body->setLinearVelocity(IsometricEntityIface::maximizeSpeed(m_currentPosition - body->bodyPosition(), maximumSpeed));
-}
 
 
-/**
- * @brief TiledPathMotor::toBegin
- * @return
- */
+	// Near of the lastSegmentPoint
 
-bool TiledPathMotor::toBegin()
-{
-	if (m_lines.isEmpty())
-		return false;
+	const QLineF &line = m_lines.at(m_lastSegment).line;
+	const float delta = distance / line.length();
+	QLineF bodyMovement;
+	bodyMovement.setP1(body->bodyPosition());
 
-	const Line &line = m_lines.first();
+	if (m_direction == Forward) {
+		if (m_lastSegmentFactor + delta > 1.) {
+			if (m_lastSegment+1 >= m_lines.size() && !isClosed()) {
+				bodyMovement.setP2(line.p2());
+				m_lastSegmentFactor = 1.0;
+			} else {
+				const float diff = m_lastSegmentFactor + delta - 1.0;
+				const float d = diff * line.length();
 
-	m_currentDistance = 0;
-	m_currentPosition = line.line.p1();
-	m_currentAngle = angleFromLine(line);
-	m_currentSegment = 0;
+				if (m_lastSegment+1 >= m_lines.size() && isClosed())
+					m_lastSegment = 0;
+				else
+					++m_lastSegment;
 
-	return true;
-}
-
-
-/**
- * @brief TiledPathMotor::toEnd
- * @return
- */
-
-bool TiledPathMotor::toEnd()
-{
-	if (m_lines.isEmpty())
-		return false;
-
-	const Line &line = m_lines.last();
-
-	m_currentDistance = m_fullDistance;
-	m_currentPosition = line.line.p2();
-	m_currentAngle = angleFromLine(line);
-	m_currentSegment = m_lines.size()-1;
-
-	return true;
-}
-
-
-
-
-/**
- * @brief TiledPathMotor::toDistance
- * @param distance
- */
-
-bool TiledPathMotor::toDistance(const qreal &distance)
-{
-	qreal rest = distance;
-
-	for (int i=0; i<m_lines.size(); ++i) {
-		const Line &line = m_lines.at(i);
-
-		if (i < m_lines.size()-1 && line.length < rest) {
-			rest -= line.length;
-			continue;
-		}
-
-		if (i == m_lines.size()-1 && std::abs(rest-line.length) < 0.00001) {
-			m_currentPosition = line.line.p2();
+				const QLineF &nextLine = m_lines.at(m_lastSegment).line;
+				m_lastSegmentFactor = d / nextLine.length();
+				bodyMovement.setP2(nextLine.pointAt(m_lastSegmentFactor));
+			}
 		} else {
-			QLineF cLine = line.line;
-			cLine.setLength(rest);
-			m_currentPosition = cLine.p2();
+			m_lastSegmentFactor += delta;
+			bodyMovement.setP2(line.pointAt(m_lastSegmentFactor));
 		}
-
-		m_currentDistance = distance;
-		m_currentAngle = angleFromLine(line);
-
-		return true;
-	}
-
-	return false;
-}
-
-
-/**
- * @brief TiledPathMotor::step
- * @param distance
- * @return
- */
-
-bool TiledPathMotor::step(const qreal &distance)
-{
-	return step(distance, m_direction);
-}
-
-
-/**
- * @brief TiledPathMotor::step
- * @param distance
- * @param direction
- * @return
- */
-
-bool TiledPathMotor::step(const qreal &distance, const Direction &direction)
-{
-	if (m_currentSegment < 0 || m_currentSegment >= m_lines.size() || distance <= 0.)
-		return false;
-
-	qreal rest = m_currentDistance;
-
-	for (int i=0; i<m_currentSegment; ++i)
-		rest -= m_lines.at(i).length;
-
-
-	if (direction == Forward) {
-		for (int i=m_currentSegment; i<m_lines.size(); ++i) {
-			const Line &line = m_lines.at(i);
-			const qreal fd = distance * line.speed;
-
-			if (i < m_lines.size()-1 && rest+fd > line.length) {
-				rest -= line.length;
-				continue;
-			}
-
-			if (rest+fd > line.length && m_polygon.isClosed()) {
-				rest -= line.length;
-				m_currentSegment = 0;
-				m_currentDistance = 0;
-				i=-1;
-				continue;
-			}
-
-			if (i == m_lines.size()-1 && rest+fd >= line.length) {
-				m_currentPosition = line.line.p2();
-				m_currentDistance = m_fullDistance;
+	} else if (m_direction == Backward) {
+		if (m_lastSegmentFactor - delta < 0.) {
+			if (m_lastSegment-1 < 0 && !isClosed()) {
+				bodyMovement.setP2(line.p1());
+				m_lastSegmentFactor = 0.;
 			} else {
-				QLineF cLine = line.line;
-				cLine.setLength(rest+fd);
-				m_currentPosition = cLine.p2();
-				m_currentDistance += fd;
+				const float diff = m_lastSegmentFactor - delta;
+				const float d = -diff * line.length();
+
+				if (m_lastSegment-1 < 0 && isClosed())
+					m_lastSegment = m_lines.size()-1;
+				else
+					--m_lastSegment;
+
+				const QLineF &nextLine = m_lines.at(m_lastSegment).line;
+				m_lastSegmentFactor = 1.0 - (d / nextLine.length());
+				bodyMovement.setP2(nextLine.pointAt(m_lastSegmentFactor));
 			}
+		} else {
+			m_lastSegmentFactor -= delta;
+			bodyMovement.setP2(line.pointAt(m_lastSegmentFactor));
 
-			m_currentAngle = angleFromLine(line);
-			m_currentSegment = i;
-
-			return true;
-		}
-	} else {
-		qreal backDistance = 0;
-
-		for (int i=m_currentSegment; i>=0 && backDistance < distance; --i) {
-			const Line &line = m_lines.at(i);
-			const qreal fd = distance * line.speed;
-
-			if (rest < 0)
-				rest = line.length;
-
-			if (i > 0 && rest-fd < 0) {
-				backDistance += fd-rest;
-				rest = -1;
-				continue;
-			}
-
-			if (rest-fd < 0 && m_polygon.isClosed()) {
-				backDistance += fd-rest;
-				rest = -1;
-				m_currentSegment = m_lines.size()-1;
-				m_currentDistance = m_fullDistance;
-				i=m_lines.size();
-				continue;
-			}
-
-			if (i == 0 && rest-fd < 0) {
-				m_currentPosition = line.line.p1();
-				m_currentDistance = 0;
-				/*backDistance = distance;
-				rest = -1;*/
-			} else {
-				QLineF cLine = line.line;
-				cLine.setLength(rest-fd);
-				m_currentPosition = cLine.p2();
-				m_currentDistance -= fd;
-				/*backDistance += fd;
-				rest = -1;*/
-			}
-
-			m_currentAngle = angleFromLine(line);
-			m_currentSegment = i;
-
-			return true;
 		}
 	}
 
-	return false;
+
+	body->setLinearVelocity(TiledObjectBase::toPoint(TiledObject::toRadian(bodyMovement.angle()), bodyMovement.length()));
+	m_currentAngle = angleFromLine(m_lines.at(m_lastSegment));
 }
 
 
-
 /**
- * @brief TiledPathMotor::waitTimerStart
- * @param msec
+ * @brief TiledPathMotor::basePoint
+ * @return
  */
 
-void TiledPathMotor::waitTimerStart(const qint64 &msec)
+QPointF TiledPathMotor::basePoint()
 {
-	if (msec > 0)
-		m_waitTimer.setRemainingTime(msec);
+	if (m_polygon.isEmpty())
+		return {};
 	else
-		m_waitTimer.setPreciseRemainingTime(-1);
+		return m_polygon.first();
+}
+
+
+
+
+
+/**
+ * @brief TiledPathMotor::atBegin
+ * @return
+ */
+
+bool TiledPathMotor::atBegin() const
+{
+	return m_lastSegment == 0 && m_lastSegmentFactor < 0.0001;
 }
 
 
 /**
- * @brief TiledPathMotor::waitTimerStop
+ * @brief TiledPathMotor::atEnd
+ * @return
  */
 
-void TiledPathMotor::waitTimerStop()
+bool TiledPathMotor::atEnd() const
 {
-	m_waitTimer.setRemainingTime(-1);
+	return m_lastSegment >= m_lines.size()-1 && m_lastSegmentFactor >= 1.0;
 }
-
 
 
 /**
  * @brief TiledPathMotor::waitTimerState
+ * @param timer
  * @return
  */
 
-TiledPathMotor::WaitTimerState TiledPathMotor::waitTimerState() const
+TiledPathMotor::WaitTimerState TiledPathMotor::waitTimerState(AbstractGame::TickTimer *timer) const
 {
-	if (m_waitTimer.isForever())
+	if (!timer)
 		return Invalid;
-	else if (m_waitTimer.hasExpired())
+
+	if (m_waitTimerEnd <= 0)
+		return Invalid;
+	else if (timer->currentTick() > m_waitTimerEnd)
 		return Overdue;
 	else
 		return Running;
+}
+
+
+/**
+ * @brief TiledPathMotor::getShortestSegment
+ * @param polygon
+ * @param pos
+ * @return
+ */
+
+int TiledPathMotor::getShortestSegment(const QPolygonF &polygon, const QPointF &pos)
+{
+	float distance = -1;
+	int segment = -1;
+	int n = 0;
+
+	auto prev = polygon.constBegin();
+	for (auto it = polygon.constBegin(); it != polygon.constEnd(); ++it) {
+		if (it == polygon.constBegin())
+			continue;
+
+		float f = -1.;
+
+		float d = TiledObjectBase::shortestDistance(pos, *prev, *it, nullptr, &f);
+
+		if (distance == -1 || d < distance) {
+			distance = d;
+			segment = n;
+		}
+
+		prev = it;
+		++n;
+	}
+
+	return segment;
+}
+
+
+
+
+/**
+ * @brief TiledPathMotor::clearFromSegment
+ * @param polygon
+ * @param segment
+ * @return
+ */
+
+bool TiledPathMotor::clearFromSegment(QPolygonF *polygon, const int &segment)
+{
+	Q_ASSERT(polygon);
+
+	if (segment < 0 || segment >= polygon->size())
+		return false;
+
+	polygon->erase(polygon->begin()+segment, polygon->end());
+
+	return true;
+}
+
+
+/**
+ * @brief TiledPathMotor::clearToSegment
+ * @param polygon
+ * @param segment
+ * @return
+ */
+
+bool TiledPathMotor::clearToSegment(QPolygonF *polygon, const int &segment)
+{
+	Q_ASSERT(polygon);
+
+	if (segment < 0 || segment >= polygon->size())
+		return false;
+
+	polygon->erase(polygon->begin(), polygon->begin()+segment);
+
+	return true;
 }
 
 

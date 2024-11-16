@@ -58,18 +58,6 @@ public:
 	TiledObject::Direction movingDirection() const;
 	void setMovingDirection(const TiledObject::Direction &newMovingDirection);
 
-	qreal maximumSpeed() const;
-	void setMaximumSpeed(qreal newMaximumSpeed);
-
-	static QPointF maximizeSpeed(const QPointF &point, const qreal &maximumSpeed);
-	static QPointF &maximizeSpeed(QPointF &point, const qreal &maximumSpeed);
-	QPointF maximizeSpeed(const QPointF &point) const {
-		return maximizeSpeed(point, m_maximumSpeed);
-	}
-	QPointF &maximizeSpeed(QPointF &point) const {
-		return maximizeSpeed(point, m_maximumSpeed);
-	}
-
 	int hp() const;
 	void setHp(int newHp);
 
@@ -101,7 +89,6 @@ protected:
 
 	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
 	qreal m_movingSpeed = 0.;
-	qreal m_maximumSpeed = 10.;
 	int m_hp = 1;
 	int m_maxHp = 1;
 	QStringList m_moveDisabledSpriteList;		// At these sprites move disabled

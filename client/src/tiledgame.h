@@ -31,6 +31,7 @@
 #include "tiledscene.h"
 #include "tiledtransport.h"
 #include "tiledweapon.h"
+#include "abstractgame.h"
 #include <QQuickItem>
 #include <QSerializer>
 #include <unordered_map>
@@ -215,6 +216,9 @@ public:
 
 	virtual void onSceneWorldStepped(TiledScene *scene);
 
+	AbstractGame::TickTimer *tickTimer() const { return m_tickTimer.get(); }
+	void setTickTimer(std::unique_ptr<AbstractGame::TickTimer> &timer) { m_tickTimer = std::move(timer); }
+
 	QQuickItem *joystick() const;
 	void setJoystick(QQuickItem *newJoystick);
 
@@ -313,6 +317,8 @@ protected:
 	TiledTransportList m_transportList;
 
 	TiledScene *m_currentScene = nullptr;
+
+	std::unique_ptr<AbstractGame::TickTimer> m_tickTimer;
 
 
 

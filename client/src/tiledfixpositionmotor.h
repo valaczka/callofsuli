@@ -31,26 +31,6 @@
 
 
 /**
- * @brief The TiledReturnPathMotorSerializer class
- */
-
-class TiledFixPositionMotorSerializer : public QSerializer
-{
-	Q_GADGET
-
-public:
-	TiledFixPositionMotorSerializer() {}
-
-	QS_SERIALIZABLE
-	QS_FIELD(qreal, x)
-	QS_FIELD(qreal, y)
-	QS_FIELD(int, direction)
-};
-
-
-
-
-/**
  * @brief The TiledReturnPathMotor class
  */
 
@@ -60,12 +40,8 @@ public:
 	TiledFixPositionMotor();
 	virtual ~TiledFixPositionMotor() {}
 
-	TiledFixPositionMotorSerializer toSerializer() const;
-	static TiledFixPositionMotor *fromSerializer(const TiledFixPositionMotorSerializer &data);
-
-	QPointF currentPosition() const override;
-	void updateBody(TiledObject *object, const qreal &maximumSpeed = 0.) override;
-	bool step(const qreal &distance) override;
+	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
+	QPointF basePoint() override { return m_point; }
 
 	QPointF point() const;
 	void setPoint(QPointF newPoint);

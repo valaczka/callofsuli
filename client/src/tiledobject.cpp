@@ -151,6 +151,61 @@ QPointF TiledObjectBase::toPoint(const qreal &angle, const qreal &radius)
 
 
 /**
+ * @brief TiledObjectBase::shortestDistance
+ * @param point
+ * @param lineP1
+ * @param lineP2
+ * @param destPoint
+ * @return
+ */
+
+float TiledObjectBase::shortestDistance(const QVector2D &point, const QVector2D &lineP1, const QVector2D &lineP2, QVector2D *destPoint, float *factor)
+{
+	const float A = point.x() - lineP1.x();
+	const float B = point.y() - lineP1.y();
+	const float C = lineP2.x() - lineP1.x();
+	const float D = lineP2.y() - lineP1.y();
+
+	const float dot = A * C + B * D;
+	const float len_sq = C * C + D * D;
+	float param = -1;
+
+	if (len_sq != 0)
+		param = dot / len_sq;
+
+	float xx, yy;
+
+	if (param < 0) {
+		xx = lineP1.x();
+		yy = lineP1.y();
+	}
+	else if (param > 1) {
+		xx = lineP2.x();
+		yy = lineP2.y();
+	}
+	else {
+		xx = lineP1.x() + param * C;
+		yy = lineP1.y() + param * D;
+	}
+
+	const float dx = point.x() - xx;
+	const float dy = point.y() - yy;
+
+	if (destPoint) {
+		destPoint->setX(xx);
+		destPoint->setY(yy);
+	}
+
+	if (factor)
+		*factor = param;
+
+	return std::sqrt(dx * dx + dy * dy);
+}
+
+
+
+
+/**
  * @brief TiledObjectBase::setPolygonVertices
  * @param fixture
  * @param polygon
@@ -773,9 +828,9 @@ float32 TiledObject::angleToPoint(const QPointF &point) const
  * @return
  */
 
-qreal TiledObject::distanceToPoint(const QPointF &point) const
+float TiledObject::distanceToPoint(const QPointF &point) const
 {
-	return QVector2D(point - m_body->bodyPosition()).length();
+	return QVector2D(m_body->bodyPosition()).distanceToPoint(QVector2D(point));
 }
 
 

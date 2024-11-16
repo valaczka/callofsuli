@@ -311,6 +311,24 @@ public:
 
 	static QPolygonF toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	static QPointF toPoint(const qreal &angle, const qreal &radius);
+	static float shortestDistance(const QVector2D &point, const QVector2D &lineP1, const QVector2D &lineP2,
+								  QVector2D *destPoint = nullptr, float *factor = nullptr);
+	static float shortestDistance(const QVector2D &point, const QPointF &lineP1, const QPointF &lineP2,
+								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
+		return shortestDistance(point, QVector2D(lineP1), QVector2D(lineP2), destPoint, factor);
+	}
+	static float shortestDistance(const QVector2D &point, const QLineF &line,
+								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
+		return shortestDistance(point, line.p1(), line.p2(), destPoint, factor);
+	}
+	static float shortestDistance(const QPointF &point, const QPointF &lineP1, const QPointF &lineP2,
+								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
+		return shortestDistance(QVector2D(point), QVector2D(lineP1), QVector2D(lineP2), destPoint, factor);
+	}
+	static float shortestDistance(const QPointF &point, const QLineF &line,
+								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
+		return shortestDistance(QVector2D(point), line, destPoint, factor);
+	}
 
 	template <typename T>
 	static typename std::enable_if<std::is_base_of<TiledObjectPolygonIface, T>::value>::type
@@ -545,7 +563,7 @@ protected:
 
 	void rotateToPoint(const QPointF &point, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
 	float32 angleToPoint(const QPointF &point) const;
-	qreal distanceToPoint(const QPointF &point) const;
+	float distanceToPoint(const QPointF &point) const;
 
 protected:
 	QQuickItem *m_visualItem = nullptr;

@@ -175,33 +175,45 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 	if (!m_tcodMap.map)
 		return std::nullopt;
 
-	TCODPath path(m_tcodMap.map.get());
+	//TCODPath path(m_tcodMap.map.get());
+	TCODDijkstra path(m_tcodMap.map.get());
 
 	const int chX1 = std::floor(x1/m_tcodMap.chunkWidth);
 	const int chX2 = std::floor(x2/m_tcodMap.chunkWidth);
 	const int chY1 = std::floor(y1/m_tcodMap.chunkHeight);
 	const int chY2 = std::floor(y2/m_tcodMap.chunkHeight);
 
+	if (!m_tcodMap.map->isWalkable(chX1, chY1))
+		return std::nullopt;
+
 	// Ha közel vagyunk (same chunk), nem is számolunk
 
 	if (chX1 == chX2 && chY1 == chY2)
-		return QPolygonF() << QPointF(x1, y1) << QPointF(x2, y2);
+		return QPolygonF() << QPointF(x2, y2);
 
-	if (!path.compute(chX1, chY1, chX2, chY2))
+	path.compute(chX1, chY1);
+
+	if (!path.setPath(chX2, chY2))
 		return std::nullopt;
 
 	QPolygonF polygon;
 
-	polygon << QPointF(x1, y1);
 
-	for (int i=1; i<path.size()-1; ++i) {
+	for (int i=0; i<path.size()-1; ++i) {
 		int x, y;
 		path.get(i, &x, &y);
-		polygon << QPointF(
-					   (x+0.5) * m_tcodMap.chunkWidth,
-					   (y+0.5) * m_tcodMap.chunkHeight
-					   );
+
+		// Ha az első chunk ugyanaz, mint amiben vagyunk (elvileg mindig)
+		if (i == 0 && x == chX1 && y == chY1)
+			polygon << QPointF(x1, y1);
+		else
+			polygon << QPointF(
+						   (x+0.5) * m_tcodMap.chunkWidth,
+						   (y+0.5) * m_tcodMap.chunkHeight
+						   );
 	}
+
+	// Az utolsó chunk közepe helyett a végleges pozíciót adjuk meg
 
 	polygon << QPointF(x2, y2);
 
