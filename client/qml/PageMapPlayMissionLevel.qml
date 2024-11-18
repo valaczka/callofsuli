@@ -300,7 +300,7 @@ QPageGradient {
 		}
 
 
-		/*Column {				// DEPRECATED
+		Column {
 			id: _extraTimeCol
 
 			anchors.horizontalCenter: parent.horizontalCenter
@@ -310,13 +310,15 @@ QPageGradient {
 			Qaterial.SwitchButton {
 				id: _extraTimeSwitch
 
-				readonly property real timeFactor: 0.25
+				readonly property real timeFactor: 0.50
+
+				anchors.horizontalCenter: parent.horizontalCenter
 
 				text: qsTr("Extra időt (%1%) kérek").arg(Math.floor(timeFactor*100))
 			}
 
 			Qaterial.IconLabel {
-				width: Math.min(_inventoryUseView.width, implicitWidth, _extraTimeCol.parent.width)
+				width: Math.min(implicitWidth, _extraTimeCol.parent.width)
 				font: Qaterial.Style.textTheme.caption
 				icon.source: Qaterial.Icons.informationOutline
 				wrapMode: Text.Wrap
@@ -328,7 +330,7 @@ QPageGradient {
 			}
 
 			bottomPadding: 15 * Qaterial.Style.pixelSizeRatio
-		}*/
+		}
 
 
 		QButton {
@@ -370,9 +372,9 @@ QPageGradient {
 
 				}*/
 
-				/*if (_mapPlayCampaign)				// DEPRECATED
+				if (_mapPlayCampaign)
 					_mapPlayCampaign.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
-								_extraTimeSwitch.timeFactor : 0.0*/
+								_extraTimeSwitch.timeFactor : 0.0
 
 				map.play(missionLevel, _modeGroup.checkedButton.gameMode, d)
 			}
@@ -928,11 +930,10 @@ QPageGradient {
 	}
 
 	function reloadExtraTimeSwitch() {
-		// DEPRECATED
-		/*if (_mapPlayCampaign && root.missionLevel) {
+		if (_mapPlayCampaign && root.missionLevel) {
 			let num = _mapPlayCampaign.getShortTimeHelper(root.missionLevel)
 			_extraTimeSwitch.enabled = (num >= _mapPlayLiteExtraTimeTries)
-		}*/
+		}
 	}
 
 	on_MapPlayCampaignChanged: reloadExtraTimeSwitch()

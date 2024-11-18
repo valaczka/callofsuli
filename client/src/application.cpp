@@ -85,9 +85,9 @@
 #include "mapplay.h"
 #include "httpconnection.h"
 
-// IOS bug
+// IOS and WASM bug
 
-#ifdef Q_OS_IOS
+#if defined(Q_OS_IOS) || defined(Q_OS_WASM)
 #include <QtQuickEffects/6.8.0/QtQuickEffects/private/qgfxsourceproxy_p.h>
 #endif
 
@@ -451,9 +451,9 @@ void Application::registerQmlTypes()
 	qmlRegisterType<UserList>("CallOfSuli", 1, 0, "UserList");
 	qmlRegisterType<UserLogList>("CallOfSuli", 1, 0, "UserLogListImpl");
 
-	// IOS bug
+	// IOS and WASM bug
 
-#ifdef Q_OS_IOS
+#if defined(Q_OS_IOS) || defined(Q_OS_WASM)
 	qmlRegisterType<QGfxSourceProxy>(QByteArrayLiteral("Qt5Compat.GraphicalEffects.private"), 1, 0, "SourceProxy");
 #endif
 }
