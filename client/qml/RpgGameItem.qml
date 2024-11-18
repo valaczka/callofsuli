@@ -100,7 +100,7 @@ FocusScope {
 			border.color: "white"
 			border.width: 1
 
-			fontImage.icon: Qaterial.Icons.close
+			fontImage.icon: _gameQuestion.objectiveUuid != "" ? Qaterial.Icons.close : Qaterial.Icons.pause
 			fontImage.color: "white"
 			fontImageScale: 0.7
 

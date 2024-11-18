@@ -717,6 +717,9 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 		return;
 	}
 
+	if (m_baseObject && m_baseObject->game() && m_baseObject->game()->paused())
+		return;
+
 	const auto &ptr = findFirst(m_currentSprite, m_currentDirection);
 
 	if (!ptr) {

@@ -12,7 +12,7 @@ Page {
 	property ActionRpgGame game: null
 
 
-	property string closeQuestion: _rpgVisible ? qsTr("Biztosan kilépsz a játékból?") : ""
+	property string closeQuestion: _rpgVisible && !_forceExit ? qsTr("Biztosan kilépsz a játékból?") : ""
 	property var onPageClose: function() {
 		if (game)
 			game.gameAbort()
@@ -29,18 +29,46 @@ Page {
 				_stack.currentItem.minimapVisible = false
 				return false
 			}
+		}
 
+
+		if (game && game.rpgGame && game.rpgGame.gameQuestion.objectiveUuid != "")
+			return true
+
+		if (_rpgVisible && !game.rpgGame.paused && !_forceExit) {
+			game.rpgGame.paused = true
+			return false
 		}
 
 		return true
 	}
+
 
 	readonly property bool _rpgVisible: game && (game.config.gameState == RpgConfig.StatePlay ||
 												 game.config.gameState == RpgConfig.StatePrepare)
 
 
 	property bool _oldWindowState: Client.fullScreenHelper
+	property bool _forceExit: false
 
+
+
+	Component {
+		id: _cmpPause
+
+		RpgPauseDialog {
+			game: root.game ? root.game.rpgGame : null
+
+			onClosed: root.game.rpgGame.paused = false
+
+			onExitRequest: {
+				_forceExit = true
+				Client.stackPop()
+			}
+
+		}
+
+	}
 
 	StackView {
 		id: _stack
@@ -202,6 +230,18 @@ Page {
 			}
 		}
 	}
+
+
+
+	Connections {
+		target: game ? game.rpgGame : null
+
+		function onPausedChanged() {
+			if (game.rpgGame.paused)
+				Qaterial.DialogManager.openFromComponent(_cmpPause)
+		}
+	}
+
 
 
 	StackView.onActivated: {

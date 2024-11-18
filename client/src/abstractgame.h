@@ -114,8 +114,10 @@ public:
 			m_reference.invalidate();
 			m_reference.start();
 			m_startTick = m_pausedTick;
+			m_pausedTick = 0;
 		}
 
+		bool isPaused() const { return m_pausedTick > 0 && !m_reference.isValid(); }
 		bool isValid() const { return m_reference.isValid(); }
 
 		const qint64 &latency() const { return m_latency; }
@@ -164,7 +166,7 @@ public:
 	GameQuestion *gameQuestion() const;
 	void setGameQuestion(GameQuestion *newGameQuestion);
 
-	int elapsedMsec() const;
+	virtual int elapsedMsec() const;
 
 	bool readyToDestroy() const;
 	void setReadyToDestroy(bool newReadyToDestroy);

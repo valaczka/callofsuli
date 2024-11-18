@@ -27,7 +27,6 @@
 #ifndef TILEDWEAPON_H
 #define TILEDWEAPON_H
 
-#include "qdeadlinetimer.h"
 #include "tiledobject.h"
 #include "isometricbullet.h"
 #include <QObject>
@@ -175,7 +174,7 @@ protected:
 
 private:
 	const WeaponType m_weaponType;
-	QDeadlineTimer m_timerRepeater;
+	qint64 m_timerRepeater = -1.;
 	bool m_canThrow = false;
 	bool m_canThrowBullet = true;
 	int m_pickedBulletCount = 0;

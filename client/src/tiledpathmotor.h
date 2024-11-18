@@ -31,7 +31,6 @@
 #include "qline.h"
 #include "qobjectdefs.h"
 #include "qpolygon.h"
-#include <QDeadlineTimer>
 #include <QSerializer>
 
 

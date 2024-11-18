@@ -231,5 +231,6 @@
         <file>RpgUserWorldLand.qml</file>
         <file>RpgWorldSelect.qml</file>
         <file>RpgUserWorldLandOver.qml</file>
+        <file>RpgPauseDialog.qml</file>
     </qresource>
 </RCC>

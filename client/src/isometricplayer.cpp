@@ -104,7 +104,6 @@ IsometricPlayer::IsometricPlayer(QQuickItem *parent)
 	: IsometricCircleEntity(parent)
 	, d(new IsometricPlayerPrivate)
 {
-	m_inabilityTimer.setRemainingTime(-1);
 }
 
 
@@ -259,9 +258,17 @@ void IsometricPlayer::initialize()
  * @return
  */
 
-bool IsometricPlayer::hasAbility() const
+bool IsometricPlayer::hasAbility()
 {
-	return m_inabilityTimer.isForever() || m_inabilityTimer.hasExpired();
+	if (!m_game->tickTimer() || m_inabilityTimer < 0)
+		return true;
+
+	if (m_inabilityTimer < m_game->tickTimer()->currentTick()) {
+		m_inabilityTimer = -1;
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -354,8 +361,8 @@ void IsometricPlayer::onDead()
 
 void IsometricPlayer::startInability()
 {
-	if (m_inabilityTime > 0) {
-		m_inabilityTimer.setRemainingTime(m_inabilityTime);
+	if (m_inabilityTime > 0 && m_game->tickTimer()) {
+		m_inabilityTimer = m_game->tickTimer()->currentTick() + m_inabilityTime;
 		//clearDestinationPoint();
 	}
 }
@@ -368,8 +375,8 @@ void IsometricPlayer::startInability()
 
 void IsometricPlayer::startInability(const int &msec)
 {
-	if (m_inabilityTime > 0) {
-		m_inabilityTimer.setRemainingTime(msec);
+	if (m_inabilityTime > 0 && m_game->tickTimer()) {
+		m_inabilityTimer = m_game->tickTimer()->currentTick() + msec;
 		//clearDestinationPoint();
 	}
 }

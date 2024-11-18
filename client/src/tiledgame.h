@@ -87,6 +87,7 @@ class TiledGame : public QQuickItem
 	Q_PROPERTY(bool mouseNavigation READ mouseNavigation WRITE setMouseNavigation NOTIFY mouseNavigationChanged FINAL)
 	Q_PROPERTY(bool mouseAttack READ mouseAttack WRITE setMouseAttack NOTIFY mouseAttackChanged FINAL)
 	Q_PROPERTY(bool flickableInteractive READ flickableInteractive WRITE setFlickableInteractive NOTIFY flickableInteractiveChanged FINAL)
+	Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged FINAL)
 
 public:
 	explicit TiledGame(QQuickItem *parent = nullptr);
@@ -249,6 +250,9 @@ public:
 	bool flickableInteractive() const;
 	void setFlickableInteractive(bool newFlickableInteractive);
 
+	bool paused() const;
+	void setPaused(bool newPaused);
+
 signals:
 	void gameLoaded();
 	void gameLoadFailed(const QString &errorString);
@@ -265,6 +269,7 @@ signals:
 	void mouseNavigationChanged();
 	void mouseAttackChanged();
 	void flickableInteractiveChanged();
+	void pausedChanged();
 
 protected:
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
@@ -319,6 +324,7 @@ protected:
 	TiledScene *m_currentScene = nullptr;
 
 	std::unique_ptr<AbstractGame::TickTimer> m_tickTimer;
+	bool m_paused = false;
 
 
 

@@ -32,7 +32,7 @@ TiledWeapon::TiledWeapon(const WeaponType &type, QObject *parent)
 	: QObject(parent)
 	, m_weaponType(type)
 {
-	m_timerRepeater.setRemainingTime(-1);
+
 }
 
 
@@ -131,7 +131,12 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_bulletCount == 0)
 		return false;
 
-	if (!m_disableTimerRepeater && !m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+	if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
+		return false;
+
+	const auto tick = m_parentObject->game()->tickTimer()->currentTick();
+
+	if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
 		return false;
 
 	IsometricBullet *bullet = createBullet(distance);
@@ -148,7 +153,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	bullet->shot(from, direction);
 
 	if (m_repeaterIdle > 0)
-		m_timerRepeater.setRemainingTime(m_repeaterIdle);
+		m_timerRepeater = tick + m_repeaterIdle;
 
 	eventAttack(nullptr);
 
@@ -169,7 +174,12 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	if (m_bulletCount == 0)
 		return false;
 
-	if (!m_disableTimerRepeater && !m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+	if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
+		return false;
+
+	const auto tick = m_parentObject->game()->tickTimer()->currentTick();
+
+	if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
 		return false;
 
 	IsometricBullet *bullet = createBullet(distance);
@@ -186,7 +196,7 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 	bullet->shot(from, angle);
 
 	if (m_repeaterIdle > 0)
-		m_timerRepeater.setRemainingTime(m_repeaterIdle);
+		m_timerRepeater = tick + m_repeaterIdle;
 
 	eventAttack(nullptr);
 
@@ -202,7 +212,12 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 
 bool TiledWeapon::hit(TiledObject *target)
 {
-	if (!m_disableTimerRepeater && !m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+	if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
+		return false;
+
+	const auto tick = m_parentObject->game()->tickTimer()->currentTick();
+
+	if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
 		return false;
 
 	if (m_bulletCount == 0)
@@ -228,7 +243,7 @@ bool TiledWeapon::hit(TiledObject *target)
 	}
 
 	if (m_repeaterIdle > 0)
-		m_timerRepeater.setRemainingTime(m_repeaterIdle);
+		m_timerRepeater = tick + m_repeaterIdle;
 
 	eventAttack(target);
 

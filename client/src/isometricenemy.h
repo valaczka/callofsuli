@@ -151,8 +151,8 @@ public:
 	virtual TiledWeapon *defaultWeapon() const = 0;
 
 	void initialize();
-	bool hasAbility() const;
-	bool isSleeping() const;
+	bool hasAbility();
+	bool isSleeping();
 
 	virtual bool canBulletImpact(const TiledWeapon::WeaponType &/*type*/) const { return true; }
 
@@ -207,9 +207,9 @@ private:
 	void fixtureEndContact(Box2DFixture *other);
 
 protected:
-	QDeadlineTimer m_inabilityTimer;
-	QDeadlineTimer m_autoHitTimer;
-	QDeadlineTimer m_sleepingTimer;
+	qint64 m_inabilityTimer = -1;
+	qint64 m_autoHitTimer = -1;
+	qint64 m_sleepingTimer = -1;
 	bool m_isSleeping = false;
 
 	friend class TiledGame;

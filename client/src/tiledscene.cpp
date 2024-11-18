@@ -357,6 +357,10 @@ void TiledScene::setRunning(bool newRunning)
 	if (m_world->isRunning() == newRunning)
 		return;
 	m_world->setRunning(newRunning);
+
+	if (!newRunning)
+		m_worldStepTimer.invalidate();
+
 	emit runningChanged();
 }
 

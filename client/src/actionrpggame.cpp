@@ -143,6 +143,19 @@ QJsonObject ActionRpgGame::getExtendedData() const
 
 
 /**
+ * @brief ActionRpgGame::msecLeft
+ * @return
+ */
+
+int ActionRpgGame::msecLeft() const
+{
+	return std::max((qint64) 0, m_deadlineTick-m_elapsedTick);
+}
+
+
+
+
+/**
  * @brief ActionRpgGame::playMenuBgMusic
  */
 
@@ -339,7 +352,7 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 			}
 
 			loadWeapon(player, type, wallet->market().cost == 0 ? -1 : wallet->amount()
-					   /*wallet->bullet() ? wallet->bullet()->amount() : 0*/);
+																  /*wallet->bullet() ? wallet->bullet()->amount() : 0*/);
 
 			return;
 		}
@@ -398,21 +411,56 @@ void ActionRpgGame::onPlayerDead(RpgPlayer *player)
 {
 	LOG_CDEBUG("game") << "Player dead" << player;
 
-	/*if (deathmatch())
-		QTimer::singleShot(5000, this, &ActionRpgGame::onGameFailed);
-	else*/
+	m_playerResurrect.time = m_elapsedTick + 5000;
+	m_playerResurrect.player = player;
+}
 
-	if (m_rpgGame)
-		QTimer::singleShot(5000, this, [this, p = QPointer<RpgPlayer>(player)]() {
-			if (finishState() == Fail || finishState() == Success)
-				return;
 
-			if (p)
-				m_rpgGame->setQuestions(p->scene(), m_missionLevel->questions());
 
-			m_rpgGame->resurrectEnemiesAndPlayer(p);
-			loadInventory(p);
-		});
+/**
+ * @brief ActionRpgGame::onTimerLeftTimeout
+ */
+
+void ActionRpgGame::onTimerLeftTimeout()
+{
+	if (!m_rpgGame)
+		return;
+
+	const qint64 tick = m_rpgGame->tickTimer() ? m_rpgGame->tickTimer()->currentTick() : -1;
+
+	if (tick < 0 || m_deadlineTick <= 0)
+		return;
+
+
+	m_elapsedTick = tick;
+	emit msecLeftChanged();
+
+	if (m_deadlineTick > 0 && m_elapsedTick >= m_deadlineTick) {
+		LOG_CDEBUG("game") << "Game timeout";
+
+		m_timerLeft.stop();
+		emit gameTimeout();
+		return;
+	}
+
+
+	if (m_playerResurrect.time > 0 && tick >= m_playerResurrect.time) {
+		if (finishState() == Fail || finishState() == Success) {
+			m_playerResurrect.player = nullptr;
+			m_playerResurrect.time = -1;
+			return;
+		}
+
+		if (m_playerResurrect.player)
+			m_rpgGame->setQuestions(m_playerResurrect.player->scene(), m_missionLevel->questions());
+
+		m_rpgGame->resurrectEnemiesAndPlayer(m_playerResurrect.player);
+		loadInventory(m_playerResurrect.player);
+
+		m_playerResurrect.player = nullptr;
+		m_playerResurrect.time = -1;
+	}
+
 }
 
 
@@ -687,8 +735,12 @@ void ActionRpgGame::onConfigChanged()
 			return;
 		}
 
-		startWithRemainingTime(m_config.duration*1000);
+		//startWithRemainingTime(m_config.duration*1000);
+		gameStart();
+		m_deadlineTick = m_config.duration*1000;
+		m_elapsedTick = 0;
 		m_rpgGame->tickTimer()->start(this, 0);
+		m_timerLeft.start();
 
 		if (!m_rpgGame->m_gameDefinition.music.isEmpty())
 			m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);

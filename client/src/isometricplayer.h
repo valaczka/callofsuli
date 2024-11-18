@@ -28,7 +28,6 @@
 #define ISOMETRICPLAYER_H
 
 #include "isometricentity.h"
-#include "qdeadlinetimer.h"
 #include "tiledcontainer.h"
 #include "tiledtransport.h"
 #include "tiledgame.h"
@@ -72,7 +71,7 @@ public:
 	virtual void entityWorldStep(const qreal &factor) override;
 
 	void initialize();
-	bool hasAbility() const;
+	bool hasAbility();
 
 	TiledTransport *currentTransport() const;
 	void setCurrentTransport(TiledTransport *newCurrentTransport);
@@ -131,7 +130,7 @@ protected:
 	QList<IsometricEnemy*> reachedEnemies() const;
 	QList<IsometricEnemy*> contactedAndReachedEnemies() const;
 
-	QDeadlineTimer m_inabilityTimer;
+	qint64 m_inabilityTimer = -1;
 	qreal m_sensorLength = 200.;
 	qreal m_sensorRange = M_PI_2;
 	qreal m_targetCircleRadius = 50.;

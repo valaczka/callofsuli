@@ -922,6 +922,9 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 
 void RpgGame::joystickStateEvent(const JoystickState &state)
 {
+	if (m_paused)
+		return;
+
 	if (m_controlledPlayer)
 		m_controlledPlayer->onJoystickStateChanged(state);
 }
@@ -935,6 +938,9 @@ void RpgGame::joystickStateEvent(const JoystickState &state)
 
 void RpgGame::keyPressEvent(QKeyEvent *event)
 {
+	if (m_paused)
+		return;
+
 	const int &key = event->key();
 
 	switch (key) {
@@ -984,6 +990,9 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			emit marketRequest();
 			break;
 
+		case Qt::Key_F5:
+			setPaused(!m_paused);
+			break;
 
 		case Qt::Key_F:
 			if (m_controlledPlayer)
@@ -2521,6 +2530,9 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 
 void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers)
 {
+	if (m_paused)
+		return;
+
 	if (!m_controlledPlayer)
 		return;
 

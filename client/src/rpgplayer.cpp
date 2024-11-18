@@ -216,12 +216,17 @@ void RpgPlayer::cast()
 	TiledWeapon *w = m_armory->weaponFind(TiledWeapon::WeaponMageStaff);
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-	if (!m_timerRepeater.isForever() && !m_timerRepeater.hasExpired())
+	if (!m_game->tickTimer())
+		return;
+
+	const auto tick = m_game->tickTimer()->currentTick();
+
+	if (m_timerRepeater >= 0 && m_timerRepeater > tick)
 		return;
 
 	if (m_mp > 0 && w && g) {
 		if (g->playerUseCast(this)) {
-			m_timerRepeater.setRemainingTime(125);
+			m_timerRepeater = tick + 125;
 			return;
 		}
 	}

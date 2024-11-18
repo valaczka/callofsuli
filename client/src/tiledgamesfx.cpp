@@ -207,6 +207,9 @@ void TiledGameSfx::onTimeout()
 		return;
 	}
 
+	if (scene->game() && scene->game()->paused())
+		return;
+
 	if (m_currentIndex < 0 || m_currentIndex >= m_soundList.size())
 		setCurrentIndex(0);
 

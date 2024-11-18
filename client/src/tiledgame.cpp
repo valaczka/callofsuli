@@ -1830,3 +1830,39 @@ bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector
 	return true;
 }
 
+
+
+/**
+ * @brief TiledGame::paused
+ * @return
+ */
+
+bool TiledGame::paused() const
+{
+	return m_paused;
+}
+
+
+/**
+ * @brief TiledGame::setPaused
+ * @param newPaused
+ */
+
+void TiledGame::setPaused(bool newPaused)
+{
+	if (m_paused == newPaused)
+		return;
+	m_paused = newPaused;
+	emit pausedChanged();
+
+
+	if (m_tickTimer) {
+		if (m_paused)
+			m_tickTimer->pause();
+		else
+			m_tickTimer->resume();
+	}
+
+	for (const Scene &s : m_sceneList)
+		s.scene->setRunning(!m_paused);
+}

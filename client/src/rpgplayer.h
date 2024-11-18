@@ -233,7 +233,7 @@ private:
 	int m_maxMp = 0;
 
 	QTimer m_castTimer;
-	QDeadlineTimer m_timerRepeater;
+	qint64 m_timerRepeater = -1;
 
 	TiledPathMotor m_testMotor;
 

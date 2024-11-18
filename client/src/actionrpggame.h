@@ -63,6 +63,7 @@ public:
 
 	virtual void gameAbort() override;
 	virtual QJsonObject getExtendedData() const override;
+	virtual int msecLeft() const override;
 
 	Q_INVOKABLE void playMenuBgMusic();
 	Q_INVOKABLE void stopMenuBgMusic();
@@ -115,6 +116,7 @@ protected:
 	virtual bool gameFinishEvent() override;
 
 	virtual void onPlayerDead(RpgPlayer *player);
+	virtual void onTimerLeftTimeout() override;
 
 	void onGameTimeout();
 	void onGameSuccess();
@@ -162,6 +164,17 @@ private:
 
 	int m_msecNotifyAt = 0;
 	int m_tmpSoundSfxVolume = 0;
+
+	qint64 m_elapsedTick = 0;
+	qint64 m_deadlineTick = 0;
+
+
+	struct PlayerResurrect {
+		QPointer<RpgPlayer> player;
+		qint64 time = -1;
+	};
+
+	PlayerResurrect m_playerResurrect;
 
 	friend class RpgQuestion;
 };

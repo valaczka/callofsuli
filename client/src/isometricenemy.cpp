@@ -44,8 +44,6 @@ IsometricEnemy::IsometricEnemy(QQuickItem *parent)
 	: IsometricCircleEntity(parent)
 	, IsometricEnemyIface()
 {
-	m_inabilityTimer.setRemainingTime(-1);
-	m_autoHitTimer.setRemainingTime(-1);
 
 }
 
@@ -94,9 +92,17 @@ void IsometricEnemy::initialize()
  * @return
  */
 
-bool IsometricEnemy::hasAbility() const
+bool IsometricEnemy::hasAbility()
 {
-	return m_inabilityTimer.isForever() || m_inabilityTimer.hasExpired();
+	if (!m_game->tickTimer() || m_inabilityTimer < 0)
+		return true;
+
+	if (m_inabilityTimer < m_game->tickTimer()->currentTick()) {
+		m_inabilityTimer = -1;
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -105,9 +111,17 @@ bool IsometricEnemy::hasAbility() const
  * @return
  */
 
-bool IsometricEnemy::isSleeping() const
+bool IsometricEnemy::isSleeping()
 {
-	return !m_sleepingTimer.isForever() && !m_sleepingTimer.hasExpired();
+	if (!m_game->tickTimer() || m_sleepingTimer < 0)
+		return false;
+
+	if (m_sleepingTimer < m_game->tickTimer()->currentTick()) {
+		m_sleepingTimer = -1;
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -141,8 +155,8 @@ void IsometricEnemy::attackedByPlayer(IsometricPlayer *player, const TiledWeapon
 
 void IsometricEnemy::startInability()
 {
-	if (m_metric.inabilityTime > 0)
-		m_inabilityTimer.setRemainingTime(m_metric.inabilityTime);
+	if (m_metric.inabilityTime > 0 && m_game->tickTimer())
+		m_inabilityTimer = m_game->tickTimer()->currentTick() + m_metric.inabilityTime;
 }
 
 
@@ -152,8 +166,8 @@ void IsometricEnemy::startInability()
 
 bool IsometricEnemy::startSleeping()
 {
-	if (m_metric.sleepingTime > 0) {
-		m_sleepingTimer.setRemainingTime(m_metric.sleepingTime);
+	if (m_metric.sleepingTime > 0 && m_game->tickTimer()) {
+		m_sleepingTimer = m_game->tickTimer()->currentTick() + m_metric.sleepingTime;
 		if (!m_isSleeping)
 			onSleepingBegin();
 		return true;
@@ -410,16 +424,19 @@ bool IsometricEnemy::enemyWorldStep()
 		if (m_player->isLocked())
 			return false;
 
-		if (m_autoHitTimer.hasExpired()) {
-			attackPlayer(m_player, defaultWeapon());
-			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);
-		} else if (m_autoHitTimer.isForever()) {
-			m_autoHitTimer.setRemainingTime(m_metric.firstAttackTime);
+		if (m_game->tickTimer()) {
+			const auto tick = m_game->tickTimer()->currentTick();
+			if (m_autoHitTimer >= 0 && m_autoHitTimer <= tick) {
+				attackPlayer(m_player, defaultWeapon());
+				m_autoHitTimer = tick + m_metric.autoAttackTime;
+			} else if (m_autoHitTimer < 0) {
+				m_autoHitTimer = tick + m_metric.firstAttackTime;
+			}
 		}
 
 		return false;
 	} else {
-		m_autoHitTimer.setRemainingTime(-1);
+		m_autoHitTimer = -1;
 	}
 
 	return true;
@@ -459,15 +476,19 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float32 &angle, const q
 		if (m_player->isLocked())
 			return false;
 
-		if (m_playerDistance < m_metric.sensorLength*0.2 &&
-				(m_autoHitTimer.isForever() || m_autoHitTimer.remainingTime() > m_metric.autoAttackTime))
-			m_autoHitTimer.setRemainingTime(0);
+		if (m_game->tickTimer()) {
+			const auto tick = m_game->tickTimer()->currentTick();
 
-		if (m_autoHitTimer.hasExpired()) {
-			attackPlayer(m_player, defaultWeapon());
-			m_autoHitTimer.setRemainingTime(m_metric.autoAttackTime);
-		} else if (m_autoHitTimer.isForever()) {
-			m_autoHitTimer.setRemainingTime(m_metric.firstAttackTime);
+			if (m_playerDistance < m_metric.sensorLength*0.2 &&
+					(m_autoHitTimer == -1 || tick-m_autoHitTimer > m_metric.autoAttackTime))
+				m_autoHitTimer = tick;
+
+			if (m_autoHitTimer >= 0 && m_autoHitTimer <= tick) {
+				attackPlayer(m_player, defaultWeapon());
+				m_autoHitTimer = tick + m_metric.autoAttackTime;
+			} else if (m_autoHitTimer < 0) {
+				m_autoHitTimer = tick + m_metric.firstAttackTime;
+			}
 		}
 
 		return false;

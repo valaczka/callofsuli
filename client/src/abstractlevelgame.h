@@ -73,7 +73,7 @@ public:
 	int duration() const;
 	QUrl backgroundImage() const;
 	QString backgroundMusic();
-	int msecLeft() const;
+	virtual int msecLeft() const;
 
 	static void reloadAvailableMusic();
 	static void reloadAvailableMedal();
@@ -96,9 +96,7 @@ public:
 
 protected:
 	QVector<Question> createQuestions();
-
-private slots:
-	void onTimerLeftTimeout();
+	virtual void onTimerLeftTimeout();
 
 signals:
 	void gameTimeout();
