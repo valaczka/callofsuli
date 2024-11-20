@@ -199,7 +199,7 @@ protected:
 
 
 /// TEST POINTS
-private:
+/*private:
 	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
 	QVariantList m_testPoints;
 signals:
@@ -215,7 +215,7 @@ public:
 		m_testPoints = list;
 		emit testPointsChanged();
 	}
-#endif
+#endif*/
 /// ----
 
 

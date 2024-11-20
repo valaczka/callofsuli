@@ -189,12 +189,6 @@ void TiledReturnPathMotor::finish(TiledObjectBody *body, AbstractGame::TickTimer
 	m_hasReturned = false;
 	clearLastSeenPoint();
 
-
-	QVariantList list;
-	for (const auto &point : m_pathMotor->polygon())
-		list.append(point);
-
-	scene->setTestPoints(list);
 }
 
 

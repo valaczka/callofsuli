@@ -3,10 +3,15 @@ TEMPLATE = lib
 android: TARGET = tcod_$${QT_ARCH}
 else: TARGET = tcod
 
-CONFIG += c++2a separate_debug_info staticlib
+CONFIG += c++2a separate_debug_info
 CONFIG -= qt
 
-DEFINES += LIBTCOD_STATIC
+win32 {
+	DEFINES += LIBTCOD_EXPORTS
+} else {
+	CONFIG += staticlib
+	DEFINES += LIBTCOD_STATIC
+}
 
 DESTDIR = ..
 

@@ -19,8 +19,6 @@ QML_IMPORT_PATH += $$PWD/../qml
 QML2_IMPORT_PATH += $$PWD/../qml
 QMLPATHS += $$PWD/../qml
 
-linux|win32|macx:!android: QT += pdf
-
 
 DEFINES += CLIENT_UTILS
 
