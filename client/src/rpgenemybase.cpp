@@ -28,11 +28,11 @@
 #include "rpggame.h"
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
+#include "utils_.h"
 
 #include "rpgaxe.h"
 #include "rpghammer.h"
 #include "rpgmace.h"
-#include "utils_.h"
 
 /**
  * @brief RpgEnemyBase::RpgEnemyBase
@@ -166,6 +166,19 @@ void RpgEnemyBase::load()
 
 	m_sfxRoar.setSoundList(soundList);
 	m_sfxRoar.setPlayOneDeadline(600);
+
+	const auto ptr = Utils::fileToJsonObject(QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/metric.json"));
+
+	if (ptr) {
+		LOG_CTRACE("game") << "Enemy metric override" << m_directory;
+
+		m_metric.fromJson(ptr.value());
+		if (m_sensorPolygon) {
+			m_sensorPolygon->setLength(m_metric.sensorLength);
+			m_sensorPolygon->setRange(m_metric.sensorRange);
+		}
+	}
+
 }
 
 

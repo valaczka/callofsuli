@@ -35,6 +35,7 @@
 #include <libtiled/mapreader.h>
 #include <libtiled/map.h>
 #include <libtiled/imagecache.h>
+#include <libtiled/tilesetmanager.h>
 
 std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGame::m_sharedTextures;
 
@@ -1865,4 +1866,7 @@ void TiledGame::setPaused(bool newPaused)
 
 	for (const Scene &s : m_sceneList)
 		s.scene->setRunning(!m_paused);
+
+	Tiled::TilesetManager *manager = Tiled::TilesetManager::instance();
+	manager->setAnimateTiles(!m_paused);
 }

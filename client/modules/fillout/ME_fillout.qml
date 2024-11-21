@@ -86,8 +86,6 @@ QFormColumn {
 		field: "count"
 		text: qsTr("Kiegészítendő helyek száma:")
 
-		visible: !isText
-
 		from: 1
 		value: 3
 		to: isSequence && _countWords.value > 0 ? _countWords.value : 99
@@ -121,7 +119,7 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isText ? [_question]
+		let _items = isText ? [_question, _spinCount]
 							: isSequence ? [_question, _countWords, _spinCount]
 										 : [_question, _area, _spinOptions, _spinCount]
 
@@ -141,7 +139,7 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isText ? [_question]
+		let _items = isText ? [_question, _spinCount]
 							: isSequence ? [_question, _countWords, _spinCount]
 										 : [_question, _area, _spinOptions, _spinCount, _wrongAnswers]
 		return getItems(_items)

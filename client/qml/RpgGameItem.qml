@@ -691,31 +691,6 @@ FocusScope {
 				rightPadding: 10 * Qaterial.Style.pixelSizeRatio
 				topPadding: 5 * Qaterial.Style.pixelSizeRatio
 				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
-				/*Row {
-					spacing: 5 * Qaterial.Style.pixelSizeRatio
-
-					Qaterial.IconLabel {
-						icon.source: Qaterial.Icons.gamepad
-						anchors.verticalCenter: parent.verticalCenter
-						text: qsTr("Joystick:")
-					}
-
-					QSpinBox {
-						anchors.verticalCenter: parent.verticalCenter
-						from: 90
-						to: 600
-						stepSize: 10
-
-						font: Qaterial.Style.textTheme.body1
-
-						value: _game ? _game.joystick.size : 0
-
-						onValueModified: {
-							_game.joystick.size = value
-							Client.Utils.settingsSet("window/joystick", _game.joystick.size)
-						}
-					}
-				}*/
 
 				QFormSwitchButton
 				{

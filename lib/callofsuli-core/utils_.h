@@ -132,9 +132,6 @@ public:
 	Q_INVOKABLE void checkMediaPermissions();
 #endif
 
-	[[deprecated]] Q_INVOKABLE static quint32 versionMajor();
-	[[deprecated]] Q_INVOKABLE static quint32 versionMinor();
-	[[deprecated]] Q_INVOKABLE static quint32 versionBuild();
 	Q_INVOKABLE static quint32 versionCode();
 	Q_INVOKABLE static quint32 versionCode(const int &major, const int &minor);
 	Q_INVOKABLE static QVersionNumber versionNumber();

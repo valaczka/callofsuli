@@ -209,7 +209,6 @@
         <file>RpgGameItem.qml</file>
         <file>RpgCharacterSelect.qml</file>
         <file>RpgGameMinimap.qml</file>
-        <file>TiledLayerVisual.qml</file>
         <file>PageStudentFreePlay.qml</file>
         <file>PageTeacherGroupFreePlay.qml</file>
         <file>RpgShotButton.qml</file>
@@ -232,5 +231,7 @@
         <file>RpgWorldSelect.qml</file>
         <file>RpgUserWorldLandOver.qml</file>
         <file>RpgPauseDialog.qml</file>
+        <file>+emscripten/RpgUserWorldLand.qml</file>
+        <file>+emscripten/RpgUserWorldMap.qml</file>
     </qresource>
 </RCC>

@@ -720,24 +720,34 @@ QPage {
 
 		text: qsTr("Eltávolítás")
 
-		enabled: exam && exam.state < Exam.Active &&
+		enabled: exam && exam.state < Exam.Finished &&
 				 (_view.currentIndex != -1 || _view.selectEnabled)
 
 		onTriggered: {
-			let l = JS.listGetFields(_view.getSelected(), "username")
+			let l = _view.getSelected()
 
 			if (!l.length)
 				return
 
-			Client.send(HttpConnection.ApiTeacher, "exam/%1/content/delete".arg(exam.examId), {
-							list: l
-						})
-			.done(root, function(r){
-				_view.unselectAll()
-				_teacherExam.reloadExamContent()
-				Client.messageInfo(qsTr("Diák dolgozat eltávolítva"), qsTr("Diák dolgozat"))
-			})
-			.fail(root, JS.failMessage(qsTr("Diák dolgozat törlése sikertelen")))
+
+			JS.questionDialogPlural(l, qsTr("Biztosan eltávolítod a kijelölt %1 dolgozatot?"), "fullName",
+									{
+										onAccepted: function()
+										{
+											Client.send(HttpConnection.ApiTeacher, "exam/%1/content/delete".arg(exam.examId), {
+															list: JS.listGetFields(l, "username")
+														})
+											.done(root, function(r){
+												_view.unselectAll()
+												_teacherExam.reloadExamContent()
+												Client.messageInfo(qsTr("%1 diák dolgozat eltávolítva").arg(l.length), qsTr("Diák dolgozat"))
+											})
+											.fail(root, JS.failMessage(qsTr("Diák dolgozatok eltávolítása sikertelen")))
+
+										},
+										title: qsTr("Diák dolgozatok eltávolítása"),
+										iconSource: Qaterial.Icons.fileDocumentRemove
+									})
 
 		}
 	}

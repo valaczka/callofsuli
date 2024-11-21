@@ -69,6 +69,7 @@
 - 2D spell effects - (c) 2013 Martin Jelinek (https://opengameart.org/content/2d-spell-effects)
 - Rural medieval romanesque church - (c) ramonduran (https://blendswap.com/blend/19459)
 - Medieval Modular Design: Windows - (c) Daniel74 (https://blendswap.com/blend/13014)
+- Counties of the Kingdom of Hungary - (c) Abonyi György 2024
 
 **Music & SFX**
 

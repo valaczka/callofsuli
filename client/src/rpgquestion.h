@@ -58,6 +58,7 @@ public:
 	void initialize();
 
 	bool emptyQuestions() const;
+	qint64 duration() const;
 
 private:
 	ActionRpgGame *const m_game;
@@ -70,6 +71,8 @@ private:
 	TiledWeapon::WeaponType m_weaponType = TiledWeapon::WeaponInvalid;
 
 	bool m_emptyQuestions = true;
+
+	qint64 m_duration = 0;
 };
 
 #endif // RPGQUESTION_H

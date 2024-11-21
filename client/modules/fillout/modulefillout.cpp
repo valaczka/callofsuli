@@ -314,6 +314,7 @@ QVariantList ModuleFillout::generateText(const QVariantMap &data, const QVariant
 		QVariantMap d;
 		d[QStringLiteral("text")] = text;
 		d[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
+		d[QStringLiteral("count")] = data.value(QStringLiteral("count")).toInt();
 
 		ret.append(generateOne(d));
 	}

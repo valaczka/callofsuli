@@ -596,14 +596,30 @@ void RpgGame::playerUseContainer(RpgPlayer *player, TiledContainer *container)
 	if (!container->scene())
 		return;
 
-	if (RpgChestContainer *chestContainer = qobject_cast<RpgChestContainer*>(container)) {
-		const auto &pList = chestContainer->pickableList();
+
+	const auto &it = std::find_if(m_controlGroups.cbegin(), m_controlGroups.cend(),
+								  [container](const std::unique_ptr<RpgControlGroup> &ptr) {
+		RpgControlGroupContainer *c = dynamic_cast<RpgControlGroupContainer*>(ptr.get());
+		if (!c)
+			return false;
+
+		return c->tiledContainer() == container;
+	}
+	);
+
+	if (it == m_controlGroups.cend()) {
+		LOG_CERROR("game") << "Container not found" << container;
+		return;
+	}
+
+	if (RpgControlGroupContainer *container = dynamic_cast<RpgControlGroupContainer*>(it->get())) {
+		const auto &pList = container->pickableList();
 
 		int i = 0;
-		static const int delta = 30;
+		static const int delta = 10;
 		const int &count = pList.size();
 
-		QPointF startPos = chestContainer->centerPoint();
+		QPointF startPos = container->centerPoint();
 
 		if (count > 1) {
 			startPos.setX(startPos.x()-(count/2)*delta);
@@ -623,6 +639,8 @@ void RpgGame::playerUseContainer(RpgPlayer *player, TiledContainer *container)
 			container->scene()->appendToObjects(pickable);
 			pickable->setIsActive(true);
 		}
+
+		container->setPickableList({});
 	}
 }
 
@@ -988,10 +1006,6 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 #ifndef QT_NO_DEBUG
 		case Qt::Key_M:
 			emit marketRequest();
-			break;
-
-		case Qt::Key_F5:
-			setPaused(!m_paused);
 			break;
 
 		case Qt::Key_F:
@@ -2568,7 +2582,7 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 		else
 			m_controlledPlayer->m_pickAtDestination = false;
 
-		if (const auto &ptr = m_currentScene->findShortestPath(m_controlledPlayer->body()->bodyPosition(), QPointF(x,y))) {
+		if (const auto &ptr = m_currentScene->findShortestPath(m_controlledPlayer->body(), QPointF(x,y))) {
 			m_controlledPlayer->setDestinationPoint(ptr.value());
 
 			if (!m_controlledPlayer->m_sfxAccept.soundList().isEmpty())

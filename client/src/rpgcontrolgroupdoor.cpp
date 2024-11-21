@@ -110,7 +110,7 @@ RpgControlGroupDoor::RpgControlGroupDoor(RpgGame *game, TiledScene *scene, Tiled
 					connectFixture(fixture);
 
 					fixture->setCategories(fixture->categories().setFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport), true));
-					fixture->setCollidesWith(fixture->categories().setFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody), true));
+					fixture->setCollidesWith(fixture->collidesWith().setFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody), true));
 
 					m_transport = game->transportList().add(TiledTransport::TransportDoor, group->name(),
 															group->property(QStringLiteral("lock")).toString(),

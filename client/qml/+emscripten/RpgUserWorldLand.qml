@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.VectorImage
+//import QtQuick.VectorImage
 import CallOfSuli
 import Qt5Compat.GraphicalEffects
 import Qaterial as Qaterial
@@ -30,11 +30,21 @@ Item {
 									   landData.landState != RpgWorldLandData.LandUnused
 
 
-	VectorImage {
+	/*VectorImage {
 		id: _imgMap
 		visible: false
 		source: landData ? landData.imageSource : ""
 		fillMode: VectorImage.NoResize
+	}*/
+
+	Image {
+		id: _imgMap
+		fillMode: Image.PreserveAspectFit
+		visible: false
+		source: landData ? landData.imageSource : ""
+		width: sourceSize.width
+		height: sourceSize.height
+		asynchronous: true
 	}
 
 

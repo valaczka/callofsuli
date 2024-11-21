@@ -30,33 +30,18 @@
 #include "rpgcontrolgroup.h"
 #include "tiledcontainer.h"
 #include "rpgpickableobject.h"
-#include <libtiledquick/tilelayeritem.h>
-
+#include "rpgcontrolgroupstate.h"
 
 
 /**
- * @brief The RpgChestContainer class
+ * @brief The DoorState class
  */
 
-class RpgChestContainer : public TiledContainer
-{
-	Q_OBJECT
-
-public:
-	explicit RpgChestContainer(QObject *parent = nullptr);
-	virtual ~RpgChestContainer() {}
-
-	QVector<RpgPickableObject::PickableType> pickableList() const;
-	void setPickableList(const QVector<RpgPickableObject::PickableType> &newPickableList);
-
-	QPointF centerPoint() const;
-	void setCenterPoint(QPointF newCenterPoint);
-
-private:
-	QVector<RpgPickableObject::PickableType> m_pickableList;			// TODO: add name handling (i.e. key)
-	QPointF m_centerPoint;
+struct ContainerState {
+	int id = -1;
+	QUrl image;
+	QPointF relativePosition;
 };
-
 
 
 
@@ -64,26 +49,31 @@ private:
  * @brief The RpgControlGroupContainer class
  */
 
-class RpgControlGroupContainer : public RpgControlGroup
+class RpgControlGroupContainer : public RpgControlGroupState<ContainerState>
 {
 public:
 	RpgControlGroupContainer(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 
-	RpgChestContainer *chestContainer() const { return m_container.get(); }
+	TiledContainer *tiledContainer() const { return m_container.get(); }
+
+	QVector<RpgPickableObject::PickableType> pickableList() const;
+	void setPickableList(const QVector<RpgPickableObject::PickableType> &newPickableList);
+
+	QStringList nameList() const;
+	void setNameList(const QStringList &newNameList);
+
+	QPointF centerPoint() const;
+	void setCenterPoint(QPointF newCenterPoint);
 
 private:
-	void onFixtureBeginContact(Box2DFixture *other);
-	void onFixtureEndContact(Box2DFixture *other);
-	void onControlledPlayerChanged();
-	void connectFixture(Box2DFixture *fixture);
-	void updateLayers();
-	void onActiveChanged();
+	void update();
 
-	QVector<QPointer<Box2DFixture>> m_containerFixtures;
-	QVector<QPointer<QQuickItem>> m_tileLayers;
-	QVector<QPointer<Box2DFixture>> m_contactedFixtures;
-	std::unique_ptr<RpgChestContainer> m_container;
+	std::unique_ptr<TiledContainer> m_container;
+	QVector<RpgPickableObject::PickableType> m_pickableList;
+	QStringList m_nameList;
+	QPointF m_centerPoint;
 };
+
 
 
 #endif // RPGCONTROLGROUPCONTAINER_H

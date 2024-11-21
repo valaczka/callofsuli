@@ -686,32 +686,6 @@ void Utils::checkMediaPermissions()
 
 #endif
 
-/**
- * @brief Utils::versionMajor
- * @return
- */
-
-quint32 Utils::versionMajor()
-{
-	return m_versionMajor;
-}
-
-
-/**
- * @brief Utils::versionMinor
- * @return
- */
-
-quint32 Utils::versionMinor()
-{
-	return m_versionMinor;
-}
-
-quint32 Utils::versionBuild()
-{
-	return m_versionBuild;
-}
-
 
 /**
  * @brief Utils::versionCode

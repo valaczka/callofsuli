@@ -110,7 +110,6 @@ public:
 	virtual ~TiledScene();
 
 	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
-	[[deprecated]] QQuickItem *addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 	TiledVisualItem *addVisualItem();
 	TiledVisualItem *addVisualItem(Tiled::ImageLayer *layer);
 
@@ -121,6 +120,8 @@ public:
 	Q_INVOKABLE bool load(const QUrl &url);
 
 	void reloadTcodMap();
+	std::optional<QPolygonF> findShortestPath(TiledObjectBody *body, const QPointF &to) const;
+	std::optional<QPolygonF> findShortestPath(TiledObjectBody *body, const qreal &x2, const qreal &y2) const;
 	std::optional<QPolygonF> findShortestPath(const QPointF &from, const QPointF &to) const;
 	std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
 

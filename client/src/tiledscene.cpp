@@ -569,6 +569,56 @@ void TiledScene::reloadTcodMap()
 
 
 
+/**
+ * @brief TiledScene::findShortestPath
+ * @param body
+ * @param to
+ * @return
+ */
+
+std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, const QPointF &to) const
+{
+	if (!body)
+		return std::nullopt;
+
+	const TiledReportedFixtureMap &map = body->rayCast(to);
+
+	bool isWalkable = true;
+
+	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
+		if (it->fixture->isSensor())
+			continue;
+
+		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {
+			isWalkable = false;
+			break;
+		}
+	}
+
+	if (isWalkable) {
+		return QPolygonF() << to;
+	}
+
+	return findShortestPath(body->bodyPosition(), to);
+}
+
+
+
+/**
+ * @brief TiledScene::findShortestPath
+ * @param body
+ * @param x2
+ * @param y2
+ * @return
+ */
+
+std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, const qreal &x2, const qreal &y2) const
+{
+	return findShortestPath(body, QPointF{x2, y2});
+}
+
+
+
 
 
 /**
@@ -596,42 +646,6 @@ TiledQuick::TileLayerItem *TiledScene::addTileLayer(Tiled::TileLayer *layer, Til
 
 
 
-/**
- * @brief TiledScene::addVisualTileLayer
- * @param layer
- * @param renderer
- * @return
- */
-
-QQuickItem *TiledScene::addVisualTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
-{
-	Q_ASSERT(layer);
-	Q_ASSERT(renderer);
-
-	LOG_CERROR("scene") << "DEPRECATED" << __PRETTY_FUNCTION__;
-
-	TiledQuick::TileLayerItem *layerItem = addTileLayer(layer, renderer);
-
-	if (!layerItem) {
-		LOG_CERROR("scene") << "TileLayer createVisual layerItem error";
-		return nullptr;
-	}
-
-	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledLayerVisual.qml"), this);
-
-	QQuickItem *item = qobject_cast<QQuickItem*>(component.create());
-
-	if (!item) {
-		LOG_CERROR("scene") << "TileLayer createVisual error" << component.errorString();
-		return nullptr;
-	}
-
-	item->setParentItem(this);
-	item->setParent(this);
-	item->setProperty("baseItem", QVariant::fromValue(layerItem));
-
-	return item;
-}
 
 
 /**

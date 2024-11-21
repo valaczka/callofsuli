@@ -149,7 +149,7 @@ void TiledReturnPathMotor::finish(TiledObjectBody *body, AbstractGame::TickTimer
 	m_pathMotor.reset(new TiledPathMotor);
 	m_pathMotor->setDirection(TiledPathMotor::Forward);
 
-	const auto &ptr = scene->findShortestPath(body->bodyPosition(), m_basePoint);
+	const auto &ptr = scene->findShortestPath(body, m_basePoint);
 
 	if (!ptr) {
 		LOG_CTRACE("scene") << "No path from" << body->bodyPosition() << "to" << m_basePoint;

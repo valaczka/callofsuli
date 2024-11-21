@@ -945,7 +945,9 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
 	return QStringLiteral("<table width=\"100%\" style=\"margin-left: 0px; margin-right: 30px;\">"
 						  "<tr><td valign=middle><img height=60 src=\"%1\"></td>"
 						  "<td width=\"100%\" valign=middle style=\"padding-left: 10px;\">"
-						  "<p><span style=\"font-size: large;\"><b>%2</b></span><br/>%3<br/><small>%4</small></p>"
+						  "<p style=\"font-size: 8pt;\"><span style=\"font-size: 10pt;\"><b>%2</b></span><br/>"
+						  "%3<br/>"
+						  "<span style=\"font-size: 7pt;\">%4</span></p>"
 						  "</td></tr></table>\n\n")
 			.arg(imgName, username, pdfConfig.title, pdfConfig.subject)
 			;

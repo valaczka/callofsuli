@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.VectorImage
+//import QtQuick.VectorImage
 import Qt.labs.animation
 import CallOfSuli
 import Qaterial as Qaterial
@@ -41,15 +41,17 @@ Flickable {
 
 			anchors.centerIn: parent
 
-			Loader {
-				id: _loader1
+			/*VectorImage {
+				source: world ? world.imageBackground : ""
+				fillMode: VectorImage.NoResize
+			}*/
+			Image {
+				fillMode: Image.PreserveAspectFit
+				visible: false
+				source: world ? world.imageBackground : ""
+				width: sourceSize.width
+				height: sourceSize.height
 				asynchronous: true
-				sourceComponent: VectorImage {
-					source: world ? world.imageBackground : ""
-					fillMode: VectorImage.NoResize
-				}
-				Component.onCompleted: _loaderGroup.add(_loader1)
-				onLoaded: _loaderGroup.remove(_loader1)
 			}
 
 			Repeater {
@@ -72,6 +74,7 @@ Flickable {
 					Component.onCompleted: _loaderGroup.add(_loader)
 					onLoaded: _loaderGroup.remove(_loader)
 				}
+
 			}
 
 			Repeater {
@@ -84,15 +87,18 @@ Flickable {
 				}
 			}
 
-			Loader {
-				id: _loader2
+			/*VectorImage {
+				source: world ? world.imageOver : ""
+				fillMode: VectorImage.NoResize
+			}*/
+
+			Image {
+				fillMode: Image.PreserveAspectFit
+				visible: false
+				source: world ? world.imageOver : ""
+				width: sourceSize.width
+				height: sourceSize.height
 				asynchronous: true
-				sourceComponent: VectorImage {
-					source: world ? world.imageOver : ""
-					fillMode: VectorImage.NoResize
-				}
-				Component.onCompleted: _loaderGroup.add(_loader2)
-				onLoaded: _loaderGroup.remove(_loader2)
 			}
 
 			BoundaryRule on scale {
@@ -106,7 +112,6 @@ Flickable {
 
 		PinchHandler {
 			target: _scene
-
 			rotationAxis.enabled: false
 			xAxis.enabled: false
 			yAxis.enabled: false
@@ -115,7 +120,7 @@ Flickable {
 
 		WheelHandler {
 			target: _scene
-			acceptedModifiers: Qt.ControlModifier
+			//acceptedModifiers: Qt.ControlModifier
 			property: "scale"
 			acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
 		}

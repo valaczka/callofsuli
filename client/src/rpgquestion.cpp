@@ -26,6 +26,8 @@
 
 #include "rpgquestion.h"
 #include "actionrpggame.h"
+#include "application.h"
+#include "litegame.h"
 #include <random>
 
 /**
@@ -203,6 +205,24 @@ void RpgQuestion::initialize()
 	} else {
 		m_emptyQuestions = false;
 	}
+
+
+	m_duration = 0;
+
+	foreach (const Question &q, m_questionList) {
+		ModuleInterface *iface = Application::instance()->objectiveModules().value(q.module());
+
+		if (!iface)
+			continue;
+
+		m_duration += SECOND_PER_QUESTION*1000;
+
+		qreal factor = (iface->xpFactor()-1.0) * 2.0;
+
+		// Exponenciálisan növeljük
+
+		m_duration += factor * SECOND_PER_QUESTION * 1000;
+	}
 }
 
 
@@ -215,4 +235,9 @@ void RpgQuestion::initialize()
 bool RpgQuestion::emptyQuestions() const
 {
 	return m_emptyQuestions;
+}
+
+qint64 RpgQuestion::duration() const
+{
+	return m_duration;
 }

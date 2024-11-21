@@ -584,9 +584,6 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
-	m_config.duration = ptr->duration + m_missionLevel->duration();
-	updateConfig();
-
 	if (!m_rpgGame->load(ptr.value(), characterPtr.value())) {
 		LOG_CERROR("game") << "Game load error";
 		return;
@@ -673,6 +670,10 @@ void ActionRpgGame::rpgGameActivated_()
 		factor = 0.45;
 	else if (m_missionLevel->level() == 2)
 		factor = 0.4;
+
+
+	m_config.duration = ptr->duration + (m_rpgQuestion->duration() * factor * 1.5);
+	updateConfig();
 
 	int sum = 0;
 

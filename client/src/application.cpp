@@ -122,6 +122,11 @@ void Application::initialize()
 	QApplication::setApplicationDisplayName(QStringLiteral("Call of Suli"));
 
 	QLocale::setDefault(QLocale(QLocale::Hungarian, QLocale::Hungary));
+
+	// Font display bug
+#ifdef Q_OS_WIN
+	qputenv("QT_QPA_PLATFORM", "windows:fontengine=gdi");
+#endif
 }
 
 

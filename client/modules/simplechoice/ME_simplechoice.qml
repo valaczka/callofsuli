@@ -176,6 +176,23 @@ QFormColumn {
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+
+	QFormSpinBox {
+		id: _spinOptions
+		field: "maxOptions"
+		text: qsTr("Válaszlehetőségek száma:")
+
+		from: 2
+		to: 6
+		stepSize: 1
+		value: 4
+
+		spin.editable: true
+
+		visible: !isImages
+	}
+
+
 	MapEditorSpinStorageCount {
 		id: _countBinding
 		visible: isBinding || isImages || isBlock
@@ -185,12 +202,12 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isBinding ? [_question, _modeBinding] :
+		let _items = isBinding ? [_question, _modeBinding, _spinOptions] :
 								 isImages ? (objective.data.mode === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_modeBlock, _questionBlock] :
-													  [_question, _correctAnswer]
+											isBlock ? [_modeBlock, _questionBlock, _spinOptions] :
+													  [_question, _correctAnswer, _spinOptions]
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -207,12 +224,12 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isBinding ? [_question, _modeBinding] :
+		let _items = isBinding ? [_question, _modeBinding, _spinOptions] :
 								 isImages ? (_modeImages.currentValue === "image" ?
 												 [_modeImages, _questionII, _answerImage] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_modeBlock, _questionBlock] :
-													  [_question, _correctAnswer, _answers]
+											isBlock ? [_modeBlock, _questionBlock, _spinOptions] :
+													  [_question, _correctAnswer, _answers, _spinOptions]
 
 		return getItems(_items)
 	}

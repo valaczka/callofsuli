@@ -188,7 +188,7 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 
 		QStringList alist = data.value(QStringLiteral("answers")).toStringList();
 
-		m.insert(generateOne(correct, alist));
+		m.insert(generateOne(correct, alist, data.value(QStringLiteral("maxOptions")).toInt()));
 
 		list.append(m);
 
@@ -225,6 +225,7 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 
 	bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
 	QString question = data.value(QStringLiteral("question")).toString();
+	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
 
 	foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
 		QVariantMap m = v.toMap();
@@ -256,7 +257,7 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 			alist.append(isBindToRight ? f1 : f2);
 		}
 
-		retMap.insert(generateOne(isBindToRight ? left : right, alist));
+		retMap.insert(generateOne(isBindToRight ? left : right, alist, maxOptions));
 
 		ret.append(retMap);
 	}
@@ -321,11 +322,11 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 		}
 
 		if (mode == QStringLiteral("image") && answersPattern.contains(QStringLiteral("%1")))
-			retMap.insert(generateOne(answersPattern.arg(text), alist));
+			retMap.insert(generateOne(answersPattern.arg(text), alist, 4));
 		else if (mode == QStringLiteral("image"))
-			retMap.insert(generateOne(text, alist));
+			retMap.insert(generateOne(text, alist, 4));
 		else
-			retMap.insert(generateOne(QStringLiteral("image://mapimage/%1").arg(imgId), alist));
+			retMap.insert(generateOne(QStringLiteral("image://mapimage/%1").arg(imgId), alist, 4));
 
 		ret.append(retMap);
 	}
@@ -414,7 +415,7 @@ QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, 
 				alist.append(opt);
 			}
 
-			retMap.insert(generateOne(left, alist));
+			retMap.insert(generateOne(left, alist, data.value(QStringLiteral("maxOptions")).toInt()));
 
 			ret.append(retMap);
 		}
@@ -441,6 +442,7 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 	QVariantList ret;
 
 	const QString &question = data.value(QStringLiteral("question")).toString();
+	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
 
 
 	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
@@ -480,7 +482,7 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 			alist.append(right.at(QRandomGenerator::global()->bounded(right.size())));
 		}
 
-		retMap.insert(generateOne(correct, alist));
+		retMap.insert(generateOne(correct, alist, maxOptions));
 
 		ret.append(retMap);
 	}
@@ -499,12 +501,12 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
  * @return
  */
 
-QVariantMap ModuleSimplechoice::generateOne(const QString &correctAnswer, QStringList optionsList) const
+QVariantMap ModuleSimplechoice::generateOne(const QString &correctAnswer, QStringList optionsList, const int &maxOptions) const
 {
 	QVector<QPair<QString, bool>> opts;
 	opts.append(qMakePair(correctAnswer, true));
 
-	while (optionsList.size() && opts.size() < 4) {
+	while (optionsList.size() && opts.size() < (maxOptions > 1 ? maxOptions : 4)) {
 		QString o = optionsList.takeAt(QRandomGenerator::global()->bounded(optionsList.size()));
 		if (!o.isEmpty())
 			opts.append(qMakePair(o, false));
