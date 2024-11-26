@@ -430,8 +430,9 @@ signals:
 
 private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
-	static QString pdfSheet(const bool &addResource, const int &width, QTextDocument *document);
-	static QString pdfQuestion(const QJsonArray &list);
+	static QString pdfSheet(const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document);
+	static QString pdfQuestion(const QJsonArray &list, const bool &autoQuestions);
+	static bool hasAutoQuestion(const QJsonArray &list);
 
 	void loadUserList();
 	void loadGameMap();
@@ -470,6 +471,8 @@ private:
 	}
 
 	static const QString m_optionLetters;
+	static const QStringList m_nonNumberedModules;
+	static const QStringList m_numberedModules;
 
 	std::unique_ptr<ExamScanDataList> m_scanData;
 	std::unique_ptr<ExamUserList> m_examUserList;

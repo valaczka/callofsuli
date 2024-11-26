@@ -45,7 +45,19 @@
  */
 
 const QString TeacherExam::m_optionLetters = QStringLiteral("ABCDEF?????????????????????????????????????????????");
-
+const QStringList TeacherExam::m_nonNumberedModules = QStringList{
+													  QStringLiteral("pair"),
+													  QStringLiteral("fillout"),
+													  QStringLiteral("order"),
+													  };
+const QStringList TeacherExam::m_numberedModules = QStringList{
+												   QStringLiteral("simplechoice"),
+												   QStringLiteral("multichoice"),
+												   QStringLiteral("truefalse"),
+												   QStringLiteral("order"),
+												   QStringLiteral("pair"),
+												   QStringLiteral("fillout")
+												   };
 
 
 /**
@@ -148,6 +160,7 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 			const QString &username = u->fullName();
 			const int &id = u->contentId();
 			const QJsonArray &qList = u->examData();
+			const bool autoQuestion = hasAutoQuestion(qList);
 
 			html += QStringLiteral("<table width=\"100%\"");
 			if (count>0)
@@ -156,8 +169,8 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 			html += QStringLiteral("><tr><td><img width=30 src=\"imgdata://bgL.png\"></td><td>");
 
 			html += pdfTitle(pdfConfig, username, id, &document);
-			html += pdfSheet(count==0, layout.paintRectPoints().width()-80, &document);
-			html += pdfQuestion(qList);
+			html += pdfSheet(count==0, layout.paintRectPoints().width()-80, autoQuestion, &document);
+			html += pdfQuestion(qList, autoQuestion);
 
 			html += QStringLiteral("</td><td><img width=30 src=\"imgdata://bgR.png\"></td></tr></table>");
 
@@ -961,9 +974,13 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
  * @return
  */
 
-QString TeacherExam::pdfSheet(const bool &addResource, const int &width, QTextDocument *document)
+QString TeacherExam::pdfSheet(const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document)
 {
 	Q_ASSERT(document);
+
+	if (!autoQuestion) {
+		return QStringLiteral("<table width=\"100%\"><tr><td width=\"%1\">&nbsp;</td></tr></table>").arg(width);
+	}
 
 	static const QString imgName = QStringLiteral("imgdata://sheet.svg");
 
@@ -986,17 +1003,11 @@ QString TeacherExam::pdfSheet(const bool &addResource, const int &width, QTextDo
  * @return
  */
 
-QString TeacherExam::pdfQuestion(const QJsonArray &list)
+QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestions)
 {
 	QString html;
 
 	int num = 1;
-
-	static const QStringList nonNumberedModules = {
-		QStringLiteral("pair"),
-		QStringLiteral("fillout"),
-		QStringLiteral("order"),
-	};
 
 	for (const QJsonValue &v : list) {
 		const QJsonObject &obj = v.toObject();
@@ -1004,13 +1015,13 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list)
 		const QString &question = obj.value(QStringLiteral("question")).toString();
 		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
 
-		if (obj.value(QStringLiteral("separator")).toBool()) {
+		if (obj.value(QStringLiteral("separator")).toBool() && autoQuestions) {
 			html += QStringLiteral("<p align=center style=\"margin-top: 20px; margin-bottom: 20px;\">===============</p>");
 		}
 
 		html += QStringLiteral("<p style=\"margin-top: 6px;\" align=justify>");
 
-		if (!nonNumberedModules.contains(module)) {
+		if (!m_nonNumberedModules.contains(module)) {
 			html += QStringLiteral("<span style=\"font-weight: 600;\">");
 			html += QString::number(num++).append(QStringLiteral("."));
 			html += QStringLiteral("</span>");
@@ -1127,6 +1138,25 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list)
 	}
 
 	return html;
+}
+
+
+/**
+ * @brief TeacherExam::hasAutoQuestion
+ * @param list
+ * @return
+ */
+
+bool TeacherExam::hasAutoQuestion(const QJsonArray &list)
+{
+	for (const QJsonValue &v : list) {
+		const QJsonObject &obj = v.toObject();
+		const QString &module = obj.value(QStringLiteral("module")).toString();
+		if (m_nonNumberedModules.contains(module) || m_numberedModules.contains(module))
+			return true;
+	};
+
+	return false;
 }
 
 
