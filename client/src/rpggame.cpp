@@ -2588,6 +2588,13 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 			if (!m_controlledPlayer->m_sfxAccept.soundList().isEmpty())
 				m_controlledPlayer->m_sfxAccept.playOne();
 
+			// --- show path ---
+			/*QVariantList list;
+			for (const auto &point : ptr.value())
+				list.append(point);
+			m_currentScene->setTestPoints(list);*/
+			// -----------
+
 		} else {
 			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())
 				m_controlledPlayer->m_sfxDecline.playOne();

@@ -1197,7 +1197,8 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 
 	if (pickable->pickableType() == RpgPickableObject::PickableTime) {
 		static int sec = 60;
-		addToDeadline(sec*1000);
+		//addToDeadline(sec*1000);
+		m_deadlineTick += sec*1000;
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
 	} else if (pickable->pickableType() == RpgPickableObject::PickableCoin) {

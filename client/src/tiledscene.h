@@ -170,6 +170,7 @@ signals:
 	void onScreenAreaChanged();
 	void sceneEffectChanged();
 	void viewportChanged();
+	void testPointsChanged();
 
 protected:
 	virtual void refresh() override;
@@ -203,8 +204,7 @@ protected:
 /*private:
 	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
 	QVariantList m_testPoints;
-signals:
-	void testPointsChanged();
+
 public:
 	QVariantList testPoints() const { return m_testPoints; }
 	void setTestPoints(const QVariantList &list) {

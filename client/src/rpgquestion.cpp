@@ -215,13 +215,13 @@ void RpgQuestion::initialize()
 		if (!iface)
 			continue;
 
-		m_duration += SECOND_PER_QUESTION*1000;
+		m_duration += SECOND_PER_QUESTION;
 
 		qreal factor = (iface->xpFactor()-1.0) * 2.0;
 
 		// Exponenciálisan növeljük
 
-		m_duration += factor * SECOND_PER_QUESTION * 1000;
+		m_duration += factor * SECOND_PER_QUESTION;
 	}
 }
 

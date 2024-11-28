@@ -26,6 +26,7 @@
 
 #include "tiledscene.h"
 #include "Logger.h"
+#include "libtcod/libtcod_int.h"
 #include "tiledobject.h"
 #include "tiledvisualitem.h"
 #include "tilelayeritem.h"
@@ -178,10 +179,14 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 	//TCODPath path(m_tcodMap.map.get());
 	TCODDijkstra path(m_tcodMap.map.get());
 
-	const int chX1 = std::floor(x1/m_tcodMap.chunkWidth);
-	const int chX2 = std::floor(x2/m_tcodMap.chunkWidth);
-	const int chY1 = std::floor(y1/m_tcodMap.chunkHeight);
-	const int chY2 = std::floor(y2/m_tcodMap.chunkHeight);
+	const int chX1 = std::floor((x1-m_viewport.left())/m_tcodMap.chunkWidth);
+	const int chX2 = std::floor((x2-m_viewport.left())/m_tcodMap.chunkWidth);
+	const int chY1 = std::floor((y1-m_viewport.top())/m_tcodMap.chunkHeight);
+	const int chY2 = std::floor((y2-m_viewport.top())/m_tcodMap.chunkHeight);
+
+	if (!m_tcodMap.map->isInBounds(chX1, chY1) ||
+			!m_tcodMap.map->isInBounds(chX2, chY2))
+		return std::nullopt;
 
 	if (!m_tcodMap.map->isWalkable(chX1, chY1))
 		return std::nullopt;
@@ -189,7 +194,7 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 	// Ha közel vagyunk (same chunk), nem is számolunk
 
 	if (chX1 == chX2 && chY1 == chY2)
-		return QPolygonF() << QPointF(x2, y2);
+		return QPolygonF() << QPointF(x1, y1) << QPointF(x2, y2);
 
 	path.compute(chX1, chY1);
 
@@ -208,8 +213,8 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 			polygon << QPointF(x1, y1);
 		else
 			polygon << QPointF(
-						   (x+0.5) * m_tcodMap.chunkWidth,
-						   (y+0.5) * m_tcodMap.chunkHeight
+						   m_viewport.left() + (x+0.5) * m_tcodMap.chunkWidth,
+						   m_viewport.top() + (y+0.5) * m_tcodMap.chunkHeight
 						   );
 	}
 
@@ -554,7 +559,7 @@ void TiledScene::reloadTcodMap()
 
 	for (int i=0; i<wSize; ++i) {
 		for (int j=0; j<hSize; ++j) {
-			QPolygonF chunk(QRectF(QPointF(m_tcodMap.chunkWidth*i, m_tcodMap.chunkHeight*j),
+			QPolygonF chunk(QRectF(m_viewport.topLeft() + QPointF(m_tcodMap.chunkWidth*i, m_tcodMap.chunkHeight*j),
 								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight)));
 
 			for (TiledObjectBasePolygon *o : std::as_const(m_groundObjects)) {
@@ -595,9 +600,8 @@ std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, con
 		}
 	}
 
-	if (isWalkable) {
-		return QPolygonF() << to;
-	}
+	if (isWalkable)
+		return QPolygonF() << body->bodyPosition() << to;
 
 	return findShortestPath(body->bodyPosition(), to);
 }

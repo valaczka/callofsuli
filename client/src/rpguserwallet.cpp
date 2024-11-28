@@ -204,8 +204,8 @@ bool RpgUserWallet::buyable() const
 {
 	const bool a = available();
 
-	/*if (m_market.type == RpgMarket::Weapon && a)
-		return false;*/
+	if (m_market.type == RpgMarket::Weapon && m_market.cost == 0 && m_market.rank == 0)
+		return false;
 
 	if (m_market.type == RpgMarket::Map && a)
 		return false;

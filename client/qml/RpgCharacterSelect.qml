@@ -5,7 +5,6 @@ import SortFilterProxyModel
 import CallOfSuli
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import "JScript.js" as J
 
 QItemGradient {
 	id: root
@@ -39,7 +38,7 @@ QItemGradient {
 			outlined: true
 
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-			height: Math.min(parent.height, 600)
+			height: Math.min(parent.height, 500)
 
 			anchors.centerIn: parent
 
@@ -162,7 +161,7 @@ QItemGradient {
 									Client.Utils.settingsSet("rpg/skin", _selectCharacter.wallet.market.name)
 									Client.Utils.settingsSet("rpg/world", _selectTerrain.wallet.market.name)
 
-									let noW = []
+									/*let noW = []
 
 									for (let i=0; i<_viewWeapons.model.count; ++i) {
 										let wpn = _viewWeapons.model.get(i)
@@ -170,14 +169,23 @@ QItemGradient {
 											noW.push(wpn.market.name)
 									}
 
-									Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))
+									Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))*/
+
+									let disList = game.getDisabledWeapons(_selectCharacter.wallet.market.name)
+
+									let wList = []
+									for (let n=0; n<_viewWeapons.model.count; ++n) {
+										let w = _viewWeapons.model.get(n).market.name
+										if (!disList.includes(w))
+											wList.push(w)
+									}
 
 									_grid1.visible = false
 									_busyIndicator.visible = true
 
 									game.selectCharacter(_selectTerrain.wallet.market.name,
 														 _selectCharacter.wallet.market.name,
-														 _viewWeapons.selectedList)
+														 wList)
 								}
 							}
 
@@ -237,7 +245,7 @@ QItemGradient {
 
 							readonly property real _height: _weaponItem.height-_weaponTitle.height
 
-							height: Math.min(_height, 200)
+							height: Math.min(_height, 120)
 
 							y: _weaponTitle.height + Math.max(0, (_height-height)/2)
 
@@ -252,13 +260,14 @@ QItemGradient {
 								text: wallet.readableName
 								image: wallet.image
 								bulletCount: wallet.market.cost == 0 ? -1 : wallet.amount //wallet.bullet ? wallet.bullet.amount : -1
-								selected: _viewWeapons.selectedList.includes(wallet.market.name)
-								onClicked: {
+								//selected: _viewWeapons.selectedList.includes(wallet.market.name)
+								selected: (wallet.market.cost == 0 || wallet.amount > 0) && !disabled
+								/*onClicked: {
 									if (selected)
 										_viewWeapons.unselectMore([wallet])
 									else
 										_viewWeapons.selectMore([wallet])
-								}
+								}*/
 
 								onWalletChanged: checkDisabled()
 
@@ -473,16 +482,16 @@ QItemGradient {
 			if (Client.server.user.wallet.world)
 				Client.server.user.wallet.world.select(Client.Utils.settingsGet("rpg/world", ""))
 
-			let sList = []
+			/*let sList = []
 
 			let wList = Client.Utils.settingsGet("rpg/disabledWeapons", "").split(",")
 			for (let n=0; n<_viewWeapons.model.count; ++n) {
 				let w = _viewWeapons.model.get(n)
-				if (!wList.includes(w.market.name))
+				//if (!wList.includes(w.market.name))
 					sList.push(w)
 			}
 
-			_viewWeapons.selectMore(sList)
+			_viewWeapons.selectMore(sList)*/
 
 			_isFirst = false
 		}
