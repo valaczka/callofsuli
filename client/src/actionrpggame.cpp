@@ -672,7 +672,7 @@ void ActionRpgGame::rpgGameActivated_()
 		factor = 0.4;
 
 
-	m_config.duration = ptr->duration + (m_rpgQuestion->duration() * factor * 1.5);
+	m_config.duration = ptr->duration + (m_rpgQuestion->duration() * factor);
 	updateConfig();
 
 	int sum = 0;

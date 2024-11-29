@@ -33,26 +33,17 @@
 
 **Image & Animation**
 
-- Hyptosis tileset - (c) Daniel Harris "Hyptosis" (http://opengameart.org/users/hyptosis, http://www.lorestrome.com/pixel_archive/main.htm)
 - 400+ Items - BaseHumanMale / Orc / Skeleton - (c) 2021 SKYZ0R (https://opengameart.org/content/400-items-basehumanmale-orc-skeleton)
-- Isometric Hero and Heroine - (c) Clint Bellanger 2011 (https://opengameart.org/content/isometric-hero-and-heroine)
 - Free Game Assets (https://mobilegamegraphics.com/product/airplane-dogfight-assets-free-assets)
 - Game-icons.net by Lorc, Delapouite & contributors (https://opengameart.org/content/700-rpg-icons, https://game-icons.net)
 - Hansjörg Malthaner (http://opengameart.org/users/varkalandar)
 - Kingel's Creative Commons pixel art (https://forums.tigsource.com/index.php?topic=14166.0)
 - WrathGames Studio (https://opengameart.org/content/wgstudio-fire-animation-loop, http://wrathgames.com/blog)
-- Free graphic resources for designers - (c) 2018-2023 Creazilla (https://creazilla.com)
 - Openclipart (https://openclipart.com)
 - Azgaar's Fantasy Map Generator - (c) 2017-2023 Max Haniyeu (https://azgaar.github.io/Fantasy-Map-Generator)
-- Old Tower - (c) yd (https://opengameart.org/content/old-tower)
 - Animated Spinning Gems - (c) 2017 Code Inferno Games - codeinferno.com (https://opengameart.org/content/animated-spinning-gems)
-- Werebear FLARE sprite sheets - (c) 2011 John Harvey (https://opengameart.org/content/werebear-flare-sprite-sheets)
 - Bleed - (c) 2017 Remos Turcuman - (https://opengameart.org/users/bleed, http://remusprites.carbonmade.com)
 - Animated particle effects #1 - (c) 2014 para (https://opengameart.org/content/animated-particle-effects-1)
-- Trees - (c) RedFrost (https://www.blendswap.com/blends/view/78148)
-- Trees - (c) EugeneKiver (https://www.blendswap.com/blends/view/59269)
-- Trees - (c) yughues (https://opengameart.org/content/freebies-mundo-commissions)
-- Dead trees - (c) p0ss (https://opengameart.org/content/3-dead-trees)
 - Grassland tileset - (c) Clint Bellanger (https://opengameart.org/content/grassland-tileset)
 - Grassland tileset 1 - (c) 2019 rubberduck (https://opengameart.org/content/grassland-tileset-1)
 - Updated Grassland Tileset (stylized) - (c) 2021 rubberduck (https://opengameart.org/content/updated-grassland-tileset-stylized)
@@ -63,13 +54,28 @@
 - Isometric log cabins - (c) 2020 rubberduck (https://opengameart.org/content/isometric-log-cabins)
 - Isometric props and tents - (c) 2021 rubberduck (https://opengameart.org/content/isometric-props-and-tentsÖ
 - Free Keyboard and controllers prompts pack - (c) Nicolae (Xelu) Berbece 2014 (https://opengameart.org/content/free-keyboard-and-controllers-prompts-pack)
-- Gothic Archways - (c) 2019 Lukas Küstenmacher (https://opengameart.org/content/isometric-tileset-gothic-archways)
 - Animated Fire - (c) 2018 BenHickling (https://opengameart.org/content/animated-fire)
 - Painterly Spell Icons - (c) 2011 J. W. Bjerk "eleazzaar" (https://opengameart.org/content/painterly-spell-icons-part-1, https://www.jwbjerk.com/art)
 - 2D spell effects - (c) 2013 Martin Jelinek (https://opengameart.org/content/2d-spell-effects)
-- Rural medieval romanesque church - (c) ramonduran (https://blendswap.com/blend/19459)
-- Medieval Modular Design: Windows - (c) Daniel74 (https://blendswap.com/blend/13014)
 - Counties of the Kingdom of Hungary - (c) Abonyi György 2024
+- Modular Fence Pack Asset (one material) - (c) BlackMonolith (https://skfb.ly/oHvLF)
+- Medieval Bridge Pack V1 LowPoly - (c) 5CNG5 (https://skfb.ly/oCA87)
+- Free Hedges - (c) Yughues (https://opengameart.org/content/free-hedges)
+- Pack - Modular Low Poly - 12 Model - (c) Islide (https://skfb.ly/o8yWM)
+- Terrain textures pack (from Stunt Rally 2.3) - (c) Crystal Hammer (https://opengameart.org/content/terrain-textures-pack-from-stunt-rally-23)
+- Arid ground textures - (c) Andrew Perry (https://opengameart.org/content/arid-ground-textures)
+- Stone wall download - (c) ToxaGrom (https://skfb.ly/oPoEA) by ToxaGrom
+- Medieval Stairs - (c) RudiH (https://skfb.ly/ozvpE)
+- Dungeon Stairs type 3 - (c) C. Anastasiadis (https://skfb.ly/6GJsH)
+- pavement Free Asset Pack - (c) JonhGillessen (https://skfb.ly/oxyrS)
+- Stone Pavement Tiles - (c) Savigo (https://skfb.ly/osszE)
+- Feeding Trough. Low poly and game-ready. - (c) Hakan Unlu (https://skfb.ly/6RIyr)
+- Feeding Trough - (c) dalroron (https://skfb.ly/oLNZo)
+- Primitive Hut 1A (Barn) - (c) Nucity (https://skfb.ly/oRW77)
+- Stone Hut with Camp Fire - (c) Sereib (https://skfb.ly/oNPAF)
+- A pile of clay - (c) 3dhdscan (https://skfb.ly/6znM9)
+- A pile of sand - (c) 3dhdscan (https://skfb.ly/6ySMv)
+- Slate stone pile - (c) matousekfoto (https://skfb.ly/otDHX)
 
 **Music & SFX**
 
