@@ -161,6 +161,7 @@ void Updater::updateAppImage()
 		LOG_CTRACE("updater") << process->readAllStandardError();
 	});
 
+	emit updateDownloadStarted();
 	m_client->snack(tr("Szoftverfrissítés..."));
 
 	process->start();
@@ -201,6 +202,7 @@ void Updater::updateGitHub(const QString &installer, const QString &sha1)
 	QNetworkRequest r{QUrl(installer)};
 	r.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
 
+	emit updateDownloadStarted();
 	m_client->snack(tr("Telepítő letöltése..."));
 
 	QNetworkReply *reply = HttpConnection->networkManager()->get(r);

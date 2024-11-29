@@ -57,6 +57,7 @@ public:
 signals:
 	void updateNotAvailable();
 
+	void updateDownloadStarted();
 	void updateDownloadFailed();
 	void updateReady();
 

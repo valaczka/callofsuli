@@ -13,6 +13,9 @@ FocusScope {
 	property ActionRpgGame game: null
 
 	property alias minimapVisible: _mapRect.visible
+	property real gameControlRatio: 1.0
+	readonly property real _controlRatioMin: 1.0
+	readonly property real _controlRatioMax: 2.5
 
 	readonly property bool _isPrepared: _prGameSet && _prGameLoaded && _prCmpCompleted && _prStackActivated
 
@@ -223,6 +226,9 @@ FocusScope {
 		anchors.left: parent.left
 		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
 		extendedSize: !_game.mouseAttack && !_game.mouseNavigation
+
+		size: 120 * Qaterial.Style.pixelSizeRatio * gameControlRatio
+		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 
 		maxWidth: parent.width*0.4
 		maxHeight: parent.height*0.4
@@ -479,7 +485,7 @@ FocusScope {
 
 	GameButton {
 		id: _castButton
-		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 45
+		size: (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 45) * gameControlRatio
 
 		anchors.horizontalCenter: _shotButton.horizontalCenter
 		anchors.bottom: _shotButton.top
@@ -604,7 +610,7 @@ FocusScope {
 
 	RpgShotButton {
 		id: _shotButton
-		size: 60
+		size: 60 * gameControlRatio
 
 		/*anchors.right: parent.right
 		anchors.bottom: parent.bottom
@@ -729,6 +735,36 @@ FocusScope {
 				}
 
 
+				Row {
+					width: parent.width
+
+					spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+					Qaterial.IconLabel {
+						id: _controlLabel
+						text: qsTr("Joystick")
+						icon.color: Qaterial.Style.primaryTextColor()
+						icon.source: Qaterial.Icons.volumeHigh
+						anchors.verticalCenter: parent.verticalCenter
+					}
+
+					Qaterial.Slider {
+						anchors.verticalCenter: parent.verticalCenter
+						width: parent.width - parent.spacing - _controlLabel.width
+
+						from: _controlRatioMin
+						to: _controlRatioMax
+						stepSize: 0.1
+						value: root.gameControlRatio
+						snapMode: Slider.SnapAlways
+
+						onMoved: {
+							root.gameControlRatio = value
+							Client.Utils.settingsSet("window/gameControls", value)
+						}
+					}
+				}
+
 
 				SettingsSound {
 					width: parent.width
@@ -776,7 +812,11 @@ FocusScope {
 	}
 
 
-	Component.onCompleted: _prCmpCompleted = true
+	Component.onCompleted: {
+		setGameControlRatio(Client.Utils.settingsGet("window/gameControls", 1.0))
+
+		_prCmpCompleted = true
+	}
 
 	StackView.onActivated: {
 		_prStackActivated = true
@@ -828,6 +868,11 @@ FocusScope {
 
 	function showQuests() {
 		Qaterial.DialogManager.openFromComponent(_cmpQuests)
+	}
+
+
+	function setGameControlRatio(ratio) {
+		gameControlRatio = Math.min(_controlRatioMax, Math.max(_controlRatioMin, ratio))
 	}
 
 

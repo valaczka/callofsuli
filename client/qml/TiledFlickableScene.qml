@@ -29,15 +29,16 @@ Flickable {
 	flickableDirection: Flickable.HorizontalAndVerticalFlick
 
 	property bool _interactiveDisabled: false
+	property bool _suspendFollowing: false
 
 	interactive: _scene.game && _scene.game.flickableInteractive && !_interactiveDisabled
 
 	readonly property real minZoom: _scene.viewport.width > 0 && _scene.viewport.height > 0 && parent ?
-							   Math.min(1.0, Math.max(0.2,
-													  flick.parent.width/_scene.viewport.width,
-													  flick.parent.height/_scene.viewport.height,
-													  )) :
-							   0.2
+										Math.min(1.0, Math.max(0.2,
+															   flick.parent.width/_scene.viewport.width,
+															   flick.parent.height/_scene.viewport.height,
+															   )) :
+										0.2
 	readonly property real maxZoom: 2.5
 	readonly property real zoomStep: 0.2
 
@@ -96,8 +97,8 @@ Flickable {
 
 			onScreenArea: flick.visible ? Qt.rect((flick.contentX - _container.x) / _scene.scale,
 												  (flick.contentY - _container.y) / _scene.scale ,
-												 flick.width / _scene.scale, flick.height / _scene.scale) :
-										 Qt.rect(0,0,0,0)
+												  flick.width / _scene.scale, flick.height / _scene.scale) :
+										  Qt.rect(0,0,0,0)
 
 			//------------------------------------------------
 			/*onTestPointsChanged: _canvas.requestPaint()
@@ -233,19 +234,33 @@ Flickable {
 			setXOffset()
 			setYOffset()
 		}
+
+		function onJoystickStateChanged() {
+			if (_scene.game.joystickInteractive())
+				_suspendFollowing = false
+		}
 	}
 
 	Connections {
 		target: _scene.game ? _scene.game.followedItem : null
 
 		function onXChanged() {
-			setXOffset()
+			if (!flick._suspendFollowing)
+				setXOffset()
 		}
 
 		function onYChanged() {
-			setYOffset()
+			if (!flick._suspendFollowing)
+				setYOffset()
 		}
 	}
+
+
+
+	onMovementStarted: {
+		_suspendFollowing = true
+	}
+
 
 	onWidthChanged: setXOffset()
 	onHeightChanged: setYOffset()

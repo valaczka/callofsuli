@@ -189,6 +189,7 @@ Item {
 		_behaviorY.enabled = false
 		_translate.dstX = x - _innerHPadding
 		_translate.dstY = y + _innerVPadding
+		moveThumb(width/2, height/2)
 		_timer.triggered()
 		_behaviorX.enabled = true
 		_behaviorY.enabled = true

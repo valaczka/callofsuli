@@ -79,7 +79,6 @@ class TiledGame : public QQuickItem
 	Q_PROPERTY(TiledScene *currentScene READ currentScene WRITE setCurrentScene NOTIFY currentSceneChanged FINAL)
 	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
 	Q_PROPERTY(TiledObjectBase *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
-	Q_PROPERTY(JoystickState joystickState READ joystickState WRITE setJoystickState NOTIFY joystickStateChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QQuickItem *messageList READ messageList WRITE setMessageList NOTIFY messageListChanged FINAL)
 	Q_PROPERTY(QColor defaultMessageColor READ defaultMessageColor WRITE setDefaultMessageColor NOTIFY defaultMessageColorChanged FINAL)
@@ -154,6 +153,7 @@ public:
 	Q_INVOKABLE void messageColor(const QString &text, const QColor &color);
 	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
 
+	Q_INVOKABLE bool joystickInteractive() const { return m_joystickState.hasKeyboard || m_joystickState.hasTouch; }
 
 	int playerPositionsCount(const int &sceneId) const;
 	int playerPositionsCount(TiledScene *scene) const;

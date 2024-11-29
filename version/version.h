@@ -2,6 +2,6 @@
 #define _VERSION_H_
 #define VERSION_MAJOR 4
 #define VERSION_MINOR 3
-#define VERSION_BUILD 847
-#define VERSION_FULL "4.3.847"
+#define VERSION_BUILD 864
+#define VERSION_FULL "4.3.864"
 #endif

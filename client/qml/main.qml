@@ -43,6 +43,27 @@ Qaterial.ApplicationWindow
 		onStackViewLoaded: _loaded = true
 	}
 
+	Row {
+		id: updateRow
+
+		anchors.centerIn: parent
+		spacing: 20
+		visible: false
+
+		Qaterial.BusyIndicator {
+			anchors.verticalCenter: parent.verticalCenter
+			height: txt.height
+			width: txt.height
+		}
+
+		Qaterial.LabelWithCaption {
+			id: txt
+			anchors.verticalCenter: parent.verticalCenter
+			text: qsTr("Alkalmazás frissítése")
+			caption: qsTr("Letöltés folyamatban...")
+		}
+	}
+
 
 	Component.onCompleted:
 	{
@@ -172,7 +193,7 @@ Qaterial.ApplicationWindow
 							onRejected: function()
 							{
 								Client.updater.autoUpdate = false
-								Client.messageInfo(qsTr("Automatikus frissítéskeresés letiltve, a beállításoknál tudod visszakapcsolni."),
+								Client.messageInfo(qsTr("Automatikus frissítéskeresés letiltva, a beállításoknál tudod visszakapcsolni."),
 												   qsTr("Frissítéskeresés"))
 							},
 							text: qsTr("Az applikációhoz új frissítés érhető el. Frissítsem?"),
@@ -193,6 +214,11 @@ Qaterial.ApplicationWindow
 							iconSource: Qaterial.Icons.checkBold
 						})
 
+		}
+
+		function onUpdateDownloadStarted() {
+			mainStackView.visible = false
+			updateRow.visible = true
 		}
 
 		function onUpdateDownloadFailed() {
