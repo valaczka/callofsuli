@@ -143,12 +143,12 @@ Qaterial.Card {
 			visible: _bullet.visible
 		}
 
-		Qaterial.IconLabel {
+		Qaterial.Label {
 			id: _bullet
 
 			visible: bulletCount > -1
 
-			icon.source: Qaterial.Icons.bullet
+			//icon.source: Qaterial.Icons.bullet
 			text: bulletCount
 
 			anchors.top: parent.top
@@ -160,9 +160,9 @@ Qaterial.Card {
 			font.family: Qaterial.Style.textTheme.body2.family
 			font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
 			font.weight: Font.DemiBold
-			icon.width: Qaterial.Style.textTheme.body2.pixelSize * 1.2
+			/*icon.width: Qaterial.Style.textTheme.body2.pixelSize * 1.2
 			icon.height: Qaterial.Style.textTheme.body2.pixelSize * 1.2
-			spacing: 2 * Qaterial.Style.pixelSizeRatio
+			spacing: 2 * Qaterial.Style.pixelSizeRatio*/
 		}
 
 		Glow {

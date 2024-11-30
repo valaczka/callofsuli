@@ -2948,14 +2948,23 @@ void RpgGame::onSceneWorldStepped(TiledScene *scene)
  * @param type
  */
 
-void RpgGame::useWeapon(const RpgPickableObject::PickableType &type)
+void RpgGame::useWeapon(const TiledWeapon::WeaponType &type)
 {
-	if (type == RpgPickableObject::PickableInvalid) {
+	if (type == TiledWeapon::WeaponInvalid) {
 		LOG_CERROR("game") << "Invalid weapon" << type;
 		return;
 	}
 
-	const QString name = RpgPickableObject::typeHash().key(type);
+	if (type == TiledWeapon::WeaponDagger) {			// Free
+		return;
+	}
+
+	const QString name = RpgArmory::weaponHash().value(type);
+
+	if (name.isEmpty()) {
+		LOG_CERROR("game") << "Invalid weapon" << type;
+		return;
+	}
 
 	auto it = std::find_if(m_usedWallet.begin(), m_usedWallet.end(), [&name](const RpgWallet &w) {
 		return w.type == RpgMarket::Weapon && w.name == name;

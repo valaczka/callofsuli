@@ -641,6 +641,7 @@ bool DatabaseMain::_upgradeTables(Database *db, const int &dbType, int fromMajor
 		Upgrade {3, 5, 3, 6, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_3.5_3.6.sql") },
 		Upgrade {4, 0, 4, 1, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_4.0_4.1.sql") },
 		Upgrade {4, 1, 4, 2, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_4.1_4.2.sql") },
+		Upgrade {4, 3, 4, 4, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_4.3_4.4.sql") },
 	};
 
 	static const QVector<Upgrade> mapsList = {

@@ -228,7 +228,7 @@ public:
 
 	virtual void onSceneWorldStepped(TiledScene *scene) override;
 
-	void useWeapon(const RpgPickableObject::PickableType &type);
+	void useWeapon(const TiledWeapon::WeaponType &type);
 	const QVector<RpgWallet> &usedWallet() const { return m_usedWallet; }
 	QJsonArray usedWalletAsArray() const;
 

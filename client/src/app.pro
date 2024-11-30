@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts multimedia websockets core5compat
+QT += gui quick svg xml network gui-private quickcontrols2 charts websockets core5compat
 
 CONFIG += c++2a
 CONFIG += separate_debug_info
@@ -149,7 +149,6 @@ ios {
 	OTHER_FILES += $$PWD/../deploy/Info.plist.in
 
 	INFO_PLIST_VERSION = "$$VERSION"
-	#INFO_PLIST_SHORT_VERSION = "$${VER_MAJ}.$${VER_MIN}"
 	INFO_PLIST_SHORT_VERSION = "$$VERSION"
 
 	plist.input = $$PWD/../deploy/Info.plist.in
@@ -164,20 +163,20 @@ ios {
 
 	SOURCES += sound_helper.mm
 
-	LIBS += -L$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg -lavcodec -lavformat -lavutil -lswresample -lswscale
+	#LIBS += -L$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg -lavcodec -lavformat -lavutil -lswresample -lswscale
 
-	dyffmpeg.files = \
-		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavcodec.61.dylib \
-		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavformat.61.dylib \
-		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavutil.59.dylib \
-		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswresample.5.dylib \
-		$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswscale.8.dylib
+	#dyffmpeg.files = \
+	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavcodec.61.dylib \
+	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavformat.61.dylib \
+	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavutil.59.dylib \
+	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswresample.5.dylib \
+	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswscale.8.dylib
 
 
-	dyffmpeg.path = Frameworks
-	QMAKE_BUNDLE_DATA += dyffmpeg
+	#dyffmpeg.path = Frameworks
+	#QMAKE_BUNDLE_DATA += dyffmpeg
 
-	QMAKE_LFLAGS += -rpath @executable_path
+	#QMAKE_LFLAGS += -rpath @executable_path
 }
 
 

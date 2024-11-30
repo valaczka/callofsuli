@@ -123,8 +123,8 @@ private:
 class RpgPickableWeaponIface
 {
 public:
-	virtual RpgPickableObject::PickableType toPickable() const = 0;
-	virtual RpgPickableObject::PickableType toBulletPickable() const = 0;
+	[[deprecated]] virtual RpgPickableObject::PickableType toPickable() const = 0;
+	[[deprecated]] virtual RpgPickableObject::PickableType toBulletPickable() const = 0;
 };
 
 

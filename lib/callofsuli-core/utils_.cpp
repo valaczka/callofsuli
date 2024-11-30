@@ -88,12 +88,12 @@ std::optional<QByteArray> Utils::fileContent(const QString &filename)
 	QFile f(filename);
 
 	if (!f.exists()) {
-		LOG_CWARNING("utils") << "Can't read file:" << filename;
+		LOG_CTRACE("utils") << "Can't read file:" << filename;
 		return std::nullopt;
 	}
 
 	if (!f.open(QIODevice::ReadOnly)) {
-		LOG_CWARNING("utils") << "Can't open file:" << filename;
+		LOG_CTRACE("utils") << "Can't open file:" << filename;
 		return std::nullopt;
 	}
 
@@ -260,12 +260,12 @@ std::optional<QJsonDocument> Utils::fileToJsonDocument(const QString &filename)
 	QFile f(filename);
 
 	if (!f.exists()) {
-		LOG_CWARNING("utils") << "Can't read file:" << filename;
+		LOG_CTRACE("utils") << "Can't read file:" << filename;
 		return std::nullopt;
 	}
 
 	if (!f.open(QIODevice::ReadOnly)) {
-		LOG_CWARNING("utils") << "Can't open file:" << filename;
+		LOG_CTRACE("utils") << "Can't open file:" << filename;
 		return std::nullopt;
 	}
 
@@ -451,7 +451,8 @@ QByteArray Utils::generateRandomString(quint8 length, const char *characters)
 {
 	Q_ASSERT(characters && strlen(characters));
 
-	static std::mt19937 randomEngine(QDateTime::currentDateTime().toMSecsSinceEpoch());
+	std::random_device rd;
+	std::mt19937 randomEngine(rd());
 	std::uniform_int_distribution<int> distribution(0, strlen(characters)-1);
 	QByteArray data;
 	data.reserve(length);

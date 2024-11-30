@@ -1628,7 +1628,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 	if (m_rpgGame) {
 		setGameQuestion(m_rpgGame->gameQuestion());
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
-		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
+		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess, Qt::QueuedConnection);		// Azért kell, mert különbön az utolsó fegyverhasználatot nem számolja el a szerveren
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
 		connect(m_rpgGame, &RpgGame::marketRequest, this, &ActionRpgGame::marketRequest);

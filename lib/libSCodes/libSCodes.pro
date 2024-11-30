@@ -1,10 +1,10 @@
-#INCLUDEPATH += \
-#	$$PWD/../QOlm/include
-
 CONFIG += c++17 static
 CONFIG += separate_debug_info
 
 QT += gui quick
+
+# Multimedia support
+with_multimedia = 0
 
 TEMPLATE = lib
 

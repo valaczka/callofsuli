@@ -744,7 +744,7 @@ FocusScope {
 						id: _controlLabel
 						text: qsTr("Joystick")
 						icon.color: Qaterial.Style.primaryTextColor()
-						icon.source: Qaterial.Icons.volumeHigh
+						icon.source: Qaterial.Icons.gamepad
 						anchors.verticalCenter: parent.verticalCenter
 					}
 

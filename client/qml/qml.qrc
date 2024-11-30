@@ -233,5 +233,7 @@
         <file>RpgPauseDialog.qml</file>
         <file>+emscripten/RpgUserWorldLand.qml</file>
         <file>+emscripten/RpgUserWorldMap.qml</file>
+        <file>+windows/RpgUserWorldLand.qml</file>
+        <file>+windows/RpgUserWorldMap.qml</file>
     </qresource>
 </RCC>

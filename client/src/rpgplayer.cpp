@@ -148,11 +148,7 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 			if (weapon->pickedBulletCount() > 0) {
 				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
 			} else if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
-				if (RpgPickableWeaponIface *iface = dynamic_cast<RpgPickableWeaponIface*>(weapon)) {
-					g->useWeapon(iface->toPickable());
-				} else {
-					LOG_CTRACE("game") << "Invalid weapon cast" << weapon->weaponType();
-				}
+				g->useWeapon(weapon->weaponType());
 			} else {
 				LOG_CERROR("game") << "Invalid RpgGame cast";
 			}
@@ -184,12 +180,8 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 		if (weapon->hit(enemy())) {
 			if (weapon->pickedBulletCount() > 0)
 				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
-			else if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
-				if (RpgPickableWeaponIface *iface = dynamic_cast<RpgPickableWeaponIface*>(weapon)) {
-					g->useWeapon(iface->toPickable());
-				} else {
-					LOG_CTRACE("game") << "Invalid weapon cast" << weapon->weaponType();
-				}
+			else if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && enemy()) {
+				g->useWeapon(weapon->weaponType());
 			}
 			playAttackEffect(weapon);
 		}
