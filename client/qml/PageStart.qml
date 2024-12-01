@@ -408,7 +408,10 @@ QPage {
 		}
 	]
 
-	StackView.onActivated: view.forceActiveFocus()
+	StackView.onActivated: {
+		Client.safeMarginsGet()
+		view.forceActiveFocus()
+	}
 
 
 	/*Connections {

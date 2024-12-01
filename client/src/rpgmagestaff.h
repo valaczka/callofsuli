@@ -28,10 +28,9 @@
 #define RPGMAGESTAFF_H
 
 #include "tiledweapon.h"
-#include "rpgpickableobject.h"
 #include "rpgplayer.h"
 
-class RpgMageStaff : public TiledWeapon, public RpgPickableWeaponIface
+class RpgMageStaff : public TiledWeapon
 {
 	Q_OBJECT
 
@@ -41,9 +40,6 @@ public:
 	bool protect(const WeaponType &) override final { return false; };
 	bool canProtect(const WeaponType &) const override final { return false; };
 	bool canAttack() const override final { return canShot(); }
-
-	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableInvalid; }
-	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableInvalid; }
 
 	void setFromCast(const RpgPlayerCharacterConfig::CastType &cast);
 	void eventUseCast(const RpgPlayerCharacterConfig::CastType &cast, TiledObject *target = nullptr);

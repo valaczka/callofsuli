@@ -116,17 +116,6 @@ private:
 
 
 
-/**
- * @brief The RpgEnemyPickableface class
- */
-
-class RpgPickableWeaponIface
-{
-public:
-	[[deprecated]] virtual RpgPickableObject::PickableType toPickable() const = 0;
-	[[deprecated]] virtual RpgPickableObject::PickableType toBulletPickable() const = 0;
-};
-
 
 
 /**

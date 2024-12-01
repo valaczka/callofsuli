@@ -229,7 +229,7 @@ bool AbstractGame::load()
 	QQuickItem *page = loadPage();
 
 	if (page) {
-		connect(page, &QQuickItem::destroyed, this, &AbstractGame::onPageItemDestroyed);
+		connect(page, &QQuickItem::destroyed, this, &AbstractGame::onPageItemDestroyed, Qt::QueuedConnection);
 		setPageItem(page);
 
 		LOG_CDEBUG("game") << "Game page loaded";

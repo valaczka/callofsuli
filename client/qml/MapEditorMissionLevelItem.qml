@@ -133,7 +133,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & (GameMap.Test|GameMap.Rpg))
+				visible: mission && (mission.modes & GameMap.Test)
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -152,7 +152,7 @@ QPage {
 
 				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
-					from: mission && (mission.modes & GameMap.Rpg) ? 0 : 30
+					from: 30
 					to: 600
 					stepSize: 30
 

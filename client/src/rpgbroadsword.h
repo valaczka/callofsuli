@@ -28,11 +28,10 @@
 #define RPGBROADSWORD_H
 
 #include "tiledweapon.h"
-#include "rpgpickableobject.h"
 
 class RpgPlayer;
 
-class RpgBroadsword : public TiledWeapon, public RpgPickableWeaponIface
+class RpgBroadsword : public TiledWeapon
 {
 	Q_OBJECT
 
@@ -42,8 +41,6 @@ public:
 	bool protect(const WeaponType &) override final { return false; };
 	bool canProtect(const WeaponType &) const override final { return false; };
 	bool canAttack() const override final { return true; }
-	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableInvalid; }
-	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableInvalid; }
 
 protected:
 	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }

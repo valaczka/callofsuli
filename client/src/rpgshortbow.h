@@ -36,7 +36,7 @@ class RpgPlayer;
  * @brief The RpgShortbow class
  */
 
-class RpgShortbow : public TiledWeapon, public RpgPickableWeaponIface
+class RpgShortbow : public TiledWeapon
 {
 	Q_OBJECT
 
@@ -46,9 +46,6 @@ public:
 	bool protect(const WeaponType &) override final { return false; }
 	bool canProtect(const WeaponType &) const override final { return false; }
 	bool canAttack() const override final { return true; }
-
-	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableShortbow; }
-	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableArrow; }
 
 protected:
 	IsometricBullet *createBullet(const qreal &distance = 0.) override final;

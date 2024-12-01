@@ -28,7 +28,6 @@
 #define RPGLIGHTNING_H
 
 #include "isometricbullet.h"
-#include "rpgpickableobject.h"
 #include "tiledgamesfx.h"
 #include "tiledweapon.h"
 
@@ -60,7 +59,7 @@ protected:
  * @brief The RpgLightningWeapon class
  */
 
-class RpgLightningWeapon : public TiledWeapon, public RpgPickableWeaponIface
+class RpgLightningWeapon : public TiledWeapon
 {
 	Q_OBJECT
 public:
@@ -69,8 +68,6 @@ public:
 	bool protect(const WeaponType &) override final { return false; }
 	bool canProtect(const WeaponType &) const override final { return false; }
 	bool canAttack() const override final { return true; }
-	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableInvalid; }
-	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableLightning; }
 
 protected:
 	IsometricBullet *createBullet(const qreal &distance = 0.) override final;

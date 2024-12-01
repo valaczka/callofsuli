@@ -37,7 +37,7 @@ class RpgPlayer;
  * @brief The RpgLongsword class
  */
 
-class RpgLongsword : public TiledWeapon, public RpgPickableWeaponIface
+class RpgLongsword : public TiledWeapon
 {
 	Q_OBJECT
 
@@ -47,8 +47,6 @@ public:
 	bool protect(const WeaponType &weapon) override final;
 	bool canProtect(const WeaponType &weapon) const override final;
 	bool canAttack() const override final { return true; }
-	virtual RpgPickableObject::PickableType toPickable() const override { return RpgPickableObject::PickableLongsword; }
-	virtual RpgPickableObject::PickableType toBulletPickable() const override { return RpgPickableObject::PickableInvalid; }
 
 protected:
 	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
