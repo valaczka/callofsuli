@@ -55,7 +55,8 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			rm ./_tmp_dll.txt ; \
 			which libjpeg-8.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libjpeg-8.dll) $${LddLibDir} ; \
 			which libssl-3-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libssl-3-x64.dll) $${LddLibDir} ; \
-			which libcrypto-3-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libcrypto-3-x64.dll) $${LddLibDir}
+			which libcrypto-3-x64.dll && cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(which libcrypto-3-x64.dll) $${LddLibDir} ; \
+			tar cvf $${CQtTargetDir}/../callofsuli-installer.tar $${CQtTargetDir}
 
 else: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \

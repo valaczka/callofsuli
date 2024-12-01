@@ -3,6 +3,8 @@ CONFIG += separate_debug_info
 
 QT += gui quick
 
+android: QT += core-private
+
 # Multimedia support
 with_multimedia = 0
 
