@@ -729,13 +729,16 @@ QPage {
 			if (!l.length)
 				return
 
+			let isForced = exam.state >= Exam.Active
+
 
 			JS.questionDialogPlural(l, qsTr("Biztosan eltávolítod a kijelölt %1 dolgozatot?"), "fullName",
 									{
 										onAccepted: function()
 										{
 											Client.send(HttpConnection.ApiTeacher, "exam/%1/content/delete".arg(exam.examId), {
-															list: JS.listGetFields(l, "username")
+															list: JS.listGetFields(l, "username"),
+															forced: isForced
 														})
 											.done(root, function(r){
 												_view.unselectAll()
@@ -746,7 +749,9 @@ QPage {
 
 										},
 										title: qsTr("Diák dolgozatok eltávolítása"),
-										iconSource: Qaterial.Icons.fileDocumentRemove
+										iconSource: Qaterial.Icons.fileDocumentRemove,
+										iconColor: isForced ? Qaterial.Colors.red500 : Qaterial.Colors.orange500,
+										textColor: isForced ? Qaterial.Colors.red500 : Qaterial.Colors.orange500
 									})
 
 		}

@@ -97,8 +97,10 @@ function intializeStyle() {
 
 
 function questionDialog(_params) {
-	_params.iconColor = Qaterial.Colors.orange500
-	_params.textColor = Qaterial.Colors.orange500
+	if (_params.iconColor === undefined)
+		_params.iconColor = Qaterial.Colors.orange500
+	if (_params.textColor === undefined)
+		_params.textColor = Qaterial.Colors.orange500
 	_params.iconFill = false
 	_params.iconSize = Qaterial.Style.roundIcon.size
 	_params.standardButtons = DialogButtonBox.No | DialogButtonBox.Yes
@@ -110,8 +112,10 @@ function questionDialog(_params) {
 
 
 function questionDialogPlural(_list, _question, _field, _params) {
-	_params.iconColor = Qaterial.Colors.orange500
-	_params.textColor = Qaterial.Colors.orange500
+	if (_params.iconColor === undefined)
+		_params.iconColor = Qaterial.Colors.orange500
+	if (_params.textColor === undefined)
+		_params.textColor = Qaterial.Colors.orange500
 	_params.iconFill = false
 	_params.iconSize = Qaterial.Style.roundIcon.size
 	_params.standardButtons = DialogButtonBox.No | DialogButtonBox.Yes

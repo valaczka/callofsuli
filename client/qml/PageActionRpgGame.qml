@@ -248,7 +248,7 @@ Page {
 		if (game)
 			game.playMenuBgMusic()
 
-		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
+		if (Qt.platform.os != "android" && Qt.platform.os != "ios" && !Client.debug) {
 			_oldWindowState = Client.fullScreenHelper
 			Client.fullScreenHelper = true
 		}
@@ -259,7 +259,7 @@ Page {
 			game.stopMenuBgMusic()
 		}
 
-		if (Qt.platform.os != "android" && Qt.platform.os != "ios") {
+		if (Qt.platform.os != "android" && Qt.platform.os != "ios" && !Client.debug) {
 			if (_oldWindowState != Client.fullScreenHelper)
 				Client.fullScreenHelper = false
 		}

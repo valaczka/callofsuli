@@ -112,7 +112,7 @@ public:
 	QHttpServerResponse examDelete(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examResult(const Credential &credential, const int &id, const int &groupId);
 	QHttpServerResponse examCreateContent(const Credential &credential, const int &id, const QJsonObject &json);
-	QHttpServerResponse examRemoveContent(const Credential &credential, const int &id, const QJsonArray &list);
+	QHttpServerResponse examRemoveContent(const Credential &credential, const int &id, const QJsonArray &list, const bool &forced);
 	QHttpServerResponse examContent(const Credential &credential, const int &id, const QString &user);
 	QHttpServerResponse examContent(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examAnswer(const Credential &credential, const int &id, const QJsonObject &json);

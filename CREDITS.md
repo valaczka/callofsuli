@@ -76,6 +76,21 @@
 - A pile of clay - (c) 3dhdscan (https://skfb.ly/6znM9)
 - A pile of sand - (c) 3dhdscan (https://skfb.ly/6ySMv)
 - Slate stone pile - (c) matousekfoto (https://skfb.ly/otDHX)
+- Realistic HD Yellow bush lupine (16/25) - (c) PlantCatalog (https://skfb.ly/oACuy)
+- Realistic HD Yellow bush lupine (5/25) - (c) PlantCatalog (https://skfb.ly/oUTNC)
+- Realistic HD Yellow bush lupine (1/25) - (c) PlantCatalog (https://skfb.ly/oUSJt)
+- Realistic HD Chinese fringe flower (8/10) - (c) PlantCatalog (https://skfb.ly/oUOLy)
+- Realistic HD Chinese jungle geranium (10/10) - (c) PlantCatalog (https://skfb.ly/oUOJ8)
+- Realistic HD Bamboo palm (11/30) - (c) PlantCatalog (https://skfb.ly/oVCUn)
+- Realistic HD Bamboo palm (23/30) - (c) PlantCatalog (https://skfb.ly/oUOMq)
+- Realistic HD Bamboo palm (21/30) - (c) PlantCatalog (https://skfb.ly/oVMCP)
+- Realistic HD Bamboo palm (15/30) - (c) PlantCatalog (https://skfb.ly/oUNXs)
+- Realistic HD Bamboo palm (7/30) - (c) PlantCatalog (https://skfb.ly/oWL6p)
+- Realistic HD Golden dewberry (4/20) - (c) PlantCatalog (https://skfb.ly/oX7Jv)
+- Realistic HD Green ivy bushy (4/10) - (c) PlantCatalog (https://skfb.ly/oUKHt)
+- Realistic HD Chinese jungle geranium (3/10) - (c) PlantCatalog (https://skfb.ly/oACuz)
+- Realistic HD Chinese jungle geranium (2/10) - (c) PlantCatalog (https://skfb.ly/oUJZL)
+- Grass patches - (c) DJMaesen (https://skfb.ly/onMCA)
 
 **Music & SFX**
 

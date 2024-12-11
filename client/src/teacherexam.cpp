@@ -1016,10 +1016,10 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
 
 		if (obj.value(QStringLiteral("separator")).toBool() && autoQuestions) {
-			html += QStringLiteral("<p align=center style=\"margin-top: 20px; margin-bottom: 20px;\">===============</p>");
+			html += QStringLiteral("<p align=center style=\"margin-top: 10px; margin-bottom: 10px;\">===============</p>");
 		}
 
-		html += QStringLiteral("<p style=\"margin-top: 6px;\" align=justify>");
+		html += QStringLiteral("<p style=\"margin-top: 3px;\" align=justify>");
 
 		if (!m_nonNumberedModules.contains(module)) {
 			html += QStringLiteral("<span style=\"font-weight: 600;\">");

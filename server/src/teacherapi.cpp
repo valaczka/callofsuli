@@ -616,14 +616,17 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 	server->route(path+"exam/<arg>/content/delete/", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QString &user, const QHttpServerRequest &request){
 		AUTHORIZE_API();
-		return examRemoveContent(*credential, id, {user});
+		return examRemoveContent(*credential, id, {user}, false);
 	});
 
 	server->route(path+"exam/<arg>/content/delete", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return examRemoveContent(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return examRemoveContent(*credential, id,
+								 jsonObject->value(QStringLiteral("list")).toArray(),
+								 jsonObject->value(QStringLiteral("forced")).toBool()
+								 );
 	});
 
 	server->route(path+"exam/<arg>/content/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
@@ -635,7 +638,7 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 	server->route(path+"exam/<arg>/content/", QHttpServerRequest::Method::Delete,
 				  [this](const int &id, const QString &user, const QHttpServerRequest &request){
 		AUTHORIZE_API();
-		return examRemoveContent(*credential, id, {user});
+		return examRemoveContent(*credential, id, {user}, false);
 	});
 
 	server->route(path+"exam/<arg>/content", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
@@ -702,7 +705,9 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return examRemoveContent(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+		return examRemoveContent(*credential, id,
+								 jsonObject->value(QStringLiteral("list")).toArray(),
+								 jsonObject->value(QStringLiteral("forced")).toBool());
 	});
 
 
@@ -3183,16 +3188,20 @@ QHttpServerResponse TeacherAPI::examCreateContent(const Credential &credential, 
  * @return
  */
 
-QHttpServerResponse TeacherAPI::examRemoveContent(const Credential &credential, const int &id, const QJsonArray &list)
+QHttpServerResponse TeacherAPI::examRemoveContent(const Credential &credential, const int &id, const QJsonArray &list, const bool &forced)
 {
-	LOG_CTRACE("client") << "Remove content in exam" << id << list;
+	LOG_CTRACE("client") << "Remove content in exam" << id << list << forced;
 
 	if (id <= 0)
 		return responseError("invalid id");
 
-	LAMBDA_THREAD_BEGIN(credential, id, list);
+	LAMBDA_THREAD_BEGIN(credential, id, list, forced);
 
-	CHECK_EXAM_STATE(credential.username(), id, "state<2");
+	if (forced) {
+		CHECK_EXAM(credential.username(), id);
+	} else {
+		CHECK_EXAM_STATE(credential.username(), id, "state<2");
+	}
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
 					  .addQuery("DELETE FROM examContent WHERE examid=")

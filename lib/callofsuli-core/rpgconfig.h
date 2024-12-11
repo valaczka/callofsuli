@@ -462,6 +462,7 @@ class RpgWorldMapBinding : public QSerializer
 public:
 	RpgWorldMapBinding()
 		: QSerializer()
+		, free(false)
 	{}
 
 	QS_SERIALIZABLE

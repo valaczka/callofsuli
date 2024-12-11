@@ -217,8 +217,6 @@ bool ServerService::wasmUnload()
 
 void ServerService::agentSignLoad()
 {
-	LOG_CWARNING("service") << m_settings->dataDir().absoluteFilePath(QStringLiteral("agentSign"));
-
 	QDirIterator it(m_settings->dataDir().absoluteFilePath(QStringLiteral("agentSign")), QDir::Files);
 
 	while (it.hasNext()) {
