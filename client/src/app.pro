@@ -103,14 +103,18 @@ android {
 	alist.input = $$PWD/../deploy/AndroidManifest.xml.in
 	alist.output = $$PWD/android/AndroidManifest.xml
 
-	ANDROID_MIN_SDK_VERSION = 26
-	ANDROID_TARGET_SDK_VERSION = 34
-
-	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
-
-	androidCodeApi = $$num_add($$androidCodeApi,26000)
+	versionAtLeast(QT_VERSION, 6.8) {
+		ANDROID_MIN_SDK_VERSION = 28
+		androidCodeApi = $$num_add($$androidCodeApi,28000)
+	} else {
+		ANDROID_MIN_SDK_VERSION = 26
+		androidCodeApi = $$num_add($$androidCodeApi,26000)
+	}
 
 	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)
+
+	ANDROID_TARGET_SDK_VERSION = 34
+	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 	QMAKE_SUBSTITUTES += alist
 
@@ -136,7 +140,11 @@ ios {
 	Q_ENTITLEMENTS.value = $$PWD/../deploy/callofsuli.entitlements
 	QMAKE_MAC_XCODE_SETTINGS += Q_ENTITLEMENTS
 
-	QMAKE_IOS_DEPLOYMENT_TARGET = 16.0
+	versionAtLeast(QT_VERSION, 6.8) {
+		QMAKE_IOS_DEPLOYMENT_TARGET = 16.0
+	} else {
+		QMAKE_IOS_DEPLOYMENT_TARGET = 14.0
+	}
 
 	QMAKE_APPLE_TARGETED_DEVICE_FAMILY = 1,2
 
@@ -162,21 +170,6 @@ ios {
 	QMAKE_BUNDLE_DATA += app_privacy_declarations
 
 	SOURCES += sound_helper.mm
-
-	#LIBS += -L$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg -lavcodec -lavformat -lavutil -lswresample -lswscale
-
-	#dyffmpeg.files = \
-	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavcodec.61.dylib \
-	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavformat.61.dylib \
-	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libavutil.59.dylib \
-	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswresample.5.dylib \
-	#	$$dirname(QMAKE_QMAKE)/../../ios/lib/ffmpeg/libswscale.8.dylib
-
-
-	#dyffmpeg.path = Frameworks
-	#QMAKE_BUNDLE_DATA += dyffmpeg
-
-	#QMAKE_LFLAGS += -rpath @executable_path
 }
 
 

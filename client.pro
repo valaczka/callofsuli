@@ -1,7 +1,9 @@
 include(common.pri)
 
-!versionAtLeast(QT_VERSION, 6.8): {
-	error(Qt 6.8 required)
+android|ios: {
+	!versionAtLeast(QT_VERSION, 6.7): error(Qt 6.7 required)
+} else {
+	!versionAtLeast(QT_VERSION, 6.8): error(Qt 6.8 required)
 }
 
 android {

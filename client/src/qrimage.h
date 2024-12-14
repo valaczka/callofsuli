@@ -32,7 +32,7 @@
 class QrImage : public QQuickImageProvider
 {
 public:
-	QrImage();
+	[[deprecated]] QrImage();
 
 	QImage requestImage(const QString &id, QSize *size, const QSize &requestedSize);
 };
