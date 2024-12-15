@@ -8,12 +8,13 @@ import "./QaterialHelper" as Qaterial
 QPage {
 	id: root
 
-	property alias world: _map.world
+	property RpgUserWorld world: null
+	property RpgUserWorldMap _map: null
 
-	title: _map.selectedLand ? (_map.selectedLand.name != "" ?
-									_map.selectedLand.name.split("\n").join(" ") :
-									qsTr("[névtelen terület]"))
-							 : ""
+	title: _map && _map.selectedLand ? (_map.selectedLand.name != "" ?
+											_map.selectedLand.name.split("\n").join(" ") :
+											qsTr("[névtelen terület]"))
+									 : ""
 
 
 	appBar.backButtonVisible: true
@@ -25,19 +26,24 @@ QPage {
 		backgroundColor: enabled ? Qaterial.Colors.green500 : "transparent"
 	}
 
-	RpgUserWorldMap {
+	Connections {
+		target: _map
+
+		function onLandSelected(land) {
+			_map.selectedLand = land
+			_actionSelect.trigger()
+		}
+	}
+
+	/*RpgUserWorldMap {
 		id: _map
 		anchors.fill: parent
-		onLandSelected: (land) => {
-							_map.selectedLand = land
-							_actionSelect.trigger()
-						}
-	}
+	}*/
 
 	Action {
 		id: _actionSelect
 		icon.source: Qaterial.Icons.checkBold
-		enabled: _map.selectedLand && (
+		enabled: _map && _map.selectedLand && (
 					 _map.selectedLand.landState == RpgWorldLandData.LandSelectable ||
 					 _map.selectedLand.landState == RpgWorldLandData.LandAchieved)
 
@@ -47,6 +53,37 @@ QPage {
 		}
 	}
 
+
+	function loadMap() {
+		if (_map)
+			return
+
+		_map = world.getCachedMapItem()
+
+		if (!_map)
+			return
+
+		if (!_map._loaded)
+			Qaterial.DialogManager.openBusyIndicator({
+														 text: qsTr("Betöltés...")
+													 })
+
+		_map.parent = root
+		_map.updateSelectedLand()
+		_map.visible = true
+		_map.enabled = true
+	}
+
+	onWorldChanged: loadMap()
+
+	Component.onCompleted: loadMap()
+
+
+	StackView.onRemoved: {
+		_map.visible = false
+		_map.enabled = false
+		_map.parent = null
+	}
 }
 
 

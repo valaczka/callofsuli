@@ -503,6 +503,9 @@ QItemGradient {
 		if (!Client.server)
 			return
 
+		if (Client.server.user.wallet.world)
+			_selectTerrain.wallet = Client.server.user.wallet.worldGetSelectedWallet()
+
 		_reloadTimer.start()
 	}
 }

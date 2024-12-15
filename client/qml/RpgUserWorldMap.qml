@@ -12,6 +12,9 @@ Flickable {
 
 	property RpgUserWorld world: null
 	property RpgWorldLandData selectedLand: null
+	property bool _loaded: false
+
+	anchors.fill: parent
 
 	contentWidth: _container.width
 	contentHeight: _container.height
@@ -23,7 +26,10 @@ Flickable {
 
 	QFetchLoaderGroup {
 		id: _loaderGroup
-		onAllLoadersLoaded: Qaterial.DialogManager.closeBusyIndicator()
+		onAllLoadersLoaded: {
+			_loaded = true
+			Qaterial.DialogManager.closeBusyIndicator()
+		}
 	}
 
 	Item {
@@ -140,19 +146,13 @@ Flickable {
 
 	}
 
-	Component.onCompleted: {
-		Qaterial.DialogManager.openBusyIndicator({
-													 text: qsTr("Betöltés...")
-												 })
-
+	function updateSelectedLand() {
 		if (world)
 			selectedLand = world.selectedLand
 	}
 
 	onWorldChanged: {
-		if (world)
-			selectedLand = world.selectedLand
-
+		updateSelectedLand()
 		fitZoom()
 	}
 }

@@ -173,6 +173,8 @@ public:
 	QUrl imageBackground() const;
 	QUrl imageOver() const;
 
+	Q_INVOKABLE QQuickItem *getCachedMapItem();
+
 signals:
 	void worldSizeChanged();
 	void basePathChanged();
@@ -185,6 +187,7 @@ private:
 	QSize m_worldSize;
 	std::unique_ptr<RpgWorldLandDataList> m_landList;
 	QPointer<RpgWorldLandData> m_selectedLand;
+	QQuickItem *m_cachedMapItem = nullptr;
 };
 
 

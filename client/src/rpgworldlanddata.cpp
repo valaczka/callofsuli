@@ -82,8 +82,10 @@ void RpgWorldLandData::updateWallet(RpgUserWalletList *walletList)
 
 		if (it != walletList->cend()) {
 			d->m_walletMap = *it;
-			if (m_mapBinding.free || (*it)->available())
+			if ((*it)->available())
 				setLandState(LandAchieved);
+			else if (m_mapBinding.free)
+				setLandState(LandSelectable);
 			else
 				setLandState(LandLocked);
 			emit nameChanged();

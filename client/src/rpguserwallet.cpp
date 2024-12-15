@@ -29,7 +29,6 @@
 #include "application.h"
 #include "client.h"
 #include "rpgarmory.h"
-#include "rpgpickableobject.h"
 #include "rpggame.h"
 #include "utils_.h"
 
@@ -510,6 +509,9 @@ void RpgUserWalletList::reloadWallet()
 
 void RpgUserWalletList::loadWorld()
 {
+	if (m_world)
+		return;
+
 	LOG_CDEBUG("game") << "Load world...";
 
 	const auto &ptr = Utils::fileToJsonObject(":/world/world01_Hungary/data.json");
@@ -864,7 +866,14 @@ RpgUserWorld::RpgUserWorld(const RpgWorld &worldData, QObject *parent)
 
 RpgUserWorld::~RpgUserWorld()
 {
+	m_landList->clear();
+	setSelectedLand(nullptr);
 
+	if (m_cachedMapItem) {
+		m_cachedMapItem->setProperty("world", QVariant::fromValue(nullptr));
+		m_cachedMapItem->deleteLater();
+		m_cachedMapItem = nullptr;
+	}
 }
 
 
@@ -1071,3 +1080,33 @@ QUrl RpgUserWorld::imageOver() const
 {
 	return orig.over.isEmpty() ? QUrl() : m_basePath+QStringLiteral("/")+orig.over;
 }
+
+
+
+/**
+ * @brief RpgUserWorld::getCachedMapItem
+ * @return
+ */
+
+QQuickItem *RpgUserWorld::getCachedMapItem()
+{
+	if (!m_cachedMapItem)
+	{
+		LOG_CDEBUG("client") << "Create RpgUserWorld cached map";
+
+		QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/RpgUserWorldMap.qml"), this);
+
+		m_cachedMapItem = qobject_cast<QQuickItem*>(component.create());
+
+		if (!m_cachedMapItem) {
+			LOG_CERROR("client") << "RpgUserWorld cached map create error" << component.errorString();
+			return nullptr;
+		}
+
+		m_cachedMapItem->setParent(this);
+		m_cachedMapItem->setProperty("world", QVariant::fromValue(this));
+	}
+
+	return m_cachedMapItem;
+}
+

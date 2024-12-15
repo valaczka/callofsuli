@@ -254,7 +254,7 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 	}
 
 	int maxQuestions = qMax(data.value(QStringLiteral("count"), -1).toInt(), 3);
-	int maxOptions = qMax(data.value(QStringLiteral("optionsCount"), -1).toInt(), maxQuestions+1);
+	int maxOptions = qMax(data.value(QStringLiteral("optionsCount"), -1).toInt(), maxQuestions);
 
 	QStringList questions;
 	QVariantList answers;
