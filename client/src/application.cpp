@@ -88,7 +88,7 @@
 // IOS and WASM bug
 
 #if QT_VERSION >= 0x060800 && (defined(Q_OS_IOS) || defined(Q_OS_WASM))
-#include <QtQuickEffects/6.8.0/QtQuickEffects/private/qgfxsourceproxy_p.h>
+//#include <QtQuickEffects/6.8.1//QtQuickEffects/private/qgfxsourceproxy_p.h>
 #endif
 
 
@@ -459,7 +459,7 @@ void Application::registerQmlTypes()
 	// IOS and WASM bug
 
 #if QT_VERSION >= 0x060800 && (defined(Q_OS_IOS) || defined(Q_OS_WASM))
-	qmlRegisterType<QGfxSourceProxy>(QByteArrayLiteral("Qt5Compat.GraphicalEffects.private"), 1, 0, "SourceProxy");
+	//qmlRegisterType<QGfxSourceProxy>(QByteArrayLiteral("Qt5Compat.GraphicalEffects.private"), 1, 0, "SourceProxy");
 #endif
 }
 

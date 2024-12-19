@@ -11,6 +11,7 @@ SUBDIRS += \
 	libSCodes \
 	qml-box2d
 
+!wasm: SUBDIRS += libENet
 !wasm:!android:!ios: SUBDIRS += CuteLogger
 
 

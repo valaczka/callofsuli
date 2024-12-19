@@ -14,7 +14,7 @@ AppVersionMinor = 4
 
 # Automatic version increment (build)
 
-AppVersionIncrement = true
+AppVersionIncrement = false
 
 
 
@@ -34,9 +34,19 @@ AndroidVersionCode = 54
 
 # Build creation enabled (linux, win32, mac, wasm)
 
-CreateBundle = true
+CreateBundle = false
 
 # CQtDeployer path
 
-win32: CQtDeployerPath = windeployqt6.exe
-else: CQtDeployerPath = ~/bin/CQtDeployer
+CQtDeployerPath =
+
+# libsodium
+
+LibSodiumInclude =
+LibSodiumLibs =
+LibSodiumDefines =
+
+
+# Read local configuration
+
+exists(local.pri): include(local.pri)

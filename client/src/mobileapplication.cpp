@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <enet/enet.h>
 #include "mobileapplication.h"
 #include "standaloneclient.h"
 #include "Logger.h"
@@ -48,7 +49,7 @@ MobileApplication::MobileApplication(QApplication *app)
 
 MobileApplication::~MobileApplication()
 {
-
+	enet_deinitialize();
 }
 
 
@@ -63,6 +64,14 @@ void MobileApplication::initialize()
 	qmlRegisterType<Server>("CallOfSuli", 1, 0, "Server");
 
 	createStandardPath();
+
+	LOG_CINFO("app") << "CHECK ENet";
+
+	if (enet_initialize() != 0) {
+		LOG_CERROR("app") << "ENet initialize failed";
+	} else {
+		LOG_CDEBUG("app") << "ENet initialized";
+	}
 }
 
 

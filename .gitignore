@@ -58,3 +58,4 @@ client/src/android/AndroidManifest.xml
 *.rej
 
 build/*
+/local.pri

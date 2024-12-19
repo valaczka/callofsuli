@@ -69,7 +69,7 @@ else: LIBS += -lqml-box2d
 
 android|ios|wasm {
 	HEADERS += $$PWD/../client/src/wasm_helper/Logger.h
-	INCLUDEPATH += $$PWD//../client/src/wasm_helper
+	INCLUDEPATH += $$PWD/../client/src/wasm_helper
 } else {
 	INCLUDEPATH += $$PWD/CuteLogger/include
 	LIBS += -lCuteLogger
@@ -161,3 +161,24 @@ INCLUDEPATH += $$PWD/libtcod/libtcod/src/
 
 android: LIBS += -ltcod_$${QT_ARCH}
 else: LIBS += -ltcod
+
+
+# ENet
+
+!wasm {
+	INCLUDEPATH += $$PWD/enet/include
+	android: LIBS += -lenet_$${QT_ARCH}
+	else: LIBS += -lenet
+}
+
+
+# Sodium
+
+INCLUDEPATH += $$LibSodiumInclude
+LIBS += $$LibSodiumLibs
+
+
+!isEmpty(LibSodiumDefines) {
+	DEFINES += $$LibSodiumDefines
+}
+
