@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import CallOfSuli
 import Qt5Compat.GraphicalEffects
-import Box2D
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
@@ -141,13 +140,13 @@ Flickable {
 			anchors.fill: _container
 		}
 
-		DebugDraw {
+		/*DebugDraw {
 			anchors.fill: _scene
 			world: _scene.world
 			opacity: 0.5
 			visible: _scene.game && _scene.game.debugView
 			scale: _scene.scale
-		}
+		}*/
 	}
 
 	PinchArea {

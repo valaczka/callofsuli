@@ -26,8 +26,8 @@
 
 #include "rpgtimepickable.h"
 
-RpgTimePickable::RpgTimePickable(QQuickItem *parent)
-	: RpgPickableObject(PickableTime, parent)
+RpgTimePickable::RpgTimePickable(TiledScene *scene)
+	: RpgPickableObject(PickableTime, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }

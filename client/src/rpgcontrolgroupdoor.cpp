@@ -78,13 +78,13 @@ RpgControlGroupDoor::RpgControlGroupDoor(RpgGame *game, TiledScene *scene, Tiled
 			LOG_CTRACE("scene") << "Add image layer" << tl->name() << "to door:" << this;
 
 		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
-			for (Tiled::MapObject *object : std::as_const(objgroup->objects())) {
+			/*for (Tiled::MapObject *object : std::as_const(objgroup->objects())) {
 				if (object->className() == QStringLiteral("ground")) {
 					if (TiledObjectBasePolygon *p = game->loadGround(scene, object, renderer, m_basePosition)) {
 						addTiledObject(p);
 					}
 				} else if (object->className() == QStringLiteral("trigger")) {
-					TiledObjectBase *base = nullptr;
+					TiledObject *base = nullptr;
 					Box2DFixture *fixture = nullptr;
 
 					if (object->shape() == Tiled::MapObject::Polygon ||
@@ -105,7 +105,7 @@ RpgControlGroupDoor::RpgControlGroupDoor(RpgGame *game, TiledScene *scene, Tiled
 						continue;
 					}
 
-					base->body()->emplace(base->body()->bodyPosition() + m_basePosition);
+					base->body()->emplace(base->bodyPosition() + m_basePosition);
 
 					connectFixture(fixture);
 
@@ -119,7 +119,7 @@ RpgControlGroupDoor::RpgControlGroupDoor(RpgGame *game, TiledScene *scene, Tiled
 					base->setParent(m_game);
 					base->setScene(scene);
 				}
-			}
+			}*/
 		}
 	}
 
@@ -247,7 +247,7 @@ void RpgControlGroupDoor::update()
 	m_currentState = m_openState;
 	refreshVisualItem();
 
-	for (TiledObjectBase *o : m_tiledObjects) {
+	/*for (TiledObject *o : m_tiledObjects) {
 		TiledObjectBasePolygon *obj = qobject_cast<TiledObjectBasePolygon*>(o);
 
 		if (!obj)
@@ -270,7 +270,7 @@ void RpgControlGroupDoor::update()
 			case StateInvalid:
 				break;
 		}
-	}
+	}*/
 
 
 	if (m_transport)

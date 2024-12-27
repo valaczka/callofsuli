@@ -41,14 +41,14 @@ class RpgLightning : public IsometricBullet
 	Q_OBJECT
 
 public:
-	RpgLightning(QQuickItem *parent = nullptr);
+	RpgLightning(TiledScene *scene = nullptr);
 	virtual ~RpgLightning() {}
 
-	static RpgLightning* createBullet(TiledGame *game, TiledScene *scene);
+	static RpgLightning* createBullet(TiledScene *scene);
 
 protected:
 	void load() override final;
-	virtual void impactEvent(TiledObjectBase *base) override final;
+	virtual void impactEvent(TiledObject *base) override final;
 };
 
 

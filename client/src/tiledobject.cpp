@@ -25,14 +25,15 @@
  */
 
 #include "tiledobject.h"
+#include "tiledobject_p.h"
 #include "application.h"
 #include "Logger.h"
-#include "box2dfixture.h"
 #include "tiledgame.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
 #include <libtiled/maprenderer.h>
-
+#include <libtiled/objectgroup.h>
+#include <box2d/base.h>
 
 
 /**
@@ -40,77 +41,62 @@
  * @return
  */
 
-TiledObjectBase::TiledObjectBase(QQuickItem *parent)
+TiledObject::TiledObject(TiledScene *scene)
+	: TiledObject(scene ? scene->world() : nullptr, scene)
+{
+
+}
+
+
+
+/**
+ * @brief TiledObject::TiledObject
+ * @param world
+ * @param parent
+ */
+
+TiledObject::TiledObject(b2::World *world, QQuickItem *parent)
 	: QQuickItem(parent)
-	, m_body(new TiledObjectBody(this))
+	, TiledObjectBody(world)
 {
-	LOG_CTRACE("scene") << "TiledObjectBase created" << this << parentItem() << QQuickItem::parent();
+	LOG_CTRACE("scene") << "TiledObject created" << this;
 
-	m_body->setBodyType(Box2DBody::Static);
-	m_body->setTarget(this);
-	m_body->setActive(true);
-	m_body->setSleepingAllowed(true);
-
-	connect(this, &TiledObjectBase::xChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
-	connect(this, &TiledObjectBase::yChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
-	connect(this, &TiledObjectBase::widthChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
-	connect(this, &TiledObjectBase::heightChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
+	connect(this, &TiledObject::xChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
+	connect(this, &TiledObject::yChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
+	connect(this, &TiledObject::widthChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
+	connect(this, &TiledObject::heightChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
 }
 
-
 /**
- * @brief TiledObjectBase::~TiledObjectBase
+ * @brief TiledObject::~TiledObject
  */
 
-TiledObjectBase::~TiledObjectBase()
+TiledObject::~TiledObject()
 {
-	LOG_CTRACE("scene") << "TiledObjectBase destroyed" << this << parentItem() << parent();
+	LOG_CTRACE("scene") << "TiledObject destroyed" << this << parentItem() << parent();
+
+	if (m_spriteHandler)
+		m_spriteHandler->setBaseObject(nullptr);
+
+	if (m_spriteHandlerAuxFront)
+		m_spriteHandlerAuxFront->setBaseObject(nullptr);
+
+	if (m_spriteHandlerAuxBack)
+		m_spriteHandlerAuxBack->setBaseObject(nullptr);
 }
 
-
-
-/**
- * @brief TiledObjectBase::scene
- * @return
- */
-
-TiledScene *TiledObjectBase::scene() const
-{
-	return m_scene;
-}
-
-void TiledObjectBase::setScene(TiledScene *newScene)
-{
-	if (m_scene == newScene)
-		return;
-
-	if (m_scene)
-		disconnect(m_scene, &TiledScene::visibleAreaChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
-
-	m_scene = newScene;
-	emit sceneChanged();
-
-	if (m_scene) {
-		setParentItem(m_scene);
-		if (m_scene->world())
-			m_body->setWorld(m_scene->world());
-
-		connect(m_scene, &TiledScene::visibleAreaChanged, this, &TiledObjectBase::onSceneVisibleAreaChanged);
-	}
-
-}
 
 
 
 
 /**
- * @brief TiledObjectBase::toPolygon
+ * @brief TiledObject::toPolygon
  * @param object
  * @param renderer
  * @return
  */
 
-QPolygonF TiledObjectBase::toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+QPolygonF TiledObject::toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
 	if (!object) {
 		LOG_CERROR("scene") << "Empty Tiled::MapObject";
@@ -133,13 +119,13 @@ QPolygonF TiledObjectBase::toPolygon(const Tiled::MapObject *object, Tiled::MapR
 
 
 /**
- * @brief TiledObjectBase::toPoint
+ * @brief TiledObject::toPoint
  * @param angle
  * @param radius
  * @return
  */
 
-QPointF TiledObjectBase::toPoint(const qreal &angle, const qreal &radius)
+QPointF TiledObject::toPoint(const qreal &angle, const qreal &radius)
 {
 	QPointF p;
 	p.setX(radius * cos(angle));
@@ -151,7 +137,7 @@ QPointF TiledObjectBase::toPoint(const qreal &angle, const qreal &radius)
 
 
 /**
- * @brief TiledObjectBase::shortestDistance
+ * @brief TiledObject::shortestDistance
  * @param point
  * @param lineP1
  * @param lineP2
@@ -159,7 +145,7 @@ QPointF TiledObjectBase::toPoint(const qreal &angle, const qreal &radius)
  * @return
  */
 
-float TiledObjectBase::shortestDistance(const QVector2D &point, const QVector2D &lineP1, const QVector2D &lineP2, QVector2D *destPoint, float *factor)
+float TiledObject::shortestDistance(const QVector2D &point, const QVector2D &lineP1, const QVector2D &lineP2, QVector2D *destPoint, float *factor)
 {
 	const float A = point.x() - lineP1.x();
 	const float B = point.y() - lineP1.y();
@@ -205,36 +191,17 @@ float TiledObjectBase::shortestDistance(const QVector2D &point, const QVector2D 
 
 
 
-/**
- * @brief TiledObjectBase::setPolygonVertices
- * @param fixture
- * @param polygon
- */
-
-void TiledObjectBase::setPolygonVertices(Box2DPolygon *fixture, const QPolygonF &polygon) {
-	if (!fixture)
-		return;
-
-	QVariantList vert;
-	vert.reserve(polygon.size());
-
-	for (const QPointF &f : std::as_const(polygon))
-		vert.append(f);
-
-	fixture->setVertices(vert);
-}
-
 
 
 /**
- * @brief TiledObjectBase::normalizeFromRadian
+ * @brief TiledObject::normalizeFromRadian
  * @param radian
  * @return
  */
 
-float32 TiledObjectBase::normalizeFromRadian(const float32 &radian)
+float TiledObject::normalizeFromRadian(const float &radian)
 {
-	if (radian < -b2_pi || radian > b2_pi) {
+	if (radian < -B2_PI || radian > B2_PI) {
 		LOG_CTRACE("scene") << "Invalid radian:" << radian;
 		return M_PI;
 	}
@@ -247,143 +214,62 @@ float32 TiledObjectBase::normalizeFromRadian(const float32 &radian)
 
 
 /**
- * @brief TiledObjectBase::normalizeToRadian
+ * @brief TiledObject::normalizeToRadian
  * @param normal
  * @return
  */
 
-float32 TiledObjectBase::normalizeToRadian(const float32 &normal)
+float TiledObject::normalizeToRadian(const float &normal)
 {
-	if (normal < 0 || normal > 2*b2_pi) {
+	if (normal < 0 || normal > 2*B2_PI) {
 		LOG_CTRACE("scene") << "Invalid normalized radian:" << normal;
 		return 0.;
 	}
 
-	if (normal > b2_pi)
-		return normal-2*b2_pi;
+	if (normal > B2_PI)
+		return normal-2*B2_PI;
 	else
 		return normal;
 }
 
 
 
-
-
 /**
- * @brief TiledObjectBase::getFromFixture
- * @param fixture
- * @return
- */
-
-TiledObjectBase *TiledObjectBase::getFromFixture(const Box2DFixture *fixture)
-{
-	if (!fixture)
-		return nullptr;
-
-	Box2DBody *body = fixture->getBody();
-
-	TiledObjectBody *b = dynamic_cast<TiledObjectBody*>(body);
-
-	if (!b)
-		return nullptr;
-
-	return b->baseObject();
-}
-
-
-
-/**
- * @brief TiledObjectBase::setBodyOffset
+ * @brief TiledObject::setBodyOffset
  * @param newBodyOffset
  */
 
-void TiledObjectBase::setBodyOffset(QPointF newBodyOffset)
+void TiledObject::setBodyOffset(QPointF newBodyOffset)
 {
-	m_body->setBodyOffset(newBodyOffset);
-	recalculateTargetCircle();
+	m_bodyOffset = newBodyOffset;
 }
 
 
 
 /**
- * @brief TiledObjectBase::rotateBody
+ * @brief TiledObject::synchronize
  */
 
-bool TiledObjectBase::rotateBody(const float32 &desiredRadian)
+void TiledObject::synchronize()
 {
-	if (!m_sensorPolygon)
-		return false;
+	if (!body())
+		return;
 
-	const float32 currentAngle = m_body->body()->GetAngle();
+	const auto bPos = body().GetPosition();
+	QPointF pos(bPos.x, bPos.y);
 
+	QPointF offset(width()/2, height()/2);
+	offset += m_bodyOffset;
 
-	if (qFuzzyCompare(desiredRadian, currentAngle)) {
-		m_rotateAnimation.running = false;
-		return false;
-	}
-
-	const float32 currentNormal = normalizeFromRadian(currentAngle);
-	const float32 desiredNormal = normalizeFromRadian(desiredRadian);
-
-
-	if (!qFuzzyCompare(m_rotateAnimation.destAngle, desiredRadian) || !m_rotateAnimation.running) {
-		m_rotateAnimation.destAngle = desiredRadian;
-
-		const float32 diff = std::abs(currentNormal-desiredNormal);
-
-		if (desiredNormal > currentNormal)
-			m_rotateAnimation.clockwise = diff > b2_pi;
-		else
-			m_rotateAnimation.clockwise = diff < b2_pi;
-
-		m_rotateAnimation.running = true;
-	}
-
-
-	if (!m_rotateAnimation.running)
-		return false;
-
-
-	const float32 delta = std::min(m_rotateAnimation.speed * m_body->world()->timeStep()*60., M_PI_4);
-	float32 newAngle = m_rotateAnimation.clockwise ? currentNormal - delta : currentNormal + delta;
-
-	m_body->setAngularVelocity(0);
-
-
-	static const float32 pi2 = 2*b2_pi;
-
-	// 0 átlépés miatt kell
-	const float32 d = (desiredNormal == 0 && newAngle > pi2) ? pi2 : desiredNormal;
-
-
-	if ((newAngle >= d && currentNormal < d) ||
-			(newAngle <= d && currentNormal > d)) {
-		m_body->body()->SetTransform(m_body->body()->GetPosition(), desiredRadian );
-		m_body->setAwake(true);
-		return true;
-	}
-
-	if (newAngle > pi2)
-		newAngle -= pi2;
-	else if (newAngle < 0)
-		newAngle += pi2;
-
-	m_body->body()->SetTransform(m_body->body()->GetPosition(), normalizeToRadian(newAngle) );
-	m_body->setAwake(true);
-
-	return true;
+	setPosition(pos-offset);
 }
 
 
 
-/**
- * @brief TiledObjectBase::createSensorPolygon
- * @param length
- * @param range
- * @return
- */
 
-TiledObjectSensorPolygon *TiledObjectBase::addSensorPolygon(const qreal &length, const qreal &range) {
+
+/*
+TiledObjectSensorPolygon *TiledObject::addSensorPolygon(const qreal &length, const qreal &range) {
 	if (m_sensorPolygon || !m_body)
 		return nullptr;
 
@@ -399,18 +285,12 @@ TiledObjectSensorPolygon *TiledObjectBase::addSensorPolygon(const qreal &length,
 	return m_sensorPolygon.get();
 }
 
-
-/**
- * @brief TiledObjectBase::addTargetCircle
- * @return
- */
-
-Box2DCircle *TiledObjectBase::addTargetCircle(const qreal &radius)
+void *TiledObject::addTargetCircle(const qreal &radius)
 {
 	if (m_targetCircle || !m_body)
 		return nullptr;
 
-	m_targetCircle.reset(new Box2DCircle);
+	//m_targetCircle.reset(new Box2DCircle);
 
 
 	m_targetCircle->setCollidesWith(Box2DFixture::All);
@@ -418,8 +298,7 @@ Box2DCircle *TiledObjectBase::addTargetCircle(const qreal &radius)
 	m_targetCircle->setSensor(true);
 
 	m_targetCircle->setRadius(radius);
-	/*m_targetCircle->setX(-radius);
-	m_targetCircle->setY(-radius);*/
+
 
 	m_body->addFixture(m_targetCircle.get());
 
@@ -427,34 +306,16 @@ Box2DCircle *TiledObjectBase::addTargetCircle(const qreal &radius)
 
 	return m_targetCircle.get();
 }
+*/
 
 
 
-/**
- * @brief TiledObjectBase::onSceneVisibleAreaChanged
- */
-
-void TiledObjectBase::onSceneVisibleAreaChanged()
-{
-	if (!m_scene)
-		return;
-
-	QRectF rect(x(), y(), width(), height());
-
-	setInVisibleArea(m_scene->visibleArea().intersects(rect));
-}
-
-void TiledObjectBase::stopRotateAnimation()
-{
-	m_rotateAnimation.running = false;
-}
-
-QString TiledObjectBase::displayName() const
+QString TiledObject::displayName() const
 {
 	return m_displayName;
 }
 
-void TiledObjectBase::setDisplayName(const QString &newDisplayName)
+void TiledObject::setDisplayName(const QString &newDisplayName)
 {
 	if (m_displayName == newDisplayName)
 		return;
@@ -463,86 +324,98 @@ void TiledObjectBase::setDisplayName(const QString &newDisplayName)
 }
 
 
-/**
- * @brief TiledObjectBase::recalculateTargetCircle
- */
-
-void TiledObjectBase::recalculateTargetCircle()
-{
-	if (!m_targetCircle)
-		return;
-
-	const qreal &r = m_targetCircle->radius();
-
-	/*if (m_body) {
-		const QPointF &p = m_body->m_bodyOffset;
-		m_targetCircle->setX(-r -p.x());
-		m_targetCircle->setY(-r -p.y());
-	} else {*/
-	m_targetCircle->setX(-r);
-	m_targetCircle->setY(-r);
-	//}
-}
-
-
 
 
 /**
- * @brief TiledObjectBase::game
+ * @brief TiledObject::game
  * @return
  */
 
-TiledGame *TiledObjectBase::game() const
+TiledGame *TiledObjectBody::game() const
 {
 	return m_game;
 }
 
-void TiledObjectBase::setGame(TiledGame *newGame)
+
+
+
+/**
+ * @brief TiledObject::inVisibleArea
+ * @return
+ */
+
+bool TiledObjectBody::inVisibleArea() const
 {
-	if (m_game == newGame)
+	return m_inVisibleArea;
+}
+
+
+
+
+/**
+ * @brief TiledObjectBody::setInVisibleArea
+ * @param newInVisibleArea
+ */
+
+void TiledObjectBody::setInVisibleArea(bool newInVisibleArea)
+{
+	if (m_inVisibleArea == newInVisibleArea)
 		return;
-	m_game = newGame;
-	emit gameChanged();
-}
-
-const TiledObjectBase::ObjectId &TiledObjectBase::objectId() const
-{
-	return m_objectId;
-}
-
-void TiledObjectBase::setObjectId(const ObjectId &newObjectId)
-{
-	m_objectId = newObjectId;
+	m_inVisibleArea = newInVisibleArea;
 }
 
 
 
 /**
- * @brief TiledObjectBase::inVisibleArea
- * @return
+ * @brief TiledObjectBody::updateBodyInVisibleArea
  */
 
-bool TiledObjectBase::inVisibleArea() const
+void TiledObjectBody::updateBodyInVisibleArea()
 {
-	return m_inVisibleArea;
-}
-
-void TiledObjectBase::setInVisibleArea(bool newInVisibleArea)
-{
-	if (m_inVisibleArea == newInVisibleArea)
+	TiledScene *s = scene();
+	if (!s)
 		return;
-	m_inVisibleArea = newInVisibleArea;
-	emit inVisibleAreaChanged();
+
+	setInVisibleArea(s->visibleArea().intersects(bodyAABB()));
 }
 
 
 
-QColor TiledObjectBase::overlayColor() const
+/**
+ * @brief TiledObjectBody::setGame
+ * @param newGame
+ */
+
+void TiledObjectBody::setGame(TiledGame *newGame)
+{
+	m_game = newGame;
+}
+
+
+
+
+/**
+ * @brief TiledObjectBody::updateVisibleArea
+ */
+
+void TiledObject::updateVisibleArea()
+{
+	updateBodyInVisibleArea();
+}
+
+void TiledObject::worldChanged()
+{
+	emit sceneChanged();
+}
+
+
+
+QColor TiledObject::overlayColor() const
 {
 	return m_overlayColor;
 }
 
-void TiledObjectBase::setOverlayColor(const QColor &newOverlayColor)
+void TiledObject::setOverlayColor(const QColor &newOverlayColor)
 {
 	if (m_overlayColor == newOverlayColor)
 		return;
@@ -550,12 +423,12 @@ void TiledObjectBase::setOverlayColor(const QColor &newOverlayColor)
 	emit overlayColorChanged();
 }
 
-QColor TiledObjectBase::glowColor() const
+QColor TiledObject::glowColor() const
 {
 	return m_glowColor;
 }
 
-void TiledObjectBase::setGlowColor(const QColor &newGlowColor)
+void TiledObject::setGlowColor(const QColor &newGlowColor)
 {
 	if (m_glowColor == newGlowColor)
 		return;
@@ -563,12 +436,12 @@ void TiledObjectBase::setGlowColor(const QColor &newGlowColor)
 	emit glowColorChanged();
 }
 
-bool TiledObjectBase::overlayEnabled() const
+bool TiledObject::overlayEnabled() const
 {
 	return m_overlayEnabled;
 }
 
-void TiledObjectBase::setOverlayEnabled(bool newOverlayEnabled)
+void TiledObject::setOverlayEnabled(bool newOverlayEnabled)
 {
 	if (m_overlayEnabled == newOverlayEnabled)
 		return;
@@ -576,12 +449,12 @@ void TiledObjectBase::setOverlayEnabled(bool newOverlayEnabled)
 	emit overlayEnabledChanged();
 }
 
-bool TiledObjectBase::glowEnabled() const
+bool TiledObject::glowEnabled() const
 {
 	return m_glowEnabled;
 }
 
-void TiledObjectBase::setGlowEnabled(bool newGlowEnabled)
+void TiledObject::setGlowEnabled(bool newGlowEnabled)
 {
 	if (m_glowEnabled == newGlowEnabled)
 		return;
@@ -589,52 +462,6 @@ void TiledObjectBase::setGlowEnabled(bool newGlowEnabled)
 	emit glowEnabledChanged();
 }
 
-
-
-/**
- * @brief TiledObjectBase::remoteMode
- * @return
- */
-
-TiledObject::RemoteMode TiledObjectBase::remoteMode() const
-{
-	return m_remoteMode;
-}
-
-void TiledObjectBase::setRemoteMode(const RemoteMode &newRemoteMode)
-{
-	if (m_remoteMode == newRemoteMode)
-		return;
-	m_remoteMode = newRemoteMode;
-	emit remoteModeChanged();
-}
-
-
-
-
-
-/**
- * @brief TiledObject::TiledObject
- * @param parent
- */
-
-TiledObject::TiledObject(QQuickItem *parent)
-	: TiledObjectBase(parent)
-{
-
-}
-
-
-/**
- * @brief TiledObject::~TiledObject
- */
-
-TiledObject::~TiledObject()
-{
-	if (m_spriteHandler) {
-		m_spriteHandler->setBaseObject(nullptr);
-	}
-}
 
 
 
@@ -755,6 +582,22 @@ void TiledObject::createVisual()
 
 
 
+
+/**
+ * @brief TiledObject::setInVisibleArea
+ * @param newInVisibleArea
+ */
+
+void TiledObject::setInVisibleArea(bool newInVisibleArea)
+{
+	if (m_inVisibleArea == newInVisibleArea)
+		return;
+	m_inVisibleArea = newInVisibleArea;
+	emit inVisibleAreaChanged();
+}
+
+
+
 /**
  * @brief TiledObject::createMarkerItem
  */
@@ -789,19 +632,24 @@ QQuickItem *TiledObject::createMarkerItem(const QString &qrc)
  * @param distancePtr
  */
 
-void TiledObject::rotateToPoint(const QPointF &point, float32 *anglePtr, qreal *distancePtr)
+void TiledObjectBody::rotateToPoint(const QPointF &point, float *anglePtr, qreal *distancePtr)
 {
-	const QPointF p = point - m_body->bodyPosition();
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return;
+	}
 
-	float32 angle = atan2(-p.y(), p.x());
+	const QPointF p = point - bodyPosition();
 
-	setCurrentDirection(nearestDirectionFromRadian(angle));
-	m_body->body()->SetTransform(m_body->body()->GetPosition(), angle);
-	m_body->setAwake(true);
-	stopRotateAnimation();
+	float radian = atan2(-p.y(), p.x());
+
+	//setCurrentDirection(TiledObject::nearestDirectionFromRadian(angle));
+	d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(radian));
+	d->m_bodyRef.SetAwake(true);
+	d->m_rotateAnimation.running = false;
 
 	if (anglePtr)
-		*anglePtr = angle;
+		*anglePtr = radian;
 
 	if (distancePtr)
 		*distancePtr = QVector2D(p).length();
@@ -815,9 +663,14 @@ void TiledObject::rotateToPoint(const QPointF &point, float32 *anglePtr, qreal *
  * @return
  */
 
-float32 TiledObject::angleToPoint(const QPointF &point) const
+float TiledObjectBody::angleToPoint(const QPointF &point) const
 {
-	const QPointF p = point - m_body->bodyPosition();
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return 0.;
+	}
+
+	const QPointF p = point - bodyPosition();
 	return atan2(-p.y(), p.x());
 }
 
@@ -828,9 +681,106 @@ float32 TiledObject::angleToPoint(const QPointF &point) const
  * @return
  */
 
-float TiledObject::distanceToPoint(const QPointF &point) const
+float TiledObjectBody::distanceToPoint(const QPointF &point) const
 {
-	return QVector2D(m_body->bodyPosition()).distanceToPoint(QVector2D(point));
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return -1.;
+	}
+
+	return QVector2D(bodyPosition()).distanceToPoint(QVector2D(point));
+}
+
+TiledObjectBody::RemoteMode TiledObjectBody::remoteMode() const
+{
+	return m_remoteMode;
+}
+
+void TiledObjectBody::setRemoteMode(const RemoteMode &newRemoteMode)
+{
+	m_remoteMode = newRemoteMode;
+}
+
+TiledObjectBody::ObjectId TiledObjectBody::objectId() const
+{
+	return m_objectId;
+}
+
+void TiledObjectBody::setObjectId(const ObjectId &newObjectId)
+{
+	m_objectId = newObjectId;
+}
+
+void TiledObjectBody::setObjectId(const int &sceneId, const int &id)
+{
+	m_objectId = {.sceneId = sceneId, .id = id};
+}
+
+
+
+/**
+ * @brief TiledObjectBody::world
+ * @return
+ */
+
+b2::World *TiledObjectBody::world() const
+{
+	return d->m_world;
+}
+
+
+
+/**
+ * @brief TiledObjectBody::setWorld
+ * @param newWorld
+ * @param position
+ */
+
+void TiledObjectBody::setWorld(b2::World *newWorld, const QPointF &position)
+{
+	setWorld(newWorld, position, d->m_bodyRef ? b2Rot_GetAngle(d->m_bodyRef.GetRotation()) : 0.);
+}
+
+
+
+/**
+ * @brief TiledObjectBody::setWorld
+ * @param newWorld
+ * @param position
+ * @param rotation
+ */
+
+void TiledObjectBody::setWorld(b2::World *newWorld, const QPointF &position, const float &rotation)
+{
+	Q_ASSERT(newWorld);
+
+	d->replaceWorld(newWorld, position, rotation);
+	d->updateScene();
+
+	worldChanged();
+}
+
+
+
+/**
+ * @brief TiledObjectBody::scene
+ * @return
+ */
+
+TiledScene *TiledObjectBody::scene() const
+{
+	return d->m_world ? static_cast<TiledScene*>(d->m_world->GetUserData()) : nullptr;
+}
+
+
+/**
+ * @brief TiledObjectBody::body
+ * @return
+ */
+
+b2::BodyRef TiledObjectBody::body() const
+{
+	return d->m_bodyRef;
 }
 
 
@@ -910,12 +860,12 @@ qreal TiledObject::toDegree(const qreal &angle)
 
 
 /**
- * @brief TiledObject::directionToIsometricRaidan
+ * @brief TiledObject::directionToIsometricRadian
  * @param direction
  * @return
  */
 
-qreal TiledObject::directionToIsometricRaidan(const Direction &direction)
+qreal TiledObject::directionToIsometricRadian(const Direction &direction)
 {
 	switch (direction) {
 		case West: return M_PI; break;
@@ -932,48 +882,6 @@ qreal TiledObject::directionToIsometricRaidan(const Direction &direction)
 	return 0;
 }
 
-
-/**
- * @brief TiledObject::factorFromDegree
- * @param angle
- * @param xyRatio
- * @return
- */
-
-qreal TiledObject::factorFromDegree(const qreal &angle, const qreal &xyRatio)
-{
-	return factorFromRadian(toRadian(angle), xyRatio);
-}
-
-
-
-/**
- * @brief TiledObject::factorFromRadian
- * @param angle
- * @param xyRatio
- * @return
- */
-
-qreal TiledObject::factorFromRadian(const qreal &angle, const qreal &xyRatio)
-{
-	Q_ASSERT(xyRatio != 0);
-
-	if (angle == 0 || angle == M_PI)
-		return 1.0;
-
-	qreal r = 0.;
-
-	if (angle > M_PI_2)
-		r = (M_PI-angle)/M_PI_2;
-	else if (angle > 0)
-		r = angle/M_PI_2;
-	else if (angle > -M_PI_2)
-		r = -angle/M_PI_2;
-	else
-		r = (M_PI+angle)/M_PI_2;
-
-	return std::lerp(1., 0.7, r);
-}
 
 
 
@@ -1074,9 +982,9 @@ qreal TiledObject::directionToRadian(const Direction &direction)
  * @return
  */
 
+/*
 TiledObjectSensorPolygon::TiledObjectSensorPolygon(Box2DBody *body, QQuickItem *parent)
-	: Box2DPolygon(parent)
-	, m_virtualCircle(new Box2DCircle)
+	: QObject(parent)
 	, m_body(body)
 {
 	Q_ASSERT(m_body);
@@ -1091,57 +999,25 @@ TiledObjectSensorPolygon::TiledObjectSensorPolygon(Box2DBody *body, QQuickItem *
 	m_body->addFixture(m_virtualCircle.get());
 
 	recreateFixture();
+
+	QPolygonF polygon;
+	polygon.append(QPointF(0,0));
+
+	for (int i=0; i < 7; ++i) {
+		qreal angle = -(m_range/2.) + (i/6. * m_range);
+		if (angle > M_PI)
+			angle = -M_PI+(angle-M_PI);
+		else if (angle < -M_PI)
+			angle = M_PI-(-M_PI-angle);
+		polygon.append(QPointF(m_length * cosf(angle), m_length * -sinf(angle)));
+	}
+
+	TiledObjectBase::setPolygonVertices(this, polygon);
+
+	m_virtualCircle->setX(-m_length);
+	m_virtualCircle->setY(-m_length);
+	m_virtualCircle->setRadius(m_length);
 }
-
-
-
-/**
- * @brief TiledObjectSensorPolygon::length
- * @return
- */
-
-qreal TiledObjectSensorPolygon::length() const
-{
-	return m_length;
-}
-
-void TiledObjectSensorPolygon::setLength(qreal newLength)
-{
-	if (qFuzzyCompare(m_length, newLength))
-		return;
-	m_length = newLength;
-	emit lengthChanged();
-	recreateFixture();
-}
-
-
-/**
- * @brief TiledObjectSensorPolygon::range
- * @return
- */
-
-qreal TiledObjectSensorPolygon::range() const
-{
-	return m_range;
-}
-
-void TiledObjectSensorPolygon::setRange(qreal newRange)
-{
-	if (qFuzzyCompare(m_range, newRange))
-		return;
-	m_range = newRange;
-	emit rangeChanged();
-	recreateFixture();
-}
-
-
-
-
-
-
-/**
- * @brief TiledObjectSensorPolygon::recreateFixture
- */
 
 void TiledObjectSensorPolygon::recreateFixture()
 {
@@ -1165,114 +1041,111 @@ void TiledObjectSensorPolygon::recreateFixture()
 
 }
 
+*/
+
+
+
 
 
 /**
- * @brief TiledObjectSensorPolygon::virtualCircle
+ * @brief TiledObjectBody::synchronize
+ */
+
+TiledObjectBody::TiledObjectBody(b2::World *world)
+	: d(new TiledObjectBodyPrivate(this, world))
+{
+	LOG_CTRACE("scene") << "TiledObjectBody created" << this << world;
+
+	if (TiledScene *s = scene()) {
+		setGame(s->game());
+	}
+
+	d->updateScene();
+}
+
+
+/**
+ * @brief TiledObjectBody::TiledObjectBody
+ * @param scene
+ */
+
+TiledObjectBody::TiledObjectBody(TiledScene *scene)
+	: TiledObjectBody(scene ? scene->world() : nullptr)
+{
+
+}
+
+
+
+/**
+ * @brief TiledObjectBody::~TiledObjectBody
+ */
+
+TiledObjectBody::~TiledObjectBody()
+{
+	d->m_world = nullptr;
+	d->updateScene();
+	delete d;
+	d = nullptr;
+
+	LOG_CTRACE("scene") << "TiledObjectBody destroyed" << this;
+}
+
+
+
+
+/**
+ * @brief TiledObjectBody::setCollidesWith
+ * @param categories
+ */
+
+void TiledObjectBody::setCollidesWith(const FixtureCategories &categories)
+{
+	d->m_collidesWith = categories;
+	d->updateFilter();
+}
+
+
+
+
+/**
+ * @brief TiledObjectBody::setCategories
+ * @param categories
+ */
+
+void TiledObjectBody::setCategories(const FixtureCategories &categories)
+{
+	d->m_categories = categories;
+	d->updateFilter();
+}
+
+
+
+/**
+ * @brief TiledObjectBody::categories
  * @return
  */
 
-Box2DCircle *TiledObjectSensorPolygon::virtualCircle() const
+TiledObjectBody::FixtureCategories TiledObjectBody::categories() const
 {
-	return m_virtualCircle.get();
-}
-
-
-
-
-/**
- * @brief TiledObjectBody::synchronize
- */
-
-Box2DFixture::CategoryFlag TiledObjectBody::fixtureCategory(const FixtureCategory &category)
-{
-	switch (category) {
-		case FixtureGround:		return Box2DFixture::Category1;
-		case FixturePlayerBody:		return Box2DFixture::Category2;
-		case FixtureEnemyBody:		return Box2DFixture::Category3;
-		case FixtureTransport:		return Box2DFixture::Category4;
-		case FixtureTarget:		return Box2DFixture::Category5;
-		case FixturePickable:		return Box2DFixture::Category6;
-		case FixtureContainer:	return Box2DFixture::Category7;
-
-		case FixtureTrigger:		return Box2DFixture::Category14;
-		case FixtureVirtualCircle:		return Box2DFixture::Category15;
-		case FixtureSensor:		return Box2DFixture::Category16;
-		case FixtureInvalid:		return Box2DFixture::None;
-	}
-
-	return Box2DFixture::None;
+	return d->m_categories;
 }
 
 
 /**
- * @brief TiledObjectBody::setFixtureCollidesWithFlag
- * @param fixture
- * @param category
- * @param on
+ * @brief TiledObjectBody::collidesWith
+ * @return
  */
 
-void TiledObjectBody::setFixtureCollidesWithFlag(Box2DFixture *fixture, const FixtureCategory &category, const bool &on)
+TiledObjectBody::FixtureCategories TiledObjectBody::collidesWith() const
 {
-	Q_ASSERT(fixture);
-	auto flag = fixture->collidesWith();
-	fixture->setCollidesWith(flag.setFlag(TiledObjectBody::fixtureCategory(category), on));
+	return d->m_collidesWith;
 }
 
 
 
 
-/**
- * @brief TiledObjectBody::synchronize
- */
 
-void TiledObjectBody::synchronize()
-{
-	Q_ASSERT(mBody);
-
-	if (mTarget) {
-		//if (TiledObjectBase *object = qobject_cast<TiledObjectBase*>(mTarget)) {
-		b2Vec2 &value = mBodyDef.position;
-		const b2Vec2 &newValue = mBody->GetPosition();
-
-		if (qFuzzyCompare(value.x, newValue.x) && qFuzzyCompare(value.y, newValue.y))
-			return;
-
-		emplace();
-
-		return;
-		//}
-	}
-
-	Box2DBody::synchronize();
-}
-
-
-/**
- * @brief TiledObjectBody::updateTransform
- */
-
-void TiledObjectBody::updateTransform()
-{
-	Q_ASSERT(mTarget);
-	Q_ASSERT(mBody);
-	Q_ASSERT(mTransformDirty);
-
-	mBodyDef.angle = toRadians(mTarget->rotation());
-	/*mBodyDef.position = mWorld->toMeters(
-				mTarget->transformOrigin() == QQuickItem::TopLeft ?
-					mTarget->position() :
-					mTarget->position() + originOffset());*/
-
-	QPointF offset(mTarget->width()/2, mTarget->height()/2);
-
-	mBodyDef.position = mWorld->toMeters(
-							mTarget->position() + offset + m_bodyOffset
-							);
-
-	mBody->SetTransform(mBodyDef.position, mBodyDef.angle);
-	mTransformDirty = false;
-}
 
 
 
@@ -1283,8 +1156,30 @@ void TiledObjectBody::updateTransform()
 
 QPointF TiledObjectBody::bodyPosition() const
 {
-	Q_ASSERT(mWorld);
-	return mWorld->toPixels(mBodyDef.position);
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return {};
+	}
+
+	const auto pos = d->m_bodyRef.GetPosition();
+	return QPointF{pos.x, pos.y};
+}
+
+
+
+/**
+ * @brief TiledObjectBody::bodyAABB
+ * @return
+ */
+
+QRectF TiledObjectBody::bodyAABB() const
+{
+	QRectF r;
+	r.setLeft(d->m_bodyAABB.lowerBound.x);
+	r.setTop(d->m_bodyAABB.lowerBound.y);
+	r.setRight(d->m_bodyAABB.upperBound.x);
+	r.setBottom(d->m_bodyAABB.upperBound.y);
+	return r;
 }
 
 
@@ -1296,13 +1191,14 @@ QPointF TiledObjectBody::bodyPosition() const
 
 void TiledObjectBody::emplace(const QPointF &center)
 {
-	Q_ASSERT(mBody);
-	Q_ASSERT(mWorld);
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return;
+	}
 
-	setAngularVelocity(0.);
-	setLinearVelocity(QPointF{0.,0.});
-	///setIsRunning(false);
-	mBody->SetTransform(mWorld->toMeters(center), mBody->GetAngle());
+	d->m_bodyRef.SetAngularVelocity(0.f);
+	d->m_bodyRef.SetLinearVelocity({0.f, 0.f});
+	d->m_bodyRef.SetTransform({(float)center.x(), (float)center.y()}, d->m_bodyRef.GetRotation());
 	synchronize();
 }
 
@@ -1314,7 +1210,12 @@ void TiledObjectBody::emplace(const QPointF &center)
 
 void TiledObjectBody::setSpeed(const QPointF &point)
 {
-	setLinearVelocity(point * mWorld->metersPerPixel());
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return;
+	}
+
+	d->m_bodyRef.SetLinearVelocity({(float)point.x(), (float)point.y()});
 }
 
 
@@ -1324,53 +1225,88 @@ void TiledObjectBody::setSpeed(const QPointF &point)
 
 void TiledObjectBody::stop()
 {
-	setLinearVelocity(QPointF{0,0});
-	setAngularVelocity(0.);
-	m_baseObject->stopRotateAnimation();
-	///setIsRunning(false);
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return;
+	}
+
+	d->m_bodyRef.SetAngularVelocity(0.f);
+	d->m_bodyRef.SetLinearVelocity({0.f, 0.f});
 }
 
 
 
 /**
- * @brief TiledObjectBody::emplace
- */
-
-void TiledObjectBody::emplace()
-{
-	Q_ASSERT(mTarget);
-	Q_ASSERT(mBody);
-	Q_ASSERT(mWorld);
-
-	const b2Vec2 &newValue = mBody->GetPosition();
-	mBodyDef.position = newValue;
-
-	QPointF offset(mTarget->width()/2, mTarget->height()/2);
-
-	mTarget->setPosition(mWorld->toPixels(mBodyDef.position) - offset - m_bodyOffset);
-
-	emit positionChanged();
-
-}
-
-
-/**
- * @brief TiledObjectBody::isRunning
+ * @brief TiledObjectBody::rotateBody
+ * @param desiredRadian
  * @return
  */
 
-bool TiledObjectBody::isRunning() const
+bool TiledObjectBody::rotateBody(const float &desiredRadian)
 {
-	return m_isRunning;
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return false;
+	}
+
+	const float currentRadian = b2Rot_GetAngle(d->m_bodyRef.GetRotation());
+
+
+	if (qFuzzyCompare(desiredRadian, currentRadian)) {
+		d->m_rotateAnimation.running = false;
+		return false;
+	}
+
+	const float currentNormal = TiledObject::normalizeFromRadian(currentRadian);
+	const float desiredNormal = TiledObject::normalizeFromRadian(desiredRadian);
+
+
+	if (!qFuzzyCompare(d->m_rotateAnimation.destRadian, desiredRadian) || !d->m_rotateAnimation.running) {
+		d->m_rotateAnimation.destRadian = desiredRadian;
+
+		const float diff = std::abs(currentNormal-desiredNormal);
+
+		if (desiredNormal > currentNormal)
+			d->m_rotateAnimation.clockwise = diff > B2_PI;
+		else
+			d->m_rotateAnimation.clockwise = diff < B2_PI;
+
+		d->m_rotateAnimation.running = true;
+	}
+
+	if (!d->m_rotateAnimation.running)
+		return false;
+
+
+	const float delta = std::min(d->m_rotateAnimation.speed, M_PI_4);
+	float newAngle = d->m_rotateAnimation.clockwise ? currentNormal - delta : currentNormal + delta;
+
+	d->m_bodyRef.SetAngularVelocity(0.f);
+
+	static const float pi2 = 2*B2_PI;
+
+	// 0 átlépés miatt kell
+	const float dd = (desiredNormal == 0 && newAngle > pi2) ? pi2 : desiredNormal;
+
+	if ((newAngle >= dd && currentNormal < dd) ||
+			(newAngle <= dd && currentNormal > dd)) {
+		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
+		d->m_bodyRef.SetAwake(true);
+		return true;
+	}
+
+	if (newAngle > pi2)
+		newAngle -= pi2;
+	else if (newAngle < 0)
+		newAngle += pi2;
+
+	d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(TiledObject::normalizeToRadian(newAngle)));
+	d->m_bodyRef.SetAwake(true);
+
+	return true;
 }
 
-void TiledObjectBody::setIsRunning(bool newIsRunning)
-{
-	if (m_isRunning == newIsRunning)
-		return;
-	m_isRunning = newIsRunning;
-	emit isRunningChanged();
-}
+
 
 
 
@@ -1389,31 +1325,313 @@ void TiledObjectBody::setOpaque(bool newOpaque)
 	if (m_opaque == newOpaque)
 		return;
 	m_opaque = newOpaque;
-	emit opaqueChanged();
+}
+
+
+/**
+ * @brief TiledObjectBody::isBodyEnabled
+ * @return
+ */
+
+bool TiledObjectBody::isBodyEnabled() const
+{
+	return d->m_bodyRef && d->m_bodyRef.IsEnabled();
+}
+
+
+/**
+ * @brief TiledObjectBody::setBodyEnabled
+ * @param enabled
+ */
+
+void TiledObjectBody::setBodyEnabled(const bool &enabled)
+{
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return;
+	}
+
+	if (enabled)
+		d->m_bodyRef.Enable();
+	else
+		d->m_bodyRef.Disable();
+}
+
+
+/**
+ * @brief TiledObjectBody::overlap
+ * @param pos
+ * @return
+ */
+
+bool TiledObjectBody::overlap(const QPointF &pos) const
+{
+	if (!d->m_bodyRef)
+		return false;
+
+	const int count = d->m_bodyRef.GetShapeCount();
+	std::vector<b2ShapeId> list;
+	list.resize(count, b2_nullShapeId);
+	const auto x = d->m_bodyRef.GetShapes(list.data(), count);
+	(void) x;
+
+	for (const auto &shId : list) {
+		b2::ShapeRef s(shId);
+		if (!s)
+			continue;
+
+		if (s.TestPoint({(float)pos.x(), (float)pos.y()}))
+			return true;
+	}
+
+	return false;
+}
+
+
+
+
+
+/**
+ * @brief TiledObjectBody::synchronize
+ */
+
+void TiledObjectBody::synchronize()
+{
+
+}
+
+
+/**
+ * @brief TiledObjectBody::fromBodyRef
+ * @param ref
+ * @return
+ */
+
+TiledObjectBody *TiledObjectBody::fromBodyRef(b2::BodyConstRef ref)
+{
+	/*b2::BodyRef bref = ref.Handle();
+
+	bref.Handle();
+
+	b2::BodyRef b(bref.Handle());
+
+	if (!b)
+		return nullptr;
+
+	return static_cast<TiledObjectBody*>(b.GetUserData());*/
+
+	return nullptr;
+}
+
+
+/**
+ * @brief TiledObjectBody::getFilter
+ * @param categories
+ * @return
+ */
+
+b2Filter TiledObjectBody::getFilter(const FixtureCategories &categories)
+{
+	b2Filter filter;
+	filter.categoryBits = categories;
+	filter.maskBits = B2_DEFAULT_MASK_BITS;
+	return filter;
+}
+
+
+/**
+ * @brief TiledObjectBody::getFilter
+ * @param categories
+ * @param collidesWith
+ * @return
+ */
+
+b2Filter TiledObjectBody::getFilter(const FixtureCategories &categories, const FixtureCategories &collidesWith)
+{
+	b2Filter filter;
+	filter.categoryBits = categories;
+	filter.maskBits = collidesWith;
+	return filter;
+}
+
+
+
+
+/**
+ * @brief TiledObjectBody::createFromPolygon
+ * @param polygon
+ * @param renderer
+ * @param params
+ * @return
+ */
+
+bool TiledObjectBody::createFromPolygon(const QPolygonF &polygon, Tiled::MapRenderer *renderer, const b2::Shape::Params &params)
+{
+	b2::Body::Params bParams;
+
+	bParams.type = b2BodyType::b2_staticBody;
+	bParams.fixedRotation = true;
+
+	return createFromPolygon(polygon, renderer, bParams, params);
 }
 
 
 
 /**
- * @brief TiledObjectBody::setBodyOffset
- * @param newBodyOffset
+ * @brief TiledObjectBody::createFromPolygon
+ * @param polygon
+ * @param renderer
+ * @param bParams
+ * @param params
+ * @return
  */
 
-void TiledObjectBody::setBodyOffset(QPointF newBodyOffset)
+bool TiledObjectBody::createFromPolygon(const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+										b2::Body::Params bParams, const b2::Shape::Params &params)
 {
-	if (m_bodyOffset == newBodyOffset)
-		return;
-	m_bodyOffset = newBodyOffset;
-	emit bodyOffsetChanged();
+	const QPolygonF &screenPolygon = renderer ? renderer->pixelToScreenCoords(polygon) : polygon;
+	const QRectF &box = screenPolygon.boundingRect();
+	const QPolygonF tPolygon = screenPolygon.translated(-box.center());
+
+	bParams.position.x = box.center().x();
+	bParams.position.y = box.center().y();
+
+	d->createBody(bParams);
+
+	b2::BodyRef b = d->m_bodyRef;
+
+	Q_ASSERT(b);
+
+	std::vector<b2Vec2> points;
+	points.reserve(tPolygon.size());
+
+	for (const QPointF &f : std::as_const(tPolygon))
+		points.emplace_back(f.x(), f.y());
+
+
+	const b2Hull hull = b2ComputeHull(points.data(), points.size());
+
+	b2Polygon p = b2MakePolygon(&hull, 0.f);
+
+	b.CreateShape(b2::DestroyWithParent, params, p);
+
+	d->updateFilter();
+	d->m_bodyAABB = b.ComputeAABB();
+
+	return true;
 }
 
 
 
+/**
+ * @brief TiledObjectBody::createFromCircle
+ * @param center
+ * @param radius
+ * @param renderer
+ * @param params
+ * @return
+ */
 
-QPointF TiledObjectBody::bodyOffset() const
+bool TiledObjectBody::createFromCircle(const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer, const b2::Shape::Params &params)
 {
-	return m_bodyOffset;
+	b2::Body::Params bParams;
+
+	bParams.type = b2BodyType::b2_staticBody;
+	bParams.fixedRotation = true;
+
+	return createFromCircle(center, radius, renderer, bParams, params);
 }
+
+
+/**
+ * @brief TiledObjectBody::createFromCircle
+ * @param center
+ * @param radius
+ * @param renderer
+ * @param bParams
+ * @param params
+ * @return
+ */
+
+bool TiledObjectBody::createFromCircle(const QPointF &center, const qreal &radius,
+									   Tiled::MapRenderer *renderer, b2::Body::Params bParams,
+									   const b2::Shape::Params &params)
+{
+
+	const QPointF &pos = renderer ? renderer->pixelToScreenCoords(center) : center;
+
+	bParams.position.x = pos.x();
+	bParams.position.y = pos.y();
+
+	d->createBody(bParams);
+
+	b2::BodyRef b = d->m_bodyRef;
+
+	Q_ASSERT(b);
+
+	b.CreateShape(b2::DestroyWithParent, params, b2Circle{{0.f, 0.f}, (float) radius});
+	d->updateFilter();
+	d->m_bodyAABB = b.ComputeAABB();
+
+	return true;
+}
+
+
+/**
+ * @brief TiledObjectBody::createFromMapObject
+ * @param object
+ * @param renderer
+ * @param params
+ * @return
+ */
+
+bool TiledObjectBody::createFromMapObject(const Tiled::MapObject *object, Tiled::MapRenderer *renderer, const b2::Shape::Params &params)
+{
+	b2::Body::Params bParams;
+
+	bParams.type = b2BodyType::b2_staticBody;
+	bParams.fixedRotation = true;
+
+	return createFromMapObject(object, renderer, bParams, params);
+}
+
+
+/**
+ * @brief TiledObjectBody::createFromMapObject
+ * @param object
+ * @param renderer
+ * @param bParams
+ * @param params
+ * @return
+ */
+
+bool TiledObjectBody::createFromMapObject(const Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+										  b2::Body::Params bParams, const b2::Shape::Params &params)
+{
+
+	QPointF offset;
+
+	if (Tiled::ObjectGroup *gLayer = object->objectGroup()) {
+		offset = gLayer->totalOffset();
+	}
+
+	switch (object->shape()) {
+		case Tiled::MapObject::Rectangle:
+			return createFromPolygon(object->bounds().translated(offset), renderer, bParams, params);
+		case Tiled::MapObject::Polygon:
+			return createFromPolygon(object->polygon().translated(offset+object->position()), renderer, bParams, params);
+		case Tiled::MapObject::Ellipse:
+		case Tiled::MapObject::Point:
+			return createFromCircle(offset+object->position(), std::max(object->size().width()/2, object->size().height()/2),
+									renderer, bParams, params);
+		default:
+			LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
+	}
+
+	return false;
+}
+
+
 
 
 
@@ -1422,71 +1640,54 @@ QPointF TiledObjectBody::bodyOffset() const
  * @param dest
  */
 
-TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, float32 *lengthPtr)
+TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const TiledObjectBody::FixtureCategories &categories)
 {
-	Q_ASSERT(mWorld);
+	Q_ASSERT(d->m_world);
 
-	const b2Vec2 bPos = mBody->GetPosition();
-	const b2Vec2 tPos = mWorld->toMeters(dest);
+	TiledReportedFixtureMap map;
 
-	if (lengthPtr) {
-		b2Vec2 l = tPos-bPos;
-		*lengthPtr = mWorld->toPixels(l.Length());
-	}
+	if (!d->m_bodyRef)
+		return map;
 
-	TiledObjectRayCast ray(mWorld);
+	auto fcn = [&map]( b2ShapeId shapeId, b2Vec2 /*point*/, b2Vec2 /*normal*/, float fraction) -> float {
+		b2::ShapeRef shape(shapeId);
+		if (shape) {
+			if (shape.IsSensor())
+				return -1;
 
-	mWorld->world().RayCast(&ray, bPos, tPos);
+			const b2Filter &f = shape.GetFilter();
+			if (f.categoryBits & FixtureGround) {
+				if (TiledObjectBody *tBody = fromBodyRef(shape.GetBody())) {
+					if (tBody->opaque())
+						return fraction;
+				}
+			}
 
-	return ray.reportedFixtures();
+			map.insert(fraction, shape);
+
+			return 1;
+		} else {
+			return -1;
+		}
+	};
+
+
+	const b2Vec2 origin = d->m_bodyRef.GetPosition();
+
+	b2Vec2 transform;
+	transform.x = dest.x()-origin.x;
+	transform.y = dest.y()-origin.y;
+
+	FixtureCategories mask = categories;
+	mask.setFlag(FixtureGround, true);
+
+	b2QueryFilter filter = b2DefaultQueryFilter();
+	filter.maskBits = mask;
+
+	d->m_world->CastRay(origin, transform, filter, fcn);
+
+	return map;
 }
-
-
-
-
-/**
- * @brief TiledObjectPolygonIface::createFixture
- * @param polygon
- * @return
- */
-
-Box2DPolygon *TiledObjectPolygonIface::createFixture(const QPolygonF &polygon)
-{
-	Q_ASSERT(m_fixture);
-
-	const QRectF &box = polygon.boundingRect();
-
-	m_screenPolygon = polygon.translated(-box.center());
-
-	TiledObjectBase::setPolygonVertices(m_fixture.get(), m_screenPolygon);
-
-	return m_fixture.get();
-}
-
-
-
-/**
- * @brief TiledObjectCircleIface::createFixture
- * @param pos
- * @param size
- * @return
- */
-
-Box2DCircle *TiledObjectCircleIface::createFixture(const QPointF &pos, const qreal &size)
-{
-	Q_ASSERT(m_fixture);
-
-	const qreal r = size/2.;
-
-	m_fixture->setX(pos.x()-r);
-	m_fixture->setY(pos.y()-r);
-	m_fixture->setRadius(r);
-
-	return m_fixture.get();
-}
-
-
-
 
 
 
@@ -1727,37 +1928,236 @@ std::optional<TextureSprite> TiledObject::toTextureSprite(const TiledObjectSprit
 
 
 
+
+
 /**
- * @brief TiledObjectRayCast::ReportFixture
- * @param fixture
- * @param point
- * @param normal
- * @param fraction
- * @return
+ * @brief TiledObjectBodyPrivate::TiledObjectBodyPrivate
+ * @param body
  */
 
-float32 TiledObjectRayCast::ReportFixture(b2Fixture *fixture, const b2Vec2 &point, const b2Vec2 &normal, float32 fraction)
+TiledObjectBodyPrivate::TiledObjectBodyPrivate(TiledObjectBody *body, b2::World *world)
+	: q(body)
+	, m_world(world)
 {
-	Box2DFixture *box2dFixture = toBox2DFixture(fixture);
 
-	TiledReportedFixture f;
-	f.fixture = box2dFixture;
-	f.point = point;
-	f.normal = normal;
-
-	m_reportedFixtures.insert(fraction, f);
-
-	return -1.0;
 }
 
 
+
+
 /**
- * @brief TiledObjectRayCast::reportedFixtures
- * @return
+ * @brief TiledObjectBodyPrivate::createBody
+ * @param params
  */
 
-TiledReportedFixtureMap TiledObjectRayCast::reportedFixtures() const
+void TiledObjectBodyPrivate::createBody(const b2::Body::Params &params)
 {
-	return m_reportedFixtures;
+	Q_ASSERT(m_world);
+
+	if (m_bodyRef)
+		m_bodyRef.Destroy();
+
+	m_bodyRef = m_world->CreateBody(b2::DestroyWithParent, params);
+	m_bodyRef.SetUserData(q);
+}
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::replaceWorld
+ * @param world
+ */
+
+void TiledObjectBodyPrivate::replaceWorld(b2::World *world, const QPointF &position, const float &rotation)
+{
+	if (!m_bodyRef)
+		return;
+
+	const int count = m_bodyRef.GetShapeCount();
+	std::vector<b2ShapeId> list;
+	list.resize(count, b2_nullShapeId);
+	const auto x = m_bodyRef.GetShapes(list.data(), count);
+	(void) x;
+
+	struct ShapeData {
+		b2ShapeType type;
+		std::variant<b2Circle, b2Polygon> data;
+		b2::Shape::Params params;
+	};
+
+	std::vector<ShapeData> shapes;
+
+	for (const auto &shId : list) {
+		b2::ShapeRef s(shId);
+		if (!s)
+			continue;
+
+		b2::Shape::Params params;
+
+		params.friction = s.GetFriction();
+		params.restitution = s.GetRestitution();
+		params.density = s.GetDensity();
+		params.filter = s.GetFilter();
+		params.isSensor = s.IsSensor();
+
+		b2ShapeType type = s.GetType();
+
+		if (type == b2_circleShape) {
+			shapes.emplace_back(type, s.GetCircle(), params);
+		} else if (type == b2_polygonShape) {
+			shapes.emplace_back(type, s.GetPolygon(), params);
+		} else {
+			LOG_CERROR("scene") << "Invalid shape" << type;
+		}
+	}
+
+	b2::Body::Params bParams;
+
+	bParams.type = m_bodyRef.GetType();
+	bParams.fixedRotation = m_bodyRef.IsFixedRotation();
+	bParams.position.x = position.x();
+	bParams.position.y = position.y();
+	bParams.rotation = b2MakeRot(rotation);
+
+	m_bodyRef.Destroy();
+
+	m_world = world;
+
+	createBody(bParams);
+
+	Q_ASSERT(m_bodyRef);
+
+	for (const ShapeData &sh : shapes) {
+		if (sh.type == b2_circleShape)
+			m_bodyRef.CreateShape(b2::DestroyWithParent, sh.params, std::get<b2Circle>(sh.data));
+	}
+
+	updateFilter();
+}
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::updateScene
+ */
+
+void TiledObjectBodyPrivate::updateScene()
+{
+	TiledScene *currentScene = m_world ? static_cast<TiledScene*>(m_world->GetUserData()) : nullptr;
+
+	if (m_scene == currentScene)
+		return;
+
+	if (m_scene)
+		QObject::disconnect(m_sceneConnection);
+	//QObject::disconnect(m_scene, &TiledScene::visibleAreaChanged, q, &TiledObjectBody::updateVisibleArea);
+
+	m_scene = currentScene;
+
+	if (m_scene) {
+		m_sceneConnection = QObject::connect(m_scene, &TiledScene::visibleAreaChanged, [this](){
+			q->updateBodyInVisibleArea();
+		});
+	}
+}
+
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::updateFilter
+ */
+
+void TiledObjectBodyPrivate::updateFilter()
+{
+	if (!m_bodyRef)
+		return;
+
+	const int count = m_bodyRef.GetShapeCount();
+	std::vector<b2ShapeId> list;
+	list.resize(count, b2_nullShapeId);
+	const auto x = m_bodyRef.GetShapes(list.data(), count);
+	(void) x;
+
+	for (const auto &shId : list) {
+		b2::ShapeRef s(shId);
+		if (!s)
+			continue;
+
+		b2Filter filter = s.GetFilter();
+
+		if (filter.maskBits == m_collidesWith && filter.categoryBits == m_categories)
+			continue;
+
+		filter.maskBits = m_collidesWith;
+		filter.categoryBits = m_categories;
+
+		s.SetFilter(filter);
+	}
+}
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::setSensorPolygon
+ * @param length
+ * @param range
+ */
+
+void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &range)
+{
+	/*if (!m_bodyRef)
+		createBody();
+
+	Q_ASSERT(m_bodyRef);
+
+	const QPointF &pos = renderer ? renderer->pixelToScreenCoords(center) : center;
+
+	b.CreateShape(b2::DestroyWithParent, params, b2Circle{{(float) pos.x(), (float) pos.y()}, (float) radius});
+	body->d->updateFilter();
+
+	return body;
+
+
+	setSensor(true);
+	setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
+
+	m_virtualCircle->setSensor(true);
+	m_virtualCircle->setCollidesWith(Box2DFixture::None);
+	m_virtualCircle->setCategories(Box2DFixture::None);
+
+	m_body->addFixture(m_virtualCircle.get());
+
+	recreateFixture();
+
+	QPolygonF polygon;
+	polygon.append(QPointF(0,0));
+
+	for (int i=0; i < 7; ++i) {
+		qreal angle = -(m_range/2.) + (i/6. * m_range);
+		if (angle > M_PI)
+			angle = -M_PI+(angle-M_PI);
+		else if (angle < -M_PI)
+			angle = M_PI-(-M_PI-angle);
+		polygon.append(QPointF(m_length * cosf(angle), m_length * -sinf(angle)));
+	}
+
+	TiledObjectBase::setPolygonVertices(this, polygon);
+
+	m_virtualCircle->setX(-m_length);
+	m_virtualCircle->setY(-m_length);
+	m_virtualCircle->setRadius(m_length);
+
+
+	m_sensorPolygon.reset(new TiledObjectSensorPolygon(m_body.get()));
+
+	if (length > 0)
+		m_sensorPolygon->setLength(length);
+	if (range > 0)
+		m_sensorPolygon->setRange(range);
+
+	m_body->addFixture(m_sensorPolygon.get());
+
+	return m_sensorPolygon.get();*/
 }
 

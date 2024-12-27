@@ -49,14 +49,14 @@ public:
 	const bool &isActive() const { return m_active; }
 
 private:
-	void onFixtureBeginContact(Box2DFixture *other);
-	void connectFixture(Box2DFixture *fixture);
+	/*void onFixtureBeginContact(Box2DFixture *other);
+	void connectFixture(Box2DFixture *fixture);*/
 	void updateLayers();
 	void hide(RpgPlayer *player);
 	void show();
 	void deactivate();
 
-	QPointer<Box2DFixture> m_fixture;
+	//QPointer<Box2DFixture> m_fixture;
 	QVector<QPointer<TiledQuick::TileLayerItem>> m_tileLayers;
 
 	int m_count = -1;

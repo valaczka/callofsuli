@@ -55,13 +55,13 @@ android: LIBS += -lSCodes_$${QT_ARCH}
 else: LIBS += -lSCodes
 
 
-# QML-Box2D
+# Box2D
 
-INCLUDEPATH += $$PWD/qml-box2d/
-INCLUDEPATH += $$PWD/qml-box2d/Box2D
+INCLUDEPATH += $$PWD/box2d/include
+INCLUDEPATH += $$PWD/box2cpp/include
 
-android: LIBS += -lqml-box2d_$${QT_ARCH}
-else: LIBS += -lqml-box2d
+android: LIBS += -lbox2d_$${QT_ARCH}
+else: LIBS += -lbox2d
 
 
 

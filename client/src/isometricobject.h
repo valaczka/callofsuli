@@ -29,7 +29,6 @@
 
 #include "tiledobject.h"
 #include <QQmlEngine>
-#include "isometricobjectiface.h"
 
 
 
@@ -37,7 +36,7 @@
  * @brief The IsometricObject class
  */
 
-class IsometricObject : public TiledObject, public IsometricObjectIface
+class IsometricObject : public TiledObject
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -47,47 +46,27 @@ class IsometricObject : public TiledObject, public IsometricObjectIface
 	Q_PROPERTY(qreal subZ READ subZ WRITE setSubZ NOTIFY subZChanged FINAL)
 
 public:
-	IsometricObject(QQuickItem *parent = nullptr)
-		: TiledObject(parent)
-		, IsometricObjectIface()
-	{
+	IsometricObject(TiledScene *scene);
 
-	}
+	qreal defaultZ() const;
+	void setDefaultZ(qreal newDefaultZ);
+
+	bool useDynamicZ() const;
+	void setUseDynamicZ(bool newUseDynamicZ);
+
+	qreal subZ() const;
+	void setSubZ(qreal newSubZ);
 
 signals:
-	void defaultZChanged() override final;
-	void useDynamicZChanged() override final;
-	void subZChanged() override final;
+	void defaultZChanged();
+	void useDynamicZChanged();
+	void subZChanged();
+
+protected:
+	qreal m_defaultZ = 0;
+	qreal m_subZ = 0;
+	bool m_useDynamicZ = true;
 };
 
 
-
-/**
- * @brief The TiledObjectBasePolygon class
- */
-
-class IsometricObjectCircle : public TiledObjectCircle, public IsometricObjectIface
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-	Q_PROPERTY(qreal defaultZ READ defaultZ WRITE setDefaultZ NOTIFY defaultZChanged FINAL)
-	Q_PROPERTY(bool useDynamicZ READ useDynamicZ WRITE setUseDynamicZ NOTIFY useDynamicZChanged FINAL)
-	Q_PROPERTY(qreal subZ READ subZ WRITE setSubZ NOTIFY subZChanged FINAL)
-
-public:
-	explicit IsometricObjectCircle(QQuickItem *parent = 0)
-		: TiledObjectCircle(parent)
-		, IsometricObjectIface()
-	{
-
-	}
-
-
-signals:
-	void defaultZChanged() override final;
-	void useDynamicZChanged() override final;
-	void subZChanged() override final;
-
-};
 #endif // ISOMETRICOBJECT_H

@@ -101,7 +101,7 @@ RpgGame::RpgGame(QQuickItem *parent)
 
 RpgGame::~RpgGame()
 {
-	for (const auto &e : std::as_const(m_enemyDataList)) {
+	/*for (const auto &e : std::as_const(m_enemyDataList)) {
 		if (e.enemy)
 			e.enemy->setGame(nullptr);
 	}
@@ -109,7 +109,7 @@ RpgGame::~RpgGame()
 	for (const auto &p : std::as_const(m_players)) {
 		if (p)
 			p->setGame(nullptr);
-	}
+	}*/
 
 	m_enemyDataList.clear();
 	m_players.clear();
@@ -198,7 +198,7 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 
 		pickable->setObjectId(e.objectId);
 		pickable->setName(e.name);
-		pickable->body()->emplace(e.position);
+		pickable->emplace(e.position);
 
 		if (!e.displayName.isEmpty()) {
 			pickable->setDisplayName(e.displayName);
@@ -334,7 +334,7 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 
 	if (object->scene()) {
 		object->scene()->removeFromObjects(object);
-		object->setScene(nullptr);
+		///object->setScene(nullptr);
 	}
 
 	p->inventoryAdd(object);
@@ -342,7 +342,7 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 	p->armory()->updateLayers();
 	//p->setShieldCount(p->armory()->getShieldCount());
 
-	playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), player->scene(), player->body()->bodyPosition());
+	playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), player->scene(), player->bodyPosition());
 
 
 	return true;
@@ -402,7 +402,7 @@ void RpgGame::saveSceneState(RpgPlayer *player)
 
 	messageColor(tr("State saved"), QColor::fromRgbF(0., 0.9, 0.));
 
-	playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene(), player->body()->bodyPosition());
+	playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene(), player->bodyPosition());
 
 	saveSceneState();
 }
@@ -479,7 +479,7 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 			if (auto it = enemyFind(isoEnemy); it != m_enemyDataList.end()) {
 				for (const auto &p : it->pickables) {
 					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
-						pickable->body()->emplace(iface->getPickablePosition(num++));
+						pickable->emplace(iface->getPickablePosition(num++));
 						enemy->scene()->appendToObjects(pickable);
 						pickable->setIsActive(true);
 					}
@@ -487,7 +487,7 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 
 				for (const auto &p : it->pickablesOnce) {
 					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
-						pickable->body()->emplace(iface->getPickablePosition(num++));
+						pickable->emplace(iface->getPickablePosition(num++));
 						enemy->scene()->appendToObjects(pickable);
 						pickable->setIsActive(true);
 					}
@@ -635,7 +635,7 @@ void RpgGame::playerUseContainer(RpgPlayer *player, TiledContainer *container)
 
 			++i;
 
-			pickable->body()->emplace(pos);
+			pickable->emplace(pos);
 			container->scene()->appendToObjects(pickable);
 			pickable->setIsActive(true);
 		}
@@ -661,9 +661,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 
 	switch (type) {
 		case RpgEnemyIface::EnemyWerebear: {
-			RpgWerebear *e = nullptr;
-			TiledObjectBase::createFromCircle<RpgWerebear>(&e, QPointF{}, 30, nullptr, this);
-			enemy = e;
+			enemy = new RpgWerebear(scene);
 			break;
 		}
 
@@ -679,8 +677,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		case RpgEnemyIface::EnemyBarbarianFix:
 		case RpgEnemyIface::EnemySkeleton:
 		{
-			RpgEnemyBase *e = nullptr;
-			TiledObjectBase::createFromCircle<RpgEnemyBase>(&e, QPointF{}, 30, nullptr, this);
+			RpgEnemyBase *e = new RpgEnemyBase(scene);
 			e->m_enemyType = type;
 			e->setSubType(subtype);
 			enemy = e;
@@ -693,9 +690,9 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 	}
 
 	if (enemy) {
-		enemy->setParent(this);
-		enemy->setGame(this);
-		enemy->setScene(scene);
+		///enemy->setParent(this);
+		//enemy->setGame(this);
+		//enemy->setScene(scene);
 		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
 
 		if (type == RpgEnemyIface::EnemySoldierFix ||
@@ -708,6 +705,9 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		}
 
 		enemy->initialize();
+
+		std::unique_ptr<TiledObjectBody> b(std::move(enemy));
+		addObject(b);
 	}
 
 	return enemy;
@@ -728,47 +728,47 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 
 	switch (type) {
 		case RpgPickableObject::PickableShield:
-			pickable = RpgPickableObject::createPickable<RpgShieldPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgShieldPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableHp:
-			pickable = RpgPickableObject::createPickable<RpgHpPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgHpPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableMp:
-			pickable = RpgPickableObject::createPickable<RpgMpPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgMpPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableCoin:
-			pickable = RpgPickableObject::createPickable<RpgCoinPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgCoinPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableArrow:
-			pickable = RpgPickableObject::createPickable<RpgArrowPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgArrowPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableFireball:
-			pickable = RpgPickableObject::createPickable<RpgFireballPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgFireballPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableShortbow:
-			pickable = RpgPickableObject::createPickable<RpgShortbowPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgShortbowPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableLongbow:
-			pickable = RpgPickableObject::createPickable<RpgLongbowPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgLongbowPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableLongsword:
-			pickable = RpgPickableObject::createPickable<RpgLongswordPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgLongswordPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableTime:
-			pickable = RpgPickableObject::createPickable<RpgTimePickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgTimePickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableKey:
-			pickable = RpgPickableObject::createPickable<RpgKeyPickable>(this);
+			pickable = RpgPickableObject::createPickable<RpgKeyPickable>(scene);
 			break;
 
 		case RpgPickableObject::PickableDagger:
@@ -779,8 +779,8 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 
 	if (pickable) {
 		pickable->setParent(this);
-		pickable->setGame(this);
-		pickable->setScene(scene);
+		/*pickable->setGame(this);
+		pickable->setScene(scene);*/
 		pickable->setName(name);
 		pickable->initialize();
 	}
@@ -895,9 +895,9 @@ void RpgGame::loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled:
  * @return
 */
 
-TiledObjectBasePolygon *RpgGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
+TiledObjectBody *RpgGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
 {
-	TiledObjectBasePolygon *p = TiledGame::loadGround(scene, object, renderer, translate);
+	TiledObjectBody *p = TiledGame::loadGround(scene, object, renderer, translate);
 
 	if (object->hasProperty(QStringLiteral("sound")) && p) {
 		addLocationSound(p, object->propertyAsString(QStringLiteral("sound")));
@@ -1069,12 +1069,12 @@ bool RpgGame::transportBeforeEvent(TiledObject *object, TiledTransport */*transp
  * @return
  */
 
-bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/, TiledObjectBase *newObject)
+bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/, TiledObject *newObject)
 {
 	RpgPlayer *player = qobject_cast<RpgPlayer*>(object);
 
 	if (player) {
-		player->setCurrentSceneStartPosition(newObject->body()->bodyPosition());
+		player->setCurrentSceneStartPosition(newObject->bodyPosition());
 		player->m_currentTransportBase = newObject;
 	}
 
@@ -1326,7 +1326,7 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 
 	if (object->shape() == Tiled::MapObject::Polygon ||
 			object->shape() == Tiled::MapObject::Polyline)
-		p = TiledObjectBase::toPolygon(object, renderer);
+		p = TiledObject::toPolygon(object, renderer);
 	else if (object->shape() == Tiled::MapObject::Point)
 		p << renderer->pixelToScreenCoords(object->position());
 
@@ -1351,7 +1351,7 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 
 
 	m_enemyDataList.append(EnemyData{
-							   TiledObjectBase::ObjectId{object->id(), scene->sceneId()},
+							   TiledObject::ObjectId{object->id(), scene->sceneId()},
 							   type,
 							   object->name(),
 							   p,
@@ -1395,7 +1395,7 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 	const QPointF &point = renderer->pixelToScreenCoords(object->position());
 
 	m_pickableDataList.append(PickableData{
-								  TiledObjectBase::ObjectId{object->id(), scene->sceneId()},
+								  TiledObject::ObjectId{object->id(), scene->sceneId()},
 								  type,
 								  object->name(),
 								  point,
@@ -1415,10 +1415,10 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
  * @param channel
  */
 
-void RpgGame::addLocationSound(TiledObjectBase *object, const QString &sound, const qreal &baseVolume, const Sound::ChannelType &channel)
+void RpgGame::addLocationSound(TiledObjectBody *object, const QString &sound, const qreal &baseVolume, const Sound::ChannelType &channel)
 {
 	LOG_CTRACE("game") << "Add location sound" << sound << baseVolume << object << channel;
-	m_sfxLocations.emplace_back(new TiledGameSfxLocation(sound, baseVolume, object, channel));
+	////m_sfxLocations.emplace_back(new TiledGameSfxLocation(sound, baseVolume, object, channel));
 
 }
 
@@ -1745,7 +1745,7 @@ void RpgGame::updateScatterEnemies()
 		if (e.scene != m_currentScene || !e.enemy || !e.enemy->isAlive())
 			continue;
 
-		QPointF pos = e.enemy->body()->bodyPosition();
+		QPointF pos = e.enemy->bodyPosition();
 		pos.setY(m_currentScene->height()-pos.y());
 
 		list.append(pos);
@@ -1774,7 +1774,7 @@ void RpgGame::updateScatterPlayers()
 		if (!p || p->scene() != m_currentScene || !p->isAlive())
 			continue;
 
-		QPointF pos = p->body()->bodyPosition();
+		QPointF pos = p->bodyPosition();
 		pos.setY(m_currentScene->height()-pos.y());
 
 		list.append(pos);
@@ -2488,7 +2488,7 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 		def = new RpgEnemyMetricDefinition;
 
 		EnemyMetric soldier;
-		soldier.speed = 3.;
+		soldier.speed = 30.;
 		soldier.returnSpeed = 3.5;
 		soldier.pursuitSpeed = 5.;
 		soldier.sensorRange = M_PI*0.5;
@@ -2558,7 +2558,7 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 #ifndef QT_NO_DEBUG
 	if (modifiers & Qt::AltModifier) {
 		m_controlledPlayer->clearDestinationPoint();
-		m_controlledPlayer->body()->emplace(x, y);
+		m_controlledPlayer->TiledObject::emplace(x, y);
 		return;
 	}
 #endif
@@ -2582,7 +2582,7 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 		else
 			m_controlledPlayer->m_pickAtDestination = false;
 
-		if (const auto &ptr = m_currentScene->findShortestPath(m_controlledPlayer->body(), QPointF(x,y))) {
+		if (const auto &ptr = m_currentScene->findShortestPath(m_controlledPlayer, QPointF(x,y))) {
 			m_controlledPlayer->setDestinationPoint(ptr.value());
 
 			if (!m_controlledPlayer->m_sfxAccept.soundList().isEmpty())
@@ -2675,7 +2675,7 @@ void RpgGame::resurrectEnemiesAndPlayer(RpgPlayer *player)
 		return;
 	}
 
-	player->body()->emplace(player->currentSceneStartPosition());
+	player->emplace(player->currentSceneStartPosition());
 	player->setHp(player->maxHp());
 	//player->setMp(std::max(player->config().mpStart, player->mp()));
 

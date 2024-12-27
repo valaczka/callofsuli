@@ -34,7 +34,7 @@ class RpgCoinPickable : public RpgPickableObject
 	Q_OBJECT
 
 public:
-	RpgCoinPickable(QQuickItem *parent = nullptr);
+    RpgCoinPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

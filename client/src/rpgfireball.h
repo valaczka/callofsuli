@@ -42,10 +42,10 @@ class RpgFireball : public IsometricBullet
 	QML_ELEMENT
 
 public:
-	RpgFireball(QQuickItem *parent = nullptr);
+    RpgFireball(TiledScene *scene = nullptr);
 	virtual ~RpgFireball() {}
 
-	static RpgFireball* createBullet(TiledGame *game, TiledScene *scene);
+    static RpgFireball* createBullet(TiledScene *scene);
 
 protected:
 	void load() override final;
@@ -63,7 +63,7 @@ class RpgFireballPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgFireballPickable(QQuickItem *parent = nullptr);
+    RpgFireballPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

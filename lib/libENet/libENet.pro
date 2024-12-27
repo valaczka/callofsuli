@@ -37,8 +37,8 @@ INCLUDEPATH += \
 
 
 HEADERS += \
-	$$files($$PWD/../enet/include/enet/*.h)
+	$$PWD/../enet/include/enet/*.h
 
 SOURCES += \
-	$$files($$PWD/../enet/*.c)
+	$$PWD/../enet/*.c
 

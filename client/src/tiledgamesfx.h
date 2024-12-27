@@ -131,7 +131,7 @@ class TiledGameSfxLocation : public QObject
 	Q_PROPERTY(float baseVolume READ baseVolume WRITE setBaseVolume NOTIFY baseVolumeChanged FINAL)
 
 public:
-	TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObjectBase *tiledObject,
+	TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObject *tiledObject,
 						 const Sound::ChannelType &channel = Sound::Music2Channel);
 	virtual ~TiledGameSfxLocation();
 
@@ -146,7 +146,7 @@ private:
 	void updateSound();
 	void checkPosition();
 
-	QPointer<TiledObjectBase> m_object;
+	QPointer<TiledObject> m_object;
 	std::unique_ptr<Sound::ExternalSound> m_sound;
 	float m_baseVolume = 1.;
 

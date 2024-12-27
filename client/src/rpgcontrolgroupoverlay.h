@@ -44,14 +44,14 @@ public:
 	void removePlayerFixture(RpgPlayer *player);
 
 private:
-	void onFixtureBeginContact(Box2DFixture *other);
-	void onFixtureEndContact(Box2DFixture *other);
+	/*void onFixtureBeginContact(Box2DFixture *other);
+	void onFixtureEndContact(Box2DFixture *other);*/
 	void onControlledPlayerChanged();
-	void connectFixture(Box2DFixture *fixture);
+	/*void connectFixture(Box2DFixture *fixture);*/
 	void updateLayers();
 
 	QVector<QPointer<TiledQuick::TileLayerItem>> m_tileLayers;
-	QVector<QPointer<Box2DFixture>> m_contactedFixtures;
+	/*QVector<QPointer<Box2DFixture>> m_contactedFixtures;*/
 };
 
 #endif // RPGCONTROLGROUPOVERLAY_H

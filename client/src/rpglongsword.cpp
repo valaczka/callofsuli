@@ -78,7 +78,7 @@ void RpgLongsword::eventAttack(TiledObject *target)
 
 	if (TiledGame *g = p->game()) {
 		g->playSfx(target ? QStringLiteral(":/rpg/longsword/swing2.mp3") : QStringLiteral(":/rpg/longsword/swing.mp3"),
-				   p->scene(), p->body()->bodyPosition());
+				   p->scene(), p->bodyPosition());
 	}
 }
 
@@ -89,8 +89,8 @@ void RpgLongsword::eventAttack(TiledObject *target)
  * @param parent
  */
 
-RpgLongswordPickable::RpgLongswordPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableLongsword, parent)
+RpgLongswordPickable::RpgLongswordPickable(TiledScene *scene)
+	: RpgPickableObject(PickableLongsword, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

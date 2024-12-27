@@ -28,8 +28,8 @@
 
 
 
-RpgKeyPickable::RpgKeyPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableKey, parent)
+RpgKeyPickable::RpgKeyPickable(TiledScene *scene)
+	: RpgPickableObject(PickableKey, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }

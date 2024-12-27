@@ -28,8 +28,8 @@
 #include "rpgplayer.h"
 
 
-RpgArrow::RpgArrow(QQuickItem *parent)
-	: IsometricBullet(parent)
+RpgArrow::RpgArrow(TiledScene *scene)
+	: IsometricBullet(scene)
 {
 
 }
@@ -43,17 +43,10 @@ RpgArrow::RpgArrow(QQuickItem *parent)
  * @return
  */
 
-RpgArrow *RpgArrow::createBullet(TiledGame *game, TiledScene *scene)
+RpgArrow *RpgArrow::createBullet(TiledScene *scene)
 {
-	RpgArrow *bullet = nullptr;
-	TiledObjectBase::createFromCircle<RpgArrow>(&bullet, QPointF{}, 20, nullptr, scene);
-
-	if (bullet) {
-		bullet->m_body->setBullet(true);
-		bullet->setGame(game);
-		bullet->setScene(scene);
-		bullet->initialize();
-	}
+	RpgArrow *bullet = new RpgArrow(scene);
+	bullet->initialize(20.);
 
 	return bullet;
 }
@@ -105,8 +98,8 @@ void RpgArrow::load()
  * @param parent
  */
 
-RpgArrowPickable::RpgArrowPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableArrow, parent)
+RpgArrowPickable::RpgArrowPickable(TiledScene *scene)
+	: RpgPickableObject(PickableArrow, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

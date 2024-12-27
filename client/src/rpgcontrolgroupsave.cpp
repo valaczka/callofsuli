@@ -69,7 +69,7 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 
 		} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(group->objects())) {
-				TiledObjectBase *base = nullptr;
+				TiledObject *base = nullptr;
 
 				if (object->className() != QStringLiteral("trigger")) {
 					LOG_CWARNING("game") << "RpgControlGroupSave object skipped:" << object->id() << object->name();
@@ -77,10 +77,10 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 				}
 
 				if (object->shape() == Tiled::MapObject::Point) {
-					TiledObjectBaseCircle *ptr = nullptr;
-					TiledObject::createFromCircle<TiledObjectBaseCircle>(&ptr, object->position(), 60., renderer, scene);
+					TiledObject *ptr = m_game->createFromCircle<TiledObject>(scene, object->position(), 60., renderer);
+					//TiledObject *ptr = TiledObject::createFromCircle(scene, object->position(), 60., renderer);
 					//ptr->body()->emplace(renderer->pixelToScreenCoords(object->position()));
-					connectFixture(ptr->fixture());
+					//connectFixture(ptr->fixture());
 					base = ptr;
 				}
 
@@ -90,7 +90,6 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 				}
 
 				base->setParent(m_game);
-				base->setScene(scene);
 				m_position = base->position();
 			}
 
@@ -104,13 +103,13 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
  * @brief RpgControlGroupSave::onFixtureBeginContact
  * @param other
  */
-
+/*
 void RpgControlGroupSave::onFixtureBeginContact(Box2DFixture *other)
 {
 	if (m_timer.isActive() || !m_active)
 		return;
 
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	TiledObject *base = TiledObject::getFromFixture(other);
 	RpgPlayer *player = dynamic_cast<RpgPlayer*>(base);
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
@@ -125,14 +124,6 @@ void RpgControlGroupSave::onFixtureBeginContact(Box2DFixture *other)
 
 
 
-
-
-
-/**
- * @brief RpgControlGroupSave::connectFixture
- * @param fixture
- */
-
 void RpgControlGroupSave::connectFixture(Box2DFixture *fixture)
 {
 	fixture->setSensor(true);
@@ -145,7 +136,7 @@ void RpgControlGroupSave::connectFixture(Box2DFixture *fixture)
 
 	m_fixture = fixture;
 }
-
+*/
 
 
 /**
@@ -206,11 +197,11 @@ void RpgControlGroupSave::deactivate()
 {
 	m_active = false;
 
-	if (!m_fixture)
+	/*if (!m_fixture)
 		return;
 
 	m_fixture->setCollidesWith(Box2DFixture::None);
-	m_fixture->getBody()->setActive(false);
+	m_fixture->getBody()->setActive(false);*/
 
 	updateLayers();
 }

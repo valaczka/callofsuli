@@ -34,8 +34,10 @@
 #include "abstractgame.h"
 #include <QQuickItem>
 #include <QSerializer>
-#include <unordered_map>
 
+
+
+class TiledGamePrivate;
 
 
 /**
@@ -78,7 +80,7 @@ class TiledGame : public QQuickItem
 
 	Q_PROPERTY(TiledScene *currentScene READ currentScene WRITE setCurrentScene NOTIFY currentSceneChanged FINAL)
 	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
-	Q_PROPERTY(TiledObjectBase *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
+	Q_PROPERTY(TiledObject *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QQuickItem *messageList READ messageList WRITE setMessageList NOTIFY messageListChanged FINAL)
 	Q_PROPERTY(QColor defaultMessageColor READ defaultMessageColor WRITE setDefaultMessageColor NOTIFY defaultMessageColorChanged FINAL)
@@ -118,7 +120,7 @@ public:
 	Tiled::TileLayer *loadSceneLayer(TiledScene *scene, Tiled::Layer *layer, Tiled::MapRenderer *renderer);
 
 	static QSGTexture *getTexture(const QString &path, QQuickWindow *window);
-	static void clearSharedTextures() {  m_sharedTextures.clear(); }
+	static void clearSharedTextures();
 
 	QVector<TiledScene*> sceneList() const;
 
@@ -130,7 +132,7 @@ public:
 	const TiledTransportList &transportList() const;
 	TiledTransportList &transportList();
 
-	bool transport(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase = nullptr);
+	bool transport(TiledObject *object, TiledTransport *transport, TiledObject *transportBase = nullptr);
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers);
 
@@ -162,8 +164,45 @@ public:
 	std::optional<QPointF> playerPosition(TiledScene *scene, const int &num) const;
 
 
-	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
-											   const QPointF &translate = {});
+
+	/**
+	 * @brief createFromMapObject
+	 * @param scene
+	 * @param object
+	 * @param renderer
+	 * @param params
+	 * @return
+	 */
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromMapObject(TiledScene *scene, const Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+						   const b2::Shape::Params &params = {});
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromMapObject(TiledScene *scene, const Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+						   b2::Body::Params bParams, const b2::Shape::Params &params = {});
+
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
+						   const b2::Shape::Params &params = {});
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
+						   b2::Body::Params bParams, const b2::Shape::Params &params = {});
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+						   const b2::Shape::Params &params = {});
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+						   b2::Body::Params bParams, const b2::Shape::Params &params = {});
+
+
+
+	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+										const QPointF &translate = {});
 
 
 	// Sprite texture helper
@@ -215,7 +254,7 @@ public:
 
 
 
-	virtual void onSceneWorldStepped(TiledScene *scene);
+	[[deprecated]] virtual void onSceneWorldStepped(TiledScene *scene);
 
 	AbstractGame::TickTimer *tickTimer() const { return m_tickTimer.get(); }
 	void setTickTimer(std::unique_ptr<AbstractGame::TickTimer> &timer) { m_tickTimer = std::move(timer); }
@@ -229,8 +268,8 @@ public:
 	bool debugView() const;
 	void setDebugView(bool newDebugView);
 
-	TiledObjectBase *followedItem() const;
-	void setFollowedItem(TiledObjectBase *newFollowedItem);
+	TiledObject *followedItem() const;
+	void setFollowedItem(TiledObject *newFollowedItem);
 
 	QQuickItem *messageList() const;
 	void setMessageList(QQuickItem *newMessageList);
@@ -272,102 +311,52 @@ signals:
 	void pausedChanged();
 
 protected:
+	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body);
+	void addPlayerPosition(TiledScene *scene, const QPointF &position);
+
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
-	void addPlayerPosition(TiledScene *scene, const QPointF &position);
-
-	int findLoadedObject(const int &id, const int &sceneId) const;
-	bool addLoadedObject(const int &id, const int &sceneId);
 
 	void changeScene(TiledObject *object, TiledScene *from, TiledScene *to, const QPointF &toPoint);
-
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer);
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer);
+
+	virtual void timerEvent(QTimerEvent *event) override final;
+	virtual void timeSteppedEvent();
+
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 	virtual void joystickStateEvent(const JoystickState &newJoystickState) { Q_UNUSED(newJoystickState);}
 
 	virtual bool transportBeforeEvent(TiledObject *object, TiledTransport *transport);
-	virtual bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject);
+	virtual bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObject *newObject);
 	virtual bool transportMarket();
-	virtual bool transportGate(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase);
+	virtual bool transportGate(TiledObject *object, TiledTransport *transport, TiledObject *transportBase);
 	virtual bool transportDoor(TiledObject *object, TiledTransport *transport);
 
 
 protected:
-	struct Scene {
-		QQuickItem *container = nullptr;
-		TiledScene *scene = nullptr;
-	};
-
-	struct PlayerPosition {
-		int sceneId = -1;
-		TiledScene *scene = nullptr;
-		QPointF position;
-
-		friend bool operator==(const PlayerPosition &p1, const PlayerPosition &p2) {
-			return p1.sceneId == p2.sceneId &&
-					p1.scene == p2.scene &&
-					p1.position == p2.position;
-		}
-	};
-
-	QVector<Scene> m_sceneList;
-	QVector<TiledObjectBase::ObjectId> m_loadedObjectList;
-	QVector<PlayerPosition> m_playerPositionList;
-	TiledTransportList m_transportList;
-
 	TiledScene *m_currentScene = nullptr;
 
 	std::unique_ptr<AbstractGame::TickTimer> m_tickTimer;
 	bool m_paused = false;
 
 
-
 private:
-	struct KeyboardJoystickState {
-		bool left = false;
-		bool right = false;
-		bool up = false;
-		bool down = false;
-
-		bool upLeft = false;
-		bool upRight = false;
-		bool downLeft = false;
-		bool downRight = false;
-
-		bool shift = false;
-
-
-		void clear() {
-			left = false;
-			right = false;
-			up = false;
-			down = false;
-
-			upLeft = false;
-			upRight = false;
-			downLeft = false;
-			downRight = false;
-
-			shift = false;
-		}
-	};
-
 	void joystickConnect(const bool &connect = true);
 	Q_INVOKABLE void updateJoystick();
 	void updateKeyboardJoystick();
+	void updateStepTimer();
 
 
-	KeyboardJoystickState m_keyboardJoystickState;
+
 	QPointer<QQuickItem> m_joystick = nullptr;
-	QPointer<TiledObjectBase> m_followedItem = nullptr;
+	QPointer<TiledObject> m_followedItem = nullptr;
 	JoystickState m_joystickState;
-	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 	bool m_debugView = false;
 	bool m_mouseNavigation = false;
 	bool m_mouseAttack = false;
@@ -375,7 +364,176 @@ private:
 	QQuickItem *m_messageList = nullptr;
 	QColor m_defaultMessageColor = Qt::white;
 	qreal m_baseScale = 1.;
+
+	TiledGamePrivate *d = nullptr;
+
+	friend class TiledGamePrivate;
 };
+
+
+
+
+
+/**
+ * @brief TiledGame::createFromMapObject
+ * @param scene
+ * @param object
+ * @param renderer
+ * @param bParams
+ * @param params
+ * @return
+ */
+
+template<typename T, typename T2>
+inline T *TiledGame::createFromMapObject(TiledScene *scene, const Tiled::MapObject *object,
+										 Tiled::MapRenderer *renderer,
+										 b2::Body::Params bParams, const b2::Shape::Params &params)
+{
+	std::unique_ptr<T> dptr(new T(scene));
+
+	if (!dptr->createFromMapObject(object, renderer, bParams, params))
+		return nullptr;
+
+	T* ret = dptr.get();
+	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
+	addObject(b);
+	return ret;
+}
+
+
+
+/**
+ * @brief TiledGame::createFromMapObject
+ * @param scene
+ * @param object
+ * @param renderer
+ * @param params
+ * @return
+ */
+
+template<typename T, typename T2>
+inline T *TiledGame::createFromMapObject(TiledScene *scene, const Tiled::MapObject *object,
+										 Tiled::MapRenderer *renderer,
+										 const b2::Shape::Params &params)
+{
+	std::unique_ptr<T> dptr(new T(scene));
+
+	if (!dptr->createFromMapObject(object, renderer, params))
+		return nullptr;
+
+	T* ret = dptr.get();
+	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
+	addObject(b);
+	return ret;
+}
+
+
+/**
+ * @brief TiledGame::createFromCircle
+ * @param scene
+ * @param center
+ * @param radius
+ * @param renderer
+ * @param bParams
+ * @param params
+ * @return
+ */
+
+template<typename T, typename T2>
+inline T *TiledGame::createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius,
+									  Tiled::MapRenderer *renderer,
+									  b2::Body::Params bParams, const b2::Shape::Params &params)
+{
+	std::unique_ptr<T> dptr(new T(scene));
+
+	if (!dptr->createFromCircle(center, radius, renderer, bParams, params))
+		return nullptr;
+
+	T* ret = dptr.get();
+	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
+	addObject(b);
+	return ret;
+}
+
+
+/**
+ * @brief TiledGame::createFromPolygon
+ * @param scene
+ * @param polygon
+ * @param renderer
+ * @param bParams
+ * @param params
+ * @return
+ */
+
+template<typename T, typename T2>
+inline T *TiledGame::createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer, b2::Body::Params bParams, const b2::Shape::Params &params)
+{
+	std::unique_ptr<T> dptr(new T(scene));
+
+	if (!dptr->createFromPolygon(polygon, renderer, bParams, params))
+		return nullptr;
+
+	T* ret = dptr.get();
+	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
+	addObject(b);
+	return ret;
+}
+
+
+/**
+ * @brief TiledGame::createFromPolygon
+ * @param scene
+ * @param polygon
+ * @param renderer
+ * @param params
+ * @return
+ */
+
+template<typename T, typename T2>
+inline T *TiledGame::createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer, const b2::Shape::Params &params)
+{
+	std::unique_ptr<T> dptr(new T(scene));
+
+	if (!dptr->createFromPolygon(polygon, renderer, params))
+		return nullptr;
+
+	T* ret = dptr.get();
+	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
+	addObject(b);
+	return ret;
+}
+
+
+/**
+ * @brief TiledGame::createFromCircle
+ * @param scene
+ * @param center
+ * @param radius
+ * @param renderer
+ * @param params
+ * @return
+ */
+
+template<typename T, typename T2>
+inline T *TiledGame::createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius,
+									  Tiled::MapRenderer *renderer,
+									  const b2::Shape::Params &params)
+{
+	std::unique_ptr<T> dptr(new T(scene));
+
+	if (!dptr->createFromCircle(center, radius, renderer, params))
+		return nullptr;
+
+	T* ret = dptr.get();
+	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
+	addObject(b);
+	return ret;
+}
+
+
+
+
 
 Q_DECLARE_METATYPE(TiledGame::JoystickState)
 

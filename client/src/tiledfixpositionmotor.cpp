@@ -45,7 +45,7 @@ TiledFixPositionMotor::TiledFixPositionMotor()
 void TiledFixPositionMotor::updateBody(TiledObject *object, const float &, AbstractGame::TickTimer *)
 {
 	Q_ASSERT(object);
-	object->body()->stop();
+	object->stop();
 	if (m_direction != TiledObject::Invalid)
 		object->setCurrentDirection(m_direction);
 }

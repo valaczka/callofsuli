@@ -29,7 +29,6 @@
 #include "tiledpickableiface.h"
 #include "tiledscene.h"
 #include "tiledgame.h"
-#include "application.h"
 #include "tiledspritehandler.h"
 
 
@@ -100,8 +99,8 @@ private:
  * @param parent
  */
 
-IsometricPlayer::IsometricPlayer(QQuickItem *parent)
-	: IsometricCircleEntity(parent)
+IsometricPlayer::IsometricPlayer(TiledScene *scene)
+	: IsometricEntity(scene)
 	, d(new IsometricPlayerPrivate)
 {
 }
@@ -126,10 +125,10 @@ void IsometricPlayer::entityWorldStep(const qreal &factor)
 {
 	IsometricEnemy *e = nullptr;
 
-	if (d->isEnemyContanctedAndReached() && checkEntityVisibility(m_body.get(), d->m_enemy, TiledObjectBody::FixtureEnemyBody, nullptr).has_value()) {
+	if (d->isEnemyContanctedAndReached() && checkEntityVisibility(this, d->m_enemy, TiledObjectBody::FixtureEnemyBody, nullptr).has_value()) {
 		e = d->m_enemy;
 	} else {
-		e = getVisibleEntity<IsometricEnemy*>(m_body.get(), d->contactedAndReachedEnemies(), TiledObjectBody::FixtureEnemyBody, nullptr);
+		e = getVisibleEntity<IsometricEnemy*>(this, d->contactedAndReachedEnemies(), TiledObjectBody::FixtureEnemyBody, nullptr);
 	}
 
 	if (e != d->m_enemy) {
@@ -147,54 +146,47 @@ void IsometricPlayer::entityWorldStep(const qreal &factor)
 
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		//clearDestinationPoint();
-		m_body->stop();
+		stop();
 	} else if (!hasAbility()) {
-		m_body->stop();
+		stop();
 	} else {
 		if (d->m_destinationPoint) {
-			QLineF line(QPointF{0,0}, d->m_destinationPoint.value() - m_body->bodyPosition());
+			QLineF line(QPointF{0,0}, d->m_destinationPoint.value() - bodyPosition());
 			if (line.length() >= m_speedRunLength*factor) {
 				line.setLength(m_speedRunLength*factor);
-				m_body->setLinearVelocity(line.p2());				// TiledObjectBase::toPoint()
-				m_body->setIsRunning(true);
+				setSpeed(line.p2());				// TiledObjectBase::toPoint()
 			} else if (line.length() >= m_speedLength*factor) {
 				line.setLength(m_speedLength*factor);
-				m_body->setLinearVelocity(line.p2());
-				m_body->setIsRunning(false);
+				setSpeed(line.p2());
 			} else {
-				m_body->stop();
-				m_body->setIsRunning(false);
-				m_body->emplace(d->m_destinationPoint.value());
+				stop();
+				emplace(d->m_destinationPoint.value());
 				clearDestinationPoint();
 				atDestinationPointEvent();
 			}
 		} else if (d->m_destinationMotor) {
 			if (d->m_destinationMotor->atEnd()) {
-				m_body->stop();
-				m_body->setIsRunning(false);
+				stop();
 				clearDestinationPoint();
 				atDestinationPointEvent();
 			} else if (const QPolygonF &polygon = d->m_destinationMotor->polygon(); !polygon.isEmpty()) {
-				const float distance = QVector2D(m_body->bodyPosition()).distanceToPoint(QVector2D(polygon.last()));
+				const float distance = QVector2D(bodyPosition()).distanceToPoint(QVector2D(polygon.last()));
 
 				if (distance >= m_speedRunLength*factor*10.) {				// Hogy a végén szépen lassan gyalogoljon csak
-					m_body->setIsRunning(true);
 					d->m_destinationMotor->updateBody(this, m_speedRunLength*factor, m_game->tickTimer());
 				} else {
-					m_body->setIsRunning(false);
 					d->m_destinationMotor->updateBody(this, m_speedLength*factor, m_game->tickTimer());
 				}
 
 				setCurrentAngle(d->m_destinationMotor->currentAngleRadian());
 			} else {
-				m_body->stop();
-				m_body->setIsRunning(false);
+				stop();
 				clearDestinationPoint();
 			}
 		} else {
 			QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
 			line.setLength(line.length()*factor);
-			m_body->setLinearVelocity(line.p2());
+			setSpeed(line.p2());
 		}
 	}
 
@@ -214,20 +206,28 @@ void IsometricPlayer::entityWorldStep(const qreal &factor)
 
 void IsometricPlayer::initialize()
 {
-	m_body->setBodyType(Box2DBody::Dynamic);
-
 	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.5);
 
-	m_fixture->setDensity(1);
-	m_fixture->setFriction(1);
-	m_fixture->setRestitution(0);
+	b2::Body::Params bParams;
+	bParams.type = b2BodyType::b2_dynamicBody;
+	bParams.fixedRotation = true;
+
+	b2::Shape::Params params;
+	params.density = 1.f;
+	params.friction = 1.f;
+	params.restitution = 0.f;
+	/*params.filter = TiledObjectBody::getFilter(FixtureTarget,
+											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);*/
+
+	createFromCircle({0.f, 0.f}, 30., nullptr, bParams, params);
 
 	createVisual();
+
 	createMarkerItem();
 
-	TiledObjectSensorPolygon *p = addSensorPolygon(m_sensorLength, m_sensorRange);
+	/*TiledObjectSensorPolygon *p = addSensorPolygon(m_sensorLength, m_sensorRange);
 
 	addTargetCircle(m_targetCircleRadius);
 
@@ -245,7 +245,7 @@ void IsometricPlayer::initialize()
 	connect(p, &TiledObjectSensorPolygon::endContact, this, &IsometricPlayer::sensorEndContact);
 
 	connect(m_fixture.get(), &TiledObjectSensorPolygon::beginContact, this, &IsometricPlayer::fixtureBeginContact);
-	connect(m_fixture.get(), &TiledObjectSensorPolygon::endContact, this, &IsometricPlayer::fixtureEndContact);
+	connect(m_fixture.get(), &TiledObjectSensorPolygon::endContact, this, &IsometricPlayer::fixtureEndContact);*/
 
 	load();
 	onAlive();
@@ -313,9 +313,9 @@ void IsometricPlayer::removeEnemy(IsometricEnemy *enemy)
 
 void IsometricPlayer::onAlive()
 {
-	m_body->setBodyType(Box2DBody::Dynamic);
-	m_body->setActive(true);
-	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
+	setBodyEnabled(true);
+
+	/*m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
 	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
 							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget) |
@@ -326,7 +326,7 @@ void IsometricPlayer::onAlive()
 							   );
 
 	m_sensorPolygon->setLength(m_sensorLength);
-	m_sensorPolygon->setRange(m_sensorRange);
+	m_sensorPolygon->setRange(m_sensorRange);*/
 	setSubZ(0.5);
 	emit becameAlive();
 }
@@ -340,11 +340,13 @@ void IsometricPlayer::onAlive()
 
 void IsometricPlayer::onDead()
 {
-	m_body->setBodyType(Box2DBody::Static);
+	setBodyEnabled(false);
+
+	/*m_body->setBodyType(Box2DBody::Static);
 	m_body->setActive(false);
 	m_fixture->setCategories(Box2DFixture::None);
 	m_fixture->setCollidesWith(Box2DFixture::None);
-	m_sensorPolygon->setLength(10.);
+	m_sensorPolygon->setLength(10.);*/
 	setSubZ(0.0);
 	setCurrentVelocity(QPointF{});
 
@@ -483,7 +485,7 @@ void IsometricPlayer::setIsLocked(bool newIsLocked)
 	m_isLocked = newIsLocked;
 	emit isLockedChanged();
 	if (m_isLocked) {
-		m_body->stop();
+		stop();
 		clearDestinationPoint();
 	}
 }
@@ -495,10 +497,10 @@ void IsometricPlayer::setIsLocked(bool newIsLocked)
  * @brief IsometricPlayer::sensorBeginContact
  * @param other
  */
-
+/*
 void IsometricPlayer::sensorBeginContact(Box2DFixture *other)
 {
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	TiledObject *base = TiledObject::getFromFixture(other);
 
 	if (!base)
 		return;
@@ -510,15 +512,9 @@ void IsometricPlayer::sensorBeginContact(Box2DFixture *other)
 }
 
 
-
-/**
- * @brief IsometricPlayer::sensorEndContact
- * @param other
- */
-
 void IsometricPlayer::sensorEndContact(Box2DFixture *other)
 {
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	TiledObject *base = TiledObject::getFromFixture(other);
 	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
 
 	if (!base)
@@ -528,16 +524,9 @@ void IsometricPlayer::sensorEndContact(Box2DFixture *other)
 		d->m_contactedEnemies.removeAll(QPointer(enemy));
 }
 
-
-
-/**
- * @brief IsometricPlayer::fixtureBeginContact
- * @param other
- */
-
 void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 {
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	TiledObject *base = TiledObject::getFromFixture(other);
 
 	if (!base)
 		return;
@@ -581,15 +570,9 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 
 
 
-
-/**
- * @brief IsometricPlayer::fixtureEndContact
- * @param other
- */
-
 void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 {
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	TiledObject *base = TiledObject::getFromFixture(other);
 
 	if (!base)
 		return;
@@ -631,7 +614,7 @@ void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 	}
 }
 
-
+*/
 
 
 /**
@@ -688,7 +671,7 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 	clearDestinationPoint();
 
 	if (m_isLocked) {
-		m_body->stop();
+		stop();
 		return;
 	}
 
@@ -697,14 +680,11 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 	}
 
 	if (state.distance > 0.95) {
-		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedRunLength));
-		m_body->setIsRunning(true);
+		setCurrentVelocity(TiledObject::toPoint(state.angle, m_speedRunLength));
 	} else if (state.distance > 0.45) {
-		setCurrentVelocity(TiledObjectBase::toPoint(state.angle, m_speedLength));
-		m_body->setIsRunning(false);
+		setCurrentVelocity(TiledObject::toPoint(state.angle, m_speedLength));
 	} else {
 		setCurrentVelocity({0.,0.});
-		m_body->setIsRunning(false);
 	}
 }
 
@@ -722,7 +702,7 @@ void IsometricPlayer::setDestinationPoint(const QPolygonF &polygon)
 
 	if (m_isLocked) {
 		clearDestinationPoint();
-		m_body->stop();
+		stop();
 		return;
 	}
 
@@ -747,11 +727,11 @@ void IsometricPlayer::setDestinationPoint(const QPointF &point)
 
 	if (m_isLocked) {
 		clearDestinationPoint();
-		m_body->stop();
+		stop();
 		return;
 	}
 
-	QLineF l(m_body->bodyPosition(), point);
+	QLineF l(bodyPosition(), point);
 	setCurrentAngle(toRadian(l.angle()));
 
 	d->m_destinationPoint = point;

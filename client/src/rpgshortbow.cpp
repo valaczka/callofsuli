@@ -52,7 +52,7 @@ IsometricBullet *RpgShortbow::createBullet(const qreal &distance)
 
 	TiledObject *p = m_parentObject.data();
 
-	RpgArrow *arrow = RpgArrow::createBullet(p->game(), p->scene());
+	RpgArrow *arrow = RpgArrow::createBullet(p->scene());
 
 	if (arrow && distance > 0.) {
 		if (distance < 1.)
@@ -85,7 +85,7 @@ void RpgShortbow::eventAttack(TiledObject *)
 	}
 
 	if (TiledGame *g = p->game()) {
-		g->playSfx(QStringLiteral(":/rpg/shortbow/swish_2.mp3"), p->scene(), p->body()->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/shortbow/swish_2.mp3"), p->scene(), p->bodyPosition());
 	}
 }
 
@@ -97,8 +97,8 @@ void RpgShortbow::eventAttack(TiledObject *)
  * @param parent
  */
 
-RpgShortbowPickable::RpgShortbowPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableShortbow, parent)
+RpgShortbowPickable::RpgShortbowPickable(TiledScene *scene)
+	: RpgPickableObject(PickableShortbow, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

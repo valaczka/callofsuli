@@ -35,8 +35,8 @@
  * @param parent
  */
 
-RpgLightning::RpgLightning(QQuickItem *parent)
-	: IsometricBullet(parent)
+RpgLightning::RpgLightning(TiledScene *scene)
+	: IsometricBullet(scene)
 {
 	m_maxDistance = 500.;
 	m_speed = 30.;
@@ -50,18 +50,10 @@ RpgLightning::RpgLightning(QQuickItem *parent)
  * @return
  */
 
-RpgLightning *RpgLightning::createBullet(TiledGame *game, TiledScene *scene)
+RpgLightning *RpgLightning::createBullet(TiledScene *scene)
 {
-	RpgLightning *bullet = nullptr;
-	TiledObjectBase::createFromCircle<RpgLightning>(&bullet, QPointF{}, 20, nullptr, scene);
-
-	if (bullet) {
-		bullet->m_body->setBullet(true);
-		bullet->setGame(game);
-		bullet->setScene(scene);
-		bullet->initialize();
-	}
-
+	RpgLightning *bullet = new RpgLightning(scene);
+	bullet->initialize(20.);
 	return bullet;
 }
 
@@ -108,7 +100,7 @@ void RpgLightning::load()
  * @param base
  */
 
-void RpgLightning::impactEvent(TiledObjectBase *base)
+void RpgLightning::impactEvent(TiledObject *base)
 {
 	RpgGame *game = d->owner() ? qobject_cast<RpgGame*>(d->owner()->game()) : nullptr;
 
@@ -127,7 +119,7 @@ void RpgLightning::impactEvent(TiledObjectBase *base)
 	if (!game->playerAttackEnemy(d->owner(), enemy, d->fromWeaponType()))
 	{
 		setImpacted(true);
-		m_body->stop();
+		stop();
 		setCurrentDirection(Invalid);
 		doAutoDelete();
 	}
@@ -162,7 +154,7 @@ IsometricBullet *RpgLightningWeapon::createBullet(const qreal &distance)
 		return nullptr;
 	}
 
-	RpgLightning *fb = RpgLightning::createBullet(m_parentObject->game(), m_parentObject->scene());
+	RpgLightning *fb = RpgLightning::createBullet(m_parentObject->scene());
 
 	if (fb && distance > 0.) {
 		if (distance < 1.)

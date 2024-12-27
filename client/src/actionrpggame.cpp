@@ -606,10 +606,15 @@ void ActionRpgGame::rpgGameActivated_()
 		loadWeapon(player, TiledWeapon::WeaponMageStaff);
 	}
 
+
+	std::unique_ptr<TiledObjectBody> b(std::move(player));
+	m_rpgGame->addObject(b);
+
 	const int hp = m_missionLevel->startHP() + ptr->playerHP;
 
 	player->setHp(hp);
 	player->setMaxHp(hp);
+	player->setMaxMp(characterPtr->mpMax);
 	player->setMp(characterPtr->mpStart);
 	loadInventory(player);
 
@@ -1310,7 +1315,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 			RpgLongbow w;
 			w.setParentObject(player);
 			w.setBulletCount(-1);
-			if (w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), player->currentAngle())) {
+			if (w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), player->currentAngle())) {
 				player->setMp(std::max(0, player->mp() - castValue));
 			} else {
 				return false;
@@ -1331,7 +1336,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 				 origAngle + (M_PI * 12.5 / 180.),
 				 origAngle
 			}) {
-				if (!w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), angle)) {
+				if (!w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), angle)) {
 					return false;
 				}
 				player->setMp(std::max(0, player->mp() - castValue));
@@ -1345,7 +1350,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 			RpgLightningWeapon w;
 			w.setParentObject(player);
 			w.setBulletCount(-1);
-			if (w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), player->currentAngle())) {
+			if (w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), player->currentAngle())) {
 				player->setMp(std::max(0, player->mp() - castValue));
 			} else {
 				return false;
@@ -1381,7 +1386,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 				 origAngle + (M_PI * 12 / 180.),
 				 origAngle
 			}) {
-				if (!w.shot(IsometricBullet::TargetEnemy, player->body()->bodyPosition(), angle)) {
+				if (!w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), angle)) {
 					return false;
 				}
 				player->setMp(std::max(0, player->mp() - castValue));

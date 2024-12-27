@@ -49,7 +49,7 @@ void RpgDagger::eventAttack(TiledObject *target)
 		return;
 
 	if (TiledGame *g = p->game(); g && target) {
-		g->playSfx(QStringLiteral(":/rpg/dagger/dagger.mp3"), p->scene(), p->body()->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/dagger/dagger.mp3"), p->scene(), p->bodyPosition());
 	}
 }
 
@@ -59,8 +59,8 @@ void RpgDagger::eventAttack(TiledObject *target)
  * @param parent
  */
 
-RpgDaggerPickable::RpgDaggerPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableDagger, parent)
+RpgDaggerPickable::RpgDaggerPickable(TiledScene *scene)
+	: RpgPickableObject(PickableDagger, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

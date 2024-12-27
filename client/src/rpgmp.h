@@ -41,7 +41,7 @@ class RpgMpPickable : public RpgPickableObject
 	Q_OBJECT
 
 public:
-	RpgMpPickable(QQuickItem *parent = nullptr);
+    RpgMpPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

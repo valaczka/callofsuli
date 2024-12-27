@@ -26,15 +26,17 @@
 
 #include "isometricentity.h"
 
-IsometricCircleEntity::IsometricCircleEntity(QQuickItem *parent)
-	: IsometricObjectCircle(parent)
-	, IsometricEntityIface()
+
+/**
+ * @brief IsometricEntity::IsometricEntity
+ * @param parent
+ */
+
+IsometricEntity::IsometricEntity(TiledScene *scene)
+	: IsometricObject(scene)
 {
-	m_body->setBodyType(Box2DBody::Dynamic);
-	m_body->setFixedRotation(true);
+
 }
-
-
 
 
 
@@ -44,7 +46,7 @@ IsometricCircleEntity::IsometricCircleEntity(QQuickItem *parent)
  * @param position
  */
 
-void IsometricEntityIface::entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections)
+void IsometricEntity::entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections)
 {
 	if (qFuzzyCompare(position.x(), m_lastPosition.x()) && qFuzzyCompare(position.y(), m_lastPosition.y())) {
 		setMovingDirection(TiledObject::Invalid);
@@ -67,12 +69,12 @@ void IsometricEntityIface::entityIfaceWorldStep(const qreal &factor, const QPoin
  * @return
  */
 
-qreal IsometricEntityIface::movingSpeed() const
+qreal IsometricEntity::movingSpeed() const
 {
 	return m_movingSpeed;
 }
 
-void IsometricEntityIface::setMovingSpeed(qreal newMovingSpeed)
+void IsometricEntity::setMovingSpeed(qreal newMovingSpeed)
 {
 	m_movingSpeed = newMovingSpeed;
 }
@@ -84,12 +86,12 @@ void IsometricEntityIface::setMovingSpeed(qreal newMovingSpeed)
  * @return
  */
 
-int IsometricEntityIface::maxHp() const
+int IsometricEntity::maxHp() const
 {
 	return m_maxHp;
 }
 
-void IsometricEntityIface::setMaxHp(int newMaxHp)
+void IsometricEntity::setMaxHp(int newMaxHp)
 {
 	if (m_maxHp == newMaxHp)
 		return;
@@ -106,14 +108,14 @@ void IsometricEntityIface::setMaxHp(int newMaxHp)
  * @return
  */
 
-std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBody *body, TiledObjectBase *entity,
+std::optional<QPointF> IsometricEntity::checkEntityVisibility(TiledObjectBody *body, TiledObject *entity,
 																   const TiledObjectBody::FixtureCategory &category,
-																   float32 *transparentGroundPtr)
+																   float *transparentGroundPtr)
 {
 	Q_ASSERT(body);
 	Q_ASSERT(entity);
 
-	const QPointF &entityPosition = entity->body()->bodyPosition();
+	const QPointF &entityPosition = entity->bodyPosition();
 	/*
 	QList<QPointF> points;
 
@@ -164,23 +166,23 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
 	for (const QPointF &p : points) {
 */
 
-	float32 rayLength = 0.;
-	const TiledReportedFixtureMap &map = body->rayCast(entityPosition, &rayLength);
+	float rayLength = 0.;
+	const TiledReportedFixtureMap &map = body->rayCast(entityPosition, category);
 
 	bool visible = false;
 
 	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
 
-		if (it->fixture->isSensor())
+		if (it->IsSensor())
 			continue;
 
-		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(category))) {
+		if (FixtureCategories::fromInt(it->GetFilter().categoryBits).testFlag(category)) {
 			visible = true;
 			break;
 		}
 
-		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {
-			if (TiledObjectBody *body = qobject_cast<TiledObjectBody*>(it->fixture->getBody())) {
+		if (FixtureCategories::fromInt(it->GetFilter().categoryBits).testFlag(TiledObjectBody::FixtureGround)) {
+			if (TiledObjectBody *body = TiledObjectBody::fromBodyRef(it->GetBody())) {
 				if (body->opaque()) {
 					visible = false;
 					break;
@@ -207,14 +209,16 @@ std::optional<QPointF> IsometricEntityIface::checkEntityVisibility(TiledObjectBo
  * @return -1.: no ground
  */
 
-float32 IsometricEntityIface::checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float32 *lengthPtr)
+float IsometricEntity::checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float *lengthPtr)
 {
 	Q_ASSERT(body);
 
-	if (body->baseObject() && body->baseObject()->scene()->isGroundContainsPoint(body->bodyPosition()))
+	return -1;
+
+	/*if (body && body->scene()->isGroundContainsPoint(body->bodyPosition()))
 		return 0.;
 
-	float32 dist = -1.;
+	float dist = -1.;
 
 	const TiledReportedFixtureMap &map = body->rayCast(targetPoint, lengthPtr);
 
@@ -225,7 +229,7 @@ float32 IsometricEntityIface::checkGroundDistance(TiledObjectBody *body, const Q
 		}
 	}
 
-	return dist;
+	return dist;*/
 }
 
 
@@ -236,12 +240,12 @@ float32 IsometricEntityIface::checkGroundDistance(TiledObjectBody *body, const Q
  * @return
  */
 
-int IsometricEntityIface::hp() const
+int IsometricEntity::hp() const
 {
 	return m_hp;
 }
 
-void IsometricEntityIface::setHp(int newHp)
+void IsometricEntity::setHp(int newHp)
 {
 	if (m_hp == newHp)
 		return;
@@ -270,14 +274,36 @@ void IsometricEntityIface::setHp(int newHp)
  * @return
  */
 
-TiledObject::Direction IsometricEntityIface::movingDirection() const
+TiledObject::Direction IsometricEntity::movingDirection() const
 {
 	return m_movingDirection;
 }
 
-void IsometricEntityIface::setMovingDirection(const TiledObject::Direction &newMovingDirection)
+void IsometricEntity::setMovingDirection(const TiledObject::Direction &newMovingDirection)
 {
 	if (m_movingDirection == newMovingDirection)
 		return;
 	m_movingDirection = newMovingDirection;
+}
+
+
+/**
+ * @brief IsometricEntity::emplace
+ * @param pos
+ */
+
+void IsometricEntity::emplace(const QPointF &pos) {
+	TiledObjectBody::emplace(pos);
+	updateSprite();
+}
+
+
+/**
+ * @brief IsometricEntity::worldStep
+ * @param factor
+ */
+
+void IsometricEntity::worldStep(const qreal &factor) {
+	entityIfaceWorldStep(factor, position(), m_availableDirections);
+	entityWorldStep(factor);
 }

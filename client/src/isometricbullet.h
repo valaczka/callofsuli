@@ -45,7 +45,7 @@ Q_DECLARE_OPAQUE_POINTER(TiledWeapon*)
  * @brief The IsometricBullet class
  */
 
-class IsometricBullet : public IsometricObjectCircle
+class IsometricBullet : public IsometricObject
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -57,7 +57,7 @@ class IsometricBullet : public IsometricObjectCircle
 	Q_PROPERTY(bool autoDelete READ autoDelete WRITE setAutoDelete NOTIFY autoDeleteChanged FINAL)
 
 public:
-	explicit IsometricBullet(QQuickItem *parent = nullptr);
+	explicit IsometricBullet(TiledScene *scene);
 	virtual ~IsometricBullet();
 
 	enum Target {
@@ -75,7 +75,7 @@ public:
 
 	//static IsometricBullet* createBullet(TiledGame *game, TiledScene *scene);
 
-	void initialize();
+	void initialize(const qreal &radius);
 
 	virtual void shot(const QPointF &from, const Direction &direction);
 	virtual void shot(const QPointF &from, const qreal &angle);
@@ -111,14 +111,14 @@ signals:
 
 protected:
 	virtual void load() = 0;
-	virtual void impactEvent(TiledObjectBase *base);
-	virtual void groundEvent(TiledObjectBase *base) { Q_UNUSED(base); }
+	virtual void impactEvent(TiledObject *base);
+	virtual void groundEvent(TiledObject *base) { Q_UNUSED(base); }
 	virtual void overshootEvent() {}
 
 	void doAutoDelete();
 
 private:
-	void fixtureBeginContact(Box2DFixture *other);
+	void fixtureBeginContact(const b2::ShapeRef &shape);
 	//void fixtureEndContact(Box2DFixture *other);
 
 protected:

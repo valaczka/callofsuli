@@ -36,8 +36,8 @@
  * @param parent
  */
 
-IsometricBullet::IsometricBullet(QQuickItem *parent)
-	: IsometricObjectCircle(parent)
+IsometricBullet::IsometricBullet(TiledScene *scene)
+	: IsometricObject(scene)
 	, d(new IsometricBulletPrivate)
 {
 
@@ -61,27 +61,28 @@ IsometricBullet::~IsometricBullet()
  * @brief IsometricBullet::initialize
  */
 
-void IsometricBullet::initialize()
+void IsometricBullet::initialize(const qreal &radius)
 {
 	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.8);
 
+	b2::Body::Params bParams;
+	bParams.type = b2BodyType::b2_dynamicBody;
+	bParams.fixedRotation = true;
+	bParams.isBullet = true;
 
-	m_body->setBodyType(Box2DBody::Dynamic);
-	m_body->setFixedRotation(true);
-	m_body->setBullet(true);
-	m_fixture->setDensity(1);
-	m_fixture->setFriction(1);
-	m_fixture->setRestitution(0);
-	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget));
-	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround));
-	m_fixture->setSensor(true);
+	b2::Shape::Params params;
+	params.density = 1.f;
+	params.friction = 1.f;
+	params.restitution = 0.f;
+	params.isSensor = true;
+	params.filter = TiledObjectBody::getFilter(FixtureTarget,
+											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);
 
-	connect(m_fixture.get(), &Box2DCircle::beginContact, this, &IsometricBullet::fixtureBeginContact);
+	TiledObjectBody::createFromCircle({0.f, 0.f}, radius, nullptr, bParams, params);
+
+	//connect(m_fixture.get(), &Box2DCircle::beginContact, this, &IsometricBullet::fixtureBeginContact);
 	//connect(m_fixture.get(), &Box2DCircle::endContact, this, &IsometricBullet::fixtureEndContact);
 
 	load();
@@ -98,16 +99,16 @@ void IsometricBullet::initialize()
 
 void IsometricBullet::shot(const QPointF &from, const Direction &direction)
 {
-	if (!m_scene)
+	if (!scene())
 		return;
 
 	m_startPoint = from;
-	m_body->emplace(from);
+	emplace(from);
 	setCurrentDirection(direction);
 	m_direction = direction;
 	m_angle = 0.;
 	jumpToSprite("default", m_currentDirection);
-	m_scene->appendToObjects(this);
+	scene()->appendToObjects(this);
 }
 
 
@@ -119,16 +120,16 @@ void IsometricBullet::shot(const QPointF &from, const Direction &direction)
 
 void IsometricBullet::shot(const QPointF &from, const qreal &angle)
 {
-	if (!m_scene)
+	if (!scene())
 		return;
 
 	m_startPoint = from;
-	m_body->emplace(from);
+	emplace(from);
 	setCurrentDirection(nearestDirectionFromRadian(angle));
 	m_direction = Invalid;
 	m_angle = angle;
 	jumpToSprite("default", m_currentDirection);
-	m_scene->appendToObjects(this);
+	scene()->appendToObjects(this);
 }
 
 
@@ -169,11 +170,11 @@ void IsometricBullet::shot(const Targets &targets, const QPointF &from, const qr
 void IsometricBullet::worldStep(const qreal &factor)
 {
 	if (m_currentDirection == Invalid) {
-		m_body->stop();
+		stop();
 		return;
 	}
 
-	const qreal &distance = QVector2D(m_startPoint - m_body->bodyPosition()).length();
+	const qreal &distance = QVector2D(m_startPoint - bodyPosition()).length();
 
 	if (distance >= m_maxDistance) {
 		overshootEvent();
@@ -182,9 +183,9 @@ void IsometricBullet::worldStep(const qreal &factor)
 	}
 
 	if (m_direction != Invalid) {
-		m_body->setLinearVelocity(TiledObjectBase::toPoint(directionToIsometricRaidan(m_direction), m_speed*factor));
+		setSpeed(TiledObject::toPoint(directionToIsometricRadian(m_direction), m_speed*factor));
 	} else {
-		m_body->setLinearVelocity(TiledObjectBase::toPoint(m_angle, m_speed*factor));
+		setSpeed(TiledObject::toPoint(m_angle, m_speed*factor));
 	}
 
 	jumpToSprite("default", m_currentDirection);
@@ -230,22 +231,21 @@ void IsometricBullet::setBulletId(qint64 newBulletId)
 
 /**
  * @brief IsometricBullet::fixtureBeginContact
- * @param other
+ * @param shape
  */
 
-void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
+void IsometricBullet::fixtureBeginContact(const b2::ShapeRef &shape)
 {
-	if (m_impacted) {
-		m_body->stop();
+	/*if (m_impacted) {
+		stop();
 		return;
 	}
 
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround)) &&
-			base && base->body()->opaque()) {
+	TiledObject *base = TiledObject::getFromFixture(other);
+	shape(other->cshaperies().testFlag(TiledObjectBody::FixtureGround) &&
+			base && base->opaque()) {
 		setImpacted(true);
-		m_body->stop();
+		stop();
 		setCurrentDirection(Invalid);
 		groundEvent(base);
 		doAutoDelete();
@@ -268,7 +268,7 @@ void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
 	if (!hasTarget)
 		return;
 
-	impactEvent(base);
+	impactEvent(base);*/
 }
 
 
@@ -278,8 +278,8 @@ void IsometricBullet::fixtureBeginContact(Box2DFixture *other)
 
 void IsometricBullet::doAutoDelete()
 {
-	if (m_scene)
-		m_scene->removeFromObjects(this);
+	if (scene())
+		scene()->removeFromObjects(this);
 
 	setVisible(false);
 	this->deleteLater();
@@ -306,7 +306,7 @@ void IsometricBullet::setFromWeapon(TiledWeapon *newFromWeapon)
  * @param base
  */
 
-void IsometricBullet::impactEvent(TiledObjectBase *base)
+void IsometricBullet::impactEvent(TiledObject *base)
 {
 	if (!d->m_owner) {
 		LOG_CWARNING("game") << "Missing owner, bullet automatic impact event failed";
@@ -332,7 +332,7 @@ void IsometricBullet::impactEvent(TiledObjectBase *base)
 	/// TODO: player attack player?
 
 	setImpacted(true);
-	m_body->stop();
+	stop();
 	setCurrentDirection(Invalid);
 	doAutoDelete();
 }

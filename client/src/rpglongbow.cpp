@@ -47,7 +47,7 @@ IsometricBullet *RpgLongbow::createBullet(const qreal &distance)
 		return nullptr;
 	}
 
-	RpgFireball *fb = RpgFireball::createBullet(m_parentObject->game(), m_parentObject->scene());
+	RpgFireball *fb = RpgFireball::createBullet(m_parentObject->scene());
 
 	if (fb && distance > 0.) {
 		if (distance < 1.)
@@ -82,7 +82,7 @@ void RpgLongbow::eventAttack(TiledObject *)
 	TiledObject *p = m_parentObject.data();
 
 	if (TiledGame *g = p->game()) {
-		g->playSfx(QStringLiteral(":/rpg/longbow/fireball.mp3"), p->scene(), p->body()->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/longbow/fireball.mp3"), p->scene(), p->bodyPosition());
 	}
 }
 
@@ -93,8 +93,8 @@ void RpgLongbow::eventAttack(TiledObject *)
  * @param parent
  */
 
-RpgLongbowPickable::RpgLongbowPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableLongbow, parent)
+RpgLongbowPickable::RpgLongbowPickable(TiledScene *scene)
+	: RpgPickableObject(PickableLongbow, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

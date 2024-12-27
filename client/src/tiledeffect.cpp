@@ -161,8 +161,8 @@ void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprit
 		return;
 	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite);
 	m_parentObject->m_game->playSfx(soundPath,
-									m_parentObject->m_scene,
-									m_parentObject->m_body->bodyPosition(),
+									m_parentObject->scene(),
+									m_parentObject->bodyPosition(),
 									baseVolume
 									);
 }
@@ -184,8 +184,8 @@ void TiledEffect::playSprite(const QString &path, const TiledObjectSprite &sprit
 		return;
 	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite, replaceCurrentSprite);
 	m_parentObject->m_game->playSfx(soundPath,
-									m_parentObject->m_scene,
-									m_parentObject->m_body->bodyPosition(),
+									m_parentObject->scene(),
+									m_parentObject->bodyPosition(),
 									baseVolume
 									);
 }
@@ -236,8 +236,8 @@ void TiledEffect::playSprite(const QString &path, const TextureSprite &sprite,
 		return;
 	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite);
 	m_parentObject->m_game->playSfx(soundPath,
-									m_parentObject->m_scene,
-									m_parentObject->m_body->bodyPosition(),
+									m_parentObject->scene(),
+									m_parentObject->bodyPosition(),
 									baseVolume
 									);
 }
@@ -259,8 +259,8 @@ void TiledEffect::playSprite(const QString &path, const TextureSprite &sprite, c
 		return;
 	m_parentObject->playAuxSprite(m_auxHandler, m_alignToBody, path, sprite, replaceCurrentSprite);
 	m_parentObject->m_game->playSfx(soundPath,
-									m_parentObject->m_scene,
-									m_parentObject->m_body->bodyPosition(),
+									m_parentObject->scene(),
+									m_parentObject->bodyPosition(),
 									baseVolume
 									);
 }

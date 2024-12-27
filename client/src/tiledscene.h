@@ -27,7 +27,7 @@
 #ifndef TILEDSCENE_H
 #define TILEDSCENE_H
 
-#include "box2dworld.h"
+#include <box2cpp/box2cpp.h>
 #include "libtcod/fov.hpp"
 #include "libtiledquick/mapitem.h"
 #include "tiledobject.h"
@@ -95,7 +95,6 @@ class TiledScene : public TiledQuick::MapItem
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(Box2DWorld *world READ world CONSTANT FINAL)
 	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
 	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 	Q_PROPERTY(int sceneId READ sceneId WRITE setSceneId NOTIFY sceneIdChanged FINAL)
@@ -125,18 +124,18 @@ public:
 	std::optional<QPolygonF> findShortestPath(const QPointF &from, const QPointF &to) const;
 	std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
 
-	void appendToObjects(TiledObject *object);
-	void removeFromObjects(TiledObject *object);
+	[[deprecated]] void appendToObjects(TiledObject *object);
+	[[deprecated]] void removeFromObjects(TiledObject *object);
 
-	bool running() const;
-	void setRunning(bool newRunning);
+	[[deprecated]] bool running() const;
+	[[deprecated]] void setRunning(bool newRunning);
 
 	void startMusic();
 	void stopMusic();
 
 	bool isGroundContainsPoint(const QPointF &point) const;
 
-	Box2DWorld *world() const;
+	b2::World *world() const { return m_world; }
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
@@ -185,17 +184,13 @@ protected:
 
 	//std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Tiled::Map> m_map;
-	std::unique_ptr<Box2DWorld> m_world;
-	QVector<QPointer<TiledObjectBasePolygon>> m_groundObjects;
+	b2::World *m_world = nullptr;
+	QVector<TiledObjectBody*> m_groundObjects;
 	QString m_ambientSound;
 	QString m_backgroundMusic;
 	TiledSceneDefinition::SceneEffect m_sceneEffect = TiledSceneDefinition::EffectNone;
 	QRectF m_onScreenArea;
 	QRectF m_viewport;
-
-	QVector<QPointer<TiledObject>> m_tiledObjects;
-	QVector<QPointer<TiledObject>> m_tiledObjectsToAppend;
-	QVector<QPointer<TiledObject>> m_tiledObjectsToRemove;
 
 	TcodMapData m_tcodMap;
 
@@ -244,15 +239,15 @@ private:
 	void appendDynamicZ(const QString &name, const QRectF &area);
 	void setTileLayersZ();
 	void onWorldStepped();
-	void reorderObjectsZ();
+	void reorderObjectsZ(const std::vector<TiledObject *> list);
 	void repaintTilesets(Tiled::Tileset *tileset);
 
 	TiledGame *m_game = nullptr;
 	int m_sceneId = -1;
 
 	std::vector<DynamicZ> m_dynamicZList;
-	QElapsedTimer m_worldStepTimer;
-	std::vector<qreal> m_stepFactors;
+	[[deprecated]] QElapsedTimer m_worldStepTimer;
+	[[deprecated]] std::vector<qreal> m_stepFactors;
 
 	friend class TiledGame;
 };

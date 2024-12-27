@@ -83,14 +83,14 @@ void RpgMageStaff::eventUseCast(const RpgPlayerCharacterConfig::CastType &cast, 
 
 	if (TiledGame *g = p->game()) {
 		/*g->playSfx(target ? QStringLiteral(":/rpg/broadsword/broadsword2.mp3") : QStringLiteral(":/rpg/broadsword/broadsword1.mp3"),
-				   p->scene(), p->body()->bodyPosition());*/
+				   p->scene(), p->bodyPosition());*/
 
 		switch (cast) {
 			case RpgPlayerCharacterConfig::CastInvisible:
 			case RpgPlayerCharacterConfig::CastFireFog:
 			case RpgPlayerCharacterConfig::CastProtect:
 				g->playSfx(QStringLiteral(":/rpg/common/cast.mp3"),
-						   p->scene(), p->body()->bodyPosition());
+						   p->scene(), p->bodyPosition());
 				break;
 
 			case RpgPlayerCharacterConfig::CastFireball:

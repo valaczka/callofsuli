@@ -27,8 +27,8 @@
 #include "tiledtransport.h"
 
 TiledTransport::TiledTransport(const TransportType &type, const QString &name,
-							   TiledScene *sceneA, TiledObjectBase *objectA,
-							   TiledScene *sceneB, TiledObjectBase *objectB)
+							   TiledScene *sceneA, TiledObject *objectA,
+							   TiledScene *sceneB, TiledObject *objectB)
 	: QObject()
 	, m_type(type)
 	, m_name(name)
@@ -69,7 +69,7 @@ TiledTransport::TransportType TiledTransport::typeFromString(const QString &str)
  * @return
  */
 
-bool TiledTransport::addObject(TiledScene *scene, TiledObjectBase *object)
+bool TiledTransport::addObject(TiledScene *scene, TiledObject *object)
 {
 	if (!m_sceneA) {
 		m_sceneA = scene;
@@ -112,7 +112,7 @@ TiledScene *TiledTransport::otherScene(TiledScene *scene) const
  * @return
  */
 
-TiledScene *TiledTransport::otherScene(TiledObjectBase *object) const
+TiledScene *TiledTransport::otherScene(TiledObject *object) const
 {
 	if (m_objectA == object)
 		return m_sceneB;
@@ -130,7 +130,7 @@ TiledScene *TiledTransport::otherScene(TiledObjectBase *object) const
  * @return
  */
 
-TiledObjectBase *TiledTransport::otherObject(TiledScene *scene) const
+TiledObject *TiledTransport::otherObject(TiledScene *scene) const
 {
 	if (m_sceneA == scene)
 		return m_objectB;
@@ -148,7 +148,7 @@ TiledObjectBase *TiledTransport::otherObject(TiledScene *scene) const
  * @return
  */
 
-TiledObjectBase *TiledTransport::otherObject(TiledObjectBase *object) const
+TiledObject *TiledTransport::otherObject(TiledObject *object) const
 {
 	if (m_objectA == object)
 		return m_objectB;
@@ -165,7 +165,7 @@ TiledObjectBase *TiledTransport::otherObject(TiledObjectBase *object) const
  * @return
  */
 
-int TiledTransport::otherDirection(TiledObjectBase *object) const
+int TiledTransport::otherDirection(TiledObject *object) const
 {
 	if (m_objectA == object)
 		return m_directionB;
@@ -203,12 +203,12 @@ void TiledTransport::setSceneA(TiledScene *newSceneA)
 	emit sceneAChanged();
 }
 
-TiledObjectBase *TiledTransport::objectA() const
+TiledObject *TiledTransport::objectA() const
 {
 	return m_objectA;
 }
 
-void TiledTransport::setObjectA(TiledObjectBase *newObjectA)
+void TiledTransport::setObjectA(TiledObject *newObjectA)
 {
 	if (m_objectA == newObjectA)
 		return;
@@ -229,12 +229,12 @@ void TiledTransport::setSceneB(TiledScene *newSceneB)
 	emit sceneBChanged();
 }
 
-TiledObjectBase *TiledTransport::objectB() const
+TiledObject *TiledTransport::objectB() const
 {
 	return m_objectB;
 }
 
-void TiledTransport::setObjectB(TiledObjectBase *newObjectB)
+void TiledTransport::setObjectB(TiledObject *newObjectB)
 {
 	if (m_objectB == newObjectB)
 		return;
@@ -336,7 +336,7 @@ void TiledTransport::setDirectionB(int newDirectionB)
  */
 
 TiledTransport *TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName, const int &direction,
-							 TiledScene *scene, TiledObjectBase *object)
+							 TiledScene *scene, TiledObject *object)
 {
 	if (name.isEmpty()) {
 		LOG_CERROR("scene") << "Transport name missing";
@@ -376,7 +376,7 @@ TiledTransport *TiledTransportList::add(const TiledTransport::TransportType &typ
  * @return
  */
 
-TiledTransport *TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const int &direction, TiledScene *scene, TiledObjectBase *object)
+TiledTransport *TiledTransportList::add(const TiledTransport::TransportType &type, const QString &name, const int &direction, TiledScene *scene, TiledObject *object)
 {
 	return add(type, name, QStringLiteral(""), direction, scene, object);
 }
@@ -392,7 +392,7 @@ TiledTransport *TiledTransportList::add(const TiledTransport::TransportType &typ
  * @return
  */
 
-TiledTransport *TiledTransportList::add(const QString &name, TiledScene *scene, TiledObjectBase *object)
+TiledTransport *TiledTransportList::add(const QString &name, TiledScene *scene, TiledObject *object)
 {
 	return add (TiledTransport::TransportInvalid, name, -1, scene, object);
 }
@@ -450,7 +450,7 @@ TiledTransport* TiledTransportList::find(const TiledScene *scene) const
  * @return
  */
 
-TiledTransport* TiledTransportList::find(const TiledObjectBase *object) const
+TiledTransport* TiledTransportList::find(const TiledObject *object) const
 {
 	if (!object)
 		return nullptr;

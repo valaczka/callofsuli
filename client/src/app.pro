@@ -335,7 +335,6 @@ HEADERS += \
 	isometricenemy.h \
 	isometricentity.h \
 	isometricobject.h \
-	isometricobjectiface.h \
 	isometricplayer.h \
 	litegame.h \
 	mapeditor.h \
@@ -403,6 +402,7 @@ HEADERS += \
 	tiledgame.h \
 	tiledgamesfx.h \
 	tiledobject.h \
+	tiledobject_p.h \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
 	tiledpickableiface.h \

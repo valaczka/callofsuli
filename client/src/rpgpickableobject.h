@@ -39,7 +39,7 @@ class RpgPlayer;
  * @brief The RpgPickableObject class
  */
 
-class RpgPickableObject : public IsometricObjectCircle, public TiledPickableIface
+class RpgPickableObject : public IsometricObject, public TiledPickableIface
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -68,7 +68,7 @@ public:
 
 	Q_ENUM(PickableType);
 
-	RpgPickableObject(const PickableType &type, QQuickItem *parent = nullptr);
+	RpgPickableObject(const PickableType &type, TiledScene *scene);
 	virtual ~RpgPickableObject() {}
 
 	void initialize();
@@ -80,7 +80,7 @@ public:
 	static QString pickableNameEn(const PickableType &type);
 
 	template <typename T>
-	static T* createPickable(QQuickItem *parent = nullptr);
+	static T* createPickable(TiledScene *scene);
 
 	PickableType pickableType() const;
 
@@ -105,8 +105,8 @@ protected:
 	std::unique_ptr<TiledEffect> m_deactivateEffect;
 
 private:
-	void fixtureBeginContact(Box2DFixture *other);
-	void fixtureEndContact(Box2DFixture *other);
+	/*void fixtureBeginContact(Box2DFixture *other);
+	void fixtureEndContact(Box2DFixture *other);*/
 
 	const PickableType m_pickableType;
 	QString m_name;
@@ -178,10 +178,10 @@ Q_DECLARE_METATYPE(RpgInventoryList*)
  */
 
 template<typename T>
-T *RpgPickableObject::createPickable(QQuickItem *parent)
+T *RpgPickableObject::createPickable(TiledScene *scene)
 {
-	T* e = nullptr;
-	TiledObjectBase::createFromCircle<T>(&e, QPointF{}, 70, nullptr, parent);
+	T* e = new T(scene);
+	e->TiledObjectBody::createFromCircle({}, 70, nullptr);
 	return e;
 }
 

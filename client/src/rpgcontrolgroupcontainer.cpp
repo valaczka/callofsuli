@@ -110,8 +110,8 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 
 		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(objgroup->objects())) {
-				if (object->className() == QStringLiteral("trigger")) {
-					TiledObjectBase *base = nullptr;
+				/*if (object->className() == QStringLiteral("trigger")) {
+					TiledObject *base = nullptr;
 					Box2DFixture *fixture = nullptr;
 
 					if (object->shape() == Tiled::MapObject::Point) {
@@ -131,7 +131,7 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 						continue;
 					}
 
-					base->body()->emplace(base->body()->bodyPosition() + m_basePosition);
+					base->body()->emplace(base->bodyPosition() + m_basePosition);
 
 					connectFixture(fixture);
 
@@ -143,7 +143,7 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 					base->setProperty("tiledContainer", QVariant::fromValue(m_container.get()));
 
 					addTiledObject(base);
-				}
+				}*/
 			}
 		}
 	}
@@ -189,9 +189,9 @@ void RpgControlGroupContainer::update()
 	m_currentState = m_container->isActive() ? 1 : 2;
 	refreshVisualItem();
 
-	for (TiledObjectBase *o : m_tiledObjects) {
+	/*for (TiledObject *o : m_tiledObjects) {
 		o->body()->setActive(m_container->isActive());
-	}
+	}*/
 }
 
 

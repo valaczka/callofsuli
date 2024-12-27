@@ -245,7 +245,7 @@ QVector2D TiledPathMotor::getShortestPoint(const QPointF &pos, float *dstDistanc
 		QVector2D dest;
 		float f = -1.;
 
-		float d = TiledObjectBase::shortestDistance(pos, l.line, &dest, &f);
+		float d = TiledObject::shortestDistance(pos, l.line, &dest, &f);
 
 		if (distance == -1 || d < distance) {
 			distance = d;
@@ -288,21 +288,17 @@ std::optional<QVector2D> TiledPathMotor::getLastSegmentPoint()
 
 /**
  * @brief TiledPathMotor::updateBody
- * @param object
+ * @param body
  * @param maximumSpeed
  */
 
-void TiledPathMotor::updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer)
+void TiledPathMotor::updateBody(TiledObject *body, const float &distance, AbstractGame::TickTimer *timer)
 {
-	Q_ASSERT(object);
-	Q_ASSERT(object->body());
-
-	TiledObjectBody *body = object->body();
-
+	Q_ASSERT(body);
 
 	if (m_lastSegment >= 0 && m_lastSegment < m_lines.size()) {
 		float factor = -1.;
-		float d = TiledObjectBase::shortestDistance(body->bodyPosition(), m_lines.at(m_lastSegment).line, nullptr, &factor);
+		float d = TiledObject::shortestDistance(body->bodyPosition(), m_lines.at(m_lastSegment).line, nullptr, &factor);
 
 		if (d > distance) {
 			m_lastSegment = -1;
@@ -321,7 +317,7 @@ void TiledPathMotor::updateBody(TiledObject *object, const float &distance, Abst
 		QVector2D dst = getShortestPoint(body->bodyPosition(), &dstDistance, &dstSegment, &dstFactor);
 
 		if (dstSegment < 0) {
-			LOG_CERROR("scene") << "Invalid line segment" << object << m_lines.size();
+			LOG_CERROR("scene") << "Invalid line segment" << body << m_lines.size();
 			return;
 		}
 
@@ -331,7 +327,7 @@ void TiledPathMotor::updateBody(TiledObject *object, const float &distance, Abst
 		}
 
 		QLineF line(body->bodyPosition(), dst.toPointF());
-		body->setLinearVelocity(TiledObjectBase::toPoint(TiledObject::toRadian(line.angle()), std::min(distance, dstDistance)));
+		body->setSpeed(TiledObject::toPoint(TiledObject::toRadian(line.angle()), std::min(distance, dstDistance)));
 		m_currentAngle = line.angle();
 
 		return;
@@ -429,7 +425,7 @@ void TiledPathMotor::updateBody(TiledObject *object, const float &distance, Abst
 	}
 
 
-	body->setLinearVelocity(TiledObjectBase::toPoint(TiledObject::toRadian(bodyMovement.angle()), bodyMovement.length()));
+	body->setSpeed(TiledObject::toPoint(TiledObject::toRadian(bodyMovement.angle()), bodyMovement.length()));
 	m_currentAngle = angleFromLine(m_lines.at(m_lastSegment));
 }
 
@@ -513,7 +509,7 @@ int TiledPathMotor::getShortestSegment(const QPolygonF &polygon, const QPointF &
 
 		float f = -1.;
 
-		float d = TiledObjectBase::shortestDistance(pos, *prev, *it, nullptr, &f);
+		float d = TiledObject::shortestDistance(pos, *prev, *it, nullptr, &f);
 
 		if (distance == -1 || d < distance) {
 			distance = d;

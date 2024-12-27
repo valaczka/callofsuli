@@ -46,7 +46,7 @@ Q_DECLARE_OPAQUE_POINTER(IsometricEnemy*)
  * @brief The IsometricPlayer class
  */
 
-class IsometricPlayer : public IsometricCircleEntity
+class IsometricPlayer : public IsometricEntity
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -59,7 +59,7 @@ class IsometricPlayer : public IsometricCircleEntity
 	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
 
 public:
-	explicit IsometricPlayer(QQuickItem *parent = nullptr);
+    explicit IsometricPlayer(TiledScene *scene);
 	virtual ~IsometricPlayer();
 
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
@@ -76,7 +76,7 @@ public:
 	TiledTransport *currentTransport() const;
 	void setCurrentTransport(TiledTransport *newCurrentTransport);
 
-	TiledObjectBase *currentTransportBase() const { return m_currentTransportBase; }
+	TiledObject *currentTransportBase() const { return m_currentTransportBase; }
 
 	qreal currentAngle() const;
 	void setCurrentAngle(qreal newCurrentAngle);
@@ -141,13 +141,13 @@ protected:
 
 private:
 	void clearData();
-	void sensorBeginContact(Box2DFixture *other);
+	/*void sensorBeginContact(Box2DFixture *other);
 	void sensorEndContact(Box2DFixture *other);
 	void fixtureBeginContact(Box2DFixture *other);
-	void fixtureEndContact(Box2DFixture *other);
+	void fixtureEndContact(Box2DFixture *other);*/
 
 	QPointer<TiledTransport> m_currentTransport = nullptr;
-	QPointer<TiledObjectBase> m_currentTransportBase;
+	QPointer<TiledObject> m_currentTransportBase;
 	QPointer<TiledContainer> m_currentContainer = nullptr;
 
 	qreal m_currentAngle = 0.;

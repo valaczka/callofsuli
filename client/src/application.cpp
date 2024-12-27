@@ -73,7 +73,6 @@
 #include <QDebug>
 
 #include <Qaterial/Qaterial.hpp>
-#include <box2dplugin.h>
 
 #include "application.h"
 #include "../modules/staticmodules.h"
@@ -182,7 +181,6 @@ int Application::run()
 {
 	registerQmlTypes();
 	loadQaterial();
-	loadBox2D();
 	loadModules();
 
 	m_client.reset(createClient());
@@ -513,18 +511,6 @@ void Application::loadQaterial()
 }
 
 
-/**
- * @brief Application::loadBox2D
- */
-
-void Application::loadBox2D()
-{
-	LOG_CTRACE("app") << "Load Box2D";
-
-	Box2DPlugin plugin;
-	plugin.registerTypes("Box2D");
-	qmlProtectModule("Box2D", 2);
-}
 
 
 /**

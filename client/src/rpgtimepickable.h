@@ -36,7 +36,7 @@ class RpgTimePickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgTimePickable(QQuickItem *parent = nullptr);
+	RpgTimePickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *) override final;
 

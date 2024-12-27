@@ -26,7 +26,6 @@
 
 #include "tiledreturnpathmotor.h"
 #include "tiledscene.h"
-#include "utils_.h"
 
 TiledReturnPathMotor::TiledReturnPathMotor(const QPointF &basePoint)
 	: AbstractTiledMotor(ReturnPathMotor)
@@ -53,8 +52,7 @@ void TiledReturnPathMotor::updateBody(TiledObject *object, const float &distance
 
 	if (m_pathMotor) {
 		if (m_pathMotor->atEnd()) {
-			object->body()->stop();
-			object->body()->setIsRunning(false);
+			object->stop();
 			m_pathMotor.reset();
 			m_hasReturned = true;
 			m_path.clear();
@@ -94,7 +92,7 @@ QPointF TiledReturnPathMotor::basePoint()
  * @param radius
  */
 
-void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle, const qreal &radius)
+void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float &angle, const qreal &radius)
 {
 	Q_ASSERT(body);
 
@@ -115,7 +113,7 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
 
 	m_hasReturned = false;
 
-	body->setLinearVelocity(TiledObjectBase::toPoint(angle, radius));
+	body->setSpeed(TiledObject::toPoint(angle, radius));
 
 	addPoint(body->bodyPosition(), angle);
 }
@@ -134,15 +132,14 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float32 &angle,
  * @param body
  */
 
-void TiledReturnPathMotor::finish(TiledObjectBody *body, AbstractGame::TickTimer *timer)
+void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *timer)
 {
 	Q_ASSERT(body);
-	Q_ASSERT(body->baseObject());
 
-	TiledScene *scene = body->baseObject()->scene();
+	TiledScene *scene = body->scene();
 
 	if (!scene) {
-		LOG_CERROR("scene") << "Missing scene" << body << body->baseObject();
+		LOG_CERROR("scene") << "Missing scene" << body;
 		return;
 	}
 

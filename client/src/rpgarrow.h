@@ -43,10 +43,10 @@ class RpgArrow : public IsometricBullet
 	QML_ELEMENT
 
 public:
-	RpgArrow(QQuickItem *parent = nullptr);
+	RpgArrow(TiledScene *scene = nullptr);
 	virtual ~RpgArrow() {}
 
-	static RpgArrow* createBullet(TiledGame *game, TiledScene *scene);
+	static RpgArrow* createBullet(TiledScene *scene);
 
 protected:
 	void load() override final;
@@ -65,7 +65,7 @@ class RpgArrowPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgArrowPickable(QQuickItem *parent = nullptr);
+	RpgArrowPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

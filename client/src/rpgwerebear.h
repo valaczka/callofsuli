@@ -67,7 +67,7 @@ class RpgWerebear : public IsometricEnemy, public RpgEnemyIface
 	QML_ELEMENT
 
 public:
-	explicit RpgWerebear(QQuickItem *parent = nullptr);
+    explicit RpgWerebear(TiledScene *scene = nullptr);
 	virtual ~RpgWerebear();
 
 	TiledWeapon *defaultWeapon() const override;

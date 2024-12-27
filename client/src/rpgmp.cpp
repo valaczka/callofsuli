@@ -31,8 +31,8 @@
 const int RpgMpPickable::m_amount = 75;
 
 
-RpgMpPickable::RpgMpPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableMp, parent)
+RpgMpPickable::RpgMpPickable(TiledScene *scene)
+	: RpgPickableObject(PickableMp, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }

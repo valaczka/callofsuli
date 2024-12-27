@@ -47,8 +47,8 @@ public:
 	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
 	QPointF basePoint() override;
 
-	void moveBody(TiledObjectBody *body, const float32 &angle, const qreal &radius);
-	void finish(TiledObjectBody *body, AbstractGame::TickTimer *timer);
+	void moveBody(TiledObjectBody *body, const float &angle, const qreal &radius);
+        void finish(TiledObject *body, AbstractGame::TickTimer *timer);
 
 	QPolygonF path() const;
 

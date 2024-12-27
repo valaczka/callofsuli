@@ -116,7 +116,7 @@ public:
 
 protected:
 	virtual bool enemyWorldStep() = 0;
-	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle, const qreal &factor) = 0;
+	virtual bool enemyWorldStepOnVisiblePlayer(const float &angle, const qreal &factor) = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
 
 	std::unique_ptr<AbstractTiledMotor> m_motor;
@@ -135,7 +135,7 @@ protected:
  * @brief The IsometricEnemy class
  */
 
-class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
+class IsometricEnemy : public IsometricEntity, public IsometricEnemyIface
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -146,7 +146,7 @@ class IsometricEnemy : public IsometricCircleEntity, public IsometricEnemyIface
 	Q_PROPERTY(int enemyType READ enemyType CONSTANT FINAL)
 
 public:
-	explicit IsometricEnemy(QQuickItem *parent = nullptr);
+	explicit IsometricEnemy(TiledScene *scene);
 
 	virtual TiledWeapon *defaultWeapon() const = 0;
 
@@ -161,7 +161,7 @@ public:
 	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
 									IsometricPlayer *player = nullptr) const = 0;
 
-	void rotateToPlayer(IsometricPlayer *player, float32 *anglePtr = nullptr, qreal *distancePtr = nullptr);
+	void rotateToPlayer(IsometricPlayer *player, float *anglePtr = nullptr, qreal *distancePtr = nullptr);
 
 	virtual int enemyType() const = 0;
 
@@ -177,7 +177,7 @@ signals:
 protected:
 	virtual void entityWorldStep(const qreal &factor) override final;
 	virtual bool enemyWorldStep() override;
-	virtual bool enemyWorldStepOnVisiblePlayer(const float32 &angle, const qreal &factor) override;
+	virtual bool enemyWorldStepOnVisiblePlayer(const float &angle, const qreal &factor) override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
 
 	virtual void load() = 0;
@@ -201,10 +201,10 @@ protected:
 	void stepMotor(const qreal &factor);
 
 private:
-	void sensorBeginContact(Box2DFixture *other);
+	/*void sensorBeginContact(Box2DFixture *other);
 	void sensorEndContact(Box2DFixture *other);
 	void fixtureBeginContact(Box2DFixture *other);
-	void fixtureEndContact(Box2DFixture *other);
+	void fixtureEndContact(Box2DFixture *other);*/
 
 protected:
 	qint64 m_inabilityTimer = -1;

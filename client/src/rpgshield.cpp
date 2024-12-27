@@ -135,8 +135,8 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
  * @param parent
  */
 
-RpgShieldPickable::RpgShieldPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableShield, parent)
+RpgShieldPickable::RpgShieldPickable(TiledScene *scene)
+	: RpgPickableObject(PickableShield, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }

@@ -43,10 +43,10 @@ class TiledTransport : public QObject
 	Q_PROPERTY(QString lockName READ lockName WRITE setLockName NOTIFY lockNameChanged FINAL)
 	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
 	Q_PROPERTY(TiledScene *sceneA READ sceneA WRITE setSceneA NOTIFY sceneAChanged FINAL)
-	Q_PROPERTY(TiledObjectBase *objectA READ objectA WRITE setObjectA NOTIFY objectAChanged FINAL)
+	Q_PROPERTY(TiledObject *objectA READ objectA WRITE setObjectA NOTIFY objectAChanged FINAL)
 	Q_PROPERTY(int directionA READ directionA WRITE setDirectionA NOTIFY directionAChanged FINAL)
 	Q_PROPERTY(TiledScene *sceneB READ sceneB WRITE setSceneB NOTIFY sceneBChanged FINAL)
-	Q_PROPERTY(TiledObjectBase *objectB READ objectB WRITE setObjectB NOTIFY objectBChanged FINAL)
+	Q_PROPERTY(TiledObject *objectB READ objectB WRITE setObjectB NOTIFY objectBChanged FINAL)
 	Q_PROPERTY(int directionB READ directionB WRITE setDirectionB NOTIFY directionBChanged FINAL)
 	Q_PROPERTY(TransportType type READ type WRITE setType NOTIFY typeChanged FINAL)
 
@@ -61,18 +61,18 @@ public:
 	Q_ENUM(TransportType);
 
 	TiledTransport(const TransportType &type, const QString &name,
-				   TiledScene *sceneA, TiledObjectBase *objectA,
-				   TiledScene *sceneB, TiledObjectBase *objectB);
+				   TiledScene *sceneA, TiledObject *objectA,
+				   TiledScene *sceneB, TiledObject *objectB);
 
 	TiledTransport(const QString &name,
-				   TiledScene *sceneA, TiledObjectBase *objectA,
-				   TiledScene *sceneB, TiledObjectBase *objectB)
+				   TiledScene *sceneA, TiledObject *objectA,
+				   TiledScene *sceneB, TiledObject *objectB)
 		: TiledTransport(TransportInvalid, name, sceneA, objectA, sceneB, objectB) {}
 
-	TiledTransport(const TransportType &type, const QString &name, TiledScene *sceneA, TiledObjectBase *objectA)
+	TiledTransport(const TransportType &type, const QString &name, TiledScene *sceneA, TiledObject *objectA)
 		: TiledTransport(type, name, sceneA, objectA, nullptr, nullptr) {}
 
-	TiledTransport(const QString &name, TiledScene *sceneA, TiledObjectBase *objectA)
+	TiledTransport(const QString &name, TiledScene *sceneA, TiledObject *objectA)
 		: TiledTransport(name, sceneA, objectA, nullptr, nullptr) {}
 
 	TiledTransport(const QString &name)
@@ -85,12 +85,12 @@ public:
 	static TransportType typeFromString(const QString &str);
 
 
-	bool addObject(TiledScene *scene, TiledObjectBase *object);
+	bool addObject(TiledScene *scene, TiledObject *object);
 	TiledScene *otherScene(TiledScene *scene) const;
-	TiledScene *otherScene(TiledObjectBase *object) const;
-	TiledObjectBase *otherObject(TiledScene *scene) const;
-	TiledObjectBase *otherObject(TiledObjectBase *object) const;
-	int otherDirection(TiledObjectBase *object) const;
+	TiledScene *otherScene(TiledObject *object) const;
+	TiledObject *otherObject(TiledScene *scene) const;
+	TiledObject *otherObject(TiledObject *object) const;
+	int otherDirection(TiledObject *object) const;
 
 	QString name() const;
 	void setName(const QString &newName);
@@ -98,14 +98,14 @@ public:
 	TiledScene *sceneA() const;
 	void setSceneA(TiledScene *newSceneA);
 
-	TiledObjectBase *objectA() const;
-	void setObjectA(TiledObjectBase *newObjectA);
+	TiledObject *objectA() const;
+	void setObjectA(TiledObject *newObjectA);
 
 	TiledScene *sceneB() const;
 	void setSceneB(TiledScene *newSceneB);
 
-	TiledObjectBase *objectB() const;
-	void setObjectB(TiledObjectBase *newObjectB);
+	TiledObject *objectB() const;
+	void setObjectB(TiledObject *newObjectB);
 
 	bool isOpen() const;
 	void setIsOpen(bool newIsOpen);
@@ -146,11 +146,11 @@ protected:
 	QString m_lockName;
 
 	QPointer<TiledScene> m_sceneA;
-	QPointer<TiledObjectBase> m_objectA;
+	QPointer<TiledObject> m_objectA;
 	int m_directionA = -1;
 
 	QPointer<TiledScene> m_sceneB;
-	QPointer<TiledObjectBase> m_objectB;
+	QPointer<TiledObject> m_objectB;
 	int m_directionB = -1;
 
 };
@@ -171,14 +171,14 @@ public:
 	{}
 
 	TiledTransport* add(const TiledTransport::TransportType &type, const QString &name, const QString &lockName,
-			 const int &direction = -1, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
+			 const int &direction = -1, TiledScene *scene = nullptr, TiledObject *object = nullptr);
 	TiledTransport* add(const TiledTransport::TransportType &type, const QString &name,
-			 const int &direction = -1, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
-	TiledTransport* add(const QString &name, TiledScene *scene = nullptr, TiledObjectBase *object = nullptr);
+			 const int &direction = -1, TiledScene *scene = nullptr, TiledObject *object = nullptr);
+	TiledTransport* add(const QString &name, TiledScene *scene = nullptr, TiledObject *object = nullptr);
 
 	TiledTransport* find(const QString &name) const;
 	TiledTransport* find(const TiledScene *scene) const;
-	TiledTransport* find(const TiledObjectBase *object) const;
+	TiledTransport* find(const TiledObject *object) const;
 };
 
 #endif // TILEDTRANSPORT_H

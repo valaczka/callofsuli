@@ -43,7 +43,7 @@ CQtDeployerPath =
 # libsodium
 
 LibSodiumInclude =
-LibSodiumLibs =
+LibSodiumLibs = -lsodium
 LibSodiumDefines =
 
 

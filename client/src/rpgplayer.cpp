@@ -44,8 +44,8 @@
  * @param parent
  */
 
-RpgPlayer::RpgPlayer(QQuickItem *parent)
-	: IsometricPlayer(parent)
+RpgPlayer::RpgPlayer(TiledScene *scene)
+	: IsometricPlayer(scene)
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
 	, m_sfxAccept(this)
@@ -103,17 +103,12 @@ RpgPlayer::~RpgPlayer()
 
 RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const RpgPlayerCharacterConfig &config)
 {
-	RpgPlayer *player = nullptr;
-	TiledObjectBase::createFromCircle<RpgPlayer>(&player, QPointF{}, 30, nullptr, game);
+	RpgPlayer *player = new RpgPlayer(scene);
 
 	if (player) {
 		player->setParent(game);
-		player->setGame(game);
-		player->setScene(scene);
 		player->setConfig(config);
 		player->initialize();
-
-		player->setMaxMp(config.mpMax);
 	}
 
 	return player;
@@ -142,7 +137,7 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 	}
 
 	if (weapon->canShot()) {
-		if (weapon->shot(IsometricBullet::TargetEnemy, m_body->bodyPosition(), currentAngle())) {
+		if (weapon->shot(IsometricBullet::TargetEnemy, bodyPosition(), currentAngle())) {
 			playAttackEffect(weapon);
 
 			if (weapon->pickedBulletCount() > 0) {
@@ -166,15 +161,15 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 
 			for (IsometricEnemy *e : list) {
 				if (e && e->player() == this) {
-					//if (const auto &ptr = m_scene->findShortestPath(m_body->bodyPosition(), e->body()->bodyPosition()))
+					//if (const auto &ptr = m_scene->findShortestPath(m_body->bodyPosition(), e->bodyPosition()))
 					//	setDestinationPoint(ptr.value());
-					setDestinationPoint(e->body()->bodyPosition());
+					setDestinationPoint(e->bodyPosition());
 					break;
 				}
 			}
 		} else {
 			clearDestinationPoint();
-			m_body->stop();
+			stop();
 		}
 
 		if (weapon->hit(enemy())) {
@@ -249,11 +244,11 @@ void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
 	m_pickAtDestination = false;
 
 	if (m_isLocked) {
-		m_body->stop();
+		stop();
 		return;
 	}
 
-	QLineF l(m_body->bodyPosition(), QPointF{x,y});
+	QLineF l(bodyPosition(), QPointF{x,y});
 	setCurrentAngle(toRadian(l.angle()));
 
 	attackCurrentWeapon();
@@ -394,9 +389,9 @@ void RpgPlayer::updateSprite()
 			m_spriteHandler->currentSprite() == "cast")
 		jumpToSpriteLater("idle", m_currentDirection);
 	else if (m_movingDirection != Invalid) {
-		if (m_body->isRunning())
+		/*if (m_body->isRunning())
 			jumpToSprite("run", m_movingDirection);
-		else
+		else*/
 			jumpToSprite("walk", m_movingDirection);
 	} else
 		jumpToSprite("idle", m_currentDirection);
@@ -648,7 +643,7 @@ void RpgPlayer::playDeadEffect()
 {
 	m_game->playSfx(m_config.sfxDead.isEmpty() ? QStringLiteral(":/sound/sfx/dead.mp3")
 											   : m_config.sfxDead
-												 , m_scene /*, m_body->bodyPosition()*/);
+												 , scene() /*, m_body->bodyPosition()*/);
 	m_effectShield.stop();
 }
 

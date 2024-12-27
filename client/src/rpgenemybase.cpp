@@ -39,8 +39,8 @@
  * @param parent
  */
 
-RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent)
-	: IsometricEnemy(parent)
+RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, TiledScene *scene)
+	: IsometricEnemy(scene)
 	, RpgEnemyIface(type)
 	, m_effectHealed(this)
 	, m_effectFire(this)
@@ -123,9 +123,9 @@ void RpgEnemyBase::updateSprite()
 			m_spriteHandler->currentSprite() == "cast")
 		jumpToSpriteLater("idle", m_currentDirection);
 	else if (m_movingDirection != Invalid) {
-		if (m_body->isRunning())
+		/*if (m_body->isRunning())
 			jumpToSprite("run", m_movingDirection);
-		else
+		else*/
 			jumpToSprite("walk", m_movingDirection);
 	} else
 		jumpToSprite("idle", m_currentDirection);
@@ -173,10 +173,10 @@ void RpgEnemyBase::load()
 		LOG_CTRACE("game") << "Enemy metric override" << m_directory;
 
 		m_metric.fromJson(ptr.value());
-		if (m_sensorPolygon) {
+		/*if (m_sensorPolygon) {
 			m_sensorPolygon->setLength(m_metric.sensorLength);
 			m_sensorPolygon->setRange(m_metric.sensorRange);
-		}
+		}*/
 	}
 
 }
@@ -337,8 +337,8 @@ void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
 
 QPointF RpgEnemyBase::getPickablePosition(const int &num) const
 {
-	QLineF line = QLineF::fromPolar(75. * num, toDegree(directionToIsometricRaidan(m_currentDirection)));
-	line.translate(m_body->bodyPosition()-line.p2());
+	QLineF line = QLineF::fromPolar(75. * num, toDegree(directionToIsometricRadian(m_currentDirection)));
+	line.translate(bodyPosition()-line.p2());
 	return line.p1();
 }
 

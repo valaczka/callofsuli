@@ -28,25 +28,30 @@
 #include "Logger.h"
 #include <QtMath>
 
-IsometricObjectIface::IsometricObjectIface()
 
+
+/**
+ * @brief IsometricObject::IsometricObject
+ * @param parent
+ */
+
+IsometricObject::IsometricObject(TiledScene *scene)
+	: TiledObject(scene)
 {
 
 }
-
-
 
 /**
  * @brief IsometricObjectIface::subZ
  * @return
  */
 
-qreal IsometricObjectIface::subZ() const
+qreal IsometricObject::subZ() const
 {
 	return m_subZ;
 }
 
-void IsometricObjectIface::setSubZ(qreal newSubZ)
+void IsometricObject::setSubZ(qreal newSubZ)
 {
 	if (newSubZ >= 1.0)
 		LOG_CERROR("scene") << "Invalid subZ value:" << newSubZ;
@@ -64,12 +69,12 @@ void IsometricObjectIface::setSubZ(qreal newSubZ)
  * @return
  */
 
-bool IsometricObjectIface::useDynamicZ() const
+bool IsometricObject::useDynamicZ() const
 {
 	return m_useDynamicZ;
 }
 
-void IsometricObjectIface::setUseDynamicZ(bool newUseDynamicZ)
+void IsometricObject::setUseDynamicZ(bool newUseDynamicZ)
 {
 	if (m_useDynamicZ == newUseDynamicZ)
 		return;
@@ -86,12 +91,13 @@ void IsometricObjectIface::setUseDynamicZ(bool newUseDynamicZ)
  * @return
  */
 
-qreal IsometricObjectIface::defaultZ() const
+
+qreal IsometricObject::defaultZ() const
 {
 	return m_defaultZ;
 }
 
-void IsometricObjectIface::setDefaultZ(qreal newDefaultZ)
+void IsometricObject::setDefaultZ(qreal newDefaultZ)
 {
 	if (qFuzzyCompare(m_defaultZ, newDefaultZ))
 		return;

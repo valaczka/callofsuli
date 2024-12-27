@@ -34,8 +34,8 @@
  * @param parent
  */
 
-RpgFireball::RpgFireball(QQuickItem *parent)
-	: IsometricBullet(parent)
+RpgFireball::RpgFireball(TiledScene *scene)
+	: IsometricBullet(scene)
 {
 
 }
@@ -48,18 +48,10 @@ RpgFireball::RpgFireball(QQuickItem *parent)
  * @return
  */
 
-RpgFireball *RpgFireball::createBullet(TiledGame *game, TiledScene *scene)
+RpgFireball *RpgFireball::createBullet(TiledScene *scene)
 {
-	RpgFireball *bullet = nullptr;
-	TiledObjectBase::createFromCircle<RpgFireball>(&bullet, QPointF{}, 20, nullptr, scene);
-
-	if (bullet) {
-		bullet->m_body->setBullet(true);
-		bullet->setGame(game);
-		bullet->setScene(scene);
-		bullet->initialize();
-	}
-
+	RpgFireball *bullet = new RpgFireball(scene);
+	bullet->initialize(20.);
 	return bullet;
 }
 
@@ -107,8 +99,8 @@ void RpgFireball::load()
  * @param parent
  */
 
-RpgFireballPickable::RpgFireballPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableFireball, parent)
+RpgFireballPickable::RpgFireballPickable(TiledScene *scene)
+	: RpgPickableObject(PickableFireball, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

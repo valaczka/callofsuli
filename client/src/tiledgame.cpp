@@ -37,7 +37,123 @@
 #include <libtiled/imagecache.h>
 #include <libtiled/tilesetmanager.h>
 
-std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGame::m_sharedTextures;
+
+/**
+ * @brief The TiledGamePrivate class
+ */
+
+class TiledGamePrivate
+{
+private:
+	TiledGamePrivate(TiledGame *game)
+		: q(game)
+	{ }
+
+	~TiledGamePrivate()
+	{
+		m_stepTimerRunning = false;
+
+		if (m_stepTimerId != Qt::TimerId::Invalid)
+			q->killTimer(m_stepTimerId);
+	}
+
+	struct Scene {
+		Scene()
+		{}
+
+		Scene(Scene &&o) noexcept
+			: container(o.container)
+			, scene(o.scene)
+			, world(std::move(o.world))
+		{}
+
+		QQuickItem *container = nullptr;
+		TiledScene *scene = nullptr;
+		std::unique_ptr<b2::World> world;
+	};
+
+	struct Body {
+		std::unique_ptr<TiledObjectBody> body;
+	};
+
+	struct PlayerPosition {
+		int sceneId = -1;
+		TiledScene *scene = nullptr;
+		QPointF position;
+
+		friend bool operator==(const PlayerPosition &p1, const PlayerPosition &p2) {
+			return p1.sceneId == p2.sceneId &&
+					p1.scene == p2.scene &&
+					p1.position == p2.position;
+		}
+	};
+
+	struct KeyboardJoystickState {
+		bool left = false;
+		bool right = false;
+		bool up = false;
+		bool down = false;
+
+		bool upLeft = false;
+		bool upRight = false;
+		bool downLeft = false;
+		bool downRight = false;
+
+		bool shift = false;
+
+
+		void clear() {
+			left = false;
+			right = false;
+			up = false;
+			down = false;
+
+			upLeft = false;
+			upRight = false;
+			downLeft = false;
+			downRight = false;
+
+			shift = false;
+		}
+	};
+
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	std::vector<T*> getObjects() const;
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	std::vector<T*> getObjects(TiledScene *scene) const;
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	std::vector<T*> getObjects(b2::World *world) const;
+
+
+	void startStepTimer();
+
+
+	TiledGame *const q;
+
+	Qt::TimerId m_stepTimerId = Qt::TimerId::Invalid;
+	bool m_stepTimerRunning = false;
+	QElapsedTimer m_stepElapsedTimer;
+	qint64 m_stepLag = 0;
+
+	QLambdaThreadWorker m_stepTimerThread;
+	QRecursiveMutex m_stepMutex;
+
+	std::vector<Scene> m_sceneList;
+	std::vector<Body> m_bodyList;
+	QVector<TiledObjectBody*> m_loadedObjectList;
+	QVector<PlayerPosition> m_playerPositionList;
+	TiledTransportList m_transportList;
+	KeyboardJoystickState m_keyboardJoystickState;
+	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
+
+	friend class TiledGame;
+};
+
+
+std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGamePrivate::m_sharedTextures;
 
 
 
@@ -48,6 +164,7 @@ std::unordered_map<QString, std::unique_ptr<QSGTexture>> TiledGame::m_sharedText
 
 TiledGame::TiledGame(QQuickItem *parent)
 	: QQuickItem(parent)
+	, d(new TiledGamePrivate(this))
 {
 	LOG_CTRACE("scene") << "TiledGame created" << this;
 
@@ -63,9 +180,15 @@ TiledGame::TiledGame(QQuickItem *parent)
 
 	m_tickTimer.reset(new AbstractGame::TickTimer);
 
+	/*d->m_stepTimer.setInterval(1000./60.);
+	d->m_stepTimer.setTimerType(Qt::PreciseTimer);
+	QObject::connect(&d->m_stepTimer, &QTimer::timeout, this, &TiledGame::updateStepTimer);*/
+
+	//d->m_stepTimer.start(0, Qt::PreciseTimer, this);
+
 	connect(this, &TiledGame::activeFocusChanged, this, [this](const bool &focus){
 		if (!focus) {
-			m_keyboardJoystickState.clear();
+			d->m_keyboardJoystickState.clear();
 			updateKeyboardJoystick();
 		}
 	});
@@ -78,17 +201,23 @@ TiledGame::TiledGame(QQuickItem *parent)
 
 TiledGame::~TiledGame()
 {
-	for (const auto &s : std::as_const(m_sceneList)) {
+	for (const auto &s : std::as_const(d->m_sceneList)) {
 		s.scene->stopMusic();
-		s.scene->world()->setRunning(false);
+		///s.scene->world()->setRunning(false);
 		if (s.scene->game() == this)
 			s.scene->setGame(nullptr);
 	}
 
+
 	m_currentScene = nullptr;
-	m_sceneList.clear();
-	m_loadedObjectList.clear();
-	m_playerPositionList.clear();
+
+	d->m_bodyList.clear();
+	d->m_sceneList.clear();
+	d->m_loadedObjectList.clear();
+	d->m_playerPositionList.clear();
+
+	delete d;
+	d = nullptr;
 
 	LOG_CTRACE("scene") << "TiledGame destroy" << this;
 }
@@ -127,6 +256,8 @@ bool TiledGame::load(const TiledGameDefinition &def)
 	}
 
 	setCurrentScene(firstScene);
+
+	d->startStepTimer();
 
 	return true;
 }
@@ -250,9 +381,9 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 
 QSGTexture *TiledGame::getTexture(const QString &path, QQuickWindow *window)
 {
-	auto it = m_sharedTextures.find(path);
+	auto it = TiledGamePrivate::m_sharedTextures.find(path);
 
-	if (it != m_sharedTextures.end())
+	if (it != TiledGamePrivate::m_sharedTextures.end())
 		return it->second.get();
 
 	if (!window) {
@@ -266,11 +397,21 @@ QSGTexture *TiledGame::getTexture(const QString &path, QQuickWindow *window)
 
 	std::unique_ptr<QSGTexture> s(texture);
 
-	const auto &ptr = m_sharedTextures.insert({path, std::move(s)});
+	const auto &ptr = TiledGamePrivate::m_sharedTextures.insert({path, std::move(s)});
 
 	Q_ASSERT(ptr.second);
 
 	return ptr.first->second.get();
+}
+
+
+/**
+ * @brief TiledGame::clearSharedTextures
+ */
+
+void TiledGame::clearSharedTextures()
+{
+	TiledGamePrivate::m_sharedTextures.clear();
 }
 
 
@@ -282,8 +423,9 @@ QSGTexture *TiledGame::getTexture(const QString &path, QQuickWindow *window)
 QVector<TiledScene *> TiledGame::sceneList() const
 {
 	QVector<TiledScene *> list;
+	list.reserve(d->m_sceneList.size());
 
-	for (const Scene &s : m_sceneList) {
+	for (const TiledGamePrivate::Scene &s : std::as_const(d->m_sceneList)) {
 		if (s.scene)
 			list.append(s.scene);
 	}
@@ -303,12 +445,12 @@ QVector<TiledScene *> TiledGame::sceneList() const
 
 TiledScene *TiledGame::findScene(const int &id) const
 {
-	auto it = std::find_if(m_sceneList.constBegin(), m_sceneList.constEnd(),
-						   [&id](const Scene &s){
+	auto it = std::find_if(d->m_sceneList.cbegin(), d->m_sceneList.cend(),
+						   [&id](const TiledGamePrivate::Scene &s){
 		return s.scene && s.scene->sceneId() == id;
 	});
 
-	if (it == m_sceneList.constEnd())
+	if (it == d->m_sceneList.cend())
 		return nullptr;
 
 	return it->scene;
@@ -356,7 +498,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 
 	LOG_CDEBUG("game") << "Create scene flickable item:" << def.id;
 
-	Scene item;
+	TiledGamePrivate::Scene item;
 
 	item.container = qobject_cast<QQuickItem*>(component.create());
 
@@ -366,11 +508,21 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 	}
 
 
+	b2::World::Params params;
+	params.gravity.x = 0.0f;
+	params.gravity.y = 0.0f;
+
+	item.world.reset(new b2::World(params));
+
 	item.scene = qvariant_cast<TiledScene*>(item.container->property("scene"));
 	Q_ASSERT(item.scene);
 
+	item.world->SetUserData(item.scene);
+
 	item.scene->setSceneId(def.id);
 	item.scene->setGame(this);
+	item.scene->m_world = item.world.get();
+
 	item.container->setParentItem(this);
 	item.container->setParent(this);
 
@@ -384,7 +536,8 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 	item.scene->setBackgroundMusic(def.music);
 	item.scene->setSceneEffect(def.effect);
 
-	m_sceneList.append(std::move(item));
+
+	d->m_sceneList.push_back(std::move(item));
 
 	return true;
 }
@@ -410,12 +563,10 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 	QRectF tmpViewport;
 
 	for (Tiled::MapObject *object : std::as_const(group->objects())) {
-		int idx = findLoadedObject(object->id(), scene->sceneId());
-
-		if (idx != -1) {
+		/*if (d->findLoadedObject(object->id(), scene->sceneId())) {
 			LOG_CERROR("game") << "Object already created" << object->id() << scene->sceneId();
 			continue;
-		}
+		}*/
 
 		if (className == QStringLiteral("ground")) {
 			loadGround(scene, object, renderer);
@@ -423,7 +574,6 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			loadDynamicZ(scene, object, renderer);
 		} else if (className == QStringLiteral("player")) {
 			addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
-			addLoadedObject(object->id(), scene->sceneId());
 		} else if (className == QStringLiteral("viewport")) {
 			if (object->name() == QStringLiteral("topLeft"))
 				tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
@@ -440,7 +590,6 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 				loadGround(scene, object, renderer);
 			} else if (object->className() == QStringLiteral("player")) {
 				addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
-				addLoadedObject(object->id(), scene->sceneId());
 			} else if (object->className() == QStringLiteral("viewport")) {
 				if (object->name() == QStringLiteral("topLeft"))
 					tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
@@ -474,35 +623,32 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
  * @return
  */
 
-TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
+TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
 {
 	Q_ASSERT(scene);
 	Q_ASSERT(object);
 	Q_ASSERT(renderer);
 
-	TiledObjectBasePolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer, scene);
+	b2::Shape::Params params;
+	params.friction = 1.f;
+	params.density = 1.f;
+	params.restitution = 0.f;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureGround);
+
+	TiledObjectBody *mapObject = createFromMapObject<TiledObjectBody>(scene, object, renderer, params);
 
 	if (!mapObject)
 		return nullptr;
 
-	mapObject->setParent(scene);
-	mapObject->setScene(scene);
-	mapObject->setGame(this);
-	mapObject->fixture()->setDensity(1);
-	mapObject->fixture()->setFriction(1);
-	mapObject->fixture()->setRestitution(0);
-	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround));
-
+	mapObject->setObjectId({object->id(), scene->sceneId()});
+	scene->m_groundObjects.append(mapObject);
 
 	QPointF delta;
 
-	if (!translate.isNull()) {
-		mapObject->body()->emplace(mapObject->body()->bodyPosition() + translate);
-		delta = renderer->screenToPixelCoords(renderer->tileToScreenCoords(0,0) + translate);
+	if (Tiled::ObjectGroup *gLayer = object->objectGroup()) {
+		delta = renderer->screenToPixelCoords(renderer->tileToScreenCoords(0,0) + gLayer->totalOffset());
 	}
 
-	scene->m_groundObjects.append(QPointer(mapObject));
 
 	if (!object->name().isEmpty()) {
 		switch (object->shape()) {
@@ -518,18 +664,16 @@ TiledObjectBasePolygon *TiledGame::loadGround(TiledScene *scene, Tiled::MapObjec
 		}
 	}
 
-	if (object->hasProperty(QStringLiteral("z"))) {
+	/*if (object->hasProperty(QStringLiteral("z"))) {
 		mapObject->setZ(object->property(QStringLiteral("z")).toInt());
 	} else {
 		mapObject->setZ(0);
-	}
+	}*/
 
 	if (object->hasProperty(QStringLiteral("transparent")))
-		mapObject->body()->setOpaque(!object->property(QStringLiteral("transparent")).toBool());
+		mapObject->setOpaque(!object->property(QStringLiteral("transparent")).toBool());
 	else if (object->hasProperty(QStringLiteral("opaque")))
-		mapObject->body()->setOpaque(object->property(QStringLiteral("opaque")).toBool());
-
-	addLoadedObject(object->id(), scene->sceneId());
+		mapObject->setOpaque(object->property(QStringLiteral("opaque")).toBool());
 
 	return mapObject;
 }
@@ -591,7 +735,7 @@ bool TiledGame::loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled:
 
 bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
-	TiledObjectBasePolygon *mapObject = nullptr;
+	/*TiledObjectBasePolygon *mapObject = nullptr;
 	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer, scene);
 
 	if (!mapObject)
@@ -612,7 +756,9 @@ bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled
 
 	addLoadedObject(object->id(), scene->sceneId());
 
-	return true;
+	return true;*/
+
+	return false;
 }
 
 
@@ -656,6 +802,40 @@ void TiledGame::loadImageLayer(TiledScene *, Tiled::ImageLayer *, Tiled::MapRend
 }
 
 
+/**
+ * @brief TiledGame::timerEvent
+ * @param event
+ */
+
+void TiledGame::timerEvent(QTimerEvent *event)
+{
+	updateStepTimer();
+}
+
+
+/**
+ * @brief TiledGame::timeSteppedEvent
+ */
+
+void TiledGame::timeSteppedEvent()
+{
+	LOG_CWARNING("scene") << "DRAW";
+
+	for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
+		//ptr.body->worldStep(1.0);
+	}
+
+	for (const TiledGamePrivate::Scene &ptr : std::as_const(d->m_sceneList)) {
+		ptr.scene->reorderObjectsZ(d->getObjects<TiledObject>(ptr.scene));
+	}
+
+	for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
+		if (ptr.body->scene() == m_currentScene)
+			ptr.body->synchronize();
+	}
+}
+
+
 
 
 /**
@@ -669,51 +849,51 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 
 	switch (key) {
 		case Qt::Key_Shift:
-			m_keyboardJoystickState.shift = true;
+			d->m_keyboardJoystickState.shift = true;
 			break;
 
 		case Qt::Key_Left:
 		case Qt::Key_4:
 		case Qt::Key_A:
-			m_keyboardJoystickState.left = true;
+			d->m_keyboardJoystickState.left = true;
 			break;
 
 		case Qt::Key_Right:
 		case Qt::Key_6:
 		case Qt::Key_D:
-			m_keyboardJoystickState.right = true;
+			d->m_keyboardJoystickState.right = true;
 			break;
 
 		case Qt::Key_Up:
 		case Qt::Key_8:
 		case Qt::Key_W:
-			m_keyboardJoystickState.up = true;
+			d->m_keyboardJoystickState.up = true;
 			break;
 
 		case Qt::Key_Down:
 		case Qt::Key_2:
 		case Qt::Key_S:
-			m_keyboardJoystickState.down = true;
+			d->m_keyboardJoystickState.down = true;
 			break;
 
 		case Qt::Key_Home:
 		case Qt::Key_7:
-			m_keyboardJoystickState.upLeft = true;
+			d->m_keyboardJoystickState.upLeft = true;
 			break;
 
 		case Qt::Key_End:
 		case Qt::Key_1:
-			m_keyboardJoystickState.downLeft = true;
+			d->m_keyboardJoystickState.downLeft = true;
 			break;
 
 		case Qt::Key_PageUp:
 		case Qt::Key_9:
-			m_keyboardJoystickState.upRight = true;
+			d->m_keyboardJoystickState.upRight = true;
 			break;
 
 		case Qt::Key_PageDown:
 		case Qt::Key_3:
-			m_keyboardJoystickState.downRight = true;
+			d->m_keyboardJoystickState.downRight = true;
 			break;
 
 #ifndef QT_NO_DEBUG
@@ -741,51 +921,51 @@ void TiledGame::keyReleaseEvent(QKeyEvent *event)
 
 	switch (key) {
 		case Qt::Key_Shift:
-			m_keyboardJoystickState.shift = false;
+			d->m_keyboardJoystickState.shift = false;
 			break;
 
 		case Qt::Key_Left:
 		case Qt::Key_4:
 		case Qt::Key_A:
-			m_keyboardJoystickState.left = false;
+			d->m_keyboardJoystickState.left = false;
 			break;
 
 		case Qt::Key_Right:
 		case Qt::Key_6:
 		case Qt::Key_D:
-			m_keyboardJoystickState.right = false;
+			d->m_keyboardJoystickState.right = false;
 			break;
 
 		case Qt::Key_Up:
 		case Qt::Key_8:
 		case Qt::Key_W:
-			m_keyboardJoystickState.up = false;
+			d->m_keyboardJoystickState.up = false;
 			break;
 
 		case Qt::Key_Down:
 		case Qt::Key_2:
 		case Qt::Key_S:
-			m_keyboardJoystickState.down = false;
+			d->m_keyboardJoystickState.down = false;
 			break;
 
 		case Qt::Key_Home:
 		case Qt::Key_7:
-			m_keyboardJoystickState.upLeft = false;
+			d->m_keyboardJoystickState.upLeft = false;
 			break;
 
 		case Qt::Key_End:
 		case Qt::Key_1:
-			m_keyboardJoystickState.downLeft = false;
+			d->m_keyboardJoystickState.downLeft = false;
 			break;
 
 		case Qt::Key_PageUp:
 		case Qt::Key_9:
-			m_keyboardJoystickState.upRight = false;
+			d->m_keyboardJoystickState.upRight = false;
 			break;
 
 		case Qt::Key_PageDown:
 		case Qt::Key_3:
-			m_keyboardJoystickState.downRight = false;
+			d->m_keyboardJoystickState.downRight = false;
 			break;
 	}
 
@@ -813,7 +993,7 @@ bool TiledGame::transportBeforeEvent(TiledObject */*object*/, TiledTransport */*
  * @return
  */
 
-bool TiledGame::transportAfterEvent(TiledObject */*object*/, TiledScene */*newScene*/, TiledObjectBase */*newObject*/)
+bool TiledGame::transportAfterEvent(TiledObject */*object*/, TiledScene */*newScene*/, TiledObject */*newObject*/)
 {
 	return true;
 }
@@ -838,7 +1018,7 @@ bool TiledGame::transportMarket()
  * @return
  */
 
-bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase)
+bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, TiledObject *transportBase)
 {
 	Q_ASSERT(object);
 	Q_ASSERT(transport);
@@ -846,7 +1026,7 @@ bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, Ti
 
 	TiledScene *oldScene = object->scene();
 	TiledScene *newScene = transportBase ? transport->otherScene(transportBase) : transport->otherScene(oldScene);
-	TiledObjectBase *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
+	TiledObject *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
 	const int newDirection = transportBase ? transport->otherDirection(transportBase) : -1;
 
 	if (!newScene || !newObject) {
@@ -857,7 +1037,7 @@ bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, Ti
 	if (!transport->isOpen())
 		return false;
 
-	changeScene(object, oldScene, newScene, newObject->body()->bodyPosition());
+	changeScene(object, oldScene, newScene, newObject->bodyPosition());
 
 	if (newDirection != -1)
 		object->setCurrentDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
@@ -964,50 +1144,50 @@ void TiledGame::updateKeyboardJoystick()
 		return;
 
 	JoystickState jState = m_joystickState;
-	jState.hasKeyboard = m_keyboardJoystickState.up ||
-						 m_keyboardJoystickState.down ||
-						 m_keyboardJoystickState.left ||
-						 m_keyboardJoystickState.right ||
-						 m_keyboardJoystickState.upLeft ||
-						 m_keyboardJoystickState.upRight ||
-						 m_keyboardJoystickState.downLeft ||
-						 m_keyboardJoystickState.downRight;
+	jState.hasKeyboard = d->m_keyboardJoystickState.up ||
+						 d->m_keyboardJoystickState.down ||
+						 d->m_keyboardJoystickState.left ||
+						 d->m_keyboardJoystickState.right ||
+						 d->m_keyboardJoystickState.upLeft ||
+						 d->m_keyboardJoystickState.upRight ||
+						 d->m_keyboardJoystickState.downLeft ||
+						 d->m_keyboardJoystickState.downRight;
 
 	qreal dx = 0.;
 	qreal dy = 0.;
 
-	if ((m_keyboardJoystickState.up && m_keyboardJoystickState.left) || m_keyboardJoystickState.upLeft) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthWest);
+	if ((d->m_keyboardJoystickState.up && d->m_keyboardJoystickState.left) || d->m_keyboardJoystickState.upLeft) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::NorthWest);
 		dx = -0.5;
 		dy = -0.5;
-	} else if ((m_keyboardJoystickState.up && m_keyboardJoystickState.right) || m_keyboardJoystickState.upRight) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::NorthEast);
+	} else if ((d->m_keyboardJoystickState.up && d->m_keyboardJoystickState.right) || d->m_keyboardJoystickState.upRight) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::NorthEast);
 		dx = 0.5;
 		dy = -0.5;
-	} else if ((m_keyboardJoystickState.down && m_keyboardJoystickState.left) || m_keyboardJoystickState.downLeft) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthWest);
+	} else if ((d->m_keyboardJoystickState.down && d->m_keyboardJoystickState.left) || d->m_keyboardJoystickState.downLeft) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::SouthWest);
 		dx = -0.5;
 		dy = 0.5;
-	} else if ((m_keyboardJoystickState.down && m_keyboardJoystickState.right) || m_keyboardJoystickState.downRight) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::SouthEast);
+	} else if ((d->m_keyboardJoystickState.down && d->m_keyboardJoystickState.right) || d->m_keyboardJoystickState.downRight) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::SouthEast);
 		dx = 0.5;
 		dy = 0.5;
-	} else if (m_keyboardJoystickState.up) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::North);
+	} else if (d->m_keyboardJoystickState.up) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::North);
 		dy = -0.5;
-	} else if (m_keyboardJoystickState.down) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::South);
+	} else if (d->m_keyboardJoystickState.down) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::South);
 		dy = 0.5;
-	} else if (m_keyboardJoystickState.left) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::West);
+	} else if (d->m_keyboardJoystickState.left) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::West);
 		dx = -0.5;
-	} else if (m_keyboardJoystickState.right) {
-		jState.angle = TiledObject::directionToIsometricRaidan(TiledObject::East);
+	} else if (d->m_keyboardJoystickState.right) {
+		jState.angle = TiledObject::directionToIsometricRadian(TiledObject::East);
 		dx = 0.5;
 	}
 
 
-	if (m_keyboardJoystickState.shift && jState.hasKeyboard) {
+	if (d->m_keyboardJoystickState.shift && jState.hasKeyboard) {
 		jState.distance = 0.7;
 		dx *= 0.4;
 		dy *= 0.4;
@@ -1033,6 +1213,64 @@ void TiledGame::updateKeyboardJoystick()
 							  Q_ARG(QVariant, dy)
 							  );
 }
+
+
+
+/**
+ * @brief TiledGame::updateStepTimer
+ */
+
+void TiledGame::updateStepTimer()
+{
+	//QMutexLocker locker(&d->m_stepMutex);
+
+	if (d->m_stepElapsedTimer.isValid()) {
+		d->m_stepLag += d->m_stepElapsedTimer.restart();
+	} else {
+		d->m_stepElapsedTimer.start();
+	}
+
+	/// repeat
+
+	while (d->m_stepLag >= 1000/60) {
+		d->m_stepLag -= 1000/60;
+
+		for (const TiledGamePrivate::Scene &ptr : std::as_const(d->m_sceneList)) {
+			ptr.world->Step(1/60., 4);
+		}
+
+		for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
+			ptr.body->worldStep(1.0);
+		}
+	}
+
+
+	QMetaObject::invokeMethod(this, &TiledGame::timeSteppedEvent, Qt::QueuedConnection);
+}
+
+
+/**
+ * @brief TiledGame::addObject
+ * @param bodyPtr
+ */
+
+TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body)
+{
+	Q_ASSERT(body);
+
+	QMutexLocker locker(&d->m_stepMutex);
+
+	auto &ptr = d->m_bodyList.emplace_back(std::move(body));
+
+	return ptr.body.get();
+}
+
+
+
+/**
+ * @brief TiledGame::flickableInteractive
+ * @return
+ */
 
 bool TiledGame::flickableInteractive() const
 {
@@ -1135,52 +1373,6 @@ void TiledGame::setMessageList(QQuickItem *newMessageList)
 
 
 
-/**
- * @brief TiledGame::findLoadedObject
- * @param id
- * @param sceneId
- * @return
- */
-
-int TiledGame::findLoadedObject(const int &id, const int &sceneId) const
-{
-	auto it = std::find_if(m_loadedObjectList.cbegin(), m_loadedObjectList.cend(),
-						   [&id, &sceneId](const TiledObjectBase::ObjectId &o){
-		return o.sceneId == sceneId && o.id == id;
-	});
-
-	if (it == m_loadedObjectList.cend())
-		return -1;
-	else
-		return it-m_loadedObjectList.cbegin();
-}
-
-
-
-
-/**
- * @brief TiledGame::addLoadedObject
- * @param id
- * @param sceneId
- * @return
- */
-
-bool TiledGame::addLoadedObject(const int &id, const int &sceneId)
-{
-	auto it = std::find_if(m_loadedObjectList.cbegin(), m_loadedObjectList.cend(),
-						   [&id, &sceneId](const TiledObjectBase::ObjectId &o){
-		return o.sceneId == sceneId && o.id == id;
-	});
-
-	if (it != m_loadedObjectList.cend())
-		return false;
-
-	m_loadedObjectList.append(TiledObjectBase::ObjectId{ id, sceneId });
-
-	return true;
-}
-
-
 
 /**
  * @brief TiledGame::changeScene
@@ -1196,17 +1388,16 @@ void TiledGame::changeScene(TiledObject *object, TiledScene *from, TiledScene *t
 	Q_ASSERT(to);
 
 	if (from == to) {
-		object->body()->emplace(toPoint);
+		object->emplace(toPoint);
 	} else {
 		from->removeFromObjects(object);
 
-		object->setScene(to);
-		object->body()->emplace(toPoint);
+		object->setWorld(to->world(), toPoint);
 
 		to->appendToObjects(object);
 	}
 
-	IsometricEntityIface *entity = dynamic_cast<IsometricEntityIface*>(object);
+	IsometricEntity *entity = dynamic_cast<IsometricEntity*>(object);
 
 	if (entity)
 		entity->updateSprite();
@@ -1222,21 +1413,21 @@ void TiledGame::changeScene(TiledObject *object, TiledScene *from, TiledScene *t
 
 void TiledGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
 {
-	auto it = std::find_if(m_playerPositionList.constBegin(), m_playerPositionList.constEnd(),
-						   [scene, &position](const PlayerPosition &p){
+	auto it = std::find_if(d->m_playerPositionList.constBegin(), d->m_playerPositionList.constEnd(),
+						   [scene, &position](const auto &p){
 		return p.scene == scene && p.position == position;
 	});
 
-	if (it != m_playerPositionList.constEnd()) {
+	if (it != d->m_playerPositionList.constEnd()) {
 		LOG_CDEBUG("game") << "Player position already loaded:" << it->sceneId << it->position;
 		return;
 	}
 
-	m_playerPositionList.append(PlayerPosition{
-									scene ? scene->sceneId() : -1,
-									scene,
-									position
-								});
+	d->m_playerPositionList.append(TiledGamePrivate::PlayerPosition{
+									   scene ? scene->sceneId() : -1,
+									   scene,
+									   position
+								   });
 }
 
 
@@ -1246,12 +1437,12 @@ void TiledGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
  * @return
  */
 
-TiledObjectBase *TiledGame::followedItem() const
+TiledObject *TiledGame::followedItem() const
 {
 	return m_followedItem;
 }
 
-void TiledGame::setFollowedItem(TiledObjectBase *newFollowedItem)
+void TiledGame::setFollowedItem(TiledObject *newFollowedItem)
 {
 	if (m_followedItem == newFollowedItem)
 		return;
@@ -1267,7 +1458,7 @@ void TiledGame::setFollowedItem(TiledObjectBase *newFollowedItem)
 
 const TiledTransportList &TiledGame::transportList() const
 {
-	return m_transportList;
+	return d->m_transportList;
 }
 
 
@@ -1278,7 +1469,7 @@ const TiledTransportList &TiledGame::transportList() const
 
 TiledTransportList &TiledGame::transportList()
 {
-	return m_transportList;
+	return d->m_transportList;
 }
 
 
@@ -1291,7 +1482,7 @@ TiledTransportList &TiledGame::transportList()
  * @return
  */
 
-bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledObjectBase *transportBase)
+bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledObject *transportBase)
 {
 	Q_ASSERT(object);
 
@@ -1470,7 +1661,7 @@ int TiledGame::playerPositionsCount(const int &sceneId) const
 {
 	int num = 0;
 
-	for (const PlayerPosition &p : m_playerPositionList) {
+	for (const auto &p : d->m_playerPositionList) {
 		if (p.sceneId == sceneId)
 			++num;
 	}
@@ -1489,7 +1680,7 @@ int TiledGame::playerPositionsCount(TiledScene *scene) const
 {
 	int num = 0;
 
-	for (const PlayerPosition &p : m_playerPositionList) {
+	for (const auto &p : d->m_playerPositionList) {
 		if (p.scene == scene)
 			++num;
 	}
@@ -1510,7 +1701,7 @@ std::optional<QPointF> TiledGame::playerPosition(const int &sceneId, const int &
 {
 	int i = 0;
 
-	for (const PlayerPosition &p : m_playerPositionList) {
+	for (const auto &p : d->m_playerPositionList) {
 		if (p.sceneId == sceneId) {
 			if (i==num)
 				return p.position;
@@ -1536,7 +1727,7 @@ std::optional<QPointF> TiledGame::playerPosition(TiledScene *scene, const int &n
 {
 	int i = 0;
 
-	for (const PlayerPosition &p : m_playerPositionList) {
+	for (const auto &p : d->m_playerPositionList) {
 		if (p.scene == scene) {
 			if (i==num)
 				return p.position;
@@ -1864,9 +2055,157 @@ void TiledGame::setPaused(bool newPaused)
 			m_tickTimer->resume();
 	}
 
-	for (const Scene &s : m_sceneList)
-		s.scene->setRunning(!m_paused);
+	/*for (const Scene &s : m_sceneList)
+		s.scene->setRunning(!m_paused);*/
 
 	Tiled::TilesetManager *manager = Tiled::TilesetManager::instance();
 	manager->setAnimateTiles(!m_paused);
+}
+
+
+
+/**
+ * @brief TiledGamePrivate::getObjects
+ * @return
+ */
+
+template<typename T, typename T2>
+std::vector<T *> TiledGamePrivate::getObjects() const
+{
+	std::vector<T *> list;
+
+	for (const auto &ptr : m_bodyList) {
+		if (T* o = dynamic_cast<T*>(ptr.body.get()))
+			list.push_back(o);
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief TiledGamePrivate::getObjects
+ * @param scene
+ * @return
+ */
+
+template<typename T, typename T2>
+std::vector<T *> TiledGamePrivate::getObjects(TiledScene *scene) const
+{
+	std::vector<T *> list;
+
+	if (!scene)
+		return list;
+
+	for (const auto &ptr : m_bodyList) {
+		if (T* o = dynamic_cast<T*>(ptr.body.get())) {
+			if (o->scene() == scene)
+				list.push_back(o);
+		}
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief TiledGamePrivate::getObjects
+ * @param world
+ * @return
+ */
+
+template<typename T, typename T2>
+std::vector<T *> TiledGamePrivate::getObjects(b2::World *world) const
+{
+	std::vector<T *> list;
+
+	if (!world)
+		return list;
+
+	for (const auto &ptr : m_bodyList) {
+		if (T* o = dynamic_cast<T*>(ptr.body.get())) {
+			if (o->world() == world)
+				list.push_back(o);
+		}
+	}
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief TiledGamePrivate::startStepTimer
+ */
+
+void TiledGamePrivate::startStepTimer()
+{
+	m_stepElapsedTimer.start();
+	m_stepTimerId = Qt::TimerId{q->startTimer(std::chrono::milliseconds{8}, Qt::PreciseTimer)};
+
+
+	/*
+	m_stepTimerRunning = true;
+
+#ifndef Q_OS_WASM
+	m_stepTimerThread.execInThread([this](){
+#endif
+		LOG_CTRACE("game") << "Step timer started";
+
+		int lag = 0;
+		std::chrono::time_point<std::chrono::steady_clock> endTime = std::chrono::steady_clock::now();
+
+		long longestTime = 0;
+		long frameCount = 0;
+		long tickCount = 0;
+		long fpsElapsedTime = 0;
+
+		while (m_stepTimerRunning) {
+
+			std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
+
+			std::chrono::milliseconds elapsedTime(std::chrono::duration_cast<std::chrono::milliseconds>(startTime - endTime));
+			endTime = startTime;
+
+			lag += static_cast<int>(elapsedTime.count());
+
+			if (elapsedTime.count() == 0) { //the sim loop will not be run if lag was not increased prior ( previous frame normally )
+				QThread::currentThread()->sleep(std::chrono::milliseconds{5});
+
+				if (!m_stepTimerRunning)
+					break;
+			}
+
+			const int fps = 60;
+			const int lengthOfFrame = 1000 / fps;
+
+
+			//game-sim loop, is independent of rendering
+			std::chrono::time_point<std::chrono::steady_clock> oldTime = std::chrono::steady_clock::now();
+			while (lag >= lengthOfFrame) {
+				q->updateStepTimer();
+
+				//finish tick
+				lag -= lengthOfFrame;
+				tickCount++;	//keep track of how many ticks weve done this second
+			}
+
+			//render the frame
+
+			frameCount++;	//keep trrack of how many frames weve done this second
+
+			//handle per-second stats
+			fpsElapsedTime += static_cast<long>(elapsedTime.count());
+			if (fpsElapsedTime >= 1000) {
+				LOG_CTRACE("scene") <<  frameCount << ", " << tickCount;
+
+				fpsElapsedTime = 0;
+				frameCount = 0;
+				tickCount = 0;
+			}
+		}
+
+		LOG_CERROR("game") << "Step timer finished";
+	});*/
 }

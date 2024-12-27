@@ -32,7 +32,6 @@
 #include "tilelayeritem.h"
 #include "tiledgame.h"
 #include "tilesetmanager.h"
-#include "isometricobjectiface.h"
 #include "application.h"
 #include "libtcod/path.hpp"
 
@@ -45,14 +44,8 @@
 
 TiledScene::TiledScene(QQuickItem *parent)
 	: TiledQuick::MapItem(parent)
-	, m_world(new Box2DWorld)
 {
 	LOG_CTRACE("scene") << "Scene created" << this;
-
-	m_world->setGravity(QPointF{0,0});
-	m_world->setTimeStep(1./60.);
-	connect(m_world.get(), &Box2DWorld::stepped, this, &TiledScene::onWorldStepped, Qt::DirectConnection);
-	m_world->componentComplete();
 
 	setImplicitHeight(100);
 	setImplicitWidth(100);
@@ -74,13 +67,12 @@ TiledScene::TiledScene(QQuickItem *parent)
 
 TiledScene::~TiledScene()
 {
-	m_world->setRunning(false);
 	unsetMap();
 
-	for (const auto &o : std::as_const(m_tiledObjects)) {
+	/*for (const auto &o : std::as_const(m_tiledObjects)) {
 		if (o && o->scene() == this)
 			o->setScene(nullptr);
-	}
+	}*/
 
 
 	qDeleteAll(m_visualItems);
@@ -301,7 +293,7 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 
 void TiledScene::appendToObjects(TiledObject *object)
 {
-	m_tiledObjectsToAppend.append(object);
+
 }
 
 
@@ -312,7 +304,7 @@ void TiledScene::appendToObjects(TiledObject *object)
 
 void TiledScene::removeFromObjects(TiledObject *object)
 {
-	m_tiledObjectsToRemove.append(object);
+
 }
 
 
@@ -354,19 +346,19 @@ int TiledScene::getDynamicZ(const qreal &x, const qreal &y, const int &defaultVa
 
 bool TiledScene::running() const
 {
-	return m_world->isRunning();
+	return true;
 }
 
 void TiledScene::setRunning(bool newRunning)
 {
-	if (m_world->isRunning() == newRunning)
+	/*if (m_world->isRunning() == newRunning)
 		return;
 	m_world->setRunning(newRunning);
 
 	if (!newRunning)
 		m_worldStepTimer.invalidate();
 
-	emit runningChanged();
+	emit runningChanged();*/
 }
 
 
@@ -408,8 +400,8 @@ void TiledScene::stopMusic()
 
 bool TiledScene::isGroundContainsPoint(const QPointF &point) const
 {
-	for (TiledObjectBasePolygon *o : std::as_const(m_groundObjects)) {
-		if (o->body()->isActive() && o->fixture()->containsPoint(point))
+	for (TiledObjectBody *o : std::as_const(m_groundObjects)) {
+		if (o && o->isBodyEnabled() && o->overlap(point))
 			return true;
 	}
 
@@ -429,7 +421,7 @@ bool TiledScene::isGroundContainsPoint(const QPointF &point) const
 
 void TiledScene::onWorldStepped()
 {
-	qreal factor = 1.f;
+	/*qreal factor = 1.f;
 
 	if (m_worldStepTimer.isValid()) {
 		const qint64 &msec = m_worldStepTimer.restart();
@@ -467,8 +459,7 @@ void TiledScene::onWorldStepped()
 			m_tiledObjects.removeAll(ptr);
 	}
 	m_tiledObjectsToRemove.clear();
-
-	reorderObjectsZ();
+	*/
 
 	if (m_game)
 		m_game->onSceneWorldStepped(this);
@@ -481,35 +472,29 @@ void TiledScene::onWorldStepped()
  * @brief TiledScene::reorderObjectsZ
  */
 
-void TiledScene::reorderObjectsZ()
+void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
 {
 	QHash<qreal, QMultiMap<qreal, TiledObject*>> map;
 
-	for (TiledObject *obj : m_tiledObjects) {
-		if (!obj || !obj->body())
-			continue;
-
-		IsometricObjectIface *iso = dynamic_cast<IsometricObjectIface*>(obj);
+	for (TiledObject *obj : list) {
+		IsometricObject *iso = dynamic_cast<IsometricObject*>(obj);
 
 		qreal z = 0;
-		const qreal y = obj->body()->bodyPosition().y();
+		const qreal y = obj->bodyPosition().y();
 
 		if (iso)
-			z = getDynamicZ(obj->body()->bodyPosition(), iso->defaultZ()) + iso->subZ();
+			z = getDynamicZ(obj->bodyPosition(), iso->defaultZ()) + iso->subZ();
 		else
 			z = obj->z();
 
 		map[z].insert(y, obj);
 	}
 
-	for (auto it = map.constBegin(); it != map.constEnd(); ++it) {
+	for (const auto &[subZ, subMap] : map.asKeyValueRange()) {
 		qreal subsubZ = 0.0001;
 
-		const qreal subZ = it.key();
-		const auto &subMap = it.value();
-
-		for (auto it2 = subMap.constBegin(); it2 != subMap.constEnd(); ++it2) {
-			it2.value()->setZ(subZ+subsubZ);
+		for (const auto &[key, o] : subMap.asKeyValueRange()) {
+			o->setZ(subZ+subsubZ);
 			subsubZ += 0.0001;
 		}
 	}
@@ -562,8 +547,8 @@ void TiledScene::reloadTcodMap()
 			QPolygonF chunk(QRectF(m_viewport.topLeft() + QPointF(m_tcodMap.chunkWidth*i, m_tcodMap.chunkHeight*j),
 								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight)));
 
-			for (TiledObjectBasePolygon *o : std::as_const(m_groundObjects)) {
-				if (o->body()->isActive() && chunk.intersects(o->screenPolygon().translated(o->body()->bodyPosition()))) {
+			for (TiledObjectBody *o : std::as_const(m_groundObjects)) {
+				if (o->isBodyEnabled() && chunk.intersects(o->bodyAABB())) {
 					m_tcodMap.map->setProperties(i, j, true, false);
 					break;
 				}
@@ -586,18 +571,16 @@ std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, con
 	if (!body)
 		return std::nullopt;
 
-	const TiledReportedFixtureMap &map = body->rayCast(to);
+	const TiledReportedFixtureMap &map = body->rayCast(to, TiledObjectBody::FixtureGround);
 
 	bool isWalkable = true;
 
 	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
-		if (it->fixture->isSensor())
+		if (it->IsSensor())
 			continue;
 
-		if (it->fixture->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround))) {
-			isWalkable = false;
-			break;
-		}
+		isWalkable = false;
+		break;
 	}
 
 	if (isWalkable)
@@ -753,18 +736,6 @@ void TiledScene::setGame(TiledGame *newGame)
 
 
 
-
-
-
-/**
- * @brief TiledScene::world
- * @return
- */
-
-Box2DWorld *TiledScene::world() const
-{
-	return m_world.get();
-}
 
 
 

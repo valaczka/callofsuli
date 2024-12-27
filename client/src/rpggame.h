@@ -223,10 +223,10 @@ public:
 	static void saveTerrainInfo();
 	static std::optional<RpgMarket> saveTerrainInfo(const RpgGameDefinition &def);
 
-	virtual TiledObjectBasePolygon *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
+	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
 											   const QPointF &translate = {}) override;
 
-	virtual void onSceneWorldStepped(TiledScene *scene) override;
+	[[deprecated]] virtual void onSceneWorldStepped(TiledScene *scene) override;
 
 	void useWeapon(const TiledWeapon::WeaponType &type);
 	const QVector<RpgWallet> &usedWallet() const { return m_usedWallet; }
@@ -308,7 +308,7 @@ protected:
 	virtual void keyPressEvent(QKeyEvent *event) override final;
 
 	bool transportBeforeEvent(TiledObject *object, TiledTransport *transport) override;
-	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObjectBase *newObject) override;
+	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObject *newObject) override;
 	bool transportDoor(TiledObject *object, TiledTransport *transport) override;
 
 private:
@@ -316,7 +316,7 @@ private:
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
-	void addLocationSound(TiledObjectBase *object, const QString &sound,
+	void addLocationSound(TiledObjectBody *object, const QString &sound,
 						  const qreal &baseVolume = 1.,
 						  const Sound::ChannelType &channel = Sound::Music2Channel);
 	void loadDefaultQuests(const int &questions);
@@ -342,7 +342,7 @@ private:
 	static QVector<RpgPickableObject::PickableType> getPickablesFromPropertyValue(const QString &value);
 
 	struct EnemyData {
-		TiledObjectBase::ObjectId objectId;
+		TiledObject::ObjectId objectId;
 		RpgEnemyIface::RpgEnemyType type = RpgEnemyIface::EnemyInvalid;
 		QString subtype;
 		QPolygonF path;
@@ -358,7 +358,7 @@ private:
 
 
 	struct PickableData {
-		TiledObjectBase::ObjectId objectId;
+		TiledObject::ObjectId objectId;
 		RpgPickableObject::PickableType type = RpgPickableObject::PickableInvalid;
 		QString name;
 		QPointF position;

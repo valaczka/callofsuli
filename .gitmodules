@@ -72,3 +72,9 @@
 [submodule "lib/enet"]
 	path = lib/enet
 	url = https://github.com/lsalzman/enet.git
+[submodule "lib/box2cpp"]
+	path = lib/box2cpp
+	url = https://github.com/HolyBlackCat/box2cpp.git
+[submodule "lib/box2d"]
+	path = lib/box2d
+	url = https://github.com/erincatto/box2d.git

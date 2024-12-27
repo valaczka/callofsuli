@@ -36,7 +36,7 @@ class RpgHpPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgHpPickable(QQuickItem *parent = nullptr);
+    RpgHpPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

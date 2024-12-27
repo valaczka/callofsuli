@@ -90,7 +90,6 @@ protected:
 	void registerQmlTypes();
 	void loadFonts();
 	void loadQaterial();
-	void loadBox2D();
 	void loadModules();
 
 	friend class Client;

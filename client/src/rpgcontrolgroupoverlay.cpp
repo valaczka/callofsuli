@@ -53,7 +53,7 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 
 		} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(group->objects())) {
-				TiledObjectBase *base = nullptr;
+				TiledObject *base = nullptr;
 
 				if (object->className() != QStringLiteral("trigger")) {
 					LOG_CWARNING("game") << "RpgControlGroupOverlay object skipped:" << object->id() << object->name();
@@ -62,15 +62,13 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 
 				if (object->shape() == Tiled::MapObject::Polygon ||
 					object->shape() == Tiled::MapObject::Rectangle) {
-					TiledObjectBasePolygon *ptr = nullptr;
-					TiledObject::createFromMapObject<TiledObjectBasePolygon>(&ptr, object, renderer, scene);
-					connectFixture(ptr->fixture());
+					TiledObject *ptr = m_game->createFromMapObject<TiledObject>(scene, object, renderer);
+					//connectFixture(ptr->fixture());
 					base = ptr;
 				} else if (object->shape() == Tiled::MapObject::Point) {
-					TiledObjectBaseCircle *ptr = nullptr;
-					TiledObject::createFromCircle<TiledObjectBaseCircle>(&ptr, object->position(), 10., renderer, scene);
+					TiledObject *ptr = m_game->createFromCircle<TiledObject>(scene, object->position(), 10., renderer);
 					//ptr->body()->emplace(renderer->pixelToScreenCoords(object->position()));
-					connectFixture(ptr->fixture());
+					//connectFixture(ptr->fixture());
 					base = ptr;
 				}
 
@@ -80,7 +78,6 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 				}
 
 				base->setParent(m_game);
-				base->setScene(scene);
 			}
 
 		}
@@ -98,11 +95,11 @@ void RpgControlGroupOverlay::removePlayerFixture(RpgPlayer *player)
 	if (!player)
 		return;
 
-	if (auto *p = player->sensorPolygon()) {
+	/*if (auto *p = player->sensorPolygon()) {
 		if (auto *c = p->virtualCircle()) {
 			onFixtureEndContact(c);
 		}
-	}
+	}*/
 }
 
 
@@ -112,6 +109,7 @@ void RpgControlGroupOverlay::removePlayerFixture(RpgPlayer *player)
  * @param other
  */
 
+/*
 void RpgControlGroupOverlay::onFixtureBeginContact(Box2DFixture *other)
 {
 	if (!m_contactedFixtures.contains(other)) {
@@ -121,17 +119,12 @@ void RpgControlGroupOverlay::onFixtureBeginContact(Box2DFixture *other)
 }
 
 
-/**
- * @brief RpgControlGroupOverlay::onFixtureEndContact
- * @param other
- */
-
 void RpgControlGroupOverlay::onFixtureEndContact(Box2DFixture *other)
 {
 	m_contactedFixtures.removeAll(QPointer(other));
 	updateLayers();
 }
-
+*/
 
 /**
  * @brief RpgControlGroupOverlay::onControlledPlayerChanged
@@ -139,7 +132,7 @@ void RpgControlGroupOverlay::onFixtureEndContact(Box2DFixture *other)
 
 void RpgControlGroupOverlay::onControlledPlayerChanged()
 {
-	m_contactedFixtures.clear();
+	//m_contactedFixtures.clear();
 	updateLayers();
 }
 
@@ -149,6 +142,7 @@ void RpgControlGroupOverlay::onControlledPlayerChanged()
  * @param fixture
  */
 
+/*
 void RpgControlGroupOverlay::connectFixture(Box2DFixture *fixture)
 {
 	fixture->setSensor(true);
@@ -162,7 +156,7 @@ void RpgControlGroupOverlay::connectFixture(Box2DFixture *fixture)
 	});
 }
 
-
+*/
 
 /**
  * @brief RpgControlGroupOverlay::updateLayers
@@ -170,8 +164,8 @@ void RpgControlGroupOverlay::connectFixture(Box2DFixture *fixture)
 
 void RpgControlGroupOverlay::updateLayers()
 {
-	const bool visible = !m_contactedFixtures.isEmpty();
+	/*const bool visible = !m_contactedFixtures.isEmpty();
 
 	for (TiledQuick::TileLayerItem *item : std::as_const(m_tileLayers))
-		item->setVisible(visible);
+		item->setVisible(visible);*/
 }

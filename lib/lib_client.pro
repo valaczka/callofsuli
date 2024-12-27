@@ -9,7 +9,7 @@ SUBDIRS += \
 	libTiled \
 	libQtXlsxWriter \
 	libSCodes \
-	qml-box2d
+	libBox2D
 
 !wasm: SUBDIRS += libENet
 !wasm:!android:!ios: SUBDIRS += CuteLogger

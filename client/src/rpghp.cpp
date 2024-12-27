@@ -28,8 +28,8 @@
 #include "rpgplayer.h"
 
 
-RpgHpPickable::RpgHpPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableHp, parent)
+RpgHpPickable::RpgHpPickable(TiledScene *scene)
+	: RpgPickableObject(PickableHp, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }

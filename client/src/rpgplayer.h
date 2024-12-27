@@ -121,7 +121,7 @@ class RpgPlayer : public IsometricPlayer
 	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
 
 public:
-	explicit RpgPlayer(QQuickItem *parent = nullptr);
+	explicit RpgPlayer(TiledScene *scene = nullptr);
 	virtual ~RpgPlayer();
 
 	static RpgPlayer* createPlayer(RpgGame *game, TiledScene *scene, const RpgPlayerCharacterConfig &config);

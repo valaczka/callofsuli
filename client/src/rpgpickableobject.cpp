@@ -49,28 +49,35 @@ const QHash<QString, RpgPickableObject::PickableType> RpgPickableObject::m_typeH
 
 
 
-RpgPickableObject::RpgPickableObject(const PickableType &type, QQuickItem *parent)
-	: IsometricObjectCircle(parent)
+RpgPickableObject::RpgPickableObject(const PickableType &type, TiledScene *scene)
+	: IsometricObject(scene)
 	, TiledPickableIface()
 	, m_pickableType(type)
 {
-	connect(m_fixture.get(), &Box2DCircle::beginContact, this, &RpgPickableObject::fixtureBeginContact);
-	connect(m_fixture.get(), &Box2DCircle::endContact, this, &RpgPickableObject::fixtureEndContact);
+	/*connect(m_fixture.get(), &Box2DCircle::beginContact, this, &RpgPickableObject::fixtureBeginContact);
+	connect(m_fixture.get(), &Box2DCircle::endContact, this, &RpgPickableObject::fixtureEndContact);*/
 }
 
 
 
 void RpgPickableObject::initialize()
 {
-	m_body->setBodyType(Box2DBody::Static);
-
 	setZ(1);
 	setDefaultZ(1);
 
-	m_fixture->setDensity(0);
-	m_fixture->setFriction(0);
-	m_fixture->setRestitution(0);
-	m_fixture->setSensor(true);
+	b2::Body::Params bParams;
+	bParams.type = b2BodyType::b2_staticBody;
+	bParams.fixedRotation = true;
+
+	b2::Shape::Params params;
+	params.density = 0.f;
+	params.friction = 0.f;
+	params.restitution = 0.f;
+	params.isSensor = true;
+	/*params.filter = TiledObjectBody::getFilter(FixtureTarget,
+											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);*/
+
+	TiledObjectBody::createFromCircle({0.f, 0.f}, 30., nullptr, bParams, params);
 
 	createVisual();
 
@@ -157,9 +164,9 @@ RpgPickableObject::PickableType RpgPickableObject::pickableType() const
 void RpgPickableObject::onActivated()
 {
 	setVisible(true);
-	m_body->setActive(true);
-	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable));
-	m_fixture->setCollidesWith(Box2DFixture::All);
+	setBodyEnabled(true);
+	/*m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable));
+	m_fixture->setCollidesWith(Box2DFixture::All);*/
 	setSubZ(0.3);
 	if (m_activateEffect)
 		m_activateEffect->play();
@@ -173,9 +180,9 @@ void RpgPickableObject::onActivated()
 void RpgPickableObject::onDeactivated()
 {
 	setVisible(false);
-	m_body->setActive(false);
-	m_fixture->setCategories(Box2DFixture::None);
-	m_fixture->setCollidesWith(Box2DFixture::None);
+	setBodyEnabled(false);
+/*	m_fixture->setCategories(Box2DFixture::None);
+	m_fixture->setCollidesWith(Box2DFixture::None);*/
 	setSubZ(0.);
 	if (m_deactivateEffect)
 		m_deactivateEffect->play();
@@ -214,10 +221,10 @@ void RpgPickableObject::loadDefault(const QString &directory)
  * @brief RpgPickableObject::fixtureBeginContact
  * @param other
  */
-
+/*
 void RpgPickableObject::fixtureBeginContact(Box2DFixture *other)
 {
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	TiledObject *base = TiledObject::getFromFixture(other);
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
 	if (!base || !g)
@@ -234,14 +241,9 @@ void RpgPickableObject::fixtureBeginContact(Box2DFixture *other)
 }
 
 
-/**
- * @brief RpgPickableObject::fixtureEndContact
- * @param other
- */
-
 void RpgPickableObject::fixtureEndContact(Box2DFixture *other)
 {
-	TiledObjectBase *base = TiledObjectBase::getFromFixture(other);
+	TiledObject *base = TiledObject::getFromFixture(other);
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
 	if (!base || !g)
@@ -255,6 +257,7 @@ void RpgPickableObject::fixtureEndContact(Box2DFixture *other)
 		}
 	}
 }
+*/
 
 QString RpgPickableObject::name() const
 {

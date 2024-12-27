@@ -64,7 +64,7 @@ class RpgShieldPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgShieldPickable(QQuickItem *parent = nullptr);
+    RpgShieldPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

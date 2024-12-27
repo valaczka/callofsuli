@@ -29,7 +29,6 @@
 
 #include "isometricobject.h"
 #include <QQmlEngine>
-#include "tiledscene.h"
 
 class TiledGame;
 
@@ -37,23 +36,18 @@ class TiledGame;
  * @brief The IsometricEntity class
  */
 
-class IsometricEntityIface
+class IsometricEntity : public IsometricObject
 {
+	Q_OBJECT
+	QML_ELEMENT
+
+	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
+	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged FINAL)
+
 public:
-	IsometricEntityIface()
-	{}
+	explicit IsometricEntity(TiledScene *scene);
 
-	static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObjectBase *entity,
-														const TiledObjectBody::FixtureCategory &category,
-														float32 *transparentGroundPtr);
-
-	static float32 checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float32 *lengthPtr = nullptr);
-
-	template <typename T>
-	static T getVisibleEntity(TiledObjectBody *body, const QList<T> &entities,
-							  const TiledObjectBody::FixtureCategory &category,
-							  float32 *transparentGroundPtr,
-							  QPointF *visiblePointPtr = nullptr);
+	void emplace(const QPointF &pos);
 
 	TiledObject::Direction movingDirection() const;
 	void setMovingDirection(const TiledObject::Direction &newMovingDirection);
@@ -71,22 +65,40 @@ public:
 
 	virtual void updateSprite() = 0;
 
-public:
-	virtual void hurt() = 0;
-	virtual void healed() = 0;
-	virtual void hpChanged() = 0;
-	virtual void maxHpChanged() = 0;
-
-
 	qreal movingSpeed() const;
 	void setMovingSpeed(qreal newMovingSpeed);
 
+signals:
+	void hurt();
+	void healed();
+	void hpChanged();
+	void maxHpChanged();
+
+
 protected:
-	void entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections);
+	virtual void entityWorldStep(const qreal &factor) { Q_UNUSED(factor); }
+
+	void worldStep(const qreal &factor) override final;
+
+	static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObject *entity,
+														const TiledObjectBody::FixtureCategory &category,
+														float *transparentGroundPtr);
+
+	static float checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float *lengthPtr = nullptr);
+
+	template <typename T>
+	static T getVisibleEntity(TiledObject *body, const QList<T> &entities,
+							  const TiledObjectBody::FixtureCategory &category,
+							  float *transparentGroundPtr,
+							  QPointF *visiblePointPtr = nullptr);
+
+
 
 	virtual void onAlive() = 0;
 	virtual void onDead() = 0;
 
+
+protected:
 	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
 	qreal m_movingSpeed = 0.;
 	int m_hp = 1;
@@ -94,6 +106,8 @@ protected:
 	QStringList m_moveDisabledSpriteList;		// At these sprites move disabled
 
 private:
+	void entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections);
+
 	QPointF m_lastPosition;
 };
 
@@ -109,21 +123,23 @@ private:
  */
 
 template<typename T>
-T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &entities,
+T IsometricEntity::getVisibleEntity(TiledObject *body, const QList<T> &entities,
 										 const TiledObjectBody::FixtureCategory &category,
-										 float32 *transparentGroundPtr,
+										 float *transparentGroundPtr,
 										 QPointF *visiblePointPtr)
 {
 	Q_ASSERT(body);
 
-	if (body->baseObject() && body->baseObject()->scene()->isGroundContainsPoint(body->bodyPosition())) {
+	return nullptr;
+
+	/*if (body && body->scene()->isGroundContainsPoint(body->bodyPosition())) {
 		return nullptr;
 	}
 
 
 	QMap<qreal, QPair<T, QPointF>> list;
 
-	float32 transparentGroundDist = -1.0;
+	float transparentGroundDist = -1.0;
 
 	for (const T &p : std::as_const(entities)) {
 		if (!p)
@@ -132,10 +148,10 @@ T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &
 		if (!p->isDiscoverable())
 			continue;
 
-		float32 dist = -1.0;
+		float dist = -1.0;
 
 		if (const auto &ptr = checkEntityVisibility(body, p, category, &dist); ptr && p->hp() > 0) {
-			const qreal &dist = QVector2D(p->body()->bodyPosition() - body->bodyPosition()).length();
+			const qreal &dist = QVector2D(p->bodyPosition() - body->bodyPosition()).length();
 			list.insert(dist, qMakePair(p, ptr.value()));
 		}
 
@@ -154,45 +170,10 @@ T IsometricEntityIface::getVisibleEntity(TiledObjectBody *body, const QList<T> &
 		if (visiblePointPtr)
 			*visiblePointPtr = ptr.second;
 		return ptr.first;
-	}
+	}*/
 }
 
 
 
-/**
- * @brief The IsometricCircleEntity class
- */
-
-class IsometricCircleEntity : public IsometricObjectCircle, public IsometricEntityIface
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
-	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged FINAL)
-
-public:
-	explicit IsometricCircleEntity(QQuickItem *parent = nullptr);
-
-	void emplace(const QPointF &pos) {
-		m_body->emplace(pos);
-		updateSprite();
-	}
-
-signals:
-	void hurt() override final;
-	void healed() override final;
-	void hpChanged() override final;
-	void maxHpChanged() override final;
-
-protected:
-	virtual void entityWorldStep(const qreal &factor) { Q_UNUSED(factor); }
-
-	void worldStep(const qreal &factor) override final {
-		entityIfaceWorldStep(factor, position(), m_availableDirections);
-		entityWorldStep(factor);
-	};
-
-};
 
 #endif // ISOMETRICENTITY_H

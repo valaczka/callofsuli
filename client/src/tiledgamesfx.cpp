@@ -217,7 +217,7 @@ void TiledGameSfx::onTimeout()
 
 
 	if (m_followPosition)
-		m_tiledObject->game()->playSfx(s, scene, m_tiledObject->body()->bodyPosition(), m_volume);
+		m_tiledObject->game()->playSfx(s, scene, m_tiledObject->bodyPosition(), m_volume);
 	else
 		m_tiledObject->game()->playSfx(s, scene, m_volume);
 
@@ -307,7 +307,7 @@ void TiledGameSfx::setTiledObject(TiledObject *newTiledObject)
  * @param tiledObject
  */
 
-TiledGameSfxLocation::TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObjectBase *tiledObject,
+TiledGameSfxLocation::TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObject *tiledObject,
 										   const Sound::ChannelType &channel)
 	: QObject(tiledObject)
 	, m_object(tiledObject)
@@ -318,7 +318,7 @@ TiledGameSfxLocation::TiledGameSfxLocation(const QString &path, const float &bas
 
 	LOG_CTRACE("sound") << "Create TiledGameSfxLocation" << this;
 
-	connect(tiledObject, &TiledObjectBase::sceneChanged, this, &TiledGameSfxLocation::onSceneChanged);
+	connect(tiledObject, &TiledObject::sceneChanged, this, &TiledGameSfxLocation::onSceneChanged);
 
 	onSceneChanged();
 }
@@ -360,7 +360,7 @@ void TiledGameSfxLocation::updateSound()
 		return;
 	}
 
-	const qreal vol = TiledGame::getSfxVolume(m_object->scene(), m_object->body()->bodyPosition(), m_baseVolume, m_object->game()->baseScale()).value_or(0.);
+	const qreal vol = TiledGame::getSfxVolume(m_object->scene(), m_object->bodyPosition(), m_baseVolume, m_object->game()->baseScale()).value_or(0.);
 
 	if (qFuzzyCompare(vol, m_lastVolume))
 		return;
@@ -417,17 +417,13 @@ void TiledGameSfxLocation::onSceneChanged()
 	if (scene == m_connectedScene)
 		return;
 
-	if (m_connectedScene) {
+	if (m_connectedScene)
 		disconnect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
-		disconnect(m_connectedScene, &TiledScene::onScreenAreaChanged, this, &TiledGameSfxLocation::checkPosition);
-	}
 
 	m_connectedScene = scene;
 
-	if (m_connectedScene) {
+	if (m_connectedScene)
 		connect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
-		connect(m_connectedScene, &TiledScene::onScreenAreaChanged, this, &TiledGameSfxLocation::checkPosition);
-	}
 
 	updateSound();
 }
@@ -447,7 +443,7 @@ void TiledGameSfxLocation::checkPosition()
 	if (!m_connectedScene || !m_object)
 		return;
 
-	const QPointF &p = m_object->body()->bodyPosition();
+	const QPointF &p = m_object->bodyPosition();
 
 	if (p != m_lastPoint) {
 		m_lastPoint = p;

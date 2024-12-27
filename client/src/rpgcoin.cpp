@@ -30,8 +30,8 @@
 const int RpgCoinPickable::m_amount = 100;
 
 
-RpgCoinPickable::RpgCoinPickable(QQuickItem *parent)
-	: RpgPickableObject(PickableCoin, parent)
+RpgCoinPickable::RpgCoinPickable(TiledScene *scene)
+	: RpgPickableObject(PickableCoin, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }

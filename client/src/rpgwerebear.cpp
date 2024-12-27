@@ -90,8 +90,8 @@ static const QVector<TiledGame::TextureSpriteMapper> &mapperBase() {
  * @param parent
  */
 
-RpgWerebear::RpgWerebear(QQuickItem *parent)
-	: IsometricEnemy(parent)
+RpgWerebear::RpgWerebear(TiledScene *scene)
+	: IsometricEnemy(scene)
 	, RpgEnemyIface(EnemyWerebear)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
@@ -322,7 +322,7 @@ void RpgWerebear::playAttackEffect(TiledWeapon *weapon)
 
 void RpgWerebear::playDeadEffect()
 {
-	m_game->playSfx(QStringLiteral(":/enemy/werebear/monster-6.mp3"), m_scene, m_body->bodyPosition());
+	m_game->playSfx(QStringLiteral(":/enemy/werebear/monster-6.mp3"), scene(), bodyPosition());
 }
 
 
@@ -347,8 +347,8 @@ void RpgWerebear::playSeeEffect()
 
 QPointF RpgWerebear::getPickablePosition(const int &num) const
 {
-	QLineF line = QLineF::fromPolar(50. * num, toDegree(directionToIsometricRaidan(m_currentDirection)));
-	line.translate(m_body->bodyPosition()-line.p2());
+	QLineF line = QLineF::fromPolar(50. * num, toDegree(directionToIsometricRadian(m_currentDirection)));
+	line.translate(bodyPosition()-line.p2());
 	return line.p1();
 }
 
@@ -454,9 +454,9 @@ void RpgWerebear::updateSprite()
 	else if (isStanding())
 		jumpToSprite("stand", m_currentDirection);
 	else if (m_movingDirection != Invalid) {
-		if (m_body->isRunning())
+		/*if (m_body->isRunning())
 			jumpToSprite("run", m_movingDirection);
-		else
+		else*/
 			jumpToSprite("walk", m_movingDirection);
 	} else
 		jumpToSprite("idle", m_currentDirection);
@@ -486,5 +486,5 @@ void RpgWerebearWeaponHand::eventAttack(TiledObject *)
 	RpgWerebear *wb = qobject_cast<RpgWerebear*>(m_parentObject.data());
 	if (wb && wb->game())
 		wb->game()->playSfx(QStringLiteral(":/enemy/werebear/big_punch.mp3"),
-							wb->scene(), wb->body()->bodyPosition());
+							wb->scene(), wb->bodyPosition());
 }

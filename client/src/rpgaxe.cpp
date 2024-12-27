@@ -58,6 +58,6 @@ void RpgAxe::eventAttack(TiledObject *target)
 
 	if (TiledGame *g = p->game()) {
 		g->playSfx(target ? QStringLiteral(":/rpg/axe/axe2.mp3") : QStringLiteral(":/rpg/broadsword/axe1.mp3"),
-				   p->scene(), p->body()->bodyPosition());
+				   p->scene(), p->bodyPosition());
 	}
 }

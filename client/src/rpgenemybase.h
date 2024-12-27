@@ -39,8 +39,8 @@ class RpgEnemyBase : public IsometricEnemy, public RpgEnemyIface
 	QML_ELEMENT
 
 public:
-	explicit RpgEnemyBase(const RpgEnemyType &type, QQuickItem *parent = nullptr);
-	explicit RpgEnemyBase(QQuickItem *parent = nullptr) : RpgEnemyBase(RpgEnemyIface::EnemyInvalid, parent) {}
+	explicit RpgEnemyBase(const RpgEnemyType &type, TiledScene *scene = nullptr);
+	explicit RpgEnemyBase(TiledScene *scene = nullptr) : RpgEnemyBase(RpgEnemyIface::EnemyInvalid, scene) {}
 	virtual ~RpgEnemyBase();
 
 	TiledWeapon *defaultWeapon() const override;

@@ -56,6 +56,6 @@ void RpgMace::eventAttack(TiledObject *target)
 
 	if (TiledGame *g = p->game()) {
 		g->playSfx(target ? QStringLiteral(":/rpg/mace/mace2.mp3") : QStringLiteral(":/rpg/mace/mace1.mp3"),
-				   p->scene(), p->body()->bodyPosition());
+				   p->scene(), p->bodyPosition());
 	}
 }
