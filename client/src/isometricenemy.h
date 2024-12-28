@@ -153,6 +153,8 @@ public:
 	void initialize();
 	bool hasAbility();
 	bool isSleeping();
+	bool isRunning() const;
+	bool isWalking() const;
 
 	virtual bool canBulletImpact(const TiledWeapon::WeaponType &/*type*/) const { return true; }
 
@@ -175,7 +177,6 @@ signals:
 	void playerDistanceChanged() override final;
 
 protected:
-	virtual void entityWorldStep(const qreal &factor) override final;
 	virtual bool enemyWorldStep() override;
 	virtual bool enemyWorldStepOnVisiblePlayer(const float &angle, const qreal &factor) override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;

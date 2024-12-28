@@ -36,7 +36,7 @@ private:
 	~TiledObjectBodyPrivate() = default;
 
 	void createBody(const b2::Body::Params &params);
-	void replaceWorld(b2::World *world, const QPointF &position = {}, const float &rotation = 0.);
+	void replaceWorld(b2::World *world, const QPointF &position = {}, const b2Rot &rotation = b2MakeRot(0.));
 	void updateScene();
 	void updateFilter();
 	void setSensorPolygon(const float &length, const float &range);
@@ -50,12 +50,18 @@ private:
 	b2::BodyRef m_bodyRef;
 	b2AABB m_bodyAABB;
 
+	std::vector<b2::ShapeRef> m_bodyShapes;
+
 	b2::ShapeRef m_sensorPolygon;
 	b2::ShapeRef m_virtualCircle;
 	b2::ShapeRef m_targetCircle;
 
 	TiledObjectBody::FixtureCategories m_categories = TiledObjectBody::FixtureInvalid;
 	TiledObjectBody::FixtureCategories m_collidesWith = TiledObjectBody::FixtureInvalid;
+
+
+	QVector2D m_currentSpeed;
+	QVector2D m_lastPosition;
 
 	struct RotateAnimation {
 		bool running = false;

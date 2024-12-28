@@ -118,22 +118,6 @@ QPolygonF TiledObject::toPolygon(const Tiled::MapObject *object, Tiled::MapRende
 
 
 
-/**
- * @brief TiledObject::toPoint
- * @param angle
- * @param radius
- * @return
- */
-
-QPointF TiledObject::toPoint(const qreal &angle, const qreal &radius)
-{
-	QPointF p;
-	p.setX(radius * cos(angle));
-	p.setY(radius * -sin(angle));
-	return p;
-}
-
-
 
 
 /**
@@ -203,11 +187,11 @@ float TiledObject::normalizeFromRadian(const float &radian)
 {
 	if (radian < -B2_PI || radian > B2_PI) {
 		LOG_CTRACE("scene") << "Invalid radian:" << radian;
-		return M_PI;
+		return B2_PI;
 	}
 
 	if (radian < 0)
-		return M_PI+M_PI+radian;
+		return B2_PI+B2_PI+radian;
 	else
 		return radian;
 }
@@ -252,6 +236,8 @@ void TiledObject::setBodyOffset(QPointF newBodyOffset)
 
 void TiledObject::synchronize()
 {
+	TiledObjectBody::synchronize();
+
 	if (!body())
 		return;
 
@@ -262,6 +248,12 @@ void TiledObject::synchronize()
 	offset += m_bodyOffset;
 
 	setPosition(pos-offset);
+
+	if (!qFuzzyCompare(bodyRotation(), m_lastAngle))
+		emit currentAngleChanged();
+
+	if (m_facingDirectionLocked)
+		setFacingDirection(nearestDirectionFromRadian(bodyRotation()));
 }
 
 
@@ -643,6 +635,8 @@ void TiledObjectBody::rotateToPoint(const QPointF &point, float *anglePtr, qreal
 
 	float radian = atan2(-p.y(), p.x());
 
+	LOG_CERROR("scene") << "ROTATE ERROR!" << this;
+
 	//setCurrentDirection(TiledObject::nearestDirectionFromRadian(angle));
 	d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(radian));
 	d->m_bodyRef.SetAwake(true);
@@ -738,7 +732,7 @@ b2::World *TiledObjectBody::world() const
 
 void TiledObjectBody::setWorld(b2::World *newWorld, const QPointF &position)
 {
-	setWorld(newWorld, position, d->m_bodyRef ? b2Rot_GetAngle(d->m_bodyRef.GetRotation()) : 0.);
+	setWorld(newWorld, position, d->m_bodyRef ? d->m_bodyRef.GetRotation() : b2MakeRot(0.));
 }
 
 
@@ -750,7 +744,7 @@ void TiledObjectBody::setWorld(b2::World *newWorld, const QPointF &position)
  * @param rotation
  */
 
-void TiledObjectBody::setWorld(b2::World *newWorld, const QPointF &position, const float &rotation)
+void TiledObjectBody::setWorld(b2::World *newWorld, const QPointF &position, const b2Rot &rotation)
 {
 	Q_ASSERT(newWorld);
 
@@ -813,17 +807,17 @@ void TiledObject::setAvailableDirections(const Directions &newAvailableDirection
 	emit availableDirectionsChanged();
 }
 
-TiledObject::Direction TiledObject::currentDirection() const
+TiledObject::Direction TiledObject::facingDirection() const
 {
-	return m_currentDirection;
+	return m_facingDirection;
 }
 
-void TiledObject::setCurrentDirection(const Direction &newCurrentDirection)
+void TiledObject::setFacingDirection(const Direction &newFacingDirection)
 {
-	if (m_currentDirection == newCurrentDirection)
+	if (m_facingDirection == newFacingDirection)
 		return;
-	m_currentDirection = newCurrentDirection;
-	emit currentDirectionChanged();
+	m_facingDirection = newFacingDirection;
+	emit facingDirectionChanged();
 }
 
 
@@ -836,9 +830,9 @@ void TiledObject::setCurrentDirection(const Direction &newCurrentDirection)
 qreal TiledObject::toRadian(const qreal &angle)
 {
 	if (angle <= 180.)
-		return angle * M_PI / 180.;
+		return -angle * M_PI / 180.;
 	else
-		return -(360-angle) * M_PI / 180.;
+		return (360-angle) * M_PI / 180.;
 }
 
 
@@ -852,7 +846,7 @@ qreal TiledObject::toRadian(const qreal &angle)
 qreal TiledObject::toDegree(const qreal &angle)
 {
 	if (angle >= 0)
-		return angle * 180 / M_PI;
+		return -angle * 180 / M_PI;
 	else
 		return 360+(angle * 180 / M_PI);
 }
@@ -869,13 +863,13 @@ qreal TiledObject::directionToIsometricRadian(const Direction &direction)
 {
 	switch (direction) {
 		case West: return M_PI; break;
-		case NorthWest: return M_PI - atan(0.5); break;
-		case North: return M_PI_2; break;
-		case NorthEast: return atan(0.5); break;
+		case SouthWest: return M_PI - atan(0.5); break;
+		case South: return M_PI_2; break;
+		case SouthEast: return atan(0.5); break;
 		case East: return 0; break;
-		case SouthEast: return -atan(0.5); break;
-		case South: return -M_PI_2; break;
-		case SouthWest: return -M_PI + atan(0.5); break;
+		case NorthEast: return -atan(0.5); break;
+		case North: return -M_PI_2; break;
+		case NorthWest: return -M_PI + atan(0.5); break;
 		case Invalid: return 0; break;
 	}
 
@@ -897,21 +891,21 @@ TiledObject::Direction TiledObject::nearestDirectionFromRadian(const Directions 
 {
 	static const std::map<qreal, Direction, std::greater<qreal>> map8 = {
 		{ M_PI			, West },
-		{ M_PI_4 * 3	, NorthWest },
-		{ M_PI_2		, North },
-		{ M_PI_4		, NorthEast },
+		{ M_PI_4 * 3	, SouthWest },
+		{ M_PI_2		, South },
+		{ M_PI_4		, SouthEast },
 		{ 0				, East },
-		{ -M_PI_4		, SouthEast },
-		{ -M_PI_2		, South },
-		{ -M_PI_4 * 3	, SouthWest },
+		{ -M_PI_4		, NorthEast },
+		{ -M_PI_2		, North },
+		{ -M_PI_4 * 3	, NorthWest },
 		{ -M_PI			, West },
 	};
 
 	static const std::map<qreal, Direction, std::greater<qreal>> map4 = {
 		{ M_PI		, West },
-		{ M_PI_2	, North },
+		{ M_PI_2	, South },
 		{ 0			, East },
-		{ -M_PI_2	, South },
+		{ -M_PI_2	, North },
 		{ -M_PI		, West },
 	};
 
@@ -958,15 +952,15 @@ TiledObject::Direction TiledObject::nearestDirectionFromRadian(const Directions 
 qreal TiledObject::directionToRadian(const Direction &direction)
 {
 	static const QMap<Direction, qreal> map8 = {
-		{ West ,		M_PI		},
-		{ NorthWest ,	M_PI_4 * 3	},
-		{ North ,		M_PI_2		},
-		{ NorthEast ,	M_PI_4		},
-		{ East ,		0			},
-		{ SouthEast ,	-M_PI_4		},
-		{ South ,		-M_PI_2		},
-		{ SouthWest ,	-M_PI_4 * 3	},
 		{ West ,		-M_PI		},
+		{ NorthWest ,	-M_PI_4 * 3	},
+		{ North ,		-M_PI_2		},
+		{ NorthEast ,	-M_PI_4		},
+		{ East ,		0			},
+		{ SouthEast ,	M_PI_4		},
+		{ South ,		M_PI_2		},
+		{ SouthWest ,	M_PI_4 * 3	},
+		{ West ,		M_PI		},
 	};
 
 	return map8.value(direction, 0);
@@ -1184,6 +1178,17 @@ QRectF TiledObjectBody::bodyAABB() const
 
 
 /**
+ * @brief TiledObjectBody::currentSpeed
+ * @return
+ */
+
+QVector2D TiledObjectBody::currentSpeed() const
+{
+	return d->m_currentSpeed;
+}
+
+
+/**
  * @brief TiledObjectBody::emplace
  * @param centerX
  * @param centerY
@@ -1199,7 +1204,22 @@ void TiledObjectBody::emplace(const QPointF &center)
 	d->m_bodyRef.SetAngularVelocity(0.f);
 	d->m_bodyRef.SetLinearVelocity({0.f, 0.f});
 	d->m_bodyRef.SetTransform({(float)center.x(), (float)center.y()}, d->m_bodyRef.GetRotation());
+
+	d->m_lastPosition = QVector2D(center);
+	d->m_currentSpeed = {0., 0.};
+
 	synchronize();
+}
+
+
+/**
+ * @brief TiledObjectBody::setSpeed
+ * @param point
+ */
+
+void TiledObjectBody::setSpeed(const QVector2D &point)
+{
+	setSpeed(point.x(), point.y());
 }
 
 
@@ -1210,12 +1230,45 @@ void TiledObjectBody::emplace(const QPointF &center)
 
 void TiledObjectBody::setSpeed(const QPointF &point)
 {
+	setSpeed(point.x(), point.y());
+}
+
+
+
+/**
+ * @brief TiledObjectBody::setSpeed
+ * @param x
+ * @param y
+ */
+
+void TiledObjectBody::setSpeed(const float &x, const float &y)
+{
 	if (!d->m_bodyRef) {
 		LOG_CERROR("scene") << "Missing body" << this;
 		return;
 	}
 
-	d->m_bodyRef.SetLinearVelocity({(float)point.x(), (float)point.y()});
+	d->m_bodyRef.SetLinearVelocity({x, y});
+}
+
+
+/**
+ * @brief TiledObjectBody::setSpeedFromAngle
+ * @param angle
+ * @param radius
+ */
+
+void TiledObjectBody::setSpeedFromAngle(const float &angle, const float &radius)
+{
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return;
+	}
+
+	d->m_bodyRef.SetLinearVelocity({
+									   radius * cos(angle),
+									   radius * sin(angle)
+								   });
 }
 
 
@@ -1235,6 +1288,38 @@ void TiledObjectBody::stop()
 }
 
 
+/**
+ * @brief TiledObjectBody::vectorFromAngle
+ * @param angle
+ * @param radius
+ * @return
+ */
+
+QVector2D TiledObjectBody::vectorFromAngle(const float &angle, const float &radius)
+{
+	return QVector2D (
+				radius * cos(angle),
+				radius * sin(angle)
+				);
+}
+
+
+
+/**
+ * @brief TiledObjectBody::bodyRotation
+ * @return
+ */
+
+float TiledObjectBody::bodyRotation() const
+{
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return 0.f;
+	}
+
+	return b2Rot_GetAngle(d->m_bodyRef.GetRotation());
+}
+
 
 /**
  * @brief TiledObjectBody::rotateBody
@@ -1249,22 +1334,30 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian)
 		return false;
 	}
 
-	const float currentRadian = b2Rot_GetAngle(d->m_bodyRef.GetRotation());
-
+	const float currentRadian = bodyRotation();
 
 	if (qFuzzyCompare(desiredRadian, currentRadian)) {
 		d->m_rotateAnimation.running = false;
 		return false;
 	}
 
+
 	const float currentNormal = TiledObject::normalizeFromRadian(currentRadian);
 	const float desiredNormal = TiledObject::normalizeFromRadian(desiredRadian);
 
+	const float diff = std::abs(currentNormal-desiredNormal);
+
+	if (diff < 2* d->m_rotateAnimation.speed) {
+		d->m_rotateAnimation.running = false;
+		d->m_bodyRef.SetAngularVelocity(0.f);
+		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
+		d->m_bodyRef.SetAwake(true);
+		return true;
+	}
 
 	if (!qFuzzyCompare(d->m_rotateAnimation.destRadian, desiredRadian) || !d->m_rotateAnimation.running) {
 		d->m_rotateAnimation.destRadian = desiredRadian;
 
-		const float diff = std::abs(currentNormal-desiredNormal);
 
 		if (desiredNormal > currentNormal)
 			d->m_rotateAnimation.clockwise = diff > B2_PI;
@@ -1369,14 +1462,7 @@ bool TiledObjectBody::overlap(const QPointF &pos) const
 	if (!d->m_bodyRef)
 		return false;
 
-	const int count = d->m_bodyRef.GetShapeCount();
-	std::vector<b2ShapeId> list;
-	list.resize(count, b2_nullShapeId);
-	const auto x = d->m_bodyRef.GetShapes(list.data(), count);
-	(void) x;
-
-	for (const auto &shId : list) {
-		b2::ShapeRef s(shId);
+	for (const b2::ShapeRef &s : d->m_bodyShapes) {
 		if (!s)
 			continue;
 
@@ -1385,6 +1471,64 @@ bool TiledObjectBody::overlap(const QPointF &pos) const
 	}
 
 	return false;
+}
+
+
+
+/**
+ * @brief TiledObjectBody::overlap
+ * @param polygon
+ * @return
+ */
+
+bool TiledObjectBody::overlap(const QPolygonF &polygon) const
+{
+	if (!d->m_bodyRef)
+		return false;
+
+	const b2Vec2 bodyPos = d->m_bodyRef.GetPosition();
+
+	for (const b2::ShapeRef &s : d->m_bodyShapes) {
+		if (!s)
+			continue;
+
+		if (s.GetType() == b2_polygonShape) {
+			const b2Polygon p = s.GetPolygon();
+			QPolygonF shapeP;
+			shapeP.reserve(p.count);
+
+			for (int i=0; i<p.count; ++i) {
+				const b2Vec2 &v = p.vertices[i];
+				shapeP.append(QPointF(v.x, v.y));
+			}
+
+			shapeP.translate(bodyPos.x, bodyPos.y);
+
+			if (polygon.intersects(shapeP))
+				return true;
+		}
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief TiledObjectBody::worldStep
+ * @param factor
+ */
+
+void TiledObjectBody::worldStep()
+{
+	const auto &p = d->m_bodyRef.GetPosition();
+	QVector2D currPos(p.x, p.y);
+
+	d->m_currentSpeed = currPos-d->m_lastPosition;
+	d->m_lastPosition = currPos;
+
+	if (d->m_rotateAnimation.running)
+		rotateBody(d->m_rotateAnimation.destRadian);
 }
 
 
@@ -1407,20 +1551,12 @@ void TiledObjectBody::synchronize()
  * @return
  */
 
-TiledObjectBody *TiledObjectBody::fromBodyRef(b2::BodyConstRef ref)
+TiledObjectBody *TiledObjectBody::fromBodyRef(b2::BodyRef ref)
 {
-	/*b2::BodyRef bref = ref.Handle();
-
-	bref.Handle();
-
-	b2::BodyRef b(bref.Handle());
-
-	if (!b)
+	if (!ref)
 		return nullptr;
 
-	return static_cast<TiledObjectBody*>(b.GetUserData());*/
-
-	return nullptr;
+	return static_cast<TiledObjectBody*>(ref.GetUserData());
 }
 
 
@@ -1513,9 +1649,11 @@ bool TiledObjectBody::createFromPolygon(const QPolygonF &polygon, Tiled::MapRend
 
 	b2Polygon p = b2MakePolygon(&hull, 0.f);
 
-	b.CreateShape(b2::DestroyWithParent, params, p);
+	d->m_bodyShapes.push_back(b.CreateShape(b2::DestroyWithParent, params, p));
 
-	d->updateFilter();
+	d->m_categories = TiledObjectBody::FixtureCategories::fromInt(params.filter.categoryBits);
+	d->m_collidesWith = TiledObjectBody::FixtureCategories::fromInt(params.filter.maskBits);
+
 	d->m_bodyAABB = b.ComputeAABB();
 
 	return true;
@@ -1569,8 +1707,10 @@ bool TiledObjectBody::createFromCircle(const QPointF &center, const qreal &radiu
 
 	Q_ASSERT(b);
 
-	b.CreateShape(b2::DestroyWithParent, params, b2Circle{{0.f, 0.f}, (float) radius});
-	d->updateFilter();
+	d->m_categories = TiledObjectBody::FixtureCategories::fromInt(params.filter.categoryBits);
+	d->m_collidesWith = TiledObjectBody::FixtureCategories::fromInt(params.filter.maskBits);
+
+	d->m_bodyShapes.push_back(b.CreateShape(b2::DestroyWithParent, params, b2Circle{{0.f, 0.f}, (float) radius}));
 	d->m_bodyAABB = b.ComputeAABB();
 
 	return true;
@@ -1634,6 +1774,46 @@ bool TiledObjectBody::createFromMapObject(const Tiled::MapObject *object, Tiled:
 
 
 
+/**
+ * @brief TiledObjectBody::setSensorPolygon
+ * @param length
+ * @param range
+ */
+
+void TiledObjectBody::setSensorPolygon(const float &length, const float &range)
+{
+	std::optional<b2Filter> collidesWith = std::nullopt;
+
+	if (d->m_sensorPolygon)
+		collidesWith = d->m_sensorPolygon.GetFilter();
+
+	d->setSensorPolygon(length, range);
+
+	if (collidesWith.has_value())
+		d->m_sensorPolygon.SetFilter(collidesWith.value());
+}
+
+
+
+/**
+ * @brief TiledObjectBody::setSensorPolygon
+ * @param length
+ * @param range
+ * @param categories
+ */
+
+void TiledObjectBody::setSensorPolygon(const float &length, const float &range, const FixtureCategories &collidesWith)
+{
+	d->setSensorPolygon(length, range);
+
+	auto filter = d->m_sensorPolygon.GetFilter();
+	filter.maskBits = collidesWith;
+	d->m_sensorPolygon.SetFilter(filter);
+}
+
+
+
+
 
 /**
  * @brief TiledObjectBody::rayCast
@@ -1649,11 +1829,15 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 	if (!d->m_bodyRef)
 		return map;
 
-	auto fcn = [&map]( b2ShapeId shapeId, b2Vec2 /*point*/, b2Vec2 /*normal*/, float fraction) -> float {
+
+	auto fcn = [&map]( b2ShapeId shapeId, b2Vec2 point, b2Vec2 /*normal*/, float fraction) -> float {
 		b2::ShapeRef shape(shapeId);
+
 		if (shape) {
 			if (shape.IsSensor())
 				return -1;
+
+			map.insert(fraction, shape);
 
 			const b2Filter &f = shape.GetFilter();
 			if (f.categoryBits & FixtureGround) {
@@ -1663,8 +1847,6 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 				}
 			}
 
-			map.insert(fraction, shape);
-
 			return 1;
 		} else {
 			return -1;
@@ -1673,10 +1855,9 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 
 
 	const b2Vec2 origin = d->m_bodyRef.GetPosition();
+	const b2Vec2 end{(float)dest.x(), (float)dest.y()};
 
-	b2Vec2 transform;
-	transform.x = dest.x()-origin.x;
-	transform.y = dest.y()-origin.y;
+	b2Vec2 transform = b2Sub(end, origin);
 
 	FixtureCategories mask = categories;
 	mask.setFlag(FixtureGround, true);
@@ -1685,6 +1866,7 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 	filter.maskBits = mask;
 
 	d->m_world->CastRay(origin, transform, filter, fcn);
+
 
 	return map;
 }
@@ -1957,8 +2139,12 @@ void TiledObjectBodyPrivate::createBody(const b2::Body::Params &params)
 	if (m_bodyRef)
 		m_bodyRef.Destroy();
 
+	m_bodyShapes.clear();
+
 	m_bodyRef = m_world->CreateBody(b2::DestroyWithParent, params);
 	m_bodyRef.SetUserData(q);
+	m_lastPosition = QVector2D(params.position.x, params.position.y);
+	m_currentSpeed = {0., 0.};
 }
 
 
@@ -1968,16 +2154,10 @@ void TiledObjectBodyPrivate::createBody(const b2::Body::Params &params)
  * @param world
  */
 
-void TiledObjectBodyPrivate::replaceWorld(b2::World *world, const QPointF &position, const float &rotation)
+void TiledObjectBodyPrivate::replaceWorld(b2::World *world, const QPointF &position, const b2Rot &rotation)
 {
 	if (!m_bodyRef)
 		return;
-
-	const int count = m_bodyRef.GetShapeCount();
-	std::vector<b2ShapeId> list;
-	list.resize(count, b2_nullShapeId);
-	const auto x = m_bodyRef.GetShapes(list.data(), count);
-	(void) x;
 
 	struct ShapeData {
 		b2ShapeType type;
@@ -1987,8 +2167,7 @@ void TiledObjectBodyPrivate::replaceWorld(b2::World *world, const QPointF &posit
 
 	std::vector<ShapeData> shapes;
 
-	for (const auto &shId : list) {
-		b2::ShapeRef s(shId);
+	for (const b2::ShapeRef &s : m_bodyShapes) {
 		if (!s)
 			continue;
 
@@ -2017,7 +2196,7 @@ void TiledObjectBodyPrivate::replaceWorld(b2::World *world, const QPointF &posit
 	bParams.fixedRotation = m_bodyRef.IsFixedRotation();
 	bParams.position.x = position.x();
 	bParams.position.y = position.y();
-	bParams.rotation = b2MakeRot(rotation);
+	bParams.rotation = rotation;
 
 	m_bodyRef.Destroy();
 
@@ -2029,10 +2208,10 @@ void TiledObjectBodyPrivate::replaceWorld(b2::World *world, const QPointF &posit
 
 	for (const ShapeData &sh : shapes) {
 		if (sh.type == b2_circleShape)
-			m_bodyRef.CreateShape(b2::DestroyWithParent, sh.params, std::get<b2Circle>(sh.data));
+			m_bodyShapes.push_back(m_bodyRef.CreateShape(b2::DestroyWithParent, sh.params, std::get<b2Circle>(sh.data)));
 	}
 
-	updateFilter();
+	///updateFilter();
 }
 
 
@@ -2050,7 +2229,6 @@ void TiledObjectBodyPrivate::updateScene()
 
 	if (m_scene)
 		QObject::disconnect(m_sceneConnection);
-	//QObject::disconnect(m_scene, &TiledScene::visibleAreaChanged, q, &TiledObjectBody::updateVisibleArea);
 
 	m_scene = currentScene;
 
@@ -2073,14 +2251,7 @@ void TiledObjectBodyPrivate::updateFilter()
 	if (!m_bodyRef)
 		return;
 
-	const int count = m_bodyRef.GetShapeCount();
-	std::vector<b2ShapeId> list;
-	list.resize(count, b2_nullShapeId);
-	const auto x = m_bodyRef.GetShapes(list.data(), count);
-	(void) x;
-
-	for (const auto &shId : list) {
-		b2::ShapeRef s(shId);
+	for (b2::ShapeRef &s : m_bodyShapes) {
 		if (!s)
 			continue;
 
@@ -2106,19 +2277,12 @@ void TiledObjectBodyPrivate::updateFilter()
 
 void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &range)
 {
-	/*if (!m_bodyRef)
-		createBody();
+	if (!m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body";
+		return;
+	}
 
-	Q_ASSERT(m_bodyRef);
-
-	const QPointF &pos = renderer ? renderer->pixelToScreenCoords(center) : center;
-
-	b.CreateShape(b2::DestroyWithParent, params, b2Circle{{(float) pos.x(), (float) pos.y()}, (float) radius});
-	body->d->updateFilter();
-
-	return body;
-
-
+	/*
 	setSensor(true);
 	setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
 
@@ -2129,18 +2293,25 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 	m_body->addFixture(m_virtualCircle.get());
 
 	recreateFixture();
+*/
+
+	if (m_sensorPolygon)
+		m_sensorPolygon.Destroy(false);
+
+
 
 	QPolygonF polygon;
 	polygon.append(QPointF(0,0));
 
 	for (int i=0; i < 7; ++i) {
-		qreal angle = -(m_range/2.) + (i/6. * m_range);
+		qreal angle = -(range/2.) + (i/6. * range);
 		if (angle > M_PI)
 			angle = -M_PI+(angle-M_PI);
 		else if (angle < -M_PI)
 			angle = M_PI-(-M_PI-angle);
-		polygon.append(QPointF(m_length * cosf(angle), m_length * -sinf(angle)));
+		polygon.append(QPointF(length * cosf(angle), length * -sinf(angle)));
 	}
+	/*
 
 	TiledObjectBase::setPolygonVertices(this, polygon);
 
@@ -2158,6 +2329,70 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 
 	m_body->addFixture(m_sensorPolygon.get());
 
-	return m_sensorPolygon.get();*/
+	return m_sensorPolygon.get();
+
+*/
+
+	b2::Shape::Params params;
+	params.isSensor = true;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureSensor);
+	params.customColor = b2_colorPink;
+
+	std::vector<b2Vec2> points;
+	points.reserve(polygon.size());
+
+	for (const QPointF &f : polygon)
+		points.emplace_back(f.x(), f.y());
+
+
+	const b2Hull hull = b2ComputeHull(points.data(), points.size());
+
+	b2Polygon p = b2MakePolygon(&hull, 0.f);
+
+	m_sensorPolygon = m_bodyRef.CreateShape(b2::DestroyWithParent, params, p);
+
 }
 
+
+
+
+/**
+ * @brief TiledObject::currentAngle
+ * @return
+ */
+
+float TiledObject::currentAngle() const
+{
+	return bodyRotation();
+}
+
+
+
+void TiledObject::setCurrentAngle(float newCurrentAngle)
+{
+	if (qFuzzyCompare(bodyRotation(), newCurrentAngle))
+		return;
+
+	rotateBody(newCurrentAngle);
+	emit currentAngleChanged();
+}
+
+
+
+/**
+ * @brief TiledObject::facingDirectionLocked
+ * @return
+ */
+
+bool TiledObject::facingDirectionLocked() const
+{
+	return m_facingDirectionLocked;
+}
+
+void TiledObject::setFacingDirectionLocked(bool newFacingDirectionLocked)
+{
+	if (m_facingDirectionLocked == newFacingDirectionLocked)
+		return;
+	m_facingDirectionLocked = newFacingDirectionLocked;
+	emit facingDirectionLockedChanged();
+}

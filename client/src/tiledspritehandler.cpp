@@ -694,7 +694,9 @@ void TiledSpriteHandler::setBaseObject(TiledObject *newBaseObject)
 		return;
 
 	if (m_baseObject)
-		disconnect(m_baseObject, &TiledObject::inVisibleAreaChanged, this, &TiledSpriteHandler::update);
+		m_baseObject->disconnect(this);
+
+	//disconnect(m_baseObject, &TiledObject::inVisibleAreaChanged, this, &TiledSpriteHandler::update);
 
 	m_baseObject = newBaseObject;
 	emit baseObjectChanged();

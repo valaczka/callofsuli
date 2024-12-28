@@ -113,22 +113,21 @@ TiledWeapon *RpgEnemyBase::defaultWeapon() const
 void RpgEnemyBase::updateSprite()
 {
 	if (m_hp <= 0) {
-		jumpToSprite("death", m_currentDirection);
+		jumpToSprite("death", m_facingDirection);
 		return;
 	}
 
-	if (m_spriteHandler->currentSprite() == "attack" ||
-			m_spriteHandler->currentSprite() == "bow" ||
-			m_spriteHandler->currentSprite() == "hurt" ||
-			m_spriteHandler->currentSprite() == "cast")
-		jumpToSpriteLater("idle", m_currentDirection);
-	else if (m_movingDirection != Invalid) {
-		/*if (m_body->isRunning())
-			jumpToSprite("run", m_movingDirection);
-		else*/
-			jumpToSprite("walk", m_movingDirection);
-	} else
-		jumpToSprite("idle", m_currentDirection);
+	if (m_spriteHandler->currentSprite() == QStringLiteral("attack") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("bow") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("hurt") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("cast") )
+		jumpToSpriteLater("idle", m_facingDirection);
+	else if (isRunning() && m_facingDirection != Invalid)
+		jumpToSprite("run", m_facingDirection);
+	else if (isWalking() && m_facingDirection != Invalid)
+		jumpToSprite("walk", m_facingDirection);
+	else
+		jumpToSprite("idle", m_facingDirection);
 }
 
 
@@ -234,10 +233,10 @@ void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::
 	setHp(std::max(0, newHp));
 
 	if (newHp <= 0) {
-		jumpToSprite("death", m_currentDirection);
+		jumpToSprite("death", m_facingDirection);
 		eventKilledByPlayer(player);
 	} else {
-		jumpToSprite("hurt", m_currentDirection);
+		jumpToSprite("hurt", m_facingDirection);
 
 		if (weaponType == TiledWeapon::WeaponBroadsword || weaponType == TiledWeapon::WeaponAxe)
 			startInability();
@@ -323,7 +322,7 @@ void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
 		return;
 
 	if (const QString &sprite = RpgGame::getAttackSprite(weapon->weaponType()); !sprite.isEmpty()) {
-		jumpToSprite(sprite.toLatin1(), m_currentDirection);
+		jumpToSprite(sprite.toLatin1(), m_facingDirection);
 	}
 }
 
@@ -337,7 +336,7 @@ void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
 
 QPointF RpgEnemyBase::getPickablePosition(const int &num) const
 {
-	QLineF line = QLineF::fromPolar(75. * num, toDegree(directionToIsometricRadian(m_currentDirection)));
+	QLineF line = QLineF::fromPolar(75. * num, toDegree(directionToIsometricRadian(m_facingDirection)));
 	line.translate(bodyPosition()-line.p2());
 	return line.p1();
 }

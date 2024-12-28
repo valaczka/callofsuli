@@ -1723,7 +1723,9 @@ void Client::setCurrentGame(AbstractGame *newCurrentGame)
 		return;
 
 	if (m_currentGame)
-		disconnect(m_currentGame.get(), &AbstractGame::gameDestroyRequest, this, &Client::onGameDestroyRequest);
+		m_currentGame->disconnect(this);
+
+	//disconnect(m_currentGame.get(), &AbstractGame::gameDestroyRequest, this, &Client::onGameDestroyRequest);
 
 	m_currentGame.reset(newCurrentGame);
 	emit currentGameChanged();

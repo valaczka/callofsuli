@@ -226,8 +226,6 @@ public:
 	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
 											   const QPointF &translate = {}) override;
 
-	[[deprecated]] virtual void onSceneWorldStepped(TiledScene *scene) override;
-
 	void useWeapon(const TiledWeapon::WeaponType &type);
 	const QVector<RpgWallet> &usedWallet() const { return m_usedWallet; }
 	QJsonArray usedWalletAsArray() const;
@@ -310,6 +308,9 @@ protected:
 	bool transportBeforeEvent(TiledObject *object, TiledTransport *transport) override;
 	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObject *newObject) override;
 	bool transportDoor(TiledObject *object, TiledTransport *transport) override;
+
+	virtual void timeSteppedEvent() override;
+	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
 
 private:
 	void loadMetricDefinition();

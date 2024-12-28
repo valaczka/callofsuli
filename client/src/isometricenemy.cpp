@@ -71,7 +71,8 @@ void IsometricEnemy::initialize()
 	/*params.filter = TiledObjectBody::getFilter(FixtureTarget,
 											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);*/
 
-	createFromCircle({0.f, 0.f}, 30., nullptr, bParams, params);
+	createFromCircle({0.f, 0.f}, 15., nullptr, bParams, params);
+	setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange, FixturePlayerBody);
 
 	createVisual();
 
@@ -128,6 +129,30 @@ bool IsometricEnemy::isSleeping()
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief IsometricEnemy::isRunning
+ * @return
+ */
+
+bool IsometricEnemy::isRunning() const
+{
+	// 60 FPS
+	return currentSpeed().length() >= m_metric.pursuitSpeed*0.9/60;
+}
+
+
+/**
+ * @brief IsometricEnemy::isWalking
+ * @return
+ */
+
+bool IsometricEnemy::isWalking() const
+{
+	const auto &l = currentSpeed().length();
+	return l < m_metric.pursuitSpeed/60 && l > 0.05;
 }
 
 
@@ -227,12 +252,12 @@ void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
 /**
  * @brief IsometricEnemy::entityWorldStep
  */
-
+/*
 void IsometricEnemy::entityWorldStep(const qreal &factor)
 {
 	if (!isAlive() || isSleeping()) {
 		stop();
-		jumpToSprite("death", m_currentDirection);
+		jumpToSprite("death", m_facingDirection);
 		return;
 	}
 
@@ -240,7 +265,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 		onSleepingEnd();
 
 	if (m_movingDirection != Invalid)
-		setCurrentDirection(m_movingDirection);
+		setFacingDirection(m_movingDirection);
 
 
 	//QPointF visiblePoint;
@@ -249,7 +274,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 	IsometricPlayer *myPlayer = getVisibleEntity<QPointer<IsometricPlayer>>(this, m_contactedPlayers,
 																			TiledObjectBody::FixturePlayerBody,
 																			&transparentGnd
-																			/*, &visiblePoint*/);
+																			///// / *, &visiblePoint * /);
 
 
 	float angle = 0.;
@@ -331,7 +356,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			return;
 		}
 
-		if (transparentGnd >= 0. && transparentGnd < 35 /*m_fixture->radius()*2.3*/) {
+		if (transparentGnd >= 0. && transparentGnd < 35 /// / * m_fixture->radius()*2.3 * /) {
 			stop();
 		} else if (m_metric.returnSpeed != 0) {
 			if (!m_returnPathMotor)
@@ -344,23 +369,14 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 			}
 		} else if (m_metric.speed > 0) {
 			if (m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor) {
-				setSpeed(toPoint(angle, m_metric.pursuitSpeed*factor));
+				setSpeedFromAngle(angle, m_metric.pursuitSpeed);
 
 			} else {
-				setSpeed(toPoint(angle, m_metric.speed*factor));
+				setSpeedFromAngle(angle, m_metric.speed);
 			}
 		} else {
 			stop();
 		}
-
-		// --- show path ---
-		/*if (m_returnPathMotor) {
-			QVariantList list;
-			for (const auto &point : m_returnPathMotor->path())
-				list.append(point);
-			m_scene->setTestPoints(list);
-		}*/
-		// -----------
 
 
 		enemyWorldStep();
@@ -392,7 +408,7 @@ void IsometricEnemy::entityWorldStep(const qreal &factor)
 	updateSprite();
 }
 
-
+*/
 
 /**
  * @brief IsometricEnemy::enemyWorldStep
@@ -610,7 +626,7 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 	if (m_returnPathMotor) {
 		if (m_returnPathMotor->isReturning() && !m_returnPathMotor->isReturnReady(m_game->tickTimer())) {
 			stop();
-			rotateBody(directionToRadian(m_currentDirection));
+			rotateBody(directionToRadian(m_facingDirection));
 			return;
 		}
 
@@ -626,7 +642,7 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 
 	m_motor->updateBody(this, m_metric.speed*factor, m_game->tickTimer());
 
-	rotateBody(directionToRadian(m_currentDirection));
+	rotateBody(directionToRadian(m_facingDirection));
 }
 
 

@@ -35,6 +35,7 @@
 
 class IsometricEnemy;
 class IsometricPlayerPrivate;
+class TiledPathMotor;
 
 #ifndef OPAQUE_PTR_IsometricEnemy
 #define OPAQUE_PTR_IsometricEnemy
@@ -53,13 +54,12 @@ class IsometricPlayer : public IsometricEntity
 
 	Q_PROPERTY(TiledTransport *currentTransport READ currentTransport WRITE setCurrentTransport NOTIFY currentTransportChanged FINAL)
 	Q_PROPERTY(TiledContainer *currentContainer READ currentContainer WRITE setCurrentContainer NOTIFY currentContainerChanged FINAL)
-	Q_PROPERTY(qreal currentAngle READ currentAngle WRITE setCurrentAngle NOTIFY currentAngleChanged FINAL)
 	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
-	Q_PROPERTY(QPointF currentVelocity READ currentVelocity WRITE setCurrentVelocity NOTIFY currentVelocityChanged FINAL)
+	Q_PROPERTY(QVector2D currentVelocity READ currentVelocity WRITE setCurrentVelocity NOTIFY currentVelocityChanged FINAL)
 	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
 
 public:
-    explicit IsometricPlayer(TiledScene *scene);
+	explicit IsometricPlayer(TiledScene *scene);
 	virtual ~IsometricPlayer();
 
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
@@ -67,8 +67,6 @@ public:
 	void setDestinationPoint(const QPolygonF &polygon);
 	void setDestinationPoint(const QPointF &point);
 	void clearDestinationPoint();
-
-	virtual void entityWorldStep(const qreal &factor) override;
 
 	void initialize();
 	bool hasAbility();
@@ -78,16 +76,13 @@ public:
 
 	TiledObject *currentTransportBase() const { return m_currentTransportBase; }
 
-	qreal currentAngle() const;
-	void setCurrentAngle(qreal newCurrentAngle);
-
 	void removeEnemy(IsometricEnemy *enemy);
 
 	IsometricEnemy *enemy() const;
 	void setEnemy(IsometricEnemy *newEnemy);
 
-	QPointF currentVelocity() const;
-	void setCurrentVelocity(QPointF newCurrentVelocity);
+	QVector2D currentVelocity() const;
+	void setCurrentVelocity(QVector2D newCurrentVelocity);
 
 	bool isLocked() const;
 	void setIsLocked(bool newIsLocked);
@@ -95,19 +90,22 @@ public:
 	TiledContainer *currentContainer() const;
 	void setCurrentContainer(TiledContainer *newCurrentContainer);
 
+	virtual void worldStep() override;
+
+	bool isRunning() const;
+	bool isWalking() const;
+
 signals:
 	void becameAlive();
 	void becameDead();
 
 	void currentTransportChanged();
-	void currentAngleChanged();
 	void enemyChanged();
 	void currentVelocityChanged();
 	void isLockedChanged();
 	void currentContainerChanged();
 
 protected:
-	//void updateSprite() override;
 	void onAlive() override;
 	void onDead() override;
 	void startInability();
@@ -141,6 +139,8 @@ protected:
 
 private:
 	void clearData();
+	TiledPathMotor *destinationMotor() const;
+
 	/*void sensorBeginContact(Box2DFixture *other);
 	void sensorEndContact(Box2DFixture *other);
 	void fixtureBeginContact(Box2DFixture *other);
@@ -150,8 +150,7 @@ private:
 	QPointer<TiledObject> m_currentTransportBase;
 	QPointer<TiledContainer> m_currentContainer = nullptr;
 
-	qreal m_currentAngle = 0.;
-	QPointF m_currentVelocity;
+	QVector2D m_currentVelocity;
 
 	IsometricPlayerPrivate *d = nullptr;
 

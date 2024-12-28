@@ -140,13 +140,13 @@ Flickable {
 			anchors.fill: _container
 		}
 
-		/*DebugDraw {
+		TiledDebugDrawImpl {
 			anchors.fill: _scene
-			world: _scene.world
+			scene: _scene
 			opacity: 0.5
 			visible: _scene.game && _scene.game.debugView
 			scale: _scene.scale
-		}*/
+		}
 	}
 
 	PinchArea {

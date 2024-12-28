@@ -38,6 +38,7 @@
 
 
 class TiledGamePrivate;
+class TiledDebugDraw;
 
 
 /**
@@ -254,8 +255,6 @@ public:
 
 
 
-	[[deprecated]] virtual void onSceneWorldStepped(TiledScene *scene);
-
 	AbstractGame::TickTimer *tickTimer() const { return m_tickTimer.get(); }
 	void setTickTimer(std::unique_ptr<AbstractGame::TickTimer> &timer) { m_tickTimer = std::move(timer); }
 
@@ -338,6 +337,7 @@ protected:
 	virtual bool transportGate(TiledObject *object, TiledTransport *transport, TiledObject *transportBase);
 	virtual bool transportDoor(TiledObject *object, TiledTransport *transport);
 
+	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene);
 
 protected:
 	TiledScene *m_currentScene = nullptr;
@@ -368,6 +368,7 @@ private:
 	TiledGamePrivate *d = nullptr;
 
 	friend class TiledGamePrivate;
+	friend class TiledScene;
 };
 
 

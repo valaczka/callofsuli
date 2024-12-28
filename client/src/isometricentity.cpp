@@ -42,46 +42,6 @@ IsometricEntity::IsometricEntity(TiledScene *scene)
 
 
 /**
- * @brief IsometricEntityIface::entityWorldStep
- * @param position
- */
-
-void IsometricEntity::entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections)
-{
-	if (qFuzzyCompare(position.x(), m_lastPosition.x()) && qFuzzyCompare(position.y(), m_lastPosition.y())) {
-		setMovingDirection(TiledObject::Invalid);
-		setMovingSpeed(0.);
-		return;
-	}
-
-	QLineF line(m_lastPosition, position);
-	setMovingDirection(TiledObject::nearestDirectionFromRadian(availableDirections,
-															   TiledObject::toRadian(line.angle())));
-
-	setMovingSpeed(line.length() / factor);
-	m_lastPosition = position;
-}
-
-
-
-/**
- * @brief IsometricEntityIface::movingSpeed
- * @return
- */
-
-qreal IsometricEntity::movingSpeed() const
-{
-	return m_movingSpeed;
-}
-
-void IsometricEntity::setMovingSpeed(qreal newMovingSpeed)
-{
-	m_movingSpeed = newMovingSpeed;
-}
-
-
-
-/**
  * @brief IsometricEntityIface::maxHp
  * @return
  */
@@ -97,6 +57,18 @@ void IsometricEntity::setMaxHp(int newMaxHp)
 		return;
 	m_maxHp = newMaxHp;
 	emit maxHpChanged();
+}
+
+
+
+/**
+ * @brief IsometricEntity::synchronize
+ */
+
+void IsometricEntity::synchronize()
+{
+	IsometricObject::synchronize();
+	updateSprite();
 }
 
 
@@ -167,13 +139,15 @@ std::optional<QPointF> IsometricEntity::checkEntityVisibility(TiledObjectBody *b
 */
 
 	float rayLength = 0.;
-	const TiledReportedFixtureMap &map = body->rayCast(entityPosition, category);
+	///const TiledReportedFixtureMap &map = body->rayCast(entityPosition, category);
+	TiledReportedFixtureMap map;
 
 	bool visible = false;
 
-	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
+	for (auto it=map.begin(); it != map.end(); ++it) {
+		b2::ShapeRef r = *it;
 
-		if (it->IsSensor())
+		if (r.IsSensor())
 			continue;
 
 		if (FixtureCategories::fromInt(it->GetFilter().categoryBits).testFlag(category)) {
@@ -182,7 +156,7 @@ std::optional<QPointF> IsometricEntity::checkEntityVisibility(TiledObjectBody *b
 		}
 
 		if (FixtureCategories::fromInt(it->GetFilter().categoryBits).testFlag(TiledObjectBody::FixtureGround)) {
-			if (TiledObjectBody *body = TiledObjectBody::fromBodyRef(it->GetBody())) {
+			if (TiledObjectBody *body = TiledObjectBody::fromBodyRef(r.GetBody())) {
 				if (body->opaque()) {
 					visible = false;
 					break;
@@ -268,42 +242,3 @@ void IsometricEntity::setHp(int newHp)
 
 }
 
-
-/**
- * @brief IsometricEntityIface::movingDirection
- * @return
- */
-
-TiledObject::Direction IsometricEntity::movingDirection() const
-{
-	return m_movingDirection;
-}
-
-void IsometricEntity::setMovingDirection(const TiledObject::Direction &newMovingDirection)
-{
-	if (m_movingDirection == newMovingDirection)
-		return;
-	m_movingDirection = newMovingDirection;
-}
-
-
-/**
- * @brief IsometricEntity::emplace
- * @param pos
- */
-
-void IsometricEntity::emplace(const QPointF &pos) {
-	TiledObjectBody::emplace(pos);
-	updateSprite();
-}
-
-
-/**
- * @brief IsometricEntity::worldStep
- * @param factor
- */
-
-void IsometricEntity::worldStep(const qreal &factor) {
-	entityIfaceWorldStep(factor, position(), m_availableDirections);
-	entityWorldStep(factor);
-}

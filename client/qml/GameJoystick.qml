@@ -160,20 +160,20 @@ Item {
 		if (!hasTouch)
 			return
 
-		if (distance > 1.3) {
+		if (distance > 1.5) {
 			_translate.dstX = Math.min(
-						root.x + _translate.x + (distance-1.1) * _circleRadius * Math.cos(angle),
+						root.x + _translate.x + (distance-1.3) * _circleRadius * Math.cos(angle),
 						(maxWidth > 0 ? maxWidth : root.parent.width) - root.width/2
 						)
 			_translate.dstY = Math.max(
 						root.parent.height - maxHeight - root.height/2,
-						_translate.dstY = root.y + _translate.y - (distance-1.1) * _circleRadius * Math.sin(angle)
+						root.y + _translate.y - (distance-1.3) * _circleRadius * Math.sin(angle)
 						)
 		}
 
 		currentX = dx
 		currentY = dy
-		currentAngle = angle
+		currentAngle = Math.atan2(dy, dx)
 		currentDistance = distance
 
 		joystickMoved(currentX, currentY)

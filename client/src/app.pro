@@ -280,6 +280,7 @@ SOURCES += \
 	teachermaphandler.cpp \
 	testgame.cpp \
 	tiledcontainer.cpp \
+	tileddebugdraw.cpp \
 	tiledeffect.cpp \
 	tiledfixpositionmotor.cpp \
 	tiledgame.cpp \
@@ -397,6 +398,7 @@ HEADERS += \
 	teachermaphandler.h \
 	testgame.h \
 	tiledcontainer.h \
+	tileddebugdraw.h \
 	tiledeffect.h \
 	tiledfixpositionmotor.h \
 	tiledgame.h \

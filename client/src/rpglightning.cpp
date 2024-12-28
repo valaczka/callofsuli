@@ -120,7 +120,7 @@ void RpgLightning::impactEvent(TiledObject *base)
 	{
 		setImpacted(true);
 		stop();
-		setCurrentDirection(Invalid);
+		setFacingDirection(Invalid);
 		doAutoDelete();
 	}
 }

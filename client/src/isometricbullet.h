@@ -83,7 +83,7 @@ public:
 	void shot(const Targets &targets, const QPointF &from, const Direction &direction);
 	void shot(const Targets &targets, const QPointF &from, const qreal &angle);
 
-	void worldStep(const qreal &factor) override;
+	void worldStep() override;
 
 	bool impacted() const;
 	void setImpacted(bool newImpacted);

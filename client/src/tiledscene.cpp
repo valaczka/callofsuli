@@ -69,12 +69,6 @@ TiledScene::~TiledScene()
 {
 	unsetMap();
 
-	/*for (const auto &o : std::as_const(m_tiledObjects)) {
-		if (o && o->scene() == this)
-			o->setScene(nullptr);
-	}*/
-
-
 	qDeleteAll(m_visualItems);
 	m_visualItems.clear();
 	m_dynamicZList.clear();
@@ -169,7 +163,7 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 		return std::nullopt;
 
 	//TCODPath path(m_tcodMap.map.get());
-	TCODDijkstra path(m_tcodMap.map.get());
+	TCODDijkstra path(m_tcodMap.map.get(), 1.0);
 
 	const int chX1 = std::floor((x1-m_viewport.left())/m_tcodMap.chunkWidth);
 	const int chX2 = std::floor((x2-m_viewport.left())/m_tcodMap.chunkWidth);
@@ -340,30 +334,6 @@ int TiledScene::getDynamicZ(const qreal &x, const qreal &y, const int &defaultVa
 
 
 /**
- * @brief TiledScene::running
- * @return
- */
-
-bool TiledScene::running() const
-{
-	return true;
-}
-
-void TiledScene::setRunning(bool newRunning)
-{
-	/*if (m_world->isRunning() == newRunning)
-		return;
-	m_world->setRunning(newRunning);
-
-	if (!newRunning)
-		m_worldStepTimer.invalidate();
-
-	emit runningChanged();*/
-}
-
-
-
-/**
  * @brief TiledScene::startMusic
  */
 
@@ -412,60 +382,6 @@ bool TiledScene::isGroundContainsPoint(const QPointF &point) const
 
 
 
-
-
-
-/**
- * @brief TiledScene::onWorldStepped
- */
-
-void TiledScene::onWorldStepped()
-{
-	/*qreal factor = 1.f;
-
-	if (m_worldStepTimer.isValid()) {
-		const qint64 &msec = m_worldStepTimer.restart();
-
-		qreal f = msec/(1000.f/60.f);
-
-		m_stepFactors.push_back(f);
-	} else {
-		m_worldStepTimer.start();
-	}
-
-	if (m_stepFactors.size() > 6) {
-		m_stepFactors.erase(m_stepFactors.begin());
-		const qreal f = std::accumulate(m_stepFactors.cbegin(), m_stepFactors.cend(), 0.f) /
-						m_stepFactors.size();
-		if (f > 1.1f)
-			factor = f;
-	}
-
-	for (TiledObject *obj : m_tiledObjects) {
-		if (!obj)
-			continue;
-
-		obj->worldStep(factor);
-	}
-
-	for (const QPointer<TiledObject> &ptr : m_tiledObjectsToAppend) {
-		if (ptr)
-			m_tiledObjects.append(ptr);
-	}
-	m_tiledObjectsToAppend.clear();
-
-	for (const QPointer<TiledObject> &ptr : m_tiledObjectsToRemove) {
-		if (ptr)
-			m_tiledObjects.removeAll(ptr);
-	}
-	m_tiledObjectsToRemove.clear();
-	*/
-
-	if (m_game)
-		m_game->onSceneWorldStepped(this);
-
-	emit worldStepped();
-}
 
 
 /**
@@ -518,6 +434,22 @@ void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 }
 
 
+
+
+/**
+ * @brief TiledScene::debugDrawEvent
+ * @param debugDraw
+ */
+
+void TiledScene::debugDrawEvent(TiledDebugDraw *debugDraw)
+{
+	if (m_game)
+		m_game->sceneDebugDrawEvent(debugDraw, this);
+}
+
+
+
+
 /**
  * @brief TiledScene::reloadTcodMap
  */
@@ -548,7 +480,7 @@ void TiledScene::reloadTcodMap()
 								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight)));
 
 			for (TiledObjectBody *o : std::as_const(m_groundObjects)) {
-				if (o->isBodyEnabled() && chunk.intersects(o->bodyAABB())) {
+				if (o->isBodyEnabled() && o->overlap(chunk)) {
 					m_tcodMap.map->setProperties(i, j, true, false);
 					break;
 				}

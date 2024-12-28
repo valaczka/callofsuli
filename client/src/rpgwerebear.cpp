@@ -190,7 +190,7 @@ void RpgWerebear::load()
 void RpgWerebear::eventPlayerReached(IsometricPlayer *)
 {
 	if (!isStanding())
-		jumpToSprite("up", m_currentDirection);
+		jumpToSprite("up", m_facingDirection);
 
 	if (m_player)
 		m_sfxRoar.playOne();
@@ -204,7 +204,7 @@ void RpgWerebear::eventPlayerReached(IsometricPlayer *)
 void RpgWerebear::eventPlayerLeft(IsometricPlayer *)
 {
 	if (isStanding())
-		jumpToSprite("down", m_currentDirection);
+		jumpToSprite("down", m_facingDirection);
 }
 
 
@@ -307,7 +307,7 @@ void RpgWerebear::playAttackEffect(TiledWeapon *weapon)
 		return;
 
 	if (weapon->weaponType() == TiledWeapon::WeaponGreatHand || weapon->weaponType() == TiledWeapon::WeaponHand) {
-		jumpToSprite(QStringLiteral("hit%1").arg(m_nextHit++).toLatin1(), m_currentDirection);
+		jumpToSprite(QStringLiteral("hit%1").arg(m_nextHit++).toLatin1(), m_facingDirection);
 		if (m_nextHit > 3)
 			m_nextHit = 1;
 	}
@@ -347,7 +347,7 @@ void RpgWerebear::playSeeEffect()
 
 QPointF RpgWerebear::getPickablePosition(const int &num) const
 {
-	QLineF line = QLineF::fromPolar(50. * num, toDegree(directionToIsometricRadian(m_currentDirection)));
+	QLineF line = QLineF::fromPolar(50. * num, toDegree(directionToIsometricRadian(m_facingDirection)));
 	line.translate(bodyPosition()-line.p2());
 	return line.p1();
 }
@@ -414,12 +414,12 @@ bool RpgWerebear::isStanding() const
 void RpgWerebear::toDeathSprite()
 {
 	if (isStanding()) {
-		jumpToSprite("down", m_currentDirection);
-		jumpToSpriteLater("death", m_currentDirection);
+		jumpToSprite("down", m_facingDirection);
+		jumpToSpriteLater("death", m_facingDirection);
 	} else if (m_spriteHandler->currentSprite() == QStringLiteral("down"))
-		jumpToSpriteLater("death", m_currentDirection);
+		jumpToSpriteLater("death", m_facingDirection);
 	else
-		jumpToSprite("death", m_currentDirection);
+		jumpToSprite("death", m_facingDirection);
 }
 
 
@@ -450,16 +450,16 @@ void RpgWerebear::updateSprite()
 			 m_spriteHandler->currentSprite() == QStringLiteral("hit2") ||
 			 m_spriteHandler->currentSprite() == QStringLiteral("hit3") ||
 			 m_spriteHandler->currentSprite() == QStringLiteral("up"))
-		jumpToSpriteLater("stand", m_currentDirection);
+		jumpToSpriteLater("stand", m_facingDirection);
 	else if (isStanding())
-		jumpToSprite("stand", m_currentDirection);
-	else if (m_movingDirection != Invalid) {
+		jumpToSprite("stand", m_facingDirection);
+	else if (m_facingDirection != Invalid) {
 		/*if (m_body->isRunning())
 			jumpToSprite("run", m_movingDirection);
 		else*/
-			jumpToSprite("walk", m_movingDirection);
+			jumpToSprite("walk", m_facingDirection);
 	} else
-		jumpToSprite("idle", m_currentDirection);
+		jumpToSprite("idle", m_facingDirection);
 }
 
 

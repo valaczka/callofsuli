@@ -104,10 +104,10 @@ void IsometricBullet::shot(const QPointF &from, const Direction &direction)
 
 	m_startPoint = from;
 	emplace(from);
-	setCurrentDirection(direction);
+	setFacingDirection(direction);
 	m_direction = direction;
 	m_angle = 0.;
-	jumpToSprite("default", m_currentDirection);
+	jumpToSprite("default", m_facingDirection);
 	scene()->appendToObjects(this);
 }
 
@@ -125,10 +125,10 @@ void IsometricBullet::shot(const QPointF &from, const qreal &angle)
 
 	m_startPoint = from;
 	emplace(from);
-	setCurrentDirection(nearestDirectionFromRadian(angle));
+	setFacingDirection(nearestDirectionFromRadian(angle));
 	m_direction = Invalid;
 	m_angle = angle;
-	jumpToSprite("default", m_currentDirection);
+	jumpToSprite("default", m_facingDirection);
 	scene()->appendToObjects(this);
 }
 
@@ -167,9 +167,9 @@ void IsometricBullet::shot(const Targets &targets, const QPointF &from, const qr
  * @brief IsometricBullet::worldStep
  */
 
-void IsometricBullet::worldStep(const qreal &factor)
+void IsometricBullet::worldStep()
 {
-	if (m_currentDirection == Invalid) {
+	if (m_facingDirection == Invalid) {
 		stop();
 		return;
 	}
@@ -183,12 +183,12 @@ void IsometricBullet::worldStep(const qreal &factor)
 	}
 
 	if (m_direction != Invalid) {
-		setSpeed(TiledObject::toPoint(directionToIsometricRadian(m_direction), m_speed*factor));
+		setSpeedFromAngle(directionToIsometricRadian(m_direction), m_speed);
 	} else {
-		setSpeed(TiledObject::toPoint(m_angle, m_speed*factor));
+		setSpeedFromAngle(m_angle, m_speed);
 	}
 
-	jumpToSprite("default", m_currentDirection);
+	jumpToSprite("default", m_facingDirection);
 }
 
 
@@ -333,7 +333,7 @@ void IsometricBullet::impactEvent(TiledObject *base)
 
 	setImpacted(true);
 	stop();
-	setCurrentDirection(Invalid);
+	setFacingDirection(Invalid);
 	doAutoDelete();
 }
 

@@ -418,7 +418,9 @@ void TiledGameSfxLocation::onSceneChanged()
 		return;
 
 	if (m_connectedScene)
-		disconnect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
+		m_connectedScene->disconnect(this);
+
+	//disconnect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
 
 	m_connectedScene = scene;
 

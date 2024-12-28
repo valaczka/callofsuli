@@ -69,7 +69,7 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 
 		} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(group->objects())) {
-				TiledObject *base = nullptr;
+				TiledObjectBody *base = nullptr;
 
 				if (object->className() != QStringLiteral("trigger")) {
 					LOG_CWARNING("game") << "RpgControlGroupSave object skipped:" << object->id() << object->name();
@@ -77,11 +77,15 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 				}
 
 				if (object->shape() == Tiled::MapObject::Point) {
-					TiledObject *ptr = m_game->createFromCircle<TiledObject>(scene, object->position(), 60., renderer);
-					//TiledObject *ptr = TiledObject::createFromCircle(scene, object->position(), 60., renderer);
-					//ptr->body()->emplace(renderer->pixelToScreenCoords(object->position()));
+					b2::Body::Params bParams;
+					bParams.type = b2BodyType::b2_staticBody;
+					bParams.fixedRotation = true;
+					b2::Shape::Params params;
+					params.isSensor = true;
+					params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureSensor, TiledObjectBody::FixturePlayerBody);
+
+					base = m_game->createFromCircle<TiledObjectBody>(scene, object->position(), 30., renderer, bParams, params);
 					//connectFixture(ptr->fixture());
-					base = ptr;
 				}
 
 				if (!base) {
@@ -89,8 +93,7 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 					return;
 				}
 
-				base->setParent(m_game);
-				m_position = base->position();
+				m_position = base->bodyPosition();
 			}
 
 		}

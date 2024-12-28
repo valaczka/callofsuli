@@ -47,11 +47,6 @@ class IsometricEntity : public IsometricObject
 public:
 	explicit IsometricEntity(TiledScene *scene);
 
-	void emplace(const QPointF &pos);
-
-	TiledObject::Direction movingDirection() const;
-	void setMovingDirection(const TiledObject::Direction &newMovingDirection);
-
 	int hp() const;
 	void setHp(int newHp);
 
@@ -61,12 +56,10 @@ public:
 	bool isAlive() const { return m_hp > 0; }
 	virtual bool isDiscoverable() const { return true; }
 
-	static qreal toMovingSpeed(const qreal &speed) { return speed * 0.53334f; }
+	/////static qreal toMovingSpeed(const qreal &speed) { return speed * 0.53334f; }
 
+	virtual void synchronize() override;
 	virtual void updateSprite() = 0;
-
-	qreal movingSpeed() const;
-	void setMovingSpeed(qreal newMovingSpeed);
 
 signals:
 	void hurt();
@@ -76,10 +69,6 @@ signals:
 
 
 protected:
-	virtual void entityWorldStep(const qreal &factor) { Q_UNUSED(factor); }
-
-	void worldStep(const qreal &factor) override final;
-
 	static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObject *entity,
 														const TiledObjectBody::FixtureCategory &category,
 														float *transparentGroundPtr);
@@ -99,16 +88,9 @@ protected:
 
 
 protected:
-	TiledObject::Direction m_movingDirection = TiledObject::Invalid;
-	qreal m_movingSpeed = 0.;
 	int m_hp = 1;
 	int m_maxHp = 1;
 	QStringList m_moveDisabledSpriteList;		// At these sprites move disabled
-
-private:
-	void entityIfaceWorldStep(const qreal &factor, const QPointF &position, const TiledObject::Directions &availableDirections);
-
-	QPointF m_lastPosition;
 };
 
 

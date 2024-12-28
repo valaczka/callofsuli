@@ -60,6 +60,7 @@
 #include "teachermaphandler.h"
 #include "testgame.h"
 #include "rpggame.h"
+#include "tileddebugdraw.h"
 #include "tiledobject.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
@@ -445,6 +446,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<RpgUserWorld>("CallOfSuli", 1, 0, "RpgUserWorld");
 	qmlRegisterType<RpgWorldLandData>("CallOfSuli", 1, 0, "RpgWorldLandData");
 	qmlRegisterType<RpgWorldLandDataList>("CallOfSuli", 1, 0, "RpgWorldLandDataList");
+	qmlRegisterType<TiledDebugDraw>("CallOfSuli", 1, 0, "TiledDebugDrawImpl");
 	qmlRegisterType<TiledObject>("CallOfSuli", 1, 0, "TiledObjectImpl");
 	qmlRegisterType<TiledScene>("CallOfSuli", 1, 0, "TiledSceneImpl");
 	qmlRegisterType<TiledVisualItem>("CallOfSuli", 1, 0, "TiledVisualItemImpl");

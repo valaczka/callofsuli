@@ -113,7 +113,7 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float &angle, c
 
 	m_hasReturned = false;
 
-	body->setSpeed(TiledObject::toPoint(angle, radius));
+	body->setSpeedFromAngle(angle, radius);
 
 	addPoint(body->bodyPosition(), angle);
 }

@@ -47,7 +47,7 @@ void TiledFixPositionMotor::updateBody(TiledObject *object, const float &, Abstr
 	Q_ASSERT(object);
 	object->stop();
 	if (m_direction != TiledObject::Invalid)
-		object->setCurrentDirection(m_direction);
+		object->setFacingDirection(m_direction);
 }
 
 

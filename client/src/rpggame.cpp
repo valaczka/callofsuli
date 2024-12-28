@@ -49,6 +49,7 @@
 #include <QRandomGenerator>
 #include "tiledcontainer.h"
 #include "tiledspritehandler.h"
+#include "tileddebugdraw.h"
 #include <libtiled/imagelayer.h>
 
 #include <libtcod/path.hpp>
@@ -1125,6 +1126,54 @@ bool RpgGame::transportDoor(TiledObject *object, TiledTransport *transport)
 		return false;
 
 	return true;
+}
+
+
+
+/**
+ * @brief RpgGame::timeSteppedEvent
+ */
+
+void RpgGame::timeSteppedEvent()
+{
+	TiledGame::timeSteppedEvent();
+
+	updateScatterEnemies();
+	updateScatterPlayers();
+	updateScatterPoints();
+}
+
+
+
+/**
+ * @brief RpgGame::sceneDebugDrawEvent
+ * @param debugDraw
+ * @param scene
+ */
+
+void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
+{
+	if (!debugDraw || !scene)
+		return;
+
+	for (const auto &e : m_enemyDataList) {
+		if (e.scene != scene || e.path.isEmpty())
+			continue;
+
+		if (e.path.size() > 1) {
+			debugDraw->drawPolygon(e.path, QColor::fromRgb(230, 0, 0), 3.);
+		} else
+			debugDraw->drawSolidCircle(e.path.first(), 3., QColor::fromRgb(230, 0, 0));
+	}
+
+
+	for (const RpgPlayer *p : m_players) {
+		if (TiledPathMotor *motor = p->destinationMotor()) {
+			debugDraw->drawPolygon(motor->polygon(),
+								   p == m_controlledPlayer ? QColor::fromRgb(0, 230, 0) : QColor::fromRgb(230, 150, 0),
+								   4.);
+		}
+	}
 }
 
 
@@ -2488,9 +2537,9 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 		def = new RpgEnemyMetricDefinition;
 
 		EnemyMetric soldier;
-		soldier.speed = 30.;
-		soldier.returnSpeed = 3.5;
-		soldier.pursuitSpeed = 5.;
+		soldier.speed = 90.;
+		soldier.returnSpeed = 100;
+		soldier.pursuitSpeed = 150.;
 		soldier.sensorRange = M_PI*0.5;
 
 		EnemyMetric archer = soldier;
@@ -2924,22 +2973,6 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 }
 
 
-
-/**
- * @brief RpgGame::onSceneWorldStepped
- * @param scene
- */
-
-void RpgGame::onSceneWorldStepped(TiledScene *scene)
-{
-	if (!scene || scene != m_currentScene)
-		return;
-
-	updateScatterEnemies();
-	updateScatterPlayers();
-	updateScatterPoints();
-
-}
 
 
 

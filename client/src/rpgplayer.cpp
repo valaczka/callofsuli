@@ -379,22 +379,21 @@ void RpgPlayer::load()
 void RpgPlayer::updateSprite()
 {
 	if (m_hp <= 0) {
-		jumpToSprite("death", m_currentDirection);
+		jumpToSprite("death", m_facingDirection);
 		return;
 	}
 
-	if (m_spriteHandler->currentSprite() == "attack" ||
-			m_spriteHandler->currentSprite() == "bow" ||
-			m_spriteHandler->currentSprite() == "hurt" ||
-			m_spriteHandler->currentSprite() == "cast")
-		jumpToSpriteLater("idle", m_currentDirection);
-	else if (m_movingDirection != Invalid) {
-		/*if (m_body->isRunning())
-			jumpToSprite("run", m_movingDirection);
-		else*/
-			jumpToSprite("walk", m_movingDirection);
-	} else
-		jumpToSprite("idle", m_currentDirection);
+	if (m_spriteHandler->currentSprite() == QStringLiteral("attack") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("bow") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("hurt") ||
+			m_spriteHandler->currentSprite() == QStringLiteral("cast") )
+		jumpToSpriteLater("idle", m_facingDirection);
+	else if (isRunning() && m_facingDirection != Invalid)
+		jumpToSprite("run", m_facingDirection);
+	else if (isWalking() && m_facingDirection != Invalid)
+		jumpToSprite("walk", m_facingDirection);
+	else
+		jumpToSprite("idle", m_facingDirection);
 }
 
 
@@ -435,7 +434,7 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 		return;
 
 	if (isProtected) {
-		QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){ jumpToSprite("hurt", m_currentDirection); });
+		QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){ jumpToSprite("hurt", m_facingDirection); });
 		return;
 	}
 
@@ -445,14 +444,14 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 
 	if (hp <= 0) {
 		setHp(0);
-		jumpToSprite("death", m_currentDirection);
+		jumpToSprite("death", m_facingDirection);
 	} else {
 		setHp(hp);
 		if (m_spriteHandler->currentSprite() != "attack" &&
 				m_spriteHandler->currentSprite() != "bow" &&
 				m_spriteHandler->currentSprite() != "cast") {
 			QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){
-				jumpToSprite("hurt", m_currentDirection);
+				jumpToSprite("hurt", m_facingDirection);
 			});
 		}
 
@@ -670,16 +669,16 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 		case TiledWeapon::WeaponMace:
 		case TiledWeapon::WeaponHammer:
 		case TiledWeapon::WeaponDagger:
-			jumpToSprite("attack", m_currentDirection);
+			jumpToSprite("attack", m_facingDirection);
 			break;
 
 		case TiledWeapon::WeaponLongbow:
 		case TiledWeapon::WeaponShortbow:
-			jumpToSprite("bow", m_currentDirection);
+			jumpToSprite("bow", m_facingDirection);
 			break;
 
 		case TiledWeapon::WeaponMageStaff:
-			jumpToSprite("cast", m_currentDirection);
+			jumpToSprite("cast", m_facingDirection);
 			return;											// Nem kell az attack!
 
 		case TiledWeapon::WeaponShield:

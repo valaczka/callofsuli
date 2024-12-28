@@ -132,19 +132,26 @@ public:
 
 	b2::World *world() const;
 	void setWorld(b2::World *newWorld, const QPointF &position = {});
-	void setWorld(b2::World *newWorld, const QPointF &position, const float &rotation);
+	void setWorld(b2::World *newWorld, const QPointF &position, const b2Rot &rotation);
 	TiledScene *scene() const;
 
 	b2::BodyRef body() const;
 	QPointF bodyPosition() const;
 	QRectF bodyAABB() const;
+	QVector2D currentSpeed() const;
 
 	void emplace(const QPointF &center);
 	void emplace(const qreal &centerX, const qreal &centerY) { emplace(QPointF(centerX, centerY)); }
 
+	void setSpeed(const QVector2D &point);
 	void setSpeed(const QPointF &point);
+	void setSpeed(const float &x, const float &y);
+	void setSpeedFromAngle(const float &angle, const float &radius);
 	void stop();
 
+	static QVector2D vectorFromAngle(const float &angle, const float &radius);
+
+	float bodyRotation() const;
 	bool rotateBody(const float &desiredRadian);
 
 	bool opaque() const;
@@ -156,11 +163,12 @@ public:
 	bool inVisibleArea() const;
 
 	bool overlap(const QPointF &pos) const;
+	bool overlap(const QPolygonF &polygon) const;
 
-	virtual void worldStep(const qreal &factor) { Q_UNUSED(factor); }
+	virtual void worldStep();
 	virtual void synchronize();
 
-	static TiledObjectBody *fromBodyRef(b2::BodyConstRef ref);
+	static TiledObjectBody *fromBodyRef(b2::BodyRef ref);
 
 	static b2Filter getFilter(const FixtureCategories &categories);
 	static b2Filter getFilter(const FixtureCategories &categories, const FixtureCategories &collidesWith);
@@ -193,6 +201,8 @@ public:
 							 const b2::Shape::Params &params = {});
 
 
+	void setSensorPolygon(const float &length, const float &range);
+	void setSensorPolygon(const float &length, const float &range, const FixtureCategories &collidesWith);
 
 	TiledReportedFixtureMap rayCast(const QPointF &dest, const FixtureCategories &categories);
 
@@ -245,8 +255,10 @@ class TiledObject : public QQuickItem, public TiledObjectBody
 	Q_PROPERTY(QColor overlayColor READ overlayColor WRITE setOverlayColor NOTIFY overlayColorChanged FINAL)
 	Q_PROPERTY(bool inVisibleArea READ inVisibleArea NOTIFY inVisibleAreaChanged FINAL)
 	Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged FINAL)
-	Q_PROPERTY(Direction currentDirection READ currentDirection WRITE setCurrentDirection NOTIFY currentDirectionChanged FINAL)
+	Q_PROPERTY(float currentAngle READ currentAngle WRITE setCurrentAngle NOTIFY currentAngleChanged FINAL)
+	Q_PROPERTY(Direction facingDirection READ facingDirection WRITE setFacingDirection NOTIFY facingDirectionChanged FINAL)
 	Q_PROPERTY(Directions availableDirections READ availableDirections WRITE setAvailableDirections NOTIFY availableDirectionsChanged FINAL)
+	Q_PROPERTY(bool facingDirectionLocked READ facingDirectionLocked WRITE setFacingDirectionLocked NOTIFY facingDirectionLockedChanged FINAL)
 
 
 public:
@@ -295,10 +307,10 @@ public:
 	Q_INVOKABLE void jumpToSprite(const char *sprite, const Direction &direction) const;
 	Q_INVOKABLE void jumpToSpriteLater(const char *sprite, const Direction &direction) const;
 	Q_INVOKABLE void jumpToSprite(const char *sprite) const {
-		jumpToSprite(sprite, m_currentDirection);
+		jumpToSprite(sprite, m_facingDirection);
 	}
 	Q_INVOKABLE void jumpToSpriteLater(const char *sprite) const {
-		jumpToSpriteLater(sprite, m_currentDirection);
+		jumpToSpriteLater(sprite, m_facingDirection);
 	}
 
 	QStringList availableSprites() const;
@@ -322,7 +334,7 @@ public:
 
 
 	static QPolygonF toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer);
-	static QPointF toPoint(const qreal &angle, const qreal &radius);
+
 	static float shortestDistance(const QVector2D &point, const QVector2D &lineP1, const QVector2D &lineP2,
 								  QVector2D *destPoint = nullptr, float *factor = nullptr);
 	static float shortestDistance(const QVector2D &point, const QPointF &lineP1, const QPointF &lineP2,
@@ -365,12 +377,17 @@ public:
 	QString displayName() const;
 	void setDisplayName(const QString &newDisplayName);
 
-	Direction currentDirection() const;
-	void setCurrentDirection(const Direction &newCurrentDirection);
+	Direction facingDirection() const;
+	void setFacingDirection(const Direction &newFacingDirection);
 
 	Directions availableDirections() const;
 	void setAvailableDirections(const Directions &newAvailableDirections);
 
+	float currentAngle() const;
+	void setCurrentAngle(float newCurrentAngle);
+
+	bool facingDirectionLocked() const;
+	void setFacingDirectionLocked(bool newFacingDirectionLocked);
 
 signals:
 	void remoteModeChanged();
@@ -380,9 +397,11 @@ signals:
 	void overlayColorChanged();
 	void inVisibleAreaChanged();
 	void displayNameChanged();
-	void currentDirectionChanged();
+	void facingDirectionChanged();
 	void availableDirectionsChanged();
 	void sceneChanged();
+	void currentAngleChanged();
+	void facingDirectionLockedChanged();
 
 protected:
 	bool appendSprite(const QString &source, const TiledObjectSprite &sprite);
@@ -422,8 +441,10 @@ protected:
 	QPointF m_bodyOffset;
 
 	QQuickItem *m_visualItem = nullptr;
-	Direction m_currentDirection = Invalid;
+	Direction m_facingDirection = Invalid;
 	Directions m_availableDirections = None;
+	bool m_facingDirectionLocked = true;
+	float m_lastAngle = 0.f;
 	TiledSpriteHandler *m_spriteHandler = nullptr;
 	TiledSpriteHandler *m_spriteHandlerAuxFront = nullptr;
 	TiledSpriteHandler *m_spriteHandlerAuxBack = nullptr;
@@ -431,7 +452,6 @@ protected:
 	friend class TiledEffect;
 	friend class TiledScene;
 	friend class TiledObjectBody;
-
 };
 
 

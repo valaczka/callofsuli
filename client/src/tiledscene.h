@@ -51,6 +51,8 @@ Q_DECLARE_OPAQUE_POINTER(TiledVisualItem*)
 #endif
 
 
+class TiledDebugDraw;
+
 
 
 
@@ -95,7 +97,6 @@ class TiledScene : public TiledQuick::MapItem
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(bool running READ running WRITE setRunning NOTIFY runningChanged FINAL)
 	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
 	Q_PROPERTY(int sceneId READ sceneId WRITE setSceneId NOTIFY sceneIdChanged FINAL)
 	Q_PROPERTY(QString ambientSound READ ambientSound WRITE setAmbientSound NOTIFY ambientSoundChanged FINAL)
@@ -126,9 +127,6 @@ public:
 
 	[[deprecated]] void appendToObjects(TiledObject *object);
 	[[deprecated]] void removeFromObjects(TiledObject *object);
-
-	[[deprecated]] bool running() const;
-	[[deprecated]] void setRunning(bool newRunning);
 
 	void startMusic();
 	void stopMusic();
@@ -238,9 +236,10 @@ private:
 
 	void appendDynamicZ(const QString &name, const QRectF &area);
 	void setTileLayersZ();
-	void onWorldStepped();
 	void reorderObjectsZ(const std::vector<TiledObject *> list);
 	void repaintTilesets(Tiled::Tileset *tileset);
+
+	void debugDrawEvent(TiledDebugDraw *debugDraw);
 
 	TiledGame *m_game = nullptr;
 	int m_sceneId = -1;
@@ -250,6 +249,7 @@ private:
 	[[deprecated]] std::vector<qreal> m_stepFactors;
 
 	friend class TiledGame;
+	friend class TiledDebugDraw;
 };
 
 #endif // TILEDSCENE_H

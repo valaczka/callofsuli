@@ -327,7 +327,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &distance, Abstra
 		}
 
 		QLineF line(body->bodyPosition(), dst.toPointF());
-		body->setSpeed(TiledObject::toPoint(TiledObject::toRadian(line.angle()), std::min(distance, dstDistance)));
+		body->setSpeedFromAngle(TiledObject::toRadian(line.angle()), std::min(distance, dstDistance));
 		m_currentAngle = line.angle();
 
 		return;
@@ -425,7 +425,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &distance, Abstra
 	}
 
 
-	body->setSpeed(TiledObject::toPoint(TiledObject::toRadian(bodyMovement.angle()), bodyMovement.length()));
+	body->setSpeedFromAngle(TiledObject::toRadian(bodyMovement.angle()), bodyMovement.length());
 	m_currentAngle = angleFromLine(m_lines.at(m_lastSegment));
 }
 

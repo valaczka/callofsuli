@@ -390,7 +390,9 @@ void TeacherGroupCampaignResultModel::setTeacherGroup(TeacherGroup *newTeacherGr
 		return;
 
 	if (m_teacherGroup)
-		disconnect(m_teacherGroup, &TeacherGroup::memberListReloaded, this, &TeacherGroupCampaignResultModel::reload);
+		m_teacherGroup->disconnect(this);
+
+	//disconnect(m_teacherGroup, &TeacherGroup::memberListReloaded, this, &TeacherGroupCampaignResultModel::reload);
 
 	m_teacherGroup = newTeacherGroup;
 	emit teacherGroupChanged();

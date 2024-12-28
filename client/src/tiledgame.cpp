@@ -807,7 +807,7 @@ void TiledGame::loadImageLayer(TiledScene *, Tiled::ImageLayer *, Tiled::MapRend
  * @param event
  */
 
-void TiledGame::timerEvent(QTimerEvent *event)
+void TiledGame::timerEvent(QTimerEvent */*event*/)
 {
 	updateStepTimer();
 }
@@ -819,19 +819,14 @@ void TiledGame::timerEvent(QTimerEvent *event)
 
 void TiledGame::timeSteppedEvent()
 {
-	LOG_CWARNING("scene") << "DRAW";
-
 	for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
-		//ptr.body->worldStep(1.0);
+		if (ptr.body->scene() == m_currentScene)
+			ptr.body->synchronize();
 	}
 
 	for (const TiledGamePrivate::Scene &ptr : std::as_const(d->m_sceneList)) {
 		ptr.scene->reorderObjectsZ(d->getObjects<TiledObject>(ptr.scene));
-	}
-
-	for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
-		if (ptr.body->scene() == m_currentScene)
-			ptr.body->synchronize();
+		emit ptr.scene->worldStepped();
 	}
 }
 
@@ -1040,7 +1035,7 @@ bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, Ti
 	changeScene(object, oldScene, newScene, newObject->bodyPosition());
 
 	if (newDirection != -1)
-		object->setCurrentDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
+		object->setFacingDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
 
 	if (!transportAfterEvent(object, newScene, newObject))
 		return false;
@@ -1061,6 +1056,13 @@ bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, Ti
 bool TiledGame::transportDoor(TiledObject */*object*/, TiledTransport */*transport*/)
 {
 	return false;
+}
+
+
+
+void TiledGame::sceneDebugDrawEvent(TiledDebugDraw */*debugDraw*/, TiledScene */*scene*/)
+{
+
 }
 
 
@@ -1222,6 +1224,12 @@ void TiledGame::updateKeyboardJoystick()
 
 void TiledGame::updateStepTimer()
 {
+	if (m_paused) {
+		d->m_stepElapsedTimer.invalidate();
+		d->m_stepLag = 0;
+		return;
+	}
+
 	//QMutexLocker locker(&d->m_stepMutex);
 
 	if (d->m_stepElapsedTimer.isValid()) {
@@ -1230,7 +1238,10 @@ void TiledGame::updateStepTimer()
 		d->m_stepElapsedTimer.start();
 	}
 
-	/// repeat
+	int frame = 0;
+
+	if (d->m_stepLag < 1000/60)
+		return;
 
 	while (d->m_stepLag >= 1000/60) {
 		d->m_stepLag -= 1000/60;
@@ -1240,12 +1251,18 @@ void TiledGame::updateStepTimer()
 		}
 
 		for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
-			ptr.body->worldStep(1.0);
+			ptr.body->worldStep();
 		}
+
+		++frame;
 	}
 
+	if (frame > 1)
+		LOG_CTRACE("scene") << "Render lag:" << frame << "frames";
 
-	QMetaObject::invokeMethod(this, &TiledGame::timeSteppedEvent, Qt::QueuedConnection);
+	//QMetaObject::invokeMethod(this, &TiledGame::timeSteppedEvent, Qt::QueuedConnection);
+
+	timeSteppedEvent();
 }
 
 
@@ -1739,16 +1756,6 @@ std::optional<QPointF> TiledGame::playerPosition(TiledScene *scene, const int &n
 	return std::nullopt;
 }
 
-
-/**
- * @brief TiledGame::onSceneWorldStepped
- * @param scene
- */
-
-void TiledGame::onSceneWorldStepped(TiledScene *scene)
-{
-	Q_UNUSED(scene);
-}
 
 
 

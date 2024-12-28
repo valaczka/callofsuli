@@ -121,6 +121,7 @@ IsometricPlayer::~IsometricPlayer()
  * @brief IsometricPlayer::entityWorldStep
  */
 
+/*
 void IsometricPlayer::entityWorldStep(const qreal &factor)
 {
 	IsometricEnemy *e = nullptr;
@@ -192,7 +193,7 @@ void IsometricPlayer::entityWorldStep(const qreal &factor)
 
 	updateSprite();
 }
-
+*/
 
 
 
@@ -210,6 +211,9 @@ void IsometricPlayer::initialize()
 	setDefaultZ(1);
 	setSubZ(0.5);
 
+	m_speedLength = 108;
+	m_speedRunLength = 210;
+
 	b2::Body::Params bParams;
 	bParams.type = b2BodyType::b2_dynamicBody;
 	bParams.fixedRotation = true;
@@ -221,7 +225,8 @@ void IsometricPlayer::initialize()
 	/*params.filter = TiledObjectBody::getFilter(FixtureTarget,
 											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);*/
 
-	createFromCircle({0.f, 0.f}, 30., nullptr, bParams, params);
+	createFromCircle({0.f, 0.f}, 15., nullptr, bParams, params);
+	setSensorPolygon(m_sensorLength, m_sensorRange, FixtureEnemyBody | FixturePickable);
 
 	createVisual();
 
@@ -273,26 +278,6 @@ bool IsometricPlayer::hasAbility()
 
 
 
-
-/**
- * @brief IsometricPlayer::currentAngle
- * @return
- */
-
-qreal IsometricPlayer::currentAngle() const
-{
-	return m_currentAngle;
-}
-
-void IsometricPlayer::setCurrentAngle(qreal newCurrentAngle)
-{
-	if (qFuzzyCompare(m_currentAngle, newCurrentAngle))
-		return;
-	m_currentAngle = newCurrentAngle;
-	emit currentAngleChanged();
-
-	setCurrentDirection(nearestDirectionFromRadian(m_currentAngle));
-}
 
 
 /**
@@ -348,7 +333,7 @@ void IsometricPlayer::onDead()
 	m_fixture->setCollidesWith(Box2DFixture::None);
 	m_sensorPolygon->setLength(10.);*/
 	setSubZ(0.0);
-	setCurrentVelocity(QPointF{});
+	setCurrentVelocity({});
 
 	m_game->onPlayerDead(this);
 
@@ -465,6 +450,17 @@ QList<IsometricEnemy *> IsometricPlayer::contactedAndReachedEnemies() const
 void IsometricPlayer::clearData()
 {
 	d->clear();
+}
+
+
+/**
+ * @brief IsometricPlayer::destinationMotor
+ * @return
+ */
+
+TiledPathMotor *IsometricPlayer::destinationMotor() const
+{
+	return d->m_destinationMotor.get();
 }
 
 
@@ -637,6 +633,107 @@ void IsometricPlayer::setCurrentContainer(TiledContainer *newCurrentContainer)
 
 
 
+/**
+ * @brief IsometricPlayer::worldStep
+ */
+
+void IsometricPlayer::worldStep()
+{
+	IsometricEntity::worldStep();
+
+	IsometricEnemy *e = nullptr;
+
+	if (d->isEnemyContanctedAndReached() && checkEntityVisibility(this, d->m_enemy, TiledObjectBody::FixtureEnemyBody, nullptr).has_value()) {
+		e = d->m_enemy;
+	} else {
+		e = getVisibleEntity<IsometricEnemy*>(this, d->contactedAndReachedEnemies(), TiledObjectBody::FixtureEnemyBody, nullptr);
+	}
+
+	if (e != d->m_enemy) {
+		if (d->m_enemy)
+			d->m_enemy->setGlowEnabled(false);
+		setEnemy(e);
+		if (d->m_enemy) {
+			d->m_enemy->setGlowColor(Qt::red);
+			d->m_enemy->setGlowEnabled(true);
+		}
+	}
+
+
+	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+		//clearDestinationPoint();
+		stop();
+	} else if (!hasAbility()) {
+		stop();
+	} else {
+		if (d->m_destinationPoint) {
+			QLineF line(QPointF{0,0}, d->m_destinationPoint.value() - bodyPosition());
+			if (line.length() >= m_speedRunLength) {
+				line.setLength(m_speedRunLength);
+				setSpeed(line.p2());				// TiledObjectBase::toPoint()
+			} else if (line.length() >= m_speedLength) {
+				line.setLength(m_speedLength);
+				setSpeed(line.p2());
+			} else {
+				stop();
+				emplace(d->m_destinationPoint.value());
+				clearDestinationPoint();
+				atDestinationPointEvent();
+			}
+		} else if (d->m_destinationMotor) {
+			if (d->m_destinationMotor->atEnd()) {
+				stop();
+				clearDestinationPoint();
+				atDestinationPointEvent();
+			} else if (const QPolygonF &polygon = d->m_destinationMotor->polygon(); !polygon.isEmpty()) {
+				const float distance = QVector2D(bodyPosition()).distanceToPoint(QVector2D(polygon.last()));
+
+				if (distance >= m_speedRunLength*10.) {				// Hogy a végén szépen lassan gyalogoljon csak
+					d->m_destinationMotor->updateBody(this, m_speedRunLength, m_game->tickTimer());
+				} else {
+					d->m_destinationMotor->updateBody(this, m_speedLength, m_game->tickTimer());
+				}
+
+				setCurrentAngle(d->m_destinationMotor->currentAngleRadian());
+			} else {
+				stop();
+				clearDestinationPoint();
+			}
+		} else {
+			/*QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
+			line.setLength(line.length());*/
+			setSpeed(m_currentVelocity);
+		}
+	}
+}
+
+
+/**
+ * @brief IsometricPlayer::isRunning
+ * @return
+ */
+
+bool IsometricPlayer::isRunning() const
+{
+	// 60 FPS
+	return currentSpeed().length() >= m_speedRunLength*0.9/60;
+}
+
+
+/**
+ * @brief IsometricPlayer::isWalking
+ * @return
+ */
+
+bool IsometricPlayer::isWalking() const
+{
+	// 60 FPS
+	const auto &l = currentSpeed().length();
+	return l < m_speedRunLength/60 && l > 0.05;
+}
+
+
+
 
 
 /**
@@ -644,12 +741,14 @@ void IsometricPlayer::setCurrentContainer(TiledContainer *newCurrentContainer)
  * @return
  */
 
-QPointF IsometricPlayer::currentVelocity() const
+QVector2D IsometricPlayer::currentVelocity() const
 {
 	return m_currentVelocity;
 }
 
-void IsometricPlayer::setCurrentVelocity(QPointF newCurrentVelocity)
+
+
+void IsometricPlayer::setCurrentVelocity(QVector2D newCurrentVelocity)
 {
 	if (m_currentVelocity == newCurrentVelocity)
 		return;
@@ -680,9 +779,9 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
 	}
 
 	if (state.distance > 0.95) {
-		setCurrentVelocity(TiledObject::toPoint(state.angle, m_speedRunLength));
+		setCurrentVelocity(vectorFromAngle(state.angle, m_speedRunLength));
 	} else if (state.distance > 0.45) {
-		setCurrentVelocity(TiledObject::toPoint(state.angle, m_speedLength));
+		setCurrentVelocity(vectorFromAngle(state.angle, m_speedLength));
 	} else {
 		setCurrentVelocity({0.,0.});
 	}
