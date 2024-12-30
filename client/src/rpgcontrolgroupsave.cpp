@@ -30,6 +30,8 @@
 #include <libtiled/objectgroup.h>
 
 
+
+
 /**
  * @brief RpgControlGroupSave::RpgControlGroupSave
  * @param game
@@ -69,8 +71,6 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 
 		} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(group->objects())) {
-				TiledObjectBody *base = nullptr;
-
 				if (object->className() != QStringLiteral("trigger")) {
 					LOG_CWARNING("game") << "RpgControlGroupSave object skipped:" << object->id() << object->name();
 					continue;
@@ -82,64 +82,23 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 					bParams.fixedRotation = true;
 					b2::Shape::Params params;
 					params.isSensor = true;
-					params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureSensor, TiledObjectBody::FixturePlayerBody);
+					params.enableSensorEvents = true;
+					params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureTrigger, TiledObjectBody::FixturePlayerBody);
 
-					base = m_game->createFromCircle<TiledObjectBody>(scene, object->position(), 30., renderer, bParams, params);
-					//connectFixture(ptr->fixture());
+					m_body = m_game->createFromCircle<RpgControlGroupSaveBody>(scene, object->position(), 30., renderer, bParams, params);
+					m_body->m_control = this;
 				}
 
-				if (!base) {
+				if (!m_body) {
 					LOG_CERROR("game") << "Invalid object" << object->id() << object->name() << "in" << group->id() << group->name();
 					return;
 				}
-
-				m_position = base->bodyPosition();
 			}
 
 		}
 	}
 }
 
-
-
-/**
- * @brief RpgControlGroupSave::onFixtureBeginContact
- * @param other
- */
-/*
-void RpgControlGroupSave::onFixtureBeginContact(Box2DFixture *other)
-{
-	if (m_timer.isActive() || !m_active)
-		return;
-
-	TiledObject *base = TiledObject::getFromFixture(other);
-	RpgPlayer *player = dynamic_cast<RpgPlayer*>(base);
-	RpgGame *g = qobject_cast<RpgGame*>(m_game);
-
-	if (!player || !g)
-		return;
-
-	if (player == g->controlledPlayer()) {
-		hide(player);
-	}
-}
-
-
-
-
-void RpgControlGroupSave::connectFixture(Box2DFixture *fixture)
-{
-	fixture->setSensor(true);
-	fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
-	fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
-
-	QObject::connect(fixture, &Box2DFixture::beginContact, m_game, [this](Box2DFixture *other){
-		this->onFixtureBeginContact(other);
-	});
-
-	m_fixture = fixture;
-}
-*/
 
 
 /**
@@ -200,13 +159,31 @@ void RpgControlGroupSave::deactivate()
 {
 	m_active = false;
 
-	/*if (!m_fixture)
-		return;
-
-	m_fixture->setCollidesWith(Box2DFixture::None);
-	m_fixture->getBody()->setActive(false);*/
+	if (m_body)
+		m_body->setBodyEnabled(false);
 
 	updateLayers();
+}
+
+
+/**
+ * @brief RpgControlGroupSave::sensorBegin
+ * @param shape
+ */
+
+void RpgControlGroupSave::sensorBegin(b2::ShapeRef shape)
+{
+	if (m_timer.isActive() || !m_active)
+		return;
+
+	RpgPlayer *player = dynamic_cast<RpgPlayer*>(TiledObjectBody::fromBodyRef(shape.GetBody()));
+
+	if (!player || !m_game)
+		return;
+
+	if (player == m_game->controlledPlayer()) {
+		hide(player);
+	}
 }
 
 

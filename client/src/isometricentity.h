@@ -56,7 +56,13 @@ public:
 	bool isAlive() const { return m_hp > 0; }
 	virtual bool isDiscoverable() const { return true; }
 
-	/////static qreal toMovingSpeed(const qreal &speed) { return speed * 0.53334f; }
+	template <typename T, typename = std::enable_if<std::is_base_of<IsometricEntity, T>::value>::type>
+	static TiledReportedFixtureMap getVisibleEntities(const TiledObjectBody *body, const QList<T*> &entities, QVector2D *transparentGnd);
+
+	template <typename T, typename = std::enable_if<std::is_base_of<IsometricEntity, T>::value>::type>
+	TiledReportedFixtureMap getVisibleEntities(const QList<T*> &entities, QVector2D *transparentGnd) const {
+		return getVisibleEntities(this, entities, transparentGnd);
+	}
 
 	virtual void synchronize() override;
 	virtual void updateSprite() = 0;
@@ -69,17 +75,11 @@ signals:
 
 
 protected:
-	static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObject *entity,
-														const TiledObjectBody::FixtureCategory &category,
-														float *transparentGroundPtr);
+	[[deprecated]] static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObject *entity,
+																	   const TiledObjectBody::FixtureCategory &category,
+																	   float *transparentGroundPtr);
 
 	static float checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float *lengthPtr = nullptr);
-
-	template <typename T>
-	static T getVisibleEntity(TiledObject *body, const QList<T> &entities,
-							  const TiledObjectBody::FixtureCategory &category,
-							  float *transparentGroundPtr,
-							  QPointF *visiblePointPtr = nullptr);
 
 
 
@@ -95,65 +95,51 @@ protected:
 
 
 
-
 /**
- * @brief IsometricEntityIface::getVisibleEntity
+ * @brief IsometricEntity::getVisibleEntities
  * @param body
  * @param entities
- * @param visiblePointPtr
+ * @param transparentGnd
  * @return
  */
 
-template<typename T>
-T IsometricEntity::getVisibleEntity(TiledObject *body, const QList<T> &entities,
-										 const TiledObjectBody::FixtureCategory &category,
-										 float *transparentGroundPtr,
-										 QPointF *visiblePointPtr)
+template<typename T, typename T2>
+TiledReportedFixtureMap IsometricEntity::getVisibleEntities(const TiledObjectBody *body, const QList<T *> &entities, QVector2D *transparentGnd)
 {
-	Q_ASSERT(body);
+	TiledReportedFixtureMap ret;
 
-	return nullptr;
-
-	/*if (body && body->scene()->isGroundContainsPoint(body->bodyPosition())) {
-		return nullptr;
-	}
-
-
-	QMap<qreal, QPair<T, QPointF>> list;
-
-	float transparentGroundDist = -1.0;
-
-	for (const T &p : std::as_const(entities)) {
-		if (!p)
+	for (IsometricEntity *p : entities) {
+		if (!p || !p->isDiscoverable() || p->bodyShapes().empty())
 			continue;
 
-		if (!p->isDiscoverable())
-			continue;
+		const TiledReportedFixtureMap &map = body->rayCast(p->bodyPosition(),
+														   FixtureCategories::fromInt(p->bodyShapes().front().GetFilter().categoryBits));
 
-		float dist = -1.0;
+		QVector2D pos(p->bodyPosition());
 
-		if (const auto &ptr = checkEntityVisibility(body, p, category, &dist); ptr && p->hp() > 0) {
-			const qreal &dist = QVector2D(p->bodyPosition() - body->bodyPosition()).length();
-			list.insert(dist, qMakePair(p, ptr.value()));
+		for (auto it=map.cbegin(); it != map.cend(); ++it) {
+			b2::ShapeRef r = it->shape;
+
+			if (r.IsSensor())
+				continue;
+
+			if (r.GetFilter().categoryBits & FixtureGround) {
+				if (it->body && it->body->opaque()) {
+					break;
+				} else if (transparentGnd) {
+					if (transparentGnd->isNull() || pos.distanceToPoint(it->point) < pos.distanceToPoint(*transparentGnd))
+						*transparentGnd = it->point;
+				}
+			}
+
+			if (it->body == p)
+				ret.insert(it.key(), it.value());
 		}
-
-		if (dist >= 0. && (transparentGroundDist == -1.0 || dist < transparentGroundDist))
-			transparentGroundDist = dist;
 	}
 
-	if (transparentGroundPtr)
-		*transparentGroundPtr = transparentGroundDist;
-
-
-	if (list.isEmpty())
-		return nullptr;
-	else {
-		const auto &ptr = list.first();
-		if (visiblePointPtr)
-			*visiblePointPtr = ptr.second;
-		return ptr.first;
-	}*/
+	return ret;
 }
+
 
 
 

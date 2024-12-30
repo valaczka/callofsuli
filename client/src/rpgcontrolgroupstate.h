@@ -49,12 +49,52 @@
 
 
 
+class RpgControlGroupStateIface
+{
+protected:
+	virtual void onFixtureBeginContact(b2::ShapeRef) = 0;
+	virtual void onFixtureEndContact(b2::ShapeRef) = 0;
+
+	friend class RpgControlGroupStateBody;
+};
+
+
+
+
+/**
+ * @brief The RpgControlGroupStateBody class
+ */
+
+class RpgControlGroupStateBody : public TiledObjectBody
+{
+public:
+	explicit RpgControlGroupStateBody(TiledScene *scene)
+		: TiledObjectBody(scene)
+	{
+	}
+
+	virtual void onShapeContactBegin(b2::ShapeRef, b2::ShapeRef shape) override {
+		if (m_control)
+			m_control->onFixtureBeginContact(shape);
+	}
+
+	virtual void onShapeContactEnd(b2::ShapeRef, b2::ShapeRef shape) override {
+		if (m_control)
+			m_control->onFixtureEndContact(shape);
+	}
+
+	RpgControlGroupStateIface *m_control = nullptr;
+
+};
+
+
+
 /**
  * @brief The RpgControlGroupState class
  */
 
 template <class T>
-class RpgControlGroupState : public RpgControlGroup
+class RpgControlGroupState : public RpgControlGroup, public RpgControlGroupStateIface
 {
 public:
 	RpgControlGroupState(const RpgControlGroup::Type &type, RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group);
@@ -66,9 +106,9 @@ public:
 
 	TiledVisualItem *createVisualItem(Tiled::GroupLayer *layer);
 
-	void addTiledObject(TiledObject *object);
+	void addTiledObjectBody(RpgControlGroupStateBody *object);
 
-	const QVector<QPointer<TiledObject> > &tiledObjects() const;
+	const QVector<RpgControlGroupStateBody*> &tiledObjects() const;
 
 	int currentState() const { return m_currentState; }
 
@@ -86,20 +126,20 @@ protected:
 
 	void refreshVisualItem() const;
 
-	/*void onFixtureBeginContact(Box2DFixture *other);
-	void onFixtureEndContact(Box2DFixture *other);
-	void connectFixture(Box2DFixture *fixture);*/
+	virtual void onFixtureBeginContact(b2::ShapeRef) override;
+	virtual void onFixtureEndContact(b2::ShapeRef) override;
+	b2::Shape::Params getShapeParams(const TiledObjectBody::FixtureCategories &category = TiledObjectBody::FixtureTrigger) const;
 	void onControlledPlayerChanged();
 	void updateGlow();
 
 	QPointF m_basePosition;
 	QVector<T> m_states;
 	QPointer<TiledVisualItem> m_visualItem;
-	QVector<QPointer<TiledObject>> m_tiledObjects;
+	QVector<RpgControlGroupStateBody*> m_tiledObjects;
 	int m_currentState = -1;
 
 	QVector<QPointer<TiledQuick::TileLayerItem>> m_tileLayers;
-	//QVector<QPointer<Box2DFixture>> m_contactedFixtures;
+	std::vector<b2::ShapeRef> m_contactedFixtures;
 };
 
 
@@ -115,13 +155,13 @@ protected:
 template<class T>
 RpgControlGroupState<T>::RpgControlGroupState(const Type &type, RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group)
 	: RpgControlGroup(type, game, scene)
+	, RpgControlGroupStateIface()
 {
 	Q_ASSERT(game);
 	Q_ASSERT(scene);
 	Q_ASSERT(group);
-	//Q_ASSERT(renderer);
 
-	setBasePosition(group->position()+group->offset());
+	setBasePosition(group->position()+group->totalOffset());
 
 	QObject::connect(game, &RpgGame::controlledPlayerChanged, game, [this](){
 		this->onControlledPlayerChanged();
@@ -184,7 +224,7 @@ inline TiledVisualItem *RpgControlGroupState<T>::createVisualItem(Tiled::GroupLa
  */
 
 template<class T>
-inline void RpgControlGroupState<T>::addTiledObject(TiledObject *object)
+inline void RpgControlGroupState<T>::addTiledObjectBody(RpgControlGroupStateBody *object)
 {
 	Q_ASSERT(object);
 	m_tiledObjects.append(object);
@@ -198,7 +238,7 @@ inline void RpgControlGroupState<T>::addTiledObject(TiledObject *object)
  */
 
 template<class T>
-inline const QVector<QPointer<TiledObject> > &RpgControlGroupState<T>::tiledObjects() const
+inline const QVector<RpgControlGroupStateBody *> &RpgControlGroupState<T>::tiledObjects() const
 {
 	return m_tiledObjects;
 }
@@ -234,11 +274,12 @@ inline void RpgControlGroupState<T>::removePlayerFixture(RpgPlayer *player)
 	if (!player)
 		return;
 
-	/*if (auto *p = player->sensorPolygon()) {
-		if (auto *c = p->virtualCircle()) {
-			onFixtureEndContact(c);
-		}
-	}*/
+	onFixtureEndContact(player->sensorPolygon());
+	onFixtureEndContact(player->virtualCircle());
+	onFixtureEndContact(player->targetCircle());
+
+	for (b2::ShapeRef sh : player->bodyShapes())
+		onFixtureEndContact(sh);
 }
 
 
@@ -270,12 +311,16 @@ inline void RpgControlGroupState<T>::refreshVisualItem() const
  * @brief RpgControlGroupState::onFixtureBeginContact
  * @param other
  */
-/*
+
 template<class T>
-inline void RpgControlGroupState<T>::onFixtureBeginContact(Box2DFixture *other)
+inline void RpgControlGroupState<T>::onFixtureBeginContact(b2::ShapeRef other)
 {
-	if (!m_contactedFixtures.contains(other)) {
-		m_contactedFixtures.append(QPointer(other));
+	const auto it = std::find_if(m_contactedFixtures.cbegin(), m_contactedFixtures.cend(), [other](b2::ShapeRef s){
+					return TiledObjectBody::isEqual(s, other);
+	});
+
+	if (it == m_contactedFixtures.cend()) {
+		m_contactedFixtures.push_back(other);
 		updateGlow();
 	}
 }
@@ -283,13 +328,15 @@ inline void RpgControlGroupState<T>::onFixtureBeginContact(Box2DFixture *other)
 
 
 template<class T>
-inline void RpgControlGroupState<T>::onFixtureEndContact(Box2DFixture *other)
+inline void RpgControlGroupState<T>::onFixtureEndContact(b2::ShapeRef other)
 {
-	m_contactedFixtures.removeAll(QPointer(other));
+	std::erase_if(m_contactedFixtures, [other](b2::ShapeRef s){
+		return TiledObjectBody::isEqual(s, other);
+	});
 	updateGlow();
 }
 
-*/
+
 
 /**
  * @brief RpgControlGroupState::onControlledPlayerChanged
@@ -298,7 +345,7 @@ inline void RpgControlGroupState<T>::onFixtureEndContact(Box2DFixture *other)
 template<class T>
 inline void RpgControlGroupState<T>::onControlledPlayerChanged()
 {
-	//m_contactedFixtures.clear();
+	m_contactedFixtures.clear();
 	updateGlow();
 }
 
@@ -309,21 +356,23 @@ inline void RpgControlGroupState<T>::onControlledPlayerChanged()
  * @param fixture
  */
 
-/*
+
 template<class T>
-inline void RpgControlGroupState<T>::connectFixture(Box2DFixture *fixture)
+inline b2::Shape::Params RpgControlGroupState<T>::getShapeParams(const TiledObjectBody::FixtureCategories &category) const
 {
-	fixture->setSensor(true);
-	fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTrigger));
-	fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle));
-	QObject::connect(fixture, &Box2DFixture::beginContact, m_game, [this](Box2DFixture *other){
-		this->onFixtureBeginContact(other);
-	});
-	QObject::connect(fixture, &Box2DFixture::endContact, m_game, [this](Box2DFixture *other){
-		this->onFixtureEndContact(other);
-	});
+	b2::Shape::Params params;
+
+	params.isSensor = true;
+	params.enableSensorEvents = true;
+	params.enableContactEvents = true;
+	params.filter = TiledObjectBody::getFilter(category,
+											   TiledObjectBody::FixturePlayerBody |
+											   TiledObjectBody::FixtureSensor |
+											   TiledObjectBody::FixtureVirtualCircle);
+
+	return params;
 }
-*/
+
 
 /**
  * @brief RpgControlGroupState::updateGlow
@@ -332,8 +381,8 @@ inline void RpgControlGroupState<T>::connectFixture(Box2DFixture *fixture)
 template<class T>
 inline void RpgControlGroupState<T>::updateGlow()
 {
-	/*if (m_visualItem)
-		m_visualItem->setGlowEnabled(!m_contactedFixtures.isEmpty());*/
+	if (m_visualItem)
+		m_visualItem->setGlowEnabled(!m_contactedFixtures.empty());
 }
 
 

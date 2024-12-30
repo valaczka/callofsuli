@@ -114,7 +114,7 @@ public:
 
 
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
-typedef std::function<bool(RpgPlayer*, TiledContainer*)> FuncPlayerUseContainer;
+typedef std::function<bool(RpgPlayer*, RpgContainer*)> FuncPlayerUseContainer;
 typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
 typedef std::function<bool(RpgPlayer*)> FuncPlayerUseCast;
 
@@ -173,8 +173,8 @@ public:
 	void onEnemySleepingStart(TiledObject *enemy) override final;
 	void onEnemySleepingEnd(TiledObject *enemy) override final;
 
-	bool playerTryUseContainer(RpgPlayer *player, TiledContainer *container);
-	void playerUseContainer(RpgPlayer *player, TiledContainer *container);
+	bool playerTryUseContainer(RpgPlayer *player, RpgContainer *container);
+	void playerUseContainer(RpgPlayer *player, RpgContainer *container);
 
 	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene);
 	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, TiledScene *scene) {
@@ -223,8 +223,7 @@ public:
 	static void saveTerrainInfo();
 	static std::optional<RpgMarket> saveTerrainInfo(const RpgGameDefinition &def);
 
-	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
-											   const QPointF &translate = {}) override;
+	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 
 	void useWeapon(const TiledWeapon::WeaponType &type);
 	const QVector<RpgWallet> &usedWallet() const { return m_usedWallet; }

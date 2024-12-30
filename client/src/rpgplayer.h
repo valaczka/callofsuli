@@ -33,10 +33,17 @@
 #include "rpgshortbow.h"
 #include "tiledeffect.h"
 #include "tiledgamesfx.h"
-#include "tiledpathmotor.h"
 #include <QQmlEngine>
 
 class RpgGame;
+class RpgContainer;
+
+
+#ifndef OPAQUE_PTR_RpgContainer
+#define OPAQUE_PTR_RpgContainer
+Q_DECLARE_OPAQUE_POINTER(RpgContainer*)
+#endif
+
 
 
 /**
@@ -115,6 +122,7 @@ class RpgPlayer : public IsometricPlayer
 
 	Q_PROPERTY(RpgPlayerCharacterConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
+	Q_PROPERTY(RpgContainer * currentContainer READ currentContainer WRITE setCurrentContainer NOTIFY currentContainerChanged FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
 	Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
@@ -136,7 +144,10 @@ public:
 
 	Q_INVOKABLE void pick(RpgPickableObject *object);
 
-	Q_INVOKABLE void useContainer(TiledContainer *container);
+	RpgContainer *currentContainer() const;
+	void setCurrentContainer(RpgContainer *newCurrentContainer);
+
+	Q_INVOKABLE void useContainer(RpgContainer *container);
 	Q_INVOKABLE void useCurrentContainer() { useContainer(currentContainer()); }
 	Q_INVOKABLE void useCurrentObjects();
 
@@ -170,6 +181,12 @@ public:
 
 	bool castTimerActive() const { return m_castTimer.isActive(); }
 
+	virtual void worldStep() override;
+
+	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+
+
 signals:
 	void attackDone();
 	void characterChanged();
@@ -177,6 +194,7 @@ signals:
 	void configChanged();
 	void mpChanged();
 	void maxMpChanged();
+	void currentContainerChanged();
 
 protected:
 	void load() override final;
@@ -185,8 +203,8 @@ protected:
 	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
 	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType,
 						 const bool &isProtected) override final;
-	void onPickableReached(TiledObject *object) override final;
-	void onPickableLeft(TiledObject */*object*/) override final {};
+	void onPickableReached(TiledObjectBody *object) override final;
+	void onPickableLeft(TiledObjectBody */*object*/) override final {};
 	void onEnemyReached(IsometricEnemy *enemy) override final;
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
 	void onTransportReached(TiledTransport */*transport*/) override final {}
@@ -221,6 +239,7 @@ private:
 
 	std::unique_ptr<RpgArmory> m_armory;
 	std::unique_ptr<RpgInventoryList> m_inventory;
+	RpgContainer *m_currentContainer = nullptr;
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;
@@ -234,8 +253,6 @@ private:
 
 	QTimer m_castTimer;
 	qint64 m_timerRepeater = -1;
-
-	TiledPathMotor m_testMotor;
 
 	friend class RpgGame;
 	friend class ActionRpgGame;

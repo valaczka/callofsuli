@@ -307,9 +307,9 @@ void TiledGameSfx::setTiledObject(TiledObject *newTiledObject)
  * @param tiledObject
  */
 
-TiledGameSfxLocation::TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObject *tiledObject,
+TiledGameSfxLocation::TiledGameSfxLocation(const QString &path, const float &baseVolume, TiledObjectBody *tiledObject,
 										   const Sound::ChannelType &channel)
-	: QObject(tiledObject)
+	: QObject()
 	, m_object(tiledObject)
 	, m_sound(Application::instance()->client()->sound()->externalSoundAdd(path, channel))
 	, m_baseVolume(baseVolume)
@@ -318,9 +318,10 @@ TiledGameSfxLocation::TiledGameSfxLocation(const QString &path, const float &bas
 
 	LOG_CTRACE("sound") << "Create TiledGameSfxLocation" << this;
 
-	connect(tiledObject, &TiledObject::sceneChanged, this, &TiledGameSfxLocation::onSceneChanged);
+	if (tiledObject)
+		setConnectedScene(tiledObject->scene());
 
-	onSceneChanged();
+	checkPosition();
 }
 
 
@@ -406,32 +407,6 @@ void TiledGameSfxLocation::setBaseVolume(float newBaseVolume)
 
 
 
-/**
- * @brief TiledGameSfxLocation::onSceneChanged
- */
-
-void TiledGameSfxLocation::onSceneChanged()
-{
-	TiledScene *scene = m_object ? m_object->scene() : nullptr;
-
-	if (scene == m_connectedScene)
-		return;
-
-	if (m_connectedScene)
-		m_connectedScene->disconnect(this);
-
-	//disconnect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
-
-	m_connectedScene = scene;
-
-	if (m_connectedScene)
-		connect(m_connectedScene, &TiledScene::worldStepped, this, &TiledGameSfxLocation::checkPosition);
-
-	updateSound();
-}
-
-
-
 
 
 
@@ -460,5 +435,15 @@ void TiledGameSfxLocation::checkPosition()
 		updateSound();
 		return;
 	}
+}
+
+TiledScene *TiledGameSfxLocation::connectedScene() const
+{
+	return m_connectedScene;
+}
+
+void TiledGameSfxLocation::setConnectedScene(TiledScene *newConnectedScene)
+{
+	m_connectedScene = newConnectedScene;
 }
 

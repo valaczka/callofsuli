@@ -65,7 +65,7 @@ void RpgQuestion::reloadQuestions()
  * @return
  */
 
-bool RpgQuestion::nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, TiledContainer *container)
+bool RpgQuestion::nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, RpgContainer *container)
 {
 	GameQuestion *gq = m_game->gameQuestion();
 
@@ -90,7 +90,7 @@ bool RpgQuestion::nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const T
 	}
 
 	if (!enemy && !container) {
-		LOG_CERROR("game") << "Missing IsometricEnemy and TiledContainer";
+		LOG_CERROR("game") << "Missing IsometricEnemy and RpgContainer";
 		return false;
 	}
 

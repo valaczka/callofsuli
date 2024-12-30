@@ -38,9 +38,13 @@ private:
 	void createBody(const b2::Body::Params &params);
 	void replaceWorld(b2::World *world, const QPointF &position = {}, const b2Rot &rotation = b2MakeRot(0.));
 	void updateScene();
-	void updateFilter();
 	void setSensorPolygon(const float &length, const float &range);
+	void addVirtualCircle(const float &length);
+	void addTargetCircle(const float &length);
 
+
+	void drawShape(TiledDebugDraw *draw, const b2::ShapeRef &shape, const QColor &color,
+				   const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
 
 	TiledObjectBody *const q;
 
@@ -56,9 +60,8 @@ private:
 	b2::ShapeRef m_virtualCircle;
 	b2::ShapeRef m_targetCircle;
 
-	TiledObjectBody::FixtureCategories m_categories = TiledObjectBody::FixtureInvalid;
-	TiledObjectBody::FixtureCategories m_collidesWith = TiledObjectBody::FixtureInvalid;
-
+	float m_sensorLength = 0.;
+	float m_targetLength = 0.;
 
 	QVector2D m_currentSpeed;
 	QVector2D m_lastPosition;

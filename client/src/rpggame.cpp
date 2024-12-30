@@ -47,7 +47,7 @@
 #include "rpgquestion.h"
 #include "utils_.h"
 #include <QRandomGenerator>
-#include "tiledcontainer.h"
+#include "rpgcontainer.h"
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
 #include <libtiled/imagelayer.h>
@@ -112,6 +112,7 @@ RpgGame::~RpgGame()
 			p->setGame(nullptr);
 	}*/
 
+	m_controlGroups.clear();
 	m_enemyDataList.clear();
 	m_players.clear();
 }
@@ -562,7 +563,7 @@ void RpgGame::onEnemySleepingEnd(TiledObject *enemy)
  * @return
  */
 
-bool RpgGame::playerTryUseContainer(RpgPlayer *player, TiledContainer *container)
+bool RpgGame::playerTryUseContainer(RpgPlayer *player, RpgContainer *container)
 {
 	if (!player || !container) {
 		if (player && !player->m_sfxDecline.soundList().isEmpty())
@@ -584,7 +585,7 @@ bool RpgGame::playerTryUseContainer(RpgPlayer *player, TiledContainer *container
  * @param container
  */
 
-void RpgGame::playerUseContainer(RpgPlayer *player, TiledContainer *container)
+void RpgGame::playerUseContainer(RpgPlayer *player, RpgContainer *container)
 {
 	if (!container)
 		return;
@@ -604,7 +605,7 @@ void RpgGame::playerUseContainer(RpgPlayer *player, TiledContainer *container)
 		if (!c)
 			return false;
 
-		return c->tiledContainer() == container;
+		return c->rpgContainer() == container;
 	}
 	);
 
@@ -896,9 +897,9 @@ void RpgGame::loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled:
  * @return
 */
 
-TiledObjectBody *RpgGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
+TiledObjectBody *RpgGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
-	TiledObjectBody *p = TiledGame::loadGround(scene, object, renderer, translate);
+	TiledObjectBody *p = TiledGame::loadGround(scene, object, renderer);
 
 	if (object->hasProperty(QStringLiteral("sound")) && p) {
 		addLocationSound(p, object->propertyAsString(QStringLiteral("sound")));
@@ -1141,6 +1142,12 @@ void RpgGame::timeSteppedEvent()
 	updateScatterEnemies();
 	updateScatterPlayers();
 	updateScatterPoints();
+
+	for (const auto &ptr : m_sfxLocations) {
+		if (ptr->baseObject()->scene() != ptr->connectedScene())
+			ptr->setConnectedScene(ptr->baseObject()->scene());
+		ptr->checkPosition();
+	}
 }
 
 
@@ -1153,6 +1160,8 @@ void RpgGame::timeSteppedEvent()
 
 void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
 {
+	TiledGame::sceneDebugDrawEvent(debugDraw, scene);
+
 	if (!debugDraw || !scene)
 		return;
 
@@ -1467,7 +1476,7 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 void RpgGame::addLocationSound(TiledObjectBody *object, const QString &sound, const qreal &baseVolume, const Sound::ChannelType &channel)
 {
 	LOG_CTRACE("game") << "Add location sound" << sound << baseVolume << object << channel;
-	////m_sfxLocations.emplace_back(new TiledGameSfxLocation(sound, baseVolume, object, channel));
+	m_sfxLocations.emplace_back(new TiledGameSfxLocation(sound, baseVolume, object, channel));
 
 }
 
@@ -2599,6 +2608,7 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 	if (!m_controlledPlayer)
 		return;
 
+
 	if (buttons.testFlag(Qt::RightButton)) {
 		m_controlledPlayer->clearDestinationPoint();
 		return;
@@ -2636,13 +2646,6 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 
 			if (!m_controlledPlayer->m_sfxAccept.soundList().isEmpty())
 				m_controlledPlayer->m_sfxAccept.playOne();
-
-			// --- show path ---
-			/*QVariantList list;
-			for (const auto &point : ptr.value())
-				list.append(point);
-			m_currentScene->setTestPoints(list);*/
-			// -----------
 
 		} else {
 			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())

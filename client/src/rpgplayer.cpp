@@ -30,6 +30,7 @@
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
 #include "rpggame.h"
+#include "rpgcontainer.h"
 #include <QDirIterator>
 #include "application.h"
 
@@ -282,7 +283,7 @@ void RpgPlayer::pick(RpgPickableObject *object)
  * @param container
  */
 
-void RpgPlayer::useContainer(TiledContainer *container)
+void RpgPlayer::useContainer(RpgContainer *container)
 {
 	if (!container || !isAlive())
 		return;
@@ -473,9 +474,9 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
  * @param object
  */
 
-void RpgPlayer::onPickableReached(TiledObject *object)
+void RpgPlayer::onPickableReached(TiledObjectBody *object)
 {
-	RpgPickableObject *pickable = qobject_cast<RpgPickableObject*>(object);
+	RpgPickableObject *pickable = dynamic_cast<RpgPickableObject*>(object);
 	if (pickable)
 		pick(pickable);
 }
@@ -852,6 +853,79 @@ bool RpgPlayer::isDiscoverable() const
 }
 
 
+/**
+ * @brief RpgPlayer::worldStep
+ */
+
+void RpgPlayer::worldStep()
+{
+	IsometricPlayer::worldStep();
+
+	if (TiledWeapon *w = m_armory->currentWeapon();
+			w && (w->canShot() || w->canCast())) {
+		float distance = 500.; //w->distance();
+		updateEnemies(distance);
+	}
+	else
+		updateEnemies(0.);
+}
+
+
+/**
+ * @brief RpgPlayer::onShapeContactBegin
+ * @param self
+ * @param other
+ */
+
+void RpgPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
+{
+	IsometricPlayer::onShapeContactBegin(self, other);
+
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+
+	if (!base)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+
+	if (isAny(bodyShapes(), self) && categories.testFlag(TiledObjectBody::FixtureContainer)) {
+		RpgContainer *container = dynamic_cast<RpgContainer*>(base);
+
+		if (!m_currentContainer && container)
+			setCurrentContainer(container);
+	}
+}
+
+
+
+/**
+ * @brief RpgPlayer::onShapeContactEnd
+ * @param self
+ * @param other
+ */
+
+void RpgPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
+{
+	IsometricPlayer::onShapeContactEnd(self, other);
+
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+
+	if (!base)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+
+	if (isAny(bodyShapes(), self) && categories.testFlag(TiledObjectBody::FixtureContainer)) {
+		RpgContainer *container = dynamic_cast<RpgContainer*>(base);
+
+		if (m_currentContainer == container && container)
+			setCurrentContainer(nullptr);
+	}
+}
+
+
+
+
 int RpgPlayer::mp() const
 {
 	return m_mp;
@@ -1106,3 +1180,18 @@ void RpgPlayerCharacterConfig::updateSfxPath(const QString &prefix)
 		sfxDead.prepend(prefix);
 }
 
+
+
+
+RpgContainer *RpgPlayer::currentContainer() const
+{
+	return m_currentContainer;
+}
+
+void RpgPlayer::setCurrentContainer(RpgContainer *newCurrentContainer)
+{
+	if (m_currentContainer == newCurrentContainer)
+		return;
+	m_currentContainer = newCurrentContainer;
+	emit currentContainerChanged();
+}

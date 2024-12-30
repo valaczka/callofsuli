@@ -167,6 +167,9 @@ public:
 
 	virtual int enemyType() const = 0;
 
+	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -200,12 +203,6 @@ protected:
 	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
 
 	void stepMotor(const qreal &factor);
-
-private:
-	/*void sensorBeginContact(Box2DFixture *other);
-	void sensorEndContact(Box2DFixture *other);
-	void fixtureBeginContact(Box2DFixture *other);
-	void fixtureEndContact(Box2DFixture *other);*/
 
 protected:
 	qint64 m_inabilityTimer = -1;

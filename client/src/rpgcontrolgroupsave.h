@@ -33,6 +33,27 @@
 #include <libtiledquick/tilelayeritem.h>
 
 
+class RpgControlGroupSave;
+
+/**
+ * @brief The RpgControlGroupSaveBody class
+ */
+
+class RpgControlGroupSaveBody : public TiledObjectBody
+{
+public:
+	explicit RpgControlGroupSaveBody(TiledScene *scene)
+		: TiledObjectBody(scene)
+	{ }
+
+	virtual void onShapeContactBegin(b2::ShapeRef, b2::ShapeRef shape) override;
+
+	RpgControlGroupSave *m_control = nullptr;
+
+};
+
+
+
 /**
  * @brief The RpgControlGroupSave class
  */
@@ -45,27 +66,38 @@ public:
 	int count() const;
 	void setCount(int newCount);
 
-	const QPointF &position() const { return m_position; };
+	QPointF position() const { return m_body ? m_body->bodyPosition() : QPointF{}; };
 	const bool &isActive() const { return m_active; }
 
+	void sensorBegin(b2::ShapeRef shape);
+
 private:
-	/*void onFixtureBeginContact(Box2DFixture *other);
-	void connectFixture(Box2DFixture *fixture);*/
 	void updateLayers();
 	void hide(RpgPlayer *player);
 	void show();
 	void deactivate();
 
-	//QPointer<Box2DFixture> m_fixture;
+
 	QVector<QPointer<TiledQuick::TileLayerItem>> m_tileLayers;
+	RpgControlGroupSaveBody *m_body = nullptr;
 
 	int m_count = -1;
 	bool m_active = true;
 
 	QTimer m_timer;
-
-	QPointF m_position;
 };
+
+
+
+/**
+ * @brief RpgControlGroupSaveBody::onShapeContactBegin
+ * @param shape
+ */
+
+inline void RpgControlGroupSaveBody::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef shape) {
+	if (m_control)
+		m_control->sensorBegin(shape);
+}
 
 
 

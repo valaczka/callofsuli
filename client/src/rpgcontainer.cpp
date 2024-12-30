@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * tiledcontainer.cpp
+ * rpgcontainer.cpp
  *
- * Created on: 2024. 04. 26.
+ * Created on: 2024. 12. 30.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TiledContainer
+ * RpgContainer
  *
  *  This file is part of Call of Suli.
  *
@@ -24,33 +24,23 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "tiledcontainer.h"
+#include "rpgcontainer.h"
 
-TiledContainer::TiledContainer(QObject *parent)
-	: QObject{parent}
+
+RpgContainer::RpgContainer(TiledScene *scene)
+	: QObject{scene}
+	, RpgControlGroupStateBody(scene)
 {
 
 }
 
-TiledContainer::ContainerType TiledContainer::type() const
-{
-	return m_type;
-}
 
-void TiledContainer::setType(const ContainerType &newType)
-{
-	if (m_type == newType)
-		return;
-	m_type = newType;
-	emit typeChanged();
-}
-
-bool TiledContainer::isActive() const
+bool RpgContainer::isActive() const
 {
 	return m_isActive;
 }
 
-void TiledContainer::setIsActive(bool newIsActive)
+void RpgContainer::setIsActive(bool newIsActive)
 {
 	if (m_isActive == newIsActive)
 		return;
@@ -61,17 +51,4 @@ void TiledContainer::setIsActive(bool newIsActive)
 		onActivated();
 	else
 		onDeactivated();
-}
-
-TiledScene *TiledContainer::scene() const
-{
-	return m_scene;
-}
-
-void TiledContainer::setScene(TiledScene *newScene)
-{
-	if (m_scene == newScene)
-		return;
-	m_scene = newScene;
-	emit sceneChanged();
 }

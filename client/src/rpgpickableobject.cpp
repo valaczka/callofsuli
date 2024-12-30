@@ -54,8 +54,6 @@ RpgPickableObject::RpgPickableObject(const PickableType &type, TiledScene *scene
 	, TiledPickableIface()
 	, m_pickableType(type)
 {
-	/*connect(m_fixture.get(), &Box2DCircle::beginContact, this, &RpgPickableObject::fixtureBeginContact);
-	connect(m_fixture.get(), &Box2DCircle::endContact, this, &RpgPickableObject::fixtureEndContact);*/
 }
 
 
@@ -74,8 +72,8 @@ void RpgPickableObject::initialize()
 	params.friction = 0.f;
 	params.restitution = 0.f;
 	params.isSensor = true;
-	/*params.filter = TiledObjectBody::getFilter(FixtureTarget,
-											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);*/
+	params.filter = TiledObjectBody::getFilter(FixturePickable,
+											   FixturePlayerBody | FixtureSensor | FixtureVirtualCircle);
 
 	TiledObjectBody::createFromCircle({0.f, 0.f}, 30., nullptr, bParams, params);
 
@@ -165,8 +163,6 @@ void RpgPickableObject::onActivated()
 {
 	setVisible(true);
 	setBodyEnabled(true);
-	/*m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable));
-	m_fixture->setCollidesWith(Box2DFixture::All);*/
 	setSubZ(0.3);
 	if (m_activateEffect)
 		m_activateEffect->play();
@@ -181,8 +177,6 @@ void RpgPickableObject::onDeactivated()
 {
 	setVisible(false);
 	setBodyEnabled(false);
-/*	m_fixture->setCategories(Box2DFixture::None);
-	m_fixture->setCollidesWith(Box2DFixture::None);*/
 	setSubZ(0.);
 	if (m_deactivateEffect)
 		m_deactivateEffect->play();
@@ -216,49 +210,6 @@ void RpgPickableObject::loadDefault(const QString &directory)
 }
 
 
-
-/**
- * @brief RpgPickableObject::fixtureBeginContact
- * @param other
- */
-/*
-void RpgPickableObject::fixtureBeginContact(Box2DFixture *other)
-{
-	TiledObject *base = TiledObject::getFromFixture(other);
-	RpgGame *g = qobject_cast<RpgGame*>(m_game);
-
-	if (!base || !g)
-		return;
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle))) {
-		if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(base)) {
-			if (player == g->controlledPlayer()) {
-				setGlowColor(QStringLiteral("#FFF59D"));
-				setGlowEnabled(true);
-			}
-		}
-	}
-}
-
-
-void RpgPickableObject::fixtureEndContact(Box2DFixture *other)
-{
-	TiledObject *base = TiledObject::getFromFixture(other);
-	RpgGame *g = qobject_cast<RpgGame*>(m_game);
-
-	if (!base || !g)
-		return;
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle))) {
-		if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(base)) {
-			if (player == g->controlledPlayer()) {
-				setGlowEnabled(false);
-			}
-		}
-	}
-}
-*/
-
 QString RpgPickableObject::name() const
 {
 	return m_name;
@@ -270,6 +221,59 @@ void RpgPickableObject::setName(const QString &newName)
 		return;
 	m_name = newName;
 	emit nameChanged();
+}
+
+
+
+/**
+ * @brief RpgPickableObject::onShapeContactBegin
+ * @param self
+ * @param other
+ */
+
+void RpgPickableObject::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
+{
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
+
+	if (!base || !g)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
+							dynamic_cast<RpgPlayer*>(base) :
+							nullptr;
+
+	if (player && player == g->controlledPlayer()) {
+		setGlowColor(QStringLiteral("#FFF59D"));
+		setGlowEnabled(true);
+	}
+}
+
+
+
+/**
+ * @brief RpgPickableObject::onShapeContactEnd
+ * @param self
+ * @param other
+ */
+
+void RpgPickableObject::onShapeContactEnd(b2::ShapeRef, b2::ShapeRef other)
+{
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
+
+	if (!base || !g)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
+							dynamic_cast<RpgPlayer*>(base) :
+							nullptr;
+
+	if (player && player == g->controlledPlayer()) {
+		setGlowEnabled(false);
+	}
 }
 
 

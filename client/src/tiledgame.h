@@ -202,8 +202,7 @@ public:
 
 
 
-	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer,
-										const QPointF &translate = {});
+	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 
 
 	// Sprite texture helper

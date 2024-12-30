@@ -28,7 +28,7 @@
 #define RPGCONTROLGROUPCONTAINER_H
 
 #include "rpgcontrolgroup.h"
-#include "tiledcontainer.h"
+#include "rpgcontainer.h"
 #include "rpgpickableobject.h"
 #include "rpgcontrolgroupstate.h"
 
@@ -54,7 +54,7 @@ class RpgControlGroupContainer : public RpgControlGroupState<ContainerState>
 public:
 	RpgControlGroupContainer(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 
-	TiledContainer *tiledContainer() const { return m_container.get(); }
+	RpgContainer *rpgContainer() const { return m_container; }
 
 	QVector<RpgPickableObject::PickableType> pickableList() const;
 	void setPickableList(const QVector<RpgPickableObject::PickableType> &newPickableList);
@@ -68,7 +68,7 @@ public:
 private:
 	void update();
 
-	std::unique_ptr<TiledContainer> m_container;
+	RpgContainer *m_container = nullptr;
 	QVector<RpgPickableObject::PickableType> m_pickableList;
 	QStringList m_nameList;
 	QPointF m_centerPoint;

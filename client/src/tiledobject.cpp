@@ -31,6 +31,7 @@
 #include "tiledgame.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
+#include "tileddebugdraw.h"
 #include <libtiled/maprenderer.h>
 #include <libtiled/objectgroup.h>
 #include <box2d/base.h>
@@ -225,7 +226,11 @@ float TiledObject::normalizeToRadian(const float &normal)
 
 void TiledObject::setBodyOffset(QPointF newBodyOffset)
 {
+	if (m_bodyOffset == newBodyOffset)
+		return;
+
 	m_bodyOffset = newBodyOffset;
+	emit bodyOffsetChanged();
 }
 
 
@@ -256,49 +261,6 @@ void TiledObject::synchronize()
 		setFacingDirection(nearestDirectionFromRadian(bodyRotation()));
 }
 
-
-
-
-
-/*
-TiledObjectSensorPolygon *TiledObject::addSensorPolygon(const qreal &length, const qreal &range) {
-	if (m_sensorPolygon || !m_body)
-		return nullptr;
-
-	m_sensorPolygon.reset(new TiledObjectSensorPolygon(m_body.get()));
-
-	if (length > 0)
-		m_sensorPolygon->setLength(length);
-	if (range > 0)
-		m_sensorPolygon->setRange(range);
-
-	m_body->addFixture(m_sensorPolygon.get());
-
-	return m_sensorPolygon.get();
-}
-
-void *TiledObject::addTargetCircle(const qreal &radius)
-{
-	if (m_targetCircle || !m_body)
-		return nullptr;
-
-	//m_targetCircle.reset(new Box2DCircle);
-
-
-	m_targetCircle->setCollidesWith(Box2DFixture::All);
-	m_targetCircle->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget));
-	m_targetCircle->setSensor(true);
-
-	m_targetCircle->setRadius(radius);
-
-
-	m_body->addFixture(m_targetCircle.get());
-
-	recalculateTargetCircle();
-
-	return m_targetCircle.get();
-}
-*/
 
 
 
@@ -370,6 +332,120 @@ void TiledObjectBody::updateBodyInVisibleArea()
 
 	setInVisibleArea(s->visibleArea().intersects(bodyAABB()));
 }
+
+
+
+/**
+ * @brief TiledObjectBody::drawBody
+ * @param draw
+ * @param color
+ * @param lineWidth
+ * @param filled
+ * @param outlined
+ */
+
+void TiledObjectBody::drawBody(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth, const bool filled, const bool outlined) const
+{
+	static const QHash<FixtureCategory, QColor> fixtureColors = {
+		{ FixtureGround, QColorConstants::Svg::saddlebrown },
+		{ FixtureSensor, QColorConstants::Svg::lime },
+		{ FixtureTrigger, QColorConstants::Svg::magenta },
+		{ FixtureContainer, QColorConstants::Svg::orange },
+	};
+
+	for (const b2::ShapeRef &sh : d->m_bodyShapes) {
+		QColor c = color;
+		const auto &category = sh.GetFilter().categoryBits;
+		for (const auto &[fixture, fcolor] : fixtureColors.asKeyValueRange()) {
+			if (category & fixture)
+				c = fcolor;
+		}
+
+		if (sh.IsSensor()) {
+			c.setAlphaF(0.3);
+			d->drawShape(draw, sh, c, lineWidth, filled, false);
+		} else
+			d->drawShape(draw, sh, c, lineWidth, filled, outlined);
+	}
+}
+
+
+/**
+ * @brief TiledObjectBody::drawSensor
+ * @param draw
+ * @param color
+ * @param lineWidth
+ * @param filled
+ * @param outlined
+ */
+
+void TiledObjectBody::drawSensor(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth, const bool filled, const bool outlined) const
+{
+	if (d->m_sensorPolygon)
+		d->drawShape(draw, d->m_sensorPolygon, color, lineWidth, filled, outlined);
+}
+
+
+/**
+ * @brief TiledObjectBody::drawVirtualCircle
+ * @param draw
+ * @param color
+ * @param lineWidth
+ * @param filled
+ * @param outlined
+ */
+
+void TiledObjectBody::drawVirtualCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth, const bool filled, const bool outlined) const
+{
+	if (d->m_virtualCircle)
+		d->drawShape(draw, d->m_virtualCircle, color, lineWidth, filled, outlined);
+}
+
+
+
+/**
+ * @brief TiledObjectBody::drawTargetCircle
+ * @param draw
+ * @param color
+ * @param lineWidth
+ * @param filled
+ * @param outlined
+ */
+
+void TiledObjectBody::drawTargetCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth, const bool filled, const bool outlined) const
+{
+	if (d->m_targetCircle)
+		d->drawShape(draw, d->m_targetCircle, color, lineWidth, filled, outlined);
+}
+
+
+/**
+ * @brief TiledObjectBody::drawCenter
+ * @param draw
+ * @param colorX
+ * @param colorY
+ * @param lineWidth
+ */
+
+void TiledObjectBody::drawCenter(TiledDebugDraw *draw, const QColor &colorX, const QColor &colorY, const qreal &lineWidth) const
+{
+	const b2Transform transform = d->m_bodyRef.GetTransform();
+
+	static const float radius = 10.;
+
+	b2Vec2 up = b2Vec2(transform.p.x + transform.q.c * radius,
+					   transform.p.y + transform.q.s * radius);
+
+	b2Rot r = b2MakeRot(b2Rot_GetAngle(transform.q)+B2_PI/2);
+
+	b2Vec2 right = b2Vec2(transform.p.x + r.c * radius,
+						  transform.p.y + r.s * radius);
+
+	draw->drawSegment(up, transform.p, colorY, lineWidth);
+	draw->drawSegment(transform.p, right, colorX, lineWidth);
+}
+
+
 
 
 
@@ -837,20 +913,6 @@ qreal TiledObject::toRadian(const qreal &angle)
 
 
 
-/**
- * @brief TiledObject::toDegree
- * @param angle
- * @return
- */
-
-qreal TiledObject::toDegree(const qreal &angle)
-{
-	if (angle >= 0)
-		return -angle * 180 / M_PI;
-	else
-		return 360+(angle * 180 / M_PI);
-}
-
 
 
 /**
@@ -1088,59 +1150,6 @@ TiledObjectBody::~TiledObjectBody()
 
 
 
-/**
- * @brief TiledObjectBody::setCollidesWith
- * @param categories
- */
-
-void TiledObjectBody::setCollidesWith(const FixtureCategories &categories)
-{
-	d->m_collidesWith = categories;
-	d->updateFilter();
-}
-
-
-
-
-/**
- * @brief TiledObjectBody::setCategories
- * @param categories
- */
-
-void TiledObjectBody::setCategories(const FixtureCategories &categories)
-{
-	d->m_categories = categories;
-	d->updateFilter();
-}
-
-
-
-/**
- * @brief TiledObjectBody::categories
- * @return
- */
-
-TiledObjectBody::FixtureCategories TiledObjectBody::categories() const
-{
-	return d->m_categories;
-}
-
-
-/**
- * @brief TiledObjectBody::collidesWith
- * @return
- */
-
-TiledObjectBody::FixtureCategories TiledObjectBody::collidesWith() const
-{
-	return d->m_collidesWith;
-}
-
-
-
-
-
-
 
 
 /**
@@ -1189,6 +1198,88 @@ QVector2D TiledObjectBody::currentSpeed() const
 
 
 /**
+ * @brief TiledObjectBody::bodyShapes
+ * @return
+ */
+
+const std::vector<b2::ShapeRef> &TiledObjectBody::bodyShapes() const
+{
+	return d->m_bodyShapes;
+}
+
+
+/**
+ * @brief TiledObjectBody::sensorPolygon
+ * @return
+ */
+
+b2::ShapeRef TiledObjectBody::sensorPolygon() const
+{
+	return d->m_sensorPolygon;
+}
+
+b2::ShapeRef TiledObjectBody::virtualCircle() const
+{
+	return d->m_virtualCircle;
+}
+
+b2::ShapeRef TiledObjectBody::targetCircle() const
+{
+	return d->m_targetCircle;
+}
+
+
+/**
+ * @brief TiledObjectBody::isEqual
+ * @param s1
+ * @param s2
+ * @return
+ */
+
+bool TiledObjectBody::isEqual(const b2::ShapeRef &s1, const b2::ShapeRef &s2)
+{
+	const auto &id1 = s1.Handle();
+	const auto &id2 = s2.Handle();
+
+	return (id1.index1 == id2.index1 && id1.world0 == id2.world0 && id1.revision == id2.revision);
+}
+
+
+/**
+ * @brief TiledObjectBody::isEqual
+ * @param s1
+ * @param s2
+ * @return
+ */
+
+bool TiledObjectBody::isEqual(const b2::BodyRef &s1, const b2::BodyRef &s2)
+{
+	const auto &id1 = s1.Handle();
+	const auto &id2 = s2.Handle();
+
+	return (id1.index1 == id2.index1 && id1.world0 == id2.world0 && id1.revision == id2.revision);
+}
+
+
+/**
+ * @brief TiledObjectBody::isAny
+ * @param s1
+ * @param s2
+ * @return
+ */
+
+bool TiledObjectBody::isAny(const std::vector<b2::ShapeRef> &s1, const b2::ShapeRef &s2)
+{
+	for (const auto &sh : s1) {
+		if (isEqual(sh, s2))
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
  * @brief TiledObjectBody::emplace
  * @param centerX
  * @param centerY
@@ -1204,6 +1295,7 @@ void TiledObjectBody::emplace(const QPointF &center)
 	d->m_bodyRef.SetAngularVelocity(0.f);
 	d->m_bodyRef.SetLinearVelocity({0.f, 0.f});
 	d->m_bodyRef.SetTransform({(float)center.x(), (float)center.y()}, d->m_bodyRef.GetRotation());
+	d->m_bodyRef.SetAwake(true);
 
 	d->m_lastPosition = QVector2D(center);
 	d->m_currentSpeed = {0., 0.};
@@ -1513,7 +1605,6 @@ bool TiledObjectBody::overlap(const QPolygonF &polygon) const
 }
 
 
-
 /**
  * @brief TiledObjectBody::worldStep
  * @param factor
@@ -1651,9 +1742,6 @@ bool TiledObjectBody::createFromPolygon(const QPolygonF &polygon, Tiled::MapRend
 
 	d->m_bodyShapes.push_back(b.CreateShape(b2::DestroyWithParent, params, p));
 
-	d->m_categories = TiledObjectBody::FixtureCategories::fromInt(params.filter.categoryBits);
-	d->m_collidesWith = TiledObjectBody::FixtureCategories::fromInt(params.filter.maskBits);
-
 	d->m_bodyAABB = b.ComputeAABB();
 
 	return true;
@@ -1706,9 +1794,6 @@ bool TiledObjectBody::createFromCircle(const QPointF &center, const qreal &radiu
 	b2::BodyRef b = d->m_bodyRef;
 
 	Q_ASSERT(b);
-
-	d->m_categories = TiledObjectBody::FixtureCategories::fromInt(params.filter.categoryBits);
-	d->m_collidesWith = TiledObjectBody::FixtureCategories::fromInt(params.filter.maskBits);
 
 	d->m_bodyShapes.push_back(b.CreateShape(b2::DestroyWithParent, params, b2Circle{{0.f, 0.f}, (float) radius}));
 	d->m_bodyAABB = b.ComputeAABB();
@@ -1813,6 +1898,54 @@ void TiledObjectBody::setSensorPolygon(const float &length, const float &range, 
 
 
 
+/**
+ * @brief TiledObjectBody::addVirtualCircle
+ */
+
+void TiledObjectBody::addVirtualCircle(const float &length)
+{
+	std::optional<b2Filter> collidesWith = std::nullopt;
+
+	if (d->m_virtualCircle)
+		collidesWith = d->m_virtualCircle.GetFilter();
+
+	d->addVirtualCircle(length > 0 ? length : d->m_sensorLength);
+
+	if (collidesWith.has_value() && d->m_virtualCircle)
+		d->m_virtualCircle.SetFilter(collidesWith.value());
+}
+
+
+/**
+ * @brief TiledObjectBody::addVirtualCircle
+ * @param collidesWith
+ */
+
+void TiledObjectBody::addVirtualCircle(const FixtureCategories &collidesWith, const float &length)
+{
+	d->addVirtualCircle(length > 0 ? length : d->m_sensorLength);
+
+	if (d->m_virtualCircle) {
+		auto filter = d->m_virtualCircle.GetFilter();
+		filter.maskBits = collidesWith;
+		d->m_virtualCircle.SetFilter(filter);
+	}
+}
+
+
+
+/**
+ * @brief TiledObjectBody::addTargetCircle
+ * @param length
+ */
+
+void TiledObjectBody::addTargetCircle(const float &length)
+{
+	d->addTargetCircle(length);
+}
+
+
+
 
 
 /**
@@ -1820,7 +1953,7 @@ void TiledObjectBody::setSensorPolygon(const float &length, const float &range, 
  * @param dest
  */
 
-TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const TiledObjectBody::FixtureCategories &categories)
+TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const TiledObjectBody::FixtureCategories &categories, const bool &forceLine) const
 {
 	Q_ASSERT(d->m_world);
 
@@ -1831,23 +1964,19 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 
 
 	auto fcn = [&map]( b2ShapeId shapeId, b2Vec2 point, b2Vec2 /*normal*/, float fraction) -> float {
-		b2::ShapeRef shape(shapeId);
+		TiledReportedFixture f {shapeId, {point.x, point.y}};
 
-		if (shape) {
-			if (shape.IsSensor())
-				return -1;
+		f.body = fromBodyRef(f.shape.GetBody());
 
-			map.insert(fraction, shape);
+		if (f.shape) {
+			map.insert(fraction, f);
 
-			const b2Filter &f = shape.GetFilter();
-			if (f.categoryBits & FixtureGround) {
-				if (TiledObjectBody *tBody = fromBodyRef(shape.GetBody())) {
-					if (tBody->opaque())
-						return fraction;
-				}
-			}
+			const b2Filter &filter = f.shape.GetFilter();
 
-			return 1;
+			if ((filter.categoryBits & FixtureGround) && f.body && f.body->opaque())
+				return fraction;
+			else
+				return 1;
 		} else {
 			return -1;
 		}
@@ -1857,18 +1986,67 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 	const b2Vec2 origin = d->m_bodyRef.GetPosition();
 	const b2Vec2 end{(float)dest.x(), (float)dest.y()};
 
-	b2Vec2 transform = b2Sub(end, origin);
-
-	FixtureCategories mask = categories;
-	mask.setFlag(FixtureGround, true);
+	b2Vec2 translation = b2Sub(end, origin);
 
 	b2QueryFilter filter = b2DefaultQueryFilter();
-	filter.maskBits = mask;
+	filter.categoryBits = FixtureAll;
+	filter.maskBits = categories|FixtureGround;
 
-	d->m_world->CastRay(origin, transform, filter, fcn);
+	b2Transform transform = b2Transform_identity;
+	transform.p = origin;
 
+
+	// TODO: check connected shapes!
+
+	if (forceLine || d->m_bodyShapes.empty()) {
+		d->m_world->CastRay(origin, translation, filter, fcn);
+	} else {
+		const b2::ShapeRef &sh = d->m_bodyShapes.front();
+
+		if (sh.GetType() == b2_circleShape)
+			d->m_world->Cast(sh.GetCircle(), transform, translation, filter, fcn);
+		else if (sh.GetType() == b2_polygonShape)
+			d->m_world->Cast(sh.GetPolygon(), transform, translation, filter, fcn);
+		else if (sh.GetType() == b2_capsuleShape)
+			d->m_world->Cast(sh.GetCapsule(), transform, translation, filter, fcn);
+		else {
+			LOG_CWARNING("scene") << "Invalid shape for ray cast" << sh.GetType();
+			d->m_world->CastRay(origin, translation, filter, fcn);
+		}
+	}
 
 	return map;
+}
+
+
+
+/**
+ * @brief TiledObjectBody::debugDraw
+ * @param draw
+ */
+
+void TiledObjectBody::debugDraw(TiledDebugDraw *draw) const
+{
+	if (!draw || !body())
+		return;
+
+	if (body().GetType() == b2_staticBody)
+		drawBody(draw, QColorConstants::Svg::lightpink, 2.);
+	else if (body().IsAwake())
+		drawBody(draw, QColorConstants::Svg::limegreen, 2.);
+	else if (body().IsEnabled())
+		drawBody(draw, QColorConstants::Svg::steelblue, 2.);
+	else
+		drawBody(draw, QColorConstants::Svg::maroon, 2., true, false);
+
+
+	QColor scolor = QColorConstants::Svg::peru;
+	scolor.setAlphaF(0.5);
+
+	drawSensor(draw, scolor, 1., true, false);
+	drawTargetCircle(draw, QColorConstants::Svg::orangered, 2.);
+	drawVirtualCircle(draw, QColorConstants::Svg::peru, 1.);
+	drawCenter(draw, QColorConstants::Svg::midnightblue, QColorConstants::Svg::red);
 }
 
 
@@ -2243,33 +2421,6 @@ void TiledObjectBodyPrivate::updateScene()
 
 
 /**
- * @brief TiledObjectBodyPrivate::updateFilter
- */
-
-void TiledObjectBodyPrivate::updateFilter()
-{
-	if (!m_bodyRef)
-		return;
-
-	for (b2::ShapeRef &s : m_bodyShapes) {
-		if (!s)
-			continue;
-
-		b2Filter filter = s.GetFilter();
-
-		if (filter.maskBits == m_collidesWith && filter.categoryBits == m_categories)
-			continue;
-
-		filter.maskBits = m_collidesWith;
-		filter.categoryBits = m_categories;
-
-		s.SetFilter(filter);
-	}
-}
-
-
-
-/**
  * @brief TiledObjectBodyPrivate::setSensorPolygon
  * @param length
  * @param range
@@ -2282,23 +2433,8 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 		return;
 	}
 
-	/*
-	setSensor(true);
-	setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));
-
-	m_virtualCircle->setSensor(true);
-	m_virtualCircle->setCollidesWith(Box2DFixture::None);
-	m_virtualCircle->setCategories(Box2DFixture::None);
-
-	m_body->addFixture(m_virtualCircle.get());
-
-	recreateFixture();
-*/
-
 	if (m_sensorPolygon)
 		m_sensorPolygon.Destroy(false);
-
-
 
 	QPolygonF polygon;
 	polygon.append(QPointF(0,0));
@@ -2311,32 +2447,13 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 			angle = M_PI-(-M_PI-angle);
 		polygon.append(QPointF(length * cosf(angle), length * -sinf(angle)));
 	}
-	/*
 
-	TiledObjectBase::setPolygonVertices(this, polygon);
-
-	m_virtualCircle->setX(-m_length);
-	m_virtualCircle->setY(-m_length);
-	m_virtualCircle->setRadius(m_length);
-
-
-	m_sensorPolygon.reset(new TiledObjectSensorPolygon(m_body.get()));
-
-	if (length > 0)
-		m_sensorPolygon->setLength(length);
-	if (range > 0)
-		m_sensorPolygon->setRange(range);
-
-	m_body->addFixture(m_sensorPolygon.get());
-
-	return m_sensorPolygon.get();
-
-*/
 
 	b2::Shape::Params params;
-	params.isSensor = true;
+	params.isSensor = false;
+	params.enableSensorEvents = true;
+	params.enableContactEvents = true;
 	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureSensor);
-	params.customColor = b2_colorPink;
 
 	std::vector<b2Vec2> points;
 	points.reserve(polygon.size());
@@ -2351,6 +2468,118 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 
 	m_sensorPolygon = m_bodyRef.CreateShape(b2::DestroyWithParent, params, p);
 
+	m_sensorLength = length;
+
+	if (m_virtualCircle)
+		addVirtualCircle(m_sensorLength);
+
+}
+
+
+/**
+ * @brief TiledObjectBodyPrivate::addVirtualCircle
+ */
+
+void TiledObjectBodyPrivate::addVirtualCircle(const float &length)
+{
+	if (!m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body";
+		return;
+	}
+
+	if (length <= 0) {
+		LOG_CERROR("scene") << "Invalid sensor length";
+		return;
+	}
+
+	if (m_virtualCircle)
+		m_virtualCircle.Destroy(false);
+
+	b2::Shape::Params params;
+	params.isSensor = false;
+	params.enableSensorEvents = true;
+	params.enableContactEvents = true;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureVirtualCircle);
+
+	m_virtualCircle = m_bodyRef.CreateShape(b2::DestroyWithParent, params, b2Circle{{0.f, 0.f}, length});
+}
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::addTargetCircle
+ * @param length
+ */
+
+void TiledObjectBodyPrivate::addTargetCircle(const float &length)
+{
+	if (!m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body";
+		return;
+	}
+
+	if (length <= 0 && m_targetLength <= 0) {
+		LOG_CERROR("scene") << "Invalid target length";
+		return;
+	}
+
+	if (m_targetCircle)
+		m_targetCircle.Destroy(false);
+
+	b2::Shape::Params params;
+	params.isSensor = true;
+	params.enableSensorEvents = true;
+	params.enableContactEvents = true;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureTarget,
+											   TiledObjectBody::FixturePlayerBody | TiledObjectBody::FixtureEnemyBody
+											   );
+
+	if (length > 0)
+		m_targetLength = length;
+
+	m_targetCircle = m_bodyRef.CreateShape(b2::DestroyWithParent, params, b2Circle{{0.f, 0.f}, m_targetLength});
+}
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::drawShape
+ * @param draw
+ * @param shape
+ * @param color
+ * @param lineWidth
+ * @param filled
+ * @param outlined
+ */
+
+void TiledObjectBodyPrivate::drawShape(TiledDebugDraw *draw, const b2::ShapeRef &shape,
+									   const QColor &color, const qreal &lineWidth,
+									   const bool filled, const bool outlined) const
+{
+	const b2Transform bTransform = m_bodyRef.GetTransform();
+	if (shape.GetType() == b2_circleShape) {
+		b2Circle c = shape.GetCircle();
+
+		if (filled)
+			draw->drawSolidCircle(bTransform, c.radius, color);
+
+		if (outlined) {
+			draw->drawCircle(b2TransformPoint(bTransform, c.center), c.radius,
+							 filled && outlined ? color.lighter() : color,
+							 lineWidth);
+		}
+	} else if (shape.GetType() == b2_polygonShape) {
+		b2Polygon p = shape.GetPolygon();
+
+		if (filled)
+			draw->drawSolidPolygon(bTransform, p.vertices, p.count, p.radius, color);
+
+		if (outlined) {
+			draw->drawPolygon(bTransform, p.vertices, p.count,
+							  filled && outlined ? color.lighter() : color,
+							  lineWidth);
+		}
+	}
 }
 
 
@@ -2395,4 +2624,9 @@ void TiledObject::setFacingDirectionLocked(bool newFacingDirectionLocked)
 		return;
 	m_facingDirectionLocked = newFacingDirectionLocked;
 	emit facingDirectionLockedChanged();
+}
+
+QPointF TiledObject::bodyOffset() const
+{
+	return m_bodyOffset;
 }

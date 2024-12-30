@@ -28,6 +28,7 @@
 #define RPGQUESTION_H
 
 #include "question.h"
+#include "rpgcontainer.h"
 #include "rpgplayer.h"
 
 class ActionRpgGame;
@@ -46,7 +47,7 @@ public:
 
 	void reloadQuestions();
 	bool nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType,
-					  TiledContainer *container = nullptr);
+					  RpgContainer *container = nullptr);
 
 	void questionSuccess(const QVariantMap &answer);
 	void questionFailed(const QVariantMap &answer);
@@ -67,7 +68,7 @@ private:
 
 	QPointer<RpgPlayer> m_player;
 	QPointer<IsometricEnemy> m_enemy;
-	QPointer<TiledContainer> m_container;
+	QPointer<RpgContainer> m_container;
 	TiledWeapon::WeaponType m_weaponType = TiledWeapon::WeaponInvalid;
 
 	bool m_emptyQuestions = true;

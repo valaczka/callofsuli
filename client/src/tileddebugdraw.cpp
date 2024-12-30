@@ -31,7 +31,6 @@
 
 
 #define CIRCLE_SEGMENTS_COUNT 32
-#define LINE_WIDTH 1
 
 
 TiledDebugDraw::TiledDebugDraw(QQuickItem *parent)
@@ -100,9 +99,8 @@ QSGNode *TiledDebugDraw::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 	if (!isActive)
 		return node;
 
-
 	m_parentNode = node;
-	m_scene->world()->Draw(m_callbacks);
+	///m_scene->world()->Draw(m_callbacks);			// Replace with own implementation
 	m_scene->debugDrawEvent(this);
 	m_parentNode = nullptr;
 
@@ -163,13 +161,13 @@ QSGNode *TiledDebugDraw::createNode(QSGGeometry *geometry, const QColor &color)
  * @brief TiledDebugDraw::drawCircle
  */
 
-void TiledDebugDraw::drawCircle(const b2Vec2 &center, const float &radius, const QColor &color)
+void TiledDebugDraw::drawCircle(const b2Vec2 &center, const float &radius, const QColor &color, const float &lineWidth)
 {
 	// We'd use QSGGeometry::DrawLineLoop, but it's not supported in Qt 6
 	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
 											CIRCLE_SEGMENTS_COUNT + 1);
 	geometry->setDrawingMode(QSGGeometry::DrawLineStrip);
-	geometry->setLineWidth(LINE_WIDTH);
+	geometry->setLineWidth(lineWidth);
 
 	QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
 	for (int i = 0; i <= CIRCLE_SEGMENTS_COUNT; ++i) {
@@ -196,7 +194,7 @@ void TiledDebugDraw::drawSolidCircle(const b2Transform &transform, const float &
 	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
 											CIRCLE_SEGMENTS_COUNT * 3);
 	geometry->setDrawingMode(QSGGeometry::DrawTriangles);
-	geometry->setLineWidth(LINE_WIDTH);
+	geometry->setLineWidth(1.0);
 
 	QPointF centerInPixels(transform.p.x, transform.p.y);
 
@@ -220,10 +218,10 @@ void TiledDebugDraw::drawSolidCircle(const b2Transform &transform, const float &
 
 	createNode(geometry, color);
 
-	drawSegment(transform.p,
+	/*drawSegment(transform.p,
 				b2Vec2(transform.p.x + transform.q.c * radius,
 					   transform.p.y + transform.q.s * radius),
-				qRgb(200, 40, 0));
+				qRgb(200, 40, 0));*/
 }
 
 
@@ -254,11 +252,11 @@ void TiledDebugDraw::drawSolidCircle(const QPointF &center, const float &radius,
  * @param color
  */
 
-void TiledDebugDraw::drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColor &color)
+void TiledDebugDraw::drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColor &color, const float &lineWidth)
 {
 	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 2);
 	geometry->setDrawingMode(QSGGeometry::DrawLines);
-	geometry->setLineWidth(LINE_WIDTH);
+	geometry->setLineWidth(lineWidth);
 
 	geometry->vertexDataAsPoint2D()[0].set(p1.x, p1.y);
 	geometry->vertexDataAsPoint2D()[1].set(p2.x, p2.y);
@@ -320,6 +318,37 @@ void TiledDebugDraw::drawPolygon(const b2Vec2 *vertices, const int &vertexCount,
 
 
 /**
+ * @brief TiledDebugDraw::drawPolygon
+ * @param transform
+ * @param vertices
+ * @param vertexCount
+ * @param color
+ * @param lineWidth
+ */
+
+void TiledDebugDraw::drawPolygon(const b2Transform &transform, const b2Vec2 *vertices, const int &vertexCount,
+								 const QColor &color, const float &lineWidth)
+{
+	Q_ASSERT(vertexCount > 1);
+
+	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											vertexCount+1);
+
+	geometry->setDrawingMode(QSGGeometry::DrawLineStrip);
+	geometry->setLineWidth(lineWidth);
+
+	QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+	for (int i = 0; i < vertexCount; ++i) {
+		b2Vec2 trp = b2TransformPoint(transform, vertices[i]);
+		points[i].set(trp.x, trp.y);
+	}
+	points[vertexCount] = points[0];
+
+	createNode(geometry, color);
+}
+
+
+/**
  * @brief TiledDebugDraw::drawPolyLines
  * @param vertices
  * @param vertexCount
@@ -367,7 +396,7 @@ void TiledDebugDraw::drawSolidPolygon(const b2Transform &transform, const b2Vec2
 	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
 											(vertexCount - 2) * 3);
 	geometry->setDrawingMode(QSGGeometry::DrawTriangles);
-	geometry->setLineWidth(LINE_WIDTH);
+	geometry->setLineWidth(1.0);
 
 	const QPointF origin = getPolygonVertex(vertices, 0, transform);
 

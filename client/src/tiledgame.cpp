@@ -129,6 +129,7 @@ private:
 
 
 	void startStepTimer();
+	void stepWorlds();
 
 
 	TiledGame *const q;
@@ -207,7 +208,6 @@ TiledGame::~TiledGame()
 		if (s.scene->game() == this)
 			s.scene->setGame(nullptr);
 	}
-
 
 	m_currentScene = nullptr;
 
@@ -623,7 +623,7 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
  * @return
  */
 
-TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer, const QPointF &translate)
+TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 {
 	Q_ASSERT(scene);
 	Q_ASSERT(object);
@@ -633,6 +633,9 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 	params.friction = 1.f;
 	params.density = 1.f;
 	params.restitution = 0.f;
+	params.isSensor = false;
+	params.enableSensorEvents = false;
+	params.enableContactEvents = false;
 	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureGround);
 
 	TiledObjectBody *mapObject = createFromMapObject<TiledObjectBody>(scene, object, renderer, params);
@@ -1060,9 +1063,21 @@ bool TiledGame::transportDoor(TiledObject */*object*/, TiledTransport */*transpo
 
 
 
-void TiledGame::sceneDebugDrawEvent(TiledDebugDraw */*debugDraw*/, TiledScene */*scene*/)
-{
 
+/**
+ * @brief TiledGame::sceneDebugDrawEvent
+ */
+
+void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
+{
+	if (!scene || !debugDraw)
+		return;
+
+	for (const auto &ptr : d->m_bodyList) {
+		TiledObjectBody *b = ptr.body.get();
+		if (b->scene() == scene)
+			b->debugDraw(debugDraw);
+	}
 }
 
 
@@ -1230,8 +1245,6 @@ void TiledGame::updateStepTimer()
 		return;
 	}
 
-	//QMutexLocker locker(&d->m_stepMutex);
-
 	if (d->m_stepElapsedTimer.isValid()) {
 		d->m_stepLag += d->m_stepElapsedTimer.restart();
 	} else {
@@ -1246,21 +1259,13 @@ void TiledGame::updateStepTimer()
 	while (d->m_stepLag >= 1000/60) {
 		d->m_stepLag -= 1000/60;
 
-		for (const TiledGamePrivate::Scene &ptr : std::as_const(d->m_sceneList)) {
-			ptr.world->Step(1/60., 4);
-		}
-
-		for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
-			ptr.body->worldStep();
-		}
+		d->stepWorlds();
 
 		++frame;
 	}
 
 	if (frame > 1)
 		LOG_CTRACE("scene") << "Render lag:" << frame << "frames";
-
-	//QMetaObject::invokeMethod(this, &TiledGame::timeSteppedEvent, Qt::QueuedConnection);
 
 	timeSteppedEvent();
 }
@@ -2152,7 +2157,7 @@ void TiledGamePrivate::startStepTimer()
 	m_stepTimerId = Qt::TimerId{q->startTimer(std::chrono::milliseconds{8}, Qt::PreciseTimer)};
 
 
-	/*
+/*
 	m_stepTimerRunning = true;
 
 #ifndef Q_OS_WASM
@@ -2214,5 +2219,58 @@ void TiledGamePrivate::startStepTimer()
 		}
 
 		LOG_CERROR("game") << "Step timer finished";
-	});*/
+	});
+	*/
+}
+
+
+
+/**
+ * @brief TiledGamePrivate::stepWorlds
+ */
+
+void TiledGamePrivate::stepWorlds()
+{
+	for (const Scene &ptr : std::as_const(m_sceneList)) {
+		ptr.world->Step(1/60., 4);
+
+		const b2SensorEvents sensors = ptr.world->GetSensorEvents();
+		const b2ContactEvents events = ptr.world->GetContactEvents();
+
+		for (int i=0; i<sensors.beginCount; ++i) {
+			const b2SensorBeginTouchEvent &event = sensors.beginEvents[i];
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.sensorShapeId).GetBody()))
+				b->onShapeContactBegin(event.sensorShapeId, event.visitorShapeId);
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.visitorShapeId).GetBody()))
+				b->onShapeContactBegin(event.visitorShapeId, event.sensorShapeId);
+		}
+
+		for (int i=0; i<sensors.endCount; ++i) {
+			const b2SensorEndTouchEvent &event = sensors.endEvents[i];
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.sensorShapeId).GetBody()))
+				b->onShapeContactEnd(event.sensorShapeId, event.visitorShapeId);
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.visitorShapeId).GetBody()))
+				b->onShapeContactEnd(event.visitorShapeId, event.sensorShapeId);
+		}
+
+		for (int i=0; i<events.beginCount; ++i) {
+			const b2ContactBeginTouchEvent &event = events.beginEvents[i];
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdA).GetBody()))
+				b->onShapeContactBegin(event.shapeIdA, event.shapeIdB);
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdB).GetBody()))
+				b->onShapeContactBegin(event.shapeIdB, event.shapeIdA);
+		}
+
+		for (int i=0; i<events.endCount; ++i) {
+			const b2ContactEndTouchEvent &event = events.endEvents[i];
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdA).GetBody()))
+				b->onShapeContactEnd(event.shapeIdA, event.shapeIdB);
+			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdB).GetBody()))
+				b->onShapeContactEnd(event.shapeIdB, event.shapeIdA);
+		}
+	}
+
+	for (const Body &ptr : std::as_const(m_bodyList)) {
+		ptr.body->worldStep();
+	}
 }

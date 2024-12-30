@@ -474,19 +474,65 @@ void TiledScene::reloadTcodMap()
 
 	m_tcodMap.map->clear(true, true);
 
+	if (!m_world)
+		return;
+
 	for (int i=0; i<wSize; ++i) {
 		for (int j=0; j<hSize; ++j) {
-			QPolygonF chunk(QRectF(m_viewport.topLeft() + QPointF(m_tcodMap.chunkWidth*i, m_tcodMap.chunkHeight*j),
-								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight)));
+			//QPolygonF chunk(QRectF(m_viewport.topLeft() + QPointF(m_tcodMap.chunkWidth*i, m_tcodMap.chunkHeight*j),
+			//					   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight)));
 
-			for (TiledObjectBody *o : std::as_const(m_groundObjects)) {
+			b2Polygon chunk = b2MakeOffsetBox(
+								  m_tcodMap.chunkWidth/2,
+								  m_tcodMap.chunkHeight/2,
+								  b2Vec2{
+									  (float) (m_viewport.left() + m_tcodMap.chunkWidth*(i+0.5)),
+									  (float) (m_viewport.top() + m_tcodMap.chunkHeight*(j+0.5)),
+								  },
+								  b2MakeRot(0.)
+								  );
+
+
+			b2QueryFilter filter = b2DefaultQueryFilter();
+			filter.maskBits = TiledObjectBody::FixtureGround;
+
+			m_world->Overlap(chunk, b2Transform_identity,
+							 filter,
+							 [this, i, j](b2::ShapeRef shape) -> bool {
+				TiledObjectBody *b = TiledObject::fromBodyRef(shape.GetBody());
+				if (!b)
+					LOG_CERROR("scene") << "Invalid shape";
+				else if (b->isBodyEnabled()) {
+					m_tcodMap.map->setProperties(i, j, true, false);
+				}
+				return true;
+			});
+
+			/*for (TiledObjectBody *o : std::as_const(m_groundObjects)) {
 				if (o->isBodyEnabled() && o->overlap(chunk)) {
 					m_tcodMap.map->setProperties(i, j, true, false);
 					break;
 				}
-			}
+			}*/
 		}
 	}
+
+	QFile f("/tmp/__out.txt");
+	f.open(QIODevice::WriteOnly);
+
+	for (int j=0; j<hSize; ++j) {
+		for (int i=0; i<wSize; ++i) {
+			if (m_tcodMap.map->isWalkable(i, j))
+				f.write("  ");
+			else
+				f.write("XX");
+		}
+
+		f.write("\n");
+	}
+
+	f.close();
+
 }
 
 
@@ -508,7 +554,7 @@ std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, con
 	bool isWalkable = true;
 
 	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
-		if (it->IsSensor())
+		if (it->shape.IsSensor())
 			continue;
 
 		isWalkable = false;

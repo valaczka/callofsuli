@@ -68,25 +68,13 @@ void IsometricEnemy::initialize()
 	params.density = 1.f;
 	params.friction = 1.f;
 	params.restitution = 0.f;
-	/*params.filter = TiledObjectBody::getFilter(FixtureTarget,
-											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);*/
+	params.filter = TiledObjectBody::getFilter(FixtureEnemyBody, FixturePlayerBody | FixtureTarget);
 
 	createFromCircle({0.f, 0.f}, 15., nullptr, bParams, params);
-	setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange, FixturePlayerBody);
-
-	createVisual();
-
-	/*TiledObjectSensorPolygon *p = addSensorPolygon(m_metric.sensorLength, m_metric.sensorRange);
-
+	setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange, FixtureTarget);
 	addTargetCircle(m_metric.targetCircleRadius > 0. ? m_metric.targetCircleRadius : 50.);
 
-	p->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
-
-	connect(p, &TiledObjectSensorPolygon::beginContact, this, &IsometricEnemy::sensorBeginContact);
-	connect(p, &TiledObjectSensorPolygon::endContact, this, &IsometricEnemy::sensorEndContact);
-
-	connect(m_fixture.get(), &TiledObjectSensorPolygon::beginContact, this, &IsometricEnemy::fixtureBeginContact);
-	connect(m_fixture.get(), &TiledObjectSensorPolygon::endContact, this, &IsometricEnemy::fixtureEndContact); */
+	createVisual();
 
 	load();
 	onAlive();
@@ -527,18 +515,8 @@ void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
 
 void IsometricEnemy::onAlive()
 {
-	body().SetType(b2_kinematicBody);
 	setBodyEnabled(true);
-	setCategories(TiledObjectBody::FixtureEnemyBody);
-	setCollidesWith(TiledObjectBody::FixturePlayerBody |
-							   TiledObjectBody::FixtureGround |
-							   TiledObjectBody::FixtureTarget |
-							   TiledObjectBody::FixtureSensor);
-
-	/*m_sensorPolygon->setLength(m_metric.sensorLength);
-	m_sensorPolygon->setRange(m_metric.sensorRange);*/
 	setSubZ(0.5);
-
 	emit becameAlive();
 }
 
@@ -554,11 +532,7 @@ void IsometricEnemy::onDead()
 {
 	setBodyEnabled(false);
 	setSubZ(0.0);
-
-	//m_sensorPolygon->setLength(10.);
-
 	m_game->onEnemyDead(this);
-
 	emit becameDead();
 }
 
@@ -571,10 +545,8 @@ void IsometricEnemy::onDead()
 void IsometricEnemy::onSleepingBegin()
 {
 	m_isSleeping = true;
-
 	setBodyEnabled(false);
 	setSubZ(0.0);
-
 	m_game->onEnemySleepingStart(this);
 
 	emit becameAsleep();
@@ -590,20 +562,9 @@ void IsometricEnemy::onSleepingBegin()
 void IsometricEnemy::onSleepingEnd()
 {
 	setBodyEnabled(true);
-	/*m_body->setBodyType(Box2DBody::Kinematic);
-	m_body->setActive(true);
-	m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody));
-	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor));*/
-
 	setSubZ(0.5);
-
 	m_isSleeping = false;
-
 	m_game->onEnemySleepingEnd(this);
-
 	emit becameAwake();
 }
 
@@ -649,6 +610,10 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 
 
 
+
+
+
+
 /**
  * @brief IsometricEnemy::rotateToPlayer
  * @param player
@@ -665,97 +630,67 @@ void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float *anglePtr, qr
 
 
 
-
-
 /**
- * @brief IsometricEnemy::sensorBeginContact
+ * @brief IsometricEnemy::onShapeContactBegin
+ * @param self
  * @param other
  */
-/*
-void IsometricEnemy::sensorBeginContact(Box2DFixture *other)
-{
-	TiledObject *base = TiledObject::getFromFixture(other);
-	IsometricPlayer *player = qobject_cast<IsometricPlayer*>(base);
 
-	if (!player)
+void IsometricEnemy::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
+{
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+
+	if (!base)
 		return;
 
-	if (!m_contactedPlayers.contains(player)) {
-		m_contactedPlayers.append(QPointer(player));
-		eventPlayerContacted(player);
-	}
-}
-*/
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
+								  dynamic_cast<IsometricPlayer*>(base) :
+								  nullptr;
 
 
-/**
- * @brief IsometricEnemy::sensorEndContact
- * @param other
- */
-/*
-void IsometricEnemy::sensorEndContact(Box2DFixture *other)
-{
-	TiledObject *base = TiledObject::getFromFixture(other);
-	IsometricPlayer *player = qobject_cast<IsometricPlayer*>(base);
-
-	if (!player)
-		return;
-
-	removeContactedPlayer(player);
-	eventPlayerDiscontacted(player);
-}
-
-*/
-
-
-/**
- * @brief IsometricEnemy::fixtureBeginContact
- * @param other
- */
-/*
-void IsometricEnemy::fixtureBeginContact(Box2DFixture *other)
-{
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget)) ||
-			other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody))) {
-
-		TiledObject *base = TiledObject::getFromFixture(other);
-		IsometricPlayer *player = qobject_cast<IsometricPlayer*>(base);
-
-		if (!player)
-			return;
-
+	if (isAny(bodyShapes(), self) && player) {
 		if (!m_reachedPlayers.contains(player)) {
 			m_reachedPlayers.append(QPointer(player));
 			eventPlayerReached(player);
 		}
+	} else if (isEqual(sensorPolygon(), self) && player) {
+		if (!m_contactedPlayers.contains(player)) {
+			m_contactedPlayers.append(QPointer(player));
+			eventPlayerContacted(player);
+		}
 	}
 }
-
-*/
 
 
 /**
- * @brief IsometricEnemy::fixtureEndContact
+ * @brief IsometricEnemy::onShapeContactEnd
+ * @param self
  * @param other
  */
-/*
-void IsometricEnemy::fixtureEndContact(Box2DFixture *other)
+
+void IsometricEnemy::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 {
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget)) ||
-			other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody))) {
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 
-		TiledObject *base = TiledObject::getFromFixture(other);
-		IsometricPlayer *player = qobject_cast<IsometricPlayer*>(base);
+	if (!base)
+		return;
 
-		if (!player)
-			return;
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
+								  dynamic_cast<IsometricPlayer*>(base) :
+								  nullptr;
 
-		m_reachedPlayers.removeAll(QPointer(player));
+
+	if (isEqual(self, targetCircle()) && player) {
+		m_reachedPlayers.removeAll(player);
 		eventPlayerLeft(player);
+	} else if (isEqual(sensorPolygon(), self) && player) {
+		removeContactedPlayer(player);
+		eventPlayerDiscontacted(player);
 	}
 }
 
-*/
 
 
 

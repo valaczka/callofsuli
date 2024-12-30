@@ -33,65 +33,186 @@
 
 
 class IsometricPlayerPrivate {
+public:
+	enum EnemyFlag {
+		Invalid = 0,
+		Near = 1,
+		Visible = 2,
+		CanShot = 4,
+		CanHit = 8
+	};
+
+	Q_DECLARE_FLAGS(EnemyFlags, EnemyFlag);
+
+
 private:
-	/**
-	 * @brief isEnemyContanctedAndReached
-	 * @return
-	 */
+	IsometricPlayerPrivate(IsometricPlayer *player)
+		: m_player(player)
+	{}
 
-	bool isEnemyContanctedAndReached() const {
-		return m_enemy && m_contactedEnemies.contains(m_enemy) && m_reachedEnemies.contains(m_enemy);
+
+	struct EnemyData {
+		IsometricEnemy *enemy = nullptr;
+		EnemyFlags flags = Invalid;
+		float distance = 0.;
+	};
+
+	std::vector<EnemyData> m_enemies;
+	IsometricEnemy *m_currentEnemy = nullptr;
+
+	std::vector<EnemyData>::iterator findEnemy(IsometricEnemy *enemy) {
+		return std::find_if(m_enemies.begin(), m_enemies.end(), [enemy](const EnemyData &d) { return d.enemy == enemy; });
 	}
 
-	/**
-	 * @brief contactedAndReachedEnemies
-	 * @return
-	 */
+	std::vector<EnemyData>::iterator removeEnemy(std::vector<EnemyData>::iterator it) {
+		if (m_currentEnemy == it->enemy)
+			m_currentEnemy = nullptr;
 
-	QList<IsometricEnemy*> contactedAndReachedEnemies() const {
-		QList<IsometricEnemy*> list;
-
-		for (const auto &ptr : std::as_const(m_reachedEnemies)) {
-			if (!ptr)
-				continue;
-
-			if (m_contactedEnemies.contains(ptr.data()))
-				list.append(ptr.data());
-		}
-
-		return list;
+		return m_enemies.erase(it);
 	}
-
-
-	/**
-	 * @brief removeEnemy
-	 * @param enemy
-	 */
 
 	void removeEnemy(IsometricEnemy *enemy) {
-		m_contactedEnemies.removeAll(enemy);
-		m_reachedEnemies.removeAll(enemy);
+		auto it = findEnemy(enemy);
+		if (it != m_enemies.end())
+			removeEnemy(it);
+	}
+
+	bool setEnemyFlag(IsometricEnemy *enemy, const EnemyFlag &flag, const bool &on = true) {
+		bool newFlag = true;
+
+		auto it = findEnemy(enemy);
+		if (it != m_enemies.end()) {
+			if (it->flags.testFlag(flag) == on)
+				newFlag = false;
+			else
+				it->flags.setFlag(flag, on);
+
+			if (it->flags == Invalid)
+				removeEnemy(it);
+		} else {
+			EnemyFlags f;
+			f.setFlag(flag, on);
+
+			if (f != Invalid)
+				m_enemies.emplace_back(enemy, f);
+		}
+
+		return newFlag;
+	}
+
+	void setEnemyDistance(IsometricEnemy *enemy, const float &dist) {
+		auto it = findEnemy(enemy);
+		if (it != m_enemies.end()) {
+			it->distance = dist;
+		}
+	}
+
+	void setEnemy(IsometricEnemy *enemy, const EnemyFlags &flags, const float &dist) {
+		if (flags == Invalid) {
+			removeEnemy(enemy);
+			return;
+		}
+
+		auto it = findEnemy(enemy);
+		if (it != m_enemies.end()) {
+			it->flags |= flags;
+			it->distance = dist;
+		} else
+			m_enemies.emplace_back(enemy, flags, dist);
+	}
+
+	void selectEnemyForShot(const float &range = 0.) {
+		std::vector<EnemyData>::const_iterator it = m_enemies.cend();
+
+		for (auto d = m_enemies.cbegin(); d != m_enemies.cend(); ++d) {
+			if ((d->flags & (Visible|CanShot)) == 0 || (range > 0. && d->distance > range))
+				continue;
+
+			if (it == m_enemies.cend() || d->distance < it->distance)
+				it = d;
+		}
+
+		m_currentEnemy = (it == m_enemies.cend() ? nullptr : it->enemy);
+	}
+
+	void selectEnemyForHit() {
+		std::vector<EnemyData>::const_iterator it = m_enemies.cend();
+
+		for (auto d = m_enemies.cbegin(); d != m_enemies.cend(); ++d) {
+			if ((d->flags & (Visible|CanHit)) == 0)
+				continue;
+
+			if (it == m_enemies.cend() || d->distance < it->distance)
+				it = d;
+		}
+
+		m_currentEnemy = (it == m_enemies.cend() ? nullptr : it->enemy);
 	}
 
 
-	void clear() {
-		///m_enemy = nullptr;
-		m_contactedEnemies.clear();
-		m_reachedEnemies.clear();
-		m_destinationMotor.reset();
-		m_destinationPoint.reset();
+	void updateFromRayCast(const TiledReportedFixtureMap &map) {
+		for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
+			const bool inMap = map.cend() != std::find_if(map.cbegin(), map.cend(), [&it](const TiledReportedFixture &f){
+				return f.body == it->enemy;
+			});
+
+			if (it->flags.testFlag(CanShot) && !it->flags.testFlag(CanHit) && !inMap)
+				it = removeEnemy(it);
+			else
+				++it;
+		}
+
+		QVector2D pos(m_player->bodyPosition());
+
+		for (const TiledReportedFixture &f : map) {
+			if (IsometricEnemy *e = dynamic_cast<IsometricEnemy*>(f.body))
+				setEnemy(e, EnemyFlags(Visible|CanShot), pos.distanceToPoint(f.point));
+		}
 	}
 
-	QPointer<IsometricEnemy> m_enemy;
-	QList<QPointer<IsometricEnemy>> m_contactedEnemies;
-	QList<QPointer<IsometricEnemy>> m_reachedEnemies;
+
+	void checkVisibility() {
+		const QVector2D pos(m_player->bodyPosition());
+
+		for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
+			if (!it->enemy->isAlive() || it->enemy->isSleeping()) {
+				it = removeEnemy(it);
+				continue;
+			}
+
+			const TiledReportedFixtureMap map = m_player->rayCast(it->enemy->bodyPosition(), TiledObjectBody::FixtureEnemyBody, true);
+
+			auto mapIt = std::find_if(map.cbegin(), map.cend(), [&it](const TiledReportedFixture &f){
+				return f.body == it->enemy;
+			});
+
+			const bool inMap = mapIt != map.cend();
+
+			it->flags.setFlag(Visible, inMap);
+			it->distance = pos.distanceToPoint(mapIt->point);
+
+			if (!inMap) {
+				it->flags.setFlag(CanHit, false);
+				it->flags.setFlag(CanShot, false);
+			}
+
+
+			if (it->flags == Invalid)
+				it = removeEnemy(it);
+			else
+				++it;
+		}
+	}
 
 	std::unique_ptr<TiledPathMotor> m_destinationMotor;
 	std::optional<QPointF> m_destinationPoint;
+	IsometricPlayer *const m_player;
 
 	friend class IsometricPlayer;
 };
 
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(IsometricPlayerPrivate::EnemyFlags);
 
 
 /**
@@ -101,7 +222,7 @@ private:
 
 IsometricPlayer::IsometricPlayer(TiledScene *scene)
 	: IsometricEntity(scene)
-	, d(new IsometricPlayerPrivate)
+	, d(new IsometricPlayerPrivate(this))
 {
 }
 
@@ -113,88 +234,8 @@ IsometricPlayer::IsometricPlayer(TiledScene *scene)
 IsometricPlayer::~IsometricPlayer()
 {
 	delete d;
+	d = nullptr;
 }
-
-
-
-/**
- * @brief IsometricPlayer::entityWorldStep
- */
-
-/*
-void IsometricPlayer::entityWorldStep(const qreal &factor)
-{
-	IsometricEnemy *e = nullptr;
-
-	if (d->isEnemyContanctedAndReached() && checkEntityVisibility(this, d->m_enemy, TiledObjectBody::FixtureEnemyBody, nullptr).has_value()) {
-		e = d->m_enemy;
-	} else {
-		e = getVisibleEntity<IsometricEnemy*>(this, d->contactedAndReachedEnemies(), TiledObjectBody::FixtureEnemyBody, nullptr);
-	}
-
-	if (e != d->m_enemy) {
-		if (d->m_enemy)
-			d->m_enemy->setGlowEnabled(false);
-		setEnemy(e);
-		if (d->m_enemy) {
-			d->m_enemy->setGlowColor(Qt::red);
-			d->m_enemy->setGlowEnabled(true);
-		}
-	}
-
-	rotateBody(m_currentAngle);
-
-
-	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
-		//clearDestinationPoint();
-		stop();
-	} else if (!hasAbility()) {
-		stop();
-	} else {
-		if (d->m_destinationPoint) {
-			QLineF line(QPointF{0,0}, d->m_destinationPoint.value() - bodyPosition());
-			if (line.length() >= m_speedRunLength*factor) {
-				line.setLength(m_speedRunLength*factor);
-				setSpeed(line.p2());				// TiledObjectBase::toPoint()
-			} else if (line.length() >= m_speedLength*factor) {
-				line.setLength(m_speedLength*factor);
-				setSpeed(line.p2());
-			} else {
-				stop();
-				emplace(d->m_destinationPoint.value());
-				clearDestinationPoint();
-				atDestinationPointEvent();
-			}
-		} else if (d->m_destinationMotor) {
-			if (d->m_destinationMotor->atEnd()) {
-				stop();
-				clearDestinationPoint();
-				atDestinationPointEvent();
-			} else if (const QPolygonF &polygon = d->m_destinationMotor->polygon(); !polygon.isEmpty()) {
-				const float distance = QVector2D(bodyPosition()).distanceToPoint(QVector2D(polygon.last()));
-
-				if (distance >= m_speedRunLength*factor*10.) {				// Hogy a végén szépen lassan gyalogoljon csak
-					d->m_destinationMotor->updateBody(this, m_speedRunLength*factor, m_game->tickTimer());
-				} else {
-					d->m_destinationMotor->updateBody(this, m_speedLength*factor, m_game->tickTimer());
-				}
-
-				setCurrentAngle(d->m_destinationMotor->currentAngleRadian());
-			} else {
-				stop();
-				clearDestinationPoint();
-			}
-		} else {
-			QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
-			line.setLength(line.length()*factor);
-			setSpeed(line.p2());
-		}
-	}
-
-	updateSprite();
-}
-*/
-
 
 
 
@@ -222,35 +263,23 @@ void IsometricPlayer::initialize()
 	params.density = 1.f;
 	params.friction = 1.f;
 	params.restitution = 0.f;
-	/*params.filter = TiledObjectBody::getFilter(FixtureTarget,
-											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);*/
+	params.enableContactEvents = true;
+	params.enableSensorEvents = true;
+	params.filter = TiledObjectBody::getFilter(FixturePlayerBody,
+											   FixtureCategories(FixtureAll)
+											   .setFlag(FixturePlayerBody, false)
+											   .setFlag(FixtureVirtualCircle, false)
+											   .setFlag(FixtureSensor, false)
+											   );
 
 	createFromCircle({0.f, 0.f}, 15., nullptr, bParams, params);
-	setSensorPolygon(m_sensorLength, m_sensorRange, FixtureEnemyBody | FixturePickable);
+	setSensorPolygon(m_sensorLength, m_sensorRange, FixtureTarget | FixturePickable);
+	addVirtualCircle(FixtureTrigger | FixturePickable | FixtureContainer);
+	addTargetCircle(m_targetCircleRadius);
 
 	createVisual();
 
 	createMarkerItem();
-
-	/*TiledObjectSensorPolygon *p = addSensorPolygon(m_sensorLength, m_sensorRange);
-
-	addTargetCircle(m_targetCircleRadius);
-
-	p->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody) |
-					   TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable)
-					   );
-
-	p->virtualCircle()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureVirtualCircle));
-	p->virtualCircle()->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTrigger) |
-										TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable) |
-										TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer)
-										);
-
-	connect(p, &TiledObjectSensorPolygon::beginContact, this, &IsometricPlayer::sensorBeginContact);
-	connect(p, &TiledObjectSensorPolygon::endContact, this, &IsometricPlayer::sensorEndContact);
-
-	connect(m_fixture.get(), &TiledObjectSensorPolygon::beginContact, this, &IsometricPlayer::fixtureBeginContact);
-	connect(m_fixture.get(), &TiledObjectSensorPolygon::endContact, this, &IsometricPlayer::fixtureEndContact);*/
 
 	load();
 	onAlive();
@@ -300,18 +329,6 @@ void IsometricPlayer::onAlive()
 {
 	setBodyEnabled(true);
 
-	/*m_fixture->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody));
-	m_fixture->setCollidesWith(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureGround) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureSensor) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport) |
-							   TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer)
-							   );
-
-	m_sensorPolygon->setLength(m_sensorLength);
-	m_sensorPolygon->setRange(m_sensorRange);*/
 	setSubZ(0.5);
 	emit becameAlive();
 }
@@ -327,11 +344,6 @@ void IsometricPlayer::onDead()
 {
 	setBodyEnabled(false);
 
-	/*m_body->setBodyType(Box2DBody::Static);
-	m_body->setActive(false);
-	m_fixture->setCategories(Box2DFixture::None);
-	m_fixture->setCollidesWith(Box2DFixture::None);
-	m_sensorPolygon->setLength(10.);*/
 	setSubZ(0.0);
 	setCurrentVelocity({});
 
@@ -350,7 +362,6 @@ void IsometricPlayer::startInability()
 {
 	if (m_inabilityTime > 0 && m_game->tickTimer()) {
 		m_inabilityTimer = m_game->tickTimer()->currentTick() + m_inabilityTime;
-		//clearDestinationPoint();
 	}
 }
 
@@ -364,8 +375,32 @@ void IsometricPlayer::startInability(const int &msec)
 {
 	if (m_inabilityTime > 0 && m_game->tickTimer()) {
 		m_inabilityTimer = m_game->tickTimer()->currentTick() + msec;
-		//clearDestinationPoint();
 	}
+}
+
+
+
+/**
+ * @brief IsometricPlayer::updateEnemies
+ * @param canShot
+ */
+
+void IsometricPlayer::updateEnemies(const float &shotRange)
+{
+	if (shotRange > 0.) {
+		QVector2D radius(bodyPosition());
+		radius += TiledObject::vectorFromAngle(bodyRotation(), shotRange);
+		d->updateFromRayCast(rayCast(radius.toPointF(), FixtureTarget, true));
+	} else {
+		d->updateFromRayCast({});
+	}
+
+	d->checkVisibility();
+
+	if (shotRange > 0.)
+		d->selectEnemyForShot();
+	else
+		d->selectEnemyForHit();
 }
 
 
@@ -418,29 +453,19 @@ bool IsometricPlayer::protectWeapon(TiledWeaponList *weaponList, const TiledWeap
 
 QList<IsometricEnemy *> IsometricPlayer::reachedEnemies() const
 {
-	if (d->m_reachedEnemies.isEmpty())
+	if (d->m_enemies.empty())
 		return {};
 
 	QList<IsometricEnemy *> list;
-	list.reserve(d->m_reachedEnemies.size());
+	list.reserve(d->m_enemies.size());
 
-	for (const auto &ptr : d->m_reachedEnemies)
-		list.append(ptr.data());
+	for (const auto &ptr : d->m_enemies)
+		if (ptr.flags & (IsometricPlayerPrivate::Visible|IsometricPlayerPrivate::CanHit))
+			list.append(ptr.enemy);
 
 	return list;
 }
 
-
-
-/**
- * @brief IsometricPlayer::contactedAndReachedEnemies
- * @return
- */
-
-QList<IsometricEnemy *> IsometricPlayer::contactedAndReachedEnemies() const
-{
-	return d->contactedAndReachedEnemies();
-}
 
 
 /**
@@ -449,7 +474,8 @@ QList<IsometricEnemy *> IsometricPlayer::contactedAndReachedEnemies() const
 
 void IsometricPlayer::clearData()
 {
-	d->clear();
+	d->m_enemies.clear();
+	d->m_currentEnemy = nullptr;
 }
 
 
@@ -462,6 +488,7 @@ TiledPathMotor *IsometricPlayer::destinationMotor() const
 {
 	return d->m_destinationMotor.get();
 }
+
 
 
 /**
@@ -489,54 +516,105 @@ void IsometricPlayer::setIsLocked(bool newIsLocked)
 
 
 
+
+
+/**
+ * @brief IsometricPlayer::fixtureBegin
+ * @param shape
+ */
+
+void IsometricPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
+{
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+
+	if (!base)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	IsometricEnemy *enemy = categories.testFlag(FixtureTarget) ?
+								dynamic_cast<IsometricEnemy*>(base) :
+								nullptr;
+	IsometricEnemy *enemyBody = categories.testFlag(FixtureEnemyBody)  ?
+									dynamic_cast<IsometricEnemy*>(base) :
+									nullptr;
+	TiledPickableIface *pickable = categories.testFlag(FixturePickable) ?
+									   dynamic_cast<TiledPickableIface*>(base) :
+									   nullptr;
+
+
+	if (isEqual(self, targetCircle()) && enemyBody) {
+		d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::Near);
+	} else if (isAny(bodyShapes(), self) && enemy) {
+		if (d->setEnemyFlag(enemy, IsometricPlayerPrivate::CanHit)) {
+			onEnemyReached(enemy);
+		}
+	} else if (isAny(bodyShapes(), self) && pickable) {
+		onPickableReached(base);
+	}
+
+	/*if (base->categories().testFlag(TiledObjectBody::FixtureTransport)) {
+		TiledTransport *transport = game() ? game()->transportList().find(base) : nullptr;
+
+		if (!m_currentTransport && transport) {
+			setCurrentTransport(transport);
+			m_currentTransportBase = base;
+		}
+	}*/
+
+
+}
+
+
+
+
+/**
+ * @brief IsometricPlayer::fixtureEnd
+ * @param shape
+ */
+
+void IsometricPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
+{
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+
+	if (!base)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	IsometricEnemy *enemy = categories.testFlag(FixtureTarget)  ?
+								dynamic_cast<IsometricEnemy*>(base) :
+								nullptr;
+
+	IsometricEnemy *enemyBody = categories.testFlag(FixtureEnemyBody)  ?
+									dynamic_cast<IsometricEnemy*>(base) :
+									nullptr;
+
+	TiledPickableIface *pickable = categories.testFlag(FixturePickable) ?
+									   dynamic_cast<TiledPickableIface*>(base) :
+									   nullptr;
+
+	if (isEqual(self, targetCircle()) && enemyBody) {
+		d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::CanHit, false);
+		d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::Near, false);
+	} else if (isAny(bodyShapes(), self) && enemy) {
+		if (d->setEnemyFlag(enemy, IsometricPlayerPrivate::CanHit, false)) {
+			onEnemyLeft(enemy);
+		}
+	} else if (isAny(bodyShapes(), self) && pickable) {
+		onPickableLeft(base);
+	}
+}
+
+
+
 /**
  * @brief IsometricPlayer::sensorBeginContact
  * @param other
  */
 /*
-void IsometricPlayer::sensorBeginContact(Box2DFixture *other)
-{
-	TiledObject *base = TiledObject::getFromFixture(other);
 
-	if (!base)
-		return;
-
-	if (IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base)) {
-		if (!d->m_contactedEnemies.contains(enemy))
-			d->m_contactedEnemies.append(QPointer(enemy));
-	}
-}
-
-
-void IsometricPlayer::sensorEndContact(Box2DFixture *other)
-{
-	TiledObject *base = TiledObject::getFromFixture(other);
-	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
-
-	if (!base)
-		return;
-
-	if (enemy)
-		d->m_contactedEnemies.removeAll(QPointer(enemy));
-}
 
 void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 {
-	TiledObject *base = TiledObject::getFromFixture(other);
-
-	if (!base)
-		return;
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget)) ||
-			other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody))) {
-
-		IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
-
-		if (enemy && !d->m_reachedEnemies.contains(enemy)) {
-			d->m_reachedEnemies.append(QPointer(enemy));
-			onEnemyReached(enemy);
-		}
-	}
 
 	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport))) {
 		TiledTransport *transport = m_scene->game() ? m_scene->game()->transportList().find(base) : nullptr;
@@ -547,20 +625,6 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 		}
 	}
 
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable))) {
-		TiledObject *object = qobject_cast<TiledObject*>(base);
-		TiledPickableIface *iface = dynamic_cast<TiledPickableIface*>(base);
-		if (object && iface) {
-			onPickableReached(object);
-		}
-	}
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer))) {
-		TiledContainer *container = base->property("tiledContainer").value<TiledContainer*>();
-
-		if (!m_currentContainer && container)
-			setCurrentContainer(container);
-	}
 }
 
 
@@ -568,21 +632,6 @@ void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
 
 void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 {
-	TiledObject *base = TiledObject::getFromFixture(other);
-
-	if (!base)
-		return;
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTarget)) ||
-			other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureEnemyBody))) {
-
-		IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
-
-		if (enemy) {
-			d->m_reachedEnemies.removeAll(QPointer(enemy));
-			onEnemyLeft(enemy);
-		}
-	}
 
 	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport))) {
 		TiledTransport *transport = m_scene->game() ? m_scene->game()->transportList().find(base) : nullptr;
@@ -593,43 +642,11 @@ void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
 		}
 	}
 
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePickable))) {
-		TiledObject *object = qobject_cast<TiledObject*>(base);
-		TiledPickableIface *iface = dynamic_cast<TiledPickableIface*>(base);
-		if (object && iface) {
-			//removePickable(object);
-			onPickableLeft(object);
-		}
-	}
 
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer))) {
-		TiledContainer *container = base->property("tiledContainer").value<TiledContainer*>();
-
-		if (m_currentContainer == container && container)
-			setCurrentContainer(nullptr);
-	}
-}
 
 */
 
 
-/**
- * @brief IsometricPlayer::currentContainer
- * @return
- */
-
-TiledContainer *IsometricPlayer::currentContainer() const
-{
-	return m_currentContainer;
-}
-
-void IsometricPlayer::setCurrentContainer(TiledContainer *newCurrentContainer)
-{
-	if (m_currentContainer == newCurrentContainer)
-		return;
-	m_currentContainer = newCurrentContainer;
-	emit currentContainerChanged();
-}
 
 
 
@@ -637,28 +654,10 @@ void IsometricPlayer::setCurrentContainer(TiledContainer *newCurrentContainer)
  * @brief IsometricPlayer::worldStep
  */
 
-void IsometricPlayer::worldStep()
-{
+void IsometricPlayer::worldStep() {
 	IsometricEntity::worldStep();
 
-	IsometricEnemy *e = nullptr;
-
-	if (d->isEnemyContanctedAndReached() && checkEntityVisibility(this, d->m_enemy, TiledObjectBody::FixtureEnemyBody, nullptr).has_value()) {
-		e = d->m_enemy;
-	} else {
-		e = getVisibleEntity<IsometricEnemy*>(this, d->contactedAndReachedEnemies(), TiledObjectBody::FixtureEnemyBody, nullptr);
-	}
-
-	if (e != d->m_enemy) {
-		if (d->m_enemy)
-			d->m_enemy->setGlowEnabled(false);
-		setEnemy(e);
-		if (d->m_enemy) {
-			d->m_enemy->setGlowColor(Qt::red);
-			d->m_enemy->setGlowEnabled(true);
-		}
-	}
-
+	/// updateEnemies!!! -> RpgPlayer
 
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		//clearDestinationPoint();
@@ -703,6 +702,29 @@ void IsometricPlayer::worldStep()
 			/*QLineF line(0,0, m_currentVelocity.x(), m_currentVelocity.y());
 			line.setLength(line.length());*/
 			setSpeed(m_currentVelocity);
+		}
+	}
+}
+
+
+
+/**
+ * @brief IsometricPlayer::synchronize
+ */
+
+void IsometricPlayer::synchronize()
+{
+	IsometricEntity::synchronize();
+
+	if (m_enemy != d->m_currentEnemy) {
+		if (m_enemy)
+			m_enemy->setGlowEnabled(false);
+
+		setEnemy(d->m_currentEnemy);
+
+		if (m_enemy) {
+			m_enemy->setGlowColor(Qt::red);
+			m_enemy->setGlowEnabled(true);
 		}
 	}
 }
@@ -876,13 +898,13 @@ void IsometricPlayer::setCurrentTransport(TiledTransport *newCurrentTransport)
 
 IsometricEnemy *IsometricPlayer::enemy() const
 {
-	return d->m_enemy.data();
+	return m_enemy;
 }
 
 void IsometricPlayer::setEnemy(IsometricEnemy *newEnemy)
 {
-	if (d->m_enemy == newEnemy)
+	if (m_enemy == newEnemy)
 		return;
-	d->m_enemy = newEnemy;
+	m_enemy = newEnemy;
 	emit enemyChanged();
 }

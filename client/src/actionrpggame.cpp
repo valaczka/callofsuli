@@ -1261,7 +1261,7 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy
  * @return
  */
 
-bool ActionRpgGame::onPlayerUseContainer(RpgPlayer *player, TiledContainer *container)
+bool ActionRpgGame::onPlayerUseContainer(RpgPlayer *player, RpgContainer *container)
 {
 	if (!player || !container)
 		return false;
@@ -1489,7 +1489,7 @@ bool ActionRpgGame::onPlayerFinishCast(RpgPlayer *player)
  * @param xp
  */
 
-void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer *container, int xp)
+void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, RpgContainer *container, int xp)
 {
 	if (enemy)
 		enemy->setHp(0);
@@ -1513,7 +1513,7 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, 
  * @param enemy
  */
 
-void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, TiledContainer */*container*/)
+void ActionRpgGame::onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, RpgContainer */*container*/)
 {
 	if (player)
 		player->setHp(std::max(0, player->hp()-1));

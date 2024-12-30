@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * tiledcontainer.h
+ * rpgcontainer.h
  *
- * Created on: 2024. 04. 26.
+ * Created on: 2024. 12. 30.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * TiledContainer
+ * RpgContainer
  *
  *  This file is part of Call of Suli.
  *
@@ -24,51 +24,35 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef TILEDCONTAINER_H
-#define TILEDCONTAINER_H
+#ifndef RPGCONTAINER_H
+#define RPGCONTAINER_H
 
-#include "tiledscene.h"
 #include <QObject>
+#include "rpgcontrolgroupstate.h"
+#include "tiledscene.h"
 
-class TiledContainer : public QObject
+class RpgContainer : public QObject, public RpgControlGroupStateBody
 {
 	Q_OBJECT
 
-	Q_PROPERTY(ContainerType type READ type WRITE setType NOTIFY typeChanged FINAL)
 	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
-	Q_PROPERTY(TiledScene *scene READ scene WRITE setScene NOTIFY sceneChanged FINAL)
+	Q_PROPERTY(TiledScene *scene READ scene CONSTANT FINAL)
 
 public:
-	explicit TiledContainer(QObject *parent = nullptr);
-
-	enum ContainerType {
-		ContainerInvalid = 0,
-		ContainerBase
-	};
-
-	Q_ENUM(ContainerType);
-
-	ContainerType type() const;
-	void setType(const ContainerType &newType);
+	explicit RpgContainer(TiledScene *scene);
 
 	bool isActive() const;
 	void setIsActive(bool newIsActive);
 
-	TiledScene *scene() const;
-	void setScene(TiledScene *newScene);
-
 signals:
 	void isActiveChanged();
 	void typeChanged();
-	void sceneChanged();
 
 protected:
 	virtual void onActivated() {};
 	virtual void onDeactivated() {};
 
-	ContainerType m_type = ContainerInvalid;
 	bool m_isActive = true;
-	QPointer<TiledScene> m_scene;
 };
 
-#endif // TILEDCONTAINER_H
+#endif // RPGCONTAINER_H

@@ -172,10 +172,8 @@ void RpgEnemyBase::load()
 		LOG_CTRACE("game") << "Enemy metric override" << m_directory;
 
 		m_metric.fromJson(ptr.value());
-		/*if (m_sensorPolygon) {
-			m_sensorPolygon->setLength(m_metric.sensorLength);
-			m_sensorPolygon->setRange(m_metric.sensorRange);
-		}*/
+		if (sensorPolygon())
+			setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange);
 	}
 
 }
@@ -336,9 +334,7 @@ void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
 
 QPointF RpgEnemyBase::getPickablePosition(const int &num) const
 {
-	QLineF line = QLineF::fromPolar(75. * num, toDegree(directionToIsometricRadian(m_facingDirection)));
-	line.translate(bodyPosition()-line.p2());
-	return line.p1();
+	return bodyPosition() - TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 75. *num).toPointF();
 }
 
 

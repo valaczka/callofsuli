@@ -23,8 +23,8 @@ Item {
 
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.verticalCenter: parent.verticalCenter
-		anchors.horizontalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.x : 0
-		anchors.verticalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.y : 0
+		anchors.horizontalCenterOffset: alignToBody && baseObject ? baseObject.bodyOffset.x : 0
+		anchors.verticalCenterOffset: alignToBody && baseObject ? baseObject.bodyOffset.y : 0
 
 		handlerMaster: _spriteHandlerAuxFront
 	}
@@ -96,8 +96,8 @@ Item {
 
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.verticalCenter: parent.verticalCenter
-		anchors.horizontalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.x : 0
-		anchors.verticalCenterOffset: alignToBody && baseObject ? baseObject.body.bodyOffset.y : 0
+		anchors.horizontalCenterOffset: alignToBody && baseObject ? baseObject.bodyOffset.x : 0
+		anchors.verticalCenterOffset: alignToBody && baseObject ? baseObject.bodyOffset.y : 0
 
 		handlerSlave: _spriteHandlerAuxBack
 	}

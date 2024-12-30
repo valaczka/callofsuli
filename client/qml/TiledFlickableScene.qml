@@ -143,7 +143,7 @@ Flickable {
 		TiledDebugDrawImpl {
 			anchors.fill: _scene
 			scene: _scene
-			opacity: 0.5
+			opacity: 0.7
 			visible: _scene.game && _scene.game.debugView
 			scale: _scene.scale
 		}

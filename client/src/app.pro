@@ -238,6 +238,7 @@ SOURCES += \
 	rpgaxe.cpp \
 	rpgbroadsword.cpp \
 	rpgcoin.cpp \
+	rpgcontainer.cpp \
 	rpgcontrolgroup.cpp \
 	rpgcontrolgroupcontainer.cpp \
 	rpgcontrolgroupdoor.cpp \
@@ -279,7 +280,6 @@ SOURCES += \
 	teachermap.cpp \
 	teachermaphandler.cpp \
 	testgame.cpp \
-	tiledcontainer.cpp \
 	tileddebugdraw.cpp \
 	tiledeffect.cpp \
 	tiledfixpositionmotor.cpp \
@@ -354,6 +354,7 @@ HEADERS += \
 	rpgaxe.h \
 	rpgbroadsword.h \
 	rpgcoin.h \
+	rpgcontainer.h \
 	rpgcontrolgroup.h \
 	rpgcontrolgroupcontainer.h \
 	rpgcontrolgroupdoor.h \
@@ -397,7 +398,6 @@ HEADERS += \
 	teachermap.h \
 	teachermaphandler.h \
 	testgame.h \
-	tiledcontainer.h \
 	tileddebugdraw.h \
 	tiledeffect.h \
 	tiledfixpositionmotor.h \

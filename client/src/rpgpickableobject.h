@@ -89,6 +89,9 @@ public:
 	QString name() const;
 	void setName(const QString &newName);
 
+	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+
 signals:
 	void isActiveChanged() override final;
 	void nameChanged();
@@ -96,6 +99,7 @@ signals:
 protected:
 	virtual void onActivated() override;
 	virtual void onDeactivated() override;
+
 
 	virtual void load() = 0;
 

@@ -40,7 +40,6 @@
 
 RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
 	: RpgControlGroupState<ContainerState>(ControlGroupContainer, game, scene, group)
-	, m_container(new TiledContainer)
 {
 	Q_ASSERT(game);
 	Q_ASSERT(scene);
@@ -48,16 +47,6 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 	Q_ASSERT(renderer);
 
 	createVisualItem(group);
-
-
-	m_container->setType(TiledContainer::ContainerBase);
-	m_container->setIsActive(true);
-	m_container->setScene(scene);
-
-	QObject::connect(m_container.get(), &TiledContainer::isActiveChanged, game, [this](){
-		update();
-	});
-
 
 	if (group->hasProperty(QStringLiteral("pickable"))) {
 		QVector<RpgPickableObject::PickableType> pickableList;
@@ -110,15 +99,20 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 
 		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(objgroup->objects())) {
-				/*if (object->className() == QStringLiteral("trigger")) {
-					TiledObject *base = nullptr;
-					Box2DFixture *fixture = nullptr;
+				if (object->className() == QStringLiteral("trigger") || object->name() == QStringLiteral("trigger") ) {
+					if (m_container) {
+						LOG_CERROR("scene") << "RpgContainer object already exists" << object->id() << object->name() << "in" << group->id() << group->name();
+						continue;
+					}
 
 					if (object->shape() == Tiled::MapObject::Point) {
-						TiledObjectBaseCircle *ptr = nullptr;
-						TiledObject::createFromCircle<TiledObjectBaseCircle>(&ptr, object->position(), 35., renderer, scene);
-						base = ptr;
-						fixture = ptr->fixture();
+						m_container = m_game->createFromCircle<RpgContainer>(scene,
+																			 object->position(),
+																			 40., renderer,
+																			 getShapeParams(TiledObjectBody::FixtureContainer));
+
+						m_container->emplace(m_container->bodyPosition() + m_basePosition);
+						m_container->m_control = this;
 
 						setCenterPoint(renderer ?
 										   renderer->pixelToScreenCoords(object->position()) + m_basePosition :
@@ -126,24 +120,19 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 										   );
 					}
 
-					if (!base || !fixture) {
-						LOG_CERROR("game") << "Invalid object" << object->id() << object->name() << "in" << group->id() << group->name();
+					if (!m_container) {
+						LOG_CERROR("scene") << "Invalid object" << object->id() << object->name() << "in" << group->id() << group->name();
 						continue;
 					}
 
-					base->body()->emplace(base->bodyPosition() + m_basePosition);
+					m_container->setIsActive(true);
 
-					connectFixture(fixture);
+					QObject::connect(m_container, &RpgContainer::isActiveChanged, game, [this](){
+						update();
+					});
 
-					fixture->setCategories(fixture->categories().setFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureContainer), true));
-					fixture->setCollidesWith(fixture->collidesWith().setFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixturePlayerBody), true));
-
-					base->setParent(m_game);
-					base->setScene(scene);
-					base->setProperty("tiledContainer", QVariant::fromValue(m_container.get()));
-
-					addTiledObject(base);
-				}*/
+					addTiledObjectBody(m_container);
+				}
 			}
 		}
 	}
@@ -189,9 +178,9 @@ void RpgControlGroupContainer::update()
 	m_currentState = m_container->isActive() ? 1 : 2;
 	refreshVisualItem();
 
-	/*for (TiledObject *o : m_tiledObjects) {
-		o->body()->setActive(m_container->isActive());
-	}*/
+	for (TiledObjectBody *o : m_tiledObjects) {
+		o->setBodyEnabled(m_container->isActive());
+	}
 }
 
 

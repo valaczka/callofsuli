@@ -47,24 +47,27 @@ public:
 	TiledScene *scene() const;
 	void setScene(TiledScene *newScene);
 
-	void drawCircle(const b2Vec2 &center, const float &radius, const QColor &color);
-	void drawCircle(const QPointF &center, const float &radius, const QColor &color) {
-		drawCircle(b2Vec2{(float) center.x(), (float) center.y()}, radius, color);
+	void drawCircle(const b2Vec2 &center, const float &radius, const QColor &color, const float &lineWidth = 1.);
+	void drawCircle(const QPointF &center, const float &radius, const QColor &color, const float &lineWidth = 1.) {
+		drawCircle(b2Vec2{(float) center.x(), (float) center.y()}, radius, color, lineWidth);
 	}
 	void drawSolidCircle(const b2Transform &transform, const float &radius, const QColor &color);
 	void drawSolidCircle(const QPointF &center, const float &radius, const QColor &color);
-	void drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColor &color);
+	void drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColor &color, const float &lineWidth = 1.);
 	void drawPolygon(const QPolygonF &polygon, const QColor &color, const float &lineWidth = 1.);
 	void drawPolygon(const b2Vec2* vertices, const int &vertexCount, const QColor &color, const float &lineWidth = 1.);
+	void drawPolygon(const b2Transform &transform, const b2Vec2* vertices, const int &vertexCount, const QColor &color,
+					 const float &lineWidth = 1.);
 	void drawPolyLines(const b2Vec2* vertices, const int &vertexCount, const QColor &color, const float &lineWidth = 1.);
 	void drawSolidPolygon(const b2Transform &transform, const b2Vec2* vertices, const int &vertexCount,
 						  const float &radius, const QColor &color);
+
+	static QColor box2dColorToQColor(const b2HexColor &color, const float &alpha = 1.0f);
+
 signals:
 	void sceneChanged();
 
 private:
-	static QColor box2dColorToQColor(const b2HexColor &color, const float &alpha = 1.0f);
-
 	QSGNode *createNode(QSGGeometry *geometry, const QColor &color);
 
 	static QPointF getPolygonVertex(const b2Vec2* vertices, const int num, const b2Transform &transform);

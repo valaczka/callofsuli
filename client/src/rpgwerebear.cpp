@@ -347,9 +347,7 @@ void RpgWerebear::playSeeEffect()
 
 QPointF RpgWerebear::getPickablePosition(const int &num) const
 {
-	QLineF line = QLineF::fromPolar(50. * num, toDegree(directionToIsometricRadian(m_facingDirection)));
-	line.translate(bodyPosition()-line.p2());
-	return line.p1();
+	return bodyPosition() - TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 50. *num).toPointF();
 }
 
 

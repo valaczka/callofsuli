@@ -61,6 +61,8 @@ void IsometricEntity::setMaxHp(int newMaxHp)
 
 
 
+
+
 /**
  * @brief IsometricEntity::synchronize
  */
@@ -81,8 +83,8 @@ void IsometricEntity::synchronize()
  */
 
 std::optional<QPointF> IsometricEntity::checkEntityVisibility(TiledObjectBody *body, TiledObject *entity,
-																   const TiledObjectBody::FixtureCategory &category,
-																   float *transparentGroundPtr)
+															  const TiledObjectBody::FixtureCategory &category,
+															  float *transparentGroundPtr)
 {
 	Q_ASSERT(body);
 	Q_ASSERT(entity);
@@ -139,23 +141,22 @@ std::optional<QPointF> IsometricEntity::checkEntityVisibility(TiledObjectBody *b
 */
 
 	float rayLength = 0.;
-	///const TiledReportedFixtureMap &map = body->rayCast(entityPosition, category);
-	TiledReportedFixtureMap map;
+	const TiledReportedFixtureMap &map = body->rayCast(entityPosition, category);
 
 	bool visible = false;
 
 	for (auto it=map.begin(); it != map.end(); ++it) {
-		b2::ShapeRef r = *it;
+		b2::ShapeRef r = it->shape;
 
 		if (r.IsSensor())
 			continue;
 
-		if (FixtureCategories::fromInt(it->GetFilter().categoryBits).testFlag(category)) {
+		if (FixtureCategories::fromInt(r.GetFilter().categoryBits).testFlag(category)) {
 			visible = true;
 			break;
 		}
 
-		if (FixtureCategories::fromInt(it->GetFilter().categoryBits).testFlag(TiledObjectBody::FixtureGround)) {
+		if (FixtureCategories::fromInt(r.GetFilter().categoryBits).testFlag(TiledObjectBody::FixtureGround)) {
 			if (TiledObjectBody *body = TiledObjectBody::fromBodyRef(r.GetBody())) {
 				if (body->opaque()) {
 					visible = false;
