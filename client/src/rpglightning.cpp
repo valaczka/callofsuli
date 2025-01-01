@@ -43,19 +43,6 @@ RpgLightning::RpgLightning(TiledScene *scene)
 }
 
 
-/**
- * @brief RpgLightning::createBullet
- * @param game
- * @param scene
- * @return
- */
-
-RpgLightning *RpgLightning::createBullet(TiledScene *scene)
-{
-	RpgLightning *bullet = new RpgLightning(scene);
-	bullet->initialize(20.);
-	return bullet;
-}
 
 
 /**
@@ -100,7 +87,7 @@ void RpgLightning::load()
  * @param base
  */
 
-void RpgLightning::impactEvent(TiledObject *base)
+void RpgLightning::impactEvent(TiledObjectBody *base)
 {
 	RpgGame *game = d->owner() ? qobject_cast<RpgGame*>(d->owner()->game()) : nullptr;
 
@@ -109,7 +96,7 @@ void RpgLightning::impactEvent(TiledObject *base)
 		return;
 	}
 
-	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
+	IsometricEnemy *enemy = dynamic_cast<IsometricEnemy*>(base);
 
 	if (!enemy)
 		return;
@@ -140,31 +127,6 @@ RpgLightningWeapon::RpgLightningWeapon(QObject *parent)
 }
 
 
-
-/**
- * @brief RpgLightningWeapon::createBullet
- * @param distance
- * @return
- */
-
-IsometricBullet *RpgLightningWeapon::createBullet(const qreal &distance)
-{
-	if (!m_parentObject) {
-		LOG_CERROR("game") << "Missing parent object" << this;
-		return nullptr;
-	}
-
-	RpgLightning *fb = RpgLightning::createBullet(m_parentObject->scene());
-
-	if (fb && distance > 0.) {
-		if (distance < 1.)
-			fb->setMaxDistance(fb->maxDistance() * distance);
-		else
-			fb->setMaxDistance(distance);
-	}
-
-	return fb;
-}
 
 
 

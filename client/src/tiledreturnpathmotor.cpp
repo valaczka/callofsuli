@@ -39,11 +39,11 @@ TiledReturnPathMotor::TiledReturnPathMotor(const QPointF &basePoint)
 /**
  * @brief TiledReturnPathMotor::updateBody
  * @param object
- * @param distance
+ * @param speed
  * @param timer
  */
 
-void TiledReturnPathMotor::updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer)
+void TiledReturnPathMotor::updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer)
 {
 	Q_ASSERT (object);
 
@@ -58,8 +58,7 @@ void TiledReturnPathMotor::updateBody(TiledObject *object, const float &distance
 			m_path.clear();
 			setIsReturning(false);
 		} else {
-			m_pathMotor->updateBody(object, distance, timer);
-			object->rotateBody(m_pathMotor->currentAngleRadian());
+			m_pathMotor->updateBody(object, speed, timer);
 		}
 	} else {
 		setIsReturning(false);
@@ -92,7 +91,7 @@ QPointF TiledReturnPathMotor::basePoint()
  * @param radius
  */
 
-void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float &angle, const qreal &radius)
+void TiledReturnPathMotor::moveBody(TiledObject *body, const QVector2D &point, const float &speed)
 {
 	Q_ASSERT(body);
 
@@ -113,9 +112,9 @@ void TiledReturnPathMotor::moveBody(TiledObjectBody *body, const float &angle, c
 
 	m_hasReturned = false;
 
-	body->setSpeedFromAngle(angle, radius);
+	body->moveTowards(point, speed);
 
-	addPoint(body->bodyPosition(), angle);
+	addPoint(body->bodyPosition(), body->angleToPoint(point));
 }
 
 
@@ -146,7 +145,10 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 	m_pathMotor.reset(new TiledPathMotor);
 	m_pathMotor->setDirection(TiledPathMotor::Forward);
 
-	const auto &ptr = scene->findShortestPath(body, m_basePoint);
+	// A raycast pontatlan (átmegy az objektumokon, ezért kihagyjuk:
+	// const auto &ptr = scene->findShortestPath(body, m_basePoint);
+
+	const auto &ptr = scene->findShortestPath(body->bodyPosition(), m_basePoint);
 
 	if (!ptr) {
 		LOG_CTRACE("scene") << "No path from" << body->bodyPosition() << "to" << m_basePoint;
@@ -186,6 +188,20 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 	m_hasReturned = false;
 	clearLastSeenPoint();
 
+}
+
+
+/**
+ * @brief TiledReturnPathMotor::path
+ * @return
+ */
+
+QPolygonF TiledReturnPathMotor::path() const
+{
+	if (m_pathMotor)
+		return m_pathMotor->polygon();
+	else
+		return m_path;
 }
 
 

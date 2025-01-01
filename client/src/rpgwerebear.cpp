@@ -451,12 +451,11 @@ void RpgWerebear::updateSprite()
 		jumpToSpriteLater("stand", m_facingDirection);
 	else if (isStanding())
 		jumpToSprite("stand", m_facingDirection);
-	else if (m_facingDirection != Invalid) {
-		/*if (m_body->isRunning())
-			jumpToSprite("run", m_movingDirection);
-		else*/
-			jumpToSprite("walk", m_facingDirection);
-	} else
+	else if (isRunning() && m_facingDirection != Invalid)
+		jumpToSprite("run", m_facingDirection);
+	else if (isWalking() && m_facingDirection != Invalid)
+		jumpToSprite("walk", m_facingDirection);
+	else
 		jumpToSprite("idle", m_facingDirection);
 }
 

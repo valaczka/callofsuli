@@ -42,34 +42,14 @@ class RpgFireball : public IsometricBullet
 	QML_ELEMENT
 
 public:
-    RpgFireball(TiledScene *scene = nullptr);
+	RpgFireball(TiledScene *scene = nullptr);
 	virtual ~RpgFireball() {}
 
-    static RpgFireball* createBullet(TiledScene *scene);
-
 protected:
 	void load() override final;
 };
 
 
 
-/**
- * @brief The RpgArrowPickable class
- */
-
-class RpgFireballPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-    RpgFireballPickable(TiledScene *scene = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-protected:
-	void load() override final;
-
-};
 
 #endif // RPGFIREBALL_H

@@ -280,26 +280,6 @@ std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qre
 	return polygon;
 }
 
-/**
- * @brief TiledScene::appendToObjects
- * @param object
- */
-
-void TiledScene::appendToObjects(TiledObject *object)
-{
-
-}
-
-
-/**
- * @brief TiledScene::removeFromObjects
- * @param object
- */
-
-void TiledScene::removeFromObjects(TiledObject *object)
-{
-
-}
 
 
 /**
@@ -359,23 +339,6 @@ void TiledScene::stopMusic()
 
 	if (!m_backgroundMusic.isEmpty())
 		Application::instance()->client()->sound()->stopSound(m_backgroundMusic, Sound::MusicChannel);
-}
-
-
-/**
- * @brief TiledScene::isGroundContainsPoint
- * @param ground
- * @return
- */
-
-bool TiledScene::isGroundContainsPoint(const QPointF &point) const
-{
-	for (TiledObjectBody *o : std::as_const(m_groundObjects)) {
-		if (o && o->isBodyEnabled() && o->overlap(point))
-			return true;
-	}
-
-	return false;
 }
 
 
@@ -479,9 +442,6 @@ void TiledScene::reloadTcodMap()
 
 	for (int i=0; i<wSize; ++i) {
 		for (int j=0; j<hSize; ++j) {
-			//QPolygonF chunk(QRectF(m_viewport.topLeft() + QPointF(m_tcodMap.chunkWidth*i, m_tcodMap.chunkHeight*j),
-			//					   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight)));
-
 			b2Polygon chunk = b2MakeOffsetBox(
 								  m_tcodMap.chunkWidth/2,
 								  m_tcodMap.chunkHeight/2,
@@ -507,31 +467,8 @@ void TiledScene::reloadTcodMap()
 				}
 				return true;
 			});
-
-			/*for (TiledObjectBody *o : std::as_const(m_groundObjects)) {
-				if (o->isBodyEnabled() && o->overlap(chunk)) {
-					m_tcodMap.map->setProperties(i, j, true, false);
-					break;
-				}
-			}*/
 		}
 	}
-
-	QFile f("/tmp/__out.txt");
-	f.open(QIODevice::WriteOnly);
-
-	for (int j=0; j<hSize; ++j) {
-		for (int i=0; i<wSize; ++i) {
-			if (m_tcodMap.map->isWalkable(i, j))
-				f.write("  ");
-			else
-				f.write("XX");
-		}
-
-		f.write("\n");
-	}
-
-	f.close();
 
 }
 
@@ -549,17 +486,17 @@ std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, con
 	if (!body)
 		return std::nullopt;
 
-	const TiledReportedFixtureMap &map = body->rayCast(to, TiledObjectBody::FixtureGround);
+	const TiledReportedFixtureMap &map = body->rayCast(to, TiledObjectBody::FixtureGround, false);
 
 	bool isWalkable = true;
 
 	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
-		if (it->shape.IsSensor())
-			continue;
-
 		isWalkable = false;
 		break;
 	}
+
+	//const QPointF pos = body->bodyPosition();
+	//if (isWalkable && !m_game->isGround(this, pos.x(), pos.y()))
 
 	if (isWalkable)
 		return QPolygonF() << body->bodyPosition() << to;

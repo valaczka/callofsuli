@@ -44,11 +44,9 @@ public:
 	RpgLightning(TiledScene *scene = nullptr);
 	virtual ~RpgLightning() {}
 
-	static RpgLightning* createBullet(TiledScene *scene);
-
 protected:
 	void load() override final;
-	virtual void impactEvent(TiledObject *base) override final;
+	virtual void impactEvent(TiledObjectBody *base) override final;
 };
 
 
@@ -70,7 +68,6 @@ public:
 	bool canAttack() const override final { return true; }
 
 protected:
-	IsometricBullet *createBullet(const qreal &distance = 0.) override final;
 	void eventAttack(TiledObject *target) override final;
 
 private:

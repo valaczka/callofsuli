@@ -263,6 +263,58 @@ void TiledObject::synchronize()
 
 
 
+/**
+ * @brief TiledObject::moveTowards
+ * @param point
+ * @param speed
+ * @return
+ */
+
+bool TiledObject::moveTowards(const QVector2D &point, const float &speed)
+{
+	const float dist = distanceToPoint(point);
+	const float angle = angleToPoint(point);
+
+	setCurrentAngle(angle);
+
+	if (dist > 2 * speed/60.)
+		setSpeedFromAngle(angle, speed);
+	else
+		return false;
+
+	return true;
+}
+
+
+
+/**
+ * @brief TiledObject::moveTowards
+ * @param point
+ * @param speedBelow
+ * @param destinationLimit
+ * @param speedAbove
+ * @return
+ */
+
+bool TiledObject::moveTowards(const QVector2D &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove)
+{
+	const float dist = distanceToPoint(point);
+	const float angle = angleToPoint(point);
+
+	setCurrentAngle(angle);
+
+	if (dist > destinationLimit)
+		setSpeedFromAngle(angle, speedAbove);
+	else if (dist > 2 * speedBelow/60.)
+		setSpeedFromAngle(angle, speedBelow);
+	else
+		return false;
+
+	return true;
+}
+
+
+
 
 QString TiledObject::displayName() const
 {
@@ -700,29 +752,18 @@ QQuickItem *TiledObject::createMarkerItem(const QString &qrc)
  * @param distancePtr
  */
 
-void TiledObjectBody::rotateToPoint(const QPointF &point, float *anglePtr, qreal *distancePtr)
+void TiledObjectBody::rotateToPoint(const QPointF &point, const bool &forced)
 {
 	if (!d->m_bodyRef) {
 		LOG_CERROR("scene") << "Missing body" << this;
 		return;
 	}
 
-	const QPointF p = point - bodyPosition();
+	rotateBody(angleToPoint(point), forced);
 
-	float radian = atan2(-p.y(), p.x());
-
-	LOG_CERROR("scene") << "ROTATE ERROR!" << this;
-
-	//setCurrentDirection(TiledObject::nearestDirectionFromRadian(angle));
-	d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(radian));
+	/*d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(radian));
 	d->m_bodyRef.SetAwake(true);
-	d->m_rotateAnimation.running = false;
-
-	if (anglePtr)
-		*anglePtr = radian;
-
-	if (distancePtr)
-		*distancePtr = QVector2D(p).length();
+	d->m_rotateAnimation.running = false;*/
 }
 
 
@@ -733,15 +774,17 @@ void TiledObjectBody::rotateToPoint(const QPointF &point, float *anglePtr, qreal
  * @return
  */
 
-float TiledObjectBody::angleToPoint(const QPointF &point) const
+float TiledObjectBody::angleToPoint(const QVector2D &point) const
 {
 	if (!d->m_bodyRef) {
 		LOG_CERROR("scene") << "Missing body" << this;
 		return 0.;
 	}
 
-	const QPointF p = point - bodyPosition();
-	return atan2(-p.y(), p.x());
+	const auto bp = d->m_bodyRef.GetPosition();
+
+	const QVector2D p = point - QVector2D(bp.x, bp.y);
+	return atan2(p.y(), p.x());
 }
 
 
@@ -761,15 +804,24 @@ float TiledObjectBody::distanceToPoint(const QPointF &point) const
 	return QVector2D(bodyPosition()).distanceToPoint(QVector2D(point));
 }
 
-TiledObjectBody::RemoteMode TiledObjectBody::remoteMode() const
+
+
+/**
+ * @brief TiledObjectBody::distanceToPoint
+ * @param point
+ * @return
+ */
+
+float TiledObjectBody::distanceToPoint(const QVector2D &point) const
 {
-	return m_remoteMode;
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return -1.;
+	}
+
+	return QVector2D(bodyPosition()).distanceToPoint(point);
 }
 
-void TiledObjectBody::setRemoteMode(const RemoteMode &newRemoteMode)
-{
-	m_remoteMode = newRemoteMode;
-}
 
 TiledObjectBody::ObjectId TiledObjectBody::objectId() const
 {
@@ -1285,7 +1337,7 @@ bool TiledObjectBody::isAny(const std::vector<b2::ShapeRef> &s1, const b2::Shape
  * @param centerY
  */
 
-void TiledObjectBody::emplace(const QPointF &center)
+void TiledObjectBody::emplace(const QVector2D &center)
 {
 	if (!d->m_bodyRef) {
 		LOG_CERROR("scene") << "Missing body" << this;
@@ -1297,7 +1349,7 @@ void TiledObjectBody::emplace(const QPointF &center)
 	d->m_bodyRef.SetTransform({(float)center.x(), (float)center.y()}, d->m_bodyRef.GetRotation());
 	d->m_bodyRef.SetAwake(true);
 
-	d->m_lastPosition = QVector2D(center);
+	d->m_lastPosition = center;
 	d->m_currentSpeed = {0., 0.};
 
 	synchronize();
@@ -1419,11 +1471,19 @@ float TiledObjectBody::bodyRotation() const
  * @return
  */
 
-bool TiledObjectBody::rotateBody(const float &desiredRadian)
+bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 {
 	if (!d->m_bodyRef) {
 		LOG_CERROR("scene") << "Missing body" << this;
 		return false;
+	}
+
+	if (forced) {
+		d->m_rotateAnimation.running = false;
+		d->m_bodyRef.SetAngularVelocity(0.f);
+		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
+		d->m_bodyRef.SetAwake(true);
+		return true;
 	}
 
 	const float currentRadian = bodyRotation();
@@ -1490,6 +1550,11 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian)
 
 	return true;
 }
+
+
+
+
+
 
 
 
@@ -1946,8 +2011,6 @@ void TiledObjectBody::addTargetCircle(const float &length)
 
 
 
-
-
 /**
  * @brief TiledObjectBody::rayCast
  * @param dest
@@ -1992,11 +2055,8 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 	filter.categoryBits = FixtureAll;
 	filter.maskBits = categories|FixtureGround;
 
-	b2Transform transform = b2Transform_identity;
-	transform.p = origin;
+	b2Transform transform = d->m_bodyRef.GetTransform();
 
-
-	// TODO: check connected shapes!
 
 	if (forceLine || d->m_bodyShapes.empty()) {
 		d->m_world->CastRay(origin, translation, filter, fcn);
@@ -2013,6 +2073,42 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 			LOG_CWARNING("scene") << "Invalid shape for ray cast" << sh.GetType();
 			d->m_world->CastRay(origin, translation, filter, fcn);
 		}
+	}
+
+	// Check contacted shapes
+
+	int count = d->m_bodyShapes.front().GetContactCapacity();
+
+	if (count > 0) {
+		TiledReportedFixtureMap final = map;
+
+		map.clear();
+
+		std::vector<b2ContactData> contact;
+		contact.resize(count);
+		count = d->m_bodyRef.GetContactData(contact.data(), count);
+
+		for (auto it = contact.cbegin(); it != contact.cend() && it != contact.cbegin()+count; ++it) {
+			d->m_world->CastRay(origin, translation, filter, fcn);
+
+			TiledObjectBody *other = nullptr;
+			if (TiledObjectBody *b = fromBodyRef(b2::ShapeRef(it->shapeIdA).GetBody()); b && b != this
+					&& b2::ShapeRef(it->shapeIdA).GetFilter().categoryBits & FixtureGround)
+				other = b;
+			else if (TiledObjectBody *b = fromBodyRef(b2::ShapeRef(it->shapeIdB).GetBody()); b && b != this
+					 && b2::ShapeRef(it->shapeIdB).GetFilter().categoryBits & FixtureGround)
+				other = b;
+
+			if (other && other->opaque()) {
+				const auto &it = map.find(other);
+				if (it != map.cend()) {
+					TiledReportedFixtureMap final;
+					final.insert(0.0, *it);
+					return final;
+				}
+			}
+		}
+		return final;
 	}
 
 	return map;
@@ -2531,7 +2627,10 @@ void TiledObjectBodyPrivate::addTargetCircle(const float &length)
 	params.enableSensorEvents = true;
 	params.enableContactEvents = true;
 	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureTarget,
-											   TiledObjectBody::FixturePlayerBody | TiledObjectBody::FixtureEnemyBody
+											   TiledObjectBody::FixturePlayerBody |
+											   TiledObjectBody::FixtureEnemyBody |
+											   TiledObjectBody::FixtureBulletBody |
+											   TiledObjectBody::FixtureSensor
 											   );
 
 	if (length > 0)
@@ -2629,4 +2728,44 @@ void TiledObject::setFacingDirectionLocked(bool newFacingDirectionLocked)
 QPointF TiledObject::bodyOffset() const
 {
 	return m_bodyOffset;
+}
+
+
+/**
+ * @brief TiledReportedFixtureMap::containsTransparentGround
+ * @return
+ */
+
+bool TiledReportedFixtureMap::containsTransparentGround() const
+{
+	for (const auto &ptr : *this) {
+		if ((ptr.shape.GetFilter().categoryBits & TiledObjectBody::FixtureGround) && ptr.body && !ptr.body->opaque())
+			return true;
+	}
+	return false;
+}
+
+
+
+/**
+ * @brief TiledReportedFixtureMap::find
+ * @param body
+ * @return
+ */
+
+TiledReportedFixtureMap::QMultiMap::const_iterator TiledReportedFixtureMap::find(TiledObjectBody *body) const
+{
+	return std::find_if(this->cbegin(), this->cend(), [body](const TiledReportedFixture &f) { return f.body == body; });
+}
+
+
+/**
+ * @brief TiledReportedFixtureMap::find
+ * @param body
+ * @return
+ */
+
+TiledReportedFixtureMap::iterator TiledReportedFixtureMap::find(TiledObjectBody *body)
+{
+	return std::find_if(this->begin(), this->end(), [body](const TiledReportedFixture &f) { return f.body == body; });
 }

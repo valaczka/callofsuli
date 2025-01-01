@@ -44,11 +44,11 @@ public:
 	TiledReturnPathMotor(const QPointF &basePoint);
 	virtual ~TiledReturnPathMotor() {}
 
-	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
+	void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) override;
 	QPointF basePoint() override;
 
-	void moveBody(TiledObjectBody *body, const float &angle, const qreal &radius);
-        void finish(TiledObject *body, AbstractGame::TickTimer *timer);
+	void moveBody(TiledObject *body, const QVector2D &point, const float &speed);
+	void finish(TiledObject *body, AbstractGame::TickTimer *timer);
 
 	QPolygonF path() const;
 

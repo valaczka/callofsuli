@@ -94,27 +94,6 @@ RpgPlayer::~RpgPlayer()
 }
 
 
-/**
- * @brief RpgPlayer::createPlayer
- * @param game
- * @param scene
- * @param config
- * @return
- */
-
-RpgPlayer *RpgPlayer::createPlayer(RpgGame *game, TiledScene *scene, const RpgPlayerCharacterConfig &config)
-{
-	RpgPlayer *player = new RpgPlayer(scene);
-
-	if (player) {
-		player->setParent(game);
-		player->setConfig(config);
-		player->initialize();
-	}
-
-	return player;
-}
-
 
 
 /**
@@ -138,7 +117,7 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 	}
 
 	if (weapon->canShot()) {
-		if (weapon->shot(IsometricBullet::TargetEnemy, bodyPosition(), currentAngle())) {
+		if (m_game->shot(this, weapon, scene(), IsometricBullet::TargetEnemy, currentAngle())) {
 			playAttackEffect(weapon);
 
 			if (weapon->pickedBulletCount() > 0) {
@@ -171,6 +150,7 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 		} else {
 			clearDestinationPoint();
 			stop();
+			rotateBody(angleToPoint(enemy()->bodyPosition()));
 		}
 
 		if (weapon->hit(enemy())) {
@@ -181,6 +161,9 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 			}
 			playAttackEffect(weapon);
 		}
+
+		if (weapon->bulletCount() == 0)
+			messageEmptyBullet(weapon->weaponType());
 	} else {
 #ifndef Q_OS_WASM
 		StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
@@ -249,8 +232,9 @@ void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
 		return;
 	}
 
-	QLineF l(bodyPosition(), QPointF{x,y});
-	setCurrentAngle(toRadian(l.angle()));
+	rotateBody(angleToPoint(QVector2D(x,y)), true);
+
+	synchronize();
 
 	attackCurrentWeapon();
 }
@@ -863,8 +847,7 @@ void RpgPlayer::worldStep()
 
 	if (TiledWeapon *w = m_armory->currentWeapon();
 			w && (w->canShot() || w->canCast())) {
-		float distance = 500.; //w->distance();
-		updateEnemies(distance);
+		updateEnemies(w->bulletDistance());
 	}
 	else
 		updateEnemies(0.);
@@ -997,9 +980,6 @@ void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const 
 		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableArrow:
-		case RpgPickableObject::PickableFireball:
-		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:

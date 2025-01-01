@@ -73,14 +73,12 @@ public:
 	void setDirection(Direction newDirection);
 
 	qreal currentDistance() const;
-	qreal currentAngle() const;
-	qreal currentAngleRadian() const;
 	qreal fullDistance() const;
 
 	QVector2D getShortestPoint(const QPointF &pos, float *dstDistance = nullptr, int *dstSegment = nullptr, float *dstFactor = nullptr);
 	std::optional<QVector2D> getLastSegmentPoint();
 
-	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
+	void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) override;
 	QPointF basePoint() override;
 
 
@@ -104,7 +102,6 @@ public:
 	void setWaitAtBegin(qint64 newWaitAtBegin);
 
 	int lastSegment() const;
-
 	float lastSegmentFactor() const;
 
 private:
@@ -119,7 +116,6 @@ private:
 
 	QPolygonF m_polygon;
 	Direction m_direction = Forward;
-	qreal m_currentAngle = 0.0;
 	qint64 m_waitAtEnd = 0;
 	qint64 m_waitAtBegin = 0;
 

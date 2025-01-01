@@ -74,6 +74,7 @@ private:
 
 	struct Body {
 		std::unique_ptr<TiledObjectBody> body;
+		int owner = -1;
 	};
 
 	struct PlayerPosition {
@@ -119,13 +120,29 @@ private:
 
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	std::vector<T*> getObjects() const;
+	std::vector<T*> getObjects();
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	std::vector<T*> getObjects(TiledScene *scene) const;
+	std::vector<T*> getObjects(TiledScene *scene);
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	std::vector<T*> getObjects(b2::World *world) const;
+	std::vector<T*> getObjects(b2::World *world);
+
+	TiledObjectBody *findObject(const TiledObjectBody::ObjectId &id);
+	TiledObjectBody *findObject(const TiledObjectBody::ObjectId &id, const int &ownerId);
+	TiledObjectBody *findObject(const int &sceneId, const int &id) {
+		return findObject(TiledObjectBody::ObjectId{.sceneId = sceneId, .id = id});
+	}
+	TiledObjectBody *findObject(const int &sceneId, const int &id, const int &ownerId) {
+		return findObject(TiledObjectBody::ObjectId{.sceneId = sceneId, .id = id}, ownerId);
+	}
+
+	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const int &owner = -1);
+	bool removeObject(TiledObjectBody *body);
+
+	void updateObjects();
+	void dumpObjects();
+
 
 
 	void startStepTimer();
@@ -141,10 +158,15 @@ private:
 
 	QLambdaThreadWorker m_stepTimerThread;
 	QRecursiveMutex m_stepMutex;
+	QMutex m_updateMutex;
 
 	std::vector<Scene> m_sceneList;
 	std::vector<Body> m_bodyList;
-	QVector<TiledObjectBody*> m_loadedObjectList;
+
+	std::vector<Body> m_addBodyList;
+	std::vector<TiledObjectBody*> m_removeBodyList;
+
+	int m_nextBodyId = 0;
 	QVector<PlayerPosition> m_playerPositionList;
 	TiledTransportList m_transportList;
 	KeyboardJoystickState m_keyboardJoystickState;
@@ -181,12 +203,6 @@ TiledGame::TiledGame(QQuickItem *parent)
 
 	m_tickTimer.reset(new AbstractGame::TickTimer);
 
-	/*d->m_stepTimer.setInterval(1000./60.);
-	d->m_stepTimer.setTimerType(Qt::PreciseTimer);
-	QObject::connect(&d->m_stepTimer, &QTimer::timeout, this, &TiledGame::updateStepTimer);*/
-
-	//d->m_stepTimer.start(0, Qt::PreciseTimer, this);
-
 	connect(this, &TiledGame::activeFocusChanged, this, [this](const bool &focus){
 		if (!focus) {
 			d->m_keyboardJoystickState.clear();
@@ -204,7 +220,6 @@ TiledGame::~TiledGame()
 {
 	for (const auto &s : std::as_const(d->m_sceneList)) {
 		s.scene->stopMusic();
-		///s.scene->world()->setRunning(false);
 		if (s.scene->game() == this)
 			s.scene->setGame(nullptr);
 	}
@@ -213,7 +228,6 @@ TiledGame::~TiledGame()
 
 	d->m_bodyList.clear();
 	d->m_sceneList.clear();
-	d->m_loadedObjectList.clear();
 	d->m_playerPositionList.clear();
 
 	delete d;
@@ -563,11 +577,6 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 	QRectF tmpViewport;
 
 	for (Tiled::MapObject *object : std::as_const(group->objects())) {
-		/*if (d->findLoadedObject(object->id(), scene->sceneId())) {
-			LOG_CERROR("game") << "Object already created" << object->id() << scene->sceneId();
-			continue;
-		}*/
-
 		if (className == QStringLiteral("ground")) {
 			loadGround(scene, object, renderer);
 		} else if (className == QStringLiteral("dynamicZ")) {
@@ -635,16 +644,13 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 	params.restitution = 0.f;
 	params.isSensor = false;
 	params.enableSensorEvents = false;
-	params.enableContactEvents = false;
+	params.enableContactEvents = true;
 	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureGround);
 
 	TiledObjectBody *mapObject = createFromMapObject<TiledObjectBody>(scene, object, renderer, params);
 
 	if (!mapObject)
 		return nullptr;
-
-	mapObject->setObjectId({object->id(), scene->sceneId()});
-	scene->m_groundObjects.append(mapObject);
 
 	QPointF delta;
 
@@ -822,6 +828,8 @@ void TiledGame::timerEvent(QTimerEvent */*event*/)
 
 void TiledGame::timeSteppedEvent()
 {
+	QMutexLocker locker(&d->m_stepMutex);
+
 	for (const TiledGamePrivate::Body &ptr : std::as_const(d->m_bodyList)) {
 		if (ptr.body->scene() == m_currentScene)
 			ptr.body->synchronize();
@@ -897,6 +905,10 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 #ifndef QT_NO_DEBUG
 		case Qt::Key_P:
 			setDebugView(!m_debugView);
+			break;
+
+		case Qt::Key_F11:
+			d->dumpObjects();
 			break;
 #endif
 	}
@@ -1035,7 +1047,7 @@ bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, Ti
 	if (!transport->isOpen())
 		return false;
 
-	changeScene(object, oldScene, newScene, newObject->bodyPosition());
+	changeScene(object, newScene, newObject->bodyPosition());
 
 	if (newDirection != -1)
 		object->setFacingDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
@@ -1072,6 +1084,8 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
 {
 	if (!scene || !debugDraw)
 		return;
+
+	QMutexLocker locker(&d->m_stepMutex);
 
 	for (const auto &ptr : d->m_bodyList) {
 		TiledObjectBody *b = ptr.body.get();
@@ -1276,15 +1290,43 @@ void TiledGame::updateStepTimer()
  * @param bodyPtr
  */
 
-TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body)
+TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body, const int &id, const int &owner)
 {
 	Q_ASSERT(body);
 
+	if (id < 0 || (id == 0 && owner != 0)) {
+		LOG_CERROR("scene") << "Invalid object id" << owner << body->scene()->sceneId() << id;
+		return nullptr;
+	}
+
 	QMutexLocker locker(&d->m_stepMutex);
 
-	auto &ptr = d->m_bodyList.emplace_back(std::move(body));
+	int newId = id;
+	if (id == 0 && owner == 0)
+		newId = ++d->m_nextBodyId;
 
-	return ptr.body.get();
+	if (d->findObject(body->scene()->sceneId(), newId, owner)) {
+		LOG_CERROR("scene") << "Object already exists" << owner << body->scene()->sceneId() << newId;
+		return nullptr;
+	}
+
+	body->setObjectId(body->scene()->sceneId(), newId);
+
+	return d->addObject(body, owner);
+}
+
+
+/**
+ * @brief TiledGame::removeObject
+ * @param body
+ * @return
+ */
+
+bool TiledGame::removeObject(TiledObjectBody *body)
+{
+	QMutexLocker locker(&d->m_stepMutex);
+
+	return d->removeObject(body);
 }
 
 
@@ -1403,20 +1445,15 @@ void TiledGame::setMessageList(QQuickItem *newMessageList)
  * @param to
  */
 
-void TiledGame::changeScene(TiledObject *object, TiledScene *from, TiledScene *to, const QPointF &toPoint)
+void TiledGame::changeScene(TiledObjectBody *object, TiledScene *to, const QPointF &toPoint)
 {
 	Q_ASSERT(object);
-	Q_ASSERT(from);
 	Q_ASSERT(to);
 
-	if (from == to) {
+	if (object->scene() == to) {
 		object->emplace(toPoint);
 	} else {
-		from->removeFromObjects(object);
-
 		object->setWorld(to->world(), toPoint);
-
-		to->appendToObjects(object);
 	}
 
 	IsometricEntity *entity = dynamic_cast<IsometricEntity*>(object);
@@ -1450,6 +1487,37 @@ void TiledGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
 									   scene,
 									   position
 								   });
+}
+
+
+
+
+/**
+ * @brief TiledGame::isGround
+ * @param x
+ * @param y
+ * @return
+ */
+
+bool TiledGame::isGround(const TiledScene *scene, const qreal &x, const qreal &y) const
+{
+	QMutexLocker locker(&d->m_stepMutex);
+
+	for (const auto &ptr : d->m_bodyList) {
+		TiledObjectBody *b = ptr.body.get();
+		if (!b || b->scene() != scene || !b->isBodyEnabled())
+			continue;
+
+		for (const b2::ShapeRef &sh : b->bodyShapes()) {
+			if (!(sh.GetFilter().categoryBits & TiledObjectBody::FixtureGround))
+				continue;
+
+			if (sh.TestPoint(b2Vec2(x, y)))
+				return true;
+		}
+	}
+
+	return false;
 }
 
 
@@ -1542,7 +1610,7 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
  * @param modifiers
  */
 
-void TiledGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers)
+void TiledGame::onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers)
 {
 	Q_UNUSED(x);
 	Q_UNUSED(y);
@@ -2082,8 +2150,10 @@ void TiledGame::setPaused(bool newPaused)
  */
 
 template<typename T, typename T2>
-std::vector<T *> TiledGamePrivate::getObjects() const
+std::vector<T *> TiledGamePrivate::getObjects()
 {
+	QMutexLocker locker(&m_stepMutex);
+
 	std::vector<T *> list;
 
 	for (const auto &ptr : m_bodyList) {
@@ -2102,12 +2172,14 @@ std::vector<T *> TiledGamePrivate::getObjects() const
  */
 
 template<typename T, typename T2>
-std::vector<T *> TiledGamePrivate::getObjects(TiledScene *scene) const
+std::vector<T *> TiledGamePrivate::getObjects(TiledScene *scene)
 {
 	std::vector<T *> list;
 
 	if (!scene)
 		return list;
+
+	QMutexLocker locker(&m_stepMutex);
 
 	for (const auto &ptr : m_bodyList) {
 		if (T* o = dynamic_cast<T*>(ptr.body.get())) {
@@ -2127,12 +2199,14 @@ std::vector<T *> TiledGamePrivate::getObjects(TiledScene *scene) const
  */
 
 template<typename T, typename T2>
-std::vector<T *> TiledGamePrivate::getObjects(b2::World *world) const
+std::vector<T *> TiledGamePrivate::getObjects(b2::World *world)
 {
 	std::vector<T *> list;
 
 	if (!world)
 		return list;
+
+	QMutexLocker locker(&m_stepMutex);
 
 	for (const auto &ptr : m_bodyList) {
 		if (T* o = dynamic_cast<T*>(ptr.body.get())) {
@@ -2151,13 +2225,158 @@ std::vector<T *> TiledGamePrivate::getObjects(b2::World *world) const
  * @brief TiledGamePrivate::startStepTimer
  */
 
+TiledObjectBody* TiledGamePrivate::findObject(const TiledObjectBody::ObjectId &id)
+{
+	QMutexLocker l(&m_stepMutex);
+
+	for (const Body &b : m_bodyList) {
+		if (b.body && b.body->objectId() == id)
+			return b.body.get();
+	}
+
+	return nullptr;
+}
+
+
+/**
+ * @brief TiledGamePrivate::findObject
+ * @param id
+ * @param ownerId
+ * @return
+ */
+
+TiledObjectBody *TiledGamePrivate::findObject(const TiledObjectBody::ObjectId &id, const int &ownerId)
+{
+	QMutexLocker l(&m_stepMutex);
+
+	for (const Body &b : m_bodyList) {
+		if (b.owner == ownerId && b.body && b.body->objectId() == id)
+			return b.body.get();
+	}
+
+	return nullptr;
+}
+
+
+/**
+ * @brief TiledGamePrivate::addObject
+ * @param body
+ * @param id
+ * @param owner
+ * @return
+ */
+
+TiledObjectBody *TiledGamePrivate::addObject(std::unique_ptr<TiledObjectBody> &body, const int &owner)
+{
+	QMutexLocker locker(&m_updateMutex);
+	TiledObjectBody *ptr = m_addBodyList.emplace_back(std::move(body), owner).body.get();
+
+	locker.unlock();
+
+	if (m_stepTimerId == Qt::TimerId::Invalid)
+		updateObjects();
+
+	return ptr;
+}
+
+
+
+
+/**
+ * @brief TiledGamePrivate::removeObject
+ * @param body
+ * @return
+ */
+
+bool TiledGamePrivate::removeObject(TiledObjectBody *body)
+{
+	QMutexLocker locker(&m_updateMutex);
+
+	bool ret = m_bodyList.cend() != std::find_if(m_bodyList.cbegin(), m_bodyList.cend(), [body](const Body &b) { return b.body.get() == body; } );
+
+	if (!ret)
+		ret = m_addBodyList.cend() != std::find_if(m_addBodyList.cbegin(), m_addBodyList.cend(), [body](const Body &b) { return b.body.get() == body; } );
+
+	if (ret)
+		m_removeBodyList.push_back(body);
+
+	locker.unlock();
+
+	if (m_stepTimerId == Qt::TimerId::Invalid)
+		updateObjects();
+
+	return ret;
+}
+
+
+/**
+ * @brief TiledGamePrivate::updateObjects
+ */
+
+void TiledGamePrivate::updateObjects()
+{
+	QMutexLocker locker(&m_updateMutex);
+
+	if (!m_addBodyList.empty()) {
+		for (auto &ptr : m_addBodyList)
+			m_bodyList.push_back(std::move(ptr));
+
+		m_addBodyList.clear();
+	}
+
+	if (!m_removeBodyList.empty()) {
+		for (auto it = m_bodyList.begin(); it != m_bodyList.end(); ) {
+			if (std::find(m_removeBodyList.cbegin(), m_removeBodyList.cend(), it->body.get()) != m_removeBodyList.cend()) {
+				if (dynamic_cast<QObject*>(it->body.get()))
+					dynamic_cast<QObject*>(it->body.release())->deleteLater();
+
+				it = m_bodyList.erase(it);
+			} else
+				++it;
+		}
+
+		m_removeBodyList.clear();
+	}
+}
+
+
+
+/**
+ * @brief TiledGamePrivate::dumpObjects
+ */
+
+void TiledGamePrivate::dumpObjects()
+{
+	QMutexLocker locker(&m_stepMutex);
+
+	LOG_CINFO("game") << "--------------------------------------------------------------";
+	LOG_CINFO("game") << "*** DUMP OBJECTS ***";
+	LOG_CINFO("game") << "--------------------------------------------------------------";
+
+	for (const Body &b : m_bodyList) {
+		if (b.body)
+			LOG_CINFO("game") << b.owner << b.body->objectId().sceneId << b.body->objectId().id
+							  << dynamic_cast<QObject*>(b.body.get())
+							  << (b.body->bodyShapes().empty() ? 0 : b.body->bodyShapes().front().GetFilter().categoryBits);
+		else
+			LOG_CERROR("game") << b.owner << "BAD BODY";
+	}
+
+	LOG_CINFO("game") << "--------------------------------------------------------------";
+}
+
+
+
+
+
+
 void TiledGamePrivate::startStepTimer()
 {
 	m_stepElapsedTimer.start();
 	m_stepTimerId = Qt::TimerId{q->startTimer(std::chrono::milliseconds{8}, Qt::PreciseTimer)};
 
 
-/*
+	/*
 	m_stepTimerRunning = true;
 
 #ifndef Q_OS_WASM
@@ -2231,6 +2450,8 @@ void TiledGamePrivate::startStepTimer()
 
 void TiledGamePrivate::stepWorlds()
 {
+	QMutexLocker locker(&m_stepMutex);
+
 	for (const Scene &ptr : std::as_const(m_sceneList)) {
 		ptr.world->Step(1/60., 4);
 
@@ -2239,6 +2460,7 @@ void TiledGamePrivate::stepWorlds()
 
 		for (int i=0; i<sensors.beginCount; ++i) {
 			const b2SensorBeginTouchEvent &event = sensors.beginEvents[i];
+
 			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.sensorShapeId).GetBody()))
 				b->onShapeContactBegin(event.sensorShapeId, event.visitorShapeId);
 			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.visitorShapeId).GetBody()))
@@ -2255,6 +2477,7 @@ void TiledGamePrivate::stepWorlds()
 
 		for (int i=0; i<events.beginCount; ++i) {
 			const b2ContactBeginTouchEvent &event = events.beginEvents[i];
+
 			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdA).GetBody()))
 				b->onShapeContactBegin(event.shapeIdA, event.shapeIdB);
 			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdB).GetBody()))
@@ -2271,6 +2494,9 @@ void TiledGamePrivate::stepWorlds()
 	}
 
 	for (const Body &ptr : std::as_const(m_bodyList)) {
-		ptr.body->worldStep();
+		if (ptr.body)
+			ptr.body->worldStep();
 	}
+
+	updateObjects();
 }

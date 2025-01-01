@@ -135,7 +135,7 @@ public:
 
 	bool transport(TiledObject *object, TiledTransport *transport, TiledObject *transportBase = nullptr);
 
-	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers);
+	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers);
 
 	virtual bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
 	virtual bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) = 0;
@@ -145,6 +145,8 @@ public:
 	virtual void onEnemyDead(TiledObject *enemy) = 0;
 	virtual void onEnemySleepingStart(TiledObject *enemy) = 0;
 	virtual void onEnemySleepingEnd(TiledObject *enemy) = 0;
+
+	virtual bool shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene, const IsometricBullet::Targets &targets, const qreal &angle) = 0;
 
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
@@ -185,20 +187,44 @@ public:
 
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	T* createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
-						   const b2::Shape::Params &params = {});
+	T* createFromCircle(const int &ownerId, const int &id,
+						TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
+						const b2::Shape::Params &params = {});
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	T* createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
-						   b2::Body::Params bParams, const b2::Shape::Params &params = {});
+	T* createFromCircle(const int &ownerId, const int &id,
+						TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
+						b2::Body::Params bParams, const b2::Shape::Params &params = {});
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	T* createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
-						   const b2::Shape::Params &params = {});
+	T* createFromPolygon(const int &ownerId, const int &id,
+						 TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+						 const b2::Shape::Params &params = {});
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	T* createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
-						   b2::Body::Params bParams, const b2::Shape::Params &params = {});
+	T* createFromPolygon(const int &ownerId, const int &id,
+						 TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+						 b2::Body::Params bParams, const b2::Shape::Params &params = {});
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromCircle(const int &ownerId, TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
+						const b2::Shape::Params &params = {})
+	{ return createFromCircle<T>(ownerId, 0, scene, center, radius, renderer, params); }
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromCircle(const int &ownerId, TiledScene *scene, const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
+						b2::Body::Params bParams, const b2::Shape::Params &params = {})
+	{ return createFromCircle<T>(ownerId, 0, scene, center, radius, renderer, bParams, params); }
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromPolygon(const int &ownerId, TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+						 const b2::Shape::Params &params = {})
+	{ return createFromPolygon<T>(ownerId, 0, scene, polygon, renderer, params); }
+
+	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
+	T* createFromPolygon(const int &ownerId, TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer,
+						 b2::Body::Params bParams, const b2::Shape::Params &params = {})
+	{ return createFromPolygon<T>(ownerId, 0, scene, polygon, renderer, bParams, params); }
 
 
 
@@ -309,15 +335,17 @@ signals:
 	void pausedChanged();
 
 protected:
-	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body);
+	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const int &id, const int &owner = -1);
+	bool removeObject(TiledObjectBody *body);
 	void addPlayerPosition(TiledScene *scene, const QPointF &position);
+	bool isGround(const TiledScene *scene, const qreal &x, const qreal &y) const;
 
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 
-	void changeScene(TiledObject *object, TiledScene *from, TiledScene *to, const QPointF &toPoint);
+	void changeScene(TiledObjectBody *object, TiledScene *to, const QPointF &toPoint);
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer);
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
@@ -394,10 +422,8 @@ inline T *TiledGame::createFromMapObject(TiledScene *scene, const Tiled::MapObje
 	if (!dptr->createFromMapObject(object, renderer, bParams, params))
 		return nullptr;
 
-	T* ret = dptr.get();
 	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-	addObject(b);
-	return ret;
+	return dynamic_cast<T*>(addObject(b, object->id(), -1));
 }
 
 
@@ -421,10 +447,8 @@ inline T *TiledGame::createFromMapObject(TiledScene *scene, const Tiled::MapObje
 	if (!dptr->createFromMapObject(object, renderer, params))
 		return nullptr;
 
-	T* ret = dptr.get();
 	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-	addObject(b);
-	return ret;
+	return dynamic_cast<T*>(addObject(b, object->id(), -1));
 }
 
 
@@ -440,7 +464,7 @@ inline T *TiledGame::createFromMapObject(TiledScene *scene, const Tiled::MapObje
  */
 
 template<typename T, typename T2>
-inline T *TiledGame::createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius,
+inline T *TiledGame::createFromCircle(const int &ownerId, const int &id, TiledScene *scene, const QPointF &center, const qreal &radius,
 									  Tiled::MapRenderer *renderer,
 									  b2::Body::Params bParams, const b2::Shape::Params &params)
 {
@@ -449,10 +473,8 @@ inline T *TiledGame::createFromCircle(TiledScene *scene, const QPointF &center, 
 	if (!dptr->createFromCircle(center, radius, renderer, bParams, params))
 		return nullptr;
 
-	T* ret = dptr.get();
 	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-	addObject(b);
-	return ret;
+	return dynamic_cast<T*>(addObject(b, id, ownerId));
 }
 
 
@@ -467,17 +489,15 @@ inline T *TiledGame::createFromCircle(TiledScene *scene, const QPointF &center, 
  */
 
 template<typename T, typename T2>
-inline T *TiledGame::createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer, b2::Body::Params bParams, const b2::Shape::Params &params)
+inline T *TiledGame::createFromPolygon(const int &ownerId, const int &id, TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer, b2::Body::Params bParams, const b2::Shape::Params &params)
 {
 	std::unique_ptr<T> dptr(new T(scene));
 
 	if (!dptr->createFromPolygon(polygon, renderer, bParams, params))
 		return nullptr;
 
-	T* ret = dptr.get();
 	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-	addObject(b);
-	return ret;
+	return dynamic_cast<T*>(addObject(b, id, ownerId));
 }
 
 
@@ -491,17 +511,15 @@ inline T *TiledGame::createFromPolygon(TiledScene *scene, const QPolygonF &polyg
  */
 
 template<typename T, typename T2>
-inline T *TiledGame::createFromPolygon(TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer, const b2::Shape::Params &params)
+inline T *TiledGame::createFromPolygon(const int &ownerId, const int &id, TiledScene *scene, const QPolygonF &polygon, Tiled::MapRenderer *renderer, const b2::Shape::Params &params)
 {
 	std::unique_ptr<T> dptr(new T(scene));
 
 	if (!dptr->createFromPolygon(polygon, renderer, params))
 		return nullptr;
 
-	T* ret = dptr.get();
 	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-	addObject(b);
-	return ret;
+	return dynamic_cast<T*>(addObject(b, id, ownerId));
 }
 
 
@@ -516,7 +534,7 @@ inline T *TiledGame::createFromPolygon(TiledScene *scene, const QPolygonF &polyg
  */
 
 template<typename T, typename T2>
-inline T *TiledGame::createFromCircle(TiledScene *scene, const QPointF &center, const qreal &radius,
+inline T *TiledGame::createFromCircle(const int &ownerId, const int &id, TiledScene *scene, const QPointF &center, const qreal &radius,
 									  Tiled::MapRenderer *renderer,
 									  const b2::Shape::Params &params)
 {
@@ -525,10 +543,8 @@ inline T *TiledGame::createFromCircle(TiledScene *scene, const QPointF &center, 
 	if (!dptr->createFromCircle(center, radius, renderer, params))
 		return nullptr;
 
-	T* ret = dptr.get();
 	std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-	addObject(b);
-	return ret;
+	return dynamic_cast<T*>(addObject(b, id, ownerId));
 }
 
 

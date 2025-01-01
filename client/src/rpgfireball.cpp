@@ -41,20 +41,6 @@ RpgFireball::RpgFireball(TiledScene *scene)
 }
 
 
-/**
- * @brief RpgFireball::createBullet
- * @param game
- * @param scene
- * @return
- */
-
-RpgFireball *RpgFireball::createBullet(TiledScene *scene)
-{
-	RpgFireball *bullet = new RpgFireball(scene);
-	bullet->initialize(20.);
-	return bullet;
-}
-
 
 
 /**
@@ -93,63 +79,3 @@ void RpgFireball::load()
 }
 
 
-
-/**
- * @brief RpgFireballPickable::RpgFireballPickable
- * @param parent
- */
-
-RpgFireballPickable::RpgFireballPickable(TiledScene *scene)
-	: RpgPickableObject(PickableFireball, scene)
-{
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
-}
-
-
-
-/**
- * @brief RpgFireballPickable::playerPick
- * @param player
- */
-
-bool RpgFireballPickable::playerPick(RpgPlayer *player)
-{
-	if (!player)
-		return false;
-
-	static const int num = 5;
-
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponLongbow);
-
-	//if (!weapon)
-	//	weapon = player->armory()->weaponAdd(new RpgLongbow);
-
-	if (!weapon) {
-		if (m_game)
-			m_game->messageColor(tr("Longbow missing"), QColor::fromRgbF(0.8, 0., 0.));
-		return false;
-	}
-
-	weapon->setBulletCount(weapon->bulletCount()+num);
-	weapon->setPickedBulletCount(weapon->pickedBulletCount()+num);
-
-	if (m_game)
-		m_game->message(tr("%1 fireballs gained").arg(num));
-
-	//player->armory()->setCurrentWeapon(weapon);
-
-	return true;
-}
-
-
-
-
-
-/**
- * @brief RpgFireballPickable::load
- */
-
-void RpgFireballPickable::load()
-{
-	loadDefault(QStringLiteral("fireball"));
-}

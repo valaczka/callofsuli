@@ -53,8 +53,6 @@ class IsometricBullet : public IsometricObject
 	Q_PROPERTY(Targets targets READ targets WRITE setTargets NOTIFY targetsChanged FINAL)
 	Q_PROPERTY(bool impacted READ impacted WRITE setImpacted NOTIFY impactedChanged FINAL)
 	Q_PROPERTY(qreal maxDistance READ maxDistance WRITE setMaxDistance NOTIFY maxDistanceChanged FINAL)
-	Q_PROPERTY(qint64 bulletId READ bulletId WRITE setBulletId NOTIFY bulletIdChanged FINAL)
-	Q_PROPERTY(bool autoDelete READ autoDelete WRITE setAutoDelete NOTIFY autoDeleteChanged FINAL)
 
 public:
 	explicit IsometricBullet(TiledScene *scene);
@@ -73,17 +71,13 @@ public:
 	Q_FLAG(Targets)
 
 
-	//static IsometricBullet* createBullet(TiledGame *game, TiledScene *scene);
+	void initialize(TiledWeapon *weapon);
 
-	void initialize(const qreal &radius);
-
-	virtual void shot(const QPointF &from, const Direction &direction);
 	virtual void shot(const QPointF &from, const qreal &angle);
-
-	void shot(const Targets &targets, const QPointF &from, const Direction &direction);
 	void shot(const Targets &targets, const QPointF &from, const qreal &angle);
 
 	void worldStep() override;
+	virtual void synchronize() override;
 
 	bool impacted() const;
 	void setImpacted(bool newImpacted);
@@ -91,50 +85,37 @@ public:
 	qreal maxDistance() const;
 	void setMaxDistance(qreal newMaxDistance);
 
-	qint64 bulletId() const;
-	void setBulletId(qint64 newBulletId);
-
-	bool autoDelete() const;
-	void setAutoDelete(bool newAutoDelete);
-
 	Targets targets() const;
 	void setTargets(const Targets &newTargets);
 
 	void setFromWeapon(TiledWeapon *newFromWeapon);
 
+	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
+
 signals:
 	void impactedChanged();
 	void maxDistanceChanged();
-	void bulletIdChanged();
-	void autoDeleteChanged();
 	void targetsChanged();
+	void autoDeleteRequest(IsometricBullet *bullet);
 
 protected:
 	virtual void load() = 0;
-	virtual void impactEvent(TiledObject *base);
-	virtual void groundEvent(TiledObject *base) { Q_UNUSED(base); }
+	virtual void impactEvent(TiledObjectBody *base);
+	virtual void groundEvent(TiledObjectBody *base) { Q_UNUSED(base); }
 	virtual void overshootEvent() {}
 
 	void doAutoDelete();
 
-private:
-	void fixtureBeginContact(const b2::ShapeRef &shape);
-	//void fixtureEndContact(Box2DFixture *other);
-
 protected:
-	QPointF m_startPoint;
-	Direction m_direction = Invalid;
-	qreal m_angle = 0.;
-	qreal m_speed = 20.;
+	QVector2D m_startPoint;
+	qreal m_speed = 200.;
 	qreal m_maxDistance = 700.;
-	qint64 m_bulletId = 0;
 	Targets m_targets = TargetNone;
 
 	IsometricBulletPrivate *d;
 
 private:
 	bool m_impacted = false;
-	bool m_autoDelete = true;
 };
 
 

@@ -44,8 +44,6 @@ public:
 	void setFromCast(const RpgPlayerCharacterConfig::CastType &cast);
 	void eventUseCast(const RpgPlayerCharacterConfig::CastType &cast, TiledObject *target = nullptr);
 
-protected:
-	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 };
 
 

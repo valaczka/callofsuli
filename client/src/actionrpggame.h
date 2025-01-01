@@ -138,7 +138,6 @@ private:
 	void loadInventory(RpgPlayer *player);
 	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
 	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
-	void loadBullet(RpgPlayer *player, const RpgPickableObject::PickableType &bulletType, const int &count);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);

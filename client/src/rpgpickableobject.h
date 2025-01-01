@@ -54,9 +54,9 @@ public:
 		PickableHp,
 		PickableShortbow,
 		PickableLongbow,
-		PickableArrow [[deprecated]],
+		/*PickableArrow [[deprecated]],
 		PickableFireball [[deprecated]],
-		PickableLightning [[deprecated]],
+		PickableLightning [[deprecated]],*/
 		PickableLongsword,
 		PickableDagger,
 		PickableShield,
@@ -78,9 +78,6 @@ public:
 
 	static QString pickableName(const PickableType &type);
 	static QString pickableNameEn(const PickableType &type);
-
-	template <typename T>
-	static T* createPickable(TiledScene *scene);
 
 	PickableType pickableType() const;
 
@@ -172,21 +169,5 @@ private:
 using RpgInventoryList = qolm::QOlm<RpgInventory>;
 Q_DECLARE_METATYPE(RpgInventoryList*)
 
-
-
-
-/**
- * @brief RpgPickableObject::createPickable
- * @param parent
- * @return
- */
-
-template<typename T>
-T *RpgPickableObject::createPickable(TiledScene *scene)
-{
-	T* e = new T(scene);
-	e->TiledObjectBody::createFromCircle({}, 70, nullptr);
-	return e;
-}
 
 #endif // RPGPICKABLEOBJECT_H

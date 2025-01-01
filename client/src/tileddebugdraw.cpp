@@ -275,15 +275,14 @@ void TiledDebugDraw::drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColo
 
 void TiledDebugDraw::drawPolygon(const QPolygonF &polygon, const QColor &color, const float &lineWidth)
 {
+	if (polygon.size() < 2)
+		return;
+
 	std::vector<b2Vec2> vertices;
 	vertices.reserve(polygon.size());
 
 	for (const auto &p : polygon)
 		vertices.emplace_back(p.x(), p.y());
-
-	/*if (polygon.isClosed())
-		drawPolygon(vertices.data(), vertices.size(), color, lineWidth);
-	else*/
 
 	drawPolyLines(vertices.data(), vertices.size(), color, lineWidth);
 }

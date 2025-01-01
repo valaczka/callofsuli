@@ -175,11 +175,13 @@ Flickable {
 		MouseArea {								// Workaround (https://bugreports.qt.io/browse/QTBUG-77629)
 			anchors.fill: parent
 
+			acceptedButtons: Qt.LeftButton|Qt.RightButton|Qt.MiddleButton
+
 			onClicked: event => {
 						   if (_scene.game) {
 							   _scene.game.onMouseClick(_scene.viewport.x + (event.x / _scene.scale),
 														_scene.viewport.y + (event.y / _scene.scale),
-														event.buttons,
+														event.button,
 														event.modifiers)
 						   }
 					   }

@@ -61,55 +61,20 @@ IsometricBullet::~IsometricBullet()
  * @brief IsometricBullet::initialize
  */
 
-void IsometricBullet::initialize(const qreal &radius)
+void IsometricBullet::initialize(TiledWeapon *weapon)
 {
 	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.8);
 
-	b2::Body::Params bParams;
-	bParams.type = b2BodyType::b2_dynamicBody;
-	bParams.fixedRotation = true;
-	bParams.isBullet = true;
-
-	b2::Shape::Params params;
-	params.density = 1.f;
-	params.friction = 1.f;
-	params.restitution = 0.f;
-	params.isSensor = true;
-	params.filter = TiledObjectBody::getFilter(FixtureTarget,
-											   FixtureTarget | FixturePlayerBody | FixtureEnemyBody | FixtureGround);
-
-	TiledObjectBody::createFromCircle({0.f, 0.f}, radius, nullptr, bParams, params);
-
-	//connect(m_fixture.get(), &Box2DCircle::beginContact, this, &IsometricBullet::fixtureBeginContact);
-	//connect(m_fixture.get(), &Box2DCircle::endContact, this, &IsometricBullet::fixtureEndContact);
+	m_speed = 300.;
 
 	load();
+
+	setFromWeapon(weapon);
 }
 
 
-
-/**
- * @brief IsometricBullet::shot
- * @param from
- * @param direction
- * @param distance
- */
-
-void IsometricBullet::shot(const QPointF &from, const Direction &direction)
-{
-	if (!scene())
-		return;
-
-	m_startPoint = from;
-	emplace(from);
-	setFacingDirection(direction);
-	m_direction = direction;
-	m_angle = 0.;
-	jumpToSprite("default", m_facingDirection);
-	scene()->appendToObjects(this);
-}
 
 
 /**
@@ -123,29 +88,16 @@ void IsometricBullet::shot(const QPointF &from, const qreal &angle)
 	if (!scene())
 		return;
 
-	m_startPoint = from;
+	m_startPoint = QVector2D(from);
 	emplace(from);
 	setFacingDirection(nearestDirectionFromRadian(angle));
-	m_direction = Invalid;
-	m_angle = angle;
-	jumpToSprite("default", m_facingDirection);
-	scene()->appendToObjects(this);
+	body().SetTransform(body().GetPosition(), b2MakeRot(angle));
+	body().SetAwake(true);
+	setSpeedFromAngle(angle, m_speed);
 }
 
 
 
-/**
- * @brief IsometricBullet::shot
- * @param targets
- * @param from
- * @param direction
- */
-
-void IsometricBullet::shot(const Targets &targets, const QPointF &from, const Direction &direction)
-{
-	setTargets(targets);
-	shot(from, direction);
-}
 
 
 /**
@@ -174,20 +126,23 @@ void IsometricBullet::worldStep()
 		return;
 	}
 
-	const qreal &distance = QVector2D(m_startPoint - bodyPosition()).length();
+	const qreal &distance = distanceToPoint(m_startPoint);
 
 	if (distance >= m_maxDistance) {
 		overshootEvent();
 		doAutoDelete();
 		return;
 	}
+}
 
-	if (m_direction != Invalid) {
-		setSpeedFromAngle(directionToIsometricRadian(m_direction), m_speed);
-	} else {
-		setSpeedFromAngle(m_angle, m_speed);
-	}
 
+/**
+ * @brief IsometricBullet::synchronize
+ */
+
+void IsometricBullet::synchronize()
+{
+	IsometricObject::synchronize();
 	jumpToSprite("default", m_facingDirection);
 }
 
@@ -213,63 +168,6 @@ void IsometricBullet::setMaxDistance(qreal newMaxDistance)
 	emit maxDistanceChanged();
 }
 
-qint64 IsometricBullet::bulletId() const
-{
-	return m_bulletId;
-}
-
-void IsometricBullet::setBulletId(qint64 newBulletId)
-{
-	if (m_bulletId == newBulletId)
-		return;
-	m_bulletId = newBulletId;
-	emit bulletIdChanged();
-}
-
-
-
-
-/**
- * @brief IsometricBullet::fixtureBeginContact
- * @param shape
- */
-
-void IsometricBullet::fixtureBeginContact(const b2::ShapeRef &shape)
-{
-	/*if (m_impacted) {
-		stop();
-		return;
-	}
-
-	TiledObject *base = TiledObject::getFromFixture(other);
-	shape(other->cshaperies().testFlag(TiledObjectBody::FixtureGround) &&
-			base && base->opaque()) {
-		setImpacted(true);
-		stop();
-		setCurrentDirection(Invalid);
-		groundEvent(base);
-		doAutoDelete();
-		return;
-	}
-
-
-	bool hasTarget = false;
-
-
-	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
-
-	if (m_targets.testFlag(TargetEnemy) && enemy) {
-		hasTarget = enemy->canBulletImpact(d->m_fromWeaponType);
-	}
-
-	if (IsometricPlayer *p = qobject_cast<IsometricPlayer*>(base); m_targets.testFlag(TargetPlayer) && p && !p->isLocked())
-		hasTarget = true;
-
-	if (!hasTarget)
-		return;
-
-	impactEvent(base);*/
-}
 
 
 /**
@@ -278,11 +176,10 @@ void IsometricBullet::fixtureBeginContact(const b2::ShapeRef &shape)
 
 void IsometricBullet::doAutoDelete()
 {
-	if (scene())
-		scene()->removeFromObjects(this);
-
 	setVisible(false);
-	this->deleteLater();
+	stop();
+	setBodyEnabled(false);
+	emit autoDeleteRequest(this);
 }
 
 
@@ -302,11 +199,68 @@ void IsometricBullet::setFromWeapon(TiledWeapon *newFromWeapon)
 
 
 /**
+ * @brief IsometricBullet::onShapeContactBegin
+ * @param self
+ * @param other
+ */
+
+void IsometricBullet::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
+{
+	if (m_impacted) {
+		stop();
+		return;
+	}
+
+
+	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+
+	if (!base)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	IsometricEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
+								dynamic_cast<IsometricEnemy*>(base) :
+								nullptr;
+
+	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody)  ?
+								  dynamic_cast<IsometricPlayer*>(base) :
+								  nullptr;
+
+
+
+	if (categories.testFlag(TiledObjectBody::FixtureGround) && base->opaque()) {
+		setImpacted(true);
+		stop();
+		groundEvent(base);
+		doAutoDelete();
+		return;
+	}
+
+
+	bool hasTarget = false;
+
+	if (m_targets.testFlag(TargetEnemy) && enemy) {
+		hasTarget = enemy->canBulletImpact(d->m_fromWeaponType);
+	}
+
+	if (m_targets.testFlag(TargetPlayer) && player && !player->isLocked()) {
+		hasTarget = true;
+	}
+
+	if (!hasTarget)
+		return;
+
+	impactEvent(base);
+}
+
+
+
+/**
  * @brief IsometricBullet::impactEvent
  * @param base
  */
 
-void IsometricBullet::impactEvent(TiledObject *base)
+void IsometricBullet::impactEvent(TiledObjectBody *base)
 {
 	if (!d->m_owner) {
 		LOG_CWARNING("game") << "Missing owner, bullet automatic impact event failed";
@@ -320,8 +274,11 @@ void IsometricBullet::impactEvent(TiledObject *base)
 		return;
 	}
 
-	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(base);
-	IsometricPlayer *player = qobject_cast<IsometricPlayer*>(base);
+
+	IsometricEnemy *enemy = dynamic_cast<IsometricEnemy*>(base);
+	IsometricPlayer *player = dynamic_cast<IsometricPlayer*>(base);
+
+	LOG_CINFO("game") << "IMPACT" << d->m_owner << enemy << player << d->m_fromWeaponType;
 
 	if (enemy)
 		game->playerAttackEnemy(d->m_owner, enemy, d->m_fromWeaponType);
@@ -333,7 +290,6 @@ void IsometricBullet::impactEvent(TiledObject *base)
 
 	setImpacted(true);
 	stop();
-	setFacingDirection(Invalid);
 	doAutoDelete();
 }
 
@@ -355,27 +311,6 @@ void IsometricBullet::setTargets(const Targets &newTargets)
 	m_targets = newTargets;
 	emit targetsChanged();
 }
-
-
-
-/**
- * @brief IsometricBullet::autoDelete
- * @return
- */
-
-bool IsometricBullet::autoDelete() const
-{
-	return m_autoDelete;
-}
-
-void IsometricBullet::setAutoDelete(bool newAutoDelete)
-{
-	if (m_autoDelete == newAutoDelete)
-		return;
-	m_autoDelete = newAutoDelete;
-	emit autoDeleteChanged();
-}
-
 
 
 

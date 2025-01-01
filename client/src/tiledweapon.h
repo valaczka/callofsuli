@@ -63,6 +63,7 @@ class TiledWeapon : public QObject
 	Q_PROPERTY(QString icon READ icon WRITE setIcon NOTIFY iconChanged FINAL)
 	Q_PROPERTY(qint64 repeaterIdle READ repeaterIdle WRITE setRepeaterIdle NOTIFY repeaterIdleChanged FINAL)
 	Q_PROPERTY(bool excludeFromLayers READ excludeFromLayers WRITE setExcludeFromLayers NOTIFY excludeFromLayersChanged FINAL)
+	Q_PROPERTY(qreal bulletDistance READ bulletDistance WRITE setBulletDistance NOTIFY bulletDistanceChanged FINAL)
 
 public:
 	enum WeaponType {
@@ -96,10 +97,7 @@ public:
 	static QString weaponNameEn(const WeaponType &type);
 	QString weaponNameEn() const { return weaponNameEn(m_weaponType); }
 
-	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction,
-			  const qreal &distance = 0.);
-	bool shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle,
-			  const qreal &distance = 0.);
+	bool shot();
 
 	bool canShot() const { return !m_canHit && m_bulletCount != 0; }
 
@@ -146,6 +144,9 @@ public:
 	bool disableTimerRepeater() const;
 	void setDisableTimerRepeater(bool newDisableTimerRepeater);
 
+	qreal bulletDistance() const;
+	void setBulletDistance(qreal newBulletDistance);
+
 signals:
 	void parentObjectChanged();
 	void bulletCountChanged();
@@ -157,8 +158,9 @@ signals:
 	void excludeFromLayersChanged();
 	void canCastChanged();
 
+	void bulletDistanceChanged();
+
 protected:
-	virtual IsometricBullet *createBullet(const qreal &distance = 0.) = 0;
 	virtual void eventAttack(TiledObject *target) { Q_UNUSED(target); }
 	virtual void eventProtect() {}
 
@@ -171,6 +173,7 @@ protected:
 	qint64 m_repeaterIdle = 125;
 	bool m_excludeFromLayers = false;
 	bool m_disableTimerRepeater = false;
+	qreal m_bulletDistance = 700;
 
 private:
 	const WeaponType m_weaponType;
@@ -199,7 +202,6 @@ public:
 	bool canAttack() const override final { return true; }
 
 protected:
-	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 	virtual void eventAttack(TiledObject *target) override;
 
 };

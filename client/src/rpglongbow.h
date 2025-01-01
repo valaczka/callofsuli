@@ -46,7 +46,6 @@ public:
 	bool canAttack() const override final { return true; }
 
 protected:
-	IsometricBullet *createBullet(const qreal &distance = 0.) override final;
 	void eventAttack(TiledObject *target) override final;
 
 private:
@@ -66,7 +65,7 @@ class RpgLongbowPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-    RpgLongbowPickable(TiledScene *scene = nullptr);
+	RpgLongbowPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

@@ -112,7 +112,7 @@ TiledWeapon *RpgEnemyBase::defaultWeapon() const
 
 void RpgEnemyBase::updateSprite()
 {
-	if (m_hp <= 0) {
+	if (!isAlive() || isSleeping()) {
 		jumpToSprite("death", m_facingDirection);
 		return;
 	}

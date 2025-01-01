@@ -116,7 +116,7 @@ public:
 
 protected:
 	virtual bool enemyWorldStep() = 0;
-	virtual bool enemyWorldStepOnVisiblePlayer(const float &angle, const qreal &factor) = 0;
+	virtual bool enemyWorldStepOnVisiblePlayer() = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
 
 	std::unique_ptr<AbstractTiledMotor> m_motor;
@@ -163,12 +163,15 @@ public:
 	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
 									IsometricPlayer *player = nullptr) const = 0;
 
-	void rotateToPlayer(IsometricPlayer *player, float *anglePtr = nullptr, qreal *distancePtr = nullptr);
+	void rotateToPlayer(IsometricPlayer *player, const bool &forced = false);
 
 	virtual int enemyType() const = 0;
 
 	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+
+	virtual void worldStep() override;
+	virtual void synchronize() override;
 
 signals:
 	void becameAlive();
@@ -181,7 +184,7 @@ signals:
 
 protected:
 	virtual bool enemyWorldStep() override;
-	virtual bool enemyWorldStepOnVisiblePlayer(const float &angle, const qreal &factor) override;
+	virtual bool enemyWorldStepOnVisiblePlayer() override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
 
 	virtual void load() = 0;
@@ -202,7 +205,7 @@ protected:
 	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
 	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
 
-	void stepMotor(const qreal &factor);
+	void stepMotor();
 
 protected:
 	qint64 m_inabilityTimer = -1;

@@ -106,13 +106,10 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 					}
 
 					if (object->shape() == Tiled::MapObject::Point) {
-						m_container = m_game->createFromCircle<RpgContainer>(scene,
+						m_container = m_game->createFromCircle<RpgContainer>(-1, object->id(), scene,
 																			 object->position(),
 																			 40., renderer,
 																			 getShapeParams(TiledObjectBody::FixtureContainer));
-
-						m_container->emplace(m_container->bodyPosition() + m_basePosition);
-						m_container->m_control = this;
 
 						setCenterPoint(renderer ?
 										   renderer->pixelToScreenCoords(object->position()) + m_basePosition :
@@ -126,6 +123,8 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 					}
 
 					m_container->setIsActive(true);
+					m_container->emplace(m_container->bodyPosition() + m_basePosition);
+					m_container->m_control = this;
 
 					QObject::connect(m_container, &RpgContainer::isActiveChanged, game, [this](){
 						update();
@@ -175,11 +174,11 @@ void RpgControlGroupContainer::setNameList(const QStringList &newNameList)
 
 void RpgControlGroupContainer::update()
 {
-	m_currentState = m_container->isActive() ? 1 : 2;
+	m_currentState = m_container && m_container->isActive() ? 1 : 2;
 	refreshVisualItem();
 
 	for (TiledObjectBody *o : m_tiledObjects) {
-		o->setBodyEnabled(m_container->isActive());
+		o->setBodyEnabled(m_container && m_container->isActive());
 	}
 }
 

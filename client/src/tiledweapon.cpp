@@ -123,53 +123,11 @@ QString TiledWeapon::weaponNameEn(const WeaponType &type)
  * @brief TiledWeapon::shot
  * @param targets
  * @param from
- * @param direction
- */
-
-bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &from, const TiledObject::Direction &direction, const qreal &distance)
-{
-	if (m_bulletCount == 0)
-		return false;
-
-	if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
-		return false;
-
-	const auto tick = m_parentObject->game()->tickTimer()->currentTick();
-
-	if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
-		return false;
-
-	IsometricBullet *bullet = createBullet(distance);
-
-	if (!bullet) {
-		LOG_CWARNING("game") << "Can't create bullet";
-		return false;
-	}
-
-	setBulletCount(m_bulletCount-1);
-
-	bullet->setFromWeapon(this);
-	bullet->setTargets(targets);
-	bullet->shot(from, direction);
-
-	if (m_repeaterIdle > 0)
-		m_timerRepeater = tick + m_repeaterIdle;
-
-	eventAttack(nullptr);
-
-	return true;
-}
-
-
-/**
- * @brief TiledWeapon::shot
- * @param targets
- * @param from
  * @param angle
  */
 
 
-bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &from, const qreal &angle, const qreal &distance)
+bool TiledWeapon::shot()
 {
 	if (m_bulletCount == 0)
 		return false;
@@ -181,19 +139,6 @@ bool TiledWeapon::shot(const IsometricBullet::Targets &targets, const QPointF &f
 
 	if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
 		return false;
-
-	IsometricBullet *bullet = createBullet(distance);
-
-	if (!bullet) {
-		LOG_CWARNING("game") << "Can't create bullet";
-		return false;
-	}
-
-	setBulletCount(m_bulletCount-1);
-
-	bullet->setFromWeapon(this);
-	bullet->setTargets(targets);
-	bullet->shot(from, angle);
 
 	if (m_repeaterIdle > 0)
 		m_timerRepeater = tick + m_repeaterIdle;
@@ -415,6 +360,25 @@ bool TiledWeapon::disableTimerRepeater() const
 void TiledWeapon::setDisableTimerRepeater(bool newDisableTimerRepeater)
 {
 	m_disableTimerRepeater = newDisableTimerRepeater;
+}
+
+
+/**
+ * @brief TiledWeapon::bulletDistance
+ * @return
+ */
+
+qreal TiledWeapon::bulletDistance() const
+{
+	return m_bulletDistance;
+}
+
+void TiledWeapon::setBulletDistance(qreal newBulletDistance)
+{
+	if (qFuzzyCompare(m_bulletDistance, newBulletDistance))
+		return;
+	m_bulletDistance = newBulletDistance;
+	emit bulletDistanceChanged();
 }
 
 

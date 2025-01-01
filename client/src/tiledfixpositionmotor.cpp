@@ -47,7 +47,7 @@ void TiledFixPositionMotor::updateBody(TiledObject *object, const float &, Abstr
 	Q_ASSERT(object);
 	object->stop();
 	if (m_direction != TiledObject::Invalid)
-		object->setFacingDirection(m_direction);
+		object->setCurrentAngle(TiledObject::directionToRadian(m_direction));
 }
 
 

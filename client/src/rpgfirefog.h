@@ -41,9 +41,6 @@ public:
 	bool protect(const WeaponType &) override final { return false; }
 	bool canProtect(const WeaponType &) const override final { return false; }
 	bool canAttack() const override final { return true; }
-
-protected:
-	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 };
 
 #endif // RPGFIREFOG_H

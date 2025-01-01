@@ -125,13 +125,8 @@ public:
 	std::optional<QPolygonF> findShortestPath(const QPointF &from, const QPointF &to) const;
 	std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
 
-	[[deprecated]] void appendToObjects(TiledObject *object);
-	[[deprecated]] void removeFromObjects(TiledObject *object);
-
 	void startMusic();
 	void stopMusic();
-
-	bool isGroundContainsPoint(const QPointF &point) const;
 
 	b2::World *world() const { return m_world; }
 
@@ -183,7 +178,6 @@ protected:
 	//std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
 	std::unique_ptr<Tiled::Map> m_map;
 	b2::World *m_world = nullptr;
-	QVector<TiledObjectBody*> m_groundObjects;
 	QString m_ambientSound;
 	QString m_backgroundMusic;
 	TiledSceneDefinition::SceneEffect m_sceneEffect = TiledSceneDefinition::EffectNone;

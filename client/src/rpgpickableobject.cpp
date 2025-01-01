@@ -35,8 +35,6 @@
 
 const QHash<QString, RpgPickableObject::PickableType> RpgPickableObject::m_typeHash = {
 	{ QStringLiteral("shield"), PickableShield },
-	{ QStringLiteral("arrow"), PickableArrow },
-	{ QStringLiteral("fireball"), PickableFireball },
 	{ QStringLiteral("hp"), PickableHp },
 	{ QStringLiteral("mp"), PickableMp },
 	{ QStringLiteral("coin"), PickableCoin },
@@ -63,20 +61,6 @@ void RpgPickableObject::initialize()
 	setZ(1);
 	setDefaultZ(1);
 
-	b2::Body::Params bParams;
-	bParams.type = b2BodyType::b2_staticBody;
-	bParams.fixedRotation = true;
-
-	b2::Shape::Params params;
-	params.density = 0.f;
-	params.friction = 0.f;
-	params.restitution = 0.f;
-	params.isSensor = true;
-	params.filter = TiledObjectBody::getFilter(FixturePickable,
-											   FixturePlayerBody | FixtureSensor | FixtureVirtualCircle);
-
-	TiledObjectBody::createFromCircle({0.f, 0.f}, 30., nullptr, bParams, params);
-
 	createVisual();
 
 	load();
@@ -96,9 +80,6 @@ QString RpgPickableObject::pickableName(const PickableType &type)
 		case PickableHp: return QStringLiteral("HP");
 		case PickableShortbow: return TiledWeapon::weaponName(TiledWeapon::WeaponShortbow);
 		case PickableLongbow: return TiledWeapon::weaponName(TiledWeapon::WeaponLongbow);
-		case PickableArrow: return QStringLiteral("Nyíl");
-		case PickableFireball: return QStringLiteral("Tűzgolyó");
-		case PickableLightning: return TiledWeapon::weaponName(TiledWeapon::WeaponLightningWeapon);
 		case PickableLongsword: return TiledWeapon::weaponName(TiledWeapon::WeaponLongsword);
 		case PickableDagger: return TiledWeapon::weaponName(TiledWeapon::WeaponDagger);
 		case PickableShield: return QStringLiteral("Pajzs");
@@ -125,9 +106,6 @@ QString RpgPickableObject::pickableNameEn(const PickableType &type)
 		case PickableHp: return QStringLiteral("HP");
 		case PickableShortbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponShortbow);
 		case PickableLongbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow);
-		case PickableArrow: return QStringLiteral("Arrow");
-		case PickableFireball: return QStringLiteral("Fireball");
-		case PickableLightning: return TiledWeapon::weaponName(TiledWeapon::WeaponLightningWeapon);
 		case PickableLongsword: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword);
 		case PickableDagger: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger);
 		case PickableShield: return QStringLiteral("Shield");
@@ -326,9 +304,6 @@ QString RpgInventory::icon() const
 		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableArrow:
-		case RpgPickableObject::PickableFireball:
-		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:
@@ -357,9 +332,6 @@ QColor RpgInventory::iconColor() const
 		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableArrow:
-		case RpgPickableObject::PickableFireball:
-		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableShield:

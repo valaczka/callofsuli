@@ -34,6 +34,7 @@
 #include "rpggame.h"
 #include "rpghp.h"
 #include "rpgkeypickable.h"
+#include "rpglightning.h"
 #include "rpglongbow.h"
 #include "rpglongsword.h"
 #include "rpgmp.h"
@@ -84,6 +85,7 @@ const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
 
 
 
+
 /**
  * @brief RpgGame::RpgGame
  * @param parent
@@ -102,16 +104,6 @@ RpgGame::RpgGame(QQuickItem *parent)
 
 RpgGame::~RpgGame()
 {
-	/*for (const auto &e : std::as_const(m_enemyDataList)) {
-		if (e.enemy)
-			e.enemy->setGame(nullptr);
-	}
-
-	for (const auto &p : std::as_const(m_players)) {
-		if (p)
-			p->setGame(nullptr);
-	}*/
-
 	m_controlGroups.clear();
 	m_enemyDataList.clear();
 	m_players.clear();
@@ -160,12 +152,10 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 			}
 		}
 
-		IsometricEnemy *enemy = createEnemy(e.type, e.subtype, e.scene);
+		IsometricEnemy *enemy = createEnemy(e.type, e.subtype, e.scene, e.objectId.id);
 
 		if (!enemy)
 			continue;
-
-		enemy->setObjectId(e.objectId);
 
 		if (!e.displayName.isEmpty()) {
 			enemy->setDisplayName(e.displayName);
@@ -180,7 +170,6 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 										enemy->nearestDirectionFromRadian(TiledObject::toRadian(e.defaultAngle)));
 
 
-		e.scene->appendToObjects(enemy);
 		e.enemy = enemy;
 	}
 
@@ -198,7 +187,6 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 		if (!pickable)
 			continue;
 
-		pickable->setObjectId(e.objectId);
 		pickable->setName(e.name);
 		pickable->emplace(e.position);
 
@@ -207,7 +195,6 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 			pickable->createMarkerItem();
 		}
 
-		e.scene->appendToObjects(pickable);
 		e.pickableObject = pickable;
 		pickable->setIsActive(true);
 	}
@@ -333,11 +320,6 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 		return false;
 
 	object->setIsActive(false);
-
-	if (object->scene()) {
-		object->scene()->removeFromObjects(object);
-		///object->setScene(nullptr);
-	}
 
 	p->inventoryAdd(object);
 
@@ -482,7 +464,6 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 				for (const auto &p : it->pickables) {
 					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
 						pickable->emplace(iface->getPickablePosition(num++));
-						enemy->scene()->appendToObjects(pickable);
 						pickable->setIsActive(true);
 					}
 				}
@@ -490,7 +471,6 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 				for (const auto &p : it->pickablesOnce) {
 					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
 						pickable->emplace(iface->getPickablePosition(num++));
-						enemy->scene()->appendToObjects(pickable);
 						pickable->setIsActive(true);
 					}
 				}
@@ -638,7 +618,6 @@ void RpgGame::playerUseContainer(RpgPlayer *player, RpgContainer *container)
 			++i;
 
 			pickable->emplace(pos);
-			container->scene()->appendToObjects(pickable);
 			pickable->setIsActive(true);
 		}
 
@@ -657,13 +636,30 @@ void RpgGame::playerUseContainer(RpgPlayer *player, RpgContainer *container)
  * @return
  */
 
-IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene)
+IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene, const int &id)
 {
 	IsometricEnemy *enemy = nullptr;
 
+	b2::Body::Params bParams;
+	bParams.type = b2BodyType::b2_kinematicBody;
+	bParams.fixedRotation = true;
+
+	b2::Shape::Params params;
+	params.density = 1.f;
+	params.friction = 1.f;
+	params.restitution = 0.f;
+	params.enableContactEvents = true;
+	params.enableSensorEvents = true;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureEnemyBody,
+											   TiledObjectBody::FixtureGround |
+											   TiledObjectBody::FixturePlayerBody |
+											   TiledObjectBody::FixtureTarget);
+
+	static const float size = 15.;
+
 	switch (type) {
 		case RpgEnemyIface::EnemyWerebear: {
-			enemy = new RpgWerebear(scene);
+			enemy = createFromCircle<RpgWerebear>(-1, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 		}
 
@@ -679,10 +675,11 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		case RpgEnemyIface::EnemyBarbarianFix:
 		case RpgEnemyIface::EnemySkeleton:
 		{
-			RpgEnemyBase *e = new RpgEnemyBase(scene);
-			e->m_enemyType = type;
-			e->setSubType(subtype);
-			enemy = e;
+			if (RpgEnemyBase *e = createFromCircle<RpgEnemyBase>(-1, id, scene, {0.f, 0.f}, size, nullptr, bParams, params)) {
+				e->m_enemyType = type;
+				e->setSubType(subtype);
+				enemy = e;
+			}
 			break;
 		}
 
@@ -692,9 +689,6 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 	}
 
 	if (enemy) {
-		///enemy->setParent(this);
-		//enemy->setGame(this);
-		//enemy->setScene(scene);
 		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
 
 		if (type == RpgEnemyIface::EnemySoldierFix ||
@@ -707,9 +701,6 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 		}
 
 		enemy->initialize();
-
-		std::unique_ptr<TiledObjectBody> b(std::move(enemy));
-		addObject(b);
 	}
 
 	return enemy;
@@ -724,70 +715,202 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
  * @return
  */
 
-RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType &type, const QString &name, TiledScene *scene)
+RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType &type, const QString &name,
+										   TiledScene *scene, const int &ownerId, const int &id)
 {
+	b2::Body::Params bParams;
+	bParams.type = b2BodyType::b2_staticBody;
+	bParams.fixedRotation = true;
+
+	b2::Shape::Params params;
+	params.density = 0.f;
+	params.friction = 0.f;
+	params.restitution = 0.f;
+	params.isSensor = true;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixturePickable,
+											   TiledObjectBody::FixturePlayerBody |
+											   TiledObjectBody::FixtureSensor |
+											   TiledObjectBody::FixtureVirtualCircle);
+
+
+	static const float size = 30.;
+
 	RpgPickableObject *pickable = nullptr;
 
 	switch (type) {
 		case RpgPickableObject::PickableShield:
-			pickable = RpgPickableObject::createPickable<RpgShieldPickable>(scene);
+			pickable = createFromCircle<RpgShieldPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableHp:
-			pickable = RpgPickableObject::createPickable<RpgHpPickable>(scene);
+			pickable = createFromCircle<RpgHpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableMp:
-			pickable = RpgPickableObject::createPickable<RpgMpPickable>(scene);
+			pickable = createFromCircle<RpgMpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableCoin:
-			pickable = RpgPickableObject::createPickable<RpgCoinPickable>(scene);
-			break;
-
-		case RpgPickableObject::PickableArrow:
-			pickable = RpgPickableObject::createPickable<RpgArrowPickable>(scene);
-			break;
-
-		case RpgPickableObject::PickableFireball:
-			pickable = RpgPickableObject::createPickable<RpgFireballPickable>(scene);
+			pickable = createFromCircle<RpgCoinPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableShortbow:
-			pickable = RpgPickableObject::createPickable<RpgShortbowPickable>(scene);
+			pickable = createFromCircle<RpgShortbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableLongbow:
-			pickable = RpgPickableObject::createPickable<RpgLongbowPickable>(scene);
+			pickable = createFromCircle<RpgLongbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableLongsword:
-			pickable = RpgPickableObject::createPickable<RpgLongswordPickable>(scene);
+			pickable = createFromCircle<RpgLongswordPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableTime:
-			pickable = RpgPickableObject::createPickable<RpgTimePickable>(scene);
+			pickable = createFromCircle<RpgTimePickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableKey:
-			pickable = RpgPickableObject::createPickable<RpgKeyPickable>(scene);
+			pickable = createFromCircle<RpgKeyPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
 		case RpgPickableObject::PickableDagger:
-		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableInvalid:
 			break;
 	}
 
 	if (pickable) {
-		pickable->setParent(this);
-		/*pickable->setGame(this);
-		pickable->setScene(scene);*/
 		pickable->setName(name);
 		pickable->initialize();
 	}
 
 	return pickable;
+}
+
+
+/**
+ * @brief RpgGame::createBullet
+ * @param type
+ * @param scene
+ * @param id
+ * @param ownerId
+ * @param weapon
+ * @return
+ */
+
+IsometricBullet *RpgGame::createBullet(const TiledWeapon::WeaponType &type, TiledScene *scene, const int &id, const int &ownerId,
+									   TiledWeapon *weapon)
+{
+	b2::Body::Params bParams;
+	bParams.type = b2BodyType::b2_dynamicBody;
+	bParams.fixedRotation = true;
+	bParams.isBullet = true;
+
+	b2::Shape::Params params;
+	params.density = 1.f;
+	params.friction = 1.f;
+	params.restitution = 0.f;
+	params.isSensor = false;
+	params.enableSensorEvents = true;
+	params.enableContactEvents = true;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureBulletBody,
+											   TiledObjectBody::FixtureTarget |
+											   TiledObjectBody::FixtureGround);
+
+
+
+	static const float size = 10.;
+
+	IsometricBullet *bullet = nullptr;
+
+	switch (type) {
+		case TiledWeapon::WeaponShortbow:
+			bullet = createFromCircle<RpgArrow>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
+			break;
+
+		case TiledWeapon::WeaponLongbow:
+			bullet = createFromCircle<RpgFireball>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
+			break;
+
+		case TiledWeapon::WeaponLightningWeapon:
+			bullet = createFromCircle<RpgLightning>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
+			break;
+
+		case TiledWeapon::WeaponHand:
+		case TiledWeapon::WeaponDagger:
+		case TiledWeapon::WeaponLongsword:
+		case TiledWeapon::WeaponBroadsword:
+		case TiledWeapon::WeaponAxe:
+		case TiledWeapon::WeaponHammer:
+		case TiledWeapon::WeaponMace:
+		case TiledWeapon::WeaponGreatHand:
+		case TiledWeapon::WeaponMageStaff:
+		case TiledWeapon::WeaponFireFogWeapon:
+		case TiledWeapon::WeaponShield:
+		case TiledWeapon::WeaponInvalid:
+			break;
+
+	}
+
+	if (bullet) {
+		bullet->initialize(weapon);
+	}
+
+	return bullet;
+}
+
+
+/**
+ * @brief RpgGame::createBullet
+ * @param weapon
+ * @param scene
+ * @param id
+ * @param ownerId
+ * @return
+ */
+
+IsometricBullet *RpgGame::createBullet(TiledWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId)
+{
+	Q_ASSERT(weapon);
+	return createBullet(weapon->weaponType(), scene, id, ownerId, weapon);
+}
+
+
+
+/**
+ * @brief RpgGame::shot
+ * @param owner
+ * @param targets
+ * @param angle
+ */
+
+bool RpgGame::shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene, const IsometricBullet::Targets &targets, const qreal &angle)
+{
+	LOG_CDEBUG("game") << "Shot" << owner << weapon << targets;
+
+	if (!weapon || !owner)
+		return false;
+
+	if (!weapon->shot())
+		return false;
+
+	// TODO: playerID
+	IsometricBullet *bullet = createBullet(weapon, scene, 0, 0);
+
+	if (!bullet) {
+		LOG_CWARNING("game") << "Can't create bullet";
+		return false;
+	}
+
+	connect(bullet, &IsometricBullet::autoDeleteRequest, this, &RpgGame::removeObject);
+
+	weapon->setBulletCount(weapon->bulletCount()-1);
+
+	bullet->setTargets(targets);
+	bullet->setMaxDistance(weapon->bulletDistance());
+	bullet->shot(targets, owner->bodyPosition(), angle);
+
+	return true;
 }
 
 
@@ -1169,7 +1292,14 @@ void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
 		if (e.scene != scene || e.path.isEmpty())
 			continue;
 
-		if (e.path.size() > 1) {
+		if (!e.enemy || !e.enemy->isAlive())
+			continue;
+
+		if (e.enemy->m_returnPathMotor) {
+			debugDraw->drawPolygon(e.enemy->m_returnPathMotor->path(),
+								   e.enemy->body().GetType() == b2_kinematicBody ? QColor::fromRgb(0, 200, 0) : QColor::fromRgb(230, 0, 200),
+								   3.);
+		} else if (e.path.size() > 1) {
 			debugDraw->drawPolygon(e.path, QColor::fromRgb(230, 0, 0), 3.);
 		} else
 			debugDraw->drawSolidCircle(e.path.first(), 3., QColor::fromRgb(230, 0, 0));
@@ -1333,6 +1463,45 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgE
 
 
 
+/**
+ * @brief RpgGame::createPlayer
+ * @param scene
+ * @param config
+ * @return
+ */
+
+RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config)
+{
+	b2::Body::Params bParams;
+	bParams.type = b2BodyType::b2_dynamicBody;
+	bParams.fixedRotation = true;
+
+	b2::Shape::Params params;
+	params.density = 1.f;
+	params.friction = 1.f;
+	params.restitution = 0.f;
+	params.enableContactEvents = true;
+	params.enableSensorEvents = true;
+	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixturePlayerBody,
+											   TiledObjectBody::FixtureCategories(TiledObjectBody::FixtureAll)
+											   .setFlag(TiledObjectBody::FixturePlayerBody, false)
+											   .setFlag(TiledObjectBody::FixtureVirtualCircle, false)
+											   .setFlag(TiledObjectBody::FixtureSensor, false)
+											   );
+
+
+	RpgPlayer *player = createFromCircle<RpgPlayer>(0, scene, {0.f, 0.f}, 15., nullptr, bParams, params);
+
+	if (player) {
+		player->setConfig(config);
+		player->initialize();
+	}
+
+	return player;
+}
+
+
+
 
 /**
  * @brief RpgGame::getMetric
@@ -1409,7 +1578,7 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 
 
 	m_enemyDataList.append(EnemyData{
-							   TiledObject::ObjectId{object->id(), scene->sceneId()},
+							   TiledObject::ObjectId{.sceneId = scene->sceneId(), .id = object->id()},
 							   type,
 							   object->name(),
 							   p,
@@ -1453,7 +1622,7 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 	const QPointF &point = renderer->pixelToScreenCoords(object->position());
 
 	m_pickableDataList.append(PickableData{
-								  TiledObject::ObjectId{object->id(), scene->sceneId()},
+								  TiledObject::ObjectId{.sceneId = scene->sceneId(), .id = object->id() },
 								  type,
 								  object->name(),
 								  point,
@@ -2546,9 +2715,9 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
 		def = new RpgEnemyMetricDefinition;
 
 		EnemyMetric soldier;
-		soldier.speed = 90.;
-		soldier.returnSpeed = 100;
-		soldier.pursuitSpeed = 150.;
+		soldier.speed = 85.;
+		soldier.returnSpeed = 125;
+		soldier.pursuitSpeed = 170.;
 		soldier.sensorRange = M_PI*0.5;
 
 		EnemyMetric archer = soldier;
@@ -2600,7 +2769,7 @@ RpgEnemyMetricDefinition RpgGame::defaultEnemyMetric()
  * @param y
  */
 
-void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers)
+void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers)
 {
 	if (m_paused)
 		return;
@@ -2608,8 +2777,7 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButton
 	if (!m_controlledPlayer)
 		return;
 
-
-	if (buttons.testFlag(Qt::RightButton)) {
+	if (Qt::MouseButtons::fromInt(buttons).testFlag(Qt::RightButton)) {
 		m_controlledPlayer->clearDestinationPoint();
 		return;
 	}
@@ -3079,3 +3247,4 @@ void RpgGame::setScatterSeriesPoints(QScatterSeries *newScatterSeriesPoints)
 	m_scatterSeriesPoints = newScatterSeriesPoints;
 	emit scatterSeriesPointsChanged();
 }
+

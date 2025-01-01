@@ -109,7 +109,7 @@ protected:
 	void onDead() override;
 	void startInability();
 	void startInability(const int &msec);
-        void updateEnemies(const float &shotRange);
+		void updateEnemies(const float &shotRange);
 
 	virtual void load() = 0;
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
@@ -130,7 +130,7 @@ protected:
 	IsometricEnemy *m_enemy = nullptr;
 	qint64 m_inabilityTimer = -1;
 	qreal m_sensorLength = 200.;
-	qreal m_sensorRange = M_PI_2;
+	//qreal m_sensorRange = M_PI_2;
 	qreal m_targetCircleRadius = 50.;
 	qreal m_speedLength = 3.;
 	qreal m_speedRunLength = 7.;

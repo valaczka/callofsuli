@@ -46,33 +46,12 @@ public:
 	RpgArrow(TiledScene *scene = nullptr);
 	virtual ~RpgArrow() {}
 
-	static RpgArrow* createBullet(TiledScene *scene);
-
 protected:
 	void load() override final;
 	//void impactEvent(TiledObjectBase *base) override final;
 };
 
 
-
-/**
- * @brief The RpgArrowPickable class
- */
-
-class RpgArrowPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-	RpgArrowPickable(TiledScene *scene = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-protected:
-	void load() override final;
-
-};
 
 
 

@@ -132,8 +132,6 @@ public:
 	explicit RpgPlayer(TiledScene *scene = nullptr);
 	virtual ~RpgPlayer();
 
-	static RpgPlayer* createPlayer(RpgGame *game, TiledScene *scene, const RpgPlayerCharacterConfig &config);
-
 	Q_INVOKABLE void attack(TiledWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
 

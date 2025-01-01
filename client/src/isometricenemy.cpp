@@ -60,19 +60,11 @@ void IsometricEnemy::initialize()
 	setDefaultZ(1);
 	setSubZ(0.5);
 
-	b2::Body::Params bParams;
-	bParams.type = b2BodyType::b2_kinematicBody;
-	bParams.fixedRotation = true;
+	if (m_metric.targetCircleRadius <= 0)
+		m_metric.targetCircleRadius = 50.;
 
-	b2::Shape::Params params;
-	params.density = 1.f;
-	params.friction = 1.f;
-	params.restitution = 0.f;
-	params.filter = TiledObjectBody::getFilter(FixtureEnemyBody, FixturePlayerBody | FixtureTarget);
-
-	createFromCircle({0.f, 0.f}, 15., nullptr, bParams, params);
 	setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange, FixtureTarget);
-	addTargetCircle(m_metric.targetCircleRadius > 0. ? m_metric.targetCircleRadius : 50.);
+	addTargetCircle(m_metric.targetCircleRadius);
 
 	createVisual();
 
@@ -219,7 +211,7 @@ void IsometricEnemy::eventKilledByPlayer(IsometricPlayer *player)
 
 void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
 {
-	if (!weapon || !player || player->isLocked())
+	if (!weapon || !player || player->isLocked() || !m_game)
 		return;
 
 	if (weapon->canHit()) {
@@ -228,175 +220,13 @@ void IsometricEnemy::attackPlayer(IsometricPlayer *player, TiledWeapon *weapon)
 			playAttackEffect(weapon);
 	} else if (weapon->canShot()) {
 		LOG_CTRACE("game") << "Enemy shot player:" << this << player << weapon;
-		if (weapon->shot(IsometricBullet::TargetPlayer, bodyPosition(), angleToPoint(player->bodyPosition())))
+		if (m_game->shot(this, weapon, scene(), IsometricBullet::TargetPlayer, angleToPoint(player->bodyPosition())))
 			playAttackEffect(weapon);
 	}
 }
 
 
 
-
-
-/**
- * @brief IsometricEnemy::entityWorldStep
- */
-/*
-void IsometricEnemy::entityWorldStep(const qreal &factor)
-{
-	if (!isAlive() || isSleeping()) {
-		stop();
-		jumpToSprite("death", m_facingDirection);
-		return;
-	}
-
-	if (m_isSleeping)
-		onSleepingEnd();
-
-	if (m_movingDirection != Invalid)
-		setFacingDirection(m_movingDirection);
-
-
-	//QPointF visiblePoint;
-	float transparentGnd = -1.0;
-
-	IsometricPlayer *myPlayer = getVisibleEntity<QPointer<IsometricPlayer>>(this, m_contactedPlayers,
-																			TiledObjectBody::FixturePlayerBody,
-																			&transparentGnd
-																			///// / *, &visiblePoint * /);
-
-
-	float angle = 0.;
-	bool isPursuit = false;
-	bool attackWithoutPursuit = false;
-
-	if (myPlayer) {
-		if (!m_player)
-			setPlayer(myPlayer);
-
-		if (m_returnPathMotor && !myPlayer->isLocked())
-			m_returnPathMotor->clearLastSeenPoint();
-
-		qreal dist;
-
-		rotateToPlayer(m_player, &angle, &dist);
-		setPlayerDistance(dist);
-
-		if (!m_reachedPlayers.contains(m_player)) {
-			if (m_metric.pursuitSpeed > 0) {		// Pursuit
-				isPursuit = true;
-			} else {								// No pursuit
-				attackWithoutPursuit = true;
-				stop();
-			}
-		} else {
-			stop();
-		}
-	} else {
-		if (m_player) {
-			if (m_returnPathMotor) {
-				m_returnPathMotor->setLastSeenPoint(m_player->bodyPosition());
-				isPursuit = true;
-			}
-
-			setPlayer(nullptr);
-			//setPlayerDistance(-1.);
-		}
-
-		if (m_returnPathMotor && !m_returnPathMotor->isReturning()) {
-			const auto &ptr = m_returnPathMotor->lastSeenPoint();
-
-			if (ptr) {
-				const qreal &dist = distanceToPoint(ptr.value());
-
-				if (dist >= std::max(std::max(m_metric.pursuitSpeed, m_metric.speed)*factor, 10.)){
-					if (const float &d = checkGroundDistance(this, ptr.value()); d != -1. && d < 0.05) {
-						isPursuit = false;
-					} else {
-						rotateToPoint(ptr.value(), &angle);
-						isPursuit = true;
-					}
-				} else {
-					isPursuit = false;
-				}
-			}
-		}
-	}
-
-
-	//TiledObjectBody::setFixtureCollidesWithFlag(m_fixture.get(), TiledObjectBody::FixtureGround, !m_returnPathMotor);
-
-
-	if (isPursuit) {
-		if (m_player && m_player->isLocked()) {
-			stop();
-			updateSprite();
-			return;
-		}
-
-		if (!enemyWorldStepOnVisiblePlayer(angle, factor)) {
-			updateSprite();
-			return;
-		}
-
-		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
-			stop();
-			updateSprite();
-			return;
-		}
-
-		if (transparentGnd >= 0. && transparentGnd < 35 /// / * m_fixture->radius()*2.3 * /) {
-			stop();
-		} else if (m_metric.returnSpeed != 0) {
-			if (!m_returnPathMotor)
-				m_returnPathMotor.reset(new TiledReturnPathMotor(bodyPosition()));
-
-			if (m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor) {
-				m_returnPathMotor->moveBody(this, angle, m_metric.pursuitSpeed*factor);
-			} else {
-				m_returnPathMotor->moveBody(this, angle, m_metric.speed*factor);
-			}
-		} else if (m_metric.speed > 0) {
-			if (m_metric.pursuitSpeed > 0 && m_playerDistance > m_metric.pursuitSpeed*factor) {
-				setSpeedFromAngle(angle, m_metric.pursuitSpeed);
-
-			} else {
-				setSpeedFromAngle(angle, m_metric.speed);
-			}
-		} else {
-			stop();
-		}
-
-
-		enemyWorldStep();
-		updateSprite();
-		return;
-	} else if (attackWithoutPursuit) {
-		if (!enemyWorldStepOnVisiblePlayer(angle, factor)) {
-			updateSprite();
-			return;
-		}
-
-		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
-			stop();
-			updateSprite();
-			return;
-		}
-	}
-
-	if (m_returnPathMotor && !m_returnPathMotor->isReturning() && !m_returnPathMotor->hasReturned()) {
-		m_returnPathMotor->finish(this, m_game->tickTimer());
-	}
-
-
-	if (enemyWorldStep()) {
-		//rotateBody(directionToRadian(m_currentDirection));
-		stepMotor(factor);
-	}
-
-	updateSprite();
-}
-
-*/
 
 /**
  * @brief IsometricEnemy::enemyWorldStep
@@ -444,11 +274,8 @@ bool IsometricEnemy::enemyWorldStep()
  * @return
  */
 
-bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float &angle, const qreal &factor)
+bool IsometricEnemy::enemyWorldStepOnVisiblePlayer()
 {
-	Q_UNUSED(angle);
-	Q_UNUSED(factor);
-
 	if (!isAlive() || isSleeping())
 		return false;
 
@@ -486,8 +313,6 @@ bool IsometricEnemy::enemyWorldStepOnVisiblePlayer(const float &angle, const qre
 		}
 
 		return false;
-	} else {
-		//m_autoHitTimer.setRemainingTime(-1);
 	}
 
 	return true;
@@ -577,7 +402,7 @@ void IsometricEnemy::onSleepingEnd()
  * @brief IsometricEnemy::stepMotor
  */
 
-void IsometricEnemy::stepMotor(const qreal &factor)
+void IsometricEnemy::stepMotor()
 {
 	if (!m_motor) {
 		LOG_CERROR("game") << "Missing enemy motor:" << objectId().sceneId << objectId().id;
@@ -587,7 +412,6 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 	if (m_returnPathMotor) {
 		if (m_returnPathMotor->isReturning() && !m_returnPathMotor->isReturnReady(m_game->tickTimer())) {
 			stop();
-			rotateBody(directionToRadian(m_facingDirection));
 			return;
 		}
 
@@ -595,15 +419,13 @@ void IsometricEnemy::stepMotor(const qreal &factor)
 			stop();
 			m_returnPathMotor.reset();
 		} else {
-			m_returnPathMotor->updateBody(this, m_metric.returnSpeed > 0. ? m_metric.returnSpeed*factor : m_metric.speed*factor, m_game->tickTimer());
+			m_returnPathMotor->updateBody(this, m_metric.returnSpeed > 0. ? m_metric.returnSpeed : m_metric.speed, m_game->tickTimer());
 			return;
 		}
 
 	}
 
-	m_motor->updateBody(this, m_metric.speed*factor, m_game->tickTimer());
-
-	rotateBody(directionToRadian(m_facingDirection));
+	m_motor->updateBody(this, m_metric.speed, m_game->tickTimer());
 }
 
 
@@ -619,12 +441,12 @@ void IsometricEnemy::stepMotor(const qreal &factor)
  * @param player
  */
 
-void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, float *anglePtr, qreal *distancePtr)
+void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, const bool &forced)
 {
 	if (!player || !m_metric.rotateToPlayer)
 		return;
 
-	rotateToPoint(player->bodyPosition(), anglePtr, distancePtr);
+	rotateToPoint(player->bodyPosition(), forced);
 }
 
 
@@ -648,15 +470,14 @@ void IsometricEnemy::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
 								  dynamic_cast<IsometricPlayer*>(base) :
 								  nullptr;
 
-
 	if (isAny(bodyShapes(), self) && player) {
 		if (!m_reachedPlayers.contains(player)) {
-			m_reachedPlayers.append(QPointer(player));
+			m_reachedPlayers.append(player);
 			eventPlayerReached(player);
 		}
 	} else if (isEqual(sensorPolygon(), self) && player) {
 		if (!m_contactedPlayers.contains(player)) {
-			m_contactedPlayers.append(QPointer(player));
+			m_contactedPlayers.append(player);
 			eventPlayerContacted(player);
 		}
 	}
@@ -689,6 +510,184 @@ void IsometricEnemy::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 		removeContactedPlayer(player);
 		eventPlayerDiscontacted(player);
 	}
+}
+
+
+
+
+/**
+ * @brief IsometricEnemy::worldStep
+ */
+
+void IsometricEnemy::worldStep()
+{
+	IsometricEntity::worldStep();
+
+	if (!isAlive() || isSleeping())
+		return stop();
+
+	if (m_isSleeping)
+		onSleepingEnd();
+
+
+	// Find already connected player, or find the nearest one
+
+	IsometricPlayer *targetPlayer = nullptr;
+	[[deprecated]] TiledReportedFixtureMap targetRayMap;
+
+	if (m_player && m_contactedPlayers.contains(m_player)) {
+		if (TiledReportedFixtureMap map = rayCast(m_player->bodyPosition(), FixturePlayerBody, false); map.contains(m_player)) {
+			targetPlayer = m_player;
+			targetRayMap = map;
+		}
+	} else {
+		struct Data {
+			IsometricPlayer *player = nullptr;
+			TiledReportedFixtureMap map;
+		};
+
+		QMap<float, Data> maps;
+
+		for (IsometricPlayer *p : m_contactedPlayers) {
+			if (!p)
+				continue;
+
+			Data d;
+
+			d.map = rayCast(p->bodyPosition(), FixturePlayerBody, false);
+
+			if (const auto &it = d.map.find(p); it != d.map.cend()) {
+				d.player = p;
+				maps.insert(it.key(), d);
+			}
+		}
+
+		if (!maps.isEmpty()) {
+			targetPlayer = maps.first().player;
+			targetRayMap = maps.first().map;
+		}
+	}
+
+
+
+	// Update connected player, decision of pursuit
+
+
+	std::optional<QPointF> pursuitPoint;
+	bool attackWithoutPursuit = false;
+
+	if (targetPlayer) {
+		if (!m_player)
+			setPlayer(targetPlayer);
+
+		if (m_returnPathMotor && !m_player->isLocked())
+			m_returnPathMotor->clearLastSeenPoint();
+
+		if (!m_reachedPlayers.contains(m_player)) {
+			if (m_metric.pursuitSpeed > 0) {		// Pursuit
+				pursuitPoint = m_player->bodyPosition();
+			} else {								// No pursuit
+				attackWithoutPursuit = true;
+				stop();
+			}
+		} else {
+			stop();
+		}
+
+		const qreal dist = distanceToPoint(m_player->bodyPosition());
+
+		rotateToPlayer(m_player);
+		setPlayerDistance(dist);
+	} else {
+		if (m_player) {
+			if (m_returnPathMotor)
+				m_returnPathMotor->setLastSeenPoint(m_player->bodyPosition());
+
+			setPlayer(nullptr);
+		}
+
+		if (m_returnPathMotor && !m_returnPathMotor->isReturning())
+			pursuitPoint = m_returnPathMotor->lastSeenPoint();
+	}
+
+
+
+	// Pursuit
+
+	/*const b2BodyType type = (m_returnPathMotor && m_returnPathMotor->isReturning() ? b2_kinematicBody : b2_dynamicBody);
+
+	if (body().GetType() != type) {
+		LOG_CINFO("game") << "SET FLAG" << this << type;
+		body().SetType(type);
+	}*/
+
+
+	if (pursuitPoint.has_value() && distanceToPoint(pursuitPoint.value()) < 5.)
+		pursuitPoint = std::nullopt;
+
+	if (pursuitPoint.has_value()) {
+		if (m_player && m_player->isLocked())
+			return stop();
+
+		if (!enemyWorldStepOnVisiblePlayer())
+			return;
+
+		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
+			return stop();
+
+		const QVector2D dst(pursuitPoint.value());
+		const TiledReportedFixtureMap map = rayCast(pursuitPoint.value(), FixtureGround, true);
+
+		if (!map.isEmpty() && distanceToPoint(map.first().point) <= m_metric.targetCircleRadius+5.) {	// inkább body size kéne
+			stop();
+		} else {
+			if (m_metric.returnSpeed != 0) {
+				if (!m_returnPathMotor)
+					m_returnPathMotor.reset(new TiledReturnPathMotor(bodyPosition()));
+
+				if (m_metric.pursuitSpeed > 0)
+					m_returnPathMotor->moveBody(this, dst, m_metric.pursuitSpeed);
+				else
+					m_returnPathMotor->moveBody(this, dst, m_metric.speed);
+			} else if (m_metric.speed > 0) {
+				if (m_metric.pursuitSpeed > 0)
+					moveTowards(dst, m_metric.pursuitSpeed);
+				else
+					moveTowards(dst, m_metric.pursuitSpeed);
+			} else {
+				stop();
+			}
+
+			enemyWorldStep();
+			return;
+		}
+
+	} else if (attackWithoutPursuit) {
+		if (!enemyWorldStepOnVisiblePlayer())
+			return;
+
+		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
+			return stop();
+	}
+
+
+	if (m_returnPathMotor && !m_returnPathMotor->isReturning() && !m_returnPathMotor->hasReturned())
+		m_returnPathMotor->finish(this, m_game->tickTimer());
+
+	if (enemyWorldStep())
+		stepMotor();
+}
+
+
+
+
+/**
+ * @brief IsometricEnemy::synchronize
+ */
+
+void IsometricEnemy::synchronize()
+{
+	IsometricEntity::synchronize();
 }
 
 

@@ -37,34 +37,6 @@ RpgShortbow::RpgShortbow(QObject *parent)
 
 
 
-/**
- * @brief RpgShortbow::createBullet
- * @return
- */
-
-
-IsometricBullet *RpgShortbow::createBullet(const qreal &distance)
-{
-	if (!m_parentObject) {
-		LOG_CERROR("game") << "Missing parent object" << this;
-		return nullptr;
-	}
-
-	TiledObject *p = m_parentObject.data();
-
-	RpgArrow *arrow = RpgArrow::createBullet(p->scene());
-
-	if (arrow && distance > 0.) {
-		if (distance < 1.)
-			arrow->setMaxDistance(arrow->maxDistance() * distance);
-		else
-			arrow->setMaxDistance(distance);
-	}
-
-	return arrow;
-}
-
-
 
 /**
  * @brief RpgShortbow::eventAttack

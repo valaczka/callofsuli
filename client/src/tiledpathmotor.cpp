@@ -98,28 +98,6 @@ void TiledPathMotor::setDirection(Direction newDirection)
 
 
 /**
- * @brief TiledPathMotor::currentAngle
- * @return
- */
-
-qreal TiledPathMotor::currentAngle() const
-{
-	return m_currentAngle;
-}
-
-
-/**
- * @brief TiledPathMotor::currentAngleRadian
- * @return
- */
-
-qreal TiledPathMotor::currentAngleRadian() const
-{
-	return TiledObject::toRadian(m_currentAngle);
-}
-
-
-/**
  * @brief TiledPathMotor::loadLines
  */
 
@@ -292,15 +270,17 @@ std::optional<QVector2D> TiledPathMotor::getLastSegmentPoint()
  * @param maximumSpeed
  */
 
-void TiledPathMotor::updateBody(TiledObject *body, const float &distance, AbstractGame::TickTimer *timer)
+void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractGame::TickTimer *timer)
 {
 	Q_ASSERT(body);
+
+	const float threshold = 2*speed/60.;			// 60 fps-nél 2 frame alatt megtett távolság a küszöb
 
 	if (m_lastSegment >= 0 && m_lastSegment < m_lines.size()) {
 		float factor = -1.;
 		float d = TiledObject::shortestDistance(body->bodyPosition(), m_lines.at(m_lastSegment).line, nullptr, &factor);
 
-		if (d > distance) {
+		if (d > threshold) {
 			m_lastSegment = -1;
 			m_lastSegmentFactor = -1.;
 		} else {
@@ -310,7 +290,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &distance, Abstra
 
 	const auto lastPoint = getLastSegmentPoint();
 
-	if (!lastPoint || lastPoint.value().distanceToPoint(QVector2D(body->bodyPosition())) > distance) {
+	if (!lastPoint || lastPoint.value().distanceToPoint(QVector2D(body->bodyPosition())) > threshold) {
 		int dstSegment = -1;
 		float dstDistance = -1;
 		float dstFactor = -1.;
@@ -321,15 +301,12 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &distance, Abstra
 			return;
 		}
 
-		if (dstDistance < distance) {
+		if (dstDistance < threshold) {
 			m_lastSegment = dstSegment;
 			m_lastSegmentFactor = std::max(dstFactor, (float) 0.);
 		}
 
-		QLineF line(body->bodyPosition(), dst.toPointF());
-		body->setSpeedFromAngle(TiledObject::toRadian(line.angle()), std::min(distance, dstDistance));
-		m_currentAngle = line.angle();
-
+		body->moveTowards(dst, speed);
 		return;
 	}
 
@@ -373,60 +350,44 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &distance, Abstra
 	// Near of the lastSegmentPoint
 
 	const QLineF &line = m_lines.at(m_lastSegment).line;
-	const float delta = distance / line.length();
-	QLineF bodyMovement;
-	bodyMovement.setP1(body->bodyPosition());
+	const float delta = (speed/60.)/line.length();
 
 	if (m_direction == Forward) {
 		if (m_lastSegmentFactor + delta > 1.) {
 			if (m_lastSegment+1 >= m_lines.size() && !isClosed()) {
-				bodyMovement.setP2(line.p2());
 				m_lastSegmentFactor = 1.0;
 			} else {
-				const float diff = m_lastSegmentFactor + delta - 1.0;
-				const float d = diff * line.length();
-
 				if (m_lastSegment+1 >= m_lines.size() && isClosed())
 					m_lastSegment = 0;
 				else
 					++m_lastSegment;
 
-				const QLineF &nextLine = m_lines.at(m_lastSegment).line;
-				m_lastSegmentFactor = d / nextLine.length();
-				bodyMovement.setP2(nextLine.pointAt(m_lastSegmentFactor));
+				m_lastSegmentFactor = 0.;
 			}
 		} else {
 			m_lastSegmentFactor += delta;
-			bodyMovement.setP2(line.pointAt(m_lastSegmentFactor));
 		}
+
+		body->moveTowards(QVector2D(line.p2()), speed);
 	} else if (m_direction == Backward) {
 		if (m_lastSegmentFactor - delta < 0.) {
 			if (m_lastSegment-1 < 0 && !isClosed()) {
-				bodyMovement.setP2(line.p1());
 				m_lastSegmentFactor = 0.;
 			} else {
-				const float diff = m_lastSegmentFactor - delta;
-				const float d = -diff * line.length();
-
 				if (m_lastSegment-1 < 0 && isClosed())
 					m_lastSegment = m_lines.size()-1;
 				else
 					--m_lastSegment;
 
-				const QLineF &nextLine = m_lines.at(m_lastSegment).line;
-				m_lastSegmentFactor = 1.0 - (d / nextLine.length());
-				bodyMovement.setP2(nextLine.pointAt(m_lastSegmentFactor));
+				m_lastSegmentFactor = 1.0;
 			}
 		} else {
 			m_lastSegmentFactor -= delta;
-			bodyMovement.setP2(line.pointAt(m_lastSegmentFactor));
-
 		}
+
+		body->moveTowards(QVector2D(line.p1()), speed);
 	}
 
-
-	body->setSpeedFromAngle(TiledObject::toRadian(bodyMovement.angle()), bodyMovement.length());
-	m_currentAngle = angleFromLine(m_lines.at(m_lastSegment));
 }
 
 

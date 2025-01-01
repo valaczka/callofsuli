@@ -600,15 +600,17 @@ void ActionRpgGame::rpgGameActivated_()
 
 	QList<RpgPlayer*> list;
 
-	RpgPlayer *player = RpgPlayer::createPlayer(m_rpgGame, firstScene, *characterPtr);
+	RpgPlayer *player = m_rpgGame->createPlayer(firstScene, *characterPtr);
+
+	if (!player) {
+		LOG_CERROR("game") << "Player create error";
+		return;
+	}
 
 	if (characterPtr->cast != RpgPlayerCharacterConfig::CastInvalid) {
 		loadWeapon(player, TiledWeapon::WeaponMageStaff);
 	}
 
-
-	std::unique_ptr<TiledObjectBody> b(std::move(player));
-	m_rpgGame->addObject(b);
 
 	const int hp = m_missionLevel->startHP() + ptr->playerHP;
 
@@ -657,7 +659,6 @@ void ActionRpgGame::rpgGameActivated_()
 	player->emplace(ptrPos.value_or(QPointF{0,0}));
 	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
 
-	firstScene->appendToObjects(player);
 	m_rpgGame->setFollowedItem(player);
 	m_rpgGame->setControlledPlayer(player);
 
@@ -1041,9 +1042,6 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::Pi
 		case RpgPickableObject::PickableCoin:
 		case RpgPickableObject::PickableShortbow:
 		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableArrow:
-		case RpgPickableObject::PickableFireball:
-		case RpgPickableObject::PickableLightning:
 		case RpgPickableObject::PickableLongsword:
 		case RpgPickableObject::PickableDagger:
 		case RpgPickableObject::PickableTime:
@@ -1133,55 +1131,6 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType 
 
 	if (type != TiledWeapon::WeaponMageStaff || !weapon->canCast())
 		player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
-}
-
-
-
-/**
- * @brief ActionRpgGame::loadBullet
- * @param player
- * @param bulletType
- * @param count
- */
-
-void ActionRpgGame::loadBullet(RpgPlayer *player, const RpgPickableObject::PickableType &bulletType, const int &count)
-{
-	if (!player)
-		return;
-
-	TiledWeapon *weapon = nullptr;
-
-	switch (bulletType) {
-		case RpgPickableObject::PickableArrow:
-			weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
-			break;
-
-		case RpgPickableObject::PickableFireball:
-			weapon = player->armory()->weaponFind(TiledWeapon::WeaponLongbow);
-			break;
-
-		case RpgPickableObject::PickableShield:
-		case RpgPickableObject::PickableKey:
-		case RpgPickableObject::PickableHp:
-		case RpgPickableObject::PickableMp:
-		case RpgPickableObject::PickableCoin:
-		case RpgPickableObject::PickableShortbow:
-		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableLongsword:
-		case RpgPickableObject::PickableLightning:
-		case RpgPickableObject::PickableDagger:
-		case RpgPickableObject::PickableTime:
-		case RpgPickableObject::PickableInvalid:
-			LOG_CERROR("game") << "Invalid bullet type";
-			break;
-	}
-
-	if (!weapon)
-		return;
-
-	weapon->setBulletCount(weapon->bulletCount()+count);
-
-	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
 }
 
 
@@ -1315,7 +1264,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 			RpgLongbow w;
 			w.setParentObject(player);
 			w.setBulletCount(-1);
-			if (w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), player->currentAngle())) {
+			if (m_rpgGame->shot(player, &w, player->scene(), IsometricBullet::TargetEnemy, player->currentAngle())) {
 				player->setMp(std::max(0, player->mp() - castValue));
 			} else {
 				return false;
@@ -1336,7 +1285,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 				 origAngle + (M_PI * 12.5 / 180.),
 				 origAngle
 			}) {
-				if (!w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), angle)) {
+				if (!m_rpgGame->shot(player, &w, player->scene(), IsometricBullet::TargetEnemy, angle)) {
 					return false;
 				}
 				player->setMp(std::max(0, player->mp() - castValue));
@@ -1350,7 +1299,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 			RpgLightningWeapon w;
 			w.setParentObject(player);
 			w.setBulletCount(-1);
-			if (w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), player->currentAngle())) {
+			if (m_rpgGame->shot(player, &w, player->scene(), IsometricBullet::TargetEnemy, player->currentAngle())) {
 				player->setMp(std::max(0, player->mp() - castValue));
 			} else {
 				return false;
@@ -1386,7 +1335,7 @@ bool ActionRpgGame::onPlayerUseCast(RpgPlayer *player)
 				 origAngle + (M_PI * 12 / 180.),
 				 origAngle
 			}) {
-				if (!w.shot(IsometricBullet::TargetEnemy, player->bodyPosition(), angle)) {
+				if (!m_rpgGame->shot(player, &w, player->scene(), IsometricBullet::TargetEnemy, angle)) {
 					return false;
 				}
 				player->setMp(std::max(0, player->mp() - castValue));

@@ -56,14 +56,6 @@ public:
 	bool isAlive() const { return m_hp > 0; }
 	virtual bool isDiscoverable() const { return true; }
 
-	template <typename T, typename = std::enable_if<std::is_base_of<IsometricEntity, T>::value>::type>
-	static TiledReportedFixtureMap getVisibleEntities(const TiledObjectBody *body, const QList<T*> &entities, QVector2D *transparentGnd);
-
-	template <typename T, typename = std::enable_if<std::is_base_of<IsometricEntity, T>::value>::type>
-	TiledReportedFixtureMap getVisibleEntities(const QList<T*> &entities, QVector2D *transparentGnd) const {
-		return getVisibleEntities(this, entities, transparentGnd);
-	}
-
 	virtual void synchronize() override;
 	virtual void updateSprite() = 0;
 
@@ -75,72 +67,14 @@ signals:
 
 
 protected:
-	[[deprecated]] static std::optional<QPointF> checkEntityVisibility(TiledObjectBody *body, TiledObject *entity,
-																	   const TiledObjectBody::FixtureCategory &category,
-																	   float *transparentGroundPtr);
-
-	static float checkGroundDistance(TiledObjectBody *body, const QPointF &targetPoint, float *lengthPtr = nullptr);
-
-
-
 	virtual void onAlive() = 0;
 	virtual void onDead() = 0;
-
 
 protected:
 	int m_hp = 1;
 	int m_maxHp = 1;
 	QStringList m_moveDisabledSpriteList;		// At these sprites move disabled
 };
-
-
-
-/**
- * @brief IsometricEntity::getVisibleEntities
- * @param body
- * @param entities
- * @param transparentGnd
- * @return
- */
-
-template<typename T, typename T2>
-TiledReportedFixtureMap IsometricEntity::getVisibleEntities(const TiledObjectBody *body, const QList<T *> &entities, QVector2D *transparentGnd)
-{
-	TiledReportedFixtureMap ret;
-
-	for (IsometricEntity *p : entities) {
-		if (!p || !p->isDiscoverable() || p->bodyShapes().empty())
-			continue;
-
-		const TiledReportedFixtureMap &map = body->rayCast(p->bodyPosition(),
-														   FixtureCategories::fromInt(p->bodyShapes().front().GetFilter().categoryBits));
-
-		QVector2D pos(p->bodyPosition());
-
-		for (auto it=map.cbegin(); it != map.cend(); ++it) {
-			b2::ShapeRef r = it->shape;
-
-			if (r.IsSensor())
-				continue;
-
-			if (r.GetFilter().categoryBits & FixtureGround) {
-				if (it->body && it->body->opaque()) {
-					break;
-				} else if (transparentGnd) {
-					if (transparentGnd->isNull() || pos.distanceToPoint(it->point) < pos.distanceToPoint(*transparentGnd))
-						*transparentGnd = it->point;
-				}
-			}
-
-			if (it->body == p)
-				ret.insert(it.key(), it.value());
-		}
-	}
-
-	return ret;
-}
-
-
 
 
 

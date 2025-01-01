@@ -36,22 +36,6 @@ RpgArrow::RpgArrow(TiledScene *scene)
 
 
 
-/**
- * @brief RpgArrow::createBullet
- * @param game
- * @param scene
- * @return
- */
-
-RpgArrow *RpgArrow::createBullet(TiledScene *scene)
-{
-	RpgArrow *bullet = new RpgArrow(scene);
-	bullet->initialize(20.);
-
-	return bullet;
-}
-
-
 
 /**
  * @brief RpgArrow::load
@@ -92,62 +76,4 @@ void RpgArrow::load()
 
 
 
-
-/**
- * @brief RpgArrowPickable::RpgArrowPickable
- * @param parent
- */
-
-RpgArrowPickable::RpgArrowPickable(TiledScene *scene)
-	: RpgPickableObject(PickableArrow, scene)
-{
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
-}
-
-
-
-/**
- * @brief RpgArrowPickable::playerPick
- * @param player
- */
-
-bool RpgArrowPickable::playerPick(RpgPlayer *player)
-{
-	if (!player)
-		return false;
-
-	static const int num = 10;
-
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
-
-	if (!weapon) {
-		if (m_game)
-			m_game->messageColor(tr("Shortbow missing"), QColor::fromRgbF(0.8, 0., 0.));
-		return false;
-	}
-		//weapon = player->armory()->weaponAdd(new RpgShortbow);
-
-	weapon->setBulletCount(weapon->bulletCount()+num);
-	weapon->setPickedBulletCount(weapon->pickedBulletCount()+num);
-
-	if (m_game)
-		m_game->message(tr("%1 arrows gained").arg(num));
-
-	//player->armory()->setCurrentWeapon(weapon);
-
-	return true;
-}
-
-
-
-
-
-/**
- * @brief RpgArrowPickable::load
- */
-
-void RpgArrowPickable::load()
-{
-	loadDefault(QStringLiteral("arrow"));
-}
 

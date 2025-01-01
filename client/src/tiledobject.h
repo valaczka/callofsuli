@@ -62,7 +62,17 @@ struct TiledReportedFixture {
 	TiledObjectBody *body = nullptr;
 };
 
-typedef QMultiMap<float, TiledReportedFixture> TiledReportedFixtureMap;
+
+class TiledReportedFixtureMap : public QMultiMap<float, TiledReportedFixture>
+{
+public:
+	TiledReportedFixtureMap() : QMultiMap<float, TiledReportedFixture>() {}
+
+	bool containsTransparentGround() const;
+	TiledReportedFixtureMap::iterator find(TiledObjectBody *body);
+	TiledReportedFixtureMap::const_iterator find(TiledObjectBody *body) const;
+	bool contains(TiledObjectBody *body) const { return find(body) != this->cend(); }
+};
 
 
 
@@ -78,16 +88,6 @@ public:
 	explicit TiledObjectBody(b2::World *world);
 	explicit TiledObjectBody(TiledScene *scene);
 	virtual ~TiledObjectBody();
-
-
-	// For multiplayer
-
-	enum RemoteMode {
-		ObjectLocal = 0,
-		ObjectRemote
-	};
-
-	Q_ENUM(RemoteMode);
 
 
 	// ObjectId id
@@ -106,18 +106,20 @@ public:
 		FixtureGround		= 0x1,
 		FixturePlayerBody	= 0x1 << 1,
 		FixtureEnemyBody	= 0x1 << 2,
-		FixtureTarget		= 0x1 << 3,
-		FixtureTransport	= 0x1 << 4,
-		FixturePickable		= 0x1 << 5,
-		FixtureTrigger		= 0x1 << 6,
-		FixtureVirtualCircle = 0x1 << 7,
-		FixtureSensor		= 0x1 << 8,
-		FixtureContainer	= 0x1 << 9,
+		FixtureBulletBody	= 0x1 << 3,
+		FixtureTarget		= 0x1 << 4,
+		FixtureTransport	= 0x1 << 5,
+		FixturePickable		= 0x1 << 6,
+		FixtureTrigger		= 0x1 << 7,
+		FixtureVirtualCircle = 0x1 << 8,
+		FixtureSensor		= 0x1 << 9,
+		FixtureContainer	= 0x1 << 10,
 
 		FixtureAll =
 		FixtureGround |
 		FixturePlayerBody |
 		FixtureEnemyBody |
+		FixtureBulletBody |
 		FixtureTarget |
 		FixtureTransport |
 		FixturePickable |
@@ -132,13 +134,7 @@ public:
 	Q_FLAG(FixtureCategories);
 
 
-	RemoteMode remoteMode() const;
-	void setRemoteMode(const RemoteMode &newRemoteMode);
-
 	ObjectId objectId() const;
-	void setObjectId(const ObjectId &newObjectId);
-	void setObjectId(const int &sceneId, const int &id);
-
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
@@ -163,8 +159,9 @@ public:
 	static bool isEqual(const b2::BodyRef &s1, const b2::BodyRef &s2);
 	static bool isAny(const std::vector<b2::ShapeRef> &s1, const b2::ShapeRef &s2);
 
-	void emplace(const QPointF &center);
-	void emplace(const qreal &centerX, const qreal &centerY) { emplace(QPointF(centerX, centerY)); }
+	void emplace(const QVector2D &center);
+	void emplace(const QPointF &center) { emplace(QVector2D(center)); }
+	void emplace(const qreal &centerX, const qreal &centerY) { emplace(QVector2D(centerX, centerY)); }
 
 	void setSpeed(const QVector2D &point);
 	void setSpeed(const QPointF &point);
@@ -175,7 +172,7 @@ public:
 	static QVector2D vectorFromAngle(const float &angle, const float &radius);
 
 	float bodyRotation() const;
-	bool rotateBody(const float &desiredRadian);
+	bool rotateBody(const float &desiredRadian, const bool &forced = false);
 
 	bool opaque() const;
 	void setOpaque(bool newOpaque);
@@ -196,6 +193,44 @@ public:
 	static b2Filter getFilter(const FixtureCategories &categories);
 	static b2Filter getFilter(const FixtureCategories &categories, const FixtureCategories &collidesWith);
 
+
+	void setSensorPolygon(const float &length, const float &range);
+	void setSensorPolygon(const float &length, const float &range, const FixtureCategories &collidesWith);
+	void addVirtualCircle(const float &length = 0.);
+	void addVirtualCircle(const FixtureCategories &collidesWith, const float &length = 0.);
+	void addTargetCircle(const float &length);
+
+	TiledReportedFixtureMap rayCast(const QPointF &dest, const FixtureCategories &categories,
+									const bool &forceLine = false) const;
+
+	virtual void debugDraw(TiledDebugDraw *draw) const;
+
+	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) { Q_UNUSED(self); Q_UNUSED(other) }
+	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) { Q_UNUSED(self); Q_UNUSED(other) }
+
+	void rotateToPoint(const QPointF &point, const bool &forced = false);
+	float angleToPoint(const QVector2D &point) const;
+	float angleToPoint(const QPointF &point) const { return angleToPoint(QVector2D(point)); }
+	float distanceToPoint(const QPointF &point) const;
+	float distanceToPoint(const QVector2D &point) const;
+
+
+protected:
+	virtual void worldChanged() {}
+
+	virtual void setInVisibleArea(bool newInVisibleArea);
+	void updateBodyInVisibleArea();
+
+	void drawBody(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
+	void drawSensor(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
+	void drawVirtualCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
+	void drawTargetCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
+	void drawCenter(TiledDebugDraw *draw, const QColor &colorX, const QColor &colorY, const qreal &lineWidth = 2.) const;
+
+	TiledGame *m_game = nullptr;
+	bool m_inVisibleArea = false;
+
+private:
 	bool createFromPolygon(const QPolygonF &polygon,
 						   Tiled::MapRenderer *renderer,
 						   const b2::Shape::Params &params = {});
@@ -223,48 +258,15 @@ public:
 							 b2::Body::Params bParams,
 							 const b2::Shape::Params &params = {});
 
+	void setObjectId(const ObjectId &newObjectId);
+	void setObjectId(const int &sceneId, const int &id);
 
-	void setSensorPolygon(const float &length, const float &range);
-	void setSensorPolygon(const float &length, const float &range, const FixtureCategories &collidesWith);
-	void addVirtualCircle(const float &length = 0.);
-	void addVirtualCircle(const FixtureCategories &collidesWith, const float &length = 0.);
-	void addTargetCircle(const float &length);
-
-	TiledReportedFixtureMap rayCast(const QPointF &dest, const FixtureCategories &categories,
-									const bool &forceLine = false) const;
-
-	virtual void debugDraw(TiledDebugDraw *draw) const;
-
-	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) { Q_UNUSED(self); Q_UNUSED(other) }
-	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) { Q_UNUSED(self); Q_UNUSED(other) }
-
-	void rotateToPoint(const QPointF &point, float *anglePtr = nullptr, qreal *distancePtr = nullptr);
-	float angleToPoint(const QPointF &point) const;
-	float distanceToPoint(const QPointF &point) const;
-
-
-protected:
-	virtual void worldChanged() {}
-
-	virtual void setInVisibleArea(bool newInVisibleArea);
-	void updateBodyInVisibleArea();
-
-	void drawBody(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
-	void drawSensor(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
-	void drawVirtualCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
-	void drawTargetCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
-	void drawCenter(TiledDebugDraw *draw, const QColor &colorX, const QColor &colorY, const qreal &lineWidth = 2.) const;
-
-	TiledGame *m_game = nullptr;
-	bool m_inVisibleArea = false;
-
-private:
 	TiledObjectBodyPrivate *d;
 	bool m_opaque = true;
-	RemoteMode m_remoteMode = ObjectLocal;
 	ObjectId m_objectId;
 
 	friend class TiledObjectBodyPrivate;
+	friend class TiledGame;
 };
 
 
@@ -286,7 +288,6 @@ class TiledObject : public QQuickItem, public TiledObjectBody
 
 	Q_PROPERTY(TiledGame *game READ game CONSTANT FINAL)
 	Q_PROPERTY(TiledScene *scene READ scene NOTIFY sceneChanged FINAL)
-	Q_PROPERTY(RemoteMode remoteMode READ remoteMode WRITE setRemoteMode NOTIFY remoteModeChanged FINAL)
 	Q_PROPERTY(bool glowEnabled READ glowEnabled WRITE setGlowEnabled NOTIFY glowEnabledChanged FINAL)
 	Q_PROPERTY(QColor glowColor READ glowColor WRITE setGlowColor NOTIFY glowColorChanged FINAL)
 	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
@@ -400,6 +401,9 @@ public:
 	QPointF bodyOffset() const;
 
 	virtual void synchronize() override;
+
+	bool moveTowards(const QVector2D &point, const float &speed);
+	bool moveTowards(const QVector2D &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove);
 
 	bool glowEnabled() const;
 	void setGlowEnabled(bool newGlowEnabled);

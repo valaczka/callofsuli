@@ -85,7 +85,7 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 					params.enableSensorEvents = true;
 					params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureTrigger, TiledObjectBody::FixturePlayerBody);
 
-					m_body = m_game->createFromCircle<RpgControlGroupSaveBody>(scene, object->position(), 30., renderer, bParams, params);
+					m_body = m_game->createFromCircle<RpgControlGroupSaveBody>(-1, object->id(), scene, object->position(), 30., renderer, bParams, params);
 					m_body->m_control = this;
 				}
 

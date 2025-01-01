@@ -46,8 +46,6 @@ public:
 	bool canProtect(const WeaponType &weapon) const override final;
 	bool canAttack() const override final { return false; }
 
-protected:
-	IsometricBullet *createBullet(const qreal & = 0.) override final { return nullptr; }
 };
 
 
@@ -64,7 +62,7 @@ class RpgShieldPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-    RpgShieldPickable(TiledScene *scene = nullptr);
+	RpgShieldPickable(TiledScene *scene = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

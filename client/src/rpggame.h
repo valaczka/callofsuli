@@ -176,15 +176,25 @@ public:
 	bool playerTryUseContainer(RpgPlayer *player, RpgContainer *container);
 	void playerUseContainer(RpgPlayer *player, RpgContainer *container);
 
-	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene);
-	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, TiledScene *scene) {
-		return createEnemy(type, QStringLiteral(""), scene);
+	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
+	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, TiledScene *scene, const int &id) {
+		return createEnemy(type, QStringLiteral(""), scene, id);
 	}
 
-	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, const QString &name, TiledScene *scene);
-	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene) {
-		return createPickable(type, QStringLiteral(""), scene);
+	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, const QString &name, TiledScene *scene,
+									  const int &ownerId = 0, const int &id = 0);
+	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene,
+									  const int &ownerId = 0, const int &id = 0) {
+		return createPickable(type, QStringLiteral(""), scene, ownerId, id);
 	}
+
+	IsometricBullet *createBullet(const TiledWeapon::WeaponType &type, TiledScene *scene, const int &id, const int &ownerId,
+								  TiledWeapon *weapon = nullptr);
+
+	IsometricBullet *createBullet(TiledWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId);
+
+	virtual bool shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene,
+					  const IsometricBullet::Targets &targets, const qreal &angle) override;
 
 	Q_INVOKABLE bool transportPlayer();
 	Q_INVOKABLE bool useContainer();
@@ -213,7 +223,7 @@ public:
 	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
 	static RpgEnemyMetricDefinition defaultEnemyMetric();
 
-	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const Qt::MouseButtons &buttons, const int &modifiers) override;
+	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers) override;
 
 	int setQuestions(TiledScene *scene, qreal factor);
 
@@ -298,6 +308,8 @@ signals:
 	void questsChanged();
 
 protected:
+	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config);
+
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer) override;

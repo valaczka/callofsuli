@@ -66,7 +66,7 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 					//connectFixture(ptr->fixture());
 					base = ptr;
 				} else if (object->shape() == Tiled::MapObject::Point) {
-					TiledObject *ptr = m_game->createFromCircle<TiledObject>(scene, object->position(), 10., renderer);
+					TiledObject *ptr = m_game->createFromCircle<TiledObject>(-1, object->id(), scene, object->position(), 10., renderer);
 					//ptr->body()->emplace(renderer->pixelToScreenCoords(object->position()));
 					//connectFixture(ptr->fixture());
 					base = ptr;
