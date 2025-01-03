@@ -60,7 +60,7 @@
 	url = https://github.com/vincentlaucsb/csv-parser.git
 [submodule "lib/QSerializer"]
 	path = lib/QSerializer
-	url = https://github.com/smurfomen/QSerializer.git
+	url = https://github.com/valaczka/QSerializer.git
 [submodule "lib/SCodes/"]
 	url = git@github.com:valaczka/SCodes.git
 [submodule "lib/simple-mail"]
