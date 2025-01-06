@@ -29,6 +29,7 @@
 
 #include <QObject>
 #include "abstractengine.h"
+#include "udpserver.h"
 #include <QWebSocket>
 
 
@@ -47,7 +48,7 @@ public:
 private:
 	const QVector<std::shared_ptr<AbstractEngine> > &engines() const { return m_engines; }
 	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
-	void engineRemove(const std::shared_ptr<AbstractEngine> &engine);
+	//void engineRemove(const std::shared_ptr<AbstractEngine> &engine);
 	void engineRemove(AbstractEngine *engine);
 	void engineRemoveUnused();
 
@@ -73,6 +74,7 @@ private:
 	void timerMinuteEventRun();
 
 	void onBinaryDataReceived(WebSocketStream *stream, const QByteArray &data);
+	void udpDataReceived(UdpServerPeer *peer, const QByteArray &data);
 
 
 private:

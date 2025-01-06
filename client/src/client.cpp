@@ -618,7 +618,7 @@ void Client::onOAuthLoginStateChanged(const QJsonObject &json)
 		m_oauthData.status = OAuthData::Success;
 		m_oauthData.timer.stop();
 		onOAuthFinished();
-		_userAuthTokenReceived(json.value(QStringLiteral("auth_token")).toString());
+		_userAuthTokenReceived(json.value(QStringLiteral("auth_token")).toString().toUtf8());
 		return;
 	}
 
@@ -755,7 +755,7 @@ void Client::onLoginSuccess(const QJsonObject &json)
 		if (m_oauthData.status != OAuthData::Invalid)
 			onOAuthLoginStateChanged(json);
 		else
-			_userAuthTokenReceived(json.value(QStringLiteral("auth_token")).toString());
+			_userAuthTokenReceived(json.value(QStringLiteral("auth_token")).toString().toUtf8());
 		return;
 	}
 
@@ -832,7 +832,7 @@ void Client::_message(const QString &text, const QString &title, const QString &
  * @param token
  */
 
-void Client::_userAuthTokenReceived(const QString &token)
+void Client::_userAuthTokenReceived(const QByteArray &token)
 {
 	const Credential &c = Credential::fromJWT(token);
 
@@ -902,7 +902,7 @@ void Client::initializeDynamicResources()
 			Server::DynamicContent content;
 			content.name = o.value(QStringLiteral("file")).toString();
 			content.md5 = o.value(QStringLiteral("md5")).toString();
-			content.size = JSON_TO_INTEGER(o.value(QStringLiteral("size")));
+			content.size = o.value(QStringLiteral("size")).toInteger();
 
 			m_downloader->contentAdd(content);
 		}
@@ -1199,15 +1199,15 @@ bool Client::loginToken()
 		return false;
 	}
 
-	QJsonWebToken jwt;
-	if (!jwt.setToken(token)) {
+	Token jwt(token.toUtf8());
+	if (jwt.payload().empty()) {
 		LOG_CWARNING("credential") << "Invalid token:" << token;
 		server()->setToken(QStringLiteral(""));
 		return false;
 	}
 
 
-	if (JSON_TO_INTEGER(jwt.getPayloadJDoc().object().value(QStringLiteral("exp"))) <= QDateTime::currentSecsSinceEpoch()) {
+	if (jwt.payload().value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CINFO("client") << "Token expired";
 		server()->setToken(QStringLiteral(""));
 		return false;

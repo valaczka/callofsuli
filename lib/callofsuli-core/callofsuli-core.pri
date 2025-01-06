@@ -4,7 +4,6 @@ include($$PWD/../QDeferred/src/qdeferred.pri)
 include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
 
 INCLUDEPATH += $$PWD/../QDeferred/src
-INCLUDEPATH += $$PWD/../QJsonWebToken/src
 
 android: INCLUDEPATH += $$PWD/../android_openssl/static/include
 
@@ -19,7 +18,6 @@ HEADERS += \
 	$$PWD/rank.h \
 	$$PWD/rpgconfig.h \
 	$$PWD/selectableobject.h \
-	$$PWD/../QJsonWebToken/src/qjsonwebtoken.h \
 	$$PWD/utils_.h
 
 
@@ -29,7 +27,6 @@ SOURCES += \
 	$$PWD/gamemapreaderiface.cpp \
 	$$PWD/rank.cpp \
 	$$PWD/selectableobject.cpp \
-	$$PWD/../QJsonWebToken/src/qjsonwebtoken.cpp \
 	$$PWD/utils_.cpp
 
 android: {

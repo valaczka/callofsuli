@@ -59,9 +59,11 @@ SOURCES += \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
 	peerengine.cpp \
+	rpgengine.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	teacherapi.cpp \
+	udpserver.cpp \
 	userapi.cpp \
 	webserver.cpp \
 	websocketstream.cpp
@@ -91,9 +93,12 @@ HEADERS += \
 	oauth2codeflow.h \
 	peerengine.h \
 	querybuilder.hpp \
+	rpgengine.h \
 	serverservice.h \
 	serversettings.h \
 	teacherapi.h \
+	udpserver.h \
+	udpserver_p.h \
 	userapi.h \
 	webserver.h \
 	websocketstream.h

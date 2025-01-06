@@ -113,6 +113,18 @@ public:
 		}
 	};
 
+	struct PlayerPosition {
+		int sceneId = -1;
+		TiledScene *scene = nullptr;
+		QPointF position;
+
+		friend bool operator==(const PlayerPosition &p1, const PlayerPosition &p2) {
+			return p1.sceneId == p2.sceneId &&
+					p1.scene == p2.scene &&
+					p1.position == p2.position;
+		}
+	};
+
 
 	bool load(const TiledGameDefinition &def);
 
@@ -159,6 +171,8 @@ public:
 	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
 
 	Q_INVOKABLE bool joystickInteractive() const { return m_joystickState.hasKeyboard || m_joystickState.hasTouch; }
+
+	const QVector<TiledGame::PlayerPosition> &playerPositionList() const;
 
 	int playerPositionsCount(const int &sceneId) const;
 	int playerPositionsCount(TiledScene *scene) const;
@@ -230,6 +244,14 @@ public:
 
 	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 
+
+	// Bodies
+
+	struct Body {
+		std::unique_ptr<TiledObjectBody> body;
+		int owner = -1;
+		QCborMap lastState;
+	};
 
 	// Sprite texture helper
 
@@ -347,6 +369,8 @@ protected:
 
 	void changeScene(TiledObjectBody *object, TiledScene *to, const QPointF &toPoint);
 
+	virtual void worldStep(TiledObjectBody *body);
+
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer);
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer);
@@ -372,13 +396,18 @@ protected:
 	std::unique_ptr<AbstractGame::TickTimer> m_tickTimer;
 	bool m_paused = false;
 
+	std::function<void()> m_funcBeforeWorldStep;
+	std::function<void()> m_funcAfterWorldStep;
+
+	std::vector<Body> &bodyList();
+	const std::vector<Body> &bodyList() const;
+
 
 private:
 	void joystickConnect(const bool &connect = true);
 	Q_INVOKABLE void updateJoystick();
 	void updateKeyboardJoystick();
 	void updateStepTimer();
-
 
 
 	QPointer<QQuickItem> m_joystick = nullptr;

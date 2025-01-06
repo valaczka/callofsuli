@@ -113,10 +113,13 @@ public:
 
 
 
+typedef std::function<void(TiledObjectBody*)> FuncBodyStep;
+typedef std::function<void()> FuncTimeStep;
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
 typedef std::function<bool(RpgPlayer*, RpgContainer*)> FuncPlayerUseContainer;
 typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
 typedef std::function<bool(RpgPlayer*)> FuncPlayerUseCast;
+typedef std::function<bool(IsometricEnemy*, RpgPlayer *, const TiledWeapon::WeaponType &)> FuncEnemyAttackPlayer;
 
 
 
@@ -146,7 +149,7 @@ public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
 
-	Q_INVOKABLE bool load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig &playerConfig);
+	Q_INVOKABLE bool load(const RpgGameDefinition &def, const bool &replaceMpToShield = false);
 
 	static const QHash<QString, RpgGameDefinition> &terrains();
 	static void reloadTerrains();
@@ -176,8 +179,8 @@ public:
 	bool playerTryUseContainer(RpgPlayer *player, RpgContainer *container);
 	void playerUseContainer(RpgPlayer *player, RpgContainer *container);
 
-	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
-	IsometricEnemy *createEnemy(const RpgEnemyIface::RpgEnemyType &type, TiledScene *scene, const int &id) {
+	IsometricEnemy *createEnemy(const RpgGameData::Enemy::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
+	IsometricEnemy *createEnemy(const RpgGameData::Enemy::EnemyType &type, TiledScene *scene, const int &id) {
 		return createEnemy(type, QStringLiteral(""), scene, id);
 	}
 
@@ -202,7 +205,7 @@ public:
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);
 
-	QList<RpgPlayer *> players() const;
+	const QList<RpgPlayer *> &players() const;
 	void setPlayers(const QList<RpgPlayer *> &newPlayers);
 
 
@@ -267,6 +270,9 @@ public:
 	void setFuncPlayerCastTimeout(const FuncPlayerUseCast &newFuncPlayerCastTimeout);
 	void onPlayerCastTimeout(RpgPlayer *player) const;
 
+	FuncEnemyAttackPlayer funcEnemyAttackPlayer() const;
+	void setFuncEnemyAttackPlayer(const FuncEnemyAttackPlayer &newFuncEnemyAttackPlayer);
+
 	QScatterSeries *scatterSeriesPlayers() const;
 	void setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers);
 
@@ -288,7 +294,13 @@ public:
 	const QList<RpgQuest> &quests() const;
 
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
-	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype = QStringLiteral(""));
+	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::Enemy::EnemyType &type, const QString &subtype = QStringLiteral(""));
+
+	FuncBodyStep funcBodyStep() const;
+	void setFuncBodyStep(const FuncBodyStep &newFuncBodyStep);
+
+	FuncTimeStep funcTimeStep() const;
+	void setFuncTimeStep(const FuncTimeStep &newFuncTimeStep);
 
 signals:
 	void minimapToggleRequest();
@@ -309,6 +321,8 @@ signals:
 
 protected:
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config);
+
+	virtual void worldStep(TiledObjectBody *body) override;
 
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
@@ -355,7 +369,7 @@ private:
 
 	struct EnemyData {
 		TiledObject::ObjectId objectId;
-		RpgEnemyIface::RpgEnemyType type = RpgEnemyIface::EnemyInvalid;
+		RpgGameData::Enemy::EnemyType type = RpgGameData::Enemy::EnemyInvalid;
 		QString subtype;
 		QPolygonF path;
 		int defaultAngle = 0;
@@ -415,18 +429,22 @@ private:
 	QPointer<QScatterSeries> m_scatterSeriesEnemies;
 	QPointer<QScatterSeries> m_scatterSeriesPoints;
 
-	// TODO: FuncPlayerAttack, FuncEnemyAttack,...
+	// TODO: FuncPlayerAttack, ...
+	FuncBodyStep m_funcBodyStep;
+	FuncTimeStep m_funcTimeStep;
 	FuncPlayerPick m_funcPlayerPick;
 	FuncPlayerAttackEnemy m_funcPlayerAttackEnemy;
 	FuncPlayerUseContainer m_funcPlayerUseContainer;
 	FuncPlayerUseCast m_funcPlayerUseCast;
 	FuncPlayerUseCast m_funcPlayerCastTimeout;
 	FuncPlayerUseCast m_funcPlayerFinishCast;
+	FuncEnemyAttackPlayer m_funcEnemyAttackPlayer;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerCharacterConfig> m_characters;
 
 	friend class ActionRpgGame;
+	friend class ActionRpgMultiplayerGame;
 };
 
 

@@ -11,6 +11,8 @@ Page {
 
 	property ActionRpgGame game: null
 
+	readonly property ActionRpgMultiplayerGame _multiplayer: game && (game instanceof ActionRpgMultiplayerGame) ? game : null
+
 
 	property string closeQuestion: _rpgVisible && !_forceExit ? qsTr("Biztosan kilépsz a játékból?") : ""
 	property var onPageClose: function() {
@@ -49,7 +51,7 @@ Page {
 
 
 	property bool _oldWindowState: Client.fullScreenHelper
-	property bool _forceExit: false
+	property bool _forceExit: _multiplayer
 
 
 

@@ -11,6 +11,7 @@ QItemGradient {
 
 	property ActionRpgGame game: null
 
+	readonly property ActionRpgMultiplayerGame _multiplayer: game && (game instanceof ActionRpgMultiplayerGame) ? game : null
 	property bool _isFirst: true
 
 	title: game ? game.name + qsTr(" – level %1").arg(game.level): ""
@@ -61,10 +62,12 @@ QItemGradient {
 						Layout.fillHeight: true
 						Layout.fillWidth: true
 
-						text: wallet ? wallet.readableName : qsTr("Válassz...")
+						text: wallet ? wallet.readableName :
+									   enabled ? qsTr("Válassz...") : ""
 						image: wallet ? wallet.image : ""
 						locked: !wallet
 						selected: true
+						enabled: !_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost
 						onClicked: {
 							if (!Client.server.user.wallet.world) {
 								Client.messageWarning(qsTr("Nem sikerült betölteni a világokat!"))
@@ -108,6 +111,9 @@ QItemGradient {
 							_dialogWallet = _selectCharacter.wallet
 							_dialogAcceptFunc = function(w) {
 								_selectCharacter.wallet = w
+
+								if (_multiplayer)
+									_multiplayer.selectCharacter(w.market.name)
 							}
 
 							Qaterial.DialogManager.openFromComponent(_cmpSelectDialog)
@@ -159,7 +165,9 @@ QItemGradient {
 
 								onClicked: {
 									Client.Utils.settingsSet("rpg/skin", _selectCharacter.wallet.market.name)
-									Client.Utils.settingsSet("rpg/world", _selectTerrain.wallet.market.name)
+
+									if (!_multiplayer)
+										Client.Utils.settingsSet("rpg/world", _selectTerrain.wallet.market.name)
 
 									/*let noW = []
 
@@ -183,9 +191,13 @@ QItemGradient {
 									_grid1.visible = false
 									_busyIndicator.visible = true
 
-									game.selectCharacter(_selectTerrain.wallet.market.name,
-														 _selectCharacter.wallet.market.name,
-														 wList)
+									if (_multiplayer) {
+
+									} else {
+										game.selectCharacter(_selectTerrain.wallet.market.name,
+															 _selectCharacter.wallet.market.name,
+															 wList)
+									}
 								}
 							}
 
@@ -315,6 +327,33 @@ QItemGradient {
 							}
 						}
 
+					}
+
+					Column {
+						id: _playersItem
+
+						Layout.fillHeight: true
+						Layout.fillWidth: true
+						Layout.columnSpan: _grid1.columns
+
+						visible: _multiplayer
+
+
+						Repeater {
+							model: _multiplayer ? _multiplayer.playersModel : null
+
+							delegate: Qaterial.ItemDelegate {
+								width: parent.width
+								anchors.horizontalCenter: parent.horizontalCenter
+								text: username + " " + nickname + " - " + character + ": " + completed
+
+								icon.source: Qaterial.Icons.account
+
+								onClicked: {
+
+								}
+							}
+						}
 					}
 				}
 
@@ -466,6 +505,9 @@ QItemGradient {
 
 		function onSelectedLandChanged() {
 			_selectTerrain.wallet = Client.server.user.wallet.worldGetSelectedWallet()
+
+			if (_multiplayer && _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost)
+				_multiplayer.selectTerrain(_selectTerrain.wallet.market.name)
 		}
 	}
 
@@ -477,21 +519,15 @@ QItemGradient {
 			if (!_isFirst)
 				return
 
-			_selectCharacter.wallet = getWallet(RpgMarket.Skin, Client.Utils.settingsGet("rpg/skin", ""))
-			//_selectTerrain.wallet = getWallet(RpgMarket.Map, Client.Utils.settingsGet("rpg/world", ""))
-			if (Client.server.user.wallet.world)
+			let w = getWallet(RpgMarket.Skin, Client.Utils.settingsGet("rpg/skin", ""))
+			_selectCharacter.wallet = w
+
+			if (_multiplayer && w)
+				_multiplayer.selectCharacter(w.market.name)
+
+			if (Client.server.user.wallet.world && (!_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost))
 				Client.server.user.wallet.world.select(Client.Utils.settingsGet("rpg/world", ""))
 
-			/*let sList = []
-
-			let wList = Client.Utils.settingsGet("rpg/disabledWeapons", "").split(",")
-			for (let n=0; n<_viewWeapons.model.count; ++n) {
-				let w = _viewWeapons.model.get(n)
-				//if (!wList.includes(w.market.name))
-					sList.push(w)
-			}
-
-			_viewWeapons.selectMore(sList)*/
 
 			_isFirst = false
 		}

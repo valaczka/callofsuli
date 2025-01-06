@@ -132,7 +132,7 @@ void UserLogList::loadFromJson(const QJsonObject &obj)
 		const QJsonObject &o = v.toObject();
 		QVariantMap m;
 
-		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(o.value(QStringLiteral("timestamp"))));
+		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(o.value(QStringLiteral("timestamp")).toInteger());
 		m[QStringLiteral("xp")] = o.value(QStringLiteral("xp")).toInt();
 
 		Rank rank;
@@ -151,7 +151,7 @@ void UserLogList::loadFromJson(const QJsonObject &obj)
 		const QJsonObject &o = v.toObject();
 		QVariantMap m;
 
-		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(o.value(QStringLiteral("ended_on"))));
+		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(o.value(QStringLiteral("ended_on")).toInteger());
 		m[QStringLiteral("streak")] = o.value(QStringLiteral("streak")).toInt();
 
 		model.append(m);

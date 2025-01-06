@@ -31,7 +31,9 @@
 #include <QCoreApplication>
 #include <RollingFileAppender.h>
 #include <ColorConsoleAppender.h>
+#include <sodium.h>
 #include "qconsole.h"
+#include "udpserver.h"
 #include "utils_.h"
 #include "googleoauth2authenticator.h"
 #include "microsoftoauth2authenticator.h"
@@ -93,7 +95,7 @@ ServerService::ServerService(int &argc, char **argv)
 
 #ifdef _MAIN_TIMER_TEST_MODE
 	LOG_CERROR("service") << "_MAIN_TIMER_TEST_MODE defined";
-	m_mainTimerInterval = 2000;
+	m_mainTimerInterval = 8;
 #else
 	m_mainTimerInterval = 100;
 #endif
@@ -107,6 +109,7 @@ ServerService::ServerService(int &argc, char **argv)
 		m_databaseMain->databaseClose();
 		m_databaseMain.reset();
 		m_settings.reset();
+		m_udpServer.reset();
 	});
 }
 
@@ -142,6 +145,11 @@ void ServerService::initialize()
 	cuteLogger->logToGlobalInstance(QStringLiteral("client"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("engine"), true);
 	cuteLogger->logToGlobalInstance(QStringLiteral("utils"), true);
+
+	if (sodium_init() == -1) {
+		LOG_CERROR("app") << "libsodium init failed";
+		std::exit(1);
+	}
 }
 
 
@@ -264,11 +272,11 @@ void ServerService::timerEvent(QTimerEvent *)
 #ifndef _MAIN_TIMER_TEST_MODE
 	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
 		return;
-#endif
 
 	m_engineHandler->timerMinuteEvent();
+#else
+	m_engineHandler->timerMinuteEvent();
 
-#ifdef _MAIN_TIMER_TEST_MODE
 	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
 		return;
 #endif
@@ -1015,8 +1023,9 @@ bool ServerService::start()
 	if (!m_createToken.isEmpty()) {
 		if (const auto &cred = AuthAPI::getCredential(m_databaseMain.get(), m_createToken)) {
 			LOG_CDEBUG("service") << "Create token for:" << qPrintable(m_createToken);
-			const QString &token = cred->createJWT(m_settings->jwtSecret());
-			QConsole::qStdOut()->write(token.toLatin1());
+			const QByteArray &token = cred->createJWT(m_settings->jwtSecret());
+			QConsole::qStdOut()->write(token);
+			QConsole::qStdOut()->write("\n");
 		} else {
 			LOG_CERROR("service") << "Invalid username:" << qPrintable(m_createToken);
 		}
@@ -1036,12 +1045,17 @@ bool ServerService::start()
 
 	LOG_CINFO("service") << "Server service started";
 
-	if (m_webServer->start()) {
-		m_state = ServerRunning;
-		return true;
-	} else {
+	if (!m_webServer->start()) {
 		return false;
+	} else {
+		m_state = ServerRunning;
 	}
+
+
+	m_udpServer.reset(new UdpServer(this));
+
+	return true;
+
 }
 
 
@@ -1053,6 +1067,9 @@ bool ServerService::start()
 void ServerService::stop()
 {
 	LOG_CINFO("service") << "Server service stopping";
+
+	if (m_udpServer)
+		m_udpServer.reset();
 
 	m_state = ServerFinished;
 
@@ -1080,6 +1097,9 @@ void ServerService::pause()
 	}
 
 	LOG_CINFO("service") << "Server service pause";
+
+	if (m_udpServer)
+		m_udpServer.reset();
 
 	if (m_webServer) {
 		m_engineHandler->websocketCloseAll();
@@ -1116,6 +1136,17 @@ void ServerService::resume()
 
 	if (!start())
 		m_application->quit();
+}
+
+
+/**
+ * @brief ServerService::udpServer
+ * @return
+ */
+
+UdpServer *ServerService::udpServer() const
+{
+	return m_udpServer.get();
 }
 
 

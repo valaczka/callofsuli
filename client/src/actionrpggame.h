@@ -45,7 +45,6 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged FINAL)
 	Q_PROPERTY(RpgConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
-	Q_PROPERTY(RpgPlayerConfig playerConfig READ playerConfig WRITE setPlayerConfig NOTIFY playerConfigChanged FINAL)
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
 	Q_PROPERTY(int gameid READ gameid CONSTANT FINAL)
 
@@ -69,7 +68,7 @@ public:
 	Q_INVOKABLE void stopMenuBgMusic();
 
 	Q_INVOKABLE void selectCharacter(const QString &terrain, const QString &character, const QStringList &weaponList);
-	Q_INVOKABLE void rpgGameActivated();
+	Q_INVOKABLE virtual void rpgGameActivated();
 
 	Q_INVOKABLE void finishGame();
 	Q_INVOKABLE void gamePrepared();
@@ -86,10 +85,7 @@ public:
 	void setConfig(const RpgConfig &newConfig);
 
 	RpgGame *rpgGame() const;
-	void setRpgGame(RpgGame *newRpgGame);
-
-	RpgPlayerConfig playerConfig() const;
-	void setPlayerConfig(const RpgPlayerConfig &newPlayerConfig);
+	virtual void setRpgGame(RpgGame *newRpgGame);
 
 	GameMode gameMode() const;
 	void setGameMode(const GameMode &newGameMode);
@@ -105,10 +101,10 @@ signals:
 	void finishDialogRequest(QString text, QString icon, bool success);
 	void configChanged();
 	void rpgGameChanged();
-	void playerConfigChanged();
 	void gameModeChanged();
 
 protected:
+	virtual void onConfigChanged();
 	virtual QQuickItem* loadPage() override;
 	virtual void timerEvent(QTimerEvent *) override;
 	virtual void connectGameQuestion() override;
@@ -123,21 +119,21 @@ protected:
 	void onGameFailed();
 	void onGameLoadFailed(const QString &);
 
+	void loadInventory(RpgPlayer *player);
+	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
+	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
+
+	void updateConfig();
+	void setError();
+
+	void downloadGameData(const QList<RpgPlayerConfig> &players);
 
 private:
 	void rpgGameActivated_();
-	void updateConfig();
-	void onConfigChanged();
-	void downloadGameData();
-	void setError();
 	void onMsecLeftChanged();
 
 	void downloadLoadableContentDict(const QStringList &fileList);
 	void downloadLoadableContent(const QStringList &fileList);
-
-	void loadInventory(RpgPlayer *player);
-	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
-	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
@@ -145,10 +141,11 @@ private:
 	bool onPlayerUseCast(RpgPlayer *player);
 	bool onPlayerCastTimeout(RpgPlayer *player);
 	bool onPlayerFinishCast(RpgPlayer *player);
+	bool onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
 	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, RpgContainer *container, int xp);
 	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, RpgContainer *container);
 
-private:
+protected:
 	GameMode m_gameMode = SinglePlayer;
 	RpgConfig m_config;
 	RpgGame *m_rpgGame = nullptr;

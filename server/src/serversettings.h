@@ -69,8 +69,8 @@ public:
 	quint16 listenPort() const;
 	void setListenPort(quint16 newListenPort);
 
-	const QString &jwtSecret() const;
-	void setJwtSecret(const QString &newJwtSecret);
+	const QByteArray &jwtSecret() const;
+	void setJwtSecret(const QByteArray &newJwtSecret);
 
 	bool generateJwtSecret(const bool &forced = false);
 
@@ -112,7 +112,7 @@ public:
 private:
 	QDir m_dataDir;
 
-	QString m_jwtSecret;
+	QByteArray m_jwtSecret;
 
 	QHostAddress m_listenAddress = QHostAddress::Any;
 	quint16 m_listenPort = 10101;

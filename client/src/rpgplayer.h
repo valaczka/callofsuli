@@ -29,6 +29,7 @@
 
 #include "isometricplayer.h"
 #include "rpgarmory.h"
+#include "rpggamedataiface.h"
 #include "rpgpickableobject.h"
 #include "rpgshortbow.h"
 #include "tiledeffect.h"
@@ -115,7 +116,7 @@ public:
  * @brief The RpgPlayer class
  */
 
-class RpgPlayer : public IsometricPlayer
+class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -184,6 +185,8 @@ public:
 	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
 
+	virtual std::unique_ptr<RpgGameData::Body> serialize() const override;
+	virtual bool deserialize(const RpgGameData::Body *from) const override;
 
 signals:
 	void attackDone();

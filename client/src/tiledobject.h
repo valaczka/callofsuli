@@ -135,6 +135,8 @@ public:
 
 
 	ObjectId objectId() const;
+	void setObjectId(const ObjectId &newObjectId);
+	void setObjectId(const int &sceneId, const int &id);
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
@@ -257,9 +259,6 @@ private:
 							 Tiled::MapRenderer *renderer,
 							 b2::Body::Params bParams,
 							 const b2::Shape::Params &params = {});
-
-	void setObjectId(const ObjectId &newObjectId);
-	void setObjectId(const int &sceneId, const int &id);
 
 	TiledObjectBodyPrivate *d;
 	bool m_opaque = true;

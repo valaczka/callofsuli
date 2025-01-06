@@ -33,6 +33,7 @@
 #include "server.h"
 #include "serversettings.h"
 #include "databasemain.h"
+#include "udpserver.h"
 #include "webserver.h"
 #include "oauth2authenticator.h"
 #include "enginehandler.h"
@@ -156,6 +157,8 @@ public:
 
 	const QList<QByteArray> &agentSignatures() const;
 
+	UdpServer *udpServer() const;
+
 signals:
 	void configChanged();
 	void serverNameChanged();
@@ -198,6 +201,7 @@ private:
 	QVector<std::shared_ptr<OAuth2Authenticator> > m_authenticators;
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
 	std::shared_ptr<WebServer> m_webServer;
+	std::unique_ptr<UdpServer> m_udpServer;
 	std::unique_ptr<EngineHandler> m_engineHandler;
 	std::unique_ptr<SimpleMail::Server> m_smtpServer;
 

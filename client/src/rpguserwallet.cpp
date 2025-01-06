@@ -970,13 +970,15 @@ void RpgUserWorld::selectFromWallet(RpgUserWallet *wallet)
  * @param map
  */
 
-void RpgUserWorld::select(const QString &map)
+void RpgUserWorld::select(const QString &map, const bool &forced)
 {
-	const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(), [&map](RpgWorldLandData *d){
-					return d->bindedMap() == map &&
-					(d->landState() == RpgWorldLandData::LandSelectable ||
-					 d->landState() == RpgWorldLandData::LandAchieved);
-});
+	const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(),
+								 [&map, forced](RpgWorldLandData *d){
+		return d->bindedMap() == map &&
+				(d->landState() == RpgWorldLandData::LandSelectable ||
+				 d->landState() == RpgWorldLandData::LandAchieved ||
+				 forced);
+	});
 
 	if (it != m_landList->constEnd())
 		return setSelectedLand(*it);

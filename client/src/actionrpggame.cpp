@@ -71,7 +71,7 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 	connect(this, &AbstractLevelGame::msecLeftChanged, this, &ActionRpgGame::onMsecLeftChanged);
 
 	connect(client->downloader(), &Downloader::contentDownloaded, this, [this]() {
-		m_config.gameState = RpgConfig::StateCharacterSelect;
+		m_config.gameState = RpgConfig::StateConnect;
 		updateConfig();
 	});
 
@@ -135,8 +135,8 @@ void ActionRpgGame::gameAbort()
 QJsonObject ActionRpgGame::getExtendedData() const
 {
 	return {
-		{ QStringLiteral("map"), m_playerConfig.terrain }
-	};
+	{ QStringLiteral("map"), m_playerConfig.terrain }
+};
 }
 
 
@@ -195,7 +195,7 @@ void ActionRpgGame::selectCharacter(const QString &terrain, const QString &chara
 	m_config.gameState = RpgConfig::StateDownloadContent;
 	updateConfig();
 
-	downloadGameData();
+	downloadGameData({m_playerConfig});
 
 	//////m_config.gameState = RpgConfig::StatePrepare;
 	///////QMetaObject::invokeMethod(this, &ActionRpgGame::updateConfig, Qt::QueuedConnection);
@@ -584,7 +584,7 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
-	if (!m_rpgGame->load(ptr.value(), characterPtr.value())) {
+	if (!m_rpgGame->load(ptr.value(), characterPtr->cast == RpgPlayerCharacterConfig::CastInvalid)) {
 		LOG_CERROR("game") << "Game load error";
 		return;
 	}
@@ -725,6 +725,12 @@ void ActionRpgGame::onConfigChanged()
 	if (m_config.gameState == RpgConfig::StateInvalid)
 		return;
 
+	if (m_config.gameState == RpgConfig::StateConnect) {
+		m_config.gameState = RpgConfig::StateCharacterSelect;
+		updateConfig();
+		return;
+	}
+
 	if (m_config.gameState == RpgConfig::StatePrepare && m_oldGameState != RpgConfig::StatePrepare) {
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yourself.mp3"), Sound::VoiceoverChannel);
 		//m_client->sound()->playSound(backgroundMusic(), Sound::MusicChannel);
@@ -771,7 +777,7 @@ void ActionRpgGame::onConfigChanged()
  * @brief ActionRpgGame::downloadGameData
  */
 
-void ActionRpgGame::downloadGameData()
+void ActionRpgGame::downloadGameData(const QList<RpgPlayerConfig> &players)
 {
 	Server *server = m_client->server();
 
@@ -794,16 +800,18 @@ void ActionRpgGame::downloadGameData()
 	if (!listPtr)
 		return;
 
-	m_downloader->setServer(server);
+	for (const auto &config : players) {
 
+		m_downloader->setServer(server);
 
-	listPtr->append(m_playerConfig.character+QStringLiteral(".full.dres"));
+		listPtr->append(config.character+QStringLiteral(".full.dres"));
 
-	if (auto it = RpgGame::characters().find(m_playerConfig.character); it != RpgGame::characters().constEnd() && !it->base.isEmpty()) {
-		listPtr->append(it->base+QStringLiteral(".full.dres"));
+		if (auto it = RpgGame::characters().find(config.character); it != RpgGame::characters().constEnd() && !it->base.isEmpty()) {
+			listPtr->append(it->base+QStringLiteral(".full.dres"));
+		}
+
+		listPtr->append(ptr->required);
 	}
-
-	listPtr->append(ptr->required);
 
 	downloadLoadableContentDict(*listPtr);
 }
@@ -877,7 +885,7 @@ void ActionRpgGame::downloadLoadableContent(const QStringList &fileList)
 				Server::DynamicContent content;
 				content.name = o.value(QStringLiteral("file")).toString();
 				content.md5 = o.value(QStringLiteral("md5")).toString();
-				content.size = JSON_TO_INTEGER(o.value(QStringLiteral("size")));
+				content.size = o.value(QStringLiteral("size")).toInteger();
 				m_loadableContentListBase.append(content);
 			}
 
@@ -1432,6 +1440,28 @@ bool ActionRpgGame::onPlayerFinishCast(RpgPlayer *player)
 
 
 /**
+ * @brief ActionRpgGame::onEnemyAttackPlayer
+ * @param enemy
+ * @param player
+ * @param weaponType
+ * @return
+ */
+
+bool ActionRpgGame::onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType)
+{
+	Q_ASSERT(enemy);
+	Q_ASSERT(player);
+
+	const bool prot = player->protectWeapon(weaponType);
+
+	player->attackedByEnemy(enemy, weaponType, prot);
+
+	return true;
+}
+
+
+
+/**
  * @brief ActionRpgGame::onQuestionSuccess
  * @param player
  * @param enemy
@@ -1518,22 +1548,6 @@ void ActionRpgGame::setGameMode(const GameMode &newGameMode)
 }
 
 
-/**
- * @brief ActionRpgGame::playerConfig
- * @return
- */
-
-RpgPlayerConfig ActionRpgGame::playerConfig() const
-{
-	return m_playerConfig;
-}
-
-void ActionRpgGame::setPlayerConfig(const RpgPlayerConfig &newPlayerConfig)
-{
-	m_playerConfig = newPlayerConfig;
-	emit playerConfigChanged();
-}
-
 
 
 
@@ -1574,6 +1588,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setFuncPlayerUseCast(nullptr);
 		m_rpgGame->setFuncPlayerCastTimeout(nullptr);
 		m_rpgGame->setFuncPlayerFinishCast(nullptr);
+		m_rpgGame->setFuncEnemyAttackPlayer(nullptr);
 	}
 
 	m_rpgGame = newRpgGame;
@@ -1595,6 +1610,8 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setFuncPlayerUseCast(std::bind(&ActionRpgGame::onPlayerUseCast, this, std::placeholders::_1));
 		m_rpgGame->setFuncPlayerCastTimeout(std::bind(&ActionRpgGame::onPlayerCastTimeout, this, std::placeholders::_1));
 		m_rpgGame->setFuncPlayerFinishCast(std::bind(&ActionRpgGame::onPlayerFinishCast, this, std::placeholders::_1));
+		m_rpgGame->setFuncEnemyAttackPlayer(std::bind(&ActionRpgGame::onEnemyAttackPlayer, this,
+													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 }
 

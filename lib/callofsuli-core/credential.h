@@ -29,9 +29,65 @@
 
 #include "qcryptographichash.h"
 #include <QJsonObject>
-#include <qjsonwebtoken.h>
 
 #define JWT_ISSUER QStringLiteral("Call of Suli")
+
+
+class Token
+{
+public:
+	Token() {}
+	Token(const QByteArray &token);
+	Token(const QJsonObject &payload, const QJsonObject &header = {})
+		: m_header(header), m_payload(payload)
+	{  }
+
+	const QJsonObject &header() const { return m_header; }
+	void setHeader(const QJsonObject &newHeader) { m_header = newHeader; m_origToken.clear(); }
+	QJsonObject &header() { return m_header; }
+
+	const QJsonObject &payload() const { return m_payload; }
+	void setPayload(const QJsonObject &newPayload) { m_payload = newPayload; m_origToken.clear(); }
+	QJsonObject &payload() { return m_payload; }
+
+	const QByteArray &signature() const { return m_signature;}
+	void setSignature(const QByteArray &newSignature) { m_signature = newSignature; m_origToken.clear(); }
+
+	const QByteArray &secret() const { return m_secret; }
+	void setSecret(const QByteArray &newSecret) { m_secret = newSecret; }
+
+	static QByteArray defaultHeader();
+	static QByteArray generateSignature(const QJsonObject &payload, const QByteArray &secret, const QJsonObject &header = {});
+	static QByteArray generateSignature(const QByteArray &header, const QByteArray &payload, const QByteArray &secret);
+	static QByteArray getToken(const QByteArray &header, const QByteArray &payload, const QByteArray &signature);
+	static QByteArray getToken(const QJsonObject &payload, const QByteArray &secret, const QJsonObject &header = {});
+
+	static QByteArray sign(const QByteArray &content, const QByteArray &secret);
+	static bool verify(const QByteArray &content, const QByteArray &mac, const QByteArray &secret);
+
+	bool verify() const;
+	bool verify(const QByteArray &secret) const;
+
+	const QByteArray &generateSignature() {
+		m_signature = generateSignature(m_payload, m_secret, m_header);
+		return m_signature;
+	}
+
+	QByteArray getToken() const;
+	QByteArray getToken(const QByteArray &secret) {
+		setSecret(secret);
+		return getToken();
+	}
+
+private:
+	QJsonObject m_header;
+	QJsonObject m_payload;
+	QByteArray m_signature;
+	QByteArray m_secret;
+	QByteArray m_origToken;
+};
+
+
 
 class Credential
 {
@@ -56,15 +112,15 @@ public:
 
 	Credential(const QString &username, const Roles &roles = None);
 
-	QString createJWT(const QString &secret) const;
-	static Credential fromJWT(const QString &jwt);
+	QByteArray createJWT(const QByteArray &secret) const;
+	static Credential fromJWT(const QByteArray &jwt);
 
-	static bool verify(const QString &token, const QString &secret, const qint64 &firstIat);
+	static bool verify(const QByteArray &token, const QByteArray &secret, const qint64 &firstIat);
 
-	static QString hashString(const QString &str, const QString &salt,
+	[[deprecated]] static QString hashString(const QString &str, const QString &salt,
 							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
 
-	static QString hashString(const QString &str, QString *salt = nullptr,
+	[[deprecated]] static QString hashString(const QString &str, QString *salt = nullptr,
 							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
 
 	virtual bool isValid() const;

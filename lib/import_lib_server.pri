@@ -28,3 +28,23 @@ include($$PWD/QSerializer/qserializer.pri)
 
 INCLUDEPATH += $$PWD/simple-mail/src
 LIBS += -lsimplemail
+
+
+# ENet
+
+!wasm {
+	INCLUDEPATH += $$PWD/enet/include
+	android: LIBS += -lenet_$${QT_ARCH}
+	else: LIBS += -lenet
+}
+
+
+# Sodium
+
+INCLUDEPATH += $$LibSodiumInclude
+LIBS += $$LibSodiumLibs
+
+
+!isEmpty(LibSodiumDefines) {
+	DEFINES += $$LibSodiumDefines
+}

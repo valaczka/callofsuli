@@ -27,6 +27,7 @@
 #ifndef RPGCONFIG_H
 #define RPGCONFIG_H
 
+#include "qpoint.h"
 #include <QSerializer>
 
 
@@ -77,8 +78,8 @@ public:
 		StateInvalid = 0,
 		StateDownloadStatic,
 		StateConnect,
-		StateDownloadContent,
 		StateCharacterSelect,
+		StateDownloadContent,
 		StatePrepare,
 		StatePlay,
 		StateFinished,
@@ -99,7 +100,6 @@ public:
 				c1.mapUuid == c2.mapUuid &&
 				c1.missionUuid == c2.missionUuid &&
 				c1.missionLevel == c2.missionLevel &&
-				c1.userHost == c2.userHost &&
 				c1.campaign == c2.campaign &&
 				c1.duration == c2.duration
 				;
@@ -107,7 +107,6 @@ public:
 
 	QS_SERIALIZABLE
 	QS_FIELD(GameState, gameState)
-	QS_FIELD(QString, userHost)
 };
 
 
@@ -137,6 +136,7 @@ public:
 
 	QS_FIELD(int, playerId)
 	QS_FIELD(QString, username)
+	QS_FIELD(QString, nickname)
 
 	QS_FIELD(QString, terrain)
 	QS_FIELD(QString, character)
@@ -493,5 +493,238 @@ public:
 	QS_QT_DICT_OBJECTS(QMap, QString, RpgWorldLandGeometry, lands)
 	QS_QT_DICT_OBJECTS(QMap, QString, RpgWorldMapBinding, binding)
 };
+
+
+
+
+/// ---------------------------------------------------------------
+/// IN GAME serialization
+/// ---------------------------------------------------------------
+
+
+#define EQUAL_OPERATOR(cname)	friend bool operator==(const cname &l, const cname &r) { return l.isEqual(r); }
+
+
+namespace RpgGameData {
+
+class CharacterSelect : public RpgPlayerConfig
+{
+	Q_GADGET
+
+public:
+	CharacterSelect()
+		: RpgPlayerConfig()
+		, completed(false)
+	{}
+
+	CharacterSelect(const RpgPlayerConfig &config)
+		: RpgPlayerConfig(config)
+		, completed(false)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(bool, completed)
+};
+
+
+
+
+/**
+ * @brief The PlayerPosition class
+ */
+
+class PlayerPosition : public QSerializer
+{
+	Q_GADGET
+
+public:
+	PlayerPosition(const int &_s, const float &_x, const float &_y)
+		: QSerializer()
+		, scene(_s)
+		, x(_x)
+		, y(_y)
+	{ }
+
+	PlayerPosition()
+		: PlayerPosition(-1, 0., 0.)
+	{ }
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, scene)
+	QS_FIELD(float, x)
+	QS_FIELD(float, y)
+};
+
+
+
+
+
+/**
+ * @brief The GameConfig class
+ */
+
+class GameConfig : public QSerializer
+{
+	Q_GADGET
+
+public:
+	GameConfig()
+		: QSerializer()
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, PlayerPosition, positionList)
+	QS_FIELD(QString, terrain)
+};
+
+
+/**
+ * @brief The Body class
+ */
+
+class Body : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Body(const int &_sceneId, const int &_id)
+		: QSerializer()
+		, o(-1)
+		, s(_sceneId)
+		, id(_id)
+	{ }
+
+	Body() :
+		Body(-1, -1)
+	{}
+
+	bool isEqual(const Body &other) const {
+		return other.o == o && other.s == s && other.id == id;
+	}
+
+	EQUAL_OPERATOR(Body)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, o)					// ownerId
+	QS_FIELD(int, s)					// sceneId
+	QS_FIELD(int, id)					// objectId
+
+	QS_COLLECTION(QList, float, p)		// position
+};
+
+
+
+class Entity : public Body
+{
+	Q_GADGET
+
+public:
+	Entity(const int &_sceneId, const int &_id)
+		: Body(_sceneId, _id)
+		, a(0.)
+		, hp(0)
+		, mhp(0)
+	{}
+
+	Entity()
+		: Entity(-1, -1)
+	{}
+
+	bool isEqual(const Entity &other) const {
+		return Body::isEqual(other) && other.a == a && other.hp == hp && other.mhp == mhp;
+	}
+
+	EQUAL_OPERATOR(Entity)
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION(QList, float, mov)		// moveTowards
+
+	QS_FIELD(float, a)			// angle
+	QS_FIELD(int, hp)			// HP
+	QS_FIELD(int, mhp)			// max HP
+
+
+};
+
+
+class Player : public Entity
+{
+	Q_GADGET
+
+public:
+	Player(const int &_sceneId, const int &_id)
+		: Entity(_sceneId, _id)
+	{}
+
+	Player()
+		: Player(-1, -1)
+	{}
+
+	bool isEqual(const Player &other) const  {
+		return Entity::isEqual(other);
+	}
+
+	EQUAL_OPERATOR(Player);
+
+	QS_SERIALIZABLE
+
+};
+
+
+
+
+class Enemy : public Entity
+{
+	Q_GADGET
+
+public:
+	enum EnemyType {
+		EnemyInvalid = 0,
+		EnemyWerebear,
+		EnemySoldier,
+		EnemyArcher,
+		EnemySoldierFix,
+		EnemyArcherFix,
+		EnemySkeleton,
+		EnemySmith,
+		EnemySmithFix,
+		EnemyBarbarian,
+		EnemyBarbarianFix,
+		EnemyButcher,
+		EnemyButcherFix,
+	};
+
+	Q_ENUM(EnemyType);
+
+	Enemy(const EnemyType &_type, const int &_sceneId, const int &_id)
+		: Entity(_sceneId, _id)
+		, t(_type)
+	{}
+
+	Enemy() :
+		Enemy(EnemyInvalid, -1, -1)
+	{}
+
+	bool isEqual(const Enemy &other) const {
+		return Entity::isEqual(other) && other.t == t;
+	}
+
+	EQUAL_OPERATOR(Enemy)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(EnemyType, t)
+};
+
+
+
+};
+
+
 
 #endif // RPGCONFIG_H

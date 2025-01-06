@@ -907,6 +907,37 @@ void RpgPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 }
 
 
+/**
+ * @brief RpgPlayer::serialize
+ * @return
+ */
+
+std::unique_ptr<RpgGameData::Body> RpgPlayer::serialize() const
+{
+	RpgGameData::Player *p = new RpgGameData::Player(objectId().sceneId, objectId().sceneId);
+
+	p->a = currentAngle();
+	p->p = toPosList(bodyPosition());
+	p->hp = m_hp;
+	p->mhp = m_maxHp;
+
+	return std::unique_ptr<RpgGameData::Body>(std::move(p));
+}
+
+
+
+/**
+ * @brief RpgPlayer::deserialize
+ * @param from
+ * @return
+ */
+
+bool RpgPlayer::deserialize(const RpgGameData::Body *from) const
+{
+	return false;
+}
+
+
 
 
 int RpgPlayer::mp() const

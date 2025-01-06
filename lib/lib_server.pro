@@ -4,7 +4,8 @@ TEMPLATE = subdirs
 
 SUBDIRS = \
 	CuteLogger \
-	libSimpleMail
+	libSimpleMail \
+	libENet
 
 CONFIG += ordered
 

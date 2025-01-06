@@ -31,6 +31,7 @@
 #include <QTextStream>
 #include "utils_.h"
 #include "oauth2authenticator.h"
+#include <sodium.h>
 
 
 
@@ -102,7 +103,7 @@ void ServerSettings::loadFromFile(const QString &filename)
 		setListenPort(s.value(QStringLiteral("server/port")).toInt());
 
 	if (s.contains(QStringLiteral("server/jwtSecret")))
-		setJwtSecret(s.value(QStringLiteral("server/jwtSecret")).toString());
+		setJwtSecret(QByteArray::fromBase64(s.value(QStringLiteral("server/jwtSecret")).toString().toUtf8(), QByteArray::Base64UrlEncoding));
 
 	if (s.contains(QStringLiteral("server/redirectHost")))
 		setRedirectHost(s.value(QStringLiteral("server/redirectHost")).toString());
@@ -182,7 +183,7 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 
 	s.setValue(QStringLiteral("server/host"), m_listenAddress.toString());
 	s.setValue(QStringLiteral("server/port"), m_listenPort);
-	s.setValue(QStringLiteral("server/jwtSecret"), m_jwtSecret);
+	s.setValue(QStringLiteral("server/jwtSecret"), QString::fromUtf8(m_jwtSecret.toBase64(QByteArray::Base64UrlEncoding)));
 	s.setValue(QStringLiteral("server/redirectHost"), m_redirectHost);
 	s.setValue(QStringLiteral("server/verifyPeer"), m_verifyPeer);
 
@@ -250,14 +251,18 @@ void ServerSettings::setListenPort(quint16 newListenPort)
 	m_listenPort = newListenPort;
 }
 
-const QString &ServerSettings::jwtSecret() const
+const QByteArray &ServerSettings::jwtSecret() const
 {
 	return m_jwtSecret;
 }
 
-void ServerSettings::setJwtSecret(const QString &newJwtSecret)
+void ServerSettings::setJwtSecret(const QByteArray &newJwtSecret)
 {
-	m_jwtSecret = newJwtSecret;
+	if (newJwtSecret.size() != crypto_auth_KEYBYTES) {
+		LOG_CWARNING("service") << "JWT secret size error";
+	} else {
+		m_jwtSecret = newJwtSecret;
+	}
 }
 
 
@@ -270,7 +275,10 @@ bool ServerSettings::generateJwtSecret(const bool &forced)
 {
 	if (m_jwtSecret.isEmpty() || forced) {
 		LOG_CTRACE("service") << "Generate new JWT secret";
-		setJwtSecret(QString::fromUtf8(Utils::generateRandomString(24)));
+
+		unsigned char k[crypto_auth_KEYBYTES];
+		crypto_auth_keygen(k);
+		setJwtSecret(QByteArray((const char*) k, crypto_auth_KEYBYTES));
 		return true;
 	}
 

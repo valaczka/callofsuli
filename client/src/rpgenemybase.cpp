@@ -39,7 +39,7 @@
  * @param parent
  */
 
-RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, TiledScene *scene)
+RpgEnemyBase::RpgEnemyBase(const RpgGameData::Enemy::EnemyType &type, TiledScene *scene)
 	: IsometricEnemy(scene)
 	, RpgEnemyIface(type)
 	, m_effectHealed(this)
@@ -50,7 +50,7 @@ RpgEnemyBase::RpgEnemyBase(const RpgEnemyType &type, TiledScene *scene)
 
 	setMetric(RpgGame::defaultEnemyMetric().soldier.value(QStringLiteral("default")));
 
-	if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix) {
+	if (m_enemyType == RpgGameData::Enemy::EnemyArcher || m_enemyType == RpgGameData::Enemy::EnemyArcherFix) {
 		setMetric(RpgGame::defaultEnemyMetric().archer.value(QStringLiteral("default")));
 	}
 
@@ -349,7 +349,7 @@ QPointF RpgEnemyBase::getPickablePosition(const int &num) const
 
 bool RpgEnemyBase::canBulletImpact(const TiledWeapon::WeaponType &type) const
 {
-	if (m_enemyType == EnemySkeleton && type == TiledWeapon::WeaponShortbow)
+	if (m_enemyType == RpgGameData::Enemy::EnemySkeleton && type == TiledWeapon::WeaponShortbow)
 		return false;
 
 	return true;
@@ -384,6 +384,39 @@ void RpgEnemyBase::setSubType(const QString &newSubType)
 }
 
 
+
+/**
+ * @brief RpgEnemyBase::serialize
+ * @return
+ */
+
+std::unique_ptr<RpgGameData::Body> RpgEnemyBase::serialize() const
+{
+	RpgGameData::Enemy *enemy = new RpgGameData::Enemy(m_enemyType, objectId().sceneId, objectId().id);
+
+
+	enemy->a = currentAngle();
+	enemy->p = toPosList(bodyPosition());
+	enemy->hp = m_hp;
+	enemy->mhp = m_maxHp;
+
+
+	return std::unique_ptr<RpgGameData::Body>(std::move(enemy));
+}
+
+
+/**
+ * @brief RpgEnemyBase::deserialize
+ * @param from
+ * @return
+ */
+
+bool RpgEnemyBase::deserialize(const RpgGameData::Body *from) const
+{
+
+}
+
+
 /**
  * @brief RpgEnemyBase::onCurrentSpriteChanged
  */
@@ -405,17 +438,17 @@ void RpgEnemyBase::loadType()
 
 	TiledWeapon *w = nullptr;
 
-	if (m_enemyType == EnemySoldier || m_enemyType == EnemySoldierFix)
+	if (m_enemyType == RpgGameData::Enemy::EnemySoldier || m_enemyType == RpgGameData::Enemy::EnemySoldierFix)
 		w = m_armory->weaponAdd(new RpgLongsword);
-	else if (m_enemyType == EnemyArcher || m_enemyType == EnemyArcherFix)
+	else if (m_enemyType == RpgGameData::Enemy::EnemyArcher || m_enemyType == RpgGameData::Enemy::EnemyArcherFix)
 		w = m_armory->weaponAdd(new RpgShortbow);
-	else if (m_enemyType == EnemySkeleton)
+	else if (m_enemyType == RpgGameData::Enemy::EnemySkeleton)
 		w = m_armory->weaponAdd(new RpgLongsword);
-	else if (m_enemyType == EnemySmith || m_enemyType == EnemySmithFix)
+	else if (m_enemyType == RpgGameData::Enemy::EnemySmith || m_enemyType == RpgGameData::Enemy::EnemySmithFix)
 		w = m_armory->weaponAdd(new RpgHammer);
-	else if (m_enemyType == EnemyButcher || m_enemyType == EnemyButcherFix)
+	else if (m_enemyType == RpgGameData::Enemy::EnemyButcher || m_enemyType == RpgGameData::Enemy::EnemyButcherFix)
 		w = m_armory->weaponAdd(new RpgAxe);
-	else if (m_enemyType == EnemyBarbarian || m_enemyType == EnemyBarbarianFix)
+	else if (m_enemyType == RpgGameData::Enemy::EnemyBarbarian || m_enemyType == RpgGameData::Enemy::EnemyBarbarianFix)
 		w = m_armory->weaponAdd(new RpgMace);
 
 

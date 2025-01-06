@@ -347,7 +347,7 @@ void ConquestGame::onJsonReceived(const QString &operation, const QJsonValue &da
 {
 	if (operation == QStringLiteral("timeSync")) {
 		const QJsonObject &obj = data.toObject();
-		qint64 clientTime = QDateTime::currentMSecsSinceEpoch() - JSON_TO_INTEGER(obj.value(QStringLiteral("clientTime")));
+		qint64 clientTime = QDateTime::currentMSecsSinceEpoch() - obj.value(QStringLiteral("clientTime")).toInteger();
 
 		m_tickTimer.setLatency(clientTime/2);
 
@@ -526,7 +526,7 @@ void ConquestGame::cmdState(const QJsonObject &data)
 	setConfig(c);
 
 
-	if (qint64 tick = JSON_TO_INTEGER_Y(data.value(QStringLiteral("tick")), -1); tick != -1) {
+	if (qint64 tick = data.value(QStringLiteral("tick")).toInteger(-1); tick != -1) {
 		m_tickTimer.start(this, tick);
 	}
 }

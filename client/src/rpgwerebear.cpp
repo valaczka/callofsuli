@@ -92,7 +92,7 @@ static const QVector<TiledGame::TextureSpriteMapper> &mapperBase() {
 
 RpgWerebear::RpgWerebear(TiledScene *scene)
 	: IsometricEnemy(scene)
-	, RpgEnemyIface(EnemyWerebear)
+	, RpgEnemyIface(RpgGameData::Enemy::EnemyWerebear)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
 	, m_sfxRoar(this)
@@ -363,6 +363,31 @@ bool RpgWerebear::protectWeapon(const TiledWeapon::WeaponType &weaponType)
 	if (m_weaponHand->canProtect(weaponType) && m_weaponHand->protect(weaponType))
 		return true;
 
+	return false;
+}
+
+
+
+
+/**
+ * @brief RpgWerebear::serialize
+ * @return
+ */
+
+std::unique_ptr<RpgGameData::Body> RpgWerebear::serialize() const
+{
+	return {};
+}
+
+
+/**
+ * @brief RpgWerebear::deserialize
+ * @param from
+ * @return
+ */
+
+bool RpgWerebear::deserialize(const RpgGameData::Body *from) const
+{
 	return false;
 }
 

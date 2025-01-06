@@ -27,6 +27,7 @@
 #include "credential.h"
 #include "Logger.h"
 #include "utils_.h"
+#include <sodium.h>
 
 
 /**
@@ -65,7 +66,7 @@ bool Credential::isValid() const
  * @return
  */
 
-QString Credential::createJWT(const QString &secret) const
+QByteArray Credential::createJWT(const QByteArray &secret) const
 {
 	QStringList list;
 
@@ -93,10 +94,6 @@ QString Credential::createJWT(const QString &secret) const
 	else
 		exp = exp.addDays(50);
 
-	QJsonWebToken jwt;
-
-	jwt.setSecret(secret);
-
 
 	QJsonObject obj;
 
@@ -106,7 +103,10 @@ QString Credential::createJWT(const QString &secret) const
 	obj.insert(QStringLiteral("exp"), exp.toSecsSinceEpoch());
 	obj.insert(QStringLiteral("roles"), list.join("|"));
 
-	jwt.setPayloadJDoc(QJsonDocument(obj));
+	Token jwt;
+
+	jwt.setSecret(secret);
+	jwt.setPayload(obj);
 
 	LOG_CTRACE("credential") << "Token created for user:" << m_username;
 
@@ -124,16 +124,16 @@ QString Credential::createJWT(const QString &secret) const
  * @return
  */
 
-Credential Credential::fromJWT(const QString &jwt)
+Credential Credential::fromJWT(const QByteArray &jwt)
 {
-	QJsonWebToken token;
+	Token token(jwt);
 
-	if (!token.setToken(jwt)) {
+	if (token.payload().isEmpty()) {
 		LOG_CWARNING("credential") << "Invalid token:" << jwt;
 		return Credential();
 	}
 
-	const QJsonObject &obj = token.getPayloadJDoc().object();
+	const QJsonObject &obj = token.payload();
 
 	Credential c;
 
@@ -141,11 +141,11 @@ Credential Credential::fromJWT(const QString &jwt)
 
 	const QString &r = obj.value(QStringLiteral("roles")).toString();
 
-	c.m_iat = JSON_TO_INTEGER(obj.value(QStringLiteral("iat")));
+	c.m_iat = obj.value(QStringLiteral("iat")).toInteger();
 
 	Roles roles;
 
-	foreach (const QString &s, r.split("|")) {
+	foreach (const QString &s, r.split('|')) {
 		if (s == QStringLiteral("student"))
 			roles.setFlag(Student);
 		else if (s == QStringLiteral("teacher"))
@@ -172,19 +172,19 @@ Credential Credential::fromJWT(const QString &jwt)
  * @return
  */
 
-bool Credential::verify(const QString &token, const QString &secret, const qint64 &firstIat)
+bool Credential::verify(const QByteArray &token, const QByteArray &secret, const qint64 &firstIat)
 {
-	const QJsonWebToken &jwt = QJsonWebToken::fromTokenAndSecret(token, secret);
+	Token jwt(token);
 
-	if (!jwt.isValid())
+	if (!jwt.verify(secret))
+			return false;
+
+	const QJsonObject &object = jwt.payload();
+
+	if (firstIat > 0 && object.value(QStringLiteral("iat")).toInteger() < firstIat)
 		return false;
 
-	const QJsonObject &object = jwt.getPayloadJDoc().object();
-
-	if (firstIat > 0 && JSON_TO_INTEGER(object.value(QStringLiteral("iat"))) < firstIat)
-		return false;
-
-	if (JSON_TO_INTEGER(object.value(QStringLiteral("exp"))) <= QDateTime::currentSecsSinceEpoch())
+	if (object.value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch())
 		return false;
 
 	if (object.value(QStringLiteral("iss")).toString() != JWT_ISSUER)
@@ -283,4 +283,255 @@ void Credential::setRole(const Role &role, const bool &on)
 qint64 Credential::iat() const
 {
 	return m_iat;
+}
+
+
+
+
+
+/**
+ * @brief Token::generateSignature
+ * @param header
+ * @param payload
+ * @param secret
+ * @return
+ */
+
+Token::Token(const QByteArray &token)
+	: Token()
+{
+	QByteArrayList listJwtParts = token.split('.');
+
+	if (listJwtParts.count() != 3) {
+		return;
+	}
+
+	QJsonParseError error;
+
+	QJsonDocument hDoc = QJsonDocument::fromJson(QByteArray::fromBase64(listJwtParts.at(0), QByteArray::Base64UrlEncoding), &error);
+
+	if (error.error != QJsonParseError::NoError)
+		return;
+
+	if (hDoc.isEmpty() || hDoc.isNull() || !hDoc.isObject())
+		return;
+
+	if (hDoc.object().value(QStringLiteral("alg")).toString() != QStringLiteral("HS512"))
+		return;
+
+
+	QJsonDocument pDoc = QJsonDocument::fromJson(QByteArray::fromBase64(listJwtParts.at(1), QByteArray::Base64UrlEncoding), &error);
+
+	if (error.error != QJsonParseError::NoError)
+		return;
+
+	if (pDoc.isEmpty() || pDoc.isNull() || !pDoc.isObject())
+		return;
+
+	m_header = hDoc.object();
+	m_payload = pDoc.object();
+	m_signature = QByteArray::fromBase64(listJwtParts.at(2), QByteArray::Base64UrlEncoding);
+	m_origToken = token;
+}
+
+
+
+
+
+/**
+ * @brief Token::defaultHeader
+ * @return
+ */
+
+QByteArray Token::defaultHeader()
+{
+	return QByteArrayLiteral(R"({"typ": "JWT", "alg": "HS512"})");
+}
+
+
+
+/**
+ * @brief Token::generateSignature
+ * @param payload
+ * @param secret
+ * @param header
+ * @return
+ */
+
+QByteArray Token::generateSignature(const QJsonObject &payload, const QByteArray &secret, const QJsonObject &header)
+{
+	QByteArray headerBase64 = header.isEmpty() ?
+								  defaultHeader().toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals) :
+								  QJsonDocument(header).toJson(QJsonDocument::Compact).toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
+
+	QByteArray payloadBase64 = QJsonDocument(payload).toJson(QJsonDocument::Compact).toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
+
+	return generateSignature(headerBase64, payloadBase64, secret);
+}
+
+
+/**
+ * @brief Token::generateSignature
+ * @param header
+ * @param payload
+ * @param secret
+ * @return
+ */
+
+QByteArray Token::generateSignature(const QByteArray &header, const QByteArray &payload, const QByteArray &secret)
+{
+	const QByteArray data = sign(header + QByteArrayLiteral(".") + payload, secret);
+
+	if (data.isEmpty())
+		return {};
+
+	return data;
+}
+
+
+/**
+ * @brief Token::getToken
+ * @param header
+ * @param payload
+ * @param signature
+ * @return
+ */
+
+QByteArray Token::getToken(const QByteArray &header, const QByteArray &payload, const QByteArray &signature)
+{
+	if (header.isEmpty() || payload.isEmpty() || signature.isEmpty()) {
+		LOG_CERROR("utils") << "Invalid token content";
+		return {};
+	}
+
+	return header + QByteArrayLiteral(".") + payload + QByteArrayLiteral(".") + signature;
+}
+
+
+/**
+ * @brief Token::getToken
+ * @param payload
+ * @param secret
+ * @param header
+ * @return
+ */
+
+QByteArray Token::getToken(const QJsonObject &payload, const QByteArray &secret, const QJsonObject &header)
+{
+	QByteArray headerBase64 = header.isEmpty() ?
+								  defaultHeader().toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals) :
+								  QJsonDocument(header).toJson(QJsonDocument::Compact).toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
+
+	QByteArray payloadBase64 = QJsonDocument(payload).toJson(QJsonDocument::Compact).toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals);
+
+	const QByteArray signature = generateSignature(headerBase64, payloadBase64, secret);
+	return getToken(headerBase64, payloadBase64, signature.toBase64(QByteArray::Base64UrlEncoding | QByteArray::OmitTrailingEquals));
+}
+
+
+/**
+ * @brief Token::sign
+ * @param content
+ * @param secret
+ * @return
+ */
+
+QByteArray Token::sign(const QByteArray &content, const QByteArray &secret)
+{
+	if (secret.size() != crypto_auth_KEYBYTES) {
+		LOG_CERROR("utils") << "Invalid secret length" << secret.size();
+		return {};
+	}
+
+	unsigned char mac[crypto_auth_BYTES];
+
+	if (crypto_auth(mac, (unsigned char*) content.constData(), content.size(), (unsigned char*) secret.constData()) != 0) {
+		LOG_CERROR("utils") << "crypto_auth error";
+		return {};
+	}
+
+	return QByteArray((char*) mac, crypto_auth_BYTES);
+}
+
+
+/**
+ * @brief Token::verify
+ * @param content
+ * @param secret
+ * @return
+ */
+
+bool Token::verify(const QByteArray &content, const QByteArray &mac, const QByteArray &secret)
+{
+	if (secret.size() != crypto_auth_KEYBYTES) {
+		LOG_CERROR("utils") << "Invalid secret length" << secret.size();
+		return false;
+	}
+
+	if (mac.size() != crypto_auth_BYTES) {
+		LOG_CERROR("utils") << "Invalid secret length" << secret.size();
+		return false;
+	}
+
+	return (crypto_auth_verify((unsigned char*) mac.constData(),
+							   (unsigned char*) content.constData(),
+							   content.size(),
+							   (unsigned char*) secret.constData()) == 0);
+}
+
+
+/**
+ * @brief Token::verify
+ * @return
+ */
+
+bool Token::verify() const
+{
+	if (m_secret.isEmpty()) {
+		LOG_CERROR("utils") << "Missing secret to verify";
+		return false;
+	}
+
+	return verify(m_secret);
+}
+
+
+
+
+/**
+ * @brief Token::verify
+ * @param secret
+ * @return
+ */
+
+bool Token::verify(const QByteArray &secret) const
+{
+	if (m_header.isEmpty() || m_payload.isEmpty() || m_signature.isEmpty())
+		return false;
+
+	QByteArray sign;
+
+	if (m_origToken.isEmpty()) {
+	sign = generateSignature(m_payload, secret, m_header);
+	} else {
+		QByteArrayList parts = m_origToken.split('.');
+		sign = generateSignature(parts.at(0), parts.at(1), secret);
+	}
+
+	if (sign.isEmpty())
+		return false;
+
+	return (sign == m_signature);
+}
+
+
+
+/**
+ * @brief Token::getToken
+ * @return
+ */
+
+QByteArray Token::getToken() const
+{
+	return getToken(m_payload, m_secret, m_header);
 }

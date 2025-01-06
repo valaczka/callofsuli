@@ -64,7 +64,7 @@ void Exam::loadFromJson(const QJsonObject &object, const bool &allField)
 		setDescription(object.value(QStringLiteral("description")).toString());
 
 	if (object.contains(QStringLiteral("timestamp")) || allField)
-		setTimestamp(QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(object.value(QStringLiteral("timestamp")))));
+		setTimestamp(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("timestamp")).toInteger()));
 
 	if (object.contains(QStringLiteral("engineData")) || allField)
 		setEngineData(object.value(QStringLiteral("engineData")).toObject());

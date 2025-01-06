@@ -8,6 +8,8 @@
 
 class ServerService;
 class EngineHandlerPrivate;
+class UdpServerPeer;
+
 
 
 /**
@@ -36,6 +38,7 @@ public:
 	std::weak_ptr<AbstractEngine> engineGet(const AbstractEngine::Type &type, const int &id);
 
 	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
+	void engineRemove(AbstractEngine *engine);
 	void engineTriggerEngine(AbstractEngine *engine);
 	void engineTrigger(const AbstractEngine::Type &type);
 	void engineTrigger(const AbstractEngine::Type &type, const int &id);
@@ -50,12 +53,14 @@ public:
 	void websocketEngineLink(WebSocketStream *stream, const std::shared_ptr<AbstractEngine> &engine);
 	void websocketEngineUnlink(WebSocketStream *stream, AbstractEngine *engine);
 
+	void udpDataReceived(UdpServerPeer *peer, QByteArray data);
+
 	void timerEvent();
 	void timerMinuteEvent();
 
 
 private:
-	void initEngines();
+	[[deprecated]] void initEngines();
 
 	ServerService *const m_service;
 	EngineHandlerPrivate *d = nullptr;

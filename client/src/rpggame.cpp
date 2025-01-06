@@ -67,19 +67,19 @@
 QHash<QString, RpgGameDefinition> RpgGame::m_terrains;
 QHash<QString, RpgPlayerCharacterConfig> RpgGame::m_characters;
 
-const QHash<QString, RpgEnemyIface::RpgEnemyType> RpgEnemyIface::m_typeHash = {
-	{ QStringLiteral("werebear"), EnemyWerebear },
-	{ QStringLiteral("soldier"), EnemySoldier },
-	{ QStringLiteral("soldierFix"), EnemySoldierFix },
-	{ QStringLiteral("archer"), EnemyArcher },
-	{ QStringLiteral("archerFix"), EnemyArcherFix },
-	{ QStringLiteral("skeleton"), EnemySkeleton },
-	{ QStringLiteral("smith"), EnemySmith },
-	{ QStringLiteral("smithFix"), EnemySmithFix },
-	{ QStringLiteral("barbarian"), EnemyBarbarian },
-	{ QStringLiteral("barbarianFix"), EnemyBarbarianFix },
-	{ QStringLiteral("butcher"), EnemyButcher },
-	{ QStringLiteral("butcherFix"), EnemyButcherFix },
+const QHash<QString, RpgGameData::Enemy::EnemyType> RpgEnemyIface::m_typeHash = {
+	{ QStringLiteral("werebear"), RpgGameData::Enemy::EnemyWerebear },
+	{ QStringLiteral("soldier"), RpgGameData::Enemy::EnemySoldier },
+	{ QStringLiteral("soldierFix"), RpgGameData::Enemy::EnemySoldierFix },
+	{ QStringLiteral("archer"), RpgGameData::Enemy::EnemyArcher },
+	{ QStringLiteral("archerFix"), RpgGameData::Enemy::EnemyArcherFix },
+	{ QStringLiteral("skeleton"), RpgGameData::Enemy::EnemySkeleton },
+	{ QStringLiteral("smith"), RpgGameData::Enemy::EnemySmith },
+	{ QStringLiteral("smithFix"), RpgGameData::Enemy::EnemySmithFix },
+	{ QStringLiteral("barbarian"), RpgGameData::Enemy::EnemyBarbarian },
+	{ QStringLiteral("barbarianFix"), RpgGameData::Enemy::EnemyBarbarianFix },
+	{ QStringLiteral("butcher"), RpgGameData::Enemy::EnemyButcher },
+	{ QStringLiteral("butcherFix"), RpgGameData::Enemy::EnemyButcherFix },
 };
 
 
@@ -120,7 +120,7 @@ RpgGame::~RpgGame()
  */
 
 
-bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig &playerConfig)
+bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 {
 	if (!TiledGame::load(def))
 		return false;
@@ -140,7 +140,7 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 
 		// Replace pickables if character has no cast
 
-		if (playerConfig.cast == RpgPlayerCharacterConfig::CastInvalid) {
+		if (replaceMpToShield) {
 			for (auto &p : e.pickables) {
 				if (p == RpgPickableObject::PickableMp)
 					p = RpgPickableObject::PickableShield;
@@ -176,8 +176,6 @@ bool RpgGame::load(const RpgGameDefinition &def, const RpgPlayerCharacterConfig 
 	recalculateEnemies();
 
 	for (auto &e : m_pickableDataList) {
-
-		// Replace if character has no cast
 
 		if (e.type == RpgPickableObject::PickableMp)
 			e.type = RpgPickableObject::PickableShield;
@@ -284,11 +282,10 @@ bool RpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const T
 	if (!e || !p)
 		return false;
 
-	const bool &prot = p->protectWeapon(weaponType);
-
-	p->attackedByEnemy(e, weaponType, prot);
-
-	return true;
+	if (m_funcEnemyAttackPlayer)
+		return m_funcEnemyAttackPlayer(e, p, weaponType);
+	else
+		return false;
 }
 
 
@@ -636,7 +633,7 @@ void RpgGame::playerUseContainer(RpgPlayer *player, RpgContainer *container)
  * @return
  */
 
-IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, const QString &subtype, TiledScene *scene, const int &id)
+IsometricEnemy *RpgGame::createEnemy(const RpgGameData::Enemy::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id)
 {
 	IsometricEnemy *enemy = nullptr;
 
@@ -658,22 +655,22 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 	static const float size = 15.;
 
 	switch (type) {
-		case RpgEnemyIface::EnemyWerebear: {
+		case RpgGameData::Enemy::EnemyWerebear: {
 			enemy = createFromCircle<RpgWerebear>(-1, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 		}
 
-		case RpgEnemyIface::EnemySoldier:
-		case RpgEnemyIface::EnemyArcher:
-		case RpgEnemyIface::EnemySoldierFix:
-		case RpgEnemyIface::EnemyArcherFix:
-		case RpgEnemyIface::EnemySmith:
-		case RpgEnemyIface::EnemySmithFix:
-		case RpgEnemyIface::EnemyButcher:
-		case RpgEnemyIface::EnemyButcherFix:
-		case RpgEnemyIface::EnemyBarbarian:
-		case RpgEnemyIface::EnemyBarbarianFix:
-		case RpgEnemyIface::EnemySkeleton:
+		case RpgGameData::Enemy::EnemySoldier:
+		case RpgGameData::Enemy::EnemyArcher:
+		case RpgGameData::Enemy::EnemySoldierFix:
+		case RpgGameData::Enemy::EnemyArcherFix:
+		case RpgGameData::Enemy::EnemySmith:
+		case RpgGameData::Enemy::EnemySmithFix:
+		case RpgGameData::Enemy::EnemyButcher:
+		case RpgGameData::Enemy::EnemyButcherFix:
+		case RpgGameData::Enemy::EnemyBarbarian:
+		case RpgGameData::Enemy::EnemyBarbarianFix:
+		case RpgGameData::Enemy::EnemySkeleton:
 		{
 			if (RpgEnemyBase *e = createFromCircle<RpgEnemyBase>(-1, id, scene, {0.f, 0.f}, size, nullptr, bParams, params)) {
 				e->m_enemyType = type;
@@ -683,7 +680,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 			break;
 		}
 
-		case RpgEnemyIface::EnemyInvalid:
+		case RpgGameData::Enemy::EnemyInvalid:
 			LOG_CERROR("game") << "Invalid enemy type" << type;
 			return nullptr;
 	}
@@ -691,11 +688,11 @@ IsometricEnemy *RpgGame::createEnemy(const RpgEnemyIface::RpgEnemyType &type, co
 	if (enemy) {
 		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
 
-		if (type == RpgEnemyIface::EnemySoldierFix ||
-				type == RpgEnemyIface::EnemyArcherFix ||
-				type == RpgEnemyIface::EnemySmithFix ||
-				type == RpgEnemyIface::EnemyButcherFix ||
-				type == RpgEnemyIface::EnemyBarbarianFix
+		if (type == RpgGameData::Enemy::EnemySoldierFix ||
+				type == RpgGameData::Enemy::EnemyArcherFix ||
+				type == RpgGameData::Enemy::EnemySmithFix ||
+				type == RpgGameData::Enemy::EnemyButcherFix ||
+				type == RpgGameData::Enemy::EnemyBarbarianFix
 				) {
 			enemy->m_metric.pursuitSpeed = 0;
 		}
@@ -1260,6 +1257,9 @@ bool RpgGame::transportDoor(TiledObject *object, TiledTransport *transport)
 
 void RpgGame::timeSteppedEvent()
 {
+	if (m_funcTimeStep)
+		m_funcTimeStep();
+
 	TiledGame::timeSteppedEvent();
 
 	updateScatterEnemies();
@@ -1404,7 +1404,7 @@ void RpgGame::loadMetricDefinition()
  * @return
  */
 
-EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgEnemyType &type, const QString &subtype)
+EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgGameData::Enemy::EnemyType &type, const QString &subtype)
 {
 	if (m_metricDefinition.isEmpty())
 		return {};
@@ -1414,40 +1414,40 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgEnemyIface::RpgE
 		QHash<QString, EnemyMetric> ptr;
 
 		switch (type) {
-			case RpgEnemyIface::EnemyWerebear:
+			case RpgGameData::Enemy::EnemyWerebear:
 				ptr = def.werebear;
 				break;
 
-			case RpgEnemyIface::EnemySoldier:
-			case RpgEnemyIface::EnemySoldierFix:
+			case RpgGameData::Enemy::EnemySoldier:
+			case RpgGameData::Enemy::EnemySoldierFix:
 				ptr = def.soldier;
 				break;
 
-			case RpgEnemyIface::EnemyArcher:
-			case RpgEnemyIface::EnemyArcherFix:
+			case RpgGameData::Enemy::EnemyArcher:
+			case RpgGameData::Enemy::EnemyArcherFix:
 				ptr = def.archer;
 				break;
 
-			case RpgEnemyIface::EnemySmith:
-			case RpgEnemyIface::EnemySmithFix:
+			case RpgGameData::Enemy::EnemySmith:
+			case RpgGameData::Enemy::EnemySmithFix:
 				ptr = def.smith;
 				break;
 
-			case RpgEnemyIface::EnemyButcher:
-			case RpgEnemyIface::EnemyButcherFix:
+			case RpgGameData::Enemy::EnemyButcher:
+			case RpgGameData::Enemy::EnemyButcherFix:
 				ptr = def.butcher;
 				break;
 
-			case RpgEnemyIface::EnemyBarbarian:
-			case RpgEnemyIface::EnemyBarbarianFix:
+			case RpgGameData::Enemy::EnemyBarbarian:
+			case RpgGameData::Enemy::EnemyBarbarianFix:
 				ptr = def.barbarian;
 				break;
 
-			case RpgEnemyIface::EnemySkeleton:
+			case RpgGameData::Enemy::EnemySkeleton:
 				ptr = def.skeleton;
 				break;
 
-			case RpgEnemyIface::EnemyInvalid:
+			case RpgGameData::Enemy::EnemyInvalid:
 				LOG_CERROR("game") << "Invalid enemy type" << type;
 				break;
 		}
@@ -1502,6 +1502,21 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
 
 
 
+/**
+ * @brief RpgGame::worldStep
+ * @param body
+ */
+
+void RpgGame::worldStep(TiledObjectBody *body)
+{
+	if (m_funcBodyStep)
+		m_funcBodyStep(body);
+	else
+		TiledGame::worldStep(body);
+}
+
+
+
 
 /**
  * @brief RpgGame::getMetric
@@ -1542,9 +1557,9 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 	Q_ASSERT(scene);
 	Q_ASSERT(renderer);
 
-	const RpgEnemyIface::RpgEnemyType &type = RpgEnemyIface::typeFromString(object->className());
+	const RpgGameData::Enemy::EnemyType &type = RpgEnemyIface::typeFromString(object->className());
 
-	if (type == RpgEnemyIface::EnemyInvalid) {
+	if (type == RpgGameData::Enemy::EnemyInvalid) {
 		LOG_CERROR("game") << "Invalid enemy" << object->id() << object->className() << object->name();
 		return;
 	}
@@ -2087,6 +2102,57 @@ QVector<RpgPickableObject::PickableType> RpgGame::getPickablesFromPropertyValue(
 
 
 
+/**
+ * @brief RpgGame::funcTimeStep
+ * @return
+ */
+
+FuncTimeStep RpgGame::funcTimeStep() const
+{
+	return m_funcTimeStep;
+}
+
+void RpgGame::setFuncTimeStep(const FuncTimeStep &newFuncTimeStep)
+{
+	m_funcTimeStep = newFuncTimeStep;
+}
+
+
+
+
+/**
+ * @brief RpgGame::funcBodyStep
+ * @return
+ */
+
+FuncBodyStep RpgGame::funcBodyStep() const
+{
+	return m_funcBodyStep;
+}
+
+void RpgGame::setFuncBodyStep(const FuncBodyStep &newFuncBodyStep)
+{
+	m_funcBodyStep = newFuncBodyStep;
+}
+
+
+/**
+ * @brief RpgGame::funcEnemyAttackPlayer
+ * @return
+ */
+
+FuncEnemyAttackPlayer RpgGame::funcEnemyAttackPlayer() const
+{
+	return m_funcEnemyAttackPlayer;
+}
+
+void RpgGame::setFuncEnemyAttackPlayer(const FuncEnemyAttackPlayer &newFuncEnemyAttackPlayer)
+{
+	m_funcEnemyAttackPlayer = newFuncEnemyAttackPlayer;
+}
+
+
+
 
 /**
  * @brief RpgGame::enemyFind
@@ -2522,7 +2588,7 @@ void RpgGame::setGameQuestion(GameQuestion *newGameQuestion)
  * @return
  */
 
-QList<RpgPlayer *> RpgGame::players() const
+const QList<RpgPlayer *> &RpgGame::players() const
 {
 	return m_players;
 }
@@ -3053,7 +3119,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 						if (xml.name() == QStringLiteral("object")) {
 							const QString type = xml.attributes().value(QStringLiteral("type")).toString();
 
-							if (RpgEnemyIface::typeFromString(type) != RpgEnemyIface::EnemyInvalid) {
+							if (RpgEnemyIface::typeFromString(type) != RpgGameData::Enemy::EnemyInvalid) {
 								++enemyCount;
 
 								while (xml.readNextStartElement()) {

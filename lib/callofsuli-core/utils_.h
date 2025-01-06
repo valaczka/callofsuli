@@ -46,12 +46,6 @@
 #endif
 
 
-// QJsonValue::toInteger() available since Qt 6.0
-
-#define JSON_TO_INTEGER(x)	x.toInteger()
-#define JSON_TO_INTEGER_Y(x, y)	x.toInteger(y)
-
-
 
 
 /**

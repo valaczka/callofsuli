@@ -2,6 +2,7 @@
 #include "enginehandler_p.h"
 #include "Logger.h"
 #include "peerengine.h"
+#include "udpserver.h"
 
 
 
@@ -87,6 +88,11 @@ void EngineHandler::engineAdd(const std::shared_ptr<AbstractEngine> &engine) {
 	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineAdd, d, engine), Qt::QueuedConnection);
 }
 
+void EngineHandler::engineRemove(AbstractEngine *engine)
+{
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineRemove, d, engine), Qt::QueuedConnection);
+}
+
 void EngineHandler::engineTriggerEngine(AbstractEngine *engine) {
 	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::engineTriggerEngine, d, engine), Qt::QueuedConnection);
 }
@@ -133,6 +139,11 @@ void EngineHandler::websocketEngineLink(WebSocketStream *stream, const std::shar
 
 void EngineHandler::websocketEngineUnlink(WebSocketStream *stream, AbstractEngine *engine) {
 	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketEngineUnlink, d, stream, engine), Qt::QueuedConnection);
+}
+
+void EngineHandler::udpDataReceived(UdpServerPeer *peer, QByteArray data)
+{
+	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::udpDataReceived, d, peer, data), Qt::QueuedConnection);
 }
 
 void EngineHandler::timerEvent() {
@@ -212,7 +223,7 @@ void EngineHandlerPrivate::engineAdd(const std::shared_ptr<AbstractEngine> &engi
  * @param engine
  */
 
-void EngineHandlerPrivate::engineRemove(const std::shared_ptr<AbstractEngine> &engine)
+/*void EngineHandlerPrivate::engineRemove(const std::shared_ptr<AbstractEngine> &engine)
 {
 	LOG_CTRACE("service") << "Remove engine:" << engine->type() << engine->id();
 
@@ -231,7 +242,7 @@ void EngineHandlerPrivate::engineRemove(const std::shared_ptr<AbstractEngine> &e
 			++it;
 		}
 	}
-}
+}*/
 
 
 /**
@@ -655,6 +666,31 @@ void EngineHandlerPrivate::onBinaryDataReceived(WebSocketStream *stream, const Q
 	for (const auto &e : m_engines) {
 		e->onBinaryMessageReceived(data, stream);
 	}
+}
+
+
+/**
+ * @brief EngineHandlerPrivate::udpDataReceived
+ * @param peer
+ * @param data
+ * @param engine
+ */
+
+void EngineHandlerPrivate::udpDataReceived(UdpServerPeer *peer, const QByteArray &data)
+{
+	if (!peer) {
+		LOG_CERROR("service") << "Invalid peer";
+		return;
+	}
+
+	if (!peer->engine()) {
+		LOG_CERROR("service") << "Invalid engine";
+		return;
+	}
+
+	QMutexLocker locker(&m_mutex);
+
+	peer->engine()->binaryDataReceived(peer, data);
 }
 
 

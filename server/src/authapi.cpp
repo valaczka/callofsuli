@@ -82,7 +82,7 @@ QHttpServerResponse AuthAPI::login(const QJsonObject &data) const
 {
 	LOG_CTRACE("client") << "Login";
 
-	const QString &token = data.value(QStringLiteral("token")).toString();
+	const QByteArray &token = data.value(QStringLiteral("token")).toString().toUtf8();
 	const QString &username = data.value(QStringLiteral("username")).toString();
 	const QString &password = data.value(QStringLiteral("password")).toString();
 
@@ -627,7 +627,7 @@ QJsonObject AuthAPI::getToken(const Credential &credential) const
 
 	return QJsonObject({
 						   { QStringLiteral("status"), QStringLiteral("ok") },
-						   { QStringLiteral("auth_token"), credential.createJWT(m_service->settings()->jwtSecret()) }
+						   { QStringLiteral("auth_token"), QString::fromUtf8(credential.createJWT(m_service->settings()->jwtSecret())) }
 					   });
 }
 

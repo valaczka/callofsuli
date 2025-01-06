@@ -288,7 +288,7 @@ protected slots:
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
-	void _userAuthTokenReceived(const QString &token);
+        void _userAuthTokenReceived(const QByteArray &token);
 	virtual void fullScreenHelperConnect(QQuickWindow *window);
 	virtual void fullScreenHelperDisconnect(QQuickWindow *window);
 	void initializeDynamicResources();

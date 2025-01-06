@@ -193,6 +193,7 @@ SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
 	actionrpggame.cpp \
+	actionrpgmultiplayergame.cpp \
 	application.cpp \
 	basemap.cpp \
 	basemaphandler.cpp \
@@ -309,6 +310,8 @@ HEADERS += \
 	abstractlevelgame.h \
 	abstracttiledmotor.h \
 	actionrpggame.h \
+	actionrpgmultiplayergame.h \
+	actionrpgmultiplayergame_p.h \
 	application.h \
 	basemap.h \
 	basemaphandler.h \
@@ -367,6 +370,7 @@ HEADERS += \
 	rpgfireball.h \
 	rpgfirefog.h \
 	rpggame.h \
+	rpggamedataiface.h \
 	rpghammer.h \
 	rpghp.h \
 	rpgkeypickable.h \

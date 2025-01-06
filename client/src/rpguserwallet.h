@@ -156,7 +156,7 @@ public:
 	void updateWallet(RpgUserWalletList *wallet);
 
 	Q_INVOKABLE void selectFromWallet(RpgUserWallet *wallet);
-	Q_INVOKABLE void select(const QString &map);
+	Q_INVOKABLE void select(const QString &map, const bool &forced = false);
 	Q_INVOKABLE void selectLand(RpgWorldLandData *land);
 
 	QSize worldSize() const;

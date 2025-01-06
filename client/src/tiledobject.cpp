@@ -1701,6 +1701,8 @@ void TiledObjectBody::synchronize()
 }
 
 
+
+
 /**
  * @brief TiledObjectBody::fromBodyRef
  * @param ref

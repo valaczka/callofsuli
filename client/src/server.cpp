@@ -268,16 +268,14 @@ void Server::setRankList(const RankList &newRankList)
 
 bool Server::isTokenValid(const QString &jwt)
 {
-	QJsonWebToken token;
+	Token token(jwt.toUtf8());
 
-	if (!token.setToken(jwt)) {
+	if (token.payload().isEmpty()) {
 		LOG_CWARNING("client") << "Invalid token:" << jwt;
 		return false;
 	}
 
-	const QJsonObject &object = token.getPayloadJDoc().object();
-
-	if (JSON_TO_INTEGER(object.value(QStringLiteral("exp"))) <= QDateTime::currentSecsSinceEpoch()) {
+	if (token.payload().value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CWARNING("client") << "Expired token:" << jwt;
 		return false;
 	}

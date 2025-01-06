@@ -18,7 +18,8 @@ public:
 		EngineInvalid = 0,
 		EnginePeer,
 		EngineExam,
-		EngineConquest
+		EngineConquest,
+		EngineRpg
 	};
 
 	Q_ENUM(Type);
@@ -75,6 +76,40 @@ private:
 	void streamUnSet(WebSocketStream *stream);
 
 	friend class EngineHandlerPrivate;
+};
+
+
+
+
+class UdpServer;
+class UdpServerPeer;
+
+
+/**
+ * @brief The UdpEngine class
+ */
+
+class UdpEngine : public AbstractEngine
+{
+	Q_OBJECT
+
+public:
+	explicit UdpEngine(const Type &type, const int &id, EngineHandler *handler, QObject *parent = nullptr)
+		: AbstractEngine(type, id, handler, parent)
+	{}
+	explicit UdpEngine(const Type &type, EngineHandler *handler, QObject *parent = nullptr)
+		: AbstractEngine(type, 0, handler, parent) {}
+
+	virtual void binaryDataReceived(UdpServerPeer *peer, const QByteArray &data) { Q_UNUSED(peer); Q_UNUSED(data); }
+	virtual void udpPeerAdd(UdpServerPeer *peer) { Q_UNUSED(peer); }
+	virtual void udpPeerRemove(UdpServerPeer *peer) { Q_UNUSED(peer); }
+
+	UdpServer *udpServer() const { return m_udpServer; }
+	void setUdpServer(UdpServer *server) { m_udpServer = server; }
+
+protected:
+	UdpServer *m_udpServer = nullptr;
+
 };
 
 #endif // ABSTRACTENGINE_H

@@ -70,13 +70,13 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 		setStarted(object.value(QStringLiteral("started")).toVariant().toBool());
 
 	if (object.contains(QStringLiteral("starttime")) || allField) {
-		setStartTime(QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(object.value(QStringLiteral("starttime")))));
+		setStartTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("starttime")).toInteger()));
 		if (!object.contains(QStringLiteral("started")))
 			setStarted(m_startTime <= QDateTime::currentDateTime());
 	}
 
 	if (object.contains(QStringLiteral("endtime")) || allField)
-		setEndTime(QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(object.value(QStringLiteral("endtime")))));
+		setEndTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("endtime")).toInteger()));
 
 
 	if (object.contains(QStringLiteral("finished")) || allField)
@@ -532,7 +532,7 @@ QVariantList StudentCampaignOffsetModel::getListFromJson(const QJsonObject &obj)
 
 		QVariantMap m = obj.toVariantMap();
 
-		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(JSON_TO_INTEGER(obj.value(QStringLiteral("timestamp"))));
+		m[QStringLiteral("timestamp")] = QDateTime::fromSecsSinceEpoch(obj.value(QStringLiteral("timestamp")).toInteger());
 
 		list.append(m);
 	}

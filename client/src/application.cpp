@@ -26,6 +26,7 @@
 
 #include "Logger.h"
 #include "actionrpggame.h"
+#include "actionrpgmultiplayergame.h"
 #include "classobject.h"
 #include "commonsettings.h"
 #include "conquestgame.h"
@@ -334,6 +335,7 @@ void Application::registerQmlTypes()
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
 	qmlRegisterUncreatableType<ActionRpgGame>("CallOfSuli", 1, 0, "ActionRpgGame", "ActionRpgGame is uncreatable");
+	qmlRegisterUncreatableType<ActionRpgMultiplayerGame>("CallOfSuli", 1, 0, "ActionRpgMultiplayerGame", "ActionRpgMultiplayerGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGame>("CallOfSuli", 1, 0, "ConquestGame", "ConquestGame is uncreatable");
 	qmlRegisterUncreatableType<ConquestGameAdjacencySetup>("CallOfSuli", 1, 0, "ConquestGameAdjacencySetup", "ConquestGameAdjacencySetup is uncreatable");
 	qmlRegisterUncreatableType<Downloader>("CallOfSuli", 1, 0, "Downloader", "Downloader is uncreatable");

@@ -226,7 +226,7 @@ void WebSocketStream::onJsonReceived(const QJsonObject &data)
 	}
 
 	if (m_state == StateHelloSent) {
-		const QString &token = data.value(QStringLiteral("token")).toString();
+		const QByteArray &token = data.value(QStringLiteral("token")).toString().toUtf8();
 
 		if (!Credential::verify(token, m_service->settings()->jwtSecret(), m_service->config().get("tokenFirstIat").toInteger(0))) {
 			LOG_CDEBUG("service") << "Token verification failed" << this;
