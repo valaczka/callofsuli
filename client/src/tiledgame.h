@@ -369,7 +369,7 @@ protected:
 
 	void changeScene(TiledObjectBody *object, TiledScene *to, const QPointF &toPoint);
 
-	virtual void worldStep(TiledObjectBody *body);
+	virtual void worldStep(const Body &body);
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer);
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);

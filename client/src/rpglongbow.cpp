@@ -68,7 +68,7 @@ void RpgLongbow::eventAttack(TiledObject *)
  */
 
 RpgLongbowPickable::RpgLongbowPickable(TiledScene *scene)
-	: RpgPickableObject(PickableLongbow, scene)
+	: RpgPickableObject(RpgGameData::Pickable::PickableLongbow, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

@@ -71,7 +71,7 @@ public:
 	Q_INVOKABLE virtual void rpgGameActivated();
 
 	Q_INVOKABLE void finishGame();
-	Q_INVOKABLE void gamePrepared();
+	Q_INVOKABLE virtual void gamePrepared();
 
 	Q_INVOKABLE void clearSharedTextures();
 
@@ -120,13 +120,13 @@ protected:
 	void onGameLoadFailed(const QString &);
 
 	void loadInventory(RpgPlayer *player);
-	void loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType);
+	void loadInventory(RpgPlayer *player, const RpgGameData::Pickable::PickableType &pickableType);
 	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
 
 	void updateConfig();
 	void setError();
 
-	void downloadGameData(const QList<RpgPlayerConfig> &players);
+	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
 private:
 	void rpgGameActivated_();

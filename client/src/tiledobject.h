@@ -134,7 +134,7 @@ public:
 	Q_FLAG(FixtureCategories);
 
 
-	ObjectId objectId() const;
+	const ObjectId &objectId() const;
 	void setObjectId(const ObjectId &newObjectId);
 	void setObjectId(const int &sceneId, const int &id);
 

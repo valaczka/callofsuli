@@ -513,7 +513,7 @@ void RpgPlayer::onCurrentTransportChanged()
 		return;
 
 	if (!t->isOpen() && !t->lockName().isEmpty()) {
-		if (inventoryContains(RpgPickableObject::PickableKey, t->lockName()))
+		if (inventoryContains(RpgGameData::Pickable::PickableKey, t->lockName()))
 			t->setIsOpen(true);
 	}
 }
@@ -999,25 +999,25 @@ void RpgPlayer::inventoryAdd(RpgPickableObject *object)
  * @param name
  */
 
-void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const QString &name)
+void RpgPlayer::inventoryAdd(const RpgGameData::Pickable::PickableType &type, const QString &name)
 {
 	switch (type) {
-		case RpgPickableObject::PickableKey:
+		case RpgGameData::Pickable::PickableKey:
 			m_inventory->append(new RpgInventory(type, name));
 			break;
 
-		case RpgPickableObject::PickableHp:
-		case RpgPickableObject::PickableMp:
-		case RpgPickableObject::PickableCoin:
-		case RpgPickableObject::PickableShortbow:
-		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableLongsword:
-		case RpgPickableObject::PickableDagger:
-		case RpgPickableObject::PickableShield:
-		case RpgPickableObject::PickableTime:
+		case RpgGameData::Pickable::PickableHp:
+		case RpgGameData::Pickable::PickableMp:
+		case RpgGameData::Pickable::PickableCoin:
+		case RpgGameData::Pickable::PickableShortbow:
+		case RpgGameData::Pickable::PickableLongbow:
+		case RpgGameData::Pickable::PickableLongsword:
+		case RpgGameData::Pickable::PickableDagger:
+		case RpgGameData::Pickable::PickableShield:
+		case RpgGameData::Pickable::PickableTime:
 			break;
 
-		case RpgPickableObject::PickableInvalid:
+		case RpgGameData::Pickable::PickableInvalid:
 			LOG_CWARNING("game") << "Invalid inventory type";
 			break;
 	}
@@ -1031,7 +1031,7 @@ void RpgPlayer::inventoryAdd(const RpgPickableObject::PickableType &type, const 
  * @param type
  */
 
-void RpgPlayer::inventoryRemove(const RpgPickableObject::PickableType &type)
+void RpgPlayer::inventoryRemove(const RpgGameData::Pickable::PickableType &type)
 {
 	QList<RpgInventory*> list;
 
@@ -1051,7 +1051,7 @@ void RpgPlayer::inventoryRemove(const RpgPickableObject::PickableType &type)
  * @param name
  */
 
-void RpgPlayer::inventoryRemove(const RpgPickableObject::PickableType &type, const QString &name)
+void RpgPlayer::inventoryRemove(const RpgGameData::Pickable::PickableType &type, const QString &name)
 {
 	QList<RpgInventory*> list;
 
@@ -1071,7 +1071,7 @@ void RpgPlayer::inventoryRemove(const RpgPickableObject::PickableType &type, con
  * @return
  */
 
-bool RpgPlayer::inventoryContains(const RpgPickableObject::PickableType &type) const
+bool RpgPlayer::inventoryContains(const RpgGameData::Pickable::PickableType &type) const
 {
 	for (RpgInventory *i : *m_inventory) {
 		if (i->pickableType() == type)
@@ -1089,7 +1089,7 @@ bool RpgPlayer::inventoryContains(const RpgPickableObject::PickableType &type) c
  * @return
  */
 
-bool RpgPlayer::inventoryContains(const RpgPickableObject::PickableType &type, const QString &name) const
+bool RpgPlayer::inventoryContains(const RpgGameData::Pickable::PickableType &type, const QString &name) const
 {
 	for (RpgInventory *i : *m_inventory) {
 		if (i->pickableType() == type && i->name() == name)

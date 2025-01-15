@@ -43,6 +43,7 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	: ActionRpgGame(missionLevel, client)
 	, m_playersModel(std::make_unique<QSListModel>())
 	, d(new RpgUdpEnginePrivate(this))
+	, m_dThread(new QThread)
 {
 	LOG_CDEBUG("game") << "ActionRpgMultiplayerGame constructed";
 
@@ -50,9 +51,10 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 
 	m_playersModel->setRoleNames(Utils::getRolesFromObject(RpgGameData::CharacterSelect().metaObject()));
 
-	d->moveToThread(&m_dThread);
-	QObject::connect(&m_dThread, &QThread::finished, d, &QObject::deleteLater);
-	m_dThread.start();
+	d->moveToThread(m_dThread);
+	QObject::connect(m_dThread, &QThread::finished, d, &QObject::deleteLater);
+	QObject::connect(m_dThread, &QThread::finished, m_dThread, &QObject::deleteLater);
+	m_dThread->start();
 
 	if (m_client->server()) {
 		if (User *u = m_client->server()->user()) {
@@ -71,10 +73,11 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 
 ActionRpgMultiplayerGame::~ActionRpgMultiplayerGame()
 {
-	d->stop();
+	d->disconnect();
 	d = nullptr;
-	m_dThread.quit();
-	m_dThread.wait();
+	m_dThread->quit();
+	m_dThread->wait();
+	m_dThread = nullptr;
 
 	LOG_CDEBUG("game") << "ActionRpgMultiplayerGame destroyed";
 }
@@ -123,7 +126,7 @@ void ActionRpgMultiplayerGame::setRpgGame(RpgGame *newRpgGame)
 		//connect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);
 
 		m_rpgGame->m_funcBodyStep = std::bind(&RpgUdpEnginePrivate::worldStep, d, std::placeholders::_1);
-		//m_rpgGame->m_funcBeforeWorldStep = std::bind(&ActionRpgMultiplayerGame::beforeWorldStep, this);
+		m_rpgGame->m_funcBeforeWorldStep = std::bind(&ActionRpgMultiplayerGame::beforeWorldStep, this);
 		m_rpgGame->m_funcAfterWorldStep = std::bind(&ActionRpgMultiplayerGame::afterWorldStep, this);
 		m_rpgGame->m_funcTimeStep = std::bind(&RpgUdpEnginePrivate::timeStepped, d);
 
@@ -151,6 +154,34 @@ void ActionRpgMultiplayerGame::rpgGameActivated()
 		return;
 
 	QMetaObject::invokeMethod(this, &ActionRpgMultiplayerGame::onRpgGameActivated, Qt::QueuedConnection);
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::gamePrepared
+ */
+
+void ActionRpgMultiplayerGame::gamePrepared()
+{
+	LOG_CWARNING("game") << "GAME PREPARED";
+
+	m_gamePrepared = true;
+
+
+	//m_config.gameState = RpgConfig::StatePlay;
+	//QMetaObject::invokeMethod(this, &ActionRpgMultiplayerGame::updateConfig, Qt::QueuedConnection);
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::gameAbort
+ */
+
+void ActionRpgMultiplayerGame::gameAbort()
+{
+	disconnectFromHost();
+	ActionRpgGame::gameAbort();
 }
 
 
@@ -185,19 +216,34 @@ void ActionRpgMultiplayerGame::selectCharacter(const QString &character)
 }
 
 
+/**
+ * @brief ActionRpgMultiplayerGame::selectWeapons
+ * @param weaponList
+ */
+
+void ActionRpgMultiplayerGame::selectWeapons(const QStringList &weaponList)
+{
+	if (weaponList == m_playerConfig.weapons)
+		return;
+
+	LOG_CINFO("game") << "SELECT WEAPONS" << weaponList;
+	m_playerConfig.weapons = weaponList;
+}
+
+
 
 /**
  * @brief ActionRpgMultiplayerGame::connectToHost
  */
 
-void RpgUdpEnginePrivate::connectToServer()
+void RpgUdpEnginePrivate::connectToServer(Server *server)
 {
-	Server *s = q->m_client->server();
-	if (!s)
+	if (!q)
 		return;
 
-	if (connectToHost(s->host().toLatin1(), s->port()))
-		run();
+	Q_ASSERT(server);
+
+	connectToHost(server->host().toLatin1(), server->port());
 }
 
 
@@ -207,7 +253,8 @@ void RpgUdpEnginePrivate::connectToServer()
 
 void ActionRpgMultiplayerGame::disconnectFromHost()
 {
-	d->disconnect();
+	LOG_CDEBUG("game") << "Disconnect from host";
+	QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::disconnect);
 }
 
 
@@ -218,6 +265,7 @@ void ActionRpgMultiplayerGame::disconnectFromHost()
 
 bool ActionRpgMultiplayerGame::isConnected() const
 {
+	QMutexLocker locker(&d->m_mutex);
 	return d->m_enet_host != nullptr && d->m_enet_peer != nullptr;
 }
 
@@ -229,26 +277,31 @@ bool ActionRpgMultiplayerGame::isConnected() const
 
 void ActionRpgMultiplayerGame::onConfigChanged()
 {
+	if (m_config.gameState == RpgConfig::StateError) {
+		if (isConnected())
+			disconnectFromHost();
+		return;
+	}
+
 	if (m_config.gameState == RpgConfig::StateInvalid)
 		return;
 
-	/*if (m_config.gameState == RpgConfig::StateConnect) {
+	if (m_config.gameState == RpgConfig::StateConnect) {
 		if (!isConnected()) {
 			LOG_CDEBUG("game") << "CONNECT";
-			QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::connectToServer);
+			QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::connectToServer, m_client->server());
 			return;
 		}
 		return;
-	}*/
+	}
 
-	if (m_config.gameState == RpgConfig::StatePlay)
+
+	if (m_config.gameState == RpgConfig::StatePlay) {
+		LOG_CINFO("game") << "!!!! stop keepalive timer";
 		m_keepAliveTimer.stop();
+	}
 
 	ActionRpgGame::onConfigChanged();
-
-	/*if (m_config.gameState == RpgConfig::StateCharacterSelect) {
-		QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::connectToServer);
-	}*/
 }
 
 
@@ -258,13 +311,42 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 
 void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 {
+	static QElapsedTimer last;
+
+	if (last.isValid()) {
+		LOG_CDEBUG("game") << "LAST" << last.restart();
+	} else
+		last.start();
+
+	QMutexLocker locker (&d->m_mutex);
+
+	changeGameState(d->m_gameState);
+	setGameMode(d->m_isHost ? ActionRpgGame::MultiPlayerHost : ActionRpgGame::MultiPlayerGuest);
+	setPlayerId(d->m_playerId);
+
+	if (!d->m_isHost && !d->m_gameConfig.terrain.isEmpty())
+		worldTerrainSelect(d->m_gameConfig.terrain, true);
+
+	updatePlayersModel(d->getPlayerList());
+
+	syncPlayerList();
+	syncEnemyList();
+
+	locker.unlock();
+
+	if (m_config.gameState == RpgConfig::StateError) {
+		if (isConnected())
+			disconnectFromHost();
+		return;
+	}
+
 	//LOG_CDEBUG("game")	<< "timer override";
 	if (m_config.gameState == RpgConfig::StateInvalid)
 		return;
 
 	if (m_config.gameState == RpgConfig::StateConnect && !isConnected()) {
 		LOG_CDEBUG("game") << "CONNECT";
-		QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::connectToServer);
+		QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::connectToServer, m_client->server());
 		return;
 	}
 
@@ -274,14 +356,277 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 		 m_config.gameState == RpgConfig::StatePlay) &&
 			!isConnected()) {
 		LOG_CDEBUG("game") << "RECONNECT";
-		QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::connectToServer);
+		QMetaObject::invokeMethod(d, &RpgUdpEnginePrivate::connectToServer, m_client->server());
 		return;
 	}
 
 	if (m_config.gameState == RpgConfig::StateCharacterSelect)
 		sendDataChrSel();
+	else if (m_config.gameState == RpgConfig::StatePrepare)
+		sendDataPrepare();
+	else if (m_config.gameState == RpgConfig::StatePlay)
+		sendDataPlay();
 
+
+	locker.relock();
+
+
+	static QElapsedTimer t;
+
+	if (t.isValid()) {
+		if (t.hasExpired(500)) {
+			LOG_CINFO("game") << "SNAPSHOTS -----------------" << d->m_snapshots.size() << d->m_playerId << d->m_gameState << d->m_lastTick;
+
+			LOG_CINFO("game") << "CFG" << QJsonDocument(d->m_gameConfig.toJson()).toJson().constData();
+
+			for (const RpgUdpEnginePrivate::Snapshot &s : d->m_snapshots) {
+				LOG_CINFO("game") << "S" << s.tick << s.isAuth;
+				for (const RpgGameData::Player &p : s.players)
+					LOG_CINFO("game") << "P**" << QJsonDocument(p.toJson()).toJson().constData();
+
+				/*for (const RpgGameData::Enemy &e : s.enemies)
+					LOG_CINFO("game") << "E**" << QJsonDocument(e.toJson()).toJson().constData();*/
+			}
+
+			t.restart();
+		}
+	} else
+		t.start();
 }
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::changeGameState
+ * @param state
+ */
+
+void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state)
+{
+	if (state == m_config.gameState)
+		return;
+
+	bool canSwitch = true;
+
+	switch (state) {
+		case RpgConfig::StateCharacterSelect:
+			canSwitch = m_config.gameState == RpgConfig::StateConnect;
+			break;
+
+		case RpgConfig::StatePrepare:
+			if (m_config.gameState == RpgConfig::StateCharacterSelect) {
+				m_config.gameState = RpgConfig::StateDownloadContent;
+				updateConfig();
+				return;
+			} else if (m_config.gameState == RpgConfig::StateDownloadContent) {
+				return;
+			} else {
+				canSwitch = false;
+			}
+			break;
+
+		case RpgConfig::StatePlay:
+			canSwitch = m_config.gameState == RpgConfig::StatePrepare;
+			break;
+
+		case RpgConfig::StateConnect:
+		case RpgConfig::StateDownloadStatic:
+		case RpgConfig::StateDownloadContent:
+		case RpgConfig::StateFinished:
+		case RpgConfig::StateError:
+		case RpgConfig::StateInvalid:
+			break;
+	}
+
+
+	if (canSwitch) {
+		LOG_CINFO("game") << "New state" << state;
+		m_config.gameState = state;
+		updateConfig();
+	} else {
+		LOG_CERROR("game") << "State conflict" << m_config.gameState << "->" << state;
+		setError();
+	}
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::worldTerrainSelect
+ * @param map
+ * @param forced
+ */
+
+void ActionRpgMultiplayerGame::worldTerrainSelect(QString map, const bool forced)
+{
+	if (m_playerConfig.terrain == map)
+		return;
+
+	m_playerConfig.terrain = map;
+
+	RpgUserWorld *world = m_client->server() && m_client->server()->user() ? m_client->server()->user()->wallet()->world() : nullptr;
+
+	if (!world)
+		return;
+
+	if (RpgWorldLandData *land = m_client->server()->user()->wallet()->world()->selectedLand()) {
+		if (land->bindedMap() == map)
+			return;
+	}
+
+	world->select(map, forced);
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::updatePlayersModel
+ * @param list
+ */
+
+void ActionRpgMultiplayerGame::updatePlayersModel(const QVariantList &list)
+{
+	Utils::patchSListModel(m_playersModel.get(), list, QStringLiteral("playerId"));
+}
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::syncEnemyList
+ * @param list
+ */
+
+
+void ActionRpgMultiplayerGame::syncEnemyList()
+{
+	if (!m_rpgGame || d->m_snapshots.empty())
+		return;
+
+
+	m_enemiesSynced = true; return;
+
+	const RpgUdpEnginePrivate::Snapshot &snapshot = d->m_snapshots.back();
+
+	if (m_enemiesSynced && (qsizetype) snapshot.enemies.size() == m_rpgGame->m_enemyDataList.size())
+		return;
+
+	m_enemiesSynced = false;
+
+	QList<RpgGameData::Enemy> onlyServerEnemy;
+
+	QList<int> localIndices;
+
+	for (int i=0; i<m_rpgGame->m_enemyDataList.size(); ++i)
+		localIndices.append(i);
+
+	for (const RpgGameData::Enemy &enemy : snapshot.enemies) {
+		const auto it = std::find_if(m_rpgGame->m_enemyDataList.cbegin(),
+									 m_rpgGame->m_enemyDataList.cend(),
+									 [&enemy](const RpgGame::EnemyData &d){
+			return d.objectId.sceneId == enemy.s && d.objectId.id == enemy.id;
+		});
+
+		if (it == m_rpgGame->m_enemyDataList.cend()) {
+			LOG_CWARNING("game") << "Missing enemy" << enemy.s << enemy.id;
+			onlyServerEnemy.append(enemy);
+		} else {
+			localIndices.removeAll(it - m_rpgGame->m_enemyDataList.cbegin());
+		}
+	}
+
+	if (!localIndices.empty())
+		LOG_CWARNING("game") << "Only local enemies" << localIndices;
+
+	m_enemiesSynced = onlyServerEnemy.isEmpty() && localIndices.isEmpty();
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::syncPlayerList
+ * @param list
+ */
+
+void ActionRpgMultiplayerGame::syncPlayerList()
+{
+	if (!m_rpgGame || d->m_snapshots.empty())
+		return;
+
+	const RpgUdpEnginePrivate::Snapshot &snapshot = d->m_snapshots.back();
+
+	if (m_playersSynced && (qsizetype) snapshot.players.size() == m_rpgGame->m_players.size())
+		return;
+
+	m_playersSynced = false;
+
+	QList<int> localIndices;
+
+	for (int i=0; i<m_rpgGame->m_players.size(); ++i)
+		localIndices.append(i);
+
+	QList<RpgPlayer*> playerList;
+
+	for (const RpgGameData::Player &player : snapshot.players) {
+		const auto it = std::find_if(m_rpgGame->m_players.constBegin(),
+									 m_rpgGame->m_players.constEnd(),
+									 [&player](const RpgPlayer *p){
+			return p->objectId().sceneId == player.s && p->objectId().id == player.id;
+		});
+
+		if (it == m_rpgGame->m_players.constEnd()) {
+			LOG_CWARNING("game") << "Missing player" << player.s << player.id << player.o;
+
+			TiledScene *scene = m_rpgGame->findScene(player.s);
+			if (!scene) {
+				LOG_CERROR("game") << "Invalid scene" << player.s;
+				return;
+			}
+
+			RpgPlayer *rpgPlayer = createPlayer(scene, player);
+
+			if (!rpgPlayer) {
+				LOG_CERROR("game") << "ERROR";
+				return;
+			}
+
+			const int hp = m_missionLevel->startHP();
+
+			rpgPlayer->setHp(hp);
+			rpgPlayer->setMaxHp(hp);
+
+			rpgPlayer->setObjectId(player.s, player.id);
+
+			if (player.o == m_playerId) {
+				m_rpgGame->setFollowedItem(rpgPlayer);
+				m_rpgGame->setControlledPlayer(rpgPlayer);
+			}
+
+
+			playerList.append(rpgPlayer);
+
+		} else {
+			localIndices.removeAll(it - m_rpgGame->m_players.constBegin());
+		}
+	}
+
+	if (!playerList.isEmpty()) {
+		playerList.append(m_rpgGame->players());
+		m_rpgGame->setPlayers(playerList);
+	}
+
+	if (!localIndices.empty())
+		LOG_CWARNING("game") << "Only local players" << localIndices;
+
+	m_playersSynced = true; //localIndices.isEmpty();
+}
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::playersModel
+ * @return
+ */
 
 QSListModel *ActionRpgMultiplayerGame::playersModel() const
 {
@@ -313,21 +658,40 @@ void ActionRpgMultiplayerGame::setPlayerId(int newPlayerId)
  * @param config
  */
 
-RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene, const RpgPlayerConfig &config)
+RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene, const RpgGameData::Player &config)
 {
+	LOG_CINFO("game") << "CREATE PLAYER" << config.o << "vs" << m_playerId;
+
 	if (!m_rpgGame) {
 		LOG_CERROR("game") << "Missing RpgGame";
 		return nullptr;
-
 	}
-	const auto characterPtr = RpgGame::characters().find(config.character);
 
-	if (characterPtr == RpgGame::characters().constEnd()) {
-		LOG_CERROR("game") << "Game load error: invalid character" << config.character;
+	QMutexLocker locker (&d->m_mutex);
+	const auto it = std::find_if(d->m_playerData.cbegin(),
+								 d->m_playerData.cend(),
+								 [&config](const RpgGameData::CharacterSelect &ch){
+		return (ch.playerId == config.o);
+	});
+
+	if (it == d->m_playerData.cend()) {
+		LOG_CERROR("game") << "Invalid player id" << config.o;
 		return nullptr;
 	}
 
-	RpgPlayer *player = m_rpgGame->createPlayer(scene, *characterPtr);
+	const RpgGameData::CharacterSelect chData = *it;
+
+	locker.unlock();
+
+	const auto characterPtr = RpgGame::characters().find(chData.character);
+
+	if (characterPtr == RpgGame::characters().constEnd()) {
+		LOG_CERROR("game") << "Game load error: invalid character" << chData.character;
+		return nullptr;
+	}
+
+
+	RpgPlayer *player = m_rpgGame->createPlayer(scene, *characterPtr, config.o);
 
 	if (!player) {
 		LOG_CERROR("game") << "Player create error";
@@ -356,7 +720,7 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene, const RpgPl
 	RpgUserWalletList* wallet = m_client->server() ? m_client->server()->user()->wallet() : nullptr;
 
 	if (wallet) {
-		for (const QString &s : config.weapons) {
+		for (const QString &s : chData.weapons) {
 			const auto it = std::find_if(wallet->constBegin(), wallet->constEnd(), [&s](RpgUserWallet *w) {
 							return w->market().type == RpgMarket::Weapon && w->market().name == s;
 		});
@@ -379,8 +743,10 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene, const RpgPl
 
 
 
-	//player->emplace(m_rpgGame->playerPositionsCount());
-	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
+	if (config.p.size() > 1)
+
+		player->emplace(config.p.at(0), config.p.at(1));
+	player->setCurrentAngle(config.a);
 	//player->setCurrentSceneStartPosition(d->m_playerPosition.value_or(QPointF{0,0}));
 
 	return player;
@@ -425,8 +791,20 @@ bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPla
 	return false;
 }
 
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::beforeWorldStep
+ */
+
 void ActionRpgMultiplayerGame::beforeWorldStep()
 {
+	// SET CURRENT SNAPSHOT
+
+	//QMutexLocker locker(&d->m_mutex);
+
+	//d->m_currentSnapshot = d->m_snapshots.empty() ? d->m_snapshots.cend() : d->m_snapshots.cbegin();
 
 }
 
@@ -438,6 +816,8 @@ void ActionRpgMultiplayerGame::beforeWorldStep()
 
 void ActionRpgMultiplayerGame::afterWorldStep()
 {
+	return;
+
 	if (m_config.gameState != RpgConfig::StatePlay)
 		return;
 
@@ -538,38 +918,6 @@ void ActionRpgMultiplayerGame::onRpgGameActivated()
 	}
 
 	emit m_rpgGame->gameLoaded();
-
-	//QCoreApplication::processEvents();
-
-	/*for (PlayerData &d : d->m_playerData) {
-		if (d.player)
-			continue;
-
-		LOG_CDEBUG("game") << "Create player item" << d.s << d.id;
-
-		RpgPlayer *player = q->createPlayer(q->m_rpgGame->currentScene(), RpgGame::characters().find(d.config.character).value());
-
-		if (!player) {
-			LOG_CERROR("game") << "ERROR";
-			return;
-		}
-
-		const int hp = q->m_missionLevel->startHP();
-
-		player->setHp(hp);
-		player->setMaxHp(hp);
-		q->m_rpgGame->setFollowedItem(player);
-		QList<RpgPlayer*> list = q->m_rpgGame->players();
-		list.append(player);
-		q->m_rpgGame->setPlayers(list);
-
-		player->setObjectId(d.s, d.id);
-
-		d.player = player;
-
-		if (d.id == q->m_playerId)
-			q->m_rpgGame->setControlledPlayer(player);
-	}*/
 }
 
 
@@ -591,32 +939,118 @@ void ActionRpgMultiplayerGame::sendData(const QByteArray &data, const bool &reli
 
 void ActionRpgMultiplayerGame::sendDataChrSel()
 {
-	if (m_config.gameState == RpgConfig::StateCharacterSelect ) {
-		QCborMap map;
+	QCborMap map;
 
-		if (m_gameMode == MultiPlayerHost && m_rpgGame) {
-			RpgGameData::GameConfig gameConfig;
+	if (m_gameMode == MultiPlayerHost) {
+		RpgGameData::GameConfig gameConfig;
+		gameConfig.terrain = m_playerConfig.terrain;
+
+		QCborMap cfgMap = gameConfig.toCborMap(true);
+		map.insert(QStringLiteral("cfg"), cfgMap);
+	}
+
+	RpgGameData::CharacterSelect config(m_playerConfig);
+	config.completed = m_selectionCompleted;
+
+	QCborMap cfgMap = config.toCborMap(true);
+	map.insert(QStringLiteral("chr"), cfgMap);
+
+	sendData(map.toCborValue().toCbor(), true);
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::sendDataPrepare
+ */
+
+void ActionRpgMultiplayerGame::sendDataPrepare()
+{
+	QCborMap map;
+
+	RpgGameData::Prepare config;
+
+	if (m_gameMode == MultiPlayerHost) {
+		RpgGameData::GameConfig gameConfig;
+
+		if (m_rpgGame) {
 			for (const TiledGame::PlayerPosition &p : m_rpgGame->playerPositionList()) {
 				gameConfig.positionList.emplaceBack(p.sceneId, p.position.x(), p.position.y());
 			}
-
-			gameConfig.terrain = m_playerConfig.terrain;
-
-			QCborMap cfgMap = gameConfig.toCborMap(true);
-			map.insert(QStringLiteral("cfg"), cfgMap);
 		}
 
-		RpgGameData::CharacterSelect config(m_playerConfig);
-		config.completed = m_selectionCompleted;
+		gameConfig.terrain = m_playerConfig.terrain;
 
-		LOG_CDEBUG("game") << "Send CONFIG" << config.character << config.terrain << config.completed;
+		QCborMap cfgMap = gameConfig.toCborMap(true);
+		map.insert(QStringLiteral("cfg"), cfgMap);
 
-		QCborMap cfgMap = config.toCborMap(true);
-		map.insert(QStringLiteral("chr"), cfgMap);
 
-		sendData(map.toCborValue().toCbor(), true);
+		QCborArray eList;
+
+		for (RpgGame::EnemyData &e : m_rpgGame->m_enemyDataList) {
+			RpgGameData::Enemy enemy(e.type, e.objectId.sceneId, e.objectId.id);
+			eList.append(enemy.toCborMap(true));
+		}
+
+		map.insert(QStringLiteral("ee"), eList);
+
+		config.prepared = m_gamePrepared;
+	} else {
+		config.prepared = m_gamePrepared && m_playersSynced && m_enemiesSynced;
 	}
+
+
+	QCborMap cfgMap = config.toCborMap(true);
+	map.insert(QStringLiteral("pr"), cfgMap);
+
+	//LOG_CDEBUG("game") << "Send CONFIG" << map;
+
+	sendData(map.toCborValue().toCbor(), true);
 }
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::sendDataPlay
+ */
+
+void ActionRpgMultiplayerGame::sendDataPlay()
+{
+	// THIS IS AFTER WORLD STEP !!!
+
+	QCborMap map;
+
+	if (m_gameMode == MultiPlayerHost) {
+		// Enemies
+	}
+
+
+	if (!m_rpgGame)
+		return;
+
+	if (m_rpgGame->controlledPlayer()) {
+		RpgGameData::Player p;
+
+		p.o = d->m_playerId;
+		p.id = m_rpgGame->controlledPlayer()->objectId().id;
+		p.s = m_rpgGame->controlledPlayer()->objectId().sceneId;
+
+		b2Vec2 pos = m_rpgGame->controlledPlayer()->body().GetPosition();
+		p.p = { pos.x, pos.y };
+		p.a = m_rpgGame->controlledPlayer()->currentAngle();
+		p.hp = m_rpgGame->controlledPlayer()->hp();
+
+		map.insert(QStringLiteral("p"), p.toCborMap(true));
+	}
+
+	//LOG_CWARNING("game") << "SEND DATA" << QJsonDocument(map.toJsonObject()).toJson().constData();
+
+	sendData(map.toCborValue().toCbor(), true);
+}
+
+
+
 
 
 /**
@@ -627,14 +1061,15 @@ RpgUdpEnginePrivate::RpgUdpEnginePrivate(ActionRpgMultiplayerGame *game)
 	: QObject()
 	, q(game)
 {
-
+	connect(this, &RpgUdpEnginePrivate::gameDataDownload, q, &ActionRpgMultiplayerGame::downloadGameData);
+	connect(this, &RpgUdpEnginePrivate::gameError, q, &ActionRpgMultiplayerGame::setError);
 }
 
 
 
 RpgUdpEnginePrivate::~RpgUdpEnginePrivate()
 {
-	disconnect();
+	m_canRun = false;
 }
 
 
@@ -644,10 +1079,29 @@ RpgUdpEnginePrivate::~RpgUdpEnginePrivate()
  * @param body
  */
 
-void RpgUdpEnginePrivate::worldStep(TiledObjectBody *body)
+void RpgUdpEnginePrivate::worldStep(const TiledGame::Body &body)
 {
-	if (q->m_gameMode == ActionRpgGame::MultiPlayerHost)
-		body->worldStep();
+	if (m_gameState != RpgConfig::StatePlay)
+		return;
+
+	if (body.owner == m_playerId || (body.owner == -1 && m_isHost)) {
+		// TODO: snapshot reconciliation
+
+		body.body->worldStep();
+	} else {
+		const Snapshot s = getCurrentSnapshot();
+
+		if (s.tick < 0) {
+			LOG_CWARNING("game") << "Unable to get current snapshot";
+			body.body->stop();
+		} else {
+			if (RpgPlayer *p = dynamic_cast<RpgPlayer*>(body.body.get()))
+				updatePlayer(s, p, body.owner);
+			/*else if (IsometricEnemy *e = dynamic_cast<IsometricEnemy*>(body.body.get()))
+				updateEnemy(s, e);			*/
+		}
+
+	}
 
 }
 
@@ -660,8 +1114,6 @@ void RpgUdpEnginePrivate::worldStep(TiledObjectBody *body)
 
 void RpgUdpEnginePrivate::timeStepped()
 {
-	QMutexLocker locker(&m_mutex);
-
 
 }
 
@@ -682,10 +1134,18 @@ void RpgUdpEnginePrivate::timeStepped()
  * @return
  */
 
-bool RpgUdpEnginePrivate::connectToHost(const char *host, const int &port)
+void RpgUdpEnginePrivate::connectToHost(const char *host, const int &port)
 {
-	if (m_enet_host)
-		disconnect();
+	if (!q)
+		return;
+
+	QMutexLocker locker(&m_mutex);
+
+	if (m_enet_host) {
+		LOG_CERROR("game") << "Connection already exists";
+		emit serverConnectFailed();
+		return;
+	}
 
 	m_canRun = false;
 
@@ -693,7 +1153,8 @@ bool RpgUdpEnginePrivate::connectToHost(const char *host, const int &port)
 
 	if (!client) {
 		LOG_CERROR("game") << "Connection refused" << host << port;
-		return false;
+		emit serverConnectFailed();
+		return;
 	}
 
 	ENetAddress address;
@@ -708,7 +1169,8 @@ bool RpgUdpEnginePrivate::connectToHost(const char *host, const int &port)
 	if (!peer) {
 		LOG_CWARNING("game") << "Connection refused" << host << port;
 		enet_host_destroy(client);
-		return false;
+		emit serverConnectFailed();
+		return;
 	}
 
 	if (enet_host_service(client, &event, 1000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
@@ -717,7 +1179,10 @@ bool RpgUdpEnginePrivate::connectToHost(const char *host, const int &port)
 		LOG_CWARNING("game") << "Connnection failed" << host << port;
 		enet_peer_reset(peer);
 		enet_host_destroy(client);
-		return false;
+
+		emit serverConnectFailed();
+
+		return;
 	}
 
 	m_enet_host = client;
@@ -725,7 +1190,32 @@ bool RpgUdpEnginePrivate::connectToHost(const char *host, const int &port)
 
 	m_canRun = true;
 
-	return true;
+	emit serverConnected();
+
+	locker.unlock();
+
+	run();
+
+	locker.relock();
+
+	m_canRun = false;
+
+	if (m_enet_host) {
+		if (m_enet_peer) {
+			enet_peer_disconnect(m_enet_peer, 0);
+			ENetEvent event;
+			enet_host_service(m_enet_host, &event, 200);
+			enet_peer_reset(m_enet_peer);
+			m_enet_peer = nullptr;
+		}
+		enet_host_destroy(m_enet_host);
+
+		emit serverDisconnected();
+	}
+
+	m_enet_host = nullptr;
+
+	LOG_CDEBUG("game") << "Disconnected from host" << host << port;
 }
 
 
@@ -736,19 +1226,37 @@ bool RpgUdpEnginePrivate::connectToHost(const char *host, const int &port)
 
 void RpgUdpEnginePrivate::disconnect()
 {
-	if (m_enet_host) {
-		if (m_enet_peer) {
-			enet_peer_disconnect(m_enet_peer, 0);
-			ENetEvent event;
-			enet_host_service(m_enet_host, &event, 200);
-			enet_peer_reset(m_enet_peer);
-			m_enet_peer = nullptr;
-		}
-		enet_host_destroy(m_enet_host);
+	QMutexLocker locker(&m_mutex);
+	m_canRun = false;
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateState
+ * @param data
+ */
+
+void RpgUdpEnginePrivate::updateState(const QCborMap &data)
+{
+	if (auto it = data.find(QStringLiteral("t")); it != data.cend()) {
+		m_lastTick = it->toInteger(-1);
 	}
 
-	m_enet_host = nullptr;
-	m_canRun = false;
+	if (auto it = data.find(QStringLiteral("hst")); it != data.cend()) {
+		m_isHost = it->toBool();
+	}
+
+	if (auto it = data.find(QStringLiteral("ply")); it != data.cend()) {
+		m_playerId = it->toInteger(-1);
+	}
+
+	if (auto it = data.find(QStringLiteral("st")); it != data.cend()) {
+		m_gameState = QVariant(it->toInteger()).value<RpgConfig::GameState>();
+	}
+
 }
 
 
@@ -760,88 +1268,31 @@ void RpgUdpEnginePrivate::disconnect()
 
 void RpgUdpEnginePrivate::packetReceived(ENetPacket *packet)
 {
+	if (!q)
+		return;
+
+	if (q->m_config.gameState == RpgConfig::StateError || m_gameState == RpgConfig::StateError)
+		return;
+
 	Q_ASSERT(packet);
 	QByteArray data((char*)packet->data, packet->dataLength);
 
 	QCborMap map = QCborValue::fromCbor(data).toMap();
 
-	QCborArray pList = map.value("pp").toArray();
+	updateState(map);
 
-	/*LOG_CDEBUG("game") << "RCV" << map.value("t").toInteger(-1) << map.value("hst").toBool() << pList.size() <<
-						  "IDX" << map.value("ply").toInteger(-1);*/
-
-	m_lastTick = map.value("t").toInteger(-1);
-
-	///int myId = map.value("cfg").toMap().value("playerId").toInteger(-1);
-
-	q->setGameMode(map.value("hst").toBool() ? ActionRpgGame::MultiPlayerHost : ActionRpgGame::MultiPlayerGuest);
-
-	const int myId = map.value("ply").toInteger(-1);
-
-	q->setPlayerId(myId);
-
-	if (myId == -1)
+	if (m_gameState == RpgConfig::StateConnect)
 		return;
-
-
-	if (q->m_config.gameState == RpgConfig::StateConnect) {
-		q->m_config.gameState = RpgConfig::StateCharacterSelect;
-		q->updateConfig();
-	}
-
-	if (q->m_config.gameState == RpgConfig::StateCharacterSelect)
+	else if (m_gameState == RpgConfig::StateCharacterSelect)
 		packetReceivedChrSel(map);
-
-	if (!q->m_rpgGame)
-		return;
-
-/*	QMutexLocker locker(&m_mutex);
-
-	for (const QCborValue &v : pList) {
-		RpgGameData::Player playerData;
-		playerData.fromCbor(v);
-
-		if (playerData.s < 0 || playerData.id < 0) {
-			LOG_CERROR("game") << "Invalid player";
-			continue;
-		}
-
-		const auto it = std::find_if(m_playerData.cbegin(), m_playerData.cend(),
-									 [&playerData](const PlayerData &p){
-			return p.s == playerData.s && p.id == playerData.id;
-		});
-
-		if (it == m_playerData.cend()) {
-			LOG_CINFO("game") << "CREATE PLAYER" << playerData.s << playerData.id;
-
-			PlayerData &pd = m_playerData.emplace_back(playerData);
-			//pd.config = q->m_playerConfig;
-
-			// TODO: config?
-		} else {
-			if (!it->player) {
-				LOG_CERROR("game") << "Missing player";
-				continue;
-			}
-
-			if (q->m_gameMode != ActionRpgGame::MultiPlayerGuest)
-				continue;
-
-			if (playerData.p.size() < 2) {
-				LOG_CERROR("game") << "Missing player POS";
-				continue;
-			}
-
-			QVector2D serverPos(playerData.p.at(0), playerData.p.at(1));
-
-
-			if (it->player->distanceToPoint(serverPos) > 5) {
-				it->player->moveTowards(serverPos, 108.);
-			} else {
-				it->player->stop();
-			}
-		}
-	}*/
+	else if (m_gameState == RpgConfig::StatePrepare) {
+		if (q->m_config.gameState == RpgConfig::StateDownloadContent)
+			packetReceivedDownload(map);
+		else if (q->m_config.gameState == RpgConfig::StatePrepare)
+			packetReceivedPrepare(map);
+	} else if (m_gameState == RpgConfig::StatePlay) {
+		packetReceivedPlay(map);
+	}
 }
 
 
@@ -852,31 +1303,114 @@ void RpgUdpEnginePrivate::packetReceived(ENetPacket *packet)
 
 void RpgUdpEnginePrivate::packetReceivedChrSel(const QCborMap &data)
 {
-	QCborArray pList = data.value(QStringLiteral("pp")).toArray();
+	if (!q)
+		return;
 
-	QVariantList list;
+	QCborArray pList = data.value(QStringLiteral("pp")).toArray();
 
 	for (const QCborValue &v : pList) {
 		RpgGameData::CharacterSelect ch;
 		ch.fromCbor(v.toMap());
-		list.append(ch.toJson().toVariantMap());
+		updateSnapshot(ch);
 	}
 
-	Utils::patchSListModel(q->m_playersModel.get(), list, QStringLiteral("username"));
+	if (q->m_gameMode == ActionRpgGame::MultiPlayerGuest) {
+		QCborMap cfgGame = data.value(QStringLiteral("g")).toMap();
 
-
-	QCborMap cfg = data.value(QStringLiteral("g")).toMap();
-
-	if (!cfg.isEmpty()) {
-		RpgGameData::GameConfig config;
-		config.fromCbor(cfg);
-
-		if (!config.terrain.isEmpty()) {
-			if (q->m_client->server() && q->m_client->server()->user() &&
-					q->m_client->server()->user()->wallet()->world())
-				q->m_client->server()->user()->wallet()->world()->select(config.terrain, true);
+		if (!cfgGame.isEmpty()) {
+			RpgGameData::GameConfig config;
+			config.fromCbor(cfgGame);
+			m_gameConfig = config;
 		}
 	}
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::packetReceivedDownload
+ * @param data
+ */
+
+void RpgUdpEnginePrivate::packetReceivedDownload(const QCborMap &data)
+{
+	if (!q)
+		return;
+
+	if (m_downloadContentStarted)
+		return;
+
+	RpgGameData::GameConfig config;
+
+	LOG_CDEBUG("game") << data;
+
+	QCborMap cfgGame = data.value(QStringLiteral("g")).toMap();
+	config.fromCbor(cfgGame);
+
+	if (config.terrain.isEmpty()) {
+		LOG_CERROR("game") << "Missing game config terrain";
+		emit gameError();
+		return;
+	}
+
+	m_gameConfig = config;
+
+	QCborArray pList = data.value(QStringLiteral("pp")).toArray();
+
+	LOG_CWARNING("game") << "#####" << pList;
+
+	for (const QCborValue &v : pList) {
+		RpgGameData::Player p;
+		p.fromCbor(v.toMap());
+		updateSnapshot(p, 0);
+	}
+
+	emit gameDataDownload(config.terrain, m_playerData);
+
+	m_downloadContentStarted = true;
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::packetReceivedPrepare
+ * @param data
+ */
+
+void RpgUdpEnginePrivate::packetReceivedPrepare(const QCborMap &data)
+{
+	if (!q)
+		return;
+
+	QCborArray enemyList = data.value(QStringLiteral("ee")).toArray();
+	QCborArray playerList = data.value(QStringLiteral("pp")).toArray();
+
+
+	updateSnapshotPlayerList(playerList, 0);
+	updateSnapshotEnemyList(enemyList, 0);
+
+}
+
+
+/**
+ * @brief RpgUdpEnginePrivate::packetReceivedPlay
+ * @param data
+ */
+
+void RpgUdpEnginePrivate::packetReceivedPlay(const QCborMap &data)
+{
+	if (!q)
+		return;
+
+	QCborArray enemyList = data.value(QStringLiteral("ee")).toArray();
+	QCborArray playerList = data.value(QStringLiteral("pp")).toArray();
+
+	updateSnapshotPlayerList(playerList, 0);
+	updateSnapshotEnemyList(enemyList, 0);
 }
 
 
@@ -888,6 +1422,9 @@ void RpgUdpEnginePrivate::packetReceivedChrSel(const QCborMap &data)
 
 void RpgUdpEnginePrivate::run()
 {
+	if (!q)
+		return;
+
 	if (!m_enet_host)
 		return;
 
@@ -895,7 +1432,7 @@ void RpgUdpEnginePrivate::run()
 
 	ENetEvent event;
 
-	while (int r = enet_host_service (m_enet_host, &event, 100) >= 0) {
+	while (int r = enet_host_service (m_enet_host, &event, 1000/120) >= 0) {
 		if (!m_canRun)
 			break;
 
@@ -938,8 +1475,6 @@ void RpgUdpEnginePrivate::run()
 	}
 
 	LOG_CINFO("engine") << "UPD ENGINE RUN FINISHED";
-
-	disconnect();
 }
 
 
@@ -954,6 +1489,319 @@ void RpgUdpEnginePrivate::sendMessage(QByteArray data, const bool &reliable)
 	QMutexLocker locker(&m_mutex);
 	m_sendList.append({.data = data, .reliable = reliable});
 }
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateSnapshot
+ * @param player
+ */
+
+void RpgUdpEnginePrivate::updateSnapshot(const RpgGameData::CharacterSelect &player)
+{
+	QMutexLocker locker(&m_mutex);
+
+	if (!m_snapshots.empty() && m_snapshots.front().tick != 0)
+		m_snapshots.clear();
+
+	const auto it = std::find_if(m_playerData.begin(),
+								 m_playerData.end(),
+								 [&player](const RpgGameData::CharacterSelect &ch){
+		return ch.playerId == player.playerId;
+	});
+
+	if (it == m_playerData.cend())
+		m_playerData.emplace_back(player);
+	else
+		*it = player;
+
+	RpgGameData::Player pData;
+
+	pData.o = player.playerId;
+
+	if (m_snapshots.empty())
+		m_snapshots.push_back({
+								  .tick = 0,
+								  .isAuth = true,
+								  .players = { pData },
+								  .enemies = {},
+							  });
+	else
+		updateSnapshot(*m_snapshots.begin(), pData);
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateSnapshot
+ * @param snapshot
+ * @param player
+ */
+
+void RpgUdpEnginePrivate::updateSnapshot(Snapshot &snapshot, const RpgGameData::Player &player)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(snapshot.players.begin(),
+						   snapshot.players.end(),
+						   [&player](const RpgGameData::Player &p) {
+		return p.o == player.o;
+	});
+
+	if (it == snapshot.players.end()) {
+		LOG_CERROR("game") << "ADD PLAYER" << player.o << player.s;
+		snapshot.players.emplace_back(player);
+	} else
+		*it = player;
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateSnapshot
+ * @param snapshot
+ * @param enemy
+ */
+
+void RpgUdpEnginePrivate::updateSnapshot(Snapshot &snapshot, const RpgGameData::Enemy &enemy)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(snapshot.enemies.begin(),
+						   snapshot.enemies.end(),
+						   [&enemy](const RpgGameData::Enemy &p) {
+		return p.RpgGameData::Body::isEqual(enemy);
+	});
+
+	if (it == snapshot.enemies.end())
+		snapshot.enemies.emplace_back(enemy);
+	else
+		*it = enemy;
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateSnapshot
+ * @param player
+ * @param tick
+ */
+
+void RpgUdpEnginePrivate::updateSnapshot(const RpgGameData::Player &player, const qint64 &tick)
+{
+	QMutexLocker locker(&m_mutex);
+
+	const auto it = std::find_if(m_snapshots.begin(),
+								 m_snapshots.end(),
+								 [&tick](const Snapshot &s) {
+		return s.tick == tick;
+	});
+
+	if (it == m_snapshots.end()) {
+		LOG_CERROR("game") << "ADD TICK" << tick;
+		m_snapshots.push_back({
+								  .tick = tick,
+								  .isAuth = true,
+								  .players = { player },
+								  .enemies = {},
+							  });
+	} else {
+		updateSnapshot(*it, player);
+	}
+}
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateSnapshot
+ * @param player
+ * @param tick
+ */
+
+void RpgUdpEnginePrivate::updateSnapshot(const RpgGameData::Enemy &enemy, const qint64 &tick)
+{
+	QMutexLocker locker(&m_mutex);
+
+	const auto it = std::find_if(m_snapshots.begin(),
+								 m_snapshots.end(),
+								 [&tick](const Snapshot &s) {
+		return s.tick == tick;
+	});
+
+	if (it == m_snapshots.end()) {
+		LOG_CERROR("game") << "ADD TICK" << tick;
+
+		m_snapshots.push_back({
+								  .tick = tick,
+								  .isAuth = true,
+								  .players = { },
+								  .enemies = { enemy },
+							  });
+	} else {
+		updateSnapshot(*it, enemy);
+	}
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::getPlayerList
+ * @param tick
+ * @return
+ */
+
+QVariantList RpgUdpEnginePrivate::getPlayerList()
+{
+	QMutexLocker locker(&m_mutex);
+
+	QVariantList list;
+
+	for (const RpgGameData::CharacterSelect &p : m_playerData) {
+		list.append(p.toJson().toVariantMap());
+	}
+
+	return list;
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateSnapshotEnemyList
+ * @param list
+ * @param tick
+ */
+
+void RpgUdpEnginePrivate::updateSnapshotEnemyList(const QCborArray &list, const qint64 &tick)
+{
+	QMutexLocker locker(&m_mutex);
+
+	for (const QCborValue &v : list) {
+		RpgGameData::Enemy enemy;
+		enemy.fromCbor(v);
+
+		if (enemy.s < 0 || enemy.id < 0) {
+			LOG_CERROR("game") << "Invalid enemy id" << enemy.s << enemy.id;
+			continue;
+		}
+
+		updateSnapshot(enemy, tick);
+	}
+}
+
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateSnapshotPlayerList
+ * @param list
+ * @param tick
+ */
+
+void RpgUdpEnginePrivate::updateSnapshotPlayerList(const QCborArray &list, const qint64 &tick)
+{
+	QMutexLocker locker(&m_mutex);
+
+	for (const QCborValue &v : list) {
+		RpgGameData::Player player;
+		player.fromCbor(v);
+
+		if (player.o < 0) {
+			LOG_CERROR("game") << "Invalid player id" << v;
+			continue;
+		}
+
+		updateSnapshot(player, tick);
+	}
+}
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updatePlayer
+ * @param snapshot
+ * @param player
+ */
+
+void RpgUdpEnginePrivate::updatePlayer(const Snapshot &snapshot, RpgPlayer *player, const int &owner)
+{
+	Q_ASSERT(player);
+
+	const auto it = std::find_if(snapshot.players.cbegin(),
+								 snapshot.players.cend(),
+								 [player, owner](const RpgGameData::Player &p) {
+		return (p.o == owner && p.s == player->objectId().sceneId && p.id == player->objectId().id);
+	});
+
+	if (it == snapshot.players.cend()) {
+		LOG_CERROR("game") << "Invalid player" << player;
+		return;
+	}
+
+	if (it->p.size() > 1)
+		player->emplace(it->p.at(0), it->p.at(1));
+
+	player->setCurrentAngle(it->a);
+}
+
+
+/**
+ * @brief RpgUdpEnginePrivate::updateEnemy
+ * @param snapshot
+ * @param enemy
+ */
+
+void RpgUdpEnginePrivate::updateEnemy(const Snapshot &snapshot, IsometricEnemy *enemy)
+{
+	Q_ASSERT(enemy);
+
+	const auto it = std::find_if(snapshot.enemies.cbegin(),
+								 snapshot.enemies.cend(),
+								 [enemy](const RpgGameData::Enemy &p) {
+		return (p.s == enemy->objectId().sceneId && p.id == enemy->objectId().id);
+	});
+
+	if (it == snapshot.enemies.cend()) {
+		LOG_CERROR("game") << "Invalid enemy" << enemy;
+		return;
+	}
+
+	if (it->p.size() > 1)
+		enemy->emplace(it->p.at(0), it->p.at(1));
+
+	enemy->setCurrentAngle(it->a);
+}
+
+
+/**
+ * @brief RpgUdpEnginePrivate::getCurrentSnapshot
+ * @return
+ */
+
+RpgUdpEnginePrivate::Snapshot RpgUdpEnginePrivate::getCurrentSnapshot()
+{
+	QMutexLocker locker(&m_mutex);
+
+	if (m_snapshots.empty())
+		return {};
+	else
+		return m_snapshots.front();
+}
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::selectionCompleted
+ * @return
+ */
 
 
 bool ActionRpgMultiplayerGame::selectionCompleted() const

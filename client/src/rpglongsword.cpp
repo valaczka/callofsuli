@@ -90,7 +90,7 @@ void RpgLongsword::eventAttack(TiledObject *target)
  */
 
 RpgLongswordPickable::RpgLongswordPickable(TiledScene *scene)
-	: RpgPickableObject(PickableLongsword, scene)
+	: RpgPickableObject(RpgGameData::Pickable::PickableLongsword, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

@@ -136,7 +136,7 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
  */
 
 RpgShieldPickable::RpgShieldPickable(TiledScene *scene)
-	: RpgPickableObject(PickableShield, scene)
+	: RpgPickableObject(RpgGameData::Pickable::PickableShield, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }

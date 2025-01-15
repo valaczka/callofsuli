@@ -30,6 +30,7 @@
 #include "tiledeffect.h"
 #include "tiledpickableiface.h"
 #include "isometricobject.h"
+#include "rpgconfig.h"
 #include <QQmlEngine>
 
 class RpgPlayer;
@@ -44,42 +45,25 @@ class RpgPickableObject : public IsometricObject, public TiledPickableIface
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(PickableType pickableType READ pickableType CONSTANT FINAL)
+	Q_PROPERTY(RpgGameData::Pickable::PickableType pickableType READ pickableType CONSTANT FINAL)
 	Q_PROPERTY(bool isActive READ isActive WRITE setIsActive NOTIFY isActiveChanged FINAL)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
 
 public:
-	enum PickableType {
-		PickableInvalid = 0,
-		PickableHp,
-		PickableShortbow,
-		PickableLongbow,
-		/*PickableArrow [[deprecated]],
-		PickableFireball [[deprecated]],
-		PickableLightning [[deprecated]],*/
-		PickableLongsword,
-		PickableDagger,
-		PickableShield,
-		PickableTime,
-		PickableMp,
-		PickableCoin,
-		PickableKey,
-	};
-
-	Q_ENUM(PickableType);
-
-	RpgPickableObject(const PickableType &type, TiledScene *scene);
+	RpgPickableObject(const RpgGameData::Pickable::PickableType &type, TiledScene *scene);
 	virtual ~RpgPickableObject() {}
 
 	void initialize();
 
-	static PickableType typeFromString(const QString &type) { return m_typeHash.value(type, PickableInvalid); }
-	static const QHash<QString, PickableType> &typeHash() { return m_typeHash; }
+	static RpgGameData::Pickable::PickableType typeFromString(const QString &type) {
+		return m_typeHash.value(type, RpgGameData::Pickable::PickableInvalid);
+	}
+	static const QHash<QString, RpgGameData::Pickable::PickableType> &typeHash() { return m_typeHash; }
 
-	static QString pickableName(const PickableType &type);
-	static QString pickableNameEn(const PickableType &type);
+	static QString pickableName(const RpgGameData::Pickable::PickableType &type);
+	static QString pickableNameEn(const RpgGameData::Pickable::PickableType &type);
 
-	PickableType pickableType() const;
+	RpgGameData::Pickable::PickableType pickableType() const;
 
 	virtual bool playerPick(RpgPlayer *player) = 0;
 
@@ -109,10 +93,10 @@ private:
 	/*void fixtureBeginContact(Box2DFixture *other);
 	void fixtureEndContact(Box2DFixture *other);*/
 
-	const PickableType m_pickableType;
+	const RpgGameData::Pickable::PickableType m_pickableType;
 	QString m_name;
 
-	static const QHash<QString, PickableType> m_typeHash;
+	static const QHash<QString, RpgGameData::Pickable::PickableType> m_typeHash;
 };
 
 
@@ -127,18 +111,18 @@ class RpgInventory : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(RpgPickableObject::PickableType pickableType READ pickableType CONSTANT FINAL)
+	Q_PROPERTY(RpgGameData::Pickable::PickableType pickableType READ pickableType CONSTANT FINAL)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
 	Q_PROPERTY(QString icon READ icon NOTIFY iconChanged FINAL)
 	Q_PROPERTY(QColor iconColor READ iconColor NOTIFY iconColorChanged FINAL)
 
 public:
-	RpgInventory(const RpgPickableObject::PickableType &type, const QString &name, QObject *parent = nullptr);
-	RpgInventory(const RpgPickableObject::PickableType &type, QObject *parent = nullptr) :
+	RpgInventory(const RpgGameData::Pickable::PickableType &type, const QString &name, QObject *parent = nullptr);
+	RpgInventory(const RpgGameData::Pickable::PickableType &type, QObject *parent = nullptr) :
 		RpgInventory(type, QStringLiteral(""), parent) {}
 	virtual ~RpgInventory() {}
 
-	const RpgPickableObject::PickableType &pickableType() const { return m_pickableType; }
+	const RpgGameData::Pickable::PickableType &pickableType() const { return m_pickableType; }
 
 	QString name() const;
 	void setName(const QString &newName);
@@ -152,7 +136,7 @@ signals:
 	void iconColorChanged();
 
 private:
-	const RpgPickableObject::PickableType m_pickableType;
+	const RpgGameData::Pickable::PickableType m_pickableType;
 	QString m_name;
 };
 

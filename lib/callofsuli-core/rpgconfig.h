@@ -507,26 +507,60 @@ public:
 
 namespace RpgGameData {
 
-class CharacterSelect : public RpgPlayerConfig
+class CharacterSelect : public QSerializer
 {
 	Q_GADGET
 
 public:
 	CharacterSelect()
-		: RpgPlayerConfig()
+		: QSerializer()
+		, playerId(-1)
 		, completed(false)
 	{}
 
 	CharacterSelect(const RpgPlayerConfig &config)
-		: RpgPlayerConfig(config)
+		: QSerializer()
+		, playerId(-1)
 		, completed(false)
+	{
+		username = config.username;
+		nickname = config.nickname;
+		character = config.character;
+		weapons = config.weapons;
+	}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, playerId)
+	QS_FIELD(QString, username)
+	QS_FIELD(QString, nickname)
+
+	QS_FIELD(QString, character)
+	QS_FIELD(QStringList, weapons)
+	QS_FIELD(bool, completed)
+};
+
+
+
+
+/**
+ * @brief The Prepare class
+ */
+
+class Prepare : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Prepare()
+		: QSerializer()
+		, prepared(false)
 	{}
 
 	QS_SERIALIZABLE
 
-	QS_FIELD(bool, completed)
+	QS_FIELD(bool, prepared)
 };
-
 
 
 
@@ -673,6 +707,7 @@ public:
 
 	QS_SERIALIZABLE
 
+	//QS_OBJECT(RpgPlayerConfig, cfg)
 };
 
 
@@ -722,6 +757,50 @@ public:
 };
 
 
+
+
+
+
+class Pickable : public Body
+{
+	Q_GADGET
+
+public:
+	enum PickableType {
+		PickableInvalid = 0,
+		PickableHp,
+		PickableShortbow,
+		PickableLongbow,
+		/*PickableArrow [[deprecated]],
+		PickableFireball [[deprecated]],
+		PickableLightning [[deprecated]],*/
+		PickableLongsword,
+		PickableDagger,
+		PickableShield,
+		PickableTime,
+		PickableMp,
+		PickableCoin,
+		PickableKey,
+	};
+
+	Q_ENUM(PickableType);
+
+	Pickable (const PickableType &_type, const int &_sceneId, const int &_id)
+		: Body(_sceneId, _id)
+		, t(_type)
+	{}
+
+
+	bool isEqual(const Pickable &other) const {
+		return Body::isEqual(other) && other.t == t;
+	}
+
+	EQUAL_OPERATOR(Pickable)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(PickableType, t)
+};
 
 };
 

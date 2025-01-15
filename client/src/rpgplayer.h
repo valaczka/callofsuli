@@ -162,11 +162,11 @@ public:
 	void setConfig(const RpgPlayerCharacterConfig &newConfig);
 
 	void inventoryAdd(RpgPickableObject *object);
-	void inventoryAdd(const RpgPickableObject::PickableType &type, const QString &name = {});
-	void inventoryRemove(const RpgPickableObject::PickableType &type);
-	void inventoryRemove(const RpgPickableObject::PickableType &type, const QString &name);
-	bool inventoryContains(const RpgPickableObject::PickableType &type) const;
-	bool inventoryContains(const RpgPickableObject::PickableType &type, const QString &name) const;
+	void inventoryAdd(const RpgGameData::Pickable::PickableType &type, const QString &name = {});
+	void inventoryRemove(const RpgGameData::Pickable::PickableType &type);
+	void inventoryRemove(const RpgGameData::Pickable::PickableType &type, const QString &name);
+	bool inventoryContains(const RpgGameData::Pickable::PickableType &type) const;
+	bool inventoryContains(const RpgGameData::Pickable::PickableType &type, const QString &name) const;
 
 	RpgInventoryList *inventory() const;
 

@@ -972,6 +972,7 @@ void RpgUserWorld::selectFromWallet(RpgUserWallet *wallet)
 
 void RpgUserWorld::select(const QString &map, const bool &forced)
 {
+
 	const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(),
 								 [&map, forced](RpgWorldLandData *d){
 		return d->bindedMap() == map &&

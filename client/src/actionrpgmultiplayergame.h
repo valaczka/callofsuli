@@ -54,9 +54,12 @@ public:
 
 	virtual void setRpgGame(RpgGame *newRpgGame) override;
 	Q_INVOKABLE virtual void rpgGameActivated() override;
+	Q_INVOKABLE virtual void gamePrepared() override;
+	Q_INVOKABLE virtual void gameAbort() override;
 
 	Q_INVOKABLE void selectTerrain(const QString &terrain);
 	Q_INVOKABLE void selectCharacter(const QString &character);
+	Q_INVOKABLE void selectWeapons(const QStringList &weaponList);
 
 	void disconnectFromHost();
 	bool isConnected() const;
@@ -77,14 +80,25 @@ protected:
 	void onConfigChanged() override;
 	virtual void timerEvent(QTimerEvent *) override;
 
+	void changeGameState(const RpgConfig::GameState &state);
+
 private:
 	int m_playerId = -1;
 	bool m_selectionCompleted = false;
+	bool m_gamePrepared = false;
+	bool m_enemiesSynced = false;
+	bool m_playersSynced = false;
+
 	std::unique_ptr<QSListModel> m_playersModel;
 	QBasicTimer m_keepAliveTimer;
 
 
-	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerConfig &config);
+	void worldTerrainSelect(QString map, const bool forced);
+	void updatePlayersModel(const QVariantList &list);
+	void syncEnemyList();
+	void syncPlayerList();
+
+	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::Player &config);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
@@ -102,10 +116,12 @@ private:
 	void sendData(const QByteArray &data, const bool &reliable);
 
 	void sendDataChrSel();
+	void sendDataPrepare();
+	void sendDataPlay();
 
 
 	RpgUdpEnginePrivate *d = nullptr;
-	QThread m_dThread;
+	QThread *m_dThread = nullptr;
 
 	friend class RpgUdpEnginePrivate;
 	friend class RpgUdpEnginePrivateThread;

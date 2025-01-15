@@ -31,7 +31,10 @@
 #include <QObject>
 #include <QThread>
 #include <QElapsedTimer>
+#include <QCborArray>
 #include <enet/enet.h>
+#include <deque>
+#include <list>
 #include "actionrpgmultiplayergame.h"
 
 /**
@@ -46,27 +49,47 @@ public:
 	RpgUdpEnginePrivate(ActionRpgMultiplayerGame *game);
 	virtual ~RpgUdpEnginePrivate();
 
-	void stop() { m_canRun = false; }
-	void worldStep(TiledObjectBody *body);
+	void connectToServer(Server *server);
+	void disconnect();
+
+	void worldStep(const TiledGame::Body &body);
 	void timeStepped();
 
+signals:			// REMOVE SIGNALS
+	void serverConnected();
+	void serverDisconnected();
+	void serverConnectFailed();
+
+	void gameError();
+	void gameDataDownload(QString map, QList<RpgGameData::CharacterSelect> list);
+
+
 private:
-	bool connectToHost(const char *host, const int &port);
-	void connectToServer();
-	void disconnect();
+	void connectToHost(const char *host, const int &port);
+
+	void updateState(const QCborMap &data);
 
 	void packetReceived(ENetPacket *packet);
 	void packetReceivedChrSel(const QCborMap &data);
+	void packetReceivedDownload(const QCborMap &data);
+	void packetReceivedPrepare(const QCborMap &data);
+	void packetReceivedPlay(const QCborMap &data);
 
 	void run();
 
 	void sendMessage(QByteArray data, const bool &reliable);
 	bool forceKeyFrame();
 
-	ActionRpgMultiplayerGame *q;
+
+
+
+
+	QPointer<ActionRpgMultiplayerGame> q;
 	ENetHost *m_enet_host = nullptr;
 	ENetPeer *m_enet_peer = nullptr;
 	bool m_canRun = true;
+
+
 
 	QRecursiveMutex m_mutex;
 
@@ -78,25 +101,42 @@ private:
 	QList<Packet> m_sendList;
 
 	QElapsedTimer m_lastKeyFrame;
+	bool m_downloadContentStarted = false;
 
 
+	QList<RpgGameData::CharacterSelect> m_playerData;
 
-	/**
-	 * @brief The PlayerData class
-	 */
+	// Snapshots
 
-	class PlayerData : public RpgGameData::Player {
-	public:
-		PlayerData() : RpgGameData::Player() {}
-		PlayerData(const RpgGameData::Player &pdata)
-			: RpgGameData::Player(pdata)
-		{}
-
-		RpgPlayer *player = nullptr;
+	struct Snapshot {
+		qint64 tick = -1;
+		bool isAuth = false;
+		std::list<RpgGameData::Player> players;
+		std::list<RpgGameData::Enemy> enemies;
 	};
 
+	std::deque<Snapshot> m_snapshots;
+	RpgGameData::GameConfig m_gameConfig;
+	RpgConfig::GameState m_gameState = RpgConfig::StateInvalid;
+	int m_playerId = -1;
+	bool m_isHost = false;
 
-	std::vector<PlayerData> m_playerData;
+	void updateSnapshot(const RpgGameData::CharacterSelect &player);
+	void updateSnapshot(Snapshot &snapshot, const RpgGameData::Player &player);
+	void updateSnapshot(Snapshot &snapshot, const RpgGameData::Enemy &enemy);
+	void updateSnapshot(const RpgGameData::Player &player, const qint64 &tick);
+	void updateSnapshot(const RpgGameData::Enemy &enemy, const qint64 &tick);
+
+	QVariantList getPlayerList();
+
+	void updateSnapshotEnemyList(const QCborArray &list, const qint64 &tick);
+	void updateSnapshotPlayerList(const QCborArray &list, const qint64 &tick);
+
+	Snapshot getCurrentSnapshot();
+
+        void updatePlayer(const Snapshot &snapshot, RpgPlayer *player, const int &owner);
+	void updateEnemy(const Snapshot &snapshot, IsometricEnemy *enemy);
+
 
 	/// --- tmp
 	qint64 m_lastTick = 0;
@@ -112,6 +152,8 @@ private:
 
 inline bool RpgUdpEnginePrivate::forceKeyFrame()
 {
+	QMutexLocker locker(&m_mutex);
+
 	if (m_lastKeyFrame.isValid()) {
 		if (m_lastKeyFrame.elapsed() > 250) {
 			m_lastKeyFrame.restart();

@@ -66,7 +66,7 @@ QItemGradient {
 									   enabled ? qsTr("Válassz...") : ""
 						image: wallet ? wallet.image : ""
 						locked: !wallet
-						selected: true
+						selected: enabled
 						enabled: !_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost
 						onClicked: {
 							if (!Client.server.user.wallet.world) {
@@ -166,7 +166,7 @@ QItemGradient {
 								onClicked: {
 									Client.Utils.settingsSet("rpg/skin", _selectCharacter.wallet.market.name)
 
-									if (!_multiplayer)
+									if (!_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost)
 										Client.Utils.settingsSet("rpg/world", _selectTerrain.wallet.market.name)
 
 									/*let noW = []
@@ -188,12 +188,17 @@ QItemGradient {
 											wList.push(w)
 									}
 
-									_grid1.visible = false
-									_busyIndicator.visible = true
 
 									if (_multiplayer) {
+										_btnPlay.enabled = false
+										_busyIndicator.visible = true
 
+										_multiplayer.selectWeapons(wList)
+										_multiplayer.selectionCompleted = true
 									} else {
+										_grid1.visible = false
+										_busyIndicator.visible = true
+
 										game.selectCharacter(_selectTerrain.wallet.market.name,
 															 _selectCharacter.wallet.market.name,
 															 wList)
@@ -525,8 +530,12 @@ QItemGradient {
 			if (_multiplayer && w)
 				_multiplayer.selectCharacter(w.market.name)
 
-			if (Client.server.user.wallet.world && (!_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost))
-				Client.server.user.wallet.world.select(Client.Utils.settingsGet("rpg/world", ""))
+			if (Client.server.user.wallet.world) {
+				if (!_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost)
+					Client.server.user.wallet.world.select(Client.Utils.settingsGet("rpg/world", ""))
+				else if (_multiplayer && _multiplayer.gameMode == ActionRpgGame.MultiPlayerGuest)
+					_selectTerrain.wallet = Client.server.user.wallet.worldGetSelectedWallet()
+			}
 
 
 			_isFirst = false
@@ -539,8 +548,13 @@ QItemGradient {
 		if (!Client.server)
 			return
 
-		if (Client.server.user.wallet.world)
-			_selectTerrain.wallet = Client.server.user.wallet.worldGetSelectedWallet()
+		if (Client.server.user.wallet.world) {
+			let w = Client.server.user.wallet.worldGetSelectedWallet()
+
+			_selectTerrain.wallet = w
+			if (w && _multiplayer && _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost)
+				_multiplayer.selectTerrain(w.market.name)
+		}
 
 		_reloadTimer.start()
 	}

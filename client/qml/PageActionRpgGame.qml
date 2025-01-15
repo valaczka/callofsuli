@@ -33,8 +33,14 @@ Page {
 			}
 		}
 
+		if (game && game.config.gameState == RpgConfig.StateError)
+			return true
 
-		if (game && game.rpgGame && game.rpgGame.gameQuestion.objectiveUuid != "")
+
+		if (game && game.rpgGame && game.rpgGame.gameQuestion && game.rpgGame.gameQuestion.objectiveUuid != "")
+			return true
+
+		if (_multiplayer)
 			return true
 
 		if (_rpgVisible && !game.rpgGame.paused && !_forceExit) {
@@ -51,7 +57,7 @@ Page {
 
 
 	property bool _oldWindowState: Client.fullScreenHelper
-	property bool _forceExit: _multiplayer
+	property bool _forceExit: false
 
 
 

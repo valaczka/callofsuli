@@ -142,13 +142,13 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 		if (replaceMpToShield) {
 			for (auto &p : e.pickables) {
-				if (p == RpgPickableObject::PickableMp)
-					p = RpgPickableObject::PickableShield;
+				if (p == RpgGameData::Pickable::PickableMp)
+					p = RpgGameData::Pickable::PickableShield;
 			}
 
 			for (auto &p : e.pickablesOnce) {
-				if (p == RpgPickableObject::PickableMp)
-					p = RpgPickableObject::PickableShield;
+				if (p == RpgGameData::Pickable::PickableMp)
+					p = RpgGameData::Pickable::PickableShield;
 			}
 		}
 
@@ -177,8 +177,8 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 	for (auto &e : m_pickableDataList) {
 
-		if (e.type == RpgPickableObject::PickableMp)
-			e.type = RpgPickableObject::PickableShield;
+		if (e.type == RpgGameData::Pickable::PickableMp)
+			e.type = RpgGameData::Pickable::PickableShield;
 
 		RpgPickableObject *pickable = createPickable(e.type, e.name, e.scene);
 
@@ -712,7 +712,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgGameData::Enemy::EnemyType &type, 
  * @return
  */
 
-RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType &type, const QString &name,
+RpgPickableObject *RpgGame::createPickable(const RpgGameData::Pickable::PickableType &type, const QString &name,
 										   TiledScene *scene, const int &ownerId, const int &id)
 {
 	b2::Body::Params bParams;
@@ -735,44 +735,44 @@ RpgPickableObject *RpgGame::createPickable(const RpgPickableObject::PickableType
 	RpgPickableObject *pickable = nullptr;
 
 	switch (type) {
-		case RpgPickableObject::PickableShield:
+		case RpgGameData::Pickable::PickableShield:
 			pickable = createFromCircle<RpgShieldPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableHp:
+		case RpgGameData::Pickable::PickableHp:
 			pickable = createFromCircle<RpgHpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableMp:
+		case RpgGameData::Pickable::PickableMp:
 			pickable = createFromCircle<RpgMpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableCoin:
+		case RpgGameData::Pickable::PickableCoin:
 			pickable = createFromCircle<RpgCoinPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableShortbow:
+		case RpgGameData::Pickable::PickableShortbow:
 			pickable = createFromCircle<RpgShortbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableLongbow:
+		case RpgGameData::Pickable::PickableLongbow:
 			pickable = createFromCircle<RpgLongbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableLongsword:
+		case RpgGameData::Pickable::PickableLongsword:
 			pickable = createFromCircle<RpgLongswordPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableTime:
+		case RpgGameData::Pickable::PickableTime:
 			pickable = createFromCircle<RpgTimePickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableKey:
+		case RpgGameData::Pickable::PickableKey:
 			pickable = createFromCircle<RpgKeyPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgPickableObject::PickableDagger:
-		case RpgPickableObject::PickableInvalid:
+		case RpgGameData::Pickable::PickableDagger:
+		case RpgGameData::Pickable::PickableInvalid:
 			break;
 	}
 
@@ -1470,7 +1470,7 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgGameData::Enemy:
  * @return
  */
 
-RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config)
+RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId)
 {
 	b2::Body::Params bParams;
 	bParams.type = b2BodyType::b2_dynamicBody;
@@ -1490,7 +1490,7 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
 											   );
 
 
-	RpgPlayer *player = createFromCircle<RpgPlayer>(0, scene, {0.f, 0.f}, 15., nullptr, bParams, params);
+	RpgPlayer *player = createFromCircle<RpgPlayer>(ownerId, 1, scene, {0.f, 0.f}, 15., nullptr, bParams, params);
 
 	if (player) {
 		player->setConfig(config);
@@ -1507,7 +1507,7 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
  * @param body
  */
 
-void RpgGame::worldStep(TiledObjectBody *body)
+void RpgGame::worldStep(const Body &body)
 {
 	if (m_funcBodyStep)
 		m_funcBodyStep(body);
@@ -1579,13 +1579,13 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 	}
 
 
-	QVector<RpgPickableObject::PickableType> pickableList;
+	QVector<RpgGameData::Pickable::PickableType> pickableList;
 
 	if (object->hasProperty(QStringLiteral("pickable"))) {
 		pickableList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickable")).toString());
 	}
 
-	QVector<RpgPickableObject::PickableType> pickableOnceList;
+	QVector<RpgGameData::Pickable::PickableType> pickableOnceList;
 
 	if (object->hasProperty(QStringLiteral("pickableOnce"))) {
 		pickableOnceList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickableOnce")).toString());
@@ -1623,9 +1623,9 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 	Q_ASSERT(scene);
 	Q_ASSERT(renderer);
 
-	const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(object->className());
+	const RpgGameData::Pickable::PickableType &type = RpgPickableObject::typeFromString(object->className());
 
-	if (type == RpgPickableObject::PickableInvalid) {
+	if (type == RpgGameData::Pickable::PickableInvalid) {
 		LOG_CERROR("game") << "Invalid pickable" << object->id() << object->className() << object->name();
 		return;
 	}
@@ -2081,15 +2081,15 @@ void RpgGame::updateScatterPoints()
  * @return
  */
 
-QVector<RpgPickableObject::PickableType> RpgGame::getPickablesFromPropertyValue(const QString &value)
+QVector<RpgGameData::Pickable::PickableType> RpgGame::getPickablesFromPropertyValue(const QString &value)
 {
-	QVector<RpgPickableObject::PickableType> pickableList;
+	QVector<RpgGameData::Pickable::PickableType> pickableList;
 
 	const QStringList &pList = value.split(',', Qt::SkipEmptyParts);
 	for (const QString &s : pList) {
-		const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
+		const RpgGameData::Pickable::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
 
-		if (type == RpgPickableObject::PickableInvalid) {
+		if (type == RpgGameData::Pickable::PickableInvalid) {
 			LOG_CWARNING("scene") << "Invalid pickable type:" << s;
 			continue;
 		}
@@ -3081,7 +3081,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 	market.name.clear();
 
 
-	QVector<RpgPickableObject::PickableType> pickableList;
+	QVector<RpgGameData::Pickable::PickableType> pickableList;
 
 	int enemyCount = 0;
 	int currencyCount = 0;
@@ -3169,8 +3169,8 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 					while (xml.readNextStartElement()) {
 						if (xml.name() == QStringLiteral("object")) {
 							const QString type = xml.attributes().value(QStringLiteral("type")).toString();
-							if (const RpgPickableObject::PickableType &p = RpgPickableObject::typeFromString(type.simplified());
-									p != RpgPickableObject::PickableInvalid) {
+							if (const RpgGameData::Pickable::PickableType &p = RpgPickableObject::typeFromString(type.simplified());
+									p != RpgGameData::Pickable::PickableInvalid) {
 								pickableList.append(p);
 							}
 						}
@@ -3191,9 +3191,9 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 
 
 	for (const auto &p : pickableList) {
-		if (p == RpgPickableObject::PickableMp)
+		if (p == RpgGameData::Pickable::PickableMp)
 			++mpCount;
-		else if (p == RpgPickableObject::PickableCoin)
+		else if (p == RpgGameData::Pickable::PickableCoin)
 			++currencyCount;
 	}
 

@@ -45,7 +45,6 @@
 #include "rpglightning.h"
 #include "rpglongbow.h"
 #include "rpgmp.h"
-#include "utils_.h"
 
 
 /**
@@ -195,7 +194,7 @@ void ActionRpgGame::selectCharacter(const QString &terrain, const QString &chara
 	m_config.gameState = RpgConfig::StateDownloadContent;
 	updateConfig();
 
-	downloadGameData({m_playerConfig});
+	downloadGameData(terrain, {m_playerConfig});
 
 	//////m_config.gameState = RpgConfig::StatePrepare;
 	///////QMetaObject::invokeMethod(this, &ActionRpgGame::updateConfig, Qt::QueuedConnection);
@@ -600,7 +599,7 @@ void ActionRpgGame::rpgGameActivated_()
 
 	QList<RpgPlayer*> list;
 
-	RpgPlayer *player = m_rpgGame->createPlayer(firstScene, *characterPtr);
+	RpgPlayer *player = m_rpgGame->createPlayer(firstScene, *characterPtr, 0);
 
 	if (!player) {
 		LOG_CERROR("game") << "Player create error";
@@ -700,6 +699,8 @@ void ActionRpgGame::rpgGameActivated_()
 
 void ActionRpgGame::updateConfig()
 {
+
+	LOG_CDEBUG("game") << "***** UPDATE CFG" << m_config.gameState;
 	onConfigChanged();
 	emit configChanged();
 }
@@ -777,7 +778,7 @@ void ActionRpgGame::onConfigChanged()
  * @brief ActionRpgGame::downloadGameData
  */
 
-void ActionRpgGame::downloadGameData(const QList<RpgPlayerConfig> &players)
+void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players)
 {
 	Server *server = m_client->server();
 
@@ -787,7 +788,7 @@ void ActionRpgGame::downloadGameData(const QList<RpgPlayerConfig> &players)
 		return;
 	}
 
-	const auto &ptr = RpgGame::terrains().find(m_playerConfig.terrain);
+	const auto &ptr = RpgGame::terrains().find(map);
 
 	if (ptr == RpgGame::terrains().constEnd()) {
 		LOG_CERROR("game") << "Invalid game";
@@ -1031,32 +1032,32 @@ void ActionRpgGame::loadInventory(RpgPlayer *player)
  * @param pickableType
  */
 
-void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgPickableObject::PickableType &pickableType)
+void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgGameData::Pickable::PickableType &pickableType)
 {
 	if (!player)
 		return;
 
 	switch (pickableType) {
-		case RpgPickableObject::PickableShield:
+		case RpgGameData::Pickable::PickableShield:
 			RpgShieldPickable::pick(player, m_rpgGame);
 			break;
 
-		case RpgPickableObject::PickableKey:
+		case RpgGameData::Pickable::PickableKey:
 			player->inventoryAdd(pickableType /*, name ???? */);		/// TODO: name handling
 			break;
 
-		case RpgPickableObject::PickableMp:
-		case RpgPickableObject::PickableHp:
-		case RpgPickableObject::PickableCoin:
-		case RpgPickableObject::PickableShortbow:
-		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableLongsword:
-		case RpgPickableObject::PickableDagger:
-		case RpgPickableObject::PickableTime:
+		case RpgGameData::Pickable::PickableMp:
+		case RpgGameData::Pickable::PickableHp:
+		case RpgGameData::Pickable::PickableCoin:
+		case RpgGameData::Pickable::PickableShortbow:
+		case RpgGameData::Pickable::PickableLongbow:
+		case RpgGameData::Pickable::PickableLongsword:
+		case RpgGameData::Pickable::PickableDagger:
+		case RpgGameData::Pickable::PickableTime:
 			LOG_CERROR("game") << "Inventory type not supported:" << pickableType;
 			break;
 
-		case RpgPickableObject::PickableInvalid:
+		case RpgGameData::Pickable::PickableInvalid:
 			LOG_CERROR("game") << "Invalid inventory type";
 			break;
 	}
@@ -1157,13 +1158,13 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 		return false;
 
 
-	if (pickable->pickableType() == RpgPickableObject::PickableTime) {
+	if (pickable->pickableType() == RpgGameData::Pickable::PickableTime) {
 		static int sec = 60;
 		//addToDeadline(sec*1000);
 		m_deadlineTick += sec*1000;
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
-	} else if (pickable->pickableType() == RpgPickableObject::PickableCoin) {
+	} else if (pickable->pickableType() == RpgGameData::Pickable::PickableCoin) {
 		const auto num = RpgCoinPickable::amount(!m_rpgQuestion->emptyQuestions());
 		m_rpgGame->setCurrency(m_rpgGame->currency()+num);
 		m_rpgGame->messageColor(tr("%1 coins gained").arg(num), QStringLiteral("#FB8C00"));

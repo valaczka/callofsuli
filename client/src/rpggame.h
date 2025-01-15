@@ -113,7 +113,7 @@ public:
 
 
 
-typedef std::function<void(TiledObjectBody*)> FuncBodyStep;
+typedef std::function<void(const TiledGame::Body &body)> FuncBodyStep;
 typedef std::function<void()> FuncTimeStep;
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
 typedef std::function<bool(RpgPlayer*, RpgContainer*)> FuncPlayerUseContainer;
@@ -184,9 +184,9 @@ public:
 		return createEnemy(type, QStringLiteral(""), scene, id);
 	}
 
-	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, const QString &name, TiledScene *scene,
+	RpgPickableObject *createPickable(const RpgGameData::Pickable::PickableType &type, const QString &name, TiledScene *scene,
 									  const int &ownerId = 0, const int &id = 0);
-	RpgPickableObject *createPickable(const RpgPickableObject::PickableType &type, TiledScene *scene,
+	RpgPickableObject *createPickable(const RpgGameData::Pickable::PickableType &type, TiledScene *scene,
 									  const int &ownerId = 0, const int &id = 0) {
 		return createPickable(type, QStringLiteral(""), scene, ownerId, id);
 	}
@@ -320,9 +320,9 @@ signals:
 	void questsChanged();
 
 protected:
-	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config);
+	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId);
 
-	virtual void worldStep(TiledObjectBody *body) override;
+	virtual void worldStep(const Body &body) override;
 
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
@@ -365,7 +365,7 @@ private:
 	void updateScatterPlayers();
 	void updateScatterPoints();
 
-	static QVector<RpgPickableObject::PickableType> getPickablesFromPropertyValue(const QString &value);
+	static QVector<RpgGameData::Pickable::PickableType> getPickablesFromPropertyValue(const QString &value);
 
 	struct EnemyData {
 		TiledObject::ObjectId objectId;
@@ -377,15 +377,15 @@ private:
 		QPointer<IsometricEnemy> enemy;
 		bool hasQuestion = false;
 		bool dieForever = false;
-		QVector<RpgPickableObject::PickableType> pickables;
-		QVector<RpgPickableObject::PickableType> pickablesOnce;
+		QVector<RpgGameData::Pickable::PickableType> pickables;
+		QVector<RpgGameData::Pickable::PickableType> pickablesOnce;
 		QString displayName;
 	};
 
 
 	struct PickableData {
 		TiledObject::ObjectId objectId;
-		RpgPickableObject::PickableType type = RpgPickableObject::PickableInvalid;
+		RpgGameData::Pickable::PickableType type = RpgGameData::Pickable::PickableInvalid;
 		QString name;
 		QPointF position;
 		QPointer<TiledScene> scene;

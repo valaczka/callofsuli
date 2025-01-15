@@ -33,21 +33,21 @@
 
 /// Static hash
 
-const QHash<QString, RpgPickableObject::PickableType> RpgPickableObject::m_typeHash = {
-	{ QStringLiteral("shield"), PickableShield },
-	{ QStringLiteral("hp"), PickableHp },
-	{ QStringLiteral("mp"), PickableMp },
-	{ QStringLiteral("coin"), PickableCoin },
-	{ QStringLiteral("longbow"), PickableLongbow },
-	{ QStringLiteral("shortbow"), PickableShortbow },
-	{ QStringLiteral("longsword"), PickableLongsword },
-	{ QStringLiteral("time"), PickableTime },
-	{ QStringLiteral("key"), PickableKey },
+const QHash<QString, RpgGameData::Pickable::PickableType> RpgPickableObject::m_typeHash = {
+	{ QStringLiteral("shield"), RpgGameData::Pickable::PickableShield },
+	{ QStringLiteral("hp"), RpgGameData::Pickable::PickableHp },
+	{ QStringLiteral("mp"), RpgGameData::Pickable::PickableMp },
+	{ QStringLiteral("coin"), RpgGameData::Pickable::PickableCoin },
+	{ QStringLiteral("longbow"), RpgGameData::Pickable::PickableLongbow },
+	{ QStringLiteral("shortbow"), RpgGameData::Pickable::PickableShortbow },
+	{ QStringLiteral("longsword"), RpgGameData::Pickable::PickableLongsword },
+	{ QStringLiteral("time"), RpgGameData::Pickable::PickableTime },
+	{ QStringLiteral("key"), RpgGameData::Pickable::PickableKey },
 };
 
 
 
-RpgPickableObject::RpgPickableObject(const PickableType &type, TiledScene *scene)
+RpgPickableObject::RpgPickableObject(const RpgGameData::Pickable::PickableType &type, TiledScene *scene)
 	: IsometricObject(scene)
 	, TiledPickableIface()
 	, m_pickableType(type)
@@ -74,20 +74,20 @@ void RpgPickableObject::initialize()
  * @return
  */
 
-QString RpgPickableObject::pickableName(const PickableType &type)
+QString RpgPickableObject::pickableName(const RpgGameData::Pickable::PickableType &type)
 {
 	switch (type) {
-		case PickableHp: return QStringLiteral("HP");
-		case PickableShortbow: return TiledWeapon::weaponName(TiledWeapon::WeaponShortbow);
-		case PickableLongbow: return TiledWeapon::weaponName(TiledWeapon::WeaponLongbow);
-		case PickableLongsword: return TiledWeapon::weaponName(TiledWeapon::WeaponLongsword);
-		case PickableDagger: return TiledWeapon::weaponName(TiledWeapon::WeaponDagger);
-		case PickableShield: return QStringLiteral("Pajzs");
-		case PickableTime: return QStringLiteral("Idő");
-		case PickableMp: return QStringLiteral("MP");
-		case PickableCoin: return QStringLiteral("Pénz");
-		case PickableKey: return QStringLiteral("Kulcs");
-		case PickableInvalid: return QStringLiteral("");
+		case RpgGameData::Pickable::PickableHp: return QStringLiteral("HP");
+		case RpgGameData::Pickable::PickableShortbow: return TiledWeapon::weaponName(TiledWeapon::WeaponShortbow);
+		case RpgGameData::Pickable::PickableLongbow: return TiledWeapon::weaponName(TiledWeapon::WeaponLongbow);
+		case RpgGameData::Pickable::PickableLongsword: return TiledWeapon::weaponName(TiledWeapon::WeaponLongsword);
+		case RpgGameData::Pickable::PickableDagger: return TiledWeapon::weaponName(TiledWeapon::WeaponDagger);
+		case RpgGameData::Pickable::PickableShield: return QStringLiteral("Pajzs");
+		case RpgGameData::Pickable::PickableTime: return QStringLiteral("Idő");
+		case RpgGameData::Pickable::PickableMp: return QStringLiteral("MP");
+		case RpgGameData::Pickable::PickableCoin: return QStringLiteral("Pénz");
+		case RpgGameData::Pickable::PickableKey: return QStringLiteral("Kulcs");
+		case RpgGameData::Pickable::PickableInvalid: return QStringLiteral("");
 	}
 
 	return {};
@@ -100,20 +100,20 @@ QString RpgPickableObject::pickableName(const PickableType &type)
  * @return
  */
 
-QString RpgPickableObject::pickableNameEn(const PickableType &type)
+QString RpgPickableObject::pickableNameEn(const RpgGameData::Pickable::PickableType &type)
 {
 	switch (type) {
-		case PickableHp: return QStringLiteral("HP");
-		case PickableShortbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponShortbow);
-		case PickableLongbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow);
-		case PickableLongsword: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword);
-		case PickableDagger: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger);
-		case PickableShield: return QStringLiteral("Shield");
-		case PickableTime: return QStringLiteral("Time");
-		case PickableKey: return QStringLiteral("Key");
-		case PickableMp: return QStringLiteral("MP");
-		case PickableCoin: return QStringLiteral("Coin");
-		case PickableInvalid: return QStringLiteral("");
+		case RpgGameData::Pickable::PickableHp: return QStringLiteral("HP");
+		case RpgGameData::Pickable::PickableShortbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponShortbow);
+		case RpgGameData::Pickable::PickableLongbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow);
+		case RpgGameData::Pickable::PickableLongsword: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword);
+		case RpgGameData::Pickable::PickableDagger: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger);
+		case RpgGameData::Pickable::PickableShield: return QStringLiteral("Shield");
+		case RpgGameData::Pickable::PickableTime: return QStringLiteral("Time");
+		case RpgGameData::Pickable::PickableKey: return QStringLiteral("Key");
+		case RpgGameData::Pickable::PickableMp: return QStringLiteral("MP");
+		case RpgGameData::Pickable::PickableCoin: return QStringLiteral("Coin");
+		case RpgGameData::Pickable::PickableInvalid: return QStringLiteral("");
 	}
 
 	return {};
@@ -126,7 +126,7 @@ QString RpgPickableObject::pickableNameEn(const PickableType &type)
  * @return
  */
 
-RpgPickableObject::PickableType RpgPickableObject::pickableType() const
+RpgGameData::Pickable::PickableType RpgPickableObject::pickableType() const
 {
 	return m_pickableType;
 }
@@ -263,7 +263,7 @@ void RpgPickableObject::onShapeContactEnd(b2::ShapeRef, b2::ShapeRef other)
  * @param parent
  */
 
-RpgInventory::RpgInventory(const RpgPickableObject::PickableType &type, const QString &name, QObject *parent)
+RpgInventory::RpgInventory(const RpgGameData::Pickable::PickableType &type, const QString &name, QObject *parent)
 	: QObject(parent)
 	, m_pickableType(type)
 	, m_name(name)
@@ -296,19 +296,19 @@ void RpgInventory::setName(const QString &newName)
 QString RpgInventory::icon() const
 {
 	switch (m_pickableType) {
-		case RpgPickableObject::PickableKey:
+		case RpgGameData::Pickable::PickableKey:
 			return QStringLiteral("qrc:/Qaterial/Icons/key-chain.svg");
 
-		case RpgPickableObject::PickableHp:
-		case RpgPickableObject::PickableMp:
-		case RpgPickableObject::PickableCoin:
-		case RpgPickableObject::PickableShortbow:
-		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableLongsword:
-		case RpgPickableObject::PickableDagger:
-		case RpgPickableObject::PickableShield:
-		case RpgPickableObject::PickableTime:
-		case RpgPickableObject::PickableInvalid:
+		case RpgGameData::Pickable::PickableHp:
+		case RpgGameData::Pickable::PickableMp:
+		case RpgGameData::Pickable::PickableCoin:
+		case RpgGameData::Pickable::PickableShortbow:
+		case RpgGameData::Pickable::PickableLongbow:
+		case RpgGameData::Pickable::PickableLongsword:
+		case RpgGameData::Pickable::PickableDagger:
+		case RpgGameData::Pickable::PickableShield:
+		case RpgGameData::Pickable::PickableTime:
+		case RpgGameData::Pickable::PickableInvalid:
 			break;
 	}
 	return QStringLiteral("qrc:/Qaterial/Icons/help-box-outline.svg");
@@ -324,19 +324,19 @@ QString RpgInventory::icon() const
 QColor RpgInventory::iconColor() const
 {
 	switch (m_pickableType) {
-		case RpgPickableObject::PickableKey:
+		case RpgGameData::Pickable::PickableKey:
 			return QColor::fromString(QStringLiteral("#FF8F00"));
 
-		case RpgPickableObject::PickableHp:
-		case RpgPickableObject::PickableMp:
-		case RpgPickableObject::PickableCoin:
-		case RpgPickableObject::PickableShortbow:
-		case RpgPickableObject::PickableLongbow:
-		case RpgPickableObject::PickableLongsword:
-		case RpgPickableObject::PickableDagger:
-		case RpgPickableObject::PickableShield:
-		case RpgPickableObject::PickableTime:
-		case RpgPickableObject::PickableInvalid:
+		case RpgGameData::Pickable::PickableHp:
+		case RpgGameData::Pickable::PickableMp:
+		case RpgGameData::Pickable::PickableCoin:
+		case RpgGameData::Pickable::PickableShortbow:
+		case RpgGameData::Pickable::PickableLongbow:
+		case RpgGameData::Pickable::PickableLongsword:
+		case RpgGameData::Pickable::PickableDagger:
+		case RpgGameData::Pickable::PickableShield:
+		case RpgGameData::Pickable::PickableTime:
+		case RpgGameData::Pickable::PickableInvalid:
 			break;
 	}
 

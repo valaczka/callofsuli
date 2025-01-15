@@ -49,13 +49,13 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 	createVisualItem(group);
 
 	if (group->hasProperty(QStringLiteral("pickable"))) {
-		QVector<RpgPickableObject::PickableType> pickableList;
+		QVector<RpgGameData::Pickable::PickableType> pickableList;
 
 		const QStringList &pList = group->property(QStringLiteral("pickable")).toString().split(',', Qt::SkipEmptyParts);
 		for (const QString &s : pList) {
-			const RpgPickableObject::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
+			const RpgGameData::Pickable::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
 
-			if (type == RpgPickableObject::PickableInvalid) {
+			if (type == RpgGameData::Pickable::PickableInvalid) {
 				LOG_CWARNING("scene") << "Invalid pickable type:" << s << group->id() << group->className() << group->name();
 				continue;
 			}
@@ -146,12 +146,12 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
  * @return
  */
 
-QVector<RpgPickableObject::PickableType> RpgControlGroupContainer::pickableList() const
+QVector<RpgGameData::Pickable::PickableType> RpgControlGroupContainer::pickableList() const
 {
 	return m_pickableList;
 }
 
-void RpgControlGroupContainer::setPickableList(const QVector<RpgPickableObject::PickableType> &newPickableList)
+void RpgControlGroupContainer::setPickableList(const QVector<RpgGameData::Pickable::PickableType> &newPickableList)
 {
 	m_pickableList = newPickableList;
 }

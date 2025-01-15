@@ -56,8 +56,8 @@ public:
 
 	RpgContainer *rpgContainer() const { return m_container; }
 
-	QVector<RpgPickableObject::PickableType> pickableList() const;
-	void setPickableList(const QVector<RpgPickableObject::PickableType> &newPickableList);
+	QVector<RpgGameData::Pickable::PickableType> pickableList() const;
+	void setPickableList(const QVector<RpgGameData::Pickable::PickableType> &newPickableList);
 
 	QStringList nameList() const;
 	void setNameList(const QStringList &newNameList);
@@ -69,7 +69,7 @@ private:
 	void update();
 
 	RpgContainer *m_container = nullptr;
-	QVector<RpgPickableObject::PickableType> m_pickableList;
+	QVector<RpgGameData::Pickable::PickableType> m_pickableList;
 	QStringList m_nameList;
 	QPointF m_centerPoint;
 };

@@ -29,7 +29,7 @@
 
 
 RpgHpPickable::RpgHpPickable(TiledScene *scene)
-	: RpgPickableObject(PickableHp, scene)
+	: RpgPickableObject(RpgGameData::Pickable::PickableHp, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }

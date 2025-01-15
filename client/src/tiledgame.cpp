@@ -1481,10 +1481,10 @@ void TiledGame::changeScene(TiledObjectBody *object, TiledScene *to, const QPoin
  * @param body
  */
 
-void TiledGame::worldStep(TiledObjectBody *body)
+void TiledGame::worldStep(const Body &body)
 {
-	Q_ASSERT(body);
-	body->worldStep();
+	Q_ASSERT(body.body);
+	body.body->worldStep();
 }
 
 
@@ -2533,7 +2533,7 @@ void TiledGamePrivate::stepWorlds()
 
 	for (const TiledGame::Body &ptr : std::as_const(m_bodyList)) {
 		if (ptr.body)
-			q->worldStep(ptr.body.get());
+			q->worldStep(ptr);
 	}
 
 	updateObjects();

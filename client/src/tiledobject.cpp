@@ -823,7 +823,7 @@ float TiledObjectBody::distanceToPoint(const QVector2D &point) const
 }
 
 
-TiledObjectBody::ObjectId TiledObjectBody::objectId() const
+const TiledObjectBody::ObjectId &TiledObjectBody::objectId() const
 {
 	return m_objectId;
 }

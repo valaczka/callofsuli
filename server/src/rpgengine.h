@@ -57,16 +57,19 @@ public:
 	const RpgGameData::CharacterSelect &config() const { return m_config; }
 	void setConfig(const RpgGameData::CharacterSelect &newConfig) { m_config = newConfig; }
 
-	int playerId() const { return m_playerId; }
+	int playerId() const { return o; }
 	void setPlayerId(int newPlayerId) {
-		m_playerId = newPlayerId;
-		m_config.playerId = m_playerId;
+		o = newPlayerId;
+		m_config.playerId = newPlayerId;
 	}
 
+	bool isPrepared() const { return m_isPrepared; }
+	void setIsPrepared(bool newIsPrepared) { m_isPrepared = newIsPrepared; }
+
 private:
-	int m_playerId = -1;
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
+	bool m_isPrepared = false;
 	RpgGameData::CharacterSelect m_config;
 
 	friend class RpgEngine;
@@ -105,17 +108,26 @@ public:
 	RpgConfig config() const { return m_config; }
 	void setConfig(const RpgConfig &newConfig) { m_config = newConfig; }
 
+	RpgEnginePlayer *hostPlayer() const { return m_hostPlayer; }
+	void setHostPlayer(RpgEnginePlayer *newHostPlayer);
+
+	qint64 currentTick();
+
 private:
+	void preparePlayers();
+
 	static int m_nextId;
 	int m_nextPlayerId = 1;
 
 	RpgEnginePrivate *d;
 
 	RpgConfig m_config;
-	std::vector<RpgEnginePlayer> m_player;
+	std::vector<std::unique_ptr<RpgEnginePlayer>> m_player;
 	std::vector<RpgGameData::Enemy> m_enemies;
+	RpgEnginePlayer *m_hostPlayer = nullptr;
 
-	qint64 m_currentTick = 0;
+	qint64 m_startTick = 0;
+	QElapsedTimer m_timer;
 
 	friend class RpgEnginePrivate;
 };
