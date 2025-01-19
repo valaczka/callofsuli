@@ -12,4 +12,6 @@ MODULES_LIST = truefalse \
 				images \
 				writer \
 				text \
-				block
+				block \
+				binary \
+				selector

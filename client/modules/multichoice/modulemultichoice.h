@@ -42,25 +42,28 @@ class ModuleMultichoice : public QObject, public ModuleInterface
 public:
 	explicit ModuleMultichoice(QObject *parent = nullptr);
 
-	inline QString name() const override { return "multichoice"; }
-	inline bool isStorageModule() const override { return false; }
+	inline QString name() const override { return QStringLiteral("multichoice"); }
+	inline Types types() const override { return Online|PaperAuto; }
 	inline QString readableName() const override { return tr("Többszörös választás"); }
-	inline QString icon() const override { return "image://font/Academic/\uf155"; }
+	inline QString icon() const override { return QStringLiteral("image://font/Academic/\uf155"); }
 
-	inline QString qmlEditor() const override { return "ME_multichoice.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_multichoice.qml"; }
+	inline QString qmlEditor() const override { return QStringLiteral("ME_multichoice.qml"); }
+	inline QString qmlQuestion() const override { return QStringLiteral("GQ_multichoice.qml"); }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
-	inline QStringList storageModules() const override { return { "block" }; }
+	inline QStringList storageModules() const override {
+		static const QStringList l = {QStringLiteral("block")};
+		return l;
+	}
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
 
 	qreal xpFactor() const override { return 1.5; };
 
-	QVariantMap preview(const QVariantList &generatedList) const override;
+	QVariantMap preview(const QVariantList &generatedList, const QVariantMap &commonData) const override;
 
 	void registerQmlTypes() const override {};
 

@@ -288,10 +288,12 @@ public:
 	GameMapStorage *storage() const;
 
 	QVariantList &generatedQuestions();
+	QVariantMap &commonData() { return m_commonData; }
 
 private:
 	GameMap *m_map;
 	QVariantList m_generatedQuestions;
+	QVariantMap m_commonData;
 };
 
 

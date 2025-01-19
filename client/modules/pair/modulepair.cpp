@@ -141,8 +141,11 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
  * @return
  */
 
-QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+									 QVariantMap *commonDataPtr) const
 {
+	Q_UNUSED(commonDataPtr);
+
 	QVariantList list;
 	QVariantMap m;
 
@@ -260,8 +263,12 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 	QVariantList answers;
 	QStringList options;
 
-	while (pairList.size()) {
-		QVariantMap m = pairList.takeAt(QRandomGenerator::global()->bounded(pairList.size())).toMap();
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(pairList.begin(), pairList.end(), g);
+
+	for (const QVariant &v : pairList) {
+		const QVariantMap m = v.toMap();
 		QString first = m.value(QStringLiteral("first")).toString();
 		QString second = m.value(QStringLiteral("second")).toString();
 
@@ -295,19 +302,20 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 	}
 
 
+	std::shuffle(options.begin(), options.end(), g);
 
 	QVariantList mixedList = answers;
 
-	while (options.size() && mixedList.size() < maxOptions)
-		mixedList.append(options.takeAt(QRandomGenerator::global()->bounded(options.size())));
+	for (const QString &o : options) {
+		if (mixedList.size() >= maxOptions)
+			break;
+		mixedList.append(o);
+	}
 
-	QStringList optList;
-
-	while (mixedList.size())
-		optList.append(mixedList.takeAt(QRandomGenerator::global()->bounded(mixedList.size())).toString());
+	std::shuffle(mixedList.begin(), mixedList.end(), g);
 
 	m[QStringLiteral("list")] = questions;
-	m[QStringLiteral("options")] = optList;
+	m[QStringLiteral("options")] = mixedList;
 	m[QStringLiteral("answer")] = QVariantMap({{ QStringLiteral("list"), answers }});
 
 

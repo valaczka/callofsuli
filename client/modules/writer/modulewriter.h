@@ -42,24 +42,29 @@ class ModuleWriter : public QObject, public ModuleInterface
 public:
 	explicit ModuleWriter(QObject *parent = nullptr);
 
-	inline QString name() const override { return "writer"; }
-	inline bool isStorageModule() const override { return false; }
+	inline QString name() const override { return QStringLiteral("writer"); }
+	inline Types types() const override { return Online|PaperManual; }
 	inline QString readableName() const override { return tr("Szöveges válasz"); }
-	inline QString icon() const override { return "qrc:/Qaterial/Icons/receipt-text-edit.svg"; }
+	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/receipt-text-edit.svg"); }
 
-	inline QString qmlEditor() const override { return "ME_writer.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_writer.qml"; }
+	inline QString qmlEditor() const override { return QStringLiteral("ME_writer.qml"); }
+	inline QString qmlQuestion() const override { return QStringLiteral("GQ_writer.qml"); }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
-	inline QStringList storageModules() const override { return {"binding", "images", "sequence", "text"}; }
+	inline QStringList storageModules() const override {
+		static const QStringList l = {
+			QStringLiteral("text"), QStringLiteral("binding"), QStringLiteral("sequence"), QStringLiteral("images")
+		};
+		return l;
+	}
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
 
 	qreal xpFactor() const override { return 1.8; };
 
-	QVariantMap preview(const QVariantList &generatedList) const override;
+	QVariantMap preview(const QVariantList &generatedList, const QVariantMap &commonData) const override;
 
 	void registerQmlTypes() const override;
 

@@ -42,25 +42,28 @@ class ModulePair : public QObject, public ModuleInterface
 public:
 	explicit ModulePair(QObject *parent = nullptr);
 
-	inline QString name() const override { return "pair"; }
-	inline bool isStorageModule() const override { return false; }
+	inline QString name() const override { return QStringLiteral("pair"); }
+	inline Types types() const override { return Online|PaperAuto; }
 	inline QString readableName() const override { return tr("Párosítás"); }
-	inline QString icon() const override { return "qrc:/Qaterial/Icons/vector-link.svg"; }
+	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/vector-link.svg"); }
 
-	inline QString qmlEditor() const override { return "ME_pair.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_pair.qml"; }
+	inline QString qmlEditor() const override { return QStringLiteral("ME_pair.qml"); }
+	inline QString qmlQuestion() const override { return QStringLiteral("GQ_pair.qml"); }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
-	inline QStringList storageModules() const override { return { "binding", "numbers", "block" }; }
+	inline QStringList storageModules() const override {
+		static const QStringList l = {QStringLiteral("numbers"), QStringLiteral("binding"), QStringLiteral("block")};
+		return l;
+	}
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
 
 	qreal xpFactor() const override { return 1.5; };
 
-	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
+	QVariantMap preview(const QVariantList &, const QVariantMap &) const override { return QVariantMap(); };
 
 	void registerQmlTypes() const override {};
 

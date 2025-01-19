@@ -654,7 +654,7 @@ void ConquestGame::cmdQuestionRequest(const QJsonObject &)
 	QJsonArray qArray;
 
 	while (!list.isEmpty()) {
-		const Question &q = list.takeAt(QRandomGenerator::global()->bounded(list.size()));
+		const Question &q = list.takeAt(QRandomGenerator::global()->bounded(list.size()));		// DEPRECATED
 
 		ModuleInterface *iface = Application::instance()->objectiveModules().value(q.module());
 

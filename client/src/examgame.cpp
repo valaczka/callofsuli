@@ -1,6 +1,6 @@
 #include "examgame.h"
 #include "Logger.h"
-#include <QRandomGenerator>
+#include "application.h"
 
 
 /**
@@ -47,6 +47,12 @@ QVector<Question> ExamGame::createQuestions(GameMapMissionLevel *missionLevel)
 
 	foreach (GameMapChapter *chapter, missionLevel->chapters()) {
 		foreach (GameMapObjective *objective, chapter->objectives()) {
+			ModuleInterface *iface = Application::instance()->objectiveModules().value(objective->module());
+
+			if (!iface || (!iface->types().testFlag(ModuleInterface::PaperAuto) &&
+						   !iface->types().testFlag(ModuleInterface::PaperManual)))
+				continue;
+
 			int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
 
 			for (int i=0; i<n; ++i)
@@ -82,15 +88,19 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 	QVector<Question> easyList;
 	QVector<Question> complexList;
 
-	static const QStringList easyModules = {
-		QStringLiteral("truefalse"),
-		QStringLiteral("simplechoice"),
-		QStringLiteral("multichoice"),
-		QStringLiteral("pair"),
-		QStringLiteral("order"),
-		QStringLiteral("fillout"),
-	};
+	static QStringList easyModules;
 
+	if (easyModules.isEmpty()) {
+		LOG_CTRACE("game") << "Generate easy modules list";
+
+		for (const auto &[key, iface] : Application::instance()->objectiveModules().asKeyValueRange()) {
+			if (!iface || !iface->types().testFlag(ModuleInterface::PaperAuto))
+				continue;
+			else
+				easyModules.append(key);
+		}
+
+	}
 
 	QJsonArray retList;
 
@@ -102,9 +112,24 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 			complexList.append(*it);
 	}
 
-	while (!easyList.isEmpty()) {
-		const Question &q = easyList.takeAt(QRandomGenerator::global()->bounded(easyList.size()));
+
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(easyList.begin(), easyList.end(), g);
+	std::shuffle(complexList.begin(), complexList.end(), g);
+
+	QHash<QString, QJsonObject> commonData;
+
+	for (const Question &q : easyList) {
 		const QVariantMap &data = q.generate();
+
+		if (const QVariantMap &d = q.commonData(); !d.isEmpty() && !commonData.contains(q.uuid())) {
+			QJsonObject json = QJsonObject::fromVariantMap(d);
+			json[QStringLiteral("uuid")] = q.uuid();
+			json[QStringLiteral("module")] = q.module();
+			json[QStringLiteral("common")] = true;
+			commonData.insert(q.uuid(), json);
+		}
 
 		QJsonObject json = QJsonObject::fromVariantMap(data);
 		json[QStringLiteral("uuid")] = q.uuid();
@@ -114,9 +139,16 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 
 	bool isFirst = true;
 
-	while (!complexList.isEmpty()) {
-		const Question &q = complexList.takeAt(QRandomGenerator::global()->bounded(complexList.size()));
+	for (const Question &q : complexList) {
 		const QVariantMap &data = q.generate();
+
+		if (const QVariantMap &d = q.commonData(); !d.isEmpty() && !commonData.contains(q.uuid())) {
+			QJsonObject json = QJsonObject::fromVariantMap(d);
+			json[QStringLiteral("uuid")] = q.uuid();
+			json[QStringLiteral("module")] = q.module();
+			json[QStringLiteral("common")] = true;
+			commonData.insert(q.uuid(), json);
+		}
 
 		QJsonObject json = QJsonObject::fromVariantMap(data);
 		json[QStringLiteral("uuid")] = q.uuid();
@@ -127,6 +159,9 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel)
 		}
 		retList.append(json);
 	}
+
+	for (const QJsonObject &v : commonData)
+		retList.append(v);
 
 	return retList;
 }
@@ -149,6 +184,7 @@ void ExamGame::clearQuestions(GameMapMissionLevel *missionLevel)
 	foreach (GameMapChapter *chapter, missionLevel->chapters()) {
 		foreach (GameMapObjective *objective, chapter->objectives()) {
 			objective->generatedQuestions().clear();
+			objective->commonData().clear();
 		}
 	}
 }

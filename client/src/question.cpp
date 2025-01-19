@@ -103,7 +103,7 @@ QVariantMap Question::generate() const
 	}
 
 	if (m_objective->generatedQuestions().isEmpty())
-		m_objective->generatedQuestions() = mi->generateAll(m_objective->data(), st, std);
+		m_objective->generatedQuestions() = mi->generateAll(m_objective->data(), st, std, &m_objective->commonData());
 
 	QVariantMap q = m_objective->generatedQuestions().takeAt(QRandomGenerator::global()->bounded(m_objective->generatedQuestions().size())).toMap();
 

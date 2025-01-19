@@ -50,6 +50,8 @@ public:
 
 	QVariantMap generate() const;
 
+	QVariantMap commonData() const { return m_objective ? m_objective->commonData() : QVariantMap(); }
+
 	static QVariantMap objectiveInfo(const QString &module, const QVariantMap &data,
 									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
 

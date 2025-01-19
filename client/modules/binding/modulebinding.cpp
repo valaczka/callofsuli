@@ -25,7 +25,6 @@
  */
 
 #include "modulebinding.h"
-#include <QRandomGenerator>
 
 ModuleBinding::ModuleBinding(QObject *parent) : QObject(parent)
 {

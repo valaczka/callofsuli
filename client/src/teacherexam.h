@@ -431,7 +431,7 @@ signals:
 private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
 	static QString pdfSheet(const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document);
-	static QString pdfQuestion(const QJsonArray &list, const bool &autoQuestions);
+	static QString pdfQuestion(const QJsonArray &list, const bool &autoQuestions, QJsonArray *numberedListPtr = nullptr);
 	static bool hasAutoQuestion(const QJsonArray &list);
 
 	void loadUserList();

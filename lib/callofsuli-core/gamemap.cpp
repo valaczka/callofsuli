@@ -25,7 +25,6 @@
  */
 
 #include <QDebug>
-#include <QRandomGenerator>
 #include "gamemap.h"
 
 

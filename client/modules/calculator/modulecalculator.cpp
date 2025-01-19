@@ -219,8 +219,11 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
  * @return
  */
 
-QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+										   QVariantMap *commonDataPtr) const
 {
+	Q_UNUSED(commonDataPtr);
+
 	if (!storage) {
 		QVariantList list;
 		QVariantMap m;
@@ -396,8 +399,10 @@ QVariantList ModuleCalculator::generateNumbers(const QVariantMap &data, const QV
  * @return
  */
 
-QVariantMap ModuleCalculator::preview(const QVariantList &generatedList) const
+QVariantMap ModuleCalculator::preview(const QVariantList &generatedList, const QVariantMap &commonData) const
 {
+	Q_UNUSED(commonData);
+
 	QVariantMap m;
 	QString s;
 

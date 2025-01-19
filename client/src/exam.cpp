@@ -346,6 +346,8 @@ QVector<TestGame::QuestionData> Exam::toQuestionData(TestGame::QuestionResult *r
 		d.data = obj.toVariantMap();
 		d.module = obj.value(QStringLiteral("module")).toString();
 		d.uuid = obj.value(QStringLiteral("uuid")).toString();
+		d.realNum = obj.value(QStringLiteral("realNum")).toInt(0);
+		d.isCommon = obj.value(QStringLiteral("common")).toBool();
 
 		if (i<m_answerData.size()) {
 			d.answer = m_answerData.at(i).toObject().toVariantMap();

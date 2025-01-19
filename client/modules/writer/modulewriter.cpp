@@ -184,7 +184,8 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
  * @return
  */
 
-QVariantList ModuleWriter::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModuleWriter::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+									   QVariantMap *commonDataPtr) const
 {
 	if (!storage) {
 		QVariantList list;
@@ -228,8 +229,10 @@ QVariantList ModuleWriter::generateAll(const QVariantMap &data, ModuleInterface 
  * @return
  */
 
-QVariantMap ModuleWriter::preview(const QVariantList &generatedList) const
+QVariantMap ModuleWriter::preview(const QVariantList &generatedList, const QVariantMap &commonData) const
 {
+	Q_UNUSED(commonData);
+
 	QVariantMap m;
 	QString s;
 

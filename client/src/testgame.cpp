@@ -29,9 +29,9 @@
 #include "client.h"
 #include "gamequestion.h"
 #include "application.h"
-#include <QRandomGenerator>
 #include "server.h"
 #include "utils_.h"
+#include "../modules/binary/modulebinary.h"
 
 
 const QString TestGame::CheckOK = QStringLiteral("<img src=\"imgdata://check.png\" width=\"30\" align=right valign=top/>");
@@ -84,9 +84,11 @@ void TestGame::onPageReady()
 
 	m_questionList.reserve(list.size());
 
-	while (!list.isEmpty()) {
-		const Question &q = list.takeAt(QRandomGenerator::global()->bounded(list.size()));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(list.begin(), list.end(), g);
 
+	for (const Question &q : list) {
 		QuestionData d;
 
 		d.url = QStringLiteral("qrc:/")+q.qml();
@@ -526,48 +528,60 @@ QString TestGame::questionDataResultToHtml(const QString &header, const Question
 
 	html += QStringLiteral("<table class=\"questions\" width=\"100%\">");
 
-	int num = 1;
+	int num = 0;
 
 	foreach (const QuestionData &q, result.resultData) {
 		const QString &question = q.data.value(QStringLiteral("question")).toString();
 
-		html += QStringLiteral("<tr class=\"questionTitle\">");
-		html += QStringLiteral("<td class=\"questionNum\" align=right valign=top>%1.</td>").arg(num++);
-		html += QStringLiteral("<td class=\"question\" width=\"100%\" align=left valign=top>%1</td>").arg(question);
+		if (q.isCommon) {
+			html += QStringLiteral("<tr class=\"answer\">");
+			html += QStringLiteral("<td class=\"answer\" colspan=3 style=\"padding-top: 10px; border-top: 1px solid #cccccc;\">");
 
-		if (result.isExam) {
-			const int &maxPoint = q.data.value(QStringLiteral("examPoint"), q.examPoint).toInt();
-			if (q.success)
-				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
-									   "<span class=\"pointSuccess\">%1</span>/%2</td>").arg(q.examPoint).arg(maxPoint);
-			else
-				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
-									   "<span class=\"pointFail\">%1</span>/%2</td>").arg(q.examPoint).arg(maxPoint);
+			html += questionDataResultToHtml(q);
+
+			html += QStringLiteral("</tr>");
+
 		} else {
-			const int &point = qFloor(q.data.value(QStringLiteral("xpFactor"), 1.0).toReal() * TEST_GAME_BASE_XP);
-			if (q.success)
-				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
-									   "<span class=\"pointSuccess\">%1</span>/%2</td>").arg(point).arg(point);
-			else
-				html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
-									   "<span class=\"pointFail\">&ndash;</span>/%1</td>").arg(point);
+
+			num++;
+
+			html += QStringLiteral("<tr class=\"questionTitle\">");
+			html += QStringLiteral("<td class=\"questionNum\" align=right valign=top>%1.</td>").arg(q.realNum > 0 ? q.realNum : num);
+			html += QStringLiteral("<td class=\"question\" width=\"100%\" align=left valign=top>%1</td>").arg(question);
+
+			if (result.isExam) {
+				const int &maxPoint = q.data.value(QStringLiteral("examPoint"), q.examPoint).toInt();
+				if (q.success)
+					html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+										   "<span class=\"pointSuccess\">%1</span>/%2</td>").arg(q.examPoint).arg(maxPoint);
+				else
+					html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+										   "<span class=\"pointFail\">%1</span>/%2</td>").arg(q.examPoint).arg(maxPoint);
+			} else {
+				const int &point = qFloor(q.data.value(QStringLiteral("xpFactor"), 1.0).toReal() * TEST_GAME_BASE_XP);
+				if (q.success)
+					html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+										   "<span class=\"pointSuccess\">%1</span>/%2</td>").arg(point).arg(point);
+				else
+					html += QStringLiteral("<td class=\"questionPoint\" align=right valign=top>"
+										   "<span class=\"pointFail\">&ndash;</span>/%1</td>").arg(point);
+			}
+
+			html += QStringLiteral("</tr>");
+
+
+			// Answer
+
+			html += QStringLiteral("<tr class=\"answer\">");
+			html += QStringLiteral("<td></td>");
+			html += QStringLiteral("<td class=\"answer\">");
+
+			html += questionDataResultToHtml(q);
+
+			html += QStringLiteral("</td>");
+			html += QStringLiteral("<td class=\"check\" align=right valign=top>%1</td>").arg(q.success ? CheckOK : CheckFailed);
+			html += QStringLiteral("</tr>");
 		}
-
-		html += QStringLiteral("</tr>");
-
-
-		// Answer
-
-		html += QStringLiteral("<tr class=\"answer\">");
-		html += QStringLiteral("<td></td>");
-		html += QStringLiteral("<td class=\"answer\">");
-
-		html += questionDataResultToHtml(q);
-
-		html += QStringLiteral("</td>");
-		html += QStringLiteral("<td class=\"check\" align=right valign=top>%1</td>").arg(q.success ? CheckOK : CheckFailed);
-		html += QStringLiteral("</tr>");
-
 	}
 
 	html += QStringLiteral("</table>");
@@ -616,6 +630,38 @@ QString TestGame::questionDataResultToHtml(const QuestionResult &result) const
 QString TestGame::questionDataResultToHtml(const QuestionData &data)
 {
 	QString html;
+
+	if (data.isCommon) {
+		if (data.module == QStringLiteral("binary")) {
+			QJsonArray list = data.data.value(QStringLiteral("list")).toJsonArray();
+
+			for (const QJsonValue &v : list) {
+				const QJsonObject &obj = v.toObject();
+
+				html += QStringLiteral("<p>");
+
+				const int answer = obj.value(QStringLiteral("answer")).toInt();
+				const QString data = obj.value(QStringLiteral("data")).toString();
+
+				if (answer > 0) {
+					html += QStringLiteral("[<b>");
+					html += ModuleBinary::numberToKey(answer);
+					html += QStringLiteral("</b>] ");
+				}
+
+				html += data;
+
+				html += QStringLiteral("</p>");
+			}
+
+		} else {
+			html += QStringLiteral("<p>");
+			html += QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(data.data)).toJson());
+			html += QStringLiteral("</p>");
+		}
+	}
+
+
 	if (!Application::instance()->objectiveModules().contains(data.module)) {
 		html += QStringLiteral("<p>%1</p>").arg(QString::fromUtf8(QJsonDocument(QJsonObject::fromVariantMap(data.data))
 																  .toJson(QJsonDocument::Indented)));
