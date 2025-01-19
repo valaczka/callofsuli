@@ -163,8 +163,11 @@ QVariantMap ModuleOrder::details(const QVariantMap &data, ModuleInterface *stora
  * @return
  */
 
-QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+									  QVariantMap *commonDataPtr) const
 {
+	Q_UNUSED(commonDataPtr);
+
 	QVariantList list;
 	QVariantMap m;
 
@@ -246,8 +249,16 @@ QVariantList ModuleOrder::generateItems(const QStringList &list, const int &coun
 							 }));
 	}
 
-	while (!l.isEmpty() && ret.size() < count)
-		ret.append(l.takeAt(QRandomGenerator::global()->bounded(l.size())));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(l.begin(), l.end(), g);
+
+	for (const QVariant &v : l) {
+		if (ret.size() >= count)
+			break;
+
+		ret.append(v);
+	}
 
 	return ret;
 }
@@ -279,8 +290,16 @@ QVariantList ModuleOrder::generateItems(const QVariantList &list, const int &cou
 							 }));
 	}
 
-	while (!l.isEmpty() && ret.size() < count)
-		ret.append(l.takeAt(QRandomGenerator::global()->bounded(l.size())));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(l.begin(), l.end(), g);
+
+	for (const QVariant &v : l) {
+		if (ret.size() >= count)
+			break;
+
+		ret.append(v);
+	}
 
 	return ret;
 }

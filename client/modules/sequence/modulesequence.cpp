@@ -25,7 +25,6 @@
  */
 
 #include "modulesequence.h"
-#include <QRandomGenerator>
 
 ModuleSequence::ModuleSequence(QObject *parent) : QObject(parent)
 {

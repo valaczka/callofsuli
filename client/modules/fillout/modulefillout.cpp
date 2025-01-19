@@ -147,8 +147,11 @@ QVariantMap ModuleFillout::details(const QVariantMap &data, ModuleInterface *sto
  * @return
  */
 
-QVariantList ModuleFillout::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModuleFillout::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+										QVariantMap *commonDataPtr) const
 {
+	Q_UNUSED(commonDataPtr);
+
 	if (!storage)
 		return QVariantList{ generateOne(data)};
 
@@ -236,8 +239,14 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	QVector<int> usedIndexList;
 	QStringList options;
 
-	while (questionIndexList.size() && usedIndexList.size() < maxQuestion) {
-		int idx = questionIndexList.takeAt(QRandomGenerator::global()->bounded(questionIndexList.size()));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(questionIndexList.begin(), questionIndexList.end(), g);
+
+	for (const int idx : questionIndexList) {
+		if (usedIndexList.size() >= maxQuestion)
+			break;
+
 		usedIndexList.append(idx);
 		const QString &txt = items.at(idx).text;
 		if (!txt.isEmpty())
@@ -254,8 +263,12 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 
 	QStringList oList = data.value(QStringLiteral("options")).toStringList();
 
-	while (oList.size() && options.size() < maxOptions) {
-		options.append(oList.takeAt(QRandomGenerator::global()->bounded(oList.size())));
+	std::shuffle(oList.begin(), oList.end(), g);
+
+	for (const QString &s : oList) {
+		if (options.size() >= maxOptions)
+			break;
+		options.append(s);
 	}
 
 
@@ -276,16 +289,11 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	}
 
 
-	QStringList optList;
-
-	while (options.size())
-		optList.append(options.takeAt(QRandomGenerator::global()->bounded(options.size())));
-
-
+	std::shuffle(options.begin(), options.end(), g);
 
 	QVariantMap ret;
 	ret[QStringLiteral("list")] = words;
-	ret[QStringLiteral("options")] = optList;
+	ret[QStringLiteral("options")] = options;
 	ret[QStringLiteral("answer")] = answer;
 	ret[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 

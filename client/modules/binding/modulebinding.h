@@ -42,12 +42,12 @@ class ModuleBinding : public QObject, public ModuleInterface
 public:
 	explicit ModuleBinding(QObject *parent = nullptr);
 
-	inline QString name() const override { return "binding"; }
-	inline bool isStorageModule() const override { return true; }
+	inline QString name() const override { return QStringLiteral("binding"); }
+	inline Types types() const override { return Storage; }
 	inline QString readableName() const override { return tr("Összerendelés"); }
-	inline QString icon() const override { return "qrc:/Qaterial/Icons/link-box.svg"; }
+	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/link-box.svg"); }
 
-	inline QString qmlEditor() const override { return "ME_binding.qml"; }
+	inline QString qmlEditor() const override { return QStringLiteral("ME_binding.qml"); }
 	inline QString qmlQuestion() const override { return QStringLiteral(""); }
 	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
 
@@ -55,11 +55,12 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &, ModuleInterface *, const QVariantMap &) const override { return QVariantList(); }
+	QVariantList generateAll(const QVariantMap &, ModuleInterface *, const QVariantMap &,
+							 QVariantMap *) const override { return QVariantList(); }
 
 	qreal xpFactor() const override { return 0; };
 
-	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
+	QVariantMap preview(const QVariantList &, const QVariantMap &) const override { return QVariantMap(); };
 
 	void registerQmlTypes() const override {};
 

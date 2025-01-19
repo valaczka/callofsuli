@@ -47,7 +47,6 @@
 #include "application.h"
 #include "rpgquestion.h"
 #include "utils_.h"
-#include <QRandomGenerator>
 #include "rpgcontainer.h"
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
@@ -2931,8 +2930,14 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 	if (!count)
 		return -1;
 
-	while (!eList.isEmpty() && ((qreal) (q+1) / (qreal) count <= factor)) {
-		EnemyData *e = eList.takeAt(QRandomGenerator::global()->bounded(eList.size()));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(eList.begin(), eList.end(), g);
+
+	for (EnemyData *e : eList) {
+		if ((qreal) (q+1) / (qreal) count > factor)
+			break;
+
 		e->hasQuestion = true;
 		++q;
 		++created;

@@ -42,21 +42,26 @@ class ModuleSimplechoice : public QObject, public ModuleInterface
 public:
 	explicit ModuleSimplechoice(QObject *parent = nullptr);
 
-	inline QString name() const override { return "simplechoice"; }
-	inline bool isStorageModule() const override { return false; }
+	inline QString name() const override { return QStringLiteral("simplechoice"); }
+	inline Types types() const override { return Online|PaperAuto; }
 	inline QString readableName() const override { return tr("Egyszerű választás"); }
-	inline QString icon() const override { return "qrc:/Qaterial/Icons/checkbox-multiple-marked-outline.svg"; }
+	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/checkbox-multiple-marked-outline.svg"); }
 
-	inline QString qmlEditor() const override { return "ME_simplechoice.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_simplechoice.qml"; }
+	inline QString qmlEditor() const override { return QStringLiteral("ME_simplechoice.qml"); }
+	inline QString qmlQuestion() const override { return QStringLiteral("GQ_simplechoice.qml"); }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
-	inline QStringList storageModules() const override { return {"binding", "numbers", "images", "block" }; }
+	inline QStringList storageModules() const override {
+		static const QStringList l = {
+			QStringLiteral("numbers"), QStringLiteral("binding"), QStringLiteral("block"), QStringLiteral("images")
+		};
+		return l;
+	}
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
 
 	qreal xpFactor() const override { return 1.1; };
 
@@ -67,7 +72,7 @@ public:
 	QVariantList generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList, const int &maxOptions) const;
 
-	QVariantMap preview(const QVariantList &generatedList) const override;
+	QVariantMap preview(const QVariantList &generatedList, const QVariantMap &commonData) const override;
 
 	void registerQmlTypes() const override {};
 

@@ -34,11 +34,21 @@ class ModuleInterface
 public:
 	virtual ~ModuleInterface() = default;
 
+	enum Type {
+		Invalid			= 0,
+		Storage			= (1 << 0),			// Adatbank
+		Online			= (1 << 1),			// Online (gépen) feladatmegoldás (általában mind)
+		PaperAuto		= (1 << 2),			// Papír alapon automatán javítható (pl. egyszerű választás)
+		PaperManual		= (1 << 3),			// Papír alapon kézzel javítható (pl. szöveges válasz)
+	};
+
+	Q_DECLARE_FLAGS(Types, Type)
+
 	// A modul neve (ezt használja az adatbázis)
 	virtual QString name() const = 0;
 
-	// Objective vagy storage modul
-	virtual bool isStorageModule() const = 0;
+	// Mire használható (storage, online, papí
+	virtual Types types() const = 0;
 
 	// A modul ovlasható neve (ami megjelenik)
 	virtual QString readableName() const = 0;
@@ -48,7 +58,6 @@ public:
 
 	// Ha objective modul, akkor a használható storage modulok listája
 	virtual QStringList storageModules() const = 0;
-
 
 	// A szerkesztőfelület (QML)
 	virtual QString qmlEditor() const = 0;
@@ -63,13 +72,14 @@ public:
 	virtual QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const = 0;
 
 	// Az összes kérdés/feladat elkészítése
-	virtual QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const = 0;
+	virtual QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+									 QVariantMap *commonDataPtr) const = 0;
 
 	// XP faktor
 	virtual qreal xpFactor() const = 0;
 
 	// Előnézet készítése
-	virtual QVariantMap preview(const QVariantList &generatedList) const = 0;
+	virtual QVariantMap preview(const QVariantList &generatedList, const QVariantMap &commonData) const = 0;
 
 	// QML-type register
 	virtual void registerQmlTypes() const = 0;
@@ -77,6 +87,9 @@ public:
 	// Képek azonosítói, amiket tartalmaz
 	virtual QList<int> images(const QVariantMap &data) const = 0;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(ModuleInterface::Types)
+
 
 QT_BEGIN_NAMESPACE
 

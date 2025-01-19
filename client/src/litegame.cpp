@@ -30,7 +30,6 @@
 #include "client.h"
 #include "server.h"
 #include "gamequestion.h"
-#include <QRandomGenerator>
 
 #ifndef Q_OS_WASM
 #include "standaloneclient.h"
@@ -91,8 +90,11 @@ void LiteGame::onPageReady()
 	m_questions.reserve(list.size());
 	m_indices.reserve(list.size());
 
-	while (!list.isEmpty()) {
-		const Question &q = list.takeAt(QRandomGenerator::global()->bounded(list.size()));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(list.begin(), list.end(), g);
+
+	for (const Question &q : list) {
 		m_questions.append(LiteQuestion(q));
 		m_indices.append(m_questions.size()-1);
 	}
@@ -308,8 +310,14 @@ void LiteGame::onGameQuestionFailed(const QVariantMap &answer)
 						idxs.append(i);
 				}
 
-				while (!idxs.isEmpty() && cnt>0) {
-					const int &idx = idxs.takeAt(QRandomGenerator::global()->bounded(idxs.size()));
+				std::random_device rd;
+				std::mt19937 g(rd());
+				std::shuffle(idxs.begin(), idxs.end(), g);
+
+				for (const int idx : idxs) {
+					if (cnt<=0)
+						break;
+
 					m_questions[idx].increaseUsed();
 					m_indices.append(idx);
 					--cnt;

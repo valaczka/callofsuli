@@ -66,12 +66,14 @@ public:
 
 	struct QuestionData {
 		QUrl url;
+		int realNum = 0;
 		QVariantMap data;
 		QString uuid;
 		QVariantMap answer;
 		QString module;
 		bool success = false;
 		int examPoint = 0;
+		bool isCommon = false;
 	};
 
 

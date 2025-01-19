@@ -42,25 +42,28 @@ class ModuleFillout : public QObject, public ModuleInterface
 public:
 	explicit ModuleFillout(QObject *parent = nullptr);
 
-	inline QString name() const override { return "fillout"; }
-	inline bool isStorageModule() const override { return false; }
+	inline QString name() const override { return QStringLiteral("fillout"); }
+	inline Types types() const override { return Online|PaperAuto; }
 	inline QString readableName() const override { return tr("Szövegkitöltés"); }
-	inline QString icon() const override { return "image://font/Academic/\uf182"; }
+	inline QString icon() const override { return QStringLiteral("image://font/Academic/\uf182"); }
 
-	inline QString qmlEditor() const override { return "ME_fillout.qml"; }
-	inline QString qmlQuestion() const override { return "GQ_fillout.qml"; }
+	inline QString qmlEditor() const override { return QStringLiteral("ME_fillout.qml"); }
+	inline QString qmlQuestion() const override { return QStringLiteral("GQ_fillout.qml"); }
 
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
-	inline QStringList storageModules() const override { return {"text", "sequence"}; }
+	inline QStringList storageModules() const override {
+		static const QStringList l = {QStringLiteral("text"), QStringLiteral("sequence")};
+		return l;
+	}
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
 
 	qreal xpFactor() const override { return 2.1; };
 
-	QVariantMap preview(const QVariantList &) const override { return QVariantMap(); };
+	QVariantMap preview(const QVariantList &, const QVariantMap &) const override { return QVariantMap(); };
 
 	void registerQmlTypes() const override;
 

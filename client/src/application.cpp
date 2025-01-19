@@ -46,7 +46,6 @@
 #include "maskedmousearea.h"
 #include "offsetmodel.h"
 #include "qapplication.h"
-#include "qrimage.h"
 #include "qsjsonlistmodel.h"
 #include "rpgmagestaff.h"
 #include "rpguserwallet.h"
@@ -188,7 +187,6 @@ int Application::run()
 
 	m_client.reset(createClient());
 	m_engine->addImageProvider(QStringLiteral("font"), std::move(new FontImage()));
-	m_engine->addImageProvider(QStringLiteral("qrcode"), std::move(new QrImage()));
 
 	m_engine->rootContext()->setContextProperty("Client", m_client.get());
 
@@ -529,27 +527,20 @@ void Application::loadModules()
 	m_objectiveModules.clear();
 	m_storageModules.clear();
 
-	QVector<QStaticPlugin> l = QPluginLoader::staticPlugins();
+	const QVector<QStaticPlugin> &l = QPluginLoader::staticPlugins();
 
-	foreach (QStaticPlugin ll, l) {
-		QObject *o = ll.instance();
-
-		if (!o)
-			continue;
-
-		ModuleInterface *i = qobject_cast<ModuleInterface *>(o);
+	for (const QStaticPlugin &ll : l) {
+		ModuleInterface *i = qobject_cast<ModuleInterface *>(ll.instance());
 
 		if (!i)
 			continue;
 
-		QString name = i->name();
-
-		if (i->isStorageModule()) {
+		if (i->types().testFlag(ModuleInterface::Storage)) {
 			LOG_CTRACE("app") << "Load storage module:" << qPrintable(i->name());
-			m_storageModules.insert(name, i);
+			m_storageModules.insert(i->name(), i);
 		} else {
 			LOG_CTRACE("app") << "Load objective module:" << qPrintable(i->name());
-			m_objectiveModules.insert(name, i);
+			m_objectiveModules.insert(i->name(), i);
 		}
 
 		i->registerQmlTypes();

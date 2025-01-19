@@ -142,8 +142,11 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
  * @return
  */
 
-QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+											QVariantMap *commonDataPtr) const
 {
+	Q_UNUSED(commonDataPtr);
+
 	if (!storage) {
 		QVariantList list;
 
@@ -166,8 +169,10 @@ QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInter
  * @return
  */
 
-QVariantMap ModuleMultichoice::preview(const QVariantList &generatedList) const
+QVariantMap ModuleMultichoice::preview(const QVariantList &generatedList, const QVariantMap &commonData) const
 {
+	Q_UNUSED(commonData);
+
 	QVariantMap m;
 	QString s;
 
@@ -330,12 +335,21 @@ QVariantMap ModuleMultichoice::_generate(QStringList correctList, QStringList op
 
 	QVector<QPair<QString, bool>> options;
 
-	while (correctList.size() && options.size() < correctCount) {
-		options.append(qMakePair(correctList.takeAt(QRandomGenerator::global()->bounded(correctList.size())), true));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(correctList.begin(), correctList.end(), g);
+	std::shuffle(optionsList.begin(), optionsList.end(), g);
+
+	for (const QString &s : correctList) {
+		if (options.size() >= correctCount)
+			break;
+		options.append(qMakePair(s, true));
 	}
 
-	while (optionsList.size() && options.size() < maxOptions) {
-		options.append(qMakePair(optionsList.takeAt(QRandomGenerator::global()->bounded(optionsList.size())), false));
+	for (const QString &s : optionsList) {
+		if (options.size() >= maxOptions)
+			break;
+		options.append(qMakePair(s, false));
 	}
 
 
@@ -343,8 +357,9 @@ QVariantMap ModuleMultichoice::_generate(QStringList correctList, QStringList op
 
 	QStringList optList;
 
-	while (options.size()) {
-		QPair<QString, bool> p = options.takeAt(QRandomGenerator::global()->bounded(options.size()));
+	std::shuffle(options.begin(), options.end(), g);
+
+	for (const auto &p : options) {
 		optList.append(p.first);
 
 		if (p.second)

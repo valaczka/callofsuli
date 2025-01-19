@@ -25,7 +25,6 @@
  */
 
 #include "moduleblock.h"
-#include <QRandomGenerator>
 
 ModuleBlock::ModuleBlock(QObject *parent) : QObject(parent)
 {

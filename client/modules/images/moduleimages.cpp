@@ -25,7 +25,6 @@
  */
 
 #include "moduleimages.h"
-#include <QRandomGenerator>
 
 ModuleImages::ModuleImages(QObject *parent) : QObject(parent)
 {

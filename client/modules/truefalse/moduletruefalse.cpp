@@ -142,7 +142,8 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
  * @return
  */
 
-QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+										  QVariantMap *commonDataPtr) const
 {
 	if (!storage) {
 		QVariantList list;
@@ -371,8 +372,10 @@ QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVari
  * @return
  */
 
-QVariantMap ModuleTruefalse::preview(const QVariantList &generatedList) const
+QVariantMap ModuleTruefalse::preview(const QVariantList &generatedList, const QVariantMap &commonData) const
 {
+	Q_UNUSED(commonData);
+
 	QVariantMap m;
 	QString s;
 

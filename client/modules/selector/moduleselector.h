@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * moduletruefalse.h
+ * moduleselector.h
  *
  * Created on: 2021. 08. 06.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * ModuleTruefalse
+ * ModuleSelector
  *
  *  This file is part of Call of Suli.
  *
@@ -24,36 +24,36 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MODULETRUEFALSE_H
-#define MODULETRUEFALSE_H
+#ifndef MODULESELECTOR_H
+#define MODULESELECTOR_H
 
 #include "../interfaces.h"
 #include <QObject>
 #include <QtPlugin>
 
 
-class ModuleTruefalse : public QObject, public ModuleInterface
+class ModuleSelector : public QObject, public ModuleInterface
 {
 	Q_OBJECT
 
-	Q_PLUGIN_METADATA(IID "org.callofsuli.Modules.truefalse")
+	Q_PLUGIN_METADATA(IID "org.callofsuli.Modules.selector")
 	Q_INTERFACES(ModuleInterface)
 
 public:
-	explicit ModuleTruefalse(QObject *parent = nullptr);
+	explicit ModuleSelector(QObject *parent = nullptr);
 
-	inline QString name() const override { return QStringLiteral("truefalse"); }
-	inline Types types() const override { return Online|PaperAuto; }
-	inline QString readableName() const override { return tr("Igaz/hamis"); }
-	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/list-status.svg"); }
+	inline QString name() const override { return QStringLiteral("selector"); }
+	inline Types types() const override { return PaperAuto; }
+	inline QString readableName() const override { return tr("Karakter-megjelölés"); }
+	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/spellcheck.svg"); }
 
-	inline QString qmlEditor() const override { return QStringLiteral("ME_singlechoice.qml"); }
-	inline QString qmlQuestion() const override { return QStringLiteral("GQ_singlechoice.qml"); }
+	inline QString qmlEditor() const override { return QStringLiteral("ME_selector.qml"); }
+	inline QString qmlQuestion() const override { return QStringLiteral(""); }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
-			QStringLiteral("numbers"), QStringLiteral("binding"), QStringLiteral("block")
+			QStringLiteral("binding")
 		};
 		return l;
 	}
@@ -62,8 +62,10 @@ public:
 
 	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
 
-	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData) const;
+	void extracted() const;
+	QVariantList generateBinding(const QVariantMap &data,
+								 const QVariantMap &storageData,
+								 QVariantMap *commonDataPtr) const;
 
 	qreal xpFactor() const override { return 1.0; };
 
@@ -73,11 +75,11 @@ public:
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
 
-signals:
-
+private:
+	QVariantMap generateOne(const QString &answer, const int &maxOptions) const;
 };
 
 
 
 
-#endif // MODULETRUEFALSE_H
+#endif // MODULESELECTOR_H

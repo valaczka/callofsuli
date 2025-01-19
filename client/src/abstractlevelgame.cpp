@@ -25,6 +25,7 @@
  */
 
 #include "abstractlevelgame.h"
+#include "application.h"
 #include "qdiriterator.h"
 #include "question.h"
 #include <QRandomGenerator>
@@ -80,6 +81,11 @@ QVector<Question> AbstractLevelGame::createQuestions()
 
 	foreach (GameMapChapter *chapter, m_missionLevel->chapters()) {
 		foreach (GameMapObjective *objective, chapter->objectives()) {
+			ModuleInterface *iface = Application::instance()->objectiveModules().value(objective->module());
+
+			if (!iface || !iface->types().testFlag(ModuleInterface::Online))
+				continue;
+
 			int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
 
 			for (int i=0; i<n; ++i)

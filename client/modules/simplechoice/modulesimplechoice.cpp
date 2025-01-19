@@ -173,8 +173,11 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+											 QVariantMap *commonDataPtr) const
 {
+	Q_UNUSED(commonDataPtr);
+
 	if (!storage) {
 		QVariantList list;
 		QVariantMap m;
@@ -506,8 +509,14 @@ QVariantMap ModuleSimplechoice::generateOne(const QString &correctAnswer, QStrin
 	QVector<QPair<QString, bool>> opts;
 	opts.append(qMakePair(correctAnswer, true));
 
-	while (optionsList.size() && opts.size() < (maxOptions > 1 ? maxOptions : 4)) {
-		QString o = optionsList.takeAt(QRandomGenerator::global()->bounded(optionsList.size()));
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(optionsList.begin(), optionsList.end(), g);
+
+	for (const QString &o : optionsList) {
+		if (opts.size() >= (maxOptions > 1 ? maxOptions : 4))
+			break;
+
 		if (!o.isEmpty())
 			opts.append(qMakePair(o, false));
 	}
@@ -517,8 +526,9 @@ QVariantMap ModuleSimplechoice::generateOne(const QString &correctAnswer, QStrin
 
 	QStringList optList;
 
-	while (opts.size()) {
-		QPair<QString, bool> p = opts.takeAt(QRandomGenerator::global()->bounded(opts.size()));
+	std::shuffle(opts.begin(), opts.end(), g);
+
+	for (const auto &p : opts) {
 		optList.append(p.first);
 
 		if (p.second)
@@ -539,8 +549,10 @@ QVariantMap ModuleSimplechoice::generateOne(const QString &correctAnswer, QStrin
  * @return
  */
 
-QVariantMap ModuleSimplechoice::preview(const QVariantList &generatedList) const
+QVariantMap ModuleSimplechoice::preview(const QVariantList &generatedList, const QVariantMap &commonData) const
 {
+	Q_UNUSED(commonData);
+
 	QVariantMap m;
 	QString s;
 

@@ -2713,7 +2713,10 @@ QString MapEditor::objectivePreview(const QString &objectiveModule, const QVaria
 			return tr("Érvénytelen modul: %1").arg(storageModule);
 	}
 
-	return objective->preview(objective->generateAll(objectiveData, storage, storageData)).value(QStringLiteral("text")).toString();
+	QVariantMap commonData;
+	QVariantList list = objective->generateAll(objectiveData, storage, storageData, &commonData);
+
+	return objective->preview(list, commonData).value(QStringLiteral("text")).toString();
 }
 
 
