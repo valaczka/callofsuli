@@ -131,6 +131,8 @@ public:
 			return m_startTick+elapsed+m_latency;
 		}
 
+		const qint64 &startTick() const { return m_startTick; }
+
 		static int interval() { return m_interval; }
 
 	private:

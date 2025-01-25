@@ -24,83 +24,67 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ACTIONRPGMULTIPLAYERGAME_P_H
-#define ACTIONRPGMULTIPLAYERGAME_P_H
+#ifndef RPGUDPENGINE_H
+#define RPGUDPENGINE_H
 
 
 #include <QObject>
 #include <QThread>
 #include <QElapsedTimer>
 #include <QCborArray>
-#include <enet/enet.h>
-#include <deque>
-#include <list>
+#include "abstractudpengine.h"
 #include "actionrpgmultiplayergame.h"
+
+
 
 /**
  * @brief The UdpEnginePrivate class
  */
 
-class RpgUdpEnginePrivate : public QObject
+class RpgUdpEngine : public AbstractUdpEngine
 {
 	Q_OBJECT
 
 public:
-	RpgUdpEnginePrivate(ActionRpgMultiplayerGame *game);
-	virtual ~RpgUdpEnginePrivate();
+	RpgUdpEngine(ActionRpgMultiplayerGame *game);
+	virtual ~RpgUdpEngine();
 
 	void connectToServer(Server *server);
 	void disconnect();
 
-	void worldStep(const TiledGame::Body &body);
-	void timeStepped();
+	RpgConfig::GameState gameState() const;
+	void setGameState(const RpgConfig::GameState &newGameState);
 
-signals:			// REMOVE SIGNALS
-	void serverConnected();
-	void serverDisconnected();
-	void serverConnectFailed();
+	struct Snapshot {
+		quint64 tick = -1;
+		std::list<RpgGameData::Player> players;
+		std::list<RpgGameData::Enemy> enemies;
+	};
 
+	Snapshot getCurrentSnapshot();
+
+signals:
 	void gameError();
 	void gameDataDownload(QString map, QList<RpgGameData::CharacterSelect> list);
 
 
-private:
-	void connectToHost(const char *host, const int &port);
+protected:
+	virtual void packetReceived(const QCborMap &data, const unsigned int rtt) override;
 
+private:
 	void updateState(const QCborMap &data);
 
-	void packetReceived(ENetPacket *packet);
 	void packetReceivedChrSel(const QCborMap &data);
 	void packetReceivedDownload(const QCborMap &data);
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
 
-	void run();
-
-	void sendMessage(QByteArray data, const bool &reliable);
 	bool forceKeyFrame();
-
-
-
-
-
-	QPointer<ActionRpgMultiplayerGame> q;
-	ENetHost *m_enet_host = nullptr;
-	ENetPeer *m_enet_peer = nullptr;
-	bool m_canRun = true;
-
-
 
 	QRecursiveMutex m_mutex;
 
-	struct Packet {
-		QByteArray data;
-		bool reliable = false;
-	};
 
-	QList<Packet> m_sendList;
-
-	QElapsedTimer m_lastKeyFrame;
+	QPointer<ActionRpgMultiplayerGame> m_game;
 	bool m_downloadContentStarted = false;
 
 
@@ -108,22 +92,21 @@ private:
 
 	// Snapshots
 
-	struct Snapshot {
-		qint64 tick = -1;
+	struct SnapshotPrivate {
 		bool isAuth = false;
 		std::list<RpgGameData::Player> players;
 		std::list<RpgGameData::Enemy> enemies;
 	};
 
-	std::deque<Snapshot> m_snapshots;
+	std::map<qint64, SnapshotPrivate> m_snapshots;
 	RpgGameData::GameConfig m_gameConfig;
 	RpgConfig::GameState m_gameState = RpgConfig::StateInvalid;
 	int m_playerId = -1;
 	bool m_isHost = false;
 
 	void updateSnapshot(const RpgGameData::CharacterSelect &player);
-	void updateSnapshot(Snapshot &snapshot, const RpgGameData::Player &player);
-	void updateSnapshot(Snapshot &snapshot, const RpgGameData::Enemy &enemy);
+	void updateSnapshot(SnapshotPrivate &snapshot, const RpgGameData::Player &player);
+	void updateSnapshot(SnapshotPrivate &snapshot, const RpgGameData::Enemy &enemy);
 	void updateSnapshot(const RpgGameData::Player &player, const qint64 &tick);
 	void updateSnapshot(const RpgGameData::Enemy &enemy, const qint64 &tick);
 
@@ -132,25 +115,24 @@ private:
 	void updateSnapshotEnemyList(const QCborArray &list, const qint64 &tick);
 	void updateSnapshotPlayerList(const QCborArray &list, const qint64 &tick);
 
-	Snapshot getCurrentSnapshot();
-
-        void updatePlayer(const Snapshot &snapshot, RpgPlayer *player, const int &owner);
+	void updatePlayer(const Snapshot &snapshot, RpgPlayer *player, const int &owner);
 	void updateEnemy(const Snapshot &snapshot, IsometricEnemy *enemy);
 
 
 	/// --- tmp
 	qint64 m_lastTick = 0;
+	QElapsedTimer m_lastKeyFrame;
 
 	friend class ActionRpgMultiplayerGame;
 };
 
 
 /**
- * @brief RpgUdpEnginePrivate::forceKeyFrame
+ * @brief RpgUdpEngine::forceKeyFrame
  * @return
  */
 
-inline bool RpgUdpEnginePrivate::forceKeyFrame()
+inline bool RpgUdpEngine::forceKeyFrame()
 {
 	QMutexLocker locker(&m_mutex);
 
@@ -171,4 +153,4 @@ inline bool RpgUdpEnginePrivate::forceKeyFrame()
 
 
 
-#endif // ACTIONRPGMULTIPLAYERGAME_P_H
+#endif // RPGUDPENGINE_H

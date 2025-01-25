@@ -1,9 +1,9 @@
 /*
  * ---- Call of Suli ----
  *
- * udpengine_h.h
+ * rpgudpengine_p.h
  *
- * Created on: 2025. 01. 02.
+ * Created on: 2025. 01. 20.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
  * %{Cpp:License:ClassName}
@@ -24,62 +24,63 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef UDPSERVER_P_H
-#define UDPSERVER_P_H
+#ifndef ABSTRACTUDPENGINE_P_H
+#define ABSTRACTUDPENGINE_P_H
 
-#include <QObject>
-#include <QThread>
-#include <QMutex>
+#include "qmutex.h"
+#include "qurl.h"
 #include <enet/enet.h>
-#include "udpserver.h"
+#include <QObject>
+
+class AbstractUdpEngine;
+
 
 /**
- * @brief The UdpServerPrivate class
+ * @brief The RpgUdpEnginePrivate class
  */
 
-class UdpServerPrivate : public QObject
+class AbstractUdpEnginePrivate : public QObject
 {
 	Q_OBJECT
 
 public:
-	UdpServerPrivate(UdpServer *engine)
-		: QObject()
-		, q(engine)
+	AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
+		: q(engine)
 	{}
 
-	virtual ~UdpServerPrivate();
-
-	void run();
-
-	void peerConnect(ENetPeer *peer);
-	void peerDisconnect(ENetPeer *peer);
-	void udpPeerRemove(UdpServerPeer *peer);
-
-	void packetReceived(const ENetEvent &event);
-	void sendPacket(ENetPeer *peer, const QByteArray &data, const bool isReliable);
+signals:
+	void serverConnected();
+	void serverDisconnected();
+	void serverConnectFailed();
 
 private:
-	UdpServer *q;
-	ENetHost *m_enet_server = nullptr;
+	void run();
+	void sendMessage(QByteArray data, const bool &reliable = true, const int &channel = 0);
+	void setUrl(const QUrl &url);
+
+	AbstractUdpEngine *q = nullptr;
+
+	QUrl m_url;
+
+	ENetHost *m_enet_host = nullptr;
+	ENetPeer *m_enet_peer = nullptr;
+
+	bool m_disconnectRequested = false;
+
+	QMutex m_mutex;
 
 	struct Packet {
-		Packet(ENetPeer *p, const QByteArray &d, const bool r)
-			: peer(p)
-			, data(d)
-			, reliable(r)
-		{}
-
-		ENetPeer *peer = nullptr;
 		QByteArray data;
+		int channel = 0;
 		bool reliable = false;
 	};
 
-	QMutex m_mutex;
-	std::vector<Packet> m_sendList;
+	QList<Packet> m_sendList;
 
-	friend class UdpServer;
+	friend class AbstractUdpEngine;
+	friend class AbstractUdpEngineThread;
 };
 
 
 
-#endif // UDPSERVER_P_H
+#endif // ABSTRACTUDPENGINE_P_H

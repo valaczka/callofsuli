@@ -192,6 +192,7 @@ macx {
 SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
+	abstractudpengine.cpp \
 	actionrpggame.cpp \
 	actionrpgmultiplayergame.cpp \
 	application.cpp \
@@ -264,6 +265,7 @@ SOURCES += \
 	rpgshield.cpp \
 	rpgshortbow.cpp \
 	rpgtimepickable.cpp \
+	rpgudpengine.cpp \
 	rpguserwallet.cpp \
 	rpgwerebear.cpp \
 	rpgworldlanddata.cpp \
@@ -308,9 +310,10 @@ HEADERS += \
 	abstractgame.h \
 	abstractlevelgame.h \
 	abstracttiledmotor.h \
+	abstractudpengine.h \
+	abstractudpengine_p.h \
 	actionrpggame.h \
 	actionrpgmultiplayergame.h \
-	actionrpgmultiplayergame_p.h \
 	application.h \
 	basemap.h \
 	basemaphandler.h \
@@ -384,6 +387,7 @@ HEADERS += \
 	rpgshield.h \
 	rpgshortbow.h \
 	rpgtimepickable.h \
+	rpgudpengine.h \
 	rpguserwallet.h \
 	rpgwerebear.h \
 	rpgworldlanddata.h \

@@ -61,12 +61,12 @@ UdpServer::UdpServer(ServerService *service)
 
 UdpServer::~UdpServer()
 {
-	LOG_CDEBUG("engine") << "END UDP ENGINE";
-
-	d->m_canRun = false;
 	d = nullptr;
+	m_dThread.requestInterruption();
 	m_dThread.quit();
 	m_dThread.wait();
+
+	LOG_CDEBUG("engine") << "END UDP ENGINE";
 }
 
 
@@ -109,8 +109,6 @@ UdpServerPrivate::~UdpServerPrivate()
 
 
 
-#include <QFile>
-
 /**
  * @brief UdpServerPrivate::run
  */
@@ -139,7 +137,9 @@ void UdpServerPrivate::run()
 	ENetEvent event;
 
 	while (int r = enet_host_service (m_enet_server, &event, 1000/120) >= 0) {
-		if (!m_canRun) {
+		QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::ProcessEventsFlag::AllEvents);
+
+		if (QThread::currentThread()->isInterruptionRequested()) {
 			LOG_CWARNING("engine") << "STOP";
 			break;
 		}
@@ -177,8 +177,6 @@ void UdpServerPrivate::run()
 
 			m_sendList.clear();
 		}
-
-		QCoreApplication::processEvents();
 	}
 
 	LOG_CINFO("engine") << "UPD ENGINE RUN FINISHED";

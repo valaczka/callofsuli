@@ -32,8 +32,7 @@
 #include <QObject>
 
 
-class RpgUdpEnginePrivate;
-class RpgUdpEnginePrivateThread;
+class RpgUdpEngine;
 
 
 /**
@@ -62,7 +61,6 @@ public:
 	Q_INVOKABLE void selectWeapons(const QStringList &weaponList);
 
 	void disconnectFromHost();
-	bool isConnected() const;
 
 	int playerId() const;
 	void setPlayerId(int newPlayerId);
@@ -110,6 +108,7 @@ private:
 
 	void beforeWorldStep();
 	void afterWorldStep();
+	void worldStep(const TiledGame::Body &body);
 
 	void onRpgGameActivated();
 
@@ -119,12 +118,11 @@ private:
 	void sendDataPrepare();
 	void sendDataPlay();
 
+	void setTickTimer(const qint64 &tick);
 
-	RpgUdpEnginePrivate *d = nullptr;
-	QThread *m_dThread = nullptr;
+	RpgUdpEngine *m_engine = nullptr;
 
-	friend class RpgUdpEnginePrivate;
-	friend class RpgUdpEnginePrivateThread;
+	friend class RpgUdpEngine;
 };
 
 #endif // ACTIONRPGMULTIPLAYERGAME_H

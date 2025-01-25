@@ -1623,7 +1623,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
  * @return
  */
 
-RpgConfig ActionRpgGame::config() const
+const RpgConfig &ActionRpgGame::config() const
 {
 	return m_config;
 }

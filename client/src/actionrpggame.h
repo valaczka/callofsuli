@@ -81,7 +81,7 @@ public:
 
 	Q_INVOKABLE static QStringList getDisabledWeapons(const QString &character);
 
-	RpgConfig config() const;
+	const RpgConfig &config() const;
 	void setConfig(const RpgConfig &newConfig);
 
 	RpgGame *rpgGame() const;
