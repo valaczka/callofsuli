@@ -879,7 +879,7 @@ QVariantMap MapEditorMission::toVariantMap(const bool &onlyUpdate) const
 	m.insert(QStringLiteral("name"), m_name);
 	m.insert(QStringLiteral("description"), m_description);
 	m.insert(QStringLiteral("medalImage"), m_medalImage);
-	m.insert(QStringLiteral("modes"), GameMap::GameModes::Int(m_modes));
+	m.insert(QStringLiteral("modes"), GameMap::GameModes::Int(m_gameModes));
 
 	if (!onlyUpdate) {
 		QVariantList list;
@@ -1024,17 +1024,18 @@ void MapEditorMission::setMedalImage(const QString &newMedalImage)
 	emit fullMedalImageChanged();
 }
 
-const GameMap::GameModes &MapEditorMission::modes() const
+
+
+GameMap::GameModes MapEditorMission::modes() const
 {
-	return m_modes;
+	return QVariant(m_gameModes).value<GameMap::GameModes>();
 }
 
 void MapEditorMission::setModes(const GameMap::GameModes &newModes)
 {
-	if (m_modes == newModes)
+	if (m_gameModes == newModes)
 		return;
-	m_modes = newModes;
-	m_gameModes = m_modes;
+	m_gameModes = newModes;
 	emit modesChanged();
 }
 
@@ -1081,7 +1082,7 @@ QList<GameMapMissionLevelIface *> MapEditorMission::ifaceLocks() const
 GameMapMissionLevelIface *MapEditorMission::ifaceAddLevel(const qint32 &level, const QByteArray &terrain,
 														  const qint32 &startHP, const qint32 &duration,
 														  const bool &canDeathmatch, const qreal &questions,
-														  const qreal &passed, const qint32 &image)
+														  const qreal &passed, const quint32 &gameModes, const qint32 &image)
 {
 	MapEditorMissionLevel *d = new MapEditorMissionLevel(m_map, this);
 	d->setLevel(level);
@@ -1092,6 +1093,7 @@ GameMapMissionLevelIface *MapEditorMission::ifaceAddLevel(const qint32 &level, c
 	d->setQuestions(questions);
 	d->setPassed(passed);
 	d->setImage(image);
+	d->setModes(QVariant(gameModes).value<GameMap::GameModes>());
 	m_levelList->append(d);
 	return d;
 }
@@ -1192,9 +1194,6 @@ MapEditorMissionLevel *MapEditorMission::createNextLevel(MapEditorMap *map) cons
 	if (!map)
 		return nullptr;
 
-	if (m_levelList->size() >= 3)
-		return nullptr;
-
 	int l = 1;
 
 	for (MapEditorMissionLevel *ml : *m_levelList)
@@ -1202,42 +1201,6 @@ MapEditorMissionLevel *MapEditorMission::createNextLevel(MapEditorMap *map) cons
 
 	MapEditorMissionLevel *level = new MapEditorMissionLevel(const_cast<MapEditorMission*>(this));
 	level->setLevel(l);
-	level->setCanDeathmatch(m_modes.testFlag(GameMap::Action));
-
-/*	const QJsonObject &parameters = Utils::fileToJsonObject(QStringLiteral(":/internal/game/parameters.json")).value_or(QJsonObject{});
-
-	const QJsonObject &levelData = parameters.value(QStringLiteral("level")).toObject()
-			.value(QString::number(l)).toObject()
-			.value(QStringLiteral("defaults")).toObject();
-
-	if (levelData.contains(QStringLiteral("duration")))
-		level->setDuration(levelData.value(QStringLiteral("duration")).toInt());
-
-	if (levelData.contains(QStringLiteral("startHP")))
-		level->setStartHP(levelData.value(QStringLiteral("startHP")).toInt());
-
-	if (levelData.contains(QStringLiteral("questions")))
-		level->setQuestions(levelData.value(QStringLiteral("questions")).toDouble());
-
-	if (levelData.contains(QStringLiteral("passed")))
-		level->setPassed(levelData.value(QStringLiteral("passed")).toDouble());
-
-	if (levelData.contains(QStringLiteral("deathmatch")))
-		level->setCanDeathmatch(levelData.value(QStringLiteral("deathmatch")).toBool());
-
-	if (levelData.contains(QStringLiteral("inventory"))) {
-		const QJsonArray &list = levelData.value(QStringLiteral("inventory")).toArray();
-
-		for (const QJsonValue &v : std::as_const(list)) {
-			const QVariantMap &data = v.toObject().toVariantMap();
-
-			MapEditorInventory *inventory = new MapEditorInventory(map);
-			inventory->fromVariantMap(data);
-			inventory->setInventoryid(map->nextIndexInventory());
-
-			level->inventoryAdd(inventory);
-		}
-	}*/
 
 	return level;
 }
@@ -1283,6 +1246,7 @@ void MapEditorMissionLevel::fromVariantMap(const QVariantMap &map, const bool &o
 	setCanDeathmatch(map.value(QStringLiteral("canDeathmatch")).toBool());
 	setQuestions(map.value(QStringLiteral("questions")).toReal());
 	setPassed(map.value(QStringLiteral("passed")).toReal());
+	setModes((GameMap::GameModes) map.value(QStringLiteral("modes")).toInt());
 
 
 	if (onlyUpdate)
@@ -1318,6 +1282,7 @@ QVariantMap MapEditorMissionLevel::toVariantMap(const bool &onlyUpdate) const
 	m.insert(QStringLiteral("canDeathmatch"), m_canDeathmatch);
 	m.insert(QStringLiteral("questions"), m_questions);
 	m.insert(QStringLiteral("passed"), m_passed);
+	m.insert(QStringLiteral("modes"), GameMap::GameModes::Int(m_gameModes));
 
 	if (!onlyUpdate) {
 		QVariantList iList;
@@ -1817,4 +1782,19 @@ void MapEditorMissionLevel::setImage(qint32 newImage)
 MapEditorImage *MapEditorMissionLevel::editorImage() const
 {
 	return m_map ? m_map->image(m_image) : nullptr;
+}
+
+
+
+GameMap::GameModes MapEditorMissionLevel::modes() const
+{
+	return QVariant(m_gameModes).value<GameMap::GameModes>();
+}
+
+void MapEditorMissionLevel::setModes(const GameMap::GameModes &newModes)
+{
+	if (m_gameModes == newModes)
+		return;
+	m_gameModes = newModes;
+	emit modesChanged();
 }

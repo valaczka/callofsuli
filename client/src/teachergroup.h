@@ -185,6 +185,8 @@ private:
 		QPointer<User> user;
 		Grade *grade = nullptr;
 		int xp = 0;
+		int maxPts = 0;
+		float progress = 0.;
 
 		UserResult(User *u) : user(u) {}
 	};

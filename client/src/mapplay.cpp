@@ -791,6 +791,29 @@ MapPlayMission *MapPlayMissionLevel::mission() const
 
 
 
+/**
+ * @brief MapPlayMissionLevel::modeEnabled
+ * @param level
+ * @param mode
+ * @return
+ */
+
+bool MapPlayMissionLevel::modeEnabled(GameMapMissionLevel *level, const GameMap::GameMode &mode)
+{
+	if (!level)
+		return false;
+
+	if (level->modes().testFlag(GameMap::Invalid)) {
+		if (GameMapMission *m = level->mission())
+			return MapPlayMission::modeEnabled(m, mode);
+		else
+			return false;
+	} else
+		return level->modes().testFlag(mode);
+}
+
+
+
 
 /**
  * @brief MapPlayMission::MapPlayMission
@@ -890,14 +913,12 @@ QString MapPlayMission::description() const
 
 GameMap::SolverInfo MapPlayMission::toSolverInfo() const
 {
-	QJsonObject object;
+	GameMap::SolverInfo solver;
 
-	for (const MapPlayMissionLevel *level : *m_missionLevelList) {
-		const QString &key = level->deathmatch() ? QStringLiteral("d%1").arg(level->level()) : QStringLiteral("t%1").arg(level->level());
-		object[key] = level->solverData().solved();
-	}
+	for (const MapPlayMissionLevel *level : *m_missionLevelList)
+		solver.setSolved(level->level(), level->solverData().solved());
 
-	return GameMap::SolverInfo(object);
+	return solver;;
 }
 
 
@@ -1035,7 +1056,7 @@ bool AbstractMapPlaySolver::loadSolverInfo(MapPlay *mapPlay, GameMapMission *mis
 
 		for (MapPlayMissionLevel *level : *m->missionLevelList()) {
 			MapPlaySolverData data = level->solverData();
-			data.setSolved(info.solved(level->missionLevel()->level(), level->deathmatch()));
+			data.setSolved(info.solved(level->missionLevel()->level()/*, level->deathmatch()*/));
 			level->setSolverData(data);
 			found = true;
 		}
@@ -1091,7 +1112,7 @@ int MapPlaySolverDefault::calculateXP(MapPlayMissionLevel *level, const GameMap:
 		return -1;
 
 	return m_base * GameMap::computeSolvedXpFactor(level->level(),
-												   level->deathmatch(),
+												   /*level->deathmatch(),*/
 												   level->solverData().solved(),
 												   mode);
 }

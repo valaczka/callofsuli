@@ -1,22 +1,26 @@
 import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
+import Qaterial as Qaterial
+import "./QaterialHelper" as Qaterial
 
 Image {
 	id: control
 
 	property bool deathmatch: false
 	property int level: -1
+	property bool solved: true
 
 	property alias image: srcImg.source
 	property alias text: label.text
 
-	opacity: level < 1 ? 0.6 : 1.0
+	opacity: !solved ? 0.6 : 1.0
 
-	source: level < 1 ? "qrc:/internal/trophy/iconBgEmpty.png"
-					  : "qrc:/internal/trophy/iconBg"+
+	source: !solved ? "qrc:/internal/trophy/iconBgEmpty.png"
+					  : "qrc:/internal/trophy/iconBgt1.png"
+					  /*: "qrc:/internal/trophy/iconBg"+
 						(deathmatch ? "d" : "t")+
-						level+".png"
+						level+".png"*/
 	fillMode: Image.PreserveAspectFit
 
 	Image {
@@ -31,7 +35,7 @@ Image {
 	Colorize {
 		source: srcImg
 		anchors.fill: srcImg
-		hue: switch (level) {
+		/*hue: switch (level) {
 			 case 1:
 				 0.4
 				 break
@@ -40,7 +44,9 @@ Image {
 				 break
 			 default:
 				 0.2
-			 }
+			 }*/
+
+		hue: solved ? 0.4 : 0.2
 
 		lightness: -0.5
 		opacity: 0.8
@@ -53,13 +59,13 @@ Image {
 		font.weight: Font.Bold
 		font.pixelSize: parent.height * 0.75
 		anchors.centerIn: parent
-		visible: level <= 0 && text.length
+		visible: !solved && text.length
 	}
 
 	Colorize {
 		source: label
 		anchors.fill: label
-		visible: level > 0
+		visible: solved
 		hue: switch (level) {
 			 case 1:
 				 0.4
@@ -72,5 +78,18 @@ Image {
 			 }
 
 		lightness: -0.5
+	}
+
+	Text {
+		id: labelText
+		text: level
+		color: solved ? Qaterial.Colors.yellow900 : Qaterial.Style.colorTheme.disabledText
+		font.family: "Rajdhani"
+		font.weight: Font.Black
+		font.pixelSize: parent.height * 0.75
+		anchors.centerIn: parent
+		style: Text.Outline
+		styleColor: "black"
+		visible: level > 0 && label.text.length === 0
 	}
 }

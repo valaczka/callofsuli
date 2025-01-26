@@ -88,7 +88,7 @@ void MapPlayDemo::solverLoad()
 
 	for (auto it = object.constBegin(); it != object.constEnd(); ++it) {
 		const QString &uuid = it.key();
-		const QJsonObject &data = it.value().toObject();
+		const QJsonArray &data = it.value().toArray();
 
 		GameMapMission *m = m_gameMap->mission(uuid);
 
@@ -117,7 +117,7 @@ void MapPlayDemo::solverSave()
 	QJsonObject object = Utils::fileToJsonObject(m_file).value_or(QJsonObject{});
 
 	for (const MapPlayMission *mission: *m_missionList) {
-		object.insert(mission->mission()->uuid(), mission->toSolverInfo().toJsonObject());
+		object.insert(mission->mission()->uuid(), mission->toSolverInfo().toJsonArray());
 	}
 
 #ifdef Q_OS_WASM

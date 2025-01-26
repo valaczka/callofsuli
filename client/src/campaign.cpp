@@ -100,6 +100,12 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("groupid")) || allField)
 		setGroupid(object.value(QStringLiteral("groupid")).toInt());
+
+	if (object.contains(QStringLiteral("progress")) || allField)
+		setProgress(object.value(QStringLiteral("progress")).toDouble());
+
+	if (object.contains(QStringLiteral("maxPts")) || allField)
+		setMaxPts(object.value(QStringLiteral("maxPts")).toInt());
 }
 
 
@@ -284,12 +290,12 @@ QStringList Campaign::usedMapUuids() const
  * @return
  */
 
-QString Campaign::readableResult(Grade *grade, int xp)
+QString Campaign::readableResult(Grade *grade, const int xp, const int pts) const
 {
 	if (!grade && xp <= 0 && !m_finished)
-		return Task::readableGradeOrXp(m_defaultGrade, -1);
+		return Task::readableGradeOrXp(m_defaultGrade, -1, pts);
 	else
-		return Task::readableGradeOrXp(grade, xp);
+		return Task::readableGradeOrXp(grade, xp, pts);
 }
 
 
@@ -300,12 +306,12 @@ QString Campaign::readableResult(Grade *grade, int xp)
  * @return
  */
 
-QString Campaign::readableShortResult(Grade *grade, int xp)
+QString Campaign::readableShortResult(Grade *grade, const int xp, const int pts) const
 {
 	if (!grade && xp <= 0 && !m_finished)
-		return Task::readableGradeOrXpShort(m_defaultGrade, -1);
+		return Task::readableGradeOrXpShort(m_defaultGrade, -1, pts);
 	else
-		return Task::readableGradeOrXpShort(grade, xp);
+		return Task::readableGradeOrXpShort(grade, xp, pts);
 }
 
 
@@ -653,4 +659,30 @@ void StudentCampaignOffsetModel::setCampaign(Campaign *newCampaign)
 	emit campaignChanged();
 
 	_setApi();
+}
+
+qreal Campaign::progress() const
+{
+	return m_progress;
+}
+
+void Campaign::setProgress(qreal newProgress)
+{
+	if (qFuzzyCompare(m_progress, newProgress))
+		return;
+	m_progress = newProgress;
+	emit progressChanged();
+}
+
+int Campaign::maxPts() const
+{
+	return m_maxPts;
+}
+
+void Campaign::setMaxPts(int newMaxPts)
+{
+	if (m_maxPts == newMaxPts)
+		return;
+	m_maxPts = newMaxPts;
+	emit maxPtsChanged();
 }

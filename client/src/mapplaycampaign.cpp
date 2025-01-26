@@ -113,7 +113,7 @@ void MapPlayCampaign::updateSolver()
 			->done(this, [this](const QJsonObject &data){
 		for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
 			GameMapMission *mission = m_gameMap->mission(it.key());
-			GameMap::SolverInfo s(it.value().toObject());
+			GameMap::SolverInfo s(it.value().toArray());
 
 			if (mission)
 				m_solver->loadSolverInfo(mission, s);

@@ -30,7 +30,7 @@
 #include <QDataStream>
 #include <QVariantMap>
 
-#define GAMEMAP_CURRENT_VERSION 16
+#define GAMEMAP_CURRENT_VERSION 17
 
 
 class GameMapChapterIface;
@@ -229,6 +229,7 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const qreal &passed,
+													const quint32 &gameModes,
 													const int &image) = 0;
 	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) = 0;
 
@@ -280,6 +281,7 @@ protected:
 	bool m_canDeathmatch = false;
 	qreal m_questions = 0;
 	qreal m_passed = 0.8;
+	quint32 m_gameModes = 0;
 
 private:
 	void inventoriesToStream(QDataStream &stream) const;

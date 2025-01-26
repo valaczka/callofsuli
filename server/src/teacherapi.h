@@ -48,6 +48,8 @@ public:
 		int grade = -1;
 		int gradeValue = -1;
 		int xp = 0;
+		int maxPts = 0;
+		float progress = -1.;
 		QJsonArray tasks;
 	};
 
@@ -133,9 +135,9 @@ public:
 	static QString mapCacheString(GameMap *map);
 
 	static std::optional<UserCampaignResult> _campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
-												  const QString &username, const bool &withCriterion = false);
+												  const QString &username);
 	static std::optional<UserCampaignResult> _campaignUserResult(const DatabaseMain *dbMain, const int &campaign, const bool &finished,
-												  const QString &username, const bool &withCriterion = false);
+												  const QString &username);
 
 	static std::optional<QJsonArray> _campaignUserGameResult(const AbstractAPI *api, const int &campaign, const QString &username,
 											  const int &limit = DEFAULT_LIMIT, const int &offset = 0);
@@ -145,10 +147,12 @@ public:
 									   const int &limit = DEFAULT_LIMIT, const int &offset = 0);
 
 	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username);
-	static std::optional<bool> _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username);
-	static std::optional<bool> _evaluateCriterionMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
+	static std::optional<float> _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username);
+	static std::optional<float> _evaluateCriterionMission(const AbstractAPI *api, /*const int &campaign,*/ const QJsonObject &criterion, const QString &map,
 										  const QString &username);
-	static std::optional<bool> _evaluateCriterionMapMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &map,
+	static std::optional<float> _evaluateCriterionMapMission(const AbstractAPI *api, /*const int &campaign,*/ const QJsonObject &criterion, const QString &map,
+											 const QString &username);
+	static std::optional<float> _evaluateCriterionMissionLevels(const AbstractAPI *api, const QJsonObject &criterion, const QString &map,
 											 const QString &username);
 
 	static std::optional<QVector<RpgWallet>> _wallet(const AbstractAPI *api, const QString &username);

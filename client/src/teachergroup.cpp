@@ -347,7 +347,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 
 		const UserResult &r = m_userList.at(row-1);
 
-		return Task::readableGradeOrXpShort(r.grade, r.xp);
+		return Task::readableGradeOrXpShort(r.grade, r.xp, r.maxPts * r.progress);
 
 	} else if (role == Qt::UserRole+3) {									// isSection
 		return isSection(col);
@@ -535,6 +535,8 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 		const QString &username = obj.value(QStringLiteral("username")).toString();
 		int gradeid = obj.value(QStringLiteral("resultGrade")).toInt();
 		int xp = obj.value(QStringLiteral("resultXP")).toInt();
+		float progress = obj.value(QStringLiteral("progress")).toDouble();
+		int maxPts = obj.value(QStringLiteral("maxPts")).toInt();
 
 		int idx = findUser(username);
 
@@ -544,6 +546,8 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 		if (idx != -1) {
 			m_userList[idx].grade = grade;
 			m_userList[idx].xp = xp;
+			m_userList[idx].progress = progress;
+			m_userList[idx].maxPts = maxPts;
 			user = m_userList.at(idx).user;
 		} else {
 			LOG_CWARNING("client") << "Invalid user:" << username;
@@ -819,6 +823,8 @@ bool TeacherGroupCampaignResultModel::loadCampaignDataFromRow(Campaign *campaign
 
 	campaign->setResultGrade(userResult.grade);
 	campaign->setResultXP(userResult.xp);
+	campaign->setProgress(userResult.progress);
+	campaign->setMaxPts(userResult.maxPts);
 
 	for (Task *task : *m_campaign->taskList()) {
 		if (!task)

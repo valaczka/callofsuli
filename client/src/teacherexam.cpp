@@ -444,6 +444,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 																								   o.value(QStringLiteral("gradeid")).toInt()));
 
 			u->setGrade(grade);
+
 			if (const QJsonValue &v = o.value(QStringLiteral("result")); v.isNull())
 				u->setResult(-1);
 			else
@@ -460,7 +461,16 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 				u->setJoker(false);
 
 			u->setAnswer(o.value(QStringLiteral("answer")).toArray());
-			u->setCorrection(o.value(QStringLiteral("correction")).toArray());
+
+			const QJsonArray cList = o.value(QStringLiteral("correction")).toArray();
+			u->setCorrection(cList);
+
+			qreal p = 0;
+
+			for (const QJsonValue &v : cList)
+				p += v.toObject().value(QStringLiteral("p")).toInt();
+
+			u->setPoints(p);
 
 		} else {
 			u->setExamData({});
@@ -472,6 +482,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 			u->setAnswer({});
 			u->setCorrection({});
 			u->setPendingCorrection({});
+			u->setPoints(0);
 		}
 	}
 }
@@ -819,6 +830,55 @@ void TeacherExam::savePendingGrades(const QList<ExamUser *> &list)
 		for (ExamUser *u : realList) {
 			u->setPendingGrade(nullptr);
 		}
+
+		emit examListReloadRequest();
+		reloadExamContent();
+	})
+			->fail(this, [](const QString &err){
+		Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
+	})
+			;
+}
+
+
+
+/**
+ * @brief TeacherExam::deleteGrades
+ * @param list
+ */
+
+void TeacherExam::deleteGrades(const QList<ExamUser *> &list)
+{
+	LOG_CTRACE("client") << "Delete grades";
+
+	QList<ExamUser*> realList = list;
+
+	if (list.isEmpty()) {
+		realList.reserve(list.size());
+		for (ExamUser *u : *m_examUserList.get())
+			realList.append(u);
+	}
+
+	if (realList.isEmpty()) {
+		LOG_CWARNING("client") << "Missing users";
+		return;
+	}
+
+	QJsonArray a;
+
+	for (ExamUser *u : realList) {
+		QJsonObject o;
+		o[QStringLiteral("id")] = u->contentId();
+		o[QStringLiteral("result")] = u->result();
+		o[QStringLiteral("gradeid")] = -1;
+		a.append(o);
+	}
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/grading"), QJsonObject{
+												{ QStringLiteral("list"), a }
+											})
+			->done(this, [this, realList](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Sikeres mentés"));
 
 		emit examListReloadRequest();
 		reloadExamContent();
@@ -3242,4 +3302,17 @@ void ExamUser::setJokerOptions(const JokerOptions &newJokerOptions)
 		return;
 	m_jokerOptions = newJokerOptions;
 	emit jokerOptionsChanged();
+}
+
+int ExamUser::points() const
+{
+	return m_points;
+}
+
+void ExamUser::setPoints(int newPoints)
+{
+	if (m_points == newPoints)
+		return;
+	m_points = newPoints;
+	emit pointsChanged();
 }

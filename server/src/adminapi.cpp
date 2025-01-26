@@ -1679,7 +1679,7 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 		while (q.sqlQuery().next()) {
 			const QString &username = q.value("username").toString();
 
-			const auto &result = TeacherAPI::_campaignUserResult(dbMain, campaign, false, username, false);
+			const auto &result = TeacherAPI::_campaignUserResult(dbMain, campaign, false, username);
 
 			if (!result) {
 				LOG_CERROR("client") << "Campaign finish error:" << campaign;
@@ -1687,7 +1687,7 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 				return ret.reject();
 			}
 
-			if (result->grade <= 0 && result->xp <= 0)
+			if (result->grade <= 0 && result->xp <= 0 && result->maxPts <= 0)
 				continue;
 
 			//QVariant scoreId = QVariant(QMetaType::fromType<int>());
@@ -1723,6 +1723,8 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 					.addField("username", username)
 					.addField("gradeid", result->grade > 0 ? result->grade : QVariant(QMetaType::fromType<int>()))
 					.addField("scoreid", scoreId > 0 ? scoreId : QVariant(QMetaType::fromType<int>()))
+					.addField("maxPts", result->maxPts > 0 ? result->maxPts : QVariant(QMetaType::fromType<int>()))
+					.addField("progress", result->maxPts > 0 ? result->progress : QVariant(QMetaType::fromType<float>()))
 					.execInsert())
 			{
 				LOG_CERROR("client") << "Campaign finish error:" << campaign;

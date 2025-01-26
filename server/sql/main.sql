@@ -247,6 +247,8 @@ CREATE TABLE campaignResult(
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
 	gradeid INTEGER REFERENCES grade(id) ON UPDATE CASCADE ON DELETE SET NULL,
 	scoreid INTEGER REFERENCES score(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	maxPts INTEGER,
+	progress REAL,
 	UNIQUE(campaignid, username)
 );
 
@@ -254,6 +256,7 @@ CREATE TABLE taskSuccess(
 	id INTEGER NOT NULL PRIMARY KEY,
 	taskid INTEGER REFERENCES task(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	result REAL NOT NULL DEFAULT 1.0,
 	UNIQUE(taskid, username)
 );
 
@@ -335,17 +338,6 @@ CREATE TABLE inventoryLimit(
 	value INTEGER NOT NULL DEFAULT 1
 );
 
-INSERT INTO inventoryLimit VALUES ('hp', 50);
-
-INSERT INTO inventoryLimit VALUES ('shield', 50);
-
-INSERT INTO inventoryLimit VALUES ('water', 50);
-
-INSERT INTO inventoryLimit VALUES ('camouflage', 50);
-
-INSERT INTO inventoryLimit VALUES ('pliers', 2);
-
-INSERT INTO inventoryLimit VALUES ('teleporter', 2);
 
 
 ----------------------------------

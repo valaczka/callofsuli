@@ -10,6 +10,8 @@ Qaterial.Card {
 
 	property MapPlayMissionLevel missionLevel: null
 	property bool readOnly: false
+	property bool hasBorder: !readOnly && missionLevel.lockDepth <= 0
+	property bool hasColoredBorder: missionLevel.solved === 0 && missionLevel.lockDepth === 0
 
 	outlined: true
 
@@ -21,11 +23,10 @@ Qaterial.Card {
 
 	}
 
-	borderColor: readOnly || missionLevel.lockDepth > 0 ? "transparent" :
-											  missionLevel.solved === 0 && missionLevel.lockDepth === 0
-											  ? Qaterial.Colors.green500 :
-												enabled ? Qaterial.Style.dividersColor() : Qaterial.Style.disabledDividersColor()
 
+	borderColor: hasBorder ? (hasColoredBorder ? Qaterial.Colors.green500 :
+							 enabled ? Qaterial.Style.dividersColor() : Qaterial.Style.disabledDividersColor())
+						   : "transparent"
 
 	elevation: missionLevel.lockDepth > 0 ? 0 : Qaterial.Style.card.activeElevation
 
@@ -37,14 +38,15 @@ Qaterial.Card {
 		NumberAnimation { duration: 125 }
 	}
 
-	readonly property int _verticalPadding: 6//Qaterial.Style.dense ? 6 : 8
+	readonly property int _verticalPadding: 4
 
 	readonly property color textColor: missionLevel.solved > 0 ?
-										   (missionLevel.level === 3 ?
+										   /*(missionLevel.level === 3 ?
 												Qaterial.Colors.yellow500 :
 												missionLevel.level === 2 ?
 													Qaterial.Colors.orange500 :
-													Qaterial.Colors.green500) :
+													Qaterial.Colors.green500) :*/
+										   Qaterial.Colors.green400 :
 										   missionLevel.lockDepth === 0 ? Qaterial.Style.colorTheme.primaryText :
 																		  Qaterial.Style.colorTheme.disabledText
 
@@ -60,8 +62,9 @@ Qaterial.Card {
 
 			MedalImage {
 				deathmatch: missionLevel.deathmatch
-				image: missionLevel.solved ? missionLevel.medalImage : ""
-				level: missionLevel.solved ? missionLevel.level : -1
+				image: missionLevel.solved > 0 ? missionLevel.medalImage : ""
+				level: missionLevel.level
+				solved: missionLevel.solved > 0
 
 				visible: missionLevel.lockDepth === 0
 
@@ -83,17 +86,19 @@ Qaterial.Card {
 				Layout.bottomMargin: 2*control._verticalPadding
 			}
 
-			Qaterial.Label
+			Qaterial.LabelCaption
 			{
-				text: (missionLevel.deathmatch ?
+				/*text: (missionLevel.deathmatch ?
 						   qsTr("Level %1 SD").arg(missionLevel.level) :
 						   qsTr("Level %1").arg(missionLevel.level))
-					  +qsTr("<br><b>%1 XP</b>").arg(missionLevel.xp)
+					  +qsTr("<br><b>%1 XP</b>").arg(missionLevel.xp)*/
 
-				font: Qaterial.Style.textTheme.body2Upper
+				text: qsTr("%1 XP").arg(missionLevel.xp)
 
-				lineHeight: 0.9
-				textFormat: Text.StyledText
+				//font: Qaterial.Style.textTheme.caption
+
+				//lineHeight: 0.9
+				//textFormat: Text.StyledText
 
 				color: control.textColor
 

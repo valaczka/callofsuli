@@ -324,6 +324,9 @@ public:
 
 	MapPlayMission *mission() const;
 
+	static bool modeEnabled(GameMapMissionLevel *level, const GameMap::GameMode &mode);
+	Q_INVOKABLE bool modeEnabled(const GameMap::GameMode &mode) const { return modeEnabled(m_missionLevel, mode); }
+
 signals:
 	void lockDepthChanged();
 	void xpChanged();

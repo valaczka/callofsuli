@@ -67,6 +67,9 @@ void Task::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("success")) || allField)
 		setSuccess(object.value(QStringLiteral("success")).toVariant().toBool());
+
+	if (object.contains(QStringLiteral("result")) || allField)
+		setResult(object.value(QStringLiteral("result")).toVariant().toFloat());
 }
 
 
@@ -90,6 +93,7 @@ void Task::loadFromTask(Task *task)
 	setXp(task->xp());
 	setGrade(task->grade());
 	setSuccess(task->success());
+	setResult(task->result());
 }
 
 
@@ -201,7 +205,8 @@ void Task::setXp(int newXp)
 
 QString Task::readableGradeOrXp() const
 {
-	return readableGradeOrXp(m_grade, m_xp);
+	const int pts = m_criterion.value(QStringLiteral("pts")).toInt();
+	return readableGradeOrXp(m_grade, m_xp, pts);
 }
 
 
@@ -213,16 +218,20 @@ QString Task::readableGradeOrXp() const
  * @return
  */
 
-QString Task::readableGradeOrXp(Grade *grade, int xp)
+QString Task::readableGradeOrXp(Grade *grade, const int xp, const int pts)
 {
-	if (grade && xp > 0)
-		return tr("%1 (%2), %3 XP").arg(grade->longname()).arg(grade->shortname()).arg(xp);
-	else if (grade)
-		return QStringLiteral("%1 (%2)").arg(grade->longname(), grade->shortname());
-	else if (xp > 0)
-		return tr("%1 XP").arg(xp);
+	QStringList t;
 
-	return QStringLiteral("");
+	if (pts > 0)
+		t.append(tr("%1 pont").arg(pts));
+
+	if (grade)
+		t.append(QStringLiteral("%1 (%2)").arg(grade->longname(), grade->shortname()));
+
+	if (xp > 0)
+		t.append(tr("%1 XP").arg(xp));
+
+	return t.join(QStringLiteral(", "));
 }
 
 
@@ -233,16 +242,20 @@ QString Task::readableGradeOrXp(Grade *grade, int xp)
  * @return
  */
 
-QString Task::readableGradeOrXpShort(Grade *grade, int xp)
+QString Task::readableGradeOrXpShort(Grade *grade, const int xp, const int pts)
 {
-	if (grade && xp > 0)
-		return tr("%2 XP / %1").arg(grade->shortname()).arg(xp);
-	else if (grade)
-		return grade->shortname();
-	else if (xp > 0)
-		return tr("%1 XP").arg(xp);
+	QStringList t;
 
-	return QStringLiteral("");
+	if (pts > 0)
+		t.append(tr("%1 p").arg(pts));
+
+	if (xp > 0)
+		t.append(tr("%1 XP").arg(xp));
+
+	if (grade)
+		t.append(grade->shortname());
+
+	return t.join(QStringLiteral(" / "));
 }
 
 
@@ -270,6 +283,7 @@ QString Task::readableCriterion(BaseMapList *mapList, Campaign *campaign) const
 {
 	const QString &module = m_criterion.value(QStringLiteral("module")).toString();
 	const int &num = m_criterion.value(QStringLiteral("num")).toInt();
+	//const int &pts = m_criterion.value(QStringLiteral("pts")).toInt(0);
 
 	if (module == QLatin1String("xp")) {
 		return tr("Gyűjts össze %1 XP-t").arg(num);
@@ -306,6 +320,36 @@ QString Task::readableCriterion(BaseMapList *mapList, Campaign *campaign) const
 			return tr("Teljesítsd a %1 pálya %2 küldetést LEVEL %3%4 szinten").arg(m_mapName, missionName)
 					.arg(level)
 					.arg(deathmatch ? tr(" SUDDEN DEATH") : QStringLiteral(""));
+	} else if (module == QLatin1String("levels")) {
+		const QString &mission = m_criterion.value(QStringLiteral("mission")).toString();
+
+		QString missionName = tr("???");
+
+		if (mapList) {
+			QObject *o = OlmLoader::find(mapList, "uuid", m_mapUuid);
+			BaseMap *m = qobject_cast<BaseMap*>(o);
+
+			if (m) {
+				const QJsonArray &list = m->cache().value(QStringLiteral("missions")).toArray();
+				for (const QJsonValue &v : std::as_const(list)) {
+					const QJsonObject &o = v.toObject();
+					if (o.value(QStringLiteral("uuid")).toString() == mission) {
+						missionName = o.value(QStringLiteral("name")).toString();
+						break;
+					}
+				}
+			}
+		}
+
+		if (campaign && campaign->usedMapUuids().size() < 2)
+			return tr("Teljesíts %1 szintet a %2 küldetésben")
+					.arg(num)
+					.arg(missionName);
+		else
+			return tr("Teljesíts %1 szintet a %2 pálya %3 küldetésben")
+					.arg(num)
+					.arg(m_mapName)
+					.arg(missionName);
 	}
 
 	return tr("-- Érvénytelen modul: %1 --").arg(module);
@@ -330,7 +374,6 @@ QString Task::readableShortCriterion(BaseMapList *mapList, Campaign *campaign) c
 	} else if (module == QLatin1String("mission")) {
 		const QString &mission = m_criterion.value(QStringLiteral("mission")).toString();
 		const int &level = m_criterion.value(QStringLiteral("level")).toInt(1);
-		const bool &deathmatch = m_criterion.value(QStringLiteral("deathmatch")).toVariant().toBool();
 
 		const QString &mapName = m_mapName;
 		QString missionName = tr("???");
@@ -352,13 +395,41 @@ QString Task::readableShortCriterion(BaseMapList *mapList, Campaign *campaign) c
 		}
 
 		if (campaign && campaign->usedMapUuids().size() < 2)
-			return tr("%1 level %2%3").arg(missionName)
-					.arg(level)
-					.arg(deathmatch ? tr(" S D") : QStringLiteral(""));
+			return tr("%1 level %2").arg(missionName)
+					.arg(level);
 		else
-			return tr("%1 / %2 level %3%4").arg(mapName, missionName)
-					.arg(level)
-					.arg(deathmatch ? tr(" S D") : QStringLiteral(""));
+			return tr("%1 / %2 level %3").arg(mapName, missionName)
+					.arg(level);
+
+	} else if (module == QLatin1String("levels")) {
+		const QString &mission = m_criterion.value(QStringLiteral("mission")).toString();
+
+		const QString &mapName = m_mapName;
+		QString missionName = tr("???");
+
+		if (mapList) {
+			QObject *o = OlmLoader::find(mapList, "uuid", m_mapUuid);
+			BaseMap *m = qobject_cast<BaseMap*>(o);
+
+			if (m) {
+				const QJsonArray &list = m->cache().value(QStringLiteral("missions")).toArray();
+				for (const QJsonValue &v : std::as_const(list)) {
+					const QJsonObject &o = v.toObject();
+					if (o.value(QStringLiteral("uuid")).toString() == mission) {
+						missionName = o.value(QStringLiteral("name")).toString();
+						break;
+					}
+				}
+			}
+		}
+
+		if (campaign && campaign->usedMapUuids().size() < 2)
+			return tr("%1 levels: %2").arg(missionName)
+					.arg(num);
+		else
+			return tr("%1 / %2 levels: %3").arg(mapName)
+					.arg(missionName)
+					.arg(num);
 	}
 
 	return tr("-- Érvénytelen --");
@@ -377,4 +448,17 @@ void Task::setSuccess(bool newSuccess)
 		return;
 	m_success = newSuccess;
 	emit successChanged();
+}
+
+qreal Task::result() const
+{
+	return m_result;
+}
+
+void Task::setResult(qreal newResult)
+{
+	if (qFuzzyCompare(m_result, newResult))
+		return;
+	m_result = newResult;
+	emit resultChanged();
 }

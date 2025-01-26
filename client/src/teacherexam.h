@@ -201,6 +201,7 @@ class ExamUser : public User
 	Q_PROPERTY(QJsonArray pendingCorrection READ pendingCorrection WRITE setPendingCorrection NOTIFY pendingCorrectionChanged FINAL)
 	Q_PROPERTY(Grade *pendingGrade READ pendingGrade WRITE setPendingGrade NOTIFY pendingGradeChanged FINAL)
 	Q_PROPERTY(JokerOptions jokerOptions READ jokerOptions NOTIFY jokerOptionsChanged FINAL)
+	Q_PROPERTY(int points READ points WRITE setPoints NOTIFY pointsChanged FINAL)
 
 public:
 	ExamUser(QObject *parent = nullptr);
@@ -258,6 +259,9 @@ public:
 	JokerOptions jokerOptions() const;
 	void setJokerOptions(const JokerOptions &newJokerOptions);
 
+	int points() const;
+	void setPoints(int newPoints);
+
 signals:
 	void examDataChanged();
 	void contentIdChanged();
@@ -271,6 +275,7 @@ signals:
 	void pendingGradeChanged();
 	void jokerChanged();
 	void jokerOptionsChanged();
+	void pointsChanged();
 
 private:
 	QJsonArray m_examData;
@@ -285,6 +290,7 @@ private:
 	bool m_joker = false;
 	TeacherExam *m_teacherExam = nullptr;
 	JokerOptions m_jokerOptions = JokerUnavailable;
+	int m_points = 0;
 };
 
 
@@ -367,6 +373,7 @@ public:
 
 	Q_INVOKABLE void clearPendingGrades();
 	Q_INVOKABLE void savePendingGrades(const QList<ExamUser *> &list);
+	Q_INVOKABLE void deleteGrades(const QList<ExamUser *> &list);
 
 	Q_INVOKABLE void setJoker(const QList<ExamUser *> &list, const bool &set = true);
 	Q_INVOKABLE QList<ExamUser *> jokerShow(ExamResultModel *resultModel,

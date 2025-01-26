@@ -66,6 +66,8 @@ class Campaign : public SelectableObject
 	Q_PROPERTY(QString readableName READ readableName NOTIFY readableNameChanged)
 	Q_PROPERTY(Grade *resultGrade READ resultGrade WRITE setResultGrade NOTIFY resultGradeChanged)
 	Q_PROPERTY(int resultXP READ resultXP WRITE setResultXP NOTIFY resultXPChanged)
+	Q_PROPERTY(qreal progress READ progress WRITE setProgress NOTIFY progressChanged FINAL)
+	Q_PROPERTY(int maxPts READ maxPts WRITE setMaxPts NOTIFY maxPtsChanged FINAL)
 	Q_PROPERTY(int groupid READ groupid WRITE setGroupid NOTIFY groupidChanged)
 
 public:
@@ -118,8 +120,8 @@ public:
 	void setResultXP(int newResultXP);
 
 	Q_INVOKABLE QStringList usedMapUuids() const;
-	Q_INVOKABLE QString readableResult(Grade *grade, int xp);
-	Q_INVOKABLE QString readableShortResult(Grade *grade, int xp);
+	Q_INVOKABLE QString readableResult(Grade *grade, const int xp, const int pts) const;
+	Q_INVOKABLE QString readableShortResult(Grade *grade, const int xp, const int pts) const;
 
 	Q_INVOKABLE bool hasRequiredTask() const;
 
@@ -128,6 +130,12 @@ public:
 
 	int groupid() const;
 	void setGroupid(int newGroupid);
+
+	qreal progress() const;
+	void setProgress(qreal newProgress);
+
+	int maxPts() const;
+	void setMaxPts(int newMaxPts);
 
 signals:
 	void taskListReloaded();
@@ -143,6 +151,9 @@ signals:
 	void resultGradeChanged();
 	void resultXPChanged();
 	void groupidChanged();
+	void progressChanged();
+
+	void maxPtsChanged();
 
 private:
 	int m_campaignid = 0;
@@ -156,6 +167,8 @@ private:
 	int m_resultXP = -1;
 	std::unique_ptr<TaskList> m_taskList;
 	int m_groupid = -1;
+	qreal m_progress = 0.;
+	int m_maxPts = 0;
 };
 
 

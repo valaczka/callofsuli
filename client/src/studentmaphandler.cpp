@@ -131,6 +131,49 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 	}
 
 
+
+
+	// Auto load mission levels page
+
+	MapPlayMission *mission = nullptr;
+
+	if (campaign) {
+		for (Task *t : *campaign->taskList()) {
+			if (t->criterion().value(QStringLiteral("module")).toString() == QStringLiteral("levels") &&
+					t->mapUuid() == map->uuid()) {
+				if (const QString mUuid = t->criterion().value(QStringLiteral("mission")).toString(); !mUuid.isEmpty()) {
+					mission = mapPlay->getMission(mapPlay->gameMap()->mission(mUuid));
+					break;
+				}
+			}
+		}
+	}
+
+
+	if (mission && !mission->missionLevelList()->empty()) {
+		QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlayMissionLevel.qml"),
+												   QVariantMap({
+																   { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) },
+																   { QStringLiteral("mission"), QVariant::fromValue(mission) },
+															   }));
+
+		if (!page) {
+			m_client->messageError(tr("Nem lehet betölteni az oldalt!"));
+			return;
+		}
+
+		connect(page, &QQuickItem::destroyed, mapPlay.get(), [g = mapPlay.get(), this](){
+			if (g)
+				g->deleteLater();
+			if (m_client && m_client->currentGame())
+				emit m_client->currentGame()->gameDestroyRequest();
+		});
+		mapPlay.release();
+
+		return;
+	}
+
+
 	QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
 																								  { QStringLiteral("title"), map->name() },
 																								  { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }

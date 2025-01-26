@@ -1360,7 +1360,8 @@ QHttpServerResponse TeacherAPI::groupResult(const Credential &credential, const 
 		const int &id = q.value("id").toInt();
 
 		const auto &resultList = QueryBuilder::q(db)
-								 .addQuery("SELECT studentGroupInfo.username AS username, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+								 .addQuery("SELECT studentGroupInfo.username AS username, score.xp AS resultXP, "
+										   "campaignResult.gradeid AS resultGrade, maxPts, progress "
 										   "FROM studentGroupInfo "
 										   "LEFT JOIN campaignResult ON (campaignResult.campaignid=").addValue(id)
 								 .addQuery(" AND campaignResult.username=studentGroupInfo.username) "
@@ -2284,6 +2285,7 @@ QHttpServerResponse TeacherAPI::campaignResult(const Credential &credential, con
 	QueryBuilder q(db);
 	q.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
 			   "SELECT studentGroupInfo.username AS username, score.xp AS resultXP, campaignResult.gradeid AS resultGrade, "
+			   "maxPts, progress, "
 			   "(SELECT NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(id)
 			.addQuery(") OR studentGroupInfo.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(id)
 			.addQuery(")) AS included "
@@ -2301,19 +2303,25 @@ QHttpServerResponse TeacherAPI::campaignResult(const Credential &credential, con
 	while (q.sqlQuery().next()) {
 		const QString &username = q.value("username").toString();
 
-		const auto &result = TeacherAPI::_campaignUserResult(this, id, finished, username, false);
+		const auto &result = TeacherAPI::_campaignUserResult(this, id, finished, username);
 
 		LAMBDA_SQL_ASSERT(result);
 
 		int xp = 0;
 		int grade = 0;
+		int maxPts = 0;
+		float progress = 0.;
 
 		if (finished) {
 			xp = q.value("resultXP").toInt();
 			grade = q.value("resultGrade").toInt();
+			maxPts = q.value("maxPts").toInt();
+			progress = q.value("progress").toFloat();
 		} else {
 			xp = result->xp;
 			grade = result->grade;
+			maxPts = result->maxPts;
+			progress = result->progress;
 		}
 
 		QJsonObject obj;
@@ -2322,6 +2330,11 @@ QHttpServerResponse TeacherAPI::campaignResult(const Credential &credential, con
 		obj[QStringLiteral("included")] = q.value("included").toString();
 		obj[QStringLiteral("resultXP")] = xp > 0 ? xp : QJsonValue::Null;
 		obj[QStringLiteral("resultGrade")] = grade > 0 ? grade : QJsonValue::Null;
+		obj[QStringLiteral("maxPts")] = maxPts > 0 ? maxPts : QJsonValue::Null;
+		if (maxPts > 0)
+			obj[QStringLiteral("progress")] = progress;
+		else
+			obj[QStringLiteral("progress")] = QJsonValue::Null;
 		obj[QStringLiteral("taskList")] = result->tasks;
 
 		resultList.append(obj);
@@ -3641,29 +3654,32 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 		const QJsonObject &criterion = QJsonDocument::fromJson(q.value("criterion").toString().toUtf8()).object();
 		const QString &module = criterion.value(QStringLiteral("module")).toString();
 
-		std::optional<bool> success;
+		std::optional<float> success;
 
 		if (module == QStringLiteral("xp"))
 			success = _evaluateCriterionXP(api, campaign, criterion, username);
 		else if (module == QStringLiteral("mission"))
-			success = _evaluateCriterionMission(api, campaign, criterion, map, username);
+			success = _evaluateCriterionMission(api, /*campaign,*/ criterion, map, username);
 		else if (module == QStringLiteral("mapmission"))
-			success = _evaluateCriterionMapMission(api, campaign, criterion, map, username);
+			success = _evaluateCriterionMapMission(api, /*campaign,*/ criterion, map, username);
+		else if (module == QStringLiteral("levels"))
+			success = _evaluateCriterionMissionLevels(api, criterion, map, username);
 
 		if (!success) {
 			db.rollback();
 			return false;
 		}
 
-		if (success.value()) {
+		if (success.value() > 0.) {
 			if (!QueryBuilder::q(db)
-					.addQuery("INSERT OR IGNORE INTO taskSuccess(")
+					.addQuery("INSERT OR REPLACE INTO taskSuccess(")
 					.setFieldPlaceholder()
 					.addQuery(") VALUES (")
 					.setValuePlaceholder()
 					.addQuery(")")
 					.addField("taskid", task)
 					.addField("username", username)
+					.addField("result", success.value())
 					.exec()) {
 				db.rollback();
 				return false;
@@ -3696,7 +3712,7 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
  * @return
  */
 
-std::optional<bool> TeacherAPI::_evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username)
+std::optional<float> TeacherAPI::_evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username)
 {
 	Q_ASSERT(api);
 
@@ -3713,9 +3729,9 @@ std::optional<bool> TeacherAPI::_evaluateCriterionXP(const AbstractAPI *api, con
 		return std::nullopt;
 
 	if (xp->toInt() >= criterion.value(QStringLiteral("num")).toInt())
-		return true;
+		return 1.0;
 
-	return false;
+	return 0.0;
 }
 
 
@@ -3731,8 +3747,8 @@ std::optional<bool> TeacherAPI::_evaluateCriterionXP(const AbstractAPI *api, con
  * @return
  */
 
-std::optional<bool> TeacherAPI::_evaluateCriterionMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion,
-														  const QString &map, const QString &username)
+std::optional<float> TeacherAPI::_evaluateCriterionMission(const AbstractAPI *api, const QJsonObject &criterion,
+														   const QString &map, const QString &username)
 {
 	Q_ASSERT(api);
 
@@ -3743,7 +3759,7 @@ std::optional<bool> TeacherAPI::_evaluateCriterionMission(const AbstractAPI *api
 	QueryBuilder q(db);
 
 	q.addQuery("SELECT * FROM game WHERE success=true AND username=").addValue(username)
-			.addQuery(" AND campaignid=").addValue(campaign)
+			/*.addQuery(" AND campaignid=").addValue(campaign)*/
 			.addQuery(" AND mapid=").addValue(map)
 			.addQuery(" AND missionid=").addValue(criterion.value(QStringLiteral("mission")).toString())
 			;
@@ -3759,7 +3775,7 @@ std::optional<bool> TeacherAPI::_evaluateCriterionMission(const AbstractAPI *api
 	if (!success)
 		return std::nullopt;
 
-	return (q.sqlQuery().first());
+	return (q.sqlQuery().first() ? 1.0 : 0.0);
 }
 
 
@@ -3775,8 +3791,8 @@ std::optional<bool> TeacherAPI::_evaluateCriterionMission(const AbstractAPI *api
  * @return
  */
 
-std::optional<bool> TeacherAPI::_evaluateCriterionMapMission(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion,
-															 const QString &map, const QString &username)
+std::optional<float> TeacherAPI::_evaluateCriterionMapMission(const AbstractAPI *api, const QJsonObject &criterion,
+															  const QString &map, const QString &username)
 {
 	Q_ASSERT(api);
 
@@ -3786,7 +3802,7 @@ std::optional<bool> TeacherAPI::_evaluateCriterionMapMission(const AbstractAPI *
 
 	const auto &num = QueryBuilder::q(db)
 					  .addQuery("WITH s AS (SELECT DISTINCT missionid FROM game WHERE success=true AND username=").addValue(username)
-					  .addQuery(" AND campaignid=").addValue(campaign)
+					  /*.addQuery(" AND campaignid=").addValue(campaign)*/
 					  .addQuery(" AND mapid=").addValue(map)
 					  .addQuery(") SELECT COUNT(*) AS num FROM s")
 					  .execToValue("num")
@@ -3796,9 +3812,48 @@ std::optional<bool> TeacherAPI::_evaluateCriterionMapMission(const AbstractAPI *
 		return std::nullopt;
 
 	if (num->toInt() >= criterion.value(QStringLiteral("num")).toInt())
-		return true;
+		return 1.0;
 
-	return false;
+	return 0.0;
+}
+
+
+/**
+ * @brief TeacherAPI::_evaluateCriterionMissionLevels
+ * @param api
+ * @param criterion
+ * @param map
+ * @param username
+ * @return
+ */
+
+std::optional<float> TeacherAPI::_evaluateCriterionMissionLevels(const AbstractAPI *api, const QJsonObject &criterion, const QString &map, const QString &username)
+{
+	Q_ASSERT(api);
+
+	const float cntRq = criterion.value(QStringLiteral("num")).toDouble();
+
+	if (cntRq <= 0.)
+		return std::nullopt;
+
+	QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
+
+	QMutexLocker _locker(api->databaseMain()->mutex());
+
+	const auto &num = QueryBuilder::q(db)
+					  .addQuery("WITH s AS (SELECT DISTINCT missionid, level FROM game WHERE success=true AND username=").addValue(username)
+					  .addQuery(" AND mapid=").addValue(map)
+					  .addQuery(" AND missionid=").addValue(criterion.value(QStringLiteral("mission")).toString())
+					  .addQuery(") SELECT COUNT(*) AS num FROM s")
+					  .execToValue("num")
+					  ;
+
+	if (!num)
+		return std::nullopt;
+
+	const float cntDone = num->toFloat();
+
+	return cntDone/cntRq;
 }
 
 
@@ -3962,11 +4017,11 @@ std::optional<int> TeacherAPI::_currency(const DatabaseMain *dbMain, const QStri
  */
 
 std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(const AbstractAPI *api, const int &campaign, const bool &finished,
-																			  const QString &username, const bool &withCriterion)
+																			  const QString &username)
 {
 	Q_ASSERT(api);
 
-	return _campaignUserResult(api->databaseMain(), campaign, finished, username, withCriterion);
+	return _campaignUserResult(api->databaseMain(), campaign, finished, username);
 }
 
 
@@ -3983,7 +4038,7 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
  */
 
 std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(const DatabaseMain *dbMain, const int &campaign, const bool &finished,
-																			  const QString &username, const bool &withCriterion)
+																			  const QString &username)
 {
 	Q_ASSERT(dbMain);
 
@@ -3993,32 +4048,21 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 
 	QMutexLocker _locker(dbMain->mutex());
 
-	std::optional<QJsonArray> list;
+	std::optional<QJsonArray> list =
+			QueryBuilder::q(db)
+			.addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, mapuuid, criterion, map.name as mapname, "
+					  "taskSuccess.result as result, (taskSuccess.username IS NOT NULL) AS success FROM task "
+					  "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) "
+					  "LEFT JOIN grade ON (grade.id=task.gradeid) "
+					  "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
+			.addValue(username)
+			.addQuery(") WHERE campaignid=").addValue(campaign)
+			.execToJsonArray({
+								 { QStringLiteral("criterion"), [](const QVariant &v) {
+									   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+								   } }
+							 });
 
-	if (withCriterion) {
-		list = QueryBuilder::q(db)
-			   .addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, mapuuid, criterion, map.name as mapname, "
-						 "(taskSuccess.username IS NOT NULL) AS success FROM task "
-						 "LEFT JOIN mapdb.map ON (mapdb.map.uuid=task.mapuuid) "
-						 "LEFT JOIN grade ON (grade.id=task.gradeid) "
-						 "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
-			   .addValue(username)
-			   .addQuery(") WHERE campaignid=").addValue(campaign)
-			   .execToJsonArray({
-									{ QStringLiteral("criterion"), [](const QVariant &v) {
-										  return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-									  } }
-								});
-	} else {
-		list = QueryBuilder::q(db)
-			   .addQuery("SELECT task.id, gradeid, grade.value AS gradeValue, xp, required, "
-						 "(taskSuccess.username IS NOT NULL) AS success FROM task "
-						 "LEFT JOIN grade ON (grade.id=task.gradeid) "
-						 "LEFT JOIN taskSuccess ON (taskSuccess.taskid=task.id AND taskSuccess.username=")
-			   .addValue(username)
-			   .addQuery(") WHERE campaignid=").addValue(campaign)
-			   .execToJsonArray();
-	}
 
 	if (!list)
 		return std::nullopt;
@@ -4106,6 +4150,9 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 	QMap<int, ResultGrade> gradeList;
 	QMap<int, ResultXP> xpList;
 
+	int maxPts = 0;
+	float sumResult = 0.;
+
 
 	// Task list
 
@@ -4133,7 +4180,17 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 			else
 				xpList.insert(xp, {{{required, success}}});
 		}
+
+		const QJsonObject &criterion = o.value(QStringLiteral("criterion")).toObject();
+
+		if (const int pts = criterion.value(QStringLiteral("pts")).toInt(); pts > 0) {
+			sumResult += o.value(QStringLiteral("result")).toVariant().toFloat();
+			maxPts += pts;
+		}
 	}
+
+	result.maxPts = maxPts;
+	result.progress = sumResult;
 
 	int maxRequiredValue = -1;
 

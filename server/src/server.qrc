@@ -10,5 +10,6 @@
         <file>../sql/main_4.0_4.1.sql</file>
         <file>../sql/main_4.1_4.2.sql</file>
         <file>../sql/main_4.3_4.4.sql</file>
+        <file>../sql/main_4.4_4.5.sql</file>
     </qresource>
 </RCC>

@@ -52,10 +52,10 @@ QPageGradient {
 			topPadding: control.paddingTop
 		}
 
-		StudentGroupMemberList {
+		/*StudentGroupMemberList {
 			group: control.group
 			topPadding: control.paddingTop
-		}
+		}*/
 
 
 
@@ -68,9 +68,6 @@ QPageGradient {
 		Component.onCompleted: {
 			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.fileDocumentMultiple, color: "red" })
-			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
-			/*model.append({ text: qsTr("Hadjáratok"), source: Qaterial.Icons.trophyBroken, color: "pink" })
-			*/
 		}
 	}
 
