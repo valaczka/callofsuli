@@ -531,7 +531,7 @@ QString TestGame::questionDataResultToHtml(const QString &header, const Question
 	int num = 0;
 
 	foreach (const QuestionData &q, result.resultData) {
-		const QString &question = q.data.value(QStringLiteral("question")).toString();
+		const QString &question = GameQuestion::convertToMonospace(q.data.value(QStringLiteral("question")).toString());
 
 		if (q.isCommon) {
 			html += QStringLiteral("<tr class=\"answer\">");

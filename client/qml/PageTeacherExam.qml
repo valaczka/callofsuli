@@ -565,7 +565,7 @@ QPage {
 						}
 						Qaterial.LabelSubtitle1 {
 							anchors.right: parent.right
-							visible: !pendingGrade && !grade
+							visible: examData.length && !pendingGrade && !grade
 							text: qsTr("%1p").arg(points)
 							color: Qaterial.Style.accentColor
 						}

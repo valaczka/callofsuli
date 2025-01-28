@@ -26,6 +26,7 @@
 
 #include "moduleorder.h"
 #include <QRandomGenerator>
+#include "question.h"
 
 ModuleOrder::ModuleOrder(QObject *parent) : QObject(parent)
 {
@@ -52,7 +53,12 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 		options.append(m.value(QStringLiteral("text")).toString());
 	}
 
-	QString html = QStringLiteral("<p class=\"options\">");
+	QString html;
+
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagStart();
+
+	html += QStringLiteral("<p class=\"options\">");
 	html += options.join(QStringLiteral(" • "));
 	html += QStringLiteral("</p>");
 
@@ -100,6 +106,9 @@ QString ModuleOrder::testResult(const QVariantMap &data, const QVariantMap &answ
 		html += QStringLiteral("</p>");
 	}
 
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagEnd();
+
 	return html;
 }
 
@@ -143,6 +152,17 @@ QVariantMap ModuleOrder::details(const QVariantMap &data, ModuleInterface *stora
 
 			list.append(QStringLiteral("%1 — %2").arg(left, right));
 		}
+	} else if (storage->name() == QStringLiteral("block")) {
+		QStringList answers;
+
+		for (const QVariant &v : storageData.value(QStringLiteral("blocks")).toList()) {
+			const QVariantMap &m = v.toMap();
+			const QString &right = m.value(QStringLiteral("second")).toStringList().join(QStringLiteral(", "));
+
+			answers.append(right);
+		}
+
+		list << answers.join(QStringLiteral(" | "));
 	}
 
 	QVariantMap m;
@@ -182,46 +202,73 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 		slist = generateItems(storageData.value(QStringLiteral("bindings")).toList(), cnt);
 
 
-	bool isDesc = false;
 
-	QString mode = data.value(QStringLiteral("mode")).toString();
-
-	if (mode == QStringLiteral("descending"))
-		isDesc = true;
-	else if (mode == QStringLiteral("random"))
-		isDesc = (QRandomGenerator::global()->generate() % 2 == 1);
+	int genCount = 1;
+	QVariantList blockList;
 
 
-	m[QStringLiteral("mode")] = isDesc ? QStringLiteral("descending") : QStringLiteral("ascending");
-	m[QStringLiteral("question")] = isDesc ? data.value(QStringLiteral("questionDesc")).toString() : data.value(QStringLiteral("questionAsc")).toString();
-	m[QStringLiteral("placeholderMin")] = data.value(QStringLiteral("placeholderMin")).toString();
-	m[QStringLiteral("placeholderMax")] = data.value(QStringLiteral("placeholderMax")).toString();
-	m[QStringLiteral("list")] = slist;
-
-
-	// Get correct index list
-
-	QVector<int> numbers;
-
-	for (int i=0; i<slist.size(); ++i) {
-		const int &num = slist.at(i).toMap().value(QStringLiteral("num")).toInt();
-		numbers.append(num);
+	if (storage->name() == QStringLiteral("block")) {
+		blockList = storageData.value(QStringLiteral("blocks")).toList();
+		genCount = blockList.size();
 	}
 
 
-	if (isDesc)
-		std::sort(numbers.begin(), numbers.end(), std::greater<>());
-	else
-		std::sort(numbers.begin(), numbers.end(), std::less<>());
+	for (int i=0; i<genCount; ++i) {
 
-	QVariantList aList;
+		if (storage->name() == QStringLiteral("block")) {
+			const QStringList &list = blockList.at(i).toMap().value(QStringLiteral("second")).toStringList();
+			if (list.isEmpty())
+				continue;
 
-	for (auto it = numbers.constBegin(); it != numbers.constEnd(); ++it)
-		aList.append(*it);
+			slist = generateItems(list, cnt);
 
-	m[QStringLiteral("answer")] = aList;
+			if (slist.isEmpty())
+				continue;
+		}
 
-	list.append(m);
+		bool isDesc = false;
+
+		QString mode = data.value(QStringLiteral("mode")).toString();
+
+		if (mode == QStringLiteral("descending"))
+			isDesc = true;
+		else if (mode == QStringLiteral("random"))
+			isDesc = (QRandomGenerator::global()->generate() % 2 == 1);
+
+
+		m[QStringLiteral("mode")] = isDesc ? QStringLiteral("descending") : QStringLiteral("ascending");
+		m[QStringLiteral("question")] = isDesc ? data.value(QStringLiteral("questionDesc")).toString() : data.value(QStringLiteral("questionAsc")).toString();
+		m[QStringLiteral("placeholderMin")] = data.value(QStringLiteral("placeholderMin")).toString();
+		m[QStringLiteral("placeholderMax")] = data.value(QStringLiteral("placeholderMax")).toString();
+		m[QStringLiteral("list")] = slist;
+		m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+
+		// Get correct index list
+
+		QVector<int> numbers;
+
+		for (int i=0; i<slist.size(); ++i) {
+			const int &num = slist.at(i).toMap().value(QStringLiteral("num")).toInt();
+			numbers.append(num);
+		}
+
+
+		if (isDesc)
+			std::sort(numbers.begin(), numbers.end(), std::greater<>());
+		else
+			std::sort(numbers.begin(), numbers.end(), std::less<>());
+
+		QVariantList aList;
+
+		for (auto it = numbers.constBegin(); it != numbers.constEnd(); ++it)
+			aList.append(*it);
+
+		m[QStringLiteral("answer")] = aList;
+
+		list.append(m);
+
+	}
 
 
 	return list;
@@ -243,6 +290,9 @@ QVariantList ModuleOrder::generateItems(const QStringList &list, const int &coun
 	QVariantList l;
 
 	for (int i=0; i<list.size(); ++i) {
+		if (list.at(i).isEmpty())
+			continue;
+
 		l.append(QVariantMap({
 								 { QStringLiteral("text"), list.at(i) },
 								 { QStringLiteral("num"), i }
@@ -303,5 +353,6 @@ QVariantList ModuleOrder::generateItems(const QVariantList &list, const int &cou
 
 	return ret;
 }
+
 
 

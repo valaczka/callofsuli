@@ -1088,7 +1088,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			continue;
 
 		const QString &module = obj.value(QStringLiteral("module")).toString();
-		const QString &question = obj.value(QStringLiteral("question")).toString();
+		const QString &question = Question::convertToMonospace(obj.value(QStringLiteral("question")).toString());
 		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
 
 		if (numberedListPtr) {
@@ -1125,7 +1125,13 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 										: obj.value(QStringLiteral("options")).toArray();
 			for (int i=0; i<options.size(); ++i) {
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
-						+QStringLiteral(")</b> ")+options.at(i).toString();
+						+QStringLiteral(")</b> ");
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					html += Question::monspaceTagStart() + options.at(i).toString() + Question::monspaceTagEnd();
+				else
+					html += options.at(i).toString();
+
 				if (i<options.size()-1)
 					html += QStringLiteral(",");
 			}
@@ -1133,7 +1139,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
 			for (int i=0; i<list.size(); ++i) {
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
-						+QStringLiteral(")</b> ")+list.at(i).toObject().value(QStringLiteral("text")).toString();
+						+QStringLiteral(")</b> ");
+
+				const QString &str = list.at(i).toObject().value(QStringLiteral("text")).toString();
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					html += Question::monspaceTagStart() + str + Question::monspaceTagEnd();
+				else
+					html += str;
+
 				if (i<list.size()-1)
 					html += QStringLiteral(",");
 			}
@@ -1190,9 +1204,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			for (const QJsonValue &v : list) {
 				const QJsonObject &data = v.toObject();
 
-				if (data.contains(QStringLiteral("w")))
-					html += QStringLiteral(" ")+data.value(QStringLiteral("w")).toString();
-				else
+				if (data.contains(QStringLiteral("w"))) {
+					html += QStringLiteral(" ");
+
+					if (obj.value(QStringLiteral("monospace")).toBool())
+						html += Question::monspaceTagStart() + data.value(QStringLiteral("w")).toString() + Question::monspaceTagEnd();
+					else
+						html += data.value(QStringLiteral("w")).toString();
+
+				} else
 					html += QStringLiteral(" <b>(")+QString::number(num++)+QStringLiteral(".)____</b>");
 			}
 
@@ -1205,7 +1225,12 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
 
 				html += QStringLiteral("<b>(")+m_optionLetters.at(i)
-						+QStringLiteral(")</b> ")+options.at(i).toString();
+						+QStringLiteral(")</b> ");
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					html += Question::monspaceTagStart() + options.at(i).toString() + Question::monspaceTagEnd();
+				else
+					html += options.at(i).toString();
 
 				if (i<options.size()-1)
 					html += QStringLiteral(",");

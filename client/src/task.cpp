@@ -205,7 +205,7 @@ void Task::setXp(int newXp)
 
 QString Task::readableGradeOrXp() const
 {
-	const int pts = m_criterion.value(QStringLiteral("pts")).toInt();
+	const int pts = m_criterion.value(QStringLiteral("pts")).toInt(-1);
 	return readableGradeOrXp(m_grade, m_xp, pts);
 }
 
@@ -222,7 +222,7 @@ QString Task::readableGradeOrXp(Grade *grade, const int xp, const int pts)
 {
 	QStringList t;
 
-	if (pts > 0)
+	if (pts >= 0)
 		t.append(tr("%1 pont").arg(pts));
 
 	if (grade)
@@ -246,7 +246,7 @@ QString Task::readableGradeOrXpShort(Grade *grade, const int xp, const int pts)
 {
 	QStringList t;
 
-	if (pts > 0)
+	if (pts >= 0)
 		t.append(tr("%1 p").arg(pts));
 
 	if (xp > 0)

@@ -86,7 +86,8 @@ Item {
 
 				anchors.top: parent.top
 
-				text: campaign ? campaign.readableShortResult(campaign.resultGrade, campaign.resultXP, campaign.progress * campaign.maxPts) : ""
+				text: campaign ? campaign.readableShortResult(campaign.resultGrade, campaign.resultXP,
+															  campaign.maxPts > 0 ? Math.round(campaign.progress * campaign.maxPts) : -1) : ""
 
 				wrapMode: Text.Wrap
 				color: campaign && !campaign.finished ? Qaterial.Colors.red900 : Qaterial.Colors.black

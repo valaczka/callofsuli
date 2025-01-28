@@ -45,6 +45,12 @@ Q_DECLARE_METATYPE(TeacherGroupList*)
 class TeacherGroupCampaignResultModel;
 
 
+class TeacherGroupFreeMap;
+using TeacherGroupFreeMapList = qolm::QOlm<TeacherGroupFreeMap>;
+Q_DECLARE_METATYPE(TeacherGroupFreeMapList*)
+
+
+
 
 /**
  * @brief The TeacherGroup class
@@ -62,7 +68,7 @@ class TeacherGroup : public QObject
 	Q_PROPERTY(ClassList* classList READ classList CONSTANT)
 	Q_PROPERTY(CampaignList *campaignList READ campaignList CONSTANT)
 	Q_PROPERTY(QString fullName READ fullName NOTIFY fullNameChanged)
-	Q_PROPERTY(QStringList freePlayMapList READ freePlayMapList WRITE setFreePlayMapList NOTIFY freePlayMapListChanged FINAL)
+	Q_PROPERTY(QJsonArray freePlayMapList READ freePlayMapList WRITE setFreePlayMapList NOTIFY freePlayMapListChanged FINAL)
 
 public:
 	explicit TeacherGroup(QObject *parent = nullptr);
@@ -72,6 +78,10 @@ public:
 
 	Q_INVOKABLE void reload();
 	Q_INVOKABLE void reloadAndCall(QObject *inst, QJSValue v);
+
+	Q_INVOKABLE void loadToFreePlayMapList(TeacherGroupFreeMapList *list, TeacherMapHandler *handler) const;
+	Q_INVOKABLE bool findMapInFreePlayMapList(TeacherMap *map) const;
+	Q_INVOKABLE QJsonArray findMissionsInFreePlayMapList(TeacherMap *map) const;
 
 	int groupid() const;
 	void setGroupid(int newGroupid);
@@ -88,8 +98,8 @@ public:
 	CampaignList *campaignList() const;
 	QString fullName() const;
 
-	QStringList freePlayMapList() const;
-	void setFreePlayMapList(const QStringList &newFreePlayMapList);
+	QJsonArray freePlayMapList() const;
+	void setFreePlayMapList(const QJsonArray &newFreePlayMapList);
 
 signals:
 	void memberListReloaded();
@@ -108,7 +118,7 @@ private:
 	std::unique_ptr<UserList> m_memberList;
 	std::unique_ptr<ClassList> m_classList;
 	std::unique_ptr<CampaignList> m_campaignList;
-	QStringList m_freePlayMapList;
+	QJsonArray m_freePlayMapList;
 };
 
 
@@ -200,6 +210,7 @@ private:
 		QPointer<User> user;
 		QPointer<Task> task;
 		bool success = false;
+		float result = 0.;
 	};
 
 	int findResult(const User *user, const Task *task) const;
@@ -234,10 +245,14 @@ class TeacherGroupResultResult {
 
 	Q_PROPERTY(Grade* grade MEMBER grade);
 	Q_PROPERTY(int xp MEMBER xp);
+	Q_PROPERTY(int maxPts MEMBER maxPts);
+	Q_PROPERTY(qreal progress MEMBER progress);
 
 public:
 	Grade *grade = nullptr;
 	int xp = 0;
+	int maxPts = 0;
+	qreal progress = 0.;
 };
 
 
@@ -314,6 +329,40 @@ private:
 
 
 
+/**
+ * @brief The TeacherGroupFreeMap class
+ */
 
+class TeacherGroupFreeMap : public SelectableObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString missionUuid READ missionUuid WRITE setMissionUuid NOTIFY missionUuidChanged FINAL)
+	Q_PROPERTY(BaseMap* map READ map WRITE setMap NOTIFY mapChanged FINAL)
+	Q_PROPERTY(QString name READ name NOTIFY nameChanged FINAL)
+
+public:
+	explicit TeacherGroupFreeMap(QObject *parent = nullptr);
+
+	const QString &missionUuid() const;
+	void setMissionUuid(QString newMissionUuid);
+
+	Q_INVOKABLE QString missionName() const;
+
+	BaseMap *map() const;
+	void setMap(BaseMap *newMap);
+
+	QString name() const;
+
+signals:
+	void missionUuidChanged();
+	void mapChanged();
+	void nameChanged();
+
+private:
+	QString m_missionUuid;
+	QPointer<BaseMap> m_map;
+	QString m_name;
+};
 
 #endif // TEACHERGROUP_H

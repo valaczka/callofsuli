@@ -82,6 +82,8 @@ public:
 	const QJsonObject &cache() const;
 	void setCache(const QJsonObject &newCache);
 
+	Q_INVOKABLE QJsonObject findMission(const QString &uuid) const;
+
 signals:
 	void downloadedChanged();
 	void downloadProgressChanged();

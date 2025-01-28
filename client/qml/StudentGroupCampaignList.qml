@@ -148,7 +148,7 @@ Item
 						let l = []
 
 						if (_delegate.campaign.maxPts > 0)
-							l.push(qsTr("%1 pt").arg(Number(Math.floor(_delegate.campaign.maxPts * _delegate.campaign.progress).toLocaleString())))
+							l.push(qsTr("%1 pt").arg(Number(Math.round(_delegate.campaign.maxPts * _delegate.campaign.progress).toLocaleString())))
 
 						if (_delegate.campaign.resultXP > 0)
 							l.push(qsTr("%1 XP").arg(Number(_delegate.campaign.resultXP).toLocaleString()))

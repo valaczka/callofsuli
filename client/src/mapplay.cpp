@@ -1100,6 +1100,18 @@ void AbstractMapPlaySolver::updateXP()
 
 
 
+const QStringList &AbstractMapPlaySolver::forceUnlockMissionList() const
+{
+	return m_forceUnlockMissionList;
+}
+
+void AbstractMapPlaySolver::setForceUnlockMissionList(const QStringList &newForceUnlockMissionList)
+{
+	m_forceUnlockMissionList = newForceUnlockMissionList;
+}
+
+
+
 
 
 /**
@@ -1151,6 +1163,9 @@ QList<MapPlayMissionLevel *> MapPlaySolverDefault::updateLock()
 				break;
 			}
 		}
+
+		if (m_forceUnlockMissionList.contains(mission->uuid()))
+			lockDepth = 0;
 
 		if (lockDepth) {
 			for (MapPlayMissionLevel *level : *mission->missionLevelList())

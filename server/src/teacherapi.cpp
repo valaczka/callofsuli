@@ -907,7 +907,7 @@ QHttpServerResponse TeacherAPI::group(const Credential &credential, const int &i
 			.execToJsonArray().value_or(QJsonArray{});
 
 	data[QStringLiteral("freePlayList")] =
-			QueryBuilder::q(db).addQuery("SELECT mapuuid, map.name as mapname "
+			QueryBuilder::q(db).addQuery("SELECT mapuuid, mission, map.name as mapname "
 										 "FROM freeplay "
 										 "LEFT JOIN mapdb.map ON (mapdb.map.uuid=freeplay.mapuuid) "
 										 "WHERE groupid=").addValue(id)
@@ -2834,7 +2834,15 @@ QHttpServerResponse TeacherAPI::freePlayAdd(const Credential &credential, const 
 	CHECK_GROUP(credential.username(), id);
 
 	for (const QJsonValue &v : std::as_const(list)) {
-		const QString &map = v.toString();
+		QString map, mission;
+
+		if (v.isObject()) {
+			const QJsonObject &o = v.toObject();
+			map = o.value(QStringLiteral("mapuuid")).toString();
+			mission = o.value(QStringLiteral("mission")).toString();
+		} else {
+			map = v.toString();
+		}
 
 		LAMBDA_SQL_ERROR("invalid map", !map.isEmpty()) {
 			LAMBDA_SQL_ASSERT(QueryBuilder::q(db).addQuery("INSERT OR IGNORE INTO freeplay(")
@@ -2844,11 +2852,12 @@ QHttpServerResponse TeacherAPI::freePlayAdd(const Credential &credential, const 
 							  .addQuery(")")
 							  .addField("groupid", id)
 							  .addField("mapuuid", map)
+							  .addField("mission", mission)
 							  .exec());
 		}
 	}
 
-	LOG_CDEBUG("client") << "Map added to freeplay:" << id << list;
+	LOG_CDEBUG("client") << "Maps added to freeplay:" << id << list;
 	response = responseOk();
 
 	LAMBDA_THREAD_END;
@@ -2881,15 +2890,32 @@ QHttpServerResponse TeacherAPI::freePlayRemove(const Credential &credential, con
 
 	CHECK_GROUP(username, id);
 
-	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).
-					  addQuery("DELETE FROM freeplay WHERE groupid=").addValue(id)
-					  .addQuery(" AND mapuuid IN (").addList(list.toVariantList())
-					  .addQuery(") AND (SELECT owner FROM studentgroup WHERE id=").addValue(id)
-					  .addQuery(")=").addValue(username)
-					  .exec());
+	db.transaction();
 
+	for (const QJsonValue &v : list) {
+		QString map, mission;
 
-	LOG_CDEBUG("client") << "Map removed from freeplay:" << id << list;
+		if (v.isObject()) {
+			const QJsonObject &o = v.toObject();
+			map =  o.value(QStringLiteral("mapuuid")).toString();
+			mission =  o.value(QStringLiteral("mission")).toString();
+		} else {
+			map = v.toString();
+			mission = QStringLiteral("");
+		}
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db).
+								   addQuery("DELETE FROM freeplay WHERE groupid=").addValue(id)
+								   .addQuery(" AND mapuuid=").addValue(map)
+								   .addQuery(" AND mission=").addValue(mission)
+								   .addQuery(" AND (SELECT owner FROM studentgroup WHERE id=").addValue(id)
+								   .addQuery(")=").addValue(username)
+								   .exec());
+	}
+
+	db.commit();
+
+	LOG_CDEBUG("client") << "Maps removed from freeplay:" << id;
 	response = responseOk();
 
 	LAMBDA_THREAD_END;
@@ -4151,7 +4177,7 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 	QMap<int, ResultXP> xpList;
 
 	int maxPts = 0;
-	float sumResult = 0.;
+	float sumPts = 0.;
 
 
 	// Task list
@@ -4184,13 +4210,13 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 		const QJsonObject &criterion = o.value(QStringLiteral("criterion")).toObject();
 
 		if (const int pts = criterion.value(QStringLiteral("pts")).toInt(); pts > 0) {
-			sumResult += o.value(QStringLiteral("result")).toVariant().toFloat();
+			sumPts += pts * o.value(QStringLiteral("result")).toVariant().toFloat();
 			maxPts += pts;
 		}
 	}
 
 	result.maxPts = maxPts;
-	result.progress = sumResult;
+	result.progress = maxPts > 0 ? (sumPts / maxPts) : 0.;
 
 	int maxRequiredValue = -1;
 

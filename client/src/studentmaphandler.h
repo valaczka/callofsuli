@@ -29,8 +29,10 @@
 
 #include "basemaphandler.h"
 #include "studentmap.h"
+#include "teachergroup.h"
 
 class Campaign;
+
 
 /**
  * @brief The StudentMapHandler class
@@ -50,9 +52,11 @@ public:
 	Q_INVOKABLE void checkDownloads();
 
 	Q_INVOKABLE void getUserCampaign(Campaign *campaign);
-	Q_INVOKABLE void playCampaignMap(Campaign *campaign, StudentMap *map);
+    Q_INVOKABLE void playCampaignMap(Campaign *campaign, StudentMap *map, const QString &missionUuid);
 
 	StudentMapList *mapList() const;
+
+	Q_INVOKABLE void reloadFreePlayMapList(TeacherGroupFreeMapList *list);
 
 protected:
 	void reloadList() override;

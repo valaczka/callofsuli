@@ -399,20 +399,15 @@ QHttpServerResponse UserAPI::freePlay(const Credential &credential)
 
 	LAMBDA_THREAD_BEGIN(credential);
 
-	QJsonArray list;
+	const auto &ptr = QueryBuilder::q(db)
+					  .addQuery("SELECT DISTINCT mapuuid, mission FROM freeplay WHERE groupid IN ("
+								"SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+					  .addQuery(")")
+					  .execToJsonArray();
 
-	QueryBuilder q(db);
+	LAMBDA_SQL_ASSERT(ptr);
 
-	q.addQuery("SELECT DISTINCT mapuuid FROM freeplay WHERE groupid IN ("
-			   "SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
-			.addQuery(")");
-
-	LAMBDA_SQL_ASSERT(q.exec());
-
-	while (q.sqlQuery().next())
-		list.append(q.value("mapuuid").toString());
-
-	response = responseResult("list", list);
+	response = responseResult("list", *ptr);
 
 	LAMBDA_THREAD_END;
 }

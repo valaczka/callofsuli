@@ -37,7 +37,8 @@
 
 #include <QString>
 #include <QVariantMap>
-#include "gamemap.h"
+
+class GameMapObjective;
 
 class Question
 {
@@ -50,7 +51,7 @@ public:
 
 	QVariantMap generate() const;
 
-	QVariantMap commonData() const { return m_objective ? m_objective->commonData() : QVariantMap(); }
+	QVariantMap commonData() const;
 
 	static QVariantMap objectiveInfo(const QString &module, const QVariantMap &data,
 									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
@@ -58,6 +59,10 @@ public:
 	static QVariantMap storageInfo(const QString &module, const QVariantMap &data);
 
 	QString qml() const;
+
+	static QString convertToMonospace(const QString &text);
+	static QString monspaceTagStart();
+	static QString monspaceTagEnd();
 
 	friend bool operator==(const Question &l, const Question &r)
 	{

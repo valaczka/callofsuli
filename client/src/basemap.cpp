@@ -26,6 +26,7 @@
 
 #include "basemap.h"
 #include "qjsonobject.h"
+#include <QJsonArray>
 
 BaseMap::BaseMap(QObject *parent)
 	: SelectableObject{parent}
@@ -150,4 +151,24 @@ void BaseMap::setCache(const QJsonObject &newCache)
 		return;
 	m_cache = newCache;
 	emit cacheChanged();
+}
+
+
+/**
+ * @brief BaseMap::findMission
+ * @param uuid
+ * @return
+ */
+
+QJsonObject BaseMap::findMission(const QString &uuid) const
+{
+	QJsonArray mList = m_cache.value(QStringLiteral("missions")).toArray();
+
+	for (const QJsonValue &v : mList) {
+		const QJsonObject o = v.toObject();
+		if (o.value(QStringLiteral("uuid")).toString() == uuid)
+			return o;
+	}
+
+	return {};
 }

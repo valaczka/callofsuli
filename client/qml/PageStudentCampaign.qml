@@ -109,7 +109,7 @@ QPageGradient {
 																				  Qaterial.Icons.download
 						//highlighted: true
 						onClicked: if (map && map.downloaded)
-									   studentMapHandler.playCampaignMap(campaign, map)
+									   studentMapHandler.playCampaignMap(campaign, map, "")
 								   else {
 									   _playAfterDownload = true
 									   studentMapHandler.mapDownload(map)
@@ -122,7 +122,7 @@ QPageGradient {
 
 							function onDownloadedChanged() {
 								if (_btn._playAfterDownload && downloaded && campaign)
-									studentMapHandler.playCampaignMap(campaign, map)
+									studentMapHandler.playCampaignMap(campaign, map, "")
 							}
 						}
 					}

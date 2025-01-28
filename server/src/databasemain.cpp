@@ -164,24 +164,29 @@ bool DatabaseMain::databaseUpgrade(const int &major, const int &minor)
 		QLambdaThreadWorker *worker = db ? db->worker() : m_worker.get();
 
 		worker->execInThread([ret, this, &major, &minor, ptr = db.get(), i]() mutable {
-			QSqlDatabase db = QSqlDatabase::database(ptr ? ptr->dbName() : m_dbName);
-
 			QMutexLocker mutexlocker(ptr ? ptr->mutex() : mutex());
 
-			if (QueryBuilder q(db); q.addQuery("SELECT versionMajor, versionMinor FROM system").exec()) {
-				if (!q.sqlQuery().first()) {
-					LOG_CERROR("db") << "Corrupt database";
-					return ret.reject();
-				}
+			int vMajor = 0;
+			int vMinor = 0;
 
-				const int &vMajor = q.value("versionMajor").toInt();
-				const int &vMinor = q.value("versionMinor").toInt();
+			{
+				QSqlDatabase db = QSqlDatabase::database(ptr ? ptr->dbName() : m_dbName);
 
-				if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode(major, minor)) {
-					if (!_upgradeTables(ptr ? ptr : this, i, vMajor, vMinor, major, minor)) {
-						LOG_CERROR("db") << "Upgrade failed";
+				if (QueryBuilder q(db); q.addQuery("SELECT versionMajor, versionMinor FROM system").exec()) {
+					if (!q.sqlQuery().first()) {
+						LOG_CERROR("db") << "Corrupt database";
 						return ret.reject();
 					}
+
+					vMajor = q.value("versionMajor").toInt();
+					vMinor = q.value("versionMinor").toInt();
+				}
+			}
+
+			if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode(major, minor)) {
+				if (!_upgradeTables(ptr ? ptr : this, i, vMajor, vMinor, major, minor)) {
+					LOG_CERROR("db") << "Upgrade failed";
+					return ret.reject();
 				}
 			}
 

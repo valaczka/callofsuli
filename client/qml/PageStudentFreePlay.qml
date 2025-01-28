@@ -18,7 +18,7 @@ QPageGradient {
 
 	property bool _firstRun: true
 
-	StudentMapList {
+	TeacherGroupFreeMapList {
 		id: _mapList
 	}
 
@@ -30,95 +30,125 @@ QPageGradient {
 		refreshEnabled: true
 		onRefreshRequest: reloadList()
 
+		QListView {
+			id: view
 
-		Item {
-			id: _content
-			width: parent.width
-			height: Math.max(_scroll.height-_scroll.contentContainer.y, _grid.height)
+			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+			anchors.horizontalCenter: parent.horizontalCenter
 
-			QDashboardGrid {
-				id: _grid
-				anchors.centerIn: parent
+			height: contentHeight
+			boundsBehavior: Flickable.StopAtBounds
 
-				readonly property bool showPlaceholders: _mapList.count === 0 && _firstRun
+			currentIndex: -1
+			autoSelectChange: false
 
-				visible: _mapList.count || showPlaceholders
-				contentItems: showPlaceholders ? 3 : _mapList.count
+			refreshEnabled: false
 
-				Repeater {
-					model: _grid.showPlaceholders ? 3 : _sortedMapList
+			readonly property bool showPlaceholders: _mapList.count === 0 && _firstRun
 
-					delegate: _grid.showPlaceholders ? _cmpPlaceholder : _cmpButton
-				}
+			model: SortFilterProxyModel {
+				sourceModel: _mapList
 
-				Component {
-					id: _cmpButton
-
-					QDashboardButton {
-						id: _btn
-						property StudentMap map: model && model.qtObject ? model.qtObject : null
-						text: map ? map.name : ""
-
-						icon.source: map && map.downloaded ? Qaterial.Icons.map :
-															 _playAfterDownload ? Qaterial.Icons.refresh :
-																				  Qaterial.Icons.download
-
-						onClicked: if (map && map.downloaded)
-									   studentMapHandler.playCampaignMap(null, map)
-								   else {
-									   _playAfterDownload = true
-									   studentMapHandler.mapDownload(map)
-								   }
-
-						property bool _playAfterDownload: false
-
-						Connections {
-							target: map
-
-							function onDownloadedChanged() {
-								if (_btn._playAfterDownload && downloaded)
-									studentMapHandler.playCampaignMap(null, map)
-							}
-						}
+				sorters: [
+					StringSorter {
+						roleName: "name"
+						sortOrder: Qt.AscendingOrder
+						priority: 2
+					},
+					StringSorter {
+						roleName: "missionUuid"
+						sortOrder: Qt.AscendingOrder
+						priority: 1
 					}
-				}
 
-				Component {
-					id: _cmpPlaceholder
-
-					QPlaceholderItem {
-						widthRatio: 1.0
-						heightRatio: 1.0
-						width: _grid.buttonSize
-						height: _grid.buttonSize
-						rectangleRadius: 5
-					}
-				}
+				]
 			}
 
 
-			Qaterial.LabelHeadline6 {
-				visible: !_grid.visible
-				anchors.centerIn: parent
-				text: qsTr("Jelenleg nincsen szabadon játszható pálya")
-				color: Qaterial.Style.accentColor
+			header: Item {
+				width: ListView.width
+				height: control.paddingTop
+			}
+
+			delegate: QItemDelegate {
+				id: _delegate
+
+				property TeacherGroupFreeMap mapObject: model.qtObject
+
+				readonly property bool _downloaded: mapObject && mapObject.map && mapObject.map.downloaded
+				property bool _playAfterDownload: false
+
+				iconColor: Qaterial.Style.iconColor()
+
+				text: mapObject ? (mapObject.missionUuid !== "" ? mapObject.missionName() : mapObject.name)
+								: ""
+
+				secondaryText: mapObject && mapObject.missionUuid !== "" ? mapObject.name : ""
+
+				iconSource:  _downloaded ? Qaterial.Icons.map :
+										   _playAfterDownload ? Qaterial.Icons.refresh :
+																Qaterial.Icons.download
+
+				onClicked: if (_downloaded)
+							   studentMapHandler.playCampaignMap(null, mapObject.map, mapObject.missionUuid)
+						   else {
+							   _playAfterDownload = true
+							   studentMapHandler.mapDownload(mapObject.map)
+						   }
+
+				Connections {
+					target: _delegate.mapObject ? _delegate.mapObject.map : null
+
+					function onDownloadedChanged() {
+						if (_delegate._playAfterDownload && _delegate.mapObject.map.downloaded)
+							studentMapHandler.playCampaignMap(null, _delegate.mapObject.map, _delegate.mapObject.missionUuid)
+					}
+				}
 			}
 		}
 
-	}
 
-	SortFilterProxyModel {
-		id: _sortedMapList
-		sourceModel: _mapList
+		Repeater {
+			id: _cmpPlacholder
 
-		sorters: [
-			StringSorter {
-				roleName: "name"
-				sortOrder: Qt.AscendingOrder
+			model: 3
+
+			delegate: Qaterial.FullLoaderItemDelegate {
+				id: _delegatePlaceholder
+
+				visible: view.showPlaceholders
+
+				width: view.width
+				height: Qaterial.Style.textTheme.body2.pixelSize*3 + topPadding+bottomPadding+topInset+bottomInset
+
+				anchors.horizontalCenter: parent.horizontalCenter
+
+				spacing: 10  * Qaterial.Style.pixelSizeRatio
+				leftPadding: 0
+				rightPadding: 0
+
+				contentSourceComponent: QPlaceholderItem {
+					horizontalAlignment: Qt.AlignLeft
+					heightRatio: 0.5
+				}
+
+				leftSourceComponent: QPlaceholderItem {
+					contentComponent: ellipseComponent
+					fixedHeight: _delegatePlaceholder.height-6
+					fixedWidth: fixedHeight
+				}
 			}
-		]
+		}
 	}
 
+
+
+	Qaterial.LabelHeadline6 {
+		visible: _mapList.count === 0 && !view.showPlaceholders
+		anchors.centerIn: parent
+		text: qsTr("Jelenleg nincsen szabadon játszható pálya")
+		color: Qaterial.Style.accentColor
+	}
 
 
 	Connections {
@@ -138,20 +168,8 @@ QPageGradient {
 		if (!studentMapHandler)
 			return
 
-		Client.send(HttpConnection.ApiUser, "freeplay")
-		.done(control, function(r){
-			_mapList.clear()
-			_firstRun = false
+		studentMapHandler.reloadFreePlayMapList(_mapList)
 
-			var l = studentMapHandler.mapList
-
-			for (var i=0; i<l.length; ++i) {
-				var m = l.get(i)
-				if (r.list.includes(m.uuid)) {
-					_mapList.append(m)
-				}
-			}
-		})
-		.fail(control, JS.failMessage(qsTr("Szabad játékok letöltése sikertelen")))
 	}
+
 }

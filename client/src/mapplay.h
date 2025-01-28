@@ -201,8 +201,12 @@ public:
 	virtual QList<MapPlayMissionLevel*> updateLock() = 0;
 	virtual void updateXP();
 
+	const QStringList &forceUnlockMissionList() const;
+	void setForceUnlockMissionList(const QStringList &newForceUnlockMissionList);
+
 protected:
 	MapPlay *m_mapPlay = nullptr;
+	QStringList m_forceUnlockMissionList;
 
 };
 

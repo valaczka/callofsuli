@@ -34,6 +34,7 @@
 
 #include "question.h"
 #include "application.h"
+#include "gamemap.h"
 #include "../modules/interfaces.h"
 
 
@@ -113,6 +114,40 @@ QVariantMap Question::generate() const
 	return q;
 }
 
+QVariantMap Question::commonData() const
+{
+	return m_objective ? m_objective->commonData() : QVariantMap();
+}
+
+
+
+
+/**
+ * @brief Question::convertToMonospace
+ * @param text
+ * @return
+ */
+
+
+QString Question::convertToMonospace(const QString &text)
+{
+	static const QRegularExpression exp(R"(`([^`]*)`)");
+
+	QString t = text;
+	t.replace(exp, QStringLiteral(R"(<font face="Ubuntu Mono">\1</font>)"));
+
+	return t;
+}
+
+QString Question::monspaceTagStart()
+{
+	return QStringLiteral(R"(<font face="Ubuntu Mono">)");
+}
+
+QString Question::monspaceTagEnd()
+{
+	return QStringLiteral(R"(</font>)");
+}
 
 
 

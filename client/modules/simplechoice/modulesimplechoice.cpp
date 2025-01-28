@@ -26,6 +26,7 @@
 
 #include <QRandomGenerator>
 #include "modulesimplechoice.h"
+#include "question.h"
 
 ModuleSimplechoice::ModuleSimplechoice(QObject *parent) : QObject(parent)
 {
@@ -36,7 +37,12 @@ QString ModuleSimplechoice::testResult(const QVariantMap &data, const QVariantMa
 {
 	const QStringList &options = data.value(QStringLiteral("options")).toStringList();
 
-	QString html = QStringLiteral("<p class=\"options\">");
+	QString html;
+
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagStart();
+
+	html += QStringLiteral("<p class=\"options\">");
 	html += options.join(QStringLiteral(" • "));
 	html += QStringLiteral("</p>");
 
@@ -62,6 +68,9 @@ QString ModuleSimplechoice::testResult(const QVariantMap &data, const QVariantMa
 	}
 
 	html + QStringLiteral("</p>");
+
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagEnd();
 
 	return html;
 }
@@ -183,6 +192,7 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 		QVariantMap m;
 
 		m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
 		QString correct = data.value(QStringLiteral("correct")).toString();
 
@@ -247,6 +257,8 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 		else
 			retMap[QStringLiteral("question")] = question;
 
+		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
 		QStringList alist;
 
 		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
@@ -305,6 +317,8 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 			retMap[QStringLiteral("image")] = QStringLiteral("image://mapimage/%1").arg(imgId);
 		else
 			retMap[QStringLiteral("imageAnswers")] = true;
+
+		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
 		QStringList alist;
 
@@ -404,6 +418,8 @@ QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, 
 			else
 				retMap[QStringLiteral("question")] = question;
 
+			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
 			QStringList alist;
 
 			for (int i=0; i<bNames.size(); ++i) {
@@ -467,6 +483,8 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 			retMap[QStringLiteral("question")] = question.arg(left);
 		else
 			retMap[QStringLiteral("question")] = question;
+
+		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
 		const QString &correct = right.at(QRandomGenerator::global()->bounded(right.size()));
 

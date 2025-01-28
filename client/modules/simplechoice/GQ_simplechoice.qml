@@ -127,6 +127,8 @@ GameQuestionComponentImpl {
 			text: modelData
 			width: grid.width
 
+			fontFamily: questionData.monospace ? "Ubuntu Mono" : ""
+
 			buttonType: control.toggleMode == GameQuestionComponentImpl.ToggleSelect ||
 						control.toggleMode == GameQuestionComponentImpl.ToggleFeedback ?
 							(control.selectedButtonIndex === index ? GameQuestionButton.Selected : GameQuestionButton.Neutral) :

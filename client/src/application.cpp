@@ -436,6 +436,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherExam>("CallOfSuli", 1, 0, "TeacherExam");
 	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
 	qmlRegisterType<TeacherGroupCampaignResultModel>("CallOfSuli", 1, 0, "TeacherGroupCampaignResultModel");
+	qmlRegisterType<TeacherGroupFreeMap>("CallOfSuli", 1, 0, "TeacherGroupFreeMap");
+	qmlRegisterType<TeacherGroupFreeMapList>("CallOfSuli", 1, 0, "TeacherGroupFreeMapList");
 	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
 	qmlRegisterType<TeacherGroupResultModel>("CallOfSuli", 1, 0, "TeacherGroupResultModel");
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
@@ -469,7 +471,7 @@ void Application::loadFonts()
 {
 	LOG_CTRACE("app") << "Load fonts";
 
-	const QVector<QString> fontsToLoad = {
+	static const QVector<QString> fontsToLoad = {
 		QStringLiteral(":/internal/font/Books.ttf"),
 		QStringLiteral(":/internal/font/School.ttf"),
 		QStringLiteral(":/internal/font/Academic.ttf"),
@@ -484,6 +486,9 @@ void Application::loadFonts()
 		QStringLiteral(":/internal/font/SpecialElite.ttf"),
 		QStringLiteral(":/internal/font/HVD_Peace.ttf"),
 		QStringLiteral(":/internal/font/RenegadeMaster.ttf"),
+
+		QStringLiteral(":/internal/font/UbuntuMono-Regular.ttf"),
+		QStringLiteral(":/internal/font/UbuntuMono-Italic.ttf"),
 	};
 
 	for (const QString &fontPath : std::as_const(fontsToLoad)) {

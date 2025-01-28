@@ -212,7 +212,8 @@ CREATE VIEW studentGroupInfo AS
 CREATE TABLE freeplay(
 	groupid INTEGER NOT NULL REFERENCES studentgroup(id) ON UPDATE CASCADE ON DELETE CASCADE,
 	mapuuid TEXT NOT NULL,
-	UNIQUE(groupid, mapuuid)
+	mission TEXT NOT NULL DEFAULT '',
+	UNIQUE(groupid, mapuuid, mission)
 );
 
 ----------------------------------

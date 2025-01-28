@@ -111,6 +111,12 @@ QFormColumn {
 	}
 
 
+	QFormCheckButton {
+		id: _checkMonospace
+		field: "monospace"
+		text: qsTr("Válaszlehetőségek monospace betűtípussal")
+	}
+
 	MapEditorSpinStorageCount {
 		id: _countBinding
 		visible: isText || isSequence
@@ -119,9 +125,9 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isText ? [_question, _spinCount]
-							: isSequence ? [_question, _countWords, _spinCount]
-										 : [_question, _area, _spinOptions, _spinCount]
+		let _items = isText ? [_question, _spinCount, _checkMonospace]
+							: isSequence ? [_question, _countWords, _spinCount, _checkMonospace]
+										 : [_question, _area, _spinOptions, _spinCount, _checkMonospace]
 
 		_countBinding.value = objective.storageCount
 
@@ -139,9 +145,9 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isText ? [_question, _spinCount]
-							: isSequence ? [_question, _countWords, _spinCount]
-										 : [_question, _area, _spinOptions, _spinCount, _wrongAnswers]
+		let _items = isText ? [_question, _spinCount, _checkMonospace]
+							: isSequence ? [_question, _countWords, _spinCount, _checkMonospace]
+										 : [_question, _area, _spinOptions, _spinCount, _wrongAnswers, _checkMonospace]
 		return getItems(_items)
 	}
 }

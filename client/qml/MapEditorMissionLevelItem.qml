@@ -197,7 +197,7 @@ QPage {
 						{
 							id: _isExam
 							text: qsTr("Dolgozat")
-							checked: mission && (mission.modes & GameMap.Exam)
+							checked: mission && (missionLevelModes & GameMap.Exam)
 							onToggled: _form.updateCheckButtons()
 						}*/
 
@@ -233,7 +233,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & GameMap.Test)
+				visible: missionLevelModes & (GameMap.Test|GameMap.Lite)
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -252,7 +252,7 @@ QPage {
 
 				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
-					from: 30
+					from: 0
 					to: 600
 					stepSize: 30
 
@@ -271,7 +271,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & (GameMap.Lite|GameMap.Rpg))
+				visible: missionLevelModes & (GameMap.Lite|GameMap.Rpg)
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -314,7 +314,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & GameMap.Test)
+				visible: missionLevelModes & GameMap.Test
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -374,7 +374,7 @@ QPage {
 						delegate: MapEditorChapterItem {
 							width: parent.width
 							chapter: modelData
-							isExam: mission && (mission.modes & GameMap.Exam)
+							isExam: missionLevelModes & GameMap.Exam
 
 							onRemoveActionRequest: {
 								if (editor)

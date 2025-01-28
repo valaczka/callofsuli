@@ -123,7 +123,7 @@ void LiteGame::onStarted()
 		return;
 	}
 
-	qint64 msec = 0;
+	qint64 msec = m_missionLevel->duration()*1000;
 
 	foreach (const LiteQuestion &q, m_questions) {
 		ModuleInterface *iface = Application::instance()->objectiveModules().value(q.question().module());

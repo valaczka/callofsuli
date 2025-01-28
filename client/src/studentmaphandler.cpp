@@ -108,7 +108,7 @@ void StudentMapHandler::getUserCampaign(Campaign *campaign)
  * @param map
  */
 
-void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
+void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, const QString &missionUuid)
 {
 	if (!map)
 		return;
@@ -147,10 +147,14 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 				}
 			}
 		}
+	} else if (!missionUuid.isEmpty()) {
+		mission = mapPlay->getMission(mapPlay->gameMap()->mission(missionUuid));
 	}
 
 
 	if (mission && !mission->missionLevelList()->empty()) {
+		mapPlay->solver()->setForceUnlockMissionList({mission->uuid()});
+
 		QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlayMissionLevel.qml"),
 												   QVariantMap({
 																   { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) },
@@ -220,3 +224,45 @@ StudentMapList *StudentMapHandler::mapList() const
 {
 	return m_mapList.get();
 }
+
+
+/**
+ * @brief StudentMapHandler::reloadFreePlayMapList
+ * @param list
+ */
+
+void StudentMapHandler::reloadFreePlayMapList(TeacherGroupFreeMapList *list)
+{
+	m_client->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("freeplay"))
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Szabad játékok letöltése sikertelen"));})
+			->done(this, [this, mapList = QPointer<TeacherGroupFreeMapList>(list)](const QJsonObject &data){
+		const QJsonArray &l = data.value(QStringLiteral("list")).toArray();
+
+		if (!mapList)
+			return;
+
+		mapList->clear();
+
+		for (const QJsonValue &v : l) {
+			const QJsonObject obj = v.toObject();
+			const QString uuid = obj.value(QStringLiteral("mapuuid")).toString();
+
+			StudentMap *map = nullptr;
+
+			for (StudentMap *m : *m_mapList.get()) {
+				if (m && m->uuid() == uuid) {
+					map = m;
+					break;
+				}
+			}
+
+			if (map) {
+				TeacherGroupFreeMap *fm  = new TeacherGroupFreeMap();
+				fm->setMap(map);
+				fm->setMissionUuid(obj.value(QStringLiteral("mission")).toString());
+				mapList->append(fm);
+			}
+		}
+	});
+}
+

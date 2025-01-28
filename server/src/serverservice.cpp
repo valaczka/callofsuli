@@ -804,10 +804,105 @@ int ServerService::exec()
 		return 4;
 	}
 
+
+	auto fnBackup = [](const QString &fname, const bool &remove = false) -> bool {
+		static const QString backupSuffix = ".backup~";
+		QString fn = fname + backupSuffix;
+		if (QFile::exists(fn)) {
+			LOG_CTRACE("service") << "Remove old backup:" << qPrintable(fn);
+
+			if (!QFile::remove(fn)) {
+				LOG_CERROR("service") << "Failed to remove backup file:" << qPrintable(fn);
+				return false;
+			}
+		}
+
+		if (remove)
+			return true;
+
+		LOG_CTRACE("service") << "Create backup:" << qPrintable(fname) << "->" << qPrintable(fn);
+
+		if (!QFile::copy(fname, fn)) {
+			LOG_CERROR("service") << "Failed to create backup file:" << qPrintable(fn);
+			return false;
+		}
+
+		return true;
+	};
+
+
+
+	auto fnRestore = [](const QString &fname) -> bool {
+		static const QString backupSuffix = ".backup~";
+		QString fn = fname + backupSuffix;
+
+		LOG_CTRACE("service") << "Restore backup:" << qPrintable(fn) << "->" << qPrintable(fname);
+
+		if (!QFile::exists(fn)) {
+			LOG_CERROR("service") << "Backup not exists:" << qPrintable(fn);
+			return false;
+		}
+
+		if (QFile::exists(fname)) {
+			if (!QFile::remove(fname)) {
+				LOG_CERROR("service") << "Failed to remove file:" << qPrintable(fname);
+				return false;
+			}
+		}
+
+		if (!QFile::rename(fn, fname)) {
+			LOG_CERROR("service") << "Failed to restore file:" << qPrintable(fname);
+			return false;
+		}
+
+		return true;
+	};
+
+
+	auto fnBackupAll = [this, &fnBackup](const bool &remove = false) -> bool {
+		if (!fnBackup(m_databaseMain->dbFile(), remove))
+			return false;
+
+		if (!fnBackup(m_databaseMain->dbMapsFile(), remove))
+			return false;
+
+		if (!fnBackup(m_databaseMain->dbStatFile(), remove))
+			return false;
+
+		return true;
+	};
+
+	auto fnRestoreAll = [this, &fnRestore]() -> bool {
+		if (!fnRestore(m_databaseMain->dbFile()))
+			return false;
+
+		if (!fnRestore(m_databaseMain->dbMapsFile()))
+			return false;
+
+		if (!fnRestore(m_databaseMain->dbStatFile()))
+			return false;
+
+		return true;
+	};
+
+
+
+	if (!fnBackupAll()) {
+		LOG_CERROR("service") << "Backup create error";
+		return 7;
+	}
+
+
 	m_databaseMain->databaseOpen(m_databaseMain->dbFile());
 
 	if (!m_databaseMain->databasePrepare(m_importDb)) {
 		LOG_CERROR("service") << "Main database prepare error";
+
+		if (!fnRestoreAll()) {
+			LOG_CERROR("service") << "Backup restore error";
+			return 7;
+		}
+
 		return 5;
 	}
 
@@ -823,11 +918,23 @@ int ServerService::exec()
 			LOG_CINFO("service") << "Upgrade database to version" << qPrintable(QString::number(vMajor).append('.').append(QString::number(vMinor)));
 			if (!m_databaseMain->databaseUpgrade(vMajor, vMinor)) {
 				LOG_CERROR("service") << "Upgrade error";
+
+				if (!fnRestoreAll()) {
+					LOG_CERROR("service") << "Backup restore error";
+					return 7;
+				}
+
 				return 7;
 			}
 		} else {
 			LOG_CERROR("service") << "Invalid version code:" << m_forceUpgrade;
 		}
+	}
+
+
+	if (!fnBackupAll(true)) {
+		LOG_CERROR("service") << "Backup remove error";
+		return 7;
 	}
 
 

@@ -19,6 +19,7 @@ QFormColumn {
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
 	readonly property bool isNumbers: storage && (storage.module == "sequence" || storage.module == "numbers")
+	readonly property bool isBlock: storage && storage.module == "block"
 
 
 	QFormTextArea {
@@ -27,7 +28,7 @@ QFormColumn {
 		placeholderText: qsTr("A sorozat elemei (soronként) növekvő sorrendben ")
 		helperText: qsTr("Növekvő sorrendben")
 		width: parent.width
-		visible: !isNumbers
+		visible: !isNumbers && !isBlock
 
 		field: "items"
 		getData: function() { return text.split("\n") }
@@ -118,10 +119,16 @@ QFormColumn {
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormCheckButton {
+		id: _checkMonospace
+		field: "monospace"
+		text: qsTr("Válaszlehetőségek monospace betűtípussal")
+	}
+
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isNumbers
+		visible: isNumbers || isBlock
 	}
 
 
@@ -130,9 +137,9 @@ QFormColumn {
 
 	function loadData() {
 		_countBinding.value = objective.storageCount
-		setItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin], objective.data)
+		setItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _checkMonospace], objective.data)
 
-		if (!isNumbers && objective.data.items !== undefined)
+		if (!isNumbers && !isBlock && objective.data.items !== undefined)
 			_areaItems.fieldData = objective.data.items.join("\n")
 	}
 
@@ -145,10 +152,10 @@ QFormColumn {
 
 
 	function previewData() {
-		if (!isNumbers)
-			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _areaItems])
+		if (!isNumbers && !isBlock)
+			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _areaItems, _checkMonospace])
 		else
-			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin])
+			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _checkMonospace])
 	}
 }
 

@@ -95,6 +95,8 @@ GameQuestionComponentImpl {
 
 		GameQuestionDNDbutton {
 			drops: containerItem.drops
+
+			fontFamily: questionData.monospace ? "Ubuntu Mono" : ""
 		}
 	}
 
