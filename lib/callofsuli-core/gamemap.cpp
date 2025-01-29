@@ -184,7 +184,8 @@ qreal GameMap::computeSolvedXpFactor(const int &level, const int &solved, const 
 	qreal factor = XP_FACTOR_LEVEL*level;
 
 	if (mode == Practice) {
-		factor = XP_FACTOR_PRACTICE;
+		///factor = XP_FACTOR_PRACTICE;
+		return 0.;
 	} else {
 		if (solved < 1)
 			factor *= XP_FACTOR_SOLVED_FIRST;

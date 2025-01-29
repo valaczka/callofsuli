@@ -474,6 +474,26 @@ struct GameMap::SolverInfo {
 		}
 	}
 
+	SolverInfo(const QJsonObject &object) {
+		// Old version
+
+		const int level1 = std::max(object.value(QStringLiteral("t1")).toInt(0),
+									object.value(QStringLiteral("d1")).toInt(0));
+		const int level2 = std::max(object.value(QStringLiteral("t2")).toInt(0),
+									object.value(QStringLiteral("d2")).toInt(0));
+		const int level3 = std::max(object.value(QStringLiteral("t3")).toInt(0),
+									object.value(QStringLiteral("d3")).toInt(0));
+
+		if (level1 > 0)
+			setSolved(1, level1);
+
+		if (level2 > 0)
+			setSolved(2, level2);
+
+		if (level3 > 0)
+			setSolved(3, level3);
+	}
+
 	void setSolved(const int &level, const int &num) {
 		levels[level] = num;
 	}

@@ -48,6 +48,9 @@ GameQuestionComponentImpl {
 				id: _cmpDrop
 
 				GameQuestionDNDdrop {
+
+					implicitWidth: Qaterial.Style.gameButtonImplicitHeight*1.2
+
 					allowResizeToContent: true
 					allowReplaceContent: true
 
@@ -58,9 +61,14 @@ GameQuestionComponentImpl {
 			Component {
 				id: _cmpWord
 
-				Qaterial.LabelBody1 {
+				Qaterial.Label {
 					height: Qaterial.Style.gameButtonImplicitHeight
 					verticalAlignment: Text.AlignVCenter
+
+					font.family: questionData.monospace ? "Ubuntu Mono" : Qaterial.Style.textTheme.body1.family
+					font.pixelSize: Qaterial.Style.textTheme.body1.pixelSize
+					font.weight: Qaterial.Style.textTheme.body1.weight
+					font.letterSpacing: Qaterial.Style.textTheme.body1.letterSpacing
 				}
 			}
 

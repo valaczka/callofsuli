@@ -146,6 +146,10 @@ ios {
 		QMAKE_IOS_DEPLOYMENT_TARGET = 14.0
 	}
 
+	LIBS += \
+		-framework AudioToolBox \
+		-framework AVFoundation
+
 	QMAKE_APPLE_TARGETED_DEVICE_FAMILY = 1,2
 
 	QMAKE_ASSET_CATALOGS += $$PWD/../deploy/Assets.xcassets
