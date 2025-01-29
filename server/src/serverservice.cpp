@@ -598,7 +598,7 @@ std::optional<int> ServerService::preStart()
 	m_settings->setDataDir(QCoreApplication::applicationDirPath());
 
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2024 Valaczka János Pál")));
+	parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2025 Valaczka János Pál")));
 	parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsCompactedShortOptions);
 
 	auto helpOption = parser.addHelpOption();
