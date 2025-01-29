@@ -15,6 +15,8 @@ Qaterial.TabBar
 
 	highlightItem: null
 
+	backgroundColor: Qaterial.Colors.gray900
+
 	Repeater
 	{
 		id: repeater

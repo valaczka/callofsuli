@@ -62,6 +62,7 @@ class Task : public SelectableObject
 	Q_PROPERTY(QString readableGradeOrXp READ readableGradeOrXp NOTIFY readableGradeOrXpChanged)
 	Q_PROPERTY(int gradeValue READ gradeValue NOTIFY gradeValueChanged)
 	Q_PROPERTY(bool success READ success WRITE setSuccess NOTIFY successChanged)
+	Q_PROPERTY(qreal result READ result WRITE setResult NOTIFY resultChanged FINAL)
 
 public:
 	explicit Task(QObject *parent = nullptr);
@@ -93,8 +94,8 @@ public:
 
 	QString readableGradeOrXp() const;
 
-	static QString readableGradeOrXp(Grade *grade, int xp);
-	static QString readableGradeOrXpShort(Grade *grade, int xp);
+	static QString readableGradeOrXp(Grade *grade, const int xp, const int pts);
+	static QString readableGradeOrXpShort(Grade *grade, const int xp, const int pts);
 
 	int gradeValue() const;
 
@@ -103,6 +104,9 @@ public:
 
 	bool success() const;
 	void setSuccess(bool newSuccess);
+
+	qreal result() const;
+	void setResult(qreal newResult);
 
 signals:
 	void taskidChanged();
@@ -115,6 +119,7 @@ signals:
 	void readableGradeOrXpChanged();
 	void gradeValueChanged();
 	void successChanged();
+	void resultChanged();
 
 private:
 	int m_taskid = 0;
@@ -125,6 +130,7 @@ private:
 	bool m_required = false;
 	bool m_success = false;
 	int m_xp = -1;
+	qreal m_result = 0.;
 };
 
 #endif // TASK_H

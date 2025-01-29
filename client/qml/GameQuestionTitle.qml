@@ -9,7 +9,7 @@ RowLayout {
 	id: control
 
 	property alias titleLabel: label
-	property alias title: label.text
+	property string title: ""
 	property bool buttons: true
 	property alias buttonOkEnabled: btnOk.enabled
 	property alias buttonOkVisible: btnOk.visible
@@ -30,6 +30,8 @@ RowLayout {
 
 	Label {
 		id: label
+
+		text: gameQuestion ? gameQuestion.convertToMonospace(title) : title
 
 		font.family: "Special Elite"
 		font.pixelSize: Qaterial.Style.textTheme.headline6.pixelSize

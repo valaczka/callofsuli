@@ -320,6 +320,9 @@ QString Exam::toHtml() const
 		html += QStringLiteral(" (")+m_resultGrade->longname()+QStringLiteral(")");
 	}
 
+	if (result.maxPoints > 0)
+		html += tr("<br/>%1/%2 pont").arg(result.points).arg(result.maxPoints);
+
 	html += QStringLiteral("</p>");
 
 	return TestGame::questionDataResultToHtml(html, result);

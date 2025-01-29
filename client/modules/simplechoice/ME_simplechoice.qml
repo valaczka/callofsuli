@@ -177,6 +177,12 @@ QFormColumn {
 	}
 
 
+	QFormCheckButton {
+		id: _checkMonospace
+		field: "monospace"
+		text: qsTr("Válaszlehetőségek monospace betűtípussal")
+	}
+
 	QFormSpinBox {
 		id: _spinOptions
 		field: "maxOptions"
@@ -202,12 +208,12 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isBinding ? [_question, _modeBinding, _spinOptions] :
+		let _items = isBinding ? [_question, _modeBinding, _spinOptions, _checkMonospace] :
 								 isImages ? (objective.data.mode === "image" ?
-												 [_modeImages, _questionII, _answerImage] :
+												 [_modeImages, _questionII, _answerImage, _checkMonospace] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_modeBlock, _questionBlock, _spinOptions] :
-													  [_question, _correctAnswer, _spinOptions]
+											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace] :
+													  [_question, _correctAnswer, _spinOptions, _checkMonospace]
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -224,12 +230,12 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isBinding ? [_question, _modeBinding, _spinOptions] :
+		let _items = isBinding ? [_question, _modeBinding, _spinOptions, _checkMonospace] :
 								 isImages ? (_modeImages.currentValue === "image" ?
-												 [_modeImages, _questionII, _answerImage] :
+												 [_modeImages, _questionII, _answerImage, _checkMonospace] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_modeBlock, _questionBlock, _spinOptions] :
-													  [_question, _correctAnswer, _answers, _spinOptions]
+											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace] :
+													  [_question, _correctAnswer, _answers, _spinOptions, _checkMonospace]
 
 		return getItems(_items)
 	}

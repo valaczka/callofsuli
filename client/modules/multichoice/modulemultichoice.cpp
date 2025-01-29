@@ -25,6 +25,7 @@
  */
 
 #include "modulemultichoice.h"
+#include "question.h"
 #include <QRandomGenerator>
 
 ModuleMultichoice::ModuleMultichoice(QObject *parent) : QObject(parent)
@@ -44,7 +45,13 @@ QString ModuleMultichoice::testResult(const QVariantMap &data, const QVariantMap
 {
 	const QStringList &options = data.value(QStringLiteral("options")).toStringList();
 
-	QString html = QStringLiteral("<p class=\"options\">");
+
+	QString html;
+
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagStart();
+
+	html += QStringLiteral("<p class=\"options\">");
 	html += options.join(QStringLiteral(" • "));
 	html += QStringLiteral("</p>");
 
@@ -86,6 +93,9 @@ QString ModuleMultichoice::testResult(const QVariantMap &data, const QVariantMap
 	}
 
 	html += QStringLiteral("</p>");
+
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagEnd();
 
 	return html;
 }
@@ -280,6 +290,8 @@ QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVa
 	else
 		m[QStringLiteral("question")] = question;
 
+	m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
 	return {m};
 }
 
@@ -305,6 +317,8 @@ QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 	QVariantMap m = _generate(clist, alist, minCorrect, maxOptions, maxCorrect);
 
 	m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
+
+	m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
 	return m;
 }

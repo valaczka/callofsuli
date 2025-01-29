@@ -25,7 +25,7 @@ QPage {
 	property TeacherGroup group: null
 	property TeacherMapHandler handler: null
 
-	TeacherMapList {
+	TeacherGroupFreeMapList {
 		id: _mapList
 	}
 
@@ -49,26 +49,36 @@ QPage {
 				StringSorter {
 					roleName: "name"
 					sortOrder: Qt.AscendingOrder
+					priority: 2
+				},
+				StringSorter {
+					roleName: "missionUuid"
+					sortOrder: Qt.AscendingOrder
+					priority: 1
 				}
+
 			]
 		}
 
 
 		delegate: QItemDelegate {
-			property TeacherMap mapObject: model.qtObject
+			property TeacherGroupFreeMap mapObject: model.qtObject
 			selectableObject: mapObject
 
-			highlighted: view.selectEnabled ? selected : ListView.isCurrentItem
+			highlighted: view.selectEnabled ? mapObject && mapObject.selected : ListView.isCurrentItem
 
 			iconSource: Qaterial.Icons.briefcaseCheck
 			iconColor: Qaterial.Style.iconColor()
 
+			text: mapObject ? (mapObject.missionUuid !== "" ?
+								   mapObject.name + " | " + mapObject.missionName() :
+								   mapObject.name)
+							: ""
 
-			text: mapObject ? mapObject.name : ""
-			secondaryText: mapObject ? qsTr("%1. verzió (%2 @%3)").arg(mapObject.version)
-									   .arg(mapObject.lastModified.toLocaleString(Qt.locale(), "yyyy. MMM d. H:mm:ss"))
-									   .arg(mapObject.lastEditor)
-									 : ""
+			secondaryText: mapObject && mapObject.map ? qsTr("%1. verzió (%2 @%3)").arg(mapObject.map.version)
+														.arg(mapObject.map.lastModified.toLocaleString(Qt.locale(), "yyyy. MMM d. H:mm:ss"))
+														.arg(mapObject.map.lastEditor)
+													  : ""
 
 		}
 
@@ -115,6 +125,86 @@ QPage {
 
 	ListModel {
 		id: _dlgModel
+
+		function open() {
+			clear()
+
+			let l=handler.mapList
+
+			for (let i=0; i<l.length; ++i) {
+				var m = l.get(i)
+
+				if (!group.findMapInFreePlayMapList(m)) {
+					append({
+							   uuid: m.uuid,
+							   text: m.name,
+							   map: m
+						   })
+				}
+			}
+
+			Qaterial.DialogManager.openListView(
+						{
+							onAccepted: function(idx)
+							{
+								if (idx === -1)
+									return
+
+								_dlgMission.open(_dlgModel.get(idx).map)
+							},
+							title: qsTr("Pálya hozzáadása"),
+							model: _dlgModel
+						})
+		}
+	}
+
+
+	ListModel {
+		id: _dlgMission
+
+		function open(_map) {
+			clear()
+
+			let list = group.findMissionsInFreePlayMapList(_map)
+
+			append({
+					   uuid: "",
+					   text: qsTr("--- Teljes pálya ---")
+				   })
+
+			for (let i=0; i<list.length; ++i) {
+				append(list[i])
+			}
+
+			Qaterial.DialogManager.openListView(
+						{
+							onAccepted: function(idx)
+							{
+								if (idx === -1)
+									return
+
+								let clist = []
+
+								clist.push({
+											   mapuuid: _map.uuid,
+											   mission: _dlgMission.get(idx).uuid
+										   })
+
+								Client.send(HttpConnection.ApiTeacher, "group/%1/freeplay/add".arg(group.groupid),
+											{
+												list: clist
+											})
+								.fail(control, JS.failMessage(qsTr("Hozzáadás sikertelen")))
+								.done(control, function(r){
+									group.reloadAndCall(control, function() { reloadList()() } )
+								})
+
+
+							},
+							title: qsTr("Küldetés kiválasztása"),
+							model: _dlgMission
+						})
+		}
 	}
 
 	Action {
@@ -125,45 +215,7 @@ QPage {
 		enabled: group && handler
 
 		onTriggered: {
-			_dlgModel.clear()
-
-			let l=handler.mapList
-			for (let i=0; i<l.length; ++i) {
-				var m = l.get(i)
-				if (!group.freePlayMapList.includes(m.uuid)) {
-					_dlgModel.append({
-										 uuid: m.uuid,
-										 text: m.name
-									 })
-				}
-			}
-
-			Qaterial.DialogManager.openCheckListView(
-						{
-							onAccepted: function(list)
-							{
-								if (!list.length)
-									return
-
-								var clist = []
-
-								for (var j=0; j<list.length; j++)
-									clist.push(_dlgModel.get(list[j]).uuid)
-
-
-								Client.send(HttpConnection.ApiTeacher, "group/%1/freeplay/add".arg(group.groupid),
-											{ list: clist
-											})
-								.fail(control, JS.failMessage(qsTr("Hozzáadás sikertelen")))
-								.done(control, function(r){
-									group.reloadAndCall(control, function() { reloadList()() } )
-								})
-
-							},
-							title: qsTr("Pályák hozzáadása"),
-							model: _dlgModel
-						})
-
+			_dlgModel.open()
 		}
 	}
 
@@ -182,9 +234,18 @@ QPage {
 									{
 										onAccepted: function()
 										{
+											let list = []
+
+											for (let i=0; i<l.length; ++i) {
+												list.push({
+															  mapuuid: l[i].map.uuid,
+															  mission: l[i].missionUuid
+														  })
+											}
+
 											Client.send(HttpConnection.ApiTeacher, "group/%1/freeplay/remove".arg(group.groupid),
 														{
-															list: JS.listGetFields(l, "uuid")
+															list: list
 														})
 											.done(control, function(r){
 												view.unselectAll()
@@ -209,21 +270,47 @@ QPage {
 		}
 	}
 
+
+	Connections {
+		target: group
+
+		function onFreePlayMapListChanged() {
+			reloadList()
+		}
+	}
+
+
+
+	function selectMap() {
+
+	}
+
+	function selectMission() {
+		Qaterial.DialogManager.openRadioListView(
+					{
+						onAccepted: function(index)
+						{
+							if (index < 0)
+								return
+
+							let ml = _sortedMissionLevelModel.get(index)
+							if (ml)
+								editor.missionLockAdd(mission, ml.uuid, ml.level)
+
+						},
+						title: qsTr("Zárolás hozzáadása"),
+						model: _sortedMissionLevelModel
+					})
+	}
+
+
 	function reloadList() {
 		_mapList.clear()
 
 		if (!group || !handler)
 			return
 
-		let l=handler.mapList
-
-		for (let i=0; i<l.length; ++i) {
-			var m = l.get(i)
-
-			if (group.freePlayMapList.includes(m.uuid)) {
-				_mapList.append(m)
-			}
-		}
+		group.loadToFreePlayMapList(_mapList, handler)
 	}
 
 	function reload() {

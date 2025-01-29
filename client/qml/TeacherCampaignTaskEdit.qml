@@ -122,6 +122,36 @@ QPage {
 				}
 			}
 
+			Row {
+				spacing: 5
+
+				QFormRadioButton {
+					id: _modePts
+					text: qsTr("Pont:")
+					ButtonGroup.group: _radioGroup
+					anchors.verticalCenter: parent.verticalCenter
+
+					onToggled: _form.modified = true
+				}
+
+				QSpinBox {
+					id: _spinPts
+
+					enabled: _modePts.checked
+
+					anchors.verticalCenter: parent.verticalCenter
+					from: 1
+					to: 1000
+					stepSize: 1
+
+					editable: true
+
+					font: Qaterial.Style.textTheme.body1
+
+					onValueModified: _form.modified = true
+				}
+			}
+
 
 			QFormSwitchButton
 			{
@@ -142,11 +172,13 @@ QPage {
 				textRole: "text"
 
 				model: ListModel {
-					ListElement {value: "xp"; text: qsTr("XP összegyűjtése")}
+					ListElement {value: "levels"; text: qsTr("Szintek teljesítése egy küldetésen belül")}
 					ListElement {value: "mission"; text: qsTr("Küldetés (konkrét) teljesítése")}
+					ListElement {value: "xp"; text: qsTr("XP összegyűjtése")}
 					ListElement {value: "mapmission"; text: qsTr("Küldetések (darab) teljesítése egy pályán")}
 				}
 
+				onCurrentIndexChanged: _map.refresh()
 			}
 
 
@@ -158,41 +190,50 @@ QPage {
 
 				combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 300*Qaterial.Style.pixelSizeRatio))
 
-				visible: _module.currentValue === "mission" || _module.currentValue === "mapmission"
+				visible: _module.currentValue === "mission" || _module.currentValue === "mapmission" || _module.currentValue === "levels"
 
 				valueRole: "uuid"
 				textRole: "name"
 
 				model: mapHandler ? mapHandler.mapList : null
 
-				onCurrentIndexChanged: {
-					if (_module.currentValue !== "mission")
-						return
+				onCurrentIndexChanged: refresh()
 
-					reloadMissionList()
+
+				function refresh() {
+					if (_module.currentValue !== "mission" && _module.currentValue !== "levels") {
+						_mission.currentIndex = -1
+						_missionModel.clear()
+						return
+					}
+
+					reloadMissionList(_module.currentValue !== "levels")
 				}
 
 
-				function reloadMissionList() {
+				function reloadMissionList(_withLevels) {
 					let m = mapHandler.mapList.get(currentIndex)
 
+					_mission.currentIndex = -1
 					_missionModel.clear()
 
 					for (let i=0; i<m.cache.missions.length; ++i) {
 						let mis = m.cache.missions[i]
 
-						for (let j=0; j<mis.levels.length; ++j) {
-							let level = mis.levels[j].l
+						if (_withLevels) {
+							for (let j=0; j<mis.levels.length; ++j) {
+								let level = mis.levels[j].l
 
-							_missionModel.append({
-										  uuid: mis.uuid,
-										  name: mis.name,
-										  display: mis.name+qsTr(" - Level %1").arg(level),
-										  level: level,
-										  deathmatch: false
-									  })
+								_missionModel.append({
+														 uuid: mis.uuid,
+														 name: mis.name,
+														 display: mis.name+qsTr(" - Level %1").arg(level),
+														 level: level
+														 /*,
+										  deathmatch: false*/
+													 })
 
-							if (mis.levels[j].dm) {
+								/*if (mis.levels[j].dm) {
 								_missionModel.append({
 											  uuid: mis.uuid,
 											  name: mis.name,
@@ -200,10 +241,17 @@ QPage {
 											  level: level,
 											  deathmatch: true
 										  })
+							}*/
 							}
+
+						} else {
+							_missionModel.append({
+													 uuid: mis.uuid,
+													 name: mis.name,
+													 display: mis.name,
+													 levelCount: mis.levels.length
+												 })
 						}
-
-
 					}
 				}
 
@@ -216,12 +264,19 @@ QPage {
 
 				combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 300*Qaterial.Style.pixelSizeRatio))
 
-				visible: _module.currentValue === "mission"
+				visible: _module.currentValue === "mission" || _module.currentValue === "levels"
 
 				textRole: "display"
 
 				model: ListModel {
 					id: _missionModel
+				}
+
+				onCurrentIndexChanged: {
+					if (_module.currentValue !== "levels" || currentIndex === -1)
+						return
+
+					_spinNum.value = _missionModel.get(currentIndex).levelCount
 				}
 
 			}
@@ -235,7 +290,7 @@ QPage {
 
 				spacing: 5
 
-				visible: _module.currentValue === "xp" || _module.currentValue === "mapmission"
+				visible: _module.currentValue === "xp" || _module.currentValue === "mapmission" || _module.currentValue === "levels"
 
 				Qaterial.LabelBody2 {
 					text: {
@@ -243,6 +298,8 @@ QPage {
 							return qsTr("XP:")
 						else if (_module.currentValue === "mapmission")
 							return qsTr("Küldetések:")
+						else if (_module.currentValue === "levels")
+							return qsTr("Teljesítendő szintek")
 						else
 							return ""
 					}
@@ -312,13 +369,18 @@ QPage {
 						let ml = _missionModel.get(_mission.currentIndex)
 
 						criterion.mission = ml.uuid
-						criterion.level = ml.level
-						criterion.deathmatch = ml.deathmatch
+
+						if (criterion.module !== "levels")
+							criterion.level = ml.level
+
+						//criterion.deathmatch = ml.deathmatch
 					}
 
 					if (_rowNum.visible)
 						criterion.num = _spinNum.value
 
+					if (_modePts.checked)
+						criterion.pts = _spinPts.value
 
 					d.criterion = criterion
 
@@ -362,7 +424,10 @@ QPage {
 		_comboGrade.currentIndex = 0
 
 		if (task) {
-			if (task.grade) {
+			if (task.criterion.pts !== undefined && task.criterion.pts > 0) {
+				_modePts.checked = true
+				_spinPts.value = task.criterion.pts
+			} else if (task.grade) {
 				_modeGrade.checked = true
 				_comboGrade.currentIndex = _comboGrade.combo.indexOfValue(task.grade.gradeid)
 			} else {
@@ -374,13 +439,15 @@ QPage {
 			_module.currentIndex = _module.combo.indexOfValue(task.criterion.module)
 			_map.currentIndex = _map.combo.indexOfValue(task.mapUuid)
 
-			_map.reloadMissionList()
+			_map.reloadMissionList(task.criterion.module !== "levels")
 
 			if (task.criterion.mission !== undefined) {
 				for (let j=0; j<_missionModel.count; ++j) {
 					let ml = _missionModel.get(j)
 
-					if (ml.uuid === task.criterion.mission && ml.level === task.criterion.level && ml.deathmatch === task.criterion.deathmatch) {
+					if (ml.uuid === task.criterion.mission &&
+							(task.criterion.module === "levels" || ml.level === task.criterion.level)
+							/*&& ml.deathmatch === task.criterion.deathmatch*/) {
 						_mission.currentIndex = j
 						break
 					}
@@ -393,7 +460,7 @@ QPage {
 			_form.modified = false
 
 		} else {
-			_map.reloadMissionList()
+			_map.reloadMissionList(true)
 		}
 	}
 

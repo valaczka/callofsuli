@@ -108,7 +108,7 @@ void StudentMapHandler::getUserCampaign(Campaign *campaign)
  * @param map
  */
 
-void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
+void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, const QString &missionUuid)
 {
 	if (!map)
 		return;
@@ -128,6 +128,53 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map)
 	if (m_client->server() && m_client->server()->user()) {
 		if (m_client->server()->user()->dailyRate() >= 1.0)
 			mapPlay->setReadOnly(true);
+	}
+
+
+
+
+	// Auto load mission levels page
+
+	MapPlayMission *mission = nullptr;
+
+	if (campaign) {
+		for (Task *t : *campaign->taskList()) {
+			if (t->criterion().value(QStringLiteral("module")).toString() == QStringLiteral("levels") &&
+					t->mapUuid() == map->uuid()) {
+				if (const QString mUuid = t->criterion().value(QStringLiteral("mission")).toString(); !mUuid.isEmpty()) {
+					mission = mapPlay->getMission(mapPlay->gameMap()->mission(mUuid));
+					break;
+				}
+			}
+		}
+	} else if (!missionUuid.isEmpty()) {
+		mission = mapPlay->getMission(mapPlay->gameMap()->mission(missionUuid));
+	}
+
+
+	if (mission && !mission->missionLevelList()->empty()) {
+		mapPlay->solver()->setForceUnlockMissionList({mission->uuid()});
+
+		QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlayMissionLevel.qml"),
+												   QVariantMap({
+																   { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) },
+																   { QStringLiteral("mission"), QVariant::fromValue(mission) },
+															   }));
+
+		if (!page) {
+			m_client->messageError(tr("Nem lehet betölteni az oldalt!"));
+			return;
+		}
+
+		connect(page, &QQuickItem::destroyed, mapPlay.get(), [g = mapPlay.get(), this](){
+			if (g)
+				g->deleteLater();
+			if (m_client && m_client->currentGame())
+				emit m_client->currentGame()->gameDestroyRequest();
+		});
+		mapPlay.release();
+
+		return;
 	}
 
 
@@ -177,3 +224,45 @@ StudentMapList *StudentMapHandler::mapList() const
 {
 	return m_mapList.get();
 }
+
+
+/**
+ * @brief StudentMapHandler::reloadFreePlayMapList
+ * @param list
+ */
+
+void StudentMapHandler::reloadFreePlayMapList(TeacherGroupFreeMapList *list)
+{
+	m_client->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("freeplay"))
+			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Szabad játékok letöltése sikertelen"));})
+			->done(this, [this, mapList = QPointer<TeacherGroupFreeMapList>(list)](const QJsonObject &data){
+		const QJsonArray &l = data.value(QStringLiteral("list")).toArray();
+
+		if (!mapList)
+			return;
+
+		mapList->clear();
+
+		for (const QJsonValue &v : l) {
+			const QJsonObject obj = v.toObject();
+			const QString uuid = obj.value(QStringLiteral("mapuuid")).toString();
+
+			StudentMap *map = nullptr;
+
+			for (StudentMap *m : *m_mapList.get()) {
+				if (m && m->uuid() == uuid) {
+					map = m;
+					break;
+				}
+			}
+
+			if (map) {
+				TeacherGroupFreeMap *fm  = new TeacherGroupFreeMap();
+				fm->setMap(map);
+				fm->setMissionUuid(obj.value(QStringLiteral("mission")).toString());
+				mapList->append(fm);
+			}
+		}
+	});
+}
+

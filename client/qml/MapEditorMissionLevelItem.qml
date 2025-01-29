@@ -30,6 +30,11 @@ QPage {
 	readonly property MapEditorMission mission: missionLevel ? missionLevel.mission : null
 	readonly property MapEditor editor: mission && mission.map ? mission.map.mapEditor : null
 
+	readonly property int missionLevelModes: missionLevel
+											 ? (missionLevel.modes !== GameMap.Invalid ? missionLevel.modes :
+																						 mission ? mission.modes : GameMap.Invalid)
+											 : GameMap.Invalid
+
 	property QListView _inventoryView: null//_inventoryView
 
 
@@ -94,14 +99,12 @@ QPage {
 							mode: GameMap.Practice
 							title: qsTr("Gyakorlás")
 						}
-
-						// Exam: missing
 					}
 
 					delegate: Qaterial.OutlineButton
 					{
 						text: title
-						visible: mission && (mission.modes & mode)
+						visible: missionLevelModes & mode
 						icon.source: Qaterial.Icons.play
 						highlighted: false
 						foregroundColor: Qaterial.Colors.amber200
@@ -130,10 +133,107 @@ QPage {
 
 
 
+
+			/*Item {
+				width: parent.width
+				height: 20
+			}*/
+
+
+			Qaterial.Expandable {
+				id: _expModes
+				width: parent.width
+
+				expanded: true
+
+				header: QExpandableHeader {
+					width: parent.width
+					text: qsTr("Lehetséges játékmódok")
+					icon: Qaterial.Icons.googleController
+					expandable: _expModes
+				}
+
+				delegate: QIndentedItem {
+					id: _itemModes
+
+					width: _expModes.parent.width
+
+					Column {
+						width: parent.width
+
+						QFormCheckButton
+						{
+							id: _isRpg
+							text: qsTr("Akciójáték (RPG)")
+							checked: missionLevel && (missionLevel.modes & GameMap.Rpg)
+							onToggled: _itemModes.updateCheckButtons()
+						}
+
+						QFormCheckButton
+						{
+							id: _isLite
+							text: qsTr("Feladatmegoldás")
+							checked: missionLevel && (missionLevel.modes & GameMap.Lite)
+							onToggled: _itemModes.updateCheckButtons()
+						}
+
+						QFormCheckButton
+						{
+							id: _isTest
+							text: qsTr("Teszt")
+							checked: missionLevel && (missionLevel.modes & GameMap.Test)
+							onToggled: _itemModes.updateCheckButtons()
+						}
+
+						QFormCheckButton
+						{
+							id: _isPractice
+							text: qsTr("Gyakorlás")
+							checked: missionLevel && (missionLevel.modes & GameMap.Practice)
+							onToggled: _itemModes.updateCheckButtons()
+						}
+
+						/*QFormCheckButton			// DOLGOZAT NEM LEHET
+						{
+							id: _isExam
+							text: qsTr("Dolgozat")
+							checked: mission && (missionLevelModes & GameMap.Exam)
+							onToggled: _form.updateCheckButtons()
+						}*/
+
+					}
+
+					function updateCheckButtons() {
+						var c = 0
+
+						if (_isRpg.checked)
+							c |= GameMap.Rpg
+
+						if (_isLite.checked)
+							c |= GameMap.Lite
+
+						if (_isTest.checked)
+							c |= GameMap.Test
+
+						if (_isPractice.checked)
+							c |= GameMap.Practice
+
+						editor.missionLevelModify(missionLevel, function() {
+							missionLevel.modes = c
+						})
+					}
+				}
+
+
+
+			}
+
+
+
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & GameMap.Test)
+				visible: missionLevelModes & (GameMap.Test|GameMap.Lite)
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -152,7 +252,7 @@ QPage {
 
 				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
-					from: 30
+					from: 0
 					to: 600
 					stepSize: 30
 
@@ -171,7 +271,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & (GameMap.Lite|GameMap.Rpg))
+				visible: missionLevelModes & (GameMap.Lite|GameMap.Rpg)
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -214,7 +314,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: mission && (mission.modes & GameMap.Test)
+				visible: missionLevelModes & GameMap.Test
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -274,7 +374,7 @@ QPage {
 						delegate: MapEditorChapterItem {
 							width: parent.width
 							chapter: modelData
-							isExam: mission && (mission.modes & GameMap.Exam)
+							isExam: missionLevelModes & GameMap.Exam
 
 							onRemoveActionRequest: {
 								if (editor)

@@ -58,6 +58,8 @@ public:
 					  const QString &uuid = "", const QVariantMap &storedAnswer = QVariantMap());
 	Q_INVOKABLE void loadQuestion(const Question &question, const QVariantMap &storedAnswer = QVariantMap());
 
+	static Q_INVOKABLE QString convertToMonospace(const QString &text) { return Question::convertToMonospace(text); }
+
 	int msecBeforeHide() const;
 	void setMsecBeforeHide(int newMsecBeforeHide);
 

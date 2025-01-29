@@ -120,6 +120,12 @@ Item {
 													  color: Qaterial.Colors.red600
 												  })
 
+									if (mission.modes & GameMap.Practice)
+										list.push({
+													  text: qsTr("Gyakorlás"),
+													  color: Qaterial.Colors.purple500
+												  })
+
 									model = list
 								}
 							}
@@ -174,12 +180,17 @@ Item {
 
 							RowLayout
 							{
+								id: _levelRow
+
 								Layout.leftMargin: Qaterial.Style.card.verticalPadding
 								Layout.rightMargin: Qaterial.Style.card.verticalPadding
 								Layout.fillWidth: true
 
+								readonly property int maxLevelButton: 4
+
 								Repeater {
 									model: SortFilterProxyModel {
+										id: _sortedList
 										sourceModel: mission.levelList
 										sorters: [
 											RoleSorter {
@@ -194,14 +205,24 @@ Item {
 										property MapEditorMissionLevel missionLevel: model.qtObject
 										text: qsTr("Level %1").arg(missionLevel.level)
 										onClicked: loadMissionLevel(missionLevel)
+
+										visible: index < _levelRow.maxLevelButton
 									}
 								}
 
+								Qaterial.FlatButton
+								{
+									text: qsTr("...")
+
+									visible: _sortedList.count > _levelRow.maxLevelButton
+
+									onClicked: loadMission(mission)
+								}
 
 								Qaterial.SquareButton
 								{
 									foregroundColor: Qaterial.Colors.green400
-									visible: mission.levelList.length < 3
+									///visible: mission.levelList.length < 3
 									icon.source: Qaterial.Icons.plus
 									onClicked: {
 										var m = editor.missionLevelAdd(mission)

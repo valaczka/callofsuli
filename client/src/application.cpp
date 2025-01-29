@@ -88,8 +88,8 @@
 
 // IOS and WASM bug
 
-#if QT_VERSION >= 0x060800 && (defined(Q_OS_IOS) || defined(Q_OS_WASM))
-//#include <QtQuickEffects/6.8.1//QtQuickEffects/private/qgfxsourceproxy_p.h>
+#if QT_VERSION >= 0x060800 && defined(Q_OS_IOS)
+#include <QtQuickEffects/6.8.0/QtQuickEffects/private/qgfxsourceproxy_p.h>
 #endif
 
 
@@ -438,6 +438,8 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherExam>("CallOfSuli", 1, 0, "TeacherExam");
 	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
 	qmlRegisterType<TeacherGroupCampaignResultModel>("CallOfSuli", 1, 0, "TeacherGroupCampaignResultModel");
+	qmlRegisterType<TeacherGroupFreeMap>("CallOfSuli", 1, 0, "TeacherGroupFreeMap");
+	qmlRegisterType<TeacherGroupFreeMapList>("CallOfSuli", 1, 0, "TeacherGroupFreeMapList");
 	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
 	qmlRegisterType<TeacherGroupResultModel>("CallOfSuli", 1, 0, "TeacherGroupResultModel");
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
@@ -459,8 +461,8 @@ void Application::registerQmlTypes()
 
 	// IOS and WASM bug
 
-#if QT_VERSION >= 0x060800 && (defined(Q_OS_IOS) || defined(Q_OS_WASM))
-	//qmlRegisterType<QGfxSourceProxy>(QByteArrayLiteral("Qt5Compat.GraphicalEffects.private"), 1, 0, "SourceProxy");
+#if QT_VERSION >= 0x060800 && defined(Q_OS_IOS)
+	qmlRegisterType<QGfxSourceProxy>(QByteArrayLiteral("Qt5Compat.GraphicalEffects.private"), 1, 0, "SourceProxy");
 #endif
 }
 
@@ -472,7 +474,7 @@ void Application::loadFonts()
 {
 	LOG_CTRACE("app") << "Load fonts";
 
-	const QVector<QString> fontsToLoad = {
+	static const QVector<QString> fontsToLoad = {
 		QStringLiteral(":/internal/font/Books.ttf"),
 		QStringLiteral(":/internal/font/School.ttf"),
 		QStringLiteral(":/internal/font/Academic.ttf"),
@@ -487,6 +489,9 @@ void Application::loadFonts()
 		QStringLiteral(":/internal/font/SpecialElite.ttf"),
 		QStringLiteral(":/internal/font/HVD_Peace.ttf"),
 		QStringLiteral(":/internal/font/RenegadeMaster.ttf"),
+
+		QStringLiteral(":/internal/font/UbuntuMono-Regular.ttf"),
+		QStringLiteral(":/internal/font/UbuntuMono-Italic.ttf"),
 	};
 
 	for (const QString &fontPath : std::as_const(fontsToLoad)) {

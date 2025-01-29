@@ -33,12 +33,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include "gamemapreaderiface.h"
+#include "qjsonarray.h"
 
 
 #define SOLVED_MAX				3
 
 #define XP_FACTOR_TARGET_BASE	0.1
 #define XP_FACTOR_LEVEL			0.5
+#define XP_FACTOR_PRACTICE		0.5
 #define XP_FACTOR_SOLVED_FIRST	2.5
 #define XP_FACTOR_SOLVED_OVER	-0.5				// Afert SOLVED_MAX
 #define XP_FACTOR_DEATHMATCH	1.5
@@ -121,11 +123,9 @@ public:
 
 	static qreal computeSolvedXpFactor(const SolverInfo &baseSolver,
 									   const int &level,
-									   const bool &deathmatch,
 									   const GameMode &mode);
 
 	static qreal computeSolvedXpFactor(const int &level,
-									   const bool &deathmatch,
 									   const int &solved,
 									   const GameMode &mode);
 
@@ -315,7 +315,7 @@ class GameMapMission : public GameMapMissionIface
 	Q_PROPERTY(QString medalImage MEMBER m_medalImage)
 	Q_PROPERTY(QList<GameMapMissionLevel *> levels MEMBER m_levels)
 	Q_PROPERTY(QList<GameMapMissionLevel *> locks MEMBER m_locks)
-	Q_PROPERTY(GameMap::GameModes modes MEMBER m_modes)
+	Q_PROPERTY(GameMap::GameModes modes READ modes CONSTANT)
 
 public:
 	explicit GameMapMission() {}
@@ -330,7 +330,7 @@ public:
 	const QString &medalImage() const;
 	const QList<GameMapMissionLevel *> &levels() const;
 	const QList<GameMapMissionLevel *> &locks() const;
-	const GameMap::GameModes &modes() const;
+	GameMap::GameModes modes() const;
 
 	GameMapMissionLevel *level(const qint32 &num) const;
 
@@ -349,6 +349,7 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const qreal &passed,
+													const quint32 &gameModes,
 													const qint32 &image) override;
 	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
 
@@ -356,7 +357,6 @@ private:
 	QList<GameMapMissionLevel *> m_levels;
 	QList<GameMapMissionLevel *> m_locks;
 	GameMap *m_map = nullptr;
-	GameMap::GameModes m_modes = GameMap::Invalid;
 };
 
 Q_DECLARE_METATYPE(GameMapMission)
@@ -380,6 +380,7 @@ class GameMapMissionLevel : public GameMapMissionLevelIface
 	Q_PROPERTY(bool canDeathmatch MEMBER m_canDeathmatch)
 	Q_PROPERTY(qreal questions MEMBER m_questions)
 	Q_PROPERTY(qreal passed MEMBER m_passed)
+	Q_PROPERTY(GameMap::GameModes modes READ modes CONSTANT)
 	Q_PROPERTY(QList<GameMapInventory *> inventories MEMBER m_inventories)
 	Q_PROPERTY(QList<qint32> chapterIds MEMBER m_chapterIds)
 	Q_PROPERTY(GameMapMission* mission MEMBER m_mission)
@@ -388,7 +389,8 @@ public:
 	explicit GameMapMissionLevel() {}
 	explicit GameMapMissionLevel(const qint32 &level, const QByteArray &terrain, const qint32 &startHP,
 								 const qint32 &duration, const bool &canDeathmatch, const qreal &questions,
-								 const qreal &passed, const qint32 &image, GameMapMission *mission, GameMap *map);
+								 const qreal &passed, const GameMap::GameModes &modes,
+								 const qint32 &image, GameMapMission *mission, GameMap *map);
 	virtual ~GameMapMissionLevel() {}
 
 	qint32 level() const;
@@ -406,6 +408,8 @@ public:
 	QList<GameMapChapter *> chapters() const;
 
 	GameMap *map() const;
+
+	GameMap::GameModes modes() const;
 
 protected:
 	QList<GameMapChapterIface*> ifaceChapters() const
@@ -459,199 +463,86 @@ public:
 
 
 struct GameMap::SolverInfo {
-	int t1, t2, t3, d1, d2, d3;
+	QHash<int, int> levels;
 
-	SolverInfo() :
-		t1(0),
-		t2(0),
-		t3(0),
-		d1(0),
-		d2(0),
-		d3(0)
-	{}
+	SolverInfo() = default;
 
-
-	SolverInfo(const QVariantMap &sqlRow) {
-		t1 = sqlRow.value(QStringLiteral("t1"), 0).toInt();
-		t2 = sqlRow.value(QStringLiteral("t2"), 0).toInt();
-		t3 = sqlRow.value(QStringLiteral("t3"), 0).toInt();
-		d1 = sqlRow.value(QStringLiteral("d1"), 0).toInt();
-		d2 = sqlRow.value(QStringLiteral("d2"), 0).toInt();
-		d3 = sqlRow.value(QStringLiteral("d3"), 0).toInt();
+	SolverInfo(const QJsonArray &array) {
+		for (const QJsonValue &v : array) {
+			const QJsonObject o = v.toObject();
+			levels[o.value(QStringLiteral("level")).toInt()] = o.value(QStringLiteral("num")).toInt();
+		}
 	}
 
-	SolverInfo(const QJsonObject &sqlRow) {
-		t1 = sqlRow.value(QStringLiteral("t1")).toInt(0);
-		t2 = sqlRow.value(QStringLiteral("t2")).toInt(0);
-		t3 = sqlRow.value(QStringLiteral("t3")).toInt(0);
-		d1 = sqlRow.value(QStringLiteral("d1")).toInt(0);
-		d2 = sqlRow.value(QStringLiteral("d2")).toInt(0);
-		d3 = sqlRow.value(QStringLiteral("d3")).toInt(0);
+	SolverInfo(const QJsonObject &object) {
+		// Old version
+
+		const int level1 = std::max(object.value(QStringLiteral("t1")).toInt(0),
+									object.value(QStringLiteral("d1")).toInt(0));
+		const int level2 = std::max(object.value(QStringLiteral("t2")).toInt(0),
+									object.value(QStringLiteral("d2")).toInt(0));
+		const int level3 = std::max(object.value(QStringLiteral("t3")).toInt(0),
+									object.value(QStringLiteral("d3")).toInt(0));
+
+		if (level1 > 0)
+			setSolved(1, level1);
+
+		if (level2 > 0)
+			setSolved(2, level2);
+
+		if (level3 > 0)
+			setSolved(3, level3);
 	}
 
-
-	SolverInfo(const int &_t1,
-			   const int &_t2,
-			   const int &_t3,
-			   const int &_d1,
-			   const int &_d2,
-			   const int &_d3) :
-		t1(_t1),
-		t2(_t2),
-		t3(_t3),
-		d1(_d1),
-		d2(_d2),
-		d3(_d3)
-	{}
-
-
-	/*SolverInfo(const SolverInfo &s) {
-		t1 = s.t1;
-		t2 = s.t2;
-		t3 = s.t3;
-		d1 = s.d1;
-		d2 = s.d2;
-		d3 = s.d3;
-	}*/
-
-	void setSolved(const int &level, const bool &deathmatch, const int &num) {
-		if (level == 1 && !deathmatch)
-			t1 = num;
-		else if (level == 2 && !deathmatch)
-			t2 = num;
-		else if (level == 3 && !deathmatch)
-			t3 = num;
-		else if (level == 1 && deathmatch)
-			d1 = num;
-		else if (level == 2 && deathmatch)
-			d2 = num;
-		else if (level == 3 && deathmatch)
-			d3 = num;
+	void setSolved(const int &level, const int &num) {
+		levels[level] = num;
 	}
 
 
-	inline int solved(const QString &field) const {
-		if (field == QStringLiteral("t1"))
-			return t1;
-		else if (field == QStringLiteral("t2"))
-			return t2;
-		else if (field == QStringLiteral("t3"))
-			return t3;
-		else if (field == QStringLiteral("d1"))
-			return d1;
-		else if (field == QStringLiteral("d2"))
-			return d2;
-		else if (field == QStringLiteral("d3"))
-			return d3;
-
-		return -1;
+	int solved(const int &level) const {
+		return levels.value(level, -1);
 	};
 
-	inline int solved(const int &level, const bool &deathmatch) const {
-		if (level == 1 && !deathmatch)
-			return t1;
-		else if (level == 2 && !deathmatch)
-			return t2;
-		else if (level == 3 && !deathmatch)
-			return t3;
-		else if (level == 1 && deathmatch)
-			return d1;
-		else if (level == 2 && deathmatch)
-			return d2;
-		else if (level == 3 && deathmatch)
-			return d3;
-
-		return -1;
+	bool isSolvedNew(const SolverInfo &baseSolverInfo, const int &level) const {
+		return (baseSolverInfo.solved(level) != -1 && this->solved(level) > baseSolverInfo.solved(level));
 	};
 
-	inline bool hasSolved(const QString &field) const {
-		return solved(field) > 0;
-	}
-
-	inline bool hasSolved(const int &level, const bool &deathmatch) const {
-		return solved(level, deathmatch) > 0;
-	}
-
-
-	inline bool isSolvedNew(const SolverInfo &baseSolverInfo, const QString &field) const {
-		return (baseSolverInfo.solved(field) != -1 && this->solved(field) > baseSolverInfo.solved(field));
-	};
-
-	inline bool isSolvedNew(const SolverInfo &baseSolverInfo, const int &level, const bool &deathmatch) const {
-		return (baseSolverInfo.solved(level, deathmatch) != -1 && this->solved(level, deathmatch) > baseSolverInfo.solved(level, deathmatch));
-	};
-
-	inline bool isSolvedFirst(const SolverInfo &baseSolverInfo, const QString &field) const {
-		return (baseSolverInfo.solved(field) == 0 && this->solved(field) > baseSolverInfo.solved(field));
-	};
-
-	inline bool isSolvedFirst(const SolverInfo &baseSolverInfo, const int &level, const bool &deathmatch) const {
-		return (baseSolverInfo.solved(level, deathmatch) == 0 &&
-				this->solved(level, deathmatch) > baseSolverInfo.solved(level, deathmatch));
+	bool isSolvedFirst(const SolverInfo &baseSolverInfo, const int &level) const {
+		return (baseSolverInfo.solved(level) == 0 &&
+				this->solved(level) > baseSolverInfo.solved(level));
 	};
 
 
-	inline SolverInfo solve(const int &level, const bool &deathmatch) const {
+	SolverInfo solve(const int &level) const {
 		SolverInfo p(*this);
 
-		if (level == 1 && !deathmatch)
-			p.t1++;
-		else if (level == 2 && !deathmatch)
-			p.t2++;
-		else if (level == 3 && !deathmatch)
-			p.t3++;
-		else if (level == 1 && deathmatch)
-			p.d1++;
-		else if (level == 2 && deathmatch)
-			p.d2++;
-		else if (level == 3 && deathmatch)
-			p.d3++;
+		int n = p.levels.value(level, -1);
 
-		return p;
-	}
+		if (n > 0)
+			++n;
+		else
+			n = 1;
 
-	inline SolverInfo solve(const QString &field) const {
-		SolverInfo p(*this);
-
-		if (field == QStringLiteral("t1"))
-			p.t1++;
-		else if (field == QStringLiteral("t2"))
-			p.t2++;
-		else if (field == QStringLiteral("t3"))
-			p.t3++;
-		else if (field == QStringLiteral("d1"))
-			p.d1++;
-		else if (field == QStringLiteral("d2"))
-			p.d2++;
-		else if (field == QStringLiteral("d3"))
-			p.d3++;
+		p.levels[level] = n;
 
 		return p;
 	}
 
 
+	QJsonArray toJsonArray() const {
+		QJsonArray a;
 
-	inline QJsonObject toJsonObject() const {
-		QJsonObject o;
-		o[QStringLiteral("t1")] = t1;
-		o[QStringLiteral("t2")] = t2;
-		o[QStringLiteral("t3")] = t3;
-		o[QStringLiteral("d1")] = d1;
-		o[QStringLiteral("d2")] = d2;
-		o[QStringLiteral("d3")] = d3;
-		return o;
-	};
+		for (const auto &[l, n] : levels.asKeyValueRange()) {
+			QJsonObject o({
+							  { QStringLiteral("level"), l },
+							  { QStringLiteral("num"), n },
+						  });
+			a.append(o);
+		}
 
-	inline QVariantMap toVariantMap() const {
-		QVariantMap o;
-		o[QStringLiteral("t1")] = t1;
-		o[QStringLiteral("t2")] = t2;
-		o[QStringLiteral("t3")] = t3;
-		o[QStringLiteral("d1")] = d1;
-		o[QStringLiteral("d2")] = d2;
-		o[QStringLiteral("d3")] = d3;
-		return o;
-	};
+		return a;
+	}
+
 };
 
 

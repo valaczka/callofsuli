@@ -104,12 +104,14 @@ QTableView {
 
 		Qaterial.LabelHeadline5 {
 			id: _labelResult
-			visible: !isPlaceholder && result.grade
+			visible: !isPlaceholder && (result.grade || result.maxPts > 0)
 			anchors.horizontalCenter: parent.horizontalCenter
 			anchors.verticalCenter: parent.verticalCenter
 			anchors.margins: 3
-			text: result.grade ? result.grade.shortname : ""
-			color: Qaterial.Style.accentColor
+			text: result.grade ? result.grade.shortname :
+								 result.maxPts > 0 ? qsTr("%1 p").arg(Math.round(result.maxPts * result.progress)) :
+													 ""
+			color: result.grade ? Qaterial.Style.accentColor : Qaterial.Colors.lightBlue500
 
 			states: [
 				State {

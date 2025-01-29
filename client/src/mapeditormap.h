@@ -480,7 +480,7 @@ public:
 	const QString &medalImage() const;
 	void setMedalImage(const QString &newMedalImage);
 
-	const GameMap::GameModes &modes() const;
+	GameMap::GameModes modes() const;
 	void setModes(const GameMap::GameModes &newModes);
 
 	MapEditorMissionLevelList *levelList() const;
@@ -515,6 +515,7 @@ protected:
 													const bool &canDeathmatch,
 													const qreal &questions,
 													const qreal &passed,
+													const quint32 &gameModes,
 													const qint32 &image) override;
 	virtual GameMapMissionLevelIface* ifaceAddLock(const QString &uuid, const qint32 &level) override;
 
@@ -522,7 +523,6 @@ protected:
 private:
 	MapEditorMissionLevelList *const m_levelList;
 	QList<QPointer<MapEditorMissionLevel>> m_lockList;
-	GameMap::GameModes m_modes = GameMap::Invalid;
 };
 
 
@@ -546,6 +546,7 @@ class MapEditorMissionLevel : public MapEditorObject, public GameMapMissionLevel
 	Q_PROPERTY(bool canDeathmatch READ canDeathmatch WRITE setCanDeathmatch NOTIFY canDeathmatchChanged)
 	Q_PROPERTY(qreal questions READ questions WRITE setQuestions NOTIFY questionsChanged)
 	Q_PROPERTY(qreal passed READ passed WRITE setPassed NOTIFY passedChanged)
+	Q_PROPERTY(GameMap::GameModes modes READ modes WRITE setModes NOTIFY modesChanged)
 	Q_PROPERTY(MapEditorInventoryList *inventoryList READ inventoryList CONSTANT)
 	Q_PROPERTY(MapEditorMission *mission READ editorMission CONSTANT)
 	Q_PROPERTY(QList<MapEditorChapter*> chapterList READ chapterList NOTIFY chapterListChanged)
@@ -617,6 +618,9 @@ public:
 
 	MapEditorImage *editorImage() const;
 
+	GameMap::GameModes modes() const;
+	void setModes(const GameMap::GameModes &newModes);
+
 signals:
 	void levelChanged();
 	void terrainChanged();
@@ -629,6 +633,7 @@ signals:
 	void chapterListChanged();
 	void terrainDataChanged();
 	void editorImageChanged();
+	void modesChanged();
 
 protected:
 	QList<GameMapChapterIface*> ifaceChapters() const override;

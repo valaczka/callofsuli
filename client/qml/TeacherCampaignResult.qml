@@ -72,6 +72,14 @@ QTableView {
 			sourceSize: Qt.size(size*2, size*2)
 		}
 		Qaterial.Icon {
+			visible: !isPlaceholder && checked === 3
+			anchors.centerIn: parent
+			icon: Qaterial.Icons.checkCircle
+			color: Qaterial.Colors.orange500
+			size: Math.min(parent.width, parent.height)*0.6
+			sourceSize: Qt.size(size*2, size*2)
+		}
+		Qaterial.Icon {
 			visible: !isPlaceholder && checked === 2
 			anchors.centerIn: parent
 			icon: Qaterial.Icons.closeThick

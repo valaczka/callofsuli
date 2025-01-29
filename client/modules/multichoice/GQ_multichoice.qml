@@ -87,6 +87,8 @@ GameQuestionComponentImpl {
 						text: modelData
 						width: col.width
 
+						fontFamily: questionData.monospace ? "Ubuntu Mono" : ""
+
 						checked: control.selectedItems.includes(_idx)
 
 						readonly property int _idx: index

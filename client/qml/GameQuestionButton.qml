@@ -15,6 +15,7 @@ Qaterial.Button {
 	}
 
 	property int buttonType: GameQuestionButton.Neutral
+	property string fontFamily: ""
 
 	highlighted: false
 	flat: true
@@ -26,11 +27,15 @@ Qaterial.Button {
 	elide: Text.ElideNone
 
 
+	font.family: fontFamily != "" ? fontFamily :  Qaterial.Style.textTheme.body1.family
+	font.pixelSize: Qaterial.Style.textTheme.body1.pixelSize
+	font.weight: Qaterial.Style.textTheme.body1.weight
+	font.letterSpacing: Qaterial.Style.textTheme.body1.letterSpacing
 
-	font: Qaterial.Style.textTheme.body1
 	backgroundImplicitHeight: Qaterial.Style.gameButtonImplicitHeight
 	leftPadding: 10
 	rightPadding: 10
+	textFormat: Text.RichText
 
 	opacity: enabled ? 1.0 : 0.7
 

@@ -27,6 +27,7 @@
 #include "modulefillout.h"
 #include "fillouthighlighter.h"
 #include <QRandomGenerator>
+#include "question.h"
 #include "../writer/modulewriter.h"
 
 
@@ -50,7 +51,12 @@ QString ModuleFillout::testResult(const QVariantMap &data, const QVariantMap &an
 {
 	const QStringList &options = data.value(QStringLiteral("options")).toStringList();
 
-	QString html = QStringLiteral("<p class=\"options\">");
+	QString html;
+
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagStart();
+
+	html += QStringLiteral("<p class=\"options\">");
 	html += options.join(QStringLiteral(" • "));
 	html += QStringLiteral("</p>");
 
@@ -95,6 +101,9 @@ QString ModuleFillout::testResult(const QVariantMap &data, const QVariantMap &an
 	}
 
 	html += QStringLiteral("</p>");
+
+	if (data.value(QStringLiteral("monospace")).toBool())
+		html += Question::monspaceTagEnd();
 
 	return html;
 }
@@ -296,6 +305,7 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
 	ret[QStringLiteral("options")] = options;
 	ret[QStringLiteral("answer")] = answer;
 	ret[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
+	ret[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
 	return ret;
 }
@@ -323,6 +333,7 @@ QVariantList ModuleFillout::generateText(const QVariantMap &data, const QVariant
 		d[QStringLiteral("text")] = text;
 		d[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 		d[QStringLiteral("count")] = data.value(QStringLiteral("count")).toInt();
+		d[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
 		ret.append(generateOne(d));
 	}
@@ -417,6 +428,7 @@ QVariantList ModuleFillout::generateSequence(const QVariantMap &data, const QVar
 	ret[QStringLiteral("options")] = optList;
 	ret[QStringLiteral("answer")] = answer;
 	ret[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
+	ret[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
 	return QVariantList{ret};
 

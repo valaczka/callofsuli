@@ -444,6 +444,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 																								   o.value(QStringLiteral("gradeid")).toInt()));
 
 			u->setGrade(grade);
+
 			if (const QJsonValue &v = o.value(QStringLiteral("result")); v.isNull())
 				u->setResult(-1);
 			else
@@ -460,7 +461,16 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 				u->setJoker(false);
 
 			u->setAnswer(o.value(QStringLiteral("answer")).toArray());
-			u->setCorrection(o.value(QStringLiteral("correction")).toArray());
+
+			const QJsonArray cList = o.value(QStringLiteral("correction")).toArray();
+			u->setCorrection(cList);
+
+			qreal p = 0;
+
+			for (const QJsonValue &v : cList)
+				p += v.toObject().value(QStringLiteral("p")).toInt();
+
+			u->setPoints(p);
 
 		} else {
 			u->setExamData({});
@@ -472,6 +482,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
 			u->setAnswer({});
 			u->setCorrection({});
 			u->setPendingCorrection({});
+			u->setPoints(0);
 		}
 	}
 }
@@ -832,6 +843,55 @@ void TeacherExam::savePendingGrades(const QList<ExamUser *> &list)
 
 
 /**
+ * @brief TeacherExam::deleteGrades
+ * @param list
+ */
+
+void TeacherExam::deleteGrades(const QList<ExamUser *> &list)
+{
+	LOG_CTRACE("client") << "Delete grades";
+
+	QList<ExamUser*> realList = list;
+
+	if (list.isEmpty()) {
+		realList.reserve(list.size());
+		for (ExamUser *u : *m_examUserList.get())
+			realList.append(u);
+	}
+
+	if (realList.isEmpty()) {
+		LOG_CWARNING("client") << "Missing users";
+		return;
+	}
+
+	QJsonArray a;
+
+	for (ExamUser *u : realList) {
+		QJsonObject o;
+		o[QStringLiteral("id")] = u->contentId();
+		o[QStringLiteral("result")] = u->result();
+		o[QStringLiteral("gradeid")] = -1;
+		a.append(o);
+	}
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("exam/grading"), QJsonObject{
+												{ QStringLiteral("list"), a }
+											})
+			->done(this, [this, realList](const QJsonObject &){
+		Application::instance()->client()->snack(tr("Sikeres mentés"));
+
+		emit examListReloadRequest();
+		reloadExamContent();
+	})
+			->fail(this, [](const QString &err){
+		Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
+	})
+			;
+}
+
+
+
+/**
  * @brief TeacherExam::setJoker
  * @param list
  * @param set
@@ -1028,7 +1088,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			continue;
 
 		const QString &module = obj.value(QStringLiteral("module")).toString();
-		const QString &question = obj.value(QStringLiteral("question")).toString();
+		const QString &question = Question::convertToMonospace(obj.value(QStringLiteral("question")).toString());
 		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
 
 		if (numberedListPtr) {
@@ -1065,7 +1125,13 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 										: obj.value(QStringLiteral("options")).toArray();
 			for (int i=0; i<options.size(); ++i) {
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
-						+QStringLiteral(")</b> ")+options.at(i).toString();
+						+QStringLiteral(")</b> ");
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					html += Question::monspaceTagStart() + options.at(i).toString() + Question::monspaceTagEnd();
+				else
+					html += options.at(i).toString();
+
 				if (i<options.size()-1)
 					html += QStringLiteral(",");
 			}
@@ -1073,7 +1139,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
 			for (int i=0; i<list.size(); ++i) {
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
-						+QStringLiteral(")</b> ")+list.at(i).toObject().value(QStringLiteral("text")).toString();
+						+QStringLiteral(")</b> ");
+
+				const QString &str = list.at(i).toObject().value(QStringLiteral("text")).toString();
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					html += Question::monspaceTagStart() + str + Question::monspaceTagEnd();
+				else
+					html += str;
+
 				if (i<list.size()-1)
 					html += QStringLiteral(",");
 			}
@@ -1130,9 +1204,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			for (const QJsonValue &v : list) {
 				const QJsonObject &data = v.toObject();
 
-				if (data.contains(QStringLiteral("w")))
-					html += QStringLiteral(" ")+data.value(QStringLiteral("w")).toString();
-				else
+				if (data.contains(QStringLiteral("w"))) {
+					html += QStringLiteral(" ");
+
+					if (obj.value(QStringLiteral("monospace")).toBool())
+						html += Question::monspaceTagStart() + data.value(QStringLiteral("w")).toString() + Question::monspaceTagEnd();
+					else
+						html += data.value(QStringLiteral("w")).toString();
+
+				} else
 					html += QStringLiteral(" <b>(")+QString::number(num++)+QStringLiteral(".)____</b>");
 			}
 
@@ -1145,7 +1225,12 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
 
 				html += QStringLiteral("<b>(")+m_optionLetters.at(i)
-						+QStringLiteral(")</b> ")+options.at(i).toString();
+						+QStringLiteral(")</b> ");
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					html += Question::monspaceTagStart() + options.at(i).toString() + Question::monspaceTagEnd();
+				else
+					html += options.at(i).toString();
 
 				if (i<options.size()-1)
 					html += QStringLiteral(",");
@@ -3242,4 +3327,17 @@ void ExamUser::setJokerOptions(const JokerOptions &newJokerOptions)
 		return;
 	m_jokerOptions = newJokerOptions;
 	emit jokerOptionsChanged();
+}
+
+int ExamUser::points() const
+{
+	return m_points;
+}
+
+void ExamUser::setPoints(int newPoints)
+{
+	if (m_points == newPoints)
+		return;
+	m_points = newPoints;
+	emit pointsChanged();
 }

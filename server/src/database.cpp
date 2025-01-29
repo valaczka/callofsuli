@@ -299,7 +299,7 @@ bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
 
 	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
-	db.transaction();
+	////db.transaction();
 
 	while (version < toVersion) {
 		quint32 nextVersion = 0;
@@ -319,14 +319,14 @@ bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
 			switch (u.type) {
 				case Upgrade::UpgradeFromData:
 					if (!_batchFromData(u.content)) {
-						db.rollback();
+						///db.rollback();
 						return false;
 					}
 					break;
 
 				case Upgrade::UpgradeFromFile:
 					if (!_batchFromFile(u.content)) {
-						db.rollback();
+						///db.rollback();
 						return false;
 					}
 					break;
@@ -339,7 +339,7 @@ bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
 			LOG_CDEBUG("db") << "- default upgrade";
 
 			if (!defaultUpgradeData.isEmpty() && !_batchFromData(defaultUpgradeData)) {
-				db.rollback();
+				///db.rollback();
 				return false;
 			}
 		} else {
@@ -347,7 +347,7 @@ bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
 		}
 	};
 
-	db.commit();
+	////db.commit();
 
 	LOG_CINFO("db") << qPrintable(QObject::tr("Upgrade database %1 successfull").arg(m_dbName));
 

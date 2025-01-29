@@ -86,7 +86,8 @@ Item {
 
 				anchors.top: parent.top
 
-				text: campaign ? campaign.readableShortResult(campaign.resultGrade, campaign.resultXP) : ""
+				text: campaign ? campaign.readableShortResult(campaign.resultGrade, campaign.resultXP,
+															  campaign.maxPts > 0 ? Math.round(campaign.progress * campaign.maxPts) : -1) : ""
 
 				wrapMode: Text.Wrap
 				color: campaign && !campaign.finished ? Qaterial.Colors.red900 : Qaterial.Colors.black
@@ -149,48 +150,88 @@ Item {
 							width: labelText.font.pixelSize*1.4
 							height: labelText.font.pixelSize*1.4
 							fillMode: Image.PreserveAspectFit
-							source: task && task.success ? "qrc:/internal/img/checkmark_red.png" : ""
+							source: task && task.success && task.result >= 1.0 ? "qrc:/internal/img/checkmark_red.png" : ""
 
 							sourceSize.width: width
 							sourceSize.height: height
 						}
 
-						Label {
-							id: labelText
-							width: parent.width-imgSuccess.width-parent.spacing
-							wrapMode: Text.Wrap
-
+						Column {
 							anchors.top: parent.top
+							width: parent.width-imgSuccess.width-parent.spacing
 
-							color: task && task.required ? Qaterial.Colors.red900 : Qaterial.Colors.black
-							font.strikeout: task && task.success
-							opacity: task && task.success ? 0.4 : 1.0
+							Label {
+								id: labelText
 
-							topPadding: 2
-							bottomPadding: 2
+								width: parent.width
 
-							font.family: "Special Elite"
-							font.pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
-							lineHeight: 1.2
+								wrapMode: Text.Wrap
 
-							text: task ? (task.required ? qsTr("* ") : "") + task.readableCriterion(root.mapHandler.mapList, campaign) : " "
+								color: task && task.required ? Qaterial.Colors.red900 : Qaterial.Colors.black
+								font.strikeout: task && task.success && task.result >= 1.0
+								opacity: task && task.success && task.result >= 1.0 ? 0.4 : 1.0
 
-							Connections {
-								target: root.mapHandler
+								topPadding: 2
+								bottomPadding: 2
 
-								function onReloaded() {
-									if (_delegate.task)
-										labelText.text = _delegate.task.readableCriterion(root.mapHandler.mapList, campaign)
+								font.family: "Special Elite"
+								font.pixelSize: Qaterial.Style.textTheme.subtitle2.pixelSize
+								lineHeight: 1.2
+
+								text: task ? (task.required ? qsTr("* ") : "") + task.readableCriterion(root.mapHandler.mapList, campaign) : " "
+
+								Connections {
+									target: root.mapHandler
+
+									function onReloaded() {
+										if (_delegate.task)
+											labelText.text = _delegate.task.readableCriterion(root.mapHandler.mapList, campaign)
+									}
+								}
+
+								states: State {
+									when: (task && task.success && imgSuccess.height > labelText.height)
+
+									AnchorChanges {
+										target: labelText
+										anchors.top: undefined
+										anchors.verticalCenter: parent.verticalCenter
+									}
 								}
 							}
 
-							states: State {
-								when: (task && task.success && imgSuccess.height > labelText.height)
+							Row {
+								visible: task && task.criterion.pts !== undefined && task.criterion.pts > 0
 
-								AnchorChanges {
-									target: labelText
-									anchors.top: undefined
+								spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+								Qaterial.ProgressBar {
+									width: parent.parent.width - _labelProgress.width - parent.spacing
+
 									anchors.verticalCenter: parent.verticalCenter
+
+									color: "saddlebrown"
+
+									from: 0.0
+									to: 1.0
+									value: Math.min(1.0, _labelProgress.percent)
+
+									Behavior on value {
+										NumberAnimation { duration: 200 }
+									}
+								}
+
+								Qaterial.LabelHint1 {
+									id: _labelProgress
+
+									anchors.verticalCenter: parent.verticalCenter
+
+									readonly property real percent: task && task.criterion.pts !== undefined && task.criterion.pts > 0 ?
+																	   task.result :
+																	   0
+									text: qsTr("%1%").arg(Math.floor(percent*100))
+
+									color: "saddlebrown"
 								}
 							}
 						}

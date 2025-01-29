@@ -643,6 +643,7 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
 		bool canDeathmatch = false;
 		qreal questions = 1.0;
 		qreal passed = 0.8;
+
 		QString image;
 
 		stream >> level >> terrain >> startHP >> duration;
@@ -664,12 +665,19 @@ bool GameMapReaderIface::missionLevelsFromStream(QDataStream &stream, GameMapMis
 		if (level == -1 || startHP == -1 || duration == -1)
 			return false;
 
+		quint32 gameModes = 0;
+
+		if (m_version > 16)
+			stream >> gameModes;
+
 		qint32 imageId = -1;
 
 		if (m_version > 14)
 			stream >> imageId;
 
-		GameMapMissionLevelIface *m = mission->ifaceAddLevel(level, terrain, startHP, duration, canDeathmatch, questions, passed, imageId);
+		GameMapMissionLevelIface *m = mission->ifaceAddLevel(level, terrain, startHP, duration, canDeathmatch,
+															 questions, passed, gameModes,
+															 imageId);
 
 		if (!m)
 			return false;
@@ -859,6 +867,7 @@ void GameMapMissionIface::levelsToStream(QDataStream &stream) const
 		stream << m->m_canDeathmatch;
 		stream << m->m_questions;
 		stream << m->m_passed;
+		stream << m->m_gameModes;
 		stream << m->m_image;
 
 		QList<GameMapChapterIface*> chapters = m->ifaceChapters();

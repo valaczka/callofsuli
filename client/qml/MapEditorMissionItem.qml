@@ -149,7 +149,7 @@ QPage {
 				}
 
 				Qaterial.FlatButton {
-					visible: mission && mission.levelList.length < 3
+					visible: mission //&& mission.levelList.length < 3
 					text: qsTr("Létrehozás")
 					icon.source: Qaterial.Icons.plus
 					//icon.color: foregroundColor

@@ -33,10 +33,10 @@
 
 TeacherGroup::TeacherGroup(QObject *parent)
 	: QObject{parent}
-	, m_userList(new UserList())
-	, m_memberList(new UserList())
-	, m_classList(new ClassList())
-	, m_campaignList(new CampaignList())
+	, m_userList(new UserList)
+	, m_memberList(new UserList)
+	, m_classList(new ClassList)
+	, m_campaignList(new CampaignList)
 {
 	LOG_CTRACE("client") << "TeacherGroup created" << this;
 
@@ -89,13 +89,7 @@ void TeacherGroup::loadFromJson(const QJsonObject &object, const bool &allField)
 	}
 
 	if (object.contains(QStringLiteral("freePlayList")) || allField) {
-		const QJsonArray &list = object.value(QStringLiteral("freePlayList")).toArray();
-		QStringList mapList;
-		for (const QJsonValue &v : list) {
-			const QJsonObject &o = v.toObject();
-			mapList.append(o.value(QStringLiteral("mapuuid")).toString());
-		}
-		setFreePlayMapList(mapList);
+		setFreePlayMapList(object.value(QStringLiteral("freePlayList")).toArray());
 	}
 }
 
@@ -136,6 +130,105 @@ void TeacherGroup::reloadAndCall(QObject *inst, QJSValue v)
 		if (v.isCallable())
 			v.call();
 	});
+}
+
+
+
+/**
+ * @brief TeacherGroup::loadToFreePlayMapList
+ * @param list
+ * @param handler
+ */
+
+void TeacherGroup::loadToFreePlayMapList(TeacherGroupFreeMapList *list, TeacherMapHandler *handler) const
+{
+	if (!list) {
+		LOG_CERROR("client") << "Empty TeacherGroupFreeMapList";
+		return;
+	}
+
+	if (!handler) {
+		LOG_CERROR("client") << "Missing handler";
+		return;
+	}
+
+	list->clear();
+
+	for (const QJsonValue &v : m_freePlayMapList) {
+		const QJsonObject obj = v.toObject();
+		const QString map = obj.value(QStringLiteral("mapuuid")).toString();
+
+		if (TeacherMap *m = handler->findMap(map)) {
+			TeacherGroupFreeMap *fm  = new TeacherGroupFreeMap();
+			fm->setMap(m);
+			fm->setMissionUuid(obj.value(QStringLiteral("mission")).toString());
+			list->append(fm);
+		}
+	}
+}
+
+
+
+/**
+ * @brief TeacherGroup::findMapInFreePlayMapList
+ * @param map
+ * @return
+ */
+
+bool TeacherGroup::findMapInFreePlayMapList(TeacherMap *map) const
+{
+	if (!map)
+		return false;
+
+	for (const QJsonValue &v : m_freePlayMapList) {
+		const QJsonObject obj = v.toObject();
+		const QString m = obj.value(QStringLiteral("mapuuid")).toString();
+
+		if (m == map->uuid() && obj.value(QStringLiteral("mission")).toString().isEmpty())
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief TeacherGroup::findMissionsInFreePlayMapList
+ * @param map
+ * @return
+ */
+
+QJsonArray TeacherGroup::findMissionsInFreePlayMapList(TeacherMap *map) const
+{
+	if (!map || findMapInFreePlayMapList(map))
+		return {};
+
+	QJsonArray ret;
+
+	const QJsonArray &mList = map->cache().value(QStringLiteral("missions")).toArray();
+
+	for (const QJsonValue &v : mList) {
+		const QJsonObject o = v.toObject();
+		const QString &uuid = o.value(QStringLiteral("uuid")).toString();
+
+		const auto it = std::find_if(
+							m_freePlayMapList.cbegin(),
+							m_freePlayMapList.cend(),
+							[map, &uuid](const QJsonValue &v) {
+			const QJsonObject obj = v.toObject();
+			const QString m = obj.value(QStringLiteral("mapuuid")).toString();
+
+			return m == map->uuid() && obj.value(QStringLiteral("mission")).toString() == uuid;
+		});
+
+		if (it == m_freePlayMapList.cend())
+			ret.append(QJsonObject{
+						   { QStringLiteral("uuid"), uuid },
+						   { QStringLiteral("text"), o.value(QStringLiteral("name")).toString() }
+					   });
+	}
+
+	return ret;
 }
 
 
@@ -304,7 +397,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 
 		return QStringLiteral("");
 
-	} else if (role == Qt::CheckStateRole) {								// checked: 0 (false) : 1 (checked) : 2 (required but not checked)
+	} else if (role == Qt::CheckStateRole) {								// checked: 0 (false) : 1 (checked) : 2 (required but not checked) : 3 (partially checked)
 		if (col == 0 && row > 0 && row <= m_userList.size()) {
 			User *user = m_userList.at(row-1).user;
 
@@ -321,7 +414,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 
 		if (idx != -1) {
 			if (m_resultList.at(idx).success)
-				return 1;
+				return m_resultList.at(idx).result >= 1.0 ? 1 : 3;
 			else if (task && task->required())
 				return 2;
 			else
@@ -347,7 +440,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 
 		const UserResult &r = m_userList.at(row-1);
 
-		return Task::readableGradeOrXpShort(r.grade, r.xp);
+		return Task::readableGradeOrXpShort(r.grade, r.xp, r.maxPts > 0 ? std::round(r.maxPts * r.progress) : -1);
 
 	} else if (role == Qt::UserRole+3) {									// isSection
 		return isSection(col);
@@ -537,6 +630,8 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 		const QString &username = obj.value(QStringLiteral("username")).toString();
 		int gradeid = obj.value(QStringLiteral("resultGrade")).toInt();
 		int xp = obj.value(QStringLiteral("resultXP")).toInt();
+		float progress = obj.value(QStringLiteral("progress")).toDouble();
+		int maxPts = obj.value(QStringLiteral("maxPts")).toInt();
 
 		int idx = findUser(username);
 
@@ -546,6 +641,8 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 		if (idx != -1) {
 			m_userList[idx].grade = grade;
 			m_userList[idx].xp = xp;
+			m_userList[idx].progress = progress;
+			m_userList[idx].maxPts = maxPts;
 			user = m_userList.at(idx).user;
 		} else {
 			LOG_CWARNING("client") << "Invalid user:" << username;
@@ -565,16 +662,23 @@ void TeacherGroupCampaignResultModel::reloadFromJson(const QJsonObject &data)
 
 			int taskid = obj.value(QStringLiteral("id")).toInt();
 			bool success = obj.value(QStringLiteral("success")).toVariant().toBool();
+			float result = obj.value(QStringLiteral("result")).toDouble(0);
 
 			int idx = findResult(username, taskid);
 
 			if (idx != -1) {
 				m_resultList[idx].success = success;
+				m_resultList[idx].result = result;
 			} else {
 				Task *task = findTask(taskid);
 
 				if (task)
-					m_resultList.append({user, task, success});
+					m_resultList.append({
+											.user = user,
+											.task = task,
+											.success = success,
+											.result = result
+										});
 				else
 					LOG_CWARNING("client") << "Invalid task:" << taskid;
 			}
@@ -821,6 +925,8 @@ bool TeacherGroupCampaignResultModel::loadCampaignDataFromRow(Campaign *campaign
 
 	campaign->setResultGrade(userResult.grade);
 	campaign->setResultXP(userResult.xp);
+	campaign->setProgress(userResult.progress);
+	campaign->setMaxPts(userResult.maxPts);
 
 	for (Task *task : *m_campaign->taskList()) {
 		if (!task)
@@ -828,13 +934,17 @@ bool TeacherGroupCampaignResultModel::loadCampaignDataFromRow(Campaign *campaign
 
 		int idx = findResult(userResult.user, task);
 		bool success = false;
+		qreal result = 0.;
 
-		if (idx != -1)
+		if (idx != -1) {
 			success = m_resultList.at(idx).success;
+			result = m_resultList.at(idx).result;
+		}
 
 		Task *t = campaign->appendTask();
 		t->loadFromTask(task);
 		t->setSuccess(success);
+		t->setResult(result);
 	}
 
 
@@ -1115,6 +1225,8 @@ void TeacherGroupResultModel::reloadFromJson(const QJsonObject &data)
 			const QString &username = obj.value(QStringLiteral("username")).toString();
 			int xp = obj.value(QStringLiteral("resultXP")).toInt();
 			int gradeid = obj.value(QStringLiteral("resultGrade")).toInt();
+			int maxPts = obj.value(QStringLiteral("maxPts")).toInt();
+			float progress = obj.value(QStringLiteral("progress")).toDouble();
 			Grade *grade = qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"), gradeid));
 
 			int idx = findResult(username, campaignid);
@@ -1122,6 +1234,8 @@ void TeacherGroupResultModel::reloadFromJson(const QJsonObject &data)
 			if (idx != -1) {
 				m_resultList[idx].result.grade = grade;
 				m_resultList[idx].result.xp = xp;
+				m_resultList[idx].result.maxPts = maxPts;
+				m_resultList[idx].result.progress = progress;
 			} else {
 				Campaign *campaign = findCampaign(campaignid);
 				User *user = findUser(username);
@@ -1136,7 +1250,11 @@ void TeacherGroupResultModel::reloadFromJson(const QJsonObject &data)
 					continue;
 				}
 
-				m_resultList.append({user, campaign, { grade, xp }});
+				m_resultList.append({user, campaign, { .grade = grade,
+													   .xp = xp,
+													   .maxPts = maxPts,
+													   .progress = progress
+									 }});
 			}
 		}
 	}
@@ -1349,20 +1467,97 @@ void TeacherGroupResultModel::setTeacherGroup(TeacherGroup *newTeacherGroup)
 }
 
 
+
+
 /**
- * @brief TeacherGroup::freePlayMapList
+ * @brief TeacherGroupFreeMap::TeacherGroupFreeMap
+ * @param parent
+ */
+
+TeacherGroupFreeMap::TeacherGroupFreeMap(QObject *parent)
+	: SelectableObject(parent)
+{
+
+}
+
+
+
+const QString &TeacherGroupFreeMap::missionUuid() const
+{
+	return m_missionUuid;
+}
+
+void TeacherGroupFreeMap::setMissionUuid(QString newMissionUuid)
+{
+	if (m_missionUuid == newMissionUuid)
+		return;
+	m_missionUuid = newMissionUuid;
+	emit missionUuidChanged();
+}
+
+
+/**
+ * @brief TeacherGroupFreeMap::missionName
  * @return
  */
 
-QStringList TeacherGroup::freePlayMapList() const
+QString TeacherGroupFreeMap::missionName() const
+{
+	if (m_missionUuid.isEmpty() || !m_map)
+		return {};
+
+	const QJsonObject &obj = m_map->findMission(m_missionUuid);
+
+	if (obj.empty())
+		return {};
+
+	return obj.value(QStringLiteral("name")).toString();
+}
+
+
+
+QJsonArray TeacherGroup::freePlayMapList() const
 {
 	return m_freePlayMapList;
 }
 
-void TeacherGroup::setFreePlayMapList(const QStringList &newFreePlayMapList)
+void TeacherGroup::setFreePlayMapList(const QJsonArray &newFreePlayMapList)
 {
 	if (m_freePlayMapList == newFreePlayMapList)
 		return;
 	m_freePlayMapList = newFreePlayMapList;
 	emit freePlayMapListChanged();
+}
+
+BaseMap *TeacherGroupFreeMap::map() const
+{
+	return m_map;
+}
+
+void TeacherGroupFreeMap::setMap(BaseMap *newMap)
+{
+	if (m_map == newMap)
+		return;
+
+	if (m_map)
+		m_map->disconnect(this);
+
+	m_map = newMap;
+
+	if (m_map)
+		connect(m_map, &BaseMap::nameChanged, this, &TeacherGroupFreeMap::nameChanged);
+
+	emit mapChanged();
+	emit nameChanged();
+}
+
+
+/**
+ * @brief TeacherGroupFreeMap::name
+ * @return
+ */
+
+QString TeacherGroupFreeMap::name() const
+{
+	return m_map ? m_map->name() : QStringLiteral("");
 }

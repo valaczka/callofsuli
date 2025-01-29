@@ -53,7 +53,7 @@ public:
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
 	inline QStringList storageModules() const override {
-		static const QStringList l = {QStringLiteral("numbers"), QStringLiteral("sequence")};
+		static const QStringList l = {QStringLiteral("numbers"), QStringLiteral("sequence"), QStringLiteral("block")};
 		return l;
 	}
 

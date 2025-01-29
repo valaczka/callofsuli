@@ -491,6 +491,12 @@ QPage {
 					}
 
 					QDashboardButton {
+						action: _actionClearGrading
+						anchors.verticalCenter: parent.verticalCenter
+						bgColor: Qaterial.Colors.red600
+					}
+
+					QDashboardButton {
 						action: _actionCancelAll
 						anchors.verticalCenter: parent.verticalCenter
 					}
@@ -553,8 +559,15 @@ QPage {
 						anchors.verticalCenter: parent.verticalCenter
 						Qaterial.LabelHeadline5 {
 							anchors.right: parent.right
+							visible: text != ""
 							text: pendingGrade ? pendingGrade.shortname : grade ? grade.shortname : ""
 							color: pendingGrade ? Qaterial.Style.accentColor : Qaterial.Colors.green400
+						}
+						Qaterial.LabelSubtitle1 {
+							anchors.right: parent.right
+							visible: examData.length && !pendingGrade && !grade
+							text: qsTr("%1p").arg(points)
+							color: Qaterial.Style.accentColor
 						}
 						Qaterial.LabelHint1 {
 							anchors.right: parent.right
@@ -604,6 +617,7 @@ QPage {
 				QMenuItem { action: _actionJokerUnset}
 				Qaterial.MenuSeparator {}
 				QMenuItem { action: _actionGrade}
+				QMenuItem { action: _actionClearGrading}
 				QMenuItem { action: _actionCancelAll}
 				QMenuItem { action: _actionSaveAll}
 			}
@@ -718,7 +732,7 @@ QPage {
 		id: _actionRemove
 		icon.source: Qaterial.Icons.fileDocumentRemove
 
-		text: qsTr("Eltávolítás")
+		text: qsTr("Törlés")
 
 		enabled: exam && exam.state < Exam.Finished &&
 				 (_view.currentIndex != -1 || _view.selectEnabled)
@@ -732,7 +746,7 @@ QPage {
 			let isForced = exam.state >= Exam.Active
 
 
-			JS.questionDialogPlural(l, qsTr("Biztosan eltávolítod a kijelölt %1 dolgozatot?"), "fullName",
+			JS.questionDialogPlural(l, qsTr("Biztosan törlöd a kijelölt %1 dolgozatot?"), "fullName",
 									{
 										onAccepted: function()
 										{
@@ -743,12 +757,12 @@ QPage {
 											.done(root, function(r){
 												_view.unselectAll()
 												_teacherExam.reloadExamContent()
-												Client.messageInfo(qsTr("%1 diák dolgozat eltávolítva").arg(l.length), qsTr("Diák dolgozat"))
+												Client.messageInfo(qsTr("%1 diák dolgozat törölve").arg(l.length), qsTr("Diák dolgozat"))
 											})
-											.fail(root, JS.failMessage(qsTr("Diák dolgozatok eltávolítása sikertelen")))
+											.fail(root, JS.failMessage(qsTr("Diák dolgozatok törlése sikertelen")))
 
 										},
-										title: qsTr("Diák dolgozatok eltávolítása"),
+										title: qsTr("Diák dolgozatok törölve"),
 										iconSource: Qaterial.Icons.fileDocumentRemove,
 										iconColor: isForced ? Qaterial.Colors.red500 : Qaterial.Colors.orange500,
 										textColor: isForced ? Qaterial.Colors.red500 : Qaterial.Colors.orange500
@@ -931,6 +945,28 @@ QPage {
 				let u = l[i]
 				u.pendingGrade = _teacherExam.gradingConfig.grade(u.result)
 			}
+		}
+	}
+
+	Action {
+		id: _actionClearGrading
+		icon.source: Qaterial.Icons.deleteCircle
+		text: qsTr("Osztályzatok törlése")
+		enabled: exam && exam.state == Exam.Grading && exam.mode != Exam.ExamVirtual &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								_teacherExam.deleteGrades(_view.getSelected())
+								_view.unselectAll()
+							},
+							text: qsTr("Biztosan törlöd az osztályzatokat?"),
+							title: qsTr("Változtatások rögzítése"),
+							iconSource: Qaterial.Icons.deleteCircle
+						})
 		}
 	}
 

@@ -54,7 +54,7 @@ QPageGradient {
 			leftPadding: Math.max(20 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
 			rightPadding: Math.max(20 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
 			font.family: "HVD Peace"
-			font.pixelSize: Qaterial.Style.textTheme.headline3.pixelSize
+			font.pixelSize: Qaterial.Style.textTheme.headline4.pixelSize
 			text: mission ? mission.name : ""
 			wrapMode: Text.Wrap
 			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
@@ -62,7 +62,46 @@ QPageGradient {
 			visible: map && map.gameState != MapPlay.StateInvalid
 		}
 
-		Qaterial.LabelBody1 {
+		ListView {
+			id: view
+			model: mission ? mission.missionLevelList : null
+			orientation: ListView.Horizontal
+
+			implicitHeight: 110*Qaterial.Style.pixelSizeRatio
+
+			width: Math.min(contentWidth, parent.width)
+			spacing: 5 * Qaterial.Style.pixelSizeRatio
+
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			snapMode: ListView.SnapToItem
+
+			header: Item {
+				width: Math.max(Client.safeMarginLeft, Qaterial.Style.card.horizontalPadding)
+				height: view.height
+			}
+
+			footer: Item {
+				width: Math.max(Client.safeMarginRight, Qaterial.Style.card.horizontalPadding)
+				height: view.height
+			}
+
+			delegate: MapPlayMissionLevelCard {
+				height: view.implicitHeight
+				width: view.implicitHeight
+
+				readOnly: map && map.readOnly
+				hasBorder: root.missionLevel == missionLevel
+				hasColoredBorder: true
+
+				missionLevel: model.qtObject
+
+				onClicked: root.missionLevel = missionLevel
+			}
+
+		}
+
+		/*Qaterial.LabelBody1 {
 			anchors.horizontalCenter: parent.horizontalCenter
 			horizontalAlignment: Text.AlignHCenter
 			text: missionLevel ?
@@ -71,22 +110,12 @@ QPageGradient {
 					: ""
 			bottomPadding: 20 * Qaterial.Style.pixelSizeRatio
 			visible: map && map.gameState != MapPlay.StateInvalid
-		}
+		}*/
 
-		Qaterial.LabelBody2 {
-			anchors.horizontalCenter: parent.horizontalCenter
-			horizontalAlignment: Text.AlignHCenter
+
+		Item {
 			width: parent.width
-			leftPadding: Math.max(50 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
-			rightPadding: Math.max(50 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
-			text: mission && missionLevel ? (_modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Test ?
-												 mission.description + qsTr("\n\nA sikeres teljesítéshez %1% eredményt kell elérni").arg(Math.floor(missionLevel.passed*100)) :
-												 mission.description)
-										  : ""
-			wrapMode: Text.Wrap
-			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
-			visible: text != "" && map && map.gameState == MapPlay.StateSelect
-			color: Qaterial.Style.iconColor()
+			height: 20 * Qaterial.Style.pixelSizeRatio
 		}
 
 		Qaterial.GroupBox {
@@ -99,11 +128,11 @@ QPageGradient {
 			anchors.horizontalCenter: parent.horizontalCenter
 			inlineTitle: true
 
+
 			ButtonGroup {
 				id: _modeGroup
 				onClicked: {
-					if (map && checkedButton)
-						_xpLabel.xp = map.calculateXP(missionLevel, checkedButton.gameMode)
+					recalculateXP()
 					reload()
 				}
 			}
@@ -131,7 +160,7 @@ QPageGradient {
 						readonly property int gameMode: modelData
 						//width: parent.width
 
-						visible: mission && mission.modeEnabled(gameMode) && (!missionLevel.deathmatch || gameMode == GameMap.Rpg)
+						visible: missionLevel && missionLevel.modeEnabled(gameMode) && (!missionLevel.deathmatch || gameMode == GameMap.Rpg)
 
 						text: {
 							switch (modelData) {
@@ -173,6 +202,23 @@ QPageGradient {
 
 		}
 
+		Qaterial.LabelBody2 {
+			anchors.horizontalCenter: parent.horizontalCenter
+			horizontalAlignment: Text.AlignHCenter
+			width: Math.min(parent.width-Client.safeMarginLeft-Client.safeMarginRight, Qaterial.Style.maxContainerSize)
+			//leftPadding: Math.max(50 * Qaterial.Style.pixelSizeRatio, Client.safeMarginLeft)
+			//rightPadding: Math.max(50 * Qaterial.Style.pixelSizeRatio, Client.safeMarginRight)
+			text: mission && missionLevel ? (_modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Test ?
+												 mission.description + qsTr("\nA sikeres teljesítéshez %1% eredményt kell elérni").arg(Math.floor(missionLevel.passed*100)) :
+												 mission.description)
+										  : ""
+			wrapMode: Text.Wrap
+			topPadding: 10 * Qaterial.Style.pixelSizeRatio
+			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+			visible: text != "" && map && map.gameState == MapPlay.StateSelect
+			color: Qaterial.Style.accentColor
+		}
+
 		Qaterial.LabelHeadline3 {
 			id: _xpLabel
 
@@ -194,98 +240,6 @@ QPageGradient {
 			}
 		}
 
-
-		// Using Inventory				// DEPRECATED
-
-		/*QExpandableHeader {
-			text: qsTr("Felhasználandó felszerelés")
-			icon: Qaterial.Icons.bagPersonal
-
-			anchors.left: _inventoryUseView.left
-			anchors.right: _inventoryUseView.right
-			topPadding: 30 * Qaterial.Style.pixelSizeRatio
-
-			visible: _inventoryUseView.visible
-
-			button.visible: false
-		}
-
-		ListView {
-			id: _inventoryUseView
-			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.8)
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			visible: map && map.gameState == MapPlay.StateSelect && !map.readOnly && _inventoryUseModel.count && missionLevel && missionLevel.deathmatch
-
-			height: contentHeight
-
-			model: ListModel {
-				id: _inventoryUseModel
-			}
-
-			boundsBehavior: Flickable.StopAtBounds
-
-			delegate: Qaterial.FullLoaderItemDelegate {
-				id: _inventoryUseDelegate
-
-				spacing: 10
-				leftPadding: 0
-				rightPadding: 0
-
-				highlighted: usedValue > 0
-
-				width: ListView.view.width
-
-				height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
-
-				readonly property var _info: map ? map.inventoryInfo(key) : {}
-				readonly property string module: key
-				property int usedValue: 0
-
-				leftSourceComponent: Qaterial.Icon {
-					size: Qaterial.Style.delegate.iconWidth
-
-					icon: _inventoryUseDelegate._info.icon !== undefined ? _inventoryUseDelegate._info.icon : ""
-
-					color: "transparent"
-				}
-
-				contentSourceComponent: Label {
-					font: Qaterial.Style.textTheme.body2Upper
-					verticalAlignment: Label.AlignVCenter
-					text: (_inventoryUseDelegate._info.name !== undefined ? _inventoryUseDelegate._info.name : "")
-						  +" [%1]".arg(value)
-					color: _inventoryUseDelegate.usedValue > 0 ? Qaterial.Style.accentColor : Qaterial.Colors.blue400
-				}
-
-				rightSourceComponent: Row {
-					spacing: 3
-
-					Qaterial.RoundButton {
-						icon.source: Qaterial.Icons.minus
-						//icon.color: Qaterial.Colors.blue700
-						anchors.verticalCenter: parent.verticalCenter
-						enabled: _inventoryUseDelegate.usedValue > 0
-						onClicked: _inventoryUseDelegate.usedValue--
-					}
-
-					QBanner {
-						num: _inventoryUseDelegate.usedValue
-						color: num > 0 ? Qaterial.Style.accentColor : Qaterial.Colors.blue700
-						textColor: num > 0 ? Qaterial.Colors.black : Qaterial.Colors.white
-						anchors.verticalCenter: parent.verticalCenter
-					}
-
-					Qaterial.RoundButton {
-						icon.source: Qaterial.Icons.plus
-						//icon.color: Qaterial.Colors.blue700
-						anchors.verticalCenter: parent.verticalCenter
-						enabled: _inventoryUseDelegate.usedValue < value
-						onClicked: _inventoryUseDelegate.usedValue++
-					}
-				}
-			}
-		} */
 
 		Qaterial.IconLabel {
 			anchors.horizontalCenter: parent.horizontalCenter
@@ -361,16 +315,6 @@ QPageGradient {
 
 			onClicked: {
 				let d = {}
-
-				/*if (missionLevel.deathmatch) {				// DEPRECATED
-					for (let i=0; i<_inventoryUseModel.count; ++i) {
-						let item = _inventoryUseView.itemAtIndex(i)
-
-						if (item.usedValue > 0)
-							d[item.module] = item.usedValue
-					}
-
-				}*/
 
 				if (_mapPlayCampaign)
 					_mapPlayCampaign.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
@@ -740,8 +684,30 @@ QPageGradient {
 	}
 
 
+
+	function recalculateXP() {
+		if (map && _modeGroup.checkedButton)
+			_xpLabel.xp = map.calculateXP(missionLevel, _modeGroup.checkedButton.gameMode)
+	}
+
 	function reload() {
-		if (!map || !mission || !missionLevel || !_modeGroup.checkedButton)
+		if (!map || !mission)
+			return
+
+		if (!missionLevel) {
+			let idx = -1
+
+			for (let i=0; i<mission.missionLevelList.count; ++i) {
+				let ml = mission.missionLevelList.get(i)
+
+				if (ml.lockDepth === 0 && ml.solved <= 0) {
+					missionLevel = ml
+					break
+				}
+			}
+		}
+
+		if (!missionLevel || !_modeGroup.checkedButton)
 			return
 
 		if (!map.online) {
@@ -776,19 +742,7 @@ QPageGradient {
 					})
 		.fail(root, JS.failMessage("Letöltés sikertelen"))
 
-		/*if (!missionLevel.deathmatch)			// DEPRECATED
-			_inventoryUseModel.clear()
-		else {
-			Client.send(HttpConnection.ApiUser, "inventory").done(root, function(r) {
-				_inventoryUseModel.clear()
-				for (let i=0; i<r.list.length; ++i) {
-					let o = r.list[i]
-					if (o.value > 0)
-						_inventoryUseModel.append(o)
-				}
-			})
-			.fail(root, JS.failMessage("Letöltés sikertelen"))
-		}*/
+
 	}
 
 	StackView.onActivated: {
@@ -832,36 +786,39 @@ QPageGradient {
 
 		function onMissionLevelUnlocked(list) {
 			_model.clear()
-			let gameMode = _modeGroup.checkedButton.gameMode
 
-			for (let i=0; i<list.length; ++i) {
-				let ml=list[i]
-				if (!ml)
-					continue
+			if (_modeGroup.checkedButton) {
+				let gameMode = _modeGroup.checkedButton.gameMode
 
-				if (ml.mission.modeEnabled(gameMode) && !ml.deathmatch) {
+				for (let i=0; i<list.length; ++i) {
+					let ml=list[i]
+					if (!ml)
+						continue
 
-					let xp = map.calculateXP(ml, gameMode)
+					if (ml.modeEnabled(gameMode) && !ml.deathmatch) {
 
-					_model.append({
-									  xp: xp,
-									  missionLevel: ml
-								  })
+						let xp = map.calculateXP(ml, gameMode)
+
+						_model.append({
+										  xp: xp,
+										  missionLevel: ml
+									  })
+					}
 				}
-			}
 
-			if (list.length > 0)
-				_unlockView.isUnlocked = true
-			else {
-				_unlockView.isUnlocked = false
+				if (list.length > 0)
+					_unlockView.isUnlocked = true
+				else {
+					_unlockView.isUnlocked = false
 
-				var nextLevel = map.getNextLevel(root.missionLevel, gameMode)
+					var nextLevel = map.getNextLevel(root.missionLevel, gameMode)
 
-				if (nextLevel) {
-					_model.append({
-									  xp: map.calculateXP(nextLevel, gameMode),
-									  missionLevel: nextLevel
-								  })
+					if (nextLevel) {
+						_model.append({
+										  xp: map.calculateXP(nextLevel, gameMode),
+										  missionLevel: nextLevel
+									  })
+					}
 				}
 			}
 
@@ -938,5 +895,36 @@ QPageGradient {
 
 	on_MapPlayCampaignChanged: reloadExtraTimeSwitch()
 
-	onMissionLevelChanged: reloadExtraTimeSwitch()
+	onMissionLevelChanged: {
+		if (_currentGameFailed)
+			_currentGameFailed = false
+
+		if (map.gameState != MapPlay.StateSelect)
+			map.gameState = MapPlay.StateSelect
+
+		if (mission) {
+			let idx = -1
+			for (let i=0; i<mission.missionLevelList.count; ++i) {
+				if (mission.missionLevelList.get(i) == missionLevel) {
+					idx = i
+					break
+				}
+			}
+
+			view.currentIndex = idx
+
+			for (let i=0; i<_modeGroup.buttons.length; ++i) {
+				let b = _modeGroup.buttons[i]
+				if (missionLevel && missionLevel.modeEnabled(b.gameMode)) {
+					_modeGroup.checkedButton = b
+					break
+				}
+			}
+		}
+
+		recalculateXP()
+		reload()
+
+		reloadExtraTimeSwitch()
+	}
 }

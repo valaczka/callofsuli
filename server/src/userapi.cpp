@@ -273,7 +273,7 @@ QHttpServerResponse UserAPI::campaigns(const Credential &credential)
 								 "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 								 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
 								 "description, finished, groupid,"
-								 "score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+								 "score.xp AS resultXP, campaignResult.gradeid AS resultGrade, maxPts, progress "
 								 "FROM campaign "
 								 "LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id AND campaignResult.username=").addValue(credential.username())
 					   .addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
@@ -313,7 +313,8 @@ QHttpServerResponse UserAPI::campaign(const Credential &credential, const int &i
 			   .addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
 						 "SELECT campaign.id AS id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 						 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-						 "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade "
+						 "description, finished, groupid, defaultGrade, score.xp AS resultXP, campaignResult.gradeid AS resultGrade,"
+						 "maxPts, progress "
 						 "FROM campaign LEFT JOIN campaignResult ON (campaignResult.campaignid=campaign.id	AND campaignResult.username=")
 			   .addValue(credential.username())
 			   .addQuery(") LEFT JOIN score ON (campaignResult.scoreid=score.id) "
@@ -330,13 +331,20 @@ QHttpServerResponse UserAPI::campaign(const Credential &credential, const int &i
 	LAMBDA_SQL_ERROR("not found", !obj->isEmpty());
 
 	const bool &finished = obj->value(QStringLiteral("finished")).toVariant().toBool();
-	const auto &result = TeacherAPI::_campaignUserResult(this, id, finished, credential.username(), true);
+	const auto &result = TeacherAPI::_campaignUserResult(this, id, finished, credential.username());
 
 	LAMBDA_SQL_ASSERT(result);
 
 	if (!finished) {
 		obj->insert(QStringLiteral("resultXP"), result->xp > 0 ? result->xp : QJsonValue::Null);
 		obj->insert(QStringLiteral("resultGrade"), result->grade > 0 ? result->grade : QJsonValue::Null);
+		if (result->maxPts > 0) {
+			obj->insert(QStringLiteral("maxPts"), result->maxPts);
+			obj->insert(QStringLiteral("progress"), result->progress);
+		} else {
+			obj->insert(QStringLiteral("maxPts"), QJsonValue::Null);
+			obj->insert(QStringLiteral("progress"), QJsonValue::Null);
+		}
 	}
 
 	obj->insert(QStringLiteral("taskList"), result->tasks);
@@ -391,20 +399,15 @@ QHttpServerResponse UserAPI::freePlay(const Credential &credential)
 
 	LAMBDA_THREAD_BEGIN(credential);
 
-	QJsonArray list;
+	const auto &ptr = QueryBuilder::q(db)
+					  .addQuery("SELECT DISTINCT mapuuid, mission FROM freeplay WHERE groupid IN ("
+								"SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+					  .addQuery(")")
+					  .execToJsonArray();
 
-	QueryBuilder q(db);
+	LAMBDA_SQL_ASSERT(ptr);
 
-	q.addQuery("SELECT DISTINCT mapuuid FROM freeplay WHERE groupid IN ("
-			   "SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
-			.addQuery(")");
-
-	LAMBDA_SQL_ASSERT(q.exec());
-
-	while (q.sqlQuery().next())
-		list.append(q.value("mapuuid").toString());
-
-	response = responseResult("list", list);
+	response = responseResult("list", *ptr);
 
 	LAMBDA_THREAD_END;
 }
@@ -504,7 +507,7 @@ QHttpServerResponse UserAPI::mapSolver(const Credential &credential, const QStri
 		QJsonObject ret;
 
 		for (auto it = solver->constBegin(); it != solver->constEnd(); ++it)
-			ret.insert(it.key(), it.value().toJsonObject());
+			ret.insert(it.key(), it.value().toJsonArray());
 
 		return QHttpServerResponse(ret);
 	}
@@ -933,7 +936,7 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 	if (success) {
 		// Solved XP
 
-		const int &xpSolved = GameMap::computeSolvedXpFactor(game.level, game.deathmatch, oldSolved, game.mode) * baseXP;
+		const int &xpSolved = GameMap::computeSolvedXpFactor(game.level, oldSolved, game.mode) * baseXP;
 
 		sumXP += xpSolved;
 		retObj[QStringLiteral("xpSolved")] = xpSolved;
@@ -1042,7 +1045,7 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 
 	// Inventory
 
-	if (success && game.mode == GameMap::Action) {
+	/*if (success && game.mode == GameMap::Action) {
 		QJsonArray iList;
 
 		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
@@ -1069,7 +1072,7 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		}
 
 		retObj[QStringLiteral("inventory")] = iList;
-	}
+	}*/
 
 	if (success && game.mode == GameMap::Rpg) {
 		QJsonArray iList;
@@ -1749,7 +1752,7 @@ std::optional<QMap<QString, GameMap::SolverInfo> > UserAPI::solverInfo(const Abs
 			if (solver.contains(mission))
 				s = solver.value(mission);
 
-			s.setSolved(q.value("level").toInt(), q.value("deathmatch").toBool(), q.value("num").toInt());
+			s.setSolved(q.value("level").toInt(), q.value("num").toInt());
 
 			solver.insert(mission, s);
 		}
@@ -1804,7 +1807,7 @@ std::optional<GameMap::SolverInfo> UserAPI::solverInfo(const AbstractAPI *api, c
 			return ret.reject();
 
 		while (q.sqlQuery().next())
-			solver.setSolved(q.value("level").toInt(), q.value("deathmatch").toBool(), q.value("num").toInt());
+			solver.setSolved(q.value("level").toInt(), q.value("num").toInt());
 
 		ret.resolve();
 	});

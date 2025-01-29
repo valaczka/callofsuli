@@ -164,9 +164,9 @@ GameMap *GameMap::fromBinaryData(const QByteArray &data)
  * @return
  */
 
-qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const bool &deathmatch, const GameMode &mode)
+qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &level, const GameMode &mode)
 {
-	return computeSolvedXpFactor(level, deathmatch, baseSolver.solved(level, deathmatch), mode);
+	return computeSolvedXpFactor(level, baseSolver.solved(level), mode);
 }
 
 
@@ -179,29 +179,20 @@ qreal GameMap::computeSolvedXpFactor(const SolverInfo &baseSolver, const int &le
  * @return
  */
 
-qreal GameMap::computeSolvedXpFactor(const int &level, const bool &/*deathmatch*/, const int &solved, const GameMode &mode)
+qreal GameMap::computeSolvedXpFactor(const int &level, const int &solved, const GameMode &mode)
 {
 	qreal factor = XP_FACTOR_LEVEL*level;
 
 	if (mode == Practice) {
-		return 0.0;
-	} /*else if (mode == Action || mode == Rpg) {
-		if (deathmatch)
-			factor *= XP_FACTOR_DEATHMATCH;
-
+		///factor = XP_FACTOR_PRACTICE;
+		return 0.;
+	} else {
 		if (solved < 1)
 			factor *= XP_FACTOR_SOLVED_FIRST;
-	} else if (mode == Lite) {
-		if (solved < 1)
-			factor *= XP_FACTOR_SOLVED_FIRST * 0.85;
-	} */else {
-		if (solved < 1)
-			factor *= XP_FACTOR_SOLVED_FIRST;
-	}
-
-	if (solved > SOLVED_MAX) {
-		factor += XP_FACTOR_SOLVED_OVER * (solved - SOLVED_MAX);
-		factor = qMax(factor, XP_FACTOR_LEVEL);
+		else if (solved > SOLVED_MAX) {
+			factor += XP_FACTOR_SOLVED_OVER * (solved - SOLVED_MAX);
+			factor = qMax(factor, XP_FACTOR_LEVEL);
+		}
 	}
 
 	return factor;
@@ -253,13 +244,8 @@ GameMapChapterIface *GameMap::ifaceAddChapter(const qint32 &id, const QString &n
 GameMapMissionIface *GameMap::ifaceAddMission(const QByteArray &uuid, const QString &name,
 											  const QString &description, const QString &medalImage, const quint32 &gameModes)
 {
-	GameModes m = QVariant::fromValue(gameModes).value<GameMap::GameModes>();
-
-	if (m == Invalid)
-		m = (GameModes) gameModes;
-
 	GameMapMission *s = new GameMapMission(uuid, name, description, medalImage,
-										   m,
+										   QVariant(gameModes).value<GameMap::GameModes>(),
 										   this);
 
 	m_missions.append(s);
@@ -402,7 +388,7 @@ GameMapMission::GameMapMission(const QByteArray &uuid, const QString &name, cons
 	m_name = name;
 	m_description = description;
 	m_medalImage = medalImage;
-	m_modes = modes;
+	m_gameModes = modes;
 }
 
 GameMapMission::~GameMapMission()
@@ -475,11 +461,12 @@ GameMapMissionLevel *GameMapMission::level(const qint32 &num) const
 GameMapMissionLevelIface *GameMapMission::ifaceAddLevel(const qint32 &level, const QByteArray &terrain,
 														const qint32 &startHP, const qint32 &duration,
 														const bool &canDeathmatch, const qreal &questions,
-														const qreal &passed,
+														const qreal &passed, const quint32 &gameModes,
 														const qint32 &image)
 {
 	GameMapMissionLevel *s = new GameMapMissionLevel(level, terrain, startHP,
-													 duration, canDeathmatch, questions, passed,
+													 duration, canDeathmatch, questions,
+													 passed, QVariant(gameModes).value<GameMap::GameModes>(),
 													 image, this, m_map);
 	m_levels.append(s);
 	return s;
@@ -515,9 +502,9 @@ GameMapMissionLevelIface *GameMapMission::ifaceAddLock(const QString &uuid, cons
  * @return
  */
 
-const GameMap::GameModes &GameMapMission::modes() const
+GameMap::GameModes GameMapMission::modes() const
 {
-	return m_modes;
+	return QVariant(m_gameModes).value<GameMap::GameModes>();
 }
 
 
@@ -624,7 +611,8 @@ QVariantList &GameMapObjective::generatedQuestions()
  */
 
 GameMapMissionLevel::GameMapMissionLevel(const qint32 &level, const QByteArray &terrain, const qint32 &startHP,
-										 const qint32 &duration, const bool &canDeathmatch, const qreal &questions, const qreal &passed,
+										 const qint32 &duration, const bool &canDeathmatch, const qreal &questions,
+										 const qreal &passed, const GameMap::GameModes &modes,
 										 const qint32 &image, GameMapMission *mission, GameMap *map)
 	: GameMapMissionLevelIface()
 	, m_map(map)
@@ -638,6 +626,7 @@ GameMapMissionLevel::GameMapMissionLevel(const qint32 &level, const QByteArray &
 	m_questions = questions;
 	m_passed = passed;
 	m_image = image;
+	m_gameModes = modes;
 }
 
 qint32 GameMapMissionLevel::level() const
@@ -746,6 +735,11 @@ GameMapInventoryIface *GameMapMissionLevel::ifaceAddInventory(const qint32 &bloc
 GameMap *GameMapMissionLevel::map() const
 {
 	return m_map;
+}
+
+GameMap::GameModes GameMapMissionLevel::modes() const
+{
+	return QVariant(m_gameModes).value<GameMap::GameModes>();
 }
 
 

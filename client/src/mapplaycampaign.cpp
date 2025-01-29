@@ -113,10 +113,16 @@ void MapPlayCampaign::updateSolver()
 			->done(this, [this](const QJsonObject &data){
 		for (auto it = data.constBegin(); it != data.constEnd(); ++it) {
 			GameMapMission *mission = m_gameMap->mission(it.key());
-			GameMap::SolverInfo s(it.value().toObject());
 
-			if (mission)
-				m_solver->loadSolverInfo(mission, s);
+			if (mission) {
+				if (it.value().isObject()) {
+					GameMap::SolverInfo s(it.value().toObject());
+					m_solver->loadSolverInfo(mission, s);
+				} else {
+					GameMap::SolverInfo s(it.value().toArray());
+					m_solver->loadSolverInfo(mission, s);
+				}
+			}
 		}
 
 		QList<MapPlayMissionLevel*> list = m_solver->updateLock();
@@ -210,7 +216,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/create").arg(
 						   m_campaign ? m_campaign->campaignid() : 0
-						   ), {
+										), {
 						   { QStringLiteral("map"), m_gameMap->uuid() },
 						   { QStringLiteral("mission"), levelGame->uuid() },
 						   { QStringLiteral("level"), levelGame->level() },
@@ -510,6 +516,7 @@ void MapPlayCampaign::destroyCurrentGame()
 		LOG_CERROR("client") << "Missing current game";
 	}
 }
+
 
 
 

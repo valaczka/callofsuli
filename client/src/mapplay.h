@@ -201,8 +201,12 @@ public:
 	virtual QList<MapPlayMissionLevel*> updateLock() = 0;
 	virtual void updateXP();
 
+	const QStringList &forceUnlockMissionList() const;
+	void setForceUnlockMissionList(const QStringList &newForceUnlockMissionList);
+
 protected:
 	MapPlay *m_mapPlay = nullptr;
+	QStringList m_forceUnlockMissionList;
 
 };
 
@@ -323,6 +327,9 @@ public:
 	QString medalImage() const;
 
 	MapPlayMission *mission() const;
+
+	static bool modeEnabled(GameMapMissionLevel *level, const GameMap::GameMode &mode);
+	Q_INVOKABLE bool modeEnabled(const GameMap::GameMode &mode) const { return modeEnabled(m_missionLevel, mode); }
 
 signals:
 	void lockDepthChanged();

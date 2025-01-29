@@ -164,24 +164,29 @@ bool DatabaseMain::databaseUpgrade(const int &major, const int &minor)
 		QLambdaThreadWorker *worker = db ? db->worker() : m_worker.get();
 
 		worker->execInThread([ret, this, &major, &minor, ptr = db.get(), i]() mutable {
-			QSqlDatabase db = QSqlDatabase::database(ptr ? ptr->dbName() : m_dbName);
-
 			QMutexLocker mutexlocker(ptr ? ptr->mutex() : mutex());
 
-			if (QueryBuilder q(db); q.addQuery("SELECT versionMajor, versionMinor FROM system").exec()) {
-				if (!q.sqlQuery().first()) {
-					LOG_CERROR("db") << "Corrupt database";
-					return ret.reject();
-				}
+			int vMajor = 0;
+			int vMinor = 0;
 
-				const int &vMajor = q.value("versionMajor").toInt();
-				const int &vMinor = q.value("versionMinor").toInt();
+			{
+				QSqlDatabase db = QSqlDatabase::database(ptr ? ptr->dbName() : m_dbName);
 
-				if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode(major, minor)) {
-					if (!_upgradeTables(ptr ? ptr : this, i, vMajor, vMinor, major, minor)) {
-						LOG_CERROR("db") << "Upgrade failed";
+				if (QueryBuilder q(db); q.addQuery("SELECT versionMajor, versionMinor FROM system").exec()) {
+					if (!q.sqlQuery().first()) {
+						LOG_CERROR("db") << "Corrupt database";
 						return ret.reject();
 					}
+
+					vMajor = q.value("versionMajor").toInt();
+					vMinor = q.value("versionMinor").toInt();
+				}
+			}
+
+			if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode(major, minor)) {
+				if (!_upgradeTables(ptr ? ptr : this, i, vMajor, vMinor, major, minor)) {
+					LOG_CERROR("db") << "Upgrade failed";
+					return ret.reject();
 				}
 			}
 
@@ -642,6 +647,7 @@ bool DatabaseMain::_upgradeTables(Database *db, const int &dbType, int fromMajor
 		Upgrade {4, 0, 4, 1, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_4.0_4.1.sql") },
 		Upgrade {4, 1, 4, 2, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_4.1_4.2.sql") },
 		Upgrade {4, 3, 4, 4, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_4.3_4.4.sql") },
+		Upgrade {4, 4, 4, 5, Database::Upgrade::UpgradeFromFile, QStringLiteral(":/sql/main_4.4_4.5.sql") },
 	};
 
 	static const QVector<Upgrade> mapsList = {

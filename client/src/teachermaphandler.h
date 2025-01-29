@@ -62,6 +62,8 @@ public:
 	TeacherMapEditor *mapEditor() const;
 	void setMapEditor(TeacherMapEditor *newMapEditor);
 
+	Q_INVOKABLE TeacherMap *findMap(const QString &uuid) const;
+
 
 #ifdef Q_OS_WASM
 	Q_INVOKABLE void mapImportWasm();

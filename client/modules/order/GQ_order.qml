@@ -96,6 +96,9 @@ GameQuestionComponentImpl {
 		GameQuestionDNDbutton {
 			drops: containerItem.drops
 			property int num: -1
+
+			fontFamily: questionData.monospace ? "Ubuntu Mono" : ""
+			horizontalAlignment: questionData.monospace ? Qt.AlignLeft : Qt.AlignHCenter
 		}
 	}
 

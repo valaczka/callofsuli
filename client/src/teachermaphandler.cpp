@@ -241,6 +241,24 @@ void TeacherMapHandler::setMapEditor(TeacherMapEditor *newMapEditor)
 }
 
 
+/**
+ * @brief TeacherMapHandler::findMap
+ * @param uuid
+ * @return
+ */
+
+TeacherMap *TeacherMapHandler::findMap(const QString &uuid) const
+{
+	for (TeacherMap *m : *m_mapList) {
+		if (m && m->uuid() == uuid)
+			return m;
+	}
+
+	return nullptr;
+}
+
+
+
 #ifdef Q_OS_WASM
 
 /**

@@ -113,6 +113,12 @@ QFormColumn {
 		spin.onValueModified: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormCheckButton {
+		id: _checkMonospace
+		field: "monospace"
+		text: qsTr("Válaszlehetőségek monospace betűtípussal")
+	}
+
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
@@ -124,8 +130,8 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isBlock ? [_questionBlock, _spinMin, _spinMax, _spinCount] :
-							   [_question, _spinMin, _spinMax, _spinCount]
+		let _items = isBlock ? [_questionBlock, _spinMin, _spinMax, _spinCount, _checkMonospace] :
+							   [_question, _spinMin, _spinMax, _spinCount, _checkMonospace]
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -148,8 +154,8 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isBlock ? [_questionBlock, _spinMin, _spinMax, _spinCount] :
-							   [_question, _spinMin, _spinMax, _spinCount, _wrongAnswers, _correctAnswers]
+		let _items = isBlock ? [_questionBlock, _spinMin, _spinMax, _spinCount, _checkMonospace] :
+							   [_question, _spinMin, _spinMax, _spinCount, _wrongAnswers, _correctAnswers, _checkMonospace]
 
 		return getItems(_items)
 	}
