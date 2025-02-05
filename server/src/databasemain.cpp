@@ -348,6 +348,8 @@ bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 		int vMajor = q.value(QStringLiteral("versionMajor")).toInt();
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
+		q.finish();
+
 		m_service->setServerName(q.value(QStringLiteral("serverName")).toString());
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
@@ -420,6 +422,8 @@ bool DatabaseMain::_checkMapsSystemTable(Database *mapsDb)
 		int vMajor = q.value(QStringLiteral("versionMajor")).toInt();
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
+		q.finish();
+
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
 			if (_upgradeTables(mapsDb, 1, vMajor, vMinor))
 				return _checkMapsSystemTable(mapsDb);
@@ -480,6 +484,8 @@ bool DatabaseMain::_checkStatSystemTable(Database *statDb)
 	} else if (q.first()) {
 		int vMajor = q.value(QStringLiteral("versionMajor")).toInt();
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
+
+		q.finish();
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
 			if (_upgradeTables(statDb, 2, vMajor, vMinor))
