@@ -348,9 +348,10 @@ bool DatabaseMain::_checkSystemTable(const QString &dbImport)
 		int vMajor = q.value(QStringLiteral("versionMajor")).toInt();
 		int vMinor = q.value(QStringLiteral("versionMinor")).toInt();
 
+		m_service->setServerName(q.value(QStringLiteral("serverName")).toString());
+
 		q.finish();
 
-		m_service->setServerName(q.value(QStringLiteral("serverName")).toString());
 
 		if (Utils::versionCode(vMajor, vMinor) < Utils::versionCode()) {
 			if (_upgradeTables(this, 0, vMajor, vMinor))
