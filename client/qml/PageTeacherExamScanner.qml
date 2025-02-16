@@ -15,6 +15,10 @@ QPage {
 
 	title:  _teacherExam.uploadableCount ? qsTr("%1 dolgozat feltöltése").arg(_teacherExam.uploadableCount) : qsTr("Dolgozatok beolvasása")
 
+	property url _pdfToRead: ""
+	property int _pdfScale: 10
+	property bool _doubleSided: false
+
 	stackPopFunction: function() {
 		if (_actionSave.modified) {
 			_actionCancel.trigger()
@@ -206,6 +210,12 @@ QPage {
 
 			QDashboardButton {
 				anchors.verticalCenter: parent.verticalCenter
+				action: _actionScanPdf
+				//visible: _teacherExam.scanState == TeacherExam.ScanIdle
+			}
+
+			QDashboardButton {
+				anchors.verticalCenter: parent.verticalCenter
 				action: _actionUpdate
 				visible: _teacherExam.scanState == TeacherExam.ScanFinished
 			}
@@ -388,6 +398,22 @@ QPage {
 								  })
 			else*/
 			Qaterial.DialogManager.openFromComponent(_cmpFolderSelect)
+		}
+	}
+
+	Action {
+		id: _actionScanPdf
+		text: qsTr("PDF beolvasás")
+		icon.source: Qaterial.Icons.filePdf
+		//enabled: _teacherExam.scanState == TeacherExam.ScanIdle
+		//onTriggered: _teacherExam.scanImageDir("/tmp/x")
+		onTriggered: {
+			/*if (Qt.platform.os == "wasm")
+				editor.exportData(MapEditor.ExportExam, "", {
+									  missionLevel: missionLevel
+								  })
+			else*/
+			Qaterial.DialogManager.openFromComponent(_cmpPdfSelect)
 		}
 	}
 
@@ -586,6 +612,89 @@ QPage {
 
 			folder: Client.Utils.settingsGet("folder/scan")
 		}
+	}
+
+	Component {
+		id: _cmpPdfSelect
+
+		QFileDialog {
+			title: qsTr("PDF beolvasása")
+			filters: ["*.pdf", "*.PDF"]
+			isDirectorySelect: false
+			onFileSelected: file => {
+								Client.Utils.settingsSet("folder/scan", modelFolder.toString())
+								selectPdfSettings(file)
+							}
+
+			folder: Client.Utils.settingsGet("folder/scan")
+		}
+	}
+
+
+	Component {
+		id: _cmpPdfSettings
+		Qaterial.ModalDialog
+		{
+			id: _dlg
+
+			dialogImplicitWidth: 400 * Qaterial.Style.pixelSizeRatio
+
+			horizontalPadding: 0
+			bottomPadding: 1
+			drawSeparator: true
+
+			title: qsTr("PDF beállítások")
+
+			standardButtons: DialogButtonBox.Ok|DialogButtonBox.Cancel
+			contentItem: Item {
+				readonly property real leftPadding: 10 * Qaterial.Style.pixelSizeRatio
+				readonly property real rightPadding: 10 * Qaterial.Style.pixelSizeRatio
+				readonly property real topPadding: 5 * Qaterial.Style.pixelSizeRatio
+				readonly property real bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+
+				implicitHeight: _col.implicitHeight + topPadding + bottomPadding
+				implicitWidth:  _col.implicitWidth + leftPadding + rightPadding
+
+				Column {
+					id: _col
+
+					x: parent.leftPadding
+					y: parent.topPadding
+
+					width: parent.width - parent.leftPadding - parent.rightPadding
+
+					QFormSpinBox {
+						width: parent.width
+						text: qsTr("Méretezés")
+						from: 10
+						to: 50
+						//stepSize: 0.1
+						value: _pdfScale
+						spin.onValueModified: _pdfScale = value
+						spin.textFromValue: (value, locale) => {
+												return Number(value / 10.).toLocaleString(locale, 'f', 1)
+											}
+					}
+
+					Qaterial.CheckButton {
+						anchors.left: parent.left
+						text: qsTr("Kétoldalas")
+						checked: _doubleSided
+						onToggled: _doubleSided = checked
+					}
+				}
+			}
+
+			onAccepted: {
+				_teacherExam.scanPdf(_pdfToRead, _pdfScale / 10., _doubleSided)
+			}
+		}
+	}
+
+
+	function selectPdfSettings(file) {
+		_pdfToRead = file
+		Qaterial.DialogManager.openFromComponent(_cmpPdfSettings)
 	}
 
 	/*

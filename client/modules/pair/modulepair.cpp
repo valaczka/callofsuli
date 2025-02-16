@@ -317,6 +317,7 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 	m[QStringLiteral("list")] = questions;
 	m[QStringLiteral("options")] = mixedList;
 	m[QStringLiteral("answer")] = QVariantMap({{ QStringLiteral("list"), answers }});
+	m[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 
 	return m;

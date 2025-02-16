@@ -31,6 +31,7 @@
 #include "exam.h"
 #include "gamemap.h"
 #include "qjsonarray.h"
+#include "qpdfpagerenderer.h"
 #include "qtemporarydir.h"
 #include "qtextdocument.h"
 #include "SBarcodeDecoder.h"
@@ -349,11 +350,14 @@ public:
 
 	Q_INVOKABLE void createPdf(const QList<ExamUser *> &list, const QVariantMap &pdfConfig);
 	Q_INVOKABLE void scanImageDir(const QUrl &path);
+	Q_INVOKABLE void scanPdf(const QUrl &path, const qreal &scale = 1., const bool &doubleSide = false);
 
 	Q_INVOKABLE void remove(ExamScanData *scan);
 	Q_INVOKABLE void removeSelected();
 
 	Q_INVOKABLE void uploadResult();
+
+	Q_INVOKABLE bool exportGrades(const QUrl &path, const QList<ExamUser *> &list) const;
 
 	Q_INVOKABLE QVariantList getMissionLevelList();
 	Q_INVOKABLE void loadContentFromJson(const QJsonObject &object);
@@ -466,6 +470,8 @@ private:
 	void updateResultFromServer();
 	void uploadResultReal(QVector<QPointer<ExamScanData>> list);
 
+	void scanDataAppend(const QString &filename);
+
 	static QVector<int> letterToOptions(const QString &options) {
 		QVector<int> list;
 		for (const QChar &ch : options)
@@ -484,6 +490,7 @@ private:
 	std::unique_ptr<ExamScanDataList> m_scanData;
 	std::unique_ptr<ExamUserList> m_examUserList;
 	std::unique_ptr<QTemporaryDir> m_scanTempDir;
+	std::unique_ptr<QTemporaryDir> m_pdfTempDir;
 
 #ifdef WITH_OMR
 	std::unique_ptr<QProcess> m_omrProcess = nullptr;

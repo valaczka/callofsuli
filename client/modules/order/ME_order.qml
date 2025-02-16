@@ -125,6 +125,12 @@ QFormColumn {
 		text: qsTr("Válaszlehetőségek monospace betűtípussal")
 	}
 
+	QFormCheckButton {
+		id: _checkLinebreak
+		field: "break"
+		text: qsTr("Nyomtatásban a válaszlehetőségek több sorba")
+	}
+
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
@@ -137,7 +143,7 @@ QFormColumn {
 
 	function loadData() {
 		_countBinding.value = objective.storageCount
-		setItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _checkMonospace], objective.data)
+		setItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _checkMonospace, _checkLinebreak], objective.data)
 
 		if (!isNumbers && !isBlock && objective.data.items !== undefined)
 			_areaItems.fieldData = objective.data.items.join("\n")
@@ -153,9 +159,9 @@ QFormColumn {
 
 	function previewData() {
 		if (!isNumbers && !isBlock)
-			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _areaItems, _checkMonospace])
+			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _areaItems, _checkMonospace, _checkLinebreak])
 		else
-			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _checkMonospace])
+			return getItems([_spinCount, _modeOrder, _questionAsc, _questionDesc, _textMax, _textMin, _checkMonospace, _checkLinebreak])
 	}
 }
 

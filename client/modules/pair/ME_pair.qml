@@ -113,6 +113,12 @@ QFormColumn {
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormCheckButton {
+		id: _checkLinebreak
+		field: "break"
+		text: qsTr("Nyomtatásban a válaszlehetőségek több sorba")
+	}
+
 	MapEditorSpinStorageCount {
 		id: _countBinding
 		visible: isBinding
@@ -122,8 +128,8 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isBlock ? [_question, _spinOptions, _modeOrder, _spinCount] :
-							   [_question, _spinOptions, _modeOrder, _spinCount]
+		let _items = isBlock ? [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak] :
+							   [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak]
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -143,8 +149,8 @@ QFormColumn {
 
 
 	function previewData() {
-		let d = getItems(isBlock ? [_question, _spinOptions, _modeOrder, _spinCount] :
-								   [_question, _spinOptions, _modeOrder, _spinCount]
+		let d = getItems(isBlock ? [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak] :
+								   [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak]
 						 )
 
 		if (!isBinding && !isBlock)

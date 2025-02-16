@@ -8,45 +8,14 @@ import "./QaterialHelper" as Qaterial
 QPage {
 	id: root
 
-	property alias world: _map.world
-
-	title: _map.selectedLand ? (_map.selectedLand.name != "" ?
-									_map.selectedLand.name :
-									qsTr("[névtelen terület]"))
-							 : ""
-
-
-	appBar.backButtonVisible: true
-	appBar.background: null
-
-	appBar.rightComponent: Qaterial.AppBarButton
-	{
-		action: _actionSelect
-		backgroundColor: enabled ? Qaterial.Colors.green500 : "transparent"
+	TeacherExam {
+		id: _teacherExam
 	}
 
-	RpgUserWorldMap {
-		id: _map
-		anchors.fill: parent
-		onLandSelected: (land) => {
-							_map.selectedLand = land
-							_actionSelect.trigger()
-						}
+	QButton {
+		text: "TEST"
+		onClicked: _teacherExam.test()
 	}
-
-	Action {
-		id: _actionSelect
-		icon.source: Qaterial.Icons.checkBold
-		enabled: _map.selectedLand && (
-					 _map.selectedLand.landState == RpgWorldLandData.LandSelectable ||
-					 _map.selectedLand.landState == RpgWorldLandData.LandAchieved)
-
-		onTriggered: {
-			world.selectLand(_map.selectedLand)
-			Client.stackPop()
-		}
-	}
-
 }
 
 

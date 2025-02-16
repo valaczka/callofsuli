@@ -37,7 +37,9 @@
 #include "stb_image_write.h"
 #include "csv.hpp"
 #include "examgame.h"
+#include <QPdfPageRenderer>
 #include "../modules/binary/modulebinary.h"
+#include "xlsxdocument.h"
 
 
 
@@ -96,6 +98,7 @@ TeacherExam::~TeacherExam()
 {
 	LOG_CTRACE("client") << "TeacherExam destroyed" << this;
 }
+
 
 
 
@@ -247,6 +250,31 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 
 
 
+
+/**
+ * @brief TeacherExam::scanDataAppend
+ * @param filename
+ */
+
+void TeacherExam::scanDataAppend(const QString &filename)
+{
+	/*#ifndef Q_OS_WASM
+	m_worker.execInThread([this, filename](){
+		QMutexLocker locker(&m_mutex);
+#endif*/
+
+	ExamScanData *s = new ExamScanData;
+	connect(s, &ExamScanData::uploadChanged, this, &TeacherExam::uploadableCountChanged);
+	connect(s, &ExamScanData::stateChanged, this, &TeacherExam::uploadableCountChanged);
+	connect(s, &ExamScanData::serverAnswerChanged, this, &TeacherExam::uploadableCountChanged);
+	s->setPath(filename);
+	m_scanData->append(s);
+
+	/*#ifndef Q_OS_WASM
+	});
+#endif*/
+}
+
 /**
  * @brief TeacherExam::scanImageDir
  * @param path
@@ -273,18 +301,55 @@ void TeacherExam::scanImageDir(const QUrl &path)
 
 
 	while (it.hasNext()) {
-		ExamScanData *s = new ExamScanData;
-		connect(s, &ExamScanData::uploadChanged, this, &TeacherExam::uploadableCountChanged);
-		connect(s, &ExamScanData::stateChanged, this, &TeacherExam::uploadableCountChanged);
-		connect(s, &ExamScanData::serverAnswerChanged, this, &TeacherExam::uploadableCountChanged);
-		s->setPath(it.next());
-		m_scanData->append(s);
+		scanDataAppend(it.next());
 	}
 
 	if (m_scanData->empty())
 		return;
 
 	setScanState(ScanRunning);
+
+	scanImages();
+}
+
+
+
+/**
+ * @brief TeacherExam::scanPdf
+ * @param path
+ */
+
+void TeacherExam::scanPdf(const QUrl &path, const qreal &scale, const bool &doubleSide)
+{
+	if (m_scanState == ScanRunning) {
+		LOG_CERROR("client") << "Scanning in progress";
+		return;
+	}
+
+	QPdfDocument doc;
+
+	if (const auto &err = doc.load(path.toLocalFile()); err != QPdfDocument::Error::None) {
+		LOG_CWARNING("client") << "Load PDF error" << err << path;
+		Application::instance()->client()->messageError(tr("PDF megnyitása sikertelen"));
+		return;
+	}
+
+	m_scanData->clear();
+	m_pdfTempDir.reset(new QTemporaryDir);
+	m_pdfTempDir->setAutoRemove(true);
+
+	for (int i=0; i<doc.pageCount(); doubleSide ? i+=2 : ++i) {
+		QString fn = m_pdfTempDir->filePath(QStringLiteral("page_%1.jpg").arg(i));
+
+		LOG_CDEBUG("client") << "Rendering page" << fn;
+
+		QImage image = doc.render(i, doc.pagePointSize(i).toSize() * scale);
+		image.save(fn, "JPEG");
+
+		scanDataAppend(fn);
+
+		QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::AllEvents);
+	}
 
 	scanImages();
 }
@@ -377,6 +442,75 @@ void TeacherExam::uploadResult()
 #ifndef Q_OS_WASM
 	});
 #endif
+}
+
+
+
+/**
+ * @brief TeacherExam::exportGrades
+ * @param path
+ * @return
+ */
+
+bool TeacherExam::exportGrades(const QUrl &path, const QList<ExamUser*> &list) const
+{
+	QXlsx::Document doc;
+
+	QXlsx::Format format;
+	format.setBottomBorderStyle(QXlsx::Format::BorderMedium);
+	format.setFontBold(true);
+
+
+	// Header
+
+	static const QStringList headers = {
+		QStringLiteral("Last Name"),
+		QStringLiteral("First Name"),
+		QStringLiteral("Email"),
+		QStringLiteral("Points"),
+		QStringLiteral("Result"),
+	};
+
+	for (int i=0; i<headers.size(); ++i)
+		doc.write(1, 1+i, headers.at(i), format);
+
+
+	int row = 2;
+
+	for (ExamUser *u : *m_examUserList) {
+		if (!list.isEmpty() && !list.contains(u))
+			continue;
+
+		int col = 1;
+		doc.write(row, col++, u->familyName());
+		doc.write(row, col++, u->givenName());
+		doc.write(row, col++, u->username());
+
+		if (!u->examData().isEmpty()) {
+			doc.write(row, col++, u->points());
+
+			QXlsx::Format f;
+			f.setNumberFormatIndex(10);
+			doc.write(row, col++, u->result(), f);
+		}
+
+		++row;
+	}
+
+
+	QBuffer buf;
+	doc.saveAs(&buf);
+
+	QFile f(path.toLocalFile());
+	if (!f.open(QIODevice::WriteOnly)) {
+		LOG_CERROR("client") << "Write error:" << path;
+		return false;
+	}
+
+	f.write(buf.data());
+	f.close();
+
+	return true;
 }
 
 
@@ -1137,7 +1271,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			}
 		} else if (module == QStringLiteral("order")) {
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
+			const bool linebreak = obj.value(QStringLiteral("break")).toBool();
+
+			if (linebreak)
+				html += QStringLiteral("</p>");
+
 			for (int i=0; i<list.size(); ++i) {
+				if (linebreak)
+					html += QStringLiteral("<p style=\"align=justify\">");
+
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
 						+QStringLiteral(")</b> ");
 
@@ -1148,11 +1290,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				else
 					html += str;
 
-				if (i<list.size()-1)
+				if (linebreak)
+					html += QStringLiteral("</p>");
+				else if (i<list.size()-1)
 					html += QStringLiteral(",");
 			}
 
-			html += QStringLiteral("</p>");
+			if (!linebreak)
+				html += QStringLiteral("</p>");
+
 			html += QStringLiteral("<p style=\"margin-left: 30px;\" align=justify>");
 
 			for (int i=0; i<list.size(); ++i) {
@@ -2430,6 +2576,7 @@ void TeacherExam::uploadResultReal(QVector<QPointer<ExamScanData> > list)
 
 	Application::instance()->client()->snack(tr("Eredmények feltöltve"));
 }
+
 
 
 

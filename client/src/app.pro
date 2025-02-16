@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts websockets core5compat
+QT += gui quick svg xml network gui-private quickcontrols2 charts websockets core5compat pdf
 
 CONFIG += c++2a
 CONFIG += separate_debug_info

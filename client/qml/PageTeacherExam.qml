@@ -292,8 +292,8 @@ QPage {
 					id: _pdfFontSize
 					anchors.horizontalCenter: parent.horizontalCenter
 					text: qsTr("PDF betűméret:")
-					from: 7
-					to: 11
+					from: 6
+					to: 16
 					value: _actionPDF.pdfFontSize
 					visible: exam && exam.mode == Exam.ExamPaper
 					onValueChanged: _actionPDF.pdfFontSize = value
@@ -369,6 +369,11 @@ QPage {
 					QDashboardButton {
 						action: _actionPDF
 						visible: exam && exam.mode == Exam.ExamPaper
+					}
+
+					QDashboardButton {
+						action: _actionXLSX
+						visible: exam && exam.mode != Exam.ExamVirtual
 					}
 
 					QDashboardButton {
@@ -611,7 +616,13 @@ QPage {
 				QMenuItem { action: _actionGenerate }
 				QMenuItem { action: _actionGenerateVirtual }
 				QMenuItem { action: _actionRemove }
-				QMenuItem { action: _actionPDF }
+
+				Qaterial.Menu {
+					title: qsTr("Exportálás")
+					QMenuItem { action: _actionPDF }
+					QMenuItem { action: _actionXLSX }
+				}
+
 				Qaterial.MenuSeparator {}
 				QMenuItem { action: _actionJokerSet}
 				QMenuItem { action: _actionJokerUnset}
@@ -655,7 +666,7 @@ QPage {
 								}
 
 								if (Client.Utils.fileExists(file)) {
-									overrideQuestion(file, l, config)
+									overrideQuestionPdf(file, l, config)
 								} else {
 									_teacherExam.createPdf(l, config)
 								}
@@ -667,7 +678,37 @@ QPage {
 		}
 	}
 
-	function overrideQuestion(file, l, config) {
+
+	Component {
+		id: _cmpExportXlsx
+
+		QFileDialog {
+			title: qsTr("XLSX letöltése")
+			filters: [ "*.xlsx" ]
+			isSave: true
+			suffix: ".xlsx"
+			onFileSelected: file => {
+								let l = []
+
+								if (_view.selectEnabled) {
+									l = _view.getSelected()
+									_view.unselectAll()
+								}
+
+								if (Client.Utils.fileExists(file)) {
+									overrideQuestionXlsx(file, l)
+								} else {
+									_teacherExam.exportGrades(file, l)
+								}
+
+								Client.Utils.settingsSet("folder/xlsxExport", modelFolder.toString())
+							}
+
+			folder: Client.Utils.settingsGet("folder/xlsxExport", "")
+		}
+	}
+
+	function overrideQuestionPdf(file, l, config) {
 		JS.questionDialog({
 							  onAccepted: function()
 							  {
@@ -678,6 +719,20 @@ QPage {
 							  iconSource: Qaterial.Icons.fileAlert
 						  })
 	}
+
+
+	function overrideQuestionXlsx(file, l) {
+		JS.questionDialog({
+							  onAccepted: function()
+							  {
+								  _teacherExam.exportGrades(file, l)
+							  },
+							  text: qsTr("A fájl létezik. Felülírjuk?\n%1").arg(file),
+							  title: qsTr("XLSX letöltése"),
+							  iconSource: Qaterial.Icons.fileAlert
+						  })
+	}
+
 
 	Action {
 		id: _actionGenerate
@@ -785,6 +840,19 @@ QPage {
 				mapEditor.wasmSaveAs(false)
 			else*/
 			Qaterial.DialogManager.openFromComponent(_cmpExportPdf)
+		}
+	}
+
+
+	Action {
+		id: _actionXLSX
+		icon.source: Qaterial.Icons.fileExcelOutline
+		enabled: exam && exam.mode != Exam.ExamVirtual
+
+		text: qsTr("XLSX letöltése")
+
+		onTriggered: {
+			Qaterial.DialogManager.openFromComponent(_cmpExportXlsx)
 		}
 	}
 
