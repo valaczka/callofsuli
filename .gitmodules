@@ -69,3 +69,6 @@
 [submodule "lib/libtcod/libtcod"]
 	path = lib/libtcod/libtcod
 	url = https://github.com/valaczka/libtcod.git
+[submodule "lib/miniaudio"]
+	path = lib/miniaudio
+	url = https://github.com/mackron/miniaudio.git
