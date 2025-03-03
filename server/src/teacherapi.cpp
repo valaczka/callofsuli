@@ -4189,7 +4189,8 @@ std::optional<TeacherAPI::UserCampaignResult> TeacherAPI::_campaignUserResult(co
 		const int &gradeValue = o.value(QStringLiteral("gradeValue")).toInt(-1);
 		const int &xp = o.value(QStringLiteral("xp")).toInt(-1);
 		const bool &required = o.value(QStringLiteral("required")).toVariant().toBool();
-		const bool &success = o.value(QStringLiteral("success")).toVariant().toBool();
+		const bool &success = o.value(QStringLiteral("success")).toVariant().toBool() &&
+							  o.value(QStringLiteral("result")).toDouble() >= 1.0;
 
 		if (gradeid > 0) {
 			auto it = gradeList.find(gradeid);
