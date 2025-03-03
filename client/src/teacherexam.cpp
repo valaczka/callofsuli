@@ -520,11 +520,11 @@ bool TeacherExam::exportGrades(const QUrl &path, const QList<ExamUser*> &list) c
  * @return
  */
 
-QVariantList TeacherExam::getMissionLevelList()
+QVariantList TeacherExam::getMissionLevelList(const QUrl &url)
 {
 	QVariantList list;
 
-	loadGameMap();
+	loadGameMap(url);
 
 	if (!m_gameMap)
 		return {};
@@ -627,7 +627,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
  * @brief TeacherExam::generateExamContent
  */
 
-void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
+void TeacherExam::generateExamContent(const QList<ExamUser*> &list, const bool &noShuffle)
 {
 	LOG_CDEBUG("client") << "Generate exam content";
 
@@ -652,7 +652,7 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
 		userdata[QStringLiteral("username")] = u->username();
 
 		QJsonArray commonList;
-		QJsonArray qList = ExamGame::generatePaperQuestions(ml);
+		QJsonArray qList = ExamGame::generatePaperQuestions(ml, noShuffle);
 		QJsonArray numberedList;
 
 		// Numbering questions from PDF
@@ -1520,40 +1520,54 @@ void TeacherExam::loadUserList()
  * @brief TeacherExam::loadGameMap
  */
 
-void TeacherExam::loadGameMap()
+void TeacherExam::loadGameMap(const QUrl &url)
 {
-	if (!m_exam || !m_mapHandler) {
-		LOG_CWARNING("client") << "Missing exam/mapHandler";
-		setGameMap({});
-		return;
-	}
-
-	if (m_exam->mapUuid().isEmpty()) {
-		Application::instance()->messageInfo(tr("Nincs beállítva pálya!"), tr("Dolgozat készítése"));
-		setGameMap({});
-		return;
-	}
-
-	auto mapList = m_mapHandler->mapList();
-
-	TeacherMap *map = OlmLoader::find<TeacherMap>(mapList, "uuid", m_exam->mapUuid());
-
-	if (!map) {
-		Application::instance()->messageInfo(tr("Érvénytelen pályaazonosító!"), tr("Dolgozat készítése"));
-		setGameMap({});
-	}
-
-	if (!map->downloaded()) {
-		Application::instance()->messageInfo(tr("A dolgozat elkészítéséhez a kiválasztott pályát előbb le kell tölteni. A letöltés elindult."), tr("Pálya letöltése"));
-		m_mapHandler->mapDownload(map);
+	if (!m_exam) {
+		LOG_CWARNING("client") << "Missing exam";
 		setGameMap({});
 		return;
 	}
 
 	std::unique_ptr<GameMap> mapData;
 
-	if (const auto &data = m_mapHandler->read(map); data) {
-		mapData.reset(GameMap::fromBinaryData(data.value()));
+	if (url.isEmpty()) {
+		if (!m_mapHandler) {
+			LOG_CWARNING("client") << "Missing mapHandler";
+			setGameMap({});
+			return;
+		}
+
+		if (m_exam->mapUuid().isEmpty()) {
+			Application::instance()->messageInfo(tr("Nincs beállítva pálya!"), tr("Dolgozat készítése"));
+			setGameMap({});
+			return;
+		}
+
+		auto mapList = m_mapHandler->mapList();
+
+		TeacherMap *map = OlmLoader::find<TeacherMap>(mapList, "uuid", m_exam->mapUuid());
+
+		if (!map) {
+			Application::instance()->messageInfo(tr("Érvénytelen pályaazonosító!"), tr("Dolgozat készítése"));
+			setGameMap({});
+		}
+
+		if (!map->downloaded()) {
+			Application::instance()->messageInfo(tr("A dolgozat elkészítéséhez a kiválasztott pályát előbb le kell tölteni. A letöltés elindult."), tr("Pálya letöltése"));
+			m_mapHandler->mapDownload(map);
+			setGameMap({});
+			return;
+		}
+
+		if (const auto &data = m_mapHandler->read(map); data) {
+			mapData.reset(GameMap::fromBinaryData(data.value()));
+		}
+	} else if (url.isLocalFile()) {
+		LOG_CDEBUG("client") << "Load exam from" << qPrintable(url.toLocalFile());
+
+		if (const auto &ptr = Utils::fileContent(url.toLocalFile())) {
+			mapData.reset(GameMap::fromBinaryData(ptr.value()));
+		}
 	}
 
 	if (!mapData) {

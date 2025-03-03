@@ -207,7 +207,7 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 	QVariantList blockList;
 
 
-	if (storage->name() == QStringLiteral("block")) {
+	if (storage && storage->name() == QStringLiteral("block")) {
 		blockList = storageData.value(QStringLiteral("blocks")).toList();
 		genCount = blockList.size();
 	}
@@ -215,7 +215,7 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 
 	for (int i=0; i<genCount; ++i) {
 
-		if (storage->name() == QStringLiteral("block")) {
+		if (storage && storage->name() == QStringLiteral("block")) {
 			const QStringList &list = blockList.at(i).toMap().value(QStringLiteral("second")).toStringList();
 			if (list.isEmpty())
 				continue;

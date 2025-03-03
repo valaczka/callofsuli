@@ -23,6 +23,8 @@ QPage {
 	property alias exam: _teacherExam.exam
 	property alias mapHandler: _teacherExam.mapHandler
 
+	property string _tfMissionDescription: ""
+
 
 
 	title: exam ? (exam.description != "" ? exam.description : qsTr("Dolgozat #%1").arg(exam.examId)) : ""
@@ -247,6 +249,20 @@ QPage {
 
 				}
 
+				QButton {
+					id: _btnOpen
+					text: qsTr("Küldetés fájlból")
+
+					visible: (_teacherExam.missionUuid == "" || _teacherExam.level <= 0) &&
+							 exam && exam.mode != Exam.ExamVirtual && exam.state < Exam.Active
+
+					icon.source: Qaterial.Icons.fileSearch
+
+					display: AbstractButton.TextBesideIcon
+
+					onClicked: Qaterial.DialogManager.openFromComponent(_cmpOpenMap)
+				}
+
 			}
 
 		}
@@ -270,8 +286,7 @@ QPage {
 
 				Qaterial.LabelHeadline5 {
 					id: _tfMission
-					property string description: ""
-					text: description != "" ? description : qsTr("Válassz ki egy küldetést...")
+					text: _tfMissionDescription != "" ? _tfMissionDescription : qsTr("Válassz ki egy küldetést...")
 					anchors.horizontalCenter: parent.horizontalCenter
 					padding: 10 * Qaterial.Style.pixelSizeRatio
 					visible: _btnSelect.visible
@@ -286,6 +301,15 @@ QPage {
 					value: 10
 					visible: exam && exam.mode == Exam.ExamVirtual && exam.state < Exam.Active
 					onValueChanged: _actionGenerateVirtual.spinCount = value
+				}
+
+				QFormSwitchButton {
+					id: _pdfNoShuffle
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: qsTr("Kérdések eredeti sorrendben")
+					checked: _actionGenerate.noShuffle
+					visible: exam && exam.mode == Exam.ExamPaper && _btnGenerate.visible
+					onToggled: _actionGenerate.noShuffle = checked
 				}
 
 				QFormSpinBox {
@@ -310,39 +334,8 @@ QPage {
 
 						icon.source: Qaterial.Icons.selectSearch
 
-						onClicked: {
-							let l = _teacherExam.getMissionLevelList()
-							_tfMission.description = ""
-							_teacherExam.missionUuid = ""
-							_teacherExam.level = -1
-
-							if (l.length === 0) {
-								Client.messageInfo(qsTr("Nincs megfelelő küldetés a pályán!"), qsTr("Küldetés kiválasztása"))
-								return
-							}
-
-							Qaterial.DialogManager.openListView(
-										{
-											onAccepted: function(index)
-											{
-												if (index < 0)
-													return
-
-												let li = l[index]
-
-												_tfMission.description = qsTr("%1 - level %2").arg(li.name).arg(li.level)
-												_teacherExam.missionUuid = li.uuid
-												_teacherExam.level = li.level
-											},
-											title: qsTr("Küldetés kiválasztása"),
-											model: l,
-											delegate: _delegate
-										})
-
-						}
+						onClicked: selectExam("")
 					}
-
-
 
 					QDashboardButton {
 						id: _btnGenerate
@@ -708,6 +701,21 @@ QPage {
 		}
 	}
 
+
+	Component {
+		id: _cmpOpenMap
+
+		QFileDialog {
+			title: qsTr("Pálya megnyitása")
+			filters: [ "*.map" ]
+			onFileSelected: file => {
+								selectExam(file)
+								Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
+							}
+			folder: Client.Utils.settingsGet("folder/teacherMap", "")
+		}
+	}
+
 	function overrideQuestionPdf(file, l, config) {
 		JS.questionDialog({
 							  onAccepted: function()
@@ -738,6 +746,8 @@ QPage {
 		id: _actionGenerate
 		icon.source: Qaterial.Icons.fileCog
 
+		property bool noShuffle: false
+
 		text: qsTr("Generálás")
 
 		enabled: _teacherExam.missionUuid != "" && _teacherExam.level > 0 &&
@@ -745,7 +755,7 @@ QPage {
 				 (_view.currentIndex != -1 || _view.selectEnabled)
 
 		onTriggered: {
-			_teacherExam.generateExamContent(_view.getSelected())
+			_teacherExam.generateExamContent(_view.getSelected(), noShuffle)
 			_view.unselectAll()
 		}
 	}
@@ -1137,6 +1147,39 @@ QPage {
 			isLoading = true
 			_examResultModel.reload()
 		}
+	}
+
+
+
+	function selectExam(_url) {
+		let l = _teacherExam.getMissionLevelList(_url)
+		_tfMissionDescription = ""
+		_teacherExam.missionUuid = ""
+		_teacherExam.level = -1
+
+		if (l.length === 0) {
+			Client.messageInfo(qsTr("Nincs megfelelő küldetés a pályán!"), qsTr("Küldetés kiválasztása"))
+			return
+		}
+
+		Qaterial.DialogManager.openListView(
+					{
+						onAccepted: function(index)
+						{
+							if (index < 0)
+								return
+
+							let li = l[index]
+
+							_tfMissionDescription = qsTr("%1 - level %2").arg(li.name).arg(li.level)
+							_teacherExam.missionUuid = li.uuid
+							_teacherExam.level = li.level
+						},
+						title: qsTr("Küldetés kiválasztása"),
+						model: l,
+						delegate: _delegate
+					})
+
 	}
 
 

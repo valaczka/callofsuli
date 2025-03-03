@@ -359,10 +359,10 @@ public:
 
 	Q_INVOKABLE bool exportGrades(const QUrl &path, const QList<ExamUser *> &list) const;
 
-	Q_INVOKABLE QVariantList getMissionLevelList();
+	Q_INVOKABLE QVariantList getMissionLevelList(const QUrl &url = {});
 	Q_INVOKABLE void loadContentFromJson(const QJsonObject &object);
 
-	Q_INVOKABLE void generateExamContent(const QList<ExamUser*> &list);
+	Q_INVOKABLE void generateExamContent(const QList<ExamUser*> &list, const bool &noShuffle = false);
 	Q_INVOKABLE void reloadExamContent();
 	Q_INVOKABLE void pickUsers(QStringList userList, int count);
 
@@ -446,7 +446,7 @@ private:
 	static bool hasAutoQuestion(const QJsonArray &list);
 
 	void loadUserList();
-	void loadGameMap();
+	void loadGameMap(const QUrl &url);
 
 	void pickUsersRandom(const int &count, const QStringList &userList, const QJsonObject &data);
 	int getPicked(const QString &username, const QJsonArray &list) const;
