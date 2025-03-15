@@ -32,7 +32,6 @@
 #include "application.h"
 #include "qbuffer.h"
 #include "utils_.h"
-#include "QPageSize"
 #include <QPdfWriter>
 #include "stb_image_write.h"
 #include "csv.hpp"
@@ -121,8 +120,8 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 		QPdfWriter pdf(&buffer);
 		QPageLayout layout = pdf.pageLayout();
 		layout.setUnits(QPageLayout::Millimeter);
-		layout.setPageSize(QPageSize(QPageSize::A4));
-		layout.setMargins(QMarginsF(0, 10, 0, 10));
+		layout.setPageSize(QPageSize(pdfConfig.pageSize));
+		layout.setMargins(QMarginsF(0, 5, 0, 5));
 
 		pdf.setCreator(QStringLiteral("Call of Suli - v")+Application::version().toString());
 		pdf.setTitle(pdfConfig.title);
@@ -130,17 +129,52 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 		QTextDocument document;
 
-		QFont font(QStringLiteral("Rajdhani"), pdfConfig.fontSize);
+		int pointSize = pdfConfig.fontSize;
 
-		document.setPageSize(QPageSize::sizePoints(QPageSize::A4));
+		switch (pdfConfig.pageSize) {
+			case QPageSize::A6:
+				pointSize -= 2;
+				break;
+
+			case QPageSize::A5:
+				pointSize -= 1;
+				break;
+
+			default:
+				break;
+		}
+
+		QFont font(QStringLiteral("Rajdhani"), pointSize);
+
+		document.setPageSize(QPageSize::sizePoints(pdfConfig.pageSize));
 		document.setDefaultFont(font);
 
 		document.setDefaultStyleSheet(QStringLiteral("p { margin-bottom: 0px; margin-top: 0px; }"));
 
-		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bgL.png")));
+		QString srcL, srcR;
+
+		switch (pdfConfig.pageSize) {
+			case QPageSize::A5:
+				srcL = QStringLiteral(":/internal/exam/bgL5.png");
+				srcR = QStringLiteral(":/internal/exam/bgR5.png");
+				break;
+
+			case QPageSize::A6:
+				srcL = QStringLiteral(":/internal/exam/bgL6.png");
+				srcR = QStringLiteral(":/internal/exam/bgR6.png");
+				break;
+
+			case QPageSize::A4:
+			default:
+				srcL = QStringLiteral(":/internal/exam/bgL4.png");
+				srcR = QStringLiteral(":/internal/exam/bgR4.png");
+				break;
+		}
+
+		QImage image = QImage::fromData(Utils::fileContentRead(srcL));
 		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bgL.png")), QVariant(image));
 
-		QImage imageR = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bgR.png")));
+		QImage imageR = QImage::fromData(Utils::fileContentRead(srcR));
 		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bgR.png")), QVariant(imageR));
 
 		QString html;
@@ -172,13 +206,30 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 			if (count>0)
 				html += QStringLiteral(" style=\"page-break-before: always;\"");
 
-			html += QStringLiteral("><tr><td><img width=30 src=\"imgdata://bgL.png\"></td><td>");
+			int margin = 30;
+			int width = 30;
+
+			switch (pdfConfig.pageSize) {
+				case QPageSize::A5:
+					width = 28;
+					break;
+
+				case QPageSize::A6:
+					width = 28;
+					margin = 32;
+					break;
+
+				default:
+					break;
+			}
+
+			html += QStringLiteral("><tr><td width=%1 align=right><img width=%2 src=\"imgdata://bgL.png\"></td><td>").arg(margin).arg(width);
 
 			html += pdfTitle(pdfConfig, username, id, &document);
-			html += pdfSheet(count==0, layout.paintRectPoints().width()-80, autoQuestion, &document);
+			html += pdfSheet(pdfConfig.sheetSize, count==0, layout.paintRectPoints().width()-(20+2*margin), autoQuestion, &document);
 			html += pdfQuestion(qList, autoQuestion);
 
-			html += QStringLiteral("</td><td><img width=30 src=\"imgdata://bgR.png\"></td></tr></table>");
+			html += QStringLiteral("</td><td width=%1 align=left><img width=%2 src=\"imgdata://bgR.png\"></td></tr></table>").arg(margin).arg(width);
 
 			++count;
 
@@ -245,6 +296,41 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 	if (pdfConfig.contains(QStringLiteral("file")))
 		c.file = pdfConfig.value(QStringLiteral("file")).toUrl().toLocalFile();
 
+	if (pdfConfig.contains(QStringLiteral("pageSize"))) {
+		const int s = pdfConfig.value(QStringLiteral("pageSize")).toInt();
+
+
+		switch (s) {
+			case 10:
+				c.pageSize = QPageSize::A6;
+				c.sheetSize = 10;
+				break;
+
+
+			case 20:
+				c.pageSize = QPageSize::A5;
+				c.sheetSize = 20;
+				break;
+
+			case 40:
+				c.pageSize = QPageSize::A5;
+				c.sheetSize = 40;
+				break;
+
+
+			case 25:
+				c.pageSize = QPageSize::A4;
+				c.sheetSize = 25;
+				break;
+
+			case 50:
+				c.pageSize = QPageSize::A4;
+				c.sheetSize = 50;
+				break;
+		}
+
+	}
+
 	createPdf(list, c);
 }
 
@@ -289,6 +375,7 @@ void TeacherExam::scanImageDir(const QUrl &path)
 
 	m_scanData->clear();
 	m_scanTempDir.reset();
+	m_omrTemplateCode = 0;
 
 	QDirIterator it(path.toLocalFile(), {
 						QStringLiteral("*.png"),
@@ -337,6 +424,7 @@ void TeacherExam::scanPdf(const QUrl &path, const qreal &scale, const bool &doub
 	m_scanData->clear();
 	m_pdfTempDir.reset(new QTemporaryDir);
 	m_pdfTempDir->setAutoRemove(true);
+	m_omrTemplateCode = 0;
 
 	for (int i=0; i<doc.pageCount(); doubleSide ? i+=2 : ++i) {
 		QString fn = m_pdfTempDir->filePath(QStringLiteral("page_%1.jpg").arg(i));
@@ -1141,13 +1229,14 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
 {
 	Q_ASSERT(document);
 
-	const QString id = QStringLiteral("Call of Suli Exam %1/%2/%3/%4")
+	const QString id = QStringLiteral("Call of Suli Exam %1/%2/%3/%4/%5")
 					   .arg(Utils::versionNumber().majorVersion()).arg(Utils::versionNumber().minorVersion())
-					   .arg(pdfConfig.examId).arg(contentId);
+					   .arg(pdfConfig.examId)
+					   .arg(contentId)
+					   .arg(pdfConfig.sheetSize);
 
 	ZXing::BarcodeFormat format = ZXing::BarcodeFormat::QRCode;
 	ZXing::MultiFormatWriter writer = ZXing::MultiFormatWriter(format).setMargin(0);
-
 	ZXing::Matrix<uint8_t> bitmap = ZXing::ToMatrix<uint8_t>(writer.encode(id.toStdWString(), 120, 120));
 
 	QImage image;
@@ -1161,14 +1250,43 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
 	const QString imgName = QStringLiteral("imgdata://id%1.png").arg(contentId);
 	document->addResource(QTextDocument::ImageResource, QUrl(imgName), QVariant(image));
 
-	return QStringLiteral("<table width=\"100%\" style=\"margin-left: 0px; margin-right: 30px;\">"
-						  "<tr><td valign=middle><img height=60 src=\"%1\"></td>"
-						  "<td width=\"100%\" valign=middle style=\"padding-left: 10px;\">"
-						  "<p style=\"font-size: 8pt;\"><span style=\"font-size: 10pt;\"><b>%2</b></span><br/>"
+
+	int imgSize = 55;
+	int fontSize = 8;
+	int paddingLeft = 10;
+	int paddingRight = 30;
+
+	switch (pdfConfig.pageSize) {
+		case QPageSize::A5:
+			imgSize = 45;
+			fontSize = 7;
+			paddingLeft = 10;
+			paddingRight = 10;
+			break;
+		case QPageSize::A6:
+			imgSize = 45;
+			fontSize = 6;
+			paddingLeft = 5;
+			paddingRight = 5;
+			break;
+		default:
+			break;
+	}
+
+	return QStringLiteral("<table width=\"100%\" style=\"margin-left: 0px; margin-right: %9px;\">"
+						  "<tr><td valign=middle><img height=%5 src=\"%1\"></td>"
+						  "<td width=\"100%\" valign=middle style=\"padding-left: %10px;\">"
+						  "<p style=\"font-size: %6pt;\"><span style=\"font-size: %8pt;\"><b>%2</b></span><br/>"
 						  "%3<br/>"
-						  "<span style=\"font-size: 7pt;\">%4</span></p>"
+						  "<span style=\"font-size: %7pt;\">%4</span></p>"
 						  "</td></tr></table>\n\n")
 			.arg(imgName, username, pdfConfig.title, pdfConfig.subject)
+			.arg(imgSize)		// %5
+			.arg(fontSize)		// %6
+			.arg(fontSize-1)
+			.arg(fontSize+2)
+			.arg(paddingRight) // %9
+			.arg(paddingLeft)
 			;
 }
 
@@ -1180,7 +1298,7 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
  * @return
  */
 
-QString TeacherExam::pdfSheet(const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document)
+QString TeacherExam::pdfSheet(const int &size, const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document)
 {
 	Q_ASSERT(document);
 
@@ -1191,7 +1309,7 @@ QString TeacherExam::pdfSheet(const bool &addResource, const int &width, const b
 	static const QString imgName = QStringLiteral("imgdata://sheet.svg");
 
 	if (addResource) {
-		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/sheet50.png")));
+		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/sheet%1.png").arg(size)));
 		document->addResource(QTextDocument::ImageResource, QUrl(imgName), QVariant(image));
 	}
 
@@ -1768,7 +1886,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 			code.remove(0, prefix.size());
 			QStringList fields = code.split('/');
 
-			if (fields.size() != 4) {
+			if (fields.size() < 4) {
 				LOG_CWARNING("client") << "Invalid QR code:" << qr << "file:" << path;
 				it->setState(ExamScanData::ScanFileError);
 				continue;
@@ -1790,6 +1908,18 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 				LOG_CWARNING("client") << "Exam not accepted:" << qr << "file:" << path;
 				it->setState(ExamScanData::ScanFileInvalid);
 				continue;
+			}
+
+			if (fields.size() >= 5) {
+				const int sheet = fields.at(4).toInt();
+
+				if (m_omrTemplateCode > 0 && m_omrTemplateCode != sheet) {
+					LOG_CWARNING("client") << "Template code mismatch:" << sheet << "file:" << path;
+					it->setState(ExamScanData::ScanFileError);
+					continue;
+				}
+
+				m_omrTemplateCode = sheet;
 			}
 
 			// Check duplicates
@@ -1916,9 +2046,18 @@ void TeacherExam::runOMR()
 			return;
 		}
 
-		if (!QFile::copy(QStringLiteral(":/internal/exam/template.json"), m_scanTempDir->filePath(QStringLiteral("input/template.json")))) {
+		QString tmp = QStringLiteral(":/internal/exam/template%1.json").arg(m_omrTemplateCode);
+
+		if (m_omrTemplateCode <= 0) {
+			//setScanState(ScanErrorFileSystem);
+			tmp = QStringLiteral(":/internal/exam/template.json");			// DEPREACTED
+			LOG_CWARNING("client") << "Missing template code, using deprecated template";
+		}
+
+		if (!QFile::copy(tmp,
+						 m_scanTempDir->filePath(QStringLiteral("input/template.json")))) {
 			setScanState(ScanErrorFileSystem);
-			LOG_CERROR("client") << "Template copy error";
+			LOG_CERROR("client") << "Template copy error" << m_omrTemplateCode;
 			return;
 		}
 

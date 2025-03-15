@@ -31,7 +31,7 @@
 #include "exam.h"
 #include "gamemap.h"
 #include "qjsonarray.h"
-#include "qpdfpagerenderer.h"
+#include "QPageSize"
 #include "qtemporarydir.h"
 #include "qtextdocument.h"
 #include "SBarcodeDecoder.h"
@@ -332,6 +332,8 @@ public:
 		QString subject;
 		int fontSize = 8;
 		QString file;
+		QPageSize::PageSizeId pageSize = QPageSize::A4;
+		int sheetSize = 50;
 	};
 
 	enum ScanState {
@@ -441,7 +443,7 @@ signals:
 
 private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
-	static QString pdfSheet(const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document);
+	static QString pdfSheet(const int &size, const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document);
 	static QString pdfQuestion(const QJsonArray &list, const bool &autoQuestions, QJsonArray *numberedListPtr = nullptr);
 	static bool hasAutoQuestion(const QJsonArray &list);
 
@@ -491,6 +493,7 @@ private:
 	std::unique_ptr<ExamUserList> m_examUserList;
 	std::unique_ptr<QTemporaryDir> m_scanTempDir;
 	std::unique_ptr<QTemporaryDir> m_pdfTempDir;
+	int m_omrTemplateCode = 0;
 
 #ifdef WITH_OMR
 	std::unique_ptr<QProcess> m_omrProcess = nullptr;

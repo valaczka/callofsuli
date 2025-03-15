@@ -312,6 +312,29 @@ QPage {
 					onToggled: _actionGenerate.noShuffle = checked
 				}
 
+				QFormComboBox {
+					id: _pdfPageSize
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: qsTr("PDF lapméret:")
+					fieldData: _actionPDF.pdfPageSize
+					visible: exam && exam.mode == Exam.ExamPaper
+
+					valueRole: "value"
+					textRole: "text"
+
+					model: ListModel {
+						ListElement { value: 50; text: "A4 / 50" }
+						ListElement { value: 25; text: "A4 / 25" }
+						ListElement { value: 40; text: "A5 / 40" }
+						ListElement { value: 20; text: "A5 / 20" }
+						ListElement { value: 10; text: "A6 / 10" }
+					}
+
+					combo.onActivated: _actionPDF.pdfPageSize = currentValue
+
+
+				}
+
 				QFormSpinBox {
 					id: _pdfFontSize
 					anchors.horizontalCenter: parent.horizontalCenter
@@ -648,7 +671,8 @@ QPage {
 			onFileSelected: file => {
 								let config = {
 									"file": file,
-									"fontSize": _actionPDF.pdfFontSize
+									"fontSize": _actionPDF.pdfFontSize,
+									"pageSize": _actionPDF.pdfPageSize
 								}
 
 								let l = []
@@ -842,6 +866,7 @@ QPage {
 		enabled: exam && exam.mode == Exam.ExamPaper
 
 		property int pdfFontSize: 8
+		property int pdfPageSize: 50
 
 		text: qsTr("PDF letöltése")
 
