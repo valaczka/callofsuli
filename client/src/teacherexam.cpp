@@ -32,12 +32,13 @@
 #include "application.h"
 #include "qbuffer.h"
 #include "utils_.h"
-#include "QPageSize"
 #include <QPdfWriter>
 #include "stb_image_write.h"
 #include "csv.hpp"
 #include "examgame.h"
+#include <QPdfPageRenderer>
 #include "../modules/binary/modulebinary.h"
+#include "xlsxdocument.h"
 
 
 
@@ -99,6 +100,7 @@ TeacherExam::~TeacherExam()
 
 
 
+
 /**
  * @brief TeacherExam::createPdf
  * @param list
@@ -118,8 +120,8 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 		QPdfWriter pdf(&buffer);
 		QPageLayout layout = pdf.pageLayout();
 		layout.setUnits(QPageLayout::Millimeter);
-		layout.setPageSize(QPageSize(QPageSize::A4));
-		layout.setMargins(QMarginsF(0, 10, 0, 10));
+		layout.setPageSize(QPageSize(pdfConfig.pageSize));
+		layout.setMargins(QMarginsF(0, 5, 0, 5));
 
 		pdf.setCreator(QStringLiteral("Call of Suli - v")+Application::version().toString());
 		pdf.setTitle(pdfConfig.title);
@@ -127,17 +129,52 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 		QTextDocument document;
 
-		QFont font(QStringLiteral("Rajdhani"), pdfConfig.fontSize);
+		int pointSize = pdfConfig.fontSize;
 
-		document.setPageSize(QPageSize::sizePoints(QPageSize::A4));
+		switch (pdfConfig.pageSize) {
+			case QPageSize::A6:
+				pointSize -= 2;
+				break;
+
+			case QPageSize::A5:
+				pointSize -= 1;
+				break;
+
+			default:
+				break;
+		}
+
+		QFont font(QStringLiteral("Rajdhani"), pointSize);
+
+		document.setPageSize(QPageSize::sizePoints(pdfConfig.pageSize));
 		document.setDefaultFont(font);
 
 		document.setDefaultStyleSheet(QStringLiteral("p { margin-bottom: 0px; margin-top: 0px; }"));
 
-		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bgL.png")));
+		QString srcL, srcR;
+
+		switch (pdfConfig.pageSize) {
+			case QPageSize::A5:
+				srcL = QStringLiteral(":/internal/exam/bgL5.png");
+				srcR = QStringLiteral(":/internal/exam/bgR5.png");
+				break;
+
+			case QPageSize::A6:
+				srcL = QStringLiteral(":/internal/exam/bgL6.png");
+				srcR = QStringLiteral(":/internal/exam/bgR6.png");
+				break;
+
+			case QPageSize::A4:
+			default:
+				srcL = QStringLiteral(":/internal/exam/bgL4.png");
+				srcR = QStringLiteral(":/internal/exam/bgR4.png");
+				break;
+		}
+
+		QImage image = QImage::fromData(Utils::fileContentRead(srcL));
 		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bgL.png")), QVariant(image));
 
-		QImage imageR = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/bgR.png")));
+		QImage imageR = QImage::fromData(Utils::fileContentRead(srcR));
 		document.addResource(QTextDocument::ImageResource, QUrl(QStringLiteral("imgdata://bgR.png")), QVariant(imageR));
 
 		QString html;
@@ -169,13 +206,30 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 			if (count>0)
 				html += QStringLiteral(" style=\"page-break-before: always;\"");
 
-			html += QStringLiteral("><tr><td><img width=30 src=\"imgdata://bgL.png\"></td><td>");
+			int margin = 30;
+			int width = 30;
+
+			switch (pdfConfig.pageSize) {
+				case QPageSize::A5:
+					width = 28;
+					break;
+
+				case QPageSize::A6:
+					width = 28;
+					margin = 32;
+					break;
+
+				default:
+					break;
+			}
+
+			html += QStringLiteral("><tr><td width=%1 align=right><img width=%2 src=\"imgdata://bgL.png\"></td><td>").arg(margin).arg(width);
 
 			html += pdfTitle(pdfConfig, username, id, &document);
-			html += pdfSheet(count==0, layout.paintRectPoints().width()-80, autoQuestion, &document);
+			html += pdfSheet(pdfConfig.sheetSize, count==0, layout.paintRectPoints().width()-(20+2*margin), autoQuestion, &document);
 			html += pdfQuestion(qList, autoQuestion);
 
-			html += QStringLiteral("</td><td><img width=30 src=\"imgdata://bgR.png\"></td></tr></table>");
+			html += QStringLiteral("</td><td width=%1 align=left><img width=%2 src=\"imgdata://bgR.png\"></td></tr></table>").arg(margin).arg(width);
 
 			++count;
 
@@ -242,10 +296,70 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 	if (pdfConfig.contains(QStringLiteral("file")))
 		c.file = pdfConfig.value(QStringLiteral("file")).toUrl().toLocalFile();
 
+	if (pdfConfig.contains(QStringLiteral("pageSize"))) {
+		const int s = pdfConfig.value(QStringLiteral("pageSize")).toInt();
+
+
+		switch (s) {
+			case 10:
+				c.pageSize = QPageSize::A6;
+				c.sheetSize = 10;
+				break;
+
+
+			case 20:
+				c.pageSize = QPageSize::A5;
+				c.sheetSize = 20;
+				break;
+
+			case 40:
+				c.pageSize = QPageSize::A5;
+				c.sheetSize = 40;
+				break;
+
+
+			case 25:
+				c.pageSize = QPageSize::A4;
+				c.sheetSize = 25;
+				break;
+
+			case 50:
+				c.pageSize = QPageSize::A4;
+				c.sheetSize = 50;
+				break;
+		}
+
+	}
+
 	createPdf(list, c);
 }
 
 
+
+
+/**
+ * @brief TeacherExam::scanDataAppend
+ * @param filename
+ */
+
+void TeacherExam::scanDataAppend(const QString &filename)
+{
+	/*#ifndef Q_OS_WASM
+	m_worker.execInThread([this, filename](){
+		QMutexLocker locker(&m_mutex);
+#endif*/
+
+	ExamScanData *s = new ExamScanData;
+	connect(s, &ExamScanData::uploadChanged, this, &TeacherExam::uploadableCountChanged);
+	connect(s, &ExamScanData::stateChanged, this, &TeacherExam::uploadableCountChanged);
+	connect(s, &ExamScanData::serverAnswerChanged, this, &TeacherExam::uploadableCountChanged);
+	s->setPath(filename);
+	m_scanData->append(s);
+
+	/*#ifndef Q_OS_WASM
+	});
+#endif*/
+}
 
 /**
  * @brief TeacherExam::scanImageDir
@@ -261,6 +375,7 @@ void TeacherExam::scanImageDir(const QUrl &path)
 
 	m_scanData->clear();
 	m_scanTempDir.reset();
+	m_omrTemplateCode = 0;
 
 	QDirIterator it(path.toLocalFile(), {
 						QStringLiteral("*.png"),
@@ -273,18 +388,56 @@ void TeacherExam::scanImageDir(const QUrl &path)
 
 
 	while (it.hasNext()) {
-		ExamScanData *s = new ExamScanData;
-		connect(s, &ExamScanData::uploadChanged, this, &TeacherExam::uploadableCountChanged);
-		connect(s, &ExamScanData::stateChanged, this, &TeacherExam::uploadableCountChanged);
-		connect(s, &ExamScanData::serverAnswerChanged, this, &TeacherExam::uploadableCountChanged);
-		s->setPath(it.next());
-		m_scanData->append(s);
+		scanDataAppend(it.next());
 	}
 
 	if (m_scanData->empty())
 		return;
 
 	setScanState(ScanRunning);
+
+	scanImages();
+}
+
+
+
+/**
+ * @brief TeacherExam::scanPdf
+ * @param path
+ */
+
+void TeacherExam::scanPdf(const QUrl &path, const qreal &scale, const bool &doubleSide)
+{
+	if (m_scanState == ScanRunning) {
+		LOG_CERROR("client") << "Scanning in progress";
+		return;
+	}
+
+	QPdfDocument doc;
+
+	if (const auto &err = doc.load(path.toLocalFile()); err != QPdfDocument::Error::None) {
+		LOG_CWARNING("client") << "Load PDF error" << err << path;
+		Application::instance()->client()->messageError(tr("PDF megnyitása sikertelen"));
+		return;
+	}
+
+	m_scanData->clear();
+	m_pdfTempDir.reset(new QTemporaryDir);
+	m_pdfTempDir->setAutoRemove(true);
+	m_omrTemplateCode = 0;
+
+	for (int i=0; i<doc.pageCount(); doubleSide ? i+=2 : ++i) {
+		QString fn = m_pdfTempDir->filePath(QStringLiteral("page_%1.jpg").arg(i));
+
+		LOG_CDEBUG("client") << "Rendering page" << fn;
+
+		QImage image = doc.render(i, doc.pagePointSize(i).toSize() * scale);
+		image.save(fn, "JPEG");
+
+		scanDataAppend(fn);
+
+		QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::AllEvents);
+	}
 
 	scanImages();
 }
@@ -382,15 +535,84 @@ void TeacherExam::uploadResult()
 
 
 /**
+ * @brief TeacherExam::exportGrades
+ * @param path
+ * @return
+ */
+
+bool TeacherExam::exportGrades(const QUrl &path, const QList<ExamUser*> &list) const
+{
+	QXlsx::Document doc;
+
+	QXlsx::Format format;
+	format.setBottomBorderStyle(QXlsx::Format::BorderMedium);
+	format.setFontBold(true);
+
+
+	// Header
+
+	static const QStringList headers = {
+		QStringLiteral("Last Name"),
+		QStringLiteral("First Name"),
+		QStringLiteral("Email"),
+		QStringLiteral("Points"),
+		QStringLiteral("Result"),
+	};
+
+	for (int i=0; i<headers.size(); ++i)
+		doc.write(1, 1+i, headers.at(i), format);
+
+
+	int row = 2;
+
+	for (ExamUser *u : *m_examUserList) {
+		if (!list.isEmpty() && !list.contains(u))
+			continue;
+
+		int col = 1;
+		doc.write(row, col++, u->familyName());
+		doc.write(row, col++, u->givenName());
+		doc.write(row, col++, u->username());
+
+		if (!u->examData().isEmpty()) {
+			doc.write(row, col++, u->points());
+
+			QXlsx::Format f;
+			f.setNumberFormatIndex(10);
+			doc.write(row, col++, u->result(), f);
+		}
+
+		++row;
+	}
+
+
+	QBuffer buf;
+	doc.saveAs(&buf);
+
+	QFile f(path.toLocalFile());
+	if (!f.open(QIODevice::WriteOnly)) {
+		LOG_CERROR("client") << "Write error:" << path;
+		return false;
+	}
+
+	f.write(buf.data());
+	f.close();
+
+	return true;
+}
+
+
+
+/**
  * @brief TeacherExam::getMissionLevelList
  * @return
  */
 
-QVariantList TeacherExam::getMissionLevelList()
+QVariantList TeacherExam::getMissionLevelList(const QUrl &url)
 {
 	QVariantList list;
 
-	loadGameMap();
+	loadGameMap(url);
 
 	if (!m_gameMap)
 		return {};
@@ -493,7 +715,7 @@ void TeacherExam::loadContentFromJson(const QJsonObject &object)
  * @brief TeacherExam::generateExamContent
  */
 
-void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
+void TeacherExam::generateExamContent(const QList<ExamUser*> &list, const bool &noShuffle)
 {
 	LOG_CDEBUG("client") << "Generate exam content";
 
@@ -518,7 +740,7 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list)
 		userdata[QStringLiteral("username")] = u->username();
 
 		QJsonArray commonList;
-		QJsonArray qList = ExamGame::generatePaperQuestions(ml);
+		QJsonArray qList = ExamGame::generatePaperQuestions(ml, noShuffle);
 		QJsonArray numberedList;
 
 		// Numbering questions from PDF
@@ -1007,13 +1229,14 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
 {
 	Q_ASSERT(document);
 
-	const QString id = QStringLiteral("Call of Suli Exam %1/%2/%3/%4")
+	const QString id = QStringLiteral("Call of Suli Exam %1/%2/%3/%4/%5")
 					   .arg(Utils::versionNumber().majorVersion()).arg(Utils::versionNumber().minorVersion())
-					   .arg(pdfConfig.examId).arg(contentId);
+					   .arg(pdfConfig.examId)
+					   .arg(contentId)
+					   .arg(pdfConfig.sheetSize);
 
 	ZXing::BarcodeFormat format = ZXing::BarcodeFormat::QRCode;
 	ZXing::MultiFormatWriter writer = ZXing::MultiFormatWriter(format).setMargin(0);
-
 	ZXing::Matrix<uint8_t> bitmap = ZXing::ToMatrix<uint8_t>(writer.encode(id.toStdWString(), 120, 120));
 
 	QImage image;
@@ -1027,14 +1250,43 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
 	const QString imgName = QStringLiteral("imgdata://id%1.png").arg(contentId);
 	document->addResource(QTextDocument::ImageResource, QUrl(imgName), QVariant(image));
 
-	return QStringLiteral("<table width=\"100%\" style=\"margin-left: 0px; margin-right: 30px;\">"
-						  "<tr><td valign=middle><img height=60 src=\"%1\"></td>"
-						  "<td width=\"100%\" valign=middle style=\"padding-left: 10px;\">"
-						  "<p style=\"font-size: 8pt;\"><span style=\"font-size: 10pt;\"><b>%2</b></span><br/>"
+
+	int imgSize = 55;
+	int fontSize = 8;
+	int paddingLeft = 10;
+	int paddingRight = 30;
+
+	switch (pdfConfig.pageSize) {
+		case QPageSize::A5:
+			imgSize = 45;
+			fontSize = 7;
+			paddingLeft = 10;
+			paddingRight = 10;
+			break;
+		case QPageSize::A6:
+			imgSize = 45;
+			fontSize = 6;
+			paddingLeft = 5;
+			paddingRight = 5;
+			break;
+		default:
+			break;
+	}
+
+	return QStringLiteral("<table width=\"100%\" style=\"margin-left: 0px; margin-right: %9px;\">"
+						  "<tr><td valign=middle><img height=%5 src=\"%1\"></td>"
+						  "<td width=\"100%\" valign=middle style=\"padding-left: %10px;\">"
+						  "<p style=\"font-size: %6pt;\"><span style=\"font-size: %8pt;\"><b>%2</b></span><br/>"
 						  "%3<br/>"
-						  "<span style=\"font-size: 7pt;\">%4</span></p>"
+						  "<span style=\"font-size: %7pt;\">%4</span></p>"
 						  "</td></tr></table>\n\n")
 			.arg(imgName, username, pdfConfig.title, pdfConfig.subject)
+			.arg(imgSize)		// %5
+			.arg(fontSize)		// %6
+			.arg(fontSize-1)
+			.arg(fontSize+2)
+			.arg(paddingRight) // %9
+			.arg(paddingLeft)
 			;
 }
 
@@ -1046,7 +1298,7 @@ QString TeacherExam::pdfTitle(const PdfConfig &pdfConfig, const QString &usernam
  * @return
  */
 
-QString TeacherExam::pdfSheet(const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document)
+QString TeacherExam::pdfSheet(const int &size, const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document)
 {
 	Q_ASSERT(document);
 
@@ -1057,7 +1309,7 @@ QString TeacherExam::pdfSheet(const bool &addResource, const int &width, const b
 	static const QString imgName = QStringLiteral("imgdata://sheet.svg");
 
 	if (addResource) {
-		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/sheet50.png")));
+		QImage image = QImage::fromData(Utils::fileContentRead(QStringLiteral(":/internal/exam/sheet%1.png").arg(size)));
 		document->addResource(QTextDocument::ImageResource, QUrl(imgName), QVariant(image));
 	}
 
@@ -1137,7 +1389,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			}
 		} else if (module == QStringLiteral("order")) {
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
+			const bool linebreak = obj.value(QStringLiteral("break")).toBool();
+
+			if (linebreak)
+				html += QStringLiteral("</p>");
+
 			for (int i=0; i<list.size(); ++i) {
+				if (linebreak)
+					html += QStringLiteral("<p style=\"align=justify\">");
+
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
 						+QStringLiteral(")</b> ");
 
@@ -1148,11 +1408,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				else
 					html += str;
 
-				if (i<list.size()-1)
+				if (linebreak)
+					html += QStringLiteral("</p>");
+				else if (i<list.size()-1)
 					html += QStringLiteral(",");
 			}
 
-			html += QStringLiteral("</p>");
+			if (!linebreak)
+				html += QStringLiteral("</p>");
+
 			html += QStringLiteral("<p style=\"margin-left: 30px;\" align=justify>");
 
 			for (int i=0; i<list.size(); ++i) {
@@ -1374,40 +1638,54 @@ void TeacherExam::loadUserList()
  * @brief TeacherExam::loadGameMap
  */
 
-void TeacherExam::loadGameMap()
+void TeacherExam::loadGameMap(const QUrl &url)
 {
-	if (!m_exam || !m_mapHandler) {
-		LOG_CWARNING("client") << "Missing exam/mapHandler";
-		setGameMap({});
-		return;
-	}
-
-	if (m_exam->mapUuid().isEmpty()) {
-		Application::instance()->messageInfo(tr("Nincs beállítva pálya!"), tr("Dolgozat készítése"));
-		setGameMap({});
-		return;
-	}
-
-	auto mapList = m_mapHandler->mapList();
-
-	TeacherMap *map = OlmLoader::find<TeacherMap>(mapList, "uuid", m_exam->mapUuid());
-
-	if (!map) {
-		Application::instance()->messageInfo(tr("Érvénytelen pályaazonosító!"), tr("Dolgozat készítése"));
-		setGameMap({});
-	}
-
-	if (!map->downloaded()) {
-		Application::instance()->messageInfo(tr("A dolgozat elkészítéséhez a kiválasztott pályát előbb le kell tölteni. A letöltés elindult."), tr("Pálya letöltése"));
-		m_mapHandler->mapDownload(map);
+	if (!m_exam) {
+		LOG_CWARNING("client") << "Missing exam";
 		setGameMap({});
 		return;
 	}
 
 	std::unique_ptr<GameMap> mapData;
 
-	if (const auto &data = m_mapHandler->read(map); data) {
-		mapData.reset(GameMap::fromBinaryData(data.value()));
+	if (url.isEmpty()) {
+		if (!m_mapHandler) {
+			LOG_CWARNING("client") << "Missing mapHandler";
+			setGameMap({});
+			return;
+		}
+
+		if (m_exam->mapUuid().isEmpty()) {
+			Application::instance()->messageInfo(tr("Nincs beállítva pálya!"), tr("Dolgozat készítése"));
+			setGameMap({});
+			return;
+		}
+
+		auto mapList = m_mapHandler->mapList();
+
+		TeacherMap *map = OlmLoader::find<TeacherMap>(mapList, "uuid", m_exam->mapUuid());
+
+		if (!map) {
+			Application::instance()->messageInfo(tr("Érvénytelen pályaazonosító!"), tr("Dolgozat készítése"));
+			setGameMap({});
+		}
+
+		if (!map->downloaded()) {
+			Application::instance()->messageInfo(tr("A dolgozat elkészítéséhez a kiválasztott pályát előbb le kell tölteni. A letöltés elindult."), tr("Pálya letöltése"));
+			m_mapHandler->mapDownload(map);
+			setGameMap({});
+			return;
+		}
+
+		if (const auto &data = m_mapHandler->read(map); data) {
+			mapData.reset(GameMap::fromBinaryData(data.value()));
+		}
+	} else if (url.isLocalFile()) {
+		LOG_CDEBUG("client") << "Load exam from" << qPrintable(url.toLocalFile());
+
+		if (const auto &ptr = Utils::fileContent(url.toLocalFile())) {
+			mapData.reset(GameMap::fromBinaryData(ptr.value()));
+		}
 	}
 
 	if (!mapData) {
@@ -1608,7 +1886,7 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 			code.remove(0, prefix.size());
 			QStringList fields = code.split('/');
 
-			if (fields.size() != 4) {
+			if (fields.size() < 4) {
 				LOG_CWARNING("client") << "Invalid QR code:" << qr << "file:" << path;
 				it->setState(ExamScanData::ScanFileError);
 				continue;
@@ -1630,6 +1908,18 @@ void TeacherExam::processQRdata(const QString &path, const QString &qr)
 				LOG_CWARNING("client") << "Exam not accepted:" << qr << "file:" << path;
 				it->setState(ExamScanData::ScanFileInvalid);
 				continue;
+			}
+
+			if (fields.size() >= 5) {
+				const int sheet = fields.at(4).toInt();
+
+				if (m_omrTemplateCode > 0 && m_omrTemplateCode != sheet) {
+					LOG_CWARNING("client") << "Template code mismatch:" << sheet << "file:" << path;
+					it->setState(ExamScanData::ScanFileError);
+					continue;
+				}
+
+				m_omrTemplateCode = sheet;
 			}
 
 			// Check duplicates
@@ -1756,9 +2046,18 @@ void TeacherExam::runOMR()
 			return;
 		}
 
-		if (!QFile::copy(QStringLiteral(":/internal/exam/template.json"), m_scanTempDir->filePath(QStringLiteral("input/template.json")))) {
+		QString tmp = QStringLiteral(":/internal/exam/template%1.json").arg(m_omrTemplateCode);
+
+		if (m_omrTemplateCode <= 0) {
+			//setScanState(ScanErrorFileSystem);
+			tmp = QStringLiteral(":/internal/exam/template.json");			// DEPREACTED
+			LOG_CWARNING("client") << "Missing template code, using deprecated template";
+		}
+
+		if (!QFile::copy(tmp,
+						 m_scanTempDir->filePath(QStringLiteral("input/template.json")))) {
 			setScanState(ScanErrorFileSystem);
-			LOG_CERROR("client") << "Template copy error";
+			LOG_CERROR("client") << "Template copy error" << m_omrTemplateCode;
 			return;
 		}
 
@@ -2430,6 +2729,7 @@ void TeacherExam::uploadResultReal(QVector<QPointer<ExamScanData> > list)
 
 	Application::instance()->client()->snack(tr("Eredmények feltöltve"));
 }
+
 
 
 

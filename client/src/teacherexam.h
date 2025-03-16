@@ -31,6 +31,7 @@
 #include "exam.h"
 #include "gamemap.h"
 #include "qjsonarray.h"
+#include "QPageSize"
 #include "qtemporarydir.h"
 #include "qtextdocument.h"
 #include "SBarcodeDecoder.h"
@@ -331,6 +332,8 @@ public:
 		QString subject;
 		int fontSize = 8;
 		QString file;
+		QPageSize::PageSizeId pageSize = QPageSize::A4;
+		int sheetSize = 50;
 	};
 
 	enum ScanState {
@@ -349,16 +352,19 @@ public:
 
 	Q_INVOKABLE void createPdf(const QList<ExamUser *> &list, const QVariantMap &pdfConfig);
 	Q_INVOKABLE void scanImageDir(const QUrl &path);
+	Q_INVOKABLE void scanPdf(const QUrl &path, const qreal &scale = 1., const bool &doubleSide = false);
 
 	Q_INVOKABLE void remove(ExamScanData *scan);
 	Q_INVOKABLE void removeSelected();
 
 	Q_INVOKABLE void uploadResult();
 
-	Q_INVOKABLE QVariantList getMissionLevelList();
+	Q_INVOKABLE bool exportGrades(const QUrl &path, const QList<ExamUser *> &list) const;
+
+	Q_INVOKABLE QVariantList getMissionLevelList(const QUrl &url = {});
 	Q_INVOKABLE void loadContentFromJson(const QJsonObject &object);
 
-	Q_INVOKABLE void generateExamContent(const QList<ExamUser*> &list);
+	Q_INVOKABLE void generateExamContent(const QList<ExamUser*> &list, const bool &noShuffle = false);
 	Q_INVOKABLE void reloadExamContent();
 	Q_INVOKABLE void pickUsers(QStringList userList, int count);
 
@@ -437,12 +443,12 @@ signals:
 
 private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
-	static QString pdfSheet(const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document);
+	static QString pdfSheet(const int &size, const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document);
 	static QString pdfQuestion(const QJsonArray &list, const bool &autoQuestions, QJsonArray *numberedListPtr = nullptr);
 	static bool hasAutoQuestion(const QJsonArray &list);
 
 	void loadUserList();
-	void loadGameMap();
+	void loadGameMap(const QUrl &url);
 
 	void pickUsersRandom(const int &count, const QStringList &userList, const QJsonObject &data);
 	int getPicked(const QString &username, const QJsonArray &list) const;
@@ -466,6 +472,8 @@ private:
 	void updateResultFromServer();
 	void uploadResultReal(QVector<QPointer<ExamScanData>> list);
 
+	void scanDataAppend(const QString &filename);
+
 	static QVector<int> letterToOptions(const QString &options) {
 		QVector<int> list;
 		for (const QChar &ch : options)
@@ -484,6 +492,8 @@ private:
 	std::unique_ptr<ExamScanDataList> m_scanData;
 	std::unique_ptr<ExamUserList> m_examUserList;
 	std::unique_ptr<QTemporaryDir> m_scanTempDir;
+	std::unique_ptr<QTemporaryDir> m_pdfTempDir;
+	int m_omrTemplateCode = 0;
 
 #ifdef WITH_OMR
 	std::unique_ptr<QProcess> m_omrProcess = nullptr;

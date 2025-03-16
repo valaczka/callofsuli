@@ -14,7 +14,7 @@ AppVersionMinor = 5
 
 # Automatic version increment (build)
 
-AppVersionIncrement = false
+AppVersionIncrement = true
 
 
 
@@ -24,7 +24,7 @@ AppVersionIncrement = false
 
 # Android
 
-AndroidVersionCode = 54
+AndroidVersionCode = 55
 
 
 #########################################################################

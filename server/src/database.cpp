@@ -178,7 +178,6 @@ bool Database::_batchFromData(const QString &data)
 
 	QMutexLocker mutexlocker(mutex());
 
-	QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
 	QStringList list = data.split(QStringLiteral("\n\n"), Qt::SkipEmptyParts);
 
@@ -189,6 +188,8 @@ bool Database::_batchFromData(const QString &data)
 
 		if (cmd.startsWith(QStringLiteral("---")))
 			continue;
+
+		QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
 		if (!QueryBuilder::q(db).addQuery(s.toUtf8()).exec()) {
 			return false;
@@ -297,7 +298,7 @@ bool Database::performUpgrade(const QVector<Upgrade> &upgrades,
 
 	QMutexLocker mutexlocker(mutex());
 
-	QSqlDatabase db = QSqlDatabase::database(m_dbName);
+	///QSqlDatabase db = QSqlDatabase::database(m_dbName);
 
 	////db.transaction();
 

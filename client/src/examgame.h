@@ -21,7 +21,7 @@ public:
 	virtual ~ExamGame();
 
 	static QVector<Question> createQuestions(GameMapMissionLevel *missionLevel);
-        static QJsonArray generatePaperQuestions(GameMapMissionLevel *missionLevel);
+	static QJsonArray generatePaperQuestions(GameMapMissionLevel *missionLevel, const bool &noShuffle = false);
 	static void clearQuestions(GameMapMissionLevel *missionLevel);
 
 	const Exam::Mode &mode() const;

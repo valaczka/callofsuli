@@ -207,7 +207,7 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 	QVariantList blockList;
 
 
-	if (storage->name() == QStringLiteral("block")) {
+	if (storage && storage->name() == QStringLiteral("block")) {
 		blockList = storageData.value(QStringLiteral("blocks")).toList();
 		genCount = blockList.size();
 	}
@@ -215,7 +215,7 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 
 	for (int i=0; i<genCount; ++i) {
 
-		if (storage->name() == QStringLiteral("block")) {
+		if (storage && storage->name() == QStringLiteral("block")) {
 			const QStringList &list = blockList.at(i).toMap().value(QStringLiteral("second")).toStringList();
 			if (list.isEmpty())
 				continue;
@@ -235,13 +235,13 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 		else if (mode == QStringLiteral("random"))
 			isDesc = (QRandomGenerator::global()->generate() % 2 == 1);
 
-
 		m[QStringLiteral("mode")] = isDesc ? QStringLiteral("descending") : QStringLiteral("ascending");
 		m[QStringLiteral("question")] = isDesc ? data.value(QStringLiteral("questionDesc")).toString() : data.value(QStringLiteral("questionAsc")).toString();
+		m[QStringLiteral("list")] = slist;
 		m[QStringLiteral("placeholderMin")] = data.value(QStringLiteral("placeholderMin")).toString();
 		m[QStringLiteral("placeholderMax")] = data.value(QStringLiteral("placeholderMax")).toString();
-		m[QStringLiteral("list")] = slist;
 		m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+		m[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 
 		// Get correct index list

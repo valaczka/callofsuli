@@ -23,6 +23,8 @@ QPage {
 	property alias exam: _teacherExam.exam
 	property alias mapHandler: _teacherExam.mapHandler
 
+	property string _tfMissionDescription: ""
+
 
 
 	title: exam ? (exam.description != "" ? exam.description : qsTr("Dolgozat #%1").arg(exam.examId)) : ""
@@ -247,6 +249,20 @@ QPage {
 
 				}
 
+				QButton {
+					id: _btnOpen
+					text: qsTr("Küldetés fájlból")
+
+					visible: (_teacherExam.missionUuid == "" || _teacherExam.level <= 0) &&
+							 exam && exam.mode != Exam.ExamVirtual && exam.state < Exam.Active
+
+					icon.source: Qaterial.Icons.fileSearch
+
+					display: AbstractButton.TextBesideIcon
+
+					onClicked: Qaterial.DialogManager.openFromComponent(_cmpOpenMap)
+				}
+
 			}
 
 		}
@@ -270,8 +286,7 @@ QPage {
 
 				Qaterial.LabelHeadline5 {
 					id: _tfMission
-					property string description: ""
-					text: description != "" ? description : qsTr("Válassz ki egy küldetést...")
+					text: _tfMissionDescription != "" ? _tfMissionDescription : qsTr("Válassz ki egy küldetést...")
 					anchors.horizontalCenter: parent.horizontalCenter
 					padding: 10 * Qaterial.Style.pixelSizeRatio
 					visible: _btnSelect.visible
@@ -288,12 +303,44 @@ QPage {
 					onValueChanged: _actionGenerateVirtual.spinCount = value
 				}
 
+				QFormSwitchButton {
+					id: _pdfNoShuffle
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: qsTr("Kérdések eredeti sorrendben")
+					checked: _actionGenerate.noShuffle
+					visible: exam && exam.mode == Exam.ExamPaper && _btnGenerate.visible
+					onToggled: _actionGenerate.noShuffle = checked
+				}
+
+				QFormComboBox {
+					id: _pdfPageSize
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: qsTr("PDF lapméret:")
+					fieldData: _actionPDF.pdfPageSize
+					visible: exam && exam.mode == Exam.ExamPaper
+
+					valueRole: "value"
+					textRole: "text"
+
+					model: ListModel {
+						ListElement { value: 50; text: "A4 / 50" }
+						ListElement { value: 25; text: "A4 / 25" }
+						ListElement { value: 40; text: "A5 / 40" }
+						ListElement { value: 20; text: "A5 / 20" }
+						ListElement { value: 10; text: "A6 / 10" }
+					}
+
+					combo.onActivated: _actionPDF.pdfPageSize = currentValue
+
+
+				}
+
 				QFormSpinBox {
 					id: _pdfFontSize
 					anchors.horizontalCenter: parent.horizontalCenter
 					text: qsTr("PDF betűméret:")
-					from: 7
-					to: 11
+					from: 6
+					to: 16
 					value: _actionPDF.pdfFontSize
 					visible: exam && exam.mode == Exam.ExamPaper
 					onValueChanged: _actionPDF.pdfFontSize = value
@@ -310,39 +357,8 @@ QPage {
 
 						icon.source: Qaterial.Icons.selectSearch
 
-						onClicked: {
-							let l = _teacherExam.getMissionLevelList()
-							_tfMission.description = ""
-							_teacherExam.missionUuid = ""
-							_teacherExam.level = -1
-
-							if (l.length === 0) {
-								Client.messageInfo(qsTr("Nincs megfelelő küldetés a pályán!"), qsTr("Küldetés kiválasztása"))
-								return
-							}
-
-							Qaterial.DialogManager.openListView(
-										{
-											onAccepted: function(index)
-											{
-												if (index < 0)
-													return
-
-												let li = l[index]
-
-												_tfMission.description = qsTr("%1 - level %2").arg(li.name).arg(li.level)
-												_teacherExam.missionUuid = li.uuid
-												_teacherExam.level = li.level
-											},
-											title: qsTr("Küldetés kiválasztása"),
-											model: l,
-											delegate: _delegate
-										})
-
-						}
+						onClicked: selectExam("")
 					}
-
-
 
 					QDashboardButton {
 						id: _btnGenerate
@@ -369,6 +385,11 @@ QPage {
 					QDashboardButton {
 						action: _actionPDF
 						visible: exam && exam.mode == Exam.ExamPaper
+					}
+
+					QDashboardButton {
+						action: _actionXLSX
+						visible: exam && exam.mode != Exam.ExamVirtual
 					}
 
 					QDashboardButton {
@@ -611,7 +632,13 @@ QPage {
 				QMenuItem { action: _actionGenerate }
 				QMenuItem { action: _actionGenerateVirtual }
 				QMenuItem { action: _actionRemove }
-				QMenuItem { action: _actionPDF }
+
+				Qaterial.Menu {
+					title: qsTr("Exportálás")
+					QMenuItem { action: _actionPDF }
+					QMenuItem { action: _actionXLSX }
+				}
+
 				Qaterial.MenuSeparator {}
 				QMenuItem { action: _actionJokerSet}
 				QMenuItem { action: _actionJokerUnset}
@@ -644,7 +671,8 @@ QPage {
 			onFileSelected: file => {
 								let config = {
 									"file": file,
-									"fontSize": _actionPDF.pdfFontSize
+									"fontSize": _actionPDF.pdfFontSize,
+									"pageSize": _actionPDF.pdfPageSize
 								}
 
 								let l = []
@@ -655,7 +683,7 @@ QPage {
 								}
 
 								if (Client.Utils.fileExists(file)) {
-									overrideQuestion(file, l, config)
+									overrideQuestionPdf(file, l, config)
 								} else {
 									_teacherExam.createPdf(l, config)
 								}
@@ -667,7 +695,52 @@ QPage {
 		}
 	}
 
-	function overrideQuestion(file, l, config) {
+
+	Component {
+		id: _cmpExportXlsx
+
+		QFileDialog {
+			title: qsTr("XLSX letöltése")
+			filters: [ "*.xlsx" ]
+			isSave: true
+			suffix: ".xlsx"
+			onFileSelected: file => {
+								let l = []
+
+								if (_view.selectEnabled) {
+									l = _view.getSelected()
+									_view.unselectAll()
+								}
+
+								if (Client.Utils.fileExists(file)) {
+									overrideQuestionXlsx(file, l)
+								} else {
+									_teacherExam.exportGrades(file, l)
+								}
+
+								Client.Utils.settingsSet("folder/xlsxExport", modelFolder.toString())
+							}
+
+			folder: Client.Utils.settingsGet("folder/xlsxExport", "")
+		}
+	}
+
+
+	Component {
+		id: _cmpOpenMap
+
+		QFileDialog {
+			title: qsTr("Pálya megnyitása")
+			filters: [ "*.map" ]
+			onFileSelected: file => {
+								selectExam(file)
+								Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
+							}
+			folder: Client.Utils.settingsGet("folder/teacherMap", "")
+		}
+	}
+
+	function overrideQuestionPdf(file, l, config) {
 		JS.questionDialog({
 							  onAccepted: function()
 							  {
@@ -679,9 +752,25 @@ QPage {
 						  })
 	}
 
+
+	function overrideQuestionXlsx(file, l) {
+		JS.questionDialog({
+							  onAccepted: function()
+							  {
+								  _teacherExam.exportGrades(file, l)
+							  },
+							  text: qsTr("A fájl létezik. Felülírjuk?\n%1").arg(file),
+							  title: qsTr("XLSX letöltése"),
+							  iconSource: Qaterial.Icons.fileAlert
+						  })
+	}
+
+
 	Action {
 		id: _actionGenerate
 		icon.source: Qaterial.Icons.fileCog
+
+		property bool noShuffle: false
 
 		text: qsTr("Generálás")
 
@@ -690,7 +779,7 @@ QPage {
 				 (_view.currentIndex != -1 || _view.selectEnabled)
 
 		onTriggered: {
-			_teacherExam.generateExamContent(_view.getSelected())
+			_teacherExam.generateExamContent(_view.getSelected(), noShuffle)
 			_view.unselectAll()
 		}
 	}
@@ -777,6 +866,7 @@ QPage {
 		enabled: exam && exam.mode == Exam.ExamPaper
 
 		property int pdfFontSize: 8
+		property int pdfPageSize: 50
 
 		text: qsTr("PDF letöltése")
 
@@ -785,6 +875,19 @@ QPage {
 				mapEditor.wasmSaveAs(false)
 			else*/
 			Qaterial.DialogManager.openFromComponent(_cmpExportPdf)
+		}
+	}
+
+
+	Action {
+		id: _actionXLSX
+		icon.source: Qaterial.Icons.fileExcelOutline
+		enabled: exam && exam.mode != Exam.ExamVirtual
+
+		text: qsTr("XLSX letöltése")
+
+		onTriggered: {
+			Qaterial.DialogManager.openFromComponent(_cmpExportXlsx)
 		}
 	}
 
@@ -1069,6 +1172,39 @@ QPage {
 			isLoading = true
 			_examResultModel.reload()
 		}
+	}
+
+
+
+	function selectExam(_url) {
+		let l = _teacherExam.getMissionLevelList(_url)
+		_tfMissionDescription = ""
+		_teacherExam.missionUuid = ""
+		_teacherExam.level = -1
+
+		if (l.length === 0) {
+			Client.messageInfo(qsTr("Nincs megfelelő küldetés a pályán!"), qsTr("Küldetés kiválasztása"))
+			return
+		}
+
+		Qaterial.DialogManager.openListView(
+					{
+						onAccepted: function(index)
+						{
+							if (index < 0)
+								return
+
+							let li = l[index]
+
+							_tfMissionDescription = qsTr("%1 - level %2").arg(li.name).arg(li.level)
+							_teacherExam.missionUuid = li.uuid
+							_teacherExam.level = li.level
+						},
+						title: qsTr("Küldetés kiválasztása"),
+						model: l,
+						delegate: _delegate
+					})
+
 	}
 
 
