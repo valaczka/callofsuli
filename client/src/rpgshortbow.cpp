@@ -70,7 +70,7 @@ void RpgShortbow::eventAttack(TiledObject *)
  */
 
 RpgShortbowPickable::RpgShortbowPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::Pickable::PickableShortbow, scene)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableShortbow, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

@@ -33,6 +33,7 @@
 
 
 class RpgUdpEngine;
+class ActionRpgMultiplayerGamePrivate;
 
 
 /**
@@ -96,7 +97,7 @@ private:
 	void syncEnemyList();
 	void syncPlayerList();
 
-	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::Player &config);
+	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::BaseData &config, const RpgGameData::Player &playerData);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
@@ -106,7 +107,7 @@ private:
 	bool onPlayerFinishCast(RpgPlayer *player);
 	bool onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
 
-	void beforeWorldStep();
+	void beforeWorldStep(const qint64 &lagMsec);
 	void afterWorldStep();
 	void worldStep(const TiledGame::Body &body);
 
@@ -121,6 +122,7 @@ private:
 	void setTickTimer(const qint64 &tick);
 
 	RpgUdpEngine *m_engine = nullptr;
+	ActionRpgMultiplayerGamePrivate *q = nullptr;
 
 	friend class RpgUdpEngine;
 };

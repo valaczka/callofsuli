@@ -1032,32 +1032,32 @@ void ActionRpgGame::loadInventory(RpgPlayer *player)
  * @param pickableType
  */
 
-void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgGameData::Pickable::PickableType &pickableType)
+void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &pickableType)
 {
 	if (!player)
 		return;
 
 	switch (pickableType) {
-		case RpgGameData::Pickable::PickableShield:
+		case RpgGameData::PickableBaseData::PickableShield:
 			RpgShieldPickable::pick(player, m_rpgGame);
 			break;
 
-		case RpgGameData::Pickable::PickableKey:
+		case RpgGameData::PickableBaseData::PickableKey:
 			player->inventoryAdd(pickableType /*, name ???? */);		/// TODO: name handling
 			break;
 
-		case RpgGameData::Pickable::PickableMp:
-		case RpgGameData::Pickable::PickableHp:
-		case RpgGameData::Pickable::PickableCoin:
-		case RpgGameData::Pickable::PickableShortbow:
-		case RpgGameData::Pickable::PickableLongbow:
-		case RpgGameData::Pickable::PickableLongsword:
-		case RpgGameData::Pickable::PickableDagger:
-		case RpgGameData::Pickable::PickableTime:
+		case RpgGameData::PickableBaseData::PickableMp:
+		case RpgGameData::PickableBaseData::PickableHp:
+		case RpgGameData::PickableBaseData::PickableCoin:
+		case RpgGameData::PickableBaseData::PickableShortbow:
+		case RpgGameData::PickableBaseData::PickableLongbow:
+		case RpgGameData::PickableBaseData::PickableLongsword:
+		case RpgGameData::PickableBaseData::PickableDagger:
+		case RpgGameData::PickableBaseData::PickableTime:
 			LOG_CERROR("game") << "Inventory type not supported:" << pickableType;
 			break;
 
-		case RpgGameData::Pickable::PickableInvalid:
+		case RpgGameData::PickableBaseData::PickableInvalid:
 			LOG_CERROR("game") << "Invalid inventory type";
 			break;
 	}
@@ -1158,13 +1158,13 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 		return false;
 
 
-	if (pickable->pickableType() == RpgGameData::Pickable::PickableTime) {
+	if (pickable->pickableType() == RpgGameData::PickableBaseData::PickableTime) {
 		static int sec = 60;
 		//addToDeadline(sec*1000);
 		m_deadlineTick += sec*1000;
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
-	} else if (pickable->pickableType() == RpgGameData::Pickable::PickableCoin) {
+	} else if (pickable->pickableType() == RpgGameData::PickableBaseData::PickableCoin) {
 		const auto num = RpgCoinPickable::amount(!m_rpgQuestion->emptyQuestions());
 		m_rpgGame->setCurrency(m_rpgGame->currency()+num);
 		m_rpgGame->messageColor(tr("%1 coins gained").arg(num), QStringLiteral("#FB8C00"));

@@ -30,6 +30,7 @@
 #include "isometricentity.h"
 #include "rpgenemyiface.h"
 #include "tiledspritehandler.h"
+#include "tileddebugdraw.h"
 #include "utils_.h"
 #include <libtiled/objectgroup.h>
 #include <libtiled/mapreader.h>
@@ -820,9 +821,13 @@ void TiledGame::timeSteppedEvent()
 			ptr.body->synchronize();
 	}
 
+	locker.unlock();
+
 	for (const TiledGamePrivate::Scene &ptr : std::as_const(d->m_sceneList)) {
 		ptr.scene->reorderObjectsZ(d->getObjects<TiledObject>(ptr.scene));
-		emit ptr.scene->worldStepped();
+
+		if (ptr.scene->m_debugDraw)
+			ptr.scene->m_debugDraw->update();
 	}
 }
 
@@ -1072,7 +1077,7 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
 
 	QMutexLocker locker(&d->m_stepMutex);
 
-	for (const auto &ptr : d->m_bodyList) {
+	for (const auto &ptr : std::as_const(d->m_bodyList)) {
 		TiledObjectBody *b = ptr.body.get();
 		if (b->scene() == scene)
 			b->debugDraw(debugDraw);
@@ -1278,10 +1283,10 @@ void TiledGame::updateStepTimer()
 		return;
 
 	while (d->m_stepLag >= 1000/60) {
-		d->m_stepLag -= 1000/60;
-
 		if (m_funcBeforeWorldStep)
-			m_funcBeforeWorldStep();
+			m_funcBeforeWorldStep(d->m_stepLag);
+
+		d->m_stepLag -= 1000/60;
 
 		d->stepWorlds();
 
@@ -1469,6 +1474,10 @@ void TiledGame::changeScene(TiledObjectBody *object, TiledScene *to, const QPoin
 	Q_ASSERT(object);
 	Q_ASSERT(to);
 
+	LOG_CERROR("scene") << "CHANGE SCENE ERROR";
+
+	return;
+
 	if (object->scene() == to) {
 		object->emplace(toPoint);
 	} else {
@@ -1477,8 +1486,8 @@ void TiledGame::changeScene(TiledObjectBody *object, TiledScene *to, const QPoin
 
 	IsometricEntity *entity = dynamic_cast<IsometricEntity*>(object);
 
-	if (entity)
-		entity->updateSprite();
+	///if (entity)
+	///	entity->updateSprite();
 }
 
 

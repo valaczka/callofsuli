@@ -658,22 +658,22 @@ void Utils::checkMediaPermissions()
 
 	switch (qApp->checkPermission(QCameraPermission{}))
 	{
-	case Qt::PermissionStatus::Undetermined:
-		qApp->requestPermission(QCameraPermission{}, this, [this](const QPermission &permission) {
-			if (permission.status() == Qt::PermissionStatus::Granted)
-				emit mediaPermissionsGranted();
-			else if (permission.status() == Qt::PermissionStatus::Denied)
-				emit mediaPermissionsDenied();
-		});
-		break;
+		case Qt::PermissionStatus::Undetermined:
+			qApp->requestPermission(QCameraPermission{}, this, [this](const QPermission &permission) {
+				if (permission.status() == Qt::PermissionStatus::Granted)
+					emit mediaPermissionsGranted();
+				else if (permission.status() == Qt::PermissionStatus::Denied)
+					emit mediaPermissionsDenied();
+			});
+			break;
 
-	case Qt::PermissionStatus::Granted:
-		emit mediaPermissionsGranted();
-		break;
+		case Qt::PermissionStatus::Granted:
+			emit mediaPermissionsGranted();
+			break;
 
-	case Qt::PermissionStatus::Denied:
-		emit mediaPermissionsDenied();
-		break;
+		case Qt::PermissionStatus::Denied:
+			emit mediaPermissionsDenied();
+			break;
 	}
 
 	return;
@@ -982,5 +982,56 @@ size_t Utils::getCurrentRSS()
 #else
 	/* AIX, BSD, Solaris, and Unknown OS ------------------------ */
 	return (size_t)0L;          /* Unsupported. */
+#endif
+}
+
+
+
+
+
+
+/**
+ * @brief Utils::getMemory
+ * @param currRealMem
+ * @param peakRealMem
+ * @param currVirtMem
+ * @param peakVirtMem
+ * @return
+ */
+
+bool Utils::getMemory(unsigned long *currRealMem, unsigned long *peakRealMem, unsigned long *currVirtMem, unsigned long *peakVirtMem)
+{
+#ifdef Q_OS_LINUX
+	char buffer[1024] = "";
+
+	FILE *fp = NULL;
+	fp = fopen("/proc/self/status", "r");
+
+	if (fp == NULL) {
+		LOG_CERROR("utils") << "Read error: /proc/self/status";
+		return false;
+	}
+
+	while (fscanf(fp, " %1023s", buffer) == 1) {
+		if (currRealMem && strcmp(buffer, "VmRSS:") == 0) {
+			fscanf(fp, " %lu", currRealMem);
+		}
+		if (peakRealMem && strcmp(buffer, "VmHWM:") == 0) {
+			fscanf(fp, " %lu", peakRealMem);
+		}
+		if (currVirtMem && strcmp(buffer, "VmSize:") == 0) {
+			fscanf(fp, " %lu", currVirtMem);
+		}
+		if (peakVirtMem && strcmp(buffer, "VmPeak:") == 0) {
+			fscanf(fp, " %lu", peakVirtMem);
+		}
+	}
+
+	fclose(fp);
+
+	return true;
+
+#else
+	return false;
 #endif
 }

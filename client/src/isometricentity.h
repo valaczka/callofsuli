@@ -56,7 +56,6 @@ public:
 	bool isAlive() const { return m_hp > 0; }
 	virtual bool isDiscoverable() const { return true; }
 
-	virtual void synchronize() override;
 	virtual void updateSprite() = 0;
 
 signals:
@@ -67,6 +66,8 @@ signals:
 
 
 protected:
+	virtual void synchronize() override;
+
 	virtual void onAlive() = 0;
 	virtual void onDead() = 0;
 

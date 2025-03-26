@@ -24,58 +24,58 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "tileddebugdraw.h"
 #include <qsgnode.h>
-#include <qsggeometry.h>
 #include <qsgflatcolormaterial.h>
+
+#include "tileddebugdraw.h"
 
 
 #define CIRCLE_SEGMENTS_COUNT 32
+
+
+
+
+/**
+ * @brief The DebugNode class
+ */
+
+class DebugNode : public QSGGeometryNode
+{
+public:
+	DebugNode(std::unique_ptr<QSGGeometry> &geometry, const QColor &color)
+		: QSGGeometryNode()
+		, m_geometry(std::move(geometry))
+	{
+		setFlag(QSGNode::OwnedByParent);
+
+		m_material.setColor(color);
+
+		setGeometry(m_geometry.get());
+		setMaterial(&m_material);
+	}
+
+private:
+	std::unique_ptr<QSGGeometry> m_geometry;
+	QSGFlatColorMaterial m_material;
+};
+
+
+
+
+
+/**
+ * @brief TiledDebugDraw::TiledDebugDraw
+ * @param parent
+ */
 
 
 TiledDebugDraw::TiledDebugDraw(QQuickItem *parent)
 	: QQuickItem(parent)
 {
 	setFlag(ItemHasContents);
-
-	m_callbacks = b2DefaultDebugDraw();
-	m_callbacks.context = this;
-
-	m_callbacks.drawShapes = true;
-	//m_callbacks.drawAABBs = true;
-
-
-	m_callbacks.DrawPoint = [](b2Vec2 center, float size, b2HexColor color, void *context) {
-		TiledDebugDraw &self = *static_cast<TiledDebugDraw*>(context);
-		self.drawCircle(center, size, box2dColorToQColor(color));
-	};
-
-	m_callbacks.DrawCircle = [](b2Vec2 center, float radius, b2HexColor color, void *context) {
-		TiledDebugDraw &self = *static_cast<TiledDebugDraw*>(context);
-		self.drawCircle(center, radius, box2dColorToQColor(color));
-	};
-
-	m_callbacks.DrawSolidCircle = [](b2Transform transform, float radius, b2HexColor color, void* context ) {
-		TiledDebugDraw &self = *static_cast<TiledDebugDraw*>(context);
-		self.drawSolidCircle(transform, radius, box2dColorToQColor(color));
-	};
-
-	m_callbacks.DrawSegment = [](b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
-		TiledDebugDraw &self = *static_cast<TiledDebugDraw*>(context);
-		self.drawSegment(p1, p2, box2dColorToQColor(color));
-	};
-
-	m_callbacks.DrawPolygon = [](const b2Vec2* vertices, int vertexCount, b2HexColor color, void* context ) {
-		TiledDebugDraw &self = *static_cast<TiledDebugDraw*>(context);
-		self.drawPolygon(vertices, vertexCount, box2dColorToQColor(color));
-	};
-
-	m_callbacks.DrawSolidPolygon = [](b2Transform transform, const b2Vec2* vertices, int vertexCount, float radius,
-			b2HexColor color, void* context ) {
-		TiledDebugDraw &self = *static_cast<TiledDebugDraw*>(context);
-		self.drawSolidPolygon(transform, vertices, vertexCount, radius, box2dColorToQColor(color));
-	};
 }
+
+
 
 
 
@@ -87,20 +87,18 @@ TiledDebugDraw::TiledDebugDraw(QQuickItem *parent)
 
 QSGNode *TiledDebugDraw::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 {
-	if (!node) {
-		node = new QSGNode;
-	}
+	if (node)
+		delete node;
+
+	node = new QSGNode;
+	node->setFlag(QSGNode::OwnedByParent);
 
 	const bool isActive = m_scene && m_scene->world() && isVisible() && opacity() > 0.f;
-
-	if (node->childCount() > 0)
-		node->removeAllChildNodes();
 
 	if (!isActive)
 		return node;
 
 	m_parentNode = node;
-	///m_scene->world()->Draw(m_callbacks);			// Replace with own implementation
 	m_scene->debugDrawEvent(this);
 	m_parentNode = nullptr;
 
@@ -125,7 +123,6 @@ QColor TiledDebugDraw::box2dColorToQColor(const b2HexColor &color, const float &
 }
 
 
-
 /**
  * @brief TiledDebugDraw::createNode
  * @param geometry
@@ -134,24 +131,14 @@ QColor TiledDebugDraw::box2dColorToQColor(const b2HexColor &color, const float &
  * @return
  */
 
-QSGNode *TiledDebugDraw::createNode(QSGGeometry *geometry, const QColor &color)
+void TiledDebugDraw::createNode(std::unique_ptr<QSGGeometry> &geometry, const QColor &color)
 {
-	QSGFlatColorMaterial *material = new QSGFlatColorMaterial;
-	material->setColor(color);
-
-	QSGGeometryNode *node = new QSGGeometryNode;
-	node->setGeometry(geometry);
-	node->setFlag(QSGNode::OwnsGeometry);
-	node->setMaterial(material);
-	node->setFlag(QSGNode::OwnsMaterial);
-
 	if (m_parentNode) {
+		DebugNode *node = new DebugNode(geometry, color);
 		m_parentNode->appendChildNode(node);
 	} else {
 		LOG_CERROR("scene") << "Missing parent node";
 	}
-
-	return node;
 }
 
 
@@ -164,8 +151,8 @@ QSGNode *TiledDebugDraw::createNode(QSGGeometry *geometry, const QColor &color)
 void TiledDebugDraw::drawCircle(const b2Vec2 &center, const float &radius, const QColor &color, const float &lineWidth)
 {
 	// We'd use QSGGeometry::DrawLineLoop, but it's not supported in Qt 6
-	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											CIRCLE_SEGMENTS_COUNT + 1);
+std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											CIRCLE_SEGMENTS_COUNT + 1));
 	geometry->setDrawingMode(QSGGeometry::DrawLineStrip);
 	geometry->setLineWidth(lineWidth);
 
@@ -191,8 +178,8 @@ void TiledDebugDraw::drawCircle(const b2Vec2 &center, const float &radius, const
 void TiledDebugDraw::drawSolidCircle(const b2Transform &transform, const float &radius, const QColor &color)
 {
 	// We'd use QSGGeometry::DrawTriangleFan, but it's not supported in Qt 6
-	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											CIRCLE_SEGMENTS_COUNT * 3);
+	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											CIRCLE_SEGMENTS_COUNT * 3));
 	geometry->setDrawingMode(QSGGeometry::DrawTriangles);
 	geometry->setLineWidth(1.0);
 
@@ -254,7 +241,8 @@ void TiledDebugDraw::drawSolidCircle(const QPointF &center, const float &radius,
 
 void TiledDebugDraw::drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColor &color, const float &lineWidth)
 {
-	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 2);
+	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 2));
+
 	geometry->setDrawingMode(QSGGeometry::DrawLines);
 	geometry->setLineWidth(lineWidth);
 
@@ -301,8 +289,8 @@ void TiledDebugDraw::drawPolygon(const b2Vec2 *vertices, const int &vertexCount,
 	Q_ASSERT(vertexCount > 1);
 
 	// We'd use QSGGeometry::DrawLineLoop, but it's not supported in Qt 6
-	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											vertexCount + 1);
+	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											vertexCount + 1));
 	geometry->setDrawingMode(QSGGeometry::DrawLineStrip);
 	geometry->setLineWidth(lineWidth);
 
@@ -330,8 +318,8 @@ void TiledDebugDraw::drawPolygon(const b2Transform &transform, const b2Vec2 *ver
 {
 	Q_ASSERT(vertexCount > 1);
 
-	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											vertexCount+1);
+	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											vertexCount+1));
 
 	geometry->setDrawingMode(QSGGeometry::DrawLineStrip);
 	geometry->setLineWidth(lineWidth);
@@ -359,8 +347,9 @@ void TiledDebugDraw::drawPolyLines(const b2Vec2 *vertices, const int &vertexCoun
 {
 	Q_ASSERT(vertexCount > 1);
 
-	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											vertexCount);
+	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											vertexCount));
+
 	geometry->setDrawingMode(QSGGeometry::DrawLineStrip);
 	geometry->setLineWidth(lineWidth);
 
@@ -392,8 +381,8 @@ void TiledDebugDraw::drawSolidPolygon(const b2Transform &transform, const b2Vec2
 	}
 
 	// We'd use QSGGeometry::DrawTriangleFan, but it's not supported in Qt 6
-	QSGGeometry *geometry = new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											(vertexCount - 2) * 3);
+	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											(vertexCount - 2) * 3));
 	geometry->setDrawingMode(QSGGeometry::DrawTriangles);
 	geometry->setLineWidth(1.0);
 
@@ -453,12 +442,21 @@ void TiledDebugDraw::setScene(TiledScene *newScene)
 		return;
 
 	if (m_scene)
-		m_scene->disconnect(this);
+		m_scene->m_debugDraw = nullptr;
 
 	m_scene = newScene;
 
 	if (m_scene)
-		connect(m_scene, &TiledScene::worldStepped, this, &TiledDebugDraw::update);
+		m_scene->m_debugDraw = this;
 
 	emit sceneChanged();
 }
+
+
+
+/**
+ * @brief DebugNode::DebugNode
+ * @param color
+ */
+
+

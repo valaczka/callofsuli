@@ -40,6 +40,7 @@ private:
 	void updateScene();
 	void setSensorPolygon(const float &length, const float &range);
 	void addVirtualCircle(const float &length);
+	void removeVirtualCircle();
 	void addTargetCircle(const float &length);
 
 

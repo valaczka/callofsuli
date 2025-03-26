@@ -39,7 +39,7 @@
  * @param parent
  */
 
-RpgEnemyBase::RpgEnemyBase(const RpgGameData::Enemy::EnemyType &type, TiledScene *scene)
+RpgEnemyBase::RpgEnemyBase(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene)
 	: IsometricEnemy(scene)
 	, RpgEnemyIface(type)
 	, m_effectHealed(this)
@@ -50,7 +50,7 @@ RpgEnemyBase::RpgEnemyBase(const RpgGameData::Enemy::EnemyType &type, TiledScene
 
 	setMetric(RpgGame::defaultEnemyMetric().soldier.value(QStringLiteral("default")));
 
-	if (m_enemyType == RpgGameData::Enemy::EnemyArcher || m_enemyType == RpgGameData::Enemy::EnemyArcherFix) {
+	if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix) {
 		setMetric(RpgGame::defaultEnemyMetric().archer.value(QStringLiteral("default")));
 	}
 
@@ -149,8 +149,10 @@ void RpgEnemyBase::load()
 
 	m_spriteHandler->setStartFrameSeed();
 
-	setWidth(148);
-	setHeight(130);
+	Q_ASSERT(m_visualItem);
+
+	m_visualItem->setWidth(148);
+	m_visualItem->setHeight(130);
 	setBodyOffset(0, 0.45*64);
 
 	QStringList soundList;
@@ -349,7 +351,7 @@ QPointF RpgEnemyBase::getPickablePosition(const int &num) const
 
 bool RpgEnemyBase::canBulletImpact(const TiledWeapon::WeaponType &type) const
 {
-	if (m_enemyType == RpgGameData::Enemy::EnemySkeleton && type == TiledWeapon::WeaponShortbow)
+	if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton && type == TiledWeapon::WeaponShortbow)
 		return false;
 
 	return true;
@@ -385,37 +387,6 @@ void RpgEnemyBase::setSubType(const QString &newSubType)
 
 
 
-/**
- * @brief RpgEnemyBase::serialize
- * @return
- */
-
-std::unique_ptr<RpgGameData::Body> RpgEnemyBase::serialize() const
-{
-	RpgGameData::Enemy *enemy = new RpgGameData::Enemy(m_enemyType, objectId().sceneId, objectId().id);
-
-
-	enemy->a = currentAngle();
-	enemy->p = toPosList(bodyPosition());
-	enemy->hp = m_hp;
-	enemy->mhp = m_maxHp;
-
-
-	return std::unique_ptr<RpgGameData::Body>(std::move(enemy));
-}
-
-
-/**
- * @brief RpgEnemyBase::deserialize
- * @param from
- * @return
- */
-
-bool RpgEnemyBase::deserialize(const RpgGameData::Body *from) const
-{
-
-}
-
 
 /**
  * @brief RpgEnemyBase::onCurrentSpriteChanged
@@ -438,17 +409,17 @@ void RpgEnemyBase::loadType()
 
 	TiledWeapon *w = nullptr;
 
-	if (m_enemyType == RpgGameData::Enemy::EnemySoldier || m_enemyType == RpgGameData::Enemy::EnemySoldierFix)
+	if (m_enemyType == RpgGameData::EnemyBaseData::EnemySoldier || m_enemyType == RpgGameData::EnemyBaseData::EnemySoldierFix)
 		w = m_armory->weaponAdd(new RpgLongsword);
-	else if (m_enemyType == RpgGameData::Enemy::EnemyArcher || m_enemyType == RpgGameData::Enemy::EnemyArcherFix)
+	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix)
 		w = m_armory->weaponAdd(new RpgShortbow);
-	else if (m_enemyType == RpgGameData::Enemy::EnemySkeleton)
+	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton)
 		w = m_armory->weaponAdd(new RpgLongsword);
-	else if (m_enemyType == RpgGameData::Enemy::EnemySmith || m_enemyType == RpgGameData::Enemy::EnemySmithFix)
+	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySmith || m_enemyType == RpgGameData::EnemyBaseData::EnemySmithFix)
 		w = m_armory->weaponAdd(new RpgHammer);
-	else if (m_enemyType == RpgGameData::Enemy::EnemyButcher || m_enemyType == RpgGameData::Enemy::EnemyButcherFix)
+	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyButcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyButcherFix)
 		w = m_armory->weaponAdd(new RpgAxe);
-	else if (m_enemyType == RpgGameData::Enemy::EnemyBarbarian || m_enemyType == RpgGameData::Enemy::EnemyBarbarianFix)
+	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarian || m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarianFix)
 		w = m_armory->weaponAdd(new RpgMace);
 
 

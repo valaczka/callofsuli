@@ -29,7 +29,6 @@
 
 #include "gamequestion.h"
 #include "rpgcontrolgroup.h"
-#include "rpgenemyiface.h"
 #include "rpgplayer.h"
 #include "rpgpickableobject.h"
 #include "tiledgame.h"
@@ -179,14 +178,14 @@ public:
 	bool playerTryUseContainer(RpgPlayer *player, RpgContainer *container);
 	void playerUseContainer(RpgPlayer *player, RpgContainer *container);
 
-	IsometricEnemy *createEnemy(const RpgGameData::Enemy::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
-	IsometricEnemy *createEnemy(const RpgGameData::Enemy::EnemyType &type, TiledScene *scene, const int &id) {
+	IsometricEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
+	IsometricEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene, const int &id) {
 		return createEnemy(type, QStringLiteral(""), scene, id);
 	}
 
-	RpgPickableObject *createPickable(const RpgGameData::Pickable::PickableType &type, const QString &name, TiledScene *scene,
+	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, const QString &name, TiledScene *scene,
 									  const int &ownerId = 0, const int &id = 0);
-	RpgPickableObject *createPickable(const RpgGameData::Pickable::PickableType &type, TiledScene *scene,
+	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, TiledScene *scene,
 									  const int &ownerId = 0, const int &id = 0) {
 		return createPickable(type, QStringLiteral(""), scene, ownerId, id);
 	}
@@ -294,7 +293,7 @@ public:
 	const QList<RpgQuest> &quests() const;
 
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
-	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::Enemy::EnemyType &type, const QString &subtype = QStringLiteral(""));
+	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QStringLiteral(""));
 
 	FuncBodyStep funcBodyStep() const;
 	void setFuncBodyStep(const FuncBodyStep &newFuncBodyStep);
@@ -365,11 +364,11 @@ private:
 	void updateScatterPlayers();
 	void updateScatterPoints();
 
-	static QVector<RpgGameData::Pickable::PickableType> getPickablesFromPropertyValue(const QString &value);
+	static QVector<RpgGameData::PickableBaseData::PickableType> getPickablesFromPropertyValue(const QString &value);
 
 	struct EnemyData {
 		TiledObject::ObjectId objectId;
-		RpgGameData::Enemy::EnemyType type = RpgGameData::Enemy::EnemyInvalid;
+		RpgGameData::EnemyBaseData::EnemyType type = RpgGameData::EnemyBaseData::EnemyInvalid;
 		QString subtype;
 		QPolygonF path;
 		int defaultAngle = 0;
@@ -377,15 +376,15 @@ private:
 		QPointer<IsometricEnemy> enemy;
 		bool hasQuestion = false;
 		bool dieForever = false;
-		QVector<RpgGameData::Pickable::PickableType> pickables;
-		QVector<RpgGameData::Pickable::PickableType> pickablesOnce;
+		QVector<RpgGameData::PickableBaseData::PickableType> pickables;
+		QVector<RpgGameData::PickableBaseData::PickableType> pickablesOnce;
 		QString displayName;
 	};
 
 
 	struct PickableData {
 		TiledObject::ObjectId objectId;
-		RpgGameData::Pickable::PickableType type = RpgGameData::Pickable::PickableInvalid;
+		RpgGameData::PickableBaseData::PickableType type = RpgGameData::PickableBaseData::PickableInvalid;
 		QString name;
 		QPointF position;
 		QPointer<TiledScene> scene;

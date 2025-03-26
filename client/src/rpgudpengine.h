@@ -38,6 +38,25 @@
 
 
 /**
+ * @brief The ClientStorage class
+ */
+
+class ClientStorage : public RpgGameData::SnapshotStorage
+{
+public:
+
+	ClientStorage() = default;
+
+	void updateSnapshot(const RpgGameData::CharacterSelect &player);
+	void updateSnapshot(const RpgGameData::BaseData &playerData, const RpgGameData::Player &player);
+};
+
+
+
+
+
+
+/**
  * @brief The UdpEnginePrivate class
  */
 
@@ -55,13 +74,6 @@ public:
 	RpgConfig::GameState gameState() const;
 	void setGameState(const RpgConfig::GameState &newGameState);
 
-	struct Snapshot {
-		quint64 tick = -1;
-		std::list<RpgGameData::Player> players;
-		std::list<RpgGameData::Enemy> enemies;
-	};
-
-	Snapshot getCurrentSnapshot();
 
 signals:
 	void gameError();
@@ -73,6 +85,7 @@ protected:
 
 private:
 	void updateState(const QCborMap &data);
+	void updateSnapshot(const RpgGameData::CharacterSelect &player);
 
 	void packetReceivedChrSel(const QCborMap &data);
 	void packetReceivedDownload(const QCborMap &data);
@@ -90,33 +103,17 @@ private:
 
 	QList<RpgGameData::CharacterSelect> m_playerData;
 
-	// Snapshots
+	ClientStorage m_snapshots;
 
-	struct SnapshotPrivate {
-		bool isAuth = false;
-		std::list<RpgGameData::Player> players;
-		std::list<RpgGameData::Enemy> enemies;
-	};
-
-	std::map<qint64, SnapshotPrivate> m_snapshots;
 	RpgGameData::GameConfig m_gameConfig;
 	RpgConfig::GameState m_gameState = RpgConfig::StateInvalid;
 	int m_playerId = -1;
 	bool m_isHost = false;
 
-	void updateSnapshot(const RpgGameData::CharacterSelect &player);
-	void updateSnapshot(SnapshotPrivate &snapshot, const RpgGameData::Player &player);
-	void updateSnapshot(SnapshotPrivate &snapshot, const RpgGameData::Enemy &enemy);
-	void updateSnapshot(const RpgGameData::Player &player, const qint64 &tick);
-	void updateSnapshot(const RpgGameData::Enemy &enemy, const qint64 &tick);
-
 	QVariantList getPlayerList();
 
-	void updateSnapshotEnemyList(const QCborArray &list, const qint64 &tick);
-	void updateSnapshotPlayerList(const QCborArray &list, const qint64 &tick);
-
-	void updatePlayer(const Snapshot &snapshot, RpgPlayer *player, const int &owner);
-	void updateEnemy(const Snapshot &snapshot, IsometricEnemy *enemy);
+	void updateSnapshotEnemyList(const QCborArray &list);
+	void updateSnapshotPlayerList(const QCborArray &list);
 
 
 	/// --- tmp
@@ -125,6 +122,10 @@ private:
 
 	friend class ActionRpgMultiplayerGame;
 };
+
+
+
+
 
 
 /**

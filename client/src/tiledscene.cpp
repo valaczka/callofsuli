@@ -363,8 +363,8 @@ void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
 
 		if (iso)
 			z = getDynamicZ(obj->bodyPosition(), iso->defaultZ()) + iso->subZ();
-		else
-			z = obj->z();
+		else if (obj->m_visualItem)
+			z = obj->m_visualItem->z();
 
 		map[z].insert(y, obj);
 	}
@@ -373,7 +373,8 @@ void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
 		qreal subsubZ = 0.0001;
 
 		for (const auto &[key, o] : subMap.asKeyValueRange()) {
-			o->setZ(subZ+subsubZ);
+			if (o->m_visualItem)
+				o->m_visualItem->setZ(subZ+subsubZ);
 			subsubZ += 0.0001;
 		}
 	}
@@ -406,6 +407,11 @@ void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 
 void TiledScene::debugDrawEvent(TiledDebugDraw *debugDraw)
 {
+	if (m_debugDraw != debugDraw) {
+		LOG_CERROR("scene") << "TiledDebugDraw mismatch" << m_debugDraw << debugDraw;
+		return;
+	}
+
 	if (m_game)
 		m_game->sceneDebugDrawEvent(debugDraw, this);
 }

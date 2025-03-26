@@ -63,13 +63,15 @@ IsometricBullet::~IsometricBullet()
 
 void IsometricBullet::initialize(TiledWeapon *weapon)
 {
-	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.8);
 
 	m_speed = 300.;
 
 	load();
+
+	if (m_visualItem)
+		m_visualItem->setZ(1);
 
 	setFromWeapon(weapon);
 }
@@ -142,8 +144,8 @@ void IsometricBullet::worldStep()
 
 void IsometricBullet::synchronize()
 {
-	IsometricObject::synchronize();
 	jumpToSprite("default", m_facingDirection);
+	IsometricObject::synchronize();
 }
 
 
@@ -176,7 +178,8 @@ void IsometricBullet::setMaxDistance(qreal newMaxDistance)
 
 void IsometricBullet::doAutoDelete()
 {
-	setVisible(false);
+	if (m_visualItem)
+		m_visualItem->setVisible(false);
 	stop();
 	setBodyEnabled(false);
 	emit autoDeleteRequest(this);

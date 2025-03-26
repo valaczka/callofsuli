@@ -178,7 +178,7 @@ void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 
 	const auto &ptr = m_player.emplace_back(std::make_unique<RpgEnginePlayer>(peer, false));
 	ptr->setPlayerId(m_nextPlayerId++);
-	ptr->id = 1;
+	ptr->id = 1;		// Minden player azonosítója 1
 	ptr->m_config.nickname = QStringLiteral("PLAYER #%1").arg(ptr->playerId());
 
 	if (isHost)
@@ -288,11 +288,18 @@ void RpgEngine::preparePlayers()
 		}
 
 
+		ptr->m_snapshots.clear();
 
-		ptr->p = {pos.x, pos.y};
-		ptr->s = pos.scene;
+		RpgGameData::Player pdata;
+		pdata.p = {pos.x, pos.y};
+		pdata.f = 0;
+		pdata.sc = pos.scene;
 
-		LOG_CINFO("engine") << "SET PLAYER" << ptr->id << ptr->p << ptr->s;
+		ptr->m_snapshots.push_back(pdata);
+
+		ptr->s = 0;				// Minden player azonosítójában scene = 0, majd külön elhelyezzük
+
+		LOG_CINFO("engine") << "SET PLAYER" << ptr->id << pdata.p << ptr->s << pdata.sc;
 	}
 }
 
@@ -456,8 +463,10 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 	if (const auto &it = m.find(QStringLiteral("pr")); it != m.cend()) {
 		RpgGameData::Prepare c;
 		c.fromCbor(it.value());
-		if (!player->isPrepared())
+		if (!player->isPrepared()) {
 			player->setIsPrepared(c.prepared);
+			LOG_CINFO("game") << "PREPARED" << player->playerId();
+		}
 	}
 
 	if (!player->isHost())
@@ -467,7 +476,7 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 		m_gameConfig.fromCbor(it.value());
 	}
 
-	if (const auto &it = m.find(QStringLiteral("ee")); it != m.cend()) {
+	/*if (const auto &it = m.find(QStringLiteral("ee")); it != m.cend()) {
 		QCborArray eList = it->toArray();
 
 		for (const QCborValue &v : eList) {
@@ -489,7 +498,7 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 				LOG_CINFO("eninge") << "CREATE ENEMY" << enemy.t << enemy.s << enemy.id;
 			}
 		}
-	}
+	}*/
 
 }
 
@@ -509,7 +518,13 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
 	if (const auto &it = m.find(QStringLiteral("p")); it != m.cend()) {
-		player->fromCbor(it.value());
+		RpgGameData::Player snap;
+		snap.fromCbor(it.value());
+
+		player->m_snapshots.push_back(snap);
+
+		if (player->m_snapshots.size() > 20)
+			player->m_snapshots.erase(player->m_snapshots.cbegin(), player->m_snapshots.cbegin()+9);
 	}
 
 	if (!player->isHost())
@@ -584,7 +599,7 @@ void RpgEnginePrivate::dataSendPrepare()
 		if (tmr.isValid()) {
 			if (tmr.hasExpired(500)) {
 
-				LOG_CDEBUG("engine") << "***" << QJsonDocument(map.toJsonObject()).toJson().constData();
+				LOG_CDEBUG("engine") << "*###*" << QJsonDocument(map.toJsonObject()).toJson().constData();
 
 				tmr.restart();
 			}
@@ -622,6 +637,7 @@ void RpgEnginePrivate::dataSendPlay()
 		if (tmr.isValid()) {
 			if (tmr.hasExpired(500)) {
 
+				LOG_CDEBUG("engine") << "+++" << it->get()->m_snapshots.size();
 				LOG_CDEBUG("engine") << "***" << QJsonDocument(map.toJsonObject()).toJson().constData();
 
 				tmr.restart();
@@ -666,7 +682,10 @@ void RpgEnginePrivate::insertEntityData(QCborMap *dst)
 	QCborArray players;
 
 	for (const auto &ptr : q->m_player) {
-		players.append(ptr->toCborMap(true));
+		QCborMap map;
+		map.insert(QStringLiteral("pd"), ptr->toCborMap(true));
+		map.insert(QStringLiteral("p"), ptr->currentSnapshot().toCborMap(true));
+		players.append(map);
 	}
 
 
@@ -756,5 +775,15 @@ void RpgEnginePrivate::updateState()
 
 
 
+/**
+ * @brief RpgEnginePlayer::currentSnapshot
+ * @return
+ */
 
-
+RpgGameData::Player RpgEnginePlayer::currentSnapshot() const
+{
+	if (m_snapshots.empty())
+		return {};
+	else
+		return m_snapshots.back();
+}

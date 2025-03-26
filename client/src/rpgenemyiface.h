@@ -39,30 +39,31 @@
 class RpgEnemyIface : public RpgGameDataInterface
 {
 public:
-	RpgEnemyIface(const RpgGameData::Enemy::EnemyType &type)
+	RpgEnemyIface(const RpgGameData::EnemyBaseData::EnemyType &type)
 		: m_enemyType(type)
 	{}
 	RpgEnemyIface() {}
 
 	static QStringList availableTypes() { return m_typeHash.keys(); }
-	static RpgGameData::Enemy::EnemyType typeFromString(const QString &type) { return m_typeHash.value(type, RpgGameData::Enemy::EnemyInvalid); }
-	static QString directoryBaseName(const RpgGameData::Enemy::EnemyType type, const QString &subType = {});
+	static RpgGameData::EnemyBaseData::EnemyType typeFromString(const QString &type) {
+		return m_typeHash.value(type, RpgGameData::EnemyBaseData::EnemyInvalid);
+	}
+	static QString directoryBaseName(const RpgGameData::EnemyBaseData::EnemyType type, const QString &subType = {});
 
-	const RpgGameData::Enemy::EnemyType &enemyType() const { return m_enemyType; }
+	const RpgGameData::EnemyBaseData::EnemyType &enemyType() const { return m_enemyType; }
 
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
 
 	RpgArmory *armory() const { return m_armory.get(); }
 
-
 protected:
 	virtual QPointF getPickablePosition(const int &num) const = 0;
 
-	RpgGameData::Enemy::EnemyType m_enemyType = RpgGameData::Enemy::EnemyInvalid;
+	RpgGameData::EnemyBaseData::EnemyType m_enemyType = RpgGameData::EnemyBaseData::EnemyInvalid;
 	std::unique_ptr<RpgArmory> m_armory;
 
 private:
-	static const QHash<QString, RpgGameData::Enemy::EnemyType> m_typeHash;
+	static const QHash<QString, RpgGameData::EnemyBaseData::EnemyType> m_typeHash;
 
 	friend class RpgGame;
 };
@@ -77,9 +78,9 @@ private:
  * @return
  */
 
-inline QString RpgEnemyIface::directoryBaseName(const RpgGameData::Enemy::EnemyType type, const QString &subType)
+inline QString RpgEnemyIface::directoryBaseName(const RpgGameData::EnemyBaseData::EnemyType type, const QString &subType)
 {
-	if (type == RpgGameData::Enemy::EnemyWerebear)
+	if (type == RpgGameData::EnemyBaseData::EnemyWerebear)
 		return QStringLiteral("werebear");
 	else
 		return subType;

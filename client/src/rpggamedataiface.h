@@ -27,32 +27,41 @@
 #ifndef RPGGAMEDATAIFACE_H
 #define RPGGAMEDATAIFACE_H
 
-#include "rpgconfig.h"
 #include <QVector2D>
+#include <QCborMap>
+
+#define ADD_SERIALIZATION_OVERRIDE		\
+	virtual QCborMap serialize(const qint64 &tick = -1) const override { \
+		auto p = serializeThis(); \
+		p.f = tick; \
+		return p.toCborMap(true); \
+	} \
+	virtual QCborMap serialize(const QCborMap &other, const qint64 &tick = -1) const override { \
+		auto p = serializeThis(); \
+		p.f = other.value(QStringLiteral("f")).toInteger(-1); \
+		if (p.toCborMap(other, true).isEmpty()) \
+			return {}; \
+		p.f = tick; \
+		return p.toCborMap(true); \
+	}
+
+
+
+
+/**
+ * @brief The RpgGameDataInterface class
+ */
 
 class RpgGameDataInterface
 {
 public:
 	RpgGameDataInterface() {}
 
-	virtual std::unique_ptr<RpgGameData::Body> serialize() const = 0;
-
-	template <typename T, typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type>
-	std::optional<T> serialize() const {
-		const auto &ptr = serialize();
-
-		T* p = dynamic_cast<T*>(ptr.get());
-
-		if (!p)
-			return std::nullopt;
-
-		return *p;
-	}
-
-	virtual bool deserialize(const RpgGameData::Body *from) const = 0;
-
 	bool keyFrameRequired() const;
 	void setKeyFrameRequired(bool newKeyFrameRequired);
+
+	virtual QCborMap serialize(const qint64 &tick = -1) const { Q_UNUSED(tick); return QCborMap(); }
+	virtual QCborMap serialize(const QCborMap &other, const qint64 &tick = -1) const { Q_UNUSED(other); Q_UNUSED(tick); return QCborMap(); }
 
 protected:
 	static QList<float> toPosList(const QVector2D &pos) { return { pos.x(), pos.y() }; }

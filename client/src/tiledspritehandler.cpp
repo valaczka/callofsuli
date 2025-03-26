@@ -58,9 +58,11 @@ TiledSpriteHandler::~TiledSpriteHandler()
 
 QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 {
-	if (!node) {
-		node = new QSGNode;
-	}
+	if (node)
+		delete node;
+
+	node = new QSGNode;
+	node->setFlag(QSGNode::OwnedByParent);
 
 	bool isActive = m_baseObject && m_baseObject->inVisibleArea();
 
@@ -81,9 +83,6 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 		///LOG_CERROR("scene") << "Sprite not found:" << m_currentSprite << m_currentDirection;
 		isActive = false;
 	}
-
-	if (node->childCount() > 0)
-		node->removeAllChildNodes();
 
 	if (!isActive)
 		return node;
@@ -377,10 +376,10 @@ void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Di
 	m_isReverse = false;
 
 	m_timer.start(ptr.value()->data.duration, Qt::PreciseTimer, this);
-	update();
+	setDirty();
 
 	if (m_handlerSlave && m_syncHandlers)
-		m_handlerSlave->update();
+		m_handlerSlave->setDirty();
 }
 
 
@@ -507,6 +506,36 @@ void TiledSpriteHandler::createNodes(QSGNode *node, const Filter &filter,
 	}
 }
 
+
+/**
+ * @brief TiledSpriteHandler::setDirty
+ */
+
+void TiledSpriteHandler::setDirty()
+{
+	m_isDirty = true;
+}
+
+
+/**
+ * @brief TiledSpriteHandler::updateDirty
+ */
+
+void TiledSpriteHandler::updateDirty()
+{
+	if (m_isDirty) {
+		update();
+		m_isDirty = false;
+	}
+
+}
+
+
+/**
+ * @brief TiledSpriteHandler::opacityMask
+ * @return
+ */
+
 TiledSpriteHandler::OpacityMask TiledSpriteHandler::opacityMask() const
 {
 	return m_opacityMask;
@@ -610,7 +639,7 @@ void TiledSpriteHandler::clear()
 		m_handlerSlave->clear();
 
 	setSyncHandlers(false);
-	update();
+	setDirty();
 }
 
 
@@ -696,13 +725,11 @@ void TiledSpriteHandler::setBaseObject(TiledObject *newBaseObject)
 	if (m_baseObject)
 		m_baseObject->disconnect(this);
 
-	//disconnect(m_baseObject, &TiledObject::inVisibleAreaChanged, this, &TiledSpriteHandler::update);
-
 	m_baseObject = newBaseObject;
 	emit baseObjectChanged();
 
 	if (m_baseObject)
-		connect(m_baseObject, &TiledObject::inVisibleAreaChanged, this, &TiledSpriteHandler::update);
+		connect(m_baseObject, &TiledObject::inVisibleAreaChanged, this, &TiledSpriteHandler::setDirty);
 }
 
 
@@ -749,11 +776,11 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 			} else {
 				if (m_clearAtEnd) {
 					clear();
-					update();
+					setDirty();
 
 					if (m_handlerSlave && m_syncHandlers) {
 						m_handlerSlave->clear();
-						m_handlerSlave->update();
+						m_handlerSlave->setDirty();
 					}
 
 					return;
@@ -770,10 +797,10 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 		break;
 	}
 
-	update();
+	setDirty();
 
 	if (m_handlerSlave && m_syncHandlers)
-		m_handlerSlave->update();
+		m_handlerSlave->setDirty();
 }
 
 

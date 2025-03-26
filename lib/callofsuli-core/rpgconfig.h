@@ -27,8 +27,15 @@
 #ifndef RPGCONFIG_H
 #define RPGCONFIG_H
 
+#include "qmutex.h"
 #include "qpoint.h"
 #include <QSerializer>
+#include <QIODevice>
+
+
+
+#define RPG_UDP_DELTA_MSEC	1000
+
 
 
 /**
@@ -129,7 +136,7 @@ public:
 		: playerId(_id)
 		, username(_user)
 	{}
-	RpgPlayerConfig(const int &_id) : RpgPlayerConfig(_id, QStringLiteral("")) {}
+	RpgPlayerConfig(const int &_id) : RpgPlayerConfig(_id, QString()) {}
 	RpgPlayerConfig() : RpgPlayerConfig(-1) {}
 
 	QS_SERIALIZABLE
@@ -502,7 +509,7 @@ public:
 /// ---------------------------------------------------------------
 
 
-#define EQUAL_OPERATOR(cname)	friend bool operator==(const cname &l, const cname &r) { return l.isEqual(r); }
+#define EQUAL_OPERATOR(cname)	bool operator==(const cname &r) const { return isEqual(r); }
 
 
 namespace RpgGameData {
@@ -615,6 +622,49 @@ public:
 };
 
 
+
+
+
+/**
+ * @brief The BaseData class
+ */
+
+class BaseData : public QSerializer
+{
+	Q_GADGET
+
+public:
+	BaseData(const int &_o, const int &_s, const int &_id)
+		: QSerializer()
+		, o(_o)
+		, s(_s)
+		, id(_id)
+	{ }
+
+	BaseData()
+		: BaseData(-1, -1, -1)
+	{ }
+
+	bool isEqual(const BaseData &other) const {
+		return other.o == o && other.s == s && other.id == id;
+	}
+
+	bool isValid() const {
+		return o >= 0 && s >= 0 && id >= 0;
+	}
+
+	EQUAL_OPERATOR(BaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, o)					// ownerId
+	QS_FIELD(int, s)					// sceneId
+	QS_FIELD(int, id)					// objectId
+
+};
+
+
+
 /**
  * @brief The Body class
  */
@@ -624,49 +674,45 @@ class Body : public QSerializer
 	Q_GADGET
 
 public:
-	Body(const int &_sceneId, const int &_id)
+	Body()
 		: QSerializer()
-		, o(-1)
-		, s(_sceneId)
-		, id(_id)
+		, f(-1)
+		, sc(-1)
 	{ }
 
-	Body() :
-		Body(-1, -1)
-	{}
-
 	bool isEqual(const Body &other) const {
-		return other.o == o && other.s == s && other.id == id;
+		return other.f == f;
 	}
 
 	EQUAL_OPERATOR(Body)
 
 	QS_SERIALIZABLE
 
-	QS_FIELD(int, o)					// ownerId
-	QS_FIELD(int, s)					// sceneId
-	QS_FIELD(int, id)					// objectId
+	QS_FIELD(qint64, f)					// frame
 
+	QS_FIELD(int, sc)					// current scene
 	QS_COLLECTION(QList, float, p)		// position
 };
 
 
+
+
+/**
+ * @brief The Entity class
+ */
 
 class Entity : public Body
 {
 	Q_GADGET
 
 public:
-	Entity(const int &_sceneId, const int &_id)
-		: Body(_sceneId, _id)
+	Entity()
+		: Body()
 		, a(0.)
 		, hp(0)
 		, mhp(0)
 	{}
 
-	Entity()
-		: Entity(-1, -1)
-	{}
 
 	bool isEqual(const Entity &other) const {
 		return Body::isEqual(other) && other.a == a && other.hp == hp && other.mhp == mhp;
@@ -676,44 +722,59 @@ public:
 
 	QS_SERIALIZABLE
 
-	QS_COLLECTION(QList, float, mov)		// moveTowards
-
 	QS_FIELD(float, a)			// angle
 	QS_FIELD(int, hp)			// HP
 	QS_FIELD(int, mhp)			// max HP
-
-
 };
 
+
+
+
+
+/**
+ * @brief The Player class
+ */
 
 class Player : public Entity
 {
 	Q_GADGET
 
 public:
-	Player(const int &_sceneId, const int &_id)
-		: Entity(_sceneId, _id)
+	Player()
+		: Entity()
+		, st(PlayerInvalid)
 	{}
 
-	Player()
-		: Player(-1, -1)
-	{}
+	enum PlayerState {
+		PlayerInvalid = 0,
+		PlayerIdle,
+		PlayerMoving
+	};
+
+	Q_ENUM(PlayerState);
+
 
 	bool isEqual(const Player &other) const  {
-		return Entity::isEqual(other);
+		return Entity::isEqual(other) && other.st == st;
 	}
 
 	EQUAL_OPERATOR(Player);
 
 	QS_SERIALIZABLE
 
-	//QS_OBJECT(RpgPlayerConfig, cfg)
+	QS_FIELD(PlayerState, st)
 };
 
 
 
 
-class Enemy : public Entity
+
+
+/**
+ * @brief The EnemyBaseData class
+ */
+
+class EnemyBaseData : public BaseData
 {
 	Q_GADGET
 
@@ -736,20 +797,24 @@ public:
 
 	Q_ENUM(EnemyType);
 
-	Enemy(const EnemyType &_type, const int &_sceneId, const int &_id)
-		: Entity(_sceneId, _id)
+	EnemyBaseData(const EnemyType &_type, const int &_o, const int &_s, const int &_id)
+		: BaseData(_o, _s, _id)
 		, t(_type)
 	{}
 
-	Enemy() :
-		Enemy(EnemyInvalid, -1, -1)
+	EnemyBaseData(const EnemyType &_type)
+		: EnemyBaseData(_type, -1, -1, -1)
 	{}
 
-	bool isEqual(const Enemy &other) const {
-		return Entity::isEqual(other) && other.t == t;
+	EnemyBaseData()
+		: EnemyBaseData(EnemyInvalid)
+	{}
+
+	bool isEqual(const EnemyBaseData &other) const {
+		return BaseData::isEqual(other);
 	}
 
-	EQUAL_OPERATOR(Enemy)
+	EQUAL_OPERATOR(EnemyBaseData)
 
 	QS_SERIALIZABLE
 
@@ -760,8 +825,42 @@ public:
 
 
 
+/**
+ * @brief The Enemy class
+ */
 
-class Pickable : public Body
+
+class Enemy : public Entity
+{
+	Q_GADGET
+
+public:
+
+	Enemy()
+		: Entity()
+	{}
+
+
+	bool isEqual(const Enemy &other) const {
+		return Entity::isEqual(other);
+	}
+
+	EQUAL_OPERATOR(Enemy)
+
+	QS_SERIALIZABLE
+
+};
+
+
+
+
+
+
+/**
+ * @brief The PickableBaseData class
+ */
+
+class PickableBaseData : public BaseData
 {
 	Q_GADGET
 
@@ -785,24 +884,490 @@ public:
 
 	Q_ENUM(PickableType);
 
-	Pickable (const PickableType &_type, const int &_sceneId, const int &_id)
-		: Body(_sceneId, _id)
+	PickableBaseData (const PickableType &_type, const int &_o, const int &_s, const int &_id)
+		: BaseData(_o, _s, _id)
 		, t(_type)
 	{}
 
+	PickableBaseData(const PickableType &_type)
+		: PickableBaseData(_type, -1, -1, -1)
+	{}
 
-	bool isEqual(const Pickable &other) const {
-		return Body::isEqual(other) && other.t == t;
+	PickableBaseData()
+		: PickableBaseData(PickableInvalid)
+	{}
+
+	bool isEqual(const PickableBaseData &other) const {
+		return BaseData::isEqual(other);
 	}
 
-	EQUAL_OPERATOR(Pickable)
+	EQUAL_OPERATOR(PickableBaseData)
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(PickableType, t)
 };
 
+
+
+
+
+
+/**
+ * @brief The Pickable class
+ */
+
+class Pickable : public Body
+{
+	Q_GADGET
+
+public:
+
+	bool isEqual(const Pickable &other) const {
+		return Body::isEqual(other);
+	}
+
+	EQUAL_OPERATOR(Pickable)
+
+	QS_SERIALIZABLE
+
 };
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The SnapshotInterpolation class
+ */
+
+template <typename T, typename = std::enable_if<std::is_base_of<Body, T>::value>::type>
+struct SnapshotInterpolation {
+	T s1;
+	T s2;
+	qint64 current = -1;
+
+	void clear() {
+		s1 = {};
+		s2 = {};
+		current = -1;
+	}
+};
+
+
+template <typename T2, typename T,
+		  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+using Snapshot = std::vector<std::pair<T2, SnapshotInterpolation<T> > >;
+
+
+template <typename T2, typename T,
+		  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+using CurrentSnapshotList = std::vector<std::pair<T2, T> >;
+
+
+/**
+ * @brief The FullSnapshot class
+ */
+
+struct FullSnapshot {
+	Snapshot<BaseData, Player> players;
+	Snapshot<EnemyBaseData, Enemy> enemies;
+
+	void clear() {
+		players.clear();
+		enemies.clear();
+	}
+
+	template <typename T2, typename T,
+			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+	std::optional<SnapshotInterpolation<T> > getSnapshot(const T2 &data, const Snapshot<T2, T> &list) const;
+
+
+	std::optional<SnapshotInterpolation<Player> > getPlayer(const BaseData &data) const {
+		return getSnapshot(data, players);
+	}
+	std::optional<SnapshotInterpolation<Enemy> > getEnemy(const EnemyBaseData &data) const {
+		return getSnapshot(data, enemies);
+	}
+};
+
+
+
+
+/**
+ * @brief The CurrentSnapshot class
+ */
+
+struct CurrentSnapshot {
+	CurrentSnapshotList<BaseData, Player> players;
+	CurrentSnapshotList<EnemyBaseData, Enemy> enemies;
+
+	void clear() {
+		players.clear();
+		enemies.clear();
+	}
+
+	template <typename T2, typename T,
+			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+	std::optional<T> getSnapshot(const T2 &data, const CurrentSnapshotList<T2, T> &list) const;
+
+
+	std::optional<Player> getPlayer(const BaseData &data) const {
+		return getSnapshot(data, players);
+	}
+	std::optional<Enemy> getEnemy(const EnemyBaseData &data) const {
+		return getSnapshot(data, enemies);
+	}
+};
+
+
+
+
+// Snapshots
+
+template <typename T, typename T2,
+		  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+struct SnapshotData {
+	T2 data;
+	std::map<qint64, T> list;
+};
+
+
+template <typename T, typename T2,
+		  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+using SnapshotList = std::vector<SnapshotData<T, T2> >;
+
+
+
+
+
+
+/**
+ * @brief The SnapshotStorage class
+ */
+
+class SnapshotStorage {
+
+public:
+	SnapshotStorage() = default;
+
+
+	SnapshotList<Player, BaseData> players() { QMutexLocker locker(&m_mutex); return m_players; }
+	SnapshotList<Enemy, EnemyBaseData> enemies() { QMutexLocker locker(&m_mutex); return m_enemies; }
+
+
+	SnapshotInterpolation<Player> getSnapshot(const BaseData &id, const qint64 &tick) {
+		return getSnapshotInterpolation(m_players, id, tick);
+	}
+
+	SnapshotInterpolation<Enemy> getSnapshot(const EnemyBaseData &id, const qint64 &tick) {
+		return getSnapshotInterpolation(m_enemies, id, tick);
+	}
+
+	FullSnapshot getFullSnapshot(const qint64 &tick);
+	CurrentSnapshot getCurrentSnapshot();
+
+	void zapSnapshots(const qint64 &tick);
+
+
+
+protected:
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+	SnapshotInterpolation<T> getSnapshotInterpolation(const SnapshotList<T, T2> &snapshots,
+													  const T2 &id,
+													  const qint64 &currentTick);
+
+
+	template <typename T, typename = std::enable_if<std::is_base_of<Body, T>::value>::type>
+	SnapshotInterpolation<T> getSnapshotInterpolation(const std::map<qint64, T> &map,
+													  const qint64 &currentTick);
+
+
+	template <typename T, typename = std::enable_if<std::is_base_of<Body, T>::value>::type>
+	void zapSnapshots(std::map<qint64, T> &map, const qint64 &minTick);
+
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+	void dumpSnapshots(QIODevice *device, const SnapshotList<T, T2> &snapshots) const;
+
+
+
+	QRecursiveMutex m_mutex;
+
+	SnapshotList<Player, BaseData> m_players;
+	SnapshotList<Enemy, EnemyBaseData> m_enemies;
+};
+
+
+
+
+
+
+
+/**
+ * @brief FullSnapshot::getSnapshot
+ * @param data
+ * @param list
+ * @return
+ */
+
+template<typename T2, typename T, typename T3, typename T4>
+inline std::optional<SnapshotInterpolation<T> > FullSnapshot::getSnapshot(const T2 &data,
+																		  const Snapshot<T2, T> &list) const
+{
+	const auto it = std::find_if(list.cbegin(),
+								 list.cend(),
+								 [&data](const auto &ptr) {
+		return ptr.first == data;
+	});
+
+
+	if (it != list.cend())
+		return it->second;
+	else
+		return std::nullopt;
+}
+
+
+
+
+
+/**
+ * @brief SnapshotStorage::getSnapshotInterpolation
+ * @param snapshots
+ * @param id
+ * @param currentTick
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const SnapshotList<T, T2> &snapshots,
+																		  const T2 &id,
+																		  const qint64 &currentTick)
+{
+	SnapshotInterpolation<T> sip;
+
+	const qint64 time = currentTick - RPG_UDP_DELTA_MSEC;
+
+	sip.current = time;
+
+	if (time < 0)
+		return sip;
+
+	QMutexLocker locker(&m_mutex);
+
+	const auto mapIt = std::find_if(snapshots.cbegin(), snapshots.cend(), [&id](const auto &b){
+		return b.data == id;
+	});
+
+	if (mapIt == snapshots.cend()) {
+		return sip;
+	}
+
+	return getSnapshotInterpolation<T>(mapIt->list, currentTick);
+}
+
+
+
+
+/**
+ * @brief SnapshotStorage::getSnapshotInterpolation
+ * @param map
+ * @param currentTick
+ * @return
+ */
+
+template<typename T, typename T2>
+inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const std::map<qint64, T> &map,
+																		  const qint64 &currentTick)
+{
+	SnapshotInterpolation<T> sip;
+
+	const qint64 time = currentTick - RPG_UDP_DELTA_MSEC;
+
+	sip.current = time;
+
+	if (time < 0)
+		return sip;
+
+	QMutexLocker locker(&m_mutex);
+
+	const auto it = map.lower_bound(time);					// lower_bound = greater or equal
+
+	if (it != map.cend() && it != map.cbegin() && it->first > time)
+		sip.s1 = std::prev(it)->second;
+	else if (it != map.cend())
+		sip.s1 = it->second;
+
+	const auto uit = map.upper_bound(time);					// upper_bound = greater
+
+	if (uit != map.cend())
+		sip.s2 = uit->second;
+
+	return sip;
+}
+
+
+
+/**
+ * @brief SnapshotStorage::zapSnapshots
+ * @param map
+ * @param minTick
+ */
+
+
+template<typename T, typename T2>
+inline void SnapshotStorage::zapSnapshots(std::map<qint64, T> &map, const qint64 &minTick)
+{
+	if (map.size() < 2)
+		return;
+
+	auto max = map.lower_bound(minTick);					// lower_bound = greater or equal
+
+	if (max == map.end())
+		max = std::prev(max);
+
+	if (max == map.begin())
+		return;
+
+	map.erase(map.begin(), std::prev(max));
+}
+
+
+
+
+
+
+/**
+ * @brief SnapshotStorage::dumpSnapshots
+ * @param device
+ * @param snapshots
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline void SnapshotStorage::dumpSnapshots(QIODevice *device, const SnapshotList<T, T2> &snapshots) const
+{
+	Q_ASSERT(device);
+
+	for (const SnapshotData<T, T2> &ptr : snapshots) {
+		QJsonDocument d(ptr.data.toJson());
+		device->write("------------------------------------\n");
+		device->write(d.toJson());
+		device->write("------------------------------------\n");
+
+		for (const auto &[tick, body] : ptr.list) {
+			device->write("*** ");
+			device->write(QByteArray::number(tick));
+			device->write(" ***\n");
+			QJsonDocument d(body.toJson());
+			device->write(d.toJson());
+			device->write("\n\n");
+		}
+	}
+
+	device->write("=====================================\n\n");
+}
+
+
+
+/**
+ * @brief SnapshotStorage::getFullSnapshot
+ * @param tick
+ * @return
+ */
+
+inline FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick)
+{
+	QMutexLocker locker(&m_mutex);
+
+	FullSnapshot s;
+
+	for (const auto &[data, list] : m_players) {
+		s.players.emplace_back(data, getSnapshotInterpolation(list, tick));
+	}
+
+	for (const auto &[data, list] : m_enemies) {
+		s.enemies.emplace_back(data, getSnapshotInterpolation(list, tick));
+	}
+
+	return s;
+}
+
+
+
+
+
+/**
+ * @brief SnapshotStorage::getCurrentSnapshot
+ * @return
+ */
+
+inline CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
+{
+	QMutexLocker locker(&m_mutex);
+
+	CurrentSnapshot s;
+
+	for (const auto &[data, list] : m_players) {
+		if (list.empty())
+			s.players.emplace_back(data, Player());
+		else
+			s.players.emplace_back(data, list.cend()->second);
+	}
+
+	for (const auto &[data, list] : m_enemies) {
+		if (list.empty())
+			s.enemies.emplace_back(data, Enemy());
+		else
+			s.enemies.emplace_back(data, list.cend()->second);
+	}
+
+	return s;
+}
+
+
+
+/**
+ * @brief SnapshotStorage::zapSnapshots
+ * @param tick
+ */
+
+inline void SnapshotStorage::zapSnapshots(const qint64 &tick)
+{
+	QMutexLocker locker(&m_mutex);
+
+	if (tick <= 0)
+		return;
+
+	for (auto &[data, list] : m_players) {
+		zapSnapshots(list, tick);
+	}
+
+	for (auto &[data, list] : m_enemies) {
+		zapSnapshots(list, tick);
+	}
+}
+
+
+
+
+};	// namespace RpgGameData
 
 
 

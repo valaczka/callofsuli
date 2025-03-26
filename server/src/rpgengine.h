@@ -35,11 +35,11 @@
  * @brief The RpgEnginePlayer class
  */
 
-class RpgEnginePlayer : public RpgGameData::Player
+class RpgEnginePlayer : public RpgGameData::BaseData
 {
 public:
 	RpgEnginePlayer(UdpServerPeer *peer, const bool &isHost = false)
-		: RpgGameData::Player()
+		: RpgGameData::BaseData()
 		, m_udpPeer(peer)
 		, m_isHost(isHost)
 	{}
@@ -66,13 +66,18 @@ public:
 	bool isPrepared() const { return m_isPrepared; }
 	void setIsPrepared(bool newIsPrepared) { m_isPrepared = newIsPrepared; }
 
+	RpgGameData::Player currentSnapshot() const;
+
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
 	bool m_isPrepared = false;
 	RpgGameData::CharacterSelect m_config;
 
+	std::vector<RpgGameData::Player> m_snapshots;
+
 	friend class RpgEngine;
+	friend class RpgEnginePrivate;
 
 };
 

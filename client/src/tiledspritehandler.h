@@ -78,6 +78,9 @@ public:
 
 	void setStartFrameSeed(const qreal &percent = -1.);
 
+	void setDirty();
+	void updateDirty();
+
 	const TiledObject::Direction &currentDirection() const { return m_currentDirection; }
 
 	const QStringList &spriteNames() const;
@@ -177,6 +180,8 @@ private:
 	TiledSpriteHandler *m_handlerMaster = nullptr;
 	TiledSpriteHandler *m_handlerSlave = nullptr;
 	bool m_syncHandlers = false;
+
+	bool m_isDirty = false;
 
 	OpacityMask m_opacityMask = MaskFull;
 };

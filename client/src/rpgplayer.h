@@ -162,11 +162,11 @@ public:
 	void setConfig(const RpgPlayerCharacterConfig &newConfig);
 
 	void inventoryAdd(RpgPickableObject *object);
-	void inventoryAdd(const RpgGameData::Pickable::PickableType &type, const QString &name = {});
-	void inventoryRemove(const RpgGameData::Pickable::PickableType &type);
-	void inventoryRemove(const RpgGameData::Pickable::PickableType &type, const QString &name);
-	bool inventoryContains(const RpgGameData::Pickable::PickableType &type) const;
-	bool inventoryContains(const RpgGameData::Pickable::PickableType &type, const QString &name) const;
+	void inventoryAdd(const RpgGameData::PickableBaseData::PickableType &type, const QString &name = {});
+	void inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type);
+	void inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type, const QString &name);
+	bool inventoryContains(const RpgGameData::PickableBaseData::PickableType &type) const;
+	bool inventoryContains(const RpgGameData::PickableBaseData::PickableType &type, const QString &name) const;
 
 	RpgInventoryList *inventory() const;
 
@@ -185,8 +185,9 @@ public:
 	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
 
-	virtual std::unique_ptr<RpgGameData::Body> serialize() const override;
-	virtual bool deserialize(const RpgGameData::Body *from) const override;
+	ADD_SERIALIZATION_OVERRIDE
+
+	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot);
 
 signals:
 	void attackDone();
@@ -229,6 +230,8 @@ private:
 	void messageEmptyBullet(const TiledWeapon::WeaponType &weaponType);
 	void onCastTimerTimeout();
 	void attackReachedEnemies(const TiledWeapon::WeaponType &weaponType);
+
+	RpgGameData::Player serializeThis() const;
 
 private:
 	RpgPlayerCharacterConfig m_config;

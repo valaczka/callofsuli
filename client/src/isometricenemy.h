@@ -171,7 +171,6 @@ public:
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
 
 	virtual void worldStep() override;
-	virtual void synchronize() override;
 
 signals:
 	void becameAlive();
@@ -186,6 +185,8 @@ protected:
 	virtual bool enemyWorldStep() override;
 	virtual bool enemyWorldStepOnVisiblePlayer() override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
+
+	virtual void synchronize() override;
 
 	virtual void load() = 0;
 	void onAlive() override;

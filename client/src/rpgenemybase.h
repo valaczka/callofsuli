@@ -39,8 +39,8 @@ class RpgEnemyBase : public IsometricEnemy, public RpgEnemyIface
 	QML_ELEMENT
 
 public:
-	explicit RpgEnemyBase(const RpgGameData::Enemy::EnemyType &type, TiledScene *scene = nullptr);
-	explicit RpgEnemyBase(TiledScene *scene = nullptr) : RpgEnemyBase(RpgGameData::Enemy::EnemyInvalid, scene) {}
+	explicit RpgEnemyBase(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene = nullptr);
+	explicit RpgEnemyBase(TiledScene *scene = nullptr) : RpgEnemyBase(RpgGameData::EnemyBaseData::EnemyInvalid, scene) {}
 	virtual ~RpgEnemyBase();
 
 	TiledWeapon *defaultWeapon() const override;
@@ -53,9 +53,6 @@ public:
 	void setSubType(const QString &newSubType);
 
 	virtual int enemyType() const override { return RpgEnemyIface::enemyType(); }
-
-	virtual std::unique_ptr<RpgGameData::Body> serialize() const override;
-	virtual bool deserialize(const RpgGameData::Body *from) const override;
 
 
 protected:

@@ -522,6 +522,11 @@ void Client::onHttpConnectionSslError(const QList<QSslError> &errors)
 
 void Client::onServerConnected()
 {
+	if (!server()) {
+		LOG_CWARNING("client") << "Server disconnected";
+		return;
+	}
+
 	LOG_CINFO("client") << "Server connected:" << m_httpConnection->server()->url();
 
 	if (server()->isStatic()) {
@@ -594,7 +599,8 @@ void Client::onServerDisconnected()
 
 	m_cache.clear();
 
-	server()->user()->wallet()->unloadWorld();
+	if (server())
+		server()->user()->wallet()->unloadWorld();
 
 	m_downloader->contentClear();
 	m_downloader->setServer(nullptr);

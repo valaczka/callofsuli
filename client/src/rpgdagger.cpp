@@ -60,7 +60,7 @@ void RpgDagger::eventAttack(TiledObject *target)
  */
 
 RpgDaggerPickable::RpgDaggerPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::Pickable::PickableDagger, scene)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableDagger, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

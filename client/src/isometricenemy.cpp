@@ -56,7 +56,6 @@ IsometricEnemy::IsometricEnemy(TiledScene *scene)
 
 void IsometricEnemy::initialize()
 {
-	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.5);
 
@@ -67,6 +66,8 @@ void IsometricEnemy::initialize()
 	addTargetCircle(m_metric.targetCircleRadius);
 
 	createVisual();
+
+	m_visualItem->setZ(1);
 
 	load();
 	onAlive();
@@ -653,7 +654,7 @@ void IsometricEnemy::worldStep()
 				if (m_metric.pursuitSpeed > 0)
 					moveTowards(dst, m_metric.pursuitSpeed);
 				else
-					moveTowards(dst, m_metric.pursuitSpeed);
+					moveTowards(dst, m_metric.speed);
 			} else {
 				stop();
 			}

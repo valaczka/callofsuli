@@ -192,6 +192,10 @@ void AbstractUdpEnginePrivate::run()
 
 		int r = enet_host_service (m_enet_host, &event, 1000/120);
 
+		if (r < 0) {
+			LOG_CERROR("engine") << "ENet host service error";
+		}
+
 		if (QThread::currentThread()->isInterruptionRequested())
 			break;
 
@@ -224,11 +228,14 @@ void AbstractUdpEnginePrivate::run()
 			}
 		}
 
-		for (const auto &b : m_sendList) {
+		for (const auto &b : std::as_const(m_sendList)) {
 			ENetPacket *packet = enet_packet_create(b.data.data(), b.data.size(),
 													b.reliable ? ENET_PACKET_FLAG_RELIABLE :
 																 ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-			enet_peer_send(m_enet_peer, 0, packet);
+			if (enet_peer_send(m_enet_peer, 0, packet) < 0) {
+				LOG_CERROR("client") << "ENet peer send error";
+				enet_packet_destroy(packet);
+			}
 		}
 
 		m_sendList.clear();

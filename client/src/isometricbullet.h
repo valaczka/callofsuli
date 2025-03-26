@@ -77,7 +77,6 @@ public:
 	void shot(const Targets &targets, const QPointF &from, const qreal &angle);
 
 	void worldStep() override;
-	virtual void synchronize() override;
 
 	bool impacted() const;
 	void setImpacted(bool newImpacted);
@@ -103,6 +102,8 @@ protected:
 	virtual void impactEvent(TiledObjectBody *base);
 	virtual void groundEvent(TiledObjectBody *base) { Q_UNUSED(base); }
 	virtual void overshootEvent() {}
+
+	virtual void synchronize() override;
 
 	void doAutoDelete();
 

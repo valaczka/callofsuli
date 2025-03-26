@@ -140,6 +140,8 @@ public:
 
 	static size_t getPeakRSS();
 	static size_t getCurrentRSS();
+	static bool getMemory(unsigned long *currRealMem, unsigned long *peakRealMem = nullptr,
+						  unsigned long *currVirtMem = nullptr, unsigned long *peakVirtMem = nullptr);
 
 signals:
 	void storagePermissionsGranted();

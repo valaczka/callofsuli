@@ -67,6 +67,7 @@ public:
 	void clearDestinationPoint();
 
 	void initialize();
+	void setVirtualCircle(const bool &on = true);
 	bool hasAbility();
 
 	TiledTransport *currentTransport() const;
@@ -86,11 +87,11 @@ public:
 	void setIsLocked(bool newIsLocked);
 
 	virtual void worldStep() override;
-	virtual void synchronize() override;
 
 	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
 
+	const qreal &speedLength() const { return m_speedLength; }
 
 	bool isRunning() const;
 	bool isWalking() const;
@@ -109,7 +110,9 @@ protected:
 	void onDead() override;
 	void startInability();
 	void startInability(const int &msec);
-		void updateEnemies(const float &shotRange);
+	void updateEnemies(const float &shotRange);
+
+	virtual void synchronize() override;
 
 	virtual void load() = 0;
 	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;

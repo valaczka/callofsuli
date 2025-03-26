@@ -66,8 +66,8 @@ void RpgArrow::load()
 
 	appendSprite(QStringLiteral(":/rpg/arrow/arrow.png"), json);
 
-	setWidth(64);
-	setHeight(64);
+	m_visualItem->setWidth(64);
+	m_visualItem->setHeight(64);
 	setBodyOffset(0, 50);
 
 	jumpToSprite("default");

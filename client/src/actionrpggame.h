@@ -120,7 +120,7 @@ protected:
 	void onGameLoadFailed(const QString &);
 
 	void loadInventory(RpgPlayer *player);
-	void loadInventory(RpgPlayer *player, const RpgGameData::Pickable::PickableType &pickableType);
+	void loadInventory(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &pickableType);
 	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
 
 	void updateConfig();

@@ -56,16 +56,12 @@ TiledObject::TiledObject(TiledScene *scene)
  * @param parent
  */
 
-TiledObject::TiledObject(b2::World *world, QQuickItem *parent)
-	: QQuickItem(parent)
+TiledObject::TiledObject(b2::World *world, QObject *parent)
+	: QObject(parent)
 	, TiledObjectBody(world)
 {
-	LOG_CTRACE("scene") << "TiledObject created" << this;
+	LOG_CTRACE("scene") << "TiledObject created" << this << scene();
 
-	connect(this, &TiledObject::xChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
-	connect(this, &TiledObject::yChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
-	connect(this, &TiledObject::widthChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
-	connect(this, &TiledObject::heightChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
 }
 
 /**
@@ -74,7 +70,7 @@ TiledObject::TiledObject(b2::World *world, QQuickItem *parent)
 
 TiledObject::~TiledObject()
 {
-	LOG_CTRACE("scene") << "TiledObject destroyed" << this << parentItem() << parent();
+	LOG_CTRACE("scene") << "TiledObject destroyed" << this << scene();
 
 	if (m_spriteHandler)
 		m_spriteHandler->setBaseObject(nullptr);
@@ -243,22 +239,31 @@ void TiledObject::synchronize()
 {
 	TiledObjectBody::synchronize();
 
-	if (!body())
+	if (!body() || !m_visualItem)
 		return;
 
 	const auto bPos = body().GetPosition();
 	QPointF pos(bPos.x, bPos.y);
 
-	QPointF offset(width()/2, height()/2);
+	QPointF offset(m_visualItem->width()/2, m_visualItem->height()/2);
 	offset += m_bodyOffset;
 
-	setPosition(pos-offset);
+	m_visualItem->setPosition(pos-offset);
 
 	if (!qFuzzyCompare(bodyRotation(), m_lastAngle))
 		emit currentAngleChanged();
 
 	if (m_facingDirectionLocked)
 		setFacingDirection(nearestDirectionFromRadian(bodyRotation()));
+
+	if (m_spriteHandler)
+		m_spriteHandler->updateDirty();
+
+	if (m_spriteHandlerAuxBack)
+		m_spriteHandlerAuxBack->updateDirty();
+
+	if (m_spriteHandlerAuxFront)
+		m_spriteHandlerAuxFront->updateDirty();
 }
 
 
@@ -311,6 +316,28 @@ bool TiledObject::moveTowards(const QVector2D &point, const float &speedBelow, c
 		return false;
 
 	return true;
+}
+
+
+/**
+ * @brief TiledObject::moveTowards
+ * @param point
+ * @return
+ */
+
+void TiledObject::moveTowards(const QVector2D &point)
+{
+	if (!body()) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return;
+	}
+
+	setCurrentAngle(angleToPoint(point));
+
+	const auto pos = body().GetPosition();
+
+	setSpeed(point.x() - pos.x,
+			 point.y() - pos.y);
 }
 
 
@@ -695,9 +722,15 @@ void TiledObject::createVisual()
 	m_spriteHandlerAuxFront = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandlerAuxFront"));
 	m_spriteHandlerAuxBack = qvariant_cast<TiledSpriteHandler*>(m_visualItem->property("spriteHandlerAuxBack"));
 
-	m_visualItem->setParentItem(this);
 	m_visualItem->setParent(this);
 	m_visualItem->setProperty("baseObject", QVariant::fromValue(this));
+
+	connect(m_visualItem, &QQuickItem::xChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
+	connect(m_visualItem, &QQuickItem::yChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
+	connect(m_visualItem, &QQuickItem::widthChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
+	connect(m_visualItem, &QQuickItem::heightChanged, this, &TiledObject::updateVisibleArea, Qt::QueuedConnection);
+
+	emit visualItemChanged();
 }
 
 
@@ -1351,8 +1384,6 @@ void TiledObjectBody::emplace(const QVector2D &center)
 
 	d->m_lastPosition = center;
 	d->m_currentSpeed = {0., 0.};
-
-	synchronize();
 }
 
 
@@ -1691,14 +1722,6 @@ void TiledObjectBody::worldStep()
 
 
 
-/**
- * @brief TiledObjectBody::synchronize
- */
-
-void TiledObjectBody::synchronize()
-{
-
-}
 
 
 
@@ -1997,6 +2020,16 @@ void TiledObjectBody::addVirtualCircle(const FixtureCategories &collidesWith, co
 		filter.maskBits = collidesWith;
 		d->m_virtualCircle.SetFilter(filter);
 	}
+}
+
+
+/**
+ * @brief TiledObjectBody::removeVirtualCircle
+ */
+
+void TiledObjectBody::removeVirtualCircle()
+{
+	d->removeVirtualCircle();
 }
 
 
@@ -2603,6 +2636,19 @@ void TiledObjectBodyPrivate::addVirtualCircle(const float &length)
 }
 
 
+/**
+ * @brief TiledObjectBodyPrivate::removeVirtualCircle
+ */
+
+void TiledObjectBodyPrivate::removeVirtualCircle()
+{
+	if (m_virtualCircle)
+		m_virtualCircle.Destroy(false);
+
+	m_virtualCircle = b2::ShapeRef();
+}
+
+
 
 /**
  * @brief TiledObjectBodyPrivate::addTargetCircle
@@ -2770,4 +2816,15 @@ TiledReportedFixtureMap::QMultiMap::const_iterator TiledReportedFixtureMap::find
 TiledReportedFixtureMap::iterator TiledReportedFixtureMap::find(TiledObjectBody *body)
 {
 	return std::find_if(this->begin(), this->end(), [body](const TiledReportedFixture &f) { return f.body == body; });
+}
+
+
+/**
+ * @brief TiledObject::visualItem
+ * @return
+ */
+
+QQuickItem *TiledObject::visualItem() const
+{
+	return m_visualItem;
 }

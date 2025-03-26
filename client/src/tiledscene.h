@@ -158,7 +158,6 @@ signals:
 	void sceneIdChanged();
 	void ambientSoundChanged();
 	void backgroundMusicChanged();
-	void worldStepped();
 	void onScreenAreaChanged();
 	void sceneEffectChanged();
 	void viewportChanged();
@@ -233,6 +232,7 @@ private:
 	void reorderObjectsZ(const std::vector<TiledObject *> list);
 	void repaintTilesets(Tiled::Tileset *tileset);
 
+	TiledDebugDraw *m_debugDraw = nullptr;
 	void debugDrawEvent(TiledDebugDraw *debugDraw);
 
 	TiledGame *m_game = nullptr;

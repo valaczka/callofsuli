@@ -243,7 +243,7 @@ Flickable {
 	}
 
 	Connections {
-		target: _scene.game ? _scene.game.followedItem : null
+		target: _scene.game && _scene.game.followedItem ? _scene.game.followedItem.visualItem : null
 
 		function onXChanged() {
 			if (!flick._suspendFollowing)
@@ -271,9 +271,12 @@ Flickable {
 		if (!_scene.game || !_scene.game.followedItem || _scene.game.followedItem.scene != _scene)
 			return
 
+		if (!_scene.game.followedItem.visualItem)
+			return
+
 		var fw = flick.width
-		var px = _scene.game.followedItem.x*_scene.scale + _container.x
-		var pw = _scene.game.followedItem.width*_scene.scale
+		var px = _scene.game.followedItem.visualItem.x*_scene.scale + _container.x
+		var pw = _scene.game.followedItem.visualItem.width*_scene.scale
 		var spaceRequired = Math.min((fw-pw)*0.45, 500)
 		var cx = flick.contentX
 		var cw = flick.contentWidth
@@ -300,9 +303,12 @@ Flickable {
 		if (!_scene.game || !_scene.game.followedItem || _scene.game.followedItem.scene != _scene)
 			return
 
+		if (!_scene.game.followedItem.visualItem)
+			return
+
 		var fh = flick.height
-		var py = _scene.game.followedItem.y*_scene.scale + _container.y
-		var ph = _scene.game.followedItem.height*_scene.scale
+		var py = _scene.game.followedItem.visualItem.y*_scene.scale + _container.y
+		var ph = _scene.game.followedItem.visualItem.height*_scene.scale
 		var spaceRequired = Math.min((fh-ph)*0.45, 500)
 		var cy = flick.contentY
 		var ch = flick.contentHeight

@@ -241,7 +241,6 @@ IsometricPlayer::~IsometricPlayer()
 
 void IsometricPlayer::initialize()
 {
-	setZ(1);
 	setDefaultZ(1);
 	setSubZ(0.5);
 
@@ -249,15 +248,31 @@ void IsometricPlayer::initialize()
 	m_speedRunLength = 210;
 
 	//setSensorPolygon(m_sensorLength, M_PI*2./3., FixtureTarget | FixturePickable);
-	addVirtualCircle(FixtureTrigger | FixturePickable | FixtureContainer, m_sensorLength);
+	//addVirtualCircle(FixtureTrigger | FixturePickable | FixtureContainer, m_sensorLength);
 	addTargetCircle(m_targetCircleRadius);
 
 	createVisual();
+
+	m_visualItem->setZ(1);
 
 	createMarkerItem();
 
 	load();
 	onAlive();
+}
+
+
+/**
+ * @brief IsometricPlayer::setVirtualCircle
+ * @param on
+ */
+
+void IsometricPlayer::setVirtualCircle(const bool &on)
+{
+	if (on)
+		addVirtualCircle(FixtureTrigger | FixturePickable | FixtureContainer, m_sensorLength);
+	else
+		removeVirtualCircle();
 }
 
 

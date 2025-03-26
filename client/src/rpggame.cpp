@@ -66,19 +66,19 @@
 QHash<QString, RpgGameDefinition> RpgGame::m_terrains;
 QHash<QString, RpgPlayerCharacterConfig> RpgGame::m_characters;
 
-const QHash<QString, RpgGameData::Enemy::EnemyType> RpgEnemyIface::m_typeHash = {
-	{ QStringLiteral("werebear"), RpgGameData::Enemy::EnemyWerebear },
-	{ QStringLiteral("soldier"), RpgGameData::Enemy::EnemySoldier },
-	{ QStringLiteral("soldierFix"), RpgGameData::Enemy::EnemySoldierFix },
-	{ QStringLiteral("archer"), RpgGameData::Enemy::EnemyArcher },
-	{ QStringLiteral("archerFix"), RpgGameData::Enemy::EnemyArcherFix },
-	{ QStringLiteral("skeleton"), RpgGameData::Enemy::EnemySkeleton },
-	{ QStringLiteral("smith"), RpgGameData::Enemy::EnemySmith },
-	{ QStringLiteral("smithFix"), RpgGameData::Enemy::EnemySmithFix },
-	{ QStringLiteral("barbarian"), RpgGameData::Enemy::EnemyBarbarian },
-	{ QStringLiteral("barbarianFix"), RpgGameData::Enemy::EnemyBarbarianFix },
-	{ QStringLiteral("butcher"), RpgGameData::Enemy::EnemyButcher },
-	{ QStringLiteral("butcherFix"), RpgGameData::Enemy::EnemyButcherFix },
+const QHash<QString, RpgGameData::EnemyBaseData::EnemyType> RpgEnemyIface::m_typeHash = {
+	{ QStringLiteral("werebear"), RpgGameData::EnemyBaseData::EnemyWerebear },
+	{ QStringLiteral("soldier"), RpgGameData::EnemyBaseData::EnemySoldier },
+	{ QStringLiteral("soldierFix"), RpgGameData::EnemyBaseData::EnemySoldierFix },
+	{ QStringLiteral("archer"), RpgGameData::EnemyBaseData::EnemyArcher },
+	{ QStringLiteral("archerFix"), RpgGameData::EnemyBaseData::EnemyArcherFix },
+	{ QStringLiteral("skeleton"), RpgGameData::EnemyBaseData::EnemySkeleton },
+	{ QStringLiteral("smith"), RpgGameData::EnemyBaseData::EnemySmith },
+	{ QStringLiteral("smithFix"), RpgGameData::EnemyBaseData::EnemySmithFix },
+	{ QStringLiteral("barbarian"), RpgGameData::EnemyBaseData::EnemyBarbarian },
+	{ QStringLiteral("barbarianFix"), RpgGameData::EnemyBaseData::EnemyBarbarianFix },
+	{ QStringLiteral("butcher"), RpgGameData::EnemyBaseData::EnemyButcher },
+	{ QStringLiteral("butcherFix"), RpgGameData::EnemyBaseData::EnemyButcherFix },
 };
 
 
@@ -141,13 +141,13 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 		if (replaceMpToShield) {
 			for (auto &p : e.pickables) {
-				if (p == RpgGameData::Pickable::PickableMp)
-					p = RpgGameData::Pickable::PickableShield;
+				if (p == RpgGameData::PickableBaseData::PickableMp)
+					p = RpgGameData::PickableBaseData::PickableShield;
 			}
 
 			for (auto &p : e.pickablesOnce) {
-				if (p == RpgGameData::Pickable::PickableMp)
-					p = RpgGameData::Pickable::PickableShield;
+				if (p == RpgGameData::PickableBaseData::PickableMp)
+					p = RpgGameData::PickableBaseData::PickableShield;
 			}
 		}
 
@@ -176,8 +176,8 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 	for (auto &e : m_pickableDataList) {
 
-		if (e.type == RpgGameData::Pickable::PickableMp)
-			e.type = RpgGameData::Pickable::PickableShield;
+		if (e.type == RpgGameData::PickableBaseData::PickableMp)
+			e.type = RpgGameData::PickableBaseData::PickableShield;
 
 		RpgPickableObject *pickable = createPickable(e.type, e.name, e.scene);
 
@@ -632,7 +632,7 @@ void RpgGame::playerUseContainer(RpgPlayer *player, RpgContainer *container)
  * @return
  */
 
-IsometricEnemy *RpgGame::createEnemy(const RpgGameData::Enemy::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id)
+IsometricEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id)
 {
 	IsometricEnemy *enemy = nullptr;
 
@@ -654,22 +654,22 @@ IsometricEnemy *RpgGame::createEnemy(const RpgGameData::Enemy::EnemyType &type, 
 	static const float size = 15.;
 
 	switch (type) {
-		case RpgGameData::Enemy::EnemyWerebear: {
+		case RpgGameData::EnemyBaseData::EnemyWerebear: {
 			enemy = createFromCircle<RpgWerebear>(-1, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 		}
 
-		case RpgGameData::Enemy::EnemySoldier:
-		case RpgGameData::Enemy::EnemyArcher:
-		case RpgGameData::Enemy::EnemySoldierFix:
-		case RpgGameData::Enemy::EnemyArcherFix:
-		case RpgGameData::Enemy::EnemySmith:
-		case RpgGameData::Enemy::EnemySmithFix:
-		case RpgGameData::Enemy::EnemyButcher:
-		case RpgGameData::Enemy::EnemyButcherFix:
-		case RpgGameData::Enemy::EnemyBarbarian:
-		case RpgGameData::Enemy::EnemyBarbarianFix:
-		case RpgGameData::Enemy::EnemySkeleton:
+		case RpgGameData::EnemyBaseData::EnemySoldier:
+		case RpgGameData::EnemyBaseData::EnemyArcher:
+		case RpgGameData::EnemyBaseData::EnemySoldierFix:
+		case RpgGameData::EnemyBaseData::EnemyArcherFix:
+		case RpgGameData::EnemyBaseData::EnemySmith:
+		case RpgGameData::EnemyBaseData::EnemySmithFix:
+		case RpgGameData::EnemyBaseData::EnemyButcher:
+		case RpgGameData::EnemyBaseData::EnemyButcherFix:
+		case RpgGameData::EnemyBaseData::EnemyBarbarian:
+		case RpgGameData::EnemyBaseData::EnemyBarbarianFix:
+		case RpgGameData::EnemyBaseData::EnemySkeleton:
 		{
 			if (RpgEnemyBase *e = createFromCircle<RpgEnemyBase>(-1, id, scene, {0.f, 0.f}, size, nullptr, bParams, params)) {
 				e->m_enemyType = type;
@@ -679,7 +679,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgGameData::Enemy::EnemyType &type, 
 			break;
 		}
 
-		case RpgGameData::Enemy::EnemyInvalid:
+		case RpgGameData::EnemyBaseData::EnemyInvalid:
 			LOG_CERROR("game") << "Invalid enemy type" << type;
 			return nullptr;
 	}
@@ -687,11 +687,11 @@ IsometricEnemy *RpgGame::createEnemy(const RpgGameData::Enemy::EnemyType &type, 
 	if (enemy) {
 		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
 
-		if (type == RpgGameData::Enemy::EnemySoldierFix ||
-				type == RpgGameData::Enemy::EnemyArcherFix ||
-				type == RpgGameData::Enemy::EnemySmithFix ||
-				type == RpgGameData::Enemy::EnemyButcherFix ||
-				type == RpgGameData::Enemy::EnemyBarbarianFix
+		if (type == RpgGameData::EnemyBaseData::EnemySoldierFix ||
+				type == RpgGameData::EnemyBaseData::EnemyArcherFix ||
+				type == RpgGameData::EnemyBaseData::EnemySmithFix ||
+				type == RpgGameData::EnemyBaseData::EnemyButcherFix ||
+				type == RpgGameData::EnemyBaseData::EnemyBarbarianFix
 				) {
 			enemy->m_metric.pursuitSpeed = 0;
 		}
@@ -711,8 +711,8 @@ IsometricEnemy *RpgGame::createEnemy(const RpgGameData::Enemy::EnemyType &type, 
  * @return
  */
 
-RpgPickableObject *RpgGame::createPickable(const RpgGameData::Pickable::PickableType &type, const QString &name,
-										   TiledScene *scene, const int &ownerId, const int &id)
+RpgPickableObject *RpgGame::createPickable(const RpgGameData::PickableBaseData::PickableType &type, const QString &name,
+                                           TiledScene *scene, const int &ownerId, const int &id)
 {
 	b2::Body::Params bParams;
 	bParams.type = b2BodyType::b2_staticBody;
@@ -734,44 +734,44 @@ RpgPickableObject *RpgGame::createPickable(const RpgGameData::Pickable::Pickable
 	RpgPickableObject *pickable = nullptr;
 
 	switch (type) {
-		case RpgGameData::Pickable::PickableShield:
+		case RpgGameData::PickableBaseData::PickableShield:
 			pickable = createFromCircle<RpgShieldPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableHp:
+		case RpgGameData::PickableBaseData::PickableHp:
 			pickable = createFromCircle<RpgHpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableMp:
+		case RpgGameData::PickableBaseData::PickableMp:
 			pickable = createFromCircle<RpgMpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableCoin:
+		case RpgGameData::PickableBaseData::PickableCoin:
 			pickable = createFromCircle<RpgCoinPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableShortbow:
+		case RpgGameData::PickableBaseData::PickableShortbow:
 			pickable = createFromCircle<RpgShortbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableLongbow:
+		case RpgGameData::PickableBaseData::PickableLongbow:
 			pickable = createFromCircle<RpgLongbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableLongsword:
+		case RpgGameData::PickableBaseData::PickableLongsword:
 			pickable = createFromCircle<RpgLongswordPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableTime:
+		case RpgGameData::PickableBaseData::PickableTime:
 			pickable = createFromCircle<RpgTimePickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableKey:
+		case RpgGameData::PickableBaseData::PickableKey:
 			pickable = createFromCircle<RpgKeyPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case RpgGameData::Pickable::PickableDagger:
-		case RpgGameData::Pickable::PickableInvalid:
+		case RpgGameData::PickableBaseData::PickableDagger:
+		case RpgGameData::PickableBaseData::PickableInvalid:
 			break;
 	}
 
@@ -1403,7 +1403,7 @@ void RpgGame::loadMetricDefinition()
  * @return
  */
 
-EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgGameData::Enemy::EnemyType &type, const QString &subtype)
+EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype)
 {
 	if (m_metricDefinition.isEmpty())
 		return {};
@@ -1413,40 +1413,40 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgGameData::Enemy:
 		QHash<QString, EnemyMetric> ptr;
 
 		switch (type) {
-			case RpgGameData::Enemy::EnemyWerebear:
+			case RpgGameData::EnemyBaseData::EnemyWerebear:
 				ptr = def.werebear;
 				break;
 
-			case RpgGameData::Enemy::EnemySoldier:
-			case RpgGameData::Enemy::EnemySoldierFix:
+			case RpgGameData::EnemyBaseData::EnemySoldier:
+			case RpgGameData::EnemyBaseData::EnemySoldierFix:
 				ptr = def.soldier;
 				break;
 
-			case RpgGameData::Enemy::EnemyArcher:
-			case RpgGameData::Enemy::EnemyArcherFix:
+			case RpgGameData::EnemyBaseData::EnemyArcher:
+			case RpgGameData::EnemyBaseData::EnemyArcherFix:
 				ptr = def.archer;
 				break;
 
-			case RpgGameData::Enemy::EnemySmith:
-			case RpgGameData::Enemy::EnemySmithFix:
+			case RpgGameData::EnemyBaseData::EnemySmith:
+			case RpgGameData::EnemyBaseData::EnemySmithFix:
 				ptr = def.smith;
 				break;
 
-			case RpgGameData::Enemy::EnemyButcher:
-			case RpgGameData::Enemy::EnemyButcherFix:
+			case RpgGameData::EnemyBaseData::EnemyButcher:
+			case RpgGameData::EnemyBaseData::EnemyButcherFix:
 				ptr = def.butcher;
 				break;
 
-			case RpgGameData::Enemy::EnemyBarbarian:
-			case RpgGameData::Enemy::EnemyBarbarianFix:
+			case RpgGameData::EnemyBaseData::EnemyBarbarian:
+			case RpgGameData::EnemyBaseData::EnemyBarbarianFix:
 				ptr = def.barbarian;
 				break;
 
-			case RpgGameData::Enemy::EnemySkeleton:
+			case RpgGameData::EnemyBaseData::EnemySkeleton:
 				ptr = def.skeleton;
 				break;
 
-			case RpgGameData::Enemy::EnemyInvalid:
+			case RpgGameData::EnemyBaseData::EnemyInvalid:
 				LOG_CERROR("game") << "Invalid enemy type" << type;
 				break;
 		}
@@ -1556,9 +1556,9 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 	Q_ASSERT(scene);
 	Q_ASSERT(renderer);
 
-	const RpgGameData::Enemy::EnemyType &type = RpgEnemyIface::typeFromString(object->className());
+	const RpgGameData::EnemyBaseData::EnemyType &type = RpgEnemyIface::typeFromString(object->className());
 
-	if (type == RpgGameData::Enemy::EnemyInvalid) {
+	if (type == RpgGameData::EnemyBaseData::EnemyInvalid) {
 		LOG_CERROR("game") << "Invalid enemy" << object->id() << object->className() << object->name();
 		return;
 	}
@@ -1578,13 +1578,13 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 	}
 
 
-	QVector<RpgGameData::Pickable::PickableType> pickableList;
+	QVector<RpgGameData::PickableBaseData::PickableType> pickableList;
 
 	if (object->hasProperty(QStringLiteral("pickable"))) {
 		pickableList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickable")).toString());
 	}
 
-	QVector<RpgGameData::Pickable::PickableType> pickableOnceList;
+	QVector<RpgGameData::PickableBaseData::PickableType> pickableOnceList;
 
 	if (object->hasProperty(QStringLiteral("pickableOnce"))) {
 		pickableOnceList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickableOnce")).toString());
@@ -1622,9 +1622,9 @@ void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::M
 	Q_ASSERT(scene);
 	Q_ASSERT(renderer);
 
-	const RpgGameData::Pickable::PickableType &type = RpgPickableObject::typeFromString(object->className());
+	const RpgGameData::PickableBaseData::PickableType &type = RpgPickableObject::typeFromString(object->className());
 
-	if (type == RpgGameData::Pickable::PickableInvalid) {
+	if (type == RpgGameData::PickableBaseData::PickableInvalid) {
 		LOG_CERROR("game") << "Invalid pickable" << object->id() << object->className() << object->name();
 		return;
 	}
@@ -2080,15 +2080,15 @@ void RpgGame::updateScatterPoints()
  * @return
  */
 
-QVector<RpgGameData::Pickable::PickableType> RpgGame::getPickablesFromPropertyValue(const QString &value)
+QVector<RpgGameData::PickableBaseData::PickableType> RpgGame::getPickablesFromPropertyValue(const QString &value)
 {
-	QVector<RpgGameData::Pickable::PickableType> pickableList;
+	QVector<RpgGameData::PickableBaseData::PickableType> pickableList;
 
 	const QStringList &pList = value.split(',', Qt::SkipEmptyParts);
 	for (const QString &s : pList) {
-		const RpgGameData::Pickable::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
+		const RpgGameData::PickableBaseData::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
 
-		if (type == RpgGameData::Pickable::PickableInvalid) {
+		if (type == RpgGameData::PickableBaseData::PickableInvalid) {
 			LOG_CWARNING("scene") << "Invalid pickable type:" << s;
 			continue;
 		}
@@ -3086,7 +3086,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 	market.name.clear();
 
 
-	QVector<RpgGameData::Pickable::PickableType> pickableList;
+	QVector<RpgGameData::PickableBaseData::PickableType> pickableList;
 
 	int enemyCount = 0;
 	int currencyCount = 0;
@@ -3124,7 +3124,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 						if (xml.name() == QStringLiteral("object")) {
 							const QString type = xml.attributes().value(QStringLiteral("type")).toString();
 
-							if (RpgEnemyIface::typeFromString(type) != RpgGameData::Enemy::EnemyInvalid) {
+							if (RpgEnemyIface::typeFromString(type) != RpgGameData::EnemyBaseData::EnemyInvalid) {
 								++enemyCount;
 
 								while (xml.readNextStartElement()) {
@@ -3174,8 +3174,8 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 					while (xml.readNextStartElement()) {
 						if (xml.name() == QStringLiteral("object")) {
 							const QString type = xml.attributes().value(QStringLiteral("type")).toString();
-							if (const RpgGameData::Pickable::PickableType &p = RpgPickableObject::typeFromString(type.simplified());
-									p != RpgGameData::Pickable::PickableInvalid) {
+							if (const RpgGameData::PickableBaseData::PickableType &p = RpgPickableObject::typeFromString(type.simplified());
+									p != RpgGameData::PickableBaseData::PickableInvalid) {
 								pickableList.append(p);
 							}
 						}
@@ -3196,9 +3196,9 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 
 
 	for (const auto &p : pickableList) {
-		if (p == RpgGameData::Pickable::PickableMp)
+		if (p == RpgGameData::PickableBaseData::PickableMp)
 			++mpCount;
-		else if (p == RpgGameData::Pickable::PickableCoin)
+		else if (p == RpgGameData::PickableBaseData::PickableCoin)
 			++currencyCount;
 	}
 
@@ -3290,10 +3290,16 @@ void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 	if (m_controlledPlayer == newControlledPlayer)
 		return;
 
-	if (m_controlledPlayer)
+	if (m_controlledPlayer) {
 		m_controlledPlayer->onJoystickStateChanged({});
+		m_controlledPlayer->removeVirtualCircle();
+	}
 
 	m_controlledPlayer = newControlledPlayer;
+
+	if (m_controlledPlayer)
+		m_controlledPlayer->setVirtualCircle();
+
 	emit controlledPlayerChanged();
 }
 

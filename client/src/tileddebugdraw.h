@@ -30,7 +30,13 @@
 #include <QQuickItem>
 #include <box2cpp/box2cpp.h>
 #include <qsggeometry.h>
+
 #include "tiledscene.h"
+
+
+/**
+ * @brief The TiledDebugDraw class
+ */
 
 class TiledDebugDraw : public QQuickItem
 {
@@ -68,11 +74,10 @@ signals:
 	void sceneChanged();
 
 private:
-	QSGNode *createNode(QSGGeometry *geometry, const QColor &color);
+	void createNode(std::unique_ptr<QSGGeometry> &geometry, const QColor &color);
 
 	static QPointF getPolygonVertex(const b2Vec2* vertices, const int num, const b2Transform &transform);
 
-	b2DebugDraw m_callbacks;
 	QPointer<TiledScene> m_scene;
 	QSGNode *m_parentNode = nullptr;
 

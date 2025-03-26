@@ -188,7 +188,6 @@ public:
 	bool overlap(const QPolygonF &polygon) const;
 
 	virtual void worldStep();
-	virtual void synchronize();
 
 	static TiledObjectBody *fromBodyRef(b2::BodyRef ref);
 
@@ -200,6 +199,7 @@ public:
 	void setSensorPolygon(const float &length, const float &range, const FixtureCategories &collidesWith);
 	void addVirtualCircle(const float &length = 0.);
 	void addVirtualCircle(const FixtureCategories &collidesWith, const float &length = 0.);
+	void removeVirtualCircle();
 	void addTargetCircle(const float &length);
 
 	TiledReportedFixtureMap rayCast(const QPointF &dest, const FixtureCategories &categories,
@@ -219,6 +219,8 @@ public:
 
 protected:
 	virtual void worldChanged() {}
+
+	virtual void synchronize() {}
 
 	virtual void setInVisibleArea(bool newInVisibleArea);
 	void updateBodyInVisibleArea();
@@ -280,7 +282,7 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(TiledObjectBody::FixtureCategories);
  * @brief The TiledObject class
  */
 
-class TiledObject : public QQuickItem, public TiledObjectBody
+class TiledObject : public QObject, public TiledObjectBody
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -298,11 +300,12 @@ class TiledObject : public QQuickItem, public TiledObjectBody
 	Q_PROPERTY(Direction facingDirection READ facingDirection WRITE setFacingDirection NOTIFY facingDirectionChanged FINAL)
 	Q_PROPERTY(Directions availableDirections READ availableDirections WRITE setAvailableDirections NOTIFY availableDirectionsChanged FINAL)
 	Q_PROPERTY(bool facingDirectionLocked READ facingDirectionLocked WRITE setFacingDirectionLocked NOTIFY facingDirectionLockedChanged FINAL)
+	Q_PROPERTY(QQuickItem* visualItem READ visualItem NOTIFY visualItemChanged FINAL)
 
 
 public:
 	explicit TiledObject(TiledScene *scene);
-	explicit TiledObject(b2::World *world, QQuickItem *parent = nullptr);
+	explicit TiledObject(b2::World *world, QObject *parent = nullptr);
 
 	virtual ~TiledObject();
 
@@ -399,10 +402,9 @@ public:
 	void setBodyOffset(const qreal &x, const qreal &y) { setBodyOffset(QPointF(x, y)); }
 	QPointF bodyOffset() const;
 
-	virtual void synchronize() override;
-
 	bool moveTowards(const QVector2D &point, const float &speed);
 	bool moveTowards(const QVector2D &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove);
+	void moveTowards(const QVector2D &point);
 
 	bool glowEnabled() const;
 	void setGlowEnabled(bool newGlowEnabled);
@@ -432,6 +434,8 @@ public:
 	void setFacingDirectionLocked(bool newFacingDirectionLocked);
 
 
+	QQuickItem *visualItem() const;
+
 signals:
 	void remoteModeChanged();
 	void glowEnabledChanged();
@@ -446,6 +450,7 @@ signals:
 	void currentAngleChanged();
 	void facingDirectionLockedChanged();
 	void bodyOffsetChanged();
+	void visualItemChanged();
 
 protected:
 	bool appendSprite(const QString &source, const TiledObjectSprite &sprite);
@@ -470,6 +475,7 @@ protected:
 	}
 
 	void createVisual();
+	virtual void synchronize() override;
 
 	virtual void setInVisibleArea(bool newInVisibleArea) override;
 	void updateVisibleArea();

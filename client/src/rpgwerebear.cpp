@@ -92,7 +92,7 @@ static const QVector<TiledGame::TextureSpriteMapper> &mapperBase() {
 
 RpgWerebear::RpgWerebear(TiledScene *scene)
 	: IsometricEnemy(scene)
-	, RpgEnemyIface(RpgGameData::Enemy::EnemyWerebear)
+	, RpgEnemyIface(RpgGameData::EnemyBaseData::EnemyWerebear)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
 	, m_sfxRoar(this)
@@ -174,8 +174,10 @@ void RpgWerebear::load()
 										RpgWerebearNS::mapperBase(),
 										QStringLiteral(":/enemy/werebear/"));
 
-	setWidth(256);
-	setHeight(256);
+	Q_ASSERT(m_visualItem);
+
+	m_visualItem->setWidth(256);
+	m_visualItem->setHeight(256);
 	setBodyOffset(0, 0.40*128);
 
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgWerebear::onCurrentSpriteChanged);
@@ -365,32 +367,6 @@ bool RpgWerebear::protectWeapon(const TiledWeapon::WeaponType &weaponType)
 
 	return false;
 }
-
-
-
-
-/**
- * @brief RpgWerebear::serialize
- * @return
- */
-
-std::unique_ptr<RpgGameData::Body> RpgWerebear::serialize() const
-{
-	return {};
-}
-
-
-/**
- * @brief RpgWerebear::deserialize
- * @param from
- * @return
- */
-
-bool RpgWerebear::deserialize(const RpgGameData::Body *from) const
-{
-	return false;
-}
-
 
 
 

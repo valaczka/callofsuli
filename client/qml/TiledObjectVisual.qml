@@ -12,7 +12,7 @@ Item {
 	property alias spriteHandlerAuxFront: _spriteHandlerAuxFront
 	property alias spriteHandlerAuxBack: _spriteHandlerAuxBack
 
-	anchors.fill: parent
+	parent: baseObject ? baseObject.scene : null
 
 	TiledSpriteHandlerImpl {
 		id: _spriteHandlerAuxBack

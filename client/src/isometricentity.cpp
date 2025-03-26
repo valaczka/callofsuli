@@ -69,8 +69,8 @@ void IsometricEntity::setMaxHp(int newMaxHp)
 
 void IsometricEntity::synchronize()
 {
-	IsometricObject::synchronize();
 	updateSprite();
+	IsometricObject::synchronize();
 }
 
 

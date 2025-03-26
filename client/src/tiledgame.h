@@ -396,7 +396,7 @@ protected:
 	std::unique_ptr<AbstractGame::TickTimer> m_tickTimer;
 	bool m_paused = false;
 
-	std::function<void()> m_funcBeforeWorldStep;
+	std::function<void(const qint64 &)> m_funcBeforeWorldStep;
 	std::function<void()> m_funcAfterWorldStep;
 
 	std::vector<Body> &bodyList();

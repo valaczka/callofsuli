@@ -27,7 +27,7 @@
 #include "rpgtimepickable.h"
 
 RpgTimePickable::RpgTimePickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::Pickable::PickableTime, scene)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableTime, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }

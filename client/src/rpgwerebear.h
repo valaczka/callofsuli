@@ -94,9 +94,6 @@ protected:
 
 	virtual int enemyType() const override { return RpgEnemyIface::enemyType(); }
 
-	virtual std::unique_ptr<RpgGameData::Body> serialize() const override;
-	virtual bool deserialize(const RpgGameData::Body *from) const override;
-
 private:
 	void onCurrentSpriteChanged();
 	bool isStanding() const;

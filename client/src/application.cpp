@@ -155,9 +155,19 @@ Application::Application(QApplication *app)
 
 #ifndef QT_NO_DEBUG
 	QTimer *timer = new QTimer(m_application);
-	timer->setInterval(1000);
+	timer->setInterval(100);
 	QObject::connect(timer, &QTimer::timeout, m_application, [](){
-		LOG_CTRACE("app") << "USED MEMORY:" << Utils::getCurrentRSS();
+		unsigned long currRealMem = 0;
+		unsigned long currVirtMem = 0;
+
+		Utils::getMemory(&currRealMem, nullptr, &currVirtMem);
+
+		//LOG_CDEBUG("app") << "USED MEMORY:" << currRealMem << currVirtMem;
+
+		Q_ASSERT(currRealMem < (7*1024*1024));		// 7GB
+		Q_ASSERT(currVirtMem < (7*1024*1024));		// 7GB
+
+		//LOG_CTRACE("app") << "USED MEMORY:" << Utils::getCurrentRSS();
 	});
 	timer->start();
 #endif

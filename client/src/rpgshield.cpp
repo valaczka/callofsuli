@@ -136,7 +136,7 @@ bool RpgShield::canProtect(const WeaponType &weapon) const
  */
 
 RpgShieldPickable::RpgShieldPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::Pickable::PickableShield, scene)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableShield, scene)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }
@@ -211,8 +211,10 @@ void RpgShieldPickable::load()
 
 	appendSprite(QStringLiteral(":/rpg/shield/pickable.png"), json);
 
-	setWidth(json.sprites.first().width);
-	setHeight(json.sprites.first().height);
+	Q_ASSERT(m_visualItem);
+
+	m_visualItem->setWidth(json.sprites.first().width);
+	m_visualItem->setHeight(json.sprites.first().height);
 	setBodyOffset(0, 0.75 * json.sprites.first().height/2.);
 
 	//connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgWerebear::onCurrentSpriteChanged);

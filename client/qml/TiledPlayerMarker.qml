@@ -18,8 +18,8 @@ Column {
 
 	visible: target && target.game && (!_isEntity || target.hp > 0)
 
-	y: target ? target.y-yDistance : 0
-	x: target ? target.x+(target.width-width)/2 : 0
+	y: target && target.visualItem ? target.visualItem.y-yDistance : 0
+	x: target && target.visualItem ? target.visualItem.x+(target.visualItem.width-width)/2 : 0
 	z: 99
 
 	width: Math.min(70, Math.max(_label.implicitWidth, _progress.implicitWidth, 40))

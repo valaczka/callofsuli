@@ -234,7 +234,7 @@ void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
 
 	rotateBody(angleToPoint(QVector2D(x,y)), true);
 
-	synchronize();
+	/////synchronize();
 
 	attackCurrentWeapon();
 }
@@ -339,8 +339,10 @@ void RpgPlayer::load()
 		RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/")+m_config.shield+QStringLiteral("/"),
 										QStringLiteral("shield"));
 
-	setWidth(148);
-	setHeight(130);
+	Q_ASSERT(m_visualItem);
+
+	m_visualItem->setWidth(148);
+	m_visualItem->setHeight(130);
 	setBodyOffset(0, 0.45*64);
 
 	loadSfx();
@@ -513,7 +515,7 @@ void RpgPlayer::onCurrentTransportChanged()
 		return;
 
 	if (!t->isOpen() && !t->lockName().isEmpty()) {
-		if (inventoryContains(RpgGameData::Pickable::PickableKey, t->lockName()))
+		if (inventoryContains(RpgGameData::PickableBaseData::PickableKey, t->lockName()))
 			t->setIsOpen(true);
 	}
 }
@@ -811,6 +813,33 @@ void RpgPlayer::attackReachedEnemies(const TiledWeapon::WeaponType &weaponType)
 
 
 
+
+/**
+ * @brief RpgPlayer::serializeThis
+ * @return
+ */
+
+RpgGameData::Player RpgPlayer::serializeThis() const
+{
+	RpgGameData::Player p;
+
+	b2Vec2 pos = body().GetPosition();
+	p.p = { pos.x, pos.y };
+	p.a = currentAngle();
+	p.hp = hp();
+
+	const b2Vec2 vel = body().GetLinearVelocity();
+
+	if (vel.x != 0. || vel.y != 0.)
+		p.st = RpgGameData::Player::PlayerMoving;
+	else
+		p.st = RpgGameData::Player::PlayerIdle;
+
+	return p;
+}
+
+
+
 int RpgPlayer::maxMp() const
 {
 	return m_maxMp;
@@ -907,34 +936,58 @@ void RpgPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 }
 
 
-/**
- * @brief RpgPlayer::serialize
- * @return
- */
 
-std::unique_ptr<RpgGameData::Body> RpgPlayer::serialize() const
-{
-	RpgGameData::Player *p = new RpgGameData::Player(objectId().sceneId, objectId().sceneId);
-
-	p->a = currentAngle();
-	p->p = toPosList(bodyPosition());
-	p->hp = m_hp;
-	p->mhp = m_maxHp;
-
-	return std::unique_ptr<RpgGameData::Body>(std::move(p));
-}
 
 
 
 /**
- * @brief RpgPlayer::deserialize
- * @param from
- * @return
+ * @brief RpgPlayer::updateFromSnapshot
+ * @param data
  */
 
-bool RpgPlayer::deserialize(const RpgGameData::Body *from) const
+void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot)
 {
-	return false;
+	if (snapshot.s1.f < 0 || snapshot.s2.f < 0) {
+		LOG_CERROR("game") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.current;
+		stop();
+		IsometricEntity::worldStep();
+		return;
+	}
+
+
+	if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
+		QVector2D final(snapshot.s2.p.at(0), snapshot.s2.p.at(1));
+
+		if (snapshot.s1.st == RpgGameData::Player::PlayerIdle &&
+				snapshot.s2.st == RpgGameData::Player::PlayerIdle) {
+			const b2Vec2 &vel = body().GetLinearVelocity();
+			if (vel.x != 0. && vel.y != 0.) {
+				LOG_CINFO("game") << "FULL STOP ENTITY" << final;
+				stop();
+				emplace(final);
+				setCurrentAngle(snapshot.s2.a);
+			}
+		} else if (snapshot.s2.st == RpgGameData::Player::PlayerIdle &&
+				   distanceToPoint(final) < m_speedLength / 60.) {
+			LOG_CINFO("game") << "STOP ENTITY" << final;
+			stop();
+			emplace(final);
+			setCurrentAngle(snapshot.s2.a);
+		} else {
+			const float angle = angleToPoint(final);
+			const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
+			setCurrentAngle(angle);
+			setSpeedFromAngle(angle, dist);
+
+			LOG_CDEBUG("game") << "DIST" << snapshot.s2.f-snapshot.current << dist;
+		}
+
+	} else {
+		LOG_CERROR("game") << "???";
+		stop();
+	}
+
+	IsometricEntity::worldStep();
 }
 
 
@@ -999,25 +1052,25 @@ void RpgPlayer::inventoryAdd(RpgPickableObject *object)
  * @param name
  */
 
-void RpgPlayer::inventoryAdd(const RpgGameData::Pickable::PickableType &type, const QString &name)
+void RpgPlayer::inventoryAdd(const RpgGameData::PickableBaseData::PickableType &type, const QString &name)
 {
 	switch (type) {
-		case RpgGameData::Pickable::PickableKey:
+		case RpgGameData::PickableBaseData::PickableKey:
 			m_inventory->append(new RpgInventory(type, name));
 			break;
 
-		case RpgGameData::Pickable::PickableHp:
-		case RpgGameData::Pickable::PickableMp:
-		case RpgGameData::Pickable::PickableCoin:
-		case RpgGameData::Pickable::PickableShortbow:
-		case RpgGameData::Pickable::PickableLongbow:
-		case RpgGameData::Pickable::PickableLongsword:
-		case RpgGameData::Pickable::PickableDagger:
-		case RpgGameData::Pickable::PickableShield:
-		case RpgGameData::Pickable::PickableTime:
+		case RpgGameData::PickableBaseData::PickableHp:
+		case RpgGameData::PickableBaseData::PickableMp:
+		case RpgGameData::PickableBaseData::PickableCoin:
+		case RpgGameData::PickableBaseData::PickableShortbow:
+		case RpgGameData::PickableBaseData::PickableLongbow:
+		case RpgGameData::PickableBaseData::PickableLongsword:
+		case RpgGameData::PickableBaseData::PickableDagger:
+		case RpgGameData::PickableBaseData::PickableShield:
+		case RpgGameData::PickableBaseData::PickableTime:
 			break;
 
-		case RpgGameData::Pickable::PickableInvalid:
+		case RpgGameData::PickableBaseData::PickableInvalid:
 			LOG_CWARNING("game") << "Invalid inventory type";
 			break;
 	}
@@ -1031,7 +1084,7 @@ void RpgPlayer::inventoryAdd(const RpgGameData::Pickable::PickableType &type, co
  * @param type
  */
 
-void RpgPlayer::inventoryRemove(const RpgGameData::Pickable::PickableType &type)
+void RpgPlayer::inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type)
 {
 	QList<RpgInventory*> list;
 
@@ -1051,7 +1104,7 @@ void RpgPlayer::inventoryRemove(const RpgGameData::Pickable::PickableType &type)
  * @param name
  */
 
-void RpgPlayer::inventoryRemove(const RpgGameData::Pickable::PickableType &type, const QString &name)
+void RpgPlayer::inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type, const QString &name)
 {
 	QList<RpgInventory*> list;
 
@@ -1071,7 +1124,7 @@ void RpgPlayer::inventoryRemove(const RpgGameData::Pickable::PickableType &type,
  * @return
  */
 
-bool RpgPlayer::inventoryContains(const RpgGameData::Pickable::PickableType &type) const
+bool RpgPlayer::inventoryContains(const RpgGameData::PickableBaseData::PickableType &type) const
 {
 	for (RpgInventory *i : *m_inventory) {
 		if (i->pickableType() == type)
@@ -1089,7 +1142,7 @@ bool RpgPlayer::inventoryContains(const RpgGameData::Pickable::PickableType &typ
  * @return
  */
 
-bool RpgPlayer::inventoryContains(const RpgGameData::Pickable::PickableType &type, const QString &name) const
+bool RpgPlayer::inventoryContains(const RpgGameData::PickableBaseData::PickableType &type, const QString &name) const
 {
 	for (RpgInventory *i : *m_inventory) {
 		if (i->pickableType() == type && i->name() == name)
