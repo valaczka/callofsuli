@@ -722,7 +722,7 @@ void IsometricPlayer::synchronize()
 bool IsometricPlayer::isRunning() const
 {
 	// 60 FPS
-	return currentSpeed().length() >= m_speedRunLength*0.9/60;
+	return currentSpeed() >= m_speedRunLength*0.9/60;
 }
 
 
@@ -734,7 +734,7 @@ bool IsometricPlayer::isRunning() const
 bool IsometricPlayer::isWalking() const
 {
 	// 60 FPS
-	const auto &l = currentSpeed().length();
+	const float &l = currentSpeed();
 	return l < m_speedRunLength/60 && l > 0.05;
 }
 

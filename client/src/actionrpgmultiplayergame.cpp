@@ -46,6 +46,7 @@ private:
 
 private:
 	RpgGameData::FullSnapshot m_currentSnapshot;
+	qint64 m_lastKeyFrame = -1;
 
 	ActionRpgMultiplayerGame *const d;
 
@@ -147,7 +148,7 @@ void ActionRpgMultiplayerGame::setRpgGame(RpgGame *newRpgGame)
 
 		m_rpgGame->m_funcBodyStep = std::bind(&ActionRpgMultiplayerGame::worldStep, this, std::placeholders::_1);
 		m_rpgGame->m_funcBeforeWorldStep = std::bind(&ActionRpgMultiplayerGame::beforeWorldStep, this, std::placeholders::_1);
-		m_rpgGame->m_funcAfterWorldStep = std::bind(&ActionRpgMultiplayerGame::afterWorldStep, this);
+		m_rpgGame->m_funcAfterWorldStep = std::bind(&ActionRpgMultiplayerGame::afterWorldStep, this, std::placeholders::_1);
 		//m_rpgGame->m_funcTimeStep = std::bind(&RpgUdpEngine::timeStepped, d);
 
 
@@ -839,11 +840,66 @@ void ActionRpgMultiplayerGame::beforeWorldStep(const qint64 &lagMsec)
 
 
 
+
+
+/**
+ * @brief getSnap
+ * @param iface
+ * @param bodyPtr
+ * @param data
+ * @param dataKey
+ * @param dest
+ * @param key
+ * @param tick
+ * @param forceFrame
+ * @param forceKeyFrame
+ * @return
+ */
+
+template <typename T,
+		  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T>::value>::type>
+bool getSnap(RpgGameDataInterface *iface, TiledGame::Body *bodyPtr, const T &data, const QString &dataKey,
+			 QCborArray *dest, const QString &key, const qint64 &tick,
+			 const bool &forceFrame = true, const bool &forceKeyFrame = false)
+{
+	Q_ASSERT(dest);
+	Q_ASSERT(iface);
+	Q_ASSERT(bodyPtr);
+
+	QCborMap snap;
+	if (!dataKey.isEmpty())
+		snap.insert(dataKey, data.toCborMap(true));
+
+	if (iface->keyFrameRequired() || forceKeyFrame) {
+		const QCborMap map = iface->serialize(tick);
+		bodyPtr->lastState = map;
+		if (!key.isEmpty()) {
+			snap.insert(key, map);
+			dest->append(snap);
+		}
+
+		iface->setKeyFrameRequired(false);
+		return true;
+
+	} else if (forceFrame) {
+		const QCborMap map = iface->serialize(bodyPtr->lastState, tick);
+		if (!map.isEmpty() && !key.isEmpty()) {
+			snap.insert(key, map);
+			dest->append(snap);
+		}
+	}
+
+	return false;
+}
+
+
+
+
 /**
  * @brief ActionRpgMultiplayerGame::afterWorldStep
  */
 
-void ActionRpgMultiplayerGame::afterWorldStep()
+void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 {
 	Q_ASSERT(q);
 
@@ -852,12 +908,17 @@ void ActionRpgMultiplayerGame::afterWorldStep()
 	if (m_config.gameState != RpgConfig::StatePlay)
 		return;
 
-	QCborArray enemies, enemiesKF;
-	QCborArray players, playersKF;
+	QCborArray enemies;
+	QCborArray players;
 
-	bool forceKeyFrame = true; //m_engine->forceKeyFrame();				/// SERVER MERGE MISSING
+	const qint64 tick = m_rpgGame->tickTimer()->currentTick() - lagMsec;
+	const qint64 lastTick = m_engine->lastSentTick();
 
-	const qint64 tick = m_rpgGame->tickTimer()->currentTick();
+	const bool forceFrame = lastTick < 0 || (tick - lastTick) >= 2. * 1000./60.;
+	const bool forceKeyFrame = q->m_lastKeyFrame < 0 || (tick - q->m_lastKeyFrame > 250);
+
+	bool hasKeyFrame = false;
+
 
 	for (TiledGame::Body &b : m_rpgGame->bodyList()) {
 		RpgGameDataInterface *iface = dynamic_cast<RpgGameDataInterface*>(b.body.get());
@@ -865,24 +926,13 @@ void ActionRpgMultiplayerGame::afterWorldStep()
 		if (!iface)
 			continue;
 
-		RpgGameData::Player p;
-		RpgGameData::PickableBaseData pd;
 
 		if (const RpgPlayer *player = dynamic_cast<RpgPlayer*>(iface); player && m_rpgGame->controlledPlayer() == player) {
-			QCborMap map;
-			RpgGameData::BaseData pd(b.owner, player->objectId().sceneId, player->objectId().id);
-			map.insert(QStringLiteral("pd"), pd.toCborMap(true));
-
-			if (iface->keyFrameRequired() || forceKeyFrame) {
-				const QCborMap map = player->serialize(tick);
-				b.lastState = map;
-				playersKF.append(map);
-				iface->setKeyFrameRequired(false);
-			} else {
-				const QCborMap map = player->serialize(b.lastState, tick);
-				if (!map.isEmpty())
-					players.append(map);
-			}
+			hasKeyFrame = getSnap(iface, &b,
+								  RpgGameData::BaseData (b.owner, player->objectId().sceneId, player->objectId().id),
+								  QStringLiteral("pd"),
+								  &players, QStringLiteral("p"),
+								  tick, forceFrame, forceKeyFrame);
 		}
 
 		/*if (const auto &p = iface->serialize<RpgGameData::Enemy>()) {
@@ -899,24 +949,21 @@ void ActionRpgMultiplayerGame::afterWorldStep()
 		}*/
 	}
 
-	if (!enemies.isEmpty() || !players.isEmpty()) {
-		QCborMap map;
-		if (!enemies.isEmpty())
-			map.insert(QStringLiteral("ee"), enemies);
-		if (!players.isEmpty())
-			map.insert(QStringLiteral("pp"), players);
-		const QByteArray &data = map.toCborValue().toCbor();
-		sendData(data, false);
-	}
 
-	if (!enemiesKF.isEmpty() || !playersKF.isEmpty()) {
-		QCborMap map;
-		if (!enemiesKF.isEmpty())
-			map.insert(QStringLiteral("ee"), enemiesKF);
-		if (!playersKF.isEmpty())
-			map.insert(QStringLiteral("pp"), playersKF);
-		const QByteArray &data = map.toCborValue().toCbor();
-		sendData(data, true);
+	QCborMap sendMap;
+
+	if (!enemies.isEmpty())
+		sendMap.insert(QStringLiteral("ee"), enemies);
+
+	if (!players.isEmpty())
+		sendMap.insert(QStringLiteral("pp"), players);
+
+	if (!sendMap.isEmpty()) {
+		const QByteArray &data = sendMap.toCborValue().toCbor();
+		sendData(data, hasKeyFrame);
+		m_engine->setLastSentTick(tick);
+		if (hasKeyFrame)
+			q->m_lastKeyFrame = tick;
 	}
 
 }
@@ -1084,7 +1131,7 @@ void ActionRpgMultiplayerGame::sendDataPlay()
 
 	if (!m_rpgGame)
 		return;
-/*
+	/*
 	if (m_rpgGame->controlledPlayer()) {
 		RpgGameData::Player p;
 		RpgGameData::PickableBaseData pd;
@@ -1184,9 +1231,9 @@ void ActionRpgMultiplayerGamePrivate::updateBody(const TiledGame::Body &body)
 
 	if (RpgPlayer *p = dynamic_cast<RpgPlayer*>(body.body.get())) {
 		const auto ptr = m_currentSnapshot.getPlayer({ body.owner,
-									  body.body->objectId().sceneId,
-									  body.body->objectId().id
-									});
+													   body.body->objectId().sceneId,
+													   body.body->objectId().id
+													 });
 
 		if (!ptr) {
 			LOG_CERROR("game") << "Invalid player" << p;

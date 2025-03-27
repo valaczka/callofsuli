@@ -74,6 +74,9 @@ public:
 	RpgConfig::GameState gameState() const;
 	void setGameState(const RpgConfig::GameState &newGameState);
 
+	qint64 lastSentTick();
+	void setLastSentTick(const qint64 &newLastSentTick);
+
 
 signals:
 	void gameError();
@@ -92,14 +95,10 @@ private:
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
 
-	bool forceKeyFrame();
-
 	QRecursiveMutex m_mutex;
-
 
 	QPointer<ActionRpgMultiplayerGame> m_game;
 	bool m_downloadContentStarted = false;
-
 
 	QList<RpgGameData::CharacterSelect> m_playerData;
 
@@ -115,10 +114,8 @@ private:
 	void updateSnapshotEnemyList(const QCborArray &list);
 	void updateSnapshotPlayerList(const QCborArray &list);
 
+	qint64 m_lastSentTick = -1;
 
-	/// --- tmp
-	qint64 m_lastTick = 0;
-	QElapsedTimer m_lastKeyFrame;
 
 	friend class ActionRpgMultiplayerGame;
 };
@@ -126,29 +123,6 @@ private:
 
 
 
-
-
-/**
- * @brief RpgUdpEngine::forceKeyFrame
- * @return
- */
-
-inline bool RpgUdpEngine::forceKeyFrame()
-{
-	QMutexLocker locker(&m_mutex);
-
-	if (m_lastKeyFrame.isValid()) {
-		if (m_lastKeyFrame.elapsed() > 250) {
-			m_lastKeyFrame.restart();
-			return true;
-		}
-	} else {
-		m_lastKeyFrame.start();
-		return true;
-	}
-
-	return false;
-}
 
 
 

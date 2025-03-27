@@ -413,6 +413,17 @@ void TiledObjectBody::updateBodyInVisibleArea()
 }
 
 
+/**
+ * @brief TiledObjectBody::overrideCurrentSpeed
+ * @param speed
+ */
+
+void TiledObjectBody::overrideCurrentSpeed(const QVector2D &speed)
+{
+	d->m_currentSpeed = speed.length();
+}
+
+
 
 /**
  * @brief TiledObjectBody::drawBody
@@ -1276,7 +1287,7 @@ QRectF TiledObjectBody::bodyAABB() const
  * @return
  */
 
-QVector2D TiledObjectBody::currentSpeed() const
+float TiledObjectBody::currentSpeed() const
 {
 	return d->m_currentSpeed;
 }
@@ -1382,8 +1393,10 @@ void TiledObjectBody::emplace(const QVector2D &center)
 	d->m_bodyRef.SetTransform({(float)center.x(), (float)center.y()}, d->m_bodyRef.GetRotation());
 	d->m_bodyRef.SetAwake(true);
 
-	d->m_lastPosition = center;
-	d->m_currentSpeed = {0., 0.};
+	d->m_lastPosition.clear();
+	d->m_lastPosition.push_back(center);
+
+	d->m_currentSpeed = 0.;
 }
 
 
@@ -1711,8 +1724,25 @@ void TiledObjectBody::worldStep()
 	const auto &p = d->m_bodyRef.GetPosition();
 	QVector2D currPos(p.x, p.y);
 
-	d->m_currentSpeed = currPos-d->m_lastPosition;
-	d->m_lastPosition = currPos;
+	d->m_lastPosition.push_back(currPos);
+	while (d->m_lastPosition.size() > 6)
+		d->m_lastPosition.pop_front();
+
+
+	if (const int s = d->m_lastPosition.size(); s > 1) {
+		auto first = d->m_lastPosition.cbegin();
+		float diff = 0.;
+
+		for (auto it = std::next(d->m_lastPosition.cbegin()); it != d->m_lastPosition.cend(); ++it) {
+			diff += first->distanceToPoint(*it);
+			first = it;
+		}
+
+		d->m_currentSpeed = diff / (float) (s-1);
+	} else {
+		d->m_currentSpeed = 0.;
+	}
+
 
 	if (d->m_rotateAnimation.running)
 		rotateBody(d->m_rotateAnimation.destRadian);
@@ -2452,8 +2482,10 @@ void TiledObjectBodyPrivate::createBody(const b2::Body::Params &params)
 
 	m_bodyRef = m_world->CreateBody(b2::DestroyWithParent, params);
 	m_bodyRef.SetUserData(q);
-	m_lastPosition = QVector2D(params.position.x, params.position.y);
-	m_currentSpeed = {0., 0.};
+
+	m_lastPosition.clear();
+	m_lastPosition.push_back(QVector2D(params.position.x, params.position.y));
+	m_currentSpeed = 0.;
 }
 
 

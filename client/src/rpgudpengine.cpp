@@ -116,7 +116,7 @@ void RpgUdpEngine::updateState(const QCborMap &data)
 	QMutexLocker locker(&m_mutex);
 
 	if (auto it = data.find(QStringLiteral("t")); it != data.cend()) {
-		m_lastTick = it->toInteger(-1);
+		////m_lastTick = it->toInteger(-1);
 	}
 
 	if (auto it = data.find(QStringLiteral("hst")); it != data.cend()) {
@@ -384,6 +384,30 @@ void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
 
 		m_snapshots.updateSnapshot(playerData, player);
 	}
+}
+
+
+/**
+ * @brief RpgUdpEngine::lastSentTick
+ * @return
+ */
+
+qint64 RpgUdpEngine::lastSentTick()
+{
+	QMutexLocker locker(&m_mutex);
+	return m_lastSentTick;
+}
+
+
+/**
+ * @brief RpgUdpEngine::setLastSentTick
+ * @param newLastSentTick
+ */
+
+void RpgUdpEngine::setLastSentTick(const qint64 &newLastSentTick)
+{
+	QMutexLocker locker(&m_mutex);
+	m_lastSentTick = newLastSentTick;
 }
 
 

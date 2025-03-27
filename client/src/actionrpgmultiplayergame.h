@@ -108,7 +108,7 @@ private:
 	bool onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
 
 	void beforeWorldStep(const qint64 &lagMsec);
-	void afterWorldStep();
+	void afterWorldStep(const qint64 &lagMsec);
 	void worldStep(const TiledGame::Body &body);
 
 	void onRpgGameActivated();

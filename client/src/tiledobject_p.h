@@ -64,8 +64,8 @@ private:
 	float m_sensorLength = 0.;
 	float m_targetLength = 0.;
 
-	QVector2D m_currentSpeed;
-	QVector2D m_lastPosition;
+	float m_currentSpeed = 0.;
+	std::list<QVector2D> m_lastPosition;
 
 	struct RotateAnimation {
 		bool running = false;

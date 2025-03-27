@@ -1291,7 +1291,7 @@ void TiledGame::updateStepTimer()
 		d->stepWorlds();
 
 		if (m_funcAfterWorldStep)
-			m_funcAfterWorldStep();
+			m_funcAfterWorldStep(d->m_stepLag);
 
 		++frame;
 	}
@@ -2422,77 +2422,14 @@ void TiledGamePrivate::dumpObjects()
 
 
 
+/**
+ * @brief TiledGamePrivate::startStepTimer
+ */
 
 void TiledGamePrivate::startStepTimer()
 {
 	m_stepElapsedTimer.start();
 	m_stepTimerId = Qt::TimerId{q->startTimer(std::chrono::milliseconds{8}, Qt::PreciseTimer)};
-
-
-	/*
-	m_stepTimerRunning = true;
-
-#ifndef Q_OS_WASM
-	m_stepTimerThread.execInThread([this](){
-#endif
-		LOG_CTRACE("game") << "Step timer started";
-
-		int lag = 0;
-		std::chrono::time_point<std::chrono::steady_clock> endTime = std::chrono::steady_clock::now();
-
-		long longestTime = 0;
-		long frameCount = 0;
-		long tickCount = 0;
-		long fpsElapsedTime = 0;
-
-		while (m_stepTimerRunning) {
-
-			std::chrono::time_point<std::chrono::steady_clock> startTime = std::chrono::steady_clock::now();
-
-			std::chrono::milliseconds elapsedTime(std::chrono::duration_cast<std::chrono::milliseconds>(startTime - endTime));
-			endTime = startTime;
-
-			lag += static_cast<int>(elapsedTime.count());
-
-			if (elapsedTime.count() == 0) { //the sim loop will not be run if lag was not increased prior ( previous frame normally )
-				QThread::currentThread()->sleep(std::chrono::milliseconds{5});
-
-				if (!m_stepTimerRunning)
-					break;
-			}
-
-			const int fps = 60;
-			const int lengthOfFrame = 1000 / fps;
-
-
-			//game-sim loop, is independent of rendering
-			std::chrono::time_point<std::chrono::steady_clock> oldTime = std::chrono::steady_clock::now();
-			while (lag >= lengthOfFrame) {
-				q->updateStepTimer();
-
-				//finish tick
-				lag -= lengthOfFrame;
-				tickCount++;	//keep track of how many ticks weve done this second
-			}
-
-			//render the frame
-
-			frameCount++;	//keep trrack of how many frames weve done this second
-
-			//handle per-second stats
-			fpsElapsedTime += static_cast<long>(elapsedTime.count());
-			if (fpsElapsedTime >= 1000) {
-				LOG_CTRACE("scene") <<  frameCount << ", " << tickCount;
-
-				fpsElapsedTime = 0;
-				frameCount = 0;
-				tickCount = 0;
-			}
-		}
-
-		LOG_CERROR("game") << "Step timer finished";
-	});
-	*/
 }
 
 

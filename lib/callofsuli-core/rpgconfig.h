@@ -27,6 +27,7 @@
 #ifndef RPGCONFIG_H
 #define RPGCONFIG_H
 
+#include "qcborarray.h"
 #include "qmutex.h"
 #include "qpoint.h"
 #include <QSerializer>
@@ -1015,18 +1016,21 @@ struct CurrentSnapshot {
 		enemies.clear();
 	}
 
-	template <typename T2, typename T,
-			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
-	std::optional<T> getSnapshot(const T2 &data, const CurrentSnapshotList<T2, T> &list) const;
+	template <typename T2, typename T>
+	std::optional<T> getCurrentSnapshot(const T2 &data, const CurrentSnapshotList<T2, T> &list) const;
 
 
 	std::optional<Player> getPlayer(const BaseData &data) const {
-		return getSnapshot(data, players);
+		return getCurrentSnapshot(data, players);
 	}
 	std::optional<Enemy> getEnemy(const EnemyBaseData &data) const {
-		return getSnapshot(data, enemies);
+		return getCurrentSnapshot(data, enemies);
 	}
+
+	template <typename T2, typename T>
+	QCborArray toCborArray(const CurrentSnapshotList<T2, T> &list, const QString &keyBase, const QString &keyData) const;
+
+	QCborMap toCbor() const;
 };
 
 
@@ -1328,14 +1332,14 @@ inline CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 		if (list.empty())
 			s.players.emplace_back(data, Player());
 		else
-			s.players.emplace_back(data, list.cend()->second);
+			s.players.emplace_back(data, std::prev(list.cend())->second);
 	}
 
 	for (const auto &[data, list] : m_enemies) {
 		if (list.empty())
 			s.enemies.emplace_back(data, Enemy());
 		else
-			s.enemies.emplace_back(data, list.cend()->second);
+			s.enemies.emplace_back(data, std::prev(list.cend())->second);
 	}
 
 	return s;
@@ -1362,6 +1366,82 @@ inline void SnapshotStorage::zapSnapshots(const qint64 &tick)
 	for (auto &[data, list] : m_enemies) {
 		zapSnapshots(list, tick);
 	}
+}
+
+
+
+/**
+ * @brief CurrentSnapshot::getCurrentSnapshot
+ * @param data
+ * @param list
+ * @return
+ */
+
+template<typename T2, typename T>
+inline std::optional<T> CurrentSnapshot::getCurrentSnapshot(const T2 &data,
+															const CurrentSnapshotList<T2, T> &list) const
+{
+	const auto it = std::find_if(list.cbegin(),
+								 list.cend(),
+								 [&data](const auto &ptr) {
+		return ptr.first == data;
+	});
+
+
+	if (it != list.cend())
+		return it->second;
+	else
+		return std::nullopt;
+}
+
+
+
+
+/**
+ * @brief CurrentSnapshot::toCbor
+ * @return
+ */
+
+inline QCborMap CurrentSnapshot::toCbor() const
+{
+	QCborMap map;
+
+	map.insert(QStringLiteral("pp"), toCborArray(players, QStringLiteral("pd"), QStringLiteral("p")));
+	map.insert(QStringLiteral("ee"), toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e")));
+
+	return map;
+}
+
+
+
+/**
+ * @brief CurrentSnapshot::toCborArray
+ * @param list
+ * @return
+ */
+
+template<typename T2, typename T>
+inline QCborArray CurrentSnapshot::toCborArray(const CurrentSnapshotList<T2, T> &list,
+											   const QString &keyBase, const QString &keyData) const
+{
+	QCborArray array;
+
+	if (keyBase.isEmpty() && keyData.isEmpty())
+		return array;
+
+	for (const auto &ptr : list) {
+		QCborMap m;
+
+		if (!keyBase.isEmpty())
+			m.insert(keyBase, ptr.first.toCborMap(true));
+
+		if (!keyData.isEmpty())
+			m.insert(keyData, ptr.second.toCborMap(true));
+
+		array.append(m);
+	}
+
+	return array;
 }
 
 

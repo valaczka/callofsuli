@@ -397,7 +397,7 @@ protected:
 	bool m_paused = false;
 
 	std::function<void(const qint64 &)> m_funcBeforeWorldStep;
-	std::function<void()> m_funcAfterWorldStep;
+	std::function<void(const qint64 &)> m_funcAfterWorldStep;
 
 	std::vector<Body> &bodyList();
 	const std::vector<Body> &bodyList() const;

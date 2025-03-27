@@ -29,6 +29,7 @@
 
 #include "abstractengine.h"
 #include "rpgconfig.h"
+#include "rpgsnapshotstorage.h"
 
 
 /**
@@ -66,15 +67,11 @@ public:
 	bool isPrepared() const { return m_isPrepared; }
 	void setIsPrepared(bool newIsPrepared) { m_isPrepared = newIsPrepared; }
 
-	RpgGameData::Player currentSnapshot() const;
-
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
 	bool m_isPrepared = false;
 	RpgGameData::CharacterSelect m_config;
-
-	std::vector<RpgGameData::Player> m_snapshots;
 
 	friend class RpgEngine;
 	friend class RpgEnginePrivate;
@@ -128,8 +125,9 @@ private:
 
 	RpgConfig m_config;
 	std::vector<std::unique_ptr<RpgEnginePlayer>> m_player;
-	std::vector<RpgGameData::Enemy> m_enemies;
 	RpgEnginePlayer *m_hostPlayer = nullptr;
+
+	RpgSnapshotStorage m_snapshots;
 
 	qint64 m_startTick = 0;
 	QElapsedTimer m_timer;

@@ -121,7 +121,7 @@ bool IsometricEnemy::isSleeping()
 bool IsometricEnemy::isRunning() const
 {
 	// 60 FPS
-	return currentSpeed().length() >= m_metric.pursuitSpeed*0.9/60;
+	return currentSpeed() >= m_metric.pursuitSpeed*0.9/60;
 }
 
 
@@ -132,7 +132,7 @@ bool IsometricEnemy::isRunning() const
 
 bool IsometricEnemy::isWalking() const
 {
-	const auto &l = currentSpeed().length();
+	const float &l = currentSpeed();
 	return l < m_metric.pursuitSpeed/60 && l > 0.05;
 }
 

@@ -149,7 +149,7 @@ public:
 	b2::BodyRef body() const;
 	QPointF bodyPosition() const;
 	QRectF bodyAABB() const;
-	QVector2D currentSpeed() const;
+	float currentSpeed() const;
 
 
 	const std::vector<b2::ShapeRef> &bodyShapes() const;
@@ -224,6 +224,8 @@ protected:
 
 	virtual void setInVisibleArea(bool newInVisibleArea);
 	void updateBodyInVisibleArea();
+
+	void overrideCurrentSpeed(const QVector2D &speed);
 
 	void drawBody(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
 	void drawSensor(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;

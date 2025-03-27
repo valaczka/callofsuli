@@ -60,6 +60,7 @@ SOURCES += \
 	oauth2codeflow.cpp \
 	peerengine.cpp \
 	rpgengine.cpp \
+	rpgsnapshotstorage.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	teacherapi.cpp \
@@ -94,6 +95,7 @@ HEADERS += \
 	peerengine.h \
 	querybuilder.hpp \
 	rpgengine.h \
+	rpgsnapshotstorage.h \
 	serverservice.h \
 	serversettings.h \
 	teacherapi.h \
