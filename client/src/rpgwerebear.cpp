@@ -461,6 +461,18 @@ void RpgWerebear::updateSprite()
 }
 
 
+/**
+ * @brief RpgWerebear::serializeThis
+ * @return
+ */
+
+std::unique_ptr<RpgGameData::Body> RpgWerebear::serializeThis() const
+{
+	std::unique_ptr<RpgGameData::Body> p(new RpgGameData::Enemy);
+	return p;
+}
+
+
 
 /**
  * @brief RpgWerebearWeaponHand::eventAttack

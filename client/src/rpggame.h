@@ -112,11 +112,14 @@ public:
 
 
 
-typedef std::function<void(const TiledGame::Body &body)> FuncBodyStep;
+typedef std::function<void(TiledObjectBody *body)> FuncBodyStep;
 typedef std::function<void()> FuncTimeStep;
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
 typedef std::function<bool(RpgPlayer*, RpgContainer*)> FuncPlayerUseContainer;
 typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
+typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerHit;
+typedef std::function<bool(RpgPlayer*, const TiledWeapon::WeaponType &, TiledScene*,
+						   const IsometricBullet::Targets &, const qreal &)> FuncPlayerShot;
 typedef std::function<bool(RpgPlayer*)> FuncPlayerUseCast;
 typedef std::function<bool(IsometricEnemy*, RpgPlayer *, const TiledWeapon::WeaponType &)> FuncEnemyAttackPlayer;
 
@@ -197,6 +200,8 @@ public:
 
 	virtual bool shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene,
 					  const IsometricBullet::Targets &targets, const qreal &angle) override;
+
+	virtual bool hit(TiledObject *owner, TiledWeapon *weapon, TiledObject *target) override;
 
 	Q_INVOKABLE bool transportPlayer();
 	Q_INVOKABLE bool useContainer();
@@ -301,6 +306,12 @@ public:
 	FuncTimeStep funcTimeStep() const;
 	void setFuncTimeStep(const FuncTimeStep &newFuncTimeStep);
 
+	FuncPlayerHit funcPlayerHit() const;
+	void setFuncPlayerHit(const FuncPlayerHit &newFuncPlayerHit);
+
+	FuncPlayerShot funcPlayerShot() const;
+	void setFuncPlayerShot(const FuncPlayerShot &newFuncPlayerShot);
+
 signals:
 	void minimapToggleRequest();
 	void questsRequest();
@@ -321,7 +332,7 @@ signals:
 protected:
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId);
 
-	virtual void worldStep(const Body &body) override;
+	virtual void worldStep(TiledObjectBody *body) override;
 
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
@@ -428,7 +439,7 @@ private:
 	QPointer<QScatterSeries> m_scatterSeriesEnemies;
 	QPointer<QScatterSeries> m_scatterSeriesPoints;
 
-	// TODO: FuncPlayerAttack, ...
+
 	FuncBodyStep m_funcBodyStep;
 	FuncTimeStep m_funcTimeStep;
 	FuncPlayerPick m_funcPlayerPick;
@@ -437,6 +448,8 @@ private:
 	FuncPlayerUseCast m_funcPlayerUseCast;
 	FuncPlayerUseCast m_funcPlayerCastTimeout;
 	FuncPlayerUseCast m_funcPlayerFinishCast;
+	FuncPlayerHit m_funcPlayerHit;
+	FuncPlayerShot m_funcPlayerShot;
 	FuncEnemyAttackPlayer m_funcEnemyAttackPlayer;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;

@@ -105,11 +105,15 @@ private:
 	bool onPlayerUseCast(RpgPlayer *player);
 	bool onPlayerCastTimeout(RpgPlayer *player);
 	bool onPlayerFinishCast(RpgPlayer *player);
+	bool onPlayerHit(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
+	bool onPlayerShot(RpgPlayer *player, const TiledWeapon::WeaponType &weaponType, TiledScene *scene,
+					  const IsometricBullet::Targets &targets, const qreal &angle);
+
 	bool onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
 
 	void beforeWorldStep(const qint64 &lagMsec);
 	void afterWorldStep(const qint64 &lagMsec);
-	void worldStep(const TiledGame::Body &body);
+	void worldStep(TiledObjectBody *body);
 
 	void onRpgGameActivated();
 

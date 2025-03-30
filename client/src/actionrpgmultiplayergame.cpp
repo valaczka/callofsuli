@@ -42,11 +42,13 @@ class ActionRpgMultiplayerGamePrivate
 private:
 	ActionRpgMultiplayerGamePrivate(ActionRpgMultiplayerGame *game) : d(game) {}
 
-	void updateBody(const TiledGame::Body &body);
+	void updateBody(TiledObjectBody *body);
 
 private:
 	RpgGameData::FullSnapshot m_currentSnapshot;
-	qint64 m_lastKeyFrame = -1;
+
+	qint64 m_lastSentTick = -1;
+	ClientStorage m_toSend;
 
 	ActionRpgMultiplayerGame *const d;
 
@@ -125,6 +127,8 @@ void ActionRpgMultiplayerGame::setRpgGame(RpgGame *newRpgGame)
 		//disconnect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);
 		m_rpgGame->setRpgQuestion(nullptr);
 		m_rpgGame->setFuncPlayerPick(nullptr);
+		m_rpgGame->setFuncPlayerHit(nullptr);
+		m_rpgGame->setFuncPlayerShot(nullptr);
 		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
 		m_rpgGame->setFuncPlayerUseContainer(nullptr);
 		m_rpgGame->setFuncPlayerUseCast(nullptr);
@@ -149,6 +153,14 @@ void ActionRpgMultiplayerGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->m_funcBodyStep = std::bind(&ActionRpgMultiplayerGame::worldStep, this, std::placeholders::_1);
 		m_rpgGame->m_funcBeforeWorldStep = std::bind(&ActionRpgMultiplayerGame::beforeWorldStep, this, std::placeholders::_1);
 		m_rpgGame->m_funcAfterWorldStep = std::bind(&ActionRpgMultiplayerGame::afterWorldStep, this, std::placeholders::_1);
+
+		m_rpgGame->setFuncPlayerHit(std::bind(&ActionRpgMultiplayerGame::onPlayerHit, this,
+											  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+
+		m_rpgGame->setFuncPlayerShot(std::bind(&ActionRpgMultiplayerGame::onPlayerShot, this,
+											   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
+											   std::placeholders::_4, std::placeholders::_5));
+
 		//m_rpgGame->m_funcTimeStep = std::bind(&RpgUdpEngine::timeStepped, d);
 
 
@@ -188,30 +200,6 @@ void ActionRpgMultiplayerGame::gamePrepared()
 	LOG_CWARNING("game") << "GAME PREPARED";
 
 	m_gamePrepared = true;
-
-
-	/*
-		if (auto ptr = Utils::fileToJsonArray("/tmp/_data.json")) {
-			q->m_snapshots.clear();
-
-			for (const QJsonValue &v : ptr.value()) {
-				RpgGameData::Player p;
-				p.fromCbor(QCborValue::fromJsonValue(v.toObject().value("p")));
-				q->m_snapshots.emplace(v.toObject().value("tick").toInteger(), p);
-			}
-
-			LOG_CINFO("game") << "LOADED";
-
-			for (const auto &[t, p] : q->m_snapshots) {
-				LOG_CDEBUG("game") << "---" << t << p.p;
-			}
-
-		}
-
-	*/
-
-	//m_config.gameState = RpgConfig::StatePlay;
-	//QMetaObject::invokeMethod(this, &ActionRpgMultiplayerGame::updateConfig, Qt::QueuedConnection);
 }
 
 
@@ -323,34 +311,9 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 
 void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 {
-	static QElapsedTimer last;
+	QMutexLocker locker (&m_engine->m_mutex);
 
 	const qint64 tick = m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : -2;
-
-	if (last.isValid()) {
-		//LOG_CDEBUG("game") << "LAST" << last.restart() << "CURRENT" << (m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : -2)
-		//				   << "RTT" << (m_rpgGame ? m_rpgGame->tickTimer()->latency() : -1);
-
-
-
-		/*if (m_playerId > 0) {
-			QFile tmpFile(QString("/tmp/_data_%1.json").arg(m_playerId));
-			tmpFile.open(QIODevice::WriteOnly);
-
-			tmpFile.write("LAST ");
-			tmpFile.write(QByteArray::number(last.restart()));
-			tmpFile.write(" CURRENT ");
-			tmpFile.write(QByteArray::number(tick));
-			tmpFile.write("\n\n\n");
-
-			m_engine->dumpSnapshots(&tmpFile);
-
-			tmpFile.close();
-		}*/
-	} else
-		last.start();
-
-	QMutexLocker locker (&m_engine->m_mutex);
 
 	if (m_engine->m_gameState == RpgConfig::StateInvalid)
 		return;
@@ -392,27 +355,6 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	if (tick > 0)
 		m_engine->m_snapshots.zapSnapshots(tick - 2*RPG_UDP_DELTA_MSEC);
 
-	static QElapsedTimer t;
-
-	if (t.isValid()) {
-		if (t.hasExpired(500)) {
-			///LOG_CINFO("game") << "SNAPSHOTS -----------------" << m_engine->m_snapshots.size() << m_engine->m_playerId << m_engine->m_gameState << m_engine->m_lastTick;
-
-			//LOG_CINFO("game") << "CFG" << QJsonDocument(m_engine->m_gameConfig.toJson()).toJson().constData();
-
-			//for (const auto &[tick, s] : m_engine->m_snapshots) {
-			/*LOG_CINFO("game") << "S" << tick;
-				for (const RpgGameData::Player &p : s.players)
-					LOG_CINFO("game") << "P**" << QJsonDocument(p.toJson()).toJson().constData();*/
-
-			/*for (const RpgGameData::Enemy &e : s.enemies)
-					LOG_CINFO("game") << "E**" << QJsonDocument(e.toJson()).toJson().constData();*/
-			//}
-
-			t.restart();
-		}
-	} else
-		t.start();
 }
 
 
@@ -621,7 +563,7 @@ void ActionRpgMultiplayerGame::syncPlayerList()
 			rpgPlayer->setHp(hp);
 			rpgPlayer->setMaxHp(hp);
 
-			rpgPlayer->setObjectId(pl.data.s, pl.data.id);
+			rpgPlayer->setObjectId(pl.data.o, pl.data.s, pl.data.id);
 
 			if (pl.data.o == m_playerId) {
 				m_rpgGame->setFollowedItem(rpgPlayer);
@@ -818,6 +760,63 @@ bool ActionRpgMultiplayerGame::onPlayerFinishCast(RpgPlayer *player)
 	return false;
 }
 
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onPlayerHit
+ * @param player
+ * @param enemy
+ * @param weaponType
+ * @return
+ */
+
+bool ActionRpgMultiplayerGame::onPlayerHit(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
+{
+	if (!player)
+		return false;
+
+	LOG_CWARNING("game") << "PLAYER" << m_playerId << "HIT" << enemy << weaponType << m_rpgGame->tickTimer()->currentTick();
+
+	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
+	p.st = RpgGameData::Player::PlayerHit;
+
+	q->m_toSend.appendSnapshot(player->baseData(), p);
+
+	return true;
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onPlayerShot
+ * @param player
+ * @param weaponType
+ * @param scene
+ * @param targets
+ * @param angle
+ * @return
+ */
+
+bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, const TiledWeapon::WeaponType &weaponType, TiledScene *scene,
+											const IsometricBullet::Targets &targets, const qreal &angle)
+{
+	LOG_CWARNING("game") << "PLAYER" << player << "SHOT" << weaponType << scene << targets << angle;
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onEnemyAttackPlayer
+ * @param enemy
+ * @param player
+ * @param weaponType
+ * @return
+ */
+
 bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType)
 {
 	return false;
@@ -835,62 +834,8 @@ void ActionRpgMultiplayerGame::beforeWorldStep(const qint64 &lagMsec)
 	Q_ASSERT(q);
 
 	q->m_currentSnapshot = m_engine->m_snapshots.getFullSnapshot(m_rpgGame->tickTimer()->currentTick()-lagMsec);
-
 }
 
-
-
-
-
-/**
- * @brief getSnap
- * @param iface
- * @param bodyPtr
- * @param data
- * @param dataKey
- * @param dest
- * @param key
- * @param tick
- * @param forceFrame
- * @param forceKeyFrame
- * @return
- */
-
-template <typename T,
-		  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T>::value>::type>
-bool getSnap(RpgGameDataInterface *iface, TiledGame::Body *bodyPtr, const T &data, const QString &dataKey,
-			 QCborArray *dest, const QString &key, const qint64 &tick,
-			 const bool &forceFrame = true, const bool &forceKeyFrame = false)
-{
-	Q_ASSERT(dest);
-	Q_ASSERT(iface);
-	Q_ASSERT(bodyPtr);
-
-	QCborMap snap;
-	if (!dataKey.isEmpty())
-		snap.insert(dataKey, data.toCborMap(true));
-
-	if (iface->keyFrameRequired() || forceKeyFrame) {
-		const QCborMap map = iface->serialize(tick);
-		bodyPtr->lastState = map;
-		if (!key.isEmpty()) {
-			snap.insert(key, map);
-			dest->append(snap);
-		}
-
-		iface->setKeyFrameRequired(false);
-		return true;
-
-	} else if (forceFrame) {
-		const QCborMap map = iface->serialize(bodyPtr->lastState, tick);
-		if (!map.isEmpty() && !key.isEmpty()) {
-			snap.insert(key, map);
-			dest->append(snap);
-		}
-	}
-
-	return false;
-}
 
 
 
@@ -908,64 +853,35 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 	if (m_config.gameState != RpgConfig::StatePlay)
 		return;
 
-	QCborArray enemies;
-	QCborArray players;
-
 	const qint64 tick = m_rpgGame->tickTimer()->currentTick() - lagMsec;
-	const qint64 lastTick = m_engine->lastSentTick();
 
-	const bool forceFrame = lastTick < 0 || (tick - lastTick) >= 2. * 1000./60.;
-	const bool forceKeyFrame = q->m_lastKeyFrame < 0 || (tick - q->m_lastKeyFrame > 250);
+	const bool forceKeyFrame = q->m_lastSentTick < 0 || (tick - q->m_lastSentTick >= 1000./30.);
 
-	bool hasKeyFrame = false;
-
-
-	for (TiledGame::Body &b : m_rpgGame->bodyList()) {
-		RpgGameDataInterface *iface = dynamic_cast<RpgGameDataInterface*>(b.body.get());
+	for (auto &b : m_rpgGame->bodyList()) {
+		RpgGameDataInterface<RpgGameData::Player, RpgGameData::BaseData> *iface =
+				dynamic_cast<RpgGameDataInterface<RpgGameData::Player, RpgGameData::BaseData>*> (b.get());
 
 		if (!iface)
 			continue;
 
-
-		if (const RpgPlayer *player = dynamic_cast<RpgPlayer*>(iface); player && m_rpgGame->controlledPlayer() == player) {
-			hasKeyFrame = getSnap(iface, &b,
-								  RpgGameData::BaseData (b.owner, player->objectId().sceneId, player->objectId().id),
-								  QStringLiteral("pd"),
-								  &players, QStringLiteral("p"),
-								  tick, forceFrame, forceKeyFrame);
+		if (m_rpgGame->controlledPlayer() == iface && forceKeyFrame) {
+			q->m_toSend.appendSnapshot(iface->baseData(), iface->serialize(tick));
 		}
-
-		/*if (const auto &p = iface->serialize<RpgGameData::Enemy>()) {
-			if (iface->keyFrameRequired() || forceKeyFrame) {
-				QCborMap map = p->toCborMap();
-				b.lastState = map;
-				enemiesKF.append(map);
-				iface->setKeyFrameRequired(false);
-			} else {
-				QCborMap map = p->toCborMap(b.lastState);
-				if (!map.isEmpty())
-					enemies.append(map);
-			}
-		}*/
 	}
 
 
-	QCborMap sendMap;
+	if (!forceKeyFrame)
+		return;
 
-	if (!enemies.isEmpty())
-		sendMap.insert(QStringLiteral("ee"), enemies);
-
-	if (!players.isEmpty())
-		sendMap.insert(QStringLiteral("pp"), players);
-
-	if (!sendMap.isEmpty()) {
-		const QByteArray &data = sendMap.toCborValue().toCbor();
-		sendData(data, hasKeyFrame);
-		m_engine->setLastSentTick(tick);
-		if (hasKeyFrame)
-			q->m_lastKeyFrame = tick;
+	RpgGameData::CurrentSnapshot snapshot = q->m_toSend.getCurrentSnapshot();
+	if (QCborMap map = snapshot.toCbor(); !map.isEmpty()) {
+		const QByteArray &data = map.toCborValue().toCbor();
+		sendData(data, true);
 	}
 
+	q->m_lastSentTick = tick;
+
+	q->m_toSend.clear();
 }
 
 
@@ -975,15 +891,15 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
  * @param body
  */
 
-void ActionRpgMultiplayerGame::worldStep(const TiledGame::Body &body)
+void ActionRpgMultiplayerGame::worldStep(TiledObjectBody *body)
 {
-	if (m_config.gameState != RpgConfig::StatePlay)
+	if (m_config.gameState != RpgConfig::StatePlay || !body)
 		return;
 
-	if (body.owner == m_playerId /*|| (body.owner == -1 && m_isHost)*/ ) {
+	if (body->objectId().ownerId == m_playerId /*|| (body.owner == -1 && m_isHost)*/ ) {
 		// TODO: snapshot reconciliation
 
-		body.body->worldStep();
+		body->worldStep();
 	} else {
 		q->updateBody(body);
 	}
@@ -1225,15 +1141,12 @@ void ActionRpgMultiplayerGame::setSelectionCompleted(bool newSelectionCompleted)
  * @param snapshot
  */
 
-void ActionRpgMultiplayerGamePrivate::updateBody(const TiledGame::Body &body)
+void ActionRpgMultiplayerGamePrivate::updateBody(TiledObjectBody *body)
 {
 	Q_ASSERT(d);
 
-	if (RpgPlayer *p = dynamic_cast<RpgPlayer*>(body.body.get())) {
-		const auto ptr = m_currentSnapshot.getPlayer({ body.owner,
-													   body.body->objectId().sceneId,
-													   body.body->objectId().id
-													 });
+	if (RpgPlayer *p = dynamic_cast<RpgPlayer*>(body)) {
+		const auto ptr = m_currentSnapshot.getPlayer(p->baseData());
 
 		if (!ptr) {
 			LOG_CERROR("game") << "Invalid player" << p;

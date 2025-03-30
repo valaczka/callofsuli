@@ -55,9 +55,6 @@ public:
 
 	void udpDataReceived(UdpServerPeer *peer, QByteArray data);
 
-	void timerEvent();
-	void timerMinuteEvent();
-
 
 private:
 	[[deprecated]] void initEngines();

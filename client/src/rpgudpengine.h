@@ -47,11 +47,18 @@ public:
 
 	ClientStorage() = default;
 
+	// Incoming snapshot
 	void updateSnapshot(const RpgGameData::CharacterSelect &player);
 	void updateSnapshot(const RpgGameData::BaseData &playerData, const RpgGameData::Player &player);
+
+
+	// Outgoing snapshot
+	void appendSnapshot(const RpgGameData::BaseData &playerData, const RpgGameData::Player &player);
+
+	void clear();
+
+	QByteArray dump();
 };
-
-
 
 
 
@@ -73,9 +80,6 @@ public:
 
 	RpgConfig::GameState gameState() const;
 	void setGameState(const RpgConfig::GameState &newGameState);
-
-	qint64 lastSentTick();
-	void setLastSentTick(const qint64 &newLastSentTick);
 
 
 signals:
@@ -113,9 +117,6 @@ private:
 
 	void updateSnapshotEnemyList(const QCborArray &list);
 	void updateSnapshotPlayerList(const QCborArray &list);
-
-	qint64 m_lastSentTick = -1;
-
 
 	friend class ActionRpgMultiplayerGame;
 };

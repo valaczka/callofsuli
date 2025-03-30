@@ -104,24 +104,40 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player, const QCborMap
 		for (const QCborValue &v : list) {
 			const QCborMap m = v.toMap();
 
-			RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::BaseData>::iterator it;
-			std::map<qint64, RpgGameData::Player>::iterator snapIt;
+			RpgGameData::BaseData pdata = *player;
 
-			RpgGameData::Player snap = getPreviousSnap(m_players, m, (RpgGameData::BaseData) *player,
-													   QStringLiteral("pd"), QStringLiteral("p"),
-													   &it, &snapIt);
-
-			if (snap.f < 0)
+			if (!checkBaseData(pdata, m, QStringLiteral("pd"))) {
+				LOG_CWARNING("engine") << "Invalid player" << m;
 				continue;
+			}
 
-			success = true;
+			auto it = find(pdata, m_players);
 
-			LOG_CDEBUG("engine") << "+++" << snap.f << (it != m_players.end() ? it - m_players.begin() : -1)
-								 << (it != m_players.end() && snapIt != it->list.end() ? -99 : -1)
-								 << (it != m_players.end() ? it->list.size() : -2);
+			if (it == m_players.end()) {
+				LOG_CWARNING("engine") << "Invalid player data" << pdata.o << pdata.s << pdata.id;
+				continue;
+			}
 
-			it->list.insert_or_assign(snap.f, snap);
+			const QCborArray array = m.value(QStringLiteral("p")).toArray();
 
+			for (const QCborValue &pv : array) {
+				std::map<qint64, RpgGameData::Player>::iterator snapIt;
+				std::optional<RpgGameData::Player> snap = addToPreviousSnap(*it, pv, &snapIt);
+
+				if (!snap) {
+					LOG_CWARNING("engine") << "---" << pv;
+					continue;
+				}
+
+				assignLastSnap(snap.value(), *it);
+
+				success = true;
+
+				if (snap->st == RpgGameData::Player::PlayerHit) {
+					LOG_CDEBUG("engine") << "+++ HIT" << snap->f << (it != m_players.end() ? it - m_players.begin() : -1)
+										 << snap->st << snap->p << snap->a;
+				}
+			}
 		}
 	}
 

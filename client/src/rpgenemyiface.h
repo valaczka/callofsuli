@@ -36,7 +36,10 @@
 #include <QList>
 #include <QHash>
 
-class RpgEnemyIface : public RpgGameDataInterface
+
+
+
+class RpgEnemyIface : public RpgGameDataInterface<RpgGameData::Enemy, RpgGameData::EnemyBaseData>
 {
 public:
 	RpgEnemyIface(const RpgGameData::EnemyBaseData::EnemyType &type)
@@ -72,7 +75,7 @@ private:
 
 
 /**
- * @brief RpgEnemyIface::directory
+ * @brief RpgEnemyIface::directoryBaseName
  * @param type
  * @param subType
  * @return

@@ -116,7 +116,7 @@ public:
  * @brief The RpgPlayer class
  */
 
-class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface
+class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameData::Player, RpgGameData::BaseData>
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -132,6 +132,8 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface
 public:
 	explicit RpgPlayer(TiledScene *scene = nullptr);
 	virtual ~RpgPlayer();
+
+	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricPlayer::objectId(); }
 
 	Q_INVOKABLE void attack(TiledWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
@@ -185,8 +187,6 @@ public:
 	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
 
-	ADD_SERIALIZATION_OVERRIDE
-
 	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot);
 
 signals:
@@ -201,6 +201,8 @@ signals:
 protected:
 	void load() override final;
 	void updateSprite() override final;
+
+	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
 
 	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
 	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType,
@@ -224,14 +226,13 @@ private:
 	void playHurtEffect();
 	void playHealedEffect();
 	void playDeadEffect();
+	void playAttackEffect(const TiledWeapon::WeaponType &weaponType);
 	void playAttackEffect(TiledWeapon *weapon);
 	void playWeaponChangedEffect();
 	void playShieldEffect();
 	void messageEmptyBullet(const TiledWeapon::WeaponType &weaponType);
 	void onCastTimerTimeout();
 	void attackReachedEnemies(const TiledWeapon::WeaponType &weaponType);
-
-	RpgGameData::Player serializeThis() const;
 
 private:
 	RpgPlayerCharacterConfig m_config;
@@ -260,6 +261,9 @@ private:
 
 	friend class RpgGame;
 	friend class ActionRpgGame;
+
+
+	qint64 m_lastSnap = -1;
 };
 
 #endif // RPGPLAYER_H

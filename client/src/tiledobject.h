@@ -93,11 +93,12 @@ public:
 	// ObjectId id
 
 	struct ObjectId {
+		int ownerId = -1;
 		int sceneId = -1;
 		int id = -1;
 
 		friend bool operator== (const ObjectId &l, const ObjectId &r) {
-			return l.id == r.id && l.sceneId == r.sceneId;
+			return l.ownerId == r.ownerId && l.id == r.id && l.sceneId == r.sceneId;
 		}
 	};
 
@@ -136,7 +137,7 @@ public:
 
 	const ObjectId &objectId() const;
 	void setObjectId(const ObjectId &newObjectId);
-	void setObjectId(const int &sceneId, const int &id);
+	void setObjectId(const int &ownerId, const int &sceneId, const int &id);
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);

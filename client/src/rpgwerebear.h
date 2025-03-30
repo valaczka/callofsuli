@@ -69,6 +69,8 @@ public:
 	explicit RpgWerebear(TiledScene *scene = nullptr);
 	virtual ~RpgWerebear();
 
+	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricEnemy::objectId(); }
+
 	TiledWeapon *defaultWeapon() const override;
 
 	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
@@ -77,6 +79,8 @@ public:
 protected:
 	//bool enemyWorldStep() override final;
 	void updateSprite() override final;
+
+	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
 
 	void load() override final;
 	void eventPlayerReached(IsometricPlayer */*player*/) override final;

@@ -115,21 +115,14 @@ private:
 	std::vector<T*> getObjects(b2::World *world);
 
 	TiledObjectBody *findObject(const TiledObjectBody::ObjectId &id);
-	TiledObjectBody *findObject(const TiledObjectBody::ObjectId &id, const int &ownerId);
-	TiledObjectBody *findObject(const int &sceneId, const int &id) {
-		return findObject(TiledObjectBody::ObjectId{.sceneId = sceneId, .id = id});
-	}
-	TiledObjectBody *findObject(const int &sceneId, const int &id, const int &ownerId) {
-		return findObject(TiledObjectBody::ObjectId{.sceneId = sceneId, .id = id}, ownerId);
+	TiledObjectBody *findObject(const int &ownerId, const int &sceneId, const int &id) {
+		return findObject(TiledObjectBody::ObjectId{.ownerId = ownerId, .sceneId = sceneId, .id = id});
 	}
 
-	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const int &owner = -1);
+	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body);
 	bool removeObject(TiledObjectBody *body);
 
 	void updateObjects();
-	void dumpObjects();
-
-
 
 	void startStepTimer();
 	void stepWorlds();
@@ -147,9 +140,9 @@ private:
 	QMutex m_updateMutex;
 
 	std::vector<Scene> m_sceneList;
-	std::vector<TiledGame::Body> m_bodyList;
+	std::vector<std::unique_ptr<TiledObjectBody> > m_bodyList;
 
-	std::vector<TiledGame::Body> m_addBodyList;
+	std::vector<std::unique_ptr<TiledObjectBody> > m_addBodyList;
 	std::vector<TiledObjectBody*> m_removeBodyList;
 
 	int m_nextBodyId = 0;
@@ -816,9 +809,9 @@ void TiledGame::timeSteppedEvent()
 {
 	QMutexLocker locker(&d->m_stepMutex);
 
-	for (const Body &ptr : std::as_const(d->m_bodyList)) {
-		if (ptr.body->scene() == m_currentScene)
-			ptr.body->synchronize();
+	for (const auto &ptr : std::as_const(d->m_bodyList)) {
+		if (ptr->scene() == m_currentScene)
+			ptr->synchronize();
 	}
 
 	locker.unlock();
@@ -895,10 +888,6 @@ void TiledGame::keyPressEvent(QKeyEvent *event)
 #ifndef QT_NO_DEBUG
 		case Qt::Key_P:
 			setDebugView(!m_debugView);
-			break;
-
-		case Qt::Key_F11:
-			d->dumpObjects();
 			break;
 #endif
 	}
@@ -1078,9 +1067,8 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
 	QMutexLocker locker(&d->m_stepMutex);
 
 	for (const auto &ptr : std::as_const(d->m_bodyList)) {
-		TiledObjectBody *b = ptr.body.get();
-		if (b->scene() == scene)
-			b->debugDraw(debugDraw);
+		if (ptr->scene() == scene)
+			ptr->debugDraw(debugDraw);
 	}
 }
 
@@ -1090,7 +1078,7 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
  * @return
  */
 
-const std::vector<TiledGame::Body> &TiledGame::bodyList() const
+const std::vector<std::unique_ptr<TiledObjectBody> > &TiledGame::bodyList() const
 {
 	return d->m_bodyList;
 }
@@ -1101,7 +1089,7 @@ const std::vector<TiledGame::Body> &TiledGame::bodyList() const
  * @return
  */
 
-std::vector<TiledGame::Body> &TiledGame::bodyList()
+std::vector<std::unique_ptr<TiledObjectBody> > &TiledGame::bodyList()
 {
 	return d->m_bodyList;
 }
@@ -1334,9 +1322,9 @@ TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body, co
 		return nullptr;
 	}
 
-	body->setObjectId(body->scene()->sceneId(), newId);
+	body->setObjectId(owner, body->scene()->sceneId(), newId);
 
-	return d->addObject(body, owner);
+	return d->addObject(body);
 }
 
 
@@ -1496,10 +1484,10 @@ void TiledGame::changeScene(TiledObjectBody *object, TiledScene *to, const QPoin
  * @param body
  */
 
-void TiledGame::worldStep(const Body &body)
+void TiledGame::worldStep(TiledObjectBody *body)
 {
-	Q_ASSERT(body.body);
-	body.body->worldStep();
+	Q_ASSERT(body);
+	body->worldStep();
 }
 
 
@@ -1543,8 +1531,7 @@ bool TiledGame::isGround(const TiledScene *scene, const qreal &x, const qreal &y
 {
 	QMutexLocker locker(&d->m_stepMutex);
 
-	for (const auto &ptr : d->m_bodyList) {
-		TiledObjectBody *b = ptr.body.get();
+	for (const auto &b : d->m_bodyList) {
 		if (!b || b->scene() != scene || !b->isBodyEnabled())
 			continue;
 
@@ -2208,7 +2195,7 @@ std::vector<T *> TiledGamePrivate::getObjects()
 	std::vector<T *> list;
 
 	for (const auto &ptr : m_bodyList) {
-		if (T* o = dynamic_cast<T*>(ptr.body.get()))
+		if (T* o = dynamic_cast<T*>(ptr.get()))
 			list.push_back(o);
 	}
 
@@ -2233,7 +2220,7 @@ std::vector<T *> TiledGamePrivate::getObjects(TiledScene *scene)
 	QMutexLocker locker(&m_stepMutex);
 
 	for (const auto &ptr : m_bodyList) {
-		if (T* o = dynamic_cast<T*>(ptr.body.get())) {
+		if (T* o = dynamic_cast<T*>(ptr.get())) {
 			if (o->scene() == scene)
 				list.push_back(o);
 		}
@@ -2260,7 +2247,7 @@ std::vector<T *> TiledGamePrivate::getObjects(b2::World *world)
 	QMutexLocker locker(&m_stepMutex);
 
 	for (const auto &ptr : m_bodyList) {
-		if (T* o = dynamic_cast<T*>(ptr.body.get())) {
+		if (T* o = dynamic_cast<T*>(ptr.get())) {
 			if (o->world() == world)
 				list.push_back(o);
 		}
@@ -2280,33 +2267,15 @@ TiledObjectBody* TiledGamePrivate::findObject(const TiledObjectBody::ObjectId &i
 {
 	QMutexLocker l(&m_stepMutex);
 
-	for (const TiledGame::Body &b : m_bodyList) {
-		if (b.body && b.body->objectId() == id)
-			return b.body.get();
+	for (const auto &b : m_bodyList) {
+		if (b && b->objectId() == id)
+			return b.get();
 	}
 
 	return nullptr;
 }
 
 
-/**
- * @brief TiledGamePrivate::findObject
- * @param id
- * @param ownerId
- * @return
- */
-
-TiledObjectBody *TiledGamePrivate::findObject(const TiledObjectBody::ObjectId &id, const int &ownerId)
-{
-	QMutexLocker l(&m_stepMutex);
-
-	for (const TiledGame::Body &b : m_bodyList) {
-		if (b.owner == ownerId && b.body && b.body->objectId() == id)
-			return b.body.get();
-	}
-
-	return nullptr;
-}
 
 
 /**
@@ -2317,10 +2286,10 @@ TiledObjectBody *TiledGamePrivate::findObject(const TiledObjectBody::ObjectId &i
  * @return
  */
 
-TiledObjectBody *TiledGamePrivate::addObject(std::unique_ptr<TiledObjectBody> &body, const int &owner)
+TiledObjectBody *TiledGamePrivate::addObject(std::unique_ptr<TiledObjectBody> &body)
 {
 	QMutexLocker locker(&m_updateMutex);
-	TiledObjectBody *ptr = m_addBodyList.emplace_back(std::move(body), owner).body.get();
+	TiledObjectBody *ptr = m_addBodyList.emplace_back(std::move(body)).get();
 
 	locker.unlock();
 
@@ -2343,10 +2312,10 @@ bool TiledGamePrivate::removeObject(TiledObjectBody *body)
 {
 	QMutexLocker locker(&m_updateMutex);
 
-	bool ret = m_bodyList.cend() != std::find_if(m_bodyList.cbegin(), m_bodyList.cend(), [body](const TiledGame::Body &b) { return b.body.get() == body; } );
+	bool ret = m_bodyList.cend() != std::find_if(m_bodyList.cbegin(), m_bodyList.cend(), [body](const auto &b) { return b.get() == body; } );
 
 	if (!ret)
-		ret = m_addBodyList.cend() != std::find_if(m_addBodyList.cbegin(), m_addBodyList.cend(), [body](const TiledGame::Body &b) { return b.body.get() == body; } );
+		ret = m_addBodyList.cend() != std::find_if(m_addBodyList.cbegin(), m_addBodyList.cend(), [body](const auto &b) { return b.get() == body; } );
 
 	if (ret)
 		m_removeBodyList.push_back(body);
@@ -2377,9 +2346,9 @@ void TiledGamePrivate::updateObjects()
 
 	if (!m_removeBodyList.empty()) {
 		for (auto it = m_bodyList.begin(); it != m_bodyList.end(); ) {
-			if (std::find(m_removeBodyList.cbegin(), m_removeBodyList.cend(), it->body.get()) != m_removeBodyList.cend()) {
-				if (dynamic_cast<QObject*>(it->body.get()))
-					dynamic_cast<QObject*>(it->body.release())->deleteLater();
+			if (std::find(m_removeBodyList.cbegin(), m_removeBodyList.cend(), it->get()) != m_removeBodyList.cend()) {
+				if (dynamic_cast<QObject*>(it->get()))
+					dynamic_cast<QObject*>(it->release())->deleteLater();
 
 				it = m_bodyList.erase(it);
 			} else
@@ -2390,33 +2359,6 @@ void TiledGamePrivate::updateObjects()
 	}
 }
 
-
-
-
-/**
- * @brief TiledGamePrivate::dumpObjects
- */
-
-void TiledGamePrivate::dumpObjects()
-{
-	QMutexLocker locker(&m_stepMutex);
-
-	LOG_CINFO("game") << "--------------------------------------------------------------";
-	LOG_CINFO("game") << "*** DUMP OBJECTS ***";
-	LOG_CINFO("game") << "--------------------------------------------------------------";
-
-	for (const TiledGame::Body &b : m_bodyList) {
-		if (b.body)
-			LOG_CINFO("game") << b.owner << b.body->objectId().sceneId << b.body->objectId().id
-							  << dynamic_cast<QObject*>(b.body.get())
-							  << (b.body->bodyShapes().empty() ? 0 : b.body->bodyShapes().front().GetFilter().categoryBits);
-		else
-			LOG_CERROR("game") << b.owner << "BAD BODY";
-	}
-
-	LOG_CINFO("game") << "--------------------------------------------------------------";
-
-}
 
 
 
@@ -2483,9 +2425,9 @@ void TiledGamePrivate::stepWorlds()
 		}
 	}
 
-	for (const TiledGame::Body &ptr : std::as_const(m_bodyList)) {
-		if (ptr.body)
-			q->worldStep(ptr);
+	for (const auto &ptr : std::as_const(m_bodyList)) {
+		if (ptr)
+			q->worldStep(ptr.get());
 	}
 
 	updateObjects();

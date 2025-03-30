@@ -35,6 +35,8 @@
 #include "rpgengine.h"
 
 
+#define SERVER_ENET_SPEED			1000./240.
+
 
 /**
  * @brief UdpServer::UdpServer
@@ -136,7 +138,7 @@ void UdpServerPrivate::run()
 
 	ENetEvent event;
 
-	while (int r = enet_host_service (m_enet_server, &event, 1000/120) >= 0) {
+	while (int r = enet_host_service (m_enet_server, &event, SERVER_ENET_SPEED) >= 0) {
 		QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::ProcessEventsFlag::AllEvents);
 
 		if (QThread::currentThread()->isInterruptionRequested()) {
@@ -144,39 +146,38 @@ void UdpServerPrivate::run()
 			break;
 		}
 
-		if (r == 0)
-			continue;
+		if (r > 0) {
+			switch (event.type) {
+				case ENET_EVENT_TYPE_CONNECT:
+					peerConnect(event.peer);
+					break;
 
-		switch (event.type) {
-			case ENET_EVENT_TYPE_CONNECT:
-				peerConnect(event.peer);
-				break;
+				case ENET_EVENT_TYPE_DISCONNECT:
+					peerDisconnect(event.peer);
+					break;
 
-			case ENET_EVENT_TYPE_DISCONNECT:
-				peerDisconnect(event.peer);
-				break;
+				case ENET_EVENT_TYPE_RECEIVE:
+					packetReceived(event);
+					enet_packet_destroy(event.packet);
+					break;
 
-			case ENET_EVENT_TYPE_RECEIVE:
-				packetReceived(event);
-				enet_packet_destroy(event.packet);
-				break;
-
-			case ENET_EVENT_TYPE_NONE:
-				break;
-		}
-
-		{
-			QMutexLocker locker(&m_mutex);
-
-			for (const auto &b : m_sendList) {
-				ENetPacket *packet = enet_packet_create(b.data.data(), b.data.size(),
-														b.reliable ? ENET_PACKET_FLAG_RELIABLE :
-																	 ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-				enet_peer_send(b.peer, 0, packet);
+				case ENET_EVENT_TYPE_NONE:
+					break;
 			}
-
-			m_sendList.clear();
 		}
+
+
+		QMutexLocker locker(&m_mutex);
+
+		for (const auto &b : m_sendList) {
+			ENetPacket *packet = enet_packet_create(b.data.data(), b.data.size(),
+													b.reliable ? ENET_PACKET_FLAG_RELIABLE :
+																 ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
+			enet_peer_send(b.peer, 0, packet);
+		}
+
+		m_sendList.clear();
+
 	}
 
 	LOG_CINFO("engine") << "UPD ENGINE RUN FINISHED";

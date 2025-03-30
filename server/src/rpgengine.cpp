@@ -30,6 +30,7 @@
 #include <QCborArray>
 #include <QCborMap>
 
+
 int RpgEngine::m_nextId = 1;
 
 
@@ -596,18 +597,19 @@ void RpgEnginePrivate::dataSendPlay()
 
 	const qint64 tick = q->currentTick();
 
+	QCborMap current = q->m_snapshots.getCurrentSnapshot().toCbor();
+	current.insert(QStringLiteral("t"), tick);
+
 	for (auto it = q->m_player.cbegin(); it != q->m_player.cend(); ++it) {
-		QCborMap map = q->m_snapshots.getCurrentSnapshot().toCbor();
+		QCborMap map = current;
 
 		insertBaseMapData(&map, it->get());
-
-		map.insert(QStringLiteral("t"), tick);
 
 		if (it->get()->udpPeer())
 			it->get()->udpPeer()->send(map.toCborValue().toCbor(), true);
 
 
-		static QElapsedTimer tmr;
+		/*static QElapsedTimer tmr;
 
 		if (tmr.isValid()) {
 			if (tmr.hasExpired(500)) {
@@ -616,7 +618,7 @@ void RpgEnginePrivate::dataSendPlay()
 				tmr.restart();
 			}
 		} else
-			tmr.start();
+			tmr.start();*/
 	}
 
 	q->m_snapshots.zapSnapshots(tick - 4000);

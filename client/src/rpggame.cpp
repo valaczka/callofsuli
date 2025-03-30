@@ -712,7 +712,7 @@ IsometricEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType
  */
 
 RpgPickableObject *RpgGame::createPickable(const RpgGameData::PickableBaseData::PickableType &type, const QString &name,
-                                           TiledScene *scene, const int &ownerId, const int &id)
+										   TiledScene *scene, const int &ownerId, const int &id)
 {
 	b2::Body::Params bParams;
 	bParams.type = b2BodyType::b2_staticBody;
@@ -890,6 +890,13 @@ bool RpgGame::shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene, c
 	if (!weapon->shot())
 		return false;
 
+
+	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(owner); player && m_funcPlayerShot) {
+		if (!m_funcPlayerShot(player, weapon->weaponType(), scene, targets, angle))
+			return false;
+	}
+
+
 	// TODO: playerID
 	IsometricBullet *bullet = createBullet(weapon, scene, 0, 0);
 
@@ -907,6 +914,37 @@ bool RpgGame::shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene, c
 	bullet->shot(targets, owner->bodyPosition(), angle);
 
 	return true;
+}
+
+
+
+/**
+ * @brief RpgGame::hit
+ * @param owner
+ * @param weapon
+ * @param scene
+ * @param target
+ * @return
+ */
+
+bool RpgGame::hit(TiledObject *owner, TiledWeapon *weapon, TiledObject *target)
+{
+	LOG_CDEBUG("game") << "Hit" << owner << weapon << target;
+
+	if (!weapon || !owner)
+		return false;
+
+	RpgPlayer *player = qobject_cast<RpgPlayer*>(owner);
+	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(target);
+
+
+	if (!weapon->hit(target))
+		return false;
+
+	if (player && m_funcPlayerHit)
+		return m_funcPlayerHit(player, enemy, weapon->weaponType());
+	else
+		return true;
 }
 
 
@@ -1506,7 +1544,7 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
  * @param body
  */
 
-void RpgGame::worldStep(const Body &body)
+void RpgGame::worldStep(TiledObjectBody *body)
 {
 	if (m_funcBodyStep)
 		m_funcBodyStep(body);
@@ -2097,6 +2135,33 @@ QVector<RpgGameData::PickableBaseData::PickableType> RpgGame::getPickablesFromPr
 	}
 
 	return pickableList;
+}
+
+
+
+/**
+ * @brief RpgGame::funcPlayerShot
+ * @return
+ */
+
+FuncPlayerShot RpgGame::funcPlayerShot() const
+{
+	return m_funcPlayerShot;
+}
+
+void RpgGame::setFuncPlayerShot(const FuncPlayerShot &newFuncPlayerShot)
+{
+	m_funcPlayerShot = newFuncPlayerShot;
+}
+
+FuncPlayerHit RpgGame::funcPlayerHit() const
+{
+	return m_funcPlayerHit;
+}
+
+void RpgGame::setFuncPlayerHit(const FuncPlayerHit &newFuncPlayerHit)
+{
+	m_funcPlayerHit = newFuncPlayerHit;
 }
 
 

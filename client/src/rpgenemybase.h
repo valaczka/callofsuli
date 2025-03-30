@@ -43,6 +43,8 @@ public:
 	explicit RpgEnemyBase(TiledScene *scene = nullptr) : RpgEnemyBase(RpgGameData::EnemyBaseData::EnemyInvalid, scene) {}
 	virtual ~RpgEnemyBase();
 
+	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricEnemy::objectId(); }
+
 	TiledWeapon *defaultWeapon() const override;
 	virtual bool canBulletImpact(const TiledWeapon::WeaponType &type) const override;
 
@@ -59,6 +61,9 @@ protected:
 	void updateSprite() override final;
 
 	void load() override final;
+
+	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
+
 	void eventPlayerReached(IsometricPlayer *player) override final;
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}
 

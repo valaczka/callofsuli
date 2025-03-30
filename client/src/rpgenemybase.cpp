@@ -183,6 +183,19 @@ void RpgEnemyBase::load()
 
 
 /**
+ * @brief RpgEnemyBase::serializeThis
+ * @return
+ */
+
+std::unique_ptr<RpgGameData::Body> RpgEnemyBase::serializeThis() const
+{
+	std::unique_ptr<RpgGameData::Body> p(new RpgGameData::Enemy);
+	return p;
+}
+
+
+
+/**
  * @brief RpgEnemyBase::eventPlayerReached
  * @param player
  */

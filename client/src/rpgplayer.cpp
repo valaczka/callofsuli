@@ -133,9 +133,6 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 			messageEmptyBullet(weapon->weaponType());
 
 	} else if (weapon->canHit()) {
-		if (!hasAbility())
-			return;
-
 		if (!enemy()) {
 			const QList<IsometricEnemy*> &list = reachedEnemies();
 
@@ -153,7 +150,7 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 			rotateBody(angleToPoint(enemy()->bodyPosition()));
 		}
 
-		if (weapon->hit(enemy())) {
+		if (m_game->hit(this, weapon, enemy())) {
 			if (weapon->pickedBulletCount() > 0)
 				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
 			else if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && enemy()) {
@@ -382,6 +379,8 @@ void RpgPlayer::updateSprite()
 	else
 		jumpToSprite("idle", m_facingDirection);
 }
+
+
 
 
 
@@ -636,18 +635,14 @@ void RpgPlayer::playDeadEffect()
 
 
 
-
 /**
  * @brief RpgPlayer::playAttackEffect
- * @param weapon
+ * @param weaponType
  */
 
-void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
+void RpgPlayer::playAttackEffect(const TiledWeapon::WeaponType &weaponType)
 {
-	if (!weapon)
-		return;
-
-	switch (weapon->weaponType()) {
+	switch (weaponType) {
 		case TiledWeapon::WeaponHand:
 		case TiledWeapon::WeaponGreatHand:
 		case TiledWeapon::WeaponLongsword:
@@ -676,6 +671,23 @@ void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
 	}
 
 	emit attackDone();
+}
+
+
+
+
+
+/**
+ * @brief RpgPlayer::playAttackEffect
+ * @param weapon
+ */
+
+void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
+{
+	if (!weapon)
+		return;
+
+	playAttackEffect(weapon->weaponType());
 }
 
 
@@ -819,23 +831,27 @@ void RpgPlayer::attackReachedEnemies(const TiledWeapon::WeaponType &weaponType)
  * @return
  */
 
-RpgGameData::Player RpgPlayer::serializeThis() const
+std::unique_ptr<RpgGameData::Body> RpgPlayer::serializeThis() const
 {
-	RpgGameData::Player p;
+	RpgGameData::Player *p = new RpgGameData::Player();
 
 	b2Vec2 pos = body().GetPosition();
-	p.p = { pos.x, pos.y };
-	p.a = currentAngle();
-	p.hp = hp();
+	p->p = { pos.x, pos.y };
+	p->a = currentAngle();
+	p->hp = hp();
+
+	if (TiledScene *s = scene())
+		p->sc = s->sceneId();
 
 	const b2Vec2 vel = body().GetLinearVelocity();
 
 	if (vel.x != 0. || vel.y != 0.)
-		p.st = RpgGameData::Player::PlayerMoving;
+		p->st = RpgGameData::Player::PlayerMoving;
 	else
-		p.st = RpgGameData::Player::PlayerIdle;
+		p->st = RpgGameData::Player::PlayerIdle;
 
-	return p;
+	std::unique_ptr<RpgGameData::Body> ptr(std::move(p));
+	return ptr;
 }
 
 
@@ -947,6 +963,12 @@ void RpgPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 
 void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot)
 {
+	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+		stop();
+	} else if (!hasAbility()) {
+		stop();
+	}
+
 	if (snapshot.s1.f < 0 || snapshot.s2.f < 0) {
 		LOG_CERROR("game") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.current;
 		stop();
@@ -954,36 +976,56 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		return;
 	}
 
+	if (m_lastSnap >= 0 && snapshot.s1.f > m_lastSnap) {
+		LOG_CERROR("game") << "SNAP ERROR" << m_lastSnap << snapshot.s1.f << snapshot.current << snapshot.s2.f;
+	}
+	m_lastSnap = snapshot.s2.f;
 
-	if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
-		QVector2D final(snapshot.s2.p.at(0), snapshot.s2.p.at(1));
 
-		if (snapshot.s1.st == RpgGameData::Player::PlayerIdle &&
-				snapshot.s2.st == RpgGameData::Player::PlayerIdle) {
-			const b2Vec2 &vel = body().GetLinearVelocity();
-			if (vel.x != 0. && vel.y != 0.) {
-				LOG_CINFO("game") << "FULL STOP ENTITY" << final;
+	if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
+		LOG_CINFO("game") << "HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
+		playAttackEffect(TiledWeapon::WeaponHand);
+	} else if (snapshot.s2.f <= snapshot.current) {
+		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
+	} else {
+		if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
+			QVector2D final(snapshot.s2.p.at(0), snapshot.s2.p.at(1));
+
+			if (snapshot.s1.st == RpgGameData::Player::PlayerIdle &&
+					snapshot.s2.st == RpgGameData::Player::PlayerIdle) {
+				const b2Vec2 &vel = body().GetLinearVelocity();
+				if (vel.x != 0. || vel.y != 0.) {
+					LOG_CINFO("game") << "FULL STOP ENTITY" << final;
+					stop();
+					emplace(final);
+				}
+				setCurrentAngle(snapshot.s2.a);
+			} else if (snapshot.s2.st == RpgGameData::Player::PlayerIdle &&
+					   distanceToPoint(final) < m_speedLength / 60.) {
+				LOG_CINFO("game") << "STOP ENTITY" << final;
 				stop();
 				emplace(final);
 				setCurrentAngle(snapshot.s2.a);
+			} else if (snapshot.s2.st == RpgGameData::Player::PlayerMoving) {
+				const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
+				const float angle = angleToPoint(final);
+				setCurrentAngle(angle);
+				setSpeedFromAngle(angle, dist);
+
+				LOG_CDEBUG("game") << "DIST" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st << dist;
+			} else {
+				LOG_CDEBUG("game") << "INVALID" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st;
 			}
-		} else if (snapshot.s2.st == RpgGameData::Player::PlayerIdle &&
-				   distanceToPoint(final) < m_speedLength / 60.) {
-			LOG_CINFO("game") << "STOP ENTITY" << final;
-			stop();
-			emplace(final);
-			setCurrentAngle(snapshot.s2.a);
+
 		} else {
-			const float angle = angleToPoint(final);
-			const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
-			setCurrentAngle(angle);
-			setSpeedFromAngle(angle, dist);
-
-			LOG_CDEBUG("game") << "DIST" << snapshot.s2.f-snapshot.current << dist;
+			LOG_CERROR("game") << "???";
+			stop();
 		}
+	}
 
-	} else {
-		LOG_CERROR("game") << "???";
+	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+		stop();
+	} else if (!hasAbility()) {
 		stop();
 	}
 

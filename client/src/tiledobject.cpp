@@ -877,9 +877,9 @@ void TiledObjectBody::setObjectId(const ObjectId &newObjectId)
 	m_objectId = newObjectId;
 }
 
-void TiledObjectBody::setObjectId(const int &sceneId, const int &id)
+void TiledObjectBody::setObjectId(const int &ownerId, const int &sceneId, const int &id)
 {
-	m_objectId = {.sceneId = sceneId, .id = id};
+	m_objectId = {.ownerId = ownerId, .sceneId = sceneId, .id = id};
 }
 
 

@@ -29,6 +29,7 @@
 
 #include <QObject>
 #include "abstractengine.h"
+#include "qbasictimer.h"
 #include "udpserver.h"
 #include <QWebSocket>
 
@@ -70,16 +71,19 @@ private:
 	void websocketEngineLink(WebSocketStream *stream, const std::shared_ptr<AbstractEngine> &engine);
 	void websocketEngineUnlink(WebSocketStream *stream, AbstractEngine *engine);
 
+	void timerEvent(QTimerEvent *event) override;
 	void timerEventRun();
 	void timerMinuteEventRun();
 
 	void onBinaryDataReceived(WebSocketStream *stream, const QByteArray &data);
 	void udpDataReceived(UdpServerPeer *peer, const QByteArray &data);
 
-
 private:
 	EngineHandler *q = nullptr;
 	QRecursiveMutex m_mutex;
+
+	QBasicTimer m_timer;
+	QDateTime m_timerLastTick;
 
 	QVector<std::shared_ptr<AbstractEngine>> m_engines;
 	std::vector<std::unique_ptr<WebSocketStream>> m_streams;

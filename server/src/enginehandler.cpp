@@ -6,6 +6,8 @@
 
 
 
+#define ENGINE_HANDLER_FPS		60
+
 
 /**
  * @brief EngineHandler::EngineHandler
@@ -146,15 +148,6 @@ void EngineHandler::udpDataReceived(UdpServerPeer *peer, QByteArray data)
 	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::udpDataReceived, d, peer, data), Qt::QueuedConnection);
 }
 
-void EngineHandler::timerEvent() {
-	if (m_running) QMetaObject::invokeMethod(d, &EngineHandlerPrivate::timerEventRun, Qt::QueuedConnection);
-}
-
-void EngineHandler::timerMinuteEvent() {
-	if (m_running) QMetaObject::invokeMethod(d, &EngineHandlerPrivate::timerMinuteEventRun, Qt::QueuedConnection);
-}
-
-
 
 
 
@@ -182,7 +175,7 @@ EngineHandlerPrivate::EngineHandlerPrivate(EngineHandler *handler)
 	: QObject{}
 	, q(handler)
 {
-
+	startTimer(1000./ENGINE_HANDLER_FPS, Qt::PreciseTimer);
 }
 
 
@@ -424,9 +417,9 @@ void EngineHandlerPrivate::websocketAdd(QWebSocket *socket)
 	connect(wsocket, &QWebSocket::disconnected, ws.get(), &WebSocketStream::onWebSocketDisconnected);
 	connect(wsocket, &QWebSocket::textMessageReceived, ws.get(), &WebSocketStream::onTextReceived);
 	connect(wsocket, &QWebSocket::binaryMessageReceived, ws.get(), &WebSocketStream::onBinaryDataReceived);
-	auto sig = connect(wsocket, &QWebSocket::binaryMessageReceived, this,
-					   std::bind(&EngineHandlerPrivate::onBinaryDataReceived, this, ws.get(), std::placeholders::_1));
-	ws->m_signalHelper.append(sig);
+	connect(wsocket, &QWebSocket::binaryMessageReceived, this,
+			std::bind(&EngineHandlerPrivate::onBinaryDataReceived, this, ws.get(), std::placeholders::_1));
+
 
 	LOG_CTRACE("service") << "WebSocketStream added" << &ws;
 
@@ -451,14 +444,11 @@ void EngineHandlerPrivate::websocketRemove(WebSocketStream *stream)
 	for (auto it = m_streams.begin(); it != m_streams.end(); ) {
 		if (auto ws = it->get(); ws == stream) {
 			auto wsocket = ws->m_socket.get();
-			disconnect(wsocket, &QWebSocket::disconnected, ws, &WebSocketStream::onWebSocketDisconnected);
+			/*disconnect(wsocket, &QWebSocket::disconnected, ws, &WebSocketStream::onWebSocketDisconnected);
 			disconnect(wsocket, &QWebSocket::textMessageReceived, ws, &WebSocketStream::onTextReceived);
-			disconnect(wsocket, &QWebSocket::binaryMessageReceived, ws, &WebSocketStream::onBinaryDataReceived);
-
-			for (const auto &sig : ws->m_signalHelper)
-				disconnect(sig);
-
-			ws->m_signalHelper.clear();
+			disconnect(wsocket, &QWebSocket::binaryMessageReceived, ws, &WebSocketStream::onBinaryDataReceived);*/
+			wsocket->disconnect(ws);
+			wsocket->disconnect(this);
 
 			it = m_streams.erase(it);
 		} else
@@ -488,15 +478,12 @@ void EngineHandlerPrivate::websocketCloseAll()
 
 		LOG_CTRACE("service") << "Close WebSocket" << wsocket;
 
-		disconnect(wsocket, &QWebSocket::disconnected, ws, &WebSocketStream::onWebSocketDisconnected);
+		/*disconnect(wsocket, &QWebSocket::disconnected, ws, &WebSocketStream::onWebSocketDisconnected);
 		disconnect(wsocket, &QWebSocket::textMessageReceived, ws, &WebSocketStream::onTextReceived);
-		disconnect(wsocket, &QWebSocket::binaryMessageReceived, ws, &WebSocketStream::onBinaryDataReceived);
+		disconnect(wsocket, &QWebSocket::binaryMessageReceived, ws, &WebSocketStream::onBinaryDataReceived);*/
 
-		for (const auto &sig : ws->m_signalHelper)
-			disconnect(sig);
-
-		ws->m_signalHelper.clear();
-
+		wsocket->disconnect(ws);
+		wsocket->disconnect(this);
 
 		it = m_streams.erase(it);
 	}
@@ -624,6 +611,31 @@ void EngineHandlerPrivate::websocketEngineUnlink(WebSocketStream *stream, Abstra
 
 /**
  * @brief EngineHandlerPrivate::timerEvent
+ * @param event
+ */
+
+void EngineHandlerPrivate::timerEvent(QTimerEvent */*event*/)
+{
+	if (!q->running())
+		return;
+
+	const QDateTime &current = QDateTime::currentDateTime();
+	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
+
+	timerEventRun();
+
+	if (!m_timerLastTick.isNull() && dtMinute <= m_timerLastTick)
+		return;
+
+	m_timerLastTick = dtMinute;
+
+	timerMinuteEventRun();
+}
+
+
+
+/**
+ * @brief EngineHandlerPrivate::timerEvent
  */
 
 void EngineHandlerPrivate::timerEventRun()
@@ -634,6 +646,13 @@ void EngineHandlerPrivate::timerEventRun()
 		e->timerTick();
 	}
 }
+
+
+
+
+/**
+ * @brief EngineHandlerPrivate::timerMinuteEventRun
+ */
 
 void EngineHandlerPrivate::timerMinuteEventRun()
 {

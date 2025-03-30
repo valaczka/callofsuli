@@ -53,10 +53,6 @@ const char *ServerService::m_version = VERSION_FULL;
 ServerService *ServerService::m_instance = nullptr;
 
 
-#ifndef QT_NO_DEBUG
-#	define _MAIN_TIMER_TEST_MODE
-#endif
-
 /**
  * @brief ServerService::ServerService
  * @param argc
@@ -93,12 +89,7 @@ ServerService::ServerService(int &argc, char **argv)
 		m_arguments.append(argv[i]);
 	}
 
-#ifdef _MAIN_TIMER_TEST_MODE
-	LOG_CERROR("service") << "_MAIN_TIMER_TEST_MODE defined";
-	m_mainTimerInterval = 8;
-#else
 	m_mainTimerInterval = 100;
-#endif
 
 	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
 		m_mainTimer.stop();
@@ -264,29 +255,19 @@ void ServerService::timerEvent(QTimerEvent *)
 	if (m_state != ServerRunning)
 		return;
 
-	m_engineHandler->timerEvent();
-
-	const QDateTime &current = QDateTime::currentDateTime();
-	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
-
-#ifndef _MAIN_TIMER_TEST_MODE
-	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
-		return;
-
-	m_engineHandler->timerMinuteEvent();
-#else
-	m_engineHandler->timerMinuteEvent();
-
-	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
-		return;
-#endif
-
-	m_mainTimerLastTick = dtMinute;
-
 	if (!m_databaseMain) {
 		LOG_CWARNING("service") << "Main database unavailable";
 		return;
 	}
+
+	const QDateTime &current = QDateTime::currentDateTime();
+	const QDateTime dtMinute(current.date(), QTime(current.time().hour(), current.time().minute()));
+
+	if (!m_mainTimerLastTick.isNull() && dtMinute <= m_mainTimerLastTick)
+		return;
+
+	m_mainTimerLastTick = dtMinute;
+
 
 	m_databaseMain->worker()->execInThread([this]() mutable {
 		QSqlDatabase db = QSqlDatabase::database(m_databaseMain->dbName());
@@ -1112,6 +1093,7 @@ bool ServerService::start()
 	m_webServer->setRedirectHost(m_settings->redirectHost());
 
 	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
+	m_engineHandler->setRunning(true);
 
 	reloadDynamicContent();
 
@@ -1185,6 +1167,7 @@ void ServerService::stop()
 		m_webServer.reset();
 	}
 
+	m_engineHandler->setRunning(false);
 	m_mainTimer.stop();
 	m_databaseMain->databaseClose();
 
@@ -1215,6 +1198,7 @@ void ServerService::pause()
 
 	m_state = ServerPaused;
 
+	m_engineHandler->setRunning(false);
 	m_mainTimer.stop();
 	m_databaseMain->databaseClose();
 }
@@ -1240,6 +1224,7 @@ void ServerService::resume()
 		return std::exit(10);
 
 	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
+	m_engineHandler->setRunning(true);
 
 	if (!start())
 		m_application->quit();

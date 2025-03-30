@@ -159,6 +159,7 @@ public:
 	virtual void onEnemySleepingEnd(TiledObject *enemy) = 0;
 
 	virtual bool shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene, const IsometricBullet::Targets &targets, const qreal &angle) = 0;
+	virtual bool hit(TiledObject *owner, TiledWeapon *weapon, TiledObject *target) = 0;
 
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
@@ -244,14 +245,6 @@ public:
 
 	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 
-
-	// Bodies
-
-	struct Body {
-		std::unique_ptr<TiledObjectBody> body;
-		int owner = -1;
-		QCborMap lastState;
-	};
 
 	// Sprite texture helper
 
@@ -369,7 +362,7 @@ protected:
 
 	void changeScene(TiledObjectBody *object, TiledScene *to, const QPointF &toPoint);
 
-	virtual void worldStep(const Body &body);
+	virtual void worldStep(TiledObjectBody *body);
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer);
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
@@ -399,8 +392,8 @@ protected:
 	std::function<void(const qint64 &)> m_funcBeforeWorldStep;
 	std::function<void(const qint64 &)> m_funcAfterWorldStep;
 
-	std::vector<Body> &bodyList();
-	const std::vector<Body> &bodyList() const;
+	std::vector<std::unique_ptr<TiledObjectBody> > &bodyList();
+	const std::vector<std::unique_ptr<TiledObjectBody> > &bodyList() const;
 
 
 private:

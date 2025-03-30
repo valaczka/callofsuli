@@ -27,24 +27,10 @@
 #ifndef RPGGAMEDATAIFACE_H
 #define RPGGAMEDATAIFACE_H
 
+#include "tiledobject.h"
+#include "rpgconfig.h"
 #include <QVector2D>
 #include <QCborMap>
-
-#define ADD_SERIALIZATION_OVERRIDE		\
-	virtual QCborMap serialize(const qint64 &tick = -1) const override { \
-		auto p = serializeThis(); \
-		p.f = tick; \
-		return p.toCborMap(true); \
-	} \
-	virtual QCborMap serialize(const QCborMap &other, const qint64 &tick = -1) const override { \
-		auto p = serializeThis(); \
-		p.f = other.value(QStringLiteral("f")).toInteger(-1); \
-		if (p.toCborMap(other, true).isEmpty()) \
-			return {}; \
-		p.f = tick; \
-		return p.toCborMap(true); \
-	}
-
 
 
 
@@ -52,33 +38,69 @@
  * @brief The RpgGameDataInterface class
  */
 
+
+
+template <typename T, typename T2,
+		  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 class RpgGameDataInterface
 {
 public:
 	RpgGameDataInterface() {}
 
-	bool keyFrameRequired() const;
-	void setKeyFrameRequired(bool newKeyFrameRequired);
+	T serialize(const qint64 tick = -1) const;
 
-	virtual QCborMap serialize(const qint64 &tick = -1) const { Q_UNUSED(tick); return QCborMap(); }
-	virtual QCborMap serialize(const QCborMap &other, const qint64 &tick = -1) const { Q_UNUSED(other); Q_UNUSED(tick); return QCborMap(); }
+	virtual TiledObjectBody::ObjectId objectId() const = 0;
+	virtual T2 baseData() const;
 
 protected:
 	static QList<float> toPosList(const QVector2D &pos) { return { pos.x(), pos.y() }; }
 	static QList<float> toPosList(const QPointF &pos) { return { (float) pos.x(), (float) pos.y() }; }
 
-	bool m_keyFrameRequired = false;
+	virtual std::unique_ptr<RpgGameData::Body> serializeThis() const = 0;
 };
 
 
-inline bool RpgGameDataInterface::keyFrameRequired() const
+
+/**
+ * @brief RpgGameDataInterface::serialize
+ * @param tick
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline T RpgGameDataInterface<T, T2, T3, T4>::serialize(const qint64 tick) const
 {
-	return m_keyFrameRequired;
+	std::unique_ptr<RpgGameData::Body> ptr = serializeThis();
+
+	T p = *dynamic_cast<T*>(ptr.get());
+
+	if (tick >= 0)
+		p.f = tick;
+
+	return p;
 }
 
-inline void RpgGameDataInterface::setKeyFrameRequired(bool newKeyFrameRequired)
+
+/**
+ * @brief RpgGameDataInterface::baseData
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline T2 RpgGameDataInterface<T, T2, T3, T4>::baseData() const
 {
-	m_keyFrameRequired = newKeyFrameRequired;
+	TiledObjectBody::ObjectId oid = objectId();
+	T2 r;
+	r.o = oid.ownerId;
+	r.s = oid.sceneId;
+	r.id = oid.id;
+	return r;
 }
+
+
+
+
+
 
 #endif // RPGGAMEDATAIFACE_H

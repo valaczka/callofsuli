@@ -682,7 +682,7 @@ public:
 	{ }
 
 	bool isEqual(const Body &other) const {
-		return other.f == f;
+		return other.f == f && other.sc == sc && other.p == p;
 	}
 
 	EQUAL_OPERATOR(Body)
@@ -749,7 +749,10 @@ public:
 	enum PlayerState {
 		PlayerInvalid = 0,
 		PlayerIdle,
-		PlayerMoving
+		PlayerMoving,
+		PlayerHit,
+		PlayerShot,
+		PlayerCast
 	};
 
 	Q_ENUM(PlayerState);
@@ -970,7 +973,7 @@ using Snapshot = std::vector<std::pair<T2, SnapshotInterpolation<T> > >;
 template <typename T2, typename T,
 		  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
 		  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
-using CurrentSnapshotList = std::vector<std::pair<T2, T> >;
+using CurrentSnapshotList = std::vector<std::pair<T2, std::map<qint64, T> > >;
 
 
 /**
@@ -1016,16 +1019,6 @@ struct CurrentSnapshot {
 		enemies.clear();
 	}
 
-	template <typename T2, typename T>
-	std::optional<T> getCurrentSnapshot(const T2 &data, const CurrentSnapshotList<T2, T> &list) const;
-
-
-	std::optional<Player> getPlayer(const BaseData &data) const {
-		return getCurrentSnapshot(data, players);
-	}
-	std::optional<Enemy> getEnemy(const EnemyBaseData &data) const {
-		return getCurrentSnapshot(data, enemies);
-	}
 
 	template <typename T2, typename T>
 	QCborArray toCborArray(const CurrentSnapshotList<T2, T> &list, const QString &keyBase, const QString &keyData) const;
@@ -1044,6 +1037,8 @@ template <typename T, typename T2,
 struct SnapshotData {
 	T2 data;
 	std::map<qint64, T> list;
+	qint64 lastIn = -1;
+	qint64 lastOut = -1;
 };
 
 
@@ -1093,12 +1088,14 @@ protected:
 			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
 	SnapshotInterpolation<T> getSnapshotInterpolation(const SnapshotList<T, T2> &snapshots,
 													  const T2 &id,
-													  const qint64 &currentTick);
+													  const qint64 &currentTick,
+													  const qint64 &lastTick = -1);
 
 
 	template <typename T, typename = std::enable_if<std::is_base_of<Body, T>::value>::type>
 	SnapshotInterpolation<T> getSnapshotInterpolation(const std::map<qint64, T> &map,
-													  const qint64 &currentTick);
+													  const qint64 &currentTick,
+													  const qint64 &lastTick = -1);
 
 
 	template <typename T, typename = std::enable_if<std::is_base_of<Body, T>::value>::type>
@@ -1109,6 +1106,12 @@ protected:
 			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
 			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
 	void dumpSnapshots(QIODevice *device, const SnapshotList<T, T2> &snapshots) const;
+
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+	CurrentSnapshotList<T2, T> convertToSnapshotList(SnapshotList<T, T2> &list);
 
 
 
@@ -1163,7 +1166,8 @@ inline std::optional<SnapshotInterpolation<T> > FullSnapshot::getSnapshot(const 
 template<typename T, typename T2, typename T3, typename T4>
 inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const SnapshotList<T, T2> &snapshots,
 																		  const T2 &id,
-																		  const qint64 &currentTick)
+																		  const qint64 &currentTick,
+																		  const qint64 &lastTick)
 {
 	SnapshotInterpolation<T> sip;
 
@@ -1184,7 +1188,7 @@ inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const 
 		return sip;
 	}
 
-	return getSnapshotInterpolation<T>(mapIt->list, currentTick);
+	return getSnapshotInterpolation<T>(mapIt->list, currentTick, lastTick);
 }
 
 
@@ -1199,16 +1203,20 @@ inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const 
 
 template<typename T, typename T2>
 inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const std::map<qint64, T> &map,
-																		  const qint64 &currentTick)
+																		  const qint64 &currentTick,
+																		  const qint64 &lastTick)
 {
 	SnapshotInterpolation<T> sip;
 
-	const qint64 time = currentTick - RPG_UDP_DELTA_MSEC;
+	qint64 time = currentTick - RPG_UDP_DELTA_MSEC;
 
 	sip.current = time;
 
 	if (time < 0)
 		return sip;
+
+	if (lastTick >= 0 && lastTick < time)
+		time = lastTick;
 
 	QMutexLocker locker(&m_mutex);
 
@@ -1302,12 +1310,18 @@ inline FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick)
 
 	FullSnapshot s;
 
-	for (const auto &[data, list] : m_players) {
-		s.players.emplace_back(data, getSnapshotInterpolation(list, tick));
+	for (auto &ptr : m_players) {
+		SnapshotInterpolation<RpgGameData::Player> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
+		s.players.emplace_back(ptr.data, sip);
+		if (sip.s2.f >= 0)
+			ptr.lastOut = sip.s2.f;
 	}
 
-	for (const auto &[data, list] : m_enemies) {
-		s.enemies.emplace_back(data, getSnapshotInterpolation(list, tick));
+	for (auto &ptr : m_enemies) {
+		SnapshotInterpolation<RpgGameData::Enemy> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
+		s.enemies.emplace_back(ptr.data, sip);
+		if (sip.s2.f >= 0)
+			ptr.lastOut = sip.s2.f;
 	}
 
 	return s;
@@ -1328,19 +1342,8 @@ inline CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 
 	CurrentSnapshot s;
 
-	for (const auto &[data, list] : m_players) {
-		if (list.empty())
-			s.players.emplace_back(data, Player());
-		else
-			s.players.emplace_back(data, std::prev(list.cend())->second);
-	}
-
-	for (const auto &[data, list] : m_enemies) {
-		if (list.empty())
-			s.enemies.emplace_back(data, Enemy());
-		else
-			s.enemies.emplace_back(data, std::prev(list.cend())->second);
-	}
+	s.players = convertToSnapshotList(m_players);
+	s.enemies = convertToSnapshotList(m_enemies);
 
 	return s;
 }
@@ -1359,39 +1362,13 @@ inline void SnapshotStorage::zapSnapshots(const qint64 &tick)
 	if (tick <= 0)
 		return;
 
-	for (auto &[data, list] : m_players) {
-		zapSnapshots(list, tick);
+	for (auto &ptr : m_players) {
+		zapSnapshots(ptr.list, tick);
 	}
 
-	for (auto &[data, list] : m_enemies) {
-		zapSnapshots(list, tick);
+	for (auto &ptr : m_enemies) {
+		zapSnapshots(ptr.list, tick);
 	}
-}
-
-
-
-/**
- * @brief CurrentSnapshot::getCurrentSnapshot
- * @param data
- * @param list
- * @return
- */
-
-template<typename T2, typename T>
-inline std::optional<T> CurrentSnapshot::getCurrentSnapshot(const T2 &data,
-															const CurrentSnapshotList<T2, T> &list) const
-{
-	const auto it = std::find_if(list.cbegin(),
-								 list.cend(),
-								 [&data](const auto &ptr) {
-		return ptr.first == data;
-	});
-
-
-	if (it != list.cend())
-		return it->second;
-	else
-		return std::nullopt;
 }
 
 
@@ -1406,8 +1383,11 @@ inline QCborMap CurrentSnapshot::toCbor() const
 {
 	QCborMap map;
 
-	map.insert(QStringLiteral("pp"), toCborArray(players, QStringLiteral("pd"), QStringLiteral("p")));
-	map.insert(QStringLiteral("ee"), toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e")));
+	if (const QCborArray &a = toCborArray(players, QStringLiteral("pd"), QStringLiteral("p")); !a.isEmpty())
+		map.insert(QStringLiteral("pp"), a);
+
+	if (const QCborArray &a = toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e")); !a.isEmpty())
+		map.insert(QStringLiteral("ee"), a);
 
 	return map;
 }
@@ -1435,13 +1415,73 @@ inline QCborArray CurrentSnapshot::toCborArray(const CurrentSnapshotList<T2, T> 
 		if (!keyBase.isEmpty())
 			m.insert(keyBase, ptr.first.toCborMap(true));
 
-		if (!keyData.isEmpty())
-			m.insert(keyData, ptr.second.toCborMap(true));
+		if (!keyData.isEmpty()) {
+			QCborArray a;
+
+			std::optional<QCborMap> prev;
+
+			for (const auto &it : ptr.second) {
+				if (prev) {
+					const QCborMap map = it.second.toCborMap(prev.value(), true);
+
+					QCborMap delta = map;
+					delta.remove(QStringLiteral("f"));
+
+					if (delta.isEmpty())
+						continue;
+
+					a.append(map);
+				} else {
+					a.append(it.second.toCborMap(true));
+				}
+				prev = it.second.toCborMap(true);
+			}
+
+			m.insert(keyData, a);
+		}
 
 		array.append(m);
 	}
 
 	return array;
+}
+
+
+
+
+/**
+ * @brief SnapshotStorage::toCurrentSnapshotList
+ * @param list
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline CurrentSnapshotList<T2, T> SnapshotStorage::convertToSnapshotList(SnapshotList<T, T2> &list)
+{
+	CurrentSnapshotList<T2, T> ret;
+
+	for (SnapshotData<T, T2> &ptr : list) {
+		if (ptr.list.empty()) {
+			ret.emplace_back(ptr.data, std::map<qint64, T>());
+			continue;
+		}
+
+		std::map<qint64, T> array;
+
+		auto it = ptr.list.lower_bound(ptr.lastOut);
+
+		if (it == ptr.list.cend())
+			it = std::prev(it);
+
+		for (; it != ptr.list.cend(); ++it) {
+			array.insert_or_assign(it->second.f, it->second);
+			ptr.lastOut = it->first;
+		}
+
+		ret.emplace_back(ptr.data, array);
+	}
+
+	return ret;
 }
 
 
