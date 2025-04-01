@@ -29,6 +29,7 @@
 
 #include "gamequestion.h"
 #include "rpgcontrolgroup.h"
+#include "rpgenemy.h"
 #include "rpgplayer.h"
 #include "rpgpickableobject.h"
 #include "tiledgame.h"
@@ -116,12 +117,13 @@ typedef std::function<void(TiledObjectBody *body)> FuncBodyStep;
 typedef std::function<void()> FuncTimeStep;
 typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
 typedef std::function<bool(RpgPlayer*, RpgContainer*)> FuncPlayerUseContainer;
-typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerAttackEnemy;
-typedef std::function<bool(RpgPlayer*, IsometricEnemy*, const TiledWeapon::WeaponType &)> FuncPlayerHit;
-typedef std::function<bool(RpgPlayer*, const TiledWeapon::WeaponType &, TiledScene*,
-						   const IsometricBullet::Targets &, const qreal &)> FuncPlayerShot;
+typedef std::function<bool(RpgPlayer*, RpgEnemy*, const RpgGameData::Weapon::WeaponType &)> FuncPlayerAttackEnemy;
+typedef std::function<bool(RpgPlayer*, RpgEnemy*, RpgWeapon*)> FuncPlayerHit;
+typedef std::function<bool(RpgPlayer*, RpgWeapon*, const qreal &)> FuncPlayerShot;
 typedef std::function<bool(RpgPlayer*)> FuncPlayerUseCast;
-typedef std::function<bool(IsometricEnemy*, RpgPlayer *, const TiledWeapon::WeaponType &)> FuncEnemyAttackPlayer;
+typedef std::function<bool(RpgEnemy*, RpgPlayer *, const RpgGameData::Weapon::WeaponType &)> FuncEnemyAttackPlayer;
+typedef std::function<bool(RpgEnemy*, RpgPlayer*, RpgWeapon*)> FuncEnemyHit;
+typedef std::function<bool(RpgEnemy*, RpgWeapon*, const qreal &)> FuncEnemyShot;
 
 
 
@@ -163,13 +165,6 @@ public:
 
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
-	bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) override final;
-	bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) override final;
-	bool playerPickPickable(TiledObject *player, TiledObject *pickable) override final;
-
-	bool playerUseCast(RpgPlayer *player);
-	bool playerFinishCast(RpgPlayer *player);
-
 	void saveSceneState(RpgPlayer *player);
 	void saveSceneState();
 
@@ -179,29 +174,6 @@ public:
 	void onEnemySleepingEnd(TiledObject *enemy) override final;
 
 	bool playerTryUseContainer(RpgPlayer *player, RpgContainer *container);
-	void playerUseContainer(RpgPlayer *player, RpgContainer *container);
-
-	IsometricEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
-	IsometricEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene, const int &id) {
-		return createEnemy(type, QStringLiteral(""), scene, id);
-	}
-
-	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, const QString &name, TiledScene *scene,
-									  const int &ownerId = 0, const int &id = 0);
-	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, TiledScene *scene,
-									  const int &ownerId = 0, const int &id = 0) {
-		return createPickable(type, QStringLiteral(""), scene, ownerId, id);
-	}
-
-	IsometricBullet *createBullet(const TiledWeapon::WeaponType &type, TiledScene *scene, const int &id, const int &ownerId,
-								  TiledWeapon *weapon = nullptr);
-
-	IsometricBullet *createBullet(TiledWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId);
-
-	virtual bool shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene,
-					  const IsometricBullet::Targets &targets, const qreal &angle) override;
-
-	virtual bool hit(TiledObject *owner, TiledWeapon *weapon, TiledObject *target) override;
 
 	Q_INVOKABLE bool transportPlayer();
 	Q_INVOKABLE bool useContainer();
@@ -227,7 +199,7 @@ public:
 
 	static const QVector<TextureSpriteMapper> &baseEntitySprite();
 
-	static QString getAttackSprite(const TiledWeapon::WeaponType &weaponType);
+	static QString getAttackSprite(const RpgGameData::Weapon::WeaponType &weaponType);
 	static RpgEnemyMetricDefinition defaultEnemyMetric();
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers) override;
@@ -242,7 +214,7 @@ public:
 
 	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 
-	void useWeapon(const TiledWeapon::WeaponType &type);
+	void useWeapon(const RpgGameData::Weapon::WeaponType &type);
 	const QVector<RpgWallet> &usedWallet() const { return m_usedWallet; }
 	QJsonArray usedWalletAsArray() const;
 
@@ -312,6 +284,12 @@ public:
 	FuncPlayerShot funcPlayerShot() const;
 	void setFuncPlayerShot(const FuncPlayerShot &newFuncPlayerShot);
 
+	FuncEnemyHit funcEnemyHit() const;
+	void setFuncEnemyHit(const FuncEnemyHit &newFuncEnemyHit);
+
+	FuncEnemyShot funcEnemyShot() const;
+	void setFuncEnemyShot(const FuncEnemyShot &newFuncEnemyShot);
+
 signals:
 	void minimapToggleRequest();
 	void questsRequest();
@@ -331,6 +309,22 @@ signals:
 
 protected:
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId);
+	RpgEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
+	RpgEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene, const int &id) {
+		return createEnemy(type, QString(), scene, id);
+	}
+
+	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, const QString &name, TiledScene *scene,
+									  const int &ownerId = 0, const int &id = 0);
+	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, TiledScene *scene,
+									  const int &ownerId = 0, const int &id = 0) {
+		return createPickable(type, QString(), scene, ownerId, id);
+	}
+
+	RpgBullet *createBullet(const RpgGameData::Weapon::WeaponType &type,
+								  TiledScene *scene, const int &id, const int &ownerId);
+
+	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId);
 
 	virtual void worldStep(TiledObjectBody *body) override;
 
@@ -347,8 +341,11 @@ protected:
 	virtual void timeSteppedEvent() override;
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
 
+
 private:
 	void loadMetricDefinition();
+
+	void playerUseContainer(RpgPlayer *player, RpgContainer *container);
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -385,7 +382,7 @@ private:
 		int defaultAngle = 0;
 		QPointer<TiledScene> scene;
 		QPointer<IsometricEnemy> enemy;
-		bool hasQuestion = false;
+		[[deprecated]] bool hasQuestion = false;
 		bool dieForever = false;
 		QVector<RpgGameData::PickableBaseData::PickableType> pickables;
 		QVector<RpgGameData::PickableBaseData::PickableType> pickablesOnce;
@@ -442,6 +439,7 @@ private:
 
 	FuncBodyStep m_funcBodyStep;
 	FuncTimeStep m_funcTimeStep;
+
 	FuncPlayerPick m_funcPlayerPick;
 	FuncPlayerAttackEnemy m_funcPlayerAttackEnemy;
 	FuncPlayerUseContainer m_funcPlayerUseContainer;
@@ -450,6 +448,9 @@ private:
 	FuncPlayerUseCast m_funcPlayerFinishCast;
 	FuncPlayerHit m_funcPlayerHit;
 	FuncPlayerShot m_funcPlayerShot;
+
+	FuncEnemyHit m_funcEnemyHit;
+	FuncEnemyShot m_funcEnemyShot;
 	FuncEnemyAttackPlayer m_funcEnemyAttackPlayer;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;

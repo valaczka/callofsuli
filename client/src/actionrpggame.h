@@ -121,7 +121,7 @@ protected:
 
 	void loadInventory(RpgPlayer *player);
 	void loadInventory(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &pickableType);
-	void loadWeapon(RpgPlayer *player, const TiledWeapon::WeaponType &type, const int &bullet = 0);
+	void loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &type, const int &bullet = 0);
 
 	void updateConfig();
 	void setError();
@@ -136,14 +136,18 @@ private:
 	void downloadLoadableContent(const QStringList &fileList);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
-	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
+	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
 	bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container);
 	bool onPlayerUseCast(RpgPlayer *player);
 	bool onPlayerCastTimeout(RpgPlayer *player);
 	bool onPlayerFinishCast(RpgPlayer *player);
-	bool onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
-	void onQuestionSuccess(RpgPlayer *player, IsometricEnemy *enemy, RpgContainer *container, int xp);
-	void onQuestionFailed(RpgPlayer *player, IsometricEnemy *enemy, RpgContainer *container);
+	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
+	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
+	bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
+	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
+	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
+	void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container, int xp);
+	void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container);
 
 protected:
 	GameMode m_gameMode = SinglePlayer;

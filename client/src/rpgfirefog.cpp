@@ -27,7 +27,7 @@
 #include "rpgfirefog.h"
 
 RpgFireFogWeapon::RpgFireFogWeapon(QObject *parent)
-	: TiledWeapon{WeaponFireFogWeapon, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponFireFogWeapon, parent}
 {
 	m_canHit = true;
 }

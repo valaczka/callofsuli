@@ -115,13 +115,13 @@ protected:
  * @brief The CampaignActionRpgGame class
  */
 
-class CampaignActionRpgGame : public ActionRpgMultiplayerGame, public CampaignGameIface
+class CampaignActionRpgGame : public ActionRpgGame, public CampaignGameIface
 {
 	Q_OBJECT
 
 public:
 	explicit CampaignActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
-		: ActionRpgMultiplayerGame(missionLevel, client) {}
+		: ActionRpgGame(missionLevel, client) {}
 	virtual ~CampaignActionRpgGame() {}
 
 	virtual QJsonObject getServerExtendedData() const { return m_serverExtended; };

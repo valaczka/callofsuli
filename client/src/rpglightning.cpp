@@ -28,7 +28,6 @@
 #include "rpgplayer.h"
 #include "rpggame.h"
 #include "tiledscene.h"
-#include "isometricbullet_p.h"
 
 /**
  * @brief RpgLightning::RpgLightning
@@ -36,7 +35,7 @@
  */
 
 RpgLightning::RpgLightning(TiledScene *scene)
-	: IsometricBullet(scene)
+	: RpgBullet(RpgGameData::Weapon::WeaponLightningWeapon, scene)
 {
 	m_maxDistance = 500.;
 	m_speed = 30.;
@@ -82,6 +81,9 @@ void RpgLightning::load()
 
 
 
+
+
+
 /**
  * @brief RpgLightning::impactEvent
  * @param base
@@ -89,27 +91,23 @@ void RpgLightning::load()
 
 void RpgLightning::impactEvent(TiledObjectBody *base)
 {
-	RpgGame *game = d->owner() ? qobject_cast<RpgGame*>(d->owner()->game()) : nullptr;
-
-	if (!game) {
-		LOG_CWARNING("game") << "Missing owner, bullet automatic impact event failed";
-		return;
-	}
-
-	IsometricEnemy *enemy = dynamic_cast<IsometricEnemy*>(base);
+	RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(base);
 
 	if (!enemy)
 		return;
 
+
+	///rpgGame()->gameQuestion();
+
 	// Ha kérdés van, akkor megsemmisül, egyébként megy tovább
 
-	if (!game->playerAttackEnemy(d->owner(), enemy, d->fromWeaponType()))
+	/*if (!game->playerAttackEnemy(d->owner(), enemy, d->fromWeaponType()))
 	{
 		setImpacted(true);
 		stop();
 		setFacingDirection(Invalid);
 		doAutoDelete();
-	}
+	}*/
 }
 
 
@@ -121,7 +119,7 @@ void RpgLightning::impactEvent(TiledObjectBody *base)
  */
 
 RpgLightningWeapon::RpgLightningWeapon(QObject *parent)
-	: TiledWeapon{WeaponLightningWeapon, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponLightningWeapon, parent}
 {
 
 }
@@ -149,3 +147,4 @@ void RpgLightningWeapon::eventAttack(TiledObject */*target*/)
 	if (m_sfx)
 		m_sfx->playOne();
 }
+

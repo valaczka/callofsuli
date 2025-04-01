@@ -30,7 +30,6 @@
 #include "qsgtexture.h"
 #include "tiledscene.h"
 #include "tiledtransport.h"
-#include "tiledweapon.h"
 #include "abstractgame.h"
 #include <QQuickItem>
 #include <QSerializer>
@@ -149,17 +148,10 @@ public:
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers);
 
-	virtual bool playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType) = 0;
-	virtual bool enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType) = 0;
-	virtual bool playerPickPickable(TiledObject *player, TiledObject *pickable) = 0;
-
 	virtual void onPlayerDead(TiledObject *player) = 0;
 	virtual void onEnemyDead(TiledObject *enemy) = 0;
 	virtual void onEnemySleepingStart(TiledObject *enemy) = 0;
 	virtual void onEnemySleepingEnd(TiledObject *enemy) = 0;
-
-	virtual bool shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene, const IsometricBullet::Targets &targets, const qreal &angle) = 0;
-	virtual bool hit(TiledObject *owner, TiledWeapon *weapon, TiledObject *target) = 0;
 
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;

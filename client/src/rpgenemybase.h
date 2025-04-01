@@ -27,13 +27,12 @@
 #ifndef RPGENEMYBASE_H
 #define RPGENEMYBASE_H
 
-#include "isometricenemy.h"
-#include "rpgenemyiface.h"
+#include "rpgenemy.h"
 #include "tiledeffect.h"
 #include "tiledgamesfx.h"
 #include <QQmlEngine>
 
-class RpgEnemyBase : public IsometricEnemy, public RpgEnemyIface
+class RpgEnemyBase : public RpgEnemy
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -43,38 +42,31 @@ public:
 	explicit RpgEnemyBase(TiledScene *scene = nullptr) : RpgEnemyBase(RpgGameData::EnemyBaseData::EnemyInvalid, scene) {}
 	virtual ~RpgEnemyBase();
 
-	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricEnemy::objectId(); }
-
-	TiledWeapon *defaultWeapon() const override;
-	virtual bool canBulletImpact(const TiledWeapon::WeaponType &type) const override;
-
-	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
-									IsometricPlayer *player = nullptr) const override;
-
 	QString subType() const;
 	void setSubType(const QString &newSubType);
 
 	virtual int enemyType() const override { return RpgEnemyIface::enemyType(); }
+
+	virtual bool canBulletImpact(const RpgGameData::Weapon::WeaponType &type) const override;
 
 
 protected:
 	void updateSprite() override final;
 
 	void load() override final;
+	RpgWeapon *defaultWeapon() const override;
 
 	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
 
 	void eventPlayerReached(IsometricPlayer *player) override final;
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}
 
-	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
+	void attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType) override final;
 
 
-	void playAttackEffect(TiledWeapon *weapon) override final;
+	void playAttackEffect(RpgWeapon *weapon) override final;
 
 	QPointF getPickablePosition(const int &num) const override final;
-
-	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override;
 
 	QString m_subType;
 	QString m_directory = QStringLiteral("base");

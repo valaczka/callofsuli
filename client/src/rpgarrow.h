@@ -27,8 +27,7 @@
 #ifndef RPGARROW_H
 #define RPGARROW_H
 
-#include "isometricbullet.h"
-#include "rpgpickableobject.h"
+#include "rpgarmory.h"
 #include "tiledscene.h"
 #include <QQmlEngine>
 
@@ -37,7 +36,7 @@
  * @brief The RpgArrow class
  */
 
-class RpgArrow : public IsometricBullet
+class RpgArrow : public RpgBullet
 {
 	Q_OBJECT
 	QML_ELEMENT

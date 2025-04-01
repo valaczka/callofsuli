@@ -27,20 +27,16 @@
 #ifndef RPGBROADSWORD_H
 #define RPGBROADSWORD_H
 
-#include "tiledweapon.h"
+#include "rpgarmory.h"
 
 class RpgPlayer;
 
-class RpgBroadsword : public TiledWeapon
+class RpgBroadsword : public RpgWeapon
 {
 	Q_OBJECT
 
 public:
 	explicit RpgBroadsword(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; };
-	bool canProtect(const WeaponType &) const override final { return false; };
-	bool canAttack() const override final { return true; }
 
 protected:
 	void eventAttack(TiledObject *target) override final;

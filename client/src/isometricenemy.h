@@ -107,8 +107,6 @@ public:
 	const EnemyMetric &metric() const { return m_metric; }
 	void setMetric(const EnemyMetric &metric) { m_metric = metric; }
 
-	virtual void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) = 0;
-
 public:
 	virtual void playerChanged() = 0;
 	virtual void playerDistanceChanged() = 0;
@@ -142,26 +140,16 @@ class IsometricEnemy : public IsometricEntity, public IsometricEnemyIface
 
 	Q_PROPERTY(IsometricPlayer *player READ player WRITE setPlayer NOTIFY playerChanged FINAL)
 	Q_PROPERTY(qreal playerDistance READ playerDistance WRITE setPlayerDistance NOTIFY playerDistanceChanged FINAL)
-	Q_PROPERTY(TiledWeapon* defaultWeapon READ defaultWeapon CONSTANT FINAL)
 	Q_PROPERTY(int enemyType READ enemyType CONSTANT FINAL)
 
 public:
 	explicit IsometricEnemy(TiledScene *scene);
-
-	virtual TiledWeapon *defaultWeapon() const = 0;
 
 	void initialize();
 	bool hasAbility();
 	bool isSleeping();
 	bool isRunning() const;
 	bool isWalking() const;
-
-	virtual bool canBulletImpact(const TiledWeapon::WeaponType &/*type*/) const { return true; }
-
-	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override;
-
-	virtual int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
-									IsometricPlayer *player = nullptr) const = 0;
 
 	void rotateToPlayer(IsometricPlayer *player, const bool &forced = false);
 
@@ -182,8 +170,6 @@ signals:
 	void playerDistanceChanged() override final;
 
 protected:
-	virtual bool enemyWorldStep() override;
-	virtual bool enemyWorldStepOnVisiblePlayer() override;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &type) override;
 
 	virtual void synchronize() override;
@@ -202,9 +188,6 @@ protected:
 	virtual void eventPlayerContacted(IsometricPlayer *player) { Q_UNUSED(player); }
 	virtual void eventPlayerDiscontacted(IsometricPlayer *player) { Q_UNUSED(player); }
 	virtual void eventKilledByPlayer(IsometricPlayer *player);
-
-	virtual void attackPlayer(IsometricPlayer *player, TiledWeapon *weapon);
-	virtual void playAttackEffect(TiledWeapon *weapon) { Q_UNUSED(weapon); }
 
 	void stepMotor();
 

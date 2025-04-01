@@ -27,24 +27,20 @@
 #ifndef RPGSHIELD_H
 #define RPGSHIELD_H
 
+#include "rpgarmory.h"
 #include "rpgpickableobject.h"
-#include "tiledweapon.h"
 
 
 /**
  * @brief The RpgShield class
  */
 
-class RpgShield : public TiledWeapon
+class RpgShield : public RpgWeapon
 {
 	Q_OBJECT
 
 public:
 	explicit RpgShield(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &weapon) override final;
-	bool canProtect(const WeaponType &weapon) const override final;
-	bool canAttack() const override final { return false; }
 
 };
 

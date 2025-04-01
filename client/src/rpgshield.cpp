@@ -29,103 +29,10 @@
 #include "utils_.h"
 
 RpgShield::RpgShield(QObject *parent)
-	: TiledWeapon{WeaponShield, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponShield, parent}
 {
 	m_icon = QStringLiteral("qrc:/Qaterial/Icons/shield.svg");
 }
-
-
-/**
- * @brief RpgShield::protect
- * @param weapon
- * @return
- */
-
-bool RpgShield::protect(const WeaponType &weapon)
-{
-	switch (weapon) {
-		case TiledWeapon::WeaponHand:
-			eventProtect();
-			return true;
-
-		case TiledWeapon::WeaponShortbow:
-		case TiledWeapon::WeaponLongsword:
-		case TiledWeapon::WeaponDagger:
-			setBulletCount(m_bulletCount-1);
-			eventProtect();
-			return true;
-
-		case TiledWeapon::WeaponAxe:
-			setBulletCount(m_bulletCount-3);
-			eventProtect();
-			return true;
-
-		case TiledWeapon::WeaponMace:
-		case TiledWeapon::WeaponHammer:
-			setBulletCount(m_bulletCount-2);
-			eventProtect();
-			return true;
-
-		case TiledWeapon::WeaponLongbow:
-			setBulletCount(m_bulletCount-5);
-			eventProtect();
-			return true;
-
-		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponBroadsword:
-			setBulletCount(0);
-			eventProtect();
-			return true;
-
-		case TiledWeapon::WeaponMageStaff:
-		case TiledWeapon::WeaponLightningWeapon:
-		case TiledWeapon::WeaponFireFogWeapon:
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponInvalid:
-			break;
-	}
-
-	return false;
-}
-
-
-
-/**
- * @brief RpgShield::canProtect
- * @param weapon
- * @return
- */
-
-bool RpgShield::canProtect(const WeaponType &weapon) const
-{
-	switch (weapon) {
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponShortbow:
-		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponLongsword:
-		case TiledWeapon::WeaponDagger:
-			return (m_bulletCount > 0);
-
-		case TiledWeapon::WeaponLongbow:
-		case TiledWeapon::WeaponBroadsword:
-		case TiledWeapon::WeaponAxe:
-			return (m_bulletCount > 2);
-
-		case TiledWeapon::WeaponHammer:
-		case TiledWeapon::WeaponMace:
-			return (m_bulletCount > 1);
-
-		case TiledWeapon::WeaponMageStaff:
-		case TiledWeapon::WeaponLightningWeapon:
-		case TiledWeapon::WeaponFireFogWeapon:
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponInvalid:
-			break;
-	}
-
-	return false;
-}
-
 
 
 
@@ -176,10 +83,7 @@ void RpgShieldPickable::pick(RpgPlayer *player, TiledGame *game)
 
 	static const int num = 2;
 
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShield);
-
-	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgShield);
+	RpgWeapon *weapon = player->armory()->weaponAdd(RpgGameData::Weapon::WeaponShield);
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
 	player->armory()->updateLayers();

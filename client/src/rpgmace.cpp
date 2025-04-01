@@ -33,7 +33,7 @@
  */
 
 RpgMace::RpgMace(QObject *parent)
-	: TiledWeapon{WeaponMace, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponMace, parent}
 {
 	//m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;

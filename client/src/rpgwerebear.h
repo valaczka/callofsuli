@@ -28,6 +28,7 @@
 #define RPGWEREBEAR_H
 
 #include "isometricenemy.h"
+#include "rpgenemy.h"
 #include "rpgenemyiface.h"
 #include "tiledeffect.h"
 #include "tiledgamesfx.h"
@@ -39,16 +40,12 @@
  * @brief The IsometricWerebearWeaponHand class
  */
 
-class RpgWerebearWeaponHand : public TiledWeapon
+class RpgWerebearWeaponHand : public RpgWeapon
 {
 	Q_OBJECT
 
 public:
 	RpgWerebearWeaponHand(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; }
-	bool canProtect(const WeaponType &) const override final { return false; }
-	bool canAttack() const override final { return true; }
 
 protected:
 	void eventAttack(TiledObject *target) override final;
@@ -60,7 +57,7 @@ protected:
  * @brief The RpgWerebear class
  */
 
-class RpgWerebear : public IsometricEnemy, public RpgEnemyIface
+class RpgWerebear : public RpgEnemy
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -69,12 +66,9 @@ public:
 	explicit RpgWerebear(TiledScene *scene = nullptr);
 	virtual ~RpgWerebear();
 
-	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricEnemy::objectId(); }
+	virtual TiledObjectBody::ObjectId objectId() const override { return RpgEnemy::objectId(); }
 
-	TiledWeapon *defaultWeapon() const override;
-
-	int getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType,
-									IsometricPlayer *player = nullptr) const override;
+	RpgWeapon *defaultWeapon() const override;
 
 protected:
 	//bool enemyWorldStep() override final;
@@ -86,15 +80,13 @@ protected:
 	void eventPlayerReached(IsometricPlayer */*player*/) override final;
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final;
 
-	void attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType) override final;
+	void attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType) override final;
 
-	void playAttackEffect(TiledWeapon *weapon) override final;
+	void playAttackEffect(RpgWeapon *weapon) override final;
 	void playDeadEffect();
 	void playSeeEffect();
 
 	QPointF getPickablePosition(const int &num) const override final;
-
-	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
 
 	virtual int enemyType() const override { return RpgEnemyIface::enemyType(); }
 

@@ -81,3 +81,6 @@
 [submodule "lib/miniaudio"]
 	path = lib/miniaudio
 	url = https://github.com/mackron/miniaudio.git
+[submodule "lib/backward-cpp"]
+	path = lib/backward-cpp
+	url = https://github.com/bombela/backward-cpp.git

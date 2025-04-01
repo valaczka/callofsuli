@@ -115,8 +115,6 @@ protected:
 	virtual void synchronize() override;
 
 	virtual void load() = 0;
-	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
-	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, const bool &isProtected) = 0;
 	virtual void onPickableReached(TiledObjectBody *object) = 0;
 	virtual void onPickableLeft(TiledObjectBody *object) = 0;
 	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
@@ -125,8 +123,6 @@ protected:
 	virtual void onTransportLeft(TiledTransport *transport) = 0;
 
 	virtual void atDestinationPointEvent() {}
-
-	bool protectWeapon(TiledWeaponList *weaponList, const TiledWeapon::WeaponType &weaponType);
 
 	QList<IsometricEnemy*> reachedEnemies() const;
 

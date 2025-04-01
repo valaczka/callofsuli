@@ -384,7 +384,7 @@ void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
 		const QCborValue &pd = m.value(QStringLiteral("pd"));
 		const QCborArray &p = m.value(QStringLiteral("p")).toArray();
 
-		RpgGameData::BaseData playerData;
+		RpgGameData::PlayerBaseData playerData;
 		playerData.fromCbor(pd);
 
 		if (playerData.o < 0) {
@@ -443,7 +443,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::CharacterSelect &player)
 	RpgGameData::Player pData;
 
 	if (pIt == m_players.cend()) {
-		RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::BaseData> d;
+		RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> d;
 		d.data.o = player.playerId;
 		m_players.push_back(d);
 	} /*else {
@@ -462,7 +462,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::CharacterSelect &player)
  * @param player
  */
 
-void ClientStorage::updateSnapshot(const RpgGameData::BaseData &playerData, const RpgGameData::Player &player)
+void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player)
 {
 	QMutexLocker locker(&m_mutex);
 
@@ -513,7 +513,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::BaseData &playerData, cons
  * @param player
  */
 
-void ClientStorage::appendSnapshot(const RpgGameData::BaseData &playerData, const RpgGameData::Player &player)
+void ClientStorage::appendSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player)
 {
 	QMutexLocker locker(&m_mutex);
 
@@ -524,7 +524,7 @@ void ClientStorage::appendSnapshot(const RpgGameData::BaseData &playerData, cons
 	});
 
 	if (it == m_players.end()) {
-		RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::BaseData> d;
+		RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> d;
 		d.data = playerData;
 		d.list.insert_or_assign(player.f, player);
 		m_players.push_back(d);

@@ -79,10 +79,10 @@ QString RpgPickableObject::pickableName(const RpgGameData::PickableBaseData::Pic
 {
 	switch (type) {
 		case RpgGameData::PickableBaseData::PickableHp: return QStringLiteral("HP");
-		case RpgGameData::PickableBaseData::PickableShortbow: return TiledWeapon::weaponName(TiledWeapon::WeaponShortbow);
-		case RpgGameData::PickableBaseData::PickableLongbow: return TiledWeapon::weaponName(TiledWeapon::WeaponLongbow);
-		case RpgGameData::PickableBaseData::PickableLongsword: return TiledWeapon::weaponName(TiledWeapon::WeaponLongsword);
-		case RpgGameData::PickableBaseData::PickableDagger: return TiledWeapon::weaponName(TiledWeapon::WeaponDagger);
+		case RpgGameData::PickableBaseData::PickableShortbow: return RpgWeapon::weaponName(RpgGameData::Weapon::WeaponShortbow);
+		case RpgGameData::PickableBaseData::PickableLongbow: return RpgWeapon::weaponName(RpgGameData::Weapon::WeaponLongbow);
+		case RpgGameData::PickableBaseData::PickableLongsword: return RpgWeapon::weaponName(RpgGameData::Weapon::WeaponLongsword);
+		case RpgGameData::PickableBaseData::PickableDagger: return RpgWeapon::weaponName(RpgGameData::Weapon::WeaponDagger);
 		case RpgGameData::PickableBaseData::PickableShield: return QStringLiteral("Pajzs");
 		case RpgGameData::PickableBaseData::PickableTime: return QStringLiteral("Idő");
 		case RpgGameData::PickableBaseData::PickableMp: return QStringLiteral("MP");
@@ -105,10 +105,10 @@ QString RpgPickableObject::pickableNameEn(const RpgGameData::PickableBaseData::P
 {
 	switch (type) {
 		case RpgGameData::PickableBaseData::PickableHp: return QStringLiteral("HP");
-		case RpgGameData::PickableBaseData::PickableShortbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponShortbow);
-		case RpgGameData::PickableBaseData::PickableLongbow: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongbow);
-		case RpgGameData::PickableBaseData::PickableLongsword: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponLongsword);
-		case RpgGameData::PickableBaseData::PickableDagger: return TiledWeapon::weaponNameEn(TiledWeapon::WeaponDagger);
+		case RpgGameData::PickableBaseData::PickableShortbow: return RpgWeapon::weaponNameEn(RpgGameData::Weapon::WeaponShortbow);
+		case RpgGameData::PickableBaseData::PickableLongbow: return RpgWeapon::weaponNameEn(RpgGameData::Weapon::WeaponLongbow);
+		case RpgGameData::PickableBaseData::PickableLongsword: return RpgWeapon::weaponNameEn(RpgGameData::Weapon::WeaponLongsword);
+		case RpgGameData::PickableBaseData::PickableDagger: return RpgWeapon::weaponNameEn(RpgGameData::Weapon::WeaponDagger);
 		case RpgGameData::PickableBaseData::PickableShield: return QStringLiteral("Shield");
 		case RpgGameData::PickableBaseData::PickableTime: return QStringLiteral("Time");
 		case RpgGameData::PickableBaseData::PickableKey: return QStringLiteral("Key");

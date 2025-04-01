@@ -25,11 +25,10 @@
  */
 
 #include "rpgarrow.h"
-#include "rpgplayer.h"
 
 
 RpgArrow::RpgArrow(TiledScene *scene)
-	: IsometricBullet(scene)
+	: RpgBullet(RpgGameData::Weapon::WeaponShortbow, scene)
 {
 
 }

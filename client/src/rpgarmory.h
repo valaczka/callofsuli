@@ -27,23 +27,141 @@
 #ifndef RPGARMORY_H
 #define RPGARMORY_H
 
+#include "isometricentity.h"
+#include "rpggamedataiface.h"
 #include "tiledweapon.h"
+#include "rpgconfig.h"
+#include "isometricbullet.h"
 #include <QObject>
+
+
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#include "QOlm/QOlm.hpp"
+#pragma GCC diagnostic warning "-Wunused-parameter"
+#pragma GCC diagnostic warning "-Wunused-variable"
+
+class RpgWeapon;
+using RpgWeaponList = qolm::QOlm<RpgWeapon>;
+Q_DECLARE_METATYPE(RpgWeaponList*)
+
+
+
+class RpgGame;
+
+
+
+
+/**
+ * @brief The RpgWeapon class
+ */
+
+class RpgWeapon : public TiledWeapon
+{
+	Q_OBJECT
+
+public:
+	explicit RpgWeapon(const RpgGameData::Weapon::WeaponType &type, QObject *parent = nullptr);
+	explicit RpgWeapon(QObject *parent = nullptr)
+		: RpgWeapon(RpgGameData::Weapon::WeaponInvalid, parent) {}
+
+	RpgGameData::Weapon::WeaponType weaponType() const { return m_weaponType; }
+
+	static QString weaponName(const RpgGameData::Weapon::WeaponType &type);
+	QString weaponName() const { return weaponName(m_weaponType); }
+
+	static QString weaponNameEn(const RpgGameData::Weapon::WeaponType &type);
+	QString weaponNameEn() const { return weaponNameEn(m_weaponType); }
+
+	RpgGameData::Weapon serialize() const;
+	bool updateFromSnapshot(const RpgGameData::Weapon &weapon);
+
+protected:
+	const RpgGameData::Weapon::WeaponType m_weaponType;
+
+
+};
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The RpgBullet class
+ */
+
+class RpgBullet : public IsometricBullet, public RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+	Q_PROPERTY(RpgGameData::Weapon::WeaponType weaponType READ weaponType CONSTANT FINAL)
+	Q_PROPERTY(RpgGameData::BulletBaseData::Owner owner READ owner WRITE setOwner NOTIFY ownerChanged FINAL)
+	Q_PROPERTY(RpgGameData::BulletBaseData::Targets targets READ targets WRITE setTargets NOTIFY targetsChanged FINAL)
+
+public:
+	explicit RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledScene *scene);
+	virtual ~RpgBullet();
+
+	virtual RpgGameData::BulletBaseData baseData() const override;
+	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricBullet::objectId(); }
+
+	IsometricEntity *ownerEntity() const;
+	void setOwnerEntity(IsometricEntity *newOwnerEntity);
+
+	RpgGameData::BulletBaseData::Owner owner() const;
+	void setOwner(const RpgGameData::BulletBaseData::Owner &newOwner);
+
+	RpgGameData::BulletBaseData::Targets targets() const;
+	void setTargets(const RpgGameData::BulletBaseData::Targets &newTargets);
+
+	RpgGameData::Weapon::WeaponType weaponType() const;
+
+signals:
+	void ownerChanged();
+	void targetsChanged();
+
+protected:
+	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
+	virtual void impactEvent(TiledObjectBody *base) override;
+
+	RpgGame *rpgGame() const;
+
+	const RpgGameData::Weapon::WeaponType m_weaponType;
+	RpgGameData::BulletBaseData::Owner m_owner = RpgGameData::BulletBaseData::OwnerNone;
+	RpgGameData::BulletBaseData::Targets m_targets = RpgGameData::BulletBaseData::TargetNone;
+	QPointer<IsometricEntity> m_ownerEntity;
+};
+
+
 
 class RpgMageStaff;
 
 #ifndef OPAQUE_PTR_RpgMageStaff
 #define OPAQUE_PTR_RpgMageStaff
-  Q_DECLARE_OPAQUE_POINTER(RpgMageStaff*)
+Q_DECLARE_OPAQUE_POINTER(RpgMageStaff*)
 #endif
+
+
+
+
+
+/**
+ * @brief The RpgArmory class
+ */
 
 class RpgArmory : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(TiledWeaponList *weaponList READ weaponList CONSTANT FINAL)
-	Q_PROPERTY(TiledWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
-	Q_PROPERTY(TiledWeapon *nextWeapon READ nextWeapon WRITE setNextWeapon NOTIFY nextWeaponChanged FINAL)
+	Q_PROPERTY(RpgWeaponList *weaponList READ weaponList CONSTANT FINAL)
+	Q_PROPERTY(RpgWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
+	Q_PROPERTY(RpgWeapon *nextWeapon READ nextWeapon WRITE setNextWeapon NOTIFY nextWeaponChanged FINAL)
 	Q_PROPERTY(QStringList baseLayers READ baseLayers WRITE setBaseLayers NOTIFY baseLayersChanged FINAL)
 	Q_PROPERTY(RpgMageStaff *mageStaff READ mageStaff NOTIFY mageStaffChanged FINAL)
 
@@ -51,7 +169,7 @@ public:
 	explicit RpgArmory(TiledObject *parentObject, QObject *parent = nullptr);
 	virtual ~RpgArmory();
 
-	static const QHash<TiledWeapon::WeaponType, QString> &weaponHash() { return m_layerInfoHash; }
+	static const QHash<RpgGameData::Weapon::WeaponType, QString> &weaponHash() { return m_layerInfoHash; }
 
 	Q_INVOKABLE bool changeToNextWeapon();
 
@@ -59,25 +177,26 @@ public:
 
 	int getShieldCount() const;
 
-	TiledWeaponList *weaponList() const;
-	TiledWeapon *weaponFind(const TiledWeapon::WeaponType &type) const;
+	RpgWeaponList *weaponList() const;
+	RpgWeapon *weaponFind(const RpgGameData::Weapon::WeaponType &type) const;
+	RpgWeapon *weaponAdd(const RpgGameData::Weapon::WeaponType &type);
 
-	TiledWeapon *weaponAdd(TiledWeapon *weapon);
-	void weaponRemove(TiledWeapon *weapon);
-
-	TiledWeapon *currentWeapon() const;
-	void setCurrentWeapon(TiledWeapon *newCurrentWeapon);
+	RpgWeapon *currentWeapon() const;
+	void setCurrentWeapon(RpgWeapon *newCurrentWeapon);
 
 	QStringList baseLayers() const;
 	void setBaseLayers(const QStringList &newBaseLayers);
 
 	void updateNextWeapon();
-	void setCurrentWeaponIf(TiledWeapon *newCurrentWeapon, const TiledWeapon::WeaponType &currentType);
+	void setCurrentWeaponIf(RpgWeapon *newCurrentWeapon, const RpgGameData::Weapon::WeaponType &currentType);
 
-	TiledWeapon *nextWeapon() const;
-	void setNextWeapon(TiledWeapon *newNextWeapon);
+	RpgWeapon *nextWeapon() const;
+	void setNextWeapon(RpgWeapon *newNextWeapon);
 
 	RpgMageStaff *mageStaff() const;
+
+	RpgGameData::Armory serialize() const;
+	bool updateFromSnapshot(const RpgGameData::Armory &armory);
 
 signals:
 	void currentWeaponChanged();
@@ -86,16 +205,40 @@ signals:
 	void mageStaffChanged();
 
 private:
-	TiledWeapon *getNextWeapon() const;
+	RpgWeapon *weaponAdd(RpgWeapon *weapon);
+	void weaponRemove(RpgWeapon *weapon);
+
+	RpgWeapon *getNextWeapon() const;
 
 	TiledObject *m_parentObject = nullptr;
-	std::unique_ptr<TiledWeaponList> m_weaponList;
-	TiledWeapon *m_currentWeapon = nullptr;
-	TiledWeapon *m_nextWeapon = nullptr;
+	std::unique_ptr<RpgWeaponList> m_weaponList;
+	RpgWeapon *m_currentWeapon = nullptr;
+	RpgWeapon *m_nextWeapon = nullptr;
 	QStringList m_baseLayers = { QStringLiteral("default") };
 
-	static const QHash<TiledWeapon::WeaponType, QString> m_layerInfoHash;
+	static const QHash<RpgGameData::Weapon::WeaponType, QString> m_layerInfoHash;
 
 };
 
+
+
+
+
+
+
+/**
+ * @brief The RpgWeaponHand class
+ */
+
+class RpgWeaponHand : public RpgWeapon
+{
+	Q_OBJECT
+
+public:
+	RpgWeaponHand(QObject *parent = nullptr);
+
+protected:
+	virtual void eventAttack(TiledObject *target) override;
+
+};
 #endif // RPGARMORY_H

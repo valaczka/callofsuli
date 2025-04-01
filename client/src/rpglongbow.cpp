@@ -25,11 +25,10 @@
  */
 
 #include "rpglongbow.h"
-#include "rpgfireball.h"
 #include "rpgplayer.h"
 
 RpgLongbow::RpgLongbow(QObject *parent)
-	: TiledWeapon{WeaponLongbow, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponLongbow, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.2_76.png");
 }
@@ -87,10 +86,7 @@ bool RpgLongbowPickable::playerPick(RpgPlayer *player)
 
 	static const int num = 5;
 
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponLongbow);
-
-	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgLongbow);
+	RpgWeapon *weapon = player->armory()->weaponAdd(RpgGameData::Weapon::WeaponLongbow);
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
 	weapon->setPickedBulletCount(weapon->pickedBulletCount()+num);
@@ -98,7 +94,7 @@ bool RpgLongbowPickable::playerPick(RpgPlayer *player)
 	if (m_game)
 		m_game->message(tr("1 longbow gained"));
 
-	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
+	player->armory()->setCurrentWeaponIf(weapon, RpgGameData::Weapon::WeaponHand);
 
 	return true;
 }

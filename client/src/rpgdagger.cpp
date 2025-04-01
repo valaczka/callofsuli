@@ -28,7 +28,7 @@
 #include "rpgplayer.h"
 
 RpgDagger::RpgDagger(QObject *parent)
-	: TiledWeapon{WeaponDagger, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponDagger, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.8_21.png");
 	m_canHit = true;
@@ -77,10 +77,10 @@ bool RpgDaggerPickable::playerPick(RpgPlayer *player)
 	if (!player)
 		return false;
 
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponLongsword);
+	RpgWeapon *weapon = player->armory()->weaponFind(RpgGameData::Weapon::WeaponLongsword);
 
 	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgDagger);
+		weapon = player->armory()->weaponAdd(RpgGameData::Weapon::WeaponDagger);
 
 	weapon->setBulletCount(weapon->bulletCount()+1);
 	weapon->setPickedBulletCount(weapon->pickedBulletCount()+1);
@@ -88,7 +88,7 @@ bool RpgDaggerPickable::playerPick(RpgPlayer *player)
 	if (m_game)
 		m_game->message(tr("1 dagger gained"));
 
-	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
+	player->armory()->setCurrentWeaponIf(weapon, RpgGameData::Weapon::WeaponHand);
 
 	return true;
 }

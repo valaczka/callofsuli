@@ -25,12 +25,10 @@
  */
 
 #include "tiledweapon.h"
-#include "isometricplayer.h"
-#include "isometricenemy.h"
+#include "tiledgame.h"
 
-TiledWeapon::TiledWeapon(const WeaponType &type, QObject *parent)
+TiledWeapon::TiledWeapon(QObject *parent)
 	: QObject(parent)
-	, m_weaponType(type)
 {
 
 }
@@ -47,77 +45,6 @@ TiledWeapon::~TiledWeapon()
 
 
 
-/**
- * @brief TiledWeapon::weaponType
- * @return
- */
-
-TiledWeapon::WeaponType TiledWeapon::weaponType() const
-{
-	return m_weaponType;
-}
-
-
-/**
- * @brief TiledWeapon::weaponName
- * @param type
- * @return
- */
-
-QString TiledWeapon::weaponName(const WeaponType &type)
-{
-	switch (type) {
-		case WeaponShortbow: return tr("íj");
-		case WeaponLongbow: return tr("longbow");
-		case WeaponGreatHand: return tr("kéz");
-		case WeaponHand: return tr("kéz");
-		case WeaponShield: return tr("pajzs");
-		case WeaponLongsword: return tr("kard");
-		case WeaponDagger: return tr("tőr");
-		case WeaponBroadsword: return tr("pallos");
-		case WeaponMageStaff: return QStringLiteral("varázsbot");
-		case WeaponLightningWeapon: return QStringLiteral("villám");
-		case WeaponFireFogWeapon: return QStringLiteral("tűz");
-		case WeaponAxe: return tr("balta");
-		case WeaponMace: return tr("buzogány");
-		case WeaponHammer: return tr("kalapács");
-		case WeaponInvalid: return tr("érvénytelen");
-	}
-
-	return {};
-}
-
-
-/**
- * @brief TiledWeapon::weaponNameEn
- * @param type
- * @return
- */
-
-QString TiledWeapon::weaponNameEn(const WeaponType &type)
-{
-	switch (type) {
-		case WeaponShortbow: return QStringLiteral("Shortbow");
-		case WeaponLongbow: return QStringLiteral("Longbow");
-		case WeaponGreatHand: return QStringLiteral("Hand");
-		case WeaponHand: return QStringLiteral("Hand");
-		case WeaponShield: return QStringLiteral("Shield");
-		case WeaponLongsword: return QStringLiteral("Sword");
-		case WeaponBroadsword: return QStringLiteral("Broadsword");
-		case WeaponDagger: return QStringLiteral("Dagger");
-		case WeaponMageStaff: return QStringLiteral("Mage staff");
-		case WeaponAxe: return tr("Axe");
-		case WeaponMace: return tr("Mace");
-		case WeaponHammer: return tr("Hammer");
-		case WeaponLightningWeapon: return QStringLiteral("Lightning");
-		case WeaponFireFogWeapon: return QStringLiteral("Fire fog");
-		case WeaponInvalid: return QStringLiteral("Invalid");
-	}
-
-	return {};
-}
-
-
 
 /**
  * @brief TiledWeapon::shot
@@ -127,21 +54,23 @@ QString TiledWeapon::weaponNameEn(const WeaponType &type)
  */
 
 
-bool TiledWeapon::shot()
+bool TiledWeapon::shot(const bool &forced)
 {
 	if (m_bulletCount == 0)
 		return false;
 
-	if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
-		return false;
+	if (!forced) {
+		if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
+			return false;
 
-	const auto tick = m_parentObject->game()->tickTimer()->currentTick();
+		const auto tick = m_parentObject->game()->tickTimer()->currentTick();
 
-	if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
-		return false;
+		if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
+			return false;
 
-	if (m_repeaterIdle > 0)
-		m_timerRepeater = tick + m_repeaterIdle;
+		if (m_repeaterIdle > 0)
+			m_timerRepeater = tick + m_repeaterIdle;
+	}
 
 	eventAttack(nullptr);
 
@@ -150,45 +79,32 @@ bool TiledWeapon::shot()
 
 
 
+
+
+
+
 /**
  * @brief TiledWeapon::hit
  * @param target
  */
 
-bool TiledWeapon::hit(TiledObject *target)
+bool TiledWeapon::hit(TiledObject *target, const bool &forced)
 {
-	if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
-		return false;
-
-	const auto tick = m_parentObject->game()->tickTimer()->currentTick();
-
-	if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
-		return false;
-
 	if (m_bulletCount == 0)
 		return false;
 
-	if (target && m_parentObject) {
-		IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(m_parentObject);
-		IsometricPlayer *player = qobject_cast<IsometricPlayer*>(m_parentObject);
+	if (!forced) {
+		if (!m_parentObject->game() || !m_parentObject->game()->tickTimer())
+			return false;
 
-		if (player) {
-			if (m_bulletCount > 0)
-				setBulletCount(m_bulletCount-1);
-			m_parentObject->game()->playerAttackEnemy(m_parentObject, target, m_weaponType);
-		}
+		const auto tick = m_parentObject->game()->tickTimer()->currentTick();
 
-		if (enemy) {
-			if (m_bulletCount > 0)
-				setBulletCount(m_bulletCount-1);
-			m_parentObject->game()->enemyAttackPlayer(m_parentObject, target, m_weaponType);
-		}
+		if (!m_disableTimerRepeater && m_timerRepeater >= 0 && m_timerRepeater > tick)
+			return false;
 
-		/// TODO: player attacks player ?
+		if (m_repeaterIdle > 0)
+			m_timerRepeater = tick + m_repeaterIdle;
 	}
-
-	if (m_repeaterIdle > 0)
-		m_timerRepeater = tick + m_repeaterIdle;
 
 	eventAttack(target);
 
@@ -399,40 +315,3 @@ void TiledWeapon::setCanHit(bool newCanHit)
 }
 
 
-
-
-
-
-/**
- * @brief TiledWeaponHand::TiledWeaponHand
- * @param parent
- */
-
-TiledWeaponHand::TiledWeaponHand(QObject *parent)
-	: TiledWeapon(WeaponHand, parent)
-{
-	m_bulletCount = -1;
-	m_canHit = true;
-	m_icon = QStringLiteral("qrc:/internal/medal/Icon.3_31.png");
-}
-
-
-
-/**
- * @brief TiledWeaponHand::eventAttack
- * @param target
- */
-
-void TiledWeaponHand::eventAttack(TiledObject *target)
-{
-	if (!m_parentObject) {
-		LOG_CERROR("game") << "Missing parent object" << this;
-		return;
-	}
-
-	TiledObject *p = m_parentObject.data();
-
-	if (TiledGame *g = p->game(); g && target) {
-		g->playSfx(QStringLiteral(":/rpg/common/hit.mp3"), p->scene(), p->bodyPosition());
-	}
-}

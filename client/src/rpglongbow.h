@@ -27,23 +27,19 @@
 #ifndef RPGLONGBOW_H
 #define RPGLONGBOW_H
 
+#include "rpgarmory.h"
 #include "rpgpickableobject.h"
-#include "tiledweapon.h"
 
 
 /**
  * @brief The RpgLongbow class
  */
 
-class RpgLongbow : public TiledWeapon
+class RpgLongbow : public RpgWeapon
 {
 	Q_OBJECT
 public:
 	explicit RpgLongbow(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; }
-	bool canProtect(const WeaponType &) const override final { return false; }
-	bool canAttack() const override final { return true; }
 
 protected:
 	void eventAttack(TiledObject *target) override final;

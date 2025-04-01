@@ -395,47 +395,6 @@ void IsometricPlayer::updateEnemies(const float &shotRange)
 
 
 
-
-
-
-/**
- * @brief IsometricPlayer::protectWeapon
- * @param list
- * @param weaponType
- * @return
- */
-
-bool IsometricPlayer::protectWeapon(TiledWeaponList *weaponList, const TiledWeapon::WeaponType &weaponType)
-{
-	Q_ASSERT(weaponList);
-
-	if (weaponList->empty())
-		return false;
-
-	std::vector<TiledWeapon*> list;
-
-	// Ordering weapons by enum
-
-	for (TiledWeapon *weapon : std::as_const(*weaponList)) {
-		if (weapon->canProtect(weaponType))
-			list.push_back(weapon);
-	}
-
-	if (list.empty())
-		return false;
-
-	std::sort(list.begin(), list.end(), [](TiledWeapon *w1, TiledWeapon *w2) {
-		return w1->weaponType() < w2->weaponType();
-	});
-
-	for (TiledWeapon *w : std::as_const(list))
-		if (w->protect(weaponType))
-			return true;
-
-	return false;
-}
-
-
 /**
  * @brief IsometricPlayer::reachedEnemies
  * @return

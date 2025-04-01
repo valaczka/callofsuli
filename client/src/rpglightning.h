@@ -27,16 +27,15 @@
 #ifndef RPGLIGHTNING_H
 #define RPGLIGHTNING_H
 
-#include "isometricbullet.h"
+#include "rpgarmory.h"
 #include "tiledgamesfx.h"
-#include "tiledweapon.h"
 
 
 /**
  * @brief The RpgLightning class
  */
 
-class RpgLightning : public IsometricBullet
+class RpgLightning : public RpgBullet
 {
 	Q_OBJECT
 
@@ -57,15 +56,11 @@ protected:
  * @brief The RpgLightningWeapon class
  */
 
-class RpgLightningWeapon : public TiledWeapon
+class RpgLightningWeapon : public RpgWeapon
 {
 	Q_OBJECT
 public:
 	explicit RpgLightningWeapon(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; }
-	bool canProtect(const WeaponType &) const override final { return false; }
-	bool canAttack() const override final { return true; }
 
 protected:
 	void eventAttack(TiledObject *target) override final;

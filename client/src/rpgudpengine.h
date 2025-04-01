@@ -49,11 +49,11 @@ public:
 
 	// Incoming snapshot
 	void updateSnapshot(const RpgGameData::CharacterSelect &player);
-	void updateSnapshot(const RpgGameData::BaseData &playerData, const RpgGameData::Player &player);
+		void updateSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player);
 
 
 	// Outgoing snapshot
-	void appendSnapshot(const RpgGameData::BaseData &playerData, const RpgGameData::Player &player);
+		void appendSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player);
 
 	void clear();
 

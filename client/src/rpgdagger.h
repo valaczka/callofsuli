@@ -27,21 +27,17 @@
 #ifndef RPGDAGGER_H
 #define RPGDAGGER_H
 
-#include "tiledweapon.h"
 #include "rpgpickableobject.h"
+#include "rpgarmory.h"
 
 class RpgPlayer;
 
-class RpgDagger : public TiledWeapon
+class RpgDagger : public RpgWeapon
 {
 	Q_OBJECT
 
 public:
 	explicit RpgDagger(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; };
-	bool canProtect(const WeaponType &) const override final { return false; };
-	bool canAttack() const override final { return true; }
 
 protected:
 	void eventAttack(TiledObject *target) override final;

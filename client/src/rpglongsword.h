@@ -27,8 +27,8 @@
 #ifndef RPGLONGSWORD_H
 #define RPGLONGSWORD_H
 
-#include "tiledweapon.h"
 #include "rpgpickableobject.h"
+#include "rpgarmory.h"
 
 class RpgPlayer;
 
@@ -37,16 +37,12 @@ class RpgPlayer;
  * @brief The RpgLongsword class
  */
 
-class RpgLongsword : public TiledWeapon
+class RpgLongsword : public RpgWeapon
 {
 	Q_OBJECT
 
 public:
 	explicit RpgLongsword(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &weapon) override final;
-	bool canProtect(const WeaponType &weapon) const override final;
-	bool canAttack() const override final { return true; }
 
 protected:
 	void eventAttack(TiledObject *target) override final;

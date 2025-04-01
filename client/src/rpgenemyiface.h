@@ -31,21 +31,27 @@
 #include "rpgarmory.h"
 #include "rpggamedataiface.h"
 #include "rpgconfig.h"
-#include "tiledweapon.h"
 #include <QString>
 #include <QList>
 #include <QHash>
+#include "isometricplayer.h"
 
 
+
+class RpgPlayer;
 
 
 class RpgEnemyIface : public RpgGameDataInterface<RpgGameData::Enemy, RpgGameData::EnemyBaseData>
 {
 public:
 	RpgEnemyIface(const RpgGameData::EnemyBaseData::EnemyType &type)
-		: m_enemyType(type)
+		: RpgGameDataInterface<RpgGameData::Enemy, RpgGameData::EnemyBaseData>()
+		, m_enemyType(type)
 	{}
-	RpgEnemyIface() {}
+
+	RpgEnemyIface()
+		: RpgEnemyIface(RpgGameData::EnemyBaseData::EnemyInvalid)
+	{}
 
 	static QStringList availableTypes() { return m_typeHash.keys(); }
 	static RpgGameData::EnemyBaseData::EnemyType typeFromString(const QString &type) {
@@ -55,12 +61,21 @@ public:
 
 	const RpgGameData::EnemyBaseData::EnemyType &enemyType() const { return m_enemyType; }
 
-	virtual bool protectWeapon(const TiledWeapon::WeaponType &weaponType) = 0;
 
 	RpgArmory *armory() const { return m_armory.get(); }
 
+
+	virtual RpgWeapon *defaultWeapon() const = 0;
+	virtual bool canBulletImpact(const RpgGameData::Weapon::WeaponType &type) const { Q_UNUSED(type); return true; }
+	virtual void attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType) = 0;
+
+	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot) = 0;
+	virtual void updateFromSnapshot(const RpgGameData::Enemy &snap) = 0;
+
 protected:
 	virtual QPointF getPickablePosition(const int &num) const = 0;
+	virtual void attackPlayer(RpgPlayer *player, RpgWeapon *weapon) = 0;
+	virtual void playAttackEffect(RpgWeapon *weapon) { Q_UNUSED(weapon); }
 
 	RpgGameData::EnemyBaseData::EnemyType m_enemyType = RpgGameData::EnemyBaseData::EnemyInvalid;
 	std::unique_ptr<RpgArmory> m_armory;
@@ -69,6 +84,8 @@ private:
 	static const QHash<QString, RpgGameData::EnemyBaseData::EnemyType> m_typeHash;
 
 	friend class RpgGame;
+	friend class ActionRpgGame;
+	friend class ActionRpgMultiplayerGame;
 };
 
 

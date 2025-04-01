@@ -29,7 +29,7 @@
 
 
 RpgMageStaff::RpgMageStaff(QObject *parent)
-	: TiledWeapon{WeaponMageStaff, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponMageStaff, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.3_03.png");
 }

@@ -232,61 +232,6 @@ std::optional<RpgGameDefinition> RpgGame::readGameDefinition(const QString &map)
 
 
 
-/**
- * @brief RpgGame::playerAttackEnemy
- * @param player
- * @param enemy
- */
-
-bool RpgGame::playerAttackEnemy(TiledObject *player, TiledObject *enemy, const TiledWeapon::WeaponType &weaponType)
-{
-	Q_ASSERT(player);
-	Q_ASSERT(enemy);
-
-	IsometricEnemy *e = qobject_cast<IsometricEnemy*>(enemy);
-	RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(enemy);
-	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
-
-	if (!e || !p || !iface)
-		return false;
-
-	if (p->isLocked())
-		return false;
-
-	if (iface->protectWeapon(weaponType))
-		return false;
-
-	if (m_funcPlayerAttackEnemy)
-		return m_funcPlayerAttackEnemy(p, e, weaponType);
-	else
-		return false;
-}
-
-
-
-/**
- * @brief RpgGame::enemyAttackPlayer
- * @param enemy
- * @param player
- */
-
-bool RpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const TiledWeapon::WeaponType &weaponType)
-{
-	Q_ASSERT(player);
-	Q_ASSERT(enemy);
-
-	IsometricEnemy *e = qobject_cast<IsometricEnemy*>(enemy);
-	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
-
-	if (!e || !p)
-		return false;
-
-	if (m_funcEnemyAttackPlayer)
-		return m_funcEnemyAttackPlayer(e, p, weaponType);
-	else
-		return false;
-}
-
 
 
 /**
@@ -296,7 +241,7 @@ bool RpgGame::enemyAttackPlayer(TiledObject *enemy, TiledObject *player, const T
  * @return
  */
 
-bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
+/*bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 {
 	Q_ASSERT(player);
 
@@ -326,47 +271,9 @@ bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
 
 
 	return true;
-}
+}*/
 
 
-
-
-
-/**
- * @brief RpgGame::playerUseCast
- * @param player
- * @return
- */
-
-bool RpgGame::playerUseCast(RpgPlayer *player)
-{
-	Q_ASSERT(player);
-
-	if (player->isLocked())
-		return false;
-
-	if (m_funcPlayerUseCast)
-		return m_funcPlayerUseCast(player);
-	else
-		return false;
-}
-
-
-/**
- * @brief RpgGame::playerFinishCast
- * @param player
- * @return
- */
-
-bool RpgGame::playerFinishCast(RpgPlayer *player)
-{
-	Q_ASSERT(player);
-
-	if (m_funcPlayerFinishCast)
-		return m_funcPlayerFinishCast(player);
-	else
-		return false;
-}
 
 
 
@@ -426,7 +333,7 @@ void RpgGame::onPlayerDead(TiledObject *player)
 
 		isoPlayer->clearData();
 
-		playerFinishCast(isoPlayer);
+		///playerFinishCast(isoPlayer);
 	}
 
 	for (RpgQuest &q : m_gameDefinition.quests) {
@@ -632,9 +539,9 @@ void RpgGame::playerUseContainer(RpgPlayer *player, RpgContainer *container)
  * @return
  */
 
-IsometricEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id)
+RpgEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id)
 {
-	IsometricEnemy *enemy = nullptr;
+	RpgEnemy *enemy = nullptr;
 
 	b2::Body::Params bParams;
 	bParams.type = b2BodyType::b2_kinematicBody;
@@ -794,8 +701,7 @@ RpgPickableObject *RpgGame::createPickable(const RpgGameData::PickableBaseData::
  * @return
  */
 
-IsometricBullet *RpgGame::createBullet(const TiledWeapon::WeaponType &type, TiledScene *scene, const int &id, const int &ownerId,
-									   TiledWeapon *weapon)
+RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, TiledScene *scene, const int &id, const int &ownerId)
 {
 	b2::Body::Params bParams;
 	bParams.type = b2BodyType::b2_dynamicBody;
@@ -817,40 +723,39 @@ IsometricBullet *RpgGame::createBullet(const TiledWeapon::WeaponType &type, Tile
 
 	static const float size = 10.;
 
-	IsometricBullet *bullet = nullptr;
+	RpgBullet *bullet = nullptr;
 
 	switch (type) {
-		case TiledWeapon::WeaponShortbow:
+		case RpgGameData::Weapon::WeaponShortbow:
 			bullet = createFromCircle<RpgArrow>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case TiledWeapon::WeaponLongbow:
+		case RpgGameData::Weapon::WeaponLongbow:
 			bullet = createFromCircle<RpgFireball>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case TiledWeapon::WeaponLightningWeapon:
+		case RpgGameData::Weapon::WeaponLightningWeapon:
 			bullet = createFromCircle<RpgLightning>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
 			break;
 
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponDagger:
-		case TiledWeapon::WeaponLongsword:
-		case TiledWeapon::WeaponBroadsword:
-		case TiledWeapon::WeaponAxe:
-		case TiledWeapon::WeaponHammer:
-		case TiledWeapon::WeaponMace:
-		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponMageStaff:
-		case TiledWeapon::WeaponFireFogWeapon:
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponInvalid:
+		case RpgGameData::Weapon::WeaponHand:
+		case RpgGameData::Weapon::WeaponDagger:
+		case RpgGameData::Weapon::WeaponLongsword:
+		case RpgGameData::Weapon::WeaponBroadsword:
+		case RpgGameData::Weapon::WeaponAxe:
+		case RpgGameData::Weapon::WeaponHammer:
+		case RpgGameData::Weapon::WeaponMace:
+		case RpgGameData::Weapon::WeaponGreatHand:
+		case RpgGameData::Weapon::WeaponMageStaff:
+		case RpgGameData::Weapon::WeaponFireFogWeapon:
+		case RpgGameData::Weapon::WeaponShield:
+		case RpgGameData::Weapon::WeaponInvalid:
 			break;
 
 	}
 
-	if (bullet) {
-		bullet->initialize(weapon);
-	}
+	if (bullet)
+		bullet->initialize();
 
 	return bullet;
 }
@@ -865,87 +770,14 @@ IsometricBullet *RpgGame::createBullet(const TiledWeapon::WeaponType &type, Tile
  * @return
  */
 
-IsometricBullet *RpgGame::createBullet(TiledWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId)
+RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId)
 {
 	Q_ASSERT(weapon);
-	return createBullet(weapon->weaponType(), scene, id, ownerId, weapon);
+	return createBullet(weapon->weaponType(), scene, id, ownerId);
 }
 
 
 
-/**
- * @brief RpgGame::shot
- * @param owner
- * @param targets
- * @param angle
- */
-
-bool RpgGame::shot(TiledObject *owner, TiledWeapon *weapon, TiledScene *scene, const IsometricBullet::Targets &targets, const qreal &angle)
-{
-	LOG_CDEBUG("game") << "Shot" << owner << weapon << targets;
-
-	if (!weapon || !owner)
-		return false;
-
-	if (!weapon->shot())
-		return false;
-
-
-	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(owner); player && m_funcPlayerShot) {
-		if (!m_funcPlayerShot(player, weapon->weaponType(), scene, targets, angle))
-			return false;
-	}
-
-
-	// TODO: playerID
-	IsometricBullet *bullet = createBullet(weapon, scene, 0, 0);
-
-	if (!bullet) {
-		LOG_CWARNING("game") << "Can't create bullet";
-		return false;
-	}
-
-	connect(bullet, &IsometricBullet::autoDeleteRequest, this, &RpgGame::removeObject);
-
-	weapon->setBulletCount(weapon->bulletCount()-1);
-
-	bullet->setTargets(targets);
-	bullet->setMaxDistance(weapon->bulletDistance());
-	bullet->shot(targets, owner->bodyPosition(), angle);
-
-	return true;
-}
-
-
-
-/**
- * @brief RpgGame::hit
- * @param owner
- * @param weapon
- * @param scene
- * @param target
- * @return
- */
-
-bool RpgGame::hit(TiledObject *owner, TiledWeapon *weapon, TiledObject *target)
-{
-	LOG_CDEBUG("game") << "Hit" << owner << weapon << target;
-
-	if (!weapon || !owner)
-		return false;
-
-	RpgPlayer *player = qobject_cast<RpgPlayer*>(owner);
-	IsometricEnemy *enemy = qobject_cast<IsometricEnemy*>(target);
-
-
-	if (!weapon->hit(target))
-		return false;
-
-	if (player && m_funcPlayerHit)
-		return m_funcPlayerHit(player, enemy, weapon->weaponType());
-	else
-		return true;
-}
 
 
 /**
@@ -2137,6 +1969,26 @@ QVector<RpgGameData::PickableBaseData::PickableType> RpgGame::getPickablesFromPr
 	return pickableList;
 }
 
+FuncEnemyShot RpgGame::funcEnemyShot() const
+{
+	return m_funcEnemyShot;
+}
+
+void RpgGame::setFuncEnemyShot(const FuncEnemyShot &newFuncEnemyShot)
+{
+	m_funcEnemyShot = newFuncEnemyShot;
+}
+
+FuncEnemyHit RpgGame::funcEnemyHit() const
+{
+	return m_funcEnemyHit;
+}
+
+void RpgGame::setFuncEnemyHit(const FuncEnemyHit &newFuncEnemyHit)
+{
+	m_funcEnemyHit = newFuncEnemyHit;
+}
+
 
 
 /**
@@ -2801,30 +2653,30 @@ bool RpgGame::loadTextureSpritesWithHurt(TiledSpriteHandler *handler, const QVec
  * @return
  */
 
-QString RpgGame::getAttackSprite(const TiledWeapon::WeaponType &weaponType)
+QString RpgGame::getAttackSprite(const RpgGameData::Weapon::WeaponType &weaponType)
 {
 	switch (weaponType) {
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponLongsword:
-		case TiledWeapon::WeaponBroadsword:
-		case TiledWeapon::WeaponAxe:
-		case TiledWeapon::WeaponMace:
-		case TiledWeapon::WeaponHammer:
-		case TiledWeapon::WeaponDagger:
+		case RpgGameData::Weapon::WeaponHand:
+		case RpgGameData::Weapon::WeaponGreatHand:
+		case RpgGameData::Weapon::WeaponLongsword:
+		case RpgGameData::Weapon::WeaponBroadsword:
+		case RpgGameData::Weapon::WeaponAxe:
+		case RpgGameData::Weapon::WeaponMace:
+		case RpgGameData::Weapon::WeaponHammer:
+		case RpgGameData::Weapon::WeaponDagger:
 			return QStringLiteral("attack");
 
-		case TiledWeapon::WeaponShortbow:
-		case TiledWeapon::WeaponLongbow:
+		case RpgGameData::Weapon::WeaponShortbow:
+		case RpgGameData::Weapon::WeaponLongbow:
 			return QStringLiteral("bow");
 
-		case TiledWeapon::WeaponMageStaff:
+		case RpgGameData::Weapon::WeaponMageStaff:
 			return QStringLiteral("cast");
 
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponLightningWeapon:
-		case TiledWeapon::WeaponFireFogWeapon:
-		case TiledWeapon::WeaponInvalid:
+		case RpgGameData::Weapon::WeaponShield:
+		case RpgGameData::Weapon::WeaponLightningWeapon:
+		case RpgGameData::Weapon::WeaponFireFogWeapon:
+		case RpgGameData::Weapon::WeaponInvalid:
 			break;
 	}
 
@@ -3288,14 +3140,14 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
  * @param type
  */
 
-void RpgGame::useWeapon(const TiledWeapon::WeaponType &type)
+void RpgGame::useWeapon(const RpgGameData::Weapon::WeaponType &type)
 {
-	if (type == TiledWeapon::WeaponInvalid) {
+	if (type == RpgGameData::Weapon::WeaponInvalid) {
 		LOG_CERROR("game") << "Invalid weapon" << type;
 		return;
 	}
 
-	if (type == TiledWeapon::WeaponDagger) {			// Free
+	if (type == RpgGameData::Weapon::WeaponDagger) {			// Free
 		return;
 	}
 

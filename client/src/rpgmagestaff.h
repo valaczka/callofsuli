@@ -27,19 +27,14 @@
 #ifndef RPGMAGESTAFF_H
 #define RPGMAGESTAFF_H
 
-#include "tiledweapon.h"
 #include "rpgplayer.h"
 
-class RpgMageStaff : public TiledWeapon
+class RpgMageStaff : public RpgWeapon
 {
 	Q_OBJECT
 
 public:
 	explicit RpgMageStaff(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; };
-	bool canProtect(const WeaponType &) const override final { return false; };
-	bool canAttack() const override final { return canShot(); }
 
 	void setFromCast(const RpgPlayerCharacterConfig::CastType &cast);
 	void eventUseCast(const RpgPlayerCharacterConfig::CastType &cast, TiledObject *target = nullptr);

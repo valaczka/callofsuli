@@ -625,6 +625,89 @@ public:
 
 
 
+/**
+ * @brief The Weapon class
+ */
+
+class Weapon : public QSerializer
+{
+	Q_GADGET
+
+public:
+	enum WeaponType {
+		WeaponInvalid = 0,
+		WeaponHand,
+		WeaponDagger,
+		WeaponLongsword,
+		WeaponShortbow,
+		WeaponLongbow,
+		WeaponBroadsword,
+		WeaponAxe,
+		WeaponHammer,
+		WeaponMace,
+		WeaponGreatHand,
+		WeaponMageStaff [[deprecated]],
+		WeaponLightningWeapon,
+		WeaponFireFogWeapon,
+		WeaponShield
+	};
+
+	Q_ENUM (WeaponType);
+
+
+	Weapon(const WeaponType &_t, const int &_b = -1)
+		: QSerializer()
+		, t(_t)
+		, b(_b)
+	{}
+
+	Weapon()
+		: Weapon(WeaponInvalid)
+	{}
+
+	bool isEqual(const Weapon &other) const  {
+		return other.t == t && other.b == b;
+	}
+
+	EQUAL_OPERATOR(Weapon);
+
+	static const QHash<WeaponType, int> &damageValue() { return m_damageValue; }
+	static const QHash<WeaponType, int> &protectValue() { return m_protectValue; }
+
+private:
+	inline static const QHash<WeaponType, int> m_damageValue = {
+		{ WeaponHand, 1 },
+		{ WeaponDagger, 3 },
+		{ WeaponLongsword, 10 },
+		{ WeaponHammer, 20 },
+		{ WeaponMace, 22 },
+		{ WeaponAxe, 25 },
+		{ WeaponBroadsword, 30 },
+		{ WeaponShortbow, 10 },
+		{ WeaponLongbow, 25 },
+		{ WeaponGreatHand, 50 },
+		{ WeaponLightningWeapon, 40 },
+		{ WeaponFireFogWeapon, 60 },
+	};
+
+	inline static const QHash<WeaponType, int> m_protectValue = {
+		{ WeaponShield, 10 },
+	};
+
+
+	QS_SERIALIZABLE
+
+
+
+
+	QS_FIELD(WeaponType, t)			// type
+	QS_FIELD(int, b)				// bullet count
+
+
+};
+
+
+
 
 /**
  * @brief The BaseData class
@@ -682,7 +765,7 @@ public:
 	{ }
 
 	bool isEqual(const Body &other) const {
-		return other.f == f && other.sc == sc && other.p == p;
+		return other.f == f && other.sc == sc;
 	}
 
 	EQUAL_OPERATOR(Body)
@@ -690,10 +773,38 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(qint64, f)					// frame
-
 	QS_FIELD(int, sc)					// current scene
-	QS_COLLECTION(QList, float, p)		// position
 };
+
+
+
+
+/**
+ * @brief The Armory class
+ */
+
+class Armory : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Armory()
+		: QSerializer()
+		, cw(Weapon::WeaponInvalid)
+	{}
+
+	bool isEqual(const Armory &other) const {
+		return other.wl == wl && other.cw == cw;
+	}
+
+	EQUAL_OPERATOR(Armory)
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, Weapon, wl)			// weapon list
+	QS_FIELD(Weapon::WeaponType, cw)					// current weapon
+};
+
 
 
 
@@ -716,16 +827,128 @@ public:
 
 
 	bool isEqual(const Entity &other) const {
-		return Body::isEqual(other) && other.a == a && other.hp == hp && other.mhp == mhp;
+		return Body::isEqual(other) && other.p == p && other.a == a && other.hp == hp && other.mhp == mhp;
 	}
 
 	EQUAL_OPERATOR(Entity)
 
 	QS_SERIALIZABLE
 
+	QS_COLLECTION(QList, float, p)		// position
 	QS_FIELD(float, a)			// angle
 	QS_FIELD(int, hp)			// HP
 	QS_FIELD(int, mhp)			// max HP
+};
+
+
+
+
+/**
+ * @brief The ArmoredEntityBaseData class
+ */
+
+class ArmoredEntityBaseData : public BaseData
+{
+	Q_GADGET
+
+public:
+	ArmoredEntityBaseData(const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
+		: BaseData(_o, _s, _id)
+		, df(_df)
+		, pf(_pf)
+	{}
+
+	ArmoredEntityBaseData(const float &_df, const float &_pf)
+		: ArmoredEntityBaseData(_df, _pf, -1, -1, -1)
+	{}
+
+	ArmoredEntityBaseData()
+		: ArmoredEntityBaseData(1., 1.)
+	{}
+
+	bool isEqual(const ArmoredEntityBaseData &other) const {
+		return BaseData::isEqual(other) && other.df == df && other.pf == pf;
+	}
+
+	EQUAL_OPERATOR(ArmoredEntityBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(float, df)				// damage factor
+	QS_FIELD(float, pf)				// protect factor
+};
+
+
+
+
+
+
+/**
+ * @brief The ArmoredEntity class
+ */
+
+class ArmoredEntity : public Entity
+{
+	Q_GADGET
+
+public:
+	ArmoredEntity()
+		: Entity()
+	{}
+
+	bool isEqual(const ArmoredEntity &other) const {
+		return Entity::isEqual(other) && other.arm == arm;
+	}
+
+	static void attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
+					   const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other);
+
+	void attacked(const ArmoredEntityBaseData &dstBase,
+				const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other)
+	{
+		attacked(dstBase, *this, weapon, other);
+	}
+
+	EQUAL_OPERATOR(ArmoredEntity)
+
+	QS_SERIALIZABLE
+
+	QS_OBJECT(Armory, arm)			// armory
+};
+
+
+
+
+
+
+/**
+ * @brief The PlayerBaseData class
+ */
+
+class PlayerBaseData : public ArmoredEntityBaseData
+{
+	Q_GADGET
+
+public:
+	PlayerBaseData(const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
+		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
+	{}
+
+	PlayerBaseData(const int &_o, const int &_s, const int &_id)
+		: PlayerBaseData(1., 1., _o, _s, _id)
+	{}
+
+	PlayerBaseData()
+		: PlayerBaseData(-1, -1, -1)
+	{}
+
+	bool isEqual(const PlayerBaseData &other) const {
+		return ArmoredEntityBaseData::isEqual(other);
+	}
+
+	EQUAL_OPERATOR(PlayerBaseData)
+
+	QS_SERIALIZABLE
 };
 
 
@@ -736,13 +959,13 @@ public:
  * @brief The Player class
  */
 
-class Player : public Entity
+class Player : public ArmoredEntity
 {
 	Q_GADGET
 
 public:
 	Player()
-		: Entity()
+		: ArmoredEntity()
 		, st(PlayerInvalid)
 	{}
 
@@ -759,7 +982,7 @@ public:
 
 
 	bool isEqual(const Player &other) const  {
-		return Entity::isEqual(other) && other.st == st;
+		return ArmoredEntity::isEqual(other) && other.st == st;
 	}
 
 	EQUAL_OPERATOR(Player);
@@ -778,7 +1001,7 @@ public:
  * @brief The EnemyBaseData class
  */
 
-class EnemyBaseData : public BaseData
+class EnemyBaseData : public ArmoredEntityBaseData
 {
 	Q_GADGET
 
@@ -801,9 +1024,13 @@ public:
 
 	Q_ENUM(EnemyType);
 
-	EnemyBaseData(const EnemyType &_type, const int &_o, const int &_s, const int &_id)
-		: BaseData(_o, _s, _id)
+	EnemyBaseData(const EnemyType &_type, const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
+		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
 		, t(_type)
+	{}
+
+	EnemyBaseData(const EnemyType &_type, const int &_o, const int &_s, const int &_id)
+		: EnemyBaseData(_type, 1., 1., _o, _s, _id)
 	{}
 
 	EnemyBaseData(const EnemyType &_type)
@@ -834,19 +1061,19 @@ public:
  */
 
 
-class Enemy : public Entity
+class Enemy : public ArmoredEntity
 {
 	Q_GADGET
 
 public:
 
 	Enemy()
-		: Entity()
+		: ArmoredEntity()
 	{}
 
 
 	bool isEqual(const Enemy &other) const {
-		return Entity::isEqual(other);
+		return ArmoredEntity::isEqual(other);
 	}
 
 	EQUAL_OPERATOR(Enemy)
@@ -926,6 +1153,7 @@ class Pickable : public Body
 	Q_GADGET
 
 public:
+	Pickable() = default;
 
 	bool isEqual(const Pickable &other) const {
 		return Body::isEqual(other);
@@ -940,6 +1168,128 @@ public:
 
 
 
+
+
+/**
+ * @brief The BulletBaseData class
+ */
+
+class BulletBaseData : public BaseData
+{
+	Q_GADGET
+
+public:
+	enum Owner {
+		OwnerNone = 0,
+		OwnerPlayer = 1,
+		OnwerEnemy
+	};
+
+	Q_ENUM(Owner)
+
+	enum Target {
+		TargetNone = 0,
+		TargetEnemy = 1,
+		TargetPlayer = 1 << 1,
+		TargetGround = 1 << 2,
+
+		TargetAll = TargetEnemy|TargetPlayer|TargetGround
+	};
+
+	Q_ENUM(Target)
+	Q_DECLARE_FLAGS(Targets, Target)
+	Q_FLAG(Targets)
+
+
+
+	BulletBaseData(const Weapon::WeaponType &_type,
+				   const int &_o, const int &_s, const int &_id,
+				   const Owner &_own, const BaseData &_ownId,
+				   const Targets &_tar)
+		: BaseData(_o, _s, _id)
+		, t(_type)
+		, own(_own)
+		, tar(_tar)
+		, ownId(_ownId)
+	{}
+
+	BulletBaseData(const Weapon::WeaponType &_type,
+				   const Owner &_own, const BaseData &_ownId,
+				   const Targets &_tar)
+		: BulletBaseData(_type, -1, -1, -1, _own, _ownId, _tar)
+	{}
+
+	BulletBaseData(const Weapon::WeaponType &_type, const Owner &_own, const Targets &_tar)
+		: BulletBaseData(_type, -1, -1, -1, _own, BaseData(-1, -1, -1), _tar)
+	{}
+
+	BulletBaseData(const Weapon::WeaponType &_type)
+		: BulletBaseData(_type, OwnerNone, TargetNone)
+	{}
+
+	BulletBaseData()
+		: BulletBaseData(Weapon::WeaponInvalid)
+	{}
+
+
+	bool isEqual(const BulletBaseData &other) const {
+		return BaseData::isEqual(other) && other.t == t;
+	}
+
+	EQUAL_OPERATOR(BulletBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(Weapon::WeaponType, t)		// weapon
+	QS_FIELD(Owner, own)				// owner
+	QS_FIELD(Targets, tar)				// targets
+	QS_OBJECT(BaseData, ownId)			// ownerId
+};
+
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(BulletBaseData::Targets);
+
+
+
+/**
+ * @brief The Bullet class
+ */
+
+class Bullet : public Body
+{
+	Q_GADGET
+
+public:
+	Bullet(const int &_sc, const float &_dst)
+		: Body()
+		, dst(_dst)
+	{
+		sc = _sc;
+	}
+
+	Bullet(const int &_sc)
+		: Bullet(_sc, 0)
+	{ }
+
+	Bullet()
+		: Bullet(-1)
+	{ }
+
+
+	bool isEqual(const Bullet &other) const {
+		return Body::isEqual(other) && other.p == p && other.a == a && other.dst == dst;
+	}
+
+	EQUAL_OPERATOR(Bullet)
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION(QList, float, p)		// position
+	QS_FIELD(float, a)					// angle
+	QS_FIELD(float, dst)				// max distance
+
+
+};
 
 
 
@@ -981,7 +1331,7 @@ using CurrentSnapshotList = std::vector<std::pair<T2, std::map<qint64, T> > >;
  */
 
 struct FullSnapshot {
-	Snapshot<BaseData, Player> players;
+	Snapshot<PlayerBaseData, Player> players;
 	Snapshot<EnemyBaseData, Enemy> enemies;
 
 	void clear() {
@@ -995,7 +1345,7 @@ struct FullSnapshot {
 	std::optional<SnapshotInterpolation<T> > getSnapshot(const T2 &data, const Snapshot<T2, T> &list) const;
 
 
-	std::optional<SnapshotInterpolation<Player> > getPlayer(const BaseData &data) const {
+	std::optional<SnapshotInterpolation<Player> > getPlayer(const PlayerBaseData &data) const {
 		return getSnapshot(data, players);
 	}
 	std::optional<SnapshotInterpolation<Enemy> > getEnemy(const EnemyBaseData &data) const {
@@ -1011,7 +1361,7 @@ struct FullSnapshot {
  */
 
 struct CurrentSnapshot {
-	CurrentSnapshotList<BaseData, Player> players;
+	CurrentSnapshotList<PlayerBaseData, Player> players;
 	CurrentSnapshotList<EnemyBaseData, Enemy> enemies;
 
 	void clear() {
@@ -1062,11 +1412,11 @@ public:
 	SnapshotStorage() = default;
 
 
-	SnapshotList<Player, BaseData> players() { QMutexLocker locker(&m_mutex); return m_players; }
+	SnapshotList<Player, PlayerBaseData> players() { QMutexLocker locker(&m_mutex); return m_players; }
 	SnapshotList<Enemy, EnemyBaseData> enemies() { QMutexLocker locker(&m_mutex); return m_enemies; }
 
 
-	SnapshotInterpolation<Player> getSnapshot(const BaseData &id, const qint64 &tick) {
+	SnapshotInterpolation<Player> getSnapshot(const PlayerBaseData &id, const qint64 &tick) {
 		return getSnapshotInterpolation(m_players, id, tick);
 	}
 
@@ -1117,7 +1467,7 @@ protected:
 
 	QRecursiveMutex m_mutex;
 
-	SnapshotList<Player, BaseData> m_players;
+	SnapshotList<Player, PlayerBaseData> m_players;
 	SnapshotList<Enemy, EnemyBaseData> m_enemies;
 };
 
@@ -1484,6 +1834,50 @@ inline CurrentSnapshotList<T2, T> SnapshotStorage::convertToSnapshotList(Snapsho
 	return ret;
 }
 
+
+
+
+
+/**
+ * @brief ArmoredEntity::attack
+ * @param src
+ * @param weapon
+ * @return
+ */
+
+inline void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
+								  const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other)
+{
+	float damage = Weapon::damageValue().value(weapon, 0) * other.df;
+
+	if (damage <= 0.)
+		return;
+
+	for (auto it = dst.arm.wl.begin(); damage > 0. && it != dst.arm.wl.end(); ++it) {
+		if (it->b == 0)
+			continue;
+
+		const float protect = Weapon::protectValue().value(it->t, 0) * dstBase.pf;
+		if (protect <= 0.)
+			continue;
+
+		// Ha -1 töltény van, akkor a teljes támadást ki tudjuk védeni
+
+		if (it->b == -1) {
+			damage = 0.;
+			break;
+		} else {
+			float sumProtect = std::min(protect * it->b, damage);
+			damage -= sumProtect;
+			it->b = std::max(0, (int) std::ceil(sumProtect / protect));
+		}
+	}
+
+	if (damage <= 0.)
+		return;
+
+	dst.hp = std::max(0, (int) (dst.hp-damage));
+}
 
 
 

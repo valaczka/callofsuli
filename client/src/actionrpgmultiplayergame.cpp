@@ -158,8 +158,7 @@ void ActionRpgMultiplayerGame::setRpgGame(RpgGame *newRpgGame)
 											  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 		m_rpgGame->setFuncPlayerShot(std::bind(&ActionRpgMultiplayerGame::onPlayerShot, this,
-											   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3,
-											   std::placeholders::_4, std::placeholders::_5));
+											   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 		//m_rpgGame->m_funcTimeStep = std::bind(&RpgUdpEngine::timeStepped, d);
 
@@ -631,7 +630,7 @@ void ActionRpgMultiplayerGame::setPlayerId(int newPlayerId)
  */
 
 RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
-												  const RpgGameData::BaseData &config,
+												  const RpgGameData::PlayerBaseData &config,
 												  const RpgGameData::Player &playerData)
 {
 	LOG_CINFO("game") << "CREATE PLAYER" << config.o << "vs" << m_playerId;
@@ -673,7 +672,7 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 	}
 
 	if (characterPtr->cast != RpgPlayerCharacterConfig::CastInvalid) {
-		loadWeapon(player, TiledWeapon::WeaponMageStaff);
+		loadWeapon(player, RpgGameData::Weapon::WeaponMageStaff);
 	}
 
 
@@ -709,7 +708,7 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 			}
 
 			loadWeapon(player,
-					   RpgArmory::weaponHash().key(s, TiledWeapon::WeaponInvalid),
+					   RpgArmory::weaponHash().key(s, RpgGameData::Weapon::WeaponInvalid),
 					   /*(*it)->bullet() ? (*it)->bullet()->amount() : 0*/
 					   (*it)->market().cost == 0 ? -1 : (*it)->amount());
 		}
@@ -735,7 +734,7 @@ bool ActionRpgMultiplayerGame::onPlayerPick(RpgPlayer *player, RpgPickableObject
 	return false;
 }
 
-bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
+bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType)
 {
 	return false;
 }
@@ -771,12 +770,12 @@ bool ActionRpgMultiplayerGame::onPlayerFinishCast(RpgPlayer *player)
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onPlayerHit(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType)
+bool ActionRpgMultiplayerGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon)
 {
 	if (!player)
 		return false;
 
-	LOG_CWARNING("game") << "PLAYER" << m_playerId << "HIT" << enemy << weaponType << m_rpgGame->tickTimer()->currentTick();
+	LOG_CWARNING("game") << "PLAYER" << m_playerId << "HIT" << enemy << weapon << m_rpgGame->tickTimer()->currentTick();
 
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerHit;
@@ -798,10 +797,9 @@ bool ActionRpgMultiplayerGame::onPlayerHit(RpgPlayer *player, IsometricEnemy *en
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, const TiledWeapon::WeaponType &weaponType, TiledScene *scene,
-											const IsometricBullet::Targets &targets, const qreal &angle)
+bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle)
 {
-	LOG_CWARNING("game") << "PLAYER" << player << "SHOT" << weaponType << scene << targets << angle;
+	LOG_CWARNING("game") << "PLAYER" << player << "SHOT" << weapon << angle;
 
 	return true;
 }
@@ -817,7 +815,7 @@ bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, const TiledWeapon
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType)
+bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
 {
 	return false;
 }
@@ -858,8 +856,8 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 	const bool forceKeyFrame = q->m_lastSentTick < 0 || (tick - q->m_lastSentTick >= 1000./30.);
 
 	for (auto &b : m_rpgGame->bodyList()) {
-		RpgGameDataInterface<RpgGameData::Player, RpgGameData::BaseData> *iface =
-				dynamic_cast<RpgGameDataInterface<RpgGameData::Player, RpgGameData::BaseData>*> (b.get());
+		RpgGameDataInterface<RpgGameData::Player, RpgGameData::PlayerBaseData> *iface =
+				dynamic_cast<RpgGameDataInterface<RpgGameData::Player, RpgGameData::PlayerBaseData>*> (b.get());
 
 		if (!iface)
 			continue;

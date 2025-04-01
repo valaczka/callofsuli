@@ -5,7 +5,6 @@ include(../common.pri)
 LIBS += -L../../lib
 
 
-
 # QOlm
 
 INCLUDEPATH += \
@@ -182,3 +181,12 @@ LIBS += $$LibSodiumLibs
 	DEFINES += $$LibSodiumDefines
 }
 
+
+
+# Backward
+
+if ($$BackwardCpp) {
+	INCLUDEPATH += $$PWD/backward-cpp
+	LIBS += -lbfd
+	SOURCES += $$PWD/../client/src/backward.cpp
+}

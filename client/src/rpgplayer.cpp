@@ -47,6 +47,7 @@
 
 RpgPlayer::RpgPlayer(TiledScene *scene)
 	: IsometricPlayer(scene)
+	, RpgGameDataInterface<RpgGameData::Player, RpgGameData::PlayerBaseData>()
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
 	, m_sfxAccept(this)
@@ -101,9 +102,11 @@ RpgPlayer::~RpgPlayer()
  * @param weapon
  */
 
-void RpgPlayer::attack(TiledWeapon *weapon)
+void RpgPlayer::attack(RpgWeapon *weapon)
 {
-	if (!weapon || !isAlive())
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (!weapon || !isAlive() || !g)
 		return;
 
 	clearDestinationPoint();
@@ -111,29 +114,17 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 	if (!hasAbility())
 		return;
 
-	if (weapon->weaponType() == TiledWeapon::WeaponMageStaff) {
+	if (weapon->weaponType() == RpgGameData::Weapon::WeaponMageStaff) {
 		cast();
 		return;
 	}
 
 	if (weapon->canShot()) {
-		if (m_game->shot(this, weapon, scene(), IsometricBullet::TargetEnemy, currentAngle())) {
-			playAttackEffect(weapon);
-
-			if (weapon->pickedBulletCount() > 0) {
-				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
-			} else if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
-				g->useWeapon(weapon->weaponType());
-			} else {
-				LOG_CERROR("game") << "Invalid RpgGame cast";
-			}
-		}
-
-		if (weapon->bulletCount() == 0)
-			messageEmptyBullet(weapon->weaponType());
+		if (auto fn = g->funcPlayerShot())
+			fn(this, weapon, currentAngle());
 
 	} else if (weapon->canHit()) {
-		if (!enemy()) {
+		if (!m_enemy) {
 			const QList<IsometricEnemy*> &list = reachedEnemies();
 
 			for (IsometricEnemy *e : list) {
@@ -147,20 +138,12 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 		} else {
 			clearDestinationPoint();
 			stop();
-			rotateBody(angleToPoint(enemy()->bodyPosition()));
+			rotateBody(angleToPoint(m_enemy->bodyPosition()));
 		}
 
-		if (m_game->hit(this, weapon, enemy())) {
-			if (weapon->pickedBulletCount() > 0)
-				weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
-			else if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && enemy()) {
-				g->useWeapon(weapon->weaponType());
-			}
-			playAttackEffect(weapon);
-		}
+		if (auto fn = g->funcPlayerHit())
+			fn(this, qobject_cast<RpgEnemy*>(m_enemy), weapon);
 
-		if (weapon->bulletCount() == 0)
-			messageEmptyBullet(weapon->weaponType());
 	} else {
 #ifndef Q_OS_WASM
 		StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
@@ -169,7 +152,12 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 #endif
 		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
 		//m_game->messageColor(tr("Empty weapon"), QColor::fromRgbF(0.8, 0., 0.));
+
+		return;
 	}
+
+	if (weapon->bulletCount() == 0)
+		messageEmptyBullet(weapon->weaponType());
 }
 
 
@@ -181,7 +169,8 @@ void RpgPlayer::attack(TiledWeapon *weapon)
 
 void RpgPlayer::cast()
 {
-	TiledWeapon *w = m_armory->weaponFind(TiledWeapon::WeaponMageStaff);
+	LOG_CERROR("game") << "Missing implementation";
+	/*RpgWeapon *w = m_armory->weaponFind(RpgGameData::Weapon::WeaponMageStaff);
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
 	if (!m_game->tickTimer())
@@ -204,7 +193,7 @@ void RpgPlayer::cast()
 	if (client)
 		client->performVibrate();
 #endif
-	if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
+	if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();*/
 
 }
 
@@ -252,9 +241,9 @@ void RpgPlayer::pick(RpgPickableObject *object)
 
 	//clearDestinationPoint();
 
-	if (!m_game->playerPickPickable(this, object)) {
+	/*if (!m_game->playerPickPickable(this, object)) {
 		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
-	}
+	}*/
 }
 
 
@@ -384,38 +373,15 @@ void RpgPlayer::updateSprite()
 
 
 
-/**
- * @brief RpgPlayer::protectWeapon
- * @param weaponType
- * @return
- */
-
-bool RpgPlayer::protectWeapon(const TiledWeapon::WeaponType &weaponType)
-{
-	if (m_config.cast == RpgPlayerCharacterConfig::CastProtect && m_castTimer.isActive()) {
-		return true;
-	}
-
-	const bool r = IsometricPlayer::protectWeapon(m_armory->weaponList(), weaponType);
-
-	if (r)
-		m_armory->updateLayers();
-
-	setShieldCount(m_armory->getShieldCount());
-
-	return r;
-}
-
-
-
-
 
 /**
  * @brief RpgPlayer::attackedByEnemy
  */
 
-void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType &weaponType, const bool &isProtected)
+void RpgPlayer::attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected)
 {
+	m_armory->updateLayers();
+
 	if (!isAlive())
 		return;
 
@@ -424,32 +390,22 @@ void RpgPlayer::attackedByEnemy(IsometricEnemy *, const TiledWeapon::WeaponType 
 		return;
 	}
 
-	//clearDestinationPoint();
-
-	int hp = m_hp-1;
-
-	if (hp <= 0) {
-		setHp(0);
-		jumpToSprite("death", m_facingDirection);
-	} else {
-		setHp(hp);
-		if (m_spriteHandler->currentSprite() != "attack" &&
-				m_spriteHandler->currentSprite() != "bow" &&
-				m_spriteHandler->currentSprite() != "cast") {
-			QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){
-				jumpToSprite("hurt", m_facingDirection);
-			});
-		}
-
-		if (weaponType == TiledWeapon::WeaponGreatHand)
-			startInability(4*m_inabilityTime);
-		else if (m_armory->currentWeapon() && m_armory->currentWeapon()->weaponType() == TiledWeapon::WeaponHand)
-			startInability(3*m_inabilityTime);
-		else
-			startInability();
+	if (m_spriteHandler->currentSprite() != "attack" &&
+			m_spriteHandler->currentSprite() != "bow" &&
+			m_spriteHandler->currentSprite() != "cast") {
+		QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){
+			jumpToSprite("hurt", m_facingDirection);
+		});
 	}
 
-	m_armory->updateLayers();
+	if (weaponType == RpgGameData::Weapon::WeaponGreatHand)
+		startInability(4*m_inabilityTime);
+	else if (m_armory->currentWeapon() && m_armory->currentWeapon()->weaponType() == RpgGameData::Weapon::WeaponHand)
+		startInability(3*m_inabilityTime);
+	else
+		startInability();
+
+
 }
 
 
@@ -522,12 +478,24 @@ void RpgPlayer::onCurrentTransportChanged()
 
 
 /**
+ * @brief RpgPlayer::updateConfig
+ */
+
+void RpgPlayer::updateConfig()
+{
+	if (m_config.inability >= 0)
+		m_inabilityTime = m_config.inability;
+}
+
+
+
+/**
  * @brief RpgPlayer::loadDefaultWeapons
  */
 
 void RpgPlayer::loadDefaultWeapons()
 {
-	m_armory->setCurrentWeapon(m_armory->weaponAdd(new TiledWeaponHand));
+	m_armory->setCurrentWeapon(m_armory->weaponAdd(RpgGameData::Weapon::WeaponHand));
 }
 
 
@@ -640,33 +608,33 @@ void RpgPlayer::playDeadEffect()
  * @param weaponType
  */
 
-void RpgPlayer::playAttackEffect(const TiledWeapon::WeaponType &weaponType)
+void RpgPlayer::playAttackEffect(const RpgGameData::Weapon::WeaponType &weaponType)
 {
 	switch (weaponType) {
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponLongsword:
-		case TiledWeapon::WeaponBroadsword:
-		case TiledWeapon::WeaponAxe:
-		case TiledWeapon::WeaponMace:
-		case TiledWeapon::WeaponHammer:
-		case TiledWeapon::WeaponDagger:
+		case RpgGameData::Weapon::WeaponHand:
+		case RpgGameData::Weapon::WeaponGreatHand:
+		case RpgGameData::Weapon::WeaponLongsword:
+		case RpgGameData::Weapon::WeaponBroadsword:
+		case RpgGameData::Weapon::WeaponAxe:
+		case RpgGameData::Weapon::WeaponMace:
+		case RpgGameData::Weapon::WeaponHammer:
+		case RpgGameData::Weapon::WeaponDagger:
 			jumpToSprite("attack", m_facingDirection);
 			break;
 
-		case TiledWeapon::WeaponLongbow:
-		case TiledWeapon::WeaponShortbow:
+		case RpgGameData::Weapon::WeaponLongbow:
+		case RpgGameData::Weapon::WeaponShortbow:
 			jumpToSprite("bow", m_facingDirection);
 			break;
 
-		case TiledWeapon::WeaponMageStaff:
+		case RpgGameData::Weapon::WeaponMageStaff:
 			jumpToSprite("cast", m_facingDirection);
 			return;											// Nem kell az attack!
 
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponLightningWeapon:
-		case TiledWeapon::WeaponFireFogWeapon:
-		case TiledWeapon::WeaponInvalid:
+		case RpgGameData::Weapon::WeaponShield:
+		case RpgGameData::Weapon::WeaponLightningWeapon:
+		case RpgGameData::Weapon::WeaponFireFogWeapon:
+		case RpgGameData::Weapon::WeaponInvalid:
 			break;
 	}
 
@@ -682,7 +650,7 @@ void RpgPlayer::playAttackEffect(const TiledWeapon::WeaponType &weaponType)
  * @param weapon
  */
 
-void RpgPlayer::playAttackEffect(TiledWeapon *weapon)
+void RpgPlayer::playAttackEffect(RpgWeapon *weapon)
 {
 	if (!weapon)
 		return;
@@ -737,40 +705,40 @@ void RpgPlayer::playShieldEffect()
  * @param weaponType
  */
 
-void RpgPlayer::messageEmptyBullet(const TiledWeapon::WeaponType &weaponType)
+void RpgPlayer::messageEmptyBullet(const RpgGameData::Weapon::WeaponType &weaponType)
 {
 	QString msg;
 
 	switch (weaponType) {
-		case TiledWeapon::WeaponLongbow:
+		case RpgGameData::Weapon::WeaponLongbow:
 			msg = tr("All fireballs lost");
 			break;
-		case TiledWeapon::WeaponShortbow:
+		case RpgGameData::Weapon::WeaponShortbow:
 			msg = tr("All arrows lost");
 			break;
 
-		case TiledWeapon::WeaponShield:
+		case RpgGameData::Weapon::WeaponShield:
 			msg = tr("All shields lost");
 			break;
 
-		case TiledWeapon::WeaponMageStaff:
+		case RpgGameData::Weapon::WeaponMageStaff:
 			msg = tr("Missing MP");
 			break;
 
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponLongsword:
-		case TiledWeapon::WeaponBroadsword:
-		case TiledWeapon::WeaponDagger:
-		case TiledWeapon::WeaponAxe:
-		case TiledWeapon::WeaponMace:
-		case TiledWeapon::WeaponHammer:
-		case TiledWeapon::WeaponFireFogWeapon:
-		case TiledWeapon::WeaponLightningWeapon:
+		case RpgGameData::Weapon::WeaponHand:
+		case RpgGameData::Weapon::WeaponGreatHand:
+		case RpgGameData::Weapon::WeaponLongsword:
+		case RpgGameData::Weapon::WeaponBroadsword:
+		case RpgGameData::Weapon::WeaponDagger:
+		case RpgGameData::Weapon::WeaponAxe:
+		case RpgGameData::Weapon::WeaponMace:
+		case RpgGameData::Weapon::WeaponHammer:
+		case RpgGameData::Weapon::WeaponFireFogWeapon:
+		case RpgGameData::Weapon::WeaponLightningWeapon:
 			msg = tr("Weapon lost");
 			break;
 
-		case TiledWeapon::WeaponInvalid:
+		case RpgGameData::Weapon::WeaponInvalid:
 			break;
 	}
 
@@ -802,9 +770,9 @@ void RpgPlayer::onCastTimerTimeout()
  * @param weaponType
  */
 
-void RpgPlayer::attackReachedEnemies(const TiledWeapon::WeaponType &weaponType)
+void RpgPlayer::attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weaponType)
 {
-	if (weaponType == TiledWeapon::WeaponFireFogWeapon) {
+	if (weaponType == RpgGameData::Weapon::WeaponFireFogWeapon) {
 		if (m_config.cast == RpgPlayerCharacterConfig::CastFireFog && m_castTimer.isActive()) {
 			RpgFireFogWeapon w;
 			w.setParentObject(this);
@@ -850,9 +818,13 @@ std::unique_ptr<RpgGameData::Body> RpgPlayer::serializeThis() const
 	else
 		p->st = RpgGameData::Player::PlayerIdle;
 
+	p->arm = m_armory->serialize();
+
 	std::unique_ptr<RpgGameData::Body> ptr(std::move(p));
 	return ptr;
 }
+
+
 
 
 
@@ -890,7 +862,7 @@ void RpgPlayer::worldStep()
 {
 	IsometricPlayer::worldStep();
 
-	if (TiledWeapon *w = m_armory->currentWeapon();
+	if (RpgWeapon *w = m_armory->currentWeapon();
 			w && (w->canShot() || w->canCast())) {
 		updateEnemies(w->bulletDistance());
 	}
@@ -984,7 +956,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 	if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
 		LOG_CINFO("game") << "HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
-		playAttackEffect(TiledWeapon::WeaponHand);
+		playAttackEffect(RpgGameData::Weapon::WeaponHand);
 	} else if (snapshot.s2.f <= snapshot.current) {
 		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
 	} else {
@@ -1023,6 +995,8 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		}
 	}
 
+	updateFromSnapshot(snapshot.s1);
+
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		stop();
 	} else if (!hasAbility()) {
@@ -1030,6 +1004,21 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	}
 
 	IsometricEntity::worldStep();
+}
+
+
+
+/**
+ * @brief RpgPlayer::updateFromSnapshot
+ * @param snap
+ * @return
+ */
+
+void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
+{
+	setHp(snap.hp);
+	m_armory->updateFromSnapshot(snap.arm);
+	setShieldCount(m_armory->getShieldCount());
 }
 
 
@@ -1055,6 +1044,7 @@ void RpgPlayer::setConfig(const RpgPlayerCharacterConfig &newConfig)
 {
 	m_config = newConfig;
 	emit configChanged();
+	updateConfig();
 }
 
 
@@ -1213,7 +1203,7 @@ void RpgPlayer::setShieldCount(int newShieldCount)
 	emit shieldCountChanged();
 
 	if (m_shieldCount == 0)
-		messageEmptyBullet(TiledWeapon::WeaponShield);
+		messageEmptyBullet(RpgGameData::Weapon::WeaponShield);
 }
 
 

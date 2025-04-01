@@ -73,6 +73,7 @@ public:
 	  , cast(CastInvalid)
 	  , mpMax(100)
 	  , mpStart(10)
+	  , inability(-1)
 	{}
 
 	void updateSfxPath(const QString &prefix);
@@ -108,15 +109,21 @@ public:
 	// Disabled weapons
 
 	QS_COLLECTION(QList, QString, disabledWeapons)
+	QS_FIELD(int, inability)		// Base inability time
 };
 
+
+
+
+
+class RpgEnemy;
 
 
 /**
  * @brief The RpgPlayer class
  */
 
-class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameData::Player, RpgGameData::BaseData>
+class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameData::Player, RpgGameData::PlayerBaseData>
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -135,7 +142,7 @@ public:
 
 	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricPlayer::objectId(); }
 
-	Q_INVOKABLE void attack(TiledWeapon *weapon);
+	Q_INVOKABLE void attack(RpgWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }
 
 	Q_INVOKABLE void cast();
@@ -188,6 +195,9 @@ public:
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
 
 	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot);
+	void updateFromSnapshot(const RpgGameData::Player &snap);
+
+	void attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected);
 
 signals:
 	void attackDone();
@@ -204,9 +214,13 @@ protected:
 
 	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
 
-	bool protectWeapon(const TiledWeapon::WeaponType &weaponType) override final;
-	void attackedByEnemy(IsometricEnemy */*enemy*/, const TiledWeapon::WeaponType &weaponType,
-						 const bool &isProtected) override final;
+	/*virtual bool protectWeapon(const RpgGameData::Weapon::WeaponType &weaponType) = 0;
+	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, const bool &isProtected) = 0;
+	bool protectWeapon(TiledWeaponList *weaponList, const TiledWeapon::WeaponType &weaponType);
+	bool protectWeapon(const RpgWeapon::WeaponType &weaponType) override final;
+	void attackedByEnemy(IsometricEnemy *enemy, const RpgWeapon::WeaponType &weaponType,
+						 const bool &isProtected) override final;*/
+
 	void onPickableReached(TiledObjectBody *object) override final;
 	void onPickableLeft(TiledObjectBody */*object*/) override final {};
 	void onEnemyReached(IsometricEnemy *enemy) override final;
@@ -219,6 +233,7 @@ protected:
 	void onCurrentTransportChanged();
 
 private:
+	void updateConfig();
 	void loadDefaultWeapons();
 	void loadSfx();
 	void onCurrentSpriteChanged();
@@ -226,13 +241,13 @@ private:
 	void playHurtEffect();
 	void playHealedEffect();
 	void playDeadEffect();
-	void playAttackEffect(const TiledWeapon::WeaponType &weaponType);
-	void playAttackEffect(TiledWeapon *weapon);
+	void playAttackEffect(const RpgGameData::Weapon::WeaponType &weaponType);
+	void playAttackEffect(RpgWeapon *weapon);
 	void playWeaponChangedEffect();
 	void playShieldEffect();
-	void messageEmptyBullet(const TiledWeapon::WeaponType &weaponType);
+	void messageEmptyBullet(const RpgGameData::Weapon::WeaponType &weaponType);
 	void onCastTimerTimeout();
-	void attackReachedEnemies(const TiledWeapon::WeaponType &weaponType);
+	void attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weaponType);
 
 private:
 	RpgPlayerCharacterConfig m_config;

@@ -28,21 +28,8 @@
 #define TILEDWEAPON_H
 
 #include "tiledobject.h"
-#include "isometricbullet.h"
 #include <QObject>
 
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#include "QOlm/QOlm.hpp"
-#pragma GCC diagnostic warning "-Wunused-parameter"
-#pragma GCC diagnostic warning "-Wunused-variable"
-
-class TiledWeapon;
-using TiledWeaponList = qolm::QOlm<TiledWeapon>;
-Q_DECLARE_METATYPE(TiledWeaponList*)
-
-
-class IsometricEnemy;
 
 
 /**
@@ -53,7 +40,6 @@ class TiledWeapon : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(WeaponType weaponType READ weaponType CONSTANT FINAL)
 	Q_PROPERTY(TiledObject *parentObject READ parentObject WRITE setParentObject NOTIFY parentObjectChanged FINAL)
 	Q_PROPERTY(int bulletCount READ bulletCount WRITE setBulletCount NOTIFY bulletCountChanged FINAL)
 	Q_PROPERTY(int maxBulletCount READ maxBulletCount WRITE setMaxBulletCount NOTIFY maxBulletCountChanged FINAL)
@@ -66,50 +52,17 @@ class TiledWeapon : public QObject
 	Q_PROPERTY(qreal bulletDistance READ bulletDistance WRITE setBulletDistance NOTIFY bulletDistanceChanged FINAL)
 
 public:
-	enum WeaponType {
-		WeaponInvalid = 0,
-		WeaponHand,
-		WeaponDagger,
-		WeaponLongsword,
-		WeaponShortbow,
-		WeaponLongbow,
-		WeaponBroadsword,
-		WeaponAxe,
-		WeaponHammer,
-		WeaponMace,
-		WeaponGreatHand,
-		WeaponMageStaff,
-		WeaponLightningWeapon,
-		WeaponFireFogWeapon,
-		WeaponShield
-	};
-
-	Q_ENUM (WeaponType);
-
-	explicit TiledWeapon(const WeaponType &type, QObject *parent = nullptr);
+	explicit TiledWeapon(QObject *parent = nullptr);
 	virtual ~TiledWeapon();
 
-	WeaponType weaponType() const;
-
-	static QString weaponName(const WeaponType &type);
-	QString weaponName() const { return weaponName(m_weaponType); }
-
-	static QString weaponNameEn(const WeaponType &type);
-	QString weaponNameEn() const { return weaponNameEn(m_weaponType); }
-
-	bool shot();
 
 	bool canShot() const { return !m_canHit && m_bulletCount != 0; }
 
-	virtual bool protect(const WeaponType &weapon) = 0;
-	virtual bool canProtect(const WeaponType &weapon) const = 0;
-	virtual bool canAttack() const = 0;
-
 	bool canHit() const { return m_canHit && m_bulletCount != 0; }
-
 	void setCanHit(bool newCanHit);
 
-	bool hit(TiledObject *target);
+	bool shot(const bool &forced = false);
+	bool hit(TiledObject *target, const bool &forced = false);
 
 	TiledObject *parentObject() const;
 	void setParentObject(TiledObject *newParentObject);
@@ -157,7 +110,6 @@ signals:
 	void maxBulletCountChanged();
 	void excludeFromLayersChanged();
 	void canCastChanged();
-
 	void bulletDistanceChanged();
 
 protected:
@@ -176,34 +128,11 @@ protected:
 	qreal m_bulletDistance = 700;
 
 private:
-	const WeaponType m_weaponType;
 	qint64 m_timerRepeater = -1.;
 	bool m_canThrow = false;
 	bool m_canThrowBullet = true;
 	int m_pickedBulletCount = 0;
 };
 
-
-
-
-/**
- * @brief The TiledWeaponHand class
- */
-
-class TiledWeaponHand : public TiledWeapon
-{
-	Q_OBJECT
-
-public:
-	TiledWeaponHand(QObject *parent = nullptr);
-
-	bool protect(const WeaponType &) override final { return false; }
-	bool canProtect(const WeaponType &) const override final { return false; }
-	bool canAttack() const override final { return true; }
-
-protected:
-	virtual void eventAttack(TiledObject *target) override;
-
-};
 
 #endif // TILEDWEAPON_H

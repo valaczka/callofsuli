@@ -91,8 +91,7 @@ static const QVector<TiledGame::TextureSpriteMapper> &mapperBase() {
  */
 
 RpgWerebear::RpgWerebear(TiledScene *scene)
-	: IsometricEnemy(scene)
-	, RpgEnemyIface(RpgGameData::EnemyBaseData::EnemyWerebear)
+	: RpgEnemy(RpgGameData::EnemyBaseData::EnemyWerebear, scene)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
 	, m_sfxRoar(this)
@@ -219,82 +218,24 @@ void RpgWerebear::eventPlayerLeft(IsometricPlayer *)
  * @param weaponType
  */
 
-void RpgWerebear::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType)
+void RpgWerebear::attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
 {
-	IsometricEnemy::attackedByPlayer(player, weaponType);
-
-	if (!isAlive() || isSleeping())
+	if (isSleeping())
 		return;
 
-	int newHp = getNewHpAfterAttack(m_hp, weaponType, player);
-
-	if (newHp == m_hp)
-		return;
-
-	setHp(std::max(0, newHp));
-
-	if (newHp <= 0) {
+	if (!isAlive()) {
 		toDeathSprite();
 		eventKilledByPlayer(player);
 	} else {
 		//jumpToSprite("hurt", m_currentDirection);
-		if (weaponType == TiledWeapon::WeaponBroadsword ||
-				weaponType == TiledWeapon::WeaponAxe)
+		if (weaponType == RpgGameData::Weapon::WeaponBroadsword ||
+				weaponType == RpgGameData::Weapon::WeaponAxe)
 			startInability();
 	}
 }
 
 
 
-/**
- * @brief RpgWerebear::getNewHpAfterAttack
- * @param origHp
- * @param weaponType
- * @param player
- * @return
- */
-
-int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType, IsometricPlayer */*player*/) const
-{
-	int newHp = origHp;
-
-	switch (weaponType) {
-		case TiledWeapon::WeaponMace:
-		case TiledWeapon::WeaponHammer:
-		case TiledWeapon::WeaponLongsword:
-			newHp -= 1;
-			break;
-
-		case TiledWeapon::WeaponLightningWeapon:
-		case TiledWeapon::WeaponFireFogWeapon:
-			newHp = 0;
-			break;
-
-		case TiledWeapon::WeaponShortbow:
-			newHp -= 1;
-			break;
-
-		case TiledWeapon::WeaponLongbow:
-		case TiledWeapon::WeaponBroadsword:
-			newHp -= 3;
-			break;
-
-		case TiledWeapon::WeaponAxe:
-			newHp -= 2;
-			break;
-
-
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponGreatHand:
-		case TiledWeapon::WeaponDagger:
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponMageStaff:
-		case TiledWeapon::WeaponInvalid:
-			break;
-	}
-
-	return newHp;
-}
 
 
 
@@ -303,12 +244,12 @@ int RpgWerebear::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weapo
  * @param weapon
  */
 
-void RpgWerebear::playAttackEffect(TiledWeapon *weapon)
+void RpgWerebear::playAttackEffect(RpgWeapon *weapon)
 {
 	if (!weapon)
 		return;
 
-	if (weapon->weaponType() == TiledWeapon::WeaponGreatHand || weapon->weaponType() == TiledWeapon::WeaponHand) {
+	if (weapon->weaponType() == RpgGameData::Weapon::WeaponGreatHand || weapon->weaponType() == RpgGameData::Weapon::WeaponHand) {
 		jumpToSprite(QStringLiteral("hit%1").arg(m_nextHit++).toLatin1(), m_facingDirection);
 		if (m_nextHit > 3)
 			m_nextHit = 1;
@@ -353,20 +294,6 @@ QPointF RpgWerebear::getPickablePosition(const int &num) const
 }
 
 
-
-/**
- * @brief RpgWerebear::protectWeapon
- * @param weaponType
- * @return
- */
-
-bool RpgWerebear::protectWeapon(const TiledWeapon::WeaponType &weaponType)
-{
-	if (m_weaponHand->canProtect(weaponType) && m_weaponHand->protect(weaponType))
-		return true;
-
-	return false;
-}
 
 
 
@@ -430,7 +357,7 @@ void RpgWerebear::toDeathSprite()
  * @return
  */
 
-TiledWeapon *RpgWerebear::defaultWeapon() const
+RpgWeapon *RpgWerebear::defaultWeapon() const
 {
 	return m_weaponHand.get();
 }
@@ -479,7 +406,7 @@ std::unique_ptr<RpgGameData::Body> RpgWerebear::serializeThis() const
  */
 
 RpgWerebearWeaponHand::RpgWerebearWeaponHand(QObject *parent)
-	: TiledWeapon(TiledWeapon::WeaponGreatHand, parent)
+	: RpgWeapon(RpgGameData::Weapon::WeaponGreatHand, parent)
 {
 	m_canHit = true;
 	m_icon = QStringLiteral("qrc:/Qaterial/Icons/hand.svg");

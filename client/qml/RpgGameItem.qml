@@ -376,7 +376,7 @@ FocusScope {
 
 			readonly property bool canShot:  _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon &&
 											 _game.controlledPlayer.armory.currentWeapon.bulletCount != -1 &&
-											 _game.controlledPlayer.armory.currentWeapon.weaponType != TiledWeapon.WeaponMageStaff
+											 _game.controlledPlayer.armory.currentWeapon.weaponType != RpgWeaponType.WeaponMageStaff
 
 			readonly property int bullet: canShot ?
 											  _game.controlledPlayer.armory.currentWeapon.bulletCount :
@@ -463,7 +463,7 @@ FocusScope {
 		//y: Math.min((parent.height-height)/2, _gameJoystick.y-10-height)
 		anchors.verticalCenter: parent.verticalCenter
 
-		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.nextWeapon : null
+		readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.nextWeapon : null
 
 		visible: weapon && _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon != weapon && _isPrepared
 
@@ -617,7 +617,7 @@ FocusScope {
 		anchors.margins: Math.max(10, Client.safeMarginRight, Client.safeMarginBottom,
 								  (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 30 : 0)*/
 
-		readonly property TiledWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
+		readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
 		readonly property bool _canAttack: weapon && (weapon.canHit || weapon.canShot)
 
 		visible: weapon && _isPrepared

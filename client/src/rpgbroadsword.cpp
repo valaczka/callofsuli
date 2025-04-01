@@ -34,7 +34,7 @@
  */
 
 RpgBroadsword::RpgBroadsword(QObject *parent)
-	: TiledWeapon{WeaponBroadsword, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponBroadsword, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;

@@ -321,15 +321,15 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 						});
 
 	} /*else if (market.type == RpgMarket::Bullet) {
-		TiledWeapon::WeaponType w = TiledWeapon::WeaponInvalid;
+		RpgWeapon::WeaponType w = RpgGameData::Weapon::WeaponInvalid;
 
 		switch (RpgPickableObject::typeFromString(market.name)) {
 			case RpgPickableObject::PickableArrow:
-				w = TiledWeapon::WeaponShortbow;
+				w = RpgGameData::Weapon::WeaponShortbow;
 				break;
 
 			case RpgPickableObject::PickableFireball:
-				w = TiledWeapon::WeaponLongbow;
+				w = RpgGameData::Weapon::WeaponLongbow;
 				break;
 
 			case RpgPickableObject::PickableShield:
@@ -347,11 +347,11 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 				break;
 		}
 
-		if (w != TiledWeapon::WeaponInvalid)
+		if (w != RpgGameData::Weapon::WeaponInvalid)
 			list.append(RpgMarketExtendedInfo{
 							QStringLiteral("qrc:/Qaterial/Icons/sword-cross.svg"),
 							tr("Fegyver:"),
-							TiledWeapon::weaponNameEn(w),
+							RpgGameData::Weapon::WeaponNameEn(w),
 							QStringLiteral("qrc:/rpg/")+RpgArmory::weaponHash().value(w)+ QStringLiteral("/market.jpg"),
 							60
 						});
@@ -671,14 +671,14 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			info.append(RpgUserWallet::getExtendedInfo(*t));
 
 		} else if (market.type == RpgMarket::Weapon) {
-			const auto t = RpgArmory::weaponHash().key(market.name, TiledWeapon::WeaponInvalid);
+			const auto t = RpgArmory::weaponHash().key(market.name, RpgGameData::Weapon::WeaponInvalid);
 
-			if (t == TiledWeapon::WeaponInvalid) {
+			if (t == RpgGameData::Weapon::WeaponInvalid) {
 				LOG_CTRACE("game") << "Weapon not found:" << market.name;
 				return;
 			}
 
-			w->setReadableName(TiledWeapon::weaponNameEn(t));
+			w->setReadableName(RpgWeapon::weaponNameEn(t));
 			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
 
 		} /*else if (market.type == RpgMarket::Bullet) {

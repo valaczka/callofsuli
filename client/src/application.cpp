@@ -368,6 +368,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
 	qmlRegisterUncreatableType<RpgContainer>("CallOfSuli", 1, 0, "RpgContainer", "RpgContainer is uncreatable");
+	qmlRegisterUncreatableType<RpgEnemy>("CallOfSuli", 1, 0, "RpgEnemy", "RpgEnemy is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgInventory>("CallOfSuli", 1, 0, "RpgInventory", "RpgInventory is uncreatable");
 	qmlRegisterUncreatableType<RpgMageStaff>("CallOfSuli", 1, 0, "RpgMageStaff", "RpgMageStaff is uncreatable");
@@ -375,6 +376,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<RpgMarketExtendedInfo>("CallOfSuli", 1, 0, "RpgMarketExtendedInfo", "RpgWalletExtendedInfo is uncreatable");
 	qmlRegisterUncreatableType<RpgQuest>("CallOfSuli", 1, 0, "RpgQuest", "RpgQuest is uncreatable");
 	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");
+	qmlRegisterUncreatableType<RpgWeapon>("CallOfSuli", 1, 0, "RpgWeapon", "RpgWeapon is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
@@ -401,6 +403,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
 	qmlRegisterUncreatableType<RpgConfig>("CallOfSuli", 1, 0, "RpgConfig", "RpgConfig is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayerConfig>("CallOfSuli", 1, 0, "RpgPlayerConfig", "RpgPlayerConfig is uncreatable");
+	qmlRegisterUncreatableType<RpgGameData::Weapon>("CallOfSuli", 1, 0, "RpgWeaponType", "RpgWeapon is uncreatable");
 
 
 	qmlRegisterUncreatableMetaObject(CallOfSuli::staticMetaObject, "CallOfSuli", 1, 0, "NotificationType", "NotificationType is uncreatable");

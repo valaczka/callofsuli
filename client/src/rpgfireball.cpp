@@ -35,7 +35,7 @@
  */
 
 RpgFireball::RpgFireball(TiledScene *scene)
-	: IsometricBullet(scene)
+	: RpgBullet(RpgGameData::Weapon::WeaponLongbow, scene)
 {
 
 }

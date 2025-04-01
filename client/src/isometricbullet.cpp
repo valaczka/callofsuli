@@ -25,8 +25,6 @@
  */
 
 #include "isometricbullet.h"
-#include "isometricbullet_p.h"
-#include "isometricenemy.h"
 #include "tiledscene.h"
 
 
@@ -38,7 +36,6 @@
 
 IsometricBullet::IsometricBullet(TiledScene *scene)
 	: IsometricObject(scene)
-	, d(new IsometricBulletPrivate)
 {
 
 }
@@ -51,7 +48,7 @@ IsometricBullet::IsometricBullet(TiledScene *scene)
 
 IsometricBullet::~IsometricBullet()
 {
-	delete d;
+
 }
 
 
@@ -61,7 +58,7 @@ IsometricBullet::~IsometricBullet()
  * @brief IsometricBullet::initialize
  */
 
-void IsometricBullet::initialize(TiledWeapon *weapon)
+void IsometricBullet::initialize()
 {
 	setDefaultZ(1);
 	setSubZ(0.8);
@@ -72,8 +69,6 @@ void IsometricBullet::initialize(TiledWeapon *weapon)
 
 	if (m_visualItem)
 		m_visualItem->setZ(1);
-
-	setFromWeapon(weapon);
 }
 
 
@@ -99,21 +94,6 @@ void IsometricBullet::shot(const QPointF &from, const qreal &angle)
 }
 
 
-
-
-
-/**
- * @brief IsometricBullet::shot
- * @param targets
- * @param from
- * @param angle
- */
-
-void IsometricBullet::shot(const Targets &targets, const QPointF &from, const qreal &angle)
-{
-	setTargets(targets);
-	shot(from, angle);
-}
 
 
 
@@ -187,18 +167,6 @@ void IsometricBullet::doAutoDelete()
 
 
 
-/**
- * @brief IsometricBullet::setFromWeapon
- * @param newFromWeapon
- */
-
-void IsometricBullet::setFromWeapon(TiledWeapon *newFromWeapon)
-{
-	d->m_fromWeapon = newFromWeapon;
-	d->m_fromWeaponType = newFromWeapon ? newFromWeapon->weaponType() : TiledWeapon::WeaponInvalid;
-	d->m_owner = newFromWeapon ? newFromWeapon->parentObject() : nullptr;
-}
-
 
 
 /**
@@ -220,99 +188,8 @@ void IsometricBullet::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
 	if (!base)
 		return;
 
-	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
-	IsometricEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
-								dynamic_cast<IsometricEnemy*>(base) :
-								nullptr;
-
-	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody)  ?
-								  dynamic_cast<IsometricPlayer*>(base) :
-								  nullptr;
-
-
-
-	if (categories.testFlag(TiledObjectBody::FixtureGround) && base->opaque()) {
-		setImpacted(true);
-		stop();
-		groundEvent(base);
-		doAutoDelete();
-		return;
-	}
-
-
-	bool hasTarget = false;
-
-	if (m_targets.testFlag(TargetEnemy) && enemy) {
-		hasTarget = enemy->canBulletImpact(d->m_fromWeaponType);
-	}
-
-	if (m_targets.testFlag(TargetPlayer) && player && !player->isLocked()) {
-		hasTarget = true;
-	}
-
-	if (!hasTarget)
-		return;
 
 	impactEvent(base);
-}
-
-
-
-/**
- * @brief IsometricBullet::impactEvent
- * @param base
- */
-
-void IsometricBullet::impactEvent(TiledObjectBody *base)
-{
-	if (!d->m_owner) {
-		LOG_CWARNING("game") << "Missing owner, bullet automatic impact event failed";
-		return;
-	}
-
-	TiledGame *game = d->m_owner->game();
-
-	if (!game) {
-		LOG_CWARNING("game") << "Missing game, bullet automatic impact event failed";
-		return;
-	}
-
-
-	IsometricEnemy *enemy = dynamic_cast<IsometricEnemy*>(base);
-	IsometricPlayer *player = dynamic_cast<IsometricPlayer*>(base);
-
-	LOG_CINFO("game") << "IMPACT" << d->m_owner << enemy << player << d->m_fromWeaponType;
-
-	if (enemy)
-		game->playerAttackEnemy(d->m_owner, enemy, d->m_fromWeaponType);
-
-	if (player)
-		game->enemyAttackPlayer(d->m_owner, player, d->m_fromWeaponType);
-
-	/// TODO: player attack player?
-
-	setImpacted(true);
-	stop();
-	doAutoDelete();
-}
-
-
-/**
- * @brief IsometricBullet::targets
- * @return
- */
-
-IsometricBullet::Targets IsometricBullet::targets() const
-{
-	return m_targets;
-}
-
-void IsometricBullet::setTargets(const Targets &newTargets)
-{
-	if (m_targets == newTargets)
-		return;
-	m_targets = newTargets;
-	emit targetsChanged();
 }
 
 

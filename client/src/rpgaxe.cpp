@@ -25,6 +25,7 @@
  */
 
 #include "rpgaxe.h"
+#include "rpgconfig.h"
 #include "tiledgame.h"
 
 
@@ -35,7 +36,7 @@
  */
 
 RpgAxe::RpgAxe(QObject *parent)
-	: TiledWeapon{WeaponAxe, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponAxe, parent}
 {
 	//m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;

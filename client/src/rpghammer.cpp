@@ -29,7 +29,7 @@
 
 
 RpgHammer::RpgHammer(QObject *parent)
-	: TiledWeapon{WeaponHammer, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponHammer, parent}
 {
 	//m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;

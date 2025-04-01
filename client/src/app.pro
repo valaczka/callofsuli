@@ -250,6 +250,7 @@ SOURCES += \
 	rpgcontrolgroupoverlay.cpp \
 	rpgcontrolgroupsave.cpp \
 	rpgdagger.cpp \
+	rpgenemy.cpp \
 	rpgenemybase.cpp \
 	rpgfireball.cpp \
 	rpgfirefog.cpp \
@@ -341,7 +342,6 @@ HEADERS += \
 	grade.h \
 	httpconnection.h \
 	isometricbullet.h \
-	isometricbullet_p.h \
 	isometricenemy.h \
 	isometricentity.h \
 	isometricobject.h \
@@ -370,6 +370,7 @@ HEADERS += \
 	rpgcontrolgroupsave.h \
 	rpgcontrolgroupstate.h \
 	rpgdagger.h \
+	rpgenemy.h \
 	rpgenemybase.h \
 	rpgenemyiface.h \
 	rpgfireball.h \

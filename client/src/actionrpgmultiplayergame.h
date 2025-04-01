@@ -97,19 +97,18 @@ private:
 	void syncEnemyList();
 	void syncPlayerList();
 
-	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::BaseData &config, const RpgGameData::Player &playerData);
+	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::PlayerBaseData &config, const RpgGameData::Player &playerData);
 
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
-	bool onPlayerAttackEnemy(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
+	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
 	bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container);
 	bool onPlayerUseCast(RpgPlayer *player);
 	bool onPlayerCastTimeout(RpgPlayer *player);
 	bool onPlayerFinishCast(RpgPlayer *player);
-	bool onPlayerHit(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType);
-	bool onPlayerShot(RpgPlayer *player, const TiledWeapon::WeaponType &weaponType, TiledScene *scene,
-					  const IsometricBullet::Targets &targets, const qreal &angle);
+	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
+	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
 
-	bool onEnemyAttackPlayer(IsometricEnemy *enemy, RpgPlayer *player, const TiledWeapon::WeaponType &weaponType);
+	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
 
 	void beforeWorldStep(const qint64 &lagMsec);
 	void afterWorldStep(const qint64 &lagMsec);

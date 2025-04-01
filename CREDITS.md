@@ -1,5 +1,6 @@
 **Library**
 
+- backward-cpp - (c) 2013-2017 Google Inc. (https://github.com/bombela/backward-cpp)
 - Box2D - (c) 2022 Erin Catto (https://github.com/erincatto/box2d)
 - box2cpp - (c) 2024 Egor Mikhailov (https://github.com/HolyBlackCat/box2cpp)
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)

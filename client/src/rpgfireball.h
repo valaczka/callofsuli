@@ -27,8 +27,7 @@
 #ifndef RPGFIREBALL_H
 #define RPGFIREBALL_H
 
-#include "isometricbullet.h"
-#include "rpgpickableobject.h"
+#include "rpgarmory.h"
 #include <QQmlEngine>
 
 
@@ -36,7 +35,7 @@
  * @brief The RpgFireball class
  */
 
-class RpgFireball : public IsometricBullet
+class RpgFireball : public RpgBullet
 {
 	Q_OBJECT
 	QML_ELEMENT

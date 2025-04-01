@@ -33,8 +33,9 @@
 #include "tiledgame.h"
 #include "tilesetmanager.h"
 #include "application.h"
-#include "libtcod/path.hpp"
+#include "isometricobject.h"
 
+#include "libtcod/path.hpp"
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
 #include <libtiled/grouplayer.h>

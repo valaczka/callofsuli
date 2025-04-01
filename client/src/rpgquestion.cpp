@@ -65,7 +65,7 @@ void RpgQuestion::reloadQuestions()
  * @return
  */
 
-bool RpgQuestion::nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, RpgContainer *container)
+bool RpgQuestion::nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, RpgContainer *container)
 {
 	GameQuestion *gq = m_game->gameQuestion();
 
@@ -186,7 +186,7 @@ void RpgQuestion::questionFinished()
 	m_player = nullptr;
 	m_enemy = nullptr;
 	m_container = nullptr;
-	m_weaponType = TiledWeapon::WeaponInvalid;
+	m_weaponType = RpgGameData::Weapon::WeaponInvalid;
 }
 
 

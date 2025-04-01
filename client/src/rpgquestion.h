@@ -46,14 +46,14 @@ public:
 	~RpgQuestion() = default;
 
 	void reloadQuestions();
-	bool nextQuestion(RpgPlayer *player, IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType,
+	bool nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType,
 					  RpgContainer *container = nullptr);
 
 	void questionSuccess(const QVariantMap &answer);
 	void questionFailed(const QVariantMap &answer);
 	void questionFinished();
 
-	IsometricEnemy *enemy() const { return m_enemy; }
+	RpgEnemy *enemy() const { return m_enemy; }
 	RpgPlayer *player() const { return m_player; }
 
 	void initialize();
@@ -67,9 +67,9 @@ private:
 	QVector<Question>::const_iterator m_questionIterator;
 
 	QPointer<RpgPlayer> m_player;
-	QPointer<IsometricEnemy> m_enemy;
+	QPointer<RpgEnemy> m_enemy;
 	QPointer<RpgContainer> m_container;
-	TiledWeapon::WeaponType m_weaponType = TiledWeapon::WeaponInvalid;
+	RpgGameData::Weapon::WeaponType m_weaponType = RpgGameData::Weapon::WeaponInvalid;
 
 	bool m_emptyQuestions = true;
 

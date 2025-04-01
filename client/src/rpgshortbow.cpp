@@ -29,7 +29,7 @@
 #include "rpgplayer.h"
 
 RpgShortbow::RpgShortbow(QObject *parent)
-	: TiledWeapon{WeaponShortbow, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponShortbow, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.4_60.png");
 }
@@ -90,10 +90,7 @@ bool RpgShortbowPickable::playerPick(RpgPlayer *player)
 
 	static const int num = 10;
 
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponShortbow);
-
-	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgShortbow);
+	RpgWeapon *weapon = player->armory()->weaponAdd(RpgGameData::Weapon::WeaponShortbow);
 
 	weapon->setBulletCount(weapon->bulletCount()+num);
 	weapon->setPickedBulletCount(weapon->pickedBulletCount()+num);
@@ -101,7 +98,7 @@ bool RpgShortbowPickable::playerPick(RpgPlayer *player)
 	if (m_game)
 		m_game->message(tr("1 shortbow gained"));
 
-	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
+	player->armory()->setCurrentWeaponIf(weapon, RpgGameData::Weapon::WeaponHand);
 
 	return true;
 }

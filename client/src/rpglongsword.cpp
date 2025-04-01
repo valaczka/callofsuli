@@ -34,35 +34,13 @@
  */
 
 RpgLongsword::RpgLongsword(QObject *parent)
-	: TiledWeapon{WeaponLongsword, parent}
+	: RpgWeapon{RpgGameData::Weapon::WeaponLongsword, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_98.png");
 	m_canHit = true;
 }
 
 
-/**
- * @brief RpgLongsword::protect
- * @param weapon
- * @return
- */
-
-bool RpgLongsword::protect(const WeaponType &)
-{
-	return false;
-}
-
-
-/**
- * @brief RpgLongsword::canProtect
- * @param weapon
- * @return
- */
-
-bool RpgLongsword::canProtect(const WeaponType &) const
-{
-	return false;
-}
 
 
 /**
@@ -108,10 +86,7 @@ bool RpgLongswordPickable::playerPick(RpgPlayer *player)
 	if (!player)
 		return false;
 
-	TiledWeapon *weapon = player->armory()->weaponFind(TiledWeapon::WeaponLongsword);
-
-	if (!weapon)
-		weapon = player->armory()->weaponAdd(new RpgLongsword);
+	RpgWeapon *weapon = player->armory()->weaponAdd(RpgGameData::Weapon::WeaponLongsword);
 
 	weapon->setBulletCount(weapon->bulletCount()+1);
 	weapon->setPickedBulletCount(weapon->pickedBulletCount()+1);
@@ -119,7 +94,7 @@ bool RpgLongswordPickable::playerPick(RpgPlayer *player)
 	if (m_game)
 		m_game->message(tr("1 sword gained"));
 
-	player->armory()->setCurrentWeaponIf(weapon, TiledWeapon::WeaponHand);
+	player->armory()->setCurrentWeaponIf(weapon, RpgGameData::Weapon::WeaponHand);
 
 	return true;
 }

@@ -30,18 +30,13 @@
 #include "tiledspritehandler.h"
 #include "utils_.h"
 
-#include "rpgaxe.h"
-#include "rpghammer.h"
-#include "rpgmace.h"
-
 /**
  * @brief RpgEnemyBase::RpgEnemyBase
  * @param parent
  */
 
 RpgEnemyBase::RpgEnemyBase(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene)
-	: IsometricEnemy(scene)
-	, RpgEnemyIface(type)
+	: RpgEnemy(type, scene)
 	, m_effectHealed(this)
 	, m_effectFire(this)
 	, m_effectSleep(this)
@@ -98,7 +93,7 @@ RpgEnemyBase::~RpgEnemyBase()
  * @return
  */
 
-TiledWeapon *RpgEnemyBase::defaultWeapon() const
+RpgWeapon *RpgEnemyBase::defaultWeapon() const
 {
 	return m_armory->currentWeapon();
 }
@@ -138,8 +133,8 @@ void RpgEnemyBase::updateSprite()
 
 void RpgEnemyBase::load()
 {
-	setMaxHp(9);
-	setHp(9);
+	setMaxHp(30);
+	setHp(30);
 
 	setAvailableDirections(Direction_8);
 
@@ -208,7 +203,7 @@ void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
 	// Skip rotate on dagger
 
 	if (p && p->armory()->currentWeapon() &&
-			p->armory()->currentWeapon()->weaponType() == TiledWeapon::WeaponDagger) {
+			p->armory()->currentWeapon()->weaponType() == RpgGameData::Weapon::WeaponDagger) {
 		return;
 	}
 
@@ -223,104 +218,40 @@ void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
  * @param weaponType
  */
 
-void RpgEnemyBase::attackedByPlayer(IsometricPlayer *player, const TiledWeapon::WeaponType &weaponType)
+void RpgEnemyBase::attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
 {
-	if (isAlive() && weaponType == TiledWeapon::WeaponHand) {
+	if (isAlive() && weaponType == RpgGameData::Weapon::WeaponHand) {
 		if (startSleeping())
 			return;
 	}
 
-	IsometricEnemy::attackedByPlayer(player, weaponType);
-
-	if (weaponType == TiledWeapon::WeaponLongbow || weaponType == TiledWeapon::WeaponFireFogWeapon)
+	if (weaponType == RpgGameData::Weapon::WeaponLongbow || weaponType == RpgGameData::Weapon::WeaponFireFogWeapon)
 		m_effectFire.play();
 
-	if (!isAlive() || isSleeping())
+	if (isSleeping())
 		return;
 
-	int newHp = getNewHpAfterAttack(m_hp, weaponType, player);
-
-	if (newHp == m_hp)
-		return;
-
-	setHp(std::max(0, newHp));
-
-	if (newHp <= 0) {
+	if (!isAlive()) {
 		jumpToSprite("death", m_facingDirection);
 		eventKilledByPlayer(player);
-	} else {
-		jumpToSprite("hurt", m_facingDirection);
-
-		if (weaponType == TiledWeapon::WeaponBroadsword || weaponType == TiledWeapon::WeaponAxe)
-			startInability();
+		return;
 	}
 
+	jumpToSprite("hurt", m_facingDirection);
+
+	if (weaponType == RpgGameData::Weapon::WeaponBroadsword || weaponType == RpgGameData::Weapon::WeaponAxe)
+		startInability();
+
+
+	if (!m_contactedPlayers.contains(player))
+		m_contactedPlayers.append(QPointer(player));
+
+	setPlayer(player);
+	rotateToPlayer(player);
 }
 
 
 
-
-/**
- * @brief RpgEnemyBase::getNewHpAfterAttack
- * @param origHp
- * @param weaponType
- * @param player
- * @return
- */
-
-int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::WeaponType &weaponType, IsometricPlayer *player) const
-{
-	int hp = origHp;
-
-	switch (weaponType) {
-		case TiledWeapon::WeaponDagger:
-			if (!m_player || m_player != player) {
-				hp = 0;
-			} else {
-				hp -= 1;
-			}
-			break;
-
-		case TiledWeapon::WeaponLongsword:
-			hp -= 2;
-			break;
-
-		case TiledWeapon::WeaponShortbow:
-			hp -= 3;
-			break;
-
-		case TiledWeapon::WeaponAxe:
-			hp -= 3;
-			break;
-
-		case TiledWeapon::WeaponMace:
-			hp -= 1;
-			break;
-
-		case TiledWeapon::WeaponHammer:
-			hp -= 2;
-			break;
-
-		case TiledWeapon::WeaponLongbow:
-		case TiledWeapon::WeaponLightningWeapon:
-		case TiledWeapon::WeaponFireFogWeapon:
-		case TiledWeapon::WeaponGreatHand:
-			hp = 0;
-			break;
-
-		case TiledWeapon::WeaponBroadsword:
-			hp = hp > 1 ? 1 : 0;
-			break;
-
-		case TiledWeapon::WeaponMageStaff:
-		case TiledWeapon::WeaponHand:
-		case TiledWeapon::WeaponShield:
-		case TiledWeapon::WeaponInvalid:
-			break;
-	}
-
-	return hp;
-}
 
 
 
@@ -329,7 +260,7 @@ int RpgEnemyBase::getNewHpAfterAttack(const int &origHp, const TiledWeapon::Weap
  * @param weapon
  */
 
-void RpgEnemyBase::playAttackEffect(TiledWeapon *weapon)
+void RpgEnemyBase::playAttackEffect(RpgWeapon *weapon)
 {
 	if (!weapon)
 		return;
@@ -362,9 +293,9 @@ QPointF RpgEnemyBase::getPickablePosition(const int &num) const
  * @return
  */
 
-bool RpgEnemyBase::canBulletImpact(const TiledWeapon::WeaponType &type) const
+bool RpgEnemyBase::canBulletImpact(const RpgGameData::Weapon::WeaponType &type) const
 {
-	if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton && type == TiledWeapon::WeaponShortbow)
+	if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton && type == RpgGameData::Weapon::WeaponShortbow)
 		return false;
 
 	return true;
@@ -372,21 +303,7 @@ bool RpgEnemyBase::canBulletImpact(const TiledWeapon::WeaponType &type) const
 
 
 
-/**
- * @brief RpgEnemyBase::protectWeapon
- * @param weaponType
- * @return
- */
 
-bool RpgEnemyBase::protectWeapon(const TiledWeapon::WeaponType &weaponType)
-{
-	for (TiledWeapon *w : std::as_const(*m_armory->weaponList())) {
-		if (w->canProtect(weaponType) && w->protect(weaponType))
-			return true;
-	}
-
-	return false;
-}
 
 QString RpgEnemyBase::subType() const
 {
@@ -420,20 +337,20 @@ void RpgEnemyBase::loadType()
 {
 	m_directory = directoryBaseName(m_enemyType, m_subType);
 
-	TiledWeapon *w = nullptr;
+	RpgWeapon *w = nullptr;
 
 	if (m_enemyType == RpgGameData::EnemyBaseData::EnemySoldier || m_enemyType == RpgGameData::EnemyBaseData::EnemySoldierFix)
-		w = m_armory->weaponAdd(new RpgLongsword);
+		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponLongsword);
 	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix)
-		w = m_armory->weaponAdd(new RpgShortbow);
+		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponShortbow);
 	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton)
-		w = m_armory->weaponAdd(new RpgLongsword);
+		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponLongsword);
 	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySmith || m_enemyType == RpgGameData::EnemyBaseData::EnemySmithFix)
-		w = m_armory->weaponAdd(new RpgHammer);
+		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponHammer);
 	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyButcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyButcherFix)
-		w = m_armory->weaponAdd(new RpgAxe);
+		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponAxe);
 	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarian || m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarianFix)
-		w = m_armory->weaponAdd(new RpgMace);
+		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponMace);
 
 
 	if (w) {
