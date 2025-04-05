@@ -276,6 +276,7 @@ private:
 
 	friend class RpgGame;
 	friend class ActionRpgGame;
+	friend class ActionRpgMultiplayerGame;
 
 
 	qint64 m_lastSnap = -1;

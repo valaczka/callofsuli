@@ -29,13 +29,12 @@
 
 #include "qcborarray.h"
 #include "qmutex.h"
-#include "qpoint.h"
 #include <QSerializer>
 #include <QIODevice>
 
 
 
-#define RPG_UDP_DELTA_MSEC	1000
+#define RPG_UDP_DELTA_MSEC	6.*1000./60.				// Jitter buffer
 
 
 
@@ -510,7 +509,9 @@ public:
 /// ---------------------------------------------------------------
 
 
-#define EQUAL_OPERATOR(cname)	bool operator==(const cname &r) const { return isEqual(r); }
+#define EQUAL_OPERATOR(cname)	\
+	bool operator==(const cname &r) const { return isEqual(r); } \
+	bool operator!=(const cname &r) const { return !isEqual(r); }
 
 
 namespace RpgGameData {
@@ -675,30 +676,10 @@ public:
 	static const QHash<WeaponType, int> &protectValue() { return m_protectValue; }
 
 private:
-	inline static const QHash<WeaponType, int> m_damageValue = {
-		{ WeaponHand, 1 },
-		{ WeaponDagger, 3 },
-		{ WeaponLongsword, 10 },
-		{ WeaponHammer, 20 },
-		{ WeaponMace, 22 },
-		{ WeaponAxe, 25 },
-		{ WeaponBroadsword, 30 },
-		{ WeaponShortbow, 10 },
-		{ WeaponLongbow, 25 },
-		{ WeaponGreatHand, 50 },
-		{ WeaponLightningWeapon, 40 },
-		{ WeaponFireFogWeapon, 60 },
-	};
-
-	inline static const QHash<WeaponType, int> m_protectValue = {
-		{ WeaponShield, 10 },
-	};
-
+	static const QHash<WeaponType, int> m_damageValue;
+	static const QHash<WeaponType, int> m_protectValue;
 
 	QS_SERIALIZABLE
-
-
-
 
 	QS_FIELD(WeaponType, t)			// type
 	QS_FIELD(int, b)				// bullet count
@@ -975,21 +956,23 @@ public:
 		PlayerMoving,
 		PlayerHit,
 		PlayerShot,
-		PlayerCast
+		PlayerCast,
+		PlayerAttack
 	};
 
 	Q_ENUM(PlayerState);
 
 
 	bool isEqual(const Player &other) const  {
-		return ArmoredEntity::isEqual(other) && other.st == st;
+		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg;
 	}
 
 	EQUAL_OPERATOR(Player);
 
 	QS_SERIALIZABLE
 
-	QS_FIELD(PlayerState, st)
+	QS_FIELD(PlayerState, st)			// state
+	QS_OBJECT(BaseData, tg)				// target (enemy)
 };
 
 
@@ -1066,19 +1049,38 @@ class Enemy : public ArmoredEntity
 	Q_GADGET
 
 public:
+	enum EnemyState {
+		EnemyInvalid = 0,
+		EnemyIdle,
+		EnemyMoving,
+		EnemyHit,
+		EnemyShot,
+		EnemyCast,
+		EnemyAttack
+	};
+
+	Q_ENUM(EnemyState);
+
+	Enemy(const EnemyState &_st)
+		: ArmoredEntity()
+		, st(_st)
+	{}
 
 	Enemy()
-		: ArmoredEntity()
+		: Enemy(EnemyInvalid)
 	{}
 
 
 	bool isEqual(const Enemy &other) const {
-		return ArmoredEntity::isEqual(other);
+		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg;
 	}
 
 	EQUAL_OPERATOR(Enemy)
 
 	QS_SERIALIZABLE
+
+	QS_FIELD(EnemyState, st)			// enemy state
+	QS_OBJECT(BaseData, tg)				// target (player)
 
 };
 
@@ -1304,11 +1306,13 @@ template <typename T, typename = std::enable_if<std::is_base_of<Body, T>::value>
 struct SnapshotInterpolation {
 	T s1;
 	T s2;
+	T last;
 	qint64 current = -1;
 
 	void clear() {
 		s1 = {};
 		s2 = {};
+		last = {};
 		current = -1;
 	}
 };
@@ -1562,6 +1566,9 @@ inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const 
 
 	sip.current = time;
 
+	if (!map.empty())
+		sip.last = std::prev(map.cend())->second;
+
 	if (time < 0)
 		return sip;
 
@@ -1644,102 +1651,6 @@ inline void SnapshotStorage::dumpSnapshots(QIODevice *device, const SnapshotList
 	}
 
 	device->write("=====================================\n\n");
-}
-
-
-
-/**
- * @brief SnapshotStorage::getFullSnapshot
- * @param tick
- * @return
- */
-
-inline FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick)
-{
-	QMutexLocker locker(&m_mutex);
-
-	FullSnapshot s;
-
-	for (auto &ptr : m_players) {
-		SnapshotInterpolation<RpgGameData::Player> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
-		s.players.emplace_back(ptr.data, sip);
-		if (sip.s2.f >= 0)
-			ptr.lastOut = sip.s2.f;
-	}
-
-	for (auto &ptr : m_enemies) {
-		SnapshotInterpolation<RpgGameData::Enemy> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
-		s.enemies.emplace_back(ptr.data, sip);
-		if (sip.s2.f >= 0)
-			ptr.lastOut = sip.s2.f;
-	}
-
-	return s;
-}
-
-
-
-
-
-/**
- * @brief SnapshotStorage::getCurrentSnapshot
- * @return
- */
-
-inline CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
-{
-	QMutexLocker locker(&m_mutex);
-
-	CurrentSnapshot s;
-
-	s.players = convertToSnapshotList(m_players);
-	s.enemies = convertToSnapshotList(m_enemies);
-
-	return s;
-}
-
-
-
-/**
- * @brief SnapshotStorage::zapSnapshots
- * @param tick
- */
-
-inline void SnapshotStorage::zapSnapshots(const qint64 &tick)
-{
-	QMutexLocker locker(&m_mutex);
-
-	if (tick <= 0)
-		return;
-
-	for (auto &ptr : m_players) {
-		zapSnapshots(ptr.list, tick);
-	}
-
-	for (auto &ptr : m_enemies) {
-		zapSnapshots(ptr.list, tick);
-	}
-}
-
-
-
-
-/**
- * @brief CurrentSnapshot::toCbor
- * @return
- */
-
-inline QCborMap CurrentSnapshot::toCbor() const
-{
-	QCborMap map;
-
-	if (const QCborArray &a = toCborArray(players, QStringLiteral("pd"), QStringLiteral("p")); !a.isEmpty())
-		map.insert(QStringLiteral("pp"), a);
-
-	if (const QCborArray &a = toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e")); !a.isEmpty())
-		map.insert(QStringLiteral("ee"), a);
-
-	return map;
 }
 
 
@@ -1834,50 +1745,6 @@ inline CurrentSnapshotList<T2, T> SnapshotStorage::convertToSnapshotList(Snapsho
 	return ret;
 }
 
-
-
-
-
-/**
- * @brief ArmoredEntity::attack
- * @param src
- * @param weapon
- * @return
- */
-
-inline void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
-								  const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other)
-{
-	float damage = Weapon::damageValue().value(weapon, 0) * other.df;
-
-	if (damage <= 0.)
-		return;
-
-	for (auto it = dst.arm.wl.begin(); damage > 0. && it != dst.arm.wl.end(); ++it) {
-		if (it->b == 0)
-			continue;
-
-		const float protect = Weapon::protectValue().value(it->t, 0) * dstBase.pf;
-		if (protect <= 0.)
-			continue;
-
-		// Ha -1 töltény van, akkor a teljes támadást ki tudjuk védeni
-
-		if (it->b == -1) {
-			damage = 0.;
-			break;
-		} else {
-			float sumProtect = std::min(protect * it->b, damage);
-			damage -= sumProtect;
-			it->b = std::max(0, (int) std::ceil(sumProtect / protect));
-		}
-	}
-
-	if (damage <= 0.)
-		return;
-
-	dst.hp = std::max(0, (int) (dst.hp-damage));
-}
 
 
 

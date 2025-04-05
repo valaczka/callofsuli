@@ -43,12 +43,14 @@ class RpgSnapshotStorage : public RpgGameData::SnapshotStorage
 public:
 	RpgSnapshotStorage(RpgEngine *engine);
 
-	void playerAdd(const RpgGameData::BaseData &base, const RpgGameData::Player &data);
+	void playerAdd(const RpgGameData::PlayerBaseData &base, const RpgGameData::Player &data);
+	void enemyAdd(const RpgGameData::EnemyBaseData &base, const RpgGameData::Enemy &data);
 
 	bool registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor);
 
 private:
 	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
+	bool registerEnemies(const QCborMap &cbor);
 
 	template <typename T, typename T2,
 			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -60,12 +62,25 @@ private:
 			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static RpgGameData::SnapshotList<T, T2>::const_iterator find(const T2 &key, const RpgGameData::SnapshotList<T, T2> &list);
 
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	static RpgGameData::SnapshotList<T, T2>::iterator find(RpgGameData::BaseData &key, RpgGameData::SnapshotList<T, T2> &list);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	static RpgGameData::SnapshotList<T, T2>::const_iterator constFind(const RpgGameData::BaseData &key, RpgGameData::SnapshotList<T, T2> &list);
+
 
 	template <typename T2,
 			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static bool checkBaseData(const T2 &key, const QCborMap &cbor, const QString &baseKey);
 
 
+
+	template <typename T>
+	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick, std::map<qint64, T>::iterator *nextPtr = nullptr);
 
 	template <typename T>
 	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const T &snap, std::map<qint64, T>::iterator *nextPtr = nullptr);
@@ -99,6 +114,56 @@ private:
 
 	RpgEngine *m_engine = nullptr;
 };
+
+
+
+
+
+
+
+/**
+ * @brief RpgSnapshotStorage::find
+ * @param key
+ * @param list
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline RpgGameData::SnapshotList<T, T2>::const_iterator RpgSnapshotStorage::constFind(const RpgGameData::BaseData &key,
+																					  RpgGameData::SnapshotList<T, T2> &list)
+{
+	typename RpgGameData::SnapshotList<T, T2>::const_iterator it = std::find_if(
+																	   list.cbegin(),
+																	   list.cend(),
+																	   [&key](const RpgGameData::SnapshotData<T, T2> &d) {
+		return d.data == key;
+	});
+
+	return it;
+}
+
+
+
+/**
+ * @brief RpgSnapshotStorage::find
+ * @param key
+ * @param list
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline RpgGameData::SnapshotList<T, T2>::iterator RpgSnapshotStorage::find(RpgGameData::BaseData &key,
+																		   RpgGameData::SnapshotList<T, T2> &list)
+{
+	typename RpgGameData::SnapshotList<T, T2>::iterator it = std::find_if(
+																 list.begin(),
+																 list.end(),
+																 [&key](const RpgGameData::SnapshotData<T, T2> &d) {
+		return d.data == key;
+	});
+
+	return it;
+}
 
 
 
@@ -211,7 +276,15 @@ inline bool RpgSnapshotStorage::checkBaseData(const T2 &key, const QCborMap &cbo
 template<typename T>
 inline std::optional<T> RpgSnapshotStorage::getPreviousSnap(std::map<qint64, T> &list, const T &snap, std::map<qint64, T>::iterator *nextPtr)
 {
-	qint64 tick = snap.f;
+	return getPreviousSnap(list, snap.f, nextPtr);
+}
+
+
+
+
+template<typename T>
+inline std::optional<T> RpgSnapshotStorage::getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick, std::map<qint64, T>::iterator *nextPtr)
+{
 	typename std::map<qint64, T>::iterator it = list.upper_bound(tick);			// Greater
 
 	if (nextPtr)
@@ -222,7 +295,6 @@ inline std::optional<T> RpgSnapshotStorage::getPreviousSnap(std::map<qint64, T> 
 	else
 		return std::nullopt;
 }
-
 
 
 /**

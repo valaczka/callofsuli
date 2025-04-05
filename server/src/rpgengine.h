@@ -36,11 +36,11 @@
  * @brief The RpgEnginePlayer class
  */
 
-class RpgEnginePlayer : public RpgGameData::BaseData
+class RpgEnginePlayer : public RpgGameData::PlayerBaseData
 {
 public:
 	RpgEnginePlayer(UdpServerPeer *peer, const bool &isHost = false)
-		: RpgGameData::BaseData()
+		: RpgGameData::PlayerBaseData()
 		, m_udpPeer(peer)
 		, m_isHost(isHost)
 	{}

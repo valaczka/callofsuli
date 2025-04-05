@@ -37,6 +37,8 @@ public:
 	DesktopApplication(QApplication *app);
 	virtual ~DesktopApplication();
 
+	virtual void initialize() override;
+
 	void commandLineParse();
 	bool performCommandLine();
 
@@ -44,13 +46,21 @@ public:
 
 	int runSingleInstance();
 
+	bool hasLocalSocket() const;
+	void writeToSocket(const QCborValue &cbor);
+
 protected:
 	virtual Client *createClient() override;
 
 private:
+	void onNewSocketConnection();
+
 	QStringList m_arguments;
 	ColorConsoleAppender *m_appender = nullptr;
 	QSingleInstance m_singleInstance;
+	QString m_localServerName;
+	QLocalServer m_localServer;
+	QList<QLocalSocket*> m_localSockets;
 };
 
 #endif // DESKTOPAPPLICATION_H

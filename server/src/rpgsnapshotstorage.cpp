@@ -45,16 +45,36 @@ RpgSnapshotStorage::RpgSnapshotStorage(RpgEngine *engine)
  * @return
  */
 
-void RpgSnapshotStorage::playerAdd(const RpgGameData::BaseData &base, const RpgGameData::Player &data)
+void RpgSnapshotStorage::playerAdd(const RpgGameData::PlayerBaseData &base, const RpgGameData::Player &data)
 {
 	QMutexLocker locker(&m_mutex);
 
-	RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::BaseData> snapdata;
+	RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> snapdata;
 
 	snapdata.data = base;
 	snapdata.list.insert_or_assign(data.f, data);
 
 	m_players.push_back(snapdata);
+}
+
+
+
+/**
+ * @brief RpgSnapshotStorage::enemyAdd
+ * @param base
+ * @param data
+ */
+
+void RpgSnapshotStorage::enemyAdd(const RpgGameData::EnemyBaseData &base, const RpgGameData::Enemy &data)
+{
+	QMutexLocker locker(&m_mutex);
+
+	RpgGameData::SnapshotData<RpgGameData::Enemy, RpgGameData::EnemyBaseData> snapdata;
+
+	snapdata.data = base;
+	snapdata.list.insert_or_assign(data.f, data);
+
+	m_enemies.push_back(snapdata);
 }
 
 
@@ -72,13 +92,18 @@ bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMa
 
 	QMutexLocker locker(&m_mutex);
 
+	bool ret = true;
+
 
 	if (!registerPlayers(player, cbor))
-		return false;
+		ret = false;
 
+	if (player->isHost()) {
+		if (!registerEnemies(cbor))
+			ret = false;
+	}
 
-
-	return true;
+	return ret;
 }
 
 
@@ -104,7 +129,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player, const QCborMap
 		for (const QCborValue &v : list) {
 			const QCborMap m = v.toMap();
 
-			RpgGameData::BaseData pdata = *player;
+			RpgGameData::PlayerBaseData pdata = *player;
 
 			if (!checkBaseData(pdata, m, QStringLiteral("pd"))) {
 				LOG_CWARNING("engine") << "Invalid player" << m;
@@ -136,6 +161,88 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player, const QCborMap
 				if (snap->st == RpgGameData::Player::PlayerHit) {
 					LOG_CDEBUG("engine") << "+++ HIT" << snap->f << (it != m_players.end() ? it - m_players.begin() : -1)
 										 << snap->st << snap->p << snap->a;
+				} else if (snap->st == RpgGameData::Player::PlayerAttack) {
+					auto it = find(snap->tg, m_enemies);
+
+					LOG_CDEBUG("engine") << "+++ ATTACK" << snap->f;
+
+					if (it == m_enemies.end()) {
+						LOG_CERROR("engine") << "Invalid enemy" << snap->tg.id;
+					} else {
+						std::map<qint64, RpgGameData::Enemy>::iterator esnapIt;
+						auto ptr = getPreviousSnap(it->list, snap->f, &esnapIt);
+
+						if (!ptr) {
+							LOG_CERROR("engine") << "Invalid enemy snap" << snap->tg.id << snap->f;
+						} else {
+							int oldHp = ptr->hp;
+							ptr->attacked(it->data, snap->arm.cw, pdata);
+							LOG_CINFO("engine") << "****ENEMY HP" << oldHp << ptr->hp;
+
+							for (auto ii = esnapIt; ii != it->list.end(); ++ii) {
+								ii->second.hp = ptr->hp;
+							}
+						}
+
+					}
+				}
+			}
+		}
+	}
+
+	return success;
+}
+
+
+
+/**
+ * @brief RpgSnapshotStorage::registerEnemies
+ * @param cbor
+ * @return
+ */
+
+bool RpgSnapshotStorage::registerEnemies(const QCborMap &cbor)
+{
+	QMutexLocker locker(&m_mutex);
+
+	bool success = true;
+
+	if (const auto &it = cbor.find(QStringLiteral("ee")); it != cbor.cend()) {
+		const QCborArray list = it->toArray();
+
+		for (const QCborValue &v : list) {
+			const QCborMap m = v.toMap();
+
+			RpgGameData::EnemyBaseData edata;
+			edata.fromCbor(m.value(QStringLiteral("ed")));
+
+			auto it = find(edata, m_enemies);
+
+			if (it == m_enemies.end()) {
+				LOG_CWARNING("engine") << "Invalid enemy data" << edata.o << edata.s << edata.id;
+				RpgGameData::Enemy e;
+				e.f = 0;
+
+				enemyAdd(edata, e);
+
+				it = std::prev(m_enemies.end());
+			}
+
+			const QCborArray array = m.value(QStringLiteral("e")).toArray();
+
+			for (const QCborValue &pv : array) {
+				std::map<qint64, RpgGameData::Enemy>::iterator snapIt;
+				std::optional<RpgGameData::Enemy> snap = addToPreviousSnap(*it, pv, &snapIt);
+
+				if (!snap) {
+					LOG_CWARNING("engine") << "---" << pv;
+					continue;
+				}
+
+				assignLastSnap(snap.value(), *it);
+
+				if (snap->st == RpgGameData::Enemy::EnemyHit) {
+					LOG_CDEBUG("engine") << "+++ ENEMYHIT" << snap->f << snap->st << snap->p << snap->a;
 				}
 			}
 		}

@@ -34,7 +34,6 @@
 #include <QString>
 #include <QList>
 #include <QHash>
-#include "isometricplayer.h"
 
 
 

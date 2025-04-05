@@ -27,6 +27,7 @@
 #include "rpgenemy.h"
 #include "rpgplayer.h"
 #include "rpggame.h"
+#include "tiledspritehandler.h"
 
 
 RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene)
@@ -44,7 +45,75 @@ RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene
 
 void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot)
 {
+	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+		stop();
+	} else if (!hasAbility()) {
+		stop();
+	}
+
+	if (snapshot.s1.f < 0) {
+		LOG_CERROR("game") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.current;
+		stop();
+		IsometricEntity::worldStep();
+		return;
+	}
+
+	if (m_lastSnap >= 0 && snapshot.s1.f > m_lastSnap) {
+		LOG_CERROR("game") << "SNAP ERROR" << m_lastSnap << snapshot.s1.f << snapshot.current << snapshot.s2.f;
+	}
+	m_lastSnap = snapshot.s2.f;
+
+
+	if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit) {
+		LOG_CINFO("game") << "ENEMYHIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
+		playAttackEffect(defaultWeapon());
+	} else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
+		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
+	} else {
+		if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
+			QVector2D final(snapshot.s2.p.at(0), snapshot.s2.p.at(1));
+
+			if (snapshot.s1.st == RpgGameData::Enemy::EnemyIdle &&
+					snapshot.s2.st == RpgGameData::Enemy::EnemyIdle) {
+				const b2Vec2 &vel = body().GetLinearVelocity();
+				if (vel.x != 0. || vel.y != 0.) {
+					//LOG_CINFO("game") << "FULL STOP ENEMY" << final;
+					stop();
+					emplace(final);
+				}
+				setCurrentAngle(snapshot.s2.a);
+			} else if (snapshot.s2.st == RpgGameData::Enemy::EnemyIdle &&
+					   distanceToPoint(final) < m_metric.speed / 60.) {
+				//LOG_CINFO("game") << "STOP ENTITY" << final;
+				stop();
+				emplace(final);
+				setCurrentAngle(snapshot.s2.a);
+			} else if (snapshot.s2.st == RpgGameData::Enemy::EnemyMoving) {
+				const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
+				const float angle = angleToPoint(final);
+				setCurrentAngle(angle);
+				setSpeedFromAngle(angle, dist);
+
+				//LOG_CDEBUG("game") << "DIST" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st << dist;
+			} else {
+				LOG_CDEBUG("game") << "INVALID" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st;
+			}
+
+		} else {
+			LOG_CERROR("game") << "???";
+			//stop();
+		}
+	}
+
 	updateFromSnapshot(snapshot.s1);
+
+	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+		stop();
+	} else if (!hasAbility()) {
+		stop();
+	}
+
+	IsometricEntity::worldStep();
 }
 
 
@@ -185,4 +254,39 @@ void RpgEnemy::attackPlayer(RpgPlayer *player, RpgWeapon *weapon)
 		if (auto fn = g->funcEnemyHit())
 			fn(this, player, weapon);
 	}
+}
+
+
+
+/**
+ * @brief RpgEnemy::serializeEnemy
+ * @return
+ */
+
+RpgGameData::Enemy *RpgEnemy::serializeEnemy() const
+{
+	RpgGameData::Enemy *p = new RpgGameData::Enemy;
+
+	b2Vec2 pos = body().GetPosition();
+	p->p = { pos.x, pos.y };
+	p->a = currentAngle();
+	p->hp = hp();
+
+	if (TiledScene *s = scene())
+		p->sc = s->sceneId();
+
+	const b2Vec2 vel = body().GetLinearVelocity();
+
+	if (vel.x != 0. || vel.y != 0.)
+		p->st = RpgGameData::Enemy::EnemyMoving;
+	else
+		p->st = RpgGameData::Enemy::EnemyIdle;
+
+	p->arm = m_armory->serialize();
+
+	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(m_player)) {
+		p->tg = player->baseData();
+	}
+
+	return p;
 }

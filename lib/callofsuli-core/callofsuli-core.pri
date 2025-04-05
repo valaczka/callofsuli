@@ -26,6 +26,7 @@ SOURCES += \
 	$$PWD/gamemap.cpp \
 	$$PWD/gamemapreaderiface.cpp \
 	$$PWD/rank.cpp \
+	$$PWD/rpgconfig.cpp \
 	$$PWD/selectableobject.cpp \
 	$$PWD/utils_.cpp
 

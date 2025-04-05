@@ -7,6 +7,7 @@
 - David Robert Nadeau (http://NadeauSoftware.com)
 - enet - (c) 2002-2024 Lee Salzman (https://github.com/lsalzman/enet)
 - Free Responsive HTML Email Template - (c) 2024 Lee Munroe (https://github.com/leemunroe/responsive-html-email-template)
+- FTXUI - (c) 2019 Arthur Sonzogni (https://github.com/ArthurSonzogni/FTXUI)
 - HttpServer - (c) 2019 Addison Elliott (https://github.com/addisonElliott/HttpServer)
 - libsodium - (c) 2013-2024 Frank Denis (https://libsodium.org)
 - libtcod - (c) 2008-2023 Jice and the libtcod contributors (https://github.com/libtcod/libtcod)

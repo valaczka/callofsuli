@@ -128,13 +128,6 @@ protected:
 
 	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
-private:
-	void rpgGameActivated_();
-	void onMsecLeftChanged();
-
-	void downloadLoadableContentDict(const QStringList &fileList);
-	void downloadLoadableContent(const QStringList &fileList);
-
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
 	bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container);
@@ -148,6 +141,14 @@ private:
 	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
 	void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container, int xp);
 	void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container);
+
+private:
+	void rpgGameActivated_();
+	void onMsecLeftChanged();
+
+	void downloadLoadableContentDict(const QStringList &fileList);
+	void downloadLoadableContent(const QStringList &fileList);
+
 
 protected:
 	GameMode m_gameMode = SinglePlayer;

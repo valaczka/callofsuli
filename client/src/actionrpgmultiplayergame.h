@@ -108,6 +108,8 @@ private:
 	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
 	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
 
+	bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
+	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
 	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
 
 	void beforeWorldStep(const qint64 &lagMsec);

@@ -28,6 +28,10 @@
 #include "rpgudpengine.h"
 #include "qbuffer.h"
 
+#ifdef Q_OS_LINUX
+#include "desktopapplication.h"
+#endif
+
 
 
 /**
@@ -258,6 +262,15 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 	updateSnapshotPlayerList(playerList);
 	updateSnapshotEnemyList(enemyList);
 
+
+#ifdef Q_OS_LINUX
+		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+			QCborMap map = data;
+			map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
+			a->writeToSocket(map.toCborValue());
+		}
+#endif
+
 }
 
 
@@ -273,8 +286,8 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 
 	const qint64 tick = data.value(QStringLiteral("t")).toInteger(-1);
 
-	/*if (tick > -1)
-		m_game->setTickTimer(tick);*/
+	if (tick > -1)
+		m_game->setTickTimer(tick);
 
 	QCborArray enemyList = data.value(QStringLiteral("ee")).toArray();
 	QCborArray playerList = data.value(QStringLiteral("pp")).toArray();
@@ -293,6 +306,14 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 
 	updateSnapshotPlayerList(playerList);
 	updateSnapshotEnemyList(enemyList);
+
+#ifdef Q_OS_LINUX
+		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+			QCborMap map = data;
+			map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
+			a->writeToSocket(map.toCborValue());
+		}
+#endif
 }
 
 
@@ -354,18 +375,34 @@ void RpgUdpEngine::updateSnapshotEnemyList(const QCborArray &list)
 {
 	QMutexLocker locker(&m_mutex);
 
-	/*for (const QCborValue &v : list) {
-		RpgGameData::Enemy enemy;
-		enemy.fromCbor(v);
+	for (const QCborValue &v : list) {
+		const QCborMap &m = v.toMap();
+		const QCborValue &ed = m.value(QStringLiteral("ed"));
+		const QCborArray &e = m.value(QStringLiteral("e")).toArray();
 
-		if (enemy.s < 0 || enemy.id < 0) {
-			LOG_CERROR("game") << "Invalid enemy id" << enemy.s << enemy.id;
+		RpgGameData::EnemyBaseData enemyData;
+		enemyData.fromCbor(ed);
+
+		if (enemyData.s < 0 || enemyData.id < 0) {
+			LOG_CERROR("game") << "Invalid enemy id" << enemyData.s << enemyData.id;
 			continue;
 		}
 
-		updateSnapshot(enemy);
-	}*/
+		RpgGameData::Enemy enemy;
+
+		for (const QCborValue &v : e) {
+			enemy.fromCbor(v);
+
+			if (enemy.st == RpgGameData::Enemy::EnemyHit) {
+				LOG_CWARNING("game") << "GOT ENEMY HIT" << enemyData.s << enemyData.id << enemy.f;
+			}
+
+			m_snapshots.updateSnapshot(enemyData, enemy);
+		}
+	}
 }
+
+
 
 
 
@@ -469,7 +506,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 	auto it = std::find_if(m_players.begin(),
 						   m_players.end(),
 						   [&playerData](const auto &p) {
-		return (p.data.o == playerData.o);
+		return p.data.o == playerData.o;							// Csak ownert keresünk, mert a többi még nincs beállítva
 	});
 
 	if (it == m_players.end()) {
@@ -477,7 +514,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 		return;
 	}
 
-	it->data.s = playerData.s;
+	it->data.s = playerData.s;										// Itt állítjuk be
 	it->data.id = playerData.id;
 
 
@@ -507,6 +544,58 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 
 
 
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param enemyData
+ * @param enemy
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(m_enemies.begin(),
+						   m_enemies.end(),
+						   [&enemyData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(enemyData));
+	});
+
+	if (it == m_enemies.end()) {
+		LOG_CINFO("game") << "New enemy" << enemyData.o << enemyData.s << enemyData.id;
+		m_enemies.push_back({
+								.data = enemyData,
+								.list = {}
+							});
+		it = m_enemies.end()-1;
+	}
+
+	it->data = enemyData;
+
+	if (enemy.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << enemy.f << enemy.p;
+	else {
+		auto snapit = it->list.find(enemy.f);
+
+		if (snapit != it->list.end()) {
+			if (enemy == snapit->second) {
+				return;
+			} else {
+				LOG_CERROR("game") << "ALready enemy";
+			}
+		} else {
+			it->list.insert_or_assign(enemy.f, enemy);
+		}
+
+		if (enemy.st == RpgGameData::Enemy::EnemyHit) {
+			LOG_CWARNING("game") << "HIT RECEIVED" << enemy.f << enemyData.id;
+		}
+
+	}
+}
+
+
+
 /**
  * @brief ClientStorage::appendSnapshot
  * @param playerData
@@ -529,7 +618,40 @@ void ClientStorage::appendSnapshot(const RpgGameData::PlayerBaseData &playerData
 		d.list.insert_or_assign(player.f, player);
 		m_players.push_back(d);
 	} else {
-		it->list.insert_or_assign(player.f, player);
+		qint64 f = player.f;
+
+		while (it->list.contains(f))
+			++f;
+
+		it->list.insert_or_assign(f, player);		///
+	}
+}
+
+
+
+/**
+ * @brief ClientStorage::appendSnapshot
+ * @param enemyData
+ * @param enemy
+ */
+
+void ClientStorage::appendSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(m_enemies.begin(),
+						   m_enemies.end(),
+						   [&enemyData](const auto &p) {
+		return (p.data == enemyData);
+	});
+
+	if (it == m_enemies.end()) {
+		RpgGameData::SnapshotData<RpgGameData::Enemy, RpgGameData::EnemyBaseData> d;
+		d.data = enemyData;
+		d.list.insert_or_assign(enemy.f, enemy);
+		m_enemies.push_back(d);
+	} else {
+		it->list.insert_or_assign(enemy.f, enemy);
 	}
 }
 

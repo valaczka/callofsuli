@@ -820,6 +820,10 @@ std::unique_ptr<RpgGameData::Body> RpgPlayer::serializeThis() const
 
 	p->arm = m_armory->serialize();
 
+	if (RpgEnemy *enemy = qobject_cast<RpgEnemy*>(m_enemy)) {
+		p->tg = enemy->baseData();
+	}
+
 	std::unique_ptr<RpgGameData::Body> ptr(std::move(p));
 	return ptr;
 }
@@ -941,7 +945,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		stop();
 	}
 
-	if (snapshot.s1.f < 0 || snapshot.s2.f < 0) {
+	if (snapshot.s1.f < 0) {
 		LOG_CERROR("game") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.current;
 		stop();
 		IsometricEntity::worldStep();
@@ -957,7 +961,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
 		LOG_CINFO("game") << "HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
 		playAttackEffect(RpgGameData::Weapon::WeaponHand);
-	} else if (snapshot.s2.f <= snapshot.current) {
+	} else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
 		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
 	} else {
 		if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
@@ -974,7 +978,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 				setCurrentAngle(snapshot.s2.a);
 			} else if (snapshot.s2.st == RpgGameData::Player::PlayerIdle &&
 					   distanceToPoint(final) < m_speedLength / 60.) {
-				LOG_CINFO("game") << "STOP ENTITY" << final;
+				//LOG_CINFO("game") << "STOP ENTITY" << final;
 				stop();
 				emplace(final);
 				setCurrentAngle(snapshot.s2.a);
@@ -984,14 +988,14 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 				setCurrentAngle(angle);
 				setSpeedFromAngle(angle, dist);
 
-				LOG_CDEBUG("game") << "DIST" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st << dist;
+				//LOG_CDEBUG("game") << "DIST" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st << dist;
 			} else {
 				LOG_CDEBUG("game") << "INVALID" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st;
 			}
 
 		} else {
 			LOG_CERROR("game") << "???";
-			stop();
+			//stop();
 		}
 	}
 

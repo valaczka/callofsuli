@@ -47,7 +47,6 @@ private:
 	{}
 
 	RpgEnginePlayer* getPlayer(UdpServerPeer *peer) const;
-	bool isHostPrepared() const;
 
 	void dataReceived(RpgEnginePlayer *player, const QByteArray &data);
 	void dataReceivedChrSel(RpgEnginePlayer *player, const QByteArray &data);
@@ -261,6 +260,11 @@ void RpgEngine::preparePlayers()
 {
 	QMutexLocker locker(&m_engineMutex);
 
+	if (d->m_gameConfig.positionList.isEmpty()) {
+		LOG_CWARNING("engine") << "Position list missing";
+		return;
+	}
+
 	int idx = 0;
 
 	for (auto &ptr : m_player) {
@@ -338,19 +342,6 @@ RpgEnginePlayer *RpgEnginePrivate::getPlayer(UdpServerPeer *peer) const
 
 
 
-
-
-/**
- * @brief RpgEnginePrivate::isHostPrepared
- * @return
- */
-
-bool RpgEnginePrivate::isHostPrepared() const
-{
-	QMutexLocker locker(&q->m_engineMutex);
-
-	return q->m_hostPlayer && q->m_hostPlayer->isPrepared();
-}
 
 
 
@@ -475,29 +466,35 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 		m_gameConfig.fromCbor(it.value());
 	}
 
-	/*if (const auto &it = m.find(QStringLiteral("ee")); it != m.cend()) {
+	if (const auto &it = m.find(QStringLiteral("ee")); it != m.cend()) {
 		QCborArray eList = it->toArray();
 
 		for (const QCborValue &v : eList) {
-			RpgGameData::Enemy enemy;
+			RpgGameData::EnemyBaseData enemy;
 			enemy.fromCbor(v);
 
-			if (enemy.t == RpgGameData::Enemy::EnemyInvalid) {
+			if (enemy.t == RpgGameData::EnemyBaseData::EnemyInvalid) {
 				LOG_CERROR("engine") << "Invalid enemy data" << q->id() << v;
 				continue;
 			}
 
-			const auto it = std::find_if(q->m_enemies.cbegin(), q->m_enemies.cend(),
-										 [&enemy](const RpgGameData::Enemy &e) {
-				return e.RpgGameData::Body::isEqual(enemy);
+			const auto &enemies = q->m_snapshots.enemies();
+
+			const auto it = std::find_if(enemies.cbegin(), enemies.cend(),
+										 [&enemy](const auto &e) {
+				return e.data == enemy;
 			});
 
-			if (it == q->m_enemies.cend()) {
-				q->m_enemies.push_back(enemy);
+			if (it == enemies.cend()) {
+				RpgGameData::Enemy edata;
+				edata.f = 0;
+
+				q->m_snapshots.enemyAdd(enemy, edata);
+
 				LOG_CINFO("eninge") << "CREATE ENEMY" << enemy.t << enemy.s << enemy.id;
 			}
 		}
-	}*/
+	}
 
 }
 
@@ -575,7 +572,6 @@ void RpgEnginePrivate::dataSendPrepare()
 		insertBaseMapData(&map, it->get());
 
 		map.insert(QStringLiteral("g"), gConfig);
-		map.insert(QStringLiteral("hostPrepared"), isHostPrepared());
 
 		if (it->get()->udpPeer())
 			it->get()->udpPeer()->send(map.toCborValue().toCbor(), true);
@@ -683,7 +679,6 @@ void RpgEnginePrivate::updateState()
 
 	if (q->m_config.gameState == RpgConfig::StatePrepare) {
 		bool allPrepared = true;
-		bool hostPrepared = false;
 		bool hasNoScene = false;
 
 		if (m_gameConfig.positionList.empty())
@@ -693,14 +688,11 @@ void RpgEnginePrivate::updateState()
 			if (!ptr->isPrepared())
 				allPrepared = false;
 
-			if (ptr->isHost())
-				hostPrepared = ptr->isPrepared();
-
 			if (ptr->s == -1)
 				hasNoScene = true;
 		}
 
-		if (hostPrepared && hasNoScene) {
+		if (hasNoScene) {
 			q->preparePlayers();
 		} else if (allPrepared) {
 			LOG_CDEBUG("engine") << "All players prepared" << q << q->id();

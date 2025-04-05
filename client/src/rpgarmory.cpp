@@ -456,7 +456,7 @@ bool RpgArmory::updateFromSnapshot(const RpgGameData::Armory &armory)
 			tmp.removeAll(wp);
 		} else {
 			if (RpgWeapon *ww = weaponAdd(w.t))
-				ww->updateFromSnapshot(w.t);
+				ww->updateFromSnapshot(w);
 		}
 	}
 

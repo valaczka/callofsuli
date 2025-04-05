@@ -51,7 +51,8 @@ public:
 		Play,
 		Demo,
 		DevPage,
-		Adjacency
+		Adjacency,
+		Terminal
 	};
 
 	int run();

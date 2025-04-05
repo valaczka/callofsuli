@@ -48,3 +48,12 @@ LIBS += $$LibSodiumLibs
 !isEmpty(LibSodiumDefines) {
 	DEFINES += $$LibSodiumDefines
 }
+
+
+# Backward
+
+if ($$BackwardCpp) {
+	INCLUDEPATH += $$PWD/backward-cpp
+	LIBS += -lbfd
+	SOURCES += $$PWD/../client/src/backward.cpp
+}

@@ -146,7 +146,6 @@ private:
 	std::vector<TiledObjectBody*> m_removeBodyList;
 
 	int m_nextBodyId = 0;
-	QVector<TiledGame::PlayerPosition> m_playerPositionList;
 	TiledTransportList m_transportList;
 	KeyboardJoystickState m_keyboardJoystickState;
 	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
@@ -207,7 +206,6 @@ TiledGame::~TiledGame()
 
 	d->m_bodyList.clear();
 	d->m_sceneList.clear();
-	d->m_playerPositionList.clear();
 
 	delete d;
 	d = nullptr;
@@ -560,8 +558,6 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			loadGround(scene, object, renderer);
 		} else if (className == QStringLiteral("dynamicZ")) {
 			loadDynamicZ(scene, object, renderer);
-		} else if (className == QStringLiteral("player")) {
-			addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 		} else if (className == QStringLiteral("viewport")) {
 			if (object->name() == QStringLiteral("topLeft"))
 				tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
@@ -576,8 +572,6 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 		} else if (group->className().isEmpty()) {
 			if (object->className() == QStringLiteral("ground")) {
 				loadGround(scene, object, renderer);
-			} else if (object->className() == QStringLiteral("player")) {
-				addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 			} else if (object->className() == QStringLiteral("viewport")) {
 				if (object->name() == QStringLiteral("topLeft"))
 					tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
@@ -1492,31 +1486,6 @@ void TiledGame::worldStep(TiledObjectBody *body)
 
 
 
-/**
- * @brief TiledGame::addPlayerPosition
- * @param scene
- * @param position
- */
-
-void TiledGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
-{
-	auto it = std::find_if(d->m_playerPositionList.constBegin(), d->m_playerPositionList.constEnd(),
-						   [scene, &position](const auto &p){
-		return p.scene == scene && p.position == position;
-	});
-
-	if (it != d->m_playerPositionList.constEnd()) {
-		LOG_CWARNING("game") << "Player position already loaded:" << it->sceneId << it->position;
-		return;
-	}
-
-	d->m_playerPositionList.append(PlayerPosition{
-									   scene ? scene->sceneId() : -1,
-									   scene,
-									   position
-								   });
-}
-
 
 
 
@@ -1767,105 +1736,8 @@ void TiledGame::messageColor(const QString &text, const QColor &color)
 }
 
 
-/**
- * @brief TiledGame::playerPositionList
- * @return
- */
-
-const QVector<TiledGame::PlayerPosition> &TiledGame::playerPositionList() const
-{
-	return d->m_playerPositionList;
-}
 
 
-
-/**
- * @brief TiledGame::playerPositionsCount
- * @param sceneId
- * @return
- */
-
-int TiledGame::playerPositionsCount(const int &sceneId) const
-{
-	int num = 0;
-
-	for (const auto &p : d->m_playerPositionList) {
-		if (p.sceneId == sceneId)
-			++num;
-	}
-
-	return num;
-}
-
-
-/**
- * @brief TiledGame::playerPositionsCount
- * @param scene
- * @return
- */
-
-int TiledGame::playerPositionsCount(TiledScene *scene) const
-{
-	int num = 0;
-
-	for (const auto &p : d->m_playerPositionList) {
-		if (p.scene == scene)
-			++num;
-	}
-
-	return num;
-}
-
-
-
-/**
- * @brief TiledGame::playerPosition
- * @param sceneId
- * @param num
- * @return
- */
-
-std::optional<QPointF> TiledGame::playerPosition(const int &sceneId, const int &num) const
-{
-	int i = 0;
-
-	for (const auto &p : d->m_playerPositionList) {
-		if (p.sceneId == sceneId) {
-			if (i==num)
-				return p.position;
-			else
-				++i;
-		}
-	}
-
-	return std::nullopt;
-}
-
-
-
-
-/**
- * @brief TiledGame::playerPosition
- * @param scene
- * @param num
- * @return
- */
-
-std::optional<QPointF> TiledGame::playerPosition(TiledScene *scene, const int &num) const
-{
-	int i = 0;
-
-	for (const auto &p : d->m_playerPositionList) {
-		if (p.scene == scene) {
-			if (i==num)
-				return p.position;
-			else
-				++i;
-		}
-	}
-
-	return std::nullopt;
-}
 
 
 

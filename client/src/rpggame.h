@@ -341,6 +341,12 @@ protected:
 	virtual void timeSteppedEvent() override;
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
 
+	std::optional<QPointF> playerPosition(const int &sceneId, const int &num) const;
+	std::optional<QPointF> playerPosition(const TiledScene *scene, const int &num) const {
+		return scene ? playerPosition(scene->sceneId(), num) : std::nullopt;
+	}
+	QList<QPointF> playerPosition(const int &sceneId) const;
+	void addPlayerPosition(TiledScene *scene, const QPointF &position);
 
 private:
 	void loadMetricDefinition();
@@ -401,10 +407,18 @@ private:
 	};
 
 
+	struct PlayerPosition {
+		QPointer<TiledScene> scene;
+		QPointF position;
+
+		friend bool operator==(const PlayerPosition &p1, const PlayerPosition &p2) {
+			return p1.scene == p2.scene && p1.position == p2.position;
+		}
+	};
+
+
 	QVector<EnemyData>::iterator enemyFind(IsometricEnemy *enemy);
 	QVector<EnemyData>::const_iterator enemyFind(IsometricEnemy *enemy) const;
-
-
 
 	RpgGameDefinition m_gameDefinition;
 	QVector<RpgEnemyMetricDefinition> m_metricDefinition;
@@ -412,6 +426,8 @@ private:
 	QVector<EnemyData> m_enemyDataList;
 	QVector<PickableData> m_pickableDataList;
 	std::vector<std::unique_ptr<RpgControlGroup>> m_controlGroups;
+
+	QVector<PlayerPosition> m_playerPositionList;
 
 	QList<RpgPlayer*> m_players;
 	QPointer<RpgPlayer> m_controlledPlayer;

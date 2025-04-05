@@ -30,6 +30,10 @@
 #include "standaloneclient.h"
 #include "utils_.h"
 
+#ifdef WITH_FTXUI
+#include "ftxterminal.h"
+#endif
+
 #ifdef Q_OS_WIN
 #include <Windows.h>
 #include <private/qguiapplication_p.h>
@@ -102,7 +106,31 @@ DesktopApplication::DesktopApplication(QApplication *app)
 
 DesktopApplication::~DesktopApplication()
 {
+	for (QLocalSocket *s : m_localSockets) {
+		s->disconnectFromServer();
+		s->deleteLater();
+	}
 
+	m_localSockets.clear();
+
+	if (m_localServer.isListening())
+		m_localServer.close();
+}
+
+
+
+
+/**
+ * @brief DesktopApplication::initialize
+ */
+
+void DesktopApplication::initialize()
+{
+	if (m_commandLine == Terminal) {
+
+	} else {
+		MobileApplication::initialize();
+	}
 }
 
 
@@ -125,6 +153,11 @@ void DesktopApplication::commandLineParse()
 	parser.addOption({{QStringLiteral("m"), QStringLiteral("map")}, QObject::tr("Pálya szerkesztése"), QStringLiteral("file")});
 	parser.addOption({{QStringLiteral("p"), QStringLiteral("play")}, QObject::tr("Pálya lejátszása"), QStringLiteral("file")});
 	parser.addOption({{QStringLiteral("d"), QStringLiteral("demo")}, QObject::tr("Demo pálya lejátszása")});
+	parser.addOption({{QStringLiteral("terminal-name")}, QObject::tr("Terminál neve"), QStringLiteral("név")});
+
+#ifdef WITH_FTXUI
+	parser.addOption({{QStringLiteral("terminal")}, QObject::tr("Terminál indítása")});
+#endif
 
 
 #ifndef QT_NO_DEBUG
@@ -141,6 +174,19 @@ void DesktopApplication::commandLineParse()
 		m_commandLine = License;
 		return;
 	}
+
+
+	if (parser.isSet(QStringLiteral("terminal-name"))) {
+		m_localServerName = parser.value(QStringLiteral("terminal-name"));
+	}
+
+#ifdef WITH_FTXUI
+	if (parser.isSet(QStringLiteral("terminal"))) {
+		m_appender->setDetailsLevel(Logger::Error);
+		m_commandLine = Terminal;
+		return;
+	}
+#endif
 
 
 	QString logFile;
@@ -215,8 +261,8 @@ bool DesktopApplication::performCommandLine()
 		const auto &b = Utils::fileContent(QStringLiteral(":/license.txt"));
 
 		if (b) {
-		QTextStream out(stdout);
-		out << *b << Qt::endl;
+			QTextStream out(stdout);
+			out << *b << Qt::endl;
 		}
 
 		return false;
@@ -249,6 +295,39 @@ void DesktopApplication::performInstanceArguments(const QStringList &arguments)
 
 int DesktopApplication::runSingleInstance()
 {
+#ifdef WITH_FTXUI
+	if (m_commandLine == Terminal) {
+		FtxTerminal terminal;
+		return terminal.run(m_localServerName);
+	}
+#endif
+
+	if (!m_localServerName.isEmpty()) {
+		QObject::connect(&m_localServer, &QLocalServer::newConnection, m_application, [this](){
+			onNewSocketConnection();
+		});
+
+		if (!m_localServer.listen(m_localServerName)) {
+			LOG_CERROR("app") << "Local server listen error" << m_localServerName;
+			return 10;
+		} else {
+			LOG_CINFO("app") << "Local server listening started" << m_localServerName;
+		}
+	}
+#ifndef QT_NO_DEBUG
+	else {
+		m_localServerName = QStringLiteral("callofsuli");
+		QObject::connect(&m_localServer, &QLocalServer::newConnection, m_application, [this](){
+			onNewSocketConnection();
+		});
+
+		if (m_localServer.listen(m_localServerName)) {
+			LOG_CINFO("app") << "Local server listening started" << m_localServerName;
+		}
+	}
+#endif
+
+
 #ifndef QT_NO_DEBUG
 	LOG_CERROR("app") << "DISABLED SINGLE INSTANCE";
 #else
@@ -269,6 +348,36 @@ int DesktopApplication::runSingleInstance()
 
 
 /**
+ * @brief DesktopApplication::hasLocalSocket
+ * @return
+ */
+
+bool DesktopApplication::hasLocalSocket() const
+{
+	return m_localServer.isListening() && !m_localSockets.isEmpty();
+}
+
+
+
+/**
+ * @brief DesktopApplication::writeToSocket
+ * @param cbor
+ */
+
+void DesktopApplication::writeToSocket(const QCborValue &cbor)
+{
+	QByteArray data;
+	QDataStream out(&data, QIODevice::WriteOnly);
+	out << cbor;
+
+	for (QLocalSocket *s : m_localSockets) {
+			s->write(data);
+	}
+}
+
+
+
+/**
  * @brief DesktopApplication::createClient
  * @return
  */
@@ -284,6 +393,29 @@ Client *DesktopApplication::createClient()
 	}
 
 	return c;
+}
+
+
+
+/**
+ * @brief DesktopApplication::onNewSocketConnection
+ */
+
+void DesktopApplication::onNewSocketConnection()
+{
+	while (m_localServer.hasPendingConnections()) {
+		QLocalSocket *s = m_localServer.nextPendingConnection();
+		LOG_CDEBUG("app") << "New socket connected";
+		QObject::connect(s, &QLocalSocket::disconnected, m_application, [this, s]() {
+			LOG_CDEBUG("app") << "Socket disconnected";
+			if (m_application->closingDown())
+				return;
+			m_localSockets.removeAll(s);
+			s->deleteLater();
+		});
+		m_localSockets.append(s);
+	}
+
 }
 
 

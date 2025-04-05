@@ -51,6 +51,10 @@ protected:
 	virtual bool enemyWorldStep() override;
 	virtual bool enemyWorldStepOnVisiblePlayer() override;
 	virtual void attackPlayer(RpgPlayer *player, RpgWeapon *weapon) override;
+
+	RpgGameData::Enemy *serializeEnemy() const;
+
+	qint64 m_lastSnap = -1;
 };
 
 #endif // RPGENEMY_H

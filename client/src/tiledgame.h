@@ -112,18 +112,6 @@ public:
 		}
 	};
 
-	struct PlayerPosition {
-		int sceneId = -1;
-		TiledScene *scene = nullptr;
-		QPointF position;
-
-		friend bool operator==(const PlayerPosition &p1, const PlayerPosition &p2) {
-			return p1.sceneId == p2.sceneId &&
-					p1.scene == p2.scene &&
-					p1.position == p2.position;
-		}
-	};
-
 
 	bool load(const TiledGameDefinition &def);
 
@@ -164,14 +152,6 @@ public:
 	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
 
 	Q_INVOKABLE bool joystickInteractive() const { return m_joystickState.hasKeyboard || m_joystickState.hasTouch; }
-
-	const QVector<TiledGame::PlayerPosition> &playerPositionList() const;
-
-	int playerPositionsCount(const int &sceneId) const;
-	int playerPositionsCount(TiledScene *scene) const;
-
-	std::optional<QPointF> playerPosition(const int &sceneId, const int &num) const;
-	std::optional<QPointF> playerPosition(TiledScene *scene, const int &num) const;
 
 
 
@@ -344,7 +324,6 @@ signals:
 protected:
 	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const int &id, const int &owner = -1);
 	bool removeObject(TiledObjectBody *body);
-	void addPlayerPosition(TiledScene *scene, const QPointF &position);
 	bool isGround(const TiledScene *scene, const qreal &x, const qreal &y) const;
 
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);

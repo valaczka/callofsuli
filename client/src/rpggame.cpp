@@ -403,11 +403,12 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 		}
 	}
 
+	recalculateEnemies();
 
-	const int &count = recalculateEnemies();
+	/*const int &count = recalculateEnemies();
 
 	if (!count)
-		emit gameSuccess();
+		emit gameSuccess();*/
 }
 
 
@@ -854,6 +855,8 @@ void RpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const
 		return loadEnemy(scene, object, renderer);
 	else if (groupClass == QStringLiteral("pickable"))
 		return loadPickable(scene, object, renderer);
+	else if (object->className() == QStringLiteral("player"))
+		addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 }
 
 
@@ -1182,6 +1185,84 @@ void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
 								   4.);
 		}
 	}
+}
+
+
+
+/**
+ * @brief RpgGame::playerPosition
+ * @param sceneId
+ * @param num
+ * @return
+ */
+
+std::optional<QPointF> RpgGame::playerPosition(const int &sceneId, const int &num) const
+{
+	int i = 0;
+
+	for (const auto &p : m_playerPositionList) {
+		if (p.scene && p.scene->sceneId() == sceneId) {
+			if (i==num)
+				return p.position;
+			else
+				++i;
+		}
+	}
+
+	return std::nullopt;
+}
+
+
+/**
+ * @brief RpgGame::playerPosition
+ * @param sceneId
+ * @return
+ */
+
+QList<QPointF> RpgGame::playerPosition(const int &sceneId) const
+{
+	QList<QPointF> list;
+
+	for (const auto &p : m_playerPositionList) {
+		if (p.scene && p.scene->sceneId() == sceneId) {
+			list << p.position;
+		}
+	}
+
+	return list;
+}
+
+
+
+
+
+/**
+ * @brief RpgGame::addPlayerPosition
+ * @param scene
+ * @param position
+ */
+
+void RpgGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
+{
+	if (!scene) {
+		LOG_CERROR("game") << "Missing scene";
+		return;
+	}
+
+	auto it = std::find_if(m_playerPositionList.constBegin(), m_playerPositionList.constEnd(),
+						   [scene, &position](const auto &p){
+		return p.scene == scene && p.position == position;
+	});
+
+	if (it != m_playerPositionList.constEnd()) {
+		LOG_CWARNING("game") << "Player position already loaded:" << scene->sceneId() << it->position;
+		return;
+	}
+
+	m_playerPositionList.append({
+									.scene = scene,
+									.position = position
+								});
 }
 
 

@@ -608,8 +608,8 @@ void ActionRpgGame::rpgGameActivated_()
 
 	const int hp = m_missionLevel->startHP() + ptr->playerHP;
 
-	player->setHp(hp);
-	player->setMaxHp(hp);
+	player->setHp(hp*10);
+	player->setMaxHp(hp*10);
 	player->setMaxMp(characterPtr->mpMax);
 	player->setMp(characterPtr->mpStart);
 	loadInventory(player);
@@ -1076,8 +1076,8 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::Wea
 	RpgWeapon *weapon = player->armory()->weaponAdd(type);
 
 	if (!weapon) {
-				LOG_CERROR("game") << "Invalid weapon type" << type;
-				return;
+		LOG_CERROR("game") << "Invalid weapon type" << type;
+		return;
 	}
 
 	if (bullet == -1)
@@ -1406,11 +1406,11 @@ bool ActionRpgGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *w
 	if (!weapon->hit(enemy))
 		return false;
 
-
 	if (weapon->bulletCount() > 0)
 		weapon->setBulletCount(weapon->bulletCount()-1);
 
-	onPlayerAttackEnemy(player, enemy, weapon->weaponType());
+	if (m_rpgGame->funcPlayerAttackEnemy())
+		m_rpgGame->m_funcPlayerAttackEnemy(player, enemy, weapon->weaponType());
 
 	/*if (enemy) {
 		if (m_bulletCount > 0)
@@ -1498,7 +1498,9 @@ bool ActionRpgGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *we
 	if (weapon->bulletCount() > 0)
 		weapon->setBulletCount(weapon->bulletCount()-1);
 
-	onEnemyAttackPlayer(enemy, player, weapon->weaponType());
+	if (m_rpgGame->funcEnemyAttackPlayer())
+		m_rpgGame->m_funcEnemyAttackPlayer(enemy, player, weapon->weaponType());
+
 	enemy->playAttackEffect(weapon);
 
 	return true;
@@ -1534,16 +1536,7 @@ bool ActionRpgGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, cons
 		return false;
 
 	RpgGameData::Player p = player->serialize();
-
-	LOG_CINFO("game") << "=====================================";
-	LOG_CINFO("game") << QJsonDocument(p.toJson()).toJson().constData();
-
 	p.attacked(player->baseData(), weaponType, enemy->baseData());
-
-	LOG_CINFO("game") << "--------------------------------------";
-	LOG_CINFO("game") << QJsonDocument(p.toJson()).toJson().constData();
-
-	LOG_CINFO("game") << "=====================================";
 
 	const bool prot = p.hp == player->hp();
 
@@ -1720,9 +1713,9 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		m_rpgGame->setFuncPlayerShot(std::bind(&ActionRpgGame::onPlayerShot, this,
 											   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		m_rpgGame->setFuncEnemyHit(std::bind(&ActionRpgGame::onEnemyHit, this,
-											  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+											 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		m_rpgGame->setFuncEnemyShot(std::bind(&ActionRpgGame::onEnemyShot, this,
-											   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+											  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 		m_rpgGame->setFuncEnemyAttackPlayer(std::bind(&ActionRpgGame::onEnemyAttackPlayer, this,
 													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}

@@ -189,6 +189,19 @@ macx {
 }
 
 
+
+!isEmpty(FtxuiPath) {
+	DEFINES += WITH_FTXUI
+
+	INCLUDEPATH += $${FtxuiPath}/include
+	LIBS += -L$${FtxuiPath}/lib -lftxui-component -lftxui-dom -lftxui-screen
+
+	SOURCES += \
+		ftxterminal.cpp
+	HEADERS += \
+		ftxterminal.h
+}
+
 ######## SOURCES ###############
 
 
