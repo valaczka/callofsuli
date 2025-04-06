@@ -68,8 +68,7 @@ public:
 	virtual bool canBulletImpact(const RpgGameData::Weapon::WeaponType &type) const { Q_UNUSED(type); return true; }
 	virtual void attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType) = 0;
 
-	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot) = 0;
-	virtual void updateFromSnapshot(const RpgGameData::Enemy &snap) = 0;
+	virtual void updateFromLastSnapshot(const RpgGameData::Enemy &snap) = 0;
 
 protected:
 	virtual QPointF getPickablePosition(const int &num) const = 0;

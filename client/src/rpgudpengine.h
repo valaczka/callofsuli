@@ -60,7 +60,40 @@ public:
 	void clear();
 
 	QByteArray dump();
+
+private:
+	template <typename T, typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type>
+	qint64 insert(std::map<qint64, T> *dst, const T &snap);
 };
+
+
+
+/**
+ * @brief ClientStorage::insert
+ * @param dst
+ * @param snap
+ */
+
+template<typename T, typename T2>
+inline qint64 ClientStorage::insert(std::map<qint64, T> *dst, const T &snap)
+{
+	Q_ASSERT(dst);
+
+	qint64 f = snap.f;
+
+	while (dst->contains(f))
+		++f;
+
+	if (f != snap.f) {
+		T s2 = snap;
+		s2.f = f;
+		dst->insert_or_assign(f, s2);
+	} else {
+		dst->insert_or_assign(f, snap);
+	}
+
+	return f;
+}
 
 
 

@@ -28,6 +28,7 @@
 #include "rpgplayer.h"
 #include "rpggame.h"
 #include "tiledspritehandler.h"
+#include "rpggamedataiface_t.h"
 
 
 RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene)
@@ -66,8 +67,27 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 
 	if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit) {
 		LOG_CINFO("game") << "ENEMYHIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
-		playAttackEffect(defaultWeapon());
-	} else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
+
+		auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+		if (wptr) {
+			TiledObject *target = nullptr;
+
+			if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
+				target = dynamic_cast<TiledObject*>(g->findBody(
+														TiledObjectBody::ObjectId{
+															.ownerId = snapshot.s1.tg.o,
+															.sceneId = snapshot.s1.tg.s,
+															.id = snapshot.s1.tg.id
+														}));
+			}
+
+			wptr->setParentObject(this);
+			playAttackEffect(wptr.get());
+			wptr->playAttack(target);
+		}
+
+	} /*else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
 		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
 	} else {
 		if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
@@ -100,9 +120,20 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 			}
 
 		} else {
-			LOG_CERROR("game") << "???";
+			LOG_CERROR("game")
+					<< snapshot.s1.f
+					<< snapshot.s1.st
+					<< snapshot.s1.p
+					<< "---"
+					<< snapshot.s2.f
+					<< snapshot.s2.st
+					<< snapshot.s2.p ;
 			//stop();
 		}
+	}*/
+
+	else {
+		entityMove(this, snapshot, RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving, m_metric.speed);
 	}
 
 	updateFromSnapshot(snapshot.s1);
@@ -127,6 +158,9 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::Enemy &snap)
 	setHp(snap.hp);
 	m_armory->updateFromSnapshot(snap.arm);
 }
+
+
+
 
 
 
@@ -263,29 +297,29 @@ void RpgEnemy::attackPlayer(RpgPlayer *player, RpgWeapon *weapon)
  * @return
  */
 
-RpgGameData::Enemy *RpgEnemy::serializeEnemy() const
+RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 {
-	RpgGameData::Enemy *p = new RpgGameData::Enemy;
+	RpgGameData::Enemy p;
 
 	b2Vec2 pos = body().GetPosition();
-	p->p = { pos.x, pos.y };
-	p->a = currentAngle();
-	p->hp = hp();
+	p.p = { pos.x, pos.y };
+	p.a = currentAngle();
+	p.hp = hp();
 
 	if (TiledScene *s = scene())
-		p->sc = s->sceneId();
+		p.sc = s->sceneId();
 
 	const b2Vec2 vel = body().GetLinearVelocity();
 
 	if (vel.x != 0. || vel.y != 0.)
-		p->st = RpgGameData::Enemy::EnemyMoving;
+		p.st = RpgGameData::Enemy::EnemyMoving;
 	else
-		p->st = RpgGameData::Enemy::EnemyIdle;
+		p.st = RpgGameData::Enemy::EnemyIdle;
 
-	p->arm = m_armory->serialize();
+	p.arm = m_armory->serialize();
 
 	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(m_player)) {
-		p->tg = player->baseData();
+		p.tg = player->baseData();
 	}
 
 	return p;

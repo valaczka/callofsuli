@@ -77,6 +77,10 @@ public:
 	RpgGameData::Weapon serialize() const;
 	bool updateFromSnapshot(const RpgGameData::Weapon &weapon);
 
+	void playAttack(TiledObject *target) {
+		eventAttack(target);
+	}
+
 protected:
 	const RpgGameData::Weapon::WeaponType m_weaponType;
 
@@ -127,7 +131,10 @@ signals:
 	void targetsChanged();
 
 protected:
-	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
+	RpgGameData::Bullet serializeThis() const override;
+	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Bullet> &snapshot) override;
+	virtual void updateFromSnapshot(const RpgGameData::Bullet &snap) override;
+
 	virtual void impactEvent(TiledObjectBody *base) override;
 
 	RpgGame *rpgGame() const;
@@ -180,6 +187,8 @@ public:
 	RpgWeaponList *weaponList() const;
 	RpgWeapon *weaponFind(const RpgGameData::Weapon::WeaponType &type) const;
 	RpgWeapon *weaponAdd(const RpgGameData::Weapon::WeaponType &type);
+
+	static std::unique_ptr<RpgWeapon> weaponCreate(const RpgGameData::Weapon::WeaponType &type, QObject *parent = nullptr);
 
 	RpgWeapon *currentWeapon() const;
 	void setCurrentWeapon(RpgWeapon *newCurrentWeapon);

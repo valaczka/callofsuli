@@ -52,65 +52,66 @@ private:
 	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
 	bool registerEnemies(const QCborMap &cbor);
 
+
+	RpgGameData::Player actionPlayer(RpgGameData::PlayerBaseData &pdata, RpgGameData::Player &snap);
+
+
 	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static RpgGameData::SnapshotList<T, T2>::iterator find(T2 &key, RpgGameData::SnapshotList<T, T2> &list);
 
 	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static RpgGameData::SnapshotList<T, T2>::const_iterator find(const T2 &key, const RpgGameData::SnapshotList<T, T2> &list);
 
 	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static RpgGameData::SnapshotList<T, T2>::iterator find(RpgGameData::BaseData &key, RpgGameData::SnapshotList<T, T2> &list);
 
 	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static RpgGameData::SnapshotList<T, T2>::const_iterator constFind(const RpgGameData::BaseData &key, RpgGameData::SnapshotList<T, T2> &list);
 
-
-	template <typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	template <typename T2, typename = std::enable_if<std::is_base_of< RpgGameData::BaseData, T2>::value>::type>
 	static bool checkBaseData(const T2 &key, const QCborMap &cbor, const QString &baseKey);
 
-
+	template <typename T>
+	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick,
+											std::map<qint64, T>::iterator *nextPtr = nullptr);
 
 	template <typename T>
-	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick, std::map<qint64, T>::iterator *nextPtr = nullptr);
-
-	template <typename T>
-	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const T &snap, std::map<qint64, T>::iterator *nextPtr = nullptr);
-
-
-	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	static std::optional<T> getPreviousSnap(RpgGameData::SnapshotData<T, T2> &data, const QCborValue &cbor,
+	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const T &snap,
 											std::map<qint64, T>::iterator *nextPtr = nullptr);
 
 	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	static std::optional<T> getPreviousSnap(RpgGameData::SnapshotData<T, T2> &data,
+											const QCborValue &cbor,
+											std::map<qint64, T>::iterator *nextPtr = nullptr);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static std::optional<T> getPreviousSnap(RpgGameData::SnapshotData<T, T2> &data, const T &snap,
 											std::map<qint64, T>::iterator *nextPtr = nullptr);
 
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	std::optional<T> addToPreviousSnap(RpgGameData::SnapshotData<T, T2> &data,
+									   const QCborValue &cbor,
+									   std::map<qint64, T>::iterator *nextPtr,
+									   const std::function<void(QCborMap *)> &fn = nullptr);
 
 	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	std::optional<T> addToPreviousSnap(RpgGameData::SnapshotData<T, T2> &data, const QCborValue &cbor,
-									   std::map<qint64, T>::iterator *nextPtr);
-
-
-	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	void assignLastSnap(const T &src, RpgGameData::SnapshotData<T, T2> &dest);
-
 
 	RpgEngine *m_engine = nullptr;
 };
@@ -218,13 +219,24 @@ inline std::optional<T> RpgSnapshotStorage::getPreviousSnap(RpgGameData::Snapsho
 template<typename T, typename T2, typename T3, typename T4>
 inline std::optional<T> RpgSnapshotStorage::addToPreviousSnap(RpgGameData::SnapshotData<T, T2> &data,
 															  const QCborValue &cbor,
-															  std::map<qint64, T>::iterator *nextPtr)
+															  std::map<qint64, T>::iterator *nextPtr,
+															  const  std::function<void(QCborMap*)> &fn)
 {
 	if (nextPtr)
 		*nextPtr = data.list.end();
 
+	QCborValue pcbor;
+
+	if (fn) {
+		QCborMap m = cbor.toMap();
+		fn(&m);
+		pcbor = m;
+	} else {
+		pcbor = cbor;
+	}
+
 	T snap;
-	snap.fromCbor(cbor);
+	snap.fromCbor(pcbor);
 
 	if (snap.f <= data.lastIn) {
 		qWarning() << "OUT OF TIME" << snap.f << data.lastIn;
@@ -234,7 +246,7 @@ inline std::optional<T> RpgSnapshotStorage::addToPreviousSnap(RpgGameData::Snaps
 	std::optional<T> prev = getPreviousSnap(data.list, snap, nextPtr);
 
 	if (prev) {
-		prev->fromCbor(cbor);
+		prev->fromCbor(pcbor);
 		return prev;
 	} else {
 		return snap;

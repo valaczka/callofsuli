@@ -390,6 +390,7 @@ HEADERS += \
 	rpgfirefog.h \
 	rpggame.h \
 	rpggamedataiface.h \
+	rpggamedataiface_t.h \
 	rpghammer.h \
 	rpghp.h \
 	rpgkeypickable.h \

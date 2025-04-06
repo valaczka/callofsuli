@@ -393,10 +393,9 @@ void RpgWerebear::updateSprite()
  * @return
  */
 
-std::unique_ptr<RpgGameData::Body> RpgWerebear::serializeThis() const
+RpgGameData::Enemy RpgWerebear::serializeThis() const
 {
-	std::unique_ptr<RpgGameData::Body> p(new RpgGameData::Enemy);
-	return p;
+	return serializeEnemy();
 }
 
 

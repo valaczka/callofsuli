@@ -260,10 +260,8 @@ void RpgEngine::preparePlayers()
 {
 	QMutexLocker locker(&m_engineMutex);
 
-	if (d->m_gameConfig.positionList.isEmpty()) {
-		LOG_CWARNING("engine") << "Position list missing";
+	if (d->m_gameConfig.positionList.isEmpty())
 		return;
-	}
 
 	int idx = 0;
 
@@ -299,6 +297,10 @@ void RpgEngine::preparePlayers()
 		pdata.p = {pos.x, pos.y};
 		pdata.f = 0;
 		pdata.sc = pos.scene;
+		pdata.hp = 13;			// TODO: from m_config
+		pdata.mhp = 13;
+		pdata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, 85));
+		pdata.arm.cw = RpgGameData::Weapon::WeaponLongsword;
 
 		m_snapshots.playerAdd(*ptr, pdata);
 
@@ -488,6 +490,10 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 			if (it == enemies.cend()) {
 				RpgGameData::Enemy edata;
 				edata.f = 0;
+				edata.hp = 32;
+				edata.mhp = 32;
+				edata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, -1));
+				edata.arm.cw = RpgGameData::Weapon::WeaponLongsword;
 
 				q->m_snapshots.enemyAdd(enemy, edata);
 

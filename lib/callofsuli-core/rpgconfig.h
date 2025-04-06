@@ -778,6 +778,21 @@ public:
 		return other.wl == wl && other.cw == cw;
 	}
 
+	QList<Weapon>::const_iterator find(const Weapon::WeaponType &type) const {
+		return std::find_if(wl.cbegin(), wl.cend(),
+							[&type](const Weapon &w) {
+			return w.t == type;
+		});
+	}
+
+	QList<Weapon>::iterator find(const Weapon::WeaponType &type) {
+		return std::find_if(wl.begin(), wl.end(),
+							[&type](const Weapon &w) {
+			return w.t == type;
+		});
+	}
+
+
 	EQUAL_OPERATOR(Armory)
 
 	QS_SERIALIZABLE
@@ -1377,8 +1392,20 @@ struct CurrentSnapshot {
 	template <typename T2, typename T>
 	QCborArray toCborArray(const CurrentSnapshotList<T2, T> &list, const QString &keyBase, const QString &keyData) const;
 
+	template <typename T2, typename T>
+	QCborArray toProtectedCborArray(const CurrentSnapshotList<T2, T> &list, const QString &keyBase, const QString &keyData,
+									const std::function<void(QCborMap *)> &func) const;
+
 	QCborMap toCbor() const;
+
+	QCborMap toProtectedCbor() const;
+
+	static void removeEntityProtectedFields(QCborMap *map);
+	static void removeArmoredEntityProtectedFields(QCborMap *map);
+	static void removeEnemyProtectedFields(QCborMap *map);
+	static void removePlayerProtectedFields(QCborMap *map);
 };
+
 
 
 
@@ -1696,6 +1723,73 @@ inline QCborArray CurrentSnapshot::toCborArray(const CurrentSnapshotList<T2, T> 
 					a.append(it.second.toCborMap(true));
 				}
 				prev = it.second.toCborMap(true);
+			}
+
+			m.insert(keyData, a);
+		}
+
+		array.append(m);
+	}
+
+	return array;
+}
+
+
+
+
+
+/**
+ * @brief CurrentSnapshot::toProtectedCborArray
+ * @param list
+ * @param keyBase
+ * @param keyData
+ * @return
+ */
+
+template<typename T2, typename T>
+inline QCborArray CurrentSnapshot::toProtectedCborArray(const CurrentSnapshotList<T2, T> &list,
+														const QString &keyBase,
+														const QString &keyData,
+														const std::function<void(QCborMap *)> &func) const
+{
+	QCborArray array;
+
+	if (keyBase.isEmpty() && keyData.isEmpty())
+		return array;
+
+	for (const auto &ptr : list) {
+		QCborMap m;
+
+		if (!keyBase.isEmpty())
+			m.insert(keyBase, ptr.first.toCborMap(true));
+
+		if (!keyData.isEmpty()) {
+			QCborArray a;
+
+			std::optional<QCborMap> prev;
+
+			for (const auto &it : ptr.second) {
+				QCborMap fullmap = it.second.toCborMap(true);
+				if (func)
+					func(&fullmap);
+
+				if (prev) {
+					QCborMap map = it.second.toCborMap(prev.value(), true);
+
+					if (func)
+						func(&map);
+
+					QCborMap delta = map;
+					delta.remove(QStringLiteral("f"));
+
+					if (delta.isEmpty())
+						continue;
+
+					a.append(map);
+				} else {
+					a.append(fullmap);
+				}
+				prev = fullmap;
 			}
 
 			m.insert(keyData, a);

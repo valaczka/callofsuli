@@ -122,7 +122,6 @@ private:
 
 	void sendDataChrSel();
 	void sendDataPrepare();
-	void sendDataPlay();
 
 	void setTickTimer(const qint64 &tick);
 

@@ -25,7 +25,6 @@
  */
 
 #include "rpgplayer.h"
-#include "isometricbullet.h"
 #include "rpgfirefog.h"
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
@@ -33,6 +32,7 @@
 #include "rpgcontainer.h"
 #include <QDirIterator>
 #include "application.h"
+#include "rpggamedataiface_t.h"
 
 #ifndef Q_OS_WASM
 #include "standaloneclient.h"
@@ -799,33 +799,32 @@ void RpgPlayer::attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weap
  * @return
  */
 
-std::unique_ptr<RpgGameData::Body> RpgPlayer::serializeThis() const
+RpgGameData::Player RpgPlayer::serializeThis() const
 {
-	RpgGameData::Player *p = new RpgGameData::Player();
+	RpgGameData::Player p;
 
 	b2Vec2 pos = body().GetPosition();
-	p->p = { pos.x, pos.y };
-	p->a = currentAngle();
-	p->hp = hp();
+	p.p = { pos.x, pos.y };
+	p.a = currentAngle();
+	p.hp = hp();
 
 	if (TiledScene *s = scene())
-		p->sc = s->sceneId();
+		p.sc = s->sceneId();
 
 	const b2Vec2 vel = body().GetLinearVelocity();
 
 	if (vel.x != 0. || vel.y != 0.)
-		p->st = RpgGameData::Player::PlayerMoving;
+		p.st = RpgGameData::Player::PlayerMoving;
 	else
-		p->st = RpgGameData::Player::PlayerIdle;
+		p.st = RpgGameData::Player::PlayerIdle;
 
-	p->arm = m_armory->serialize();
+	p.arm = m_armory->serialize();
 
 	if (RpgEnemy *enemy = qobject_cast<RpgEnemy*>(m_enemy)) {
-		p->tg = enemy->baseData();
+		p.tg = enemy->baseData();
 	}
 
-	std::unique_ptr<RpgGameData::Body> ptr(std::move(p));
-	return ptr;
+	return p;
 }
 
 
@@ -960,8 +959,26 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 	if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
 		LOG_CINFO("game") << "HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
-		playAttackEffect(RpgGameData::Weapon::WeaponHand);
-	} else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
+
+		auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+		if (wptr) {
+			TiledObject *target = nullptr;
+
+			if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
+				target = dynamic_cast<TiledObject*>(g->findBody(
+														TiledObjectBody::ObjectId{
+															.ownerId = snapshot.s1.tg.o,
+															.sceneId = snapshot.s1.tg.s,
+															.id = snapshot.s1.tg.id
+														}));
+			}
+
+			wptr->setParentObject(this);
+			playAttackEffect(wptr.get());
+			wptr->playAttack(target);
+		}
+	} /*else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
 		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
 	} else {
 		if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
@@ -969,13 +986,22 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 			if (snapshot.s1.st == RpgGameData::Player::PlayerIdle &&
 					snapshot.s2.st == RpgGameData::Player::PlayerIdle) {
-				const b2Vec2 &vel = body().GetLinearVelocity();
-				if (vel.x != 0. || vel.y != 0.) {
-					LOG_CINFO("game") << "FULL STOP ENTITY" << final;
-					stop();
-					emplace(final);
+
+				// "Teleport"
+				if (const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
+						dist > 30. * m_speedLength / 60.) {
+					const float angle = angleToPoint(final);
+					setCurrentAngle(angle);
+					setSpeedFromAngle(angle, dist);
+				} else {
+					const b2Vec2 &vel = body().GetLinearVelocity();
+					if (vel.x != 0. || vel.y != 0.) {
+						LOG_CINFO("game") << "FULL STOP ENTITY" << final;
+						stop();
+						emplace(final);
+					}
+					setCurrentAngle(snapshot.s2.a);
 				}
-				setCurrentAngle(snapshot.s2.a);
 			} else if (snapshot.s2.st == RpgGameData::Player::PlayerIdle &&
 					   distanceToPoint(final) < m_speedLength / 60.) {
 				//LOG_CINFO("game") << "STOP ENTITY" << final;
@@ -997,6 +1023,10 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 			LOG_CERROR("game") << "???";
 			//stop();
 		}
+	}*/
+
+	else {
+		entityMove(this, snapshot, RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving, m_speedLength);
 	}
 
 	updateFromSnapshot(snapshot.s1);
@@ -1024,6 +1054,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 	m_armory->updateFromSnapshot(snap.arm);
 	setShieldCount(m_armory->getShieldCount());
 }
+
 
 
 

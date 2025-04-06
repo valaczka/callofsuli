@@ -99,6 +99,7 @@ void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity
 
 
 
+
 /**
  * @brief SnapshotStorage::getFullSnapshot
  * @param tick
@@ -192,6 +193,91 @@ QCborMap CurrentSnapshot::toCbor() const
 
 	return map;
 }
+
+
+
+/**
+ * @brief CurrentSnapshot::toProtectedCbor
+ * @return
+ */
+
+QCborMap CurrentSnapshot::toProtectedCbor() const
+{
+	QCborMap map;
+
+	if (const QCborArray &a = toProtectedCborArray(players, QStringLiteral("pd"), QStringLiteral("p"),
+												   &CurrentSnapshot::removePlayerProtectedFields
+												   ); !a.isEmpty())
+		map.insert(QStringLiteral("pp"), a);
+
+	if (const QCborArray &a = toProtectedCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e"),
+												   &CurrentSnapshot::removeEnemyProtectedFields
+												   ); !a.isEmpty())
+		map.insert(QStringLiteral("ee"), a);
+
+	return map;
+}
+
+
+/**
+ * @brief CurrentSnapshot::removeEntityProtectedFields
+ * @param map
+ */
+
+void CurrentSnapshot::removeEntityProtectedFields(QCborMap *map)
+{
+	Q_ASSERT(map);
+
+	map->remove(QStringLiteral("hp"));
+	map->remove(QStringLiteral("mhp"));
+}
+
+
+/**
+ * @brief CurrentSnapshot::removeArmoredEntityProtectedFields
+ * @param map
+ */
+
+void CurrentSnapshot::removeArmoredEntityProtectedFields(QCborMap *map)
+{
+	Q_ASSERT(map);
+	removeEntityProtectedFields(map);
+
+	if (auto it = map->find(QStringLiteral("arm")); it != map->end()) {
+		QCborMap arm = it->toMap();
+		arm.remove(QStringLiteral("wl"));
+		map->insert(QStringLiteral("arm"), arm);
+	}
+}
+
+
+
+/**
+ * @brief CurrentSnapshot::removeEnemyProtectedFields
+ * @param map
+ */
+
+void CurrentSnapshot::removeEnemyProtectedFields(QCborMap *map)
+{
+	Q_ASSERT(map);
+	removeArmoredEntityProtectedFields(map);
+}
+
+
+
+/**
+ * @brief CurrentSnapshot::removePlayerProtectedFields
+ * @param map
+ */
+
+void CurrentSnapshot::removePlayerProtectedFields(QCborMap *map)
+{
+	Q_ASSERT(map);
+	removeArmoredEntityProtectedFields(map);
+}
+
+
+
 
 
 }

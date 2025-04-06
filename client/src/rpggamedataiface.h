@@ -27,6 +27,7 @@
 #ifndef RPGGAMEDATAIFACE_H
 #define RPGGAMEDATAIFACE_H
 
+#include "isometricentity.h"
 #include "tiledobject.h"
 #include "rpgconfig.h"
 #include <QVector2D>
@@ -57,8 +58,19 @@ protected:
 	static QList<float> toPosList(const QVector2D &pos) { return { pos.x(), pos.y() }; }
 	static QList<float> toPosList(const QPointF &pos) { return { (float) pos.x(), (float) pos.y() }; }
 
-	virtual std::unique_ptr<RpgGameData::Body> serializeThis() const = 0;
+	virtual T serializeThis() const = 0;
+	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<T> &snapshot) = 0;
+	virtual void updateFromSnapshot(const T &snap) = 0;
+
+	void updateFromLastSnapshot(const T &snap, T *last);
+
+	template <typename E>
+	static void entityMove(IsometricEntity *entity,
+						   const RpgGameData::SnapshotInterpolation<T> &snapshot,
+						   const E &idle, const E &moving,
+						   const qreal &speed);
 };
+
 
 
 
@@ -71,14 +83,13 @@ protected:
 template<typename T, typename T2, typename T3, typename T4>
 inline T RpgGameDataInterface<T, T2, T3, T4>::serialize(const qint64 tick) const
 {
-	std::unique_ptr<RpgGameData::Body> ptr = serializeThis();
-
-	T p = *dynamic_cast<T*>(ptr.get());
-
-	if (tick >= 0)
+	if (tick >= 0) {
+		T p = serializeThis();
 		p.f = tick;
-
-	return p;
+		return p;
+	} else {
+		return serializeThis();
+	}
 }
 
 
@@ -96,6 +107,33 @@ inline T2 RpgGameDataInterface<T, T2, T3, T4>::baseData() const
 	r.s = oid.sceneId;
 	r.id = oid.id;
 	return r;
+}
+
+
+
+
+
+/**
+ * @brief RpgGameDataInterface::updateFromLastSnapshot
+ * @param snap
+ * @param last
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline void RpgGameDataInterface<T, T2, T3, T4>::updateFromLastSnapshot(const T &snap, T *last)
+{
+	Q_ASSERT(last);
+
+	if (last->f >= 0) {
+		if (snap.f < last->f)
+			updateFromSnapshot(*last);
+		else {
+			updateFromSnapshot(snap);
+			last = {};
+		}
+	} else {
+		updateFromSnapshot(snap);
+	}
 }
 
 

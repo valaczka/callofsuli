@@ -165,6 +165,8 @@ public:
 
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
+	TiledObjectBody *findBody(const TiledObjectBody::ObjectId &objectId) const;
+
 	void saveSceneState(RpgPlayer *player);
 	void saveSceneState();
 
@@ -308,7 +310,8 @@ signals:
 	void questsChanged();
 
 protected:
-	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId);
+	RpgPlayer *createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId,
+							const bool &isDynamic = true);
 	RpgEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype, TiledScene *scene, const int &id);
 	RpgEnemy *createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene, const int &id) {
 		return createEnemy(type, QString(), scene, id);

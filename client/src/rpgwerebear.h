@@ -74,7 +74,7 @@ protected:
 	//bool enemyWorldStep() override final;
 	void updateSprite() override final;
 
-	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
+	RpgGameData::Enemy serializeThis() const override;
 
 	void load() override final;
 	void eventPlayerReached(IsometricPlayer */*player*/) override final;

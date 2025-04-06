@@ -43,18 +43,24 @@ public:
 	RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene);
 
 	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricEnemy::objectId(); }
-	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot) override;
 
+	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Enemy &snap) override;
+	virtual void updateFromLastSnapshot(const RpgGameData::Enemy &snap) override {
+		RpgGameDataInterface::updateFromLastSnapshot(snap, &m_lastSnapshot);
+	}
 
 protected:
 	virtual bool enemyWorldStep() override;
 	virtual bool enemyWorldStepOnVisiblePlayer() override;
 	virtual void attackPlayer(RpgPlayer *player, RpgWeapon *weapon) override;
 
-	RpgGameData::Enemy *serializeEnemy() const;
+	RpgGameData::Enemy serializeEnemy() const;
 
 	qint64 m_lastSnap = -1;
+	RpgGameData::Enemy m_lastSnapshot;
+
+	friend class ActionRpgMultiplayerGame;
 };
 
 #endif // RPGENEMY_H

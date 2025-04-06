@@ -139,48 +139,55 @@ RpgWeapon *RpgArmory::weaponAdd(const RpgGameData::Weapon::WeaponType &type)
 		return w;
 	}
 
-	RpgWeapon *weapon = nullptr;
+	auto ptr = weaponCreate(type);
 
+	if (!ptr) {
+		return nullptr;
+	} else {
+		return weaponAdd(ptr.release());
+	}
+}
+
+
+
+/**
+ * @brief RpgArmory::weaponCreate
+ * @param type
+ * @return
+ */
+
+std::unique_ptr<RpgWeapon> RpgArmory::weaponCreate(const RpgGameData::Weapon::WeaponType &type, QObject *parent)
+{
 	switch (type) {
 		case RpgGameData::Weapon::WeaponLongsword:
-			weapon = weaponAdd(new RpgLongsword);
-			break;
+			return std::make_unique<RpgLongsword>(parent);
 
 		case RpgGameData::Weapon::WeaponShortbow:
-			weapon = weaponAdd(new RpgShortbow);
-			break;
+			return std::make_unique<RpgShortbow>(parent);
 
 		case RpgGameData::Weapon::WeaponLongbow:
-			weapon = weaponAdd(new RpgLongbow);
-			break;
+			return std::make_unique<RpgLongbow>(parent);
 
 		case RpgGameData::Weapon::WeaponDagger:
-			weapon = weaponAdd(new RpgDagger);
-			break;
+			return std::make_unique<RpgDagger>(parent);
 
 		case RpgGameData::Weapon::WeaponBroadsword:
-			weapon = weaponAdd(new RpgBroadsword);
-			break;
+			return std::make_unique<RpgBroadsword>(parent);
 
 		case RpgGameData::Weapon::WeaponAxe:
-			weapon = weaponAdd(new RpgAxe);
-			break;
+			return std::make_unique<RpgAxe>(parent);
 
 		case RpgGameData::Weapon::WeaponMace:
-			weapon = weaponAdd(new RpgMace);
-			break;
+			return std::make_unique<RpgMace>(parent);
 
 		case RpgGameData::Weapon::WeaponHammer:
-			weapon = weaponAdd(new RpgHammer);
-			break;
+			return std::make_unique<RpgHammer>(parent);
 
 		case RpgGameData::Weapon::WeaponShield:
-			weapon = weaponAdd(new RpgShield);
-			break;
+			return std::make_unique<RpgShield>(parent);
 
 		case RpgGameData::Weapon::WeaponHand:
-			weapon = weaponAdd(new RpgWeaponHand);
-			break;
+			return std::make_unique<RpgWeaponHand>(parent);
 
 		case RpgGameData::Weapon::WeaponMageStaff:
 		case RpgGameData::Weapon::WeaponGreatHand:
@@ -188,10 +195,9 @@ RpgWeapon *RpgArmory::weaponAdd(const RpgGameData::Weapon::WeaponType &type)
 		case RpgGameData::Weapon::WeaponFireFogWeapon:
 		case RpgGameData::Weapon::WeaponInvalid:
 			LOG_CERROR("game") << "Invalid weapon type" << type;
-			return nullptr;
 	}
 
-	return weapon;
+	return nullptr;
 }
 
 
@@ -728,19 +734,43 @@ RpgGameData::BulletBaseData RpgBullet::baseData() const
  * @return
  */
 
-std::unique_ptr<RpgGameData::Body> RpgBullet::serializeThis() const
+RpgGameData::Bullet RpgBullet::serializeThis() const
 {
-	RpgGameData::Bullet *p = new RpgGameData::Bullet();
+	RpgGameData::Bullet p;
 
 	b2Vec2 pos = body().GetPosition();
-	p->p = { pos.x, pos.y };
-	p->a = currentAngle();
+	p.p = { pos.x, pos.y };
+	p.a = currentAngle();
 
 	if (TiledScene *s = scene())
-		p->sc = s->sceneId();
+		p.sc = s->sceneId();
 
-	std::unique_ptr<RpgGameData::Body> ptr(std::move(p));
-	return ptr;
+	return p;
+}
+
+
+
+/**
+ * @brief RpgBullet::updateFromSnapshot
+ * @param snapshot
+ */
+
+void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Bullet> &snapshot)
+{
+
+}
+
+
+
+
+/**
+ * @brief RpgBullet::updateFromSnapshot
+ * @param snap
+ */
+
+void RpgBullet::updateFromSnapshot(const RpgGameData::Bullet &snap)
+{
+
 }
 
 

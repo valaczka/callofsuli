@@ -56,7 +56,7 @@ protected:
 	void load() override final;
 	RpgWeapon *defaultWeapon() const override;
 
-	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
+	RpgGameData::Enemy serializeThis() const override;
 
 	void eventPlayerReached(IsometricPlayer *player) override final;
 	void eventPlayerLeft(IsometricPlayer */*player*/) override final {}

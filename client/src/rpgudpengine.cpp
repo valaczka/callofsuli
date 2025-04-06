@@ -264,11 +264,11 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 
 
 #ifdef Q_OS_LINUX
-		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-			QCborMap map = data;
-			map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
-			a->writeToSocket(map.toCborValue());
-		}
+	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+		QCborMap map = data;
+		map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
+		a->writeToSocket(map.toCborValue());
+	}
 #endif
 
 }
@@ -308,11 +308,11 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 	updateSnapshotEnemyList(enemyList);
 
 #ifdef Q_OS_LINUX
-		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-			QCborMap map = data;
-			map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
-			a->writeToSocket(map.toCborValue());
-		}
+	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+		QCborMap map = data;
+		map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
+		a->writeToSocket(map.toCborValue());
+	}
 #endif
 }
 
@@ -393,9 +393,9 @@ void RpgUdpEngine::updateSnapshotEnemyList(const QCborArray &list)
 		for (const QCborValue &v : e) {
 			enemy.fromCbor(v);
 
-			if (enemy.st == RpgGameData::Enemy::EnemyHit) {
+			/*if (enemy.st == RpgGameData::Enemy::EnemyHit) {
 				LOG_CWARNING("game") << "GOT ENEMY HIT" << enemyData.s << enemyData.id << enemy.f;
-			}
+			}*/
 
 			m_snapshots.updateSnapshot(enemyData, enemy);
 		}
@@ -434,9 +434,9 @@ void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
 		for (const QCborValue &v : p) {
 			player.fromCbor(v);
 
-			if (player.st == RpgGameData::Player::PlayerHit) {
+			/*if (player.st == RpgGameData::Player::PlayerHit) {
 				LOG_CWARNING("game") << "GOT" << QJsonDocument(player.toJson()).toJson().constData();
-			}
+			}*/
 
 			m_snapshots.updateSnapshot(playerData, player);
 		}
@@ -618,12 +618,7 @@ void ClientStorage::appendSnapshot(const RpgGameData::PlayerBaseData &playerData
 		d.list.insert_or_assign(player.f, player);
 		m_players.push_back(d);
 	} else {
-		qint64 f = player.f;
-
-		while (it->list.contains(f))
-			++f;
-
-		it->list.insert_or_assign(f, player);		///
+		insert(&(it->list), player);
 	}
 }
 
@@ -651,7 +646,7 @@ void ClientStorage::appendSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 		d.list.insert_or_assign(enemy.f, enemy);
 		m_enemies.push_back(d);
 	} else {
-		it->list.insert_or_assign(enemy.f, enemy);
+		insert(&(it->list), enemy);
 	}
 }
 

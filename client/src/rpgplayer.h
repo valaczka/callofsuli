@@ -194,8 +194,11 @@ public:
 	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
 	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
 
-	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot);
-	void updateFromSnapshot(const RpgGameData::Player &snap);
+	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot) override;
+	void updateFromSnapshot(const RpgGameData::Player &snap) override;
+	void updateFromLastSnapshot(const RpgGameData::Player &snap) {
+		RpgGameDataInterface::updateFromLastSnapshot(snap, &m_lastSnapshot);
+	}
 
 	void attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected);
 
@@ -212,7 +215,7 @@ protected:
 	void load() override final;
 	void updateSprite() override final;
 
-	std::unique_ptr<RpgGameData::Body> serializeThis() const override;
+	RpgGameData::Player serializeThis() const override;
 
 	/*virtual bool protectWeapon(const RpgGameData::Weapon::WeaponType &weaponType) = 0;
 	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, const bool &isProtected) = 0;
@@ -280,6 +283,7 @@ private:
 
 
 	qint64 m_lastSnap = -1;
+	RpgGameData::Player m_lastSnapshot;
 };
 
 #endif // RPGPLAYER_H

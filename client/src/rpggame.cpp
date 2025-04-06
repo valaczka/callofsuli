@@ -231,6 +231,23 @@ std::optional<RpgGameDefinition> RpgGame::readGameDefinition(const QString &map)
 }
 
 
+/**
+ * @brief RpgGame::findBody
+ * @param objectId
+ * @return
+ */
+
+TiledObjectBody *RpgGame::findBody(const TiledObjectBody::ObjectId &objectId) const
+{
+	for (const auto &b : bodyList()) {
+		if (b && b->objectId() == objectId)
+			return b.get();
+	}
+
+	return nullptr;
+}
+
+
 
 
 
@@ -1420,10 +1437,10 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyB
  * @return
  */
 
-RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId)
+RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId, const bool &isDynamic)
 {
 	b2::Body::Params bParams;
-	bParams.type = b2BodyType::b2_dynamicBody;
+	bParams.type = isDynamic ? b2BodyType::b2_dynamicBody : b2BodyType::b2_kinematicBody;
 	bParams.fixedRotation = true;
 
 	b2::Shape::Params params;

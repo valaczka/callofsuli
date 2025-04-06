@@ -182,12 +182,9 @@ void RpgEnemyBase::load()
  * @return
  */
 
-std::unique_ptr<RpgGameData::Body> RpgEnemyBase::serializeThis() const
+RpgGameData::Enemy RpgEnemyBase::serializeThis() const
 {
-	RpgGameData::Enemy *e = serializeEnemy();
-
-	std::unique_ptr<RpgGameData::Body> ptr(std::move(e));
-	return ptr;
+	return serializeEnemy();
 }
 
 
