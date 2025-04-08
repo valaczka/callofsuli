@@ -175,6 +175,7 @@ public:
 	static QVector2D vectorFromAngle(const float &angle, const float &radius);
 
 	float bodyRotation() const;
+	float desiredBodyRotation() const;
 	bool rotateBody(const float &desiredRadian, const bool &forced = false);
 
 	bool opaque() const;

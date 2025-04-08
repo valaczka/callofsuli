@@ -831,6 +831,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_COLLECTION(QList, float, p)		// position
+	QS_COLLECTION(QList, float, cv)		// current linear velocity
 	QS_FIELD(float, a)			// angle
 	QS_FIELD(int, hp)			// HP
 	QS_FIELD(int, mhp)			// max HP

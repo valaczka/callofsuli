@@ -420,7 +420,7 @@ void TiledObjectBody::updateBodyInVisibleArea()
 
 void TiledObjectBody::overrideCurrentSpeed(const QVector2D &speed)
 {
-	d->m_currentSpeed = speed.length();
+	d->m_currentSpeed = speed.length()/60.;
 }
 
 
@@ -1337,7 +1337,7 @@ bool TiledObjectBody::isEqual(const b2::ShapeRef &s1, const b2::ShapeRef &s2)
 	const auto &id1 = s1.Handle();
 	const auto &id2 = s2.Handle();
 
-	return (id1.index1 == id2.index1 && id1.world0 == id2.world0 && id1.revision == id2.revision);
+	return (id1.index1 == id2.index1 && id1.world0 == id2.world0 && id1.generation == id2.generation);
 }
 
 
@@ -1353,7 +1353,7 @@ bool TiledObjectBody::isEqual(const b2::BodyRef &s1, const b2::BodyRef &s2)
 	const auto &id1 = s1.Handle();
 	const auto &id2 = s2.Handle();
 
-	return (id1.index1 == id2.index1 && id1.world0 == id2.world0 && id1.revision == id2.revision);
+	return (id1.index1 == id2.index1 && id1.world0 == id2.world0 && id1.generation == id2.generation);
 }
 
 
@@ -1388,7 +1388,7 @@ void TiledObjectBody::emplace(const QVector2D &center)
 		return;
 	}
 
-	d->m_bodyRef.SetAngularVelocity(0.f);
+	//d->m_bodyRef.SetAngularVelocity(0.f);
 	d->m_bodyRef.SetLinearVelocity({0.f, 0.f});
 	d->m_bodyRef.SetTransform({(float)center.x(), (float)center.y()}, d->m_bodyRef.GetRotation());
 	d->m_bodyRef.SetAwake(true);
@@ -1471,7 +1471,7 @@ void TiledObjectBody::stop()
 		return;
 	}
 
-	d->m_bodyRef.SetAngularVelocity(0.f);
+	//d->m_bodyRef.SetAngularVelocity(0.f);
 	d->m_bodyRef.SetLinearVelocity({0.f, 0.f});
 }
 
@@ -1510,6 +1510,25 @@ float TiledObjectBody::bodyRotation() const
 
 
 /**
+ * @brief TiledObjectBody::desiredBodyRotation
+ * @return
+ */
+
+float TiledObjectBody::desiredBodyRotation() const
+{
+	if (!d->m_bodyRef) {
+		LOG_CERROR("scene") << "Missing body" << this;
+		return 0.f;
+	}
+
+	if (d->m_rotateAnimation.running)
+		return d->m_rotateAnimation.destRadian;
+	else
+		return bodyRotation();
+}
+
+
+/**
  * @brief TiledObjectBody::rotateBody
  * @param desiredRadian
  * @return
@@ -1524,15 +1543,16 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 
 	if (forced) {
 		d->m_rotateAnimation.running = false;
-		d->m_bodyRef.SetAngularVelocity(0.f);
 		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
-		d->m_bodyRef.SetAwake(true);
+		//d->m_bodyRef.SetAwake(true);
 		return true;
 	}
 
 	const float currentRadian = bodyRotation();
 
 	if (qFuzzyCompare(desiredRadian, currentRadian)) {
+		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
+		//d->m_bodyRef.SetAwake(true);
 		d->m_rotateAnimation.running = false;
 		return false;
 	}
@@ -1545,9 +1565,8 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 
 	if (diff < 2* d->m_rotateAnimation.speed) {
 		d->m_rotateAnimation.running = false;
-		d->m_bodyRef.SetAngularVelocity(0.f);
 		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
-		d->m_bodyRef.SetAwake(true);
+		//d->m_bodyRef.SetAwake(true);
 		return true;
 	}
 
@@ -1570,7 +1589,7 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 	const float delta = std::min(d->m_rotateAnimation.speed, M_PI_4);
 	float newAngle = d->m_rotateAnimation.clockwise ? currentNormal - delta : currentNormal + delta;
 
-	d->m_bodyRef.SetAngularVelocity(0.f);
+	//d->m_bodyRef.SetAngularVelocity(0.f);
 
 	static const float pi2 = 2*B2_PI;
 
@@ -1725,7 +1744,7 @@ void TiledObjectBody::worldStep()
 	QVector2D currPos(p.x, p.y);
 
 	d->m_lastPosition.push_back(currPos);
-	while (d->m_lastPosition.size() > 6)
+	while (d->m_lastPosition.size() > 4)
 		d->m_lastPosition.pop_front();
 
 
@@ -2120,7 +2139,7 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 	filter.categoryBits = FixtureAll;
 	filter.maskBits = categories|FixtureGround;
 
-	b2Transform transform = d->m_bodyRef.GetTransform();
+	const b2Transform &transform = d->m_bodyRef.GetTransform();
 
 
 	if (forceLine || d->m_bodyShapes.empty()) {
@@ -2128,12 +2147,25 @@ TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const Tile
 	} else {
 		const b2::ShapeRef &sh = d->m_bodyShapes.front();
 
-		if (sh.GetType() == b2_circleShape)
-			d->m_world->Cast(sh.GetCircle(), transform, translation, filter, fcn);
-		else if (sh.GetType() == b2_polygonShape)
-			d->m_world->Cast(sh.GetPolygon(), transform, translation, filter, fcn);
-		else if (sh.GetType() == b2_capsuleShape)
-			d->m_world->Cast(sh.GetCapsule(), transform, translation, filter, fcn);
+		if (sh.GetType() == b2_circleShape) {
+			b2Circle p = sh.GetCircle();
+			p.center = b2TransformPoint(transform, p.center);
+
+			d->m_world->Cast(p, translation, filter, fcn);
+		} else if (sh.GetType() == b2_polygonShape) {
+			b2Polygon p = sh.GetPolygon();
+			for (int i=0; i<p.count; ++i) {
+				p.vertices[i] = b2TransformPoint(transform, p.vertices[i]);
+			}
+
+			d->m_world->Cast(p, translation, filter, fcn);
+		} else if (sh.GetType() == b2_capsuleShape) {
+			b2Capsule p = sh.GetCapsule();
+			p.center1 = b2TransformPoint(transform, p.center1);
+			p.center2 = b2TransformPoint(transform, p.center2);
+
+			d->m_world->Cast(p, translation, filter, fcn);
+		}
 		else {
 			LOG_CWARNING("scene") << "Invalid shape for ray cast" << sh.GetType();
 			d->m_world->CastRay(origin, translation, filter, fcn);
@@ -2514,8 +2546,6 @@ void TiledObjectBodyPrivate::replaceWorld(b2::World *world, const QPointF &posit
 
 		b2::Shape::Params params;
 
-		params.friction = s.GetFriction();
-		params.restitution = s.GetRestitution();
 		params.density = s.GetDensity();
 		params.filter = s.GetFilter();
 		params.isSensor = s.IsSensor();
@@ -2778,7 +2808,7 @@ float TiledObject::currentAngle() const
 
 void TiledObject::setCurrentAngle(float newCurrentAngle)
 {
-	if (qFuzzyCompare(bodyRotation(), newCurrentAngle))
+	if (qFuzzyCompare(desiredBodyRotation(), newCurrentAngle))
 		return;
 
 	rotateBody(newCurrentAngle);

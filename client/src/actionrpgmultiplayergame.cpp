@@ -29,6 +29,7 @@
 #include "client.h"
 #include "qcborarray.h"
 #include "rpgplayer.h"
+#include "tiledspritehandler.h"
 #include "utils_.h"
 
 
@@ -618,7 +619,6 @@ void ActionRpgMultiplayerGame::setPlayerId(int newPlayerId)
 		return;
 	m_playerId = newPlayerId;
 	emit playerIdChanged();
-	LOG_CINFO("game") << "MYID" << m_playerId;
 }
 
 
@@ -982,20 +982,6 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 {
 	Q_ASSERT(q);
 
-
-#ifdef Q_OS_LINUX
-		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-				QCborMap map;
-				map.insert(QStringLiteral("0op"), QStringLiteral("SND"));
-				map.insert(QStringLiteral("current"), m_rpgGame->tickTimer()->currentTick());
-				map.insert(QStringLiteral("lag"), lagMsec);
-				map.insert(QStringLiteral("tick"), q->m_currentSnapshot.players.empty() ? -1 :
-																						 q->m_currentSnapshot.players.front().second.current);
-				a->writeToSocket(map.toCborValue());
-		}
-#endif
-
-
 	q->m_currentSnapshot.clear();
 
 	if (m_config.gameState != RpgConfig::StatePlay)
@@ -1032,6 +1018,54 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 		}
 	}
 
+	/*
+#ifdef Q_OS_LINUX
+		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+
+			static QCborArray sList, rList;
+
+			bool fndS = false;
+			bool fndR = false;
+
+			for (auto &b : m_rpgGame->bodyList()) {
+				RpgPlayer *iface = dynamic_cast<RpgPlayer*> (b.get());
+
+				if (!iface)
+					continue;
+
+				const QString &s = iface->spriteHandler()->currentSprite();
+
+				if (iface == m_rpgGame->controlledPlayer()) {
+					if (sList.isEmpty() || s != sList.first()) {
+						sList.prepend(s);
+						fndS = true;
+					}
+				} else {
+					if (rList.isEmpty() || s != rList.first()) {
+						rList.prepend(s);
+						fndR = true;
+					}
+				}
+			}
+
+
+			if (fndS) {
+				QCborMap map;
+				map.insert(QStringLiteral("0op"), QStringLiteral("SND"));
+				map.insert(QStringLiteral("pp"), sList);
+				a->writeToSocket(map.toCborValue());
+			}
+
+			if (fndR) {
+				QCborMap map;
+				map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
+				map.insert(QStringLiteral("pp"), rList);
+				a->writeToSocket(map.toCborValue());
+			}
+		}
+#endif
+
+*/
 
 	if (!forceKeyFrame)
 		return;
@@ -1040,37 +1074,6 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 	RpgGameData::CurrentSnapshot snapshot = q->m_toSend.getCurrentSnapshot();
 	if (QCborMap map = snapshot.toCbor(); !map.isEmpty()) {
 		sendData(map.toCborValue().toCbor(), true);
-
-/*#ifdef Q_OS_LINUX
-		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-
-			static QCborArray sList;
-
-			QCborArray pm = map.value(QStringLiteral("pp")).toArray();
-			bool fnd = false;
-
-			for (const QCborValue &v : pm) {
-				const QCborArray pl = v.toMap().value(QStringLiteral("p")).toArray();
-
-				for (const QCborValue &v : pl) {
-					const int st = v.toMap().value(QStringLiteral("st")).toInteger();
-
-					if (st > 2) {
-						fnd = true;
-						sList.prepend(v);
-					}
-				}
-			}
-
-			if (fnd) {
-				QCborMap map;
-				map.insert(QStringLiteral("0op"), QStringLiteral("SND"));
-				map.insert(QStringLiteral("pp"), sList);
-				a->writeToSocket(map.toCborValue());
-			}
-		}
-#endif*/
-
 	}
 
 	q->m_lastSentTick = tick;

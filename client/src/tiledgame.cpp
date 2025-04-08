@@ -612,9 +612,7 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 	Q_ASSERT(renderer);
 
 	b2::Shape::Params params;
-	params.friction = 1.f;
 	params.density = 1.f;
-	params.restitution = 0.f;
 	params.isSensor = false;
 	params.enableSensorEvents = false;
 	params.enableContactEvents = true;

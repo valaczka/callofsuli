@@ -140,6 +140,9 @@ public:
 	explicit RpgPlayer(TiledScene *scene = nullptr);
 	virtual ~RpgPlayer();
 
+
+	QCborArray m_cborList;
+
 	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricPlayer::objectId(); }
 
 	Q_INVOKABLE void attack(RpgWeapon *weapon);

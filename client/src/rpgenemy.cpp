@@ -65,6 +65,8 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 	m_lastSnap = snapshot.s2.f;
 
 
+	QVector2D speed;
+
 	if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit) {
 		LOG_CINFO("game") << "ENEMYHIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
 
@@ -87,53 +89,8 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 			wptr->playAttack(target);
 		}
 
-	} /*else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
-		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
 	} else {
-		if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
-			QVector2D final(snapshot.s2.p.at(0), snapshot.s2.p.at(1));
-
-			if (snapshot.s1.st == RpgGameData::Enemy::EnemyIdle &&
-					snapshot.s2.st == RpgGameData::Enemy::EnemyIdle) {
-				const b2Vec2 &vel = body().GetLinearVelocity();
-				if (vel.x != 0. || vel.y != 0.) {
-					//LOG_CINFO("game") << "FULL STOP ENEMY" << final;
-					stop();
-					emplace(final);
-				}
-				setCurrentAngle(snapshot.s2.a);
-			} else if (snapshot.s2.st == RpgGameData::Enemy::EnemyIdle &&
-					   distanceToPoint(final) < m_metric.speed / 60.) {
-				//LOG_CINFO("game") << "STOP ENTITY" << final;
-				stop();
-				emplace(final);
-				setCurrentAngle(snapshot.s2.a);
-			} else if (snapshot.s2.st == RpgGameData::Enemy::EnemyMoving) {
-				const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
-				const float angle = angleToPoint(final);
-				setCurrentAngle(angle);
-				setSpeedFromAngle(angle, dist);
-
-				//LOG_CDEBUG("game") << "DIST" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st << dist;
-			} else {
-				LOG_CDEBUG("game") << "INVALID" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st;
-			}
-
-		} else {
-			LOG_CERROR("game")
-					<< snapshot.s1.f
-					<< snapshot.s1.st
-					<< snapshot.s1.p
-					<< "---"
-					<< snapshot.s2.f
-					<< snapshot.s2.st
-					<< snapshot.s2.p ;
-			//stop();
-		}
-	}*/
-
-	else {
-		entityMove(this, snapshot, RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving, m_metric.speed);
+		speed = entityMove(this, snapshot, RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving, m_metric.speed);
 	}
 
 	updateFromSnapshot(snapshot.s1);
@@ -145,6 +102,9 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 	}
 
 	IsometricEntity::worldStep();
+
+	if (!speed.isNull())
+		overrideCurrentSpeed(speed);
 }
 
 
@@ -303,7 +263,7 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 
 	b2Vec2 pos = body().GetPosition();
 	p.p = { pos.x, pos.y };
-	p.a = currentAngle();
+	p.a = desiredBodyRotation(); //currentAngle();
 	p.hp = hp();
 
 	if (TiledScene *s = scene())
@@ -315,6 +275,8 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 		p.st = RpgGameData::Enemy::EnemyMoving;
 	else
 		p.st = RpgGameData::Enemy::EnemyIdle;
+
+	p.cv = { vel.x, vel.y };
 
 	p.arm = m_armory->serialize();
 

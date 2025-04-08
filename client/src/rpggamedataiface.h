@@ -65,7 +65,7 @@ protected:
 	void updateFromLastSnapshot(const T &snap, T *last);
 
 	template <typename E>
-	static void entityMove(IsometricEntity *entity,
+	static QVector2D entityMove(IsometricEntity *entity,
 						   const RpgGameData::SnapshotInterpolation<T> &snapshot,
 						   const E &idle, const E &moving,
 						   const qreal &speed);

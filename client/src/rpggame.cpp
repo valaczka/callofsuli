@@ -567,8 +567,6 @@ RpgEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type
 
 	b2::Shape::Params params;
 	params.density = 1.f;
-	params.friction = 1.f;
-	params.restitution = 0.f;
 	params.enableContactEvents = true;
 	params.enableSensorEvents = true;
 	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureEnemyBody,
@@ -645,8 +643,6 @@ RpgPickableObject *RpgGame::createPickable(const RpgGameData::PickableBaseData::
 
 	b2::Shape::Params params;
 	params.density = 0.f;
-	params.friction = 0.f;
-	params.restitution = 0.f;
 	params.isSensor = true;
 	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixturePickable,
 											   TiledObjectBody::FixturePlayerBody |
@@ -728,8 +724,6 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
 
 	b2::Shape::Params params;
 	params.density = 1.f;
-	params.friction = 1.f;
-	params.restitution = 0.f;
 	params.isSensor = false;
 	params.enableSensorEvents = true;
 	params.enableContactEvents = true;
@@ -1445,8 +1439,6 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
 
 	b2::Shape::Params params;
 	params.density = 1.f;
-	params.friction = 1.f;
-	params.restitution = 0.f;
 	params.enableContactEvents = true;
 	params.enableSensorEvents = true;
 	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixturePlayerBody,

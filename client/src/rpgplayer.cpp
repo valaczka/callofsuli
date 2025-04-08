@@ -818,6 +818,8 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 	else
 		p.st = RpgGameData::Player::PlayerIdle;
 
+	p.cv = { vel.x, vel.y };
+
 	p.arm = m_armory->serialize();
 
 	if (RpgEnemy *enemy = qobject_cast<RpgEnemy*>(m_enemy)) {
@@ -957,6 +959,8 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	m_lastSnap = snapshot.s2.f;
 
 
+	QVector2D speed;
+
 	if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
 		LOG_CINFO("game") << "HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
 
@@ -978,55 +982,10 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 			playAttackEffect(wptr.get());
 			wptr->playAttack(target);
 		}
-	} /*else if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
-		LOG_CDEBUG("game") << "---------------------skip" << snapshot.current << snapshot.s2.f;
 	} else {
-		if (snapshot.s1.p.size() > 1 && snapshot.s2.p.size() > 1) {
-			QVector2D final(snapshot.s2.p.at(0), snapshot.s2.p.at(1));
-
-			if (snapshot.s1.st == RpgGameData::Player::PlayerIdle &&
-					snapshot.s2.st == RpgGameData::Player::PlayerIdle) {
-
-				// "Teleport"
-				if (const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
-						dist > 30. * m_speedLength / 60.) {
-					const float angle = angleToPoint(final);
-					setCurrentAngle(angle);
-					setSpeedFromAngle(angle, dist);
-				} else {
-					const b2Vec2 &vel = body().GetLinearVelocity();
-					if (vel.x != 0. || vel.y != 0.) {
-						LOG_CINFO("game") << "FULL STOP ENTITY" << final;
-						stop();
-						emplace(final);
-					}
-					setCurrentAngle(snapshot.s2.a);
-				}
-			} else if (snapshot.s2.st == RpgGameData::Player::PlayerIdle &&
-					   distanceToPoint(final) < m_speedLength / 60.) {
-				//LOG_CINFO("game") << "STOP ENTITY" << final;
-				stop();
-				emplace(final);
-				setCurrentAngle(snapshot.s2.a);
-			} else if (snapshot.s2.st == RpgGameData::Player::PlayerMoving) {
-				const float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
-				const float angle = angleToPoint(final);
-				setCurrentAngle(angle);
-				setSpeedFromAngle(angle, dist);
-
-				//LOG_CDEBUG("game") << "DIST" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st << dist;
-			} else {
-				LOG_CDEBUG("game") << "INVALID" << snapshot.current << snapshot.s1.f << snapshot.s1.st << snapshot.s2.f << snapshot.s2.st;
-			}
-
-		} else {
-			LOG_CERROR("game") << "???";
-			//stop();
-		}
-	}*/
-
-	else {
-		entityMove(this, snapshot, RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving, m_speedLength);
+		speed = entityMove(this, snapshot,
+						   RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving,
+						   m_speedLength);
 	}
 
 	updateFromSnapshot(snapshot.s1);
@@ -1038,6 +997,10 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	}
 
 	IsometricEntity::worldStep();
+
+	if (!speed.isNull())
+		overrideCurrentSpeed(speed);
+
 }
 
 
