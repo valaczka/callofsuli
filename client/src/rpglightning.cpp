@@ -89,7 +89,7 @@ void RpgLightning::load()
  * @param base
  */
 
-void RpgLightning::impactEvent(TiledObjectBody *base)
+void RpgLightning::impactEvent(TiledObjectBody *base, b2::ShapeRef shape)
 {
 	RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(base);
 

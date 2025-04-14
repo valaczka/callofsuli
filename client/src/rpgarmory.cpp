@@ -372,16 +372,16 @@ RpgWeapon *RpgArmory::getNextWeapon() const
 
 	do {
 		/*if ((*it)->canAttack()) { */
-			if ((*it)->weaponType() == RpgGameData::Weapon::WeaponHand)
-				weaponHand = *it;
-			else if ((*it)->canHit() || (*it)->canShot()) {
-				if (RpgPlayer *p = qobject_cast<RpgPlayer*>(m_parentObject); p && (*it)->weaponType() == RpgGameData::Weapon::WeaponMageStaff) {
-					if (p->mp() > 0)
-						wList.append(*it);
-				} else {
+		if ((*it)->weaponType() == RpgGameData::Weapon::WeaponHand)
+			weaponHand = *it;
+		else if ((*it)->canHit() || (*it)->canShot()) {
+			if (RpgPlayer *p = qobject_cast<RpgPlayer*>(m_parentObject); p && (*it)->weaponType() == RpgGameData::Weapon::WeaponMageStaff) {
+				if (p->mp() > 0)
 					wList.append(*it);
-				}
+			} else {
+				wList.append(*it);
 			}
+		}
 		/*}*/
 
 		++it;
@@ -468,6 +468,10 @@ bool RpgArmory::updateFromSnapshot(const RpgGameData::Armory &armory)
 
 	for (RpgWeapon *w : tmp)
 		weaponRemove(w);
+
+
+	if (RpgWeapon *w = weaponFind(armory.cw))
+		setCurrentWeapon(w);
 
 	return true;
 }
@@ -694,6 +698,7 @@ bool RpgWeapon::updateFromSnapshot(const RpgGameData::Weapon &weapon)
 RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledScene *scene)
 	: IsometricBullet(scene)
 	, RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>()
+	, RpgGameData::LifeCycle()
 	, m_weaponType(weaponType)
 {
 
@@ -723,8 +728,63 @@ RpgGameData::BulletBaseData RpgBullet::baseData() const
 	d.t = m_weaponType;
 	d.own = m_owner;
 	d.tar = m_targets;
+	d.ownId = m_ownerId;
+	d.pth = QList<float>({
+							 (float) m_path.p1().x(),
+							 (float) m_path.p1().y(),
+							 (float) m_path.p2().x(),
+							 (float) m_path.p2().y()
+						 });
+
 
 	return d;
+}
+
+
+/**
+ * @brief RpgBullet::shot
+ * @param baseData
+ */
+
+void RpgBullet::shot(const RpgGameData::BulletBaseData &baseData)
+{
+	if (baseData.pth.size() < 4) {
+		LOG_CERROR("game") << "Invalid path" << baseData.pth;
+		m_stage = StageDead;
+		return;
+	}
+
+	m_path.setLine(baseData.pth.at(0),
+				   baseData.pth.at(1),
+				   baseData.pth.at(2),
+				   baseData.pth.at(3)
+				   );
+
+	IsometricBullet::shot(m_path.p1(), toRadian(m_path.angle()));
+
+	m_stage = StageLive;
+
+}
+
+
+
+/**
+ * @brief RpgBullet::shot
+ * @param from
+ * @param angle
+ */
+
+void RpgBullet::shot(const QPointF &from, const qreal &angle)
+{
+	m_path.setP1(from);
+
+	const QVector2D &v = vectorFromAngle(angle, m_maxDistance);
+
+	m_path.setP2(from + v.toPointF());
+
+	IsometricBullet::shot(from, angle);
+
+	m_stage = StageLive;
 }
 
 
@@ -738,9 +798,13 @@ RpgGameData::Bullet RpgBullet::serializeThis() const
 {
 	RpgGameData::Bullet p;
 
-	b2Vec2 pos = body().GetPosition();
-	p.p = { pos.x, pos.y };
-	p.a = currentAngle();
+	float progress = 0.;
+
+	shortestDistance(bodyPosition(), m_path, nullptr, &progress);
+
+	p.p = progress;
+	p.st = m_stage;
+	p.tg = m_impactedObject;
 
 	if (TiledScene *s = scene())
 		p.sc = s->sceneId();
@@ -757,7 +821,28 @@ RpgGameData::Bullet RpgBullet::serializeThis() const
 
 void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Bullet> &snapshot)
 {
+	updateFromSnapshot(snapshot.s1);
 
+	if (snapshot.s1.f < 0) {
+		LOG_CERROR("game") << "Invalid snap" << snapshot.s1.f << snapshot.current << snapshot.s2.f;
+		stop();
+		return;
+	}
+
+	if (m_stage == StageLive) {
+		if (snapshot.s2.f > 0) {
+			QPointF final = m_path.pointAt(snapshot.s2.p);
+
+			float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
+
+			setSpeedFromAngle(angleToPoint(final), dist);
+		} else {
+			LOG_CDEBUG("game") << "FLY...";
+		}
+	}
+
+	// Nem kell, ezt csak hosted esetben (ActionRpgMultiplayer megcsinálja)
+	////IsometricBullet::worldStep();
 }
 
 
@@ -770,8 +855,16 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 void RpgBullet::updateFromSnapshot(const RpgGameData::Bullet &snap)
 {
+	if ((snap.st == StageDead && m_stage != StageDead && m_stage != StageDestroy) ||
+			(snap.st == StageDestroy && m_stage != StageDead && m_stage != StageDestroy))
+	{
+		disableBullet();
+	}
 
+	m_stage = snap.st;
+	m_impactedObject = snap.tg;
 }
+
 
 
 
@@ -782,72 +875,81 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::Bullet &snap)
  * @param base
  */
 
-void RpgBullet::impactEvent(TiledObjectBody *base)
+void RpgBullet::impactEvent(TiledObjectBody *base, b2::ShapeRef shape)
 {
-	/*const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
-	IsometricEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
-								dynamic_cast<IsometricEnemy*>(base) :
-								nullptr;
+	if (m_stage != StageLive) {
+		stop();
+		return;
+	}
 
-	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody)  ?
-								  dynamic_cast<IsometricPlayer*>(base) :
-								  nullptr;
+	if (!base)
+		return;
+
+	const FixtureCategories categories = FixtureCategories::fromInt(shape.GetFilter().categoryBits);
+	RpgEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
+						  dynamic_cast<RpgEnemy*>(base) :
+						  nullptr;
+
+	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody)  ?
+							dynamic_cast<RpgPlayer*>(base) :
+							nullptr;
 
 
 
 	if (categories.testFlag(TiledObjectBody::FixtureGround) && base->opaque()) {
-		setImpacted(true);
-		stop();
-		groundEvent(base);
-		doAutoDelete();
+		m_impactedObject = RpgGameData::BaseData(
+							   base->objectId().ownerId,
+							   base->objectId().sceneId,
+							   base->objectId().id
+							   );
+
+		if (RpgGame *g = rpgGame())
+			g->bulletImpact(this, base);
+
 		return;
 	}
 
 
 	bool hasTarget = false;
 
-	if (m_targets.testFlag(TargetEnemy) && enemy) {
-		hasTarget = enemy->canBulletImpact(d->m_fromWeaponType);
+	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetEnemy) && enemy) {
+		hasTarget = enemy->canBulletImpact(m_weaponType);
 	}
 
-	if (m_targets.testFlag(TargetPlayer) && player && !player->isLocked()) {
+	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetPlayer) && player && !player->isLocked()) {
 		hasTarget = true;
 	}
 
 	if (!hasTarget)
 		return;
 
+	m_impactedObject = RpgGameData::BaseData(
+						   base->objectId().ownerId,
+						   base->objectId().sceneId,
+						   base->objectId().id
+						   );
+
+	if (RpgGame *g = rpgGame())
+		g->bulletImpact(this, base);
 
 
-	if (!d->m_owner) {
-		LOG_CWARNING("game") << "Missing owner, bullet automatic impact event failed";
+}
+
+
+/**
+ * @brief RpgBullet::overshootEvent
+ */
+
+void RpgBullet::overshootEvent()
+{
+	if (m_stage != StageLive) {
+		disableBullet();
 		return;
 	}
 
-	TiledGame *game = d->m_owner->game();
-
-	if (!game) {
-		LOG_CWARNING("game") << "Missing game, bullet automatic impact event failed";
-		return;
-	}
-
-
-	IsometricEnemy *enemy = dynamic_cast<IsometricEnemy*>(base);
-	IsometricPlayer *player = dynamic_cast<IsometricPlayer*>(base);
-
-	LOG_CINFO("game") << "IMPACT" << d->m_owner << enemy << player << d->m_fromWeaponType;
-
-	if (enemy)
-		game->playerAttackEnemy(d->m_owner, enemy, d->m_fromWeaponType);
-
-	if (player)
-		game->enemyAttackPlayer(d->m_owner, player, d->m_fromWeaponType);
-
-	/// TODO: player attack player?
-
-	setImpacted(true);
-	stop();
-	doAutoDelete();*/
+	m_impactedObject = {};
+	m_stage = StageDead;
+	disableBullet();
 }
 
 
@@ -860,6 +962,16 @@ void RpgBullet::impactEvent(TiledObjectBody *base)
 RpgGame *RpgBullet::rpgGame() const
 {
 	return qobject_cast<RpgGame*>(game());
+}
+
+const RpgGameData::BaseData &RpgBullet::ownerId() const
+{
+	return m_ownerId;
+}
+
+void RpgBullet::setOwnerId(const RpgGameData::BaseData &newOwnerId)
+{
+	m_ownerId = newOwnerId;
 }
 
 
@@ -910,29 +1022,6 @@ void RpgBullet::setOwner(const RpgGameData::BulletBaseData::Owner &newOwner)
 
 
 /**
- * @brief RpgBullet::ownerEntity
- * @return
- */
-
-IsometricEntity *RpgBullet::ownerEntity() const
-{
-	return m_ownerEntity;
-}
-
-
-/**
- * @brief RpgBullet::setOwnerEntity
- * @param newOwnerEntity
- */
-
-void RpgBullet::setOwnerEntity(IsometricEntity *newOwnerEntity)
-{
-	m_ownerEntity = newOwnerEntity;
-}
-
-
-
-/**
  * @brief RpgWeaponHand::RpgWeaponHand
  * @param parent
  */
@@ -940,9 +1029,9 @@ void RpgBullet::setOwnerEntity(IsometricEntity *newOwnerEntity)
 RpgWeaponHand::RpgWeaponHand(QObject *parent)
 	: RpgWeapon(RpgGameData::Weapon::WeaponHand, parent)
 {
-		m_bulletCount = -1;
-		m_canHit = true;
-		m_icon = QStringLiteral("qrc:/internal/medal/Icon.3_31.png");
+	m_bulletCount = -1;
+	m_canHit = true;
+	m_icon = QStringLiteral("qrc:/internal/medal/Icon.3_31.png");
 }
 
 

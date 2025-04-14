@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "actionrpggame.h"
 #include "rpgarrow.h"
 #include "rpgcontrolgroupcontainer.h"
 #include "rpgcontrolgroupdoor.h"
@@ -61,6 +62,7 @@
 #endif
 
 
+
 /// Static hash
 
 QHash<QString, RpgGameDefinition> RpgGame::m_terrains;
@@ -86,12 +88,34 @@ const QHash<QString, RpgGameData::EnemyBaseData::EnemyType> RpgEnemyIface::m_typ
 
 
 /**
+ * @brief The RpgGamePrivate class
+ */
+
+class RpgGamePrivate
+{
+private:
+	RpgGamePrivate(RpgGame *game) :
+		d(game)
+	{}
+
+	RpgGame *const d;
+
+	QPointer<ActionRpgGame> m_action;
+
+	friend class RpgGame;
+
+};
+
+
+
+/**
  * @brief RpgGame::RpgGame
  * @param parent
  */
 
 RpgGame::RpgGame(QQuickItem *parent)
 	: TiledGame(parent)
+	, q(new RpgGamePrivate(this))
 {
 	loadMetricDefinition();
 }
@@ -106,6 +130,8 @@ RpgGame::~RpgGame()
 	m_controlGroups.clear();
 	m_enemyDataList.clear();
 	m_players.clear();
+	delete q;
+	q = nullptr;
 }
 
 
@@ -473,8 +499,8 @@ bool RpgGame::playerTryUseContainer(RpgPlayer *player, RpgContainer *container)
 		return false;
 	}
 
-	if (m_funcPlayerUseContainer)
-		return m_funcPlayerUseContainer(player, container);
+	if (ActionRpgGame *a = actionRpgGame())
+		return a->onPlayerUseContainer(player, container);
 	else
 		return false;
 }
@@ -766,8 +792,10 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
 
 	}
 
-	if (bullet)
+	if (bullet) {
 		bullet->initialize();
+		bullet->setStage(RpgGameData::LifeCycle::StageCreate);
+	}
 
 	return bullet;
 }
@@ -785,7 +813,18 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
 RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId)
 {
 	Q_ASSERT(weapon);
-	return createBullet(weapon->weaponType(), scene, id, ownerId);
+	RpgBullet *b = createBullet(weapon->weaponType(), scene, id, ownerId);
+
+	if (b && weapon->parentObject()) {
+		const auto &o = weapon->parentObject()->objectId();
+		b->setOwnerId(RpgGameData::BaseData(
+						  o.ownerId,
+						  o.sceneId,
+						  o.id
+						  ));
+	}
+
+	return b;
 }
 
 
@@ -1140,10 +1179,10 @@ bool RpgGame::transportDoor(TiledObject *object, TiledTransport *transport)
 
 void RpgGame::timeSteppedEvent()
 {
-	if (m_funcTimeStep)
-		m_funcTimeStep();
-
 	TiledGame::timeSteppedEvent();
+
+	if (ActionRpgGame *a = actionRpgGame())
+		a->onTimeStepped();
 
 	updateScatterEnemies();
 	updateScatterPlayers();
@@ -1425,6 +1464,161 @@ EnemyMetric RpgGame::getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyB
 
 
 /**
+ * @brief RpgGame::actionRpgGame
+ * @return
+ */
+
+ActionRpgGame *RpgGame::actionRpgGame() const
+{
+	Q_ASSERT(q);
+
+	return q->m_action;
+}
+
+
+
+/**
+ * @brief RpgGame::setActionRpgGame
+ * @param game
+ */
+
+void RpgGame::setActionRpgGame(ActionRpgGame *game)
+{
+	Q_ASSERT(q);
+
+	q->m_action = game;
+}
+
+
+/**
+ * @brief RpgGame::playerShot
+ * @param player
+ * @param weapon
+ * @param angle
+ * @return
+ */
+
+bool RpgGame::playerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle)
+{
+	Q_ASSERT(q);
+	if (q->m_action)
+		return q->m_action->onPlayerShot(player, weapon, angle);
+	else
+		return false;
+}
+
+
+
+/**
+ * @brief RpgGame::playerHit
+ * @param player
+ * @param enemy
+ * @param weapon
+ * @return
+ */
+
+bool RpgGame::playerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon)
+{
+	Q_ASSERT(q);
+	if (q->m_action)
+		return q->m_action->onPlayerHit(player, enemy, weapon);
+	else
+		return false;
+}
+
+
+/**
+ * @brief RpgGame::playerAttackEnemy
+ * @param player
+ * @param enemy
+ * @param weaponType
+ * @return
+ */
+
+bool RpgGame::playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType)
+{
+	Q_ASSERT(q);
+	if (q->m_action)
+		return q->m_action->onPlayerAttackEnemy(player, enemy, weaponType);
+	else
+		return false;
+}
+
+
+/**
+ * @brief RpgGame::enemyHit
+ * @param enemy
+ * @param player
+ * @param weapon
+ * @return
+ */
+
+bool RpgGame::enemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon)
+{
+	Q_ASSERT(q);
+	if (q->m_action)
+		return q->m_action->onEnemyHit(enemy, player, weapon);
+	else
+		return false;
+}
+
+
+
+/**
+ * @brief RpgGame::enemyShot
+ * @param enemy
+ * @param weapon
+ * @param angle
+ * @return
+ */
+
+bool RpgGame::enemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle)
+{
+	Q_ASSERT(q);
+	if (q->m_action)
+		return q->m_action->onEnemyShot(enemy, weapon, angle);
+	else
+		return false;
+}
+
+
+/**
+ * @brief RpgGame::enemyAttackPlayer
+ * @param enemy
+ * @param player
+ * @param weaponType
+ * @return
+ */
+
+bool RpgGame::enemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
+{
+	Q_ASSERT(q);
+	if (q->m_action)
+		return q->m_action->onEnemyAttackPlayer(enemy, player, weaponType);
+	else
+		return false;
+}
+
+
+/**
+ * @brief RpgGame::bulletImpact
+ * @param bullet
+ * @param other
+ * @return
+ */
+
+bool RpgGame::bulletImpact(RpgBullet *bullet, TiledObjectBody *other)
+{
+	Q_ASSERT(q);
+	if (q->m_action)
+		return q->m_action->onBulletImpact(bullet, other);
+	else
+		return false;
+}
+
+
+
+/**
  * @brief RpgGame::createPlayer
  * @param scene
  * @param config
@@ -1468,8 +1662,8 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
 
 void RpgGame::worldStep(TiledObjectBody *body)
 {
-	if (m_funcBodyStep)
-		m_funcBodyStep(body);
+	if (ActionRpgGame *a = actionRpgGame(); a && a->onBodyStep(body))
+		return;
 	else
 		TiledGame::worldStep(body);
 }
@@ -2059,105 +2253,6 @@ QVector<RpgGameData::PickableBaseData::PickableType> RpgGame::getPickablesFromPr
 	return pickableList;
 }
 
-FuncEnemyShot RpgGame::funcEnemyShot() const
-{
-	return m_funcEnemyShot;
-}
-
-void RpgGame::setFuncEnemyShot(const FuncEnemyShot &newFuncEnemyShot)
-{
-	m_funcEnemyShot = newFuncEnemyShot;
-}
-
-FuncEnemyHit RpgGame::funcEnemyHit() const
-{
-	return m_funcEnemyHit;
-}
-
-void RpgGame::setFuncEnemyHit(const FuncEnemyHit &newFuncEnemyHit)
-{
-	m_funcEnemyHit = newFuncEnemyHit;
-}
-
-
-
-/**
- * @brief RpgGame::funcPlayerShot
- * @return
- */
-
-FuncPlayerShot RpgGame::funcPlayerShot() const
-{
-	return m_funcPlayerShot;
-}
-
-void RpgGame::setFuncPlayerShot(const FuncPlayerShot &newFuncPlayerShot)
-{
-	m_funcPlayerShot = newFuncPlayerShot;
-}
-
-FuncPlayerHit RpgGame::funcPlayerHit() const
-{
-	return m_funcPlayerHit;
-}
-
-void RpgGame::setFuncPlayerHit(const FuncPlayerHit &newFuncPlayerHit)
-{
-	m_funcPlayerHit = newFuncPlayerHit;
-}
-
-
-
-/**
- * @brief RpgGame::funcTimeStep
- * @return
- */
-
-FuncTimeStep RpgGame::funcTimeStep() const
-{
-	return m_funcTimeStep;
-}
-
-void RpgGame::setFuncTimeStep(const FuncTimeStep &newFuncTimeStep)
-{
-	m_funcTimeStep = newFuncTimeStep;
-}
-
-
-
-
-/**
- * @brief RpgGame::funcBodyStep
- * @return
- */
-
-FuncBodyStep RpgGame::funcBodyStep() const
-{
-	return m_funcBodyStep;
-}
-
-void RpgGame::setFuncBodyStep(const FuncBodyStep &newFuncBodyStep)
-{
-	m_funcBodyStep = newFuncBodyStep;
-}
-
-
-/**
- * @brief RpgGame::funcEnemyAttackPlayer
- * @return
- */
-
-FuncEnemyAttackPlayer RpgGame::funcEnemyAttackPlayer() const
-{
-	return m_funcEnemyAttackPlayer;
-}
-
-void RpgGame::setFuncEnemyAttackPlayer(const FuncEnemyAttackPlayer &newFuncEnemyAttackPlayer)
-{
-	m_funcEnemyAttackPlayer = newFuncEnemyAttackPlayer;
-}
-
-
 
 
 /**
@@ -2189,55 +2284,6 @@ QVector<RpgGame::EnemyData>::const_iterator RpgGame::enemyFind(IsometricEnemy *e
 						[enemy](const EnemyData &e)	{
 		return e.enemy == enemy; }
 	);
-}
-
-FuncPlayerUseCast RpgGame::funcPlayerCastTimeout() const
-{
-	return m_funcPlayerCastTimeout;
-}
-
-void RpgGame::setFuncPlayerCastTimeout(const FuncPlayerUseCast &newFuncPlayerCastTimeout)
-{
-	m_funcPlayerCastTimeout = newFuncPlayerCastTimeout;
-}
-
-void RpgGame::onPlayerCastTimeout(RpgPlayer *player) const
-{
-	if (m_funcPlayerCastTimeout)
-		m_funcPlayerCastTimeout(player);
-}
-
-
-/**
- * @brief RpgGame::funcPlayerFinishCast
- * @return
- */
-
-FuncPlayerUseCast RpgGame::funcPlayerFinishCast() const
-{
-	return m_funcPlayerFinishCast;
-}
-
-void RpgGame::setFuncPlayerFinishCast(const FuncPlayerUseCast &newFuncPlayerFinishCast)
-{
-	m_funcPlayerFinishCast = newFuncPlayerFinishCast;
-}
-
-
-
-/**
- * @brief RpgGame::funcPlayerUseCast
- * @return
- */
-
-FuncPlayerUseCast RpgGame::funcPlayerUseCast() const
-{
-	return m_funcPlayerUseCast;
-}
-
-void RpgGame::setFuncPlayerUseCast(const FuncPlayerUseCast &newFuncPlayerUseMana)
-{
-	m_funcPlayerUseCast = newFuncPlayerUseMana;
 }
 
 
@@ -2437,22 +2483,6 @@ void RpgGame::reloadWorld()
 
 
 
-/**
- * @brief RpgGame::funcPlayerUseContainer
- * @return
- */
-
-FuncPlayerUseContainer RpgGame::funcPlayerUseContainer() const
-{
-	return m_funcPlayerUseContainer;
-}
-
-void RpgGame::setFuncPlayerUseContainer(const FuncPlayerUseContainer &newFuncPlayerUseContainer)
-{
-	m_funcPlayerUseContainer = newFuncPlayerUseContainer;
-}
-
-
 
 
 /**
@@ -2493,39 +2523,6 @@ void RpgGame::setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers)
 	emit scatterSeriesPlayersChanged();
 }
 
-
-
-/**
- * @brief RpgGame::funcPlayerAttackEnemy
- * @return
- */
-
-FuncPlayerAttackEnemy RpgGame::funcPlayerAttackEnemy() const
-{
-	return m_funcPlayerAttackEnemy;
-}
-
-void RpgGame::setFuncPlayerAttackEnemy(const FuncPlayerAttackEnemy &newFuncPlayerAttackEnemy)
-{
-	m_funcPlayerAttackEnemy = newFuncPlayerAttackEnemy;
-}
-
-
-
-/**
- * @brief RpgGame::funcPlayerPick
- * @return
- */
-
-FuncPlayerPick RpgGame::funcPlayerPick() const
-{
-	return m_funcPlayerPick;
-}
-
-void RpgGame::setFuncPlayerPick(const FuncPlayerPick &newFuncPlayerPick)
-{
-	m_funcPlayerPick = newFuncPlayerPick;
-}
 
 
 

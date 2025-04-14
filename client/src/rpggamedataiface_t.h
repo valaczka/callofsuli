@@ -134,7 +134,6 @@ inline QVector2D RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity
 
 	const b2Vec2 &vel = entity->body().GetLinearVelocity();
 	if (snapshot.s1.st == idle && vel.x == 0. && vel.y == 0. && dist < speed / 180.) {
-		LOG_CINFO("game") << "STAY";
 		return currentSpeed;
 	}
 

@@ -128,19 +128,23 @@ protected:
 
 	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
-	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
-	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
-	bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container);
-	bool onPlayerUseCast(RpgPlayer *player);
-	bool onPlayerCastTimeout(RpgPlayer *player);
-	bool onPlayerFinishCast(RpgPlayer *player);
-	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
-	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
-	bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
-	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
-	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
-	void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container, int xp);
-	void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container);
+	virtual void onTimeStepped();
+	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
+	virtual bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
+	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
+	virtual bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container);
+	virtual bool onPlayerUseCast(RpgPlayer *player);
+	virtual bool onPlayerCastTimeout(RpgPlayer *player);
+	virtual bool onPlayerFinishCast(RpgPlayer *player);
+	virtual bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
+	virtual bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
+	virtual bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
+	virtual bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
+	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
+	virtual bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other);
+	virtual void onBulletDelete(IsometricBullet *bullet);
+	virtual void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container, int xp);
+	virtual void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container);
 
 private:
 	void rpgGameActivated_();
@@ -178,6 +182,7 @@ protected:
 	PlayerResurrect m_playerResurrect;
 
 	friend class RpgQuestion;
+	friend class RpgGame;
 };
 
 #endif // ACTIONRPGGAME_H

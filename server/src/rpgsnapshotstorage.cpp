@@ -80,6 +80,44 @@ void RpgSnapshotStorage::enemyAdd(const RpgGameData::EnemyBaseData &base, const 
 
 
 /**
+ * @brief RpgSnapshotStorage::bulletAdd
+ * @param base
+ * @param data
+ */
+
+bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, const RpgGameData::Bullet &data)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(m_lastBulletId.begin(), m_lastBulletId.end(),
+						   [&base](const RpgGameData::BaseData &d){
+		return d.o == base.o && d.s == base.s;
+	});
+
+	if (it != m_lastBulletId.end() && it->id >= base.id) {
+		///LOG_CDEBUG("engine") << "BULLET ALREADY EXISTS -> SKIP" << base.o << base.s << base.id;
+		return false;
+	}
+
+	RpgGameData::SnapshotData<RpgGameData::Bullet, RpgGameData::BulletBaseData> snapdata;
+
+	snapdata.data = base;
+	snapdata.list.insert_or_assign(data.f, data);
+
+	m_bullets.push_back(snapdata);
+
+	if (it != m_lastBulletId.end()) {
+		it->id = base.id;
+	} else {
+		m_lastBulletId.emplace_back(base.o, base.s, base.id);
+	}
+
+	return true;
+}
+
+
+
+/**
  * @brief RpgSnapshotStorage::registerSnapshot
  * @param cbor
  * @return
@@ -108,6 +146,42 @@ bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMa
 
 
 
+/**
+ * @brief RpgSnapshotStorage::render
+ * @param tick
+ */
+
+void RpgSnapshotStorage::render(const qint64 &tick)
+{
+	QMutexLocker locker(&m_mutex);
+
+
+	// Remove outdated bullets
+
+	for (auto it = m_bullets.begin(); it != m_bullets.end(); ) {
+		auto i = findState(it->list, RpgGameData::LifeCycle::StageDead);
+
+		if (i != it->list.end()) {
+			if (tick - i->second.f > 5000) {
+
+				LOG_CINFO("engine") << "ERASE BULLET" << it->data.o << it->data.id;
+
+				it = m_bullets.erase(it);
+				continue;
+			}
+
+			/*for (++i; i != it->list.end(); ++i) {
+				i->second.st = RpgGameData::LifeCycle::StageDead;
+			}*/
+		}
+
+		++it;
+	}
+
+}
+
+
+
 
 /**
  * @brief RpgSnapshotStorage::actionPlayer
@@ -120,8 +194,8 @@ RpgGameData::Player RpgSnapshotStorage::actionPlayer(RpgGameData::PlayerBaseData
 {
 	RpgGameData::Player ret = snap;
 
-	if (snap.st == RpgGameData::Player::PlayerHit) {
-		LOG_CDEBUG("engine") << "+++ HIT" << snap.f << snap.arm.cw;
+	if (snap.st == RpgGameData::Player::PlayerHit || snap.st == RpgGameData::Player::PlayerShot) {
+		LOG_CDEBUG("engine") << "+++ HIT/SHOT" << snap.f << snap.arm.cw;
 
 		if (auto it = ret.arm.find(ret.arm.cw); it == ret.arm.wl.end()) {
 			LOG_CERROR("engine") << "Missing weapon" << ret.f << ret.arm.cw;
@@ -155,6 +229,44 @@ RpgGameData::Player RpgSnapshotStorage::actionPlayer(RpgGameData::PlayerBaseData
 				for (auto ii = esnapIt; ii != it->list.end(); ++ii) {
 					ii->second.hp = ptr->hp;
 				}
+			}
+		}
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief RpgSnapshotStorage::actionBullet
+ * @param pdata
+ * @param snap
+ * @return
+ */
+
+RpgGameData::Bullet RpgSnapshotStorage::actionBullet(RpgGameData::Bullet &snap,
+													 RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData>::iterator snapIterator,
+													 std::map<qint64, RpgGameData::Bullet>::iterator nextIterator)
+{
+	RpgGameData::Bullet ret = snap;
+
+	if (snap.st == RpgGameData::LifeCycle::StageDestroy)
+		snap.st = RpgGameData::LifeCycle::StageDead;
+
+	if (snapIterator != m_bullets.end()) {
+		if (nextIterator != snapIterator->list.begin()) {
+			nextIterator = std::prev(nextIterator);
+		}
+
+		if (nextIterator != snapIterator->list.end()) {
+			if (nextIterator->second.st == RpgGameData::LifeCycle::StageDead ||
+					nextIterator->second.st == RpgGameData::LifeCycle::StageDestroy) {
+				ret.st = RpgGameData::LifeCycle::StageDead;
+				ret.f = nextIterator->second.f;
+
+				nextIterator = std::next(nextIterator);
+				snapIterator->list.erase(nextIterator, snapIterator->list.end());
 			}
 		}
 	}
@@ -222,6 +334,54 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 		}
 	}
 
+	if (const auto &it = cbor.find(QStringLiteral("bb")); it != cbor.cend()) {
+		const QCborArray list = it->toArray();
+
+		for (const QCborValue &v : list) {
+			const QCborMap m = v.toMap();
+
+			RpgGameData::BulletBaseData bdata;
+
+			bdata.fromCbor(m.value(QStringLiteral("bd")));
+
+			if (bdata.o != player->o) {
+				LOG_CWARNING("engine") << "Invalid bullet" << m;
+				continue;
+			}
+
+			auto it = find(bdata, m_bullets);
+
+			if (it == m_bullets.end()) {
+				///LOG_CWARNING("engine") << "Invalid bullet data" << bdata.o << bdata.s << bdata.id;
+				RpgGameData::Bullet b;
+				b.f = 0;
+
+				if (!bulletAdd(bdata, b)) {
+					continue;
+				}
+
+				it = std::prev(m_bullets.end());
+			}
+
+
+			const QCborArray array = m.value(QStringLiteral("b")).toArray();
+
+			for (const QCborValue &pv : array) {
+				std::map<qint64, RpgGameData::Bullet>::iterator snapIt;
+				std::optional<RpgGameData::Bullet> snap = addToPreviousSnap(*it, pv, &snapIt,
+																			&RpgGameData::CurrentSnapshot::removeBulletProtectedFields);
+
+				if (!snap) {
+					LOG_CWARNING("engine") << "---" << pv;
+					continue;
+				}
+
+				RpgGameData::Bullet bSnap = actionBullet(snap.value(), it, snapIt);
+				assignLastSnap(bSnap, *it);
+			}
+		}
+	}
+
 	return success;
 }
 
@@ -281,4 +441,6 @@ bool RpgSnapshotStorage::registerEnemies(const QCborMap &cbor)
 
 	return success;
 }
+
+
 

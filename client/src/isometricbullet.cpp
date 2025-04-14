@@ -112,7 +112,6 @@ void IsometricBullet::worldStep()
 
 	if (distance >= m_maxDistance) {
 		overshootEvent();
-		doAutoDelete();
 		return;
 	}
 }
@@ -156,13 +155,12 @@ void IsometricBullet::setMaxDistance(qreal newMaxDistance)
  * @brief IsometricBullet::doAutoDelete
  */
 
-void IsometricBullet::doAutoDelete()
+void IsometricBullet::disableBullet()
 {
 	if (m_visualItem)
 		m_visualItem->setVisible(false);
 	stop();
 	setBodyEnabled(false);
-	emit autoDeleteRequest(this);
 }
 
 
@@ -182,14 +180,12 @@ void IsometricBullet::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
 		return;
 	}
 
-
 	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 
 	if (!base)
 		return;
 
-
-	impactEvent(base);
+	impactEvent(base, other);
 }
 
 

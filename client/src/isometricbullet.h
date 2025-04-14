@@ -62,20 +62,18 @@ public:
 
 	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
 
+	void disableBullet();
+
 signals:
 	void impactedChanged();
 	void maxDistanceChanged();
-	void autoDeleteRequest(IsometricBullet *bullet);
 
 protected:
 	virtual void load() = 0;
-	virtual void impactEvent(TiledObjectBody *base) = 0;
-	virtual void groundEvent(TiledObjectBody *base) { Q_UNUSED(base); }
+	virtual void impactEvent(TiledObjectBody *base, b2::ShapeRef shape) = 0;
 	virtual void overshootEvent() {}
 
 	virtual void synchronize() override;
-
-	void doAutoDelete();
 
 protected:
 	QVector2D m_startPoint;

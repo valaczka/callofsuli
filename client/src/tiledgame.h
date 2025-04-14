@@ -330,6 +330,7 @@ protected:
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	void synchronize();
 
 	void changeScene(TiledObjectBody *object, TiledScene *to, const QPointF &toPoint);
 

@@ -45,15 +45,20 @@ public:
 
 	void playerAdd(const RpgGameData::PlayerBaseData &base, const RpgGameData::Player &data);
 	void enemyAdd(const RpgGameData::EnemyBaseData &base, const RpgGameData::Enemy &data);
+	bool bulletAdd(const RpgGameData::BulletBaseData &base, const RpgGameData::Bullet &data);
 
 	bool registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor);
+
+	void render(const qint64 &tick);
 
 private:
 	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
 	bool registerEnemies(const QCborMap &cbor);
 
-
 	RpgGameData::Player actionPlayer(RpgGameData::PlayerBaseData &pdata, RpgGameData::Player &snap);
+	RpgGameData::Bullet actionBullet(RpgGameData::Bullet &snap,
+									 RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData>::iterator snapIterator,
+									 std::map<qint64, RpgGameData::Bullet>::iterator nextIterator);
 
 
 	template <typename T, typename T2,
@@ -75,6 +80,14 @@ private:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static RpgGameData::SnapshotList<T, T2>::const_iterator constFind(const RpgGameData::BaseData &key, RpgGameData::SnapshotList<T, T2> &list);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type >
+	static std::map<qint64, T>::iterator findState(std::map<qint64, T> &list, const T2 &state);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type >
+	static std::map<qint64, T>::const_iterator findState(const std::map<qint64, T> &list, const T2 &state);
 
 	template <typename T2, typename = std::enable_if<std::is_base_of< RpgGameData::BaseData, T2>::value>::type>
 	static bool checkBaseData(const T2 &key, const QCborMap &cbor, const QString &baseKey);
@@ -114,7 +127,46 @@ private:
 	void assignLastSnap(const T &src, RpgGameData::SnapshotData<T, T2> &dest);
 
 	RpgEngine *m_engine = nullptr;
+
+	std::vector<RpgGameData::BaseData> m_lastBulletId;
 };
+
+
+
+/**
+ * @brief RpgSnapshotStorage::findState
+ * @param list
+ * @param state
+ * @return
+ */
+
+template<typename T, typename T2, typename T3>
+inline std::map<qint64, T>::const_iterator RpgSnapshotStorage::findState(const std::map<qint64, T> &list,
+																   const T2 &state)
+{
+	return std::find_if(list.cbegin(), list.cend(),
+						  [&state](const auto &ptr){
+		return (ptr.second.st == state);
+	});
+}
+
+
+/**
+ * @brief RpgSnapshotStorage::findState
+ * @param list
+ * @param state
+ * @return
+ */
+
+template<typename T, typename T2, typename T3>
+inline std::map<qint64, T>::iterator RpgSnapshotStorage::findState(std::map<qint64, T> &list,
+																   const T2 &state)
+{
+	return std::find_if(list.begin(), list.end(),
+						  [&state](const auto &ptr){
+		return (ptr.second.st == state);
+	});
+}
 
 
 

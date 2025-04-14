@@ -239,14 +239,12 @@ void RpgEnemy::attackPlayer(RpgPlayer *player, RpgWeapon *weapon)
 	if (weapon->canShot()) {
 		LOG_CTRACE("game") << "Enemy shot player:" << this << player << weapon;
 
-		if (auto fn = g->funcEnemyShot())
-			fn(this, weapon, currentAngle());
+		g->enemyShot(this, weapon, currentAngle());
 
 	} else if (weapon->canHit()) {
 		LOG_CTRACE("game") << "Enemy hit player:" << this << player << weapon;
 
-		if (auto fn = g->funcEnemyHit())
-			fn(this, player, weapon);
+		g->enemyHit(this, player, weapon);
 	}
 }
 

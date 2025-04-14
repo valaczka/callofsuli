@@ -516,6 +516,41 @@ public:
 
 namespace RpgGameData {
 
+
+
+/**
+ * @brief The LifeCycle class
+ */
+
+class LifeCycle
+{
+public:
+	enum Stage {
+		StageInvalid,
+		StageCreate,
+		StageLive,
+		StageDead,
+		StageDestroy
+	};
+
+	LifeCycle(const Stage &stage)
+		: m_stage(stage)
+	{}
+
+	LifeCycle()
+		: LifeCycle(StageInvalid)
+	{}
+
+	Stage stage() const { return m_stage; }
+	void setStage(const Stage &newStage) { m_stage = newStage; }
+
+protected:
+	Stage m_stage = StageInvalid;
+
+};
+
+
+
 class CharacterSelect : public QSerializer
 {
 	Q_GADGET
@@ -1251,7 +1286,8 @@ public:
 
 
 	bool isEqual(const BulletBaseData &other) const {
-		return BaseData::isEqual(other) && other.t == t;
+		return BaseData::isEqual(other) && other.t == t && other.own == own &&
+				other.tar == tar && other.ownId == ownId && other.pth == pth;
 	}
 
 	EQUAL_OPERATOR(BulletBaseData)
@@ -1262,6 +1298,7 @@ public:
 	QS_FIELD(Owner, own)				// owner
 	QS_FIELD(Targets, tar)				// targets
 	QS_OBJECT(BaseData, ownId)			// ownerId
+	QS_COLLECTION(QList, float, pth)	// path (x1, y1, x2, y2, ...)
 };
 
 
@@ -1278,16 +1315,12 @@ class Bullet : public Body
 	Q_GADGET
 
 public:
-	Bullet(const int &_sc, const float &_dst)
+	Bullet(const int &_sc)
 		: Body()
-		, dst(_dst)
+		, st(LifeCycle::StageInvalid)
 	{
 		sc = _sc;
 	}
-
-	Bullet(const int &_sc)
-		: Bullet(_sc, 0)
-	{ }
 
 	Bullet()
 		: Bullet(-1)
@@ -1295,17 +1328,16 @@ public:
 
 
 	bool isEqual(const Bullet &other) const {
-		return Body::isEqual(other) && other.p == p && other.a == a && other.dst == dst;
+		return Body::isEqual(other) && other.p == p && other.st == st;
 	}
 
 	EQUAL_OPERATOR(Bullet)
 
 	QS_SERIALIZABLE
 
-	QS_COLLECTION(QList, float, p)		// position
-	QS_FIELD(float, a)					// angle
-	QS_FIELD(float, dst)				// max distance
-
+	QS_FIELD(float, p)					// progress on path
+	QS_FIELD(LifeCycle::Stage, st)		// stage
+	QS_OBJECT(BaseData, tg)				// impacted target id
 
 };
 
@@ -1353,10 +1385,12 @@ using CurrentSnapshotList = std::vector<std::pair<T2, std::map<qint64, T> > >;
 struct FullSnapshot {
 	Snapshot<PlayerBaseData, Player> players;
 	Snapshot<EnemyBaseData, Enemy> enemies;
+	Snapshot<BulletBaseData, Bullet> bullets;
 
 	void clear() {
 		players.clear();
 		enemies.clear();
+		bullets.clear();
 	}
 
 	template <typename T2, typename T,
@@ -1371,6 +1405,9 @@ struct FullSnapshot {
 	std::optional<SnapshotInterpolation<Enemy> > getEnemy(const EnemyBaseData &data) const {
 		return getSnapshot(data, enemies);
 	}
+	std::optional<SnapshotInterpolation<Bullet> > getBullet(const BulletBaseData &data) const {
+		return getSnapshot(data, bullets);
+	}
 };
 
 
@@ -1383,10 +1420,12 @@ struct FullSnapshot {
 struct CurrentSnapshot {
 	CurrentSnapshotList<PlayerBaseData, Player> players;
 	CurrentSnapshotList<EnemyBaseData, Enemy> enemies;
+	CurrentSnapshotList<BulletBaseData, Bullet> bullets;
 
 	void clear() {
 		players.clear();
 		enemies.clear();
+		bullets.clear();
 	}
 
 
@@ -1405,6 +1444,7 @@ struct CurrentSnapshot {
 	static void removeArmoredEntityProtectedFields(QCborMap *map);
 	static void removeEnemyProtectedFields(QCborMap *map);
 	static void removePlayerProtectedFields(QCborMap *map);
+	static void removeBulletProtectedFields(QCborMap *map);
 };
 
 
@@ -1446,6 +1486,7 @@ public:
 
 	SnapshotList<Player, PlayerBaseData> players() { QMutexLocker locker(&m_mutex); return m_players; }
 	SnapshotList<Enemy, EnemyBaseData> enemies() { QMutexLocker locker(&m_mutex); return m_enemies; }
+	SnapshotList<Bullet, BulletBaseData> bullets() { QMutexLocker locker(&m_mutex); return m_bullets; }
 
 
 	SnapshotInterpolation<Player> getSnapshot(const PlayerBaseData &id, const qint64 &tick) {
@@ -1501,6 +1542,7 @@ protected:
 
 	SnapshotList<Player, PlayerBaseData> m_players;
 	SnapshotList<Enemy, EnemyBaseData> m_enemies;
+	SnapshotList<Bullet, BulletBaseData> m_bullets;
 };
 
 

@@ -126,6 +126,13 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick)
 			ptr.lastOut = sip.s2.f;
 	}
 
+	for (auto &ptr : m_bullets) {
+		SnapshotInterpolation<RpgGameData::Bullet> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
+		s.bullets.emplace_back(ptr.data, sip);
+		if (sip.s2.f >= 0)
+			ptr.lastOut = sip.s2.f;
+	}
+
 	return s;
 }
 
@@ -146,6 +153,7 @@ CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 
 	s.players = convertToSnapshotList(m_players);
 	s.enemies = convertToSnapshotList(m_enemies);
+	s.bullets = convertToSnapshotList(m_bullets);
 
 	return s;
 }
@@ -171,6 +179,10 @@ void SnapshotStorage::zapSnapshots(const qint64 &tick)
 	for (auto &ptr : m_enemies) {
 		zapSnapshots(ptr.list, tick);
 	}
+
+	for (auto &ptr : m_bullets) {
+		zapSnapshots(ptr.list, tick);
+	}
 }
 
 
@@ -190,6 +202,9 @@ QCborMap CurrentSnapshot::toCbor() const
 
 	if (const QCborArray &a = toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e")); !a.isEmpty())
 		map.insert(QStringLiteral("ee"), a);
+
+	if (const QCborArray &a = toCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b")); !a.isEmpty())
+		map.insert(QStringLiteral("bb"), a);
 
 	return map;
 }
@@ -214,6 +229,11 @@ QCborMap CurrentSnapshot::toProtectedCbor() const
 												   &CurrentSnapshot::removeEnemyProtectedFields
 												   ); !a.isEmpty())
 		map.insert(QStringLiteral("ee"), a);
+
+	if (const QCborArray &a = toProtectedCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b"),
+												   &CurrentSnapshot::removeBulletProtectedFields
+												   ); !a.isEmpty())
+		map.insert(QStringLiteral("bb"), a);
 
 	return map;
 }
@@ -274,6 +294,17 @@ void CurrentSnapshot::removePlayerProtectedFields(QCborMap *map)
 {
 	Q_ASSERT(map);
 	removeArmoredEntityProtectedFields(map);
+}
+
+
+/**
+ * @brief CurrentSnapshot::removeBulletProtectedFields
+ * @param map
+ */
+
+void CurrentSnapshot::removeBulletProtectedFields(QCborMap *map)
+{
+	Q_ASSERT(map);
 }
 
 

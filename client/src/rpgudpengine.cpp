@@ -28,12 +28,6 @@
 #include "rpgudpengine.h"
 #include "qbuffer.h"
 
-#ifdef Q_OS_LINUX
-#include "desktopapplication.h"
-
-#include <utils_.h>
-#endif
-
 
 
 /**
@@ -245,6 +239,9 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 
 
 
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#include "desktopapplication.h"
+#endif
 
 
 /**
@@ -265,14 +262,14 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 	updateSnapshotEnemyList(enemyList);
 
 
-#ifdef Q_OS_LINUX
+
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
 	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
 		QCborMap map = data;
 		map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
 		a->writeToSocket(map.toCborValue());
 	}
 #endif
-
 }
 
 
@@ -293,51 +290,11 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 
 	QCborArray enemyList = data.value(QStringLiteral("ee")).toArray();
 	QCborArray playerList = data.value(QStringLiteral("pp")).toArray();
+	QCborArray bulletList = data.value(QStringLiteral("bb")).toArray();
 
 	updateSnapshotPlayerList(playerList);
 	updateSnapshotEnemyList(enemyList);
-
-/*
-#ifdef Q_OS_LINUX
-	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-
-		const auto ptr = m_snapshots.players();
-
-		static QHash<int, float> angles;
-		QCborArray list;
-		static RpgGameData::Player::PlayerState lastState = RpgGameData::Player::PlayerInvalid;
-
-		auto it = std::find_if(ptr.cbegin(), ptr.cend(),
-							   [this](const RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> &p){
-			return p.data.o != m_playerId;
-		});
-
-		if (it != ptr.cend()) {
-			QCborMap map;
-			map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
-
-			for (auto ii=it->list.cbegin(); ii != it->list.cend(); ++ii) {
-				if (angles.value(it->data.o, 0.) != ii->second.a || ii->second.st != lastState) {
-					QString str = QString("%1: %2 %3 %4")
-								  .arg(it->data.o)
-								  .arg(ii->second.f)
-								  .arg(ii->second.a, 0, 'g', 10)
-								  .arg(Utils::enumToQString(ii->second.st))
-								  ;
-					list.prepend(str);
-					if (list.size() > 80)
-						list.removeLast();
-
-					angles[it->data.o] = ii->second.a;
-					lastState = ii->second.st;
-				}
-			}
-
-			map.insert(QStringLiteral("pp"), list);
-			a->writeToSocket(map.toCborValue());
-		}
-	}
-#endif*/
+	updateSnapshotBulletList(bulletList);
 }
 
 
@@ -416,11 +373,6 @@ void RpgUdpEngine::updateSnapshotEnemyList(const QCborArray &list)
 
 		for (const QCborValue &v : e) {
 			enemy.fromCbor(v);
-
-			/*if (enemy.st == RpgGameData::Enemy::EnemyHit) {
-				LOG_CWARNING("game") << "GOT ENEMY HIT" << enemyData.s << enemyData.id << enemy.f;
-			}*/
-
 			m_snapshots.updateSnapshot(enemyData, enemy);
 		}
 	}
@@ -457,14 +409,53 @@ void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
 
 		for (const QCborValue &v : p) {
 			player.fromCbor(v);
-
-			/*if (player.st == RpgGameData::Player::PlayerHit) {
-				LOG_CWARNING("game") << "GOT" << QJsonDocument(player.toJson()).toJson().constData();
-			}*/
-
 			m_snapshots.updateSnapshot(playerData, player);
 		}
 	}
+}
+
+
+
+
+
+/**
+ * @brief RpgUdpEngine::updateSnapshotBulletList
+ * @param list
+ */
+
+void RpgUdpEngine::updateSnapshotBulletList(const QCborArray &list)
+{
+	QMutexLocker locker(&m_mutex);
+
+	std::vector<RpgGameData::BulletBaseData> existingBullets;
+
+	for (const QCborValue &v : list) {
+		const QCborMap &m = v.toMap();
+		const QCborValue &ed = m.value(QStringLiteral("bd"));
+		const QCborArray &e = m.value(QStringLiteral("b")).toArray();
+
+		RpgGameData::BulletBaseData bulletData;
+		bulletData.fromCbor(ed);
+
+		if (bulletData.s < 0 || bulletData.id < 0) {
+			LOG_CERROR("game") << "Invalid bullet id" << bulletData.o << bulletData.s << bulletData.id;
+			continue;
+		}
+
+		RpgGameData::Bullet bullet;
+
+		for (const QCborValue &v : e) {
+			bullet.fromCbor(v);
+			m_snapshots.updateSnapshot(bulletData, bullet);
+		}
+
+		existingBullets.push_back(bulletData);
+	}
+
+	// Remove missing bullets
+
+	m_snapshots.removeMissingSnapshots(existingBullets);
+
 }
 
 
@@ -610,6 +601,54 @@ void ClientStorage::updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 
 
 
+
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param bulletData
+ * @param bullet
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(m_bullets.begin(),
+						   m_bullets.end(),
+						   [&bulletData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(bulletData));
+	});
+
+	if (it == m_bullets.end()) {
+		LOG_CINFO("game") << "New bullet" << bulletData.o << bulletData.s << bulletData.id;
+		m_bullets.push_back({
+								.data = bulletData,
+								.list = {}
+							});
+		it = m_bullets.end()-1;
+	}
+
+	it->data = bulletData;
+
+	if (bullet.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << bullet.f << bullet.p;
+	else {
+		auto snapit = it->list.find(bullet.f);
+
+		if (snapit != it->list.end()) {
+			if (bullet == snapit->second) {
+				return;
+			} else {
+				LOG_CERROR("game") << "ALready bullet";
+			}
+		} else {
+			it->list.insert_or_assign(bullet.f, bullet);
+		}
+	}
+}
+
+
+
 /**
  * @brief ClientStorage::appendSnapshot
  * @param playerData
@@ -666,6 +705,46 @@ void ClientStorage::appendSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 
 
 
+/**
+ * @brief ClientStorage::appendSnapshot
+ * @param bulletData
+ * @param bullet
+ */
+
+void ClientStorage::appendSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(m_bullets.begin(),
+						   m_bullets.end(),
+						   [&bulletData](const auto &p) {
+		return (p.data == bulletData);
+	});
+
+	if (it == m_bullets.end()) {
+		RpgGameData::SnapshotData<RpgGameData::Bullet, RpgGameData::BulletBaseData> d;
+		d.data = bulletData;
+		d.list.insert_or_assign(bullet.f, bullet);
+		m_bullets.push_back(d);
+	} else {
+		insert(&(it->list), bullet);
+	}
+}
+
+
+
+/**
+ * @brief ClientStorage::removeMissingSnapshots
+ * @param bulletList
+ */
+
+void ClientStorage::removeMissingSnapshots(const std::vector<RpgGameData::BulletBaseData> &bulletList)
+{
+	removeMissing(m_bullets, bulletList);
+}
+
+
+
 
 /**
  * @brief ClientStorage::clear
@@ -677,6 +756,7 @@ void ClientStorage::clear()
 
 	m_players.clear();
 	m_enemies.clear();
+	m_bullets.clear();
 }
 
 

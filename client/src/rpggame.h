@@ -113,18 +113,8 @@ public:
 
 
 
-typedef std::function<void(TiledObjectBody *body)> FuncBodyStep;
-typedef std::function<void()> FuncTimeStep;
-typedef std::function<bool(RpgPlayer*, RpgPickableObject*)> FuncPlayerPick;
-typedef std::function<bool(RpgPlayer*, RpgContainer*)> FuncPlayerUseContainer;
-typedef std::function<bool(RpgPlayer*, RpgEnemy*, const RpgGameData::Weapon::WeaponType &)> FuncPlayerAttackEnemy;
-typedef std::function<bool(RpgPlayer*, RpgEnemy*, RpgWeapon*)> FuncPlayerHit;
-typedef std::function<bool(RpgPlayer*, RpgWeapon*, const qreal &)> FuncPlayerShot;
-typedef std::function<bool(RpgPlayer*)> FuncPlayerUseCast;
-typedef std::function<bool(RpgEnemy*, RpgPlayer *, const RpgGameData::Weapon::WeaponType &)> FuncEnemyAttackPlayer;
-typedef std::function<bool(RpgEnemy*, RpgPlayer*, RpgWeapon*)> FuncEnemyHit;
-typedef std::function<bool(RpgEnemy*, RpgWeapon*, const qreal &)> FuncEnemyShot;
-
+class ActionRpgGame;
+class RpgGamePrivate;
 
 
 /**
@@ -229,28 +219,6 @@ public:
 	int enemyCount() const;
 	void setEnemyCount(int newEnemyCount);
 
-	FuncPlayerPick funcPlayerPick() const;
-	void setFuncPlayerPick(const FuncPlayerPick &newFuncPlayerPick);
-
-	FuncPlayerAttackEnemy funcPlayerAttackEnemy() const;
-	void setFuncPlayerAttackEnemy(const FuncPlayerAttackEnemy &newFuncPlayerAttackEnemy);
-
-	FuncPlayerUseContainer funcPlayerUseContainer() const;
-	void setFuncPlayerUseContainer(const FuncPlayerUseContainer &newFuncPlayerUseContainer);
-
-	FuncPlayerUseCast funcPlayerUseCast() const;
-	void setFuncPlayerUseCast(const FuncPlayerUseCast &newFuncPlayerUseMana);
-
-	FuncPlayerUseCast funcPlayerFinishCast() const;
-	void setFuncPlayerFinishCast(const FuncPlayerUseCast &newFuncPlayerFinishCast);
-
-	FuncPlayerUseCast funcPlayerCastTimeout() const;
-	void setFuncPlayerCastTimeout(const FuncPlayerUseCast &newFuncPlayerCastTimeout);
-	void onPlayerCastTimeout(RpgPlayer *player) const;
-
-	FuncEnemyAttackPlayer funcEnemyAttackPlayer() const;
-	void setFuncEnemyAttackPlayer(const FuncEnemyAttackPlayer &newFuncEnemyAttackPlayer);
-
 	QScatterSeries *scatterSeriesPlayers() const;
 	void setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers);
 
@@ -274,23 +242,16 @@ public:
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
 	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QStringLiteral(""));
 
-	FuncBodyStep funcBodyStep() const;
-	void setFuncBodyStep(const FuncBodyStep &newFuncBodyStep);
+	ActionRpgGame *actionRpgGame() const;
+	void setActionRpgGame(ActionRpgGame *game);
 
-	FuncTimeStep funcTimeStep() const;
-	void setFuncTimeStep(const FuncTimeStep &newFuncTimeStep);
-
-	FuncPlayerHit funcPlayerHit() const;
-	void setFuncPlayerHit(const FuncPlayerHit &newFuncPlayerHit);
-
-	FuncPlayerShot funcPlayerShot() const;
-	void setFuncPlayerShot(const FuncPlayerShot &newFuncPlayerShot);
-
-	FuncEnemyHit funcEnemyHit() const;
-	void setFuncEnemyHit(const FuncEnemyHit &newFuncEnemyHit);
-
-	FuncEnemyShot funcEnemyShot() const;
-	void setFuncEnemyShot(const FuncEnemyShot &newFuncEnemyShot);
+	bool playerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
+	bool playerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
+	bool playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
+	bool enemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
+	bool enemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
+	bool enemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
+	bool bulletImpact(RpgBullet *bullet, TiledObjectBody *other);
 
 signals:
 	void minimapToggleRequest();
@@ -328,6 +289,8 @@ protected:
 								  TiledScene *scene, const int &id, const int &ownerId);
 
 	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId);
+
+
 
 	virtual void worldStep(TiledObjectBody *body) override;
 
@@ -420,6 +383,8 @@ private:
 	};
 
 
+	RpgGamePrivate *q = nullptr;
+
 	QVector<EnemyData>::iterator enemyFind(IsometricEnemy *enemy);
 	QVector<EnemyData>::const_iterator enemyFind(IsometricEnemy *enemy) const;
 
@@ -455,22 +420,6 @@ private:
 	QPointer<QScatterSeries> m_scatterSeriesEnemies;
 	QPointer<QScatterSeries> m_scatterSeriesPoints;
 
-
-	FuncBodyStep m_funcBodyStep;
-	FuncTimeStep m_funcTimeStep;
-
-	FuncPlayerPick m_funcPlayerPick;
-	FuncPlayerAttackEnemy m_funcPlayerAttackEnemy;
-	FuncPlayerUseContainer m_funcPlayerUseContainer;
-	FuncPlayerUseCast m_funcPlayerUseCast;
-	FuncPlayerUseCast m_funcPlayerCastTimeout;
-	FuncPlayerUseCast m_funcPlayerFinishCast;
-	FuncPlayerHit m_funcPlayerHit;
-	FuncPlayerShot m_funcPlayerShot;
-
-	FuncEnemyHit m_funcEnemyHit;
-	FuncEnemyShot m_funcEnemyShot;
-	FuncEnemyAttackPlayer m_funcEnemyAttackPlayer;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerCharacterConfig> m_characters;

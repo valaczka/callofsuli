@@ -96,25 +96,30 @@ private:
 	void updatePlayersModel(const QVariantList &list);
 	void syncEnemyList();
 	void syncPlayerList();
+	void syncBulletList();
 
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::PlayerBaseData &config, const RpgGameData::Player &playerData);
 
-	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
-	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
-	bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container);
-	bool onPlayerUseCast(RpgPlayer *player);
-	bool onPlayerCastTimeout(RpgPlayer *player);
-	bool onPlayerFinishCast(RpgPlayer *player);
-	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
-	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
+	void onTimeStepped() override;
+	bool onBodyStep(TiledObjectBody *body) override;
+	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable) override;
+	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType) override;
+	bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container) override;
+	bool onPlayerUseCast(RpgPlayer *player) override;
+	bool onPlayerCastTimeout(RpgPlayer *player) override;
+	bool onPlayerFinishCast(RpgPlayer *player) override;
+	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon) override;
+	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle) override;
 
-	bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
-	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
-	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
+	bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon) override;
+	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle) override;
+	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType) override;
+
+	bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other) override;
+	//void onBulletDelete(IsometricBullet *bullet) override;
 
 	void beforeWorldStep(const qint64 &lagMsec);
 	void afterWorldStep(const qint64 &lagMsec);
-	void worldStep(TiledObjectBody *body);
 
 	void onRpgGameActivated();
 

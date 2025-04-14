@@ -51,11 +51,17 @@ public:
 	void updateSnapshot(const RpgGameData::CharacterSelect &player);
 	void updateSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player);
 	void updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy);
+	void updateSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet);
 
 
 	// Outgoing snapshot
 	void appendSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player);
 	void appendSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy);
+	void appendSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet);
+
+
+	// Remove snapshot
+	void removeMissingSnapshots(const std::vector<RpgGameData::BulletBaseData> &bulletList);
 
 	void clear();
 
@@ -64,7 +70,38 @@ public:
 private:
 	template <typename T, typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type>
 	qint64 insert(std::map<qint64, T> *dst, const T &snap);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	void removeMissing(RpgGameData::SnapshotList<T, T2> &snapshot, const std::vector<T2> &list);
 };
+
+
+
+
+
+
+
+
+/**
+ * @brief ClientStorage::removeMissing
+ * @param snapshot
+ * @param list
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline void ClientStorage::removeMissing(RpgGameData::SnapshotList<T, T2> &snapshot, const std::vector<T2> &list)
+{
+	QMutexLocker locker(&m_mutex);
+
+	for (auto it = snapshot.cbegin(); it != snapshot.cend(); ) {
+		if (std::find(list.cbegin(), list.cend(), it->data) == list.cend())
+			it = snapshot.erase(it);
+		else
+			++it;
+	}
+}
 
 
 
@@ -152,6 +189,7 @@ private:
 
 	void updateSnapshotEnemyList(const QCborArray &list);
 	void updateSnapshotPlayerList(const QCborArray &list);
+	void updateSnapshotBulletList(const QCborArray &list);
 
 	friend class ActionRpgMultiplayerGame;
 };

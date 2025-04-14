@@ -53,8 +53,6 @@ private:
 
 	~TiledGamePrivate()
 	{
-		m_stepTimerRunning = false;
-
 		if (m_stepTimerId != Qt::TimerId::Invalid)
 			q->killTimer(m_stepTimerId);
 	}
@@ -131,13 +129,11 @@ private:
 	TiledGame *const q;
 
 	Qt::TimerId m_stepTimerId = Qt::TimerId::Invalid;
-	bool m_stepTimerRunning = false;
 	QElapsedTimer m_stepElapsedTimer;
 	qint64 m_stepLag = 0;
 
 	QLambdaThreadWorker m_stepTimerThread;
 	QRecursiveMutex m_stepMutex;
-	QMutex m_updateMutex;
 
 	std::vector<Scene> m_sceneList;
 	std::vector<std::unique_ptr<TiledObjectBody> > m_bodyList;
@@ -743,6 +739,10 @@ bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled
 
 
 
+
+
+
+
 /**
  * @brief TiledGame::loadObjectLayer
  * @param scene
@@ -793,11 +793,13 @@ void TiledGame::timerEvent(QTimerEvent */*event*/)
 }
 
 
+
+
 /**
- * @brief TiledGame::timeSteppedEvent
+ * @brief TiledGame::synchronize
  */
 
-void TiledGame::timeSteppedEvent()
+void TiledGame::synchronize()
 {
 	QMutexLocker locker(&d->m_stepMutex);
 
@@ -814,6 +816,17 @@ void TiledGame::timeSteppedEvent()
 		if (ptr.scene->m_debugDraw)
 			ptr.scene->m_debugDraw->update();
 	}
+}
+
+
+
+/**
+ * @brief TiledGame::timeSteppedEvent
+ */
+
+void TiledGame::timeSteppedEvent()
+{
+
 }
 
 
@@ -1072,6 +1085,8 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
 
 const std::vector<std::unique_ptr<TiledObjectBody> > &TiledGame::bodyList() const
 {
+	QMutexLocker locker(&d->m_stepMutex);
+
 	return d->m_bodyList;
 }
 
@@ -1083,6 +1098,8 @@ const std::vector<std::unique_ptr<TiledObjectBody> > &TiledGame::bodyList() cons
 
 std::vector<std::unique_ptr<TiledObjectBody> > &TiledGame::bodyList()
 {
+	QMutexLocker locker(&d->m_stepMutex);
+
 	return d->m_bodyList;
 }
 
@@ -1262,6 +1279,8 @@ void TiledGame::updateStepTimer()
 	if (d->m_stepLag < 1000/60)
 		return;
 
+	QMutexLocker locker(&d->m_stepMutex);
+
 	while (d->m_stepLag >= 1000/60) {
 		if (m_funcBeforeWorldStep)
 			m_funcBeforeWorldStep(d->m_stepLag);
@@ -1285,7 +1304,12 @@ void TiledGame::updateStepTimer()
 	else if (frame > 1)
 		LOG_CTRACE("scene") << "Render lag:" << frame << "frames";
 
+
 	timeSteppedEvent();
+
+	d->updateObjects();
+
+	synchronize();
 }
 
 
@@ -2158,13 +2182,9 @@ TiledObjectBody* TiledGamePrivate::findObject(const TiledObjectBody::ObjectId &i
 
 TiledObjectBody *TiledGamePrivate::addObject(std::unique_ptr<TiledObjectBody> &body)
 {
-	QMutexLocker locker(&m_updateMutex);
+	QMutexLocker locker(&m_stepMutex);
+
 	TiledObjectBody *ptr = m_addBodyList.emplace_back(std::move(body)).get();
-
-	locker.unlock();
-
-	if (m_stepTimerId == Qt::TimerId::Invalid)
-		updateObjects();
 
 	return ptr;
 }
@@ -2180,7 +2200,7 @@ TiledObjectBody *TiledGamePrivate::addObject(std::unique_ptr<TiledObjectBody> &b
 
 bool TiledGamePrivate::removeObject(TiledObjectBody *body)
 {
-	QMutexLocker locker(&m_updateMutex);
+	QMutexLocker locker(&m_stepMutex);
 
 	bool ret = m_bodyList.cend() != std::find_if(m_bodyList.cbegin(), m_bodyList.cend(), [body](const auto &b) { return b.get() == body; } );
 
@@ -2189,11 +2209,6 @@ bool TiledGamePrivate::removeObject(TiledObjectBody *body)
 
 	if (ret)
 		m_removeBodyList.push_back(body);
-
-	locker.unlock();
-
-	if (m_stepTimerId == Qt::TimerId::Invalid)
-		updateObjects();
 
 	return ret;
 }
@@ -2205,7 +2220,7 @@ bool TiledGamePrivate::removeObject(TiledObjectBody *body)
 
 void TiledGamePrivate::updateObjects()
 {
-	QMutexLocker locker(&m_updateMutex);
+	QMutexLocker locker(&m_stepMutex);
 
 	if (!m_addBodyList.empty()) {
 		for (auto &ptr : m_addBodyList)
@@ -2299,6 +2314,4 @@ void TiledGamePrivate::stepWorlds()
 		if (ptr)
 			q->worldStep(ptr.get());
 	}
-
-	updateObjects();
 }

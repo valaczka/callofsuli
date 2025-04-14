@@ -27,7 +27,6 @@
 #ifndef RPGARMORY_H
 #define RPGARMORY_H
 
-#include "isometricentity.h"
 #include "rpggamedataiface.h"
 #include "tiledweapon.h"
 #include "rpgconfig.h"
@@ -99,7 +98,9 @@ protected:
  * @brief The RpgBullet class
  */
 
-class RpgBullet : public IsometricBullet, public RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>
+class RpgBullet : public IsometricBullet,
+		public RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>,
+		public RpgGameData::LifeCycle
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -115,8 +116,8 @@ public:
 	virtual RpgGameData::BulletBaseData baseData() const override;
 	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricBullet::objectId(); }
 
-	IsometricEntity *ownerEntity() const;
-	void setOwnerEntity(IsometricEntity *newOwnerEntity);
+	void shot(const RpgGameData::BulletBaseData &baseData);
+	virtual void shot(const QPointF &from, const qreal &angle) override;
 
 	RpgGameData::BulletBaseData::Owner owner() const;
 	void setOwner(const RpgGameData::BulletBaseData::Owner &newOwner);
@@ -126,23 +127,37 @@ public:
 
 	RpgGameData::Weapon::WeaponType weaponType() const;
 
+	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Bullet> &snapshot) override;
+	virtual void updateFromSnapshot(const RpgGameData::Bullet &snap) override;
+	virtual void updateFromLastSnapshot(const RpgGameData::Bullet &snap) {
+		RpgGameDataInterface::updateFromLastSnapshot(snap, &m_lastSnapshot);
+	}
+
+	const RpgGameData::BaseData &ownerId() const;
+	void setOwnerId(const RpgGameData::BaseData &newOwnerId);
+
 signals:
 	void ownerChanged();
 	void targetsChanged();
 
 protected:
 	RpgGameData::Bullet serializeThis() const override;
-	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Bullet> &snapshot) override;
-	virtual void updateFromSnapshot(const RpgGameData::Bullet &snap) override;
-
-	virtual void impactEvent(TiledObjectBody *base) override;
+	virtual void impactEvent(TiledObjectBody *base, b2::ShapeRef shape) override;
+	virtual void overshootEvent() override;
 
 	RpgGame *rpgGame() const;
 
 	const RpgGameData::Weapon::WeaponType m_weaponType;
 	RpgGameData::BulletBaseData::Owner m_owner = RpgGameData::BulletBaseData::OwnerNone;
 	RpgGameData::BulletBaseData::Targets m_targets = RpgGameData::BulletBaseData::TargetNone;
-	QPointer<IsometricEntity> m_ownerEntity;
+	RpgGameData::BaseData m_impactedObject;
+	RpgGameData::BaseData m_ownerId;
+
+	QLineF m_path;
+
+	RpgGameData::Bullet m_lastSnapshot;
+
+	friend class ActionRpgMultiplayerGame;
 };
 
 

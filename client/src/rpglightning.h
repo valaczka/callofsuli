@@ -45,7 +45,7 @@ public:
 
 protected:
 	void load() override final;
-	virtual void impactEvent(TiledObjectBody *base) override final;
+	virtual void impactEvent(TiledObjectBody *base, b2::ShapeRef shape) override final;
 };
 
 

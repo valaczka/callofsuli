@@ -300,7 +300,8 @@ void RpgEngine::preparePlayers()
 		pdata.hp = 13;			// TODO: from m_config
 		pdata.mhp = 13;
 		pdata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, 85));
-		pdata.arm.cw = RpgGameData::Weapon::WeaponLongsword;
+		pdata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponShortbow, 125));
+		pdata.arm.cw = RpgGameData::Weapon::WeaponShortbow;
 
 		m_snapshots.playerAdd(*ptr, pdata);
 
@@ -707,6 +708,11 @@ void RpgEnginePrivate::updateState()
 		}
 
 		return;
+	}
+
+
+	if (q->m_config.gameState == RpgConfig::StatePlay) {
+		q->m_snapshots.render(q->currentTick());
 	}
 }
 

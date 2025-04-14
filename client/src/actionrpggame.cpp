@@ -815,6 +815,28 @@ void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData
 
 
 
+/**
+ * @brief ActionRpgGame::onTimeStepped
+ */
+
+void ActionRpgGame::onTimeStepped()
+{
+	for (auto &b : m_rpgGame->bodyList()) {
+		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b.get())) {
+			if (iface->stage() == RpgGameData::LifeCycle::StageDestroy ||
+					iface->stage() == RpgGameData::LifeCycle::StageDead) {
+				LOG_CINFO("game") << "****** DELETE" << iface;
+				ActionRpgGame::onBulletDelete(iface);
+			}
+		}
+	}
+}
+
+
+
+
+
+
 
 
 /**
@@ -1409,15 +1431,7 @@ bool ActionRpgGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *w
 	if (weapon->bulletCount() > 0)
 		weapon->setBulletCount(weapon->bulletCount()-1);
 
-	if (m_rpgGame->funcPlayerAttackEnemy())
-		m_rpgGame->m_funcPlayerAttackEnemy(player, enemy, weapon->weaponType());
-
-	/*if (enemy) {
-		if (m_bulletCount > 0)
-			setBulletCount(m_bulletCount-1);
-		m_parentObject->game()->enemyAttackPlayer(m_parentObject, target, m_weaponType);
-	}*/
-
+	m_rpgGame->playerAttackEnemy(player, enemy, weapon->weaponType());
 
 	if (weapon->pickedBulletCount() > 0)
 		weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
@@ -1448,15 +1462,15 @@ bool ActionRpgGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qre
 	if (!weapon->shot())
 		return false;
 
-	// GET ID
-	RpgBullet *bullet = m_rpgGame->createBullet(weapon, player->scene(), 0, 1);
+
+	RpgBullet *bullet = m_rpgGame->createBullet(weapon, player->scene(), player->nextObjectId(), player->baseData().o);
 
 	if (!bullet) {
 		LOG_CWARNING("game") << "Can't create bullet";
 		return false;
 	}
 
-	connect(bullet, &RpgBullet::autoDeleteRequest, m_rpgGame, &RpgGame::removeObject);
+	LOG_CDEBUG("game") << "BULLET CREATED" << bullet->baseData().o << bullet->baseData().s << bullet->baseData().id;
 
 	bullet->setOwner(RpgGameData::BulletBaseData::OwnerPlayer);
 	bullet->setTargets(RpgGameData::BulletBaseData::TargetEnemy | RpgGameData::BulletBaseData::TargetGround);
@@ -1498,8 +1512,7 @@ bool ActionRpgGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *we
 	if (weapon->bulletCount() > 0)
 		weapon->setBulletCount(weapon->bulletCount()-1);
 
-	if (m_rpgGame->funcEnemyAttackPlayer())
-		m_rpgGame->m_funcEnemyAttackPlayer(enemy, player, weapon->weaponType());
+	m_rpgGame->enemyAttackPlayer(enemy, player, weapon->weaponType());
 
 	enemy->playAttackEffect(weapon);
 
@@ -1544,6 +1557,81 @@ bool ActionRpgGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, cons
 	player->attackedByEnemy(enemy, weaponType, prot);
 
 	return true;
+}
+
+
+
+/**
+ * @brief ActionRpgGame::onBulletImpact
+ * @param bullet
+ * @param other
+ */
+
+bool ActionRpgGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
+{
+	LOG_CINFO("game") << "IMPACT" << bullet << other;
+
+	if (!bullet || !other)
+		return false;
+
+	bool isGround = false;
+
+	for (const auto &sh : other->bodyShapes()) {
+		const TiledObjectBody::FixtureCategories categories =
+				TiledObjectBody::FixtureCategories::fromInt(sh.GetFilter().categoryBits);
+
+		if (categories.testFlag(TiledObjectBody::FixtureGround) && other->opaque()) {
+			isGround = true;
+			break;
+		}
+	}
+
+	if (isGround) {
+		bullet->setImpacted(true);
+		bullet->disableBullet();
+		bullet->setStage(RpgGameData::LifeCycle::StageDead);
+		return true;
+	}
+
+
+	RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(other);
+	RpgPlayer *player = dynamic_cast<RpgPlayer*>(other);
+	TiledObjectBody *owner = m_rpgGame->findBody(TiledObjectBody::ObjectId{
+													 .ownerId = bullet->ownerId().o,
+													 .sceneId = bullet->ownerId().s,
+													 .id = bullet->ownerId().id
+												 });
+
+	LOG_CINFO("game") << "IMPACT" << enemy << player << bullet->weaponType();
+
+	if (RpgPlayer *ownP = dynamic_cast<RpgPlayer*>(owner); ownP && enemy) {
+		m_rpgGame->playerAttackEnemy(ownP, enemy, bullet->weaponType());
+	}
+
+	if (RpgEnemy *ownE = dynamic_cast<RpgEnemy*>(owner); ownE && player) {
+		m_rpgGame->enemyAttackPlayer(ownE, player, bullet->weaponType());
+	}
+
+	/// TODO: player attack player?
+
+	bullet->setImpacted(true);
+	bullet->disableBullet();
+	bullet->setStage(RpgGameData::LifeCycle::StageDead);
+
+	return true;
+}
+
+
+/**
+ * @brief ActionRpgGame::onBulletDelete
+ * @param bullet
+ */
+
+void ActionRpgGame::onBulletDelete(IsometricBullet *bullet)
+{
+	LOG_CINFO("game") << "DELETE BULLET" << bullet;
+	if (m_rpgGame)
+		m_rpgGame->removeObject(bullet);
 }
 
 
@@ -1662,29 +1750,13 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 
 	if (m_rpgGame) {
 		setGameQuestion(nullptr);
-		/*disconnect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess);
-		disconnect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
-		disconnect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
-		disconnect(m_rpgGame, &RpgGame::marketRequest, this, &ActionRpgGame::marketRequest);*/
+
 		m_rpgGame->disconnect(this);
-
-		/*disconnect(this, &ActionRpgGame::marketUnloaded, m_rpgGame, &RpgGame::onMarketUnloaded);
-		disconnect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);*/
-
 		this->disconnect(m_rpgGame);
 
+		m_rpgGame->setActionRpgGame(nullptr);
+
 		m_rpgGame->setRpgQuestion(nullptr);
-		m_rpgGame->setFuncPlayerPick(nullptr);
-		m_rpgGame->setFuncPlayerAttackEnemy(nullptr);
-		m_rpgGame->setFuncPlayerUseContainer(nullptr);
-		m_rpgGame->setFuncPlayerUseCast(nullptr);
-		m_rpgGame->setFuncPlayerCastTimeout(nullptr);
-		m_rpgGame->setFuncPlayerFinishCast(nullptr);
-		m_rpgGame->setFuncPlayerHit(nullptr);
-		m_rpgGame->setFuncPlayerShot(nullptr);
-		m_rpgGame->setFuncEnemyHit(nullptr);
-		m_rpgGame->setFuncEnemyShot(nullptr);
-		m_rpgGame->setFuncEnemyAttackPlayer(nullptr);
 	}
 
 	m_rpgGame = newRpgGame;
@@ -1694,30 +1766,14 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		setGameQuestion(m_rpgGame->gameQuestion());
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
 
+		m_rpgGame->setActionRpgGame(nullptr);
+
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess, Qt::QueuedConnection);		// Azért kell, mert különbön az utolsó fegyverhasználatot nem számolja el a szerveren
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);
 		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgGame::onGameLoadFailed);
 		connect(m_rpgGame, &RpgGame::marketRequest, this, &ActionRpgGame::marketRequest);
 		connect(this, &ActionRpgGame::marketUnloaded, m_rpgGame, &RpgGame::onMarketUnloaded);
 		connect(this, &ActionRpgGame::marketLoaded, m_rpgGame, &RpgGame::onMarketLoaded);
-
-		m_rpgGame->setFuncPlayerPick(std::bind(&ActionRpgGame::onPlayerPick, this, std::placeholders::_1, std::placeholders::_2));
-		m_rpgGame->setFuncPlayerAttackEnemy(std::bind(&ActionRpgGame::onPlayerAttackEnemy, this,
-													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-		m_rpgGame->setFuncPlayerUseContainer(std::bind(&ActionRpgGame::onPlayerUseContainer, this, std::placeholders::_1, std::placeholders::_2));
-		m_rpgGame->setFuncPlayerUseCast(std::bind(&ActionRpgGame::onPlayerUseCast, this, std::placeholders::_1));
-		m_rpgGame->setFuncPlayerCastTimeout(std::bind(&ActionRpgGame::onPlayerCastTimeout, this, std::placeholders::_1));
-		m_rpgGame->setFuncPlayerFinishCast(std::bind(&ActionRpgGame::onPlayerFinishCast, this, std::placeholders::_1));
-		m_rpgGame->setFuncPlayerHit(std::bind(&ActionRpgGame::onPlayerHit, this,
-											  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-		m_rpgGame->setFuncPlayerShot(std::bind(&ActionRpgGame::onPlayerShot, this,
-											   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-		m_rpgGame->setFuncEnemyHit(std::bind(&ActionRpgGame::onEnemyHit, this,
-											 std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-		m_rpgGame->setFuncEnemyShot(std::bind(&ActionRpgGame::onEnemyShot, this,
-											  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-		m_rpgGame->setFuncEnemyAttackPlayer(std::bind(&ActionRpgGame::onEnemyAttackPlayer, this,
-													  std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	}
 }
 

@@ -205,6 +205,8 @@ public:
 
 	void attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected);
 
+	int nextObjectId() { return ++m_lastObjectId; }
+
 signals:
 	void attackDone();
 	void characterChanged();
@@ -276,6 +278,8 @@ private:
 	int m_shieldCount = 0;
 	int m_mp = 0;
 	int m_maxMp = 0;
+
+	int m_lastObjectId = 0;
 
 	QTimer m_castTimer;
 	qint64 m_timerRepeater = -1;

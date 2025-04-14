@@ -120,8 +120,7 @@ void RpgPlayer::attack(RpgWeapon *weapon)
 	}
 
 	if (weapon->canShot()) {
-		if (auto fn = g->funcPlayerShot())
-			fn(this, weapon, currentAngle());
+		g->playerShot(this, weapon, currentAngle());
 
 	} else if (weapon->canHit()) {
 		if (!m_enemy) {
@@ -141,8 +140,7 @@ void RpgPlayer::attack(RpgWeapon *weapon)
 			rotateBody(angleToPoint(m_enemy->bodyPosition()));
 		}
 
-		if (auto fn = g->funcPlayerHit())
-			fn(this, qobject_cast<RpgEnemy*>(m_enemy), weapon);
+		g->playerHit(this, qobject_cast<RpgEnemy*>(m_enemy), weapon);
 
 	} else {
 #ifndef Q_OS_WASM
@@ -760,8 +758,8 @@ void RpgPlayer::onCastTimerTimeout()
 	if (m_isLocked)
 		return;
 
-	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
-		g->onPlayerCastTimeout(this);
+	/*if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
+		g->onPlayerCastTimeout(this);*/
 }
 
 
@@ -981,6 +979,16 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 			wptr->setParentObject(this);
 			playAttackEffect(wptr.get());
 			wptr->playAttack(target);
+		}
+	} else if (snapshot.s1.st == RpgGameData::Player::PlayerShot) {
+		LOG_CINFO("game") << "SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
+
+		auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+		if (wptr) {
+			wptr->setParentObject(this);
+			playAttackEffect(wptr.get());
+			wptr->playAttack(nullptr);
 		}
 	} else {
 		speed = entityMove(this, snapshot,
