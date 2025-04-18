@@ -54,13 +54,13 @@ android: LIBS += -lSCodes_$${QT_ARCH}
 else: LIBS += -lSCodes
 
 
-# Box2D
 
-INCLUDEPATH += $$PWD/box2d/include
-INCLUDEPATH += $$PWD/box2cpp/include
+# Chipmunk2D
 
-android: LIBS += -lbox2d_$${QT_ARCH}
-else: LIBS += -lbox2d
+INCLUDEPATH += $$PWD/Chipmunk2D/include
+
+android: LIBS += -lchipmunk2d_$${QT_ARCH}
+else: LIBS += -lchipmunk2d
 
 
 

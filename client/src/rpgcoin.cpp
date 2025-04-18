@@ -30,8 +30,8 @@
 const int RpgCoinPickable::m_amount = 100;
 
 
-RpgCoinPickable::RpgCoinPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::PickableBaseData::PickableCoin, scene)
+RpgCoinPickable::RpgCoinPickable(RpgGame *game)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableCoin, game)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }

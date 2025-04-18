@@ -42,11 +42,13 @@ class RpgControlGroupSave;
 class RpgControlGroupSaveBody : public TiledObjectBody
 {
 public:
-	explicit RpgControlGroupSaveBody(TiledScene *scene)
-		: TiledObjectBody(scene)
+	explicit RpgControlGroupSaveBody(const QPointF &center, const qreal &radius,
+									 TiledGame *game, Tiled::MapRenderer *renderer)
+		: TiledObjectBody(center, radius, game, renderer, CP_BODY_TYPE_STATIC)
 	{ }
 
-	virtual void onShapeContactBegin(b2::ShapeRef, b2::ShapeRef shape) override;
+
+	virtual void onShapeContactBegin(cpShape *, cpShape *shape) override;
 
 	RpgControlGroupSave *m_control = nullptr;
 
@@ -69,7 +71,7 @@ public:
 	QPointF position() const { return m_body ? m_body->bodyPosition() : QPointF{}; };
 	const bool &isActive() const { return m_active; }
 
-	void sensorBegin(b2::ShapeRef shape);
+	void sensorBegin(cpShape *shape);
 
 private:
 	void updateLayers();
@@ -94,7 +96,7 @@ private:
  * @param shape
  */
 
-inline void RpgControlGroupSaveBody::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef shape) {
+inline void RpgControlGroupSaveBody::onShapeContactBegin(cpShape *, cpShape *shape) {
 	if (m_control)
 		m_control->sensorBegin(shape);
 }

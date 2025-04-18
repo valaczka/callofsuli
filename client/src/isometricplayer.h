@@ -57,7 +57,7 @@ class IsometricPlayer : public IsometricEntity
 	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
 
 public:
-	explicit IsometricPlayer(TiledScene *scene);
+	explicit IsometricPlayer(TiledGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~IsometricPlayer();
 
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
@@ -88,8 +88,8 @@ public:
 
 	virtual void worldStep() override;
 
-	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
-	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
+	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
 	const qreal &speedLength() const { return m_speedLength; }
 

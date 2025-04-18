@@ -106,7 +106,7 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 					}
 
 					if (object->shape() == Tiled::MapObject::Point) {
-						m_container = m_game->createFromCircle<RpgContainer>(-1, object->id(), scene,
+						/*m_container = m_game->createFromCircle<RpgContainer>(-1, object->id(), scene,
 																			 object->position(),
 																			 40., renderer,
 																			 getShapeParams(TiledObjectBody::FixtureContainer));
@@ -114,7 +114,7 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 						setCenterPoint(renderer ?
 										   renderer->pixelToScreenCoords(object->position()) + m_basePosition :
 										   object->position() + m_basePosition
-										   );
+										   );*/
 					}
 
 					if (!m_container) {
@@ -177,9 +177,9 @@ void RpgControlGroupContainer::update()
 	m_currentState = m_container && m_container->isActive() ? 1 : 2;
 	refreshVisualItem();
 
-	for (TiledObjectBody *o : m_tiledObjects) {
+	/*for (TiledObjectBody *o : m_tiledObjects) {
 		o->setBodyEnabled(m_container && m_container->isActive());
-	}
+	}*/
 }
 
 

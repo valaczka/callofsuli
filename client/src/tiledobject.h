@@ -29,7 +29,7 @@
 
 #include "Logger.h"
 #include <QQuickItem>
-#include <box2cpp/box2cpp.h>
+#include <chipmunk/chipmunk.h>
 #include <libtiled/maprenderer.h>
 #include <libtiled/mapobject.h>
 #include "tiledobjectspritedef.h"
@@ -57,7 +57,7 @@ Q_DECLARE_OPAQUE_POINTER(TiledScene*)
 
 
 struct TiledReportedFixture {
-	b2::ShapeRef shape;
+	//b2::ShapeRef shape;
 	QVector2D point;
 	TiledObjectBody *body = nullptr;
 };
@@ -84,9 +84,25 @@ class TiledObjectBody
 {
 	Q_GADGET
 
+private:
+	TiledObjectBody(TiledGame *game);
+
 public:
-	explicit TiledObjectBody(b2::World *world);
-	explicit TiledObjectBody(TiledScene *scene);
+	explicit TiledObjectBody(const QPolygonF &polygon,
+							 TiledGame *game,
+							 Tiled::MapRenderer *renderer = nullptr,
+							 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+
+	explicit TiledObjectBody(const QPointF &center, const qreal &radius,
+							 TiledGame *game,
+							 Tiled::MapRenderer *renderer = nullptr,
+							 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+
+	explicit TiledObjectBody(const Tiled::MapObject *object,
+							 TiledGame *game,
+							 Tiled::MapRenderer *renderer = nullptr,
+							 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+
 	virtual ~TiledObjectBody();
 
 
@@ -140,27 +156,26 @@ public:
 	void setObjectId(const int &ownerId, const int &sceneId, const int &id);
 
 	TiledGame *game() const;
-	void setGame(TiledGame *newGame);
 
-	b2::World *world() const;
-	void setWorld(b2::World *newWorld, const QPointF &position = {});
-	void setWorld(b2::World *newWorld, const QPointF &position, const b2Rot &rotation);
+	cpSpace *space() const;
 	TiledScene *scene() const;
-
-	b2::BodyRef body() const;
+	cpBody *body() const;
 	QPointF bodyPosition() const;
 	QRectF bodyAABB() const;
 	float currentSpeed() const;
 
+	cpShapeFilter filterGet() const;
+	void filterSet(const FixtureCategories &categories);
+	void filterSet(const FixtureCategories &categories, const FixtureCategories &collidesWith);
 
-	const std::vector<b2::ShapeRef> &bodyShapes() const;
-	b2::ShapeRef sensorPolygon() const;
-	b2::ShapeRef virtualCircle() const;
-	b2::ShapeRef targetCircle() const;
+	bool isSensor() const;
+	void setSensor(const bool &sensor);
 
-	static bool isEqual(const b2::ShapeRef &s1, const b2::ShapeRef &s2);
-	static bool isEqual(const b2::BodyRef &s1, const b2::BodyRef &s2);
-	static bool isAny(const std::vector<b2::ShapeRef> &s1, const b2::ShapeRef &s2);
+
+	const std::vector<cpShape*> &bodyShapes() const;
+	cpShape *sensorPolygon() const;
+	cpShape *virtualCircle() const;
+	cpShape *targetCircle() const;
 
 	void emplace(const QVector2D &center);
 	void emplace(const QPointF &center) { emplace(QVector2D(center)); }
@@ -181,20 +196,13 @@ public:
 	bool opaque() const;
 	void setOpaque(bool newOpaque);
 
-	bool isBodyEnabled() const;
-	void setBodyEnabled(const bool &enabled);
-
-	bool inVisibleArea() const;
-
-	bool overlap(const QPointF &pos) const;
-	bool overlap(const QPolygonF &polygon) const;
-
 	virtual void worldStep();
 
-	static TiledObjectBody *fromBodyRef(b2::BodyRef ref);
+	static TiledObjectBody *fromBodyRef(cpBody *ref);
+	static TiledObjectBody *fromShapeRef(cpShape *ref);
 
-	static b2Filter getFilter(const FixtureCategories &categories);
-	static b2Filter getFilter(const FixtureCategories &categories, const FixtureCategories &collidesWith);
+	static cpShapeFilter getFilter(const FixtureCategories &categories);
+	static cpShapeFilter getFilter(const FixtureCategories &categories, const FixtureCategories &collidesWith);
 
 
 	void setSensorPolygon(const float &length, const float &range);
@@ -209,8 +217,8 @@ public:
 
 	virtual void debugDraw(TiledDebugDraw *draw) const;
 
-	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) { Q_UNUSED(self); Q_UNUSED(other) }
-	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) { Q_UNUSED(self); Q_UNUSED(other) }
+	virtual void onShapeContactBegin(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other) }
+	virtual void onShapeContactEnd(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other) }
 
 	void rotateToPoint(const QPointF &point, const bool &forced = false);
 	float angleToPoint(const QVector2D &point) const;
@@ -218,53 +226,47 @@ public:
 	float distanceToPoint(const QPointF &point) const;
 	float distanceToPoint(const QVector2D &point) const;
 
+	QQuickItem *visualItem() const;
+	void setVisualItem(QQuickItem *newVisualItem);
 
 protected:
-	virtual void worldChanged() {}
-
 	virtual void synchronize() {}
 
-	virtual void setInVisibleArea(bool newInVisibleArea);
-	void updateBodyInVisibleArea();
-
+	virtual void onSpaceChanged();
 	void overrideCurrentSpeed(const QVector2D &speed);
+
+	void setSpace(cpSpace *space);
 
 	void drawBody(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
 	void drawSensor(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
 	void drawVirtualCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
 	void drawTargetCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
+	/**
+	 * @brief TiledObjectBody::drawCenter
+	 * @param draw
+	 * @param colorX
+	 * @param colorY
+	 * @param lineWidth
+	 */
 	void drawCenter(TiledDebugDraw *draw, const QColor &colorX, const QColor &colorY, const qreal &lineWidth = 2.) const;
 
-	TiledGame *m_game = nullptr;
-	bool m_inVisibleArea = false;
+	TiledGame *const m_game;
+	QQuickItem *m_visualItem = nullptr;
 
 private:
-	bool createFromPolygon(const QPolygonF &polygon,
-						   Tiled::MapRenderer *renderer,
-						   const b2::Shape::Params &params = {});
+	cpShape *createFromPolygon(const QPolygonF &polygon,
+							   Tiled::MapRenderer *renderer,
+							   const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
-	bool createFromPolygon(const QPolygonF &polygon,
-						   Tiled::MapRenderer *renderer,
-						   b2::Body::Params bParams,
-						   const b2::Shape::Params &params = {});
+	cpShape *createFromCircle(const QPointF &center, const qreal &radius,
+							  Tiled::MapRenderer *renderer,
+							  const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
-	bool createFromCircle(const QPointF &center, const qreal &radius,
-						  Tiled::MapRenderer *renderer,
-						  const b2::Shape::Params &params = {});
+	cpShape *createFromMapObject(const Tiled::MapObject *object,
+								 Tiled::MapRenderer *renderer,
+								 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
-	bool createFromCircle(const QPointF &center, const qreal &radius,
-						  Tiled::MapRenderer *renderer,
-						  b2::Body::Params bParams,
-						  const b2::Shape::Params &params = {});
-
-	bool createFromMapObject(const Tiled::MapObject *object,
-							 Tiled::MapRenderer *renderer,
-							 const b2::Shape::Params &params = {});
-
-	bool createFromMapObject(const Tiled::MapObject *object,
-							 Tiled::MapRenderer *renderer,
-							 b2::Body::Params bParams,
-							 const b2::Shape::Params &params = {});
+	void deleteBody();
 
 	TiledObjectBodyPrivate *d;
 	bool m_opaque = true;
@@ -306,10 +308,21 @@ class TiledObject : public QObject, public TiledObjectBody
 	Q_PROPERTY(bool facingDirectionLocked READ facingDirectionLocked WRITE setFacingDirectionLocked NOTIFY facingDirectionLockedChanged FINAL)
 	Q_PROPERTY(QQuickItem* visualItem READ visualItem NOTIFY visualItemChanged FINAL)
 
-
 public:
-	explicit TiledObject(TiledScene *scene);
-	explicit TiledObject(b2::World *world, QObject *parent = nullptr);
+	explicit TiledObject(const QPolygonF &polygon,
+						 TiledGame *game,
+						 Tiled::MapRenderer *renderer = nullptr,
+						 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+
+	explicit TiledObject(const QPointF &center, const qreal &radius,
+						 TiledGame *game,
+						 Tiled::MapRenderer *renderer = nullptr,
+						 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+
+	explicit TiledObject(const Tiled::MapObject *object,
+						 TiledGame *game,
+						 Tiled::MapRenderer *renderer = nullptr,
+						 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
 	virtual ~TiledObject();
 
@@ -437,8 +450,7 @@ public:
 	bool facingDirectionLocked() const;
 	void setFacingDirectionLocked(bool newFacingDirectionLocked);
 
-
-	QQuickItem *visualItem() const;
+	bool inVisibleArea() const;
 
 signals:
 	void remoteModeChanged();
@@ -480,13 +492,13 @@ protected:
 
 	void createVisual();
 	virtual void synchronize() override;
+	virtual void onSpaceChanged() override;
 
-	virtual void setInVisibleArea(bool newInVisibleArea) override;
 	void updateVisibleArea();
-
-	virtual void worldChanged() override;
+	void updateScene();
 
 protected:
+	bool m_inVisibleArea = false;
 	bool m_glowEnabled = false;
 	bool m_overlayEnabled = false;
 	QColor m_glowColor = QColor(Qt::yellow);
@@ -494,7 +506,6 @@ protected:
 	QString m_displayName;
 	QPointF m_bodyOffset;
 
-	QQuickItem *m_visualItem = nullptr;
 	Direction m_facingDirection = Invalid;
 	Directions m_availableDirections = None;
 	bool m_facingDirectionLocked = true;
@@ -506,6 +517,9 @@ protected:
 	friend class TiledEffect;
 	friend class TiledScene;
 	friend class TiledObjectBody;
+
+private:
+	QPointer<TiledScene> m_currentScene;
 };
 
 

@@ -26,6 +26,7 @@
 
 #include "tiledreturnpathmotor.h"
 #include "tiledscene.h"
+#include "tiledgame.h"
 
 TiledReturnPathMotor::TiledReturnPathMotor(const QPointF &basePoint)
 	: AbstractTiledMotor(ReturnPathMotor)
@@ -148,7 +149,9 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 	// A raycast pontatlan (átmegy az objektumokon, ezért kihagyjuk:
 	// const auto &ptr = scene->findShortestPath(body, m_basePoint);
 
-	const auto &ptr = scene->findShortestPath(body->bodyPosition(), m_basePoint);
+	TiledGame *g = scene->game();
+
+	const auto &ptr = g->findShortestPath(body, m_basePoint);
 
 	if (!ptr) {
 		LOG_CTRACE("scene") << "No path from" << body->bodyPosition() << "to" << m_basePoint;

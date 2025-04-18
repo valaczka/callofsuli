@@ -137,7 +137,7 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameDat
 	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
 
 public:
-	explicit RpgPlayer(TiledScene *scene = nullptr);
+	explicit RpgPlayer(RpgGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgPlayer();
 
 
@@ -194,8 +194,8 @@ public:
 
 	virtual void worldStep() override;
 
-	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
-	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
+	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
 	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot) override;
 	void updateFromSnapshot(const RpgGameData::Player &snap) override;

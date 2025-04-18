@@ -47,8 +47,8 @@ const QHash<QString, RpgGameData::PickableBaseData::PickableType> RpgPickableObj
 
 
 
-RpgPickableObject::RpgPickableObject(const RpgGameData::PickableBaseData::PickableType &type, TiledScene *scene)
-	: IsometricObject(scene)
+RpgPickableObject::RpgPickableObject(const RpgGameData::PickableBaseData::PickableType &type, RpgGame *game)
+	: IsometricObject(QPointF(), 20., game)
 	, TiledPickableIface()
 	, m_pickableType(type)
 {
@@ -142,7 +142,6 @@ void RpgPickableObject::onActivated()
 {
 	if (m_visualItem)
 		m_visualItem->setVisible(true);
-	setBodyEnabled(true);
 	setSubZ(0.3);
 	if (m_activateEffect)
 		m_activateEffect->play();
@@ -157,7 +156,6 @@ void RpgPickableObject::onDeactivated()
 {
 	if (m_visualItem)
 		m_visualItem->setVisible(false);
-	setBodyEnabled(false);
 	setSubZ(0.);
 	if (m_deactivateEffect)
 		m_deactivateEffect->play();
@@ -214,9 +212,9 @@ void RpgPickableObject::setName(const QString &newName)
  * @param other
  */
 
-void RpgPickableObject::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
+void RpgPickableObject::onShapeContactBegin(cpShape *, cpShape *other)
 {
-	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+/*	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
 
 	if (!base || !g)
@@ -230,7 +228,7 @@ void RpgPickableObject::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
 	if (player && player == g->controlledPlayer()) {
 		setGlowColor(QStringLiteral("#FFF59D"));
 		setGlowEnabled(true);
-	}
+	}*/
 }
 
 
@@ -241,9 +239,9 @@ void RpgPickableObject::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
  * @param other
  */
 
-void RpgPickableObject::onShapeContactEnd(b2::ShapeRef, b2::ShapeRef other)
+void RpgPickableObject::onShapeContactEnd(cpShape *, cpShape *other)
 {
-	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	/*TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
 
 	if (!base || !g)
@@ -256,7 +254,7 @@ void RpgPickableObject::onShapeContactEnd(b2::ShapeRef, b2::ShapeRef other)
 
 	if (player && player == g->controlledPlayer()) {
 		setGlowEnabled(false);
-	}
+	}*/
 }
 
 

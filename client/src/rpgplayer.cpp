@@ -45,8 +45,8 @@
  * @param parent
  */
 
-RpgPlayer::RpgPlayer(TiledScene *scene)
-	: IsometricPlayer(scene)
+RpgPlayer::RpgPlayer(RpgGame *game, const qreal &radius, const cpBodyType &type)
+	: IsometricPlayer(game, radius, type)
 	, RpgGameDataInterface<RpgGameData::Player, RpgGameData::PlayerBaseData>()
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
@@ -801,22 +801,21 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 {
 	RpgGameData::Player p;
 
-	b2Vec2 pos = body().GetPosition();
-	p.p = { pos.x, pos.y };
+	p.p = toPosList(bodyPosition());
 	p.a = currentAngle();
 	p.hp = hp();
 
 	if (TiledScene *s = scene())
 		p.sc = s->sceneId();
 
-	const b2Vec2 vel = body().GetLinearVelocity();
+	const cpVect vel = cpBodyGetVelocity(body());
 
 	if (vel.x != 0. || vel.y != 0.)
 		p.st = RpgGameData::Player::PlayerMoving;
 	else
 		p.st = RpgGameData::Player::PlayerIdle;
 
-	p.cv = { vel.x, vel.y };
+	p.cv = { (float) vel.x, (float) vel.y };
 
 	p.arm = m_armory->serialize();
 
@@ -880,10 +879,11 @@ void RpgPlayer::worldStep()
  * @param other
  */
 
-void RpgPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
+void RpgPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 {
 	IsometricPlayer::onShapeContactBegin(self, other);
 
+	/************************
 	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 
 	if (!base)
@@ -897,6 +897,7 @@ void RpgPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
 		if (!m_currentContainer && container)
 			setCurrentContainer(container);
 	}
+	****************************/
 }
 
 
@@ -907,10 +908,11 @@ void RpgPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
  * @param other
  */
 
-void RpgPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
+void RpgPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 {
 	IsometricPlayer::onShapeContactEnd(self, other);
 
+	/**********************************
 	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 
 	if (!base)
@@ -924,6 +926,7 @@ void RpgPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 		if (m_currentContainer == container && container)
 			setCurrentContainer(nullptr);
 	}
+	**************************************/
 }
 
 

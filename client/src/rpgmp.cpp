@@ -31,8 +31,8 @@
 const int RpgMpPickable::m_amount = 75;
 
 
-RpgMpPickable::RpgMpPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::PickableBaseData::PickableMp, scene)
+RpgMpPickable::RpgMpPickable(RpgGame *game)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableMp, game)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }

@@ -816,20 +816,32 @@ void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData
 
 
 /**
+ * @brief ActionRpgGame::onTimeStepPrepare
+ */
+
+void ActionRpgGame::onTimeStepPrepare()
+{
+
+}
+
+
+
+
+/**
  * @brief ActionRpgGame::onTimeStepped
  */
 
 void ActionRpgGame::onTimeStepped()
 {
-	for (auto &b : m_rpgGame->bodyList()) {
-		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b.get())) {
+	m_rpgGame->iterateOverBodies([this](TiledObjectBody *b){
+		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b)) {
 			if (iface->stage() == RpgGameData::LifeCycle::StageDestroy ||
 					iface->stage() == RpgGameData::LifeCycle::StageDead) {
 				LOG_CINFO("game") << "****** DELETE" << iface;
 				ActionRpgGame::onBulletDelete(iface);
 			}
 		}
-	}
+	});
 }
 
 
@@ -1577,10 +1589,7 @@ bool ActionRpgGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
 	bool isGround = false;
 
 	for (const auto &sh : other->bodyShapes()) {
-		const TiledObjectBody::FixtureCategories categories =
-				TiledObjectBody::FixtureCategories::fromInt(sh.GetFilter().categoryBits);
-
-		if (categories.testFlag(TiledObjectBody::FixtureGround) && other->opaque()) {
+		if ((cpShapeGetFilter(sh).categories & TiledObjectBody::FixtureGround) && other->opaque()) {
 			isGround = true;
 			break;
 		}

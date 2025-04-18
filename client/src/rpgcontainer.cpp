@@ -27,9 +27,9 @@
 #include "rpgcontainer.h"
 
 
-RpgContainer::RpgContainer(TiledScene *scene)
-	: QObject{scene}
-	, RpgControlGroupStateBody(scene)
+RpgContainer::RpgContainer(TiledGame *game)
+	: QObject{game}
+	, RpgControlGroupStateBody(QPointF(), 12., game, nullptr)
 {
 
 }

@@ -34,8 +34,8 @@
  * @param parent
  */
 
-RpgFireball::RpgFireball(TiledScene *scene)
-	: RpgBullet(RpgGameData::Weapon::WeaponLongbow, scene)
+RpgFireball::RpgFireball(TiledGame *game)
+	: RpgBullet(RpgGameData::Weapon::WeaponLongbow, game)
 {
 
 }

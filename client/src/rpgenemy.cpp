@@ -31,8 +31,8 @@
 #include "rpggamedataiface_t.h"
 
 
-RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene)
-	: IsometricEnemy(scene)
+RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius)
+	: IsometricEnemy(game, radius)
 	, RpgEnemyIface(type)
 {
 
@@ -259,22 +259,21 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 {
 	RpgGameData::Enemy p;
 
-	b2Vec2 pos = body().GetPosition();
-	p.p = { pos.x, pos.y };
+	p.p = toPosList(bodyPosition());
 	p.a = desiredBodyRotation(); //currentAngle();
 	p.hp = hp();
 
 	if (TiledScene *s = scene())
 		p.sc = s->sceneId();
 
-	const b2Vec2 vel = body().GetLinearVelocity();
+	const cpVect vel = cpBodyGetVelocity(body());
 
 	if (vel.x != 0. || vel.y != 0.)
 		p.st = RpgGameData::Enemy::EnemyMoving;
 	else
 		p.st = RpgGameData::Enemy::EnemyIdle;
 
-	p.cv = { vel.x, vel.y };
+	p.cv = { (float) vel.x, (float) vel.y };
 
 	p.arm = m_armory->serialize();
 

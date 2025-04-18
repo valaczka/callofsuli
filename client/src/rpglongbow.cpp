@@ -66,8 +66,8 @@ void RpgLongbow::eventAttack(TiledObject *)
  * @param parent
  */
 
-RpgLongbowPickable::RpgLongbowPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::PickableBaseData::PickableLongbow, scene)
+RpgLongbowPickable::RpgLongbowPickable(RpgGame *game)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableLongbow, game)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
 }

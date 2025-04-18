@@ -39,8 +39,8 @@
  * @param parent
  */
 
-IsometricEnemy::IsometricEnemy(TiledScene *scene)
-	: IsometricEntity(scene)
+IsometricEnemy::IsometricEnemy(TiledGame *game, const qreal &radius)
+	: IsometricEntity(game, radius, CP_BODY_TYPE_KINEMATIC)
 	, IsometricEnemyIface()
 {
 
@@ -203,7 +203,6 @@ void IsometricEnemy::onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/)
 
 void IsometricEnemy::onAlive()
 {
-	setBodyEnabled(true);
 	setSubZ(0.5);
 	emit becameAlive();
 }
@@ -218,7 +217,6 @@ void IsometricEnemy::onAlive()
 
 void IsometricEnemy::onDead()
 {
-	setBodyEnabled(false);
 	setSubZ(0.0);
 	m_game->onEnemyDead(this);
 	emit becameDead();
@@ -233,7 +231,6 @@ void IsometricEnemy::onDead()
 void IsometricEnemy::onSleepingBegin()
 {
 	m_isSleeping = true;
-	setBodyEnabled(false);
 	setSubZ(0.0);
 	m_game->onEnemySleepingStart(this);
 
@@ -249,7 +246,6 @@ void IsometricEnemy::onSleepingBegin()
 
 void IsometricEnemy::onSleepingEnd()
 {
-	setBodyEnabled(true);
 	setSubZ(0.5);
 	m_isSleeping = false;
 	m_game->onEnemySleepingEnd(this);
@@ -321,8 +317,9 @@ void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, const bool &forced)
  * @param other
  */
 
-void IsometricEnemy::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
+void IsometricEnemy::onShapeContactBegin(cpShape *self, cpShape *other)
 {
+	/***************************
 	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 
 	if (!base)
@@ -344,6 +341,7 @@ void IsometricEnemy::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
 			eventPlayerContacted(player);
 		}
 	}
+	************************************/
 }
 
 
@@ -353,8 +351,9 @@ void IsometricEnemy::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
  * @param other
  */
 
-void IsometricEnemy::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
+void IsometricEnemy::onShapeContactEnd(cpShape *self, cpShape *other)
 {
+	/****************************************
 	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 
 	if (!base)
@@ -373,6 +372,7 @@ void IsometricEnemy::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 		removeContactedPlayer(player);
 		eventPlayerDiscontacted(player);
 	}
+	******************************************/
 }
 
 

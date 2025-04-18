@@ -52,8 +52,8 @@
 class RpgControlGroupStateIface
 {
 protected:
-	virtual void onFixtureBeginContact(b2::ShapeRef) = 0;
-	virtual void onFixtureEndContact(b2::ShapeRef) = 0;
+	virtual void onFixtureBeginContact(cpShape *) = 0;
+	virtual void onFixtureEndContact(cpShape *) = 0;
 
 	friend class RpgControlGroupStateBody;
 };
@@ -68,17 +68,20 @@ protected:
 class RpgControlGroupStateBody : public TiledObjectBody
 {
 public:
-	explicit RpgControlGroupStateBody(TiledScene *scene)
-		: TiledObjectBody(scene)
+	explicit RpgControlGroupStateBody(const QPointF &center, const qreal &radius,
+									  TiledGame *game,
+									  Tiled::MapRenderer *renderer,
+									  const cpBodyType &type = CP_BODY_TYPE_STATIC)
+		: TiledObjectBody(center, radius, game, renderer, type)
 	{
 	}
 
-	virtual void onShapeContactBegin(b2::ShapeRef, b2::ShapeRef shape) override {
+	virtual void onShapeContactBegin(cpShape *, cpShape *shape) override {
 		if (m_control)
 			m_control->onFixtureBeginContact(shape);
 	}
 
-	virtual void onShapeContactEnd(b2::ShapeRef, b2::ShapeRef shape) override {
+	virtual void onShapeContactEnd(cpShape *, cpShape *shape) override {
 		if (m_control)
 			m_control->onFixtureEndContact(shape);
 	}
@@ -126,9 +129,9 @@ protected:
 
 	void refreshVisualItem() const;
 
-	virtual void onFixtureBeginContact(b2::ShapeRef) override;
-	virtual void onFixtureEndContact(b2::ShapeRef) override;
-	b2::Shape::Params getShapeParams(const TiledObjectBody::FixtureCategories &category = TiledObjectBody::FixtureTrigger) const;
+	virtual void onFixtureBeginContact(cpShape *) override;
+	virtual void onFixtureEndContact(cpShape *) override;
+	cpShapeFilter getShapeParams(const TiledObjectBody::FixtureCategories &category = TiledObjectBody::FixtureTrigger) const;
 	void onControlledPlayerChanged();
 	void updateGlow();
 
@@ -139,7 +142,7 @@ protected:
 	int m_currentState = -1;
 
 	QVector<QPointer<TiledQuick::TileLayerItem>> m_tileLayers;
-	std::vector<b2::ShapeRef> m_contactedFixtures;
+	std::vector<cpShape *> m_contactedFixtures;
 };
 
 
@@ -278,7 +281,7 @@ inline void RpgControlGroupState<T>::removePlayerFixture(RpgPlayer *player)
 	onFixtureEndContact(player->virtualCircle());
 	onFixtureEndContact(player->targetCircle());
 
-	for (b2::ShapeRef sh : player->bodyShapes())
+	for (cpShape *sh : player->bodyShapes())
 		onFixtureEndContact(sh);
 }
 
@@ -313,11 +316,11 @@ inline void RpgControlGroupState<T>::refreshVisualItem() const
  */
 
 template<class T>
-inline void RpgControlGroupState<T>::onFixtureBeginContact(b2::ShapeRef other)
+inline void RpgControlGroupState<T>::onFixtureBeginContact(cpShape *other)
 {
-	const auto it = std::find_if(m_contactedFixtures.cbegin(), m_contactedFixtures.cend(), [other](b2::ShapeRef s){
-					return TiledObjectBody::isEqual(s, other);
-	});
+	const auto it = std::find_if(m_contactedFixtures.cbegin(), m_contactedFixtures.cend(), [other](cpShape *s){
+					return s == other;
+});
 
 	if (it == m_contactedFixtures.cend()) {
 		m_contactedFixtures.push_back(other);
@@ -328,10 +331,10 @@ inline void RpgControlGroupState<T>::onFixtureBeginContact(b2::ShapeRef other)
 
 
 template<class T>
-inline void RpgControlGroupState<T>::onFixtureEndContact(b2::ShapeRef other)
+inline void RpgControlGroupState<T>::onFixtureEndContact(cpShape *other)
 {
-	std::erase_if(m_contactedFixtures, [other](b2::ShapeRef s){
-		return TiledObjectBody::isEqual(s, other);
+	std::erase_if(m_contactedFixtures, [other](cpShape *s){
+		return s == other;
 	});
 	updateGlow();
 }
@@ -358,19 +361,12 @@ inline void RpgControlGroupState<T>::onControlledPlayerChanged()
 
 
 template<class T>
-inline b2::Shape::Params RpgControlGroupState<T>::getShapeParams(const TiledObjectBody::FixtureCategories &category) const
+inline cpShapeFilter RpgControlGroupState<T>::getShapeParams(const TiledObjectBody::FixtureCategories &category) const
 {
-	b2::Shape::Params params;
-
-	params.isSensor = true;
-	params.enableSensorEvents = true;
-	params.enableContactEvents = true;
-	params.filter = TiledObjectBody::getFilter(category,
-											   TiledObjectBody::FixturePlayerBody |
-											   TiledObjectBody::FixtureSensor |
-											   TiledObjectBody::FixtureVirtualCircle);
-
-	return params;
+	return TiledObjectBody::getFilter(category,
+									  TiledObjectBody::FixturePlayerBody |
+									  TiledObjectBody::FixtureSensor |
+									  TiledObjectBody::FixtureVirtualCircle);
 }
 
 

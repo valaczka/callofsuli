@@ -24,7 +24,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+
 #include "tiledgame.h"
+#include "tiledobject.h"
 #include "Logger.h"
 #include "application.h"
 #include "isometricentity.h"
@@ -32,13 +34,18 @@
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
 #include "utils_.h"
+#include "libtcod/path.hpp"
 #include <libtiled/objectgroup.h>
 #include <libtiled/mapreader.h>
 #include <libtiled/map.h>
 #include <libtiled/imagecache.h>
 #include <libtiled/tilesetmanager.h>
 #include <enet/enet.h>
+#include <chipmunk/chipmunk.h>
+#include <chipmunk/chipmunk_structs.h>
 
+
+typedef std::unique_ptr<cpSpace, void (*)(cpSpace*)> unique_space_ptr;
 
 /**
  * @brief The TiledGamePrivate class
@@ -59,17 +66,40 @@ private:
 
 	struct Scene {
 		Scene()
+			: space(nullptr, &Scene::spaceDestroy)
 		{}
 
 		Scene(Scene &&o) noexcept
 			: container(o.container)
 			, scene(o.scene)
-			, world(std::move(o.world))
+			, space(std::move(o.space))
 		{}
 
+		~Scene() { destroyScene(); }
+
+		struct TcodMapData {
+			std::unique_ptr<TCODMap> map;
+			QRectF viewport;
+			qreal chunkWidth = 0.;
+			qreal chunkHeight = 0.;
+
+			std::optional<QPolygonF> findShortestPath(const QPointF &from, const QPointF &to) const;
+			std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
+		};
+
+		static unique_space_ptr spaceCreate() {
+			return unique_space_ptr(cpSpaceNew(), &Scene::spaceDestroy);
+		}
+		static void spaceDestroy(cpSpace *space);
+
+		void reloadTcodMap();
+		void destroyScene();
+
+		int sceneId = -1;
 		QQuickItem *container = nullptr;
 		TiledScene *scene = nullptr;
-		std::unique_ptr<b2::World> world;
+		unique_space_ptr space;
+		TcodMapData tcodMap;
 	};
 
 
@@ -110,7 +140,7 @@ private:
 	std::vector<T*> getObjects(TiledScene *scene);
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type>
-	std::vector<T*> getObjects(b2::World *world);
+	std::vector<T*> getObjects(cpSpace *world);
 
 	TiledObjectBody *findObject(const TiledObjectBody::ObjectId &id);
 	TiledObjectBody *findObject(const int &ownerId, const int &sceneId, const int &id) {
@@ -125,6 +155,9 @@ private:
 	void startStepTimer();
 	void stepWorlds();
 
+	static cpBool collisionBegin(cpArbiter *arb, cpSpace *space, cpDataPointer userData);
+	static void collisionEnd(cpArbiter *arb, cpSpace *space, cpDataPointer userData);
+
 
 	TiledGame *const q;
 
@@ -135,10 +168,9 @@ private:
 	QLambdaThreadWorker m_stepTimerThread;
 	QRecursiveMutex m_stepMutex;
 
-	std::vector<Scene> m_sceneList;
+	std::vector<std::unique_ptr<Scene>> m_sceneList;
 	std::vector<std::unique_ptr<TiledObjectBody> > m_bodyList;
 
-	std::vector<std::unique_ptr<TiledObjectBody> > m_addBodyList;
 	std::vector<TiledObjectBody*> m_removeBodyList;
 
 	int m_nextBodyId = 0;
@@ -192,13 +224,21 @@ TiledGame::TiledGame(QQuickItem *parent)
 
 TiledGame::~TiledGame()
 {
-	for (const auto &s : std::as_const(d->m_sceneList)) {
-		s.scene->stopMusic();
-		if (s.scene->game() == this)
-			s.scene->setGame(nullptr);
+	for (const auto &s : d->m_sceneList) {
+		s->scene->stopMusic();
+		if (s->scene->game() == this)
+			s->scene->setGame(nullptr);
+
+		s->scene->m_space = nullptr;
+		s->scene->m_sceneId = -1;
 	}
 
 	m_currentScene = nullptr;
+
+
+	for (const auto &b : d->m_bodyList) {
+		b->deleteBody();
+	}
 
 	d->m_bodyList.clear();
 	d->m_sceneList.clear();
@@ -412,9 +452,9 @@ QVector<TiledScene *> TiledGame::sceneList() const
 	QVector<TiledScene *> list;
 	list.reserve(d->m_sceneList.size());
 
-	for (const TiledGamePrivate::Scene &s : std::as_const(d->m_sceneList)) {
-		if (s.scene)
-			list.append(s.scene);
+	for (const auto &s : std::as_const(d->m_sceneList)) {
+		if (s->scene)
+			list.append(s->scene);
 	}
 
 	return list;
@@ -433,14 +473,14 @@ QVector<TiledScene *> TiledGame::sceneList() const
 TiledScene *TiledGame::findScene(const int &id) const
 {
 	auto it = std::find_if(d->m_sceneList.cbegin(), d->m_sceneList.cend(),
-						   [&id](const TiledGamePrivate::Scene &s){
-		return s.scene && s.scene->sceneId() == id;
+						   [&id](const auto &s){
+		return s->scene && s->scene->sceneId() == id;
 	});
 
 	if (it == d->m_sceneList.cend())
 		return nullptr;
 
-	return it->scene;
+	return it->get()->scene;
 }
 
 
@@ -485,46 +525,58 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 
 	LOG_CDEBUG("game") << "Create scene flickable item:" << def.id;
 
-	TiledGamePrivate::Scene item;
+	std::unique_ptr<TiledGamePrivate::Scene> item = std::make_unique<TiledGamePrivate::Scene>();
 
-	item.container = qobject_cast<QQuickItem*>(component.create());
+	item->container = qobject_cast<QQuickItem*>(component.create());
 
-	if (!item.container) {
+	if (!item->container) {
 		LOG_CERROR("game") << "Scene create error" << component.errorString();
 		return false;
 	}
 
 
-	b2::World::Params params;
-	params.gravity.x = 0.0f;
-	params.gravity.y = 0.0f;
+	item->sceneId = def.id;
+	item->space = item->spaceCreate();
 
-	item.world.reset(new b2::World(params));
+	LOG_CINFO("game") << "######" << item->space.get();
 
-	item.scene = qvariant_cast<TiledScene*>(item.container->property("scene"));
-	Q_ASSERT(item.scene);
 
-	item.world->SetUserData(item.scene);
+	item->scene = qvariant_cast<TiledScene*>(item->container->property("scene"));
+	Q_ASSERT(item->scene);
 
-	item.scene->setSceneId(def.id);
-	item.scene->setGame(this);
-	item.scene->m_world = item.world.get();
+	item->scene->setGame(this);
+	item->scene->m_space = item->space.get();
+	item->scene->m_sceneId = item->sceneId;
+	cpSpaceSetUserData(item->space.get(), item->scene);
 
-	item.container->setParentItem(this);
-	item.container->setParent(this);
+	item->container->setParentItem(this);
+	item->container->setParent(this);
 
-	if (!item.scene->load(QUrl(basePath+'/'+def.file))) {
+	if (!item->scene->load(QUrl(basePath+'/'+def.file))) {
 		LOG_CERROR("game") << "Scene load error" << def.file;
-		item.container->deleteLater();
+		item->container->deleteLater();
 		return false;
 	}
 
-	item.scene->setAmbientSound(def.ambient);
-	item.scene->setBackgroundMusic(def.music);
-	item.scene->setSceneEffect(def.effect);
+	item->reloadTcodMap();
 
+	item->scene->setAmbientSound(def.ambient);
+	item->scene->setBackgroundMusic(def.music);
+	item->scene->setSceneEffect(def.effect);
+
+
+
+	cpCollisionHandler *handler = cpSpaceAddDefaultCollisionHandler(item->space.get());
+	handler->beginFunc = &TiledGamePrivate::collisionBegin;
+	handler->separateFunc = &TiledGamePrivate::collisionEnd;
+	handler->userData = d;
+
+	QMutexLocker locker(&d->m_stepMutex);
 
 	d->m_sceneList.push_back(std::move(item));
+
+
+	LOG_CINFO("game") << "!!!!!!!!" << d->m_sceneList.back()->space.get();
 
 	return true;
 }
@@ -607,17 +659,13 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 	Q_ASSERT(object);
 	Q_ASSERT(renderer);
 
-	b2::Shape::Params params;
-	params.density = 1.f;
-	params.isSensor = false;
-	params.enableSensorEvents = false;
-	params.enableContactEvents = true;
-	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureGround);
-
-	TiledObjectBody *mapObject = createFromMapObject<TiledObjectBody>(scene, object, renderer, params);
+	TiledObjectBody *mapObject = createObject<TiledObjectBody>(-1, scene, object->id(),
+															   object, this, renderer, CP_BODY_TYPE_STATIC);
 
 	if (!mapObject)
 		return nullptr;
+
+	mapObject->filterSet(TiledObjectBody::FixtureGround);
 
 	QPointF delta;
 
@@ -810,11 +858,11 @@ void TiledGame::synchronize()
 
 	locker.unlock();
 
-	for (const TiledGamePrivate::Scene &ptr : std::as_const(d->m_sceneList)) {
-		ptr.scene->reorderObjectsZ(d->getObjects<TiledObject>(ptr.scene));
+	for (const auto &ptr : std::as_const(d->m_sceneList)) {
+		ptr->scene->reorderObjectsZ(d->getObjects<TiledObject>(ptr->scene));
 
-		if (ptr.scene->m_debugDraw)
-			ptr.scene->m_debugDraw->update();
+		if (ptr->scene->m_debugDraw)
+			ptr->scene->m_debugDraw->update();
 	}
 }
 
@@ -825,6 +873,11 @@ void TiledGame::synchronize()
  */
 
 void TiledGame::timeSteppedEvent()
+{
+
+}
+
+void TiledGame::timeStepPrepareEvent()
 {
 
 }
@@ -1031,7 +1084,7 @@ bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, Ti
 	if (!transport->isOpen())
 		return false;
 
-	changeScene(object, newScene, newObject->bodyPosition());
+	///changeScene(object, newScene, newObject->bodyPosition());
 
 	if (newDirection != -1)
 		object->setFacingDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
@@ -1075,32 +1128,6 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
 		if (ptr->scene() == scene)
 			ptr->debugDraw(debugDraw);
 	}
-}
-
-
-/**
- * @brief TiledGame::bodyList
- * @return
- */
-
-const std::vector<std::unique_ptr<TiledObjectBody> > &TiledGame::bodyList() const
-{
-	QMutexLocker locker(&d->m_stepMutex);
-
-	return d->m_bodyList;
-}
-
-
-/**
- * @brief TiledGame::bodyList
- * @return
- */
-
-std::vector<std::unique_ptr<TiledObjectBody> > &TiledGame::bodyList()
-{
-	QMutexLocker locker(&d->m_stepMutex);
-
-	return d->m_bodyList;
 }
 
 
@@ -1281,6 +1308,8 @@ void TiledGame::updateStepTimer()
 
 	QMutexLocker locker(&d->m_stepMutex);
 
+	timeStepPrepareEvent();
+
 	while (d->m_stepLag >= 1000/60) {
 		if (m_funcBeforeWorldStep)
 			m_funcBeforeWorldStep(d->m_stepLag);
@@ -1318,12 +1347,12 @@ void TiledGame::updateStepTimer()
  * @param bodyPtr
  */
 
-TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body, const int &id, const int &owner)
+TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body, const int &sceneId, const int &id, const int &owner)
 {
 	Q_ASSERT(body);
 
 	if (id < 0 || (id == 0 && owner != 0)) {
-		LOG_CERROR("scene") << "Invalid object id" << owner << body->scene()->sceneId() << id;
+		LOG_CERROR("scene") << "Invalid object id" << owner << sceneId << id;
 		return nullptr;
 	}
 
@@ -1333,14 +1362,98 @@ TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body, co
 	if (id == 0 && owner == 0)
 		newId = ++d->m_nextBodyId;
 
-	if (d->findObject(body->scene()->sceneId(), newId, owner)) {
-		LOG_CERROR("scene") << "Object already exists" << owner << body->scene()->sceneId() << newId;
+	if (d->findObject(sceneId, newId, owner)) {
+		LOG_CERROR("scene") << "Object already exists" << owner << sceneId << newId;
 		return nullptr;
 	}
 
-	body->setObjectId(owner, body->scene()->sceneId(), newId);
+	body->setObjectId(owner, sceneId, newId);
 
 	return d->addObject(body);
+}
+
+
+
+
+/**
+ * @brief TiledGame::initSpace
+ * @param body
+ * @param scene
+ * @return
+ */
+
+bool TiledGame::initSpace(TiledObjectBody *body, TiledScene *scene)
+{
+	if (!body || !scene)
+		return false;
+
+	cpSpace *newSpace = scene->m_space;
+
+	Q_ASSERT(newSpace);
+
+	QMutexLocker locker(&d->m_stepMutex);
+
+	if (cpSpaceIsLocked(newSpace)) {
+		LOG_CERROR("scene") << "Space locked" << this;
+		return false;
+	}
+
+	body->setSpace(newSpace);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief TiledGame::changeSpace
+ * @param body
+ * @param newSpace
+ * @return
+ */
+
+bool TiledGame::changeSpace(TiledObjectBody *body, cpSpace *newSpace)
+{
+	if (!body)
+		return false;
+
+	cpSpace *old = body->space();
+
+	if (old == newSpace)
+		return true;
+
+	QMutexLocker locker(&d->m_stepMutex);
+
+	if (old && cpSpaceIsLocked(old)) {
+		LOG_CERROR("scene") << "Space locked" << this;
+		return false;
+	}
+
+
+	if (!newSpace) {
+		LOG_CTRACE("scene") << "Remove body" << this;
+		body->deleteBody();
+		return true;
+	}
+
+	if (old)
+		cpSpaceRemoveBody(old, body->body());
+
+	cpSpaceAddBody(newSpace, body->body());
+
+	static const auto fn = [](cpBody *body, cpShape *shape, void *) {
+		LOG_CERROR("scene") << "ADD shape" << shape << body;
+		if (shape->space)
+			cpSpaceRemoveShape(shape->space, shape);				// also cpBodyRemoveShape
+		cpSpaceAddShape(body->space, shape);					// also cpBodyAddShape
+	};
+
+	cpBodyEachShape(body->body(), fn, nullptr);
+
+	body->onSpaceChanged();
+
+	return true;
 }
 
 
@@ -1466,33 +1579,6 @@ void TiledGame::setMessageList(QQuickItem *newMessageList)
 
 
 
-/**
- * @brief TiledGame::changeScene
- * @param object
- * @param from
- * @param to
- */
-
-void TiledGame::changeScene(TiledObjectBody *object, TiledScene *to, const QPointF &toPoint)
-{
-	Q_ASSERT(object);
-	Q_ASSERT(to);
-
-	LOG_CERROR("scene") << "CHANGE SCENE ERROR";
-
-	return;
-
-	if (object->scene() == to) {
-		object->emplace(toPoint);
-	} else {
-		object->setWorld(to->world(), toPoint);
-	}
-
-	IsometricEntity *entity = dynamic_cast<IsometricEntity*>(object);
-
-	///if (entity)
-	///	entity->updateSprite();
-}
 
 
 /**
@@ -1506,37 +1592,6 @@ void TiledGame::worldStep(TiledObjectBody *body)
 	body->worldStep();
 }
 
-
-
-
-
-
-/**
- * @brief TiledGame::isGround
- * @param x
- * @param y
- * @return
- */
-
-bool TiledGame::isGround(const TiledScene *scene, const qreal &x, const qreal &y) const
-{
-	QMutexLocker locker(&d->m_stepMutex);
-
-	for (const auto &b : d->m_bodyList) {
-		if (!b || b->scene() != scene || !b->isBodyEnabled())
-			continue;
-
-		for (const b2::ShapeRef &sh : b->bodyShapes()) {
-			if (!(sh.GetFilter().categoryBits & TiledObjectBody::FixtureGround))
-				continue;
-
-			if (sh.TestPoint(b2Vec2(x, y)))
-				return true;
-		}
-	}
-
-	return false;
-}
 
 
 
@@ -2037,6 +2092,26 @@ bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector
 
 
 /**
+ * @brief TiledGame::iterateOverBodies
+ * @param func
+ */
+
+void TiledGame::iterateOverBodies(const std::function<void (TiledObjectBody *)> &func)
+{
+	if (!func)
+		return;
+
+	QMutexLocker locker(&d->m_stepMutex);
+
+	for (const auto &ptr : d->m_bodyList) {
+		if (TiledObjectBody *b = ptr.get())
+			func(b);
+	}
+}
+
+
+
+/**
  * @brief TiledGame::paused
  * @return
  */
@@ -2131,7 +2206,7 @@ std::vector<T *> TiledGamePrivate::getObjects(TiledScene *scene)
  */
 
 template<typename T, typename T2>
-std::vector<T *> TiledGamePrivate::getObjects(b2::World *world)
+std::vector<T *> TiledGamePrivate::getObjects(cpSpace *world)
 {
 	std::vector<T *> list;
 
@@ -2142,7 +2217,7 @@ std::vector<T *> TiledGamePrivate::getObjects(b2::World *world)
 
 	for (const auto &ptr : m_bodyList) {
 		if (T* o = dynamic_cast<T*>(ptr.get())) {
-			if (o->world() == world)
+			if (o->space() == world)
 				list.push_back(o);
 		}
 	}
@@ -2184,9 +2259,7 @@ TiledObjectBody *TiledGamePrivate::addObject(std::unique_ptr<TiledObjectBody> &b
 {
 	QMutexLocker locker(&m_stepMutex);
 
-	TiledObjectBody *ptr = m_addBodyList.emplace_back(std::move(body)).get();
-
-	return ptr;
+	return m_bodyList.emplace_back(std::move(body)).get();
 }
 
 
@@ -2204,9 +2277,6 @@ bool TiledGamePrivate::removeObject(TiledObjectBody *body)
 
 	bool ret = m_bodyList.cend() != std::find_if(m_bodyList.cbegin(), m_bodyList.cend(), [body](const auto &b) { return b.get() == body; } );
 
-	if (!ret)
-		ret = m_addBodyList.cend() != std::find_if(m_addBodyList.cbegin(), m_addBodyList.cend(), [body](const auto &b) { return b.get() == body; } );
-
 	if (ret)
 		m_removeBodyList.push_back(body);
 
@@ -2221,13 +2291,6 @@ bool TiledGamePrivate::removeObject(TiledObjectBody *body)
 void TiledGamePrivate::updateObjects()
 {
 	QMutexLocker locker(&m_stepMutex);
-
-	if (!m_addBodyList.empty()) {
-		for (auto &ptr : m_addBodyList)
-			m_bodyList.push_back(std::move(ptr));
-
-		m_addBodyList.clear();
-	}
 
 	if (!m_removeBodyList.empty()) {
 		for (auto it = m_bodyList.begin(); it != m_bodyList.end(); ) {
@@ -2269,49 +2332,414 @@ void TiledGamePrivate::stepWorlds()
 {
 	QMutexLocker locker(&m_stepMutex);
 
-	for (const Scene &ptr : std::as_const(m_sceneList)) {
-		ptr.world->Step(1/60., 4);
-
-		const b2SensorEvents sensors = ptr.world->GetSensorEvents();
-		const b2ContactEvents events = ptr.world->GetContactEvents();
-
-		for (int i=0; i<sensors.beginCount; ++i) {
-			const b2SensorBeginTouchEvent &event = sensors.beginEvents[i];
-
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.sensorShapeId).GetBody()))
-				b->onShapeContactBegin(event.sensorShapeId, event.visitorShapeId);
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.visitorShapeId).GetBody()))
-				b->onShapeContactBegin(event.visitorShapeId, event.sensorShapeId);
-		}
-
-		for (int i=0; i<sensors.endCount; ++i) {
-			const b2SensorEndTouchEvent &event = sensors.endEvents[i];
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.sensorShapeId).GetBody()))
-				b->onShapeContactEnd(event.sensorShapeId, event.visitorShapeId);
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.visitorShapeId).GetBody()))
-				b->onShapeContactEnd(event.visitorShapeId, event.sensorShapeId);
-		}
-
-		for (int i=0; i<events.beginCount; ++i) {
-			const b2ContactBeginTouchEvent &event = events.beginEvents[i];
-
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdA).GetBody()))
-				b->onShapeContactBegin(event.shapeIdA, event.shapeIdB);
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdB).GetBody()))
-				b->onShapeContactBegin(event.shapeIdB, event.shapeIdA);
-		}
-
-		for (int i=0; i<events.endCount; ++i) {
-			const b2ContactEndTouchEvent &event = events.endEvents[i];
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdA).GetBody()))
-				b->onShapeContactEnd(event.shapeIdA, event.shapeIdB);
-			if (TiledObjectBody *b = TiledObjectBody::fromBodyRef(b2::ShapeRef(event.shapeIdB).GetBody()))
-				b->onShapeContactEnd(event.shapeIdB, event.shapeIdA);
-		}
+	for (const auto &ptr : std::as_const(m_sceneList)) {
+		cpSpaceStep(ptr->space.get(), 1./60.);
 	}
 
 	for (const auto &ptr : std::as_const(m_bodyList)) {
 		if (ptr)
 			q->worldStep(ptr.get());
 	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief TiledScene::reloadTcodMap
+ */
+
+void TiledGame::reloadTcodMap(cpSpace *space)
+{
+	if (!space)
+		return;
+
+	QMutexLocker locker(&d->m_stepMutex);
+
+	auto it = std::find_if(d->m_sceneList.begin(),
+						   d->m_sceneList.end(), [space](const auto &ptr) {
+		return ptr->space.get() == space;
+	});
+
+	if (it == d->m_sceneList.end()) {
+		LOG_CERROR("scene") << "Invalid space" << space;
+		return;
+	}
+
+	it->get()->reloadTcodMap();
+}
+
+
+
+/**
+ * @brief TiledScene::findShortestPath
+ * @param body
+ * @param to
+ * @return
+ */
+
+std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, const QPointF &to) const
+{
+	if (!body)
+		return std::nullopt;
+
+	const TiledReportedFixtureMap &map = body->rayCast(to, TiledObjectBody::FixtureGround, false);
+
+	bool isWalkable = true;
+
+	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
+		isWalkable = false;
+		break;
+	}
+
+	//const QPointF pos = body->bodyPosition();
+	//if (isWalkable && !m_game->isGround(this, pos.x(), pos.y()))
+
+	if (isWalkable)
+		return QPolygonF() << body->bodyPosition() << to;
+
+	QMutexLocker locker(&d->m_stepMutex);
+
+	cpSpace *space = body->space();
+
+	if (!space)
+		return std::nullopt;
+
+	const auto it = std::find_if(d->m_sceneList.cbegin(),
+								 d->m_sceneList.cend(), [space](const auto &ptr) {
+		return ptr->space.get() == space;
+	});
+
+	if (it == d->m_sceneList.cend())
+		return std::nullopt;
+
+	return it->get()->tcodMap.findShortestPath(body->bodyPosition(), to);
+}
+
+
+
+/**
+ * @brief TiledScene::findShortestPath
+ * @param body
+ * @param x2
+ * @param y2
+ * @return
+ */
+
+std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, const qreal &x2, const qreal &y2) const
+{
+	return findShortestPath(body, QPointF{x2, y2});
+}
+
+
+
+
+/**
+ * @brief TiledGamePrivate::Scene::TcodMapData::findShortestPath
+ * @param from
+ * @param to
+ * @return
+ */
+
+std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(const QPointF &from, const QPointF &to) const
+{
+	return findShortestPath(from.x(), from.y(), to.x(), to.y());
+}
+
+
+
+/**
+ * @brief TiledGamePrivate::Scene::TcodMapData::findShortestPath
+ * @param x1
+ * @param y1
+ * @param x2
+ * @param y2
+ * @return
+ */
+
+std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const
+{
+	if (qFuzzyCompare(x1, x2) && qFuzzyCompare(y1, y2))
+		return std::nullopt;
+
+	if (!map)
+		return std::nullopt;
+
+	//TCODPath path(m_tcodMap.map.get());
+	TCODDijkstra path(map.get(), 1.0);
+
+	const int chX1 = std::floor((x1-viewport.left())/chunkWidth);
+	const int chX2 = std::floor((x2-viewport.left())/chunkWidth);
+	const int chY1 = std::floor((y1-viewport.top())/chunkHeight);
+	const int chY2 = std::floor((y2-viewport.top())/chunkHeight);
+
+	if (!map->isInBounds(chX1, chY1) ||
+			!map->isInBounds(chX2, chY2))
+		return std::nullopt;
+
+	if (!map->isWalkable(chX1, chY1))
+		return std::nullopt;
+
+	// Ha közel vagyunk (same chunk), nem is számolunk
+
+	if (chX1 == chX2 && chY1 == chY2)
+		return QPolygonF() << QPointF(x1, y1) << QPointF(x2, y2);
+
+	path.compute(chX1, chY1);
+
+	if (!path.setPath(chX2, chY2))
+		return std::nullopt;
+
+	QPolygonF polygon;
+
+
+	for (int i=0; i<path.size()-1; ++i) {
+		int x, y;
+		path.get(i, &x, &y);
+
+		// Ha az első chunk ugyanaz, mint amiben vagyunk (elvileg mindig)
+		if (i == 0 && x == chX1 && y == chY1)
+			polygon << QPointF(x1, y1);
+		else
+			polygon << QPointF(
+						   viewport.left() + (x+0.5) * chunkWidth,
+						   viewport.top() + (y+0.5) * chunkHeight
+						   );
+	}
+
+	// Az utolsó chunk közepe helyett a végleges pozíciót adjuk meg
+
+	polygon << QPointF(x2, y2);
+
+	/*
+	struct TmpPolygon {
+		int x = 0;
+		int y = 0;
+		QPointF point;
+		bool add = false;
+	};
+
+	QList<TmpPolygon> tmpPolygon;
+
+	static const auto fnCheck = [](const QRectF &area, const QLineF &line) -> bool {
+		return line.intersects(QLineF{area.topLeft(), area.topRight()}) == QLineF::BoundedIntersection ||
+				line.intersects(QLineF{area.topRight(), area.bottomRight()}) == QLineF::BoundedIntersection ||
+				line.intersects(QLineF{area.bottomLeft(), area.bottomRight()}) == QLineF::BoundedIntersection ||
+				line.intersects(QLineF{area.topLeft(), area.bottomLeft()}) == QLineF::BoundedIntersection
+				;
+	};
+
+	tmpPolygon.emplace_back(-1, -1, QPointF{x1, y1}, true);
+	int lastIndex = 1;
+
+	for (int i=0; i<=path.size(); ++i) {
+		QPointF currentPoint;
+		int x, y;
+
+		if (i < path.size()) {
+			path.get(i, &x, &y);
+
+			currentPoint.setX((x+0.5) * m_tcodMap.chunkWidth);
+			currentPoint.setY((y+0.5) * m_tcodMap.chunkHeight);
+		} else {
+			x = -1;
+			y = -1;
+			currentPoint.setX(x2);
+			currentPoint.setY(y2);
+		}
+
+		if (lastIndex < tmpPolygon.size()) {
+			QList<TmpPolygon>::iterator lastPtr = tmpPolygon.begin() + lastIndex;
+
+			const QLineF line(lastPtr->point, currentPoint);
+
+			int idx = lastIndex;
+
+			for (auto it = lastPtr; it != tmpPolygon.end(); ++it) {
+				const QRectF chunk(QPointF(m_tcodMap.chunkWidth * it->x, m_tcodMap.chunkHeight * it->y),
+								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight));
+
+				if (!fnCheck(chunk, line)) {
+					tmpPolygon.last().add = true;
+					lastIndex = idx+1;
+					break;
+				}
+
+				++idx;
+			}
+		}
+
+		tmpPolygon.emplace_back(x, y, currentPoint, i == path.size());
+	}
+
+	QPolygonF polygon;
+
+	for (const TmpPolygon &p : tmpPolygon) {
+		if (p.add)
+			polygon.append(p.point);
+	}
+	*/
+
+	return polygon;
+}
+
+
+
+
+void TiledGamePrivate::Scene::spaceDestroy(cpSpace *space)
+{
+	LOG_CINFO("scene") << "*** DESTROY" << space;
+
+	// TODO: delete bodies
+
+	if (!space)
+		return;
+	cpSpaceFree(space);
+}
+
+
+
+
+/**
+ * @brief TiledGamePrivate::Scene::reloadTcodMap
+ */
+
+void TiledGamePrivate::Scene::reloadTcodMap()
+{
+	if (!space || cpSpaceIsLocked(space.get())) {
+		LOG_CERROR("scene") << "Missing or locked space" << this;
+		return;
+	}
+
+
+	tcodMap.map.reset();
+
+	if (scene && !scene->viewport().isEmpty()) {
+		LOG_CTRACE("scene") << "Replace viewport" << space.get() << scene->viewport();
+		tcodMap.viewport = scene->viewport();
+	}
+
+
+	if (tcodMap.viewport.isEmpty()) {
+		LOG_CERROR("scene") << "Invalid viewport" << space.get();
+		return;
+	}
+
+	static const qreal chunkSize = 30.;
+
+	const int wSize = std::ceil(tcodMap.viewport.width() / chunkSize);
+	const int hSize = std::ceil(tcodMap.viewport.height() / chunkSize);
+
+	LOG_CDEBUG("scene") << "Reload tcod map" << wSize << hSize << space.get();
+
+	tcodMap.chunkWidth = tcodMap.viewport.width() / wSize;
+	tcodMap.chunkHeight = tcodMap.viewport.height() / hSize;
+
+	tcodMap.map.reset(new TCODMap(wSize, hSize));
+
+	Q_ASSERT(tcodMap.map.get());
+
+	tcodMap.map->clear(true, true);
+
+	for (int i=0; i<wSize; ++i) {
+		for (int j=0; j<hSize; ++j) {
+			cpShape *chunk = cpBoxShapeNew(NULL,
+										   tcodMap.chunkWidth/2,
+										   tcodMap.chunkHeight/2,
+										   0);
+			cpTransform tr = cpTransformIdentity;
+			tr.tx = tcodMap.viewport.left() + tcodMap.chunkWidth*(i+0.5);
+			tr.ty = tcodMap.viewport.top() + tcodMap.chunkHeight*(j+0.5);
+			cpShapeUpdate(chunk, tr);
+
+
+			struct _d {
+				int i, j;
+				TCODMap *map;
+			};
+
+			_d d;
+			d.i = i;
+			d.j = j;
+			d.map = tcodMap.map.get();
+
+			static const auto fn = [](cpShape *shape, cpContactPointSet *, void *data) {
+				if (cpShapeGetFilter(shape).categories & TiledObjectBody::FixtureGround) {
+					_d *d = (_d*)(data);
+					d->map->setProperties(d->i, d->j, true, false);
+				}
+			};
+
+			cpSpaceShapeQuery(space.get(), chunk, fn, &d);
+
+			cpShapeFree(chunk);
+		}
+	}
+}
+
+
+
+/**
+ * @brief TiledGamePrivate::Scene::destroyScene
+ */
+
+void TiledGamePrivate::Scene::destroyScene()
+{
+	LOG_CTRACE("scene") << "DESTROY SCENE" << this << space.get();
+
+	space.reset();
+}
+
+
+
+
+
+/**
+ * @brief TiledGamePrivate::collisionBegin
+ * @param arb
+ * @param space
+ * @param userData
+ * @return
+ */
+
+cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *space, cpDataPointer userData)
+{
+	TiledGamePrivate *d = (TiledGamePrivate *) userData;
+
+	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
+
+	LOG_CDEBUG("scene") << "COLLISION BEGIN" << space << TiledObjectBody::fromShapeRef(shapeA)
+						<< TiledObjectBody::fromShapeRef(shapeB)
+						<< d;
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief TiledGamePrivate::collisionEnd
+ * @param arb
+ * @param space
+ * @param userData
+ */
+
+void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *space, cpDataPointer userData)
+{
+	TiledGamePrivate *d = (TiledGamePrivate *) userData;
+
+	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
+
+	LOG_CDEBUG("scene") << "COLLISION END" << space << TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA))
+						<< TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB))
+						<< d;
 }

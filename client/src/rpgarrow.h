@@ -42,7 +42,7 @@ class RpgArrow : public RpgBullet
 	QML_ELEMENT
 
 public:
-	RpgArrow(TiledScene *scene = nullptr);
+	RpgArrow(TiledGame *game = nullptr);
 	virtual ~RpgArrow() {}
 
 protected:

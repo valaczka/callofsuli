@@ -28,8 +28,8 @@
 #define TILEDDEBUGDRAW_H
 
 #include <QQuickItem>
-#include <box2cpp/box2cpp.h>
 #include <qsggeometry.h>
+#include <chipmunk/chipmunk.h>
 
 #include "tiledscene.h"
 
@@ -53,30 +53,30 @@ public:
 	TiledScene *scene() const;
 	void setScene(TiledScene *newScene);
 
-	void drawCircle(const b2Vec2 &center, const float &radius, const QColor &color, const float &lineWidth = 1.);
+	void drawCircle(const cpVect &center, const float &radius, const QColor &color, const float &lineWidth = 1.);
 	void drawCircle(const QPointF &center, const float &radius, const QColor &color, const float &lineWidth = 1.) {
-		drawCircle(b2Vec2{(float) center.x(), (float) center.y()}, radius, color, lineWidth);
+		drawCircle(cpVect{.x = center.x(), .y = center.y()}, radius, color, lineWidth);
 	}
-	void drawSolidCircle(const b2Transform &transform, const float &radius, const QColor &color);
-	void drawSolidCircle(const QPointF &center, const float &radius, const QColor &color);
-	void drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColor &color, const float &lineWidth = 1.);
+	void drawSolidCircle(const cpVect &center, const float &radius, const QColor &color);
+	void drawSolidCircle(const QPointF &center, const float &radius, const QColor &color) {
+		drawSolidCircle(cpVect{.x = center.x(), .y = center.y()}, radius, color);
+	}
+	void drawSegment(const cpVect &p1, const cpVect &p2, const QColor &color, const float &lineWidth = 1.);
 	void drawPolygon(const QPolygonF &polygon, const QColor &color, const float &lineWidth = 1.);
-	void drawPolygon(const b2Vec2* vertices, const int &vertexCount, const QColor &color, const float &lineWidth = 1.);
-	void drawPolygon(const b2Transform &transform, const b2Vec2* vertices, const int &vertexCount, const QColor &color,
-					 const float &lineWidth = 1.);
-	void drawPolyLines(const b2Vec2* vertices, const int &vertexCount, const QColor &color, const float &lineWidth = 1.);
-	void drawSolidPolygon(const b2Transform &transform, const b2Vec2* vertices, const int &vertexCount,
+	void drawPolygon(const cpShape *polygonShape, const QPointF &center, const QColor &color, const float &lineWidth = 1.);
+	void drawPolygon(const cpVect* vertices, const int &vertexCount, const QColor &color, const float &lineWidth = 1.);
+	void drawPolyLines(const cpVect* vertices, const int &vertexCount, const QColor &color, const float &lineWidth = 1.);
+	void drawSolidPolygon(const QPolygonF &polygon, const QColor &color);
+	void drawSolidPolygon(cpShape *polygonShape, const QPointF &center, const QColor &color);
+	void drawSolidPolygon(const cpVect* vertices, const int &vertexCount,
 						  const float &radius, const QColor &color);
 
-	static QColor box2dColorToQColor(const b2HexColor &color, const float &alpha = 1.0f);
 
 signals:
 	void sceneChanged();
 
 private:
 	void createNode(std::unique_ptr<QSGGeometry> &geometry, const QColor &color);
-
-	static QPointF getPolygonVertex(const b2Vec2* vertices, const int num, const b2Transform &transform);
 
 	QPointer<TiledScene> m_scene;
 	QSGNode *m_parentNode = nullptr;

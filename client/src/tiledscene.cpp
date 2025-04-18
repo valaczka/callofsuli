@@ -26,7 +26,6 @@
 
 #include "tiledscene.h"
 #include "Logger.h"
-#include "libtcod/libtcod_int.h"
 #include "tiledobject.h"
 #include "tiledvisualitem.h"
 #include "tilelayeritem.h"
@@ -35,7 +34,6 @@
 #include "application.h"
 #include "isometricobject.h"
 
-#include "libtcod/path.hpp"
 #include <libtiled/map.h>
 #include <libtiled/objectgroup.h>
 #include <libtiled/grouplayer.h>
@@ -129,156 +127,6 @@ bool TiledScene::load(const QUrl &url)
 	}
 
 	return false;
-}
-
-
-/**
- * @brief TiledScene::findShortestPath
- * @param from
- * @param to
- * @return
- */
-
-std::optional<QPolygonF> TiledScene::findShortestPath(const QPointF &from, const QPointF &to) const
-{
-	return findShortestPath(from.x(), from.y(), to.x(), to.y());
-}
-
-
-
-/**
- * @brief TiledScene::findShortestPath
- * @param x1
- * @param y1
- * @param x2
- * @param y2
- * @return
- */
-
-std::optional<QPolygonF> TiledScene::findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const
-{
-	if (qFuzzyCompare(x1, x2) && qFuzzyCompare(y1, y2))
-		return std::nullopt;
-
-	if (!m_tcodMap.map)
-		return std::nullopt;
-
-	//TCODPath path(m_tcodMap.map.get());
-	TCODDijkstra path(m_tcodMap.map.get(), 1.0);
-
-	const int chX1 = std::floor((x1-m_viewport.left())/m_tcodMap.chunkWidth);
-	const int chX2 = std::floor((x2-m_viewport.left())/m_tcodMap.chunkWidth);
-	const int chY1 = std::floor((y1-m_viewport.top())/m_tcodMap.chunkHeight);
-	const int chY2 = std::floor((y2-m_viewport.top())/m_tcodMap.chunkHeight);
-
-	if (!m_tcodMap.map->isInBounds(chX1, chY1) ||
-			!m_tcodMap.map->isInBounds(chX2, chY2))
-		return std::nullopt;
-
-	if (!m_tcodMap.map->isWalkable(chX1, chY1))
-		return std::nullopt;
-
-	// Ha közel vagyunk (same chunk), nem is számolunk
-
-	if (chX1 == chX2 && chY1 == chY2)
-		return QPolygonF() << QPointF(x1, y1) << QPointF(x2, y2);
-
-	path.compute(chX1, chY1);
-
-	if (!path.setPath(chX2, chY2))
-		return std::nullopt;
-
-	QPolygonF polygon;
-
-
-	for (int i=0; i<path.size()-1; ++i) {
-		int x, y;
-		path.get(i, &x, &y);
-
-		// Ha az első chunk ugyanaz, mint amiben vagyunk (elvileg mindig)
-		if (i == 0 && x == chX1 && y == chY1)
-			polygon << QPointF(x1, y1);
-		else
-			polygon << QPointF(
-						   m_viewport.left() + (x+0.5) * m_tcodMap.chunkWidth,
-						   m_viewport.top() + (y+0.5) * m_tcodMap.chunkHeight
-						   );
-	}
-
-	// Az utolsó chunk közepe helyett a végleges pozíciót adjuk meg
-
-	polygon << QPointF(x2, y2);
-
-	/*
-	struct TmpPolygon {
-		int x = 0;
-		int y = 0;
-		QPointF point;
-		bool add = false;
-	};
-
-	QList<TmpPolygon> tmpPolygon;
-
-	static const auto fnCheck = [](const QRectF &area, const QLineF &line) -> bool {
-		return line.intersects(QLineF{area.topLeft(), area.topRight()}) == QLineF::BoundedIntersection ||
-				line.intersects(QLineF{area.topRight(), area.bottomRight()}) == QLineF::BoundedIntersection ||
-				line.intersects(QLineF{area.bottomLeft(), area.bottomRight()}) == QLineF::BoundedIntersection ||
-				line.intersects(QLineF{area.topLeft(), area.bottomLeft()}) == QLineF::BoundedIntersection
-				;
-	};
-
-	tmpPolygon.emplace_back(-1, -1, QPointF{x1, y1}, true);
-	int lastIndex = 1;
-
-	for (int i=0; i<=path.size(); ++i) {
-		QPointF currentPoint;
-		int x, y;
-
-		if (i < path.size()) {
-			path.get(i, &x, &y);
-
-			currentPoint.setX((x+0.5) * m_tcodMap.chunkWidth);
-			currentPoint.setY((y+0.5) * m_tcodMap.chunkHeight);
-		} else {
-			x = -1;
-			y = -1;
-			currentPoint.setX(x2);
-			currentPoint.setY(y2);
-		}
-
-		if (lastIndex < tmpPolygon.size()) {
-			QList<TmpPolygon>::iterator lastPtr = tmpPolygon.begin() + lastIndex;
-
-			const QLineF line(lastPtr->point, currentPoint);
-
-			int idx = lastIndex;
-
-			for (auto it = lastPtr; it != tmpPolygon.end(); ++it) {
-				const QRectF chunk(QPointF(m_tcodMap.chunkWidth * it->x, m_tcodMap.chunkHeight * it->y),
-								   QSizeF(m_tcodMap.chunkWidth, m_tcodMap.chunkHeight));
-
-				if (!fnCheck(chunk, line)) {
-					tmpPolygon.last().add = true;
-					lastIndex = idx+1;
-					break;
-				}
-
-				++idx;
-			}
-		}
-
-		tmpPolygon.emplace_back(x, y, currentPoint, i == path.size());
-	}
-
-	QPolygonF polygon;
-
-	for (const TmpPolygon &p : tmpPolygon) {
-		if (p.add)
-			polygon.append(p.point);
-	}
-	*/
-
-	return polygon;
 }
 
 
@@ -420,114 +268,6 @@ void TiledScene::debugDrawEvent(TiledDebugDraw *debugDraw)
 
 
 
-/**
- * @brief TiledScene::reloadTcodMap
- */
-
-void TiledScene::reloadTcodMap()
-{
-	m_tcodMap.map.reset();
-
-	static const qreal chunkSize = 30.;
-
-	const int wSize = std::ceil(m_viewport.width() / chunkSize);
-	const int hSize = std::ceil(m_viewport.height() / chunkSize);
-
-	LOG_CDEBUG("scene") << "Create tcod map" << wSize << hSize;
-
-	m_tcodMap.chunkWidth = m_viewport.width() / wSize;
-	m_tcodMap.chunkHeight = m_viewport.height() / hSize;
-
-	m_tcodMap.map.reset(new TCODMap(wSize, hSize));
-
-	Q_ASSERT(m_tcodMap.map.get());
-
-	m_tcodMap.map->clear(true, true);
-
-	if (!m_world)
-		return;
-
-	for (int i=0; i<wSize; ++i) {
-		for (int j=0; j<hSize; ++j) {
-			b2Polygon chunk = b2MakeOffsetBox(
-								  m_tcodMap.chunkWidth/2,
-								  m_tcodMap.chunkHeight/2,
-								  b2Vec2{
-									  (float) (m_viewport.left() + m_tcodMap.chunkWidth*(i+0.5)),
-									  (float) (m_viewport.top() + m_tcodMap.chunkHeight*(j+0.5)),
-								  },
-								  b2MakeRot(0.)
-								  );
-
-
-			b2QueryFilter filter = b2DefaultQueryFilter();
-			filter.maskBits = TiledObjectBody::FixtureGround;
-
-			m_world->Overlap(chunk, b2Transform_identity,
-							 filter,
-							 [this, i, j](b2::ShapeRef shape) -> bool {
-				TiledObjectBody *b = TiledObject::fromBodyRef(shape.GetBody());
-				if (!b)
-					LOG_CERROR("scene") << "Invalid shape";
-				else if (b->isBodyEnabled()) {
-					m_tcodMap.map->setProperties(i, j, true, false);
-				}
-				return true;
-			});
-		}
-	}
-
-}
-
-
-
-/**
- * @brief TiledScene::findShortestPath
- * @param body
- * @param to
- * @return
- */
-
-std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, const QPointF &to) const
-{
-	if (!body)
-		return std::nullopt;
-
-	const TiledReportedFixtureMap &map = body->rayCast(to, TiledObjectBody::FixtureGround, false);
-
-	bool isWalkable = true;
-
-	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
-		isWalkable = false;
-		break;
-	}
-
-	//const QPointF pos = body->bodyPosition();
-	//if (isWalkable && !m_game->isGround(this, pos.x(), pos.y()))
-
-	if (isWalkable)
-		return QPolygonF() << body->bodyPosition() << to;
-
-	return findShortestPath(body->bodyPosition(), to);
-}
-
-
-
-/**
- * @brief TiledScene::findShortestPath
- * @param body
- * @param x2
- * @param y2
- * @return
- */
-
-std::optional<QPolygonF> TiledScene::findShortestPath(TiledObjectBody *body, const qreal &x2, const qreal &y2) const
-{
-	return findShortestPath(body, QPointF{x2, y2});
-}
-
-
-
 
 
 /**
@@ -616,28 +356,6 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::ImageLayer *layer)
 
 
 
-
-
-/**
- * @brief TiledScene::sceneId
- * @return
- */
-
-int TiledScene::sceneId() const
-{
-	return m_sceneId;
-}
-
-void TiledScene::setSceneId(int newSceneId)
-{
-	if (m_sceneId == newSceneId)
-		return;
-	m_sceneId = newSceneId;
-	emit sceneIdChanged();
-}
-
-
-
 /**
  * @brief TiledScene::game
  * @return
@@ -695,8 +413,6 @@ void TiledScene::refresh()
 
 	if (m_viewport.isEmpty())
 		setViewport(rect);
-
-	reloadTcodMap();
 }
 
 

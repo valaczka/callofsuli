@@ -40,12 +40,12 @@ class RpgLightning : public RpgBullet
 	Q_OBJECT
 
 public:
-	RpgLightning(TiledScene *scene = nullptr);
+	RpgLightning(TiledGame *game = nullptr);
 	virtual ~RpgLightning() {}
 
 protected:
 	void load() override final;
-	virtual void impactEvent(TiledObjectBody *base, b2::ShapeRef shape) override final;
+	virtual void impactEvent(TiledObjectBody *base, cpShape *shape) override final;
 };
 
 

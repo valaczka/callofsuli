@@ -28,8 +28,8 @@
 #include "rpgplayer.h"
 
 
-RpgHpPickable::RpgHpPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::PickableBaseData::PickableHp, scene)
+RpgHpPickable::RpgHpPickable(RpgGame *game)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableHp, game)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkBall1, this));
 }

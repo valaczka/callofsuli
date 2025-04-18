@@ -38,7 +38,7 @@ class RpgKeyPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-    RpgKeyPickable(TiledScene *scene = nullptr);
+    RpgKeyPickable(RpgGame *game = nullptr);
 
 	bool playerPick(RpgPlayer *) override final;
 

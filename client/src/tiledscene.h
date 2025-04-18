@@ -27,12 +27,11 @@
 #ifndef TILEDSCENE_H
 #define TILEDSCENE_H
 
-#include <box2cpp/box2cpp.h>
-#include "libtcod/fov.hpp"
 #include "libtiledquick/mapitem.h"
 #include "tiledobject.h"
 #include <QQuickItem>
 #include <QElapsedTimer>
+#include "chipmunk/chipmunk.h"
 
 
 class TiledGame;
@@ -98,12 +97,11 @@ class TiledScene : public TiledQuick::MapItem
 	QML_ELEMENT
 
 	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
-	Q_PROPERTY(int sceneId READ sceneId WRITE setSceneId NOTIFY sceneIdChanged FINAL)
 	Q_PROPERTY(QString ambientSound READ ambientSound WRITE setAmbientSound NOTIFY ambientSoundChanged FINAL)
 	Q_PROPERTY(QString backgroundMusic READ backgroundMusic WRITE setBackgroundMusic NOTIFY backgroundMusicChanged FINAL)
 	Q_PROPERTY(QRectF onScreenArea READ onScreenArea WRITE setOnScreenArea NOTIFY onScreenAreaChanged FINAL)
 	Q_PROPERTY(TiledSceneDefinition::SceneEffect sceneEffect READ sceneEffect WRITE setSceneEffect NOTIFY sceneEffectChanged FINAL)
-	Q_PROPERTY(QRectF viewport READ viewport WRITE setViewport NOTIFY viewportChanged FINAL)
+	Q_PROPERTY(QRectF viewport READ viewport NOTIFY viewportChanged FINAL)
 
 public:
 	explicit TiledScene(QQuickItem *parent = nullptr);
@@ -119,22 +117,13 @@ public:
 
 	Q_INVOKABLE bool load(const QUrl &url);
 
-	void reloadTcodMap();
-	std::optional<QPolygonF> findShortestPath(TiledObjectBody *body, const QPointF &to) const;
-	std::optional<QPolygonF> findShortestPath(TiledObjectBody *body, const qreal &x2, const qreal &y2) const;
-	std::optional<QPolygonF> findShortestPath(const QPointF &from, const QPointF &to) const;
-	std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
-
 	void startMusic();
 	void stopMusic();
 
-	b2::World *world() const { return m_world; }
+	int sceneId() const { return m_sceneId; }
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
-
-	int sceneId() const;
-	void setSceneId(int newSceneId);
 
 	QString ambientSound() const;
 	void setAmbientSound(const QString &newAmbientSound);
@@ -161,49 +150,21 @@ signals:
 	void onScreenAreaChanged();
 	void sceneEffectChanged();
 	void viewportChanged();
-	void testPointsChanged();
 
 protected:
 	virtual void refresh() override;
 
-	struct TcodMapData {
-		std::unique_ptr<TCODMap> map;
-		qreal chunkWidth = 0.;
-		qreal chunkHeight = 0.;
-	};
-
 	QList<QQuickItem*> m_visualItems;
 
-	//std::unique_ptr<TiledQuick::MapLoader> m_mapLoader;
+	cpSpace *m_space = nullptr;
+	int m_sceneId = -1;
+
 	std::unique_ptr<Tiled::Map> m_map;
-	b2::World *m_world = nullptr;
 	QString m_ambientSound;
 	QString m_backgroundMusic;
 	TiledSceneDefinition::SceneEffect m_sceneEffect = TiledSceneDefinition::EffectNone;
 	QRectF m_onScreenArea;
 	QRectF m_viewport;
-
-	TcodMapData m_tcodMap;
-
-
-/// TEST POINTS
-/*private:
-	Q_PROPERTY(QVariantList testPoints READ testPoints WRITE setTestPoints NOTIFY testPointsChanged FINAL)
-	QVariantList m_testPoints;
-
-public:
-	QVariantList testPoints() const { return m_testPoints; }
-	void setTestPoints(const QVariantList &list) {
-#ifdef QT_NO_DEBUG
-		Q_UNUSED(list);
-#else
-		if (m_testPoints == list)
-			return;
-		m_testPoints = list;
-		emit testPointsChanged();
-	}
-#endif*/
-/// ----
 
 
 private:
@@ -236,11 +197,8 @@ private:
 	void debugDrawEvent(TiledDebugDraw *debugDraw);
 
 	TiledGame *m_game = nullptr;
-	int m_sceneId = -1;
 
 	std::vector<DynamicZ> m_dynamicZList;
-	[[deprecated]] QElapsedTimer m_worldStepTimer;
-	[[deprecated]] std::vector<qreal> m_stepFactors;
 
 	friend class TiledGame;
 	friend class TiledDebugDraw;

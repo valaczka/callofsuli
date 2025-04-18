@@ -31,6 +31,7 @@
 #include "rpgplayer.h"
 #include "utils_.h"
 
+#include <chipmunk/chipmunk.h>
 
 
 
@@ -54,6 +55,8 @@ private:
 	ActionRpgMultiplayerGame *const d;
 
 	friend class ActionRpgMultiplayerGame;
+
+	cpSpace *m_space = nullptr;
 };
 
 
@@ -90,6 +93,8 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	connect(m_engine, &RpgUdpEngine::gameError, this, &ActionRpgMultiplayerGame::setError);
 
 	m_keepAliveTimer.start(1000, this);
+
+	q->m_space = cpSpaceNew();
 }
 
 
@@ -101,6 +106,7 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 
 ActionRpgMultiplayerGame::~ActionRpgMultiplayerGame()
 {
+	cpSpaceFree(q->m_space);
 	delete q;
 	q = nullptr;
 	LOG_CDEBUG("game") << "ActionRpgMultiplayerGame destroyed";
@@ -298,10 +304,6 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 		worldTerrainSelect(m_engine->m_gameConfig.terrain, true);
 
 	updatePlayersModel(m_engine->getPlayerList());
-
-	syncPlayerList();
-	syncEnemyList();
-	syncBulletList();
 
 	locker.unlock();
 
@@ -567,16 +569,16 @@ void ActionRpgMultiplayerGame::syncBulletList()
 	if (!m_rpgGame)
 		return;
 
-	QList<RpgBullet*> bList;
+	QList<QPointer<RpgBullet>> bList;
 
 
 	// Load all bodies
 
-	for (auto &b : m_rpgGame->bodyList()) {
-		if (RpgBullet *bullet = dynamic_cast<RpgBullet*>(b.get())) {
+	m_rpgGame->iterateOverBodies([&bList](TiledObjectBody *b){
+		if (RpgBullet *bullet = dynamic_cast<RpgBullet*>(b)) {
 			bList.append(bullet);
 		}
-	}
+	});
 
 
 	// Sync bullets
@@ -632,6 +634,8 @@ void ActionRpgMultiplayerGame::syncBulletList()
 	// Delete missing bullets
 
 	for (RpgBullet *b : bList) {
+		if (!b)
+			continue;
 
 		// Ki kell hagyni a sajátunkat, különben azonnal kitörli
 
@@ -778,18 +782,35 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::onTimeStepPrepare
+ */
+
+void ActionRpgMultiplayerGame::onTimeStepPrepare()
+{
+	QMutexLocker locker (&m_engine->m_mutex);
+
+	syncPlayerList();
+	syncEnemyList();
+	syncBulletList();
+}
+
+
+
+/**
  * @brief ActionRpgMultiplayerGame::onTimeStepped
  */
 
 void ActionRpgMultiplayerGame::onTimeStepped()
 {
-	for (auto &b : m_rpgGame->bodyList()) {
-		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b.get())) {
+	QMutexLocker locker (&m_engine->m_mutex);
+
+	m_rpgGame->iterateOverBodies([this](TiledObjectBody *b){
+		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b)) {
 			if (iface->stage() == RpgGameData::LifeCycle::StageDestroy) {
 				onBulletDelete(iface);
 			}
 		}
-	}
+	});
 }
 
 
@@ -1094,33 +1115,27 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 
 	const bool forceKeyFrame = q->m_lastSentTick < 0 || (tick - q->m_lastSentTick >= 1000./30.);
 
-	for (auto &b : m_rpgGame->bodyList()) {
-		if (RpgPlayer *iface = dynamic_cast<RpgPlayer*> (b.get())) {
+	m_rpgGame->iterateOverBodies([this, &forceKeyFrame, &tick](TiledObjectBody *b){
+		if (RpgPlayer *iface = dynamic_cast<RpgPlayer*> (b)) {
 			if (m_rpgGame->controlledPlayer() == iface && forceKeyFrame) {
 				q->m_toSend.appendSnapshot(iface->baseData(), iface->serialize(tick));
-			} else {
-				continue;
 			}
-		} else if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b.get());
+		} else if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b);
 				   iface && b->objectId().ownerId == m_playerId &&
 				   iface->stage() != RpgGameData::LifeCycle::StageDestroy) {
 			if (forceKeyFrame)
 				q->m_toSend.appendSnapshot(iface->baseData(), iface->serialize(tick));
 		}
-	}
+	});
 
 
 	if (m_gameMode == MultiPlayerHost) {
-		for (auto &b : m_rpgGame->bodyList()) {
-			RpgEnemy *iface = dynamic_cast<RpgEnemy*> (b.get());
-
-			if (!iface)
-				continue;
-
-			if (forceKeyFrame) {
+		m_rpgGame->iterateOverBodies([this, &forceKeyFrame, &tick](TiledObjectBody *b){
+			RpgEnemy *iface = dynamic_cast<RpgEnemy*> (b);
+			if (iface && forceKeyFrame) {
 				q->m_toSend.appendSnapshot(iface->baseData(), iface->serialize(tick));
 			}
-		}
+		});
 	}
 
 
@@ -1135,17 +1150,17 @@ void ActionRpgMultiplayerGame::afterWorldStep(const qint64 &lagMsec)
 
 		QCborArray list;
 
-		for (auto &b : m_rpgGame->bodyList()) {
-			RpgBullet *iface = dynamic_cast<RpgBullet*> (b.get());
+		m_rpgGame->iterateOverBodies([&list, &tick](TiledObjectBody *b){
+			RpgBullet *iface = dynamic_cast<RpgBullet*> (b);
 
 			if (!iface)
-				continue;
+				return;
 
 			QCborMap m;
 			m.insert(QStringLiteral("bd"), iface->baseData().toCborMap());
 			m.insert(QStringLiteral("b"), iface->serialize(tick).toCborMap());
 			list.append(m);
-		}
+		});
 
 
 		QCborMap map;

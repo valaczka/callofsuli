@@ -28,6 +28,7 @@
 #include <qsgflatcolormaterial.h>
 
 #include "tileddebugdraw.h"
+#include <chipmunk/chipmunk_structs.h>
 
 
 #define CIRCLE_SEGMENTS_COUNT 32
@@ -93,7 +94,7 @@ QSGNode *TiledDebugDraw::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 	node = new QSGNode;
 	node->setFlag(QSGNode::OwnedByParent);
 
-	const bool isActive = m_scene && m_scene->world() && isVisible() && opacity() > 0.f;
+	const bool isActive = m_scene && /*m_scene() &&*/ isVisible() && opacity() > 0.f;
 
 	if (!isActive)
 		return node;
@@ -106,21 +107,6 @@ QSGNode *TiledDebugDraw::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 }
 
 
-/**
- * @brief TiledDebugDraw::box2dColorToQColor
- * @param color
- * @param fill
- * @return
- */
-
-QColor TiledDebugDraw::box2dColorToQColor(const b2HexColor &color, const float &alpha)
-{
-	const unsigned int a = std::lerp(0x00u, 0xFFu, std::max(std::min(1.0f, alpha), 0.0f));
-
-	const QRgb rgb = ((a & 0xffu) << 24) | color;
-
-	return QColor::fromRgb(rgb);
-}
 
 
 /**
@@ -148,7 +134,7 @@ void TiledDebugDraw::createNode(std::unique_ptr<QSGGeometry> &geometry, const QC
  * @brief TiledDebugDraw::drawCircle
  */
 
-void TiledDebugDraw::drawCircle(const b2Vec2 &center, const float &radius, const QColor &color, const float &lineWidth)
+void TiledDebugDraw::drawCircle(const cpVect &center, const float &radius, const QColor &color, const float &lineWidth)
 {
 	// We'd use QSGGeometry::DrawLineLoop, but it's not supported in Qt 6
 std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
@@ -167,51 +153,6 @@ std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttrib
 }
 
 
-
-/**
- * @brief TiledDebugDraw::drawSolidCircle
- * @param transform
- * @param radius
- * @param color
- */
-
-void TiledDebugDraw::drawSolidCircle(const b2Transform &transform, const float &radius, const QColor &color)
-{
-	// We'd use QSGGeometry::DrawTriangleFan, but it's not supported in Qt 6
-	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											CIRCLE_SEGMENTS_COUNT * 3));
-	geometry->setDrawingMode(QSGGeometry::DrawTriangles);
-	geometry->setLineWidth(1.0);
-
-	QPointF centerInPixels(transform.p.x, transform.p.y);
-
-	QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
-	QSGGeometry::Point2D lastPoint;
-	lastPoint.set(centerInPixels.x() + radius,
-				  centerInPixels.y());
-
-	for (int i = 1; i <= CIRCLE_SEGMENTS_COUNT; ++i) {
-		const float theta = i * 2 * M_PI / CIRCLE_SEGMENTS_COUNT;
-		QSGGeometry::Point2D currentPoint;
-		currentPoint.set(centerInPixels.x() + radius * qCos(theta),
-						 centerInPixels.y() + radius * qSin(theta));
-
-		const int triangleStart = (i - 1) * 3;
-		points[triangleStart].set(centerInPixels.x(), centerInPixels.y());
-		points[triangleStart + 1] = lastPoint;
-		points[triangleStart + 2] = currentPoint;
-		lastPoint = currentPoint;
-	}
-
-	createNode(geometry, color);
-
-	/*drawSegment(transform.p,
-				b2Vec2(transform.p.x + transform.q.c * radius,
-					   transform.p.y + transform.q.s * radius),
-				qRgb(200, 40, 0));*/
-}
-
-
 /**
  * @brief TiledDebugDraw::drawSolidCircle
  * @param center
@@ -219,13 +160,33 @@ void TiledDebugDraw::drawSolidCircle(const b2Transform &transform, const float &
  * @param color
  */
 
-void TiledDebugDraw::drawSolidCircle(const QPointF &center, const float &radius, const QColor &color)
+void TiledDebugDraw::drawSolidCircle(const cpVect &center, const float &radius, const QColor &color)
 {
-	b2Transform t;
-	t.p = b2Vec2{(float) center.x(), (float) center.y()};
-	t.q = b2MakeRot(0.);
+	// We'd use QSGGeometry::DrawTriangleFan, but it's not supported in Qt 6
+	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
+											CIRCLE_SEGMENTS_COUNT * 3));
+	geometry->setDrawingMode(QSGGeometry::DrawTriangles);
+	geometry->setLineWidth(1.0);
 
-	drawSolidCircle(t, radius, color);
+	QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
+	QSGGeometry::Point2D lastPoint;
+	lastPoint.set(center.x + radius,
+				  center.y);
+
+	for (int i = 1; i <= CIRCLE_SEGMENTS_COUNT; ++i) {
+		const float theta = i * 2 * M_PI / CIRCLE_SEGMENTS_COUNT;
+		QSGGeometry::Point2D currentPoint;
+		currentPoint.set(center.x + radius * qCos(theta),
+						 center.y + radius * qSin(theta));
+
+		const int triangleStart = (i - 1) * 3;
+		points[triangleStart].set(center.x, center.y);
+		points[triangleStart + 1] = lastPoint;
+		points[triangleStart + 2] = currentPoint;
+		lastPoint = currentPoint;
+	}
+
+	createNode(geometry, color);
 }
 
 
@@ -239,7 +200,7 @@ void TiledDebugDraw::drawSolidCircle(const QPointF &center, const float &radius,
  * @param color
  */
 
-void TiledDebugDraw::drawSegment(const b2Vec2 &p1, const b2Vec2 &p2, const QColor &color, const float &lineWidth)
+void TiledDebugDraw::drawSegment(const cpVect &p1, const cpVect &p2, const QColor &color, const float &lineWidth)
 {
 	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(), 2));
 
@@ -266,13 +227,45 @@ void TiledDebugDraw::drawPolygon(const QPolygonF &polygon, const QColor &color, 
 	if (polygon.size() < 2)
 		return;
 
-	std::vector<b2Vec2> vertices;
+	std::vector<cpVect> vertices;
 	vertices.reserve(polygon.size());
 
 	for (const auto &p : polygon)
 		vertices.emplace_back(p.x(), p.y());
 
 	drawPolyLines(vertices.data(), vertices.size(), color, lineWidth);
+}
+
+
+/**
+ * @brief TiledDebugDraw::drawPolygon
+ * @param polygonShape
+ * @param color
+ * @param lineWidth
+ */
+
+void TiledDebugDraw::drawPolygon(const cpShape *polygonShape, const QPointF &center, const QColor &color, const float &lineWidth)
+{
+	const int count = cpPolyShapeGetCount(polygonShape);
+
+	if (count < 2)
+		return;
+
+	std::vector<cpVect> vertices;
+	vertices.reserve(count);
+
+	for (int i=0; i<count; ++i) {
+		cpVect v = cpPolyShapeGetVert(polygonShape, i);
+
+		if (cpBody *body = polygonShape->body)
+			v = cpTransformVect(body->transform, v);
+
+		v.x += center.x();
+		v.y += center.y();
+		vertices.push_back(v);
+	}
+
+	drawPolygon(vertices.data(), vertices.size(), color, lineWidth);
 }
 
 
@@ -284,7 +277,7 @@ void TiledDebugDraw::drawPolygon(const QPolygonF &polygon, const QColor &color, 
  * @param color
  */
 
-void TiledDebugDraw::drawPolygon(const b2Vec2 *vertices, const int &vertexCount, const QColor &color, const float &lineWidth)
+void TiledDebugDraw::drawPolygon(const cpVect *vertices, const int &vertexCount, const QColor &color, const float &lineWidth)
 {
 	Q_ASSERT(vertexCount > 1);
 
@@ -304,35 +297,6 @@ void TiledDebugDraw::drawPolygon(const b2Vec2 *vertices, const int &vertexCount,
 }
 
 
-/**
- * @brief TiledDebugDraw::drawPolygon
- * @param transform
- * @param vertices
- * @param vertexCount
- * @param color
- * @param lineWidth
- */
-
-void TiledDebugDraw::drawPolygon(const b2Transform &transform, const b2Vec2 *vertices, const int &vertexCount,
-								 const QColor &color, const float &lineWidth)
-{
-	Q_ASSERT(vertexCount > 1);
-
-	std::unique_ptr<QSGGeometry> geometry(new QSGGeometry(QSGGeometry::defaultAttributes_Point2D(),
-											vertexCount+1));
-
-	geometry->setDrawingMode(QSGGeometry::DrawLineStrip);
-	geometry->setLineWidth(lineWidth);
-
-	QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
-	for (int i = 0; i < vertexCount; ++i) {
-		b2Vec2 trp = b2TransformPoint(transform, vertices[i]);
-		points[i].set(trp.x, trp.y);
-	}
-	points[vertexCount] = points[0];
-
-	createNode(geometry, color);
-}
 
 
 /**
@@ -343,7 +307,7 @@ void TiledDebugDraw::drawPolygon(const b2Transform &transform, const b2Vec2 *ver
  * @param lineWidth
  */
 
-void TiledDebugDraw::drawPolyLines(const b2Vec2 *vertices, const int &vertexCount, const QColor &color, const float &lineWidth)
+void TiledDebugDraw::drawPolyLines(const cpVect *vertices, const int &vertexCount, const QColor &color, const float &lineWidth)
 {
 	Q_ASSERT(vertexCount > 1);
 
@@ -362,17 +326,72 @@ void TiledDebugDraw::drawPolyLines(const b2Vec2 *vertices, const int &vertexCoun
 }
 
 
+
+
 /**
  * @brief TiledDebugDraw::drawSolidPolygon
- * @param transform
+ * @param polygon
+ * @param color
+ */
+
+void TiledDebugDraw::drawSolidPolygon(const QPolygonF &polygon, const QColor &color)
+{
+	if (polygon.size() < 2)
+		return;
+
+	std::vector<cpVect> vertices;
+	vertices.reserve(polygon.size());
+
+	for (const auto &p : polygon)
+		vertices.emplace_back(p.x(), p.y());
+
+	drawSolidPolygon(vertices.data(), vertices.size(), 0., color);
+}
+
+
+
+/**
+ * @brief TiledDebugDraw::drawSolidPolygon
+ * @param polygonShape
+ * @param color
+ */
+
+void TiledDebugDraw::drawSolidPolygon(cpShape *polygonShape, const QPointF &center, const QColor &color)
+{
+	const int count = cpPolyShapeGetCount(polygonShape);
+
+	if (count < 2)
+		return;
+
+	std::vector<cpVect> vertices;
+	vertices.reserve(count);
+
+	for (int i=0; i<count; ++i) {
+		cpVect v = cpPolyShapeGetVert(polygonShape, i);
+
+		if (cpBody *body = polygonShape->body)
+			v = cpTransformVect(body->transform, v);
+
+		v.x += center.x();
+		v.y += center.y();
+		vertices.push_back(v);
+	}
+
+	drawSolidPolygon(vertices.data(), vertices.size(), 0., color);
+}
+
+
+
+
+/**
+ * @brief TiledDebugDraw::drawSolidPolygon
  * @param vertices
  * @param vertexCount
  * @param radius
  * @param color
  */
 
-void TiledDebugDraw::drawSolidPolygon(const b2Transform &transform, const b2Vec2 *vertices, const int &vertexCount,
-									  const float &radius, const QColor &color)
+void TiledDebugDraw::drawSolidPolygon(const cpVect *vertices, const int &vertexCount, const float &radius, const QColor &color)
 {
 	Q_ASSERT(vertexCount > 2);
 
@@ -386,12 +405,12 @@ void TiledDebugDraw::drawSolidPolygon(const b2Transform &transform, const b2Vec2
 	geometry->setDrawingMode(QSGGeometry::DrawTriangles);
 	geometry->setLineWidth(1.0);
 
-	const QPointF origin = getPolygonVertex(vertices, 0, transform);
+	const QPointF origin(vertices[0].x, vertices[0].y);
 
 	QSGGeometry::Point2D *points = geometry->vertexDataAsPoint2D();
-	QPointF prev = getPolygonVertex(vertices, 1, transform);
+	QPointF prev(vertices[1].x, vertices[1].y);
 	for (int i = 2; i < vertexCount; ++i) {
-		const QPointF cur = getPolygonVertex(vertices, i, transform);
+		const QPointF cur(vertices[i].x, vertices[i].y);
 
 		const int triangleStart = (i - 2) * 3;
 		points[triangleStart].set(origin.x(), origin.y());
@@ -403,21 +422,6 @@ void TiledDebugDraw::drawSolidPolygon(const b2Transform &transform, const b2Vec2
 	createNode(geometry, color);
 }
 
-
-/**
- * @brief TiledDebugDraw::getPolygonVertex
- * @param vertices
- * @param vertexCount
- * @param num
- * @param transform
- * @return
- */
-
-QPointF TiledDebugDraw::getPolygonVertex(const b2Vec2 *vertices, const int num, const b2Transform &transform)
-{
-	b2Vec2 trp = b2TransformPoint(transform, vertices[num]);
-	return QPointF{trp.x, trp.y};
-}
 
 
 /**

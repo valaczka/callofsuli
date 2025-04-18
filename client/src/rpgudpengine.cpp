@@ -591,7 +591,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 			if (enemy == snapit->second) {
 				return;
 			} else {
-				LOG_CERROR("game") << "ALready enemy";
+				LOG_CERROR("game") << "ALready enemy" << enemy.f << enemy.st << snapit->second.f << snapit->second.st;
 			}
 		} else {
 			it->list.insert_or_assign(enemy.f, enemy);

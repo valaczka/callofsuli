@@ -695,8 +695,8 @@ bool RpgWeapon::updateFromSnapshot(const RpgGameData::Weapon &weapon)
  * @param scene
  */
 
-RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledScene *scene)
-	: IsometricBullet(scene)
+RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game)
+	: IsometricBullet(game)
 	, RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>()
 	, RpgGameData::LifeCycle()
 	, m_weaponType(weaponType)
@@ -836,8 +836,6 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 			float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
 
 			setSpeedFromAngle(angleToPoint(final), dist);
-		} else {
-			LOG_CDEBUG("game") << "FLY...";
 		}
 	}
 
@@ -875,7 +873,7 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::Bullet &snap)
  * @param base
  */
 
-void RpgBullet::impactEvent(TiledObjectBody *base, b2::ShapeRef shape)
+void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 {
 	if (m_stage != StageLive) {
 		stop();
@@ -884,7 +882,7 @@ void RpgBullet::impactEvent(TiledObjectBody *base, b2::ShapeRef shape)
 
 	if (!base)
 		return;
-
+/*
 	const FixtureCategories categories = FixtureCategories::fromInt(shape.GetFilter().categoryBits);
 	RpgEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
 						  dynamic_cast<RpgEnemy*>(base) :
@@ -931,7 +929,7 @@ void RpgBullet::impactEvent(TiledObjectBody *base, b2::ShapeRef shape)
 
 	if (RpgGame *g = rpgGame())
 		g->bulletImpact(this, base);
-
+*/
 
 }
 

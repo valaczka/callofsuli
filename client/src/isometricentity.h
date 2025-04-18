@@ -45,7 +45,7 @@ class IsometricEntity : public IsometricObject
 	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged FINAL)
 
 public:
-	explicit IsometricEntity(TiledScene *scene);
+	explicit IsometricEntity(TiledGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
 	int hp() const;
 	void setHp(int newHp);

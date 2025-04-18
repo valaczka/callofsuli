@@ -63,7 +63,7 @@ class RpgWerebear : public RpgEnemy
 	QML_ELEMENT
 
 public:
-	explicit RpgWerebear(TiledScene *scene = nullptr);
+	explicit RpgWerebear(RpgGame *game);
 	virtual ~RpgWerebear();
 
 	virtual TiledObjectBody::ObjectId objectId() const override { return RpgEnemy::objectId(); }

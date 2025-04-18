@@ -32,34 +32,31 @@
 class TiledObjectBodyPrivate {
 
 private:
-	TiledObjectBodyPrivate(TiledObjectBody *body, b2::World *world);
-	~TiledObjectBodyPrivate() = default;
+	TiledObjectBodyPrivate(TiledObjectBody *body);
+	~TiledObjectBodyPrivate();
 
-	void createBody(const b2::Body::Params &params);
-	void replaceWorld(b2::World *world, const QPointF &position = {}, const b2Rot &rotation = b2MakeRot(0.));
-	void updateScene();
+        void createBody(const cpBodyType &type, const cpFloat &mass, const cpFloat &moment);
+	void deleteBody();
+
 	void setSensorPolygon(const float &length, const float &range);
 	void addVirtualCircle(const float &length);
 	void removeVirtualCircle();
 	void addTargetCircle(const float &length);
 
 
-	void drawShape(TiledDebugDraw *draw, const b2::ShapeRef &shape, const QColor &color,
+	void drawShape(TiledDebugDraw *draw, cpShape *shape, const QColor &color,
 				   const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
+
 
 	TiledObjectBody *const q;
 
-	b2::World *m_world = nullptr;
-	QPointer<TiledScene> m_scene;
-	QMetaObject::Connection m_sceneConnection;
-	b2::BodyRef m_bodyRef;
-	b2AABB m_bodyAABB;
+	cpBody *m_bodyRef = nullptr;
 
-	std::vector<b2::ShapeRef> m_bodyShapes;
+	std::vector<cpShape*> m_bodyShapes;
 
-	b2::ShapeRef m_sensorPolygon;
-	b2::ShapeRef m_virtualCircle;
-	b2::ShapeRef m_targetCircle;
+	cpShape *m_sensorPolygon = nullptr;
+	cpShape *m_virtualCircle = nullptr;
+	cpShape *m_targetCircle = nullptr;
 
 	float m_sensorLength = 0.;
 	float m_targetLength = 0.;
@@ -79,6 +76,5 @@ private:
 
 	friend class TiledObjectBody;
 };
-
 
 #endif // TILEDOBJECT_P_H

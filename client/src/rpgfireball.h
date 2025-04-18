@@ -41,7 +41,7 @@ class RpgFireball : public RpgBullet
 	QML_ELEMENT
 
 public:
-	RpgFireball(TiledScene *scene = nullptr);
+	RpgFireball(TiledGame *game = nullptr);
 	virtual ~RpgFireball() {}
 
 protected:

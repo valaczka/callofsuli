@@ -90,8 +90,8 @@ static const QVector<TiledGame::TextureSpriteMapper> &mapperBase() {
  * @param parent
  */
 
-RpgWerebear::RpgWerebear(TiledScene *scene)
-	: RpgEnemy(RpgGameData::EnemyBaseData::EnemyWerebear, scene)
+RpgWerebear::RpgWerebear(RpgGame *game)
+	: RpgEnemy(RpgGameData::EnemyBaseData::EnemyWerebear, game, 15.)
 	, m_sfxFootStep(this)
 	, m_sfxPain(this)
 	, m_sfxRoar(this)

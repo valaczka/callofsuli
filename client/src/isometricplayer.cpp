@@ -213,8 +213,8 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(IsometricPlayerPrivate::EnemyFlags);
  * @param parent
  */
 
-IsometricPlayer::IsometricPlayer(TiledScene *scene)
-	: IsometricEntity(scene)
+IsometricPlayer::IsometricPlayer(TiledGame *game, const qreal &radius, const cpBodyType &type)
+	: IsometricEntity(game, radius, type)
 	, d(new IsometricPlayerPrivate(this))
 {
 }
@@ -317,8 +317,6 @@ void IsometricPlayer::removeEnemy(IsometricEnemy *enemy)
 
 void IsometricPlayer::onAlive()
 {
-	setBodyEnabled(true);
-
 	setSubZ(0.5);
 	emit becameAlive();
 }
@@ -332,8 +330,6 @@ void IsometricPlayer::onAlive()
 
 void IsometricPlayer::onDead()
 {
-	setBodyEnabled(false);
-
 	setSubZ(0.0);
 	setCurrentVelocity({});
 
@@ -472,14 +468,14 @@ void IsometricPlayer::setIsLocked(bool newIsLocked)
  * @param shape
  */
 
-void IsometricPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
+void IsometricPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 {
-	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 
 	if (!base)
 		return;
 
-	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	/****************const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
 	IsometricEnemy *enemy = categories.testFlag(FixtureTarget) ?
 								dynamic_cast<IsometricEnemy*>(base) :
 								nullptr;
@@ -504,7 +500,7 @@ void IsometricPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
 		}
 	} else if (isAny(bodyShapes(), self) && pickable) {
 		onPickableReached(base);
-	}
+	}******************************/
 
 	/*if (base->categories().testFlag(TiledObjectBody::FixtureTransport)) {
 		TiledTransport *transport = game() ? game()->transportList().find(base) : nullptr;
@@ -526,14 +522,14 @@ void IsometricPlayer::onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other)
  * @param shape
  */
 
-void IsometricPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
+void IsometricPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 {
-	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 
 	if (!base)
 		return;
 
-	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	/***********************const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
 	IsometricEnemy *enemy = categories.testFlag(FixtureTarget)  ?
 								dynamic_cast<IsometricEnemy*>(base) :
 								nullptr;
@@ -555,7 +551,7 @@ void IsometricPlayer::onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other)
 			onEnemyLeft(enemy);
 	} else if (isAny(bodyShapes(), self) && pickable) {
 		onPickableLeft(base);
-	}
+	}******************************/
 }
 
 

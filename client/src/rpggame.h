@@ -155,7 +155,7 @@ public:
 
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
-	TiledObjectBody *findBody(const TiledObjectBody::ObjectId &objectId) const;
+	TiledObjectBody *findBody(const TiledObjectBody::ObjectId &objectId);
 
 	void saveSceneState(RpgPlayer *player);
 	void saveSceneState();
@@ -304,6 +304,7 @@ protected:
 	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObject *newObject) override;
 	bool transportDoor(TiledObject *object, TiledTransport *transport) override;
 
+	virtual void timeStepPrepareEvent() override;
 	virtual void timeSteppedEvent() override;
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
 

@@ -46,7 +46,7 @@ class IsometricObject : public TiledObject
 	Q_PROPERTY(qreal subZ READ subZ WRITE setSubZ NOTIFY subZChanged FINAL)
 
 public:
-	IsometricObject(TiledScene *scene);
+	IsometricObject(const QPointF &center, const qreal &radius, TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
 	qreal defaultZ() const;
 	void setDefaultZ(qreal newDefaultZ);

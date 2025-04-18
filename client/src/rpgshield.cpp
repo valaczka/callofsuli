@@ -42,8 +42,8 @@ RpgShield::RpgShield(QObject *parent)
  * @param parent
  */
 
-RpgShieldPickable::RpgShieldPickable(TiledScene *scene)
-	: RpgPickableObject(RpgGameData::PickableBaseData::PickableShield, scene)
+RpgShieldPickable::RpgShieldPickable(RpgGame *game)
+	: RpgPickableObject(RpgGameData::PickableBaseData::PickableShield, game)
 {
 	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllBlue, this));
 }

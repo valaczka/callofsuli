@@ -34,7 +34,7 @@
 #include <QQmlEngine>
 
 class RpgPlayer;
-
+class RpgGame;
 
 /**
  * @brief The RpgPickableObject class
@@ -50,7 +50,7 @@ class RpgPickableObject : public IsometricObject, public TiledPickableIface
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
 
 public:
-	RpgPickableObject(const RpgGameData::PickableBaseData::PickableType &type, TiledScene *scene);
+	RpgPickableObject(const RpgGameData::PickableBaseData::PickableType &type, RpgGame *game);
 	virtual ~RpgPickableObject() {}
 
 	void initialize();
@@ -70,8 +70,8 @@ public:
 	QString name() const;
 	void setName(const QString &newName);
 
-	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
-	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
+	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
 signals:
 	void isActiveChanged() override final;

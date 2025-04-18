@@ -84,3 +84,6 @@
 [submodule "lib/backward-cpp"]
 	path = lib/backward-cpp
 	url = https://github.com/bombela/backward-cpp.git
+[submodule "lib/Chipmunk2D"]
+	path = lib/Chipmunk2D
+	url = https://github.com/slembcke/Chipmunk2D.git

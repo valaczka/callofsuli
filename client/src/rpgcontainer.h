@@ -39,7 +39,7 @@ class RpgContainer : public QObject, public RpgControlGroupStateBody
 	Q_PROPERTY(TiledScene *scene READ scene CONSTANT FINAL)
 
 public:
-	explicit RpgContainer(TiledScene *scene);
+	explicit RpgContainer(TiledGame *game);
 
 	bool isActive() const;
 	void setIsActive(bool newIsActive);

@@ -35,8 +35,8 @@
  * @param parent
  */
 
-RpgEnemyBase::RpgEnemyBase(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene)
-	: RpgEnemy(type, scene)
+RpgEnemyBase::RpgEnemyBase(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius)
+	: RpgEnemy(type, game, radius)
 	, m_effectHealed(this)
 	, m_effectFire(this)
 	, m_effectSleep(this)

@@ -35,8 +35,8 @@
  * @param parent
  */
 
-IsometricObject::IsometricObject(TiledScene *scene)
-	: TiledObject(scene)
+IsometricObject::IsometricObject(const QPointF &center, const qreal &radius, TiledGame *game, const cpBodyType &type)
+	: TiledObject(center, radius, game, nullptr, type)
 {
 
 }

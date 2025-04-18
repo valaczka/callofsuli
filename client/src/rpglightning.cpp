@@ -34,8 +34,8 @@
  * @param parent
  */
 
-RpgLightning::RpgLightning(TiledScene *scene)
-	: RpgBullet(RpgGameData::Weapon::WeaponLightningWeapon, scene)
+RpgLightning::RpgLightning(TiledGame *game)
+	: RpgBullet(RpgGameData::Weapon::WeaponLightningWeapon, game)
 {
 	m_maxDistance = 500.;
 	m_speed = 30.;
@@ -89,7 +89,7 @@ void RpgLightning::load()
  * @param base
  */
 
-void RpgLightning::impactEvent(TiledObjectBody *base, b2::ShapeRef shape)
+void RpgLightning::impactEvent(TiledObjectBody *base, cpShape *shape)
 {
 	RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(base);
 

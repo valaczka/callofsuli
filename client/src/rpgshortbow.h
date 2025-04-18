@@ -63,7 +63,7 @@ class RpgShortbowPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgShortbowPickable(TiledScene *scene = nullptr);
+	RpgShortbowPickable(RpgGame *game = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

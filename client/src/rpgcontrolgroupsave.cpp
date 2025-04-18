@@ -43,7 +43,7 @@
 RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
 	: RpgControlGroup(ControlGroupSave, game, scene)
 {
-	Q_ASSERT(game);
+	/*Q_ASSERT(game);
 	Q_ASSERT(scene);
 	Q_ASSERT(group);
 	Q_ASSERT(renderer);
@@ -96,7 +96,7 @@ RpgControlGroupSave::RpgControlGroupSave(RpgGame *game, TiledScene *scene, Tiled
 			}
 
 		}
-	}
+	}*/
 }
 
 
@@ -158,10 +158,6 @@ void RpgControlGroupSave::show()
 void RpgControlGroupSave::deactivate()
 {
 	m_active = false;
-
-	if (m_body)
-		m_body->setBodyEnabled(false);
-
 	updateLayers();
 }
 
@@ -171,12 +167,12 @@ void RpgControlGroupSave::deactivate()
  * @param shape
  */
 
-void RpgControlGroupSave::sensorBegin(b2::ShapeRef shape)
+void RpgControlGroupSave::sensorBegin(cpShape *shape)
 {
 	if (m_timer.isActive() || !m_active)
 		return;
 
-	RpgPlayer *player = dynamic_cast<RpgPlayer*>(TiledObjectBody::fromBodyRef(shape.GetBody()));
+	RpgPlayer *player = dynamic_cast<RpgPlayer*>(TiledObjectBody::fromShapeRef(shape));
 
 	if (!player || !m_game)
 		return;

@@ -40,7 +40,7 @@ class RpgEnemy : public IsometricEnemy, public RpgEnemyIface
 	Q_PROPERTY(TiledWeapon* defaultWeapon READ defaultWeapon CONSTANT FINAL)
 
 public:
-	RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene);
+	RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius = 10.);
 
 	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricEnemy::objectId(); }
 

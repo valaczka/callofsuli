@@ -55,7 +55,7 @@ class RpgDaggerPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgDaggerPickable(TiledScene *scene = nullptr);
+	RpgDaggerPickable(RpgGame *game = nullptr);
 
 	bool playerPick(RpgPlayer *player) override final;
 

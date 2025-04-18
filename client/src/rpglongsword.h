@@ -61,7 +61,7 @@ class RpgLongswordPickable : public RpgPickableObject
 	QML_ELEMENT
 
 public:
-	RpgLongswordPickable(TiledScene *scene = nullptr);
+	RpgLongswordPickable(RpgGame *game);
 
 	bool playerPick(RpgPlayer *player) override final;
 

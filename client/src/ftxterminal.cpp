@@ -476,7 +476,7 @@ bool DefaultLoop::runCbor(const QCborValue &cbor)
 bool FtxLoop::runOnce(QLocalSocket &localSocket)
 {
 	if (!localSocket.isValid() || localSocket.state() == QLocalSocket::UnconnectedState)
-		return false;
+		return true;//false;
 
 	if (localSocket.bytesAvailable() <= 0)
 		return true;

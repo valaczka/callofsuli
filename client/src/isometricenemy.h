@@ -143,7 +143,7 @@ class IsometricEnemy : public IsometricEntity, public IsometricEnemyIface
 	Q_PROPERTY(int enemyType READ enemyType CONSTANT FINAL)
 
 public:
-	explicit IsometricEnemy(TiledScene *scene);
+	explicit IsometricEnemy(TiledGame *game, const qreal &radius = 10.);
 
 	void initialize();
 	bool hasAbility();
@@ -155,8 +155,8 @@ public:
 
 	virtual int enemyType() const = 0;
 
-	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
-	virtual void onShapeContactEnd(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
+	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
 	virtual void worldStep() override;
 

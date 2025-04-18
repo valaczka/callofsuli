@@ -47,7 +47,7 @@ inline QVector2D RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity
 
 	static const auto fnStop = [](IsometricEntity *entity, const float &angle) {
 		Q_ASSERT(entity);
-		const b2Vec2 &vel = entity->body().GetLinearVelocity();
+		const cpVect &vel = cpBodyGetVelocity(entity->body());
 
 		if (vel.x != 0. || vel.y != 0.)
 			entity->stop();
@@ -57,9 +57,9 @@ inline QVector2D RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity
 
 	static const auto fnEmplace = [](IsometricEntity *entity, const QVector2D &dst, const float &angle) {
 		Q_ASSERT(entity);
-		const b2Vec2 &pos = entity->body().GetPosition();
+		const QPointF &pos = entity->bodyPosition();
 
-		if (pos.x == dst.x() && pos.y == dst.y()) {
+		if (QVector2D(pos) == dst) {
 			entity->stop();
 			entity->setCurrentAngle(angle);
 			return;
@@ -132,7 +132,7 @@ inline QVector2D RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity
 		return currentSpeed;
 	}
 
-	const b2Vec2 &vel = entity->body().GetLinearVelocity();
+	const cpVect &vel = cpBodyGetVelocity(entity->body());
 	if (snapshot.s1.st == idle && vel.x == 0. && vel.y == 0. && dist < speed / 180.) {
 		return currentSpeed;
 	}

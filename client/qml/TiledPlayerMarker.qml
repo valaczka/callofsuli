@@ -14,7 +14,7 @@ Column {
 	property alias progressBar: _progress
 	property real yDistance: 20
 
-	parent: target.scene
+	parent: target ? target.scene : null
 
 	visible: target && target.game && (!_isEntity || target.hp > 0)
 

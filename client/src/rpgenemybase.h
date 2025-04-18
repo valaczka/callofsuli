@@ -38,8 +38,8 @@ class RpgEnemyBase : public RpgEnemy
 	QML_ELEMENT
 
 public:
-	explicit RpgEnemyBase(const RpgGameData::EnemyBaseData::EnemyType &type, TiledScene *scene = nullptr);
-	explicit RpgEnemyBase(TiledScene *scene = nullptr) : RpgEnemyBase(RpgGameData::EnemyBaseData::EnemyInvalid, scene) {}
+	explicit RpgEnemyBase(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius = 10.);
+	explicit RpgEnemyBase(RpgGame *game) : RpgEnemyBase(RpgGameData::EnemyBaseData::EnemyInvalid, game) {}
 	virtual ~RpgEnemyBase();
 
 	QString subType() const;

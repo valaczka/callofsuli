@@ -162,7 +162,7 @@ bool RpgControlGroupDoor::doorOpen()
 {
 	if (m_openState == StateClosed) {
 		setOpenState(StateOpened);
-		m_scene->reloadTcodMap();
+		m_game->reloadTcodMap(m_scene);
 		return true;
 	}
 
@@ -179,7 +179,7 @@ bool RpgControlGroupDoor::doorClose()
 {
 	if (m_openState == StateOpened) {
 		setOpenState(StateClosed);
-		m_scene->reloadTcodMap();
+		m_game->reloadTcodMap(m_scene);
 		return true;
 	}
 
@@ -196,7 +196,7 @@ bool RpgControlGroupDoor::doorDamage()
 {
 	if (m_openState != StateDamaged) {
 		setOpenState(StateDamaged);
-		m_scene->reloadTcodMap();
+		m_game->reloadTcodMap(m_scene);
 		return true;
 	}
 

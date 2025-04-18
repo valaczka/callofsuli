@@ -128,6 +128,7 @@ protected:
 
 	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
+	virtual void onTimeStepPrepare();
 	virtual void onTimeStepped();
 	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
 	virtual bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);

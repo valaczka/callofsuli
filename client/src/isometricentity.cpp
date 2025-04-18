@@ -32,8 +32,8 @@
  * @param parent
  */
 
-IsometricEntity::IsometricEntity(TiledScene *scene)
-	: IsometricObject(scene)
+IsometricEntity::IsometricEntity(TiledGame *game, const qreal &radius, const cpBodyType &type)
+	: IsometricObject(QPointF(), radius, game, type)
 {
 
 }

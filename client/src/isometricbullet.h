@@ -45,7 +45,7 @@ class IsometricBullet : public IsometricObject
 	Q_PROPERTY(qreal maxDistance READ maxDistance WRITE setMaxDistance NOTIFY maxDistanceChanged FINAL)
 
 public:
-	explicit IsometricBullet(TiledScene *scene);
+    explicit IsometricBullet(TiledGame *game);
 	virtual ~IsometricBullet();
 
 	void initialize();
@@ -60,7 +60,7 @@ public:
 	qreal maxDistance() const;
 	void setMaxDistance(qreal newMaxDistance);
 
-	virtual void onShapeContactBegin(b2::ShapeRef self, b2::ShapeRef other) override;
+	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 
 	void disableBullet();
 
@@ -70,7 +70,7 @@ signals:
 
 protected:
 	virtual void load() = 0;
-	virtual void impactEvent(TiledObjectBody *base, b2::ShapeRef shape) = 0;
+	virtual void impactEvent(TiledObjectBody *base, cpShape *shape) = 0;
 	virtual void overshootEvent() {}
 
 	virtual void synchronize() override;

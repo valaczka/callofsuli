@@ -3,6 +3,7 @@
 - backward-cpp - (c) 2013-2017 Google Inc. (https://github.com/bombela/backward-cpp)
 - Box2D - (c) 2022 Erin Catto (https://github.com/erincatto/box2d)
 - box2cpp - (c) 2024 Egor Mikhailov (https://github.com/HolyBlackCat/box2cpp)
+- Chipmunk2D - (c) 2007-2015 Scott Lembcke and Howling Moon Software (https://github.com/slembcke/Chipmunk2D)
 - CuteLogger - (c) Boris Moiseev & contributors (https://github.com/dept2/CuteLogger)
 - David Robert Nadeau (http://NadeauSoftware.com)
 - enet - (c) 2002-2024 Lee Salzman (https://github.com/lsalzman/enet)

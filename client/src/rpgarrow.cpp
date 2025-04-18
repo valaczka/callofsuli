@@ -27,8 +27,8 @@
 #include "rpgarrow.h"
 
 
-RpgArrow::RpgArrow(TiledScene *scene)
-	: RpgBullet(RpgGameData::Weapon::WeaponShortbow, scene)
+RpgArrow::RpgArrow(TiledGame *game)
+	: RpgBullet(RpgGameData::Weapon::WeaponShortbow, game)
 {
 
 }

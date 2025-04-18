@@ -34,8 +34,8 @@
  * @param parent
  */
 
-IsometricBullet::IsometricBullet(TiledScene *scene)
-	: IsometricObject(scene)
+IsometricBullet::IsometricBullet(TiledGame *game)
+	: IsometricObject(QPointF(), 5., game)
 {
 
 }
@@ -84,13 +84,13 @@ void IsometricBullet::shot(const QPointF &from, const qreal &angle)
 {
 	if (!scene())
 		return;
-
+/*
 	m_startPoint = QVector2D(from);
 	emplace(from);
 	setFacingDirection(nearestDirectionFromRadian(angle));
 	body().SetTransform(body().GetPosition(), b2MakeRot(angle));
 	body().SetAwake(true);
-	setSpeedFromAngle(angle, m_speed);
+	setSpeedFromAngle(angle, m_speed); */
 }
 
 
@@ -160,7 +160,6 @@ void IsometricBullet::disableBullet()
 	if (m_visualItem)
 		m_visualItem->setVisible(false);
 	stop();
-	setBodyEnabled(false);
 }
 
 
@@ -173,19 +172,19 @@ void IsometricBullet::disableBullet()
  * @param other
  */
 
-void IsometricBullet::onShapeContactBegin(b2::ShapeRef, b2::ShapeRef other)
+void IsometricBullet::onShapeContactBegin(cpShape *, cpShape *other)
 {
 	if (m_impacted) {
 		stop();
 		return;
 	}
-
+/*
 	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
 
 	if (!base)
 		return;
 
-	impactEvent(base, other);
+	impactEvent(base, other); */
 }
 
 

@@ -33,7 +33,7 @@
 RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
 	: RpgControlGroup(ControlGroupOverlay, game, scene)
 {
-	Q_ASSERT(game);
+	/*Q_ASSERT(game);
 	Q_ASSERT(scene);
 	Q_ASSERT(group);
 	Q_ASSERT(renderer);
@@ -81,7 +81,7 @@ RpgControlGroupOverlay::RpgControlGroupOverlay(RpgGame *game, TiledScene *scene,
 			}
 
 		}
-	}
+	}*/
 }
 
 

@@ -100,6 +100,7 @@ private:
 
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::PlayerBaseData &config, const RpgGameData::Player &playerData);
 
+	void onTimeStepPrepare() override;
 	void onTimeStepped() override;
 	bool onBodyStep(TiledObjectBody *body) override;
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable) override;
