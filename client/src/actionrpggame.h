@@ -129,7 +129,9 @@ protected:
 	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
 	virtual void onTimeStepPrepare();
+	virtual void onTimeBeforeWorldStep(const qint64 &tick);
 	virtual void onTimeStepped();
+	virtual void onTimeAfterWorldStep(const qint64 &tick);
 	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
 	virtual bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);

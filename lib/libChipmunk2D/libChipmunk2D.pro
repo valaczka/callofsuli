@@ -13,6 +13,7 @@ VERSION = 7.0.3
 SOURCEDIR = $$PWD/../Chipmunk2D
 DESTDIR = ..
 
+DEFINES += NDEBUG
 
 SOURCES = $$SOURCEDIR/src/*.c
 HEADERS = $$SOURCEDIR/include/chipmunk/*.h

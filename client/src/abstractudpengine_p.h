@@ -27,10 +27,13 @@
 #ifndef ABSTRACTUDPENGINE_P_H
 #define ABSTRACTUDPENGINE_P_H
 
-#include "qmutex.h"
 #include "qurl.h"
-#include <enet/enet.h>
 #include <QObject>
+
+#ifndef Q_OS_WASM
+#include "qmutex.h"
+#include <enet/enet.h>
+#endif
 
 class AbstractUdpEngine;
 
@@ -62,12 +65,15 @@ private:
 
 	QUrl m_url;
 
+#ifndef Q_OS_WASM
 	ENetHost *m_enet_host = nullptr;
 	ENetPeer *m_enet_peer = nullptr;
 
+	QMutex m_mutex;
+#endif
+
 	bool m_disconnectRequested = false;
 
-	QMutex m_mutex;
 
 	struct Packet {
 		QByteArray data;

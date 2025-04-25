@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgfireball.h
+ * terminal.h
  *
- * Created on: 2024. 03. 23.
+ * Created on: 2025. 04. 25.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgFireball
+ * Terminal
  *
  *  This file is part of Call of Suli.
  *
@@ -24,31 +24,18 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef RPGFIREBALL_H
-#define RPGFIREBALL_H
+#ifndef TERMINAL_H
+#define TERMINAL_H
 
-#include "rpgarmory.h"
-#include <QQmlEngine>
+#include <ftxterminal.hpp>
 
 
-/**
- * @brief The RpgFireball class
- */
-
-class RpgFireball : public RpgBullet
+class Terminal : public FtxTerminal
 {
-	Q_OBJECT
-	QML_ELEMENT
-
 public:
-	RpgFireball(TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
-	virtual ~RpgFireball() {}
+	Terminal();
 
-protected:
-	void load() override final;
+	int run(const QString &serverName);
 };
 
-
-
-
-#endif // RPGFIREBALL_H
+#endif // TERMINAL_H

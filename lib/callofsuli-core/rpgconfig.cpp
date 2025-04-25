@@ -113,24 +113,18 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick)
 	FullSnapshot s;
 
 	for (auto &ptr : m_players) {
-		SnapshotInterpolation<RpgGameData::Player> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
+		SnapshotInterpolation<RpgGameData::Player> sip = getSnapshotInterpolation(ptr.list, tick);
 		s.players.emplace_back(ptr.data, sip);
-		if (sip.s2.f >= 0)
-			ptr.lastOut = sip.s2.f;
 	}
 
 	for (auto &ptr : m_enemies) {
-		SnapshotInterpolation<RpgGameData::Enemy> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
+		SnapshotInterpolation<RpgGameData::Enemy> sip = getSnapshotInterpolation(ptr.list, tick);
 		s.enemies.emplace_back(ptr.data, sip);
-		if (sip.s2.f >= 0)
-			ptr.lastOut = sip.s2.f;
 	}
 
 	for (auto &ptr : m_bullets) {
-		SnapshotInterpolation<RpgGameData::Bullet> sip = getSnapshotInterpolation(ptr.list, tick, ptr.lastOut);
+		SnapshotInterpolation<RpgGameData::Bullet> sip = getSnapshotInterpolation(ptr.list, tick);
 		s.bullets.emplace_back(ptr.data, sip);
-		if (sip.s2.f >= 0)
-			ptr.lastOut = sip.s2.f;
 	}
 
 	return s;
@@ -197,13 +191,13 @@ QCborMap CurrentSnapshot::toCbor() const
 {
 	QCborMap map;
 
-	if (const QCborArray &a = toCborArray(players, QStringLiteral("pd"), QStringLiteral("p")); !a.isEmpty())
+	if (const QCborArray &a = toCborArray(players, QStringLiteral("pd"), QStringLiteral("p"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("pp"), a);
 
-	if (const QCborArray &a = toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e")); !a.isEmpty())
+	if (const QCborArray &a = toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("ee"), a);
 
-	if (const QCborArray &a = toCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b")); !a.isEmpty())
+	if (const QCborArray &a = toCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("bb"), a);
 
 	return map;
@@ -220,22 +214,62 @@ QCborMap CurrentSnapshot::toProtectedCbor() const
 {
 	QCborMap map;
 
-	if (const QCborArray &a = toProtectedCborArray(players, QStringLiteral("pd"), QStringLiteral("p"),
+	if (const QCborArray &a = toCborArray(players, QStringLiteral("pd"), QStringLiteral("p"),
 												   &CurrentSnapshot::removePlayerProtectedFields
 												   ); !a.isEmpty())
 		map.insert(QStringLiteral("pp"), a);
 
-	if (const QCborArray &a = toProtectedCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e"),
+	if (const QCborArray &a = toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e"),
 												   &CurrentSnapshot::removeEnemyProtectedFields
 												   ); !a.isEmpty())
 		map.insert(QStringLiteral("ee"), a);
 
-	if (const QCborArray &a = toProtectedCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b"),
+	if (const QCborArray &a = toCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b"),
 												   &CurrentSnapshot::removeBulletProtectedFields
 												   ); !a.isEmpty())
 		map.insert(QStringLiteral("bb"), a);
 
 	return map;
+}
+
+
+
+/**
+ * @brief CurrentSnapshot::fromCbor
+ * @param map
+ * @return
+ */
+
+int CurrentSnapshot::fromCbor(const QCborMap &map)
+{
+	int r = 0;
+
+	r += fromCborArray(players, map.value(QStringLiteral("pp")).toArray(), QStringLiteral("pd"), QStringLiteral("p"), nullptr);
+	r += fromCborArray(enemies, map.value(QStringLiteral("ee")).toArray(), QStringLiteral("ed"), QStringLiteral("e"), nullptr);
+	r += fromCborArray(bullets, map.value(QStringLiteral("bb")).toArray(), QStringLiteral("bd"), QStringLiteral("b"), nullptr);
+
+	return r;
+}
+
+
+
+/**
+ * @brief CurrentSnapshot::fromProtectedCbor
+ * @param map
+ * @return
+ */
+
+int CurrentSnapshot::fromProtectedCbor(const QCborMap &map)
+{
+	int r = 0;
+
+	r += fromCborArray(players, map.value(QStringLiteral("pp")).toArray(),
+				  QStringLiteral("pd"), QStringLiteral("p"), &CurrentSnapshot::removePlayerProtectedFields);
+	r += fromCborArray(enemies, map.value(QStringLiteral("ee")).toArray(),
+				  QStringLiteral("ed"), QStringLiteral("e"), &CurrentSnapshot::removeEnemyProtectedFields);
+	r += fromCborArray(bullets, map.value(QStringLiteral("bb")).toArray(),
+				  QStringLiteral("bd"), QStringLiteral("b"), &CurrentSnapshot::removeBulletProtectedFields);
+	return r;
 }
 
 

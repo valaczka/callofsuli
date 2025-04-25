@@ -39,6 +39,10 @@
 #include "enginehandler.h"
 #include "rpgconfig.h"
 
+#ifdef WITH_FTXUI
+#include "ftxterminal.hpp"
+#endif
+
 class ServerService;
 
 /**
@@ -225,6 +229,18 @@ private:
 	static ServerService *m_instance;
 
 	QList<QByteArray> m_agentSignatures;
+
+
+#ifdef WITH_FTXUI
+	FtxServer m_localServer;
+
+	void _writeToSocket(const QCborValue &cbor) { m_localServer.writeToSocket(cbor); }
+
+public:
+	void writeToSocket(const QCborValue &cbor);
+
+#endif
+
 };
 
 

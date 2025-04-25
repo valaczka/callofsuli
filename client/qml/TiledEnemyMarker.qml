@@ -11,7 +11,7 @@ TiledPlayerMarker {
 
 	readonly property bool _isWerebear: enemy && enemy.enemyType == 1
 
-	visible: enemy && enemy.game.controlledPlayer &&
+	visible: enemy && enemy.game && enemy.game.controlledPlayer &&
 			 (enemy.player === enemy.game.controlledPlayer ||
 			  enemy.game.controlledPlayer.enemy === enemy) &&
 			 enemy.hp > 0

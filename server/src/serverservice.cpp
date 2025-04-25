@@ -45,6 +45,9 @@
 #include "teacherapi.h"
 #include "authapi.h"
 
+#ifdef WITH_FTXUI
+#include "terminal.h"
+#endif
 
 const int ServerService::m_versionMajor = VERSION_MAJOR;
 const int ServerService::m_versionMinor = VERSION_MINOR;
@@ -617,6 +620,12 @@ std::optional<int> ServerService::preStart()
 
 	parser.addPositionalArgument(QStringLiteral("dir"), QObject::tr("Adatbázis könyvtár"), QStringLiteral("[dir]"));
 
+#ifdef WITH_FTXUI
+	parser.addOption({QStringLiteral("terminal"), QObject::tr("Terminál indítása")});
+	parser.addOption({QStringLiteral("terminal-name"), QObject::tr("Terminál neve"), QStringLiteral("name")});
+#endif
+
+
 	parser.parse(m_arguments);
 
 	if (parser.isSet(helpOption)) {
@@ -640,6 +649,29 @@ std::optional<int> ServerService::preStart()
 
 		return 0;
 	}
+
+
+#ifdef WITH_FTXUI
+	if (parser.isSet(QStringLiteral("terminal"))) {
+		Terminal term;
+
+		if (parser.isSet(QStringLiteral("terminal-name")))
+			return term.run(parser.value(QStringLiteral("terminal-name")));
+		else
+			return term.run(QStringLiteral("callofsuli-server"));
+	}
+
+	if (m_localServer.start(this,
+							parser.isSet(QStringLiteral("terminal-name")) ?
+										 parser.value(QStringLiteral("terminal-name")) :
+													  QStringLiteral("callofsuli-server")
+										 )) {
+		LOG_CDEBUG("service") << "Local server started";
+	} else {
+		LOG_CERROR("service") << "Local server start failed";
+	}
+
+#endif
 
 	const QByteArray &envDir = qgetenv("SERVER_DIR");
 
@@ -1229,6 +1261,24 @@ void ServerService::resume()
 	if (!start())
 		m_application->quit();
 }
+
+
+
+/**
+ * @brief ServerService::writeToSocket
+ * @param cbor
+ */
+
+#ifdef WITH_FTXUI
+
+void ServerService::writeToSocket(const QCborValue &cbor)
+{
+	QMetaObject::invokeMethod(this, std::bind(&ServerService::_writeToSocket, this, cbor), Qt::QueuedConnection);
+}
+
+#endif
+
+
 
 
 /**

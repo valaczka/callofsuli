@@ -69,7 +69,7 @@ bool TiledWeapon::shot(const bool &forced)
 			return false;
 
 		if (m_repeaterIdle > 0)
-			m_timerRepeater = tick + m_repeaterIdle;
+			m_timerRepeater = m_parentObject->game()->tickTimer()->tickAddMsec(m_repeaterIdle);
 	}
 
 	eventAttack(nullptr);
@@ -103,7 +103,7 @@ bool TiledWeapon::hit(TiledObject *target, const bool &forced)
 			return false;
 
 		if (m_repeaterIdle > 0)
-			m_timerRepeater = tick + m_repeaterIdle;
+			m_timerRepeater = m_parentObject->game()->tickTimer()->tickAddMsec(m_repeaterIdle);
 	}
 
 	eventAttack(target);

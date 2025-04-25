@@ -39,12 +39,12 @@ class GameQuestion;
 
 #ifndef OPAQUE_PTR_Client
 #define OPAQUE_PTR_Client
-  Q_DECLARE_OPAQUE_POINTER(Client*)
+Q_DECLARE_OPAQUE_POINTER(Client*)
 #endif
 
 #ifndef OPAQUE_PTR_GameQuestion
 #define OPAQUE_PTR_GameQuestion
-  Q_DECLARE_OPAQUE_POINTER(GameQuestion*)
+Q_DECLARE_OPAQUE_POINTER(GameQuestion*)
 #endif
 
 
@@ -123,12 +123,22 @@ public:
 		const qint64 &latency() const { return m_latency; }
 		void setLatency(const qint64 &latency) { m_latency = latency; }
 
+		qint64 tickAddMsec(const qint64 &msec) const {
+			const qint64 &ct = currentTick();
+			if (ct < 0)
+				return ct;
+			else
+				return ct + msecToTick(msec);
+		}
+
+		static qint64 msecToTick(const qint64 &msec) { return (msec*60./1000.); }
+
 		qint64 currentTick() const {
 			if (!m_reference.isValid())
 				return -1;
 
-			const qint64 &elapsed = m_reference.elapsed();
-			return m_startTick+elapsed+m_latency;
+			const qint64 &elapsed = msecToTick(m_reference.elapsed()+m_latency);
+			return m_startTick+elapsed;
 		}
 
 		const qint64 &startTick() const { return m_startTick; }

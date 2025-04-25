@@ -45,7 +45,7 @@ class IsometricBullet : public IsometricObject
 	Q_PROPERTY(qreal maxDistance READ maxDistance WRITE setMaxDistance NOTIFY maxDistanceChanged FINAL)
 
 public:
-    explicit IsometricBullet(TiledGame *game);
+	explicit IsometricBullet(TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~IsometricBullet();
 
 	void initialize();

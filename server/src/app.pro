@@ -40,6 +40,13 @@ win32 {
 	QMAKE_TARGET_DESCRIPTION = Call of Suli server
 }
 
+!isEmpty(FtxuiPath) {
+	SOURCES += \
+		terminal.cpp \
+
+	HEADERS += \
+		terminal.h \
+}
 
 SOURCES += \
 	abstractapi.cpp \

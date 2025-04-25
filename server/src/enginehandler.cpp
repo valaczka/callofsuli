@@ -6,7 +6,7 @@
 
 
 
-#define ENGINE_HANDLER_FPS		60
+#define ENGINE_HANDLER_FPS		120
 
 
 /**
@@ -624,10 +624,10 @@ void EngineHandlerPrivate::timerEvent(QTimerEvent */*event*/)
 
 	timerEventRun();
 
-	if (!m_timerLastTick.isNull() && dtMinute <= m_timerLastTick)
+	if (!m_timerLastMinute.isNull() && dtMinute <= m_timerLastMinute)
 		return;
 
-	m_timerLastTick = dtMinute;
+	m_timerLastMinute = dtMinute;
 
 	timerMinuteEventRun();
 }
@@ -642,7 +642,7 @@ void EngineHandlerPrivate::timerEventRun()
 {
 	QMutexLocker locker(&m_mutex);
 
-	for (const auto &e : m_engines) {
+	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {
 		e->timerTick();
 	}
 }
@@ -658,7 +658,7 @@ void EngineHandlerPrivate::timerMinuteEventRun()
 {
 	QMutexLocker locker(&m_mutex);
 
-	for (const auto &e : m_engines) {
+	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {
 		e->timerMinuteTick();
 	}
 
@@ -682,7 +682,7 @@ void EngineHandlerPrivate::onBinaryDataReceived(WebSocketStream *stream, const Q
 
 	QMutexLocker locker(&m_mutex);
 
-	for (const auto &e : m_engines) {
+	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {
 		e->onBinaryMessageReceived(data, stream);
 	}
 }

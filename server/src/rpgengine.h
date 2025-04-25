@@ -117,6 +117,7 @@ public:
 
 private:
 	void preparePlayers();
+	qint64 nextTick();
 
 	static int m_nextId;
 	int m_nextPlayerId = 1;
@@ -129,8 +130,7 @@ private:
 
 	RpgSnapshotStorage m_snapshots;
 
-	qint64 m_startTick = 0;
-	QElapsedTimer m_timer;
+	qint64 m_currentTick = 0;
 
 	friend class RpgEnginePrivate;
 };

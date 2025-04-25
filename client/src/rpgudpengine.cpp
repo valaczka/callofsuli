@@ -239,7 +239,7 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 
 
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#ifdef WITH_FTXUI
 #include "desktopapplication.h"
 #endif
 
@@ -263,10 +263,10 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 
 
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#ifdef WITH_FTXUI
 	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
 		QCborMap map = data;
-		map.insert(QStringLiteral("0op"), QStringLiteral("RCV"));
+		map.insert(QStringLiteral("0op"), QStringLiteral("LEFT"));
 		a->writeToSocket(map.toCborValue());
 	}
 #endif
@@ -295,6 +295,79 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 	updateSnapshotPlayerList(playerList);
 	updateSnapshotEnemyList(enemyList);
 	updateSnapshotBulletList(bulletList);
+
+#ifdef WITH_FTXUI
+	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+		QCborMap map;
+		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+
+		static QHash<int, QVector<RpgGameData::Player>> pData;
+
+		for (const QCborValue &v : playerList) {
+			const QCborMap &m = v.toMap();
+			const QCborValue &pd = m.value(QStringLiteral("pd"));
+			const QCborArray &p = m.value(QStringLiteral("p")).toArray();
+
+			RpgGameData::PlayerBaseData playerData;
+			playerData.fromCbor(pd);
+
+			if (playerData.o < 0 /*|| playerData.o == m_playerId*/) {
+				continue;
+			}
+
+
+			QHash<int, QVector<RpgGameData::Player>>::iterator it = pData.find(playerData.o);
+
+			if (it == pData.end()) {
+				it = pData.insert(playerData.o, {});
+			}
+
+			RpgGameData::Player player;
+
+			for (const QCborValue &v : p) {
+				player.fromCbor(v);
+
+				it->append(player);
+			}
+
+			for (int i=it->size() - 900; i > 0; --i)
+				it->removeFirst();
+		}
+
+		QString txt;
+
+		RpgGameData::Player prev;
+
+		for (const auto &[id, list] : pData.asKeyValueRange()) {
+			for (auto p = list.crbegin(); p != list.crend(); ++p) {
+				if (p != list.crbegin()) {
+					prev.f = p->f;
+
+					if (prev == *p && p != std::prev(list.crend())) {
+						continue;
+					}
+				}
+
+				prev = *p;
+
+				txt += QStringLiteral("%1: %8 %2 (%3, %4) -> (%5, %6) - %7  || %9\n")
+					   .arg(id)
+					   .arg(p->st)
+					   .arg(p->p.size() > 1 ? p->p.at(0) : -1)
+					   .arg(p->p.size() > 1 ? p->p.at(1) : -1)
+					   .arg(p->cv.size() > 1 ? p->cv.at(0) : -1)
+					   .arg(p->cv.size() > 1 ? p->cv.at(1) : -1)
+					   .arg(p->a)
+					   .arg(p->f)
+					   .arg(p->arm.cw)
+					   ;
+			}
+		}
+
+		map.insert(QStringLiteral("txt"), txt);
+		a->writeToSocket(map.toCborValue());
+	}
+#endif
 }
 
 
@@ -668,10 +741,10 @@ void ClientStorage::appendSnapshot(const RpgGameData::PlayerBaseData &playerData
 	if (it == m_players.end()) {
 		RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> d;
 		d.data = playerData;
-		d.list.insert_or_assign(player.f, player);
+		insert(&d.list, player, m_lastPlayerTick);
 		m_players.push_back(d);
 	} else {
-		insert(&(it->list), player);
+		insert(&(it->list), player, m_lastPlayerTick);
 	}
 }
 
@@ -696,10 +769,10 @@ void ClientStorage::appendSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 	if (it == m_enemies.end()) {
 		RpgGameData::SnapshotData<RpgGameData::Enemy, RpgGameData::EnemyBaseData> d;
 		d.data = enemyData;
-		d.list.insert_or_assign(enemy.f, enemy);
+		insert(&d.list, enemy, m_lastEnemyTick);
 		m_enemies.push_back(d);
 	} else {
-		insert(&(it->list), enemy);
+		insert(&(it->list), enemy, m_lastEnemyTick);
 	}
 }
 
@@ -724,10 +797,75 @@ void ClientStorage::appendSnapshot(const RpgGameData::BulletBaseData &bulletData
 	if (it == m_bullets.end()) {
 		RpgGameData::SnapshotData<RpgGameData::Bullet, RpgGameData::BulletBaseData> d;
 		d.data = bulletData;
-		d.list.insert_or_assign(bullet.f, bullet);
+		insert(&d.list, bullet, m_lastBulletTick);
 		m_bullets.push_back(d);
 	} else {
-		insert(&(it->list), bullet);
+		insert(&(it->list), bullet, m_lastBulletTick);
+	}
+}
+
+
+/**
+ * @brief ClientStorage::hasSnapshot
+ * @return
+ */
+
+bool ClientStorage::hasSnapshot()
+{
+	QMutexLocker locker(&m_mutex);
+	return !m_players.empty() || !m_enemies.empty() || !m_bullets.empty();
+}
+
+
+
+/**
+ * @brief ClientStorage::renderCurrentSnapshot
+ * @return
+ */
+
+RpgGameData::CurrentSnapshot ClientStorage::renderCurrentSnapshot()
+{
+	QMutexLocker locker(&m_mutex);
+
+	/*renderPlayer();
+	renderEnemy();
+	renderBullet();*/
+
+	RpgGameData::CurrentSnapshot snapshot = getCurrentSnapshot();
+	updateLastTick(snapshot);
+
+	return snapshot;
+}
+
+
+/**
+ * @brief ClientStorage::updateLastTick
+ * @param snapshot
+ */
+
+void ClientStorage::updateLastTick(const RpgGameData::CurrentSnapshot &snapshot)
+{
+	QMutexLocker locker(&m_mutex);
+
+	for (const auto &ptr : snapshot.players) {
+		for (const auto &l : ptr.second) {
+			if (l.second.f > m_lastPlayerTick)
+				m_lastPlayerTick = l.second.f;
+		}
+	}
+
+	for (const auto &ptr : snapshot.enemies) {
+		for (const auto &l : ptr.second) {
+			if (l.second.f > m_lastEnemyTick)
+				m_lastEnemyTick = l.second.f;
+		}
+	}
+
+	for (const auto &ptr : snapshot.bullets) {
+		for (const auto &l : ptr.second) {
+			if (l.second.f > m_lastBulletTick)
+				m_lastBulletTick = l.second.f;
+		}
 	}
 }
 

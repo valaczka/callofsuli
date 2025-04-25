@@ -1,7 +1,9 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts websockets core5compat pdf
+QT += gui quick svg xml network gui-private quickcontrols2 charts websockets core5compat
+
+!wasm: QT += pdf
 
 CONFIG += c++2a
 CONFIG += separate_debug_info
@@ -189,18 +191,14 @@ macx {
 }
 
 
-
 !isEmpty(FtxuiPath) {
-	DEFINES += WITH_FTXUI
-
-	INCLUDEPATH += $${FtxuiPath}/include
-	LIBS += -L$${FtxuiPath}/lib -lftxui-component -lftxui-dom -lftxui-screen
-
 	SOURCES += \
-		ftxterminal.cpp
+		terminal.cpp \
+
 	HEADERS += \
-		ftxterminal.h
+		terminal.h \
 }
+
 
 ######## SOURCES ###############
 

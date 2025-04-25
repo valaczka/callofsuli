@@ -185,7 +185,7 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 
 
 	if (timer)
-		m_waitEnd = timer->currentTick() + m_waitMsec;
+		m_waitEnd = timer->tickAddMsec(m_waitMsec);
 
 	m_isReturning = true;
 	m_hasReturned = false;

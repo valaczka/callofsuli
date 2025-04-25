@@ -150,9 +150,9 @@ private:
 	}
 
 
-	void updateFromRayCast(const TiledReportedFixtureMap &map) {
+	void updateFromRayCast(const RayCastInfo &list) {
 		for (auto it = m_enemies.begin(); it != m_enemies.end(); ) {
-			const bool inMap = map.contains(it->enemy);
+			const bool inMap = list.isVisible(it->enemy);
 
 			if (it->flags.testFlag(CanShot) && !it->flags.testFlag(CanHit) && !inMap)
 				it = removeEnemy(it);
@@ -160,8 +160,8 @@ private:
 				++it;
 		}
 
-		for (const TiledReportedFixture &f : map) {
-			if (IsometricEnemy *e = dynamic_cast<IsometricEnemy*>(f.body))
+		for (const RayCastInfoItem &f : list) {
+			if (IsometricEnemy *e = dynamic_cast<IsometricEnemy*>(TiledObjectBody::fromShapeRef(f.shape)))
 				setEnemy(e, EnemyFlags(Visible|CanShot), m_player->distanceToPoint(f.point));
 		}
 	}
@@ -174,9 +174,11 @@ private:
 				continue;
 			}
 
-			const TiledReportedFixtureMap map = m_player->rayCast(it->enemy->bodyPosition(), TiledObjectBody::FixtureEnemyBody, true);
+			const RayCastInfo &map = m_player->rayCast(it->enemy->bodyPosition(), TiledObjectBody::FixtureEnemyBody);
 
-			auto mapIt = map.find(it->enemy);
+			auto mapIt = std::find_if(map.cbegin(), map.cend(), [&it](const RayCastInfoItem &item){
+				return TiledObjectBody::fromShapeRef(item.shape) == it->enemy;
+			});
 
 			const bool inMap = mapIt != map.cend();
 
@@ -347,7 +349,7 @@ void IsometricPlayer::onDead()
 void IsometricPlayer::startInability()
 {
 	if (m_inabilityTime > 0 && m_game->tickTimer()) {
-		m_inabilityTimer = m_game->tickTimer()->currentTick() + m_inabilityTime;
+		m_inabilityTimer = m_game->tickTimer()->tickAddMsec(m_inabilityTime);
 	}
 }
 
@@ -360,7 +362,7 @@ void IsometricPlayer::startInability()
 void IsometricPlayer::startInability(const int &msec)
 {
 	if (m_inabilityTime > 0 && m_game->tickTimer()) {
-		m_inabilityTimer = m_game->tickTimer()->currentTick() + msec;
+		m_inabilityTimer = m_game->tickTimer()->tickAddMsec(msec);
 	}
 }
 
@@ -475,7 +477,9 @@ void IsometricPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 	if (!base)
 		return;
 
-	/****************const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
+
+
 	IsometricEnemy *enemy = categories.testFlag(FixtureTarget) ?
 								dynamic_cast<IsometricEnemy*>(base) :
 								nullptr;
@@ -487,20 +491,19 @@ void IsometricPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 									   nullptr;
 
 
-	if (isEqual(self, targetCircle()) && enemyBody) {
+	if (self == targetCircle() && enemyBody) {
 		d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::Near);
-	} else if (isAny(bodyShapes(), self) && enemy) {
-		TiledReportedFixtureMap map = rayCast(enemy->bodyPosition(), FixtureEnemyBody, true);
-		if (map.contains(enemy) && !map.containsTransparentGround()) {
+	} else if (isBodyShape(self) && enemy) {
+		if (rayCast(enemy->bodyPosition(), FixtureEnemyBody).isWalkable(enemy)) {
 			if (d->setEnemyFlag(enemy, IsometricPlayerPrivate::CanHit)) {
 				onEnemyReached(enemy);
 			}
 		} else {
 			d->setEnemyFlag(enemy, IsometricPlayerPrivate::CanHit, false);
 		}
-	} else if (isAny(bodyShapes(), self) && pickable) {
+	} else if (isBodyShape(self) && pickable) {
 		onPickableReached(base);
-	}******************************/
+	}
 
 	/*if (base->categories().testFlag(TiledObjectBody::FixtureTransport)) {
 		TiledTransport *transport = game() ? game()->transportList().find(base) : nullptr;
@@ -529,72 +532,30 @@ void IsometricPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 	if (!base)
 		return;
 
-	/***********************const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
-	IsometricEnemy *enemy = categories.testFlag(FixtureTarget)  ?
+	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
+
+	IsometricEnemy *enemy = categories.testFlag(FixtureTarget) ?
 								dynamic_cast<IsometricEnemy*>(base) :
 								nullptr;
-
 	IsometricEnemy *enemyBody = categories.testFlag(FixtureEnemyBody)  ?
 									dynamic_cast<IsometricEnemy*>(base) :
 									nullptr;
-
 	TiledPickableIface *pickable = categories.testFlag(FixturePickable) ?
 									   dynamic_cast<TiledPickableIface*>(base) :
 									   nullptr;
 
-	if (isEqual(self, targetCircle()) && enemyBody) {
+	if (self == targetCircle() && enemyBody) {
 		d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::Near, false);
 		if (d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::CanHit, false))
 			onEnemyLeft(enemyBody);
-	} else if (isAny(bodyShapes(), self) && enemy) {
+	} else if (isBodyShape(self) && enemy) {
 		if (d->setEnemyFlag(enemy, IsometricPlayerPrivate::CanHit, false))
 			onEnemyLeft(enemy);
-	} else if (isAny(bodyShapes(), self) && pickable) {
+	} else if (isBodyShape(self) && pickable) {
 		onPickableLeft(base);
-	}******************************/
+	}
 }
 
-
-
-/**
- * @brief IsometricPlayer::sensorBeginContact
- * @param other
- */
-/*
-
-
-void IsometricPlayer::fixtureBeginContact(Box2DFixture *other)
-{
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport))) {
-		TiledTransport *transport = m_scene->game() ? m_scene->game()->transportList().find(base) : nullptr;
-
-		if (!m_currentTransport && transport) {
-			setCurrentTransport(transport);
-			m_currentTransportBase = base;
-		}
-	}
-
-}
-
-
-
-
-void IsometricPlayer::fixtureEndContact(Box2DFixture *other)
-{
-
-	if (other->categories().testFlag(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport))) {
-		TiledTransport *transport = m_scene->game() ? m_scene->game()->transportList().find(base) : nullptr;
-
-		if (m_currentTransport == transport && transport) {
-			setCurrentTransport(nullptr);
-			m_currentTransportBase = nullptr;
-		}
-	}
-
-
-
-*/
 
 
 

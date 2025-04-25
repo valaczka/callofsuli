@@ -56,24 +56,33 @@ Q_DECLARE_OPAQUE_POINTER(TiledScene*)
 #endif
 
 
-struct TiledReportedFixture {
-	//b2::ShapeRef shape;
+/**
+ * @brief The RayCastInfoItem class
+ */
+
+struct RayCastInfoItem {
+	cpShape *shape = nullptr;
 	QVector2D point;
-	TiledObjectBody *body = nullptr;
+	bool visible = false;
+	bool walkable = false;
 };
 
 
-class TiledReportedFixtureMap : public QMultiMap<float, TiledReportedFixture>
+class RayCastInfo : public std::vector<RayCastInfoItem>
 {
 public:
-	TiledReportedFixtureMap() : QMultiMap<float, TiledReportedFixture>() {}
+	RayCastInfo() = default;
 
-	bool containsTransparentGround() const;
-	TiledReportedFixtureMap::iterator find(TiledObjectBody *body);
-	TiledReportedFixtureMap::const_iterator find(TiledObjectBody *body) const;
-	bool contains(TiledObjectBody *body) const { return find(body) != this->cend(); }
+	bool contains(const cpShape *shape) const;
+	bool contains(const cpBody *body) const;
+	bool contains(TiledObjectBody *body) const;
+	bool isVisible(const cpShape *shape) const;
+	bool isVisible(const cpBody *body) const;
+	bool isVisible(TiledObjectBody *body) const;
+	bool isWalkable(const cpShape *shape) const;
+	bool isWalkable(const cpBody *body) const;
+	bool isWalkable(TiledObjectBody *body) const;
 };
-
 
 
 /**
@@ -173,6 +182,7 @@ public:
 
 
 	const std::vector<cpShape*> &bodyShapes() const;
+	bool isBodyShape(cpShape *shape) const;
 	cpShape *sensorPolygon() const;
 	cpShape *virtualCircle() const;
 	cpShape *targetCircle() const;
@@ -212,8 +222,9 @@ public:
 	void removeVirtualCircle();
 	void addTargetCircle(const float &length);
 
-	TiledReportedFixtureMap rayCast(const QPointF &dest, const FixtureCategories &categories,
-									const bool &forceLine = false) const;
+	RayCastInfo rayCast(const QPointF &dest,
+						const TiledObjectBody::FixtureCategories &categories = FixtureAll,
+						const float &radius = 7.) const;
 
 	virtual void debugDraw(TiledDebugDraw *draw) const;
 

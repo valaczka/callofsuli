@@ -302,15 +302,18 @@ protected:
 	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void synchronize();
 
-	virtual void worldStep(TiledObjectBody *body);
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer);
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer);
 
 	virtual void timerEvent(QTimerEvent *event) override final;
-	virtual void timeSteppedEvent();
+
 	virtual void timeStepPrepareEvent();
+	virtual void timeBeforeWorldStepEvent(const qint64 &tick);
+	virtual void worldStep(TiledObjectBody *body);
+	virtual void timeAfterWorldStepEvent(const qint64 &tick);
+	virtual void timeSteppedEvent();
 
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
@@ -329,9 +332,6 @@ protected:
 
 	std::unique_ptr<AbstractGame::TickTimer> m_tickTimer;
 	bool m_paused = false;
-
-	std::function<void(const qint64 &)> m_funcBeforeWorldStep;
-	std::function<void(const qint64 &)> m_funcAfterWorldStep;
 
 
 private:

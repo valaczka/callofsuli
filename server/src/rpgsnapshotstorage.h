@@ -34,6 +34,42 @@ class RpgEnginePlayer;
 
 
 
+
+
+template <typename T, typename T2,
+		  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+struct RendererData {
+	T2 data;										// Alapadatok
+	std::map<qint64, T> *ptr = nullptr;				// A storage snapshot-listája
+	std::map<qint64, T>::iterator it;				// Ha van a tick-nél nem kisebb elem
+	std::optional<T> snap;							// Ha van auth snap, akkor az elején az
+
+	std::map<qint64, T> *tmpPtr = nullptr;			// A tmp snapshot-listája
+	std::map<qint64, T>::iterator tmpIt;			// A listában az első nem kisebb elem (x10)
+
+	void step(const qint64 &tick);
+};
+
+
+template <typename T, typename T2,
+		  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+using RendererList = std::vector<RendererData<T, T2> >;
+
+
+
+struct Renderer {
+	qint64 tick = -1;
+	RendererList<RpgGameData::Player, RpgGameData::PlayerBaseData> players;
+	RendererList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> enemies;
+	RendererList<RpgGameData::Bullet, RpgGameData::BulletBaseData> bullets;
+
+	qint64 step();
+};
+
+
+
 /**
  * @brief The RpgSnapshotStorage class
  */
@@ -54,6 +90,17 @@ public:
 private:
 	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
 	bool registerEnemies(const QCborMap &cbor);
+
+	Renderer getRenderer(const qint64 &tick);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	void addRenderer(RendererList<T, T2> &dest, RpgGameData::SnapshotData<T, T2> *src,
+					 RpgGameData::SnapshotData<T, T2> *tmpSrc,
+					 const qint64 &tick);
+
+	void renderPlayer(Renderer *renderer, RendererData<RpgGameData::Player, RpgGameData::PlayerBaseData> &player);
 
 	RpgGameData::Player actionPlayer(RpgGameData::PlayerBaseData &pdata, RpgGameData::Player &snap);
 	RpgGameData::Bullet actionBullet(RpgGameData::Bullet &snap,
@@ -93,43 +140,67 @@ private:
 	static bool checkBaseData(const T2 &key, const QCborMap &cbor, const QString &baseKey);
 
 	template <typename T>
-	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick,
-											std::map<qint64, T>::iterator *nextPtr = nullptr);
+	static std::map<qint64, T>::iterator getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick);
 
-	template <typename T>
-	static std::optional<T> getPreviousSnap(std::map<qint64, T> &list, const T &snap,
-											std::map<qint64, T>::iterator *nextPtr = nullptr);
 
-	template <typename T, typename T2,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	static std::optional<T> getPreviousSnap(RpgGameData::SnapshotData<T, T2> &data,
-											const QCborValue &cbor,
-											std::map<qint64, T>::iterator *nextPtr = nullptr);
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	static void copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick);
+
 
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	static std::optional<T> getPreviousSnap(RpgGameData::SnapshotData<T, T2> &data, const T &snap,
-											std::map<qint64, T>::iterator *nextPtr = nullptr);
+	static void removeLessThan(RpgGameData::SnapshotList<T, T2> &list, const qint64 &tick);
 
-	template <typename T, typename T2,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	std::optional<T> addToPreviousSnap(RpgGameData::SnapshotData<T, T2> &data,
-									   const QCborValue &cbor,
-									   std::map<qint64, T>::iterator *nextPtr,
-									   const std::function<void(QCborMap *)> &fn = nullptr);
 
-	template <typename T, typename T2,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	void assignLastSnap(const T &src, RpgGameData::SnapshotData<T, T2> &dest);
 
 	RpgEngine *m_engine = nullptr;
 
+	RpgGameData::CurrentSnapshot m_tmpSnapshot;
+	qint64 m_lastAuthTick = -1;
+
 	std::vector<RpgGameData::BaseData> m_lastBulletId;
+
+
+
+	QString m_tmpTxt;
 };
+
+
+
+/**
+ * @brief RpgSnapshotStorage::addRenderer
+ * @param dest
+ * @param src
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline void RpgSnapshotStorage::addRenderer(RendererList<T, T2> &dest, RpgGameData::SnapshotData<T, T2> *src,
+											RpgGameData::SnapshotData<T, T2> *tmpSrc, const qint64 &tick)
+{
+	Q_ASSERT(src);
+
+	RendererData<T, T2> d;
+	d.data = src->data;
+	d.ptr = &src->list;
+	d.it = getPreviousSnap(src->list, tick);
+
+	if (d.it == src->list.end())
+		qDebug() << "NOT FOUND";
+	else if (d.it->first <= tick)
+		d.snap = d.it->second;
+
+	d.tmpPtr = tmpSrc ? &tmpSrc->list : nullptr;
+
+	if (tmpSrc)
+		d.tmpIt = tmpSrc->list.lower_bound(tick*10);
+
+	dest.push_back(d);
+}
+
+
+
 
 
 
@@ -142,10 +213,10 @@ private:
 
 template<typename T, typename T2, typename T3>
 inline std::map<qint64, T>::const_iterator RpgSnapshotStorage::findState(const std::map<qint64, T> &list,
-																   const T2 &state)
+																		 const T2 &state)
 {
 	return std::find_if(list.cbegin(), list.cend(),
-						  [&state](const auto &ptr){
+						[&state](const auto &ptr){
 		return (ptr.second.st == state);
 	});
 }
@@ -163,7 +234,7 @@ inline std::map<qint64, T>::iterator RpgSnapshotStorage::findState(std::map<qint
 																   const T2 &state)
 {
 	return std::find_if(list.begin(), list.end(),
-						  [&state](const auto &ptr){
+						[&state](const auto &ptr){
 		return (ptr.second.st == state);
 	});
 }
@@ -220,90 +291,6 @@ inline RpgGameData::SnapshotList<T, T2>::iterator RpgSnapshotStorage::find(RpgGa
 
 
 
-/**
- * @brief RpgSnapshotStorage::assignLastSnap
- * @param src
- * @param dest
- */
-
-template<typename T, typename T2, typename T3, typename T4>
-inline void RpgSnapshotStorage::assignLastSnap(const T &src, RpgGameData::SnapshotData<T, T2> &dest)
-{
-	dest.list.insert_or_assign(src.f, src);
-	dest.lastIn = src.f;
-}
-
-
-
-
-/**
- * @brief RpgSnapshotStorage::getPreviousSnap
- * @param data
- * @param cbor
- * @param nextPtr
- * @return
- */
-
-
-template<typename T, typename T2, typename T3, typename T4>
-inline std::optional<T> RpgSnapshotStorage::getPreviousSnap(RpgGameData::SnapshotData<T, T2> &data,
-															const QCborValue &cbor,
-															std::map<qint64, T>::iterator *nextPtr)
-{
-	T snap;
-	snap.fromCbor(cbor, true);
-
-	return getPreviousSnap(data, snap, nextPtr);
-}
-
-
-
-
-
-/**
- * @brief RpgSnapshotStorage::getPreviousSnap
- * @param data
- * @param snap
- * @param nextPtr
- * @return
- */
-
-template<typename T, typename T2, typename T3, typename T4>
-inline std::optional<T> RpgSnapshotStorage::addToPreviousSnap(RpgGameData::SnapshotData<T, T2> &data,
-															  const QCborValue &cbor,
-															  std::map<qint64, T>::iterator *nextPtr,
-															  const  std::function<void(QCborMap*)> &fn)
-{
-	if (nextPtr)
-		*nextPtr = data.list.end();
-
-	QCborValue pcbor;
-
-	if (fn) {
-		QCborMap m = cbor.toMap();
-		fn(&m);
-		pcbor = m;
-	} else {
-		pcbor = cbor;
-	}
-
-	T snap;
-	snap.fromCbor(pcbor);
-
-	if (snap.f <= data.lastIn) {
-		qWarning() << "OUT OF TIME" << snap.f << data.lastIn;
-		return std::nullopt;
-	}
-
-	std::optional<T> prev = getPreviousSnap(data.list, snap, nextPtr);
-
-	if (prev) {
-		prev->fromCbor(pcbor);
-		return prev;
-	} else {
-		return snap;
-	}
-}
 
 
 
@@ -328,36 +315,30 @@ inline bool RpgSnapshotStorage::checkBaseData(const T2 &key, const QCborMap &cbo
 
 
 
-
 /**
- * @brief RpgSnapshotStorage::getFullSnap
+ * @brief RpgSnapshotStorage::getPreviousSnap
  * @param list
- * @param snap
- * @param itPtr
+ * @param tick
+ * @param nextPtr
  * @return
  */
 
 template<typename T>
-inline std::optional<T> RpgSnapshotStorage::getPreviousSnap(std::map<qint64, T> &list, const T &snap, std::map<qint64, T>::iterator *nextPtr)
+inline std::map<qint64, T>::iterator RpgSnapshotStorage::getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick)
 {
-	return getPreviousSnap(list, snap.f, nextPtr);
-}
+	if (list.empty())
+		return list.end();
 
+	typename std::map<qint64, T>::iterator it = list.lower_bound(tick);			// Greater or equal
 
-
-
-template<typename T>
-inline std::optional<T> RpgSnapshotStorage::getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick, std::map<qint64, T>::iterator *nextPtr)
-{
-	typename std::map<qint64, T>::iterator it = list.upper_bound(tick);			// Greater
-
-	if (nextPtr)
-		*nextPtr = it;
-
-	if (it != list.cbegin())
-		return std::prev(it)->second;
+	if (it == list.end())
+		return std::prev(it);
+	else if (it->first == tick)
+		return it;
+	else if (it != list.begin())
+		return std::prev(it);
 	else
-		return std::nullopt;
+		return it;
 }
 
 
@@ -401,6 +382,26 @@ inline RpgGameData::SnapshotList<T, T2>::const_iterator RpgSnapshotStorage::find
 	});
 
 	return it;
+}
+
+
+
+
+template<typename T, typename T2, typename T3, typename T4>
+inline void RendererData<T, T2, T3, T4>::step(const qint64 &tick)
+{
+	if (!ptr)
+		return;
+
+	if (it != ptr->end()) {
+		if (std::next(it)->first == tick) {
+			it = std::next(it);
+		}
+	}
+
+	if (tmpPtr && tmpIt != tmpPtr->end()) {
+		tmpIt = tmpPtr->lower_bound(tick*10);
+	}
 }
 
 #endif // RPGSNAPSHOTSTORAGE_H

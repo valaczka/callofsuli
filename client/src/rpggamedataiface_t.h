@@ -82,7 +82,7 @@ inline QVector2D RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity
 		return currentSpeed;
 	}
 
-	if (snapshot.s1.f < (snapshot.current - RPG_UDP_DELTA_MSEC*2) && snapshot.s2.f < 0) {
+	if (snapshot.s1.f < (snapshot.current - RPG_UDP_DELTA_TICK*2) && snapshot.s2.f < 0) {
 		entity->stop();
 		return currentSpeed;
 	}
@@ -94,19 +94,27 @@ inline QVector2D RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity
 	QVector2D final;
 	float dist = 0.;
 
+	int test = 0;
+
 	if (snapshot.s2.f > 0 && snapshot.s2.p.size() > 1) {
 		final.setX(snapshot.s2.p.at(0));
 		final.setY(snapshot.s2.p.at(1));
 		dist = entity->distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
+
+		test = 1;
 	} else if (snapshot.s1.p.size() > 1) {
-		if (snapshot.s1.st == moving && snapshot.s1.cv.size() > 1 && snapshot.current - snapshot.s1.f < 1000) {
+		if (snapshot.s1.st == moving && snapshot.s1.cv.size() > 1 && (snapshot.current - snapshot.s1.f) < 1000) {
 			final.setX(snapshot.s1.p.at(0) + snapshot.s1.cv.at(0));
 			final.setY(snapshot.s1.p.at(1) + snapshot.s1.cv.at(1));
 			dist = entity->distanceToPoint(final) / (float) (snapshot.s1.f + 1000 - snapshot.current);
+
+			test = 2;
 		} else if (snapshot.s1.p.size() > 1) {
 			final.setX(snapshot.s1.p.at(0));
 			final.setY(snapshot.s1.p.at(1));
 			dist = entity->distanceToPoint(final);
+
+			test = 3;
 		} else {
 			LOG_CERROR("game") << "Invalid snapshot data" << entity;
 
@@ -120,6 +128,9 @@ inline QVector2D RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity
 		return currentSpeed;
 	}
 
+	if (dist < 0. || isnan(dist) || dist > 10.) {
+		LOG_CERROR("game") << "INVALID dist" << dist << snapshot.s1.f << snapshot.current << snapshot.s2.f << snapshot.s2.p << final << entity->distanceToPoint(final) << test;
+	}
 
 	if (snapshot.s1.st == idle && snapshot.s2.st == idle && dist < 2 * speed / 60.) {
 		fnEmplace(entity, final, snapshot.s2.a);

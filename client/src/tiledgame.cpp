@@ -40,10 +40,13 @@
 #include <libtiled/map.h>
 #include <libtiled/imagecache.h>
 #include <libtiled/tilesetmanager.h>
-#include <enet/enet.h>
 #include <chipmunk/chipmunk.h>
 #include <chipmunk/chipmunk_structs.h>
 
+
+#ifndef Q_OS_WASM
+#include <enet/enet.h>
+#endif
 
 typedef std::unique_ptr<cpSpace, void (*)(cpSpace*)> unique_space_ptr;
 
@@ -57,12 +60,6 @@ private:
 	TiledGamePrivate(TiledGame *game)
 		: q(game)
 	{ }
-
-	~TiledGamePrivate()
-	{
-		if (m_stepTimerId != Qt::TimerId::Invalid)
-			q->killTimer(m_stepTimerId);
-	}
 
 	struct Scene {
 		Scene()
@@ -152,7 +149,6 @@ private:
 
 	void updateObjects();
 
-	void startStepTimer();
 	void stepWorlds();
 
 	static cpBool collisionBegin(cpArbiter *arb, cpSpace *space, cpDataPointer userData);
@@ -161,11 +157,7 @@ private:
 
 	TiledGame *const q;
 
-	Qt::TimerId m_stepTimerId = Qt::TimerId::Invalid;
-	QElapsedTimer m_stepElapsedTimer;
-	qint64 m_stepLag = 0;
-
-	QLambdaThreadWorker m_stepTimerThread;
+	qint64 m_currentFrame = 0;
 	QRecursiveMutex m_stepMutex;
 
 	std::vector<std::unique_ptr<Scene>> m_sceneList;
@@ -284,7 +276,7 @@ bool TiledGame::load(const TiledGameDefinition &def)
 
 	setCurrentScene(firstScene);
 
-	d->startStepTimer();
+	startTimer(std::chrono::milliseconds{8}, Qt::PreciseTimer);
 
 	return true;
 }
@@ -538,8 +530,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 	item->sceneId = def.id;
 	item->space = item->spaceCreate();
 
-	LOG_CINFO("game") << "######" << item->space.get();
-
+	cpSpaceSetCollisionBias(item->space.get(), cpfpow(1.0f - 0.5f, 60.0f));
 
 	item->scene = qvariant_cast<TiledScene*>(item->container->property("scene"));
 	Q_ASSERT(item->scene);
@@ -574,9 +565,6 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 	QMutexLocker locker(&d->m_stepMutex);
 
 	d->m_sceneList.push_back(std::move(item));
-
-
-	LOG_CINFO("game") << "!!!!!!!!" << d->m_sceneList.back()->space.get();
 
 	return true;
 }
@@ -880,6 +868,11 @@ void TiledGame::timeSteppedEvent()
 void TiledGame::timeStepPrepareEvent()
 {
 
+}
+
+void TiledGame::timeBeforeWorldStepEvent(const qint64 &tick)
+{
+	Q_UNUSED(tick);
 }
 
 
@@ -1289,49 +1282,44 @@ void TiledGame::updateKeyboardJoystick()
 
 void TiledGame::updateStepTimer()
 {
-	if (m_paused) {
-		d->m_stepElapsedTimer.invalidate();
-		d->m_stepLag = 0;
+	if (m_paused || !m_tickTimer)
+		return;
+
+	const qint64 &currentTick = m_tickTimer->currentTick();
+
+	if (currentTick < 0) {
+		timeStepPrepareEvent();
 		return;
 	}
 
-	if (d->m_stepElapsedTimer.isValid()) {
-		d->m_stepLag += d->m_stepElapsedTimer.restart();
-	} else {
-		d->m_stepElapsedTimer.start();
-	}
+	const qint64 frames = currentTick - d->m_currentFrame;
 
-	int frame = 0;
-
-	if (d->m_stepLag < 1000/60)
+	if (frames <= 0)
 		return;
+
 
 	QMutexLocker locker(&d->m_stepMutex);
 
 	timeStepPrepareEvent();
 
-	while (d->m_stepLag >= 1000/60) {
-		if (m_funcBeforeWorldStep)
-			m_funcBeforeWorldStep(d->m_stepLag);
-
-		d->m_stepLag -= 1000/60;
+	for (qint64 tick=currentTick-frames+1; tick<=currentTick; ++tick) {
+		timeBeforeWorldStepEvent(tick);
 
 		d->stepWorlds();
 
-		if (m_funcAfterWorldStep)
-			m_funcAfterWorldStep(d->m_stepLag);
-
-		++frame;
+		timeAfterWorldStepEvent(tick);
 	}
 
-	if (frame > 12)
-		LOG_CERROR("scene") << "Render lag:" << frame << "frames";
-	else if (frame > 8)
-		LOG_CWARNING("scene") << "Render lag:" << frame << "frames";
-	else if (frame > 4)
-		LOG_CDEBUG("scene") << "Render lag:" << frame << "frames";
-	else if (frame > 1)
-		LOG_CTRACE("scene") << "Render lag:" << frame << "frames";
+	d->m_currentFrame = currentTick;
+
+	if (frames > 12)
+		LOG_CERROR("scene") << "Render lag:" << frames << "frames";
+	else if (frames > 8)
+		LOG_CWARNING("scene") << "Render lag:" << frames << "frames";
+	else if (frames > 2)
+		LOG_CDEBUG("scene") << "Render lag:" << frames << "frames";
+	else if (frames > 1)
+		LOG_CTRACE("scene") << "Render lag:" << frames << "frames";
 
 
 	timeSteppedEvent();
@@ -1590,6 +1578,13 @@ void TiledGame::worldStep(TiledObjectBody *body)
 {
 	Q_ASSERT(body);
 	body->worldStep();
+}
+
+
+
+void TiledGame::timeAfterWorldStepEvent(const qint64 &tick)
+{
+	Q_UNUSED(tick);
 }
 
 
@@ -2313,18 +2308,6 @@ void TiledGamePrivate::updateObjects()
 
 
 /**
- * @brief TiledGamePrivate::startStepTimer
- */
-
-void TiledGamePrivate::startStepTimer()
-{
-	m_stepElapsedTimer.start();
-	m_stepTimerId = Qt::TimerId{q->startTimer(std::chrono::milliseconds{8}, Qt::PreciseTimer)};
-}
-
-
-
-/**
  * @brief TiledGamePrivate::stepWorlds
  */
 
@@ -2391,27 +2374,26 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
 	if (!body)
 		return std::nullopt;
 
-	const TiledReportedFixtureMap &map = body->rayCast(to, TiledObjectBody::FixtureGround, false);
-
-	bool isWalkable = true;
-
-	for (auto it=map.constBegin(); it != map.constEnd(); ++it) {
-		isWalkable = false;
-		break;
-	}
-
-	//const QPointF pos = body->bodyPosition();
-	//if (isWalkable && !m_game->isGround(this, pos.x(), pos.y()))
-
-	if (isWalkable)
-		return QPolygonF() << body->bodyPosition() << to;
-
 	QMutexLocker locker(&d->m_stepMutex);
 
 	cpSpace *space = body->space();
 
 	if (!space)
 		return std::nullopt;
+
+	const RayCastInfo &info = body->rayCast(to, TiledObjectBody::FixtureGround);
+
+	bool isWalkable = true;
+
+	for (const RayCastInfoItem &item : info) {
+		if (!item.walkable)
+			isWalkable = false;
+		break;
+	}
+
+	if (isWalkable)
+		return QPolygonF() << body->bodyPosition() << to;
+
 
 	const auto it = std::find_if(d->m_sceneList.cbegin(),
 								 d->m_sceneList.cend(), [space](const auto &ptr) {
@@ -2652,8 +2634,8 @@ void TiledGamePrivate::Scene::reloadTcodMap()
 	for (int i=0; i<wSize; ++i) {
 		for (int j=0; j<hSize; ++j) {
 			cpShape *chunk = cpBoxShapeNew(NULL,
-										   tcodMap.chunkWidth/2,
-										   tcodMap.chunkHeight/2,
+										   tcodMap.chunkWidth,
+										   tcodMap.chunkHeight,
 										   0);
 			cpTransform tr = cpTransformIdentity;
 			tr.tx = tcodMap.viewport.left() + tcodMap.chunkWidth*(i+0.5);
@@ -2710,15 +2692,20 @@ void TiledGamePrivate::Scene::destroyScene()
  * @return
  */
 
-cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *space, cpDataPointer userData)
+cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *, cpDataPointer)
 {
-	TiledGamePrivate *d = (TiledGamePrivate *) userData;
+	//TiledGamePrivate *d = (TiledGamePrivate *) userData;
 
 	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
 
-	LOG_CDEBUG("scene") << "COLLISION BEGIN" << space << TiledObjectBody::fromShapeRef(shapeA)
-						<< TiledObjectBody::fromShapeRef(shapeB)
-						<< d;
+	TiledObjectBody *bodyA = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA));
+	TiledObjectBody *bodyB = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB));
+
+	if (!bodyA || !bodyB)
+		return true;
+
+	bodyA->onShapeContactBegin(shapeA, shapeB);
+	bodyB->onShapeContactBegin(shapeB, shapeA);
 
 	return true;
 }
@@ -2733,13 +2720,19 @@ cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *space, cpDataPo
  * @param userData
  */
 
-void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *space, cpDataPointer userData)
+void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *, cpDataPointer)
 {
-	TiledGamePrivate *d = (TiledGamePrivate *) userData;
+	//TiledGamePrivate *d = (TiledGamePrivate *) userData;
 
 	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
 
-	LOG_CDEBUG("scene") << "COLLISION END" << space << TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA))
-						<< TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB))
-						<< d;
+	TiledObjectBody *bodyA = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA));
+	TiledObjectBody *bodyB = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB));
+
+	if (!bodyA || !bodyB)
+		return;
+
+	bodyA->onShapeContactEnd(shapeA, shapeB);
+	bodyB->onShapeContactEnd(shapeB, shapeA);
+
 }

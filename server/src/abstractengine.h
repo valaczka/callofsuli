@@ -36,6 +36,8 @@ public:
 	virtual bool canDelete(const int &useCount);
 	virtual bool canConnect() const { return m_connectionLimit == 0 || m_connectionLimit > m_streams.size(); }
 
+	ServerService *service() const { return m_service; }
+
 	const QString &owner() const;
 	void setOwner(const QString &newOwner);
 
@@ -60,7 +62,6 @@ protected:
 	virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) { Q_UNUSED(data); Q_UNUSED(stream); }
 
 	QRecursiveMutex m_engineMutex;
-	[[deprecated]] QMutex m_playerMutex;
 
 	EngineHandler *const m_handler;
 	ServerService *const m_service;

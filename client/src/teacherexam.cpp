@@ -36,11 +36,12 @@
 #include "stb_image_write.h"
 #include "csv.hpp"
 #include "examgame.h"
-#include <QPdfPageRenderer>
 #include "../modules/binary/modulebinary.h"
 #include "xlsxdocument.h"
 
-
+#ifndef Q_OS_WASM
+#include <QPdfPageRenderer>
+#endif
 
 /**
  * @brief TeacherExam::m_optionLetters
@@ -413,6 +414,7 @@ void TeacherExam::scanPdf(const QUrl &path, const qreal &scale, const bool &doub
 		return;
 	}
 
+#ifndef Q_OS_WASM
 	QPdfDocument doc;
 
 	if (const auto &err = doc.load(path.toLocalFile()); err != QPdfDocument::Error::None) {
@@ -440,6 +442,7 @@ void TeacherExam::scanPdf(const QUrl &path, const qreal &scale, const bool &doub
 	}
 
 	scanImages();
+#endif
 }
 
 

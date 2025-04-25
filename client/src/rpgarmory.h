@@ -110,7 +110,7 @@ class RpgBullet : public IsometricBullet,
 	Q_PROPERTY(RpgGameData::BulletBaseData::Targets targets READ targets WRITE setTargets NOTIFY targetsChanged FINAL)
 
 public:
-	explicit RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game);
+	explicit RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgBullet();
 
 	virtual RpgGameData::BulletBaseData baseData() const override;
@@ -221,6 +221,8 @@ public:
 
 	RpgGameData::Armory serialize() const;
 	bool updateFromSnapshot(const RpgGameData::Armory &armory);
+
+	TiledObject *parentObject() const;
 
 signals:
 	void currentWeaponChanged();

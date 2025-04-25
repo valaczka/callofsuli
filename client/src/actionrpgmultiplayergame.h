@@ -102,6 +102,8 @@ private:
 
 	void onTimeStepPrepare() override;
 	void onTimeStepped() override;
+	void onTimeBeforeWorldStep(const qint64 &tick) override;
+	void onTimeAfterWorldStep(const qint64 &tick) override;
 	bool onBodyStep(TiledObjectBody *body) override;
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable) override;
 	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType) override;
@@ -112,15 +114,14 @@ private:
 	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon) override;
 	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle) override;
 
+	void onPlayerWeaponChanged();
+
 	bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon) override;
 	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle) override;
 	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType) override;
 
 	bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other) override;
 	//void onBulletDelete(IsometricBullet *bullet) override;
-
-	void beforeWorldStep(const qint64 &lagMsec);
-	void afterWorldStep(const qint64 &lagMsec);
 
 	void onRpgGameActivated();
 

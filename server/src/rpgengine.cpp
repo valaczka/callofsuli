@@ -63,6 +63,9 @@ private:
 
 	RpgGameData::GameConfig m_gameConfig;
 
+	QElapsedTimer m_elapsedTimer;
+	qint64 m_lastSentTick = -1;
+
 	RpgEngine *q;
 
 	friend class RpgEngine;
@@ -244,10 +247,7 @@ qint64 RpgEngine::currentTick()
 {
 	QMutexLocker locker(&m_engineMutex);
 
-	if (m_timer.isValid())
-		return m_timer.elapsed() + m_startTick;
-	else
-		return -1;
+	return m_currentTick;
 }
 
 
@@ -307,6 +307,20 @@ void RpgEngine::preparePlayers()
 
 		LOG_CINFO("engine") << "SET PLAYER" << ptr->id << pdata.p << ptr->s << pdata.sc;
 	}
+}
+
+
+
+/**
+ * @brief RpgEngine::nextTick
+ * @return
+ */
+
+qint64 RpgEngine::nextTick()
+{
+	QMutexLocker locker(&m_engineMutex);
+
+	return ++m_currentTick;
 }
 
 
@@ -458,7 +472,7 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 		c.fromCbor(it.value());
 		if (!player->isPrepared()) {
 			player->setIsPrepared(c.prepared);
-			LOG_CINFO("game") << "PREPARED" << player->playerId();
+			LOG_CINFO("game") << "PREPARED" << player->playerId() << c.prepared;
 		}
 	}
 
@@ -600,6 +614,11 @@ void RpgEnginePrivate::dataSendPlay()
 
 	const qint64 tick = q->currentTick();
 
+	if (tick <= m_lastSentTick)
+		return;
+
+	m_lastSentTick = tick;
+
 	QCborMap current = q->m_snapshots.getCurrentSnapshot().toCbor();
 	current.insert(QStringLiteral("t"), tick);
 
@@ -610,21 +629,7 @@ void RpgEnginePrivate::dataSendPlay()
 
 		if (it->get()->udpPeer())
 			it->get()->udpPeer()->send(map.toCborValue().toCbor(), true);
-
-
-		/*static QElapsedTimer tmr;
-
-		if (tmr.isValid()) {
-			if (tmr.hasExpired(500)) {
-				LOG_CDEBUG("engine") << "***" << QJsonDocument(map.toJsonObject()).toJson().constData();
-
-				tmr.restart();
-			}
-		} else
-			tmr.start();*/
 	}
-
-	q->m_snapshots.zapSnapshots(tick - 4000);
 }
 
 
@@ -704,7 +709,6 @@ void RpgEnginePrivate::updateState()
 		} else if (allPrepared) {
 			LOG_CDEBUG("engine") << "All players prepared" << q << q->id();
 			q->m_config.gameState = RpgConfig::StatePlay;
-			q->m_timer.start();
 		}
 
 		return;
@@ -712,7 +716,24 @@ void RpgEnginePrivate::updateState()
 
 
 	if (q->m_config.gameState == RpgConfig::StatePlay) {
-		q->m_snapshots.render(q->currentTick());
+		if (!m_elapsedTimer.isValid())
+			m_elapsedTimer.start();
+		else {
+
+			const double tMs = q->currentTick() * 1000./60.;
+			const double currMs = m_elapsedTimer.elapsed();
+			int diff = (currMs-tMs) * 60./1000.;
+
+			if (currMs-tMs >= 2*1000./60.) {
+				LOG_CWARNING("engine") << "Engine" << q->id() << "render lag" << currMs-tMs;
+			}
+
+			for (; diff > 0; --diff) {
+				q->m_snapshots.render(q->nextTick());
+			}
+		}
+
+
 	}
 }
 

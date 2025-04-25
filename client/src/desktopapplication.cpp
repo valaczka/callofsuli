@@ -31,7 +31,7 @@
 #include "utils_.h"
 
 #ifdef WITH_FTXUI
-#include "ftxterminal.h"
+#include "terminal.h"
 #endif
 
 #ifdef Q_OS_WIN
@@ -106,15 +106,7 @@ DesktopApplication::DesktopApplication(QApplication *app)
 
 DesktopApplication::~DesktopApplication()
 {
-	for (QLocalSocket *s : m_localSockets) {
-		s->disconnectFromServer();
-		s->deleteLater();
-	}
 
-	m_localSockets.clear();
-
-	if (m_localServer.isListening())
-		m_localServer.close();
 }
 
 
@@ -297,17 +289,12 @@ int DesktopApplication::runSingleInstance()
 {
 #ifdef WITH_FTXUI
 	if (m_commandLine == Terminal) {
-		FtxTerminal terminal;
+		class Terminal terminal;
 		return terminal.run(m_localServerName);
 	}
-#endif
 
 	if (!m_localServerName.isEmpty()) {
-		QObject::connect(&m_localServer, &QLocalServer::newConnection, m_application, [this](){
-			onNewSocketConnection();
-		});
-
-		if (!m_localServer.listen(m_localServerName)) {
+		if (!m_ftxServer.start(m_application, m_localServerName)) {
 			LOG_CERROR("app") << "Local server listen error" << m_localServerName;
 			return 10;
 		} else {
@@ -317,16 +304,14 @@ int DesktopApplication::runSingleInstance()
 #ifndef QT_NO_DEBUG
 	else {
 		m_localServerName = QStringLiteral("callofsuli");
-		QObject::connect(&m_localServer, &QLocalServer::newConnection, m_application, [this](){
-			onNewSocketConnection();
-		});
 
-		if (m_localServer.listen(m_localServerName)) {
+		if (m_ftxServer.start(m_application, m_localServerName)) {
 			LOG_CINFO("app") << "Local server listening started" << m_localServerName;
 		}
 	}
 #endif
 
+#endif
 
 #ifndef QT_NO_DEBUG
 	LOG_CERROR("app") << "DISABLED SINGLE INSTANCE";
@@ -346,19 +331,6 @@ int DesktopApplication::runSingleInstance()
 }
 
 
-
-/**
- * @brief DesktopApplication::hasLocalSocket
- * @return
- */
-
-bool DesktopApplication::hasLocalSocket() const
-{
-	return m_localServer.isListening() && !m_localSockets.isEmpty();
-}
-
-
-
 /**
  * @brief DesktopApplication::writeToSocket
  * @param cbor
@@ -366,13 +338,11 @@ bool DesktopApplication::hasLocalSocket() const
 
 void DesktopApplication::writeToSocket(const QCborValue &cbor)
 {
-	QByteArray data;
-	QDataStream out(&data, QIODevice::WriteOnly);
-	out << cbor;
-
-	for (QLocalSocket *s : m_localSockets) {
-			s->write(data);
-	}
+#ifdef WITH_FTXUI
+	m_ftxServer.writeToSocket(cbor);
+#else
+	Q_UNUSED(cbor);
+#endif
 }
 
 
@@ -393,29 +363,6 @@ Client *DesktopApplication::createClient()
 	}
 
 	return c;
-}
-
-
-
-/**
- * @brief DesktopApplication::onNewSocketConnection
- */
-
-void DesktopApplication::onNewSocketConnection()
-{
-	while (m_localServer.hasPendingConnections()) {
-		QLocalSocket *s = m_localServer.nextPendingConnection();
-		LOG_CDEBUG("app") << "New socket connected";
-		QObject::connect(s, &QLocalSocket::disconnected, m_application, [this, s]() {
-			LOG_CDEBUG("app") << "Socket disconnected";
-			if (m_application->closingDown())
-				return;
-			m_localSockets.removeAll(s);
-			s->deleteLater();
-		});
-		m_localSockets.append(s);
-	}
-
 }
 
 

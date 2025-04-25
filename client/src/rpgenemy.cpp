@@ -147,13 +147,12 @@ bool RpgEnemy::enemyWorldStep()
 			return false;
 
 		if (m_game->tickTimer()) {
-			const auto tick = m_game->tickTimer()->currentTick();
-			if (m_autoHitTimer >= 0 && m_autoHitTimer <= tick) {
+			if (m_autoHitTimer >= 0 && m_autoHitTimer <= m_game->tickTimer()->currentTick()) {
 				//autoAttackPlayer();
 				attackPlayer(qobject_cast<RpgPlayer*>(m_player), defaultWeapon());
-				m_autoHitTimer = tick + m_metric.autoAttackTime;
+				m_autoHitTimer = m_game->tickTimer()->tickAddMsec(m_metric.autoAttackTime);
 			} else if (m_autoHitTimer < 0) {
-				m_autoHitTimer = tick + m_metric.firstAttackTime;
+				m_autoHitTimer = m_game->tickTimer()->tickAddMsec(m_metric.firstAttackTime);
 			}
 		}
 
@@ -201,14 +200,14 @@ bool RpgEnemy::enemyWorldStepOnVisiblePlayer()
 			const auto tick = m_game->tickTimer()->currentTick();
 
 			if (m_playerDistance < m_metric.sensorLength*0.2 &&
-					(m_autoHitTimer == -1 || tick-m_autoHitTimer > m_metric.autoAttackTime))
+					(m_autoHitTimer == -1 || tick-m_autoHitTimer > AbstractGame::TickTimer::msecToTick(m_metric.autoAttackTime)))
 				m_autoHitTimer = tick;
 
 			if (m_autoHitTimer >= 0 && m_autoHitTimer <= tick) {
 				attackPlayer(qobject_cast<RpgPlayer*>(m_player), defaultWeapon());
-				m_autoHitTimer = tick + m_metric.autoAttackTime;
+				m_autoHitTimer = m_game->tickTimer()->tickAddMsec(m_metric.autoAttackTime);
 			} else if (m_autoHitTimer < 0) {
-				m_autoHitTimer = tick + m_metric.firstAttackTime;
+				m_autoHitTimer = m_game->tickTimer()->tickAddMsec(m_metric.firstAttackTime);
 			}
 		}
 

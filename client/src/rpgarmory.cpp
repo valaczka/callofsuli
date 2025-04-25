@@ -403,6 +403,17 @@ RpgWeapon *RpgArmory::getNextWeapon() const
 
 
 /**
+ * @brief RpgArmory::parentObject
+ * @return
+ */
+
+TiledObject *RpgArmory::parentObject() const
+{
+	return m_parentObject;
+}
+
+
+/**
  * @brief RpgArmory::mageStaff
  * @return
  */
@@ -695,8 +706,8 @@ bool RpgWeapon::updateFromSnapshot(const RpgGameData::Weapon &weapon)
  * @param scene
  */
 
-RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game)
-	: IsometricBullet(game)
+RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game, const cpBodyType &type)
+	: IsometricBullet(game, type)
 	, RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>()
 	, RpgGameData::LifeCycle()
 	, m_weaponType(weaponType)

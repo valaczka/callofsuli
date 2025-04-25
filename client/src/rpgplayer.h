@@ -140,9 +140,6 @@ public:
 	explicit RpgPlayer(RpgGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgPlayer();
 
-
-	QCborArray m_cborList;
-
 	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricPlayer::objectId(); }
 
 	Q_INVOKABLE void attack(RpgWeapon *weapon);

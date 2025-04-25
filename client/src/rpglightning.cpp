@@ -34,8 +34,8 @@
  * @param parent
  */
 
-RpgLightning::RpgLightning(TiledGame *game)
-	: RpgBullet(RpgGameData::Weapon::WeaponLightningWeapon, game)
+RpgLightning::RpgLightning(TiledGame *game, const cpBodyType &type)
+	: RpgBullet(RpgGameData::Weapon::WeaponLightningWeapon, game, type)
 {
 	m_maxDistance = 500.;
 	m_speed = 30.;

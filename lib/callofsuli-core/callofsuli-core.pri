@@ -1,3 +1,5 @@
+include(../../common.pri)
+
 INCLUDEPATH += $$PWD
 
 include($$PWD/../QDeferred/src/qdeferred.pri)
@@ -47,3 +49,14 @@ ios: {
 		$$PWD/mobileutils.mm
 }
 
+
+
+!isEmpty(FtxuiPath) {
+	DEFINES += WITH_FTXUI
+
+	INCLUDEPATH += $${FtxuiPath}/include
+	LIBS += -L$${FtxuiPath}/lib -lftxui-component -lftxui-dom -lftxui-screen
+
+	HEADERS += \
+		$$PWD/ftxterminal.hpp
+}

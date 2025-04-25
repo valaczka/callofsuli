@@ -39,13 +39,18 @@
 
 AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 	: QObject(parent)
+#ifndef Q_OS_WASM
 	, m_dThread(new AbstractUdpEngineThread(this))
+#endif
 	, d(new AbstractUdpEnginePrivate(this))
 {
+
+#ifndef Q_OS_WASM
 	d->moveToThread(m_dThread);
 	QObject::connect(m_dThread, &QThread::finished, d, &QObject::deleteLater);
 	QObject::connect(m_dThread, &QThread::finished, m_dThread, &QObject::deleteLater);
 	m_dThread->start();
+#endif
 }
 
 
@@ -58,10 +63,12 @@ AbstractUdpEngine::~AbstractUdpEngine()
 {
 	LOG_CINFO("client") << "ABSTRACT UPD ENGINE DESTROY START";
 
+#ifndef Q_OS_WASM
 	m_dThread->requestInterruption();
 	m_dThread->quit();
 	m_dThread->wait();
 	m_dThread = nullptr;
+#endif
 
 	LOG_CINFO("client") << "ABSTRACT UPD ENGINE DESTROYED";
 }
@@ -99,11 +106,12 @@ void AbstractUdpEngine::setUrl(const QUrl &url)
  * @brief AbstractUdpEngineThread::run
  */
 
+#ifndef Q_OS_WASM
 void AbstractUdpEngineThread::run()
 {
 	q->d->run();
 }
-
+#endif
 
 
 /**
@@ -112,6 +120,7 @@ void AbstractUdpEngineThread::run()
 
 void AbstractUdpEnginePrivate::run()
 {
+#ifndef Q_OS_WASM
 	LOG_CINFO("client") << "RUN";
 
 	while (!QThread::currentThread()->isInterruptionRequested()) {
@@ -260,7 +269,7 @@ void AbstractUdpEnginePrivate::run()
 	}
 
 	m_enet_host = nullptr;
-
+#endif
 }
 
 
@@ -274,7 +283,9 @@ void AbstractUdpEnginePrivate::run()
 
 void AbstractUdpEnginePrivate::sendMessage(QByteArray data, const bool &reliable, const int &channel)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_mutex);
+#endif
 	m_sendList.append({
 						  .data = data,
 						  .channel = channel,
@@ -296,12 +307,15 @@ void AbstractUdpEnginePrivate::setUrl(const QUrl &newUrl)
 	if (m_url == newUrl)
 		return;
 
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_mutex);
 
 	if (m_enet_host && !newUrl.isEmpty()) {
 		LOG_CERROR("client") << "Can't change server url";
 		return;
 	}
+
+#endif
 
 	LOG_CDEBUG("client") << "SET URL" << newUrl;
 

@@ -318,7 +318,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 
 		if (m_direction == Backward && atBegin()) {
 			if (s == Invalid && m_waitAtBegin > 0) {
-				m_waitTimerEnd = timer->currentTick()+m_waitAtBegin;
+				m_waitTimerEnd = timer->tickAddMsec(m_waitAtBegin);
 				body->stop();
 				return;
 			} else if (s == Running) {
@@ -330,7 +330,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 			}
 		} else if (m_direction == Forward && atEnd()) {
 			if (s == Invalid && m_waitAtEnd > 0) {
-				m_waitTimerEnd = timer->currentTick()+m_waitAtBegin;
+				m_waitTimerEnd = timer->tickAddMsec(m_waitAtBegin);
 				body->stop();
 				return;
 			} else if (s == Running) {

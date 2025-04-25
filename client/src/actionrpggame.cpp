@@ -143,7 +143,7 @@ QJsonObject ActionRpgGame::getExtendedData() const
 
 int ActionRpgGame::msecLeft() const
 {
-	return std::max((qint64) 0, m_deadlineTick-m_elapsedTick);
+	return std::max((qint64) 0, (qint64) (m_deadlineTick-m_elapsedTick * (1000./60.)));
 }
 
 
@@ -405,7 +405,7 @@ void ActionRpgGame::onPlayerDead(RpgPlayer *player)
 {
 	LOG_CDEBUG("game") << "Player dead" << player;
 
-	m_playerResurrect.time = m_elapsedTick + 5000;
+	m_playerResurrect.time = m_elapsedTick + AbstractGame::TickTimer::msecToTick(5000);
 	m_playerResurrect.player = player;
 }
 
@@ -746,7 +746,7 @@ void ActionRpgGame::onConfigChanged()
 
 		//startWithRemainingTime(m_config.duration*1000);
 		gameStart();
-		m_deadlineTick = m_config.duration*1000;
+		m_deadlineTick = AbstractGame::TickTimer::msecToTick(m_config.duration*1000);
 		m_elapsedTick = 0;
 		m_rpgGame->tickTimer()->start(this, 0);
 		m_timerLeft.start();
@@ -825,6 +825,12 @@ void ActionRpgGame::onTimeStepPrepare()
 }
 
 
+void ActionRpgGame::onTimeBeforeWorldStep(const qint64 &tick)
+{
+	Q_UNUSED(tick);
+}
+
+
 
 
 /**
@@ -842,6 +848,11 @@ void ActionRpgGame::onTimeStepped()
 			}
 		}
 	});
+}
+
+void ActionRpgGame::onTimeAfterWorldStep(const qint64 &tick)
+{
+	Q_UNUSED(tick);
 }
 
 
@@ -1142,7 +1153,7 @@ bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
 	if (pickable->pickableType() == RpgGameData::PickableBaseData::PickableTime) {
 		static int sec = 60;
 		//addToDeadline(sec*1000);
-		m_deadlineTick += sec*1000;
+		m_deadlineTick += AbstractGame::TickTimer::msecToTick(sec*1000);
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
 	} else if (pickable->pickableType() == RpgGameData::PickableBaseData::PickableCoin) {
@@ -1434,6 +1445,8 @@ bool ActionRpgGame::onPlayerFinishCast(RpgPlayer *player)
 
 bool ActionRpgGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon)
 {
+	LOG_CWARNING("game") << "PLAYER" << "HIT" << enemy << weapon << m_rpgGame->tickTimer()->currentTick();
+
 	if (!player || !weapon)
 		return false;
 
@@ -1475,7 +1488,7 @@ bool ActionRpgGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qre
 		return false;
 
 
-	RpgBullet *bullet = m_rpgGame->createBullet(weapon, player->scene(), player->nextObjectId(), player->baseData().o);
+	RpgBullet *bullet = m_rpgGame->createBullet(weapon, player->scene(), player->nextObjectId(), player->baseData().o, true);
 
 	if (!bullet) {
 		LOG_CWARNING("game") << "Can't create bullet";
@@ -1775,7 +1788,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		setGameQuestion(m_rpgGame->gameQuestion());
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
 
-		m_rpgGame->setActionRpgGame(nullptr);
+		m_rpgGame->setActionRpgGame(this);
 
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgGame::onGameSuccess, Qt::QueuedConnection);		// Azért kell, mert különbön az utolsó fegyverhasználatot nem számolja el a szerveren
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgGame::onPlayerDead);

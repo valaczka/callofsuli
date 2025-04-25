@@ -286,13 +286,12 @@ protected:
 	}
 
 	RpgBullet *createBullet(const RpgGameData::Weapon::WeaponType &type,
-								  TiledScene *scene, const int &id, const int &ownerId);
+								  TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
 
-	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId);
+	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
 
 
 
-	virtual void worldStep(TiledObjectBody *body) override;
 
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
@@ -305,6 +304,9 @@ protected:
 	bool transportDoor(TiledObject *object, TiledTransport *transport) override;
 
 	virtual void timeStepPrepareEvent() override;
+	virtual void timeBeforeWorldStepEvent(const qint64 &tick) override;
+	virtual void worldStep(TiledObjectBody *body) override;
+	virtual void timeAfterWorldStepEvent(const qint64 &tick) override;
 	virtual void timeSteppedEvent() override;
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
 

@@ -31,17 +31,28 @@
 
 class TiledObjectBodyPrivate {
 
+public:
+	static bool isEqual(const float &v1, const float &v2) {
+		return qAbs(v1 - v2) * 10000.f > QtPrivate::min(qAbs(v1), qAbs(v2));
+	};
+
+	static bool isEqual(const cpVect &v1, const cpVect &v2) {
+		return isEqual(v1.x, v2.x) && isEqual(v1.y, v2.y);
+	};
+
 private:
 	TiledObjectBodyPrivate(TiledObjectBody *body);
 	~TiledObjectBodyPrivate();
 
-        void createBody(const cpBodyType &type, const cpFloat &mass, const cpFloat &moment);
+	void createBody(const cpBodyType &type, const cpFloat &mass, const cpFloat &moment);
 	void deleteBody();
 
 	void setSensorPolygon(const float &length, const float &range);
 	void addVirtualCircle(const float &length);
 	void removeVirtualCircle();
 	void addTargetCircle(const float &length);
+
+	void setVelocity(const cpVect &speed);
 
 
 	void drawShape(TiledDebugDraw *draw, cpShape *shape, const QColor &color,

@@ -144,7 +144,7 @@ bool IsometricEnemy::isWalking() const
 void IsometricEnemy::startInability()
 {
 	if (m_metric.inabilityTime > 0 && m_game->tickTimer())
-		m_inabilityTimer = m_game->tickTimer()->currentTick() + m_metric.inabilityTime;
+		m_inabilityTimer = m_game->tickTimer()->tickAddMsec(m_metric.inabilityTime);
 }
 
 
@@ -155,7 +155,7 @@ void IsometricEnemy::startInability()
 bool IsometricEnemy::startSleeping()
 {
 	if (m_metric.sleepingTime > 0 && m_game->tickTimer()) {
-		m_sleepingTimer = m_game->tickTimer()->currentTick() + m_metric.sleepingTime;
+		m_sleepingTimer = m_game->tickTimer()->tickAddMsec(m_metric.sleepingTime);
 		if (!m_isSleeping)
 			onSleepingBegin();
 		return true;
@@ -319,29 +319,29 @@ void IsometricEnemy::rotateToPlayer(IsometricPlayer *player, const bool &forced)
 
 void IsometricEnemy::onShapeContactBegin(cpShape *self, cpShape *other)
 {
-	/***************************
-	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 
 	if (!base)
 		return;
 
-	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
-	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
-								  dynamic_cast<IsometricPlayer*>(base) :
-								  nullptr;
+	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
 
-	if (isAny(bodyShapes(), self) && player) {
+	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
+								dynamic_cast<IsometricPlayer*>(base) :
+								nullptr;
+
+
+	if (isBodyShape(self) && player) {
 		if (!m_reachedPlayers.contains(player)) {
 			m_reachedPlayers.append(player);
 			eventPlayerReached(player);
 		}
-	} else if (isEqual(sensorPolygon(), self) && player) {
+	} else if (sensorPolygon() == self && player) {
 		if (!m_contactedPlayers.contains(player)) {
 			m_contactedPlayers.append(player);
 			eventPlayerContacted(player);
 		}
 	}
-	************************************/
 }
 
 
@@ -353,26 +353,25 @@ void IsometricEnemy::onShapeContactBegin(cpShape *self, cpShape *other)
 
 void IsometricEnemy::onShapeContactEnd(cpShape *self, cpShape *other)
 {
-	/****************************************
-	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 
 	if (!base)
 		return;
 
-	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
+
 	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
-								  dynamic_cast<IsometricPlayer*>(base) :
-								  nullptr;
+								dynamic_cast<IsometricPlayer*>(base) :
+								nullptr;
 
 
-	if (isEqual(self, targetCircle()) && player) {
+	if (self == targetCircle() && player) {
 		m_reachedPlayers.removeAll(player);
 		eventPlayerLeft(player);
-	} else if (isEqual(sensorPolygon(), self) && player) {
+	} else if (sensorPolygon() == self && player) {
 		removeContactedPlayer(player);
 		eventPlayerDiscontacted(player);
 	}
-	******************************************/
 }
 
 
@@ -396,38 +395,28 @@ void IsometricEnemy::worldStep()
 	// Find already connected player, or find the nearest one
 
 	IsometricPlayer *targetPlayer = nullptr;
-	[[deprecated]] TiledReportedFixtureMap targetRayMap;
 
 	if (m_player && m_contactedPlayers.contains(m_player)) {
-		if (TiledReportedFixtureMap map = rayCast(m_player->bodyPosition(), FixturePlayerBody, false); map.contains(m_player)) {
+		if (rayCast(m_player->bodyPosition(), FixturePlayerBody).isVisible(m_player)) {
 			targetPlayer = m_player;
-			targetRayMap = map;
 		}
 	} else {
-		struct Data {
-			IsometricPlayer *player = nullptr;
-			TiledReportedFixtureMap map;
-		};
-
-		QMap<float, Data> maps;
+		QMap<float, IsometricPlayer *> pMap;
 
 		for (IsometricPlayer *p : m_contactedPlayers) {
 			if (!p)
 				continue;
 
-			Data d;
+			const RayCastInfo &info = rayCast(p->bodyPosition(), FixturePlayerBody);
 
-			d.map = rayCast(p->bodyPosition(), FixturePlayerBody, false);
-
-			if (const auto &it = d.map.find(p); it != d.map.cend()) {
-				d.player = p;
-				maps.insert(it.key(), d);
+			for (const RayCastInfoItem &item : info) {
+				if (TiledObjectBody::fromShapeRef(item.shape) == p && item.visible)
+					pMap.insert(distanceToPoint(item.point), p);
 			}
 		}
 
-		if (!maps.isEmpty()) {
-			targetPlayer = maps.first().player;
-			targetRayMap = maps.first().map;
+		if (!pMap.isEmpty()) {
+			targetPlayer = pMap.first();
 		}
 	}
 
@@ -499,9 +488,9 @@ void IsometricEnemy::worldStep()
 			return stop();
 
 		const QVector2D dst(pursuitPoint.value());
-		const TiledReportedFixtureMap map = rayCast(pursuitPoint.value(), FixtureGround, true);
+		const RayCastInfo &map = rayCast(pursuitPoint.value(), FixtureGround);
 
-		if (!map.isEmpty() && distanceToPoint(map.first().point) <= m_metric.targetCircleRadius+5.) {	// inkább body size kéne
+		if (!map.empty() && distanceToPoint(map.front().point) <= m_metric.targetCircleRadius+5.) {	// inkább body size kéne
 			stop();
 		} else {
 			if (m_metric.returnSpeed != 0) {

@@ -41,6 +41,7 @@ class AbstractUdpEnginePrivate;
  * @brief The RpgUdpEngineThread class
  */
 
+#ifndef Q_OS_WASM
 class AbstractUdpEngineThread : public QThread
 {
 	Q_OBJECT
@@ -57,7 +58,7 @@ private:
 	AbstractUdpEngine *q;
 };
 
-
+#endif
 
 
 /**
@@ -80,7 +81,9 @@ protected:
 	virtual void packetReceived(const QCborMap &data, const unsigned int rtt) = 0;
 
 private:
+#ifndef Q_OS_WASM
 	AbstractUdpEngineThread *m_dThread = nullptr;
+#endif
 	AbstractUdpEnginePrivate *d = nullptr;
 
 	friend class AbstractUdpEnginePrivate;

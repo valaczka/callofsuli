@@ -736,39 +736,23 @@ RpgPickableObject *RpgGame::createPickable(const RpgGameData::PickableBaseData::
  * @return
  */
 
-RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, TiledScene *scene, const int &id, const int &ownerId)
+RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, TiledScene *scene, const int &id, const int &ownerId,
+								 const bool &isDynamic)
 {
-	/*b2::Body::Params bParams;
-	bParams.type = b2BodyType::b2_dynamicBody;
-	bParams.fixedRotation = true;
-	bParams.isBullet = true;
-
-	b2::Shape::Params params;
-	params.density = 1.f;
-	params.isSensor = false;
-	params.enableSensorEvents = true;
-	params.enableContactEvents = true;
-	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixtureBulletBody,
-											   TiledObjectBody::FixtureTarget |
-											   TiledObjectBody::FixtureGround);
-
-
-
-	static const float size = 10.;*/
-
 	RpgBullet *bullet = nullptr;
 
-	/*switch (type) {
+
+	switch (type) {
 		case RpgGameData::Weapon::WeaponShortbow:
-			bullet = createFromCircle<RpgArrow>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
+			bullet = createObject<RpgArrow>(ownerId, scene, id, this, isDynamic ? CP_BODY_TYPE_DYNAMIC : CP_BODY_TYPE_KINEMATIC );
 			break;
 
 		case RpgGameData::Weapon::WeaponLongbow:
-			bullet = createFromCircle<RpgFireball>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
+			bullet = createObject<RpgFireball>(ownerId, scene, id, this, isDynamic ? CP_BODY_TYPE_DYNAMIC : CP_BODY_TYPE_KINEMATIC );
 			break;
 
 		case RpgGameData::Weapon::WeaponLightningWeapon:
-			bullet = createFromCircle<RpgLightning>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
+			bullet = createObject<RpgLightning>(ownerId, scene, id, this, isDynamic ? CP_BODY_TYPE_DYNAMIC : CP_BODY_TYPE_KINEMATIC );
 			break;
 
 		case RpgGameData::Weapon::WeaponHand:
@@ -788,9 +772,12 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
 	}
 
 	if (bullet) {
+		bullet->filterSet(TiledObjectBody::FixtureBulletBody,
+						  TiledObjectBody::FixtureTarget |
+						  TiledObjectBody::FixtureGround);
 		bullet->initialize();
 		bullet->setStage(RpgGameData::LifeCycle::StageCreate);
-	}*/
+	}
 
 	return bullet;
 }
@@ -805,10 +792,10 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
  * @return
  */
 
-RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId)
+RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic)
 {
 	Q_ASSERT(weapon);
-	RpgBullet *b = createBullet(weapon->weaponType(), scene, id, ownerId);
+	RpgBullet *b = createBullet(weapon->weaponType(), scene, id, ownerId, isDynamic);
 
 	if (b && weapon->parentObject()) {
 		const auto &o = weapon->parentObject()->objectId();
@@ -1179,6 +1166,21 @@ void RpgGame::timeStepPrepareEvent()
 	if (ActionRpgGame *a = actionRpgGame())
 		a->onTimeStepPrepare();
 
+}
+
+
+
+/**
+ * @brief RpgGame::timeBeforeWorldStepEvent
+ * @param lag
+ */
+
+void RpgGame::timeBeforeWorldStepEvent(const qint64 &tick)
+{
+	TiledGame::timeBeforeWorldStepEvent(tick);
+
+	if (ActionRpgGame *a = actionRpgGame())
+		a->onTimeBeforeWorldStep(tick);
 }
 
 
@@ -1640,7 +1642,7 @@ bool RpgGame::bulletImpact(RpgBullet *bullet, TiledObjectBody *other)
 RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConfig &config, const int &ownerId, const bool &isDynamic)
 {
 	RpgPlayer *player = createObject<RpgPlayer>(ownerId, scene, 1,
-												this, 15., isDynamic ? CP_BODY_TYPE_DYNAMIC : CP_BODY_TYPE_KINEMATIC);
+												this, 15., isDynamic ? CP_BODY_TYPE_DYNAMIC : CP_BODY_TYPE_KINEMATIC );
 
 	if (player) {
 		player->filterSet(TiledObjectBody::FixturePlayerBody,
@@ -1669,6 +1671,22 @@ void RpgGame::worldStep(TiledObjectBody *body)
 		return;
 	else
 		TiledGame::worldStep(body);
+}
+
+
+
+
+/**
+ * @brief RpgGame::timeAfterWorldStepEvent
+ * @param tick
+ */
+
+void RpgGame::timeAfterWorldStepEvent(const qint64 &tick)
+{
+	TiledGame::timeAfterWorldStepEvent(tick);
+
+	if (ActionRpgGame *a = actionRpgGame())
+		a->onTimeAfterWorldStep(tick);
 }
 
 

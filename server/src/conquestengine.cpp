@@ -607,8 +607,6 @@ QJsonObject ConquestEngine::cmdPlay(WebSocketStream *stream, const QJsonObject &
 	}
 
 
-	QMutexLocker pLocker(&m_playerMutex);
-
 	if (m_config.gameState == ConquestConfig::StatePlay)
 		return {};
 

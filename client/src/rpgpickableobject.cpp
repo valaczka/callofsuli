@@ -214,13 +214,14 @@ void RpgPickableObject::setName(const QString &newName)
 
 void RpgPickableObject::onShapeContactBegin(cpShape *, cpShape *other)
 {
-/*	TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
 
 	if (!base || !g)
 		return;
 
-	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
+
 	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
 							dynamic_cast<RpgPlayer*>(base) :
 							nullptr;
@@ -228,7 +229,7 @@ void RpgPickableObject::onShapeContactBegin(cpShape *, cpShape *other)
 	if (player && player == g->controlledPlayer()) {
 		setGlowColor(QStringLiteral("#FFF59D"));
 		setGlowEnabled(true);
-	}*/
+	}
 }
 
 
@@ -241,20 +242,20 @@ void RpgPickableObject::onShapeContactBegin(cpShape *, cpShape *other)
 
 void RpgPickableObject::onShapeContactEnd(cpShape *, cpShape *other)
 {
-	/*TiledObjectBody *base = TiledObjectBody::fromBodyRef(other.GetBody());
+	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
 
 	if (!base || !g)
 		return;
 
-	const FixtureCategories categories = FixtureCategories::fromInt(other.GetFilter().categoryBits);
+	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
 	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
 							dynamic_cast<RpgPlayer*>(base) :
 							nullptr;
 
 	if (player && player == g->controlledPlayer()) {
 		setGlowEnabled(false);
-	}*/
+	}
 }
 
 

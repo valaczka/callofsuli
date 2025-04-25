@@ -31,6 +31,11 @@
 #include "mobileapplication.h"
 #include "qsingleinstance.h"
 
+#ifdef WITH_FTXUI
+#include <ftxterminal.hpp>
+#endif
+
+
 class DesktopApplication : public MobileApplication
 {
 public:
@@ -46,21 +51,21 @@ public:
 
 	int runSingleInstance();
 
-	bool hasLocalSocket() const;
 	void writeToSocket(const QCborValue &cbor);
 
 protected:
 	virtual Client *createClient() override;
 
 private:
-	void onNewSocketConnection();
-
 	QStringList m_arguments;
 	ColorConsoleAppender *m_appender = nullptr;
 	QSingleInstance m_singleInstance;
 	QString m_localServerName;
-	QLocalServer m_localServer;
-	QList<QLocalSocket*> m_localSockets;
+
+#ifdef WITH_FTXUI
+	FtxServer m_ftxServer;
+#endif
+
 };
 
 #endif // DESKTOPAPPLICATION_H

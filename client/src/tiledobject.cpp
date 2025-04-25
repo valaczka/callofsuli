@@ -37,9 +37,24 @@
 #include <chipmunk/chipmunk_structs.h>
 
 
+#ifndef QT_NO_DEBUG
+#include "rpgplayer.h"
+#include "rpgenemy.h"
+
+#define BODY_ERROR(body, msg) { \
+	if (const RpgPlayer *p = dynamic_cast<const RpgPlayer*>(body)) \
+		LOG_CERROR("scene") << msg << p; \
+	else if (const RpgEnemy *p = dynamic_cast<const RpgEnemy*>(body)) \
+		LOG_CERROR("scene") << msg << p; \
+	}
+#else
+#define BODY_ERROR(body, msg) LOG_CERROR("scene") << msg << body;
+#endif
+
+
 #define CHECK_BODY()		{ \
 	if (!d->m_bodyRef) { \
-	LOG_CERROR("scene") << "Missing body" << this; \
+	BODY_ERROR(this, "Missing body"); \
 	return; \
 	} \
 	}
@@ -47,7 +62,7 @@
 
 #define CHECK_BODY_X(x)		{ \
 	if (!d->m_bodyRef) { \
-	LOG_CERROR("scene") << "Missing body" << this; \
+	BODY_ERROR(this, "Missing body"); \
 	return x; \
 	} \
 	}
@@ -56,7 +71,7 @@
 #define CHECK_LOCK()		{ \
 	CHECK_BODY() \
 	if (d->m_bodyRef->space && cpSpaceIsLocked(d->m_bodyRef->space)) { \
-	LOG_CERROR("scene") << "Space locked" << this; \
+	BODY_ERROR(this, "Space locked"); \
 	return; \
 	} \
 	}
@@ -65,7 +80,7 @@
 #define CHECK_LOCK_X(x)		{ \
 	CHECK_BODY_X(x) \
 	if (d->m_bodyRef->space && cpSpaceIsLocked(d->m_bodyRef->space)) { \
-	LOG_CERROR("scene") << "Space locked" << this; \
+	BODY_ERROR(this, "Space locked"); \
 	return x; \
 	} \
 	}
@@ -477,7 +492,6 @@ void TiledObjectBody::setSpace(cpSpace *space)
 	cpSpaceAddBody(space, d->m_bodyRef);
 
 	static const auto fn = [](cpBody *body, cpShape *shape) {
-		LOG_CERROR("scene") << "ADD shape" << shape << body;
 		if (shape->space)
 			cpSpaceRemoveShape(shape->space, shape);				// also cpBodyRemoveShape
 		cpSpaceAddShape(body->space, shape);					// also cpBodyAddShape
@@ -685,10 +699,8 @@ void TiledObject::updateScene()
 {
 	cpBody *b = body();
 
-	if (!b) {
-		LOG_CERROR("scene") << "Missing body" << this;
-		return;
-	}
+	if (!b)
+		LOG_CTRACE("scene") << "Update scene: missing body" << this;
 
 	TiledScene *currentScene = nullptr;
 
@@ -700,7 +712,7 @@ void TiledObject::updateScene()
 	if (m_currentScene == currentScene)
 		return;
 
-	LOG_CDEBUG("scene") << "Scene changed" << m_currentScene << "->" << currentScene << "for" << this;
+	LOG_CTRACE("scene") << "Scene changed for" << this << " - " << m_currentScene << "->" << currentScene;
 
 	if (m_currentScene)
 		m_currentScene->disconnect(this);
@@ -1458,6 +1470,18 @@ const std::vector<cpShape *> &TiledObjectBody::bodyShapes() const
 
 
 /**
+ * @brief TiledObjectBody::isBodyShape
+ * @param shape
+ * @return
+ */
+
+bool TiledObjectBody::isBodyShape(cpShape *shape) const
+{
+	return d->m_bodyShapes.cend() != std::find(d->m_bodyShapes.cbegin(), d->m_bodyShapes.cend(), shape);
+}
+
+
+/**
  * @brief TiledObjectBody::sensorPolygon
  * @return
  */
@@ -1488,7 +1512,7 @@ void TiledObjectBody::emplace(const QVector2D &center)
 {
 	CHECK_LOCK();
 
-	cpBodySetVelocity(d->m_bodyRef, {0.f, 0.f});
+	d->setVelocity(cpvzero);
 	cpBodySetPosition(d->m_bodyRef, { center.x(), center.y() });
 
 	d->m_lastPosition.clear();
@@ -1534,11 +1558,11 @@ void TiledObjectBody::setSpeed(const float &x, const float &y)
 	if (isnan(x) || isnan(y) ||
 			isinf(x) || isinf(y)) {
 		LOG_CERROR("scene") << "Invalid speed" << this << x << y;
-		cpBodySetVelocity(d->m_bodyRef, { 0.f, 0.f});
+		d->setVelocity(cpvzero);
 		return;
 	}
 
-	cpBodySetVelocity(d->m_bodyRef, { x, y });
+	d->setVelocity({x, y});
 }
 
 
@@ -1558,14 +1582,14 @@ void TiledObjectBody::setSpeedFromAngle(const float &angle, const float &radius)
 	if (isnan(x) || isnan(y) ||
 			isinf(x) || isinf(y)) {
 		LOG_CERROR("scene") << "Invalid speed" << this << x << y << angle << radius;
-		cpBodySetVelocity(d->m_bodyRef, { 0.f, 0.f});
+		d->setVelocity(cpvzero);
 		return;
 	}
 
-	cpBodySetVelocity(d->m_bodyRef, {
-						  radius * cos(angle),
-						  radius * sin(angle)
-					  });
+	d->setVelocity({
+					   radius * cos(angle),
+					   radius * sin(angle)
+				   });
 }
 
 
@@ -1577,8 +1601,7 @@ void TiledObjectBody::stop()
 {
 	CHECK_LOCK();
 
-	//d->m_bodyRef.SetAngularVelocity(0.f);
-	cpBodySetVelocity(d->m_bodyRef, { 0.f, 0.f});
+	d->setVelocity(cpvzero);
 }
 
 
@@ -1638,19 +1661,19 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 {
 	CHECK_LOCK_X(false);
 
-	/*
+	cpBody *body = d->m_bodyRef;
+
+
 	if (forced) {
 		d->m_rotateAnimation.running = false;
-		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
-		//d->m_bodyRef.SetAwake(true);
+		cpBodySetAngle(body, desiredRadian);
 		return true;
 	}
 
 	const float currentRadian = bodyRotation();
 
 	if (qFuzzyCompare(desiredRadian, currentRadian)) {
-		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
-		//d->m_bodyRef.SetAwake(true);
+		cpBodySetAngle(body, desiredRadian);
 		d->m_rotateAnimation.running = false;
 		return false;
 	}
@@ -1663,14 +1686,12 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 
 	if (diff < 2* d->m_rotateAnimation.speed) {
 		d->m_rotateAnimation.running = false;
-		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
-		//d->m_bodyRef.SetAwake(true);
+		cpBodySetAngle(body, desiredRadian);
 		return true;
 	}
 
 	if (!qFuzzyCompare(d->m_rotateAnimation.destRadian, desiredRadian) || !d->m_rotateAnimation.running) {
 		d->m_rotateAnimation.destRadian = desiredRadian;
-
 
 		if (desiredNormal > currentNormal)
 			d->m_rotateAnimation.clockwise = diff > M_PI;
@@ -1696,8 +1717,7 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 
 	if ((newAngle >= dd && currentNormal < dd) ||
 			(newAngle <= dd && currentNormal > dd)) {
-		d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(desiredRadian));
-		d->m_bodyRef.SetAwake(true);
+		cpBodySetAngle(body, desiredRadian);
 		return true;
 	}
 
@@ -1706,12 +1726,8 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 	else if (newAngle < 0)
 		newAngle += pi2;
 
-	d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(TiledObject::normalizeToRadian(newAngle)));
-	d->m_bodyRef.SetAwake(true);
-*/
 
-
-	cpBodySetAngle(d->m_bodyRef, desiredRadian);
+	cpBodySetAngle(body, TiledObject::normalizeToRadian(newAngle));
 
 	return true;
 }
@@ -2059,121 +2075,73 @@ void TiledObjectBody::addTargetCircle(const float &length)
 
 
 
+
 /**
  * @brief TiledObjectBody::rayCast
  * @param dest
+ * @param categories
+ * @param radius
+ * @return
  */
 
-TiledReportedFixtureMap TiledObjectBody::rayCast(const QPointF &dest, const TiledObjectBody::FixtureCategories &categories, const bool &forceLine) const
+RayCastInfo TiledObjectBody::rayCast(const QPointF &dest, const FixtureCategories &categories, const float &radius) const
 {
-	TiledReportedFixtureMap map;
-
-	/*Q_ASSERT(d->m_world);
-
+	RayCastInfo list;
 
 	if (!d->m_bodyRef)
-		return map;
+		return list;
+
+	const cpVect origin = cpBodyGetPosition(d->m_bodyRef);
+	const cpVect end{(cpFloat) dest.x(), (cpFloat) dest.y()};
 
 
-	auto fcn = [&map]( b2ShapeId shapeId, b2Vec2 point, b2Vec2 , float fraction) -> float {
-		TiledReportedFixture f {shapeId, {point.x, point.y}};
+	QMap<cpFloat, RayCastInfoItem> map;
 
-		f.body = fromBodyRef(f.shape.GetBody());
+	static const auto fn = [](cpShape *shape, cpVect point, cpVect, cpFloat alpha, void *data) {
+		QMap<cpFloat, RayCastInfoItem> *map = (QMap<cpFloat, RayCastInfoItem>*) data;
 
-		if (f.shape) {
-			map.insert(fraction, f);
+		RayCastInfoItem info {
+			.shape = shape,
+					.point = QVector2D(point.x, point.y),
+					.visible = false,
+					.walkable = false
+		};
 
-			const b2Filter &filter = f.shape.GetFilter();
-
-			if ((filter.categoryBits & FixtureGround) && f.body && f.body->opaque())
-				return fraction;
-			else
-				return 1;
-		} else {
-			return -1;
-		}
+		map->insert(alpha, std::move(info));
 	};
 
+	cpSpaceSegmentQuery(d->m_bodyRef->space,
+						origin, end,
+						radius,
+						cpShapeFilter{CP_NO_GROUP, CP_ALL_CATEGORIES, categories.toInt() | FixtureGround},
+						fn,
+						&map);
 
-	const b2Vec2 origin = d->m_bodyRef.GetPosition();
-	const b2Vec2 end{(float)dest.x(), (float)dest.y()};
+	bool visible = true;
+	bool walkable = true;
 
-	b2Vec2 translation = b2Sub(end, origin);
+	for (const RayCastInfoItem &i : map) {
+		const cpShapeFilter &filter = cpShapeGetFilter(i.shape);
+		TiledObjectBody *body = TiledObjectBody::fromShapeRef(i.shape);
 
-	b2QueryFilter filter = b2DefaultQueryFilter();
-	filter.categoryBits = FixtureAll;
-	filter.maskBits = categories|FixtureGround;
+		if (filter.categories & FixtureGround) {
+			walkable = false;
 
-	const b2Transform &transform = d->m_bodyRef.GetTransform();
-
-
-	if (forceLine || d->m_bodyShapes.empty()) {
-		d->m_world->CastRay(origin, translation, filter, fcn);
-	} else {
-		const b2::ShapeRef &sh = d->m_bodyShapes.front();
-
-		if (sh.GetType() == b2_circleShape) {
-			b2Circle p = sh.GetCircle();
-			p.center = b2TransformPoint(transform, p.center);
-
-			d->m_world->Cast(p, translation, filter, fcn);
-		} else if (sh.GetType() == b2_polygonShape) {
-			b2Polygon p = sh.GetPolygon();
-			for (int i=0; i<p.count; ++i) {
-				p.vertices[i] = b2TransformPoint(transform, p.vertices[i]);
-			}
-
-			d->m_world->Cast(p, translation, filter, fcn);
-		} else if (sh.GetType() == b2_capsuleShape) {
-			b2Capsule p = sh.GetCapsule();
-			p.center1 = b2TransformPoint(transform, p.center1);
-			p.center2 = b2TransformPoint(transform, p.center2);
-
-			d->m_world->Cast(p, translation, filter, fcn);
+			if (body->opaque())
+				visible = false;
 		}
-		else {
-			LOG_CWARNING("scene") << "Invalid shape for ray cast" << sh.GetType();
-			d->m_world->CastRay(origin, translation, filter, fcn);
-		}
+
+		if (i.shape->body == d->m_bodyRef)
+			continue;
+
+		RayCastInfoItem item = i;
+		item.visible = visible;
+		item.walkable = walkable;
+		list.push_back(item);
 	}
 
-	// Check contacted shapes
 
-	int count = d->m_bodyShapes.front().GetContactCapacity();
-
-	if (count > 0) {
-		TiledReportedFixtureMap final = map;
-
-		map.clear();
-
-		std::vector<b2ContactData> contact;
-		contact.resize(count);
-		count = d->m_bodyRef.GetContactData(contact.data(), count);
-
-		for (auto it = contact.cbegin(); it != contact.cend() && it != contact.cbegin()+count; ++it) {
-			d->m_world->CastRay(origin, translation, filter, fcn);
-
-			TiledObjectBody *other = nullptr;
-			if (TiledObjectBody *b = fromBodyRef(b2::ShapeRef(it->shapeIdA).GetBody()); b && b != this
-					&& b2::ShapeRef(it->shapeIdA).GetFilter().categoryBits & FixtureGround)
-				other = b;
-			else if (TiledObjectBody *b = fromBodyRef(b2::ShapeRef(it->shapeIdB).GetBody()); b && b != this
-					 && b2::ShapeRef(it->shapeIdB).GetFilter().categoryBits & FixtureGround)
-				other = b;
-
-			if (other && other->opaque()) {
-				const auto &it = map.find(other);
-				if (it != map.cend()) {
-					TiledReportedFixtureMap final;
-					final.insert(0.0, *it);
-					return final;
-				}
-			}
-		}
-		return final;
-	}*/
-
-	return map;
+	return list;
 }
 
 
@@ -2586,6 +2554,10 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 	cpShapeSetSensor(m_sensorPolygon, true);
 	cpShapeSetFilter(m_sensorPolygon, TiledObjectBody::getFilter(TiledObjectBody::FixtureSensor));
 
+	if (m_bodyRef->space != NULL) {
+		cpSpaceAddShape(m_bodyRef->space, m_sensorPolygon);
+	}
+
 	m_sensorLength = length;
 
 	if (m_virtualCircle)
@@ -2615,6 +2587,10 @@ void TiledObjectBodyPrivate::addVirtualCircle(const float &length)
 	m_virtualCircle = cpCircleShapeNew(m_bodyRef, length, {0.f , 0.f});
 	cpShapeSetSensor(m_virtualCircle, true);
 	cpShapeSetFilter(m_virtualCircle, TiledObjectBody::getFilter(TiledObjectBody::FixtureVirtualCircle));
+
+	if (m_bodyRef->space != NULL) {
+		cpSpaceAddShape(m_bodyRef->space, m_virtualCircle);
+	}
 }
 
 
@@ -2672,7 +2648,40 @@ void TiledObjectBodyPrivate::addTargetCircle(const float &length)
 																TiledObjectBody::FixtureSensor
 																));
 
+	if (m_bodyRef->space != NULL) {
+		cpSpaceAddShape(m_bodyRef->space, m_targetCircle);
+	}
 }
+
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::setVelocity
+ * @param speed
+ */
+
+void TiledObjectBodyPrivate::setVelocity(const cpVect &speed)
+{
+	const cpVect &curr = cpBodyGetVelocity(m_bodyRef);
+
+	cpVect norm;
+	norm.x = qAbs(speed.x) < 0.00001f ? 0.0f : speed.x;
+	norm.y = qAbs(speed.y) < 0.00001f ? 0.0f : speed.y;
+
+	if (!(curr == cpvzero) && norm == cpvzero) {
+		cpBodySetVelocity(m_bodyRef, cpvzero);
+		cpBodySetAngularVelocity(m_bodyRef, 0.f);
+		return;
+	}
+
+	if ((qAbs(curr.x - norm.x) * 10000.f > QtPrivate::min(qAbs(curr.x), qAbs(norm.x))) ||
+			(qAbs(curr.y - norm.y) * 10000.f > QtPrivate::min(qAbs(curr.y), qAbs(norm.y)))) {
+		cpBodySetVelocity(m_bodyRef, norm);
+	}
+
+}
+
 
 
 
@@ -2778,45 +2787,84 @@ QPointF TiledObject::bodyOffset() const
 }
 
 
-/**
- * @brief TiledReportedFixtureMap::containsTransparentGround
- * @return
- */
-
-bool TiledReportedFixtureMap::containsTransparentGround() const
-{
-
-	return false;
-}
-
-
-
-/**
- * @brief TiledReportedFixtureMap::find
- * @param body
- * @return
- */
-
-TiledReportedFixtureMap::QMultiMap::const_iterator TiledReportedFixtureMap::find(TiledObjectBody *body) const
-{
-	return std::find_if(this->cbegin(), this->cend(), [body](const TiledReportedFixture &f) { return f.body == body; });
-}
-
-
-/**
- * @brief TiledReportedFixtureMap::find
- * @param body
- * @return
- */
-
-TiledReportedFixtureMap::iterator TiledReportedFixtureMap::find(TiledObjectBody *body)
-{
-	return std::find_if(this->begin(), this->end(), [body](const TiledReportedFixture &f) { return f.body == body; });
-}
-
-
-
 bool TiledObject::inVisibleArea() const
 {
 	return m_inVisibleArea;
+}
+
+
+
+
+/**
+ * @brief RayCastInfo::contains
+ * @param shape
+ * @return
+ */
+
+bool RayCastInfo::contains(const cpShape *shape) const {
+	return cend() != std::find_if(cbegin(), cend(), [shape](const RayCastInfoItem &item){
+		return item.shape == shape;
+	});
+}
+
+bool RayCastInfo::contains(const cpBody *body) const {
+	return cend() != std::find_if(cbegin(), cend(), [body](const RayCastInfoItem &item){
+		return cpShapeGetBody(item.shape) == body;
+	});
+}
+
+bool RayCastInfo::contains(TiledObjectBody *body) const
+{
+	if (body && body->body())
+		return contains(body->body());
+	else
+		return false;
+}
+
+bool RayCastInfo::isVisible(const cpShape *shape) const {
+	const auto &it = std::find_if(cbegin(), cend(), [shape](const RayCastInfoItem &item){
+		return item.shape == shape;
+	});
+
+	return it != cend() && it->visible;
+}
+
+bool RayCastInfo::isVisible(const cpBody *body) const {
+	const auto &it = std::find_if(cbegin(), cend(), [body](const RayCastInfoItem &item){
+		return cpShapeGetBody(item.shape) == body;
+	});
+
+	return it != cend() && it->visible;
+}
+
+bool RayCastInfo::isVisible(TiledObjectBody *body) const
+{
+	if (body && body->body())
+		return isVisible(body->body());
+	else
+		return false;
+}
+
+bool RayCastInfo::isWalkable(const cpShape *shape) const {
+	const auto &it = std::find_if(cbegin(), cend(), [shape](const RayCastInfoItem &item){
+		return item.shape == shape;
+	});
+
+	return it != cend() && it->walkable;
+}
+
+bool RayCastInfo::isWalkable(const cpBody *body) const {
+	const auto &it = std::find_if(cbegin(), cend(), [body](const RayCastInfoItem &item){
+		return cpShapeGetBody(item.shape) == body;
+	});
+
+	return it != cend() && it->walkable;
+}
+
+bool RayCastInfo::isWalkable(TiledObjectBody *body) const
+{
+	if (body && body->body())
+		return isWalkable(body->body());
+	else
+		return false;
 }

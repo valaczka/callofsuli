@@ -58,7 +58,9 @@ public:
 	void appendSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player);
 	void appendSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy);
 	void appendSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet);
+	bool hasSnapshot();
 
+	RpgGameData::CurrentSnapshot renderCurrentSnapshot();
 
 	// Remove snapshot
 	void removeMissingSnapshots(const std::vector<RpgGameData::BulletBaseData> &bulletList);
@@ -69,13 +71,20 @@ public:
 
 private:
 	template <typename T, typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type>
-	qint64 insert(std::map<qint64, T> *dst, const T &snap);
+	qint64 insert(std::map<qint64, T> *dst, const T &snap, const qint64 &lastSentTick);
+
+	void updateLastTick(const RpgGameData::CurrentSnapshot &snapshot);
 
 	template <typename T, typename T2,
 			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
 			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	void removeMissing(RpgGameData::SnapshotList<T, T2> &snapshot, const std::vector<T2> &list);
+
+	qint64 m_lastPlayerTick = -1;
+	qint64 m_lastEnemyTick = -1;
+	qint64 m_lastBulletTick = -1;
 };
+
 
 
 
@@ -112,22 +121,22 @@ inline void ClientStorage::removeMissing(RpgGameData::SnapshotList<T, T2> &snaps
  */
 
 template<typename T, typename T2>
-inline qint64 ClientStorage::insert(std::map<qint64, T> *dst, const T &snap)
+inline qint64 ClientStorage::insert(std::map<qint64, T> *dst, const T &snap, const qint64 &lastSentTick)
 {
 	Q_ASSERT(dst);
 
-	qint64 f = snap.f;
+	qint64 realF = snap.f * 10;
+	qint64 f = std::max(lastSentTick+1, realF);
 
 	while (dst->contains(f))
 		++f;
 
-	if (f != snap.f) {
-		T s2 = snap;
-		s2.f = f;
-		dst->insert_or_assign(f, s2);
-	} else {
-		dst->insert_or_assign(f, snap);
-	}
+	if (f != realF)
+		LOG_CINFO("game") << "+++SNAP" << snap.f << "->" << f;
+
+	T s2 = snap;
+	s2.f = f;
+	dst->insert_or_assign(f, s2);
 
 	return f;
 }

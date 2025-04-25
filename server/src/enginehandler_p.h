@@ -82,8 +82,7 @@ private:
 	EngineHandler *q = nullptr;
 	QRecursiveMutex m_mutex;
 
-	QBasicTimer m_timer;
-	QDateTime m_timerLastTick;
+	QDateTime m_timerLastMinute;
 
 	QVector<std::shared_ptr<AbstractEngine>> m_engines;
 	std::vector<std::unique_ptr<WebSocketStream>> m_streams;

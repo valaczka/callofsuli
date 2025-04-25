@@ -1,6 +1,3 @@
-[submodule "lib/qml-box2d"]
-	path = lib/qml-box2d
-	url = https://github.com/valaczka/qml-box2d
 [submodule "lib/CuteLogger"]
 	path = lib/CuteLogger
 	url = https://github.com/valaczka/CuteLogger.git
@@ -72,12 +69,6 @@
 [submodule "lib/enet"]
 	path = lib/enet
 	url = https://github.com/lsalzman/enet.git
-[submodule "lib/box2cpp"]
-	path = lib/box2cpp
-	url = https://github.com/HolyBlackCat/box2cpp.git
-[submodule "lib/box2d"]
-	path = lib/box2d
-	url = https://github.com/erincatto/box2d.git
 [submodule "lib/miniaudio"]
 	path = lib/miniaudio
 	url = https://github.com/mackron/miniaudio.git

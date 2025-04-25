@@ -40,7 +40,7 @@ class RpgLightning : public RpgBullet
 	Q_OBJECT
 
 public:
-	RpgLightning(TiledGame *game = nullptr);
+	RpgLightning(TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgLightning() {}
 
 protected:
