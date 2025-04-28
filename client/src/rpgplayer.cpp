@@ -128,8 +128,6 @@ void RpgPlayer::attack(RpgWeapon *weapon)
 
 			for (IsometricEnemy *e : list) {
 				if (e && e->player() == this) {
-					//if (const auto &ptr = m_scene->findShortestPath(m_body->bodyPosition(), e->bodyPosition()))
-					//	setDestinationPoint(ptr.value());
 					setDestinationPoint(e->bodyPosition());
 					break;
 				}
@@ -216,9 +214,9 @@ void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
 		return;
 	}
 
-	rotateBody(angleToPoint(QVector2D(x,y)), true);
+	rotateBody(angleToPoint(cpv(x,y)), true);
 
-	/////synchronize();
+	synchronize();
 
 	attackCurrentWeapon();
 }
@@ -801,7 +799,7 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 {
 	RpgGameData::Player p;
 
-	p.p = toPosList(bodyPosition());
+	p.p = toPosList(bodyPositionF());
 	p.a = currentAngle();
 	p.hp = hp();
 
@@ -948,81 +946,179 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	}
 
 
-	if (snapshot.s1.f < 0) {
-		LOG_CERROR("game") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.current;
+
+#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+		static QStringList txt;
+
+		QString t;
+
+		t += QStringLiteral("%1: ").arg(snapshot.current);
+
+		t += QStringLiteral("[%1 - %2 - %3] ")
+			 .arg(snapshot.s1.f, 4)
+			 .arg(snapshot.s2.f, 4)
+			 .arg(snapshot.last.f, 4)
+			 ;
+
+
+		t += QStringLiteral("%1-%2-%3 ")
+			 .arg(snapshot.s1.st)
+			 .arg(snapshot.s2.st)
+			 .arg(snapshot.last.st)
+			 ;
+
+
+		if (snapshot.s1.p.size() > 1)
+			t += QStringLiteral("(%1,%2)")
+				 .arg(snapshot.s1.p.at(0))
+				 .arg(snapshot.s1.p.at(1))
+				 ;
+
+		if (snapshot.s2.p.size() > 1)
+			t += QStringLiteral("-(%1,%2)")
+				 .arg(snapshot.s2.p.at(0))
+				 .arg(snapshot.s2.p.at(1))
+				 ;
+
+		if (snapshot.last.p.size() > 1)
+			t += QStringLiteral("  {%1,%2}")
+				 .arg(snapshot.last.p.at(0))
+				 .arg(snapshot.last.p.at(1))
+				 ;
+
+		txt.append(t);
+
+		for (int i=txt.size() - 480; i>0; --i)
+			txt.removeFirst();
+
+
+		QCborMap map;
+		map.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+
+		QString tt;
+
+		for (auto it = txt.crbegin(); it != txt.crend(); ++it)
+			tt += *it + QStringLiteral("\n");
+
+		map.insert(QStringLiteral("txt"), tt);
+		a->writeToSocket(map.toCborValue());
+
+	}
+#endif
+
+
+	if (snapshot.s1.f < 0 && snapshot.last.f < 0) {
+		LOG_CERROR("scene") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.last.f << snapshot.current;
 		stop();
 		IsometricEntity::worldStep();
 		return;
 	}
 
-	if (m_lastSnap >= 0 && snapshot.s1.f > m_lastSnap) {
-		LOG_CERROR("game") << "SNAP ERROR" << m_lastSnap << snapshot.s1.f << snapshot.current << snapshot.s2.f;
-	}
-	m_lastSnap = snapshot.s2.f;
 
 
-	QVector2D speed;
+	cpVect speed = cpvzero;
 
-	if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
-		LOG_CINFO("game") << "HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
+	try {
+		if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
+			LOG_CINFO("scene") << "HIT" << snapshot.current << snapshot.s1.f << "-" << snapshot.s2.f << snapshot.s1.p << snapshot.s1.a;
 
-		auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
-
-		if (wptr) {
-			TiledObject *target = nullptr;
-
-			if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
-				target = dynamic_cast<TiledObject*>(g->findBody(
-														TiledObjectBody::ObjectId{
-															.ownerId = snapshot.s1.tg.o,
-															.sceneId = snapshot.s1.tg.s,
-															.id = snapshot.s1.tg.id
-														}));
+			if (const qint64 t = m_stateNextRenderTicks.value(RpgGameData::Player::PlayerHit); t > snapshot.current) {
+				LOG_CWARNING("scene") << "HIT SKIP.............................." << t;
+				throw 1;
 			}
 
-			wptr->setParentObject(this);
-			playAttackEffect(wptr.get());
-			wptr->playAttack(target);
+			m_stateNextRenderTicks.insert(RpgGameData::Player::PlayerHit, snapshot.s2.f);
+
+			setCurrentAngle(snapshot.s1.a);
+
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+			if (wptr) {
+				TiledObject *target = nullptr;
+
+				if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
+					target = dynamic_cast<TiledObject*>(g->findBody(
+															TiledObjectBody::ObjectId{
+																.ownerId = snapshot.s1.tg.o,
+																.sceneId = snapshot.s1.tg.s,
+																.id = snapshot.s1.tg.id
+															}));
+				}
+
+				wptr->setParentObject(this);
+				playAttackEffect(wptr.get());
+				wptr->playAttack(target);
+			}
+		} else if (snapshot.s1.st == RpgGameData::Player::PlayerShot) {
+			LOG_CINFO("scene") << "SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
+
+			setCurrentAngle(snapshot.s1.a);
+
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+			if (wptr) {
+				wptr->setParentObject(this);
+				playAttackEffect(wptr.get());
+				wptr->playAttack(nullptr);
+			}
+		} else {
+			throw 1;
 		}
-	} else if (snapshot.s1.st == RpgGameData::Player::PlayerShot) {
-		LOG_CINFO("game") << "SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
-
-		auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
-
-		if (wptr) {
-			wptr->setParentObject(this);
-			playAttackEffect(wptr.get());
-			wptr->playAttack(nullptr);
-		}
-	} else {
-		/*speed = entityMove(this, snapshot,
-						   RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving,
-						   m_speedLength);*/
+	} catch (...) {
 
 
 
-		static const auto fnStop = [](IsometricEntity *entity, const float &angle) {
+		static const auto fnStop = [](IsometricEntity *entity, const float &angle) -> bool {
 			Q_ASSERT(entity);
-			const cpVect &vel = cpBodyGetVelocity(entity->body());
+			const cpVect vel = cpBodyGetVelocity(entity->body());
 
 			if (vel.x != 0. || vel.y != 0.)
 				entity->stop();
 
 			entity->setCurrentAngle(angle);
+
+			return !cpveql(vel, cpvzero);
 		};
 
-		static const auto fnEmplace = [](IsometricEntity *entity, const QVector2D &dst, const float &angle) {
+		static const auto fnEmplace = [](IsometricEntity *entity, const cpVect &dst, const float &angle) -> bool {
 			Q_ASSERT(entity);
-			const QPointF &pos = entity->bodyPosition();
-
-			if (QVector2D(pos) == dst) {
+			if (dst == entity->bodyPosition()) {
 				entity->stop();
 				entity->setCurrentAngle(angle);
-				return;
+				return false;
 			}
 
 			entity->emplace(dst);
 			entity->setCurrentAngle(angle);
+
+			return true;
+		};
+
+
+		// Squared dist!!!
+
+		static const auto fnMove = [](IsometricEntity *entity, const cpVect &final,
+				const float &dist, const float &maxSpeed, const QList<float> &cv) -> cpVect {
+			Q_ASSERT(entity);
+			Q_ASSERT(dist >= 0.);
+
+			const float angle = entity->angleToPoint(final);
+
+			entity->setCurrentAngle(angle);
+
+			if (dist > POW2(maxSpeed)) {
+				LOG_CDEBUG("scene") << "[Simulation] Overrun" << dist << POW2(maxSpeed);
+
+				entity->setSpeedFromAngle(angle, maxSpeed);
+			} else {
+				entity->setSpeedFromAngle(angle, sqrt(dist));
+			}
+
+			if (cv.size() > 1)
+				return cpv(cv.at(0), cv.at(1));
+			else
+				return cpBodyGetVelocity(entity->body());
 		};
 
 
@@ -1034,160 +1130,111 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 				const RpgGameData::Player::PlayerState &idle,
 				const RpgGameData::Player::PlayerState &moving,
 				const qreal &speed,
-				QString *dst) -> QVector2D
+				const qreal &maxSpeed) -> cpVect
 		{
 
-			QVector2D currentSpeed;
+			const RpgGameData::Player &from = snapshot.s1.f >= 0 ? snapshot.s1 : snapshot.last;
+			const RpgGameData::Player &to = snapshot.s2.f >= 0 ? snapshot.s2 : snapshot.last;
 
-			if (snapshot.s1.f < 0) {
-				*dst = "INVALID S1";
-				LOG_CERROR("game") << "Invalid snap" << snapshot.s1.f << snapshot.current << snapshot.s2.f;
-				fnStop(entity, snapshot.s1.a);
+			cpVect currentSpeed = cpvzero;
+
+			if (from.f < 0 || to.f < 0) {
+				LOG_CDEBUG("scene") << "[Simulation] Invalid snap" << snapshot.s1.f << snapshot.current << snapshot.s2.f;
+				fnStop(entity, 0.);
 				return currentSpeed;
 			}
 
-			if (snapshot.s2.f >= 0 && snapshot.s2.f <= snapshot.current) {
-				*dst = "---";
+			cpVect final = cpvzero;
+			float dist = -1.;
+
+			if (!to.p.isEmpty()) {
+				final.x = to.p.at(0);
+				final.y = to.p.at(1);
+
+				dist = entity->distanceToPointSq(final);
+			}
+
+
+			if (to.f < (snapshot.current - RPG_UDP_DELTA_TICK*2)) {
+				if (dist >= 0.) {
+					if (dist > POW2(speed/60.)) {
+						LOG_CDEBUG("scene") << "[Simulation] .... moving ...." << final.x << final.y << dist;
+						currentSpeed = fnMove(entity, final, dist, maxSpeed, to.cv);
+						return currentSpeed;
+					} else {
+						if (fnEmplace(entity, final, to.a))
+							LOG_CDEBUG("scene") << "[Simulation] EMPLACE..........." << dist << final.x << final.y;
+					}
+				} else if (fnStop(entity, to.a))
+					LOG_CDEBUG("scene") << "[Simulation] **OVER**";
+
 				return currentSpeed;
 			}
 
-			if (snapshot.s1.f < (snapshot.current - RPG_UDP_DELTA_TICK*2) && snapshot.s2.f < 0) {
-				*dst = "**OVER**";
-				entity->stop();
+			if (to.f <= snapshot.current) {
+				if (dist >= 0.) {
+					if (dist > POW2(speed/60.)) {
+						LOG_CDEBUG("scene") << "[Simulation] .... moving ....   FF" << final.x << final.y << dist;
+						currentSpeed = fnMove(entity, final, dist, maxSpeed, to.cv);
+						return currentSpeed;
+					} else {
+						if (fnEmplace(entity, final, to.a))
+							LOG_CDEBUG("scene") << "[Simulation] EMPLACE........... FFFF" << dist << final.x << final.y;
+					}
+				} if (to.st == idle) {
+					if (fnStop(entity, to.a))
+						LOG_CDEBUG("scene") << "[Simulation] **OVER** STOP";
+
+				} else if (to.st == moving && !to.cv.isEmpty()) {
+					LOG_CDEBUG("scene") << "[Simulation] ..... flow ....." << to.cv;
+
+					currentSpeed = cpv(to.cv.at(0), to.cv.at(1));
+					entity->setSpeed(currentSpeed);
+				}
+
 				return currentSpeed;
 			}
-
 
 			// Get final point
 			// Calculate distance and angle to final point
 
-			QVector2D final;
-			float dist = 0.;
 
-			int test = 0;
-
-			if (snapshot.s2.f > 0 && snapshot.s2.p.size() > 1 && snapshot.s2.f > snapshot.current) {
-				final.setX(snapshot.s2.p.at(0));
-				final.setY(snapshot.s2.p.at(1));
-				dist = entity->distanceToPoint(final) * 60. / (float) (snapshot.s2.f-snapshot.current);
-
-				*dst = QString("S2P %1").arg(dist);
-
-				test = 1;
-			} else if (snapshot.s1.p.size() > 1) {
-				*dst = "TEST2";
-				/*if (snapshot.s1.st == moving && snapshot.s1.cv.size() > 1 && (snapshot.current - snapshot.s1.f) < 1000) {
-					final.setX(snapshot.s1.p.at(0) + snapshot.s1.cv.at(0));
-					final.setY(snapshot.s1.p.at(1) + snapshot.s1.cv.at(1));
-					dist = entity->distanceToPoint(final) / (float) (snapshot.s1.f + 1000 - snapshot.current);
-
-					test = 2;
-				} else if (snapshot.s1.p.size() > 1) {
-					final.setX(snapshot.s1.p.at(0));
-					final.setY(snapshot.s1.p.at(1));
-					dist = entity->distanceToPoint(final);
-
-					test = 3;
-				} else {
-					LOG_CERROR("game") << "Invalid snapshot data" << entity;
-
-					entity->stop();
-					return currentSpeed;
-				}*/
+			if (dist >= 0.) {
+				dist *= 60. / (float) (to.f-snapshot.current);
 			} else {
-				*dst = "INVALID";
-				LOG_CERROR("game") << "Invalid snapshot data" << entity;
-
-				entity->stop();
-				return currentSpeed;
-			}
-
-			if (dist < 0. || isnan(dist) || dist > 10.) {
-				LOG_CERROR("game") << "INVALID dist" << dist << snapshot.s1.f << snapshot.current << snapshot.s2.f << snapshot.s2.p << final << entity->distanceToPoint(final) << test;
-			}
-
-			if (snapshot.s1.st == idle && snapshot.s2.st == idle && dist < 2 * speed / 60.) {
-				*dst = QString("EMPL %1 (%2,%3)").arg(dist).arg(final.x()).arg(final.y());
-				fnEmplace(entity, final, snapshot.s2.a);
+				LOG_CDEBUG("scene") << "[Simulation] INVALID dist" << dist << snapshot.s1.f << snapshot.current << snapshot.s2.f
+									<< snapshot.s2.p << final.x << final.y;
 				return currentSpeed;
 			}
 
 
-			if (snapshot.s2.f > 0 && snapshot.s2.st != moving && dist < 2 * speed / 60.) {
-				*dst = QString("_mpl %1 (%2,%3)").arg(dist).arg(final.x()).arg(final.y());
-				fnEmplace(entity, final, snapshot.s2.a);
+			if (to.st == idle && dist < POW2(speed / 60.)) {
+				if (fnEmplace(entity, final, to.a))
+					LOG_CDEBUG("scene") << "[Simulation] EMPL" << dist << final.x << final.y;
+
 				return currentSpeed;
 			}
 
-			const cpVect &vel = cpBodyGetVelocity(entity->body());
-			if (snapshot.s1.st == idle && vel == cpvzero && dist < speed / 180.) {
-				*dst = QString("--- %1 (%2,%3)").arg(dist).arg(final.x()).arg(final.y());
-				return currentSpeed;
-			}
 
-			const float angle = entity->angleToPoint(final);
+			LOG_CDEBUG("scene") << "[Simulation] Move" << dist << final.x << final.y;
 
-			entity->setCurrentAngle(angle);
-			entity->setSpeedFromAngle(angle, dist);
 
-			*dst = QString("^^^ %1 (%2,%3) %4").arg(dist).arg(final.x()).arg(final.y()).arg(angle);
-
-			if (snapshot.s1.cv.size() > 1) {
-				currentSpeed.setX(snapshot.s1.cv.at(0));
-				currentSpeed.setY(snapshot.s1.cv.at(1));
-			}
+			currentSpeed = fnMove(entity, final, dist, maxSpeed, to.cv);
 
 			return currentSpeed;
 		};
 
 
-
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-		static QStringList txt;
-
-		QString str;
-
 		speed = fn(this, snapshot,
 				   RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving,
-				   m_speedLength, &str);
-
-		txt += QStringLiteral("%1: [%2 - %3 / %11] %4 (%5, %6) -> %7 (%8, %9) || %10")
-			   .arg(snapshot.current)
-			   .arg(snapshot.s1.f)
-			   .arg(snapshot.s2.f)
-			   .arg(snapshot.s1.st)
-			   .arg(snapshot.s1.p.size() > 1 ? snapshot.s1.p.at(0) : -1)
-			   .arg(snapshot.s1.p.size() > 1 ? snapshot.s1.p.at(1) : -1)
-			   .arg(snapshot.s2.st)
-			   .arg(snapshot.s2.p.size() > 1 ? snapshot.s2.p.at(0) : -1)
-			   .arg(snapshot.s2.p.size() > 1 ? snapshot.s2.p.at(1) : -1)
-			   .arg(str)
-			   .arg(snapshot.last.f)
-			   ;
-
-
-		for (int i=txt.size() - 480; i>0; --i)
-			txt.removeFirst();
-
-
-		QCborMap map;
-		map.insert(QStringLiteral("0op"), QStringLiteral("RIGHT"));
-
-		QString t;
-
-		for (auto it = txt.crbegin(); it != txt.crend(); ++it)
-			t += *it + QStringLiteral("\n");
-
-		map.insert(QStringLiteral("txt"), t);
-		a->writeToSocket(map.toCborValue());
-
-	}
-#endif
+				   m_speedLength, 2*m_speedRunLength);
 
 	}
 
-	updateFromSnapshot(snapshot.s1);
+	if (snapshot.s1.f >= 0)
+		updateFromSnapshot(snapshot.s1);
+	else
+		updateFromSnapshot(snapshot.last);
 
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		stop();
@@ -1197,7 +1244,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 	IsometricEntity::worldStep();
 
-	if (!speed.isNull())
+	if (!(speed == cpvzero))
 		overrideCurrentSpeed(speed);
 
 }

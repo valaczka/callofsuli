@@ -265,7 +265,7 @@ void RpgWerebear::playAttackEffect(RpgWeapon *weapon)
 
 void RpgWerebear::playDeadEffect()
 {
-	m_game->playSfx(QStringLiteral(":/enemy/werebear/monster-6.mp3"), scene(), bodyPosition());
+	m_game->playSfx(QStringLiteral(":/enemy/werebear/monster-6.mp3"), scene(), bodyPositionF());
 }
 
 
@@ -288,9 +288,11 @@ void RpgWerebear::playSeeEffect()
  * @return
  */
 
-QPointF RpgWerebear::getPickablePosition(const int &num) const
+cpVect RpgWerebear::getPickablePosition(const int &num) const
 {
-	return bodyPosition() - TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 50. *num).toPointF();
+	return cpvsub(bodyPosition(),
+				  TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 50. *num)
+				  );
 }
 
 
@@ -422,5 +424,5 @@ void RpgWerebearWeaponHand::eventAttack(TiledObject *)
 	RpgWerebear *wb = qobject_cast<RpgWerebear*>(m_parentObject.data());
 	if (wb && wb->game())
 		wb->game()->playSfx(QStringLiteral(":/enemy/werebear/big_punch.mp3"),
-							wb->scene(), wb->bodyPosition());
+							wb->scene(), wb->bodyPositionF());
 }

@@ -40,6 +40,9 @@ public:
 		return isEqual(v1.x, v2.x) && isEqual(v1.y, v2.y);
 	};
 
+	static float normalizeFromRadian(const float &radian);
+	static float normalizeToRadian(const float &normal);
+
 private:
 	TiledObjectBodyPrivate(TiledObjectBody *body);
 	~TiledObjectBodyPrivate();
@@ -72,8 +75,8 @@ private:
 	float m_sensorLength = 0.;
 	float m_targetLength = 0.;
 
-	float m_currentSpeed = 0.;
-	std::list<QVector2D> m_lastPosition;
+	float m_currentSpeedSq = 0.;
+	std::list<cpVect> m_lastPosition;
 
 	struct RotateAnimation {
 		bool running = false;

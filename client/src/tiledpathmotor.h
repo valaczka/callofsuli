@@ -75,11 +75,11 @@ public:
 	qreal currentDistance() const;
 	qreal fullDistance() const;
 
-	QVector2D getShortestPoint(const QPointF &pos, float *dstDistance = nullptr, int *dstSegment = nullptr, float *dstFactor = nullptr);
-	std::optional<QVector2D> getLastSegmentPoint();
+	cpVect getShortestPoint(const cpVect &pos, float *dstDistance = nullptr, int *dstSegment = nullptr, float *dstFactor = nullptr);
+	std::optional<cpVect> getLastSegmentPoint();
 
 	void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) override;
-	QPointF basePoint() override;
+	cpVect basePoint() override;
 
 
 	bool atBegin() const;
@@ -88,7 +88,7 @@ public:
 
 	WaitTimerState waitTimerState(AbstractGame::TickTimer *timer) const;
 
-	static int getShortestSegment(const QPolygonF &polygon, const QPointF &pos);
+	static int getShortestSegment(const QPolygonF &polygon, const cpVect &pos);
 	static bool clearFromSegment(QPolygonF *polygon, const int &segment);
 	static bool clearToSegment(QPolygonF *polygon, const int &segment);
 

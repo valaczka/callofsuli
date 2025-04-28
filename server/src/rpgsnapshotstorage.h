@@ -27,46 +27,352 @@
 #ifndef RPGSNAPSHOTSTORAGE_H
 #define RPGSNAPSHOTSTORAGE_H
 
+#include "Logger.h"
 #include "rpgconfig.h"
 
 class RpgEngine;
 class RpgEnginePlayer;
+class RpgSnapshotStorage;
+
+class Renderer;
+class RendererObjectType;
+
+
+
+/**
+ * @brief The RendererType class
+ */
+
+class RendererType
+{
+public:
+	RendererType() = default;
+	virtual ~RendererType() {}
+
+	virtual QString dump() const = 0;
+	virtual void render(Renderer *renderer, RendererObjectType *self) = 0;
+
+	enum RendererFlag {
+		None =			0,
+		ReadOnly =		1,
+		Storage =		1 << 1,
+		Temporary =		1 << 2,
+		Modified =		1 << 3
+	};
+
+	Q_DECLARE_FLAGS(RendererFlags, RendererFlag)
+
+
+	const RendererFlags &flags() const { return m_flags; }
+	void addFlags(const RendererFlags &flags);
+
+	bool hasContent() const { return (m_flags & (Storage|Temporary)); }
+
+protected:
+	template <typename B,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, B>::value>::type>
+	QString dumpAs(const B &data, const QList<B> &subData) const;
+
+	QString dumpAs(const RpgGameData::Player &data, const QList<RpgGameData::Player> &subData) const;
+
+	RendererFlags m_flags = None;
+};
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(RendererType::RendererFlags)
 
 
 
 
 
-template <typename T, typename T2,
-		  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-		  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-struct RendererData {
-	T2 data;										// Alapadatok
-	std::map<qint64, T> *ptr = nullptr;				// A storage snapshot-listája
-	std::map<qint64, T>::iterator it;				// Ha van a tick-nél nem kisebb elem
-	std::optional<T> snap;							// Ha van auth snap, akkor az elején az
+/**
+ * @brief The RendererObjectType class
+ */
 
-	std::map<qint64, T> *tmpPtr = nullptr;			// A tmp snapshot-listája
-	std::map<qint64, T>::iterator tmpIt;			// A listában az első nem kisebb elem (x10)
+class RendererObjectType
+{
+public:
+	RendererObjectType() = default;
+	virtual ~RendererObjectType() { snap.clear(); }
 
-	void step(const qint64 &tick);
+	RendererType* snapAt(const int &index) const;
+
+	const std::vector<std::unique_ptr<RendererType>>::const_iterator &iterator() const { return m_iterator; }
+
+	RendererType *get() const {
+		Q_ASSERT(m_iterator != snap.cend());
+		return m_iterator->get();
+	}
+
+	RendererType *cprev() const {
+		if (m_iterator == snap.begin())
+			return nullptr;
+		return std::prev(m_iterator)->get();
+	}
+
+	RendererType *cnext() const {
+		if (m_iterator == snap.end() || std::next(m_iterator) == snap.end())
+			return nullptr;
+		return std::next(m_iterator)->get();
+	}
+
+	RendererType *prev() {
+		if (m_iterator == snap.begin())
+			return nullptr;
+		--m_iterator;
+		return m_iterator->get();
+	}
+
+	RendererType *next()  {
+		if (m_iterator == snap.end())
+			return nullptr;
+		++m_iterator;
+		if (m_iterator == snap.end())
+			return nullptr;
+		else
+			return m_iterator->get();
+	}
+
+	virtual void render(Renderer *renderer) = 0;
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	void fillSnap(const int &size);
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	bool setSnap(const int &index, const T &data);
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	bool setSnap(const int &index, const T &data, const RendererType::RendererFlags &addFlags);
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	bool setAuthSnap(const T &data);
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	bool addSubSnap(const int &index, const T &data);
+
+	virtual QString dump(const qint64 &start, const int &size) const = 0;
+
+	std::vector<std::unique_ptr<RendererType>> snap;
+
+private:
+	std::vector<std::unique_ptr<RendererType>>::const_iterator m_iterator;
 };
 
 
-template <typename T, typename T2,
-		  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
-		  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-using RendererList = std::vector<RendererData<T, T2> >;
 
 
+/**
+ * @brief The RendererObject class
+ */
 
-struct Renderer {
-	qint64 tick = -1;
-	RendererList<RpgGameData::Player, RpgGameData::PlayerBaseData> players;
-	RendererList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> enemies;
-	RendererList<RpgGameData::Bullet, RpgGameData::BulletBaseData> bullets;
 
-	qint64 step();
+template <typename T,
+		  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T>::value>::type>
+class RendererObject : public RendererObjectType
+{
+public:
+	RendererObject() = default;
+
+	virtual QString dump(const qint64 &start, const int &size) const override;
+	virtual void render(Renderer *renderer) override {
+		get()->render(renderer, this);
+	}
+
+	T baseData;
 };
+
+
+/**
+ * @brief The RendererItem class
+ */
+
+
+template <typename T,
+		  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+class RendererItem : public RendererType
+{
+public:
+	RendererItem() = default;
+
+	const T &data() const { return m_data; }
+	bool setData(const T &data);
+
+	const QList<T> &subData() const { return m_subData; }
+	void addSubData(const T &data) { m_subData.append(data); }
+	void clearSubData() {
+		m_subData.clear();
+		m_flags.setFlag(Temporary, false);
+	}
+
+	virtual QString dump() const override {
+		return dumpAs(m_data, m_subData);
+	}
+	virtual void render(Renderer *renderer, RendererObjectType *self) override {
+		if (!hasContent())
+			return;
+
+		renderAs(this, self, renderer);
+	}
+
+private:
+	template <typename B,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, B>::value>::type>
+	void renderAs(RendererItem<B> *src, RendererObjectType *self, Renderer *renderer) const {
+		Q_ASSERT(src);
+		Q_ASSERT(self);
+		Q_ASSERT(renderer);
+		LOG_CERROR("engine") << "Missing specialization";
+		return;
+	}
+
+	void renderAs(RendererItem<RpgGameData::Player> *src, RendererObjectType *self, Renderer *renderer) const;
+
+
+
+private:
+	T m_data;						// Adat
+	QList<T> m_subData;				// feldolgozandó adatok
+
+	friend class Renderer;
+};
+
+
+
+
+
+
+
+/**
+ * @brief The Renderer class
+ */
+
+class Renderer
+{
+public:
+	Renderer(const qint64 &start, const int &size);
+	virtual ~Renderer();
+
+	const qint64 &startTick() const { return m_startTick; }
+	const int &size() const { return m_size; }
+	const int &current() const { return m_current; }
+
+	bool render();
+	void render(RendererItem<RpgGameData::Player> *dst, RendererObject<RpgGameData::PlayerBaseData> *src);
+
+	bool step();
+
+	QString dump() const;
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	bool addObjects(const RpgGameData::SnapshotList<T, T2> &list);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	int saveObjects(RpgGameData::SnapshotList<T, T2> &dst);
+
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T>::value>::type>
+	RendererObject<T>* find(const T &baseData) const;
+
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	bool loadSnaps(RpgGameData::SnapshotList<T, T2> &list, const bool &isStorage);
+
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *snapAt(RendererObjectType *object, const int &index) const;
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *get(RendererObjectType *object) const
+	{
+		Q_ASSERT(object);
+		return dynamic_cast<RendererItem<T>*> (object->get());
+	}
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *prev(RendererObjectType *object) const
+	{
+		Q_ASSERT(object);
+		return dynamic_cast<RendererItem<T>*> (object->prev());
+	}
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *next(RendererObjectType *object) const
+	{
+		Q_ASSERT(object);
+		return dynamic_cast<RendererItem<T>*> (object->next());
+	}
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *cprev(RendererObjectType *object) const
+	{
+		Q_ASSERT(object);
+		return dynamic_cast<RendererItem<T>*> (object->cprev());
+	}
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *cnext(RendererObjectType *object) const
+	{
+		Q_ASSERT(object);
+		return dynamic_cast<RendererItem<T>*> (object->cnext());
+	}
+
+
+private:
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	bool loadStorageSnaps(RendererObject<T2> *dst, RpgGameData::SnapshotData<T, T2> &ptr) {
+		Q_UNUSED(dst);
+		Q_UNUSED(ptr);
+		LOG_CERROR("engine") << "Missing specialization";
+		return false;
+	}
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	bool loadTemporarySnaps(RendererObject<T2> *dst, RpgGameData::SnapshotData<T, T2> &ptr) {
+		Q_UNUSED(dst);
+		Q_UNUSED(ptr);
+		LOG_CERROR("engine") << "Missing specialization";
+		return false;
+	}
+
+	bool loadStorageSnaps(RendererObject<RpgGameData::PlayerBaseData> *dst,
+						  RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> &ptr);
+
+	bool loadTemporarySnaps(RendererObject<RpgGameData::PlayerBaseData> *dst,
+							RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> &ptr);
+
+
+	void restore(RpgGameData::Player *dst, const RpgGameData::Player &data);
+	std::optional<RpgGameData::Player> extendFromLast(RendererObject<RpgGameData::PlayerBaseData> *src);
+
+	const qint64 m_startTick;
+	const int m_size;
+	int m_current = 0;
+	std::vector<std::unique_ptr<RendererObjectType>> m_objects;
+};
+
+
+
 
 
 
@@ -86,27 +392,6 @@ public:
 	bool registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor);
 
 	void render(const qint64 &tick);
-
-private:
-	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
-	bool registerEnemies(const QCborMap &cbor);
-
-	Renderer getRenderer(const qint64 &tick);
-
-	template <typename T, typename T2,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	void addRenderer(RendererList<T, T2> &dest, RpgGameData::SnapshotData<T, T2> *src,
-					 RpgGameData::SnapshotData<T, T2> *tmpSrc,
-					 const qint64 &tick);
-
-	void renderPlayer(Renderer *renderer, RendererData<RpgGameData::Player, RpgGameData::PlayerBaseData> &player);
-
-	RpgGameData::Player actionPlayer(RpgGameData::PlayerBaseData &pdata, RpgGameData::Player &snap);
-	RpgGameData::Bullet actionBullet(RpgGameData::Bullet &snap,
-									 RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData>::iterator snapIterator,
-									 std::map<qint64, RpgGameData::Bullet>::iterator nextIterator);
-
 
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -128,16 +413,6 @@ private:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static RpgGameData::SnapshotList<T, T2>::const_iterator constFind(const RpgGameData::BaseData &key, RpgGameData::SnapshotList<T, T2> &list);
 
-	template <typename T, typename T2,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type >
-	static std::map<qint64, T>::iterator findState(std::map<qint64, T> &list, const T2 &state);
-
-	template <typename T, typename T2,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type >
-	static std::map<qint64, T>::const_iterator findState(const std::map<qint64, T> &list, const T2 &state);
-
-	template <typename T2, typename = std::enable_if<std::is_base_of< RpgGameData::BaseData, T2>::value>::type>
-	static bool checkBaseData(const T2 &key, const QCborMap &cbor, const QString &baseKey);
 
 	template <typename T>
 	static std::map<qint64, T>::iterator getPreviousSnap(std::map<qint64, T> &list, const qint64 &tick);
@@ -153,6 +428,19 @@ private:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static void removeLessThan(RpgGameData::SnapshotList<T, T2> &list, const qint64 &tick);
 
+private:
+	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
+	bool registerEnemies(const QCborMap &cbor);
+
+	std::unique_ptr<Renderer> getRenderer(const qint64 &tick);
+	bool saveRenderer(Renderer *renderer);
+
+
+	RpgGameData::Player actionPlayer(RpgGameData::PlayerBaseData &pdata, RpgGameData::Player &snap);
+	RpgGameData::Bullet actionBullet(RpgGameData::Bullet &snap,
+									 RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData>::iterator snapIterator,
+									 std::map<qint64, RpgGameData::Bullet>::iterator nextIterator);
+
 
 
 	RpgEngine *m_engine = nullptr;
@@ -161,83 +449,8 @@ private:
 	qint64 m_lastAuthTick = -1;
 
 	std::vector<RpgGameData::BaseData> m_lastBulletId;
-
-
-
-	QString m_tmpTxt;
 };
 
-
-
-/**
- * @brief RpgSnapshotStorage::addRenderer
- * @param dest
- * @param src
- */
-
-template<typename T, typename T2, typename T3, typename T4>
-inline void RpgSnapshotStorage::addRenderer(RendererList<T, T2> &dest, RpgGameData::SnapshotData<T, T2> *src,
-											RpgGameData::SnapshotData<T, T2> *tmpSrc, const qint64 &tick)
-{
-	Q_ASSERT(src);
-
-	RendererData<T, T2> d;
-	d.data = src->data;
-	d.ptr = &src->list;
-	d.it = getPreviousSnap(src->list, tick);
-
-	if (d.it == src->list.end())
-		qDebug() << "NOT FOUND";
-	else if (d.it->first <= tick)
-		d.snap = d.it->second;
-
-	d.tmpPtr = tmpSrc ? &tmpSrc->list : nullptr;
-
-	if (tmpSrc)
-		d.tmpIt = tmpSrc->list.lower_bound(tick*10);
-
-	dest.push_back(d);
-}
-
-
-
-
-
-
-/**
- * @brief RpgSnapshotStorage::findState
- * @param list
- * @param state
- * @return
- */
-
-template<typename T, typename T2, typename T3>
-inline std::map<qint64, T>::const_iterator RpgSnapshotStorage::findState(const std::map<qint64, T> &list,
-																		 const T2 &state)
-{
-	return std::find_if(list.cbegin(), list.cend(),
-						[&state](const auto &ptr){
-		return (ptr.second.st == state);
-	});
-}
-
-
-/**
- * @brief RpgSnapshotStorage::findState
- * @param list
- * @param state
- * @return
- */
-
-template<typename T, typename T2, typename T3>
-inline std::map<qint64, T>::iterator RpgSnapshotStorage::findState(std::map<qint64, T> &list,
-																   const T2 &state)
-{
-	return std::find_if(list.begin(), list.end(),
-						[&state](const auto &ptr){
-		return (ptr.second.st == state);
-	});
-}
 
 
 
@@ -294,25 +507,6 @@ inline RpgGameData::SnapshotList<T, T2>::iterator RpgSnapshotStorage::find(RpgGa
 
 
 
-/**
- * @brief RpgSnapshotStorage::checkBaseData
- * @param key
- * @param cbor
- * @param baseKey
- * @return
- */
-
-template<typename T2, typename T3>
-inline bool RpgSnapshotStorage::checkBaseData(const T2 &key, const QCborMap &cbor, const QString &baseKey)
-{
-	T2 pd;
-
-	pd.fromCbor(cbor.value(baseKey));
-
-	return pd == key;
-}
-
-
 
 
 /**
@@ -329,16 +523,12 @@ inline std::map<qint64, T>::iterator RpgSnapshotStorage::getPreviousSnap(std::ma
 	if (list.empty())
 		return list.end();
 
-	typename std::map<qint64, T>::iterator it = list.lower_bound(tick);			// Greater or equal
+	typename std::map<qint64, T>::iterator it = list.upper_bound(tick);			// Greater
 
-	if (it == list.end())
-		return std::prev(it);
-	else if (it->first == tick)
-		return it;
-	else if (it != list.begin())
+	if (it != list.begin())
 		return std::prev(it);
 	else
-		return it;
+		return list.end();
 }
 
 
@@ -387,21 +577,22 @@ inline RpgGameData::SnapshotList<T, T2>::const_iterator RpgSnapshotStorage::find
 
 
 
-template<typename T, typename T2, typename T3, typename T4>
-inline void RendererData<T, T2, T3, T4>::step(const qint64 &tick)
-{
-	if (!ptr)
-		return;
 
-	if (it != ptr->end()) {
-		if (std::next(it)->first == tick) {
-			it = std::next(it);
-		}
-	}
 
-	if (tmpPtr && tmpIt != tmpPtr->end()) {
-		tmpIt = tmpPtr->lower_bound(tick*10);
-	}
+
+
+/**
+ * @brief RendererItem::renderAs
+ * @param src
+ * @param self
+ * @param renderer
+ */
+
+template<typename T, typename T2>
+inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::Player> *src, RendererObjectType *self, Renderer *renderer) const {
+	RendererObject<RpgGameData::PlayerBaseData> *p = dynamic_cast<RendererObject<RpgGameData::PlayerBaseData>*>(self);
+	Q_ASSERT(p);
+	renderer->render(src, p);
 }
 
 #endif // RPGSNAPSHOTSTORAGE_H

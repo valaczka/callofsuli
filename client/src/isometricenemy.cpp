@@ -121,7 +121,7 @@ bool IsometricEnemy::isSleeping()
 bool IsometricEnemy::isRunning() const
 {
 	// 60 FPS
-	return currentSpeed() >= m_metric.pursuitSpeed*0.9/60;
+	return currentSpeedSq() >= m_metric.pursuitSpeed*0.9/60;
 }
 
 
@@ -132,7 +132,7 @@ bool IsometricEnemy::isRunning() const
 
 bool IsometricEnemy::isWalking() const
 {
-	const float &l = currentSpeed();
+	const float &l = currentSpeedSq();
 	return l < m_metric.pursuitSpeed/60 && l > 0.05;
 }
 
@@ -411,7 +411,7 @@ void IsometricEnemy::worldStep()
 
 			for (const RayCastInfoItem &item : info) {
 				if (TiledObjectBody::fromShapeRef(item.shape) == p && item.visible)
-					pMap.insert(distanceToPoint(item.point), p);
+					pMap.insert(distanceToPointSq(item.point), p);
 			}
 		}
 
@@ -425,7 +425,7 @@ void IsometricEnemy::worldStep()
 	// Update connected player, decision of pursuit
 
 
-	std::optional<QPointF> pursuitPoint;
+	std::optional<cpVect> pursuitPoint;
 	bool attackWithoutPursuit = false;
 
 	if (targetPlayer) {
@@ -446,10 +446,8 @@ void IsometricEnemy::worldStep()
 			stop();
 		}
 
-		const qreal dist = distanceToPoint(m_player->bodyPosition());
-
 		rotateToPlayer(m_player);
-		setPlayerDistance(dist);
+		setPlayerDistance(distanceToPointSq(m_player->bodyPosition()));
 	} else {
 		if (m_player) {
 			if (m_returnPathMotor)
@@ -474,7 +472,7 @@ void IsometricEnemy::worldStep()
 	}*/
 
 
-	if (pursuitPoint.has_value() && distanceToPoint(pursuitPoint.value()) < 5.)
+	if (pursuitPoint.has_value() && distanceToPointSq(pursuitPoint.value()) < POW2(5.))
 		pursuitPoint = std::nullopt;
 
 	if (pursuitPoint.has_value()) {
@@ -487,10 +485,10 @@ void IsometricEnemy::worldStep()
 		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
 			return stop();
 
-		const QVector2D dst(pursuitPoint.value());
-		const RayCastInfo &map = rayCast(pursuitPoint.value(), FixtureGround);
+		const cpVect &dst = pursuitPoint.value();
+		const RayCastInfo &map = rayCast(dst, FixtureGround);
 
-		if (!map.empty() && distanceToPoint(map.front().point) <= m_metric.targetCircleRadius+5.) {	// inkább body size kéne
+		if (!map.empty() && distanceToPointSq(map.front().point) <= POW2(m_metric.targetCircleRadius+5.)) {	// inkább body size kéne
 			stop();
 		} else {
 			if (m_metric.returnSpeed != 0) {
@@ -580,7 +578,7 @@ void IsometricEnemyIface::loadFixPositionMotor(const QPointF &point, const Tiled
 
 	TiledFixPositionMotor *motor = new TiledFixPositionMotor;
 
-	motor->setPoint(point);
+	motor->setPoint(TiledObject::toVect(point));
 	motor->setDirection(direction);
 
 	m_motor.reset(motor);
@@ -630,14 +628,14 @@ void IsometricEnemyIface::removeContactedPlayer(IsometricPlayer *player)
 
 float IsometricEnemyIface::playerDistance() const
 {
-	return m_playerDistance;
+	return m_playerDistanceSq;
 }
 
 void IsometricEnemyIface::setPlayerDistance(float newPlayerDistance)
 {
-	if (qFuzzyCompare(m_playerDistance, newPlayerDistance))
+	if (qFuzzyCompare(m_playerDistanceSq, newPlayerDistance))
 		return;
-	m_playerDistance = newPlayerDistance;
+	m_playerDistanceSq = newPlayerDistance;
 	emit playerDistanceChanged();
 }
 

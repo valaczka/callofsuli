@@ -55,9 +55,35 @@ public:
 
 
 	// Outgoing snapshot
-	void appendSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player);
-	void appendSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy);
-	void appendSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	void appendSnapshot(RpgGameDataInterface<T, T2> *iface, const qint64 &tick = -1, const bool &forced = false);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	void appendSnapshot(const T2 &baseData, const T &data)
+	{
+		Q_UNUSED(baseData);
+		Q_UNUSED(data);
+		LOG_CERROR("game") << "Missing specialization";
+	}
+
+	void appendSnapshot(const RpgGameData::PlayerBaseData &baseData, const RpgGameData::Player &data) {
+		appendSnapshotToList(baseData, data, &m_players, m_lastPlayerTick);
+	}
+
+	void appendSnapshot(const RpgGameData::EnemyBaseData &baseData, const RpgGameData::Enemy &data) {
+		appendSnapshotToList(baseData, data, &m_enemies, m_lastEnemyTick);
+	}
+
+	void appendSnapshot(const RpgGameData::BulletBaseData &baseData, const RpgGameData::Bullet &data) {
+		appendSnapshotToList(baseData, data, &m_bullets, m_lastBulletTick);
+	}
+
+
 	bool hasSnapshot();
 
 	RpgGameData::CurrentSnapshot renderCurrentSnapshot();
@@ -80,10 +106,79 @@ private:
 			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	void removeMissing(RpgGameData::SnapshotList<T, T2> &snapshot, const std::vector<T2> &list);
 
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	void appendSnapshotToList(const T2 &baseData, const T &data,
+							  RpgGameData::SnapshotList<T, T2> *list, const qint64 &lastTick);
+
 	qint64 m_lastPlayerTick = -1;
 	qint64 m_lastEnemyTick = -1;
 	qint64 m_lastBulletTick = -1;
 };
+
+
+
+
+
+
+/**
+ * @brief ClientStorage::appendSnapshot
+ * @param iface
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline void ClientStorage::appendSnapshot(RpgGameDataInterface<T, T2> *iface, const qint64 &tick, const bool &forced)
+{
+	Q_ASSERT(iface);
+
+	if (forced) {
+		appendSnapshot(iface->baseData(), iface->serialize(tick));
+		return;
+	}
+
+	if (const auto &ptr = iface->serializeCmp(tick))
+		appendSnapshot(iface->baseData(), ptr.value());
+}
+
+
+
+
+
+
+
+/**
+ * @brief ClientStorage::appendSnapshot
+ * @param baseData
+ * @param data
+ * @param list
+ * @param lastTick
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline void ClientStorage::appendSnapshotToList(const T2 &baseData, const T &data,
+												RpgGameData::SnapshotList<T, T2> *list, const qint64 &lastTick)
+{
+	Q_ASSERT(list);
+
+	QMutexLocker locker(&m_mutex);
+
+	auto it = std::find_if(list->begin(),
+						   list->end(),
+						   [&baseData](const auto &p) {
+		return (p.data == baseData);
+	});
+
+	if (it == list->end()) {
+		RpgGameData::SnapshotData<T, T2> d;
+		d.data = baseData;
+		insert(&d.list, data, lastTick);
+		list->push_back(d);
+	} else {
+		insert(&(it->list), data, lastTick);
+	}
+}
 
 
 

@@ -196,9 +196,6 @@ public:
 
 	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot) override;
 	void updateFromSnapshot(const RpgGameData::Player &snap) override;
-	void updateFromLastSnapshot(const RpgGameData::Player &snap) {
-		RpgGameDataInterface::updateFromLastSnapshot(snap, &m_lastSnapshot);
-	}
 
 	void attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected);
 
@@ -281,13 +278,11 @@ private:
 	QTimer m_castTimer;
 	qint64 m_timerRepeater = -1;
 
+	QHash<RpgGameData::Player::PlayerState, qint64> m_stateNextRenderTicks;
+
 	friend class RpgGame;
 	friend class ActionRpgGame;
 	friend class ActionRpgMultiplayerGame;
-
-
-	qint64 m_lastSnap = -1;
-	RpgGameData::Player m_lastSnapshot;
 };
 
 #endif // RPGPLAYER_H

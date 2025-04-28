@@ -68,7 +68,7 @@ public:
 	int count() const;
 	void setCount(int newCount);
 
-	QPointF position() const { return m_body ? m_body->bodyPosition() : QPointF{}; };
+	QPointF position() const { return m_body ? m_body->bodyPositionF() : QPointF{}; };
 	const bool &isActive() const { return m_active; }
 
 	void sensorBegin(cpShape *shape);

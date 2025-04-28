@@ -50,7 +50,7 @@ public:
 
 	void initialize();
 
-	virtual void shot(const QPointF &from, const qreal &angle);
+	virtual void shot(const cpVect &from, const qreal &angle);
 
 	void worldStep() override;
 
@@ -76,7 +76,7 @@ protected:
 	virtual void synchronize() override;
 
 protected:
-	QVector2D m_startPoint;
+	cpVect m_startPoint = cpvzero;
 	qreal m_speed = 200.;
 	qreal m_maxDistance = 700.;
 

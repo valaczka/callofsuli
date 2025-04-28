@@ -41,16 +41,16 @@ public:
 	virtual ~TiledFixPositionMotor() {}
 
 	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
-	QPointF basePoint() override { return m_point; }
+	cpVect basePoint() override { return m_point; }
 
-	QPointF point() const;
-	void setPoint(QPointF newPoint);
+	cpVect point() const;
+	void setPoint(const cpVect &newPoint);
 
 	TiledObject::Direction direction() const;
 	void setDirection(const TiledObject::Direction &newDirection);
 
 private:
-	QPointF m_point;
+	cpVect m_point;
 	TiledObject::Direction m_direction = TiledObject::Invalid;
 };
 #endif // TILEDFIXPOSITIONMOTOR_H

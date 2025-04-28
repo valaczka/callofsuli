@@ -741,10 +741,10 @@ RpgGameData::BulletBaseData RpgBullet::baseData() const
 	d.tar = m_targets;
 	d.ownId = m_ownerId;
 	d.pth = QList<float>({
-							 (float) m_path.p1().x(),
-							 (float) m_path.p1().y(),
-							 (float) m_path.p2().x(),
-							 (float) m_path.p2().y()
+							 (float) m_path.first.x,
+							 (float) m_path.first.y,
+							 (float) m_path.second.x,
+							 (float) m_path.second.x
 						 });
 
 
@@ -765,13 +765,10 @@ void RpgBullet::shot(const RpgGameData::BulletBaseData &baseData)
 		return;
 	}
 
-	m_path.setLine(baseData.pth.at(0),
-				   baseData.pth.at(1),
-				   baseData.pth.at(2),
-				   baseData.pth.at(3)
-				   );
+	m_path.first = cpv(baseData.pth.at(0), baseData.pth.at(1));
+	m_path.second = cpv(baseData.pth.at(2),baseData.pth.at(3));
 
-	IsometricBullet::shot(m_path.p1(), toRadian(m_path.angle()));
+	IsometricBullet::shot(m_path.first, cpvtoangle(cpvsub(m_path.second, m_path.first)));
 
 	m_stage = StageLive;
 
@@ -785,13 +782,10 @@ void RpgBullet::shot(const RpgGameData::BulletBaseData &baseData)
  * @param angle
  */
 
-void RpgBullet::shot(const QPointF &from, const qreal &angle)
+void RpgBullet::shot(const cpVect &from, const qreal &angle)
 {
-	m_path.setP1(from);
-
-	const QVector2D &v = vectorFromAngle(angle, m_maxDistance);
-
-	m_path.setP2(from + v.toPointF());
+	m_path.first = from;
+	m_path.second = cpvadd(from, vectorFromAngle(angle, m_maxDistance));
 
 	IsometricBullet::shot(from, angle);
 
@@ -811,7 +805,7 @@ RpgGameData::Bullet RpgBullet::serializeThis() const
 
 	float progress = 0.;
 
-	shortestDistance(bodyPosition(), m_path, nullptr, &progress);
+	shortestDistance(bodyPosition(), m_path.first, m_path.second, nullptr, &progress);
 
 	p.p = progress;
 	p.st = m_stage;
@@ -842,11 +836,12 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 	if (m_stage == StageLive) {
 		if (snapshot.s2.f > 0) {
-			QPointF final = m_path.pointAt(snapshot.s2.p);
+			///////
+			/*QPointF final = m_path.pointAt(snapshot.s2.p);
 
 			float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
 
-			setSpeedFromAngle(angleToPoint(final), dist);
+			setSpeedFromAngle(angleToPoint(final), dist);*/
 		}
 	}
 
@@ -1060,6 +1055,6 @@ void RpgWeaponHand::eventAttack(TiledObject *target)
 	TiledObject *p = m_parentObject.data();
 
 	if (TiledGame *g = p->game(); g && target) {
-		g->playSfx(QStringLiteral(":/rpg/common/hit.mp3"), p->scene(), p->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/common/hit.mp3"), p->scene(), p->bodyPositionF());
 	}
 }

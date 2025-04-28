@@ -49,7 +49,7 @@ public:
 	const Type &type() const { return m_type; }
 
 	virtual void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) = 0;
-	virtual QPointF basePoint() = 0;
+	virtual cpVect basePoint() = 0;
 
 protected:
 	const Type m_type;

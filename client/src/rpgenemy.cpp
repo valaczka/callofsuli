@@ -59,13 +59,13 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 		return;
 	}
 
-	if (m_lastSnap >= 0 && snapshot.s1.f > m_lastSnap) {
+	/*if (m_lastSnap >= 0 && snapshot.s1.f > m_lastSnap) {
 		LOG_CERROR("game") << "SNAP ERROR" << m_lastSnap << snapshot.s1.f << snapshot.current << snapshot.s2.f;
 	}
-	m_lastSnap = snapshot.s2.f;
+	m_lastSnap = snapshot.s2.f;*/
 
 
-	QVector2D speed;
+	cpVect speed = cpvzero;
 
 	if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit) {
 		LOG_CINFO("game") << "ENEMYHIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
@@ -90,7 +90,7 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 		}
 
 	} else {
-		speed = entityMove(this, snapshot, RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving, m_metric.speed);
+		//speed = entityMove(this, snapshot, RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving, m_metric.speed);
 	}
 
 	updateFromSnapshot(snapshot.s1);
@@ -103,7 +103,7 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 
 	IsometricEntity::worldStep();
 
-	if (!speed.isNull())
+	if (!(speed == cpvzero))
 		overrideCurrentSpeed(speed);
 }
 
@@ -199,7 +199,7 @@ bool RpgEnemy::enemyWorldStepOnVisiblePlayer()
 		if (m_game->tickTimer()) {
 			const auto tick = m_game->tickTimer()->currentTick();
 
-			if (m_playerDistance < m_metric.sensorLength*0.2 &&
+			if (m_playerDistanceSq < POW2(m_metric.sensorLength*0.2) &&
 					(m_autoHitTimer == -1 || tick-m_autoHitTimer > AbstractGame::TickTimer::msecToTick(m_metric.autoAttackTime)))
 				m_autoHitTimer = tick;
 
@@ -258,7 +258,7 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 {
 	RpgGameData::Enemy p;
 
-	p.p = toPosList(bodyPosition());
+	p.p = toPosList(bodyPositionF());
 	p.a = desiredBodyRotation(); //currentAngle();
 	p.hp = hp();
 

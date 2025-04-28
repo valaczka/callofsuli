@@ -41,13 +41,13 @@
 class TiledReturnPathMotor : public AbstractTiledMotor
 {
 public:
-	TiledReturnPathMotor(const QPointF &basePoint);
+	TiledReturnPathMotor(const cpVect &basePoint);
 	virtual ~TiledReturnPathMotor() {}
 
 	void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) override;
-	QPointF basePoint() override;
+	cpVect basePoint() override;
 
-	void moveBody(TiledObject *body, const QVector2D &point, const float &speed);
+	void moveBody(TiledObject *body, const cpVect &point, const float &speed);
 	void finish(TiledObject *body, AbstractGame::TickTimer *timer);
 
 	QPolygonF path() const;
@@ -61,18 +61,18 @@ public:
 
 	bool isReturnReady(AbstractGame::TickTimer *timer) const;
 
-	const std::optional<QPointF> &lastSeenPoint() const;
-	void setLastSeenPoint(const QPointF &newLastSeenPoint);
+	const std::optional<cpVect> &lastSeenPoint() const;
+	void setLastSeenPoint(const cpVect &newLastSeenPoint);
 	void clearLastSeenPoint();
 
 private:
-	void addPoint(const QPointF &point, const float &angle);
+	void addPoint(const cpVect &point, const float &angle);
 
-	QPointF m_basePoint;
+	cpVect m_basePoint;
 	std::unique_ptr<TiledPathMotor> m_pathMotor;
 	bool m_isReturning = false;
 	bool m_hasReturned = false;
-	std::optional<QPointF> m_lastSeenPoint;
+	std::optional<cpVect> m_lastSeenPoint;
 	qint64 m_waitMsec = 2500;
 	qint64 m_waitEnd = 0;
 

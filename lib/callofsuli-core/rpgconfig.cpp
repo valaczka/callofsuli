@@ -53,6 +53,61 @@ const QHash<Weapon::WeaponType, int> Weapon::m_protectValue = {
 
 
 
+
+
+
+
+/**
+ * @brief SnapshotStorage::saveLastTick
+ * @param dst
+ * @param sip
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+void SnapshotStorage::saveLastTick(SnapshotData<T, T2> *dst, const SnapshotInterpolation<T> &sip)
+{
+	Q_ASSERT(dst);
+
+	qint64 last = sip.s2.f > -1 ?
+							std::max(sip.s2.f, sip.last.f) :
+							sip.last.f
+							;
+
+	if (last > dst->lastFullSnap)
+		dst->lastFullSnap = last;
+}
+
+
+
+
+
+/**
+ * @brief SnapshotStorage::addFullSnapshot
+ * @param dst
+ * @param src
+ * @param findLast
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+void SnapshotStorage::addFullSnapshot(SnapshotInterpolationList<T2, T> *dst, SnapshotList<T, T2> &src,
+											 const qint64 &currentTick, const bool &findLast)
+{
+	Q_ASSERT(dst);
+
+	for (auto &ptr : src) {
+		SnapshotInterpolation<T> sip = getSnapshotInterpolation(ptr.list, currentTick, findLast ? ptr.lastFullSnap : -1);
+		if (sip.s1.f > -1 && sip.s1.f > ptr.lastFullSnap) {
+			qWarning() << "Snapshot skipped" << ptr.data.o << ptr.data.s << ptr.data.id << "tick" << sip.s1.f << "vs" << ptr.lastFullSnap
+					   << "====" << sip.current;
+		}
+		saveLastTick(&ptr, sip);
+		dst->emplace_back(ptr.data, sip);
+	}
+}
+
+
+
+
 /**
  * @brief ArmoredEntity::attack
  * @param src
@@ -100,35 +155,27 @@ void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity
 
 
 
+
 /**
  * @brief SnapshotStorage::getFullSnapshot
  * @param tick
  * @return
  */
 
-FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick)
+FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &findLast)
 {
 	QMutexLocker locker(&m_mutex);
 
 	FullSnapshot s;
 
-	for (auto &ptr : m_players) {
-		SnapshotInterpolation<RpgGameData::Player> sip = getSnapshotInterpolation(ptr.list, tick);
-		s.players.emplace_back(ptr.data, sip);
-	}
-
-	for (auto &ptr : m_enemies) {
-		SnapshotInterpolation<RpgGameData::Enemy> sip = getSnapshotInterpolation(ptr.list, tick);
-		s.enemies.emplace_back(ptr.data, sip);
-	}
-
-	for (auto &ptr : m_bullets) {
-		SnapshotInterpolation<RpgGameData::Bullet> sip = getSnapshotInterpolation(ptr.list, tick);
-		s.bullets.emplace_back(ptr.data, sip);
-	}
+	addFullSnapshot(&s.players, m_players, tick, findLast);
+	addFullSnapshot(&s.enemies, m_enemies, tick, findLast);
+	addFullSnapshot(&s.bullets, m_bullets, tick, findLast);
 
 	return s;
 }
+
+
 
 
 
@@ -205,33 +252,6 @@ QCborMap CurrentSnapshot::toCbor() const
 
 
 
-/**
- * @brief CurrentSnapshot::toProtectedCbor
- * @return
- */
-
-QCborMap CurrentSnapshot::toProtectedCbor() const
-{
-	QCborMap map;
-
-	if (const QCborArray &a = toCborArray(players, QStringLiteral("pd"), QStringLiteral("p"),
-												   &CurrentSnapshot::removePlayerProtectedFields
-												   ); !a.isEmpty())
-		map.insert(QStringLiteral("pp"), a);
-
-	if (const QCborArray &a = toCborArray(enemies, QStringLiteral("ed"), QStringLiteral("e"),
-												   &CurrentSnapshot::removeEnemyProtectedFields
-												   ); !a.isEmpty())
-		map.insert(QStringLiteral("ee"), a);
-
-	if (const QCborArray &a = toCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b"),
-												   &CurrentSnapshot::removeBulletProtectedFields
-												   ); !a.isEmpty())
-		map.insert(QStringLiteral("bb"), a);
-
-	return map;
-}
-
 
 
 /**
@@ -249,96 +269,6 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 	r += fromCborArray(bullets, map.value(QStringLiteral("bb")).toArray(), QStringLiteral("bd"), QStringLiteral("b"), nullptr);
 
 	return r;
-}
-
-
-
-/**
- * @brief CurrentSnapshot::fromProtectedCbor
- * @param map
- * @return
- */
-
-int CurrentSnapshot::fromProtectedCbor(const QCborMap &map)
-{
-	int r = 0;
-
-	r += fromCborArray(players, map.value(QStringLiteral("pp")).toArray(),
-				  QStringLiteral("pd"), QStringLiteral("p"), &CurrentSnapshot::removePlayerProtectedFields);
-	r += fromCborArray(enemies, map.value(QStringLiteral("ee")).toArray(),
-				  QStringLiteral("ed"), QStringLiteral("e"), &CurrentSnapshot::removeEnemyProtectedFields);
-	r += fromCborArray(bullets, map.value(QStringLiteral("bb")).toArray(),
-				  QStringLiteral("bd"), QStringLiteral("b"), &CurrentSnapshot::removeBulletProtectedFields);
-	return r;
-}
-
-
-/**
- * @brief CurrentSnapshot::removeEntityProtectedFields
- * @param map
- */
-
-void CurrentSnapshot::removeEntityProtectedFields(QCborMap *map)
-{
-	Q_ASSERT(map);
-
-	map->remove(QStringLiteral("hp"));
-	map->remove(QStringLiteral("mhp"));
-}
-
-
-/**
- * @brief CurrentSnapshot::removeArmoredEntityProtectedFields
- * @param map
- */
-
-void CurrentSnapshot::removeArmoredEntityProtectedFields(QCborMap *map)
-{
-	Q_ASSERT(map);
-	removeEntityProtectedFields(map);
-
-	if (auto it = map->find(QStringLiteral("arm")); it != map->end()) {
-		QCborMap arm = it->toMap();
-		arm.remove(QStringLiteral("wl"));
-		map->insert(QStringLiteral("arm"), arm);
-	}
-}
-
-
-
-/**
- * @brief CurrentSnapshot::removeEnemyProtectedFields
- * @param map
- */
-
-void CurrentSnapshot::removeEnemyProtectedFields(QCborMap *map)
-{
-	Q_ASSERT(map);
-	removeArmoredEntityProtectedFields(map);
-}
-
-
-
-/**
- * @brief CurrentSnapshot::removePlayerProtectedFields
- * @param map
- */
-
-void CurrentSnapshot::removePlayerProtectedFields(QCborMap *map)
-{
-	Q_ASSERT(map);
-	removeArmoredEntityProtectedFields(map);
-}
-
-
-/**
- * @brief CurrentSnapshot::removeBulletProtectedFields
- * @param map
- */
-
-void CurrentSnapshot::removeBulletProtectedFields(QCborMap *map)
-{
-	Q_ASSERT(map);
 }
 
 

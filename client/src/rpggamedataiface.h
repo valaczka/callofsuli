@@ -49,26 +49,34 @@ class RpgGameDataInterface
 public:
 	RpgGameDataInterface() {}
 
-	T serialize(const qint64 tick = -1) const;
+	T serialize(const qint64 tick = -1);
+	std::optional<T> serializeCmp(const qint64 tick = -1);
 
 	virtual TiledObjectBody::ObjectId objectId() const = 0;
 	virtual T2 baseData() const;
+
+	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<T> &snapshot) = 0;
+	virtual void updateFromSnapshot(const T &snap) = 0;
+	void updateFromLastSnapshot(const T &snap);
 
 protected:
 	static QList<float> toPosList(const QVector2D &pos) { return { pos.x(), pos.y() }; }
 	static QList<float> toPosList(const QPointF &pos) { return { (float) pos.x(), (float) pos.y() }; }
 
 	virtual T serializeThis() const = 0;
-	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<T> &snapshot) = 0;
-	virtual void updateFromSnapshot(const T &snap) = 0;
 
-	void updateFromLastSnapshot(const T &snap, T *last);
+	const T &lastSnapshot() const { return m_lastSnapShot; }
+	void setLastSnapshot(const T &snap) { m_lastSnapShot = snap; }
 
 	template <typename E>
 	static QVector2D entityMove(IsometricEntity *entity,
 						   const RpgGameData::SnapshotInterpolation<T> &snapshot,
 						   const E &idle, const E &moving,
 						   const qreal &speed);
+
+private:
+	T m_lastSnapShot;
+	T m_lastSerialized;
 };
 
 
@@ -81,15 +89,43 @@ protected:
  */
 
 template<typename T, typename T2, typename T3, typename T4>
-inline T RpgGameDataInterface<T, T2, T3, T4>::serialize(const qint64 tick) const
+inline T RpgGameDataInterface<T, T2, T3, T4>::serialize(const qint64 tick)
 {
-	if (tick >= 0) {
-		T p = serializeThis();
-		p.f = tick;
-		return p;
-	} else {
-		return serializeThis();
+	m_lastSerialized = serializeThis();
+
+	if (tick >= 0)
+		m_lastSerialized.f = tick;
+
+	return m_lastSerialized;
+}
+
+
+
+/**
+ * @brief RpgGameDataInterface::serializeCmp
+ * @param tick
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline std::optional<T> RpgGameDataInterface<T, T2, T3, T4>::serializeCmp(const qint64 tick)
+{
+	T p = serializeThis();
+
+	if (m_lastSerialized.f != -1) {
+		const qint64 f = p.f;
+		p.f = m_lastSerialized.f;
+		if (p == m_lastSerialized)
+			return std::nullopt;
+		p.f = f;
 	}
+
+	m_lastSerialized = p;
+
+	if (tick >= 0)
+		m_lastSerialized.f = tick;
+
+	return m_lastSerialized;
 }
 
 
@@ -120,16 +156,14 @@ inline T2 RpgGameDataInterface<T, T2, T3, T4>::baseData() const
  */
 
 template<typename T, typename T2, typename T3, typename T4>
-inline void RpgGameDataInterface<T, T2, T3, T4>::updateFromLastSnapshot(const T &snap, T *last)
+inline void RpgGameDataInterface<T, T2, T3, T4>::updateFromLastSnapshot(const T &snap)
 {
-	Q_ASSERT(last);
-
-	if (last->f >= 0) {
-		if (snap.f < last->f)
-			updateFromSnapshot(*last);
+	if (m_lastSnapShot.f >= 0) {
+		if (snap.f < m_lastSnapShot.f)
+			updateFromSnapshot(m_lastSnapShot);
 		else {
 			updateFromSnapshot(snap);
-			last = {};
+			m_lastSnapShot.f = -1;
 		}
 	} else {
 		updateFromSnapshot(snap);

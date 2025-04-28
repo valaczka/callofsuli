@@ -57,6 +57,6 @@ void RpgBroadsword::eventAttack(TiledObject *target)
 
 	if (TiledGame *g = p->game()) {
 		g->playSfx(target ? QStringLiteral(":/rpg/broadsword/broadsword2.mp3") : QStringLiteral(":/rpg/broadsword/broadsword1.mp3"),
-				   p->scene(), p->bodyPosition());
+				   p->scene(), p->bodyPositionF());
 	}
 }

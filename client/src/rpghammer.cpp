@@ -52,7 +52,7 @@ void RpgHammer::eventAttack(TiledObject *target)
 
 	if (TiledGame *g = p->game()) {
 		g->playSfx(target ? QStringLiteral(":/rpg/hammer/hammer2.mp3") : QStringLiteral(":/rpg/hammer/hammer1.mp3"),
-				   p->scene(), p->bodyPosition());
+				   p->scene(), p->bodyPositionF());
 	}
 }
 

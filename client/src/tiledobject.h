@@ -56,13 +56,16 @@ Q_DECLARE_OPAQUE_POINTER(TiledScene*)
 #endif
 
 
+
+#define POW2(x)	(x)*(x)
+
 /**
  * @brief The RayCastInfoItem class
  */
 
 struct RayCastInfoItem {
 	cpShape *shape = nullptr;
-	QVector2D point;
+	cpVect point;
 	bool visible = false;
 	bool walkable = false;
 };
@@ -166,12 +169,18 @@ public:
 
 	TiledGame *game() const;
 
+	static QPointF toPointF(const cpVect &vect);
+	static QVector2D toVector2D(const cpVect &vect);
+	static cpVect toVect(const QPointF &point);
+	static cpVect toVect(const QVector2D &point);
+
 	cpSpace *space() const;
 	TiledScene *scene() const;
 	cpBody *body() const;
-	QPointF bodyPosition() const;
+	cpVect bodyPosition() const;
+	QPointF bodyPositionF() const { return toPointF(bodyPosition()); }
 	QRectF bodyAABB() const;
-	float currentSpeed() const;
+	float currentSpeedSq() const;
 
 	cpShapeFilter filterGet() const;
 	void filterSet(const FixtureCategories &categories);
@@ -187,17 +196,16 @@ public:
 	cpShape *virtualCircle() const;
 	cpShape *targetCircle() const;
 
-	void emplace(const QVector2D &center);
-	void emplace(const QPointF &center) { emplace(QVector2D(center)); }
-	void emplace(const qreal &centerX, const qreal &centerY) { emplace(QVector2D(centerX, centerY)); }
+	void emplace(const cpVect &center);
+	void emplace(const QPointF &center) { emplace(toVect(center)); }
+	void emplace(const qreal &centerX, const qreal &centerY) { emplace(cpv(centerX, centerY)); }
 
-	void setSpeed(const QVector2D &point);
-	void setSpeed(const QPointF &point);
-	void setSpeed(const float &x, const float &y);
+	void setSpeed(const cpVect &point);
+	void setSpeed(const float &x, const float &y) { setSpeed(cpv(x, y)); }
 	void setSpeedFromAngle(const float &angle, const float &radius);
 	void stop();
 
-	static QVector2D vectorFromAngle(const float &angle, const float &radius);
+	static cpVect vectorFromAngle(const float &angle, const float &radius) { return cpvmult(cpvforangle(angle), radius); }
 
 	float bodyRotation() const;
 	float desiredBodyRotation() const;
@@ -222,7 +230,7 @@ public:
 	void removeVirtualCircle();
 	void addTargetCircle(const float &length);
 
-	RayCastInfo rayCast(const QPointF &dest,
+	RayCastInfo rayCast(const cpVect &dest,
 						const TiledObjectBody::FixtureCategories &categories = FixtureAll,
 						const float &radius = 7.) const;
 
@@ -231,11 +239,13 @@ public:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other) }
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other) }
 
-	void rotateToPoint(const QPointF &point, const bool &forced = false);
-	float angleToPoint(const QVector2D &point) const;
-	float angleToPoint(const QPointF &point) const { return angleToPoint(QVector2D(point)); }
-	float distanceToPoint(const QPointF &point) const;
-	float distanceToPoint(const QVector2D &point) const;
+	void rotateToPoint(const cpVect &point, const bool &forced = false);
+
+	float angleToPoint(const cpVect &point) const;
+
+	float distanceToPointSq(const cpVect &point) const;
+	float distanceToPointSq(const QPointF &point) const { return distanceToPointSq(toVect(point)); }
+	float distanceToPointSq(const QVector2D &point) const { return distanceToPointSq(toVect(point)); }
 
 	QQuickItem *visualItem() const;
 	void setVisualItem(QQuickItem *newVisualItem);
@@ -244,7 +254,7 @@ protected:
 	virtual void synchronize() {}
 
 	virtual void onSpaceChanged();
-	void overrideCurrentSpeed(const QVector2D &speed);
+	void overrideCurrentSpeed(const cpVect &speed);
 
 	void setSpace(cpSpace *space);
 
@@ -404,35 +414,25 @@ public:
 
 	static QPolygonF toPolygon(const Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 
-	static float shortestDistance(const QVector2D &point, const QVector2D &lineP1, const QVector2D &lineP2,
-								  QVector2D *destPoint = nullptr, float *factor = nullptr);
-	static float shortestDistance(const QVector2D &point, const QPointF &lineP1, const QPointF &lineP2,
-								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
-		return shortestDistance(point, QVector2D(lineP1), QVector2D(lineP2), destPoint, factor);
+	static float shortestDistance(const cpVect &point, const cpVect &lineP1, const cpVect &lineP2,
+								  cpVect *destPoint = nullptr, float *factor = nullptr);
+	static float shortestDistance(const cpVect &point, const QPointF &lineP1, const QPointF &lineP2,
+								  cpVect *destPoint = nullptr, float *factor = nullptr)
+	{
+		return shortestDistance(point, toVect(lineP1), toVect(lineP2), destPoint, factor);
 	}
-	static float shortestDistance(const QVector2D &point, const QLineF &line,
-								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
+	static float shortestDistance(const cpVect &point, const QLineF &line,
+								  cpVect *destPoint = nullptr, float *factor = nullptr)
+	{
 		return shortestDistance(point, line.p1(), line.p2(), destPoint, factor);
 	}
-	static float shortestDistance(const QPointF &point, const QPointF &lineP1, const QPointF &lineP2,
-								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
-		return shortestDistance(QVector2D(point), QVector2D(lineP1), QVector2D(lineP2), destPoint, factor);
-	}
-	static float shortestDistance(const QPointF &point, const QLineF &line,
-								  QVector2D *destPoint = nullptr, float *factor = nullptr) {
-		return shortestDistance(QVector2D(point), line, destPoint, factor);
-	}
-
-	static float normalizeFromRadian(const float &radian);
-	static float normalizeToRadian(const float &normal);
 
 	void setBodyOffset(QPointF newBodyOffset);
 	void setBodyOffset(const qreal &x, const qreal &y) { setBodyOffset(QPointF(x, y)); }
 	QPointF bodyOffset() const;
 
-	bool moveTowards(const QVector2D &point, const float &speed);
-	bool moveTowards(const QVector2D &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove);
-	void moveTowards(const QVector2D &point);
+	bool moveTowards(const cpVect &point, const float &speed);
+	bool moveTowards(const cpVect &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove);
 
 	bool glowEnabled() const;
 	void setGlowEnabled(bool newGlowEnabled);
@@ -535,6 +535,54 @@ private:
 
 
 
+
+
+/**
+ * @brief TiledObjectBody::toPointF
+ * @param vect
+ * @return
+ */
+
+inline QPointF TiledObjectBody::toPointF(const cpVect &vect)
+{
+	return QPointF{vect.x, vect.y};
+}
+
+
+/**
+ * @brief TiledObjectBody::toVector2D
+ * @param vect
+ * @return
+ */
+
+inline QVector2D TiledObjectBody::toVector2D(const cpVect &vect)
+{
+	return QVector2D(vect.x, vect.y);
+}
+
+
+/**
+ * @brief TiledObjectBody::toVect
+ * @param point
+ * @return
+ */
+
+inline cpVect TiledObjectBody::toVect(const QPointF &point)
+{
+	return cpv(point.x(), point.y());
+}
+
+
+/**
+ * @brief TiledObjectBody::toVect
+ * @param point
+ * @return
+ */
+
+inline cpVect TiledObjectBody::toVect(const QVector2D &point)
+{
+	return cpv(point.x(), point.y());
+}
 
 
 

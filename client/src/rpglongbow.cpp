@@ -55,7 +55,7 @@ void RpgLongbow::eventAttack(TiledObject *)
 	TiledObject *p = m_parentObject.data();
 
 	if (TiledGame *g = p->game()) {
-		g->playSfx(QStringLiteral(":/rpg/longbow/fireball.mp3"), p->scene(), p->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/longbow/fireball.mp3"), p->scene(), p->bodyPositionF());
 	}
 }
 

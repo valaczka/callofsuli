@@ -28,7 +28,7 @@
 #include "tiledscene.h"
 #include "tiledgame.h"
 
-TiledReturnPathMotor::TiledReturnPathMotor(const QPointF &basePoint)
+TiledReturnPathMotor::TiledReturnPathMotor(const cpVect &basePoint)
 	: AbstractTiledMotor(ReturnPathMotor)
 	, m_basePoint(basePoint)
 {
@@ -74,7 +74,7 @@ void TiledReturnPathMotor::updateBody(TiledObject *object, const float &speed, A
  * @return
  */
 
-QPointF TiledReturnPathMotor::basePoint()
+cpVect TiledReturnPathMotor::basePoint()
 {
 	return m_basePoint;
 }
@@ -92,7 +92,7 @@ QPointF TiledReturnPathMotor::basePoint()
  * @param radius
  */
 
-void TiledReturnPathMotor::moveBody(TiledObject *body, const QVector2D &point, const float &speed)
+void TiledReturnPathMotor::moveBody(TiledObject *body, const cpVect &point, const float &speed)
 {
 	Q_ASSERT(body);
 
@@ -154,9 +154,9 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 	const auto &ptr = g->findShortestPath(body, m_basePoint);
 
 	if (!ptr) {
-		LOG_CTRACE("scene") << "No path from" << body->bodyPosition() << "to" << m_basePoint;
+		LOG_CTRACE("scene") << "No path from" << body->bodyPositionF() << "to" << m_basePoint.x << m_basePoint.y;
 
-		const QPointF &currentPoint = body->bodyPosition();
+		const QPointF &currentPoint = body->bodyPositionF();
 
 		if (!m_path.isEmpty()) {
 			if (m_path.size() < 2 || QVector2D(m_path.last()).distanceToPoint(QVector2D(currentPoint)) >= 15.)
@@ -167,8 +167,8 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 
 			std::reverse_copy(m_path.cbegin(), m_path.cend(), std::back_inserter(rpath));
 
-			if (rpath.last() != m_basePoint)
-				rpath << m_basePoint;
+			if (!(TiledObject::toVect(rpath.last()) == m_basePoint))
+				rpath << TiledObject::toPointF(m_basePoint);
 
 			m_pathMotor->setPolygon(rpath);
 		} else {
@@ -177,7 +177,7 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 
 	} else if (ptr.value().size() < 2) {
 		QPolygonF p;
-		p << body->bodyPosition() << ptr.value();
+		p << body->bodyPositionF() << ptr.value();
 		m_pathMotor->setPolygon(p);
 	} else {
 		m_pathMotor->setPolygon(ptr.value());
@@ -216,18 +216,18 @@ QPolygonF TiledReturnPathMotor::path() const
  * @param angle
  */
 
-void TiledReturnPathMotor::addPoint(const QPointF &point, const float &angle)
+void TiledReturnPathMotor::addPoint(const cpVect &point, const float &angle)
 {
 	if (m_path.size() > 1 && m_lastAngle == angle)
 		return;
 
-	if (m_path.size() > 1 && QVector2D(point).distanceToPoint(QVector2D(m_path.last())) < 50.)
+	if (m_path.size() > 1 && cpvlengthsq(cpvsub(TiledObject::toVect(m_path.last()), point)) < POW2(50.) )
 		return;
 
 	// Check intersections
 
 	if (m_path.size() > 1) {
-		QLineF line(m_path.last(), point);
+		QLineF line(m_path.last(), TiledObject::toPointF(point));
 
 		auto prev = m_path.begin();
 		for (auto it = m_path.begin(); it != m_path.end(); ++it) {
@@ -250,7 +250,7 @@ void TiledReturnPathMotor::addPoint(const QPointF &point, const float &angle)
 		}
 	}
 
-	m_path << point;
+	m_path << TiledObject::toPointF(point);
 	m_lastAngle = angle;
 }
 
@@ -306,12 +306,12 @@ bool TiledReturnPathMotor::isReturnReady(AbstractGame::TickTimer *timer) const
  * @return
  */
 
-const std::optional<QPointF> &TiledReturnPathMotor::lastSeenPoint() const
+const std::optional<cpVect> &TiledReturnPathMotor::lastSeenPoint() const
 {
 	return m_lastSeenPoint;
 }
 
-void TiledReturnPathMotor::setLastSeenPoint(const QPointF &newLastSeenPoint)
+void TiledReturnPathMotor::setLastSeenPoint(const cpVect &newLastSeenPoint)
 {
 	m_lastSeenPoint = newLastSeenPoint;
 }

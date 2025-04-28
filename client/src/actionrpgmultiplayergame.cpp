@@ -52,6 +52,70 @@ private:
 	qint64 m_lastSentTick = -1;
 	ClientStorage m_toSend;
 
+	class TimeSync {
+	public:
+		TimeSync() = default;
+
+		void set(const qint64 &tick) {
+#ifndef Q_OS_WASM
+			QMutexLocker locker(&m_mutex);
+#endif
+			m_tick = tick;
+			if (m_timestamp.isValid())
+				m_timestamp.restart();
+			else
+				m_timestamp.start();
+		}
+
+
+		qint64 get() {
+#ifndef Q_OS_WASM
+			QMutexLocker locker(&m_mutex);
+#endif
+			return m_tick + AbstractGame::TickTimer::msecToTick(m_timestamp.elapsed());
+		}
+
+
+		void addLatency(const qint64 &latency) {
+#ifndef Q_OS_WASM
+			QMutexLocker locker(&m_mutex);
+#endif
+			m_latencies.append(latency);
+
+			const int &s = m_latencies.size();
+
+			if (s > 2*m_latencySize) {
+				m_latencies.erase(m_latencies.cbegin(), m_latencies.cbegin()+(s-(2*m_latencySize)));
+			}
+		}
+
+
+		qint64 getLatency() {
+#ifndef Q_OS_WASM
+			QMutexLocker locker(&m_mutex);
+#endif
+			if (m_latencies.size() < m_latencySize)
+				return 0;
+
+			const qint64 &sum = std::accumulate(m_latencies.cbegin(), m_latencies.cend(), 0);
+
+			return sum/m_latencies.size();
+		}
+
+	private:
+		QElapsedTimer m_timestamp;
+		qint64 m_tick = 0;
+		QList<qint64> m_latencies;
+		inline static const qint64 m_latencySize = 6;
+
+#ifndef Q_OS_WASM
+		QRecursiveMutex m_mutex;
+#endif
+
+	};
+
+	TimeSync m_timeSync;
+
 	ActionRpgMultiplayerGame *const d;
 
 	friend class ActionRpgMultiplayerGame;
@@ -801,6 +865,29 @@ void ActionRpgMultiplayerGame::onTimeStepped()
 {
 	QMutexLocker locker (&m_engine->m_mutex);
 
+	static const qint64 delta = 2;
+
+	const qint64 tick = q->m_timeSync.get();
+	if (const qint64 latency = q->m_timeSync.getLatency(); latency > 0 && latency != m_rpgGame->tickTimer()->latency()) {
+		LOG_CINFO("game") << "Time set latency" << latency;
+		m_rpgGame->tickTimer()->setLatency(latency);
+	}
+
+	const qint64 curr = m_rpgGame->tickTimer()->currentTick();
+	const qint64 diff = tick-curr;
+
+	if (diff > 2*delta || diff < -2*delta) {
+		LOG_CERROR("game") << "Time reset" << curr << "->" << tick;
+		m_rpgGame->tickTimer()->start(this, tick);
+	} else if (diff > delta) {
+		LOG_CWARNING("game") << "Time skew +1 frame" << curr << "->" << tick;
+		m_rpgGame->tickTimer()->start(this, curr+1);
+	} else if (diff < -delta) {
+		LOG_CERROR("game") << "Time skew -1 frame" << curr << "->" << tick;
+		m_rpgGame->tickTimer()->start(this, curr-1);
+	}
+
+
 	m_rpgGame->iterateOverBodies([this](TiledObjectBody *b){
 		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b)) {
 			if (iface->stage() == RpgGameData::LifeCycle::StageDestroy) {
@@ -822,7 +909,7 @@ void ActionRpgMultiplayerGame::onTimeBeforeWorldStep(const qint64 &tick)
 {
 	Q_ASSERT(q);
 
-	q->m_currentSnapshot = m_engine->m_snapshots.getFullSnapshot(tick);
+	q->m_currentSnapshot = m_engine->m_snapshots.getNextFullSnapshot(tick);
 }
 
 
@@ -847,40 +934,39 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 	if (m_config.gameState != RpgConfig::StatePlay)
 		return;
 
-	const bool forceKeyFrame = q->m_lastSentTick < 0 || (tick - q->m_lastSentTick >= 2) || q->m_toSend.hasSnapshot();
+	const bool forceKeyFrame = q->m_lastSentTick < 0 || (tick - q->m_lastSentTick >= 15);
 
-	if (!forceKeyFrame)
-		return;
-
-	m_rpgGame->iterateOverBodies([this, &tick](TiledObjectBody *b){
+	m_rpgGame->iterateOverBodies([this, &tick, forceKeyFrame](TiledObjectBody *b) {
 		if (RpgPlayer *iface = dynamic_cast<RpgPlayer*> (b)) {
 			if (m_rpgGame->controlledPlayer() == iface) {
-				q->m_toSend.appendSnapshot(iface->baseData(), iface->serialize(tick));
+				q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame);
 			}
-		} else if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b);
+		} /*else if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b);
 				   iface && b->objectId().ownerId == m_playerId &&
 				   iface->stage() != RpgGameData::LifeCycle::StageDestroy) {
-			q->m_toSend.appendSnapshot(iface->baseData(), iface->serialize(tick));
-		}
+			q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame);
+		}*/
 	});
 
 
 	if (m_gameMode == MultiPlayerHost) {
-		m_rpgGame->iterateOverBodies([this, &tick](TiledObjectBody *b){
+		m_rpgGame->iterateOverBodies([this, &tick, forceKeyFrame](TiledObjectBody *b){
 			RpgEnemy *iface = dynamic_cast<RpgEnemy*> (b);
 			if (iface) {
-				q->m_toSend.appendSnapshot(iface->baseData(), iface->serialize(tick));
+				q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame);
 			}
 		});
 	}
 
 
+	if (!q->m_toSend.hasSnapshot())
+		return;
 
 
 	RpgGameData::CurrentSnapshot snapshot = q->m_toSend.renderCurrentSnapshot();
 
 	if (QCborMap map = snapshot.toCbor(); !map.isEmpty()) {
-
+/*
 
 #ifdef WITH_FTXUI
 		if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
@@ -937,7 +1023,7 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 
 		}
 #endif
-
+*/
 
 
 		sendData(map.toCborValue().toCbor(), true);
@@ -1054,7 +1140,7 @@ bool ActionRpgMultiplayerGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, R
 	p.arm.cw = weapon->weaponType();
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
-	player->m_lastSnapshot = p;
+	player->setLastSnapshot(p);
 
 	return true;
 }
@@ -1092,7 +1178,7 @@ bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon
 	p.arm.cw = weapon->weaponType();
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
-	player->m_lastSnapshot = p;
+	player->setLastSnapshot(p);
 
 	return true;
 }
@@ -1125,9 +1211,10 @@ void ActionRpgMultiplayerGame::onPlayerWeaponChanged()
 	LOG_CWARNING("game") << "SERIALIZE" << player << "WEAPON CHANGE" << m_rpgGame->tickTimer()->currentTick();
 
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
+	p.st = RpgGameData::Player::PlayerWeaponChange;
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
-	player->m_lastSnapshot = p;
+	player->setLastSnapshot(p);
 
 }
 
@@ -1163,7 +1250,7 @@ bool ActionRpgMultiplayerGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, Rp
 	e.st = RpgGameData::Enemy::EnemyHit;
 
 	q->m_toSend.appendSnapshot(enemy->baseData(), e);
-	enemy->m_lastSnapshot = e;
+	enemy->setLastSnapshot(e);
 
 	return true;
 }
@@ -1239,7 +1326,7 @@ bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody
 		return false;
 
 	RpgGameData::Bullet p = bullet->serialize(m_rpgGame->tickTimer()->currentTick());
-	bullet->m_lastSnapshot = p;
+	bullet->setLastSnapshot(p);
 
 	return true;
 }
@@ -1400,17 +1487,18 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 
 void ActionRpgMultiplayerGame::setTickTimer(const qint64 &tick)
 {
-	if (m_rpgGame) {
-		const qint64 curr = m_rpgGame->tickTimer()->currentTick();
-		const qint64 diff = curr - tick;
-		if (diff < -2*RPG_UDP_DELTA_TICK) {
-			LOG_CWARNING("game") << "Tick timer difference error" << curr << tick << m_rpgGame->tickTimer()->startTick();
-			m_rpgGame->tickTimer()->start(this, tick);
-		} else if (diff > RPG_UDP_DELTA_TICK * 0.5) {
-			LOG_CERROR("game") << "Tick timer difference error" << curr << tick << m_rpgGame->tickTimer()->startTick();
-			m_rpgGame->tickTimer()->start(this, tick);
-		}
-	}
+	q->m_timeSync.set(tick);
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::addLatency
+ * @param latency
+ */
+
+void ActionRpgMultiplayerGame::addLatency(const qint64 &latency)
+{
+	q->m_timeSync.addLatency(latency);
 }
 
 

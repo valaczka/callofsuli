@@ -217,7 +217,7 @@ void TiledGameSfx::onTimeout()
 
 
 	if (m_followPosition)
-		m_tiledObject->game()->playSfx(s, scene, m_tiledObject->bodyPosition(), m_volume);
+		m_tiledObject->game()->playSfx(s, scene, m_tiledObject->bodyPositionF(), m_volume);
 	else
 		m_tiledObject->game()->playSfx(s, scene, m_volume);
 
@@ -361,7 +361,7 @@ void TiledGameSfxLocation::updateSound()
 		return;
 	}
 
-	const qreal vol = TiledGame::getSfxVolume(m_object->scene(), m_object->bodyPosition(), m_baseVolume, m_object->game()->baseScale()).value_or(0.);
+	const qreal vol = TiledGame::getSfxVolume(m_object->scene(), m_object->bodyPositionF(), m_baseVolume, m_object->game()->baseScale()).value_or(0.);
 
 	if (qFuzzyCompare(vol, m_lastVolume))
 		return;
@@ -420,7 +420,7 @@ void TiledGameSfxLocation::checkPosition()
 	if (!m_connectedScene || !m_object)
 		return;
 
-	const QPointF &p = m_object->bodyPosition();
+	const QPointF &p = m_object->bodyPositionF();
 
 	if (p != m_lastPoint) {
 		m_lastPoint = p;

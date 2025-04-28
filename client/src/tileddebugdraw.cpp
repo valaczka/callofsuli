@@ -94,7 +94,7 @@ QSGNode *TiledDebugDraw::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 	node = new QSGNode;
 	node->setFlag(QSGNode::OwnedByParent);
 
-	const bool isActive = m_scene && /*m_scene() &&*/ isVisible() && opacity() > 0.f;
+	const bool isActive = m_scene && isVisible() && opacity() > 0.f;
 
 	if (!isActive)
 		return node;

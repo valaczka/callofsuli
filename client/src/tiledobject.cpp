@@ -202,12 +202,12 @@ QPolygonF TiledObject::toPolygon(const Tiled::MapObject *object, Tiled::MapRende
  * @return
  */
 
-float TiledObject::shortestDistance(const QVector2D &point, const QVector2D &lineP1, const QVector2D &lineP2, QVector2D *destPoint, float *factor)
+float TiledObject::shortestDistance(const cpVect &point, const cpVect &lineP1, const cpVect &lineP2, cpVect *destPoint, float *factor)
 {
-	const float A = point.x() - lineP1.x();
-	const float B = point.y() - lineP1.y();
-	const float C = lineP2.x() - lineP1.x();
-	const float D = lineP2.y() - lineP1.y();
+	const float A = point.x - lineP1.x;
+	const float B = point.y - lineP1.y;
+	const float C = lineP2.x - lineP1.x;
+	const float D = lineP2.y - lineP1.y;
 
 	const float dot = A * C + B * D;
 	const float len_sq = C * C + D * D;
@@ -219,24 +219,24 @@ float TiledObject::shortestDistance(const QVector2D &point, const QVector2D &lin
 	float xx, yy;
 
 	if (param < 0) {
-		xx = lineP1.x();
-		yy = lineP1.y();
+		xx = lineP1.x;
+		yy = lineP1.y;
 	}
 	else if (param > 1) {
-		xx = lineP2.x();
-		yy = lineP2.y();
+		xx = lineP2.x;
+		yy = lineP2.y;
 	}
 	else {
-		xx = lineP1.x() + param * C;
-		yy = lineP1.y() + param * D;
+		xx = lineP1.x + param * C;
+		yy = lineP1.y + param * D;
 	}
 
-	const float dx = point.x() - xx;
-	const float dy = point.y() - yy;
+	const float dx = point.x - xx;
+	const float dy = point.y - yy;
 
 	if (destPoint) {
-		destPoint->setX(xx);
-		destPoint->setY(yy);
+		destPoint->x = xx;
+		destPoint->y = yy;
 	}
 
 	if (factor)
@@ -256,7 +256,7 @@ float TiledObject::shortestDistance(const QVector2D &point, const QVector2D &lin
  * @return
  */
 
-float TiledObject::normalizeFromRadian(const float &radian)
+float TiledObjectBodyPrivate::normalizeFromRadian(const float &radian)
 {
 	if (radian < -M_PI || radian > M_PI) {
 		LOG_CTRACE("scene") << "Invalid radian:" << radian;
@@ -276,7 +276,7 @@ float TiledObject::normalizeFromRadian(const float &radian)
  * @return
  */
 
-float TiledObject::normalizeToRadian(const float &normal)
+float TiledObjectBodyPrivate::normalizeToRadian(const float &normal)
 {
 	if (normal < 0 || normal > 2*M_PI) {
 		LOG_CTRACE("scene") << "Invalid normalized radian:" << normal;
@@ -318,7 +318,7 @@ void TiledObject::synchronize()
 	if (!body() || !m_visualItem)
 		return;
 
-	const QPointF &pos = bodyPosition();
+	const QPointF &pos = bodyPositionF();
 
 	QPointF offset(m_visualItem->width()/2, m_visualItem->height()/2);
 	offset += m_bodyOffset;
@@ -362,14 +362,14 @@ void TiledObject::onSpaceChanged()
  * @return
  */
 
-bool TiledObject::moveTowards(const QVector2D &point, const float &speed)
+bool TiledObject::moveTowards(const cpVect &point, const float &speed)
 {
-	const float dist = distanceToPoint(point);
+	const float dist = distanceToPointSq(point);
 	const float angle = angleToPoint(point);
 
 	setCurrentAngle(angle);
 
-	if (dist > 2 * speed/60.)
+	if (dist > POW2(2 * speed/60.))
 		setSpeedFromAngle(angle, speed);
 	else
 		return false;
@@ -388,43 +388,21 @@ bool TiledObject::moveTowards(const QVector2D &point, const float &speed)
  * @return
  */
 
-bool TiledObject::moveTowards(const QVector2D &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove)
+bool TiledObject::moveTowards(const cpVect &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove)
 {
-	const float dist = distanceToPoint(point);
+	const float dist = distanceToPointSq(point);
 	const float angle = angleToPoint(point);
 
 	setCurrentAngle(angle);
 
-	if (dist > destinationLimit)
+	if (dist > POW2(destinationLimit))
 		setSpeedFromAngle(angle, speedAbove);
-	else if (dist > 2 * speedBelow/60.)
+	else if (dist > POW2(2 * speedBelow/60.))
 		setSpeedFromAngle(angle, speedBelow);
 	else
 		return false;
 
 	return true;
-}
-
-
-/**
- * @brief TiledObject::moveTowards
- * @param point
- * @return
- */
-
-void TiledObject::moveTowards(const QVector2D &point)
-{
-	if (!body()) {
-		LOG_CERROR("scene") << "Missing body" << this;
-		return;
-	}
-
-	setCurrentAngle(angleToPoint(point));
-
-	const auto &pos = bodyPosition();
-
-	setSpeed(point.x() - pos.x(),
-			 point.y() - pos.y());
 }
 
 
@@ -462,14 +440,15 @@ TiledGame *TiledObjectBody::game() const
 
 
 
+
 /**
  * @brief TiledObjectBody::overrideCurrentSpeed
  * @param speed
  */
 
-void TiledObjectBody::overrideCurrentSpeed(const QVector2D &speed)
+void TiledObjectBody::overrideCurrentSpeed(const cpVect &speed)
 {
-	d->m_currentSpeed = speed.length()/60.;
+	d->m_currentSpeedSq = cpvlengthsq(speed)/POW2(60.);
 }
 
 
@@ -610,7 +589,7 @@ void TiledObjectBody::drawTargetCircle(TiledDebugDraw *draw, const QColor &color
 
 void TiledObjectBody::drawCenter(TiledDebugDraw *draw, const QColor &colorX, const QColor &colorY, const qreal &lineWidth) const
 {
-	const cpVect center{ .x = bodyPosition().x(), .y = bodyPosition().y() };
+	const cpVect center{ .x = bodyPositionF().x(), .y = bodyPositionF().y() };
 	float angle = bodyRotation();
 
 	static const float radius = 10.;
@@ -943,15 +922,11 @@ QQuickItem *TiledObject::createMarkerItem(const QString &qrc)
  * @param distancePtr
  */
 
-void TiledObjectBody::rotateToPoint(const QPointF &point, const bool &forced)
+void TiledObjectBody::rotateToPoint(const cpVect &point, const bool &forced)
 {
 	CHECK_BODY();
 
 	rotateBody(angleToPoint(point), forced);
-
-	/*d->m_bodyRef.SetTransform(d->m_bodyRef.GetPosition(), b2MakeRot(radian));
-	d->m_bodyRef.SetAwake(true);
-	d->m_rotateAnimation.running = false;*/
 }
 
 
@@ -962,42 +937,27 @@ void TiledObjectBody::rotateToPoint(const QPointF &point, const bool &forced)
  * @return
  */
 
-float TiledObjectBody::angleToPoint(const QVector2D &point) const
+float TiledObjectBody::angleToPoint(const cpVect &point) const
 {
 	CHECK_BODY_X(0.);
-
-	const QVector2D p = point - QVector2D(bodyPosition());
-	return atan2(p.y(), p.x());
+	return cpvtoangle(cpvsub(point, cpBodyGetPosition(d->m_bodyRef)));
 }
 
 
 /**
- * @brief TiledObject::distanceToPoint
+ * @brief TiledObjectBody::distanceToPointSq
  * @param point
  * @return
  */
 
-float TiledObjectBody::distanceToPoint(const QPointF &point) const
+float TiledObjectBody::distanceToPointSq(const cpVect &point) const
 {
-	CHECK_BODY_X(-1.);
-
-	return QVector2D(bodyPosition()).distanceToPoint(QVector2D(point));
+	CHECK_BODY_X(0.);
+	return cpvlengthsq(cpvsub(point, cpBodyGetPosition(d->m_bodyRef)));
 }
 
 
 
-/**
- * @brief TiledObjectBody::distanceToPoint
- * @param point
- * @return
- */
-
-float TiledObjectBody::distanceToPoint(const QVector2D &point) const
-{
-	CHECK_BODY_X(-1.);
-
-	return QVector2D(bodyPosition()).distanceToPoint(point);
-}
 
 
 const TiledObjectBody::ObjectId &TiledObjectBody::objectId() const
@@ -1049,6 +1009,18 @@ TiledScene *TiledObjectBody::scene() const
 cpBody *TiledObjectBody::body() const
 {
 	return d->m_bodyRef;
+}
+
+
+/**
+ * @brief TiledObjectBody::bodyPosition
+ * @return
+ */
+
+cpVect TiledObjectBody::bodyPosition() const
+{
+	CHECK_BODY_X(cpvzero);
+	return cpBodyGetPosition(d->m_bodyRef);
 }
 
 
@@ -1316,21 +1288,6 @@ TiledObjectBody::~TiledObjectBody()
 
 
 
-/**
- * @brief TiledObjectBody::bodyPosition
- * @return
- */
-
-QPointF TiledObjectBody::bodyPosition() const
-{
-	CHECK_BODY_X({});
-
-
-	const cpVect pos = cpBodyGetPosition(d->m_bodyRef);
-	return QPointF{pos.x, pos.y};
-}
-
-
 
 /**
  * @brief TiledObjectBody::bodyAABB
@@ -1364,13 +1321,13 @@ QRectF TiledObjectBody::bodyAABB() const
 
 
 /**
- * @brief TiledObjectBody::currentSpeed
+ * @brief TiledObjectBody::currentSpeedSq
  * @return
  */
 
-float TiledObjectBody::currentSpeed() const
+float TiledObjectBody::currentSpeedSq() const
 {
-	return d->m_currentSpeed;
+	return d->m_currentSpeedSq;
 }
 
 
@@ -1508,17 +1465,17 @@ cpShape *TiledObjectBody::targetCircle() const
  * @param centerY
  */
 
-void TiledObjectBody::emplace(const QVector2D &center)
+void TiledObjectBody::emplace(const cpVect &center)
 {
 	CHECK_LOCK();
 
 	d->setVelocity(cpvzero);
-	cpBodySetPosition(d->m_bodyRef, { center.x(), center.y() });
+	cpBodySetPosition(d->m_bodyRef, center);
 
 	d->m_lastPosition.clear();
 	d->m_lastPosition.push_back(center);
 
-	d->m_currentSpeed = 0.;
+	d->m_currentSpeedSq = 0.;
 }
 
 
@@ -1527,43 +1484,15 @@ void TiledObjectBody::emplace(const QVector2D &center)
  * @param point
  */
 
-void TiledObjectBody::setSpeed(const QVector2D &point)
-{
-	setSpeed(point.x(), point.y());
-}
-
-
-/**
- * @brief TiledObjectBody::setSpeed
- * @param point
- */
-
-void TiledObjectBody::setSpeed(const QPointF &point)
-{
-	setSpeed(point.x(), point.y());
-}
-
-
-
-/**
- * @brief TiledObjectBody::setSpeed
- * @param x
- * @param y
- */
-
-void TiledObjectBody::setSpeed(const float &x, const float &y)
+void TiledObjectBody::setSpeed(const cpVect &point)
 {
 	CHECK_LOCK();
-
-	if (isnan(x) || isnan(y) ||
-			isinf(x) || isinf(y)) {
-		LOG_CERROR("scene") << "Invalid speed" << this << x << y;
-		d->setVelocity(cpvzero);
-		return;
-	}
-
-	d->setVelocity({x, y});
+	d->setVelocity(point);
 }
+
+
+
+
 
 
 /**
@@ -1576,20 +1505,12 @@ void TiledObjectBody::setSpeedFromAngle(const float &angle, const float &radius)
 {
 	CHECK_LOCK();
 
-	float x = radius * cos(angle);
-	float y = radius * sin(angle);
-
-	if (isnan(x) || isnan(y) ||
-			isinf(x) || isinf(y)) {
-		LOG_CERROR("scene") << "Invalid speed" << this << x << y << angle << radius;
-		d->setVelocity(cpvzero);
+	if (radius <= 0) {
 		return;
+		stop();
 	}
 
-	d->setVelocity({
-					   radius * cos(angle),
-					   radius * sin(angle)
-				   });
+	d->setVelocity(vectorFromAngle(angle, radius));
 }
 
 
@@ -1605,20 +1526,6 @@ void TiledObjectBody::stop()
 }
 
 
-/**
- * @brief TiledObjectBody::vectorFromAngle
- * @param angle
- * @param radius
- * @return
- */
-
-QVector2D TiledObjectBody::vectorFromAngle(const float &angle, const float &radius)
-{
-	return QVector2D (
-				radius * cos(angle),
-				radius * sin(angle)
-				);
-}
 
 
 
@@ -1679,8 +1586,8 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 	}
 
 
-	const float currentNormal = TiledObject::normalizeFromRadian(currentRadian);
-	const float desiredNormal = TiledObject::normalizeFromRadian(desiredRadian);
+	const float currentNormal = d->normalizeFromRadian(currentRadian);
+	const float desiredNormal = d->normalizeFromRadian(desiredRadian);
 
 	const float diff = std::abs(currentNormal-desiredNormal);
 
@@ -1727,7 +1634,7 @@ bool TiledObjectBody::rotateBody(const float &desiredRadian, const bool &forced)
 		newAngle += pi2;
 
 
-	cpBodySetAngle(body, TiledObject::normalizeToRadian(newAngle));
+	cpBodySetAngle(body, d->normalizeToRadian(newAngle));
 
 	return true;
 }
@@ -1771,9 +1678,7 @@ void TiledObjectBody::worldStep()
 {
 	CHECK_LOCK();
 
-	QVector2D currPos(bodyPosition());
-
-	d->m_lastPosition.push_back(currPos);
+	d->m_lastPosition.push_back(cpBodyGetPosition(d->m_bodyRef));
 	while (d->m_lastPosition.size() > 4)
 		d->m_lastPosition.pop_front();
 
@@ -1783,13 +1688,13 @@ void TiledObjectBody::worldStep()
 		float diff = 0.;
 
 		for (auto it = std::next(d->m_lastPosition.cbegin()); it != d->m_lastPosition.cend(); ++it) {
-			diff += first->distanceToPoint(*it);
+			diff += cpvlength(cpvsub(*it, *first));
 			first = it;
 		}
 
-		d->m_currentSpeed = diff / (float) (s-1);
+		d->m_currentSpeedSq = diff / (float) (s-1);
 	} else {
-		d->m_currentSpeed = 0.;
+		d->m_currentSpeedSq = 0.;
 	}
 
 
@@ -2084,7 +1989,7 @@ void TiledObjectBody::addTargetCircle(const float &length)
  * @return
  */
 
-RayCastInfo TiledObjectBody::rayCast(const QPointF &dest, const FixtureCategories &categories, const float &radius) const
+RayCastInfo TiledObjectBody::rayCast(const cpVect &dest, const FixtureCategories &categories, const float &radius) const
 {
 	RayCastInfo list;
 
@@ -2092,7 +1997,6 @@ RayCastInfo TiledObjectBody::rayCast(const QPointF &dest, const FixtureCategorie
 		return list;
 
 	const cpVect origin = cpBodyGetPosition(d->m_bodyRef);
-	const cpVect end{(cpFloat) dest.x(), (cpFloat) dest.y()};
 
 
 	QMap<cpFloat, RayCastInfoItem> map;
@@ -2102,7 +2006,7 @@ RayCastInfo TiledObjectBody::rayCast(const QPointF &dest, const FixtureCategorie
 
 		RayCastInfoItem info {
 			.shape = shape,
-					.point = QVector2D(point.x, point.y),
+					.point = point,
 					.visible = false,
 					.walkable = false
 		};
@@ -2111,7 +2015,7 @@ RayCastInfo TiledObjectBody::rayCast(const QPointF &dest, const FixtureCategorie
 	};
 
 	cpSpaceSegmentQuery(d->m_bodyRef->space,
-						origin, end,
+						origin, dest,
 						radius,
 						cpShapeFilter{CP_NO_GROUP, CP_ALL_CATEGORIES, categories.toInt() | FixtureGround},
 						fn,
@@ -2702,7 +2606,7 @@ void TiledObjectBodyPrivate::drawShape(TiledDebugDraw *draw, cpShape *shape,
 {
 	Q_ASSERT(shape);
 
-	const QPointF &pos = q->bodyPosition();
+	const QPointF &pos = q->bodyPositionF();
 
 	if (shape->klass->type == CP_CIRCLE_SHAPE) {
 		cpVect offset = cpCircleShapeGetOffset(shape);

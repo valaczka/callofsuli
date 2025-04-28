@@ -46,9 +46,6 @@ public:
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Enemy &snap) override;
-	virtual void updateFromLastSnapshot(const RpgGameData::Enemy &snap) override {
-		RpgGameDataInterface::updateFromLastSnapshot(snap, &m_lastSnapshot);
-	}
 
 protected:
 	virtual bool enemyWorldStep() override;
@@ -56,9 +53,6 @@ protected:
 	virtual void attackPlayer(RpgPlayer *player, RpgWeapon *weapon) override;
 
 	RpgGameData::Enemy serializeEnemy() const;
-
-	qint64 m_lastSnap = -1;
-	RpgGameData::Enemy m_lastSnapshot;
 
 	friend class ActionRpgMultiplayerGame;
 };

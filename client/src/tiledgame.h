@@ -226,7 +226,7 @@ public:
 
 	void iterateOverBodies(const std::function<void(TiledObjectBody*)> &func);
 
-	std::optional<QPolygonF> findShortestPath(TiledObjectBody *body, const QPointF &to) const;
+	std::optional<QPolygonF> findShortestPath(TiledObjectBody *body, const cpVect &to) const;
 	std::optional<QPolygonF> findShortestPath(TiledObjectBody *body, const qreal &x2, const qreal &y2) const;
 
 	AbstractGame::TickTimer *tickTimer() const { return m_tickTimer.get(); }

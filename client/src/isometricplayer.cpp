@@ -100,12 +100,14 @@ private:
 		return newFlag;
 	}
 
-	void setEnemyDistance(IsometricEnemy *enemy, const float &dist) {
+	void setEnemyDistanceSq(IsometricEnemy *enemy, const float &dist) {
 		auto it = findEnemy(enemy);
 		if (it != m_enemies.end()) {
 			it->distance = dist;
 		}
 	}
+
+	// Squared!
 
 	void setEnemy(IsometricEnemy *enemy, const EnemyFlags &flags, const float &dist) {
 		if (flags == Invalid) {
@@ -125,7 +127,7 @@ private:
 		std::vector<EnemyData>::const_iterator it = m_enemies.cend();
 
 		for (auto d = m_enemies.cbegin(); d != m_enemies.cend(); ++d) {
-			if ((d->flags & (Visible|CanShot)) != (Visible|CanShot) || (range > 0. && d->distance > range))
+			if ((d->flags & (Visible|CanShot)) != (Visible|CanShot) || (range > 0. && d->distance > POW2(range)))
 				continue;
 
 			if (it == m_enemies.cend() || d->distance < it->distance)
@@ -162,7 +164,7 @@ private:
 
 		for (const RayCastInfoItem &f : list) {
 			if (IsometricEnemy *e = dynamic_cast<IsometricEnemy*>(TiledObjectBody::fromShapeRef(f.shape)))
-				setEnemy(e, EnemyFlags(Visible|CanShot), m_player->distanceToPoint(f.point));
+				setEnemy(e, EnemyFlags(Visible|CanShot), m_player->distanceToPointSq(f.point));
 		}
 	}
 
@@ -185,7 +187,7 @@ private:
 			it->flags.setFlag(Visible, inMap);
 
 			if (inMap) {
-				it->distance = m_player->distanceToPoint(mapIt->point);
+				it->distance = m_player->distanceToPointSq(mapIt->point);
 			} if (!inMap) {
 				it->flags.setFlag(CanHit, false);
 				it->flags.setFlag(CanShot, false);
@@ -200,7 +202,7 @@ private:
 	}
 
 	std::unique_ptr<TiledPathMotor> m_destinationMotor;
-	std::optional<QVector2D> m_destinationPoint;
+	std::optional<cpVect> m_destinationPoint;
 	IsometricPlayer *const m_player;
 
 	friend class IsometricPlayer;
@@ -376,9 +378,8 @@ void IsometricPlayer::startInability(const int &msec)
 void IsometricPlayer::updateEnemies(const float &shotRange)
 {
 	if (shotRange > 0.) {
-		QVector2D radius(bodyPosition());
-		radius += TiledObject::vectorFromAngle(bodyRotation(), shotRange);
-		d->updateFromRayCast(rayCast(radius.toPointF(), FixtureTarget, true));
+		cpVect dest = cpvadd(bodyPosition(), vectorFromAngle(bodyRotation(), shotRange));
+		d->updateFromRayCast(rayCast(dest, FixtureTarget, true));
 	} else {
 		d->updateFromRayCast({});
 	}
@@ -589,9 +590,9 @@ void IsometricPlayer::worldStep() {
 				clearDestinationPoint();
 				atDestinationPointEvent();
 			} else if (const QPolygonF &polygon = d->m_destinationMotor->polygon(); !polygon.isEmpty()) {
-				const float distance = distanceToPoint(polygon.last());
+				const float distance = distanceToPointSq(polygon.last());
 
-				if (distance >= m_speedRunLength*0.5) {				// Hogy a végén szépen lassan gyalogoljon csak
+				if (distance >= POW2(m_speedRunLength*0.5)) {				// Hogy a végén szépen lassan gyalogoljon csak
 					d->m_destinationMotor->updateBody(this, m_speedRunLength, m_game->tickTimer());
 				} else {
 					d->m_destinationMotor->updateBody(this, m_speedLength, m_game->tickTimer());
@@ -638,7 +639,7 @@ void IsometricPlayer::synchronize()
 bool IsometricPlayer::isRunning() const
 {
 	// 60 FPS
-	return currentSpeed() >= m_speedRunLength*0.9/60;
+	return currentSpeedSq() >= m_speedRunLength*0.9/60;
 }
 
 
@@ -650,7 +651,7 @@ bool IsometricPlayer::isRunning() const
 bool IsometricPlayer::isWalking() const
 {
 	// 60 FPS
-	const float &l = currentSpeed();
+	const float &l = currentSpeedSq();
 	return l < m_speedRunLength/60 && l > 0.05;
 }
 
@@ -663,14 +664,14 @@ bool IsometricPlayer::isWalking() const
  * @return
  */
 
-QVector2D IsometricPlayer::currentVelocity() const
+cpVect IsometricPlayer::currentVelocity() const
 {
 	return m_currentVelocity;
 }
 
 
 
-void IsometricPlayer::setCurrentVelocity(QVector2D newCurrentVelocity)
+void IsometricPlayer::setCurrentVelocity(const cpVect &newCurrentVelocity)
 {
 	if (m_currentVelocity == newCurrentVelocity)
 		return;
@@ -728,7 +729,7 @@ void IsometricPlayer::setDestinationPoint(const QPolygonF &polygon)
 	}
 
 	if (polygon.size() == 1)
-		return setDestinationPoint(polygon.first());
+		return setDestinationPoint(toVect(polygon.first()));
 
 	d->m_destinationMotor.reset(new TiledPathMotor(polygon));
 	d->m_destinationPoint.reset();
@@ -741,7 +742,7 @@ void IsometricPlayer::setDestinationPoint(const QPolygonF &polygon)
  * @param point
  */
 
-void IsometricPlayer::setDestinationPoint(const QPointF &point)
+void IsometricPlayer::setDestinationPoint(const cpVect &point)
 {
 	if (!isAlive())
 		return;
@@ -752,7 +753,7 @@ void IsometricPlayer::setDestinationPoint(const QPointF &point)
 		return;
 	}
 
-	d->m_destinationPoint = QVector2D(point);
+	d->m_destinationPoint = point;
 	d->m_destinationMotor.reset();
 }
 

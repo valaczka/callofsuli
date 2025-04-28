@@ -90,7 +90,7 @@ void RpgMageStaff::eventUseCast(const RpgPlayerCharacterConfig::CastType &cast, 
 			case RpgPlayerCharacterConfig::CastFireFog:
 			case RpgPlayerCharacterConfig::CastProtect:
 				g->playSfx(QStringLiteral(":/rpg/common/cast.mp3"),
-						   p->scene(), p->bodyPosition());
+						   p->scene(), p->bodyPositionF());
 				break;
 
 			case RpgPlayerCharacterConfig::CastFireball:

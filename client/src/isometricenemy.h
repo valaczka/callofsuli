@@ -101,6 +101,8 @@ public:
 
 	void removeContactedPlayer(IsometricPlayer *player);
 
+	// Squared!
+
 	float playerDistance() const;
 	void setPlayerDistance(float newPlayerDistance);
 
@@ -123,7 +125,7 @@ protected:
 	QList<QPointer<IsometricPlayer>> m_contactedPlayers;
 	QList<QPointer<IsometricPlayer>> m_reachedPlayers;
 	EnemyMetric m_metric;
-	float m_playerDistance = -1;
+	float m_playerDistanceSq = -1;
 };
 
 

@@ -53,7 +53,6 @@ class IsometricPlayer : public IsometricEntity
 
 	Q_PROPERTY(TiledTransport *currentTransport READ currentTransport WRITE setCurrentTransport NOTIFY currentTransportChanged FINAL)
 	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
-	Q_PROPERTY(QVector2D currentVelocity READ currentVelocity WRITE setCurrentVelocity NOTIFY currentVelocityChanged FINAL)
 	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
 
 public:
@@ -63,7 +62,7 @@ public:
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
 	void setDestinationPoint(const QPolygonF &polygon);
-	void setDestinationPoint(const QPointF &point);
+	void setDestinationPoint(const cpVect &point);
 	void clearDestinationPoint();
 
 	void initialize();
@@ -80,8 +79,8 @@ public:
 	IsometricEnemy *enemy() const;
 	void setEnemy(IsometricEnemy *newEnemy);
 
-	QVector2D currentVelocity() const;
-	void setCurrentVelocity(QVector2D newCurrentVelocity);
+	cpVect currentVelocity() const;
+	void setCurrentVelocity(const cpVect &newCurrentVelocity);
 
 	bool isLocked() const;
 	void setIsLocked(bool newIsLocked);
@@ -143,7 +142,7 @@ private:
 	QPointer<TiledTransport> m_currentTransport = nullptr;
 	QPointer<TiledObject> m_currentTransportBase;
 
-	QVector2D m_currentVelocity;
+	cpVect m_currentVelocity;
 
 	IsometricPlayerPrivate *d = nullptr;
 

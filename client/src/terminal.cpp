@@ -53,6 +53,7 @@ private:
 
 	std::unique_ptr<ToggleButton> m_btnSendPause;
 	std::unique_ptr<ToggleButton> m_btnReceivePause;
+	std::unique_ptr<ToggleButton> m_btnAllPause;
 
 };
 
@@ -118,6 +119,9 @@ ftxui::Component DefaultLoop::createComponent(ftxui::ScreenInteractive *screen)
 	m_btnReceivePause = std::make_unique<ToggleButton>("Pause", false);
 	m_btnReceivePause->setBgColor(Color::Green);
 
+	m_btnAllPause = std::make_unique<ToggleButton>("Pause all", false);
+	m_btnAllPause->setBgColor(Color::Green);
+
 	m_textSend = std::make_shared<ScrollText>(" Sent ");
 	m_textReceive = std::make_shared<ScrollText>(" Received ");
 
@@ -136,6 +140,7 @@ ftxui::Component DefaultLoop::createComponent(ftxui::ScreenInteractive *screen)
 											  }),
 											  Container::Horizontal({
 												  m_btnReceivePause->button(),
+												  m_btnAllPause->button(),
 												  m_btnExit,
 												  m_btnSendPause->button(),
 											  })
@@ -154,6 +159,7 @@ ftxui::Component DefaultLoop::createComponent(ftxui::ScreenInteractive *screen)
 							separatorEmpty(),
 							m_btnReceivePause->renderer()->Render(),
 							filler(),
+							m_btnAllPause->renderer()->Render(),
 							m_btnExit->Render(),
 							filler(),
 							m_btnSendPause->renderer()->Render(),
@@ -189,7 +195,7 @@ bool DefaultLoop::runCbor(const QCborValue &cbor)
 	QCborMap m = cbor.toMap();
 
 	if (m.value("mode") == "SND") {
-		if (m_btnSendPause->checked())
+		if (m_btnSendPause->checked() || m_btnAllPause->checked())
 			return true;
 
 		/*if (!m_btnSendEnemies->checked())
@@ -202,7 +208,7 @@ bool DefaultLoop::runCbor(const QCborValue &cbor)
 
 		m_textSend->setText(m.value(QStringLiteral("txt")).toString());
 	} else {
-		if (m_btnReceivePause->checked())
+		if (m_btnReceivePause->checked() || m_btnAllPause->checked())
 			return true;
 
 		/*if (!m_btnReceiveEnemies->checked())

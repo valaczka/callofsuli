@@ -211,16 +211,16 @@ bool TiledPathMotor::clearToSegment(const int &segment)
  * @param pos
  */
 
-QVector2D TiledPathMotor::getShortestPoint(const QPointF &pos, float *dstDistance, int *dstSegment, float *dstFactor)
+cpVect TiledPathMotor::getShortestPoint(const cpVect &pos, float *dstDistance, int *dstSegment, float *dstFactor)
 {
 	float distance = -1;
-	QVector2D vector;
+	cpVect vector = cpvzero;
 	int segment = -1;
 	int n = 0;
 	float factor = -1;
 
 	for (const Line &l : m_lines) {
-		QVector2D dest;
+		cpVect dest = cpvzero;
 		float f = -1.;
 
 		float d = TiledObject::shortestDistance(pos, l.line, &dest, &f);
@@ -253,12 +253,12 @@ QVector2D TiledPathMotor::getShortestPoint(const QPointF &pos, float *dstDistanc
  * @return
  */
 
-std::optional<QVector2D> TiledPathMotor::getLastSegmentPoint()
+std::optional<cpVect> TiledPathMotor::getLastSegmentPoint()
 {
 	if (m_lastSegment < 0 || m_lastSegment >= m_lines.size())
 		return std::nullopt;
 
-	return QVector2D(m_lines.at(m_lastSegment).line.pointAt(m_lastSegmentFactor));
+	return TiledObject::toVect(m_lines.at(m_lastSegment).line.pointAt(m_lastSegmentFactor));
 }
 
 
@@ -290,11 +290,11 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 
 	const auto lastPoint = getLastSegmentPoint();
 
-	if (!lastPoint || lastPoint.value().distanceToPoint(QVector2D(body->bodyPosition())) > threshold) {
+	if (!lastPoint || body->distanceToPointSq(lastPoint.value()) > POW2(threshold)) {
 		int dstSegment = -1;
 		float dstDistance = -1;
 		float dstFactor = -1.;
-		QVector2D dst = getShortestPoint(body->bodyPosition(), &dstDistance, &dstSegment, &dstFactor);
+		cpVect dst = getShortestPoint(body->bodyPosition(), &dstDistance, &dstSegment, &dstFactor);
 
 		if (dstSegment < 0) {
 			LOG_CERROR("scene") << "Invalid line segment" << body << m_lines.size();
@@ -368,7 +368,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 			m_lastSegmentFactor += delta;
 		}
 
-		body->moveTowards(QVector2D(line.p2()), speed);
+		body->moveTowards(TiledObject::toVect(line.p2()), speed);
 	} else if (m_direction == Backward) {
 		if (m_lastSegmentFactor - delta < 0.) {
 			if (m_lastSegment-1 < 0 && !isClosed()) {
@@ -385,7 +385,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 			m_lastSegmentFactor -= delta;
 		}
 
-		body->moveTowards(QVector2D(line.p1()), speed);
+		body->moveTowards(TiledObject::toVect(line.p1()), speed);
 	}
 
 }
@@ -396,12 +396,12 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
  * @return
  */
 
-QPointF TiledPathMotor::basePoint()
+cpVect TiledPathMotor::basePoint()
 {
 	if (m_polygon.isEmpty())
 		return {};
 	else
-		return m_polygon.first();
+		return TiledObject::toVect(m_polygon.first());
 }
 
 
@@ -457,7 +457,7 @@ TiledPathMotor::WaitTimerState TiledPathMotor::waitTimerState(AbstractGame::Tick
  * @return
  */
 
-int TiledPathMotor::getShortestSegment(const QPolygonF &polygon, const QPointF &pos)
+int TiledPathMotor::getShortestSegment(const QPolygonF &polygon, const cpVect &pos)
 {
 	float distance = -1;
 	int segment = -1;

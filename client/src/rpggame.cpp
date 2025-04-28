@@ -336,7 +336,7 @@ void RpgGame::saveSceneState(RpgPlayer *player)
 
 	messageColor(tr("State saved"), QColor::fromRgbF(0., 0.9, 0.));
 
-	playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene(), player->bodyPosition());
+	playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene(), player->bodyPositionF());
 
 	saveSceneState();
 }
@@ -1100,7 +1100,7 @@ bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/,
 	RpgPlayer *player = qobject_cast<RpgPlayer*>(object);
 
 	if (player) {
-		player->setCurrentSceneStartPosition(newObject->bodyPosition());
+		player->setCurrentSceneStartPosition(newObject->bodyPositionF());
 		player->m_currentTransportBase = newObject;
 	}
 
@@ -2161,7 +2161,7 @@ void RpgGame::updateScatterEnemies()
 		if (e.scene != m_currentScene || !e.enemy || !e.enemy->isAlive())
 			continue;
 
-		QPointF pos = e.enemy->bodyPosition();
+		QPointF pos = e.enemy->bodyPositionF();
 		pos.setY(m_currentScene->height()-pos.y());
 
 		list.append(pos);
@@ -2190,7 +2190,7 @@ void RpgGame::updateScatterPlayers()
 		if (!p || p->scene() != m_currentScene || !p->isAlive())
 			continue;
 
-		QPointF pos = p->bodyPosition();
+		QPointF pos = p->bodyPositionF();
 		pos.setY(m_currentScene->height()-pos.y());
 
 		list.append(pos);
@@ -2899,7 +2899,7 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &buttons, c
 		else
 			m_controlledPlayer->m_pickAtDestination = false;
 
-		if (const auto &ptr = findShortestPath(m_controlledPlayer, QPointF(x,y))) {
+		if (const auto &ptr = findShortestPath(m_controlledPlayer, cpv(x,y))) {
 			m_controlledPlayer->setDestinationPoint(ptr.value());
 
 			if (!m_controlledPlayer->m_sfxAccept.soundList().isEmpty())

@@ -80,7 +80,7 @@ private:
 			qreal chunkWidth = 0.;
 			qreal chunkHeight = 0.;
 
-			std::optional<QPolygonF> findShortestPath(const QPointF &from, const QPointF &to) const;
+			std::optional<QPolygonF> findShortestPath(const cpVect &from, const cpVect &to) const;
 			std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
 		};
 
@@ -2369,7 +2369,7 @@ void TiledGame::reloadTcodMap(cpSpace *space)
  * @return
  */
 
-std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, const QPointF &to) const
+std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, const cpVect &to) const
 {
 	if (!body)
 		return std::nullopt;
@@ -2392,7 +2392,7 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
 	}
 
 	if (isWalkable)
-		return QPolygonF() << body->bodyPosition() << to;
+		return QPolygonF() << body->bodyPositionF() << TiledObject::toPointF(to);
 
 
 	const auto it = std::find_if(d->m_sceneList.cbegin(),
@@ -2418,7 +2418,7 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
 
 std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, const qreal &x2, const qreal &y2) const
 {
-	return findShortestPath(body, QPointF{x2, y2});
+	return findShortestPath(body, cpv(x2, y2));
 }
 
 
@@ -2431,9 +2431,9 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
  * @return
  */
 
-std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(const QPointF &from, const QPointF &to) const
+std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(const cpVect &from, const cpVect &to) const
 {
-	return findShortestPath(from.x(), from.y(), to.x(), to.y());
+	return findShortestPath(from.x, from.y, to.x, to.y);
 }
 
 
@@ -2578,10 +2578,6 @@ std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(
 
 void TiledGamePrivate::Scene::spaceDestroy(cpSpace *space)
 {
-	LOG_CINFO("scene") << "*** DESTROY" << space;
-
-	// TODO: delete bodies
-
 	if (!space)
 		return;
 	cpSpaceFree(space);

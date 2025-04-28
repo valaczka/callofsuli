@@ -131,6 +131,7 @@ private:
 	void sendDataPrepare();
 
 	void setTickTimer(const qint64 &tick);
+	void addLatency(const qint64 &latency);
 
 	RpgUdpEngine *m_engine = nullptr;
 	ActionRpgMultiplayerGamePrivate *q = nullptr;

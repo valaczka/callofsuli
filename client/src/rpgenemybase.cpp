@@ -277,9 +277,11 @@ void RpgEnemyBase::playAttackEffect(RpgWeapon *weapon)
  * @return
  */
 
-QPointF RpgEnemyBase::getPickablePosition(const int &num) const
+cpVect RpgEnemyBase::getPickablePosition(const int &num) const
 {
-	return bodyPosition() - TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 75. *num).toPointF();
+	return cpvsub(bodyPosition(),
+				  TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 75. *num)
+				  );
 }
 
 

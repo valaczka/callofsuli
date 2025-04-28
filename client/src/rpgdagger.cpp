@@ -49,7 +49,7 @@ void RpgDagger::eventAttack(TiledObject *target)
 		return;
 
 	if (TiledGame *g = p->game(); g && target) {
-		g->playSfx(QStringLiteral(":/rpg/dagger/dagger.mp3"), p->scene(), p->bodyPosition());
+		g->playSfx(QStringLiteral(":/rpg/dagger/dagger.mp3"), p->scene(), p->bodyPositionF());
 	}
 }
 

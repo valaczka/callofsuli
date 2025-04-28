@@ -57,12 +57,18 @@ void TiledFixPositionMotor::updateBody(TiledObject *object, const float &, Abstr
  * @return
  */
 
-QPointF TiledFixPositionMotor::point() const
+cpVect TiledFixPositionMotor::point() const
 {
 	return m_point;
 }
 
-void TiledFixPositionMotor::setPoint(QPointF newPoint)
+
+/**
+ * @brief TiledFixPositionMotor::setPoint
+ * @param newPoint
+ */
+
+void TiledFixPositionMotor::setPoint(const cpVect &newPoint)
 {
 	m_point = newPoint;
 }

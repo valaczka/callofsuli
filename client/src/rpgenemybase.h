@@ -66,7 +66,7 @@ protected:
 
 	void playAttackEffect(RpgWeapon *weapon) override final;
 
-	QPointF getPickablePosition(const int &num) const override final;
+	cpVect getPickablePosition(const int &num) const override final;
 
 	QString m_subType;
 	QString m_directory = QStringLiteral("base");

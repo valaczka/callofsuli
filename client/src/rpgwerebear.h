@@ -86,7 +86,7 @@ protected:
 	void playDeadEffect();
 	void playSeeEffect();
 
-	QPointF getPickablePosition(const int &num) const override final;
+	cpVect getPickablePosition(const int &num) const override final;
 
 	virtual int enemyType() const override { return RpgEnemyIface::enemyType(); }
 

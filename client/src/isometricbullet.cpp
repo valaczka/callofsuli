@@ -80,12 +80,12 @@ void IsometricBullet::initialize()
  * @param angle
  */
 
-void IsometricBullet::shot(const QPointF &from, const qreal &angle)
+void IsometricBullet::shot(const cpVect &from, const qreal &angle)
 {
 	if (!scene())
 		return;
 
-	m_startPoint = QVector2D(from);
+	m_startPoint = from;
 	emplace(from);
 	setFacingDirection(nearestDirectionFromRadian(angle));
 	cpBodySetAngle(body(), angle);
@@ -107,9 +107,9 @@ void IsometricBullet::worldStep()
 		return;
 	}
 
-	const qreal &distance = distanceToPoint(m_startPoint);
+	const qreal &distance = distanceToPointSq(m_startPoint);
 
-	if (distance >= m_maxDistance) {
+	if (distance >= POW2(m_maxDistance)) {
 		overshootEvent();
 		return;
 	}

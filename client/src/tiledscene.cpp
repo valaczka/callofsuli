@@ -208,10 +208,10 @@ void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
 		IsometricObject *iso = dynamic_cast<IsometricObject*>(obj);
 
 		qreal z = 0;
-		const qreal y = obj->bodyPosition().y();
+		const qreal y = obj->bodyPositionF().y();
 
 		if (iso)
-			z = getDynamicZ(obj->bodyPosition(), iso->defaultZ()) + iso->subZ();
+			z = getDynamicZ(obj->bodyPositionF(), iso->defaultZ()) + iso->subZ();
 		else if (obj->m_visualItem)
 			z = obj->m_visualItem->z();
 

@@ -117,7 +117,7 @@ public:
 	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricBullet::objectId(); }
 
 	void shot(const RpgGameData::BulletBaseData &baseData);
-	virtual void shot(const QPointF &from, const qreal &angle) override;
+	virtual void shot(const cpVect &from, const qreal &angle) override;
 
 	RpgGameData::BulletBaseData::Owner owner() const;
 	void setOwner(const RpgGameData::BulletBaseData::Owner &newOwner);
@@ -129,9 +129,6 @@ public:
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Bullet> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Bullet &snap) override;
-	virtual void updateFromLastSnapshot(const RpgGameData::Bullet &snap) {
-		RpgGameDataInterface::updateFromLastSnapshot(snap, &m_lastSnapshot);
-	}
 
 	const RpgGameData::BaseData &ownerId() const;
 	void setOwnerId(const RpgGameData::BaseData &newOwnerId);
@@ -153,9 +150,7 @@ protected:
 	RpgGameData::BaseData m_impactedObject;
 	RpgGameData::BaseData m_ownerId;
 
-	QLineF m_path;
-
-	RpgGameData::Bullet m_lastSnapshot;
+	std::pair<cpVect, cpVect> m_path;
 
 	friend class ActionRpgMultiplayerGame;
 };

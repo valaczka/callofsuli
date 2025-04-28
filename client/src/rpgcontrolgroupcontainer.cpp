@@ -123,7 +123,7 @@ RpgControlGroupContainer::RpgControlGroupContainer(RpgGame *game, TiledScene *sc
 					}
 
 					m_container->setIsActive(true);
-					m_container->emplace(m_container->bodyPosition() + m_basePosition);
+					m_container->emplace(m_container->bodyPositionF() + m_basePosition);
 					m_container->m_control = this;
 
 					QObject::connect(m_container, &RpgContainer::isActiveChanged, game, [this](){

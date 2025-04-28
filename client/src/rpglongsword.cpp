@@ -56,7 +56,7 @@ void RpgLongsword::eventAttack(TiledObject *target)
 
 	if (TiledGame *g = p->game()) {
 		g->playSfx(target ? QStringLiteral(":/rpg/longsword/swing2.mp3") : QStringLiteral(":/rpg/longsword/swing.mp3"),
-				   p->scene(), p->bodyPosition());
+				   p->scene(), p->bodyPositionF());
 	}
 }
 
