@@ -255,16 +255,6 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 
 	updateSnapshotPlayerList(playerList);
 	updateSnapshotEnemyList(enemyList);
-
-
-
-#ifdef WITH_FTXUI
-	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-		QCborMap map = data;
-		map.insert(QStringLiteral("0op"), QStringLiteral("LEFT"));
-		a->writeToSocket(map.toCborValue());
-	}
-#endif
 }
 
 
@@ -300,7 +290,7 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 		QCborMap map;
 		QString txt;
 
-/*		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+		/*		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
 
 
 		for (const QCborValue &v : playerList) {
@@ -355,12 +345,32 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 
 		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
 
-		const RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::PlayerBaseData> &list = m_snapshots.players();
-
 		txt = QStringLiteral("CURRENT TICK %1 - server %2\n\n").arg(m_game->rpgGame()->tickTimer()->currentTick()).arg(tick);
 
-		for (const auto &ptr : list) {
+		for (const auto &ptr : m_snapshots.players()) {
 			txt += QStringLiteral("STORAGE PLAYER %1\n==============================================\n").arg(ptr.data.o);
+
+			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
+				txt += QStringLiteral("%1: %2 (%3, %4) %5  || %6\n")
+					   .arg(it->second.f)
+					   .arg(it->second.st)
+					   .arg(it->second.p.size() > 1 ? it->second.p.at(0) : -1)
+					   .arg(it->second.p.size() > 1 ? it->second.p.at(1) : -1)
+					   .arg(it->second.a)
+					   .arg(it->second.arm.cw)
+					   ;
+			}
+
+			txt += QStringLiteral("\n\n");
+		}
+
+
+
+		for (const auto &ptr : m_snapshots.enemies()) {
+			txt += QStringLiteral("STORAGE ENEMY %1 %2 %3\n==============================================\n")
+				   .arg(ptr.data.o)
+				   .arg(ptr.data.s)
+				   .arg(ptr.data.id);
 
 			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
 				txt += QStringLiteral("%1: %2 (%3, %4) %5  || %6\n")
@@ -426,6 +436,19 @@ QVariantList RpgUdpEngine::getPlayerList()
 	}
 
 	return list;
+}
+
+
+
+/**
+ * @brief RpgUdpEngine::getPlayerData
+ * @return
+ */
+
+QList<RpgGameData::CharacterSelect> RpgUdpEngine::getPlayerData()
+{
+	QMutexLocker locker(&m_mutex);
+	return m_playerData;
 }
 
 

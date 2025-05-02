@@ -207,6 +207,10 @@ public:
 
 	static cpVect vectorFromAngle(const float &angle, const float &radius) { return cpvmult(cpvforangle(angle), radius); }
 
+	virtual bool moveTowards(const cpVect &point, const float &speed);
+	bool moveTowardsLimited(const cpVect &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove);
+	virtual bool moveToPoint(const cpVect &point, const int &inFrame = 1, const float &maxSpeed = 0.);
+
 	float bodyRotation() const;
 	float desiredBodyRotation() const;
 	bool rotateBody(const float &desiredRadian, const bool &forced = false);
@@ -427,12 +431,13 @@ public:
 		return shortestDistance(point, line.p1(), line.p2(), destPoint, factor);
 	}
 
+
+	virtual bool moveTowards(const cpVect &point, const float &speed) override;
+	virtual bool moveToPoint(const cpVect &point, const int &inFrame = 1, const float &maxSpeed = 0.) override;
+
 	void setBodyOffset(QPointF newBodyOffset);
 	void setBodyOffset(const qreal &x, const qreal &y) { setBodyOffset(QPointF(x, y)); }
 	QPointF bodyOffset() const;
-
-	bool moveTowards(const cpVect &point, const float &speed);
-	bool moveTowards(const cpVect &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove);
 
 	bool glowEnabled() const;
 	void setGlowEnabled(bool newGlowEnabled);
@@ -457,6 +462,7 @@ public:
 
 	float currentAngle() const;
 	void setCurrentAngle(float newCurrentAngle);
+	void setCurrentAngleForced(float newCurrentAngle);
 
 	bool facingDirectionLocked() const;
 	void setFacingDirectionLocked(bool newFacingDirectionLocked);

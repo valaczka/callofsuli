@@ -59,7 +59,7 @@ public:
 	template <typename T, typename T2,
 			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
 			  typename = std::enable_if<std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	void appendSnapshot(RpgGameDataInterface<T, T2> *iface, const qint64 &tick = -1, const bool &forced = false);
+	bool appendSnapshot(RpgGameDataInterface<T, T2> *iface, const qint64 &tick = -1, const bool &forced = false);
 
 	template <typename T, typename T2,
 			  typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -129,17 +129,21 @@ private:
  */
 
 template<typename T, typename T2, typename T3, typename T4>
-inline void ClientStorage::appendSnapshot(RpgGameDataInterface<T, T2> *iface, const qint64 &tick, const bool &forced)
+inline bool ClientStorage::appendSnapshot(RpgGameDataInterface<T, T2> *iface, const qint64 &tick, const bool &forced)
 {
 	Q_ASSERT(iface);
 
 	if (forced) {
 		appendSnapshot(iface->baseData(), iface->serialize(tick));
-		return;
+		return true;
 	}
 
-	if (const auto &ptr = iface->serializeCmp(tick))
+	if (const auto &ptr = iface->serializeCmp(tick)) {
 		appendSnapshot(iface->baseData(), ptr.value());
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -290,6 +294,7 @@ private:
 	bool m_isHost = false;
 
 	QVariantList getPlayerList();
+	QList<RpgGameData::CharacterSelect> getPlayerData();
 
 	void updateSnapshotEnemyList(const QCborArray &list);
 	void updateSnapshotPlayerList(const QCborArray &list);

@@ -54,6 +54,8 @@ protected:
 
 	RpgGameData::Enemy serializeEnemy() const;
 
+	QHash<RpgGameData::Enemy::EnemyState, qint64> m_stateLastRenderedTicks;
+
 	friend class ActionRpgMultiplayerGame;
 };
 

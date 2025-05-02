@@ -121,7 +121,7 @@ bool IsometricEnemy::isSleeping()
 bool IsometricEnemy::isRunning() const
 {
 	// 60 FPS
-	return currentSpeedSq() >= m_metric.pursuitSpeed*0.9/60;
+	return currentSpeedSq() >= POW2(m_metric.pursuitSpeed)*0.9;
 }
 
 
@@ -133,7 +133,7 @@ bool IsometricEnemy::isRunning() const
 bool IsometricEnemy::isWalking() const
 {
 	const float &l = currentSpeedSq();
-	return l < m_metric.pursuitSpeed/60 && l > 0.05;
+	return l < POW2(m_metric.pursuitSpeed) && l > POW2(0.05);
 }
 
 
@@ -464,13 +464,6 @@ void IsometricEnemy::worldStep()
 
 	// Pursuit
 
-	/*const b2BodyType type = (m_returnPathMotor && m_returnPathMotor->isReturning() ? b2_kinematicBody : b2_dynamicBody);
-
-	if (body().GetType() != type) {
-		LOG_CINFO("game") << "SET FLAG" << this << type;
-		body().SetType(type);
-	}*/
-
 
 	if (pursuitPoint.has_value() && distanceToPointSq(pursuitPoint.value()) < POW2(5.))
 		pursuitPoint = std::nullopt;
@@ -488,7 +481,7 @@ void IsometricEnemy::worldStep()
 		const cpVect &dst = pursuitPoint.value();
 		const RayCastInfo &map = rayCast(dst, FixtureGround);
 
-		if (!map.empty() && distanceToPointSq(map.front().point) <= POW2(m_metric.targetCircleRadius+5.)) {	// inkább body size kéne
+		if (!map.empty() && distanceToPointSq(map.front().point) <= POW2(m_metric.targetCircleRadius)) {
 			stop();
 		} else {
 			if (m_metric.returnSpeed != 0) {

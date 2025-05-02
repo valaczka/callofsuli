@@ -534,6 +534,14 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
+	if (q->m_currentTick == 0) {
+		if (m.value(QStringLiteral("full")).toBool(false)) {
+			player->setIsFullyPrepared(true);
+			return;
+		}
+	}
+
+
 	q->m_snapshots.registerSnapshot(player, m);
 }
 
@@ -568,7 +576,7 @@ void RpgEnginePrivate::dataSendChrSel()
 		map.insert(QStringLiteral("pp"), players);
 
 		if (it->get()->udpPeer())
-			it->get()->udpPeer()->send(map.toCborValue().toCbor(), true);
+			it->get()->udpPeer()->send(map.toCborValue().toCbor(), false);
 
 	}
 }
@@ -595,7 +603,7 @@ void RpgEnginePrivate::dataSendPrepare()
 		map.insert(QStringLiteral("g"), gConfig);
 
 		if (it->get()->udpPeer())
-			it->get()->udpPeer()->send(map.toCborValue().toCbor(), true);
+			it->get()->udpPeer()->send(map.toCborValue().toCbor(), false);
 	}
 }
 
@@ -628,7 +636,7 @@ void RpgEnginePrivate::dataSendPlay()
 		insertBaseMapData(&map, it->get());
 
 		if (it->get()->udpPeer())
-			it->get()->udpPeer()->send(map.toCborValue().toCbor(), true);
+			it->get()->udpPeer()->send(map.toCborValue().toCbor(), false);
 	}
 }
 
@@ -716,9 +724,20 @@ void RpgEnginePrivate::updateState()
 
 
 	if (q->m_config.gameState == RpgConfig::StatePlay) {
-		if (!m_elapsedTimer.isValid())
-			m_elapsedTimer.start();
-		else {
+		if (!m_elapsedTimer.isValid()) {
+			bool allFullyPrepared = true;
+
+			for (const auto &ptr : q->m_player) {
+				if (!ptr->isFullyPrepared()) {
+					allFullyPrepared = false;
+					break;
+				}
+			}
+
+			if (allFullyPrepared)
+				m_elapsedTimer.start();
+
+		} else {
 
 			const double tMs = q->currentTick() * 1000./60.;
 			const double currMs = m_elapsedTimer.elapsed();

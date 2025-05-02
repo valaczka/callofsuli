@@ -76,7 +76,6 @@ private:
 	float m_targetLength = 0.;
 
 	float m_currentSpeedSq = 0.;
-	std::list<cpVect> m_lastPosition;
 
 	struct RotateAnimation {
 		bool running = false;

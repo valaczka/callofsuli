@@ -87,6 +87,8 @@ private:
 	bool m_gamePrepared = false;
 	bool m_enemiesSynced = false;
 	bool m_playersSynced = false;
+	bool m_fullyPrepared = false;
+	bool m_othersPrepared = false;
 
 	std::unique_ptr<QSListModel> m_playersModel;
 	QBasicTimer m_keepAliveTimer;

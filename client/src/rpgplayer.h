@@ -278,7 +278,7 @@ private:
 	QTimer m_castTimer;
 	qint64 m_timerRepeater = -1;
 
-	QHash<RpgGameData::Player::PlayerState, qint64> m_stateNextRenderTicks;
+	QHash<RpgGameData::Player::PlayerState, qint64> m_stateLastRenderedTicks;
 
 	friend class RpgGame;
 	friend class ActionRpgGame;

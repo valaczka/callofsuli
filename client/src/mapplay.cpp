@@ -279,12 +279,6 @@ void MapPlay::reloadMissionList()
 
 			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, false);
 			pMission->missionLevelList()->append(pLevel);
-
-			// DEPRECATED: ---> sudden death quest
-			/*if (mLevel->canDeathmatch() && mission->modes().testFlag(GameMap::Rpg)) {
-				MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, true);
-				pMission->missionLevelList()->append(pLevel);
-			}*/
 		}
 	}
 }
@@ -948,7 +942,7 @@ bool MapPlayMission::modeEnabled(GameMapMission *mission, const GameMap::GameMod
 	if (!mission)
 		return false;
 	else if (mission->modes().testFlag(GameMap::Invalid))
-		return mode == GameMap::Action || mode == GameMap::Lite;
+		return mode == GameMap::Rpg || mode == GameMap::Lite;
 	else
 		return mission->modes().testFlag(mode);
 }
@@ -1082,11 +1076,11 @@ void AbstractMapPlaySolver::updateXP()
 			int xp = 0;
 
 			const QVector<GameMap::GameMode> &list = {
-				GameMap::Action, GameMap::Lite, GameMap::Test, GameMap::Quiz, GameMap::Exam, GameMap::Rpg
+				GameMap::Lite, GameMap::Test, GameMap::Quiz, GameMap::Exam, GameMap::Rpg
 			};
 
 			if (modes.testFlag(GameMap::Invalid))
-				xp = calculateXP(level, GameMap::Action);
+				xp = calculateXP(level, GameMap::Rpg);
 
 			foreach (const GameMap::GameMode &mode, list) {
 				if (modes.testFlag(mode))

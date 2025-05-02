@@ -153,6 +153,43 @@ int Renderer::saveObjects(RpgGameData::SnapshotList<T, T2> &dst)
 
 
 
+
+
+
+/**
+ * @brief Renderer::extendFromLast
+ * @param src
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+std::optional<T> Renderer::extendFromLast(RendererObject<T2> *src)
+{
+	Q_ASSERT(src);
+
+	auto it = src->iterator();
+
+	if (it == src->snap.cbegin())
+		return std::nullopt;
+
+	for (--it; ; --it) {
+		RendererItem<T> *p = dynamic_cast<RendererItem<T>*>(it->get());
+
+		if (p && (p->flags().testFlag(RendererType::Storage))) {
+			return p->m_data;
+		}
+
+		if (it == src->snap.cbegin())
+			break;
+	}
+
+	return std::nullopt;
+}
+
+
+
+
+
 /**
  * @brief RendererItem::setData
  * @param data
@@ -169,6 +206,87 @@ bool RendererItem<T, T2>::setData(const T &data)
 
 	return true;
 }
+
+
+
+/**
+ * @brief Renderer::loadStorageSnaps
+ * @param dst
+ * @param ptr
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+bool Renderer::loadStorageSnaps(RendererObject<T2> *dst, RpgGameData::SnapshotData<T, T2> &ptr)
+{
+	auto it = RpgSnapshotStorage::getPreviousSnap(ptr.list, m_startTick);
+
+	if (it == ptr.list.end()) {
+		LOG_CDEBUG("engine") << "Missing snap" << ptr.data.o << m_startTick;
+		return false;
+	}
+
+	if (!dst->setAuthSnap(it->second)) {
+		LOG_CDEBUG("engine") << "Snap error" << ptr.data.o << m_startTick;
+		return false;
+	}
+
+	bool success = true;
+
+	const qint64 last = m_startTick+m_size-1;
+
+	for (++it; it != ptr.list.end(); ++it) {
+		if (it->first > last)
+			break;
+
+		const qint64 index = it->first - m_startTick;
+
+		Q_ASSERT(index >= 0);
+		Q_ASSERT(index < m_size);
+
+		if (!dst->setSnap(index, it->second, RendererType::Storage)) {
+			LOG_CDEBUG("engine") << "Snap error" << ptr.data.o << m_startTick << index << it->first;
+			success = false;
+		}
+	}
+
+
+	return success;
+}
+
+
+
+
+
+
+/**
+ * @brief Renderer::loadTemporarySnaps
+ * @param dst
+ * @param ptr
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+bool Renderer::loadTemporarySnaps(RendererObject<T2> *dst, RpgGameData::SnapshotData<T, T2> &ptr)
+{
+	const int first = (m_startTick+1)*10;
+	const int last = (m_startTick+m_size-1)*10;
+
+	for (const auto &m : ptr.list) {
+		if (m.first < first || m.first >= last)
+			continue;
+
+		const qint64 index = (qint64)(m.first/10) - m_startTick;
+
+		Q_ASSERT(index >= 0);
+		Q_ASSERT(index < m_size);
+
+		dst->addSubSnap(index, m.second);
+	}
+
+	return true;
+}
+
 
 
 
@@ -251,13 +369,41 @@ void RendererType::addFlags(const RendererFlags &flags)
  * @return
  */
 
-QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGameData::Player> &subData) const
+QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGameData::Player> &/*subData*/) const
 {
 	QString txt = QStringLiteral("%1 [%2] %3 hp w:%4  ")
 				  .arg(m_flags)
 				  .arg(data.st)
 				  .arg(data.hp)
 				  .arg(data.arm.cw)
+				  ;
+
+	if (data.p.size() > 1)
+		txt +=  QStringLiteral("(%1, %2) ")
+				.arg(data.p.at(0))
+				.arg(data.p.at(1))
+				;
+
+	txt += QString::number(data.a);
+
+	return txt;
+}
+
+
+
+/**
+ * @brief RendererType::dumpAs
+ * @param data
+ * @param subData
+ * @return
+ */
+
+QString RendererType::dumpAs(const RpgGameData::Enemy &data, const QList<RpgGameData::Enemy> &/*subData*/) const
+{
+	QString txt = QStringLiteral("%1 [%2] %3 hp ")
+				  .arg(m_flags)
+				  .arg(data.st)
+				  .arg(data.hp)
 				  ;
 
 	if (data.p.size() > 1)
@@ -551,11 +697,6 @@ bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMa
 	if (!registerPlayers(player, cbor))
 		ret = false;
 
-	if (player->isHost()) {
-		if (!registerEnemies(cbor))
-			ret = false;
-	}
-
 	return ret;
 }
 
@@ -594,8 +735,10 @@ void RpgSnapshotStorage::render(const qint64 &tick)
 
 	m_lastAuthTick = tick - 60;
 
-	removeLessThan(m_tmpSnapshot.players, m_lastAuthTick-60);
-	zapSnapshots(m_lastAuthTick-60);
+	removeLessThan(m_tmpSnapshot.players, m_lastAuthTick-5);
+	removeLessThan(m_tmpSnapshot.enemies, m_lastAuthTick-5);
+	removeLessThan(m_tmpSnapshot.bullets, m_lastAuthTick-5);
+	zapSnapshots(m_lastAuthTick-5);
 
 #ifdef WITH_FTXUI
 	QCborMap map;
@@ -729,7 +872,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	RpgGameData::CurrentSnapshot snapshot;
 
 	if (snapshot.fromCbor(cbor) < 0) {
-		LOG_CERROR("engine") << "Wrong";
+		LOG_CWARNING("engine") << "Empty snapshot received";
 		return false;
 	}
 
@@ -740,7 +883,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	const auto &srcIt = RpgGameData::CurrentSnapshot::find(snapshot.players, pdata);
 
 	if (srcIt == snapshot.players.cend()) {
-		LOG_CERROR("engine") << "Invalid player" << cbor;
+		//LOG_CERROR("engine") << "Invalid player" << cbor;
 		return false;
 	}
 
@@ -752,6 +895,12 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	}
 
 
+	if (player->isHost()) {
+		if (!registerEnemies(snapshot))
+			return false;
+	}
+
+	/*
 #ifdef WITH_FTXUI
 	QString txt;
 
@@ -782,7 +931,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	m_engine->service()->writeToSocket(map.toCborValue());
 
 #endif
-
+*/
 
 
 
@@ -867,19 +1016,26 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 
 /**
  * @brief RpgSnapshotStorage::registerEnemies
- * @param cbor
+ * @param snapshot
  * @return
  */
 
-bool RpgSnapshotStorage::registerEnemies(const QCborMap &cbor)
+bool RpgSnapshotStorage::registerEnemies(const RpgGameData::CurrentSnapshot &snapshot)
 {
-	return false;
-
 	QMutexLocker locker(&m_mutex);
 
-	bool success = true;
+	for (const auto &e : snapshot.enemies) {
+		const auto &dstIt = RpgGameData::CurrentSnapshot::find(m_tmpSnapshot.enemies, e.data);
 
-	return success;
+		if (dstIt == m_tmpSnapshot.enemies.end()) {
+			auto &r = m_tmpSnapshot.enemies.emplace_back(e.data, std::map<qint64, RpgGameData::Enemy>{});
+			copy(r.list, e.list, m_lastAuthTick);
+		} else {
+			copy(dstIt->list, e.list, m_lastAuthTick);
+		}
+	}
+
+	return true;
 }
 
 
@@ -900,10 +1056,21 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->addObjects(m_players))
 		return {};
 
+	if (!r->addObjects(m_enemies))
+		return {};
+
+
 	if (!r->loadSnaps(m_players, true))
 		return {};
 
 	if (!r->loadSnaps(m_tmpSnapshot.players, false))
+		return {};
+
+
+	if (!r->loadSnaps(m_enemies, true))
+		return {};
+
+	if (!r->loadSnaps(m_tmpSnapshot.enemies, false))
 		return {};
 
 	return r;
@@ -922,6 +1089,7 @@ bool RpgSnapshotStorage::saveRenderer(Renderer *renderer)
 	Q_ASSERT(renderer);
 
 	renderer->saveObjects(m_players);
+	renderer->saveObjects(m_enemies);
 
 	return true;
 }
@@ -1003,6 +1171,7 @@ void RpgSnapshotStorage::removeLessThan(RpgGameData::SnapshotList<T, T2> &list, 
 Renderer::Renderer(const qint64 &start, const int &size)
 	: m_startTick(start)
 	, m_size(size)
+	, m_solver(this)
 {
 	if (size <= 0)
 		LOG_CWARNING("engine") << "Renderer size <= 0";
@@ -1063,7 +1232,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 	if (!dst->flags().testFlag(RendererType::ReadOnly)) {
 
-		const auto &ptr = extendFromLast(src);
+		const auto &ptr = extendFromLast<RpgGameData::Player>(src);
 
 		if (!dst->flags().testFlag(RendererType::Storage)) {
 			if (ptr) {
@@ -1101,9 +1270,12 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 				 p.st != RpgGameData::Player::PlayerMoving &&
 				 p.st != RpgGameData::Player::PlayerInvalid) {
 
-				// TODO: conflict solver (Attack,...) -> continue
+				RendererObject<RpgGameData::BaseData> *tg = find(p.tg);
 
-				if (specialSt == RpgGameData::Player::PlayerInvalid) {
+				if (p.st == RpgGameData::Player::PlayerHit ||
+						p.st == RpgGameData::Player::PlayerShot) {
+					m_solver.add(p.arm.cw, m_current, src, tg);
+				} else if (specialSt == RpgGameData::Player::PlayerInvalid) {
 
 					if (p.st == RpgGameData::Player::PlayerWeaponChange) {
 						cw = p.arm.cw;
@@ -1147,6 +1319,98 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 
 
+/**
+ * @brief Renderer::render
+ * @param dst
+ * @param src
+ */
+
+void Renderer::render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgGameData::EnemyBaseData> *src)
+{
+	Q_ASSERT(dst);
+	Q_ASSERT(src);
+
+	if (!dst->hasContent())
+		return;
+
+	// Ezzel hasonlítjük össze, hogy változott-e
+
+	const RpgGameData::Enemy original = dst->m_data;
+
+	if (!dst->flags().testFlag(RendererType::ReadOnly)) {
+
+		const auto &ptr = extendFromLast<RpgGameData::Enemy>(src);
+
+		if (!dst->flags().testFlag(RendererType::Storage)) {
+			if (ptr) {
+				dst->m_data = ptr.value();
+
+				// Nem szabad áthozni pl. lövést vagy más eventet
+
+				if (dst->m_data.st != RpgGameData::Enemy::EnemyMoving)
+					dst->m_data.st = RpgGameData::Enemy::EnemyIdle;
+
+				dst->addFlags(RendererType::Storage | RendererType::Modified);
+			} else {
+				LOG_CERROR("engine") << "Extend failed" << src->baseData.o;
+				return;
+			}
+		} else {
+			if (ptr)
+				restore(&dst->m_data, ptr.value());
+		}
+	}
+
+	const RpgGameData::Enemy saved = dst->m_data;
+
+	if (!dst->m_subData.empty()) {
+
+		if (dst->flags().testFlag(RendererType::ReadOnly)) {
+			LOG_CERROR("engine") << "Update read only snap" << dst->data().f;
+		}
+
+		RpgGameData::Enemy::EnemyState specialSt = RpgGameData::Enemy::EnemyInvalid;
+
+		for (const RpgGameData::Enemy &p : dst->m_subData) {
+			if ( p.st != RpgGameData::Enemy::EnemyIdle &&
+				 p.st != RpgGameData::Enemy::EnemyMoving &&
+				 p.st != RpgGameData::Enemy::EnemyInvalid) {
+
+				// TODO: conflict solver (Attack,...) -> continue
+
+				if (specialSt == RpgGameData::Enemy::EnemyInvalid) {
+					specialSt = p.st;
+				} else {
+					LOG_CWARNING("engine") << "State conflict" << specialSt << p.st;
+				}
+			}
+
+			dst->m_data = p;
+		}
+
+		// Az érzékeny adatokat visszaállítjuk, mindegy, mit kaptunk
+
+		restore(&dst->m_data, saved);
+
+
+		// Az egyszerű statusokat beállítjuk
+
+		if (specialSt != RpgGameData::Enemy::EnemyInvalid)
+			dst->m_data.st = specialSt;
+
+
+		// Töröljük a sub-okat
+
+		dst->clearSubData();
+	}
+
+	if (dst->m_data != original)
+		dst->addFlags(RendererType::Modified);
+}
+
+
+
+
 
 /**
  * @brief Renderer::restore
@@ -1173,113 +1437,23 @@ void Renderer::restore(RpgGameData::Player *dst, const RpgGameData::Player &data
 
 
 /**
- * @brief Renderer::extendFromFirst
+ * @brief Renderer::restore
  * @param dst
- * @param src
+ * @param data
  */
 
-std::optional<RpgGameData::Player> Renderer::extendFromLast(RendererObject<RpgGameData::PlayerBaseData> *src)
+void Renderer::restore(RpgGameData::Enemy *dst, const RpgGameData::Enemy &data)
 {
-	Q_ASSERT(src);
+	Q_ASSERT(dst);
 
-	auto it = src->iterator();
-
-	if (it == src->snap.cbegin())
-		return std::nullopt;
-
-	for (--it; ; --it) {
-		RendererItem<RpgGameData::Player> *p = dynamic_cast<RendererItem<RpgGameData::Player>*>(it->get());
-
-		if (p && (p->flags().testFlag(RendererType::Storage))) {
-			return p->m_data;
-		}
-
-		if (it == src->snap.cbegin())
-			break;
-	}
-
-	return std::nullopt;
+	dst->tg = data.tg;
+	dst->hp = data.hp;
+	dst->mhp = data.mhp;
 }
 
 
 
 
-
-/**
- * @brief Renderer::loadStorageSnaps
- * @param dst
- * @param list
- * @return
- */
-
-bool Renderer::loadStorageSnaps(RendererObject<RpgGameData::PlayerBaseData> *dst,
-								RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> &ptr)
-{
-	auto it = RpgSnapshotStorage::getPreviousSnap(ptr.list, m_startTick);
-
-	if (it == ptr.list.end()) {
-		LOG_CDEBUG("engine") << "Missing snap" << ptr.data.o << m_startTick;
-		return false;
-	}
-
-	if (!dst->setAuthSnap(it->second)) {
-		LOG_CDEBUG("engine") << "Snap error" << ptr.data.o << m_startTick;
-		return false;
-	}
-
-	bool success = true;
-
-	const qint64 last = m_startTick+m_size-1;
-
-	for (++it; it != ptr.list.end(); ++it) {
-		if (it->first > last)
-			break;
-
-		const qint64 index = it->first - m_startTick;
-
-		Q_ASSERT(index >= 0);
-		Q_ASSERT(index < m_size);
-
-		if (!dst->setSnap(index, it->second, RendererType::Storage)) {
-			LOG_CDEBUG("engine") << "Snap error" << ptr.data.o << m_startTick << index << it->first;
-			success = false;
-		}
-	}
-
-
-	return success;
-}
-
-
-
-
-/**
- * @brief Renderer::loadTemporarySnaps
- * @param dst
- * @param ptr
- * @return
- */
-
-bool Renderer::loadTemporarySnaps(RendererObject<RpgGameData::PlayerBaseData> *dst,
-								  RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> &ptr)
-{
-	const int first = (m_startTick+1)*10;
-	const int last = (m_startTick+m_size-1)*10;
-
-	for (const auto &m : ptr.list) {
-		if (m.first < first || m.first >= last)
-			continue;
-
-		const qint64 index = (qint64)(m.first/10) - m_startTick;
-
-		Q_ASSERT(index >= 0);
-		Q_ASSERT(index < m_size);
-
-		dst->addSubSnap(index, m.second);
-	}
-
-	return true;
-}
 
 
 
@@ -1294,11 +1468,11 @@ bool Renderer::render()
 {
 	for (;;) {
 
-		// TODO: conflict solver
-
 		for (const auto &ptr : m_objects) {
 			ptr->render(this);
 		}
+
+		m_solver.solve();
 
 		if (!step())
 			break;
@@ -1328,4 +1502,162 @@ bool Renderer::step()
 	return m_current < m_size;
 }
 
+
+
+
+
+
+
+
+
+
+/**
+ * @brief ConflictSolver::add
+ * @param args
+ */
+template<typename T, typename ...Args, typename T3>
+T *ConflictSolver::addData(Args &&...args)
+{
+	std::unique_ptr<T> p(new T(std::forward<Args>(args)...));
+	m_list.push_back(std::move(p));
+	return dynamic_cast<T*>(m_list.back().get());
+}
+
+
+
+/**
+ * @brief ConflictSolver::ConflictSolver
+ * @param renderer
+ */
+
+ConflictSolver::ConflictSolver(Renderer *renderer)
+	: m_renderer(renderer)
+{
+
+}
+
+
+
+/**
+ * @brief ConflictSolver::add
+ * @param weaponType
+ * @param tick
+ * @param src
+ * @param dest
+ */
+
+void ConflictSolver::add(const RpgGameData::Weapon::WeaponType &weaponType,
+						 const int &tick, RendererObjectType *src, RendererObjectType *dest)
+{
+	ConflictDataWeaponUsage *d = addData<ConflictDataWeaponUsage>(tick, src, dest, weaponType);
+
+	LOG_CINFO("engine") << "SOLVER ADD" << d->tick << d->weaponType << src;
+}
+
+
+
+/**
+ * @brief ConflictSolver::solve
+ * @return
+ */
+
+bool ConflictSolver::solve()
+{
+	if (m_list.empty())
+		return true;
+
+	bool r = true;
+
+	for (auto &ptr : m_list) {
+		if (ptr->solved)
+			continue;
+
+		if (!ptr->solve(this))
+			r = false;
+		else
+			ptr->solved = true;
+	}
+
+	std::erase_if(m_list, [](const auto &p){
+		return p->solved;
+	});
+
+	return r;
+}
+
+
+
+
+
+/**
+ * @brief ConflictSolver::ConflictDataWeaponUsage::solve
+ * @return
+ */
+
+bool ConflictSolver::ConflictDataWeaponUsage::solve(ConflictSolver *solver)
+{
+	LOG_CDEBUG("engine") << "----- SOLVE";
+
+	if (weaponType == RpgGameData::Weapon::WeaponInvalid) {
+		LOG_CERROR("engine") << "Invalid weapon";
+		return false;
+	}
+
+	RendererObject<RpgGameData::PlayerBaseData> *p = dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src);
+	RendererObject<RpgGameData::EnemyBaseData> *enemy = dynamic_cast<RendererObject<RpgGameData::EnemyBaseData> *>(src);
+
+	RendererObject<RpgGameData::ArmoredEntityBaseData> *entity = nullptr;
+	if (p)
+		entity = dynamic_cast<RendererObject<RpgGameData::ArmoredEntityBaseData> *>(p);
+	/*else if (enemy)
+		entity = dynamic_cast<RendererObject<RpgGameData::ArmoredEntityBaseData> *>(enemy);*/
+
+
+	if (!entity) {
+		LOG_CERROR("engine") << "Invalid source" << src << p << enemy;
+		//return false;
+	}
+
+
+	RendererItem<RpgGameData::Player> *e = solver->m_renderer->get<RpgGameData::Player>(src);
+
+	if (!e) {
+		LOG_CERROR("engine") << "Invalid source item" << src;
+		return false;
+	}
+
+	if (e->flags() & RendererType::ReadOnly) {
+		LOG_CERROR("engine") << "Read only storage item" << e;
+		return false;
+	}
+
+	if (!(e->flags() & RendererType::Storage)) {
+		LOG_CERROR("engine") << "Missing storage flag" << e;
+		return false;
+	}
+
+	RpgGameData::Player data = e->data();
+
+	auto it = data.arm.find(weaponType);
+
+	if (it == data.arm.wl.end()) {
+		LOG_CERROR("engine") << "Missing weapon" << e << weaponType;
+		return false;
+	}
+
+	if (it->b == 0) {
+		LOG_CERROR("engine") << "No bullet" << e << weaponType;
+		return false;
+	}
+
+	if (it->b > 0) {
+		--it->b;
+		LOG_CDEBUG("engine") << "Bullet changed" << it->b;
+	}
+
+	e->setData(data);
+	e->addFlags(RendererType::Modified);
+
+	return true;
+}
 

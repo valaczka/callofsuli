@@ -866,7 +866,7 @@ public:
 	}
 
 	bool canMerge(const Entity &other) const {
-		return Body::canMerge(other) && other.hp == hp && other.mhp == mhp;
+		return Body::canMerge(other) && other.hp == hp && other.mhp == mhp && other.cv == cv && other.a == a;
 	}
 
 	EQUAL_OPERATOR(Entity)

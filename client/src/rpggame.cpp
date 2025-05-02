@@ -427,7 +427,7 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 
 				it->pickablesOnce.clear();
 
-				it->hasQuestion = false;
+				//it->hasQuestion = false;
 			}
 
 			// on all of enemies in the same scene are dead -> set die forever
@@ -1774,7 +1774,6 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 							   object->property(QStringLiteral("direction")).toInt(),
 							   scene,
 							   nullptr,
-							   false,
 							   object->property(QStringLiteral("dieForever")).toBool(),
 							   pickableList,
 							   pickableOnceList,
@@ -2928,8 +2927,8 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 		return -1;
 
 	if (m_rpgQuestion && m_rpgQuestion->emptyQuestions()) {
-		for (EnemyData &e : m_enemyDataList)
-			e.hasQuestion = false;
+		/*for (EnemyData &e : m_enemyDataList)
+			e.hasQuestion = false;*/
 
 		return 0;
 	}
@@ -2946,9 +2945,9 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 
 		++count;
 
-		if (e.hasQuestion)
+		/*if (e.hasQuestion)
 			++q;
-		else
+		else*/
 			eList.append(&e);
 	}
 
@@ -2963,7 +2962,7 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 		if ((qreal) (q+1) / (qreal) count > factor)
 			break;
 
-		e->hasQuestion = true;
+		//e->hasQuestion = true;
 		++q;
 		++created;
 	}

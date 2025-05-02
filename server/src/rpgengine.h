@@ -67,10 +67,14 @@ public:
 	bool isPrepared() const { return m_isPrepared; }
 	void setIsPrepared(bool newIsPrepared) { m_isPrepared = newIsPrepared; }
 
+	bool isFullyPrepared() const { return m_isFullyPrepared; }
+	void setIsFullyPrepared(bool newIsPrepared) { m_isFullyPrepared = newIsPrepared; }
+
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
 	bool m_isPrepared = false;
+	bool m_isFullyPrepared = false;
 	RpgGameData::CharacterSelect m_config;
 
 	friend class RpgEngine;

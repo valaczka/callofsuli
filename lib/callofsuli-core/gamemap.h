@@ -98,13 +98,13 @@ public:
 
 	enum GameMode {
 		Invalid = 0,
-		Action [[deprecated]] = 1,
+		/*Action [[deprecated]] = 1,*/
 		Lite = 1 << 2,
 		Test = 1 << 3,
 		Quiz = 1 << 4,
 		Exam = 1 << 5,
 		Practice = 1 << 6,
-		MultiPlayer [[deprecated]] = 1 << 7,
+		/*MultiPlayer [[deprecated]] = 1 << 7,*/
 		Conquest = 1 << 8,
 		Rpg = 1 << 9
 	};

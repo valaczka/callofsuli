@@ -1430,7 +1430,7 @@ MapEditorMission* MapEditor::missionAdd(const QString &name)
 
 	mission.setUuid(uuid);
 	mission.setName(name.isEmpty() ? tr("Új küldetés") : name);
-	mission.setModes(GameMap::Lite|GameMap::Action);
+	mission.setModes(GameMap::Lite|GameMap::Rpg);
 
 	MapEditorMissionLevel *level = mission.createNextLevel(m_map);
 	level->setLevel(1);

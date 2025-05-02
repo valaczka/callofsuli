@@ -1316,10 +1316,10 @@ void TiledGame::updateStepTimer()
 		LOG_CERROR("scene") << "Render lag:" << frames << "frames";
 	else if (frames > 8)
 		LOG_CWARNING("scene") << "Render lag:" << frames << "frames";
-	else if (frames > 2)
+	/*else if (frames > 4)
 		LOG_CDEBUG("scene") << "Render lag:" << frames << "frames";
 	else if (frames > 1)
-		LOG_CTRACE("scene") << "Render lag:" << frames << "frames";
+		LOG_CTRACE("scene") << "Render lag:" << frames << "frames";*/
 
 
 	timeSteppedEvent();

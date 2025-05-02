@@ -60,8 +60,7 @@ public:
 	void updateFromLastSnapshot(const T &snap);
 
 protected:
-	static QList<float> toPosList(const QVector2D &pos) { return { pos.x(), pos.y() }; }
-	static QList<float> toPosList(const QPointF &pos) { return { (float) pos.x(), (float) pos.y() }; }
+	static QList<float> toPosList(const cpVect &pos) { return { (float) pos.x, (float) pos.y }; }
 
 	virtual T serializeThis() const = 0;
 
@@ -69,15 +68,25 @@ protected:
 	void setLastSnapshot(const T &snap) { m_lastSnapShot = snap; }
 
 	template <typename E>
-	static QVector2D entityMove(IsometricEntity *entity,
-						   const RpgGameData::SnapshotInterpolation<T> &snapshot,
-						   const E &idle, const E &moving,
-						   const qreal &speed);
+	static cpVect entityMove(IsometricEntity *entity,
+							 const RpgGameData::SnapshotInterpolation<T> &snapshot,
+							 const E &idle,
+							 const E &moving,
+							 const qreal &speed,
+							 const qreal &maxSpeed,
+							 QString *msg
+							 );
+
+	static bool fnStop(IsometricEntity *entity, const float &angle);
+	static bool fnEmplace(IsometricEntity *entity, const cpVect &dst, const float &angle);
+	static cpVect fnMove (IsometricEntity *entity, const cpVect &final,
+						  const int &inFrame, const float &maxSpeed, const QList<float> &cv);
 
 private:
 	T m_lastSnapShot;
 	T m_lastSerialized;
 };
+
 
 
 
@@ -169,7 +178,6 @@ inline void RpgGameDataInterface<T, T2, T3, T4>::updateFromLastSnapshot(const T 
 		updateFromSnapshot(snap);
 	}
 }
-
 
 
 

@@ -199,7 +199,7 @@ void AbstractUdpEnginePrivate::run()
 
 		ENetEvent event;
 
-		int r = enet_host_service (m_enet_host, &event, 1000/120);
+		int r = enet_host_service (m_enet_host, &event, 1000./120.);
 
 		if (r < 0) {
 			LOG_CERROR("engine") << "ENet host service error";
@@ -241,7 +241,7 @@ void AbstractUdpEnginePrivate::run()
 			ENetPacket *packet = enet_packet_create(b.data.data(), b.data.size(),
 													b.reliable ? ENET_PACKET_FLAG_RELIABLE :
 																 ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-			if (enet_peer_send(m_enet_peer, 0, packet) < 0) {
+			if (enet_peer_send(m_enet_peer, b.channel, packet) < 0) {
 				LOG_CERROR("client") << "ENet peer send error";
 				enet_packet_destroy(packet);
 			}

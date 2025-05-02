@@ -357,7 +357,6 @@ private:
 		int defaultAngle = 0;
 		QPointer<TiledScene> scene;
 		QPointer<IsometricEnemy> enemy;
-		[[deprecated]] bool hasQuestion = false;
 		bool dieForever = false;
 		QVector<RpgGameData::PickableBaseData::PickableType> pickables;
 		QVector<RpgGameData::PickableBaseData::PickableType> pickablesOnce;

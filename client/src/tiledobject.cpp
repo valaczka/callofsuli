@@ -248,6 +248,41 @@ float TiledObject::shortestDistance(const cpVect &point, const cpVect &lineP1, c
 
 
 
+/**
+ * @brief TiledObject::moveTowards
+ * @param point
+ * @param speed
+ * @return
+ */
+
+bool TiledObject::moveTowards(const cpVect &point, const float &speed)
+{
+	float angle = angleToPoint(point);
+	bool r = TiledObjectBody::moveTowards(point, speed);
+	setCurrentAngle(angle);
+	return r;
+}
+
+
+/**
+ * @brief TiledObject::moveToPoint
+ * @param point
+ * @param inFrame
+ * @param maxSpeed
+ * @return
+ */
+
+bool TiledObject::moveToPoint(const cpVect &point, const int &inFrame, const float &maxSpeed)
+{
+	float angle = angleToPoint(point);
+	bool r = TiledObjectBody::moveToPoint(point, inFrame, maxSpeed);
+	setCurrentAngle(angle);
+	return r;
+}
+
+
+
+
 
 
 /**
@@ -362,17 +397,17 @@ void TiledObject::onSpaceChanged()
  * @return
  */
 
-bool TiledObject::moveTowards(const cpVect &point, const float &speed)
+bool TiledObjectBody::moveTowards(const cpVect &point, const float &speed)
 {
-	const float dist = distanceToPointSq(point);
-	const float angle = angleToPoint(point);
+	const cpVect &pos = bodyPosition();
 
-	setCurrentAngle(angle);
-
-	if (dist > POW2(2 * speed/60.))
-		setSpeedFromAngle(angle, speed);
-	else
+	if (pos == cpvzero || speed <= 0.)
 		return false;
+
+	if (pos == point)
+		return false;
+
+	setSpeed(cpvmult(cpvnormalize(cpvsub(point, pos)), speed));
 
 	return true;
 }
@@ -388,19 +423,50 @@ bool TiledObject::moveTowards(const cpVect &point, const float &speed)
  * @return
  */
 
-bool TiledObject::moveTowards(const cpVect &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove)
+bool TiledObjectBody::moveTowardsLimited(const cpVect &point, const float &speedBelow, const float &destinationLimit, const float &speedAbove)
 {
-	const float dist = distanceToPointSq(point);
-	const float angle = angleToPoint(point);
-
-	setCurrentAngle(angle);
-
-	if (dist > POW2(destinationLimit))
-		setSpeedFromAngle(angle, speedAbove);
-	else if (dist > POW2(2 * speedBelow/60.))
-		setSpeedFromAngle(angle, speedBelow);
+	if (distanceToPointSq(point) > POW2(destinationLimit))
+		return moveTowards(point, speedAbove);
 	else
+		return moveTowards(point, speedBelow);
+}
+
+
+
+/**
+ * @brief TiledObjectBody::moveToPoint
+ * @param point
+ * @param inFrame
+ * @param maxSpeed
+ * @return
+ */
+
+bool TiledObjectBody::moveToPoint(const cpVect &point, const int &inFrame, const float &maxSpeed)
+{
+	if (inFrame < 1) {
+		LOG_CERROR("scene") << "Invalid value inFrame:" << inFrame;
 		return false;
+	}
+
+	const cpVect &pos = bodyPosition();
+
+	if (pos == cpvzero)
+		return false;
+
+	if (pos == point)
+		return false;
+
+
+	cpVect dest = cpvsub(point, pos);
+
+	if (maxSpeed > 0.) {
+		if (const float s = maxSpeed*inFrame/60.; cpvlengthsq(dest) > POW2(s)) {
+			LOG_CINFO("scene") << "[Simulation] maxSpeed" << dest.x << dest.y << maxSpeed;
+			dest = cpvmult(cpvnormalize(dest), s);
+		}
+	}
+
+	setSpeed(cpvmult(dest, 60/inFrame));
 
 	return true;
 }
@@ -448,7 +514,7 @@ TiledGame *TiledObjectBody::game() const
 
 void TiledObjectBody::overrideCurrentSpeed(const cpVect &speed)
 {
-	d->m_currentSpeedSq = cpvlengthsq(speed)/POW2(60.);
+	d->m_currentSpeedSq = cpvlengthsq(speed);
 }
 
 
@@ -1472,9 +1538,6 @@ void TiledObjectBody::emplace(const cpVect &center)
 	d->setVelocity(cpvzero);
 	cpBodySetPosition(d->m_bodyRef, center);
 
-	d->m_lastPosition.clear();
-	d->m_lastPosition.push_back(center);
-
 	d->m_currentSpeedSq = 0.;
 }
 
@@ -1678,7 +1741,7 @@ void TiledObjectBody::worldStep()
 {
 	CHECK_LOCK();
 
-	d->m_lastPosition.push_back(cpBodyGetPosition(d->m_bodyRef));
+	/*d->m_lastPosition.push_back(cpBodyGetPosition(d->m_bodyRef));
 	while (d->m_lastPosition.size() > 4)
 		d->m_lastPosition.pop_front();
 
@@ -1692,10 +1755,12 @@ void TiledObjectBody::worldStep()
 			first = it;
 		}
 
-		d->m_currentSpeedSq = diff / (float) (s-1);
+		d->m_currentSpeedSq = POW2(diff / (float) (s-1));
 	} else {
 		d->m_currentSpeedSq = 0.;
-	}
+	}*/
+
+	d->m_currentSpeedSq = cpvlengthsq(cpBodyGetVelocity(d->m_bodyRef));
 
 
 	if (d->m_rotateAnimation.running)
@@ -2567,9 +2632,15 @@ void TiledObjectBodyPrivate::addTargetCircle(const float &length)
 
 void TiledObjectBodyPrivate::setVelocity(const cpVect &speed)
 {
+	if (isnan(speed.x) || isnan(speed.y) ||
+			isinf(speed.x) || isinf(speed.y)) {
+		LOG_CERROR("scene") << "Invalid speed" << speed.x << speed.y;
+		return;
+	}
+
 	const cpVect &curr = cpBodyGetVelocity(m_bodyRef);
 
-	cpVect norm;
+	/*cpVect norm;
 	norm.x = qAbs(speed.x) < 0.00001f ? 0.0f : speed.x;
 	norm.y = qAbs(speed.y) < 0.00001f ? 0.0f : speed.y;
 
@@ -2582,8 +2653,9 @@ void TiledObjectBodyPrivate::setVelocity(const cpVect &speed)
 	if ((qAbs(curr.x - norm.x) * 10000.f > QtPrivate::min(qAbs(curr.x), qAbs(norm.x))) ||
 			(qAbs(curr.y - norm.y) * 10000.f > QtPrivate::min(qAbs(curr.y), qAbs(norm.y)))) {
 		cpBodySetVelocity(m_bodyRef, norm);
-	}
+	}*/
 
+	cpBodySetVelocity(m_bodyRef, speed);
 }
 
 
@@ -2662,6 +2734,19 @@ void TiledObject::setCurrentAngle(float newCurrentAngle)
 		return;
 
 	rotateBody(newCurrentAngle);
+	emit currentAngleChanged();
+}
+
+
+
+/**
+ * @brief TiledObject::setCurrentAngleForced
+ * @param newCurrentAngle
+ */
+
+void TiledObject::setCurrentAngleForced(float newCurrentAngle)
+{
+	rotateBody(newCurrentAngle, true);
 	emit currentAngleChanged();
 }
 

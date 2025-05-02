@@ -182,6 +182,8 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 
+
+	/*
 	// Multiplayer
 
 	if (levelGame->mode() == GameMap::MultiPlayer) {
@@ -190,7 +192,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		setGameState(StatePlay);
 		return;
 	}
-
+*/
 
 	// Other
 
@@ -278,6 +280,8 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 
+
+	/*
 	// MultiPlayer
 
 	if (levelGame->mode() == GameMap::MultiPlayer) {
@@ -286,6 +290,8 @@ void MapPlayCampaign::onCurrentGameFinished()
 		updateSolver();
 		return;
 	}
+
+	*/
 
 	// Other
 
@@ -301,7 +307,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 		emit currentGameFailed();
 
 
-	if (levelGame->mode() == GameMap::Practice || levelGame->mode() == GameMap::MultiPlayer) {
+	if (levelGame->mode() == GameMap::Practice /*|| levelGame->mode() == GameMap::MultiPlayer*/) {
 		destroyCurrentGame();
 		//updateSolver();
 		setGameState(StateFinished);

@@ -184,7 +184,7 @@ private:
 
 			const bool inMap = mapIt != map.cend();
 
-			it->flags.setFlag(Visible, inMap);
+			it->flags.setFlag(Visible, inMap && mapIt->visible);
 
 			if (inMap) {
 				it->distance = m_player->distanceToPointSq(mapIt->point);
@@ -379,7 +379,7 @@ void IsometricPlayer::updateEnemies(const float &shotRange)
 {
 	if (shotRange > 0.) {
 		cpVect dest = cpvadd(bodyPosition(), vectorFromAngle(bodyRotation(), shotRange));
-		d->updateFromRayCast(rayCast(dest, FixtureTarget, true));
+		d->updateFromRayCast(rayCast(dest, FixtureTarget));
 	} else {
 		d->updateFromRayCast({});
 	}
@@ -578,7 +578,7 @@ void IsometricPlayer::worldStep() {
 		stop();
 	} else {
 		if (d->m_destinationPoint) {
-			if (!moveTowards(d->m_destinationPoint.value(), m_speedLength, m_speedRunLength*0.5, m_speedRunLength)) {
+			if (!moveTowardsLimited(d->m_destinationPoint.value(), m_speedLength, m_speedRunLength*0.5, m_speedRunLength)) {
 				stop();
 				emplace(d->m_destinationPoint.value());
 				clearDestinationPoint();
@@ -639,7 +639,7 @@ void IsometricPlayer::synchronize()
 bool IsometricPlayer::isRunning() const
 {
 	// 60 FPS
-	return currentSpeedSq() >= m_speedRunLength*0.9/60;
+	return currentSpeedSq() >= POW2(m_speedRunLength)*0.9;
 }
 
 
@@ -652,7 +652,7 @@ bool IsometricPlayer::isWalking() const
 {
 	// 60 FPS
 	const float &l = currentSpeedSq();
-	return l < m_speedRunLength/60 && l > 0.05;
+	return l < POW2(m_speedRunLength) && l > POW2(0.05);
 }
 
 

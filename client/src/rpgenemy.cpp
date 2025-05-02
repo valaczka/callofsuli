@@ -46,54 +46,91 @@ RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *g
 
 void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot)
 {
-	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
-		stop();
-	} else if (!hasAbility()) {
-		stop();
-	}
 
-	if (snapshot.s1.f < 0) {
-		LOG_CERROR("game") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.current;
+	if (snapshot.s1.f < 0 && snapshot.last.f < 0) {
+		LOG_CERROR("scene") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.last.f << snapshot.current;
+
 		stop();
 		IsometricEntity::worldStep();
 		return;
 	}
 
-	/*if (m_lastSnap >= 0 && snapshot.s1.f > m_lastSnap) {
-		LOG_CERROR("game") << "SNAP ERROR" << m_lastSnap << snapshot.s1.f << snapshot.current << snapshot.s2.f;
-	}
-	m_lastSnap = snapshot.s2.f;*/
-
 
 	cpVect speed = cpvzero;
 
-	if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit) {
-		LOG_CINFO("game") << "ENEMYHIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
+	try {
+		if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit ||
+				snapshot.s1.st == RpgGameData::Enemy::EnemyShot ) {
+			if (const qint64 t = m_stateLastRenderedTicks.value(snapshot.s1.st); t >= snapshot.s1.f)
+				throw 1;
 
-		auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
 
-		if (wptr) {
-			TiledObject *target = nullptr;
-
-			if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
-				target = dynamic_cast<TiledObject*>(g->findBody(
-														TiledObjectBody::ObjectId{
-															.ownerId = snapshot.s1.tg.o,
-															.sceneId = snapshot.s1.tg.s,
-															.id = snapshot.s1.tg.id
-														}));
+			if (!snapshot.s1.p.isEmpty()) {
+				if (fnEmplace(this, cpv(snapshot.s1.p.at(0), snapshot.s1.p.at(1)), snapshot.s1.a))
+					LOG_CDEBUG("scene") << "[Simulation] Forced emplace" << snapshot.s1.p << snapshot.s1.a;
+			} else {
+				LOG_CERROR("scene") << "Missing hitpoint" << snapshot.s1.f;
 			}
 
-			wptr->setParentObject(this);
-			playAttackEffect(wptr.get());
-			wptr->playAttack(target);
+			m_stateLastRenderedTicks.insert(snapshot.s1.st, snapshot.s1.f);
 		}
 
-	} else {
-		//speed = entityMove(this, snapshot, RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving, m_metric.speed);
+
+		if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit) {
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+			if (wptr) {
+				TiledObject *target = nullptr;
+
+				if (RpgGame *g = qobject_cast<RpgGame*>(m_game)) {
+					target = dynamic_cast<TiledObject*>(g->findBody(
+															TiledObjectBody::ObjectId{
+																.ownerId = snapshot.s1.tg.o,
+																.sceneId = snapshot.s1.tg.s,
+																.id = snapshot.s1.tg.id
+															}));
+				}
+
+				wptr->setParentObject(this);
+				playAttackEffect(wptr.get());
+				wptr->playAttack(target);
+
+				LOG_CWARNING("scene") << "REAL ENEMY HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << bodyPositionF()
+									  << snapshot.s1.a << bodyRotation();
+			}
+
+			throw -1;
+		} else if (snapshot.s1.st == RpgGameData::Enemy::EnemyShot) {
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+			if (wptr) {
+				wptr->setParentObject(this);
+				playAttackEffect(wptr.get());
+				wptr->playAttack(nullptr);
+			}
+
+			LOG_CINFO("scene") << "REAL ENEMY SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
+
+			throw -1;
+		} else {
+			throw 1;
+		}
+	} catch (int e) {
+
+		if (e > 0) {
+			speed = entityMove(this, snapshot,
+					   RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving,
+					   m_metric.speed, 2*m_metric.pursuitSpeed,
+					   nullptr);
+		}
+
 	}
 
-	updateFromSnapshot(snapshot.s1);
+
+	if (snapshot.s1.f >= 0)
+		updateFromSnapshot(snapshot.s1);
+	else
+		updateFromSnapshot(snapshot.last);
 
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		stop();
@@ -258,8 +295,12 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 {
 	RpgGameData::Enemy p;
 
-	p.p = toPosList(bodyPositionF());
-	p.a = desiredBodyRotation(); //currentAngle();
+	p.p = toPosList(bodyPosition());
+	p.a = currentAngle();
+
+	if (std::abs(p.a) < 0.0000001)
+		p.a = 0.;
+
 	p.hp = hp();
 
 	if (TiledScene *s = scene())
@@ -272,7 +313,7 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 	else
 		p.st = RpgGameData::Enemy::EnemyIdle;
 
-	p.cv = { (float) vel.x, (float) vel.y };
+	p.cv = toPosList(vel);
 
 	p.arm = m_armory->serialize();
 
