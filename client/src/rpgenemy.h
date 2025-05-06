@@ -46,11 +46,14 @@ public:
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Enemy &snap) override;
+	virtual bool isLastSnapshotValid(const RpgGameData::Enemy &snap, const RpgGameData::Enemy &lastSnap) const override;
 
 protected:
 	virtual bool enemyWorldStep() override;
 	virtual bool enemyWorldStepOnVisiblePlayer() override;
 	virtual void attackPlayer(RpgPlayer *player, RpgWeapon *weapon) override;
+	virtual void onAlive() override;
+	virtual void onDead() override;
 
 	RpgGameData::Enemy serializeEnemy() const;
 

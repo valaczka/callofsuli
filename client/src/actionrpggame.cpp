@@ -1195,6 +1195,7 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, cons
 
 	enemy->updateFromSnapshot(e);
 
+
 	return true;
 }
 
@@ -1594,8 +1595,6 @@ bool ActionRpgGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, cons
 
 bool ActionRpgGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
 {
-	LOG_CINFO("game") << "IMPACT" << bullet << other;
-
 	if (!bullet || !other)
 		return false;
 
@@ -1624,8 +1623,6 @@ bool ActionRpgGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
 													 .id = bullet->ownerId().id
 												 });
 
-	LOG_CINFO("game") << "IMPACT" << enemy << player << bullet->weaponType();
-
 	if (RpgPlayer *ownP = dynamic_cast<RpgPlayer*>(owner); ownP && enemy) {
 		m_rpgGame->playerAttackEnemy(ownP, enemy, bullet->weaponType());
 	}
@@ -1651,7 +1648,6 @@ bool ActionRpgGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
 
 void ActionRpgGame::onBulletDelete(IsometricBullet *bullet)
 {
-	LOG_CINFO("game") << "DELETE BULLET" << bullet;
 	if (m_rpgGame)
 		m_rpgGame->removeObject(bullet);
 }

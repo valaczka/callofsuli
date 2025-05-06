@@ -47,6 +47,28 @@ private:
 	void updateBody(TiledObjectBody *body, const bool &isHosted);
 
 private:
+	template <typename T, typename T2, typename T3,
+			  typename = std::enable_if<std::is_base_of<RpgGameDataInterface<T2, T3>, T>::value>::type
+			  >
+	void update(T *body, const bool &isHosted)
+	{
+		const auto &ptr = m_currentSnapshot.getSnapshot(body->baseData());
+
+		if (!ptr) {
+			if (isHosted)
+				body->worldStep();
+			return;
+		} else {
+			if (isHosted) {
+				if (ptr->s1.f >= 0)
+					body->updateFromLastSnapshot(ptr->s1);
+				body->worldStep();
+			} else {
+				body->updateFromSnapshot(ptr.value());
+			}
+		}
+	}
+
 	RpgGameData::FullSnapshot m_currentSnapshot;
 
 	qint64 m_lastSentTick = -1;
@@ -122,8 +144,6 @@ private:
 	ActionRpgMultiplayerGame *const d;
 
 	friend class ActionRpgMultiplayerGame;
-
-	cpSpace *m_space = nullptr;
 };
 
 
@@ -160,8 +180,6 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	connect(m_engine, &RpgUdpEngine::gameError, this, &ActionRpgMultiplayerGame::setError);
 
 	m_keepAliveTimer.start(1000, this);
-
-	q->m_space = cpSpaceNew();
 }
 
 
@@ -173,7 +191,6 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 
 ActionRpgMultiplayerGame::~ActionRpgMultiplayerGame()
 {
-	cpSpaceFree(q->m_space);
 	delete q;
 	q = nullptr;
 	LOG_CDEBUG("game") << "ActionRpgMultiplayerGame destroyed";
@@ -727,6 +744,9 @@ void ActionRpgMultiplayerGame::syncBulletList()
 
 			if (b.data.pth.size() > 3) {
 				newBullet->shot(b.data);
+			} else {
+				LOG_CERROR("game") << "Bullet path missing" << b.data.o << b.data.s << b.data.id;
+				continue;
 			}
 
 			continue;
@@ -876,6 +896,8 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 
 	if (playerData.p.size() > 1)
 		player->emplace(playerData.p.at(0), playerData.p.at(1));
+	else
+		LOG_CWARNING("scene") << "Player position missing! ########################";
 
 	player->setCurrentAngle(playerData.a);
 	//player->setCurrentSceneStartPosition(d->m_playerPosition.value_or(QPointF{0,0}));
@@ -972,9 +994,9 @@ void ActionRpgMultiplayerGame::onTimeBeforeWorldStep(const qint64 &tick)
 
 
 
-#ifdef WITH_FTXUI
+/*#ifdef WITH_FTXUI
 #include "desktopapplication.h"
-#endif
+#endif*/
 
 
 /**
@@ -993,9 +1015,10 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 
 	const bool forceKeyFrame = q->m_lastSentTick < 0 || (tick - q->m_lastSentTick >= 15);
 
-	m_rpgGame->iterateOverBodies([this, &tick, forceKeyFrame](TiledObjectBody *b) {
-		bool hasSnap = q->m_toSend.hasSnapshot();			// Ha nem tesszük be a playert, nem fogja a szerver feldolgozni
 
+	bool hasSnap = q->m_toSend.hasSnapshot();			// Ha nem tesszük be a playert, nem fogja a szerver feldolgozni
+
+	m_rpgGame->iterateOverBodies([this, &tick, &hasSnap, forceKeyFrame](TiledObjectBody *b) {
 		if (m_gameMode == MultiPlayerHost) {
 			if (RpgEnemy *iface = dynamic_cast<RpgEnemy*> (b)) {
 				if (q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame))
@@ -1003,21 +1026,20 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 			}
 		};
 
-
-		if (RpgPlayer *iface = dynamic_cast<RpgPlayer*> (b)) {
-			if (m_rpgGame->controlledPlayer() == iface) {
-				q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame || hasSnap);
-			}
+		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b);
+				iface && b->objectId().ownerId == m_playerId &&
+				iface->stage() != RpgGameData::LifeCycle::StageDestroy) {
+			if (q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame))
+				hasSnap = true;
 		}
 
-
-		/*else if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b);
-				   iface && b->objectId().ownerId == m_playerId &&
-				   iface->stage() != RpgGameData::LifeCycle::StageDestroy) {
-			q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame);
-		}*/
 	});
 
+	m_rpgGame->iterateOverBodies([this, &tick, hasSnap, forceKeyFrame](TiledObjectBody *b) {
+		if (RpgPlayer *iface = dynamic_cast<RpgPlayer*> (b); iface && m_rpgGame->controlledPlayer() == iface) {
+			q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame || hasSnap);
+		}
+	});
 
 
 	if (!q->m_toSend.hasSnapshot())
@@ -1068,20 +1090,6 @@ bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *
 	if (!player || !enemy)
 		return false;
 
-	/*RpgGameData::Enemy e = enemy->serialize();
-
-	e.attacked(enemy->baseData(), weaponType, player->baseData());
-
-	int xp = std::max(0, e.hp-enemy->hp());
-	setXp(m_xp+xp);
-
-	enemy->attackedByPlayer(player, weaponType);
-
-	enemy->updateFromSnapshot(e);
-
-	return true;*/
-
-
 	if (!player || player->objectId().ownerId != m_playerId)
 		return false;
 
@@ -1090,6 +1098,7 @@ bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerAttack;
 	p.tg = enemy->baseData();
+	p.arm.cw = weaponType;
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
 
@@ -1251,13 +1260,14 @@ bool ActionRpgMultiplayerGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, Rp
 	if (m_gameMode != MultiPlayerHost)
 		return false;
 
-	LOG_CWARNING("game") << "ENEMY" << enemy << "HIT" << player->objectId().ownerId << weapon << m_rpgGame->tickTimer()->currentTick();
+	///LOG_CWARNING("game") << "ENEMY" << enemy << "HIT" << player->objectId().ownerId << weapon << m_rpgGame->tickTimer()->currentTick();
 
 	if (!ActionRpgGame::onEnemyHit(enemy, player, weapon))
 		return false;
 
 	RpgGameData::Enemy e = enemy->serialize(m_rpgGame->tickTimer()->currentTick());
 	e.st = RpgGameData::Enemy::EnemyHit;
+	e.arm.cw = weapon->weaponType();
 
 	q->m_toSend.appendSnapshot(enemy->baseData(), e);
 	enemy->setLastSnapshot(e);
@@ -1302,26 +1312,16 @@ bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *p
 	if (!player || !enemy)
 		return false;
 
-	/*RpgGameData::Player p = player->serialize();
-	p.attacked(player->baseData(), weaponType, enemy->baseData());
-
-	const bool prot = p.hp == player->hp();
-
-	player->updateFromSnapshot(p);
-	player->attackedByEnemy(enemy, weaponType, prot);*/
-
-	LOG_CWARNING("game") << "ENEMY" << enemy << "ATTACK" << player->objectId().ownerId << m_rpgGame->tickTimer()->currentTick();
+	////LOG_CWARNING("game") << "ENEMY" << enemy << "ATTACK" << player->objectId().ownerId << m_rpgGame->tickTimer()->currentTick();
 
 	RpgGameData::Enemy e = enemy->serialize(m_rpgGame->tickTimer()->currentTick());
 	e.st = RpgGameData::Enemy::EnemyAttack;
 	e.tg = player->baseData();
+	e.arm.cw = weaponType;
 
 	q->m_toSend.appendSnapshot(enemy->baseData(), e);
 
-	///player->attackedByEnemy(enemy, weaponType, prot);
-
 	return true;
-
 }
 
 
@@ -1333,7 +1333,7 @@ bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *p
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
+bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody */*other*/)
 {
 	if (!bullet)
 		return false;
@@ -1341,11 +1341,18 @@ bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody
 	if (bullet->ownerId().o != m_playerId)
 		return false;
 
-	if (!ActionRpgGame::onBulletImpact(bullet, other))
-		return false;
+	LOG_CWARNING("game") << "BULLET IMPACTED" << bullet << bullet->objectId().id
+						 << "--->" << bullet->m_impactedObject.o << bullet->m_impactedObject.id
+						 << m_rpgGame->tickTimer()->currentTick();
 
-	RpgGameData::Bullet p = bullet->serialize(m_rpgGame->tickTimer()->currentTick());
-	bullet->setLastSnapshot(p);
+	bullet->setImpacted(true);
+	bullet->disableBullet();
+	bullet->setStage(RpgGameData::LifeCycle::StageDead);
+
+	RpgGameData::Bullet b = bullet->serialize(m_rpgGame->tickTimer()->currentTick());
+	q->m_toSend.appendSnapshot(bullet->baseData(), b);
+
+	bullet->setLastSnapshot(b);
 
 	return true;
 }
@@ -1558,59 +1565,14 @@ void ActionRpgMultiplayerGamePrivate::updateBody(TiledObjectBody *body, const bo
 	Q_ASSERT(d);
 	Q_ASSERT(body);
 
-	if (RpgPlayer *p = dynamic_cast<RpgPlayer*>(body)) {
-		const auto &ptr = m_currentSnapshot.getPlayer(p->baseData());
-
-		if (!ptr) {
-			if (isHosted)
-				p->worldStep();
-			else
-				LOG_CERROR("game") << "INVALID ptr";
-			return;
-		} else {
-			if (isHosted) {
-				if (ptr->last.f >= 0)
-					p->updateFromLastSnapshot(ptr->last);
-				p->worldStep();
-			} else {
-				p->updateFromSnapshot(ptr.value());
-
-			}
-		}
-	} else if (RpgEnemy *p = dynamic_cast<RpgEnemy*>(body)) {
-		const auto &ptr = m_currentSnapshot.getEnemy(p->baseData());
-
-		if (!ptr) {
-			if (isHosted)
-				body->worldStep();
-			return;
-		} else {
-			if (isHosted) {
-				if (ptr->last.f >= 0)
-					p->updateFromLastSnapshot(ptr->last);
-				p->worldStep();
-			} else {
-				p->updateFromSnapshot(ptr.value());
-			}
-		}
-	} /*else if (RpgBullet *p = dynamic_cast<RpgBullet*>(body)) {
-		const auto &ptr = m_currentSnapshot.getBullet(p->baseData());
-
-		if (!ptr) {
-			if (isHosted)
-				body->worldStep();
-			return;
-		} else {
-			if (isHosted) {
-				if (ptr->last.f >= 0)
-					p->updateFromLastSnapshot(ptr->last);
-				p->worldStep();
-			} else {
-				p->updateFromSnapshot(ptr.value());
-			}
-		}
-	} else if (isHosted) {
+	if (RpgPlayer *p = dynamic_cast<RpgPlayer*>(body))
+		update<RpgPlayer, RpgGameData::Player, RpgGameData::PlayerBaseData>(p, isHosted);
+	else if (RpgEnemy *p = dynamic_cast<RpgEnemy*>(body))
+		update<RpgEnemy, RpgGameData::Enemy, RpgGameData::EnemyBaseData>(p, isHosted);
+	else if (RpgBullet *p = dynamic_cast<RpgBullet*>(body))
+		update<RpgBullet, RpgGameData::Bullet, RpgGameData::BulletBaseData>(p, isHosted);
+	else if (isHosted)
 		body->worldStep();
-	} */
+
 
 }

@@ -2638,9 +2638,9 @@ void TiledObjectBodyPrivate::setVelocity(const cpVect &speed)
 		return;
 	}
 
-	const cpVect &curr = cpBodyGetVelocity(m_bodyRef);
+	/*const cpVect &curr = cpBodyGetVelocity(m_bodyRef);
 
-	/*cpVect norm;
+	cpVect norm;
 	norm.x = qAbs(speed.x) < 0.00001f ? 0.0f : speed.x;
 	norm.y = qAbs(speed.y) < 0.00001f ? 0.0f : speed.y;
 
@@ -2656,6 +2656,7 @@ void TiledObjectBodyPrivate::setVelocity(const cpVect &speed)
 	}*/
 
 	cpBodySetVelocity(m_bodyRef, speed);
+	cpBodySetAngularVelocity(m_bodyRef, 0.);
 }
 
 

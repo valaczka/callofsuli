@@ -133,6 +133,9 @@ public:
 	const RpgGameData::BaseData &ownerId() const;
 	void setOwnerId(const RpgGameData::BaseData &newOwnerId);
 
+	virtual Stage stage() const override { return m_stage; }
+	virtual void setStage(const Stage &newStage) override { m_stage = newStage; }
+
 signals:
 	void ownerChanged();
 	void targetsChanged();
@@ -151,6 +154,9 @@ protected:
 	RpgGameData::BaseData m_ownerId;
 
 	std::pair<cpVect, cpVect> m_path;
+	RpgGameData::LifeCycle::Stage m_stage = StageInvalid;
+	bool m_impactRendered = false;
+
 
 	friend class ActionRpgMultiplayerGame;
 };

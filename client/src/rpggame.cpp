@@ -625,11 +625,13 @@ RpgEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type
 
 	if (enemy) {
 		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
-		enemy->filterSet(TiledObjectBody::FixtureEnemyBody,
+		// move to onAlive
+
+		/*enemy->filterSet(TiledObjectBody::FixtureEnemyBody,
 
 						 TiledObjectBody::FixtureGround |
 						 TiledObjectBody::FixturePlayerBody |
-						 TiledObjectBody::FixtureTarget);
+						 TiledObjectBody::FixtureTarget);*/
 
 		if (type == RpgGameData::EnemyBaseData::EnemySoldierFix ||
 				type == RpgGameData::EnemyBaseData::EnemyArcherFix ||

@@ -138,7 +138,7 @@ void RpgEnemyBase::load()
 
 	setAvailableDirections(Direction_8);
 
-	loadType();
+	m_directory = directoryBaseName(m_enemyType, m_subType);
 
 	RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/"));
 
@@ -163,16 +163,23 @@ void RpgEnemyBase::load()
 	m_sfxRoar.setSoundList(soundList);
 	m_sfxRoar.setPlayOneDeadline(600);
 
-	const auto ptr = Utils::fileToJsonObject(QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/metric.json"));
+	const auto ptr = Utils::fileToJsonObject(QStringLiteral(":/enemy/")+m_directory+QStringLiteral("/config.json"));
 
 	if (ptr) {
-		LOG_CTRACE("game") << "Enemy metric override" << m_directory;
+		if (ptr->contains(QStringLiteral("metric"))) {
+			LOG_CTRACE("game") << "Enemy metric override" << m_directory;
 
-		m_metric.fromJson(ptr.value());
-		if (sensorPolygon())
-			setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange);
+			m_metric.fromJson(ptr->value(QStringLiteral("metric")).toObject());
+			if (sensorPolygon())
+				setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange);
+		}
+
+		loadConfig(ptr->value(QStringLiteral("config")).toObject());
+		return;
 	}
 
+
+	loadConfig();
 }
 
 
@@ -219,28 +226,32 @@ void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
 
 void RpgEnemyBase::attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
 {
-	if (isAlive() && weaponType == RpgGameData::Weapon::WeaponHand) {
+	if (player && isAlive() && weaponType == RpgGameData::Weapon::WeaponHand) {
 		if (startSleeping())
 			return;
 	}
 
-	if (weaponType == RpgGameData::Weapon::WeaponLongbow || weaponType == RpgGameData::Weapon::WeaponFireFogWeapon)
-		m_effectFire.play();
+	////if (weaponType == RpgGameData::Weapon::WeaponLongbow || weaponType == RpgGameData::Weapon::WeaponFireFogWeapon)
+	m_effectFire.play();
 
 	if (isSleeping())
 		return;
 
 	if (!isAlive()) {
 		jumpToSprite("death", m_facingDirection);
-		eventKilledByPlayer(player);
+
+		if (player)
+			eventKilledByPlayer(player);
 		return;
 	}
 
 	jumpToSprite("hurt", m_facingDirection);
 
+	if (!player)
+		return;
+
 	if (weaponType == RpgGameData::Weapon::WeaponBroadsword || weaponType == RpgGameData::Weapon::WeaponAxe)
 		startInability();
-
 
 	if (!m_contactedPlayers.contains(player))
 		m_contactedPlayers.append(QPointer(player));
@@ -331,32 +342,39 @@ void RpgEnemyBase::onCurrentSpriteChanged()
 
 
 /**
- * @brief RpgEnemyBase::loadType
+ * @brief RpgEnemyBase::loadConfig
  */
 
-void RpgEnemyBase::loadType()
+void RpgEnemyBase::loadConfig(const QJsonObject &config)
 {
-	m_directory = directoryBaseName(m_enemyType, m_subType);
+	RpgGameData::Weapon::WeaponType wt = RpgGameData::Weapon::WeaponInvalid;
 
-	RpgWeapon *w = nullptr;
+	if (config.contains(QStringLiteral("weapon"))) {
+		wt = RpgArmory::weaponHash().key(config.value(QStringLiteral("weapon")).toString(), RpgGameData::Weapon::WeaponInvalid);
 
-	if (m_enemyType == RpgGameData::EnemyBaseData::EnemySoldier || m_enemyType == RpgGameData::EnemyBaseData::EnemySoldierFix)
-		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponLongsword);
-	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix)
-		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponShortbow);
-	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton)
-		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponLongsword);
-	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySmith || m_enemyType == RpgGameData::EnemyBaseData::EnemySmithFix)
-		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponHammer);
-	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyButcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyButcherFix)
-		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponAxe);
-	else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarian || m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarianFix)
-		w = m_armory->weaponAdd(RpgGameData::Weapon::WeaponMace);
+		if (wt == RpgGameData::Weapon::WeaponInvalid)
+			return;
+	} else {
+		if (m_enemyType == RpgGameData::EnemyBaseData::EnemySoldier || m_enemyType == RpgGameData::EnemyBaseData::EnemySoldierFix)
+			wt = RpgGameData::Weapon::WeaponLongsword;
+		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix)
+			wt = RpgGameData::Weapon::WeaponShortbow;
+		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton)
+			wt = RpgGameData::Weapon::WeaponLongsword;
+		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySmith || m_enemyType == RpgGameData::EnemyBaseData::EnemySmithFix)
+			wt = RpgGameData::Weapon::WeaponHammer;
+		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyButcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyButcherFix)
+			wt = RpgGameData::Weapon::WeaponAxe;
+		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarian || m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarianFix)
+			wt = RpgGameData::Weapon::WeaponMace;
+	}
 
 
-	if (w) {
+	if (RpgWeapon *w = m_armory->weaponAdd(wt)) {
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);
+	} else {
+		LOG_CERROR("game") << "Invalid enemy config";
 	}
 }

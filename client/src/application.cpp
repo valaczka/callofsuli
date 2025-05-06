@@ -169,7 +169,8 @@ Application::Application(QApplication *app)
 		Q_ASSERT(currVirtMem < (7*1024*1024));		// 7GB
 
 		//LOG_CTRACE("app") << "USED MEMORY:" << Utils::getCurrentRSS();
-	});
+
+});
 	timer->start();
 #endif
 */

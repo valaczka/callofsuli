@@ -533,19 +533,17 @@ public:
 		StageDestroy
 	};
 
-	LifeCycle(const Stage &stage)
-		: m_stage(stage)
-	{}
+	LifeCycle() = default;
+	~LifeCycle() = default;
 
-	LifeCycle()
-		: LifeCycle(StageInvalid)
-	{}
+	virtual Stage stage() const = 0;
+	virtual void setStage(const Stage &newStage) = 0;
 
-	Stage stage() const { return m_stage; }
-	void setStage(const Stage &newStage) { m_stage = newStage; }
+	void destroy(const qint64 &tick);
+	const qint64 &destroyTick() const { return m_destroyTick; }
 
 protected:
-	Stage m_stage = StageInvalid;
+	qint64 m_destroyTick = -1;
 
 };
 
@@ -745,12 +743,16 @@ public:
 		: BaseData(-1, -1, -1)
 	{ }
 
+	bool isBaseEqual(const BaseData &other) const {
+		return other.o == o && other.s == s && other.id == id;
+	}
+
 	bool isEqual(const BaseData &other) const {
 		return other.o == o && other.s == s && other.id == id;
 	}
 
 	bool isValid() const {
-		return o >= 0 && s >= 0 && id >= 0;
+		return o >= 0 || (s >= 0 && id >= 0);
 	}
 
 	EQUAL_OPERATOR(BaseData)
@@ -786,6 +788,10 @@ public:
 
 	bool canMerge(const Body &other) const {
 		return other.sc == sc;
+	}
+
+	bool canInterpolateFrom(const Body &other) const {
+		return other.sc == sc && f > other.f;
 	}
 
 	EQUAL_OPERATOR(Body)
@@ -869,6 +875,8 @@ public:
 		return Body::canMerge(other) && other.hp == hp && other.mhp == mhp && other.cv == cv && other.a == a;
 	}
 
+	bool canInterpolateFrom(const Entity &other) const;
+
 	EQUAL_OPERATOR(Entity)
 
 	QS_SERIALIZABLE
@@ -942,6 +950,10 @@ public:
 
 	bool canMerge(const ArmoredEntity &other) const {
 		return Entity::canMerge(other) && other.arm == arm;
+	}
+
+	bool canInterpolateFrom(const ArmoredEntity &other) const {
+		return Entity::canInterpolateFrom(other) && other.arm == arm;
 	}
 
 	static void attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
@@ -1033,6 +1045,10 @@ public:
 
 	bool canMerge(const Player &other) const {
 		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg;
+	}
+
+	bool canInterpolateFrom(const Player &other) const {
+		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
 	}
 
 	EQUAL_OPERATOR(Player);
@@ -1147,6 +1163,10 @@ public:
 		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg;
 	}
 
+	bool canInterpolateFrom(const Enemy &other) const {
+		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
+	}
+
 	EQUAL_OPERATOR(Enemy)
 
 	QS_SERIALIZABLE
@@ -1253,7 +1273,7 @@ public:
 	enum Owner {
 		OwnerNone = 0,
 		OwnerPlayer = 1,
-		OnwerEnemy
+		OwnerEnemy
 	};
 
 	Q_ENUM(Owner)
@@ -1328,13 +1348,14 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(BulletBaseData::Targets);
  * @brief The Bullet class
  */
 
-class Bullet : public Body
+class Bullet : public Body, public LifeCycle
 {
 	Q_GADGET
 
 public:
 	Bullet(const int &_sc)
 		: Body()
+		, LifeCycle()
 		, st(LifeCycle::StageInvalid)
 	{
 		sc = _sc;
@@ -1352,6 +1373,14 @@ public:
 	bool canMerge(const Bullet &other) const {
 		return Body::canMerge(other) && other.st == st && other.tg == tg;
 	}
+
+	bool canInterpolateFrom(const Bullet &other) const {
+		return isEqual(other);
+	}
+
+	virtual Stage stage() const { return st; }
+	virtual void setStage(const Stage &newStage) { st = newStage; }
+
 
 	EQUAL_OPERATOR(Bullet)
 
@@ -1437,13 +1466,24 @@ struct FullSnapshot {
 	std::optional<SnapshotInterpolation<T> > getSnapshot(const T2 &data, const SnapshotInterpolationList<T2, T> &list) const;
 
 
-	std::optional<SnapshotInterpolation<Player> > getPlayer(const PlayerBaseData &data) const {
+	template <typename T2, typename T,
+			  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+	std::optional<SnapshotInterpolation<T> > getSnapshot(const T2 &data) const {
+		Q_UNUSED(data);
+		qWarning() << "Missing specialization";
+		return std::nullopt;
+	}
+
+	std::optional<SnapshotInterpolation<Player> > getSnapshot(const PlayerBaseData &data) const {
 		return getSnapshot(data, players);
 	}
-	std::optional<SnapshotInterpolation<Enemy> > getEnemy(const EnemyBaseData &data) const {
+
+	std::optional<SnapshotInterpolation<Enemy> > getSnapshot(const EnemyBaseData &data) const {
 		return getSnapshot(data, enemies);
 	}
-	std::optional<SnapshotInterpolation<Bullet> > getBullet(const BulletBaseData &data) const {
+
+	std::optional<SnapshotInterpolation<Bullet> > getSnapshot(const BulletBaseData &data) const {
 		return getSnapshot(data, bullets);
 	}
 };
@@ -1492,7 +1532,12 @@ struct CurrentSnapshot {
 
 	template <typename T>
 	static void copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src);
+
+	template <typename T, typename T2>
+	static void assign(SnapshotList<T, T2> &dest, const T2 &data, const T &src);
 };
+
+
 
 
 
@@ -1597,6 +1642,8 @@ inline void CurrentSnapshot::copy(std::map<qint64, T> &dest, const std::map<qint
 
 
 
+
+
 /**
  * @brief CurrentSnapshot::find
  * @param list
@@ -1635,6 +1682,28 @@ inline SnapshotList<T, T2>::iterator CurrentSnapshot::find(SnapshotList<T, T2> &
 
 
 
+
+
+
+
+/**
+ * @brief CurrentSnapshot::assign
+ * @param dest
+ * @param data
+ * @param src
+ */
+
+template<typename T, typename T2>
+inline void CurrentSnapshot::assign(SnapshotList<T, T2> &dest, const T2 &data, const T &src)
+{
+	const auto &it = find(dest, data);
+
+	if (it == dest.end()) {
+		dest.emplace_back(data, std::map<qint64, T>{{src.f, src}}, -1);
+	} else {
+		it->list.insert_or_assign(src.f, src);
+	}
+}
 
 
 

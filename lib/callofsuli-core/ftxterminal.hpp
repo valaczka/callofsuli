@@ -285,15 +285,7 @@ private:
 
 inline FtxServer::~FtxServer()
 {
-	/*for (QLocalSocket *s : m_localSockets) {
-		s->disconnectFromServer();
-		s->deleteLater();
-	}
 
-	m_localSockets.clear();
-
-	if (m_localServer.isListening())
-		m_localServer.close(); */
 }
 
 
@@ -308,6 +300,18 @@ inline FtxServer::~FtxServer()
 inline bool FtxServer::start(QObject *parent, const QString &name)
 {
 	Q_ASSERT(parent);
+
+	QObject::connect(qApp, &QCoreApplication::aboutToQuit, parent, [this](){
+		for (QLocalSocket *s : m_localSockets) {
+			s->disconnectFromServer();
+			s->deleteLater();
+		}
+
+		m_localSockets.clear();
+
+		if (m_localServer.isListening())
+			m_localServer.close();
+	});
 
 	QObject::connect(&m_localServer, &QLocalServer::newConnection, parent, [this, parent](){
 		while (m_localServer.hasPendingConnections()) {
@@ -348,8 +352,8 @@ inline void FtxServer::writeToSocket(const QCborValue &cbor)
 	out << cbor;
 
 	for (QLocalSocket *s : m_localSockets) {
-			s->write(data);
-			s->flush();
+		s->write(data);
+		s->flush();
 	}
 }
 

@@ -112,6 +112,29 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 			LOG_CINFO("scene") << "REAL ENEMY SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
 
 			throw -1;
+		} else if (snapshot.s1.st == RpgGameData::Enemy::EnemyAttack) {
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+
+			if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame() && wptr) {
+				if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(g->findBody(
+																	 TiledObjectBody::ObjectId{
+																	 .ownerId = snapshot.s1.tg.o,
+																	 .sceneId = snapshot.s1.tg.s,
+																	 .id = snapshot.s1.tg.id
+			}))) {
+
+					LOG_CINFO("scene") << "REAL ATTACK PLAYER" << snapshot.current << snapshot.s1.f <<
+										  snapshot.s1.p << snapshot.s1.a << player->objectId().ownerId;
+
+					player->attackedByEnemy(g->controlledPlayer() == player ? this : nullptr,
+											wptr->weaponType(), false);
+				}
+
+			}
+
+			LOG_CINFO("scene") << "ENEMY ATTACK PLAYER IN SNAP" << snapshot.s1.f << snapshot.s1.tg.o;
+
+			throw 1;
 		} else {
 			throw 1;
 		}
@@ -119,9 +142,9 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 
 		if (e > 0) {
 			speed = entityMove(this, snapshot,
-					   RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving,
-					   m_metric.speed, 2*m_metric.pursuitSpeed,
-					   nullptr);
+							   RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving,
+							   m_metric.speed, 2*m_metric.pursuitSpeed,
+							   nullptr);
 		}
 
 	}
@@ -153,7 +176,35 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 void RpgEnemy::updateFromSnapshot(const RpgGameData::Enemy &snap)
 {
 	setHp(snap.hp);
-	m_armory->updateFromSnapshot(snap.arm);
+	if (snap.st != RpgGameData::Enemy::EnemyAttack) {
+		m_armory->updateFromSnapshot(snap.arm);
+	}
+}
+
+
+
+/**
+ * @brief RpgEnemy::isLastSnapshotValid
+ * @param snap
+ * @return
+ */
+
+bool RpgEnemy::isLastSnapshotValid(const RpgGameData::Enemy &snap, const RpgGameData::Enemy &lastSnap) const
+{
+	if (lastSnap.f < 0)
+		return false;
+
+	if (lastSnap.hp != snap.hp) {
+		LOG_CDEBUG("scene") << "%%%%%%%%%%%%%% HP override";
+		return false;
+	}
+
+	if (snap.st == RpgGameData::Enemy::EnemyAttack) {
+		LOG_CDEBUG("scene") << "%%%%%%%%%%%%%% ATTACK override";
+		return false;
+	}
+
+	return true;
 }
 
 
@@ -282,6 +333,36 @@ void RpgEnemy::attackPlayer(RpgPlayer *player, RpgWeapon *weapon)
 
 		g->enemyHit(this, player, weapon);
 	}
+}
+
+
+
+/**
+ * @brief RpgEnemy::onAlive
+ */
+
+void RpgEnemy::onAlive()
+{
+	filterSet(TiledObjectBody::FixtureEnemyBody,
+
+			  TiledObjectBody::FixtureGround |
+			  TiledObjectBody::FixturePlayerBody |
+			  TiledObjectBody::FixtureTarget);
+
+	IsometricEnemy::onAlive();
+}
+
+
+
+/**
+ * @brief RpgEnemy::onDead
+ */
+
+void RpgEnemy::onDead()
+{
+	filterSet(TiledObjectBody::FixtureInvalid, FixtureInvalid);
+
+	IsometricEnemy::onDead();
 }
 
 

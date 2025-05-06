@@ -57,6 +57,7 @@ public:
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<T> &snapshot) = 0;
 	virtual void updateFromSnapshot(const T &snap) = 0;
+	virtual bool isLastSnapshotValid(const T &snap, const T &lastSnap) const;
 	void updateFromLastSnapshot(const T &snap);
 
 protected:
@@ -122,6 +123,9 @@ inline std::optional<T> RpgGameDataInterface<T, T2, T3, T4>::serializeCmp(const 
 	T p = serializeThis();
 
 	if (m_lastSerialized.f != -1) {
+		if (p.canInterpolateFrom(m_lastSerialized))
+			return std::nullopt;
+
 		const qint64 f = p.f;
 		p.f = m_lastSerialized.f;
 		if (p == m_lastSerialized)
@@ -155,6 +159,22 @@ inline T2 RpgGameDataInterface<T, T2, T3, T4>::baseData() const
 }
 
 
+/**
+ * @brief RpgGameDataInterface::isLastSnapshotValid
+ * @param snap
+ * @param lastSnap
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline bool RpgGameDataInterface<T, T2, T3, T4>::isLastSnapshotValid(const T &snap, const T &lastSnap) const
+{
+	Q_UNUSED(lastSnap);
+	Q_UNUSED(snap);
+	return true;
+}
+
+
 
 
 
@@ -168,9 +188,12 @@ template<typename T, typename T2, typename T3, typename T4>
 inline void RpgGameDataInterface<T, T2, T3, T4>::updateFromLastSnapshot(const T &snap)
 {
 	if (m_lastSnapShot.f >= 0) {
-		if (snap.f < m_lastSnapShot.f)
-			updateFromSnapshot(m_lastSnapShot);
-		else {
+		if (snap.f < m_lastSnapShot.f) {
+			if (isLastSnapshotValid(snap, m_lastSnapShot))
+				updateFromSnapshot(m_lastSnapShot);
+			else
+				updateFromSnapshot(snap);
+		} else {
 			updateFromSnapshot(snap);
 			m_lastSnapShot.f = -1;
 		}

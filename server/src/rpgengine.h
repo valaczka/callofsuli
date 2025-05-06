@@ -87,6 +87,70 @@ private:
 class RpgEnginePrivate;
 
 
+
+
+
+/**
+ * @brief The RpgEvent class
+ */
+
+class RpgEvent
+{
+public:
+	RpgEvent(RpgEngine *engine, const qint64 &tick, const bool &unique = true);
+	virtual ~RpgEvent();
+
+	virtual bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) = 0;							// Return true = delete
+	virtual bool isEqual(RpgEvent *other) const = 0;	// Ezalapján döntjük el, hogy egyedi-e (nem ismételhető)
+
+	const qint64 &tick() const { return m_tick; }
+	bool isUnique() const { return m_unique; }
+
+protected:
+	RpgEngine *const m_engine;
+	const qint64 m_tick;				// Mikor történt / fog történni
+	const bool m_unique = true;			// Nem lehet ismételni
+};
+
+
+
+
+
+/**
+ * @brief The RpgEventEnemyDied class
+ */
+
+class RpgEventEnemyDied : public RpgEvent
+{
+public:
+	RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data);
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+	bool isEqual(RpgEvent *other) const override;
+
+private:
+	const RpgGameData::EnemyBaseData m_data;
+};
+
+
+
+/**
+ * @brief The RpgEventEnemyResurrect class
+ */
+
+class RpgEventEnemyResurrect : public RpgEvent
+{
+public:
+	RpgEventEnemyResurrect(RpgEngine *engine, const qint64 &tick);
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+	bool isEqual(RpgEvent *other) const override;
+};
+
+
+
+
+
 /**
  * @brief The RpgEngine class
  */
@@ -119,6 +183,40 @@ public:
 
 	qint64 currentTick();
 
+
+
+	template <typename T, typename ...Args,
+			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+	void eventAdd(Args &&...args);
+
+	template <typename T, typename ...Args,
+			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+	void eventAddLater(Args &&...args);
+
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	int createEvents(const qint64 &tick, const T2 &data, const T &snap, const std::optional<T> &prev);
+
+	int createEvents(const qint64 &tick, const RpgGameData::EnemyBaseData &data,
+					 const RpgGameData::Enemy &snap, const std::optional<RpgGameData::Enemy> &prev);
+
+	int createEvents(const qint64 &tick, const RpgGameData::PlayerBaseData &data,
+					 const RpgGameData::Player &snap, const std::optional<RpgGameData::Player> &prev);
+
+	int createEvents(const qint64 &tick, const RpgGameData::BulletBaseData &data,
+					 const RpgGameData::Bullet &snap, const std::optional<RpgGameData::Bullet> &prev);
+
+
+	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
+
+
+	RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::PlayerBaseData> players();
+	RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> enemies();
+	RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> bullets();
+
+
 private:
 	void preparePlayers();
 	qint64 nextTick();
@@ -134,9 +232,37 @@ private:
 
 	RpgSnapshotStorage m_snapshots;
 
-	qint64 m_currentTick = 0;
+	qint64 m_currentTick = -1;
 
 	friend class RpgEnginePrivate;
 };
+
+
+
+/**
+ * @brief RpgEngine::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline int RpgEngine::createEvents(const qint64 &, const T2 &, const T &, const std::optional<T> &)
+{
+	LOG_CERROR("engine") << "Missing specialization";
+	return -1;
+}
+
+
+
+
+
+
+
+
+
+
 
 #endif // RPGENGINE_H

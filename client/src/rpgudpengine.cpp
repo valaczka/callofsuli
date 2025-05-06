@@ -607,10 +607,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::CharacterSelect &player)
 		RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> d;
 		d.data.o = player.playerId;
 		m_players.push_back(d);
-	} /*else {
-		auto ptr = pIt->list;
-		ptr[0] = pData;
-	}*/
+	}
 }
 
 

@@ -25,6 +25,7 @@
  */
 
 #include "rpgplayer.h"
+#include "actionrpggame.h"
 #include "rpgfirefog.h"
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
@@ -120,7 +121,7 @@ void RpgPlayer::attack(RpgWeapon *weapon)
 	}
 
 	if (weapon->canShot()) {
-		g->playerShot(this, weapon, currentAngle());
+		g->playerShot(this, weapon, desiredBodyRotation());
 
 	} else if (weapon->canHit()) {
 		if (!m_enemy) {
@@ -374,7 +375,7 @@ void RpgPlayer::updateSprite()
  * @brief RpgPlayer::attackedByEnemy
  */
 
-void RpgPlayer::attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected)
+void RpgPlayer::attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected)
 {
 	m_armory->updateLayers();
 
@@ -393,6 +394,9 @@ void RpgPlayer::attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponTyp
 			jumpToSprite("hurt", m_facingDirection);
 		});
 	}
+
+	if (enemy)
+		return;
 
 	if (weaponType == RpgGameData::Weapon::WeaponGreatHand)
 		startInability(4*m_inabilityTime);
@@ -1102,6 +1106,8 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 				LOG_CWARNING("scene") << "REAL HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << bodyPositionF()
 									  << snapshot.s1.a << bodyRotation();
+
+
 			}
 
 			throw -1;
@@ -1128,9 +1134,9 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 		if (e > 0) {
 			speed = entityMove(this, snapshot,
-					   RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving,
-					   m_speedLength, 2*m_speedRunLength,
-					   &msg);
+							   RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving,
+							   m_speedLength, 2*m_speedRunLength,
+							   &msg);
 		} else {
 			msg = "SKIPPED";
 		}
@@ -1176,8 +1182,64 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 {
 	setHp(snap.hp);
-	m_armory->updateFromSnapshot(snap.arm);
+
+	if (snap.st == RpgGameData::Player::PlayerAttack) {
+		if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame()) {
+			if (TiledObject *target = dynamic_cast<TiledObject*>(g->findBody(
+																	 TiledObjectBody::ObjectId{
+																	 .ownerId = snap.tg.o,
+																	 .sceneId = snap.tg.s,
+																	 .id = snap.tg.id
+		}))) {
+
+				LOG_CINFO("scene") << "REAL ATTACK" << snap.f <<
+									  snap.p << snap.a << target->objectId().id;
+
+				if (RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(target))
+					enemy->attackedByPlayer(g->actionRpgGame()->gameMode() == ActionRpgGame::MultiPlayerHost ? this : nullptr,
+											snap.arm.cw);
+			}
+
+		}
+
+		LOG_CINFO("scene") << "*********** PLAYER attack" << snap.tg.o << snap.tg.id << snap.arm.cw;
+
+
+		// Ne cserélje ki a fegyvert
+
+		RpgGameData::Armory arm = snap.arm;
+		arm.cw = RpgGameData::Weapon::WeaponInvalid;
+		m_armory->updateFromSnapshot(arm);
+
+	} else {
+		m_armory->updateFromSnapshot(snap.arm);
+	}
+
 	setShieldCount(m_armory->getShieldCount());
+}
+
+
+
+/**
+ * @brief RpgPlayer::isLastSnapshotValid
+ * @param snap
+ * @return
+ */
+
+bool RpgPlayer::isLastSnapshotValid(const RpgGameData::Player &snap, const RpgGameData::Player &lastSnap) const
+{
+	if (lastSnap.f < 0)
+		return false;
+
+	if (lastSnap.hp != snap.hp)
+		return false;
+
+	if (snap.st == RpgGameData::Player::PlayerAttack) {
+		LOG_CDEBUG("scene") << "%%%%%%%%%%%%%%%%%% ATTACK override PLAYER";
+		return false;
+	}
+
+	return true;
 }
 
 

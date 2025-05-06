@@ -57,3 +57,12 @@ if ($$BackwardCpp) {
 	LIBS += -lbfd
 	SOURCES += $$PWD/../client/src/backward.cpp
 }
+
+
+
+
+# Chipmunk2D
+
+INCLUDEPATH += $$PWD/Chipmunk2D/include
+LIBS += -lchipmunk2d
+

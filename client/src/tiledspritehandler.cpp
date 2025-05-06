@@ -192,12 +192,8 @@ bool TiledSpriteHandler::jumpToSprite(const QString &name,
 {
 	const auto &ptr = findFirst(name, direction);
 
-	if (!ptr) {
-#ifndef QT_NO_DEBUG
-		LOG_CWARNING("scene") << "Sprite not found" << name << direction;
-#endif
+	if (!ptr)
 		return false;
-	}
 
 	if (mode == JumpImmediate) {
 		m_jumpToSprite = Sprite{};

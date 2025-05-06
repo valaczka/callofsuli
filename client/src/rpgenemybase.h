@@ -73,7 +73,7 @@ protected:
 
 private:
 	void onCurrentSpriteChanged();
-	void loadType();
+	void loadConfig(const QJsonObject &config = {});
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectFire m_effectFire;

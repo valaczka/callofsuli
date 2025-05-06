@@ -26,6 +26,7 @@
 
 
 #include "rpgconfig.h"
+#include <chipmunk/chipmunk.h>
 
 namespace RpgGameData {
 
@@ -69,9 +70,9 @@ void SnapshotStorage::saveLastTick(SnapshotData<T, T2> *dst, const SnapshotInter
 	Q_ASSERT(dst);
 
 	qint64 last = sip.s2.f > -1 ?
-							std::max(sip.s2.f, sip.last.f) :
-							sip.last.f
-							;
+					  std::max(sip.s2.f, sip.last.f) :
+					  sip.last.f
+					  ;
 
 	if (last > dst->lastFullSnap)
 		dst->lastFullSnap = last;
@@ -90,7 +91,7 @@ void SnapshotStorage::saveLastTick(SnapshotData<T, T2> *dst, const SnapshotInter
 
 template<typename T, typename T2, typename T3, typename T4>
 void SnapshotStorage::addFullSnapshot(SnapshotInterpolationList<T2, T> *dst, SnapshotList<T, T2> &src,
-											 const qint64 &currentTick, const bool &findLast)
+									  const qint64 &currentTick, const bool &findLast)
 {
 	Q_ASSERT(dst);
 
@@ -269,6 +270,54 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 	r += fromCborArray(bullets, map.value(QStringLiteral("bb")).toArray(), QStringLiteral("bd"), QStringLiteral("b"), nullptr);
 
 	return r;
+}
+
+
+
+/**
+ * @brief Entity::canInterpolateFrom
+ * @param other
+ * @return
+ */
+
+bool Entity::canInterpolateFrom(const Entity &other) const {
+	if (!Body::canInterpolateFrom(other) ||
+			hp != other.hp ||
+			mhp != other.mhp ||
+			a != other.a)
+		return false;
+
+	if (other.cv.size() < 2)
+		return p == other.p;
+
+	const cpVect vel = cpv(other.cv.at(0), other.cv.at(1));
+
+	if (vel == cpvzero)
+		return p == other.p;
+
+	if (other.p.size() < 2 || p.size() < 2)
+		return false;
+
+	const cpVect curr = cpv(p.at(0), p.at(1));
+
+	return curr == cpvadd(cpv(other.p.at(0), other.p.at(1)),
+						  cpvmult(vel, (f-other.f)/60.));
+
+}
+
+
+
+/**
+ * @brief LifeCycle::destroy
+ * @param tick
+ */
+
+void LifeCycle::destroy(const qint64 &tick)
+{
+	setStage(StageDestroy);
+
+	if (m_destroyTick == -1)
+		m_destroyTick = tick;
 }
 
 

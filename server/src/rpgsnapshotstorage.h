@@ -57,7 +57,8 @@ public:
 		ReadOnly =		1,
 		Storage =		1 << 1,
 		Temporary =		1 << 2,
-		Modified =		1 << 3
+		Modified =		1 << 3,
+		FromAuth =		1 << 4						// carry esetén növelnünk kell az auth storage snap számát
 	};
 
 	Q_DECLARE_FLAGS(RendererFlags, RendererFlag)
@@ -65,8 +66,10 @@ public:
 
 	const RendererFlags &flags() const { return m_flags; }
 	void addFlags(const RendererFlags &flags);
+	void removeFlags() { m_flags = None; }
 
 	bool hasContent() const { return (m_flags & (Storage|Temporary)); }
+
 
 protected:
 	template <typename B,
@@ -75,6 +78,7 @@ protected:
 
 	QString dumpAs(const RpgGameData::Player &data, const QList<RpgGameData::Player> &subData) const;
 	QString dumpAs(const RpgGameData::Enemy &data, const QList<RpgGameData::Enemy> &subData) const;
+	QString dumpAs(const RpgGameData::Bullet &data, const QList<RpgGameData::Bullet> &subData) const;
 
 	RendererFlags m_flags = None;
 };
@@ -153,7 +157,15 @@ public:
 
 	template <typename T,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	void overrideAuthSnap(const T &data);
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
 	bool addSubSnap(const int &index, const T &data);
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	bool carrySubSnap(const T &data);
 
 	virtual QString dump(const qint64 &start, const int &size) const = 0;
 
@@ -201,6 +213,7 @@ public:
 
 	const T &data() const { return m_data; }
 	bool setData(const T &data);
+	void dataOverride(const T &data);
 
 	const QList<T> &subData() const { return m_subData; }
 	void addSubData(const T &data) { m_subData.append(data); }
@@ -213,9 +226,6 @@ public:
 		return dumpAs(m_data, m_subData);
 	}
 	virtual void render(Renderer *renderer, RendererObjectType *self) override {
-		if (!hasContent())
-			return;
-
 		renderAs(this, self, renderer);
 	}
 
@@ -232,6 +242,7 @@ private:
 
 	void renderAs(RendererItem<RpgGameData::Player> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::Enemy> *src, RendererObjectType *self, Renderer *renderer) const;
+	void renderAs(RendererItem<RpgGameData::Bullet> *src, RendererObjectType *self, Renderer *renderer) const;
 
 
 
@@ -254,13 +265,37 @@ class ConflictSolver
 public:
 	ConflictSolver(Renderer *renderer);
 
-	enum Type {
-		Invalid = 0,
-		WeaponUsage,
-		Damage
-	};
+	void add(const int &tick,
+			 RendererObject<RpgGameData::PlayerBaseData> *src,
+			 const RpgGameData::Weapon::WeaponType &weaponType)
+	{
+		addData<ConflictWeaponUsage<RpgGameData::Player, RpgGameData::PlayerBaseData> >(tick, src, weaponType);
+	}
 
-	void add(const RpgGameData::Weapon::WeaponType &weaponType, const int &tick, RendererObjectType *src, RendererObjectType *dest);
+	void add(const int &tick,
+			 RendererObject<RpgGameData::EnemyBaseData> *src,
+			 const RpgGameData::Weapon::WeaponType &weaponType)
+	{
+		addData<ConflictWeaponUsage<RpgGameData::Enemy, RpgGameData::EnemyBaseData> >(tick, src, weaponType);
+	}
+
+	void add(const int &tick,
+			 RendererObject<RpgGameData::PlayerBaseData> *src,
+			 RendererObject<RpgGameData::EnemyBaseData> *dest,
+			 const RpgGameData::Weapon::WeaponType &weaponType)
+	{
+		addData<ConflictAttack<RpgGameData::Player, RpgGameData::Enemy,
+				RpgGameData::PlayerBaseData, RpgGameData::EnemyBaseData> >(tick, src, dest, weaponType);
+	}
+
+	void add(const int &tick,
+			 RendererObject<RpgGameData::EnemyBaseData> *src,
+			 RendererObject<RpgGameData::PlayerBaseData> *dest,
+			 const RpgGameData::Weapon::WeaponType &weaponType)
+	{
+		addData<ConflictAttack<RpgGameData::Enemy, RpgGameData::Player,
+				RpgGameData::EnemyBaseData, RpgGameData::PlayerBaseData> >(tick, src, dest, weaponType);
+	}
 
 	bool solve();
 
@@ -268,35 +303,68 @@ private:
 	Renderer *const m_renderer;
 
 	struct ConflictData {
-		ConflictData(const Type &_type, const int &_tick, RendererObjectType *_src, RendererObjectType *_dest)
-			: type(_type)
-			, src(_src)
-			, dest(_dest)
-			, tick(_tick)
+		ConflictData(const int &_tick)
+			: tick(_tick)
 		{}
 
 		virtual ~ConflictData() = default;
 		virtual bool solve(ConflictSolver *solver) = 0;
 
-		const Type type = Invalid;
-		RendererObjectType *src = nullptr;
-		RendererObjectType *dest = nullptr;
-		int tick = -1;
-		int delayedTo = -1;								// Csak ekkor lesz éles
+		const int tick;
 		bool solved = false;
 	};
 
-	struct ConflictDataWeaponUsage : public ConflictData {
-		ConflictDataWeaponUsage(const int &_tick, RendererObjectType *_src, RendererObjectType *_dest,
-								const RpgGameData::Weapon::WeaponType &_wType)
-			: ConflictData(WeaponUsage, _tick, _src, _dest)
+
+	/**
+	 * @brief The ConflictWeaponUsage class
+	 */
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	struct ConflictWeaponUsage : public ConflictData {
+		ConflictWeaponUsage(const int &_tick, RendererObject<T2> *_src,
+							const RpgGameData::Weapon::WeaponType &_wType)
+			: ConflictData(_tick)
+			, src(_src)
 			, weaponType(_wType)
-		{
-			delayedTo = _tick;
-		}
+		{}
 
 		virtual bool solve(ConflictSolver *solver) override;
 
+		bool solveData(ConflictSolver *solver);
+
+		RendererObject<T2> *const src;
+		RpgGameData::Weapon::WeaponType weaponType = RpgGameData::Weapon::WeaponInvalid;
+	};
+
+
+
+	/**
+	 * @brief The ConflictAttack class
+	 */
+
+	template <typename T, typename T2, typename T3, typename T4,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T2>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T3>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T4>::value>::type>
+	struct ConflictAttack : public ConflictData {
+		ConflictAttack(const int &_tick,
+					   RendererObject<T3> *_src,
+					   RendererObject<T4> *_dest,
+					   const RpgGameData::Weapon::WeaponType &_wType)
+			: ConflictData(_tick)
+			, src(_src)
+			, dest(_dest)
+			, weaponType(_wType)
+		{}
+
+		virtual bool solve(ConflictSolver *solver) override;
+
+
+		RendererObject<T3> *const src;
+		RendererObject<T4> *const dest;
 		RpgGameData::Weapon::WeaponType weaponType = RpgGameData::Weapon::WeaponInvalid;
 	};
 
@@ -307,6 +375,9 @@ private:
 
 	std::vector<std::unique_ptr<ConflictData>> m_list;
 };
+
+
+
 
 
 
@@ -327,6 +398,7 @@ public:
 	bool render();
 	void render(RendererItem<RpgGameData::Player> *dst, RendererObject<RpgGameData::PlayerBaseData> *src);
 	void render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgGameData::EnemyBaseData> *src);
+	void render(RendererItem<RpgGameData::Bullet> *dst, RendererObject<RpgGameData::BulletBaseData> *src);
 
 	bool step();
 
@@ -347,11 +419,20 @@ public:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T>::value>::type>
 	RendererObject<T>* find(const T &baseData) const;
 
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T>::value>::type>
+	RendererObject<T>* findByBase(const RpgGameData::BaseData &baseData) const;
+
 
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	bool loadSnaps(RpgGameData::SnapshotList<T, T2> &list, const bool &isStorage);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	bool loadAuthSnaps(const RpgGameData::SnapshotList<T, T2> &src);
 
 
 	template <typename T,
@@ -365,6 +446,14 @@ public:
 		Q_ASSERT(object);
 		return dynamic_cast<RendererItem<T>*> (object->get());
 	}
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *rewind(RendererObjectType *src) const;
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	RendererItem<T> *forward(RendererObjectType *src) const;
 
 	template <typename T,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
@@ -411,21 +500,9 @@ private:
 	bool loadTemporarySnaps(RendererObject<T2> *dst, RpgGameData::SnapshotData<T, T2> &ptr);
 
 
-	/*bool loadStorageSnaps(RendererObject<RpgGameData::PlayerBaseData> *dst,
-						  RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> &ptr);
-
-	bool loadTemporarySnaps(RendererObject<RpgGameData::PlayerBaseData> *dst,
-							RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> &ptr);
-
-	bool loadStorageSnaps(RendererObject<RpgGameData::EnemyBaseData> *dst,
-						  RpgGameData::SnapshotData<RpgGameData::Enemy, RpgGameData::EnemyBaseData> &ptr);
-
-	bool loadTemporarySnaps(RendererObject<RpgGameData::EnemyBaseData> *dst,
-							RpgGameData::SnapshotData<RpgGameData::Enemy, RpgGameData::EnemyBaseData> &ptr);*/
-
-
 	void restore(RpgGameData::Player *dst, const RpgGameData::Player &data);
 	void restore(RpgGameData::Enemy *dst, const RpgGameData::Enemy &data);
+	void restore(RpgGameData::Bullet *dst, const RpgGameData::Bullet &data);
 
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -457,6 +534,13 @@ public:
 	void playerAdd(const RpgGameData::PlayerBaseData &base, const RpgGameData::Player &data);
 	void enemyAdd(const RpgGameData::EnemyBaseData &base, const RpgGameData::Enemy &data);
 	bool bulletAdd(const RpgGameData::BulletBaseData &base, const RpgGameData::Bullet &data);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	bool append(const T2 &key, const T &data);
+
+	bool append(const RpgGameData::EnemyBaseData &key, const RpgGameData::Enemy &data);
 
 	bool registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor);
 
@@ -497,18 +581,30 @@ public:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static void removeLessThan(RpgGameData::SnapshotList<T, T2> &list, const qint64 &tick);
 
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::LifeCycle, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	static QList<T2> removeOutdated(RpgGameData::SnapshotList<T, T2> &list, const qint64 &tick);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	static void removeList(RpgGameData::SnapshotList<T, T2> &list, const QList<T2> &ids);
+
 private:
 	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
 	bool registerEnemies(const RpgGameData::CurrentSnapshot &snapshot);
+	bool registerBullets(const RpgGameData::CurrentSnapshot &snapshot, const RpgGameData::PlayerBaseData &player);
 
 	std::unique_ptr<Renderer> getRenderer(const qint64 &tick);
-	bool saveRenderer(Renderer *renderer);
+	int saveRenderer(Renderer *renderer);
 
 
-	RpgGameData::Player actionPlayer(RpgGameData::PlayerBaseData &pdata, RpgGameData::Player &snap);
-	RpgGameData::Bullet actionBullet(RpgGameData::Bullet &snap,
-									 RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData>::iterator snapIterator,
-									 std::map<qint64, RpgGameData::Bullet>::iterator nextIterator);
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	int generateEvents(const RpgGameData::SnapshotData<T, T2> &snapshot, const qint64 &tick);
 
 
 
@@ -519,6 +615,7 @@ private:
 
 	std::vector<RpgGameData::BaseData> m_lastBulletId;
 };
+
 
 
 
@@ -676,5 +773,39 @@ inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::Enemy> *src,
 	Q_ASSERT(p);
 	renderer->render(src, p);
 }
+
+
+
+/**
+ * @brief RendererItem::renderAs
+ * @param src
+ * @param self
+ * @param renderer
+ */
+
+template<typename T, typename T2>
+inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::Bullet> *src, RendererObjectType *self, Renderer *renderer) const {
+	RendererObject<RpgGameData::BulletBaseData> *p = dynamic_cast<RendererObject<RpgGameData::BulletBaseData>*>(self);
+	Q_ASSERT(p);
+	renderer->render(src, p);
+}
+
+
+
+
+/**
+ * @brief RpgSnapshotStorage::append
+ * @param key
+ * @param data
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+inline bool RpgSnapshotStorage::append(const T2 &/*key*/, const T &/*data*/)
+{
+	LOG_CERROR("engine") << "Missing specialization";
+	return false;
+}
+
 
 #endif // RPGSNAPSHOTSTORAGE_H

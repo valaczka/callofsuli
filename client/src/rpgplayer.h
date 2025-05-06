@@ -196,8 +196,9 @@ public:
 
 	void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot) override;
 	void updateFromSnapshot(const RpgGameData::Player &snap) override;
+	virtual bool isLastSnapshotValid(const RpgGameData::Player &snap, const RpgGameData::Player &lastSnap) const override;
 
-	void attackedByEnemy(RpgEnemy *, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected);
+	void attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected);
 
 	int nextObjectId() { return ++m_lastObjectId; }
 

@@ -162,6 +162,9 @@ public:
 
 	virtual void worldStep() override;
 
+	void startInability();
+	bool startSleeping();
+
 signals:
 	void becameAlive();
 	void becameDead();
@@ -182,8 +185,6 @@ protected:
 	void onSleepingBegin();
 	void onSleepingEnd();
 
-	void startInability();
-	bool startSleeping();
 
 	virtual void eventPlayerReached(IsometricPlayer *player) = 0;
 	virtual void eventPlayerLeft(IsometricPlayer *player) = 0;

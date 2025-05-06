@@ -25,6 +25,7 @@
  */
 
 #include "rpgarmory.h"
+#include "actionrpgmultiplayergame.h"
 #include "rpgaxe.h"
 #include "rpgbroadsword.h"
 #include "rpgdagger.h"
@@ -36,6 +37,7 @@
 #include "tiledspritehandler.h"
 #include "rpgmagestaff.h"
 #include "rpggame.h"
+#include "actionrpggame.h"
 
 
 /// Static hash
@@ -712,7 +714,8 @@ RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGam
 	, RpgGameData::LifeCycle()
 	, m_weaponType(weaponType)
 {
-
+	m_path.first = cpvzero;
+	m_path.second = cpvzero;
 }
 
 
@@ -744,7 +747,7 @@ RpgGameData::BulletBaseData RpgBullet::baseData() const
 							 (float) m_path.first.x,
 							 (float) m_path.first.y,
 							 (float) m_path.second.x,
-							 (float) m_path.second.x
+							 (float) m_path.second.y
 						 });
 
 
@@ -828,25 +831,81 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 {
 	updateFromSnapshot(snapshot.s1);
 
-	if (snapshot.s1.f < 0) {
-		LOG_CERROR("game") << "Invalid snap" << snapshot.s1.f << snapshot.current << snapshot.s2.f;
-		stop();
+	if (snapshot.s1.f < 0 && snapshot.last.f < 0) {
+		LOG_CERROR("scene") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.last.f << snapshot.current;
+		return stop();
+	}
+
+	if ((m_stage == StageDestroy || m_stage == StageDead) && m_impactedObject.isValid() && !m_impactRendered) {
+		if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame()) {
+			if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(g->findBody(
+																 TiledObjectBody::ObjectId{
+																 .ownerId = snapshot.s1.tg.o,
+																 .sceneId = snapshot.s1.tg.s,
+																 .id = snapshot.s1.tg.id
+		}))) {
+				RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(g->findBody(
+															  TiledObjectBody::ObjectId{
+																  .ownerId = m_ownerId.o,
+																  .sceneId = m_ownerId.s,
+																  .id = m_ownerId.id,
+															  }));
+
+				LOG_CINFO("scene") << "REAL BULLET ATTACK PLAYER" << snapshot.current << snapshot.s1.f <<
+									  snapshot.s1.p << player->objectId().ownerId << enemy;
+
+				player->attackedByEnemy(g->controlledPlayer() == player ? enemy : nullptr,
+										m_weaponType, false);
+			}
+
+		}
+
+		LOG_CINFO("scene") << "attacked";
+
+		m_impactRendered = true;
+	}
+
+	if (m_stage != StageLive)
+		return;
+
+
+	const RpgGameData::Bullet &from = snapshot.s1.f >= 0 ? snapshot.s1 : snapshot.last;
+	const RpgGameData::Bullet &to = snapshot.s2.f >= 0 ? snapshot.s2 : snapshot.last;
+
+	if (from.f < 0 || to.f < 0 || from.f > to.f)
+		return stop();
+
+
+	const cpVect line = cpvsub(m_path.second, m_path.first);
+	if (cpvlengthsq(line) < m_speed/60.) {
+		LOG_CERROR("scene") << "Invalid path" << m_path.first.x << m_path.first.y << "->" << m_path.second.x << m_path.second.y;
+		return stop();
+	}
+
+	const cpVect speed = cpvmult(cpvnormalize(line), m_speed);
+
+	const cpVect final = cpvlerp(m_path.first, m_path.second, to.p);
+
+
+	if (to.f <= snapshot.current) {
+		const int frames = snapshot.current-to.f+1;
+		const cpVect pos = cpvadd(final, cpvmult(speed, frames/60.));
+
+		moveToPoint(pos, frames);
+		return;
+	} else {
+		const int frames = to.f-snapshot.current;
+		const cpVect pos =
+				frames > 1 ?
+					cpvlerp(bodyPosition(),
+							cpvadd(final, cpvmult(speed, frames/60.)),
+							1./frames) :
+					cpvadd(final, cpvmult(speed, frames/60.))
+					;
+
+		moveToPoint(pos, frames);
 		return;
 	}
-
-	if (m_stage == StageLive) {
-		if (snapshot.s2.f > 0) {
-			///////
-			/*QPointF final = m_path.pointAt(snapshot.s2.p);
-
-			float dist = distanceToPoint(final) * 1000. / (float) (snapshot.s2.f-snapshot.current);
-
-			setSpeedFromAngle(angleToPoint(final), dist);*/
-		}
-	}
-
-	// Nem kell, ezt csak hosted esetben (ActionRpgMultiplayer megcsinálja)
-	////IsometricBullet::worldStep();
 }
 
 
@@ -888,13 +947,27 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 
 	if (!base)
 		return;
-/*
-	const FixtureCategories categories = FixtureCategories::fromInt(shape.GetFilter().categoryBits);
+
+
+	// Multiplayerben ez nem nem érdekes, ha nem a sajátunk
+
+	ActionRpgMultiplayerGame *g = dynamic_cast<ActionRpgMultiplayerGame*>(rpgGame()->actionRpgGame());
+
+	if (g) {
+		if (m_owner == RpgGameData::BulletBaseData::OwnerPlayer && m_ownerId.o != g->playerId())
+			return;
+
+		if (m_owner == RpgGameData::BulletBaseData::OwnerEnemy && g->gameMode() != ActionRpgGame::MultiPlayerHost)
+			return;
+	}
+
+	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(shape).categories);
+
 	RpgEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
 						  dynamic_cast<RpgEnemy*>(base) :
 						  nullptr;
 
-	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody)  ?
+	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
 							dynamic_cast<RpgPlayer*>(base) :
 							nullptr;
 
@@ -916,11 +989,11 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 
 	bool hasTarget = false;
 
-	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetEnemy) && enemy) {
+	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetEnemy) && enemy && enemy->isAlive()) {
 		hasTarget = enemy->canBulletImpact(m_weaponType);
 	}
 
-	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetPlayer) && player && !player->isLocked()) {
+	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetPlayer) && player && player->isAlive() && !player->isLocked()) {
 		hasTarget = true;
 	}
 
@@ -935,8 +1008,6 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 
 	if (RpgGame *g = rpgGame())
 		g->bulletImpact(this, base);
-*/
-
 }
 
 

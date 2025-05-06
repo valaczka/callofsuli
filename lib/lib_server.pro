@@ -5,7 +5,8 @@ TEMPLATE = subdirs
 SUBDIRS = \
 	CuteLogger \
 	libSimpleMail \
-	libENet
+	libENet \
+	libChipmunk2D
 
 CONFIG += ordered
 

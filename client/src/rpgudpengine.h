@@ -230,9 +230,6 @@ inline qint64 ClientStorage::insert(std::map<qint64, T> *dst, const T &snap, con
 	while (dst->contains(f))
 		++f;
 
-	if (f != realF)
-		LOG_CINFO("game") << "+++SNAP" << snap.f << "->" << f;
-
 	T s2 = snap;
 	s2.f = f;
 	dst->insert_or_assign(f, s2);

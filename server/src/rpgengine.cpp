@@ -26,6 +26,7 @@
 
 #include "rpgengine.h"
 #include "Logger.h"
+#include "serverservice.h"
 #include "udpserver.h"
 #include <QCborArray>
 #include <QCborMap>
@@ -61,15 +62,36 @@ private:
 
 	void updateState();
 
+
+
+	template <typename T, typename ...Args,
+			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+	void eventAdd(Args &&...args);
+
+	template <typename T, typename ...Args,
+			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+	void eventAddLater(Args &&...args);
+
+
+	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
+
+
 	RpgGameData::GameConfig m_gameConfig;
 
 	QElapsedTimer m_elapsedTimer;
 	qint64 m_lastSentTick = -1;
 
+	std::vector<std::unique_ptr<RpgEvent>> m_events;
+	std::vector<std::unique_ptr<RpgEvent>> m_eventsLater;
+	bool m_eventsProcessing = false;
+
 	RpgEngine *q;
 
 	friend class RpgEngine;
 };
+
+
+
 
 
 
@@ -249,6 +271,111 @@ qint64 RpgEngine::currentTick()
 
 	return m_currentTick;
 }
+
+
+
+
+
+
+/**
+ * @brief RpgEngine::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::EnemyBaseData &data,
+							const RpgGameData::Enemy &snap, const std::optional<RpgGameData::Enemy> &prev)
+{
+	QMutexLocker locker(&m_engineMutex);
+
+	if (!prev)
+		return 0;
+
+	if (prev->hp > 0 && snap.hp <= 0) {
+		LOG_CINFO("engine") << "Enemy died" << data.o << data.id;
+		eventAdd<RpgEventEnemyDied>(tick, data);
+		return 1;
+	}
+
+	return 0;
+}
+
+
+
+/**
+ * @brief RpgEngine::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::PlayerBaseData &data, const RpgGameData::Player &snap, const std::optional<RpgGameData::Player> &prev)
+{
+	return -1;
+}
+
+
+
+/**
+ * @brief RpgEngine::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::BulletBaseData &data, const RpgGameData::Bullet &snap, const std::optional<RpgGameData::Bullet> &prev)
+{
+	return -1;
+}
+
+
+
+/**
+ * @brief RpgEngine::processEvents
+ * @return
+ */
+
+RpgGameData::CurrentSnapshot RpgEngine::processEvents(const qint64 &tick)
+{
+	return d->processEvents(tick);
+}
+
+
+
+
+
+
+
+
+/**
+ * @brief RpgEngine::players
+ * @return
+ */
+
+RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::PlayerBaseData> RpgEngine::players()
+{
+	return m_snapshots.players();
+}
+
+RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> RpgEngine::enemies()
+{
+	return m_snapshots.enemies();
+}
+
+RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> RpgEngine::bullets()
+{
+	return m_snapshots.bullets();
+}
+
+
+
 
 
 
@@ -534,7 +661,7 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
-	if (q->m_currentTick == 0) {
+	if (q->m_currentTick <= 0) {
 		if (m.value(QStringLiteral("full")).toBool(false)) {
 			player->setIsFullyPrepared(true);
 			return;
@@ -622,10 +749,12 @@ void RpgEnginePrivate::dataSendPlay()
 
 	const qint64 tick = q->currentTick();
 
-	if (tick <= m_lastSentTick)
-		return;
+	if (tick > 0) {
+		if (tick <= m_lastSentTick)
+			return;
 
-	m_lastSentTick = tick;
+		m_lastSentTick = tick;
+	}
 
 	QCborMap current = q->m_snapshots.getCurrentSnapshot().toCbor();
 	current.insert(QStringLiteral("t"), tick);
@@ -638,6 +767,15 @@ void RpgEnginePrivate::dataSendPlay()
 		if (it->get()->udpPeer())
 			it->get()->udpPeer()->send(map.toCborValue().toCbor(), false);
 	}
+
+
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+	map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(current.toJsonObject()).toJson()));
+	q->service()->writeToSocket(map.toCborValue());
+
+#endif
 }
 
 
@@ -757,6 +895,294 @@ void RpgEnginePrivate::updateState()
 }
 
 
+
+/**
+ * @brief RpgEnginePrivate::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+
+
+
+
+
+
+
+
+/**
+ * @brief RpgEvent::RpgEvent
+ * @param m_tick
+ */
+
+RpgEvent::RpgEvent(RpgEngine *engine, const qint64 &tick, const bool &unique)
+	: m_engine(engine)
+	, m_tick(tick)
+	, m_unique(unique)
+{
+
+}
+
+
+
+/**
+ * @brief RpgEvent::~RpgEvent
+ */
+
+RpgEvent::~RpgEvent()
+{
+
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::eventAddLater
+ * @param args
+ */
+template<typename T, typename ...Args, typename T3>
+void RpgEnginePrivate::eventAddLater(Args &&...args)
+{
+	QMutexLocker locker(&q->m_engineMutex);
+	std::unique_ptr<T> e(new T(q, std::forward<Args>(args)...));
+
+	for (const auto &ptr : m_events) {
+		if (ptr->isUnique() && ptr->isEqual(e.get())) {
+			LOG_CWARNING("engine") << "Event unique constraint failed";
+			return;
+		}
+	}
+
+	for (const auto &ptr : m_eventsLater) {
+		if (ptr->isUnique() && ptr->isEqual(e.get())) {
+			LOG_CWARNING("engine") << "Event unique constraint failed";
+			return;
+		}
+	}
+
+	m_eventsLater.push_back(std::move(e));
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::eventAdd
+ * @param args
+ */
+
+template<typename T, typename ...Args, typename T3>
+void RpgEnginePrivate::eventAdd(Args &&...args)
+{
+	QMutexLocker locker(&q->m_engineMutex);
+
+	if (m_eventsProcessing) {
+		LOG_CDEBUG("engine") << "...........";
+		eventAddLater<T>(std::forward<Args>(args)...);
+		return;
+	}
+
+	std::unique_ptr<T> e(new T(q, std::forward<Args>(args)...));
+
+	for (const auto &ptr : m_events) {
+		if (ptr->isUnique() && ptr->isEqual(e.get())) {
+			LOG_CWARNING("engine") << "Event unique constraint failed";
+			return;
+		}
+	}
+
+	m_events.push_back(std::move(e));
+}
+
+
+
+
+
+/**
+ * @brief RpgEngine::eventAdd
+ * @param args
+ */
+
+template<typename T, typename ...Args, typename T3>
+void RpgEngine::eventAdd(Args &&...args)
+{
+	d->eventAdd<T>(std::forward<Args>(args)...);
+}
+
+
+
+template<typename T, typename ...Args, typename T3>
+void RpgEngine::eventAddLater(Args &&...args)
+{
+	d->eventAddLater<T>(std::forward<Args>(args)...);
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::processEvents
+ * @return
+ */
+
+RpgGameData::CurrentSnapshot RpgEnginePrivate::processEvents(const qint64 &tick)
+{
+	QMutexLocker locker(&q->m_engineMutex);
+
+	m_eventsProcessing = true;
+
+	RpgGameData::CurrentSnapshot snapshot;
+
+	for (auto it = m_events.begin(); it != m_events.end(); ) {
+		if (it->get()->process(tick, &snapshot))
+			it = m_events.erase(it);
+		else
+			++it;
+	}
+
+	for (auto &ptr : m_eventsLater)
+		m_events.push_back(std::move(ptr));
+
+	m_eventsLater.clear();
+
+	m_eventsProcessing = false;
+
+	return snapshot;
+}
+
+
+
+
+
+/**
+ * @brief RpgEventEnemyDied::RpgEventEnemyDied
+ * @param tick
+ * @param data
+ */
+
+RpgEventEnemyDied::RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data)
+	: RpgEvent(engine, tick)
+	, m_data(data)
+{
+	LOG_CDEBUG("engine") << "Enemy died" << m_data.o << m_data.id << "@" << tick;
+}
+
+
+
+/**
+ * @brief RpgEventEnemyDied::process
+ * @return
+ */
+
+bool RpgEventEnemyDied::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
+{
+	Q_UNUSED(dst);
+
+	LOG_CDEBUG("engine") << "Enemy died processed" << m_data.o << m_data.id << "@" << m_tick;
+
+	bool allDead = true;
+
+	for (const auto &ptr : m_engine->enemies()) {
+		if (ptr.data == m_data)
+			continue;
+
+		if (ptr.list.empty()) {
+			allDead = false;
+			break;
+		}
+
+		if (std::prev(ptr.list.cend())->second.hp > 0) {
+			allDead = false;
+			break;
+		}
+	}
+
+	if (allDead) {
+		LOG_CINFO("engine") << "ALL DEAD";
+		m_engine->eventAdd<RpgEventEnemyResurrect>(m_tick+180);
+	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgEventEnemyDied::isEqual
+ * @param other
+ * @return
+ */
+
+bool RpgEventEnemyDied::isEqual(RpgEvent *other) const
+{
+	if (RpgEventEnemyDied *d = dynamic_cast<RpgEventEnemyDied*>(other); d &&
+			d->m_tick == m_tick &&
+			d->m_data == m_data
+			)
+		return true;
+
+	return false;
+}
+
+
+/**
+ * @brief RpgEventEnemyResurrect::RpgEventEnemyResurrect
+ * @param engine
+ * @param tick
+ */
+
+RpgEventEnemyResurrect::RpgEventEnemyResurrect(RpgEngine *engine, const qint64 &tick)
+	: RpgEvent(engine, tick)
+{
+	LOG_CDEBUG("engine") << "RESURRECT created" << tick << m_unique;
+}
+
+
+/**
+ * @brief RpgEventEnemyResurrect::process
+ * @return
+ */
+
+bool RpgEventEnemyResurrect::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
+{
+	Q_ASSERT(dst);
+
+	if (tick < m_tick)
+		return false;
+
+	for (const auto &ptr : m_engine->enemies()) {
+		if (ptr.list.empty())
+			continue;
+
+		RpgGameData::Enemy edata = std::prev(ptr.list.cend())->second;
+		edata.f = m_tick;
+		edata.hp = 32;
+
+		LOG_CINFO("engine") << "###### RESURRECT" << m_tick << ptr.data.id;
+
+		dst->assign(dst->enemies, ptr.data, edata);
+	}
+
+	return true;
+}
+
+
+/**
+ * @brief RpgEventEnemyResurrect::isEqual
+ * @param other
+ * @return
+ */
+
+bool RpgEventEnemyResurrect::isEqual(RpgEvent *other) const
+{
+	if (RpgEventEnemyResurrect *d = dynamic_cast<RpgEventEnemyResurrect*>(other); d &&
+			d->m_tick == m_tick
+			)
+		return true;
+
+	return false;
+}
 
 
 
