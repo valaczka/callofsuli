@@ -461,7 +461,7 @@ bool TiledObjectBody::moveToPoint(const cpVect &point, const int &inFrame, const
 
 	if (maxSpeed > 0.) {
 		if (const float s = maxSpeed*inFrame/60.; cpvlengthsq(dest) > POW2(s)) {
-			LOG_CINFO("scene") << "[Simulation] maxSpeed" << dest.x << dest.y << maxSpeed;
+			//LOG_CTRACE("scene") << "[Simulation] maxSpeed" << dest.x << dest.y << maxSpeed;
 			dest = cpvmult(cpvnormalize(dest), s);
 		}
 	}

@@ -544,7 +544,8 @@ public:
 
 	bool registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor);
 
-	void render(const qint64 &tick);
+	QString render(const qint64 &tick);
+	void renderEnd(const QString &txt);
 
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -573,7 +574,7 @@ public:
 
 	template <typename T,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
-	static void copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick);
+	void copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick) const;
 
 
 	template <typename T, typename T2,

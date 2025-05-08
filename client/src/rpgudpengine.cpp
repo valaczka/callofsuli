@@ -27,6 +27,8 @@
 
 #include "rpgudpengine.h"
 #include "qbuffer.h"
+#include "actionrpgmultiplayergame.h"
+#include "server.h"
 
 
 
@@ -54,40 +56,6 @@ RpgUdpEngine::~RpgUdpEngine()
 }
 
 
-/**
- * @brief RpgUdpEngine::packetReceived
- * @param data
- */
-
-void RpgUdpEngine::packetReceived(const QCborMap &data, const unsigned int rtt)
-{
-	if (!m_game)
-		return;
-
-	m_game->addLatency(rtt/2);
-
-	QMutexLocker locker(&m_mutex);
-
-	if (m_game->config().gameState == RpgConfig::StateError || m_gameState == RpgConfig::StateError)
-		return;
-
-	updateState(data);
-
-	if (m_gameState == RpgConfig::StateConnect)
-		return;
-	else if (m_gameState == RpgConfig::StateCharacterSelect)
-		packetReceivedChrSel(data);
-	else if (m_gameState == RpgConfig::StatePrepare) {
-		if (m_game->config().gameState == RpgConfig::StateDownloadContent)
-			packetReceivedDownload(data);
-		else if (m_game->config().gameState == RpgConfig::StatePrepare)
-			packetReceivedPrepare(data);
-	} else if (m_gameState == RpgConfig::StatePlay) {
-		packetReceivedPlay(data);
-	}
-}
-
-
 
 
 
@@ -105,7 +73,6 @@ void RpgUdpEngine::disconnect()
 
 
 
-
 /**
  * @brief RpgUdpEngine::updateState
  * @param data
@@ -113,8 +80,6 @@ void RpgUdpEngine::disconnect()
 
 void RpgUdpEngine::updateState(const QCborMap &data)
 {
-	QMutexLocker locker(&m_mutex);
-
 	if (auto it = data.find(QStringLiteral("hst")); it != data.cend()) {
 		m_isHost = it->toBool();
 	}
@@ -138,7 +103,7 @@ void RpgUdpEngine::updateState(const QCborMap &data)
 
 void RpgUdpEngine::updateSnapshot(const RpgGameData::CharacterSelect &player)
 {
-	QMutexLocker locker(&m_mutex);
+	QMutexLocker locker(&m_snapshotMutex);
 
 	const auto it = std::find_if(m_playerData.begin(),
 								 m_playerData.end(),
@@ -150,6 +115,7 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CharacterSelect &player)
 		m_playerData.emplace_back(player);
 	else
 		*it = player;
+
 
 
 	m_snapshots.updateSnapshot(player);
@@ -201,8 +167,6 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 	if (!m_game)
 		return;
 
-	QMutexLocker locker(&m_mutex);
-
 	if (m_downloadContentStarted)
 		return;
 
@@ -227,16 +191,12 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 
 	updateSnapshotPlayerList(pList);
 
+	QMutexLocker locker(&m_snapshotMutex);
 	emit gameDataDownload(config.terrain, m_playerData);
 
 	m_downloadContentStarted = true;
 }
 
-
-
-#ifdef WITH_FTXUI
-#include "desktopapplication.h"
-#endif
 
 
 /**
@@ -270,8 +230,6 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 	if (!m_game)
 		return;
 
-	QMutexLocker locker(&m_mutex);
-
 	const qint64 tick = data.value(QStringLiteral("t")).toInteger(-1);
 
 	if (tick > -1)
@@ -284,113 +242,6 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 	updateSnapshotPlayerList(playerList);
 	updateSnapshotEnemyList(enemyList);
 	updateSnapshotBulletList(bulletList);
-
-#ifdef WITH_FTXUI
-	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
-		QCborMap map;
-		QString txt;
-
-		/*		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
-
-
-		for (const QCborValue &v : playerList) {
-			const QCborMap &m = v.toMap();
-			const QCborValue &pd = m.value(QStringLiteral("pd"));
-			const QCborArray &p = m.value(QStringLiteral("p")).toArray();
-
-			RpgGameData::PlayerBaseData playerData;
-			playerData.fromCbor(pd);
-
-			if (playerData.o < 0 ) {		// || playerData.o == m_playerId
-				continue;
-			}
-
-			txt += QStringLiteral("PLAYER %1\n==============================================\n").arg(playerData.o);
-
-
-			RpgGameData::Player player;
-			QList<RpgGameData::Player> pl;
-
-			for (const QCborValue &v : p) {
-				player.fromCbor(v);
-
-				pl.append(player);
-			}
-
-			for (auto it = pl.crbegin(); it != pl.crend(); ++it) {
-				txt += QStringLiteral("%1: %8 %2 (%3, %4) -> (%5, %6) - %7  || %9\n")
-					   .arg(it->f)
-					   .arg(it->st)
-					   .arg(it->p.size() > 1 ? it->p.at(0) : -1)
-					   .arg(it->p.size() > 1 ? it->p.at(1) : -1)
-					   .arg(it->cv.size() > 1 ? it->cv.at(0) : -1)
-					   .arg(it->cv.size() > 1 ? it->cv.at(1) : -1)
-					   .arg(it->a)
-					   .arg(it->f)
-					   .arg(it->arm.cw)
-					   ;
-			}
-
-			txt += QStringLiteral("\n\n");
-		}
-
-		map.insert(QStringLiteral("txt"), txt);
-		a->writeToSocket(map.toCborValue());
-
-
-
-
-		txt.clear();
-		map.clear();*/
-
-		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
-
-		txt = QStringLiteral("CURRENT TICK %1 - server %2\n\n").arg(m_game->rpgGame()->tickTimer()->currentTick()).arg(tick);
-
-		for (const auto &ptr : m_snapshots.players()) {
-			txt += QStringLiteral("STORAGE PLAYER %1\n==============================================\n").arg(ptr.data.o);
-
-			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
-				txt += QStringLiteral("%1: %2 (%3, %4) %5  || %6\n")
-					   .arg(it->second.f)
-					   .arg(it->second.st)
-					   .arg(it->second.p.size() > 1 ? it->second.p.at(0) : -1)
-					   .arg(it->second.p.size() > 1 ? it->second.p.at(1) : -1)
-					   .arg(it->second.a)
-					   .arg(it->second.arm.cw)
-					   ;
-			}
-
-			txt += QStringLiteral("\n\n");
-		}
-
-
-
-		for (const auto &ptr : m_snapshots.enemies()) {
-			txt += QStringLiteral("STORAGE ENEMY %1 %2 %3\n==============================================\n")
-				   .arg(ptr.data.o)
-				   .arg(ptr.data.s)
-				   .arg(ptr.data.id);
-
-			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
-				txt += QStringLiteral("%1: %2 (%3, %4) %5  || %6\n")
-					   .arg(it->second.f)
-					   .arg(it->second.st)
-					   .arg(it->second.p.size() > 1 ? it->second.p.at(0) : -1)
-					   .arg(it->second.p.size() > 1 ? it->second.p.at(1) : -1)
-					   .arg(it->second.a)
-					   .arg(it->second.arm.cw)
-					   ;
-			}
-
-			txt += QStringLiteral("\n\n");
-		}
-
-		map.insert(QStringLiteral("txt"), txt);
-		a->writeToSocket(map.toCborValue());
-	}
-#endif
-
 }
 
 
@@ -400,7 +251,7 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
  * @return
  */
 
-RpgConfig::GameState RpgUdpEngine::gameState() const
+const RpgConfig::GameState &RpgUdpEngine::gameState() const
 {
 	return m_gameState;
 }
@@ -408,6 +259,119 @@ RpgConfig::GameState RpgUdpEngine::gameState() const
 void RpgUdpEngine::setGameState(const RpgConfig::GameState &newGameState)
 {
 	m_gameState = newGameState;
+}
+
+
+/**
+ * @brief RpgUdpEngine::snapshots
+ * @return
+ */
+
+ClientStorage RpgUdpEngine::snapshots()
+{
+	QMutexLocker locker(&m_snapshotMutex);
+	return m_snapshots;
+}
+
+
+
+/**
+ * @brief RpgUdpEngine::zapSnapshots
+ * @param tick
+ */
+
+void RpgUdpEngine::zapSnapshots(const qint64 &tick)
+{
+	QMutexLocker locker(&m_snapshotMutex);
+	m_snapshots.zapSnapshots(tick);
+}
+
+
+/**
+ * @brief RpgUdpEngine::getFullSnapshot
+ * @param tick
+ * @param findLast
+ * @return
+ */
+
+RpgGameData::FullSnapshot RpgUdpEngine::getFullSnapshot(const qint64 &tick, const bool &findLast)
+{
+	QMutexLocker locker(&m_snapshotMutex);
+	return m_snapshots.getFullSnapshot(tick, findLast);
+}
+
+
+
+/**
+ * @brief RpgUdpEngine::getNextFullSnapshot
+ * @param tick
+ * @return
+ */
+
+RpgGameData::FullSnapshot RpgUdpEngine::getNextFullSnapshot(const qint64 &tick)
+{
+	QMutexLocker locker(&m_snapshotMutex);
+	return m_snapshots.getNextFullSnapshot(tick);
+}
+
+
+
+/**
+ * @brief RpgUdpEngine::getCurrentSnapshot
+ * @return
+ */
+
+RpgGameData::CurrentSnapshot RpgUdpEngine::getCurrentSnapshot()
+{
+	QMutexLocker locker(&m_snapshotMutex);
+	return m_snapshots.getCurrentSnapshot();
+}
+
+
+
+
+
+
+/**
+ * @brief RpgUdpEngine::binaryDataReceived
+ * @param list
+ * @param rtt
+ */
+
+void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int> > &list)
+{
+	if (!m_game)
+		return;
+
+	for (const auto &ptr : list) {
+		m_game->addLatency(ptr.second/2);
+
+		if (m_game->config().gameState == RpgConfig::StateError || m_gameState == RpgConfig::StateError)
+			return;
+
+		const QCborMap &cbor = QCborValue::fromCbor(ptr.first).toMap();
+
+		updateState(cbor);
+
+		if (m_gameState == RpgConfig::StateConnect)
+			return;
+		else if (m_gameState == RpgConfig::StateCharacterSelect)
+			packetReceivedChrSel(cbor);
+		else if (m_gameState == RpgConfig::StatePrepare) {
+			if (m_game->config().gameState == RpgConfig::StateDownloadContent)
+				packetReceivedDownload(cbor);
+			else if (m_game->config().gameState == RpgConfig::StatePrepare)
+				packetReceivedPrepare(cbor);
+		} else if (m_gameState == RpgConfig::StatePlay) {
+
+			if (const qint64 tick = cbor.value(QStringLiteral("t")).toInteger(-1); tick > -1) {
+				QMutexLocker locker(&m_snapshotMutex);
+				m_snapshots.setServerTick(tick);
+			}
+
+			packetReceivedPlay(cbor);
+		}
+	}
 }
 
 
@@ -427,7 +391,7 @@ void RpgUdpEngine::setGameState(const RpgConfig::GameState &newGameState)
 
 QVariantList RpgUdpEngine::getPlayerList()
 {
-	QMutexLocker locker(&m_mutex);
+	QMutexLocker locker(&m_snapshotMutex);
 
 	QVariantList list;
 
@@ -441,14 +405,52 @@ QVariantList RpgUdpEngine::getPlayerList()
 
 
 /**
- * @brief RpgUdpEngine::getPlayerData
+ * @brief RpgUdpEngine::playerData
  * @return
  */
 
-QList<RpgGameData::CharacterSelect> RpgUdpEngine::getPlayerData()
+QList<RpgGameData::CharacterSelect> RpgUdpEngine::playerData()
 {
-	QMutexLocker locker(&m_mutex);
+	QMutexLocker locker(&m_snapshotMutex);
 	return m_playerData;
+}
+
+
+
+
+/**
+ * @brief RpgUdpEngine::isHost
+ * @return
+ */
+
+bool RpgUdpEngine::isHost() const
+{
+	return m_isHost;
+}
+
+void RpgUdpEngine::setIsHost(bool newIsHost)
+{
+	m_isHost = newIsHost;
+}
+
+int RpgUdpEngine::playerId() const
+{
+	return m_playerId;
+}
+
+void RpgUdpEngine::setPlayerId(int newPlayerId)
+{
+	m_playerId = newPlayerId;
+}
+
+const RpgGameData::GameConfig &RpgUdpEngine::gameConfig() const
+{
+	return m_gameConfig;
+}
+
+void RpgUdpEngine::setGameConfig(const RpgGameData::GameConfig &newGameConfig)
+{
+	m_gameConfig = newGameConfig;
 }
 
 
@@ -463,8 +465,6 @@ QList<RpgGameData::CharacterSelect> RpgUdpEngine::getPlayerData()
 
 void RpgUdpEngine::updateSnapshotEnemyList(const QCborArray &list)
 {
-	QMutexLocker locker(&m_mutex);
-
 	for (const QCborValue &v : list) {
 		const QCborMap &m = v.toMap();
 		const QCborValue &ed = m.value(QStringLiteral("ed"));
@@ -482,6 +482,8 @@ void RpgUdpEngine::updateSnapshotEnemyList(const QCborArray &list)
 
 		for (const QCborValue &v : e) {
 			enemy.fromCbor(v);
+
+			QMutexLocker locker(&m_snapshotMutex);
 			m_snapshots.updateSnapshot(enemyData, enemy);
 		}
 	}
@@ -499,8 +501,6 @@ void RpgUdpEngine::updateSnapshotEnemyList(const QCborArray &list)
 
 void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
 {
-	QMutexLocker locker(&m_mutex);
-
 	for (const QCborValue &v : list) {
 		const QCborMap &m = v.toMap();
 		const QCborValue &pd = m.value(QStringLiteral("pd"));
@@ -518,6 +518,8 @@ void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
 
 		for (const QCborValue &v : p) {
 			player.fromCbor(v);
+
+			QMutexLocker locker(&m_snapshotMutex);
 			m_snapshots.updateSnapshot(playerData, player);
 		}
 	}
@@ -534,8 +536,6 @@ void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
 
 void RpgUdpEngine::updateSnapshotBulletList(const QCborArray &list)
 {
-	QMutexLocker locker(&m_mutex);
-
 	std::vector<RpgGameData::BulletBaseData> existingBullets;
 
 	for (const QCborValue &v : list) {
@@ -555,6 +555,8 @@ void RpgUdpEngine::updateSnapshotBulletList(const QCborArray &list)
 
 		for (const QCborValue &v : e) {
 			bullet.fromCbor(v);
+
+			QMutexLocker locker(&m_snapshotMutex);
 			m_snapshots.updateSnapshot(bulletData, bullet);
 		}
 
@@ -562,6 +564,8 @@ void RpgUdpEngine::updateSnapshotBulletList(const QCborArray &list)
 	}
 
 	// Remove missing bullets
+
+	QMutexLocker locker(&m_snapshotMutex);
 
 	m_snapshots.removeMissingSnapshots(existingBullets);
 
@@ -592,8 +596,6 @@ void RpgUdpEngine::connectToServer(Server *server)
 
 void ClientStorage::updateSnapshot(const RpgGameData::CharacterSelect &player)
 {
-	QMutexLocker locker(&m_mutex);
-
 	const auto pIt = std::find_if(m_players.cbegin(),
 								  m_players.cend(),
 								  [&player](const auto &key) {
@@ -622,8 +624,6 @@ void ClientStorage::updateSnapshot(const RpgGameData::CharacterSelect &player)
 
 void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player)
 {
-	QMutexLocker locker(&m_mutex);
-
 	auto it = std::find_if(m_players.begin(),
 						   m_players.end(),
 						   [&playerData](const auto &p) {
@@ -656,8 +656,6 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 
 void ClientStorage::updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy)
 {
-	QMutexLocker locker(&m_mutex);
-
 	auto it = std::find_if(m_enemies.begin(),
 						   m_enemies.end(),
 						   [&enemyData](const auto &p) {
@@ -693,8 +691,6 @@ void ClientStorage::updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 
 void ClientStorage::updateSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet)
 {
-	QMutexLocker locker(&m_mutex);
-
 	auto it = std::find_if(m_bullets.begin(),
 						   m_bullets.end(),
 						   [&bulletData](const auto &p) {
@@ -727,7 +723,6 @@ void ClientStorage::updateSnapshot(const RpgGameData::BulletBaseData &bulletData
 
 bool ClientStorage::hasSnapshot()
 {
-	QMutexLocker locker(&m_mutex);
 	return !m_players.empty() || !m_enemies.empty() || !m_bullets.empty();
 }
 
@@ -740,8 +735,6 @@ bool ClientStorage::hasSnapshot()
 
 RpgGameData::CurrentSnapshot ClientStorage::renderCurrentSnapshot()
 {
-	QMutexLocker locker(&m_mutex);
-
 	RpgGameData::CurrentSnapshot snapshot = getCurrentSnapshot();
 	updateLastTick(snapshot);
 
@@ -756,8 +749,6 @@ RpgGameData::CurrentSnapshot ClientStorage::renderCurrentSnapshot()
 
 void ClientStorage::updateLastTick(const RpgGameData::CurrentSnapshot &snapshot)
 {
-	QMutexLocker locker(&m_mutex);
-
 	for (const auto &ptr : snapshot.players) {
 		for (const auto &l : ptr.list) {
 			if (l.second.f > m_lastPlayerTick)
@@ -781,6 +772,28 @@ void ClientStorage::updateLastTick(const RpgGameData::CurrentSnapshot &snapshot)
 }
 
 
+/**
+ * @brief ClientStorage::setServerTick
+ * @param newServerTick
+ */
+
+void ClientStorage::setServerTick(const qint64 &newServerTick)
+{
+	m_serverTick = newServerTick;
+}
+
+
+/**
+ * @brief ClientStorage::serverTick
+ * @return
+ */
+
+const qint64 &ClientStorage::serverTick() const
+{
+	return m_serverTick;
+}
+
+
 
 /**
  * @brief ClientStorage::removeMissingSnapshots
@@ -801,8 +814,6 @@ void ClientStorage::removeMissingSnapshots(const std::vector<RpgGameData::Bullet
 
 void ClientStorage::clear()
 {
-	QMutexLocker locker(&m_mutex);
-
 	m_players.clear();
 	m_enemies.clear();
 	m_bullets.clear();
@@ -817,8 +828,6 @@ void ClientStorage::clear()
 
 QByteArray ClientStorage::dump()
 {
-	QMutexLocker locker(&m_mutex);
-
 	QByteArray data;
 	QBuffer buf(&data);
 	buf.open(QIODevice::WriteOnly);

@@ -165,8 +165,6 @@ void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity
 
 FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &findLast)
 {
-	QMutexLocker locker(&m_mutex);
-
 	FullSnapshot s;
 
 	addFullSnapshot(&s.players, m_players, tick, findLast);
@@ -189,8 +187,6 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &fi
 
 CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 {
-	QMutexLocker locker(&m_mutex);
-
 	CurrentSnapshot s;
 
 	s.players = convertToSnapshotList(m_players);
@@ -209,8 +205,6 @@ CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 
 void SnapshotStorage::zapSnapshots(const qint64 &tick)
 {
-	QMutexLocker locker(&m_mutex);
-
 	if (tick <= 0)
 		return;
 

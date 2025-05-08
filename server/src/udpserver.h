@@ -27,6 +27,7 @@
 #ifndef UDPSERVER_H
 #define UDPSERVER_H
 
+#include "qlambdathreadworker.h"
 #include <enet/enet.h>
 #include <QThread>
 
@@ -46,8 +47,6 @@ public:
 	UdpServerPeer(UdpServer *server, ENetPeer *peer = nullptr);
 	~UdpServerPeer();
 
-	void packetReceived(const int &channel, ENetPacket *packet);
-
 	ENetPeer *peer() const { return m_peer; }
 	void setPeer(ENetPeer *newPeer) { m_peer = newPeer; }
 
@@ -62,39 +61,56 @@ public:
 
 	void send(const QByteArray &data, const bool &reliable);
 
+	const qint64 &lastSentTick() const { return m_lastSentTick; }
+	void setLastSentTick(const qint64 &newLastSentTick) { m_lastSentTick = newLastSentTick; }
+
+	bool readyToSend(const int &maxFps = 0);
+	void addRtt(const int &rtt) { m_speed.addRtt(rtt); }
+
+	const int &currentRtt() const { return m_speed.currentRtt; }
+	const int &currentFps() const { return m_speed.fps; }
+	const int &peerFps() const { return m_speed.peerFps; }
+
 private:
 	UdpServer *m_server = nullptr;
 	ENetPeer *m_peer = nullptr;
 	std::shared_ptr<UdpEngine> m_engine;
+	qint64 m_lastSentTick = -1;
+
+	struct Speed {
+		void addRtt(const int &rtt);
+
+		inline static constexpr int maxFps = 30;
+		int fps = maxFps;
+
+		// min rtt -> max fps
+		inline static const std::map<int, int> limit = {
+			{ 75,	24 },
+			{ 150,	20 },
+			{ 200,	15 },
+		};
+
+
+		QElapsedTimer lastSent;
+		QElapsedTimer lastBad;
+		QElapsedTimer lastGood;
+		QDeadlineTimer nextGood;
+		int delay = 2000;
+		int currentRtt = 0;
+		int peerFps = 0;
+
+		std::vector<qint64> received;
+	};
+
+
+	Speed m_speed;
 
 	friend class UdpServerPrivate;
 };
 
 
 
-
-
-
-
-/**
- * @brief The UdpServerThread class
- */
-
-class UdpServerThread : public QThread
-{
-	Q_OBJECT
-
-public:
-	UdpServerThread(UdpServer *server)
-		: QThread()
-		, q(server)
-	{  }
-
-	virtual ~UdpServerThread() {}
-	void run() override;
-	UdpServer *q;
-};
-
+typedef QList<QPair<UdpServerPeer*, QByteArray> > UdpServerPeerReceivedList;
 
 
 
@@ -115,7 +131,7 @@ public:
 
 private:
 	UdpServerPrivate *d = nullptr;
-	UdpServerThread m_dThread;
+	std::unique_ptr<QLambdaThreadWorker> m_worker;
 	ServerService *m_service = nullptr;
 
 	std::vector<std::unique_ptr<UdpServerPeer>> m_peerList;

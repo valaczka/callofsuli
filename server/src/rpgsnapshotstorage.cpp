@@ -838,8 +838,6 @@ RpgSnapshotStorage::RpgSnapshotStorage(RpgEngine *engine)
 
 void RpgSnapshotStorage::playerAdd(const RpgGameData::PlayerBaseData &base, const RpgGameData::Player &data)
 {
-	QMutexLocker locker(&m_mutex);
-
 	RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> snapdata;
 
 	snapdata.data = base;
@@ -858,8 +856,6 @@ void RpgSnapshotStorage::playerAdd(const RpgGameData::PlayerBaseData &base, cons
 
 void RpgSnapshotStorage::enemyAdd(const RpgGameData::EnemyBaseData &base, const RpgGameData::Enemy &data)
 {
-	QMutexLocker locker(&m_mutex);
-
 	RpgGameData::SnapshotData<RpgGameData::Enemy, RpgGameData::EnemyBaseData> snapdata;
 
 	snapdata.data = base;
@@ -878,8 +874,6 @@ void RpgSnapshotStorage::enemyAdd(const RpgGameData::EnemyBaseData &base, const 
 
 bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, const RpgGameData::Bullet &data)
 {
-	QMutexLocker locker(&m_mutex);
-
 	auto it = std::find_if(m_lastBulletId.begin(), m_lastBulletId.end(),
 						   [&base](const RpgGameData::BaseData &d){
 		return d.o == base.o && d.s == base.s;
@@ -918,8 +912,6 @@ bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, cons
 
 bool RpgSnapshotStorage::append(const RpgGameData::EnemyBaseData &key, const RpgGameData::Enemy &data)
 {
-	QMutexLocker locker(&m_mutex);
-
 	const auto &dstIt = RpgGameData::CurrentSnapshot::find(m_enemies, key);
 
 	if (dstIt == m_enemies.end())
@@ -943,8 +935,6 @@ bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMa
 	if (!player)
 		return false;
 
-	QMutexLocker locker(&m_mutex);
-
 	bool ret = true;
 
 
@@ -956,15 +946,14 @@ bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMa
 
 
 
+
 /**
  * @brief RpgSnapshotStorage::render
  * @param tick
  */
 
-void RpgSnapshotStorage::render(const qint64 &tick)
+QString RpgSnapshotStorage::render(const qint64 &tick)
 {
-	QMutexLocker locker(&m_mutex);
-
 	std::unique_ptr<Renderer> renderer = getRenderer(tick);
 
 	QString txt = QStringLiteral("RENDER %1\n---------------------------------------------\n").arg(tick);
@@ -973,26 +962,43 @@ void RpgSnapshotStorage::render(const qint64 &tick)
 
 	if (!renderer) {
 		LOG_CERROR("engine") << "INVALID RENDERER" << tick << m_lastAuthTick;
-	} else {
-		renderer->render();
-
-		txt.append(renderer->dump());
-
-		txt.append(QStringLiteral("---------------------------------------\n\n"));
-
-		diff = saveRenderer(renderer.get());
-
-		// A mutex miatt törölni kell!
-
-		renderer.reset();
+		return {};
 	}
 
+
+	QElapsedTimer t1;
+	t1.start();
+
+	renderer->render();
+
+	m_engine->renderTimerLog(t1.elapsed());
+
+	txt.append(renderer->dump());
+
+	txt.append(QStringLiteral("---------------------------------------\n\n"));
+
+	diff = saveRenderer(renderer.get());
 
 	if (diff > 0)
 		LOG_CERROR("engine") << "****DIFF" << diff;
 
-	m_lastAuthTick = tick + diff - 60;
+	m_lastAuthTick = tick + diff - 30;
 
+	return txt;
+
+}
+
+
+
+
+
+/**
+ * @brief RpgSnapshotStorage::renderEnd
+ * @param tick
+ */
+
+void RpgSnapshotStorage::renderEnd(const QString &txt)
+{
 	removeList(m_tmpSnapshot.bullets, removeOutdated(m_bullets, m_lastAuthTick-120));
 
 	removeLessThan(m_tmpSnapshot.players, m_lastAuthTick-5);
@@ -1002,6 +1008,7 @@ void RpgSnapshotStorage::render(const qint64 &tick)
 
 	zapSnapshots(m_lastAuthTick-5);
 
+
 #ifdef WITH_FTXUI
 	QCborMap map;
 	map.insert(QStringLiteral("mode"), QStringLiteral("SND"));
@@ -1009,7 +1016,6 @@ void RpgSnapshotStorage::render(const qint64 &tick)
 	m_engine->service()->writeToSocket(map.toCborValue());
 
 #endif
-
 }
 
 
@@ -1029,8 +1035,6 @@ void RpgSnapshotStorage::render(const qint64 &tick)
 bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 										 const QCborMap &cbor) {
 	Q_ASSERT(player);
-
-	QMutexLocker locker(&m_mutex);
 
 	RpgGameData::CurrentSnapshot snapshot;
 
@@ -1106,8 +1110,6 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 
 bool RpgSnapshotStorage::registerEnemies(const RpgGameData::CurrentSnapshot &snapshot)
 {
-	QMutexLocker locker(&m_mutex);
-
 	for (const auto &e : snapshot.enemies) {
 		const auto &dstIt = RpgGameData::CurrentSnapshot::find(m_tmpSnapshot.enemies, e.data);
 
@@ -1132,8 +1134,6 @@ bool RpgSnapshotStorage::registerEnemies(const RpgGameData::CurrentSnapshot &sna
 
 bool RpgSnapshotStorage::registerBullets(const RpgGameData::CurrentSnapshot &snapshot, const RpgGameData::PlayerBaseData &player)
 {
-	QMutexLocker locker(&m_mutex);
-
 	for (const auto &e : snapshot.bullets) {
 
 		if (e.data.o != player.o) {
@@ -1267,13 +1267,13 @@ int RpgSnapshotStorage::saveRenderer(Renderer *renderer)
  */
 
 template<typename T, typename T2>
-void RpgSnapshotStorage::copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick)
+void RpgSnapshotStorage::copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick) const
 {
 	const qint64 ft = firstTick*10;
 
 	for (const auto &ptr : src) {
 		if (ptr.first < ft) {
-			LOG_CERROR("engine") << "Snapshot out of time:" << ptr.first << "vs." << firstTick;
+			LOG_CERROR("engine") << "Snapshot out of time:" << ptr.first << "vs." << firstTick << "CURRENT" << m_engine->currentTick();
 			continue;
 		}
 

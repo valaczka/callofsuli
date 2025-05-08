@@ -207,6 +207,7 @@ TiledGame::TiledGame(QQuickItem *parent)
 			updateKeyboardJoystick();
 		}
 	});
+
 }
 
 
@@ -1297,8 +1298,11 @@ void TiledGame::updateStepTimer()
 	if (frames <= 0)
 		return;
 
+	QElapsedTimer timer1;
+	timer1.start();
 
 	QMutexLocker locker(&d->m_stepMutex);
+
 
 	timeStepPrepareEvent();
 
@@ -1316,17 +1320,25 @@ void TiledGame::updateStepTimer()
 		LOG_CERROR("scene") << "Render lag:" << frames << "frames";
 	else if (frames > 8)
 		LOG_CWARNING("scene") << "Render lag:" << frames << "frames";
-	/*else if (frames > 4)
+	else if (frames > 4)
 		LOG_CDEBUG("scene") << "Render lag:" << frames << "frames";
-	else if (frames > 1)
-		LOG_CTRACE("scene") << "Render lag:" << frames << "frames";*/
+	else if (frames > 2)
+		LOG_CTRACE("scene") << "Render lag:" << frames << "frames";
 
 
 	timeSteppedEvent();
 
 	d->updateObjects();
 
+	if (const auto &t = timer1.restart(); t > 3) {
+		LOG_CDEBUG("scene") << "[Benchmark] worldstep  " << t << "ms /" << frames << "frames";
+	}
+
 	synchronize();
+
+	if (const auto &t = timer1.elapsed(); t > 3) {
+		LOG_CDEBUG("scene") << "[Benchmark] synchronize" << t << "ms /" << frames << "frames";
+	}
 }
 
 

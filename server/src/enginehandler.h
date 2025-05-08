@@ -53,8 +53,6 @@ public:
 	void websocketEngineLink(WebSocketStream *stream, const std::shared_ptr<AbstractEngine> &engine);
 	void websocketEngineUnlink(WebSocketStream *stream, AbstractEngine *engine);
 
-	void udpDataReceived(UdpServerPeer *peer, QByteArray data);
-
 
 private:
 	[[deprecated]] void initEngines();

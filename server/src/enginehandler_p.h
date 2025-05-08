@@ -76,7 +76,6 @@ private:
 	void timerMinuteEventRun();
 
 	void onBinaryDataReceived(WebSocketStream *stream, const QByteArray &data);
-	void udpDataReceived(UdpServerPeer *peer, const QByteArray &data);
 
 private:
 	EngineHandler *q = nullptr;

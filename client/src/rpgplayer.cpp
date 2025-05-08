@@ -969,7 +969,7 @@ public:
 			tt += *it + QStringLiteral("\n");
 
 		map.insert(QStringLiteral("txt"), tt);
-		m_app->writeToSocket(map.toCborValue());
+		////m_app->writeToSocket(map.toCborValue());
 	}
 
 

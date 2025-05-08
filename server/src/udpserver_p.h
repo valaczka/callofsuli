@@ -37,6 +37,14 @@
  * @brief The UdpServerPrivate class
  */
 
+typedef QHash<UdpEngine*, UdpServerPeerReceivedList> UdpEngineReceived;
+
+
+
+/**
+ * @brief The UdpServerPrivate class
+ */
+
 class UdpServerPrivate : public QObject
 {
 	Q_OBJECT
@@ -51,31 +59,57 @@ public:
 
 	void run();
 
+	void sendPacket(ENetPeer *peer, const QByteArray &data, const bool isReliable);
+
+	QList<QByteArray> takePackets(UdpServerPeer *peer);
+	QList<QByteArray> takePackets(UdpEngine *engine);
+	UdpEngineReceived takePackets();
+
+
+private:
 	void peerConnect(ENetPeer *peer);
 	void peerDisconnect(ENetPeer *peer);
 	void udpPeerRemove(UdpServerPeer *peer);
 
 	void packetReceived(const ENetEvent &event);
-	void sendPacket(ENetPeer *peer, const QByteArray &data, const bool isReliable);
+	void deliverReceived();
 
-private:
 	UdpServer *q;
 	ENetHost *m_enet_server = nullptr;
 
-	struct Packet {
-		Packet(ENetPeer *p, const QByteArray &d, const bool r)
-			: peer(p)
-			, data(d)
-			, reliable(r)
-		{}
+	struct InOutCache {
+		struct Packet {
+			Packet(ENetPeer *p, const QByteArray &d, const bool r)
+				: peer(p)
+				, data(d)
+				, reliable(r)
+			{}
 
-		ENetPeer *peer = nullptr;
-		QByteArray data;
-		bool reliable = false;
+			ENetPeer *peer = nullptr;
+			QByteArray data;
+			bool reliable = false;
+		};
+
+
+		struct PacketRcv {
+			PacketRcv(UdpServerPeer *p, const QByteArray &d, const qint64 _ts)
+				: peer(p)
+				, data(d)
+				, ts(_ts)
+			{}
+
+			UdpServerPeer *peer = nullptr;
+			QByteArray data;
+			qint64 ts = -0;
+		};
+
+
+		QMutex mutex;
+		std::vector<Packet> sendList;
+		std::vector<PacketRcv> rcvList;
 	};
 
-	QMutex m_mutex;
-	std::vector<Packet> m_sendList;
+	InOutCache m_inOutChache;
 
 	friend class UdpServer;
 };

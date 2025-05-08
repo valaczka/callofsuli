@@ -143,11 +143,6 @@ void EngineHandler::websocketEngineUnlink(WebSocketStream *stream, AbstractEngin
 	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketEngineUnlink, d, stream, engine), Qt::QueuedConnection);
 }
 
-void EngineHandler::udpDataReceived(UdpServerPeer *peer, QByteArray data)
-{
-	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::udpDataReceived, d, peer, data), Qt::QueuedConnection);
-}
-
 
 
 
@@ -640,6 +635,16 @@ void EngineHandlerPrivate::timerEvent(QTimerEvent */*event*/)
 
 void EngineHandlerPrivate::timerEventRun()
 {
+	static QElapsedTimer t;
+	if (!t.isValid())
+		t.start();
+	else {
+		qint64 msec = t.restart();
+
+		if (msec > 1000./60.)
+			LOG_CERROR("engine") << "Handler timer run" << msec;
+	}
+
 	QMutexLocker locker(&m_mutex);
 
 	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {
@@ -685,31 +690,6 @@ void EngineHandlerPrivate::onBinaryDataReceived(WebSocketStream *stream, const Q
 	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {
 		e->onBinaryMessageReceived(data, stream);
 	}
-}
-
-
-/**
- * @brief EngineHandlerPrivate::udpDataReceived
- * @param peer
- * @param data
- * @param engine
- */
-
-void EngineHandlerPrivate::udpDataReceived(UdpServerPeer *peer, const QByteArray &data)
-{
-	if (!peer) {
-		LOG_CERROR("service") << "Invalid peer";
-		return;
-	}
-
-	if (!peer->engine()) {
-		LOG_CERROR("service") << "Invalid engine";
-		return;
-	}
-
-	QMutexLocker locker(&m_mutex);
-
-	peer->engine()->binaryDataReceived(peer, data);
 }
 
 

@@ -29,10 +29,10 @@
 
 #include "actionrpggame.h"
 #include "qslistmodel.h"
+#include "rpgudpengine.h"
 #include <QObject>
 
 
-class RpgUdpEngine;
 class ActionRpgMultiplayerGamePrivate;
 
 
@@ -56,6 +56,8 @@ public:
 	Q_INVOKABLE virtual void rpgGameActivated() override;
 	Q_INVOKABLE virtual void gamePrepared() override;
 	Q_INVOKABLE virtual void gameAbort() override;
+
+	virtual int msecLeft() const override;
 
 	Q_INVOKABLE void selectTerrain(const QString &terrain);
 	Q_INVOKABLE void selectCharacter(const QString &character);
@@ -96,9 +98,10 @@ private:
 
 	void worldTerrainSelect(QString map, const bool forced);
 	void updatePlayersModel(const QVariantList &list);
-	void syncEnemyList();
-	void syncPlayerList();
-	void syncBulletList();
+
+	void syncEnemyList(const ClientStorage &storage);
+	void syncPlayerList(const ClientStorage &storage);
+	void syncBulletList(const ClientStorage &storage);
 
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::PlayerBaseData &config, const RpgGameData::Player &playerData);
 

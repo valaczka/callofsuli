@@ -120,9 +120,9 @@ FocusScope {
 
 			iconLabel.icon.source: Qaterial.Icons.timerOutline
 
-			iconLabel.text: game.msecLeft >= 60000 ?
+			iconLabel.text: game.msecLeft /*game.msecLeft >= 60000 ?
 								Client.Utils.formatMSecs(game.msecLeft) :
-								Client.Utils.formatMSecs(game.msecLeft, 1, false)
+								Client.Utils.formatMSecs(game.msecLeft, 1, false)*/
 		}
 	}
 

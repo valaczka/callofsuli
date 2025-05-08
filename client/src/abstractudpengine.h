@@ -31,34 +31,12 @@
 #include <QThread>
 #include <QCborMap>
 
-
-class AbstractUdpEngine;
-class AbstractUdpEnginePrivate;
-
-
-
-/**
- * @brief The RpgUdpEngineThread class
- */
-
 #ifndef Q_OS_WASM
-class AbstractUdpEngineThread : public QThread
-{
-	Q_OBJECT
-
-public:
-	AbstractUdpEngineThread(AbstractUdpEngine *engine)
-		: QThread()
-		, q(engine)
-	{  }
-
-	void run() override;
-
-private:
-	AbstractUdpEngine *q;
-};
-
+#include "qlambdathreadworker.h"
 #endif
+
+
+class AbstractUdpEnginePrivate;
 
 
 /**
@@ -73,21 +51,28 @@ public:
 	explicit AbstractUdpEngine(QObject *parent = nullptr);
 	virtual ~AbstractUdpEngine();
 
-	void sendMessage(QByteArray data, const bool &reliable = true, const int &channel = 0);
+	void sendMessage(const QByteArray &data, const bool &reliable = true, const int &channel = 0);
 
 	void setUrl(const QUrl &url);
 
+	int currentRtt() const;
+	void setCurrentRtt(const int &rtt);
+
+signals:
+	void serverConnected();
+	void serverDisconnected();
+	void serverConnectFailed();
+
 protected:
-	virtual void packetReceived(const QCborMap &data, const unsigned int rtt) = 0;
+	virtual void binaryDataReceived(const QList<QPair<QByteArray, unsigned int> > &list) = 0;
 
 private:
 #ifndef Q_OS_WASM
-	AbstractUdpEngineThread *m_dThread = nullptr;
+	std::unique_ptr<QLambdaThreadWorker> m_worker;
 #endif
 	AbstractUdpEnginePrivate *d = nullptr;
 
 	friend class AbstractUdpEnginePrivate;
-	friend class AbstractUdpEngineThread;
 };
 
 

@@ -45,14 +45,22 @@
  */
 
 UdpServer::UdpServer(ServerService *service)
-	: d(new UdpServerPrivate(this))
-	, m_dThread(this)
+	: m_worker(new QLambdaThreadWorker)
 	, m_service(service)
 {
 	LOG_CDEBUG("engine") << "START UDP ENGINE";
 
-	d->moveToThread(&m_dThread);
-	m_dThread.start();
+	QDefer ret;
+	m_worker->execInThread([this, ret]() mutable {
+		d = new UdpServerPrivate(this);
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	m_worker->execInThread(std::bind(&UdpServerPrivate::run, d));
+
+	LOG_CDEBUG("engine") << "UDP ENGINE started";
 }
 
 
@@ -63,10 +71,13 @@ UdpServer::UdpServer(ServerService *service)
 
 UdpServer::~UdpServer()
 {
-	d = nullptr;
-	m_dThread.requestInterruption();
-	m_dThread.quit();
-	m_dThread.wait();
+	LOG_CDEBUG("engine") << "STOPPING UDP ENGINE";
+
+	m_worker->getThread()->requestInterruption();
+	m_worker->quitThread();
+	m_worker->getThread()->wait();
+
+	delete d;
 
 	LOG_CDEBUG("engine") << "END UDP ENGINE";
 }
@@ -85,8 +96,13 @@ void UdpServer::send(UdpServerPeer *peer, const QByteArray &data, const bool &re
 	if (!peer)
 		return;
 
-	QMetaObject::invokeMethod(d, &UdpServerPrivate::sendPacket, Qt::QueuedConnection, peer->peer(), data, reliable);
+	m_worker->execInThread([this, peer, data, reliable]() {
+		d->sendPacket(peer->peer(), data, reliable);
+	});
 }
+
+
+
 
 
 
@@ -147,6 +163,7 @@ void UdpServerPrivate::run()
 		}
 
 		if (r > 0) {
+
 			switch (event.type) {
 				case ENET_EVENT_TYPE_CONNECT:
 					peerConnect(event.peer);
@@ -167,16 +184,23 @@ void UdpServerPrivate::run()
 		}
 
 
-		QMutexLocker locker(&m_mutex);
+		QMutexLocker locker(&m_inOutChache.mutex);
 
-		for (const auto &b : m_sendList) {
+		for (const auto &b : m_inOutChache.sendList) {
 			ENetPacket *packet = enet_packet_create(b.data.data(), b.data.size(),
 													b.reliable ? ENET_PACKET_FLAG_RELIABLE :
 																 ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
 			enet_peer_send(b.peer, 0, packet);
 		}
 
-		m_sendList.clear();
+		m_inOutChache.sendList.clear();
+
+		locker.unlock();
+
+		//if (m_timer.hasExpired(m_fps)) {
+		deliverReceived();
+		//	m_timer.restart();
+		//}
 
 	}
 
@@ -257,9 +281,12 @@ void UdpServerPrivate::udpPeerRemove(UdpServerPeer *peer)
 	if (peer->engine())
 		peer->engine()->udpPeerRemove(peer);
 
-	QMutexLocker locker(&m_mutex);
+	QMutexLocker locker(&m_inOutChache.mutex);
 
-	std::erase_if(m_sendList, [peer](const Packet &p) { return p.peer == peer->peer(); });
+	std::erase_if(m_inOutChache.sendList, [peer](const auto &p) { return p.peer == peer->peer(); });
+	std::erase_if(m_inOutChache.rcvList, [peer](const auto &p) { return p.peer == peer; });
+
+	locker.unlock();
 
 	std::erase_if(q->m_peerList, [peer](const std::unique_ptr<UdpServerPeer> &ptr) {
 		return peer == ptr.get();
@@ -282,7 +309,50 @@ void UdpServerPrivate::packetReceived(const ENetEvent &event)
 		return;
 	}
 
-	peer->packetReceived(event.channelID, event.packet);
+	if (event.packet->dataLength <= 0) {
+		LOG_CWARNING("engine") << "Invalid data";
+		return;
+	}
+
+	peer->addRtt(event.peer->roundTripTime);
+
+
+	QMutexLocker locker(&m_inOutChache.mutex);
+
+	QByteArray data((char*) event.packet->data, event.packet->dataLength);
+
+	m_inOutChache.rcvList.emplace_back(peer, data, 0);			// timestamp
+
+}
+
+
+
+/**
+ * @brief UdpServerPrivate::deliverReceived
+ */
+
+void UdpServerPrivate::deliverReceived()
+{
+	const UdpEngineReceived &p = takePackets();
+
+	QList<UdpEngine*> engines;
+
+	for (const auto &ptr : q->m_peerList) {
+		auto *e = ptr->engine().get();
+		if (!e)
+			continue;
+
+		if (!engines.contains(e))
+			engines.append(e);
+	}
+
+	for (const auto &[e, list] : p.asKeyValueRange()) {
+		e->binaryDataReceived(list);
+		engines.removeAll(e);
+	}
+
+	for (UdpEngine *e : engines)
+		e->binaryDataReceived({});
 }
 
 
@@ -297,17 +367,108 @@ void UdpServerPrivate::sendPacket(ENetPeer *peer, const QByteArray &data, const 
 	if (!peer)
 		return;
 
-	QMutexLocker locker(&m_mutex);
+	QMutexLocker locker(&m_inOutChache.mutex);
 
-	m_sendList.emplace_back(peer, data, isReliable);
+	m_inOutChache.sendList.emplace_back(peer, data, isReliable);
 }
 
 
 
-void UdpServerThread::run()
+/**
+ * @brief UdpServerPrivate::takePackets
+ * @param peer
+ * @return
+ */
+
+QList<QByteArray> UdpServerPrivate::takePackets(UdpServerPeer *peer)
 {
-	q->d->run();
+	if (!peer)
+		return {};
+
+	QMutexLocker locker(&m_inOutChache.mutex);
+
+	QList<QByteArray> list;
+
+	list.reserve(m_inOutChache.rcvList.size());
+
+	for (auto it = m_inOutChache.rcvList.cbegin(); it != m_inOutChache.rcvList.cend(); ) {
+		if (it->peer == peer) {
+			list.append(it->data);
+			it = m_inOutChache.rcvList.erase(it);
+		} else {
+			++it;
+		}
+	}
+
+	return list;
 }
+
+
+
+/**
+ * @brief UdpServerPrivate::takePackets
+ * @param engine
+ * @return
+ */
+
+QList<QByteArray> UdpServerPrivate::takePackets(UdpEngine *engine)
+{
+	if (!engine)
+		return {};
+
+	QMutexLocker locker(&m_inOutChache.mutex);
+
+	QList<QByteArray> list;
+
+	list.reserve(m_inOutChache.rcvList.size());
+
+	for (auto it = m_inOutChache.rcvList.cbegin(); it != m_inOutChache.rcvList.cend(); ) {
+		if (it->peer->engine().get() == engine) {
+			list.append(it->data);
+			it = m_inOutChache.rcvList.erase(it);
+		} else {
+			++it;
+		}
+	}
+
+	return list;
+}
+
+
+
+
+/**
+ * @brief UdpServerPrivate::takePackets
+ * @return
+ */
+
+UdpEngineReceived UdpServerPrivate::takePackets()
+{
+	QMutexLocker locker(&m_inOutChache.mutex);
+
+	UdpEngineReceived r;
+
+	for (const auto &it : m_inOutChache.rcvList) {
+		if (!it.peer) {
+			LOG_CERROR("engine") << "Invalid peer";
+			continue;
+		}
+
+		UdpEngine *engine = it.peer->engine().get();
+
+		if (!engine) {
+			LOG_CERROR("engine") << "Invalid engine";
+			continue;
+		}
+
+		r[engine].append(QPair<UdpServerPeer *, QByteArray>(it.peer, it.data));
+	}
+
+	m_inOutChache.rcvList.clear();
+
+	return r;
+}
+
 
 
 
@@ -336,18 +497,6 @@ UdpServerPeer::~UdpServerPeer()
 }
 
 
-/**
- * @brief UdpServerPeer::packetReceived
- * @param channel
- */
-
-void UdpServerPeer::packetReceived(const int &/*channel*/, ENetPacket *packet)
-{
-	Q_ASSERT(m_engine);
-	QByteArray data((char*) packet->data, packet->dataLength);
-
-	m_engine->binaryDataReceived(this, data);
-}
 
 
 
@@ -406,4 +555,106 @@ void UdpServerPeer::send(const QByteArray &data, const bool &reliable)
 
 
 
+/**
+ * @brief UdpServerPeer::readyToSend
+ * @return
+ */
 
+bool UdpServerPeer::readyToSend(const int &maxFps)
+{
+	if (!m_speed.lastSent.isValid()) {
+		m_speed.lastSent.start();
+		return true;
+	}
+
+	if (m_speed.lastSent.hasExpired(1000./(float) m_speed.fps) &&
+			(maxFps <= 0 || m_speed.lastSent.hasExpired(1000./(float) maxFps)) )
+	{
+		m_speed.lastSent.restart();
+		return true;
+	}
+
+	return false;
+}
+
+
+
+
+
+
+
+
+
+/**
+ * @brief UdpServerPeer::Speed::addRtt
+ * @param rtt
+ */
+
+void UdpServerPeer::Speed::addRtt(const int &rtt)
+{
+	// Bejövö packet idejének rögzítése
+
+	received.emplace_back(QDateTime::currentMSecsSinceEpoch());
+	std::erase_if(received, [](const qint64 &ms) {
+		return ms < QDateTime::currentMSecsSinceEpoch()-10000;
+	});
+
+	peerFps = received.size()/10.;
+
+	currentRtt = rtt;
+
+	const auto it = limit.upper_bound(rtt);
+
+	// Ha túl nagy az rtt
+
+
+	if (it != limit.cbegin()) {
+		// Ha visszaestünk a rosszba (5 mp-en belül), duplázzuk a várakozási időt
+
+		if (fps != maxFps && lastBad.isValid() && lastBad.elapsed() < 5000)
+			delay = std::min(10000, delay*2);
+
+		// Eddig nem váltunk vissza
+		nextGood.setRemainingTime(delay);
+
+
+		if (lastBad.isValid())
+			lastBad.restart();
+		else
+			lastBad.start();
+
+		lastGood.invalidate();
+
+		if (const auto f = std::prev(it)->second; f < fps) {
+			LOG_CDEBUG("game") << "RTT=" << rtt << "SET FPS" << fps << "->" << f;
+			fps = f;
+		}
+
+		return;
+	}
+
+
+	// Ha jó a helyzet
+
+	if (!nextGood.hasExpired())
+		return;
+
+	if (fps != maxFps) {
+		LOG_CDEBUG("game") << "RTT=" << rtt << "SET FPS" << fps << "->" << maxFps;
+
+		fps = maxFps;
+	}
+
+	// Mérjük, hogy mióta jó
+
+	if (!lastGood.isValid()) {
+		lastGood.start();
+		return;
+	}
+
+	if (lastGood.hasExpired(5000)) {
+		delay = std::max(1000, delay/2);
+		lastGood.restart();
+	}
+
+}

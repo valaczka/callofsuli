@@ -32,6 +32,8 @@ AndroidVersionCode = 55
 #########################################################################
 
 
+BackwardCpp = false
+
 # Build creation enabled (linux, win32, mac, wasm)
 
 CreateBundle = false
@@ -46,6 +48,9 @@ LibSodiumInclude =
 LibSodiumLibs = -lsodium
 LibSodiumDefines =
 
+# Extra DLL
+
+ExtraDll =
 
 # Read local configuration
 

@@ -109,8 +109,8 @@ private:
 
 			const int &s = m_latencies.size();
 
-			if (s > 2*m_latencySize) {
-				m_latencies.erase(m_latencies.cbegin(), m_latencies.cbegin()+(s-(2*m_latencySize)));
+			if (const qint64 max=2*m_latencySize; (s > max)) {
+				m_latencies.erase(m_latencies.cbegin(), m_latencies.cbegin()+(s-max));
 			}
 		}
 
@@ -131,7 +131,7 @@ private:
 		QElapsedTimer m_timestamp;
 		qint64 m_tick = 0;
 		QList<qint64> m_latencies;
-		inline static const qint64 m_latencySize = 6;
+		inline static const qint64 m_latencySize = 10;
 
 #ifndef Q_OS_WASM
 		QRecursiveMutex m_mutex;
@@ -142,6 +142,66 @@ private:
 	TimeSync m_timeSync;
 
 	ActionRpgMultiplayerGame *const d;
+
+
+
+	//// TMP
+
+	enum Measure {
+		Invalid,
+		SGsync,
+		SGrender,
+		Synchronize
+	};
+
+	struct MeasureData {
+		qint64 min = -1;
+		qint64 max = -1;
+		QList<qint64> data;
+
+		qint64 avg() const {
+			if (data.size() > 0) {
+				qint64 sum = std::accumulate(data.constBegin(), data.constEnd(), 0);
+				return sum/data.size();
+			} else {
+				return 0;
+			}
+		}
+
+		void add(const qint64 &ms) {
+			if (data.size() > limit)
+				data.erase(data.constBegin(), data.constBegin()+(data.size()-limit-1));
+			data.append(ms);
+
+			if (min < 0 || ms < min)
+				min = ms;
+
+			if (max < 0 || ms > max)
+				max = ms;
+		}
+
+		int limit = 120;
+	};
+
+	QHash<Measure, MeasureData> m_renderData;
+
+	QElapsedTimer m_renderTimer;
+
+	void renderTimerStart() {
+		if (m_renderTimer.isValid())
+			m_renderTimer.restart();
+		else
+			m_renderTimer.start();
+	}
+
+	void renderTimerMeausure(const Measure &measure) {
+		m_renderData[measure].add(m_renderTimer.restart());
+	}
+
+	void renderTimerMeausure(const Measure &measure, const qint64 &msec) {
+		m_renderData[measure].add(msec);
+	}
+
 
 	friend class ActionRpgMultiplayerGame;
 };
@@ -243,6 +303,28 @@ void ActionRpgMultiplayerGame::rpgGameActivated()
 		return;
 
 	QMetaObject::invokeMethod(this, &ActionRpgMultiplayerGame::onRpgGameActivated, Qt::QueuedConnection);
+
+
+	// TMP
+
+	q->renderTimerMeausure(ActionRpgMultiplayerGamePrivate::SGsync, 0);
+
+	connect(m_client->mainWindow(), &QQuickWindow::beforeSynchronizing, this, [this](){
+		q->renderTimerStart();
+	}, Qt::DirectConnection);
+
+	connect(m_client->mainWindow(), &QQuickWindow::beforeRendering, this, [this](){
+		q->renderTimerMeausure(ActionRpgMultiplayerGamePrivate::SGsync);
+	}, Qt::DirectConnection);
+
+	connect(m_client->mainWindow(), &QQuickWindow::afterRendering, this, [this](){
+		q->renderTimerMeausure(ActionRpgMultiplayerGamePrivate::SGrender);
+	}, Qt::DirectConnection);
+
+	connect(qApp, &QCoreApplication::aboutToQuit, this, [this](){
+		if (m_client->mainWindow())
+			m_client->mainWindow()->disconnect(this);
+	});
 }
 
 
@@ -267,6 +349,17 @@ void ActionRpgMultiplayerGame::gameAbort()
 {
 	disconnectFromHost();
 	ActionRpgGame::gameAbort();
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::msecLeft
+ * @return
+ */
+
+int ActionRpgMultiplayerGame::msecLeft() const
+{
+	return m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : 0;
 }
 
 
@@ -405,30 +498,92 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 }
 
 
+#ifdef WITH_FTXUI
+#include "desktopapplication.h"
+#endif
+
+
 /**
  * @brief ActionRpgMultiplayerGame::timerEvent
  */
 
 void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 {
-	QMutexLocker locker (&m_engine->m_mutex);
+	const ClientStorage &snapshots = m_engine->snapshots();
 
 	const qint64 tick = m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : -2;
 
-	if (m_engine->m_gameState == RpgConfig::StateInvalid)
+	LOG_CDEBUG("game") << "[Benchmark] CURRENT TICK" << tick << "SERVER TICK" << snapshots.serverTick() << "--->"
+					   << snapshots.serverTick()+AbstractGame::TickTimer::msecToTick(q->m_timeSync.getLatency())
+					   << "Q" << q->m_timeSync.get() << "LAT" << q->m_timeSync.getLatency();
+
+#ifdef WITH_FTXUI
+	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
+		QCborMap map;
+		QString txt;
+
+
+		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+
+		txt = QStringLiteral("CURRENT TICK %1 - server %2\n\n").arg(tick).arg(snapshots.serverTick());
+
+		for (const auto &ptr : snapshots.players()) {
+			txt += QStringLiteral("STORAGE PLAYER %1\n==============================================\n").arg(ptr.data.o);
+
+			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
+				txt += QStringLiteral("%1: %2 (%3, %4) %5  || %6\n")
+					   .arg(it->second.f)
+					   .arg(it->second.st)
+					   .arg(it->second.p.size() > 1 ? it->second.p.at(0) : -1)
+					   .arg(it->second.p.size() > 1 ? it->second.p.at(1) : -1)
+					   .arg(it->second.a)
+					   .arg(it->second.arm.cw)
+					   ;
+			}
+
+			txt += QStringLiteral("\n\n");
+		}
+
+
+
+		for (const auto &ptr : snapshots.enemies()) {
+			txt += QStringLiteral("STORAGE ENEMY %1 %2 %3\n==============================================\n")
+				   .arg(ptr.data.o)
+				   .arg(ptr.data.s)
+				   .arg(ptr.data.id);
+
+			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
+				txt += QStringLiteral("%1: %2 (%3, %4) %5  || %6\n")
+					   .arg(it->second.f)
+					   .arg(it->second.st)
+					   .arg(it->second.p.size() > 1 ? it->second.p.at(0) : -1)
+					   .arg(it->second.p.size() > 1 ? it->second.p.at(1) : -1)
+					   .arg(it->second.a)
+					   .arg(it->second.arm.cw)
+					   ;
+			}
+
+			txt += QStringLiteral("\n\n");
+		}
+
+		map.insert(QStringLiteral("txt"), txt);
+		a->writeToSocket(map.toCborValue());
+	}
+#endif
+
+
+	if (m_engine->gameState() == RpgConfig::StateInvalid)
 		return;
 
-	changeGameState(m_engine->m_gameState);
+	changeGameState(m_engine->gameState());
 
-	setGameMode(m_engine->m_isHost ? ActionRpgGame::MultiPlayerHost : ActionRpgGame::MultiPlayerGuest);
-	setPlayerId(m_engine->m_playerId);
+	setGameMode(m_engine->isHost() ? ActionRpgGame::MultiPlayerHost : ActionRpgGame::MultiPlayerGuest);
+	setPlayerId(m_engine->playerId());
 
-	if (!m_engine->m_isHost && !m_engine->m_gameConfig.terrain.isEmpty())
-		worldTerrainSelect(m_engine->m_gameConfig.terrain, true);
+	if (!m_engine->isHost() && !m_engine->gameConfig().terrain.isEmpty())
+		worldTerrainSelect(m_engine->gameConfig().terrain, true);
 
 	updatePlayersModel(m_engine->getPlayerList());
-
-	locker.unlock();
 
 	if (m_config.gameState == RpgConfig::StateError) {
 		//disconnectFromHost();
@@ -445,7 +600,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 
 
 	if (tick > 0)
-		m_engine->m_snapshots.zapSnapshots(tick - 3*RPG_UDP_DELTA_TICK);
+		m_engine->zapSnapshots(tick - 3*RPG_UDP_DELTA_TICK);
 
 }
 
@@ -552,14 +707,12 @@ void ActionRpgMultiplayerGame::updatePlayersModel(const QVariantList &list)
  */
 
 
-void ActionRpgMultiplayerGame::syncEnemyList()
+void ActionRpgMultiplayerGame::syncEnemyList(const ClientStorage &storage)
 {
-	QMutexLocker locker (&m_engine->m_mutex);
-
-	if (!m_rpgGame || m_engine->m_snapshots.enemies().empty())
+	if (!m_rpgGame || storage.enemies().empty())
 		return;
 
-	if (m_enemiesSynced && (qsizetype) m_engine->m_snapshots.enemies().size() == m_rpgGame->m_enemyDataList.size())
+	if (m_enemiesSynced && (qsizetype) storage.enemies().size() == m_rpgGame->m_enemyDataList.size())
 		return;
 
 	m_enemiesSynced = false;
@@ -571,7 +724,7 @@ void ActionRpgMultiplayerGame::syncEnemyList()
 	for (int i=0; i<m_rpgGame->m_enemyDataList.size(); ++i)
 		localIndices.append(i);
 
-	for (const auto &pe : m_engine->m_snapshots.enemies()) {
+	for (const auto &pe : storage.enemies()) {
 		const auto it = std::find_if(m_rpgGame->m_enemyDataList.cbegin(),
 									 m_rpgGame->m_enemyDataList.cend(),
 									 [&pe](const RpgGame::EnemyData &d){
@@ -604,21 +757,19 @@ void ActionRpgMultiplayerGame::syncEnemyList()
  * @param list
  */
 
-void ActionRpgMultiplayerGame::syncPlayerList()
+void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 {
-	QMutexLocker locker (&m_engine->m_mutex);
-
 	if (!m_rpgGame)
 		return;
 
-	if (m_playersSynced && (qsizetype) m_engine->m_snapshots.players().size() == m_rpgGame->m_players.size())
+	if (m_playersSynced && (qsizetype) storage.players().size() == m_rpgGame->m_players.size())
 		return;
 
 	m_playersSynced = false;
 
 	QList<RpgPlayer*> playerList;
 
-	for (const auto &pl : m_engine->m_snapshots.players()) {
+	for (const auto &pl : storage.players()) {
 		const auto it = std::find_if(m_rpgGame->m_players.constBegin(),
 									 m_rpgGame->m_players.constEnd(),
 									 [&pl](const RpgPlayer *p){
@@ -631,8 +782,8 @@ void ActionRpgMultiplayerGame::syncPlayerList()
 			RpgGameData::Player pd;
 
 			if (pl.list.size() > 0) {
-				LOG_CWARNING("game") << "FIRST KEY" << pl.list.cbegin()->first;
-				pd = pl.list.cbegin()->second;
+				LOG_CWARNING("game") << "LAST KEY" << std::prev(pl.list.cend())->first;
+				pd = std::prev(pl.list.cend())->second;
 			}
 
 			TiledScene *scene = m_rpgGame->findScene(pd.sc);
@@ -674,7 +825,7 @@ void ActionRpgMultiplayerGame::syncPlayerList()
 
 	LOG_CDEBUG("game") << "SYNCED";
 
-	m_playersSynced = !m_engine->m_snapshots.players().empty();
+	m_playersSynced = !storage.players().empty();
 }
 
 
@@ -683,10 +834,8 @@ void ActionRpgMultiplayerGame::syncPlayerList()
  * @brief ActionRpgMultiplayerGame::syncBulletList
  */
 
-void ActionRpgMultiplayerGame::syncBulletList()
+void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 {
-	QMutexLocker locker (&m_engine->m_mutex);
-
 	if (!m_rpgGame)
 		return;
 
@@ -704,7 +853,7 @@ void ActionRpgMultiplayerGame::syncBulletList()
 
 	// Sync bullets
 
-	for (const auto &b : m_engine->m_snapshots.bullets()) {
+	for (const auto &b : storage.bullets()) {
 		if (RpgBullet *bullet = dynamic_cast<RpgBullet*>(m_rpgGame->findBody(TiledObjectBody::ObjectId{
 																			 .ownerId = b.data.o,
 																			 .sceneId = b.data.s,
@@ -818,21 +967,21 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 		return nullptr;
 	}
 
-	QMutexLocker locker (&m_engine->m_mutex);
-	const auto it = std::find_if(m_engine->m_playerData.cbegin(),
-								 m_engine->m_playerData.cend(),
+	const QList<RpgGameData::CharacterSelect> pDataList = m_engine->playerData();
+
+	const auto it = std::find_if(pDataList.cbegin(),
+								 pDataList.cend(),
 								 [&config](const RpgGameData::CharacterSelect &ch){
 		return (ch.playerId == config.o);
 	});
 
-	if (it == m_engine->m_playerData.cend()) {
+	if (it == pDataList.cend()) {
 		LOG_CERROR("game") << "Invalid player id" << config.o;
 		return nullptr;
 	}
 
 	const RpgGameData::CharacterSelect chData = *it;
 
-	locker.unlock();
 
 	const auto characterPtr = RpgGame::characters().find(chData.character);
 
@@ -916,11 +1065,11 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 
 void ActionRpgMultiplayerGame::onTimeStepPrepare()
 {
-	QMutexLocker locker (&m_engine->m_mutex);
+	const ClientStorage &storage = m_engine->snapshots();
 
-	syncPlayerList();
-	syncEnemyList();
-	syncBulletList();
+	syncPlayerList(storage);
+	syncEnemyList(storage);
+	syncBulletList(storage);
 
 
 	if (m_config.gameState == RpgConfig::StatePlay && !m_fullyPrepared) {
@@ -944,21 +1093,19 @@ void ActionRpgMultiplayerGame::onTimeStepPrepare()
 
 void ActionRpgMultiplayerGame::onTimeStepped()
 {
-	QMutexLocker locker (&m_engine->m_mutex);
-
-	static const qint64 delta = 2;
+	static const qint64 delta = 3;
 
 	const qint64 tick = q->m_timeSync.get();
 	const qint64 curr = m_rpgGame->tickTimer()->currentTick();
 	const qint64 diff = tick-curr;
 
-	if (diff > 2*delta || diff < -2*delta) {
+	if (diff > 2*delta || diff < -3*delta) {
 		LOG_CERROR("game") << "Time reset" << curr << "->" << tick;
 		m_rpgGame->tickTimer()->start(this, tick);
 	} else if (diff > delta) {
 		LOG_CWARNING("game") << "Time skew +1 frame" << curr << "->" << tick;
 		m_rpgGame->tickTimer()->start(this, curr+1);
-	} else if (diff < -delta) {
+	} else if (diff < -2*delta) {
 		LOG_CERROR("game") << "Time skew -1 frame" << curr << "->" << tick;
 		m_rpgGame->tickTimer()->start(this, curr-1);
 	}
@@ -985,18 +1132,15 @@ void ActionRpgMultiplayerGame::onTimeBeforeWorldStep(const qint64 &tick)
 {
 	Q_ASSERT(q);
 
-	QElapsedTimer t;
-	t.start();
-
-	q->m_currentSnapshot = m_engine->m_snapshots.getNextFullSnapshot(tick);
+	q->m_currentSnapshot = m_engine->getNextFullSnapshot(tick);
 }
 
 
 
 
-/*#ifdef WITH_FTXUI
+#ifdef WITH_FTXUI
 #include "desktopapplication.h"
-#endif*/
+#endif
 
 
 /**
@@ -1050,20 +1194,79 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 
 	if (QCborMap map = snapshot.toCbor(); !map.isEmpty()) {
 		sendData(map.toCborValue().toCbor(), true);
-
-
-		/*DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance());
-
-		QCborMap m;
-		m.insert(QStringLiteral("mode"), QStringLiteral("SND"));
-
-		m.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(map.toJsonObject()).toJson()));
-		a->writeToSocket(m.toCborValue());*/
 	}
 
 	q->m_lastSentTick = tick;
 
 	q->m_toSend.clear();
+
+
+#ifdef WITH_FTXUI
+	DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance());
+
+	QCborMap m;
+	m.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+
+	QString txt;
+
+	for (const auto &[key, d] : q->m_renderData.asKeyValueRange()) {
+		QString t;
+		switch (key) {
+			case ActionRpgMultiplayerGamePrivate::SGsync:
+				t = QStringLiteral("SG sync");
+				break;
+			case ActionRpgMultiplayerGamePrivate::SGrender:
+				t = QStringLiteral("SG render");
+				break;
+			default:
+				t = QStringLiteral("???");
+				break;
+		}
+
+		txt += QStringLiteral("[%1]: ").arg(t, 12);
+
+		txt += QStringLiteral("avg: %1 min: %2 max: %3")
+			   .arg(d.avg(), 3)
+			   .arg(d.min, 3)
+			   .arg(d.max, 3)
+			   ;
+
+		if (!d.data.isEmpty()) {
+			const auto [min, max] = std::minmax_element(d.data.constBegin(), d.data.constEnd());
+			txt += QStringLiteral(" [min: %1 max: %2]").arg(*min, 3).arg(*max, 3);
+		}
+
+		txt += '\n';
+	}
+
+
+	txt += '\n';
+
+	for (const auto &[key, d] : q->m_renderData.asKeyValueRange()) {
+		switch (key) {
+			case ActionRpgMultiplayerGamePrivate::SGsync:
+				txt += QStringLiteral("SG sync\n");
+				break;
+			case ActionRpgMultiplayerGamePrivate::SGrender:
+				txt += QStringLiteral("SG render\n");
+				break;
+			default:
+				txt += QStringLiteral("???\n");
+				break;
+		}
+
+		txt += QStringLiteral("-------------------------------------\n");
+
+		for (int i=0; i<d.data.size() && i<40; ++i)
+			txt += QStringLiteral("%1\n").arg(d.data.at(i), 5);
+
+		txt += '\n';
+	}
+
+	m.insert(QStringLiteral("txt"), txt);
+	a->writeToSocket(m.toCborValue());
+#endif
+
 }
 
 
@@ -1374,7 +1577,7 @@ bool ActionRpgMultiplayerGame::onBodyStep(TiledObjectBody *body)
 		return true;
 
 	q->updateBody(body,
-				  body->objectId().ownerId == m_playerId || (body->objectId().ownerId == -1 && m_engine->m_isHost)
+				  body->objectId().ownerId == m_playerId || (body->objectId().ownerId == -1 && m_engine->isHost())
 				  );
 
 	return true;

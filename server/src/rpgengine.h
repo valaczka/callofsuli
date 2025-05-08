@@ -169,9 +169,7 @@ public:
 	static int increaseNextId() { return ++m_nextId; }
 	static int setNextId(const int &id) { m_nextId = id+1; return m_nextId; }
 
-	virtual void timerTick() override;
-
-	virtual void binaryDataReceived(UdpServerPeer *peer, const QByteArray &data) override;
+	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) override;
 	virtual void udpPeerAdd(UdpServerPeer *peer) override;
 	virtual void udpPeerRemove(UdpServerPeer *peer) override;
 
@@ -217,7 +215,12 @@ public:
 	RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> bullets();
 
 
+
+	void renderTimerLog(const qint64 &msec);
+
 private:
+	void binaryDataReceived(UdpServerPeer *peer, const QByteArray &data);
+
 	void preparePlayers();
 	qint64 nextTick();
 

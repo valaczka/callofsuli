@@ -27,11 +27,12 @@
 #ifndef ABSTRACTUDPENGINE_P_H
 #define ABSTRACTUDPENGINE_P_H
 
+#include "qmutex.h"
 #include "qurl.h"
 #include <QObject>
+#include <QMap>
 
 #ifndef Q_OS_WASM
-#include "qmutex.h"
 #include <enet/enet.h>
 #endif
 
@@ -51,39 +52,103 @@ public:
 		: q(engine)
 	{}
 
-signals:
-	void serverConnected();
-	void serverDisconnected();
-	void serverConnectFailed();
-
-private:
 	void run();
+
 	void sendMessage(QByteArray data, const bool &reliable = true, const int &channel = 0);
 	void setUrl(const QUrl &url);
+
+	const int &currentRtt() const { return m_speed.currentRtt; }
+	void setCurrentRtt(const int &rtt) { m_speed.addRtt(rtt); }
+
+private:
+
+	void deliverReceived();
 
 	AbstractUdpEngine *q = nullptr;
 
 	QUrl m_url;
 
 #ifndef Q_OS_WASM
+	void packetReceived(const ENetEvent &event);
+
 	ENetHost *m_enet_host = nullptr;
 	ENetPeer *m_enet_peer = nullptr;
-
-	QMutex m_mutex;
 #endif
 
-	bool m_disconnectRequested = false;
+
+	struct Speed {
+		void addRtt(const int &rtt);
+
+		bool readyToSend() {
+			if (!lastSent.isValid()) {
+				lastSent.start();
+				return true;
+			}
+
+			if (lastSent.hasExpired(1000./(float) fps)) {
+				lastSent.restart();
+				return true;
+			}
+
+			return false;
+		}
+
+		inline static constexpr int maxFps = 60;
+		int fps = maxFps;
+
+		// min rtt -> max fps
+		inline static const std::map<int, int> limit = {
+			{ 75,	30 },
+			{ 150,	20 },
+			{ 200,	15 },
+			{ 250,	10 }
+		};
 
 
-	struct Packet {
-		QByteArray data;
-		int channel = 0;
-		bool reliable = false;
+		QElapsedTimer lastSent;
+		QElapsedTimer lastBad;
+		QElapsedTimer lastGood;
+		QDeadlineTimer nextGood;
+		int delay = 2000;
+		int currentRtt = 0;
 	};
 
-	QList<Packet> m_sendList;
 
-	friend class AbstractUdpEngine;
+	Speed m_speed;
+
+
+	struct InOutCache {
+		struct Packet {
+			Packet(const QByteArray &d, const bool r)
+				: data(d)
+				, reliable(r)
+			{}
+
+			QByteArray data;
+			bool reliable = false;
+		};
+
+
+		struct PacketRcv {
+			PacketRcv(const QByteArray &d, const qint64 _ts, const unsigned int &_rtt)
+				: data(d)
+				, ts(_ts)
+				, rtt(_rtt)
+			{}
+
+			QByteArray data;
+			qint64 ts = -0;
+			unsigned int rtt = 0;
+		};
+
+
+		QMutex mutex;
+		std::vector<Packet> sendList;
+		std::vector<PacketRcv> rcvList;
+	};
+
+	InOutCache m_inOutChache;
+
 	friend class AbstractUdpEngineThread;
 };
 

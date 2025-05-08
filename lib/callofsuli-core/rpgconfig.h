@@ -1553,9 +1553,9 @@ public:
 	SnapshotStorage() = default;
 
 
-	SnapshotList<Player, PlayerBaseData> players() { QMutexLocker locker(&m_mutex); return m_players; }
-	SnapshotList<Enemy, EnemyBaseData> enemies() { QMutexLocker locker(&m_mutex); return m_enemies; }
-	SnapshotList<Bullet, BulletBaseData> bullets() { QMutexLocker locker(&m_mutex); return m_bullets; }
+	const SnapshotList<Player, PlayerBaseData> &players() const { return m_players; }
+	const SnapshotList<Enemy, EnemyBaseData> &enemies() const { return m_enemies; }
+	const SnapshotList<Bullet, BulletBaseData> &bullets() const { return m_bullets; }
 
 	FullSnapshot getFullSnapshot(const qint64 &tick, const bool &findLast = false);
 	FullSnapshot getNextFullSnapshot(const qint64 &tick) { return getFullSnapshot(tick, true); }
@@ -1609,9 +1609,6 @@ protected:
 			  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
 	SnapshotList<T, T2> convertToSnapshotList(SnapshotList<T, T2> &list);
 
-
-
-	QRecursiveMutex m_mutex;
 
 	SnapshotList<Player, PlayerBaseData> m_players;
 	SnapshotList<Enemy, EnemyBaseData> m_enemies;
@@ -1758,8 +1755,6 @@ inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const 
 	if (time < 0)
 		return sip;
 
-	QMutexLocker locker(&m_mutex);
-
 	const auto mapIt = std::find_if(snapshots.cbegin(), snapshots.cend(), [&id](const auto &b){
 		return b.data == id;
 	});
@@ -1797,8 +1792,6 @@ inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const 
 
 	if (time < 0)
 		return sip;
-
-	QMutexLocker locker(&m_mutex);
 
 	const auto it = map.lower_bound(fromTick < 0 ? time : std::min(fromTick, time));					// lower_bound = greater or equal
 

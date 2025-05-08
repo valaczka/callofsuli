@@ -167,6 +167,7 @@ else: LIBS += -ltcod
 !wasm {
 	INCLUDEPATH += $$PWD/enet/include
 	android: LIBS += -lenet_$${QT_ARCH}
+	else:win32: LIBS += -lenet -lwinmm -lws2_32
 	else: LIBS += -lenet
 }
 

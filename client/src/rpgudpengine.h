@@ -33,7 +33,8 @@
 #include <QElapsedTimer>
 #include <QCborArray>
 #include "abstractudpengine.h"
-#include "actionrpgmultiplayergame.h"
+#include "rpgconfig.h"
+#include "rpggamedataiface.h"
 
 
 
@@ -95,6 +96,9 @@ public:
 
 	QByteArray dump();
 
+	const qint64 &serverTick() const;
+	void setServerTick(const qint64 &newServerTick);
+
 private:
 	template <typename T, typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type>
 	qint64 insert(std::map<qint64, T> *dst, const T &snap, const qint64 &lastSentTick);
@@ -116,6 +120,8 @@ private:
 	qint64 m_lastPlayerTick = -1;
 	qint64 m_lastEnemyTick = -1;
 	qint64 m_lastBulletTick = -1;
+
+	qint64 m_serverTick = -1;
 };
 
 
@@ -166,8 +172,6 @@ inline void ClientStorage::appendSnapshotToList(const T2 &baseData, const T &dat
 {
 	Q_ASSERT(list);
 
-	QMutexLocker locker(&m_mutex);
-
 	auto it = std::find_if(list->begin(),
 						   list->end(),
 						   [&baseData](const auto &p) {
@@ -201,8 +205,6 @@ inline void ClientStorage::appendSnapshotToList(const T2 &baseData, const T &dat
 template<typename T, typename T2, typename T3, typename T4>
 inline void ClientStorage::removeMissing(RpgGameData::SnapshotList<T, T2> &snapshot, const std::vector<T2> &list)
 {
-	QMutexLocker locker(&m_mutex);
-
 	for (auto it = snapshot.cbegin(); it != snapshot.cend(); ) {
 		if (std::find(list.cbegin(), list.cend(), it->data) == list.cend())
 			it = snapshot.erase(it);
@@ -240,6 +242,10 @@ inline qint64 ClientStorage::insert(std::map<qint64, T> *dst, const T &snap, con
 
 
 
+class ActionRpgMultiplayerGame;
+class Server;
+
+
 /**
  * @brief The UdpEnginePrivate class
  */
@@ -255,9 +261,28 @@ public:
 	void connectToServer(Server *server);
 	void disconnect();
 
-	RpgConfig::GameState gameState() const;
+	const RpgConfig::GameState &gameState() const;
 	void setGameState(const RpgConfig::GameState &newGameState);
 
+	ClientStorage snapshots();
+
+	void zapSnapshots(const qint64 &tick);
+	RpgGameData::FullSnapshot getFullSnapshot(const qint64 &tick, const bool &findLast = false);
+	RpgGameData::FullSnapshot getNextFullSnapshot(const qint64 &tick);
+	RpgGameData::CurrentSnapshot getCurrentSnapshot();
+
+	const RpgGameData::GameConfig &gameConfig() const;
+	void setGameConfig(const RpgGameData::GameConfig &newGameConfig);
+
+	int playerId() const;
+	void setPlayerId(int newPlayerId);
+
+	bool isHost() const;
+	void setIsHost(bool newIsHost);
+
+	QVariantList getPlayerList();
+
+	QList<RpgGameData::CharacterSelect> playerData();
 
 signals:
 	void gameError();
@@ -265,7 +290,7 @@ signals:
 
 
 protected:
-	virtual void packetReceived(const QCborMap &data, const unsigned int rtt) override;
+	virtual void binaryDataReceived(const QList<QPair<QByteArray, unsigned int> > &list) override;
 
 private:
 	void updateState(const QCborMap &data);
@@ -276,13 +301,18 @@ private:
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
 
-	QRecursiveMutex m_mutex;
+	void updateSnapshotEnemyList(const QCborArray &list);
+	void updateSnapshotPlayerList(const QCborArray &list);
+	void updateSnapshotBulletList(const QCborArray &list);
+
+
 
 	QPointer<ActionRpgMultiplayerGame> m_game;
 	bool m_downloadContentStarted = false;
 
-	QList<RpgGameData::CharacterSelect> m_playerData;
 
+	QRecursiveMutex m_snapshotMutex;
+	QList<RpgGameData::CharacterSelect> m_playerData;
 	ClientStorage m_snapshots;
 
 	RpgGameData::GameConfig m_gameConfig;
@@ -290,14 +320,7 @@ private:
 	int m_playerId = -1;
 	bool m_isHost = false;
 
-	QVariantList getPlayerList();
-	QList<RpgGameData::CharacterSelect> getPlayerData();
 
-	void updateSnapshotEnemyList(const QCborArray &list);
-	void updateSnapshotPlayerList(const QCborArray &list);
-	void updateSnapshotBulletList(const QCborArray &list);
-
-	friend class ActionRpgMultiplayerGame;
 };
 
 

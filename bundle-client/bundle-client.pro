@@ -44,6 +44,7 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
 			cp ../$${BinFile} $${LddLibDir} ; \
 			cp ../lib/*dll $${LddLibDir} ; \
+			test -z "$${ExtraDll}" || cp $${ExtraDll} $${LddLibDir} ; \
 			cp $$PWD/../client/deploy/qt.conf $${LddLibDir} ; \
 			ldd.exe $${LddLibDir}/$${BinFile} >./_tmp_dll.txt ; \
 			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(cat ./_tmp_dll.txt | \

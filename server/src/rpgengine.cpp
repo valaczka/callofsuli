@@ -36,6 +36,9 @@ int RpgEngine::m_nextId = 1;
 
 
 
+
+
+
 /**
  * @brief The RpgEnginePrivate class
  */
@@ -87,6 +90,82 @@ private:
 
 	RpgEngine *q;
 
+
+
+	/// ---- MEASURE ----
+
+
+	enum Measure {
+		Invalid,
+		Received,
+		Render,
+		RenderFull,
+		TimerTick,
+		TimerUpd,
+		BinaryRcv
+	};
+
+	struct MeasureData {
+		qint64 min = -1;
+		qint64 max = -1;
+		qint64 med = -1;
+		QList<qint64> data;
+
+		qint64 avg() const {
+			if (data.size() > 0) {
+				qint64 sum = std::accumulate(data.constBegin(), data.constEnd(), 0);
+				return sum/data.size();
+			} else {
+				return 0;
+			}
+		}
+
+		void add(const qint64 &ms) {
+			if (data.size() > limit)
+				data.erase(data.constBegin(), data.constBegin()+(data.size()-limit-1));
+			data.append(ms);
+
+			QList<qint64> tmp = data;
+
+			std::sort(tmp.begin(), tmp.end());
+
+			if (const auto &s = tmp.size(); s % 2 == 0)
+				med = (tmp.at(s / 2 - 1) + tmp.at(s / 2)) / 2;
+			else
+				med = tmp.at(s / 2);
+
+			if (min < 0 || ms < min)
+				min = ms;
+
+			if (max < 0 || ms > max)
+				max = ms;
+		}
+
+		int limit = 120;
+	};
+
+	QHash<Measure, MeasureData> m_renderData;
+
+	QElapsedTimer m_renderTimer;
+
+	void renderTimerStart() {
+		if (m_renderTimer.isValid())
+			m_renderTimer.restart();
+		else
+			m_renderTimer.start();
+	}
+
+	void renderTimerMeausure(const Measure &measure) {
+		m_renderData[measure].add(m_renderTimer.restart());
+	}
+
+	void renderTimerMeausure(const Measure &measure, const qint64 &msec) {
+		m_renderData[measure].add(msec);
+	}
+
+	QString renderTimerDump() const;
+	QString engineDump() const;
+
 	friend class RpgEngine;
 };
 
@@ -116,8 +195,6 @@ RpgEngine::RpgEngine(EngineHandler *handler, QObject *parent)
 
 RpgEngine::~RpgEngine()
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	delete d;
 	d = nullptr;
 }
@@ -142,24 +219,29 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, UdpSe
 	increaseNextId();
 
 	ptr->setUdpServer(server);
+
 	return ptr;
 }
 
 
+
 /**
- * @brief RpgEngine::timerTick
+ * @brief RpgEngine::binaryDataReceived
+ * @param data
  */
 
-void RpgEngine::timerTick()
+void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
 {
-	if (!m_udpServer) {
-		LOG_CERROR("engine") << "Missing UdpServer";
-		return;
+	for (const auto &pair : data) {
+		binaryDataReceived(pair.first, pair.second);
 	}
 
-	QMutexLocker locker(&m_engineMutex);
+	QElapsedTimer t2;
+	t2.start();
 
 	d->updateState();
+
+	d->renderTimerMeausure(RpgEnginePrivate::TimerUpd, t2.elapsed());
 
 	if (m_config.gameState == RpgConfig::StateCharacterSelect)
 		d->dataSendChrSel();
@@ -168,6 +250,7 @@ void RpgEngine::timerTick()
 	else if (m_config.gameState == RpgConfig::StatePlay)
 		d->dataSendPlay();
 
+	d->renderTimerMeausure(RpgEnginePrivate::TimerTick, t2.elapsed());
 }
 
 
@@ -181,8 +264,6 @@ void RpgEngine::timerTick()
 void RpgEngine::binaryDataReceived(UdpServerPeer *peer, const QByteArray &data)
 {
 	Q_ASSERT(peer);
-
-	QMutexLocker locker(&m_engineMutex);
 
 	RpgEnginePlayer *player = d->getPlayer(peer);
 
@@ -202,8 +283,6 @@ void RpgEngine::binaryDataReceived(UdpServerPeer *peer, const QByteArray &data)
 
 void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	bool isHost = m_player.empty();			// TODO
 
 	const auto &ptr = m_player.emplace_back(std::make_unique<RpgEnginePlayer>(peer, false));
@@ -227,14 +306,14 @@ void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 
 void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	LOG_CDEBUG("engine") << "Remove player" << peer;
 
 	std::erase_if(m_player, [peer](const auto &ptr) { return ptr->udpPeer() == peer; });
 
 	// TODO: next host
 }
+
+
 
 
 
@@ -245,8 +324,6 @@ void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 
 void RpgEngine::setHostPlayer(RpgEnginePlayer *newHostPlayer)
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	for (const auto &ptr : m_player) {
 		ptr->setIsHost(false);
 	}
@@ -267,8 +344,6 @@ void RpgEngine::setHostPlayer(RpgEnginePlayer *newHostPlayer)
 
 qint64 RpgEngine::currentTick()
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	return m_currentTick;
 }
 
@@ -289,8 +364,6 @@ qint64 RpgEngine::currentTick()
 int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::EnemyBaseData &data,
 							const RpgGameData::Enemy &snap, const std::optional<RpgGameData::Enemy> &prev)
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	if (!prev)
 		return 0;
 
@@ -374,6 +447,11 @@ RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> RpgE
 	return m_snapshots.bullets();
 }
 
+void RpgEngine::renderTimerLog(const qint64 &msec)
+{
+	d->renderTimerMeausure(RpgEnginePrivate::Render, msec);
+}
+
 
 
 
@@ -385,8 +463,6 @@ RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> RpgE
 
 void RpgEngine::preparePlayers()
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	if (d->m_gameConfig.positionList.isEmpty())
 		return;
 
@@ -445,8 +521,6 @@ void RpgEngine::preparePlayers()
 
 qint64 RpgEngine::nextTick()
 {
-	QMutexLocker locker(&m_engineMutex);
-
 	return ++m_currentTick;
 }
 
@@ -473,8 +547,6 @@ qint64 RpgEngine::nextTick()
 
 RpgEnginePlayer *RpgEnginePrivate::getPlayer(UdpServerPeer *peer) const
 {
-	QMutexLocker locker(&q->m_engineMutex);
-
 	auto it = std::find_if(q->m_player.begin(), q->m_player.end(), [peer](const auto &ptr) { return ptr->udpPeer() == peer; });
 
 	if (it == q->m_player.end())
@@ -499,8 +571,6 @@ void RpgEnginePrivate::dataReceived(RpgEnginePlayer *player, const QByteArray &d
 {
 	Q_ASSERT(player);
 
-	QMutexLocker locker(&q->m_engineMutex);
-
 	if (q->m_config.gameState == RpgConfig::StateCharacterSelect)
 		dataReceivedChrSel(player, data);
 	else if (q->m_config.gameState == RpgConfig::StatePrepare)
@@ -521,8 +591,6 @@ void RpgEnginePrivate::dataReceived(RpgEnginePlayer *player, const QByteArray &d
 void RpgEnginePrivate::dataReceivedChrSel(RpgEnginePlayer *player, const QByteArray &data)
 {
 	Q_ASSERT(player);
-
-	QMutexLocker locker(&q->m_engineMutex);
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
@@ -590,8 +658,6 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 {
 	Q_ASSERT(player);
 
-	QMutexLocker locker(&q->m_engineMutex);
-
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
 	if (const auto &it = m.find(QStringLiteral("pr")); it != m.cend()) {
@@ -657,7 +723,8 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 {
 	Q_ASSERT(player);
 
-	QMutexLocker locker(&q->m_engineMutex);
+	QElapsedTimer timer2;
+	timer2.start();
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
@@ -670,6 +737,8 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 
 
 	q->m_snapshots.registerSnapshot(player, m);
+
+	renderTimerMeausure(Received, timer2.elapsed());
 }
 
 
@@ -681,8 +750,6 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 
 void RpgEnginePrivate::dataSendChrSel()
 {
-	QMutexLocker locker(&q->m_engineMutex);
-
 	QCborArray players;
 
 	for (const auto &ptr : q->m_player) {
@@ -718,8 +785,6 @@ void RpgEnginePrivate::dataSendChrSel()
 
 void RpgEnginePrivate::dataSendPrepare()
 {
-	QMutexLocker locker(&q->m_engineMutex);
-
 	QCborMap gConfig = m_gameConfig.toCborMap(true);
 
 	for (auto it = q->m_player.cbegin(); it != q->m_player.cend(); ++it) {
@@ -745,12 +810,10 @@ void RpgEnginePrivate::dataSendPrepare()
 
 void RpgEnginePrivate::dataSendPlay()
 {
-	QMutexLocker locker(&q->m_engineMutex);
-
 	const qint64 tick = q->currentTick();
 
 	if (tick > 0) {
-		if (tick <= m_lastSentTick)
+		if (tick <= m_lastSentTick + 1)				// 30 FPS
 			return;
 
 		m_lastSentTick = tick;
@@ -764,15 +827,24 @@ void RpgEnginePrivate::dataSendPlay()
 
 		insertBaseMapData(&map, it->get());
 
-		if (it->get()->udpPeer())
-			it->get()->udpPeer()->send(map.toCborValue().toCbor(), false);
+		if (UdpServerPeer *peer = it->get()->udpPeer()) {
+			if (!peer->readyToSend())
+				continue;
+
+			peer->send(map.toCborValue().toCbor(), false);
+			peer->setLastSentTick(tick);
+
+		}
 	}
 
 
 #ifdef WITH_FTXUI
 	QCborMap map;
 	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
-	map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(current.toJsonObject()).toJson()));
+
+	map.insert(QStringLiteral("txt"), renderTimerDump()+engineDump());
+
+	//map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(current.toJsonObject()).toJson()));
 	q->service()->writeToSocket(map.toCborValue());
 
 #endif
@@ -810,8 +882,6 @@ void RpgEnginePrivate::insertBaseMapData(QCborMap *dst, RpgEnginePlayer *player)
 
 void RpgEnginePrivate::updateState()
 {
-	QMutexLocker locker(&q->m_engineMutex);
-
 	if (q->m_config.gameState == RpgConfig::StateInvalid)
 		return;
 
@@ -881,29 +951,31 @@ void RpgEnginePrivate::updateState()
 			const double currMs = m_elapsedTimer.elapsed();
 			int diff = (currMs-tMs) * 60./1000.;
 
-			if (currMs-tMs >= 2*1000./60.) {
+			if (currMs-tMs >= 2.*1000./60.) {
 				LOG_CWARNING("engine") << "Engine" << q->id() << "render lag" << currMs-tMs;
 			}
 
-			for (; diff > 0; --diff) {
-				q->m_snapshots.render(q->nextTick());
+			if (diff > 0) {
+
+				QElapsedTimer t;
+
+				t.start();
+
+				QString txt;
+
+				for (; diff > 0; --diff) {
+					txt = q->m_snapshots.render(q->nextTick());
+				}
+
+				q->m_snapshots.renderEnd(txt);
+
+				renderTimerMeausure(RenderFull, t.elapsed());
 			}
 		}
 
 
 	}
 }
-
-
-
-/**
- * @brief RpgEnginePrivate::createEvents
- * @param tick
- * @param data
- * @param snap
- * @param prev
- * @return
- */
 
 
 
@@ -946,7 +1018,6 @@ RpgEvent::~RpgEvent()
 template<typename T, typename ...Args, typename T3>
 void RpgEnginePrivate::eventAddLater(Args &&...args)
 {
-	QMutexLocker locker(&q->m_engineMutex);
 	std::unique_ptr<T> e(new T(q, std::forward<Args>(args)...));
 
 	for (const auto &ptr : m_events) {
@@ -976,8 +1047,6 @@ void RpgEnginePrivate::eventAddLater(Args &&...args)
 template<typename T, typename ...Args, typename T3>
 void RpgEnginePrivate::eventAdd(Args &&...args)
 {
-	QMutexLocker locker(&q->m_engineMutex);
-
 	if (m_eventsProcessing) {
 		LOG_CDEBUG("engine") << "...........";
 		eventAddLater<T>(std::forward<Args>(args)...);
@@ -1028,8 +1097,6 @@ void RpgEngine::eventAddLater(Args &&...args)
 
 RpgGameData::CurrentSnapshot RpgEnginePrivate::processEvents(const qint64 &tick)
 {
-	QMutexLocker locker(&q->m_engineMutex);
-
 	m_eventsProcessing = true;
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -1049,6 +1116,96 @@ RpgGameData::CurrentSnapshot RpgEnginePrivate::processEvents(const qint64 &tick)
 	m_eventsProcessing = false;
 
 	return snapshot;
+}
+
+
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::renderTimerDump
+ * @return
+ */
+
+QString RpgEnginePrivate::renderTimerDump() const
+{
+	QString txt;
+
+	static const QHash<Measure, QString> hash = {
+		{ Invalid, QStringLiteral("Invalid") },
+		{ Received, QStringLiteral("Received") },
+		{ Render, QStringLiteral("Render") },
+		{ RenderFull, QStringLiteral("RenderFull") },
+		{ TimerTick, QStringLiteral("TimerTick") },
+		{ TimerUpd, QStringLiteral("TimerUpd") },
+		{ BinaryRcv, QStringLiteral("BinaryRcv") },
+	};
+
+	for (const auto &[key, d] : m_renderData.asKeyValueRange()) {
+		QString t;
+		txt += QStringLiteral("[%1]: ").arg(hash.value(key, QStringLiteral("???")), 16);
+
+		txt += QStringLiteral("avg: %1 med: %2 max: %3")
+			   .arg(d.avg(), 3)
+			   .arg(d.med, 3)
+			   .arg(d.max, 3)
+			   ;
+
+		if (!d.data.isEmpty()) {
+			const auto [min, max] = std::minmax_element(d.data.constBegin(), d.data.constEnd());
+			txt += QStringLiteral(" [min: %1 max: %2]").arg(*min, 3).arg(*max, 3);
+		}
+
+		txt += '\n';
+	}
+
+	txt += QStringLiteral("-------------------------------------\n \n");
+
+	/*txt += '\n';
+
+	for (const auto &[key, d] : m_renderData.asKeyValueRange()) {
+		txt += hash.value(key, QStringLiteral("???"));
+		txt += QStringLiteral("\n-------------------------------------\n");
+
+		for (int i=0; i<d.data.size() && i<40; ++i)
+			txt += QStringLiteral("%1\n").arg(d.data.at(i), 5);
+
+		txt += '\n';
+	}*/
+
+	return txt;
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::engineDump
+ * @return
+ */
+
+QString RpgEnginePrivate::engineDump() const
+{
+	QString txt;
+
+	txt += QStringLiteral("[ENGINE %1]\n").arg(q->m_id);
+	txt += QStringLiteral("-------------------------------------\n \n");
+	txt += QStringLiteral("State: %1  |  Players: %2  |  Tick (current/last): %3/%4\n")
+		   .arg(q->m_config.gameState, 2).arg(q->m_player.size(), 2)
+		   .arg(q->m_currentTick, 5).arg(m_lastSentTick, 5);
+
+	for (const auto &ptr: q->udpServer()->peerList()) {
+		txt += QStringLiteral("Peer %1:%2 - ").arg(ptr->host()).arg(ptr->port());
+		txt += QStringLiteral("RTT %1  |  FPS: %2  |  Peer FPS: %3\n")
+			   .arg(ptr->currentRtt(), 4)
+			   .arg(ptr->currentFps(), 2)
+			   .arg(ptr->peerFps(), 2)
+			   ;
+	}
+
+	txt += QStringLiteral(" \n");
+
+	return txt;
 }
 
 

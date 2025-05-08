@@ -144,8 +144,10 @@ inline cpVect RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity *e
 		toCv = cpv(to.cv.at(0), to.cv.at(1));
 
 	if (to.f < (snapshot.current - 2*RPG_UDP_DELTA_TICK)) {
-		if (fnStop(entity, to.a))
+		if (fnStop(entity, to.a)) {
 			if (msg) *msg = QStringLiteral("*** OVER ***");
+			LOG_CERROR("game") << "Snapshot over" << to.f << "->" << snapshot.current;
+		}
 
 		return cpvzero;
 	}
@@ -181,7 +183,7 @@ inline cpVect RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity *e
 		}
 
 		if (to.f <= snapshot.current) {
-			const float factor = (to.f <= (snapshot.current - RPG_UDP_DELTA_TICK) ? 0.95 : 1.0);
+			static const float factor = 1.0;//(to.f <= (snapshot.current - RPG_UDP_DELTA_TICK) ? 0.99 : 1.0);
 
 			const int frames = snapshot.current-to.f+1;
 			const cpVect pos = cpvadd(toFinal.value(),

@@ -4,6 +4,7 @@
 #include "qmutex.h"
 #include <QJsonValue>
 #include <QObject>
+#include "udpserver.h"
 
 class WebSocketStream;
 class ServerService;
@@ -61,7 +62,7 @@ protected:
 	virtual void streamUnlinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 	virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) { Q_UNUSED(data); Q_UNUSED(stream); }
 
-	QRecursiveMutex m_engineMutex;
+	[[deprecated]] QRecursiveMutex m_engineMutex;
 
 	EngineHandler *const m_handler;
 	ServerService *const m_service;
@@ -82,9 +83,6 @@ private:
 
 
 
-class UdpServer;
-class UdpServerPeer;
-
 
 /**
  * @brief The UdpEngine class
@@ -101,7 +99,7 @@ public:
 	explicit UdpEngine(const Type &type, EngineHandler *handler, QObject *parent = nullptr)
 		: AbstractEngine(type, 0, handler, parent) {}
 
-	virtual void binaryDataReceived(UdpServerPeer *peer, const QByteArray &data) { Q_UNUSED(peer); Q_UNUSED(data); }
+	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) { Q_UNUSED(data); }
 	virtual void udpPeerAdd(UdpServerPeer *peer) { Q_UNUSED(peer); }
 	virtual void udpPeerRemove(UdpServerPeer *peer) { Q_UNUSED(peer); }
 
