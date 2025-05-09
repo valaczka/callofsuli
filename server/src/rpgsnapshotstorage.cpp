@@ -1345,7 +1345,6 @@ QList<T2> RpgSnapshotStorage::removeOutdated(RpgGameData::SnapshotList<T, T2> &l
 							 return ptr.second.stage() == RpgGameData::LifeCycle::StageDestroy &&
 							 ptr.second.destroyTick() < tick;
 	})) {
-			LOG_CDEBUG("engine") << "ERASE" << it->data.o << it->data.id;
 			ret.append(it->data);
 			it = list.erase(it);
 			continue;
@@ -1566,6 +1565,9 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 
 
+
+
+
 /**
  * @brief Renderer::render
  * @param dst
@@ -1618,29 +1620,38 @@ void Renderer::render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgG
 
 		RpgGameData::Enemy::EnemyState specialSt = RpgGameData::Enemy::EnemyInvalid;
 
+		// Külön eseményt nem okozó állapotok
+
+		static const QList<RpgGameData::Enemy::EnemyState> normalStates = {
+			RpgGameData::Enemy::EnemyIdle,
+			RpgGameData::Enemy::EnemyMoving,
+			RpgGameData::Enemy::EnemyInvalid,
+		};
+
 		for (const RpgGameData::Enemy &p : dst->m_subData) {
-			if ( p.st != RpgGameData::Enemy::EnemyIdle &&
-				 p.st != RpgGameData::Enemy::EnemyMoving &&
-				 p.st != RpgGameData::Enemy::EnemyInvalid) {
+			if (dst->m_data.st != p.st && !normalStates.contains(dst->m_data.st) && !normalStates.contains(p.st)) {
+				if (!src->carrySubSnap(p)) {
+					LOG_CWARNING("engine") << "State conflict" << specialSt << p.st;
+				}
+			} else if (!normalStates.contains(p.st)) {
 
 				if (p.st == RpgGameData::Enemy::EnemyHit ||
 						p.st == RpgGameData::Enemy::EnemyShot) {
 
 					m_solver.add(m_current, src, p.arm.cw);
-					specialSt = p.st;
 
 				} else if (p.st == RpgGameData::Enemy::EnemyAttack) {
-					specialSt = p.st;
-					m_solver.add(m_current, src, p.arm.cw);
+					RendererObject<RpgGameData::PlayerBaseData> *tg = findByBase<RpgGameData::PlayerBaseData>(p.tg);
 
-				} else if (specialSt == RpgGameData::Enemy::EnemyInvalid) {
-					specialSt = p.st;
+					m_solver.add(m_current, src, tg, p.arm.cw);
 
+				}
+
+				if (specialSt == RpgGameData::Enemy::EnemyInvalid) {
+					specialSt = p.st;
 				} else {
 					if (!src->carrySubSnap(p)) {
 						LOG_CWARNING("engine") << "State conflict" << specialSt << p.st;
-					} else {
-						LOG_CDEBUG("engine") << "Carry" << p.f << p.st << specialSt;
 					}
 				}
 			}
@@ -2110,8 +2121,6 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 		LOG_CERROR("engine") << "Missing destination";
 		return false;
 	}
-
-	LOG_CDEBUG("engine") << "ATTACEKD" << src->baseData.o << src->baseData.id << ">>>" << dest->baseData.o << dest->baseData.id;
 
 	RendererItem<T> *p = solver->m_renderer->get<T>(src);
 	RendererItem<T2> *other = solver->m_renderer->get<T2>(dest);

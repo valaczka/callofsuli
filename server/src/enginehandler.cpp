@@ -635,16 +635,6 @@ void EngineHandlerPrivate::timerEvent(QTimerEvent */*event*/)
 
 void EngineHandlerPrivate::timerEventRun()
 {
-	static QElapsedTimer t;
-	if (!t.isValid())
-		t.start();
-	else {
-		qint64 msec = t.restart();
-
-		if (msec > 1000./60.)
-			LOG_CERROR("engine") << "Handler timer run" << msec;
-	}
-
 	QMutexLocker locker(&m_mutex);
 
 	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {

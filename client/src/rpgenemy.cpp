@@ -29,6 +29,7 @@
 #include "rpggame.h"
 #include "tiledspritehandler.h"
 #include "rpggamedataiface_t.h"
+#include "actionrpggame.h"
 
 
 RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius)
@@ -112,29 +113,6 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 			LOG_CINFO("scene") << "REAL ENEMY SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
 
 			throw -1;
-		} else if (snapshot.s1.st == RpgGameData::Enemy::EnemyAttack) {
-			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
-
-			if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame() && wptr) {
-				if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(g->findBody(
-																	 TiledObjectBody::ObjectId{
-																	 .ownerId = snapshot.s1.tg.o,
-																	 .sceneId = snapshot.s1.tg.s,
-																	 .id = snapshot.s1.tg.id
-			}))) {
-
-					LOG_CINFO("scene") << "REAL ATTACK PLAYER" << snapshot.current << snapshot.s1.f <<
-										  snapshot.s1.p << snapshot.s1.a << player->objectId().ownerId;
-
-					player->attackedByEnemy(g->controlledPlayer() == player ? this : nullptr,
-											wptr->weaponType(), false);
-				}
-
-			}
-
-			LOG_CINFO("scene") << "ENEMY ATTACK PLAYER IN SNAP" << snapshot.s1.f << snapshot.s1.tg.o;
-
-			throw 1;
 		} else {
 			throw 1;
 		}
@@ -168,6 +146,9 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 }
 
 
+
+
+
 /**
  * @brief RpgEnemy::updateFromSnapshot
  * @param snap
@@ -176,7 +157,34 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 void RpgEnemy::updateFromSnapshot(const RpgGameData::Enemy &snap)
 {
 	setHp(snap.hp);
-	if (snap.st != RpgGameData::Enemy::EnemyAttack) {
+
+	if (snap.st == RpgGameData::Enemy::EnemyAttack) {
+		if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame()) {
+			if (TiledObject *target = dynamic_cast<TiledObject*>(g->findBody(
+																	 TiledObjectBody::ObjectId{
+																	 .ownerId = snap.tg.o,
+																	 .sceneId = snap.tg.s,
+																	 .id = snap.tg.id
+		}))) {
+
+				LOG_CINFO("scene") << "REAL ENEMY ATTACK" << snap.f <<
+									  snap.p << snap.a << target->objectId().id;
+
+				if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(target))
+					player->attackedByEnemy(this, snap.arm.cw, false);
+			}
+
+		}
+
+		LOG_CINFO("scene") << "*********** ENEMY attack" << snap.tg.o << snap.tg.id << snap.arm.cw;
+
+		// Ne cserélje ki a fegyvert
+
+		RpgGameData::Armory arm = snap.arm;
+		arm.cw = RpgGameData::Weapon::WeaponInvalid;
+		m_armory->updateFromSnapshot(arm);
+
+	} else {
 		m_armory->updateFromSnapshot(snap.arm);
 	}
 }

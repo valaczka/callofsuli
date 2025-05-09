@@ -461,7 +461,6 @@ bool TiledObjectBody::moveToPoint(const cpVect &point, const int &inFrame, const
 
 	if (maxSpeed > 0.) {
 		if (const float s = maxSpeed*inFrame/60.; cpvlengthsq(dest) > POW2(s)) {
-			//LOG_CTRACE("scene") << "[Simulation] maxSpeed" << dest.x << dest.y << maxSpeed;
 			dest = cpvmult(cpvnormalize(dest), s);
 		}
 	}
@@ -1741,27 +1740,7 @@ void TiledObjectBody::worldStep()
 {
 	CHECK_LOCK();
 
-	/*d->m_lastPosition.push_back(cpBodyGetPosition(d->m_bodyRef));
-	while (d->m_lastPosition.size() > 4)
-		d->m_lastPosition.pop_front();
-
-
-	if (const int s = d->m_lastPosition.size(); s > 1) {
-		auto first = d->m_lastPosition.cbegin();
-		float diff = 0.;
-
-		for (auto it = std::next(d->m_lastPosition.cbegin()); it != d->m_lastPosition.cend(); ++it) {
-			diff += cpvlength(cpvsub(*it, *first));
-			first = it;
-		}
-
-		d->m_currentSpeedSq = POW2(diff / (float) (s-1));
-	} else {
-		d->m_currentSpeedSq = 0.;
-	}*/
-
 	d->m_currentSpeedSq = cpvlengthsq(cpBodyGetVelocity(d->m_bodyRef));
-
 
 	if (d->m_rotateAnimation.running)
 		rotateBody(d->m_rotateAnimation.destRadian);
@@ -2637,23 +2616,6 @@ void TiledObjectBodyPrivate::setVelocity(const cpVect &speed)
 		LOG_CERROR("scene") << "Invalid speed" << speed.x << speed.y;
 		return;
 	}
-
-	/*const cpVect &curr = cpBodyGetVelocity(m_bodyRef);
-
-	cpVect norm;
-	norm.x = qAbs(speed.x) < 0.00001f ? 0.0f : speed.x;
-	norm.y = qAbs(speed.y) < 0.00001f ? 0.0f : speed.y;
-
-	if (!(curr == cpvzero) && norm == cpvzero) {
-		cpBodySetVelocity(m_bodyRef, cpvzero);
-		cpBodySetAngularVelocity(m_bodyRef, 0.f);
-		return;
-	}
-
-	if ((qAbs(curr.x - norm.x) * 10000.f > QtPrivate::min(qAbs(curr.x), qAbs(norm.x))) ||
-			(qAbs(curr.y - norm.y) * 10000.f > QtPrivate::min(qAbs(curr.y), qAbs(norm.y)))) {
-		cpBodySetVelocity(m_bodyRef, norm);
-	}*/
 
 	cpBodySetVelocity(m_bodyRef, speed);
 	cpBodySetAngularVelocity(m_bodyRef, 0.);

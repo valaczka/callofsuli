@@ -694,8 +694,6 @@ void ActionRpgGame::rpgGameActivated_()
 
 void ActionRpgGame::updateConfig()
 {
-
-	LOG_CDEBUG("game") << "***** UPDATE CFG" << m_config.gameState;
 	onConfigChanged();
 	emit configChanged();
 }

@@ -295,15 +295,15 @@ protected:
 private:
 	void updateState(const QCborMap &data);
 	void updateSnapshot(const RpgGameData::CharacterSelect &player);
+	void updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot);
 
 	void packetReceivedChrSel(const QCborMap &data);
 	void packetReceivedDownload(const QCborMap &data);
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
 
-	void updateSnapshotEnemyList(const QCborArray &list);
-	void updateSnapshotPlayerList(const QCborArray &list);
-	void updateSnapshotBulletList(const QCborArray &list);
+	template <typename T, typename T2>
+	void updateSnapshotRemoveMissing(const RpgGameData::SnapshotList<T, T2> &list);
 
 
 

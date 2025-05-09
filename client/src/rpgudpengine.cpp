@@ -59,6 +59,30 @@ RpgUdpEngine::~RpgUdpEngine()
 
 
 
+/**
+ * @brief RpgUdpEngine::updateSnapshotRemoveMissing
+ * @param list
+ */
+
+template<typename T, typename T2>
+void RpgUdpEngine::updateSnapshotRemoveMissing(const RpgGameData::SnapshotList<T, T2> &list)
+{
+	QMutexLocker locker(&m_snapshotMutex);
+
+	std::vector<T2> existing;
+
+	for (const auto &ptr : list) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+		existing.push_back(ptr.data);
+	}
+
+	m_snapshots.removeMissingSnapshots(existing);
+}
+
+
+
 
 /**
  * @brief RpgUdpEngine::disconnect
@@ -123,6 +147,35 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CharacterSelect &player)
 
 
 
+/**
+ * @brief RpgUdpEngine::updateSnapshot
+ * @param snapshot
+ */
+
+void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
+{
+	QMutexLocker locker(&m_snapshotMutex);
+
+	for (const auto &ptr : snapshot.players) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+	}
+
+	for (const auto &ptr : snapshot.enemies) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+	}
+
+	updateSnapshotRemoveMissing(snapshot.bullets);
+
+}
+
+
+
+
+
 
 /**
  * @brief RpgUdpEngine::packetReceivedChrSel
@@ -134,24 +187,16 @@ void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
 	if (!m_game)
 		return;
 
-	QCborArray pList = data.value(QStringLiteral("pp")).toArray();
+	RpgGameData::CharacterSelectServer config;
 
-	for (const QCborValue &v : pList) {
-		RpgGameData::CharacterSelect ch;
-		ch.fromCbor(v.toMap());
+	config.fromCbor(data);
+
+	for (const RpgGameData::CharacterSelect &ch : config.players)
 		updateSnapshot(ch);
-	}
 
-	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest) {
-		QCborMap cfgGame = data.value(QStringLiteral("g")).toMap();
 
-		if (!cfgGame.isEmpty()) {
-			RpgGameData::GameConfig config;
-			config.fromCbor(cfgGame);
-			m_gameConfig = config;
-		}
-	}
-
+	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest)
+		m_gameConfig = config.gameConfig;
 }
 
 
@@ -170,29 +215,24 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 	if (m_downloadContentStarted)
 		return;
 
-	RpgGameData::GameConfig config;
+	RpgGameData::Prepare config;
+	config.fromCbor(data);
 
-	LOG_CDEBUG("game") << data;
-
-	QCborMap cfgGame = data.value(QStringLiteral("g")).toMap();
-	config.fromCbor(cfgGame);
-
-	if (config.terrain.isEmpty()) {
+	if (config.gameConfig.terrain.isEmpty()) {
 		LOG_CERROR("game") << "Missing game config terrain";
 		emit gameError();
 		return;
 	}
 
-	m_gameConfig = config;
+	m_gameConfig = config.gameConfig;
 
-	QCborArray pList = data.value(QStringLiteral("pp")).toArray();
+	RpgGameData::CurrentSnapshot snapshot;
+	snapshot.fromCbor(data);
 
-	LOG_CWARNING("game") << "#####" << pList;
-
-	updateSnapshotPlayerList(pList);
+	updateSnapshot(snapshot);
 
 	QMutexLocker locker(&m_snapshotMutex);
-	emit gameDataDownload(config.terrain, m_playerData);
+	emit gameDataDownload(config.gameConfig.terrain, m_playerData);
 
 	m_downloadContentStarted = true;
 }
@@ -209,12 +249,13 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 	if (!m_game)
 		return;
 
-	QCborArray enemyList = data.value(QStringLiteral("ee")).toArray();
-	QCborArray playerList = data.value(QStringLiteral("pp")).toArray();
+	RpgGameData::Prepare config;
+	config.fromCbor(data);
 
+	RpgGameData::CurrentSnapshot snapshot;
+	snapshot.fromCbor(data);
 
-	updateSnapshotPlayerList(playerList);
-	updateSnapshotEnemyList(enemyList);
+	updateSnapshot(snapshot);
 }
 
 
@@ -235,14 +276,12 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 	if (tick > -1)
 		m_game->setTickTimer(tick);
 
-	QCborArray enemyList = data.value(QStringLiteral("ee")).toArray();
-	QCborArray playerList = data.value(QStringLiteral("pp")).toArray();
-	QCborArray bulletList = data.value(QStringLiteral("bb")).toArray();
+	RpgGameData::CurrentSnapshot snapshot;
+	snapshot.fromCbor(data);
 
-	updateSnapshotPlayerList(playerList);
-	updateSnapshotEnemyList(enemyList);
-	updateSnapshotBulletList(bulletList);
+	updateSnapshot(snapshot);
 }
+
 
 
 
@@ -454,122 +493,6 @@ void RpgUdpEngine::setGameConfig(const RpgGameData::GameConfig &newGameConfig)
 }
 
 
-
-
-
-/**
- * @brief RpgUdpEngine::updateSnapshotEnemyList
- * @param list
- * @param tick
- */
-
-void RpgUdpEngine::updateSnapshotEnemyList(const QCborArray &list)
-{
-	for (const QCborValue &v : list) {
-		const QCborMap &m = v.toMap();
-		const QCborValue &ed = m.value(QStringLiteral("ed"));
-		const QCborArray &e = m.value(QStringLiteral("e")).toArray();
-
-		RpgGameData::EnemyBaseData enemyData;
-		enemyData.fromCbor(ed);
-
-		if (enemyData.s < 0 || enemyData.id < 0) {
-			LOG_CERROR("game") << "Invalid enemy id" << enemyData.s << enemyData.id;
-			continue;
-		}
-
-		RpgGameData::Enemy enemy;
-
-		for (const QCborValue &v : e) {
-			enemy.fromCbor(v);
-
-			QMutexLocker locker(&m_snapshotMutex);
-			m_snapshots.updateSnapshot(enemyData, enemy);
-		}
-	}
-}
-
-
-
-
-
-/**
- * @brief RpgUdpEngine::updateSnapshotPlayerList
- * @param list
- * @param tick
- */
-
-void RpgUdpEngine::updateSnapshotPlayerList(const QCborArray &list)
-{
-	for (const QCborValue &v : list) {
-		const QCborMap &m = v.toMap();
-		const QCborValue &pd = m.value(QStringLiteral("pd"));
-		const QCborArray &p = m.value(QStringLiteral("p")).toArray();
-
-		RpgGameData::PlayerBaseData playerData;
-		playerData.fromCbor(pd);
-
-		if (playerData.o < 0) {
-			LOG_CERROR("game") << "Invalid player id" << v;
-			continue;
-		}
-
-		RpgGameData::Player player;
-
-		for (const QCborValue &v : p) {
-			player.fromCbor(v);
-
-			QMutexLocker locker(&m_snapshotMutex);
-			m_snapshots.updateSnapshot(playerData, player);
-		}
-	}
-}
-
-
-
-
-
-/**
- * @brief RpgUdpEngine::updateSnapshotBulletList
- * @param list
- */
-
-void RpgUdpEngine::updateSnapshotBulletList(const QCborArray &list)
-{
-	std::vector<RpgGameData::BulletBaseData> existingBullets;
-
-	for (const QCborValue &v : list) {
-		const QCborMap &m = v.toMap();
-		const QCborValue &ed = m.value(QStringLiteral("bd"));
-		const QCborArray &e = m.value(QStringLiteral("b")).toArray();
-
-		RpgGameData::BulletBaseData bulletData;
-		bulletData.fromCbor(ed);
-
-		if (bulletData.s < 0 || bulletData.id < 0) {
-			LOG_CERROR("game") << "Invalid bullet id" << bulletData.o << bulletData.s << bulletData.id;
-			continue;
-		}
-
-		RpgGameData::Bullet bullet;
-
-		for (const QCborValue &v : e) {
-			bullet.fromCbor(v);
-
-			QMutexLocker locker(&m_snapshotMutex);
-			m_snapshots.updateSnapshot(bulletData, bullet);
-		}
-
-		existingBullets.push_back(bulletData);
-	}
-
-	// Remove missing bullets
-
-	QMutexLocker locker(&m_snapshotMutex);
-
-	m_snapshots.removeMissingSnapshots(existingBullets);
-
-}
 
 
 

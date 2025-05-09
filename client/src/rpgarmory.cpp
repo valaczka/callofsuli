@@ -895,15 +895,7 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		return;
 	} else {
 		const int frames = to.f-snapshot.current;
-		const cpVect pos =
-				frames > 1 ?
-					cpvlerp(bodyPosition(),
-							cpvadd(final, cpvmult(speed, frames/60.)),
-							1./frames) :
-					cpvadd(final, cpvmult(speed, frames/60.))
-					;
-
-		moveToPoint(pos, frames);
+		moveToPoint(final, frames);
 		return;
 	}
 }
@@ -918,8 +910,8 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 void RpgBullet::updateFromSnapshot(const RpgGameData::Bullet &snap)
 {
-	if ((snap.st == StageDead && m_stage != StageDead && m_stage != StageDestroy) ||
-			(snap.st == StageDestroy && m_stage != StageDead && m_stage != StageDestroy))
+	if (((snap.st == StageDead || snap.st == StageDestroy) &&
+		 m_stage != StageDead && m_stage != StageDestroy))
 	{
 		disableBullet();
 	}
@@ -941,7 +933,7 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::Bullet &snap)
 void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 {
 	if (m_stage != StageLive) {
-		stop();
+		disableBullet();
 		return;
 	}
 
@@ -963,16 +955,6 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 
 	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(shape).categories);
 
-	RpgEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
-						  dynamic_cast<RpgEnemy*>(base) :
-						  nullptr;
-
-	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
-							dynamic_cast<RpgPlayer*>(base) :
-							nullptr;
-
-
-
 	if (categories.testFlag(TiledObjectBody::FixtureGround) && base->opaque()) {
 		m_impactedObject = RpgGameData::BaseData(
 							   base->objectId().ownerId,
@@ -985,6 +967,15 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 
 		return;
 	}
+
+	RpgEnemy *enemy = categories.testFlag(FixtureTarget) || categories.testFlag(FixtureEnemyBody) ?
+						  dynamic_cast<RpgEnemy*>(base) :
+						  nullptr;
+
+	RpgPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
+							dynamic_cast<RpgPlayer*>(base) :
+							nullptr;
+
 
 
 	bool hasTarget = false;

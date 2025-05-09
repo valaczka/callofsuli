@@ -63,7 +63,7 @@ void IsometricBullet::initialize()
 	setDefaultZ(1);
 	setSubZ(0.8);
 
-	m_speed = 300.;
+	m_speed = 700.;
 
 	load();
 

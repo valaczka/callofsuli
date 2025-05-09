@@ -130,6 +130,7 @@ private:
 
 	void onRpgGameActivated();
 
+	void sendData(const QSerializer &data, const bool &reliable);
 	void sendData(const QByteArray &data, const bool &reliable);
 
 	void sendDataChrSel();

@@ -387,9 +387,19 @@ int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::EnemyBaseData
  * @return
  */
 
-int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::PlayerBaseData &data, const RpgGameData::Player &snap, const std::optional<RpgGameData::Player> &prev)
+int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::PlayerBaseData &data,
+							const RpgGameData::Player &snap, const std::optional<RpgGameData::Player> &prev)
 {
-	return -1;
+	if (!prev)
+		return 0;
+
+	if (prev->hp > 0 && snap.hp <= 0) {
+		LOG_CINFO("engine") << "Player died" << data.o << data.id;
+		eventAdd<RpgEventPlayerDied>(tick, data);
+		return 1;
+	}
+
+	return 0;
 }
 
 
@@ -432,20 +442,26 @@ RpgGameData::CurrentSnapshot RpgEngine::processEvents(const qint64 &tick)
  * @return
  */
 
-RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::PlayerBaseData> RpgEngine::players()
+const RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::PlayerBaseData> &RpgEngine::players()
 {
 	return m_snapshots.players();
 }
 
-RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> RpgEngine::enemies()
+const RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> &RpgEngine::enemies()
 {
 	return m_snapshots.enemies();
 }
 
-RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> RpgEngine::bullets()
+const RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> &RpgEngine::bullets()
 {
 	return m_snapshots.bullets();
 }
+
+
+/**
+ * @brief RpgEngine::renderTimerLog
+ * @param msec
+ */
 
 void RpgEngine::renderTimerLog(const qint64 &msec)
 {
@@ -594,57 +610,28 @@ void RpgEnginePrivate::dataReceivedChrSel(RpgEnginePlayer *player, const QByteAr
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
-	if (const auto &it = m.find(QStringLiteral("chr")); it != m.cend()) {
-		RpgGameData::CharacterSelect c;
-		c.fromCbor(it.value());
-		c.playerId = player->playerId();			// Ő nem változtathat rajta
-		player->setConfig(c);
-	}
+	RpgGameData::CharacterSelect c;
+	c.fromCbor(m);
+
+
+	c.playerId = player->playerId();			// Ő nem változtathat rajta
+	player->setConfig(c);
 
 	if (!player->isHost())
 		return;
 
-	if (const auto &it = m.find(QStringLiteral("cfg")); it != m.cend()) {
-		m_gameConfig.fromCbor(it.value());
-	}
+	m_gameConfig = c.gameConfig;
 
-	/*if (const auto &it = m.find(QStringLiteral("t")); it != m.cend()) {
-		q->m_currentTick = it->toInteger();
-	}*/
 
-	/*if (const auto &it = m.find(QStringLiteral("ee")); it != m.cend()) {
-		const QCborArray enemies = it->toArray();
-
-		m_enemies.clear();
-
-		for (const QCborValue &v : enemies) {
-			RpgGameData::Enemy enemy;
-			enemy.fromCbor(v);
-			m_enemies.push_back(enemy);
-		}
-	}*/
-
-	/*if (const auto &it = m.find(QStringLiteral("pp")); it != m.cend()) {
-		const QCborArray players = it->toArray();
-
-		for (const QCborValue &v : players) {
-			QCborMap m = v.toMap();
-
-			const int sceneId = m.value(QStringLiteral("s")).toInteger();
-			const int id = m.value(QStringLiteral("id")).toInteger();
-
-			if (sceneId <= 0 || id <= 0) {
-				LOG_CWARNING("engine") << "Invalid id" << sceneId << id;
-				continue;
-			}
-
-			if (player->s != sceneId || player->id != id)
-				continue;
-
-			player->fromCbor(v);
-		}
-	}*/
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+	map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(m.toJsonObject()).toJson()));
+	q->service()->writeToSocket(map.toCborValue());
+#endif
 }
+
+
 
 
 
@@ -660,53 +647,66 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
-	if (const auto &it = m.find(QStringLiteral("pr")); it != m.cend()) {
-		RpgGameData::Prepare c;
-		c.fromCbor(it.value());
-		if (!player->isPrepared()) {
-			player->setIsPrepared(c.prepared);
-			LOG_CINFO("game") << "PREPARED" << player->playerId() << c.prepared;
-		}
+	RpgGameData::Prepare config;
+
+	config.fromCbor(m);
+
+	if (!player->isPrepared()) {
+		player->setIsPrepared(config.prepared);
+		LOG_CINFO("game") << "PREPARED" << player->playerId() << config.prepared;
 	}
 
 	if (!player->isHost())
 		return;
 
-	if (const auto &it = m.find(QStringLiteral("cfg")); it != m.cend()) {
-		m_gameConfig.fromCbor(it.value());
-	}
+	m_gameConfig = config.gameConfig;
 
-	if (const auto &it = m.find(QStringLiteral("ee")); it != m.cend()) {
-		QCborArray eList = it->toArray();
+	RpgGameData::CurrentSnapshot snapshot;
+	snapshot.fromCbor(m);
 
-		for (const QCborValue &v : eList) {
-			RpgGameData::EnemyBaseData enemy;
-			enemy.fromCbor(v);
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+	map.insert(QStringLiteral("txt"),
+			   QString::fromUtf8(QJsonDocument(m.toJsonObject()).toJson()) +
+			   QStringLiteral("-------------------------------------------------\n") +
+			   QString::fromUtf8(QJsonDocument(snapshot.toCbor().toJsonObject()).toJson())
+			   );
+	q->service()->writeToSocket(map.toCborValue());
+#endif
 
-			if (enemy.t == RpgGameData::EnemyBaseData::EnemyInvalid) {
-				LOG_CERROR("engine") << "Invalid enemy data" << q->id() << v;
-				continue;
-			}
 
-			const auto &enemies = q->m_snapshots.enemies();
 
-			const auto it = std::find_if(enemies.cbegin(), enemies.cend(),
-										 [&enemy](const auto &e) {
-				return e.data == enemy;
-			});
+	for (const auto &ptr : snapshot.enemies) {
+		const RpgGameData::EnemyBaseData &enemy = ptr.data;
 
-			if (it == enemies.cend()) {
-				RpgGameData::Enemy edata;
-				edata.f = 0;
-				edata.hp = 32;
-				edata.mhp = 32;
-				edata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, -1));
-				edata.arm.cw = RpgGameData::Weapon::WeaponLongsword;
+		if (enemy.t == RpgGameData::EnemyBaseData::EnemyInvalid) {
+			LOG_CERROR("engine") << "Invalid enemy data" << q->id();
+			continue;
+		}
 
-				q->m_snapshots.enemyAdd(enemy, edata);
+		const auto &enemies = q->m_snapshots.enemies();
 
-				LOG_CINFO("eninge") << "CREATE ENEMY" << enemy.t << enemy.s << enemy.id;
-			}
+		const auto it = std::find_if(enemies.cbegin(), enemies.cend(),
+									 [&enemy](const auto &e) {
+			return e.data == enemy;
+		});
+
+		if (it == enemies.cend()) {
+			RpgGameData::Enemy edata;
+
+			if (!ptr.list.empty())
+				edata = ptr.list.cbegin()->second;
+
+			edata.f = 0;
+			edata.hp = 32;
+			edata.mhp = 32;
+			edata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, -1));
+			edata.arm.cw = RpgGameData::Weapon::WeaponLongsword;
+
+			q->m_snapshots.enemyAdd(enemy, edata);
+
+			LOG_CINFO("eninge") << "CREATE ENEMY" << enemy.t << enemy.s << enemy.id << edata.p;
 		}
 	}
 
@@ -730,6 +730,7 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 
 	if (q->m_currentTick <= 0) {
 		if (m.value(QStringLiteral("full")).toBool(false)) {
+			LOG_CINFO("engine") << "FULLY PREPARED" << player->playerId();
 			player->setIsFullyPrepared(true);
 			return;
 		}
@@ -750,29 +751,30 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 
 void RpgEnginePrivate::dataSendChrSel()
 {
-	QCborArray players;
+	RpgGameData::CharacterSelectServer config;
+	config.gameConfig = m_gameConfig;
 
-	for (const auto &ptr : q->m_player) {
-		players.append(ptr->config().toCborMap(true));
-	}
+	for (const auto &ptr : q->m_player)
+		config.players.append(ptr->config());
 
-	QCborMap gConfig = m_gameConfig.toCborMap(true);
+	QCborMap baseMap = config.toCborMap();
 
 	for (auto it = q->m_player.cbegin(); it != q->m_player.cend(); ++it) {
-		QCborMap map;
+		QCborMap map = baseMap;
 
 		insertBaseMapData(&map, it->get());
 
-		QCborMap configMap = it->get()->config().toCborMap(true);
-		map.insert(QStringLiteral("cfg"), configMap);
-
-		map.insert(QStringLiteral("g"), gConfig);
-		map.insert(QStringLiteral("pp"), players);
-
 		if (it->get()->udpPeer())
 			it->get()->udpPeer()->send(map.toCborValue().toCbor(), false);
-
 	}
+
+
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+	map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(baseMap.toJsonObject()).toJson()));
+	q->service()->writeToSocket(map.toCborValue());
+#endif
 }
 
 
@@ -785,18 +787,30 @@ void RpgEnginePrivate::dataSendChrSel()
 
 void RpgEnginePrivate::dataSendPrepare()
 {
-	QCborMap gConfig = m_gameConfig.toCborMap(true);
+	RpgGameData::Prepare config;
+	config.gameConfig = m_gameConfig;
+
+	QCborMap baseMap = config.toCborMap();
+	QCborMap sm = q->m_snapshots.getCurrentSnapshot().toCbor();
+
+	for (auto it = sm.cbegin(); it != sm.cend(); ++it)
+		baseMap.insert(it.key(), it.value());
+
 
 	for (auto it = q->m_player.cbegin(); it != q->m_player.cend(); ++it) {
-		QCborMap map = q->m_snapshots.getCurrentSnapshot().toCbor();
-
+		QCborMap map = baseMap;
 		insertBaseMapData(&map, it->get());
-
-		map.insert(QStringLiteral("g"), gConfig);
 
 		if (it->get()->udpPeer())
 			it->get()->udpPeer()->send(map.toCborValue().toCbor(), false);
 	}
+
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+	map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(baseMap.toJsonObject()).toJson()));
+	q->service()->writeToSocket(map.toCborValue());
+#endif
 }
 
 
@@ -813,7 +827,7 @@ void RpgEnginePrivate::dataSendPlay()
 	const qint64 tick = q->currentTick();
 
 	if (tick > 0) {
-		if (tick <= m_lastSentTick + 1)				// 30 FPS
+		if (tick <= m_lastSentTick+1)				// Clamp to 30 fps
 			return;
 
 		m_lastSentTick = tick;
@@ -846,7 +860,6 @@ void RpgEnginePrivate::dataSendPlay()
 
 	//map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(current.toJsonObject()).toJson()));
 	q->service()->writeToSocket(map.toCborValue());
-
 #endif
 }
 
@@ -1343,4 +1356,133 @@ bool RpgEventEnemyResurrect::isEqual(RpgEvent *other) const
 
 
 
+/**
+ * @brief RpgEventPlayerDied::RpgEventPlayerDied
+ * @param engine
+ * @param tick
+ * @param data
+ */
 
+RpgEventPlayerDied::RpgEventPlayerDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
+	: RpgEvent(engine, tick)
+	, m_data(data)
+{
+	LOG_CDEBUG("engine") << "Player died" << m_data.o << m_data.id << "@" << tick;
+}
+
+
+
+/**
+ * @brief RpgEventPlayerDied::process
+ * @param tick
+ * @param dst
+ * @return
+ */
+
+bool RpgEventPlayerDied::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
+{
+	Q_UNUSED(dst);
+
+	LOG_CDEBUG("engine") << "Player died processed" << m_data.o << m_data.id << "@" << m_tick;
+
+	m_engine->eventAdd<RpgEventPlayerResurrect>(m_tick+300, m_data);
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgEventPlayerDied::isEqual
+ * @param other
+ * @return
+ */
+
+bool RpgEventPlayerDied::isEqual(RpgEvent *other) const
+{
+	if (RpgEventPlayerDied *d = dynamic_cast<RpgEventPlayerDied*>(other); d &&
+			d->m_tick == m_tick &&
+			d->m_data == m_data
+			)
+		return true;
+
+	return false;
+}
+
+
+
+/**
+ * @brief RpgEventPlayerResurrect::RpgEventPlayerResurrect
+ * @param engine
+ * @param tick
+ */
+
+RpgEventPlayerResurrect::RpgEventPlayerResurrect(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
+	: RpgEvent(engine, tick)
+	, m_data(data)
+{
+	LOG_CDEBUG("engine") << "PLAYER RESURRECT created" << tick << m_unique << data.o;
+}
+
+
+/**
+ * @brief RpgEventPlayerResurrect::process
+ * @param tick
+ * @param dst
+ * @return
+ */
+
+bool RpgEventPlayerResurrect::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
+{
+	Q_ASSERT(dst);
+
+	if (tick < m_tick)
+		return false;
+
+	const auto &pl = m_engine->players();
+
+	const auto it = std::find_if(pl.cbegin(),
+								 pl.cend(),
+								 [this](const auto &p){
+		return p.data == m_data;
+	});
+
+	if (it == pl.cend()) {
+		LOG_CERROR("engine") << "Invalid player" << m_data.o << m_data.id;
+		return true;
+	}
+
+	RpgGameData::Player player;
+
+	if (!it->list.empty())
+		player = std::prev(it->list.cend())->second;
+
+	player.f = m_tick;
+	player.hp = 45;
+
+	LOG_CINFO("engine") << "###### RESURRECT PLAYER" << m_tick << m_data.id;
+
+	dst->assign(dst->players, m_data, player);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief RpgEventPlayerResurrect::isEqual
+ * @param other
+ * @return
+ */
+
+bool RpgEventPlayerResurrect::isEqual(RpgEvent *other) const
+{
+	if (RpgEventPlayerResurrect *d = dynamic_cast<RpgEventPlayerResurrect*>(other); d &&
+			d->m_data == m_data &&
+			d->m_tick == m_tick
+			)
+		return true;
+
+	return false;
+}

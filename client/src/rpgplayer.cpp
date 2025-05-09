@@ -942,11 +942,12 @@ void RpgPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 class FtxWriter
 {
 public:
-	FtxWriter(const QString &mode = QStringLiteral("SND"))
+	FtxWriter(const int &player, const QString &mode = QStringLiteral("SND"))
 		: m_app(dynamic_cast<DesktopApplication*>(Application::instance()))
 		, m_mode(mode)
 	{
 		Q_ASSERT(m_app);
+		m_player = player;
 	}
 
 	~FtxWriter()
@@ -963,13 +964,13 @@ public:
 		QCborMap map;
 		map.insert(QStringLiteral("mode"), m_mode);
 
-		QString tt;
+		QString tt = QStringLiteral("PLAYER %1\n----------------------------------------------------\n").arg(m_player);
 
 		for (auto it = m_lines.crbegin(); it != m_lines.crend(); ++it)
 			tt += *it + QStringLiteral("\n");
 
 		map.insert(QStringLiteral("txt"), tt);
-		////m_app->writeToSocket(map.toCborValue());
+		m_app->writeToSocket(map.toCborValue());
 	}
 
 
@@ -988,6 +989,8 @@ private:
 	const QString m_mode;
 	inline static QStringList m_lines = {};
 	QString m_txt;
+
+	inline static int m_player = 0;
 };
 
 
@@ -1008,7 +1011,7 @@ private:
 void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot)
 {
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-	FtxWriter writer;
+	FtxWriter writer(baseData().o);
 
 	writer += QStringLiteral("%1|%2: ")
 			  .arg(m_game->tickTimer()->currentTick())
@@ -1029,7 +1032,17 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 			  ;
 
 
-	if (snapshot.s1.p.size() > 1)
+	const auto &to = snapshot.s2.f >= 0 ? snapshot.s2 : snapshot.last;
+
+	if (to.p.size() > 1)
+			writer += QStringLiteral("=> (%1,%2)")
+					  .arg(to.p.at(0))
+					  .arg(to.p.at(1))
+					  ;
+	else
+		writer += QStringLiteral("???????????");
+
+	/*if (snapshot.s1.p.size() > 1)
 		writer += QStringLiteral("(%1,%2)")
 				  .arg(snapshot.s1.p.at(0))
 				  .arg(snapshot.s1.p.at(1))
@@ -1039,7 +1052,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		writer += QStringLiteral("-(%1,%2)")
 				  .arg(snapshot.s2.p.at(0))
 				  .arg(snapshot.s2.p.at(1))
-				  ;
+				  ;*/
 
 	/*if (snapshot.last.p.size() > 1)
 		writer += QStringLiteral("  {%1,%2}")
@@ -1162,12 +1175,12 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
 	if (!msg.isEmpty())
-		writer += QStringLiteral("  >> ")+msg;
+		writer += QStringLiteral("   ")+msg;
 
 	const auto &b = bodyPosition();
 	const auto &v = cpvmult(cpBodyGetVelocity(body()), 1/60.);
 
-	writer += QStringLiteral(" === [%1,%2] (%3,%4)").arg(b.x).arg(b.y).arg(v.x).arg(v.y);
+	writer += QStringLiteral("   @[%1,%2] +(%3,%4)").arg(b.x).arg(b.y).arg(v.x).arg(v.y);
 #endif
 }
 

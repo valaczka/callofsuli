@@ -1290,6 +1290,7 @@ void TiledGame::updateStepTimer()
 
 	if (currentTick < 0) {
 		timeStepPrepareEvent();
+		synchronize();
 		return;
 	}
 
@@ -1330,15 +1331,11 @@ void TiledGame::updateStepTimer()
 
 	d->updateObjects();
 
-	if (const auto &t = timer1.restart(); t > 3) {
+	if (const auto &t = timer1.restart(); t > 10) {
 		LOG_CDEBUG("scene") << "[Benchmark] worldstep  " << t << "ms /" << frames << "frames";
 	}
 
 	synchronize();
-
-	if (const auto &t = timer1.elapsed(); t > 3) {
-		LOG_CDEBUG("scene") << "[Benchmark] synchronize" << t << "ms /" << frames << "frames";
-	}
 }
 
 

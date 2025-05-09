@@ -777,6 +777,7 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
 		bullet->filterSet(TiledObjectBody::FixtureBulletBody,
 						  TiledObjectBody::FixtureTarget |
 						  TiledObjectBody::FixtureGround);
+		bullet->setSensor(true);
 		bullet->initialize();
 		bullet->setStage(RpgGameData::LifeCycle::StageCreate);
 	}

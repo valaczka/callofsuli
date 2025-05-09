@@ -183,7 +183,7 @@ inline cpVect RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity *e
 		}
 
 		if (to.f <= snapshot.current) {
-			static const float factor = 1.0;//(to.f <= (snapshot.current - RPG_UDP_DELTA_TICK) ? 0.99 : 1.0);
+			const float factor = (to.f <= (snapshot.current - RPG_UDP_DELTA_TICK) ? 0.9 : 1.0);
 
 			const int frames = snapshot.current-to.f+1;
 			const cpVect pos = cpvadd(toFinal.value(),
@@ -194,14 +194,7 @@ inline cpVect RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity *e
 			return fnMove(entity, pos, frames, maxSpeed, from.cv);
 		} else {
 			const int frames = to.f-snapshot.current;
-			const cpVect pos =
-					frames > 1 ?
-						cpvlerp(entity->bodyPosition(),
-								cpvadd(toFinal.value(), cpvmult(toCv.value(), frames/60.)),
-								1./frames) :
-						cpvadd(toFinal.value(), cpvmult(toCv.value(), 1/60.))
-						;
-
+			const cpVect &pos = toFinal.value();
 
 			if (msg) *msg = QStringLiteral("+%1[%2,%3]").arg(frames).arg(pos.x).arg(pos.y);
 

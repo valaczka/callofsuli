@@ -549,60 +549,6 @@ protected:
 
 
 
-class CharacterSelect : public QSerializer
-{
-	Q_GADGET
-
-public:
-	CharacterSelect()
-		: QSerializer()
-		, playerId(-1)
-		, completed(false)
-	{}
-
-	CharacterSelect(const RpgPlayerConfig &config)
-		: QSerializer()
-		, playerId(-1)
-		, completed(false)
-	{
-		username = config.username;
-		nickname = config.nickname;
-		character = config.character;
-		weapons = config.weapons;
-	}
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(int, playerId)
-	QS_FIELD(QString, username)
-	QS_FIELD(QString, nickname)
-
-	QS_FIELD(QString, character)
-	QS_FIELD(QStringList, weapons)
-	QS_FIELD(bool, completed)
-};
-
-
-
-
-/**
- * @brief The Prepare class
- */
-
-class Prepare : public QSerializer
-{
-	Q_GADGET
-
-public:
-	Prepare()
-		: QSerializer()
-		, prepared(false)
-	{}
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(bool, prepared)
-};
 
 
 
@@ -656,6 +602,96 @@ public:
 	QS_FIELD(QString, terrain)
 };
 
+
+
+
+
+/**
+ * @brief The CharacterSelect class
+ */
+
+class CharacterSelect : public QSerializer
+{
+	Q_GADGET
+
+public:
+	CharacterSelect()
+		: QSerializer()
+		, playerId(-1)
+		, completed(false)
+	{}
+
+	CharacterSelect(const RpgPlayerConfig &config)
+		: QSerializer()
+		, playerId(-1)
+		, completed(false)
+	{
+		username = config.username;
+		nickname = config.nickname;
+		character = config.character;
+		weapons = config.weapons;
+	}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, playerId)
+	QS_FIELD(QString, username)
+	QS_FIELD(QString, nickname)
+
+	QS_FIELD(QString, character)
+	QS_FIELD(QStringList, weapons)
+	QS_FIELD(bool, completed)
+
+	QS_OBJECT(GameConfig, gameConfig)
+};
+
+
+
+
+
+/**
+ * @brief The CharacterSelectServer class
+ */
+
+class CharacterSelectServer : public QSerializer
+{
+	Q_GADGET
+
+public:
+	CharacterSelectServer()
+		: QSerializer()
+	{}
+
+
+	QS_SERIALIZABLE
+
+	QS_OBJECT(GameConfig, gameConfig)
+	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
+};
+
+
+
+
+
+/**
+ * @brief The Prepare class
+ */
+
+class Prepare : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Prepare()
+		: QSerializer()
+		, prepared(false)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(bool, prepared)
+	QS_OBJECT(GameConfig, gameConfig)
+};
 
 
 

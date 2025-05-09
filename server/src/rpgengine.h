@@ -151,6 +151,45 @@ public:
 
 
 
+
+
+/**
+ * @brief The RpgEventPlayerDied class
+ */
+
+class RpgEventPlayerDied : public RpgEvent
+{
+public:
+	RpgEventPlayerDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data);
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+	bool isEqual(RpgEvent *other) const override;
+
+private:
+	const RpgGameData::PlayerBaseData m_data;
+};
+
+
+
+/**
+ * @brief The RpgEventPlayerResurrect class
+ */
+
+class RpgEventPlayerResurrect : public RpgEvent
+{
+public:
+	RpgEventPlayerResurrect(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data);
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+	bool isEqual(RpgEvent *other) const override;
+
+private:
+	const RpgGameData::PlayerBaseData m_data;
+};
+
+
+
+
 /**
  * @brief The RpgEngine class
  */
@@ -210,9 +249,9 @@ public:
 	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
 
 
-	RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::PlayerBaseData> players();
-	RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> enemies();
-	RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> bullets();
+	const RpgGameData::SnapshotList<RpgGameData::Player, RpgGameData::PlayerBaseData> &players();
+	const RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> &enemies();
+	const RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> &bullets();
 
 
 
