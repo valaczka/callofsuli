@@ -51,7 +51,7 @@ public:
 		Play,
 		Demo,
 		DevPage,
-		Adjacency,
+		Adjacency [[deprecated]],
 		Terminal
 	};
 

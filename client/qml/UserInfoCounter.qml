@@ -112,9 +112,9 @@ Qaterial.Expandable {
 								case GameMap.Exam:
 									qsTr("Dolgozat")
 									break
-								case GameMap.Conquest:
+								/*case GameMap.Conquest:
 									qsTr("Multiplayer")
-									break
+									break*/
 								default:
 									"???"
 								}

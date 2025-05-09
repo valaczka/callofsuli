@@ -25,7 +25,6 @@
  */
 
 #include "mapplaycampaign.h"
-#include "conquestgame.h"
 
 
 /**
@@ -162,23 +161,6 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	}*/
 
 
-	// Conquest
-
-	ConquestGame *conquestGame = qobject_cast<ConquestGame*>(m_client->currentGame());
-
-	if (conquestGame) {
-		//conquestGame->setMap(m_gameMap.get());
-		conquestGame->setHandler(m_handler);
-
-		ConquestConfig c = conquestGame->config();
-		c.campaign = m_campaign ? m_campaign->campaignid() : -1;
-		conquestGame->setConfig(c);
-
-		conquestGame->load();
-		setGameState(StatePlay);
-		return;
-	}
-
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 
@@ -264,18 +246,6 @@ void MapPlayCampaign::onCurrentGameFinished()
 {
 	if (!m_client || !m_client->currentGame())
 		return;
-
-
-	// Conquest
-
-	ConquestGame *conquestGame = qobject_cast<ConquestGame*>(m_client->currentGame());
-
-	if (conquestGame) {
-		destroyCurrentGame();
-		setGameState(StateSelect);
-		return;
-	}
-
 
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
@@ -486,10 +456,6 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 		case GameMap::Practice:
 			g = new CampaignLiteGame(level->missionLevel(), m_client, true);
-			break;
-
-		case GameMap::Conquest:
-			g = new CampaignConquestGame(level->missionLevel(), m_client);
 			break;
 
 			/*case GameMap::MultiPlayer:

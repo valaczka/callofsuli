@@ -196,9 +196,9 @@ QPageGradient {
 					case GameMap.Exam:
 						t += qsTr(" [dolgozat]")
 						break
-					case GameMap.Conquest:
+					/*case GameMap.Conquest:
 						t += qsTr(" [multiplayer]")
-						break
+						break*/
 					default:
 						break
 					}

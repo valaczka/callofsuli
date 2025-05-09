@@ -129,7 +129,7 @@ Page {
 	Component {
 		id: _cmpError
 
-		ConquestError {
+		RpgError {
 			//game: root.game
 		}
 	}

@@ -217,10 +217,6 @@ SOURCES += \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
-	conquestgame.cpp \
-	conquestgameadjacencysetup.cpp \
-	conquestland.cpp \
-	conquestlanddata.cpp \
 	downloader.cpp \
 	editorundostack.cpp \
 	exam.cpp \
@@ -337,10 +333,6 @@ HEADERS += \
 	classobject.h \
 	client.h \
 	clientcache.h \
-	conquestgame.h \
-	conquestgameadjacencysetup.h \
-	conquestland.h \
-	conquestlanddata.h \
 	downloader.h \
 	editorundostack.h \
 	exam.h \

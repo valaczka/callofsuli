@@ -37,7 +37,6 @@
 #include "utils_.h"
 #include "googleoauth2authenticator.h"
 #include "microsoftoauth2authenticator.h"
-#include "conquestengine.h"
 #include <QOAuthHttpServerReplyHandler>
 #include <csignal>
 #include <QResource>
@@ -986,10 +985,10 @@ int ServerService::exec()
 
 	// Restore backed up engines
 
-	const int &count = ConquestEngine::restoreEngines(this);
+	/*const int &count = ConquestEngine::restoreEngines(this);
 
 	if (count > 0)
-		LOG_CINFO("service") << count << "ConquestEngines restored";
+		LOG_CINFO("service") << count << "ConquestEngines restored";*/
 
 	if (!start())
 		return 3;
@@ -1374,7 +1373,6 @@ void ServerService::reloadDynamicContent()
 	m_dynamicContent = {};
 	m_loadableDynamicContent = {};
 	m_dynamicContentDict = {};
-	ConquestEngine::m_helper.clear();
 
 	const QString &dir = m_settings->dataDir().absoluteFilePath(QStringLiteral("content"));
 
@@ -1426,10 +1424,7 @@ void ServerService::reloadDynamicContent()
 
 			LOG_CDEBUG("service") << "Dynamic content registered:" << qPrintable(it.fileName());
 
-			if (isStatic)
-				ConquestEngine::loadWorldDataFromResource(QStringLiteral(":/tmp"));
-			else
-				loadDynamicDictFromRcc(it.fileName(), QStringLiteral(":/tmp/"));
+			loadDynamicDictFromRcc(it.fileName(), QStringLiteral(":/tmp/"));
 
 			if (!QResource::unregisterResource(file, QStringLiteral("/tmp"))) {
 				LOG_CERROR("service") << "Unregister resource error:" << file;

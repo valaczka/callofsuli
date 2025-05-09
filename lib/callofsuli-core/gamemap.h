@@ -105,7 +105,7 @@ public:
 		Exam = 1 << 5,
 		Practice = 1 << 6,
 		/*MultiPlayer [[deprecated]] = 1 << 7,*/
-		Conquest = 1 << 8,
+		/*Conquest [[deprecated]] = 1 << 8, */
 		Rpg = 1 << 9
 	};
 

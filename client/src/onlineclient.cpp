@@ -35,7 +35,6 @@
 #include "qnetworkrequest.h"
 #include "QResource"
 #include "application.h"
-#include "conquestgame.h"
 #include "server.h"
 #include "utils_.h"
 #include "httpconnection.h"
@@ -256,7 +255,6 @@ void OnlineClient::onAllResourceReady()
 
 
 	AbstractLevelGame::reloadAvailableMedal();
-	ConquestGame::reloadAvailableCharacters();
 
 	initializeDynamicResources();
 

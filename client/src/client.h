@@ -154,7 +154,6 @@ public:
 	void setCurrentGame(AbstractGame *newCurrentGame);
 
 	Q_INVOKABLE QQuickItem *loadDemoMap(const QUrl &url = QString());
-	Q_INVOKABLE QQuickItem *loadAdjacencySetup(const QString &world = QString());
 
 	Q_INVOKABLE void messageInfo(const QString &text, QString title = "") const;
 	Q_INVOKABLE void messageWarning(const QString &text, QString title = "") const;
@@ -240,8 +239,6 @@ public:
 	Q_INVOKABLE QString getSystemInfo() const;
 	Q_INVOKABLE qreal getDevicePixelSizeCorrection() const;
 
-	Q_INVOKABLE QVariantMap availableCharacters() const;
-
 	Q_INVOKABLE QString generateRandomString(int length, const QString &characters = "") const;
 
 
@@ -288,7 +285,7 @@ protected slots:
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
-        void _userAuthTokenReceived(const QByteArray &token);
+		void _userAuthTokenReceived(const QByteArray &token);
 	virtual void fullScreenHelperConnect(QQuickWindow *window);
 	virtual void fullScreenHelperDisconnect(QQuickWindow *window);
 	void initializeDynamicResources();

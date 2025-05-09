@@ -37,9 +37,8 @@
 #define RPG_UDP_DELTA_TICK		6				// Jitter buffer
 
 
-
 /**
- * @brief The ConquestConfigBase class
+ * @brief The RpgConfigBase class
  */
 
 class RpgConfigBase : public QSerializer
@@ -67,7 +66,7 @@ public:
 
 
 /**
- * @brief The ConquestConfig class
+ * @brief The RpgConfig class
  */
 
 class RpgConfig : public RpgConfigBase
@@ -124,7 +123,7 @@ Q_DECLARE_METATYPE(RpgConfig)
 
 
 /**
- * @brief The ConquestPlayer class
+ * @brief The RpgPlayerConfig class
  */
 
 class RpgPlayerConfig : public QSerializer

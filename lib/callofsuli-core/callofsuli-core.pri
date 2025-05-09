@@ -13,7 +13,6 @@ android: INCLUDEPATH += $$PWD/../android_openssl/static/include
 
 HEADERS += \
 	$$PWD/commonsettings.h \
-	$$PWD/conquestconfig.h \
 	$$PWD/credential.h \
 	$$PWD/gamemap.h \
 	$$PWD/gamemapreaderiface.h \

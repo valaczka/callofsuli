@@ -461,9 +461,6 @@ GameQuestionComponent::ToggleMode GameQuestion::toggleMode() const
 		case GameMap::GameMode::Test:
 			return GameQuestionComponent::ToggleSelect;
 
-		case GameMap::GameMode::Conquest:
-			return GameQuestionComponent::ToggleFeedback;
-
 		default:
 			return GameQuestionComponent::ToggleNone;
 	}

@@ -29,7 +29,6 @@
 #include "application.h"
 #include "classobject.h"
 #include "client.h"
-#include "conquestgameadjacencysetup.h"
 #include "exam.h"
 #include "mapplay.h"
 #include "mapplaydemo.h"
@@ -391,7 +390,6 @@ void Client::onApplicationStarted()
 
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
-	ConquestGame::reloadAvailableCharacters();
 
 	switch (m_application->commandLine()) {
 		case Application::Demo:
@@ -410,9 +408,6 @@ void Client::onApplicationStarted()
 			break;
 		case Application::DevPage:
 			stackPushPage(QStringLiteral("_PageDev.qml"));
-			break;
-		case Application::Adjacency:
-			loadAdjacencySetup(m_application->commandLineData());
 			break;
 		default:
 			m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
@@ -1436,31 +1431,6 @@ qreal Client::getDevicePixelSizeCorrection() const
 
 
 
-/**
- * @brief Client::availableCharacters
- * @return
- */
-
-QVariantMap Client::availableCharacters() const
-{
-	QVariantMap ret;
-
-	const QStringList &l = ConquestGame::availableCharacters();
-
-	foreach (const QString &s, l) {
-		const auto &obj = Utils::fileToJsonObject(QStringLiteral(":/character/%1/data.json").arg(s));
-
-		if (!obj)
-			continue;
-
-		QVariantMap m;
-		m[QStringLiteral("name")] = obj->contains(QStringLiteral("name")) ? obj->value(QStringLiteral("name")).toString() : s;
-		m[QStringLiteral("color")] = QColor(obj->value(QStringLiteral("color")).toString());
-		ret.insert(s, m);
-	}
-
-	return ret;
-}
 
 
 /**
@@ -1856,48 +1826,6 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 
 	return page;
 }
-
-
-
-/**
- * @brief Client::loadAdjacencySetup
- * @param url
- * @return
- */
-
-QQuickItem *Client::loadAdjacencySetup(const QString &world)
-{
-	std::unique_ptr<ConquestGameAdjacencySetup> game(new ConquestGameAdjacencySetup(this));
-
-	if (!QFile::exists(world)) {
-		messageError(tr("Érvénytelen fájl: %1").arg(world));
-		return nullptr;
-	}
-
-	if (!QResource::registerResource(world)) {
-		messageError(tr("Hibás fájl: %1").arg(world));
-		return nullptr;
-	}
-
-	game->loadFromFile(world);
-
-	QQuickItem *page = stackPushPage(QStringLiteral("PageConquestAdjacency.qml"), QVariantMap({
-																								  { QStringLiteral("game"), QVariant::fromValue(game.get()) }
-																							  }));
-
-
-	if (!page) {
-		messageError(tr("Nem lehet betölteni az oldalt!"));
-		return nullptr;
-	}
-
-	connect(page, &QQuickItem::destroyed, game.get(), &ConquestGameAdjacencySetup::deleteLater);
-
-	game.release();
-
-	return page;
-}
-
 
 
 

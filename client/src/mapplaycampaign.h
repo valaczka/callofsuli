@@ -29,7 +29,6 @@
 
 #include "actionrpggame.h"
 #include "actionrpgmultiplayergame.h"
-#include "conquestgame.h"
 #include "mapplay.h"
 #include "studentmaphandler.h"
 #include "campaign.h"
@@ -163,19 +162,5 @@ public:
 
 
 
-
-/**
- * @brief The CampaignTestGame class
- */
-
-class CampaignConquestGame : public ConquestGame, public CampaignGameIface
-{
-	Q_OBJECT
-
-public:
-	explicit CampaignConquestGame(GameMapMissionLevel *missionLevel, Client *client)
-		: ConquestGame(missionLevel, client) {}
-	virtual ~CampaignConquestGame() {}
-};
 
 #endif // MAPPLAYCAMPAIGN_H

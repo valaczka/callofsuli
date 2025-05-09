@@ -125,3 +125,7 @@
 - Laser gun sound effect #2 - (c) soundslikewillem (https://freesound.org/people/soundslikewillem/sounds/645681)
 - Rain (loopable) - (c) 2016 Ylmir (https://opengameart.org/content/rain-loopable)
 - Loopable Dungeon Ambience - (c) 2014 JaggedStone (https://opengameart.org/content/loopable-dungeon-ambience)
+
+**Other**
+
+- Gaffer On Games - Glenn Fiedler (https://gafferongames.com)

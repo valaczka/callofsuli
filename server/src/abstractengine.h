@@ -19,7 +19,6 @@ public:
 		EngineInvalid = 0,
 		EnginePeer,
 		EngineExam,
-		EngineConquest,
 		EngineRpg
 	};
 

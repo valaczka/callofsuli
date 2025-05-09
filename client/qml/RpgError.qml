@@ -8,7 +8,7 @@ import "JScript.js" as J
 QScrollable {
 	id: root
 
-	property ConquestGame game: null
+	//property ConquestGame game: null
 
 	contentCentered: true
 
