@@ -268,7 +268,6 @@ public:
 signals:
 	void gameLoaded();
 	void gameLoadFailed(const QString &errorString);
-	void marketRequest();
 	void currentSceneChanged();
 	void joystickChanged();
 	void followedItemChanged();
@@ -321,7 +320,6 @@ protected:
 
 	virtual bool transportBeforeEvent(TiledObject *object, TiledTransport *transport);
 	virtual bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObject *newObject);
-	virtual bool transportMarket();
 	virtual bool transportGate(TiledObject *object, TiledTransport *transport, TiledObject *transportBase);
 	virtual bool transportDoor(TiledObject *object, TiledTransport *transport);
 

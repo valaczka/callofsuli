@@ -150,6 +150,11 @@ void RpgEnemyBase::load()
 	m_visualItem->setHeight(130);
 	setBodyOffset(0, 0.45*64);
 
+
+	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(245,51,51,150));
+	m_visualItem->setProperty("ellipseSize", 2);
+	m_visualItem->setProperty("ellipseWidth", 50);
+
 	QStringList soundList;
 
 	for (int i=0; i<10; ++i) {

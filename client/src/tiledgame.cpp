@@ -1040,16 +1040,6 @@ bool TiledGame::transportAfterEvent(TiledObject */*object*/, TiledScene */*newSc
 }
 
 
-/**
- * @brief TiledGame::transportMarket
- * @return
- */
-
-bool TiledGame::transportMarket()
-{
-	emit marketRequest();
-	return true;
-}
 
 
 /**
@@ -1656,10 +1646,6 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
 	if (!transport)
 		return false;
 
-	if (transport->type() == TiledTransport::TransportMarket) {
-		return transportMarket();
-	}
-
 	if (!transportBeforeEvent(object, transport))
 		return false;
 
@@ -1671,7 +1657,6 @@ bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledO
 			return transportDoor(object, transport);
 
 		case TiledTransport::TransportInvalid:
-		case TiledTransport::TransportMarket:
 			return false;
 	}
 

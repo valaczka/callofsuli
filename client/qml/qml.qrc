@@ -216,5 +216,8 @@
         <file>RpgWorldSelect.qml</file>
         <file>RpgUserWorldLandOver.qml</file>
         <file>RpgPauseDialog.qml</file>
+        <file>TiledVisualBlend.qml</file>
+        <file>TiledVisualLight.qml</file>
+        <file>TiledVisualOutline.qml</file>
     </qresource>
 </RCC>

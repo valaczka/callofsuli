@@ -98,10 +98,10 @@ private:
 
 		// min rtt -> max fps
 		inline static const std::map<int, int> limit = {
-			{ 75,	30 },
-			{ 150,	20 },
-			{ 200,	15 },
-			{ 250,	10 }
+			{ 45,	30 },
+			{ 75,	20 },
+			{ 150,	15 },
+			{ 200,	10 }
 		};
 
 

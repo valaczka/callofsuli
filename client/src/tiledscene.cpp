@@ -503,6 +503,7 @@ void TiledScene::setTileLayersZ()
 			}
 			item->setZ(i);
 			it->z = i;
+
 			++i;
 		} else {
 			LOG_CTRACE("scene") << "Skip from dynamicZ" << name << item->z();

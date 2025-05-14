@@ -140,6 +140,8 @@ public:
 	QRectF viewport() const;
 	void setViewport(const QRectF &newViewport);
 
+	Q_INVOKABLE QList<QQuickItem*> visualItems() const { return m_visualItems; }
+
 signals:
 	void scaleResetRequest();
 	void runningChanged();

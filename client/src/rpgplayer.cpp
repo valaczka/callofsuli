@@ -34,6 +34,7 @@
 #include <QDirIterator>
 #include "application.h"
 #include "rpggamedataiface_t.h"
+#include <tilelayeritem.h>
 
 #ifndef Q_OS_WASM
 #include "standaloneclient.h"
@@ -327,6 +328,26 @@ void RpgPlayer::load()
 	m_visualItem->setWidth(148);
 	m_visualItem->setHeight(130);
 	setBodyOffset(0, 0.45*64);
+
+	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(57,250,65,150));
+	m_visualItem->setProperty("ellipseSize", 2);
+	m_visualItem->setProperty("ellipseWidth", 50.);
+
+
+	/*
+	TiledVisualLight {
+		readonly property RpgPlayer _pl : baseObject && (baseObject instanceof RpgPlayer) ? baseObject : null
+
+		parent: _pl ? _pl.scene : null
+		x: root.x - root.width/2
+		y: root.y - root.height/2
+		sourceZ: Math.floor(root.z)
+		z: currentZ
+		color: Client.Utils.colorSetAlpha("#ffffff", 0.8)
+
+		width: 250
+		height: 350
+	}*/
 
 	loadSfx();
 	loadDefaultWeapons();

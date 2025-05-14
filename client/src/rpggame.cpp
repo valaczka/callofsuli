@@ -835,9 +835,6 @@ bool RpgGame::transportPlayer()
 				m_controlledPlayer->m_sfxDecline.playOne();
 			messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
 
-		} else if (t->type() == TiledTransport::TransportMarket) {
-			return true;
-
 		} else {
 			for (const EnemyData &e : m_enemyDataList) {
 				if (e.enemy)
@@ -1033,10 +1030,6 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			break;
 
 #ifndef QT_NO_DEBUG
-		case Qt::Key_M:
-			emit marketRequest();
-			break;
-
 		case Qt::Key_F:
 			if (m_controlledPlayer)
 				m_controlledPlayer->setIsLocked(!m_controlledPlayer->isLocked());

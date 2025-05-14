@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Qt5Compat.GraphicalEffects
 import CallOfSuli
+import QtQuick.Shapes
 
 
 Item {
@@ -11,8 +12,52 @@ Item {
 	property alias spriteHandler: _spriteHandler
 	property alias spriteHandlerAuxFront: _spriteHandlerAuxFront
 	property alias spriteHandlerAuxBack: _spriteHandlerAuxBack
+	property alias spriteThreshold: _threshold
+
+	property color ellipseColor: "cyan"
+	property real ellipseSize: 0
+	property real ellipseWidth: 75
 
 	parent: baseObject ? baseObject.scene : null
+
+	Shape {
+		id: _ellipse
+
+		visible: ellipseSize > 0
+
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.verticalCenter: parent.verticalCenter
+		anchors.horizontalCenterOffset: baseObject ? baseObject.bodyOffset.x : 0
+		anchors.verticalCenterOffset: baseObject ? baseObject.bodyOffset.y : 0
+
+		width: ellipseWidth
+		height: ellipseWidth
+
+		ShapePath {
+			fillColor: "transparent"
+			strokeColor: ellipseColor
+			strokeWidth: ellipseSize > 0 ? ellipseSize : 1
+			capStyle: ShapePath.FlatCap
+
+			PathAngleArc {
+				centerX: _ellipse.width/2
+				centerY: _ellipse.height/2
+				radiusX: _ellipse.width/2
+				radiusY: _ellipse.width*Math.cos(Math.PI/6)/2
+				startAngle: 0
+				sweepAngle: 315
+
+				NumberAnimation on startAngle {
+					from: 0
+					to: 360
+					loops: Animation.Infinite
+					duration: 1000
+					//easing.type: Easing.InOutQuad
+				}
+			}
+		}
+	}
+
 
 	TiledSpriteHandlerImpl {
 		id: _spriteHandlerAuxBack

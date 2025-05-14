@@ -95,7 +95,6 @@ public:
 	int gameid() const;
 
 signals:
-	void marketRequest();
 	void marketLoaded();
 	void marketUnloaded();
 	void finishDialogRequest(QString text, QString icon, bool success);

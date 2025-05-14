@@ -46,6 +46,7 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 	LOG_CDEBUG("engine") << "START UDP ENGINE";
 
+#ifndef Q_OS_WASM
 	QDefer ret;
 	m_worker->execInThread([this, ret]() mutable {
 		d = new AbstractUdpEnginePrivate(this);
@@ -58,10 +59,9 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 	LOG_CDEBUG("engine") << "UDP ENGINE started";
 
-#ifndef Q_OS_WASM
-
-
 #endif
+
+
 }
 
 
@@ -78,9 +78,9 @@ AbstractUdpEngine::~AbstractUdpEngine()
 	m_worker->getThread()->requestInterruption();
 	m_worker->quitThread();
 	m_worker->getThread()->wait();
+#endif
 
 	delete d;
-#endif
 
 	LOG_CINFO("client") << "ABSTRACT UPD ENGINE DESTROYED";
 }

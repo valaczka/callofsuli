@@ -55,7 +55,6 @@ public:
 		TransportInvalid = 0,
 		TransportGate,					// From one scene to other
 		TransportDoor,					// Simple door (or gate) in scene
-		TransportMarket
 	};
 
 	Q_ENUM(TransportType);
@@ -79,7 +78,7 @@ public:
 		: TiledTransport(name, nullptr, nullptr) {}
 
 	TiledTransport()
-		: TiledTransport(QStringLiteral("")) {}
+		: TiledTransport(QString()) {}
 
 
 	static TransportType typeFromString(const QString &str);
