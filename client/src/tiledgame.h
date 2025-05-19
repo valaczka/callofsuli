@@ -29,7 +29,6 @@
 
 #include "qsgtexture.h"
 #include "tiledscene.h"
-#include "tiledtransport.h"
 #include "abstractgame.h"
 #include <QQuickItem>
 #include <QSerializer>
@@ -128,11 +127,6 @@ public:
 
 	TiledScene *currentScene() const;
 	void setCurrentScene(TiledScene *newCurrentScene);
-
-	const TiledTransportList &transportList() const;
-	TiledTransportList &transportList();
-
-	bool transport(TiledObject *object, TiledTransport *transport, TiledObject *transportBase = nullptr);
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers);
 
@@ -297,8 +291,8 @@ protected:
 
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
+	virtual bool loadLights(TiledScene *scene, const QList<Tiled::MapObject *> &objects, Tiled::MapRenderer *renderer);
 	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
-	bool loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void synchronize();
 
 
@@ -317,11 +311,6 @@ protected:
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 	virtual void joystickStateEvent(const JoystickState &newJoystickState) { Q_UNUSED(newJoystickState);}
-
-	virtual bool transportBeforeEvent(TiledObject *object, TiledTransport *transport);
-	virtual bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObject *newObject);
-	virtual bool transportGate(TiledObject *object, TiledTransport *transport, TiledObject *transportBase);
-	virtual bool transportDoor(TiledObject *object, TiledTransport *transport);
 
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene);
 

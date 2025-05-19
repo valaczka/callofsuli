@@ -1017,10 +1017,6 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 		return nullptr;
 	}
 
-	if (characterPtr->cast != RpgPlayerCharacterConfig::CastInvalid) {
-		loadWeapon(player, RpgGameData::Weapon::WeaponMageStaff);
-	}
-
 
 	player->setMaxHp(playerData.mhp);
 	player->setHp(playerData.hp);
@@ -1331,17 +1327,16 @@ bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *
 
 
 
-
 /**
- * @brief ActionRpgMultiplayerGame::onPlayerUseContainer
+ * @brief ActionRpgMultiplayerGame::onPlayerUseControl
  * @param player
- * @param container
+ * @param control
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onPlayerUseContainer(RpgPlayer *player, RpgContainer *container)
+bool ActionRpgMultiplayerGame::onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control)
 {
-	return false;
+	return ActionRpgGame::onPlayerUseControl(player, control);
 }
 
 bool ActionRpgMultiplayerGame::onPlayerUseCast(RpgPlayer *player)

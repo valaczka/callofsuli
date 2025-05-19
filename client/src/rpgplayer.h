@@ -29,6 +29,7 @@
 
 #include "isometricplayer.h"
 #include "rpgarmory.h"
+#include "rpgcontrol.h"
 #include "rpggamedataiface.h"
 #include "rpgpickableobject.h"
 #include "rpgshortbow.h"
@@ -37,14 +38,6 @@
 #include <QQmlEngine>
 
 class RpgGame;
-class RpgContainer;
-
-
-#ifndef OPAQUE_PTR_RpgContainer
-#define OPAQUE_PTR_RpgContainer
-Q_DECLARE_OPAQUE_POINTER(RpgContainer*)
-#endif
-
 
 
 /**
@@ -130,8 +123,8 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameDat
 
 	Q_PROPERTY(RpgPlayerCharacterConfig config READ config WRITE setConfig NOTIFY configChanged FINAL)
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
-	Q_PROPERTY(RpgContainer * currentContainer READ currentContainer WRITE setCurrentContainer NOTIFY currentContainerChanged FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
+	Q_PROPERTY(RpgActiveControlObject *currentControl READ currentControl WRITE setCurrentControl NOTIFY currentControlChanged FINAL)
 	Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
 	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
@@ -152,12 +145,7 @@ public:
 
 	Q_INVOKABLE void pick(RpgPickableObject *object);
 
-	RpgContainer *currentContainer() const;
-	void setCurrentContainer(RpgContainer *newCurrentContainer);
-
-	Q_INVOKABLE void useContainer(RpgContainer *container);
-	Q_INVOKABLE void useCurrentContainer() { useContainer(currentContainer()); }
-	Q_INVOKABLE void useCurrentObjects();
+	Q_INVOKABLE void useCurrentControl();
 
 	RpgArmory *armory() const;
 
@@ -202,6 +190,9 @@ public:
 
 	int nextObjectId() { return ++m_lastObjectId; }
 
+	RpgActiveControlObject *currentControl() const;
+	void setCurrentControl(RpgActiveControlObject *newCurrentControl);
+
 signals:
 	void attackDone();
 	void characterChanged();
@@ -209,7 +200,7 @@ signals:
 	void configChanged();
 	void mpChanged();
 	void maxMpChanged();
-	void currentContainerChanged();
+	void currentControlChanged();
 
 protected:
 	void load() override final;
@@ -228,12 +219,8 @@ protected:
 	void onPickableLeft(TiledObjectBody */*object*/) override final {};
 	void onEnemyReached(IsometricEnemy *enemy) override final;
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
-	void onTransportReached(TiledTransport */*transport*/) override final {}
-	void onTransportLeft(TiledTransport */*transport*/) override final {}
 
 	void atDestinationPointEvent() override final;
-
-	void onCurrentTransportChanged();
 
 private:
 	void updateConfig();
@@ -262,14 +249,14 @@ private:
 
 	std::unique_ptr<RpgArmory> m_armory;
 	std::unique_ptr<RpgInventoryList> m_inventory;
-	RpgContainer *m_currentContainer = nullptr;
+	QPointer<RpgActiveControlObject> m_currentControl;
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;
 	TiledEffectRing m_effectRing;
 
 	QPointF m_currentSceneStartPosition;
-	bool m_pickAtDestination = false;
+	[[deprecated]] bool m_pickAtDestination = false;
 	int m_shieldCount = 0;
 	int m_mp = 0;
 	int m_maxMp = 0;

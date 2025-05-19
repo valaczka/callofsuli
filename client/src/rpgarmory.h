@@ -163,15 +163,6 @@ protected:
 
 
 
-class RpgMageStaff;
-
-#ifndef OPAQUE_PTR_RpgMageStaff
-#define OPAQUE_PTR_RpgMageStaff
-Q_DECLARE_OPAQUE_POINTER(RpgMageStaff*)
-#endif
-
-
-
 
 
 /**
@@ -186,7 +177,6 @@ class RpgArmory : public QObject
 	Q_PROPERTY(RpgWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
 	Q_PROPERTY(RpgWeapon *nextWeapon READ nextWeapon WRITE setNextWeapon NOTIFY nextWeaponChanged FINAL)
 	Q_PROPERTY(QStringList baseLayers READ baseLayers WRITE setBaseLayers NOTIFY baseLayersChanged FINAL)
-	Q_PROPERTY(RpgMageStaff *mageStaff READ mageStaff NOTIFY mageStaffChanged FINAL)
 
 public:
 	explicit RpgArmory(TiledObject *parentObject, QObject *parent = nullptr);
@@ -218,8 +208,6 @@ public:
 	RpgWeapon *nextWeapon() const;
 	void setNextWeapon(RpgWeapon *newNextWeapon);
 
-	RpgMageStaff *mageStaff() const;
-
 	RpgGameData::Armory serialize() const;
 	bool updateFromSnapshot(const RpgGameData::Armory &armory);
 
@@ -229,7 +217,6 @@ signals:
 	void currentWeaponChanged();
 	void baseLayersChanged();
 	void nextWeaponChanged();
-	void mageStaffChanged();
 
 private:
 	RpgWeapon *weaponAdd(RpgWeapon *weapon);

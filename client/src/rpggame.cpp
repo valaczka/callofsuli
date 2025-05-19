@@ -26,10 +26,8 @@
 
 #include "actionrpggame.h"
 #include "rpgarrow.h"
-#include "rpgcontrolgroupcontainer.h"
-#include "rpgcontrolgroupdoor.h"
-#include "rpgcontrolgroupoverlay.h"
-#include "rpgcontrolgroupsave.h"
+#include "rpgcontrolcontainer.h"
+#include "rpgcontrollight.h"
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
 #include "rpggame.h"
@@ -48,7 +46,6 @@
 #include "application.h"
 #include "rpgquestion.h"
 #include "utils_.h"
-#include "rpgcontainer.h"
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
 #include <libtiled/imagelayer.h>
@@ -127,7 +124,7 @@ RpgGame::RpgGame(QQuickItem *parent)
 
 RpgGame::~RpgGame()
 {
-	m_controlGroups.clear();
+	m_controls.clear();
 	m_enemyDataList.clear();
 	m_players.clear();
 	delete q;
@@ -159,6 +156,14 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 			return false;
 		}
 	}
+
+
+	// Link controls
+
+	for (const auto &ptr : m_controls)
+		ptr->linkControls(m_controls);
+
+
 
 	for (auto &e : m_enemyDataList) {
 		Q_ASSERT(!e.path.isEmpty());
@@ -494,9 +499,9 @@ void RpgGame::onEnemySleepingEnd(TiledObject *enemy)
  * @return
  */
 
-bool RpgGame::playerTryUseContainer(RpgPlayer *player, RpgContainer *container)
+bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveControlObject *control)
 {
-	if (!player || !container) {
+	if (!player || !control || control->isLocked() || !control->isActive()) {
 		if (player && !player->m_sfxDecline.soundList().isEmpty())
 			player->m_sfxDecline.playOne();
 		messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
@@ -504,7 +509,7 @@ bool RpgGame::playerTryUseContainer(RpgPlayer *player, RpgContainer *container)
 	}
 
 	if (ActionRpgGame *a = actionRpgGame())
-		return a->onPlayerUseContainer(player, container);
+		return a->onPlayerUseControl(player, control);
 	else
 		return false;
 }
@@ -516,64 +521,12 @@ bool RpgGame::playerTryUseContainer(RpgPlayer *player, RpgContainer *container)
  * @param container
  */
 
-void RpgGame::playerUseContainer(RpgPlayer *player, RpgContainer *container)
+void RpgGame::playerUseControl(RpgPlayer *player, RpgActiveControlObject *control)
 {
-	if (!container)
+	if (!control)
 		return;
 
-	container->setIsActive(false);
-
-	if (player)
-		player->setCurrentContainer(nullptr);
-
-	if (!container->scene())
-		return;
-
-
-	const auto &it = std::find_if(m_controlGroups.cbegin(), m_controlGroups.cend(),
-								  [container](const std::unique_ptr<RpgControlGroup> &ptr) {
-		RpgControlGroupContainer *c = dynamic_cast<RpgControlGroupContainer*>(ptr.get());
-		if (!c)
-			return false;
-
-		return c->rpgContainer() == container;
-	}
-	);
-
-	if (it == m_controlGroups.cend()) {
-		LOG_CERROR("game") << "Container not found" << container;
-		return;
-	}
-
-	if (RpgControlGroupContainer *container = dynamic_cast<RpgControlGroupContainer*>(it->get())) {
-		const auto &pList = container->pickableList();
-
-		int i = 0;
-		static const int delta = 10;
-		const int &count = pList.size();
-
-		QPointF startPos = container->centerPoint();
-
-		if (count > 1) {
-			startPos.setX(startPos.x()-(count/2)*delta);
-		}
-
-		for (const auto &pType : pList) {
-			RpgPickableObject *pickable = createPickable(pType, container->scene());
-			if (!pickable)
-				continue;
-
-			QPointF pos = startPos;
-			pos.setX(pos.x()+(i*delta));
-
-			++i;
-
-			pickable->emplace(pos);
-			pickable->setIsActive(true);
-		}
-
-		container->setPickableList({});
-	}
+	control->useControl(player);
 }
 
 
@@ -676,7 +629,7 @@ RpgPickableObject *RpgGame::createPickable(const RpgGameData::PickableBaseData::
 	static const float size = 30.;*/
 
 	RpgPickableObject *pickable = nullptr;
-/*
+	/*
 	switch (type) {
 		case RpgGameData::PickableBaseData::PickableShield:
 			pickable = createFromCircle<RpgShieldPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
@@ -765,7 +718,6 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
 		case RpgGameData::Weapon::WeaponHammer:
 		case RpgGameData::Weapon::WeaponMace:
 		case RpgGameData::Weapon::WeaponGreatHand:
-		case RpgGameData::Weapon::WeaponMageStaff:
 		case RpgGameData::Weapon::WeaponFireFogWeapon:
 		case RpgGameData::Weapon::WeaponShield:
 		case RpgGameData::Weapon::WeaponInvalid:
@@ -816,53 +768,20 @@ RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int
 
 
 
-/**
- * @brief RpgGame::transportPlayer
- * @return
- */
-
-bool RpgGame::transportPlayer()
-{
-	if (!m_controlledPlayer)
-		return false;
-
-
-	if (TiledTransport *t = m_controlledPlayer->currentTransport()) {
-		const bool s = transport(m_controlledPlayer, t, m_controlledPlayer->currentTransportBase());
-
-		if (!s) {
-			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())
-				m_controlledPlayer->m_sfxDecline.playOne();
-			messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
-
-		} else {
-			for (const EnemyData &e : m_enemyDataList) {
-				if (e.enemy)
-					e.enemy->removeContactedPlayer(m_controlledPlayer);
-			}
-
-			m_controlledPlayer->clearDestinationPoint();
-
-			return true;
-		}
-	}
-
-	return false;
-}
-
-
 
 /**
  * @brief RpgGame::useContainer
  * @return
  */
 
-bool RpgGame::useContainer()
+bool RpgGame::useControl()
 {
+	LOG_CINFO("game") << "USE CONTROL" << m_controlledPlayer << m_controlledPlayer->currentControl();
+
 	if (!m_controlledPlayer)
 		return false;
 
-	return playerTryUseContainer(m_controlledPlayer, m_controlledPlayer->currentContainer());
+	return playerTryUseControl(m_controlledPlayer, m_controlledPlayer->currentControl());
 }
 
 
@@ -950,10 +869,11 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 	Q_ASSERT(group);
 	Q_ASSERT(renderer);
 
-	std::unique_ptr<RpgControlGroup> g(RpgControlGroup::fromGroupLayer(this, scene, group, renderer));
+	const QString &cname = group->className();
 
-	if (g)
-		m_controlGroups.push_back(std::move(g));
+	if (cname == QStringLiteral("container")) {
+		m_controls.emplace_back(new RpgControlContainer(this, scene, group, renderer));
+	}
 }
 
 
@@ -988,11 +908,11 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 	const int &key = event->key();
 
 	switch (key) {
-		case Qt::Key_X:
+		/*case Qt::Key_X:
 		case Qt::Key_Clear:
 		case Qt::Key_5:
 			transportPlayer();
-			break;
+			break;*/
 
 		case Qt::Key_Space:
 		case Qt::Key_Insert:
@@ -1012,7 +932,7 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_Enter:
 		case Qt::Key_E:
 			if (m_controlledPlayer)
-				m_controlledPlayer->useCurrentObjects();
+				m_controlledPlayer->useCurrentControl();
 			break;
 
 
@@ -1036,6 +956,22 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			break;
 
 
+		case Qt::Key_L: {
+			for (const auto &ptr : m_controls) {
+				if (RpgControlLight *l = dynamic_cast<RpgControlLight*>(ptr.get())) {
+					LOG_CINFO("scene") << "CHANGE" << l << l->state();
+					if (l->state() == RpgGameData::ControlLight::LightOn)
+						l->setState(RpgGameData::ControlLight::LightOff);
+					else
+						l->setState(RpgGameData::ControlLight::LightOn);
+				}
+			}
+
+			break;
+		}
+
+
+
 		case Qt::Key_N:
 			if (event->modifiers().testFlag(Qt::ShiftModifier) && event->modifiers().testFlag(Qt::ControlModifier)) {
 				for (auto &e : m_enemyDataList) {
@@ -1054,100 +990,63 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 }
 
 
+
+
 /**
- * @brief RpgGame::transportBeforeEvent
- * @param object
- * @param transport
+ * @brief RpgGame::loadLights
+ * @param scene
+ * @param objects
+ * @param renderer
  * @return
  */
 
-bool RpgGame::transportBeforeEvent(TiledObject *object, TiledTransport */*transport*/)
+bool RpgGame::loadLights(TiledScene *scene, const QList<Tiled::MapObject *> &objects, Tiled::MapRenderer *renderer)
 {
-	RpgPlayer *player = qobject_cast<RpgPlayer*>(object);
+	Q_ASSERT (scene);
 
-	if (!player)
-		return false;
+	LOG_CTRACE("scene") << "Load lights" << scene;
 
-	auto *s = player->scene();
+	bool r = true;
 
-	for (const auto &ptr : m_controlGroups) {
-		RpgControlGroupOverlay *ol = dynamic_cast<RpgControlGroupOverlay*>(ptr.get());
-		if (!ol || (s && ol->scene() != s))
+	for (Tiled::MapObject *o : objects) {
+		if (o->property(QStringLiteral("fix")).toBool()) {
+			QQuickItem *item = scene->addLight(o, renderer);
+			LOG_CTRACE("scene") << "Fixed light added" << item;
 			continue;
+		}
 
-		ol->removePlayerFixture(player);
+		RpgGameData::ControlBaseData d;
+		d.t = RpgConfig::ControlLight;
+		d.o = -1;
+		d.s = scene->sceneId();
+		d.id = o->id();
+
+
+		if (controlFind<RpgControlLight>(d)) {
+			LOG_CERROR("scene") << "Control already exists" << d.t << d.o << d.s << d.id;
+			r = false;
+			continue;
+		}
+
+		QQuickItem *item = scene->addLight(o, renderer);
+		if (!item) {
+			r = false;
+			continue;
+		}
+
+		RpgControlLight *light = controlAdd<RpgControlLight>(d);
+
+		light->setVisualItem(item);
+
+		LOG_CTRACE("scene") << "Light added" << light;
 	}
 
-	return true;
+
+	return r;
 }
 
 
 
-/**
- * @brief RpgGame::transportAfterEvent
- * @param object
- * @param newScene
- * @param newObject
- * @return
- */
-
-bool RpgGame::transportAfterEvent(TiledObject *object, TiledScene */*newScene*/, TiledObject *newObject)
-{
-	RpgPlayer *player = qobject_cast<RpgPlayer*>(object);
-
-	if (player) {
-		player->setCurrentSceneStartPosition(newObject->bodyPositionF());
-		player->m_currentTransportBase = newObject;
-	}
-
-	return true;
-}
-
-
-
-/**
- * @brief RpgGame::transportDoor
- * @param object
- * @param transport
- * @return
- */
-
-bool RpgGame::transportDoor(TiledObject *object, TiledTransport *transport)
-{
-	Q_ASSERT(object);
-	Q_ASSERT(transport);
-
-	if (!transport->isOpen())
-		return false;
-
-	const auto &it = std::find_if(m_controlGroups.cbegin(), m_controlGroups.cend(),
-								  [transport](const std::unique_ptr<RpgControlGroup> &ptr) {
-		RpgControlGroupDoor *door = dynamic_cast<RpgControlGroupDoor*>(ptr.get());
-		if (!door)
-			return false;
-
-		return door->transport() == transport;
-	}
-	);
-
-	if (it == m_controlGroups.cend()) {
-		LOG_CERROR("game") << "Door not found" << transport->name();
-		return false;
-	}
-
-	RpgControlGroupDoor *door = dynamic_cast<RpgControlGroupDoor*>(it->get());
-
-	Q_ASSERT(door);
-
-	if (door->openState() == RpgControlGroupDoor::StateOpened)
-		door->doorClose();
-	else if (door->openState() == RpgControlGroupDoor::StateClosed)
-		door->doorOpen();
-	else
-		return false;
-
-	return true;
-}
 
 
 
@@ -2213,7 +2112,7 @@ void RpgGame::updateScatterPlayers()
 
 void RpgGame::updateScatterPoints()
 {
-	if (!m_scatterSeriesPoints)
+	/*if (!m_scatterSeriesPoints)
 		return;
 
 	QList<QPointF> list;
@@ -2238,7 +2137,7 @@ void RpgGame::updateScatterPoints()
 	}
 
 	m_scatterSeriesPoints->setMarkerShape(QScatterSeries::MarkerShapeTriangle);
-	m_scatterSeriesPoints->replace(list);
+	m_scatterSeriesPoints->replace(list);*/
 }
 
 
@@ -2773,8 +2672,8 @@ QString RpgGame::getAttackSprite(const RpgGameData::Weapon::WeaponType &weaponTy
 		case RpgGameData::Weapon::WeaponLongbow:
 			return QStringLiteral("bow");
 
-		case RpgGameData::Weapon::WeaponMageStaff:
-			return QStringLiteral("cast");
+		/*case RpgGameData::Weapon::WeaponMageStaff:
+			return QStringLiteral("cast");*/
 
 		case RpgGameData::Weapon::WeaponShield:
 		case RpgGameData::Weapon::WeaponLightningWeapon:
@@ -2944,7 +2843,7 @@ int RpgGame::setQuestions(TiledScene *scene, qreal factor)
 		/*if (e.hasQuestion)
 			++q;
 		else*/
-			eList.append(&e);
+		eList.append(&e);
 	}
 
 	if (!count)
@@ -3176,7 +3075,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 
 					}
 
-				} else if (xml.name() == QStringLiteral("objectgroup") &&
+				} /*else if (xml.name() == QStringLiteral("objectgroup") &&
 						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("transport")) {
 
 					while (xml.readNextStartElement()) {
@@ -3188,7 +3087,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 						xml.skipCurrentElement();
 					}
 
-				} else if (xml.name() == QStringLiteral("objectgroup") &&
+				} */ else if (xml.name() == QStringLiteral("objectgroup") &&
 						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickable")) {
 
 					while (xml.readNextStartElement()) {

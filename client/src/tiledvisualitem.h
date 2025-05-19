@@ -27,7 +27,7 @@
 #ifndef TILEDVISUALITEM_H
 #define TILEDVISUALITEM_H
 
-#include "qtimer.h"
+#include <libtiledquick/tilelayeritem.h>
 #include <QQuickItem>
 
 class TiledScene;
@@ -49,7 +49,6 @@ class TiledVisualItem : public QQuickItem
 
 	Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged FINAL)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
-	Q_PROPERTY(int dynamicZ READ dynamicZ WRITE setDynamicZ NOTIFY dynamicZChanged FINAL)
 
 	Q_PROPERTY(bool glowEnabled READ glowEnabled WRITE setGlowEnabled NOTIFY glowEnabledChanged FINAL)
 	Q_PROPERTY(QColor glowColor READ glowColor WRITE setGlowColor NOTIFY glowColorChanged FINAL)
@@ -82,8 +81,8 @@ public:
 	QString name() const;
 	void setName(const QString &newName);
 
-	int dynamicZ() const;
-	void setDynamicZ(int newDynamicZ);
+	TiledQuick::TileLayerItem *layerItem() const;
+	void setLayerItem(TiledQuick::TileLayerItem *newLayerItem);
 
 signals:
 	void sourceChanged();
@@ -93,7 +92,6 @@ signals:
 	void overlayColorChanged();
 	void sceneChanged();
 	void nameChanged();
-	void dynamicZChanged();
 
 private:
 	QUrl m_source;
@@ -103,7 +101,7 @@ private:
 	QColor m_overlayColor;
 	TiledScene *m_scene = nullptr;
 	QString m_name;
-	int m_dynamicZ = -1;
+	TiledQuick::TileLayerItem *m_layerItem = nullptr;
 };
 
 #endif // TILEDVISUALITEM_H

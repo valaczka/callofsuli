@@ -28,7 +28,6 @@
 #define ISOMETRICPLAYER_H
 
 #include "isometricentity.h"
-#include "tiledtransport.h"
 #include "tiledgame.h"
 #include <QQmlEngine>
 
@@ -51,7 +50,6 @@ class IsometricPlayer : public IsometricEntity
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(TiledTransport *currentTransport READ currentTransport WRITE setCurrentTransport NOTIFY currentTransportChanged FINAL)
 	Q_PROPERTY(IsometricEnemy* enemy READ enemy WRITE setEnemy NOTIFY enemyChanged FINAL)
 	Q_PROPERTY(bool isLocked READ isLocked WRITE setIsLocked NOTIFY isLockedChanged FINAL)
 
@@ -68,11 +66,6 @@ public:
 	void initialize();
 	void setVirtualCircle(const bool &on = true);
 	bool hasAbility();
-
-	TiledTransport *currentTransport() const;
-	void setCurrentTransport(TiledTransport *newCurrentTransport);
-
-	TiledObject *currentTransportBase() const { return m_currentTransportBase; }
 
 	void removeEnemy(IsometricEnemy *enemy);
 
@@ -99,7 +92,6 @@ signals:
 	void becameAlive();
 	void becameDead();
 
-	void currentTransportChanged();
 	void enemyChanged();
 	void currentVelocityChanged();
 	void isLockedChanged();
@@ -118,8 +110,6 @@ protected:
 	virtual void onPickableLeft(TiledObjectBody *object) = 0;
 	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
 	virtual void onEnemyLeft(IsometricEnemy *enemy) = 0;
-	virtual void onTransportReached(TiledTransport *transport) = 0;
-	virtual void onTransportLeft(TiledTransport *transport) = 0;
 
 	virtual void atDestinationPointEvent() {}
 
@@ -128,7 +118,6 @@ protected:
 	IsometricEnemy *m_enemy = nullptr;
 	qint64 m_inabilityTimer = -1;
 	qreal m_sensorLength = 200.;
-	//qreal m_sensorRange = M_PI_2;
 	qreal m_targetCircleRadius = 50.;
 	qreal m_speedLength = 3.;
 	qreal m_speedRunLength = 7.;
@@ -138,9 +127,6 @@ protected:
 private:
 	void clearData();
 	TiledPathMotor *destinationMotor() const;
-
-	QPointer<TiledTransport> m_currentTransport = nullptr;
-	QPointer<TiledObject> m_currentTransportBase;
 
 	cpVect m_currentVelocity;
 

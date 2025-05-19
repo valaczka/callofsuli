@@ -35,7 +35,6 @@
 #include "rpgmace.h"
 #include "rpgshield.h"
 #include "tiledspritehandler.h"
-#include "rpgmagestaff.h"
 #include "rpggame.h"
 #include "actionrpggame.h"
 
@@ -48,7 +47,6 @@ const QHash<RpgGameData::Weapon::WeaponType, QString> RpgArmory::m_layerInfoHash
 	{ RpgGameData::Weapon::WeaponLongbow, QStringLiteral("longbow") },
 	{ RpgGameData::Weapon::WeaponDagger, QStringLiteral("dagger") },
 	{ RpgGameData::Weapon::WeaponBroadsword, QStringLiteral("broadsword") },
-	{ RpgGameData::Weapon::WeaponMageStaff, QStringLiteral("magestaff") },
 	{ RpgGameData::Weapon::WeaponAxe, QStringLiteral("axe") },
 	{ RpgGameData::Weapon::WeaponMace, QStringLiteral("mace") },
 	{ RpgGameData::Weapon::WeaponHammer, QStringLiteral("hammer") },
@@ -191,7 +189,6 @@ std::unique_ptr<RpgWeapon> RpgArmory::weaponCreate(const RpgGameData::Weapon::We
 		case RpgGameData::Weapon::WeaponHand:
 			return std::make_unique<RpgWeaponHand>(parent);
 
-		case RpgGameData::Weapon::WeaponMageStaff:
 		case RpgGameData::Weapon::WeaponGreatHand:
 		case RpgGameData::Weapon::WeaponLightningWeapon:
 		case RpgGameData::Weapon::WeaponFireFogWeapon:
@@ -220,9 +217,6 @@ RpgWeapon *RpgArmory::weaponAdd(RpgWeapon *weapon)
 	weapon->setParentObject(m_parentObject);
 	updateLayers();
 
-	if (weapon->weaponType() == RpgGameData::Weapon::WeaponMageStaff)
-		emit mageStaffChanged();
-
 	return weapon;
 }
 
@@ -239,9 +233,6 @@ void RpgArmory::weaponRemove(RpgWeapon *weapon)
 
 	weapon->setParentObject(nullptr);
 	m_weaponList->remove(weapon);
-
-	if (weapon->weaponType() == RpgGameData::Weapon::WeaponMageStaff)
-		emit mageStaffChanged();
 
 	if (m_currentWeapon == weapon) {
 		if (m_nextWeapon == weapon) {
@@ -377,12 +368,7 @@ RpgWeapon *RpgArmory::getNextWeapon() const
 		if ((*it)->weaponType() == RpgGameData::Weapon::WeaponHand)
 			weaponHand = *it;
 		else if ((*it)->canHit() || (*it)->canShot()) {
-			if (RpgPlayer *p = qobject_cast<RpgPlayer*>(m_parentObject); p && (*it)->weaponType() == RpgGameData::Weapon::WeaponMageStaff) {
-				if (p->mp() > 0)
-					wList.append(*it);
-			} else {
-				wList.append(*it);
-			}
+			wList.append(*it);
 		}
 		/*}*/
 
@@ -412,17 +398,6 @@ RpgWeapon *RpgArmory::getNextWeapon() const
 TiledObject *RpgArmory::parentObject() const
 {
 	return m_parentObject;
-}
-
-
-/**
- * @brief RpgArmory::mageStaff
- * @return
- */
-
-RpgMageStaff *RpgArmory::mageStaff() const
-{
-	return qobject_cast<RpgMageStaff*>(weaponFind(RpgGameData::Weapon::WeaponMageStaff));
 }
 
 
@@ -506,8 +481,6 @@ void RpgArmory::updateLayers()
 	QStringList layers = m_baseLayers;
 	QStringList loadableLayers;
 
-	bool addMageStaff = false;
-
 	if (m_currentWeapon && !m_currentWeapon->excludeFromLayers()) {
 		switch (m_currentWeapon->weaponType()) {
 			case RpgGameData::Weapon::WeaponShortbow:
@@ -522,25 +495,13 @@ void RpgArmory::updateLayers()
 				loadableLayers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
 				break;
 
-			case RpgGameData::Weapon::WeaponMageStaff:
 			case RpgGameData::Weapon::WeaponShield:
 			case RpgGameData::Weapon::WeaponHand:
 			case RpgGameData::Weapon::WeaponGreatHand:
 			case RpgGameData::Weapon::WeaponLightningWeapon:
 			case RpgGameData::Weapon::WeaponFireFogWeapon:
 			case RpgGameData::Weapon::WeaponInvalid:
-				addMageStaff = true;
 				break;
-		}
-	}
-
-	if (addMageStaff) {
-		if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
-								   [](RpgWeapon *w) {
-								   return w->weaponType() == RpgGameData::Weapon::WeaponMageStaff && !w->excludeFromLayers();
-	}); it != m_weaponList->cend()) {
-			layers.append(m_layerInfoHash.value(RpgGameData::Weapon::WeaponMageStaff));
-			loadableLayers.append(m_layerInfoHash.value(RpgGameData::Weapon::WeaponMageStaff));
 		}
 	}
 
@@ -619,7 +580,6 @@ QString RpgWeapon::weaponName(const RpgGameData::Weapon::WeaponType &type)
 		case RpgGameData::Weapon::WeaponLongsword: return tr("kard");
 		case RpgGameData::Weapon::WeaponDagger: return tr("tőr");
 		case RpgGameData::Weapon::WeaponBroadsword: return tr("pallos");
-		case RpgGameData::Weapon::WeaponMageStaff: return QStringLiteral("varázsbot");
 		case RpgGameData::Weapon::WeaponLightningWeapon: return QStringLiteral("villám");
 		case RpgGameData::Weapon::WeaponFireFogWeapon: return QStringLiteral("tűz");
 		case RpgGameData::Weapon::WeaponAxe: return tr("balta");
@@ -651,7 +611,6 @@ QString RpgWeapon::weaponNameEn(const RpgGameData::Weapon::WeaponType &type)
 		case RpgGameData::Weapon::WeaponLongsword: return QStringLiteral("Sword");
 		case RpgGameData::Weapon::WeaponBroadsword: return QStringLiteral("Broadsword");
 		case RpgGameData::Weapon::WeaponDagger: return QStringLiteral("Dagger");
-		case RpgGameData::Weapon::WeaponMageStaff: return QStringLiteral("Mage staff");
 		case RpgGameData::Weapon::WeaponAxe: return tr("Axe");
 		case RpgGameData::Weapon::WeaponMace: return tr("Mace");
 		case RpgGameData::Weapon::WeaponHammer: return tr("Hammer");

@@ -28,7 +28,6 @@
 #define RPGCONFIG_H
 
 #include "qcborarray.h"
-#include "qmutex.h"
 #include <QSerializer>
 #include <QIODevice>
 
@@ -93,6 +92,16 @@ public:
 	};
 
 	Q_ENUM(GameState);
+
+
+	enum ControlType {
+		ControlInvalid = 0,
+		ControlContainer,
+		ControlDoor,
+		ControlLight
+	};
+
+	Q_ENUM(ControlType)
 
 
 	void reset() {
@@ -715,7 +724,6 @@ public:
 		WeaponHammer,
 		WeaponMace,
 		WeaponGreatHand,
-		WeaponMageStaff [[deprecated]],
 		WeaponLightningWeapon,
 		WeaponFireFogWeapon,
 		WeaponShield
@@ -1426,6 +1434,284 @@ public:
 	QS_OBJECT(BaseData, tg)				// impacted target id
 
 };
+
+
+
+
+/**
+ * @brief The RpgControlBase class
+ */
+
+class ControlBaseData : public BaseData
+{
+	Q_GADGET
+
+public:
+	ControlBaseData(const RpgConfig::ControlType &_t,
+				  const int &_o, const int &_s, const int &_id)
+		: BaseData(_o, _s, _id)
+		, t(_t)
+	{}
+
+	ControlBaseData(const RpgConfig::ControlType &_t)
+		: ControlBaseData(_t, -1, -1, -1)
+	{}
+
+	ControlBaseData()
+		: ControlBaseData(RpgConfig::ControlInvalid)
+	{}
+
+	bool isEqual(const ControlBaseData &other) const {
+		return BaseData::isEqual(other) && other.t == t;
+	}
+
+	EQUAL_OPERATOR(ControlBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(RpgConfig::ControlType, t)
+};
+
+
+
+
+
+
+/**
+ * @brief The ControlActiveBaseData class
+ */
+
+class ControlActiveBaseData : public ControlBaseData
+{
+	Q_GADGET
+
+public:
+
+	ControlActiveBaseData(const RpgConfig::ControlType &_t,
+				  const int &_o, const int &_s, const int &_id)
+		: ControlBaseData(_t, _o, _s, _id)
+	{}
+
+	ControlActiveBaseData(const RpgConfig::ControlType &_t)
+		: ControlBaseData(_t, -1, -1, -1)
+	{}
+
+	ControlActiveBaseData()
+		: ControlBaseData(RpgConfig::ControlInvalid)
+	{}
+
+	bool isEqual(const ControlActiveBaseData &other) const {
+		return ControlBaseData::isEqual(other) && other.lck == lck;
+	}
+
+	EQUAL_OPERATOR(ControlActiveBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, lck)				// keylock
+};
+
+
+
+
+
+/**
+ * @brief The Control class
+ */
+
+class Control : public Body
+{
+	Q_GADGET
+
+public:
+	Control() : Body() {}
+
+	bool isEqual(const Control &other) const {
+		return Body::isEqual(other);
+	}
+
+	bool canMerge(const Control &other) const {
+		return Body::canMerge(other) ;
+	}
+
+	bool canInterpolateFrom(const Control &other) const {
+		return isEqual(other);
+	}
+
+	EQUAL_OPERATOR(Control)
+};
+
+
+
+
+/**
+ * @brief The ControlLight class
+ */
+
+class ControlLight : public Control
+{
+	Q_GADGET
+
+public:
+	ControlLight()
+		: Control()
+		, st(LightOff)
+	{}
+
+	enum State {
+		LightOff = 0,
+		LightOn
+	};
+
+	Q_ENUM(State)
+
+	bool isEqual(const ControlLight &other) const {
+		return Control::isEqual(other) && st == other.st;
+	}
+
+	bool canMerge(const ControlLight &other) const {
+		return Control::canMerge(other) && st == other.st;
+	}
+
+	bool canInterpolateFrom(const ControlLight &other) const {
+		return isEqual(other);
+	}
+
+	EQUAL_OPERATOR(ControlLight)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(State, st)
+};
+
+
+
+
+
+
+/**
+ * @brief The ControlActive class
+ */
+
+
+class ControlActive : public Control
+{
+	Q_GADGET
+
+public:
+	ControlActive()
+		: Control()
+		, lck(false)
+		, a(false)
+	{}
+
+	bool isEqual(const ControlActive &other) const {
+		return Control::isEqual(other) && a == other.a && lck == other.lck;
+	}
+
+	bool canMerge(const ControlActive &other) const {
+		return Control::canMerge(other) && a == other.a && lck == other.lck ;
+	}
+
+	bool canInterpolateFrom(const ControlActive &other) const {
+		return isEqual(other);
+	}
+
+	EQUAL_OPERATOR(ControlActive)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(bool, lck)			// locked
+	QS_FIELD(bool, a)			// active
+};
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The ControlActiveBaseData class
+ */
+
+class ControlContainerBaseData : public ControlActiveBaseData
+{
+	Q_GADGET
+
+public:
+
+	ControlContainerBaseData(const int &_o, const int &_s, const int &_id)
+		: ControlActiveBaseData(RpgConfig::ControlContainer, _o, _s, _id)
+	{}
+
+	ControlContainerBaseData()
+		: ControlContainerBaseData(-1, -1, -1)
+	{}
+
+	bool isEqual(const ControlContainerBaseData &other) const {
+		return ControlActiveBaseData::isEqual(other) && other.lck == lck;
+	}
+
+	EQUAL_OPERATOR(ControlContainerBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION(QList, PickableBaseData::PickableType, p)				// pickables
+};
+
+
+
+
+
+
+
+
+/**
+ * @brief The ControlContainer class
+ */
+
+class ControlContainer : public ControlActive
+{
+	Q_GADGET
+
+public:
+	ControlContainer()
+		: ControlActive()
+		, st(ContainerClose)
+	{}
+
+	enum State {
+		ContainerClose = 0,
+		ContainerOpen
+	};
+
+	Q_ENUM(State)
+
+	bool isEqual(const ControlContainer &other) const {
+		return ControlActive::isEqual(other) && st == other.st;
+	}
+
+	bool canMerge(const ControlContainer &other) const {
+		return ControlActive::canMerge(other) && st == other.st;
+	}
+
+	bool canInterpolateFrom(const ControlContainer &other) const {
+		return isEqual(other);
+	}
+
+	EQUAL_OPERATOR(ControlContainer)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(State, st)
+};
+
 
 
 

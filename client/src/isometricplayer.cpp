@@ -274,7 +274,7 @@ void IsometricPlayer::initialize()
 void IsometricPlayer::setVirtualCircle(const bool &on)
 {
 	if (on)
-		addVirtualCircle(FixtureTrigger | FixturePickable | FixtureContainer, m_sensorLength);
+		addVirtualCircle(FixtureTrigger | FixturePickable | FixtureControl, m_sensorLength);
 	else
 		removeVirtualCircle();
 }
@@ -505,16 +505,6 @@ void IsometricPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 	} else if (isBodyShape(self) && pickable) {
 		onPickableReached(base);
 	}
-
-	/*if (base->categories().testFlag(TiledObjectBody::FixtureTransport)) {
-		TiledTransport *transport = game() ? game()->transportList().find(base) : nullptr;
-
-		if (!m_currentTransport && transport) {
-			setCurrentTransport(transport);
-			m_currentTransportBase = base;
-		}
-	}*/
-
 
 }
 
@@ -768,24 +758,6 @@ void IsometricPlayer::clearDestinationPoint()
 	d->m_destinationPoint.reset();
 }
 
-
-/**
- * @brief IsometricPlayer::currentTransport
- * @return
- */
-
-TiledTransport *IsometricPlayer::currentTransport() const
-{
-	return m_currentTransport;
-}
-
-void IsometricPlayer::setCurrentTransport(TiledTransport *newCurrentTransport)
-{
-	if (m_currentTransport == newCurrentTransport)
-		return;
-	m_currentTransport = newCurrentTransport;
-	emit currentTransportChanged();
-}
 
 
 

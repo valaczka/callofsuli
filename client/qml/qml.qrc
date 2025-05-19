@@ -219,5 +219,6 @@
         <file>TiledVisualBlend.qml</file>
         <file>TiledVisualLight.qml</file>
         <file>TiledVisualOutline.qml</file>
+        <file>TiledImageFromLayer.qml</file>
     </qresource>
 </RCC>

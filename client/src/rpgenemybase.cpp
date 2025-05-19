@@ -152,7 +152,7 @@ void RpgEnemyBase::load()
 
 
 	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(245,51,51,150));
-	m_visualItem->setProperty("ellipseSize", 2);
+	//m_visualItem->setProperty("ellipseSize", 2);
 	m_visualItem->setProperty("ellipseWidth", 50);
 
 	QStringList soundList;
@@ -236,8 +236,8 @@ void RpgEnemyBase::attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon
 			return;
 	}
 
-	////if (weaponType == RpgGameData::Weapon::WeaponLongbow || weaponType == RpgGameData::Weapon::WeaponFireFogWeapon)
-	m_effectFire.play();
+	if (weaponType == RpgGameData::Weapon::WeaponLongbow || weaponType == RpgGameData::Weapon::WeaponFireFogWeapon)
+		m_effectFire.play();
 
 	if (isSleeping())
 		return;

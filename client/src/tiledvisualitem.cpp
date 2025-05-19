@@ -124,15 +124,26 @@ void TiledVisualItem::setName(const QString &newName)
 	emit nameChanged();
 }
 
-int TiledVisualItem::dynamicZ() const
+
+
+TiledQuick::TileLayerItem *TiledVisualItem::layerItem() const
 {
-	return m_dynamicZ;
+	return m_layerItem;
 }
 
-void TiledVisualItem::setDynamicZ(int newDynamicZ)
+void TiledVisualItem::setLayerItem(TiledQuick::TileLayerItem *newLayerItem)
 {
-	if (m_dynamicZ == newDynamicZ)
-		return;
-	m_dynamicZ = newDynamicZ;
-	emit dynamicZChanged();
+	if (m_layerItem)
+		disconnect(m_layerItem);
+
+	m_layerItem = newLayerItem;
+
+	if (m_layerItem) {
+		connect(this, &QQuickItem::zChanged, m_layerItem, [this]() {
+			m_layerItem->setZ(this->z());
+		});
+		connect(this, &QQuickItem::visibleChanged, m_layerItem, [this](){
+			m_layerItem->setVisible(this->isVisible());
+		});
+	}
 }

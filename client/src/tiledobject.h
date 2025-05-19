@@ -137,12 +137,11 @@ public:
 		FixtureEnemyBody	= 0x1 << 2,
 		FixtureBulletBody	= 0x1 << 3,
 		FixtureTarget		= 0x1 << 4,
-		FixtureTransport	= 0x1 << 5,
+		FixtureControl		= 0x1 << 5,
 		FixturePickable		= 0x1 << 6,
 		FixtureTrigger		= 0x1 << 7,
 		FixtureVirtualCircle = 0x1 << 8,
 		FixtureSensor		= 0x1 << 9,
-		FixtureContainer	= 0x1 << 10,
 
 		FixtureAll =
 		FixtureGround |
@@ -150,12 +149,11 @@ public:
 		FixtureEnemyBody |
 		FixtureBulletBody |
 		FixtureTarget |
-		FixtureTransport |
+		FixtureControl |
 		FixturePickable |
 		FixtureTrigger |
 		FixtureVirtualCircle |
-		FixtureSensor |
-		FixtureContainer
+		FixtureSensor
 	};
 
 	Q_ENUM(FixtureCategory);

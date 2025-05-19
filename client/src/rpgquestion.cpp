@@ -65,7 +65,8 @@ void RpgQuestion::reloadQuestions()
  * @return
  */
 
-bool RpgQuestion::nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, RpgContainer *container)
+bool RpgQuestion::nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType,
+							   RpgActiveControlObject *control)
 {
 	GameQuestion *gq = m_game->gameQuestion();
 
@@ -89,8 +90,8 @@ bool RpgQuestion::nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGame
 		return false;
 	}
 
-	if (!enemy && !container) {
-		LOG_CERROR("game") << "Missing IsometricEnemy and RpgContainer";
+	if (!enemy && !control) {
+		LOG_CERROR("game") << "Missing IsometricEnemy and RpgActiveControlObject";
 		return false;
 	}
 
@@ -107,7 +108,7 @@ bool RpgQuestion::nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGame
 	m_player = player;
 	m_enemy = enemy;
 	m_weaponType = weaponType;
-	m_container = container;
+	m_control = control;
 
 	gq->loadQuestion(*m_questionIterator);
 	++m_questionIterator;
@@ -138,7 +139,7 @@ void RpgQuestion::questionSuccess(const QVariantMap &answer)
 
 	int xp = gq->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * 10.;
 
-	m_game->onQuestionSuccess(m_player, m_enemy, m_container, xp);
+	m_game->onQuestionSuccess(m_player, m_enemy, m_control, xp);
 
 	gq->answerReveal(answer);
 	gq->setMsecBeforeHide(0);
@@ -164,7 +165,7 @@ void RpgQuestion::questionFailed(const QVariantMap &answer)
 
 	m_game->addStatistics(gq->module(), gq->objectiveUuid(), false, gq->elapsedMsec());
 
-	m_game->onQuestionFailed(m_player, m_enemy, m_container);
+	m_game->onQuestionFailed(m_player, m_enemy, m_control);
 
 	gq->answerReveal(answer);
 	gq->setMsecBeforeHide(1250);
@@ -185,7 +186,7 @@ void RpgQuestion::questionFinished()
 
 	m_player = nullptr;
 	m_enemy = nullptr;
-	m_container = nullptr;
+	m_control = nullptr;
 	m_weaponType = RpgGameData::Weapon::WeaponInvalid;
 }
 

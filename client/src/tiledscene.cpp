@@ -238,11 +238,15 @@ void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
 void TiledScene::repaintTilesets(Tiled::Tileset *tileset)
 {
 	for (auto *item : m_visualItems) {
-		if (TiledQuick::TileLayerItem *mapItem = qobject_cast<TiledQuick::TileLayerItem *>(item)) {
-			if (mapItem->tileLayer()->usedTilesets().contains(tileset->sharedPointer())) {
-				mapItem->update();
-			}
-		}
+		TiledQuick::TileLayerItem *mapItem = nullptr;
+
+		if (TiledQuick::TileLayerItem *m = qobject_cast<TiledQuick::TileLayerItem *>(item))
+			mapItem = m;
+		else if (TiledVisualItem *m = qobject_cast<TiledVisualItem*>(item))
+			mapItem = m->layerItem();
+
+		if (mapItem && mapItem->tileLayer()->usedTilesets().contains(tileset->sharedPointer()))
+			mapItem->update();
 	}
 }
 
@@ -283,12 +287,6 @@ TiledQuick::TileLayerItem *TiledScene::addTileLayer(Tiled::TileLayer *layer, Til
 
 	TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(layer, renderer, this);
 	m_visualItems.append(layerItem);
-
-	if (layer->hasProperty(QStringLiteral("z"))) {
-		layerItem->setZ(layer->property(QStringLiteral("z")).toInt());
-	} else {
-		layerItem->setZ(0);
-	}
 
 	return layerItem;
 }
@@ -345,13 +343,144 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::ImageLayer *layer)
 	img->setSource(layer->imageSource());
 	img->setName(layer->name());
 
-	if (layer->hasProperty(QStringLiteral("z"))) {
-		img->setZ(layer->property(QStringLiteral("z")).toInt());
-	} else {
-		img->setZ(0);
+	return img;
+}
+
+
+
+/**
+ * @brief TiledScene::addVisualItem
+ * @param layer
+ * @param renderer
+ * @return
+ */
+
+TiledVisualItem *TiledScene::addVisualItem(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(layer);
+	Q_ASSERT(renderer);
+
+	TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(layer, renderer, this);
+	//m_visualItems.append(layerItem);
+
+
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledImageFromLayer.qml"), this);
+
+	auto img = qobject_cast<TiledVisualItem*>(
+				   component.createWithInitialProperties({
+															 { QStringLiteral("tiledLayer"), QVariant::fromValue(layerItem) }
+														 }));
+
+	if (!img) {
+		LOG_CERROR("scene") << "TiledVisualItem create error" << component.errorString();
+		return nullptr;
 	}
 
+	//layerItem->setParentItem(img);
+
+	img->setLayerItem(layerItem);
+	img->setParentItem(this);
+	img->setParent(this);
+	img->setScene(this);
+
+	m_visualItems.append(img);
+
 	return img;
+}
+
+
+
+/**
+ * @brief TiledScene::addLightObject
+ * @param object
+ */
+
+void TiledScene::addLightObject(Tiled::MapObject *object)
+{
+	m_lightObjects.append(object);
+}
+
+
+
+
+
+
+
+/**
+ * @brief TiledScene::addLight
+ * @param object
+ * @param renderer
+ * @return
+ */
+
+QQuickItem *TiledScene::addLight(Tiled::MapObject *object, Tiled::MapRenderer *renderer, const qreal &opacity)
+{
+	if (!object) {
+		LOG_CERROR("scene") << "Missing map object";
+		return nullptr;
+	}
+
+	if (object->shape() != Tiled::MapObject::Ellipse) {
+		LOG_CERROR("scene") << "Invalid map object" << sceneId() << object->id();
+		return nullptr;
+	}
+
+	QPointF offset;
+
+	if (Tiled::ObjectGroup *gLayer = object->objectGroup())
+		offset = gLayer->totalOffset();
+
+	const QPointF &pos = renderer ? renderer->pixelToScreenCoords(offset + object->position()) :
+									offset+object->position();
+
+	qreal w = object->width() * sqrt(1.5);
+	qreal h = object->height() * sqrt(0.5);
+
+
+	QQuickItem *layerItem = nullptr;
+
+	// Find last layer with the specified name
+
+	const auto it = std::find_if(m_visualItems.crbegin(),
+								 m_visualItems.crend(), [&object](QQuickItem *i){
+					if (TiledQuick::TileLayerItem *layerItem = qobject_cast<TiledQuick::TileLayerItem *>(i)) {
+					if (layerItem->tileLayer()->name() == object->name()) {
+					return true;
+}
+}
+					return false;
+
+});
+
+
+	if (it != m_visualItems.crend())
+		layerItem = *it;
+
+
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledVisualLight.qml"), this);
+
+	QQuickItem *item = qobject_cast<QQuickItem*>(
+						   component.createWithInitialProperties({
+																	 { QStringLiteral("parent"), QVariant::fromValue(this) },
+																	 { QStringLiteral("targetItem"), QVariant::fromValue(layerItem) },
+																	 { QStringLiteral("opacity"), opacity },
+																 }));
+
+	if (!item) {
+		LOG_CERROR("scene") << "TiledGame loadLights error" << component.errorString();
+		return nullptr;
+	}
+
+	if (const QString &c = object->propertyAsString(QStringLiteral("color")); !c.isEmpty()) {
+		item->setProperty("color", QColor::fromString(c));
+	}
+
+	item->setX(pos.x() - w/2);
+	item->setY(pos.y() + h/2 * sin(M_PI/6));
+	item->setWidth(w);
+	item->setHeight(h);
+
+	return item;
 }
 
 
@@ -400,11 +529,16 @@ void TiledScene::refresh()
 
 	mRenderer = Tiled::MapRenderer::create(mMap);
 
+	m_lightObjects.clear();
+
 	for (Tiled::Layer *layer : mMap->layers()) {
 		m_game->loadSceneLayer(this, layer, mRenderer.get());
 	}
 
 	setTileLayersZ();
+
+	m_game->loadLights(this, m_lightObjects, mRenderer.get());
+	m_lightObjects.clear();
 
 
 	const QRect rect = mRenderer->mapBoundingRect();
@@ -457,7 +591,7 @@ void TiledScene::appendDynamicZ(const QString &name, const QRectF &area)
 	});
 
 	if (it == m_dynamicZList.end()) {
-		m_dynamicZList.emplace_back(name, QVector<QRectF>{area}, 1);
+		m_dynamicZList.emplace_back(name, QVector<QRectF>{area}, 0);
 	} else {
 		it->areas.append(area);
 	}
@@ -474,41 +608,75 @@ void TiledScene::appendDynamicZ(const QString &name, const QRectF &area)
 void TiledScene::setTileLayersZ()
 {
 	int i=2;
+	int minZ = 0;
+	bool findZ = true;
 
 	for (QQuickItem *item : m_visualItems) {
 		QString name;
-		int dynamicZ = -1;
 
 		if (TiledQuick::TileLayerItem *layerItem = qobject_cast<TiledQuick::TileLayerItem *>(item)) {
 			if (Tiled::TileLayer *layer = layerItem->tileLayer()) {
 				name = layer->name();
-				if (layer->hasProperty(QStringLiteral("dynamicZ"))) {
-					dynamicZ = layer->property(QStringLiteral("dynamicZ")).toInt();
+			}
+		} else if (TiledVisualItem *vItem = qobject_cast<TiledVisualItem *>(item)) {
+			name = vItem->name();
+		}
+
+
+		if (!name.isEmpty()) {
+			const auto it = std::find_if(m_dynamicZList.begin(), m_dynamicZList.end(), [&name](const DynamicZ &d) {
+				return (d.name == name);
+			});
+
+			if (it != m_dynamicZList.end()) {
+				if (it->z == 0)
+					it->z = i;
+				else
+					i = it->z;
+
+				findZ = false;
+			} else {
+				for (QQuickItem *vi : m_visualItems) {
+					if (vi == item)
+						break;
+
+					if (TiledQuick::TileLayerItem *layerItem = qobject_cast<TiledQuick::TileLayerItem *>(vi)) {
+						if (layerItem->tileLayer()->name() == name) {
+							LOG_CTRACE("scene") << "Scene" << m_sceneId << "link layer" << layerItem->tileLayer()->id()
+												<< "to" << name;
+							i = vi->z();
+							break;
+						}
+					}
+
 				}
 			}
-		} else if (TiledVisualItem *visualItem = qobject_cast<TiledVisualItem *>(item)) {
-			name = visualItem->name();
-			if (visualItem->dynamicZ() != -1) {
-				dynamicZ = visualItem->dynamicZ();
-			}
 		}
 
-		auto it = std::find_if(m_dynamicZList.begin(), m_dynamicZList.end(), [&name](const DynamicZ &d) {
-			return (d.name == name);
-		});
+		item->setZ(i);
 
-		if (it != m_dynamicZList.end()) {
-			if (dynamicZ != -1) {
-				i = std::max(i, dynamicZ);
-			}
-			item->setZ(i);
-			it->z = i;
 
-			++i;
-		} else {
-			LOG_CTRACE("scene") << "Skip from dynamicZ" << name << item->z();
-		}
+		if (findZ)
+			minZ = i;
+
+		++i;
 	}
+
+	LOG_CTRACE("scene") << "Layers in scene" << m_sceneId;
+
+	for (QQuickItem *item : m_visualItems) {
+		QString name;
+		if (TiledQuick::TileLayerItem *layerItem = qobject_cast<TiledQuick::TileLayerItem *>(item)) {
+			name = layerItem->tileLayer()->name();
+		} else if (TiledVisualItem *vItem = qobject_cast<TiledVisualItem *>(item)) {
+			name = vItem->name();
+		}
+
+		LOG_CTRACE("scene") << "  -" << item << item->z() << name;
+	}
+
+
+	m_dynamicZList.emplace_back(QStringLiteral("__default__"), QList<QRectF>{QRectF(0,0,1,1)}, minZ);
 }
 
 

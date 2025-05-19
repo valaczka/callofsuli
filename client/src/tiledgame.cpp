@@ -40,6 +40,7 @@
 #include <libtiled/map.h>
 #include <libtiled/imagecache.h>
 #include <libtiled/tilesetmanager.h>
+#include <tilelayeritem.h>
 #include <chipmunk/chipmunk.h>
 #include <chipmunk/chipmunk_structs.h>
 
@@ -166,7 +167,6 @@ private:
 	std::vector<TiledObjectBody*> m_removeBodyList;
 
 	int m_nextBodyId = 0;
-	TiledTransportList m_transportList;
 	KeyboardJoystickState m_keyboardJoystickState;
 	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 
@@ -595,27 +595,23 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			loadGround(scene, object, renderer);
 		} else if (className == QStringLiteral("dynamicZ")) {
 			loadDynamicZ(scene, object, renderer);
+		} else if (className == QStringLiteral("light")) {
+			scene->addLightObject(object);
 		} else if (className == QStringLiteral("viewport")) {
 			if (object->name() == QStringLiteral("topLeft"))
 				tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
 			else if (object->name() == QStringLiteral("bottomRight"))
 				tmpViewport.setBottomRight(renderer->pixelToScreenCoords(object->position()));
-		} else if (className == QStringLiteral("transport")) {
-			if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
-				loadTransport(scene, object, renderer);
-			} else {
-				LOG_CWARNING("game") << "Invalid transport object:" << object->id() << object->name();
-			}
 		} else if (group->className().isEmpty()) {
 			if (object->className() == QStringLiteral("ground")) {
 				loadGround(scene, object, renderer);
+			} else if (object->className() == QStringLiteral("light")) {
+				scene->addLightObject(object);
 			} else if (object->className() == QStringLiteral("viewport")) {
 				if (object->name() == QStringLiteral("topLeft"))
 					tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
 				else if (object->name() == QStringLiteral("bottomRight"))
 					tmpViewport.setBottomRight(renderer->pixelToScreenCoords(object->position()));
-			} else if (TiledTransport::typeFromString(object->className()) != TiledTransport::TransportInvalid) {
-				loadTransport(scene, object, renderer);
 			} else {
 				loadObjectLayer(scene, object, className, renderer);
 			}
@@ -624,6 +620,8 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 		}
 	}
 
+
+
 	if (!tmpViewport.isEmpty()) {
 		LOG_CDEBUG("scene") << "Set viewport on scene" << scene->sceneId() << tmpViewport;
 		scene->setViewport(tmpViewport);
@@ -631,6 +629,35 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 
 	return true;
 }
+
+
+
+/**
+ * @brief TiledGame::loadLights
+ * @param scene
+ * @param objects
+ * @param renderer
+ * @return
+ */
+
+
+bool TiledGame::loadLights(TiledScene *scene, const QList<Tiled::MapObject *> &objects, Tiled::MapRenderer *renderer)
+{
+	LOG_CTRACE("scene") << "Load lights" << scene;
+
+	bool r = true;
+
+	for (Tiled::MapObject *o : objects) {
+		if (!scene->addLight(o, renderer))
+			r = false;
+	}
+
+
+	return r;
+}
+
+
+
 
 
 
@@ -676,12 +703,6 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 				break;
 		}
 	}
-
-	/*if (object->hasProperty(QStringLiteral("z"))) {
-		mapObject->setZ(object->property(QStringLiteral("z")).toInt());
-	} else {
-		mapObject->setZ(0);
-	}*/
 
 	if (object->hasProperty(QStringLiteral("transparent")))
 		mapObject->setOpaque(!object->property(QStringLiteral("transparent")).toBool());
@@ -735,46 +756,6 @@ bool TiledGame::loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled:
 
 	return true;
 }
-
-
-
-/**
- * @brief TiledGame::loadTransport
- * @param scene
- * @param object
- * @param renderer
- * @return
- */
-
-bool TiledGame::loadTransport(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
-{
-	/*TiledObjectBasePolygon *mapObject = nullptr;
-	TiledObject::createFromMapObject<TiledObjectBasePolygon>(&mapObject, object, renderer, scene);
-
-	if (!mapObject)
-		return false;
-
-	mapObject->setParent(scene);
-	mapObject->setScene(scene);
-	mapObject->fixture()->setSensor(true);
-	mapObject->fixture()->setCategories(TiledObjectBody::fixtureCategory(TiledObjectBody::FixtureTransport));
-
-	if (!m_transportList.add(TiledTransport::typeFromString(object->className()), object->name(),
-							 object->property(QStringLiteral("lock")).toString(),
-							 object->hasProperty(QStringLiteral("direction")) ?
-							 object->property(QStringLiteral("direction")).toInt() :
-							 -1,
-							 scene, mapObject))
-		return false;
-
-	addLoadedObject(object->id(), scene->sceneId());
-
-	return true;*/
-
-	return false;
-}
-
-
 
 
 
@@ -1012,88 +993,6 @@ void TiledGame::keyReleaseEvent(QKeyEvent *event)
 
 	updateKeyboardJoystick();
 }
-
-
-
-/**
- * @brief TiledGame::transportBeforeEvent
- * @param object
- * @param transport
- * @return
- */
-
-bool TiledGame::transportBeforeEvent(TiledObject */*object*/, TiledTransport */*transport*/)
-{
-	return true;
-}
-
-
-
-/**
- * @brief TiledGame::transportAfterEvent
- * @return
- */
-
-bool TiledGame::transportAfterEvent(TiledObject */*object*/, TiledScene */*newScene*/, TiledObject */*newObject*/)
-{
-	return true;
-}
-
-
-
-
-/**
- * @brief TiledGame::transportGate
- * @param object
- * @param transport
- * @return
- */
-
-bool TiledGame::transportGate(TiledObject *object, TiledTransport *transport, TiledObject *transportBase)
-{
-	Q_ASSERT(object);
-	Q_ASSERT(transport);
-	Q_ASSERT(transportBase);
-
-	TiledScene *oldScene = object->scene();
-	TiledScene *newScene = transportBase ? transport->otherScene(transportBase) : transport->otherScene(oldScene);
-	TiledObject *newObject = transportBase ? transport->otherObject(transportBase) : transport->otherObject(oldScene);
-	const int newDirection = transportBase ? transport->otherDirection(transportBase) : -1;
-
-	if (!newScene || !newObject) {
-		LOG_CERROR("game") << "Broken transport object";
-		return false;
-	}
-
-	if (!transport->isOpen())
-		return false;
-
-	///changeScene(object, newScene, newObject->bodyPosition());
-
-	if (newDirection != -1)
-		object->setFacingDirection(object->nearestDirectionFromRadian(TiledObject::toRadian(newDirection)));
-
-	if (!transportAfterEvent(object, newScene, newObject))
-		return false;
-
-	setCurrentScene(newScene);
-
-	return true;
-}
-
-
-/**
- * @brief TiledGame::transportDoor
- * @param object
- * @param transport
- * @return
- */
-
-bool TiledGame::transportDoor(TiledObject */*object*/, TiledTransport */*transport*/)
-{
-	return false;
-}
-
 
 
 
@@ -1607,61 +1506,6 @@ void TiledGame::setFollowedItem(TiledObject *newFollowedItem)
 	emit followedItemChanged();
 }
 
-
-/**
- * @brief TiledGame::transportList
- * @return
- */
-
-const TiledTransportList &TiledGame::transportList() const
-{
-	return d->m_transportList;
-}
-
-
-/**
- * @brief TiledGame::transportList
- * @return
- */
-
-TiledTransportList &TiledGame::transportList()
-{
-	return d->m_transportList;
-}
-
-
-
-
-/**
- * @brief TiledGame::transport
- * @param object
- * @param transport
- * @return
- */
-
-bool TiledGame::transport(TiledObject *object, TiledTransport *transport, TiledObject *transportBase)
-{
-	Q_ASSERT(object);
-
-	if (!transport)
-		return false;
-
-	if (!transportBeforeEvent(object, transport))
-		return false;
-
-	switch (transport->type()) {
-		case TiledTransport::TransportGate:
-			return transportGate(object, transport, transportBase);
-
-		case TiledTransport::TransportDoor:
-			return transportDoor(object, transport);
-
-		case TiledTransport::TransportInvalid:
-			return false;
-	}
-
-	return true;
-}
 
 
 

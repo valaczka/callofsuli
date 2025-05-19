@@ -110,6 +110,10 @@ public:
 	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 	TiledVisualItem *addVisualItem();
 	TiledVisualItem *addVisualItem(Tiled::ImageLayer *layer);
+	TiledVisualItem *addVisualItem(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
+
+	void addLightObject(Tiled::MapObject *object);
+	QQuickItem *addLight(Tiled::MapObject * object, Tiled::MapRenderer *renderer, const qreal &opacity = 1.);
 
 	Q_INVOKABLE int getDynamicZ(const QPointF &point, const int &defaultValue = 1) const;
 	Q_INVOKABLE int getDynamicZ(const qreal &x, const qreal &y, const int &defaultValue = 1) const;
@@ -180,7 +184,7 @@ private:
 
 		QString name;
 		QVector<QRectF> areas;
-		int z = 1;
+		int z = 0;
 
 		QPointF getMaxBottomRight() const;
 		QPointF getMinTopLeft() const;
@@ -201,6 +205,7 @@ private:
 	TiledGame *m_game = nullptr;
 
 	std::vector<DynamicZ> m_dynamicZList;
+	QList<Tiled::MapObject*> m_lightObjects;
 
 	friend class TiledGame;
 	friend class TiledDebugDraw;

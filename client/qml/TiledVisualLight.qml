@@ -8,8 +8,14 @@ import QtQuick.Shapes
 TiledVisualBlend {
 	id: root
 
-	property color color: "yellow"
+	property color color: "white"
 	property real gradientStop: 0.6
+
+	z: currentZ
+
+	Behavior on opacity {
+		NumberAnimation { duration: 450; easing.type: Easing.InOutQuad }
+	}
 
 	Shape {
 		id: _blend
@@ -54,7 +60,8 @@ TiledVisualBlend {
 		anchors.fill: parent
 		source: OpacityMask {
 			source: root.current
-			anchors.fill: root
+			width: root.width
+			height: root.height
 			maskSource: _blend
 		}
 		foregroundSource: _blend

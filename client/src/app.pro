@@ -250,12 +250,9 @@ SOURCES += \
 	rpgaxe.cpp \
 	rpgbroadsword.cpp \
 	rpgcoin.cpp \
-	rpgcontainer.cpp \
-	rpgcontrolgroup.cpp \
-	rpgcontrolgroupcontainer.cpp \
-	rpgcontrolgroupdoor.cpp \
-	rpgcontrolgroupoverlay.cpp \
-	rpgcontrolgroupsave.cpp \
+	rpgcontrol.cpp \
+	rpgcontrolcontainer.cpp \
+	rpgcontrollight.cpp \
 	rpgdagger.cpp \
 	rpgenemy.cpp \
 	rpgenemybase.cpp \
@@ -269,7 +266,6 @@ SOURCES += \
 	rpglongbow.cpp \
 	rpglongsword.cpp \
 	rpgmace.cpp \
-	rpgmagestaff.cpp \
 	rpgmp.cpp \
 	rpgpickableobject.cpp \
 	rpgplayer.cpp \
@@ -304,7 +300,6 @@ SOURCES += \
 	tiledreturnpathmotor.cpp \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
-	tiledtransport.cpp \
 	tiledvisualitem.cpp \
 	tiledweapon.cpp \
 	updater.cpp \
@@ -365,13 +360,9 @@ HEADERS += \
 	rpgaxe.h \
 	rpgbroadsword.h \
 	rpgcoin.h \
-	rpgcontainer.h \
-	rpgcontrolgroup.h \
-	rpgcontrolgroupcontainer.h \
-	rpgcontrolgroupdoor.h \
-	rpgcontrolgroupoverlay.h \
-	rpgcontrolgroupsave.h \
-	rpgcontrolgroupstate.h \
+	rpgcontrol.h \
+	rpgcontrolcontainer.h \
+	rpgcontrollight.h \
 	rpgdagger.h \
 	rpgenemy.h \
 	rpgenemybase.h \
@@ -388,7 +379,6 @@ HEADERS += \
 	rpglongbow.h \
 	rpglongsword.h \
 	rpgmace.h \
-	rpgmagestaff.h \
 	rpgmp.h \
 	rpgpickableobject.h \
 	rpgplayer.h \
@@ -426,7 +416,6 @@ HEADERS += \
 	tiledreturnpathmotor.h \
 	tiledscene.h \
 	tiledspritehandler.h \
-	tiledtransport.h \
 	tiledvisualitem.h \
 	tiledweapon.h \
 	updater.h \

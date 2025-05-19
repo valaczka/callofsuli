@@ -601,11 +601,6 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
-	if (characterPtr->cast != RpgPlayerCharacterConfig::CastInvalid) {
-		loadWeapon(player, RpgGameData::Weapon::WeaponMageStaff);
-	}
-
-
 	const int hp = m_missionLevel->startHP() + ptr->playerHP;
 
 	player->setHp(hp*10);
@@ -1113,9 +1108,6 @@ void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgGameData::Pickable
 
 void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &type, const int &bullet)
 {
-	if (type == RpgGameData::Weapon::WeaponMageStaff && player->config().cast == RpgPlayerCharacterConfig::CastInvalid)
-		return;
-
 	RpgWeapon *weapon = player->armory()->weaponAdd(type);
 
 	if (!weapon) {
@@ -1127,9 +1119,6 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::Wea
 		weapon->setBulletCount(-1);
 	else if (weapon->bulletCount() != -1)
 		weapon->setBulletCount(weapon->bulletCount()+bullet);
-
-	if (type != RpgGameData::Weapon::WeaponMageStaff || !weapon->canCast())
-		player->armory()->setCurrentWeaponIf(weapon, RpgGameData::Weapon::WeaponHand);
 }
 
 
@@ -1205,20 +1194,21 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, cons
  * @return
  */
 
-bool ActionRpgGame::onPlayerUseContainer(RpgPlayer *player, RpgContainer *container)
+bool ActionRpgGame::onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control)
 {
-	if (!player || !container)
+	if (!player || !control)
 		return false;
 
-	if (container && m_rpgQuestion->emptyQuestions()) {
-		m_rpgGame->playerUseContainer(player, container);
+	if (control && m_rpgQuestion->emptyQuestions()) {
+		m_rpgGame->playerUseControl(player, control);
 		return true;
 	}
 
-	if (m_rpgQuestion->nextQuestion(player, nullptr, RpgGameData::Weapon::WeaponInvalid, container)) {
+	if (m_rpgQuestion->nextQuestion(player, nullptr, RpgGameData::Weapon::WeaponInvalid, control)) {
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
 		return true;
 	}
+
 
 	return false;
 }
@@ -1659,17 +1649,17 @@ void ActionRpgGame::onBulletDelete(IsometricBullet *bullet)
  * @param xp
  */
 
-void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container, int xp)
+void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject *control, int xp)
 {
 	if (enemy)
 		enemy->setHp(0);
 
-	if (container)
-		m_rpgGame->playerUseContainer(player, container);
+	if (control)
+		m_rpgGame->playerUseControl(player, control);
 
 	setXp(m_xp+xp);
 
-	if (player->config().cast != RpgPlayerCharacterConfig::CastInvalid && m_gameQuestion && !container) {
+	if (player->config().cast != RpgPlayerCharacterConfig::CastInvalid && m_gameQuestion && !control) {
 		const int mp = /*m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * */
 					   RpgMpPickable::amount() * (2 + (0.33*m_missionLevel->level()));
 		RpgMpPickable::pick(player, mp);
@@ -1683,7 +1673,7 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgCon
  * @param enemy
  */
 
-void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgContainer */*container*/)
+void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject */*container*/)
 {
 	if (player)
 		player->setHp(std::max(0, player->hp()-1));

@@ -375,8 +375,7 @@ FocusScope {
 			opacity: canShot ? 1.0 : 0.0
 
 			readonly property bool canShot:  _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon &&
-											 _game.controlledPlayer.armory.currentWeapon.bulletCount != -1 &&
-											 _game.controlledPlayer.armory.currentWeapon.weaponType != RpgWeaponType.WeaponMageStaff
+											 _game.controlledPlayer.armory.currentWeapon.bulletCount != -1
 
 			readonly property int bullet: canShot ?
 											  _game.controlledPlayer.armory.currentWeapon.bulletCount :
@@ -436,7 +435,7 @@ FocusScope {
 		//onValueChanged: marked = true
 	}
 
-	GameInfo {
+	/*GameInfo {
 		id: _infoMP
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.top: infoHP.bottom
@@ -450,7 +449,7 @@ FocusScope {
 		progressBar.to: _game.controlledPlayer ? _game.controlledPlayer.maxMp : 0
 		progressBar.value: _game.controlledPlayer ? _game.controlledPlayer.mp : 0
 		progressBar.width: Math.min(root.width*0.3, 85)
-	}
+	}*/
 
 
 
@@ -483,7 +482,7 @@ FocusScope {
 	}
 
 
-	GameButton {
+	/*GameButton {
 		id: _castButton
 		size: (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 45) * gameControlRatio
 
@@ -510,7 +509,7 @@ FocusScope {
 		onClicked: {
 			_game.controlledPlayer.cast()
 		}
-	}
+	}*/
 
 
 
@@ -526,31 +525,8 @@ FocusScope {
 
 		spacing: 30
 
+
 		/*GameButton {
-			id: btn
-			size: 50
-			width: size
-			height: size
-
-			enabled: false
-			visible: false
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			color: enabled ? modelData.iconColor : "transparent"
-			border.color: enabled ? fontImage.color : "white"
-			border.width: 1
-
-			opacity:  gameScene.zoomOverview ? 0.2 : (enabled ? 1.0 : 0.6)
-
-			fontImage.icon: modelData.icon
-			fontImage.color: "white"
-			fontImageScale: 0.6
-
-			onClicked: game.toolUse(modelData.type)
-		}*/
-
-		GameButton {
 			id: _transportButton
 			size: 50
 
@@ -575,28 +551,60 @@ FocusScope {
 			onClicked: {
 				_game.transportPlayer()
 			}
-		}
+		}*/
 
 		GameButton {
-			id: _containerButton
+			id: _controlButton
 			size: 50
 
 			anchors.horizontalCenter: parent.horizontalCenter
 
-			visible: _game.controlledPlayer && _game.controlledPlayer.currentContainer &&
-					 _game.controlledPlayer.currentContainer.isActive
+			visible: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
+					 _game.controlledPlayer.currentControl.isActive
 
-			color: Qaterial.Colors.amber500
-			border.color: fontImage.color
+			readonly property bool isOpen: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
+										   !_game.controlledPlayer.currentControl.isLocked
+
+			color: {
+				if (!_game.controlledPlayer || !_game.controlledPlayer.currentControl || !isOpen)
+					return "transparent"
+
+				switch (_game.controlledPlayer.currentControl.type) {
+				case RpgConfig.ControlContainer:
+					return Qaterial.Colors.amber500
+				case RpgConfig.ControlDoor:
+					return Qaterial.Colors.green600
+				default:
+					return Qaterial.Colors.yellow500
+
+				}
+			}
+
+			border.color: isOpen ? fontImage.color : "white"
 			border.width: 1
 
-			fontImage.icon: Qaterial.Icons.eye
+			opacity: isOpen ? 1.0 : 0.6
+
+			fontImage.icon: {
+				if (!_game.controlledPlayer || !_game.controlledPlayer.currentControl)
+					return Qaterial.Icons.alertOutline
+
+				switch (_game.controlledPlayer.currentControl.type) {
+				case RpgConfig.ControlContainer:
+					return Qaterial.Icons.eye
+				case RpgConfig.ControlDoor:
+					return isOpen ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
+				default:
+					return Qaterial.Icons.hand
+
+				}
+			}
 			fontImage.color: "white"
 			fontImageScale: 0.6
 			//fontImage.anchors.horizontalCenterOffset: -2
 
 			onClicked: {
-				_game.useContainer()
+				_game.useControl()
 			}
 		}
 

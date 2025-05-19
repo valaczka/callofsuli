@@ -575,7 +575,7 @@ void TiledObjectBody::drawBody(TiledDebugDraw *draw, const QColor &color, const 
 		{ FixtureGround, QColorConstants::Svg::saddlebrown },
 		{ FixtureSensor, QColorConstants::Svg::lime },
 		{ FixtureTrigger, QColorConstants::Svg::magenta },
-		{ FixtureContainer, QColorConstants::Svg::orange },
+		{ FixtureControl, QColorConstants::Svg::orange },
 	};
 
 	for (cpShape *sh : d->m_bodyShapes) {

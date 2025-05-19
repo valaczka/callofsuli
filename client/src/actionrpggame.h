@@ -134,7 +134,7 @@ protected:
 	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
 	virtual bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
-	virtual bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container);
+	virtual bool onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control);
 	virtual bool onPlayerUseCast(RpgPlayer *player);
 	virtual bool onPlayerCastTimeout(RpgPlayer *player);
 	virtual bool onPlayerFinishCast(RpgPlayer *player);
@@ -145,8 +145,8 @@ protected:
 	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
 	virtual bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other);
 	virtual void onBulletDelete(IsometricBullet *bullet);
-	virtual void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container, int xp);
-	virtual void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgContainer *container);
+	virtual void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject *control, int xp);
+	virtual void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject *control);
 
 private:
 	void rpgGameActivated_();

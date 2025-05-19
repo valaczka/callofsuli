@@ -30,7 +30,6 @@
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
 #include "rpggame.h"
-#include "rpgcontainer.h"
 #include <QDirIterator>
 #include "application.h"
 #include "rpggamedataiface_t.h"
@@ -79,7 +78,6 @@ RpgPlayer::RpgPlayer(RpgGame *game, const qreal &radius, const cpBodyType &type)
 	connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
 	connect(this, &RpgPlayer::becameDead, this, &RpgPlayer::playDeadEffect);
 	connect(this, &RpgPlayer::isLockedChanged, this, &RpgPlayer::playShieldEffect);
-	connect(this, &RpgPlayer::currentTransportChanged, this, &RpgPlayer::onCurrentTransportChanged);
 
 	connect(m_armory.get(), &RpgArmory::currentWeaponChanged, this, &RpgPlayer::playWeaponChangedEffect);
 
@@ -115,11 +113,6 @@ void RpgPlayer::attack(RpgWeapon *weapon)
 
 	if (!hasAbility())
 		return;
-
-	if (weapon->weaponType() == RpgGameData::Weapon::WeaponMageStaff) {
-		cast();
-		return;
-	}
 
 	if (weapon->canShot()) {
 		g->playerShot(this, weapon, desiredBodyRotation());
@@ -246,43 +239,19 @@ void RpgPlayer::pick(RpgPickableObject *object)
 
 
 
-/**
- * @brief RpgPlayer::useContainer
- * @param container
- */
-
-void RpgPlayer::useContainer(RpgContainer *container)
-{
-	if (!container || !isAlive())
-		return;
-
-	RpgGame *g = qobject_cast<RpgGame*>(m_game);
-
-	clearDestinationPoint();
-
-	if (!g || !container->isActive())
-		return;
-
-	g->playerTryUseContainer(this, container);
-}
 
 
 /**
  * @brief RpgPlayer::useCurrentObjects
  */
 
-void RpgPlayer::useCurrentObjects()
+void RpgPlayer::useCurrentControl()
 {
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-	if (currentContainer() && currentContainer()->isActive() && g) {
-		g->playerTryUseContainer(this, currentContainer());
-		return;
+	if (m_currentControl && m_currentControl->isActive() && g) {
+		g->playerTryUseControl(this, m_currentControl);
 	}
-
-	if (currentTransport() && g)
-		g->transportPlayer();
-
 }
 
 
@@ -470,31 +439,12 @@ void RpgPlayer::onEnemyReached(IsometricEnemy *enemy)
 void RpgPlayer::atDestinationPointEvent()
 {
 	if (m_pickAtDestination)
-		useCurrentObjects();
+		useCurrentControl();
 
 	m_pickAtDestination = false;
 }
 
 
-
-
-
-/**
- * @brief RpgPlayer::onCurrentTransportChanged
- */
-
-void RpgPlayer::onCurrentTransportChanged()
-{
-	auto t = currentTransport();
-
-	if (!t)
-		return;
-
-	if (!t->isOpen() && !t->lockName().isEmpty()) {
-		if (inventoryContains(RpgGameData::PickableBaseData::PickableKey, t->lockName()))
-			t->setIsOpen(true);
-	}
-}
 
 
 
@@ -648,9 +598,9 @@ void RpgPlayer::playAttackEffect(const RpgGameData::Weapon::WeaponType &weaponTy
 			jumpToSprite("bow", m_facingDirection);
 			break;
 
-		case RpgGameData::Weapon::WeaponMageStaff:
+		/*case RpgGameData::Weapon::WeaponMageStaff:
 			jumpToSprite("cast", m_facingDirection);
-			return;											// Nem kell az attack!
+			return;											// Nem kell az attack! */
 
 		case RpgGameData::Weapon::WeaponShield:
 		case RpgGameData::Weapon::WeaponLightningWeapon:
@@ -742,10 +692,6 @@ void RpgPlayer::messageEmptyBullet(const RpgGameData::Weapon::WeaponType &weapon
 			msg = tr("All shields lost");
 			break;
 
-		case RpgGameData::Weapon::WeaponMageStaff:
-			msg = tr("Missing MP");
-			break;
-
 		case RpgGameData::Weapon::WeaponHand:
 		case RpgGameData::Weapon::WeaponGreatHand:
 		case RpgGameData::Weapon::WeaponLongsword:
@@ -810,6 +756,25 @@ void RpgPlayer::attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weap
 	} else {
 		LOG_CERROR("game") << "Weapon not supported:" << weaponType;
 	}
+}
+
+
+/**
+ * @brief RpgPlayer::currentControl
+ * @return
+ */
+
+RpgActiveControlObject *RpgPlayer::currentControl() const
+{
+	return m_currentControl;
+}
+
+void RpgPlayer::setCurrentControl(RpgActiveControlObject *newCurrentControl)
+{
+	if (m_currentControl == newCurrentControl)
+		return;
+	m_currentControl = newCurrentControl;
+	emit currentControlChanged();
 }
 
 
@@ -912,16 +877,19 @@ void RpgPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 
 	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 
+	LOG_CINFO("scene") << "PLAYER CONTACT" << self << other << base;
+
 	if (!base)
 		return;
 
 	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
 
-	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureContainer)) {
-		RpgContainer *container = dynamic_cast<RpgContainer*>(base);
+	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureControl)) {
+		LOG_CINFO("scene") << "CONTROL" << self << other;
+		RpgActiveControlObject *control = dynamic_cast<RpgActiveControlObject*>(base);
 
-		if (!m_currentContainer && container)
-			setCurrentContainer(container);
+		if (!m_currentControl && control)
+			setCurrentControl(control);
 	}
 }
 
@@ -944,11 +912,11 @@ void RpgPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 
 	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
 
-	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureContainer)) {
-		RpgContainer *container = dynamic_cast<RpgContainer*>(base);
+	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureControl)) {
+		RpgActiveControlObject *control = dynamic_cast<RpgActiveControlObject*>(base);
 
-		if (m_currentContainer == container && container)
-			setCurrentContainer(nullptr);
+		if (m_currentControl == control && control)
+			setCurrentControl(nullptr);
 	}
 }
 
@@ -1534,16 +1502,3 @@ void RpgPlayerCharacterConfig::updateSfxPath(const QString &prefix)
 
 
 
-
-RpgContainer *RpgPlayer::currentContainer() const
-{
-	return m_currentContainer;
-}
-
-void RpgPlayer::setCurrentContainer(RpgContainer *newCurrentContainer)
-{
-	if (m_currentContainer == newCurrentContainer)
-		return;
-	m_currentContainer = newCurrentContainer;
-	emit currentContainerChanged();
-}

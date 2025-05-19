@@ -14,7 +14,7 @@ Item {
 	property alias spriteHandlerAuxBack: _spriteHandlerAuxBack
 	property alias spriteThreshold: _threshold
 
-	property color ellipseColor: "cyan"
+	property color ellipseColor: "transparent"
 	property real ellipseSize: 0
 	property real ellipseWidth: 75
 

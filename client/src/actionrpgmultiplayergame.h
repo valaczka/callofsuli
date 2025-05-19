@@ -112,7 +112,7 @@ private:
 	bool onBodyStep(TiledObjectBody *body) override;
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable) override;
 	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType) override;
-	bool onPlayerUseContainer(RpgPlayer *player, RpgContainer *container) override;
+	bool onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control) override;
 	bool onPlayerUseCast(RpgPlayer *player) override;
 	bool onPlayerCastTimeout(RpgPlayer *player) override;
 	bool onPlayerFinishCast(RpgPlayer *player) override;

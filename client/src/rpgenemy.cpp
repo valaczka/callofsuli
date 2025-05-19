@@ -357,6 +357,9 @@ void RpgEnemy::onAlive()
 			  TiledObjectBody::FixturePlayerBody |
 			  TiledObjectBody::FixtureTarget);
 
+	if (m_visualItem)
+		m_visualItem->setProperty("ellipseSize", 2);
+
 	IsometricEnemy::onAlive();
 }
 
@@ -369,6 +372,9 @@ void RpgEnemy::onAlive()
 void RpgEnemy::onDead()
 {
 	filterSet(TiledObjectBody::FixtureInvalid, FixtureInvalid);
+
+	if (m_visualItem)
+		m_visualItem->setProperty("ellipseSize", 0);
 
 	IsometricEnemy::onDead();
 }

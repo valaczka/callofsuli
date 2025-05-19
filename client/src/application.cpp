@@ -44,7 +44,6 @@
 #include "offsetmodel.h"
 #include "qapplication.h"
 #include "qsjsonlistmodel.h"
-#include "rpgmagestaff.h"
 #include "rpguserwallet.h"
 #include "rpgworldlanddata.h"
 #include "scorelist.h"
@@ -56,7 +55,6 @@
 #include "teachermap.h"
 #include "teachermaphandler.h"
 #include "testgame.h"
-#include "rpgcontainer.h"
 #include "rpggame.h"
 #include "tileddebugdraw.h"
 #include "tiledobject.h"
@@ -364,12 +362,11 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayCampaign>("CallOfSuli", 1, 0, "MapPlayCampaign", "MapPlayCampaign is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
+	qmlRegisterUncreatableType<RpgActiveControlObject>("CallOfSuli", 1, 0, "RpgActiveControl", "RpgActiveControl is uncreatable");
 	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
-	qmlRegisterUncreatableType<RpgContainer>("CallOfSuli", 1, 0, "RpgContainer", "RpgContainer is uncreatable");
 	qmlRegisterUncreatableType<RpgEnemy>("CallOfSuli", 1, 0, "RpgEnemy", "RpgEnemy is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgInventory>("CallOfSuli", 1, 0, "RpgInventory", "RpgInventory is uncreatable");
-	qmlRegisterUncreatableType<RpgMageStaff>("CallOfSuli", 1, 0, "RpgMageStaff", "RpgMageStaff is uncreatable");
 	qmlRegisterUncreatableType<RpgMarket>("CallOfSuli", 1, 0, "RpgMarket", "RpgMarket is uncreatable");
 	qmlRegisterUncreatableType<RpgMarketExtendedInfo>("CallOfSuli", 1, 0, "RpgMarketExtendedInfo", "RpgWalletExtendedInfo is uncreatable");
 	qmlRegisterUncreatableType<RpgQuest>("CallOfSuli", 1, 0, "RpgQuest", "RpgQuest is uncreatable");
@@ -382,7 +379,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<TiledGame>("CallOfSuli", 1, 0, "TiledGame", "TiledGame is uncreatable");
 	qmlRegisterUncreatableType<TiledGameDefinition>("CallOfSuli", 1, 0, "TiledGameDefinition", "TiledGameDefinition is uncreatable");
 	qmlRegisterUncreatableType<TiledSceneDefinition>("CallOfSuli", 1, 0, "TiledSceneDefinition", "TiledGameDefinition is uncreatable");
-	qmlRegisterUncreatableType<TiledTransport>("CallOfSuli", 1, 0, "TiledTransport", "TiledTransport is uncreatable");
 	qmlRegisterUncreatableType<TiledWeapon>("CallOfSuli", 1, 0, "TiledWeapon", "TiledWeapon is uncreatable");
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
 	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");

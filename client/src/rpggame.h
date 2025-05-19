@@ -28,7 +28,7 @@
 #define RPGGAME_H
 
 #include "gamequestion.h"
-#include "rpgcontrolgroup.h"
+#include "rpgcontrol.h"
 #include "rpgenemy.h"
 #include "rpgplayer.h"
 #include "rpgpickableobject.h"
@@ -165,10 +165,9 @@ public:
 	void onEnemySleepingStart(TiledObject *enemy) override final;
 	void onEnemySleepingEnd(TiledObject *enemy) override final;
 
-	bool playerTryUseContainer(RpgPlayer *player, RpgContainer *container);
+	bool playerTryUseControl(RpgPlayer *player, RpgActiveControlObject *control);
 
-	Q_INVOKABLE bool transportPlayer();
-	Q_INVOKABLE bool useContainer();
+	Q_INVOKABLE bool useControl();
 
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);
@@ -239,6 +238,16 @@ public:
 
 	const QList<RpgQuest> &quests() const;
 
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgControlBase, T>::value>::type>
+	T* controlFind(const T2 &baseData) const;
+
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<RpgControlBase, T>::value>::type,
+			  class... Args>
+	T* controlAdd(Args&& ...);
+
+
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
 	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QStringLiteral(""));
 
@@ -286,10 +295,9 @@ protected:
 	}
 
 	RpgBullet *createBullet(const RpgGameData::Weapon::WeaponType &type,
-								  TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
+							TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
 
 	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
-
 
 
 
@@ -298,10 +306,7 @@ protected:
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
 	virtual void keyPressEvent(QKeyEvent *event) override final;
-
-	bool transportBeforeEvent(TiledObject *object, TiledTransport *transport) override;
-	bool transportAfterEvent(TiledObject *object, TiledScene *newScene, TiledObject *newObject) override;
-	bool transportDoor(TiledObject *object, TiledTransport *transport) override;
+	virtual bool loadLights(TiledScene *scene, const QList<Tiled::MapObject *> &objects, Tiled::MapRenderer *renderer) override;
 
 	virtual void timeStepPrepareEvent() override;
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick) override;
@@ -320,7 +325,7 @@ protected:
 private:
 	void loadMetricDefinition();
 
-	void playerUseContainer(RpgPlayer *player, RpgContainer *container);
+	void playerUseControl(RpgPlayer *player, RpgActiveControlObject *control);
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -395,7 +400,8 @@ private:
 
 	QVector<EnemyData> m_enemyDataList;
 	QVector<PickableData> m_pickableDataList;
-	std::vector<std::unique_ptr<RpgControlGroup>> m_controlGroups;
+
+	std::vector<std::unique_ptr<RpgControlBase>> m_controls;
 
 	QVector<PlayerPosition> m_playerPositionList;
 
@@ -430,6 +436,47 @@ private:
 	friend class ActionRpgMultiplayerGame;
 };
 
+
+
+
+
+
+/**
+ * @brief RpgGame::controlFind
+ * @param baseData
+ * @return
+ */
+
+template<typename T, typename T2, typename T3>
+inline T *RpgGame::controlFind(const T2 &baseData) const
+{
+	T *r = nullptr;
+
+	for (const auto &ptr : m_controls) {
+		if (T *c = dynamic_cast<T*>(ptr.get());
+				c && c->baseData() == baseData) {
+			r = c;
+			break;
+		}
+	}
+	return r;
+}
+
+
+
+/**
+ * @brief RpgGame::createControl
+ * @return
+ */
+
+template<typename T, typename T2, class ...Args>
+inline T *RpgGame::controlAdd(Args &&...args)
+{
+	std::unique_ptr<T> dptr(new T(std::forward<Args>(args)...));
+	m_controls.push_back(std::move(dptr));
+	return dynamic_cast<T*>(m_controls.back().get());
+
+}
 
 
 #endif // RPGGAME_H

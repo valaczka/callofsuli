@@ -10,8 +10,9 @@ Item {
 
 	property TiledSceneImpl scene: parent && (parent instanceof TiledSceneImpl) ? parent : null
 	property bool modeUpper: false
+	property Item targetItem: null
 
-	property real sourceZ: z
+	property real sourceZ: targetItem ? targetItem.z : z
 	readonly property Item current: _lastBlend
 	readonly property real currentZ: _lastZ
 
@@ -24,6 +25,7 @@ Item {
 
 	onSourceZChanged: reloadBlends()
 	onSceneChanged: reloadBlends()
+	onTargetItemChanged: reloadBlends()
 
 	Item {
 		id: _blank
@@ -82,16 +84,24 @@ Item {
 
 		for (let i=0; i<tg.length; ++i) {
 			let item = tg[i]
-			if (!modeUpper && item.z <= root.sourceZ) {
+
+			if (targetItem) {
 				blendTargets.push(item)
-				lz = item.z
-			} else if (modeUpper && item.z > root.sourceZ) {
-				blendTargets.push(item)
-				lz = item.z
+
+				if (item === targetItem)
+					break
+			} else {
+				if (!modeUpper && item.z <= root.sourceZ) {
+					blendTargets.push(item)
+					lz = item.z
+				} else if (modeUpper && item.z > root.sourceZ) {
+					blendTargets.push(item)
+					lz = item.z
+				}
 			}
 		}
 
-		_lastZ = lz
+		_lastZ = targetItem ? targetItem.z : lz
 
 		if (blendTargets == null || blendTargets == undefined || blendTargets.length == 0) {
 			_lastBlend = null
@@ -100,9 +110,9 @@ Item {
 
 		for (let i=0; i<blendTargets.length; ++i) {
 			let o = _cmpBlend.createObject(root, {
-									   source: i==0 ? _blank : _items[i-1],
-									   foregroundItem: blendTargets[i]
-								   })
+											   source: i==0 ? _blank : _items[i-1],
+											   foregroundItem: blendTargets[i]
+										   })
 			if (!o) {
 				console.error("Object creation error")
 				break
