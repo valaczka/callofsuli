@@ -396,7 +396,7 @@ void IsometricEnemy::worldStep()
 
 	IsometricPlayer *targetPlayer = nullptr;
 
-	if (m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive()) {
+	if (m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive() && !m_player->isLocked()) {
 		if (rayCast(m_player->bodyPosition(), FixturePlayerBody).isVisible(m_player)) {
 			targetPlayer = m_player;
 		}
@@ -404,7 +404,7 @@ void IsometricEnemy::worldStep()
 		QMap<float, IsometricPlayer *> pMap;
 
 		for (IsometricPlayer *p : m_contactedPlayers) {
-			if (!p || !p->isAlive())
+			if (!p || !p->isAlive() || p->isLocked())
 				continue;
 
 			const RayCastInfo &info = rayCast(p->bodyPosition(), FixturePlayerBody);
@@ -469,9 +469,6 @@ void IsometricEnemy::worldStep()
 		pursuitPoint = std::nullopt;
 
 	if (pursuitPoint.has_value()) {
-		if (m_player && m_player->isLocked())
-			return stop();
-
 		if (!enemyWorldStepOnVisiblePlayer())
 			return;
 

@@ -54,6 +54,9 @@ public:
 	void updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy);
 	void updateSnapshot(const RpgGameData::BulletBaseData &bulletData, const RpgGameData::Bullet &bullet);
 
+	void updateSnapshot(const RpgGameData::ControlBaseData &lightData, const RpgGameData::ControlLight &light);
+	void updateSnapshot(const RpgGameData::ControlContainerBaseData &containerData, const RpgGameData::ControlContainer &container);
+
 
 	// Outgoing snapshot
 

@@ -323,6 +323,9 @@ void IsometricPlayer::onAlive()
 {
 	setSubZ(0.5);
 	emit becameAlive();
+
+	if (m_visualItem)
+		m_visualItem->setProperty("ellipseSize", 2);
 }
 
 
@@ -340,6 +343,9 @@ void IsometricPlayer::onDead()
 	m_game->onPlayerDead(this);
 
 	emit becameDead();
+
+	if (m_visualItem)
+		m_visualItem->setProperty("ellipseSize", 0);
 }
 
 

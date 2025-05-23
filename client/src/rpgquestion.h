@@ -47,7 +47,7 @@ public:
 
 	void reloadQuestions();
 	bool nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType,
-					  RpgActiveControlObject *control = nullptr);
+					  RpgActiveIface *control = nullptr);
 
 	void questionSuccess(const QVariantMap &answer);
 	void questionFailed(const QVariantMap &answer);
@@ -55,6 +55,7 @@ public:
 
 	RpgEnemy *enemy() const { return m_enemy; }
 	RpgPlayer *player() const { return m_player; }
+	RpgActiveIface *control() const { return m_control; }
 
 	void initialize();
 
@@ -68,10 +69,11 @@ private:
 
 	QPointer<RpgPlayer> m_player;
 	QPointer<RpgEnemy> m_enemy;
-	QPointer<RpgActiveControlObject> m_control;
+	RpgActiveIface *m_control = nullptr;
 	RpgGameData::Weapon::WeaponType m_weaponType = RpgGameData::Weapon::WeaponInvalid;
 
 	bool m_emptyQuestions = true;
+	bool m_initialized = false;
 
 	qint64 m_duration = 0;
 };

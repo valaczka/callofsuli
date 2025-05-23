@@ -499,7 +499,7 @@ void RpgGame::onEnemySleepingEnd(TiledObject *enemy)
  * @return
  */
 
-bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveControlObject *control)
+bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveIface *control)
 {
 	if (!player || !control || control->isLocked() || !control->isActive()) {
 		if (player && !player->m_sfxDecline.soundList().isEmpty())
@@ -521,12 +521,12 @@ bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveControlObject *con
  * @param container
  */
 
-void RpgGame::playerUseControl(RpgPlayer *player, RpgActiveControlObject *control)
+void RpgGame::playerUseControl(RpgPlayer *player, RpgActiveIface *control)
 {
 	if (!control)
 		return;
 
-	control->useControl(player);
+	control->use(player);
 }
 
 
@@ -781,7 +781,7 @@ bool RpgGame::useControl()
 	if (!m_controlledPlayer)
 		return false;
 
-	return playerTryUseControl(m_controlledPlayer, m_controlledPlayer->currentControl());
+	return playerTryUseControl(m_controlledPlayer, m_controlledPlayer->currentControl()->activeControl());
 }
 
 
@@ -872,7 +872,7 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 	const QString &cname = group->className();
 
 	if (cname == QStringLiteral("container")) {
-		m_controls.emplace_back(new RpgControlContainer(this, scene, group, renderer));
+		controlAdd<RpgControlContainer>(this, scene, group, renderer);
 	}
 }
 
@@ -954,22 +954,6 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 			if (m_controlledPlayer)
 				m_controlledPlayer->setIsLocked(!m_controlledPlayer->isLocked());
 			break;
-
-
-		case Qt::Key_L: {
-			for (const auto &ptr : m_controls) {
-				if (RpgControlLight *l = dynamic_cast<RpgControlLight*>(ptr.get())) {
-					LOG_CINFO("scene") << "CHANGE" << l << l->state();
-					if (l->state() == RpgGameData::ControlLight::LightOn)
-						l->setState(RpgGameData::ControlLight::LightOff);
-					else
-						l->setState(RpgGameData::ControlLight::LightOn);
-				}
-			}
-
-			break;
-		}
-
 
 
 		case Qt::Key_N:
@@ -1568,6 +1552,18 @@ void RpgGame::worldStep(TiledObjectBody *body)
 		TiledGame::worldStep(body);
 }
 
+
+/**
+ * @brief RpgGame::worldStep
+ */
+
+void RpgGame::worldStep()
+{
+	if (ActionRpgGame *a = actionRpgGame())
+		a->onWorldStep();
+	else
+		TiledGame::worldStep();
+}
 
 
 

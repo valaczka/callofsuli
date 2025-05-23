@@ -361,6 +361,9 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::TileLayer *layer, Tiled::MapRe
 	Q_ASSERT(renderer);
 
 	TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(layer, renderer, this);
+
+	// Nem ezt adjuk, hozzá, hanem a lentit
+
 	//m_visualItems.append(layerItem);
 
 
@@ -375,6 +378,8 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::TileLayer *layer, Tiled::MapRe
 		LOG_CERROR("scene") << "TiledVisualItem create error" << component.errorString();
 		return nullptr;
 	}
+
+	// Nem fogja a libtiled rendesen megjeleníteni, ha nem a scene a szülője
 
 	//layerItem->setParentItem(img);
 

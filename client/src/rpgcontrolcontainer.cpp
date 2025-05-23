@@ -26,6 +26,8 @@
 
 #include "rpgcontrolcontainer.h"
 #include "rpggame.h"
+#include "rpgquestion.h"
+#include "application.h"
 #include <libtiled/objectgroup.h>
 
 
@@ -47,6 +49,7 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 		{ QStringLiteral("open"), RpgGameData::ControlContainer::ContainerOpen },
 	};
 
+	setGame(game);
 	loadFromGroupLayer(game, scene, group, renderer);
 
 	setIsActive(true);
@@ -69,6 +72,39 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 
 void RpgControlContainer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlContainer> &snapshot)
 {
+	if (snapshot.s1.f < 0 && snapshot.last.f < 0) {
+		LOG_CERROR("scene") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.last.f << snapshot.current;
+		return;
+	}
+
+	RpgControlContainer::updateFromSnapshot(snapshot.last);
+
+	if (!m_game) {
+		LOG_CERROR("game") << "Missing RpgGame";
+		return;
+	}
+
+	if (!m_game->controlledPlayer() ||
+			!snapshot.last.u.isValid() ||
+			!snapshot.last.u.isBaseEqual(m_game->controlledPlayer()->baseData()))
+		return;
+
+	if (snapshot.last.f <= m_lastSyncTick) {
+		return;
+	}
+
+
+	LOG_CINFO("game") << "LOAD CONTAINER FOR" << snapshot.last.u.o;
+
+	if (RpgQuestion *q = m_game->rpgQuestion()) {
+		if (q->control() == this)
+			return;
+
+		if (q->nextQuestion(m_game->controlledPlayer(), nullptr, RpgGameData::Weapon::WeaponInvalid, this)) {
+			Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
+			m_lastSyncTick = snapshot.last.f;
+		}
+	}
 
 }
 
@@ -81,7 +117,10 @@ void RpgControlContainer::updateFromSnapshot(const RpgGameData::SnapshotInterpol
 
 void RpgControlContainer::updateFromSnapshot(const RpgGameData::ControlContainer &snap)
 {
-
+	setCurrentState(snap.st);
+	setIsActive(snap.a);
+	setIsLocked(snap.lck);
+	_updateGlow();
 }
 
 
@@ -98,6 +137,7 @@ void RpgControlContainer::use(RpgPlayer *player)
 	setIsActive(false);
 	setIsLocked(false);
 	setCurrentState(RpgGameData::ControlContainer::ContainerOpen);
+	_updateGlow();
 }
 
 
@@ -176,6 +216,8 @@ RpgGameData::ControlContainer RpgControlContainer::serializeThis() const
 void RpgControlContainer::onShapeContactBegin(cpShape *self, cpShape *other)
 {
 	RpgActiveIface::onShapeContactBegin(self, other);
+
+	_updateGlow();
 }
 
 
@@ -189,6 +231,29 @@ void RpgControlContainer::onShapeContactBegin(cpShape *self, cpShape *other)
 void RpgControlContainer::onShapeContactEnd(cpShape *self, cpShape *other)
 {
 	RpgActiveIface::onShapeContactEnd(self, other);
+	_updateGlow();
+}
+
+
+/**
+ * @brief RpgControlContainer::_updateGlow
+ */
+
+void RpgControlContainer::_updateGlow()
+{
+	if (!m_isActive)
+		return updateGlow(false);
+
+	bool glow = false;
+
+	for (cpShape *s : m_contactedFixtures) {
+		if (TiledObjectBody::fromShapeRef(s) == m_game->controlledPlayer()) {
+			glow = true;
+			break;
+		}
+	}
+
+	updateGlow(glow);
 }
 
 

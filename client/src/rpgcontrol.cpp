@@ -37,7 +37,6 @@ RpgControlBase::RpgControlBase(const RpgConfig::ControlType &type)
 
 
 
-
 /**
  * @brief RpgActiveControlObject::RpgActiveControlObject
  * @param iface
@@ -383,7 +382,6 @@ void RpgActiveIface::onShapeContactBegin(cpShape *self, cpShape *other)
 
 	if (!m_contactedFixtures.contains(other)) {
 		m_contactedFixtures.append(other);
-		updateGlow();
 	}
 }
 
@@ -400,7 +398,6 @@ void RpgActiveIface::onShapeContactEnd(cpShape *self, cpShape *other)
 	Q_UNUSED(self);
 
 	m_contactedFixtures.removeAll(other);
-	updateGlow();
 }
 
 
@@ -410,13 +407,11 @@ void RpgActiveIface::onShapeContactEnd(cpShape *self, cpShape *other)
  * @brief RpgActiveIface::updateGlow
  */
 
-void RpgActiveIface::updateGlow()
+void RpgActiveIface::updateGlow(const bool &glow)
 {
 	if (m_visualItem)
-		m_visualItem->setGlowEnabled(!m_contactedFixtures.isEmpty());
+		m_visualItem->setGlowEnabled(glow);
 }
-
-
 
 
 

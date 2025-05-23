@@ -66,7 +66,7 @@ void RpgQuestion::reloadQuestions()
  */
 
 bool RpgQuestion::nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType,
-							   RpgActiveControlObject *control)
+							   RpgActiveIface *control)
 {
 	GameQuestion *gq = m_game->gameQuestion();
 
@@ -197,6 +197,11 @@ void RpgQuestion::questionFinished()
 
 void RpgQuestion::initialize()
 {
+	if (m_initialized) {
+		LOG_CWARNING("game") << "RpgQuestion already initialized";
+		return;
+	}
+
 	LOG_CTRACE("game") << "Initialize questions";
 
 	reloadQuestions();
@@ -224,6 +229,8 @@ void RpgQuestion::initialize()
 
 		m_duration += factor * SECOND_PER_QUESTION;
 	}
+
+	m_initialized = true;
 }
 
 

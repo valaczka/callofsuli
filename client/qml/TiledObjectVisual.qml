@@ -20,6 +20,16 @@ Item {
 
 	parent: baseObject ? baseObject.scene : null
 
+
+	property bool _initShow: false
+
+	Timer {
+		running: true
+		repeat: false
+		interval: 200
+		onTriggered: _initShow = false
+	}
+
 	Shape {
 		id: _ellipse
 
@@ -101,7 +111,7 @@ Item {
 
 	Glow {
 		id: glow
-		opacity: baseObject && baseObject.glowEnabled ? 1.0 : 0.0
+		opacity: _initShow || (baseObject && baseObject.glowEnabled) ? 1.0 : 0.0
 		visible: opacity != 0
 		color: baseObject ? baseObject.glowColor : "transparent"
 
@@ -120,7 +130,7 @@ Item {
 	ColorOverlay {
 		id: overlay
 
-		opacity: baseObject && baseObject.overlayEnabled ? 0.5 : 0.0
+		opacity: _initShow || (baseObject && baseObject.overlayEnabled) ? 0.5 : 0.0
 		visible: opacity != 0
 		color: baseObject ? baseObject.overlayColor : "transparent"
 

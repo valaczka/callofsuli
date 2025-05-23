@@ -67,13 +67,21 @@ private:
 
 
 
+	void createEnemies(const RpgGameData::CurrentSnapshot &snapshot);
+	void createControls(const RpgGameData::CurrentSnapshot &snapshot);
+
+
 	template <typename T, typename ...Args,
-			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
 	void eventAdd(Args &&...args);
 
 	template <typename T, typename ...Args,
-			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
 	void eventAddLater(Args &&...args);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
+	T* eventFind(const T2 &baseData);
 
 
 	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
@@ -84,8 +92,8 @@ private:
 	QElapsedTimer m_elapsedTimer;
 	qint64 m_lastSentTick = -1;
 
-	std::vector<std::unique_ptr<RpgEvent>> m_events;
-	std::vector<std::unique_ptr<RpgEvent>> m_eventsLater;
+	std::vector<std::unique_ptr<RpgEventBase>> m_events;
+	std::vector<std::unique_ptr<RpgEventBase>> m_eventsLater;
 	bool m_eventsProcessing = false;
 
 	RpgEngine *q;
@@ -421,6 +429,49 @@ int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::BulletBaseDat
 
 
 /**
+ * @brief RpgEngine::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::ControlBaseData &data, const RpgGameData::ControlLight &snap, const std::optional<RpgGameData::ControlLight> &prev)
+{
+	return -1;
+}
+
+
+
+
+/**
+ * @brief RpgEngine::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::ControlContainerBaseData &data,
+							const RpgGameData::ControlContainer &snap, const std::optional<RpgGameData::ControlContainer> &prev)
+{
+	/*if (!prev)
+		return 0;
+
+	if (!prev->u.isValid() && snap.u.isValid()) {
+		LOG_CINFO("engine") << "Container locked" << data.o << data.s << data.id;
+		eventAdd<RpgEventContainerLocked>(tick, data);
+		return 1;
+	}*/
+
+	return 0;
+}
+
+
+
+/**
  * @brief RpgEngine::processEvents
  * @return
  */
@@ -455,6 +506,16 @@ const RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> 
 const RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> &RpgEngine::bullets()
 {
 	return m_snapshots.bullets();
+}
+
+const RpgGameData::SnapshotList<RpgGameData::ControlLight, RpgGameData::ControlBaseData> &RpgEngine::controlLights()
+{
+	return m_snapshots.controls().lights;
+}
+
+const RpgGameData::SnapshotList<RpgGameData::ControlContainer, RpgGameData::ControlContainerBaseData> &RpgEngine::controlContainers()
+{
+	return m_snapshots.controls().containers;
 }
 
 
@@ -676,39 +737,8 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 #endif
 
 
-
-	for (const auto &ptr : snapshot.enemies) {
-		const RpgGameData::EnemyBaseData &enemy = ptr.data;
-
-		if (enemy.t == RpgGameData::EnemyBaseData::EnemyInvalid) {
-			LOG_CERROR("engine") << "Invalid enemy data" << q->id();
-			continue;
-		}
-
-		const auto &enemies = q->m_snapshots.enemies();
-
-		const auto it = std::find_if(enemies.cbegin(), enemies.cend(),
-									 [&enemy](const auto &e) {
-			return e.data == enemy;
-		});
-
-		if (it == enemies.cend()) {
-			RpgGameData::Enemy edata;
-
-			if (!ptr.list.empty())
-				edata = ptr.list.cbegin()->second;
-
-			edata.f = 0;
-			edata.hp = 32;
-			edata.mhp = 32;
-			edata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, -1));
-			edata.arm.cw = RpgGameData::Weapon::WeaponLongsword;
-
-			q->m_snapshots.enemyAdd(enemy, edata);
-
-			LOG_CINFO("eninge") << "CREATE ENEMY" << enemy.t << enemy.s << enemy.id << edata.p;
-		}
-	}
+	createEnemies(snapshot);
+	createControls(snapshot);
 
 }
 
@@ -995,6 +1025,117 @@ void RpgEnginePrivate::updateState()
 
 
 
+/**
+ * @brief RpgEnginePrivate::createEnemies
+ * @param snapshot
+ */
+
+void RpgEnginePrivate::createEnemies(const RpgGameData::CurrentSnapshot &snapshot)
+{
+	for (const auto &ptr : snapshot.enemies) {
+		const RpgGameData::EnemyBaseData &enemy = ptr.data;
+
+		if (enemy.t == RpgGameData::EnemyBaseData::EnemyInvalid) {
+			LOG_CERROR("engine") << "Invalid enemy data" << q->id();
+			continue;
+		}
+
+		const auto &enemies = q->m_snapshots.enemies();
+
+		const auto it = std::find_if(enemies.cbegin(), enemies.cend(),
+									 [&enemy](const auto &e) {
+			return e.data == enemy;
+		});
+
+		if (it == enemies.cend()) {
+			RpgGameData::Enemy edata;
+
+			if (!ptr.list.empty())
+				edata = ptr.list.cbegin()->second;
+
+			edata.f = 0;
+			edata.hp = 32;
+			edata.mhp = 32;
+			edata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, -1));
+			edata.arm.cw = RpgGameData::Weapon::WeaponLongsword;
+
+			q->m_snapshots.enemyAdd(enemy, edata);
+
+			LOG_CINFO("eninge") << "CREATE ENEMY" << enemy.t << enemy.s << enemy.id << edata.p;
+		}
+	}
+}
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::createControls
+ * @param snapshot
+ */
+
+void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapshot)
+{
+	for (const auto &ptr : snapshot.controls.lights) {
+		const RpgGameData::ControlBaseData &cd = ptr.data;
+
+		if (cd.t != RpgConfig::ControlLight) {
+			LOG_CERROR("engine") << "Invalid control light data" << q->id();
+			continue;
+		}
+
+		const auto &controls = q->m_snapshots.controls().lights;
+
+		const auto it = std::find_if(controls.cbegin(), controls.cend(),
+									 [&cd](const auto &e) {
+			return e.data == cd;
+		});
+
+		if (it == controls.cend() && !ptr.list.empty()) {
+			RpgGameData::ControlLight data = ptr.list.cbegin()->second;
+
+			data.f = 0;
+
+			q->m_snapshots.lightAdd(cd, data);
+
+			LOG_CINFO("eninge") << "CREATE LIGHT" << cd.t << cd.s << cd.id << data.st;
+		}
+	}
+
+
+
+	for (const auto &ptr : snapshot.controls.containers) {
+		const RpgGameData::ControlContainerBaseData &cd = ptr.data;
+
+		if (cd.t != RpgConfig::ControlContainer) {
+			LOG_CERROR("engine") << "Invalid control container data" << q->id();
+			continue;
+		}
+
+		const auto &controls = q->m_snapshots.controls().containers;
+
+		const auto it = std::find_if(controls.cbegin(), controls.cend(),
+									 [&cd](const auto &e) {
+			return e.data == cd;
+		});
+
+		if (it == controls.cend() && !ptr.list.empty()) {
+			RpgGameData::ControlContainer data = ptr.list.cbegin()->second;
+
+			data.f = 0;
+
+			q->m_snapshots.containerAdd(cd, data);
+
+			LOG_CINFO("eninge") << "CREATE CONTAINER" << cd.t << cd.s << cd.id << data.st << data.lck << data.a;
+		}
+	}
+}
+
+
+
+
+
+
 
 
 
@@ -1003,7 +1144,7 @@ void RpgEnginePrivate::updateState()
  * @param m_tick
  */
 
-RpgEvent::RpgEvent(RpgEngine *engine, const qint64 &tick, const bool &unique)
+RpgEventBase::RpgEventBase(RpgEngine *engine, const qint64 &tick, const bool &unique)
 	: m_engine(engine)
 	, m_tick(tick)
 	, m_unique(unique)
@@ -1017,7 +1158,7 @@ RpgEvent::RpgEvent(RpgEngine *engine, const qint64 &tick, const bool &unique)
  * @brief RpgEvent::~RpgEvent
  */
 
-RpgEvent::~RpgEvent()
+RpgEventBase::~RpgEventBase()
 {
 
 }
@@ -1052,6 +1193,7 @@ void RpgEnginePrivate::eventAddLater(Args &&...args)
 
 
 
+
 /**
  * @brief RpgEnginePrivate::eventAdd
  * @param args
@@ -1080,6 +1222,25 @@ void RpgEnginePrivate::eventAdd(Args &&...args)
 
 
 
+/**
+ * @brief RpgEnginePrivate::eventFind
+ * @param baseData
+ * @return
+ */
+
+template<typename T, typename T2, typename T3>
+T *RpgEnginePrivate::eventFind(const T2 &baseData)
+{
+	for (const auto &ptr : m_events) {
+		if (T* e = dynamic_cast<T*>(ptr.get()); e && e->baseData() == baseData)
+			return e;
+	}
+
+	return nullptr;
+}
+
+
+
 
 
 /**
@@ -1099,6 +1260,14 @@ template<typename T, typename ...Args, typename T3>
 void RpgEngine::eventAddLater(Args &&...args)
 {
 	d->eventAddLater<T>(std::forward<Args>(args)...);
+}
+
+
+
+template<typename T, typename T2, typename T3>
+T *RpgEngine::eventFind(const T2 &data)
+{
+	return d->eventFind<T>(data);
 }
 
 
@@ -1225,19 +1394,6 @@ QString RpgEnginePrivate::engineDump() const
 
 
 
-/**
- * @brief RpgEventEnemyDied::RpgEventEnemyDied
- * @param tick
- * @param data
- */
-
-RpgEventEnemyDied::RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data)
-	: RpgEvent(engine, tick)
-	, m_data(data)
-{
-	LOG_CDEBUG("engine") << "Enemy died" << m_data.o << m_data.id << "@" << tick;
-}
-
 
 
 /**
@@ -1278,36 +1434,6 @@ bool RpgEventEnemyDied::process(const qint64 &tick, RpgGameData::CurrentSnapshot
 
 
 
-/**
- * @brief RpgEventEnemyDied::isEqual
- * @param other
- * @return
- */
-
-bool RpgEventEnemyDied::isEqual(RpgEvent *other) const
-{
-	if (RpgEventEnemyDied *d = dynamic_cast<RpgEventEnemyDied*>(other); d &&
-			d->m_tick == m_tick &&
-			d->m_data == m_data
-			)
-		return true;
-
-	return false;
-}
-
-
-/**
- * @brief RpgEventEnemyResurrect::RpgEventEnemyResurrect
- * @param engine
- * @param tick
- */
-
-RpgEventEnemyResurrect::RpgEventEnemyResurrect(RpgEngine *engine, const qint64 &tick)
-	: RpgEvent(engine, tick)
-{
-	LOG_CDEBUG("engine") << "RESURRECT created" << tick << m_unique;
-}
-
 
 /**
  * @brief RpgEventEnemyResurrect::process
@@ -1338,37 +1464,6 @@ bool RpgEventEnemyResurrect::process(const qint64 &tick, RpgGameData::CurrentSna
 }
 
 
-/**
- * @brief RpgEventEnemyResurrect::isEqual
- * @param other
- * @return
- */
-
-bool RpgEventEnemyResurrect::isEqual(RpgEvent *other) const
-{
-	if (RpgEventEnemyResurrect *d = dynamic_cast<RpgEventEnemyResurrect*>(other); d &&
-			d->m_tick == m_tick
-			)
-		return true;
-
-	return false;
-}
-
-
-
-/**
- * @brief RpgEventPlayerDied::RpgEventPlayerDied
- * @param engine
- * @param tick
- * @param data
- */
-
-RpgEventPlayerDied::RpgEventPlayerDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
-	: RpgEvent(engine, tick)
-	, m_data(data)
-{
-	LOG_CDEBUG("engine") << "Player died" << m_data.o << m_data.id << "@" << tick;
-}
 
 
 
@@ -1391,38 +1486,13 @@ bool RpgEventPlayerDied::process(const qint64 &tick, RpgGameData::CurrentSnapsho
 }
 
 
-
-/**
- * @brief RpgEventPlayerDied::isEqual
- * @param other
- * @return
- */
-
-bool RpgEventPlayerDied::isEqual(RpgEvent *other) const
-{
-	if (RpgEventPlayerDied *d = dynamic_cast<RpgEventPlayerDied*>(other); d &&
-			d->m_tick == m_tick &&
-			d->m_data == m_data
-			)
-		return true;
-
-	return false;
-}
-
-
-
 /**
  * @brief RpgEventPlayerResurrect::RpgEventPlayerResurrect
  * @param engine
  * @param tick
  */
 
-RpgEventPlayerResurrect::RpgEventPlayerResurrect(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
-	: RpgEvent(engine, tick)
-	, m_data(data)
-{
-	LOG_CDEBUG("engine") << "PLAYER RESURRECT created" << tick << m_unique << data.o;
-}
+
 
 
 /**
@@ -1471,18 +1541,75 @@ bool RpgEventPlayerResurrect::process(const qint64 &tick, RpgGameData::CurrentSn
 
 
 /**
- * @brief RpgEventPlayerResurrect::isEqual
- * @param other
+ * @brief RpgEventContainerLocked::process
+ * @param tick
+ * @param dst
  * @return
  */
 
-bool RpgEventPlayerResurrect::isEqual(RpgEvent *other) const
+bool RpgEventContainerLocked::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
 {
-	if (RpgEventPlayerResurrect *d = dynamic_cast<RpgEventPlayerResurrect*>(other); d &&
-			d->m_data == m_data &&
-			d->m_tick == m_tick
-			)
-		return true;
+	Q_UNUSED(dst);
 
-	return false;
+	if (RpgEventContainerUnlock *e = m_engine->eventFind<RpgEventContainerUnlock>(m_data)) {
+		LOG_CDEBUG("engine") << "Player died locked process UPDATED" << m_data.o << m_data.id << "@" << m_tick;
+		e->setTick(m_tick+3000);
+	} else {
+		LOG_CDEBUG("engine") << "Player died locked process" << m_data.o << m_data.id << "@" << m_tick;
+
+		m_engine->eventAdd<RpgEventContainerUnlock>(m_tick+300, m_data);
+	}
+
+	return true;
 }
+
+
+
+
+
+/**
+ * @brief RpgEventContainerUnlock::process
+ * @param tick
+ * @param dst
+ * @return
+ */
+
+bool RpgEventContainerUnlock::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
+{
+	Q_ASSERT(dst);
+
+	if (tick < m_tick)
+		return false;
+
+	const auto &pl = m_engine->controlContainers();
+
+	const auto it = std::find_if(pl.cbegin(),
+								 pl.cend(),
+								 [this](const auto &p){
+		return p.data == m_data;
+	});
+
+	if (it == pl.cend()) {
+		LOG_CERROR("engine") << "Invalid conteiner" << m_data.o << m_data.id;
+		return true;
+	}
+
+	RpgGameData::ControlContainer d;
+
+	if (!it->list.empty())
+		d = std::prev(it->list.cend())->second;
+
+	d.f = m_tick;
+	d.u = {};
+	if (d.st == RpgGameData::ControlContainer::ContainerClose)
+		d.a = true;
+
+	LOG_CINFO("engine") << "###### UNLOCK CONTAINER" << m_tick << m_data.id;
+
+	dst->assign(dst->controls.containers, m_data, d);
+
+	return true;
+}
+
+
+

@@ -28,6 +28,15 @@
 #include "rpgconfig.h"
 #include <chipmunk/chipmunk.h>
 
+
+
+
+const QHash<RpgConfig::ControlType, int> RpgConfig::m_controlDamageValue = {
+	{ RpgConfig::ControlContainer, 15 }
+};
+
+
+
 namespace RpgGameData {
 
 const QHash<Weapon::WeaponType, int> Weapon::m_damageValue = {
@@ -171,6 +180,10 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &fi
 	addFullSnapshot(&s.enemies, m_enemies, tick, findLast);
 	addFullSnapshot(&s.bullets, m_bullets, tick, findLast);
 
+	addFullSnapshot(&s.controls.lights, m_controls.lights, tick, findLast);
+	addFullSnapshot(&s.controls.containers, m_controls.containers, tick, findLast);
+
+
 	return s;
 }
 
@@ -193,6 +206,9 @@ CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 	s.enemies = convertToSnapshotList(m_enemies);
 	s.bullets = convertToSnapshotList(m_bullets);
 
+	s.controls.lights = convertToSnapshotList(m_controls.lights);
+	s.controls.containers = convertToSnapshotList(m_controls.containers);
+
 	return s;
 }
 
@@ -208,18 +224,25 @@ void SnapshotStorage::zapSnapshots(const qint64 &tick)
 	if (tick <= 0)
 		return;
 
-	for (auto &ptr : m_players) {
+	for (auto &ptr : m_players)
 		zapSnapshots(ptr.list, tick);
-	}
 
-	for (auto &ptr : m_enemies) {
+	for (auto &ptr : m_enemies)
 		zapSnapshots(ptr.list, tick);
-	}
 
-	for (auto &ptr : m_bullets) {
+	for (auto &ptr : m_bullets)
 		zapSnapshots(ptr.list, tick);
-	}
+
+
+	for (auto &ptr : m_controls.lights)
+		zapSnapshots(ptr.list, tick);
+
+	for (auto &ptr : m_controls.containers)
+		zapSnapshots(ptr.list, tick);
 }
+
+
+
 
 
 
@@ -242,6 +265,13 @@ QCborMap CurrentSnapshot::toCbor() const
 	if (const QCborArray &a = toCborArray(bullets, QStringLiteral("bd"), QStringLiteral("b"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("bb"), a);
 
+
+	if (const QCborArray &a = toCborArray(controls.lights, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
+		map.insert(QStringLiteral("cl"), a);
+
+	if (const QCborArray &a = toCborArray(controls.containers, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
+		map.insert(QStringLiteral("cc"), a);
+
 	return map;
 }
 
@@ -262,6 +292,9 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 	r += fromCborArray(players, map.value(QStringLiteral("pp")).toArray(), QStringLiteral("pd"), QStringLiteral("p"), nullptr);
 	r += fromCborArray(enemies, map.value(QStringLiteral("ee")).toArray(), QStringLiteral("ed"), QStringLiteral("e"), nullptr);
 	r += fromCborArray(bullets, map.value(QStringLiteral("bb")).toArray(), QStringLiteral("bd"), QStringLiteral("b"), nullptr);
+
+	r += fromCborArray(controls.lights, map.value(QStringLiteral("cl")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
+	r += fromCborArray(controls.containers, map.value(QStringLiteral("cc")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 
 	return r;
 }
@@ -313,6 +346,27 @@ void LifeCycle::destroy(const qint64 &tick)
 	if (m_destroyTick == -1)
 		m_destroyTick = tick;
 }
+
+
+
+
+/**
+ * @brief Player::controlFailed
+ * @param dstBase
+ * @param dst
+ * @param control
+ */
+
+void Player::controlFailed(Player &dst, const RpgConfig::ControlType &control)
+{
+	float damage = RpgConfig::controlDamageValue().value(control, 0);
+
+	if (damage <= 0.)
+		return;
+
+	dst.hp = std::max(0, (int) (dst.hp-damage));
+}
+
 
 
 

@@ -36,6 +36,9 @@
 #include "tiledscene.h"
 
 
+class RpgGame;
+
+
 /**
  * @brief The RpgControlBase class
  */
@@ -53,8 +56,12 @@ public:
 		Q_UNUSED(controls);
 	}
 
+	RpgGame *game() const { return m_game; }
+	void setGame(RpgGame *newGame) { m_game = newGame; }
+
 protected:
 	const RpgConfig::ControlType m_type;
+	RpgGame *m_game = nullptr;
 };
 
 
@@ -180,6 +187,8 @@ public:
 	virtual const RpgConfig::ControlType &activeType() const = 0;
 	virtual void use(RpgPlayer *player) = 0;
 
+	virtual RpgGameData::BaseData pureBaseData() const = 0;
+
 	virtual bool loadFromGroupLayer(RpgGame *game, TiledScene *scene,
 									Tiled::GroupLayer *group, Tiled::MapRenderer *renderer = nullptr) = 0;
 
@@ -215,7 +224,7 @@ protected:
 
 	virtual void refreshVisualItem() = 0;
 
-	virtual void updateGlow();
+	virtual void updateGlow(const bool &glow);
 
 	QString m_keyLock;
 	bool m_questionLock = false;
@@ -250,6 +259,7 @@ public:
 	virtual ~RpgActiveControl();
 
 	virtual T2 baseData() const override;
+	virtual RpgGameData::BaseData pureBaseData() const override;
 
 	virtual const RpgConfig::ControlType &activeType() const override { return RpgControlBase::type(); }
 
@@ -273,7 +283,7 @@ protected:
 	{  }
 
 	virtual void refreshVisualItem() override final;
-	virtual void updateGlow() override final;
+	virtual void updateGlow(const bool &glow) override final;
 
 	virtual bool loadFromLayer(RpgGame *game, TiledScene *scene,
 							   Tiled::Layer *layer, Tiled::MapRenderer *renderer = nullptr) override {
@@ -348,6 +358,18 @@ inline T2 RpgActiveControl<T, T2, E, T3, T4>::baseData() const
 }
 
 
+/**
+ * @brief RpgActiveControl::pureBaseData
+ * @return
+ */
+
+template<typename T, typename T2, typename E, typename T4, typename T5>
+inline RpgGameData::BaseData RpgActiveControl<T, T2, E, T4, T5>::pureBaseData() const
+{
+	return baseData();
+}
+
+
 
 
 /**
@@ -406,14 +428,14 @@ inline void RpgActiveControl<T, T2, E, T4, T5>::setCurrentState(const E &newStat
  */
 
 template<typename T, typename T2, typename E, typename T4, typename T5>
-inline void RpgActiveControl<T, T2, E, T4, T5>::updateGlow()
+inline void RpgActiveControl<T, T2, E, T4, T5>::updateGlow(const bool &glow)
 {
-	RpgActiveIface::updateGlow();
+	RpgActiveIface::updateGlow(glow);
 
 	for (const auto &list : m_tileLayerList) {
 		for (QQuickItem *item : list) {
 			if (TiledVisualItem *i = qobject_cast<TiledVisualItem*>(item))
-				i->setGlowEnabled(!m_contactedFixtures.isEmpty());
+				i->setGlowEnabled(glow);
 		}
 	}
 

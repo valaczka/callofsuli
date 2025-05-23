@@ -94,42 +94,81 @@ class RpgEnginePrivate;
  * @brief The RpgEvent class
  */
 
-class RpgEvent
+class RpgEventBase
 {
 public:
-	RpgEvent(RpgEngine *engine, const qint64 &tick, const bool &unique = true);
-	virtual ~RpgEvent();
+	RpgEventBase(RpgEngine *engine, const qint64 &tick, const bool &unique = true);
+	virtual ~RpgEventBase();
 
 	virtual bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) = 0;							// Return true = delete
-	virtual bool isEqual(RpgEvent *other) const = 0;	// Ezalapján döntjük el, hogy egyedi-e (nem ismételhető)
+
+	virtual bool isEqual(RpgEventBase *other) const = 0;	// Ezalapján döntjük el, hogy egyedi-e (nem ismételhető)
 
 	const qint64 &tick() const { return m_tick; }
+	void setTick(const qint64 &tick) { m_tick = tick; }
+
 	bool isUnique() const { return m_unique; }
 
 protected:
 	RpgEngine *const m_engine;
-	const qint64 m_tick;				// Mikor történt / fog történni
+	qint64 m_tick = -1;					// Mikor történt / fog történni
 	const bool m_unique = true;			// Nem lehet ismételni
 };
 
 
 
 
+template <typename T>
+class RpgEvent : public RpgEventBase
+{
+public:
+	RpgEvent(RpgEngine *engine, const qint64 &tick, const T &data, const bool &unique = true)
+		: RpgEventBase(engine, tick, unique)
+		, m_data(data)
+	{ }
+
+	virtual ~RpgEvent() = default;
+
+	const T &baseData() const { return m_data; }
+
+	bool isBaseEqual(RpgEventBase *other) const {
+		if (RpgEvent<T> *d = dynamic_cast<RpgEvent<T>*>(other); d &&
+				d->m_tick == m_tick &&
+				d->m_data == m_data
+				)
+			return true;
+
+		return false;
+	}
+
+
+protected:
+	const T m_data;
+};
+
+
+
+#define ADD_EQUAL(T)		virtual bool isEqual(RpgEventBase *other) const override { \
+return dynamic_cast<T*>(other) && isBaseEqual(other); \
+}
+
 
 /**
  * @brief The RpgEventEnemyDied class
  */
 
-class RpgEventEnemyDied : public RpgEvent
+class RpgEventEnemyDied : public RpgEvent<RpgGameData::EnemyBaseData>
 {
 public:
-	RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data);
+	RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data)
+		: RpgEvent<RpgGameData::EnemyBaseData>(engine, tick, data)
+	{
+		LOG_CDEBUG("engine") << "Enemy died" << m_data.o << m_data.id << "@" << tick;
+	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-	bool isEqual(RpgEvent *other) const override;
 
-private:
-	const RpgGameData::EnemyBaseData m_data;
+	ADD_EQUAL(RpgEventEnemyDied);
 };
 
 
@@ -138,13 +177,18 @@ private:
  * @brief The RpgEventEnemyResurrect class
  */
 
-class RpgEventEnemyResurrect : public RpgEvent
+class RpgEventEnemyResurrect : public RpgEvent<bool>
 {
 public:
-	RpgEventEnemyResurrect(RpgEngine *engine, const qint64 &tick);
+	RpgEventEnemyResurrect(RpgEngine *engine, const qint64 &tick)
+		: RpgEvent<bool>(engine, tick, false)
+	{
+		LOG_CDEBUG("engine") << "RESURRECT created" << tick << m_unique;
+	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-	bool isEqual(RpgEvent *other) const override;
+
+	ADD_EQUAL(RpgEventEnemyResurrect);
 };
 
 
@@ -157,17 +201,21 @@ public:
  * @brief The RpgEventPlayerDied class
  */
 
-class RpgEventPlayerDied : public RpgEvent
+class RpgEventPlayerDied : public RpgEvent<RpgGameData::PlayerBaseData>
 {
 public:
-	RpgEventPlayerDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data);
+	RpgEventPlayerDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
+		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data)
+	{
+		LOG_CDEBUG("engine") << "Player died" << m_data.o << m_data.id << "@" << tick;
+	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-	bool isEqual(RpgEvent *other) const override;
 
-private:
-	const RpgGameData::PlayerBaseData m_data;
+	ADD_EQUAL(RpgEventPlayerDied);
 };
+
+
 
 
 
@@ -175,16 +223,60 @@ private:
  * @brief The RpgEventPlayerResurrect class
  */
 
-class RpgEventPlayerResurrect : public RpgEvent
+class RpgEventPlayerResurrect : public RpgEvent<RpgGameData::PlayerBaseData>
 {
 public:
-	RpgEventPlayerResurrect(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data);
+	RpgEventPlayerResurrect(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
+		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data)
+	{
+		LOG_CDEBUG("engine") << "PLAYER RESURRECT created" << tick << m_unique << data.o;
+	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-	bool isEqual(RpgEvent *other) const override;
 
-private:
-	const RpgGameData::PlayerBaseData m_data;
+	ADD_EQUAL(RpgEventPlayerResurrect);
+};
+
+
+
+
+/**
+ * @brief The RpgEventContainerLocked class
+ */
+
+class RpgEventContainerLocked : public RpgEvent<RpgGameData::ControlContainerBaseData>
+{
+public:
+	RpgEventContainerLocked(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data)
+		: RpgEvent<RpgGameData::ControlContainerBaseData>(engine, tick, data)
+	{
+		LOG_CDEBUG("engine") << "CONTAINER LOCK created" << tick << m_unique << data.o;
+	}
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+
+	ADD_EQUAL(RpgEventContainerLocked);
+};
+
+
+
+
+/**
+ * @brief The RpgEventContainerUnlock class
+ */
+
+class RpgEventContainerUnlock : public RpgEvent<RpgGameData::ControlContainerBaseData>
+{
+public:
+	RpgEventContainerUnlock(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data)
+		: RpgEvent<RpgGameData::ControlContainerBaseData>(engine, tick, data, true)
+	{
+		LOG_CDEBUG("engine") << "CONTAINER UNLOCK created" << tick << m_unique << data.o;
+	}
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+
+	ADD_EQUAL(RpgEventContainerUnlock);
 };
 
 
@@ -223,12 +315,16 @@ public:
 
 
 	template <typename T, typename ...Args,
-			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
 	void eventAdd(Args &&...args);
 
 	template <typename T, typename ...Args,
-			  typename = std::enable_if<std::is_base_of<RpgEvent, T>::value>::type>
+			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
 	void eventAddLater(Args &&...args);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
+	T* eventFind(const T2 &data);
 
 
 	template <typename T, typename T2,
@@ -245,6 +341,12 @@ public:
 	int createEvents(const qint64 &tick, const RpgGameData::BulletBaseData &data,
 					 const RpgGameData::Bullet &snap, const std::optional<RpgGameData::Bullet> &prev);
 
+	int createEvents(const qint64 &tick, const RpgGameData::ControlBaseData &data,
+					 const RpgGameData::ControlLight &snap, const std::optional<RpgGameData::ControlLight> &prev);
+
+	int createEvents(const qint64 &tick, const RpgGameData::ControlContainerBaseData &data,
+					 const RpgGameData::ControlContainer &snap, const std::optional<RpgGameData::ControlContainer> &prev);
+
 
 	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
 
@@ -253,6 +355,8 @@ public:
 	const RpgGameData::SnapshotList<RpgGameData::Enemy, RpgGameData::EnemyBaseData> &enemies();
 	const RpgGameData::SnapshotList<RpgGameData::Bullet, RpgGameData::BulletBaseData> &bullets();
 
+	const RpgGameData::SnapshotList<RpgGameData::ControlLight, RpgGameData::ControlBaseData> &controlLights();
+	const RpgGameData::SnapshotList<RpgGameData::ControlContainer, RpgGameData::ControlContainerBaseData> &controlContainers();
 
 
 	void renderTimerLog(const qint64 &msec);
@@ -278,6 +382,7 @@ private:
 
 	friend class RpgEnginePrivate;
 };
+
 
 
 

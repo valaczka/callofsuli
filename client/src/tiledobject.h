@@ -187,6 +187,8 @@ public:
 	bool isSensor() const;
 	void setSensor(const bool &sensor);
 
+	bool isAboutToDestruction() const;
+
 
 	const std::vector<cpShape*> &bodyShapes() const;
 	bool isBodyShape(cpShape *shape) const;

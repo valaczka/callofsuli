@@ -132,9 +132,10 @@ protected:
 	virtual void onTimeStepped();
 	virtual void onTimeAfterWorldStep(const qint64 &tick);
 	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
+	virtual void onWorldStep() { }
 	virtual bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
-	virtual bool onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control);
+	virtual bool onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control);
 	virtual bool onPlayerUseCast(RpgPlayer *player);
 	virtual bool onPlayerCastTimeout(RpgPlayer *player);
 	virtual bool onPlayerFinishCast(RpgPlayer *player);
@@ -145,8 +146,8 @@ protected:
 	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
 	virtual bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other);
 	virtual void onBulletDelete(IsometricBullet *bullet);
-	virtual void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject *control, int xp);
-	virtual void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject *control);
+	virtual void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp);
+	virtual void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control);
 
 private:
 	void rpgGameActivated_();

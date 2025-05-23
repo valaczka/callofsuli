@@ -250,7 +250,7 @@ void RpgPlayer::useCurrentControl()
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
 	if (m_currentControl && m_currentControl->isActive() && g) {
-		g->playerTryUseControl(this, m_currentControl);
+		g->playerTryUseControl(this, m_currentControl->activeControl());
 	}
 }
 
@@ -299,7 +299,7 @@ void RpgPlayer::load()
 	setBodyOffset(0, 0.45*64);
 
 	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(57,250,65,150));
-	m_visualItem->setProperty("ellipseSize", 2);
+	//m_visualItem->setProperty("ellipseSize", 2);
 	m_visualItem->setProperty("ellipseWidth", 50.);
 
 
@@ -796,6 +796,7 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 		p.a = 0.;
 
 	p.hp = hp();
+	p.l = m_isLocked;
 
 	if (TiledScene *s = scene())
 		p.sc = s->sceneId();
@@ -1130,10 +1131,6 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		}
 	} catch (int e) {
 
-
-		//--------
-
-
 		if (e > 0) {
 			speed = entityMove(this, snapshot,
 							   RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving,
@@ -1142,13 +1139,15 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		} else {
 			msg = "SKIPPED";
 		}
-
 	}
 
-	if (snapshot.s1.f >= 0)
+	if (snapshot.s1.f >= 0) {
+		setIsLocked(snapshot.s1.l);
 		updateFromSnapshot(snapshot.s1);
-	else
+	} else {
+		setIsLocked(snapshot.last.l);
 		updateFromSnapshot(snapshot.last);
+	}
 
 	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		stop();
@@ -1184,6 +1183,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 {
 	setHp(snap.hp);
+	///setIsLocked(snap.l);
 
 	if (snap.st == RpgGameData::Player::PlayerAttack) {
 		if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame()) {

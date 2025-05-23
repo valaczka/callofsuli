@@ -305,6 +305,7 @@ protected:
 	virtual void timeStepPrepareEvent();
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick);
 	virtual void worldStep(TiledObjectBody *body);
+	virtual void worldStep() { }
 	virtual void timeAfterWorldStepEvent(const qint64 &tick);
 	virtual void timeSteppedEvent();
 

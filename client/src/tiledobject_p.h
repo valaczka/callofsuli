@@ -66,6 +66,8 @@ private:
 
 	cpBody *m_bodyRef = nullptr;
 
+	bool m_aboutToDestruction = false;
+
 	std::vector<cpShape*> m_bodyShapes;
 
 	cpShape *m_sensorPolygon = nullptr;

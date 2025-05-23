@@ -110,14 +110,18 @@ private:
 	void onTimeBeforeWorldStep(const qint64 &tick) override;
 	void onTimeAfterWorldStep(const qint64 &tick) override;
 	bool onBodyStep(TiledObjectBody *body) override;
+	void onWorldStep() override;
 	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable) override;
 	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType) override;
-	bool onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control) override;
+	bool onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control) override;
 	bool onPlayerUseCast(RpgPlayer *player) override;
 	bool onPlayerCastTimeout(RpgPlayer *player) override;
 	bool onPlayerFinishCast(RpgPlayer *player) override;
 	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon) override;
 	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle) override;
+
+	void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp) override;
+	void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control) override;
 
 	void onPlayerWeaponChanged();
 

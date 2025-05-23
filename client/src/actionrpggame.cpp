@@ -1194,7 +1194,7 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, cons
  * @return
  */
 
-bool ActionRpgGame::onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control)
+bool ActionRpgGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control)
 {
 	if (!player || !control)
 		return false;
@@ -1649,7 +1649,7 @@ void ActionRpgGame::onBulletDelete(IsometricBullet *bullet)
  * @param xp
  */
 
-void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject *control, int xp)
+void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp)
 {
 	if (enemy)
 		enemy->setHp(0);
@@ -1667,18 +1667,28 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgAct
 }
 
 
+
+
+
+
 /**
  * @brief ActionRpgGame::onQuestionFailed
  * @param player
  * @param enemy
  */
 
-void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveControlObject */*container*/)
+void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control)
 {
-	if (player)
-		player->setHp(std::max(0, player->hp()-1));
-
 	setIsFlawless(false);
+
+	if (!player)
+		return;
+
+	if (control) {
+		RpgGameData::Player p = player->serialize();
+		p.controlFailed(control->activeType());
+		player->updateFromSnapshot(p);
+	}
 
 	if (enemy && player && !enemy->player()) {
 		enemy->rotateToPlayer(player);

@@ -168,6 +168,19 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 		}
 	}
 
+
+	for (const auto &ptr : snapshot.controls.lights) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+	}
+
+	for (const auto &ptr : snapshot.controls.containers) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+	}
+
 	updateSnapshotRemoveMissing(snapshot.bullets);
 
 }
@@ -635,6 +648,72 @@ void ClientStorage::updateSnapshot(const RpgGameData::BulletBaseData &bulletData
 		LOG_CDEBUG("game") << "SKIP FRAME" << bullet.f << bullet.p;
 	else
 		it->list.insert_or_assign(bullet.f, bullet);
+}
+
+
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param lightData
+ * @param light
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::ControlBaseData &lightData, const RpgGameData::ControlLight &light)
+{
+	auto it = std::find_if(m_controls.lights.begin(),
+						   m_controls.lights.end(),
+						   [&lightData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(lightData));
+	});
+
+	if (it == m_controls.lights.end()) {
+		LOG_CINFO("game") << "New light" << lightData.o << lightData.s << lightData.id;
+		m_controls.lights.push_back({
+								.data = lightData,
+								.list = {}
+							});
+		it = m_controls.lights.end()-1;
+	}
+
+	it->data = lightData;
+
+	if (light.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << light.f << light.st;
+	else
+		it->list.insert_or_assign(light.f, light);
+}
+
+
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param containerData
+ * @param container
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::ControlContainerBaseData &containerData, const RpgGameData::ControlContainer &container)
+{
+	auto it = std::find_if(m_controls.containers.begin(),
+						   m_controls.containers.end(),
+						   [&containerData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(containerData));
+	});
+
+	if (it == m_controls.containers.end()) {
+		LOG_CINFO("game") << "New container" << containerData.o << containerData.s << containerData.id;
+		m_controls.containers.push_back({
+								.data = containerData,
+								.list = {}
+							});
+		it = m_controls.containers.end()-1;
+	}
+
+	it->data = containerData;
+
+	if (container.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << container.f << container.st;
+	else
+		it->list.insert_or_assign(container.f, container);
 }
 
 

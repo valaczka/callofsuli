@@ -165,7 +165,7 @@ public:
 	void onEnemySleepingStart(TiledObject *enemy) override final;
 	void onEnemySleepingEnd(TiledObject *enemy) override final;
 
-	bool playerTryUseControl(RpgPlayer *player, RpgActiveControlObject *control);
+	bool playerTryUseControl(RpgPlayer *player, RpgActiveIface *control);
 
 	Q_INVOKABLE bool useControl();
 
@@ -311,6 +311,7 @@ protected:
 	virtual void timeStepPrepareEvent() override;
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick) override;
 	virtual void worldStep(TiledObjectBody *body) override;
+	virtual void worldStep() override;
 	virtual void timeAfterWorldStepEvent(const qint64 &tick) override;
 	virtual void timeSteppedEvent() override;
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
@@ -325,7 +326,7 @@ protected:
 private:
 	void loadMetricDefinition();
 
-	void playerUseControl(RpgPlayer *player, RpgActiveControlObject *control);
+		void playerUseControl(RpgPlayer *player, RpgActiveIface *control);
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -472,8 +473,7 @@ inline T *RpgGame::controlFind(const T2 &baseData) const
 template<typename T, typename T2, class ...Args>
 inline T *RpgGame::controlAdd(Args &&...args)
 {
-	std::unique_ptr<T> dptr(new T(std::forward<Args>(args)...));
-	m_controls.push_back(std::move(dptr));
+	m_controls.emplace_back(new T(std::forward<Args>(args)...));
 	return dynamic_cast<T*>(m_controls.back().get());
 
 }

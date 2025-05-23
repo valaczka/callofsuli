@@ -120,6 +120,11 @@ public:
 				;
 	}
 
+	static const QHash<ControlType, int> &controlDamageValue() { return m_controlDamageValue; }
+
+private:
+	static const QHash<ControlType, int> m_controlDamageValue;
+
 	QS_SERIALIZABLE
 	QS_FIELD(GameState, gameState)
 };
@@ -1066,6 +1071,7 @@ public:
 	Player()
 		: ArmoredEntity()
 		, st(PlayerInvalid)
+		, l(false)
 	{}
 
 	enum PlayerState {
@@ -1076,22 +1082,32 @@ public:
 		PlayerShot,
 		PlayerCast,
 		PlayerAttack,
-		PlayerWeaponChange
+		PlayerWeaponChange,
+		PlayerLockControl,					// előbb a feladat
+		PlayerUnlockControl,				// sikertelen feladat után
+		PlayerUseControl					// nincs feladat vagy sikeres feladat után
 	};
 
 	Q_ENUM(PlayerState);
 
 
 	bool isEqual(const Player &other) const  {
-		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg;
+		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l;
 	}
 
 	bool canMerge(const Player &other) const {
-		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg;
+		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l;
 	}
 
 	bool canInterpolateFrom(const Player &other) const {
 		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
+	}
+
+	static void controlFailed(Player &dst, const RpgConfig::ControlType &control);
+
+	void controlFailed(const RpgConfig::ControlType &control)
+	{
+		controlFailed(*this, control);
 	}
 
 	EQUAL_OPERATOR(Player);
@@ -1099,7 +1115,8 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(PlayerState, st)			// state
-	QS_OBJECT(BaseData, tg)				// target (enemy)
+	QS_OBJECT(BaseData, tg)				// target (enemy, control)
+	QS_FIELD(bool, l)					// locked
 };
 
 
@@ -1448,7 +1465,7 @@ class ControlBaseData : public BaseData
 
 public:
 	ControlBaseData(const RpgConfig::ControlType &_t,
-				  const int &_o, const int &_s, const int &_id)
+					const int &_o, const int &_s, const int &_id)
 		: BaseData(_o, _s, _id)
 		, t(_t)
 	{}
@@ -1488,7 +1505,7 @@ class ControlActiveBaseData : public ControlBaseData
 public:
 
 	ControlActiveBaseData(const RpgConfig::ControlType &_t,
-				  const int &_o, const int &_s, const int &_id)
+						  const int &_o, const int &_s, const int &_id)
 		: ControlBaseData(_t, _o, _s, _id)
 	{}
 
@@ -1539,6 +1556,10 @@ public:
 	}
 
 	EQUAL_OPERATOR(Control)
+
+	QS_SERIALIZABLE
+
+	QS_OBJECT(BaseData, u)				// held by user
 };
 
 
@@ -1717,7 +1738,6 @@ public:
 
 
 
-
 /**
  * @brief The SnapshotInterpolation class
  */
@@ -1741,7 +1761,12 @@ struct SnapshotInterpolation {
 template <typename T2, typename T,
 		  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
 		  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
-using SnapshotInterpolationList = std::vector<std::pair<T2, SnapshotInterpolation<T> > >;
+using SnapshotInterpolationData = std::pair<T2, SnapshotInterpolation<T> >;
+
+template <typename T2, typename T,
+		  typename = std::enable_if<std::is_base_of<Body, T>::value>::type,
+		  typename = std::enable_if<std::is_base_of<BaseData, T2>::value>::type>
+using SnapshotInterpolationList = std::vector<SnapshotInterpolationData<T2, T> >;
 
 
 
@@ -1767,6 +1792,30 @@ using SnapshotList = std::vector<SnapshotData<T, T2> >;
 
 
 /**
+ * @brief The SnapshotInterpolationControls class
+ */
+
+struct SnapshotInterpolationControls
+{
+	SnapshotInterpolationList<ControlBaseData, ControlLight> lights;
+	SnapshotInterpolationList<ControlContainerBaseData, ControlContainer> containers;
+};
+
+
+
+/**
+ * @brief The SnapshotControls class
+ */
+
+struct SnapshotControls
+{
+	SnapshotList<ControlLight, ControlBaseData> lights;
+	SnapshotList<ControlContainer, ControlContainerBaseData> containers;
+};
+
+
+
+/**
  * @brief The FullSnapshot class
  */
 
@@ -1774,11 +1823,15 @@ struct FullSnapshot {
 	SnapshotInterpolationList<PlayerBaseData, Player> players;
 	SnapshotInterpolationList<EnemyBaseData, Enemy> enemies;
 	SnapshotInterpolationList<BulletBaseData, Bullet> bullets;
+	SnapshotInterpolationControls controls;
 
 	void clear() {
 		players.clear();
 		enemies.clear();
 		bullets.clear();
+
+		controls.lights.clear();
+		controls.containers.clear();
 	}
 
 	template <typename T2, typename T,
@@ -1821,11 +1874,15 @@ struct CurrentSnapshot {
 	SnapshotList<Player, PlayerBaseData> players;
 	SnapshotList<Enemy, EnemyBaseData> enemies;
 	SnapshotList<Bullet, BulletBaseData> bullets;
+	SnapshotControls controls;
 
 	void clear() {
 		players.clear();
 		enemies.clear();
 		bullets.clear();
+
+		controls.lights.clear();
+		controls.containers.clear();
 	}
 
 
@@ -1877,6 +1934,7 @@ public:
 	const SnapshotList<Player, PlayerBaseData> &players() const { return m_players; }
 	const SnapshotList<Enemy, EnemyBaseData> &enemies() const { return m_enemies; }
 	const SnapshotList<Bullet, BulletBaseData> &bullets() const { return m_bullets; }
+	const SnapshotControls &controls() const { return m_controls; }
 
 	FullSnapshot getFullSnapshot(const qint64 &tick, const bool &findLast = false);
 	FullSnapshot getNextFullSnapshot(const qint64 &tick) { return getFullSnapshot(tick, true); }
@@ -1934,6 +1992,7 @@ protected:
 	SnapshotList<Player, PlayerBaseData> m_players;
 	SnapshotList<Enemy, EnemyBaseData> m_enemies;
 	SnapshotList<Bullet, BulletBaseData> m_bullets;
+	SnapshotControls m_controls;
 };
 
 

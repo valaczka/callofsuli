@@ -25,6 +25,9 @@
  */
 
 #include "actionrpgmultiplayergame.h"
+#include "rpgcontrolcontainer.h"
+#include "rpgcontrollight.h"
+#include "rpgquestion.h"
 #include "rpgudpengine.h"
 #include "client.h"
 #include "rpgplayer.h"
@@ -443,6 +446,9 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 	}
 
 	if (m_config.gameState == RpgConfig::StatePrepare) {
+		if (m_oldGameState != m_config.gameState)
+			m_rpgQuestion->initialize();
+
 		ActionRpgGame::onConfigChanged();
 		return;
 	}
@@ -545,6 +551,24 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 			txt += QStringLiteral("\n \n");
 		}
 
+
+		for (const auto &ptr : snapshots.controls().containers) {
+			txt += QStringLiteral("STORAGE CONTAINER %1 %2 %3\n==============================================\n")
+				   .arg(ptr.data.o)
+				   .arg(ptr.data.s)
+				   .arg(ptr.data.id);
+
+			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
+				txt += QStringLiteral("%1: %2 (%3) %4\n")
+					   .arg(it->second.f)
+					   .arg(it->second.st)
+					   .arg(it->second.a)
+					   .arg(it->second.lck)
+					   ;
+			}
+
+			txt += QStringLiteral("\n \n");
+		}
 
 
 		for (const auto &ptr : snapshots.enemies()) {
@@ -804,10 +828,9 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 			RpgGameData::Player pd;
 
 			if (pl.list.size() > 0) {
-				LOG_CWARNING("game") << "LAST KEY" << std::prev(pl.list.cend())->first;
 				pd = std::prev(pl.list.cend())->second;
 			} else {
-				LOG_CERROR("game") << "PLAYER DATA MISSING" << pl.data.o;
+				LOG_CERROR("game") << "Player data missing" << pl.data.o;
 			}
 
 			TiledScene *scene = m_rpgGame->findScene(pd.sc);
@@ -819,7 +842,7 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 			RpgPlayer *rpgPlayer = createPlayer(scene, pl.data, pd);
 
 			if (!rpgPlayer) {
-				LOG_CERROR("game") << "ERROR";
+				LOG_CERROR("game") << "Missing RpgPlayer";
 				return;
 			}
 
@@ -937,6 +960,8 @@ void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 	}
 
 }
+
+
 
 
 
@@ -1334,10 +1359,38 @@ bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onPlayerUseControl(RpgPlayer *player, RpgActiveControlObject *control)
+bool ActionRpgMultiplayerGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control)
 {
+	if (!player || player->objectId().ownerId != m_playerId)
+		return false;
+
+	LOG_CWARNING("game") << "PLAYER" << m_playerId << "USER CONTROL" << control << m_rpgGame->tickTimer()->currentTick();
+
+	if (!control)
+		return false;
+
+	if (RpgControlContainer *c = dynamic_cast<RpgControlContainer*>(control)) {
+		RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
+		p.st = m_rpgQuestion->emptyQuestions() ? RpgGameData::Player::PlayerUseControl : RpgGameData::Player::PlayerLockControl;
+		p.tg = c->baseData();
+
+		q->m_toSend.appendSnapshot(player->baseData(), p);
+		player->setLastSnapshot(p);
+
+		return true;
+	}
+
+	LOG_CERROR("game")	 << "----- invalid------";
+
 	return ActionRpgGame::onPlayerUseControl(player, control);
 }
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onPlayerUseCast
+ * @param player
+ * @return
+ */
 
 bool ActionRpgMultiplayerGame::onPlayerUseCast(RpgPlayer *player)
 {
@@ -1424,6 +1477,49 @@ bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::onQuestionSuccess
+ * @param player
+ * @param enemy
+ * @param control
+ * @param xp
+ */
+
+void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp)
+{
+	if (!control)
+		return;
+
+	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
+	p.st = RpgGameData::Player::PlayerUseControl;
+	p.tg = control->pureBaseData();
+
+	q->m_toSend.appendSnapshot(player->baseData(), p);
+	player->setLastSnapshot(p);
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onQuestionFailed
+ * @param player
+ * @param enemy
+ * @param control
+ */
+
+void ActionRpgMultiplayerGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control)
+{
+	setIsFlawless(false);
+
+	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
+	p.st = RpgGameData::Player::PlayerUnlockControl;
+	p.tg = control->pureBaseData();
+
+	q->m_toSend.appendSnapshot(player->baseData(), p);
+	player->setLastSnapshot(p);
+}
+
+
+
+/**
  * @brief ActionRpgMultiplayerGame::onPlayerWeaponChanged
  */
 
@@ -1445,8 +1541,6 @@ void ActionRpgMultiplayerGame::onPlayerWeaponChanged()
 
 	if (player->objectId().ownerId != m_playerId)
 		return;
-
-	LOG_CWARNING("game") << "SERIALIZE" << player << "WEAPON CHANGE" << m_rpgGame->tickTimer()->currentTick();
 
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerWeaponChange;
@@ -1563,7 +1657,7 @@ bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody
 	LOG_CWARNING("game") << "BULLET IMPACTED" << bullet->objectId().id
 						 << "--->"
 						 << bullet->m_impactedObject.o
-							<< bullet->m_impactedObject.s
+						 << bullet->m_impactedObject.s
 						 << bullet->m_impactedObject.id
 						 << "at"
 						 << m_rpgGame->tickTimer()->currentTick();
@@ -1601,6 +1695,31 @@ bool ActionRpgMultiplayerGame::onBodyStep(TiledObjectBody *body)
 				  );
 
 	return true;
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onWorldStep
+ */
+
+void ActionRpgMultiplayerGame::onWorldStep()
+{
+	for (const auto &ptr : m_rpgGame->m_controls) {
+		if (RpgControlLight *c = dynamic_cast<RpgControlLight*>(ptr.get())) {
+			if (const auto &s = q->m_currentSnapshot.getSnapshot<RpgGameData::ControlBaseData, RpgGameData::ControlLight>(
+						c->baseData(), q->m_currentSnapshot.controls.lights))
+				c->updateFromSnapshot(s.value());
+
+		} else if (RpgControlContainer *c = dynamic_cast<RpgControlContainer*>(ptr.get())) {
+			if (const auto &s = q->m_currentSnapshot.getSnapshot<RpgGameData::ControlContainerBaseData, RpgGameData::ControlContainer>(
+						c->baseData(), q->m_currentSnapshot.controls.containers))
+				c->updateFromSnapshot(s.value());
+
+		} else {
+			LOG_CERROR("game") << "Invalid control" << ptr.get();
+		}
+	}
 }
 
 
@@ -1718,6 +1837,18 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 				snap.assign(snap.enemies, eData, RpgGameData::Enemy());
 
 		}
+
+
+		for (const auto &ptr : m_rpgGame->m_controls) {
+			if (RpgControlLight *c = dynamic_cast<RpgControlLight*>(ptr.get())) {
+				snap.assign(snap.controls.lights, c->baseData(), c->serialize(0));
+			} else if (RpgControlContainer *c = dynamic_cast<RpgControlContainer*>(ptr.get())) {
+				snap.assign(snap.controls.containers, c->baseData(), c->serialize(0));
+			} else {
+				LOG_CERROR("game") << "Invalid control" << ptr.get();
+			}
+		}
+
 
 		map = config.toCborMap();
 

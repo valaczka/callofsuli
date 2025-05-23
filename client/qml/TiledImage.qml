@@ -9,6 +9,15 @@ TiledVisualItemImpl {
 	implicitWidth: _image.sourceSize.width
 	implicitHeight: _image.sourceSize.height
 
+	property bool _initShow: false
+
+	Timer {
+		running: true
+		repeat: false
+		interval: 200
+		onTriggered: _initShow = false
+	}
+
 	Rectangle {
 		visible: _control.scene && _control.scene.game && _control.scene.game.debugView
 		color: "transparent"
@@ -36,7 +45,7 @@ TiledVisualItemImpl {
 
 	Glow {
 		id: glow
-		opacity: _control.glowEnabled ? 1.0 : 0.0
+		opacity: _initShow || _control.glowEnabled ? 1.0 : 0.0
 		visible: opacity != 0
 		color: _control.glowColor
 
@@ -55,7 +64,7 @@ TiledVisualItemImpl {
 	ColorOverlay {
 		id: overlay
 
-		opacity: _control.overlayEnabled ? 0.5 : 0.0
+		opacity: _initShow || _control.overlayEnabled ? 0.5 : 0.0
 		visible: opacity != 0
 		color: _control.overlayColor
 

@@ -43,9 +43,9 @@
 
 #define BODY_ERROR(body, msg) { \
 	if (const RpgPlayer *p = dynamic_cast<const RpgPlayer*>(body)) \
-		LOG_CERROR("scene") << msg << p; \
+	LOG_CERROR("scene") << msg << p; \
 	else if (const RpgEnemy *p = dynamic_cast<const RpgEnemy*>(body)) \
-		LOG_CERROR("scene") << msg << p; \
+	LOG_CERROR("scene") << msg << p; \
 	}
 #else
 #define BODY_ERROR(body, msg) LOG_CERROR("scene") << msg << body;
@@ -1480,6 +1480,18 @@ void TiledObjectBody::setSensor(const bool &sensor)
 }
 
 
+
+/**
+ * @brief TiledObjectBody::isAboutToDestruction
+ * @return
+ */
+
+bool TiledObjectBody::isAboutToDestruction() const
+{
+	return d->m_aboutToDestruction;
+}
+
+
 /**
  * @brief TiledObjectBody::bodyShapes
  * @return
@@ -2399,6 +2411,8 @@ void TiledObjectBodyPrivate::deleteBody()
 
 	if (!m_bodyRef)
 		return;
+
+	m_aboutToDestruction = true;
 
 	if (m_bodyRef->space) {
 		Q_ASSERT(!cpSpaceIsLocked(m_bodyRef->space));

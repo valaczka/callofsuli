@@ -1480,6 +1480,7 @@ void TiledGame::worldStep(TiledObjectBody *body)
 
 
 
+
 void TiledGame::timeAfterWorldStepEvent(const qint64 &tick)
 {
 	Q_UNUSED(tick);
@@ -2161,6 +2162,8 @@ void TiledGamePrivate::stepWorlds()
 		if (ptr)
 			q->worldStep(ptr.get());
 	}
+
+	q->worldStep();
 }
 
 
@@ -2535,7 +2538,7 @@ cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *, cpDataPointer
 	TiledObjectBody *bodyA = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA));
 	TiledObjectBody *bodyB = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB));
 
-	if (!bodyA || !bodyB)
+	if (!bodyA || !bodyB || bodyA->isAboutToDestruction() || bodyB->isAboutToDestruction())
 		return true;
 
 	bodyA->onShapeContactBegin(shapeA, shapeB);
@@ -2563,7 +2566,7 @@ void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *, cpDataPointer)
 	TiledObjectBody *bodyA = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA));
 	TiledObjectBody *bodyB = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB));
 
-	if (!bodyA || !bodyB)
+	if (!bodyA || !bodyB || bodyA->isAboutToDestruction() || bodyB->isAboutToDestruction())
 		return;
 
 	bodyA->onShapeContactEnd(shapeA, shapeB);
