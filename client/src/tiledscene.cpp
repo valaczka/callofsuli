@@ -200,11 +200,11 @@ void TiledScene::stopMusic()
  * @brief TiledScene::reorderObjectsZ
  */
 
-void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
+void TiledScene::reorderObjectsZ(const std::vector<TiledObjectBody*> list)
 {
-	QHash<qreal, QMultiMap<qreal, TiledObject*>> map;
+	QHash<qreal, QMultiMap<qreal, TiledObjectBody*>> map;
 
-	for (TiledObject *obj : list) {
+	for (TiledObjectBody *obj : list) {
 		IsometricObject *iso = dynamic_cast<IsometricObject*>(obj);
 
 		qreal z = 0;
@@ -212,8 +212,8 @@ void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
 
 		if (iso)
 			z = getDynamicZ(obj->bodyPositionF(), iso->defaultZ()) + iso->subZ();
-		else if (obj->m_visualItem)
-			z = obj->m_visualItem->z();
+		else
+			z = getDynamicZ(obj->bodyPositionF(), 1);
 
 		map[z].insert(y, obj);
 	}
@@ -222,8 +222,8 @@ void TiledScene::reorderObjectsZ(const std::vector<TiledObject*> list)
 		qreal subsubZ = 0.0001;
 
 		for (const auto &[key, o] : subMap.asKeyValueRange()) {
-			if (o->m_visualItem)
-				o->m_visualItem->setZ(subZ+subsubZ);
+			if (o->visualItem())
+				o->visualItem()->setZ(subZ+subsubZ);
 			subsubZ += 0.0001;
 		}
 	}

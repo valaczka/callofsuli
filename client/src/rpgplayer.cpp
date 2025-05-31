@@ -41,6 +41,23 @@
 
 
 
+class RpgPlayerPrivate
+{
+private:
+	RpgPlayerPrivate(RpgPlayer *player)
+		: q(player)
+	{}
+
+	RpgPlayer *const q;
+
+	QPointer<RpgActiveControlObject> m_currentControl;
+
+	friend class RpgPlayer;
+};
+
+
+
+
 /**
  * @brief RpgPlayer::RpgPlayer
  * @param parent
@@ -49,6 +66,7 @@
 RpgPlayer::RpgPlayer(RpgGame *game, const qreal &radius, const cpBodyType &type)
 	: IsometricPlayer(game, radius, type)
 	, RpgGameDataInterface<RpgGameData::Player, RpgGameData::PlayerBaseData>()
+	, d(new RpgPlayerPrivate(this))
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
 	, m_sfxAccept(this)
@@ -91,7 +109,7 @@ RpgPlayer::RpgPlayer(RpgGame *game, const qreal &radius, const cpBodyType &type)
 
 RpgPlayer::~RpgPlayer()
 {
-
+	delete d;
 }
 
 
@@ -249,8 +267,8 @@ void RpgPlayer::useCurrentControl()
 {
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-	if (m_currentControl && m_currentControl->isActive() && g) {
-		g->playerTryUseControl(this, m_currentControl->activeControl());
+	if (d->m_currentControl && d->m_currentControl->isActive() && g) {
+		g->playerTryUseControl(this, d->m_currentControl->activeControl());
 	}
 }
 
@@ -766,14 +784,21 @@ void RpgPlayer::attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weap
 
 RpgActiveControlObject *RpgPlayer::currentControl() const
 {
-	return m_currentControl;
+	return d->m_currentControl;
 }
+
+
+
+/**
+ * @brief RpgPlayer::setCurrentControl
+ * @param newCurrentControl
+ */
 
 void RpgPlayer::setCurrentControl(RpgActiveControlObject *newCurrentControl)
 {
-	if (m_currentControl == newCurrentControl)
+	if (d->m_currentControl == newCurrentControl)
 		return;
-	m_currentControl = newCurrentControl;
+	d->m_currentControl = newCurrentControl;
 	emit currentControlChanged();
 }
 
@@ -878,18 +903,15 @@ void RpgPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 
 	TiledObjectBody *base = TiledObjectBody::fromShapeRef(other);
 
-	LOG_CINFO("scene") << "PLAYER CONTACT" << self << other << base;
-
 	if (!base)
 		return;
 
 	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
 
 	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureControl)) {
-		LOG_CINFO("scene") << "CONTROL" << self << other;
 		RpgActiveControlObject *control = dynamic_cast<RpgActiveControlObject*>(base);
 
-		if (!m_currentControl && control)
+		if (!d->m_currentControl && control)
 			setCurrentControl(control);
 	}
 }
@@ -916,7 +938,7 @@ void RpgPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureControl)) {
 		RpgActiveControlObject *control = dynamic_cast<RpgActiveControlObject*>(base);
 
-		if (m_currentControl == control && control)
+		if (d->m_currentControl == control && control)
 			setCurrentControl(nullptr);
 	}
 }

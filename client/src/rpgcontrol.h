@@ -28,12 +28,15 @@
 #define RPGCONTROL_H
 
 #include "rpggamedataiface.h"
+#include "rpgquestion.h"
+#include "rpgplayer.h"
 #include "tiledvisualitem.h"
 #include "tilelayeritem.h"
 #include <rpgconfig.h>
 #include <libtiled/grouplayer.h>
 #include <libtiled/imagelayer.h>
 #include "tiledscene.h"
+#include "application.h"
 
 
 class RpgGame;
@@ -215,6 +218,11 @@ public:
 	const bool &isActive() const { return m_isActive; }
 	void setIsActive(const bool &newActive);
 
+
+	enum DefaultEnum {
+		Default = 0
+	};
+
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other);
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other);
@@ -232,6 +240,7 @@ protected:
 	bool m_isActive = false;
 
 	QPointF m_basePosition;
+	qint64 m_lastSyncTick = -1;
 
 	TiledVisualItem* m_visualItem = nullptr;
 	QList<QPointer<RpgActiveControlObject> > m_controlObjectList;
@@ -284,6 +293,9 @@ protected:
 
 	virtual void refreshVisualItem() override final;
 	virtual void updateGlow(const bool &glow) override final;
+
+	bool loadQuestion(const RpgGameData::SnapshotInterpolation<T> &snapshot,
+					  RpgPlayer *player, RpgQuestion *question);
 
 	virtual bool loadFromLayer(RpgGame *game, TiledScene *scene,
 							   Tiled::Layer *layer, Tiled::MapRenderer *renderer = nullptr) override {
@@ -442,21 +454,44 @@ inline void RpgActiveControl<T, T2, E, T4, T5>::updateGlow(const bool &glow)
 }
 
 
-/**
- * @brief RpgActiveControl::onShapeContactBegin
- * @param self
- * @param other
- */
-
-
 
 
 
 /**
- * @brief RpgActiveControl::onShapeContactEnd
- * @param self
- * @param other
+ * @brief RpgActiveControl::loadQuestion
+ * @param snapshot
+ * @return
  */
+
+template<typename T, typename T2, typename E, typename T4, typename T5>
+inline bool RpgActiveControl<T, T2, E, T4, T5>::loadQuestion(const RpgGameData::SnapshotInterpolation<T> &snapshot,
+															 RpgPlayer *player, RpgQuestion *question)
+{
+	if (!player ||
+			!snapshot.last.u.isValid() ||
+			!snapshot.last.u.isBaseEqual(player->baseData()))
+		return false;
+
+	if (snapshot.last.f <= m_lastSyncTick) {
+		return false;
+	}
+
+
+	LOG_CINFO("game") << "LOAD CONTAINER FOR" << snapshot.last.u.o;
+
+	if (question) {
+		if (question->control() == this)
+			return false;
+
+		if (question->nextQuestion(player, nullptr, RpgGameData::Weapon::WeaponInvalid, this)) {
+			Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
+			m_lastSyncTick = snapshot.last.f;
+		}
+	}
+
+	return true;
+}
+
 
 
 
@@ -537,11 +572,11 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadFromGroupLayer(RpgGame *game
 				continue;
 			}
 
-			// TODO: add without effects (e.g. glow)
+			// TODO: add with glow effects (e.g. glow) - texture size problem!
 
-			//tileLayerAdd(it.value(), scene->addTileLayer(tl, renderer));
+			tileLayerAdd(it.value(), scene->addTileLayer(tl, renderer));
 
-			TiledVisualItem *vItem = scene->addVisualItem(tl, renderer);
+			/*TiledVisualItem *vItem = scene->addVisualItem(tl, renderer);
 
 			// A group neve alapján rendezi el
 
@@ -551,7 +586,7 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadFromGroupLayer(RpgGame *game
 			tileLayerAdd(it.value(), vItem);
 
 			LOG_CINFO("scene") << "Add tile layer" << tl->name() << this << vItem->name() << vItem->size() << vItem->position()
-							   << tl->offset() << tl->position() << tl->totalOffset();
+							   << tl->offset() << tl->position() << tl->totalOffset();*/
 		}
 	}
 

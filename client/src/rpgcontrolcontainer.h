@@ -59,7 +59,6 @@ private:
 	void _updateGlow();
 
 	TiledObjectBody::ObjectId m_objectId;
-	qint64 m_lastSyncTick = -1;
 };
 
 #endif // RPGCONTROLCONTAINER_H

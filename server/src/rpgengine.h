@@ -240,23 +240,25 @@ public:
 
 
 
+
 /**
- * @brief The RpgEventContainerLocked class
+ * @brief The RpgEventContainerUnlock class
  */
 
-class RpgEventContainerLocked : public RpgEvent<RpgGameData::ControlContainerBaseData>
+class RpgEventControlUnlock : public RpgEvent<RpgGameData::PlayerBaseData>
 {
 public:
-	RpgEventContainerLocked(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data)
-		: RpgEvent<RpgGameData::ControlContainerBaseData>(engine, tick, data)
+	RpgEventControlUnlock(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
+		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data, true)
 	{
-		LOG_CDEBUG("engine") << "CONTAINER LOCK created" << tick << m_unique << data.o;
+		LOG_CDEBUG("engine") << "CONTROL UNLOCK created" << tick << m_unique << data.o;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
 
-	ADD_EQUAL(RpgEventContainerLocked);
+	ADD_EQUAL(RpgEventControlUnlock);
 };
+
 
 
 
@@ -265,19 +267,31 @@ public:
  * @brief The RpgEventContainerUnlock class
  */
 
-class RpgEventContainerUnlock : public RpgEvent<RpgGameData::ControlContainerBaseData>
+class RpgEventCollectionRelocate : public RpgEvent<RpgGameData::ControlCollectionBaseData>
 {
 public:
-	RpgEventContainerUnlock(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data)
-		: RpgEvent<RpgGameData::ControlContainerBaseData>(engine, tick, data, true)
+	RpgEventCollectionRelocate(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
+							   const bool &success, const RpgGameData::BaseData &player)
+		: RpgEvent<RpgGameData::ControlCollectionBaseData>(engine, tick, data, true)
+		, m_success(success)
+		, m_player(player)
 	{
-		LOG_CDEBUG("engine") << "CONTAINER UNLOCK created" << tick << m_unique << data.o;
+		LOG_CDEBUG("engine") << "COLLECTION RELOCATE created" << tick << m_unique << data.o << success << player.o;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
 
-	ADD_EQUAL(RpgEventContainerUnlock);
+	ADD_EQUAL(RpgEventCollectionRelocate);
+
+private:
+	bool m_success = false;
+	const RpgGameData::BaseData m_player;
 };
+
+
+
+
+
 
 
 
@@ -300,6 +314,8 @@ public:
 	static int increaseNextId() { return ++m_nextId; }
 	static int setNextId(const int &id) { m_nextId = id+1; return m_nextId; }
 
+	virtual bool canDelete(const int &useCount) override;
+
 	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) override;
 	virtual void udpPeerAdd(UdpServerPeer *peer) override;
 	virtual void udpPeerRemove(UdpServerPeer *peer) override;
@@ -313,7 +329,6 @@ public:
 	qint64 currentTick();
 
 
-
 	template <typename T, typename ...Args,
 			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
 	void eventAdd(Args &&...args);
@@ -325,6 +340,8 @@ public:
 	template <typename T, typename T2,
 			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
 	T* eventFind(const T2 &data);
+
+	void eventRemove(RpgEventBase *event);
 
 
 	template <typename T, typename T2,
@@ -347,6 +364,9 @@ public:
 	int createEvents(const qint64 &tick, const RpgGameData::ControlContainerBaseData &data,
 					 const RpgGameData::ControlContainer &snap, const std::optional<RpgGameData::ControlContainer> &prev);
 
+	int createEvents(const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
+					 const RpgGameData::ControlCollection &snap, const std::optional<RpgGameData::ControlCollection> &prev);
+
 
 	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
 
@@ -357,13 +377,19 @@ public:
 
 	const RpgGameData::SnapshotList<RpgGameData::ControlLight, RpgGameData::ControlBaseData> &controlLights();
 	const RpgGameData::SnapshotList<RpgGameData::ControlContainer, RpgGameData::ControlContainerBaseData> &controlContainers();
+	const RpgGameData::SnapshotList<RpgGameData::ControlCollection, RpgGameData::ControlCollectionBaseData> &controlCollections();
+
+	void addRelocateCollection(const qint64 &tick, const RpgGameData::ControlCollectionBaseData &base,
+							   const RpgGameData::BaseData &player, const bool &success);
+	int relocateCollection(const RpgGameData::ControlCollectionBaseData &base, QPointF *ptr = nullptr);
+	bool finishCollection(const RpgGameData::ControlCollectionBaseData &base, const int &idx);
 
 
 	void renderTimerLog(const qint64 &msec);
 
+
 private:
 	void binaryDataReceived(UdpServerPeer *peer, const QByteArray &data);
-
 	void preparePlayers();
 	qint64 nextTick();
 

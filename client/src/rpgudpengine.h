@@ -56,6 +56,7 @@ public:
 
 	void updateSnapshot(const RpgGameData::ControlBaseData &lightData, const RpgGameData::ControlLight &light);
 	void updateSnapshot(const RpgGameData::ControlContainerBaseData &containerData, const RpgGameData::ControlContainer &container);
+	void updateSnapshot(const RpgGameData::ControlCollectionBaseData &collectionData, const RpgGameData::ControlCollection &collection);
 
 
 	// Outgoing snapshot

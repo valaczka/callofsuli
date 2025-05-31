@@ -73,6 +73,8 @@ public:
 
 	QSListModel *playersModel() const;
 
+	virtual bool isReconnecting() const override;
+
 signals:
 	void playerIdChanged();
 	void selectionCompletedChanged();
@@ -102,6 +104,8 @@ private:
 	void syncEnemyList(const ClientStorage &storage);
 	void syncPlayerList(const ClientStorage &storage);
 	void syncBulletList(const ClientStorage &storage);
+	void syncCollectionList(const ClientStorage &storage);
+	void updateLastObjectId(RpgPlayer *player);
 
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::PlayerBaseData &config, const RpgGameData::Player &playerData);
 
@@ -142,6 +146,7 @@ private:
 
 	void setTickTimer(const qint64 &tick);
 	void addLatency(const qint64 &latency);
+	void overrideCurrentFrame(const qint64 &tick);
 
 	RpgUdpEngine *m_engine = nullptr;
 	ActionRpgMultiplayerGamePrivate *q = nullptr;

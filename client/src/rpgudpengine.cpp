@@ -116,6 +116,15 @@ void RpgUdpEngine::updateState(const QCborMap &data)
 		m_gameState = QVariant(it->toInteger()).value<RpgConfig::GameState>();
 	}
 
+	if (m_game->isReconnecting()) {
+		const qint64 tick = data.value(QStringLiteral("t")).toInteger(-1);
+
+		m_gameState = m_game->config().gameState;
+		LOG_CWARNING("game") << "Game state override" << m_gameState << tick;
+
+		if (tick > 0)
+			m_game->overrideCurrentFrame(tick);
+	}
 }
 
 
@@ -181,6 +190,12 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 		}
 	}
 
+	for (const auto &ptr : snapshot.controls.collections) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+	}
+
 	updateSnapshotRemoveMissing(snapshot.bullets);
 
 }
@@ -208,8 +223,9 @@ void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
 		updateSnapshot(ch);
 
 
-	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest)
+	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest || m_game->isReconnecting()) {
 		m_gameConfig = config.gameConfig;
+	}
 }
 
 
@@ -286,8 +302,10 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 
 	const qint64 tick = data.value(QStringLiteral("t")).toInteger(-1);
 
-	if (tick > -1)
+	if (tick > -1) {
+		m_game->overrideCurrentFrame(tick);
 		m_game->setTickTimer(tick);
+	}
 
 	RpgGameData::CurrentSnapshot snapshot;
 	snapshot.fromCbor(data);
@@ -409,7 +427,11 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 			return;
 		else if (m_gameState == RpgConfig::StateCharacterSelect)
 			packetReceivedChrSel(cbor);
-		else if (m_gameState == RpgConfig::StatePrepare) {
+		else if (m_gameState == RpgConfig::StatePrepare || m_gameState == RpgConfig::StateDownloadContent) {
+			if (m_game->isReconnecting()) {
+				packetReceivedChrSel(cbor);
+			}
+
 			if (m_game->config().gameState == RpgConfig::StateDownloadContent)
 				packetReceivedDownload(cbor);
 			else if (m_game->config().gameState == RpgConfig::StatePrepare)
@@ -714,6 +736,38 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlContainerBaseData &
 		LOG_CDEBUG("game") << "SKIP FRAME" << container.f << container.st;
 	else
 		it->list.insert_or_assign(container.f, container);
+}
+
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param collectionData
+ * @param collection
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::ControlCollectionBaseData &collectionData, const RpgGameData::ControlCollection &collection)
+{
+	auto it = std::find_if(m_controls.collections.begin(),
+						   m_controls.collections.end(),
+						   [&collectionData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(collectionData));
+	});
+
+	if (it == m_controls.collections.end()) {
+		LOG_CINFO("game") << "New collection" << collectionData.o << collectionData.s << collectionData.id;
+		m_controls.collections.push_back({
+								.data = collectionData,
+								.list = {}
+							});
+		it = m_controls.collections.end()-1;
+	}
+
+	it->data = collectionData;
+
+	if (collection.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << collection.f;
+	else
+		it->list.insert_or_assign(collection.f, collection);
 }
 
 

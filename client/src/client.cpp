@@ -110,6 +110,8 @@ Client::~Client()
 		m_application->application()->removeTranslator(m_translator.get());
 	}
 
+	m_sound.reset();
+
 	LOG_CTRACE("app") << "Client destroyed" << this;
 }
 

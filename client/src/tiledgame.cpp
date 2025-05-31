@@ -829,11 +829,34 @@ void TiledGame::synchronize()
 	locker.unlock();
 
 	for (const auto &ptr : std::as_const(d->m_sceneList)) {
-		ptr->scene->reorderObjectsZ(d->getObjects<TiledObject>(ptr->scene));
+		ptr->scene->reorderObjectsZ(d->getObjects<TiledObjectBody>(ptr->scene));
 
 		if (ptr->scene->m_debugDraw)
 			ptr->scene->m_debugDraw->update();
 	}
+}
+
+
+/**
+ * @brief TiledGame::currentFrame
+ * @return
+ */
+
+const qint64 &TiledGame::currentFrame() const
+{
+	return d->m_currentFrame;
+}
+
+
+/**
+ * @brief TiledGame::overrideCurrentFrame
+ * @param frame
+ */
+
+void TiledGame::overrideCurrentFrame(const qint64 &frame)
+{
+	LOG_CDEBUG("scene") << "Override current frame:" << d->m_currentFrame << "->" << frame;
+	d->m_currentFrame = frame;
 }
 
 

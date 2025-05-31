@@ -82,11 +82,74 @@ protected:
 
 	QString dumpAs(const RpgGameData::ControlLight &data, const QList<RpgGameData::ControlLight> &subData) const;
 	QString dumpAs(const RpgGameData::ControlContainer &data, const QList<RpgGameData::ControlContainer> &subData) const;
+	QString dumpAs(const RpgGameData::ControlCollection &data, const QList<RpgGameData::ControlCollection> &subData) const;
 
 	RendererFlags m_flags = None;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(RendererType::RendererFlags)
+
+
+
+
+/**
+ * @brief The RendererItem class
+ */
+
+
+template <typename T,
+		  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+class RendererItem : public RendererType
+{
+public:
+	RendererItem() = default;
+
+	const T &data() const { return m_data; }
+	bool setData(const T &data);
+	void dataOverride(const T &data);
+
+	const QList<T> &subData() const { return m_subData; }
+	void addSubData(const T &data) { m_subData.append(data); }
+	void clearSubData() {
+		m_subData.clear();
+		m_flags.setFlag(Temporary, false);
+	}
+
+	virtual QString dump() const override {
+		return dumpAs(m_data, m_subData);
+	}
+	virtual void render(Renderer *renderer, RendererObjectType *self) override {
+		renderAs(this, self, renderer);
+	}
+
+private:
+	template <typename B,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, B>::value>::type>
+	void renderAs(RendererItem<B> *src, RendererObjectType *self, Renderer *renderer) const {
+		Q_ASSERT(src);
+		Q_ASSERT(self);
+		Q_ASSERT(renderer);
+		LOG_CERROR("engine") << "Missing specialization";
+		return;
+	}
+
+	void renderAs(RendererItem<RpgGameData::Player> *src, RendererObjectType *self, Renderer *renderer) const;
+	void renderAs(RendererItem<RpgGameData::Enemy> *src, RendererObjectType *self, Renderer *renderer) const;
+	void renderAs(RendererItem<RpgGameData::Bullet> *src, RendererObjectType *self, Renderer *renderer) const;
+
+	void renderAs(RendererItem<RpgGameData::ControlLight> *src, RendererObjectType *self, Renderer *renderer) const;
+	void renderAs(RendererItem<RpgGameData::ControlContainer> *src, RendererObjectType *self, Renderer *renderer) const;
+	void renderAs(RendererItem<RpgGameData::ControlCollection> *src, RendererObjectType *self, Renderer *renderer) const;
+
+
+
+private:
+	T m_data;						// Adat
+	QList<T> m_subData;				// feldolgozandó adatok
+
+	friend class Renderer;
+};
+
 
 
 
@@ -141,6 +204,7 @@ public:
 	}
 
 	virtual void render(Renderer *renderer) = 0;
+	virtual void postRender(Renderer *renderer) = 0;
 
 	template <typename T,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
@@ -170,6 +234,7 @@ public:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
 	bool carrySubSnap(const T &data);
 
+
 	virtual QString dump(const qint64 &start, const int &size) const = 0;
 
 	virtual bool isBaseEqual(const RpgGameData::BaseData &base) const = 0;
@@ -181,6 +246,10 @@ public:
 private:
 	std::vector<std::unique_ptr<RendererType>>::const_iterator m_iterator;
 };
+
+
+
+
 
 
 
@@ -207,66 +276,9 @@ public:
 	virtual void render(Renderer *renderer) override {
 		get()->render(renderer, this);
 	}
+	virtual void postRender(Renderer *renderer) override;
 
 	T baseData;
-};
-
-
-/**
- * @brief The RendererItem class
- */
-
-
-template <typename T,
-		  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
-class RendererItem : public RendererType
-{
-public:
-	RendererItem() = default;
-
-	const T &data() const { return m_data; }
-	bool setData(const T &data);
-	void dataOverride(const T &data);
-
-	const QList<T> &subData() const { return m_subData; }
-	void addSubData(const T &data) { m_subData.append(data); }
-	void clearSubData() {
-		m_subData.clear();
-		m_flags.setFlag(Temporary, false);
-	}
-
-	virtual QString dump() const override {
-		return dumpAs(m_data, m_subData);
-	}
-	virtual void render(Renderer *renderer, RendererObjectType *self) override {
-		renderAs(this, self, renderer);
-	}
-
-private:
-	template <typename B,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, B>::value>::type>
-	void renderAs(RendererItem<B> *src, RendererObjectType *self, Renderer *renderer) const {
-		Q_ASSERT(src);
-		Q_ASSERT(self);
-		Q_ASSERT(renderer);
-		LOG_CERROR("engine") << "Missing specialization";
-		return;
-	}
-
-	void renderAs(RendererItem<RpgGameData::Player> *src, RendererObjectType *self, Renderer *renderer) const;
-	void renderAs(RendererItem<RpgGameData::Enemy> *src, RendererObjectType *self, Renderer *renderer) const;
-	void renderAs(RendererItem<RpgGameData::Bullet> *src, RendererObjectType *self, Renderer *renderer) const;
-
-	void renderAs(RendererItem<RpgGameData::ControlLight> *src, RendererObjectType *self, Renderer *renderer) const;
-	void renderAs(RendererItem<RpgGameData::ControlContainer> *src, RendererObjectType *self, Renderer *renderer) const;
-
-
-
-private:
-	T m_data;						// Adat
-	QList<T> m_subData;				// feldolgozandó adatok
-
-	friend class Renderer;
 };
 
 
@@ -290,6 +302,7 @@ private:
 
 		virtual ~ConflictData() = default;
 		virtual bool solve(ConflictSolver *solver) = 0;
+		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) { Q_UNUSED(solver); Q_UNUSED(engine); }
 
 		const int tick;
 		bool solved = false;
@@ -359,25 +372,27 @@ private:
 	 * @brief The ConflictControlIface class
 	 */
 
-	struct ConflictUniqueIface
+	class ConflictUniqueIface
 	{
+	public:
 		enum State {
 			StateInvalid,
 			StateSuccess,
 			StateFailed
 		};
 
+		ConflictUniqueIface(const int &_tick, RendererObject<RpgGameData::PlayerBaseData> *_player = nullptr);
 		virtual ~ConflictUniqueIface() = default;
 
 		virtual RendererObjectType *uniqueObject() const = 0;
 
-		virtual void add(const int &_tick, RendererObjectType *src) = 0;
-		virtual bool remove(const int &_tick, RendererObjectType *src) = 0;
+		virtual void add(const int &_tick, RendererObjectType *src);
+		virtual bool remove(const int &_tick, RendererObjectType *src);
 
-		virtual bool releaseSuccess(const int &_tick, RendererObjectType *src) = 0;
-		virtual bool releaseFailed(const int &_tick, RendererObjectType *src) = 0;
+		virtual bool releaseSuccess(const int &_tick, RendererObjectType *src);
+		virtual bool releaseFailed(const int &_tick, RendererObjectType *src);
 
-		virtual State getState() = 0;
+		virtual State getState();
 
 		static ConflictUniqueIface *find(const RpgGameData::BaseData &data, const std::vector<std::unique_ptr<ConflictData>> &list) {
 			for (const auto &it : list) {
@@ -394,6 +409,19 @@ private:
 			return nullptr;
 		}
 
+
+	protected:
+		struct ReleaseData
+		{
+			RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
+			int tick = -1;
+			State state = StateInvalid;
+		};
+
+		std::vector<ReleaseData> releaseList;
+		int tick = -1;
+		RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
+
 	};
 
 
@@ -406,9 +434,9 @@ private:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::ControlBaseData, T>::value>::type>
 	struct ConflictDataUnique : public ConflictData, public ConflictUniqueIface
 	{
-		ConflictDataUnique(const int &_tick, RendererObject<T> *_unique)
+		ConflictDataUnique(const int &_tick, RendererObject<T> *_unique, RendererObject<RpgGameData::PlayerBaseData> *_player = nullptr)
 			: ConflictData(_tick)
-			, ConflictUniqueIface()
+			, ConflictUniqueIface(_tick, _player)
 			, unique(_unique)
 		{}
 
@@ -437,32 +465,35 @@ private:
 	 * @brief The ConflictContainer class
 	 */
 
-	struct ConflictContainer : public ConflictDataUnique<RpgGameData::ControlContainerBaseData>
+	class ConflictContainer : public ConflictDataUnique<RpgGameData::ControlContainerBaseData>
 	{
+	public:
 		ConflictContainer(const int &_tick,
 						  RendererObject<RpgGameData::ControlContainerBaseData> *_dst,
 						  RendererObject<RpgGameData::PlayerBaseData> *_src);
 
 		virtual bool solve(ConflictSolver *solver) override;
-		virtual bool releaseSuccess(const int &_tick, RendererObjectType *src) override;
-		virtual bool releaseFailed(const int &_tick, RendererObjectType *src) override;
+	};
 
-		virtual void add(const int &_tick, RendererObjectType *src) override final;
-		virtual bool remove(const int &_tick, RendererObjectType *src) override final;
 
-		virtual State getState() override final;
 
-		RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
-		int tick = -1;
 
-		struct ReleaseData
-		{
-			RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
-			int tick = -1;
-			State state = StateInvalid;
-		};
 
-		std::vector<ReleaseData> releaseList;
+
+
+	class ConflictCollection : public ConflictDataUnique<RpgGameData::ControlCollectionBaseData>
+	{
+	public:
+		ConflictCollection(const int &_tick,
+						  RendererObject<RpgGameData::ControlCollectionBaseData> *_dst,
+						  RendererObject<RpgGameData::PlayerBaseData> *_src);
+
+		virtual bool solve(ConflictSolver *solver) override;
+		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
+
+	private:
+		State m_state = StateInvalid;
+
 	};
 
 
@@ -534,10 +565,14 @@ public:
 
 	bool solve();
 
+	void generateEvents(RpgEngine *engine, const int &tick);
+
+
 
 private:
 	std::vector<std::unique_ptr<ConflictData>> m_list;
 };
+
 
 
 
@@ -565,10 +600,24 @@ public:
 
 	void render(RendererItem<RpgGameData::ControlLight> *dst, RendererObject<RpgGameData::ControlBaseData> *src);
 	void render(RendererItem<RpgGameData::ControlContainer> *dst, RendererObject<RpgGameData::ControlContainerBaseData> *src);
+	void render(RendererItem<RpgGameData::ControlCollection> *dst, RendererObject<RpgGameData::ControlCollectionBaseData> *src);
 
 	bool step();
 
 	QString dump() const;
+
+	void generateSolverEvents(RpgEngine *engine, const int &tick) { m_solver.generateEvents(engine, tick); }
+
+
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T>::value>::type>
+	void postRender(RendererObject<T> *object) { Q_UNUSED(object); }
+
+	void postRender(RendererObject<RpgGameData::ControlCollectionBaseData> *object);
+
+
+
 
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -656,6 +705,13 @@ public:
 	}
 
 
+
+	template <typename T, typename T2,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
+	std::optional<T> extendFromLast(RendererObject<T2> *src);
+
+
 private:
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -674,11 +730,8 @@ private:
 
 	void restore(RpgGameData::ControlLight *dst, const RpgGameData::ControlLight &data);
 	void restore(RpgGameData::ControlContainer *dst, const RpgGameData::ControlContainer &data);
+	void restore(RpgGameData::ControlCollection *dst, const RpgGameData::ControlCollection &data);
 
-	template <typename T, typename T2,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
-			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
-	std::optional<T> extendFromLast(RendererObject<T2> *src);
 
 	const qint64 m_startTick;
 	const int m_size;
@@ -686,8 +739,6 @@ private:
 	std::vector<std::unique_ptr<RendererObjectType>> m_objects;
 	ConflictSolver m_solver;
 };
-
-
 
 
 
@@ -708,6 +759,12 @@ public:
 
 	void lightAdd(const RpgGameData::ControlBaseData &base, const RpgGameData::ControlLight &data);
 	void containerAdd(const RpgGameData::ControlContainerBaseData &base, const RpgGameData::ControlContainer &data);
+	void collectionAdd(const RpgGameData::ControlCollectionBaseData &base, const RpgGameData::ControlCollection &data);
+
+	int lastLifeCycleId(const RpgGameData::BaseData &base, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
+	int lastLifeCycleId(const int &owner, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
+	bool setLastLifeCycleId(const RpgGameData::BaseData &base);
+	bool setLastLifeCycleId(const std::vector<RpgGameData::BaseData>::iterator &iterator, const RpgGameData::BaseData &base);
 
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -788,8 +845,19 @@ private:
 	RpgGameData::CurrentSnapshot m_tmpSnapshot;
 	qint64 m_lastAuthTick = -1;
 
-	std::vector<RpgGameData::BaseData> m_lastBulletId;
+	std::vector<RpgGameData::BaseData> m_lastLifeCycleId;
 };
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -998,6 +1066,36 @@ inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlConta
 	renderer->render(src, p);
 }
 
+
+/**
+ * @brief RendererItem::renderAs
+ * @param src
+ * @param self
+ * @param renderer
+ */
+
+template<typename T, typename T2>
+inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlCollection> *src, RendererObjectType *self, Renderer *renderer) const
+{
+	RendererObject<RpgGameData::ControlCollectionBaseData> *p = dynamic_cast<RendererObject<RpgGameData::ControlCollectionBaseData>*>(self);
+	Q_ASSERT(p);
+	renderer->render(src, p);
+}
+
+
+
+
+
+/**
+ * @brief RendererObject::postRender
+ * @param renderer
+ */
+
+template<typename T, typename T2>
+inline void RendererObject<T, T2>::postRender(Renderer *renderer) {
+	Q_ASSERT(renderer);
+	renderer->postRender(this);
+}
 
 
 

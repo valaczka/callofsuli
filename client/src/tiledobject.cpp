@@ -450,8 +450,8 @@ bool TiledObjectBody::moveToPoint(const cpVect &point, const int &inFrame, const
 
 	const cpVect &pos = bodyPosition();
 
-	if (pos == cpvzero)
-		return false;
+	/*if (pos == cpvzero)
+		return false;*/
 
 	if (pos == point)
 		return false;

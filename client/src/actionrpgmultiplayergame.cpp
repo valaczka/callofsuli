@@ -27,6 +27,7 @@
 #include "actionrpgmultiplayergame.h"
 #include "rpgcontrolcontainer.h"
 #include "rpgcontrollight.h"
+#include "rpgcontrolcollection.h"
 #include "rpgquestion.h"
 #include "rpgudpengine.h"
 #include "client.h"
@@ -75,6 +76,9 @@ private:
 
 	qint64 m_lastSentTick = -1;
 	ClientStorage m_toSend;
+
+	bool m_isReconnecting = false;
+	bool m_hasReconnected = false;
 
 	class TimeSync {
 	public:
@@ -485,8 +489,8 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 
 			gameStart();
 			m_deadlineTick = AbstractGame::TickTimer::msecToTick(m_config.duration*1000);
-			m_elapsedTick = 0;
-			m_rpgGame->tickTimer()->start(this, 0);
+			//m_elapsedTick = 0;
+			m_rpgGame->tickTimer()->start(this, m_elapsedTick);
 			m_timerLeft.start();
 		}
 
@@ -530,6 +534,47 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
 
 		txt = QStringLiteral("CURRENT TICK %1 - server %2\n\n").arg(tick).arg(snapshots.serverTick());
+
+
+		for (const auto &ptr : snapshots.controls().collections) {
+			txt += QStringLiteral("STORAGE COLLECTION %1 %2 %3   [%4]\n==============================================\n")
+				   .arg(ptr.data.o)
+				   .arg(ptr.data.s)
+				   .arg(ptr.data.id)
+				   .arg(ptr.data.gid)
+				   ;
+
+			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
+				txt += QStringLiteral("%1: (%2) %3  @%4")
+					   .arg(it->second.f)
+					   .arg(it->second.a ? "+" : "-")
+					   .arg(it->second.lck)
+					   .arg(it->second.idx)
+					   ;
+
+				if (it->second.p.size() > 1) {
+					txt += QStringLiteral(" [%1,%2]")
+						   .arg(it->second.p.at(0))
+						   .arg(it->second.p.at(1))
+						   ;
+				}
+
+				if (it->second.u.isValid())
+					txt += QStringLiteral(" holder %1")
+						   .arg(it->second.u.o)
+						   ;
+				
+				if (it->second.own.isValid())
+					txt += QStringLiteral(" owner %1")
+						   .arg(it->second.own.o)
+						   ;
+
+				txt += '\n';
+			}
+
+			txt += QStringLiteral("\n \n");
+		}
+
 
 		for (const auto &ptr : snapshots.players()) {
 			if (ptr.data.o == m_playerId)
@@ -626,7 +671,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	setGameMode(m_engine->isHost() ? ActionRpgGame::MultiPlayerHost : ActionRpgGame::MultiPlayerGuest);
 	setPlayerId(m_engine->playerId());
 
-	if (!m_engine->isHost() && !m_engine->gameConfig().terrain.isEmpty())
+	if (q->m_isReconnecting || (!m_engine->isHost() && !m_engine->gameConfig().terrain.isEmpty()))
 		worldTerrainSelect(m_engine->gameConfig().terrain, true);
 
 	updatePlayersModel(m_engine->getPlayerList());
@@ -637,6 +682,10 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	}
 
 	if (m_config.gameState == RpgConfig::StateInvalid)
+		return;
+
+
+	if (q->m_isReconnecting)
 		return;
 
 	if (m_config.gameState == RpgConfig::StateCharacterSelect)
@@ -659,49 +708,77 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 
 void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state)
 {
-	if (state == m_config.gameState)
-		return;
-
-	bool canSwitch = true;
-
-	switch (state) {
-		case RpgConfig::StateCharacterSelect:
-			canSwitch = m_config.gameState == RpgConfig::StateConnect;
-			break;
-
-		case RpgConfig::StatePrepare:
-			if (m_config.gameState == RpgConfig::StateCharacterSelect) {
-				m_config.gameState = RpgConfig::StateDownloadContent;
-				updateConfig();
-				return;
-			} else if (m_config.gameState == RpgConfig::StateDownloadContent) {
-				return;
-			} else {
-				canSwitch = false;
-			}
-			break;
-
-		case RpgConfig::StatePlay:
-			canSwitch = m_config.gameState == RpgConfig::StatePrepare;
-			break;
-
-		case RpgConfig::StateConnect:
-		case RpgConfig::StateDownloadStatic:
-		case RpgConfig::StateDownloadContent:
-		case RpgConfig::StateFinished:
-		case RpgConfig::StateError:
-		case RpgConfig::StateInvalid:
-			break;
+	if (state == RpgConfig::StatePlay && m_config.gameState < RpgConfig::StatePrepare) {
+		q->m_isReconnecting = true;
+		emit isReconnectingChanged();
 	}
 
+	if (q->m_isReconnecting) {
+		if (m_config.gameState < RpgConfig::StateDownloadContent &&
+				!m_playerConfig.terrain.isEmpty()) {
+			m_config.gameState = RpgConfig::StateDownloadContent;
+			LOG_CINFO("game") << "New reconnecting state" << m_config.gameState << m_playerConfig.terrain;
+			updateConfig();
+		} else if (m_config.gameState < RpgConfig::StateCharacterSelect) {
+			m_config.gameState = RpgConfig::StateCharacterSelect;
+			LOG_CINFO("game") << "New reconnecting state" << m_config.gameState << m_playerConfig.terrain;
+			updateConfig();
+		} else if (m_config.gameState < RpgConfig::StateDownloadContent) {
+			m_config.gameState = RpgConfig::StateDownloadContent;
+			LOG_CINFO("game") << "New reconnecting state" << m_config.gameState;
+			updateConfig();
+		} else if (m_config.gameState >= RpgConfig::StatePrepare) {
+			q->m_isReconnecting = false;
+			q->m_hasReconnected = true;
+			emit isReconnectingChanged();
+			LOG_CINFO("game") << "Reconnecting finished" << m_config.gameState;
+		}
 
-	if (canSwitch) {
-		LOG_CINFO("game") << "New state" << state;
-		m_config.gameState = state;
-		updateConfig();
 	} else {
-		LOG_CERROR("game") << "State conflict" << m_config.gameState << "->" << state;
-		setError();
+		if (state == m_config.gameState)
+			return;
+
+		bool canSwitch = true;
+
+		switch (state) {
+			case RpgConfig::StateCharacterSelect:
+				canSwitch = m_config.gameState == RpgConfig::StateConnect;
+				break;
+
+			case RpgConfig::StatePrepare:
+				if (m_config.gameState == RpgConfig::StateCharacterSelect) {
+					m_config.gameState = RpgConfig::StateDownloadContent;
+					updateConfig();
+					return;
+				} else if (m_config.gameState == RpgConfig::StateDownloadContent) {
+					return;
+				} else {
+					canSwitch = false;
+				}
+				break;
+
+			case RpgConfig::StatePlay:
+				canSwitch = m_config.gameState == RpgConfig::StatePrepare;
+				break;
+
+			case RpgConfig::StateConnect:
+			case RpgConfig::StateDownloadStatic:
+			case RpgConfig::StateDownloadContent:
+			case RpgConfig::StateFinished:
+			case RpgConfig::StateError:
+			case RpgConfig::StateInvalid:
+				break;
+		}
+
+
+		if (canSwitch) {
+			LOG_CINFO("game") << "New state" << state;
+			m_config.gameState = state;
+			updateConfig();
+		} else {
+			LOG_CERROR("game") << "State conflict" << m_config.gameState << "->" << state;
+			setError();
+		}
 	}
 }
 
@@ -716,6 +793,7 @@ void ActionRpgMultiplayerGame::worldTerrainSelect(QString map, const bool forced
 {
 	if (m_playerConfig.terrain == map)
 		return;
+
 
 	m_playerConfig.terrain = map;
 
@@ -854,6 +932,9 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 				LOG_CINFO("game") << "SET CONTROLLED" << pl.data.o;
 			}
 
+			if (q->m_hasReconnected) {
+				updateLastObjectId(rpgPlayer);
+			}
 
 			playerList.append(rpgPlayer);
 
@@ -963,6 +1044,83 @@ void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 
 
 
+/**
+ * @brief ActionRpgMultiplayerGame::syncCollectionList
+ * @param storage
+ */
+
+void ActionRpgMultiplayerGame::syncCollectionList(const ClientStorage &storage)
+{
+	if (!m_rpgGame || storage.controls().collections.empty())
+		return;
+
+	for (const auto &pe : storage.controls().collections) {
+		if (m_rpgGame->controlFind<RpgControlCollection>(pe.data)) {
+			continue;
+		}
+
+		LOG_CDEBUG("scene") << "NF" << pe.data.o << pe.data.s << pe.data.id << pe.data.gid;
+
+		TiledScene *scene = m_rpgGame->findScene(pe.data.s);
+
+		if (!scene) {
+			LOG_CERROR("scene") << "Invalid scene" << pe.data.t << pe.data.o << pe.data.s << pe.data.id;
+			continue;
+		}
+
+		if (pe.list.empty()) {
+			LOG_CERROR("scene") << "Missing list" << pe.data.t << pe.data.o << pe.data.s << pe.data.id;
+			continue;
+		}
+
+		QList<float> pData = pe.list.cbegin()->second.p;
+
+		if (pData.size() < 2) {
+			LOG_CERROR("scene") << "Invalid position" << pe.data.t << pe.data.o << pe.data.s << pe.data.id;
+			continue;
+		}
+
+		QPointF pos(pData.at(0), pData.at(1));
+
+		RpgControlCollection *coll = m_rpgGame->controlAdd<RpgControlCollection>(m_rpgGame, scene, pe.data, pos);
+
+	}
+
+}
+
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::updateLastObjectIds
+ */
+
+void ActionRpgMultiplayerGame::updateLastObjectId(RpgPlayer *player)
+{
+	if (!player)
+		return;
+
+	const QList<RpgGameData::CharacterSelect> &data = m_engine->playerData();
+	const int playerId = player->objectId().ownerId;
+
+	LOG_CINFO("game") << "Update Last object id" << playerId;
+
+	const auto it = std::find_if(data.cbegin(),
+								 data.cend(),
+								 [&playerId](const RpgGameData::CharacterSelect &d) {
+		return d.playerId == playerId;
+	});
+
+	if (it != data.cend()) {
+		player->m_lastObjectId = std::max(player->m_lastObjectId, it->lastObjectId);
+		LOG_CDEBUG("game") << "    - SET" << playerId << ":" << player->m_lastObjectId;
+	}
+
+}
+
+
+
 
 
 
@@ -974,6 +1132,11 @@ void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 QSListModel *ActionRpgMultiplayerGame::playersModel() const
 {
 	return m_playersModel.get();
+}
+
+bool ActionRpgMultiplayerGame::isReconnecting() const
+{
+	return q->m_isReconnecting;
 }
 
 
@@ -1113,6 +1276,7 @@ void ActionRpgMultiplayerGame::onTimeStepPrepare()
 	syncPlayerList(storage);
 	syncEnemyList(storage);
 	syncBulletList(storage);
+	syncCollectionList(storage);
 
 
 	if (m_config.gameState == RpgConfig::StatePlay && !m_fullyPrepared) {
@@ -1369,20 +1533,14 @@ bool ActionRpgMultiplayerGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIf
 	if (!control)
 		return false;
 
-	if (RpgControlContainer *c = dynamic_cast<RpgControlContainer*>(control)) {
-		RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
-		p.st = m_rpgQuestion->emptyQuestions() ? RpgGameData::Player::PlayerUseControl : RpgGameData::Player::PlayerLockControl;
-		p.tg = c->baseData();
+	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
+	p.st = m_rpgQuestion->emptyQuestions() ? RpgGameData::Player::PlayerUseControl : RpgGameData::Player::PlayerLockControl;
+	p.tg = control->pureBaseData();
 
-		q->m_toSend.appendSnapshot(player->baseData(), p);
-		player->setLastSnapshot(p);
+	q->m_toSend.appendSnapshot(player->baseData(), p);
+	player->setLastSnapshot(p);
 
-		return true;
-	}
-
-	LOG_CERROR("game")	 << "----- invalid------";
-
-	return ActionRpgGame::onPlayerUseControl(player, control);
+	return true;
 }
 
 
@@ -1716,6 +1874,11 @@ void ActionRpgMultiplayerGame::onWorldStep()
 						c->baseData(), q->m_currentSnapshot.controls.containers))
 				c->updateFromSnapshot(s.value());
 
+		} else if (RpgControlCollection *c = dynamic_cast<RpgControlCollection*>(ptr.get())) {
+			if (const auto &s = q->m_currentSnapshot.getSnapshot<RpgGameData::ControlCollectionBaseData, RpgGameData::ControlCollection>(
+						c->baseData(), q->m_currentSnapshot.controls.collections))
+				c->updateFromSnapshot(s.value());
+
 		} else {
 			LOG_CERROR("game") << "Invalid control" << ptr.get();
 		}
@@ -1816,12 +1979,8 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 
 	if (m_gameMode == MultiPlayerHost) {
 		if (m_rpgGame) {
-			for (const RpgGame::PlayerPosition &p : m_rpgGame->m_playerPositionList) {
-				if (p.scene)
-					config.gameConfig.positionList.emplaceBack(p.scene->sceneId(), p.position.x(), p.position.y());
-				else
-					LOG_CERROR("game") << "Missing scene" << p.position;
-			}
+			config.gameConfig.positionList = m_rpgGame->playerPositions();
+			config.gameConfig.collection = m_rpgGame->collection();
 		}
 
 		config.gameConfig.terrain = m_playerConfig.terrain;
@@ -1885,6 +2044,21 @@ void ActionRpgMultiplayerGame::setTickTimer(const qint64 &tick)
 void ActionRpgMultiplayerGame::addLatency(const qint64 &latency)
 {
 	q->m_timeSync.addLatency(latency);
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::overrideCurrentFrame
+ * @param tick
+ */
+
+void ActionRpgMultiplayerGame::overrideCurrentFrame(const qint64 &tick)
+{
+	if ((q->m_isReconnecting || q->m_hasReconnected) && m_rpgGame && m_rpgGame->currentFrame() <= 0) {
+		m_rpgGame->overrideCurrentFrame(tick);
+		m_elapsedTick = tick;
+	}
 }
 
 

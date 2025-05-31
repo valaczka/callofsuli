@@ -251,6 +251,7 @@ SOURCES += \
 	rpgbroadsword.cpp \
 	rpgcoin.cpp \
 	rpgcontrol.cpp \
+	rpgcontrolcollection.cpp \
 	rpgcontrolcontainer.cpp \
 	rpgcontrollight.cpp \
 	rpgdagger.cpp \
@@ -361,6 +362,7 @@ HEADERS += \
 	rpgbroadsword.h \
 	rpgcoin.h \
 	rpgcontrol.h \
+	rpgcontrolcollection.h \
 	rpgcontrolcontainer.h \
 	rpgcontrollight.h \
 	rpgdagger.h \

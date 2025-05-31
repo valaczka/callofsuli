@@ -197,10 +197,7 @@ void UdpServerPrivate::run()
 
 		locker.unlock();
 
-		//if (m_timer.hasExpired(m_fps)) {
 		deliverReceived();
-		//	m_timer.restart();
-		//}
 
 	}
 
@@ -219,25 +216,33 @@ void UdpServerPrivate::peerConnect(ENetPeer *peer)
 	if (!peer)
 		return;
 
-	bool isFirst = q->m_peerList.empty();
+	//bool isFirst = q->m_peerList.empty();
 
 	const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(q, peer));
 	p->peer()->data = p.get();
 
 	LOG_CDEBUG("engine") << "Peer connected:" << p->host() << p->port();
 
-	if (isFirst) {
+
+	const auto &engines= q->m_service->engineHandler()->engines();
+
+	auto it = std::find_if(engines.constBegin(), engines.constEnd(), [](const std::shared_ptr<AbstractEngine> &e) {
+		return e->type() == AbstractEngine::EngineRpg;
+	});
+
+
+	if (it == engines.constEnd()) {
 		std::shared_ptr<RpgEngine> e = RpgEngine::engineCreate(q->m_service->engineHandler(), q);
 		q->m_service->engineHandler()->engineAdd(e);
 		p->setEngine(e);
 	} else {
-		const auto &engines= q->m_service->engineHandler()->engines();
+		/*const auto &engines= q->m_service->engineHandler()->engines();
 
 		auto it = std::find_if(engines.constBegin(), engines.constEnd(), [](const std::shared_ptr<AbstractEngine> &e) {
 			return e->type() == AbstractEngine::EngineRpg;
 		});
 
-		Q_ASSERT(it != engines.constEnd());
+		Q_ASSERT(it != engines.constEnd());*/
 
 		p->setEngine(std::dynamic_pointer_cast<UdpEngine>(*it));
 	}
@@ -576,6 +581,10 @@ bool UdpServerPeer::readyToSend(const int &maxFps)
 
 	return false;
 }
+
+
+
+
 
 
 

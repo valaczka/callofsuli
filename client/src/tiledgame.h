@@ -295,6 +295,9 @@ protected:
 	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void synchronize();
 
+	const qint64 &currentFrame() const;
+	void overrideCurrentFrame(const qint64 &frame);
+
 
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer);
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);

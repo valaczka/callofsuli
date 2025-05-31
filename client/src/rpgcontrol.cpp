@@ -241,7 +241,9 @@ TiledVisualItem *RpgActiveIface::createVisualItem(TiledScene *scene, Tiled::Grou
 
 	Q_ASSERT(item);
 
-	item->setName(layer->name());
+	if (layer)
+		item->setName(layer->name());
+
 	item->setGlowColor(QStringLiteral("#FFF59D"));
 
 	setVisualItem(item);

@@ -47,6 +47,7 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgGame *rpgGame READ rpgGame WRITE setRpgGame NOTIFY rpgGameChanged FINAL)
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
 	Q_PROPERTY(int gameid READ gameid CONSTANT FINAL)
+	Q_PROPERTY(bool isReconnecting READ isReconnecting NOTIFY isReconnectingChanged FINAL)
 
 public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -63,6 +64,7 @@ public:
 	virtual void gameAbort() override;
 	virtual QJsonObject getExtendedData() const override;
 	virtual int msecLeft() const override;
+	virtual bool isReconnecting() const { return false; }
 
 	Q_INVOKABLE void playMenuBgMusic();
 	Q_INVOKABLE void stopMenuBgMusic();
@@ -101,6 +103,7 @@ signals:
 	void configChanged();
 	void rpgGameChanged();
 	void gameModeChanged();
+	void isReconnectingChanged();
 
 protected:
 	virtual void onConfigChanged();

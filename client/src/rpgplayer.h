@@ -29,7 +29,6 @@
 
 #include "isometricplayer.h"
 #include "rpgarmory.h"
-#include "rpgcontrol.h"
 #include "rpggamedataiface.h"
 #include "rpgpickableobject.h"
 #include "rpgshortbow.h"
@@ -38,6 +37,13 @@
 #include <QQmlEngine>
 
 class RpgGame;
+class RpgActiveControlObject;
+
+#ifndef OPAQUE_PTR_RpgActiveControlObject
+#define OPAQUE_PTR_RpgActiveControlObject
+Q_DECLARE_OPAQUE_POINTER(RpgActiveControlObject*)
+#endif
+
 
 
 /**
@@ -110,6 +116,7 @@ public:
 
 
 class RpgEnemy;
+class RpgPlayerPrivate;
 
 
 /**
@@ -240,6 +247,8 @@ private:
 	void attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weaponType);
 
 private:
+	RpgPlayerPrivate *const d;
+
 	RpgPlayerCharacterConfig m_config;
 
 	TiledGameSfx m_sfxPain;
@@ -249,7 +258,6 @@ private:
 
 	std::unique_ptr<RpgArmory> m_armory;
 	std::unique_ptr<RpgInventoryList> m_inventory;
-	QPointer<RpgActiveControlObject> m_currentControl;
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;

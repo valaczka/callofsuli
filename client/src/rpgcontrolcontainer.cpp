@@ -84,27 +84,7 @@ void RpgControlContainer::updateFromSnapshot(const RpgGameData::SnapshotInterpol
 		return;
 	}
 
-	if (!m_game->controlledPlayer() ||
-			!snapshot.last.u.isValid() ||
-			!snapshot.last.u.isBaseEqual(m_game->controlledPlayer()->baseData()))
-		return;
-
-	if (snapshot.last.f <= m_lastSyncTick) {
-		return;
-	}
-
-
-	LOG_CINFO("game") << "LOAD CONTAINER FOR" << snapshot.last.u.o;
-
-	if (RpgQuestion *q = m_game->rpgQuestion()) {
-		if (q->control() == this)
-			return;
-
-		if (q->nextQuestion(m_game->controlledPlayer(), nullptr, RpgGameData::Weapon::WeaponInvalid, this)) {
-			Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
-			m_lastSyncTick = snapshot.last.f;
-		}
-	}
+	loadQuestion(snapshot, m_game->controlledPlayer(), m_game->rpgQuestion());
 
 }
 

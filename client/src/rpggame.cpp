@@ -49,6 +49,7 @@
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
 #include <libtiled/imagelayer.h>
+#include <libtiled/objectgroup.h>
 
 #include <libtcod/path.hpp>
 #include <libtcod/fov.hpp>
@@ -98,6 +99,21 @@ private:
 	RpgGame *const d;
 
 	QPointer<ActionRpgGame> m_action;
+
+	struct PlayerPosition {
+		QPointer<TiledScene> scene;
+		QPointF position;
+
+		friend bool operator==(const PlayerPosition &p1, const PlayerPosition &p2) {
+			return p1.scene == p2.scene && p1.position == p2.position;
+		}
+	};
+
+	QVector<PlayerPosition> m_playerPositionList;
+
+	RpgGameData::Collection m_collection;
+
+
 
 	friend class RpgGame;
 
@@ -878,6 +894,29 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 
 
 
+/**
+ * @brief RpgGame::loadObjectLayer
+ * @param scene
+ * @param group
+ * @param renderer
+ * @return
+ */
+
+bool RpgGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(scene);
+	Q_ASSERT(group);
+
+	if (group->className() == QStringLiteral("collection"))
+		addCollection(scene, group, renderer);
+	else
+		return TiledGame::loadObjectLayer(scene, group, renderer);
+
+	return true;
+}
+
+
+
 
 /**
  * @brief RpgGame::joystickStateEvent
@@ -1143,7 +1182,7 @@ std::optional<QPointF> RpgGame::playerPosition(const int &sceneId, const int &nu
 {
 	int i = 0;
 
-	for (const auto &p : m_playerPositionList) {
+	for (const auto &p : q->m_playerPositionList) {
 		if (p.scene && p.scene->sceneId() == sceneId) {
 			if (i==num)
 				return p.position;
@@ -1166,7 +1205,7 @@ QList<QPointF> RpgGame::playerPosition(const int &sceneId) const
 {
 	QList<QPointF> list;
 
-	for (const auto &p : m_playerPositionList) {
+	for (const auto &p : q->m_playerPositionList) {
 		if (p.scene && p.scene->sceneId() == sceneId) {
 			list << p.position;
 		}
@@ -1192,20 +1231,94 @@ void RpgGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
 		return;
 	}
 
-	auto it = std::find_if(m_playerPositionList.constBegin(), m_playerPositionList.constEnd(),
+	auto it = std::find_if(q->m_playerPositionList.constBegin(), q->m_playerPositionList.constEnd(),
 						   [scene, &position](const auto &p){
 		return p.scene == scene && p.position == position;
 	});
 
-	if (it != m_playerPositionList.constEnd()) {
+	if (it != q->m_playerPositionList.constEnd()) {
 		LOG_CWARNING("game") << "Player position already loaded:" << scene->sceneId() << it->position;
 		return;
 	}
 
-	m_playerPositionList.append({
-									.scene = scene,
-									.position = position
-								});
+	q->m_playerPositionList.append({
+									   .scene = scene,
+									   .position = position
+								   });
+}
+
+
+
+/**
+ * @brief RpgGame::addCollection
+ * @param scene
+ * @param group
+ * @param renderer
+ */
+
+void RpgGame::addCollection(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(scene);
+	Q_ASSERT(group);
+
+	LOG_CDEBUG("scene") << "Load collection from" << group->name() << group->id();
+
+	RpgGameData::CollectionGroup cgr(scene->sceneId(), group->id());
+
+	const QPointF base = group->position()+group->totalOffset();
+
+	for (Tiled::MapObject *object : std::as_const(group->objects())) {
+		if (object->shape() == Tiled::MapObject::Point) {
+
+			// Külön kell számolni az eltolást, nem lesz jó a rendereren keresztül
+
+			QPointF pos = renderer ? renderer->pixelToScreenCoords(object->position()) : object->position();
+			pos += base;
+
+			LOG_CDEBUG("scene") << "   - add" << pos;
+
+			cgr.pos.emplace_back(pos);
+		}
+	}
+
+
+	q->m_collection.groups.append(cgr);
+}
+
+
+
+
+
+/**
+ * @brief RpgGame::playerPosition
+ * @return
+ */
+
+QList<RpgGameData::PlayerPosition> RpgGame::playerPositions() const
+{
+	QList<RpgGameData::PlayerPosition> list;
+
+	list.reserve(q->m_playerPositionList.size());
+
+	for (const RpgGamePrivate::PlayerPosition &p : q->m_playerPositionList) {
+		if (p.scene)
+			list.emplaceBack(p.scene->sceneId(), p.position.x(), p.position.y());
+		else
+			LOG_CERROR("game") << "Missing scene" << p.position;
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief RpgGame::collection
+ * @return
+ */
+
+const RpgGameData::Collection &RpgGame::collection() const
+{
+	return q->m_collection;
 }
 
 
@@ -2668,7 +2781,7 @@ QString RpgGame::getAttackSprite(const RpgGameData::Weapon::WeaponType &weaponTy
 		case RpgGameData::Weapon::WeaponLongbow:
 			return QStringLiteral("bow");
 
-		/*case RpgGameData::Weapon::WeaponMageStaff:
+			/*case RpgGameData::Weapon::WeaponMageStaff:
 			return QStringLiteral("cast");*/
 
 		case RpgGameData::Weapon::WeaponShield:
@@ -3084,7 +3197,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 					}
 
 				} */ else if (xml.name() == QStringLiteral("objectgroup") &&
-						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickable")) {
+							  xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickable")) {
 
 					while (xml.readNextStartElement()) {
 						if (xml.name() == QStringLiteral("object")) {

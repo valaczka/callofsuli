@@ -128,6 +128,14 @@ Page {
 	}
 
 	Component {
+		id: _cmpReconnect
+
+		RpgReconnect {
+			//game: root.game
+		}
+	}
+
+	Component {
 		id: _cmpDownload
 
 		DownloaderItem {
@@ -163,13 +171,22 @@ Page {
 	Connections {
 		target: game
 
-		/*function onHostModeChanged() {
-			if (game.hostMode == ConquestGame.ModeHost)
-				Client.snack(qsTr("Te vagy a host"))
-		}*/
+		function onGameModeChanged() {
+			if (game.gameMode == ActionRpgGame.MultiPlayerHost)
+				Client.snack(qsTr("You are the host now"))
+		}
+
+		function onIsReconnectingChanged() {
+			onConfigChanged()
+		}
 
 
 		function onConfigChanged() {
+			if (game.isReconnecting) {
+				_stack.activeComponent = _cmpReconnect
+				return
+			}
+
 			switch (game.config.gameState) {
 			case RpgConfig.StatePrepare:
 			case RpgConfig.StatePlay:

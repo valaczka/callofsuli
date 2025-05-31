@@ -27,12 +27,14 @@
 
 #include "rpgconfig.h"
 #include <chipmunk/chipmunk.h>
+#include <random>
 
 
 
 
 const QHash<RpgConfig::ControlType, int> RpgConfig::m_controlDamageValue = {
-	{ RpgConfig::ControlContainer, 15 }
+	{ RpgConfig::ControlContainer, 15 },
+	{ RpgConfig::ControlCollection, 5 },
 };
 
 
@@ -106,7 +108,7 @@ void SnapshotStorage::addFullSnapshot(SnapshotInterpolationList<T2, T> *dst, Sna
 
 	for (auto &ptr : src) {
 		SnapshotInterpolation<T> sip = getSnapshotInterpolation(ptr.list, currentTick, findLast ? ptr.lastFullSnap : -1);
-		if (sip.s1.f > -1 && sip.s1.f > ptr.lastFullSnap) {
+		if (sip.s1.f > -1 && sip.s1.f > ptr.lastFullSnap && ptr.lastFullSnap > -1) {
 			qWarning() << "Snapshot skipped" << ptr.data.o << ptr.data.s << ptr.data.id << "tick" << sip.s1.f << "vs" << ptr.lastFullSnap
 					   << "====" << sip.current;
 		}
@@ -182,6 +184,7 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &fi
 
 	addFullSnapshot(&s.controls.lights, m_controls.lights, tick, findLast);
 	addFullSnapshot(&s.controls.containers, m_controls.containers, tick, findLast);
+	addFullSnapshot(&s.controls.collections, m_controls.collections, tick, findLast);
 
 
 	return s;
@@ -208,6 +211,7 @@ CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 
 	s.controls.lights = convertToSnapshotList(m_controls.lights);
 	s.controls.containers = convertToSnapshotList(m_controls.containers);
+	s.controls.collections = convertToSnapshotList(m_controls.collections);
 
 	return s;
 }
@@ -238,6 +242,9 @@ void SnapshotStorage::zapSnapshots(const qint64 &tick)
 		zapSnapshots(ptr.list, tick);
 
 	for (auto &ptr : m_controls.containers)
+		zapSnapshots(ptr.list, tick);
+
+	for (auto &ptr : m_controls.collections)
 		zapSnapshots(ptr.list, tick);
 }
 
@@ -272,6 +279,9 @@ QCborMap CurrentSnapshot::toCbor() const
 	if (const QCborArray &a = toCborArray(controls.containers, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("cc"), a);
 
+	if (const QCborArray &a = toCborArray(controls.collections, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
+		map.insert(QStringLiteral("cs"), a);
+
 	return map;
 }
 
@@ -295,6 +305,7 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 
 	r += fromCborArray(controls.lights, map.value(QStringLiteral("cl")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 	r += fromCborArray(controls.containers, map.value(QStringLiteral("cc")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
+	r += fromCborArray(controls.collections, map.value(QStringLiteral("cs")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 
 	return r;
 }
@@ -365,6 +376,162 @@ void Player::controlFailed(Player &dst, const RpgConfig::ControlType &control)
 		return;
 
 	dst.hp = std::max(0, (int) (dst.hp-damage));
+}
+
+
+
+/**
+ * @brief Collection::allocate
+ * @param num
+ * @return
+ */
+
+QHash<int, QList<int> > Collection::allocate(const int &num)
+{
+	int max = 0;
+
+	for (CollectionGroup &g : groups) {
+		max += g.pos.size();
+
+		for (CollectionPlace &p : g.pos) {
+			p.done = false;
+		}
+	}
+
+	if (num == 0)
+		return {};
+
+	if (max == 0) {
+		qWarning() << "Empty CollectionGroup";
+		return {};
+	}
+
+	const float ratio = (float) num / (float) max;
+
+	QHash<int, QList<int> > ret;
+
+	int generated = 0;
+
+	std::random_device rd;
+	std::mt19937 randomEngine(rd());
+
+	for (CollectionGroup &g : groups) {
+		std::vector<int> idx(g.pos.size());
+		std::iota(idx.begin(), idx.end(), 0);
+		std::shuffle(idx.begin(), idx.end(), randomEngine);
+
+		QList<int> list;
+		list.reserve(g.pos.size());
+
+		const int lmax = std::ceil(g.pos.size() * ratio);
+
+		auto it = idx.cbegin();
+
+		while (list.size() < g.pos.size()-2 &&
+			   list.size() < lmax &&
+			   generated < num) {
+			list.append(*it);
+			++it;
+			++generated;
+		}
+
+		ret.insert(g.id, list);
+	}
+
+	qInfo() << "GENREATED" << generated << "required" << num;
+	qDebug() << ret;
+
+	return ret;
+}
+
+
+/**
+ * @brief Collection::getFree
+ * @return
+ */
+
+QList<CollectionPlace> Collection::getFree(const int &gid) const
+{
+	const auto &it = find(gid);
+
+	if (it == groups.cend())
+		return {};
+
+	QList<CollectionPlace> ret;
+	ret.reserve(it->pos.size());
+
+	for (const CollectionPlace &p : it->pos) {
+		if (!p.done)
+			ret.append(p);
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief Collection::findScene
+ * @param id
+ * @return
+ */
+
+QList<CollectionGroup>::iterator Collection::findScene(const int &id)
+{
+	return std::find_if(groups.begin(),
+						groups.end(),
+						[&id](const CollectionGroup &g){
+		return g.scene == id;
+	});
+}
+
+
+/**
+ * @brief Collection::findScene
+ * @param id
+ * @return
+ */
+
+QList<CollectionGroup>::const_iterator Collection::findScene(const int &id) const
+{
+	return std::find_if(groups.cbegin(),
+						groups.cend(),
+						[&id](const CollectionGroup &g){
+		return g.scene == id;
+	});
+}
+
+
+/**
+ * @brief Collection::find
+ * @param id
+ * @return
+ */
+
+QList<CollectionGroup>::iterator Collection::find(const int &id)
+{
+	return std::find_if(groups.begin(),
+						groups.end(),
+						[&id](const CollectionGroup &g){
+		return g.id == id;
+	});
+}
+
+
+
+/**
+ * @brief Collection::find
+ * @param id
+ * @return
+ */
+
+QList<CollectionGroup>::const_iterator Collection::find(const int &id) const
+{
+	return std::find_if(groups.cbegin(),
+						groups.cend(),
+						[&id](const CollectionGroup &g){
+		return g.id == id;
+	});
 }
 
 

@@ -42,8 +42,8 @@ TiledVisualItemImpl {
 		id: _threshold
 		visible: false
 
-		source: tiledLayer
-		maskSource: tiledLayer
+		//source: tiledLayer
+		//maskSource: tiledLayer
 		anchors.fill: parent
 
 		threshold: 0.7

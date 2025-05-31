@@ -302,6 +302,7 @@ protected:
 
 
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
+	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer) override;
 	virtual void joystickStateEvent(const JoystickState &state) override;
@@ -321,12 +322,18 @@ protected:
 		return scene ? playerPosition(scene->sceneId(), num) : std::nullopt;
 	}
 	QList<QPointF> playerPosition(const int &sceneId) const;
-	void addPlayerPosition(TiledScene *scene, const QPointF &position);
+
+	QList<RpgGameData::PlayerPosition> playerPositions() const;
+	const RpgGameData::Collection &collection() const;
+
 
 private:
 	void loadMetricDefinition();
 
-		void playerUseControl(RpgPlayer *player, RpgActiveIface *control);
+	void addPlayerPosition(TiledScene *scene, const QPointF &position);
+	void addCollection(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
+
+	void playerUseControl(RpgPlayer *player, RpgActiveIface *control);
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -381,16 +388,6 @@ private:
 	};
 
 
-	struct PlayerPosition {
-		QPointer<TiledScene> scene;
-		QPointF position;
-
-		friend bool operator==(const PlayerPosition &p1, const PlayerPosition &p2) {
-			return p1.scene == p2.scene && p1.position == p2.position;
-		}
-	};
-
-
 	RpgGamePrivate *q = nullptr;
 
 	QVector<EnemyData>::iterator enemyFind(IsometricEnemy *enemy);
@@ -404,7 +401,6 @@ private:
 
 	std::vector<std::unique_ptr<RpgControlBase>> m_controls;
 
-	QVector<PlayerPosition> m_playerPositionList;
 
 	QList<RpgPlayer*> m_players;
 	QPointer<RpgPlayer> m_controlledPlayer;

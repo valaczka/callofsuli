@@ -71,11 +71,15 @@ public:
 	const int &currentFps() const { return m_speed.fps; }
 	const int &peerFps() const { return m_speed.peerFps; }
 
+	bool isReconnecting() const { return m_isReconnecting; }
+	void setIsReconnecting(bool newIsReconnecting) { m_isReconnecting = newIsReconnecting; }
+
 private:
 	UdpServer *m_server = nullptr;
 	ENetPeer *m_peer = nullptr;
 	std::shared_ptr<UdpEngine> m_engine;
 	qint64 m_lastSentTick = -1;
+	bool m_isReconnecting = false;
 
 	struct Speed {
 		void addRtt(const int &rtt);

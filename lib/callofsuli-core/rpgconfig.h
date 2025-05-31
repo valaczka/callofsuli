@@ -28,6 +28,7 @@
 #define RPGCONFIG_H
 
 #include "qcborarray.h"
+#include "qpoint.h"
 #include <QSerializer>
 #include <QIODevice>
 
@@ -98,7 +99,8 @@ public:
 		ControlInvalid = 0,
 		ControlContainer,
 		ControlDoor,
-		ControlLight
+		ControlLight,
+		ControlCollection
 	};
 
 	Q_ENUM(ControlType)
@@ -597,6 +599,110 @@ public:
 
 
 /**
+ * @brief The CollectionPlace class
+ */
+
+class CollectionPlace : public QSerializer
+{
+	Q_GADGET
+
+public:
+
+	CollectionPlace(const float &_x, const float &_y, const bool &_done = false)
+		: QSerializer()
+		, x(_x)
+		, y(_y)
+		, done(_done)
+	{}
+
+
+	CollectionPlace(const QPointF &pos, const bool &_done = false)
+		: CollectionPlace(pos.x(), pos.y(), _done)
+	{}
+
+
+	CollectionPlace()
+		: RpgGameData::CollectionPlace(0, 0)
+	{}
+
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(float, x)
+	QS_FIELD(float, y)
+	QS_FIELD(bool, done)						// once successful collected
+};
+
+
+
+
+
+/**
+ * @brief The CollectionGroup class
+ */
+
+class CollectionGroup : public QSerializer
+{
+	Q_GADGET
+
+public:
+
+	CollectionGroup(const int &_scene, const int &_id)
+		: QSerializer()
+		, scene(_scene)
+		, id(_id)
+	{}
+
+
+	CollectionGroup()
+		: CollectionGroup(-1, -1)
+	{}
+
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, scene)
+	QS_FIELD(int, id)
+	QS_COLLECTION_OBJECTS(QList, CollectionPlace, pos)
+};
+
+
+
+
+
+
+/**
+ * @brief The Collection class
+ */
+
+class Collection : public QSerializer
+{
+	Q_GADGET
+
+public:
+
+	Collection()
+		: QSerializer()
+	{}
+
+	QHash<int, QList<int> > allocate(const int &num);
+	QList<CollectionPlace> getFree(const int &gid) const;
+
+	QList<CollectionGroup>::iterator find(const int &id);
+	QList<CollectionGroup>::const_iterator find(const int &id) const;
+
+	QList<CollectionGroup>::iterator findScene(const int &id);
+	QList<CollectionGroup>::const_iterator findScene(const int &id) const;
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, CollectionGroup, groups)
+};
+
+
+
+
+/**
  * @brief The GameConfig class
  */
 
@@ -613,6 +719,7 @@ public:
 
 	QS_COLLECTION_OBJECTS(QList, PlayerPosition, positionList)
 	QS_FIELD(QString, terrain)
+	QS_OBJECT(Collection, collection)
 };
 
 
@@ -632,12 +739,14 @@ public:
 		: QSerializer()
 		, playerId(-1)
 		, completed(false)
+		, lastObjectId(-1)
 	{}
 
 	CharacterSelect(const RpgPlayerConfig &config)
 		: QSerializer()
 		, playerId(-1)
 		, completed(false)
+		, lastObjectId(-1)
 	{
 		username = config.username;
 		nickname = config.nickname;
@@ -656,6 +765,8 @@ public:
 	QS_FIELD(bool, completed)
 
 	QS_OBJECT(GameConfig, gameConfig)
+
+	QS_FIELD(int, lastObjectId)
 };
 
 
@@ -1676,7 +1787,7 @@ public:
 	{}
 
 	bool isEqual(const ControlContainerBaseData &other) const {
-		return ControlActiveBaseData::isEqual(other) && other.lck == lck;
+		return ControlActiveBaseData::isEqual(other) && other.p == p;
 	}
 
 	EQUAL_OPERATOR(ControlContainerBaseData)
@@ -1732,6 +1843,88 @@ public:
 
 	QS_FIELD(State, st)
 };
+
+
+
+
+
+
+
+/**
+ * @brief The ControlCollectionBaseData class
+ */
+
+class ControlCollectionBaseData : public ControlActiveBaseData
+{
+	Q_GADGET
+
+public:
+
+	ControlCollectionBaseData(const int &_s, const int &_id, const int &_gid = -1)
+		: ControlActiveBaseData(RpgConfig::ControlCollection, -1, _s, _id)
+		, gid(_gid)
+	{}
+
+	ControlCollectionBaseData()
+		: ControlCollectionBaseData(-1, -1)
+	{}
+
+	bool isEqual(const ControlCollectionBaseData &other) const {
+		return ControlActiveBaseData::isEqual(other) && gid == other.gid;
+	}
+
+	EQUAL_OPERATOR(ControlCollectionBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, gid)				// CollectionGroupId
+};
+
+
+
+
+
+
+
+
+/**
+ * @brief The ControlCollection class
+ */
+
+
+class ControlCollection : public ControlActive
+{
+	Q_GADGET
+
+public:
+	ControlCollection(const int &_idx = -1)
+		: ControlActive()
+		, idx(_idx)
+	{}
+
+	bool isEqual(const ControlCollection &other) const {
+		return ControlActive::isEqual(other) && own == other.own && idx == other.idx && p == other.p;
+	}
+
+	bool canMerge(const ControlCollection &other) const {
+		return ControlActive::canMerge(other) && own == other.own && idx == other.idx && p == other.p;
+	}
+
+	bool canInterpolateFrom(const ControlCollection &other) const {
+		return isEqual(other) && own == other.own;
+	}
+
+	EQUAL_OPERATOR(ControlCollection)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, idx)							// place index in CollectionGroup
+	QS_COLLECTION(QList, float, p)				// current position
+	QS_OBJECT(BaseData, own)					// owner (collected by)
+};
+
+
+
 
 
 
@@ -1799,6 +1992,7 @@ struct SnapshotInterpolationControls
 {
 	SnapshotInterpolationList<ControlBaseData, ControlLight> lights;
 	SnapshotInterpolationList<ControlContainerBaseData, ControlContainer> containers;
+	SnapshotInterpolationList<ControlCollectionBaseData, ControlCollection> collections;
 };
 
 
@@ -1811,6 +2005,7 @@ struct SnapshotControls
 {
 	SnapshotList<ControlLight, ControlBaseData> lights;
 	SnapshotList<ControlContainer, ControlContainerBaseData> containers;
+	SnapshotList<ControlCollection, ControlCollectionBaseData> collections;
 };
 
 
@@ -1832,6 +2027,7 @@ struct FullSnapshot {
 
 		controls.lights.clear();
 		controls.containers.clear();
+		controls.collections.clear();
 	}
 
 	template <typename T2, typename T,
@@ -1883,6 +2079,7 @@ struct CurrentSnapshot {
 
 		controls.lights.clear();
 		controls.containers.clear();
+		controls.collections.clear();
 	}
 
 

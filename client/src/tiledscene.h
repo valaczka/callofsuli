@@ -196,7 +196,7 @@ private:
 
 	void appendDynamicZ(const QString &name, const QRectF &area);
 	void setTileLayersZ();
-	void reorderObjectsZ(const std::vector<TiledObject *> list);
+	void reorderObjectsZ(const std::vector<TiledObjectBody *> list);
 	void repaintTilesets(Tiled::Tileset *tileset);
 
 	TiledDebugDraw *m_debugDraw = nullptr;

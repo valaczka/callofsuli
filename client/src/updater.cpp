@@ -34,6 +34,7 @@
 #include "utils_.h"
 #include "httpconnection.h"
 #include <QFile>
+#include <QNetworkInformation>
 #include "client.h"
 
 #if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN) || defined (Q_OS_MACOS)
@@ -89,6 +90,11 @@ void Updater::checkAvailableUpdates(const bool &force)
 			return;
 		}
 	}
+
+	if (!force && QNetworkInformation::instance() &&
+			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
+		return;
+
 
 	const bool updateEnabled = autoUpdate();
 

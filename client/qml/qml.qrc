@@ -220,5 +220,6 @@
         <file>TiledVisualLight.qml</file>
         <file>TiledVisualOutline.qml</file>
         <file>TiledImageFromLayer.qml</file>
+        <file>RpgReconnect.qml</file>
     </qresource>
 </RCC>

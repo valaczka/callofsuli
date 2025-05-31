@@ -789,9 +789,10 @@ void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData
 	if (!listPtr)
 		return;
 
+	m_downloader->setServer(server);
+
 	for (const auto &config : players) {
 
-		m_downloader->setServer(server);
 
 		listPtr->append(config.character+QStringLiteral(".full.dres"));
 

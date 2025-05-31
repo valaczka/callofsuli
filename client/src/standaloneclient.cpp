@@ -55,6 +55,10 @@ StandaloneClient::StandaloneClient(Application *app)
 	connect(this, &Client::mainWindowChanged, this, &StandaloneClient::onMainWindowChanged);
 	connect(this, &Client::startPageLoaded, this, &StandaloneClient::onStartPageLoaded);
 
+	if (!QNetworkInformation::loadBackendByFeatures(QNetworkInformation::Feature::Reachability)) {
+		LOG_CERROR("client") << "QNetworkInformation load failed";
+	}
+
 	authorizedServersGet();
 	serverListLoad();
 
@@ -170,6 +174,11 @@ void StandaloneClient::onStartPageLoaded()
 		}
 
 	}
+
+	if (QNetworkInformation::instance() &&
+			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
+		return;
+
 
 	for (Server *s : *m_serverList)
 		if (s->autoConnect()) {
@@ -332,6 +341,11 @@ void StandaloneClient::serverListSave(const QDir &dir)
 
 void StandaloneClient::authorizedServersGet()
 {
+	if (QNetworkInformation::instance() &&
+			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
+		return;
+
+
 	HttpConnection *HttpConnection = m_httpConnection.get();
 
 	if (!HttpConnection)

@@ -28,10 +28,11 @@
 #define RPGQUESTION_H
 
 #include "question.h"
-#include "rpgcontrol.h"
 #include "rpgplayer.h"
+#include "rpgenemy.h"
 
 class ActionRpgGame;
+class RpgActiveIface;
 
 
 /**
