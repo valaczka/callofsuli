@@ -30,7 +30,6 @@
 #include "isometricplayer.h"
 #include "rpgarmory.h"
 #include "rpggamedataiface.h"
-#include "rpgpickableobject.h"
 #include "rpgshortbow.h"
 #include "tiledeffect.h"
 #include "tiledgamesfx.h"
@@ -132,7 +131,7 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameDat
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
 	Q_PROPERTY(RpgActiveControlObject *currentControl READ currentControl WRITE setCurrentControl NOTIFY currentControlChanged FINAL)
-	Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
+	//Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
 	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
 
@@ -150,8 +149,6 @@ public:
 	void attackToPoint(const qreal &x, const qreal &y);
 	void attackToPoint(const QPointF &point) { attackToPoint(point.x(), point.y()); }
 
-	Q_INVOKABLE void pick(RpgPickableObject *object);
-
 	Q_INVOKABLE void useCurrentControl();
 
 	RpgArmory *armory() const;
@@ -164,15 +161,6 @@ public:
 
 	const RpgPlayerCharacterConfig &config() const;
 	void setConfig(const RpgPlayerCharacterConfig &newConfig);
-
-	void inventoryAdd(RpgPickableObject *object);
-	void inventoryAdd(const RpgGameData::PickableBaseData::PickableType &type, const QString &name = {});
-	void inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type);
-	void inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type, const QString &name);
-	bool inventoryContains(const RpgGameData::PickableBaseData::PickableType &type) const;
-	bool inventoryContains(const RpgGameData::PickableBaseData::PickableType &type, const QString &name) const;
-
-	RpgInventoryList *inventory() const;
 
 	int mp() const;
 	void setMp(int newMp);
@@ -222,8 +210,6 @@ protected:
 	void attackedByEnemy(IsometricEnemy *enemy, const RpgWeapon::WeaponType &weaponType,
 						 const bool &isProtected) override final;*/
 
-	void onPickableReached(TiledObjectBody *object) override final;
-	void onPickableLeft(TiledObjectBody */*object*/) override final {};
 	void onEnemyReached(IsometricEnemy *enemy) override final;
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
 
@@ -257,7 +243,6 @@ private:
 	TiledGameSfx m_sfxDecline;
 
 	std::unique_ptr<RpgArmory> m_armory;
-	std::unique_ptr<RpgInventoryList> m_inventory;
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;

@@ -106,8 +106,6 @@ protected:
 	virtual void synchronize() override;
 
 	virtual void load() = 0;
-	virtual void onPickableReached(TiledObjectBody *object) = 0;
-	virtual void onPickableLeft(TiledObjectBody *object) = 0;
 	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
 	virtual void onEnemyLeft(IsometricEnemy *enemy) = 0;
 

@@ -197,6 +197,7 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 	}
 
 	updateSnapshotRemoveMissing(snapshot.bullets);
+	updateSnapshotRemoveMissing(snapshot.controls.pickables);
 
 }
 
@@ -773,6 +774,39 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlCollectionBaseData 
 
 
 /**
+ * @brief ClientStorage::updateSnapshot
+ * @param pickableData
+ * @param pickable
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::PickableBaseData &pickableData, const RpgGameData::Pickable &pickable)
+{
+	auto it = std::find_if(m_controls.pickables.begin(),
+						   m_controls.pickables.end(),
+						   [&pickableData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(pickableData));
+	});
+
+	if (it == m_controls.pickables.end()) {
+		LOG_CINFO("game") << "New pickable" << pickableData.o << pickableData.s << pickableData.id << pickableData.t;
+		m_controls.pickables.push_back({
+								.data = pickableData,
+								.list = {}
+							});
+		it = m_controls.pickables.end()-1;
+	}
+
+	it->data = pickableData;
+
+	if (pickable.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << pickable.f << pickable.st;
+	else
+		it->list.insert_or_assign(pickable.f, pickable);
+}
+
+
+
+/**
  * @brief ClientStorage::hasSnapshot
  * @return
  */
@@ -859,6 +893,17 @@ const qint64 &ClientStorage::serverTick() const
 void ClientStorage::removeMissingSnapshots(const std::vector<RpgGameData::BulletBaseData> &bulletList)
 {
 	removeMissing(m_bullets, bulletList);
+}
+
+
+/**
+ * @brief ClientStorage::removeMissingSnapshots
+ * @param pickableList
+ */
+
+void ClientStorage::removeMissingSnapshots(const std::vector<RpgGameData::PickableBaseData> &pickableList)
+{
+	removeMissing(m_controls.pickables, pickableList);
 }
 
 

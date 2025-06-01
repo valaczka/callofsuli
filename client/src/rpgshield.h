@@ -28,7 +28,6 @@
 #define RPGSHIELD_H
 
 #include "rpgarmory.h"
-#include "rpgpickableobject.h"
 
 
 /**
@@ -45,29 +44,5 @@ public:
 };
 
 
-
-
-
-/**
- * @brief The RpgArrowPickable class
- */
-
-class RpgShieldPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-    RpgShieldPickable(RpgGame *game = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-	static void pick(RpgPlayer *player, TiledGame *game);
-
-protected:
-	void load() override final;
-	virtual void onActivated() override final;
-
-};
 
 #endif // RPGSHIELD_H

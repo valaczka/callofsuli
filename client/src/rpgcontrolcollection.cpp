@@ -66,14 +66,10 @@ RpgControlCollection::RpgControlCollection(RpgGame *game, TiledScene *scene,
 																				   pos, 15.,
 																				   game);
 
-	o->filterSet(TiledObjectBody::FixtureControl,
-
-				 TiledObjectBody::FixturePlayerBody |
-				 TiledObjectBody::FixtureSensor |
-				 TiledObjectBody::FixtureVirtualCircle);
-
 	o->setSensor(true);
 	o->setVisualItem(m_visualItem);
+
+	onActivated();
 
 	controlObjectAdd(o);
 }
@@ -188,6 +184,10 @@ void RpgControlCollection::updateFromSnapshot(const RpgGameData::ControlCollecti
 {
 	setIsActive(snap.a);
 	setIsLocked(snap.lck);
+
+	if (m_visualItem)
+		m_visualItem->setVisible(!snap.own.isValid());
+
 	_updateGlow();
 }
 
@@ -243,6 +243,7 @@ void RpgControlCollection::onShapeContactEnd(cpShape *self, cpShape *other)
 	RpgActiveIface::onShapeContactEnd(self, other);
 	_updateGlow();
 }
+
 
 
 

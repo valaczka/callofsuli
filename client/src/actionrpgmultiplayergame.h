@@ -105,6 +105,7 @@ private:
 	void syncPlayerList(const ClientStorage &storage);
 	void syncBulletList(const ClientStorage &storage);
 	void syncCollectionList(const ClientStorage &storage);
+	void syncPickableList(const ClientStorage &storage);
 	void updateLastObjectId(RpgPlayer *player);
 
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::PlayerBaseData &config, const RpgGameData::Player &playerData);
@@ -115,7 +116,6 @@ private:
 	void onTimeAfterWorldStep(const qint64 &tick) override;
 	bool onBodyStep(TiledObjectBody *body) override;
 	void onWorldStep() override;
-	bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable) override;
 	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType) override;
 	bool onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control) override;
 	bool onPlayerUseCast(RpgPlayer *player) override;

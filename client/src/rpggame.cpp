@@ -31,16 +31,9 @@
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
 #include "rpggame.h"
-#include "rpghp.h"
-#include "rpgkeypickable.h"
 #include "rpglightning.h"
-#include "rpglongbow.h"
 #include "rpglongsword.h"
-#include "rpgmp.h"
-#include "rpgshield.h"
-#include "rpgtimepickable.h"
 #include "rpgwerebear.h"
-#include "rpgcoin.h"
 #include "rpguserwallet.h"
 #include "sound.h"
 #include "application.h"
@@ -55,7 +48,6 @@
 #include <libtcod/fov.hpp>
 
 #ifndef Q_OS_WASM
-#include "rpgcoin.h"
 #include "standaloneclient.h"
 #endif
 
@@ -221,7 +213,7 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 	recalculateEnemies();
 
-	for (auto &e : m_pickableDataList) {
+	/*for (auto &e : m_pickableDataList) {
 
 		if (e.type == RpgGameData::PickableBaseData::PickableMp)
 			e.type = RpgGameData::PickableBaseData::PickableShield;
@@ -241,7 +233,7 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 		e.pickableObject = pickable;
 		pickable->setIsActive(true);
-	}
+	}*/
 
 	m_gameDefinition = def;
 
@@ -432,7 +424,7 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 	if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(enemy)) {
 		if (IsometricEnemy *isoEnemy = qobject_cast<IsometricEnemy*>(enemy)) {
 			if (auto it = enemyFind(isoEnemy); it != m_enemyDataList.end()) {
-				for (const auto &p : it->pickables) {
+				/*for (const auto &p : it->pickables) {
 					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
 						pickable->emplace(iface->getPickablePosition(num++));
 						pickable->setIsActive(true);
@@ -446,7 +438,7 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 					}
 				}
 
-				it->pickablesOnce.clear();
+				it->pickablesOnce.clear();*/
 
 				//it->hasQuestion = false;
 			}
@@ -619,82 +611,7 @@ RpgEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type
 
 
 
-/**
- * @brief RpgGame::createPickable
- * @param type
- * @param scene
- * @return
- */
 
-RpgPickableObject *RpgGame::createPickable(const RpgGameData::PickableBaseData::PickableType &type, const QString &name,
-										   TiledScene *scene, const int &ownerId, const int &id)
-{
-	/*b2::Body::Params bParams;
-	bParams.type = b2BodyType::b2_staticBody;
-	bParams.fixedRotation = true;
-
-	b2::Shape::Params params;
-	params.density = 0.f;
-	params.isSensor = true;
-	params.filter = TiledObjectBody::getFilter(TiledObjectBody::FixturePickable,
-											   TiledObjectBody::FixturePlayerBody |
-											   TiledObjectBody::FixtureSensor |
-											   TiledObjectBody::FixtureVirtualCircle);
-
-
-	static const float size = 30.;*/
-
-	RpgPickableObject *pickable = nullptr;
-	/*
-	switch (type) {
-		case RpgGameData::PickableBaseData::PickableShield:
-			pickable = createFromCircle<RpgShieldPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableHp:
-			pickable = createFromCircle<RpgHpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableMp:
-			pickable = createFromCircle<RpgMpPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableCoin:
-			pickable = createFromCircle<RpgCoinPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableShortbow:
-			pickable = createFromCircle<RpgShortbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableLongbow:
-			pickable = createFromCircle<RpgLongbowPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableLongsword:
-			pickable = createFromCircle<RpgLongswordPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableTime:
-			pickable = createFromCircle<RpgTimePickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableKey:
-			pickable = createFromCircle<RpgKeyPickable>(ownerId, id, scene, {0.f, 0.f}, size, nullptr, bParams, params);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableDagger:
-		case RpgGameData::PickableBaseData::PickableInvalid:
-			break;
-	}
-
-	if (pickable) {
-		pickable->setName(name);
-		pickable->initialize();
-	}
-*/
-	return pickable;
-}
 
 
 /**
@@ -820,8 +737,8 @@ void RpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const
 
 	if (groupClass == QStringLiteral("enemy"))
 		return loadEnemy(scene, object, renderer);
-	else if (groupClass == QStringLiteral("pickable"))
-		return loadPickable(scene, object, renderer);
+	/*else if (groupClass == QStringLiteral("pickable"))
+		return loadPickable(scene, object, renderer);*/
 	else if (object->className() == QStringLiteral("player"))
 		addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 }
@@ -1787,44 +1704,6 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 
 
 
-/**
- * @brief RpgGame::loadPickable
- * @param scene
- * @param object
- * @param renderer
- */
-
-void RpgGame::loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
-{
-	Q_ASSERT(object);
-	Q_ASSERT(scene);
-	Q_ASSERT(renderer);
-
-	const RpgGameData::PickableBaseData::PickableType &type = RpgPickableObject::typeFromString(object->className());
-
-	if (type == RpgGameData::PickableBaseData::PickableInvalid) {
-		LOG_CERROR("game") << "Invalid pickable" << object->id() << object->className() << object->name();
-		return;
-	}
-
-	if (object->shape() != Tiled::MapObject::Point) {
-		LOG_CWARNING("scene") << "Invalid pickable point" << object->id() << object->className() << object->name();
-		return;
-	}
-	const QPointF &point = renderer->pixelToScreenCoords(object->position());
-
-	m_pickableDataList.append(PickableData{
-								  TiledObject::ObjectId{.sceneId = scene->sceneId(), .id = object->id() },
-								  type,
-								  object->name(),
-								  point,
-								  scene,
-								  nullptr,
-								  object->propertyAsString(QStringLiteral("displayName"))
-							  });
-}
-
-
 
 /**
  * @brief RpgGame::addLocationSound
@@ -2264,14 +2143,14 @@ QVector<RpgGameData::PickableBaseData::PickableType> RpgGame::getPickablesFromPr
 
 	const QStringList &pList = value.split(',', Qt::SkipEmptyParts);
 	for (const QString &s : pList) {
-		const RpgGameData::PickableBaseData::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
+		/*const RpgGameData::PickableBaseData::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
 
 		if (type == RpgGameData::PickableBaseData::PickableInvalid) {
 			LOG_CWARNING("scene") << "Invalid pickable type:" << s;
 			continue;
 		}
 
-		pickableList.append(type);
+		pickableList.append(type);*/
 	}
 
 	return pickableList;
@@ -3199,7 +3078,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 				} */ else if (xml.name() == QStringLiteral("objectgroup") &&
 							  xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickable")) {
 
-					while (xml.readNextStartElement()) {
+					/*while (xml.readNextStartElement()) {
 						if (xml.name() == QStringLiteral("object")) {
 							const QString type = xml.attributes().value(QStringLiteral("type")).toString();
 							if (const RpgGameData::PickableBaseData::PickableType &p = RpgPickableObject::typeFromString(type.simplified());
@@ -3209,7 +3088,7 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 						}
 
 						xml.skipCurrentElement();
-					}
+					}*/
 				} else {
 					xml.skipCurrentElement();
 				}
@@ -3233,8 +3112,8 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 	QJsonObject info;
 	info.insert(QStringLiteral("hasMarket"), hasMarket);
 	info.insert(QStringLiteral("enemyCount"), enemyCount);
-	info.insert(QStringLiteral("currencyCount"), currencyCount * RpgCoinPickable::amount(true));
-	info.insert(QStringLiteral("mpCount"), mpCount * RpgMpPickable::amount());
+	//info.insert(QStringLiteral("currencyCount"), currencyCount * RpgCoinPickable::amount(true));
+	//info.insert(QStringLiteral("mpCount"), mpCount * RpgMpPickable::amount());
 	info.insert(QStringLiteral("duration"), def.duration);
 
 	market.info = info;

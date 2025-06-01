@@ -30,6 +30,12 @@
 #include <random>
 
 
+#define PICKABLE_HP_VALUE				10
+#define PICKABLE_SHORTBOW_VALUE			10
+#define PICKABLE_LONGBOW_VALUE			10
+#define PICKABLE_LONGSWORD_VALUE		10
+#define PICKABLE_DAGGER_VALUE			1
+#define PICKABLE_SHIELD_VALUE			2
 
 
 const QHash<RpgConfig::ControlType, int> RpgConfig::m_controlDamageValue = {
@@ -185,6 +191,7 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &fi
 	addFullSnapshot(&s.controls.lights, m_controls.lights, tick, findLast);
 	addFullSnapshot(&s.controls.containers, m_controls.containers, tick, findLast);
 	addFullSnapshot(&s.controls.collections, m_controls.collections, tick, findLast);
+	addFullSnapshot(&s.controls.pickables, m_controls.pickables, tick, findLast);
 
 
 	return s;
@@ -212,6 +219,7 @@ CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 	s.controls.lights = convertToSnapshotList(m_controls.lights);
 	s.controls.containers = convertToSnapshotList(m_controls.containers);
 	s.controls.collections = convertToSnapshotList(m_controls.collections);
+	s.controls.pickables = convertToSnapshotList(m_controls.pickables);
 
 	return s;
 }
@@ -245,6 +253,9 @@ void SnapshotStorage::zapSnapshots(const qint64 &tick)
 		zapSnapshots(ptr.list, tick);
 
 	for (auto &ptr : m_controls.collections)
+		zapSnapshots(ptr.list, tick);
+
+	for (auto &ptr : m_controls.pickables)
 		zapSnapshots(ptr.list, tick);
 }
 
@@ -282,6 +293,9 @@ QCborMap CurrentSnapshot::toCbor() const
 	if (const QCborArray &a = toCborArray(controls.collections, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("cs"), a);
 
+	if (const QCborArray &a = toCborArray(controls.pickables, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
+		map.insert(QStringLiteral("cp"), a);
+
 	return map;
 }
 
@@ -306,6 +320,7 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 	r += fromCborArray(controls.lights, map.value(QStringLiteral("cl")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 	r += fromCborArray(controls.containers, map.value(QStringLiteral("cc")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 	r += fromCborArray(controls.collections, map.value(QStringLiteral("cs")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
+	r += fromCborArray(controls.pickables, map.value(QStringLiteral("cp")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 
 	return r;
 }
@@ -376,6 +391,60 @@ void Player::controlFailed(Player &dst, const RpgConfig::ControlType &control)
 		return;
 
 	dst.hp = std::max(0, (int) (dst.hp-damage));
+}
+
+
+
+
+
+/**
+ * @brief Player::pick
+ * @param dst
+ * @param type
+ * @return
+ */
+
+bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const QString &name)
+{
+	switch (type) {
+		case PickableBaseData::PickableHp:
+			dst.hp += PICKABLE_HP_VALUE;
+			break;
+
+		case PickableBaseData::PickableShortbow:
+			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_SHORTBOW_VALUE);
+			break;
+
+		case PickableBaseData::PickableLongbow:
+			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_LONGBOW_VALUE);
+			break;
+
+		case PickableBaseData::PickableLongsword:
+			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_LONGSWORD_VALUE);
+			break;
+
+		case PickableBaseData::PickableDagger:
+			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_DAGGER_VALUE);
+			break;
+
+		case PickableBaseData::PickableShield:
+			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_SHIELD_VALUE);
+			break;
+
+
+
+		case PickableBaseData::PickableKey:
+			dst.inv.add(type, 1, name);
+			break;
+
+		case PickableBaseData::PickableTime:
+		case PickableBaseData::PickableMp:
+		case PickableBaseData::PickableCoin:
+		case PickableBaseData::PickableInvalid:
+			return false;
+	}
+
+	return true;
 }
 
 

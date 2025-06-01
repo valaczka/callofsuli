@@ -34,11 +34,8 @@
 #include "rpgquestion.h"
 #include "rpguserwallet.h"
 #include "server.h"
-#include "rpgshield.h"
 #include "tilelayeritem.h"
 #include <libtiled/imagecache.h>
-#include "rpgcoin.h"
-#include "rpgmp.h"
 #include "rpgarmory.h"
 
 
@@ -834,11 +831,11 @@ void ActionRpgGame::onTimeBeforeWorldStep(const qint64 &tick)
 void ActionRpgGame::onTimeStepped()
 {
 	m_rpgGame->iterateOverBodies([this](TiledObjectBody *b){
-		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b)) {
+		if (RpgGameData::LifeCycle *iface = dynamic_cast<RpgGameData::LifeCycle*> (b)) {
 			if (iface->stage() == RpgGameData::LifeCycle::StageDestroy ||
 					iface->stage() == RpgGameData::LifeCycle::StageDead) {
 				LOG_CINFO("game") << "****** DELETE" << iface;
-				ActionRpgGame::onBulletDelete(iface);
+				ActionRpgGame::onLifeCycleDelete(b);
 			}
 		}
 	});
@@ -1034,7 +1031,7 @@ void ActionRpgGame::loadInventory(RpgPlayer *player)
 
 	LOG_CTRACE("game") << "Load player inventory" << player;
 
-	for (const QString &s : player->m_config.inventoryOnce) {
+/*	for (const QString &s : player->m_config.inventoryOnce) {
 		loadInventory(player, RpgPickableObject::typeFromString(s));
 	}
 
@@ -1055,48 +1052,10 @@ void ActionRpgGame::loadInventory(RpgPlayer *player)
 
 	for (const QString &s : m_rpgGame->m_gameDefinition.inventory) {
 		loadInventory(player, RpgPickableObject::typeFromString(s));
-	}
+	}*/
 }
 
 
-
-/**
- * @brief ActionRpgGame::loadInventory
- * @param player
- * @param pickableType
- */
-
-void ActionRpgGame::loadInventory(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &pickableType)
-{
-	if (!player)
-		return;
-
-	switch (pickableType) {
-		case RpgGameData::PickableBaseData::PickableShield:
-			RpgShieldPickable::pick(player, m_rpgGame);
-			break;
-
-		case RpgGameData::PickableBaseData::PickableKey:
-			player->inventoryAdd(pickableType /*, name ???? */);		/// TODO: name handling
-			break;
-
-		case RpgGameData::PickableBaseData::PickableMp:
-		case RpgGameData::PickableBaseData::PickableHp:
-		case RpgGameData::PickableBaseData::PickableCoin:
-		case RpgGameData::PickableBaseData::PickableShortbow:
-		case RpgGameData::PickableBaseData::PickableLongbow:
-		case RpgGameData::PickableBaseData::PickableLongsword:
-		case RpgGameData::PickableBaseData::PickableDagger:
-		case RpgGameData::PickableBaseData::PickableTime:
-			LOG_CERROR("game") << "Inventory type not supported:" << pickableType;
-			break;
-
-		case RpgGameData::PickableBaseData::PickableInvalid:
-			LOG_CERROR("game") << "Invalid inventory type";
-			break;
-	}
-
-}
 
 
 
@@ -1128,32 +1087,29 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::Wea
 /**
  * @brief ActionRpgGame::onPlayerPick
  * @param player
- * @param pickable
+ * @param type
  * @return
  */
 
-bool ActionRpgGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
+bool ActionRpgGame::onPlayerPick(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &type)
 {
-	if (!player || !pickable)
+	if (!player)
 		return false;
 
+	/*
 
-	if (pickable->pickableType() == RpgGameData::PickableBaseData::PickableTime) {
+	if (type->pickableType() == RpgGameData::PickableBaseData::PickableTime) {
 		static int sec = 60;
 		//addToDeadline(sec*1000);
 		m_deadlineTick += AbstractGame::TickTimer::msecToTick(sec*1000);
 		m_msecNotifyAt = 0;
 		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
-	} else if (pickable->pickableType() == RpgGameData::PickableBaseData::PickableCoin) {
+	} else if (type->pickableType() == RpgGameData::PickableBaseData::PickableCoin) {
 		const auto num = RpgCoinPickable::amount(!m_rpgQuestion->emptyQuestions());
 		m_rpgGame->setCurrency(m_rpgGame->currency()+num);
 		m_rpgGame->messageColor(tr("%1 coins gained").arg(num), QStringLiteral("#FB8C00"));
 	}
-
-	/*if (pickable->pickableType() == RpgPickableObject::PickableLongsword) {
-		m_rpgGame->messageColor("Nem lehet", "#DD0000");
-		return false;
-	}*/
+	*/
 
 	return true;
 }
@@ -1635,10 +1591,10 @@ bool ActionRpgGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
  * @param bullet
  */
 
-void ActionRpgGame::onBulletDelete(IsometricBullet *bullet)
+void ActionRpgGame::onLifeCycleDelete(TiledObjectBody *body)
 {
 	if (m_rpgGame)
-		m_rpgGame->removeObject(bullet);
+		m_rpgGame->removeObject(body);
 }
 
 
@@ -1660,11 +1616,12 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgAct
 
 	setXp(m_xp+xp);
 
+	/*
 	if (player->config().cast != RpgPlayerCharacterConfig::CastInvalid && m_gameQuestion && !control) {
-		const int mp = /*m_gameQuestion->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * */
+		const int mp =
 					   RpgMpPickable::amount() * (2 + (0.33*m_missionLevel->level()));
 		RpgMpPickable::pick(player, mp);
-	}
+	}*/
 }
 
 

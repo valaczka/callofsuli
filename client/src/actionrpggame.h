@@ -122,7 +122,6 @@ protected:
 	void onGameLoadFailed(const QString &);
 
 	void loadInventory(RpgPlayer *player);
-	void loadInventory(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &pickableType);
 	void loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &type, const int &bullet = 0);
 
 	void updateConfig();
@@ -136,7 +135,6 @@ protected:
 	virtual void onTimeAfterWorldStep(const qint64 &tick);
 	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
 	virtual void onWorldStep() { }
-	virtual bool onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable);
 	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
 	virtual bool onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control);
 	virtual bool onPlayerUseCast(RpgPlayer *player);
@@ -148,13 +146,14 @@ protected:
 	virtual bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
 	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
 	virtual bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other);
-	virtual void onBulletDelete(IsometricBullet *bullet);
+	virtual void onLifeCycleDelete(TiledObjectBody *body);
 	virtual void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp);
 	virtual void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control);
 
 private:
 	void rpgGameActivated_();
 	void onMsecLeftChanged();
+	bool onPlayerPick(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &type);
 
 	void downloadLoadableContentDict(const QStringList &fileList);
 	void downloadLoadableContent(const QStringList &fileList);

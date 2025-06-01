@@ -100,7 +100,8 @@ public:
 		ControlContainer,
 		ControlDoor,
 		ControlLight,
-		ControlCollection
+		ControlCollection,
+		ControlPickable
 	};
 
 	Q_ENUM(ControlType)
@@ -964,49 +965,6 @@ public:
 
 
 
-/**
- * @brief The Armory class
- */
-
-class Armory : public QSerializer
-{
-	Q_GADGET
-
-public:
-	Armory()
-		: QSerializer()
-		, cw(Weapon::WeaponInvalid)
-	{}
-
-	bool isEqual(const Armory &other) const {
-		return other.wl == wl && other.cw == cw;
-	}
-
-	QList<Weapon>::const_iterator find(const Weapon::WeaponType &type) const {
-		return std::find_if(wl.cbegin(), wl.cend(),
-							[&type](const Weapon &w) {
-			return w.t == type;
-		});
-	}
-
-	QList<Weapon>::iterator find(const Weapon::WeaponType &type) {
-		return std::find_if(wl.begin(), wl.end(),
-							[&type](const Weapon &w) {
-			return w.t == type;
-		});
-	}
-
-
-	EQUAL_OPERATOR(Armory)
-
-	QS_SERIALIZABLE
-
-	QS_COLLECTION_OBJECTS(QList, Weapon, wl)			// weapon list
-	QS_FIELD(Weapon::WeaponType, cw)					// current weapon
-};
-
-
-
 
 
 /**
@@ -1085,347 +1043,6 @@ public:
 	QS_FIELD(float, pf)				// protect factor
 };
 
-
-
-
-
-
-/**
- * @brief The ArmoredEntity class
- */
-
-class ArmoredEntity : public Entity
-{
-	Q_GADGET
-
-public:
-	ArmoredEntity()
-		: Entity()
-	{}
-
-	bool isEqual(const ArmoredEntity &other) const {
-		return Entity::isEqual(other) && other.arm == arm;
-	}
-
-	bool canMerge(const ArmoredEntity &other) const {
-		return Entity::canMerge(other) && other.arm == arm;
-	}
-
-	bool canInterpolateFrom(const ArmoredEntity &other) const {
-		return Entity::canInterpolateFrom(other) && other.arm == arm;
-	}
-
-	static void attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
-						 const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other);
-
-	void attacked(const ArmoredEntityBaseData &dstBase,
-				  const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other)
-	{
-		attacked(dstBase, *this, weapon, other);
-	}
-
-	EQUAL_OPERATOR(ArmoredEntity)
-
-	QS_SERIALIZABLE
-
-	QS_OBJECT(Armory, arm)			// armory
-};
-
-
-
-
-
-
-/**
- * @brief The PlayerBaseData class
- */
-
-class PlayerBaseData : public ArmoredEntityBaseData
-{
-	Q_GADGET
-
-public:
-	PlayerBaseData(const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
-		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
-	{}
-
-	PlayerBaseData(const int &_o, const int &_s, const int &_id)
-		: PlayerBaseData(1., 1., _o, _s, _id)
-	{}
-
-	PlayerBaseData()
-		: PlayerBaseData(-1, -1, -1)
-	{}
-
-	bool isEqual(const PlayerBaseData &other) const {
-		return ArmoredEntityBaseData::isEqual(other);
-	}
-
-	EQUAL_OPERATOR(PlayerBaseData)
-
-	QS_SERIALIZABLE
-};
-
-
-
-
-
-/**
- * @brief The Player class
- */
-
-class Player : public ArmoredEntity
-{
-	Q_GADGET
-
-public:
-	Player()
-		: ArmoredEntity()
-		, st(PlayerInvalid)
-		, l(false)
-	{}
-
-	enum PlayerState {
-		PlayerInvalid = 0,
-		PlayerIdle,
-		PlayerMoving,
-		PlayerHit,
-		PlayerShot,
-		PlayerCast,
-		PlayerAttack,
-		PlayerWeaponChange,
-		PlayerLockControl,					// előbb a feladat
-		PlayerUnlockControl,				// sikertelen feladat után
-		PlayerUseControl					// nincs feladat vagy sikeres feladat után
-	};
-
-	Q_ENUM(PlayerState);
-
-
-	bool isEqual(const Player &other) const  {
-		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l;
-	}
-
-	bool canMerge(const Player &other) const {
-		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l;
-	}
-
-	bool canInterpolateFrom(const Player &other) const {
-		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
-	}
-
-	static void controlFailed(Player &dst, const RpgConfig::ControlType &control);
-
-	void controlFailed(const RpgConfig::ControlType &control)
-	{
-		controlFailed(*this, control);
-	}
-
-	EQUAL_OPERATOR(Player);
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(PlayerState, st)			// state
-	QS_OBJECT(BaseData, tg)				// target (enemy, control)
-	QS_FIELD(bool, l)					// locked
-};
-
-
-
-
-
-
-/**
- * @brief The EnemyBaseData class
- */
-
-class EnemyBaseData : public ArmoredEntityBaseData
-{
-	Q_GADGET
-
-public:
-	enum EnemyType {
-		EnemyInvalid = 0,
-		EnemyWerebear,
-		EnemySoldier,
-		EnemyArcher,
-		EnemySoldierFix,
-		EnemyArcherFix,
-		EnemySkeleton,
-		EnemySmith,
-		EnemySmithFix,
-		EnemyBarbarian,
-		EnemyBarbarianFix,
-		EnemyButcher,
-		EnemyButcherFix,
-	};
-
-	Q_ENUM(EnemyType);
-
-	EnemyBaseData(const EnemyType &_type, const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
-		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
-		, t(_type)
-	{}
-
-	EnemyBaseData(const EnemyType &_type, const int &_o, const int &_s, const int &_id)
-		: EnemyBaseData(_type, 1., 1., _o, _s, _id)
-	{}
-
-	EnemyBaseData(const EnemyType &_type)
-		: EnemyBaseData(_type, -1, -1, -1)
-	{}
-
-	EnemyBaseData()
-		: EnemyBaseData(EnemyInvalid)
-	{}
-
-	bool isEqual(const EnemyBaseData &other) const {
-		return BaseData::isEqual(other);
-	}
-
-	EQUAL_OPERATOR(EnemyBaseData)
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(EnemyType, t)
-};
-
-
-
-
-
-/**
- * @brief The Enemy class
- */
-
-
-class Enemy : public ArmoredEntity
-{
-	Q_GADGET
-
-public:
-	enum EnemyState {
-		EnemyInvalid = 0,
-		EnemyIdle,
-		EnemyMoving,
-		EnemyHit,
-		EnemyShot,
-		EnemyCast,
-		EnemyAttack
-	};
-
-	Q_ENUM(EnemyState);
-
-	Enemy(const EnemyState &_st)
-		: ArmoredEntity()
-		, st(_st)
-	{}
-
-	Enemy()
-		: Enemy(EnemyInvalid)
-	{}
-
-
-	bool isEqual(const Enemy &other) const {
-		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg;
-	}
-
-	bool canMerge(const Enemy &other) const {
-		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg;
-	}
-
-	bool canInterpolateFrom(const Enemy &other) const {
-		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
-	}
-
-	EQUAL_OPERATOR(Enemy)
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(EnemyState, st)			// enemy state
-	QS_OBJECT(BaseData, tg)				// target (player)
-
-};
-
-
-
-
-
-
-/**
- * @brief The PickableBaseData class
- */
-
-class PickableBaseData : public BaseData
-{
-	Q_GADGET
-
-public:
-	enum PickableType {
-		PickableInvalid = 0,
-		PickableHp,
-		PickableShortbow,
-		PickableLongbow,
-		PickableLongsword,
-		PickableDagger,
-		PickableShield,
-		PickableTime,
-		PickableMp,
-		PickableCoin,
-		PickableKey,
-	};
-
-	Q_ENUM(PickableType);
-
-	PickableBaseData (const PickableType &_type, const int &_o, const int &_s, const int &_id)
-		: BaseData(_o, _s, _id)
-		, t(_type)
-	{}
-
-	PickableBaseData(const PickableType &_type)
-		: PickableBaseData(_type, -1, -1, -1)
-	{}
-
-	PickableBaseData()
-		: PickableBaseData(PickableInvalid)
-	{}
-
-	bool isEqual(const PickableBaseData &other) const {
-		return BaseData::isEqual(other);
-	}
-
-	EQUAL_OPERATOR(PickableBaseData)
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(PickableType, t)
-};
-
-
-
-
-
-
-/**
- * @brief The Pickable class
- */
-
-class Pickable : public Body
-{
-	Q_GADGET
-
-public:
-	Pickable() = default;
-
-	bool isEqual(const Pickable &other) const {
-		return Body::isEqual(other);
-	}
-
-	EQUAL_OPERATOR(Pickable)
-
-	QS_SERIALIZABLE
-
-};
 
 
 
@@ -1765,6 +1382,533 @@ public:
 
 
 
+/**
+ * @brief The PickableBaseData class
+ */
+
+class PickableBaseData : public ControlActiveBaseData
+{
+	Q_GADGET
+
+public:
+	enum PickableType {
+		PickableInvalid = 0,
+		PickableHp,
+		PickableShortbow,
+		PickableLongbow,
+		PickableLongsword,
+		PickableDagger,
+		PickableShield,
+		PickableTime,
+		PickableMp,
+		PickableCoin,
+		PickableKey,
+	};
+
+	Q_ENUM(PickableType);
+
+	PickableBaseData (const PickableType &_type, const int &_o, const int &_s, const int &_id)
+		: ControlActiveBaseData(RpgConfig::ControlPickable, _o, _s, _id)
+		, pt(_type)
+	{}
+
+	PickableBaseData(const PickableType &_type)
+		: PickableBaseData(_type, -1, -1, -1)
+	{}
+
+	PickableBaseData()
+		: PickableBaseData(PickableInvalid)
+	{}
+
+	bool isEqual(const PickableBaseData &other) const {
+		return ControlActiveBaseData::isEqual(other) && other.pt == pt && other.p == p;
+	}
+
+	EQUAL_OPERATOR(PickableBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(PickableType, pt)
+	QS_COLLECTION(QList, float, p)				// position
+};
+
+
+
+
+
+
+/**
+ * @brief The Pickable class
+ */
+
+class Pickable : public ControlActive, public LifeCycle
+{
+	Q_GADGET
+
+public:
+	Pickable()
+		: ControlActive()
+		, LifeCycle()
+		, st(LifeCycle::StageInvalid)
+	{}
+
+	bool isEqual(const Pickable &other) const {
+		return ControlActive::isEqual(other) && other.st == st && other.own == own;
+	}
+
+	bool canMerge(const Pickable &other) const {
+		return ControlActive::canMerge(other) && other.st == st && other.own == own;
+	}
+
+	bool canInterpolateFrom(const Pickable &other) const {
+		return isEqual(other);
+	}
+
+	virtual Stage stage() const { return st; }
+	virtual void setStage(const Stage &newStage) { st = newStage; }
+
+
+	EQUAL_OPERATOR(Pickable)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(LifeCycle::Stage, st)				// stage
+	QS_OBJECT(BaseData, own)					// owner (collected by)
+
+};
+
+
+
+
+
+
+
+
+/**
+ * @brief The InventoryItem class
+ */
+
+class InventoryItem : public QSerializer
+{
+	Q_GADGET
+
+public:
+	InventoryItem(const PickableBaseData::PickableType &_type, const QString &_name, const int &_count = 1)
+		: QSerializer()
+		, t(_type)
+		, n(_name)
+		, c(_count)
+	{}
+
+	InventoryItem(const PickableBaseData::PickableType &_type, const int &_count = 1)
+		: InventoryItem(_type, QString(), _count)
+	{}
+
+	InventoryItem()
+		: InventoryItem(PickableBaseData::PickableInvalid)
+	{}
+
+
+	bool isEqual(const InventoryItem &other) const {
+		return other.t == t && other.n == n && other.c == c;
+	}
+
+	EQUAL_OPERATOR(InventoryItem)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(PickableBaseData::PickableType, t)				// type
+	QS_FIELD(QString, n)									// name
+	QS_FIELD(int, c)										// count
+};
+
+
+
+
+
+
+/**
+ * @brief The Inventory class
+ */
+
+class Inventory : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Inventory()
+		: QSerializer()
+	{}
+
+	bool isEqual(const Inventory &other) const {
+		return other.l == l;
+	}
+
+	QList<InventoryItem>::const_iterator find(const PickableBaseData::PickableType &type, const QString &name = {}) const {
+		return std::find_if(l.cbegin(), l.cend(),
+							[&type, &name](const InventoryItem &w) {
+			return w.t == type && w.n == name;
+		});
+	}
+
+	QList<InventoryItem>::iterator find(const PickableBaseData::PickableType &type, const QString &name = {}) {
+		return std::find_if(l.begin(), l.end(),
+							[&type, &name](const InventoryItem &w) {
+			return w.t == type && w.n == name;
+		});
+	}
+
+	const InventoryItem &add(const PickableBaseData::PickableType &type, const int &count = 1, const QString &name = {}) {
+		auto it = find(type, name);
+		if (it != l.end()) {
+			it->c += count;
+			return *it;
+		} else {
+			return l.emplace_back(type, name, count);
+		}
+	}
+
+
+	EQUAL_OPERATOR(Inventory)
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, InventoryItem, l)		// inventory list
+};
+
+
+
+
+/**
+ * @brief The Armory class
+ */
+
+class Armory : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Armory()
+		: QSerializer()
+		, cw(Weapon::WeaponInvalid)
+	{}
+
+	bool isEqual(const Armory &other) const {
+		return other.wl == wl && other.cw == cw;
+	}
+
+	QList<Weapon>::const_iterator find(const Weapon::WeaponType &type) const {
+		return std::find_if(wl.cbegin(), wl.cend(),
+							[&type](const Weapon &w) {
+			return w.t == type;
+		});
+	}
+
+	QList<Weapon>::iterator find(const Weapon::WeaponType &type) {
+		return std::find_if(wl.begin(), wl.end(),
+							[&type](const Weapon &w) {
+			return w.t == type;
+		});
+	}
+
+	const Weapon &add(const Weapon::WeaponType &type, const int &bullet = 1) {
+		auto it = find(type);
+		if (it != wl.end()) {
+			it->b += bullet;
+			return *it;
+		} else {
+			return wl.emplace_back(type, bullet);
+		}
+	}
+
+
+	EQUAL_OPERATOR(Armory)
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, Weapon, wl)			// weapon list
+	QS_FIELD(Weapon::WeaponType, cw)					// current weapon
+};
+
+
+
+
+
+
+/**
+ * @brief The ArmoredEntity class
+ */
+
+class ArmoredEntity : public Entity
+{
+	Q_GADGET
+
+public:
+	ArmoredEntity()
+		: Entity()
+	{}
+
+	bool isEqual(const ArmoredEntity &other) const {
+		return Entity::isEqual(other) && other.arm == arm;
+	}
+
+	bool canMerge(const ArmoredEntity &other) const {
+		return Entity::canMerge(other) && other.arm == arm;
+	}
+
+	bool canInterpolateFrom(const ArmoredEntity &other) const {
+		return Entity::canInterpolateFrom(other) && other.arm == arm;
+	}
+
+	static void attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
+						 const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other);
+
+	void attacked(const ArmoredEntityBaseData &dstBase,
+				  const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other)
+	{
+		attacked(dstBase, *this, weapon, other);
+	}
+
+	EQUAL_OPERATOR(ArmoredEntity)
+
+	QS_SERIALIZABLE
+
+	QS_OBJECT(Armory, arm)			// armory
+};
+
+
+
+
+
+
+
+/**
+ * @brief The EnemyBaseData class
+ */
+
+class EnemyBaseData : public ArmoredEntityBaseData
+{
+	Q_GADGET
+
+public:
+	enum EnemyType {
+		EnemyInvalid = 0,
+		EnemyWerebear,
+		EnemySoldier,
+		EnemyArcher,
+		EnemySoldierFix,
+		EnemyArcherFix,
+		EnemySkeleton,
+		EnemySmith,
+		EnemySmithFix,
+		EnemyBarbarian,
+		EnemyBarbarianFix,
+		EnemyButcher,
+		EnemyButcherFix,
+	};
+
+	Q_ENUM(EnemyType);
+
+	EnemyBaseData(const EnemyType &_type, const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
+		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
+		, t(_type)
+	{}
+
+	EnemyBaseData(const EnemyType &_type, const int &_o, const int &_s, const int &_id)
+		: EnemyBaseData(_type, 1., 1., _o, _s, _id)
+	{}
+
+	EnemyBaseData(const EnemyType &_type)
+		: EnemyBaseData(_type, -1, -1, -1)
+	{}
+
+	EnemyBaseData()
+		: EnemyBaseData(EnemyInvalid)
+	{}
+
+	bool isEqual(const EnemyBaseData &other) const {
+		return BaseData::isEqual(other);
+	}
+
+	EQUAL_OPERATOR(EnemyBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(EnemyType, t)
+};
+
+
+
+
+
+/**
+ * @brief The Enemy class
+ */
+
+
+class Enemy : public ArmoredEntity
+{
+	Q_GADGET
+
+public:
+	enum EnemyState {
+		EnemyInvalid = 0,
+		EnemyIdle,
+		EnemyMoving,
+		EnemyHit,
+		EnemyShot,
+		EnemyCast,
+		EnemyAttack
+	};
+
+	Q_ENUM(EnemyState);
+
+	Enemy(const EnemyState &_st)
+		: ArmoredEntity()
+		, st(_st)
+	{}
+
+	Enemy()
+		: Enemy(EnemyInvalid)
+	{}
+
+
+	bool isEqual(const Enemy &other) const {
+		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.inv == inv;
+	}
+
+	bool canMerge(const Enemy &other) const {
+		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.inv == inv;
+	}
+
+	bool canInterpolateFrom(const Enemy &other) const {
+		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
+	}
+
+	EQUAL_OPERATOR(Enemy)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(EnemyState, st)			// enemy state
+	QS_OBJECT(BaseData, tg)				// target (player)
+	QS_OBJECT(Inventory, inv)			// inventory
+
+};
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The PlayerBaseData class
+ */
+
+class PlayerBaseData : public ArmoredEntityBaseData
+{
+	Q_GADGET
+
+public:
+	PlayerBaseData(const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
+		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
+	{}
+
+	PlayerBaseData(const int &_o, const int &_s, const int &_id)
+		: PlayerBaseData(1., 1., _o, _s, _id)
+	{}
+
+	PlayerBaseData()
+		: PlayerBaseData(-1, -1, -1)
+	{}
+
+	bool isEqual(const PlayerBaseData &other) const {
+		return ArmoredEntityBaseData::isEqual(other);
+	}
+
+	EQUAL_OPERATOR(PlayerBaseData)
+
+	QS_SERIALIZABLE
+};
+
+
+
+
+
+/**
+ * @brief The Player class
+ */
+
+class Player : public ArmoredEntity
+{
+	Q_GADGET
+
+public:
+	Player()
+		: ArmoredEntity()
+		, st(PlayerInvalid)
+		, l(false)
+	{}
+
+	enum PlayerState {
+		PlayerInvalid = 0,
+		PlayerIdle,
+		PlayerMoving,
+		PlayerHit,
+		PlayerShot,
+		PlayerCast,
+		PlayerAttack,
+		PlayerWeaponChange,
+		PlayerLockControl,					// előbb a feladat
+		PlayerUnlockControl,				// sikertelen feladat után
+		PlayerUseControl					// nincs feladat vagy sikeres feladat után
+	};
+
+	Q_ENUM(PlayerState);
+
+
+	bool isEqual(const Player &other) const  {
+		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l;
+	}
+
+	bool canMerge(const Player &other) const {
+		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l;
+	}
+
+	bool canInterpolateFrom(const Player &other) const {
+		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
+	}
+
+	static void controlFailed(Player &dst, const RpgConfig::ControlType &control);
+
+	void controlFailed(const RpgConfig::ControlType &control) {
+		controlFailed(*this, control);
+	}
+
+	static bool pick(Player &dst, const PickableBaseData::PickableType &type, const QString &name = {});
+
+	bool pick(const PickableBaseData::PickableType &type, const QString &name = {}) {
+		return pick(*this, type, name);
+	}
+
+	EQUAL_OPERATOR(Player);
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(PlayerState, st)			// state
+	QS_OBJECT(BaseData, tg)				// target (enemy, control)
+	QS_FIELD(bool, l)					// locked
+	QS_OBJECT(Inventory, inv)			// inventory
+};
+
+
+
+
+
+
+
 
 
 
@@ -1780,6 +1924,8 @@ public:
 
 	ControlContainerBaseData(const int &_o, const int &_s, const int &_id)
 		: ControlActiveBaseData(RpgConfig::ControlContainer, _o, _s, _id)
+		, x(0)
+		, y(0)
 	{}
 
 	ControlContainerBaseData()
@@ -1787,14 +1933,16 @@ public:
 	{}
 
 	bool isEqual(const ControlContainerBaseData &other) const {
-		return ControlActiveBaseData::isEqual(other) && other.p == p;
+		return ControlActiveBaseData::isEqual(other) && other.inv == inv;
 	}
 
 	EQUAL_OPERATOR(ControlContainerBaseData)
 
 	QS_SERIALIZABLE
 
-	QS_COLLECTION(QList, PickableBaseData::PickableType, p)				// pickables
+	QS_OBJECT(Inventory, inv)			// inventory
+	QS_FIELD(float, x)					// position
+	QS_FIELD(float, y)
 };
 
 
@@ -1972,6 +2120,18 @@ struct SnapshotData {
 	T2 data;
 	std::map<qint64, T> list;
 	qint64 lastFullSnap = -1;
+
+	// Return the item not greater than tick, first item when all items are greater, nullopt on empty list
+
+	std::optional<T> get(const qint64 &tick) const {
+		if (list.empty())
+			return std::nullopt;
+		auto it = list.upper_bound(tick);
+		if (it == list.cbegin())
+			return it->second;
+		else
+			return std::prev(it)->second;
+	}
 };
 
 
@@ -1993,6 +2153,7 @@ struct SnapshotInterpolationControls
 	SnapshotInterpolationList<ControlBaseData, ControlLight> lights;
 	SnapshotInterpolationList<ControlContainerBaseData, ControlContainer> containers;
 	SnapshotInterpolationList<ControlCollectionBaseData, ControlCollection> collections;
+	SnapshotInterpolationList<PickableBaseData, Pickable> pickables;
 };
 
 
@@ -2006,6 +2167,7 @@ struct SnapshotControls
 	SnapshotList<ControlLight, ControlBaseData> lights;
 	SnapshotList<ControlContainer, ControlContainerBaseData> containers;
 	SnapshotList<ControlCollection, ControlCollectionBaseData> collections;
+	SnapshotList<Pickable, PickableBaseData> pickables;
 };
 
 
@@ -2028,6 +2190,7 @@ struct FullSnapshot {
 		controls.lights.clear();
 		controls.containers.clear();
 		controls.collections.clear();
+		controls.pickables.clear();
 	}
 
 	template <typename T2, typename T,
@@ -2080,6 +2243,7 @@ struct CurrentSnapshot {
 		controls.lights.clear();
 		controls.containers.clear();
 		controls.collections.clear();
+		controls.pickables.clear();
 	}
 
 

@@ -57,6 +57,7 @@ public:
 	void updateSnapshot(const RpgGameData::ControlBaseData &lightData, const RpgGameData::ControlLight &light);
 	void updateSnapshot(const RpgGameData::ControlContainerBaseData &containerData, const RpgGameData::ControlContainer &container);
 	void updateSnapshot(const RpgGameData::ControlCollectionBaseData &collectionData, const RpgGameData::ControlCollection &collection);
+	void updateSnapshot(const RpgGameData::PickableBaseData &pickableData, const RpgGameData::Pickable &pickable);
 
 
 	// Outgoing snapshot
@@ -95,6 +96,7 @@ public:
 
 	// Remove snapshot
 	void removeMissingSnapshots(const std::vector<RpgGameData::BulletBaseData> &bulletList);
+	void removeMissingSnapshots(const std::vector<RpgGameData::PickableBaseData> &pickableList);
 
 	void clear();
 

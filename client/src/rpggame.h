@@ -30,8 +30,8 @@
 #include "gamequestion.h"
 #include "rpgcontrol.h"
 #include "rpgenemy.h"
+#include "rpgpickable.h"
 #include "rpgplayer.h"
-#include "rpgpickableobject.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
 #include "rpgconfig.h"
@@ -287,13 +287,6 @@ protected:
 		return createEnemy(type, QString(), scene, id);
 	}
 
-	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, const QString &name, TiledScene *scene,
-									  const int &ownerId = 0, const int &id = 0);
-	RpgPickableObject *createPickable(const RpgGameData::PickableBaseData::PickableType &type, TiledScene *scene,
-									  const int &ownerId = 0, const int &id = 0) {
-		return createPickable(type, QString(), scene, ownerId, id);
-	}
-
 	RpgBullet *createBullet(const RpgGameData::Weapon::WeaponType &type,
 							TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
 
@@ -336,7 +329,6 @@ private:
 	void playerUseControl(RpgPlayer *player, RpgActiveIface *control);
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
-	void loadPickable(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void addLocationSound(TiledObjectBody *object, const QString &sound,
 						  const qreal &baseVolume = 1.,
 						  const Sound::ChannelType &channel = Sound::Music2Channel);
@@ -376,18 +368,6 @@ private:
 		QString displayName;
 	};
 
-
-	struct PickableData {
-		TiledObject::ObjectId objectId;
-		RpgGameData::PickableBaseData::PickableType type = RpgGameData::PickableBaseData::PickableInvalid;
-		QString name;
-		QPointF position;
-		QPointer<TiledScene> scene;
-		QPointer<RpgPickableObject> pickableObject;
-		QString displayName;
-	};
-
-
 	RpgGamePrivate *q = nullptr;
 
 	QVector<EnemyData>::iterator enemyFind(IsometricEnemy *enemy);
@@ -397,7 +377,6 @@ private:
 	QVector<RpgEnemyMetricDefinition> m_metricDefinition;
 
 	QVector<EnemyData> m_enemyDataList;
-	QVector<PickableData> m_pickableDataList;
 
 	std::vector<std::unique_ptr<RpgControlBase>> m_controls;
 

@@ -633,6 +633,34 @@ QString RendererType::dumpAs(const RpgGameData::ControlCollection &data, const Q
 }
 
 
+/**
+ * @brief RendererType::dumpAs
+ * @param data
+ * @param subData
+ * @return
+ */
+
+QString RendererType::dumpAs(const RpgGameData::Pickable &data, const QList<RpgGameData::Pickable> &subData) const
+{
+	QString txt = QStringLiteral("%1 [%2 %3]")
+				  .arg(data.f)
+				  .arg(data.st)
+				  .arg(data.a)
+				  ;
+
+	if (data.u.isValid())
+		txt += QStringLiteral(" holder %1")
+			   .arg(data.u.o)
+			   ;
+
+	if (data.lck)
+		txt += QStringLiteral(" LOCKED");
+
+
+	return txt;
+}
+
+
 
 
 
@@ -1014,6 +1042,43 @@ void RpgSnapshotStorage::collectionAdd(const RpgGameData::ControlCollectionBaseD
 
 
 /**
+ * @brief RpgSnapshotStorage::pickableAdd
+ * @param base
+ * @param data
+ */
+
+RpgGameData::PickableBaseData RpgSnapshotStorage::pickableAdd(const RpgGameData::PickableBaseData::PickableType &type,
+															  const int &scene, const QPointF &pos)
+{
+	RpgGameData::PickableBaseData base;
+
+	base.o = SERVER_OID;
+	base.s = scene;
+	base.id = m_engine->nextObjectId();
+	base.pt = type;
+	base.p = QList<float>{(float) pos.x(), (float) pos.y()};
+
+	RpgGameData::SnapshotData<RpgGameData::Pickable, RpgGameData::PickableBaseData> snapdata;
+
+	RpgGameData::Pickable data;
+	data.st = RpgGameData::LifeCycle::StageCreate;
+	data.sc = scene;
+	data.f = 0;
+	data.a = true;
+
+	snapdata.data = base;
+	snapdata.list.insert_or_assign(data.f, data);
+
+	m_controls.pickables.push_back(snapdata);
+
+	LOG_CWARNING("engine") << "PICKABLE ADD" << type << data.f << base.o << base.s << base.id;
+
+	return base;
+}
+
+
+
+/**
  * @brief RpgSnapshotStorage::lastLifeCycleId
  * @param base
  * @return
@@ -1226,6 +1291,7 @@ void RpgSnapshotStorage::renderEnd(const QString &txt)
 {
 	// TODO: lifecycle
 	removeList(m_tmpSnapshot.bullets, removeOutdated(m_bullets, m_lastAuthTick-120));
+	removeList(m_tmpSnapshot.controls.pickables, removeOutdated(m_controls.pickables, m_lastAuthTick-120));
 
 	removeLessThan(m_tmpSnapshot.players, m_lastAuthTick-5);
 	removeLessThan(m_tmpSnapshot.enemies, m_lastAuthTick-5);
@@ -1234,6 +1300,7 @@ void RpgSnapshotStorage::renderEnd(const QString &txt)
 	removeLessThan(m_tmpSnapshot.controls.lights, m_lastAuthTick-5);
 	removeLessThan(m_tmpSnapshot.controls.containers, m_lastAuthTick-5);
 	removeLessThan(m_tmpSnapshot.controls.collections, m_lastAuthTick-5);
+	removeLessThan(m_tmpSnapshot.controls.pickables, m_lastAuthTick-5);
 
 
 	zapSnapshots(m_lastAuthTick-5);
@@ -1416,7 +1483,7 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 
 
 	/// TODO REMOVE
-	if (!r->addObjects(m_controls.collections))
+	if (!r->addObjects(m_controls.pickables))
 		return {};
 
 
@@ -1438,7 +1505,10 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->addObjects(m_controls.containers))
 		return {};
 
-	/*if (!r->addObjects(m_controls.collections))
+	if (!r->addObjects(m_controls.collections))
+		return {};
+
+	/*if (!r->addObjects(m_controls.pickables))
 		return {};*/
 
 
@@ -1464,6 +1534,9 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->loadSnaps(m_controls.collections, true))
 		return {};
 
+	if (!r->loadSnaps(m_controls.pickables, true))
+		return {};
+
 
 
 	if (!r->loadAuthSnaps(snapshot.players))
@@ -1485,6 +1558,9 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->loadAuthSnaps(snapshot.controls.collections))
 		return {};
 
+	if (!r->loadAuthSnaps(snapshot.controls.pickables))
+		return {};
+
 
 
 	r->loadSnaps(m_tmpSnapshot.players, false);
@@ -1494,6 +1570,7 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	r->loadSnaps(m_tmpSnapshot.controls.lights, false);
 	r->loadSnaps(m_tmpSnapshot.controls.containers, false);
 	r->loadSnaps(m_tmpSnapshot.controls.collections, false);
+	r->loadSnaps(m_tmpSnapshot.controls.pickables, false);
 
 	return r;
 
@@ -1522,6 +1599,7 @@ int RpgSnapshotStorage::saveRenderer(Renderer *renderer)
 	diff = std::max(diff, renderer->saveObjects(m_controls.lights));
 	diff = std::max(diff, renderer->saveObjects(m_controls.containers));
 	diff = std::max(diff, renderer->saveObjects(m_controls.collections));
+	diff = std::max(diff, renderer->saveObjects(m_controls.pickables));
 
 
 	renderer->generateSolverEvents(m_engine, diff);
@@ -1545,6 +1623,9 @@ int RpgSnapshotStorage::saveRenderer(Renderer *renderer)
 		generateEvents(p, t);
 
 	for (const auto &p : m_controls.collections)
+		generateEvents(p, t);
+
+	for (const auto &p : m_controls.pickables)
 		generateEvents(p, t);
 
 	return diff-1;
@@ -1832,7 +1913,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 					m_solver.add(m_current, src, tg, p.arm.cw);
 				} else if (p.st == RpgGameData::Player::PlayerLockControl) {
 					if (RendererObjectType *tg = findByBase(p.tg)) {
-						LOG_CWARNING("engine") << "LOCK CONTROL" << tg->asBaseData().id;
+						LOG_CWARNING("engine") << "LOCK CONTROL" << tg->asBaseData().o << tg->asBaseData().s << tg->asBaseData().id;
 						m_solver.addUnique(m_current, src, tg);
 					} else {
 						LOG_CERROR("engine") << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
@@ -1840,7 +1921,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 				} else if (p.st == RpgGameData::Player::PlayerUseControl) {
 					if (RendererObjectType *tg = findByBase(p.tg)) {
-						LOG_CWARNING("engine") << "USE CONTROL" << tg->asBaseData().id;
+						LOG_CWARNING("engine") << "USE CONTROL" << tg->asBaseData().o << tg->asBaseData().s << tg->asBaseData().id;
 						if (auto *iface = m_solver.addUnique(m_current, src, tg)) {
 							iface->releaseSuccess(m_current, src);
 						}
@@ -2232,10 +2313,10 @@ void Renderer::render(RendererItem<RpgGameData::ControlLight> *dst, RendererObje
 
 void Renderer::render(RendererItem<RpgGameData::ControlContainer> *dst, RendererObject<RpgGameData::ControlContainerBaseData> *src)
 {
-	Q_ASSERT(dst);
-	Q_ASSERT(src);
+	Q_UNUSED(dst);
+	Q_UNUSED(src);
 
-	if (!dst->hasContent())
+	/*if (!dst->hasContent())
 		return;
 
 	// Ezzel hasonlítjük össze, hogy változott-e
@@ -2280,7 +2361,7 @@ void Renderer::render(RendererItem<RpgGameData::ControlContainer> *dst, Renderer
 	}
 
 	if (dst->m_data != original)
-		dst->addFlags(RendererType::Modified);
+		dst->addFlags(RendererType::Modified);*/
 }
 
 
@@ -2293,8 +2374,8 @@ void Renderer::render(RendererItem<RpgGameData::ControlContainer> *dst, Renderer
 
 void Renderer::render(RendererItem<RpgGameData::ControlCollection> *dst, RendererObject<RpgGameData::ControlCollectionBaseData> *src)
 {
-	Q_ASSERT(dst);
-	Q_ASSERT(src);
+	Q_UNUSED(dst);
+	Q_UNUSED(src);
 
 	/*if (!dst->hasContent())
 		return;
@@ -2342,6 +2423,19 @@ void Renderer::render(RendererItem<RpgGameData::ControlCollection> *dst, Rendere
 
 	if (dst->m_data != original)
 		dst->addFlags(RendererType::Modified);*/
+}
+
+
+/**
+ * @brief Renderer::render
+ * @param dst
+ * @param src
+ */
+
+void Renderer::render(RendererItem<RpgGameData::Pickable> *dst, RendererObject<RpgGameData::PickableBaseData> *src)
+{
+	Q_UNUSED(dst);
+	Q_UNUSED(src);
 }
 
 
@@ -2455,6 +2549,23 @@ void Renderer::restore(RpgGameData::ControlCollection *dst, const RpgGameData::C
 	dst->a = data.a;
 	dst->u = data.u;
 	dst->own = data.own;
+}
+
+
+/**
+ * @brief Renderer::restore
+ * @param dst
+ * @param data
+ */
+
+void Renderer::restore(RpgGameData::Pickable *dst, const RpgGameData::Pickable &data)
+{
+	Q_ASSERT(dst);
+
+	dst->st = data.st;
+	dst->lck = data.lck;
+	dst->a = data.a;
+	dst->u = data.u;
 }
 
 
@@ -2600,6 +2711,8 @@ ConflictSolver::ConflictUniqueIface* ConflictSolver::addUnique(const int &tick, 
 		return addUniqueData<ConflictContainer>(tick, c, dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src));
 	} else if (RendererObject<RpgGameData::ControlCollectionBaseData> *c = dynamic_cast<RendererObject<RpgGameData::ControlCollectionBaseData>*>(dest)) {
 		return addUniqueData<ConflictCollection>(tick, c, dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src));
+	} else if (RendererObject<RpgGameData::PickableBaseData> *c = dynamic_cast<RendererObject<RpgGameData::PickableBaseData>*>(dest)) {
+		return addUniqueData<ConflictPickable>(tick, c, dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src));
 	} else {
 		LOG_CERROR("engine") << "Invalid unique object type";
 	}
@@ -2847,7 +2960,7 @@ ConflictSolver::ConflictContainer::ConflictContainer(const int &_tick,
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
 
-	LOG_CDEBUG("engine") << "CONTAINER SET" << _src->baseData.o;
+	LOG_CDEBUG("engine") << "CONTAINER SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
 }
 
 
@@ -2960,19 +3073,54 @@ bool ConflictSolver::ConflictContainer::solve(ConflictSolver *solver)
 				data.st = RpgGameData::ControlContainer::ContainerClose;
 				data.a = true;
 			}
+
+			m_state = state;
+
 		}
 
 
 		data.u = {};
 
-		LOG_CDEBUG("engine") << "SOLVE OPEN" << this << data.f << data.st << (player ? player->baseData.o : -1);
+		LOG_CDEBUG("engine") << "SOLVE CONTAINER OPEN" << this << data.f << data.st << (player ? player->baseData.o : -1);
 	}
+
 
 
 	e->setData(data);
 	e->addFlags(RendererType::Modified | RendererType::Storage);
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief ConflictSolver::ConflictContainer::generateEvent
+ * @param solver
+ * @param engine
+ */
+
+void ConflictSolver::ConflictContainer::generateEvent(ConflictSolver *solver, RpgEngine *engine)
+{
+	Q_ASSERT(solver);
+
+	if (m_state != StateSuccess)
+		return;
+
+	if (!unique) {
+		LOG_CERROR("engine") << "Invalid destination" << unique;
+		return;
+	}
+
+	LOG_CERROR("engine") << "!!!! CREATE CONTAINER EVENT" << m_state << ConflictData::tick << (player ? player->baseData.o : -1);
+
+	RpgGameData::BaseData bd;
+
+	if (player)
+		bd = player->baseData;
+
+	engine->addContainerOpened(solver->m_renderer->startTick()+ConflictData::tick, unique->baseData, bd);
 }
 
 
@@ -3172,7 +3320,7 @@ ConflictSolver::ConflictCollection::ConflictCollection(const int &_tick,
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
 
-	LOG_CDEBUG("engine") << "COLLECTION SET" << _src->baseData.o << player;
+	LOG_CDEBUG("engine") << "COLLECTION SET" << _src->baseData.o  << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
 }
 
 
@@ -3211,7 +3359,7 @@ bool ConflictSolver::ConflictCollection::solve(ConflictSolver *solver)
 	}
 
 	if (!e->flags().testFlag(RendererType::Storage)) {
-		LOG_CWARNING("engine") << "Missing storage flag" << e;
+		//LOG_CWARNING("engine") << "Missing storage flag" << e;
 		const auto &ptr = solver->m_renderer->extendFromLast<RpgGameData::ControlCollection>(unique);
 
 		if (!ptr) {
@@ -3299,7 +3447,7 @@ bool ConflictSolver::ConflictCollection::solve(ConflictSolver *solver)
 
 		data.u = {};
 
-		LOG_CDEBUG("engine") << "SOLVE OPEN" << this << data.f << (player ? player->baseData.o : -1);
+		LOG_CDEBUG("engine") << "SOLVE COLLECTION OPEN" << this << data.f << (player ? player->baseData.o : -1);
 	}
 
 
@@ -3342,3 +3490,157 @@ void ConflictSolver::ConflictCollection::generateEvent(ConflictSolver *solver, R
 
 
 
+
+/**
+ * @brief ConflictSolver::ConflictPickable::solve
+ * @param solver
+ * @return
+ */
+
+ConflictSolver::ConflictPickable::ConflictPickable(const int &_tick,
+												   RendererObject<RpgGameData::PickableBaseData> *_dst,
+												   RendererObject<RpgGameData::PlayerBaseData> *_src)
+	: ConflictDataUnique(_tick, _dst, _src)
+{
+	Q_ASSERT(_src);
+	Q_ASSERT(_dst);
+
+	LOG_CDEBUG("engine") << "PICKABLE SET" << _src->baseData.o  << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
+}
+
+
+
+
+
+/**
+ * @brief ConflictSolver::ConflictPickable::solve
+ * @param solver
+ * @return
+ */
+
+bool ConflictSolver::ConflictPickable::solve(ConflictSolver *solver)
+{
+	Q_ASSERT(solver);
+
+	if (!unique) {
+		LOG_CERROR("engine") << "Invalid destination" << unique;
+		return false;
+	}
+
+	RendererItem<RpgGameData::Pickable> *e = solver->m_renderer->get<RpgGameData::Pickable>(unique);
+
+	if (!e) {
+		LOG_CERROR("engine") << "Invalid item" << e;
+		return false;
+	}
+
+	RpgGameData::Pickable data = e->data();
+
+	if (e->flags() & RendererType::ReadOnly) {
+		LOG_CERROR("engine") << "Read only storage item" << e;
+		return false;
+	}
+
+	if (!e->flags().testFlag(RendererType::Storage)) {
+		//LOG_CWARNING("engine") << "Missing storage flag" << e;
+		const auto &ptr = solver->m_renderer->extendFromLast<RpgGameData::Pickable>(unique);
+
+		if (!ptr) {
+			LOG_CERROR("engine") << "Extend failed";
+			return false;
+		}
+
+		data = ptr.value();
+	}
+
+
+	if (data.own.isValid()) {
+		LOG_CWARNING("engine") << "Pickable already collected";
+		return false;
+	}
+
+
+	// TODO: prefer creator for 60 frame!!!
+
+	const State &state = getState();
+
+
+	if (state == StateInvalid) {
+		LOG_CWARNING("engine") << "Invalid conflict state";
+		return false;
+	} else {
+		if (player) {
+			RendererItem<RpgGameData::Player> *p = solver->m_renderer->get<RpgGameData::Player>(player);
+
+			if (!p || !(p->flags() & RendererType::Storage)) {
+				LOG_CWARNING("engine") << "Missing snap" << player->baseData.o << player->baseData.id;
+
+				p = solver->m_renderer->rewind<RpgGameData::Player>(player);
+
+				if (!p || !(p->flags() & RendererType::Storage)) {
+					LOG_CERROR("engine") << "Snap create error" << player->baseData.o << player->baseData.id;
+					return false;
+				}
+			}
+
+			RpgGameData::Player pdata = p->data();
+
+			if (state == StateSuccess) {
+
+				if (data.u == player->asBaseData()) {
+					LOG_CINFO("engine") << "PLAYER CONTROL SUCCESS" << player->baseData.o;
+
+					data.own = player->baseData;
+					data.a = false;
+				} else {
+					LOG_CERROR("engine") << "PLAYER CONTROL SUCCESS MISMATCH" << player->baseData.o;
+				}
+
+			} else {
+
+				LOG_CINFO("engine") << "PLAYER CONTROL FAILED" << player->baseData.o;
+
+				/*pdata.controlFailed(RpgConfig::ControlCollection);
+				p->setData(pdata);
+				p->addFlags(RendererType::Modified);*/
+			}
+
+			m_state = state;
+		}
+
+
+		data.u = {};
+
+		LOG_CDEBUG("engine") << "SOLVE PICKABLE" << this << data.f << (player ? player->baseData.o : -1);
+	}
+
+
+	e->setData(data);
+	e->addFlags(RendererType::Modified | RendererType::Storage);
+
+	return true;
+}
+
+
+/**
+ * @brief ConflictSolver::ConflictPickable::generateEvent
+ * @param solver
+ * @param engine
+ */
+
+void ConflictSolver::ConflictPickable::generateEvent(ConflictSolver *solver, RpgEngine *engine)
+{
+	Q_ASSERT(solver);
+
+	if (m_state == StateInvalid)
+		return;
+
+	if (!unique || !player) {
+		LOG_CERROR("engine") << "Invalid destination" << unique;
+		return;
+	}
+
+	LOG_CERROR("engine") << "!!!! CREATE PICKABLE EVENT" << m_state << ConflictData::tick << (player ? player->baseData.o : -1);
+
+	engine->addPickablePicked(solver->m_renderer->startTick()+ConflictData::tick, unique->baseData, player);
+}

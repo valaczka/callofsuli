@@ -25,7 +25,7 @@
  */
 
 #include "rpglongsword.h"
-#include "rpgplayer.h"
+#include "tiledgame.h"
 
 
 /**
@@ -61,54 +61,3 @@ void RpgLongsword::eventAttack(TiledObject *target)
 }
 
 
-
-/**
- * @brief RpgLongswordPickable::RpgLongswordPickable
- * @param parent
- */
-
-RpgLongswordPickable::RpgLongswordPickable(RpgGame *game)
-	: RpgPickableObject(RpgGameData::PickableBaseData::PickableLongsword, game)
-{
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
-}
-
-
-
-
-/**
- * @brief RpgLongswordPickable::playerPick
- * @param player
- */
-
-bool RpgLongswordPickable::playerPick(RpgPlayer *player)
-{
-	if (!player)
-		return false;
-
-	RpgWeapon *weapon = player->armory()->weaponAdd(RpgGameData::Weapon::WeaponLongsword);
-
-	weapon->setBulletCount(weapon->bulletCount()+1);
-	weapon->setPickedBulletCount(weapon->pickedBulletCount()+1);
-
-	if (m_game)
-		m_game->message(tr("1 sword gained"));
-
-	player->armory()->setCurrentWeaponIf(weapon, RpgGameData::Weapon::WeaponHand);
-
-	return true;
-}
-
-
-
-
-
-
-/**
- * @brief RpgLongswordPickable::load
- */
-
-void RpgLongswordPickable::load()
-{
-	loadDefault(QStringLiteral("longsword"));
-}

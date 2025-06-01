@@ -28,7 +28,6 @@
 #define RPGLONGBOW_H
 
 #include "rpgarmory.h"
-#include "rpgpickableobject.h"
 
 
 /**
@@ -51,23 +50,5 @@ private:
 
 
 
-/**
- * @brief The RpgArrowPickable class
- */
-
-class RpgLongbowPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-    RpgLongbowPickable(RpgGame *game = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-protected:
-	void load() override final;
-
-};
 
 #endif // RPGLONGBOW_H

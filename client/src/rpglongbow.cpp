@@ -25,7 +25,7 @@
  */
 
 #include "rpglongbow.h"
-#include "rpgplayer.h"
+#include "tiledgame.h"
 
 RpgLongbow::RpgLongbow(QObject *parent)
 	: RpgWeapon{RpgGameData::Weapon::WeaponLongbow, parent}
@@ -60,53 +60,3 @@ void RpgLongbow::eventAttack(TiledObject *)
 }
 
 
-
-/**
- * @brief RpgLongbowPickable::RpgLongbowPickable
- * @param parent
- */
-
-RpgLongbowPickable::RpgLongbowPickable(RpgGame *game)
-	: RpgPickableObject(RpgGameData::PickableBaseData::PickableLongbow, game)
-{
-	m_activateEffect.reset(new TiledEffectSpark(TiledEffectSpark::SparkAllOrange, this));
-}
-
-
-
-/**
- * @brief RpgLongbowPickable::playerPick
- * @param player
- */
-
-bool RpgLongbowPickable::playerPick(RpgPlayer *player)
-{
-	if (!player)
-		return false;
-
-	static const int num = 5;
-
-	RpgWeapon *weapon = player->armory()->weaponAdd(RpgGameData::Weapon::WeaponLongbow);
-
-	weapon->setBulletCount(weapon->bulletCount()+num);
-	weapon->setPickedBulletCount(weapon->pickedBulletCount()+num);
-
-	if (m_game)
-		m_game->message(tr("1 longbow gained"));
-
-	player->armory()->setCurrentWeaponIf(weapon, RpgGameData::Weapon::WeaponHand);
-
-	return true;
-}
-
-
-
-
-/**
- * @brief RpgLongbowPickable::load
- */
-
-void RpgLongbowPickable::load()
-{
-	loadDefault(QStringLiteral("longbow"));
-}

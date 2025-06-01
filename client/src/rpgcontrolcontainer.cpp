@@ -27,7 +27,6 @@
 #include "rpgcontrolcontainer.h"
 #include "rpggame.h"
 #include "rpgquestion.h"
-#include "application.h"
 #include <libtiled/objectgroup.h>
 
 
@@ -40,9 +39,6 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 	Q_ASSERT(scene);
 
 	m_currentState = RpgGameData::ControlContainer::ContainerClose;
-	m_objectId.id = group->id();
-	m_objectId.ownerId = -1;
-	m_objectId.sceneId = scene->sceneId();
 
 	m_stateHash = QHash<QString, RpgGameData::ControlContainer::State>{
 		{ QStringLiteral("close"), RpgGameData::ControlContainer::ContainerClose },
@@ -51,6 +47,18 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 
 	setGame(game);
 	loadFromGroupLayer(game, scene, group, renderer);
+
+	m_baseData.o = -1;
+	m_baseData.id = group->id();
+	m_baseData.s = scene->sceneId();
+	m_baseData.inv.add(RpgGameData::PickableBaseData::PickableHp);
+	//m_baseData.lck;
+
+	if (!m_controlObjectList.isEmpty()) {
+		const cpVect &pos = m_controlObjectList.first()->bodyPosition();
+		m_baseData.x = pos.x;
+		m_baseData.y = pos.y;
+	}
 
 	setIsActive(true);
 	setQuestionLock(true);
@@ -62,6 +70,23 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 		setIsLocked(false);
 	}
 }
+
+
+
+/**
+ * @brief RpgControlContainer::objectId
+ * @return
+ */
+
+TiledObjectBody::ObjectId RpgControlContainer::objectId() const
+{
+	return TiledObjectBody::ObjectId{
+		.ownerId = m_baseData.o,
+				.sceneId = m_baseData.s,
+				.id = m_baseData.id
+	};
+}
+
 
 
 
@@ -148,17 +173,13 @@ bool RpgControlContainer::loadFromLayer(RpgGame *game, TiledScene *scene, Tiled:
 																					   pos, 20.,
 																					   game, nullptr, CP_BODY_TYPE_STATIC);
 
-				o->filterSet(TiledObjectBody::FixtureControl,
-
-							 TiledObjectBody::FixturePlayerBody |
-							 TiledObjectBody::FixtureSensor |
-							 TiledObjectBody::FixtureVirtualCircle);
-
 				o->setSensor(true);
 
 				controlObjectAdd(o);
 			}
 		}
+
+		onActivated();
 
 		return true;
 	}
@@ -176,7 +197,7 @@ RpgGameData::ControlContainer RpgControlContainer::serializeThis() const
 {
 	RpgGameData::ControlContainer c;
 
-	c.sc = m_objectId.sceneId;
+	c.sc = m_baseData.s;
 	c.st = m_currentState;
 	c.lck = m_isLocked;
 	c.a = m_isActive;
@@ -213,6 +234,9 @@ void RpgControlContainer::onShapeContactEnd(cpShape *self, cpShape *other)
 	RpgActiveIface::onShapeContactEnd(self, other);
 	_updateGlow();
 }
+
+
+
 
 
 /**

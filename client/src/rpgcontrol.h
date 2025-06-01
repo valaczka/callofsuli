@@ -232,6 +232,9 @@ protected:
 
 	virtual void refreshVisualItem() = 0;
 
+	virtual void onActivated();
+	virtual void onDeactivated();
+
 	virtual void updateGlow(const bool &glow);
 
 	QString m_keyLock;

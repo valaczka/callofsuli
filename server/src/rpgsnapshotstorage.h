@@ -83,6 +83,7 @@ protected:
 	QString dumpAs(const RpgGameData::ControlLight &data, const QList<RpgGameData::ControlLight> &subData) const;
 	QString dumpAs(const RpgGameData::ControlContainer &data, const QList<RpgGameData::ControlContainer> &subData) const;
 	QString dumpAs(const RpgGameData::ControlCollection &data, const QList<RpgGameData::ControlCollection> &subData) const;
+	QString dumpAs(const RpgGameData::Pickable &data, const QList<RpgGameData::Pickable> &subData) const;
 
 	RendererFlags m_flags = None;
 };
@@ -140,6 +141,7 @@ private:
 	void renderAs(RendererItem<RpgGameData::ControlLight> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::ControlContainer> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::ControlCollection> *src, RendererObjectType *self, Renderer *renderer) const;
+	void renderAs(RendererItem<RpgGameData::Pickable> *src, RendererObjectType *self, Renderer *renderer) const;
 
 
 
@@ -473,13 +475,19 @@ private:
 						  RendererObject<RpgGameData::PlayerBaseData> *_src);
 
 		virtual bool solve(ConflictSolver *solver) override;
+		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
+
+	private:
+		State m_state = StateInvalid;
 	};
 
 
 
 
 
-
+	/**
+	 * @brief The ConflictCollection class
+	 */
 
 	class ConflictCollection : public ConflictDataUnique<RpgGameData::ControlCollectionBaseData>
 	{
@@ -496,6 +504,26 @@ private:
 
 	};
 
+
+
+
+	/**
+	 * @brief The ConflictPickable class
+	 */
+
+	class ConflictPickable : public ConflictDataUnique<RpgGameData::PickableBaseData>
+	{
+	public:
+		ConflictPickable(const int &_tick,
+						  RendererObject<RpgGameData::PickableBaseData> *_dst,
+						  RendererObject<RpgGameData::PlayerBaseData> *_src);
+
+		virtual bool solve(ConflictSolver *solver) override;
+		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
+
+	private:
+		State m_state = StateInvalid;
+	};
 
 
 
@@ -601,6 +629,7 @@ public:
 	void render(RendererItem<RpgGameData::ControlLight> *dst, RendererObject<RpgGameData::ControlBaseData> *src);
 	void render(RendererItem<RpgGameData::ControlContainer> *dst, RendererObject<RpgGameData::ControlContainerBaseData> *src);
 	void render(RendererItem<RpgGameData::ControlCollection> *dst, RendererObject<RpgGameData::ControlCollectionBaseData> *src);
+	void render(RendererItem<RpgGameData::Pickable> *dst, RendererObject<RpgGameData::PickableBaseData> *src);
 
 	bool step();
 
@@ -731,6 +760,7 @@ private:
 	void restore(RpgGameData::ControlLight *dst, const RpgGameData::ControlLight &data);
 	void restore(RpgGameData::ControlContainer *dst, const RpgGameData::ControlContainer &data);
 	void restore(RpgGameData::ControlCollection *dst, const RpgGameData::ControlCollection &data);
+	void restore(RpgGameData::Pickable *dst, const RpgGameData::Pickable &data);
 
 
 	const qint64 m_startTick;
@@ -760,6 +790,8 @@ public:
 	void lightAdd(const RpgGameData::ControlBaseData &base, const RpgGameData::ControlLight &data);
 	void containerAdd(const RpgGameData::ControlContainerBaseData &base, const RpgGameData::ControlContainer &data);
 	void collectionAdd(const RpgGameData::ControlCollectionBaseData &base, const RpgGameData::ControlCollection &data);
+	RpgGameData::PickableBaseData pickableAdd(const RpgGameData::PickableBaseData::PickableType &type,
+											  const int &scene, const QPointF &pos);
 
 	int lastLifeCycleId(const RpgGameData::BaseData &base, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
 	int lastLifeCycleId(const int &owner, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
@@ -1078,6 +1110,22 @@ template<typename T, typename T2>
 inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlCollection> *src, RendererObjectType *self, Renderer *renderer) const
 {
 	RendererObject<RpgGameData::ControlCollectionBaseData> *p = dynamic_cast<RendererObject<RpgGameData::ControlCollectionBaseData>*>(self);
+	Q_ASSERT(p);
+	renderer->render(src, p);
+}
+
+
+/**
+ * @brief RendererItem::renderAs
+ * @param src
+ * @param self
+ * @param renderer
+ */
+
+template<typename T, typename T2>
+inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::Pickable> *src, RendererObjectType *self, Renderer *renderer) const
+{
+	RendererObject<RpgGameData::PickableBaseData> *p = dynamic_cast<RendererObject<RpgGameData::PickableBaseData>*>(self);
 	Q_ASSERT(p);
 	renderer->render(src, p);
 }

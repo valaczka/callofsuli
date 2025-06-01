@@ -49,7 +49,6 @@ const QHash<QString, RpgGameData::PickableBaseData::PickableType> RpgPickableObj
 
 RpgPickableObject::RpgPickableObject(const RpgGameData::PickableBaseData::PickableType &type, RpgGame *game)
 	: IsometricObject(QPointF(), 20., game)
-	, TiledPickableIface()
 	, m_pickableType(type)
 {
 }

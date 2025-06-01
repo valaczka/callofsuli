@@ -28,6 +28,7 @@
 #include "rpgcontrolcontainer.h"
 #include "rpgcontrollight.h"
 #include "rpgcontrolcollection.h"
+#include "rpgpickable.h"
 #include "rpgquestion.h"
 #include "rpgudpengine.h"
 #include "client.h"
@@ -536,6 +537,35 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 		txt = QStringLiteral("CURRENT TICK %1 - server %2\n\n").arg(tick).arg(snapshots.serverTick());
 
 
+		for (const auto &ptr : snapshots.controls().pickables) {
+			txt += QStringLiteral("STORAGE PICKABLE %1 %2 %3 [%4,%5] %6\n=============================================\n")
+				   .arg(ptr.data.o)
+				   .arg(ptr.data.s)
+				   .arg(ptr.data.id)
+				   .arg(ptr.data.p.size() > 1 ? ptr.data.p.at(0) : -1)
+				   .arg(ptr.data.p.size() > 1 ? ptr.data.p.at(1) : -1)
+				   .arg(ptr.data.t)
+				   ;
+
+			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
+				txt += QStringLiteral("%1: %2 (%3) %4")
+					   .arg(it->second.f)
+					   .arg(it->second.st)
+					   .arg(it->second.a)
+					   .arg(it->second.lck)
+					   ;
+
+
+				if (it->second.u.isValid())
+					txt += QStringLiteral(" holder %1")
+						   .arg(it->second.u.o)
+						   ;
+			}
+
+			txt += QStringLiteral("\n \n");
+		}
+
+
 		for (const auto &ptr : snapshots.controls().collections) {
 			txt += QStringLiteral("STORAGE COLLECTION %1 %2 %3   [%4]\n==============================================\n")
 				   .arg(ptr.data.o)
@@ -563,7 +593,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 					txt += QStringLiteral(" holder %1")
 						   .arg(it->second.u.o)
 						   ;
-				
+
 				if (it->second.own.isValid())
 					txt += QStringLiteral(" owner %1")
 						   .arg(it->second.own.o)
@@ -1089,6 +1119,65 @@ void ActionRpgMultiplayerGame::syncCollectionList(const ClientStorage &storage)
 }
 
 
+/**
+ * @brief ActionRpgMultiplayerGame::syncPickableList
+ * @param storage
+ */
+
+void ActionRpgMultiplayerGame::syncPickableList(const ClientStorage &storage)
+{
+	if (!m_rpgGame)
+		return;
+
+	QList<RpgPickable*> bList;
+
+
+	// Load all controls
+
+	for (const auto &ptr : m_rpgGame->m_controls) {
+		if (RpgPickable *p = dynamic_cast<RpgPickable*>(ptr.get())) {
+			bList.append(p);
+		}
+	}
+
+	// Sync pickables
+
+	for (const auto &b : storage.controls().pickables) {
+		if (RpgPickable *pickable = m_rpgGame->controlFind<RpgPickable>(b.data)) {
+			// Remove existing pickable
+			bList.removeAll(pickable);
+		} else {
+
+			// Create new pickable
+
+			TiledScene *scene = m_rpgGame->findScene(b.data.s);
+
+			if (!scene) {
+				LOG_CERROR("game") << "Invalid scene" << b.data.s;
+				continue;
+			}
+
+			RpgPickable *newPickable = m_rpgGame->controlAdd<RpgPickable>(m_rpgGame, scene, b.data);
+
+			if (!newPickable) {
+				LOG_CERROR("game") << "Pickable create error" << b.data.o << b.data.s << b.data.id;
+			}
+		}
+	}
+
+
+
+	// Delete missing pickables
+
+	for (RpgPickable *b : bList) {
+		if (b->stage() == RpgGameData::LifeCycle::StageDead) {
+			b->setStage(RpgGameData::LifeCycle::StageDestroy);
+		}
+	}
+
+}
+
+
 
 
 
@@ -1277,6 +1366,7 @@ void ActionRpgMultiplayerGame::onTimeStepPrepare()
 	syncEnemyList(storage);
 	syncBulletList(storage);
 	syncCollectionList(storage);
+	syncPickableList(storage);
 
 
 	if (m_config.gameState == RpgConfig::StatePlay && !m_fullyPrepared) {
@@ -1317,9 +1407,9 @@ void ActionRpgMultiplayerGame::onTimeStepped()
 
 
 	m_rpgGame->iterateOverBodies([this](TiledObjectBody *b){
-		if (RpgBullet *iface = dynamic_cast<RpgBullet*> (b)) {
+		if (RpgGameData::LifeCycle *iface = dynamic_cast<RpgGameData::LifeCycle*> (b)) {
 			if (iface->stage() == RpgGameData::LifeCycle::StageDestroy) {
-				onBulletDelete(iface);
+				onLifeCycleDelete(b);
 			}
 		}
 	});
@@ -1381,7 +1471,6 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 			if (q->m_toSend.appendSnapshot(iface, tick, forceKeyFrame))
 				hasSnap = true;
 		}
-
 	});
 
 	m_rpgGame->iterateOverBodies([this, &tick, hasSnap, forceKeyFrame](TiledObjectBody *b) {
@@ -1477,12 +1566,6 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 
 
 
-
-
-bool ActionRpgMultiplayerGame::onPlayerPick(RpgPlayer *player, RpgPickableObject *pickable)
-{
-	return false;
-}
 
 
 
@@ -1877,6 +1960,11 @@ void ActionRpgMultiplayerGame::onWorldStep()
 		} else if (RpgControlCollection *c = dynamic_cast<RpgControlCollection*>(ptr.get())) {
 			if (const auto &s = q->m_currentSnapshot.getSnapshot<RpgGameData::ControlCollectionBaseData, RpgGameData::ControlCollection>(
 						c->baseData(), q->m_currentSnapshot.controls.collections))
+				c->updateFromSnapshot(s.value());
+
+		} else if (RpgPickable *c = dynamic_cast<RpgPickable*>(ptr.get())) {
+			if (const auto &s = q->m_currentSnapshot.getSnapshot<RpgGameData::PickableBaseData, RpgGameData::Pickable>(
+						c->baseData(), q->m_currentSnapshot.controls.pickables))
 				c->updateFromSnapshot(s.value());
 
 		} else {

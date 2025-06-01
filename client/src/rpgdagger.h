@@ -27,7 +27,6 @@
 #ifndef RPGDAGGER_H
 #define RPGDAGGER_H
 
-#include "rpgpickableobject.h"
 #include "rpgarmory.h"
 
 class RpgPlayer;
@@ -45,23 +44,5 @@ protected:
 
 
 
-/**
- * @brief The RpgDaggerPickable class
- */
-
-class RpgDaggerPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-	RpgDaggerPickable(RpgGame *game = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-protected:
-	void load() override final;
-
-};
 
 #endif // RPGDAGGER_H

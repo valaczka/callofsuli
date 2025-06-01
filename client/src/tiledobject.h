@@ -138,10 +138,9 @@ public:
 		FixtureBulletBody	= 0x1 << 3,
 		FixtureTarget		= 0x1 << 4,
 		FixtureControl		= 0x1 << 5,
-		FixturePickable		= 0x1 << 6,
-		FixtureTrigger		= 0x1 << 7,
-		FixtureVirtualCircle = 0x1 << 8,
-		FixtureSensor		= 0x1 << 9,
+		FixtureTrigger		= 0x1 << 6,
+		FixtureVirtualCircle = 0x1 << 7,
+		FixtureSensor		= 0x1 << 8,
 
 		FixtureAll =
 		FixtureGround |
@@ -150,7 +149,6 @@ public:
 		FixtureBulletBody |
 		FixtureTarget |
 		FixtureControl |
-		FixturePickable |
 		FixtureTrigger |
 		FixtureVirtualCircle |
 		FixtureSensor

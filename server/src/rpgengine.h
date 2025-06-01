@@ -32,6 +32,9 @@
 #include "rpgsnapshotstorage.h"
 
 
+#define SERVER_OID	-2
+
+
 /**
  * @brief The RpgEnginePlayer class
  */
@@ -295,6 +298,67 @@ private:
 
 
 
+/**
+ * @brief The RpgEventContainerOpened class
+ */
+
+class RpgEventContainerOpened : public RpgEvent<RpgGameData::ControlContainerBaseData>
+{
+public:
+	RpgEventContainerOpened(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data,
+							   const RpgGameData::BaseData &player, const QList<RpgGameData::PickableBaseData> &pickables)
+		: RpgEvent<RpgGameData::ControlContainerBaseData>(engine, tick, data, true)
+		, m_player(player)
+		, m_pickables(pickables)
+	{
+		LOG_CDEBUG("engine") << "CONTAINER OPENED created" << tick << m_unique << data.o << player.o << pickables.size();
+	}
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+
+	ADD_EQUAL(RpgEventCollectionRelocate);
+
+private:
+	bool m_success = false;
+	const RpgGameData::BaseData m_player;
+	const QList<RpgGameData::PickableBaseData> m_pickables;
+};
+
+
+
+
+
+
+/**
+ * @brief The RpgEventPickablePicked class
+ */
+
+class RpgEventPickablePicked : public RpgEvent<RpgGameData::PickableBaseData>
+{
+public:
+	RpgEventPickablePicked(RpgEngine *engine, const qint64 &tick, const RpgGameData::PickableBaseData &data,
+								RendererObject<RpgGameData::PlayerBaseData> *player)
+		: RpgEvent<RpgGameData::PickableBaseData>(engine, tick, data, true)
+		, m_player(player)
+	{
+		Q_ASSERT(player);
+		LOG_CDEBUG("engine") << "PICKABLE PICKED created" << tick << m_unique << data.o << player->baseData.o;
+	}
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+
+	ADD_EQUAL(RpgEventPickablePicked);
+
+private:
+	 RendererObject<RpgGameData::PlayerBaseData> *const m_player;
+};
+
+
+
+
+
+
+
 
 /**
  * @brief The RpgEngine class
@@ -327,6 +391,7 @@ public:
 	void setHostPlayer(RpgEnginePlayer *newHostPlayer);
 
 	qint64 currentTick();
+	int nextObjectId() const;
 
 
 	template <typename T, typename ...Args,
@@ -367,6 +432,9 @@ public:
 	int createEvents(const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
 					 const RpgGameData::ControlCollection &snap, const std::optional<RpgGameData::ControlCollection> &prev);
 
+	int createEvents(const qint64 &tick, const RpgGameData::PickableBaseData &data,
+					 const RpgGameData::Pickable &snap, const std::optional<RpgGameData::Pickable> &prev);
+
 
 	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
 
@@ -378,11 +446,16 @@ public:
 	const RpgGameData::SnapshotList<RpgGameData::ControlLight, RpgGameData::ControlBaseData> &controlLights();
 	const RpgGameData::SnapshotList<RpgGameData::ControlContainer, RpgGameData::ControlContainerBaseData> &controlContainers();
 	const RpgGameData::SnapshotList<RpgGameData::ControlCollection, RpgGameData::ControlCollectionBaseData> &controlCollections();
+	const RpgGameData::SnapshotList<RpgGameData::Pickable, RpgGameData::PickableBaseData> &pickables();
 
 	void addRelocateCollection(const qint64 &tick, const RpgGameData::ControlCollectionBaseData &base,
 							   const RpgGameData::BaseData &player, const bool &success);
 	int relocateCollection(const RpgGameData::ControlCollectionBaseData &base, QPointF *ptr = nullptr);
 	bool finishCollection(const RpgGameData::ControlCollectionBaseData &base, const int &idx);
+	void addPickablePicked(const qint64 &tick, const RpgGameData::PickableBaseData &base,
+						   RendererObject<RpgGameData::PlayerBaseData> *player);
+	void addContainerOpened(const qint64 &tick, const RpgGameData::ControlContainerBaseData &base,
+							   const RpgGameData::BaseData &player);
 
 
 	void renderTimerLog(const qint64 &msec);

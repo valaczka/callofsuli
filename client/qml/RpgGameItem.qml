@@ -482,35 +482,6 @@ FocusScope {
 	}
 
 
-	/*GameButton {
-		id: _castButton
-		size: (Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 45) * gameControlRatio
-
-		anchors.horizontalCenter: _shotButton.horizontalCenter
-		anchors.bottom: _shotButton.top
-		anchors.bottomMargin: 10
-
-		visible: _game.controlledPlayer && _game.controlledPlayer.armory.mageStaff &&
-				 _game.controlledPlayer.armory.currentWeapon != _game.controlledPlayer.armory.mageStaff &&
-				 _isPrepared
-
-		readonly property bool _canAttack: _game.controlledPlayer && _game.controlledPlayer.mp > 0
-
-		color: _canAttack ? Qaterial.Colors.pink300 : "transparent"
-
-		border.color: _canAttack ? Qaterial.Colors.white : Qaterial.Colors.red800
-		border.width: 1
-
-		fontImage.icon: "qrc:/internal/medal/Icon.3_03.png"
-		fontImage.opacity: _canAttack ? 1.0 : 0.6
-		fontImage.color: "transparent"
-		fontImageScale: 0.6
-
-		onClicked: {
-			_game.controlledPlayer.cast()
-		}
-	}*/
-
 
 
 	Column {
@@ -560,7 +531,7 @@ FocusScope {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
-					 _game.controlledPlayer.currentControl.isActive
+					 _game.controlledPlayer.currentControl.isActive && _game.controlledPlayer.hp > 0
 
 			readonly property bool isOpen: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
 										   !_game.controlledPlayer.currentControl.isLocked
@@ -571,9 +542,13 @@ FocusScope {
 
 				switch (_game.controlledPlayer.currentControl.type) {
 				case RpgConfig.ControlContainer:
+				case RpgConfig.ControlCollection:
 					return Qaterial.Colors.amber500
+
 				case RpgConfig.ControlDoor:
+				case RpgConfig.ControlPickable:
 					return Qaterial.Colors.green600
+
 				default:
 					return Qaterial.Colors.yellow500
 
@@ -592,8 +567,14 @@ FocusScope {
 				switch (_game.controlledPlayer.currentControl.type) {
 				case RpgConfig.ControlContainer:
 					return Qaterial.Icons.eye
+
 				case RpgConfig.ControlDoor:
 					return isOpen ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
+
+				case RpgConfig.ControlCollection:
+				case RpgConfig.ControlPickable:
+					return Qaterial.Icons.hand
+
 				default:
 					return Qaterial.Icons.hand
 
@@ -628,7 +609,7 @@ FocusScope {
 		readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
 		readonly property bool _canAttack: weapon && (weapon.canHit || weapon.canShot)
 
-		visible: weapon && _isPrepared
+		visible: weapon && _isPrepared && _game.controlledPlayer && _game.controlledPlayer.hp > 0
 
 		color: _canAttack ? Qaterial.Colors.red800 : "transparent"
 

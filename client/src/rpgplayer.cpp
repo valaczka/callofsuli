@@ -72,7 +72,6 @@ RpgPlayer::RpgPlayer(RpgGame *game, const qreal &radius, const cpBodyType &type)
 	, m_sfxAccept(this)
 	, m_sfxDecline(this)
 	, m_armory(new RpgArmory(this))
-	, m_inventory(new RpgInventoryList)
 	, m_effectHealed(this)
 	, m_effectShield(this)
 	, m_effectRing(this)
@@ -238,25 +237,6 @@ void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
 
 
 
-/**
- * @brief RpgPlayer::pick
- * @param object
- */
-
-void RpgPlayer::pick(RpgPickableObject *object)
-{
-	if (!object || !isAlive())
-		return;
-
-	//clearDestinationPoint();
-
-	/*if (!m_game->playerPickPickable(this, object)) {
-		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
-	}*/
-}
-
-
-
 
 
 /**
@@ -414,20 +394,6 @@ void RpgPlayer::attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::Weap
 		startInability();
 
 
-}
-
-
-
-/**
- * @brief RpgPlayer::onPickableReached
- * @param object
- */
-
-void RpgPlayer::onPickableReached(TiledObjectBody *object)
-{
-	RpgPickableObject *pickable = dynamic_cast<RpgPickableObject*>(object);
-	if (pickable)
-		pick(pickable);
 }
 
 
@@ -911,7 +877,7 @@ void RpgPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureControl)) {
 		RpgActiveControlObject *control = dynamic_cast<RpgActiveControlObject*>(base);
 
-		if (!d->m_currentControl && control)
+		if (control && control->isActive())
 			setCurrentControl(control);
 	}
 }
@@ -1293,142 +1259,6 @@ void RpgPlayer::setConfig(const RpgPlayerCharacterConfig &newConfig)
 	updateConfig();
 }
 
-
-
-/**
- * @brief RpgPlayer::inventory
- * @return
- */
-
-RpgInventoryList*RpgPlayer::inventory() const
-{
-	return m_inventory.get();
-}
-
-
-
-
-
-
-/**
- * @brief RpgPlayer::inventoryAdd
- * @param object
- */
-
-void RpgPlayer::inventoryAdd(RpgPickableObject *object)
-{
-	if (!object)
-		return;
-
-	inventoryAdd(object->pickableType(), object->name());
-}
-
-
-/**
- * @brief RpgPlayer::inventoryAdd
- * @param type
- * @param name
- */
-
-void RpgPlayer::inventoryAdd(const RpgGameData::PickableBaseData::PickableType &type, const QString &name)
-{
-	switch (type) {
-		case RpgGameData::PickableBaseData::PickableKey:
-			m_inventory->append(new RpgInventory(type, name));
-			break;
-
-		case RpgGameData::PickableBaseData::PickableHp:
-		case RpgGameData::PickableBaseData::PickableMp:
-		case RpgGameData::PickableBaseData::PickableCoin:
-		case RpgGameData::PickableBaseData::PickableShortbow:
-		case RpgGameData::PickableBaseData::PickableLongbow:
-		case RpgGameData::PickableBaseData::PickableLongsword:
-		case RpgGameData::PickableBaseData::PickableDagger:
-		case RpgGameData::PickableBaseData::PickableShield:
-		case RpgGameData::PickableBaseData::PickableTime:
-			break;
-
-		case RpgGameData::PickableBaseData::PickableInvalid:
-			LOG_CWARNING("game") << "Invalid inventory type";
-			break;
-	}
-
-	return;
-}
-
-
-/**
- * @brief RpgPlayer::inventoryRemove
- * @param type
- */
-
-void RpgPlayer::inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type)
-{
-	QList<RpgInventory*> list;
-
-	for (RpgInventory *i : *m_inventory) {
-		if (i->pickableType() == type)
-			list.append(i);
-	}
-
-	m_inventory->remove(list);
-}
-
-
-
-/**
- * @brief RpgPlayer::inventoryRemove
- * @param type
- * @param name
- */
-
-void RpgPlayer::inventoryRemove(const RpgGameData::PickableBaseData::PickableType &type, const QString &name)
-{
-	QList<RpgInventory*> list;
-
-	for (RpgInventory *i : *m_inventory) {
-		if (i->pickableType() == type && i->name() == name)
-			list.append(i);
-	}
-
-	m_inventory->remove(list);
-}
-
-
-
-/**
- * @brief RpgPlayer::inventoryContains
- * @param type
- * @return
- */
-
-bool RpgPlayer::inventoryContains(const RpgGameData::PickableBaseData::PickableType &type) const
-{
-	for (RpgInventory *i : *m_inventory) {
-		if (i->pickableType() == type)
-			return true;
-	}
-
-	return false;
-}
-
-
-/**
- * @brief RpgPlayer::inventoryContains
- * @param type
- * @param name
- * @return
- */
-
-bool RpgPlayer::inventoryContains(const RpgGameData::PickableBaseData::PickableType &type, const QString &name) const
-{
-	for (RpgInventory *i : *m_inventory) {
-		if (i->pickableType() == type && i->name() == name)
-			return true;
-	}
-
-	return false;
-}
 
 
 /**

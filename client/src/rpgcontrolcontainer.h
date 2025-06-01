@@ -39,7 +39,8 @@ public:
 						Tiled::GroupLayer *group, Tiled::MapRenderer *renderer = nullptr);
 
 
-	virtual TiledObjectBody::ObjectId objectId() const override { return m_objectId; }
+	virtual TiledObjectBody::ObjectId objectId() const override;
+	virtual RpgGameData::ControlContainerBaseData baseData() const override final { return m_baseData;}
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlContainer> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlContainer &snap) override;
@@ -58,7 +59,8 @@ protected:
 private:
 	void _updateGlow();
 
-	TiledObjectBody::ObjectId m_objectId;
+	RpgGameData::ControlContainerBaseData m_baseData;
+
 };
 
 #endif // RPGCONTROLCONTAINER_H

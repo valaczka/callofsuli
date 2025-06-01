@@ -363,12 +363,21 @@ void RpgActiveIface::setIsLocked(const bool &newLocked)
 
 void RpgActiveIface::setIsActive(const bool &newActive)
 {
+	if (m_isActive == newActive)
+		return;
+
 	m_isActive = newActive;
 
 	for (RpgActiveControlObject *o : m_controlObjectList) {
 		if (o)
 			emit o->isActiveChanged();
 	}
+
+	if (m_isActive)
+		onActivated();
+	else
+		onDeactivated();
+
 }
 
 
@@ -400,6 +409,34 @@ void RpgActiveIface::onShapeContactEnd(cpShape *self, cpShape *other)
 	Q_UNUSED(self);
 
 	m_contactedFixtures.removeAll(other);
+}
+
+/**
+ * @brief RpgActiveIface::onActivated
+ */
+
+
+void RpgActiveIface::onActivated()
+{
+	for (RpgActiveControlObject *o : m_controlObjectList)
+		o->filterSet(TiledObjectBody::FixtureControl,
+
+					 TiledObjectBody::FixturePlayerBody |
+					 TiledObjectBody::FixtureSensor |
+					 TiledObjectBody::FixtureVirtualCircle);
+
+}
+
+
+
+/**
+ * @brief RpgActiveIface::onDeactivated
+ */
+
+void RpgActiveIface::onDeactivated()
+{
+	for (RpgActiveControlObject *o : m_controlObjectList)
+		o->filterSet(TiledObjectBody::FixtureInvalid, TiledObjectBody::FixtureInvalid);
 }
 
 

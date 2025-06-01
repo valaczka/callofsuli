@@ -28,7 +28,6 @@
 #define RPGPICKABLEOBJECT_H
 
 #include "tiledeffect.h"
-#include "tiledpickableiface.h"
 #include "isometricobject.h"
 #include "rpgconfig.h"
 #include <QQmlEngine>
@@ -40,7 +39,7 @@ class RpgGame;
  * @brief The RpgPickableObject class
  */
 
-class RpgPickableObject : public IsometricObject, public TiledPickableIface
+class RpgPickableObject : public IsometricObject
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -74,13 +73,9 @@ public:
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
 signals:
-	void isActiveChanged() override final;
 	void nameChanged();
 
 protected:
-	virtual void onActivated() override;
-	virtual void onDeactivated() override;
-
 
 	virtual void load() = 0;
 

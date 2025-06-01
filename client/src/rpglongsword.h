@@ -27,7 +27,6 @@
 #ifndef RPGLONGSWORD_H
 #define RPGLONGSWORD_H
 
-#include "rpgpickableobject.h"
 #include "rpgarmory.h"
 
 class RpgPlayer;
@@ -50,25 +49,6 @@ protected:
 
 
 
-
-/**
- * @brief The RpgArrowPickable class
- */
-
-class RpgLongswordPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-	RpgLongswordPickable(RpgGame *game);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-protected:
-	void load() override final;
-
-};
 
 #endif // RPGLONGSWORD_H
 

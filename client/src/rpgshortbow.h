@@ -27,7 +27,6 @@
 #ifndef RPGSHORTBOW_H
 #define RPGSHORTBOW_H
 
-#include "rpgpickableobject.h"
 #include "rpgarmory.h"
 
 class RpgPlayer;
@@ -51,25 +50,5 @@ private:
 };
 
 
-
-
-/**
- * @brief The RpgArrowPickable class
- */
-
-class RpgShortbowPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-	RpgShortbowPickable(RpgGame *game = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-protected:
-	void load() override final;
-
-};
 
 #endif // RPGSHORTBOW_H

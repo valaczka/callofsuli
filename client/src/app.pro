@@ -249,7 +249,6 @@ SOURCES += \
 	rpgarrow.cpp \
 	rpgaxe.cpp \
 	rpgbroadsword.cpp \
-	rpgcoin.cpp \
 	rpgcontrol.cpp \
 	rpgcontrolcollection.cpp \
 	rpgcontrolcontainer.cpp \
@@ -261,19 +260,15 @@ SOURCES += \
 	rpgfirefog.cpp \
 	rpggame.cpp \
 	rpghammer.cpp \
-	rpghp.cpp \
-	rpgkeypickable.cpp \
 	rpglightning.cpp \
 	rpglongbow.cpp \
 	rpglongsword.cpp \
 	rpgmace.cpp \
-	rpgmp.cpp \
-	rpgpickableobject.cpp \
+	rpgpickable.cpp \
 	rpgplayer.cpp \
 	rpgquestion.cpp \
 	rpgshield.cpp \
 	rpgshortbow.cpp \
-	rpgtimepickable.cpp \
 	rpgudpengine.cpp \
 	rpguserwallet.cpp \
 	rpgwerebear.cpp \
@@ -360,7 +355,6 @@ HEADERS += \
 	rpgarrow.h \
 	rpgaxe.h \
 	rpgbroadsword.h \
-	rpgcoin.h \
 	rpgcontrol.h \
 	rpgcontrolcollection.h \
 	rpgcontrolcontainer.h \
@@ -375,19 +369,15 @@ HEADERS += \
 	rpggamedataiface.h \
 	rpggamedataiface_t.h \
 	rpghammer.h \
-	rpghp.h \
-	rpgkeypickable.h \
 	rpglightning.h \
 	rpglongbow.h \
 	rpglongsword.h \
 	rpgmace.h \
-	rpgmp.h \
-	rpgpickableobject.h \
+	rpgpickable.h \
 	rpgplayer.h \
 	rpgquestion.h \
 	rpgshield.h \
 	rpgshortbow.h \
-	rpgtimepickable.h \
 	rpgudpengine.h \
 	rpguserwallet.h \
 	rpgwerebear.h \
@@ -414,7 +404,6 @@ HEADERS += \
 	tiledobject_p.h \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
-	tiledpickableiface.h \
 	tiledreturnpathmotor.h \
 	tiledscene.h \
 	tiledspritehandler.h \

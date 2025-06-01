@@ -26,7 +26,6 @@
 
 #include "isometricplayer.h"
 #include "isometricenemy.h"
-#include "tiledpickableiface.h"
 #include "tiledscene.h"
 #include "tiledgame.h"
 #include "tiledspritehandler.h"
@@ -274,7 +273,7 @@ void IsometricPlayer::initialize()
 void IsometricPlayer::setVirtualCircle(const bool &on)
 {
 	if (on)
-		addVirtualCircle(FixtureTrigger | FixturePickable | FixtureControl, m_sensorLength);
+		addVirtualCircle(FixtureTrigger | FixtureControl, m_sensorLength);
 	else
 		removeVirtualCircle();
 }
@@ -493,10 +492,6 @@ void IsometricPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 	IsometricEnemy *enemyBody = categories.testFlag(FixtureEnemyBody)  ?
 									dynamic_cast<IsometricEnemy*>(base) :
 									nullptr;
-	TiledPickableIface *pickable = categories.testFlag(FixturePickable) ?
-									   dynamic_cast<TiledPickableIface*>(base) :
-									   nullptr;
-
 
 	if (self == targetCircle() && enemyBody) {
 		d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::Near);
@@ -508,8 +503,6 @@ void IsometricPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 		} else {
 			d->setEnemyFlag(enemy, IsometricPlayerPrivate::CanHit, false);
 		}
-	} else if (isBodyShape(self) && pickable) {
-		onPickableReached(base);
 	}
 
 }
@@ -537,9 +530,6 @@ void IsometricPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 	IsometricEnemy *enemyBody = categories.testFlag(FixtureEnemyBody)  ?
 									dynamic_cast<IsometricEnemy*>(base) :
 									nullptr;
-	TiledPickableIface *pickable = categories.testFlag(FixturePickable) ?
-									   dynamic_cast<TiledPickableIface*>(base) :
-									   nullptr;
 
 	if (self == targetCircle() && enemyBody) {
 		d->setEnemyFlag(enemyBody, IsometricPlayerPrivate::Near, false);
@@ -548,8 +538,6 @@ void IsometricPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 	} else if (isBodyShape(self) && enemy) {
 		if (d->setEnemyFlag(enemy, IsometricPlayerPrivate::CanHit, false))
 			onEnemyLeft(enemy);
-	} else if (isBodyShape(self) && pickable) {
-		onPickableLeft(base);
 	}
 }
 

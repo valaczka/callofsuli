@@ -43,21 +43,4 @@ protected:
 };
 
 
-
-/*
-class RpgDaggerPickable : public RpgPickableObject
-{
-	Q_OBJECT
-	QML_ELEMENT
-
-public:
-	RpgDaggerPickable(QQuickItem *parent = nullptr);
-
-	bool playerPick(RpgPlayer *player) override final;
-
-protected:
-	void load() override final;
-
-};
-*/
 #endif // RPGBROADSWORD_H
