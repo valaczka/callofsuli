@@ -98,7 +98,7 @@ public:
 	enum ControlType {
 		ControlInvalid = 0,
 		ControlContainer,
-		ControlDoor,
+		ControlGate,
 		ControlLight,
 		ControlCollection,
 		ControlPickable
@@ -1336,7 +1336,7 @@ public:
 
 
 
-
+class Inventory;
 
 /**
  * @brief The ControlActive class
@@ -1364,6 +1364,13 @@ public:
 
 	bool canInterpolateFrom(const ControlActive &other) const {
 		return isEqual(other);
+	}
+
+	bool unlock(const ControlActiveBaseData &ownData, const Inventory &inventory, const bool &toLocked = false);
+
+	static bool unlock(ControlActive &dest, const ControlActiveBaseData &destData,
+					   const Inventory &inventory, const bool &toLocked = false) {
+		return dest.unlock(destData, inventory, toLocked);
 	}
 
 	EQUAL_OPERATOR(ControlActive)
@@ -1556,6 +1563,10 @@ public:
 							[&type, &name](const InventoryItem &w) {
 			return w.t == type && w.n == name;
 		});
+	}
+
+	bool contains(const PickableBaseData::PickableType &type, const QString &name = {}) const {
+		return find(type, name) != l.cend();
 	}
 
 	const InventoryItem &add(const PickableBaseData::PickableType &type, const int &count = 1, const QString &name = {}) {
@@ -2080,6 +2091,109 @@ public:
 
 
 /**
+ * @brief The ControlGateBaseData class
+ */
+
+class ControlGateBaseData : public ControlActiveBaseData
+{
+	Q_GADGET
+
+public:
+
+	ControlGateBaseData(const int &_o, const int &_s, const int &_id)
+		: ControlActiveBaseData(RpgConfig::ControlGate, _o, _s, _id)
+	{}
+
+	ControlGateBaseData()
+		: ControlGateBaseData(-1, -1, -1)
+	{}
+
+	bool isEqual(const ControlGateBaseData &other) const {
+		return ControlActiveBaseData::isEqual(other);
+	}
+
+	EQUAL_OPERATOR(ControlGateBaseData)
+
+	QS_SERIALIZABLE
+};
+
+
+
+
+
+
+
+/**
+ * @brief The ControlGate class
+ */
+
+class ControlGate : public ControlActive
+{
+	Q_GADGET
+
+public:
+	ControlGate()
+		: ControlActive()
+		, st(GateClose)
+	{}
+
+	enum State {
+		GateClose = 0,
+		GateOpen,
+		GateDamaged
+	};
+
+	Q_ENUM(State)
+
+	bool isEqual(const ControlGate &other) const {
+		return ControlActive::isEqual(other) && st == other.st;
+	}
+
+	bool canMerge(const ControlGate &other) const {
+		return ControlActive::canMerge(other) && st == other.st;
+	}
+
+	bool canInterpolateFrom(const ControlGate &other) const {
+		return isEqual(other);
+	}
+
+	bool unlock(const ControlGateBaseData &ownData, const Inventory &inventory, const bool &toLocked = false);
+	bool lock(const ControlGateBaseData &ownData, const Inventory &inventory) {
+		return unlock(ownData, inventory, true);
+	}
+
+	bool open(const ControlGateBaseData &ownData, const Inventory &inventory) {
+		if (!unlock(ownData, inventory))
+			return false;
+		st = GateOpen;
+		return true;
+	}
+
+	void close() {
+		st = GateClose;
+	}
+
+	void damage() {
+		st = GateDamaged;
+		lck = false;
+	}
+
+	EQUAL_OPERATOR(ControlGate)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(State, st)
+};
+
+
+
+
+
+
+
+
+
+/**
  * @brief The SnapshotInterpolation class
  */
 
@@ -2154,6 +2268,7 @@ struct SnapshotInterpolationControls
 	SnapshotInterpolationList<ControlContainerBaseData, ControlContainer> containers;
 	SnapshotInterpolationList<ControlCollectionBaseData, ControlCollection> collections;
 	SnapshotInterpolationList<PickableBaseData, Pickable> pickables;
+	SnapshotInterpolationList<ControlGateBaseData, ControlGate> gates;
 };
 
 
@@ -2168,6 +2283,7 @@ struct SnapshotControls
 	SnapshotList<ControlContainer, ControlContainerBaseData> containers;
 	SnapshotList<ControlCollection, ControlCollectionBaseData> collections;
 	SnapshotList<Pickable, PickableBaseData> pickables;
+	SnapshotList<ControlGate, ControlGateBaseData> gates;
 };
 
 
@@ -2191,6 +2307,7 @@ struct FullSnapshot {
 		controls.containers.clear();
 		controls.collections.clear();
 		controls.pickables.clear();
+		controls.gates.clear();
 	}
 
 	template <typename T2, typename T,
@@ -2244,6 +2361,7 @@ struct CurrentSnapshot {
 		controls.containers.clear();
 		controls.collections.clear();
 		controls.pickables.clear();
+		controls.gates.clear();
 	}
 
 

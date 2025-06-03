@@ -542,6 +542,19 @@ void IsometricPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 }
 
 
+/**
+ * @brief IsometricPlayer::onShapeAboutToDelete
+ * @param shape
+ */
+
+void IsometricPlayer::onShapeAboutToDelete(cpShape *shape)
+{
+	IsometricEnemy *enemy = dynamic_cast<IsometricEnemy*>(TiledObjectBody::fromShapeRef(shape));
+	if (enemy)
+		d->removeEnemy(enemy);
+}
+
+
 
 
 

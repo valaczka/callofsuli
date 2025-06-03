@@ -49,6 +49,8 @@ private:
 
 	void createBody(const cpBodyType &type, const cpFloat &mass, const cpFloat &moment);
 	void deleteBody();
+	static void removeShape(cpShape *shape, const bool &deleteShape = true);
+	static void removeShapeFn(cpBody *, cpShape *shape, void *) { removeShape(shape); }
 
 	void setSensorPolygon(const float &length, const float &range);
 	void addVirtualCircle(const float &length);

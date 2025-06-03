@@ -27,6 +27,7 @@
 #include "actionrpggame.h"
 #include "rpgarrow.h"
 #include "rpgcontrolcontainer.h"
+#include "rpgcontrolgate.h"
 #include "rpgcontrollight.h"
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
@@ -294,6 +295,8 @@ TiledObjectBody *RpgGame::findBody(const TiledObjectBody::ObjectId &objectId)
 
 
 
+
+
 /**
  * @brief RpgGame::playerPickPickable
  * @param player
@@ -534,7 +537,7 @@ void RpgGame::playerUseControl(RpgPlayer *player, RpgActiveIface *control)
 	if (!control)
 		return;
 
-	control->use(player);
+	LOG_CERROR("game") << "Missing implementation";
 }
 
 
@@ -699,22 +702,17 @@ RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int
 
 
 
-
-
-
 /**
- * @brief RpgGame::useContainer
- * @return
+ * @brief RpgGame::onShapeAboutToDeletePrivate
+ * @param shape
  */
 
-bool RpgGame::useControl()
+void RpgGame::onShapeAboutToDeletePrivate(cpShape *shape)
 {
-	LOG_CINFO("game") << "USE CONTROL" << m_controlledPlayer << m_controlledPlayer->currentControl();
-
-	if (!m_controlledPlayer)
-		return false;
-
-	return playerTryUseControl(m_controlledPlayer, m_controlledPlayer->currentControl()->activeControl());
+	for (const auto &ptr : m_controls) {
+		if (RpgControlBase *b = ptr.get())
+			b->onShapeAboutToDelete(shape);
+	}
 }
 
 
@@ -806,6 +804,8 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 
 	if (cname == QStringLiteral("container")) {
 		controlAdd<RpgControlContainer>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("gate")) {
+		controlAdd<RpgControlGate>(this, scene, group, renderer);
 	}
 }
 
@@ -3215,6 +3215,36 @@ void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 const QList<RpgQuest> &RpgGame::quests() const
 {
 	return m_gameDefinition.quests;
+}
+
+
+
+/**
+ * @brief RpgGame::controlRemove
+ * @param control
+ */
+
+void RpgGame::controlRemove(RpgControlBase *control)
+{
+	if (!control)
+		return;
+
+	std::erase_if(m_controls, [control](const auto &ptr) {
+		return ptr.get() == control;
+	});
+}
+
+
+/**
+ * @brief RpgGame::controlRemove
+ * @param controls
+ */
+
+void RpgGame::controlRemove(const QList<RpgControlBase*> &controls)
+{
+	std::erase_if(m_controls, [&controls](const auto &ptr) {
+		return controls.contains(ptr.get());
+	});
 }
 
 

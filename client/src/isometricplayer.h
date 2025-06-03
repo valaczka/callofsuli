@@ -82,6 +82,7 @@ public:
 
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
+	virtual void onShapeAboutToDelete(cpShape *shape) override;
 
 	const qreal &speedLength() const { return m_speedLength; }
 

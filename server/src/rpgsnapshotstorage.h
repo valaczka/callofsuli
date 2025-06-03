@@ -84,6 +84,7 @@ protected:
 	QString dumpAs(const RpgGameData::ControlContainer &data, const QList<RpgGameData::ControlContainer> &subData) const;
 	QString dumpAs(const RpgGameData::ControlCollection &data, const QList<RpgGameData::ControlCollection> &subData) const;
 	QString dumpAs(const RpgGameData::Pickable &data, const QList<RpgGameData::Pickable> &subData) const;
+	QString dumpAs(const RpgGameData::ControlGate &data, const QList<RpgGameData::ControlGate> &subData) const;
 
 	RendererFlags m_flags = None;
 };
@@ -142,6 +143,7 @@ private:
 	void renderAs(RendererItem<RpgGameData::ControlContainer> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::ControlCollection> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::Pickable> *src, RendererObjectType *self, Renderer *renderer) const;
+	void renderAs(RendererItem<RpgGameData::ControlGate> *src, RendererObjectType *self, Renderer *renderer) const;
 
 
 
@@ -278,7 +280,7 @@ public:
 	virtual void render(Renderer *renderer) override {
 		get()->render(renderer, this);
 	}
-	virtual void postRender(Renderer *renderer) override;
+	void postRender(Renderer *renderer) override;
 
 	T baseData;
 };
@@ -528,6 +530,29 @@ private:
 
 
 
+
+	/**
+	 * @brief The ConflictGate class
+	 */
+
+	class ConflictGate : public ConflictDataUnique<RpgGameData::ControlGateBaseData>
+	{
+	public:
+		ConflictGate(const int &_tick,
+						  RendererObject<RpgGameData::ControlGateBaseData> *_dst,
+						  RendererObject<RpgGameData::PlayerBaseData> *_src);
+
+		virtual bool solve(ConflictSolver *solver) override;
+		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
+
+	private:
+		State m_state = StateInvalid;
+	};
+
+
+
+
+
 	template <typename T, typename ...Args,
 			  typename = std::enable_if< std::is_base_of<ConflictData, T>::value>::type>
 	T* addData(Args && ...args);
@@ -630,6 +655,7 @@ public:
 	void render(RendererItem<RpgGameData::ControlContainer> *dst, RendererObject<RpgGameData::ControlContainerBaseData> *src);
 	void render(RendererItem<RpgGameData::ControlCollection> *dst, RendererObject<RpgGameData::ControlCollectionBaseData> *src);
 	void render(RendererItem<RpgGameData::Pickable> *dst, RendererObject<RpgGameData::PickableBaseData> *src);
+	void render(RendererItem<RpgGameData::ControlGate> *dst, RendererObject<RpgGameData::ControlGateBaseData> *src);
 
 	bool step();
 
@@ -741,6 +767,12 @@ public:
 	std::optional<T> extendFromLast(RendererObject<T2> *src);
 
 
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T>::value>::type>
+	static QString dumpBaseDataAs(const RendererObject<T> *obj);
+
+	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PickableBaseData> *obj);
+
 private:
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -761,6 +793,7 @@ private:
 	void restore(RpgGameData::ControlContainer *dst, const RpgGameData::ControlContainer &data);
 	void restore(RpgGameData::ControlCollection *dst, const RpgGameData::ControlCollection &data);
 	void restore(RpgGameData::Pickable *dst, const RpgGameData::Pickable &data);
+	void restore(RpgGameData::ControlGate *dst, const RpgGameData::ControlGate &data);
 
 
 	const qint64 m_startTick;
@@ -769,6 +802,8 @@ private:
 	std::vector<std::unique_ptr<RendererObjectType>> m_objects;
 	ConflictSolver m_solver;
 };
+
+
 
 
 
@@ -792,6 +827,7 @@ public:
 	void collectionAdd(const RpgGameData::ControlCollectionBaseData &base, const RpgGameData::ControlCollection &data);
 	RpgGameData::PickableBaseData pickableAdd(const RpgGameData::PickableBaseData::PickableType &type,
 											  const int &scene, const QPointF &pos);
+	void gateAdd(const RpgGameData::ControlGateBaseData &base, const RpgGameData::ControlGate &data);
 
 	int lastLifeCycleId(const RpgGameData::BaseData &base, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
 	int lastLifeCycleId(const int &owner, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
@@ -1132,6 +1168,23 @@ inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::Pickable> *s
 
 
 
+/**
+ * @brief RendererItem::renderAs
+ * @param src
+ * @param self
+ * @param renderer
+ */
+
+template<typename T, typename T2>
+inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlGate> *src, RendererObjectType *self, Renderer *renderer) const
+{
+	RendererObject<RpgGameData::ControlGateBaseData> *p = dynamic_cast<RendererObject<RpgGameData::ControlGateBaseData>*>(self);
+	Q_ASSERT(p);
+	renderer->render(src, p);
+}
+
+
+
 
 
 /**
@@ -1143,6 +1196,29 @@ template<typename T, typename T2>
 inline void RendererObject<T, T2>::postRender(Renderer *renderer) {
 	Q_ASSERT(renderer);
 	renderer->postRender(this);
+}
+
+
+
+
+
+
+
+/**
+ * @brief Renderer::dumpBaseDataAs
+ * @param obj
+ * @return
+ */
+
+template<typename T, typename T2>
+inline QString Renderer::dumpBaseDataAs(const RendererObject<T> *obj)
+{
+	Q_ASSERT(obj);
+
+	return QStringLiteral("Object %1 %2 %3\n-------------------------------------------\n")
+		   .arg(obj->baseData.o)
+		   .arg(obj->baseData.s)
+		   .arg(obj->baseData.id);
 }
 
 

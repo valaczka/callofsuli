@@ -42,7 +42,6 @@ RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::Pi
 	: RpgActiveControl<RpgGameData::Pickable,
 	  RpgGameData::PickableBaseData,
 	  RpgActiveIface::DefaultEnum>(RpgConfig::ControlPickable)
-	, RpgGameData::LifeCycle()
 	, m_baseData(base)
 {
 	Q_ASSERT(scene);
@@ -126,19 +125,18 @@ void RpgPickable::updateFromSnapshot(const RpgGameData::Pickable &snap)
 {
 	setIsActive(snap.a);
 	setIsLocked(snap.lck);
+
+	if (snap.st == RpgGameData::LifeCycle::StageDead || snap.st == RpgGameData::LifeCycle::StageDestroy ||
+			snap.own.isValid())
+	{
+		if (m_visualItem)
+			m_visualItem->setVisible(false);
+	}
+
 	_updateGlow();
 }
 
 
-/**
- * @brief RpgPickable::use
- * @param player
- */
-
-void RpgPickable::use(RpgPlayer *player)
-{
-
-}
 
 
 

@@ -572,6 +572,22 @@ int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::PickableBaseD
 
 
 /**
+ * @brief RpgEngine::createEvents
+ * @param tick
+ * @param data
+ * @param snap
+ * @param prev
+ * @return
+ */
+
+int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::ControlGateBaseData &data, const RpgGameData::ControlGate &snap, const std::optional<RpgGameData::ControlGate> &prev)
+{
+	return 0;
+}
+
+
+
+/**
  * @brief RpgEngine::processEvents
  * @return
  */
@@ -621,6 +637,11 @@ const RpgGameData::SnapshotList<RpgGameData::ControlContainer, RpgGameData::Cont
 const RpgGameData::SnapshotList<RpgGameData::ControlCollection, RpgGameData::ControlCollectionBaseData> &RpgEngine::controlCollections()
 {
 	return m_snapshots.controls().collections;
+}
+
+const RpgGameData::SnapshotList<RpgGameData::ControlGate, RpgGameData::ControlGateBaseData> &RpgEngine::controlGates()
+{
+	return m_snapshots.controls().gates;
 }
 
 const RpgGameData::SnapshotList<RpgGameData::Pickable, RpgGameData::PickableBaseData> &RpgEngine::pickables()
@@ -684,7 +705,7 @@ bool RpgEngine::finishCollection(const RpgGameData::ControlCollectionBaseData &b
  */
 
 void RpgEngine::addPickablePicked(const qint64 &tick, const RpgGameData::PickableBaseData &base,
-								  RendererObject<RpgGameData::PlayerBaseData> *player)
+								  const RpgGameData::PlayerBaseData &player)
 {
 	eventAdd<RpgEventPickablePicked>(tick, base, player);
 }
@@ -716,6 +737,19 @@ void RpgEngine::addContainerOpened(const qint64 &tick,
 	}
 
 	eventAdd<RpgEventContainerOpened>(tick, base, player, list);
+}
+
+
+
+/**
+ * @brief RpgEngine::addGateToggled
+ * @param tick
+ * @param base
+ */
+
+void RpgEngine::addGateToggled(const qint64 &tick, const RpgGameData::ControlGateBaseData &base)
+{
+	eventAdd<RpgEventGate>(tick, base, false);
 }
 
 
@@ -1436,6 +1470,34 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 	}
 
 
+
+	for (const auto &ptr : snapshot.controls.gates) {
+		const RpgGameData::ControlGateBaseData &cd = ptr.data;
+
+		if (cd.t != RpgConfig::ControlGate) {
+			LOG_CERROR("engine") << "Invalid control gate data" << q->id();
+			continue;
+		}
+
+		const auto &controls = q->m_snapshots.controls().gates;
+
+		const auto it = std::find_if(controls.cbegin(), controls.cend(),
+									 [&cd](const auto &e) {
+			return e.data == cd;
+		});
+
+		if (it == controls.cend() && !ptr.list.empty()) {
+			RpgGameData::ControlGate data = ptr.list.cbegin()->second;
+
+			data.f = 0;
+
+			q->m_snapshots.gateAdd(cd, data);
+
+			LOG_CINFO("eninge") << "CREATE GATE" << cd.t << cd.s << cd.id << data.st << data.lck << data.a;
+		}
+	}
+
+
 }
 
 
@@ -1944,7 +2006,7 @@ bool RpgEventEnemyResurrect::process(const qint64 &tick, RpgGameData::CurrentSna
 		if (ptr.list.empty())
 			continue;
 
-		RpgGameData::Enemy edata = std::prev(ptr.list.cend())->second;
+		RpgGameData::Enemy edata = ptr.get(m_tick).value();
 		edata.f = m_tick;
 		edata.hp = 32;
 
@@ -2125,7 +2187,7 @@ bool RpgEventControlUnlock::process(const qint64 &tick, RpgGameData::CurrentSnap
 									  [this](const auto &pd){
 									  return pd.data == m_data;
 }); it != pp.cend() && !it->list.empty()) {
-		RpgGameData::Player d = std::prev(it->list.cend())->second;
+		RpgGameData::Player d = it->get(m_tick).value();
 
 		d.l = false;
 
@@ -2141,7 +2203,7 @@ bool RpgEventControlUnlock::process(const qint64 &tick, RpgGameData::CurrentSnap
 		if (ptr.list.empty())
 			continue;
 
-		RpgGameData::ControlContainer d = std::prev(ptr.list.cend())->second;
+		RpgGameData::ControlContainer d = ptr.get(m_tick).value();
 
 		if (d.u.isBaseEqual(m_data) && d.st == RpgGameData::ControlContainer::ContainerClose) {
 			d.u = {};
@@ -2159,7 +2221,7 @@ bool RpgEventControlUnlock::process(const qint64 &tick, RpgGameData::CurrentSnap
 		if (ptr.list.empty())
 			continue;
 
-		RpgGameData::ControlCollection d = std::prev(ptr.list.cend())->second;
+		RpgGameData::ControlCollection d = ptr.get(m_tick).value();
 
 		if (d.u.isBaseEqual(m_data) && !d.own.isValid()) {
 			d.u = {};
@@ -2202,40 +2264,46 @@ bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSna
 		return true;
 	}
 
+
+	RpgGameData::Player pData;
+
+	const auto &pp = m_engine->players();
+
+	if (const auto &it = std::find_if(pp.cbegin(),
+									  pp.cend(),
+									  [this](const auto &pd){
+									  return pd.data == m_player;
+}); it != pp.cend() && !it->list.empty()) {
+		pData = it->get(m_tick).value();
+	} else {
+		LOG_CERROR("engine") << "Invalid player" << m_player.o << m_player.s << m_player.id;
+		return true;
+	}
+
+
 	RpgGameData::Pickable d;
 
 	if (!it->list.empty())
-		d = std::prev(it->list.cend())->second;
+		d = it->get(m_tick).value();
 
 	d.f = m_tick;
 	d.u = {};
 	d.a = false;
-	d.own = m_player->baseData;
+	d.own = m_player;
+	d.st = RpgGameData::LifeCycle::StageDead;
 
 	dst->assign(dst->controls.pickables, m_data, d);
 
 
-	if (m_player->snap.empty()) {
-		LOG_CERROR("engine") << "Pickable picked, but player snap list empty";
-		return true;
-	}
-
-	RendererItem<RpgGameData::Player> *item = dynamic_cast<RendererItem<RpgGameData::Player>*>(m_player->snap.front().get());
-
-	if (!item) {
-		LOG_CERROR("engine") << "Invalid player data";
-		return true;
-	}
-
-	RpgGameData::Player pData = item->data();
 
 	pData.f = m_tick;
 
 	if (pData.pick(m_data.pt)) {
-		LOG_CINFO("engine") << "###### FINISH PICKABLE" << m_tick << m_data.id << "--->" << m_player->baseData.o;
-		dst->assign(dst->players, m_player->baseData, pData);
+		LOG_CINFO("engine") << "###### FINISH PICKABLE" << m_tick << m_data.id << "--->" << m_player.o;
+		LOG_CINFO("engine") << "!!!!! ADD HP" << pData.f << pData.hp;
+		dst->assign(dst->players, m_player, pData);
 	} else {
-		LOG_CERROR("engine") << "###### PICKABLE PROCESS FAILED" << m_data.pt << m_tick << "--->" << m_player->baseData.o;
+		LOG_CERROR("engine") << "###### PICKABLE PROCESS FAILED" << m_data.pt << m_tick << "--->" << m_player.o;
 	}
 
 	return true;
@@ -2275,16 +2343,71 @@ bool RpgEventContainerOpened::process(const qint64 &/*tick*/, RpgGameData::Curre
 		RpgGameData::Pickable d;
 
 		if (!it->list.empty())
-			d = std::prev(it->list.cend())->second;
+			d = it->get(m_tick).value();
 
 		d.f = m_tick;
 		d.u = {};
-		d.a = false;
+		d.a = true;
 		d.own = {};
 		d.st = RpgGameData::LifeCycle::StageLive;
 
 		dst->assign(dst->controls.pickables, base, d);
 	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgEventGate::process
+ * @param tick
+ * @param dst
+ * @return
+ */
+
+bool RpgEventGate::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
+{
+	Q_ASSERT(dst);
+
+	if (tick < m_tick)
+		return false;
+
+	const auto &pl = m_engine->controlGates();
+
+	const auto it = std::find_if(pl.cbegin(),
+								 pl.cend(),
+								 [this](const auto &p){
+		return p.data == m_data;
+	});
+
+	if (it == pl.cend()) {
+		LOG_CERROR("engine") << "Invalid gate" << m_data.o << m_data.s << m_data.id;
+		return true;
+	}
+
+	RpgGameData::ControlGate d;
+
+	if (!it->list.empty())
+		d = it->get(m_tick).value();
+
+	d.f = m_tick;
+	d.u = {};
+
+	if (m_isDamage) {
+		d.a = false;
+		d.st = RpgGameData::ControlGate::GateDamaged;
+	} else {
+		d.st = (d.st == RpgGameData::ControlGate::GateOpen ?
+					RpgGameData::ControlGate::GateClose :
+					RpgGameData::ControlGate::GateOpen);
+		d.a = true;
+	}
+
+
+	dst->assign(dst->controls.gates, m_data, d);
+
+	LOG_CERROR("engine") << "###### GATE PROCESSED" << d.st << m_tick;
 
 	return true;
 }

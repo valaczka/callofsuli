@@ -167,8 +167,6 @@ public:
 
 	bool playerTryUseControl(RpgPlayer *player, RpgActiveIface *control);
 
-	Q_INVOKABLE bool useControl();
-
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);
 
@@ -247,6 +245,9 @@ public:
 			  class... Args>
 	T* controlAdd(Args&& ...);
 
+	void controlRemove(RpgControlBase *control);
+	void controlRemove(const QList<RpgControlBase *> &controls);
+
 
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
 	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QStringLiteral(""));
@@ -293,6 +294,7 @@ protected:
 	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
 
 
+	virtual void onShapeAboutToDeletePrivate(cpShape *shape) override;
 
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer) override;

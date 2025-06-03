@@ -26,6 +26,7 @@
 
 #include "actionrpgmultiplayergame.h"
 #include "rpgcontrolcontainer.h"
+#include "rpgcontrolgate.h"
 #include "rpgcontrollight.h"
 #include "rpgcontrolcollection.h"
 #include "rpgpickable.h"
@@ -537,14 +538,11 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 		txt = QStringLiteral("CURRENT TICK %1 - server %2\n\n").arg(tick).arg(snapshots.serverTick());
 
 
-		for (const auto &ptr : snapshots.controls().pickables) {
-			txt += QStringLiteral("STORAGE PICKABLE %1 %2 %3 [%4,%5] %6\n=============================================\n")
+		for (const auto &ptr : snapshots.controls().gates) {
+			txt += QStringLiteral("STORAGE GATE %1 %2 %3\n=============================================\n")
 				   .arg(ptr.data.o)
 				   .arg(ptr.data.s)
 				   .arg(ptr.data.id)
-				   .arg(ptr.data.p.size() > 1 ? ptr.data.p.at(0) : -1)
-				   .arg(ptr.data.p.size() > 1 ? ptr.data.p.at(1) : -1)
-				   .arg(ptr.data.t)
 				   ;
 
 			for (auto it = ptr.list.crbegin(); it != ptr.list.crend(); ++it) {
@@ -1089,8 +1087,6 @@ void ActionRpgMultiplayerGame::syncCollectionList(const ClientStorage &storage)
 			continue;
 		}
 
-		LOG_CDEBUG("scene") << "NF" << pe.data.o << pe.data.s << pe.data.id << pe.data.gid;
-
 		TiledScene *scene = m_rpgGame->findScene(pe.data.s);
 
 		if (!scene) {
@@ -1112,7 +1108,7 @@ void ActionRpgMultiplayerGame::syncCollectionList(const ClientStorage &storage)
 
 		QPointF pos(pData.at(0), pData.at(1));
 
-		RpgControlCollection *coll = m_rpgGame->controlAdd<RpgControlCollection>(m_rpgGame, scene, pe.data, pos);
+		m_rpgGame->controlAdd<RpgControlCollection>(m_rpgGame, scene, pe.data, pos);
 
 	}
 
@@ -1129,8 +1125,7 @@ void ActionRpgMultiplayerGame::syncPickableList(const ClientStorage &storage)
 	if (!m_rpgGame)
 		return;
 
-	QList<RpgPickable*> bList;
-
+	QList<RpgControlBase*> bList;
 
 	// Load all controls
 
@@ -1169,13 +1164,11 @@ void ActionRpgMultiplayerGame::syncPickableList(const ClientStorage &storage)
 
 	// Delete missing pickables
 
-	for (RpgPickable *b : bList) {
-		if (b->stage() == RpgGameData::LifeCycle::StageDead) {
-			b->setStage(RpgGameData::LifeCycle::StageDestroy);
-		}
-	}
+	m_rpgGame->controlRemove(bList);
 
 }
+
+
 
 
 
@@ -1617,7 +1610,7 @@ bool ActionRpgMultiplayerGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIf
 		return false;
 
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
-	p.st = m_rpgQuestion->emptyQuestions() ? RpgGameData::Player::PlayerUseControl : RpgGameData::Player::PlayerLockControl;
+	p.st = !control->questionLock() || m_rpgQuestion->emptyQuestions() ? RpgGameData::Player::PlayerUseControl : RpgGameData::Player::PlayerLockControl;
 	p.tg = control->pureBaseData();
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
@@ -1967,6 +1960,11 @@ void ActionRpgMultiplayerGame::onWorldStep()
 						c->baseData(), q->m_currentSnapshot.controls.pickables))
 				c->updateFromSnapshot(s.value());
 
+		} else if (RpgControlGate *c = dynamic_cast<RpgControlGate*>(ptr.get())) {
+			if (const auto &s = q->m_currentSnapshot.getSnapshot<RpgGameData::ControlGateBaseData, RpgGameData::ControlGate>(
+						c->baseData(), q->m_currentSnapshot.controls.gates))
+				c->updateFromSnapshot(s.value());
+
 		} else {
 			LOG_CERROR("game") << "Invalid control" << ptr.get();
 		}
@@ -2091,7 +2089,9 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 				snap.assign(snap.controls.lights, c->baseData(), c->serialize(0));
 			} else if (RpgControlContainer *c = dynamic_cast<RpgControlContainer*>(ptr.get())) {
 				snap.assign(snap.controls.containers, c->baseData(), c->serialize(0));
-			} else {
+			} else if (RpgControlGate *c = dynamic_cast<RpgControlGate*>(ptr.get())) {
+				snap.assign(snap.controls.gates, c->baseData(), c->serialize(0));
+			}else {
 				LOG_CERROR("game") << "Invalid control" << ptr.get();
 			}
 		}

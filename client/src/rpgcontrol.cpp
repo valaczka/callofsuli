@@ -108,18 +108,6 @@ const RpgConfig::ControlType &RpgActiveControlObject::type() const
 
 
 
-/**
- * @brief RpgActiveControlObject::useControl
- * @param player
- */
-
-void RpgActiveControlObject::useControl(RpgPlayer *player)
-{
-	Q_ASSERT(m_iface);
-	m_iface->use(player);
-}
-
-
 
 
 /**
@@ -217,9 +205,16 @@ void RpgActiveControlObject::onShapeContactEnd(cpShape *self, cpShape *other)
 RpgActiveIface::~RpgActiveIface()
 {
 	for (RpgActiveControlObject *o : m_controlObjectList) {
-		if (o)
-			o->m_iface = nullptr;
+		if (!o)
+			continue;
+
+		o->m_iface = nullptr;
+
+		if (o->m_game)
+			o->m_game->removeObject(o);
 	}
+
+	m_controlObjectList.clear();
 
 }
 

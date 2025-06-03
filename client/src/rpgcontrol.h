@@ -62,6 +62,8 @@ public:
 	RpgGame *game() const { return m_game; }
 	void setGame(RpgGame *newGame) { m_game = newGame; }
 
+	virtual void onShapeAboutToDelete(cpShape *shape) { Q_UNUSED(shape); }
+
 protected:
 	const RpgConfig::ControlType m_type;
 	RpgGame *m_game = nullptr;
@@ -144,8 +146,6 @@ public:
 
 	const RpgConfig::ControlType &type() const;
 
-	Q_INVOKABLE void useControl(RpgPlayer *player);
-
 	RpgActiveIface *activeControl() const { return m_iface; }
 
 	QString keyLock() const;
@@ -188,7 +188,6 @@ public:
 	virtual ~RpgActiveIface();
 
 	virtual const RpgConfig::ControlType &activeType() const = 0;
-	virtual void use(RpgPlayer *player) = 0;
 
 	virtual RpgGameData::BaseData pureBaseData() const = 0;
 
@@ -268,7 +267,7 @@ template <typename T, typename T2, typename E,
 class RpgActiveControl : public RpgControl<T, T2>, public RpgActiveIface
 {
 public:
-	virtual ~RpgActiveControl();
+	virtual ~RpgActiveControl() = default;
 
 	virtual T2 baseData() const override;
 	virtual RpgGameData::BaseData pureBaseData() const override;
@@ -296,6 +295,8 @@ protected:
 
 	virtual void refreshVisualItem() override final;
 	virtual void updateGlow(const bool &glow) override final;
+	virtual void onShapeAboutToDelete(cpShape *shape) override;
+	virtual void onCurrentStateChanged() {}
 
 	bool loadQuestion(const RpgGameData::SnapshotInterpolation<T> &snapshot,
 					  RpgPlayer *player, RpgQuestion *question);
@@ -350,11 +351,6 @@ inline T2 RpgControl<T, T2, T3, T4>::baseData() const
 }
 
 
-
-template<typename T, typename T2, typename E, typename T3, typename T4>
-inline RpgActiveControl<T, T2, E, T3, T4>::~RpgActiveControl() {
-	m_controlObjectList.clear();
-}
 
 
 
@@ -433,6 +429,7 @@ inline void RpgActiveControl<T, T2, E, T4, T5>::setCurrentState(const E &newStat
 		return;
 
 	m_currentState = newState;
+	onCurrentStateChanged();
 	refreshVisualItem();
 }
 
@@ -454,6 +451,18 @@ inline void RpgActiveControl<T, T2, E, T4, T5>::updateGlow(const bool &glow)
 		}
 	}
 
+}
+
+
+/**
+ * @brief RpgActiveControl::onShapeAboutToDelete
+ * @param shape
+ */
+
+template<typename T, typename T2, typename E, typename T4, typename T5>
+inline void RpgActiveControl<T, T2, E, T4, T5>::onShapeAboutToDelete(cpShape *shape)
+{
+	m_contactedFixtures.removeAll(shape);
 }
 
 

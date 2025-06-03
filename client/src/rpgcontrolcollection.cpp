@@ -160,15 +160,11 @@ void RpgControlCollection::updateFromSnapshot(const RpgGameData::SnapshotInterpo
 
 
 	if (to.f <= snapshot.current) {
-		//const int frames = snapshot.current-to.f+1;
-
-		LOG_CDEBUG("game") << "---->MOVE" << control << pos1.x << pos1.y << "->" << pos2.x << pos2.y << "!!! 1"
-						   << control->moveToPoint(pos2, 1, 250);
+		control->moveToPoint(pos2, 1, 250);
 		return;
 	} else {
 		const int frames = to.f-snapshot.current;
-		LOG_CDEBUG("game") << "---->MOVE" << control << pos1.x << pos1.y << "->" << pos2.x << pos2.y << "IN" << frames
-						   << control->moveToPoint(pos2, frames, 250);
+		control->moveToPoint(pos2, frames, 250);
 		return;
 	}
 }
@@ -191,17 +187,6 @@ void RpgControlCollection::updateFromSnapshot(const RpgGameData::ControlCollecti
 	_updateGlow();
 }
 
-
-
-/**
- * @brief RpgControlCollection::use
- * @param player
- */
-
-void RpgControlCollection::use(RpgPlayer *player)
-{
-
-}
 
 
 

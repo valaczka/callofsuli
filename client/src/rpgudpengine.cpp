@@ -196,6 +196,12 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 		}
 	}
 
+	for (const auto &ptr : snapshot.controls.gates) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+	}
+
 	updateSnapshotRemoveMissing(snapshot.bullets);
 	updateSnapshotRemoveMissing(snapshot.controls.pickables);
 
@@ -802,6 +808,39 @@ void ClientStorage::updateSnapshot(const RpgGameData::PickableBaseData &pickable
 		LOG_CDEBUG("game") << "SKIP FRAME" << pickable.f << pickable.st;
 	else
 		it->list.insert_or_assign(pickable.f, pickable);
+}
+
+
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param baseData
+ * @param data
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::ControlGateBaseData &baseData, const RpgGameData::ControlGate &data)
+{
+	auto it = std::find_if(m_controls.gates.begin(),
+						   m_controls.gates.end(),
+						   [&baseData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(baseData));
+	});
+
+	if (it == m_controls.gates.end()) {
+		LOG_CINFO("game") << "New gate" << baseData.o << baseData.s << baseData.id;
+		m_controls.gates.push_back({
+								.data = baseData,
+								.list = {}
+							});
+		it = m_controls.gates.end()-1;
+	}
+
+	it->data = baseData;
+
+	if (data.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << data.f << data.st;
+	else
+		it->list.insert_or_assign(data.f, data);
 }
 
 

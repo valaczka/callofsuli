@@ -160,8 +160,13 @@ public:
 		return dynamic_cast<T*>(addObject(b, scene->sceneId(), id, ownerId));
 	}
 
+	bool removeObject(TiledObjectBody *body);
+
+	void onShapeAboutToDelete(cpShape *shape);
+
 
 	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 
 
 	// Sprite texture helper
@@ -279,20 +284,18 @@ signals:
 protected:
 	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const int &sceneId, const int &id, const int &owner = -1);
 	bool initSpace(TiledObjectBody *body, TiledScene *scene);
-	bool changeSpace(TiledObjectBody *body, cpSpace *newSpace);
+	virtual void onShapeAboutToDeletePrivate(cpShape *shape) { Q_UNUSED(shape); }
+	/*bool changeSpace(TiledObjectBody *body, cpSpace *newSpace);
 	bool changeSpace(TiledObjectBody *body, TiledScene *scene) {
 		if (scene && scene->m_space)
 			return changeSpace(body, scene->m_space);
 		else
 			return false;
-	}
-
-	bool removeObject(TiledObjectBody *body);
+	}*/
 
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 	virtual bool loadLights(TiledScene *scene, const QList<Tiled::MapObject *> &objects, Tiled::MapRenderer *renderer);
-	bool loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void synchronize();
 
 	const qint64 &currentFrame() const;

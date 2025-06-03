@@ -192,6 +192,7 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &fi
 	addFullSnapshot(&s.controls.containers, m_controls.containers, tick, findLast);
 	addFullSnapshot(&s.controls.collections, m_controls.collections, tick, findLast);
 	addFullSnapshot(&s.controls.pickables, m_controls.pickables, tick, findLast);
+	addFullSnapshot(&s.controls.gates, m_controls.gates, tick, findLast);
 
 
 	return s;
@@ -220,6 +221,7 @@ CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 	s.controls.containers = convertToSnapshotList(m_controls.containers);
 	s.controls.collections = convertToSnapshotList(m_controls.collections);
 	s.controls.pickables = convertToSnapshotList(m_controls.pickables);
+	s.controls.gates = convertToSnapshotList(m_controls.gates);
 
 	return s;
 }
@@ -256,6 +258,9 @@ void SnapshotStorage::zapSnapshots(const qint64 &tick)
 		zapSnapshots(ptr.list, tick);
 
 	for (auto &ptr : m_controls.pickables)
+		zapSnapshots(ptr.list, tick);
+
+	for (auto &ptr : m_controls.gates)
 		zapSnapshots(ptr.list, tick);
 }
 
@@ -296,6 +301,9 @@ QCborMap CurrentSnapshot::toCbor() const
 	if (const QCborArray &a = toCborArray(controls.pickables, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("cp"), a);
 
+	if (const QCborArray &a = toCborArray(controls.gates, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
+		map.insert(QStringLiteral("cg"), a);
+
 	return map;
 }
 
@@ -321,6 +329,7 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 	r += fromCborArray(controls.containers, map.value(QStringLiteral("cc")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 	r += fromCborArray(controls.collections, map.value(QStringLiteral("cs")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 	r += fromCborArray(controls.pickables, map.value(QStringLiteral("cp")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
+	r += fromCborArray(controls.gates, map.value(QStringLiteral("cg")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 
 	return r;
 }
@@ -601,6 +610,46 @@ QList<CollectionGroup>::const_iterator Collection::find(const int &id) const
 						[&id](const CollectionGroup &g){
 		return g.id == id;
 	});
+}
+
+
+/**
+ * @brief ControlActive::unlock
+ * @param ownData
+ * @param inventory
+ * @return
+ */
+
+bool ControlActive::unlock(const ControlActiveBaseData &ownData, const Inventory &inventory, const bool &toLocked)
+{
+	if (ownData.lck.isEmpty()) {
+		lck = toLocked;
+		return true;
+	}
+
+	if (inventory.contains(PickableBaseData::PickableKey, ownData.lck)) {
+		lck = toLocked;
+		return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief ControlGate::unlock
+ * @param ownData
+ * @param inventory
+ * @param toLocked
+ * @return
+ */
+
+bool ControlGate::unlock(const ControlGateBaseData &ownData, const Inventory &inventory, const bool &toLocked)
+{
+	if (st == GateDamaged)
+		return false;
+
+	return ControlActive::unlock(ownData, inventory, toLocked);
 }
 
 

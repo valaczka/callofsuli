@@ -130,22 +130,6 @@ void RpgControlContainer::updateFromSnapshot(const RpgGameData::ControlContainer
 
 
 
-/**
- * @brief RpgControlContainer::use
- * @param player
- */
-
-void RpgControlContainer::use(RpgPlayer *player)
-{
-	LOG_CINFO("game") << "USE CONTAINER";
-
-	setIsActive(false);
-	setIsLocked(false);
-	setCurrentState(RpgGameData::ControlContainer::ContainerOpen);
-	_updateGlow();
-}
-
-
 
 
 /**

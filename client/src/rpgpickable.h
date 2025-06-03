@@ -37,23 +37,17 @@
 
 class RpgPickable : public RpgActiveControl<RpgGameData::Pickable,
 		RpgGameData::PickableBaseData,
-		RpgActiveIface::DefaultEnum>,
-		public RpgGameData::LifeCycle
+		RpgActiveIface::DefaultEnum>
 {
 public:
 	RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::PickableBaseData &base);
-
+	virtual ~RpgPickable() = default;
 
 	virtual TiledObjectBody::ObjectId objectId() const override;
 	virtual RpgGameData::PickableBaseData baseData() const override final { return m_baseData; }
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Pickable> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Pickable &snap) override;
-
-	virtual void use(RpgPlayer *player) override;
-
-	virtual Stage stage() const override { return m_stage; }
-	virtual void setStage(const Stage &newStage) override { m_stage = newStage; }
 
 protected:
 	virtual RpgGameData::Pickable serializeThis() const override;
@@ -65,7 +59,6 @@ private:
 	void _updateGlow();
 
 	RpgGameData::PickableBaseData m_baseData;
-	RpgGameData::LifeCycle::Stage m_stage = StageInvalid;
 };
 
 

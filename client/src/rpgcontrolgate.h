@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgcontrolcontainer.h
+ * rpgcontrolgate.h
  *
- * Created on: 2025. 05. 18.
+ * Created on: 2025. 06. 03.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgControlContainer
+ * RpgControlGate
  *
  *  This file is part of Call of Suli.
  *
@@ -24,40 +24,44 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef RPGCONTROLCONTAINER_H
-#define RPGCONTROLCONTAINER_H
+#ifndef RPGCONTROLGATE_H
+#define RPGCONTROLGATE_H
 
 #include "rpgcontrol.h"
 
-class RpgControlContainer : public RpgActiveControl<RpgGameData::ControlContainer,
-		RpgGameData::ControlContainerBaseData,
-		RpgGameData::ControlContainer::State>
+class RpgControlGate : public RpgActiveControl<RpgGameData::ControlGate,
+		RpgGameData::ControlGateBaseData,
+		RpgGameData::ControlGate::State>
 {
 public:
-	RpgControlContainer(RpgGame *game, TiledScene *scene,
-						Tiled::GroupLayer *group, Tiled::MapRenderer *renderer = nullptr);
-
+	RpgControlGate(RpgGame *game, TiledScene *scene,
+				   Tiled::GroupLayer *group, Tiled::MapRenderer *renderer = nullptr);
 
 	virtual TiledObjectBody::ObjectId objectId() const override;
-	virtual RpgGameData::ControlContainerBaseData baseData() const override final { return m_baseData;}
+	virtual RpgGameData::ControlGateBaseData baseData() const override final { return m_baseData;}
 
-	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlContainer> &snapshot) override;
-	virtual void updateFromSnapshot(const RpgGameData::ControlContainer &snap) override;
+	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlGate> &snapshot) override;
+	virtual void updateFromSnapshot(const RpgGameData::ControlGate &snap) override;
 
 protected:
 	virtual bool loadFromLayer(RpgGame *game, TiledScene *scene,
 							   Tiled::Layer *layer, Tiled::MapRenderer *renderer = nullptr) override;
 
-	virtual RpgGameData::ControlContainer serializeThis() const override;
+	virtual RpgGameData::ControlGate serializeThis() const override;
 
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
+	virtual void onCurrentStateChanged() override;
+
 private:
 	void _updateGlow();
 
-	RpgGameData::ControlContainerBaseData m_baseData;
+	TiledScene *const m_scene;
+	RpgGameData::ControlGateBaseData m_baseData;
+	QHash<RpgGameData::ControlGate::State, QList<TiledObjectBody*> > m_groundList;
 
 };
 
-#endif // RPGCONTROLCONTAINER_H
+
+#endif // RPGCONTROLGATE_H

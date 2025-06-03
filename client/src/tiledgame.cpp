@@ -675,6 +675,8 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 	Q_ASSERT(object);
 	Q_ASSERT(renderer);
 
+
+
 	TiledObjectBody *mapObject = createObject<TiledObjectBody>(-1, scene, object->id(),
 															   object, this, renderer, CP_BODY_TYPE_STATIC);
 
@@ -685,9 +687,8 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 
 	QPointF delta;
 
-	if (Tiled::ObjectGroup *gLayer = object->objectGroup()) {
+	if (Tiled::ObjectGroup *gLayer = object->objectGroup())
 		delta = renderer->screenToPixelCoords(renderer->tileToScreenCoords(0,0) + gLayer->totalOffset());
-	}
 
 
 	if (!object->name().isEmpty()) {
@@ -735,18 +736,22 @@ bool TiledGame::loadDynamicZ(TiledScene *scene, Tiled::MapObject *object, Tiled:
 	if (object->className() == QStringLiteral("ground"))
 		return loadGround(scene, object, renderer);
 
-	QPolygonF polygon;
 
+	QPolygonF polygon;
+	QPointF delta;
+
+	if (Tiled::ObjectGroup *gLayer = object->objectGroup())
+		delta = renderer->screenToPixelCoords(renderer->tileToScreenCoords(0,0) + gLayer->totalOffset());
 
 	switch (object->shape()) {
 		case Tiled::MapObject::Rectangle:
-			scene->appendDynamicZ(object->name(), object->bounds());
+			scene->appendDynamicZ(object->name(), object->bounds().translated(delta));
 			break;
 		case Tiled::MapObject::Polygon:
-			scene->appendDynamicZ(object->name(), object->polygon().translated(object->position()).boundingRect());
+			scene->appendDynamicZ(object->name(), object->polygon().translated(object->position()+delta).boundingRect());
 			break;
 		case Tiled::MapObject::Point:
-			scene->appendDynamicZ(object->name(), QRectF{object->position(), object->position()});
+			scene->appendDynamicZ(object->name(), QRectF{object->position()+delta, object->position()+delta});
 			break;
 		default:
 			LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
@@ -1322,6 +1327,7 @@ bool TiledGame::initSpace(TiledObjectBody *body, TiledScene *scene)
  * @return
  */
 
+/*
 bool TiledGame::changeSpace(TiledObjectBody *body, cpSpace *newSpace)
 {
 	if (!body)
@@ -1352,7 +1358,7 @@ bool TiledGame::changeSpace(TiledObjectBody *body, cpSpace *newSpace)
 	cpSpaceAddBody(newSpace, body->body());
 
 	static const auto fn = [](cpBody *body, cpShape *shape, void *) {
-		LOG_CERROR("scene") << "ADD shape" << shape << body;
+		LOG_CERROR("scene") << "REPLACE shape" << shape << body;
 		if (shape->space)
 			cpSpaceRemoveShape(shape->space, shape);				// also cpBodyRemoveShape
 		cpSpaceAddShape(body->space, shape);					// also cpBodyAddShape
@@ -1364,6 +1370,8 @@ bool TiledGame::changeSpace(TiledObjectBody *body, cpSpace *newSpace)
 
 	return true;
 }
+*/
+
 
 
 /**
@@ -1377,6 +1385,25 @@ bool TiledGame::removeObject(TiledObjectBody *body)
 	QMutexLocker locker(&d->m_stepMutex);
 
 	return d->removeObject(body);
+}
+
+
+
+/**
+ * @brief TiledGame::onShapeAboutToDelete
+ * @param shape
+ */
+
+void TiledGame::onShapeAboutToDelete(cpShape *shape)
+{
+	QMutexLocker locker(&d->m_stepMutex);
+
+	for (const auto &ptr : d->m_bodyList) {
+		if (TiledObjectBody *b = ptr.get())
+			b->onShapeAboutToDelete(shape);
+	}
+
+	onShapeAboutToDeletePrivate(shape);
 }
 
 
@@ -2152,6 +2179,8 @@ void TiledGamePrivate::updateObjects()
 	if (!m_removeBodyList.empty()) {
 		for (auto it = m_bodyList.begin(); it != m_bodyList.end(); ) {
 			if (std::find(m_removeBodyList.cbegin(), m_removeBodyList.cend(), it->get()) != m_removeBodyList.cend()) {
+				it->get()->deleteBody();
+
 				if (dynamic_cast<QObject*>(it->get()))
 					dynamic_cast<QObject*>(it->release())->deleteLater();
 

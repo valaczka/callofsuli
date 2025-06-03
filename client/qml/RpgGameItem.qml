@@ -497,33 +497,6 @@ FocusScope {
 		spacing: 30
 
 
-		/*GameButton {
-			id: _transportButton
-			size: 50
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			visible: _game.controlledPlayer && _game.controlledPlayer.currentTransport
-
-			readonly property bool isOpen: _game.controlledPlayer && _game.controlledPlayer.currentTransport &&
-										   _game.controlledPlayer.currentTransport.isOpen
-
-			color: isOpen ? Qaterial.Colors.green600 : "transparent"
-			border.color: isOpen ? fontImage.color : "white"
-			border.width: 1
-
-			opacity: isOpen ? 1.0 : 0.6
-
-			fontImage.icon: isOpen ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
-			fontImage.color: "white"
-			fontImageScale: 0.6
-			//fontImage.anchors.horizontalCenterOffset: -2
-
-			onClicked: {
-				_game.transportPlayer()
-			}
-		}*/
-
 		GameButton {
 			id: _controlButton
 			size: 50
@@ -545,7 +518,7 @@ FocusScope {
 				case RpgConfig.ControlCollection:
 					return Qaterial.Colors.amber500
 
-				case RpgConfig.ControlDoor:
+				case RpgConfig.ControlGate:
 				case RpgConfig.ControlPickable:
 					return Qaterial.Colors.green600
 
@@ -568,7 +541,7 @@ FocusScope {
 				case RpgConfig.ControlContainer:
 					return Qaterial.Icons.eye
 
-				case RpgConfig.ControlDoor:
+				case RpgConfig.ControlGate:
 					return isOpen ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
 
 				case RpgConfig.ControlCollection:
@@ -585,7 +558,7 @@ FocusScope {
 			//fontImage.anchors.horizontalCenterOffset: -2
 
 			onClicked: {
-				_game.useControl()
+				_game.controlledPlayer.useCurrentControl()
 			}
 		}
 

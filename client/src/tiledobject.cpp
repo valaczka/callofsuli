@@ -536,8 +536,7 @@ void TiledObjectBody::setSpace(cpSpace *space)
 	cpSpaceAddBody(space, d->m_bodyRef);
 
 	static const auto fn = [](cpBody *body, cpShape *shape) {
-		if (shape->space)
-			cpSpaceRemoveShape(shape->space, shape);				// also cpBodyRemoveShape
+		TiledObjectBodyPrivate::removeShape(shape, false);
 		cpSpaceAddShape(body->space, shape);					// also cpBodyAddShape
 	};
 
@@ -1291,10 +1290,10 @@ TiledObjectBody::TiledObjectBody(TiledGame *game)
  */
 
 TiledObjectBody::TiledObjectBody(const QPolygonF &polygon,
-								 TiledGame *game, Tiled::MapRenderer *renderer, const cpBodyType &type)
+								 TiledGame *game, Tiled::MapRenderer *renderer, const cpBodyType &type, const QPointF &offset)
 	: TiledObjectBody(game)
 {
-	createFromPolygon(polygon, renderer, type);
+	createFromPolygon(polygon, renderer, type, offset);
 }
 
 
@@ -1309,10 +1308,10 @@ TiledObjectBody::TiledObjectBody(const QPolygonF &polygon,
  */
 
 TiledObjectBody::TiledObjectBody(const QPointF &center, const qreal &radius,
-								 TiledGame *game, Tiled::MapRenderer *renderer, const cpBodyType &type)
+								 TiledGame *game, Tiled::MapRenderer *renderer, const cpBodyType &type, const QPointF &offset)
 	: TiledObjectBody(game)
 {
-	createFromCircle(center, radius, renderer, type);
+	createFromCircle(center, radius, renderer, type, offset);
 }
 
 
@@ -1831,9 +1830,9 @@ cpShapeFilter TiledObjectBody::getFilter(const FixtureCategories &categories, co
  * @return
  */
 
-cpShape* TiledObjectBody::createFromPolygon(const QPolygonF &polygon, Tiled::MapRenderer *renderer, const cpBodyType &type)
+cpShape* TiledObjectBody::createFromPolygon(const QPolygonF &polygon, Tiled::MapRenderer *renderer, const cpBodyType &type, const QPointF &offset)
 {
-	const QPolygonF &screenPolygon = renderer ? renderer->pixelToScreenCoords(polygon) : polygon;
+	const QPolygonF &screenPolygon = renderer ? renderer->pixelToScreenCoords(polygon).translated(offset) : polygon.translated(offset);
 	const QRectF &box = screenPolygon.boundingRect();
 	const QPolygonF tPolygon = screenPolygon.translated(-box.center());
 
@@ -1869,9 +1868,10 @@ cpShape* TiledObjectBody::createFromPolygon(const QPolygonF &polygon, Tiled::Map
  * @return
  */
 
-cpShape* TiledObjectBody::createFromCircle(const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer, const cpBodyType &type)
+cpShape* TiledObjectBody::createFromCircle(const QPointF &center, const qreal &radius, Tiled::MapRenderer *renderer,
+										   const cpBodyType &type, const QPointF &offset)
 {
-	const QPointF &pos = renderer ? renderer->pixelToScreenCoords(center) : center;
+	const QPointF &pos = renderer ? renderer->pixelToScreenCoords(center)+offset : center+offset;
 
 	if (!d->m_bodyRef)
 		d->createBody(type, 1., cpMomentForCircle(1., 0., radius, cpvzero));
@@ -1898,19 +1898,18 @@ cpShape* TiledObjectBody::createFromMapObject(const Tiled::MapObject *object, Ti
 {
 	QPointF offset;
 
-	if (Tiled::ObjectGroup *gLayer = object->objectGroup()) {
+	if (Tiled::ObjectGroup *gLayer = object->objectGroup())
 		offset = gLayer->totalOffset();
-	}
 
 	switch (object->shape()) {
 		case Tiled::MapObject::Rectangle:
-			return createFromPolygon(object->bounds().translated(offset), renderer, type);
+			return createFromPolygon(object->bounds(), renderer, type, offset);
 		case Tiled::MapObject::Polygon:
-			return createFromPolygon(object->polygon().translated(offset+object->position()), renderer, type);
+			return createFromPolygon(object->polygon().translated(object->position()), renderer, type, offset);
 		case Tiled::MapObject::Ellipse:
 		case Tiled::MapObject::Point:
-			return createFromCircle(offset+object->position(), std::max(object->size().width()/2, object->size().height()/2),
-									renderer, type);
+			return createFromCircle(object->position(), std::max(object->size().width()/2, object->size().height()/2),
+									renderer, type, offset);
 		default:
 			LOG_CERROR("scene") << "Invalid Tiled::MapObject shape" << object->shape();
 	}
@@ -2419,13 +2418,7 @@ void TiledObjectBodyPrivate::deleteBody()
 	};
 
 
-	static const auto fn = [](cpBody *, cpShape *shape, void *) {
-		if (shape->space)
-			cpSpaceRemoveShape(shape->space, shape);
-		cpShapeFree(shape);
-	};
-
-	cpBodyEachShape(m_bodyRef, fn, nullptr);
+	cpBodyEachShape(m_bodyRef, TiledObjectBodyPrivate::removeShapeFn, nullptr);
 
 	if (m_bodyRef->space)
 		cpSpaceRemoveBody(m_bodyRef->space, m_bodyRef);
@@ -2438,6 +2431,39 @@ void TiledObjectBodyPrivate::deleteBody()
 	m_sensorPolygon = nullptr;
 	m_virtualCircle = nullptr;
 	m_targetCircle = nullptr;
+}
+
+
+
+/**
+ * @brief TiledObjectBodyPrivate::deleteShape
+ * @param shape
+ */
+
+void TiledObjectBodyPrivate::removeShape(cpShape *shape, const bool &deleteShape)
+{
+	if (!shape)
+		return;
+
+	cpBody *body = cpShapeGetBody(shape);
+	TiledScene *scene = nullptr;
+
+	if (body && body->space) {
+		Q_ASSERT(!cpSpaceIsLocked(body->space));
+
+		scene = static_cast<TiledScene*>(cpSpaceGetUserData(body->space));
+	};
+
+	TiledGame *game = scene ? scene->game() : nullptr;
+
+	if (game)
+		game->onShapeAboutToDelete(shape);
+
+	if (shape->space)
+		cpSpaceRemoveShape(shape->space, shape);				// also cpBodyRemoveShape
+
+	if (deleteShape)
+		cpShapeFree(shape);
 }
 
 
@@ -2492,9 +2518,7 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 	}
 
 	if (m_sensorPolygon) {
-		if (m_sensorPolygon->space)
-			cpSpaceRemoveShape(m_sensorPolygon->space, m_sensorPolygon);
-		cpShapeFree(m_sensorPolygon);
+		removeShape(m_sensorPolygon);
 		m_sensorPolygon = nullptr;
 	}
 
@@ -2563,9 +2587,7 @@ void TiledObjectBodyPrivate::addVirtualCircle(const float &length)
 void TiledObjectBodyPrivate::removeVirtualCircle()
 {
 	if (m_virtualCircle) {
-		if (m_virtualCircle->space)
-			cpSpaceRemoveShape(m_virtualCircle->space, m_virtualCircle);
-		cpShapeFree(m_virtualCircle);
+		removeShape(m_virtualCircle);
 		m_virtualCircle = nullptr;
 	}
 }
@@ -2590,9 +2612,7 @@ void TiledObjectBodyPrivate::addTargetCircle(const float &length)
 	}
 
 	if (m_targetCircle) {
-		if (m_targetCircle->space)
-			cpSpaceRemoveShape(m_targetCircle->space, m_targetCircle);
-		cpShapeFree(m_targetCircle);
+		removeShape(m_targetCircle);
 		m_targetCircle= nullptr;
 	}
 

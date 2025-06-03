@@ -582,7 +582,7 @@ void RpgPlayer::playAttackEffect(const RpgGameData::Weapon::WeaponType &weaponTy
 			jumpToSprite("bow", m_facingDirection);
 			break;
 
-		/*case RpgGameData::Weapon::WeaponMageStaff:
+			/*case RpgGameData::Weapon::WeaponMageStaff:
 			jumpToSprite("cast", m_facingDirection);
 			return;											// Nem kell az attack! */
 
@@ -877,8 +877,15 @@ void RpgPlayer::onShapeContactBegin(cpShape *self, cpShape *other)
 	if (isBodyShape(self) && categories.testFlag(TiledObjectBody::FixtureControl)) {
 		RpgActiveControlObject *control = dynamic_cast<RpgActiveControlObject*>(base);
 
-		if (control && control->isActive())
-			setCurrentControl(control);
+		if (control && control->isActive()) {
+			RpgGame *g = qobject_cast<RpgGame*>(m_game);
+			RpgPickable *pickable = dynamic_cast<RpgPickable*>(control->activeControl());
+
+			if (g && pickable)
+				g->playerTryUseControl(this, pickable);
+			else
+				setCurrentControl(control);
+		}
 	}
 }
 
@@ -1013,10 +1020,10 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	const auto &to = snapshot.s2.f >= 0 ? snapshot.s2 : snapshot.last;
 
 	if (to.p.size() > 1)
-			writer += QStringLiteral("=> (%1,%2)")
-					  .arg(to.p.at(0))
-					  .arg(to.p.at(1))
-					  ;
+		writer += QStringLiteral("=> (%1,%2)")
+				  .arg(to.p.at(0))
+				  .arg(to.p.at(1))
+				  ;
 	else
 		writer += QStringLiteral("???????????");
 

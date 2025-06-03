@@ -103,12 +103,14 @@ public:
 	explicit TiledObjectBody(const QPolygonF &polygon,
 							 TiledGame *game,
 							 Tiled::MapRenderer *renderer = nullptr,
-							 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+							 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC,
+							 const QPointF &offset = {});
 
 	explicit TiledObjectBody(const QPointF &center, const qreal &radius,
 							 TiledGame *game,
 							 Tiled::MapRenderer *renderer = nullptr,
-							 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+							 const cpBodyType &type = CP_BODY_TYPE_DYNAMIC,
+							 const QPointF &offset = {});
 
 	explicit TiledObjectBody(const Tiled::MapObject *object,
 							 TiledGame *game,
@@ -240,6 +242,7 @@ public:
 
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other) }
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other) }
+	virtual void onShapeAboutToDelete(cpShape *shape) { Q_UNUSED(shape); }
 
 	void rotateToPoint(const cpVect &point, const bool &forced = false);
 
@@ -279,11 +282,13 @@ protected:
 private:
 	cpShape *createFromPolygon(const QPolygonF &polygon,
 							   Tiled::MapRenderer *renderer,
-							   const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+							   const cpBodyType &type = CP_BODY_TYPE_DYNAMIC,
+							   const QPointF &offset = {});
 
 	cpShape *createFromCircle(const QPointF &center, const qreal &radius,
 							  Tiled::MapRenderer *renderer,
-							  const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+							  const cpBodyType &type = CP_BODY_TYPE_DYNAMIC,
+							  const QPointF &offset = {});
 
 	cpShape *createFromMapObject(const Tiled::MapObject *object,
 								 Tiled::MapRenderer *renderer,
@@ -297,6 +302,7 @@ private:
 
 	friend class TiledObjectBodyPrivate;
 	friend class TiledGame;
+	friend class TiledGamePrivate;
 };
 
 

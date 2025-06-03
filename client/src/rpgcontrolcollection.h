@@ -48,8 +48,6 @@ public:
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlCollection> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlCollection &snap) override;
 
-	virtual void use(RpgPlayer *player) override;
-
 protected:
 	virtual RpgGameData::ControlCollection serializeThis() const override;
 
