@@ -138,12 +138,15 @@ private:
 	void renderAs(RendererItem<RpgGameData::Player> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::Enemy> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::Bullet> *src, RendererObjectType *self, Renderer *renderer) const;
-
-	void renderAs(RendererItem<RpgGameData::ControlLight> *src, RendererObjectType *self, Renderer *renderer) const;
-	void renderAs(RendererItem<RpgGameData::ControlContainer> *src, RendererObjectType *self, Renderer *renderer) const;
-	void renderAs(RendererItem<RpgGameData::ControlCollection> *src, RendererObjectType *self, Renderer *renderer) const;
 	void renderAs(RendererItem<RpgGameData::Pickable> *src, RendererObjectType *self, Renderer *renderer) const;
-	void renderAs(RendererItem<RpgGameData::ControlGate> *src, RendererObjectType *self, Renderer *renderer) const;
+
+
+	// Rendered by ControlUnique solver
+
+	void renderAs(RendererItem<RpgGameData::ControlLight> *, RendererObjectType *, Renderer *) const {}
+	void renderAs(RendererItem<RpgGameData::ControlContainer> *, RendererObjectType *, Renderer *) const {}
+	void renderAs(RendererItem<RpgGameData::ControlCollection> *, RendererObjectType *, Renderer *) const {}
+	void renderAs(RendererItem<RpgGameData::ControlGate> *, RendererObjectType *, Renderer *) const {}
 
 
 
@@ -308,7 +311,7 @@ private:
 		virtual bool solve(ConflictSolver *solver) = 0;
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) { Q_UNUSED(solver); Q_UNUSED(engine); }
 
-		const int tick;
+		int tick = 0;
 		bool solved = false;
 	};
 
@@ -381,51 +384,39 @@ private:
 	public:
 		enum State {
 			StateInvalid,
+			StateHold,
 			StateSuccess,
 			StateFailed
 		};
 
-		ConflictUniqueIface(const int &_tick, RendererObject<RpgGameData::PlayerBaseData> *_player = nullptr);
+		struct ReleaseState
+		{
+			RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
+			State state = StateInvalid;
+
+			bool operator==(const ReleaseState &other) {
+				return other.player == player && other.state == state;
+			}
+		};
+
+		ConflictUniqueIface(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *player = nullptr);
 		virtual ~ConflictUniqueIface() = default;
 
 		virtual RendererObjectType *uniqueObject() const = 0;
 
-		virtual void add(const int &_tick, RendererObjectType *src);
-		virtual bool remove(const int &_tick, RendererObjectType *src);
+		virtual void add(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src);
+		virtual bool releaseSuccess(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src);
+		virtual bool releaseFailed(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src);
 
-		virtual bool releaseSuccess(const int &_tick, RendererObjectType *src);
-		virtual bool releaseFailed(const int &_tick, RendererObjectType *src);
-
-		virtual State getState();
-
-		static ConflictUniqueIface *find(const RpgGameData::BaseData &data, const std::vector<std::unique_ptr<ConflictData>> &list) {
-			for (const auto &it : list) {
-				LOG_CDEBUG("engine") << "CHECK" << data.o << data.s << data.id << "---" << dynamic_cast<ConflictUniqueIface* >(it.get());
-				if (ConflictUniqueIface *c = dynamic_cast<ConflictUniqueIface* >(it.get())) {
-					LOG_CDEBUG("engine") << "   -" << c->uniqueObject()->asBaseData().o
-											<< c->uniqueObject()->asBaseData().s
-											   << c->uniqueObject()->asBaseData().id;
-				}
-				if (ConflictUniqueIface *c = dynamic_cast<ConflictUniqueIface* >(it.get()); c && c->uniqueObject()->isBaseEqual(data))
-					return c;
-			}
-
-			return nullptr;
-		}
-
+		ReleaseState renderCurrentState(Renderer *renderer, const int &maxTick) const;
 
 	protected:
-		struct ReleaseData
-		{
-			RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
-			int tick = -1;
-			State state = StateInvalid;
-		};
+		virtual void updateTick(const int &_tick) = 0;
+		virtual bool getInitialState(Renderer *renderer, ReleaseState *destPtr) const = 0;
 
-		std::vector<ReleaseData> releaseList;
-		int tick = -1;
-		RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
+		bool setPlayer(Renderer *renderer, const RpgGameData::BaseData &base, ReleaseState *destPtr) const;
 
+		QMap<int, ReleaseState> m_release;
 	};
 
 
@@ -436,28 +427,39 @@ private:
 
 	template <typename T,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::ControlBaseData, T>::value>::type>
-	struct ConflictDataUnique : public ConflictData, public ConflictUniqueIface
+	class ConflictDataUnique : public ConflictData, public ConflictUniqueIface
 	{
-		ConflictDataUnique(const int &_tick, RendererObject<T> *_unique, RendererObject<RpgGameData::PlayerBaseData> *_player = nullptr)
-			: ConflictData(_tick)
-			, ConflictUniqueIface(_tick, _player)
-			, unique(_unique)
-		{}
+	public:
+		ConflictDataUnique(const int &tick, RendererObject<T> *unique,
+						   RendererObject<RpgGameData::PlayerBaseData> *player = nullptr)
+			: ConflictData(tick)
+			, ConflictUniqueIface(tick, player)
+			, m_unique(unique)
+		{
+			solved = true;
+		}
 
-		virtual RendererObjectType *uniqueObject() const override { return unique; };
+		virtual RendererObjectType *uniqueObject() const override { return m_unique; };
+		virtual bool solve(ConflictSolver */*solver*/) override { return true; }
 
 		virtual ~ConflictDataUnique() = default;
 
 		static ConflictDataUnique<T> *find(const T &data, const std::vector<std::unique_ptr<ConflictData>> &list) {
 			for (const auto &it : list) {
-				if (ConflictDataUnique<T> *c = dynamic_cast<ConflictDataUnique<T>* >(it.get()); c && c->unique->baseData == data)
+				if (ConflictDataUnique<T> *c = dynamic_cast<ConflictDataUnique<T>* >(it.get()); c && c->m_unique->baseData == data)
 					return c;
 			}
 
 			return nullptr;
 		}
 
-		RendererObject<T> *const unique;
+	protected:
+		virtual void updateTick(const int &_tick) override final {
+			if (_tick < tick)
+				tick = _tick;
+		}
+
+		RendererObject<T> *const m_unique;
 	};
 
 
@@ -476,11 +478,10 @@ private:
 						  RendererObject<RpgGameData::ControlContainerBaseData> *_dst,
 						  RendererObject<RpgGameData::PlayerBaseData> *_src);
 
-		virtual bool solve(ConflictSolver *solver) override;
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
-	private:
-		State m_state = StateInvalid;
+	protected:
+		virtual bool getInitialState(Renderer *renderer, ReleaseState *destPtr) const override;
 	};
 
 
@@ -498,12 +499,10 @@ private:
 						  RendererObject<RpgGameData::ControlCollectionBaseData> *_dst,
 						  RendererObject<RpgGameData::PlayerBaseData> *_src);
 
-		virtual bool solve(ConflictSolver *solver) override;
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
-	private:
-		State m_state = StateInvalid;
-
+	protected:
+		virtual bool getInitialState(Renderer *renderer, ReleaseState *destPtr) const override;
 	};
 
 
@@ -520,11 +519,10 @@ private:
 						  RendererObject<RpgGameData::PickableBaseData> *_dst,
 						  RendererObject<RpgGameData::PlayerBaseData> *_src);
 
-		virtual bool solve(ConflictSolver *solver) override;
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
-	private:
-		State m_state = StateInvalid;
+	protected:
+		virtual bool getInitialState(Renderer *renderer, ReleaseState *destPtr) const override;
 	};
 
 
@@ -542,11 +540,10 @@ private:
 						  RendererObject<RpgGameData::ControlGateBaseData> *_dst,
 						  RendererObject<RpgGameData::PlayerBaseData> *_src);
 
-		virtual bool solve(ConflictSolver *solver) override;
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
-	private:
-		State m_state = StateInvalid;
+	protected:
+		virtual bool getInitialState(Renderer *renderer, ReleaseState *destPtr) const override;
 	};
 
 
@@ -560,6 +557,7 @@ private:
 
 	template <typename T, typename T2, typename ...Args,
 			  typename = std::enable_if< std::is_base_of<ConflictData, T>::value>::type,
+			  typename = std::enable_if< std::is_base_of<ConflictUniqueIface, T>::value>::type,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::ControlBaseData, T2>::value>::type>
 	T* addUniqueData(const int &tick, RendererObject<T2> *unique, Args && ...args)
 	{
@@ -651,11 +649,7 @@ public:
 	void render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgGameData::EnemyBaseData> *src);
 	void render(RendererItem<RpgGameData::Bullet> *dst, RendererObject<RpgGameData::BulletBaseData> *src);
 
-	void render(RendererItem<RpgGameData::ControlLight> *dst, RendererObject<RpgGameData::ControlBaseData> *src);
-	void render(RendererItem<RpgGameData::ControlContainer> *dst, RendererObject<RpgGameData::ControlContainerBaseData> *src);
-	void render(RendererItem<RpgGameData::ControlCollection> *dst, RendererObject<RpgGameData::ControlCollectionBaseData> *src);
 	void render(RendererItem<RpgGameData::Pickable> *dst, RendererObject<RpgGameData::PickableBaseData> *src);
-	void render(RendererItem<RpgGameData::ControlGate> *dst, RendererObject<RpgGameData::ControlGateBaseData> *src);
 
 	bool step();
 
@@ -898,7 +892,7 @@ private:
 	bool registerBullets(const RpgGameData::CurrentSnapshot &snapshot, const RpgGameData::PlayerBaseData &player);
 
 	std::unique_ptr<Renderer> getRenderer(const qint64 &tick);
-	int saveRenderer(Renderer *renderer);
+	int saveRenderer(Renderer *renderer, const uint &pass);
 
 
 	template <typename T, typename T2,
@@ -1102,53 +1096,6 @@ inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::Bullet> *src
 }
 
 
-/**
- * @brief RendererItem::renderAs
- * @param src
- * @param self
- * @param renderer
- */
-
-
-template<typename T, typename T2>
-inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlLight> *src, RendererObjectType *self, Renderer *renderer) const
-{
-	RendererObject<RpgGameData::ControlBaseData> *p = dynamic_cast<RendererObject<RpgGameData::ControlBaseData>*>(self);
-	Q_ASSERT(p);
-	renderer->render(src, p);
-}
-
-
-/**
- * @brief RendererItem::renderAs
- * @param src
- * @param self
- * @param renderer
- */
-
-template<typename T, typename T2>
-inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlContainer> *src, RendererObjectType *self, Renderer *renderer) const
-{
-	RendererObject<RpgGameData::ControlContainerBaseData> *p = dynamic_cast<RendererObject<RpgGameData::ControlContainerBaseData>*>(self);
-	Q_ASSERT(p);
-	renderer->render(src, p);
-}
-
-
-/**
- * @brief RendererItem::renderAs
- * @param src
- * @param self
- * @param renderer
- */
-
-template<typename T, typename T2>
-inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlCollection> *src, RendererObjectType *self, Renderer *renderer) const
-{
-	RendererObject<RpgGameData::ControlCollectionBaseData> *p = dynamic_cast<RendererObject<RpgGameData::ControlCollectionBaseData>*>(self);
-	Q_ASSERT(p);
-	renderer->render(src, p);
-}
 
 
 /**
@@ -1165,25 +1112,6 @@ inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::Pickable> *s
 	Q_ASSERT(p);
 	renderer->render(src, p);
 }
-
-
-
-/**
- * @brief RendererItem::renderAs
- * @param src
- * @param self
- * @param renderer
- */
-
-template<typename T, typename T2>
-inline void RendererItem<T, T2>::renderAs(RendererItem<RpgGameData::ControlGate> *src, RendererObjectType *self, Renderer *renderer) const
-{
-	RendererObject<RpgGameData::ControlGateBaseData> *p = dynamic_cast<RendererObject<RpgGameData::ControlGateBaseData>*>(self);
-	Q_ASSERT(p);
-	renderer->render(src, p);
-}
-
-
 
 
 

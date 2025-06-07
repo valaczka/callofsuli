@@ -274,7 +274,7 @@ class RpgEventCollectionRelocate : public RpgEvent<RpgGameData::ControlCollectio
 {
 public:
 	RpgEventCollectionRelocate(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
-							   const bool &success, const RpgGameData::BaseData &player)
+							   const bool &success, const RpgGameData::PlayerBaseData &player)
 		: RpgEvent<RpgGameData::ControlCollectionBaseData>(engine, tick, data, true)
 		, m_success(success)
 		, m_player(player)
@@ -288,7 +288,7 @@ public:
 
 private:
 	bool m_success = false;
-	const RpgGameData::BaseData m_player;
+	const RpgGameData::PlayerBaseData m_player;
 };
 
 
@@ -297,31 +297,32 @@ private:
 
 
 
-
 /**
- * @brief The RpgEventContainerOpened class
+ * @brief The RpgEventContainerUsed class
  */
 
-class RpgEventContainerOpened : public RpgEvent<RpgGameData::ControlContainerBaseData>
+class RpgEventContainerUsed : public RpgEvent<RpgGameData::ControlContainerBaseData>
 {
 public:
-	RpgEventContainerOpened(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data,
-							const RpgGameData::BaseData &player, const QList<RpgGameData::PickableBaseData> &pickables)
+	RpgEventContainerUsed(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data,
+						  const RpgGameData::PlayerBaseData &player, const QList<RpgGameData::PickableBaseData> &pickables,
+						  const bool &success)
 		: RpgEvent<RpgGameData::ControlContainerBaseData>(engine, tick, data, true)
 		, m_player(player)
 		, m_pickables(pickables)
+		, m_success(success)
 	{
-		LOG_CDEBUG("engine") << "CONTAINER OPENED created" << tick << m_unique << data.o << player.o << pickables.size();
+		LOG_CDEBUG("engine") << "CONTAINER USED created" << tick << m_unique << data.o << player.o << pickables.size() << success;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
 
-	ADD_EQUAL(RpgEventContainerOpened);
+	ADD_EQUAL(RpgEventContainerUsed);
 
 private:
-	bool m_success = false;
-	const RpgGameData::BaseData m_player;
+	const RpgGameData::PlayerBaseData m_player;
 	const QList<RpgGameData::PickableBaseData> m_pickables;
+	bool m_success = false;
 };
 
 
@@ -350,35 +351,6 @@ public:
 
 private:
 	RpgGameData::PlayerBaseData const m_player;
-};
-
-
-
-
-
-
-/**
- * @brief The RpgEventGate class
- */
-
-class RpgEventGate : public RpgEvent<RpgGameData::ControlGateBaseData>
-{
-public:
-	RpgEventGate(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlGateBaseData &data,
-				 const bool &isDamage)
-		: RpgEvent<RpgGameData::ControlGateBaseData>(engine, tick, data, true)
-		, m_isDamage(isDamage)
-	{
-		LOG_CDEBUG("engine") << "CONTAINER GATE created" << tick << m_unique << data.o << isDamage;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventGate);
-
-private:
-	bool m_success = false;
-	bool m_isDamage = false;
 };
 
 
@@ -446,7 +418,7 @@ public:
 	int createEvents(const qint64 &tick, const RpgGameData::PlayerBaseData &data,
 					 const RpgGameData::Player &snap, const std::optional<RpgGameData::Player> &prev);
 
-	int createEvents(const qint64 &tick, const RpgGameData::BulletBaseData &data,
+	/*int createEvents(const qint64 &tick, const RpgGameData::BulletBaseData &data,
 					 const RpgGameData::Bullet &snap, const std::optional<RpgGameData::Bullet> &prev);
 
 	int createEvents(const qint64 &tick, const RpgGameData::ControlBaseData &data,
@@ -462,7 +434,7 @@ public:
 					 const RpgGameData::Pickable &snap, const std::optional<RpgGameData::Pickable> &prev);
 
 	int createEvents(const qint64 &tick, const RpgGameData::ControlGateBaseData &data,
-					 const RpgGameData::ControlGate &snap, const std::optional<RpgGameData::ControlGate> &prev);
+					 const RpgGameData::ControlGate &snap, const std::optional<RpgGameData::ControlGate> &prev);*/
 
 
 	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
@@ -479,15 +451,13 @@ public:
 	const RpgGameData::SnapshotList<RpgGameData::Pickable, RpgGameData::PickableBaseData> &pickables();
 
 	void addRelocateCollection(const qint64 &tick, const RpgGameData::ControlCollectionBaseData &base,
-							   const RpgGameData::BaseData &player, const bool &success);
-	int relocateCollection(const RpgGameData::ControlCollectionBaseData &base, QPointF *ptr = nullptr);
+							   const RpgGameData::PlayerBaseData &player, const bool &success);
+	int relocateCollection(const RpgGameData::ControlCollectionBaseData &base, const qint64 &tick, QPointF *ptr = nullptr);
 	bool finishCollection(const RpgGameData::ControlCollectionBaseData &base, const int &idx);
 	void addPickablePicked(const qint64 &tick, const RpgGameData::PickableBaseData &base,
 						   const RpgGameData::PlayerBaseData &player);
-	void addContainerOpened(const qint64 &tick, const RpgGameData::ControlContainerBaseData &base,
-							const RpgGameData::BaseData &player);
-	void addGateToggled(const qint64 &tick, const RpgGameData::ControlGateBaseData &base);
-
+	void addContainerUsed(const qint64 &tick, const RpgGameData::ControlContainerBaseData &base,
+						  const RpgGameData::PlayerBaseData &player, const bool &success);
 
 	void renderTimerLog(const qint64 &msec);
 
@@ -528,7 +498,7 @@ private:
 template<typename T, typename T2, typename T3, typename T4>
 inline int RpgEngine::createEvents(const qint64 &, const T2 &, const T &, const std::optional<T> &)
 {
-	LOG_CERROR("engine") << "Missing specialization";
+	//LOG_CERROR("engine") << "Missing specialization";
 	return -1;
 }
 

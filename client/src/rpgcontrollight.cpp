@@ -45,7 +45,12 @@ RpgControlLight::RpgControlLight(const RpgGameData::ControlBaseData &data, const
 
 void RpgControlLight::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlLight> &snapshot)
 {
+	if (snapshot.s1.f < 0 && snapshot.last.f < 0) {
+		LOG_CERROR("scene") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.last.f << snapshot.current;
+		return;
+	}
 
+	RpgControlLight::updateFromSnapshot(snapshot.last);
 }
 
 
@@ -56,8 +61,9 @@ void RpgControlLight::updateFromSnapshot(const RpgGameData::SnapshotInterpolatio
 
 void RpgControlLight::updateFromSnapshot(const RpgGameData::ControlLight &snap)
 {
-
+	setState(snap.st);
 }
+
 
 
 /**
