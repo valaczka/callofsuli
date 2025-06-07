@@ -88,8 +88,6 @@ class RpgControl : public RpgControlBase, public RpgGameDataInterface<T, T2>
 public:
 	virtual ~RpgControl() = default;
 
-	virtual T2 baseData() const override;
-
 protected:
 	RpgControl(const RpgConfig::ControlType &type)
 		: RpgControlBase(type)
@@ -269,7 +267,6 @@ class RpgActiveControl : public RpgControl<T, T2>, public RpgActiveIface
 public:
 	virtual ~RpgActiveControl() = default;
 
-	virtual T2 baseData() const override;
 	virtual RpgGameData::BaseData pureBaseData() const override;
 
 	virtual const RpgConfig::ControlType &activeType() const override { return RpgControlBase::type(); }
@@ -338,38 +335,6 @@ protected:
 
 
 /**
- * @brief RpgControl::baseData
- * @return
- */
-
-template<typename T, typename T2, typename T3, typename T4>
-inline T2 RpgControl<T, T2, T3, T4>::baseData() const
-{
-	T2 d = RpgGameDataInterface<T,T2>::baseData();
-	d.t = m_type;
-	return d;
-}
-
-
-
-
-
-
-/**
- * @brief RpgActiveControl::baseData
- * @return
- */
-
-template<typename T, typename T2, typename E, typename T3, typename T4>
-inline T2 RpgActiveControl<T, T2, E, T3, T4>::baseData() const
-{
-	T2 d = RpgControl<T,T2>::baseData();
-	d.lck = m_keyLock;
-	return d;
-}
-
-
-/**
  * @brief RpgActiveControl::pureBaseData
  * @return
  */
@@ -377,7 +342,7 @@ inline T2 RpgActiveControl<T, T2, E, T3, T4>::baseData() const
 template<typename T, typename T2, typename E, typename T4, typename T5>
 inline RpgGameData::BaseData RpgActiveControl<T, T2, E, T4, T5>::pureBaseData() const
 {
-	return baseData();
+	return RpgControl<T,T2>::baseData();
 }
 
 

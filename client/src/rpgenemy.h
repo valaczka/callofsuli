@@ -42,7 +42,9 @@ class RpgEnemy : public IsometricEnemy, public RpgEnemyIface
 public:
 	RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius = 10.);
 
-	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricEnemy::objectId(); }
+	virtual ObjectId objectId() const override final { return ifaceObjectId(); }
+	virtual void setObjectId(const ObjectId &newObjectId) override final { ifaceSetObjectId(newObjectId); }
+	virtual void setObjectId(const int &ownerId, const int &sceneId, const int &id) override final { ifaceSetObjectId(ownerId, sceneId, id); }
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Enemy> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Enemy &snap) override;

@@ -42,9 +42,10 @@ RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::Pi
 	: RpgActiveControl<RpgGameData::Pickable,
 	  RpgGameData::PickableBaseData,
 	  RpgActiveIface::DefaultEnum>(RpgConfig::ControlPickable)
-	, m_baseData(base)
 {
 	Q_ASSERT(scene);
+
+	m_baseData = base;
 
 	setGame(game);
 
@@ -84,20 +85,6 @@ RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::Pi
 }
 
 
-
-/**
- * @brief RpgPickable::objectId
- * @return
- */
-
-TiledObjectBody::ObjectId RpgPickable::objectId() const
-{
-	return TiledObjectBody::ObjectId{
-		.ownerId = m_baseData.o,
-				.sceneId = m_baseData.s,
-				.id = m_baseData.id
-	};
-}
 
 
 /**

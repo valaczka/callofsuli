@@ -26,6 +26,7 @@
 
 #include "rpgplayer.h"
 #include "actionrpggame.h"
+#include "actionrpgmultiplayergame.h"
 #include "rpgfirefog.h"
 #include "rpglongsword.h"
 #include "tiledspritehandler.h"
@@ -927,17 +928,18 @@ void RpgPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 class FtxWriter
 {
 public:
-	FtxWriter(const int &player, const QString &mode = QStringLiteral("SND"))
+	FtxWriter(const int &player, const int &myPlayer, const QString &mode = QStringLiteral("SND"))
 		: m_app(dynamic_cast<DesktopApplication*>(Application::instance()))
 		, m_mode(mode)
 	{
 		Q_ASSERT(m_app);
 		m_player = player;
+		m_myPlayer = myPlayer;
 	}
 
 	~FtxWriter()
 	{
-		if (m_txt.isEmpty())
+		if (m_txt.isEmpty() || m_player != m_myPlayer)
 			return;
 
 		m_lines.append(m_txt);
@@ -949,7 +951,7 @@ public:
 		QCborMap map;
 		map.insert(QStringLiteral("mode"), m_mode);
 
-		QString tt = QStringLiteral("PLAYER %1\n----------------------------------------------------\n").arg(m_player);
+		QString tt = QStringLiteral("PLAYER %1 (vs %2)\n----------------------------------------------------\n").arg(m_player).arg(m_myPlayer);
 
 		for (auto it = m_lines.crbegin(); it != m_lines.crend(); ++it)
 			tt += *it + QStringLiteral("\n");
@@ -975,7 +977,8 @@ private:
 	inline static QStringList m_lines = {};
 	QString m_txt;
 
-	inline static int m_player = 0;
+	int m_player = 0;
+	int m_myPlayer = -1;
 };
 
 
@@ -996,7 +999,10 @@ private:
 void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot)
 {
 #if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
-	FtxWriter writer(baseData().o);
+	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
+	ActionRpgMultiplayerGame *mg = g ? dynamic_cast<ActionRpgMultiplayerGame*>(g->actionRpgGame()) : nullptr;
+
+	FtxWriter writer(baseData().o, mg ? mg->playerId() : -1);
 
 	writer += QStringLiteral("%1|%2: ")
 			  .arg(m_game->tickTimer()->currentTick())
@@ -1027,23 +1033,6 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	else
 		writer += QStringLiteral("???????????");
 
-	/*if (snapshot.s1.p.size() > 1)
-		writer += QStringLiteral("(%1,%2)")
-				  .arg(snapshot.s1.p.at(0))
-				  .arg(snapshot.s1.p.at(1))
-				  ;
-
-	if (snapshot.s2.p.size() > 1)
-		writer += QStringLiteral("-(%1,%2)")
-				  .arg(snapshot.s2.p.at(0))
-				  .arg(snapshot.s2.p.at(1))
-				  ;*/
-
-	/*if (snapshot.last.p.size() > 1)
-		writer += QStringLiteral("  {%1,%2}")
-				  .arg(snapshot.last.p.at(0))
-				  .arg(snapshot.last.p.at(1))
-				  ;*/
 #endif
 
 

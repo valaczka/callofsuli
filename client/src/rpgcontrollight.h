@@ -35,8 +35,6 @@ public:
 	RpgControlLight(const RpgGameData::ControlBaseData &data,
 					const RpgGameData::ControlLight::State state = RpgGameData::ControlLight::LightOn);
 
-	virtual TiledObjectBody::ObjectId objectId() const override { return m_objectId; }
-
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlLight> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlLight &snap) override;
 
@@ -52,7 +50,6 @@ protected:
 private:
 	void updateState();
 
-	TiledObjectBody::ObjectId m_objectId;
 	RpgGameData::ControlLight::State m_state = RpgGameData::ControlLight::LightOff;
 
 	QPointer<QQuickItem> m_visualItem;

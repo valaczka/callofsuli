@@ -28,7 +28,6 @@
 #define RPGGAMEDATAIFACE_H
 
 #include "isometricentity.h"
-#include "tiledobject.h"
 #include "rpgconfig.h"
 #include <QVector2D>
 #include <QCborMap>
@@ -52,8 +51,8 @@ public:
 	T serialize(const qint64 tick = -1);
 	std::optional<T> serializeCmp(const qint64 tick = -1);
 
-	virtual TiledObjectBody::ObjectId objectId() const = 0;
-	virtual T2 baseData() const;
+	const T2 &baseData() const { return m_baseData; }
+	T2 &baseData() { return m_baseData; }
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<T> &snapshot) = 0;
 	virtual void updateFromSnapshot(const T &snap) = 0;
@@ -64,6 +63,26 @@ protected:
 	static QList<float> toPosList(const cpVect &pos) { return { (float) pos.x, (float) pos.y }; }
 
 	virtual T serializeThis() const = 0;
+
+	TiledObjectBody::ObjectId ifaceObjectId() const {
+		return TiledObjectBody::ObjectId {
+			.ownerId = m_baseData.o,
+					.sceneId = m_baseData.s,
+			.id = m_baseData.id
+		};
+	}
+
+	void ifaceSetObjectId(const TiledObjectBody::ObjectId &newObjectId) {
+		m_baseData.o = newObjectId.ownerId;
+		m_baseData.s = newObjectId.sceneId;
+		m_baseData.id = newObjectId.id;
+	}
+
+	void ifaceSetObjectId(const int &ownerId, const int &sceneId, const int &id) {
+		m_baseData.o = ownerId;
+		m_baseData.s = sceneId;
+		m_baseData.id = id;
+	};
 
 	const T &lastSnapshot() const { return m_lastSnapShot; }
 	void setLastSnapshot(const T &snap) { m_lastSnapShot = snap; }
@@ -82,6 +101,9 @@ protected:
 	static bool fnEmplace(IsometricEntity *entity, const cpVect &dst, const float &angle);
 	static cpVect fnMove (IsometricEntity *entity, const cpVect &final,
 						  const int &inFrame, const float &maxSpeed, const QList<float> &cv);
+
+protected:
+	T2 m_baseData;
 
 private:
 	T m_lastSnapShot;
@@ -141,22 +163,6 @@ inline std::optional<T> RpgGameDataInterface<T, T2, T3, T4>::serializeCmp(const 
 	return m_lastSerialized;
 }
 
-
-/**
- * @brief RpgGameDataInterface::baseData
- * @return
- */
-
-template<typename T, typename T2, typename T3, typename T4>
-inline T2 RpgGameDataInterface<T, T2, T3, T4>::baseData() const
-{
-	TiledObjectBody::ObjectId oid = objectId();
-	T2 r;
-	r.o = oid.ownerId;
-	r.s = oid.sceneId;
-	r.id = oid.id;
-	return r;
-}
 
 
 /**

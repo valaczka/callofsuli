@@ -129,6 +129,8 @@ protected:
 
 	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
+	void updateRandomizer(const RpgGameData::Randomizer &randomizer);
+
 	virtual void onTimeStepPrepare();
 	virtual void onTimeBeforeWorldStep(const qint64 &tick);
 	virtual void onTimeStepped();

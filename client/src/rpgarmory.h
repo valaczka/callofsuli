@@ -113,8 +113,9 @@ public:
 	explicit RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgBullet();
 
-	virtual RpgGameData::BulletBaseData baseData() const override;
-	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricBullet::objectId(); }
+	virtual ObjectId objectId() const override final { return ifaceObjectId(); }
+	virtual void setObjectId(const ObjectId &newObjectId) override final { ifaceSetObjectId(newObjectId); }
+	virtual void setObjectId(const int &ownerId, const int &sceneId, const int &id) override final { ifaceSetObjectId(ownerId, sceneId, id); }
 
 	void shot(const RpgGameData::BulletBaseData &baseData);
 	virtual void shot(const cpVect &from, const qreal &angle) override;
@@ -147,13 +148,8 @@ protected:
 
 	RpgGame *rpgGame() const;
 
-	const RpgGameData::Weapon::WeaponType m_weaponType;
-	RpgGameData::BulletBaseData::Owner m_owner = RpgGameData::BulletBaseData::OwnerNone;
-	RpgGameData::BulletBaseData::Targets m_targets = RpgGameData::BulletBaseData::TargetNone;
 	RpgGameData::BaseData m_impactedObject;
-	RpgGameData::BaseData m_ownerId;
 
-	std::pair<cpVect, cpVect> m_path;
 	RpgGameData::LifeCycle::Stage m_stage = StageInvalid;
 	bool m_impactRendered = false;
 

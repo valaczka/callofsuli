@@ -41,10 +41,10 @@ RpgControlCollection::RpgControlCollection(RpgGame *game, TiledScene *scene,
 	: RpgActiveControl<RpgGameData::ControlCollection,
 	  RpgGameData::ControlCollectionBaseData,
 	  RpgActiveIface::DefaultEnum>(RpgConfig::ControlCollection)
-	, m_baseData(base)
 {
 	Q_ASSERT(scene);
 
+	m_baseData = base;
 
 	setGame(game);
 
@@ -72,33 +72,6 @@ RpgControlCollection::RpgControlCollection(RpgGame *game, TiledScene *scene,
 	onActivated();
 
 	controlObjectAdd(o);
-}
-
-
-
-/**
- * @brief RpgControlCollection::objectId
- * @return
- */
-
-TiledObjectBody::ObjectId RpgControlCollection::objectId() const
-{
-	return TiledObjectBody::ObjectId{
-		.ownerId = m_baseData.o,
-				.sceneId = m_baseData.s,
-				.id = m_baseData.id
-	};
-}
-
-
-/**
- * @brief RpgControlCollection::baseData
- * @return
- */
-
-RpgGameData::ControlCollectionBaseData RpgControlCollection::baseData() const
-{
-	return m_baseData;
 }
 
 

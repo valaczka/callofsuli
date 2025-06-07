@@ -37,9 +37,6 @@ public:
 	RpgControlGate(RpgGame *game, TiledScene *scene,
 				   Tiled::GroupLayer *group, Tiled::MapRenderer *renderer = nullptr);
 
-	virtual TiledObjectBody::ObjectId objectId() const override;
-	virtual RpgGameData::ControlGateBaseData baseData() const override final { return m_baseData;}
-
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlGate> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlGate &snap) override;
 
@@ -58,7 +55,6 @@ private:
 	void _updateGlow();
 
 	TiledScene *const m_scene;
-	RpgGameData::ControlGateBaseData m_baseData;
 	QHash<RpgGameData::ControlGate::State, QList<TiledObjectBody*> > m_groundList;
 
 };

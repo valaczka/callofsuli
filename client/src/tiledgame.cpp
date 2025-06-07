@@ -442,6 +442,8 @@ void TiledGame::clearSharedTextures()
 
 QVector<TiledScene *> TiledGame::sceneList() const
 {
+	QMutexLocker locker(&d->m_stepMutex);
+
 	QVector<TiledScene *> list;
 	list.reserve(d->m_sceneList.size());
 
@@ -465,6 +467,8 @@ QVector<TiledScene *> TiledGame::sceneList() const
 
 TiledScene *TiledGame::findScene(const int &id) const
 {
+	QMutexLocker locker(&d->m_stepMutex);
+
 	auto it = std::find_if(d->m_sceneList.cbegin(), d->m_sceneList.cend(),
 						   [&id](const auto &s){
 		return s->scene && s->scene->sceneId() == id;

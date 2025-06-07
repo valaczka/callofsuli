@@ -671,10 +671,8 @@ RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGam
 	: IsometricBullet(game, type)
 	, RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>()
 	, RpgGameData::LifeCycle()
-	, m_weaponType(weaponType)
 {
-	m_path.first = cpvzero;
-	m_path.second = cpvzero;
+	m_baseData.t = weaponType;
 }
 
 
@@ -688,30 +686,6 @@ RpgBullet::~RpgBullet()
 
 }
 
-
-/**
- * @brief RpgBullet::baseData
- * @return
- */
-
-RpgGameData::BulletBaseData RpgBullet::baseData() const
-{
-	RpgGameData::BulletBaseData d = RpgGameDataInterface::baseData();
-
-	d.t = m_weaponType;
-	d.own = m_owner;
-	d.tar = m_targets;
-	d.ownId = m_ownerId;
-	d.pth = QList<float>({
-							 (float) m_path.first.x,
-							 (float) m_path.first.y,
-							 (float) m_path.second.x,
-							 (float) m_path.second.y
-						 });
-
-
-	return d;
-}
 
 
 /**
@@ -727,10 +701,12 @@ void RpgBullet::shot(const RpgGameData::BulletBaseData &baseData)
 		return;
 	}
 
-	m_path.first = cpv(baseData.pth.at(0), baseData.pth.at(1));
-	m_path.second = cpv(baseData.pth.at(2),baseData.pth.at(3));
+	m_baseData.pth = baseData.pth;
 
-	IsometricBullet::shot(m_path.first, cpvtoangle(cpvsub(m_path.second, m_path.first)));
+	cpVect v1 = cpv(baseData.pth.at(0), baseData.pth.at(1));
+	cpVect v2 = cpv(baseData.pth.at(2),baseData.pth.at(3));
+
+	IsometricBullet::shot(v1, cpvtoangle(cpvsub(v2, v1)));
 
 	m_stage = StageLive;
 
@@ -746,8 +722,13 @@ void RpgBullet::shot(const RpgGameData::BulletBaseData &baseData)
 
 void RpgBullet::shot(const cpVect &from, const qreal &angle)
 {
-	m_path.first = from;
-	m_path.second = cpvadd(from, vectorFromAngle(angle, m_maxDistance));
+	m_baseData.pth.clear();
+
+	m_baseData.pth << from.x << from.y;
+
+	cpVect v2 = cpvadd(from, vectorFromAngle(angle, m_maxDistance));
+
+	m_baseData.pth << v2.x << v2.y;
 
 	IsometricBullet::shot(from, angle);
 
@@ -767,7 +748,10 @@ RpgGameData::Bullet RpgBullet::serializeThis() const
 
 	float progress = 0.;
 
-	shortestDistance(bodyPosition(), m_path.first, m_path.second, nullptr, &progress);
+	cpVect v1 = m_baseData.pth.size() > 3 ? cpv(m_baseData.pth.at(0), m_baseData.pth.at(1)) : cpvzero;
+	cpVect v2 = m_baseData.pth.size() > 3 ? cpv(m_baseData.pth.at(2), m_baseData.pth.at(3)) : cpvzero;
+
+	shortestDistance(bodyPosition(), v1, v2, nullptr, &progress);
 
 	p.p = progress;
 	p.st = m_stage;
@@ -805,16 +789,16 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		}))) {
 				RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(g->findBody(
 															  TiledObjectBody::ObjectId{
-																  .ownerId = m_ownerId.o,
-																  .sceneId = m_ownerId.s,
-																  .id = m_ownerId.id,
+																  .ownerId = m_baseData.ownId.o,
+																  .sceneId = m_baseData.ownId.s,
+																  .id = m_baseData.ownId.id,
 															  }));
 
 				LOG_CINFO("scene") << "REAL BULLET ATTACK PLAYER" << snapshot.current << snapshot.s1.f <<
-									  snapshot.s1.p << player->objectId().ownerId << enemy;
+									  snapshot.s1.p << player->baseData().o << enemy;
 
 				player->attackedByEnemy(g->controlledPlayer() == player ? enemy : nullptr,
-										m_weaponType, false);
+										m_baseData.t, false);
 			}
 
 		}
@@ -835,15 +819,18 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		return stop();
 
 
-	const cpVect line = cpvsub(m_path.second, m_path.first);
+	const cpVect v1 = m_baseData.pth.size() > 3 ? cpv(m_baseData.pth.at(0), m_baseData.pth.at(1)) : cpvzero;
+	const cpVect v2 = m_baseData.pth.size() > 3 ? cpv(m_baseData.pth.at(2), m_baseData.pth.at(3)) : cpvzero;
+
+	const cpVect line = cpvsub(v2, v1);
 	if (cpvlengthsq(line) < m_speed/60.) {
-		LOG_CERROR("scene") << "Invalid path" << m_path.first.x << m_path.first.y << "->" << m_path.second.x << m_path.second.y;
+		LOG_CERROR("scene") << "Invalid path" << v1.x << v1.y << "->" << v2.x << v2.y;
 		return stop();
 	}
 
 	const cpVect speed = cpvmult(cpvnormalize(line), m_speed);
 
-	const cpVect final = cpvlerp(m_path.first, m_path.second, to.p);
+	const cpVect final = cpvlerp(v1, v2, to.p);
 
 
 	if (to.f <= snapshot.current) {
@@ -905,10 +892,10 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 	ActionRpgMultiplayerGame *g = dynamic_cast<ActionRpgMultiplayerGame*>(rpgGame()->actionRpgGame());
 
 	if (g) {
-		if (m_owner == RpgGameData::BulletBaseData::OwnerPlayer && m_ownerId.o != g->playerId())
+		if (m_baseData.own == RpgGameData::BulletBaseData::OwnerPlayer && m_baseData.ownId.o != g->playerId())
 			return;
 
-		if (m_owner == RpgGameData::BulletBaseData::OwnerEnemy && g->gameMode() != ActionRpgGame::MultiPlayerHost)
+		if (m_baseData.own == RpgGameData::BulletBaseData::OwnerEnemy && g->gameMode() != ActionRpgGame::MultiPlayerHost)
 			return;
 	}
 
@@ -939,11 +926,11 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 
 	bool hasTarget = false;
 
-	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetEnemy) && enemy && enemy->isAlive()) {
-		hasTarget = enemy->canBulletImpact(m_weaponType);
+	if (m_baseData.tar.testFlag(RpgGameData::BulletBaseData::TargetEnemy) && enemy && enemy->isAlive()) {
+		hasTarget = enemy->canBulletImpact(m_baseData.t);
 	}
 
-	if (m_targets.testFlag(RpgGameData::BulletBaseData::TargetPlayer) && player && player->isAlive() && !player->isLocked()) {
+	if (m_baseData.tar.testFlag(RpgGameData::BulletBaseData::TargetPlayer) && player && player->isAlive() && !player->isLocked()) {
 		hasTarget = true;
 	}
 
@@ -991,12 +978,12 @@ RpgGame *RpgBullet::rpgGame() const
 
 const RpgGameData::BaseData &RpgBullet::ownerId() const
 {
-	return m_ownerId;
+	return m_baseData.ownId;
 }
 
 void RpgBullet::setOwnerId(const RpgGameData::BaseData &newOwnerId)
 {
-	m_ownerId = newOwnerId;
+	m_baseData.ownId = newOwnerId;
 }
 
 
@@ -1008,19 +995,19 @@ void RpgBullet::setOwnerId(const RpgGameData::BaseData &newOwnerId)
 
 RpgGameData::Weapon::WeaponType RpgBullet::weaponType() const
 {
-	return m_weaponType;
+	return m_baseData.t;
 }
 
 RpgGameData::BulletBaseData::Targets RpgBullet::targets() const
 {
-	return m_targets;
+	return m_baseData.tar;
 }
 
 void RpgBullet::setTargets(const RpgGameData::BulletBaseData::Targets &newTargets)
 {
-	if (m_targets == newTargets)
+	if (m_baseData.tar == newTargets)
 		return;
-	m_targets = newTargets;
+	m_baseData.tar = newTargets;
 	emit targetsChanged();
 }
 
@@ -1033,14 +1020,14 @@ void RpgBullet::setTargets(const RpgGameData::BulletBaseData::Targets &newTarget
 
 RpgGameData::BulletBaseData::Owner RpgBullet::owner() const
 {
-	return m_owner;
+	return m_baseData.own;
 }
 
 void RpgBullet::setOwner(const RpgGameData::BulletBaseData::Owner &newOwner)
 {
-	if (m_owner == newOwner)
+	if (m_baseData.own == newOwner)
 		return;
-	m_owner = newOwner;
+	m_baseData.own = newOwner;
 	emit ownerChanged();
 }
 

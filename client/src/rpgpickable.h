@@ -43,9 +43,6 @@ public:
 	RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::PickableBaseData &base);
 	virtual ~RpgPickable() = default;
 
-	virtual TiledObjectBody::ObjectId objectId() const override;
-	virtual RpgGameData::PickableBaseData baseData() const override final { return m_baseData; }
-
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Pickable> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Pickable &snap) override;
 
@@ -57,8 +54,6 @@ protected:
 
 private:
 	void _updateGlow();
-
-	RpgGameData::PickableBaseData m_baseData;
 };
 
 

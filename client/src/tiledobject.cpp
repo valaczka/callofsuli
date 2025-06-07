@@ -585,6 +585,11 @@ void TiledObjectBody::drawBody(TiledDebugDraw *draw, const QColor &color, const 
 				c = fcolor;
 		}
 
+		if (!m_opaque) {
+			c = QColorConstants::Svg::lightblue;
+			c.setAlphaF(0.6);
+		}
+
 		if (cpShapeGetSensor(sh)) {
 			c.setAlphaF(0.3);
 			d->drawShape(draw, sh, c, lineWidth, filled, false);
@@ -1024,7 +1029,7 @@ float TiledObjectBody::distanceToPointSq(const cpVect &point) const
 
 
 
-const TiledObjectBody::ObjectId &TiledObjectBody::objectId() const
+TiledObjectBody::ObjectId TiledObjectBody::objectId() const
 {
 	return m_objectId;
 }

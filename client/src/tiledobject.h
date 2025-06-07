@@ -161,9 +161,9 @@ public:
 	Q_FLAG(FixtureCategories);
 
 
-	const ObjectId &objectId() const;
-	void setObjectId(const ObjectId &newObjectId);
-	void setObjectId(const int &ownerId, const int &sceneId, const int &id);
+	virtual ObjectId objectId() const;
+	virtual void setObjectId(const ObjectId &newObjectId);
+	virtual void setObjectId(const int &ownerId, const int &sceneId, const int &id);
 
 	TiledGame *game() const;
 

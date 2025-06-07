@@ -131,7 +131,6 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameDat
 	Q_PROPERTY(RpgArmory *armory READ armory CONSTANT FINAL)
 	Q_PROPERTY(int shieldCount READ shieldCount WRITE setShieldCount NOTIFY shieldCountChanged FINAL)
 	Q_PROPERTY(RpgActiveControlObject *currentControl READ currentControl WRITE setCurrentControl NOTIFY currentControlChanged FINAL)
-	//Q_PROPERTY(RpgInventoryList *inventory READ inventory CONSTANT FINAL)
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
 	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
 
@@ -139,7 +138,9 @@ public:
 	explicit RpgPlayer(RpgGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgPlayer();
 
-	virtual TiledObjectBody::ObjectId objectId() const override { return IsometricPlayer::objectId(); }
+	virtual ObjectId objectId() const override final { return ifaceObjectId(); }
+	virtual void setObjectId(const ObjectId &newObjectId) override final { ifaceSetObjectId(newObjectId); }
+	virtual void setObjectId(const int &ownerId, const int &sceneId, const int &id) override final { ifaceSetObjectId(ownerId, sceneId, id); }
 
 	Q_INVOKABLE void attack(RpgWeapon *weapon);
 	Q_INVOKABLE void attackCurrentWeapon() { attack(m_armory->currentWeapon()); }

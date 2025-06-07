@@ -232,6 +232,8 @@ void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
 
 	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest || m_game->isReconnecting()) {
 		m_gameConfig = config.gameConfig;
+	} else {
+		m_gameConfig.randomizer = config.gameConfig.randomizer;
 	}
 }
 
@@ -287,6 +289,9 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 
 	RpgGameData::Prepare config;
 	config.fromCbor(data);
+
+	if (!config.gameConfig.randomizer.groups.isEmpty())
+		m_gameConfig.randomizer = config.gameConfig.randomizer;
 
 	RpgGameData::CurrentSnapshot snapshot;
 	snapshot.fromCbor(data);
@@ -529,10 +534,6 @@ const RpgGameData::GameConfig &RpgUdpEngine::gameConfig() const
 	return m_gameConfig;
 }
 
-void RpgUdpEngine::setGameConfig(const RpgGameData::GameConfig &newGameConfig)
-{
-	m_gameConfig = newGameConfig;
-}
 
 
 
@@ -602,7 +603,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 
 	it->data.s = playerData.s;										// Itt állítjuk be
 	it->data.id = playerData.id;
-
+	it->data.rq = playerData.rq;
 
 	if (player.f < 0)
 		LOG_CDEBUG("game") << "SKIP FRAME" << player.f << player.p;

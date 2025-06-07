@@ -82,6 +82,8 @@ private:
 	int relocateCollection(const RpgGameData::ControlCollectionBaseData &base, const qint64 &tick, QPointF *ptr);
 	bool finishCollection(const RpgGameData::ControlCollectionBaseData &base, const int &idx);
 
+	void createRandomizer();
+
 
 	template <typename T, typename ...Args,
 			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
@@ -102,6 +104,7 @@ private:
 
 
 	RpgGameData::GameConfig m_gameConfig;
+	std::optional<RpgGameData::Randomizer> m_randomizer;
 
 	QElapsedTimer m_elapsedTimer;
 	qint64 m_elapsedTimerReference = 0;
@@ -707,7 +710,7 @@ void RpgEngine::preparePlayers()
 
 		m_snapshots.playerAdd(*ptr, pdata);
 
-		LOG_CINFO("engine") << "SET PLAYER" << ptr->id << pdata.p << ptr->s << pdata.sc;
+		LOG_CINFO("engine") << "SET PLAYER" << ptr->id << pdata.p << ptr->s << pdata.sc << "RQ:" << ptr->rq;
 	}
 }
 
@@ -862,6 +865,8 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 	createEnemies(snapshot);
 	createControls(snapshot);
 	createCollection();
+	createRandomizer();
+
 
 }
 
@@ -919,6 +924,8 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 		case SendChrSel: {
 			RpgGameData::CharacterSelectServer config;
 			config.gameConfig = m_gameConfig;
+			if (m_randomizer.has_value())
+				config.gameConfig.randomizer = m_randomizer.value();
 
 			for (const auto &ptr : q->m_player)
 				config.players.append(ptr->config());
@@ -931,6 +938,8 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 		case SendPrepare: {
 			RpgGameData::Prepare config;
 			config.gameConfig = m_gameConfig;
+			if (m_randomizer.has_value())
+				config.gameConfig.randomizer = m_randomizer.value();
 
 			baseMap = config.toCborMap();
 			QCborMap sm = q->m_snapshots.getCurrentSnapshot().toCbor();
@@ -944,6 +953,8 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 		case SendReconnect: {
 			RpgGameData::CharacterSelectServer config;
 			config.gameConfig = m_gameConfig;
+			if (m_randomizer.has_value())
+				config.gameConfig.randomizer = m_randomizer.value();
 
 			for (const auto &ptr : q->m_player) {
 				RpgGameData::CharacterSelect c = ptr->config();
@@ -1403,7 +1414,8 @@ void RpgEnginePrivate::createCollection()
 
 	LOG_CINFO("engine") << "----- GENERATE" << req << "COLL";
 
-	const QHash<int, QList<int> > &pos = m_gameConfig.collection.allocate(req);
+	int generated = 0;
+	const QHash<int, QList<int> > &pos = m_gameConfig.collection.allocate(req, &generated);
 
 	for (const auto &[gid, list] : pos.asKeyValueRange()) {
 		const auto &it = m_gameConfig.collection.find(gid);
@@ -1437,6 +1449,30 @@ void RpgEnginePrivate::createCollection()
 
 			LOG_CDEBUG("engine") << "--- create collection" << cd.id << gid << "scene" << data.sc << "IDX" << data.idx;
 		}
+	}
+
+
+	if (q->m_player.size() == 1) {
+		q->m_player.front()->rq = generated;
+
+		LOG_CDEBUG("engine") << "   >>> SINGLE" << generated;
+
+		return;
+	}
+
+
+	QList<RpgGameData::PlayerBaseData *> pList;
+
+	pList.reserve(q->m_player.size());
+
+	for (const auto &ptr : q->m_player) {
+		pList.append(ptr.get());
+	}
+
+	RpgGameData::PlayerBaseData::assign(pList, generated);
+
+	for (const auto &ptr : q->m_player) {
+		LOG_CDEBUG("engine") << "   >>>" << ptr->o << "->" << ptr->rq;
 	}
 }
 
@@ -1543,6 +1579,29 @@ bool RpgEnginePrivate::finishCollection(const RpgGameData::ControlCollectionBase
 	LOG_CINFO("engine") << "COLLECTION gid" << base.gid << "POS" << idx << "done";
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::createRandomizer
+ */
+
+void RpgEnginePrivate::createRandomizer()
+{
+	if (m_randomizer.has_value())
+		return;
+
+	LOG_CINFO("engine") << "Randomize";
+
+	m_randomizer = m_gameConfig.randomizer;
+
+	m_randomizer->randomize();
+
+	for (const RpgGameData::RandomizerGroup &g : m_randomizer->groups) {
+		LOG_CDEBUG("engine") << "---" << g.gid << "-" << g.current;
+	}
 }
 
 

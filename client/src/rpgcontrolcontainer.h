@@ -37,10 +37,6 @@ public:
 	RpgControlContainer(RpgGame *game, TiledScene *scene,
 						Tiled::GroupLayer *group, Tiled::MapRenderer *renderer = nullptr);
 
-
-	virtual TiledObjectBody::ObjectId objectId() const override;
-	virtual RpgGameData::ControlContainerBaseData baseData() const override final { return m_baseData;}
-
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlContainer> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlContainer &snap) override;
 
@@ -55,9 +51,6 @@ protected:
 
 private:
 	void _updateGlow();
-
-	RpgGameData::ControlContainerBaseData m_baseData;
-
 };
 
 #endif // RPGCONTROLCONTAINER_H

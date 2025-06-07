@@ -339,7 +339,7 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::ImageLayer *layer)
 	if (!layer)
 		return img;
 
-	img->setPosition(layer->position() + layer->offset());
+	img->setPosition(layer->position() + layer->totalOffset());
 	img->setSource(layer->imageSource());
 	img->setName(layer->name());
 

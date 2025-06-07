@@ -27,8 +27,12 @@
 
 #include "rpgconfig.h"
 #include <chipmunk/chipmunk.h>
+#include <QRandomGenerator>
 #include <random>
 
+
+#define STD_DEV_MAX_ATTEMPTS			10000
+#define TARGET_STD_DEV					2.5
 
 #define PICKABLE_HP_VALUE				10
 #define PICKABLE_SHORTBOW_VALUE			10
@@ -464,8 +468,11 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
  * @return
  */
 
-QHash<int, QList<int> > Collection::allocate(const int &num)
+QHash<int, QList<int> > Collection::allocate(const int &num, int *dst)
 {
+	if (dst)
+		*dst = 0;
+
 	int max = 0;
 
 	for (CollectionGroup &g : groups) {
@@ -519,6 +526,9 @@ QHash<int, QList<int> > Collection::allocate(const int &num)
 	qInfo() << "GENREATED" << generated << "required" << num;
 	qDebug() << ret;
 
+	if (dst)
+		*dst = generated;
+
 	return ret;
 }
 
@@ -548,36 +558,6 @@ QList<CollectionPlace> Collection::getFree(const int &gid) const
 
 
 
-/**
- * @brief Collection::findScene
- * @param id
- * @return
- */
-
-QList<CollectionGroup>::iterator Collection::findScene(const int &id)
-{
-	return std::find_if(groups.begin(),
-						groups.end(),
-						[&id](const CollectionGroup &g){
-		return g.scene == id;
-	});
-}
-
-
-/**
- * @brief Collection::findScene
- * @param id
- * @return
- */
-
-QList<CollectionGroup>::const_iterator Collection::findScene(const int &id) const
-{
-	return std::find_if(groups.cbegin(),
-						groups.cend(),
-						[&id](const CollectionGroup &g){
-		return g.scene == id;
-	});
-}
 
 
 /**
@@ -653,6 +633,166 @@ bool ControlGate::unlock(const ControlGateBaseData &ownData, const Inventory &in
 }
 
 
+
+
+
+/**
+ * @brief Randomizer::find
+ * @param id
+ * @return
+ */
+
+QList<RandomizerGroup>::const_iterator Randomizer::find(const int &id) const
+{
+	return std::find_if(groups.cbegin(),
+						groups.cend(),
+						[&id](const RandomizerGroup &g){
+		return g.gid == id;
+	});
+}
+
+
+
+
+/**
+ * @brief Randomizer::randomize
+ */
+
+void Randomizer::randomize()
+{
+	for (RandomizerGroup &g : groups) {
+		g.randomize();
+	}
+}
+
+
+
+
+
+/**
+ * @brief Randomizer::find
+ * @param id
+ * @return
+ */
+
+QList<RandomizerGroup>::iterator Randomizer::find(const int &id)
+{
+	return std::find_if(groups.begin(),
+						groups.end(),
+						[&id](const RandomizerGroup &g){
+		return g.gid == id;
+	});
+}
+
+
+
+/**
+ * @brief RandomizerGroup::randomize
+ */
+
+void RandomizerGroup::randomize()
+{
+	if (current >= 0)
+		return;
+
+	if (idList.empty()) {
+		current = -1;
+		return;
+	}
+
+	current = idList.at(QRandomGenerator::global()->bounded(idList.size()));
+}
+
+
+/**
+ * @brief PlayerBaseData::assign
+ * @param dst
+ * @param num
+ */
+
+void PlayerBaseData::assign(const QList<PlayerBaseData *> &dst, const int &num)
+{
+	if (dst.empty() || num <= dst.size())
+		return;
+
+	const int size = dst.size();
+
+	static const auto standard_deviation = [](const std::vector<int>& data) -> double {
+		double mean = accumulate(data.begin(), data.end(), 0.0) / data.size();
+		double sum_sq_diff = 0.0;
+		for (int val : data) {
+			sum_sq_diff += (val - mean) * (val - mean);
+		}
+		return sqrt(sum_sq_diff / data.size());
+	};
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+
+	std::vector<int> dist;			// destination
+	const int remainder = num % size;
+
+
+	try {
+		std::vector<int> tmp;
+
+		for (int attempt = 0; attempt < STD_DEV_MAX_ATTEMPTS; ++attempt) {
+			std::vector<int> base(size, num / size);
+
+			// Véletlenszerűen szétosztjuk a maradékot
+
+			std::vector<int> indices(size);
+			std::iota(indices.begin(), indices.end(), 0);
+			std::shuffle(indices.begin(), indices.end(), gen);
+			for (int i = 0; i < remainder; ++i) {
+				base[indices[i]] += 1;
+			}
+
+			// Másolat, amin a véletlen szórásnövelés történik
+
+			dist = base;
+
+			if (size * 2 >= num) {
+				qWarning() << "Not enough target" << num << "vs." << size;
+				throw 1;
+			}
+
+			tmp = base;
+
+			// Véletlenszerű átcsoportosítások
+
+			std::uniform_int_distribution<> dis(0, size - 1);
+			for (int i = 0; i < 10 * size; ++i) {
+				int from = dis(gen);
+				int to = dis(gen);
+				if (from != to && dist[from] > 0) {
+					dist[from] -= 1;
+					dist[to] += 1;
+				}
+			}
+
+			double std = standard_deviation(dist);
+			if (abs(std - TARGET_STD_DEV) < 0.1) {
+				throw 1;
+			}
+		}
+
+		qWarning() << "Standard deviation calculation failed";
+
+		dist = tmp;
+
+		// dist ok
+
+	} catch (int e) {
+		// dist ok
+	}
+
+	for (int i=0; i<(int) dist.size() && i<dst.size(); ++i) {
+		dst.at(i)->rq = dist.at(i);
+	}
+
+	qInfo() << "SUCCESS";
+}
 
 
 

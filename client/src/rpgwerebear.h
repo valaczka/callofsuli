@@ -66,8 +66,6 @@ public:
 	explicit RpgWerebear(RpgGame *game);
 	virtual ~RpgWerebear();
 
-	virtual TiledObjectBody::ObjectId objectId() const override { return RpgEnemy::objectId(); }
-
 	RpgWeapon *defaultWeapon() const override;
 
 protected:

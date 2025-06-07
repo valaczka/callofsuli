@@ -1413,7 +1413,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	const auto &srcIt = RpgGameData::CurrentSnapshot::find(snapshot.players, pdata);
 
 	if (srcIt == snapshot.players.cend()) {
-		//LOG_CERROR("engine") << "Invalid player" << cbor;
+		LOG_CERROR("engine") << "Invalid player" << cbor;
 		return false;
 	}
 
@@ -1549,7 +1549,7 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 
 
 	/// TODO REMOVE
-	if (!r->addObjects(m_controls.gates))
+	if (!r->addObjects(m_bullets))
 		return {};
 
 
@@ -1560,8 +1560,8 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->addObjects(m_enemies))
 		return {};
 
-	if (!r->addObjects(m_bullets))
-		return {};
+	/*if (!r->addObjects(m_bullets))
+		return {};*/
 
 
 
@@ -1577,8 +1577,8 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->addObjects(m_controls.pickables))
 		return {};
 
-	/*if (!r->addObjects(m_controls.gates))
-		return {};*/
+	if (!r->addObjects(m_controls.gates))
+		return {};
 
 
 	RpgGameData::CurrentSnapshot snapshot = m_engine->processEvents(r->startTick());

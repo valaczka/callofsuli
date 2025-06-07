@@ -101,7 +101,8 @@ public:
 		ControlGate,
 		ControlLight,
 		ControlCollection,
-		ControlPickable
+		ControlPickable,
+		ControlRandomizer
 	};
 
 	Q_ENUM(ControlType)
@@ -686,20 +687,82 @@ public:
 		: QSerializer()
 	{}
 
-	QHash<int, QList<int> > allocate(const int &num);
+	QHash<int, QList<int> > allocate(const int &num, int *dst = nullptr);
 	QList<CollectionPlace> getFree(const int &gid) const;
 
 	QList<CollectionGroup>::iterator find(const int &id);
 	QList<CollectionGroup>::const_iterator find(const int &id) const;
-
-	QList<CollectionGroup>::iterator findScene(const int &id);
-	QList<CollectionGroup>::const_iterator findScene(const int &id) const;
 
 	QS_SERIALIZABLE
 
 	QS_COLLECTION_OBJECTS(QList, CollectionGroup, groups)
 };
 
+
+
+
+
+
+
+/**
+ * @brief The RandomizerGroup class
+ */
+
+class RandomizerGroup : public QSerializer
+{
+	Q_GADGET
+
+public:
+
+	RandomizerGroup(const int &_scene, const int &_id)
+		: QSerializer()
+		, scene(_scene)
+		, gid(_id)
+		, current(-1)
+	{}
+
+
+	RandomizerGroup()
+		: RandomizerGroup(-1, -1)
+	{}
+
+
+	void randomize();
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, scene)
+	QS_FIELD(int, gid)
+	QS_FIELD(int, current)
+	QS_COLLECTION(QList, int, idList)
+};
+
+
+
+
+/**
+ * @brief The Randomizer class
+ */
+
+class Randomizer : public QSerializer
+{
+	Q_GADGET
+
+public:
+
+	Randomizer()
+		: QSerializer()
+	{}
+
+	QList<RandomizerGroup>::iterator find(const int &id);
+	QList<RandomizerGroup>::const_iterator find(const int &id) const;
+
+	void randomize();
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, RandomizerGroup, groups)
+};
 
 
 
@@ -721,6 +784,7 @@ public:
 	QS_COLLECTION_OBJECTS(QList, PlayerPosition, positionList)
 	QS_FIELD(QString, terrain)
 	QS_OBJECT(Collection, collection)
+	QS_OBJECT(Randomizer, randomizer)
 };
 
 
@@ -1825,6 +1889,7 @@ class PlayerBaseData : public ArmoredEntityBaseData
 public:
 	PlayerBaseData(const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
 		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
+		, rq(0)
 	{}
 
 	PlayerBaseData(const int &_o, const int &_s, const int &_id)
@@ -1836,12 +1901,16 @@ public:
 	{}
 
 	bool isEqual(const PlayerBaseData &other) const {
-		return ArmoredEntityBaseData::isEqual(other);
+		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq;
 	}
+
+	static void assign(const QList<PlayerBaseData*> &dst, const int &num);
 
 	EQUAL_OPERATOR(PlayerBaseData)
 
 	QS_SERIALIZABLE
+
+	QS_FIELD(int, rq)						// required collection item
 };
 
 
@@ -1881,11 +1950,11 @@ public:
 
 
 	bool isEqual(const Player &other) const  {
-		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l;
+		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l && other.c == c;
 	}
 
 	bool canMerge(const Player &other) const {
-		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l;
+		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l && other.c == c;
 	}
 
 	bool canInterpolateFrom(const Player &other) const {
@@ -1912,6 +1981,7 @@ public:
 	QS_OBJECT(BaseData, tg)				// target (enemy, control)
 	QS_FIELD(bool, l)					// locked
 	QS_OBJECT(Inventory, inv)			// inventory
+	QS_FIELD(int, c)					// collected items
 };
 
 
@@ -2382,10 +2452,10 @@ struct CurrentSnapshot {
 	int fromCbor(const QCborMap &map);
 
 	template <typename T, typename T2>
-	static SnapshotList<T, T2>::iterator find(SnapshotList<T, T2> &list, const T2 &src);
+	static SnapshotList<T, T2>::iterator find(SnapshotList<T, T2> &list, const BaseData &src);
 
 	template <typename T, typename T2>
-	static SnapshotList<T, T2>::const_iterator find(const SnapshotList<T, T2> &list, const T2 &src);
+	static SnapshotList<T, T2>::const_iterator find(const SnapshotList<T, T2> &list, const BaseData &src);
 
 	template <typename T>
 	static void copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src);
@@ -2508,12 +2578,12 @@ inline void CurrentSnapshot::copy(std::map<qint64, T> &dest, const std::map<qint
  */
 
 template<typename T, typename T2>
-inline SnapshotList<T, T2>::const_iterator CurrentSnapshot::find(const SnapshotList<T, T2> &list, const T2 &src)
+inline SnapshotList<T, T2>::const_iterator CurrentSnapshot::find(const SnapshotList<T, T2> &list, const BaseData &src)
 {
 	return std::find_if(list.cbegin(),
 						list.cend(),
 						[&src](const auto &ptr) {
-		return ptr.data == src;
+		return ptr.data.isBaseEqual(src);
 	});
 }
 
@@ -2527,12 +2597,12 @@ inline SnapshotList<T, T2>::const_iterator CurrentSnapshot::find(const SnapshotL
  */
 
 template<typename T, typename T2>
-inline SnapshotList<T, T2>::iterator CurrentSnapshot::find(SnapshotList<T, T2> &list, const T2 &src)
+inline SnapshotList<T, T2>::iterator CurrentSnapshot::find(SnapshotList<T, T2> &list, const BaseData &src)
 {
 	return std::find_if(list.begin(),
 						list.end(),
 						[&src](const auto &ptr) {
-		return ptr.data == src;
+		return ptr.data.isBaseEqual(src);
 	});
 }
 

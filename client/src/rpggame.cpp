@@ -26,9 +26,11 @@
 
 #include "actionrpggame.h"
 #include "rpgarrow.h"
+#include "rpgcontrolcollection.h"
 #include "rpgcontrolcontainer.h"
 #include "rpgcontrolgate.h"
 #include "rpgcontrollight.h"
+#include "rpgcontrolrandomizer.h"
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
 #include "rpggame.h"
@@ -105,7 +107,6 @@ private:
 	QVector<PlayerPosition> m_playerPositionList;
 
 	RpgGameData::Collection m_collection;
-
 
 
 	friend class RpgGame;
@@ -588,8 +589,14 @@ RpgEnemy *RpgGame::createEnemy(const RpgGameData::EnemyBaseData::EnemyType &type
 	}
 
 	if (enemy) {
+		enemy->baseData().s = scene->sceneId();
+		enemy->baseData().o = -1;
+		enemy->baseData().id = id;
+
 		enemy->setMetric(getMetric(enemy->m_metric, type, subtype));
-		// move to onAlive
+
+
+		// moved to onAlive
 
 		/*enemy->filterSet(TiledObjectBody::FixtureEnemyBody,
 
@@ -662,6 +669,10 @@ RpgBullet *RpgGame::createBullet(const RpgGameData::Weapon::WeaponType &type, Ti
 	}
 
 	if (bullet) {
+		bullet->baseData().o = ownerId;
+		bullet->baseData().s = scene->sceneId();
+		bullet->baseData().id = id;
+
 		bullet->filterSet(TiledObjectBody::FixtureBulletBody,
 						  TiledObjectBody::FixtureTarget |
 						  TiledObjectBody::FixtureGround);
@@ -806,6 +817,11 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 		controlAdd<RpgControlContainer>(this, scene, group, renderer);
 	} else if (cname == QStringLiteral("gate")) {
 		controlAdd<RpgControlGate>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("randomizer")) {
+		if (RpgControlRandomizer *r = RpgControlRandomizer::find(m_controls, group, scene->sceneId()))
+			r->addGroupLayer(scene, group, renderer);
+		else
+			controlAdd<RpgControlRandomizer>(this, scene, group, renderer);
 	}
 }
 
@@ -1236,6 +1252,26 @@ QList<RpgGameData::PlayerPosition> RpgGame::playerPositions() const
 const RpgGameData::Collection &RpgGame::collection() const
 {
 	return q->m_collection;
+}
+
+
+/**
+ * @brief RpgGame::randomizer
+ * @return
+ */
+
+RpgGameData::Randomizer RpgGame::randomizer() const
+{
+	RpgGameData::Randomizer randomizer;
+
+	for (const auto &ptr : m_controls) {
+		if (RpgControlRandomizer *r = dynamic_cast<RpgControlRandomizer*>(ptr.get())) {
+			randomizer.groups.append(r->toRandomizerGroup());
+			LOG_CINFO("game") << "!!!!!!!!!!!!!!!!!  ADDDED" << r->name() << r->baseData().id << r->activeId();
+		}
+	}
+
+	return randomizer;
 }
 
 
@@ -2100,32 +2136,36 @@ void RpgGame::updateScatterPlayers()
 
 void RpgGame::updateScatterPoints()
 {
-	/*if (!m_scatterSeriesPoints)
+	if (!m_scatterSeriesPoints)
 		return;
 
 	QList<QPointF> list;
 
-	for (const auto &ptr : m_controlGroups) {
+	for (const auto &ptr : m_controls) {
 		if (!ptr)
 			continue;
 
-		RpgControlGroup *g = ptr.get();
+		if (ptr->type() == RpgConfig::ControlCollection) {
+			RpgControlCollection *c = dynamic_cast<RpgControlCollection*>(ptr.get());
 
-		if (g->type() == RpgControlGroup::ControlGroupSave) {
-			RpgControlGroupSave *s = dynamic_cast<RpgControlGroupSave*>(g);
-
-			if (!s->isActive())
+			if (!c->isActive())
 				continue;
 
-			QPointF pos = s->position();
-			pos.setY(m_currentScene->height()-pos.y());
+			for (const RpgActiveControlObject *obj : c->controlObjectList()) {
+				if (!obj)
+					continue;
 
-			list.append(pos);
+				QPointF pos = obj->bodyPositionF();
+				pos.setY(m_currentScene->height()-pos.y());
+				list.append(pos);
+			}
+
 		}
 	}
 
-	m_scatterSeriesPoints->setMarkerShape(QScatterSeries::MarkerShapeTriangle);
-	m_scatterSeriesPoints->replace(list);*/
+	m_scatterSeriesPoints->setColor(QColorConstants::Svg::royalblue);
+	m_scatterSeriesPoints->setMarkerShape(QScatterSeries::MarkerShapeStar);
+	m_scatterSeriesPoints->replace(list);
 }
 
 

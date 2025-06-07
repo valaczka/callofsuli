@@ -320,6 +320,7 @@ protected:
 
 	QList<RpgGameData::PlayerPosition> playerPositions() const;
 	const RpgGameData::Collection &collection() const;
+	RpgGameData::Randomizer randomizer() const;
 
 
 private:

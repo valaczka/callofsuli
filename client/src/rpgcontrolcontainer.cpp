@@ -48,6 +48,7 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 	setGame(game);
 	loadFromGroupLayer(game, scene, group, renderer);
 
+	m_baseData.t = RpgConfig::ControlContainer;
 	m_baseData.o = -1;
 	m_baseData.id = group->id();
 	m_baseData.s = scene->sceneId();
@@ -71,21 +72,6 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 	}
 }
 
-
-
-/**
- * @brief RpgControlContainer::objectId
- * @return
- */
-
-TiledObjectBody::ObjectId RpgControlContainer::objectId() const
-{
-	return TiledObjectBody::ObjectId{
-		.ownerId = m_baseData.o,
-				.sceneId = m_baseData.s,
-				.id = m_baseData.id
-	};
-}
 
 
 

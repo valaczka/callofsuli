@@ -58,6 +58,7 @@ RpgControlGate::RpgControlGate(RpgGame *game, TiledScene *scene, Tiled::GroupLay
 	setGame(game);
 	loadFromGroupLayer(game, scene, group, renderer);
 
+	m_baseData.t = RpgConfig::ControlGate;
 	m_baseData.o = -1;
 	m_baseData.id = group->id();
 	m_baseData.s = scene->sceneId();
@@ -78,20 +79,6 @@ RpgControlGate::RpgControlGate(RpgGame *game, TiledScene *scene, Tiled::GroupLay
 }
 
 
-
-/**
- * @brief RpgControlGate::objectId
- * @return
- */
-
-TiledObjectBody::ObjectId RpgControlGate::objectId() const
-{
-	return TiledObjectBody::ObjectId{
-		.ownerId = m_baseData.o,
-				.sceneId = m_baseData.s,
-				.id = m_baseData.id
-	};
-}
 
 
 /**

@@ -31,9 +31,7 @@ RpgControlLight::RpgControlLight(const RpgGameData::ControlBaseData &data, const
 	: RpgControl<RpgGameData::ControlLight, RpgGameData::ControlBaseData>(RpgConfig::ControlLight)
 	, m_state(state)
 {
-	m_objectId.id = data.id;
-	m_objectId.ownerId = data.o;
-	m_objectId.sceneId = data.s;
+	m_baseData = data;
 }
 
 
@@ -75,7 +73,7 @@ RpgGameData::ControlLight RpgControlLight::serializeThis() const
 {
 	RpgGameData::ControlLight c;
 
-	c.sc = m_objectId.sceneId;
+	c.sc = m_baseData.s;
 	c.st = m_state;
 
 	return c;

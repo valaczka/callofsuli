@@ -91,6 +91,7 @@ private:
 	bool m_gamePrepared = false;
 	bool m_enemiesSynced = false;
 	bool m_playersSynced = false;
+	bool m_randomizerSynced = false;
 	bool m_fullyPrepared = false;
 	bool m_othersPrepared = false;
 

@@ -27,7 +27,6 @@
 #ifndef RPGENEMYIFACE_H
 #define RPGENEMYIFACE_H
 
-#include "qpoint.h"
 #include "rpgarmory.h"
 #include "rpggamedataiface.h"
 #include "rpgconfig.h"

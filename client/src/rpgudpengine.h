@@ -279,7 +279,6 @@ public:
 	RpgGameData::CurrentSnapshot getCurrentSnapshot();
 
 	const RpgGameData::GameConfig &gameConfig() const;
-	void setGameConfig(const RpgGameData::GameConfig &newGameConfig);
 
 	int playerId() const;
 	void setPlayerId(int newPlayerId);

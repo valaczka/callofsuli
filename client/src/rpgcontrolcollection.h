@@ -41,10 +41,6 @@ class RpgControlCollection : public RpgActiveControl<RpgGameData::ControlCollect
 public:
 	RpgControlCollection(RpgGame *game, TiledScene *scene, const RpgGameData::ControlCollectionBaseData &base, const QPointF &pos);
 
-
-	virtual TiledObjectBody::ObjectId objectId() const override;
-	virtual RpgGameData::ControlCollectionBaseData baseData() const override final;
-
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlCollection> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlCollection &snap) override;
 
@@ -56,8 +52,6 @@ protected:
 
 private:
 	void _updateGlow();
-
-	RpgGameData::ControlCollectionBaseData m_baseData;
 };
 
 

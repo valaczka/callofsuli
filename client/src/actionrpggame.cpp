@@ -29,6 +29,7 @@
 #include "client.h"
 #include "mapplaycampaign.h"
 #include "rpgbroadsword.h"
+#include "rpgcontrolrandomizer.h"
 #include "rpgdagger.h"
 #include "rpglongsword.h"
 #include "rpgquestion.h"
@@ -801,6 +802,35 @@ void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData
 	}
 
 	downloadLoadableContentDict(*listPtr);
+}
+
+
+/**
+ * @brief ActionRpgGame::updateRandomizer
+ * @param randomizer
+ */
+
+void ActionRpgGame::updateRandomizer(const RpgGameData::Randomizer &randomizer)
+{
+	QSet<int> sceneReload;
+
+	for (const RpgGameData::RandomizerGroup &g : randomizer.groups) {
+		RpgGameData::ControlBaseData base(RpgConfig::ControlRandomizer,
+										  -1, g.scene, g.gid);
+
+		if (RpgControlRandomizer *r = m_rpgGame->controlFind<RpgControlRandomizer>(base)) {
+			if (r->fromRandomizerGroup(g)) {
+				LOG_CINFO("game") << "UPDATE" << g.scene << g.gid << g.current;
+				sceneReload.insert(g.scene);
+			}
+
+		} else {
+			LOG_CERROR("game") << "Missing randomizer group" << g.scene << g.gid;
+		}
+	}
+
+	for (const int &s : sceneReload)
+		m_rpgGame->reloadTcodMap(m_rpgGame->findScene(s));
 }
 
 
