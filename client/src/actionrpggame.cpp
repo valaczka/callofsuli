@@ -1115,37 +1115,6 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::Wea
 
 
 /**
- * @brief ActionRpgGame::onPlayerPick
- * @param player
- * @param type
- * @return
- */
-
-bool ActionRpgGame::onPlayerPick(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &type)
-{
-	if (!player)
-		return false;
-
-	/*
-
-	if (type->pickableType() == RpgGameData::PickableBaseData::PickableTime) {
-		static int sec = 60;
-		//addToDeadline(sec*1000);
-		m_deadlineTick += AbstractGame::TickTimer::msecToTick(sec*1000);
-		m_msecNotifyAt = 0;
-		m_rpgGame->messageColor(tr("%1 seconds gained").arg(sec), QStringLiteral("#00bcd4"));
-	} else if (type->pickableType() == RpgGameData::PickableBaseData::PickableCoin) {
-		const auto num = RpgCoinPickable::amount(!m_rpgQuestion->emptyQuestions());
-		m_rpgGame->setCurrency(m_rpgGame->currency()+num);
-		m_rpgGame->messageColor(tr("%1 coins gained").arg(num), QStringLiteral("#FB8C00"));
-	}
-	*/
-
-	return true;
-}
-
-
-/**
  * @brief ActionRpgGame::onPlayerAttackEnemy
  * @param player
  * @param enemy
@@ -1191,7 +1160,7 @@ bool ActionRpgGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIface *contro
 		return true;
 	}
 
-	if (m_rpgQuestion->nextQuestion(player, nullptr, RpgGameData::Weapon::WeaponInvalid, control)) {
+	if (m_rpgQuestion->nextQuestion(player, control)) {
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
 		return true;
 	}
@@ -1421,8 +1390,6 @@ bool ActionRpgGame::onPlayerFinishCast(RpgPlayer *player)
 
 bool ActionRpgGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon)
 {
-	LOG_CWARNING("game") << "PLAYER" << "HIT" << enemy << weapon << m_rpgGame->tickTimer()->currentTick();
-
 	if (!player || !weapon)
 		return false;
 
@@ -1470,8 +1437,6 @@ bool ActionRpgGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qre
 		LOG_CWARNING("game") << "Can't create bullet";
 		return false;
 	}
-
-	LOG_CDEBUG("game") << "BULLET CREATED" << bullet->baseData().o << bullet->baseData().s << bullet->baseData().id;
 
 	bullet->setOwner(RpgGameData::BulletBaseData::OwnerPlayer);
 	bullet->setTargets(RpgGameData::BulletBaseData::TargetEnemy | RpgGameData::BulletBaseData::TargetGround);
@@ -1531,7 +1496,33 @@ bool ActionRpgGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *we
 
 bool ActionRpgGame::onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle)
 {
-	return false;
+	if (!enemy || !weapon || !m_rpgGame->controlledPlayer())
+		return false;
+
+	if (!weapon->shot())
+		return false;
+
+	RpgBullet *bullet = m_rpgGame->createBullet(weapon, enemy->scene(),
+												m_rpgGame->controlledPlayer()->nextObjectId(),
+												m_rpgGame->controlledPlayer()->baseData().o,
+												true);
+
+	if (!bullet) {
+		LOG_CWARNING("game") << "Can't create bullet";
+		return false;
+	}
+
+	bullet->setOwner(RpgGameData::BulletBaseData::OwnerEnemy);
+	bullet->setTargets(RpgGameData::BulletBaseData::TargetPlayer | RpgGameData::BulletBaseData::TargetGround);
+	bullet->setMaxDistance(weapon->bulletDistance());
+	bullet->shot(enemy->bodyPosition(), angle);
+
+	enemy->playAttackEffect(weapon);
+
+	if (weapon->bulletCount() > 0)
+		weapon->setBulletCount(weapon->bulletCount()-1);
+
+	return true;
 }
 
 
@@ -1636,11 +1627,8 @@ void ActionRpgGame::onLifeCycleDelete(TiledObjectBody *body)
  * @param xp
  */
 
-void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp)
+void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp)
 {
-	if (enemy)
-		enemy->setHp(0);
-
 	if (control)
 		m_rpgGame->playerUseControl(player, control);
 
@@ -1665,7 +1653,7 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgAct
  * @param enemy
  */
 
-void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control)
+void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgActiveIface *control)
 {
 	setIsFlawless(false);
 
@@ -1676,10 +1664,6 @@ void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActi
 		RpgGameData::Player p = player->serialize();
 		p.controlFailed(control->activeType());
 		player->updateFromSnapshot(p);
-	}
-
-	if (enemy && player && !enemy->player()) {
-		enemy->rotateToPlayer(player);
 	}
 }
 

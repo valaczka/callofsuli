@@ -149,13 +149,12 @@ protected:
 	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
 	virtual bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other);
 	virtual void onLifeCycleDelete(TiledObjectBody *body);
-	virtual void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp);
-	virtual void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control);
+	virtual void onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp);
+	virtual void onQuestionFailed(RpgPlayer *player, RpgActiveIface *control);
 
 private:
 	void rpgGameActivated_();
 	void onMsecLeftChanged();
-	bool onPlayerPick(RpgPlayer *player, const RpgGameData::PickableBaseData::PickableType &type);
 
 	void downloadLoadableContentDict(const QStringList &fileList);
 	void downloadLoadableContent(const QStringList &fileList);

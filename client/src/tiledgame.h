@@ -144,6 +144,7 @@ public:
 
 	Q_INVOKABLE void messageColor(const QString &text, const QColor &color);
 	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
+	void setMessageEnabled(const bool &enabled = true);
 
 	Q_INVOKABLE bool joystickInteractive() const { return m_joystickState.hasKeyboard || m_joystickState.hasTouch; }
 

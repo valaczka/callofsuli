@@ -11,6 +11,8 @@ QScrollable {
 	contentCentered: true
 
 	Row {
+		anchors.horizontalCenter: parent.horizontalCenter
+
 		spacing: 20
 
 		Qaterial.BusyIndicator {

@@ -383,7 +383,6 @@ private:
 
 	std::vector<std::unique_ptr<RpgControlBase>> m_controls;
 
-
 	QList<RpgPlayer*> m_players;
 	QPointer<RpgPlayer> m_controlledPlayer;
 	QPointer<GameQuestion> m_gameQuestion;

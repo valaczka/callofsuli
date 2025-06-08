@@ -473,10 +473,10 @@ void RendererType::addFlags(const RendererFlags &flags)
 
 QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGameData::Player> &/*subData*/) const
 {
-	QString txt = QStringLiteral("[%1] %2 hp w:%3 ")
+	QString txt = QStringLiteral("[%1] %2 hp c:%3 ")
 				  .arg(data.st)
 				  .arg(data.hp)
-				  .arg(data.arm.cw)
+				  .arg(data.c)
 				  ;
 
 	if (data.p.size() > 1)
@@ -1548,10 +1548,6 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	std::unique_ptr<Renderer> r = std::make_unique<Renderer>(m_lastAuthTick, tick-m_lastAuthTick+1);
 
 
-	/// TODO REMOVE
-	if (!r->addObjects(m_bullets))
-		return {};
-
 
 
 	if (!r->addObjects(m_players))
@@ -1560,8 +1556,8 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->addObjects(m_enemies))
 		return {};
 
-	/*if (!r->addObjects(m_bullets))
-		return {};*/
+	if (!r->addObjects(m_bullets))
+		return {};
 
 
 
@@ -1907,6 +1903,27 @@ RendererObjectType *Renderer::findByBase(const RpgGameData::BaseData &baseData) 
 	}
 
 	return nullptr;
+}
+
+
+
+/**
+ * @brief Renderer::dumpBaseDataAs
+ * @param obj
+ * @return
+ */
+
+QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::PlayerBaseData> *obj)
+{
+	Q_ASSERT(obj);
+
+	QString txt = QStringLiteral("[Player %1] - rq: %2")
+				  .arg(obj->baseData.o)
+				  .arg(obj->baseData.rq)
+				  ;
+
+	txt += QStringLiteral("\n-------------------------------------------\n");
+	return txt;
 }
 
 
@@ -2434,6 +2451,7 @@ void Renderer::restore(RpgGameData::Player *dst, const RpgGameData::Player &data
 	//dst->tg = data.tg;
 	dst->hp = data.hp;
 	dst->mhp = data.mhp;
+	dst->c = data.c;
 
 	dst->arm = data.arm;
 	dst->arm.cw = cw;

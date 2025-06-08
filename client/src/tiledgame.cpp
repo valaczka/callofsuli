@@ -170,6 +170,8 @@ private:
 	KeyboardJoystickState m_keyboardJoystickState;
 	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 
+	bool m_messageEnabled = true;
+
 	friend class TiledGame;
 };
 
@@ -1688,16 +1690,26 @@ std::optional<qreal> TiledGame::getSfxVolume(TiledScene *scene, const QPointF &p
 
 void TiledGame::messageColor(const QString &text, const QColor &color)
 {
-	if (!m_messageList) {
+	if (!m_messageList || !d->m_messageEnabled) {
 		LOG_CINFO("game") << text;
 		return;
 	}
 
-	LOG_CDEBUG("game") << text;
-
 	QMetaObject::invokeMethod(m_messageList, "message", Qt::DirectConnection,
 							  Q_ARG(QVariant, text),
 							  Q_ARG(QVariant, color.name()));
+}
+
+
+
+/**
+ * @brief TiledGame::setMessageEnabled
+ * @param enabled
+ */
+
+void TiledGame::setMessageEnabled(const bool &enabled)
+{
+	d->m_messageEnabled = enabled;
 }
 
 
@@ -2513,7 +2525,7 @@ void TiledGamePrivate::Scene::reloadTcodMap()
 	const int wSize = std::ceil(tcodMap.viewport.width() / chunkSize);
 	const int hSize = std::ceil(tcodMap.viewport.height() / chunkSize);
 
-	LOG_CDEBUG("scene") << "Reload tcod map" << wSize << hSize << space.get();
+	LOG_CDEBUG("scene") << "Reload tcod map" << wSize << hSize;
 
 	tcodMap.chunkWidth = tcodMap.viewport.width() / wSize;
 	tcodMap.chunkHeight = tcodMap.viewport.height() / hSize;

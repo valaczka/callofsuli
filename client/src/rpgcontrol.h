@@ -460,7 +460,7 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadQuestion(const RpgGameData::
 		if (question->control() == this)
 			return false;
 
-		if (question->nextQuestion(player, nullptr, RpgGameData::Weapon::WeaponInvalid, this)) {
+		if (question->nextQuestion(player, this)) {
 			Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/question.mp3"), Sound::SfxChannel);
 			m_lastSyncTick = snapshot.last.f;
 		}

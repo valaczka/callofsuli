@@ -277,6 +277,7 @@ public:
 	RpgGameData::FullSnapshot getFullSnapshot(const qint64 &tick, const bool &findLast = false);
 	RpgGameData::FullSnapshot getNextFullSnapshot(const qint64 &tick);
 	RpgGameData::CurrentSnapshot getCurrentSnapshot();
+	QList<RpgGameData::Message> takeMessageList();
 
 	const RpgGameData::GameConfig &gameConfig() const;
 
@@ -302,6 +303,7 @@ private:
 	void updateState(const QCborMap &data);
 	void updateSnapshot(const RpgGameData::CharacterSelect &player);
 	void updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot);
+	void messageAdd(const RpgGameData::Message &message);
 
 	void packetReceivedChrSel(const QCborMap &data);
 	void packetReceivedDownload(const QCborMap &data);
@@ -320,6 +322,7 @@ private:
 	QRecursiveMutex m_snapshotMutex;
 	QList<RpgGameData::CharacterSelect> m_playerData;
 	ClientStorage m_snapshots;
+	QList<RpgGameData::Message> m_messageList;
 
 	RpgGameData::GameConfig m_gameConfig;
 	RpgConfig::GameState m_gameState = RpgConfig::StateInvalid;

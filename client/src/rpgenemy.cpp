@@ -133,11 +133,11 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 	else
 		updateFromSnapshot(snapshot.last);
 
-	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+	/*if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		stop();
 	} else if (!hasAbility()) {
 		stop();
-	}
+	}*/
 
 	IsometricEntity::worldStep();
 
@@ -171,7 +171,7 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::Enemy &snap)
 									  snap.p << snap.a << target->objectId().id;
 
 				if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(target))
-					player->attackedByEnemy(this, snap.arm.cw, false);
+					player->attackedByEnemy(this, snap.arm.cw, false, true);
 			}
 
 		}

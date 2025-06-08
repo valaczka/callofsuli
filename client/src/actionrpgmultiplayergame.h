@@ -61,7 +61,7 @@ public:
 
 	Q_INVOKABLE void selectTerrain(const QString &terrain);
 	Q_INVOKABLE void selectCharacter(const QString &character);
-	Q_INVOKABLE void selectWeapons(const QStringList &weaponList);
+	[[deprecated]] Q_INVOKABLE void selectWeapons(const QStringList &weaponList);
 
 	void disconnectFromHost();
 
@@ -88,6 +88,7 @@ protected:
 private:
 	int m_playerId = -1;
 	bool m_selectionCompleted = false;
+	bool m_tiledGameLoaded = false;
 	bool m_gamePrepared = false;
 	bool m_enemiesSynced = false;
 	bool m_playersSynced = false;
@@ -125,8 +126,8 @@ private:
 	bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon) override;
 	bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle) override;
 
-	void onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp) override;
-	void onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control) override;
+	void onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp) override;
+	void onQuestionFailed(RpgPlayer *player, RpgActiveIface *control) override;
 
 	void onPlayerWeaponChanged();
 

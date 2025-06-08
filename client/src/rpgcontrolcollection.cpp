@@ -69,9 +69,10 @@ RpgControlCollection::RpgControlCollection(RpgGame *game, TiledScene *scene,
 	o->setSensor(true);
 	o->setVisualItem(m_visualItem);
 
+	controlObjectAdd(o);
+
 	onActivated();
 
-	controlObjectAdd(o);
 }
 
 

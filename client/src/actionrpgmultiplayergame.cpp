@@ -293,6 +293,7 @@ void ActionRpgMultiplayerGame::setRpgGame(RpgGame *newRpgGame)
 		setGameQuestion(m_rpgGame->gameQuestion());
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
 		m_rpgGame->setActionRpgGame(this);
+		m_rpgGame->setMessageEnabled(false);
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgMultiplayerGame::onGameSuccess, Qt::QueuedConnection);		// Azért kell, mert különbön az utolsó fegyverhasználatot nem számolja el a szerveren
 		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgMultiplayerGame::onPlayerDead);
 		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgMultiplayerGame::onGameLoadFailed);
@@ -343,8 +344,6 @@ void ActionRpgMultiplayerGame::rpgGameActivated()
 
 void ActionRpgMultiplayerGame::gamePrepared()
 {
-	LOG_CWARNING("game") << "GAME PREPARED";
-
 	m_gamePrepared = true;
 }
 
@@ -381,7 +380,6 @@ void ActionRpgMultiplayerGame::selectTerrain(const QString &terrain)
 	if (terrain == m_playerConfig.terrain)
 		return;
 
-	LOG_CINFO("game") << "SELECT TERRAIN" << terrain;
 	m_playerConfig.terrain = terrain;
 
 }
@@ -397,7 +395,6 @@ void ActionRpgMultiplayerGame::selectCharacter(const QString &character)
 	if (character == m_playerConfig.character)
 		return;
 
-	LOG_CINFO("game") << "SELECT CHARACTER" << character;
 	m_playerConfig.character = character;
 }
 
@@ -412,7 +409,6 @@ void ActionRpgMultiplayerGame::selectWeapons(const QStringList &weaponList)
 	if (weaponList == m_playerConfig.weapons)
 		return;
 
-	LOG_CINFO("game") << "SELECT WEAPONS" << weaponList;
 	m_playerConfig.weapons = weaponList;
 }
 
@@ -447,7 +443,6 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 		return;
 
 	if (m_config.gameState == RpgConfig::StateConnect) {
-		LOG_CINFO("game") << "CONNECT TO SERVER";
 		m_engine->connectToServer(m_client->server());
 		return;
 	}
@@ -468,7 +463,6 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 	ActionRpgGame::onConfigChanged();*/
 
 	if (m_config.gameState == RpgConfig::StatePlay) {
-
 		if (!m_rpgGame) {
 			m_config.gameState = RpgConfig::StateError;
 			updateConfig();
@@ -485,6 +479,7 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 		}
 
 		if (m_othersPrepared && !m_fullyPrepared) {
+			m_rpgGame->setMessageEnabled(true);
 			m_rpgGame->message(tr("LEVEL %1").arg(level()));
 			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
 
@@ -521,12 +516,7 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 {
 	const ClientStorage &snapshots = m_engine->snapshots();
-
 	const qint64 tick = m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : -2;
-
-	/*LOG_CDEBUG("game") << "[Benchmark] CURRENT TICK" << tick << "SERVER TICK" << snapshots.serverTick() << "--->"
-					   << snapshots.serverTick()+AbstractGame::TickTimer::msecToTick(q->m_timeSync.getLatency())
-					   << "Q" << q->m_timeSync.get() << "LAT" << q->m_timeSync.getLatency();*/
 
 #ifdef WITH_FTXUI
 	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
@@ -726,6 +716,13 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	if (tick > 0)
 		m_engine->zapSnapshots(tick - 3*RPG_UDP_DELTA_TICK);
 
+
+	const QList<RpgGameData::Message> &messageList = m_engine->takeMessageList();
+
+	for (const RpgGameData::Message &msg : messageList) {
+		m_rpgGame->message(msg.m);
+	}
+
 }
 
 
@@ -759,6 +756,8 @@ void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state
 		} else if (m_config.gameState >= RpgConfig::StatePrepare) {
 			q->m_isReconnecting = false;
 			q->m_hasReconnected = true;
+			if (m_rpgGame)
+				m_rpgGame->setMessageEnabled(true);
 			emit isReconnectingChanged();
 			LOG_CINFO("game") << "Reconnecting finished" << m_config.gameState;
 		}
@@ -862,7 +861,7 @@ void ActionRpgMultiplayerGame::updatePlayersModel(const QVariantList &list)
 
 void ActionRpgMultiplayerGame::syncEnemyList(const ClientStorage &storage)
 {
-	if (!m_rpgGame || storage.enemies().empty())
+	if (!m_rpgGame || storage.enemies().empty() || !m_tiledGameLoaded)
 		return;
 
 	if (m_enemiesSynced && (qsizetype) storage.enemies().size() == m_rpgGame->m_enemyDataList.size())
@@ -896,8 +895,6 @@ void ActionRpgMultiplayerGame::syncEnemyList(const ClientStorage &storage)
 	if (!localIndices.empty())
 		LOG_CWARNING("game") << "Only local enemies" << localIndices;
 
-	LOG_CDEBUG("game") << "ENEMIES SYNCED";
-
 	m_enemiesSynced = onlyServerEnemy.isEmpty() && localIndices.isEmpty();
 }
 
@@ -912,7 +909,7 @@ void ActionRpgMultiplayerGame::syncEnemyList(const ClientStorage &storage)
 
 void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 {
-	if (!m_rpgGame)
+	if (!m_rpgGame || !m_tiledGameLoaded)
 		return;
 
 	if (m_playersSynced && (qsizetype) storage.players().size() == m_rpgGame->m_players.size())
@@ -956,7 +953,6 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 			if (pl.data.o == m_playerId) {
 				m_rpgGame->setFollowedItem(rpgPlayer);
 				m_rpgGame->setControlledPlayer(rpgPlayer);
-				LOG_CINFO("game") << "SET CONTROLLED" << pl.data.o;
 			}
 
 			if (q->m_hasReconnected) {
@@ -973,8 +969,6 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 		m_rpgGame->setPlayers(playerList);
 	}
 
-	LOG_CDEBUG("game") << "SYNCED";
-
 	m_playersSynced = !storage.players().empty();
 }
 
@@ -986,7 +980,7 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 
 void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 {
-	if (!m_rpgGame)
+	if (!m_rpgGame || !m_tiledGameLoaded)
 		return;
 
 	QList<QPointer<RpgBullet>> bList;
@@ -1079,7 +1073,7 @@ void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 
 void ActionRpgMultiplayerGame::syncCollectionList(const ClientStorage &storage)
 {
-	if (!m_rpgGame || storage.controls().collections.empty())
+	if (!m_rpgGame || storage.controls().collections.empty() || !m_tiledGameLoaded)
 		return;
 
 	for (const auto &pe : storage.controls().collections) {
@@ -1121,7 +1115,7 @@ void ActionRpgMultiplayerGame::syncCollectionList(const ClientStorage &storage)
 
 void ActionRpgMultiplayerGame::syncPickableList(const ClientStorage &storage)
 {
-	if (!m_rpgGame)
+	if (!m_rpgGame || !m_tiledGameLoaded)
 		return;
 
 	QList<RpgControlBase*> bList;
@@ -1287,9 +1281,8 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 	}
 
 	player->baseData() = config;
-
-	LOG_CINFO("game") << "[PLAYER] ***" << player->baseData().o << player->baseData().rq;
-
+	player->setCollectionRq(config.rq);
+	player->setCollection(0);
 	player->setMaxHp(playerData.mhp);
 	player->setHp(playerData.hp);
 	player->setMaxMp(characterPtr->mpMax);
@@ -1406,7 +1399,7 @@ void ActionRpgMultiplayerGame::onTimeStepped()
 		LOG_CWARNING("game") << "Time skew +1 frame" << curr << "->" << tick;
 		m_rpgGame->tickTimer()->start(this, curr+1);
 	} else if (diff < -2*delta) {
-		LOG_CERROR("game") << "Time skew -1 frame" << curr << "->" << tick;
+		LOG_CWARNING("game") << "Time skew -1 frame" << curr << "->" << tick;
 		m_rpgGame->tickTimer()->start(this, curr-1);
 	}
 
@@ -1501,7 +1494,7 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 
 	q->m_toSend.clear();
 
-
+/*
 #ifdef WITH_FTXUI
 	DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance());
 
@@ -1515,7 +1508,7 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 	m.insert(QStringLiteral("txt"), txt);
 	a->writeToSocket(m.toCborValue());
 #endif
-
+*/
 
 }
 
@@ -1540,8 +1533,6 @@ bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *
 	if (!player || player->baseData().o != m_playerId)
 		return false;
 
-	LOG_CWARNING("game") << "PLAYER" << m_playerId << "ATTACK" << enemy << m_rpgGame->tickTimer()->currentTick();
-
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerAttack;
 	p.tg = enemy->baseData();
@@ -1565,8 +1556,6 @@ bool ActionRpgMultiplayerGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIf
 {
 	if (!player || player->baseData().o != m_playerId)
 		return false;
-
-	LOG_CWARNING("game") << "PLAYER" << m_playerId << "USER CONTROL" << control << m_rpgGame->tickTimer()->currentTick();
 
 	if (!control)
 		return false;
@@ -1617,8 +1606,6 @@ bool ActionRpgMultiplayerGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, R
 	if (!player || player->baseData().o != m_playerId)
 		return false;
 
-	LOG_CWARNING("game") << "PLAYER" << m_playerId << "HIT" << enemy << weapon << m_rpgGame->tickTimer()->currentTick();
-
 	if (!ActionRpgGame::onPlayerHit(player, enemy, weapon))
 		return false;
 
@@ -1652,12 +1639,8 @@ bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon
 	if (!player || player->baseData().o != m_playerId)
 		return false;
 
-	LOG_CWARNING("game") << "PLAYER" << player << "SHOT" << weapon << angle;
-
 	if (!ActionRpgGame::onPlayerShot(player, weapon, angle))
 		return false;
-
-	LOG_CWARNING("game") << "SERIALIZE" << player << "SHOT";
 
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerShot;
@@ -1680,7 +1663,7 @@ bool ActionRpgMultiplayerGame::onPlayerShot(RpgPlayer *player, RpgWeapon *weapon
  * @param xp
  */
 
-void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control, int xp)
+void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp)
 {
 	if (!control)
 		return;
@@ -1688,6 +1671,8 @@ void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *en
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerUseControl;
 	p.tg = control->pureBaseData();
+	p.x = xp;
+	p.xp = m_xp+xp;
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
 	player->setLastSnapshot(p);
@@ -1701,7 +1686,7 @@ void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgEnemy *en
  * @param control
  */
 
-void ActionRpgMultiplayerGame::onQuestionFailed(RpgPlayer *player, RpgEnemy *enemy, RpgActiveIface *control)
+void ActionRpgMultiplayerGame::onQuestionFailed(RpgPlayer *player, RpgActiveIface *control)
 {
 	setIsFlawless(false);
 
@@ -1798,8 +1783,27 @@ bool ActionRpgMultiplayerGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, Rp
 
 bool ActionRpgMultiplayerGame::onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle)
 {
+	if (!enemy || !weapon)
+		return false;
 
-	return false;
+	if (m_gameMode != MultiPlayerHost)
+		return false;
+
+	///LOG_CWARNING("game") << "ENEMY" << enemy << "HIT" << player->objectId().ownerId << weapon << m_rpgGame->tickTimer()->currentTick();
+
+	LOG_CWARNING("game") << "ENEMY" << enemy << "SHOT" << weapon << angle;
+
+	if (!ActionRpgGame::onEnemyShot(enemy, weapon, angle))
+		return false;
+
+	RpgGameData::Enemy e = enemy->serialize(m_rpgGame->tickTimer()->currentTick());
+	e.st = RpgGameData::Enemy::EnemyShot;
+	e.arm.cw = weapon->weaponType();
+
+	q->m_toSend.appendSnapshot(enemy->baseData(), e);
+	enemy->setLastSnapshot(e);
+
+	return true;
 }
 
 
@@ -1847,7 +1851,7 @@ bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody
 	if (!bullet)
 		return false;
 
-	if (bullet->ownerId().o != m_playerId)
+	if (bullet->baseData().o != m_playerId)				// Csak az általunk gyártott (player vagy enemy) lövedékekkel foglalkozunk
 		return false;
 
 	LOG_CWARNING("game") << "BULLET IMPACTED" << bullet->objectId().id
@@ -1968,6 +1972,8 @@ void ActionRpgMultiplayerGame::onRpgGameActivated()
 		return;
 	}
 
+	m_tiledGameLoaded = true;
+
 	emit m_rpgGame->gameLoaded();
 }
 
@@ -2025,16 +2031,18 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 
 	QCborMap map;
 
-	config.prepared = m_gamePrepared && m_playersSynced && m_enemiesSynced && m_randomizerSynced;
+	config.prepared = m_gamePrepared && m_playersSynced && m_enemiesSynced && m_randomizerSynced && m_tiledGameLoaded;
+	config.loaded = m_tiledGameLoaded;
 
-	if (m_gameMode == MultiPlayerHost) {
+	if (m_gameMode == MultiPlayerHost)
+		config.gameConfig.terrain = m_playerConfig.terrain;
+
+	if (m_gameMode == MultiPlayerHost && m_tiledGameLoaded) {
 		if (m_rpgGame) {
 			config.gameConfig.positionList = m_rpgGame->playerPositions();
 			config.gameConfig.collection = m_rpgGame->collection();
 			config.gameConfig.randomizer = m_rpgGame->randomizer();
 		}
-
-		config.gameConfig.terrain = m_playerConfig.terrain;
 
 		RpgGameData::CurrentSnapshot snap;
 

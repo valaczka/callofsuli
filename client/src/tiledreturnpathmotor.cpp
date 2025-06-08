@@ -52,7 +52,7 @@ void TiledReturnPathMotor::updateBody(TiledObject *object, const float &speed, A
 		return;
 
 	if (m_pathMotor) {
-		if (m_pathMotor->atEnd()) {
+		if (m_pathMotor->atEnd(object)) {
 			object->stop();
 			m_pathMotor.reset();
 			m_hasReturned = true;

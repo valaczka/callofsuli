@@ -798,7 +798,7 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 									  snapshot.s1.p << player->baseData().o << enemy;
 
 				player->attackedByEnemy(g->controlledPlayer() == player ? enemy : nullptr,
-										m_baseData.t, false);
+										m_baseData.t, false, true);
 			}
 
 		}

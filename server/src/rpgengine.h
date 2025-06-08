@@ -267,14 +267,14 @@ public:
 
 
 /**
- * @brief The RpgEventContainerUnlock class
+ * @brief The RpgEventCollectionUsed class
  */
 
-class RpgEventCollectionRelocate : public RpgEvent<RpgGameData::ControlCollectionBaseData>
+class RpgEventCollectionUsed : public RpgEvent<RpgGameData::ControlCollectionBaseData>
 {
 public:
-	RpgEventCollectionRelocate(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
-							   const bool &success, const RpgGameData::PlayerBaseData &player)
+	RpgEventCollectionUsed(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
+						   const bool &success, const RpgGameData::PlayerBaseData &player)
 		: RpgEvent<RpgGameData::ControlCollectionBaseData>(engine, tick, data, true)
 		, m_success(success)
 		, m_player(player)
@@ -284,7 +284,7 @@ public:
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
 
-	ADD_EQUAL(RpgEventCollectionRelocate);
+	ADD_EQUAL(RpgEventCollectionUsed);
 
 private:
 	bool m_success = false;
@@ -293,6 +293,30 @@ private:
 
 
 
+
+
+/**
+ * @brief The RpgEventCollectionPost class
+ */
+
+class RpgEventCollectionPost : public RpgEvent<RpgGameData::ControlCollectionBaseData>
+{
+public:
+	RpgEventCollectionPost(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
+						   const bool &success)
+		: RpgEvent<RpgGameData::ControlCollectionBaseData>(engine, tick, data, true)
+		, m_success(success)
+	{
+		LOG_CDEBUG("engine") << "COLLECTION POST created" << tick << m_unique << data.o << success;
+	}
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+
+	ADD_EQUAL(RpgEventCollectionPost);
+
+private:
+	bool m_success = false;
+};
 
 
 
@@ -385,11 +409,15 @@ public:
 	RpgConfig config() const { return m_config; }
 	void setConfig(const RpgConfig &newConfig) { m_config = newConfig; }
 
+	RpgEnginePlayer *player(const RpgGameData::PlayerBaseData &base) const;
+
 	RpgEnginePlayer *hostPlayer() const { return m_hostPlayer; }
 	void setHostPlayer(RpgEnginePlayer *newHostPlayer);
 
 	qint64 currentTick();
 	int nextObjectId() const;
+
+	void messageAdd(const RpgGameData::Message &msg, const QList<int> &players = {}, const bool &inverse = false);
 
 
 	template <typename T, typename ...Args,

@@ -85,7 +85,7 @@ RpgPlayer::RpgPlayer(RpgGame *game, const qreal &radius, const cpBodyType &type)
 							   QStringLiteral("attack"),
 							   QStringLiteral("bow"),
 							   QStringLiteral("cast"),
-							   QStringLiteral("hurt"),
+							   //QStringLiteral("hurt"),
 							   QStringLiteral("death")
 };
 
@@ -364,7 +364,8 @@ void RpgPlayer::updateSprite()
  * @brief RpgPlayer::attackedByEnemy
  */
 
-void RpgPlayer::attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected)
+void RpgPlayer::attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected,
+								const bool &immediately)
 {
 	m_armory->updateLayers();
 
@@ -372,16 +373,22 @@ void RpgPlayer::attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::Weap
 		return;
 
 	if (isProtected) {
-		QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){ jumpToSprite("hurt", m_facingDirection); });
+		if (immediately)
+			jumpToSprite("hurt", m_facingDirection);
+		else
+			QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){ jumpToSprite("hurt", m_facingDirection); });
 		return;
 	}
 
 	if (m_spriteHandler->currentSprite() != "attack" &&
 			m_spriteHandler->currentSprite() != "bow" &&
 			m_spriteHandler->currentSprite() != "cast") {
-		QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){
+		if (immediately)
 			jumpToSprite("hurt", m_facingDirection);
-		});
+		else
+			QTimer::singleShot(200, Qt::PreciseTimer, this, [this](){
+				jumpToSprite("hurt", m_facingDirection);
+			});
 	}
 
 	if (enemy)
@@ -743,6 +750,33 @@ void RpgPlayer::attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weap
 	}
 }
 
+int RpgPlayer::collectionRq() const
+{
+	return m_collectionRq;
+}
+
+void RpgPlayer::setCollectionRq(int newCollectionRq)
+{
+	if (m_collectionRq == newCollectionRq)
+		return;
+	m_collectionRq = newCollectionRq;
+	emit collectionRqChanged();
+}
+
+int RpgPlayer::collection() const
+{
+	return m_collection;
+}
+
+void RpgPlayer::setCollection(int newCollection)
+{
+	if (m_collection == newCollection)
+		return;
+
+	m_collection = newCollection;
+	emit collectionChanged();
+}
+
 
 /**
  * @brief RpgPlayer::currentControl
@@ -789,6 +823,10 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 
 	p.hp = hp();
 	p.l = m_isLocked;
+	p.c = m_collection;
+
+	if (RpgGame *g = dynamic_cast<RpgGame*>(m_game); g && g->actionRpgGame())
+		p.xp = g->actionRpgGame()->xp();
 
 	if (TiledScene *s = scene())
 		p.sc = s->sceneId();
@@ -920,7 +958,7 @@ void RpgPlayer::onShapeContactEnd(cpShape *self, cpShape *other)
 
 
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#ifdef WITH_FTXUI
 #include "desktopapplication.h"
 
 
@@ -939,7 +977,7 @@ public:
 
 	~FtxWriter()
 	{
-		if (m_txt.isEmpty() || m_player != m_myPlayer)
+		if (m_txt.isEmpty())
 			return;
 
 		m_lines.append(m_txt);
@@ -998,7 +1036,7 @@ private:
 
 void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Player> &snapshot)
 {
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#ifdef WITH_FTXUI
 	RpgGame *g = dynamic_cast<RpgGame*>(m_game);
 	ActionRpgMultiplayerGame *mg = g ? dynamic_cast<ActionRpgMultiplayerGame*>(g->actionRpgGame()) : nullptr;
 
@@ -1039,7 +1077,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 	if (snapshot.s1.f < 0 && snapshot.last.f < 0) {
 		LOG_CERROR("scene") << "Invalid tick" << snapshot.s1.f << snapshot.s2.f << snapshot.last.f << snapshot.current;
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#ifdef WITH_FTXUI
 		writer += QStringLiteral(" ### INVALID TICK ###");
 #endif
 
@@ -1060,10 +1098,8 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 			if (const qint64 t = m_stateLastRenderedTicks.value(snapshot.s1.st); t >= snapshot.s1.f)
 				throw 1;
 
-
 			if (!snapshot.s1.p.isEmpty()) {
-				if (fnEmplace(this, cpv(snapshot.s1.p.at(0), snapshot.s1.p.at(1)), snapshot.s1.a))
-					LOG_CDEBUG("scene") << "[Simulation] Forced emplace" << snapshot.s1.p << snapshot.s1.a;
+				fnEmplace(this, cpv(snapshot.s1.p.at(0), snapshot.s1.p.at(1)), snapshot.s1.a);
 			} else {
 				LOG_CERROR("scene") << "Missing hitpoint" << snapshot.s1.f;
 			}
@@ -1091,10 +1127,6 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 				playAttackEffect(wptr.get());
 				wptr->playAttack(target);
 
-				LOG_CWARNING("scene") << "REAL HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << bodyPositionF()
-									  << snapshot.s1.a << bodyRotation();
-
-
 			}
 
 			throw -1;
@@ -1106,8 +1138,6 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 				playAttackEffect(wptr.get());
 				wptr->playAttack(nullptr);
 			}
-
-			LOG_CINFO("scene") << "REAL SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
 
 			throw -1;
 		} else {
@@ -1121,7 +1151,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 							   m_speedLength, 2*m_speedRunLength,
 							   &msg);
 		} else {
-			msg = "SKIPPED";
+			msg = QStringLiteral("SKIPPED");
 		}
 	}
 
@@ -1133,11 +1163,11 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		updateFromSnapshot(snapshot.last);
 	}
 
-	if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
+	/*if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite())) {
 		stop();
 	} else if (!hasAbility()) {
 		stop();
-	}
+	}*/
 
 	IsometricEntity::worldStep();
 
@@ -1145,7 +1175,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		overrideCurrentSpeed(speed);
 
 
-#if defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)
+#ifdef WITH_FTXUI
 	if (!msg.isEmpty())
 		writer += QStringLiteral("   ")+msg;
 
@@ -1167,6 +1197,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 {
 	setHp(snap.hp);
+	setCollection(snap.c);
 	///setIsLocked(snap.l);
 
 	if (snap.st == RpgGameData::Player::PlayerAttack) {
@@ -1177,19 +1208,12 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 																	 .sceneId = snap.tg.s,
 																	 .id = snap.tg.id
 		}))) {
-
-				LOG_CINFO("scene") << "REAL ATTACK" << snap.f <<
-									  snap.p << snap.a << target->objectId().id;
-
 				if (RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(target))
 					enemy->attackedByPlayer(g->actionRpgGame()->gameMode() == ActionRpgGame::MultiPlayerHost ? this : nullptr,
 											snap.arm.cw);
 			}
 
 		}
-
-		LOG_CINFO("scene") << "*********** PLAYER attack" << snap.tg.o << snap.tg.id << snap.arm.cw;
-
 
 		// Ne cserélje ki a fegyvert
 
@@ -1220,8 +1244,13 @@ bool RpgPlayer::isLastSnapshotValid(const RpgGameData::Player &snap, const RpgGa
 	if (lastSnap.hp != snap.hp)
 		return false;
 
+	if (lastSnap.c != snap.c)
+		return false;
+
+	if (lastSnap.xp != snap.xp)
+		return false;
+
 	if (snap.st == RpgGameData::Player::PlayerAttack) {
-		LOG_CDEBUG("scene") << "%%%%%%%%%%%%%%%%%% ATTACK override PLAYER";
 		return false;
 	}
 

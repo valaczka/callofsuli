@@ -320,23 +320,23 @@ FocusScope {
 
 
 		GameInfo {
-			id: _infoTarget
+			id: _infoCollection
 			anchors.right: parent.right
 			color: Qaterial.Colors.orange700
 			iconLabel.icon.source: Qaterial.Icons.targetAccount
 			text: Math.floor(progressBar.value)
 
+			visible: progressBar.to > 0
+
 			progressBar.from: 0
-			progressBar.to: 0
-			progressBar.value: enemies
+			progressBar.to: _game && _game.controlledPlayer ? _game.controlledPlayer.collectionRq : 0
+			progressBar.value: collection
 			progressBar.width: Math.min(root.width*0.125, 50)
 
-			property int enemies: _game ? _game.enemyCount : 0
+			property int collection: _game && _game.controlledPlayer ? _game.controlledPlayer.collection : 0
 
-			onEnemiesChanged: {
-				_infoTarget.marked = true
-				if (enemies>progressBar.to)
-					progressBar.to = enemies
+			onCollectionChanged: {
+				_infoCollection.marked = true
 			}
 		}
 

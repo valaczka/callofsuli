@@ -82,8 +82,8 @@ public:
 	cpVect basePoint() override;
 
 
-	bool atBegin() const;
-	bool atEnd() const;
+	bool atBegin(TiledObjectBody *body = nullptr) const;
+	bool atEnd(TiledObjectBody *body = nullptr) const;
 	bool isClosed() const { return m_polygon.isClosed(); }
 
 	WaitTimerState waitTimerState(AbstractGame::TickTimer *timer) const;

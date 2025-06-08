@@ -32,7 +32,7 @@
 
 
 #define STD_DEV_MAX_ATTEMPTS			10000
-#define TARGET_STD_DEV					2.5
+#define TARGET_STD_DEV					1.5
 
 #define PICKABLE_HP_VALUE				10
 #define PICKABLE_SHORTBOW_VALUE			10
@@ -704,6 +704,9 @@ void RandomizerGroup::randomize()
 }
 
 
+
+
+
 /**
  * @brief PlayerBaseData::assign
  * @param dst
@@ -790,8 +793,6 @@ void PlayerBaseData::assign(const QList<PlayerBaseData *> &dst, const int &num)
 	for (int i=0; i<(int) dist.size() && i<dst.size(); ++i) {
 		dst.at(i)->rq = dist.at(i);
 	}
-
-	qInfo() << "SUCCESS";
 }
 
 

@@ -316,7 +316,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 	if (!isClosed()) {
 		const WaitTimerState s = waitTimerState(timer);
 
-		if (m_direction == Backward && atBegin()) {
+		if (m_direction == Backward && atBegin(body)) {
 			if (s == Invalid && m_waitAtBegin > 0) {
 				m_waitTimerEnd = timer->tickAddMsec(m_waitAtBegin);
 				body->stop();
@@ -328,7 +328,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 				m_waitTimerEnd = 0;
 				setDirection(Forward);
 			}
-		} else if (m_direction == Forward && atEnd()) {
+		} else if (m_direction == Forward && atEnd(body)) {
 			if (s == Invalid && m_waitAtEnd > 0) {
 				m_waitTimerEnd = timer->tickAddMsec(m_waitAtBegin);
 				body->stop();
@@ -413,8 +413,12 @@ cpVect TiledPathMotor::basePoint()
  * @return
  */
 
-bool TiledPathMotor::atBegin() const
+bool TiledPathMotor::atBegin(TiledObjectBody *body) const
 {
+	if (body && !m_lines.empty()) {
+		if (cpvdistsq(body->bodyPosition(), TiledObjectBody::toVect(m_lines.front().line.p2())) < POW2(3.))
+			return true;
+	}
 	return m_lastSegment == 0 && m_lastSegmentFactor < 0.0001;
 }
 
@@ -424,8 +428,12 @@ bool TiledPathMotor::atBegin() const
  * @return
  */
 
-bool TiledPathMotor::atEnd() const
+bool TiledPathMotor::atEnd(TiledObjectBody *body) const
 {
+	if (body && !m_lines.empty()) {
+		if (cpvdistsq(body->bodyPosition(), TiledObjectBody::toVect(m_lines.back().line.p2())) < POW2(3.))
+			return true;
+	}
 	return m_lastSegment >= m_lines.size()-1 && m_lastSegmentFactor >= 1.0;
 }
 

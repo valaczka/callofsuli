@@ -1590,12 +1590,6 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
 												this, 15., isDynamic ? CP_BODY_TYPE_DYNAMIC : CP_BODY_TYPE_KINEMATIC );
 
 	if (player) {
-		player->filterSet(TiledObjectBody::FixturePlayerBody,
-						  TiledObjectBody::FixtureCategories(TiledObjectBody::FixtureAll)
-						  .setFlag(TiledObjectBody::FixturePlayerBody, false)
-						  .setFlag(TiledObjectBody::FixtureVirtualCircle, false)
-						  .setFlag(TiledObjectBody::FixtureSensor, false)
-						  );
 		player->setConfig(config);
 		player->initialize();
 	}

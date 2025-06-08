@@ -209,6 +209,19 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 
 
 
+/**
+ * @brief RpgUdpEngine::messageAdd
+ * @param message
+ */
+
+void RpgUdpEngine::messageAdd(const RpgGameData::Message &message)
+{
+	QMutexLocker locker(&m_snapshotMutex);
+	m_messageList.append(message);
+}
+
+
+
 
 
 
@@ -323,6 +336,12 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 	snapshot.fromCbor(data);
 
 	updateSnapshot(snapshot);
+
+	if (const QCborMap &m = data.value(QStringLiteral("msg")).toMap(); !m.isEmpty()) {
+		RpgGameData::Message msg;
+		msg.fromCbor(m);
+		messageAdd(msg);
+	}
 }
 
 
@@ -407,6 +426,24 @@ RpgGameData::CurrentSnapshot RpgUdpEngine::getCurrentSnapshot()
 {
 	QMutexLocker locker(&m_snapshotMutex);
 	return m_snapshots.getCurrentSnapshot();
+}
+
+
+
+
+/**
+ * @brief RpgUdpEngine::takeMessageList
+ * @return
+ */
+
+QList<RpgGameData::Message> RpgUdpEngine::takeMessageList()
+{
+	QMutexLocker locker(&m_snapshotMutex);
+	QList<RpgGameData::Message> list;
+
+	std::swap(list, m_messageList);
+
+	return list;
 }
 
 
@@ -699,9 +736,9 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlBaseData &lightData
 	if (it == m_controls.lights.end()) {
 		LOG_CINFO("game") << "New light" << lightData.o << lightData.s << lightData.id;
 		m_controls.lights.push_back({
-								.data = lightData,
-								.list = {}
-							});
+										.data = lightData,
+										.list = {}
+									});
 		it = m_controls.lights.end()-1;
 	}
 
@@ -732,9 +769,9 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlContainerBaseData &
 	if (it == m_controls.containers.end()) {
 		LOG_CINFO("game") << "New container" << containerData.o << containerData.s << containerData.id;
 		m_controls.containers.push_back({
-								.data = containerData,
-								.list = {}
-							});
+											.data = containerData,
+											.list = {}
+										});
 		it = m_controls.containers.end()-1;
 	}
 
@@ -764,9 +801,9 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlCollectionBaseData 
 	if (it == m_controls.collections.end()) {
 		LOG_CINFO("game") << "New collection" << collectionData.o << collectionData.s << collectionData.id;
 		m_controls.collections.push_back({
-								.data = collectionData,
-								.list = {}
-							});
+											 .data = collectionData,
+											 .list = {}
+										 });
 		it = m_controls.collections.end()-1;
 	}
 
@@ -797,9 +834,9 @@ void ClientStorage::updateSnapshot(const RpgGameData::PickableBaseData &pickable
 	if (it == m_controls.pickables.end()) {
 		LOG_CINFO("game") << "New pickable" << pickableData.o << pickableData.s << pickableData.id << pickableData.t;
 		m_controls.pickables.push_back({
-								.data = pickableData,
-								.list = {}
-							});
+										   .data = pickableData,
+										   .list = {}
+									   });
 		it = m_controls.pickables.end()-1;
 	}
 
@@ -830,9 +867,9 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlGateBaseData &baseD
 	if (it == m_controls.gates.end()) {
 		LOG_CINFO("game") << "New gate" << baseData.o << baseData.s << baseData.id;
 		m_controls.gates.push_back({
-								.data = baseData,
-								.list = {}
-							});
+									   .data = baseData,
+									   .list = {}
+								   });
 		it = m_controls.gates.end()-1;
 	}
 

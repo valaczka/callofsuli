@@ -765,6 +765,7 @@ public:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T>::value>::type>
 	static QString dumpBaseDataAs(const RendererObject<T> *obj);
 
+	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PlayerBaseData> *obj);
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PickableBaseData> *obj);
 
 private:
@@ -796,8 +797,6 @@ private:
 	std::vector<std::unique_ptr<RendererObjectType>> m_objects;
 	ConflictSolver m_solver;
 };
-
-
 
 
 

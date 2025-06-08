@@ -133,6 +133,8 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameDat
 	Q_PROPERTY(RpgActiveControlObject *currentControl READ currentControl WRITE setCurrentControl NOTIFY currentControlChanged FINAL)
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
 	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
+	Q_PROPERTY(int collection READ collection WRITE setCollection NOTIFY collectionChanged FINAL)
+	Q_PROPERTY(int collectionRq READ collectionRq WRITE setCollectionRq NOTIFY collectionRqChanged FINAL)
 
 public:
 	explicit RpgPlayer(RpgGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
@@ -182,12 +184,19 @@ public:
 	void updateFromSnapshot(const RpgGameData::Player &snap) override;
 	virtual bool isLastSnapshotValid(const RpgGameData::Player &snap, const RpgGameData::Player &lastSnap) const override;
 
-	void attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected);
+	void attackedByEnemy(RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, const bool &isProtected,
+						 const bool &immediately = false);
 
 	int nextObjectId() { return ++m_lastObjectId; }
 
 	RpgActiveControlObject *currentControl() const;
 	void setCurrentControl(RpgActiveControlObject *newCurrentControl);
+
+	int collection() const;
+	void setCollection(int newCollection);
+
+	int collectionRq() const;
+	void setCollectionRq(int newCollectionRq);
 
 signals:
 	void attackDone();
@@ -197,6 +206,8 @@ signals:
 	void mpChanged();
 	void maxMpChanged();
 	void currentControlChanged();
+	void collectionChanged();
+	void collectionRqChanged();
 
 protected:
 	void load() override final;
@@ -250,10 +261,12 @@ private:
 	TiledEffectRing m_effectRing;
 
 	QPointF m_currentSceneStartPosition;
-	[[deprecated]] bool m_pickAtDestination = false;
+	bool m_pickAtDestination = false;
 	int m_shieldCount = 0;
 	int m_mp = 0;
 	int m_maxMp = 0;
+	int m_collection = 0;
+	int m_collectionRq = 0;
 
 	int m_lastObjectId = 0;
 

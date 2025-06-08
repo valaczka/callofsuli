@@ -29,7 +29,6 @@
 
 #include "question.h"
 #include "rpgplayer.h"
-#include "rpgenemy.h"
 
 class ActionRpgGame;
 class RpgActiveIface;
@@ -47,14 +46,12 @@ public:
 	~RpgQuestion() = default;
 
 	void reloadQuestions();
-	bool nextQuestion(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType,
-					  RpgActiveIface *control = nullptr);
+	bool nextQuestion(RpgPlayer *player, RpgActiveIface *control = nullptr);
 
 	void questionSuccess(const QVariantMap &answer);
 	void questionFailed(const QVariantMap &answer);
 	void questionFinished();
 
-	RpgEnemy *enemy() const { return m_enemy; }
 	RpgPlayer *player() const { return m_player; }
 	RpgActiveIface *control() const { return m_control; }
 
@@ -69,9 +66,7 @@ private:
 	QVector<Question>::const_iterator m_questionIterator;
 
 	QPointer<RpgPlayer> m_player;
-	QPointer<RpgEnemy> m_enemy;
 	RpgActiveIface *m_control = nullptr;
-	RpgGameData::Weapon::WeaponType m_weaponType = RpgGameData::Weapon::WeaponInvalid;
 
 	bool m_emptyQuestions = true;
 	bool m_initialized = false;

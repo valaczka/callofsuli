@@ -325,6 +325,13 @@ void IsometricPlayer::onAlive()
 
 	if (m_visualItem)
 		m_visualItem->setProperty("ellipseSize", 2);
+
+	filterSet(TiledObjectBody::FixturePlayerBody,
+					  TiledObjectBody::FixtureCategories(TiledObjectBody::FixtureAll)
+					  .setFlag(TiledObjectBody::FixturePlayerBody, false)
+					  .setFlag(TiledObjectBody::FixtureVirtualCircle, false)
+					  .setFlag(TiledObjectBody::FixtureSensor, false)
+					  );
 }
 
 
@@ -345,6 +352,8 @@ void IsometricPlayer::onDead()
 
 	if (m_visualItem)
 		m_visualItem->setProperty("ellipseSize", 0);
+
+	filterSet(TiledObjectBody::FixtureInvalid, TiledObjectBody::FixtureInvalid);
 }
 
 
@@ -582,7 +591,7 @@ void IsometricPlayer::worldStep() {
 				atDestinationPointEvent();
 			}
 		} else if (d->m_destinationMotor) {
-			if (d->m_destinationMotor->atEnd()) {
+			if (d->m_destinationMotor->atEnd(this)) {
 				stop();
 				clearDestinationPoint();
 				atDestinationPointEvent();

@@ -567,6 +567,27 @@ protected:
 
 
 
+/**
+ * @brief The Message class
+ */
+
+class Message : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Message(const QString &msg = {})
+		: QSerializer()
+		, m(msg)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, m)
+};
+
+
+
 
 
 /**
@@ -874,12 +895,14 @@ public:
 	Prepare()
 		: QSerializer()
 		, prepared(false)
+		, loaded(false)
 	{}
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(bool, prepared)
 	QS_OBJECT(GameConfig, gameConfig)
+	QS_FIELD(bool, loaded)						// A host már betöltött mindent
 };
 
 
@@ -1930,6 +1953,9 @@ public:
 		: ArmoredEntity()
 		, st(PlayerInvalid)
 		, l(false)
+		, c(0)
+		, xp(0)
+		, x(0)
 	{}
 
 	enum PlayerState {
@@ -1950,11 +1976,13 @@ public:
 
 
 	bool isEqual(const Player &other) const  {
-		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l && other.c == c;
+		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l &&
+				other.c == c && other.xp == xp && other.x == x;
 	}
 
 	bool canMerge(const Player &other) const {
-		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l && other.c == c;
+		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l &&
+				other.c == c && other.xp == xp && other.x == x;
 	}
 
 	bool canInterpolateFrom(const Player &other) const {
@@ -1982,6 +2010,8 @@ public:
 	QS_FIELD(bool, l)					// locked
 	QS_OBJECT(Inventory, inv)			// inventory
 	QS_FIELD(int, c)					// collected items
+	QS_FIELD(int, xp)					// xp
+	QS_FIELD(int, x)					// extra xp on specified states (PlayerUseControl)
 };
 
 
