@@ -382,6 +382,34 @@ private:
 
 
 
+
+/**
+ * @brief The RpgEventTeleportUsed class
+ */
+
+class RpgEventTeleportUsed : public RpgEvent<RpgGameData::ControlTeleportBaseData>
+{
+public:
+	RpgEventTeleportUsed(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlTeleportBaseData &data,
+						 const RpgGameData::PlayerBaseData &player)
+		: RpgEvent<RpgGameData::ControlTeleportBaseData>(engine, tick, data, true)
+		, m_player(player)
+	{
+		LOG_CDEBUG("engine") << "TELEPORT USED created" << tick << m_unique << data.o << "-->" << player.o;
+	}
+
+	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
+
+	ADD_EQUAL(RpgEventTeleportUsed);
+
+private:
+	RpgGameData::PlayerBaseData const m_player;
+};
+
+
+
+
+
 /**
  * @brief The RpgEngine class
  */
@@ -477,6 +505,7 @@ public:
 	const RpgGameData::SnapshotList<RpgGameData::ControlCollection, RpgGameData::ControlCollectionBaseData> &controlCollections();
 	const RpgGameData::SnapshotList<RpgGameData::ControlGate, RpgGameData::ControlGateBaseData> &controlGates();
 	const RpgGameData::SnapshotList<RpgGameData::Pickable, RpgGameData::PickableBaseData> &pickables();
+	const RpgGameData::SnapshotList<RpgGameData::ControlTeleport, RpgGameData::ControlTeleportBaseData> &controlTeleports();
 
 	void addRelocateCollection(const qint64 &tick, const RpgGameData::ControlCollectionBaseData &base,
 							   const RpgGameData::PlayerBaseData &player, const bool &success);
@@ -486,6 +515,8 @@ public:
 						   const RpgGameData::PlayerBaseData &player);
 	void addContainerUsed(const qint64 &tick, const RpgGameData::ControlContainerBaseData &base,
 						  const RpgGameData::PlayerBaseData &player, const bool &success);
+	void addTeleportUsed(const qint64 &tick, const RpgGameData::ControlTeleportBaseData &base,
+						 const RpgGameData::PlayerBaseData &player);
 
 	void renderTimerLog(const qint64 &msec);
 

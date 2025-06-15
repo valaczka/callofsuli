@@ -473,10 +473,11 @@ void RendererType::addFlags(const RendererFlags &flags)
 
 QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGameData::Player> &/*subData*/) const
 {
-	QString txt = QStringLiteral("[%1] %2 hp c:%3 ")
+	QString txt = QStringLiteral("[%1] %2 hp c:%3 {pck: %4} ")
 				  .arg(data.st)
 				  .arg(data.hp)
 				  .arg(data.c)
+				  .arg(data.pck.id)
 				  ;
 
 	if (data.p.size() > 1)
@@ -702,6 +703,31 @@ QString RendererType::dumpAs(const RpgGameData::ControlGate &data, const QList<R
 	if (data.u.isValid())
 		txt += QStringLiteral("  holder %1").arg(data.u.o);
 
+
+	return txt;
+}
+
+
+
+/**
+ * @brief RendererType::dumpAs
+ * @param data
+ * @param subData
+ * @return
+ */
+
+QString RendererType::dumpAs(const RpgGameData::ControlTeleport &data, const QList<RpgGameData::ControlTeleport> &) const
+{
+	QString txt = QStringLiteral("%1 [%2] ")
+				  .arg(data.f)
+				  .arg(data.a ? '+' : ' ')
+				  ;
+
+	if (data.op)
+		txt += QStringLiteral("operating");
+
+	if (data.lck)
+		txt += QStringLiteral(" LOCKED");
 
 	return txt;
 }
@@ -1141,6 +1167,23 @@ void RpgSnapshotStorage::gateAdd(const RpgGameData::ControlGateBaseData &base, c
 }
 
 
+/**
+ * @brief RpgSnapshotStorage::teleportAdd
+ * @param base
+ * @param data
+ */
+
+void RpgSnapshotStorage::teleportAdd(const RpgGameData::ControlTeleportBaseData &base, const RpgGameData::ControlTeleport &data)
+{
+	RpgGameData::SnapshotData<RpgGameData::ControlTeleport, RpgGameData::ControlTeleportBaseData> snapdata;
+
+	snapdata.data = base;
+	snapdata.list.insert_or_assign(data.f, data);
+
+	m_controls.teleports.push_back(snapdata);
+}
+
+
 
 /**
  * @brief RpgSnapshotStorage::lastLifeCycleId
@@ -1367,6 +1410,7 @@ void RpgSnapshotStorage::renderEnd(const QString &txt)
 	removeLessThan(m_tmpSnapshot.controls.collections, m_lastAuthTick-5);
 	removeLessThan(m_tmpSnapshot.controls.pickables, m_lastAuthTick-5);
 	removeLessThan(m_tmpSnapshot.controls.gates, m_lastAuthTick-5);
+	removeLessThan(m_tmpSnapshot.controls.teleports, m_lastAuthTick-5);
 
 
 	zapSnapshots(m_lastAuthTick-5);
@@ -1413,7 +1457,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	const auto &srcIt = RpgGameData::CurrentSnapshot::find(snapshot.players, pdata);
 
 	if (srcIt == snapshot.players.cend()) {
-		LOG_CERROR("engine") << "Invalid player" << cbor;
+		//LOG_CERROR("engine") << "Invalid player" << cbor;
 		return false;
 	}
 
@@ -1549,7 +1593,6 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 
 
 
-
 	if (!r->addObjects(m_players))
 		return {};
 
@@ -1574,6 +1617,9 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 		return {};
 
 	if (!r->addObjects(m_controls.gates))
+		return {};
+
+	if (!r->addObjects(m_controls.teleports))
 		return {};
 
 
@@ -1605,6 +1651,9 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->loadSnaps(m_controls.gates, true))
 		return {};
 
+	if (!r->loadSnaps(m_controls.teleports, true))
+		return {};
+
 
 
 	if (!r->loadAuthSnaps(snapshot.players))
@@ -1632,6 +1681,9 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (!r->loadAuthSnaps(snapshot.controls.gates))
 		return {};
 
+	if (!r->loadAuthSnaps(snapshot.controls.teleports))
+		return {};
+
 
 
 	r->loadSnaps(m_tmpSnapshot.players, false);
@@ -1643,6 +1695,7 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	r->loadSnaps(m_tmpSnapshot.controls.collections, false);
 	r->loadSnaps(m_tmpSnapshot.controls.pickables, false);
 	r->loadSnaps(m_tmpSnapshot.controls.gates, false);
+	r->loadSnaps(m_tmpSnapshot.controls.teleports, false);
 
 	return r;
 
@@ -1673,6 +1726,7 @@ int RpgSnapshotStorage::saveRenderer(Renderer *renderer, const uint &pass)
 	diff = std::max(diff, renderer->saveObjects(m_controls.collections));
 	diff = std::max(diff, renderer->saveObjects(m_controls.pickables));
 	diff = std::max(diff, renderer->saveObjects(m_controls.gates));
+	diff = std::max(diff, renderer->saveObjects(m_controls.teleports));
 
 
 	// 0. lépés - elvégezzük az ütközéseket
@@ -1711,6 +1765,9 @@ int RpgSnapshotStorage::saveRenderer(Renderer *renderer, const uint &pass)
 		generateEvents(p, t);
 
 	for (const auto &p : m_controls.gates)
+		generateEvents(p, t);
+
+	for (const auto &p : m_controls.teleports)
 		generateEvents(p, t);
 
 	return diff-1;
@@ -2017,6 +2074,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 		RpgGameData::Player::PlayerState specialSt = RpgGameData::Player::PlayerInvalid;
 		RpgGameData::Weapon::WeaponType cw = RpgGameData::Weapon::WeaponInvalid;
+		bool clearPck = false;
 
 		// Külön eseményt nem okozó állapotok
 
@@ -2076,11 +2134,13 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 					}
 				}
 
-				// A fegyvercsere nem számít eseménynek
+				// A fegyvercsere, kilépés nem számít eseménynek
 
 				if (specialSt == RpgGameData::Player::PlayerInvalid) {
 					if (p.st == RpgGameData::Player::PlayerWeaponChange) {
 						cw = p.arm.cw;
+					} else if (p.st == RpgGameData::Player::PlayerExit) {
+						clearPck = true;
 					} else {
 						specialSt = p.st;
 					}
@@ -2108,6 +2168,9 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 		if (cw != RpgGameData::Weapon::WeaponInvalid)
 			dst->m_data.arm.cw = cw;
+
+		if (clearPck)
+			dst->m_data.pck = {};
 
 
 		// Töröljük a sub-okat
@@ -2455,6 +2518,8 @@ void Renderer::restore(RpgGameData::Player *dst, const RpgGameData::Player &data
 
 	dst->arm = data.arm;
 	dst->arm.cw = cw;
+
+	dst->pck = data.pck;
 }
 
 
@@ -2578,6 +2643,24 @@ void Renderer::restore(RpgGameData::ControlGate *dst, const RpgGameData::Control
 	dst->lck = data.lck;
 	dst->a = data.a;
 	dst->u = data.u;
+}
+
+
+
+/**
+ * @brief Renderer::restore
+ * @param dst
+ * @param data
+ */
+
+void Renderer::restore(RpgGameData::ControlTeleport *dst, const RpgGameData::ControlTeleport &data)
+{
+	Q_ASSERT(dst);
+
+	dst->lck = data.lck;
+	dst->a = data.a;
+	dst->u = data.u;
+	dst->op = data.op;
 }
 
 
@@ -2730,7 +2813,9 @@ ConflictSolver::ConflictUniqueIface* ConflictSolver::addUnique(const int &tick, 
 		return addUniqueData<ConflictPickable>(tick, c, dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src));
 	} else if (RendererObject<RpgGameData::ControlGateBaseData> *c = dynamic_cast<RendererObject<RpgGameData::ControlGateBaseData>*>(dest)) {
 		return addUniqueData<ConflictGate>(tick, c, dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src));
-	} else {
+	} else if (RendererObject<RpgGameData::ControlTeleportBaseData> *c = dynamic_cast<RendererObject<RpgGameData::ControlTeleportBaseData>*>(dest)) {
+		return addUniqueData<ConflictTeleport>(tick, c, dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src));
+	}else {
 		LOG_CERROR("engine") << "Invalid unique object type";
 	}
 
@@ -3556,6 +3641,9 @@ void ConflictSolver::ConflictGate::generateEvent(ConflictSolver *solver, RpgEngi
 
 
 
+
+
+
 /**
  * @brief ConflictSolver::ConflictGate::getInitialState
  * @param renderer
@@ -3587,3 +3675,85 @@ bool ConflictSolver::ConflictGate::getInitialState(Renderer *renderer, ReleaseSt
 
 
 
+/**
+ * @brief ConflictSolver::ConflictTeleport::ConflictTeleport
+ * @param _tick
+ * @param _dst
+ * @param _src
+ */
+
+ConflictSolver::ConflictTeleport::ConflictTeleport(const int &_tick,
+												   RendererObject<RpgGameData::ControlTeleportBaseData> *_dst,
+												   RendererObject<RpgGameData::PlayerBaseData> *_src)
+	: ConflictDataUnique(_tick, _dst, _src)
+{
+	Q_ASSERT(_src);
+	Q_ASSERT(_dst);
+
+	LOG_CDEBUG("engine") << "TELEPORT SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
+}
+
+
+
+
+
+
+/**
+ * @brief ConflictSolver::ConflictTeleport::generateEvent
+ * @param solver
+ * @param engine
+ */
+
+void ConflictSolver::ConflictTeleport::generateEvent(ConflictSolver *solver, RpgEngine *engine)
+{
+	Q_ASSERT(solver);
+	Q_ASSERT(m_unique);
+
+	LOG_CERROR("engine") << "!!!! CREATE TELEPORT EVENT";
+
+	if (!getInitialState(solver->m_renderer, nullptr)) {
+		LOG_CDEBUG("engine") << "Initial state finished, render disabled";
+		return;
+	}
+
+	RendererItem<RpgGameData::ControlTeleport> *e = solver->m_renderer->snapAt<RpgGameData::ControlTeleport>(m_unique, 0);
+
+	if (!e) {
+		LOG_CERROR("engine") << "Invalid item" << e;
+		return;
+	}
+
+	for (const ReleaseState &st : m_release) {
+		if (st.state != StateSuccess || !st.player)
+			continue;
+
+		engine->addTeleportUsed(solver->m_renderer->startTick()+tick, m_unique->baseData, st.player->baseData);
+	}
+}
+
+
+
+/**
+ * @brief ConflictSolver::ConflictTeleport::getInitialState
+ * @param renderer
+ * @param destPtr
+ * @return
+ */
+
+bool ConflictSolver::ConflictTeleport::getInitialState(Renderer *renderer, ReleaseState */*destPtr*/) const
+{
+	Q_ASSERT(renderer);
+
+	const auto *snap = renderer->snapAt<RpgGameData::ControlTeleport>(m_unique, 0);
+
+	Q_ASSERT(snap);
+
+	const auto &data = snap->data();
+
+	if (!data.a) {
+		LOG_CDEBUG("engine") << "---- teleport inactive";
+		return false;
+	}
+
+	return true;
+}

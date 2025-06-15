@@ -202,6 +202,12 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 		}
 	}
 
+	for (const auto &ptr : snapshot.controls.teleports) {
+		for (const auto &p : ptr.list) {
+			m_snapshots.updateSnapshot(ptr.data, p.second);
+		}
+	}
+
 	updateSnapshotRemoveMissing(snapshot.bullets);
 	updateSnapshotRemoveMissing(snapshot.controls.pickables);
 
@@ -877,6 +883,40 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlGateBaseData &baseD
 
 	if (data.f < 0)
 		LOG_CDEBUG("game") << "SKIP FRAME" << data.f << data.st;
+	else
+		it->list.insert_or_assign(data.f, data);
+}
+
+
+
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param baseData
+ * @param data
+ */
+
+void ClientStorage::updateSnapshot(const RpgGameData::ControlTeleportBaseData &baseData, const RpgGameData::ControlTeleport &data)
+{
+	auto it = std::find_if(m_controls.teleports.begin(),
+						   m_controls.teleports.end(),
+						   [&baseData](const auto &p) {
+		return (p.data.RpgGameData::BaseData::isEqual(baseData));
+	});
+
+	if (it == m_controls.teleports.end()) {
+		LOG_CINFO("game") << "New teleport" << baseData.o << baseData.s << baseData.id;
+		m_controls.teleports.push_back({
+									   .data = baseData,
+									   .list = {}
+								   });
+		it = m_controls.teleports.end()-1;
+	}
+
+	it->data = baseData;
+
+	if (data.f < 0)
+		LOG_CDEBUG("game") << "SKIP FRAME" << data.f;
 	else
 		it->list.insert_or_assign(data.f, data);
 }

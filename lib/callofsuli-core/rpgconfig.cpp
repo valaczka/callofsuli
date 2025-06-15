@@ -197,6 +197,7 @@ FullSnapshot SnapshotStorage::getFullSnapshot(const qint64 &tick, const bool &fi
 	addFullSnapshot(&s.controls.collections, m_controls.collections, tick, findLast);
 	addFullSnapshot(&s.controls.pickables, m_controls.pickables, tick, findLast);
 	addFullSnapshot(&s.controls.gates, m_controls.gates, tick, findLast);
+	addFullSnapshot(&s.controls.teleports, m_controls.teleports, tick, findLast);
 
 
 	return s;
@@ -226,6 +227,7 @@ CurrentSnapshot SnapshotStorage::getCurrentSnapshot()
 	s.controls.collections = convertToSnapshotList(m_controls.collections);
 	s.controls.pickables = convertToSnapshotList(m_controls.pickables);
 	s.controls.gates = convertToSnapshotList(m_controls.gates);
+	s.controls.teleports = convertToSnapshotList(m_controls.teleports);
 
 	return s;
 }
@@ -265,6 +267,9 @@ void SnapshotStorage::zapSnapshots(const qint64 &tick)
 		zapSnapshots(ptr.list, tick);
 
 	for (auto &ptr : m_controls.gates)
+		zapSnapshots(ptr.list, tick);
+
+	for (auto &ptr : m_controls.teleports)
 		zapSnapshots(ptr.list, tick);
 }
 
@@ -308,6 +313,9 @@ QCborMap CurrentSnapshot::toCbor() const
 	if (const QCborArray &a = toCborArray(controls.gates, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
 		map.insert(QStringLiteral("cg"), a);
 
+	if (const QCborArray &a = toCborArray(controls.teleports, QStringLiteral("cd"), QStringLiteral("c"), nullptr); !a.isEmpty())
+		map.insert(QStringLiteral("ct"), a);
+
 	return map;
 }
 
@@ -334,6 +342,7 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 	r += fromCborArray(controls.collections, map.value(QStringLiteral("cs")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 	r += fromCborArray(controls.pickables, map.value(QStringLiteral("cp")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 	r += fromCborArray(controls.gates, map.value(QStringLiteral("cg")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
+	r += fromCborArray(controls.teleports, map.value(QStringLiteral("ct")).toArray(), QStringLiteral("cd"), QStringLiteral("c"), nullptr);
 
 	return r;
 }
@@ -456,6 +465,27 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
 		case PickableBaseData::PickableInvalid:
 			return false;
 	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief Player::useTeleport
+ * @param dst
+ * @param base
+ * @return
+ */
+
+bool Player::useTeleport(Player &dst, const ControlTeleportBaseData &base)
+{
+	if (base.dst.isValid()) {
+		qWarning() << "Missing implementation";
+		return false;
+	}
+
+	dst.pck = base;
 
 	return true;
 }

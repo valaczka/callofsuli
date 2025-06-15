@@ -85,6 +85,7 @@ protected:
 	QString dumpAs(const RpgGameData::ControlCollection &data, const QList<RpgGameData::ControlCollection> &subData) const;
 	QString dumpAs(const RpgGameData::Pickable &data, const QList<RpgGameData::Pickable> &subData) const;
 	QString dumpAs(const RpgGameData::ControlGate &data, const QList<RpgGameData::ControlGate> &subData) const;
+	QString dumpAs(const RpgGameData::ControlTeleport &data, const QList<RpgGameData::ControlTeleport> &subData) const;
 
 	RendererFlags m_flags = None;
 };
@@ -147,6 +148,7 @@ private:
 	void renderAs(RendererItem<RpgGameData::ControlContainer> *, RendererObjectType *, Renderer *) const {}
 	void renderAs(RendererItem<RpgGameData::ControlCollection> *, RendererObjectType *, Renderer *) const {}
 	void renderAs(RendererItem<RpgGameData::ControlGate> *, RendererObjectType *, Renderer *) const {}
+	void renderAs(RendererItem<RpgGameData::ControlTeleport> *, RendererObjectType *, Renderer *) const {}
 
 
 
@@ -496,8 +498,8 @@ private:
 	{
 	public:
 		ConflictCollection(const int &_tick,
-						  RendererObject<RpgGameData::ControlCollectionBaseData> *_dst,
-						  RendererObject<RpgGameData::PlayerBaseData> *_src);
+						   RendererObject<RpgGameData::ControlCollectionBaseData> *_dst,
+						   RendererObject<RpgGameData::PlayerBaseData> *_src);
 
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
@@ -516,8 +518,8 @@ private:
 	{
 	public:
 		ConflictPickable(const int &_tick,
-						  RendererObject<RpgGameData::PickableBaseData> *_dst,
-						  RendererObject<RpgGameData::PlayerBaseData> *_src);
+						 RendererObject<RpgGameData::PickableBaseData> *_dst,
+						 RendererObject<RpgGameData::PlayerBaseData> *_src);
 
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
@@ -537,8 +539,29 @@ private:
 	{
 	public:
 		ConflictGate(const int &_tick,
-						  RendererObject<RpgGameData::ControlGateBaseData> *_dst,
-						  RendererObject<RpgGameData::PlayerBaseData> *_src);
+					 RendererObject<RpgGameData::ControlGateBaseData> *_dst,
+					 RendererObject<RpgGameData::PlayerBaseData> *_src);
+
+		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
+
+	protected:
+		virtual bool getInitialState(Renderer *renderer, ReleaseState *destPtr) const override;
+	};
+
+
+
+
+
+	/**
+	 * @brief The ConflictTeleport class
+	 */
+
+	class ConflictTeleport : public ConflictDataUnique<RpgGameData::ControlTeleportBaseData>
+	{
+	public:
+		ConflictTeleport(const int &_tick,
+						 RendererObject<RpgGameData::ControlTeleportBaseData> *_dst,
+						 RendererObject<RpgGameData::PlayerBaseData> *_src);
 
 		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
@@ -789,6 +812,7 @@ private:
 	void restore(RpgGameData::ControlCollection *dst, const RpgGameData::ControlCollection &data);
 	void restore(RpgGameData::Pickable *dst, const RpgGameData::Pickable &data);
 	void restore(RpgGameData::ControlGate *dst, const RpgGameData::ControlGate &data);
+	void restore(RpgGameData::ControlTeleport *dst, const RpgGameData::ControlTeleport &data);
 
 
 	const qint64 m_startTick;
@@ -821,6 +845,7 @@ public:
 	RpgGameData::PickableBaseData pickableAdd(const RpgGameData::PickableBaseData::PickableType &type,
 											  const int &scene, const QPointF &pos);
 	void gateAdd(const RpgGameData::ControlGateBaseData &base, const RpgGameData::ControlGate &data);
+	void teleportAdd(const RpgGameData::ControlTeleportBaseData &base, const RpgGameData::ControlTeleport &data);
 
 	int lastLifeCycleId(const RpgGameData::BaseData &base, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
 	int lastLifeCycleId(const int &owner, std::vector<RpgGameData::BaseData>::iterator *ptr = nullptr);
@@ -1143,9 +1168,9 @@ inline QString Renderer::dumpBaseDataAs(const RendererObject<T> *obj)
 	Q_ASSERT(obj);
 
 	return QStringLiteral("Object %1 %2 %3\n-------------------------------------------\n")
-		   .arg(obj->baseData.o)
-		   .arg(obj->baseData.s)
-		   .arg(obj->baseData.id);
+			.arg(obj->baseData.o)
+			.arg(obj->baseData.s)
+			.arg(obj->baseData.id);
 }
 
 

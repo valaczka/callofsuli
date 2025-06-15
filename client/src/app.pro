@@ -255,6 +255,7 @@ SOURCES += \
 	rpgcontrolgate.cpp \
 	rpgcontrollight.cpp \
 	rpgcontrolrandomizer.cpp \
+	rpgcontrolteleport.cpp \
 	rpgdagger.cpp \
 	rpgenemy.cpp \
 	rpgenemybase.cpp \
@@ -363,6 +364,7 @@ HEADERS += \
 	rpgcontrolgate.h \
 	rpgcontrollight.h \
 	rpgcontrolrandomizer.h \
+	rpgcontrolteleport.h \
 	rpgdagger.h \
 	rpgenemy.h \
 	rpgenemybase.h \

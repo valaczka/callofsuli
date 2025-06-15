@@ -618,6 +618,7 @@ void TiledScene::setTileLayersZ()
 
 	for (QQuickItem *item : m_visualItems) {
 		QString name;
+		int link = -1;
 
 		if (TiledQuick::TileLayerItem *layerItem = qobject_cast<TiledQuick::TileLayerItem *>(item)) {
 			if (Tiled::TileLayer *layer = layerItem->tileLayer()) {
@@ -647,9 +648,12 @@ void TiledScene::setTileLayersZ()
 
 					if (TiledQuick::TileLayerItem *layerItem = qobject_cast<TiledQuick::TileLayerItem *>(vi)) {
 						if (layerItem->tileLayer()->name() == name) {
-							LOG_CTRACE("scene") << "Scene" << m_sceneId << "link layer" << layerItem->tileLayer()->id()
+							auto *ti = qobject_cast<TiledQuick::TileLayerItem *>(item);
+
+							LOG_CTRACE("scene") << "Scene" << m_sceneId << "link layer"
+												<< (ti ? ti->tileLayer()->id() : -1)
 												<< "to" << name;
-							i = vi->z();
+							link = vi->z();
 							break;
 						}
 					}
@@ -658,11 +662,15 @@ void TiledScene::setTileLayersZ()
 			}
 		}
 
-		item->setZ(i);
+		if (link > -1) {
+			item->setZ(link);
+		} else {
+			item->setZ(i);
 
+			if (findZ)
+				minZ = i;
+		}
 
-		if (findZ)
-			minZ = i;
 
 		++i;
 	}

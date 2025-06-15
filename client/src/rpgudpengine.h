@@ -59,6 +59,7 @@ public:
 	void updateSnapshot(const RpgGameData::ControlCollectionBaseData &collectionData, const RpgGameData::ControlCollection &collection);
 	void updateSnapshot(const RpgGameData::PickableBaseData &pickableData, const RpgGameData::Pickable &pickable);
 	void updateSnapshot(const RpgGameData::ControlGateBaseData &baseData, const RpgGameData::ControlGate &data);
+	void updateSnapshot(const RpgGameData::ControlTeleportBaseData &baseData, const RpgGameData::ControlTeleport &data);
 
 
 	// Outgoing snapshot

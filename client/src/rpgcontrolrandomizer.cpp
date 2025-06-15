@@ -73,8 +73,6 @@ void RpgControlRandomizer::addGroupLayer(TiledScene *scene, Tiled::GroupLayer *g
 	Q_ASSERT(scene);
 	Q_ASSERT(group);
 
-	LOG_CINFO("game") << "------ ADD RANDOMIZER GROUP" << group->id() << "TO" << m_name << m_baseData.id;
-
 	RpgControlRandomizerContent content(group->id());
 
 	for (Tiled::Layer *layer : std::as_const(*group)) {
@@ -86,7 +84,6 @@ void RpgControlRandomizer::addGroupLayer(TiledScene *scene, Tiled::GroupLayer *g
 			TiledQuick::TileLayerItem *item = scene->addTileLayer(tl, renderer);
 			item->setVisible(false);
 			content.layerAdd(item);
-			LOG_CDEBUG("game") << "------------- add" << item;
 		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(objgroup->objects())) {
 				const QString &clName = object->className();
@@ -97,13 +94,10 @@ void RpgControlRandomizer::addGroupLayer(TiledScene *scene, Tiled::GroupLayer *g
 					TiledObjectBody *body = m_game->loadGround(scene, object, renderer);
 					body->filterSet(TiledObjectBody::FixtureInvalid);
 					content.objectAdd(body);
-					LOG_CDEBUG("game") << "------------- add" << body;
 				}
 			}
 		}
 	}
-
-	LOG_CDEBUG("game") << "------> added" << group->id() << content.isEmpty();
 
 	if (!content.isEmpty())
 		m_content.push_back(content);
@@ -267,8 +261,6 @@ void RpgControlRandomizerContent::layerAdd(QQuickItem *item)
 
 void RpgControlRandomizerContent::setActive(const bool &active)
 {
-	LOG_CINFO("game") << "SET ACTIVE" << m_id << active;
-
 	for (TiledObjectBody *b : m_objects) {
 		b->filterSet(active ?
 						 TiledObjectBody::FixtureGround :

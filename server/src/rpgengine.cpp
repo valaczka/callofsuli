@@ -630,6 +630,11 @@ const RpgGameData::SnapshotList<RpgGameData::Pickable, RpgGameData::PickableBase
 	return m_snapshots.controls().pickables;
 }
 
+const RpgGameData::SnapshotList<RpgGameData::ControlTeleport, RpgGameData::ControlTeleportBaseData> &RpgEngine::controlTeleports()
+{
+	return m_snapshots.controls().teleports;
+}
+
 
 
 
@@ -724,6 +729,19 @@ void RpgEngine::addContainerUsed(const qint64 &tick,
 	}
 
 	eventAdd<RpgEventContainerUsed>(tick, base, player, list, success);
+}
+
+
+/**
+ * @brief RpgEngine::addTeleportUsed
+ * @param tick
+ * @param base
+ * @param player
+ */
+
+void RpgEngine::addTeleportUsed(const qint64 &tick, const RpgGameData::ControlTeleportBaseData &base, const RpgGameData::PlayerBaseData &player)
+{
+	eventAdd<RpgEventTeleportUsed>(tick, base, player);
 }
 
 
@@ -1538,6 +1556,29 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 	}
 
 
+	for (const auto &ptr : snapshot.controls.teleports) {
+		const RpgGameData::ControlTeleportBaseData &cd = ptr.data;
+
+		if (cd.t != RpgConfig::ControlTeleport) {
+			LOG_CERROR("engine") << "Invalid control teleport data" << q->id();
+			continue;
+		}
+
+		const auto &controls = q->m_snapshots.controls().teleports;
+
+		const auto it = std::find_if(controls.cbegin(), controls.cend(),
+									 [&cd](const auto &e) {
+			return e.data == cd;
+		});
+
+		if (it == controls.cend() && !ptr.list.empty()) {
+			RpgGameData::ControlTeleport data = ptr.list.cbegin()->second;
+
+			data.f = 0;
+
+			q->m_snapshots.teleportAdd(cd, data);
+		}
+	}
 }
 
 
@@ -1551,7 +1592,7 @@ void RpgEnginePrivate::createCollection()
 	if (!q->m_snapshots.controls().collections.empty())
 		return;
 
-	const int req = QRandomGenerator::global()->bounded(5, 30);
+	const int req = 2;//QRandomGenerator::global()->bounded(5, 7);
 
 	LOG_CINFO("engine") << "----- GENERATE" << req << "COLL";
 
@@ -2102,12 +2143,6 @@ bool RpgEventPlayerDied::process(const qint64 &/*tick*/, RpgGameData::CurrentSna
 }
 
 
-/**
- * @brief RpgEventPlayerResurrect::RpgEventPlayerResurrect
- * @param engine
- * @param tick
- */
-
 
 
 
@@ -2491,6 +2526,7 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 			LOG_CERROR("engine") << "Finish colection failed" << it->data.o << it->data.s << it->data.id;
 		}
 
+		int left = -1;
 
 		// Recalculate collections
 
@@ -2503,18 +2539,49 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 			RpgGameData::Player playerData = p.get(m_tick).value();
 
 			int coll = 0;
+			int l = 0;				// csak egy körben megszámoljuk, mennyi van még szabadon
 
 			for (const auto &c : m_engine->controlCollections()) {
 				if (const auto &ptr = c.get(m_tick)) {
+					if (left < 0 && !ptr->own.isValid())
+						++l;
+
 					if (ptr->own.isBaseEqual(p.data))
 						++coll;
 				}
 			}
 
+			if (left < 0)
+				left = l;
+
 			playerData.c = coll;
 
 			dst->assign(dst->players, p.data, playerData);
 		}
+
+		if (left == 0) {
+			LOG_CINFO("engine") << "All COLLECTION collected, open teleports";
+
+			for (const auto &p : m_engine->controlTeleports()) {
+				// Nem final teleportok kihagyása
+				if (p.data.dst.isValid())
+					continue;
+
+				if (p.list.empty()) {
+					LOG_CERROR("engine") << "Empty player snap list";
+					continue;
+				}
+
+				RpgGameData::ControlTeleport pData = p.get(m_tick).value();
+
+				pData.a = true;
+
+				dst->assign(dst->controls.teleports, p.data, pData);
+
+				m_engine->messageAdd(QStringLiteral("The teleporters are open"));
+			}
+		}
+
 
 	} else {
 		d.f = m_tick;
@@ -2534,6 +2601,60 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 
 		dst->assign(dst->controls.collections, m_data, d);
 	}
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief RpgEventTeleportUsed::process
+ * @param tick
+ * @param dst
+ * @return
+ */
+
+bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
+{
+	Q_ASSERT(dst);
+
+	if (tick < m_tick)
+		return false;
+
+	const auto &pl = m_engine->controlTeleports();
+
+	const auto it = std::find_if(pl.cbegin(),
+								 pl.cend(),
+								 [this](const auto &p){
+		return p.data == m_data;
+	});
+
+	if (it == pl.cend()) {
+		LOG_CERROR("engine") << "Invalid teleport" << m_data.o << m_data.s << m_data.id;
+		return true;
+	}
+
+
+	RpgGameData::Player pData;
+
+	const auto &pp = m_engine->players();
+
+	if (const auto &it = std::find_if(pp.cbegin(),
+									  pp.cend(),
+									  [this](const auto &pd){
+									  return pd.data == m_player;
+}); it != pp.cend() && !it->list.empty()) {
+		pData = it->get(m_tick).value();
+	} else {
+		LOG_CERROR("engine") << "Invalid player" << m_player.o << m_player.s << m_player.id;
+		return true;
+	}
+
+	pData.useTeleport(m_data);
+
+	LOG_CINFO("engine") << "###### FINISH TELEPORT" << m_tick << m_data.id << "--->" << m_player.o;
+	dst->assign(dst->players, m_player, pData);
 
 	return true;
 }

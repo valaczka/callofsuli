@@ -98,6 +98,8 @@
 - Realistic HD Chinese jungle geranium (3/10) - (c) PlantCatalog (https://skfb.ly/oACuz)
 - Realistic HD Chinese jungle geranium (2/10) - (c) PlantCatalog (https://skfb.ly/oUJZL)
 - Grass patches - (c) DJMaesen (https://skfb.ly/onMCA)
+- Teleporter circle - (c) 2012 Clint Bellanger (https://opengameart.org/content/teleporter-circle)
+- Teleporter effect - (c) 2015 rubberduck (https://opengameart.org/content/teleporter-effect)
 
 **Music & SFX**
 

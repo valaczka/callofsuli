@@ -102,7 +102,8 @@ public:
 		ControlLight,
 		ControlCollection,
 		ControlPickable,
-		ControlRandomizer
+		ControlRandomizer,
+		ControlTeleport
 	};
 
 	Q_ENUM(ControlType)
@@ -1578,6 +1579,86 @@ public:
 
 
 
+
+
+/**
+ * @brief The ControlTeleportBaseData class
+ */
+
+class ControlTeleportBaseData : public ControlActiveBaseData
+{
+	Q_GADGET
+
+public:
+	ControlTeleportBaseData(const int &_o, const int &_s, const int &_id)
+		: ControlActiveBaseData(RpgConfig::ControlTeleport, _o, _s, _id)
+		, x(0)
+		, y(0)
+	{}
+
+	ControlTeleportBaseData()
+		: RpgGameData::ControlTeleportBaseData(-1, -1, -1)
+	{}
+
+	bool isEqual(const ControlTeleportBaseData &other) const {
+		return ControlBaseData::isEqual(other) && other.lck == lck;
+	}
+
+	EQUAL_OPERATOR(ControlTeleportBaseData)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(float, x)					// position
+	QS_FIELD(float, y)
+	QS_OBJECT(ControlBaseData, dst)				// destination teleport (invalid = final teleport)
+};
+
+
+
+
+
+
+/**
+ * @brief The ControlTeleport class
+ */
+
+class ControlTeleport : public ControlActive
+{
+	Q_GADGET
+
+public:
+	ControlTeleport()
+		: ControlActive()
+		, op(false)
+	{}
+
+	bool isEqual(const ControlTeleport &other) const {
+		return Control::isEqual(other) && other.op == op;
+	}
+
+	bool canMerge(const ControlTeleport &other) const {
+		return Control::canMerge(other) && other.op == op;
+	}
+
+	bool canInterpolateFrom(const ControlTeleport &other) const {
+		return isEqual(other) && other.op == op;
+	}
+
+	EQUAL_OPERATOR(ControlTeleport)
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(bool, op)				// operating
+};
+
+
+
+
+
+
+
+
+
 /**
  * @brief The InventoryItem class
  */
@@ -1969,7 +2050,8 @@ public:
 		PlayerWeaponChange,
 		PlayerLockControl,					// előbb a feladat
 		PlayerUnlockControl,				// sikertelen feladat után
-		PlayerUseControl					// nincs feladat vagy sikeres feladat után
+		PlayerUseControl,					// nincs feladat vagy sikeres feladat után
+		PlayerExit							// kilép a teleportból, búvóhelyről,...stb.
 	};
 
 	Q_ENUM(PlayerState);
@@ -1977,16 +2059,19 @@ public:
 
 	bool isEqual(const Player &other) const  {
 		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l &&
-				other.c == c && other.xp == xp && other.x == x;
+				other.c == c && other.xp == xp && other.x == x &&
+				other.pck == pck;
 	}
 
 	bool canMerge(const Player &other) const {
 		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l &&
-				other.c == c && other.xp == xp && other.x == x;
+				other.c == c && other.xp == xp && other.x == x &&
+				other.pck == pck;
 	}
 
 	bool canInterpolateFrom(const Player &other) const {
-		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg;
+		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg &&
+				other.pck == pck;
 	}
 
 	static void controlFailed(Player &dst, const RpgConfig::ControlType &control);
@@ -2001,12 +2086,20 @@ public:
 		return pick(*this, type, name);
 	}
 
+
+	static bool useTeleport(Player &dst, const ControlTeleportBaseData &base);
+
+	bool useTeleport(const ControlTeleportBaseData &base) {
+		return useTeleport(*this, base);
+	}
+
 	EQUAL_OPERATOR(Player);
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(PlayerState, st)			// state
 	QS_OBJECT(BaseData, tg)				// target (enemy, control)
+	QS_OBJECT(BaseData, pck)			// packed (hiding place, teleport,...)
 	QS_FIELD(bool, l)					// locked
 	QS_OBJECT(Inventory, inv)			// inventory
 	QS_FIELD(int, c)					// collected items
@@ -2291,8 +2384,6 @@ public:
 
 
 
-
-
 /**
  * @brief The SnapshotInterpolation class
  */
@@ -2369,6 +2460,7 @@ struct SnapshotInterpolationControls
 	SnapshotInterpolationList<ControlCollectionBaseData, ControlCollection> collections;
 	SnapshotInterpolationList<PickableBaseData, Pickable> pickables;
 	SnapshotInterpolationList<ControlGateBaseData, ControlGate> gates;
+	SnapshotInterpolationList<ControlTeleportBaseData, ControlTeleport> teleports;
 };
 
 
@@ -2384,6 +2476,7 @@ struct SnapshotControls
 	SnapshotList<ControlCollection, ControlCollectionBaseData> collections;
 	SnapshotList<Pickable, PickableBaseData> pickables;
 	SnapshotList<ControlGate, ControlGateBaseData> gates;
+	SnapshotList<ControlTeleport, ControlTeleportBaseData> teleports;
 };
 
 
@@ -2408,6 +2501,7 @@ struct FullSnapshot {
 		controls.collections.clear();
 		controls.pickables.clear();
 		controls.gates.clear();
+		controls.teleports.clear();
 	}
 
 	template <typename T2, typename T,
@@ -2462,6 +2556,7 @@ struct CurrentSnapshot {
 		controls.collections.clear();
 		controls.pickables.clear();
 		controls.gates.clear();
+		controls.teleports.clear();
 	}
 
 

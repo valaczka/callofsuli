@@ -152,13 +152,6 @@ bool RpgControlGate::loadFromLayer(RpgGame *game, TiledScene *scene, Tiled::Laye
 				controlObjectAdd(o);
 			}
 		}
-	} else if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-		const auto &it = m_stateHash.find(tl->className());
-
-		if (it == m_stateHash.cend())
-			scene->addTileLayer(tl, renderer);
-		else
-			tileLayerAdd(it.value(), scene->addTileLayer(tl, renderer));
 	} else {
 		return false;
 	}

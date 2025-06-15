@@ -31,6 +31,7 @@
 #include "rpgcontrolgate.h"
 #include "rpgcontrollight.h"
 #include "rpgcontrolrandomizer.h"
+#include "rpgcontrolteleport.h"
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
 #include "rpggame.h"
@@ -817,6 +818,8 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 		controlAdd<RpgControlContainer>(this, scene, group, renderer);
 	} else if (cname == QStringLiteral("gate")) {
 		controlAdd<RpgControlGate>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("teleport")) {
+		controlAdd<RpgControlTeleport>(this, scene, group, renderer);
 	} else if (cname == QStringLiteral("randomizer")) {
 		if (RpgControlRandomizer *r = RpgControlRandomizer::find(m_controls, group, scene->sceneId()))
 			r->addGroupLayer(scene, group, renderer);

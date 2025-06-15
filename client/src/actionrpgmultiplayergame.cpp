@@ -30,6 +30,7 @@
 #include "rpgcontrollight.h"
 #include "rpgcontrolcollection.h"
 #include "rpgcontrolrandomizer.h"
+#include "rpgcontrolteleport.h"
 #include "rpgpickable.h"
 #include "rpgquestion.h"
 #include "rpgudpengine.h"
@@ -1931,6 +1932,11 @@ void ActionRpgMultiplayerGame::onWorldStep()
 						c->baseData(), q->m_currentSnapshot.controls.gates))
 				c->updateFromSnapshot(s.value());
 
+		} else if (RpgControlTeleport *c = dynamic_cast<RpgControlTeleport*>(ptr.get())) {
+			if (const auto &s = q->m_currentSnapshot.getSnapshot<RpgGameData::ControlTeleportBaseData, RpgGameData::ControlTeleport>(
+						c->baseData(), q->m_currentSnapshot.controls.teleports))
+				c->updateFromSnapshot(s.value());
+
 		} else if (dynamic_cast<RpgControlRandomizer*>(ptr.get())) {
 
 		} else {
@@ -2064,6 +2070,8 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 				snap.assign(snap.controls.containers, c->baseData(), c->serialize(0));
 			} else if (RpgControlGate *c = dynamic_cast<RpgControlGate*>(ptr.get())) {
 				snap.assign(snap.controls.gates, c->baseData(), c->serialize(0));
+			} else if (RpgControlTeleport *c = dynamic_cast<RpgControlTeleport*>(ptr.get())) {
+				snap.assign(snap.controls.teleports, c->baseData(), c->serialize(0));
 			} else {
 				LOG_CERROR("game") << "Invalid control" << ptr.get();
 			}

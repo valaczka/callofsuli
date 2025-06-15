@@ -200,6 +200,9 @@ public:
 	const QList<QPointer<RpgActiveControlObject> > &controlObjectList() const { return m_controlObjectList; }
 	RpgActiveControlObject *controlObjectAdd(RpgActiveControlObject *object);
 
+	const QList<QPointer<QQuickItem> > &overlays() const { return m_overlays; }
+	void overlayAdd(QQuickItem *item);
+
 	QPointF basePosition() const { return m_basePosition; }
 	void setBasePosition(QPointF newBasePosition) { m_basePosition = newBasePosition; }
 
@@ -233,6 +236,7 @@ protected:
 	virtual void onDeactivated();
 
 	virtual void updateGlow(const bool &glow);
+	virtual void updateOverlays();
 
 	QString m_keyLock;
 	bool m_questionLock = false;
@@ -244,6 +248,7 @@ protected:
 
 	TiledVisualItem* m_visualItem = nullptr;
 	QList<QPointer<RpgActiveControlObject> > m_controlObjectList;
+	QList<QPointer<QQuickItem>> m_overlays;
 
 	QList<cpShape *> m_contactedFixtures;
 
@@ -542,10 +547,19 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadFromGroupLayer(RpgGame *game
 			LOG_CTRACE("scene") << "Add image layer" << tl->name() << "url:" << tl->imageSource() << this;
 
 		} else if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-			const auto &it = m_stateHash.find(tl->name());
+			if (tl->className() == QStringLiteral("overlay")) {
+				overlayAdd(scene->addTileLayer(tl, renderer));
+				continue;
+			}
+
+			auto it = m_stateHash.find(tl->name());
 
 			if (it == m_stateHash.cend()) {
-				LOG_CWARNING("scene") << "Invalid tile layer" << tl->name();
+				it = m_stateHash.find(tl->className());
+			}
+
+			if (it == m_stateHash.cend()) {
+				scene->addTileLayer(tl, renderer);
 				continue;
 			}
 

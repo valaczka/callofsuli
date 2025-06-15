@@ -300,6 +300,28 @@ RpgActiveControlObject *RpgActiveIface::controlObjectAdd(RpgActiveControlObject 
 
 
 
+
+
+/**
+ * @brief RpgActiveIface::overlayAdd
+ * @param item
+ */
+
+void RpgActiveIface::overlayAdd(QQuickItem *item)
+{
+	if (!item)
+		return;
+
+	if (!m_overlays.contains(item)) {
+		m_overlays.append(item);
+		updateOverlays();
+	}
+}
+
+
+
+
+
 /**
  * @brief RpgActiveIface::setKeyLock
  * @param newKey
@@ -388,6 +410,7 @@ void RpgActiveIface::onShapeContactBegin(cpShape *self, cpShape *other)
 
 	if (!m_contactedFixtures.contains(other)) {
 		m_contactedFixtures.append(other);
+		updateOverlays();
 	}
 }
 
@@ -404,6 +427,8 @@ void RpgActiveIface::onShapeContactEnd(cpShape *self, cpShape *other)
 	Q_UNUSED(self);
 
 	m_contactedFixtures.removeAll(other);
+
+	updateOverlays();
 }
 
 /**
@@ -420,6 +445,7 @@ void RpgActiveIface::onActivated()
 					 TiledObjectBody::FixtureSensor |
 					 TiledObjectBody::FixtureVirtualCircle);
 
+	updateOverlays();
 }
 
 
@@ -432,6 +458,8 @@ void RpgActiveIface::onDeactivated()
 {
 	for (RpgActiveControlObject *o : m_controlObjectList)
 		o->filterSet(TiledObjectBody::FixtureInvalid, TiledObjectBody::FixtureInvalid);
+
+	updateOverlays();
 }
 
 
@@ -445,6 +473,34 @@ void RpgActiveIface::updateGlow(const bool &glow)
 {
 	if (m_visualItem)
 		m_visualItem->setGlowEnabled(glow);
+}
+
+
+
+
+
+/**
+ * @brief RpgActiveIface::updateOverlays
+ */
+
+void RpgActiveIface::updateOverlays()
+{
+	if (m_overlays.isEmpty())
+		return;
+
+	bool hasPlayer = false;
+
+	for (cpShape *sh : m_contactedFixtures) {
+		if (cpShapeGetFilter(sh).categories & TiledObjectBody::FixtureVirtualCircle) {
+			hasPlayer = true;
+			break;
+		}
+	}
+
+	for (QQuickItem *it : m_overlays) {
+		if (it)
+			it->setVisible(hasPlayer);
+	}
 }
 
 
