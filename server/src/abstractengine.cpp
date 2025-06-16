@@ -18,7 +18,7 @@ AbstractEngine::AbstractEngine(const Type &type, const int &id, EngineHandler *h
 {
 	Q_ASSERT(handler);
 
-	LOG_CTRACE("engine") << "Abstract engine created:" << m_type << m_id << this;
+	LOG_CDEBUG("engine") << "Abstract engine created:" << m_type << m_id << this;
 }
 
 
@@ -29,7 +29,7 @@ AbstractEngine::AbstractEngine(const Type &type, const int &id, EngineHandler *h
 
 AbstractEngine::~AbstractEngine()
 {
-	LOG_CTRACE("engine") << "Abstract engine destroyed:" << m_type << m_id << this;
+	LOG_CDEBUG("engine") << "Abstract engine destroyed:" << m_type << m_id << this;
 }
 
 

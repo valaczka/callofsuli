@@ -112,6 +112,7 @@ private:
 
 	void dataSend(const SendMode &mode, RpgEnginePlayer *player = nullptr);
 	void dataSendPlay();
+	void dataSendFinished();
 
 	void insertBaseMapData(QCborMap *dst, RpgEnginePlayer *player);
 	bool insertMessages(QCborMap *dst, RpgEnginePlayer *player);
@@ -313,9 +314,17 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, UdpSe
 
 bool RpgEngine::canDelete(const int &useCount)
 {
-	if (m_config.gameState == RpgConfig::StatePlay)
-		return false;
-	else
+	if (m_config.gameState == RpgConfig::StatePlay) {
+		// Ha van még, aki nincs kész, akkor nem zárjuk le
+
+		const auto it = std::find_if(m_player.cbegin(),
+									 m_player.cend(),
+									 [](const auto &ptr) {
+			return ptr->cmp == true;
+		});
+
+		return it == m_player.cend();
+	} else
 		return AbstractEngine::canDelete(useCount);
 }
 
@@ -345,6 +354,8 @@ void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
 		d->dataSend(RpgEnginePrivate::SendPrepare);
 	else if (m_config.gameState == RpgConfig::StatePlay)
 		d->dataSendPlay();
+	else if (m_config.gameState == RpgConfig::StateFinished)
+		d->dataSendFinished();
 
 	d->renderTimerMeausure(RpgEnginePrivate::TimerTick, t2.elapsed());
 }
@@ -447,6 +458,31 @@ RpgEnginePlayer *RpgEngine::player(const RpgGameData::PlayerBaseData &base) cons
 		return nullptr;
 	else
 		return it->get();
+}
+
+
+/**
+ * @brief RpgEngine::playerSetGameCompleted
+ * @param base
+ * @return
+ */
+
+RpgEnginePlayer *RpgEngine::playerSetGameCompleted(const RpgGameData::PlayerBaseData &base)
+{
+	RpgEnginePlayer *p = player(base);
+
+	if (!p) {
+		LOG_CERROR("engine") << "Invalid player" << base.o;
+		return nullptr;
+	}
+
+	LOG_CDEBUG("engine") << "Engine" << m_id << "player" << base.o << "game completed";
+
+	p->setGameCompleted();
+
+	m_snapshots.playerUpdate(p);
+
+	return p;
 }
 
 
@@ -756,6 +792,35 @@ void RpgEngine::addTeleportUsed(const qint64 &tick, const RpgGameData::ControlTe
 void RpgEngine::renderTimerLog(const qint64 &msec)
 {
 	d->renderTimerMeausure(RpgEnginePrivate::Render, msec);
+}
+
+
+
+/**
+ * @brief RpgEngine::checkPlayersCompleted
+ */
+
+void RpgEngine::checkPlayersCompleted()
+{
+	if (m_config.gameState != RpgConfig::StatePlay)
+		return;
+
+	bool completed = true;
+
+	for (const auto &pl : m_player) {
+		if (!pl->cmp) {
+			completed = false;
+			break;
+		}
+	}
+
+	if (!completed)
+		return;
+
+	LOG_CERROR("engine") << "All players completed!!!";
+
+	m_config.gameState = RpgConfig::StateFinished;
+
 }
 
 
@@ -1179,6 +1244,55 @@ void RpgEnginePrivate::dataSendPlay()
 
 
 
+
+/**
+ * @brief RpgEnginePrivate::dataSendFinished
+ */
+
+void RpgEnginePrivate::dataSendFinished()
+{
+	const qint64 tick = q->currentTick();
+
+	QCborMap current = q->m_snapshots.getCurrentSnapshot().toCbor();
+	current.insert(QStringLiteral("t"), tick);
+
+	for (auto it = q->m_player.cbegin(); it != q->m_player.cend(); ++it) {
+		UdpServerPeer *peer = it->get()->udpPeer();
+
+		if (!peer)
+			continue;
+
+		if (peer->isReconnecting()) {
+			continue;
+		}
+
+		QCborMap map = current;
+
+		insertBaseMapData(&map, it->get());
+		insertMessages(&map, it->get());
+
+		peer->send(map.toCborValue().toCbor(), false);
+
+		peer->setLastSentTick(tick);
+	}
+
+	clearMessages();
+
+
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+
+	map.insert(QStringLiteral("txt"), renderTimerDump()+engineDump());
+
+	//map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(current.toJsonObject()).toJson()));
+	q->service()->writeToSocket(map.toCborValue());
+#endif
+}
+
+
+
+
 /**
  * @brief RpgEnginePrivate::insertBaseMapData
  * @param dst
@@ -1461,8 +1575,6 @@ void RpgEnginePrivate::createEnemies(const RpgGameData::CurrentSnapshot &snapsho
 			edata.f = 0;
 			edata.hp = 32;
 			edata.mhp = 32;
-			edata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponShortbow, -1));
-			edata.arm.cw = RpgGameData::Weapon::WeaponShortbow;
 
 			q->m_snapshots.enemyAdd(enemy, edata);
 		}
@@ -2651,10 +2763,29 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 		return true;
 	}
 
-	pData.useTeleport(m_data);
+	if (pData.useTeleport(m_data, m_player)) {
+		LOG_CINFO("engine") << "###### FINISH TELEPORT" << m_tick << m_data.id << "--->" << m_player.o << "RQ:" << m_player.rq;
+		dst->assign(dst->players, m_player, pData);
 
-	LOG_CINFO("engine") << "###### FINISH TELEPORT" << m_tick << m_data.id << "--->" << m_player.o;
-	dst->assign(dst->players, m_player, pData);
+
+		// Final teleport
+
+		if (!m_data.dst.isValid()) {
+			if (RpgEnginePlayer *enginePlayer = m_engine->playerSetGameCompleted(m_player)) {
+				m_engine->messageAdd(QStringLiteral("%1 mission completed").arg(enginePlayer->config().nickname.isEmpty() ?
+																					enginePlayer->config().username :
+																					enginePlayer->config().nickname),
+									 QList<int>{m_data.o}, true);
+			} else {
+				LOG_CERROR("engine") << "Invalid player" << m_player.o;
+			}
+		}
+
+
+
+	} else {
+		LOG_CWARNING("engine") << "Player teleport use failed" << m_player.o << m_data.id;
+	}
 
 	return true;
 }

@@ -35,6 +35,9 @@
 
 
 
+
+
+
 /**
  * @brief Renderer::addObjects
  * @param list
@@ -47,7 +50,7 @@ bool Renderer::addObjects(const RpgGameData::SnapshotList<T, T2> &list)
 	bool success = true;
 
 	for (const RpgGameData::SnapshotData<T, T2> &d : list) {
-		if (find(d.data)) {
+		if (findByBase(d.data)) {
 			LOG_CERROR("engine") << "Object already exists" << d.data.o << d.data.s << d.data.id;
 			success = false;
 			continue;
@@ -143,7 +146,7 @@ int Renderer::saveObjects(RpgGameData::SnapshotList<T, T2> &dst)
 	int diff = 0;
 
 	for (auto &ptr : dst) {
-		RendererObject<T2> *obj = find(ptr.data);
+		RendererObject<T2> *obj = findByBase<T2>(ptr.data);
 
 		if (!obj) {
 			LOG_CDEBUG("engine") << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
@@ -919,7 +922,7 @@ bool Renderer::loadSnaps(RpgGameData::SnapshotList<T, T2> &list, const bool &isS
 	bool success = true;
 
 	for (auto &ptr : list) {
-		RendererObject<T2> *o = find(ptr.data);
+		RendererObject<T2> *o = findByBase<T2>(ptr.data);
 		if (!o) {
 			LOG_CDEBUG("engine") << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
 			success = false;
@@ -957,7 +960,8 @@ bool Renderer::loadAuthSnaps(const RpgGameData::SnapshotList<T, T2> &src)
 		if (ptr.list.empty())
 			continue;
 
-		RendererObject<T2> *o = find(ptr.data);
+		RendererObject<T2> *o = findByBase<T2>(ptr.data);
+
 		if (!o) {
 			LOG_CDEBUG("engine") << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
 			success = false;
@@ -1304,6 +1308,34 @@ bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, cons
 
 
 /**
+ * @brief RpgSnapshotStorage::playerUpdate
+ * @param player
+ */
+
+bool RpgSnapshotStorage::playerUpdate(RpgEnginePlayer *player)
+{
+	if (!player)
+		return false;
+
+	auto it = std::find_if(m_players.begin(),
+						   m_players.end(),
+						   [player](const auto &ptr) {
+		return ptr.data.isBaseEqual(*player);
+	});
+
+	if (it == m_players.end()) {
+		LOG_CERROR("engine") << "Invalid player" << player;
+		return false;
+	}
+
+	it->data = *player;
+
+	return true;
+}
+
+
+
+/**
  * @brief RpgSnapshotStorage::append
  * @param key
  * @param data
@@ -1423,6 +1455,9 @@ void RpgSnapshotStorage::renderEnd(const QString &txt)
 	m_engine->service()->writeToSocket(map.toCborValue());
 
 #endif
+
+
+	m_engine->checkPlayersCompleted();
 }
 
 
@@ -1974,9 +2009,10 @@ QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::PlayerBaseDat
 {
 	Q_ASSERT(obj);
 
-	QString txt = QStringLiteral("[Player %1] - rq: %2")
+	QString txt = QStringLiteral("[Player %1] - rq: %2 (%3)")
 				  .arg(obj->baseData.o)
 				  .arg(obj->baseData.rq)
+				  .arg(obj->baseData.cmp)
 				  ;
 
 	txt += QStringLiteral("\n-------------------------------------------\n");
@@ -2008,6 +2044,36 @@ QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::PickableBaseD
 					  .arg(obj->baseData.p.at(0))
 					  .arg(obj->baseData.p.at(1))
 					  ;
+
+	txt += QStringLiteral("\n-------------------------------------------\n");
+	return txt;
+}
+
+
+
+
+/**
+ * @brief Renderer::dumpBaseDataAs
+ * @param obj
+ * @return
+ */
+
+QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::ControlTeleportBaseData> *obj)
+{
+	Q_ASSERT(obj);
+
+	QString txt = QStringLiteral("Teleport %1 %2 %3  ")
+				  .arg(obj->baseData.o)
+				  .arg(obj->baseData.s)
+				  .arg(obj->baseData.id)
+				  ;
+
+
+	txt += QStringLiteral(" ->@(%1,%2) %3")
+		   .arg(obj->baseData.x)
+		   .arg(obj->baseData.y)
+		   .arg(obj->baseData.a)
+		   ;
 
 	txt += QStringLiteral("\n-------------------------------------------\n");
 	return txt;
@@ -2074,7 +2140,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 		RpgGameData::Player::PlayerState specialSt = RpgGameData::Player::PlayerInvalid;
 		RpgGameData::Weapon::WeaponType cw = RpgGameData::Weapon::WeaponInvalid;
-		bool clearPck = false;
+		std::optional<RpgGameData::BaseData> clearPck;
 
 		// Külön eseményt nem okozó állapotok
 
@@ -2094,6 +2160,11 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 				}
 			} else if (!normalStates.contains(p.st)) {
 
+				if (p.pck.isValid() && p.st != RpgGameData::Player::PlayerExit) {
+					LOG_CWARNING("engine") << "Player packed, only Exit supported";
+					continue;
+				}
+
 				// Ha ez az első különleges eset, akkor feldolgozzuk
 
 				if (p.st == RpgGameData::Player::PlayerHit ||
@@ -2107,7 +2178,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 					m_solver.add(m_current, src, tg, p.arm.cw);
 				} else if (p.st == RpgGameData::Player::PlayerLockControl) {
 					if (RendererObjectType *tg = findByBase(p.tg)) {
-						LOG_CWARNING("engine") << "LOCK CONTROL" << tg->asBaseData().o << tg->asBaseData().s << tg->asBaseData().id;
 						m_solver.addUnique(m_current, src, tg);
 					} else {
 						LOG_CERROR("engine") << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
@@ -2115,7 +2185,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 				} else if (p.st == RpgGameData::Player::PlayerUseControl) {
 					if (RendererObjectType *tg = findByBase(p.tg)) {
-						LOG_CWARNING("engine") << "USE CONTROL" << tg->asBaseData().o << tg->asBaseData().s << tg->asBaseData().id;
 						if (auto *iface = m_solver.addUnique(m_current, src, tg)) {
 							iface->releaseSuccess(m_current, src);
 						}
@@ -2125,7 +2194,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 				} else if (p.st == RpgGameData::Player::PlayerUnlockControl) {
 					if (RendererObjectType *tg = findByBase(p.tg)) {
-						LOG_CWARNING("engine") << "UNLOCK CONTROL" << tg->asBaseData().id;
 						if (auto *iface = m_solver.addUnique(m_current, src, tg)) {
 							iface->releaseFailed(m_current, src);
 						}
@@ -2140,7 +2208,8 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 					if (p.st == RpgGameData::Player::PlayerWeaponChange) {
 						cw = p.arm.cw;
 					} else if (p.st == RpgGameData::Player::PlayerExit) {
-						clearPck = true;
+						clearPck = dst->m_data.pck;
+						LOG_CINFO("engine") << "PLAYER EXIT" << dst->m_data.pck.id << "vs" << p.pck.id;
 					} else {
 						specialSt = p.st;
 					}
@@ -2169,8 +2238,16 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 		if (cw != RpgGameData::Weapon::WeaponInvalid)
 			dst->m_data.arm.cw = cw;
 
-		if (clearPck)
+		if (clearPck.has_value()) {
+			LOG_CINFO("engine") << "EXIT PLAYER" << m_current;
+
+			if (RendererObject<RpgGameData::ControlTeleportBaseData> *pck = findByBase<RpgGameData::ControlTeleportBaseData>(clearPck.value())) {
+				m_solver.add(m_current, src, dst->m_data.sc, QPointF(pck->baseData.x, pck->baseData.y), pck->baseData.a);
+			}
+
 			dst->m_data.pck = {};
+			dst->m_data.st = RpgGameData::Player::PlayerExit;
+		}
 
 
 		// Töröljük a sub-okat
@@ -3062,6 +3139,9 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 
 
 
+
+
+
 /**
  * @brief ConflictSolver::ConflictContainer::ConflictContainer
  * @param _tick
@@ -3723,6 +3803,8 @@ void ConflictSolver::ConflictTeleport::generateEvent(ConflictSolver *solver, Rpg
 		return;
 	}
 
+	const QPointF pos(m_unique->baseData.x, m_unique->baseData.y);
+
 	for (const ReleaseState &st : m_release) {
 		if (st.state != StateSuccess || !st.player)
 			continue;
@@ -3754,6 +3836,84 @@ bool ConflictSolver::ConflictTeleport::getInitialState(Renderer *renderer, Relea
 		LOG_CDEBUG("engine") << "---- teleport inactive";
 		return false;
 	}
+
+	return true;
+}
+
+
+
+
+
+
+
+/**
+ * @brief ConflictSolver::ConflictRelocate::solve
+ * @param solver
+ * @return
+ */
+
+bool ConflictSolver::ConflictRelocate::solve(ConflictSolver *solver)
+{
+	Q_ASSERT(solver);
+
+	if (!src) {
+		LOG_CERROR("engine") << "Invalid source" << src;
+		return false;
+	}
+
+	RendererItem<RpgGameData::Player> *e = solver->m_renderer->get<RpgGameData::Player>(src);
+
+	if (!e) {
+		LOG_CERROR("engine") << "Invalid item" << src;
+		return false;
+	}
+
+	RpgGameData::Player data = e->data();
+
+	if (e->flags() & RendererType::ReadOnly) {
+		LOG_CERROR("engine") << "Read only storage item" << src;
+		return false;
+	}
+
+
+	if (!e->flags().testFlag(RendererType::Storage)) {
+		const auto &ptr = solver->m_renderer->extendFromLast<RpgGameData::Player>(src);
+
+		if (!ptr) {
+			LOG_CERROR("engine") << "Extend failed";
+			return false;
+		}
+
+		data = ptr.value();
+	}
+
+	const QList<float> pos{(float) position.x(), (float) position.y()};
+
+	data.p = pos;
+	data.a = angle;
+	data.sc = scene;
+
+
+	e->setData(data);
+	e->addFlags(RendererType::Modified);
+
+
+	for (auto it = src->iterator(); it != src->snap.cend(); ++it) {
+		RendererItem<RpgGameData::Player> *p = dynamic_cast<RendererItem<RpgGameData::Player> *>(it->get());
+
+		if (!p || !p->hasContent() || p->flags().testFlags(RendererType::ReadOnly))
+			continue;
+
+		RpgGameData::Player pdata = p->data();
+
+		pdata.p = pos;
+		pdata.a = angle;
+		pdata.sc = scene;
+
+		p->setData(pdata);
+		p->addFlags(RendererType::Modified);
+	}
+
 
 	return true;
 }

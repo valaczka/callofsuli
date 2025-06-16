@@ -224,7 +224,9 @@ FocusScope {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared
+		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared &&
+				 !_game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
+
 		extendedSize: !_game.mouseAttack && !_game.mouseNavigation
 
 		size: 120 * Qaterial.Style.pixelSizeRatio * gameControlRatio
@@ -492,7 +494,7 @@ FocusScope {
 		anchors.right: _shotButton.left
 		anchors.rightMargin: 10
 
-		visible: _isPrepared
+		visible: _isPrepared && _game.controlledPlayer && !_game.controlledPlayer.isGameCompleted
 
 		spacing: 30
 
@@ -504,7 +506,8 @@ FocusScope {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			visible: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
-					 _game.controlledPlayer.currentControl.isActive && _game.controlledPlayer.hp > 0
+					 _game.controlledPlayer.currentControl.isActive && _game.controlledPlayer.hp > 0 &&
+					 !_game.controlledPlayer.isHiding
 
 			readonly property bool isOpen: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
 										   !_game.controlledPlayer.currentControl.isLocked
@@ -582,7 +585,8 @@ FocusScope {
 		readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
 		readonly property bool _canAttack: weapon && (weapon.canHit || weapon.canShot)
 
-		visible: weapon && _isPrepared && _game.controlledPlayer && _game.controlledPlayer.hp > 0
+		visible: weapon && _isPrepared && _game.controlledPlayer && _game.controlledPlayer.hp > 0 &&
+				 !_game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
 
 		color: _canAttack ? Qaterial.Colors.red800 : "transparent"
 
@@ -605,6 +609,32 @@ FocusScope {
 			function onAttackDone() {
 				_shotButton.tapAnim.start()
 			}
+		}
+	}
+
+
+	GameButton {
+		id: _exitButton
+		size: 50
+
+		anchors.centerIn: _shotButton
+
+		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 &&
+				 _game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
+
+
+		color: Qaterial.Colors.amber500
+
+		border.color: fontImage.color
+		border.width: 1
+
+		fontImage.icon: Qaterial.Icons.exitRun
+		fontImage.color: "white"
+		fontImageScale: 0.6
+		//fontImage.anchors.horizontalCenterOffset: -2
+
+		onClicked: {
+			_game.controlledPlayer.exitHiding()
 		}
 	}
 

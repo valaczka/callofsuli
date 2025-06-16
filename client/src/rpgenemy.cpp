@@ -239,7 +239,7 @@ bool RpgEnemy::enemyWorldStep()
 		if (!hasAbility())
 			return false;
 
-		if (m_player->isLocked())
+		if (m_player->isLocked() || !m_player->isDiscoverable())
 			return false;
 
 		if (m_game->tickTimer()) {
@@ -289,7 +289,7 @@ bool RpgEnemy::enemyWorldStepOnVisiblePlayer()
 		if (!hasAbility())
 			return false;
 
-		if (m_player->isLocked())
+		if (m_player->isLocked() || !m_player->isDiscoverable())
 			return false;
 
 		if (m_game->tickTimer()) {
@@ -327,7 +327,7 @@ void RpgEnemy::attackPlayer(RpgPlayer *player, RpgWeapon *weapon)
 {
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-	if (!weapon || !player || player->isLocked() || !g)
+	if (!weapon || !player || player->isLocked() || !player->isDiscoverable() || !g)
 		return;
 
 

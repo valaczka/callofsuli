@@ -25,6 +25,7 @@
  */
 
 #include "rpgplayer.h"
+#include "rpgcontrol.h"
 #include "actionrpggame.h"
 #include "actionrpgmultiplayergame.h"
 #include "rpgfirefog.h"
@@ -42,16 +43,53 @@
 
 
 
+class RpgPlayerExitControl : public RpgActiveIface
+{
+public:
+	RpgPlayerExitControl() : RpgActiveIface() {
+		setIsActive(true);
+		setIsLocked(false);
+		setQuestionLock(false);
+	}
+
+	virtual const RpgConfig::ControlType &activeType() const override final { return m_type; };
+
+	virtual RpgGameData::BaseData pureBaseData() const override final { return RpgGameData::BaseData(); };
+
+	virtual bool loadFromGroupLayer(RpgGame *, TiledScene *,
+									Tiled::GroupLayer *, Tiled::MapRenderer * = nullptr) override final {
+		return false;
+	}
+
+protected:
+	virtual bool loadFromLayer(RpgGame *, TiledScene *,
+							   Tiled::Layer *, Tiled::MapRenderer * = nullptr) override final {
+		return false;
+	};
+
+	virtual void refreshVisualItem() override final {};
+
+private:
+	const RpgConfig::ControlType m_type = RpgConfig::ControlExit;
+};
+
+
+
+
+
 class RpgPlayerPrivate
 {
 private:
 	RpgPlayerPrivate(RpgPlayer *player)
 		: q(player)
+		, m_exitControl(new RpgPlayerExitControl)
 	{}
 
 	RpgPlayer *const q;
 
 	QPointer<RpgActiveControlObject> m_currentControl;
+	std::unique_ptr<RpgPlayerExitControl> m_exitControl;
+
 
 	friend class RpgPlayer;
 };
@@ -124,7 +162,7 @@ void RpgPlayer::attack(RpgWeapon *weapon)
 {
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-	if (!weapon || !isAlive() || !g)
+	if (!weapon || !isAlive() || !g || isHiding())
 		return;
 
 	clearDestinationPoint();
@@ -248,9 +286,24 @@ void RpgPlayer::useCurrentControl()
 {
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-	if (d->m_currentControl && d->m_currentControl->isActive() && g) {
+	if (d->m_currentControl && d->m_currentControl->isActive() && !isHiding() && isAlive()) {
 		g->playerTryUseControl(this, d->m_currentControl->activeControl());
 	}
+}
+
+
+
+
+
+
+/**
+ * @brief RpgPlayer::exitHiding
+ */
+
+void RpgPlayer::exitHiding()
+{
+	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
+		g->playerTryUseControl(this, d->m_exitControl.get());
 }
 
 
@@ -806,6 +859,9 @@ void RpgPlayer::setCurrentControl(RpgActiveControlObject *newCurrentControl)
 
 
 
+
+
+
 /**
  * @brief RpgPlayer::serializeThis
  * @return
@@ -824,6 +880,7 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 	p.hp = hp();
 	p.l = m_isLocked;
 	p.c = m_collection;
+	p.pck = m_hidingObject;
 
 	if (RpgGame *g = dynamic_cast<RpgGame*>(m_game); g && g->actionRpgGame())
 		p.xp = g->actionRpgGame()->xp();
@@ -875,7 +932,7 @@ void RpgPlayer::setMaxMp(int newMaxMp)
 
 bool RpgPlayer::isDiscoverable() const
 {
-	return !(m_config.cast == RpgPlayerCharacterConfig::CastInvisible && m_castTimer.isActive());
+	return !m_hidingObject.isValid() && !(m_config.cast == RpgPlayerCharacterConfig::CastInvisible && m_castTimer.isActive());
 }
 
 
@@ -885,6 +942,12 @@ bool RpgPlayer::isDiscoverable() const
 
 void RpgPlayer::worldStep()
 {
+	if (m_hidingObject.isValid()) {
+		setCurrentVelocity(cpvzero);
+		fnStop(this, desiredBodyRotation());
+		return;
+	}
+
 	IsometricPlayer::worldStep();
 
 	if (RpgWeapon *w = m_armory->currentWeapon();
@@ -1094,7 +1157,8 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 	try {
 		if (snapshot.s1.st == RpgGameData::Player::PlayerHit ||
-				snapshot.s1.st == RpgGameData::Player::PlayerShot ) {
+				snapshot.s1.st == RpgGameData::Player::PlayerShot ||
+				snapshot.s1.st == RpgGameData::Player::PlayerExit) {
 			if (const qint64 t = m_stateLastRenderedTicks.value(snapshot.s1.st); t >= snapshot.s1.f)
 				throw 1;
 
@@ -1198,7 +1262,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 {
 	setHp(snap.hp);
 	setCollection(snap.c);
-	///setIsLocked(snap.l);
+	setHidingObject(snap.pck);
 
 	if (snap.st == RpgGameData::Player::PlayerAttack) {
 		if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame()) {
@@ -1220,6 +1284,25 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 		RpgGameData::Armory arm = snap.arm;
 		arm.cw = RpgGameData::Weapon::WeaponInvalid;
 		m_armory->updateFromSnapshot(arm);
+
+	} else if (snap.st == RpgGameData::Player::PlayerExit) {
+		LOG_CINFO("game") << "EXIT PLAYER" << snap.p << snap.a;
+
+		if (const qint64 t = m_stateLastRenderedTicks.value(snap.st); t < snap.f) {
+			LOG_CINFO("game") << "EXIT PLAYER REAL" << snap.f << snap.p << snap.a;
+
+			if (!snap.p.isEmpty()) {
+				emplace(cpv(snap.p.at(0), snap.p.at(1)));
+				if (snap.a >= 0)
+					setCurrentAngleForced(snap.a);
+			} else {
+				LOG_CERROR("scene") << "Missing hitpoint" << snap.f;
+			}
+
+			m_stateLastRenderedTicks.insert(snap.st, snap.f);
+
+			setLastSnapshot(snap);
+		}
 
 	} else {
 		m_armory->updateFromSnapshot(snap.arm);
@@ -1250,7 +1333,10 @@ bool RpgPlayer::isLastSnapshotValid(const RpgGameData::Player &snap, const RpgGa
 	if (lastSnap.xp != snap.xp)
 		return false;
 
-	if (snap.st == RpgGameData::Player::PlayerAttack) {
+	if (lastSnap.pck != snap.pck)
+		return false;
+
+	if (snap.st == RpgGameData::Player::PlayerAttack || snap.st == RpgGameData::Player::PlayerExit) {
 		return false;
 	}
 
@@ -1379,3 +1465,54 @@ void RpgPlayerCharacterConfig::updateSfxPath(const QString &prefix)
 
 
 
+
+/**
+ * @brief RpgPlayer::isHiding
+ * @return
+ */
+
+
+bool RpgPlayer::isHiding() const
+{
+	return m_hidingObject.isValid();
+}
+
+
+/**
+ * @brief RpgPlayer::setHidingObject
+ * @param baseData
+ */
+
+void RpgPlayer::setHidingObject(const RpgGameData::BaseData &baseData)
+{
+	if (m_hidingObject.isEqual(baseData))
+		return;
+	m_hidingObject = baseData;
+	emit isHidingChanged();
+
+	LOG_CINFO("game") << "------------------- HIDING" << m_hidingObject.id;
+
+	if (m_visualItem)
+		m_visualItem->setVisible(!m_hidingObject.isValid());
+}
+
+
+/**
+ * @brief RpgPlayer::isGameCompleted
+ * @return
+ */
+
+bool RpgPlayer::isGameCompleted() const
+{
+	return m_isGameCompleted;
+}
+
+void RpgPlayer::setIsGameCompleted(bool newIsGameCompleted)
+{
+	if (m_isGameCompleted == newIsGameCompleted)
+		return;
+	m_isGameCompleted = newIsGameCompleted;
+	emit isGameCompletedChanged();
+
+	LOG_CINFO("game") << "PLAYER COMPLETED!!!!!!!!!!!!!!!!" << this << m_isGameCompleted;
+}

@@ -478,12 +478,15 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
  * @return
  */
 
-bool Player::useTeleport(Player &dst, const ControlTeleportBaseData &base)
+bool Player::useTeleport(Player &dst, const ControlTeleportBaseData &base, const PlayerBaseData &playerBase)
 {
 	if (base.dst.isValid()) {
 		qWarning() << "Missing implementation";
 		return false;
 	}
+
+	if (dst.c < playerBase.rq)
+		return false;
 
 	dst.pck = base;
 

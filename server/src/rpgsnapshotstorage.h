@@ -252,6 +252,12 @@ public:
 
 	std::vector<std::unique_ptr<RendererType>> snap;
 
+	void* userData() const { return m_userData; }
+	void setUserData(void *data) { m_userData = data; }
+
+protected:
+	void *m_userData = nullptr;
+
 private:
 	std::vector<std::unique_ptr<RendererType>>::const_iterator m_iterator;
 };
@@ -341,6 +347,38 @@ private:
 		RendererObject<T2> *const src;
 		RpgGameData::Weapon::WeaponType weaponType = RpgGameData::Weapon::WeaponInvalid;
 	};
+
+
+
+
+
+
+
+
+	/**
+	 * @brief The ConflictRelocate class
+	 */
+
+	struct ConflictRelocate : public ConflictData
+	{
+		ConflictRelocate(const int &_tick, RendererObject<RpgGameData::PlayerBaseData> *_src,
+						 const int &_scene, const QPointF &_pos, const float &_angle)
+			: ConflictData(_tick)
+			, src(_src)
+			, scene(_scene)
+			, position(_pos)
+			, angle(_angle)
+		{}
+
+		virtual bool solve(ConflictSolver *solver) override;
+
+		RendererObject<RpgGameData::PlayerBaseData> *const src;
+		const int scene;
+		const QPointF position;
+		const float angle;
+	};
+
+
 
 
 
@@ -573,6 +611,8 @@ private:
 
 
 
+
+
 	template <typename T, typename ...Args,
 			  typename = std::enable_if< std::is_base_of<ConflictData, T>::value>::type>
 	T* addData(Args && ...args);
@@ -632,6 +672,13 @@ public:
 	{
 		addData<ConflictAttack<RpgGameData::Enemy, RpgGameData::Player,
 				RpgGameData::EnemyBaseData, RpgGameData::PlayerBaseData> >(tick, src, dest, weaponType);
+	}
+
+	void add(const int &tick,
+			 RendererObject<RpgGameData::PlayerBaseData> *src,
+			 const int &scene, const QPointF &pos, const float &angle)
+	{
+		addData<ConflictRelocate>(tick, src, scene, pos, angle);
 	}
 
 
@@ -790,6 +837,7 @@ public:
 
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PlayerBaseData> *obj);
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PickableBaseData> *obj);
+	static QString dumpBaseDataAs(const RendererObject<RpgGameData::ControlTeleportBaseData> *obj);
 
 private:
 	template <typename T, typename T2,
@@ -838,6 +886,7 @@ public:
 	void playerAdd(const RpgGameData::PlayerBaseData &base, const RpgGameData::Player &data);
 	void enemyAdd(const RpgGameData::EnemyBaseData &base, const RpgGameData::Enemy &data);
 	bool bulletAdd(const RpgGameData::BulletBaseData &base, const RpgGameData::Bullet &data);
+	bool playerUpdate(RpgEnginePlayer *player);
 
 	void lightAdd(const RpgGameData::ControlBaseData &base, const RpgGameData::ControlLight &data);
 	void containerAdd(const RpgGameData::ControlContainerBaseData &base, const RpgGameData::ControlContainer &data);

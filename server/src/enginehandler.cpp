@@ -269,7 +269,7 @@ void EngineHandlerPrivate::engineRemove(AbstractEngine *engine)
 
 void EngineHandlerPrivate::engineRemoveUnused()
 {
-	//LOG_CTRACE("service") << "Remove unused engines";
+	LOG_CTRACE("service") << "Remove unused engines";
 
 	QMutexLocker locker(&m_mutex);
 

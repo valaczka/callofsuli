@@ -236,7 +236,10 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 
 	setGameMode(MultiPlayerGuest);
 
-	m_playersModel->setRoleNames(Utils::getRolesFromObject(RpgGameData::CharacterSelect().metaObject()));
+	QStringList roles = Utils::getRolesFromObject(RpgGameData::CharacterSelect().metaObject());
+	roles.append(QStringLiteral("gameCompleted"));
+
+	m_playersModel->setRoleNames(roles);
 
 
 	if (m_client->server()) {
@@ -499,6 +502,12 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 			sendData(map.toCborValue().toCbor(), true);
 		}
 
+	}
+
+
+	if (m_config.gameState == RpgConfig::StateFinished && m_oldGameState == RpgConfig::StatePlay) {
+		emit onGameSuccess();			// ????
+		return;
 	}
 
 	m_oldGameState = m_config.gameState;
@@ -913,21 +922,18 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 	if (!m_rpgGame || !m_tiledGameLoaded)
 		return;
 
-	if (m_playersSynced && (qsizetype) storage.players().size() == m_rpgGame->m_players.size())
-		return;
-
-	m_playersSynced = false;
-
 	QList<RpgPlayer*> playerList;
 
 	for (const auto &pl : storage.players()) {
-		const auto it = std::find_if(m_rpgGame->m_players.constBegin(),
-									 m_rpgGame->m_players.constEnd(),
+		const auto it = std::find_if(m_rpgGame->m_players.begin(),
+									 m_rpgGame->m_players.end(),
 									 [&pl](const RpgPlayer *p){
-			return p->baseData().s == pl.data.s && p->baseData().id == pl.data.id;
+			return p->baseData().isBaseEqual(pl.data);
 		});
 
-		if (it == m_rpgGame->m_players.constEnd()) {
+		RpgPlayer *rpgPlayer = nullptr;
+
+		if (it == m_rpgGame->m_players.end()) {
 			LOG_CWARNING("game") << "Missing player" << pl.data.s << pl.data.id << pl.data.o << "RQ" << pl.data.rq;
 
 			RpgGameData::Player pd;
@@ -944,7 +950,7 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 				return;
 			}
 
-			RpgPlayer *rpgPlayer = createPlayer(scene, pl.data, pd);
+			rpgPlayer = createPlayer(scene, pl.data, pd);
 
 			if (!rpgPlayer) {
 				LOG_CERROR("game") << "Missing RpgPlayer";
@@ -962,6 +968,17 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 
 			playerList.append(rpgPlayer);
 
+		} else {
+			rpgPlayer = *it;
+		}
+
+		if (rpgPlayer->isGameCompleted() != pl.data.cmp) {
+			LOG_CDEBUG("game") << "-------------" << rpgPlayer << rpgPlayer->isGameCompleted() << pl.data.o << pl.data.cmp;
+			for (const auto &p2 : storage.players()) {
+				LOG_CINFO("game") << "  -" << p2.data.o << p2.data.cmp;
+			}
+
+			rpgPlayer->setIsGameCompleted(pl.data.cmp);
 		}
 	}
 
@@ -970,8 +987,9 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 		m_rpgGame->setPlayers(playerList);
 	}
 
-	m_playersSynced = !storage.players().empty();
+	m_playersSynced = !storage.players().empty() && (qsizetype) storage.players().size() == m_rpgGame->m_players.size();
 }
+
 
 
 
@@ -1495,7 +1513,7 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 
 	q->m_toSend.clear();
 
-/*
+	/*
 #ifdef WITH_FTXUI
 	DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance());
 
@@ -1562,11 +1580,20 @@ bool ActionRpgMultiplayerGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIf
 		return false;
 
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
-	p.st = !control->questionLock() || m_rpgQuestion->emptyQuestions() ? RpgGameData::Player::PlayerUseControl : RpgGameData::Player::PlayerLockControl;
-	p.tg = control->pureBaseData();
+
+	if (control->activeType() == RpgConfig::ControlExit) {
+		p.st = RpgGameData::Player::PlayerExit;
+
+		// Ezt ne tegyük be last snaphostnak
+
+	} else {
+		p.st = !control->questionLock() || m_rpgQuestion->emptyQuestions() ? RpgGameData::Player::PlayerUseControl : RpgGameData::Player::PlayerLockControl;
+		p.tg = control->pureBaseData();
+
+		player->setLastSnapshot(p);
+	}
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
-	player->setLastSnapshot(p);
 
 	return true;
 }

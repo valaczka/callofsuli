@@ -73,6 +73,8 @@ public:
 	bool isFullyPrepared() const { return m_isFullyPrepared; }
 	void setIsFullyPrepared(bool newIsPrepared) { m_isFullyPrepared = newIsPrepared; }
 
+	void setGameCompleted(const bool &completed = true) { cmp = completed; }
+
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
@@ -438,6 +440,7 @@ public:
 	void setConfig(const RpgConfig &newConfig) { m_config = newConfig; }
 
 	RpgEnginePlayer *player(const RpgGameData::PlayerBaseData &base) const;
+	RpgEnginePlayer *playerSetGameCompleted(const RpgGameData::PlayerBaseData &base);
 
 	RpgEnginePlayer *hostPlayer() const { return m_hostPlayer; }
 	void setHostPlayer(RpgEnginePlayer *newHostPlayer);
@@ -519,6 +522,8 @@ public:
 						 const RpgGameData::PlayerBaseData &player);
 
 	void renderTimerLog(const qint64 &msec);
+
+	void checkPlayersCompleted();
 
 
 private:

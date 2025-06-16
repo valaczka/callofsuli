@@ -2102,7 +2102,7 @@ void RpgGame::updateScatterPlayers()
 
 
 	for (const RpgPlayer *p : m_players) {
-		if (!p || p->scene() != m_currentScene || !p->isAlive())
+		if (!p || p->scene() != m_currentScene || !p->isAlive() || !p->isDiscoverable())
 			continue;
 
 		QPointF pos = p->bodyPositionF();

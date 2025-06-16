@@ -118,7 +118,16 @@ void RpgControlTeleport::updateFromSnapshot(const RpgGameData::ControlTeleport &
 
 bool RpgControlTeleport::loadFromLayer(RpgGame *game, TiledScene *scene, Tiled::Layer *layer, Tiled::MapRenderer *renderer)
 {
+	struct ExitPoint {
+		float x = 0;
+		float y = 0;
+		float a = 0;
+	};
+
+
 	if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
+		std::optional<ExitPoint> exitPoint;
+
 		for (Tiled::MapObject *object : std::as_const(objgroup->objects())) {
 			const QString &clName = object->className();
 
@@ -138,9 +147,32 @@ bool RpgControlTeleport::loadFromLayer(RpgGame *game, TiledScene *scene, Tiled::
 
 				const QPointF &pos = o->bodyAABB().center();
 
-				m_baseData.x = pos.x();
-				m_baseData.y = pos.y();
+				if (!exitPoint.has_value()) {
+					ExitPoint p;
+					p.x = pos.x();
+					p.y = pos.y();
+					exitPoint = p;
+				}
+			} else if (clName == QStringLiteral("exit")) {
+				QPointF pos = renderer ? renderer->pixelToScreenCoords(object->position()) : object->position();
+				pos += m_basePosition;
+
+				ExitPoint p;
+				p.x = pos.x();
+				p.y = pos.y();
+
+				if (object->hasProperty(QStringLiteral("angle"))) {
+					p.a = TiledObject::toRadian(object->property(QStringLiteral("angle")).toInt());
+				}
+
+				exitPoint = p;
 			}
+		}
+
+		if (exitPoint.has_value()) {
+			m_baseData.x = exitPoint->x;
+			m_baseData.y = exitPoint->y;
+			m_baseData.a = exitPoint->a;
 		}
 	} else {
 		return false;

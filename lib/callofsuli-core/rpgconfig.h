@@ -103,7 +103,8 @@ public:
 		ControlCollection,
 		ControlPickable,
 		ControlRandomizer,
-		ControlTeleport
+		ControlTeleport,
+		ControlExit
 	};
 
 	Q_ENUM(ControlType)
@@ -1594,6 +1595,7 @@ public:
 		: ControlActiveBaseData(RpgConfig::ControlTeleport, _o, _s, _id)
 		, x(0)
 		, y(0)
+		, a(0)
 	{}
 
 	ControlTeleportBaseData()
@@ -1601,16 +1603,18 @@ public:
 	{}
 
 	bool isEqual(const ControlTeleportBaseData &other) const {
-		return ControlBaseData::isEqual(other) && other.lck == lck;
+		return ControlActiveBaseData::isEqual(other) && other.x == x && other.y == y && other.a == a &&
+				other.dst == dst;;
 	}
 
 	EQUAL_OPERATOR(ControlTeleportBaseData)
 
 	QS_SERIALIZABLE
 
-	QS_FIELD(float, x)					// position
+	QS_FIELD(float, x)					// exit position
 	QS_FIELD(float, y)
-	QS_OBJECT(ControlBaseData, dst)				// destination teleport (invalid = final teleport)
+	QS_FIELD(float, a)					// exit angle
+	QS_OBJECT(ControlBaseData, dst)		// destination teleport (invalid = final teleport)
 };
 
 
@@ -1994,6 +1998,7 @@ public:
 	PlayerBaseData(const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
 		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
 		, rq(0)
+		, cmp(false)
 	{}
 
 	PlayerBaseData(const int &_o, const int &_s, const int &_id)
@@ -2005,7 +2010,7 @@ public:
 	{}
 
 	bool isEqual(const PlayerBaseData &other) const {
-		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq;
+		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq && other.cmp == cmp;
 	}
 
 	static void assign(const QList<PlayerBaseData*> &dst, const int &num);
@@ -2015,6 +2020,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, rq)						// required collection item
+	QS_FIELD(bool, cmp)						// game completed
 };
 
 
@@ -2087,10 +2093,10 @@ public:
 	}
 
 
-	static bool useTeleport(Player &dst, const ControlTeleportBaseData &base);
+	static bool useTeleport(Player &dst, const ControlTeleportBaseData &base, const PlayerBaseData &playerBase);
 
-	bool useTeleport(const ControlTeleportBaseData &base) {
-		return useTeleport(*this, base);
+	bool useTeleport(const ControlTeleportBaseData &base, const PlayerBaseData &playerBase) {
+		return useTeleport(*this, base, playerBase);
 	}
 
 	EQUAL_OPERATOR(Player);
@@ -2772,7 +2778,7 @@ inline std::optional<SnapshotInterpolation<T> > FullSnapshot::getSnapshot(const 
 	const auto it = std::find_if(list.cbegin(),
 								 list.cend(),
 								 [&data](const auto &ptr) {
-		return ptr.first == data;
+		return ptr.first.isBaseEqual(data);
 	});
 
 
@@ -2810,7 +2816,7 @@ inline SnapshotInterpolation<T> SnapshotStorage::getSnapshotInterpolation(const 
 		return sip;
 
 	const auto mapIt = std::find_if(snapshots.cbegin(), snapshots.cend(), [&id](const auto &b){
-		return b.data == id;
+		return b.data.isBaseEqual(id);
 	});
 
 	if (mapIt == snapshots.cend()) {
@@ -3048,7 +3054,7 @@ inline int CurrentSnapshot::fromCborArray(SnapshotList<T, T2> &dest, const QCbor
 		auto it = std::find_if(dest.begin(),
 							   dest.end(),
 							   [&base](const auto &ptr) {
-			return ptr.data == base;
+			return ptr.data.isBaseEqual(base);
 		});
 
 		if (it == dest.end()) {

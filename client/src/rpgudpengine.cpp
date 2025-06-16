@@ -524,8 +524,25 @@ QVariantList RpgUdpEngine::getPlayerList()
 
 	QVariantList list;
 
+	const auto &pl = m_snapshots.players();
+
 	for (const RpgGameData::CharacterSelect &p : m_playerData) {
-		list.append(p.toJson().toVariantMap());
+		QVariantMap m = p.toJson().toVariantMap();
+
+		const auto &it = std::find_if(pl.cbegin(),
+					 pl.cend(),
+					 [&p](const auto &ptr) {
+			return ptr.data.o == p.playerId;
+		});
+
+
+		if (it != pl.cend()) {
+			m[QStringLiteral("gameCompleted")] = it->data.cmp;
+		} else {
+			m[QStringLiteral("gameCompleted")] = false;
+		}
+
+		list.append(m);
 	}
 
 	return list;
@@ -647,6 +664,11 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 	it->data.s = playerData.s;										// Itt állítjuk be
 	it->data.id = playerData.id;
 	it->data.rq = playerData.rq;
+
+	if (it->data.cmp != playerData.cmp) {
+		it->data.cmp = playerData.cmp;
+		LOG_CERROR("game") << "###### COMPLETED ?" << it->data.o << playerData.cmp << "->" << it->data.cmp;
+	}
 
 	if (player.f < 0)
 		LOG_CDEBUG("game") << "SKIP FRAME" << player.f << player.p;
@@ -907,9 +929,9 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlTeleportBaseData &b
 	if (it == m_controls.teleports.end()) {
 		LOG_CINFO("game") << "New teleport" << baseData.o << baseData.s << baseData.id;
 		m_controls.teleports.push_back({
-									   .data = baseData,
-									   .list = {}
-								   });
+										   .data = baseData,
+										   .list = {}
+									   });
 		it = m_controls.teleports.end()-1;
 	}
 

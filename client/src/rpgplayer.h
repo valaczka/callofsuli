@@ -37,6 +37,7 @@
 
 class RpgGame;
 class RpgActiveControlObject;
+class RpgActiveIface;
 
 #ifndef OPAQUE_PTR_RpgActiveControlObject
 #define OPAQUE_PTR_RpgActiveControlObject
@@ -135,6 +136,8 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameDat
 	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
 	Q_PROPERTY(int collection READ collection WRITE setCollection NOTIFY collectionChanged FINAL)
 	Q_PROPERTY(int collectionRq READ collectionRq WRITE setCollectionRq NOTIFY collectionRqChanged FINAL)
+	Q_PROPERTY(bool isHiding READ isHiding NOTIFY isHidingChanged FINAL)
+	Q_PROPERTY(bool isGameCompleted READ isGameCompleted WRITE setIsGameCompleted NOTIFY isGameCompletedChanged FINAL)
 
 public:
 	explicit RpgPlayer(RpgGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
@@ -153,6 +156,7 @@ public:
 	void attackToPoint(const QPointF &point) { attackToPoint(point.x(), point.y()); }
 
 	Q_INVOKABLE void useCurrentControl();
+	Q_INVOKABLE void exitHiding();
 
 	RpgArmory *armory() const;
 
@@ -198,6 +202,12 @@ public:
 	int collectionRq() const;
 	void setCollectionRq(int newCollectionRq);
 
+	bool isHiding() const;
+	void setHidingObject(const RpgGameData::BaseData &baseData);
+
+	bool isGameCompleted() const;
+	void setIsGameCompleted(bool newIsGameCompleted);
+
 signals:
 	void attackDone();
 	void characterChanged();
@@ -208,6 +218,8 @@ signals:
 	void currentControlChanged();
 	void collectionChanged();
 	void collectionRqChanged();
+	void isHidingChanged();
+	void isGameCompletedChanged();
 
 protected:
 	void load() override final;
@@ -267,6 +279,8 @@ private:
 	int m_maxMp = 0;
 	int m_collection = 0;
 	int m_collectionRq = 0;
+	RpgGameData::BaseData m_hidingObject;
+	bool m_isGameCompleted = false;
 
 	int m_lastObjectId = 0;
 

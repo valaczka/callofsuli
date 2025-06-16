@@ -1737,6 +1737,7 @@ void ActionRpgGame::setRpgGame(RpgGame *newRpgGame)
 		return;
 
 	if (m_rpgGame) {
+
 		setGameQuestion(nullptr);
 
 		m_rpgGame->disconnect(this);

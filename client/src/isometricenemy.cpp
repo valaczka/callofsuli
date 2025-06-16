@@ -407,7 +407,7 @@ void IsometricEnemy::worldStep()
 
 	IsometricPlayer *targetPlayer = nullptr;
 
-	if (m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive() && !m_player->isLocked()) {
+	if (m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive() && !m_player->isLocked() && m_player->isDiscoverable()) {
 		if (rayCast(m_player->bodyPosition(), FixturePlayerBody).isVisible(m_player)) {
 			targetPlayer = m_player;
 		}
@@ -415,7 +415,7 @@ void IsometricEnemy::worldStep()
 		QMap<float, IsometricPlayer *> pMap;
 
 		for (IsometricPlayer *p : m_contactedPlayers) {
-			if (!p || !p->isAlive() || p->isLocked())
+			if (!p || !p->isAlive() || p->isLocked() || !p->isDiscoverable())
 				continue;
 
 			const RayCastInfo &info = rayCast(p->bodyPosition(), FixturePlayerBody);
@@ -461,8 +461,12 @@ void IsometricEnemy::worldStep()
 		setPlayerDistance(distanceToPointSq(m_player->bodyPosition()));
 	} else {
 		if (m_player) {
-			if (m_returnPathMotor)
-				m_returnPathMotor->setLastSeenPoint(m_player->bodyPosition());
+			if (m_returnPathMotor) {
+				if (m_player->isLocked())
+					m_returnPathMotor->clearLastSeenPoint();
+				else
+					m_returnPathMotor->setLastSeenPoint(m_player->bodyPosition());
+			}
 
 			setPlayer(nullptr);
 		}
