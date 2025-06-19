@@ -1688,7 +1688,7 @@ std::optional<qreal> TiledGame::getSfxVolume(TiledScene *scene, const QPointF &p
  * @param color
  */
 
-void TiledGame::messageColor(const QString &text, const QColor &color)
+void TiledGame::messageColor(const QString &text, const QColor &color, const bool &priority)
 {
 	if (!m_messageList || !d->m_messageEnabled) {
 		LOG_CINFO("game") << text;
@@ -1696,8 +1696,10 @@ void TiledGame::messageColor(const QString &text, const QColor &color)
 	}
 
 	QMetaObject::invokeMethod(m_messageList, "message", Qt::DirectConnection,
-							  Q_ARG(QVariant, text),
-							  Q_ARG(QVariant, color.name()));
+							  Q_ARG(QString, text),
+							  Q_ARG(QString, color.name()),
+							  Q_ARG(bool, priority)
+							  );
 }
 
 

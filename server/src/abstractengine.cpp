@@ -84,16 +84,6 @@ bool AbstractEngine::canDelete(const int &useCount)
 	return (useCount == 1);
 }
 
-const QString &AbstractEngine::owner() const
-{
-	return m_owner;
-}
-
-void AbstractEngine::setOwner(const QString &newOwner)
-{
-	m_owner = newOwner;
-}
-
 uint AbstractEngine::connectionLimit() const
 {
 	return m_connectionLimit;

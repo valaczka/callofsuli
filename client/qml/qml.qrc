@@ -171,7 +171,6 @@
         <file>UserInfoCounter.qml</file>
         <file>TeacherGroupLog.qml</file>
         <file>QSpinBox.qml</file>
-        <file>PageMultiPlayerGame.qml</file>
         <file>TeacherGroupExamList.qml</file>
         <file>PageTeacherExamScanner.qml</file>
         <file>PageTeacherExam.qml</file>
@@ -221,5 +220,8 @@
         <file>TiledVisualOutline.qml</file>
         <file>TiledImageFromLayer.qml</file>
         <file>RpgReconnect.qml</file>
+        <file>RpgGameUserDialog.qml</file>
+        <file>RpgQuestHeader.qml</file>
+        <file>RpgQuestDelegate.qml</file>
     </qresource>
 </RCC>

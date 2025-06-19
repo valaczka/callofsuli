@@ -141,7 +141,10 @@ QJsonObject ActionRpgGame::getExtendedData() const
 
 int ActionRpgGame::msecLeft() const
 {
-	return std::max((qint64) 0, (qint64) (m_deadlineTick-m_elapsedTick * (1000./60.)));
+	if (m_rpgGame)
+		return std::max((qint64) 0, (qint64) ((m_deadlineTick-m_rpgGame->currentFrame()) * 1000./60.));
+	else
+		return std::max((qint64) 0, (qint64) ((m_deadlineTick-m_elapsedTick) * 1000./60.));
 }
 
 
@@ -178,6 +181,11 @@ void ActionRpgGame::stopMenuBgMusic()
 
 void ActionRpgGame::selectCharacter(const QString &terrain, const QString &character, const QStringList &weaponList)
 {
+	if (terrain.isEmpty()) {
+		LOG_CERROR("game") << "Missing terrain";
+		return;
+	}
+
 	LOG_CDEBUG("game") << "World/Skin/Weapons selected:" << terrain << character << weaponList;
 
 	m_playerConfig.terrain = terrain;
@@ -740,7 +748,7 @@ void ActionRpgGame::onConfigChanged()
 		m_deadlineTick = AbstractGame::TickTimer::msecToTick(m_config.duration*1000);
 		m_elapsedTick = 0;
 		m_rpgGame->tickTimer()->start(this, 0);
-		m_timerLeft.start();
+		///m_timerLeft.start();
 
 		if (!m_rpgGame->m_gameDefinition.music.isEmpty())
 			m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);

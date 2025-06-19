@@ -57,8 +57,6 @@ public:
 	Q_INVOKABLE virtual void gamePrepared() override;
 	Q_INVOKABLE virtual void gameAbort() override;
 
-	virtual int msecLeft() const override;
-
 	Q_INVOKABLE void selectTerrain(const QString &terrain);
 	Q_INVOKABLE void selectCharacter(const QString &character);
 	[[deprecated]] Q_INVOKABLE void selectWeapons(const QStringList &weaponList);
@@ -101,7 +99,7 @@ private:
 
 
 	void worldTerrainSelect(QString map, const bool forced);
-	void updatePlayersModel(const QVariantList &list);
+	void updatePlayersModel();
 
 	void syncEnemyList(const ClientStorage &storage);
 	void syncPlayerList(const ClientStorage &storage);
@@ -109,6 +107,10 @@ private:
 	void syncCollectionList(const ClientStorage &storage);
 	void syncPickableList(const ClientStorage &storage);
 	void updateLastObjectId(RpgPlayer *player);
+
+	void onGameTimeout();
+	void onGameSuccess();
+	void onGameFailed();
 
 	RpgPlayer *createPlayer(TiledScene *scene, const RpgGameData::PlayerBaseData &config, const RpgGameData::Player &playerData);
 

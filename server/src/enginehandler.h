@@ -55,8 +55,6 @@ public:
 
 
 private:
-	[[deprecated]] void initEngines();
-
 	ServerService *const m_service;
 	EngineHandlerPrivate *d = nullptr;
 	QThread m_dThread;

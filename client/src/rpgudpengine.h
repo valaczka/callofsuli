@@ -107,6 +107,9 @@ public:
 	const qint64 &serverTick() const;
 	void setServerTick(const qint64 &newServerTick);
 
+	const qint64 &deadlineTick() const;
+	void setDeadlineTick(const qint64 &newDeadlineTick);
+
 private:
 	template <typename T, typename = std::enable_if<std::is_base_of<RpgGameData::Body, T>::value>::type>
 	qint64 insert(std::map<qint64, T> *dst, const T &snap, const qint64 &lastSentTick);
@@ -130,6 +133,7 @@ private:
 	qint64 m_lastBulletTick = -1;
 
 	qint64 m_serverTick = -1;
+	qint64 m_deadlineTick = -1;
 };
 
 
@@ -288,8 +292,6 @@ public:
 	bool isHost() const;
 	void setIsHost(bool newIsHost);
 
-	QVariantList getPlayerList();
-
 	QList<RpgGameData::CharacterSelect> playerData();
 
 signals:
@@ -310,6 +312,7 @@ private:
 	void packetReceivedDownload(const QCborMap &data);
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
+	void packetReceivedFinished(const QCborMap &data);
 
 	template <typename T, typename T2>
 	void updateSnapshotRemoveMissing(const RpgGameData::SnapshotList<T, T2> &list);

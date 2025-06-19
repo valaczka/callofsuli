@@ -1,20 +1,19 @@
 #include "websocketstream.h"
 #include "serverservice.h"
 #include "Logger.h"
-#include "examengine.h"
 
 
 /// Static maps
 
 const QHash<AbstractEngine::Type, Credential::Roles> WebSocketStream::m_observerRoles = {
-	{ AbstractEngine::EnginePeer, Credential::Teacher|Credential::Admin },
-	{ AbstractEngine::EngineExam, Credential::Teacher|Credential::Student|Credential::Panel },
+	/*{ AbstractEngine::EnginePeer, Credential::Teacher|Credential::Admin },
+	{ AbstractEngine::EngineExam, Credential::Teacher|Credential::Student|Credential::Panel },*/
 };
 
 
 const QHash<QString, AbstractEngine::Type> WebSocketStream::m_observerMap = {
-	{ QStringLiteral("peers"), AbstractEngine::EnginePeer },
-	{ QStringLiteral("exam"), AbstractEngine::EngineExam },
+	/*{ QStringLiteral("peers"), AbstractEngine::EnginePeer },
+	{ QStringLiteral("exam"), AbstractEngine::EngineExam },*/
 };
 
 
@@ -267,10 +266,6 @@ void WebSocketStream::onJsonReceived(const QJsonObject &data)
 		observerRemove(d);
 	else if (operation == QStringLiteral("timeSync"))
 		timeSync(d.toObject());
-	/*else if (operation == QStringLiteral("conquest"))
-		ConquestEngine::handleWebSocketMessage(this, d, m_handler);*/
-	else if (operation == QStringLiteral("exam"))
-		ExamEngine::handleWebSocketMessage(this, d, m_handler);
 	else {
 		LOG_CDEBUG("service") << "Invalid operation:" << operation << qPrintable(m_credential.username());
 		sendJson("error", QStringLiteral("invalid operation"));

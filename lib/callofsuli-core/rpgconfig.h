@@ -578,14 +578,16 @@ class Message : public QSerializer
 	Q_GADGET
 
 public:
-	Message(const QString &msg = {})
+	Message(const QString &msg = {}, const bool &priority = false)
 		: QSerializer()
 		, m(msg)
+		, p(priority)
 	{}
 
 	QS_SERIALIZABLE
 
-	QS_FIELD(QString, m)
+	QS_FIELD(QString, m)				// message text
+	QS_FIELD(bool, p)					// priority
 };
 
 
@@ -800,6 +802,7 @@ class GameConfig : public QSerializer
 public:
 	GameConfig()
 		: QSerializer()
+		, duration(0)
 	{}
 
 	QS_SERIALIZABLE
@@ -808,6 +811,7 @@ public:
 	QS_FIELD(QString, terrain)
 	QS_OBJECT(Collection, collection)
 	QS_OBJECT(Randomizer, randomizer)
+	QS_FIELD(int, duration)
 };
 
 
@@ -828,13 +832,12 @@ public:
 		, playerId(-1)
 		, completed(false)
 		, lastObjectId(-1)
+		, xp(0)
+		, cur(0)
 	{}
 
 	CharacterSelect(const RpgPlayerConfig &config)
-		: QSerializer()
-		, playerId(-1)
-		, completed(false)
-		, lastObjectId(-1)
+		: CharacterSelect()
 	{
 		username = config.username;
 		nickname = config.nickname;
@@ -855,6 +858,10 @@ public:
 	QS_OBJECT(GameConfig, gameConfig)
 
 	QS_FIELD(int, lastObjectId)
+
+	QS_FIELD(bool, finished)										// finished
+	QS_FIELD(int, xp)												// XP
+	QS_FIELD(int, cur)												// currency
 };
 
 
@@ -897,6 +904,7 @@ public:
 	Prepare()
 		: QSerializer()
 		, prepared(false)
+		, avg(0.)
 		, loaded(false)
 	{}
 
@@ -904,6 +912,7 @@ public:
 
 	QS_FIELD(bool, prepared)
 	QS_OBJECT(GameConfig, gameConfig)
+	QS_FIELD(float, avg)						// Average question duration
 	QS_FIELD(bool, loaded)						// A host már betöltött mindent
 };
 
@@ -1998,7 +2007,6 @@ public:
 	PlayerBaseData(const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
 		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
 		, rq(0)
-		, cmp(false)
 	{}
 
 	PlayerBaseData(const int &_o, const int &_s, const int &_id)
@@ -2010,7 +2018,7 @@ public:
 	{}
 
 	bool isEqual(const PlayerBaseData &other) const {
-		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq && other.cmp == cmp;
+		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq;
 	}
 
 	static void assign(const QList<PlayerBaseData*> &dst, const int &num);
@@ -2020,7 +2028,6 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, rq)						// required collection item
-	QS_FIELD(bool, cmp)						// game completed
 };
 
 
@@ -2041,7 +2048,6 @@ public:
 		, st(PlayerInvalid)
 		, l(false)
 		, c(0)
-		, xp(0)
 		, x(0)
 	{}
 
@@ -2065,13 +2071,13 @@ public:
 
 	bool isEqual(const Player &other) const  {
 		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l &&
-				other.c == c && other.xp == xp && other.x == x &&
+				other.c == c && other.x == x &&
 				other.pck == pck;
 	}
 
 	bool canMerge(const Player &other) const {
 		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l &&
-				other.c == c && other.xp == xp && other.x == x &&
+				other.c == c && other.x == x &&
 				other.pck == pck;
 	}
 
@@ -2109,7 +2115,6 @@ public:
 	QS_FIELD(bool, l)					// locked
 	QS_OBJECT(Inventory, inv)			// inventory
 	QS_FIELD(int, c)					// collected items
-	QS_FIELD(int, xp)					// xp
 	QS_FIELD(int, x)					// extra xp on specified states (PlayerUseControl)
 };
 

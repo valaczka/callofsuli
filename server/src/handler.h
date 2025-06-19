@@ -54,6 +54,12 @@ public:
 
 	AbstractAPI *api(const char *path) const;
 
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<AbstractAPI, T>::value>::type>
+	T *api(const char *path) const {
+		return dynamic_cast<T*>(api(path));
+	}
+
 	bool verifyPeer(const QHttpServerRequest &request) const;
 
 private:

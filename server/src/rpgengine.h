@@ -73,14 +73,15 @@ public:
 	bool isFullyPrepared() const { return m_isFullyPrepared; }
 	void setIsFullyPrepared(bool newIsPrepared) { m_isFullyPrepared = newIsPrepared; }
 
-	void setGameCompleted(const bool &completed = true) { cmp = completed; }
-
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
 	bool m_isPrepared = false;
 	bool m_isFullyPrepared = false;
 	RpgGameData::CharacterSelect m_config;
+
+	bool m_finalSuccess = false;
+	int m_gameId = -1;
 
 	friend class RpgEngine;
 	friend class RpgEnginePrivate;
@@ -435,12 +436,16 @@ public:
 	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) override;
 	virtual void udpPeerAdd(UdpServerPeer *peer) override;
 	virtual void udpPeerRemove(UdpServerPeer *peer) override;
+	virtual void disconnectUnusedPeer(UdpServerPeer *peer) override;
 
 	RpgConfig config() const { return m_config; }
 	void setConfig(const RpgConfig &newConfig) { m_config = newConfig; }
 
 	RpgEnginePlayer *player(const RpgGameData::PlayerBaseData &base) const;
 	RpgEnginePlayer *playerSetGameCompleted(const RpgGameData::PlayerBaseData &base);
+	RpgEnginePlayer *playerAddXp(const RpgGameData::PlayerBaseData &base, const int &xp);
+
+	QCborArray getPlayerData(const bool &forced = false);
 
 	RpgEnginePlayer *hostPlayer() const { return m_hostPlayer; }
 	void setHostPlayer(RpgEnginePlayer *newHostPlayer);
@@ -543,8 +548,10 @@ private:
 	RpgSnapshotStorage m_snapshots;
 
 	qint64 m_currentTick = -1;
+	qint64 m_deadlineTick = -1;
 
 	friend class RpgEnginePrivate;
+	friend class RpgSnapshotStorage;
 };
 
 

@@ -1307,31 +1307,6 @@ bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, cons
 
 
 
-/**
- * @brief RpgSnapshotStorage::playerUpdate
- * @param player
- */
-
-bool RpgSnapshotStorage::playerUpdate(RpgEnginePlayer *player)
-{
-	if (!player)
-		return false;
-
-	auto it = std::find_if(m_players.begin(),
-						   m_players.end(),
-						   [player](const auto &ptr) {
-		return ptr.data.isBaseEqual(*player);
-	});
-
-	if (it == m_players.end()) {
-		LOG_CERROR("engine") << "Invalid player" << player;
-		return false;
-	}
-
-	it->data = *player;
-
-	return true;
-}
 
 
 
@@ -1388,7 +1363,7 @@ QString RpgSnapshotStorage::render(const qint64 &tick)
 {
 	std::unique_ptr<Renderer> renderer = getRenderer(tick);
 
-	QString txt = QStringLiteral("RENDER %1\n---------------------------------------------\n").arg(tick);
+	QString txt = QStringLiteral("RENDER %1 / %2\n---------------------------------------------\n").arg(tick).arg(m_engine->m_deadlineTick);
 
 	int diff = 0;
 
@@ -1406,6 +1381,21 @@ QString RpgSnapshotStorage::render(const qint64 &tick)
 	diff = saveRenderer(renderer.get(), 1);			// pass 1
 
 	m_engine->renderTimerLog(t1.elapsed());
+
+
+	for (const auto &ptr : m_engine->m_player) {
+		const RpgGameData::CharacterSelect &c = ptr->config();
+
+		txt.append(QStringLiteral("Player %1: %2 (%3) %4 XP, %5 curr\n")
+				   .arg(ptr->playerId())
+				   .arg(c.username)
+				   .arg(c.finished)
+				   .arg(c.xp)
+				   .arg(c.cur)
+				   );
+	}
+
+	txt.append(QStringLiteral("---------------------------------------\n\n"));
 
 	txt.append(renderer->dump());
 
@@ -2009,10 +1999,9 @@ QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::PlayerBaseDat
 {
 	Q_ASSERT(obj);
 
-	QString txt = QStringLiteral("[Player %1] - rq: %2 (%3)")
+	QString txt = QStringLiteral("[Player %1] - rq: %2")
 				  .arg(obj->baseData.o)
 				  .arg(obj->baseData.rq)
-				  .arg(obj->baseData.cmp)
 				  ;
 
 	txt += QStringLiteral("\n-------------------------------------------\n");
@@ -2186,7 +2175,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 				} else if (p.st == RpgGameData::Player::PlayerUseControl) {
 					if (RendererObjectType *tg = findByBase(p.tg)) {
 						if (auto *iface = m_solver.addUnique(m_current, src, tg)) {
-							iface->releaseSuccess(m_current, src);
+							iface->releaseSuccess(m_current, src, p.x);
 						}
 					} else {
 						LOG_CERROR("engine") << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
@@ -3212,6 +3201,8 @@ void ConflictSolver::ConflictContainer::generateEvent(ConflictSolver *solver, Rp
 		if (state.player)
 			pd = state.player->baseData;
 
+		engine->playerAddXp(pd, state.xp);
+
 		engine->addContainerUsed(solver->m_renderer->startTick()+tick, m_unique->baseData, pd,
 								 state.state == StateSuccess);
 	}
@@ -3259,7 +3250,7 @@ bool ConflictSolver::ConflictContainer::getInitialState(Renderer *renderer, Rele
  * @return
  */
 
-bool ConflictSolver::ConflictUniqueIface::releaseSuccess(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src)
+bool ConflictSolver::ConflictUniqueIface::releaseSuccess(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src, const int &xp)
 {
 	Q_ASSERT(src);
 
@@ -3271,7 +3262,7 @@ bool ConflictSolver::ConflictUniqueIface::releaseSuccess(const int &tick, Render
 	}
 
 
-	m_release.insert(tick, ReleaseState(p, StateSuccess));
+	m_release.insert(tick, ReleaseState(p, StateSuccess, xp));
 
 	return true;
 }
@@ -3298,7 +3289,7 @@ bool ConflictSolver::ConflictUniqueIface::releaseFailed(const int &tick, Rendere
 		return false;
 	}
 
-	m_release.insert(tick, ReleaseState(p, StateFailed));
+	m_release.insert(tick, ReleaseState(p, StateFailed, 0));
 
 	return true;
 }
@@ -3404,7 +3395,7 @@ ConflictSolver::ConflictUniqueIface::ReleaseState ConflictSolver::ConflictUnique
 ConflictSolver::ConflictUniqueIface::ConflictUniqueIface(const int &tick,
 														 RendererObject<RpgGameData::PlayerBaseData> *player)
 {
-	m_release.insert(tick, ReleaseState(player, StateHold));
+	m_release.insert(tick, ReleaseState(player, StateHold, 0));
 }
 
 
@@ -3427,7 +3418,7 @@ void ConflictSolver::ConflictUniqueIface::add(const int &tick, RendererObject<Rp
 		return;
 	}
 
-	m_release.insert(tick, ReleaseState(p, StateHold));
+	m_release.insert(tick, ReleaseState(p, StateHold, 0));
 	updateTick(tick);
 }
 
@@ -3509,6 +3500,8 @@ void ConflictSolver::ConflictCollection::generateEvent(ConflictSolver *solver, R
 
 		if (state.player)
 			pd = state.player->baseData;
+
+		engine->playerAddXp(pd, state.xp);
 
 		engine->addRelocateCollection(solver->m_renderer->startTick()+tick, m_unique->baseData, pd,
 									  state.state == StateSuccess);

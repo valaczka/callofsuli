@@ -27,7 +27,6 @@
 #include "adminapi.h"
 #include "commonsettings.h"
 #include "mimehtml.h"
-#include "peerengine.h"
 #include "querybuilder.hpp"
 #include "serverservice.h"
 #include "teacherapi.h"
@@ -1011,13 +1010,7 @@ QHttpServerResponse AdminAPI::userImport(const QJsonObject &json)
 
 QHttpServerResponse AdminAPI::userPeers()
 {
-	const auto &list = m_service->engineHandler()->engineGet<PeerEngine>(AbstractEngine::EnginePeer);
-
 	QJsonArray r;
-
-	if (!list.isEmpty()) {
-		r = PeerUser::toJson(list.at(0)->peerUser());
-	}
 
 	return responseResult("list", r);
 }

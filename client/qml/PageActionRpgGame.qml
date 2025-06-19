@@ -116,6 +116,8 @@ Page {
 
 		RpgGameItem {
 			game: root.game
+
+			onCloseRequest: Client.stackPop(root)
 		}
 	}
 
@@ -202,7 +204,8 @@ Page {
 				break
 
 			case RpgConfig.StateFinished:
-				Client.stackPop(root)
+				if (!_multiplayer)
+					Client.stackPop(root)
 				return
 
 			case RpgConfig.StateDownloadStatic:
@@ -223,7 +226,7 @@ Page {
 
 
 	Connections {
-		target: game ? game.rpgGame : null
+		target: game && !_multiplayer ? game.rpgGame : null
 
 		function onPausedChanged() {
 			if (game.rpgGame.paused)

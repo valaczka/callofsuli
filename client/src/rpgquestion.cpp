@@ -244,3 +244,8 @@ qint64 RpgQuestion::duration() const
 {
 	return m_duration;
 }
+
+int RpgQuestion::count() const
+{
+	return m_questionList.size();
+}

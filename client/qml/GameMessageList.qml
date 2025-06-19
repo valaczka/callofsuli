@@ -30,6 +30,7 @@ ListView {
 		required property string textColor
 		required property string message
 		required property int index
+		required property bool priority
 
 		Rectangle {
 			id: _rect
@@ -97,7 +98,7 @@ ListView {
 			}
 
 			PauseAnimation {
-				duration: 1250
+				duration: _item.priority ? 5000 : 1250
 			}
 
 			ScriptAction {
@@ -146,10 +147,11 @@ ListView {
 	}
 
 
-	function message(text, colorCode) {
+	function message(text : string, colorCode : string, priority : bool) {
 		_model.append({
 						  message: text,
-						  textColor: String(colorCode)
+						  textColor: String(colorCode),
+						  priority: priority
 					  })
 	}
 }

@@ -56,7 +56,6 @@ SOURCES += \
 	database.cpp \
 	databasemain.cpp \
 	enginehandler.cpp \
-	examengine.cpp \
 	generalapi.cpp \
 	googleoauth2authenticator.cpp \
 	handler.cpp \
@@ -64,7 +63,6 @@ SOURCES += \
 	microsoftoauth2authenticator.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
-	peerengine.cpp \
 	rpgengine.cpp \
 	rpgsnapshotstorage.cpp \
 	serverservice.cpp \
@@ -90,14 +88,12 @@ HEADERS += \
 	databasemain.h \
 	enginehandler.h \
 	enginehandler_p.h \
-	examengine.h \
 	generalapi.h \
 	googleoauth2authenticator.h \
 	handler.h \
 	microsoftoauth2authenticator.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
-	peerengine.h \
 	querybuilder.hpp \
 	rpgengine.h \
 	rpgsnapshotstorage.h \

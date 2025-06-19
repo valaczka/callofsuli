@@ -73,6 +73,7 @@ private:
 
 	void packetReceived(const ENetEvent &event);
 	void deliverReceived();
+	void disconnectUnusedPeers();
 
 	UdpServer *q;
 	ENetHost *m_enet_server = nullptr;

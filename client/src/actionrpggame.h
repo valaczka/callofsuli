@@ -114,11 +114,8 @@ protected:
 	virtual bool gameFinishEvent() override;
 
 	virtual void onPlayerDead(RpgPlayer *player);
-	virtual void onTimerLeftTimeout() override;
+	[[deprecated]] virtual void onTimerLeftTimeout() override;
 
-	void onGameTimeout();
-	void onGameSuccess();
-	void onGameFailed();
 	void onGameLoadFailed(const QString &);
 
 	void loadInventory(RpgPlayer *player);
@@ -158,6 +155,10 @@ private:
 
 	void downloadLoadableContentDict(const QStringList &fileList);
 	void downloadLoadableContent(const QStringList &fileList);
+
+	void onGameTimeout();
+	void onGameSuccess();
+	void onGameFailed();
 
 
 protected:

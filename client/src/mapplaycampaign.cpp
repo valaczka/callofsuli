@@ -155,35 +155,25 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	if (!m_client || !m_gameMap || !m_client->currentGame())
 		return;
 
-	/*if (!m_campaign) {
-		LOG_CERROR("client") << "Missing campaign";
-		return;
-	}*/
-
-
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
-
-
-	/*
-	// Multiplayer
-
-	if (levelGame->mode() == GameMap::MultiPlayer) {
-		levelGame->load();
-		levelGame->setPageItem(nullptr);				/// Kivétel!
-		setGameState(StatePlay);
-		return;
-	}
-*/
-
-	// Other
-
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
 	if (!levelGame || !game) {
 		LOG_CERROR("client") << "Object cast error" << m_client->currentGame();
 		return;
 	}
+
+
+	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+		LOG_CWARNING("client") << "MULTIPLAYER GAME START";
+
+		levelGame->load();
+		setGameState(StatePlay);
+		return;
+	}
+
+
 
 	setFinishedData({});
 
@@ -251,19 +241,17 @@ void MapPlayCampaign::onCurrentGameFinished()
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 
 
-	/*
-	// MultiPlayer
+	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+		LOG_CWARNING("client") << "MULTIPLAYER GAME";
 
-	if (levelGame->mode() == GameMap::MultiPlayer) {
 		destroyCurrentGame();
 		setGameState(StateFinished);
 		updateSolver();
+		m_client->reloadUser();
+
 		return;
 	}
 
-	*/
-
-	// Other
 
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
@@ -341,6 +329,11 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 	if (levelGame->mode() == GameMap::Practice)
 		return;
 
+	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+		/// ----- statistics!!!!
+		return;
+	}
+
 
 	const QJsonArray &stat = levelGame->getStatistics();
 	int xp = levelGame->xp();
@@ -388,6 +381,16 @@ void MapPlayCampaign::onFinishTimerTimeout()
 	}
 
 	LOG_CDEBUG("client") << "Try finishing game" << m_finishTries;
+
+
+	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+		LOG_CINFO("game") << "************** FINISH TIMER MULTIPLAYER";
+		m_finishTimer.stop();
+		setGameState(StateFinished);
+		m_client->reloadUser();
+
+		return;
+	}
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
@@ -457,10 +460,6 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 		case GameMap::Practice:
 			g = new CampaignLiteGame(level->missionLevel(), m_client, true);
 			break;
-
-			/*case GameMap::MultiPlayer:
-		g = new MultiPlayerGame(level->missionLevel(), m_client);
-		break;*/
 
 		default:
 			m_client->messageError(tr("A játékmód nem indítható"), tr("Belső hiba"));

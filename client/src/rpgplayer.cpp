@@ -882,9 +882,6 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 	p.c = m_collection;
 	p.pck = m_hidingObject;
 
-	if (RpgGame *g = dynamic_cast<RpgGame*>(m_game); g && g->actionRpgGame())
-		p.xp = g->actionRpgGame()->xp();
-
 	if (TiledScene *s = scene())
 		p.sc = s->sceneId();
 
@@ -1330,9 +1327,6 @@ bool RpgPlayer::isLastSnapshotValid(const RpgGameData::Player &snap, const RpgGa
 	if (lastSnap.c != snap.c)
 		return false;
 
-	if (lastSnap.xp != snap.xp)
-		return false;
-
 	if (lastSnap.pck != snap.pck)
 		return false;
 
@@ -1490,8 +1484,6 @@ void RpgPlayer::setHidingObject(const RpgGameData::BaseData &baseData)
 	m_hidingObject = baseData;
 	emit isHidingChanged();
 
-	LOG_CINFO("game") << "------------------- HIDING" << m_hidingObject.id;
-
 	if (m_visualItem)
 		m_visualItem->setVisible(!m_hidingObject.isValid());
 }
@@ -1514,5 +1506,5 @@ void RpgPlayer::setIsGameCompleted(bool newIsGameCompleted)
 	m_isGameCompleted = newIsGameCompleted;
 	emit isGameCompletedChanged();
 
-	LOG_CINFO("game") << "PLAYER COMPLETED!!!!!!!!!!!!!!!!" << this << m_isGameCompleted;
+	LOG_CINFO("game") << "COMPLETED" << this;
 }

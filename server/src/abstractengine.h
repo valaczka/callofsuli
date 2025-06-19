@@ -1,7 +1,6 @@
 #ifndef ABSTRACTENGINE_H
 #define ABSTRACTENGINE_H
 
-#include "qmutex.h"
 #include <QJsonValue>
 #include <QObject>
 #include "udpserver.h"
@@ -17,8 +16,6 @@ class AbstractEngine : public QObject
 public:
 	enum Type {
 		EngineInvalid = 0,
-		EnginePeer,
-		EngineExam,
 		EngineRpg
 	};
 
@@ -37,9 +34,6 @@ public:
 	virtual bool canConnect() const { return m_connectionLimit == 0 || m_connectionLimit > m_streams.size(); }
 
 	ServerService *service() const { return m_service; }
-
-	const QString &owner() const;
-	void setOwner(const QString &newOwner);
 
 	uint connectionLimit() const;
 	void setConnectionLimit(uint newConnectionLimit);
@@ -61,13 +55,10 @@ protected:
 	virtual void streamUnlinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 	virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) { Q_UNUSED(data); Q_UNUSED(stream); }
 
-	[[deprecated]] QRecursiveMutex m_engineMutex;
-
 	EngineHandler *const m_handler;
 	ServerService *const m_service;
 	const Type m_type = EngineInvalid;
 	QVector<WebSocketStream*> m_streams;
-	QString m_owner;
 	int m_id = 0;
 	uint m_connectionLimit = 0;
 	uint m_playerLimit = 0;
@@ -101,6 +92,7 @@ public:
 	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) { Q_UNUSED(data); }
 	virtual void udpPeerAdd(UdpServerPeer *peer) { Q_UNUSED(peer); }
 	virtual void udpPeerRemove(UdpServerPeer *peer) { Q_UNUSED(peer); }
+	virtual void disconnectUnusedPeer(UdpServerPeer *peer) { Q_UNUSED(peer); }
 
 	UdpServer *udpServer() const { return m_udpServer; }
 	void setUdpServer(UdpServer *server) { m_udpServer = server; }

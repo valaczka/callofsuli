@@ -142,8 +142,10 @@ public:
 											 const qreal &baseScale = 1.);
 
 
-	Q_INVOKABLE void messageColor(const QString &text, const QColor &color);
-	Q_INVOKABLE void message(const QString &text) { messageColor(text, m_defaultMessageColor); }
+	Q_INVOKABLE void messageColor(const QString &text, const QColor &color, const bool &priority = false);
+	Q_INVOKABLE void message(const QString &text, const bool &priority = false) {
+		messageColor(text, m_defaultMessageColor, priority);
+	}
 	void setMessageEnabled(const bool &enabled = true);
 
 	Q_INVOKABLE bool joystickInteractive() const { return m_joystickState.hasKeyboard || m_joystickState.hasTouch; }

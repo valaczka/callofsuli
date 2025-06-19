@@ -11,6 +11,7 @@ FocusScope {
 	id: root
 
 	property ActionRpgGame game: null
+	readonly property ActionRpgMultiplayerGame _multiplayer: game && (game instanceof ActionRpgMultiplayerGame) ? game : null
 
 	property alias minimapVisible: _mapRect.visible
 	property real gameControlRatio: 1.0
@@ -23,6 +24,8 @@ FocusScope {
 	property bool _prGameLoaded: false
 	property bool _prCmpCompleted: false
 	property bool _prStackActivated: false
+
+	signal closeRequest()
 
 	onWidthChanged: {
 		setBaseScale()
@@ -120,9 +123,9 @@ FocusScope {
 
 			iconLabel.icon.source: Qaterial.Icons.timerOutline
 
-			iconLabel.text: game.msecLeft /*game.msecLeft >= 60000 ?
+			iconLabel.text: game.msecLeft >= 60000 ?
 								Client.Utils.formatMSecs(game.msecLeft) :
-								Client.Utils.formatMSecs(game.msecLeft, 1, false)*/
+								Client.Utils.formatMSecs(game.msecLeft, 1, false)
 		}
 	}
 
@@ -159,11 +162,32 @@ FocusScope {
 
 			anchors.verticalCenter: parent.verticalCenter
 
+			visible: !_multiplayer
+
 			color: "transparent"
 			border.color: fontImage.color
 			border.width: 2
 
 			fontImage.icon: Qaterial.Icons.crosshairsQuestion
+			fontImage.color: Qaterial.Colors.purple400
+			fontImageScale: 0.7
+
+			onClicked: showQuests()
+		}
+
+		GameButton {
+			id: _playersButton
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+
+			anchors.verticalCenter: parent.verticalCenter
+
+			visible: _multiplayer
+
+			color: "transparent"
+			border.color: fontImage.color
+			border.width: 2
+
+			fontImage.icon: Qaterial.Icons.accountMultiple
 			fontImage.color: Qaterial.Colors.purple400
 			fontImageScale: 0.7
 
@@ -189,6 +213,7 @@ FocusScope {
 				_mapRect.visible = !_mapRect.visible
 			}
 		}
+
 
 
 		GameButton {
@@ -844,7 +869,7 @@ FocusScope {
 			_finishText = text
 			_finishSuccess = success
 
-			Qaterial.DialogManager.openFromComponent(_cmpFinishQuests)
+			Qaterial.DialogManager.openFromComponent(_multiplayer ? _cmpUserDialog : _cmpFinishQuests)
 		}
 	}
 
@@ -859,7 +884,15 @@ FocusScope {
 
 
 	function showQuests() {
-		Qaterial.DialogManager.openFromComponent(_cmpQuests)
+		if (_multiplayer) {
+			_finishIcon = ""
+			_finishText = ""
+			_finishSuccess = false
+
+			Qaterial.DialogManager.openFromComponent(_cmpUserDialog)
+		} else {
+			Qaterial.DialogManager.openFromComponent(_cmpQuests)
+		}
 	}
 
 
@@ -901,6 +934,30 @@ FocusScope {
 			showFailed: true
 		}
 
+	}
+
+
+	Component {
+		id: _cmpUserDialog
+
+		RpgGameUserDialog {
+			game: _multiplayer
+
+			text: _finishText
+			iconColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
+			textColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
+
+			iconSize: Qaterial.Style.roundIcon.size
+			iconSource: _finishIcon
+
+			onAccepted: if (root.game && root.game.config.gameState === RpgConfig.StateFinished) {
+							closeRequest()
+						}
+
+			onRejected: if (root.game && root.game.config.gameState === RpgConfig.StateFinished) {
+							closeRequest()
+						}
+		}
 	}
 }
 

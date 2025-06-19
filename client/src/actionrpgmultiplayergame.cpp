@@ -237,10 +237,8 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	setGameMode(MultiPlayerGuest);
 
 	QStringList roles = Utils::getRolesFromObject(RpgGameData::CharacterSelect().metaObject());
-	roles.append(QStringLiteral("gameCompleted"));
-
+	roles.append(QStringLiteral("player"));
 	m_playersModel->setRoleNames(roles);
-
 
 	if (m_client->server()) {
 		if (User *u = m_client->server()->user()) {
@@ -297,9 +295,9 @@ void ActionRpgMultiplayerGame::setRpgGame(RpgGame *newRpgGame)
 		setGameQuestion(m_rpgGame->gameQuestion());
 		m_rpgGame->setRpgQuestion(m_rpgQuestion.get());
 		m_rpgGame->setActionRpgGame(this);
-		m_rpgGame->setMessageEnabled(false);
+		m_rpgGame->setMessageEnabled(true);
 		connect(m_rpgGame, &RpgGame::gameSuccess, this, &ActionRpgMultiplayerGame::onGameSuccess, Qt::QueuedConnection);		// Azért kell, mert különbön az utolsó fegyverhasználatot nem számolja el a szerveren
-		connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgMultiplayerGame::onPlayerDead);
+		//connect(m_rpgGame, &RpgGame::playerDead, this, &ActionRpgMultiplayerGame::onPlayerDead);
 		connect(m_rpgGame, &RpgGame::gameLoadFailed, this, &ActionRpgMultiplayerGame::onGameLoadFailed);
 	}
 }
@@ -363,15 +361,6 @@ void ActionRpgMultiplayerGame::gameAbort()
 }
 
 
-/**
- * @brief ActionRpgMultiplayerGame::msecLeft
- * @return
- */
-
-int ActionRpgMultiplayerGame::msecLeft() const
-{
-	return m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : 0;
-}
 
 
 /**
@@ -490,10 +479,10 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 			m_fullyPrepared = true;
 
 			gameStart();
-			m_deadlineTick = AbstractGame::TickTimer::msecToTick(m_config.duration*1000);
+			//m_deadlineTick = AbstractGame::TickTimer::msecToTick(m_config.duration*1000);
 			//m_elapsedTick = 0;
 			m_rpgGame->tickTimer()->start(this, m_elapsedTick);
-			m_timerLeft.start();
+			///m_timerLeft.start();
 		}
 
 		if (!m_fullyPrepared) {
@@ -506,8 +495,7 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 
 
 	if (m_config.gameState == RpgConfig::StateFinished && m_oldGameState == RpgConfig::StatePlay) {
-		emit onGameSuccess();			// ????
-		return;
+		emit m_rpgGame->gameSuccess();
 	}
 
 	m_oldGameState = m_config.gameState;
@@ -536,7 +524,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 
 		map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
 
-		txt = QStringLiteral("CURRENT TICK %1 - server %2\n\n").arg(tick).arg(snapshots.serverTick());
+		txt = QStringLiteral("CURRENT TICK %1 - server %2 - deadline %3\n\n").arg(tick).arg(snapshots.serverTick()).arg(m_deadlineTick);
 
 
 		for (const auto &ptr : snapshots.controls().gates) {
@@ -703,7 +691,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	if (q->m_isReconnecting || (!m_engine->isHost() && !m_engine->gameConfig().terrain.isEmpty()))
 		worldTerrainSelect(m_engine->gameConfig().terrain, true);
 
-	updatePlayersModel(m_engine->getPlayerList());
+	updatePlayersModel();
 
 	if (m_config.gameState == RpgConfig::StateError) {
 		//disconnectFromHost();
@@ -726,11 +714,13 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	if (tick > 0)
 		m_engine->zapSnapshots(tick - 3*RPG_UDP_DELTA_TICK);
 
+	if (snapshots.deadlineTick() > 0)
+		m_deadlineTick = snapshots.deadlineTick();
 
 	const QList<RpgGameData::Message> &messageList = m_engine->takeMessageList();
 
 	for (const RpgGameData::Message &msg : messageList) {
-		m_rpgGame->message(msg.m);
+		m_rpgGame->message(msg.m, msg.p);
 	}
 
 }
@@ -855,8 +845,41 @@ void ActionRpgMultiplayerGame::worldTerrainSelect(QString map, const bool forced
  * @param list
  */
 
-void ActionRpgMultiplayerGame::updatePlayersModel(const QVariantList &list)
+void ActionRpgMultiplayerGame::updatePlayersModel()
 {
+	const QList<RpgGameData::CharacterSelect> &plist = m_engine->playerData();
+
+	QVariantList list;
+
+	for (const RpgGameData::CharacterSelect &p : plist) {
+		QVariantMap m = p.toJson().toVariantMap();
+
+		RpgPlayer *player = nullptr;
+
+		if (m_rpgGame) {
+			const auto &it = std::find_if(m_rpgGame->m_players.cbegin(),
+										  m_rpgGame->m_players.cend(),
+										  [&p](RpgPlayer *player) {
+							 return player && player->baseData().o == p.playerId;
+		});
+
+			if (it != m_rpgGame->m_players.cend()) {
+				player = *it;
+
+				player->setIsGameCompleted(p.finished);
+
+				if (player == m_rpgGame->m_controlledPlayer) {
+					setXp(p.xp);
+					m_rpgGame->setCurrency(p.cur);
+				}
+			}
+		}
+
+		m.insert(QStringLiteral("player"), QVariant::fromValue(player));
+		list.append(m);
+	}
+
+
 	Utils::patchSListModel(m_playersModel.get(), list, QStringLiteral("playerId"));
 }
 
@@ -919,8 +942,13 @@ void ActionRpgMultiplayerGame::syncEnemyList(const ClientStorage &storage)
 
 void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 {
-	if (!m_rpgGame || !m_tiledGameLoaded)
+	if (!m_rpgGame || storage.players().empty() || !m_tiledGameLoaded)
 		return;
+
+	if (m_playersSynced && (qsizetype) storage.players().size() == m_rpgGame->m_players.size())
+		return;
+
+	m_playersSynced = false;
 
 	QList<RpgPlayer*> playerList;
 
@@ -930,8 +958,6 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 									 [&pl](const RpgPlayer *p){
 			return p->baseData().isBaseEqual(pl.data);
 		});
-
-		RpgPlayer *rpgPlayer = nullptr;
 
 		if (it == m_rpgGame->m_players.end()) {
 			LOG_CWARNING("game") << "Missing player" << pl.data.s << pl.data.id << pl.data.o << "RQ" << pl.data.rq;
@@ -950,7 +976,7 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 				return;
 			}
 
-			rpgPlayer = createPlayer(scene, pl.data, pd);
+			RpgPlayer *rpgPlayer = createPlayer(scene, pl.data, pd);
 
 			if (!rpgPlayer) {
 				LOG_CERROR("game") << "Missing RpgPlayer";
@@ -968,17 +994,6 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 
 			playerList.append(rpgPlayer);
 
-		} else {
-			rpgPlayer = *it;
-		}
-
-		if (rpgPlayer->isGameCompleted() != pl.data.cmp) {
-			LOG_CDEBUG("game") << "-------------" << rpgPlayer << rpgPlayer->isGameCompleted() << pl.data.o << pl.data.cmp;
-			for (const auto &p2 : storage.players()) {
-				LOG_CINFO("game") << "  -" << p2.data.o << p2.data.cmp;
-			}
-
-			rpgPlayer->setIsGameCompleted(pl.data.cmp);
 		}
 	}
 
@@ -987,7 +1002,7 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 		m_rpgGame->setPlayers(playerList);
 	}
 
-	m_playersSynced = !storage.players().empty() && (qsizetype) storage.players().size() == m_rpgGame->m_players.size();
+	m_playersSynced = true;
 }
 
 
@@ -1215,6 +1230,56 @@ void ActionRpgMultiplayerGame::updateLastObjectId(RpgPlayer *player)
 
 
 
+/**
+ * @brief ActionRpgMultiplayerGame::onGameTimeout
+ */
+
+void ActionRpgMultiplayerGame::onGameTimeout()
+{
+
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onGameSuccess
+ */
+
+void ActionRpgMultiplayerGame::onGameSuccess()
+{
+	Sound *sound = m_client->sound();
+
+	////m_rpgGame->checkFinalQuests();
+
+	setFinishState(Success);
+	gameFinish();
+
+	sound->stopMusic();
+	sound->stopMusic2();
+	sound->playSound(QStringLiteral("qrc:/sound/sfx/win.mp3"), Sound::SfxChannel);
+
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
+
+	emit finishDialogRequest(m_isFlawless ? tr("Mission completed\nHibátlan győzelem!")
+										  : tr("Mission completed"),
+							 QStringLiteral("qrc:/Qaterial/Icons/trophy.svg"),
+							 true);
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onGameFailed
+ */
+
+void ActionRpgMultiplayerGame::onGameFailed()
+{
+
+}
+
+
+
 
 
 
@@ -1430,6 +1495,8 @@ void ActionRpgMultiplayerGame::onTimeStepped()
 			}
 		}
 	});
+
+	emit msecLeftChanged();
 }
 
 
@@ -1700,7 +1767,6 @@ void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgActiveIfa
 	p.st = RpgGameData::Player::PlayerUseControl;
 	p.tg = control->pureBaseData();
 	p.x = xp;
-	p.xp = m_xp+xp;
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
 	player->setLastSnapshot(p);
@@ -2075,6 +2141,9 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 			config.gameConfig.positionList = m_rpgGame->playerPositions();
 			config.gameConfig.collection = m_rpgGame->collection();
 			config.gameConfig.randomizer = m_rpgGame->randomizer();
+
+			config.avg = m_rpgQuestion->count() > 0 ? (float) m_rpgQuestion->duration() * 1000. / (float) m_rpgQuestion->count() : 0.;
+			config.gameConfig.duration = 30;//m_config.duration + m_rpgGame->m_gameDefinition.duration;
 		}
 
 		RpgGameData::CurrentSnapshot snap;

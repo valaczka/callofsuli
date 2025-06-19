@@ -59,6 +59,7 @@ public:
 
 	bool emptyQuestions() const;
 	qint64 duration() const;
+	int count() const;
 
 private:
 	ActionRpgGame *const m_game;

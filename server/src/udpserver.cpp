@@ -199,6 +199,8 @@ void UdpServerPrivate::run()
 
 		deliverReceived();
 
+		disconnectUnusedPeers();
+
 	}
 
 	LOG_CINFO("engine") << "UPD ENGINE RUN FINISHED";
@@ -227,6 +229,10 @@ void UdpServerPrivate::peerConnect(ENetPeer *peer)
 	const auto &engines= q->m_service->engineHandler()->engines();
 
 	auto it = std::find_if(engines.constBegin(), engines.constEnd(), [](const std::shared_ptr<AbstractEngine> &e) {
+		if (const auto &ptr = std::dynamic_pointer_cast<RpgEngine>(e)) {
+			if (ptr->config().gameState == RpgConfig::StateFinished)
+				return false;
+		}
 		return e->type() == AbstractEngine::EngineRpg;
 	});
 
@@ -358,6 +364,23 @@ void UdpServerPrivate::deliverReceived()
 
 	for (UdpEngine *e : engines)
 		e->binaryDataReceived({});
+}
+
+
+
+/**
+ * @brief UdpServerPrivate::disconnectUnusedPeers
+ */
+
+void UdpServerPrivate::disconnectUnusedPeers()
+{
+	for (const auto &ptr : q->m_peerList) {
+		UdpEngine *e = ptr->engine().get();
+		if (!e)
+			continue;
+
+		e->disconnectUnusedPeer(ptr.get());
+	}
 }
 
 

@@ -530,6 +530,11 @@ QItemGradient {
 			if (_multiplayer && w)
 				_multiplayer.selectCharacter(w.market.name)
 
+			let t = Client.server.user.wallet.worldGetSelectedWallet()
+
+			if (_multiplayer && _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost && t)
+				_multiplayer.selectTerrain(t.market.name)
+
 			if (Client.server.user.wallet.world) {
 				if (!_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost)
 					Client.server.user.wallet.world.select(Client.Utils.settingsGet("rpg/world", ""))

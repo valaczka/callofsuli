@@ -29,7 +29,6 @@
 #include "generalapi.h"
 #include "adminapi.h"
 #include "authapi.h"
-#include "peerengine.h"
 #include "teacherapi.h"
 #include "userapi.h"
 #include "serverservice.h"
@@ -196,18 +195,6 @@ std::optional<Credential> Handler::authorizeRequestLog(const QHttpServerRequest 
 						  << qPrintable(request.remoteAddress().toString()) << request.remotePort()
 						  << (credential ? qPrintable(credential->username()) : "")
 						  << (userAgent.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgent+QByteArrayLiteral("]")).constData());
-
-	if (credential) {
-		const auto &list = m_service->engineHandler()->engineGet<PeerEngine>(AbstractEngine::EnginePeer);
-		PeerUser user;
-		user.setUsername(credential->username());
-		user.setHost(request.remoteAddress());
-		user.setAgent(userAgent);
-
-		for (auto e : list) {
-			e->logPeerUser(user);
-		}
-	}
 
 	return credential;
 }

@@ -338,6 +338,46 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 		m_game->setTickTimer(tick);
 	}
 
+	if (const QCborArray &list = data.value(QStringLiteral("pList")).toArray(); !list.isEmpty()) {
+		for (const QCborValue &v : list) {
+			RpgGameData::CharacterSelect pData;
+			pData.fromCbor(v);
+			updateSnapshot(pData);
+		}
+	}
+
+	RpgGameData::CurrentSnapshot snapshot;
+	snapshot.fromCbor(data);
+
+	updateSnapshot(snapshot);
+
+	if (const QCborMap &m = data.value(QStringLiteral("msg")).toMap(); !m.isEmpty()) {
+		RpgGameData::Message msg;
+		msg.fromCbor(m);
+		messageAdd(msg);
+	}
+}
+
+
+
+/**
+ * @brief RpgUdpEngine::packetReceivedFinished
+ * @param data
+ */
+
+void RpgUdpEngine::packetReceivedFinished(const QCborMap &data)
+{
+	if (!m_game)
+		return;
+
+	if (const QCborArray &list = data.value(QStringLiteral("pList")).toArray(); !list.isEmpty()) {
+		for (const QCborValue &v : list) {
+			RpgGameData::CharacterSelect pData;
+			pData.fromCbor(v);
+			updateSnapshot(pData);
+		}
+	}
+
 	RpgGameData::CurrentSnapshot snapshot;
 	snapshot.fromCbor(data);
 
@@ -478,11 +518,13 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 
 		updateState(cbor);
 
-		if (m_gameState == RpgConfig::StateConnect)
+		if (m_gameState == RpgConfig::StateConnect) {
 			return;
-		else if (m_gameState == RpgConfig::StateCharacterSelect)
+
+		} else if (m_gameState == RpgConfig::StateCharacterSelect) {
 			packetReceivedChrSel(cbor);
-		else if (m_gameState == RpgConfig::StatePrepare || m_gameState == RpgConfig::StateDownloadContent) {
+
+		} else if (m_gameState == RpgConfig::StatePrepare || m_gameState == RpgConfig::StateDownloadContent) {
 			if (m_game->isReconnecting()) {
 				packetReceivedChrSel(cbor);
 			}
@@ -491,6 +533,7 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 				packetReceivedDownload(cbor);
 			else if (m_game->config().gameState == RpgConfig::StatePrepare)
 				packetReceivedPrepare(cbor);
+
 		} else if (m_gameState == RpgConfig::StatePlay) {
 
 			if (const qint64 tick = cbor.value(QStringLiteral("t")).toInteger(-1); tick > -1) {
@@ -498,7 +541,15 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 				m_snapshots.setServerTick(tick);
 			}
 
+			if (const qint64 tick = cbor.value(QStringLiteral("d")).toInteger(-1); tick > -1) {
+				QMutexLocker locker(&m_snapshotMutex);
+				m_snapshots.setDeadlineTick(tick);
+			}
+
 			packetReceivedPlay(cbor);
+
+		} else if (m_gameState == RpgConfig::StateFinished) {
+			packetReceivedFinished(cbor);
 		}
 	}
 }
@@ -507,46 +558,6 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 
 
 
-
-
-
-
-
-/**
- * @brief RpgUdpEngine::getPlayerList
- * @param tick
- * @return
- */
-
-QVariantList RpgUdpEngine::getPlayerList()
-{
-	QMutexLocker locker(&m_snapshotMutex);
-
-	QVariantList list;
-
-	const auto &pl = m_snapshots.players();
-
-	for (const RpgGameData::CharacterSelect &p : m_playerData) {
-		QVariantMap m = p.toJson().toVariantMap();
-
-		const auto &it = std::find_if(pl.cbegin(),
-					 pl.cend(),
-					 [&p](const auto &ptr) {
-			return ptr.data.o == p.playerId;
-		});
-
-
-		if (it != pl.cend()) {
-			m[QStringLiteral("gameCompleted")] = it->data.cmp;
-		} else {
-			m[QStringLiteral("gameCompleted")] = false;
-		}
-
-		list.append(m);
-	}
-
-	return list;
-}
 
 
 
@@ -628,9 +639,6 @@ void ClientStorage::updateSnapshot(const RpgGameData::CharacterSelect &player)
 		return key.data.o == player.playerId;
 	});
 
-
-	RpgGameData::Player pData;
-
 	if (pIt == m_players.cend()) {
 		RpgGameData::SnapshotData<RpgGameData::Player, RpgGameData::PlayerBaseData> d;
 		d.data.o = player.playerId;
@@ -664,11 +672,6 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 	it->data.s = playerData.s;										// Itt állítjuk be
 	it->data.id = playerData.id;
 	it->data.rq = playerData.rq;
-
-	if (it->data.cmp != playerData.cmp) {
-		it->data.cmp = playerData.cmp;
-		LOG_CERROR("game") << "###### COMPLETED ?" << it->data.o << playerData.cmp << "->" << it->data.cmp;
-	}
 
 	if (player.f < 0)
 		LOG_CDEBUG("game") << "SKIP FRAME" << player.f << player.p;
@@ -998,6 +1001,22 @@ void ClientStorage::updateLastTick(const RpgGameData::CurrentSnapshot &snapshot)
 				m_lastBulletTick = l.second.f;
 		}
 	}
+}
+
+
+/**
+ * @brief ClientStorage::deadlineTick
+ * @return
+ */
+
+const qint64 &ClientStorage::deadlineTick() const
+{
+	return m_deadlineTick;
+}
+
+void ClientStorage::setDeadlineTick(const qint64 &newDeadlineTick)
+{
+	m_deadlineTick = newDeadlineTick;
 }
 
 

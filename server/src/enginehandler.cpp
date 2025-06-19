@@ -1,7 +1,6 @@
 #include "enginehandler.h"
 #include "enginehandler_p.h"
 #include "Logger.h"
-#include "peerengine.h"
 #include "udpserver.h"
 
 
@@ -23,8 +22,6 @@ EngineHandler::EngineHandler(ServerService *service)
 	d->moveToThread(&m_dThread);
 	QObject::connect(&m_dThread, &QThread::finished, d, &QObject::deleteLater);
 	m_dThread.start();
-
-	initEngines();
 }
 
 
@@ -148,20 +145,6 @@ void EngineHandler::websocketEngineUnlink(WebSocketStream *stream, AbstractEngin
 
 
 /**
- * @brief EngineHandler::initEngines
- */
-
-void EngineHandler::initEngines()
-{
-	LOG_CTRACE("service") << "Init engines";
-
-	auto ptr = std::make_shared<PeerEngine>(this);
-	engineAdd(std::move(ptr));
-}
-
-
-
-/**
  * @brief EngineHandlerPrivate::engineAdd
  * @param engine
  */
@@ -248,17 +231,10 @@ void EngineHandlerPrivate::engineRemove(AbstractEngine *engine)
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
-		if (it->get() == engine) {
-			if (!it->get()->m_engineMutex.tryLock(10000)) {
-				LOG_CERROR("service") << "Unable to unlock mutex" << it->get();
-				++it;
-			} else {
-				it->get()->m_engineMutex.unlock();
-				it = m_engines.erase(it);
-			}
-		} else {
+		if (it->get() == engine)
+			it = m_engines.erase(it);
+		else
 			++it;
-		}
 	}
 }
 
@@ -275,18 +251,10 @@ void EngineHandlerPrivate::engineRemoveUnused()
 
 	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
 		auto e = it->get();
-		if (e->canDelete(it->use_count())) {
-			if (!e->m_engineMutex.tryLock(10000)) {
-				LOG_CERROR("service") << "Unable to unlock mutex" << e;
-				++it;
-			} else {
-				e->m_engineMutex.unlock();
-				LOG_CDEBUG("service") << "Remove unused engine" << e->type() << e->id();
-				it = m_engines.erase(it);
-			}
-		} else {
+		if (e->canDelete(it->use_count()))
+			it = m_engines.erase(it);
+		else
 			++it;
-		}
 	}
 }
 

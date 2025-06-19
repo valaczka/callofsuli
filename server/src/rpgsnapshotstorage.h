@@ -433,9 +433,10 @@ private:
 		{
 			RendererObject<RpgGameData::PlayerBaseData> *player = nullptr;
 			State state = StateInvalid;
+			int xp = 0;
 
 			bool operator==(const ReleaseState &other) {
-				return other.player == player && other.state == state;
+				return other.player == player && other.state == state && other.xp == xp;
 			}
 		};
 
@@ -445,7 +446,7 @@ private:
 		virtual RendererObjectType *uniqueObject() const = 0;
 
 		virtual void add(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src);
-		virtual bool releaseSuccess(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src);
+		virtual bool releaseSuccess(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src, const int &xp);
 		virtual bool releaseFailed(const int &tick, RendererObject<RpgGameData::PlayerBaseData> *src);
 
 		ReleaseState renderCurrentState(Renderer *renderer, const int &maxTick) const;
@@ -886,7 +887,6 @@ public:
 	void playerAdd(const RpgGameData::PlayerBaseData &base, const RpgGameData::Player &data);
 	void enemyAdd(const RpgGameData::EnemyBaseData &base, const RpgGameData::Enemy &data);
 	bool bulletAdd(const RpgGameData::BulletBaseData &base, const RpgGameData::Bullet &data);
-	bool playerUpdate(RpgEnginePlayer *player);
 
 	void lightAdd(const RpgGameData::ControlBaseData &base, const RpgGameData::ControlLight &data);
 	void containerAdd(const RpgGameData::ControlContainerBaseData &base, const RpgGameData::ControlContainer &data);
