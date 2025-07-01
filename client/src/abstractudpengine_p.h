@@ -31,6 +31,7 @@
 #include "qurl.h"
 #include <QObject>
 #include <QMap>
+#include "credential.h"
 
 #ifndef Q_OS_WASM
 #include <enet/enet.h>
@@ -48,20 +49,23 @@ class AbstractUdpEnginePrivate : public QObject
 	Q_OBJECT
 
 public:
-	AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
-		: q(engine)
-	{}
+	AbstractUdpEnginePrivate(AbstractUdpEngine *engine);
 
 	void run();
 
-	void sendMessage(QByteArray data, const bool &reliable = true, const int &channel = 0);
+	void sendMessage(QByteArray data, const bool &reliable = true, const bool &sign = true);
 	void setUrl(const QUrl &url);
 
 	const int &currentRtt() const { return m_speed.currentRtt; }
 	void setCurrentRtt(const int &rtt) { m_speed.addRtt(rtt); }
 
+	QByteArray connectionToken() const;
+	void setConnectionToken(const QByteArray &newConnectionToken);
+
+
 private:
 
+	void updateChallenge();
 	void deliverReceived();
 
 	AbstractUdpEngine *q = nullptr;
@@ -119,25 +123,27 @@ private:
 
 	struct InOutCache {
 		struct Packet {
-			Packet(const QByteArray &d, const bool r)
+			Packet(const QByteArray &d, const bool r, const bool &s)
 				: data(d)
 				, reliable(r)
+				, sign(s)
 			{}
 
 			QByteArray data;
 			bool reliable = false;
+			bool sign = true;
 		};
 
 
 		struct PacketRcv {
-			PacketRcv(const QByteArray &d, const qint64 _ts, const unsigned int &_rtt)
+			PacketRcv(const QByteArray &d, const enet_uint8 _ch, const unsigned int &_rtt)
 				: data(d)
-				, ts(_ts)
+				, channel(_ch)
 				, rtt(_rtt)
 			{}
 
 			QByteArray data;
-			qint64 ts = -0;
+			enet_uint8 channel = 0;
 			unsigned int rtt = 0;
 		};
 
@@ -148,6 +154,12 @@ private:
 	};
 
 	InOutCache m_inOutChache;
+
+	QByteArray m_secretKey;
+	QByteArray m_connectionToken;
+	UdpChallengeRequest m_challenge;
+	UdpServerResponse::State m_udpState = UdpServerResponse::StateInvalid;
+	quint32 m_peerID = 0;
 
 	friend class AbstractUdpEngineThread;
 };

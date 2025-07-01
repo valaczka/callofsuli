@@ -231,9 +231,10 @@ void EngineHandlerPrivate::engineRemove(AbstractEngine *engine)
 	QMutexLocker locker(&m_mutex);
 
 	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
-		if (it->get() == engine)
+		if (it->get() == engine) {
+			it->get()->onRemoveRequest();
 			it = m_engines.erase(it);
-		else
+		} else
 			++it;
 	}
 }
@@ -251,9 +252,10 @@ void EngineHandlerPrivate::engineRemoveUnused()
 
 	for (auto it = m_engines.begin(); it != m_engines.end(); ) {
 		auto e = it->get();
-		if (e->canDelete(it->use_count()))
+		if (e->canDelete(it->use_count())) {
+			e->onRemoveRequest();
 			it = m_engines.erase(it);
-		else
+		} else
 			++it;
 	}
 }

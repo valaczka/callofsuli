@@ -753,15 +753,9 @@ void ActionRpgGame::onConfigChanged()
 		if (!m_rpgGame->m_gameDefinition.music.isEmpty())
 			m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);
 
-		if (m_deathmatch) {
-			m_rpgGame->message(tr("LEVEL %1").arg(level()));
-			m_rpgGame->message(tr("SUDDEN DEATH"));
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/sudden_death.mp3"), Sound::VoiceoverChannel);
-		} else {
-			m_rpgGame->message(tr("LEVEL %1").arg(level()));
-			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
-			///m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
-		}
+		m_rpgGame->message(tr("LEVEL %1").arg(level()));
+		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
+		///m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
 	}
 
 	m_oldGameState = m_config.gameState;

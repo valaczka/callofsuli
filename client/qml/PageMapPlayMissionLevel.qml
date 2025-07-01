@@ -181,7 +181,7 @@ QPageGradient {
 							case GameMap.Exam:
 								qsTr("Dolgozat")
 								break
-							/*case GameMap.Conquest:
+								/*case GameMap.Conquest:
 								qsTr("Multiplayer")
 								break*/
 							default:
@@ -286,40 +286,81 @@ QPageGradient {
 		}
 
 
-		QButton {
-			id: _btnPlay
-
+		Row {
+			spacing: 10 * Qaterial.Style.pixelSizeRatio
 			anchors.horizontalCenter: parent.horizontalCenter
 
-			icon.source: Qaterial.Icons.play
-			icon.width: 28 * Qaterial.Style.pixelSizeRatio
-			icon.height: 28 * Qaterial.Style.pixelSizeRatio
-			/*font.family: Qaterial.Style.textTheme.headline6.family
+
+			QButton {
+				id: _btnPlay
+
+				anchors.verticalCenter: parent.verticalCenter
+
+
+				icon.source: Qaterial.Icons.play
+				icon.width: 28 * Qaterial.Style.pixelSizeRatio
+				icon.height: 28 * Qaterial.Style.pixelSizeRatio
+				/*font.family: Qaterial.Style.textTheme.headline6.family
 			font.pixelSize: Qaterial.Style.textTheme.headline6.pixelSize
 			font.capitalization: Font.AllUppercase*/
 
-			bgColor: Qaterial.Colors.green700
-			textColor: Qaterial.Colors.white
-			//display: AbstractButton.TextUnderIcon
-			topPadding: 10 * Qaterial.Style.pixelSizeRatio
-			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
-			leftPadding: 40 * Qaterial.Style.pixelSizeRatio
-			rightPadding: 40 * Qaterial.Style.pixelSizeRatio
-			enabled: missionLevel && missionLevel.lockDepth == 0 && map && _modeGroup.checkedButton
-			text:  map && map.gameState != MapPlay.StateSelect && _currentGameFailed ? qsTr("Újra") : qsTr("Play")
+				bgColor: Qaterial.Colors.green700
+				textColor: Qaterial.Colors.white
+				//display: AbstractButton.TextUnderIcon
+				topPadding: 10 * Qaterial.Style.pixelSizeRatio
+				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+				leftPadding: 40 * Qaterial.Style.pixelSizeRatio
+				rightPadding: 40 * Qaterial.Style.pixelSizeRatio
+				enabled: missionLevel && missionLevel.lockDepth == 0 && map && _modeGroup.checkedButton
+				text:  map && map.gameState != MapPlay.StateSelect && _currentGameFailed ? qsTr("Újra") : qsTr("Play")
 
-			visible: map && !map.readOnly && (map.gameState == MapPlay.StateSelect || (map.gameState == MapPlay.StateFinished && _currentGameFailed))
+				visible: map && !map.readOnly && (map.gameState == MapPlay.StateSelect || (map.gameState == MapPlay.StateFinished && _currentGameFailed))
 
-			outlined: !enabled
+				outlined: !enabled
 
-			onClicked: {
-				let d = {}
+				onClicked: {
+					let d = {}
 
-				if (_mapPlayCampaign)
-					_mapPlayCampaign.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
-								_extraTimeSwitch.timeFactor : 0.0
+					if (_mapPlayCampaign)
+						_mapPlayCampaign.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
+									_extraTimeSwitch.timeFactor : 0.0
 
-				map.play(missionLevel, _modeGroup.checkedButton.gameMode, d)
+					map.play(missionLevel, _modeGroup.checkedButton.gameMode, d)
+				}
+			}
+
+
+
+			QButton {
+				id: _btnPlayMulti
+
+				anchors.verticalCenter: parent.verticalCenter
+
+				icon.source: Qaterial.Icons.playNetwork
+				icon.width: 28 * Qaterial.Style.pixelSizeRatio
+				icon.height: 28 * Qaterial.Style.pixelSizeRatio
+				/*font.family: Qaterial.Style.textTheme.headline6.family
+			font.pixelSize: Qaterial.Style.textTheme.headline6.pixelSize
+			font.capitalization: Font.AllUppercase*/
+
+				bgColor: Qaterial.Colors.green700
+				textColor: Qaterial.Colors.white
+				//display: AbstractButton.TextUnderIcon
+				topPadding: 10 * Qaterial.Style.pixelSizeRatio
+				bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
+				leftPadding: 40 * Qaterial.Style.pixelSizeRatio
+				rightPadding: 40 * Qaterial.Style.pixelSizeRatio
+				enabled: _btnPlay.enabled
+				text: qsTr("Multiplayer")
+
+				visible: _btnPlay.visible && _mapPlayCampaign &&
+						 _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Rpg
+
+				outlined: !enabled
+
+				onClicked: {
+					_mapPlayCampaign.playMultiPlayer(missionLevel)
+				}
 			}
 		}
 

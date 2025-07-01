@@ -96,9 +96,10 @@ public:
 	MapPlayMissionList *missionList() const { return m_missionList.get(); }
 
 	MapPlayMission *getMission(GameMapMissionIface *mission) const;
-	MapPlayMissionLevel *getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const;
+	MapPlayMissionLevel *getMissionLevel(GameMapMissionLevelIface *missionLevel) const;
 
-	Q_INVOKABLE bool play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const QJsonObject &extended = {});
+	Q_INVOKABLE bool play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const QJsonObject &extended = {},
+						  const bool &multi = false);
 	Q_INVOKABLE virtual void updateSolver();
 
 	Q_INVOKABLE int calculateXP(MapPlayMissionLevel *level, const GameMap::GameMode &mode) const;
@@ -126,7 +127,7 @@ protected:
 	void unloadGameMap();
 	void reloadMissionList();
 
-	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode);
+	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const bool &multi);
 	virtual void onCurrentGamePrepared();
 	virtual void onCurrentGameFinished();
 
@@ -294,7 +295,6 @@ class MapPlayMissionLevel : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(GameMapMissionLevel *missionLevel READ missionLevel CONSTANT)
-	Q_PROPERTY(bool deathmatch READ deathmatch CONSTANT)
 	Q_PROPERTY(int lockDepth READ lockDepth WRITE setLockDepth NOTIFY lockDepthChanged)
 	Q_PROPERTY(int xp READ xp WRITE setXp NOTIFY xpChanged)
 	Q_PROPERTY(int level READ level CONSTANT)
@@ -304,7 +304,7 @@ class MapPlayMissionLevel : public QObject
 	Q_PROPERTY(MapPlayMission *mission READ mission CONSTANT)
 
 public:
-	explicit MapPlayMissionLevel(MapPlayMission *mission, GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent = nullptr);
+	explicit MapPlayMissionLevel(MapPlayMission *mission, GameMapMissionLevel *missionLevel, QObject *parent = nullptr);
 	virtual ~MapPlayMissionLevel();
 
 	const MapPlaySolverData &solverData() const;
@@ -318,8 +318,6 @@ public:
 
 	int xp() const;
 	void setXp(int newXp);
-
-	bool deathmatch() const { return m_deathmatch; }
 
 	int level() const;
 	int solved() const;
@@ -340,7 +338,6 @@ private:
 	MapPlayMission *const m_mission;
 	GameMapMissionLevel *const m_missionLevel;
 	MapPlaySolverData m_solverData;
-	bool m_deathmatch = false;
 	int m_lockDepth = 1;
 	int m_xp = 0;
 };

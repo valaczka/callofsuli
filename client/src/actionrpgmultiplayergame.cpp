@@ -81,6 +81,11 @@ private:
 	qint64 m_lastSentTick = -1;
 	ClientStorage m_toSend;
 
+	bool m_canAddEngine = false;
+	bool m_requireEngine = false;
+	int m_selectedEngineId = -1;
+	int m_engineId = -1;
+
 	bool m_isReconnecting = false;
 	bool m_hasReconnected = false;
 
@@ -229,6 +234,7 @@ private:
 ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionLevel, Client *client)
 	: ActionRpgGame(missionLevel, client)
 	, m_playersModel(std::make_unique<QSListModel>())
+	, m_enginesModel(std::make_unique<QSListModel>())
 	, m_engine(new RpgUdpEngine(this))
 	, q(new ActionRpgMultiplayerGamePrivate(this))
 {
@@ -249,6 +255,7 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 
 	connect(m_engine, &RpgUdpEngine::gameDataDownload, this, &ActionRpgMultiplayerGame::downloadGameData);
 	connect(m_engine, &RpgUdpEngine::gameError, this, &ActionRpgMultiplayerGame::setError);
+	connect(m_engine, &RpgUdpEngine::serverConnectFailed, this, &ActionRpgMultiplayerGame::setError);
 
 	m_keepAliveTimer.start(1000, this);
 }
@@ -408,6 +415,27 @@ void ActionRpgMultiplayerGame::selectWeapons(const QStringList &weaponList)
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::connectToEngine
+ * @param id
+ */
+
+void ActionRpgMultiplayerGame::connectToEngine(const int &id)
+{
+	if (id <= 0) {
+		LOG_CDEBUG("game") << "Require new engine";
+		q->m_requireEngine = true;
+		sendDataConnect();
+	} else {
+		LOG_CDEBUG("game") << "Connect to engine" << id;
+		q->m_requireEngine = false;
+		q->m_selectedEngineId = id;
+		sendDataConnect();
+	}
+}
+
+
+
+/**
  * @brief ActionRpgMultiplayerGame::disconnect
  */
 
@@ -436,7 +464,12 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 		return;
 
 	if (m_config.gameState == RpgConfig::StateConnect) {
-		m_engine->connectToServer(m_client->server());
+		if (m_engine->connectionToken().isEmpty()) {
+			LOG_CERROR("game") << "Missing connection token";
+			setError();
+		} else {
+			m_engine->connectToServer(m_client->server());
+		}
 		return;
 	}
 
@@ -447,13 +480,6 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 		ActionRpgGame::onConfigChanged();
 		return;
 	}
-
-	/*if (m_config.gameState == RpgConfig::StatePlay) {
-		LOG_CINFO("game") << "!!!! stop keepalive timer";
-		m_keepAliveTimer.stop();
-	}
-
-	ActionRpgGame::onConfigChanged();*/
 
 	if (m_config.gameState == RpgConfig::StatePlay) {
 		if (!m_rpgGame) {
@@ -679,6 +705,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	}
 #endif
 
+	LOG_CDEBUG("game") << ">>>>" << m_engine->gameState();
 
 	if (m_engine->gameState() == RpgConfig::StateInvalid)
 		return;
@@ -709,6 +736,8 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 		sendDataChrSel();
 	else if (m_config.gameState == RpgConfig::StatePrepare)
 		sendDataPrepare();
+	else if (m_config.gameState == RpgConfig::StateConnect)
+		sendDataConnect();
 
 
 	if (tick > 0)
@@ -812,6 +841,18 @@ void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::setConnectionToken
+ * @param newConnectionToken
+ */
+
+void ActionRpgMultiplayerGame::setConnectionToken(const QByteArray &newConnectionToken)
+{
+	if (m_engine)
+		m_engine->setConnectionToken(newConnectionToken);
+}
+
+
+/**
  * @brief ActionRpgMultiplayerGame::worldTerrainSelect
  * @param map
  * @param forced
@@ -881,6 +922,38 @@ void ActionRpgMultiplayerGame::updatePlayersModel()
 
 
 	Utils::patchSListModel(m_playersModel.get(), list, QStringLiteral("playerId"));
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::updateEnginesModel
+ * @param selector
+ */
+
+void ActionRpgMultiplayerGame::updateEnginesModel(const RpgGameData::EngineSelector &selector)
+{
+	if (selector.operation == RpgGameData::EngineSelector::Connect) {
+		LOG_CINFO("game") << "Connected to engine" << selector.engine;
+		q->m_selectedEngineId = selector.engine;
+		m_engine->setGameState(RpgConfig::StateConnect);
+		return;
+	}
+
+	LOG_CWARNING("game") << "OP" << selector.operation << selector.engine << selector.engines.size() << selector.add;
+
+	if (selector.operation != RpgGameData::EngineSelector::List)
+		return;
+
+	QVariantList list;
+
+	for (const RpgGameData::Engine &e : selector.engines) {
+		list << e.toVariantMap();
+	}
+
+	Utils::patchSListModel(m_enginesModel.get(), list, QStringLiteral("id"));
+
+	setCanAddEngine(selector.add);
 }
 
 
@@ -1291,6 +1364,17 @@ void ActionRpgMultiplayerGame::onGameFailed()
 QSListModel *ActionRpgMultiplayerGame::playersModel() const
 {
 	return m_playersModel.get();
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::enginesModel
+ * @return
+ */
+
+QSListModel *ActionRpgMultiplayerGame::enginesModel() const
+{
+	return m_enginesModel.get();
 }
 
 bool ActionRpgMultiplayerGame::isReconnecting() const
@@ -2085,7 +2169,7 @@ void ActionRpgMultiplayerGame::onRpgGameActivated()
 
 void ActionRpgMultiplayerGame::sendData(const QSerializer &data, const bool &reliable)
 {
-	m_engine->sendMessage(data.toCborMap().toCborValue().toCbor(), reliable);
+	sendData(data.toCborMap().toCborValue().toCbor(), reliable);
 }
 
 
@@ -2189,6 +2273,27 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 }
 
 
+/**
+ * @brief ActionRpgMultiplayerGame::sendDataConnect
+ */
+
+void ActionRpgMultiplayerGame::sendDataConnect()
+{
+	RpgGameData::EngineSelector selector;
+
+	if (q->m_requireEngine) {
+		selector.operation = RpgGameData::EngineSelector::Create;
+	} else if (q->m_selectedEngineId > 0){
+		selector.operation = RpgGameData::EngineSelector::Connect;
+		selector.engine = q->m_selectedEngineId;
+	} else {
+		selector.operation = RpgGameData::EngineSelector::List;
+	}
+
+	sendData(selector, false);
+}
+
+
 
 /**
  * @brief ActionRpgMultiplayerGame::setTickTimer
@@ -2274,4 +2379,30 @@ void ActionRpgMultiplayerGamePrivate::updateBody(TiledObjectBody *body, const bo
 		body->worldStep();
 
 
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::canAddEngine
+ * @return
+ */
+
+bool ActionRpgMultiplayerGame::canAddEngine() const
+{
+	return q->m_canAddEngine;
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::setCanAddEngine
+ * @param newCanAddEngine
+ */
+
+void ActionRpgMultiplayerGame::setCanAddEngine(bool newCanAddEngine)
+{
+	if (q->m_canAddEngine == newCanAddEngine)
+		return;
+	q->m_canAddEngine = newCanAddEngine;
+	emit canAddEngineChanged();
 }

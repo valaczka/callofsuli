@@ -163,6 +163,13 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return gameCreate(*credential, id, *jsonObject);
 	});
 
+	server->route(path+"campaign/<arg>/game/token", QHttpServerRequest::Method::Post,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return gameTokenCreate(*credential, id, *jsonObject);
+	});
+
 	server->route(path+"game/<arg>/update", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -571,7 +578,6 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 	g.map = json.value(QStringLiteral("map")).toString();
 	g.mission = json.value(QStringLiteral("mission")).toString();
 	g.level = json.value(QStringLiteral("level")).toInt(-1);
-	g.deathmatch = json.value(QStringLiteral("deathmatch")).toVariant().toBool();
 	g.mode = json.value(QStringLiteral("mode")).toVariant().value<GameMap::GameMode>();
 
 	if (g.map.isEmpty() || g.mission.isEmpty())
@@ -687,7 +693,6 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 						 .addField("missionid", game.mission)
 						 .addField("campaignid", campaign > 0 ? campaign : QVariant(QMetaType::fromType<int>()))
 						 .addField("level", game.level)
-						 .addField("deathmatch", game.deathmatch)
 						 .addField("success", false)
 						 .addField("mode", game.mode)
 						 .execInsertAsInt();
@@ -747,6 +752,59 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 		*gameIdPtr = *gameId;
 
 	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::gameTokenCreate
+ * @param credential
+ * @param campaign
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const int &campaign, const QJsonObject &json)
+{
+	RpgConfigBase g;
+
+	g.fromJson(json);
+	g.campaign = campaign;
+
+	if (g.mapUuid.isEmpty() || g.missionUuid.isEmpty())
+		return responseError("missing map/mission");
+
+	if (g.missionLevel < 0)
+		return responseError("invalid level");
+
+	if (g.campaign < 0)
+		return responseError("invalid campaign");
+
+
+	// TODO: remove player other games
+
+	RpgGameData::ConnectionToken token;
+	token.peerID = m_service->udpServer()->addPeer(credential.username());
+
+	if (token.peerID == 0) {
+		return responseError("player create error");
+	}
+
+	token.username = credential.username();
+	token.config = g;
+
+	QDateTime exp = QDateTime::currentDateTimeUtc();
+	exp = exp.addSecs(120);
+
+	token.exp = exp.toSecsSinceEpoch();
+
+
+	Token jwt;
+
+	jwt.setSecret(m_service->settings()->jwtSecret());
+	jwt.setPayload(token.toJson());
+
+	return responseResult("token", QString::fromUtf8(jwt.getToken()));
 }
 
 
@@ -853,7 +911,7 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 
 		QueryBuilder qq(db);
 
-		qq.addQuery("SELECT mapid, missionid, level, deathmatch, mode, campaignid FROM game "
+		qq.addQuery("SELECT mapid, missionid, level, mode, campaignid FROM game "
 					"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
 					"LEFT JOIN campaign ON (campaign.id=game.campaignid) "
 					"WHERE runningGame.gameid=game.id AND game.id=").addValue(id)
@@ -866,7 +924,6 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		g.map = qq.value("mapid").toString();
 		g.mission = qq.value("missionid").toString();
 		g.level = qq.value("level").toInt();
-		g.deathmatch = qq.value("deathmatch").toBool();
 		g.mode = qq.value("mode").value<GameMap::GameMode>();
 		g.campaign = qq.value("campaignid", -1).toInt();
 
@@ -931,7 +988,7 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 	QJsonObject retObj;
 
 	const int &baseXP = m_service->config().get("gameBaseXP").toInt(100);
-	const int &oldSolved = _solverInfo(this, username, game.map, game.mission, game.level, game.deathmatch).value_or(0);
+	const int &oldSolved = _solverInfo(this, username, game.map, game.mission, game.level).value_or(0);
 
 	if (success) {
 		// Solved XP
@@ -1883,8 +1940,7 @@ std::optional<int> UserAPI::solverInfo(const AbstractAPI *api, const QString &us
 * @return
 */
 
-std::optional<int> UserAPI::_solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level,
-										const bool &deathmatch)
+std::optional<int> UserAPI::_solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission, const int &level)
 {
 	Q_ASSERT(api);
 
@@ -1898,7 +1954,6 @@ std::optional<int> UserAPI::_solverInfo(const AbstractAPI *api, const QString &u
 					.addQuery(" AND mapid=").addValue(map)
 					.addQuery(" AND missionid=").addValue(mission)
 					.addQuery(" AND level=").addValue(level)
-					.addQuery(" AND deathmatch=").addValue(deathmatch)
 					.execToValue("num");
 
 	if (n)

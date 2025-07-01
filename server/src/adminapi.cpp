@@ -29,6 +29,7 @@
 #include "mimehtml.h"
 #include "querybuilder.hpp"
 #include "serverservice.h"
+#include "sodium/crypto_pwhash.h"
 #include "teacherapi.h"
 #include "SimpleMail"
 
@@ -1337,8 +1338,13 @@ bool AdminAPI::authAddPlain(const DatabaseMain *dbMain, const QString &username,
 
 		QMutexLocker _locker(dbMain->mutex());
 
-		QString salt;
-		QString pwd = Credential::hashString(password, &salt);
+		QString pwd = pwhash_str(password);
+
+		if (pwd.isEmpty()) {
+			LOG_CERROR("client") << "User auth create error:" << qPrintable(username);
+			return ret.reject();
+		}
+
 
 		QueryBuilder q(db);
 		q.addQuery("INSERT OR REPLACE INTO auth(")
@@ -1348,7 +1354,7 @@ bool AdminAPI::authAddPlain(const DatabaseMain *dbMain, const QString &username,
 				.addQuery(")")
 				.addField("username", username)
 				.addField("password", pwd)
-				.addField("salt", salt);
+				;
 
 
 		if (!q.exec()) {
@@ -1484,9 +1490,9 @@ bool AdminAPI::authPlainPasswordChange(const AbstractAPI *api, const QString &us
 
 		if (check) {
 			const QString &pwd = q.value("password").toString();
-			const QString &salt = q.value("salt").toString();
+			//const QString &salt = q.value("salt").toString();
 
-			if (pwd != Credential::hashString(oldPassword, salt)) {
+			if (!pwhash_str_verify(oldPassword, pwd)) {
 				LOG_CWARNING("client") << "Invalid password for user:" << qPrintable(username);
 				db.rollback();
 				return ret.reject();
@@ -1494,8 +1500,13 @@ bool AdminAPI::authPlainPasswordChange(const AbstractAPI *api, const QString &us
 		}
 
 
-		QString salt;
-		const QString &pwd = Credential::hashString(password, &salt);
+		const QString &pwd = pwhash_str(password);
+
+		if (pwd.isEmpty()) {
+			LOG_CWARNING("client") << "User password change error:" << qPrintable(username);
+			db.rollback();
+			return ret.reject();
+		}
 
 
 		if (!QueryBuilder::q(db).addQuery("INSERT OR REPLACE INTO auth(")
@@ -1505,7 +1516,7 @@ bool AdminAPI::authPlainPasswordChange(const AbstractAPI *api, const QString &us
 				.addQuery(")")
 				.addField("username", username)
 				.addField("password", pwd)
-				.addField("salt", salt)
+				.addNullField<QString>("salt")
 				.exec()) {
 			LOG_CWARNING("client") << "User password change error:" << qPrintable(username);
 			db.rollback();
@@ -2348,6 +2359,54 @@ bool AdminAPI::userExists(const AbstractAPI *api, const QString &username, const
 
 	QDefer::await(ret);
 	return (ret.state() == RESOLVED);
+}
+
+
+
+/**
+ * @brief AdminAPI::pwhash_str
+ * @param password
+ * @return
+ */
+
+QString AdminAPI::pwhash_str(const QString &password)
+{
+	char out[crypto_pwhash_STRBYTES];
+
+	const QByteArray p = password.toUtf8();
+
+	if (crypto_pwhash_str(out, p.constData(), p.size(), crypto_pwhash_OPSLIMIT_MIN, crypto_pwhash_MEMLIMIT_MIN) != 0) {
+		LOG_CERROR("app") << "Password hashing error";
+		return {};
+	}
+
+	return QByteArray(out);
+}
+
+
+/**
+ * @brief AdminAPI::pwhash_str_verify
+ * @param password
+ * @param hash
+ * @return
+ */
+
+bool AdminAPI::pwhash_str_verify(const QString &password, const QString &hash)
+{
+	const QByteArray h = hash.toLocal8Bit();
+	const QByteArray p = password.toUtf8();
+
+	if (h.size() >= crypto_pwhash_STRBYTES) {
+		LOG_CERROR("app") << "Password hash size error" << hash.size();
+		return false;
+	}
+
+	char str[crypto_pwhash_STRBYTES];
+
+	memcpy(str, h.constData(), h.size());
+	str[h.size()] = '\0';
+
+	return (crypto_pwhash_str_verify(str, p.constData(), p.size()) == 0);
 }
 
 

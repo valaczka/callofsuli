@@ -281,26 +281,6 @@ void AbstractLevelGame::addToDeadline(const qint64 &msec)
 
 
 
-/**
- * @brief AbstractLevelGame::deathmatch
- * @return
- */
-
-bool AbstractLevelGame::deathmatch() const
-{
-	return m_deathmatch;
-}
-
-void AbstractLevelGame::setDeathmatch(bool newDeathmatch)
-{
-	if (m_deathmatch == newDeathmatch)
-		return;
-	m_deathmatch = newDeathmatch;
-	emit deathmatchChanged();
-}
-
-
-
 GameMapMissionLevel *AbstractLevelGame::missionLevel() const
 {
 	return m_missionLevel;

@@ -7,7 +7,7 @@ import "./QaterialHelper" as Qaterial
 Image {
 	id: control
 
-	property bool deathmatch: false
+	property bool deathmatch: false			// DEPRECATED
 	property int level: -1
 	property bool solved: true
 

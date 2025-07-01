@@ -54,6 +54,7 @@ public:
 
 	Q_INVOKABLE virtual void updateSolver() override;
 	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel *missionLevel) const override;
+	Q_INVOKABLE bool playMultiPlayer(MapPlayMissionLevel *level);
 
 	qreal extraTimeFactor() const;
 	void setExtraTimeFactor(qreal newExtraTimeFactor);
@@ -63,7 +64,7 @@ signals:
 	void extraTimeFactorChanged();
 
 protected:
-	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode) override;
+	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const bool &multi) override;
 	virtual void onCurrentGamePrepared() override;
 	virtual void onCurrentGameFinished() override;
 
@@ -114,14 +115,35 @@ protected:
  * @brief The CampaignActionRpgGame class
  */
 
-class CampaignActionRpgGame : public ActionRpgMultiplayerGame, public CampaignGameIface
+class CampaignActionRpgGame : public ActionRpgGame, public CampaignGameIface
 {
 	Q_OBJECT
 
 public:
 	explicit CampaignActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
-		: ActionRpgMultiplayerGame(missionLevel, client) {}
+		: ActionRpgGame(missionLevel, client) {}
 	virtual ~CampaignActionRpgGame() {}
+
+	virtual QJsonObject getServerExtendedData() const { return m_serverExtended; };
+};
+
+
+
+
+
+/**
+ * @brief The CampaignActionRpgMultiplayerGame class
+ */
+
+
+class CampaignActionRpgMultiplayerGame : public ActionRpgMultiplayerGame, public CampaignGameIface
+{
+	Q_OBJECT
+
+public:
+	explicit CampaignActionRpgMultiplayerGame(GameMapMissionLevel *missionLevel, Client *client)
+		: ActionRpgMultiplayerGame(missionLevel, client) {}
+	virtual ~CampaignActionRpgMultiplayerGame() {}
 
 	virtual QJsonObject getServerExtendedData() const { return m_serverExtended; };
 };

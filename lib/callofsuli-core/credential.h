@@ -29,6 +29,7 @@
 
 #include "qcryptographichash.h"
 #include <QJsonObject>
+#include <QSerializer>
 
 #define JWT_ISSUER QStringLiteral("Call of Suli")
 
@@ -65,6 +66,9 @@ public:
 	static QByteArray sign(const QByteArray &content, const QByteArray &secret);
 	static bool verify(const QByteArray &content, const QByteArray &mac, const QByteArray &secret);
 
+	static QByteArray generateSecret();
+
+
 	bool verify() const;
 	bool verify(const QByteArray &secret) const;
 
@@ -88,6 +92,13 @@ private:
 };
 
 
+
+
+
+
+/**
+ * @brief The Credential class
+ */
 
 class Credential
 {
@@ -117,12 +128,6 @@ public:
 
 	static bool verify(const QByteArray &token, const QByteArray &secret, const qint64 &firstIat);
 
-	[[deprecated]] static QString hashString(const QString &str, const QString &salt,
-							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
-
-	[[deprecated]] static QString hashString(const QString &str, QString *salt = nullptr,
-							  const QCryptographicHash::Algorithm &method = QCryptographicHash::Sha1);
-
 	virtual bool isValid() const;
 
 	const QString &username() const;
@@ -147,5 +152,173 @@ private:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Credential::Roles);
+
+
+
+
+
+
+/**
+ * @brief The UdpToken class
+ */
+
+class UdpToken : public QSerializer
+{
+	Q_GADGET
+
+public:
+	enum Type {
+		Invalid,
+		Rpg
+	};
+
+	UdpToken(const Type &_type = Invalid, const QString &_user = {}, const quint32 &_peer = 0, const qint64 &_exp = 0)
+		: QSerializer()
+		, type(_type)
+		, username(_user)
+		, peerID(_peer)
+		, exp(_exp)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(Type, type)
+	QS_FIELD(QString, username)
+	QS_FIELD(quint32, peerID)
+	QS_FIELD(qint64, exp)
+};
+
+
+
+
+
+/**
+ * @brief The UdpConnectRequest class
+ */
+
+class UdpConnectRequest : public QSerializer
+{
+	Q_GADGET
+
+public:
+	UdpConnectRequest(const QByteArray &_token = {})
+		: QSerializer()
+		, token(_token)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_BYTEARRAY(token)				// connection token
+};
+
+
+
+
+/**
+ * @brief The UdpConnectResponse class
+ */
+
+class UdpServerResponse : public QSerializer
+{
+	Q_GADGET
+
+public:
+	enum State {
+		StateInvalid,
+		StateConnected,
+		StateRejected,
+		StateChallenge
+	};
+
+	Q_ENUM(State)
+
+	UdpServerResponse(const State &_state = StateInvalid)
+		: QSerializer()
+		, state(_state)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(State, state)
+};
+
+
+
+
+
+
+/**
+ * @brief The UdpConnectRequest class
+ */
+
+class UdpChallengeRequest : public UdpServerResponse
+{
+	Q_GADGET
+
+public:
+	UdpChallengeRequest(const QByteArray &_challenge = {}, const QByteArray &_key = {})
+		: UdpServerResponse(StateChallenge)
+		, challenge(_challenge)
+		, key(_key)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_BYTEARRAY(challenge)			// server challenge
+	QS_BYTEARRAY(key)				// server public key
+};
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The UdpChallengeResponse class
+ */
+
+class UdpChallengeResponse : public QSerializer
+{
+	Q_GADGET
+
+public:
+	UdpChallengeResponse(const QByteArray &_response = {})
+		: QSerializer()
+		, response(_response)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_BYTEARRAY(response)			// UpdChallengeResponseContent encrypted with server public key
+	QS_BYTEARRAY(token)				// connection token
+};
+
+
+
+
+
+/**
+ * @brief The UdpChallengeResponseContent class
+ */
+
+class UdpChallengeResponseContent : public QSerializer
+{
+	Q_GADGET
+
+public:
+	UdpChallengeResponseContent()
+		: QSerializer()
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_BYTEARRAY(challenge)			// server challenge
+	QS_BYTEARRAY(key)				// client secret key
+};
+
+
 
 #endif // CREDENTIAL_H

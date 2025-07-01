@@ -46,7 +46,6 @@ public:
 		QString map;
 		QString mission;
 		int level = -1;
-		bool deathmatch = false;
 		GameMap::GameMode mode = GameMap::Invalid;
 		int campaign = -1;
 	};
@@ -75,6 +74,7 @@ public:
 	QHttpServerResponse gameCreate(const QString &username, const int &campaign,
 								   const UserGame &game, const QJsonObject &inventory,
 								   int *gameIdPtr = nullptr);
+	QHttpServerResponse gameTokenCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
 	QHttpServerResponse gameUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse gameUpdateStatistics(const QString &username, const QJsonArray &statistics);
 	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json);
@@ -99,7 +99,7 @@ public:
 
 
 	static std::optional<int> _solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
-						   const int &level, const bool &deathmatch);
+						   const int &level);
 
 private:
 	void _addStatistics(const QString &username, const QJsonArray &list) const;

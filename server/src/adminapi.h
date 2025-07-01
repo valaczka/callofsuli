@@ -148,6 +148,9 @@ public:
 		return userExists(api, username, true);
 	}
 
+	static QString pwhash_str(const QString &password);
+	static bool pwhash_str_verify(const QString &password, const QString &hash);
+
 private:
 	struct UserInfo {
 		QString familyname;

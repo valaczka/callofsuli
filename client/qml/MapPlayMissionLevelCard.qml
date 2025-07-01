@@ -61,7 +61,6 @@ Qaterial.Card {
 			spacing: control._verticalPadding
 
 			MedalImage {
-				deathmatch: missionLevel.deathmatch
 				image: missionLevel.solved > 0 ? missionLevel.medalImage : ""
 				level: missionLevel.level
 				solved: missionLevel.solved > 0

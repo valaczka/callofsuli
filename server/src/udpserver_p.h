@@ -31,7 +31,10 @@
 #include <QThread>
 #include <QMutex>
 #include <enet/enet.h>
+#include <sodium/crypto_box.h>
+#include "credential.h"
 #include "udpserver.h"
+#include <QPointer>
 
 /**
  * @brief The UdpServerPrivate class
@@ -50,33 +53,68 @@ class UdpServerPrivate : public QObject
 	Q_OBJECT
 
 public:
-	UdpServerPrivate(UdpServer *engine)
-		: QObject()
-		, q(engine)
-	{}
-
+	UdpServerPrivate(UdpServer *engine);
 	virtual ~UdpServerPrivate();
 
 	void run();
 
 	void sendPacket(ENetPeer *peer, const QByteArray &data, const bool isReliable);
 
-	QList<QByteArray> takePackets(UdpServerPeer *peer);
-	QList<QByteArray> takePackets(UdpEngine *engine);
+	/*QList<QByteArray> takePackets(UdpServerPeer *peer);
+	QList<QByteArray> takePackets(UdpEngine *engine);*/
 	UdpEngineReceived takePackets();
 
 
 private:
+	struct PeerData {
+		PeerData(const QString _user)
+			: username(_user)
+		{}
+
+		~PeerData() {
+			qDebug() << "ENGINE PEER DATA DELETE" << username << type << engine.lock().get() << "key:" << privateKey.size();
+		}
+
+		std::weak_ptr<UdpEngine> engine;
+		UdpToken::Type type = UdpToken::Invalid;
+		QByteArray challenge;
+		QByteArray privateKey;					// non emtpy = connected
+		QJsonObject connectionToken;			// azért QJsonObject, hogy pl. RpgConnectionToken is lehessen
+		QString username;
+	};
+
 	void peerConnect(ENetPeer *peer);
 	void peerDisconnect(ENetPeer *peer);
-	void udpPeerRemove(UdpServerPeer *peer);
+	void udpPeerRemove(ENetPeer *peer);
+	UdpServerPeer* peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
 
-	void packetReceived(const ENetEvent &event);
+	bool packetReceived(const ENetEvent &event);
+	bool updateChallenge(const QHash<quint32, PeerData>::iterator &iterator, ENetPeer *peer, const QByteArray &content);
+	bool updateEngine(const QHash<quint32, PeerData>::iterator &iterator, const QByteArray &content, UdpServerPeer *peer);
+	static QByteArray hashToken(const QByteArray &token);
+
+
 	void deliverReceived();
 	void disconnectUnusedPeers();
 
 	UdpServer *q;
 	ENetHost *m_enet_server = nullptr;
+
+
+	QMutex m_peerMutex;
+	QHash<quint32, PeerData> m_peerHash;
+
+
+	QHash<QByteArray, qint64> m_connectTokenHash;
+	QHash<QByteArray, std::pair<enet_uint32, enet_uint16>> m_pendingClient;
+
+	struct KeyPair {
+		QByteArray publicKey;
+		QByteArray secretKey;
+	};
+
+	KeyPair m_keyPair;
+
 
 	struct InOutCache {
 		struct Packet {
@@ -93,15 +131,15 @@ private:
 
 
 		struct PacketRcv {
-			PacketRcv(UdpServerPeer *p, const QByteArray &d, const qint64 _ts)
+			PacketRcv(UdpServerPeer *p, const QByteArray &d, const enet_uint8 &_ch)
 				: peer(p)
 				, data(d)
-				, ts(_ts)
+				, channel(_ch)
 			{}
 
 			UdpServerPeer *peer = nullptr;
 			QByteArray data;
-			qint64 ts = -0;
+			enet_uint8 channel = 0;
 		};
 
 

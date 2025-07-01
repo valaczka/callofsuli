@@ -38,7 +38,6 @@ class AbstractLevelGame : public AbstractGame
 	Q_OBJECT
 
 	Q_PROPERTY(GameMapMissionLevel *missionLevel READ missionLevel CONSTANT)
-	Q_PROPERTY(bool deathmatch READ deathmatch WRITE setDeathmatch NOTIFY deathmatchChanged)
 
 	Q_PROPERTY(QString uuid READ uuid CONSTANT)
 	Q_PROPERTY(QString name READ name CONSTANT)
@@ -57,9 +56,6 @@ class AbstractLevelGame : public AbstractGame
 public:
 	explicit AbstractLevelGame(const GameMap::GameMode &mode, GameMapMissionLevel *missionLevel, Client *client);
 	virtual ~AbstractLevelGame();
-
-	bool deathmatch() const;
-	void setDeathmatch(bool newDeathmatch);
 
 	GameMapMissionLevel *missionLevel() const;
 
@@ -107,7 +103,6 @@ signals:
 
 protected:
 	GameMapMissionLevel *const m_missionLevel = nullptr;
-	bool m_deathmatch = false;
 	QDeadlineTimer m_deadline;
 	bool m_closedSuccesfully = false;
 	bool m_isFlawless = true;

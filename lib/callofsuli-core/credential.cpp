@@ -177,7 +177,7 @@ bool Credential::verify(const QByteArray &token, const QByteArray &secret, const
 	Token jwt(token);
 
 	if (!jwt.verify(secret))
-			return false;
+		return false;
 
 	const QJsonObject &object = jwt.payload();
 
@@ -191,46 +191,6 @@ bool Credential::verify(const QByteArray &token, const QByteArray &secret, const
 		return false;
 
 	return true;
-}
-
-
-
-/**
- * @brief Credential::hashString
- * @param str
- * @param salt
- * @param method
- * @return
- */
-
-QString Credential::hashString(const QString &str, const QString &salt, const QCryptographicHash::Algorithm &method)
-{
-	QByteArray d;
-	d.append(str.toUtf8()).append(salt.toUtf8());
-
-	QByteArray hash = QCryptographicHash::hash(d, method);
-	return QString::fromLatin1(hash.toHex());
-}
-
-
-
-
-/**
- * @brief Credential::hashString
- * @param str
- * @param salt
- * @param method
- * @return
- */
-
-QString Credential::hashString(const QString &str, QString *salt, const QCryptographicHash::Algorithm &method)
-{
-	QByteArray _salt = Utils::generateRandomString(24);
-
-	if (salt)
-		*salt = QString::fromUtf8(_salt);
-
-	return hashString(str, _salt, method);
 }
 
 
@@ -469,7 +429,7 @@ bool Token::verify(const QByteArray &content, const QByteArray &mac, const QByte
 	}
 
 	if (mac.size() != crypto_auth_BYTES) {
-		LOG_CERROR("utils") << "Invalid secret length" << secret.size();
+		LOG_CERROR("utils") << "Invalid mac length" << secret.size();
 		return false;
 	}
 
@@ -478,6 +438,23 @@ bool Token::verify(const QByteArray &content, const QByteArray &mac, const QByte
 							   content.size(),
 							   (unsigned char*) secret.constData()) == 0);
 }
+
+
+
+/**
+ * @brief Token::generateSecret
+ * @return
+ */
+
+QByteArray Token::generateSecret()
+{
+	unsigned char k[crypto_auth_KEYBYTES];
+	crypto_auth_keygen(k);
+
+	return QByteArray((const char*) k, crypto_auth_KEYBYTES);
+}
+
+
 
 
 /**
@@ -512,7 +489,7 @@ bool Token::verify(const QByteArray &secret) const
 	QByteArray sign;
 
 	if (m_origToken.isEmpty()) {
-	sign = generateSignature(m_payload, secret, m_header);
+		sign = generateSignature(m_payload, secret, m_header);
 	} else {
 		QByteArrayList parts = m_origToken.split('.');
 		sign = generateSignature(parts.at(0), parts.at(1), secret);

@@ -40,7 +40,7 @@ RpgUdpEngine::RpgUdpEngine(ActionRpgMultiplayerGame *game)
 	: AbstractUdpEngine(game)
 	, m_game(game)
 {
-
+	connect(this, &AbstractUdpEngine::serverConnected, this, &RpgUdpEngine::onConnectedToServer);
 }
 
 
@@ -228,6 +228,31 @@ void RpgUdpEngine::messageAdd(const RpgGameData::Message &message)
 
 
 
+/**
+ * @brief RpgUdpEngine::packetReceivedConnect
+ * @param data
+ */
+
+void RpgUdpEngine::packetReceivedConnect(const QCborMap &data)
+{
+	LOG_CDEBUG("game") << "***** CONNECT" << data;
+
+	if (!m_game)
+		return;
+
+	RpgGameData::EngineSelector selector;
+	selector.fromCbor(data);
+
+	if (selector.operation == RpgGameData::EngineSelector::Invalid) {
+		LOG_CERROR("game") << "Invalid operation";
+		return;
+	}
+
+	m_game->updateEnginesModel(selector);
+}
+
+
+
 
 
 
@@ -392,6 +417,23 @@ void RpgUdpEngine::packetReceivedFinished(const QCborMap &data)
 
 
 
+/**
+ * @brief RpgUdpEngine::onConnectedToServer
+ */
+
+void RpgUdpEngine::onConnectedToServer()
+{
+	LOG_CINFO("game") << "Connected to server";
+
+	setGameState(RpgConfig::StateConnect);
+
+	if (m_game)
+		m_game->timerEvent(nullptr);
+
+}
+
+
+
 
 /**
  * @brief RpgUdpEngine::gameState
@@ -519,6 +561,8 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 		updateState(cbor);
 
 		if (m_gameState == RpgConfig::StateConnect) {
+			packetReceivedConnect(cbor);
+
 			return;
 
 		} else if (m_gameState == RpgConfig::StateCharacterSelect) {

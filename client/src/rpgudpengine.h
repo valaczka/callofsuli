@@ -308,11 +308,14 @@ private:
 	void updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot);
 	void messageAdd(const RpgGameData::Message &message);
 
+	void packetReceivedConnect(const QCborMap &data);
 	void packetReceivedChrSel(const QCborMap &data);
 	void packetReceivedDownload(const QCborMap &data);
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
 	void packetReceivedFinished(const QCborMap &data);
+
+	void onConnectedToServer();
 
 	template <typename T, typename T2>
 	void updateSnapshotRemoveMissing(const RpgGameData::SnapshotList<T, T2> &list);
@@ -332,8 +335,6 @@ private:
 	RpgConfig::GameState m_gameState = RpgConfig::StateInvalid;
 	int m_playerId = -1;
 	bool m_isHost = false;
-
-
 };
 
 

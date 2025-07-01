@@ -73,6 +73,9 @@ public:
 	bool isFullyPrepared() const { return m_isFullyPrepared; }
 	void setIsFullyPrepared(bool newIsPrepared) { m_isFullyPrepared = newIsPrepared; }
 
+	quint32 peerID() const;
+	void setPeerID(quint32 newPeerID);
+
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
@@ -82,6 +85,8 @@ private:
 
 	bool m_finalSuccess = false;
 	int m_gameId = -1;
+
+	quint32 m_peerID = 0;
 
 	friend class RpgEngine;
 	friend class RpgEnginePrivate;
@@ -422,14 +427,13 @@ class RpgEngine : public UdpEngine
 	Q_OBJECT
 
 public:
-	explicit RpgEngine(EngineHandler *handler, QObject *parent = nullptr);
+	explicit RpgEngine(EngineHandler *handler, const RpgConfigBase &config, QObject *parent = nullptr);
 	virtual ~RpgEngine();
 
 
-	static std::shared_ptr<RpgEngine> engineCreate(EngineHandler *handler, UdpServer *server);
-
-	static int increaseNextId() { return ++m_nextId; }
-	static int setNextId(const int &id) { m_nextId = id+1; return m_nextId; }
+	static std::shared_ptr<RpgEngine> engineCreate(EngineHandler *handler, const RpgConfigBase &config, UdpServer *server);
+	static std::shared_ptr<RpgEngine> engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken,
+													 const QByteArray &data, UdpServerPeer *peer);
 
 	virtual bool canDelete(const int &useCount) override;
 
@@ -438,14 +442,16 @@ public:
 	virtual void udpPeerRemove(UdpServerPeer *peer) override;
 	virtual void disconnectUnusedPeer(UdpServerPeer *peer) override;
 
-	RpgConfig config() const { return m_config; }
-	void setConfig(const RpgConfig &newConfig) { m_config = newConfig; }
+	const RpgConfig &config() const { return m_config; }
 
 	RpgEnginePlayer *player(const RpgGameData::PlayerBaseData &base) const;
+	RpgEnginePlayer *player(const quint32 &peerID) const;
 	RpgEnginePlayer *playerSetGameCompleted(const RpgGameData::PlayerBaseData &base);
 	RpgEnginePlayer *playerAddXp(const RpgGameData::PlayerBaseData &base, const int &xp);
 
 	QCborArray getPlayerData(const bool &forced = false);
+
+	const std::vector<std::unique_ptr<RpgEnginePlayer>> &playerList() const { return m_player; }
 
 	RpgEnginePlayer *hostPlayer() const { return m_hostPlayer; }
 	void setHostPlayer(RpgEnginePlayer *newHostPlayer);
@@ -536,7 +542,6 @@ private:
 	void preparePlayers();
 	qint64 nextTick();
 
-	static int m_nextId;
 	int m_nextPlayerId = 1;
 
 	RpgEnginePrivate *d;

@@ -27,6 +27,7 @@
 #ifndef RPGCONFIG_H
 #define RPGCONFIG_H
 
+#include "credential.h"
 #include "qcborarray.h"
 #include "qpoint.h"
 #include <QSerializer>
@@ -52,6 +53,12 @@ public:
 		, duration(0)
 	{}
 
+	bool operator==(const RpgConfigBase &other) const {
+		return other.mapUuid == mapUuid &&
+				other.missionUuid == missionUuid &&
+				other.missionLevel == missionLevel &&
+				other.campaign == campaign;
+	}
 
 	QS_SERIALIZABLE
 	QS_FIELD(QString, mapUuid)
@@ -76,6 +83,11 @@ class RpgConfig : public RpgConfigBase
 public:
 	RpgConfig()
 		: RpgConfigBase()
+		, gameState(StateInvalid)
+	{}
+
+	RpgConfig(const RpgConfigBase &base)
+		: RpgConfigBase(base)
 		, gameState(StateInvalid)
 	{}
 
@@ -116,14 +128,14 @@ public:
 
 	QJsonObject toBaseJson() const { return RpgConfigBase::toJson(); }
 
-	friend bool operator==(const RpgConfig &c1, const RpgConfig &c2) {
-		return c1.gameState == c2.gameState &&
-				c1.mapUuid == c2.mapUuid &&
-				c1.missionUuid == c2.missionUuid &&
-				c1.missionLevel == c2.missionLevel &&
-				c1.campaign == c2.campaign &&
-				c1.duration == c2.duration
+	bool operator==(const RpgConfig &other) const {
+		return gameState == other.gameState &&
+				static_cast<const RpgConfigBase &>(*this) == static_cast<const RpgConfigBase &>(other)
 				;
+	}
+
+	bool operator==(const RpgConfigBase &other) const {
+		return static_cast<const RpgConfigBase &>(*this) == other;
 	}
 
 	static const QHash<ControlType, int> &controlDamageValue() { return m_controlDamageValue; }
@@ -788,6 +800,148 @@ public:
 
 	QS_COLLECTION_OBJECTS(QList, RandomizerGroup, groups)
 };
+
+
+
+
+
+
+
+/**
+ * @brief The ConnectToken class
+ */
+
+class ConnectionToken : public UdpToken
+{
+	Q_GADGET
+
+public:
+	ConnectionToken()
+		: UdpToken(Rpg)
+	{}
+
+	ConnectionToken(const QString &_user, const quint32 &_peer, const qint64 &_exp)
+		: UdpToken(Rpg, _user, _peer, _exp)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_OBJECT(RpgConfigBase, config)		// mission level data
+};
+
+
+
+
+
+
+/**
+ * @brief The EnginePlayer class
+ */
+
+class EnginePlayer : public QSerializer
+{
+	Q_GADGET
+
+public:
+	EnginePlayer()
+		: QSerializer()
+	{}
+
+	EnginePlayer(const QString &_username, const QString &_nickname)
+		: QSerializer()
+		, username(_username)
+		, nickname(_nickname)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, username)
+	QS_FIELD(QString, nickname)
+};
+
+
+
+
+
+/**
+ * @brief The Engine class
+ */
+
+class Engine : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Engine()
+		: QSerializer()
+		, id(0)
+		, count(0)
+	{}
+
+	QVariantMap toVariantMap() const {
+		QVariantMap m = this->toJson().toVariantMap();
+		m.remove(QStringLiteral("players"));
+		QVariantList list;
+		for (const EnginePlayer &p : players)
+			list << p.toJson().toVariantMap();
+		m.insert(QStringLiteral("players"), list);
+		return m;
+	}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, id)
+	QS_OBJECT(EnginePlayer, owner)
+	QS_COLLECTION_OBJECTS(QList, EnginePlayer, players)
+	QS_FIELD(int, count)				// max. players
+
+};
+
+
+
+
+
+
+/**
+ * @brief The EngineSelector class
+ */
+
+class EngineSelector : public QSerializer
+{
+	Q_GADGET
+
+public:
+	enum Operation {
+		Invalid,
+		List,				// list available engines (-> engines)
+		Connect,			// connect to selected engine (engine ->)
+		Create,				// create new engine
+		Delete				// delete my engine (engine ->)
+	};
+
+	Q_ENUM(Operation)
+
+	EngineSelector(const Operation &_op, const int &_engine = 0)
+		: QSerializer()
+		, operation(_op)
+		, engine(_engine)
+		, add(false)
+	{}
+
+	EngineSelector()
+		: EngineSelector(Invalid)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(Operation, operation)
+	QS_COLLECTION_OBJECTS(QList, Engine, engines)
+	QS_FIELD(int, engine)
+	QS_FIELD(bool, add)			// can create new engine
+};
+
+
+
 
 
 

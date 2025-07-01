@@ -147,6 +147,19 @@ int MapPlayCampaign::getShortTimeHelper(MapPlayMissionLevel *missionLevel) const
 
 
 /**
+ * @brief MapPlayCampaign::playMultiPlayer
+ * @param level
+ * @return
+ */
+
+bool MapPlayCampaign::playMultiPlayer(MapPlayMissionLevel *level)
+{
+	return play(level, GameMap::Rpg, QJsonObject(), true);
+}
+
+
+
+/**
  * @brief MapPlayCampaign::onCurrentGamePrepared
  */
 
@@ -165,11 +178,44 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	}
 
 
-	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+	if (ActionRpgMultiplayerGame *agame = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
 		LOG_CWARNING("client") << "MULTIPLAYER GAME START";
 
-		levelGame->load();
-		setGameState(StatePlay);
+		RpgConfigBase gameData;
+		gameData.mapUuid = m_gameMap->uuid();
+		gameData.missionUuid = levelGame->uuid();
+		gameData.missionLevel = levelGame->level();
+		gameData.campaign = m_campaign ? m_campaign->campaignid() : 0;
+
+		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/token").arg(
+						   m_campaign ? m_campaign->campaignid() : 0
+										), gameData.toJson())
+				->error(this, [this](const QNetworkReply::NetworkError &){
+			m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
+			destroyCurrentGame();
+		})
+				->fail(this, [this](const QString &err){
+			m_client->messageError(err, tr("Játék indítása sikertelen"));
+			destroyCurrentGame();
+		})
+				->done(this, [this, agame](const QJsonObject &data){
+
+			LOG_CINFO("game") << "VAN TOKEN" << data;
+
+			const QByteArray &token = data.value(QStringLiteral("token")).toString().toLatin1();
+			if (token.isEmpty()) {
+				m_client->messageError(tr("Érvénytelen játékazonosító érekezett"), tr("Játék indítása sikertelen"));
+				destroyCurrentGame();
+				return;
+			}
+
+			LOG_CDEBUG("client") << "Game play (multiplayer)" << token;
+
+			agame->setConnectionToken(token);
+			agame->load();
+			setGameState(StatePlay);
+		});
+
 		return;
 	}
 
@@ -194,7 +240,6 @@ void MapPlayCampaign::onCurrentGamePrepared()
 						   { QStringLiteral("map"), m_gameMap->uuid() },
 						   { QStringLiteral("mission"), levelGame->uuid() },
 						   { QStringLiteral("level"), levelGame->level() },
-						   { QStringLiteral("deathmatch"), levelGame->deathmatch() },
 						   { QStringLiteral("mode"), levelGame->mode() },
 						   { QStringLiteral("extended"), m_extendedData }
 					   })
@@ -435,7 +480,7 @@ void MapPlayCampaign::onFinishTimerTimeout()
  */
 
 
-AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
+AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const bool &multi)
 {
 	Q_ASSERT(level);
 	Q_ASSERT(level->missionLevel());
@@ -446,7 +491,10 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 	switch (mode) {
 		case GameMap::Rpg:
-			g = new CampaignActionRpgGame(level->missionLevel(), m_client);
+			if (multi)
+				g = new CampaignActionRpgMultiplayerGame(level->missionLevel(), m_client);
+			else
+				g = new CampaignActionRpgGame(level->missionLevel(), m_client);
 			break;
 
 		case GameMap::Lite:
@@ -466,8 +514,6 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 			return nullptr;
 			break;
 	}
-
-	g->setDeathmatch(level->deathmatch());
 
 	setGameState(StateLoading);
 

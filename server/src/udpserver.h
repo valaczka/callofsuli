@@ -44,17 +44,24 @@ class UdpEngine;
 
 class UdpServerPeer {
 public:
-	UdpServerPeer(UdpServer *server, ENetPeer *peer = nullptr);
+	UdpServerPeer(const quint32 &id, UdpServer *server, ENetPeer *peer = nullptr);
 	~UdpServerPeer();
+
+	const quint32 &peerID() const { return m_peerID; }
 
 	ENetPeer *peer() const { return m_peer; }
 	void setPeer(ENetPeer *newPeer) { m_peer = newPeer; }
+
+	UdpServer *server() const { return m_server; }
 
 	QString host() const { return host(m_peer); }
 	static QString host(ENetPeer *peer);
 
 	int port() const { return port(m_peer); }
 	static int port(ENetPeer *peer);
+
+	QString address() const { return address(m_peer); }
+	static QString address(ENetPeer *peer);
 
 	std::shared_ptr<UdpEngine> engine() const { return m_engine; }
 	void setEngine(const std::shared_ptr<UdpEngine> &newEngine) { m_engine = newEngine; }
@@ -75,6 +82,7 @@ public:
 	void setIsReconnecting(bool newIsReconnecting) { m_isReconnecting = newIsReconnecting; }
 
 private:
+	const quint32 m_peerID;
 	UdpServer *m_server = nullptr;
 	ENetPeer *m_peer = nullptr;
 	std::shared_ptr<UdpEngine> m_engine;
@@ -134,6 +142,11 @@ public:
 
 	void send(UdpServerPeer *peer, const QByteArray &data, const bool &reliable);
 
+	void removeEngine(UdpEngine *engine);
+
+	quint32 addPeer(const QString &username);
+	bool peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
+
 private:
 	UdpServerPrivate *d = nullptr;
 	std::unique_ptr<QLambdaThreadWorker> m_worker;
@@ -142,7 +155,6 @@ private:
 	std::vector<std::unique_ptr<UdpServerPeer>> m_peerList;
 
 	friend class UdpServerPrivate;
-	friend class UdpServerThread;
 };
 
 #endif // UDPSERVER_H

@@ -33,9 +33,6 @@
 #include <QCborMap>
 
 
-int RpgEngine::m_nextId = 1;
-
-
 
 
 
@@ -96,6 +93,11 @@ private:
 	RpgEnginePrivate(RpgEngine *engine)
 		: q(engine)
 	{}
+
+
+	static void sendEngineList(const RpgConfigBase &config, UdpServerPeer *peer, EngineHandler *handler);
+
+	static bool canConnect(const RpgConfigBase &config, RpgEngine *engine);
 
 	RpgEnginePlayer* getPlayer(UdpServerPeer *peer) const;
 
@@ -273,9 +275,10 @@ private:
  * @param parent
  */
 
-RpgEngine::RpgEngine(EngineHandler *handler, QObject *parent)
+RpgEngine::RpgEngine(EngineHandler *handler, const RpgConfigBase &config, QObject *parent)
 	: UdpEngine(EngineRpg, handler, parent)
 	, d(new RpgEnginePrivate(this))
+	, m_config(config)
 	, m_snapshots(this)
 {
 	m_config.gameState = RpgConfig::StateCharacterSelect;
@@ -299,7 +302,7 @@ RpgEngine::~RpgEngine()
  * @return
  */
 
-std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, UdpServer *server)
+std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, const RpgConfigBase &config, UdpServer *server)
 {
 	if (!handler)
 		return {};
@@ -307,13 +310,134 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, UdpSe
 	LOG_CDEBUG("engine") << "Create RpgEngine" << m_nextId << server;
 
 
-	auto ptr = std::make_shared<RpgEngine>(handler);
+	auto ptr = std::make_shared<RpgEngine>(handler, config);
 	ptr->setId(m_nextId);
 	increaseNextId();
 
 	ptr->setUdpServer(server);
 
+	handler->engineAdd(ptr);
+
 	return ptr;
+}
+
+
+
+/**
+ * @brief RpgEngine::engineDispatch
+ * @param handler
+ * @param data
+ * @param server
+ * @return
+ */
+
+std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken,
+													 const QByteArray &data, UdpServerPeer *peer)
+{
+	Q_ASSERT(handler);
+	Q_ASSERT(peer);
+	Q_ASSERT(peer->server());
+
+	LOG_CINFO("engine") << "---- DISPATCH" << peer->peerID();
+
+	RpgGameData::EngineSelector selector;
+	selector.fromCbor(QCborValue::fromCbor(data));
+
+	if (selector.operation == RpgGameData::EngineSelector::Invalid) {
+		LOG_CWARNING("engine") << "Invalid operation" << peer->peerID();
+		return {};
+	}
+
+	RpgGameData::ConnectionToken cToken;
+	cToken.fromJson(connectionToken);
+
+	if (selector.operation == RpgGameData::EngineSelector::List) {
+		RpgEnginePrivate::sendEngineList(cToken.config, peer, handler);
+		return {};
+	}
+
+	if (selector.operation == RpgGameData::EngineSelector::Delete) {
+		LOG_CWARNING("engine") << "Invalid DELETE operation" << peer->peerID();
+		return {};
+	}
+
+
+
+	// Create
+
+	if (selector.operation == RpgGameData::EngineSelector::Create) {
+		std::shared_ptr<RpgEngine> engine = engineCreate(handler, cToken.config, peer->server());
+
+		LOG_CINFO("engine") << "Create engine" << peer->peerID() << "id:" << engine->id();
+
+		peer->server()->peerConnectToEngine(peer, engine);
+
+		return engine;
+	}
+
+
+
+	// Connect
+
+	const auto &list = handler->engines();
+
+	const auto it = std::find_if(list.constBegin(),
+								 list.constEnd(),
+								 [peer](const std::shared_ptr<AbstractEngine> &ptr){
+		if (!ptr || ptr->type() == EngineRpg)
+			return false;
+
+		return std::dynamic_pointer_cast<RpgEngine>(ptr)->player(peer->peerID()) != nullptr;
+
+	});
+
+	if (it != list.constEnd()) {
+		std::shared_ptr<RpgEngine> engine = std::dynamic_pointer_cast<RpgEngine>(*it);
+
+		if (!engine) {
+			LOG_CERROR("engine") << "Engine cast error";
+			return {};
+		}
+
+		if (engine->config() == cToken.config) {
+			if (selector.engine <= 0 || selector.engine == engine->id()) {
+				LOG_CINFO("engine") << "---- DISPATCH TO EXISTING ENGINE" << peer->peerID() << "->" << engine->id();
+				peer->server()->peerConnectToEngine(peer, engine);
+				return engine;
+			} else {
+				LOG_CWARNING("engine") << "Engine config mismatch" << peer->peerID() << selector.engine << "vs." << engine->id();
+			}
+		}
+	}
+
+
+	// Direct connect
+
+	const auto eit = std::find_if(list.constBegin(),
+								 list.constEnd(),
+								 [&cToken, &selector](const std::shared_ptr<AbstractEngine> &ptr){
+		if (!ptr || ptr->type() != AbstractEngine::EngineRpg)
+			return false;
+
+		if (!RpgEnginePrivate::canConnect(cToken.config, std::dynamic_pointer_cast<RpgEngine>(ptr).get()))
+			return false;
+
+		return ptr->id() == selector.engine;
+	});
+
+
+	if (eit == list.constEnd()) {
+		LOG_CWARNING("engine") << "Invalid engine" << peer->peerID() << selector.engine;
+		return {};
+	}
+
+
+	std::shared_ptr<RpgEngine> engine = std::dynamic_pointer_cast<RpgEngine>(*eit);
+
+	LOG_CINFO("engine") << "---- DISPATCH TO ENGINE" << peer->peerID() << "->" << engine->id();
+
+	peer->server()->peerConnectToEngine(peer, engine);
+	return engine;
 }
 
 
@@ -485,6 +609,23 @@ void RpgEngine::disconnectUnusedPeer(UdpServerPeer *peer)
 RpgEnginePlayer *RpgEngine::player(const RpgGameData::PlayerBaseData &base) const
 {
 	auto it = std::find_if(m_player.begin(), m_player.end(), [&base](const auto &ptr) { return ptr->isBaseEqual(base); });
+
+	if (it == m_player.end())
+		return nullptr;
+	else
+		return it->get();
+}
+
+
+/**
+ * @brief RpgEngine::player
+ * @param peerID
+ * @return
+ */
+
+RpgEnginePlayer *RpgEngine::player(const quint32 &peerID) const
+{
+	auto it = std::find_if(m_player.begin(), m_player.end(), [&peerID](const auto &ptr) { return ptr->peerID() == peerID; });
 
 	if (it == m_player.end())
 		return nullptr;
@@ -1021,6 +1162,87 @@ qint64 RpgEngine::nextTick()
  * @return
  */
 
+void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer *peer, EngineHandler *handler)
+{
+	Q_ASSERT(handler);
+	Q_ASSERT(peer);
+	Q_ASSERT(peer->server());
+
+	LOG_CDEBUG("engine") << "Send engine list to" << peer->peerID() << handler->engines().size();
+
+	RpgGameData::EngineSelector selector(RpgGameData::EngineSelector::List);
+
+	for (const auto &ptr : handler->engines()) {
+		LOG_CDEBUG("engine") << "+++++" << ptr.get() << (ptr ? ptr->type() : AbstractEngine::EngineInvalid);
+
+		if (!ptr || ptr->type() != AbstractEngine::EngineRpg)
+			continue;
+
+		const auto &e = std::dynamic_pointer_cast<RpgEngine>(ptr);
+
+		if (!canConnect(config, e.get()))
+			continue;
+
+		RpgGameData::Engine engine;
+		engine.id = e->id();
+		engine.count = e->playerLimit();
+
+		RpgEnginePlayer *host = e->hostPlayer();
+
+		if (host) {
+			engine.owner.username = host->config().username;
+			engine.owner.nickname = host->config().nickname;
+		}
+
+		for (const auto &p : e->playerList()) {
+			if (!p.get())
+				continue;
+
+			if (host && p.get() == host)
+				continue;
+
+			engine.players.emplaceBack(p->config().username, p->config().nickname);
+		}
+
+		selector.engines.append(engine);
+	}
+
+	selector.add = true;
+
+	peer->send(selector.toCborMap().toCborValue().toCbor(), false);
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::canConnect
+ * @param config
+ * @param engine
+ * @return
+ */
+
+
+bool RpgEnginePrivate::canConnect(const RpgConfigBase &config, RpgEngine *engine)
+{
+	if (!engine)
+		LOG_CDEBUG("engine") << "------- NO ENGINE";
+	else {
+		LOG_CDEBUG("engine") << "-------" << engine->id() << engine->config().gameState <<
+								(engine->config() == config);
+	}
+
+	return (engine &&
+			(engine->config().gameState == RpgConfig::StateConnect ||
+			 engine->config().gameState == RpgConfig::StateCharacterSelect) &&
+			engine->config() == config
+			);
+}
+
+
+
+
+
+
 RpgEnginePlayer *RpgEnginePrivate::getPlayer(UdpServerPeer *peer) const
 {
 	auto it = std::find_if(q->m_player.begin(), q->m_player.end(), [peer](const auto &ptr) { return ptr->udpPeer() == peer; });
@@ -1070,6 +1292,14 @@ void RpgEnginePrivate::dataReceivedChrSel(RpgEnginePlayer *player, const QByteAr
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
 
+	RpgGameData::EngineSelector selector;
+	selector.fromCbor(m);
+
+	if (selector.operation != RpgGameData::EngineSelector::Invalid) {
+		LOG_CDEBUG("engine") << "SKIP SELECTOR" << player;
+		return;
+	}
+
 	RpgGameData::CharacterSelect c;
 	c.fromCbor(m);
 
@@ -1081,6 +1311,8 @@ void RpgEnginePrivate::dataReceivedChrSel(RpgEnginePlayer *player, const QByteAr
 		return;
 
 	m_gameConfig = c.gameConfig;
+
+	// TODO: ban out
 
 
 #ifdef WITH_FTXUI
@@ -1106,6 +1338,14 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 	Q_ASSERT(player);
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
+
+	RpgGameData::EngineSelector selector;
+	selector.fromCbor(m);
+
+	if (selector.operation != RpgGameData::EngineSelector::Invalid) {
+		LOG_CDEBUG("engine") << "SKIP SELECTOR" << player;
+		return;
+	}
 
 	RpgGameData::Prepare config;
 
@@ -1159,6 +1399,14 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 	timer2.start();
 
 	QCborMap m = QCborValue::fromCbor(data).toMap();
+
+	RpgGameData::EngineSelector selector;
+	selector.fromCbor(m);
+
+	if (selector.operation != RpgGameData::EngineSelector::Invalid) {
+		LOG_CDEBUG("engine") << "SKIP SELECTOR" << player;
+		return;
+	}
 
 	if (q->m_currentTick <= 0 || player->udpPeer()->isReconnecting()) {
 		if (m.value(QStringLiteral("full")).toBool(false)) {
@@ -1656,18 +1904,24 @@ bool RpgEnginePrivate::reconnectPeer(UdpServerPeer *peer)
 	peer->setIsReconnecting(true);
 
 	for (const auto &ptr : q->m_player) {
-		if (!ptr->udpPeer()) {
-			LOG_CINFO("engine") << "Reconnect peer" << peer;
-			ptr->setUdpPeer(peer);
-			if (!q->m_hostPlayer)
-				q->setHostPlayer(ptr.get());
+		if (ptr->peerID() == peer->peerID()) {
+			LOG_CINFO("engine") << "Reconnect peer" << peer->peerID();
+			if (!ptr->udpPeer()) {
+				ptr->setUdpPeer(peer);
 
+				if (!q->m_hostPlayer)
+					q->setHostPlayer(ptr.get());
 
-			if (RpgEventControlUnlock *e = q->eventFind<RpgEventControlUnlock>(*ptr.get())) {
-				eventRemove(e);
+				if (RpgEventControlUnlock *e = q->eventFind<RpgEventControlUnlock>(*ptr.get())) {
+					eventRemove(e);
+				}
+
+				return true;
+			} else {
+				LOG_CERROR("engine") << "Reconnect peer error" << peer->peerID();
+
+				return false;
 			}
-
-			return true;
 		}
 	}
 
@@ -2208,7 +2462,6 @@ UserAPI::UserGame RpgEnginePrivate::toUserGame() const
 	game.map = q->m_config.mapUuid;
 	game.mission  = q->m_config.missionUuid;
 	game.level = q->m_config.missionLevel;
-	game.deathmatch = false;
 	game.mode = GameMap::Rpg;
 	game.campaign = q->m_config.campaign;
 
@@ -3033,4 +3286,14 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 	}
 
 	return true;
+}
+
+quint32 RpgEnginePlayer::peerID() const
+{
+	return m_peerID;
+}
+
+void RpgEnginePlayer::setPeerID(quint32 newPeerID)
+{
+	m_peerID = newPeerID;
 }

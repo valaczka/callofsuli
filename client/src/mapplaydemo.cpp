@@ -166,7 +166,7 @@ void MapPlayDemo::onCurrentGameFinished()
 	}
 
 	if (g->finishState() == AbstractGame::Success) {
-		MapPlayMissionLevel *ml = getMissionLevel(g->missionLevel(), g->deathmatch());
+		MapPlayMissionLevel *ml = getMissionLevel(g->missionLevel());
 
 		if (ml) {
 			ml->solverDataIncrement();

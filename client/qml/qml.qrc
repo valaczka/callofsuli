@@ -223,5 +223,6 @@
         <file>RpgGameUserDialog.qml</file>
         <file>RpgQuestHeader.qml</file>
         <file>RpgQuestDelegate.qml</file>
+        <file>RpgConnect.qml</file>
     </qresource>
 </RCC>

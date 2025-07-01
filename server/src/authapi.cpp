@@ -550,9 +550,7 @@ bool AuthAPI::authorizePlain(const Credential &credential, const QString &passwo
 			return ret.reject();
 		}
 
-		const QString &hashedPassword = Credential::hashString(password, q.value("salt").toString());
-
-		if (QString::compare(storedPassword, hashedPassword, Qt::CaseInsensitive) == 0)
+		if (AdminAPI::pwhash_str_verify(password, storedPassword))
 			ret.resolve();
 		else {
 			LOG_CDEBUG("client") << "Invalid password for user:" << qPrintable(credential.username());

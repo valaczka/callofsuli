@@ -51,9 +51,12 @@ public:
 	explicit AbstractUdpEngine(QObject *parent = nullptr);
 	virtual ~AbstractUdpEngine();
 
-	void sendMessage(const QByteArray &data, const bool &reliable = true, const int &channel = 0);
+	void sendMessage(const QByteArray &data, const bool &reliable = true, const bool &sign = true);
 
 	void setUrl(const QUrl &url);
+
+	QByteArray connectionToken() const;
+	void setConnectionToken(const QByteArray &token);
 
 	int currentRtt() const;
 	void setCurrentRtt(const int &rtt);

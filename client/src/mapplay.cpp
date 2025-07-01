@@ -277,7 +277,7 @@ void MapPlay::reloadMissionList()
 			if (!mLevel)
 				continue;
 
-			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel, false);
+			MapPlayMissionLevel *pLevel = new MapPlayMissionLevel(pMission, mLevel);
 			pMission->missionLevelList()->append(pLevel);
 		}
 	}
@@ -292,11 +292,13 @@ void MapPlay::reloadMissionList()
  * @return
  */
 
-AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode)
+AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const bool &multi)
 {
 	Q_ASSERT(level);
 	Q_ASSERT(level->missionLevel());
 	Q_ASSERT(m_client);
+
+	Q_UNUSED(multi);
 
 	AbstractLevelGame *g = nullptr;
 
@@ -322,8 +324,6 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 			return nullptr;
 			break;
 	}
-
-	g->setDeathmatch(level->deathmatch());
 
 	setGameState(StateLoading);
 
@@ -464,11 +464,11 @@ MapPlayMission *MapPlay::getMission(GameMapMissionIface *mission) const
  * @return
  */
 
-MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionLevel, const bool &deathmatch) const
+MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionLevel) const
 {
 	for (const MapPlayMission *mission : *m_missionList) {
 		for (MapPlayMissionLevel *level : *mission->missionLevelList()) {
-			if (level->missionLevel() == missionLevel && level->deathmatch() == deathmatch)
+			if (level->missionLevel() == missionLevel)
 				return level;
 		}
 	}
@@ -483,7 +483,7 @@ MapPlayMissionLevel *MapPlay::getMissionLevel(GameMapMissionLevelIface *missionL
  * @return
  */
 
-bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const QJsonObject &extended)
+bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const QJsonObject &extended, const bool &multi)
 {
 	if (!m_client) {
 		LOG_CERROR("game") << "Missing client";
@@ -500,7 +500,7 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, co
 		return false;
 	}
 
-	AbstractLevelGame *g = createLevelGame(level, mode);
+	AbstractLevelGame *g = createLevelGame(level, mode, multi);
 
 	if (!g)
 		return false;
@@ -572,12 +572,10 @@ MapPlayMissionLevel *MapPlay::getNextLevel(MapPlayMissionLevel *currentLevel, co
 			if (ml->solved() > 0)
 				continue;
 
-			if (ml->level() == currentLevel->level() && !currentLevel->deathmatch() && ml->deathmatch())
+			if (ml->level() == currentLevel->level())
 				return ml;
 
 			if (!nextLevel && ml->level() > currentLevel->level())
-				nextLevel = ml;
-			else if (nextLevel && nextLevel->deathmatch() && ml->level() == nextLevel->level() && !ml->deathmatch())
 				nextLevel = ml;
 			else if (nextLevel && ml->level() < nextLevel->level())
 				nextLevel = ml;
@@ -598,8 +596,6 @@ MapPlayMissionLevel *MapPlay::getNextLevel(MapPlayMissionLevel *currentLevel, co
 				continue;
 
 			if (!nextLevel)
-				nextLevel = ml;
-			else if (nextLevel && nextLevel->deathmatch() && ml->level() == nextLevel->level() && !ml->deathmatch())
 				nextLevel = ml;
 			else if (nextLevel && ml->level() < nextLevel->level())
 				nextLevel = ml;
@@ -663,11 +659,10 @@ QVariantMap MapPlay::inventoryInfo(const QString &module) const
  * @param parent
  */
 
-MapPlayMissionLevel::MapPlayMissionLevel(MapPlayMission *mission, GameMapMissionLevel *missionLevel, const bool &deathmatch, QObject *parent)
+MapPlayMissionLevel::MapPlayMissionLevel(MapPlayMission *mission, GameMapMissionLevel *missionLevel, QObject *parent)
 	: QObject(parent)
 	, m_mission(mission)
 	, m_missionLevel(missionLevel)
-	, m_deathmatch(deathmatch)
 {
 	Q_ASSERT(mission);
 	Q_ASSERT(missionLevel);
@@ -1151,7 +1146,7 @@ QList<MapPlayMissionLevel *> MapPlaySolverDefault::updateLock()
 		int lockDepth = 0;
 
 		foreach (GameMapMissionLevelIface *ml, locks) {
-			MapPlayMissionLevel *l = m_mapPlay->getMissionLevel(ml, false);
+			MapPlayMissionLevel *l = m_mapPlay->getMissionLevel(ml);
 			if (l && (l->lockDepth()>0 || !l->solverData().solved())) {
 				lockDepth = qMax(l->lockDepth(), 1);
 				break;
@@ -1173,30 +1168,21 @@ QList<MapPlayMissionLevel *> MapPlaySolverDefault::updateLock()
 		mission->setLockDepth(0);
 
 		for (int i=1; i<=mission->missionLevelList()->size(); ++i) {
-			MapPlayMissionLevel *level = m_mapPlay->getMissionLevel(gMission->level(i), false);
-			MapPlayMissionLevel *dmLevel = m_mapPlay->getMissionLevel(gMission->level(i), true);
+			MapPlayMissionLevel *level = m_mapPlay->getMissionLevel(gMission->level(i));
 
 			if (!level)
 				continue;
 
 			if (lockDepth) {
 				level->setLockDepth(lockDepth);
-				if (dmLevel)
-					dmLevel->setLockDepth(lockDepth);
 				continue;
 			}
 
 			const int &oldDepth = level->lockDepth();
 			level->setLockDepth(0);
+
 			if (oldDepth > 0 && !ret.contains(level))
 				ret.append(level);
-
-			if (dmLevel) {
-				const int &oldDepth = dmLevel->lockDepth();
-				dmLevel->setLockDepth(level->solverData().solved() ? 0 : 1);
-				if (oldDepth > 0 && dmLevel->lockDepth() == 0 && !ret.contains(dmLevel))
-					ret.append(dmLevel);
-			}
 
 			if (level->solverData().solved() < 1)
 				lockDepth = 1;

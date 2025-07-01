@@ -46,6 +46,8 @@ class ActionRpgMultiplayerGame : public ActionRpgGame
 
 	Q_PROPERTY(int playerId READ playerId WRITE setPlayerId NOTIFY playerIdChanged FINAL)
 	Q_PROPERTY(QSListModel *playersModel READ playersModel CONSTANT FINAL)
+	Q_PROPERTY(QSListModel *enginesModel READ enginesModel CONSTANT FINAL)
+	Q_PROPERTY(bool canAddEngine READ canAddEngine WRITE setCanAddEngine NOTIFY canAddEngineChanged FINAL)
 	Q_PROPERTY(bool selectionCompleted READ selectionCompleted WRITE setSelectionCompleted NOTIFY selectionCompletedChanged FINAL)
 
 public:
@@ -61,6 +63,8 @@ public:
 	Q_INVOKABLE void selectCharacter(const QString &character);
 	[[deprecated]] Q_INVOKABLE void selectWeapons(const QStringList &weaponList);
 
+	Q_INVOKABLE void connectToEngine(const int &id);
+
 	void disconnectFromHost();
 
 	int playerId() const;
@@ -70,12 +74,20 @@ public:
 	void setSelectionCompleted(bool newSelectionCompleted);
 
 	QSListModel *playersModel() const;
+	QSListModel *enginesModel() const;
 
 	virtual bool isReconnecting() const override;
+
+	void setConnectionToken(const QByteArray &newConnectionToken);
+
+	bool canAddEngine() const;
+	void setCanAddEngine(bool newCanAddEngine);
 
 signals:
 	void playerIdChanged();
 	void selectionCompletedChanged();
+
+	void canAddEngineChanged();
 
 protected:
 	void onConfigChanged() override;
@@ -95,11 +107,13 @@ private:
 	bool m_othersPrepared = false;
 
 	std::unique_ptr<QSListModel> m_playersModel;
+	std::unique_ptr<QSListModel> m_enginesModel;
 	QBasicTimer m_keepAliveTimer;
 
 
 	void worldTerrainSelect(QString map, const bool forced);
 	void updatePlayersModel();
+	void updateEnginesModel(const RpgGameData::EngineSelector &selector);
 
 	void syncEnemyList(const ClientStorage &storage);
 	void syncPlayerList(const ClientStorage &storage);
@@ -147,6 +161,7 @@ private:
 
 	void sendDataChrSel();
 	void sendDataPrepare();
+	void sendDataConnect();
 
 	void setTickTimer(const qint64 &tick);
 	void addLatency(const qint64 &latency);

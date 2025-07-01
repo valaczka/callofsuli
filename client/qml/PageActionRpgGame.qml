@@ -86,20 +86,8 @@ Page {
 	Component {
 		id: _cmpConnect
 
-		QScrollable {
-			id: root
-
-			contentCentered: true
-
-			Qaterial.IconLabel {
-				anchors.horizontalCenter: parent.horizontalCenter
-				color: Qaterial.Colors.red400
-				icon.source: Qaterial.Icons.alertCircle
-				icon.width: Qaterial.Style.dashboardButtonSize*0.4
-				icon.height: Qaterial.Style.dashboardButtonSize*0.4
-				text: qsTr("Missing implementation!")
-			}
-
+		RpgConnect {
+			game: root.game
 		}
 	}
 

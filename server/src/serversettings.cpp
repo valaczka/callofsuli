@@ -275,10 +275,7 @@ bool ServerSettings::generateJwtSecret(const bool &forced)
 {
 	if (m_jwtSecret.isEmpty() || forced) {
 		LOG_CTRACE("service") << "Generate new JWT secret";
-
-		unsigned char k[crypto_auth_KEYBYTES];
-		crypto_auth_keygen(k);
-		setJwtSecret(QByteArray((const char*) k, crypto_auth_KEYBYTES));
+		setJwtSecret(Token::generateSecret());
 		return true;
 	}
 

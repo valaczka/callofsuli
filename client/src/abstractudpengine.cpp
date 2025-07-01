@@ -28,7 +28,12 @@
 #include "Logger.h"
 #include "abstractudpengine_p.h"
 #include "qabstracteventdispatcher.h"
-
+#include <sodium/crypto_sign.h>
+#include <credential.h>
+#include <QDataStream>
+#include <QIODevice>
+#include "sodium/crypto_box.h"
+#include "utils_.h"
 
 
 
@@ -91,13 +96,13 @@ AbstractUdpEngine::~AbstractUdpEngine()
  * @brief AbstractUdpEngine::sendMessage
  * @param data
  * @param reliable
- * @param channel
+ * @param sign
  */
 
-void AbstractUdpEngine::sendMessage(const QByteArray &data, const bool &reliable, const int &channel)
+void AbstractUdpEngine::sendMessage(const QByteArray &data, const bool &reliable, const bool &sign)
 {
-	m_worker->execInThread([this, data, reliable, channel](){
-		d->sendMessage(data, reliable, channel);
+	m_worker->execInThread([this, data, reliable, sign](){
+		d->sendMessage(data, reliable, sign);
 	});
 }
 
@@ -112,6 +117,40 @@ void AbstractUdpEngine::setUrl(const QUrl &url)
 {
 	m_worker->execInThread([this, url](){
 		d->setUrl(url);
+	});
+}
+
+
+/**
+ * @brief AbstractUdpEngine::connectionToken
+ * @return
+ */
+
+QByteArray AbstractUdpEngine::connectionToken() const
+{
+	QDefer ret;
+	QByteArray token;
+	m_worker->execInThread([this, &token, ret]() mutable {
+		token = d->connectionToken();
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return token;
+}
+
+
+
+
+/**
+ * @brief AbstractUdpEngine::setConnectionToken
+ * @param token
+ */
+
+void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
+{
+	m_worker->execInThread([this, token](){
+		d->setConnectionToken(token);
 	});
 }
 
@@ -154,10 +193,23 @@ void AbstractUdpEngine::setCurrentRtt(const int &rtt)
 
 
 
+/**
+ * @brief AbstractUdpEnginePrivate::AbstractUdpEnginePrivate
+ * @param engine
+ */
+
+AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
+	: q(engine)
+	, m_secretKey(Token::generateSecret())
+{
+	LOG_CINFO("client") << "secret generated" << m_secretKey.toBase64();
+}
+
 
 /**
  * @brief RpgUdpEnginePrivate::run
  */
+
 
 void AbstractUdpEnginePrivate::run()
 {
@@ -170,6 +222,10 @@ void AbstractUdpEnginePrivate::run()
 		if (!m_enet_host) {
 			if (m_url.isEmpty())
 				continue;
+
+
+			// Channel 0: unsigned
+			// Channel 1: signed
 
 			ENetHost *client = enet_host_create(NULL, 1, 2, 0, 0);
 
@@ -200,7 +256,7 @@ void AbstractUdpEnginePrivate::run()
 
 			if (enet_host_service(client, &event, 1000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
 				LOG_CINFO("game") << "Connected to host" << qPrintable(m_url.toDisplayString());
-				emit q->serverConnected();
+				//emit q->serverConnected();
 			} else {
 				LOG_CWARNING("game") << "Connection failed" << qPrintable(m_url.toDisplayString());
 				enet_peer_reset(peer);
@@ -250,9 +306,15 @@ void AbstractUdpEnginePrivate::run()
 					break;
 
 				case ENET_EVENT_TYPE_DISCONNECT:
-					LOG_CINFO("engine") << "DISCONNECT" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
-					emit q->serverDisconnected();
-					QThread::msleep(1000);
+					if (m_udpState == UdpServerResponse::StateConnected) {
+						LOG_CINFO("engine") << "DISCONNECT" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
+						emit q->serverDisconnected();
+						QThread::msleep(1000);
+					} else {
+						LOG_CERROR("engine") << "DISCONNECT" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
+						emit q->serverConnectFailed();
+						QThread::msleep(1000);
+					}
 					continue;
 					break;
 
@@ -267,16 +329,43 @@ void AbstractUdpEnginePrivate::run()
 			}
 		}
 
+		updateChallenge();			// send -> mutex lock
+
 		if (m_speed.readyToSend()) {
 			QMutexLocker locker(&m_inOutChache.mutex);
 
 			for (const auto &b : m_inOutChache.sendList) {
-				ENetPacket *packet = enet_packet_create(b.data.data(), b.data.size(),
+				enet_uint8 channel = 0;
+
+				QByteArray s;
+				QDataStream stream(&s, QIODevice::WriteOnly);
+				stream.setVersion(QDataStream::Qt_6_7);
+
+				stream << (quint32) 0x434F53;			// COS
+				stream << Utils::versionCode();
+				stream << m_peerID;
+
+				if (!m_secretKey.isEmpty() && b.sign) {
+					stream << Token::sign(b.data, m_secretKey);
+					channel = 1;
+				}
+
+				stream << b.data;
+
+				ENetPacket *packet = enet_packet_create(s.data(), s.size(),
 														b.reliable ? ENET_PACKET_FLAG_RELIABLE :
 																	 ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-				if (enet_peer_send(m_enet_peer, 0, packet) < 0) {
+
+				if (enet_peer_send(m_enet_peer, channel, packet) < 0) {
 					LOG_CERROR("client") << "ENet peer send error";
 					enet_packet_destroy(packet);
+
+					if (m_udpState == UdpServerResponse::StateConnected) {
+
+					} else {
+						LOG_CERROR("engine") << "FORCE DISCONNECT" << m_enet_peer->address.host << m_enet_peer->address.port; //<< event.peer->data;
+						emit q->serverConnectFailed();
+					}
 				}
 			}
 
@@ -314,15 +403,13 @@ void AbstractUdpEnginePrivate::run()
  * @brief AbstractUdpEnginePrivate::sendMessage
  * @param data
  * @param reliable
- * @param channel
+ * @param sign
  */
 
-void AbstractUdpEnginePrivate::sendMessage(QByteArray data, const bool &reliable, const int &channel)
+void AbstractUdpEnginePrivate::sendMessage(QByteArray data, const bool &reliable, const bool &sign)
 {
-	Q_UNUSED(channel);
-
 	QMutexLocker locker(&m_inOutChache.mutex);
-	m_inOutChache.sendList.emplace_back( data, reliable );
+	m_inOutChache.sendList.emplace_back( data, reliable, sign );
 }
 
 
@@ -385,15 +472,165 @@ void AbstractUdpEnginePrivate::deliverReceived()
 
 void AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 {
-	QByteArray data((char*) event.packet->data, event.packet->dataLength);
+	const QByteArray msg(reinterpret_cast<char*>(event.packet->data), event.packet->dataLength);
 
-	QCborMap map = QCborValue::fromCbor(data).toMap();
 	const unsigned int rtt = m_enet_peer->roundTripTime;
 
 	m_speed.addRtt(rtt);
 
+
+	QDataStream stream(msg);
+	stream.setVersion(QDataStream::Qt_6_7);
+
+	quint32 magic = 0;
+	quint32 version = 0;
+
+	stream >> magic >> version;
+
+	if (magic != 0x434F53 || version == 0) {			// COS
+		LOG_CERROR("game") << "Invalid stream";
+		return;
+	}
+
+
+	QByteArray data;
+
+	stream >> data;
+
+
+	if (m_udpState != UdpServerResponse::StateConnected) {
+		const QCborMap map = QCborValue::fromCbor(data).toMap();
+
+		UdpServerResponse rsp;
+		rsp.fromCbor(map);
+
+		if (rsp.state == UdpServerResponse::StateRejected || rsp.state == UdpServerResponse::StateConnected) {
+			if (m_udpState != rsp.state) {
+				if (rsp.state == UdpServerResponse::StateConnected)
+					emit q->serverConnected();
+				else
+					emit q->serverConnectFailed();
+			}
+
+			QMutexLocker locker(&m_inOutChache.mutex);
+			m_udpState = rsp.state;
+			return;
+		}
+
+		if (m_udpState == UdpServerResponse::StateInvalid) {
+			if (rsp.state == UdpServerResponse::StateChallenge) {
+				UdpChallengeRequest rsp;
+				rsp.fromCbor(map);
+
+				if (rsp.key.size() != crypto_box_PUBLICKEYBYTES) {
+					LOG_CERROR("game") << "Invalid key size";
+					return;
+				}
+
+				m_challenge = rsp;
+				m_udpState = UdpServerResponse::StateChallenge;
+			}
+
+		}
+
+		return;
+	}
+
 	QMutexLocker locker(&m_inOutChache.mutex);
-	m_inOutChache.rcvList.emplace_back(data, 0, rtt);			// timestamp
+	m_inOutChache.rcvList.emplace_back(data, event.channelID, rtt);			// timestamp
+}
+
+
+/**
+ * @brief AbstractUdpEnginePrivate::connectionToken
+ * @return
+ */
+
+QByteArray AbstractUdpEnginePrivate::connectionToken() const
+{
+	return m_connectionToken;
+}
+
+
+/**
+ * @brief AbstractUdpEnginePrivate::setConnectionToken
+ * @param newConnectionToken
+ */
+
+void AbstractUdpEnginePrivate::setConnectionToken(const QByteArray &newConnectionToken)
+{
+	LOG_CINFO("game") << "SET TOKEN" << newConnectionToken;
+
+	m_connectionToken = newConnectionToken;
+
+	Token jwt(m_connectionToken);
+	UdpToken u;
+	u.fromJson(jwt.payload());
+
+	if (u.peerID > 0) {
+		LOG_CINFO("game") << "SET PEER ID" << u.peerID;
+		m_peerID = u.peerID;
+	}
+}
+
+
+
+/**
+ * @brief AbstractUdpEnginePrivate::updateChallenge
+ */
+
+void AbstractUdpEnginePrivate::updateChallenge()
+{
+	if (m_connectionToken.isEmpty())
+		return;
+
+	if (m_udpState == UdpServerResponse::StateConnected)
+		return;
+
+	if (m_udpState == UdpServerResponse::StateRejected) {
+		LOG_CERROR("game") << "STATE REJECTED";
+		return;
+	}
+
+	if (m_udpState == UdpServerResponse::StateInvalid) {
+		UdpConnectRequest rq(m_connectionToken);
+		QByteArray d = rq.toCborMap().toCborValue().toCbor();
+
+		m_inOutChache.sendList.emplace_back( d, false, false );
+
+		return;
+	}
+
+
+	if (m_udpState == UdpServerResponse::StateChallenge) {
+		LOG_CDEBUG("game") << "SEND CH" << m_challenge.challenge.size() << m_challenge.key.size();
+
+		UdpChallengeResponseContent rc;
+		rc.challenge = m_challenge.challenge;
+		rc.key = m_secretKey;
+
+		const QByteArray content = rc.toCborMap().toCborValue().toCbor();
+		const qsizetype len = crypto_box_SEALBYTES + content.size();
+
+		unsigned char *dest = (unsigned char*) malloc(len);
+
+		if (crypto_box_seal(dest, reinterpret_cast<const unsigned char*>(content.constData()), content.size(),
+							reinterpret_cast<const unsigned char*> (m_challenge.key.constData())) != 0) {
+			LOG_CERROR("game") << "Seal errror";
+		} else {
+			LOG_CDEBUG("game") << "Send seal";
+			UdpChallengeResponse r;
+			r.response = QByteArray(reinterpret_cast<const char *>(dest), len);
+			r.token = m_connectionToken;
+			sendMessage(r.toCborMap().toCborValue().toCbor(), false, false);
+		}
+
+		free(dest);
+
+	}
+
+
+
 }
 
 
