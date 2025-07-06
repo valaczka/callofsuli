@@ -692,10 +692,10 @@ void RpgPlayer::playWeaponChangedEffect()
 		return m_game->messageColor(tr("Without weapon"), QStringLiteral("#EF5350"));
 
 
-	m_game->message(armory()->currentWeapon()->weaponNameEn().append(tr(" activated")));
+	/*m_game->message(armory()->currentWeapon()->weaponNameEn().append(tr(" activated")));
 
 	if (!m_sfxAccept.soundList().isEmpty())
-		m_sfxAccept.playOne();
+		m_sfxAccept.playOne();*/
 }
 
 

@@ -1,16 +1,16 @@
 include(common.pri)
 
-android|ios: {
+ios: {
 	!versionAtLeast(QT_VERSION, 6.7): error(Qt 6.7 required)
 } else {
-	!versionAtLeast(QT_VERSION, 6.8): error(Qt 6.8 required)
+	!versionAtLeast(QT_VERSION, 6.9): error(Qt 6.9 required)
 }
 
 android {
 	_NDK_PATH=$$(ANDROID_NDK_ROOT)
 
 	_NDK_VERSION=$$str_member($$_NDK_PATH, -13, -1)
-	_NDK_REQUIRED = 26.1.10909125
+	_NDK_REQUIRED = 27.2.12479018
 
 	!isEqual(_NDK_VERSION, $$_NDK_REQUIRED): error(Invalid NDK: $$_NDK_VERSION)
 }

@@ -67,7 +67,7 @@ ActionRpgGame::ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
 		updateConfig();
 	});
 
-	connect(client->downloader(), &Downloader::downloadError, this, &ActionRpgGame::setError);
+	connect(client->downloader(), &Downloader::downloadError, this, &ActionRpgGame::setUnknownError);
 
 
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, [this]() {
@@ -772,7 +772,7 @@ void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData
 
 	if (!server) {
 		LOG_CERROR("game") << "Missing server";
-		setError();
+		setError(tr("Internal error"));
 		return;
 	}
 
@@ -780,7 +780,7 @@ void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData
 
 	if (ptr == RpgGame::terrains().constEnd()) {
 		LOG_CERROR("game") << "Invalid game";
-		setError();
+		setError(tr("Internal error"));
 		return;
 	}
 
@@ -866,7 +866,6 @@ void ActionRpgGame::onTimeStepped()
 		if (RpgGameData::LifeCycle *iface = dynamic_cast<RpgGameData::LifeCycle*> (b)) {
 			if (iface->stage() == RpgGameData::LifeCycle::StageDestroy ||
 					iface->stage() == RpgGameData::LifeCycle::StageDead) {
-				LOG_CINFO("game") << "****** DELETE" << iface;
 				ActionRpgGame::onLifeCycleDelete(b);
 			}
 		}
@@ -902,7 +901,7 @@ void ActionRpgGame::downloadLoadableContentDict(const QStringList &fileList)
 		})
 				->fail(this, [this](const QString &err){
 			LOG_CERROR("game") << "Loadable content error" << qPrintable(err);
-			setError();
+			setError(tr("Download content error"));
 		});
 	} else {
 		QStringList fList;
@@ -957,7 +956,7 @@ void ActionRpgGame::downloadLoadableContent(const QStringList &fileList)
 		})
 				->fail(this, [this](const QString &err){
 			LOG_CERROR("game") << "Loadable content error" << qPrintable(err);
-			setError();
+			setError(tr("Download content error"));
 		});
 	} else {
 		m_downloader->contentClear();
@@ -971,7 +970,7 @@ void ActionRpgGame::downloadLoadableContent(const QStringList &fileList)
 
 			if (it == m_loadableContentListBase.constEnd()) {
 				LOG_CERROR("game") << "Invalid loadable resource:" << qPrintable(s);
-				setError();
+				setError(tr("Invalid resource"));
 				return;
 			}
 
@@ -989,8 +988,9 @@ void ActionRpgGame::downloadLoadableContent(const QStringList &fileList)
  * @brief ActionRpgGame::setError
  */
 
-void ActionRpgGame::setError()
+void ActionRpgGame::setError(const QString &errorString)
 {
+	setErrorString(errorString);
 	m_config.gameState = RpgConfig::StateError;
 	updateConfig();
 }
@@ -1785,4 +1785,17 @@ void ActionRpgGame::setConfig(const RpgConfig &newConfig)
 		return;
 	m_config = newConfig;
 	updateConfig();
+}
+
+QString ActionRpgGame::errorString() const
+{
+	return m_errorString;
+}
+
+void ActionRpgGame::setErrorString(const QString &newErrorString)
+{
+	if (m_errorString == newErrorString)
+		return;
+	m_errorString = newErrorString;
+	emit errorStringChanged();
 }

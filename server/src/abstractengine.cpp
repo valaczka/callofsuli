@@ -111,6 +111,11 @@ void AbstractEngine::setId(int newId)
 	m_id = newId;
 }
 
+QString AbstractEngine::dumpEngine() const
+{
+	return QStringLiteral(">>> AbstractEngine %1 <<<\n \n \n").arg(m_id);
+}
+
 uint AbstractEngine::playerLimit() const
 {
 	return m_playerLimit;

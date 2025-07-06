@@ -231,8 +231,8 @@ void AbstractUdpEnginePrivate::run()
 
 			if (!client) {
 				LOG_CERROR("client") << "Connection refused" << qPrintable(m_url.toDisplayString());
-				emit q->serverConnectFailed();
-				QThread::msleep(1000);
+				emit q->serverConnectFailed(tr("Connection error"));
+				QThread::msleep(500);
 				continue;
 			}
 
@@ -249,21 +249,31 @@ void AbstractUdpEnginePrivate::run()
 				LOG_CWARNING("game") << "Connection refused" << qPrintable(m_url.toDisplayString());
 				enet_host_destroy(client);
 
-				emit q->serverConnectFailed();
-				QThread::msleep(1000);
+				if (m_udpState == UdpServerResponse::StateConnected) {
+					emit q->serverConnectionLost();
+				} else {
+					emit q->serverConnectFailed(tr("Connection refused"));
+				}
+				QThread::msleep(500);
 				continue;
 			}
 
 			if (enet_host_service(client, &event, 1000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
 				LOG_CINFO("game") << "Connected to host" << qPrintable(m_url.toDisplayString());
-				//emit q->serverConnected();
+				if (m_udpState == UdpServerResponse::StateConnected)
+					emit q->serverConnected();
 			} else {
 				LOG_CWARNING("game") << "Connection failed" << qPrintable(m_url.toDisplayString());
 				enet_peer_reset(peer);
 				enet_host_destroy(client);
 
-				emit q->serverConnectFailed();
-				QThread::msleep(1000);
+				if (m_udpState == UdpServerResponse::StateConnected) {
+					emit q->serverConnectionLost();
+				} else {
+					emit q->serverConnectFailed(tr("Connection failed"));
+				}
+
+				QThread::msleep(500);
 				continue;
 			}
 
@@ -271,18 +281,7 @@ void AbstractUdpEnginePrivate::run()
 			m_enet_peer = peer;
 		} else {
 			if (m_url.isEmpty()) {
-				if (m_enet_peer) {
-					enet_peer_disconnect(m_enet_peer, 0);
-					enet_host_service(m_enet_host, nullptr, 200);
-					enet_peer_reset(m_enet_peer);
-					m_enet_peer = nullptr;
-				}
-				enet_host_destroy(m_enet_host);
-
-				LOG_CDEBUG("client") << "Disconnected from host" << qPrintable(m_url.toDisplayString());
-				emit q->serverDisconnected();
-
-				m_enet_host = nullptr;
+				destroyHostAndPeer();
 				continue;
 			}
 		}
@@ -293,7 +292,10 @@ void AbstractUdpEnginePrivate::run()
 		int r = enet_host_service (m_enet_host, &event, 1000./240.);
 
 		if (r < 0) {
-			LOG_CERROR("engine") << "ENet host service error";
+			LOG_CERROR("client") << "ENet host service error";
+
+			if (m_udpState == UdpServerResponse::StateConnected)
+				emit q->serverConnectionLost();
 		}
 
 		if (QThread::currentThread()->isInterruptionRequested())
@@ -302,17 +304,19 @@ void AbstractUdpEnginePrivate::run()
 		if (r > 0) {
 			switch (event.type) {
 				case ENET_EVENT_TYPE_CONNECT:
-					LOG_CINFO("engine") << "CONNECT" << event.peer->address.host << event.peer->address.port;
+					LOG_CINFO("client") << "CONNECT" << event.peer->address.host << event.peer->address.port;
 					break;
 
 				case ENET_EVENT_TYPE_DISCONNECT:
 					if (m_udpState == UdpServerResponse::StateConnected) {
-						LOG_CINFO("engine") << "DISCONNECT" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
-						emit q->serverDisconnected();
+						LOG_CINFO("client") << "DISCONNECT FROM CONNECTED STATE" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
+						emit q->serverConnectionLost();
+						destroyHostAndPeer();
 						QThread::msleep(1000);
 					} else {
-						LOG_CERROR("engine") << "DISCONNECT" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
-						emit q->serverConnectFailed();
+						LOG_CERROR("client") << "DISCONNECT" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
+						destroyHostAndPeer();
+						emit q->serverConnectFailed(tr("Connection rejected"));
 						QThread::msleep(1000);
 					}
 					continue;
@@ -360,12 +364,18 @@ void AbstractUdpEnginePrivate::run()
 					LOG_CERROR("client") << "ENet peer send error";
 					enet_packet_destroy(packet);
 
+
 					if (m_udpState == UdpServerResponse::StateConnected) {
+						LOG_CWARNING("engine") << "CONNECTION LOST";
+
+						emit q->serverConnectionLost();
 
 					} else {
 						LOG_CERROR("engine") << "FORCE DISCONNECT" << m_enet_peer->address.host << m_enet_peer->address.port; //<< event.peer->data;
-						emit q->serverConnectFailed();
+						emit q->serverConnectFailed(tr("Connection lost"));
 					}
+
+					destroyHostAndPeer();
 				}
 			}
 
@@ -380,20 +390,7 @@ void AbstractUdpEnginePrivate::run()
 	LOG_CINFO("client") << "UPD ENGINE RUN FINISHED";
 
 
-	if (m_enet_host) {
-		if (m_enet_peer) {
-			enet_peer_disconnect(m_enet_peer, 0);
-			enet_host_service(m_enet_host, nullptr, 200);
-			enet_peer_reset(m_enet_peer);
-			m_enet_peer = nullptr;
-		}
-		enet_host_destroy(m_enet_host);
-
-		LOG_CDEBUG("client") << "Disconnected from host" << qPrintable(m_url.toDisplayString());
-		emit q->serverDisconnected();
-	}
-
-	m_enet_host = nullptr;
+	destroyHostAndPeer();
 #endif
 }
 
@@ -466,6 +463,32 @@ void AbstractUdpEnginePrivate::deliverReceived()
 
 
 /**
+ * @brief AbstractUdpEnginePrivate::destroyHostAndPeer
+ */
+
+void AbstractUdpEnginePrivate::destroyHostAndPeer()
+{
+	if (m_enet_peer) {
+		enet_peer_disconnect(m_enet_peer, 0);
+		if (m_enet_host)
+			enet_host_service(m_enet_host, nullptr, 200);
+		enet_peer_reset(m_enet_peer);
+	}
+
+	if (m_enet_host)
+		enet_host_destroy(m_enet_host);
+
+	m_enet_peer = nullptr;
+	m_enet_host = nullptr;
+
+	LOG_CDEBUG("client") << "Disconnected from host" << qPrintable(m_url.toDisplayString());
+	emit q->serverDisconnected();
+
+}
+
+
+
+/**
  * @brief AbstractUdpEnginePrivate::packetReceived
  * @param event
  */
@@ -509,7 +532,7 @@ void AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 				if (rsp.state == UdpServerResponse::StateConnected)
 					emit q->serverConnected();
 				else
-					emit q->serverConnectFailed();
+					emit q->serverConnectFailed(tr("Connection rejected"));
 			}
 
 			QMutexLocker locker(&m_inOutChache.mutex);

@@ -155,6 +155,9 @@ private:
 	//void onBulletDelete(IsometricBullet *bullet) override;
 
 	void onRpgGameActivated();
+	void onConnected();
+	void onConnectionLost();
+	void onDisconnected();
 
 	void sendData(const QSerializer &data, const bool &reliable);
 	void sendData(const QByteArray &data, const bool &reliable);

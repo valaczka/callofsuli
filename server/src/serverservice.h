@@ -133,6 +133,8 @@ public:
 
 	const QString &importDb() const;
 
+	const QString logDir() const { return m_logDir; }
+
 	int imitateLatency() const;
 	void setImitateLatency(int newImitateLatency);
 
@@ -194,6 +196,7 @@ private:
 	QString m_serverName;
 	QStringList m_arguments;
 	ServerConfig m_config;
+	QString m_logDir;
 
 	State m_state = ServerInit;
 

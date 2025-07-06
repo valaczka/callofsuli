@@ -1,7 +1,7 @@
 include(common.pri)
 
-!versionAtLeast(QT_VERSION, 6.8): {
-	error(Qt 6.8 required)
+!versionAtLeast(QT_VERSION, 6.9): {
+	error(Qt 6.9 required)
 }
 
 TEMPLATE = subdirs

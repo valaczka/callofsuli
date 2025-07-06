@@ -7,7 +7,7 @@ CONFIG += c++17 separate_debug_info
 CONFIG -= qt
 
 
-VERSION = 7.0.3
+#VERSION = 7.0.3
 
 
 SOURCEDIR = $$PWD/../Chipmunk2D

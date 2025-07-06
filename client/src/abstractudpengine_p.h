@@ -64,9 +64,9 @@ public:
 
 
 private:
-
 	void updateChallenge();
 	void deliverReceived();
+	void destroyHostAndPeer();
 
 	AbstractUdpEngine *q = nullptr;
 

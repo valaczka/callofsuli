@@ -98,7 +98,7 @@ ListView {
 			}
 
 			PauseAnimation {
-				duration: _item.priority ? 5000 : 1250
+				duration: _item.priority ? 7500 : 1250
 			}
 
 			ScriptAction {

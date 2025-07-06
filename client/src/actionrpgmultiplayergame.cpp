@@ -42,6 +42,9 @@
 
 
 
+#define CONNECTION_LOST_TIMEOUT				1000		// Ennyi ideig próbál újracsatlakozni (az ENet 5 mp után dobja ki)
+
+
 /**
  * Private namespace
  */
@@ -49,7 +52,10 @@
 class ActionRpgMultiplayerGamePrivate
 {
 private:
-	ActionRpgMultiplayerGamePrivate(ActionRpgMultiplayerGame *game) : d(game) {}
+	ActionRpgMultiplayerGamePrivate(ActionRpgMultiplayerGame *game)
+		: d(game)
+		, m_connectionLostTimer(-1)
+	{}
 
 	void updateBody(TiledObjectBody *body, const bool &isHosted);
 
@@ -158,6 +164,8 @@ private:
 
 	ActionRpgMultiplayerGame *const d;
 
+	QDeadlineTimer m_connectionLostTimer;
+
 
 
 	//// TMP
@@ -254,8 +262,11 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	}
 
 	connect(m_engine, &RpgUdpEngine::gameDataDownload, this, &ActionRpgMultiplayerGame::downloadGameData);
-	connect(m_engine, &RpgUdpEngine::gameError, this, &ActionRpgMultiplayerGame::setError);
+	connect(m_engine, &RpgUdpEngine::gameError, this, &ActionRpgMultiplayerGame::setUnknownError);
 	connect(m_engine, &RpgUdpEngine::serverConnectFailed, this, &ActionRpgMultiplayerGame::setError);
+	connect(m_engine, &RpgUdpEngine::serverConnectionLost, this, &ActionRpgMultiplayerGame::onConnectionLost);
+	connect(m_engine, &RpgUdpEngine::serverConnected, this, &ActionRpgMultiplayerGame::onConnected);
+	connect(m_engine, &RpgUdpEngine::serverDisconnected, this, &ActionRpgMultiplayerGame::onDisconnected);
 
 	m_keepAliveTimer.start(1000, this);
 }
@@ -456,6 +467,7 @@ void ActionRpgMultiplayerGame::disconnectFromHost()
 void ActionRpgMultiplayerGame::onConfigChanged()
 {
 	if (m_config.gameState == RpgConfig::StateError) {
+		LOG_CERROR("game") << "***** ERROR -> DISCONNECT";
 		disconnectFromHost();
 		return;
 	}
@@ -466,7 +478,7 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 	if (m_config.gameState == RpgConfig::StateConnect) {
 		if (m_engine->connectionToken().isEmpty()) {
 			LOG_CERROR("game") << "Missing connection token";
-			setError();
+			setError(tr("Internal error"));
 		} else {
 			m_engine->connectToServer(m_client->server());
 		}
@@ -499,7 +511,7 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 
 		if (m_othersPrepared && !m_fullyPrepared) {
 			m_rpgGame->setMessageEnabled(true);
-			m_rpgGame->message(tr("LEVEL %1").arg(level()));
+			//m_rpgGame->message(tr("LEVEL %1").arg(level()));
 			m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
 
 			m_fullyPrepared = true;
@@ -511,7 +523,8 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 			///m_timerLeft.start();
 		}
 
-		if (!m_fullyPrepared) {
+		if (!m_fullyPrepared || q->m_isReconnecting) {
+			LOG_CINFO("game") << "-----> SEND FULL";
 			QCborMap map;
 			map.insert(QStringLiteral("full"), true);
 			sendData(map.toCborValue().toCbor(), true);
@@ -705,7 +718,25 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	}
 #endif
 
-	LOG_CDEBUG("game") << ">>>>" << m_engine->gameState();
+	if (!q->m_connectionLostTimer.isForever() &&
+			q->m_connectionLostTimer.hasExpired()) {
+		LOG_CERROR("game") << "Connection lost timeout" << q->m_connectionLostTimer.isForever() << q->m_connectionLostTimer.hasExpired()
+						   << q->m_connectionLostTimer.remainingTime();
+
+		if (m_config.gameState == RpgConfig::StatePlay) {
+			LOG_CINFO("game") << "Start reconnecting";
+			m_config.gameState = RpgConfig::StateDownloadContent;
+			changeGameState(RpgConfig::StatePlay);
+			//updateConfig();
+
+		} else {
+			setError(tr("Connection lost"));
+		}
+
+		q->m_connectionLostTimer.setRemainingTime(-1);
+
+		return;
+	}
 
 	if (m_engine->gameState() == RpgConfig::StateInvalid)
 		return;
@@ -763,9 +794,12 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 
 void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state)
 {
-	if (state == RpgConfig::StatePlay && m_config.gameState < RpgConfig::StatePrepare) {
+	if (!q->m_isReconnecting && state == RpgConfig::StatePlay && m_config.gameState < RpgConfig::StatePrepare) {
+		LOG_CINFO("game") << "Start reconnecting" << m_config.gameState << "->" << state;
 		q->m_isReconnecting = true;
 		emit isReconnectingChanged();
+		if (m_rpgGame)
+			m_rpgGame->setPaused(true);
 	}
 
 	if (q->m_isReconnecting) {
@@ -783,10 +817,13 @@ void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state
 			LOG_CINFO("game") << "New reconnecting state" << m_config.gameState;
 			updateConfig();
 		} else if (m_config.gameState >= RpgConfig::StatePrepare) {
+			updateConfig();
 			q->m_isReconnecting = false;
 			q->m_hasReconnected = true;
-			if (m_rpgGame)
+			if (m_rpgGame) {
 				m_rpgGame->setMessageEnabled(true);
+				m_rpgGame->setPaused(false);
+			}
 			emit isReconnectingChanged();
 			LOG_CINFO("game") << "Reconnecting finished" << m_config.gameState;
 		}
@@ -819,8 +856,14 @@ void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state
 				break;
 
 			case RpgConfig::StateConnect:
+				canSwitch = m_config.gameState <= RpgConfig::StateConnect;
+				break;
+
 			case RpgConfig::StateDownloadStatic:
 			case RpgConfig::StateDownloadContent:
+				canSwitch = m_config.gameState < RpgConfig::StatePrepare;
+				break;
+
 			case RpgConfig::StateFinished:
 			case RpgConfig::StateError:
 			case RpgConfig::StateInvalid:
@@ -834,7 +877,7 @@ void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state
 			updateConfig();
 		} else {
 			LOG_CERROR("game") << "State conflict" << m_config.gameState << "->" << state;
-			setError();
+			setError(tr("Internal error"));
 		}
 	}
 }
@@ -939,8 +982,6 @@ void ActionRpgMultiplayerGame::updateEnginesModel(const RpgGameData::EngineSelec
 		m_engine->setGameState(RpgConfig::StateConnect);
 		return;
 	}
-
-	LOG_CWARNING("game") << "OP" << selector.operation << selector.engine << selector.engines.size() << selector.add;
 
 	if (selector.operation != RpgGameData::EngineSelector::List)
 		return;
@@ -1526,7 +1567,6 @@ void ActionRpgMultiplayerGame::onTimeStepPrepare()
 
 	if (const RpgGameData::Randomizer &randomizer = m_engine->gameConfig().randomizer; randomizer.groups.isEmpty()) {
 		if (m_playersSynced && m_rpgGame->randomizer().groups.isEmpty()) {
-			LOG_CINFO("game") << "NO RANDOMIZER";
 			m_randomizerSynced = true;
 		}
 	} else if (!m_randomizerSynced) {
@@ -2068,6 +2108,11 @@ bool ActionRpgMultiplayerGame::onBodyStep(TiledObjectBody *body)
 	if (m_config.gameState != RpgConfig::StatePlay || !body || !m_fullyPrepared)
 		return true;
 
+	if (q->m_isReconnecting) {
+		body->stop();
+		return true;
+	}
+
 	q->updateBody(body,
 				  body->objectId().ownerId == m_playerId || (body->objectId().ownerId == -1 && m_engine->isHost())
 				  );
@@ -2161,6 +2206,64 @@ void ActionRpgMultiplayerGame::onRpgGameActivated()
 }
 
 
+
+/**
+ * @brief ActionRpgMultiplayerGame::onConnected
+ */
+
+void ActionRpgMultiplayerGame::onConnected()
+{
+	LOG_CINFO("game") << "Server connected";
+
+	q->m_connectionLostTimer.setRemainingTime(-1);
+
+	if (q->m_isReconnecting) {
+		LOG_CINFO("game") << "FINISH RECONNECTING";
+		m_oldGameState = RpgConfig::StatePlay;
+		m_config.gameState = RpgConfig::StatePlay;
+		changeGameState(RpgConfig::StatePlay);
+	}
+
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onConnectionLost
+ */
+
+void ActionRpgMultiplayerGame::onConnectionLost()
+{
+	LOG_CWARNING("game") << "Connection lost";
+
+	if (m_config.gameState != RpgConfig::StatePlay) {
+		disconnectFromHost();
+		return;
+	}
+
+	if (q->m_connectionLostTimer.isForever()) {
+		m_client->snack(tr("Connection lost"));
+		q->m_connectionLostTimer.setRemainingTime(CONNECTION_LOST_TIMEOUT);
+	}
+
+
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::onDisconnected
+ */
+
+void ActionRpgMultiplayerGame::onDisconnected()
+{
+	LOG_CWARNING("game") << "Server disconnected" << q->m_isReconnecting;
+
+	if (m_config.gameState != RpgConfig::StatePlay) {
+		disconnectFromHost();
+	}
+}
+
+
 /**
  * @brief ActionRpgMultiplayerGame::sendData
  * @param data
@@ -2227,7 +2330,7 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 			config.gameConfig.randomizer = m_rpgGame->randomizer();
 
 			config.avg = m_rpgQuestion->count() > 0 ? (float) m_rpgQuestion->duration() * 1000. / (float) m_rpgQuestion->count() : 0.;
-			config.gameConfig.duration = 30;//m_config.duration + m_rpgGame->m_gameDefinition.duration;
+			config.gameConfig.duration = m_config.duration + m_rpgGame->m_gameDefinition.duration;
 		}
 
 		RpgGameData::CurrentSnapshot snap;
@@ -2253,7 +2356,7 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 			} else if (RpgControlTeleport *c = dynamic_cast<RpgControlTeleport*>(ptr.get())) {
 				snap.assign(snap.controls.teleports, c->baseData(), c->serialize(0));
 			} else {
-				LOG_CERROR("game") << "Invalid control" << ptr.get();
+				//LOG_CERROR("game") << "Invalid control" << ptr.get();
 			}
 		}
 

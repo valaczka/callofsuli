@@ -8,17 +8,20 @@ import "JScript.js" as J
 QScrollable {
 	id: root
 
-	//property ConquestGame game: null
+	property ActionRpgMultiplayerGame game: null
 
 	contentCentered: true
 
-	Qaterial.IconLabel {
+	Qaterial.IconLabelWithCaption {
 		anchors.horizontalCenter: parent.horizontalCenter
-		color: Qaterial.Colors.red400
+		textColor: Qaterial.Colors.red400
 		icon.source: Qaterial.Icons.alertCircle
 		icon.width: Qaterial.Style.dashboardButtonSize*0.4
 		icon.height: Qaterial.Style.dashboardButtonSize*0.4
-		text: qsTr("Hiba!")
+		icon.color: textColor
+		captionColor: Qaterial.Style.colorTheme.secondaryText
+		text: qsTr("Hiba történt")
+		caption: game ? game.errorString : ""
 	}
 
 }

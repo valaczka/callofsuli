@@ -90,7 +90,7 @@ void RpgUdpEngine::updateSnapshotRemoveMissing(const RpgGameData::SnapshotList<T
 
 void RpgUdpEngine::disconnect()
 {
-	LOG_CWARNING("game") << "DISCONNECT";
+	LOG_CWARNING("game") << "DISCONNECT RPGUDPENGINE";
 	setUrl({});
 }
 
@@ -425,7 +425,8 @@ void RpgUdpEngine::onConnectedToServer()
 {
 	LOG_CINFO("game") << "Connected to server";
 
-	setGameState(RpgConfig::StateConnect);
+	if (m_gameState != RpgConfig::StatePlay)
+		setGameState(RpgConfig::StateConnect);
 
 	if (m_game)
 		m_game->timerEvent(nullptr);

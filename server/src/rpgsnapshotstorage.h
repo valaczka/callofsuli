@@ -171,7 +171,10 @@ private:
 class RendererObjectType
 {
 public:
-	RendererObjectType() = default;
+	RendererObjectType(Logger *logger)
+		: m_logger(logger)
+	{}
+
 	virtual ~RendererObjectType() { snap.clear(); }
 
 	RendererType* snapAt(const int &index) const;
@@ -255,8 +258,11 @@ public:
 	void* userData() const { return m_userData; }
 	void setUserData(void *data) { m_userData = data; }
 
+	Logger* _logger() const { return m_logger; }
+
 protected:
 	void *m_userData = nullptr;
+	Logger *const m_logger;
 
 private:
 	std::vector<std::unique_ptr<RendererType>>::const_iterator m_iterator;
@@ -279,7 +285,9 @@ template <typename T,
 class RendererObject : public RendererObjectType
 {
 public:
-	RendererObject() = default;
+	RendererObject(Logger *logger)
+		: RendererObjectType(logger)
+	{}
 
 	virtual bool isBaseEqual(const RpgGameData::BaseData &base) const override final {
 		return baseData.isBaseEqual(base);
@@ -631,7 +639,6 @@ private:
 			c->add(tick, std::forward<Args>(args)...);
 			return c;
 		} else {
-			LOG_CDEBUG("engine") << "---- add" << tick << unique;
 			return addData<T>(tick, unique, std::forward<Args>(args)...);
 		}
 	}
@@ -689,6 +696,7 @@ public:
 
 	void generateEvents(RpgEngine *engine, const int &tick);
 
+	Logger *_logger() const;
 
 
 private:
@@ -708,7 +716,7 @@ private:
 class Renderer
 {
 public:
-	Renderer(const qint64 &start, const int &size);
+	Renderer(const qint64 &start, const int &size, Logger *logger);
 	virtual ~Renderer();
 
 	const qint64 &startTick() const { return m_startTick; }
@@ -840,6 +848,8 @@ public:
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PickableBaseData> *obj);
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::ControlTeleportBaseData> *obj);
 
+	Logger *_logger() const { return m_logger; }
+
 private:
 	template <typename T, typename T2,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
@@ -869,6 +879,7 @@ private:
 	int m_current = 0;
 	std::vector<std::unique_ptr<RendererObjectType>> m_objects;
 	ConflictSolver m_solver;
+	Logger *const m_logger;
 };
 
 
@@ -958,6 +969,8 @@ public:
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::BaseData, T2>::value>::type>
 	static void removeList(RpgGameData::SnapshotList<T, T2> &list, const QList<T2> &ids);
+
+	Logger *_logger() const;
 
 private:
 	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);

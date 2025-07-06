@@ -113,7 +113,7 @@ Page {
 		id: _cmpError
 
 		RpgError {
-			//game: root.game
+			game: root.game
 		}
 	}
 
@@ -142,6 +142,15 @@ Page {
 	}
 
 
+	RpgReconnect {
+		id: _reconnect
+
+		anchors.fill: parent
+
+		visible: game && game.isReconnecting
+	}
+
+
 	Qaterial.AppBarButton
 	{
 		id: _backButton
@@ -166,16 +175,14 @@ Page {
 				Client.snack(qsTr("You are the host now"))
 		}
 
-		function onIsReconnectingChanged() {
-			onConfigChanged()
-		}
-
-
 		function onConfigChanged() {
-			if (game.isReconnecting) {
+			if (game.isReconnecting && game.config.gameState != RpgConfig.StateError)
+				return
+
+			/*if (game.isReconnecting && game.config.gameState != RpgConfig.StateError) {
 				_stack.activeComponent = _cmpReconnect
 				return
-			}
+			}*/
 
 			switch (game.config.gameState) {
 			case RpgConfig.StatePrepare:

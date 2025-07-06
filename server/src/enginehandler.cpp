@@ -1,6 +1,7 @@
 #include "enginehandler.h"
 #include "enginehandler_p.h"
 #include "Logger.h"
+#include "serverservice.h"
 #include "udpserver.h"
 
 
@@ -607,9 +608,26 @@ void EngineHandlerPrivate::timerEventRun()
 {
 	QMutexLocker locker(&m_mutex);
 
+#ifdef WITH_FTXUI
+	QString dump = q->m_service->udpServer() ? q->m_service->udpServer()->dumpPeers() : QString();
+#endif
+
 	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {
 		e->timerTick();
+
+#ifdef WITH_FTXUI
+		dump += e->dumpEngine();
+#endif
+
 	}
+
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
+	map.insert(QStringLiteral("txt"), dump);
+
+	q->m_service->writeToSocket(map.toCborValue());
+#endif
 }
 
 

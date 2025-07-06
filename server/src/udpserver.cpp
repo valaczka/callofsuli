@@ -158,11 +158,6 @@ quint32 UdpServer::addPeer(const QString &username)
 
 			d->m_peerHash.emplace(newId, username);
 
-			for (const auto &[k, p] : d->m_peerHash.asKeyValueRange()) {
-				LOG_CDEBUG("engine") << "   -" << k << ":" << p.type << p.username << p.privateKey.size();
-			}
-
-
 			return newId;
 		}
 	}
@@ -183,6 +178,18 @@ quint32 UdpServer::addPeer(const QString &username)
 bool UdpServer::peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine)
 {
 	return d->peerConnectToEngine(peer, engine);
+}
+
+
+
+/**
+ * @brief UdpServer::dumpPeers
+ * @return
+ */
+
+QString UdpServer::dumpPeers() const
+{
+	return d->dumpPeers();
 }
 
 
@@ -338,51 +345,6 @@ void UdpServerPrivate::run()
 void UdpServerPrivate::peerConnect(ENetPeer *peer)
 {
 	LOG_CDEBUG("engine") << "Peer connection start:" << qPrintable(UdpServerPeer::address(peer));
-
-	return;
-
-
-
-
-	if (!peer)
-		return;
-
-	//bool isFirst = q->m_peerList.empty();
-
-	const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(0, q, peer));
-	p->peer()->data = p.get();
-
-	LOG_CDEBUG("engine") << "Peer connected:" << p->host() << p->port();
-
-
-	const auto &engines= q->m_service->engineHandler()->engines();
-
-	auto it = std::find_if(engines.constBegin(), engines.constEnd(), [](const std::shared_ptr<AbstractEngine> &e) {
-		if (const auto &ptr = std::dynamic_pointer_cast<RpgEngine>(e)) {
-			if (ptr->config().gameState == RpgConfig::StateFinished)
-				return false;
-		}
-		return e->type() == AbstractEngine::EngineRpg;
-	});
-
-
-	if (it == engines.constEnd()) {
-		//std::shared_ptr<RpgEngine> e = RpgEngine::engineCreate(q->m_service->engineHandler(), q);
-		//q->m_service->engineHandler()->engineAdd(e);
-		//p->setEngine(e);
-	} else {
-		/*const auto &engines= q->m_service->engineHandler()->engines();
-
-		auto it = std::find_if(engines.constBegin(), engines.constEnd(), [](const std::shared_ptr<AbstractEngine> &e) {
-			return e->type() == AbstractEngine::EngineRpg;
-		});
-
-		Q_ASSERT(it != engines.constEnd());*/
-
-		p->setEngine(std::dynamic_pointer_cast<UdpEngine>(*it));
-	}
-
-	p->engine()->udpPeerAdd(p.get());
 }
 
 
@@ -526,11 +488,6 @@ bool UdpServerPrivate::packetReceived(const ENetEvent &event)
 	}
 
 	if (event.channelID == 1) {
-		if (!peer) {
-			LOG_CWARNING("engine") << "Peer missing" << peerID;
-			return false;
-		}
-
 		if (ptr->privateKey.isEmpty()) {
 			LOG_CWARNING("engine") << "Peer secret key missing" << peerID;
 			return false;
@@ -539,6 +496,17 @@ bool UdpServerPrivate::packetReceived(const ENetEvent &event)
 		if (!Token::verify(content, mac, ptr->privateKey)) {
 			LOG_CWARNING("engine") << "Peer sign error" << peerID;
 			return false;
+		}
+
+		if (std::shared_ptr<UdpEngine> engine = ptr->engine.lock(); engine && !peer) {
+			LOG_CINFO("engine") << "Peer missing" << peerID << "creating new one to engine" << engine->id();
+			const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(ptr.key(), q, event.peer));
+			peer = p.get();
+			p->peer()->data = peer;
+
+			LOG_CINFO("engine") << "---- DISPATCH TO ENGINE" << peer->peerID() << "->" << engine->id();
+
+			peer->server()->peerConnectToEngine(peer, engine);
 		}
 
 
@@ -781,6 +749,39 @@ QByteArray UdpServerPrivate::hashToken(const QByteArray &token)
 
 	crypto_generichash(hash, sizeof hash, (const unsigned char*) token.constData(), token.size(), NULL, 0);
 	return QByteArray((const char*) hash, sizeof hash);
+}
+
+
+
+/**
+ * @brief UdpServerPrivate::dumpPeers
+ * @return
+ */
+
+QString UdpServerPrivate::dumpPeers() const
+{
+	QString txt;
+
+	txt += QStringLiteral("SEATS\n");
+	txt += QStringLiteral("==================================================================\n");
+
+
+	for (const auto &[id, data] : m_peerHash.asKeyValueRange()) {
+		UdpEngine *e = data.engine.lock().get();
+
+		txt += QStringLiteral("%1: [%2] %3 (%4) %5\n")
+			   .arg(id, 12)
+			   .arg(!data.privateKey.isEmpty() ? '*' : (data.challenge.isEmpty() ? ' ' : '+'))
+			   .arg(data.type)
+			   .arg(e ? e->id() : 0, 3)
+			   .arg(data.username)
+			   ;
+
+	}
+
+	txt += QStringLiteral(" \n \n");
+
+	return txt;
 }
 
 

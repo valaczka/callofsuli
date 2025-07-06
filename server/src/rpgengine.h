@@ -32,6 +32,22 @@
 #include "rpgsnapshotstorage.h"
 
 
+#define ELOG_TRACE            CuteMessageLogger(_logger(), Logger::Trace,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_DEBUG            CuteMessageLogger(_logger(), Logger::Debug,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_INFO             CuteMessageLogger(_logger(), Logger::Info,    __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_WARNING          CuteMessageLogger(_logger(), Logger::Warning, __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_ERROR            CuteMessageLogger(_logger(), Logger::Error,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_FATAL            CuteMessageLogger(_logger(), Logger::Fatal,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+
+
+#define SLOG_TRACE(logger)            CuteMessageLogger(logger->_logger(), Logger::Trace,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define SLOG_DEBUG(logger)            CuteMessageLogger(logger->_logger(), Logger::Debug,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define SLOG_INFO(logger)             CuteMessageLogger(logger->_logger(), Logger::Info,    __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define SLOG_WARNING(logger)          CuteMessageLogger(logger->_logger(), Logger::Warning, __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define SLOG_ERROR(logger)            CuteMessageLogger(logger->_logger(), Logger::Error,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define SLOG_FATAL(logger)            CuteMessageLogger(logger->_logger(), Logger::Fatal,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+
+
 #define SERVER_OID	-2
 
 
@@ -121,6 +137,8 @@ public:
 	bool isUnique() const { return m_unique; }
 
 protected:
+	Logger *_logger() const;
+
 	RpgEngine *const m_engine;
 	qint64 m_tick = -1;					// Mikor történt / fog történni
 	const bool m_unique = true;			// Nem lehet ismételni
@@ -174,7 +192,7 @@ public:
 	RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data)
 		: RpgEvent<RpgGameData::EnemyBaseData>(engine, tick, data)
 	{
-		LOG_CDEBUG("engine") << "Enemy died" << m_data.o << m_data.id << "@" << tick;
+		ELOG_DEBUG << "Enemy died" << m_data.o << m_data.id << "@" << tick;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -194,7 +212,7 @@ public:
 	RpgEventEnemyResurrect(RpgEngine *engine, const qint64 &tick)
 		: RpgEvent<bool>(engine, tick, false)
 	{
-		LOG_CDEBUG("engine") << "RESURRECT created" << tick << m_unique;
+		ELOG_DEBUG << "RESURRECT created" << tick << m_unique;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -218,7 +236,7 @@ public:
 	RpgEventPlayerDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
 		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data)
 	{
-		LOG_CDEBUG("engine") << "Player died" << m_data.o << m_data.id << "@" << tick;
+		ELOG_DEBUG << "Player died" << m_data.o << m_data.id << "@" << tick;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -240,7 +258,7 @@ public:
 	RpgEventPlayerResurrect(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
 		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data)
 	{
-		LOG_CDEBUG("engine") << "PLAYER RESURRECT created" << tick << m_unique << data.o;
+		ELOG_DEBUG << "PLAYER RESURRECT created" << tick << m_unique << data.o;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -262,7 +280,7 @@ public:
 	RpgEventControlUnlock(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
 		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data, true)
 	{
-		LOG_CDEBUG("engine") << "CONTROL UNLOCK created" << tick << m_unique << data.o;
+		ELOG_DEBUG << "CONTROL UNLOCK created" << tick << m_unique << data.o;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -287,7 +305,7 @@ public:
 		, m_success(success)
 		, m_player(player)
 	{
-		LOG_CDEBUG("engine") << "COLLECTION RELOCATE created" << tick << m_unique << data.o << success << player.o;
+		ELOG_DEBUG << "COLLECTION RELOCATE created" << tick << m_unique << data.o << success << player.o;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -315,7 +333,7 @@ public:
 		: RpgEvent<RpgGameData::ControlCollectionBaseData>(engine, tick, data, true)
 		, m_success(success)
 	{
-		LOG_CDEBUG("engine") << "COLLECTION POST created" << tick << m_unique << data.o << success;
+		ELOG_DEBUG << "COLLECTION POST created" << tick << m_unique << data.o << success;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -344,7 +362,7 @@ public:
 		, m_pickables(pickables)
 		, m_success(success)
 	{
-		LOG_CDEBUG("engine") << "CONTAINER USED created" << tick << m_unique << data.o << player.o << pickables.size() << success;
+		ELOG_DEBUG << "CONTAINER USED created" << tick << m_unique << data.o << player.o << pickables.size() << success;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -374,7 +392,7 @@ public:
 		: RpgEvent<RpgGameData::PickableBaseData>(engine, tick, data, true)
 		, m_player(player)
 	{
-		LOG_CDEBUG("engine") << "PICKABLE PICKED created" << tick << m_unique << data.o << "-->" << player.o;
+		ELOG_DEBUG << "PICKABLE PICKED created" << tick << m_unique << data.o << "-->" << player.o;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -403,7 +421,7 @@ public:
 		: RpgEvent<RpgGameData::ControlTeleportBaseData>(engine, tick, data, true)
 		, m_player(player)
 	{
-		LOG_CDEBUG("engine") << "TELEPORT USED created" << tick << m_unique << data.o << "-->" << player.o;
+		ELOG_DEBUG << "TELEPORT USED created" << tick << m_unique << data.o << "-->" << player.o;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
@@ -441,6 +459,8 @@ public:
 	virtual void udpPeerAdd(UdpServerPeer *peer) override;
 	virtual void udpPeerRemove(UdpServerPeer *peer) override;
 	virtual void disconnectUnusedPeer(UdpServerPeer *peer) override;
+
+	virtual QString dumpEngine() const override;
 
 	const RpgConfig &config() const { return m_config; }
 
@@ -536,8 +556,11 @@ public:
 
 	void checkPlayersCompleted();
 
+	Logger *_logger() const;
 
 private:
+	void setLoggerFile(const QString &fname);
+
 	void binaryDataReceived(UdpServerPeer *peer, const QByteArray &data);
 	void preparePlayers();
 	qint64 nextTick();

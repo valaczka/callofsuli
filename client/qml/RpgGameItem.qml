@@ -98,7 +98,7 @@ FocusScope {
 
 		GameButton {
 			id: _backButton
-			size: 25
+			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 35 : 25
 
 			anchors.verticalCenter: parent.verticalCenter
 
@@ -106,7 +106,7 @@ FocusScope {
 			border.color: "white"
 			border.width: 1
 
-			fontImage.icon: _gameQuestion.objectiveUuid != "" ? Qaterial.Icons.close : Qaterial.Icons.pause
+			fontImage.icon: _multiplayer || _gameQuestion.objectiveUuid != "" ? Qaterial.Icons.close : Qaterial.Icons.pause
 			fontImage.color: "white"
 			fontImageScale: 0.7
 

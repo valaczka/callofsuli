@@ -48,6 +48,7 @@ class ActionRpgGame : public AbstractLevelGame
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
 	Q_PROPERTY(int gameid READ gameid CONSTANT FINAL)
 	Q_PROPERTY(bool isReconnecting READ isReconnecting NOTIFY isReconnectingChanged FINAL)
+	Q_PROPERTY(QString errorString READ errorString WRITE setErrorString NOTIFY errorStringChanged FINAL)
 
 public:
 	explicit ActionRpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -96,6 +97,9 @@ public:
 
 	int gameid() const;
 
+	QString errorString() const;
+	void setErrorString(const QString &newErrorString);
+
 signals:
 	void marketLoaded();
 	void marketUnloaded();
@@ -104,6 +108,7 @@ signals:
 	void rpgGameChanged();
 	void gameModeChanged();
 	void isReconnectingChanged();
+	void errorStringChanged();
 
 protected:
 	virtual void onConfigChanged();
@@ -122,7 +127,8 @@ protected:
 	void loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &type, const int &bullet = 0);
 
 	void updateConfig();
-	void setError();
+	void setError(const QString &errorString);
+	void setUnknownError() { setError(QString()); }
 
 	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
@@ -168,6 +174,8 @@ protected:
 	RpgPlayerConfig m_playerConfig;
 	std::unique_ptr<RpgQuestion> m_rpgQuestion;
 	std::unique_ptr<Downloader> m_downloader;
+
+	QString m_errorString;
 
 	QJsonObject m_loadableContentDict;
 	QVector<Server::DynamicContent> m_loadableContentListBase;

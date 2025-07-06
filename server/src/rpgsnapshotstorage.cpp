@@ -33,11 +33,6 @@
 #define RENDERER_SIZE		15				// renderer "cache" size in frames
 
 
-
-
-
-
-
 /**
  * @brief Renderer::addObjects
  * @param list
@@ -51,11 +46,11 @@ bool Renderer::addObjects(const RpgGameData::SnapshotList<T, T2> &list)
 
 	for (const RpgGameData::SnapshotData<T, T2> &d : list) {
 		if (findByBase(d.data)) {
-			LOG_CERROR("engine") << "Object already exists" << d.data.o << d.data.s << d.data.id;
+			ELOG_ERROR << "Object already exists" << d.data.o << d.data.s << d.data.id;
 			success = false;
 			continue;
 		} else {
-			RendererObject<T2> *obj = new RendererObject<T2>();
+			RendererObject<T2> *obj = new RendererObject<T2>(m_logger);
 			obj->baseData = d.data;
 			obj->template fillSnap<T>(m_size);
 			std::unique_ptr<RendererObjectType> ptr(obj);
@@ -149,7 +144,7 @@ int Renderer::saveObjects(RpgGameData::SnapshotList<T, T2> &dst)
 		RendererObject<T2> *obj = findByBase<T2>(ptr.data);
 
 		if (!obj) {
-			LOG_CDEBUG("engine") << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
+			ELOG_DEBUG << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
 			continue;
 		}
 
@@ -159,7 +154,7 @@ int Renderer::saveObjects(RpgGameData::SnapshotList<T, T2> &dst)
 		for (auto &sp : obj->snap) {
 			RendererItem<T> *item = dynamic_cast<RendererItem<T>*>(sp.get());
 			if (!item) {
-				LOG_CERROR("engine") << "Missing snap" << ptr.data.o << ptr.data.s << ptr.data.id << tick;
+				ELOG_ERROR << "Missing snap" << ptr.data.o << ptr.data.s << ptr.data.id << tick;
 				++tick;
 				continue;
 			}
@@ -321,12 +316,12 @@ bool Renderer::loadStorageSnaps(RendererObject<T2> *dst, RpgGameData::SnapshotDa
 	auto it = RpgSnapshotStorage::getPreviousSnap(ptr.list, m_startTick);
 
 	if (it == ptr.list.end()) {
-		LOG_CDEBUG("engine") << "Missing snap" << ptr.data.o << m_startTick;
+		ELOG_DEBUG << "Missing snap" << ptr.data.o << m_startTick;
 		return false;
 	}
 
 	if (!dst->setAuthSnap(it->second)) {
-		LOG_CDEBUG("engine") << "Snap error" << ptr.data.o << m_startTick;
+		ELOG_DEBUG << "Snap error" << ptr.data.o << m_startTick;
 		return false;
 	}
 
@@ -344,7 +339,7 @@ bool Renderer::loadStorageSnaps(RendererObject<T2> *dst, RpgGameData::SnapshotDa
 		Q_ASSERT(index < m_size);
 
 		if (!dst->setSnap(index, it->second, RendererType::Storage)) {
-			LOG_CDEBUG("engine") << "Snap error" << ptr.data.o << m_startTick << index << it->first;
+			ELOG_DEBUG << "Snap error" << ptr.data.o << m_startTick << index << it->first;
 			success = false;
 		}
 	}
@@ -750,7 +745,7 @@ QString RendererType::dumpAs(const RpgGameData::ControlTeleport &data, const QLi
 RendererType *RendererObjectType::snapAt(const int &index) const
 {
 	if (index < 0 || index >= (int) snap.size()) {
-		LOG_CERROR("engine") << "Invalid index" << index << "of size" << snap.size();
+		ELOG_ERROR << "Invalid index" << index << "of size" << snap.size();
 		return nullptr;
 	}
 
@@ -924,7 +919,7 @@ bool Renderer::loadSnaps(RpgGameData::SnapshotList<T, T2> &list, const bool &isS
 	for (auto &ptr : list) {
 		RendererObject<T2> *o = findByBase<T2>(ptr.data);
 		if (!o) {
-			LOG_CDEBUG("engine") << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
+			ELOG_DEBUG << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
 			success = false;
 			continue;
 		}
@@ -963,14 +958,14 @@ bool Renderer::loadAuthSnaps(const RpgGameData::SnapshotList<T, T2> &src)
 		RendererObject<T2> *o = findByBase<T2>(ptr.data);
 
 		if (!o) {
-			LOG_CDEBUG("engine") << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
+			ELOG_DEBUG << "Missing object" << ptr.data.o << ptr.data.s << ptr.data.id;
 			success = false;
 			continue;
 		}
 
 		o->overrideAuthSnap(ptr.list.cbegin()->second);
 
-		LOG_CINFO("engine") << "OVERRIDE" << ptr.list.cbegin()->second.f << "VS" << m_startTick << m_current;
+		ELOG_INFO << "OVERRIDE" << ptr.list.cbegin()->second.f << "VS" << m_startTick << m_current;
 	}
 
 	return success;
@@ -1017,7 +1012,7 @@ RpgSnapshotStorage::RpgSnapshotStorage(RpgEngine *engine)
 	: RpgGameData::SnapshotStorage()
 	, m_engine(engine)
 {
-
+	Q_ASSERT(m_engine);
 }
 
 
@@ -1147,7 +1142,7 @@ RpgGameData::PickableBaseData RpgSnapshotStorage::pickableAdd(const RpgGameData:
 
 	m_controls.pickables.push_back(snapdata);
 
-	LOG_CWARNING("engine") << "PICKABLE ADD" << type << data.f << base.o << base.s << base.id;
+	ELOG_WARNING << "PICKABLE ADD" << type << data.f << base.o << base.s << base.id;
 
 	return base;
 }
@@ -1259,7 +1254,7 @@ bool RpgSnapshotStorage::setLastLifeCycleId(const std::vector<RpgGameData::BaseD
 {
 	if (iterator != m_lastLifeCycleId.end()) {
 		if (iterator->id >= base.id) {
-			LOG_CERROR("engine") << "LifeCycle id error" << iterator->id << ">=" << base.id;
+			ELOG_ERROR << "LifeCycle id error" << iterator->id << ">=" << base.id;
 			return false;
 		}
 		iterator->id = base.id;
@@ -1285,7 +1280,7 @@ bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, cons
 	const int lastId = lastLifeCycleId(base, &iterator);
 
 	if (lastId != -1 && lastId >= base.id) {
-		LOG_CWARNING("engine") << "BULLET ALREADY EXISTS -> SKIP" << base.o << base.s << base.id;
+		ELOG_WARNING << "BULLET ALREADY EXISTS -> SKIP" << base.o << base.s << base.id;
 		return false;
 	}
 
@@ -1297,11 +1292,11 @@ bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, cons
 	m_bullets.push_back(snapdata);
 
 	if (!setLastLifeCycleId(iterator, base)) {
-		LOG_CERROR("engine") << "BULLET ADD FAILED" << base.o << base.s << base.id;
+		ELOG_ERROR << "BULLET ADD FAILED" << base.o << base.s << base.id;
 		return false;
 	}
 
-	LOG_CWARNING("engine") << "BULLET ADD" << base.o << base.s << base.id;
+	ELOG_WARNING << "BULLET ADD" << base.o << base.s << base.id;
 	return true;
 }
 
@@ -1368,7 +1363,7 @@ QString RpgSnapshotStorage::render(const qint64 &tick)
 	int diff = 0;
 
 	if (!renderer) {
-		LOG_CERROR("engine") << "INVALID RENDERER" << tick << m_lastAuthTick;
+		ELOG_ERROR << "INVALID RENDERER" << tick << m_lastAuthTick;
 		return {};
 	}
 
@@ -1453,6 +1448,19 @@ void RpgSnapshotStorage::renderEnd(const QString &txt)
 
 
 
+/**
+ * @brief RpgSnapshotStorage::_logger
+ * @return
+ */
+
+Logger *RpgSnapshotStorage::_logger() const
+{
+	return m_engine->_logger();
+}
+
+
+
+
 
 
 
@@ -1471,7 +1479,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	RpgGameData::CurrentSnapshot snapshot;
 
 	if (snapshot.fromCbor(cbor) < 0) {
-		LOG_CWARNING("engine") << "Empty snapshot received";
+		ELOG_WARNING << "Empty snapshot received";
 		return false;
 	}
 
@@ -1482,7 +1490,7 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 	const auto &srcIt = RpgGameData::CurrentSnapshot::find(snapshot.players, pdata);
 
 	if (srcIt == snapshot.players.cend()) {
-		//LOG_CERROR("engine") << "Invalid player" << cbor;
+		//ELOG_ERROR << "Invalid player" << cbor;
 		return false;
 	}
 
@@ -1569,7 +1577,7 @@ bool RpgSnapshotStorage::registerBullets(const RpgGameData::CurrentSnapshot &sna
 	for (const auto &e : snapshot.bullets) {
 
 		if (e.data.o != player.o) {
-			LOG_CWARNING("engine") << "Invalid bullet" << e.data.o << e.data.s << e.data.id;
+			ELOG_WARNING << "Invalid bullet" << e.data.o << e.data.s << e.data.id;
 			continue;
 		}
 
@@ -1614,7 +1622,7 @@ std::unique_ptr<Renderer> RpgSnapshotStorage::getRenderer(const qint64 &tick)
 	if (tick <= m_lastAuthTick)
 		return {};
 
-	std::unique_ptr<Renderer> r = std::make_unique<Renderer>(m_lastAuthTick, tick-m_lastAuthTick+1);
+	std::unique_ptr<Renderer> r = std::make_unique<Renderer>(m_lastAuthTick, tick-m_lastAuthTick+1, _logger());
 
 
 
@@ -1815,7 +1823,7 @@ void RpgSnapshotStorage::copy(std::map<qint64, T> &dest, const std::map<qint64, 
 
 	for (const auto &ptr : src) {
 		if (ptr.first < ft) {
-			LOG_CERROR("engine") << "Snapshot out of time:" << ptr.first << "vs." << firstTick << "CURRENT" << m_engine->currentTick();
+			ELOG_ERROR << "Snapshot out of time:" << ptr.first << "vs." << firstTick << "CURRENT" << m_engine->currentTick();
 			continue;
 		}
 
@@ -1828,7 +1836,7 @@ void RpgSnapshotStorage::copy(std::map<qint64, T> &dest, const std::map<qint64, 
 			++f;
 
 			if (f >= next) {
-				LOG_CERROR("engine") << "Snapshot storage full:" << ptr.first;
+				ELOG_ERROR << "Snapshot storage full:" << ptr.first;
 				ready = false;
 				break;
 			}
@@ -1927,13 +1935,14 @@ void RpgSnapshotStorage::removeList(RpgGameData::SnapshotList<T, T2> &list, cons
  * @param size
  */
 
-Renderer::Renderer(const qint64 &start, const int &size)
+Renderer::Renderer(const qint64 &start, const int &size, Logger *logger)
 	: m_startTick(std::max(start, 0LL))
 	, m_size(start < 0 ? 1 : size)
 	, m_solver(this)
+	, m_logger(logger)
 {
 	if (size <= 0)
-		LOG_CERROR("engine") << "Renderer size <= 0";
+		ELOG_ERROR << "Renderer size <= 0";
 }
 
 
@@ -2108,7 +2117,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 				dst->addFlags(RendererType::Storage | RendererType::Modified);
 			} else {
-				LOG_CERROR("engine") << "Extend failed" << src->baseData.o;
+				ELOG_ERROR << "Extend failed" << src->baseData.o;
 				return;
 			}
 		} else {
@@ -2124,7 +2133,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 		if (dst->flags().testFlag(RendererType::ReadOnly)) {
 			// Ez elvileg nem lehetséges...
 
-			LOG_CERROR("engine") << "Update read only snap" << dst->data().f;
+			ELOG_ERROR << "Update read only snap" << dst->data().f;
 		}
 
 		RpgGameData::Player::PlayerState specialSt = RpgGameData::Player::PlayerInvalid;
@@ -2145,12 +2154,12 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 			if (dst->m_data.st != p.st && !normalStates.contains(dst->m_data.st) && !normalStates.contains(p.st)) {
 				if (!src->carrySubSnap(p)) {
-					LOG_CWARNING("engine") << "State conflict" << specialSt << p.st;
+					ELOG_WARNING << "State conflict" << specialSt << p.st;
 				}
 			} else if (!normalStates.contains(p.st)) {
 
 				if (p.pck.isValid() && p.st != RpgGameData::Player::PlayerExit) {
-					LOG_CWARNING("engine") << "Player packed, only Exit supported";
+					ELOG_WARNING << "Player packed, only Exit supported";
 					continue;
 				}
 
@@ -2169,7 +2178,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 					if (RendererObjectType *tg = findByBase(p.tg)) {
 						m_solver.addUnique(m_current, src, tg);
 					} else {
-						LOG_CERROR("engine") << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
+						ELOG_ERROR << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
 					}
 
 				} else if (p.st == RpgGameData::Player::PlayerUseControl) {
@@ -2178,7 +2187,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 							iface->releaseSuccess(m_current, src, p.x);
 						}
 					} else {
-						LOG_CERROR("engine") << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
+						ELOG_ERROR << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
 					}
 
 				} else if (p.st == RpgGameData::Player::PlayerUnlockControl) {
@@ -2187,7 +2196,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 							iface->releaseFailed(m_current, src);
 						}
 					} else {
-						LOG_CERROR("engine") << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
+						ELOG_ERROR << "Invalid control" << p.tg.o << p.tg.s << p.tg.id;
 					}
 				}
 
@@ -2198,13 +2207,13 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 						cw = p.arm.cw;
 					} else if (p.st == RpgGameData::Player::PlayerExit) {
 						clearPck = dst->m_data.pck;
-						LOG_CINFO("engine") << "PLAYER EXIT" << dst->m_data.pck.id << "vs" << p.pck.id;
+						ELOG_INFO << "PLAYER EXIT" << dst->m_data.pck.id << "vs" << p.pck.id;
 					} else {
 						specialSt = p.st;
 					}
 				} else {
 					if (!src->carrySubSnap(p)) {
-						LOG_CWARNING("engine") << "State conflict" << specialSt << p.st;
+						ELOG_WARNING << "State conflict" << specialSt << p.st;
 					}
 				}
 			}
@@ -2228,7 +2237,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 			dst->m_data.arm.cw = cw;
 
 		if (clearPck.has_value()) {
-			LOG_CINFO("engine") << "EXIT PLAYER" << m_current;
+			ELOG_INFO << "EXIT PLAYER" << m_current;
 
 			if (RendererObject<RpgGameData::ControlTeleportBaseData> *pck = findByBase<RpgGameData::ControlTeleportBaseData>(clearPck.value())) {
 				m_solver.add(m_current, src, dst->m_data.sc, QPointF(pck->baseData.x, pck->baseData.y), pck->baseData.a);
@@ -2287,7 +2296,7 @@ void Renderer::render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgG
 
 				dst->addFlags(RendererType::Storage | RendererType::Modified);
 			} else {
-				LOG_CERROR("engine") << "Extend failed" << src->baseData.o;
+				ELOG_ERROR << "Extend failed" << src->baseData.o;
 				return;
 			}
 		} else {
@@ -2301,7 +2310,7 @@ void Renderer::render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgG
 	if (!dst->m_subData.empty()) {
 
 		if (dst->flags().testFlag(RendererType::ReadOnly)) {
-			LOG_CERROR("engine") << "Update read only snap" << dst->data().f;
+			ELOG_ERROR << "Update read only snap" << dst->data().f;
 		}
 
 		RpgGameData::Enemy::EnemyState specialSt = RpgGameData::Enemy::EnemyInvalid;
@@ -2317,7 +2326,7 @@ void Renderer::render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgG
 		for (const RpgGameData::Enemy &p : dst->m_subData) {
 			if (dst->m_data.st != p.st && !normalStates.contains(dst->m_data.st) && !normalStates.contains(p.st)) {
 				if (!src->carrySubSnap(p)) {
-					LOG_CWARNING("engine") << "State conflict" << specialSt << p.st;
+					ELOG_WARNING << "State conflict" << specialSt << p.st;
 				}
 			} else if (!normalStates.contains(p.st)) {
 
@@ -2337,7 +2346,7 @@ void Renderer::render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgG
 					specialSt = p.st;
 				} else {
 					if (!src->carrySubSnap(p)) {
-						LOG_CWARNING("engine") << "State conflict" << specialSt << p.st;
+						ELOG_WARNING << "State conflict" << specialSt << p.st;
 					}
 				}
 			}
@@ -2411,7 +2420,7 @@ void Renderer::render(RendererItem<RpgGameData::Bullet> *dst, RendererObject<Rpg
 				dst->m_data = ptr.value();
 				dst->addFlags(RendererType::Storage | RendererType::Modified);
 			} else {
-				LOG_CERROR("engine") << "Extend failed" << src->baseData.o;
+				ELOG_ERROR << "Extend failed" << src->baseData.o;
 				return;
 			}
 		} else {
@@ -2439,7 +2448,7 @@ void Renderer::render(RendererItem<RpgGameData::Bullet> *dst, RendererObject<Rpg
 
 	if (!dst->m_subData.empty()) {
 		if (dst->flags().testFlag(RendererType::ReadOnly)) {
-			LOG_CERROR("engine") << "Update read only snap" << dst->data().f;
+			ELOG_ERROR << "Update read only snap" << dst->data().f;
 		}
 
 		RpgGameData::LifeCycle::Stage specialSt = RpgGameData::LifeCycle::StageInvalid;
@@ -2747,7 +2756,7 @@ void Renderer::postRender(RendererObject<RpgGameData::ControlCollectionBaseData>
 		if (clear) {
 			if (RendererItem<RpgGameData::ControlCollection> *item = dynamic_cast<RendererItem<RpgGameData::ControlCollection>*>(ptr.get())) {
 				if (!hasOwner && item->data().own.isValid()) {
-					LOG_CDEBUG("engine") << "HAS OWNER";
+					ELOG_DEBUG << "HAS OWNER";
 					hasOwner = true;
 					continue;
 				}
@@ -2882,7 +2891,7 @@ ConflictSolver::ConflictUniqueIface* ConflictSolver::addUnique(const int &tick, 
 	} else if (RendererObject<RpgGameData::ControlTeleportBaseData> *c = dynamic_cast<RendererObject<RpgGameData::ControlTeleportBaseData>*>(dest)) {
 		return addUniqueData<ConflictTeleport>(tick, c, dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src));
 	}else {
-		LOG_CERROR("engine") << "Invalid unique object type";
+		ELOG_ERROR << "Invalid unique object type";
 	}
 
 	return nullptr;
@@ -2938,6 +2947,18 @@ void ConflictSolver::generateEvents(RpgEngine *engine, const int &tick)
 
 
 
+/**
+ * @brief ConflictSolver::_logger
+ * @return
+ */
+
+Logger *ConflictSolver::_logger() const
+{
+	return m_renderer->_logger();
+}
+
+
+
 
 /**
  * @brief ConflictSolver::ConflictWeaponUsage::solveData
@@ -2953,7 +2974,7 @@ bool ConflictSolver::ConflictWeaponUsage<T, T2, T3, T4>::solveData(ConflictSolve
 	RendererItem<T> *e = solver->m_renderer->get<T>(src);
 
 	if (!e) {
-		LOG_CERROR("engine") << "Invalid item" << e << weaponType;
+		SLOG_ERROR(solver) << "Invalid item" << e << weaponType;
 		return false;
 	}
 
@@ -2964,7 +2985,7 @@ bool ConflictSolver::ConflictWeaponUsage<T, T2, T3, T4>::solveData(ConflictSolve
 		const auto &ptr = solver->m_renderer->extendFromLast<T>(src);
 
 		if (!ptr) {
-			LOG_CERROR("engine") << "Extend failed";
+			SLOG_ERROR(solver) << "Extend failed";
 			return false;
 		}
 
@@ -2975,12 +2996,12 @@ bool ConflictSolver::ConflictWeaponUsage<T, T2, T3, T4>::solveData(ConflictSolve
 	auto it = data.arm.find(weaponType);
 
 	if (it == data.arm.wl.end()) {
-		LOG_CERROR("engine") << "Missing weapon" << e << weaponType;
+		SLOG_ERROR(solver) << "Missing weapon" << e << weaponType;
 		return false;
 	}
 
 	if (it->b == 0) {
-		LOG_CERROR("engine") << "No bullet" << e << weaponType;
+		SLOG_ERROR(solver) << "No bullet" << e << weaponType;
 		return false;
 	}
 
@@ -3011,24 +3032,24 @@ bool ConflictSolver::ConflictWeaponUsage<T, T2, T3, T4>::solve(ConflictSolver *s
 	Q_ASSERT(solver);
 
 	if (weaponType == RpgGameData::Weapon::WeaponInvalid) {
-		LOG_CERROR("engine") << "Invalid weapon";
+		SLOG_ERROR(solver) << "Invalid weapon";
 		return false;
 	}
 
 	if (!src) {
-		LOG_CERROR("engine") << "Invalid source" << src;
+		SLOG_ERROR(solver) << "Invalid source" << src;
 		return false;
 	}
 
 	RendererType *t = src->get();
 
 	if (!t) {
-		LOG_CERROR("engine") << "Invalid source item" << src;
+		SLOG_ERROR(solver) << "Invalid source item" << src;
 		return false;
 	}
 
 	if (t->flags() & RendererType::ReadOnly) {
-		LOG_CERROR("engine") << "Read only storage item" << t;
+		SLOG_ERROR(solver) << "Read only storage item" << t;
 		return false;
 	}
 
@@ -3055,12 +3076,12 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 
 
 	if (!src) {
-		LOG_CERROR("engine") << "Missing source";
+		SLOG_ERROR(solver) << "Missing source";
 		return false;
 	}
 
 	if (!dest) {
-		LOG_CERROR("engine") << "Missing destination";
+		SLOG_ERROR(solver) << "Missing destination";
 		return false;
 	}
 
@@ -3068,7 +3089,7 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 	RendererItem<T2> *other = solver->m_renderer->get<T2>(dest);
 
 	if (!p || !other) {
-		LOG_CERROR("engine") << "Invalid data";
+		SLOG_ERROR(solver) << "Invalid data";
 		return false;
 	}
 
@@ -3078,7 +3099,7 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 		const auto &ptr = solver->m_renderer->extendFromLast<T>(src);
 
 		if (!ptr) {
-			LOG_CERROR("engine") << "Extend failed";
+			SLOG_ERROR(solver) << "Extend failed";
 			return false;
 		}
 
@@ -3094,12 +3115,12 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 		if (o && (o->flags() & RendererType::Storage)) {
 			eData = o->data();
 		} else {
-			LOG_CWARNING("engine") << "Missing snap" << src->baseData.o << src->baseData.id;
+			SLOG_WARNING(solver) << "Missing snap" << src->baseData.o << src->baseData.id;
 
 			o = solver->m_renderer->rewind<T2>(dest);
 
 			if (!o || !(o->flags() & RendererType::Storage)) {
-				LOG_CERROR("engine") << "Snap create error" << src->baseData.o << src->baseData.id;
+				SLOG_ERROR(solver) << "Snap create error" << src->baseData.o << src->baseData.id;
 				return false;
 			}
 
@@ -3109,14 +3130,14 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 
 
 	if (pData.hp <= 0) {
-		LOG_CWARNING("engine") << "Attacker hp <= 0" << p;
+		SLOG_WARNING(solver) << "Attacker hp <= 0" << p;
 		return true;
 	}
 
 	eData.attacked(dest->baseData, weaponType, src->baseData);
 
 	if (!other->setData(eData)) {
-		LOG_CWARNING("engine") << "Read only snap forced override" << src->baseData.o << src->baseData.id;
+		SLOG_WARNING(solver) << "Read only snap forced override" << src->baseData.o << src->baseData.id;
 		other->dataOverride(eData);
 	}
 	other->addFlags(RendererType::Modified | RendererType::Storage);
@@ -3147,7 +3168,7 @@ ConflictSolver::ConflictContainer::ConflictContainer(const int &_tick,
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
 
-	LOG_CDEBUG("engine") << "CONTAINER SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
+	SLOG_DEBUG(_dst) << "CONTAINER SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
 }
 
 
@@ -3164,7 +3185,7 @@ void ConflictSolver::ConflictContainer::generateEvent(ConflictSolver *solver, Rp
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
 
-	LOG_CERROR("engine") << "!!!! CREATE CONTAINER EVENT";
+	SLOG_ERROR(solver) << "!!!! CREATE CONTAINER EVENT";
 
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
 
@@ -3174,7 +3195,7 @@ void ConflictSolver::ConflictContainer::generateEvent(ConflictSolver *solver, Rp
 	RendererItem<RpgGameData::ControlContainer> *e = solver->m_renderer->snapAt<RpgGameData::ControlContainer>(m_unique, 0);
 
 	if (!e) {
-		LOG_CERROR("engine") << "Invalid item" << e;
+		SLOG_ERROR(solver) << "Invalid item" << e;
 		return;
 	}
 
@@ -3227,7 +3248,7 @@ bool ConflictSolver::ConflictContainer::getInitialState(Renderer *renderer, Rele
 	const auto &data = snap->data();
 
 	if (data.st == RpgGameData::ControlContainer::ContainerOpen) {
-		LOG_CDEBUG("engine") << "---- container already opened";
+		SLOG_DEBUG(renderer) << "---- container already opened";
 		return false;
 	}
 
@@ -3257,7 +3278,7 @@ bool ConflictSolver::ConflictUniqueIface::releaseSuccess(const int &tick, Render
 	RendererObject<RpgGameData::PlayerBaseData> *p = dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src);
 
 	if (!p) {
-		LOG_CERROR("engine") << "Invalid player data" << src->asBaseData().s << src->asBaseData().o << src->asBaseData().id;
+		SLOG_ERROR(src) << "Invalid player data" << src->asBaseData().s << src->asBaseData().o << src->asBaseData().id;
 		return false;
 	}
 
@@ -3285,7 +3306,7 @@ bool ConflictSolver::ConflictUniqueIface::releaseFailed(const int &tick, Rendere
 	RendererObject<RpgGameData::PlayerBaseData> *p = dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src);
 
 	if (!p) {
-		LOG_CERROR("engine") << "Invalid player data" << src->asBaseData().s << src->asBaseData().o << src->asBaseData().id;
+		SLOG_ERROR(src) << "Invalid player data" << src->asBaseData().s << src->asBaseData().o << src->asBaseData().id;
 		return false;
 	}
 
@@ -3312,7 +3333,7 @@ bool ConflictSolver::ConflictUniqueIface::setPlayer(Renderer *renderer, const Rp
 
 	if (player) {
 		if (auto *ptr = renderer->snapAt<RpgGameData::Player>(player, 0); ptr && ptr->data().hp <= 0) {
-			LOG_CDEBUG("engine") << "Player hp <= 0, remove from render";
+			SLOG_DEBUG(renderer) << "Player hp <= 0, remove from render";
 
 			if (destPtr) {
 				destPtr->player = nullptr;
@@ -3346,14 +3367,14 @@ ConflictSolver::ConflictUniqueIface::ReleaseState ConflictSolver::ConflictUnique
 	ReleaseState st;
 
 	if (!getInitialState(renderer, &st)) {
-		LOG_CDEBUG("engine") << "Initial state finished, render disabled";
+		SLOG_DEBUG(renderer) << "Initial state finished, render disabled";
 		return {};
 	}
 
-	LOG_CINFO("engine") << "---- INITIAL" << st.state << st.player << (st.player ? st.player->baseData.o : -1);
+	SLOG_INFO(renderer) << "---- INITIAL" << st.state << st.player << (st.player ? st.player->baseData.o : -1);
 
 	for (const auto &[t, rs] : m_release.asKeyValueRange()) {
-		LOG_CDEBUG("engine") << "---- CHECK" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
+		SLOG_DEBUG(renderer) << "---- CHECK" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
 
 		if (t > maxTick)
 			break;
@@ -3364,12 +3385,12 @@ ConflictSolver::ConflictUniqueIface::ReleaseState ConflictSolver::ConflictUnique
 		if (rs.state == StateHold) {
 			if (!st.player) {
 				st = rs;
-				LOG_CINFO("engine") << "---- SET" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
+				SLOG_INFO(renderer) << "---- SET" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
 			}
 		} else if (rs.state == StateSuccess || rs.state == StateFailed) {
 			if (st.state == StateInvalid || st.player == rs.player) {
 				st = rs;
-				LOG_CINFO("engine") << "---- SET" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
+				SLOG_INFO(renderer) << "---- SET" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
 				break;
 			}
 		}
@@ -3414,7 +3435,7 @@ void ConflictSolver::ConflictUniqueIface::add(const int &tick, RendererObject<Rp
 	RendererObject<RpgGameData::PlayerBaseData> *p = dynamic_cast<RendererObject<RpgGameData::PlayerBaseData> *>(src);
 
 	if (!p) {
-		LOG_CERROR("engine") << "Invalid player data" << src->asBaseData().s << src->asBaseData().o << src->asBaseData().id;
+		SLOG_ERROR(src) << "Invalid player data" << src->asBaseData().s << src->asBaseData().o << src->asBaseData().id;
 		return;
 	}
 
@@ -3445,7 +3466,7 @@ ConflictSolver::ConflictCollection::ConflictCollection(const int &_tick,
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
 
-	LOG_CDEBUG("engine") << "COLLECTION SET" << _src->baseData.o  << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
+	SLOG_DEBUG(_dst) << "COLLECTION SET" << _src->baseData.o  << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
 }
 
 
@@ -3464,7 +3485,7 @@ void ConflictSolver::ConflictCollection::generateEvent(ConflictSolver *solver, R
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
 
-	LOG_CERROR("engine") << "!!!! CREATE COLLECTION EVENT";
+	SLOG_ERROR(solver) << "!!!! CREATE COLLECTION EVENT";
 
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
 
@@ -3474,7 +3495,7 @@ void ConflictSolver::ConflictCollection::generateEvent(ConflictSolver *solver, R
 	RendererItem<RpgGameData::ControlCollection> *e = solver->m_renderer->snapAt<RpgGameData::ControlCollection>(m_unique, 0);
 
 	if (!e) {
-		LOG_CERROR("engine") << "Invalid item" << e;
+		SLOG_ERROR(solver) << "Invalid item" << e;
 		return;
 	}
 
@@ -3531,7 +3552,7 @@ bool ConflictSolver::ConflictCollection::getInitialState(Renderer *renderer, Rel
 	const auto &data = snap->data();
 
 	if (data.own.isValid()) {
-		LOG_CDEBUG("engine") << "---- collection already collected";
+		SLOG_DEBUG(renderer) << "---- collection already collected";
 		return false;
 	}
 
@@ -3559,7 +3580,7 @@ ConflictSolver::ConflictPickable::ConflictPickable(const int &_tick,
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
 
-	LOG_CDEBUG("engine") << "PICKABLE SET" << _src->baseData.o  << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
+	SLOG_DEBUG(_dst) << "PICKABLE SET" << _src->baseData.o  << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
 }
 
 
@@ -3575,7 +3596,7 @@ void ConflictSolver::ConflictPickable::generateEvent(ConflictSolver *solver, Rpg
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
 
-	LOG_CERROR("engine") << "!!!! CREATE PICKABLE EVENT";
+	SLOG_ERROR(solver) << "!!!! CREATE PICKABLE EVENT";
 
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
 
@@ -3585,7 +3606,7 @@ void ConflictSolver::ConflictPickable::generateEvent(ConflictSolver *solver, Rpg
 	RendererItem<RpgGameData::Pickable> *e = solver->m_renderer->snapAt<RpgGameData::Pickable>(m_unique, 0);
 
 	if (!e) {
-		LOG_CERROR("engine") << "Invalid item" << e;
+		SLOG_ERROR(solver) << "Invalid item" << e;
 		return;
 	}
 
@@ -3638,7 +3659,7 @@ bool ConflictSolver::ConflictPickable::getInitialState(Renderer *renderer, Relea
 	const auto &data = snap->data();
 
 	if (data.own.isValid()) {
-		LOG_CDEBUG("engine") << "---- pickable already picked";
+		SLOG_DEBUG(renderer) << "---- pickable already picked";
 		return false;
 	}
 
@@ -3666,7 +3687,7 @@ ConflictSolver::ConflictGate::ConflictGate(const int &_tick, RendererObject<RpgG
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
 
-	LOG_CDEBUG("engine") << "GATE SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
+	SLOG_DEBUG(_dst) << "GATE SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
 }
 
 
@@ -3684,11 +3705,11 @@ void ConflictSolver::ConflictGate::generateEvent(ConflictSolver *solver, RpgEngi
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
 
-	LOG_CERROR("engine") << "!!!! CREATE GATE EVENT";
+	SLOG_ERROR(solver) << "!!!! CREATE GATE EVENT";
 
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
 
-	LOG_CINFO("engine") << "CURRENT STATE" << state.state << state.player;
+	SLOG_INFO(solver) << "CURRENT STATE" << state.state << state.player;
 
 	if (state.state != StateSuccess)
 		return;
@@ -3696,7 +3717,7 @@ void ConflictSolver::ConflictGate::generateEvent(ConflictSolver *solver, RpgEngi
 	RendererItem<RpgGameData::ControlGate> *e = solver->m_renderer->snapAt<RpgGameData::ControlGate>(m_unique, 0);
 
 	if (!e) {
-		LOG_CERROR("engine") << "Invalid item" << e;
+		SLOG_ERROR(solver) << "Invalid item" << e;
 		return;
 	}
 
@@ -3707,7 +3728,7 @@ void ConflictSolver::ConflictGate::generateEvent(ConflictSolver *solver, RpgEngi
 				   RpgGameData::ControlGate::GateOpen);
 	data.a = true;
 
-	LOG_CINFO("engine") << "OVERRIDE SNAP" << data.st;
+	SLOG_INFO(solver) << "OVERRIDE SNAP" << data.st;
 
 	m_unique->overrideAuthSnap(data);
 }
@@ -3735,7 +3756,7 @@ bool ConflictSolver::ConflictGate::getInitialState(Renderer *renderer, ReleaseSt
 	const auto &data = snap->data();
 
 	if (data.st == RpgGameData::ControlGate::GateDamaged) {
-		LOG_CDEBUG("engine") << "---- gate already damaged";
+		SLOG_DEBUG(renderer) << "---- gate already damaged";
 		return false;
 	}
 
@@ -3763,7 +3784,7 @@ ConflictSolver::ConflictTeleport::ConflictTeleport(const int &_tick,
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
 
-	LOG_CDEBUG("engine") << "TELEPORT SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
+	SLOG_DEBUG(_dst) << "TELEPORT SET" << _src->baseData.o << "->" << _dst->baseData.o << _dst->baseData.s << _dst->baseData.id;
 }
 
 
@@ -3782,17 +3803,17 @@ void ConflictSolver::ConflictTeleport::generateEvent(ConflictSolver *solver, Rpg
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
 
-	LOG_CERROR("engine") << "!!!! CREATE TELEPORT EVENT";
+	SLOG_ERROR(solver) << "!!!! CREATE TELEPORT EVENT";
 
 	if (!getInitialState(solver->m_renderer, nullptr)) {
-		LOG_CDEBUG("engine") << "Initial state finished, render disabled";
+		SLOG_DEBUG(solver) << "Initial state finished, render disabled";
 		return;
 	}
 
 	RendererItem<RpgGameData::ControlTeleport> *e = solver->m_renderer->snapAt<RpgGameData::ControlTeleport>(m_unique, 0);
 
 	if (!e) {
-		LOG_CERROR("engine") << "Invalid item" << e;
+		SLOG_ERROR(solver) << "Invalid item" << e;
 		return;
 	}
 
@@ -3826,7 +3847,7 @@ bool ConflictSolver::ConflictTeleport::getInitialState(Renderer *renderer, Relea
 	const auto &data = snap->data();
 
 	if (!data.a) {
-		LOG_CDEBUG("engine") << "---- teleport inactive";
+		SLOG_DEBUG(renderer) << "---- teleport inactive";
 		return false;
 	}
 
@@ -3850,21 +3871,21 @@ bool ConflictSolver::ConflictRelocate::solve(ConflictSolver *solver)
 	Q_ASSERT(solver);
 
 	if (!src) {
-		LOG_CERROR("engine") << "Invalid source" << src;
+		SLOG_ERROR(solver) << "Invalid source" << src;
 		return false;
 	}
 
 	RendererItem<RpgGameData::Player> *e = solver->m_renderer->get<RpgGameData::Player>(src);
 
 	if (!e) {
-		LOG_CERROR("engine") << "Invalid item" << src;
+		SLOG_ERROR(solver) << "Invalid item" << src;
 		return false;
 	}
 
 	RpgGameData::Player data = e->data();
 
 	if (e->flags() & RendererType::ReadOnly) {
-		LOG_CERROR("engine") << "Read only storage item" << src;
+		SLOG_ERROR(solver) << "Read only storage item" << src;
 		return false;
 	}
 
@@ -3873,7 +3894,7 @@ bool ConflictSolver::ConflictRelocate::solve(ConflictSolver *solver)
 		const auto &ptr = solver->m_renderer->extendFromLast<RpgGameData::Player>(src);
 
 		if (!ptr) {
-			LOG_CERROR("engine") << "Extend failed";
+			SLOG_ERROR(solver) << "Extend failed";
 			return false;
 		}
 

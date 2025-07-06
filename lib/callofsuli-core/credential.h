@@ -27,7 +27,6 @@
 #ifndef CREDENTIAL_H
 #define CREDENTIAL_H
 
-#include "qcryptographichash.h"
 #include <QJsonObject>
 #include <QSerializer>
 

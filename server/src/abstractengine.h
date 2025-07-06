@@ -51,6 +51,8 @@ public:
 	virtual void timerMinuteTick() {}
 	virtual void triggerEvent() { }
 
+	virtual QString dumpEngine() const;
+
 protected:
 	virtual void streamLinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 	virtual void streamUnlinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }

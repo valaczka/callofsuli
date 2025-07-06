@@ -147,6 +147,8 @@ public:
 	quint32 addPeer(const QString &username);
 	bool peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
 
+	QString dumpPeers() const;
+
 private:
 	UdpServerPrivate *d = nullptr;
 	std::unique_ptr<QLambdaThreadWorker> m_worker;

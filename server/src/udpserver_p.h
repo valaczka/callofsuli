@@ -94,6 +94,8 @@ private:
 	static QByteArray hashToken(const QByteArray &token);
 
 
+	QString dumpPeers() const;
+
 	void deliverReceived();
 	void disconnectUnusedPeers();
 

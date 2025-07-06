@@ -64,7 +64,8 @@ public:
 signals:
 	void serverConnected();
 	void serverDisconnected();
-	void serverConnectFailed();
+	void serverConnectFailed(const QString &error);
+	void serverConnectionLost();
 
 protected:
 	virtual void binaryDataReceived(const QList<QPair<QByteArray, unsigned int> > &list) = 0;
