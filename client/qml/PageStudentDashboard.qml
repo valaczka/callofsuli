@@ -147,6 +147,7 @@ QPage {
 	}
 
 	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentDasboard)
 		Client.reloadUser()
 		Client.reloadCache("studentGroupList")
 		Client.reloadCache("studentCampaignList")

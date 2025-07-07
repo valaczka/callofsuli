@@ -109,6 +109,8 @@ private:
 
 	RpgGameData::Collection m_collection;
 
+	QHash<RpgConfig::ControlType, QDeadlineTimer> m_controlMessageTimer;
+	QList<QPair<RpgActiveIface*, bool> > m_controlMessages;
 
 	friend class RpgGame;
 
@@ -3282,6 +3284,52 @@ void RpgGame::controlRemove(const QList<RpgControlBase*> &controls)
 	std::erase_if(m_controls, [&controls](const auto &ptr) {
 		return controls.contains(ptr.get());
 	});
+}
+
+
+/**
+ * @brief RpgGame::controlAppeared
+ * @param iface
+ */
+
+void RpgGame::controlAppeared(RpgActiveIface *iface)
+{
+	if (!iface)
+		return;
+
+	const RpgConfig::ControlType &type = iface->activeType();
+
+	if (!iface->isActive())
+		return;
+
+	const QPair<RpgActiveIface*, bool> data(iface, iface->isLocked());
+
+	if (q->m_controlMessages.contains(data))
+		return;
+
+
+	if (auto it = q->m_controlMessageTimer.find(type); it != q->m_controlMessageTimer.end()
+			&& !it->isForever() && !it->hasExpired())
+		return;
+
+
+	if (iface->activeType() == RpgConfig::ControlContainer) {
+		message(tr("Open the chest"), true);
+	} else if (iface->activeType() == RpgConfig::ControlCollection) {
+		if (m_controlledPlayer && m_controlledPlayer->collectionRq() > m_controlledPlayer->collection())
+			message(tr("Collect the item"), true);
+	} else if (iface->activeType() == RpgConfig::ControlGate) {
+		if (iface->isLocked())
+			message(tr("Gate locked, find the key"), true);
+		else
+			message(tr("Open the gate"), true);
+
+	} else if (iface->activeType() == RpgConfig::ControlTeleport) {
+		message(tr("Use the teleport"), true);
+	}
+
+	q->m_controlMessageTimer[type].setRemainingTime(5000);
+	q->m_controlMessages.append(data);
 }
 
 

@@ -96,12 +96,12 @@ void Updater::checkAvailableUpdates(const bool &force)
 		return;
 
 
-	const bool updateEnabled = autoUpdate();
+	/*const bool updateEnabled = autoUpdate();
 
 	if (!updateEnabled && !force) {
 		LOG_CINFO("updater") << "Automatic update disabled";
 		return;
-	}
+	}*/
 
 	if (appImageUpdateCheck(force))
 		return;
@@ -398,7 +398,12 @@ void Updater::githubUpdateCheck(const bool &force)
 		if (version > Utils::versionNumber()) {
 			Utils::settingsSet(QStringLiteral("update/lastVersion"), vstr);
 			Utils::settingsSet(QStringLiteral("update/lastDate"), QDate::currentDate());
-			emit gitHubUpdateAvailable(platformData);
+
+			setUpdateAvailable(true);
+
+			if (autoUpdate() || force)
+				emit gitHubUpdateAvailable(platformData);
+
 		} else if (force) {
 			emit updateNotAvailable();
 		}
@@ -450,9 +455,13 @@ bool Updater::appImageUpdateCheck(const bool &force)
 			emit appImageUpdateCheckFailed();
 		}
 
-		if (exitCode == 1)
-			emit appImageUpdateAvailable();
-		else if (force)
+		if (exitCode == 1) {
+			setUpdateAvailable(true);
+
+			if (autoUpdate() || force)
+				emit appImageUpdateAvailable();
+
+		} else if (force)
 			emit updateNotAvailable();
 
 		process->deleteLater();
@@ -488,3 +497,16 @@ void Updater::setAutoUpdate(bool newAutoUpdate)
 }
 
 
+
+bool Updater::updateAvailable() const
+{
+	return m_updateAvailable;
+}
+
+void Updater::setUpdateAvailable(bool newUpdateAvailable)
+{
+	if (m_updateAvailable == newUpdateAvailable)
+		return;
+	m_updateAvailable = newUpdateAvailable;
+	emit updateAvailableChanged();
+}

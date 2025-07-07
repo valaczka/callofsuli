@@ -285,6 +285,8 @@ QItemGradient {
 
 				onClicked: Client.stackPushPage("PageMarket.qml")
 			}
+
+			QUpgradeButton { }
 		}
 
 

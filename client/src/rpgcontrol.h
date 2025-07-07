@@ -120,6 +120,7 @@ class RpgActiveControlObject : public QObject, public TiledObjectBody
 	Q_PROPERTY(bool questionLock READ questionLock NOTIFY questionLockChanged FINAL)
 	Q_PROPERTY(bool isLocked READ isLocked NOTIFY isLockedChanged FINAL)
 	Q_PROPERTY(bool isActive READ isActive NOTIFY isActiveChanged FINAL)
+	Q_PROPERTY(bool inVisibleArea READ inVisibleArea WRITE setInVisibleArea NOTIFY inVisibleAreaChanged FINAL)
 
 public:
 	explicit RpgActiveControlObject(RpgActiveIface *iface,
@@ -151,17 +152,31 @@ public:
 	bool isLocked() const;
 	bool isActive() const;
 
+	bool inVisibleArea() const;
+	void setInVisibleArea(bool newInVisibleArea);
+
 signals:
 	void keyLockChanged();
 	void questionLockChanged();
 	void isLockedChanged();
 	void isActiveChanged();
+	void inVisibleAreaChanged();
 
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
+	void connectScene();
+	virtual void updateInVisibleArea();
+
 	RpgActiveIface *m_iface = nullptr;
+	bool m_inVisibleArea = false;
+
+	QMarginsF m_visibleAreaMargins;
+
+private:
+	void checkVisibleForContactedPlayer() const;
+	bool hasContactedPlayer() const;
 
 	friend class RpgActiveIface;
 };
@@ -311,7 +326,6 @@ protected:
 		Q_UNUSED(renderer);
 		return false;
 	}
-
 
 	QQuickItem *tileLayerAdd(const E &state, QQuickItem *layer);
 

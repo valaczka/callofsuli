@@ -248,6 +248,8 @@ public:
 	void controlRemove(RpgControlBase *control);
 	void controlRemove(const QList<RpgControlBase *> &controls);
 
+	void controlAppeared(RpgActiveIface *iface);
+
 
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
 	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QStringLiteral(""));

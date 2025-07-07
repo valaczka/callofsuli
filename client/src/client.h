@@ -38,6 +38,7 @@
 #include <QNetworkReply>
 #include "QQuickWindow"
 #include "sound.h"
+#include "contexthelper.h"
 
 
 class Application;
@@ -49,23 +50,23 @@ class Utils;
 
 #ifndef OPAQUE_PTR_AbstractGame
 #define OPAQUE_PTR_AbstractGame
-  Q_DECLARE_OPAQUE_POINTER(AbstractGame*)
+Q_DECLARE_OPAQUE_POINTER(AbstractGame*)
 #endif
 
 #ifndef OPAQUE_PTR_Updater
 #define OPAQUE_PTR_Updater
-  Q_DECLARE_OPAQUE_POINTER(Updater*)
+Q_DECLARE_OPAQUE_POINTER(Updater*)
 #endif
 
 #ifndef OPAQUE_PTR_HttpConnection
 #define OPAQUE_PTR_HttpConnection
-  Q_DECLARE_OPAQUE_POINTER(HttpConnection*)
+Q_DECLARE_OPAQUE_POINTER(HttpConnection*)
 #endif
 
 
 #ifndef OPAQUE_PTR_Utils
 #define OPAQUE_PTR_Utils
-  Q_DECLARE_OPAQUE_POINTER(Utils*)
+Q_DECLARE_OPAQUE_POINTER(Utils*)
 #endif
 
 /**
@@ -83,6 +84,7 @@ class Client : public QObject
 	Q_PROPERTY(Utils* Utils READ utils CONSTANT)
 	Q_PROPERTY(bool debug READ debug CONSTANT)
 	Q_PROPERTY(Updater *updater READ updater CONSTANT)
+	Q_PROPERTY(ContextHelper *contextHelper READ contextHelper CONSTANT)
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
 
@@ -258,6 +260,8 @@ public:
 	virtual bool fullScreenHelper() const;
 	virtual void setFullScreenHelper(bool newFullScreenHelper);
 
+	ContextHelper *contextHelper() const;
+
 public slots:
 	virtual void onHttpConnectionError(const QNetworkReply::NetworkError &code);
 
@@ -285,7 +289,7 @@ protected slots:
 
 protected:
 	void _message(const QString &text, const QString &title, const QString &type) const;
-		void _userAuthTokenReceived(const QByteArray &token);
+	void _userAuthTokenReceived(const QByteArray &token);
 	virtual void fullScreenHelperConnect(QQuickWindow *window);
 	virtual void fullScreenHelperDisconnect(QQuickWindow *window);
 	void initializeDynamicResources();
@@ -344,6 +348,7 @@ protected:
 	std::unique_ptr<Updater> m_updater;
 	std::unique_ptr<QTranslator> m_translator;
 	std::unique_ptr<Downloader> m_downloader;
+	std::unique_ptr<ContextHelper> m_contextHelper;
 
 	std::unique_ptr<Server> m_staticServer;
 

@@ -1190,8 +1190,7 @@ void RpgEngine::preparePlayers()
 		pdata.sc = pos.scene;
 		pdata.hp = 13;			// TODO: from m_config
 		pdata.mhp = 13;
-		pdata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, 85));
-		pdata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponShortbow, 125));
+		pdata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, 135));
 		pdata.arm.cw = RpgGameData::Weapon::WeaponShortbow;
 
 		m_snapshots.playerAdd(*ptr, pdata);
@@ -1375,7 +1374,7 @@ void RpgEnginePrivate::dataReceivedChrSel(RpgEnginePlayer *player, const QByteAr
 	// TODO: ban out
 
 
-/*#ifdef WITH_FTXUI
+	/*#ifdef WITH_FTXUI
 	QCborMap map;
 	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
 	map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(m.toJsonObject()).toJson()));
@@ -1424,7 +1423,7 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 	RpgGameData::CurrentSnapshot snapshot;
 	snapshot.fromCbor(m);
 
-/*#ifdef WITH_FTXUI
+	/*#ifdef WITH_FTXUI
 	QCborMap map;
 	map.insert(QStringLiteral("mode"), QStringLiteral("RCV"));
 	map.insert(QStringLiteral("txt"),
@@ -2139,7 +2138,7 @@ void RpgEnginePrivate::createCollection()
 		max += g.pos.size();
 	}*/
 
-	const int req = 2 * q->m_player.size();//QRandomGenerator::global()->bounded(5, 7);
+	const int req = 3 * q->m_player.size();//QRandomGenerator::global()->bounded(5, 7);
 
 	ELOG_INFO << "----- GENERATE" << req << "COLL";
 
@@ -2192,7 +2191,7 @@ void RpgEnginePrivate::createCollection()
 		pList.append(ptr.get());
 	}
 
-	RpgGameData::PlayerBaseData::assign(pList, m_collectionGenerated);
+	RpgGameData::PlayerBaseData::assign(pList, m_collectionGenerated - q->m_player.size());
 }
 
 
@@ -2923,6 +2922,18 @@ bool RpgEventCollectionUsed::process(const qint64 &tick, RpgGameData::CurrentSna
 			RpgGameData::Player playerData = pit->get(m_tick).value();
 			playerData.c++;
 			dst->assign(dst->players, m_player, playerData);
+
+			const int left = pit->data.rq - playerData.c;
+
+			if (left > 1)
+				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Collect %1 more items").arg(left), true),
+									 QList<int>{m_player.o});
+			else if (left > 0)
+				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Collect 1 more item"), true),
+									 QList<int>{m_player.o});
+			else
+				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("All required items collected"), true),
+									 QList<int>{m_player.o});
 		}
 
 		m_engine->eventAdd<RpgEventCollectionPost>(m_tick+1, m_data, true);
@@ -3243,6 +3254,8 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 		if (left == 0) {
 			ELOG_INFO << "All COLLECTION collected, open teleports";
 
+			bool hasTeleport = false;
+
 			for (const auto &p : m_engine->controlTeleports()) {
 				// Nem final teleportok kihagyása
 				if (p.data.dst.isValid())
@@ -3253,14 +3266,18 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 					continue;
 				}
 
+				hasTeleport = true;
+
 				RpgGameData::ControlTeleport pData = p.get(m_tick).value();
 
 				pData.a = true;
 
 				dst->assign(dst->controls.teleports, p.data, pData);
 
-				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("The teleporters are open"), true));
 			}
+
+			if (hasTeleport)
+				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Escape through the teleporter"), true));
 		}
 
 
@@ -3355,6 +3372,15 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 
 	} else {
 		ELOG_WARNING << "Player teleport use failed" << m_player.o << m_data.id;
+
+		const int left = std::max(1, m_player.rq - pData.c);
+
+		if (left > 1)
+			m_engine->messageAdd(RpgGameData::Message(QStringLiteral("%1 items missing").arg(left), false),
+								 QList<int>{m_player.o});
+		else
+			m_engine->messageAdd(RpgGameData::Message(QStringLiteral("1 item missing"), false),
+								 QList<int>{m_player.o});
 	}
 
 	return true;

@@ -64,6 +64,7 @@ Client::Client(Application *app)
 	, m_httpConnection(new HttpConnection(this))
 	, m_updater(new Updater(this))
 	, m_downloader(new Downloader)
+	, m_contextHelper(new ContextHelper(this))
 	, m_sound(new Sound(nullptr))
 {
 	Q_ASSERT(app);
@@ -418,6 +419,7 @@ void Client::onApplicationStarted()
 	}
 
 	m_updater->checkAvailableUpdates(false);
+	m_contextHelper->download();
 
 }
 
@@ -1770,7 +1772,7 @@ void Client::messageError(const QString &text, QString title) const
 void Client::snack(const QString &text) const
 {
 	if (m_mainWindow) {
-		QMetaObject::invokeMethod(m_mainWindow, "snack", Qt::DirectConnection,
+		QMetaObject::invokeMethod(m_mainWindow, "snack", Qt::AutoConnection,
 								  Q_ARG(QString, text)
 								  );
 	}
@@ -1872,7 +1874,7 @@ void Client::onDemoMapDestroyed()
 {
 	LOG_CTRACE("client") << "Demo map destroyed";
 
-	if (server() == getStaticServer()) {
+	if (server() == getStaticServer() && m_httpConnection) {
 		LOG_CINFO("client") << "Disconnect from static server";
 		m_httpConnection->close();
 	}
@@ -1924,11 +1926,12 @@ void Client::setFullScreenHelper(bool newFullScreenHelper)
 }
 
 
+/**
+ * @brief Client::contextHelper
+ * @return
+ */
 
-
-
-
-
-
-
-
+ContextHelper *Client::contextHelper() const
+{
+	return m_contextHelper.get();
+}

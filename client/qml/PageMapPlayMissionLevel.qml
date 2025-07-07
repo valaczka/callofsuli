@@ -67,9 +67,14 @@ QPageGradient {
 			model: mission ? mission.missionLevelList : null
 			orientation: ListView.Horizontal
 
-			implicitHeight: 110*Qaterial.Style.pixelSizeRatio
+			implicitHeight: (root.width < 576 * Qaterial.Style.devicePixelSizeCorrection) ?
+								80*Qaterial.Style.pixelSizeRatio :
+								(root.width < 786 * Qaterial.Style.devicePixelSizeCorrection) ?
+									95*Qaterial.Style.pixelSizeRatio :
+									110*Qaterial.Style.pixelSizeRatio
 
 			width: Math.min(contentWidth, parent.width)
+			height: implicitHeight
 			spacing: 5 * Qaterial.Style.pixelSizeRatio
 
 			anchors.horizontalCenter: parent.horizontalCenter

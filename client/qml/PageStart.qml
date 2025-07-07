@@ -409,8 +409,12 @@ QPage {
 	]
 
 	StackView.onActivated: {
-		Client.safeMarginsGet()
 		view.forceActiveFocus()
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStart)
+	}
+
+	StackView.onActivating: {
+		Client.safeMarginsGet()
 	}
 
 

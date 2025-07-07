@@ -37,6 +37,7 @@ class Updater : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(bool autoUpdate READ autoUpdate WRITE setAutoUpdate NOTIFY autoUpdateChanged)
+	Q_PROPERTY(bool updateAvailable READ updateAvailable WRITE setUpdateAvailable NOTIFY updateAvailableChanged FINAL)
 
 public:
 	explicit Updater(Client *client = nullptr);
@@ -53,6 +54,9 @@ public:
 
 	bool autoUpdate() const;
 	void setAutoUpdate(bool newAutoUpdate);
+
+	bool updateAvailable() const;
+	void setUpdateAvailable(bool newUpdateAvailable);
 
 signals:
 	void updateNotAvailable();
@@ -73,6 +77,7 @@ signals:
 	void gitHubUpdateAvailable(const QJsonObject &data);
 
 	void autoUpdateChanged();
+	void updateAvailableChanged();
 
 private:
 	void githubUpdateCheck(const bool &force);
@@ -83,6 +88,7 @@ private:
 
 	const QString m_updaterExecutable;
 	QFile m_fileUpdater;
+	bool m_updateAvailable = false;
 };
 
 #endif // UPDATER_H

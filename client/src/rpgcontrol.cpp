@@ -25,6 +25,7 @@
  */
 
 #include "rpgcontrol.h"
+#include "rpggame.h"
 #include "rpgplayer.h"
 #include "tiledscene.h"
 #include <libtiled/grouplayer.h>
@@ -176,6 +177,8 @@ void RpgActiveControlObject::onShapeContactBegin(cpShape *self, cpShape *other)
 		return;
 
 	m_iface->onShapeContactBegin(self, other);
+
+	checkVisibleForContactedPlayer();
 }
 
 
@@ -192,6 +195,111 @@ void RpgActiveControlObject::onShapeContactEnd(cpShape *self, cpShape *other)
 		return;
 
 	m_iface->onShapeContactEnd(self, other);
+
+	checkVisibleForContactedPlayer();
+}
+
+
+/**
+ * @brief RpgActiveControlObject::connectScene
+ */
+
+void RpgActiveControlObject::connectScene()
+{
+
+	TiledScene *sc = scene();
+
+	if (!sc)
+		return;
+
+	m_visibleAreaMargins.setTop(50);
+	m_visibleAreaMargins.setBottom(50);
+	m_visibleAreaMargins.setLeft(50);
+	m_visibleAreaMargins.setRight(50);
+
+	connect(sc, &TiledScene::onScreenAreaChanged, this, &RpgActiveControlObject::updateInVisibleArea);
+
+	LOG_CINFO("game") << "______________ CONNECT SCENE" << this << sc;
+}
+
+
+
+/**
+ * @brief RpgActiveControlObject::updateInVisibleArea
+ */
+
+void RpgActiveControlObject::updateInVisibleArea()
+{
+	TiledScene *sc = scene();
+
+	if (!sc)
+		return;
+
+	const bool inArea = sc->onScreenArea().marginsRemoved(m_visibleAreaMargins).contains(bodyAABB());
+
+	setInVisibleArea(inArea);
+}
+
+
+
+/**
+ * @brief RpgActiveControlObject::checkVisibleForContactedPlayer
+ */
+
+void RpgActiveControlObject::checkVisibleForContactedPlayer() const
+{
+	bool ch = m_inVisibleArea && hasContactedPlayer();
+
+	if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && m_iface && ch)
+		g->controlAppeared(m_iface);
+}
+
+
+/**
+ * @brief RpgActiveControlObject::hasContactedPlayer
+ * @return
+ */
+
+bool RpgActiveControlObject::hasContactedPlayer() const
+{
+	if (!m_iface)
+		return false;
+
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (!g)
+		return false;
+
+	for (cpShape *sh : m_iface->m_contactedFixtures) {
+		RpgPlayer *pl = dynamic_cast<RpgPlayer*>(TiledObjectBody::fromShapeRef(sh));
+
+		if (pl && pl == g->controlledPlayer())
+			return true;
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief RpgActiveControlObject::inVisibleArea
+ * @return
+ */
+
+bool RpgActiveControlObject::inVisibleArea() const
+{
+	return m_inVisibleArea;
+}
+
+void RpgActiveControlObject::setInVisibleArea(bool newInVisibleArea)
+{
+	if (m_inVisibleArea == newInVisibleArea)
+		return;
+	m_inVisibleArea = newInVisibleArea;
+	emit inVisibleAreaChanged();
+
+	checkVisibleForContactedPlayer();
 }
 
 
@@ -294,6 +402,8 @@ RpgActiveControlObject *RpgActiveIface::controlObjectAdd(RpgActiveControlObject 
 
 
 	m_controlObjectList.append(object);
+
+	object->connectScene();
 
 	return object;
 }
@@ -430,6 +540,8 @@ void RpgActiveIface::onShapeContactEnd(cpShape *self, cpShape *other)
 
 	updateOverlays();
 }
+
+
 
 /**
  * @brief RpgActiveIface::onActivated

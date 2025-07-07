@@ -353,7 +353,7 @@ QPage {
 				onClicked: Client.stackPushPage("PageAdminServerConfig.qml")
 			}
 
-			QDashboardButton {
+			/*QDashboardButton {
 				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
 				text: qsTr("Aktív felhasználók")
 				icon.source: Qaterial.Icons.accountEyeOutline
@@ -364,7 +364,9 @@ QPage {
 				textColor: (Client.server && Client.server.user.roles & Credential.Admin) ? Qaterial.Colors.red500 : Qaterial.Colors.amber500
 
 				onClicked: Client.stackPushPage("PageTeacherPeers.qml")
-			}
+			}*/
+
+			QUpgradeButton { }
 
 		}
 
@@ -402,6 +404,8 @@ QPage {
 
 
 	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextTeacherDasboard)
+
 		if (Client.server) {
 			Client.reloadCache("teacherGroupList", root, function() {
 				_firstRun = false

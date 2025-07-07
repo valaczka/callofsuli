@@ -140,7 +140,7 @@ bool RpgControlContainer::loadFromLayer(RpgGame *game, TiledScene *scene, Tiled:
 
 				RpgActiveControlObject *o = game->createObject<RpgActiveControlObject>(-1, scene, object->id(),
 																					   this,
-																					   pos, 20.,
+																					   pos, 35.,
 																					   game, nullptr, CP_BODY_TYPE_STATIC);
 
 				o->setSensor(true);

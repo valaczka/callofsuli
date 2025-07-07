@@ -63,7 +63,7 @@ RpgControlCollection::RpgControlCollection(RpgGame *game, TiledScene *scene,
 																				   scene,
 																				   m_baseData.id,
 																				   this,
-																				   pos, 15.,
+																				   pos, 20.,
 																				   game);
 
 	o->setSensor(true);

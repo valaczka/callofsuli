@@ -217,6 +217,7 @@ SOURCES += \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
+	contexthelper.cpp \
 	downloader.cpp \
 	editorundostack.cpp \
 	exam.cpp \
@@ -327,6 +328,7 @@ HEADERS += \
 	classobject.h \
 	client.h \
 	clientcache.h \
+	contexthelper.h \
 	downloader.h \
 	editorundostack.h \
 	exam.h \

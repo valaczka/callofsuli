@@ -12,6 +12,13 @@ Column {
 
 	Qaterial.SwitchButton {
 		anchors.horizontalCenter: parent.horizontalCenter
+		text: qsTr("Súgó megjelenítése")
+		checked: Client.contextHelper.enabled
+		onToggled: Client.contextHelper.enabled = checked
+	}
+
+	Qaterial.SwitchButton {
+		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("Frissítések automatikus keresése induláskor")
 		checked: Client.updater.autoUpdate
 		onToggled: Client.updater.autoUpdate = checked
@@ -34,6 +41,8 @@ Column {
 		property string cacheSize: Client.Utils.getFormattedDiskCacheSize()
 
 		text: qsTr("Gyorsítótár mérete: <b>%1</b>").arg(cacheSize)
+
+		textFormat: Text.StyledText
 
 		icon.source: Qaterial.Icons.folderDownload
 		anchors.horizontalCenter: parent.horizontalCenter

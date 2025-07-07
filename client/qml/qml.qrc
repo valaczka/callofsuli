@@ -224,5 +224,7 @@
         <file>RpgQuestHeader.qml</file>
         <file>RpgQuestDelegate.qml</file>
         <file>RpgConnect.qml</file>
+        <file>QUpgradeButton.qml</file>
+        <file>ContextHelperDialog.qml</file>
     </qresource>
 </RCC>
