@@ -11,10 +11,12 @@ TiledPlayerMarker {
 
 	readonly property bool _isWerebear: enemy && enemy.enemyType == 1
 
-	visible: enemy && enemy.game && enemy.game.controlledPlayer &&
-			 (enemy.player === enemy.game.controlledPlayer ||
-			  enemy.game.controlledPlayer.enemy === enemy) &&
-			 enemy.hp > 0
+	visible: enemy && enemy.hp > 0
+
+	progressBar.visible: enemy && enemy.game && enemy.game.controlledPlayer &&
+						 (enemy.player === enemy.game.controlledPlayer ||
+						  enemy.game.controlledPlayer.enemy === enemy) &&
+						 enemy.hp > 0
 
 	yDistance: _isWerebear ? -20 : 20
 

@@ -27,6 +27,7 @@
 #include "rpgcontrolcollection.h"
 #include "rpggame.h"
 
+#define ITEM_MAX_SPEED				350
 
 /**
  * @brief RpgControlCollection::RpgControlCollection
@@ -52,18 +53,32 @@ RpgControlCollection::RpgControlCollection(RpgGame *game, TiledScene *scene,
 	setQuestionLock(true);
 	setIsLocked(false);
 
+
+	m_helperText.first = QObject::tr("Collect the item");
+
 	m_visualItem = createVisualItem(scene, nullptr);
-	m_visualItem->setSource(QUrl::fromLocalFile(":/rpg/time/pickable.png"));
+
+	const RpgCollectionData &data = m_game->getCollectionImageData(base.img);
+
+	if (data.url.isEmpty())
+		m_visualItem->setSource(QUrl::fromLocalFile(":/rpg/time/pickable.png"));
+	else
+		m_visualItem->setSource(data.url);
+
 	m_visualItem->setVisible(true);
 
-	LOG_CDEBUG("scene") << "Add visual item" << this << m_visualItem->name();
+	m_visualItem->setDisplayName(data.displayName);
 
+	if (!data.helperText.isEmpty())
+		m_helperText.first = data.helperText;
+
+	int size = data.size > 0 ? data.size : 20;
 
 	RpgControlCollectionObject *o = game->createObject<RpgControlCollectionObject>(m_baseData.o,
 																				   scene,
 																				   m_baseData.id,
 																				   this,
-																				   pos, 20.,
+																				   pos, size,
 																				   game);
 
 	o->setSensor(true);
@@ -132,13 +147,17 @@ void RpgControlCollection::updateFromSnapshot(const RpgGameData::SnapshotInterpo
 	if (pos1 == pos2)
 		return fnStop(control);
 
+	// Amíg mozog, addig nem lehet aktív
+
+	setIsActive(false);
+	_updateGlow();
 
 	if (to.f <= snapshot.current) {
-		control->moveToPoint(pos2, 1, 250);
+		control->moveToPoint(pos2, 1, ITEM_MAX_SPEED);
 		return;
 	} else {
 		const int frames = to.f-snapshot.current;
-		control->moveToPoint(pos2, frames, 250);
+		control->moveToPoint(pos2, frames, ITEM_MAX_SPEED);
 		return;
 	}
 }

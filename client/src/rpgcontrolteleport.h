@@ -48,7 +48,8 @@ class RpgControlTeleport : public RpgActiveControl<RpgGameData::ControlTeleport,
 {
 public:
 	RpgControlTeleport(RpgGame *game, TiledScene *scene,
-				   Tiled::GroupLayer *group, Tiled::MapRenderer *renderer = nullptr);
+					   Tiled::GroupLayer *group, const bool &isHideout,
+					   Tiled::MapRenderer *renderer = nullptr);
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlTeleport> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlTeleport &snap) override;

@@ -547,6 +547,7 @@ FocusScope {
 					return Qaterial.Colors.amber500
 
 				case RpgConfig.ControlGate:
+				case RpgConfig.ControlTeleport:
 				case RpgConfig.ControlPickable:
 					return Qaterial.Colors.green600
 
@@ -570,6 +571,7 @@ FocusScope {
 					return Qaterial.Icons.eye
 
 				case RpgConfig.ControlGate:
+				case RpgConfig.ControlTeleport:
 					return isOpen ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
 
 				case RpgConfig.ControlCollection:
@@ -648,7 +650,7 @@ FocusScope {
 				 _game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
 
 
-		color: Qaterial.Colors.amber500
+		color: Qaterial.Colors.amber700
 
 		border.color: fontImage.color
 		border.width: 1

@@ -733,6 +733,8 @@ public:
 	QS_SERIALIZABLE
 
 	QS_COLLECTION_OBJECTS(QList, CollectionGroup, groups)
+	QS_COLLECTION(QList, int, images)							// A lehetséges képek (image layer) azonosítói
+	QS_FIELD(QString, quest)									// A játék elején megjelenő quest
 };
 
 
@@ -1759,6 +1761,7 @@ public:
 		, x(0)
 		, y(0)
 		, a(0)
+		, hd(false)
 	{}
 
 	ControlTeleportBaseData()
@@ -1767,7 +1770,7 @@ public:
 
 	bool isEqual(const ControlTeleportBaseData &other) const {
 		return ControlActiveBaseData::isEqual(other) && other.x == x && other.y == y && other.a == a &&
-				other.dst == dst;;
+				other.dst == dst && other.hd == hd;
 	}
 
 	EQUAL_OPERATOR(ControlTeleportBaseData)
@@ -1777,6 +1780,7 @@ public:
 	QS_FIELD(float, x)					// exit position
 	QS_FIELD(float, y)
 	QS_FIELD(float, a)					// exit angle
+	QS_FIELD(bool, hd)					// simple hideout
 	QS_OBJECT(ControlBaseData, dst)		// destination teleport (invalid = final teleport)
 };
 
@@ -2380,6 +2384,7 @@ public:
 	ControlCollectionBaseData(const int &_s, const int &_id, const int &_gid = -1)
 		: ControlActiveBaseData(RpgConfig::ControlCollection, -1, _s, _id)
 		, gid(_gid)
+		, img(-1)
 	{}
 
 	ControlCollectionBaseData()
@@ -2387,7 +2392,7 @@ public:
 	{}
 
 	bool isEqual(const ControlCollectionBaseData &other) const {
-		return ControlActiveBaseData::isEqual(other) && gid == other.gid;
+		return ControlActiveBaseData::isEqual(other) && gid == other.gid && img == other.img;
 	}
 
 	EQUAL_OPERATOR(ControlCollectionBaseData)
@@ -2395,6 +2400,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, gid)				// CollectionGroupId
+	QS_FIELD(int, img)							// image id
 };
 
 

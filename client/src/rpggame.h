@@ -30,7 +30,6 @@
 #include "gamequestion.h"
 #include "rpgcontrol.h"
 #include "rpgenemy.h"
-#include "rpgpickable.h"
 #include "rpgplayer.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
@@ -251,6 +250,8 @@ public:
 	void controlAppeared(RpgActiveIface *iface);
 
 
+	RpgCollectionData getCollectionImageData(const int &id) const;
+
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
 	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QStringLiteral(""));
 
@@ -329,6 +330,7 @@ private:
 	void loadMetricDefinition();
 
 	void addPlayerPosition(TiledScene *scene, const QPointF &position);
+	void addCollection(TiledScene *scene, Tiled::GroupLayer *groupLayer, Tiled::MapRenderer *renderer);
 	void addCollection(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 
 	void playerUseControl(RpgPlayer *player, RpgActiveIface *control);

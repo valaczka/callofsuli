@@ -258,7 +258,7 @@ void IsometricPlayer::initialize()
 
 	m_visualItem->setZ(1);
 
-	createMarkerItem();
+	//createMarkerItem();
 
 	load();
 	onAlive();

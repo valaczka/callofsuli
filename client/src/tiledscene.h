@@ -108,8 +108,8 @@ public:
 	virtual ~TiledScene();
 
 	TiledQuick::TileLayerItem *addTileLayer(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
-	TiledVisualItem *addVisualItem();
-	TiledVisualItem *addVisualItem(Tiled::ImageLayer *layer);
+	TiledVisualItem *addVisualItem(const QString &displayName = {});
+	TiledVisualItem *addVisualItem(Tiled::ImageLayer *layer, const QString &displayName = {});
 	TiledVisualItem *addVisualItem(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
 
 	void addLightObject(Tiled::MapObject *object);

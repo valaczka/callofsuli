@@ -1833,7 +1833,9 @@ void RpgEnginePrivate::updateState()
 			q->m_config.gameState = RpgConfig::StatePlay;
 
 			for (const auto &ptr : q->m_player) {
-				if (ptr->rq > 1)
+				if (!m_gameConfig.collection.quest.isEmpty())
+					q->messageAdd(RpgGameData::Message(m_gameConfig.collection.quest.arg(ptr->rq), true), QList<int>{ptr->playerId()});
+				else if (ptr->rq > 1)
 					q->messageAdd(RpgGameData::Message(QStringLiteral("Collect %1 items").arg(ptr->rq), true), QList<int>{ptr->playerId()});
 				else if (ptr->rq > 0)
 					q->messageAdd(RpgGameData::Message(QStringLiteral("Collect 1 item"), true), QList<int>{ptr->playerId()});
@@ -2140,7 +2142,9 @@ void RpgEnginePrivate::createCollection()
 
 	const int req = 3 * q->m_player.size();//QRandomGenerator::global()->bounded(5, 7);
 
-	ELOG_INFO << "----- GENERATE" << req << "COLL";
+	ELOG_INFO << "----- GENERATE" << req << "COLL | images" << m_gameConfig.collection.images;
+
+
 
 	const QHash<int, QList<int> > &pos = m_gameConfig.collection.allocate(req, &m_collectionGenerated);
 
@@ -2161,6 +2165,11 @@ void RpgEnginePrivate::createCollection()
 		for (const int &idx : list) {
 			RpgGameData::ControlCollectionBaseData cd = base;
 			cd.id = q->nextObjectId();
+
+			if (const auto &s = m_gameConfig.collection.images.size(); s > 1)
+				cd.img = m_gameConfig.collection.images.at(QRandomGenerator::global()->bounded(s));
+			else if (s > 0)
+				cd.img = m_gameConfig.collection.images.first();
 
 			RpgGameData::ControlCollection data;
 			data.f = 0;
@@ -3353,6 +3362,10 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 		ELOG_INFO << "###### FINISH TELEPORT" << m_tick << m_data.id << "--->" << m_player.o << "RQ:" << m_player.rq;
 		dst->assign(dst->players, m_player, pData);
 
+		// Hideout
+
+		if (m_data.hd)
+			return true;
 
 		// Final teleport
 

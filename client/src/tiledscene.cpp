@@ -300,7 +300,7 @@ TiledQuick::TileLayerItem *TiledScene::addTileLayer(Tiled::TileLayer *layer, Til
  * @return
  */
 
-TiledVisualItem *TiledScene::addVisualItem()
+TiledVisualItem *TiledScene::addVisualItem(const QString &displayName)
 {
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledImage.qml"), this);
 
@@ -314,6 +314,7 @@ TiledVisualItem *TiledScene::addVisualItem()
 	img->setParentItem(this);
 	img->setParent(this);
 	img->setScene(this);
+	img->setProperty("displayName", displayName);
 
 	m_visualItems.append(img);
 
@@ -329,9 +330,9 @@ TiledVisualItem *TiledScene::addVisualItem()
  * @return
  */
 
-TiledVisualItem *TiledScene::addVisualItem(Tiled::ImageLayer *layer)
+TiledVisualItem *TiledScene::addVisualItem(Tiled::ImageLayer *layer, const QString &displayName)
 {
-	TiledVisualItem *img = addVisualItem();
+	TiledVisualItem *img = addVisualItem(displayName);
 
 	if (!img)
 		return nullptr;

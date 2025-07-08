@@ -226,5 +226,6 @@
         <file>RpgConnect.qml</file>
         <file>QUpgradeButton.qml</file>
         <file>ContextHelperDialog.qml</file>
+        <file>RpgPlayerMarker.qml</file>
     </qresource>
 </RCC>

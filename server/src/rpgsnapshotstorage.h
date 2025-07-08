@@ -847,6 +847,7 @@ public:
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PlayerBaseData> *obj);
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::PickableBaseData> *obj);
 	static QString dumpBaseDataAs(const RendererObject<RpgGameData::ControlTeleportBaseData> *obj);
+	static QString dumpBaseDataAs(const RendererObject<RpgGameData::ControlCollectionBaseData> *obj);
 
 	Logger *_logger() const { return m_logger; }
 

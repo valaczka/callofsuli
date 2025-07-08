@@ -147,3 +147,16 @@ void TiledVisualItem::setLayerItem(TiledQuick::TileLayerItem *newLayerItem)
 		});
 	}
 }
+
+QString TiledVisualItem::displayName() const
+{
+	return m_displayName;
+}
+
+void TiledVisualItem::setDisplayName(const QString &newDisplayName)
+{
+	if (m_displayName == newDisplayName)
+		return;
+	m_displayName = newDisplayName;
+	emit displayNameChanged();
+}

@@ -344,8 +344,12 @@ TiledVisualItem *RpgActiveIface::createVisualItem(TiledScene *scene, Tiled::Grou
 
 	Q_ASSERT(item);
 
-	if (layer)
+	if (layer) {
 		item->setName(layer->name());
+
+		if (const QString &str = layer->propertyAsString(QStringLiteral("displayName")); !str.isEmpty())
+			item->setDisplayName(str);
+	}
 
 	item->setGlowColor(QStringLiteral("#FFF59D"));
 
@@ -614,6 +618,10 @@ void RpgActiveIface::updateOverlays()
 			it->setVisible(hasPlayer);
 	}
 }
+
+
+
+
 
 
 

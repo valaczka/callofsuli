@@ -42,6 +42,23 @@
 class RpgGame;
 
 
+
+/**
+ * @brief The RpgCollectionData class
+ */
+
+struct RpgCollectionData
+{
+	QUrl url;
+	int size = 0;
+	QString displayName;
+	QString helperText;
+};
+
+
+
+
+
 /**
  * @brief The RpgControlBase class
  */
@@ -233,10 +250,12 @@ public:
 	const bool &isActive() const { return m_isActive; }
 	void setIsActive(const bool &newActive);
 
+	const QString &helperText(const bool &locked) const { return locked ? m_helperText.second : m_helperText.first; }
 
 	enum DefaultEnum {
 		Default = 0
 	};
+
 
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other);
@@ -264,6 +283,7 @@ protected:
 	TiledVisualItem* m_visualItem = nullptr;
 	QList<QPointer<RpgActiveControlObject> > m_controlObjectList;
 	QList<QPointer<QQuickItem>> m_overlays;
+	QPair<QString, QString> m_helperText;				// first: unlocked, second: locked
 
 	QList<cpShape *> m_contactedFixtures;
 

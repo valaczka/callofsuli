@@ -480,6 +480,16 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
 
 bool Player::useTeleport(Player &dst, const ControlTeleportBaseData &base, const PlayerBaseData &playerBase)
 {
+	if (dst.pck.isValid()) {
+		qWarning() << "Player pck active!";
+		return false;
+	}
+
+	if (base.hd) {
+		dst.pck = base;
+		return true;
+	}
+
 	if (base.dst.isValid()) {
 		qWarning() << "Missing implementation";
 		return false;
@@ -556,9 +566,6 @@ QHash<int, QList<int> > Collection::allocate(const int &num, int *dst)
 		ret.insert(g.id, list);
 	}
 
-	qInfo() << "GENREATED" << generated << "required" << num;
-	qDebug() << ret;
-
 	if (dst)
 		*dst = generated;
 
@@ -588,6 +595,9 @@ QList<CollectionPlace> Collection::getFree(const int &gid) const
 
 	return ret;
 }
+
+
+
 
 
 

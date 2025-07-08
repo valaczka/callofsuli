@@ -30,6 +30,7 @@
 #include "actionrpgmultiplayergame.h"
 #include "rpgfirefog.h"
 #include "rpglongsword.h"
+#include "rpgpickable.h"
 #include "tiledspritehandler.h"
 #include "rpggame.h"
 #include <QDirIterator>
@@ -319,6 +320,8 @@ void RpgPlayer::exitHiding()
 void RpgPlayer::load()
 {
 	setAvailableDirections(Direction_8);
+
+	createMarkerItem(QStringLiteral("qrc:/RpgPlayerMarker.qml"));
 
 	/*for (int i=0; i<=2; ++i)
 	{

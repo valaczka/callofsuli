@@ -55,6 +55,11 @@ RpgControlGate::RpgControlGate(RpgGame *game, TiledScene *scene, Tiled::GroupLay
 		{ QStringLiteral("damaged"), RpgGameData::ControlGate::GateDamaged },
 	};
 
+
+	m_helperText.first = QObject::tr("Open the gate");
+	m_helperText.second = QObject::tr("Gate locked, find the key");
+
+
 	setGame(game);
 	loadFromGroupLayer(game, scene, group, renderer);
 

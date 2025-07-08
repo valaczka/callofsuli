@@ -2066,12 +2066,36 @@ QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::ControlTelepo
 				  .arg(obj->baseData.id)
 				  ;
 
+	if (obj->baseData.hd)
+		txt += QStringLiteral(" HIDEOUT");
 
 	txt += QStringLiteral(" ->@(%1,%2) %3")
 		   .arg(obj->baseData.x)
 		   .arg(obj->baseData.y)
 		   .arg(obj->baseData.a)
 		   ;
+
+	txt += QStringLiteral("\n-------------------------------------------\n");
+	return txt;
+}
+
+
+/**
+ * @brief Renderer::dumpBaseDataAs
+ * @param obj
+ * @return
+ */
+
+QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::ControlCollectionBaseData> *obj)
+{
+	Q_ASSERT(obj);
+
+	QString txt = QStringLiteral("Collection %1 %2 %3 (img: %4) ")
+				  .arg(obj->baseData.o)
+				  .arg(obj->baseData.s)
+				  .arg(obj->baseData.id)
+				  .arg(obj->baseData.img)
+				  ;
 
 	txt += QStringLiteral("\n-------------------------------------------\n");
 	return txt;

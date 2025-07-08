@@ -1,7 +1,8 @@
 import QtQuick
 import Qt5Compat.GraphicalEffects
 import CallOfSuli
-
+import Qaterial as Qaterial
+import "./QaterialHelper" as Qaterial
 
 TiledVisualItemImpl {
 	id: _control
@@ -76,4 +77,37 @@ TiledVisualItemImpl {
 		}
 	}
 
+	Item {
+		id: _labelItem
+
+		width: _label.width
+		height: _label.height
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.bottom: parent.top
+		anchors.bottomMargin: 2
+
+		visible: _control.displayName != ""
+
+		Qaterial.Label {
+			id: _label
+			font.family: Qaterial.Style.textTheme.body1.family
+			font.pixelSize: 10
+			font.weight: Font.Bold
+			color: "white"
+			//elide: implicitWidth > width ? Text.ElideRight : Text.ElideNone
+			wrapMode: Text.Wrap
+			text: _control.displayName
+			width: _control.width
+			horizontalAlignment: Text.AlignHCenter
+		}
+
+		Glow {
+			anchors.fill: _label
+			source: _label
+			color: "black"
+			radius: 1
+			spread: 0.9
+			samples: 5
+		}
+	}
 }

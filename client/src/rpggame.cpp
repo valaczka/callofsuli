@@ -107,7 +107,34 @@ private:
 
 	QVector<PlayerPosition> m_playerPositionList;
 
-	RpgGameData::Collection m_collection;
+
+
+	/**
+	 * @brief The CollectionPrivate class
+	 */
+
+	class CollectionPrivate : public RpgGameData::Collection
+	{
+	public:
+		CollectionPrivate()
+			: RpgGameData::Collection()
+		{}
+
+		void addImage(const int &id, const QUrl &url, const int &size = 0,
+					  const QString &displayName = QString(), const QString &helperText = QString()) {
+			images.append(id);
+			m_imageHash.emplace(id, url, size, displayName, helperText);
+		}
+
+		RpgCollectionData get(const int &id) const {
+			return m_imageHash.value(id);
+		}
+
+	private:
+		QHash<int, RpgCollectionData> m_imageHash;
+	};
+
+	CollectionPrivate m_collection;
 
 	QHash<RpgConfig::ControlType, QDeadlineTimer> m_controlMessageTimer;
 	QList<QPair<RpgActiveIface*, bool> > m_controlMessages;
@@ -821,12 +848,16 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 	} else if (cname == QStringLiteral("gate")) {
 		controlAdd<RpgControlGate>(this, scene, group, renderer);
 	} else if (cname == QStringLiteral("teleport")) {
-		controlAdd<RpgControlTeleport>(this, scene, group, renderer);
+		controlAdd<RpgControlTeleport>(this, scene, group, false, renderer);
+	} else if (cname == QStringLiteral("hideout")) {
+		controlAdd<RpgControlTeleport>(this, scene, group, true, renderer);
 	} else if (cname == QStringLiteral("randomizer")) {
 		if (RpgControlRandomizer *r = RpgControlRandomizer::find(m_controls, group, scene->sceneId()))
 			r->addGroupLayer(scene, group, renderer);
 		else
 			controlAdd<RpgControlRandomizer>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("collection")) {
+		addCollection(scene, group, renderer);
 	}
 }
 
@@ -885,11 +916,12 @@ void RpgGame::keyPressEvent(QKeyEvent *event)
 	const int &key = event->key();
 
 	switch (key) {
-		/*case Qt::Key_X:
+		case Qt::Key_X:
 		case Qt::Key_Clear:
 		case Qt::Key_5:
-			transportPlayer();
-			break;*/
+			if (m_controlledPlayer)
+				m_controlledPlayer->exitHiding();
+			break;
 
 		case Qt::Key_Space:
 		case Qt::Key_Insert:
@@ -1190,6 +1222,43 @@ void RpgGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
 /**
  * @brief RpgGame::addCollection
  * @param scene
+ * @param groupLayer
+ * @param renderer
+ */
+
+void RpgGame::addCollection(TiledScene *scene, Tiled::GroupLayer *groupLayer, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(scene);
+	Q_ASSERT(groupLayer);
+
+
+	// %1 -> az összegyűjtendő itemek száma
+
+	if (const QString &str = groupLayer->propertyAsString(QStringLiteral("quest")); !str.isEmpty())
+		q->m_collection.quest = str;
+
+	for (Tiled::Layer *layer : std::as_const(*groupLayer)) {
+		if (Tiled::ImageLayer *tl = layer->asImageLayer()) {
+			int size = tl->hasProperty(QStringLiteral("size")) ?
+						   tl->property(QStringLiteral("size")).toInt() :
+						   0;
+
+			q->m_collection.addImage(layer->id(), tl->imageSource(), size,
+									 tl->propertyAsString(QStringLiteral("displayName")),
+									 tl->propertyAsString(QStringLiteral("help"))
+									 );
+
+		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
+			addCollection(scene, objgroup, renderer);
+		}
+	}
+}
+
+
+
+/**
+ * @brief RpgGame::addCollection
+ * @param scene
  * @param group
  * @param renderer
  */
@@ -1212,8 +1281,6 @@ void RpgGame::addCollection(TiledScene *scene, Tiled::ObjectGroup *group, Tiled:
 
 			QPointF pos = renderer ? renderer->pixelToScreenCoords(object->position()) : object->position();
 			pos += base;
-
-			LOG_CDEBUG("scene") << "   - add" << pos;
 
 			cgr.pos.emplace_back(pos);
 		}
@@ -2158,13 +2225,14 @@ void RpgGame::updateScatterPoints()
 				pos.setY(m_currentScene->height()-pos.y());
 				list.append(pos);
 			}
-
 		}
 	}
 
+	m_scatterSeriesPoints->replace(list);
 	m_scatterSeriesPoints->setColor(QColorConstants::Svg::royalblue);
 	m_scatterSeriesPoints->setMarkerShape(QScatterSeries::MarkerShapeStar);
-	m_scatterSeriesPoints->replace(list);
+	m_scatterSeriesPoints->setMarkerSize(15);
+
 }
 
 
@@ -3312,24 +3380,30 @@ void RpgGame::controlAppeared(RpgActiveIface *iface)
 			&& !it->isForever() && !it->hasExpired())
 		return;
 
+	if (const QString &txt = iface->helperText(iface->isLocked()); !txt.isEmpty()) {
+		if (iface->activeType() == RpgConfig::ControlCollection) {
+			if (m_controlledPlayer && m_controlledPlayer->collectionRq() > m_controlledPlayer->collection())
+				message(txt, true);
+		} else {
+			message(txt, true);
+		}
 
-	if (iface->activeType() == RpgConfig::ControlContainer) {
-		message(tr("Open the chest"), true);
-	} else if (iface->activeType() == RpgConfig::ControlCollection) {
-		if (m_controlledPlayer && m_controlledPlayer->collectionRq() > m_controlledPlayer->collection())
-			message(tr("Collect the item"), true);
-	} else if (iface->activeType() == RpgConfig::ControlGate) {
-		if (iface->isLocked())
-			message(tr("Gate locked, find the key"), true);
-		else
-			message(tr("Open the gate"), true);
-
-	} else if (iface->activeType() == RpgConfig::ControlTeleport) {
-		message(tr("Use the teleport"), true);
+		q->m_controlMessageTimer[type].setRemainingTime(5000);
+		q->m_controlMessages.append(data);
 	}
+}
 
-	q->m_controlMessageTimer[type].setRemainingTime(5000);
-	q->m_controlMessages.append(data);
+
+
+/**
+ * @brief RpgGame::getCollectionImageUrl
+ * @param id
+ * @return
+ */
+
+RpgCollectionData RpgGame::getCollectionImageData(const int &id) const
+{
+	return q->m_collection.get(id);
 }
 
 

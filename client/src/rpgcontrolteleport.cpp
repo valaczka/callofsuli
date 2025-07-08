@@ -29,7 +29,8 @@
 #include <libtiled/objectgroup.h>
 
 
-RpgControlTeleport::RpgControlTeleport(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
+RpgControlTeleport::RpgControlTeleport(RpgGame *game, TiledScene *scene, Tiled::GroupLayer *group, const bool &isHideout,
+									   Tiled::MapRenderer *renderer)
 	: RpgActiveControl<RpgGameData::ControlTeleport,
 	  RpgGameData::ControlTeleportBaseData,
 	  RpgControlTeleportState>(RpgConfig::ControlTeleport)
@@ -45,6 +46,12 @@ RpgControlTeleport::RpgControlTeleport(RpgGame *game, TiledScene *scene, Tiled::
 		{ QStringLiteral("operating"), Operating },
 	};
 
+	if (isHideout) {
+		m_helperText.first = QObject::tr("Hide yourself");
+		m_helperText.second = QObject::tr("Hideout locked, find the key");
+	} else
+		m_helperText.first = QObject::tr("Use the teleport");
+
 	setGame(game);
 	loadFromGroupLayer(game, scene, group, renderer);
 
@@ -52,10 +59,10 @@ RpgControlTeleport::RpgControlTeleport(RpgGame *game, TiledScene *scene, Tiled::
 	m_baseData.o = -1;
 	m_baseData.id = group->id();
 	m_baseData.s = scene->sceneId();
+	m_baseData.hd = isHideout;
 	//m_baseData.lck;
 	//m_baseData.dst = ?
 
-	setIsActive(false);
 	setQuestionLock(false);
 
 	if (group->hasProperty(QStringLiteral("lock"))) {
@@ -65,7 +72,13 @@ RpgControlTeleport::RpgControlTeleport(RpgGame *game, TiledScene *scene, Tiled::
 		setIsLocked(false);
 	}
 
-	onDeactivated();
+	if (isHideout) {
+		setIsActive(true);
+		onActivated();
+	} else {
+		setIsActive(false);
+		onDeactivated();
+	}
 }
 
 

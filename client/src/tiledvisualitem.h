@@ -50,6 +50,7 @@ class TiledVisualItem : public QQuickItem
 	Q_PROPERTY(QUrl source READ source WRITE setSource NOTIFY sourceChanged FINAL)
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
 
+	Q_PROPERTY(QString displayName READ displayName WRITE setDisplayName NOTIFY displayNameChanged FINAL)
 	Q_PROPERTY(bool glowEnabled READ glowEnabled WRITE setGlowEnabled NOTIFY glowEnabledChanged FINAL)
 	Q_PROPERTY(QColor glowColor READ glowColor WRITE setGlowColor NOTIFY glowColorChanged FINAL)
 	Q_PROPERTY(bool overlayEnabled READ overlayEnabled WRITE setOverlayEnabled NOTIFY overlayEnabledChanged FINAL)
@@ -84,6 +85,9 @@ public:
 	TiledQuick::TileLayerItem *layerItem() const;
 	void setLayerItem(TiledQuick::TileLayerItem *newLayerItem);
 
+	QString displayName() const;
+	void setDisplayName(const QString &newDisplayName);
+
 signals:
 	void sourceChanged();
 	void glowEnabledChanged();
@@ -92,6 +96,7 @@ signals:
 	void overlayColorChanged();
 	void sceneChanged();
 	void nameChanged();
+	void displayNameChanged();
 
 private:
 	QUrl m_source;
@@ -102,6 +107,7 @@ private:
 	TiledScene *m_scene = nullptr;
 	QString m_name;
 	TiledQuick::TileLayerItem *m_layerItem = nullptr;
+	QString m_displayName;
 };
 
 #endif // TILEDVISUALITEM_H

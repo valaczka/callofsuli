@@ -45,6 +45,8 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 		{ QStringLiteral("open"), RpgGameData::ControlContainer::ContainerOpen },
 	};
 
+	m_helperText.first = QObject::tr("Open the chest");
+
 	setGame(game);
 	loadFromGroupLayer(game, scene, group, renderer);
 
@@ -70,6 +72,7 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 	} else {
 		setIsLocked(false);
 	}
+
 }
 
 
