@@ -220,8 +220,8 @@ QItemGradient {
 								}
 
 								Qaterial.AppBarButton {
-									icon.source: Qaterial.Icons.bank
-									ToolTip.text: qsTr("Bank")
+									icon.source: Qaterial.Icons.cartOutline
+									ToolTip.text: qsTr("Vásárlás")
 									onClicked: game.marketRequest()
 									icon.width: Qaterial.Style.mediumIcon
 									icon.height: Qaterial.Style.mediumIcon

@@ -61,6 +61,63 @@ void IsometricEntity::setMaxHp(int newMaxHp)
 
 
 
+/**
+ * @brief IsometricEntity::setDestinationPoint
+ * @param polygon
+ */
+
+void IsometricEntity::setDestinationPoint(const QPolygonF &polygon)
+{
+	if (!isAlive())
+		return;
+
+	if (!canSetDestinationPoint()) {
+		clearDestinationPoint();
+		stop();
+		return;
+	}
+
+	if (polygon.size() == 1)
+		return setDestinationPoint(toVect(polygon.first()));
+
+	m_destinationMotor.reset(new TiledPathMotor(polygon));
+	m_destinationPoint.reset();
+}
+
+
+/**
+ * @brief IsometricEntity::setDestinationPoint
+ * @param point
+ */
+
+void IsometricEntity::setDestinationPoint(const cpVect &point)
+{
+	if (!isAlive())
+		return;
+
+	if (!canSetDestinationPoint()) {
+		clearDestinationPoint();
+		stop();
+		return;
+	}
+
+	m_destinationPoint = point;
+	m_destinationMotor.reset();
+}
+
+
+/**
+ * @brief IsometricEntity::clearDestinationPoint
+ */
+
+void IsometricEntity::clearDestinationPoint()
+{
+	m_destinationMotor.reset();
+	m_destinationPoint.reset();
+}
+
+
+
 
 
 /**

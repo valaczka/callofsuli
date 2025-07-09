@@ -1117,7 +1117,12 @@ void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
 		if (!e.enemy || !e.enemy->isAlive())
 			continue;
 
-		if (e.enemy->m_returnPathMotor) {
+
+		if (TiledPathMotor *motor = e.enemy->destinationMotor()) {
+			debugDraw->drawPolygon(motor->polygon(),
+								   QColor::fromRgb(230, 150, 0),
+								   3.);
+		} else if (e.enemy->m_returnPathMotor) {
 			debugDraw->drawPolygon(e.enemy->m_returnPathMotor->path(),
 								   cpBodyGetType(e.enemy->body()) == CP_BODY_TYPE_KINEMATIC ?
 									   QColor::fromRgb(0, 200, 0) :

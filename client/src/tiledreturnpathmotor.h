@@ -48,6 +48,7 @@ public:
 	cpVect basePoint() override;
 
 	void moveBody(TiledObject *body, const cpVect &point, const float &speed);
+	void record(TiledObject *body);
 	void finish(TiledObject *body, AbstractGame::TickTimer *timer);
 
 	QPolygonF path() const;
@@ -64,6 +65,7 @@ public:
 	const std::optional<cpVect> &lastSeenPoint() const;
 	void setLastSeenPoint(const cpVect &newLastSeenPoint);
 	void clearLastSeenPoint();
+
 
 private:
 	void addPoint(const cpVect &point, const float &angle);

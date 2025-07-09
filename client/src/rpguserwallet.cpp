@@ -54,6 +54,33 @@ QJsonObject RpgUserWallet::getJson() const
 }
 
 
+
+
+/**
+ * @brief RpgUserWallet::getBelongsTo
+ * @return
+ */
+
+RpgUserWallet *RpgUserWallet::getBelongsTo() const
+{
+	if (m_market.belongs.isEmpty())
+		return nullptr;
+
+	const auto it = std::find_if(m_walletList->constBegin(),
+								 m_walletList->constEnd(),
+								 [this](RpgUserWallet *w) {
+					return w->market().type == RpgMarket::Skin && w->market().name == m_market.belongs;
+});
+
+	if (it != m_walletList->constEnd())
+		return *it;
+	else
+		return nullptr;
+}
+
+
+
+
 /**
  * @brief RpgUserWallet::market
  * @return
@@ -221,6 +248,9 @@ bool RpgUserWallet::buyable() const
 	if (!s)
 		return false;
 
+	if (!m_market.belongs.isEmpty() && !hasCharacter(m_market.belongs))
+		return false;
+
 	return m_market.rank <= 0 || s->user()->rank().id() >= m_market.rank;
 }
 
@@ -316,8 +346,8 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 
 		if (market.info.value("hasMarket").toBool())
 			list.append(RpgMarketExtendedInfo{
-							QStringLiteral("qrc:/Qaterial/Icons/bank.svg"),
-							tr("Bank")
+							QStringLiteral("qrc:/Qaterial/Icons/cart.svg"),
+							tr("Vásárlási lehetőség")
 						});
 
 	} /*else if (market.type == RpgMarket::Bullet) {
@@ -434,6 +464,38 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgPlayerChara
 	}
 
 	return list;
+}
+
+
+
+/**
+ * @brief RpgUserWallet::hasCharacter
+ * @param character
+ * @param list
+ * @return
+ */
+
+bool RpgUserWallet::hasCharacter(const QString &character, RpgUserWalletList *list) const
+{
+	if (!list)
+		list = m_walletList;
+
+	if (!list) {
+		LOG_CERROR("game") << "Wallet list missing";
+		return false;
+	}
+
+	for (RpgUserWallet *w : *list) {
+		const RpgMarket &m = w->market();
+
+		if (m.type != RpgMarket::Skin)
+			continue;
+
+		if (m.name == character && w->available())
+			return true;
+	}
+
+	return false;
 }
 
 
@@ -768,6 +830,19 @@ void RpgUserWalletList::updateMarket(const RpgWallet &wallet)
 	(*it)->setAmount(wallet.amount);
 	(*it)->setExpiry(wallet.expiry > 0 ? QDateTime::fromSecsSinceEpoch(wallet.expiry) : QDateTime{});
 	emit (*it)->availableChanged();
+}
+
+
+
+/**
+ * @brief RpgUserWalletList::updateAllWalletBuyable
+ */
+
+void RpgUserWalletList::updateAllWalletBuyable()
+{
+	for (RpgUserWallet *w : *this) {
+		emit w->buyableChanged();
+	}
 }
 
 

@@ -28,6 +28,7 @@
 #define ISOMETRICENTITY_H
 
 #include "isometricobject.h"
+#include "tiledpathmotor.h"
 #include <QQmlEngine>
 
 class TiledGame;
@@ -58,6 +59,12 @@ public:
 
 	virtual void updateSprite() = 0;
 
+	void setDestinationPoint(const QPolygonF &polygon);
+	void setDestinationPoint(const cpVect &point);
+	void clearDestinationPoint();
+
+	TiledPathMotor *destinationMotor() const { return m_destinationMotor.get(); }
+
 signals:
 	void hurt();
 	void healed();
@@ -68,6 +75,8 @@ signals:
 protected:
 	virtual void synchronize() override;
 
+	virtual bool canSetDestinationPoint() const { return true; }
+
 	virtual void onAlive() = 0;
 	virtual void onDead() = 0;
 
@@ -75,6 +84,9 @@ protected:
 	int m_hp = 1;
 	int m_maxHp = 1;
 	QStringList m_moveDisabledSpriteList;		// At these sprites move disabled
+
+	std::unique_ptr<TiledPathMotor> m_destinationMotor;
+	std::optional<cpVect> m_destinationPoint;
 };
 
 

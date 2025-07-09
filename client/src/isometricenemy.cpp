@@ -327,8 +327,8 @@ void IsometricEnemy::onShapeContactBegin(cpShape *self, cpShape *other)
 	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
 
 	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
-								dynamic_cast<IsometricPlayer*>(base) :
-								nullptr;
+								  dynamic_cast<IsometricPlayer*>(base) :
+								  nullptr;
 
 
 	if (isBodyShape(self) && player) {
@@ -361,8 +361,8 @@ void IsometricEnemy::onShapeContactEnd(cpShape *self, cpShape *other)
 	const FixtureCategories categories = FixtureCategories::fromInt(cpShapeGetFilter(other).categories);
 
 	IsometricPlayer *player = categories.testFlag(FixtureTarget) || categories.testFlag(FixturePlayerBody) ?
-								dynamic_cast<IsometricPlayer*>(base) :
-								nullptr;
+								  dynamic_cast<IsometricPlayer*>(base) :
+								  nullptr;
 
 
 	if (self == targetCircle() && player) {
@@ -443,12 +443,14 @@ void IsometricEnemy::worldStep()
 		if (!m_player)
 			setPlayer(targetPlayer);
 
-		if (m_returnPathMotor && !m_player->isLocked())
-			m_returnPathMotor->clearLastSeenPoint();
+		const cpVect playerPosition = m_player->bodyPosition();
+
+		/*if (m_returnPathMotor)
+			m_returnPathMotor->clearLastSeenPoint();*/
 
 		if (!m_reachedPlayers.contains(m_player)) {
 			if (m_metric.pursuitSpeed > 0) {		// Pursuit
-				pursuitPoint = m_player->bodyPosition();
+				pursuitPoint = playerPosition;
 			} else {								// No pursuit
 				attackWithoutPursuit = true;
 				stop();
@@ -457,65 +459,143 @@ void IsometricEnemy::worldStep()
 			stop();
 		}
 
+		//if (!m_destinationPoint.has_value() && !m_destinationMotor)
 		rotateToPlayer(m_player);
-		setPlayerDistance(distanceToPointSq(m_player->bodyPosition()));
+
+		setPlayerDistance(distanceToPointSq(playerPosition));
 	} else {
 		if (m_player) {
-			if (m_returnPathMotor) {
+			/*if (m_returnPathMotor) {
 				if (m_player->isLocked())
 					m_returnPathMotor->clearLastSeenPoint();
 				else
 					m_returnPathMotor->setLastSeenPoint(m_player->bodyPosition());
-			}
+			}*/
 
 			setPlayer(nullptr);
 		}
 
-		if (m_returnPathMotor && !m_returnPathMotor->isReturning())
-			pursuitPoint = m_returnPathMotor->lastSeenPoint();
-	}
+		/*if (m_returnPathMotor && !m_returnPathMotor->isReturning())
+			pursuitPoint = m_returnPathMotor->lastSeenPoint();*/
 
+		if (m_destinationPoint.has_value())
+			pursuitPoint = m_destinationPoint;
+		else if (m_destinationMotor && !m_destinationMotor->polygon().isEmpty())
+			pursuitPoint = TiledObjectBody::toVect(m_destinationMotor->polygon().last());
+	}
 
 
 	// Pursuit
 
+	/*if (m_returnPathMotor && m_returnPathMotor->lastSeenPoint())
+		pursuitPoint = m_returnPathMotor->lastSeenPoint().value();*/
 
 	if (pursuitPoint.has_value() && distanceToPointSq(pursuitPoint.value()) < POW2(5.))
 		pursuitPoint = std::nullopt;
 
+	if (!pursuitPoint)
+		clearDestinationPoint();
+
 	if (pursuitPoint.has_value()) {
-		if (!enemyWorldStepOnVisiblePlayer())
+		if (m_player && !enemyWorldStepOnVisiblePlayer())
 			return;
 
 		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
 			return stop();
 
 		const cpVect &dst = pursuitPoint.value();
-		const RayCastInfo &map = rayCast(dst, FixtureGround);
 
-		if (!map.empty() && distanceToPointSq(map.front().point) <= POW2(m_metric.targetCircleRadius)) {
-			stop();
-		} else {
-			if (m_metric.returnSpeed != 0) {
-				if (!m_returnPathMotor)
-					m_returnPathMotor.reset(new TiledReturnPathMotor(bodyPosition()));
 
-				if (m_metric.pursuitSpeed > 0)
-					m_returnPathMotor->moveBody(this, dst, m_metric.pursuitSpeed);
-				else
-					m_returnPathMotor->moveBody(this, dst, m_metric.speed);
-			} else if (m_metric.speed > 0) {
-				if (m_metric.pursuitSpeed > 0)
-					moveTowards(dst, m_metric.pursuitSpeed);
-				else
-					moveTowards(dst, m_metric.speed);
+		bool findPath = true;
+
+		if (m_destinationPoint.has_value() && cpveql(m_destinationPoint.value(), dst))
+			findPath = false;
+		else if (m_destinationMotor && !m_destinationMotor->polygon().isEmpty()) {
+			const QPointF &p = m_destinationMotor->polygon().last();
+			if (p.x() == dst.x && p.y() == dst.y)
+				findPath = false;
+		}
+
+		if (findPath) {
+			if (const auto &ptr = m_game->findShortestPath(this, dst)) {
+				if (ptr->size() == 2) {
+					setDestinationPoint(TiledObjectBody::toVect(ptr->last()));
+				} else  {
+					setDestinationPoint(ptr.value());
+				}
 			} else {
+				setDestinationPoint(dst);
+			}
+		}
+
+
+		if (m_destinationPoint) {
+			const RayCastInfo &map = rayCast(m_destinationPoint.value(), FixtureGround);
+
+			if (!map.empty() && distanceToPointSq(map.front().point) <= POW2(m_metric.targetCircleRadius)) {
+				clearDestinationPoint();
+				stop();
+			}
+		}
+
+		if (m_destinationPoint) {
+			if (m_metric.returnSpeed != 0 && !m_returnPathMotor)
+				m_returnPathMotor.reset(new TiledReturnPathMotor(bodyPosition()));
+
+			bool success = false;
+
+			if (m_metric.speed > 0) {
+				if (m_metric.pursuitSpeed > 0)
+					success = moveTowards(m_destinationPoint.value(), m_metric.pursuitSpeed);
+				else
+					success = moveTowards(m_destinationPoint.value(), m_metric.speed);
+
+				if (success && m_returnPathMotor)
+					m_returnPathMotor->record(this);
+			}
+
+
+			if (!success) {
+				clearDestinationPoint();
 				stop();
 			}
 
 			enemyWorldStep();
 			return;
+
+		} else if (m_destinationMotor) {
+			if (m_metric.returnSpeed != 0 && !m_returnPathMotor)
+				m_returnPathMotor.reset(new TiledReturnPathMotor(bodyPosition()));
+
+			bool success = false;
+
+			if (!m_destinationMotor->atEnd(this) && m_metric.speed > 0) {
+				if (const QPolygonF &polygon = m_destinationMotor->polygon(); !polygon.isEmpty()) {
+					m_destinationMotor->updateBody(this,
+												   m_metric.pursuitSpeed > 0 ? m_metric.pursuitSpeed :
+																			   m_metric.speed,
+												   m_game->tickTimer());
+
+					if (m_returnPathMotor)
+						m_returnPathMotor->record(this);
+
+					success = true;
+				}
+			}
+
+			if (!success) {
+				clearDestinationPoint();
+				stop();
+			}
+
+			enemyWorldStep();
+			return;
+
+		} else {
+			clearDestinationPoint();
+			stop();
 		}
+
 
 	} else if (attackWithoutPursuit) {
 		if (!enemyWorldStepOnVisiblePlayer())
@@ -526,8 +606,10 @@ void IsometricEnemy::worldStep()
 	}
 
 
-	if (m_returnPathMotor && !m_returnPathMotor->isReturning() && !m_returnPathMotor->hasReturned())
+	if (m_returnPathMotor && !m_returnPathMotor->isReturning() && !m_returnPathMotor->hasReturned()) {
 		m_returnPathMotor->finish(this, m_game->tickTimer());
+		clearDestinationPoint();
+	}
 
 	if (enemyWorldStep())
 		stepMotor();

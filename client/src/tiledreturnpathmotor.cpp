@@ -96,12 +96,14 @@ void TiledReturnPathMotor::moveBody(TiledObject *body, const cpVect &point, cons
 {
 	Q_ASSERT(body);
 
+	const cpVect current = body->bodyPosition();
+
 	if (m_isReturning) {
 		m_isReturning = false;
 		m_waitEnd = 0;
 
 		if (m_path.size() > 1) {
-			const int last = TiledPathMotor::getShortestSegment(m_path, body->bodyPosition());
+			const int last = TiledPathMotor::getShortestSegment(m_path, current);
 
 			if (last != -1)
 				TiledPathMotor::clearFromSegment(&m_path, last+1);
@@ -113,13 +115,52 @@ void TiledReturnPathMotor::moveBody(TiledObject *body, const cpVect &point, cons
 
 	m_hasReturned = false;
 
+	const auto &angle = body->angleToPoint(point);
 	body->moveTowards(point, speed);
 
-	addPoint(body->bodyPosition(), body->angleToPoint(point));
+	addPoint(current, angle);
 }
 
 
 
+
+
+/**
+ * @brief TiledReturnPathMotor::record
+ * @param body
+ */
+
+void TiledReturnPathMotor::record(TiledObject *body)
+{
+	Q_ASSERT(body);
+
+	const cpVect current = body->bodyPosition();
+
+	if (m_isReturning) {
+		m_isReturning = false;
+		m_waitEnd = 0;
+
+		if (m_path.size() > 1) {
+			const int last = TiledPathMotor::getShortestSegment(m_path, current);
+
+			if (last != -1)
+				TiledPathMotor::clearFromSegment(&m_path, last+1);
+		}
+
+		if (m_pathMotor)
+			m_pathMotor.reset();
+	}
+
+	m_hasReturned = false;
+
+	if (m_path.size() < 1) {
+		addPoint(current, body->currentAngle());
+		return;
+	}
+
+	const auto &angle = cpvtoangle(cpvsub(current, TiledObjectBody::toVect(m_path.last())));
+	addPoint(current, angle);
+}
 
 
 

@@ -69,6 +69,8 @@ public:
 
 	Q_INVOKABLE QJsonObject getJson() const;
 
+	Q_INVOKABLE RpgUserWallet *getBelongsTo() const;
+
 	RpgMarket market() const;
 	void setMarket(const RpgMarket &newMarket);
 
@@ -116,6 +118,8 @@ private:
 	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgGameDefinition &def);
 	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgMarket &market);
 	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgPlayerCharacterConfig &player);
+
+	bool hasCharacter(const QString &character, RpgUserWalletList *list = nullptr) const;
 
 	RpgMarket m_market;
 	int m_amount = 0;
@@ -231,6 +235,7 @@ private:
 	void loadWallet(const QJsonObject &json);
 	void updateMarket(const RpgMarket &market);
 	void updateMarket(const RpgWallet &wallet);
+	void updateAllWalletBuyable();
 	void removeMissing(const QVector<RpgMarket> &list);
 
 	int m_currency = 0;

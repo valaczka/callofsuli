@@ -71,7 +71,7 @@ Qaterial.Card {
 			anchors.top: parent.top
 			anchors.left: parent.left
 
-			Image
+			AnimatedImage
 			{
 				id: _image
 				source: wallet ? wallet.image : ""

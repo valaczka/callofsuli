@@ -200,8 +200,6 @@ private:
 		}
 	}
 
-	std::unique_ptr<TiledPathMotor> m_destinationMotor;
-	std::optional<cpVect> m_destinationPoint;
 	IsometricPlayer *const m_player;
 
 	friend class IsometricPlayer;
@@ -446,10 +444,7 @@ void IsometricPlayer::clearData()
  * @return
  */
 
-TiledPathMotor *IsometricPlayer::destinationMotor() const
-{
-	return d->m_destinationMotor.get();
-}
+
 
 
 
@@ -583,25 +578,25 @@ void IsometricPlayer::worldStep() {
 	} else if (!hasAbility()) {
 		stop();
 	} else {
-		if (d->m_destinationPoint) {
-			if (!moveTowardsLimited(d->m_destinationPoint.value(), m_speedLength, m_speedRunLength*0.5, m_speedRunLength)) {
+		if (m_destinationPoint) {
+			if (!moveTowardsLimited(m_destinationPoint.value(), m_speedLength, m_speedRunLength*0.5, m_speedRunLength)) {
 				stop();
-				emplace(d->m_destinationPoint.value());
+				emplace(m_destinationPoint.value());
 				clearDestinationPoint();
 				atDestinationPointEvent();
 			}
-		} else if (d->m_destinationMotor) {
-			if (d->m_destinationMotor->atEnd(this)) {
+		} else if (m_destinationMotor) {
+			if (m_destinationMotor->atEnd(this)) {
 				stop();
 				clearDestinationPoint();
 				atDestinationPointEvent();
-			} else if (const QPolygonF &polygon = d->m_destinationMotor->polygon(); !polygon.isEmpty()) {
+			} else if (const QPolygonF &polygon = m_destinationMotor->polygon(); !polygon.isEmpty()) {
 				const float distance = distanceToPointSq(polygon.last());
 
 				if (distance >= POW2(m_speedRunLength*0.5)) {				// Hogy a végén szépen lassan gyalogoljon csak
-					d->m_destinationMotor->updateBody(this, m_speedRunLength, m_game->tickTimer());
+					m_destinationMotor->updateBody(this, m_speedRunLength, m_game->tickTimer());
 				} else {
-					d->m_destinationMotor->updateBody(this, m_speedLength, m_game->tickTimer());
+					m_destinationMotor->updateBody(this, m_speedLength, m_game->tickTimer());
 				}
 			} else {
 				stop();
@@ -634,6 +629,17 @@ void IsometricPlayer::synchronize()
 			m_enemy->setGlowEnabled(true);
 		}
 	}
+}
+
+
+/**
+ * @brief IsometricPlayer::canSetDestinationPoint
+ * @return
+ */
+
+bool IsometricPlayer::canSetDestinationPoint() const
+{
+	return !m_isLocked;
 }
 
 
@@ -723,23 +729,7 @@ void IsometricPlayer::onJoystickStateChanged(const TiledGame::JoystickState &sta
  * @param polygon
  */
 
-void IsometricPlayer::setDestinationPoint(const QPolygonF &polygon)
-{
-	if (!isAlive())
-		return;
 
-	if (m_isLocked) {
-		clearDestinationPoint();
-		stop();
-		return;
-	}
-
-	if (polygon.size() == 1)
-		return setDestinationPoint(toVect(polygon.first()));
-
-	d->m_destinationMotor.reset(new TiledPathMotor(polygon));
-	d->m_destinationPoint.reset();
-}
 
 
 
@@ -748,31 +738,14 @@ void IsometricPlayer::setDestinationPoint(const QPolygonF &polygon)
  * @param point
  */
 
-void IsometricPlayer::setDestinationPoint(const cpVect &point)
-{
-	if (!isAlive())
-		return;
 
-	if (m_isLocked) {
-		clearDestinationPoint();
-		stop();
-		return;
-	}
-
-	d->m_destinationPoint = point;
-	d->m_destinationMotor.reset();
-}
 
 
 /**
  * @brief IsometricPlayer::clearDestinationPoint
  */
 
-void IsometricPlayer::clearDestinationPoint()
-{
-	d->m_destinationMotor.reset();
-	d->m_destinationPoint.reset();
-}
+
 
 
 

@@ -59,10 +59,6 @@ public:
 
 	void onJoystickStateChanged(const TiledGame::JoystickState &state);
 
-	void setDestinationPoint(const QPolygonF &polygon);
-	void setDestinationPoint(const cpVect &point);
-	void clearDestinationPoint();
-
 	void initialize();
 	void setVirtualCircle(const bool &on = true);
 	bool hasAbility();
@@ -106,6 +102,8 @@ protected:
 
 	virtual void synchronize() override;
 
+	virtual bool canSetDestinationPoint() const override;
+
 	virtual void load() = 0;
 	virtual void onEnemyReached(IsometricEnemy *enemy) = 0;
 	virtual void onEnemyLeft(IsometricEnemy *enemy) = 0;
@@ -125,7 +123,6 @@ protected:
 
 private:
 	void clearData();
-	TiledPathMotor *destinationMotor() const;
 
 	cpVect m_currentVelocity;
 

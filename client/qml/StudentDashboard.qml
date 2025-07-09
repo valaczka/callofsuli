@@ -274,9 +274,9 @@ QItemGradient {
 
 
 			QDashboardButton {
-				text: qsTr("Bank")
+				text: qsTr("Vásárlás")
 				visible: !_grid.showPlaceholders
-				icon.source: Qaterial.Icons.bank
+				icon.source: Qaterial.Icons.cartOutline
 				highlighted: false
 				outlined: true
 				flat: true

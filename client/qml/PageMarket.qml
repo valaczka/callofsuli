@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import SortFilterProxyModel
 import CallOfSuli
 import Qaterial as Qaterial
@@ -11,7 +12,7 @@ QPageGradient {
 
 	property ActionRpgGame game: null
 
-	title: qsTr("Bank")
+	title: qsTr("Vásárlás")
 
 	progressBarEnabled: true
 
@@ -246,88 +247,146 @@ QPageGradient {
 			title: _isBuy ? qsTr("Vásárlás: %1").arg(_currentWallet.readableName)
 						  : qsTr("Információk: %1").arg(_currentWallet.readableName)
 
-			dialogImplicitWidth: Math.max(450, Math.min(350, _image.implicitWidth) * 2)
+			dialogImplicitWidth: 600
 			autoFocusButtons: true
 
-			contentItem: Item
+
+			contentItem: Flickable
 			{
-				id: _dialogRow
+				id: _flickable2
 
-				readonly property real spacing: 10 * Qaterial.Style.pixelSizeRatio
+				implicitHeight: Math.max(250, _layout.implicitHeight)
+				interactive: contentHeight > height
 
-				implicitWidth: 100
-				implicitHeight: Math.max(Math.min(350, _image.implicitHeight), 250)
+				contentHeight: _layout.height
+				flickableDirection: Flickable.VerticalFlick
 
-				Image
-				{
-					id: _image
-					source: _currentWallet.image
-					fillMode: Image.PreserveAspectFit
-					horizontalAlignment: Image.AlignHCenter
-					verticalAlignment: Image.AlignVCenter
-					anchors.left: parent.left
-					anchors.verticalCenter: parent.verticalCenter
-					width: Math.min((_dialogRow.width-_dialogRow.spacing)/2, sourceSize.width)
-					height: Math.min(_dialogRow.height, sourceSize.height)
-				}
+				boundsBehavior: Flickable.StopAtBounds
+				boundsMovement: Flickable.StopAtBounds
 
-				Column {
-					anchors.left: _image.right
-					anchors.leftMargin: _dialogRow.spacing
-					anchors.right: parent.right
-					anchors.verticalCenter: parent.verticalCenter
+				ScrollIndicator.vertical: Qaterial.ScrollIndicator {}
 
-					Repeater {
-						id: _rptr
+				clip: true
 
-						delegate: Row {
-							id: _rw
-							spacing: 5 * Qaterial.Style.pixelSizeRatio
-							width: parent.width
+				GridLayout {
+					id: _layout
+					columns: root.width > root.height && root.width > _col2.implicitWidth + 100 ? 2 : 1
+					columnSpacing: 10 * Qaterial.Style.pixelSizeRatio
+					rowSpacing: 5 * Qaterial.Style.pixelSizeRatio
 
-							required property string text
-							required property font font
-							required property string value
-							required property string icon
-							required property color color
-							required property string image
-							required property int imageSize
+					width: _flickable2.width
+					height: Math.max(implicitHeight, _flickable2.height)
 
-							Qaterial.IconLabel {
-								id: _icon
-								icon.source: _rw.icon
-								text: _rw.text
-								color: Qaterial.Style.secondaryTextColor()
-								wrapMode: Text.Wrap
-								anchors.verticalCenter: parent.verticalCenter
-							}
+					/*Binding on implicitHeight
+					{
+						value: (_layout.columns > 1 ? Math.max(_image.implicitHeight, _text2.implicitHeight)
+													: _image.implicitHeight + _text2.implicitHeight + _layout.rowSpacing)
 
-							Qaterial.Label {
-								id: _label
-								font: _rw.font
-								text: _rw.value
-								width: Math.min(implicitWidth,
-												_rw.width - _rw.spacing - _icon.width
-												- (_rw.image != "" ? _image2.width + _rw.spacing : 0))
-								wrapMode: Text.Wrap
-								color: _rw.color
-								anchors.verticalCenter: parent.verticalCenter
-							}
+						delayed: true
+					}*/
 
-							Image {
-								id: _image2
-								source: _rw.image
-								fillMode: Image.PreserveAspectFit
-								height: _rw.imageSize > 0 ? _rw.imageSize : _rw.font.pixelSize * 0.8
-								width: height
 
-								anchors.verticalCenter: parent.verticalCenter
+					Item
+					{
+						//id: _image
+
+						Layout.fillWidth: true
+						Layout.fillHeight: true
+
+						Layout.maximumWidth: _layout.width / _layout.columns
+						Layout.maximumHeight: 300
+
+						implicitHeight: _img.sourceSize.height
+						implicitWidth: _img.sourceSize.width
+
+						AnimatedImage {
+							id: _img
+
+							source: _currentWallet.image
+							fillMode: Image.PreserveAspectFit
+							horizontalAlignment: Image.AlignHCenter
+							verticalAlignment: Image.AlignVCenter
+
+							anchors.centerIn: parent
+
+							width: Math.min(parent.width, sourceSize.width)
+							height: Math.min(parent.height, sourceSize.height)
+						}
+					}
+
+					Item {
+						id: _text2
+
+						Layout.fillWidth: true
+						Layout.fillHeight: false
+						Layout.alignment: Qt.AlignCenter
+
+						implicitWidth: _col2.width
+						implicitHeight: _col2.height
+
+						Column {
+							id: _col2
+
+							anchors.centerIn: parent
+
+							Repeater {
+								id: _rptr
+
+								delegate: Row {
+									id: _rw
+									spacing: 5 * Qaterial.Style.pixelSizeRatio
+									//width: Math.min(parent.width)
+
+									required property string text
+									required property font font
+									required property string value
+									required property string icon
+									required property color color
+									required property string image
+									required property int imageSize
+
+									Qaterial.IconLabel {
+										id: _icon
+										icon.source: _rw.icon
+										text: _rw.text
+										color: Qaterial.Style.secondaryTextColor()
+										wrapMode: Text.Wrap
+										anchors.verticalCenter: parent.verticalCenter
+									}
+
+
+									Qaterial.Label {
+										id: _label
+										font: _rw.font
+										text: _rw.value
+										width: Math.min(implicitWidth,
+														_text2.width - _rw.spacing - _icon.width
+														- (_rw.image != "" ? _image2.width + _rw.spacing : 0))
+										wrapMode: Text.Wrap
+										color: _rw.color
+										anchors.verticalCenter: parent.verticalCenter
+									}
+
+									Image {
+										id: _image2
+										source: _rw.image
+										fillMode: Image.PreserveAspectFit
+										height: _rw.imageSize > 0 ? _rw.imageSize : _rw.font.pixelSize * 0.8
+										width: height
+
+										visible: source != ""
+
+										anchors.verticalCenter: parent.verticalCenter
+									}
+
+								}
 							}
 						}
 					}
 				}
-
 			}
+
+
 
 			Component.onCompleted: {
 				let list = []
@@ -413,6 +472,22 @@ QPageGradient {
 									  color: Qaterial.Colors.cyan400,
 									  image: "qrc:/internal/rank/"+r.level+".svg",
 									  imageSize: Qaterial.Style.textTheme.body1.pixelSize * 1.1
+								  })
+					}
+				}
+
+				if (_currentWallet.market.belongs !== "") {
+					let bw = _currentWallet.getBelongsTo()
+
+					if (bw) {
+						list.push({
+									  icon: Qaterial.Icons.account,
+									  text: qsTr("Karakter:"),
+									  font: Qaterial.Style.textTheme.body1,
+									  value: bw.readableName,
+									  color: Qaterial.Colors.cyan400,
+									  image: "",
+									  imageSize: 0
 								  })
 					}
 				}

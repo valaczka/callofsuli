@@ -295,6 +295,7 @@ public:
 
 	QS_FIELD(int, cost)
 	QS_FIELD(int, rank)
+	QS_FIELD(QString, belongs)				// belongs to a character (with base of)
 
 	QS_FIELD(int, amount)
 
