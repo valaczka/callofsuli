@@ -109,6 +109,15 @@ private:
 
 
 
+	enum EnemyWatchedEvent {
+		EnemyWatchedHit,
+		EnemyWatchedShot,
+		EnemyWatchedControl,
+	};
+
+	void updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEvent &event);
+
+
 	/**
 	 * @brief The CollectionPrivate class
 	 */
@@ -206,7 +215,7 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 
 	for (auto &e : m_enemyDataList) {
-		Q_ASSERT(!e.path.isEmpty());
+		Q_ASSERT(!e.motor.path.isEmpty());
 
 		// Replace pickables if character has no cast
 
@@ -233,10 +242,10 @@ bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
 
 		enemy->createMarkerItem(QStringLiteral("qrc:/TiledEnemyMarker.qml"));
 
-		if (e.path.size() > 1)
-			enemy->loadPathMotor(e.path);
+		if (e.motor.path.size() > 1)
+			enemy->loadPathMotor(e.motor.path);
 		else
-			enemy->loadFixPositionMotor(e.path.first(),
+			enemy->loadFixPositionMotor(e.motor,
 										enemy->nearestDirectionFromRadian(TiledObject::toRadian(e.defaultAngle)));
 
 
@@ -549,6 +558,10 @@ bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveIface *control)
 		messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
 		return false;
 	}
+
+
+	q->updatePlayerWatched(player, RpgGamePrivate::EnemyWatchedControl);
+
 
 	if (ActionRpgGame *a = actionRpgGame())
 		return a->onPlayerUseControl(player, control);
@@ -1111,7 +1124,7 @@ void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
 		return;
 
 	for (const auto &e : m_enemyDataList) {
-		if (e.scene != scene || e.path.isEmpty())
+		if (e.scene != scene || e.motor.path.isEmpty())
 			continue;
 
 		if (!e.enemy || !e.enemy->isAlive())
@@ -1128,10 +1141,10 @@ void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
 									   QColor::fromRgb(0, 200, 0) :
 									   QColor::fromRgb(230, 0, 200),
 								   3.);
-		} else if (e.path.size() > 1) {
-			debugDraw->drawPolygon(e.path, QColor::fromRgb(230, 0, 0), 3.);
+		} else if (e.motor.path.size() > 1) {
+			debugDraw->drawPolygon(e.motor.path, QColor::fromRgb(230, 0, 0), 3.);
 		} else
-			debugDraw->drawSolidCircle(e.path.first(), 3., QColor::fromRgb(230, 0, 0));
+			debugDraw->drawSolidCircle(e.motor.path.first(), 3., QColor::fromRgb(230, 0, 0));
 	}
 
 
@@ -1537,6 +1550,9 @@ void RpgGame::setActionRpgGame(ActionRpgGame *game)
 bool RpgGame::playerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle)
 {
 	Q_ASSERT(q);
+
+	q->updatePlayerWatched(player, RpgGamePrivate::EnemyWatchedShot);
+
 	if (q->m_action)
 		return q->m_action->onPlayerShot(player, weapon, angle);
 	else
@@ -1556,6 +1572,10 @@ bool RpgGame::playerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angl
 bool RpgGame::playerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon)
 {
 	Q_ASSERT(q);
+
+	if (enemy)
+		q->updatePlayerWatched(player, RpgGamePrivate::EnemyWatchedHit);
+
 	if (q->m_action)
 		return q->m_action->onPlayerHit(player, enemy, weapon);
 	else
@@ -1574,6 +1594,7 @@ bool RpgGame::playerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon)
 bool RpgGame::playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType)
 {
 	Q_ASSERT(q);
+
 	if (q->m_action)
 		return q->m_action->onPlayerAttackEnemy(player, enemy, weaponType);
 	else
@@ -1592,6 +1613,7 @@ bool RpgGame::playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGam
 bool RpgGame::enemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon)
 {
 	Q_ASSERT(q);
+
 	if (q->m_action)
 		return q->m_action->onEnemyHit(enemy, player, weapon);
 	else
@@ -1611,6 +1633,7 @@ bool RpgGame::enemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon)
 bool RpgGame::enemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle)
 {
 	Q_ASSERT(q);
+
 	if (q->m_action)
 		return q->m_action->onEnemyShot(enemy, weapon, angle);
 	else
@@ -1793,13 +1816,52 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 		pickableOnceList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickableOnce")).toString());
 	}
 
+	const int &defaultAngle = object->property(QStringLiteral("direction")).toInt();
+
+	EnemyMotorData motor;
+
+	motor.path = p;
+
+	if (object->hasProperty(QStringLiteral("rotateFrom")) ||
+			object->hasProperty(QStringLiteral("range"))) {
+
+		motor.rotation = true;
+
+		if (object->hasProperty(QStringLiteral("range"))) {
+			const int range = object->property(QStringLiteral("range")).toInt() * 0.5;
+			motor.from = defaultAngle - range;
+			motor.to = defaultAngle + range;
+			motor.direction = TiledRotationMotor::DirectionCCW;
+		} else {
+			motor.from = object->property(QStringLiteral("rotateFrom")).toFloat();
+
+			if (object->hasProperty(QStringLiteral("rotateTo")))
+				motor.to = object->property(QStringLiteral("rotateTo")).toFloat();
+			else
+				motor.to = motor.from;
+
+			if (object->hasProperty(QStringLiteral("cw")))
+				motor.direction = object->property(QStringLiteral("cw")).toBool() ? TiledRotationMotor::DirectionCW : TiledRotationMotor::DirectionCCW;
+
+			if (object->hasProperty(QStringLiteral("ccw")))
+				motor.direction = object->property(QStringLiteral("ccw")).toBool() ? TiledRotationMotor::DirectionCCW : TiledRotationMotor::DirectionCW;
+		}
+
+		if (object->hasProperty(QStringLiteral("steps")))
+			motor.steps = object->property(QStringLiteral("steps")).toInt();
+
+		if (object->hasProperty(QStringLiteral("msec")))
+			motor.wait = object->property(QStringLiteral("msec")).toInt();
+	}
+
+
 
 	m_enemyDataList.append(EnemyData{
 							   TiledObject::ObjectId{.sceneId = scene->sceneId(), .id = object->id()},
 							   type,
 							   object->name(),
-							   p,
-							   object->property(QStringLiteral("direction")).toInt(),
+							   motor,
+							   defaultAngle,
 							   scene,
 							   nullptr,
 							   object->property(QStringLiteral("dieForever")).toBool(),
@@ -2176,7 +2238,8 @@ void RpgGame::updateScatterPlayers()
 
 
 	for (const RpgPlayer *p : m_players) {
-		if (!p || p->scene() != m_currentScene || !p->isAlive() || !p->isDiscoverable())
+		if (!p || p->scene() != m_currentScene || !p->isAlive() ||
+				p->isHiding() || (p->config().cast == RpgPlayerCharacterConfig::CastInvisible && p->castTimerActive()))
 			continue;
 
 		QPointF pos = p->bodyPositionF();
@@ -3426,3 +3489,39 @@ void RpgGame::setScatterSeriesPoints(QScatterSeries *newScatterSeriesPoints)
 	emit scatterSeriesPointsChanged();
 }
 
+
+
+
+/**
+ * @brief RpgGamePrivate::updatePlayerWatched
+ * @param player
+ * @param event
+ */
+
+void RpgGamePrivate::updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEvent &event)
+{
+	if (!player)
+		return;
+
+	if (player->config().features == RpgPlayerCharacterConfig::FeatureInvalid)
+		return;
+
+	for (const RpgGame::EnemyData &ed : d->m_enemyDataList) {
+		RpgEnemy *enemy = qobject_cast<RpgEnemy*>(ed.enemy);
+
+		if (!enemy)
+			continue;
+
+		if (enemy->isWatchingPlayer(player)) {
+			LOG_CWARNING("game") << "ENEMY WATCHED" << enemy << player << event;
+
+			RpgPlayerCharacterConfig config = player->config();
+			config.features.setFlag(RpgPlayerCharacterConfig::FeatureCamouflage, false);
+			config.features.setFlag(RpgPlayerCharacterConfig::FeatureFreeWalk, false);
+			config.features.setFlag(RpgPlayerCharacterConfig::FeatureLockEnemy, false);
+			player->setConfig(config);
+
+			return;
+		}
+	}
+}

@@ -171,6 +171,8 @@ public:
 	static QVector2D toVector2D(const cpVect &vect);
 	static cpVect toVect(const QPointF &point);
 	static cpVect toVect(const QVector2D &point);
+	static float normalizeFromRadian(const float &radian);
+	static float normalizeToRadian(const float &normal);
 
 	cpSpace *space() const;
 	TiledScene *scene() const;

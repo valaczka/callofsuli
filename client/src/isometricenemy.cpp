@@ -62,7 +62,7 @@ void IsometricEnemy::initialize()
 	if (m_metric.targetCircleRadius <= 0)
 		m_metric.targetCircleRadius = 50.;
 
-	setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange, FixtureTarget);
+	setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange, FixtureTarget|FixturePlayerBody);
 	addTargetCircle(m_metric.targetCircleRadius);
 
 	createVisual();
@@ -289,6 +289,21 @@ void IsometricEnemy::stepMotor()
 
 
 
+/**
+ * @brief IsometricEnemy::featureOverride
+ * @param feature
+ * @return true if the feature has overidden
+ */
+
+bool IsometricEnemy::featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const
+{
+	Q_UNUSED(feature);
+	Q_UNUSED(player);
+	return false;
+}
+
+
+
 
 
 
@@ -336,7 +351,7 @@ void IsometricEnemy::onShapeContactBegin(cpShape *self, cpShape *other)
 			m_reachedPlayers.append(player);
 			eventPlayerReached(player);
 		}
-	} else if (sensorPolygon() == self && player) {
+	} else if (sensorPolygon() == self && player && player->isBodyShape(other)) {
 		if (!m_contactedPlayers.contains(player)) {
 			m_contactedPlayers.append(player);
 			eventPlayerContacted(player);
@@ -407,21 +422,23 @@ void IsometricEnemy::worldStep()
 
 	IsometricPlayer *targetPlayer = nullptr;
 
-	if (m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive() && !m_player->isLocked() && m_player->isDiscoverable()) {
-		if (rayCast(m_player->bodyPosition(), FixturePlayerBody).isVisible(m_player)) {
+	if (m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive() && !m_player->isLocked()) {
+		if (rayCast(m_player->bodyPosition(), FixturePlayerBody).isVisible(m_player) && !featureOverride(FeatureVisibility, m_player)) {
 			targetPlayer = m_player;
 		}
-	} else {
+	}
+
+	if (!targetPlayer) {
 		QMap<float, IsometricPlayer *> pMap;
 
 		for (IsometricPlayer *p : m_contactedPlayers) {
-			if (!p || !p->isAlive() || p->isLocked() || !p->isDiscoverable())
+			if (!p || !p->isAlive() || p->isLocked())
 				continue;
 
 			const RayCastInfo &info = rayCast(p->bodyPosition(), FixturePlayerBody);
 
 			for (const RayCastInfoItem &item : info) {
-				if (TiledObjectBody::fromShapeRef(item.shape) == p && item.visible)
+				if (TiledObjectBody::fromShapeRef(item.shape) == p && item.visible && !featureOverride(FeatureVisibility, p))
 					pMap.insert(distanceToPointSq(item.point), p);
 			}
 		}
@@ -445,38 +462,28 @@ void IsometricEnemy::worldStep()
 
 		const cpVect playerPosition = m_player->bodyPosition();
 
-		/*if (m_returnPathMotor)
-			m_returnPathMotor->clearLastSeenPoint();*/
-
 		if (!m_reachedPlayers.contains(m_player)) {
-			if (m_metric.pursuitSpeed > 0) {		// Pursuit
+			if (featureOverride(FeatureDisablePursuit, m_player)) {
+				stop();
+			} else if (featureOverride(FeaturePursuit, m_player)) {
 				pursuitPoint = playerPosition;
-			} else {								// No pursuit
+			} else if (featureOverride(FeatureAttackNotReached, m_player)) {
 				attackWithoutPursuit = true;
 				stop();
+			} else if (m_metric.pursuitSpeed != 0) {		// Pursuit
+				pursuitPoint = playerPosition;
 			}
 		} else {
 			stop();
 		}
 
-		//if (!m_destinationPoint.has_value() && !m_destinationMotor)
-		rotateToPlayer(m_player);
+		if (!featureOverride(FeatureRotate, m_player))
+			rotateToPlayer(m_player);
 
 		setPlayerDistance(distanceToPointSq(playerPosition));
 	} else {
-		if (m_player) {
-			/*if (m_returnPathMotor) {
-				if (m_player->isLocked())
-					m_returnPathMotor->clearLastSeenPoint();
-				else
-					m_returnPathMotor->setLastSeenPoint(m_player->bodyPosition());
-			}*/
-
+		if (m_player)
 			setPlayer(nullptr);
-		}
-
-		/*if (m_returnPathMotor && !m_returnPathMotor->isReturning())
-			pursuitPoint = m_returnPathMotor->lastSeenPoint();*/
 
 		if (m_destinationPoint.has_value())
 			pursuitPoint = m_destinationPoint;
@@ -487,9 +494,6 @@ void IsometricEnemy::worldStep()
 
 	// Pursuit
 
-	/*if (m_returnPathMotor && m_returnPathMotor->lastSeenPoint())
-		pursuitPoint = m_returnPathMotor->lastSeenPoint().value();*/
-
 	if (pursuitPoint.has_value() && distanceToPointSq(pursuitPoint.value()) < POW2(5.))
 		pursuitPoint = std::nullopt;
 
@@ -497,7 +501,7 @@ void IsometricEnemy::worldStep()
 		clearDestinationPoint();
 
 	if (pursuitPoint.has_value()) {
-		if (m_player && !enemyWorldStepOnVisiblePlayer())
+		if (m_player && attackWithoutPursuit && !enemyWorldStepNotReachedPlayer())
 			return;
 
 		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
@@ -598,7 +602,7 @@ void IsometricEnemy::worldStep()
 
 
 	} else if (attackWithoutPursuit) {
-		if (!enemyWorldStepOnVisiblePlayer())
+		if (!enemyWorldStepNotReachedPlayer())
 			return;
 
 		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
@@ -659,18 +663,34 @@ void IsometricEnemyIface::loadPathMotor(const QPolygonF &polygon, const TiledPat
  * @param defaultAngle
  */
 
-void IsometricEnemyIface::loadFixPositionMotor(const QPointF &point, const TiledObject::Direction &direction)
+void IsometricEnemyIface::loadFixPositionMotor(const TiledGame::EnemyMotorData &data, const TiledObject::Direction &direction)
 {
 	Q_ASSERT(!m_motor.get());
+	Q_ASSERT(!data.path.isEmpty());
 
-	TiledFixPositionMotor *motor = new TiledFixPositionMotor;
+	if (data.rotation) {
+		TiledRotationMotor *motor = new TiledRotationMotor;
 
-	motor->setPoint(TiledObject::toVect(point));
-	motor->setDirection(direction);
+		motor->setPoint(TiledObject::toVect(data.path.first()));
+		motor->setFrom(data.from);
+		motor->setTo(data.to);
+		motor->setDirection(data.direction);
+		motor->setSteps(data.steps);
+		motor->setWaitMs(data.wait);
 
-	m_motor.reset(motor);
+		m_motor.reset(motor);
 
-	onPathMotorLoaded(AbstractTiledMotor::FixPositionMotor);
+		onPathMotorLoaded(AbstractTiledMotor::RotationMotor);
+	} else {
+		TiledFixPositionMotor *motor = new TiledFixPositionMotor;
+
+		motor->setPoint(TiledObject::toVect(data.path.first()));
+		motor->setDirection(direction);
+
+		m_motor.reset(motor);
+
+		onPathMotorLoaded(AbstractTiledMotor::FixPositionMotor);
+	}
 }
 
 

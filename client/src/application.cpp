@@ -58,6 +58,7 @@
 #include "testgame.h"
 #include "rpggame.h"
 #include "tileddebugdraw.h"
+#include "tiledeffectfog.h"
 #include "tiledobject.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
@@ -435,6 +436,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<StudentMapList>("CallOfSuli", 1, 0, "StudentMapList");
 	qmlRegisterType<Task>("CallOfSuli", 1, 0, "Task");
 	qmlRegisterType<TaskList>("CallOfSuli", 1, 0, "TaskList");
+	qmlRegisterType<TiledEffectFog>("CallOfSuli", 1, 0, "TiledEffectFogImpl");
 	qmlRegisterType<TeacherExam>("CallOfSuli", 1, 0, "TeacherExam");
 	qmlRegisterType<TeacherGroup>("CallOfSuli", 1, 0, "TeacherGroup");
 	qmlRegisterType<TeacherGroupCampaignResultModel>("CallOfSuli", 1, 0, "TeacherGroupCampaignResultModel");

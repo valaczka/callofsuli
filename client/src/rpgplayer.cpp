@@ -925,16 +925,6 @@ void RpgPlayer::setMaxMp(int newMaxMp)
 
 
 
-/**
- * @brief RpgPlayer::isDiscoverable
- * @return
- */
-
-bool RpgPlayer::isDiscoverable() const
-{
-	return !m_hidingObject.isValid() && !(m_config.cast == RpgPlayerCharacterConfig::CastInvisible && m_castTimer.isActive());
-}
-
 
 /**
  * @brief RpgPlayer::worldStep

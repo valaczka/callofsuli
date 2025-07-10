@@ -819,6 +819,7 @@ void TiledGame::loadImageLayer(TiledScene *, Tiled::ImageLayer *, Tiled::MapRend
 void TiledGame::timerEvent(QTimerEvent */*event*/)
 {
 	updateStepTimer();
+	emit gameSynchronized();
 }
 
 
@@ -2605,8 +2606,8 @@ cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *, cpDataPointer
 
 	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
 
-	TiledObjectBody *bodyA = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA));
-	TiledObjectBody *bodyB = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB));
+	TiledObjectBody *bodyA = TiledObjectBody::fromShapeRef(shapeA);
+	TiledObjectBody *bodyB = TiledObjectBody::fromShapeRef(shapeB);
 
 	if (!bodyA || !bodyB || bodyA->isAboutToDestruction() || bodyB->isAboutToDestruction())
 		return true;
@@ -2633,8 +2634,8 @@ void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *, cpDataPointer)
 
 	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
 
-	TiledObjectBody *bodyA = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeA));
-	TiledObjectBody *bodyB = TiledObjectBody::fromBodyRef(cpShapeGetBody(shapeB));
+	TiledObjectBody *bodyA = TiledObjectBody::fromShapeRef(shapeA);
+	TiledObjectBody *bodyB = TiledObjectBody::fromShapeRef(shapeB);
 
 	if (!bodyA || !bodyB || bodyA->isAboutToDestruction() || bodyB->isAboutToDestruction())
 		return;

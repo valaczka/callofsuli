@@ -239,8 +239,15 @@ bool RpgEnemy::enemyWorldStep()
 		if (!hasAbility())
 			return false;
 
-		if (m_player->isLocked() || !m_player->isDiscoverable())
+		if (m_player->isLocked() || featureOverride(FeatureVisibility, m_player))
 			return false;
+
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
+			return false;
+
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
+			return true;
+
 
 		if (m_game->tickTimer()) {
 			if (m_autoHitTimer >= 0 && m_autoHitTimer <= m_game->tickTimer()->currentTick()) {
@@ -255,6 +262,12 @@ bool RpgEnemy::enemyWorldStep()
 		return false;
 	} else {
 		m_autoHitTimer = -1;
+
+		if (m_player && !(m_player->isLocked() || featureOverride(FeatureVisibility, m_player))) {
+			if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
+				return false;
+		}
+
 	}
 
 	return true;
@@ -265,11 +278,11 @@ bool RpgEnemy::enemyWorldStep()
 
 
 /**
- * @brief RpgEnemy::enemyWorldStepOnVisiblePlayer
+ * @brief RpgEnemy::enemyWorldStepNotReachedPlayer
  * @return
  */
 
-bool RpgEnemy::enemyWorldStepOnVisiblePlayer()
+bool RpgEnemy::enemyWorldStepNotReachedPlayer()
 {
 	if (!isAlive() || isSleeping())
 		return false;
@@ -289,8 +302,14 @@ bool RpgEnemy::enemyWorldStepOnVisiblePlayer()
 		if (!hasAbility())
 			return false;
 
-		if (m_player->isLocked() || !m_player->isDiscoverable())
+		if (m_player->isLocked() || featureOverride(FeatureVisibility, m_player))
 			return false;
+
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
+			return false;
+
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
+			return true;
 
 		if (m_game->tickTimer()) {
 			const auto tick = m_game->tickTimer()->currentTick();
@@ -327,7 +346,7 @@ void RpgEnemy::attackPlayer(RpgPlayer *player, RpgWeapon *weapon)
 {
 	RpgGame *g = qobject_cast<RpgGame*>(m_game);
 
-	if (!weapon || !player || player->isLocked() || !player->isDiscoverable() || !g)
+	if (!weapon || !player || player->isLocked() || !g || featureOverride(FeatureVisibility, m_player))
 		return;
 
 
@@ -381,6 +400,82 @@ void RpgEnemy::onDead()
 
 
 
+
+/**
+ * @brief RpgEnemy::featureOverride
+ * @param feature
+ * @param player
+ * @return
+ */
+
+bool RpgEnemy::featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const
+{
+	if (RpgPlayer *p = qobject_cast<RpgPlayer*>(player))
+		return featureOverride(feature, p);
+	else
+		return false;
+}
+
+
+
+/**
+ * @brief RpgEnemy::featureOverride
+ * @param feature
+ * @param player
+ * @return
+ */
+
+bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) const
+{
+	if (!player)
+		return false;
+
+	if (feature == FeatureVisibility) {
+		//if (checkFeature(RpgPlayerCharacterConfig::FeatureCamouflage, player))
+		//	return true;
+
+		return player->isHiding() || (player->config().cast == RpgPlayerCharacterConfig::CastInvisible &&
+									  player->castTimerActive());
+	}
+
+
+	if (feature == FeatureDisablePursuit) {
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, player))
+			return true;
+
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, player))
+			return true;
+	}
+
+	if (feature == FeatureRotate) {
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, player))
+			return false;
+
+		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, player))
+			return true;
+	}
+
+	return false;
+}
+
+
+/**
+ * @brief RpgEnemy::checkFeature
+ * @param feature
+ * @param player
+ * @return
+ */
+
+bool RpgEnemy::checkFeature(const RpgPlayerCharacterConfig::Feature &feature, RpgPlayer *player) const
+{
+	if (!player)
+		return false;
+
+	return (player->config().features.testFlag(feature) && !m_config.playerFeatures.testFlag(feature));
+}
+
+
+
 /**
  * @brief RpgEnemy::serializeEnemy
  * @return
@@ -417,4 +512,32 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 	}
 
 	return p;
+}
+
+const RpgEnemyConfig &RpgEnemy::config() const
+{
+	return m_config;
+}
+
+void RpgEnemy::setConfig(const RpgEnemyConfig &newConfig)
+{
+	m_config = newConfig;
+}
+
+
+/**
+ * @brief RpgEnemy::isWatchingPlayer
+ * @param player
+ * @return
+ */
+
+bool RpgEnemy::isWatchingPlayer(RpgPlayer *player) const
+{
+	if (!player || !player->isAlive() || player->isLocked() || !m_contactedPlayers.contains(player))
+		return false;
+
+	if (rayCast(player->bodyPosition(), FixturePlayerBody).isVisible(player) && !featureOverride(FeatureVisibility, player))
+		return true;
+
+	return false;
 }

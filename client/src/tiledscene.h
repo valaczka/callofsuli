@@ -67,7 +67,8 @@ public:
 	enum SceneEffect {
 		EffectNone		= 0,
 		EffectRain		= 1,
-		EffectSnow		= 2
+		EffectSnow		= 2,
+		EffectFog		= 3
 	};
 
 	Q_ENUM(SceneEffect)

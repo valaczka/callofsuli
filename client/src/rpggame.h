@@ -365,7 +365,7 @@ private:
 		TiledObject::ObjectId objectId;
 		RpgGameData::EnemyBaseData::EnemyType type = RpgGameData::EnemyBaseData::EnemyInvalid;
 		QString subtype;
-		QPolygonF path;
+		EnemyMotorData motor;
 		int defaultAngle = 0;
 		QPointer<TiledScene> scene;
 		QPointer<IsometricEnemy> enemy;
@@ -416,6 +416,7 @@ private:
 
 	friend class ActionRpgGame;
 	friend class ActionRpgMultiplayerGame;
+	friend class RpgGamePrivate;
 };
 
 

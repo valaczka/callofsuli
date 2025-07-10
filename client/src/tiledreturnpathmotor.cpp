@@ -230,7 +230,6 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 
 	m_isReturning = true;
 	m_hasReturned = false;
-	clearLastSeenPoint();
 
 }
 
@@ -341,24 +340,4 @@ bool TiledReturnPathMotor::isReturnReady(AbstractGame::TickTimer *timer) const
 	return !timer || m_waitEnd <= 0 || timer->currentTick() > m_waitEnd;
 }
 
-
-/**
- * @brief TiledReturnPathMotor::lastSeenPoint
- * @return
- */
-
-const std::optional<cpVect> &TiledReturnPathMotor::lastSeenPoint() const
-{
-	return m_lastSeenPoint;
-}
-
-void TiledReturnPathMotor::setLastSeenPoint(const cpVect &newLastSeenPoint)
-{
-	m_lastSeenPoint = newLastSeenPoint;
-}
-
-void TiledReturnPathMotor::clearLastSeenPoint()
-{
-	m_lastSeenPoint = std::nullopt;
-}
 

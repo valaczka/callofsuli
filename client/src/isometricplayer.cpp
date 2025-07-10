@@ -328,7 +328,7 @@ void IsometricPlayer::onAlive()
 					  TiledObjectBody::FixtureCategories(TiledObjectBody::FixtureAll)
 					  .setFlag(TiledObjectBody::FixturePlayerBody, false)
 					  .setFlag(TiledObjectBody::FixtureVirtualCircle, false)
-					  .setFlag(TiledObjectBody::FixtureSensor, false)
+					  //.setFlag(TiledObjectBody::FixtureSensor, false)
 					  );
 }
 

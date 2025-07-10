@@ -91,7 +91,7 @@ public:
 
 
 	void loadPathMotor(const QPolygonF &polygon, const TiledPathMotor::Direction &direction = TiledPathMotor::Forward);
-	void loadFixPositionMotor(const QPointF &point, const TiledObject::Direction &direction = TiledObject::Invalid);
+		void loadFixPositionMotor(const TiledGame::EnemyMotorData &data, const TiledObject::Direction &direction = TiledObject::Invalid);
 
 	AbstractTiledMotor *motor() const { return m_motor.get(); }
 	TiledPathMotor *pathMotor() const { return m_motor ? dynamic_cast<TiledPathMotor*>(m_motor.get()) : nullptr; }
@@ -116,7 +116,7 @@ public:
 
 protected:
 	virtual bool enemyWorldStep() = 0;
-	virtual bool enemyWorldStepOnVisiblePlayer() = 0;
+	virtual bool enemyWorldStepNotReachedPlayer() = 0;
 	virtual void onPathMotorLoaded(const AbstractTiledMotor::Type &/*type*/) {};
 
 	std::unique_ptr<AbstractTiledMotor> m_motor;
@@ -194,6 +194,16 @@ protected:
 	virtual void eventKilledByPlayer(IsometricPlayer *player);
 
 	void stepMotor();
+
+	enum PlayerFeature {
+		FeatureVisibility,					// hide player
+		FeaturePursuit,						// always pursuit player
+		FeatureDisablePursuit,				// never pursuit player
+		FeatureAttackNotReached,			// attack player even when not reached,
+		FeatureRotate,						// don't rotate to player
+	};
+
+	virtual bool featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const;
 
 protected:
 	qint64 m_inabilityTimer = -1;

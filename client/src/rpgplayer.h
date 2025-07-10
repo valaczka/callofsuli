@@ -68,6 +68,24 @@ public:
 
 	Q_ENUM(CastType);
 
+
+
+	/**
+	 * @brief The Feature enum
+	 */
+
+	enum Feature {
+		FeatureInvalid		= 0,
+		FeatureCamouflage	= 1,
+		FeatureFreeWalk		= 1 << 1,
+		FeatureLockEnemy	= 1 << 2,
+	};
+
+	Q_ENUM(Feature)
+
+	Q_DECLARE_FLAGS(Features, Feature);
+	Q_FLAGS(Features);
+
 	RpgPlayerCharacterConfig() : QSerializer()
 	  , cast(CastInvalid)
 	  , mpMax(100)
@@ -102,6 +120,7 @@ public:
 	// Cast
 
 	QS_FIELD(CastType, cast)
+	QS_FIELD(Features, features)
 	QS_FIELD(int, mpMax)
 	QS_FIELD(int, mpStart)
 
@@ -112,7 +131,7 @@ public:
 };
 
 
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(RpgPlayerCharacterConfig::Features)
 
 
 class RpgEnemy;
@@ -175,8 +194,6 @@ public:
 	int maxMp() const;
 	void setMaxMp(int newMaxMp);
 
-	bool isDiscoverable() const override final;
-
 	bool castTimerActive() const { return m_castTimer.isActive(); }
 
 	virtual void worldStep() override;
@@ -226,13 +243,6 @@ protected:
 	void updateSprite() override final;
 
 	RpgGameData::Player serializeThis() const override;
-
-	/*virtual bool protectWeapon(const RpgGameData::Weapon::WeaponType &weaponType) = 0;
-	virtual void attackedByEnemy(IsometricEnemy *enemy, const TiledWeapon::WeaponType &weaponType, const bool &isProtected) = 0;
-	bool protectWeapon(TiledWeaponList *weaponList, const TiledWeapon::WeaponType &weaponType);
-	bool protectWeapon(const RpgWeapon::WeaponType &weaponType) override final;
-	void attackedByEnemy(IsometricEnemy *enemy, const RpgWeapon::WeaponType &weaponType,
-						 const bool &isProtected) override final;*/
 
 	void onEnemyReached(IsometricEnemy *enemy) override final;
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}

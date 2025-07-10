@@ -501,6 +501,24 @@ TiledGame *TiledObjectBody::game() const
 
 
 
+/**
+ * @brief TiledObjectBody::normalizeFromRadian
+ * @param radian
+ * @return
+ */
+
+float TiledObjectBody::normalizeFromRadian(const float &radian)
+{
+	return TiledObjectBodyPrivate::normalizeFromRadian(radian);
+}
+
+float TiledObjectBody::normalizeToRadian(const float &normal)
+{
+	return TiledObjectBodyPrivate::normalizeToRadian(normal);
+}
+
+
+
 
 
 

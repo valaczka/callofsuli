@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * abstracttiledmotor.h
+ * tiledeffectfog.h
  *
- * Created on: 2024. 03. 04.
+ * Created on: 2025. 07. 10.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * %{Cpp:License:ClassName}
+ * TiledEffectFog
  *
  *  This file is part of Call of Suli.
  *
@@ -24,36 +24,37 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ABSTRACTTILEDMOTOR_H
-#define ABSTRACTTILEDMOTOR_H
+#ifndef TILEDEFFECTFOG_H
+#define TILEDEFFECTFOG_H
 
-#include "tiledobject.h"
-#include "abstractgame.h"
+#include "qvariantanimation.h"
+#include "tiledgame.h"
+#include <QQuickItem>
 
-
-class AbstractTiledMotor
+class TiledEffectFog : public QQuickItem
 {
+	Q_OBJECT
+	QML_ELEMENT
+
+	Q_PROPERTY(TiledGame *game READ game WRITE setGame NOTIFY gameChanged FINAL)
+
 public:
-	enum Type {
-		Invalid = 0,
-		PathMotor,
-		ReturnPathMotor,
-		FixPositionMotor,
-		RotationMotor
-	};
+	TiledEffectFog(QQuickItem *parent = nullptr);
+	virtual ~TiledEffectFog();
 
-	AbstractTiledMotor(const Type &type)
-		: m_type(type)
-	{}
-	virtual ~AbstractTiledMotor() {}
+	QSGNode *updatePaintNode(QSGNode *node, UpdatePaintNodeData *) override;
 
-	const Type &type() const { return m_type; }
+	TiledGame *game() const;
+	void setGame(TiledGame *newGame);
 
-	virtual void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) = 0;
-	virtual cpVect basePoint() = 0;
+signals:
+	void gameChanged();
 
-protected:
-	const Type m_type;
+private:
+	TiledGame *m_game = nullptr;
+	QSGTexture *m_texture = nullptr;
+	QVariantAnimation m_animX;
+	QVariantAnimation m_animY;
 };
 
-#endif // ABSTRACTTILEDMOTOR_H
+#endif // TILEDEFFECTFOG_H

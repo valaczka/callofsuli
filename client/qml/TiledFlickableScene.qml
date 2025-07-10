@@ -132,13 +132,20 @@ Flickable {
 
 		TiledSceneEffectSnow {
 			visible: _scene.sceneEffect == TiledSceneDefinition.EffectSnow
-			anchors.fill: _container
+			anchors.fill: _scene
 		}
 
 		TiledSceneEffectRain {
 			visible: _scene.sceneEffect == TiledSceneDefinition.EffectRain
-			anchors.fill: _container
+			anchors.fill: _scene
 		}
+
+		TiledEffectFogImpl {
+			visible: _scene.sceneEffect == TiledSceneDefinition.EffectFog
+			anchors.fill: _scene
+			game: _scene.game
+		}
+
 
 		TiledDebugDrawImpl {
 			anchors.fill: _scene

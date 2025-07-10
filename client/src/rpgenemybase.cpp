@@ -352,34 +352,32 @@ void RpgEnemyBase::onCurrentSpriteChanged()
 
 void RpgEnemyBase::loadConfig(const QJsonObject &config)
 {
-	RpgGameData::Weapon::WeaponType wt = RpgGameData::Weapon::WeaponInvalid;
+	RpgEnemyConfig cfg;
+	cfg.fromJson(config);
 
-	if (config.contains(QStringLiteral("weapon"))) {
-		wt = RpgArmory::weaponHash().key(config.value(QStringLiteral("weapon")).toString(), RpgGameData::Weapon::WeaponInvalid);
-
-		if (wt == RpgGameData::Weapon::WeaponInvalid)
-			return;
-	} else {
+	if (cfg.weapon == RpgGameData::Weapon::WeaponInvalid) {
 		if (m_enemyType == RpgGameData::EnemyBaseData::EnemySoldier || m_enemyType == RpgGameData::EnemyBaseData::EnemySoldierFix)
-			wt = RpgGameData::Weapon::WeaponLongsword;
+			cfg.weapon = RpgGameData::Weapon::WeaponLongsword;
 		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix)
-			wt = RpgGameData::Weapon::WeaponShortbow;
+			cfg.weapon = RpgGameData::Weapon::WeaponShortbow;
 		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton)
-			wt = RpgGameData::Weapon::WeaponLongsword;
+			cfg.weapon = RpgGameData::Weapon::WeaponLongsword;
 		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySmith || m_enemyType == RpgGameData::EnemyBaseData::EnemySmithFix)
-			wt = RpgGameData::Weapon::WeaponHammer;
+			cfg.weapon = RpgGameData::Weapon::WeaponHammer;
 		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyButcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyButcherFix)
-			wt = RpgGameData::Weapon::WeaponAxe;
+			cfg.weapon = RpgGameData::Weapon::WeaponAxe;
 		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarian || m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarianFix)
-			wt = RpgGameData::Weapon::WeaponMace;
+			cfg.weapon = RpgGameData::Weapon::WeaponMace;
 	}
 
 
-	if (RpgWeapon *w = m_armory->weaponAdd(wt)) {
+	if (RpgWeapon *w = m_armory->weaponAdd(cfg.weapon)) {
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);
 	} else {
 		LOG_CERROR("game") << "Invalid enemy config";
 	}
+
+	setConfig(cfg);
 }

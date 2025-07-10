@@ -62,11 +62,6 @@ public:
 
 	bool isReturnReady(AbstractGame::TickTimer *timer) const;
 
-	const std::optional<cpVect> &lastSeenPoint() const;
-	void setLastSeenPoint(const cpVect &newLastSeenPoint);
-	void clearLastSeenPoint();
-
-
 private:
 	void addPoint(const cpVect &point, const float &angle);
 
@@ -74,7 +69,6 @@ private:
 	std::unique_ptr<TiledPathMotor> m_pathMotor;
 	bool m_isReturning = false;
 	bool m_hasReturned = false;
-	std::optional<cpVect> m_lastSeenPoint;
 	qint64 m_waitMsec = 2500;
 	qint64 m_waitEnd = 0;
 

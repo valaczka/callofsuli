@@ -30,6 +30,7 @@
 #include "qsgtexture.h"
 #include "tiledscene.h"
 #include "abstractgame.h"
+#include "tiledrotationmotor.h"
 #include <QQuickItem>
 #include <QSerializer>
 
@@ -109,6 +110,17 @@ public:
 					s1.hasTouch == s2.hasTouch &&
 					s1.hasKeyboard == s2.hasKeyboard;
 		}
+	};
+
+	struct EnemyMotorData {
+		QPolygonF path;
+
+		bool rotation = false;
+		float from = 0;
+		float to = 0;
+		int steps = 4;
+		TiledRotationMotor::Direction direction = TiledRotationMotor::DirectionCCW;
+		qint64 wait = 250;
 	};
 
 
@@ -270,6 +282,7 @@ public:
 signals:
 	void gameLoaded();
 	void gameLoadFailed(const QString &errorString);
+	void gameSynchronized();
 	void currentSceneChanged();
 	void joystickChanged();
 	void followedItemChanged();

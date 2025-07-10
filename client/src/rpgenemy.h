@@ -29,8 +29,40 @@
 
 #include "isometricenemy.h"
 #include "rpgenemyiface.h"
+#include "rpgplayer.h"
 #include <QObject>
 #include <QQmlEngine>
+
+
+
+
+/**
+ * @brief The RpgEnemyConfig class
+ */
+
+class RpgEnemyConfig : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgEnemyConfig()
+		: QSerializer()
+		, weapon(RpgGameData::Weapon::WeaponInvalid)
+		, playerFeatures(RpgPlayerCharacterConfig::FeatureInvalid)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(RpgGameData::Weapon::WeaponType, weapon)
+	QS_FIELD(RpgPlayerCharacterConfig::Features, playerFeatures)			// player feature override
+};
+
+
+
+
+/**
+ * @brief The RpgEnemy class
+ */
 
 class RpgEnemy : public IsometricEnemy, public RpgEnemyIface
 {
@@ -50,15 +82,26 @@ public:
 	virtual void updateFromSnapshot(const RpgGameData::Enemy &snap) override;
 	virtual bool isLastSnapshotValid(const RpgGameData::Enemy &snap, const RpgGameData::Enemy &lastSnap) const override;
 
+	const RpgEnemyConfig &config() const;
+	void setConfig(const RpgEnemyConfig &newConfig);
+
+	bool isWatchingPlayer(RpgPlayer *player) const;
+
 protected:
 	virtual bool enemyWorldStep() override;
-	virtual bool enemyWorldStepOnVisiblePlayer() override;
+	virtual bool enemyWorldStepNotReachedPlayer() override;
 	virtual void attackPlayer(RpgPlayer *player, RpgWeapon *weapon) override;
 	virtual void onAlive() override;
 	virtual void onDead() override;
 
+	virtual bool featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const override final;
+	virtual bool featureOverride(const PlayerFeature &feature, RpgPlayer *player) const;
+
+	bool checkFeature(const RpgPlayerCharacterConfig::Feature &feature, RpgPlayer *player) const;
+
 	RpgGameData::Enemy serializeEnemy() const;
 
+	RpgEnemyConfig m_config;
 	QHash<RpgGameData::Enemy::EnemyState, qint64> m_stateLastRenderedTicks;
 
 	friend class ActionRpgMultiplayerGame;

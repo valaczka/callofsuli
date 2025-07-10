@@ -55,7 +55,6 @@ public:
 	void setMaxHp(int newMaxHp);
 
 	bool isAlive() const { return m_hp > 0; }
-	virtual bool isDiscoverable() const { return true; }
 
 	virtual void updateSprite() = 0;
 

@@ -146,6 +146,7 @@ QPage {
 
 	}
 
+
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentDasboard)
 		Client.reloadUser()

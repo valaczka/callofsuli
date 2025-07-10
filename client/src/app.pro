@@ -292,12 +292,14 @@ SOURCES += \
 	testgame.cpp \
 	tileddebugdraw.cpp \
 	tiledeffect.cpp \
+	tiledeffectfog.cpp \
 	tiledfixpositionmotor.cpp \
 	tiledgame.cpp \
 	tiledgamesfx.cpp \
 	tiledobject.cpp \
 	tiledpathmotor.cpp \
 	tiledreturnpathmotor.cpp \
+	tiledrotationmotor.cpp \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
 	tiledvisualitem.cpp \
@@ -405,6 +407,7 @@ HEADERS += \
 	testgame.h \
 	tileddebugdraw.h \
 	tiledeffect.h \
+	tiledeffectfog.h \
 	tiledfixpositionmotor.h \
 	tiledgame.h \
 	tiledgamesfx.h \
@@ -413,6 +416,7 @@ HEADERS += \
 	tiledobjectspritedef.h \
 	tiledpathmotor.h \
 	tiledreturnpathmotor.h \
+	tiledrotationmotor.h \
 	tiledscene.h \
 	tiledspritehandler.h \
 	tiledvisualitem.h \
