@@ -27,9 +27,7 @@
 #include "rpgenemy.h"
 #include "rpgplayer.h"
 #include "rpggame.h"
-#include "tiledspritehandler.h"
 #include "rpggamedataiface_t.h"
-#include "actionrpggame.h"
 
 
 RpgEnemy::RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius)
@@ -242,10 +240,10 @@ bool RpgEnemy::enemyWorldStep()
 		if (m_player->isLocked() || featureOverride(FeatureVisibility, m_player))
 			return false;
 
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
 			return false;
 
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
 			return true;
 
 
@@ -264,7 +262,7 @@ bool RpgEnemy::enemyWorldStep()
 		m_autoHitTimer = -1;
 
 		if (m_player && !(m_player->isLocked() || featureOverride(FeatureVisibility, m_player))) {
-			if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
+			if (checkFeature(RpgGameData::Player::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
 				return false;
 		}
 
@@ -305,10 +303,10 @@ bool RpgEnemy::enemyWorldStepNotReachedPlayer()
 		if (m_player->isLocked() || featureOverride(FeatureVisibility, m_player))
 			return false;
 
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
 			return false;
 
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
 			return true;
 
 		if (m_game->tickTimer()) {
@@ -440,18 +438,30 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 
 
 	if (feature == FeatureDisablePursuit) {
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, player))
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
 			return true;
 
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, player))
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player))
 			return true;
 	}
 
 	if (feature == FeatureRotate) {
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureLockEnemy, player))
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player))
 			return false;
 
-		if (checkFeature(RpgPlayerCharacterConfig::FeatureFreeWalk, player))
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
+			return true;
+	}
+
+	if (feature == FeatureReplaceFrom) {
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player) ||
+				checkFeature(RpgGameData::Player::FeatureFreeWalk, player) )
+			return true;
+	}
+
+	if (feature == FeatureReplaceTo) {
+		if ((player->config().features & (RpgGameData::Player::FeatureFreeWalk |
+										  RpgGameData::Player::FeatureCamouflage)) == 0)
 			return true;
 	}
 
@@ -466,7 +476,7 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
  * @return
  */
 
-bool RpgEnemy::checkFeature(const RpgPlayerCharacterConfig::Feature &feature, RpgPlayer *player) const
+bool RpgEnemy::checkFeature(const RpgGameData::Player::Feature &feature, RpgPlayer *player) const
 {
 	if (!player)
 		return false;

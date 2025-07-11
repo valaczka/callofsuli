@@ -48,13 +48,13 @@ public:
 	RpgEnemyConfig()
 		: QSerializer()
 		, weapon(RpgGameData::Weapon::WeaponInvalid)
-		, playerFeatures(RpgPlayerCharacterConfig::FeatureInvalid)
+		, playerFeatures(RpgGameData::Player::FeatureInvalid)
 	{}
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(RpgGameData::Weapon::WeaponType, weapon)
-	QS_FIELD(RpgPlayerCharacterConfig::Features, playerFeatures)			// player feature override
+	QS_FIELD(RpgGameData::Player::Features, playerFeatures)			// player feature override
 };
 
 
@@ -97,7 +97,7 @@ protected:
 	virtual bool featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const override final;
 	virtual bool featureOverride(const PlayerFeature &feature, RpgPlayer *player) const;
 
-	bool checkFeature(const RpgPlayerCharacterConfig::Feature &feature, RpgPlayer *player) const;
+	bool checkFeature(const RpgGameData::Player::Feature &feature, RpgPlayer *player) const;
 
 	RpgGameData::Enemy serializeEnemy() const;
 

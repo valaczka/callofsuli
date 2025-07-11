@@ -55,13 +55,20 @@ QItemGradient {
                 delegate: Qaterial.ItemDelegate {
                     width: ListView.view.width
 
-                    text: id + " " + owner.username + " - " + players.length
+                    text: id + " " + owner.username + " - " + players.length + "/" + count
 
-                    icon.source: Qaterial.Icons.account
+                    icon.source: Qaterial.Icons.accountMultiple
 
                     onClicked: {
                         game.connectToEngine(id)
                     }
+                }
+
+                header: Qaterial.ItemDelegate {
+                    width: ListView.view.width
+                    font: Qaterial.Style.textTheme.headline6
+                    visible: !_labelFull.visible
+                    text: qsTr("Válassz szobát")
                 }
 
                 footer: Qaterial.ItemDelegate {
@@ -71,11 +78,27 @@ QItemGradient {
                     textColor: Qaterial.Colors.green500
                     iconColor: textColor
                     icon.source: Qaterial.Icons.plus
-                    text: qsTr("Új játék létrehozása")
+                    text: qsTr("Új szoba létrehozása")
 
                     onClicked: game.connectToEngine(0)
                 }
+
+
             }
+        }
+
+        Qaterial.LabelHeadline6 {
+            id: _labelFull
+
+            visible: !game || (game.enginesModel.count === 0 && !game.canAddEngine)
+            anchors.centerIn: parent
+            text: qsTr("A szerver tele van, jelenleg nem tudsz új szobát létrehozni")
+            color: Qaterial.Style.accentColor
+            wrapMode: Text.Wrap
+            horizontalAlignment: Text.AlignHCenter
+            width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+            leftPadding: 15 * Qaterial.Style.pixelSizeRatio
+            rightPadding: 15 * Qaterial.Style.pixelSizeRatio
         }
     }
 }

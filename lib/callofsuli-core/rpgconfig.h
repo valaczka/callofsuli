@@ -919,7 +919,7 @@ public:
 		List,				// list available engines (-> engines)
 		Connect,			// connect to selected engine (engine ->)
 		Create,				// create new engine
-		Delete				// delete my engine (engine ->)
+		Reset				// reset my engine
 	};
 
 	Q_ENUM(Operation)
@@ -1071,6 +1071,7 @@ public:
 	QS_OBJECT(GameConfig, gameConfig)
 	QS_FIELD(float, avg)						// Average question duration
 	QS_FIELD(bool, loaded)						// A host már betöltött mindent
+	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
 };
 
 
@@ -2208,6 +2209,7 @@ public:
 		, l(false)
 		, c(0)
 		, x(0)
+		, ft(FeatureInvalid)
 	{}
 
 	enum PlayerState {
@@ -2228,21 +2230,34 @@ public:
 	Q_ENUM(PlayerState);
 
 
+	enum Feature {
+		FeatureInvalid		= 0,
+		FeatureCamouflage	= 1,
+		FeatureFreeWalk		= 1 << 1,
+		FeatureLockEnemy	= 1 << 2,
+	};
+
+	Q_ENUM(Feature)
+
+	Q_DECLARE_FLAGS(Features, Feature);
+	Q_FLAGS(Features);
+
+
 	bool isEqual(const Player &other) const  {
 		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l &&
 				other.c == c && other.x == x &&
-				other.pck == pck;
+				other.pck == pck && other.ft == ft;
 	}
 
 	bool canMerge(const Player &other) const {
 		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l &&
 				other.c == c && other.x == x &&
-				other.pck == pck;
+				other.pck == pck && other.ft == ft;
 	}
 
 	bool canInterpolateFrom(const Player &other) const {
 		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg &&
-				other.pck == pck;
+				other.pck == pck && other.ft == ft;
 	}
 
 	static void controlFailed(Player &dst, const RpgConfig::ControlType &control);
@@ -2275,10 +2290,11 @@ public:
 	QS_OBJECT(Inventory, inv)			// inventory
 	QS_FIELD(int, c)					// collected items
 	QS_FIELD(int, x)					// extra xp on specified states (PlayerUseControl)
+	QS_FIELD(Features, ft)				// active features
 };
 
 
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(Player::Features);
 
 
 

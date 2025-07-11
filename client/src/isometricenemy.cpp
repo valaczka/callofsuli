@@ -421,18 +421,19 @@ void IsometricEnemy::worldStep()
 	// Find already connected player, or find the nearest one
 
 	IsometricPlayer *targetPlayer = nullptr;
+	IsometricPlayer *tmpPlayer = nullptr;
 
 	if (m_player && m_contactedPlayers.contains(m_player) && m_player->isAlive() && !m_player->isLocked()) {
 		if (rayCast(m_player->bodyPosition(), FixturePlayerBody).isVisible(m_player) && !featureOverride(FeatureVisibility, m_player)) {
-			targetPlayer = m_player;
+			tmpPlayer = m_player;
 		}
 	}
 
-	if (!targetPlayer) {
+	if (!tmpPlayer || featureOverride(FeatureReplaceFrom, tmpPlayer)) {
 		QMap<float, IsometricPlayer *> pMap;
 
 		for (IsometricPlayer *p : m_contactedPlayers) {
-			if (!p || !p->isAlive() || p->isLocked())
+			if (!p || !p->isAlive() || p->isLocked() || p == tmpPlayer)
 				continue;
 
 			const RayCastInfo &info = rayCast(p->bodyPosition(), FixturePlayerBody);
@@ -443,10 +444,14 @@ void IsometricEnemy::worldStep()
 			}
 		}
 
-		if (!pMap.isEmpty()) {
-			targetPlayer = pMap.first();
+		for (auto it = pMap.constBegin(); it != pMap.constEnd() && !targetPlayer; ++it) {
+			if (!tmpPlayer || featureOverride(FeatureReplaceTo, *it))
+				targetPlayer = *it;
 		}
 	}
+
+	if (!targetPlayer && tmpPlayer)
+		targetPlayer = tmpPlayer;
 
 
 
@@ -457,7 +462,7 @@ void IsometricEnemy::worldStep()
 	bool attackWithoutPursuit = false;
 
 	if (targetPlayer) {
-		if (!m_player)
+		if (!m_player || m_autoHitTimer == -1)
 			setPlayer(targetPlayer);
 
 		const cpVect playerPosition = m_player->bodyPosition();

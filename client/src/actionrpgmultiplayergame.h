@@ -61,7 +61,7 @@ public:
 
 	Q_INVOKABLE void selectTerrain(const QString &terrain);
 	Q_INVOKABLE void selectCharacter(const QString &character);
-	[[deprecated]] Q_INVOKABLE void selectWeapons(const QStringList &weaponList);
+	Q_INVOKABLE void banOutPlayer(const int &playerId);
 
 	Q_INVOKABLE void connectToEngine(const int &id);
 
@@ -162,7 +162,7 @@ private:
 	void sendData(const QSerializer &data, const bool &reliable);
 	void sendData(const QByteArray &data, const bool &reliable);
 
-	void sendDataChrSel();
+	void sendDataChrSel(const int &ban = -1);
 	void sendDataPrepare();
 	void sendDataConnect();
 
@@ -174,6 +174,7 @@ private:
 	ActionRpgMultiplayerGamePrivate *q = nullptr;
 
 	friend class RpgUdpEngine;
+	friend class ActionRpgMultiplayerGamePrivate;
 };
 
 #endif // ACTIONRPGMULTIPLAYERGAME_H

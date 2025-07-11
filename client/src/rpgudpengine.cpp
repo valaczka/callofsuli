@@ -134,24 +134,40 @@ void RpgUdpEngine::updateState(const QCborMap &data)
  * @param player
  */
 
-void RpgUdpEngine::updateSnapshot(const RpgGameData::CharacterSelect &player)
+void RpgUdpEngine::updateSnapshot(const QList<RpgGameData::CharacterSelect> &players)
 {
 	QMutexLocker locker(&m_snapshotMutex);
 
-	const auto it = std::find_if(m_playerData.begin(),
-								 m_playerData.end(),
-								 [&player](const RpgGameData::CharacterSelect &ch){
-		return ch.playerId == player.playerId;
-	});
+	for (const RpgGameData::CharacterSelect &player : players) {
+		const auto it = std::find_if(m_playerData.begin(),
+									 m_playerData.end(),
+									 [&player](const RpgGameData::CharacterSelect &ch){
+			return ch.playerId == player.playerId;
+		});
 
-	if (it == m_playerData.cend())
-		m_playerData.emplace_back(player);
-	else
-		*it = player;
+		if (it == m_playerData.cend()) {
+			LOG_CDEBUG("game") << "Register new player" << player.playerId << player.username;
+			m_playerData.emplace_back(player);
+		} else
+			*it = player;
+	}
 
+	for (auto it = m_playerData.constBegin(); it != m_playerData.constEnd();) {
+		const auto f = std::find_if(players.constBegin(),
+									players.constEnd(),
+									[pid = it->playerId](const RpgGameData::CharacterSelect &ch) {
+			return ch.playerId == pid;
+		});
 
+		if (f == players.constEnd()) {
+			LOG_CDEBUG("game") << "Unregister player" << it->playerId << it->username;
+			it = m_playerData.erase(it);
+		} else {
+			++it;
+		}
+	}
 
-	m_snapshots.updateSnapshot(player);
+	m_snapshots.updateSnapshot(players);
 }
 
 
@@ -266,12 +282,22 @@ void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
 	if (!m_game)
 		return;
 
-	RpgGameData::CharacterSelectServer config;
+	RpgGameData::EngineSelector selector;
+	selector.fromCbor(data);
 
+	if (selector.operation == RpgGameData::EngineSelector::Reset) {
+		LOG_CERROR("game") << "ENGINE RESET";
+
+		m_game->updateEnginesModel(selector);
+		updateSnapshot(QList<RpgGameData::CharacterSelect>{});
+
+		return;
+	}
+
+	RpgGameData::CharacterSelectServer config;
 	config.fromCbor(data);
 
-	for (const RpgGameData::CharacterSelect &ch : config.players)
-		updateSnapshot(ch);
+	updateSnapshot(config.players);
 
 
 	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest || m_game->isReconnecting()) {
@@ -306,6 +332,8 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 		return;
 	}
 
+	updateSnapshot(config.players);
+
 	m_gameConfig = config.gameConfig;
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -333,6 +361,8 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 
 	RpgGameData::Prepare config;
 	config.fromCbor(data);
+
+	updateSnapshot(config.players);
 
 	if (!config.gameConfig.randomizer.groups.isEmpty())
 		m_gameConfig.randomizer = config.gameConfig.randomizer;
@@ -364,11 +394,15 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 	}
 
 	if (const QCborArray &list = data.value(QStringLiteral("pList")).toArray(); !list.isEmpty()) {
+		QList<RpgGameData::CharacterSelect> pl;
+
 		for (const QCborValue &v : list) {
 			RpgGameData::CharacterSelect pData;
 			pData.fromCbor(v);
-			updateSnapshot(pData);
+			pl.append(pData);
 		}
+
+		updateSnapshot(pl);
 	}
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -396,11 +430,15 @@ void RpgUdpEngine::packetReceivedFinished(const QCborMap &data)
 		return;
 
 	if (const QCborArray &list = data.value(QStringLiteral("pList")).toArray(); !list.isEmpty()) {
+		QList<RpgGameData::CharacterSelect> pl;
+
 		for (const QCborValue &v : list) {
 			RpgGameData::CharacterSelect pData;
 			pData.fromCbor(v);
-			updateSnapshot(pData);
+			pl.append(pData);
 		}
+
+		updateSnapshot(pl);
 	}
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -668,6 +706,35 @@ void RpgUdpEngine::connectToServer(Server *server)
 	setUrl(server->url());
 }
 
+
+
+
+/**
+ * @brief ClientStorage::updateSnapshot
+ * @param player
+ */
+
+void ClientStorage::updateSnapshot(const QList<RpgGameData::CharacterSelect> &players)
+{
+	for (const RpgGameData::CharacterSelect &player : players) {
+		updateSnapshot(player);
+	}
+
+	for (auto it = m_players.cbegin(); it != m_players.cend(); ) {
+		const auto f = std::find_if(players.constBegin(),
+									players.constEnd(),
+									[pid = it->data.o](const RpgGameData::CharacterSelect &ch){
+			return ch.playerId == pid;
+		});
+
+		if (f == players.constEnd()) {
+			LOG_CDEBUG("game") << "Remove player from storage" << it->data.o;
+			it = m_players.erase(it);
+		} else {
+			++it;
+		}
+	}
+}
 
 
 

@@ -69,25 +69,9 @@ public:
 	Q_ENUM(CastType);
 
 
-
-	/**
-	 * @brief The Feature enum
-	 */
-
-	enum Feature {
-		FeatureInvalid		= 0,
-		FeatureCamouflage	= 1,
-		FeatureFreeWalk		= 1 << 1,
-		FeatureLockEnemy	= 1 << 2,
-	};
-
-	Q_ENUM(Feature)
-
-	Q_DECLARE_FLAGS(Features, Feature);
-	Q_FLAGS(Features);
-
 	RpgPlayerCharacterConfig() : QSerializer()
 	  , cast(CastInvalid)
+	  , features(RpgGameData::Player::FeatureInvalid)
 	  , mpMax(100)
 	  , mpStart(10)
 	  , inability(-1)
@@ -120,7 +104,7 @@ public:
 	// Cast
 
 	QS_FIELD(CastType, cast)
-	QS_FIELD(Features, features)
+	QS_FIELD(RpgGameData::Player::Features, features)
 	QS_FIELD(int, mpMax)
 	QS_FIELD(int, mpStart)
 
@@ -130,8 +114,6 @@ public:
 	QS_FIELD(int, inability)		// Base inability time
 };
 
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(RpgPlayerCharacterConfig::Features)
 
 
 class RpgEnemy;

@@ -471,11 +471,12 @@ void RendererType::addFlags(const RendererFlags &flags)
 
 QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGameData::Player> &/*subData*/) const
 {
-	QString txt = QStringLiteral("[%1] %2 hp c:%3 {pck: %4} ")
+	QString txt = QStringLiteral("[%1] %2 hp c:%3 {pck: %4} %5 ")
 				  .arg(data.st)
 				  .arg(data.hp)
 				  .arg(data.c)
 				  .arg(data.pck.id)
+				  .arg(data.ft)
 				  ;
 
 	if (data.p.size() > 1)
@@ -964,8 +965,6 @@ bool Renderer::loadAuthSnaps(const RpgGameData::SnapshotList<T, T2> &src)
 		}
 
 		o->overrideAuthSnap(ptr.list.cbegin()->second);
-
-		ELOG_INFO << "OVERRIDE" << ptr.list.cbegin()->second.f << "VS" << m_startTick << m_current;
 	}
 
 	return success;
@@ -1280,7 +1279,7 @@ bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, cons
 	const int lastId = lastLifeCycleId(base, &iterator);
 
 	if (lastId != -1 && lastId >= base.id) {
-		ELOG_WARNING << "BULLET ALREADY EXISTS -> SKIP" << base.o << base.s << base.id;
+		ELOG_WARNING << "Bullet already exists" << base.o << base.s << base.id;
 		return false;
 	}
 
@@ -1292,11 +1291,11 @@ bool RpgSnapshotStorage::bulletAdd(const RpgGameData::BulletBaseData &base, cons
 	m_bullets.push_back(snapdata);
 
 	if (!setLastLifeCycleId(iterator, base)) {
-		ELOG_ERROR << "BULLET ADD FAILED" << base.o << base.s << base.id;
+		ELOG_ERROR << "Bullet create failed" << base.o << base.s << base.id;
 		return false;
 	}
 
-	ELOG_WARNING << "BULLET ADD" << base.o << base.s << base.id;
+	ELOG_DEBUG << "Create bullet" << base.o << base.s << base.id << "owner" << base.own << "id:" << base.ownId.o;
 	return true;
 }
 
@@ -2183,7 +2182,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 			} else if (!normalStates.contains(p.st)) {
 
 				if (p.pck.isValid() && p.st != RpgGameData::Player::PlayerExit) {
-					ELOG_WARNING << "Player packed, only Exit supported";
+					ELOG_WARNING << "Player in hideout, only Exit supported";
 					continue;
 				}
 
@@ -2231,7 +2230,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 						cw = p.arm.cw;
 					} else if (p.st == RpgGameData::Player::PlayerExit) {
 						clearPck = dst->m_data.pck;
-						ELOG_INFO << "PLAYER EXIT" << dst->m_data.pck.id << "vs" << p.pck.id;
 					} else {
 						specialSt = p.st;
 					}
@@ -2261,8 +2259,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 			dst->m_data.arm.cw = cw;
 
 		if (clearPck.has_value()) {
-			ELOG_INFO << "EXIT PLAYER" << m_current;
-
 			if (RendererObject<RpgGameData::ControlTeleportBaseData> *pck = findByBase<RpgGameData::ControlTeleportBaseData>(clearPck.value())) {
 				m_solver.add(m_current, src, dst->m_data.sc, QPointF(pck->baseData.x, pck->baseData.y), pck->baseData.a);
 			}

@@ -169,39 +169,17 @@ QItemGradient {
 									if (!_multiplayer || _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost)
 										Client.Utils.settingsSet("rpg/world", _selectTerrain.wallet.market.name)
 
-									/*let noW = []
-
-									for (let i=0; i<_viewWeapons.model.count; ++i) {
-										let wpn = _viewWeapons.model.get(i)
-										if (!_viewWeapons.selectedList.includes(wpn.market.name))
-											noW.push(wpn.market.name)
-									}
-
-									Client.Utils.settingsSet("rpg/disabledWeapons", noW.join(","))*/
-
-									let disList = game.getDisabledWeapons(_selectCharacter.wallet.market.name)
-
-									let wList = []
-									for (let n=0; n<_viewWeapons.model.count; ++n) {
-										let w = _viewWeapons.model.get(n).market.name
-										if (!disList.includes(w))
-											wList.push(w)
-									}
-
-
 									if (_multiplayer) {
 										_btnPlay.enabled = false
 										_busyIndicator.visible = true
 
-										_multiplayer.selectWeapons(wList)
 										_multiplayer.selectionCompleted = true
 									} else {
 										_grid1.visible = false
 										_busyIndicator.visible = true
 
 										game.selectCharacter(_selectTerrain.wallet.market.name,
-															 _selectCharacter.wallet.market.name,
-															 wList)
+															 _selectCharacter.wallet.market.name)
 									}
 								}
 							}
@@ -235,7 +213,9 @@ QItemGradient {
 
 
 					Item {
-						id: _weaponItem
+						id: _otherPlayerItem
+
+						visible: _multiplayer
 
 						Layout.fillHeight: true
 						Layout.fillWidth: true
@@ -245,120 +225,54 @@ QItemGradient {
 						implicitHeight: 150
 
 						RpgSelectTitle {
-							id: _weaponTitle
+							id: _otherPlayerTitle
 							anchors.left: parent.left
 
-							icon.source: Qaterial.Icons.swordCross
-							text: qsTr("Weapons")
+							icon.source: Qaterial.Icons.accountMultiplePlusOutline
+							text: qsTr("Players")
 						}
 
 						RpgSelectView {
-							id: _viewWeapons
+							id: _viewPlayers
 
 							anchors.left: parent.left
 							anchors.right: parent.right
 							//anchors.bottom: parent.bottom
 							//anchors.top: _weaponTitle.bottom
 
-							readonly property real _height: _weaponItem.height-_weaponTitle.height
+							height: _otherPlayerItem.height-_otherPlayerTitle.height
 
-							height: Math.min(_height, 120)
-
-							y: _weaponTitle.height + Math.max(0, (_height-height)/2)
+							y: _otherPlayerItem.height
 
 
 							delegate: RpgSelectCard {
-								id: _selectWeapon
+								id: _selectPlayer
 
-								property RpgUserWallet wallet: model.qtObject
+								height: _viewPlayers.height
+								width: _viewPlayers.height
+								text: nickname
+								image: game ? game.getCharacterImage(character) : ""
+								selected: completed
+								scale: 1.0
 
-								height: _viewWeapons.height
-								width: _viewWeapons.height
-								text: wallet.readableName
-								image: wallet.image
-								bulletCount: wallet.market.cost == 0 ? -1 : wallet.amount //wallet.bullet ? wallet.bullet.amount : -1
-								//selected: _viewWeapons.selectedList.includes(wallet.market.name)
-								selected: (wallet.market.cost == 0 || wallet.amount > 0) && !disabled
-								/*onClicked: {
-									if (selected)
-										_viewWeapons.unselectMore([wallet])
-									else
-										_viewWeapons.selectMore([wallet])
-								}*/
+								QButton {
+									visible: _multiplayer && _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost &&
+											 playerId != _multiplayer.playerId
 
-								onWalletChanged: checkDisabled()
+									bgColor: Qaterial.Colors.red500
+									icon.source: Qaterial.Icons.closeCircle
 
-								Connections {
-									target: _selectCharacter
+									anchors.right: parent.right
+									anchors.top: parent.top
 
-									function onWalletChanged() {
-										_selectWeapon.checkDisabled()
-									}
+									onClicked: _multiplayer.banOutPlayer(playerId)
 								}
 
-								function checkDisabled() {
-									if (!wallet || !game || !_selectCharacter.wallet) {
-										disabled = false
-										return
-									}
-
-									let wList = game.getDisabledWeapons(_selectCharacter.wallet.market.name)
-
-									disabled = wList.includes(wallet.market.name)
-								}
 							}
 
-							model: SortFilterProxyModel {
-								sourceModel: Client.server ? Client.server.user.wallet : null
-
-								filters: AllOf {
-									ValueFilter {
-										roleName: "marketType"
-										value: RpgMarket.Weapon
-									}
-									ValueFilter {
-										roleName: "available"
-										value: true
-									}
-								}
-
-								sorters: [
-									StringSorter {
-										roleName: "sortName"
-										priority: 0
-										sortOrder: Qt.AscendingOrder
-									}
-								]
-							}
-						}
-
-					}
-
-					Column {
-						id: _playersItem
-
-						Layout.fillHeight: true
-						Layout.fillWidth: true
-						Layout.columnSpan: _grid1.columns
-
-						visible: _multiplayer
-
-
-						Repeater {
 							model: _multiplayer ? _multiplayer.playersModel : null
-
-							delegate: Qaterial.ItemDelegate {
-								width: parent.width
-								anchors.horizontalCenter: parent.horizontalCenter
-								text: username + " " + nickname + " - " + character + ": " + completed
-
-								icon.source: Qaterial.Icons.account
-
-								onClicked: {
-
-								}
-							}
 						}
+
 					}
 				}
 

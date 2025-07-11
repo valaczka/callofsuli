@@ -49,6 +49,7 @@ public:
 	ClientStorage() = default;
 
 	// Incoming snapshot
+	void updateSnapshot(const QList<RpgGameData::CharacterSelect> &players);
 	void updateSnapshot(const RpgGameData::CharacterSelect &player);
 	void updateSnapshot(const RpgGameData::PlayerBaseData &playerData, const RpgGameData::Player &player);
 	void updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, const RpgGameData::Enemy &enemy);
@@ -304,7 +305,7 @@ protected:
 
 private:
 	void updateState(const QCborMap &data);
-	void updateSnapshot(const RpgGameData::CharacterSelect &player);
+	void updateSnapshot(const QList<RpgGameData::CharacterSelect> &players);
 	void updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot);
 	void messageAdd(const RpgGameData::Message &message);
 

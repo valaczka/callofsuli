@@ -201,6 +201,8 @@ protected:
 		FeatureDisablePursuit,				// never pursuit player
 		FeatureAttackNotReached,			// attack player even when not reached,
 		FeatureRotate,						// don't rotate to player
+		FeatureReplaceFrom,					// replace selected player ...
+		FeatureReplaceTo,					// ... to another
 	};
 
 	virtual bool featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const;

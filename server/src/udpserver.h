@@ -146,6 +146,7 @@ public:
 
 	quint32 addPeer(const QString &username);
 	bool peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
+	bool peerRemoveEngine(UdpServerPeer *peer);
 
 	QString dumpPeers() const;
 

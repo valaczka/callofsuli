@@ -884,6 +884,7 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 	p.l = m_isLocked;
 	p.c = m_collection;
 	p.pck = m_hidingObject;
+	p.ft = m_config.features;
 
 	if (TiledScene *s = scene())
 		p.sc = s->sceneId();
@@ -1250,9 +1251,17 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 {
+	if (snap.f <= 0)
+		return;
+
 	setHp(snap.hp);
 	setCollection(snap.c);
 	setHidingObject(snap.pck);
+
+	if (snap.ft != m_config.features) {
+		LOG_CTRACE("game") << "Player"  << m_baseData.o << "feature override" << m_config.features << "->" << snap.ft;
+		m_config.features = snap.ft;
+	}
 
 	if (snap.st == RpgGameData::Player::PlayerAttack) {
 		if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame()) {
@@ -1276,17 +1285,13 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 		m_armory->updateFromSnapshot(arm);
 
 	} else if (snap.st == RpgGameData::Player::PlayerExit) {
-		LOG_CINFO("game") << "EXIT PLAYER" << snap.p << snap.a;
-
 		if (const qint64 t = m_stateLastRenderedTicks.value(snap.st); t < snap.f) {
-			LOG_CINFO("game") << "EXIT PLAYER REAL" << snap.f << snap.p << snap.a;
-
 			if (!snap.p.isEmpty()) {
 				emplace(cpv(snap.p.at(0), snap.p.at(1)));
 				if (snap.a >= 0)
 					setCurrentAngleForced(snap.a);
 			} else {
-				LOG_CERROR("scene") << "Missing hitpoint" << snap.f;
+				LOG_CERROR("scene") << "Missing hitpoint player" << m_baseData.o << "@" << snap.f;
 			}
 
 			m_stateLastRenderedTicks.insert(snap.st, snap.f);
@@ -1498,6 +1503,4 @@ void RpgPlayer::setIsGameCompleted(bool newIsGameCompleted)
 		return;
 	m_isGameCompleted = newIsGameCompleted;
 	emit isGameCompletedChanged();
-
-	LOG_CINFO("game") << "COMPLETED" << this;
 }

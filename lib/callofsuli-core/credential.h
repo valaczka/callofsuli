@@ -226,7 +226,8 @@ public:
 		StateInvalid,
 		StateConnected,
 		StateRejected,
-		StateChallenge
+		StateChallenge,
+		StateFull
 	};
 
 	Q_ENUM(State)

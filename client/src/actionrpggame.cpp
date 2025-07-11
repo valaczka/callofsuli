@@ -179,18 +179,18 @@ void ActionRpgGame::stopMenuBgMusic()
  * @param weaponList
  */
 
-void ActionRpgGame::selectCharacter(const QString &terrain, const QString &character, const QStringList &weaponList)
+void ActionRpgGame::selectCharacter(const QString &terrain, const QString &character)
 {
 	if (terrain.isEmpty()) {
 		LOG_CERROR("game") << "Missing terrain";
 		return;
 	}
 
-	LOG_CDEBUG("game") << "World/Skin/Weapons selected:" << terrain << character << weaponList;
+	LOG_CDEBUG("game") << "World/Skin/Weapons selected:" << terrain << character;
 
 	m_playerConfig.terrain = terrain;
 	m_playerConfig.character = character;
-	m_playerConfig.weapons = weaponList;
+	//m_playerConfig.weapons = weaponList;
 
 	m_config.gameState = RpgConfig::StateDownloadContent;
 	updateConfig();
@@ -383,22 +383,17 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 
 
 /**
- * @brief ActionRpgGame::getDisabledWeapons
- * @param character
+ * @brief ActionRpgGame::getCharacterImage
+ * @param name
  * @return
  */
 
-QStringList ActionRpgGame::getDisabledWeapons(const QString &character)
+QUrl ActionRpgGame::getCharacterImage(const QString &name) const
 {
-	const auto characterPtr = RpgGame::characters().find(character);
-
-	if (characterPtr == RpgGame::characters().constEnd()) {
-		LOG_CERROR("game") << "Invalid character" << character;
-		return {};
-	}
-
-	return characterPtr->disabledWeapons;
+	return RpgGame::characters().value(name).image;
 }
+
+
 
 
 

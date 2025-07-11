@@ -58,6 +58,7 @@ private:
 	{}
 
 	void updateBody(TiledObjectBody *body, const bool &isHosted);
+	void resetEngine();
 
 private:
 	template <typename T, typename T2, typename T3,
@@ -254,6 +255,8 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	roles.append(QStringLiteral("player"));
 	m_playersModel->setRoleNames(roles);
 
+	m_enginesModel->setRoleNames(Utils::getRolesFromObject(RpgGameData::Engine().metaObject()));
+
 	if (m_client->server()) {
 		if (User *u = m_client->server()->user()) {
 			m_playerConfig.username = u->username();
@@ -410,17 +413,21 @@ void ActionRpgMultiplayerGame::selectCharacter(const QString &character)
 }
 
 
+
+
 /**
- * @brief ActionRpgMultiplayerGame::selectWeapons
- * @param weaponList
+ * @brief ActionRpgMultiplayerGame::banOutPlayer
+ * @param playerId
  */
 
-void ActionRpgMultiplayerGame::selectWeapons(const QStringList &weaponList)
+void ActionRpgMultiplayerGame::banOutPlayer(const int &playerId)
 {
-	if (weaponList == m_playerConfig.weapons)
+	if (m_gameMode != MultiPlayerHost || m_config.gameState != RpgConfig::StateCharacterSelect)
 		return;
 
-	m_playerConfig.weapons = weaponList;
+	LOG_CINFO("game") << "BAN" << playerId;
+
+	sendDataChrSel(playerId);
 }
 
 
@@ -856,7 +863,7 @@ void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state
 				break;
 
 			case RpgConfig::StateConnect:
-				canSwitch = m_config.gameState <= RpgConfig::StateConnect;
+				canSwitch = m_config.gameState <= RpgConfig::StateCharacterSelect;		// Itt még vissza tud váltani (pl. ha bannolnak)
 				break;
 
 			case RpgConfig::StateDownloadStatic:
@@ -980,6 +987,12 @@ void ActionRpgMultiplayerGame::updateEnginesModel(const RpgGameData::EngineSelec
 		LOG_CINFO("game") << "Connected to engine" << selector.engine;
 		q->m_selectedEngineId = selector.engine;
 		m_engine->setGameState(RpgConfig::StateConnect);
+		return;
+	}
+
+	if (selector.operation == RpgGameData::EngineSelector::Reset) {
+		q->resetEngine();
+		Utils::patchSListModel(m_enginesModel.get(), QVariantList(), QStringLiteral("id"));
 		return;
 	}
 
@@ -1541,7 +1554,6 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 		LOG_CWARNING("scene") << "Player position missing! ########################";
 
 	player->setCurrentAngle(playerData.a);
-	//player->setCurrentSceneStartPosition(d->m_playerPosition.value_or(QPointF{0,0}));
 
 
 	connect(player->armory(), &RpgArmory::currentWeaponChanged, this, &ActionRpgMultiplayerGame::onPlayerWeaponChanged, Qt::DirectConnection);
@@ -1834,6 +1846,8 @@ bool ActionRpgMultiplayerGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, R
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
 	player->setLastSnapshot(p);
+
+	LOG_CINFO("game") << "----LAST" << p.ft;
 
 	return true;
 }
@@ -2292,7 +2306,7 @@ void ActionRpgMultiplayerGame::sendData(const QByteArray &data, const bool &reli
  * @brief ActionRpgMultiplayerGame::sendDataChrSel
  */
 
-void ActionRpgMultiplayerGame::sendDataChrSel()
+void ActionRpgMultiplayerGame::sendDataChrSel(const int &ban)
 {
 	RpgGameData::CharacterSelect config(m_playerConfig);
 
@@ -2301,6 +2315,13 @@ void ActionRpgMultiplayerGame::sendDataChrSel()
 	}
 
 	config.completed = m_selectionCompleted;
+
+	if (ban > 0 && m_gameMode == MultiPlayerHost) {
+		QCborMap m = config.toCborMap();
+		m.insert(QStringLiteral("ban"), ban);
+		sendData(m.toCborValue().toCbor(), true);
+		return;
+	}
 
 	sendData(config, true);
 }
@@ -2482,6 +2503,24 @@ void ActionRpgMultiplayerGamePrivate::updateBody(TiledObjectBody *body, const bo
 		body->worldStep();
 
 
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGamePrivate::resetEngine
+ */
+
+void ActionRpgMultiplayerGamePrivate::resetEngine()
+{
+	LOG_CWARNING("game") << "Reset engine";
+
+	m_engineId = -1;
+	m_requireEngine = false;
+	m_selectedEngineId = -1;
+
+	d->m_engine->setGameState(RpgConfig::StateConnect);
+
+	d->changeGameState(RpgConfig::StateConnect);
 }
 
 

@@ -109,6 +109,12 @@ public:
 	bool verifyPeer() const;
 	void setVerifyPeer(bool newVerifyPeer);
 
+	int udpMaxEngines() const;
+	void setUdpMaxEngines(int newUdpMaxEngines);
+
+	int udpMaxSeats() const;
+	void setUdpMaxSeats(int newUdpMaxSeats);
+
 private:
 	QDir m_dataDir;
 
@@ -133,6 +139,9 @@ private:
 	bool m_smtpSsl = true;
 
 	bool m_verifyPeer = false;
+
+	int m_udpMaxEngines = 10;
+	int m_udpMaxSeats = 50;
 
 	static const QStringList m_supportedProviders;
 

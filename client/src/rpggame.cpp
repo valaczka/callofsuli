@@ -3503,7 +3503,7 @@ void RpgGamePrivate::updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEv
 	if (!player)
 		return;
 
-	if (player->config().features == RpgPlayerCharacterConfig::FeatureInvalid)
+	if (player->config().features == RpgGameData::Player::FeatureInvalid)
 		return;
 
 	for (const RpgGame::EnemyData &ed : d->m_enemyDataList) {
@@ -3513,12 +3513,12 @@ void RpgGamePrivate::updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEv
 			continue;
 
 		if (enemy->isWatchingPlayer(player)) {
-			LOG_CWARNING("game") << "ENEMY WATCHED" << enemy << player << event;
+			LOG_CTRACE("game") << "Enemy" << ed.objectId.sceneId << ed.objectId.id << "watched player" << player->baseData().o << "by event" << event;
 
 			RpgPlayerCharacterConfig config = player->config();
-			config.features.setFlag(RpgPlayerCharacterConfig::FeatureCamouflage, false);
-			config.features.setFlag(RpgPlayerCharacterConfig::FeatureFreeWalk, false);
-			config.features.setFlag(RpgPlayerCharacterConfig::FeatureLockEnemy, false);
+			config.features.setFlag(RpgGameData::Player::FeatureCamouflage, false);
+			config.features.setFlag(RpgGameData::Player::FeatureFreeWalk, false);
+			config.features.setFlag(RpgGameData::Player::FeatureLockEnemy, false);
 			player->setConfig(config);
 
 			return;

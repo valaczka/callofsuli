@@ -148,6 +148,13 @@ void ServerSettings::loadFromFile(const QString &filename)
 		setSmtpSsl(s.value(QStringLiteral("smtp/ssl")).toBool());
 
 
+	if (s.contains(QStringLiteral("udp/engines")))
+		setUdpMaxEngines(s.value(QStringLiteral("udp/engines")).toInt());
+
+	if (s.contains(QStringLiteral("udp/seats")))
+		setUdpMaxSeats(s.value(QStringLiteral("udp/seats")).toInt());
+
+
 	LOG_CINFO("service") << "Configuration loaded from:" << qPrintable(f);
 }
 
@@ -198,6 +205,9 @@ void ServerSettings::saveToFile(const bool &forced, const QString &filename) con
 	s.setValue(QStringLiteral("smtp/user"), m_smtpUser);
 	s.setValue(QStringLiteral("smtp/password"), m_smtpPassword);
 	s.setValue(QStringLiteral("smtp/ssl"), m_smtpSsl);
+
+	s.setValue(QStringLiteral("udp/engines"), m_udpMaxEngines);
+	s.setValue(QStringLiteral("udp/seats"), m_udpMaxSeats);
 
 	for (auto it=m_oauthMap.constBegin(); it != m_oauthMap.constEnd(); ++it)
 		it->toSettings(&s, it.key());
@@ -399,6 +409,26 @@ bool ServerSettings::verifyPeer() const
 void ServerSettings::setVerifyPeer(bool newVerifyPeer)
 {
 	m_verifyPeer = newVerifyPeer;
+}
+
+int ServerSettings::udpMaxEngines() const
+{
+	return m_udpMaxEngines;
+}
+
+void ServerSettings::setUdpMaxEngines(int newUdpMaxEngines)
+{
+	m_udpMaxEngines = newUdpMaxEngines;
+}
+
+int ServerSettings::udpMaxSeats() const
+{
+	return m_udpMaxSeats;
+}
+
+void ServerSettings::setUdpMaxSeats(int newUdpMaxSeats)
+{
+	m_udpMaxSeats = newUdpMaxSeats;
 }
 
 

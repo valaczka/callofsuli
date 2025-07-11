@@ -70,7 +70,7 @@ public:
 	Q_INVOKABLE void playMenuBgMusic();
 	Q_INVOKABLE void stopMenuBgMusic();
 
-	Q_INVOKABLE void selectCharacter(const QString &terrain, const QString &character, const QStringList &weaponList);
+	Q_INVOKABLE void selectCharacter(const QString &terrain, const QString &character);
 	Q_INVOKABLE virtual void rpgGameActivated();
 
 	Q_INVOKABLE void finishGame();
@@ -82,7 +82,7 @@ public:
 
 	Q_INVOKABLE void saveTerrainInfo() { RpgGame::saveTerrainInfo(); }
 
-	Q_INVOKABLE static QStringList getDisabledWeapons(const QString &character);
+	Q_INVOKABLE QUrl getCharacterImage(const QString &name) const;
 
 	const RpgConfig &config() const;
 	void setConfig(const RpgConfig &newConfig);

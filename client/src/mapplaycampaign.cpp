@@ -179,8 +179,6 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 
 	if (ActionRpgMultiplayerGame *agame = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		LOG_CWARNING("client") << "MULTIPLAYER GAME START";
-
 		RpgConfigBase gameData;
 		gameData.mapUuid = m_gameMap->uuid();
 		gameData.missionUuid = levelGame->uuid();
@@ -200,8 +198,6 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		})
 				->done(this, [this, agame](const QJsonObject &data){
 
-			LOG_CINFO("game") << "VAN TOKEN" << data;
-
 			const QByteArray &token = data.value(QStringLiteral("token")).toString().toLatin1();
 			if (token.isEmpty()) {
 				m_client->messageError(tr("Érvénytelen játékazonosító érekezett"), tr("Játék indítása sikertelen"));
@@ -209,7 +205,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 				return;
 			}
 
-			LOG_CDEBUG("client") << "Game play (multiplayer)" << token;
+			LOG_CDEBUG("client") << "Game play (multiplayer)";
 
 			agame->setConnectionToken(token);
 			agame->load();
@@ -287,8 +283,6 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 
 	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		LOG_CWARNING("client") << "MULTIPLAYER GAME";
-
 		destroyCurrentGame();
 		setGameState(StateFinished);
 		updateSolver();
@@ -429,7 +423,6 @@ void MapPlayCampaign::onFinishTimerTimeout()
 
 
 	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		LOG_CINFO("game") << "************** FINISH TIMER MULTIPLAYER";
 		m_finishTimer.stop();
 		setGameState(StateFinished);
 		m_client->reloadUser();

@@ -60,8 +60,6 @@ public:
 
 	void sendPacket(ENetPeer *peer, const QByteArray &data, const bool isReliable);
 
-	/*QList<QByteArray> takePackets(UdpServerPeer *peer);
-	QList<QByteArray> takePackets(UdpEngine *engine);*/
 	UdpEngineReceived takePackets();
 
 
@@ -70,10 +68,6 @@ private:
 		PeerData(const QString _user)
 			: username(_user)
 		{}
-
-		~PeerData() {
-			qDebug() << "ENGINE PEER DATA DELETE" << username << type << engine.lock().get() << "key:" << privateKey.size();
-		}
 
 		std::weak_ptr<UdpEngine> engine;
 		UdpToken::Type type = UdpToken::Invalid;
@@ -87,6 +81,7 @@ private:
 	void peerDisconnect(ENetPeer *peer);
 	void udpPeerRemove(ENetPeer *peer);
 	UdpServerPeer* peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
+	bool peerRemoveEngine(UdpServerPeer *peer);
 
 	bool packetReceived(const ENetEvent &event);
 	bool updateChallenge(const QHash<quint32, PeerData>::iterator &iterator, ENetPeer *peer, const QByteArray &content);
@@ -102,6 +97,7 @@ private:
 	UdpServer *q;
 	ENetHost *m_enet_server = nullptr;
 
+	int m_maxPeers = 0;
 
 	QMutex m_peerMutex;
 	QHash<quint32, PeerData> m_peerHash;
