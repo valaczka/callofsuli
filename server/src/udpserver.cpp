@@ -34,7 +34,6 @@
 #include <QJsonObject>
 #include <QCborMap>
 #include <QJsonDocument>
-#include "rpgengine.h"
 
 
 #define SERVER_ENET_SPEED			1000./240.
@@ -116,7 +115,7 @@ void UdpServer::removeEngine(UdpEngine *engine)
 
 		QMutexLocker peerLocker(&d->m_peerMutex);
 		d->m_peerHash.removeIf([engine](const auto &ptr){
-			return ptr.value().engine.lock().get() == engine;
+			return ptr->engine.lock().get() == engine;
 		});
 
 		ret.resolve();
@@ -135,7 +134,7 @@ void UdpServer::removeEngine(UdpEngine *engine)
  * @return
  */
 
-quint32 UdpServer::addPeer(const QString &username)
+quint32 UdpServer::addPeer(const QString &username, const QDateTime &expired)
 {
 	QMutexLocker peerLocker(&d->m_peerMutex);
 
@@ -145,7 +144,11 @@ quint32 UdpServer::addPeer(const QString &username)
 		if (newId > 0 && !d->m_peerHash.contains(newId)) {
 			LOG_CDEBUG("engine") << "Udp server add player" << newId << username;
 
-			d->m_peerHash.emplace(newId, username);
+			auto it = d->m_peerHash.emplace(newId, username);
+			if (expired.isValid())
+				it->deadline.setRemainingTime(QDateTime::currentDateTime().msecsTo(expired));
+			else
+				it->deadline.setRemainingTime(-1);
 
 			return newId;
 		}
@@ -191,6 +194,16 @@ bool UdpServer::peerRemoveEngine(UdpServerPeer *peer)
 QString UdpServer::dumpPeers() const
 {
 	return d->dumpPeers();
+}
+
+
+/**
+ * @brief UdpServer::removeExpiredPeers
+ */
+
+void UdpServer::removeExpiredPeers()
+{
+	d->removeExpiredPeers();
 }
 
 
@@ -343,7 +356,11 @@ void UdpServerPrivate::peerConnect(ENetPeer *peer)
 {
 	LOG_CDEBUG("engine") << "Peer connection start:" << qPrintable(UdpServerPeer::address(peer));
 
-	if (m_peerHash.size() >= m_maxPeers) {
+	QMutexLocker locker(&m_peerMutex);
+	const qsizetype size = m_peerHash.size();
+	locker.unlock();
+
+	if (size >= m_maxPeers) {
 		LOG_CDEBUG("engine") << "Reject connection" << qPrintable(UdpServerPeer::address(peer)) << "seats:" << m_peerHash.size();
 		enet_peer_disconnect_later(peer, 1);
 
@@ -801,6 +818,7 @@ QString UdpServerPrivate::dumpPeers() const
 	txt += QStringLiteral("SEATS\n");
 	txt += QStringLiteral("==================================================================\n");
 
+	QMutexLocker locker(&m_peerMutex);
 
 	for (const auto &[id, data] : m_peerHash.asKeyValueRange()) {
 		UdpEngine *e = data.engine.lock().get();
@@ -818,6 +836,21 @@ QString UdpServerPrivate::dumpPeers() const
 	txt += QStringLiteral(" \n \n");
 
 	return txt;
+}
+
+
+
+/**
+ * @brief UdpServerPrivate::removeExpiredPeers
+ */
+
+void UdpServerPrivate::removeExpiredPeers()
+{
+	QMutexLocker locker(&m_peerMutex);
+
+	m_peerHash.removeIf([](const auto &ptr) {
+		return !ptr->engine.lock() && ptr->deadline.hasExpired();
+	});
 }
 
 

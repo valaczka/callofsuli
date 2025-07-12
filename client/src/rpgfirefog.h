@@ -36,7 +36,7 @@ class RpgFireFogWeapon : public RpgWeapon
 	Q_OBJECT
 
 public:
-	explicit RpgFireFogWeapon(QObject *parent = nullptr);
+	explicit RpgFireFogWeapon(const int &subType = 0, QObject *parent = nullptr);
 
 };
 

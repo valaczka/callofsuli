@@ -39,7 +39,7 @@ class RpgShield : public RpgWeapon
 	Q_OBJECT
 
 public:
-	explicit RpgShield(QObject *parent = nullptr);
+	explicit RpgShield(const int &subType = 0, QObject *parent = nullptr);
 
 };
 

@@ -342,10 +342,11 @@ private:
 	struct ConflictWeaponUsage : public ConflictData
 	{
 		ConflictWeaponUsage(const int &_tick, RendererObject<T2> *_src,
-							const RpgGameData::Weapon::WeaponType &_wType)
+							const RpgGameData::Weapon::WeaponType &_wType, const int &_wSubType)
 			: ConflictData(_tick)
 			, src(_src)
 			, weaponType(_wType)
+			, weaponSubType(_wSubType)
 		{}
 
 		virtual bool solve(ConflictSolver *solver) override;
@@ -354,6 +355,7 @@ private:
 
 		RendererObject<T2> *const src;
 		RpgGameData::Weapon::WeaponType weaponType = RpgGameData::Weapon::WeaponInvalid;
+		int weaponSubType = 0;
 	};
 
 
@@ -404,11 +406,13 @@ private:
 		ConflictAttack(const int &_tick,
 					   RendererObject<T3> *_src,
 					   RendererObject<T4> *_dest,
-					   const RpgGameData::Weapon::WeaponType &_wType)
+					   const RpgGameData::Weapon::WeaponType &_wType,
+					   const int &_wStype)
 			: ConflictData(_tick)
 			, src(_src)
 			, dest(_dest)
 			, weaponType(_wType)
+			, weaponSubType(_wStype)
 		{}
 
 		virtual bool solve(ConflictSolver *solver) override;
@@ -417,6 +421,7 @@ private:
 		RendererObject<T3> *const src;
 		RendererObject<T4> *const dest;
 		RpgGameData::Weapon::WeaponType weaponType = RpgGameData::Weapon::WeaponInvalid;
+		int weaponSubType = 0;
 	};
 
 
@@ -652,34 +657,38 @@ public:
 
 	void add(const int &tick,
 			 RendererObject<RpgGameData::PlayerBaseData> *src,
-			 const RpgGameData::Weapon::WeaponType &weaponType)
+			 const RpgGameData::Weapon::WeaponType &weaponType,
+			 const int &subType)
 	{
-		addData<ConflictWeaponUsage<RpgGameData::Player, RpgGameData::PlayerBaseData> >(tick, src, weaponType);
+		addData<ConflictWeaponUsage<RpgGameData::Player, RpgGameData::PlayerBaseData> >(tick, src, weaponType, subType);
 	}
 
 	void add(const int &tick,
 			 RendererObject<RpgGameData::EnemyBaseData> *src,
-			 const RpgGameData::Weapon::WeaponType &weaponType)
+			 const RpgGameData::Weapon::WeaponType &weaponType,
+			 const int &subType)
 	{
-		addData<ConflictWeaponUsage<RpgGameData::Enemy, RpgGameData::EnemyBaseData> >(tick, src, weaponType);
+		addData<ConflictWeaponUsage<RpgGameData::Enemy, RpgGameData::EnemyBaseData> >(tick, src, weaponType, subType);
 	}
 
 	void add(const int &tick,
 			 RendererObject<RpgGameData::PlayerBaseData> *src,
 			 RendererObject<RpgGameData::EnemyBaseData> *dest,
-			 const RpgGameData::Weapon::WeaponType &weaponType)
+			 const RpgGameData::Weapon::WeaponType &weaponType,
+			 const int &subType)
 	{
 		addData<ConflictAttack<RpgGameData::Player, RpgGameData::Enemy,
-				RpgGameData::PlayerBaseData, RpgGameData::EnemyBaseData> >(tick, src, dest, weaponType);
+				RpgGameData::PlayerBaseData, RpgGameData::EnemyBaseData> >(tick, src, dest, weaponType, subType);
 	}
 
 	void add(const int &tick,
 			 RendererObject<RpgGameData::EnemyBaseData> *src,
 			 RendererObject<RpgGameData::PlayerBaseData> *dest,
-			 const RpgGameData::Weapon::WeaponType &weaponType)
+			 const RpgGameData::Weapon::WeaponType &weaponType,
+			 const int &subType)
 	{
 		addData<ConflictAttack<RpgGameData::Enemy, RpgGameData::Player,
-				RpgGameData::EnemyBaseData, RpgGameData::PlayerBaseData> >(tick, src, dest, weaponType);
+				RpgGameData::EnemyBaseData, RpgGameData::PlayerBaseData> >(tick, src, dest, weaponType, subType);
 	}
 
 	void add(const int &tick,

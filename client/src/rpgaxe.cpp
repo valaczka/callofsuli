@@ -35,8 +35,8 @@
  * @param parent
  */
 
-RpgAxe::RpgAxe(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponAxe, parent}
+RpgAxe::RpgAxe(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponAxe, subType, parent}
 {
 	//m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;

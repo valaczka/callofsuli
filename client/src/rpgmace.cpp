@@ -32,8 +32,8 @@
  * @param parent
  */
 
-RpgMace::RpgMace(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponMace, parent}
+RpgMace::RpgMace(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponMace, subType, parent}
 {
 	//m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;

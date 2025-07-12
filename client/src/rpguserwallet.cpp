@@ -47,10 +47,25 @@ RpgUserWallet::RpgUserWallet(QObject *parent)
 QJsonObject RpgUserWallet::getJson() const
 {
 	RpgWallet w;
-	w.type = m_market.type;
-	w.name = m_market.name;
+	w.setFromMarket(m_market);
 	w.amount = 1;
+
 	return w.toJson();
+}
+
+
+/**
+ * @brief RpgUserWallet::toWallet
+ * @return
+ */
+
+RpgWallet RpgUserWallet::toWallet() const
+{
+	RpgWallet w;
+	w.setFromMarket(m_market);
+	w.amount = m_amount;
+	w.expiry = m_expiry.toSecsSinceEpoch();
+	return w;
 }
 
 
@@ -179,6 +194,8 @@ void RpgUserWallet::setReadableName(const QString &newReadableName)
 		return;
 	m_readableName = newReadableName;
 	emit readableNameChanged();
+
+	setBaseReadableName(newReadableName);
 }
 
 QString RpgUserWallet::image() const
@@ -236,6 +253,9 @@ bool RpgUserWallet::buyable() const
 	if (m_market.type == RpgMarket::Map && a)
 		return false;
 
+	if (m_market.type == RpgMarket::Weapon && a)
+		return false;
+
 	if (m_market.type == RpgMarket::Skin && a)
 		return false;
 
@@ -248,7 +268,7 @@ bool RpgUserWallet::buyable() const
 	if (!s)
 		return false;
 
-	if (!m_market.belongs.isEmpty() && !hasCharacter(m_market.belongs))
+	if ((!m_market.belongs.isEmpty() || m_market.type == RpgMarket::Weapon) && !hasCharacter(m_market.belongs))
 		return false;
 
 	return m_market.rank <= 0 || s->user()->rank().id() >= m_market.rank;
@@ -350,7 +370,17 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
 							tr("Vásárlási lehetőség")
 						});
 
-	} /*else if (market.type == RpgMarket::Bullet) {
+	}  else if (market.type == RpgMarket::Weapon) {
+		if (const QString &desc = market.info.value(QStringLiteral("description")).toString(); !desc.isEmpty()) {
+			list.append(RpgMarketExtendedInfo{
+							QStringLiteral("qrc:/Qaterial/Icons/information-outline.svg"),
+							tr("Info:"),
+							desc
+						});
+		}
+	}
+
+	/*else if (market.type == RpgMarket::Bullet) {
 		RpgWeapon::WeaponType w = RpgGameData::Weapon::WeaponInvalid;
 
 		switch (RpgPickableObject::typeFromString(market.name)) {
@@ -477,6 +507,9 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgPlayerChara
 
 bool RpgUserWallet::hasCharacter(const QString &character, RpgUserWalletList *list) const
 {
+	if (character.isEmpty())
+		return false;
+
 	if (!list)
 		list = m_walletList;
 
@@ -612,6 +645,8 @@ void RpgUserWalletList::unloadWorld()
 
 void RpgUserWalletList::loadMarket(const QJsonObject &json)
 {
+	QMutexLocker locker(&m_mutex);
+
 	const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
 
 	QVector<RpgMarket> mList;
@@ -643,6 +678,8 @@ void RpgUserWalletList::loadMarket(const QJsonObject &json)
 
 void RpgUserWalletList::loadWallet(const QJsonObject &json)
 {
+	QMutexLocker locker(&m_mutex);
+
 	const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
 
 	if (json.contains(QStringLiteral("currency")))
@@ -666,8 +703,40 @@ void RpgUserWalletList::loadWallet(const QJsonObject &json)
 
 	for (RpgUserWallet *w : *this) {
 		const RpgMarket &market = w->market();
+
+		if (w->marketType() == RpgMarket::Weapon) {
+			const auto t = RpgArmory::weaponHash().key(market.name, RpgGameData::Weapon::WeaponInvalid);
+
+			if (t != RpgGameData::Weapon::WeaponInvalid) {
+				if (RpgUserWallet *b = w->getBelongsTo()) {
+					QString n;
+
+					if (const QString &str = market.info.value(QStringLiteral("readableName")).toString(); !str.isEmpty())
+						n = str;
+					else
+						n = RpgWeapon::weaponNameEn(t);
+
+					w->setReadableName(n + '\n' + b->readableName());
+					w->setBaseReadableName(b->readableName());
+					w->setSortName(b->readableName() + QStringLiteral("%1").arg(t, 2, u'0'));
+				}
+			}
+		} else if (w->marketType() == RpgMarket::Skin) {
+			if (RpgUserWallet *b = w->getBelongsTo()) {
+				const auto nameSkin = RpgGame::characters().find(market.name);
+				const auto baseSkin = RpgGame::characters().find(b->market().name);
+
+				if (nameSkin != RpgGame::characters().constEnd() &&
+						baseSkin != RpgGame::characters().constEnd()) {
+					w->setReadableName(nameSkin->name + " of " + baseSkin->name);
+					w->setBaseReadableName(baseSkin->name);
+				}
+
+			}
+		}
+
 		const bool found = std::find_if(mList.cbegin(), mList.cend(), [&market](const RpgWallet &m){
-			return market.type == m.type && market.name == m.name;
+			return m.isEqual(market);
 		}) != mList.cend();
 
 		if (!found) {
@@ -692,8 +761,10 @@ void RpgUserWalletList::loadWallet(const QJsonObject &json)
 
 void RpgUserWalletList::updateMarket(const RpgMarket &market)
 {
+	QMutexLocker locker(&m_mutex);
+
 	const auto it = std::find_if(begin(), end(), [&market](RpgUserWallet *w) {
-					return (w->market().type == market.type && w->market().name == market.name);
+					return w->toWallet().isEqual(market);
 });
 
 	RpgUserWallet *ptr = nullptr;
@@ -736,7 +807,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			const auto t = RpgArmory::weaponHash().key(market.name, RpgGameData::Weapon::WeaponInvalid);
 
 			if (t == RpgGameData::Weapon::WeaponInvalid) {
-				LOG_CTRACE("game") << "Weapon not found:" << market.name;
+				LOG_CERROR("game") << "Weapon not found:" << market.name;
 				return;
 			}
 
@@ -818,12 +889,14 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 
 void RpgUserWalletList::updateMarket(const RpgWallet &wallet)
 {
+	QMutexLocker locker(&m_mutex);
+
 	const auto it = std::find_if(begin(), end(), [&wallet](RpgUserWallet *w) {
-					return (w->market().type == wallet.type && w->market().name == wallet.name);
+					return wallet.isEqual(w->market());
 });
 
 	if (it == end()) {
-		LOG_CTRACE("game") << "Load wallet error: missing market item:" << wallet.type << wallet.name;
+		LOG_CERROR("game") << "Load wallet error: missing market item:" << wallet.type << wallet.name;
 		return;
 	}
 
@@ -853,6 +926,8 @@ void RpgUserWalletList::updateAllWalletBuyable()
 
 void RpgUserWalletList::removeMissing(const QVector<RpgMarket> &list)
 {
+	QMutexLocker locker(&m_mutex);
+
 	QList<RpgUserWallet*> r;
 
 	for (RpgUserWallet *w : *this) {
@@ -905,13 +980,65 @@ RpgUserWallet *RpgUserWalletList::worldGetSelectedWallet() const
 }
 
 
+
+/**
+ * @brief RpgUserWalletList::getArmory
+ * @param character
+ * @return
+ */
+
+RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
+{
+	QMutexLocker locker(&m_mutex);
+
+	RpgGameData::Armory armory;
+
+	if (character.isEmpty())
+		return armory;
+
+	int belongsValue = -1;
+
+	for (RpgUserWallet *w : *this) {
+		if (w->marketType() != RpgMarket::Weapon || !w->available() || w->market().belongs.isEmpty())
+			continue;
+
+		if (w->market().belongs != character && w->market().belongs != RpgGame::characters().value(character).base)
+			continue;
+
+		const RpgGameData::Weapon::WeaponType type = RpgArmory::weaponHash().key(w->market().name, RpgGameData::Weapon::WeaponInvalid);
+		const int sub = w->market().info.value(QStringLiteral("subType")).toInt(0);
+		const int bv = w->market().belongsValue;
+
+		if (type == RpgGameData::Weapon::WeaponInvalid)
+			continue;
+
+		if (bv > belongsValue) {
+			armory.cw = type;
+			armory.s = sub;
+			belongsValue = bv;
+		}
+	}
+
+	if (armory.cw != RpgGameData::Weapon::WeaponInvalid)
+		armory.add(armory.cw, armory.s);
+
+	return armory;
+}
+
+
+
+
 int RpgUserWalletList::currency() const
 {
+	QMutexLocker locker(&m_mutex);
+
 	return m_currency;
 }
 
 void RpgUserWalletList::setCurrency(int newCurrency)
 {
+	QMutexLocker locker(&m_mutex);
+
 	if (m_currency == newCurrency)
 		return;
 	m_currency = newCurrency;
@@ -1188,3 +1315,16 @@ QQuickItem *RpgUserWorld::getCachedMapItem()
 	return m_cachedMapItem;
 }
 
+
+QString RpgUserWallet::baseReadableName() const
+{
+	return m_baseReadableName;
+}
+
+void RpgUserWallet::setBaseReadableName(const QString &newBaseReadableName)
+{
+	if (m_baseReadableName == newBaseReadableName)
+		return;
+	m_baseReadableName = newBaseReadableName;
+	emit baseReadableNameChanged();
+}

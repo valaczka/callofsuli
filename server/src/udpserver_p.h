@@ -75,6 +75,8 @@ private:
 		QByteArray privateKey;					// non emtpy = connected
 		QJsonObject connectionToken;			// azért QJsonObject, hogy pl. RpgConnectionToken is lehessen
 		QString username;
+
+		QDeadlineTimer deadline;
 	};
 
 	void peerConnect(ENetPeer *peer);
@@ -90,6 +92,7 @@ private:
 
 
 	QString dumpPeers() const;
+	void removeExpiredPeers();
 
 	void deliverReceived();
 	void disconnectUnusedPeers();
@@ -99,7 +102,7 @@ private:
 
 	int m_maxPeers = 0;
 
-	QMutex m_peerMutex;
+	mutable QMutex m_peerMutex;
 	QHash<quint32, PeerData> m_peerHash;
 
 

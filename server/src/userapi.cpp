@@ -780,11 +780,19 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 	if (g.campaign < 0)
 		return responseError("invalid campaign");
 
+	UdpServer *udpServer = m_service->udpServer();
+
+	if (!udpServer)
+		return responseError("internal error");
+
 
 	// TODO: remove player other games
 
+	QDateTime exp = QDateTime::currentDateTimeUtc();
+	exp = exp.addSecs(120);
+
 	RpgGameData::ConnectionToken token;
-	token.peerID = m_service->udpServer()->addPeer(credential.username());
+	token.peerID = udpServer->addPeer(credential.username(), exp);
 
 	if (token.peerID == 0) {
 		return responseError("player create error");
@@ -792,10 +800,6 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 
 	token.username = credential.username();
 	token.config = g;
-
-	QDateTime exp = QDateTime::currentDateTimeUtc();
-	exp = exp.addSecs(120);
-
 	token.exp = exp.toSecsSinceEpoch();
 
 
@@ -1327,7 +1331,7 @@ QHttpServerResponse UserAPI::buy(const Credential &credential, const QJsonObject
 	const auto &list = m_service->market().list;
 
 	const auto it = std::find_if(list.constBegin(), list.constEnd(), [&w](const RpgMarket &m){
-		return (m.type == w.type && m.name == w.name);
+		return w.isEqual(m);
 	});
 
 	LAMBDA_SQL_ERROR_ROLLBACK("invalid type", it != list.constEnd());

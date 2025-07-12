@@ -34,8 +34,8 @@
  * @param parent
  */
 
-RpgFireball::RpgFireball(TiledGame *game, const cpBodyType &type)
-	: RpgBullet(RpgGameData::Weapon::WeaponLongbow, game, type)
+RpgFireball::RpgFireball(TiledGame *game, const int &subType, const cpBodyType &type)
+	: RpgBullet(RpgGameData::Weapon::WeaponLongbow, subType, game, type)
 {
 
 }

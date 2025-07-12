@@ -42,7 +42,7 @@ class RpgArrow : public RpgBullet
 	QML_ELEMENT
 
 public:
-	RpgArrow(TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+	RpgArrow(TiledGame *game, const int &subType = 0, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgArrow() {}
 
 protected:

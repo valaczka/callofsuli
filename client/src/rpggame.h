@@ -260,10 +260,12 @@ public:
 
 	bool playerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
 	bool playerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
-	bool playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
+	bool playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
+						   const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype);
 	bool enemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
 	bool enemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
-	bool enemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
+	bool enemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
+						   const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype);
 	bool bulletImpact(RpgBullet *bullet, TiledObjectBody *other);
 
 signals:

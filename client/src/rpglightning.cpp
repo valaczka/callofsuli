@@ -34,8 +34,8 @@
  * @param parent
  */
 
-RpgLightning::RpgLightning(TiledGame *game, const cpBodyType &type)
-	: RpgBullet(RpgGameData::Weapon::WeaponLightningWeapon, game, type)
+RpgLightning::RpgLightning(TiledGame *game, const int &subType, const cpBodyType &type)
+	: RpgBullet(RpgGameData::Weapon::WeaponLightningWeapon, subType, game, type)
 {
 	m_maxDistance = 500.;
 	m_speed = 30.;
@@ -118,8 +118,8 @@ void RpgLightning::impactEvent(TiledObjectBody *base, cpShape *shape)
  * @param parent
  */
 
-RpgLightningWeapon::RpgLightningWeapon(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponLightningWeapon, parent}
+RpgLightningWeapon::RpgLightningWeapon(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponLightningWeapon, subType, parent}
 {
 
 }

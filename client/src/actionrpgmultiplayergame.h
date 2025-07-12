@@ -49,6 +49,8 @@ class ActionRpgMultiplayerGame : public ActionRpgGame
 	Q_PROPERTY(QSListModel *enginesModel READ enginesModel CONSTANT FINAL)
 	Q_PROPERTY(bool canAddEngine READ canAddEngine WRITE setCanAddEngine NOTIFY canAddEngineChanged FINAL)
 	Q_PROPERTY(bool selectionCompleted READ selectionCompleted WRITE setSelectionCompleted NOTIFY selectionCompletedChanged FINAL)
+	Q_PROPERTY(int maxPlayers READ maxPlayers WRITE setMaxPlayers NOTIFY maxPlayersChanged FINAL)
+	Q_PROPERTY(bool locked READ locked WRITE setLocked NOTIFY lockedChanged FINAL)
 
 public:
 	explicit ActionRpgMultiplayerGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -62,6 +64,7 @@ public:
 	Q_INVOKABLE void selectTerrain(const QString &terrain);
 	Q_INVOKABLE void selectCharacter(const QString &character);
 	Q_INVOKABLE void banOutPlayer(const int &playerId);
+	Q_INVOKABLE void lockEngine();
 
 	Q_INVOKABLE void connectToEngine(const int &id);
 
@@ -83,11 +86,18 @@ public:
 	bool canAddEngine() const;
 	void setCanAddEngine(bool newCanAddEngine);
 
+	int maxPlayers() const;
+	void setMaxPlayers(int newMaxPlayers);
+
+	bool locked() const;
+	void setLocked(bool newLocked);
+
 signals:
 	void playerIdChanged();
 	void selectionCompletedChanged();
-
 	void canAddEngineChanged();
+	void maxPlayersChanged();
+	void lockedChanged();
 
 protected:
 	void onConfigChanged() override;
@@ -105,6 +115,9 @@ private:
 	bool m_randomizerSynced = false;
 	bool m_fullyPrepared = false;
 	bool m_othersPrepared = false;
+	int m_maxPlayers = 0;
+	bool m_locked = false;
+
 
 	std::unique_ptr<QSListModel> m_playersModel;
 	std::unique_ptr<QSListModel> m_enginesModel;
@@ -134,7 +147,8 @@ private:
 	void onTimeAfterWorldStep(const qint64 &tick) override;
 	bool onBodyStep(TiledObjectBody *body) override;
 	void onWorldStep() override;
-	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType) override;
+	bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
+							 const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype) override;
 	bool onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control) override;
 	bool onPlayerUseCast(RpgPlayer *player) override;
 	bool onPlayerCastTimeout(RpgPlayer *player) override;
@@ -149,7 +163,8 @@ private:
 
 	bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon) override;
 	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle) override;
-	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType) override;
+	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
+							 const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype) override;
 
 	bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other) override;
 	//void onBulletDelete(IsometricBullet *bullet) override;
@@ -162,7 +177,7 @@ private:
 	void sendData(const QSerializer &data, const bool &reliable);
 	void sendData(const QByteArray &data, const bool &reliable);
 
-	void sendDataChrSel(const int &ban = -1);
+	void sendDataChrSel(const int &ban = -1, const bool &lock = false);
 	void sendDataPrepare();
 	void sendDataConnect();
 

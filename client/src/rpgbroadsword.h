@@ -36,7 +36,7 @@ class RpgBroadsword : public RpgWeapon
 	Q_OBJECT
 
 public:
-	explicit RpgBroadsword(QObject *parent = nullptr);
+	explicit RpgBroadsword(const int &subType = 0, QObject *parent = nullptr);
 
 protected:
 	void eventAttack(TiledObject *target) override final;

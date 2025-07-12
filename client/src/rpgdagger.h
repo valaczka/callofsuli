@@ -36,7 +36,7 @@ class RpgDagger : public RpgWeapon
 	Q_OBJECT
 
 public:
-	explicit RpgDagger(QObject *parent = nullptr);
+	explicit RpgDagger(const int &subType = 0, QObject *parent = nullptr);
 
 protected:
 	void eventAttack(TiledObject *target) override final;

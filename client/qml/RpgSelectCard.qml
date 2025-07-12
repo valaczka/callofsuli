@@ -41,7 +41,7 @@ Qaterial.Card {
 
 	elevation: locked ? 0 : Qaterial.Style.card.activeElevation
 
-	scale: _area.pressed ? 0.85 : selected ? 1.0 : 0.9
+	scale: _area.pressed ? 0.9 : selected ? 1.0 : 0.95
 
 	Behavior on scale {
 		NumberAnimation { duration: 125 }

@@ -371,7 +371,7 @@ void RpgEnemyBase::loadConfig(const QJsonObject &config)
 	}
 
 
-	if (RpgWeapon *w = m_armory->weaponAdd(cfg.weapon)) {
+	if (RpgWeapon *w = m_armory->weaponAdd(cfg.weapon, 0)) {
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);

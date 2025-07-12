@@ -34,11 +34,8 @@
 #define STD_DEV_MAX_ATTEMPTS			10000
 #define TARGET_STD_DEV					1.5
 
+
 #define PICKABLE_HP_VALUE				10
-#define PICKABLE_SHORTBOW_VALUE			10
-#define PICKABLE_LONGBOW_VALUE			10
-#define PICKABLE_LONGSWORD_VALUE		10
-#define PICKABLE_DAGGER_VALUE			1
 #define PICKABLE_SHIELD_VALUE			2
 
 
@@ -49,26 +46,80 @@ const QHash<RpgConfig::ControlType, int> RpgConfig::m_controlDamageValue = {
 
 
 
+
+
+/**
+ * @brief RpgWallet::isEqual
+ * @param market
+ * @return
+ */
+
+bool RpgWallet::isEqual(const RpgMarket &market) const
+{
+	if (type == RpgMarket::Weapon) {
+		const QStringList list = name.split('/');
+
+		if (list.empty())
+			return false;
+
+		const int subType = list.size() > 1 ? list.at(1).toInt() : 0;
+		const QString belongs = list.size() > 2 ? list.at(2) : QString();
+
+		return (market.type == type &&
+				market.name == list.at(0) &&
+				market.info.value(QStringLiteral("subType")).toInt() == subType &&
+				market.belongs == belongs);
+	} else {
+		return (market.type == type && market.name == name);
+	}
+}
+
+
+/**
+ * @brief RpgWallet::setFromMarket
+ * @param market
+ */
+
+void RpgWallet::setFromMarket(const RpgMarket &market)
+{
+	type = market.type;
+	name = market.name;
+
+	if (market.type != RpgMarket::Weapon)
+		return;
+
+	const int sub = market.info.value(QStringLiteral("subType")).toInt();
+
+	if (sub > 0 || !market.belongs.isEmpty()) {
+		name += '/' + QString::number(sub);
+
+		if (!market.belongs.isEmpty())
+			name += '/' + market.belongs;
+	}
+}
+
+
+
 namespace RpgGameData {
 
-const QHash<Weapon::WeaponType, int> Weapon::m_damageValue = {
-	{ Weapon::WeaponHand, 1 },
-	{ Weapon::WeaponDagger, 3 },
-	{ Weapon::WeaponLongsword, 10 },
-	{ Weapon::WeaponHammer, 20 },
-	{ Weapon::WeaponMace, 22 },
-	{ Weapon::WeaponAxe, 25 },
-	{ Weapon::WeaponBroadsword, 30 },
-	{ Weapon::WeaponShortbow, 10 },
-	{ Weapon::WeaponLongbow, 25 },
-	{ Weapon::WeaponGreatHand, 50 },
-	{ Weapon::WeaponLightningWeapon, 40 },
-	{ Weapon::WeaponFireFogWeapon, 60 },
+const QHash<QPair<Weapon::WeaponType, int>, int> Weapon::m_damageValue = {
+	{ { Weapon::WeaponHand, 0 }, 1 },
+	{ { Weapon::WeaponDagger, 0 }, 3 },
+	{ { Weapon::WeaponLongsword, 0 }, 10 },
+	{ { Weapon::WeaponHammer, 0 }, 20 },
+	{ { Weapon::WeaponMace, 0 }, 22 },
+	{ { Weapon::WeaponAxe, 0 }, 25 },
+	{ { Weapon::WeaponBroadsword, 0 }, 30 },
+	{ { Weapon::WeaponShortbow, 0 }, 10 },
+	{ { Weapon::WeaponLongbow, 0 }, 25 },
+	{ { Weapon::WeaponGreatHand, 0 }, 50 },
+	{ { Weapon::WeaponLightningWeapon, 0 }, 40 },
+	{ { Weapon::WeaponFireFogWeapon, 0 }, 60 },
 };
 
 
-const QHash<Weapon::WeaponType, int> Weapon::m_protectValue = {
-	{ Weapon::WeaponShield, 10 },
+const QHash<QPair<Weapon::WeaponType, int>, int> Weapon::m_protectValue = {
+	{ { Weapon::WeaponShield, 0 }, 10 },
 };
 
 
@@ -138,9 +189,9 @@ void SnapshotStorage::addFullSnapshot(SnapshotInterpolationList<T2, T> *dst, Sna
  */
 
 void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
-							 const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other)
+							 const Weapon::WeaponType &weapon, const int &weaponSubType, const ArmoredEntityBaseData &other)
 {
-	float damage = Weapon::damageValue().value(weapon, 0) * other.df;
+	float damage = Weapon::damageValue().value(QPair<Weapon::WeaponType, int>(weapon, weaponSubType), 0) * other.df;
 
 	if (damage <= 0.)
 		return;
@@ -149,7 +200,7 @@ void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity
 		if (it->b == 0)
 			continue;
 
-		const float protect = Weapon::protectValue().value(it->t, 0) * dstBase.pf;
+		const float protect = Weapon::protectValue().value(QPair<Weapon::WeaponType, int>(it->t, it->s), 0) * dstBase.pf;
 		if (protect <= 0.)
 			continue;
 
@@ -433,27 +484,9 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
 			dst.hp += PICKABLE_HP_VALUE;
 			break;
 
-		case PickableBaseData::PickableShortbow:
-			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_SHORTBOW_VALUE);
-			break;
-
-		case PickableBaseData::PickableLongbow:
-			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_LONGBOW_VALUE);
-			break;
-
-		case PickableBaseData::PickableLongsword:
-			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_LONGSWORD_VALUE);
-			break;
-
-		case PickableBaseData::PickableDagger:
-			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_DAGGER_VALUE);
-			break;
-
 		case PickableBaseData::PickableShield:
 			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_SHIELD_VALUE);
 			break;
-
-
 
 		case PickableBaseData::PickableKey:
 			dst.inv.add(type, 1, name);
@@ -462,6 +495,10 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
 		case PickableBaseData::PickableTime:
 		case PickableBaseData::PickableMp:
 		case PickableBaseData::PickableCoin:
+		case PickableBaseData::PickableShortbow:
+		case PickableBaseData::PickableLongbow:
+		case PickableBaseData::PickableLongsword:
+		case PickableBaseData::PickableDagger:
 		case PickableBaseData::PickableInvalid:
 			return false;
 	}
@@ -842,3 +879,4 @@ void PlayerBaseData::assign(const QList<PlayerBaseData *> &dst, const int &num)
 
 
 }
+

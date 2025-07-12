@@ -299,6 +299,9 @@ void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
 
 	updateSnapshot(config.players);
 
+	m_game->setMaxPlayers(config.max);
+	m_game->setLocked(config.locked);
+
 
 	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest || m_game->isReconnecting()) {
 		m_gameConfig = config.gameConfig;

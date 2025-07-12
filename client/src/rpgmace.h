@@ -33,7 +33,7 @@ class RpgMace : public RpgWeapon
 {
 	Q_OBJECT
 public:
-	explicit RpgMace(QObject *parent = nullptr);
+	explicit RpgMace(const int &subType = 0, QObject *parent = nullptr);
 
 protected:
 	void eventAttack(TiledObject *target) override final;

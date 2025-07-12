@@ -40,7 +40,7 @@ class RpgLightning : public RpgBullet
 	Q_OBJECT
 
 public:
-	RpgLightning(TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+	RpgLightning(TiledGame *game, const int &subType = 0, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgLightning() {}
 
 protected:
@@ -60,7 +60,7 @@ class RpgLightningWeapon : public RpgWeapon
 {
 	Q_OBJECT
 public:
-	explicit RpgLightningWeapon(QObject *parent = nullptr);
+	explicit RpgLightningWeapon(const int &subType = 0, QObject *parent = nullptr);
 
 protected:
 	void eventAttack(TiledObject *target) override final;

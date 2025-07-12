@@ -244,8 +244,8 @@ QPageGradient {
 			id: _dialog
 			//horizontalPadding: 0
 
-			title: _isBuy ? qsTr("Vásárlás: %1").arg(_currentWallet.readableName)
-						  : qsTr("Információk: %1").arg(_currentWallet.readableName)
+			title: (_isBuy ? qsTr("Vásárlás: ") : qsTr("Információk: "))
+				   + _currentWallet.readableName.split("\n").join(" ")
 
 			dialogImplicitWidth: 600
 			autoFocusButtons: true

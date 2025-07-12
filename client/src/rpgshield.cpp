@@ -26,8 +26,8 @@
 
 #include "rpgshield.h"
 
-RpgShield::RpgShield(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponShield, parent}
+RpgShield::RpgShield(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponShield, subType, parent}
 {
 	m_icon = QStringLiteral("qrc:/Qaterial/Icons/shield.svg");
 }

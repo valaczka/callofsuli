@@ -39,7 +39,7 @@ QItemGradient {
 			outlined: true
 
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-			height: Math.min(parent.height, 500)
+			height: Math.min(parent.height, _multiplayer ? 500 : 300)
 
 			anchors.centerIn: parent
 
@@ -102,7 +102,7 @@ QItemGradient {
 						Layout.fillHeight: true
 						Layout.fillWidth: true
 
-						text: wallet ? wallet.readableName : qsTr("Válassz...")
+						text: wallet ? wallet.baseReadableName : qsTr("Válassz...")
 						image: wallet ? wallet.image : ""
 						locked: !wallet || !wallet.available
 						selected: true
@@ -228,7 +228,7 @@ QItemGradient {
 							id: _otherPlayerTitle
 							anchors.left: parent.left
 
-							icon.source: Qaterial.Icons.accountMultiplePlusOutline
+							icon.source: Qaterial.Icons.accountMultipleOutline
 							text: qsTr("Players")
 						}
 
@@ -240,9 +240,13 @@ QItemGradient {
 							//anchors.bottom: parent.bottom
 							//anchors.top: _weaponTitle.bottom
 
-							height: _otherPlayerItem.height-_otherPlayerTitle.height
+							readonly property real _spacing: 5 * Qaterial.Style.pixelSizeRatio
+							readonly property real _maxWidth: (_otherPlayerItem.width / (_multiplayer ? _multiplayer.maxPlayers+1 : 1))
+															  - _spacing
 
-							y: _otherPlayerItem.height
+							height: Math.max(120, Math.min(_maxWidth, _otherPlayerItem.height-_otherPlayerTitle.height))
+
+							y: _otherPlayerTitle.height
 
 
 							delegate: RpgSelectCard {
@@ -267,7 +271,49 @@ QItemGradient {
 
 									onClicked: _multiplayer.banOutPlayer(playerId)
 								}
+							}
 
+							footer: Row {
+								id: _placeholder
+
+								spacing: _viewPlayers.spacing
+
+								readonly property int num: _multiplayer ? Math.max(0, _multiplayer.maxPlayers-_multiplayer.playersModel.count) : 0
+
+								visible: num > 0 && _multiplayer && !_multiplayer.locked
+
+								Repeater {
+									model: _placeholder.num
+
+									delegate: QButton {
+										height: _viewPlayers.height
+										width: _viewPlayers.height
+										enabled: false
+
+										icon.width: width * 0.4
+										icon.height: height * 0.4
+										icon.source: Qaterial.Icons.accountPlusOutline
+									}
+								}
+
+								QButton {
+									visible: _placeholder.num > 0
+
+									height: _viewPlayers.height
+									width: _viewPlayers.height
+
+									flat: true
+									outlined: true
+
+									foregroundColor: Qaterial.Colors.red600
+									outlinedColor: Qaterial.Colors.red500
+
+									icon.source: Qaterial.Icons.lock
+									icon.width: width * 0.3
+									icon.height: height * 0.3
+
+									onClicked: _multiplayer.lockEngine()
+								}
 							}
 
 							model: _multiplayer ? _multiplayer.playersModel : null
@@ -347,7 +393,7 @@ QItemGradient {
 					property RpgUserWallet wallet: model.qtObject
 					height: _dialogView.height
 					width: _dialogView.height
-					text: wallet.readableName
+					text: wallet.baseReadableName
 					image: wallet.image
 					locked: !wallet.available
 					selected: wallet == _dialog.selectedWallet

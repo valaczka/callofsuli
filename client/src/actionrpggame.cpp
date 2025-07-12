@@ -344,7 +344,9 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 				return;
 			}
 
-			RpgWeapon *weapon = player->armory()->weaponFind(type);
+			int sub = wallet->market().info.value(QStringLiteral("subType")).toInt(0);
+
+			RpgWeapon *weapon = player->armory()->weaponFind(type, sub);
 
 			if (weapon) {
 				LOG_CDEBUG("game") << "Weapon already exists";
@@ -623,7 +625,7 @@ void ActionRpgGame::rpgGameActivated_()
 	RpgUserWalletList* wallet = m_client->server() ? m_client->server()->user()->wallet() : nullptr;
 
 	if (wallet) {
-		for (const QString &s : m_playerConfig.weapons) {
+		/*for (const QString &s : m_playerConfig.weapons) {
 			const auto it = std::find_if(wallet->constBegin(), wallet->constEnd(), [&s](RpgUserWallet *w) {
 							return w->market().type == RpgMarket::Weapon && w->market().name == s;
 		});
@@ -639,9 +641,9 @@ void ActionRpgGame::rpgGameActivated_()
 
 			loadWeapon(player,
 					   RpgArmory::weaponHash().key(s, RpgGameData::Weapon::WeaponInvalid),
-					   /*(*it)->bullet() ? (*it)->bullet()->amount() : 0*/
+					   (*it)->bullet() ? (*it)->bullet()->amount() : 0
 					   (*it)->market().cost == 0 ? -1 : (*it)->amount());
-		}
+		}*/
 	}
 
 
@@ -1093,12 +1095,12 @@ void ActionRpgGame::loadInventory(RpgPlayer *player)
  * @param bullet
  */
 
-void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &type, const int &bullet)
+void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &type, const int &subType, const int &bullet)
 {
-	RpgWeapon *weapon = player->armory()->weaponAdd(type);
+	RpgWeapon *weapon = player->armory()->weaponAdd(type, subType);
 
 	if (!weapon) {
-		LOG_CERROR("game") << "Invalid weapon type" << type;
+		LOG_CERROR("game") << "Invalid weapon type" << type << subType;
 		return;
 	}
 
@@ -1119,14 +1121,15 @@ void ActionRpgGame::loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::Wea
  * @return
  */
 
-bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType)
+bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
+										const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype)
 {
 	if (!player || !enemy)
 		return false;
 
 	RpgGameData::Enemy e = enemy->serialize();
 
-	e.attacked(enemy->baseData(), weaponType, player->baseData());
+	e.attacked(enemy->baseData(), weaponType, weaponSubtype, player->baseData());
 
 	int xp = std::max(0, e.hp-enemy->hp());
 	setXp(m_xp+xp);
@@ -1396,7 +1399,7 @@ bool ActionRpgGame::onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *w
 	if (weapon->bulletCount() > 0)
 		weapon->setBulletCount(weapon->bulletCount()-1);
 
-	m_rpgGame->playerAttackEnemy(player, enemy, weapon->weaponType());
+	m_rpgGame->playerAttackEnemy(player, enemy, weapon->weaponType(), weapon->weaponSubType());
 
 	if (weapon->pickedBulletCount() > 0)
 		weapon->setPickedBulletCount(weapon->pickedBulletCount()-1);
@@ -1475,7 +1478,7 @@ bool ActionRpgGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *we
 	if (weapon->bulletCount() > 0)
 		weapon->setBulletCount(weapon->bulletCount()-1);
 
-	m_rpgGame->enemyAttackPlayer(enemy, player, weapon->weaponType());
+	m_rpgGame->enemyAttackPlayer(enemy, player, weapon->weaponType(), weapon->weaponSubType());
 
 	enemy->playAttackEffect(weapon);
 
@@ -1532,13 +1535,15 @@ bool ActionRpgGame::onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal 
  * @return
  */
 
-bool ActionRpgGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
+bool ActionRpgGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
+										const RpgGameData::Weapon::WeaponType &weaponType,
+										const int &weaponSubtype)
 {
 	if (!player || !enemy)
 		return false;
 
 	RpgGameData::Player p = player->serialize();
-	p.attacked(player->baseData(), weaponType, enemy->baseData());
+	p.attacked(player->baseData(), weaponType, weaponSubtype, enemy->baseData());
 
 	const bool prot = p.hp == player->hp();
 
@@ -1587,11 +1592,11 @@ bool ActionRpgGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody *other)
 												 });
 
 	if (RpgPlayer *ownP = dynamic_cast<RpgPlayer*>(owner); ownP && enemy) {
-		m_rpgGame->playerAttackEnemy(ownP, enemy, bullet->weaponType());
+		m_rpgGame->playerAttackEnemy(ownP, enemy, bullet->weaponType(), bullet->weaponSubType());
 	}
 
 	if (RpgEnemy *ownE = dynamic_cast<RpgEnemy*>(owner); ownE && player) {
-		m_rpgGame->enemyAttackPlayer(ownE, player, bullet->weaponType());
+		m_rpgGame->enemyAttackPlayer(ownE, player, bullet->weaponType(), bullet->weaponSubType());
 	}
 
 	/// TODO: player attack player?

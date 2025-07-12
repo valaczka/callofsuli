@@ -26,8 +26,8 @@
 
 #include "rpgfirefog.h"
 
-RpgFireFogWeapon::RpgFireFogWeapon(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponFireFogWeapon, parent}
+RpgFireFogWeapon::RpgFireFogWeapon(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponFireFogWeapon, subType, parent}
 {
 	m_canHit = true;
 }

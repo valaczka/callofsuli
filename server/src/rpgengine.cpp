@@ -183,6 +183,7 @@ private:
 
 	QDeadlineTimer m_removeTimer;
 
+	bool m_locked = false;
 	QList<qint64> m_banList;
 
 
@@ -324,8 +325,10 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, const
 
 	ptr->setUdpServer(server);
 
+	ptr->setPlayerLimit(5);
+
 	if (const QString &dir = handler->service()->logDir(); !dir.isEmpty()) {
-		const QString fname = dir+QStringLiteral("/rpg-%1.log").arg(ptr->id());
+		const QString fname = dir+QStringLiteral("/rpg-%1.log").arg(ptr->id(), 3, 10, '0');
 
 		if (QFile::exists(fname))
 			QFile::remove(fname);
@@ -464,7 +467,9 @@ std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, con
 
 bool RpgEngine::canDelete(const int &useCount)
 {
-	if (m_config.gameState == RpgConfig::StatePlay) {
+	if (!d->m_removeTimer.isForever()) {
+		return d->m_removeTimer.hasExpired();
+	} else if (m_config.gameState == RpgConfig::StatePlay) {
 		// Ha van még, aki nincs kész, akkor nem zárjuk le
 
 		const auto it = std::find_if(m_player.cbegin(),
@@ -477,8 +482,6 @@ bool RpgEngine::canDelete(const int &useCount)
 
 		return !hasNoFinished;
 
-	} else if (!d->m_removeTimer.isForever()) {
-		return d->m_removeTimer.hasExpired();
 	} else {
 		return AbstractEngine::canDelete(useCount);
 	}
@@ -1128,11 +1131,13 @@ void RpgEngine::setLoggerFile(const QString &fname)
 {
 	FileAppender* appender = new FileAppender(fname);
 
+	appender->setFormat(QString::fromStdString( "%{time}{hh:mm:ss.zzz} [%{TypeOne}] %{message}\n"));
+
 #ifndef QT_NO_DEBUG
-	appender->setFormat(QString::fromStdString( "%{time}{yyyy-MM-dd hh:mm:ss.zzz} [%{TypeOne}] %{message} <%{function} %{file}:%{line}>\n"));
+	//appender->setFormat(QString::fromStdString( "%{time}{yyyy-MM-dd hh:mm:ss.zzz} [%{TypeOne}] %{message} <%{function} %{file}:%{line}>\n"));
 	appender->setDetailsLevel(Logger::Trace);
 #else
-	appender->setFormat(QString::fromStdString( "%{time}{hh:mm:ss.zzz} [%{TypeOne}] %{message}\n"));
+	//appender->setFormat(QString::fromStdString( "%{time}{hh:mm:ss.zzz} [%{TypeOne}] %{message}\n"));
 	appender->setDetailsLevel(Logger::Debug);
 #endif
 
@@ -1204,14 +1209,38 @@ void RpgEngine::preparePlayers()
 		// Scene = 0 minden player esetében
 		ptr->s = 0;
 
+
+		ptr->setStartPosition(pos);
+
+		const RpgGameData::CharacterSelect &config = ptr->config();
+
+		ptr->mmp = config.maxMp;
+
 		RpgGameData::Player pdata;
 		pdata.p = {pos.x, pos.y};
 		pdata.f = 0;
 		pdata.sc = pos.scene;
-		pdata.hp = 13;			// TODO: from m_config
-		pdata.mhp = 13;
-		pdata.arm.wl.append(RpgGameData::Weapon(RpgGameData::Weapon::WeaponLongsword, 135));
-		pdata.arm.cw = RpgGameData::Weapon::WeaponShortbow;
+		pdata.hp = std::max(config.maxHp, 13);			// TODO: from m_config
+		pdata.mhp = std::max(config.maxHp, 20);
+		pdata.mp = config.mp;
+
+		if (!config.armory.wl.isEmpty()) {
+			pdata.arm = config.armory;
+
+			LOG_CINFO("engine") << "SET ARMORY" << pdata.arm.cw << pdata.arm.s << pdata.arm.wl.size();
+
+			for (auto w : pdata.arm.wl) {
+				LOG_CDEBUG("engine") << "  -" << w.t << w.s;
+			}
+		} else {
+			pdata.arm.add(RpgGameData::Weapon::WeaponLongsword, 0, 135);
+			pdata.arm.cw = RpgGameData::Weapon::WeaponShortbow;
+			pdata.arm.s = 0;
+
+			LOG_CINFO("engine") << "SET AUTO ARMORY" << pdata.arm.cw << pdata.arm.s << pdata.arm.wl.size();
+		}
+
+		ELOG_INFO << "SET ARMORY" << pdata.arm.cw << pdata.arm.s << "size" <<  pdata.arm.wl.size() << *ptr;
 
 		m_snapshots.playerAdd(*ptr, pdata);
 	}
@@ -1314,7 +1343,9 @@ bool RpgEnginePrivate::canConnect(const qint64 &peerID, const RpgConfigBase &con
 			(engine->config().gameState == RpgConfig::StateConnect ||
 			 engine->config().gameState == RpgConfig::StateCharacterSelect) &&
 			engine->config() == config &&
-			!engine->d->m_banList.contains(peerID)
+			!engine->d->m_locked &&
+			!engine->d->m_banList.contains(peerID) &&
+			(engine->m_playerLimit <= 0 || engine->m_player.size() < engine->m_playerLimit)
 			);
 }
 
@@ -1408,6 +1439,10 @@ void RpgEnginePrivate::dataReceivedChrSel(RpgEnginePlayer *player, const QByteAr
 
 	m_gameConfig = c.gameConfig;
 
+	if (c.locked) {
+		ELOG_INFO << "Lock engine by peer" << player->peerID();
+		m_locked = true;
+	}
 
 	if (m.contains(QStringLiteral("ban"))) {
 		const int playerId = m.value(QStringLiteral("ban")).toInteger();
@@ -1423,6 +1458,9 @@ void RpgEnginePrivate::dataReceivedChrSel(RpgEnginePlayer *player, const QByteAr
 		}
 	}
 
+	if (m.value(QStringLiteral("lock")).toBool()) {
+		m_locked = true;
+	}
 
 	/*#ifdef WITH_FTXUI
 	QCborMap map;
@@ -1554,6 +1592,8 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 		case SendChrSel: {
 			RpgGameData::CharacterSelectServer config;
 			config.gameConfig = m_gameConfig;
+			config.locked = m_locked;
+			config.max = q->m_playerLimit;
 			if (m_randomizer.has_value())
 				config.gameConfig.randomizer = m_randomizer.value();
 
@@ -1586,6 +1626,9 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 		case SendReconnect: {
 			RpgGameData::CharacterSelectServer config;
 			config.gameConfig = m_gameConfig;
+			config.locked = m_locked;
+			config.max = q->m_playerLimit;
+
 			if (m_randomizer.has_value())
 				config.gameConfig.randomizer = m_randomizer.value();
 
@@ -1859,6 +1902,33 @@ void RpgEnginePrivate::updateState()
 
 		if (allCompleted) {
 			ELOG_DEBUG << "All players completed" << q << q->id();
+
+			ELOG_INFO << "-------------------------------------------------------------";
+			ELOG_INFO << "PLAYERS";
+			ELOG_INFO << "-------------------------------------------------------------";
+
+
+			for (const auto &ptr : q->m_player) {
+				QByteArray txt;
+
+				if (ptr->isHost())
+					txt += QByteArrayLiteral("(*) ");
+				else
+					txt += QByteArrayLiteral("( ) ");
+
+				UdpServerPeer *peer = ptr->udpPeer();
+
+				txt += QStringLiteral("P%1 [%2] %3")
+					   .arg(ptr->playerId())
+					   .arg(ptr->peerID(), 12)
+					   .arg(peer ? peer->address() : QStringLiteral("---"), 21)
+					   .toLatin1();
+
+				ELOG_INFO << txt.constData();
+			}
+
+			ELOG_INFO << "-------------------------------------------------------------";
+
 			q->m_config.gameState = RpgConfig::StatePrepare;
 		}
 		return;
@@ -1882,7 +1952,8 @@ void RpgEnginePrivate::updateState()
 		if (hasNoScene) {
 			q->preparePlayers();
 		} else if (allPrepared) {
-			ELOG_DEBUG << "All players prepared" << q << q->id();
+			ELOG_DEBUG << "All players prepared";
+
 			q->m_config.gameState = RpgConfig::StatePlay;
 
 			for (const auto &ptr : q->m_player) {
@@ -1910,8 +1981,11 @@ void RpgEnginePrivate::updateState()
 				}
 			}
 
-			if (allFullyPrepared)
+			if (allFullyPrepared) {
 				m_elapsedTimer.start();
+
+				ELOG_DEBUG << "All players fully prepared";
+			}
 
 		} else {
 
@@ -1920,7 +1994,7 @@ void RpgEnginePrivate::updateState()
 			int diff = (currMs-tMs) * 60./1000.;
 
 			if (currMs-tMs >= 2.*1000./60.) {
-				ELOG_WARNING << "Engine" << q->id() << "render lag" << currMs-tMs;
+				ELOG_WARNING << "Engine render lag" << currMs-tMs;
 			}
 
 			if (diff > 0) {
@@ -1970,7 +2044,7 @@ void RpgEnginePrivate::updatePeers()
 	}
 
 	if (!hasPeer) {
-		ELOG_INFO << "All peers disconnected from engine" << q->m_id;
+		ELOG_INFO << "All peers disconnected from engine";
 
 		if (m_elapsedTimer.isValid()) {
 			m_elapsedTimerReference = q->currentTick() * 1000./60.;
@@ -1982,6 +2056,9 @@ void RpgEnginePrivate::updatePeers()
 			m_removeTimer.setRemainingTime(90000);
 		else
 			m_removeTimer.setRemainingTime(10000);
+	} else {
+		if (q->m_config.gameState != RpgConfig::StateFinished)
+			m_removeTimer.setRemainingTime(-1);
 	}
 }
 
@@ -2064,7 +2141,7 @@ void RpgEnginePrivate::createEnemies(const RpgGameData::CurrentSnapshot &snapsho
 		const RpgGameData::EnemyBaseData &enemy = ptr.data;
 
 		if (enemy.t == RpgGameData::EnemyBaseData::EnemyInvalid) {
-			ELOG_ERROR << "Invalid enemy data" << q->id();
+			ELOG_ERROR << "Invalid enemy data" << enemy;
 			continue;
 		}
 
@@ -2104,7 +2181,7 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 		const RpgGameData::ControlBaseData &cd = ptr.data;
 
 		if (cd.t != RpgConfig::ControlLight) {
-			ELOG_ERROR << "Invalid control light data" << q->id();
+			ELOG_ERROR << "Invalid control light data" << cd;
 			continue;
 		}
 
@@ -2130,7 +2207,7 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 		const RpgGameData::ControlContainerBaseData &cd = ptr.data;
 
 		if (cd.t != RpgConfig::ControlContainer) {
-			ELOG_ERROR << "Invalid control container data" << q->id();
+			ELOG_ERROR << "Invalid control container data" << cd;
 			continue;
 		}
 
@@ -2156,7 +2233,7 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 		const RpgGameData::ControlGateBaseData &cd = ptr.data;
 
 		if (cd.t != RpgConfig::ControlGate) {
-			ELOG_ERROR << "Invalid control gate data" << q->id();
+			ELOG_ERROR << "Invalid control gate data" << cd;
 			continue;
 		}
 
@@ -2181,7 +2258,7 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 		const RpgGameData::ControlTeleportBaseData &cd = ptr.data;
 
 		if (cd.t != RpgConfig::ControlTeleport) {
-			ELOG_ERROR << "Invalid control teleport data" << q->id();
+			ELOG_ERROR << "Invalid control teleport data" << cd;
 			continue;
 		}
 
@@ -2279,6 +2356,9 @@ void RpgEnginePrivate::createCollection()
 		pList.append(ptr.get());
 	}
 
+
+	ELOG_DEBUG << "Assign" << (m_collectionGenerated - q->m_player.size()) << "items to" << pList.size() << "players";
+
 	RpgGameData::PlayerBaseData::assign(pList, m_collectionGenerated - q->m_player.size());
 }
 
@@ -2295,7 +2375,7 @@ int RpgEnginePrivate::relocateCollection(const RpgGameData::ControlCollectionBas
 	const auto &it = m_gameConfig.collection.find(base.gid);
 
 	if (it == m_gameConfig.collection.groups.cend() || it->pos.empty()) {
-		ELOG_ERROR << "Missing places for group" << base.gid;
+		ELOG_ERROR << "Missing places for group" << base.gid << "in" << base;
 		return -1;
 	}
 
@@ -2344,19 +2424,19 @@ int RpgEnginePrivate::relocateCollection(const RpgGameData::ControlCollectionBas
 bool RpgEnginePrivate::finishCollection(const RpgGameData::ControlCollectionBaseData &base, const int &idx)
 {
 	if (idx < 0) {
-		ELOG_ERROR << "Invalid index" << idx;
+		ELOG_ERROR << "Invalid index" << idx << "in" << base;
 		return false;
 	}
 
 	const auto &it = m_gameConfig.collection.find(base.gid);
 
 	if (it == m_gameConfig.collection.groups.cend() || it->pos.empty()) {
-		ELOG_ERROR << "Missing places for group" << base.gid;
+		ELOG_ERROR << "Missing places for group" << base.gid << "in" << base;
 		return false;
 	}
 
 	if (idx >= it->pos.size()) {
-		ELOG_ERROR << "Invalid index" << idx << ">=" << it->pos.size();
+		ELOG_ERROR << "Invalid index" << idx << ">=" << it->pos.size() << "in" << base;
 		return false;
 	}
 
@@ -2819,7 +2899,7 @@ bool RpgEventEnemyDied::process(const qint64 &/*tick*/, RpgGameData::CurrentSnap
 {
 	Q_UNUSED(dst);
 
-	ELOG_DEBUG << "Enemy died processed" << m_data.o << m_data.id << "@" << m_tick;
+	ELOG_DEBUG << "Enemy died processed" << m_data << "@" << m_tick;
 
 	bool allDead = true;
 
@@ -2839,7 +2919,7 @@ bool RpgEventEnemyDied::process(const qint64 &/*tick*/, RpgGameData::CurrentSnap
 	}
 
 	if (allDead) {
-		ELOG_INFO << "ALL DEAD";
+		ELOG_INFO << "All enemies died";
 		m_engine->eventAdd<RpgEventEnemyResurrect>(m_tick+180);
 	}
 
@@ -2890,7 +2970,7 @@ bool RpgEventPlayerDied::process(const qint64 &/*tick*/, RpgGameData::CurrentSna
 {
 	Q_UNUSED(dst);
 
-	ELOG_DEBUG << "Player died processed" << m_data.o << m_data.id << "@" << m_tick;
+	ELOG_DEBUG << "Player died processed" << m_data << "@" << m_tick;
 
 	RpgGameData::Message msg;
 
@@ -2936,7 +3016,7 @@ bool RpgEventPlayerResurrect::process(const qint64 &tick, RpgGameData::CurrentSn
 	});
 
 	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid player" << m_data.o << m_data.id;
+		ELOG_ERROR << "Invalid player" << m_data;
 		return true;
 	}
 
@@ -2978,7 +3058,7 @@ bool RpgEventCollectionUsed::process(const qint64 &tick, RpgGameData::CurrentSna
 	});
 
 	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid collection" << m_data.o << m_data.s << m_data.id;
+		ELOG_ERROR << "Invalid collection" << m_data;
 		return true;
 	}
 
@@ -3004,7 +3084,7 @@ bool RpgEventCollectionUsed::process(const qint64 &tick, RpgGameData::CurrentSna
 		d.own = m_player;
 
 		if (pit == players.cend() || pit->list.empty()) {
-			ELOG_ERROR << "Invalid player" << m_data.o << m_data.s << m_data.id;
+			ELOG_ERROR << "Invalid player" << m_data;
 		} else {
 			RpgGameData::Player playerData = pit->get(m_tick).value();
 			playerData.c++;
@@ -3027,7 +3107,7 @@ bool RpgEventCollectionUsed::process(const qint64 &tick, RpgGameData::CurrentSna
 
 	} else {
 		if (pit == players.cend() || pit->list.empty()) {
-			ELOG_ERROR << "Invalid player" << m_data.o << m_data.s << m_data.id;
+			ELOG_ERROR << "Invalid player" << m_data;
 		} else {
 			RpgGameData::Player playerData = pit->get(m_tick).value();
 			playerData.controlFailed(RpgConfig::ControlCollection);
@@ -3074,7 +3154,7 @@ bool RpgEventControlUnlock::process(const qint64 &tick, RpgGameData::CurrentSnap
 
 		d.l = false;
 
-		ELOG_TRACE << "Unlock player" << m_tick << d.f << it->data.o;
+		ELOG_TRACE << "Unlock player" << it->data;
 		dst->assign(dst->players, m_data, d);
 	}
 
@@ -3091,7 +3171,7 @@ bool RpgEventControlUnlock::process(const qint64 &tick, RpgGameData::CurrentSnap
 		if (d.u.isBaseEqual(m_data) && d.st == RpgGameData::ControlContainer::ContainerClose) {
 			d.u = {};
 			d.a = true;
-			ELOG_TRACE << "Unlock container" << m_tick << d.f << ptr.data.id;
+			ELOG_TRACE << "Unlock container" << ptr.data;
 			dst->assign(dst->controls.containers, ptr.data, d);
 		}
 	}
@@ -3109,7 +3189,7 @@ bool RpgEventControlUnlock::process(const qint64 &tick, RpgGameData::CurrentSnap
 		if (d.u.isBaseEqual(m_data) && !d.own.isValid()) {
 			d.u = {};
 			d.a = true;
-			ELOG_TRACE << "Unlock collection" << m_tick << d.f << ptr.data.id;
+			ELOG_TRACE << "Unlock collection" << ptr.data;
 			dst->assign(dst->controls.collections, ptr.data, d);
 		}
 	}
@@ -3143,7 +3223,7 @@ bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSna
 	});
 
 	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid pickable" << m_data.o << m_data.s << m_data.id;
+		ELOG_ERROR << "Invalid pickable" << m_data;
 		return true;
 	}
 
@@ -3159,7 +3239,7 @@ bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSna
 }); it != pp.cend() && !it->list.empty()) {
 		pData = it->get(m_tick).value();
 	} else {
-		ELOG_ERROR << "Invalid player" << m_player.o << m_player.s << m_player.id;
+		ELOG_ERROR << "Invalid player" << m_player;
 		return true;
 	}
 
@@ -3210,7 +3290,7 @@ bool RpgEventContainerUsed::process(const qint64 &tick, RpgGameData::CurrentSnap
 	if (tick < m_tick)
 		return false;
 
-	ELOG_DEBUG << "Container use processed" << m_data.o << m_data.id << "@" << m_tick << m_success;
+	ELOG_DEBUG << "Container use processed" << m_data << m_success << "@" << m_tick;
 
 	if (!m_success) {
 		const auto &pl = m_engine->players();
@@ -3222,7 +3302,7 @@ bool RpgEventContainerUsed::process(const qint64 &tick, RpgGameData::CurrentSnap
 		});
 
 		if (it == pl.cend() || it->list.empty()) {
-			ELOG_ERROR << "Invalid player" << m_data.o << m_data.s << m_data.id;
+			ELOG_ERROR << "Invalid player" << m_data;
 			return true;
 		}
 
@@ -3243,7 +3323,7 @@ bool RpgEventContainerUsed::process(const qint64 &tick, RpgGameData::CurrentSnap
 			});
 
 			if (it == pl.cend()) {
-				ELOG_ERROR << "Invalid pickable" << m_data.o << m_data.s << m_data.id;
+				ELOG_ERROR << "Invalid pickable" << m_data;
 				continue;
 			}
 
@@ -3291,7 +3371,7 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 	});
 
 	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid collection" << m_data.o << m_data.s << m_data.id;
+		ELOG_ERROR << "Invalid collection" << m_data;
 		return true;
 	}
 
@@ -3302,10 +3382,11 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 
 	if (m_success) {
 		if (!m_engine->finishCollection(it->data, d.idx)) {
-			ELOG_ERROR << "Finish colection failed" << it->data.o << it->data.s << it->data.id;
+			ELOG_ERROR << "Finish colection failed" << it->data;
 		}
 
 		int left = -1;
+		bool hasMissing = false;		// van-e, akinek még hiányzik
 
 		// Recalculate collections
 
@@ -3334,6 +3415,9 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 				left = l;
 
 			playerData.c = coll;
+
+			if (coll < p.data.rq)
+				hasMissing = true;
 
 			dst->assign(dst->players, p.data, playerData);
 		}
@@ -3365,6 +3449,10 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 
 			if (hasTeleport)
 				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Escape through the teleporter"), true));
+
+		} else if (!hasMissing && !m_engine->hasMessageSent(RpgEngine::MessageCollectAllRemaining)) {
+			m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Collect all the remaining items"), true));
+			m_engine->setMessageSent(RpgEngine::MessageCollectAllRemaining);
 		}
 
 
@@ -3377,7 +3465,7 @@ bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSna
 		QPointF p;
 		const int idx = m_engine->relocateCollection(it->data, m_tick, &p);
 
-		ELOG_DEBUG << "Relocate collection" << m_tick << m_data.id << "->" << idx << p;
+		ELOG_DEBUG << "Relocate collection" << m_data << "->" << idx << p << "@" << m_tick;
 
 		if (idx >= 0) {
 			d.idx = idx;
@@ -3416,7 +3504,7 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 	});
 
 	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid teleport" << m_data.o << m_data.s << m_data.id;
+		ELOG_ERROR << "Invalid teleport" << m_data;
 		return true;
 	}
 
@@ -3432,12 +3520,12 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 }); it != pp.cend() && !it->list.empty()) {
 		pData = it->get(m_tick).value();
 	} else {
-		ELOG_ERROR << "Invalid player" << m_player.o << m_player.s << m_player.id;
+		ELOG_ERROR << "Invalid player" << m_player;
 		return true;
 	}
 
 	if (pData.useTeleport(m_data, m_player)) {
-		ELOG_INFO << "Teleport used" << m_tick << m_data.id << "by player" << m_player.o;
+		ELOG_INFO << "Teleport used" << m_data << "by player" << m_player << "@" << m_tick;
 		dst->assign(dst->players, m_player, pData);
 
 		// Hideout
@@ -3462,7 +3550,7 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 
 
 	} else {
-		ELOG_ERROR << "Player teleport" << m_data.id << "usage failed for player" << m_player.o;
+		ELOG_ERROR << "Player teleport" << m_data << "usage failed for player" << m_player;
 
 		const int left = std::max(1, m_player.rq - pData.c);
 
@@ -3477,6 +3565,12 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 	return true;
 }
 
+
+/**
+ * @brief RpgEnginePlayer::peerID
+ * @return
+ */
+
 quint32 RpgEnginePlayer::peerID() const
 {
 	return m_peerID;
@@ -3485,4 +3579,20 @@ quint32 RpgEnginePlayer::peerID() const
 void RpgEnginePlayer::setPeerID(quint32 newPeerID)
 {
 	m_peerID = newPeerID;
+}
+
+
+/**
+ * @brief RpgEnginePlayer::startPosition
+ * @return
+ */
+
+const RpgGameData::PlayerPosition &RpgEnginePlayer::startPosition() const
+{
+	return m_startPosition;
+}
+
+void RpgEnginePlayer::setStartPosition(const RpgGameData::PlayerPosition &newStartPosition)
+{
+	m_startPosition = newStartPosition;
 }

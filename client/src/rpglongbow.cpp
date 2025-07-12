@@ -27,8 +27,8 @@
 #include "rpglongbow.h"
 #include "tiledgame.h"
 
-RpgLongbow::RpgLongbow(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponLongbow, parent}
+RpgLongbow::RpgLongbow(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponLongbow, subType, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.2_76.png");
 }

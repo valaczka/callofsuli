@@ -40,7 +40,7 @@ class RpgShortbow : public RpgWeapon
 	Q_OBJECT
 
 public:
-	explicit RpgShortbow(QObject *parent = nullptr);
+	explicit RpgShortbow(const int &subType = 0, QObject *parent = nullptr);
 
 protected:
 	void eventAttack(TiledObject *target) override final;

@@ -321,6 +321,12 @@ void ServerService::timerEvent(QTimerEvent *)
 
 	AdminAPI::sendNotifications(m_databaseMain.get(), this);
 
+
+	// Remove expired udp peers
+
+	if (m_udpServer)
+		m_udpServer->removeExpiredPeers();
+
 	LOG_CTRACE("service") << "Timer check finished";
 }
 
@@ -403,6 +409,20 @@ RpgMarketList ServerService::loadMarket() const
 					market.name = name;
 
 				ret.list.append(market);
+
+
+				if (market.type == RpgMarket::Skin) {
+					const QJsonArray &list = ptr->value(QStringLiteral("weapons")).toArray();
+
+					for (const QJsonValue &v : list) {
+						RpgMarket wm;
+						wm.fromJson(v);
+						wm.type = RpgMarket::Weapon;
+						wm.belongs = market.name;
+
+						ret.list.append(wm);
+					}
+				}
 			}
 		}
 
@@ -1256,7 +1276,7 @@ void ServerService::resume()
 	if (!m_databaseMain->databaseAttach())
 		return std::exit(10);
 
-	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
+	m_mainTimer.start(m_mainTimerInterval, this);
 	m_engineHandler->setRunning(true);
 
 	if (!start())

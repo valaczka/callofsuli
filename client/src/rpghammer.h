@@ -34,7 +34,7 @@ class RpgHammer : public RpgWeapon
 	Q_OBJECT
 
 public:
-	explicit RpgHammer(QObject *parent = nullptr);
+	explicit RpgHammer(const int &subType = 0, QObject *parent = nullptr);
 
 protected:
 	void eventAttack(TiledObject *target) override final;

@@ -76,7 +76,7 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 
 
 		if (snapshot.s1.st == RpgGameData::Enemy::EnemyHit) {
-			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw, snapshot.s1.arm.s);
 
 			if (wptr) {
 				TiledObject *target = nullptr;
@@ -100,7 +100,7 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 
 			throw -1;
 		} else if (snapshot.s1.st == RpgGameData::Enemy::EnemyShot) {
-			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw, snapshot.s1.arm.s);
 
 			if (wptr) {
 				wptr->setParentObject(this);

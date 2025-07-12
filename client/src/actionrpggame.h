@@ -124,7 +124,9 @@ protected:
 	void onGameLoadFailed(const QString &);
 
 	void loadInventory(RpgPlayer *player);
-	void loadWeapon(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &type, const int &bullet = 0);
+	void loadWeapon(RpgPlayer *player,
+					const RpgGameData::Weapon::WeaponType &type, const int &subType,
+					const int &bullet = 0);
 
 	void updateConfig();
 	void setError(const QString &errorString);
@@ -140,7 +142,8 @@ protected:
 	virtual void onTimeAfterWorldStep(const qint64 &tick);
 	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
 	virtual void onWorldStep() { }
-	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType);
+	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
+									 const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype);
 	virtual bool onPlayerUseControl(RpgPlayer *player, RpgActiveIface *control);
 	virtual bool onPlayerUseCast(RpgPlayer *player);
 	virtual bool onPlayerCastTimeout(RpgPlayer *player);
@@ -149,7 +152,8 @@ protected:
 	virtual bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
 	virtual bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
 	virtual bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
-	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType);
+	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
+									 const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype);
 	virtual bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other);
 	virtual void onLifeCycleDelete(TiledObjectBody *body);
 	virtual void onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp);

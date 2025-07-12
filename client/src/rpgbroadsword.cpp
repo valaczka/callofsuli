@@ -33,8 +33,8 @@
  * @param parent
  */
 
-RpgBroadsword::RpgBroadsword(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponBroadsword, parent}
+RpgBroadsword::RpgBroadsword(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponBroadsword, subType, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.6_26.png");
 	m_canHit = true;

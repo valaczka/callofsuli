@@ -61,11 +61,12 @@ class RpgWeapon : public TiledWeapon
 	Q_OBJECT
 
 public:
-	explicit RpgWeapon(const RpgGameData::Weapon::WeaponType &type, QObject *parent = nullptr);
+	explicit RpgWeapon(const RpgGameData::Weapon::WeaponType &type, const int &subType, QObject *parent = nullptr);
 	explicit RpgWeapon(QObject *parent = nullptr)
-		: RpgWeapon(RpgGameData::Weapon::WeaponInvalid, parent) {}
+		: RpgWeapon(RpgGameData::Weapon::WeaponInvalid, 0, parent) {}
 
 	RpgGameData::Weapon::WeaponType weaponType() const { return m_weaponType; }
+	int weaponSubType() const { return m_weaponSubType; }
 
 	static QString weaponName(const RpgGameData::Weapon::WeaponType &type);
 	QString weaponName() const { return weaponName(m_weaponType); }
@@ -82,6 +83,7 @@ public:
 
 protected:
 	const RpgGameData::Weapon::WeaponType m_weaponType;
+	const int m_weaponSubType;
 
 
 };
@@ -106,11 +108,12 @@ class RpgBullet : public IsometricBullet,
 	QML_ELEMENT
 
 	Q_PROPERTY(RpgGameData::Weapon::WeaponType weaponType READ weaponType CONSTANT FINAL)
+	Q_PROPERTY(int weaponSubType READ weaponSubType CONSTANT FINAL)
 	Q_PROPERTY(RpgGameData::BulletBaseData::Owner owner READ owner WRITE setOwner NOTIFY ownerChanged FINAL)
 	Q_PROPERTY(RpgGameData::BulletBaseData::Targets targets READ targets WRITE setTargets NOTIFY targetsChanged FINAL)
 
 public:
-	explicit RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+	explicit RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubType, TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgBullet();
 
 	virtual ObjectId objectId() const override final { return ifaceObjectId(); }
@@ -127,6 +130,7 @@ public:
 	void setTargets(const RpgGameData::BulletBaseData::Targets &newTargets);
 
 	RpgGameData::Weapon::WeaponType weaponType() const;
+	int weaponSubType() const;
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Bullet> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Bullet &snap) override;
@@ -187,10 +191,10 @@ public:
 	int getShieldCount() const;
 
 	RpgWeaponList *weaponList() const;
-	RpgWeapon *weaponFind(const RpgGameData::Weapon::WeaponType &type) const;
-	RpgWeapon *weaponAdd(const RpgGameData::Weapon::WeaponType &type);
+	RpgWeapon *weaponFind(const RpgGameData::Weapon::WeaponType &type, const int &subType) const;
+	RpgWeapon *weaponAdd(const RpgGameData::Weapon::WeaponType &type, const int &subType);
 
-	static std::unique_ptr<RpgWeapon> weaponCreate(const RpgGameData::Weapon::WeaponType &type, QObject *parent = nullptr);
+	static std::unique_ptr<RpgWeapon> weaponCreate(const RpgGameData::Weapon::WeaponType &type, const int &subType, QObject *parent = nullptr);
 
 	RpgWeapon *currentWeapon() const;
 	void setCurrentWeapon(RpgWeapon *newCurrentWeapon);

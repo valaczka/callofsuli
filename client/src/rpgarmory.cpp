@@ -115,7 +115,7 @@ RpgWeaponList *RpgArmory::weaponList() const
  * @return
  */
 
-RpgWeapon *RpgArmory::weaponFind(const RpgGameData::Weapon::WeaponType &type) const
+RpgWeapon *RpgArmory::weaponFind(const RpgGameData::Weapon::WeaponType &type, const int &subType) const
 {
 	for (RpgWeapon *w : std::as_const(*m_weaponList)) {
 		if (w->weaponType() == type)
@@ -133,13 +133,13 @@ RpgWeapon *RpgArmory::weaponFind(const RpgGameData::Weapon::WeaponType &type) co
  * @return
  */
 
-RpgWeapon *RpgArmory::weaponAdd(const RpgGameData::Weapon::WeaponType &type)
+RpgWeapon *RpgArmory::weaponAdd(const RpgGameData::Weapon::WeaponType &type, const int &subType)
 {
-	if (RpgWeapon *w = weaponFind(type)) {
+	if (RpgWeapon *w = weaponFind(type, subType)) {
 		return w;
 	}
 
-	auto ptr = weaponCreate(type);
+	auto ptr = weaponCreate(type, subType);
 
 	if (!ptr) {
 		return nullptr;
@@ -156,35 +156,35 @@ RpgWeapon *RpgArmory::weaponAdd(const RpgGameData::Weapon::WeaponType &type)
  * @return
  */
 
-std::unique_ptr<RpgWeapon> RpgArmory::weaponCreate(const RpgGameData::Weapon::WeaponType &type, QObject *parent)
+std::unique_ptr<RpgWeapon> RpgArmory::weaponCreate(const RpgGameData::Weapon::WeaponType &type, const int &subType, QObject *parent)
 {
 	switch (type) {
 		case RpgGameData::Weapon::WeaponLongsword:
-			return std::make_unique<RpgLongsword>(parent);
+			return std::make_unique<RpgLongsword>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponShortbow:
-			return std::make_unique<RpgShortbow>(parent);
+			return std::make_unique<RpgShortbow>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponLongbow:
-			return std::make_unique<RpgLongbow>(parent);
+			return std::make_unique<RpgLongbow>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponDagger:
-			return std::make_unique<RpgDagger>(parent);
+			return std::make_unique<RpgDagger>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponBroadsword:
-			return std::make_unique<RpgBroadsword>(parent);
+			return std::make_unique<RpgBroadsword>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponAxe:
-			return std::make_unique<RpgAxe>(parent);
+			return std::make_unique<RpgAxe>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponMace:
-			return std::make_unique<RpgMace>(parent);
+			return std::make_unique<RpgMace>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponHammer:
-			return std::make_unique<RpgHammer>(parent);
+			return std::make_unique<RpgHammer>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponShield:
-			return std::make_unique<RpgShield>(parent);
+			return std::make_unique<RpgShield>(subType, parent);
 
 		case RpgGameData::Weapon::WeaponHand:
 			return std::make_unique<RpgWeaponHand>(parent);
@@ -422,6 +422,7 @@ RpgGameData::Armory RpgArmory::serialize() const
 	});
 
 	arm.cw = m_currentWeapon ? m_currentWeapon->weaponType() : RpgGameData::Weapon::WeaponInvalid;
+	arm.s = m_currentWeapon ? m_currentWeapon->weaponSubType() : 0;
 
 	return arm;
 }
@@ -445,11 +446,11 @@ bool RpgArmory::updateFromSnapshot(const RpgGameData::Armory &armory)
 		tmp.append(w);
 
 	for (const RpgGameData::Weapon &w : armory.wl) {
-		if (RpgWeapon *wp = weaponFind(w.t)) {
+		if (RpgWeapon *wp = weaponFind(w.t, w.s)) {
 			wp->updateFromSnapshot(w);
 			tmp.removeAll(wp);
 		} else {
-			if (RpgWeapon *ww = weaponAdd(w.t))
+			if (RpgWeapon *ww = weaponAdd(w.t, w.s))
 				ww->updateFromSnapshot(w);
 		}
 	}
@@ -458,7 +459,7 @@ bool RpgArmory::updateFromSnapshot(const RpgGameData::Armory &armory)
 		weaponRemove(w);
 
 
-	if (RpgWeapon *w = weaponFind(armory.cw))
+	if (RpgWeapon *w = weaponFind(armory.cw, armory.s))
 		setCurrentWeapon(w);
 
 	return true;
@@ -553,9 +554,10 @@ int RpgArmory::getShieldCount() const
  * @param parent
  */
 
-RpgWeapon::RpgWeapon(const RpgGameData::Weapon::WeaponType &type, QObject *parent)
+RpgWeapon::RpgWeapon(const RpgGameData::Weapon::WeaponType &type, const int &subType, QObject *parent)
 	: TiledWeapon(parent)
 	, m_weaponType(type)
+	, m_weaponSubType(subType)
 {
 
 }
@@ -667,12 +669,13 @@ bool RpgWeapon::updateFromSnapshot(const RpgGameData::Weapon &weapon)
  * @param scene
  */
 
-RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, TiledGame *game, const cpBodyType &type)
+RpgBullet::RpgBullet(const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubType, TiledGame *game, const cpBodyType &type)
 	: IsometricBullet(game, type)
 	, RpgGameDataInterface<RpgGameData::Bullet, RpgGameData::BulletBaseData>()
 	, RpgGameData::LifeCycle()
 {
 	m_baseData.t = weaponType;
+	m_baseData.ts = weaponSubType;
 }
 
 
@@ -998,6 +1001,11 @@ RpgGameData::Weapon::WeaponType RpgBullet::weaponType() const
 	return m_baseData.t;
 }
 
+int RpgBullet::weaponSubType() const
+{
+	return m_baseData.ts;
+}
+
 RpgGameData::BulletBaseData::Targets RpgBullet::targets() const
 {
 	return m_baseData.tar;
@@ -1039,7 +1047,7 @@ void RpgBullet::setOwner(const RpgGameData::BulletBaseData::Owner &newOwner)
  */
 
 RpgWeaponHand::RpgWeaponHand(QObject *parent)
-	: RpgWeapon(RpgGameData::Weapon::WeaponHand, parent)
+	: RpgWeapon(RpgGameData::Weapon::WeaponHand, 0, parent)
 {
 	m_bulletCount = -1;
 	m_canHit = true;

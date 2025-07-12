@@ -92,12 +92,16 @@ public:
 	quint32 peerID() const;
 	void setPeerID(quint32 newPeerID);
 
+	const RpgGameData::PlayerPosition &startPosition() const;
+	void setStartPosition(const RpgGameData::PlayerPosition &newStartPosition);
+
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
 	bool m_isPrepared = false;
 	bool m_isFullyPrepared = false;
 	RpgGameData::CharacterSelect m_config;
+	RpgGameData::PlayerPosition m_startPosition;
 
 	bool m_finalSuccess = false;
 	int m_gameId = -1;
@@ -462,6 +466,12 @@ public:
 
 	virtual QString dumpEngine() const override;
 
+	enum SentMessageTypes {
+		MessageCollectAllRemaining
+	};
+
+	Q_ENUM(SentMessageTypes);
+
 	const RpgConfig &config() const { return m_config; }
 
 	RpgEnginePlayer *player(const RpgGameData::PlayerBaseData &base) const;
@@ -556,6 +566,14 @@ public:
 
 	void checkPlayersCompleted();
 
+	bool hasMessageSent(const SentMessageTypes &type) const { return m_sentMessages.contains(type); }
+	void setMessageSent(const SentMessageTypes &type, const bool &on = true) {
+		if (on)
+			m_sentMessages.append(type);
+		else
+			m_sentMessages.removeAll(type);
+	}
+
 	Logger *_logger() const;
 
 private:
@@ -577,6 +595,8 @@ private:
 
 	qint64 m_currentTick = -1;
 	qint64 m_deadlineTick = -1;
+
+	QList<SentMessageTypes> m_sentMessages;
 
 	friend class RpgEnginePrivate;
 	friend class RpgSnapshotStorage;

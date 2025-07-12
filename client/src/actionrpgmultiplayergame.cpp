@@ -60,6 +60,8 @@ private:
 	void updateBody(TiledObjectBody *body, const bool &isHosted);
 	void resetEngine();
 
+	RpgGameData::Armory getArmory() const;
+
 private:
 	template <typename T, typename T2, typename T3,
 			  typename = std::enable_if<std::is_base_of<RpgGameDataInterface<T2, T3>, T>::value>::type
@@ -271,7 +273,7 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	connect(m_engine, &RpgUdpEngine::serverConnected, this, &ActionRpgMultiplayerGame::onConnected);
 	connect(m_engine, &RpgUdpEngine::serverDisconnected, this, &ActionRpgMultiplayerGame::onDisconnected);
 
-	m_keepAliveTimer.start(1000, this);
+	m_keepAliveTimer.start(200, this);
 }
 
 
@@ -425,9 +427,21 @@ void ActionRpgMultiplayerGame::banOutPlayer(const int &playerId)
 	if (m_gameMode != MultiPlayerHost || m_config.gameState != RpgConfig::StateCharacterSelect)
 		return;
 
-	LOG_CINFO("game") << "BAN" << playerId;
-
 	sendDataChrSel(playerId);
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::lockEngine
+ */
+
+void ActionRpgMultiplayerGame::lockEngine()
+{
+	if (m_gameMode != MultiPlayerHost || m_config.gameState != RpgConfig::StateCharacterSelect)
+		return;
+
+	sendDataChrSel(-1, true);
 }
 
 
@@ -889,6 +903,35 @@ void ActionRpgMultiplayerGame::changeGameState(const RpgConfig::GameState &state
 	}
 }
 
+bool ActionRpgMultiplayerGame::locked() const
+{
+	return m_locked;
+}
+
+void ActionRpgMultiplayerGame::setLocked(bool newLocked)
+{
+	if (m_locked == newLocked)
+		return;
+	m_locked = newLocked;
+	emit lockedChanged();
+}
+
+int ActionRpgMultiplayerGame::maxPlayers() const
+{
+	return m_maxPlayers;
+}
+
+void ActionRpgMultiplayerGame::setMaxPlayers(int newMaxPlayers)
+{
+	if (m_maxPlayers == newMaxPlayers)
+		return;
+	m_maxPlayers = newMaxPlayers;
+	emit maxPlayersChanged();
+}
+
+
+
+
 
 /**
  * @brief ActionRpgMultiplayerGame::setConnectionToken
@@ -1340,19 +1383,14 @@ void ActionRpgMultiplayerGame::updateLastObjectId(RpgPlayer *player)
 	const QList<RpgGameData::CharacterSelect> &data = m_engine->playerData();
 	const int playerId = player->baseData().o;
 
-	LOG_CINFO("game") << "Update Last object id" << playerId;
-
 	const auto it = std::find_if(data.cbegin(),
 								 data.cend(),
 								 [&playerId](const RpgGameData::CharacterSelect &d) {
 		return d.playerId == playerId;
 	});
 
-	if (it != data.cend()) {
+	if (it != data.cend())
 		player->m_lastObjectId = std::max(player->m_lastObjectId, it->lastObjectId);
-		LOG_CDEBUG("game") << "    - SET" << playerId << ":" << player->m_lastObjectId;
-	}
-
 }
 
 
@@ -1509,6 +1547,8 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 	player->setHp(playerData.hp);
 	player->setMaxMp(characterPtr->mpMax);
 	player->setMp(characterPtr->mpStart);
+	player->armory()->updateFromSnapshot(playerData.arm);
+
 	loadInventory(player);
 
 
@@ -1517,34 +1557,6 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 	if (Server *s = m_client->server()) {
 		player->setDisplayName(s->user()->fullNickName());
 	}
-
-
-	// From wallet
-
-	RpgUserWalletList* wallet = m_client->server() ? m_client->server()->user()->wallet() : nullptr;
-
-	if (wallet) {
-		for (const QString &s : chData.weapons) {
-			const auto it = std::find_if(wallet->constBegin(), wallet->constEnd(), [&s](RpgUserWallet *w) {
-							return w->market().type == RpgMarket::Weapon && w->market().name == s;
-		});
-			if (it == wallet->constEnd()) {
-				LOG_CERROR("game") << "Missing weapon" << s;
-				continue;
-			}
-
-			if (characterPtr->disabledWeapons.contains(s)) {
-				LOG_CWARNING("game") << "Weapon" << s << "disabled for character" << characterPtr->name;
-				continue;
-			}
-
-			loadWeapon(player,
-					   RpgArmory::weaponHash().key(s, RpgGameData::Weapon::WeaponInvalid),
-					   /*(*it)->bullet() ? (*it)->bullet()->amount() : 0*/
-					   (*it)->market().cost == 0 ? -1 : (*it)->amount());
-		}
-	}
-
 
 
 	if (playerData.p.size() > 1) {
@@ -1747,7 +1759,8 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType)
+bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
+												   const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype)
 {
 	if (!player || !enemy)
 		return false;
@@ -1759,6 +1772,7 @@ bool ActionRpgMultiplayerGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *
 	p.st = RpgGameData::Player::PlayerAttack;
 	p.tg = enemy->baseData();
 	p.arm.cw = weaponType;
+	p.arm.s = weaponSubtype;
 
 	q->m_toSend.appendSnapshot(player->baseData(), p);
 
@@ -2049,7 +2063,8 @@ bool ActionRpgMultiplayerGame::onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, c
  * @return
  */
 
-bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
+bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
+												   const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype)
 {
 	if (m_gameMode != MultiPlayerHost)
 		return false;
@@ -2063,6 +2078,7 @@ bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *p
 	e.st = RpgGameData::Enemy::EnemyAttack;
 	e.tg = player->baseData();
 	e.arm.cw = weaponType;
+	e.arm.s = weaponSubtype;
 
 	q->m_toSend.appendSnapshot(enemy->baseData(), e);
 
@@ -2306,7 +2322,7 @@ void ActionRpgMultiplayerGame::sendData(const QByteArray &data, const bool &reli
  * @brief ActionRpgMultiplayerGame::sendDataChrSel
  */
 
-void ActionRpgMultiplayerGame::sendDataChrSel(const int &ban)
+void ActionRpgMultiplayerGame::sendDataChrSel(const int &ban, const bool &lock)
 {
 	RpgGameData::CharacterSelect config(m_playerConfig);
 
@@ -2315,10 +2331,18 @@ void ActionRpgMultiplayerGame::sendDataChrSel(const int &ban)
 	}
 
 	config.completed = m_selectionCompleted;
+	config.armory = q->getArmory();
 
 	if (ban > 0 && m_gameMode == MultiPlayerHost) {
 		QCborMap m = config.toCborMap();
 		m.insert(QStringLiteral("ban"), ban);
+		sendData(m.toCborValue().toCbor(), true);
+		return;
+	}
+
+	if (lock && m_gameMode == MultiPlayerHost) {
+		QCborMap m = config.toCborMap();
+		m.insert(QStringLiteral("lock"), true);
 		sendData(m.toCborValue().toCbor(), true);
 		return;
 	}
@@ -2521,6 +2545,24 @@ void ActionRpgMultiplayerGamePrivate::resetEngine()
 	d->m_engine->setGameState(RpgConfig::StateConnect);
 
 	d->changeGameState(RpgConfig::StateConnect);
+}
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGamePrivate::getArmory
+ * @return
+ */
+
+RpgGameData::Armory ActionRpgMultiplayerGamePrivate::getArmory() const
+{
+	RpgUserWalletList* wallet = d->m_client->server() ? d->m_client->server()->user()->wallet() : nullptr;
+
+	if (!wallet)
+		return RpgGameData::Armory();
+
+	return wallet->getArmory(d->m_playerConfig.character);
 }
 
 

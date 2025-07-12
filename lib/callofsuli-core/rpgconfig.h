@@ -178,7 +178,6 @@ public:
 
 	QS_FIELD(QString, terrain)
 	QS_FIELD(QString, character)
-	QS_FIELD(QStringList, weapons)
 };
 
 
@@ -281,6 +280,7 @@ public:
 		, type(Invalid)
 		, cost(0)
 		, rank(0)
+		, belongsValue(0)
 		, amount(1)
 		, rollover(None)
 		, num(0)
@@ -296,6 +296,7 @@ public:
 	QS_FIELD(int, cost)
 	QS_FIELD(int, rank)
 	QS_FIELD(QString, belongs)				// belongs to a character (with base of)
+	QS_FIELD(int, belongsValue)				// the biggest value will be activated
 
 	QS_FIELD(int, amount)
 
@@ -369,6 +370,9 @@ public:
 		, expiry(0)
 	{}
 
+
+	bool isEqual(const RpgMarket &market) const;
+	void setFromMarket(const RpgMarket &market);
 
 	QS_SERIALIZABLE
 
@@ -974,6 +978,130 @@ public:
 
 
 
+/**
+ * @brief The Weapon class
+ */
+
+class Weapon : public QSerializer
+{
+	Q_GADGET
+
+public:
+	enum WeaponType {
+		WeaponInvalid = 0,
+		WeaponHand,
+		WeaponDagger,
+		WeaponLongsword,
+		WeaponShortbow,
+		WeaponLongbow,
+		WeaponBroadsword,
+		WeaponAxe,
+		WeaponHammer,
+		WeaponMace,
+		WeaponGreatHand,
+		WeaponLightningWeapon,
+		WeaponFireFogWeapon,
+		WeaponShield
+	};
+
+	Q_ENUM (WeaponType);
+
+
+	Weapon(const WeaponType &_t, const int &_s = 0, const int &_b = -1)
+		: QSerializer()
+		, t(_t)
+		, s(_s)
+		, b(_b)
+	{}
+
+	Weapon()
+		: Weapon(WeaponInvalid)
+	{}
+
+	bool isEqual(const Weapon &other) const  {
+		return other.t == t && other.b == b && other.s == s;
+	}
+
+	EQUAL_OPERATOR(Weapon);
+
+	static const QHash<QPair<WeaponType, int>, int> &damageValue() { return m_damageValue; }
+	static const QHash<QPair<WeaponType, int>, int> &protectValue() { return m_protectValue; }
+
+private:
+	static const QHash<QPair<WeaponType, int>, int> m_damageValue;
+	static const QHash<QPair<WeaponType, int>, int> m_protectValue;
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(WeaponType, t)			// type
+	QS_FIELD(int, s)				// subtype
+	QS_FIELD(int, b)				// bullet count
+
+
+};
+
+
+
+
+
+
+
+/**
+ * @brief The Armory class
+ */
+
+class Armory : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Armory()
+		: QSerializer()
+		, cw(Weapon::WeaponInvalid)
+		, s(0)
+	{}
+
+	bool isEqual(const Armory &other) const {
+		return other.wl == wl && other.cw == cw && other.s == s;
+	}
+
+	QList<Weapon>::const_iterator find(const Weapon::WeaponType &type, const int &subType) const {
+		return std::find_if(wl.cbegin(), wl.cend(),
+							[&type, &subType](const Weapon &w) {
+			return w.t == type && w.s == subType;
+		});
+	}
+
+	QList<Weapon>::iterator find(const Weapon::WeaponType &type, const int &subType) {
+		return std::find_if(wl.begin(), wl.end(),
+							[&type, &subType](const Weapon &w) {
+			return w.t == type && w.s == subType;
+		});
+	}
+
+	const Weapon &add(const Weapon::WeaponType &type, const int &subType, const int &bullet = 1) {
+		auto it = find(type, subType);
+		if (it != wl.end()) {
+			it->b += bullet;
+			return *it;
+		} else {
+			return wl.emplace_back(type, subType, bullet);
+		}
+	}
+
+
+	EQUAL_OPERATOR(Armory)
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, Weapon, wl)			// weapon list
+	QS_FIELD(Weapon::WeaponType, cw)					// current weapon
+	QS_FIELD(int, s)									// current weapon subtype
+};
+
+
+
+
 
 /**
  * @brief The CharacterSelect class
@@ -988,6 +1116,10 @@ public:
 		: QSerializer()
 		, playerId(-1)
 		, completed(false)
+		, locked(false)
+		, maxHp(0)
+		, maxMp(0)
+		, mp(0)
 		, lastObjectId(-1)
 		, xp(0)
 		, cur(0)
@@ -999,7 +1131,6 @@ public:
 		username = config.username;
 		nickname = config.nickname;
 		character = config.character;
-		weapons = config.weapons;
 	}
 
 	QS_SERIALIZABLE
@@ -1009,8 +1140,15 @@ public:
 	QS_FIELD(QString, nickname)
 
 	QS_FIELD(QString, character)
-	QS_FIELD(QStringList, weapons)
 	QS_FIELD(bool, completed)
+	QS_FIELD(bool, locked)											// lock the engine
+
+	// Character specification
+
+	QS_OBJECT(Armory, armory)
+	QS_FIELD(int, maxHp)
+	QS_FIELD(int, maxMp)
+	QS_FIELD(int, mp)
 
 	QS_OBJECT(GameConfig, gameConfig)
 
@@ -1036,6 +1174,8 @@ class CharacterSelectServer : public QSerializer
 public:
 	CharacterSelectServer()
 		: QSerializer()
+		, locked(false)
+		, max(0)
 	{}
 
 
@@ -1043,6 +1183,8 @@ public:
 
 	QS_OBJECT(GameConfig, gameConfig)
 	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
+	QS_FIELD(bool, locked)
+	QS_FIELD(int, max)
 };
 
 
@@ -1074,67 +1216,6 @@ public:
 	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
 };
 
-
-
-/**
- * @brief The Weapon class
- */
-
-class Weapon : public QSerializer
-{
-	Q_GADGET
-
-public:
-	enum WeaponType {
-		WeaponInvalid = 0,
-		WeaponHand,
-		WeaponDagger,
-		WeaponLongsword,
-		WeaponShortbow,
-		WeaponLongbow,
-		WeaponBroadsword,
-		WeaponAxe,
-		WeaponHammer,
-		WeaponMace,
-		WeaponGreatHand,
-		WeaponLightningWeapon,
-		WeaponFireFogWeapon,
-		WeaponShield
-	};
-
-	Q_ENUM (WeaponType);
-
-
-	Weapon(const WeaponType &_t, const int &_b = -1)
-		: QSerializer()
-		, t(_t)
-		, b(_b)
-	{}
-
-	Weapon()
-		: Weapon(WeaponInvalid)
-	{}
-
-	bool isEqual(const Weapon &other) const  {
-		return other.t == t && other.b == b;
-	}
-
-	EQUAL_OPERATOR(Weapon);
-
-	static const QHash<WeaponType, int> &damageValue() { return m_damageValue; }
-	static const QHash<WeaponType, int> &protectValue() { return m_protectValue; }
-
-private:
-	static const QHash<WeaponType, int> m_damageValue;
-	static const QHash<WeaponType, int> m_protectValue;
-
-	QS_SERIALIZABLE
-
-	QS_FIELD(WeaponType, t)			// type
-	QS_FIELD(int, b)				// bullet count
-
-
-};
 
 
 
@@ -1170,6 +1251,12 @@ public:
 	bool isValid() const {
 		return o >= 0 || (s >= 0 && id >= 0);
 	}
+
+	friend QDebug operator<<(QDebug debug, const BaseData &c) {
+		QDebugStateSaver saver(debug);
+		debug.nospace() << '(' << c.o << ',' << c.s << ',' << c.id << ')';
+		return debug;
+	};
 
 	EQUAL_OPERATOR(BaseData)
 
@@ -1337,29 +1424,30 @@ public:
 
 
 
-	BulletBaseData(const Weapon::WeaponType &_type,
+	BulletBaseData(const Weapon::WeaponType &_type, const int &_st,
 				   const int &_o, const int &_s, const int &_id,
 				   const Owner &_own, const BaseData &_ownId,
 				   const Targets &_tar)
 		: BaseData(_o, _s, _id)
 		, t(_type)
+		, ts(_st)
 		, own(_own)
 		, tar(_tar)
 		, ownId(_ownId)
 	{}
 
-	BulletBaseData(const Weapon::WeaponType &_type,
+	BulletBaseData(const Weapon::WeaponType &_type, const int &_st,
 				   const Owner &_own, const BaseData &_ownId,
 				   const Targets &_tar)
-		: BulletBaseData(_type, -1, -1, -1, _own, _ownId, _tar)
+		: BulletBaseData(_type, _st, -1, -1, -1, _own, _ownId, _tar)
 	{}
 
-	BulletBaseData(const Weapon::WeaponType &_type, const Owner &_own, const Targets &_tar)
-		: BulletBaseData(_type, -1, -1, -1, _own, BaseData(-1, -1, -1), _tar)
+	BulletBaseData(const Weapon::WeaponType &_type, const int &_st, const Owner &_own, const Targets &_tar)
+		: BulletBaseData(_type, _st, -1, -1, -1, _own, BaseData(-1, -1, -1), _tar)
 	{}
 
-	BulletBaseData(const Weapon::WeaponType &_type)
-		: BulletBaseData(_type, OwnerNone, TargetNone)
+	BulletBaseData(const Weapon::WeaponType &_type, const int &_st = 0)
+		: BulletBaseData(_type, _st, OwnerNone, TargetNone)
 	{}
 
 	BulletBaseData()
@@ -1368,7 +1456,7 @@ public:
 
 
 	bool isEqual(const BulletBaseData &other) const {
-		return BaseData::isEqual(other) && other.t == t && other.own == own &&
+		return BaseData::isEqual(other) && other.t == t && other.ts == ts && other.own == own &&
 				other.tar == tar && other.ownId == ownId && other.pth == pth;
 	}
 
@@ -1377,6 +1465,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(Weapon::WeaponType, t)		// weapon
+	QS_FIELD(int, ts)					// weapon subtype
 	QS_FIELD(Owner, own)				// owner
 	QS_FIELD(Targets, tar)				// targets
 	QS_OBJECT(BaseData, ownId)			// ownerId
@@ -1931,61 +2020,6 @@ public:
 
 
 
-/**
- * @brief The Armory class
- */
-
-class Armory : public QSerializer
-{
-	Q_GADGET
-
-public:
-	Armory()
-		: QSerializer()
-		, cw(Weapon::WeaponInvalid)
-	{}
-
-	bool isEqual(const Armory &other) const {
-		return other.wl == wl && other.cw == cw;
-	}
-
-	QList<Weapon>::const_iterator find(const Weapon::WeaponType &type) const {
-		return std::find_if(wl.cbegin(), wl.cend(),
-							[&type](const Weapon &w) {
-			return w.t == type;
-		});
-	}
-
-	QList<Weapon>::iterator find(const Weapon::WeaponType &type) {
-		return std::find_if(wl.begin(), wl.end(),
-							[&type](const Weapon &w) {
-			return w.t == type;
-		});
-	}
-
-	const Weapon &add(const Weapon::WeaponType &type, const int &bullet = 1) {
-		auto it = find(type);
-		if (it != wl.end()) {
-			it->b += bullet;
-			return *it;
-		} else {
-			return wl.emplace_back(type, bullet);
-		}
-	}
-
-
-	EQUAL_OPERATOR(Armory)
-
-	QS_SERIALIZABLE
-
-	QS_COLLECTION_OBJECTS(QList, Weapon, wl)			// weapon list
-	QS_FIELD(Weapon::WeaponType, cw)					// current weapon
-};
-
-
-
-
-
 
 /**
  * @brief The ArmoredEntity class
@@ -2013,12 +2047,12 @@ public:
 	}
 
 	static void attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
-						 const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other);
+						 const Weapon::WeaponType &weapon, const int &weaponSubType, const ArmoredEntityBaseData &other);
 
 	void attacked(const ArmoredEntityBaseData &dstBase,
-				  const Weapon::WeaponType &weapon, const ArmoredEntityBaseData &other)
+				  const Weapon::WeaponType &weapon, const int &weaponSubType, const ArmoredEntityBaseData &other)
 	{
-		attacked(dstBase, *this, weapon, other);
+		attacked(dstBase, *this, weapon, weaponSubType, other);
 	}
 
 	EQUAL_OPERATOR(ArmoredEntity)
@@ -2178,7 +2212,7 @@ public:
 	{}
 
 	bool isEqual(const PlayerBaseData &other) const {
-		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq;
+		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq && other.mmp == mmp;
 	}
 
 	static void assign(const QList<PlayerBaseData*> &dst, const int &num);
@@ -2188,6 +2222,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, rq)						// required collection item
+	QS_FIELD(int, mmp)						// max MP
 };
 
 
@@ -2210,6 +2245,7 @@ public:
 		, c(0)
 		, x(0)
 		, ft(FeatureInvalid)
+		, mp(0)
 	{}
 
 	enum PlayerState {
@@ -2246,18 +2282,21 @@ public:
 	bool isEqual(const Player &other) const  {
 		return ArmoredEntity::isEqual(other) && other.st == st && other.tg == tg && other.l == l &&
 				other.c == c && other.x == x &&
-				other.pck == pck && other.ft == ft;
+				other.pck == pck && other.ft == ft &&
+				other.mp == mp;
 	}
 
 	bool canMerge(const Player &other) const {
 		return ArmoredEntity::canMerge(other) && other.st == st && other.tg == tg && other.l == l &&
 				other.c == c && other.x == x &&
-				other.pck == pck && other.ft == ft;
+				other.pck == pck && other.ft == ft &&
+				other.mp == mp;
 	}
 
 	bool canInterpolateFrom(const Player &other) const {
 		return ArmoredEntity::canInterpolateFrom(other) && other.st == st && other.tg == tg &&
-				other.pck == pck && other.ft == ft;
+				other.pck == pck && other.ft == ft &&
+				other.mp == mp;
 	}
 
 	static void controlFailed(Player &dst, const RpgConfig::ControlType &control);
@@ -2291,6 +2330,7 @@ public:
 	QS_FIELD(int, c)					// collected items
 	QS_FIELD(int, x)					// extra xp on specified states (PlayerUseControl)
 	QS_FIELD(Features, ft)				// active features
+	QS_FIELD(int, mp)					// MP
 };
 
 

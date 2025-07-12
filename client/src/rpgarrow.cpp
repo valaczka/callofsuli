@@ -27,8 +27,8 @@
 #include "rpgarrow.h"
 
 
-RpgArrow::RpgArrow(TiledGame *game, const cpBodyType &type)
-	: RpgBullet(RpgGameData::Weapon::WeaponShortbow, game, type)
+RpgArrow::RpgArrow(TiledGame *game, const int &subType, const cpBodyType &type)
+	: RpgBullet(RpgGameData::Weapon::WeaponShortbow, subType, game, type)
 {
 
 }

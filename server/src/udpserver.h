@@ -144,11 +144,12 @@ public:
 
 	void removeEngine(UdpEngine *engine);
 
-	quint32 addPeer(const QString &username);
+	quint32 addPeer(const QString &username, const QDateTime &expired);
 	bool peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
 	bool peerRemoveEngine(UdpServerPeer *peer);
 
 	QString dumpPeers() const;
+	void removeExpiredPeers();
 
 private:
 	UdpServerPrivate *d = nullptr;

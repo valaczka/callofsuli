@@ -27,8 +27,8 @@
 #include "rpgdagger.h"
 #include "rpgplayer.h"
 
-RpgDagger::RpgDagger(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponDagger, parent}
+RpgDagger::RpgDagger(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponDagger, subType, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.8_21.png");
 	m_canHit = true;

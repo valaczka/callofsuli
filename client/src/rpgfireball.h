@@ -41,7 +41,7 @@ class RpgFireball : public RpgBullet
 	QML_ELEMENT
 
 public:
-	RpgFireball(TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+	RpgFireball(TiledGame *game, const int &subType = 0, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgFireball() {}
 
 protected:

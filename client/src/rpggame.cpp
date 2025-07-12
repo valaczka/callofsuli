@@ -112,7 +112,8 @@ private:
 	enum EnemyWatchedEvent {
 		EnemyWatchedHit,
 		EnemyWatchedShot,
-		EnemyWatchedControl,
+		EnemyWatchedControlCollection,
+		EnemyWatchedControlGate
 	};
 
 	void updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEvent &event);
@@ -560,7 +561,10 @@ bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveIface *control)
 	}
 
 
-	q->updatePlayerWatched(player, RpgGamePrivate::EnemyWatchedControl);
+	if (control->activeType() == RpgConfig::ControlCollection)
+		q->updatePlayerWatched(player, RpgGamePrivate::EnemyWatchedControlCollection);
+	else if (control->activeType() == RpgConfig::ControlGate)
+		q->updatePlayerWatched(player, RpgGamePrivate::EnemyWatchedControlGate);
 
 
 	if (ActionRpgGame *a = actionRpgGame())
@@ -1591,12 +1595,12 @@ bool RpgGame::playerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon)
  * @return
  */
 
-bool RpgGame::playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType)
+bool RpgGame::playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy, const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype)
 {
 	Q_ASSERT(q);
 
 	if (q->m_action)
-		return q->m_action->onPlayerAttackEnemy(player, enemy, weaponType);
+		return q->m_action->onPlayerAttackEnemy(player, enemy, weaponType, weaponSubtype);
 	else
 		return false;
 }
@@ -1649,11 +1653,12 @@ bool RpgGame::enemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle)
  * @return
  */
 
-bool RpgGame::enemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
+bool RpgGame::enemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
+								const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype)
 {
 	Q_ASSERT(q);
 	if (q->m_action)
-		return q->m_action->onEnemyAttackPlayer(enemy, player, weaponType);
+		return q->m_action->onEnemyAttackPlayer(enemy, player, weaponType, weaponSubtype);
 	else
 		return false;
 }
@@ -3509,7 +3514,12 @@ void RpgGamePrivate::updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEv
 	for (const RpgGame::EnemyData &ed : d->m_enemyDataList) {
 		RpgEnemy *enemy = qobject_cast<RpgEnemy*>(ed.enemy);
 
-		if (!enemy)
+		if (!enemy || !enemy->isAlive() || enemy->isSleeping())
+			continue;
+
+		// TODO: check enemy features
+
+		if (event == EnemyWatchedControlGate)
 			continue;
 
 		if (enemy->isWatchingPlayer(player)) {
@@ -3520,6 +3530,8 @@ void RpgGamePrivate::updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEv
 			config.features.setFlag(RpgGameData::Player::FeatureFreeWalk, false);
 			config.features.setFlag(RpgGameData::Player::FeatureLockEnemy, false);
 			player->setConfig(config);
+
+			d->messageColor(QObject::tr("You have been recognised"), QColorConstants::Svg::red);
 
 			return;
 		}

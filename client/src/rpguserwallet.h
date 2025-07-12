@@ -58,6 +58,7 @@ class RpgUserWallet : public QObject
 	Q_PROPERTY(bool available READ available NOTIFY availableChanged FINAL)
 	Q_PROPERTY(bool buyable READ buyable NOTIFY buyableChanged FINAL)
 	Q_PROPERTY(QString readableName READ readableName WRITE setReadableName NOTIFY readableNameChanged FINAL)
+	Q_PROPERTY(QString baseReadableName READ baseReadableName WRITE setBaseReadableName NOTIFY baseReadableNameChanged FINAL)
 	Q_PROPERTY(QString image READ image WRITE setImage NOTIFY imageChanged FINAL)
 	Q_PROPERTY(QString sortName READ sortName WRITE setSortName NOTIFY sortNameChanged FINAL)
 	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged FINAL)
@@ -68,6 +69,7 @@ public:
 	virtual ~RpgUserWallet() {}
 
 	Q_INVOKABLE QJsonObject getJson() const;
+	RpgWallet toWallet() const;
 
 	Q_INVOKABLE RpgUserWallet *getBelongsTo() const;
 
@@ -101,6 +103,9 @@ public:
 	QList<RpgMarketExtendedInfo> extendedInfo() const;
 	void setExtendedInfo(const QList<RpgMarketExtendedInfo> &newExtendedInfo);
 
+	QString baseReadableName() const;
+	void setBaseReadableName(const QString &newBaseReadableName);
+
 signals:
 	void marketChanged();
 	void amountChanged();
@@ -113,6 +118,7 @@ signals:
 	void rankChanged();
 	void buyableChanged();
 	void extendedInfoChanged();
+	void baseReadableNameChanged();
 
 private:
 	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgGameDefinition &def);
@@ -125,6 +131,7 @@ private:
 	int m_amount = 0;
 	QDateTime m_expiry;
 	QString m_readableName;
+	QString m_baseReadableName;
 	QString m_image;
 	QString m_sortName;
 	Rank m_rank;
@@ -224,6 +231,8 @@ public:
 	RpgUserWorld *world() const;
 	Q_INVOKABLE RpgUserWallet *worldGetSelectedWallet() const;
 
+	RpgGameData::Armory getArmory(const QString &character) const;
+
 signals:
 	void reloaded();
 
@@ -239,6 +248,8 @@ private:
 	void removeMissing(const QVector<RpgMarket> &list);
 
 	int m_currency = 0;
+
+	mutable QRecursiveMutex m_mutex;
 
 	std::unique_ptr<RpgUserWorld> m_world;
 

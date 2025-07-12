@@ -38,7 +38,7 @@ class RpgLongbow : public RpgWeapon
 {
 	Q_OBJECT
 public:
-	explicit RpgLongbow(QObject *parent = nullptr);
+	explicit RpgLongbow(const int &subType = 0, QObject *parent = nullptr);
 
 protected:
 	void eventAttack(TiledObject *target) override final;

@@ -407,7 +407,7 @@ RpgGameData::Enemy RpgWerebear::serializeThis() const
  */
 
 RpgWerebearWeaponHand::RpgWerebearWeaponHand(QObject *parent)
-	: RpgWeapon(RpgGameData::Weapon::WeaponGreatHand, parent)
+	: RpgWeapon(RpgGameData::Weapon::WeaponGreatHand, 0, parent)
 {
 	m_canHit = true;
 	m_icon = QStringLiteral("qrc:/Qaterial/Icons/hand.svg");

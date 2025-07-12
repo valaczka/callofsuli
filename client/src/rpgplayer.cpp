@@ -514,7 +514,7 @@ void RpgPlayer::updateConfig()
 
 void RpgPlayer::loadDefaultWeapons()
 {
-	m_armory->setCurrentWeapon(m_armory->weaponAdd(RpgGameData::Weapon::WeaponHand));
+	m_armory->setCurrentWeapon(m_armory->weaponAdd(RpgGameData::Weapon::WeaponHand, 0));
 }
 
 
@@ -1164,7 +1164,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 
 		if (snapshot.s1.st == RpgGameData::Player::PlayerHit) {
-			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw, snapshot.s1.arm.s);
 
 			if (wptr) {
 				TiledObject *target = nullptr;
@@ -1186,7 +1186,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 			throw -1;
 		} else if (snapshot.s1.st == RpgGameData::Player::PlayerShot) {
-			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw);
+			auto wptr = RpgArmory::weaponCreate(snapshot.s1.arm.cw, snapshot.s1.arm.s);
 
 			if (wptr) {
 				wptr->setParentObject(this);

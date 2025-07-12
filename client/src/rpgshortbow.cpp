@@ -28,8 +28,8 @@
 #include "rpgarrow.h"
 #include "rpgplayer.h"
 
-RpgShortbow::RpgShortbow(QObject *parent)
-	: RpgWeapon{RpgGameData::Weapon::WeaponShortbow, parent}
+RpgShortbow::RpgShortbow(const int &subType, QObject *parent)
+	: RpgWeapon{RpgGameData::Weapon::WeaponShortbow, subType, parent}
 {
 	m_icon = QStringLiteral("qrc:/internal/medal/Icon.4_60.png");
 }
