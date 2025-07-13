@@ -37,13 +37,14 @@
 
 #include <QString>
 #include <QVariantMap>
+#include "storageseed.h"
 
 class GameMapObjective;
 
 class Question
 {
 public:
-	explicit Question(GameMapObjective *objective = nullptr);
+	explicit Question(StorageSeed *seed, GameMapObjective *objective = nullptr);
 
 	bool isValid() const;
 	QString module() const;
@@ -72,6 +73,7 @@ public:
 
 private:
 	GameMapObjective *m_objective = nullptr;
+	StorageSeed *m_seed = nullptr;
 };
 
 Q_DECLARE_METATYPE(Question)

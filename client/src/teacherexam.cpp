@@ -737,13 +737,15 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list, const bool &
 	QJsonArray data;
 
 	for (const ExamUser *u : list) {
+		StorageSeed seed;
+
 		ExamGame::clearQuestions(ml);
 
 		QJsonObject userdata;
 		userdata[QStringLiteral("username")] = u->username();
 
 		QJsonArray commonList;
-		QJsonArray qList = ExamGame::generatePaperQuestions(ml, noShuffle);
+		QJsonArray qList = ExamGame::generatePaperQuestions(ml, &seed, noShuffle);
 		QJsonArray numberedList;
 
 		// Numbering questions from PDF
@@ -2835,7 +2837,7 @@ void TeacherExam::setGameMap(std::unique_ptr<GameMap> newGameMap)
 		return;
 	m_gameMap = std::move(newGameMap);
 	emit gameMapChanged();
-	setMissionUuid(QStringLiteral(""));
+	setMissionUuid(QString());
 	setLevel(-1);
 }
 

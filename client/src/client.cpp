@@ -681,7 +681,7 @@ void Client::onUserLoggedOut()
 {
 	LOG_CINFO("client") << "User logged out:" << qPrintable(server()->user()->username());
 
-	server()->setToken(QStringLiteral(""));
+	server()->setToken(QString());
 	server()->user()->clear();
 
 	if (m_mainPage)
@@ -1207,14 +1207,14 @@ bool Client::loginToken()
 	Token jwt(token.toUtf8());
 	if (jwt.payload().empty()) {
 		LOG_CWARNING("credential") << "Invalid token:" << token;
-		server()->setToken(QStringLiteral(""));
+		server()->setToken(QString());
 		return false;
 	}
 
 
 	if (jwt.payload().value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CINFO("client") << "Token expired";
-		server()->setToken(QStringLiteral(""));
+		server()->setToken(QString());
 		return false;
 	}
 

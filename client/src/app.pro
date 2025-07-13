@@ -281,6 +281,7 @@ SOURCES += \
 	server.cpp \
 	sound.cpp \
 	stb_helper.cpp \
+	storageseed.cpp \
 	studentgroup.cpp \
 	studentmap.cpp \
 	studentmaphandler.cpp \
@@ -396,6 +397,7 @@ HEADERS += \
 	scorelist.h \
 	server.h \
 	sound.h \
+	storageseed.h \
 	studentgroup.h \
 	studentmap.h \
 	studentmaphandler.h \

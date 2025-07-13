@@ -20,8 +20,8 @@ public:
 	ExamGame(const Exam::Mode &mode, Client *client);
 	virtual ~ExamGame();
 
-	static QVector<Question> createQuestions(GameMapMissionLevel *missionLevel);
-	static QJsonArray generatePaperQuestions(GameMapMissionLevel *missionLevel, const bool &noShuffle = false);
+	static QVector<Question> createQuestions(GameMapMissionLevel *missionLevel, StorageSeed *seed);
+	static QJsonArray generatePaperQuestions(GameMapMissionLevel *missionLevel, StorageSeed *seed, const bool &noShuffle = false);
 	static void clearQuestions(GameMapMissionLevel *missionLevel);
 
 	const Exam::Mode &mode() const;

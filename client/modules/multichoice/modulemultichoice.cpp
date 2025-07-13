@@ -27,6 +27,7 @@
 #include "modulemultichoice.h"
 #include "question.h"
 #include <QRandomGenerator>
+#include "../block/moduleblock.h"
 
 ModuleMultichoice::ModuleMultichoice(QObject *parent) : QObject(parent)
 {
@@ -118,7 +119,7 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 		m[QStringLiteral("details")] = data.value(QStringLiteral("corrects")).toStringList().join(QStringLiteral(", "))+
 				QStringLiteral("<br>(")+data.value(QStringLiteral("answers")).toStringList().join(QStringLiteral(", "))+
 				QStringLiteral(")");
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 		return m;
 	} else if (storage->name() == QStringLiteral("block")) {
 		QStringList answers;
@@ -134,7 +135,7 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	}
@@ -153,7 +154,7 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
  */
 
 QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-											QVariantMap *commonDataPtr) const
+											QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	Q_UNUSED(commonDataPtr);
 
@@ -165,7 +166,7 @@ QVariantList ModuleMultichoice::generateAll(const QVariantMap &data, ModuleInter
 
 		return list;
 	} else if (storage->name() == QStringLiteral("block"))
-		return generateBlock(data, storageData);
+		return generateBlock(data, storageData, seed);
 
 
 	return QVariantList();
@@ -222,17 +223,20 @@ QVariantMap ModuleMultichoice::preview(const QVariantList &generatedList, const 
  * @return
  */
 
-QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
 	const QString &question = data.value(QStringLiteral("question")).toString();
+
+	SeedHelper helper(seed, SEED_BLOCK_LEFT);
 
 	QVector<QString> bNames;
 	QVector<QStringList> bItems;
-	QVector<int> realIndices;
+	QVector<QPair<int, int> > realIndices;
 
-	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
-		const QVariantMap &m = v.toMap();
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	for (int i=0; i<list.size(); ++i) {
+		const QVariantMap &m = list.at(i).toMap();
 		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
 		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
 
@@ -253,23 +257,23 @@ QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVa
 		bItems.append(realList);
 
 		if (!left.isEmpty() && !realList.isEmpty())
-			realIndices.append(bNames.size()-1);
+			realIndices.append(qMakePair(i+1, bNames.size()-1));
 	}
 
 	if (realIndices.isEmpty())
-		return ret;
+		return {};
 
-	const int idx = realIndices.at(QRandomGenerator::global()->bounded(realIndices.size()));
+	const QPair<int, int> idx = realIndices.at(QRandomGenerator::global()->bounded(realIndices.size()));
 
 	QStringList correctList;
 	QStringList optionsList;
 
-	const QString &realname = bNames.at(idx);
+	const QString &realname = bNames.at(idx.second);
 
-	correctList.append(bItems.at(idx));
+	correctList.append(bItems.at(idx.second));
 
 	for (int i=0; i<bItems.size(); ++i) {
-		if (i == idx)
+		if (i == idx.second)
 			continue;
 
 
@@ -292,7 +296,9 @@ QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVa
 
 	m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
-	return {m};
+	helper.append(m, idx.first);
+
+	return helper.getVariantList(true);
 }
 
 

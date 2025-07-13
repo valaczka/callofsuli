@@ -1501,10 +1501,10 @@ QVariantMap MapEditorMissionLevel::terrainData() const
 		m.insert(QStringLiteral("level"), t.level());
 		m.insert(QStringLiteral("thumbnail"), t.thumbnail());
 	} else {
-		m.insert(QStringLiteral("name"), QStringLiteral(""));
+		m.insert(QStringLiteral("name"), QString());
 		m.insert(QStringLiteral("displayName"), tr("-- érvénytelen --"));
 		m.insert(QStringLiteral("level"), 0);
-		m.insert(QStringLiteral("thumbnail"), QStringLiteral(""));
+		m.insert(QStringLiteral("thumbnail"), QString());
 	}
 
 	return m;*/

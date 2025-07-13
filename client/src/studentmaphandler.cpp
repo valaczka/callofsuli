@@ -131,6 +131,19 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, con
 	}
 
 
+	if (m_client->server()) {
+		QDir dir = m_client->server()->directory();
+
+		if (!dir.cd(m_subdirName))
+			LOG_CERROR("client") << "Can't read directory" << dir.absoluteFilePath(m_subdirName);
+		else {
+			const QString fname = dir.absoluteFilePath(QStringLiteral("seed.dat"));
+			LOG_CDEBUG("client") << "Set storage seed" << qPrintable(fname);
+			mapPlay->setStorageSeed(fname);
+		}
+	}
+
+
 
 
 	// Auto load mission levels page

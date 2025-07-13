@@ -26,8 +26,12 @@
 
 #include "modulewriter.h"
 #include "qqml.h"
+#include "storageseed.h"
 #include "writerengine.h"
 #include <QRandomGenerator>
+#include "../binding/modulebinding.h"
+#include "../images/moduleimages.h"
+#include "../text/moduletext.h"
 
 const QRegularExpression ModuleWriter::m_expressionWord("(?<!\\\\)%((?:[^%\\\\]|\\\\.)+)%");
 const QString ModuleWriter::m_punctation = QStringLiteral(",.-:;?!– ");
@@ -90,7 +94,7 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = data.value(QStringLiteral("correct")).toString();
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("binding")) {
@@ -112,13 +116,13 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("images")) {
 		QStringList answers;
 
-		QString image = QStringLiteral("");
+		QString image = QString();
 
 		const QString &mode = data.value(QStringLiteral("mode")).toString();
 
@@ -153,25 +157,25 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
 		m[QStringLiteral("details")] = tr("Kiegészítendő: %1, további szavak: %2")
 									   .arg(data.value(QStringLiteral("words")).toInt())
 									   .arg(data.value(QStringLiteral("pad")).toInt());
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("text")) {
 		QStringList list = storageData.value(QStringLiteral("items")).toStringList();
 
 		QVariantMap m;
-		m[QStringLiteral("title")] = list.isEmpty() ? QStringLiteral("") : list.at(0);
+		m[QStringLiteral("title")] = list.isEmpty() ? QString() : list.at(0);
 		if (!list.isEmpty())
 			list.removeFirst();
-		m[QStringLiteral("details")] = list.isEmpty() ? QStringLiteral("") : list.join(QStringLiteral("\n"));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("details")] = list.isEmpty() ? QString() : list.join(QStringLiteral("\n"));
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
-						{QStringLiteral("details"), QStringLiteral("")},
-						{QStringLiteral("image"), QStringLiteral("")}
+	return QVariantMap({{QStringLiteral("title"), QString()},
+						{QStringLiteral("details"), QString()},
+						{QStringLiteral("image"), QString()}
 					   });
 }
 
@@ -185,7 +189,7 @@ QVariantMap ModuleWriter::details(const QVariantMap &data, ModuleInterface *stor
  */
 
 QVariantList ModuleWriter::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-									   QVariantMap *commonDataPtr) const
+									   QVariantMap */*commonDataPtr*/, StorageSeed *seed) const
 {
 	if (!storage) {
 		QVariantList list;
@@ -206,16 +210,16 @@ QVariantList ModuleWriter::generateAll(const QVariantMap &data, ModuleInterface 
 	}
 
 	if (storage->name() == QStringLiteral("binding"))
-		return generateBinding(data, storageData);
+		return generateBinding(data, storageData, seed);
 
 	if (storage->name() == QStringLiteral("images"))
-		return generateImages(data, storageData);
+		return generateImages(data, storageData, seed);
 
 	if (storage->name() == QStringLiteral("sequence"))
 		return generateSequence(data, storageData);
 
 	if (storage->name() == QStringLiteral("text"))
-		return generateText(data, storageData);
+		return generateText(data, storageData, seed);
 
 
 	return QVariantList();
@@ -241,7 +245,7 @@ QVariantMap ModuleWriter::preview(const QVariantList &generatedList, const QVari
 
 		const QString &image = m.value(QStringLiteral("image")).toString();
 
-		s.append((image.isEmpty() ? QStringLiteral("") : tr("[KÉP] "))
+		s.append((image.isEmpty() ? QString() : tr("[KÉP] "))
 				 +QStringLiteral("**")+m.value(QStringLiteral("question")).toString()+QStringLiteral("**\n"));
 
 		const QString &answer = m.value(QStringLiteral("answer")).toString();
@@ -276,15 +280,18 @@ void ModuleWriter::registerQmlTypes() const
  * @return
  */
 
-QVariantList ModuleWriter::generateBinding(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleWriter::generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
-
 	bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
 	QString question = data.value(QStringLiteral("question")).toString();
 
-	foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
-		QVariantMap m = v.toMap();
+	SeedDuplexHelper helper(seed, isBindToRight ? SEED_BINDING_RIGHT : SEED_BINDING_LEFT,
+							isBindToRight ? SEED_BINDING_LEFT: SEED_BINDING_RIGHT);
+
+	const QVariantList &list = storageData.value(QStringLiteral("bindings")).toList();
+
+	for (int i=0; i<list.size(); ++i) {
+		QVariantMap m = list.at(i).toMap();
 		QString left = m.value(QStringLiteral("first")).toString();
 		QString right = m.value(QStringLiteral("second")).toString();
 
@@ -300,13 +307,12 @@ QVariantList ModuleWriter::generateBinding(const QVariantMap &data, const QVaria
 		else
 			retMap[QStringLiteral("question")] = question;
 
-
 		retMap[QStringLiteral("answer")] = isBindToRight ? left : right;
 
-		ret.append(retMap);
+		helper.append(retMap, i+1, i+1);
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 
@@ -317,14 +323,16 @@ QVariantList ModuleWriter::generateBinding(const QVariantMap &data, const QVaria
  * @return
  */
 
-QVariantList ModuleWriter::generateImages(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleWriter::generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
-
 	const QString &question = data.value(QStringLiteral("question")).toString();
 
-	foreach (const QVariant &v, storageData.value(QStringLiteral("images")).toList()) {
-		const QVariantMap &m = v.toMap();
+	SeedHelper helper(seed, SEED_IMAGES_IMAGE);
+
+	const QVariantList &list = storageData.value(QStringLiteral("images")).toList();
+
+	for (int i=0; i<list.size(); ++i) {
+		const QVariantMap &m = list.at(i).toMap();
 		const int &imgId = m.value(QStringLiteral("second"), -1).toInt();
 		const QString &text = m.value(QStringLiteral("first")).toString();
 
@@ -337,10 +345,10 @@ QVariantList ModuleWriter::generateImages(const QVariantMap &data, const QVarian
 		retMap[QStringLiteral("image")] = QStringLiteral("image://mapimage/%1").arg(imgId);
 		retMap[QStringLiteral("answer")] = text;
 
-		ret.append(retMap);
+		helper.append(retMap, i+1);
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 
@@ -439,11 +447,15 @@ QVariantList ModuleWriter::generateSequence(const QVariantMap &data, const QVari
  * @return
  */
 
-QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVariantMap &storageData) const
+QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
+	SeedHelper helper(seed, SEED_TEXT);
 
-	foreach (const QString &text, storageData.value(QStringLiteral("items")).toStringList()) {
+	const QStringList &list = storageData.value(QStringLiteral("items")).toStringList();
+
+	for (int i=0; i<list.size(); ++i) {
+		const QString &text = list.at(i);
+
 		if (text.isEmpty())
 			continue;
 
@@ -457,15 +469,15 @@ QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVari
 
 		QVector<ItemStruct> items;
 
-		QRegularExpressionMatchIterator i = m_expressionWord.globalMatch(text);
+		QRegularExpressionMatchIterator it = m_expressionWord.globalMatch(text);
 
 		int _cptrd = 0;
 
 		static const QRegularExpression regExp("\\s+");
 
-		while (i.hasNext())
+		while (it.hasNext())
 		{
-			QRegularExpressionMatch match = i.next();
+			QRegularExpressionMatch match = it.next();
 
 			int _s = match.capturedStart();
 			if (_s > _cptrd) {
@@ -513,10 +525,10 @@ QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVari
 			retMap[QStringLiteral("question")] = question;
 			retMap[QStringLiteral("answer")] = items.at(questionIndex).text;
 
-			ret.append(retMap);
+			helper.append(retMap, i+1);
 		}
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 

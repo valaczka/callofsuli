@@ -89,6 +89,8 @@ public:
 	int xp() const;
 	void setXp(int newXp);
 
+	StorageSeed *storageSeed() const;
+	void setStorageSeed(StorageSeed *newStorageSeed);
 
 protected:
 	QVector<Question> createQuestions();
@@ -108,6 +110,7 @@ protected:
 	bool m_isFlawless = true;
 	int m_xp = 0;
 	QTimer m_timerLeft;
+	StorageSeed *m_storageSeed = nullptr;
 
 private:
 	bool m_deadlineTimeout = false;

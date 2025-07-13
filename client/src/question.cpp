@@ -40,8 +40,9 @@
 
 
 
-Question::Question(GameMapObjective *objective)
+Question::Question(StorageSeed *seed, GameMapObjective *objective)
 	: m_objective (objective)
+	, m_seed(seed)
 {
 }
 
@@ -71,7 +72,7 @@ QString Question::module() const
 	if (m_objective)
 		return m_objective->module();
 
-	return QStringLiteral("");
+	return QString();
 }
 
 
@@ -101,18 +102,41 @@ QVariantMap Question::generate() const
 	if (m_objective->storage()) {
 		st = Application::instance()->storageModules().value(m_objective->storage()->module(), nullptr);
 		std = m_objective->storage()->data();
+
+		if (m_seed) {
+			m_seed->setCurrentStorage(m_objective->storage()->id());
+			m_seed->setCurrentMap(m_objective->map() ? m_objective->map()->uuid() : QStringLiteral("invalid"));
+		}
 	}
 
-	if (m_objective->generatedQuestions().isEmpty())
-		m_objective->generatedQuestions() = mi->generateAll(m_objective->data(), st, std, &m_objective->commonData());
+	QVariantMap q;
 
-	QVariantMap q = m_objective->generatedQuestions().takeAt(QRandomGenerator::global()->bounded(m_objective->generatedQuestions().size())).toMap();
+	if (m_objective->storage() && m_seed) {
+		QVariantList tmp = mi->generateAll(m_objective->data(), st, std, &m_objective->commonData(), m_seed);
+
+		if (tmp.isEmpty())
+			return QVariantMap();
+
+		q = tmp.first().toMap();
+
+		m_seed->setData(q, m_objective->storage()->id());
+	} else {
+		if (m_objective->generatedQuestions().isEmpty())
+			m_objective->generatedQuestions() = mi->generateAll(m_objective->data(), st, std, &m_objective->commonData(), nullptr);
+
+		if (m_objective->generatedQuestions().isEmpty())
+			return QVariantMap();
+
+		q = m_objective->generatedQuestions().takeFirst().toMap();
+	}
 
 	q.insert(QStringLiteral("xpFactor"), mi->xpFactor());
 	q.insert(QStringLiteral("examPoint"), m_objective->examPoint());
 
 	return q;
 }
+
+
 
 QVariantMap Question::commonData() const
 {
@@ -164,11 +188,11 @@ QVariantMap Question::objectiveInfo(const QString &module, const QVariantMap &da
 {
 	if (!Application::instance()->objectiveModules().contains(module)) {
 		return QVariantMap({
-							   { QStringLiteral("name"), QStringLiteral("") },
+							   { QStringLiteral("name"), QString() },
 							   { QStringLiteral("icon"), QStringLiteral("qrc:/Qaterial/Icons/alert.svg") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
-							   { QStringLiteral("details"), QStringLiteral("") },
-							   { QStringLiteral("image"), QStringLiteral("") }
+							   { QStringLiteral("details"), QString() },
+							   { QStringLiteral("image"), QString() }
 						   });
 	}
 
@@ -194,11 +218,11 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 {
 	if (!Application::instance()->storageModules().contains(module)) {
 		return QVariantMap({
-							   { QStringLiteral("name"), QStringLiteral("") },
+							   { QStringLiteral("name"), QString() },
 							   { QStringLiteral("icon"), QStringLiteral("qrc:/Qaterial/Icons/alert.svg") },
 							   { QStringLiteral("title"), QObject::tr("Érvénytelen modul!") },
-							   { QStringLiteral("details"), QStringLiteral("") },
-							   { QStringLiteral("image"), QStringLiteral("") }
+							   { QStringLiteral("details"), QString() },
+							   { QStringLiteral("image"), QString() }
 						   });
 	}
 
@@ -222,12 +246,12 @@ QVariantMap Question::storageInfo(const QString &module, const QVariantMap &data
 QString Question::qml() const
 {
 	if (!m_objective)
-		return QStringLiteral("");
+		return QString();
 
 	QString module = m_objective->module();
 
 	if (!Application::instance()->objectiveModules().contains(module))
-		return QStringLiteral("");
+		return QString();
 
 	ModuleInterface *mi = Application::instance()->objectiveModules().value(module);
 
@@ -245,7 +269,7 @@ QString Question::uuid() const
 	if (m_objective)
 		return m_objective->uuid();
 	else
-		return QStringLiteral("");
+		return QString();
 }
 
 

@@ -89,7 +89,7 @@ QVector<Question> AbstractLevelGame::createQuestions()
 			int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
 
 			for (int i=0; i<n; ++i)
-				list.append(Question(objective));
+				list.append(Question(m_storageSeed, objective));
 
 		}
 	}
@@ -125,6 +125,24 @@ void AbstractLevelGame::onTimerLeftTimeout()
 	}
 
 }
+
+
+/**
+ * @brief AbstractLevelGame::storageSeed
+ * @return
+ */
+
+StorageSeed *AbstractLevelGame::storageSeed() const
+{
+	return m_storageSeed;
+}
+
+void AbstractLevelGame::setStorageSeed(StorageSeed *newStorageSeed)
+{
+	m_storageSeed = newStorageSeed;
+}
+
+
 
 const QStringList &AbstractLevelGame::availableMedal()
 {
@@ -217,7 +235,7 @@ QString AbstractLevelGame::medalImagePath(const QString &medal)
 	if (m_availableMedal.contains(medal))
 		return QStringLiteral("qrc:/internal/medal/")+medal;
 	else
-		return QStringLiteral("");
+		return QString();
 }
 
 
@@ -231,7 +249,7 @@ QString AbstractLevelGame::medalImagePath(const QString &medal)
 QString AbstractLevelGame::medalImagePath(GameMapMission *mission)
 {
 	if (!mission)
-		return QStringLiteral("");
+		return QString();
 
 	return medalImagePath(mission->medalImage());
 }
@@ -246,7 +264,7 @@ QString AbstractLevelGame::medalImagePath(GameMapMission *mission)
 QString AbstractLevelGame::medalImagePath(GameMapMissionLevel *missionLevel)
 {
 	if (!missionLevel)
-		return QStringLiteral("");
+		return QString();
 	else
 		return medalImagePath(missionLevel->mission());
 }

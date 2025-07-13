@@ -371,7 +371,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 	if (role == Qt::DisplayRole) {											// display
 		if (col == 0) {
 			if (m_showHeaderPlaceholders)
-				return QStringLiteral("");
+				return QString();
 
 			if (row <= 0 || row > m_userList.size())
 				return QStringLiteral("???");
@@ -380,7 +380,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 			return u ? u->fullName() : QStringLiteral("???");
 		} else if (row == 0) {
 			if (m_showHeaderPlaceholders)
-				return QStringLiteral("");
+				return QString();
 
 			if (col <= 0 || col > m_taskList.size())
 				return QStringLiteral("???");
@@ -395,7 +395,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 				return task.section();
 		}
 
-		return QStringLiteral("");
+		return QString();
 
 	} else if (role == Qt::CheckStateRole) {								// checked: 0 (false) : 1 (checked) : 2 (required but not checked) : 3 (partially checked)
 		if (col == 0 && row > 0 && row <= m_userList.size()) {
@@ -433,7 +433,7 @@ QVariant TeacherGroupCampaignResultModel::data(const QModelIndex &index, int rol
 
 	} else if (role == Qt::UserRole+2) {									// result
 		if (col != 0)
-			return QStringLiteral("");
+			return QString();
 
 		if (row <= 0 || row > m_userList.size())
 			return QStringLiteral("???");
@@ -1021,7 +1021,7 @@ QVariant TeacherGroupResultModel::data(const QModelIndex &index, int role) const
 	if (role == Qt::DisplayRole) {											// display
 		if (col == 0) {
 			if (m_showHeaderPlaceholders)
-				return QStringLiteral("");
+				return QString();
 
 			if (row <= 0 || row > m_userList.size())
 				return QStringLiteral("???");
@@ -1030,7 +1030,7 @@ QVariant TeacherGroupResultModel::data(const QModelIndex &index, int role) const
 			return u ? u->fullName() : QStringLiteral("???");
 		} else if (row == 0) {
 			if (m_showHeaderPlaceholders)
-				return QStringLiteral("");
+				return QString();
 
 			if (col <= 0 || col > m_campaignList.size())
 				return QStringLiteral("???");
@@ -1040,7 +1040,7 @@ QVariant TeacherGroupResultModel::data(const QModelIndex &index, int role) const
 			return c ? c->readableName() : QStringLiteral("???");
 		}
 
-		return QStringLiteral("");
+		return QString();
 
 	} else if (role == Qt::CheckStateRole) {								// campaignState
 		if (col == 0 || row == 0)
@@ -1559,5 +1559,5 @@ void TeacherGroupFreeMap::setMap(BaseMap *newMap)
 
 QString TeacherGroupFreeMap::name() const
 {
-	return m_map ? m_map->name() : QStringLiteral("");
+	return m_map ? m_map->name() : QString();
 }

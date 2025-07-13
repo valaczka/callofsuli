@@ -315,11 +315,11 @@ QString Task::readableCriterion(BaseMapList *mapList, Campaign *campaign) const
 		if (campaign && campaign->usedMapUuids().size() < 2)
 			return tr("Teljesítsd a %1 küldetést LEVEL %2%3 szinten").arg(missionName)
 					.arg(level)
-					.arg(deathmatch ? tr(" SUDDEN DEATH") : QStringLiteral(""));
+					.arg(deathmatch ? tr(" SUDDEN DEATH") : QString());
 		else
 			return tr("Teljesítsd a %1 pálya %2 küldetést LEVEL %3%4 szinten").arg(m_mapName, missionName)
 					.arg(level)
-					.arg(deathmatch ? tr(" SUDDEN DEATH") : QStringLiteral(""));
+					.arg(deathmatch ? tr(" SUDDEN DEATH") : QString());
 	} else if (module == QLatin1String("levels")) {
 		const QString &mission = m_criterion.value(QStringLiteral("mission")).toString();
 

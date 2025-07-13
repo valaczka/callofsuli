@@ -27,6 +27,7 @@
 #include "moduleorder.h"
 #include <QRandomGenerator>
 #include "question.h"
+#include "../block/moduleblock.h"
 
 ModuleOrder::ModuleOrder(QObject *parent) : QObject(parent)
 {
@@ -168,7 +169,7 @@ QVariantMap ModuleOrder::details(const QVariantMap &data, ModuleInterface *stora
 	QVariantMap m;
 	m[QStringLiteral("title")] = question;
 	m[QStringLiteral("details")] = list.join(QStringLiteral(", "));
-	m[QStringLiteral("image")] = QStringLiteral("");
+	m[QStringLiteral("image")] = QString();
 
 	return m;
 }
@@ -184,12 +185,11 @@ QVariantMap ModuleOrder::details(const QVariantMap &data, ModuleInterface *stora
  */
 
 QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-									  QVariantMap *commonDataPtr) const
+									  QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	Q_UNUSED(commonDataPtr);
 
-	QVariantList list;
-	QVariantMap m;
+	std::unique_ptr<SeedHelper> helper = std::make_unique<SeedHelper>(nullptr, -1);
 
 	QVariantList slist;
 	int cnt = data.value(QStringLiteral("count"), 5).toInt();
@@ -210,6 +210,8 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 	if (storage && storage->name() == QStringLiteral("block")) {
 		blockList = storageData.value(QStringLiteral("blocks")).toList();
 		genCount = blockList.size();
+
+		helper.reset(new SeedHelper(seed, SEED_BLOCK_LEFT));
 	}
 
 
@@ -234,6 +236,8 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 			isDesc = true;
 		else if (mode == QStringLiteral("random"))
 			isDesc = (QRandomGenerator::global()->generate() % 2 == 1);
+
+		QVariantMap m;
 
 		m[QStringLiteral("mode")] = isDesc ? QStringLiteral("descending") : QStringLiteral("ascending");
 		m[QStringLiteral("question")] = isDesc ? data.value(QStringLiteral("questionDesc")).toString() : data.value(QStringLiteral("questionAsc")).toString();
@@ -266,12 +270,10 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 
 		m[QStringLiteral("answer")] = aList;
 
-		list.append(m);
-
+		helper->append(m, i+1);
 	}
 
-
-	return list;
+	return helper->getVariantList(storage && storage->name() == QStringLiteral("block"));
 }
 
 

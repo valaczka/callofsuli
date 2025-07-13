@@ -27,6 +27,8 @@
 #include <QRandomGenerator>
 #include "moduleselector.h"
 #include "qjsonarray.h"
+#include "storageseed.h"
+#include "../binding/modulebinding.h"
 
 
 /**
@@ -116,14 +118,14 @@ QVariantMap ModuleSelector::details(const QVariantMap &data, ModuleInterface *st
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
-						{QStringLiteral("details"), QStringLiteral("")},
-						{QStringLiteral("image"), QStringLiteral("")}
+	return QVariantMap({{QStringLiteral("title"), QString()},
+						{QStringLiteral("details"), QString()},
+						{QStringLiteral("image"), QString()}
 					   });
 }
 
@@ -138,10 +140,10 @@ QVariantMap ModuleSelector::details(const QVariantMap &data, ModuleInterface *st
  */
 
 QVariantList ModuleSelector::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-										 QVariantMap *commonDataPtr) const
+										 QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	if (storage && storage->name() == QStringLiteral("binding"))
-		return generateBinding(data, storageData, commonDataPtr);
+		return generateBinding(data, storageData, commonDataPtr, seed);
 
 
 	return QVariantList();
@@ -226,20 +228,21 @@ QVariantMap ModuleSelector::generateOne(const QString &answer, const int &maxOpt
  */
 
 QVariantList ModuleSelector::generateBinding(const QVariantMap &data, const QVariantMap &storageData,
-											 QVariantMap *commonDataPtr) const
+											 QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	Q_UNUSED(commonDataPtr);
 
-	QVariantList ret;
-	QVariantList commonList;
+	SeedDuplexHelper helper(seed, SEED_BINDING_LEFT, SEED_BINDING_RIGHT);
 
 	const QString &question = data.value(QStringLiteral("question")).toString();
 	const bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
 	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
 
 
-	for (const QVariant &v : storageData.value(QStringLiteral("bindings")).toList()) {
-		const QVariantMap m = v.toMap();
+	const QVariantList &list = storageData.value(QStringLiteral("bindings")).toList();
+
+	for (int i=0; i<list.size(); ++i) {
+		const QVariantMap m = list.at(i).toMap();
 		const QString left = m.value(QStringLiteral("first")).toString();
 		const QString right = m.value(QStringLiteral("second")).toString();
 
@@ -259,11 +262,11 @@ QVariantList ModuleSelector::generateBinding(const QVariantMap &data, const QVar
 
 		retMap.insert(generateOne(isBindToRight ? left : right, maxOptions));
 
-		ret.append(retMap);
+		helper.append(retMap, i+1, i+1);
 	}
 
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 

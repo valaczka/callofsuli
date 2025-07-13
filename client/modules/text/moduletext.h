@@ -31,6 +31,7 @@
 #include <QObject>
 #include <QtPlugin>
 
+#define SEED_TEXT		1
 
 class ModuleText : public QObject, public ModuleInterface
 {
@@ -48,15 +49,15 @@ public:
 	inline QString icon() const override { return QStringLiteral("image://font/AcademicI/\uf1b2"); }
 
 	inline QString qmlEditor() const override { return QStringLiteral("ME_text.qml"); }
-	inline QString qmlQuestion() const override { return QStringLiteral(""); }
-	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
+	inline QString qmlQuestion() const override { return QString(); }
+	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QString(); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
 	QVariantList generateAll(const QVariantMap &, ModuleInterface *, const QVariantMap &,
-							 QVariantMap *) const override { return QVariantList(); }
+							 QVariantMap *, StorageSeed *) const override { return QVariantList(); }
 
 	qreal xpFactor() const override { return 0; };
 

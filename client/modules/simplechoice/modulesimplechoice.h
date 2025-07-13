@@ -61,15 +61,16 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+							 QVariantMap *commonDataPtr, StorageSeed *seed) const override;
 
 	qreal xpFactor() const override { return 1.1; };
 
-	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateBlockContains(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList, const int &maxOptions) const;
 
 	QVariantMap preview(const QVariantList &generatedList, const QVariantMap &commonData) const override;

@@ -26,6 +26,9 @@
 
 #include <QRandomGenerator>
 #include "moduletruefalse.h"
+#include "storageseed.h"
+#include "../binding/modulebinding.h"
+#include "../block/moduleblock.h"
 
 ModuleTruefalse::ModuleTruefalse(QObject *parent) : QObject(parent)
 {
@@ -87,7 +90,7 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = data.value(QStringLiteral("correct")).toBool() ? QObject::tr("igaz") : QObject::tr("hamis");
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 		return m;
 
 	} else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers")) {
@@ -104,7 +107,7 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("block")) {
@@ -121,14 +124,14 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
-						{QStringLiteral("details"), QStringLiteral("")},
-						{QStringLiteral("image"), QStringLiteral("")}
+	return QVariantMap({{QStringLiteral("title"), QString()},
+						{QStringLiteral("details"), QString()},
+						{QStringLiteral("image"), QString()}
 					   });
 }
 
@@ -143,7 +146,7 @@ QVariantMap ModuleTruefalse::details(const QVariantMap &data, ModuleInterface *s
  */
 
 QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-										  QVariantMap *commonDataPtr) const
+										  QVariantMap */*commonDataPtr*/, StorageSeed *seed) const
 {
 	if (!storage) {
 		QVariantList list;
@@ -157,9 +160,9 @@ QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterfa
 	}
 
 	if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
-		return generateBinding(data, storageData);
+		return generateBinding(data, storageData, seed);
 	else if (storage->name() == QStringLiteral("block"))
-		return generateBlock(data, storageData);
+		return generateBlock(data, storageData, seed);
 
 
 	return QVariantList();
@@ -175,23 +178,24 @@ QVariantList ModuleTruefalse::generateAll(const QVariantMap &data, ModuleInterfa
  * @return
  */
 
-QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
-
 	const QString &mode = data.value(QStringLiteral("mode")).toString();
 
-	if (mode == QStringLiteral("left") || mode == QStringLiteral("right")) {
-		const QString &question = data.value(QStringLiteral("question")).toString();
+	SeedDuplexHelper helper(seed, SEED_BINDING_LEFT, SEED_BINDING_RIGHT);
 
-		foreach (const QVariant &v, storageData.value(QStringLiteral("bindings")).toList()) {
-			const QVariantMap &m = v.toMap();
+	const QVariantList &list = storageData.value(QStringLiteral("bindings")).toList();
+	const QString &question = data.value(QStringLiteral("question")).toString();
+
+	if (mode == QStringLiteral("left") || mode == QStringLiteral("right")) {
+		for (int i=0; i<list.size(); ++i) {
+			const QVariantMap &m = list.at(i).toMap();
 			const QString &left = m.value(QStringLiteral("first")).toString();
 			const QString &right = m.value(QStringLiteral("second")).toString();
 
-
 			if (!left.isEmpty()) {
 				QVariantMap retMap;
+
 				if (question.contains(QStringLiteral("%1")))
 					retMap[QStringLiteral("question")] = question.arg(left);
 				else if (question.isEmpty())
@@ -200,27 +204,31 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 					retMap[QStringLiteral("question")] = question+QStringLiteral(" ")+left;
 
 				retMap[QStringLiteral("answer")] = (mode == QStringLiteral("left")) ? 1 : 0;
-				ret.append(retMap);
+
+				helper.append(retMap, i+1, -1);
 			}
 
 			if (!right.isEmpty()) {
 				QVariantMap retMap;
+
 				if (question.contains(QStringLiteral("%1")))
 					retMap[QStringLiteral("question")] = question.arg(right);
 				else if (question.isEmpty())
 					retMap[QStringLiteral("question")] = right;
 				else
 					retMap[QStringLiteral("question")] = question+QStringLiteral(" ")+right;
+
 				retMap[QStringLiteral("answer")] = (mode == QStringLiteral("right")) ? 1 : 0;
-				ret.append(retMap);
+
+				helper.append(retMap, -1, i+1);
 			}
+
 		}
 	} else if (mode == QStringLiteral("generateLeft") || mode == QStringLiteral("generateRight")) {
-		const QString &question = data.value(QStringLiteral("question")).toString();
 		bool isBindToRight = mode == QStringLiteral("generateRight");
 
-		foreach (const QVariant &v, storageData.value(QStringLiteral("bindings")).toList()) {
-			const QVariantMap &m = v.toMap();
+		for (int i=0; i<list.size(); ++i) {
+			const QVariantMap &m = list.at(i).toMap();
 			const QString &left = m.value(QStringLiteral("first")).toString();
 			const QString &right = m.value(QStringLiteral("second")).toString();
 
@@ -274,11 +282,13 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 
 			retMap[QStringLiteral("answer")] = isCorrect ? 1 : 0;
 
-			ret.append(retMap);
+			helper.append(retMap,
+						  isBindToRight ? -1 : i+1,
+						  isBindToRight ? i+1 : -1);
 		}
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 
@@ -291,22 +301,27 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
  * @return
  */
 
-QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
 	const QString &question = data.value(QStringLiteral("question")).toString();
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	SeedHelper helper(seed, SEED_BLOCK_LEFT);
 
 	QVector<QString> bNames;
 	QVector<QStringList> bItems;
 	QVector<int> realIndices;
+	QVector<int> idxList;
 
-	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
-		const QVariantMap &m = v.toMap();
+	for (int i=0; i<list.size(); ++i) {
+		const QVariantMap &m = list.at(i).toMap();
 		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
 		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
 
 		if (left.isEmpty() && right.isEmpty())
 			continue;
+
+		idxList.append(i);
 
 		bNames.append(left);
 		bItems.append(right);
@@ -319,6 +334,8 @@ QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVari
 	for (int i=0; i<bItems.size(); ++i) {
 		const QStringList &list = bItems.at(i);
 		const QString &realname = bNames.at(i);
+
+		const int &idx = idxList.at(i);
 
 		foreach (QString s, list) {
 			s = s.simplified();
@@ -358,11 +375,11 @@ QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVari
 
 			retMap[QStringLiteral("answer")] = isCorrect ? 1 : 0;
 
-			ret.append(retMap);
+			helper.append(retMap, idx+1);
 		}
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 

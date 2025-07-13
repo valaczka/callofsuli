@@ -48,7 +48,7 @@ public:
 	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/text-search.svg"); }
 
 	inline QString qmlEditor() const override { return QStringLiteral("ME_binary.qml"); }
-	inline QString qmlQuestion() const override { return QStringLiteral(""); }
+	inline QString qmlQuestion() const override { return QString(); }
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const override;
 
 	inline QStringList storageModules() const override {
@@ -60,7 +60,8 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage,
+							 const QVariantMap &storageData, QVariantMap *commonDataPtr, StorageSeed *seed) const override;
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, QVariantMap *commonDataPtr) const;
 

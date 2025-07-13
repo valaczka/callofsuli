@@ -29,6 +29,8 @@
 
 #include <QtPlugin>
 
+class StorageSeed;
+
 class ModuleInterface
 {
 public:
@@ -73,7 +75,7 @@ public:
 
 	// Az összes kérdés/feladat elkészítése
 	virtual QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-									 QVariantMap *commonDataPtr) const = 0;
+									 QVariantMap *commonDataPtr, StorageSeed *seed) const = 0;
 
 	// XP faktor
 	virtual qreal xpFactor() const = 0;

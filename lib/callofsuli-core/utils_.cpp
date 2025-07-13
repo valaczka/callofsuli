@@ -617,7 +617,7 @@ QString Utils::clipboardText()
 
 	if (!clipboard) {
 		LOG_CERROR("utils") << "Cliboard unavailable";
-		return QStringLiteral("");
+		return QString();
 	}
 
 	return clipboard->text();

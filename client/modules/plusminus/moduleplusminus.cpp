@@ -47,8 +47,8 @@ QVariantMap ModulePlusminus::details(const QVariantMap &data, ModuleInterface *s
 
 	QVariantMap m;
 	m[QStringLiteral("title")] = tr("Egész számok összeadása-kivonása");
-	m[QStringLiteral("details")] = QStringLiteral("");
-	m[QStringLiteral("image")] = QStringLiteral("");
+	m[QStringLiteral("details")] = QString();
+	m[QStringLiteral("image")] = QString();
 
 	return m;
 }

@@ -26,6 +26,9 @@
 
 #include <QRandomGenerator>
 #include "modulesimplechoice.h"
+#include "../block/moduleblock.h"
+#include "../images/moduleimages.h"
+#include "../binding/modulebinding.h"
 #include "question.h"
 
 ModuleSimplechoice::ModuleSimplechoice(QObject *parent) : QObject(parent)
@@ -91,7 +94,7 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		QStringList answers = data.value(QStringLiteral("answers")).toStringList();
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = data.value(QStringLiteral("correct")).toString()+QStringLiteral("<br>(")+answers.join(QStringLiteral(", "))+QStringLiteral(")");
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers")) {
@@ -113,13 +116,13 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("images")) {
 		QStringList answers;
 
-		QString image = QStringLiteral("");
+		QString image = QString();
 
 		const QString &mode = data.value(QStringLiteral("mode")).toString();
 
@@ -160,14 +163,14 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
-						{QStringLiteral("details"), QStringLiteral("")},
-						{QStringLiteral("image"), QStringLiteral("")}
+	return QVariantMap({{QStringLiteral("title"), QString()},
+						{QStringLiteral("details"), QString()},
+						{QStringLiteral("image"), QString()}
 					   });
 }
 
@@ -183,7 +186,7 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
  */
 
 QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-											 QVariantMap *commonDataPtr) const
+											 QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	Q_UNUSED(commonDataPtr);
 
@@ -209,13 +212,13 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 	}
 
 	if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
-		return generateBinding(data, storageData);
+		return generateBinding(data, storageData, seed);
 
 	if (storage->name() == QStringLiteral("images"))
-		return generateImages(data, storageData);
+		return generateImages(data, storageData, seed);
 
 	if (storage->name() == QStringLiteral("block"))
-		return generateBlock(data, storageData);
+		return generateBlock(data, storageData, seed);
 
 
 	return QVariantList();
@@ -232,16 +235,19 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
-
 	bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
 	QString question = data.value(QStringLiteral("question")).toString();
 	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
 
-	foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
-		QVariantMap m = v.toMap();
+	const QVariantList &list = storageData.value(QStringLiteral("bindings")).toList();
+
+	SeedDuplexHelper helper(seed, isBindToRight ? SEED_BINDING_RIGHT : SEED_BINDING_LEFT,
+							isBindToRight ? SEED_BINDING_LEFT: SEED_BINDING_RIGHT);
+
+	for (int i = 0; i<list.size(); ++i) {
+		QVariantMap m = list.at(i).toMap();
 		QString left = m.value(QStringLiteral("first")).toString();
 		QString right = m.value(QStringLiteral("second")).toString();
 
@@ -261,7 +267,7 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 
 		QStringList alist;
 
-		foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
+		for (const QVariant &v : list) {
 			QVariantMap mm = v.toMap();
 			QString f1 = mm.value(QStringLiteral("first")).toString();
 			QString f2 = mm.value(QStringLiteral("second")).toString();
@@ -274,10 +280,10 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 
 		retMap.insert(generateOne(isBindToRight ? left : right, alist, maxOptions));
 
-		ret.append(retMap);
+		helper.append(retMap, i+1, i+1);
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 
@@ -290,16 +296,19 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
-
 	const QString &mode = data.value(QStringLiteral("mode")).toString();
 	const QString &question = data.value(QStringLiteral("question")).toString();
 	const QString &answersPattern = data.value(QStringLiteral("answers")).toString();
 
-	foreach (const QVariant &v, storageData.value(QStringLiteral("images")).toList()) {
-		const QVariantMap &m = v.toMap();
+	SeedDuplexHelper helper(seed, mode == QStringLiteral("text") ? SEED_IMAGES_TEXT : SEED_IMAGES_IMAGE,
+							mode == QStringLiteral("text") ? SEED_IMAGES_IMAGE : SEED_IMAGES_TEXT);
+
+	const QVariantList &list = storageData.value(QStringLiteral("images")).toList();
+
+	for (int i=0; i<list.size(); ++i) {
+		const QVariantMap &m = list.at(i).toMap();
 		const int &imgId = m.value(QStringLiteral("second"), -1).toInt();
 		const QString &text = m.value(QStringLiteral("first")).toString();
 
@@ -322,7 +331,7 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 
 		QStringList alist;
 
-		foreach (const QVariant &v, storageData.value(QStringLiteral("images")).toList()) {
+		for (const QVariant &v : list) {
 			const QVariantMap &mm = v.toMap();
 			const int &f1 = mm.value(QStringLiteral("second"), -1).toInt();
 			const QString &f2 = mm.value(QStringLiteral("first")).toString();
@@ -345,10 +354,10 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 		else
 			retMap.insert(generateOne(QStringLiteral("image://mapimage/%1").arg(imgId), alist, 4));
 
-		ret.append(retMap);
+		helper.append(retMap, i+1, i+1);
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 
@@ -361,14 +370,14 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
 	const QString &mode = data.value(QStringLiteral("mode")).toString();
 
 	if (mode == QStringLiteral("simple"))
-		return generateBlockSimple(data, storageData);
+		return generateBlockSimple(data, storageData, seed);
 	else
-		return generateBlockContains(data, storageData);
+		return generateBlockContains(data, storageData, seed);
 
 }
 
@@ -380,21 +389,22 @@ QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QV
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
+	SeedDuplexHelper helper(seed, SEED_BLOCK_RIGHT, SEED_BLOCK_LEFT);
 
 	const QString &question = data.value(QStringLiteral("question")).toString();
 
 	QVector<QString> bNames;
 
-	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	for (const QVariant &v : list) {
 		const QVariantMap &m = v.toMap();
 		const QString &left = m.value(QStringLiteral("first")).toString();
 		bNames.append(left);
 	}
 
-	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
 
 	for (int idx = 0; idx < list.size(); ++idx) {
 		const QVariantMap &m = list.at(idx).toMap();
@@ -406,8 +416,8 @@ QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, 
 
 		QVariantMap retMap;
 
-		foreach (QString s, right) {
-			s = s.simplified();
+		for (int i=0; i<right.size(); ++i) {
+			const QString &s = right.at(i).simplified();
 			if (s.isEmpty())
 				continue;
 
@@ -436,12 +446,17 @@ QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, 
 
 			retMap.insert(generateOne(left, alist, data.value(QStringLiteral("maxOptions")).toInt()));
 
-			ret.append(retMap);
+			// Seed main: 2
+			// Seed sub: (block index+1) * 1000 + (answer index + 1)
+
+			const int sub = (idx+1)*1000 + i+1;
+
+			helper.append(retMap, sub, idx+1);
 		}
 
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 
@@ -456,9 +471,9 @@ QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, 
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
+	SeedDuplexHelper helper(seed, SEED_BLOCK_LEFT, SEED_BLOCK_RIGHT);
 
 	const QString &question = data.value(QStringLiteral("question")).toString();
 	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
@@ -486,7 +501,11 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 
 		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
-		const QString &correct = right.at(QRandomGenerator::global()->bounded(right.size()));
+		const int blockidx = (it-list.constBegin())+1;
+
+		//const int idx = QRandomGenerator::global()->bounded(right.size());
+		const int idx = helper.getSubBOffset(right.size(), blockidx*1000+1);
+		const QString &correct = right.at(idx);
 
 		QStringList alist;
 
@@ -505,10 +524,10 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 
 		retMap.insert(generateOne(correct, alist, maxOptions));
 
-		ret.append(retMap);
+		helper.append(retMap, blockidx, blockidx*1000 + idx+1);
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 
@@ -580,7 +599,7 @@ QVariantMap ModuleSimplechoice::preview(const QVariantList &generatedList, const
 		const QString &image = m.value(QStringLiteral("image")).toString();
 		const bool &imageAnswers = m.value(QStringLiteral("imageAnswers")).toBool();
 
-		s.append((image.isEmpty() ? QStringLiteral("") : tr("[KÉP] "))
+		s.append((image.isEmpty() ? QString() : tr("[KÉP] "))
 				 +QStringLiteral("**")+m.value(QStringLiteral("question")).toString()+QStringLiteral("**\n"));
 
 		int correct = m.value(QStringLiteral("answer"), -1).toInt();

@@ -34,7 +34,7 @@ ExamGame::~ExamGame()
  * @return
  */
 
-QVector<Question> ExamGame::createQuestions(GameMapMissionLevel *missionLevel)
+QVector<Question> ExamGame::createQuestions(GameMapMissionLevel *missionLevel, StorageSeed *seed)
 {
 	LOG_CDEBUG("game") << "Create questions";
 
@@ -56,7 +56,7 @@ QVector<Question> ExamGame::createQuestions(GameMapMissionLevel *missionLevel)
 			int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
 
 			for (int i=0; i<n; ++i)
-				list.append(Question(objective));
+				list.append(Question(seed, objective));
 
 		}
 	}
@@ -74,7 +74,7 @@ QVector<Question> ExamGame::createQuestions(GameMapMissionLevel *missionLevel)
  * @return
  */
 
-QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, const bool &noShuffle)
+QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, StorageSeed *seed, const bool &noShuffle)
 {
 	LOG_CDEBUG("game") << "Generate paper questions";
 
@@ -83,7 +83,7 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, c
 		return {};
 	}
 
-	QVector<Question> list = createQuestions(missionLevel);
+	QVector<Question> list = createQuestions(missionLevel, seed);
 
 	QVector<Question> easyList;
 	QVector<Question> complexList;

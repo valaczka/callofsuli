@@ -124,7 +124,7 @@ public:
 	public:
 		~ExternalSound();
 
-		QString path() const { return m_maSound ? m_maSound->path() : QStringLiteral(""); }
+		QString path() const { return m_maSound ? m_maSound->path() : QString(); }
 		ChannelType channel() const { return m_maSound ? m_maSound->channel() : SfxChannel; }
 		ma_sound *sound() const { return m_maSound ? m_maSound->sound() : nullptr; }
 

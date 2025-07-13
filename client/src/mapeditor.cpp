@@ -123,8 +123,8 @@ void MapEditor::createFile()
 	setMap(map);
 	loadMap();
 
-	m_currentFileName = QStringLiteral("");
-	m_currentBackupName = QStringLiteral("");
+	m_currentFileName = QString();
+	m_currentBackupName = QString();
 
 	setDisplayName(tr("--- új pálya ---"));
 	setModified(true);
@@ -1049,9 +1049,9 @@ void MapEditor::setDisplayName(const QString &newDisplayName)
 QVariantMap MapEditor::objectiveInfo(MapEditorObjective *objective) const
 {
 	if (!objective)
-		return Question::objectiveInfo(QStringLiteral(""), {});
+		return Question::objectiveInfo(QString(), {});
 
-	return Question::objectiveInfo(objective->module(), objective->data(), objective->storage() ? objective->storage()->module() : QStringLiteral(""),
+	return Question::objectiveInfo(objective->module(), objective->data(), objective->storage() ? objective->storage()->module() : QString(),
 								   objective->storage() ? objective->storage()->data() : QVariantMap());
 }
 
@@ -1065,7 +1065,7 @@ QVariantMap MapEditor::objectiveInfo(MapEditorObjective *objective) const
 QVariantMap MapEditor::storageInfo(MapEditorStorage *storage) const
 {
 	if (!storage)
-		return Question::storageInfo(QStringLiteral(""), {});
+		return Question::storageInfo(QString(), {});
 
 	return Question::storageInfo(storage->module(), storage->data());
 }
@@ -1086,7 +1086,7 @@ QString MapEditor::objectiveQml(MapEditorObjective *objective) const
 			return mi->qmlEditor();
 	}
 
-	return QStringLiteral("");
+	return QString();
 }
 
 
@@ -1106,7 +1106,7 @@ QString MapEditor::storageQml(MapEditorStorage *storage) const
 			return mi->qmlEditor();
 	}
 
-	return QStringLiteral("");
+	return QString();
 }
 
 
@@ -2714,7 +2714,7 @@ QString MapEditor::objectivePreview(const QString &objectiveModule, const QVaria
 	}
 
 	QVariantMap commonData;
-	QVariantList list = objective->generateAll(objectiveData, storage, storageData, &commonData);
+	QVariantList list = objective->generateAll(objectiveData, storage, storageData, &commonData, nullptr);
 
 	return objective->preview(list, commonData).value(QStringLiteral("text")).toString();
 }
@@ -3291,6 +3291,30 @@ void MapEditor::missionLevelPlay(MapEditorMissionLevel *missionLevel, int mode)
 /**
  * @brief MapPlayEditor::reloadMap
  * @param map
+ */
+
+MapPlayEditor::MapPlayEditor(Client *client, QObject *parent)
+	: MapPlay(client, parent)
+{
+	m_online = false;
+}
+
+
+/**
+ * @brief MapPlayEditor::~MapPlayEditor
+ */
+
+MapPlayEditor::~MapPlayEditor()
+{
+
+}
+
+
+
+/**
+ * @brief MapPlayEditor::reloadMap
+ * @param map
+ * @return
  */
 
 bool MapPlayEditor::reloadMap(MapEditorMap *map)

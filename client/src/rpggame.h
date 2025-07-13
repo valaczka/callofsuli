@@ -253,7 +253,7 @@ public:
 	RpgCollectionData getCollectionImageData(const int &id) const;
 
 	int getMetric(const RpgPlayerCharacterConfig::CastType &cast) const;
-	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QStringLiteral(""));
+	EnemyMetric getMetric(EnemyMetric baseMetric, const RpgGameData::EnemyBaseData::EnemyType &type, const QString &subtype = QString());
 
 	ActionRpgGame *actionRpgGame() const;
 	void setActionRpgGame(ActionRpgGame *game);

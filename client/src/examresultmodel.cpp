@@ -51,7 +51,7 @@ QVariant ExamResultModel::data(const QModelIndex &index, int role) const
 	if (role == Qt::DisplayRole) {											// display
 		if (col == 0) {
 			if (m_showHeaderPlaceholders)
-				return QStringLiteral("");
+				return QString();
 
 			if (row <= 0 || row > m_userList.size())
 				return QStringLiteral("???");
@@ -60,7 +60,7 @@ QVariant ExamResultModel::data(const QModelIndex &index, int role) const
 			return u ? u->fullName() : QStringLiteral("???");
 		} else if (row == 0) {
 			if (m_showHeaderPlaceholders)
-				return QStringLiteral("");
+				return QString();
 
 			if (col <= 0 || col > m_examList.size())
 				return QStringLiteral("???");
@@ -77,7 +77,7 @@ QVariant ExamResultModel::data(const QModelIndex &index, int role) const
 			}
 		}
 
-		return QStringLiteral("");
+		return QString();
 
 	} else if (role == Qt::CheckStateRole) {								// examState
 		if (col <= 0 || col > m_examList.size())

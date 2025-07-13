@@ -32,6 +32,10 @@
 #include <QtPlugin>
 
 
+#define SEED_BLOCK_LEFT		1
+#define SEED_BLOCK_RIGHT	2
+
+
 class ModuleBlock : public QObject, public ModuleInterface
 {
 	Q_OBJECT
@@ -48,15 +52,15 @@ public:
 	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/view-dashboard.svg"); }
 
 	inline QString qmlEditor() const override { return QStringLiteral("ME_block.qml"); }
-	inline QString qmlQuestion() const override { return QStringLiteral(""); }
-	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
+	inline QString qmlQuestion() const override { return QString(); }
+	inline QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QString(); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
 	QVariantList generateAll(const QVariantMap &, ModuleInterface *, const QVariantMap &,
-							 QVariantMap *) const override { return QVariantList(); }
+							 QVariantMap *, StorageSeed *) const override { return QVariantList(); }
 
 	qreal xpFactor() const override { return 0; };
 

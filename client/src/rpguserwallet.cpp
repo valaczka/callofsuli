@@ -271,6 +271,9 @@ bool RpgUserWallet::buyable() const
 	if ((!m_market.belongs.isEmpty() || m_market.type == RpgMarket::Weapon) && !hasCharacter(m_market.belongs))
 		return false;
 
+	if (!isBelongsSolved())
+		return false;
+
 	return m_market.rank <= 0 || s->user()->rank().id() >= m_market.rank;
 }
 
@@ -529,6 +532,33 @@ bool RpgUserWallet::hasCharacter(const QString &character, RpgUserWalletList *li
 	}
 
 	return false;
+}
+
+
+/**
+ * @brief RpgUserWallet::isBelongsSolved
+ * @return
+ */
+
+bool RpgUserWallet::isBelongsSolved() const
+{
+	if (m_market.belongs.isEmpty() && m_market.type == RpgMarket::Weapon)
+		return false;
+
+	if (m_market.belongs.isEmpty() && m_market.type != RpgMarket::Weapon)
+		return true;
+
+	for (RpgUserWallet *w : *m_walletList) {
+		const RpgMarket &m = w->market();
+
+		if (m.type != RpgMarket::Weapon || m.belongs != m_market.belongs)
+			continue;
+
+		if (m.belongsValue < m_market.belongsValue && !w->available())
+			return false;
+	}
+
+	return true;
 }
 
 

@@ -77,9 +77,9 @@ void LiteGame::onPageReady()
 
 	if (list.empty()) {
 		m_client->messageError(tr("Nem lehet előkészíteni a kérdéseket!"), tr("Nem lehet elindítani a játékot"));
-		pageItem()->setProperty("closeDisabled", QStringLiteral(""));
+		pageItem()->setProperty("closeDisabled", QString());
 		pageItem()->setProperty("onPageClose", QVariant(QMetaType::fromType<QJSValue>()));
-		pageItem()->setProperty("closeQuestion", QStringLiteral(""));
+		pageItem()->setProperty("closeQuestion", QString());
 
 		unloadPageItem();
 
@@ -104,7 +104,7 @@ void LiteGame::onPageReady()
 
 	emit questionsChanged();
 
-	pageItem()->setProperty("closeDisabled", QStringLiteral(""));
+	pageItem()->setProperty("closeDisabled", QString());
 
 	pageItem()->setState(QStringLiteral("run"));
 }

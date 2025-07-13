@@ -154,7 +154,7 @@ void OnlineClient::onUserLoggedIn()
 void OnlineClient::onUserLoggedOut()
 {
 	QSettings s;
-	s.setValue(QStringLiteral("usertoken"), QStringLiteral(""));
+	s.setValue(QStringLiteral("usertoken"), QString());
 	s.sync();
 
 	Client::onUserLoggedOut();

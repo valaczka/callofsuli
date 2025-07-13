@@ -60,10 +60,11 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+							 QVariantMap *commonDataPtr, StorageSeed *seed) const override;
 
-	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData) const;
+	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 
 	qreal xpFactor() const override { return 1.0; };
 

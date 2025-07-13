@@ -224,13 +224,8 @@ class MapPlayEditor : public MapPlay
 	Q_OBJECT
 
 public:
-	explicit MapPlayEditor(Client *client, QObject *parent = nullptr)
-		: MapPlay(client, parent)
-	{
-		m_online = false;
-	}
-
-	virtual ~MapPlayEditor() {}
+	explicit MapPlayEditor(Client *client, QObject *parent = nullptr);
+	virtual ~MapPlayEditor();
 
 
 	bool reloadMap(MapEditorMap *map);
@@ -240,7 +235,6 @@ public:
 protected:
 	virtual void onCurrentGamePrepared() override;
 	virtual void onCurrentGameFinished() override;
-
 };
 
 

@@ -59,7 +59,8 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage,
+							 const QVariantMap &storageData, QVariantMap *commonDataPtr, StorageSeed *seed) const override;
 
 	qreal xpFactor() const override { return 1.2; };
 
@@ -67,7 +68,7 @@ public:
 
 
 	QVariantMap generatePlusminus(const QVariantMap &data) const;
-	QVariantList generateNumbers(const QVariantMap &data, const QVariantMap &storageData) const;
+        QVariantList generateNumbers(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 
 	void registerQmlTypes() const override {};
 

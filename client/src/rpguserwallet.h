@@ -126,6 +126,7 @@ private:
 	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgPlayerCharacterConfig &player);
 
 	bool hasCharacter(const QString &character, RpgUserWalletList *list = nullptr) const;
+	bool isBelongsSolved() const;
 
 	RpgMarket m_market;
 	int m_amount = 0;

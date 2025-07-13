@@ -29,6 +29,7 @@
 #include <QRandomGenerator>
 #include "question.h"
 #include "../writer/modulewriter.h"
+#include "../text/moduletext.h"
 
 
 
@@ -125,25 +126,25 @@ QVariantMap ModuleFillout::details(const QVariantMap &data, ModuleInterface *sto
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("text")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("text")) {
 		QStringList list = storageData.value(QStringLiteral("items")).toStringList();
 
 		QVariantMap m;
-		m[QStringLiteral("title")] = list.isEmpty() ? QStringLiteral("") : list.at(0);
+		m[QStringLiteral("title")] = list.isEmpty() ? QString() : list.at(0);
 		if (!list.isEmpty())
 			list.removeFirst();
-		m[QStringLiteral("details")] = list.isEmpty() ? QStringLiteral("") : list.join(QStringLiteral("\n"));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("details")] = list.isEmpty() ? QString() : list.join(QStringLiteral("\n"));
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
-						{QStringLiteral("details"), QStringLiteral("")},
-						{QStringLiteral("image"), QStringLiteral("")}
+	return QVariantMap({{QStringLiteral("title"), QString()},
+						{QStringLiteral("details"), QString()},
+						{QStringLiteral("image"), QString()}
 					   });
 }
 
@@ -157,7 +158,7 @@ QVariantMap ModuleFillout::details(const QVariantMap &data, ModuleInterface *sto
  */
 
 QVariantList ModuleFillout::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-										QVariantMap *commonDataPtr) const
+										QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	Q_UNUSED(commonDataPtr);
 
@@ -165,7 +166,7 @@ QVariantList ModuleFillout::generateAll(const QVariantMap &data, ModuleInterface
 		return QVariantList{ generateOne(data)};
 
 	if (storage->name() == QStringLiteral("text"))
-		return generateText(data, storageData);
+		return generateText(data, storageData, seed);
 
 	if (storage->name() == QStringLiteral("sequence"))
 		return generateSequence(data, storageData);
@@ -321,11 +322,14 @@ QVariantMap ModuleFillout::generateOne(const QVariantMap &data) const
  * @return
  */
 
-QVariantList ModuleFillout::generateText(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleFillout::generateText(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
+	SeedHelper helper(seed, SEED_TEXT);
 
-	foreach (const QString &text, storageData.value(QStringLiteral("items")).toStringList()) {
+	const QStringList &list = storageData.value(QStringLiteral("items")).toStringList();
+
+	for (int i=0; i<list.size(); ++i) {
+		const QString &text = list.at(i);
 		if (text.isEmpty())
 			continue;
 
@@ -335,10 +339,10 @@ QVariantList ModuleFillout::generateText(const QVariantMap &data, const QVariant
 		d[QStringLiteral("count")] = data.value(QStringLiteral("count")).toInt();
 		d[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
-		ret.append(generateOne(d));
+		helper.append(generateOne(d), i+1);
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 

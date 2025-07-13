@@ -126,7 +126,7 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
 	QVariantMap m;
 	m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 	m[QStringLiteral("details")] = list.join(QStringLiteral(", "));
-	m[QStringLiteral("image")] = QStringLiteral("");
+	m[QStringLiteral("image")] = QString();
 
 	return m;
 }
@@ -142,7 +142,7 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
  */
 
 QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-									 QVariantMap *commonDataPtr) const
+									 QVariantMap *commonDataPtr, StorageSeed */*seed*/) const
 {
 	Q_UNUSED(commonDataPtr);
 

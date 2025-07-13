@@ -290,6 +290,8 @@ public:
 	QVariantList &generatedQuestions();
 	QVariantMap &commonData() { return m_commonData; }
 
+	GameMap *map() const { return m_map; }
+
 private:
 	GameMap *m_map;
 	QVariantList m_generatedQuestions;

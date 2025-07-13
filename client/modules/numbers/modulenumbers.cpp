@@ -59,8 +59,8 @@ QVariantMap ModuleNumbers::details(const QVariantMap &data, ModuleInterface *sto
 	const QString &name = data.value(QStringLiteral("name")).toString();
 
 	m[QStringLiteral("title")] = name.isEmpty() ? list.join(QStringLiteral(", ")) : name;
-	m[QStringLiteral("details")] = QStringLiteral("");
-	m[QStringLiteral("image")] = QStringLiteral("");
+	m[QStringLiteral("details")] = QString();
+	m[QStringLiteral("image")] = QString();
 
 	return m;
 }

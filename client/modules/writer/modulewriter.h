@@ -60,7 +60,8 @@ public:
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
-	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData, QVariantMap *commonDataPtr) const override;
+	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
+							 QVariantMap *commonDataPtr, StorageSeed *seed) const override;
 
 	qreal xpFactor() const override { return 1.8; };
 
@@ -68,10 +69,10 @@ public:
 
 	void registerQmlTypes() const override;
 
-	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData) const;
+        QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+        QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateSequence(const QVariantMap &data, const QVariantMap &storageData) const;
-	QVariantList generateText(const QVariantMap &data, const QVariantMap &storageData) const;
+        QVariantList generateText(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); };
 

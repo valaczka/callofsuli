@@ -380,15 +380,15 @@ QList<TaskOrSection> Campaign::getOrderedTaskList() const
 
 	for (auto it = tlist.begin(); it != tlist.end(); ++it) {
 		if (it == tlist.begin()) {
-			const QString &s = *it ? (*it)->readableGradeOrXp() : QStringLiteral("");
+			const QString &s = *it ? (*it)->readableGradeOrXp() : QString();
 			list.append(TaskOrSection(nullptr, s));
 			list.append(TaskOrSection(*it));
 			prev = it;
 			continue;
 		}
 
-		const QString &prevS = *prev ? (*prev)->readableGradeOrXp() : QStringLiteral("");
-		const QString &s = *it ? (*it)->readableGradeOrXp() : QStringLiteral("");
+		const QString &prevS = *prev ? (*prev)->readableGradeOrXp() : QString();
+		const QString &s = *it ? (*it)->readableGradeOrXp() : QString();
 
 		if (prevS != s)
 			list.append(TaskOrSection(nullptr, s));
@@ -533,7 +533,7 @@ QVariantList StudentCampaignOffsetModel::getListFromJson(const QJsonObject &obj)
 			}
 
 			obj[QStringLiteral("readableMission")] = mission.isEmpty() ? tr("???") : mission;
-			obj[QStringLiteral("medal")] = medal.isEmpty() ? QStringLiteral("") : AbstractLevelGame::medalImagePath(medal);
+			obj[QStringLiteral("medal")] = medal.isEmpty() ? QString() : AbstractLevelGame::medalImagePath(medal);
 		}
 
 		QVariantMap m = obj.toVariantMap();
@@ -563,10 +563,10 @@ void StudentCampaignOffsetModel::_setApi()
 		setPath(QStringLiteral("group/%1/log").arg(m_groupid));
 	} else if (m_username.isEmpty()) {
 		setApi(m_campaign ? HttpConnection::ApiUser : HttpConnection::ApiInvalid);
-		setPath(m_campaign ? QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()) : QStringLiteral(""));
+		setPath(m_campaign ? QStringLiteral("campaign/%1/result").arg(m_campaign->campaignid()) : QString());
 	} else {
 		setApi(m_campaign ? HttpConnection::ApiTeacher : HttpConnection::ApiInvalid);
-		setPath(m_campaign ? QStringLiteral("campaign/%1/result/%2").arg(m_campaign->campaignid()).arg(m_username) : QStringLiteral(""));
+		setPath(m_campaign ? QStringLiteral("campaign/%1/result/%2").arg(m_campaign->campaignid()).arg(m_username) : QString());
 	}
 }
 

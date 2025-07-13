@@ -163,7 +163,7 @@ Client *MapPlay::client() const
 
 QString MapPlay::uuid() const
 {
-	return m_gameMap ? m_gameMap->uuid() : QStringLiteral("");
+	return m_gameMap ? m_gameMap->uuid() : QString();
 }
 
 
@@ -379,6 +379,28 @@ void MapPlay::setReadOnly(bool newReadOnly)
 
 
 /**
+ * @brief MapPlay::setStorageSeed
+ * @param filename
+ */
+
+void MapPlay::setStorageSeed(const QString &filename)
+{
+	m_storageSeed.reset(new StorageSeed(filename));
+}
+
+
+/**
+ * @brief MapPlay::storageSeed
+ * @return
+ */
+
+StorageSeed *MapPlay::storageSeed() const
+{
+	return m_storageSeed.get();
+}
+
+
+/**
  * @brief MapPlay::gameState
  * @return
  */
@@ -504,6 +526,8 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, co
 
 	if (!g)
 		return false;
+
+	g->setStorageSeed(m_storageSeed.get());
 
 	connect(g, &AbstractGame::gameFinished, this, &MapPlay::onCurrentGameFinished);
 
@@ -631,7 +655,7 @@ QVariantMap MapPlay::inventoryInfo(const QString &module) const
 	if (data.type == GamePickable::PickableInvalid)
 		return QVariantMap {
 			{ QStringLiteral("name"), tr("Érvénytelen modul: %1").arg(module) },
-			{ QStringLiteral("icon"), QStringLiteral("") }
+			{ QStringLiteral("icon"), QString() }
 		};
 	else
 		return QVariantMap {
@@ -854,7 +878,7 @@ GameMapMission *MapPlayMission::mission() const
 
 QString MapPlayMission::name() const
 {
-	return m_mission ? m_mission->name() : QStringLiteral("");
+	return m_mission ? m_mission->name() : QString();
 }
 
 
@@ -865,7 +889,7 @@ QString MapPlayMission::name() const
 
 QString MapPlayMission::uuid() const
 {
-	return m_mission ? m_mission->uuid() : QStringLiteral("");
+	return m_mission ? m_mission->uuid() : QString();
 }
 
 
@@ -877,7 +901,7 @@ QString MapPlayMission::uuid() const
 QString MapPlayMission::description() const
 {
 	if (!m_mission)
-		return QStringLiteral("");
+		return QString();
 
 	QString txt = m_mission->description();
 

@@ -135,14 +135,14 @@ QVariantMap ModuleBinary::details(const QVariantMap &data, ModuleInterface *stor
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	}
 
-	return QVariantMap({{QStringLiteral("title"), QStringLiteral("")},
-						{QStringLiteral("details"), QStringLiteral("")},
-						{QStringLiteral("image"), QStringLiteral("")}
+	return QVariantMap({{QStringLiteral("title"), QString()},
+						{QStringLiteral("details"), QString()},
+						{QStringLiteral("image"), QString()}
 					   });
 }
 
@@ -157,7 +157,7 @@ QVariantMap ModuleBinary::details(const QVariantMap &data, ModuleInterface *stor
  */
 
 QVariantList ModuleBinary::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-									   QVariantMap *commonDataPtr) const
+									   QVariantMap *commonDataPtr, StorageSeed */*seed*/) const
 {
 	if (storage && storage->name() == QStringLiteral("binding"))
 		return generateBinding(data, storageData, commonDataPtr);

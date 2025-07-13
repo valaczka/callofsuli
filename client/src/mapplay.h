@@ -122,6 +122,9 @@ public:
 
 	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel */*missionLevel*/) const { return -1; }
 
+	void setStorageSeed(const QString &filename = {});
+	StorageSeed *storageSeed() const;
+
 protected:
 	void loadGameMap(std::unique_ptr<GameMap> &map);
 	void unloadGameMap();
@@ -148,6 +151,7 @@ protected:
 	std::unique_ptr<GameMap> m_gameMap;
 	std::unique_ptr<AbstractMapPlaySolver> m_solver;
 	std::unique_ptr<MapPlayMissionList> m_missionList;
+	std::unique_ptr<StorageSeed> m_storageSeed;
 	bool m_online = true;
 	GameState m_gameState = StateInvalid;
 	QJsonObject m_finishedData;

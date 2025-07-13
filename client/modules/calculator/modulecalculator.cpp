@@ -27,6 +27,8 @@
 #include <QRandomGenerator>
 
 #include "modulecalculator.h"
+#include "storageseed.h"
+#include "../numbers/modulenumbers.h"
 
 ModuleCalculator::ModuleCalculator(QObject *parent) : QObject(parent)
 {
@@ -133,7 +135,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		m[QStringLiteral("details")] = QStringLiteral("%1 %2").arg(
 					data.value(QStringLiteral("answer")).toString(),
 					data.value(QStringLiteral("suffix")).toString());
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 	} else if (storage->name() == QStringLiteral("plusminus")) {
@@ -147,7 +149,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		else
 			m[QStringLiteral("title")] = QObject::tr("Összeadás");
 
-		QString details = QStringLiteral("");
+		QString details = QString();
 
 		if (range >= 4) {
 			if (allCanNegative)
@@ -176,7 +178,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 			details += QStringLiteral("<br>")+QObject::tr("nem lehet negatív eredmény");
 
 		m[QStringLiteral("details")] = details;
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 		return m;
 	} else if (storage->name() == QStringLiteral("numbers")) {
 		QStringList answers;
@@ -195,7 +197,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
-		m[QStringLiteral("image")] = QStringLiteral("");
+		m[QStringLiteral("image")] = QString();
 
 		return m;
 
@@ -203,8 +205,8 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
 
 
 	m[QStringLiteral("title")] = QStringLiteral("Calculator");
-	m[QStringLiteral("details")] = storage ? storage->name() : QStringLiteral("");
-	m[QStringLiteral("image")] = QStringLiteral("");
+	m[QStringLiteral("details")] = storage ? storage->name() : QString();
+	m[QStringLiteral("image")] = QString();
 
 	return m;
 }
@@ -220,7 +222,7 @@ QVariantMap ModuleCalculator::details(const QVariantMap &data, ModuleInterface *
  */
 
 QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-										   QVariantMap *commonDataPtr) const
+										   QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	Q_UNUSED(commonDataPtr);
 
@@ -252,7 +254,7 @@ QVariantList ModuleCalculator::generateAll(const QVariantMap &data, ModuleInterf
 
 
 	if (storage->name() == QStringLiteral("numbers"))
-		return generateNumbers(data, storageData);
+		return generateNumbers(data, storageData, seed);
 
 	return QVariantList();
 }
@@ -332,7 +334,7 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
 						.arg(isSubtract ? QStringLiteral("-") : QStringLiteral("+"))
 						.arg(number2);
 
-	m[QStringLiteral("suffix")] = QStringLiteral("");
+	m[QStringLiteral("suffix")] = QString();
 	m[QStringLiteral("twoLine")] = false;
 	m[QStringLiteral("decimalEnabled")] = false;
 	m[QStringLiteral("answer")] = QVariantMap({{QStringLiteral("first"), answer}, {QStringLiteral("second"), 0}});
@@ -350,14 +352,16 @@ QVariantMap ModuleCalculator::generatePlusminus(const QVariantMap &data) const
  * @return
  */
 
-QVariantList ModuleCalculator::generateNumbers(const QVariantMap &data, const QVariantMap &storageData) const
+QVariantList ModuleCalculator::generateNumbers(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
-	QVariantList ret;
+	SeedHelper helper(seed, SEED_NUMBERS_RIGHT);
 
 	QString question = data.value(QStringLiteral("question")).toString();
 
-	foreach (QVariant v, storageData.value(QStringLiteral("bindings")).toList()) {
-		QVariantMap m = v.toMap();
+	const QVariantList &list = storageData.value(QStringLiteral("bindings")).toList();
+
+	for (int i=0; i<list.size(); ++i) {
+		QVariantMap m = list.at(i).toMap();
 		QString left = m.value(QStringLiteral("first")).toString();
 		QString right = m.value(QStringLiteral("second")).toString();
 
@@ -383,10 +387,10 @@ QVariantList ModuleCalculator::generateNumbers(const QVariantMap &data, const QV
 		retMap[QStringLiteral("decimalEnabled")] = true;
 		retMap[QStringLiteral("answer")] = QVariantMap({{QStringLiteral("first"), r}, {QStringLiteral("second"), 0}});
 
-		ret.append(retMap);
+		helper.append(retMap, i+1);
 	}
 
-	return ret;
+	return helper.getVariantList(true);
 }
 
 

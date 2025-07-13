@@ -294,7 +294,7 @@ void StandaloneClient::serverListLoad(const QDir &dir)
 		s->setDirectory(realname.section('/', 0, -2));
 
 		if (!s->token().isEmpty() && !s->isTokenValid())
-			s->setToken(QStringLiteral(""));
+			s->setToken(QString());
 
 
 		LOG_CTRACE("client") << "Add server"<< s->name() << s->url() << s->directory();

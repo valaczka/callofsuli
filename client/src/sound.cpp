@@ -247,7 +247,7 @@ void Sound::stopSound(const QString &source, const ChannelType &channel)
 
 void Sound::stopMusic()
 {
-	stopSound(QStringLiteral(""), MusicChannel);
+	stopSound(QString(), MusicChannel);
 }
 
 
@@ -257,7 +257,7 @@ void Sound::stopMusic()
 
 void Sound::stopMusic2()
 {
-	stopSound(QStringLiteral(""), Music2Channel);
+	stopSound(QString(), Music2Channel);
 }
 
 

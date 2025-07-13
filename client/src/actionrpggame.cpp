@@ -904,7 +904,7 @@ void ActionRpgGame::downloadLoadableContentDict(const QStringList &fileList)
 		QStringList fList;
 
 		for (QString s : fileList) {
-			s.replace(QStringLiteral(":/"), QStringLiteral(""));
+			s.replace(QStringLiteral(":/"), QString());
 			if (m_loadableContentDict.contains(s))
 				fList.append(m_loadableContentDict.value(s).toString());
 			else {

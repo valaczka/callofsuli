@@ -32,6 +32,10 @@
 #include <QtPlugin>
 
 
+#define SEED_IMAGES_TEXT	1
+#define SEED_IMAGES_IMAGE	2
+
+
 class ModuleImages : public QObject, public ModuleInterface
 {
 	Q_OBJECT
@@ -48,15 +52,15 @@ public:
 	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/camera-image.svg"); }
 
 	inline QString qmlEditor() const override { return QStringLiteral("ME_images.qml"); }
-	inline QString qmlQuestion() const override { return QStringLiteral(""); }
-	QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QStringLiteral(""); }
+	inline QString qmlQuestion() const override { return QString(); }
+	QString testResult(const QVariantMap &, const QVariantMap &, const bool &) const override { return QString(); }
 
 	inline QStringList storageModules() const override { return QStringList(); }
 
 	QVariantMap details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const override;
 
 	QVariantList generateAll(const QVariantMap &, ModuleInterface *, const QVariantMap &,
-							 QVariantMap *) const override { return QVariantList(); }
+							 QVariantMap *, StorageSeed *) const override { return QVariantList(); }
 
 	qreal xpFactor() const override { return 0; };
 
