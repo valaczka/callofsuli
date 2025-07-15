@@ -473,6 +473,7 @@ void IsometricEnemy::worldStep()
 			} else if (featureOverride(FeaturePursuit, m_player)) {
 				pursuitPoint = playerPosition;
 			} else if (featureOverride(FeatureAttackNotReached, m_player)) {
+				pursuitPoint = playerPosition;
 				attackWithoutPursuit = true;
 				stop();
 			} else if (m_metric.pursuitSpeed != 0) {		// Pursuit
@@ -506,14 +507,8 @@ void IsometricEnemy::worldStep()
 		clearDestinationPoint();
 
 	if (pursuitPoint.has_value()) {
-		if (m_player && attackWithoutPursuit && !enemyWorldStepNotReachedPlayer())
-			return;
-
-		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
-			return stop();
 
 		const cpVect &dst = pursuitPoint.value();
-
 
 		bool findPath = true;
 
@@ -537,6 +532,11 @@ void IsometricEnemy::worldStep()
 			}
 		}
 
+		if (m_player && attackWithoutPursuit && !enemyWorldStepNotReachedPlayer())
+			return;
+
+		if (m_moveDisabledSpriteList.contains(m_spriteHandler->currentSprite()))
+			return stop();
 
 		if (m_destinationPoint) {
 			const RayCastInfo &map = rayCast(m_destinationPoint.value(), FixtureGround);

@@ -123,7 +123,13 @@ private:
 
 
 
-typedef QList<QPair<UdpServerPeer*, QByteArray> > UdpServerPeerReceivedList;
+struct UdpServerPeerReceived {
+	UdpServerPeer *peer = nullptr;
+	qint64 diff = 0;
+	QByteArray data;
+};
+
+typedef QList<UdpServerPeerReceived> UdpServerPeerReceivedList;
 
 
 

@@ -579,7 +579,7 @@ public:
 private:
 	void setLoggerFile(const QString &fname);
 
-	void binaryDataReceived(UdpServerPeer *peer, const QByteArray &data);
+	void binaryDataReceived(const UdpServerPeerReceived &recv);
 	void preparePlayers();
 	qint64 nextTick();
 

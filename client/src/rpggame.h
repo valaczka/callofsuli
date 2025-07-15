@@ -142,7 +142,7 @@ public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
 
-	Q_INVOKABLE bool load(const RpgGameDefinition &def, const bool &replaceMpToShield = false);
+	Q_INVOKABLE bool load(const RpgGameDefinition &def, const int &playerCount = 1, const bool &replaceMpToShield = false);
 
 	static const QHash<QString, RpgGameDefinition> &terrains();
 	static void reloadTerrains();
@@ -183,6 +183,9 @@ public:
 										   const QVector<TextureSpriteMapper> &mapper,
 										   const QString &path,
 										   const QString &layer = QStringLiteral("default"));
+
+	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path);
+
 
 
 	static const QVector<TextureSpriteMapper> &baseEntitySprite();

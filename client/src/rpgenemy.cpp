@@ -465,6 +465,10 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 			return true;
 	}
 
+	if (feature == FeatureAttackNotReached) {
+		return (defaultWeapon() && defaultWeapon()->canShot());
+	}
+
 	return false;
 }
 

@@ -241,6 +241,8 @@ TiledGame::~TiledGame()
 	delete d;
 	d = nullptr;
 
+	m_tickTimer.reset();
+
 	LOG_CTRACE("scene") << "TiledGame destroy" << this;
 }
 
@@ -332,7 +334,7 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 					xml.skipCurrentElement();
 
 				} else if (xml.name() == QStringLiteral("objectgroup") &&
-						   xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("enemy")) {
+						   xml.attributes().value(QStringLiteral("name")).toString().startsWith(QStringLiteral("enemy"))) {
 
 					while (xml.readNextStartElement()) {
 						if (xml.name() == QStringLiteral("object")) {

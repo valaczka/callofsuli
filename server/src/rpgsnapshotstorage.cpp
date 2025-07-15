@@ -480,9 +480,9 @@ QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGam
 				  ;
 
 	txt += QStringLiteral("arm:%1/%2 ")
-			.arg(data.arm.cw)
-			.arg(data.arm.s)
-			;
+		   .arg(data.arm.cw)
+		   .arg(data.arm.s)
+		   ;
 
 	if (data.p.size() > 1)
 		txt +=  QStringLiteral("(%1, %2) ")
@@ -1004,6 +1004,21 @@ int RpgSnapshotStorage::generateEvents(const RpgGameData::SnapshotData<T, T2> &s
 
 
 
+/**
+ * @brief RpgSnapshotStorage::logDroppedSnap
+ * @param src
+ * @param tick
+ */
+
+template<typename T, typename T2>
+qint64 RpgSnapshotStorage::droppedSnapOverride(const std::pair<const qint64, T> &/*src*/, const qint64 &/*firstTick*/,
+											   RpgEnginePlayer */*player*/, const qint64 &/*diff*/) const
+{
+	//ELOG_ERROR << "Snapshot out of time:" << src.f << "vs." << firstTick;
+	return 0;
+}
+
+
 
 
 /**
@@ -1336,7 +1351,7 @@ bool RpgSnapshotStorage::append(const RpgGameData::EnemyBaseData &key, const Rpg
  * @return
  */
 
-bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor)
+bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor, const qint64 &diff)
 {
 	if (!player)
 		return false;
@@ -1344,7 +1359,7 @@ bool RpgSnapshotStorage::registerSnapshot(RpgEnginePlayer *player, const QCborMa
 	bool ret = true;
 
 
-	if (!registerPlayers(player, cbor))
+	if (!registerPlayers(player, cbor, diff))
 		ret = false;
 
 	return ret;
@@ -1450,6 +1465,84 @@ void RpgSnapshotStorage::renderEnd(const QString &txt)
 }
 
 
+/**
+ * @brief RpgSnapshotStorage::logDroppedSnap
+ * @param src
+ * @param firtTick
+ */
+
+qint64 RpgSnapshotStorage::droppedSnapOverride(const std::pair<const qint64, RpgGameData::Player> &src, const qint64 &firstTick, RpgEnginePlayer *player, const qint64 &diff) const
+{
+	static const QList<RpgGameData::Player::PlayerState> states = {
+		RpgGameData::Player::PlayerAttack,
+		RpgGameData::Player::PlayerWeaponChange,
+		RpgGameData::Player::PlayerLockControl,
+		RpgGameData::Player::PlayerUnlockControl,
+		RpgGameData::Player::PlayerUseControl,
+		RpgGameData::Player::PlayerExit
+	};
+
+	if (diff < 0 || !states.contains(src.second.st))
+		return false;
+
+	qint64 min = firstTick - diff;
+
+	if (src.second.st == RpgGameData::Player::PlayerLockControl ||
+			src.second.st == RpgGameData::Player::PlayerUnlockControl ||
+			src.second.st == RpgGameData::Player::PlayerUseControl)
+		min -= 20;
+	else
+		min -= 10;
+
+	min *= 10;
+
+	if (src.second.f >= min) {
+		ELOG_INFO << "[compensation]" << diff << src.second.f << *player << src.second.st << src.second.tg;
+		return (firstTick+1)*10;
+	}
+
+	ELOG_ERROR << "[dropped snap]" << diff << src.second.f << *player << src.second.st << src.second.tg;
+
+	return 0;
+}
+
+
+
+/**
+ * @brief RpgSnapshotStorage::droppedSnapOverride
+ * @param src
+ * @param firstTick
+ * @param player
+ * @param diff
+ * @return
+ */
+
+qint64 RpgSnapshotStorage::droppedSnapOverride(const std::pair<const qint64, RpgGameData::Enemy> &src, const qint64 &firstTick, RpgEnginePlayer *player, const qint64 &diff) const
+{
+	static const QList<RpgGameData::Enemy::EnemyState> states = {
+		RpgGameData::Enemy::EnemyHit,
+		RpgGameData::Enemy::EnemyShot,
+		RpgGameData::Enemy::EnemyAttack,
+	};
+
+	if (diff < 0 || !states.contains(src.second.st))
+		return false;
+
+	qint64 min = firstTick - diff;
+	min -= 7;
+	min *= 10;
+
+	if (src.second.f >= min) {
+		ELOG_INFO << "[compensation]" << diff << src.second.f << *player << "ENEMY" << src.second.st << src.second.tg;
+		return (firstTick+1)*10;
+	}
+
+	ELOG_ERROR << "[dropped snap]" << diff << src.second.f << *player << "ENEMY" << src.second.st << src.second.tg;
+
+	return 0;
+}
+
+
 
 
 /**
@@ -1476,8 +1569,7 @@ Logger *RpgSnapshotStorage::_logger() const
  * @return
  */
 
-bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
-										 const QCborMap &cbor) {
+bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor, const qint64 &diff) {
 	Q_ASSERT(player);
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -1500,16 +1592,16 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
 
 	if (dstIt == m_tmpSnapshot.players.end()) {
 		auto &r = m_tmpSnapshot.players.emplace_back(pdata, std::map<qint64, RpgGameData::Player>{});
-		copy(r.list, srcIt->list, m_lastAuthTick);
+		copy(r.list, srcIt->list, m_lastAuthTick, player, diff);
 	} else {
-		copy(dstIt->list, srcIt->list, m_lastAuthTick);
+		copy(dstIt->list, srcIt->list, m_lastAuthTick, player, diff);
 	}
 
-	if (!registerBullets(snapshot, pdata))
+	if (!registerBullets(snapshot, player, diff))
 		return false;
 
 	if (player->isHost()) {
-		if (!registerEnemies(snapshot))
+		if (!registerEnemies(snapshot, player, diff))
 			return false;
 	}
 
@@ -1552,16 +1644,18 @@ bool RpgSnapshotStorage::registerPlayers(RpgEnginePlayer *player,
  * @return
  */
 
-bool RpgSnapshotStorage::registerEnemies(const RpgGameData::CurrentSnapshot &snapshot)
+bool RpgSnapshotStorage::registerEnemies(const RpgGameData::CurrentSnapshot &snapshot, RpgEnginePlayer *player, const qint64 &diff)
 {
+	Q_ASSERT(player);
+
 	for (const auto &e : snapshot.enemies) {
 		const auto &dstIt = RpgGameData::CurrentSnapshot::find(m_tmpSnapshot.enemies, e.data);
 
 		if (dstIt == m_tmpSnapshot.enemies.end()) {
 			auto &r = m_tmpSnapshot.enemies.emplace_back(e.data, std::map<qint64, RpgGameData::Enemy>{});
-			copy(r.list, e.list, m_lastAuthTick);
+			copy(r.list, e.list, m_lastAuthTick, player, diff);
 		} else {
-			copy(dstIt->list, e.list, m_lastAuthTick);
+			copy(dstIt->list, e.list, m_lastAuthTick, player, diff);
 		}
 	}
 
@@ -1576,12 +1670,14 @@ bool RpgSnapshotStorage::registerEnemies(const RpgGameData::CurrentSnapshot &sna
  * @return
  */
 
-bool RpgSnapshotStorage::registerBullets(const RpgGameData::CurrentSnapshot &snapshot, const RpgGameData::PlayerBaseData &player)
+bool RpgSnapshotStorage::registerBullets(const RpgGameData::CurrentSnapshot &snapshot, RpgEnginePlayer *player, const qint64 &diff)
 {
+	Q_ASSERT(player);
+
 	for (const auto &e : snapshot.bullets) {
 
-		if (e.data.o != player.o) {
-			ELOG_WARNING << "Invalid bullet" << e.data;
+		if (e.data.o != player->o) {
+			ELOG_WARNING << "Invalid bullet" << e.data << *player;
 			continue;
 		}
 
@@ -1601,9 +1697,9 @@ bool RpgSnapshotStorage::registerBullets(const RpgGameData::CurrentSnapshot &sna
 
 		if (dstIt == m_tmpSnapshot.bullets.end()) {
 			auto &r = m_tmpSnapshot.bullets.emplace_back(e.data, std::map<qint64, RpgGameData::Bullet>{});
-			copy(r.list, e.list, m_lastAuthTick);
+			copy(r.list, e.list, m_lastAuthTick, player, diff);
 		} else {
-			copy(dstIt->list, e.list, m_lastAuthTick);
+			copy(dstIt->list, e.list, m_lastAuthTick, player, diff);
 		}
 	}
 
@@ -1821,17 +1917,24 @@ int RpgSnapshotStorage::saveRenderer(Renderer *renderer, const uint &pass)
  */
 
 template<typename T, typename T2>
-void RpgSnapshotStorage::copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick) const
+void RpgSnapshotStorage::copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick,
+							  RpgEnginePlayer *player, const qint64 &diff) const
 {
+	Q_ASSERT(player);
+
 	const qint64 ft = firstTick*10;
 
 	for (const auto &ptr : src) {
-		if (ptr.first < ft) {
-			ELOG_ERROR << "Snapshot out of time:" << ptr.first << "vs." << firstTick << "CURRENT" << m_engine->currentTick();
-			continue;
-		}
-
 		qint64 f = ptr.first;
+
+		if (ptr.first <= ft) {
+			const qint64 o = droppedSnapOverride(ptr, firstTick, player, diff);
+
+			if (o <= 0)
+				continue;
+			else
+				f = o;
+		}
 
 		const qint64 next = 1+(qint64)(f/10);
 		bool ready = true;
@@ -1840,7 +1943,7 @@ void RpgSnapshotStorage::copy(std::map<qint64, T> &dest, const std::map<qint64, 
 			++f;
 
 			if (f >= next) {
-				ELOG_ERROR << "Snapshot storage full:" << ptr.first;
+				ELOG_ERROR << "Snapshot storage full:" << ptr.first << *player;
 				ready = false;
 				break;
 			}
@@ -2178,10 +2281,10 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 		};
 
 		for (const RpgGameData::Player &p : dst->m_subData) {
-
 			// Ha már volt egy különleges eset, akkor azt továbbvisszük
 
 			if (dst->m_data.st != p.st && !normalStates.contains(dst->m_data.st) && !normalStates.contains(p.st)) {
+				ELOG_ERROR << "**** CARRY USE control" << p.tg << src->baseData;
 				if (!src->carrySubSnap(p)) {
 					ELOG_WARNING << "State conflict" << specialSt << p.st << src->baseData;
 				}
@@ -2196,15 +2299,11 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 
 				if (p.st == RpgGameData::Player::PlayerHit ||
 						p.st == RpgGameData::Player::PlayerShot) {
-					
-					ELOG_INFO << "ADD HIT/SHOT" << src->baseData << p.arm.cw << p.arm.s;
 
 					m_solver.add(m_current, src, p.arm.cw, p.arm.s);
 
 				} else if (p.st == RpgGameData::Player::PlayerAttack) {
-					
-				ELOG_INFO << "ADD ATTACK" << src->baseData << p.arm.cw << p.arm.s;
-					
+
 					RendererObject<RpgGameData::EnemyBaseData> *tg = findByBase<RpgGameData::EnemyBaseData>(p.tg);
 
 					m_solver.add(m_current, src, tg, p.arm.cw, p.arm.s);
@@ -2216,6 +2315,8 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 					}
 
 				} else if (p.st == RpgGameData::Player::PlayerUseControl) {
+					ELOG_ERROR << "**** USE control" << p.tg << src->baseData;
+
 					if (RendererObjectType *tg = findByBase(p.tg)) {
 						if (auto *iface = m_solver.addUnique(m_current, src, tg)) {
 							iface->releaseSuccess(m_current, src, p.x);
@@ -2258,12 +2359,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 		// Az érzékeny adatokat visszaállítjuk, mindegy, mit kaptunk
 
 		restore(&dst->m_data, saved);
-
-		if (m_startTick < 60) {
-			if (dst->m_data.p != saved.p) {
-				ELOG_ERROR << "Player moving..." << src->baseData << saved.p << "->" << dst->m_data.p;
-			}
-		}
 
 
 		// Az egyszerű statusokat beállítjuk
@@ -3052,6 +3147,8 @@ bool ConflictSolver::ConflictWeaponUsage<T, T2, T3, T4>::solveData(ConflictSolve
 		--(it->b);
 	}
 
+	SLOG_DEBUG(solver) << "[Weapon used]" << src->baseData << weaponType << weaponSubType << "bullets" << it->b << "@" << tick;
+
 	e->setData(data);
 	e->addFlags(RendererType::Modified);
 
@@ -3209,8 +3306,6 @@ ConflictSolver::ConflictContainer::ConflictContainer(const int &_tick,
 {
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
-
-	SLOG_DEBUG(_dst) << "CONTAINER SET" << _src->baseData << "->" << _dst->baseData;
 }
 
 
@@ -3507,8 +3602,6 @@ ConflictSolver::ConflictCollection::ConflictCollection(const int &_tick,
 {
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
-
-	SLOG_DEBUG(_dst) << "COLLECTION SET" << _src->baseData << "->" << _dst->baseData;
 }
 
 
@@ -3621,8 +3714,6 @@ ConflictSolver::ConflictPickable::ConflictPickable(const int &_tick,
 {
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
-
-	SLOG_DEBUG(_dst) << "PICKABLE SET" << _src->baseData << "->" << _dst->baseData;
 }
 
 
@@ -3728,8 +3819,6 @@ ConflictSolver::ConflictGate::ConflictGate(const int &_tick, RendererObject<RpgG
 {
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
-
-	SLOG_DEBUG(_dst) << "GATE SET" << _src->baseData << "->" << _dst->baseData;
 }
 
 
@@ -3825,8 +3914,6 @@ ConflictSolver::ConflictTeleport::ConflictTeleport(const int &_tick,
 {
 	Q_ASSERT(_src);
 	Q_ASSERT(_dst);
-
-	SLOG_DEBUG(_dst) << "TELEPORT SET" << _src->baseData << "->" << _dst->baseData;
 }
 
 
@@ -3973,3 +4060,4 @@ bool ConflictSolver::ConflictRelocate::solve(ConflictSolver *solver)
 
 	return true;
 }
+

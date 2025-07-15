@@ -68,7 +68,7 @@ QPageGradient {
 			orientation: ListView.Horizontal
 
 			implicitHeight: (root.width < 576 * Qaterial.Style.devicePixelSizeCorrection) ?
-								80*Qaterial.Style.pixelSizeRatio :
+								85*Qaterial.Style.pixelSizeRatio :
 								(root.width < 786 * Qaterial.Style.devicePixelSizeCorrection) ?
 									95*Qaterial.Style.pixelSizeRatio :
 									110*Qaterial.Style.pixelSizeRatio

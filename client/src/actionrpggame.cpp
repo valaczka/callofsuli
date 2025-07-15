@@ -581,7 +581,7 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
-	if (!m_rpgGame->load(ptr.value(), characterPtr->cast == RpgPlayerCharacterConfig::CastInvalid)) {
+	if (!m_rpgGame->load(ptr.value(), 1, characterPtr->cast == RpgPlayerCharacterConfig::CastInvalid)) {
 		LOG_CERROR("game") << "Game load error";
 		return;
 	}

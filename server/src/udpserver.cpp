@@ -534,6 +534,11 @@ bool UdpServerPrivate::packetReceived(const ENetEvent &event)
 
 	}
 
+
+	qint64 diff;					// Lassú gép ennyivel (frame) később küldte el, mint ahogy rögzítette
+
+	stream >> diff;
+
 	UdpServerPeer *peer = static_cast<UdpServerPeer*>(event.peer->data);
 
 	QByteArray content;
@@ -580,7 +585,7 @@ bool UdpServerPrivate::packetReceived(const ENetEvent &event)
 			peerLocker.unlock();
 
 			QMutexLocker locker(&m_inOutChache.mutex);
-			m_inOutChache.rcvList.emplace_back(peer, content, event.channelID);
+			m_inOutChache.rcvList.emplace_back(peer, content, event.channelID, diff);
 		}
 
 		return true;
@@ -949,7 +954,11 @@ UdpEngineReceived UdpServerPrivate::takePackets()
 			continue;
 		}
 
-		r[engine].append(QPair<UdpServerPeer *, QByteArray>(it.peer, it.data));
+		r[engine].append(UdpServerPeerReceived{
+							 .peer = it.peer,
+							 .diff = it.diff,
+							 .data = it.data
+						 });
 	}
 
 	m_inOutChache.rcvList.clear();

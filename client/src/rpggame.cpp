@@ -47,6 +47,7 @@
 #include "tileddebugdraw.h"
 #include <libtiled/imagelayer.h>
 #include <libtiled/objectgroup.h>
+#include <QBuffer>
 
 #include <libtcod/path.hpp>
 #include <libtcod/fov.hpp>
@@ -104,6 +105,8 @@ private:
 			return p1.scene == p2.scene && p1.position == p2.position;
 		}
 	};
+
+	int m_loadForPlayerCount = 1;
 
 	QVector<PlayerPosition> m_playerPositionList;
 
@@ -192,8 +195,12 @@ RpgGame::~RpgGame()
  */
 
 
-bool RpgGame::load(const RpgGameDefinition &def, const bool &replaceMpToShield)
+bool RpgGame::load(const RpgGameDefinition &def, const int &playerCount, const bool &replaceMpToShield)
 {
+	LOG_CINFO("game") << "Create game for" << playerCount << "players";
+
+	q->m_loadForPlayerCount = playerCount;
+
 	if (!TiledGame::load(def))
 		return false;
 
@@ -792,6 +799,14 @@ void RpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const
 	Q_ASSERT(renderer);
 
 	if (groupClass == QStringLiteral("enemy"))
+		return loadEnemy(scene, object, renderer);
+	else if (groupClass == QStringLiteral("enemy2") && q->m_loadForPlayerCount > 1)
+		return loadEnemy(scene, object, renderer);
+	else if (groupClass == QStringLiteral("enemy3") && q->m_loadForPlayerCount > 2)
+		return loadEnemy(scene, object, renderer);
+	else if (groupClass == QStringLiteral("enemy4") && q->m_loadForPlayerCount > 3)
+		return loadEnemy(scene, object, renderer);
+	else if (groupClass == QStringLiteral("enemy5") && q->m_loadForPlayerCount > 4)
 		return loadEnemy(scene, object, renderer);
 	/*else if (groupClass == QStringLiteral("pickable"))
 		return loadPickable(scene, object, renderer);*/
@@ -2811,6 +2826,104 @@ bool RpgGame::loadTextureSpritesWithHurt(TiledSpriteHandler *handler, const QVec
 									 path+QStringLiteral("/texture.png") :
 									 path+QStringLiteral(".png"),
 								 layer);
+}
+
+
+
+
+
+
+
+
+/**
+ * @brief RpgGame::loadTextureSprites
+ * @param handler
+ * @param path
+ * @return
+ */
+
+QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &path)
+{
+	LOG_CINFO("game") << "LOAD TEXTURE FROM" << path;
+
+	static const QVector<TiledObject::Direction> directions = {
+		TiledObject::SouthWest,
+		TiledObject::South,
+		TiledObject::SouthEast,
+		TiledObject::East,
+		TiledObject::NorthEast,
+		TiledObject::North,
+		TiledObject::NorthWest,
+		TiledObject::West,
+	};
+
+	const auto &ptr = Utils::fileToJsonObject(path+QStringLiteral("/texture.json"));
+
+	QByteArray input = Utils::fileContentRead(path+QStringLiteral("/input.txt"));
+
+	if (!ptr || input.isEmpty())
+		return QRect();
+
+	TextureSpriteDef def;
+	def.fromJson(*ptr);
+
+	QTextStream buffer(&input, QIODevice::ReadOnly);
+	QString line;
+	int n = 0;
+
+	QRect measure;
+
+
+	QVector<RpgGame::TextureSpriteMapper> mapper;
+
+	while (buffer.readLineInto(&line)) {
+		const QStringList field = line.split('\t');
+
+		if (n == 0) {
+			if (field.size() > 3)
+				measure.setY(field.at(3).toInt());
+
+			if (field.size() > 2)
+				measure.setX(field.at(2).toInt());
+
+			if (field.size() > 1)
+				measure.setHeight(field.at(1).toInt());
+
+			if (field.size() > 0)
+				measure.setWidth(field.at(0).toInt());
+		} else {
+			if (field.size() < 3) {
+				LOG_CERROR("game") << "Invalid line" << line;
+				continue;
+			}
+
+			const QString sprite = field.at(0);
+			const int frames = field.at(1).toInt();
+			const int duration = field.at(2).toInt();
+
+			for (const auto &d : directions) {
+				TextureSpriteMapper dst;
+				dst.name = sprite;
+				dst.direction = d;
+				dst.width = measure.width();
+				dst.height = measure.height();
+				dst.duration = duration;
+				//dst.loops = m.loops;
+
+				for (int i=0; i<frames; ++i)
+					mapper.append(dst);
+			}
+		}
+
+		++n;
+	}
+
+	const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(mapper, def);
+
+	if (appendToSpriteHandler(handler, sprites, path+QStringLiteral("/texture.png"), QStringLiteral("default")))
+		return measure;
+	else
+		return QRect();
 }
 
 

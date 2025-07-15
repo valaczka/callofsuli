@@ -929,7 +929,7 @@ public:
 
 	bool append(const RpgGameData::EnemyBaseData &key, const RpgGameData::Enemy &data);
 
-	bool registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor);
+	bool registerSnapshot(RpgEnginePlayer *player, const QCborMap &cbor, const qint64 &diff);
 
 	QString render(const qint64 &tick);
 	void renderEnd(const QString &txt);
@@ -961,7 +961,19 @@ public:
 
 	template <typename T,
 			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
-	void copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick) const;
+	qint64 droppedSnapOverride(const std::pair<const qint64, T> &src, const qint64 &firtTick,
+							   RpgEnginePlayer *player, const qint64 &diff) const;
+
+	qint64 droppedSnapOverride(const std::pair<const qint64, RpgGameData::Player> &src, const qint64 &firstTick,
+							   RpgEnginePlayer *player, const qint64 &diff) const;
+
+	qint64 droppedSnapOverride(const std::pair<const qint64, RpgGameData::Enemy> &src, const qint64 &firstTick,
+							   RpgEnginePlayer *player, const qint64 &diff) const;
+
+	template <typename T,
+			  typename = std::enable_if< std::is_base_of<RpgGameData::Body, T>::value>::type>
+	void copy(std::map<qint64, T> &dest, const std::map<qint64, T> &src, const qint64 &firstTick,
+			  RpgEnginePlayer *player, const qint64 &diff) const;
 
 
 	template <typename T, typename T2,
@@ -983,9 +995,9 @@ public:
 	Logger *_logger() const;
 
 private:
-	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor);
-	bool registerEnemies(const RpgGameData::CurrentSnapshot &snapshot);
-	bool registerBullets(const RpgGameData::CurrentSnapshot &snapshot, const RpgGameData::PlayerBaseData &player);
+	bool registerPlayers(RpgEnginePlayer *player, const QCborMap &cbor, const qint64 &diff);
+	bool registerEnemies(const RpgGameData::CurrentSnapshot &snapshot, RpgEnginePlayer *player, const qint64 &diff);
+	bool registerBullets(const RpgGameData::CurrentSnapshot &snapshot, RpgEnginePlayer *player, const qint64 &diff);
 
 	std::unique_ptr<Renderer> getRenderer(const qint64 &tick);
 	int saveRenderer(Renderer *renderer, const uint &pass);

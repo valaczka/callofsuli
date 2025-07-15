@@ -244,7 +244,7 @@ QItemGradient {
 							readonly property real _maxWidth: (_otherPlayerItem.width / (_multiplayer ? _multiplayer.maxPlayers+1 : 1))
 															  - _spacing
 
-							height: Math.max(120, Math.min(_maxWidth, _otherPlayerItem.height-_otherPlayerTitle.height))
+							height: Math.max(90, Math.min(_maxWidth, _otherPlayerItem.height-_otherPlayerTitle.height))
 
 							y: _otherPlayerTitle.height
 
@@ -268,6 +268,7 @@ QItemGradient {
 
 									anchors.right: parent.right
 									anchors.top: parent.top
+									anchors.margins: 3
 
 									onClicked: _multiplayer.banOutPlayer(playerId)
 								}
@@ -280,9 +281,9 @@ QItemGradient {
 
 								readonly property int num: _multiplayer ? Math.max(0, _multiplayer.maxPlayers-_multiplayer.playersModel.count) : 0
 
-								visible: num > 0 && _multiplayer && !_multiplayer.locked
+								visible: num > 0 && _multiplayer && !_multiplayer.locked && _multiplayer.gameMode == ActionRpgGame.MultiPlayerHost
 
-								Repeater {
+								/*Repeater {
 									model: _placeholder.num
 
 									delegate: QButton {
@@ -294,7 +295,7 @@ QItemGradient {
 										icon.height: height * 0.4
 										icon.source: Qaterial.Icons.accountPlusOutline
 									}
-								}
+								}*/
 
 								QButton {
 									visible: _placeholder.num > 0
@@ -303,7 +304,7 @@ QItemGradient {
 									width: _viewPlayers.height
 
 									flat: true
-									outlined: true
+									outlined: false
 
 									foregroundColor: Qaterial.Colors.red600
 									outlinedColor: Qaterial.Colors.red500

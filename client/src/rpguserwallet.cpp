@@ -893,9 +893,21 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			}
 		}
 	} else if (market.type == RpgMarket::Weapon /*|| market.type == RpgMarket::Bullet*/) {
-		if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"); QFile::exists(s)) {
-			ptr->setImage(QStringLiteral("qrc")+s);
+		QString img;
+
+		if (const int subType = market.info.value(QStringLiteral("subType")).toInt(); subType > 0) {
+			LOG_CINFO("game") << "CHECK" << market.name << subType;
+			if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market%1.jpg").arg(subType); QFile::exists(s))
+				img = QStringLiteral("qrc")+s;
 		}
+
+		if (img.isEmpty()) {
+			if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"); QFile::exists(s))
+				img = QStringLiteral("qrc")+s;
+		}
+
+		ptr->setImage(img);
+
 	} else if (market.type == RpgMarket::Xp || market.type == RpgMarket::Hp ||
 			   market.type == RpgMarket::Time || market.type == RpgMarket::Mp) {
 		for (const QString &s : QStringList{

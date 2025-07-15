@@ -132,15 +132,17 @@ private:
 
 
 		struct PacketRcv {
-			PacketRcv(UdpServerPeer *p, const QByteArray &d, const enet_uint8 &_ch)
+			PacketRcv(UdpServerPeer *p, const QByteArray &d, const enet_uint8 &_ch, const qint64 &_diff)
 				: peer(p)
 				, data(d)
 				, channel(_ch)
+				, diff(_diff)
 			{}
 
 			UdpServerPeer *peer = nullptr;
 			QByteArray data;
 			enet_uint8 channel = 0;
+			qint64 diff = 0;
 		};
 
 

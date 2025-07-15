@@ -103,10 +103,10 @@ private:
 	RpgEnginePlayer* getPlayer(UdpServerPeer *peer) const;
 	RpgEnginePlayer* getPlayer(const int &playerId) const;
 
-	void dataReceived(RpgEnginePlayer *player, const QByteArray &data);
+	void dataReceived(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff);
 	void dataReceivedChrSel(RpgEnginePlayer *player, const QByteArray &data);
 	void dataReceivedPrepare(RpgEnginePlayer *player, const QByteArray &data);
-	void dataReceivedPlay(RpgEnginePlayer *player, const QByteArray &data);
+	void dataReceivedPlay(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff);
 
 	enum SendMode {
 		SendNone = 0,
@@ -496,9 +496,8 @@ bool RpgEngine::canDelete(const int &useCount)
 
 void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
 {
-	for (const auto &pair : data) {
-		binaryDataReceived(pair.first, pair.second);
-	}
+	for (const auto &pair : data)
+		binaryDataReceived(pair);
 
 	QElapsedTimer t2;
 	t2.start();
@@ -527,18 +526,18 @@ void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
  * @param data
  */
 
-void RpgEngine::binaryDataReceived(UdpServerPeer *peer, const QByteArray &data)
+void RpgEngine::binaryDataReceived(const UdpServerPeerReceived &recv)
 {
-	Q_ASSERT(peer);
+	Q_ASSERT(recv.peer);
 
-	RpgEnginePlayer *player = d->getPlayer(peer);
+	RpgEnginePlayer *player = d->getPlayer(recv.peer);
 
 	if (!player) {
-		ELOG_ERROR << "Player not found" << peer;
+		ELOG_ERROR << "Player not found" << recv.peer;
 		return;
 	}
 
-	d->dataReceived(player, data);
+	d->dataReceived(player, recv.data, recv.diff);
 }
 
 
@@ -1394,7 +1393,7 @@ RpgEnginePlayer *RpgEnginePrivate::getPlayer(const int &playerId) const
  * @param data
  */
 
-void RpgEnginePrivate::dataReceived(RpgEnginePlayer *player, const QByteArray &data)
+void RpgEnginePrivate::dataReceived(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff)
 {
 	Q_ASSERT(player);
 
@@ -1403,7 +1402,7 @@ void RpgEnginePrivate::dataReceived(RpgEnginePlayer *player, const QByteArray &d
 	else if (q->m_config.gameState == RpgConfig::StatePrepare)
 		dataReceivedPrepare(player, data);
 	else if (q->m_config.gameState == RpgConfig::StatePlay)
-		dataReceivedPlay(player, data);
+		dataReceivedPlay(player, data, diff);
 
 
 }
@@ -1538,7 +1537,7 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
  * @param data
  */
 
-void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArray &data)
+void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff)
 {
 	Q_ASSERT(player);
 
@@ -1567,7 +1566,7 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 	if (player->udpPeer()->isReconnecting())
 		return;
 
-	q->m_snapshots.registerSnapshot(player, m);
+	q->m_snapshots.registerSnapshot(player, m, diff);
 
 	renderTimerMeausure(Received, timer2.elapsed());
 }

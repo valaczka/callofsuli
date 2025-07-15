@@ -2218,7 +2218,9 @@ void ActionRpgMultiplayerGame::onRpgGameActivated()
 		return;
 	}
 
-	if (!m_rpgGame->load(ptr.value())) {
+	const int players = m_engine->playerData().size();
+
+	if (!m_rpgGame->load(ptr.value(), players)) {
 		LOG_CERROR("game") << "Game load error";
 		return;
 	}

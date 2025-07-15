@@ -123,15 +123,17 @@ private:
 
 	struct InOutCache {
 		struct Packet {
-			Packet(const QByteArray &d, const bool r, const bool &s)
+			Packet(const QByteArray &d, const bool r, const bool &s, const qint64 &_tick = -1)
 				: data(d)
 				, reliable(r)
 				, sign(s)
+				, tick(_tick)
 			{}
 
 			QByteArray data;
 			bool reliable = false;
 			bool sign = true;
+			qint64 tick = -1;
 		};
 
 

@@ -339,19 +339,35 @@ void RpgPlayer::load()
 		appendSprite(json, m_config.prefixPath);
 	}*/
 
-	RpgGame::loadBaseTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"));
 
-	if (m_config.shield.isEmpty())
-		RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/shield/"), QStringLiteral("shield"));
-	else
-		RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/")+m_config.shield+QStringLiteral("/"),
-										QStringLiteral("shield"));
+	if (true || m_config.name == "TEST") {
+		QRect measure = RpgGame::loadTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"));
 
-	Q_ASSERT(m_visualItem);
+		Q_ASSERT(m_visualItem);
 
-	m_visualItem->setWidth(148);
-	m_visualItem->setHeight(130);
-	setBodyOffset(0, 0.45*64);
+		m_visualItem->setWidth(measure.width());
+		m_visualItem->setHeight(measure.height());
+		setBodyOffset(measure.x(), measure.y());
+
+		LOG_CINFO("game") << "####" << m_config.name << measure;
+
+	} else {
+
+		RpgGame::loadBaseTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"));
+
+		if (m_config.shield.isEmpty())
+			RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/shield/"), QStringLiteral("shield"));
+		else
+			RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/")+m_config.shield+QStringLiteral("/"),
+											QStringLiteral("shield"));
+
+		Q_ASSERT(m_visualItem);
+
+		m_visualItem->setWidth(148);
+		m_visualItem->setHeight(130);
+		setBodyOffset(0, 0.45*64);
+
+	}
 
 	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(57,250,65,150));
 	//m_visualItem->setProperty("ellipseSize", 2);

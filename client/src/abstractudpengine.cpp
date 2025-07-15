@@ -49,7 +49,9 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 	#endif
 {
 
-	LOG_CDEBUG("engine") << "START UDP ENGINE";
+	LOG_CDEBUG("engine") << "START UDP ENGINE" << m_worker->getThread()->priority();
+
+	m_worker->getThread()->setPriority(QThread::TimeCriticalPriority);
 
 #ifndef Q_OS_WASM
 	QDefer ret;
@@ -62,7 +64,7 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 	m_worker->execInThread(std::bind(&AbstractUdpEnginePrivate::run, d));
 
-	LOG_CDEBUG("engine") << "UDP ENGINE started";
+	LOG_CINFO("engine") << "UDP ENGINE started"  << m_worker->getThread()->priority();
 
 #endif
 
@@ -354,6 +356,11 @@ void AbstractUdpEnginePrivate::run()
 					channel = 1;
 				}
 
+				/*if (cur > -1 && b.tick > -1)
+					stream << std::max((qint64) 0, cur-b.tick);
+				else*/
+				stream << (qint64) 0;
+
 				stream << b.data;
 
 				ENetPacket *packet = enet_packet_create(s.data(), s.size(),
@@ -405,8 +412,9 @@ void AbstractUdpEnginePrivate::run()
 
 void AbstractUdpEnginePrivate::sendMessage(QByteArray data, const bool &reliable, const bool &sign)
 {
+	//const qint64 time = q->getTick();
 	QMutexLocker locker(&m_inOutChache.mutex);
-	m_inOutChache.sendList.emplace_back( data, reliable, sign );
+	m_inOutChache.sendList.emplace_back( data, reliable, sign, 0 );
 }
 
 
@@ -619,7 +627,7 @@ void AbstractUdpEnginePrivate::updateChallenge()
 		UdpConnectRequest rq(m_connectionToken);
 		QByteArray d = rq.toCborMap().toCborValue().toCbor();
 
-		m_inOutChache.sendList.emplace_back( d, false, false );
+		m_inOutChache.sendList.emplace_back( d, false, false, 0 );
 
 		return;
 	}
