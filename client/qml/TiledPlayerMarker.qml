@@ -12,13 +12,13 @@ Column {
 
 	readonly property bool _isEntity: target && target.hp !== undefined
 	property alias progressBar: _progress
-	property real yDistance: 20
+	property real entityHeight: 120
 
 	parent: target ? target.scene : null
 
 	visible: target && target.game && (!_isEntity || target.hp > 0)
 
-	y: target && target.visualItem ? target.visualItem.y-yDistance : 0
+	y: target && target.visualItem ? (target.visualItem.y + target.visualItem.height/2 + target.bodyOffset.y)-entityHeight : 0
 	x: target && target.visualItem ? target.visualItem.x+(target.visualItem.width-width)/2 : 0
 	z: 99
 

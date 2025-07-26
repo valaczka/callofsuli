@@ -469,21 +469,20 @@ void IsometricEnemy::worldStep()
 
 		if (!m_reachedPlayers.contains(m_player)) {
 			if (featureOverride(FeatureDisablePursuit, m_player)) {
-				stop();
-			} else if (featureOverride(FeaturePursuit, m_player)) {
-				pursuitPoint = playerPosition;
+				if (featureOverride(FeatureBlock, m_player))
+					stop();
 			} else if (featureOverride(FeatureAttackNotReached, m_player)) {
 				pursuitPoint = playerPosition;
 				attackWithoutPursuit = true;
 				stop();
-			} else if (m_metric.pursuitSpeed != 0) {		// Pursuit
+			} else if (m_metric.pursuitSpeed != 0 || featureOverride(FeaturePursuit, m_player)) {		// Pursuit
 				pursuitPoint = playerPosition;
 			}
 		} else {
 			stop();
 		}
 
-		if (!featureOverride(FeatureRotate, m_player))
+		if (featureOverride(FeatureRotate, m_player))
 			rotateToPlayer(m_player);
 
 		setPlayerDistance(distanceToPointSq(playerPosition));

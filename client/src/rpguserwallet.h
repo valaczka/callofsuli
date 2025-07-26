@@ -60,6 +60,7 @@ class RpgUserWallet : public QObject
 	Q_PROPERTY(QString readableName READ readableName WRITE setReadableName NOTIFY readableNameChanged FINAL)
 	Q_PROPERTY(QString baseReadableName READ baseReadableName WRITE setBaseReadableName NOTIFY baseReadableNameChanged FINAL)
 	Q_PROPERTY(QString image READ image WRITE setImage NOTIFY imageChanged FINAL)
+	Q_PROPERTY(QString subImage READ subImage WRITE setSubImage NOTIFY subImageChanged FINAL)
 	Q_PROPERTY(QString sortName READ sortName WRITE setSortName NOTIFY sortNameChanged FINAL)
 	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged FINAL)
 	Q_PROPERTY(QList<RpgMarketExtendedInfo> extendedInfo READ extendedInfo WRITE setExtendedInfo NOTIFY extendedInfoChanged FINAL)
@@ -106,6 +107,9 @@ public:
 	QString baseReadableName() const;
 	void setBaseReadableName(const QString &newBaseReadableName);
 
+	QString subImage() const;
+	void setSubImage(const QString &newSubImage);
+
 signals:
 	void marketChanged();
 	void amountChanged();
@@ -119,6 +123,7 @@ signals:
 	void buyableChanged();
 	void extendedInfoChanged();
 	void baseReadableNameChanged();
+	void subImageChanged();
 
 private:
 	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgGameDefinition &def);
@@ -134,6 +139,7 @@ private:
 	QString m_readableName;
 	QString m_baseReadableName;
 	QString m_image;
+	QString m_subImage;
 	QString m_sortName;
 	Rank m_rank;
 	RpgUserWalletList *m_walletList = nullptr;
@@ -233,6 +239,11 @@ public:
 	Q_INVOKABLE RpgUserWallet *worldGetSelectedWallet() const;
 
 	RpgGameData::Armory getArmory(const QString &character) const;
+
+	static QString getWeaponImage(const RpgMarket &market);
+	static QString getWeaponImage(const QString &name, const int &subType);
+	static QString getWeaponImage(const RpgGameData::Weapon::WeaponType &type, const int &subType);
+
 
 signals:
 	void reloaded();

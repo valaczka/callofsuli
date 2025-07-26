@@ -132,13 +132,6 @@ private:
 		QSGTexture *texture = nullptr;
 	};
 
-	enum Filter {
-		FilterNone = 0,
-		FilterDefault,
-		FilterShield,
-		FilterOther
-	};
-
 	bool createSpriteItem(const TextureSprite &sprite, const QString &source,
 						  const QString &layer = QStringLiteral("default"),
 						  const TiledObject::Direction &direction = TiledObject::Invalid);
@@ -158,7 +151,7 @@ private:
 
 	void changeSprite(const QString &name, const TiledObject::Direction &direction);
 
-	void createNodes(QSGNode *node, const Filter &filter, const QList<QVector<TiledSpriteHandler::Sprite>::const_iterator> &iteratorList);
+	void createNodes(QSGNode *node, const QList<QVector<TiledSpriteHandler::Sprite>::const_iterator> &iteratorList);
 
 
 	QVector<Sprite> m_spriteList;

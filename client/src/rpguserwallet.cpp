@@ -96,6 +96,63 @@ RpgUserWallet *RpgUserWallet::getBelongsTo() const
 
 
 
+
+
+/**
+ * @brief RpgUserWallet::getWeaponImage
+ * @param market
+ * @return
+ */
+
+QString RpgUserWalletList::getWeaponImage(const RpgMarket &market)
+{
+	if (market.type != RpgMarket::Weapon)
+		return QString();
+
+	return getWeaponImage(market.name, market.info.value(QStringLiteral("subType")).toInt());
+}
+
+
+/**
+ * @brief RpgUserWalletList::getWeaponImage
+ * @param name
+ * @param subType
+ * @return
+ */
+
+QString RpgUserWalletList::getWeaponImage(const QString &name, const int &subType)
+{
+	QString img;
+
+	if (subType > 0) {
+		if (QString s = QStringLiteral(":/rpg/")+name+QStringLiteral("/market%1.jpg").arg(subType); QFile::exists(s))
+			img = QStringLiteral("qrc")+s;
+	}
+
+	if (img.isEmpty()) {
+		if (QString s = QStringLiteral(":/rpg/")+name+QStringLiteral("/market.jpg"); QFile::exists(s))
+			img = QStringLiteral("qrc")+s;
+	}
+
+	return img;
+}
+
+
+/**
+ * @brief RpgUserWalletList::getWeaponImage
+ * @param type
+ * @param subType
+ * @return
+ */
+
+QString RpgUserWalletList::getWeaponImage(const RpgGameData::Weapon::WeaponType &type, const int &subType)
+{
+	return getWeaponImage(RpgArmory::weaponHash().value(type), subType);
+}
+
+
+
+
 /**
  * @brief RpgUserWallet::market
  * @return
@@ -435,6 +492,15 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgPlayerChara
 {
 	QList<RpgMarketExtendedInfo> list;
 
+	const auto t = RpgArmory::weaponHash().key(player.weapon, RpgGameData::Weapon::WeaponInvalid);
+
+	if (t != RpgGameData::Weapon::WeaponInvalid)
+		list.append(RpgMarketExtendedInfo{
+						QStringLiteral("qrc:/Qaterial/Icons/sword-cross.svg"),
+						tr("Fegyver:"),
+						RpgWeapon::weaponName(t),
+					});
+
 	if (player.cast != RpgPlayerCharacterConfig::CastInvalid) {
 		if (player.mpMax > 0)
 			list.append(RpgMarketExtendedInfo{
@@ -752,16 +818,22 @@ void RpgUserWalletList::loadWallet(const QJsonObject &json)
 				}
 			}
 		} else if (w->marketType() == RpgMarket::Skin) {
+			const auto nameSkin = RpgGame::characters().find(market.name);
+
 			if (RpgUserWallet *b = w->getBelongsTo()) {
-				const auto nameSkin = RpgGame::characters().find(market.name);
 				const auto baseSkin = RpgGame::characters().find(b->market().name);
 
 				if (nameSkin != RpgGame::characters().constEnd() &&
 						baseSkin != RpgGame::characters().constEnd()) {
-					w->setReadableName(nameSkin->name + " of " + baseSkin->name);
+					w->setReadableName(nameSkin->name + QStringLiteral(" of ") + baseSkin->name);
 					w->setBaseReadableName(baseSkin->name);
 				}
 
+			}
+
+			if (nameSkin != RpgGame::characters().constEnd()) {
+				const auto &arm = getArmory(market.name);
+				w->setSubImage(getWeaponImage(arm.cw, arm.s));
 			}
 		}
 
@@ -893,20 +965,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			}
 		}
 	} else if (market.type == RpgMarket::Weapon /*|| market.type == RpgMarket::Bullet*/) {
-		QString img;
-
-		if (const int subType = market.info.value(QStringLiteral("subType")).toInt(); subType > 0) {
-			LOG_CINFO("game") << "CHECK" << market.name << subType;
-			if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market%1.jpg").arg(subType); QFile::exists(s))
-				img = QStringLiteral("qrc")+s;
-		}
-
-		if (img.isEmpty()) {
-			if (QString s = QStringLiteral(":/rpg/")+market.name+QStringLiteral("/market.jpg"); QFile::exists(s))
-				img = QStringLiteral("qrc")+s;
-		}
-
-		ptr->setImage(img);
+		ptr->setImage(getWeaponImage(market));
 
 	} else if (market.type == RpgMarket::Xp || market.type == RpgMarket::Hp ||
 			   market.type == RpgMarket::Time || market.type == RpgMarket::Mp) {
@@ -1040,6 +1099,8 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 
 	int belongsValue = -1;
 
+	int bulletCount = 0;
+
 	for (RpgUserWallet *w : *this) {
 		if (w->marketType() != RpgMarket::Weapon || !w->available() || w->market().belongs.isEmpty())
 			continue;
@@ -1058,11 +1119,22 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 			armory.cw = type;
 			armory.s = sub;
 			belongsValue = bv;
+			bulletCount = w->market().amount;
 		}
 	}
 
 	if (armory.cw != RpgGameData::Weapon::WeaponInvalid)
-		armory.add(armory.cw, armory.s);
+		armory.add(armory.cw, armory.s, bulletCount);
+	else {
+		const auto &ch = RpgGame::characters().value(character);
+		const auto t = RpgArmory::weaponHash().key(ch.weapon, RpgGameData::Weapon::WeaponInvalid);
+
+		if (t != RpgGameData::Weapon::WeaponInvalid) {
+			armory.add(t, ch.weaponSub, ch.bullet);
+			armory.cw = t;
+			armory.s = ch.weaponSub;
+		}
+	}
 
 	return armory;
 }
@@ -1369,4 +1441,23 @@ void RpgUserWallet::setBaseReadableName(const QString &newBaseReadableName)
 		return;
 	m_baseReadableName = newBaseReadableName;
 	emit baseReadableNameChanged();
+}
+
+
+/**
+ * @brief RpgUserWallet::subImage
+ * @return
+ */
+
+QString RpgUserWallet::subImage() const
+{
+	return m_subImage;
+}
+
+void RpgUserWallet::setSubImage(const QString &newSubImage)
+{
+	if (m_subImage == newSubImage)
+		return;
+	m_subImage = newSubImage;
+	emit subImageChanged();
 }

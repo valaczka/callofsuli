@@ -338,7 +338,7 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 
 	switch (wallet->market().type) {
 		case RpgMarket::Weapon: {
-			const RpgGameData::Weapon::WeaponType type = RpgArmory::weaponHash().key(wallet->market().name, RpgGameData::Weapon::WeaponInvalid);
+			/*const RpgGameData::Weapon::WeaponType type = RpgArmory::weaponHash().key(wallet->market().name, RpgGameData::Weapon::WeaponInvalid);
 			if (type == RpgGameData::Weapon::WeaponInvalid) {
 				LOG_CERROR("game") << "Invalid weapon" << wallet->market().name;
 				return;
@@ -354,8 +354,8 @@ void ActionRpgGame::addWallet(RpgUserWallet *wallet)
 			}
 
 			loadWeapon(player, type, wallet->market().cost == 0 ? -1 : wallet->amount()
-																  /*wallet->bullet() ? wallet->bullet()->amount() : 0*/);
-
+																  ///wallet->bullet() ? wallet->bullet()->amount() : 0//);
+*/
 			return;
 		}
 

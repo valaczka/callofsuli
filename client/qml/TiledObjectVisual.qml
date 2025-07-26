@@ -33,7 +33,7 @@ Item {
 	Shape {
 		id: _ellipse
 
-		visible: ellipseSize > 0
+		visible: false // ellipseSize > 0
 
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.verticalCenter: parent.verticalCenter
@@ -66,6 +66,20 @@ Item {
 				}
 			}
 		}
+	}
+
+	Glow {
+		id: _ellipseGlow
+
+		visible: ellipseSize > 0
+
+		color: ellipseColor
+
+		source: _ellipse
+		anchors.fill: _ellipse
+
+		radius: 8
+		samples: 17
 	}
 
 

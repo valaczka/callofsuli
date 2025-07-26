@@ -148,7 +148,7 @@ void RpgEnemyBase::load()
 
 	m_visualItem->setWidth(148);
 	m_visualItem->setHeight(130);
-	setBodyOffset(0, 0.45*64);
+	setBodyOffset(0, 32);
 
 
 	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(245,51,51,150));

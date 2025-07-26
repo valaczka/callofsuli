@@ -87,26 +87,7 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 	if (!isActive)
 		return node;
 
-
-	// Ordering layers
-
-	static const QHash<TiledObject::Direction, QVector<Filter>> filterOrder = {
-		{ TiledObject::Invalid, { FilterNone } },
-		{ TiledObject::NorthEast, { FilterDefault, FilterOther, FilterShield } },
-		{ TiledObject::East, { FilterDefault, FilterShield, FilterOther } },
-		{ TiledObject::SouthEast, { FilterDefault, FilterShield, FilterOther } },
-		{ TiledObject::South, { FilterDefault, FilterShield, FilterOther } },
-		{ TiledObject::SouthWest, { FilterDefault, FilterOther, FilterShield } },
-		{ TiledObject::West, { FilterDefault, FilterOther, FilterShield } },
-		{ TiledObject::NorthWest, { FilterDefault, FilterOther, FilterShield } },
-		{ TiledObject::North, { FilterDefault, FilterOther, FilterShield } },
-	};
-
-	const auto &filter = filterOrder.value(m_currentDirection);
-
-	for (const Filter &f : filter) {
-		createNodes(node, f, list);
-	}
+	createNodes(node, list);
 
 	return node;
 }
@@ -384,35 +365,11 @@ void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Di
  * @brief TiledSpriteHandler::createNodes
  */
 
-void TiledSpriteHandler::createNodes(QSGNode *node, const Filter &filter,
-									 const QList<QVector<TiledSpriteHandler::Sprite>::const_iterator> &iteratorList)
+void TiledSpriteHandler::createNodes(QSGNode *node, const QList<QVector<TiledSpriteHandler::Sprite>::const_iterator> &iteratorList)
 {
 	Q_ASSERT(node);
 
 	for (const QString &layer : m_visibleLayers) {
-		// Filter layers
-
-		switch (filter) {
-			case FilterDefault:
-				if (layer != QStringLiteral("default"))
-					continue;
-				break;
-
-			case FilterShield:
-				if (layer != QStringLiteral("shield"))
-					continue;
-				break;
-
-			case FilterOther:
-				if (layer == QStringLiteral("default") ||
-						layer == QStringLiteral("shield"))
-					continue;
-				break;
-
-			case FilterNone:
-				break;
-		}
-
 		for (const auto &it : iteratorList) {
 			if (it->layer != layer)
 				continue;
@@ -687,7 +644,16 @@ const QStringList &TiledSpriteHandler::visibleLayers() const
 
 void TiledSpriteHandler::setVisibleLayers(const QStringList &newVisibleLayers)
 {
-	m_visibleLayers = newVisibleLayers;
+	m_visibleLayers.clear();
+	m_visibleLayers.reserve(newVisibleLayers.size());
+
+	if (newVisibleLayers.contains(QStringLiteral("default")))
+		m_visibleLayers.append(QStringLiteral("default"));
+
+	for (const QString &l : newVisibleLayers) {
+		if (l != QStringLiteral("default"))
+			m_visibleLayers.append(l);
+	}
 }
 
 

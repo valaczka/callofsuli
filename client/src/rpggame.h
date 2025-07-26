@@ -184,7 +184,8 @@ public:
 										   const QString &path,
 										   const QString &layer = QStringLiteral("default"));
 
-	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path);
+	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path,
+									QHash<QString, RpgArmory::LayerData> *layerPtr = nullptr);
 
 
 

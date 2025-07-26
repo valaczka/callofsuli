@@ -484,6 +484,12 @@ QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGam
 		   .arg(data.arm.s)
 		   ;
 
+	if (auto it=data.arm.find(data.arm.cw, data.arm.s); it != data.arm.wl.cend())
+		txt += QStringLiteral("#%1 ")
+			   .arg(it->b)
+			   ;
+
+
 	if (data.p.size() > 1)
 		txt +=  QStringLiteral("(%1, %2) ")
 				.arg(data.p.at(0))

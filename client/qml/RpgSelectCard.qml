@@ -15,6 +15,7 @@ Qaterial.Card {
 	property alias image: _image.source
 	property alias text: _label.text
 	property alias mouseArea: _area
+	property alias subImage: _subImage.source
 
 	signal clicked()
 
@@ -84,6 +85,24 @@ Qaterial.Card {
 			Behavior on opacity {
 				NumberAnimation { duration: 125 }
 			}
+
+			Image {
+				id: _subImage
+
+				visible: source != ""
+
+				width: parent.width*0.35
+				height: parent.height*0.35
+
+				anchors.right: parent.right
+				anchors.bottom: parent.bottom
+
+				anchors.rightMargin: parent.width*0.1
+				anchors.bottomMargin: parent.height*0.1
+
+				fillMode: Image.PreserveAspectFit
+			}
+
 		}
 
 		Desaturate {

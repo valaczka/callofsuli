@@ -45,8 +45,30 @@ class ContextHelperData : public QSerializer
 public:
 	enum Context {
 		ContextInvalid,
+
 		ContextStart,
+		ContextSettings,
+
 		ContextStudentDasboard,
+		ContextStudentScore,
+		ContextStudentProfile,
+		ContextStudentMarket,
+
+		ContextStudentGroups,
+		ContextStudentGroupCampaign,
+		ContextStudentGroupExam,
+
+		ContextStudentCampaign,
+		ContextStudentFreePlay,
+		ContextStudentPlayLevel,
+		ContextStudentPlayRpg,
+		ContextStudentSelectEngine,
+		ContextStudentPlayMultiplayer,
+		ContextStudentSelectWorld,
+
+		ContextStudentGame,
+		ContextStudentGameMultiplayer,
+
 		ContextTeacherDasboard,
 	};
 

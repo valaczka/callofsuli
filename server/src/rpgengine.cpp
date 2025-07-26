@@ -1229,14 +1229,14 @@ void RpgEngine::preparePlayers()
 			LOG_CINFO("engine") << "SET ARMORY" << pdata.arm.cw << pdata.arm.s << pdata.arm.wl.size();
 
 			for (auto w : pdata.arm.wl) {
-				LOG_CDEBUG("engine") << "  -" << w.t << w.s;
+				LOG_CDEBUG("engine") << "  -" << w.t << w.s << w.b;
 			}
 		} else {
-			pdata.arm.add(RpgGameData::Weapon::WeaponLongsword, 0, 135);
+			/*pdata.arm.add(RpgGameData::Weapon::WeaponLongsword, 0, 135);
 			pdata.arm.cw = RpgGameData::Weapon::WeaponShortbow;
 			pdata.arm.s = 0;
 
-			LOG_CINFO("engine") << "SET AUTO ARMORY" << pdata.arm.cw << pdata.arm.s << pdata.arm.wl.size();
+			LOG_CINFO("engine") << "SET AUTO ARMORY" << pdata.arm.cw << pdata.arm.s << pdata.arm.wl.size();*/
 		}
 
 		ELOG_INFO << "SET ARMORY" << pdata.arm.cw << pdata.arm.s << "size" <<  pdata.arm.wl.size() << *ptr;

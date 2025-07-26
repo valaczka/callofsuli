@@ -131,3 +131,5 @@
 **Other**
 
 - Gaffer On Games - Glenn Fiedler (https://gafferongames.com)
+- MakeHuman Community (https://static.makehumancommunity.org)
+- Mixamo (https://www.mixamo.com)

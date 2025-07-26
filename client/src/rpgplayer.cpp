@@ -323,25 +323,9 @@ void RpgPlayer::load()
 
 	createMarkerItem(QStringLiteral("qrc:/RpgPlayerMarker.qml"));
 
-	/*for (int i=0; i<=2; ++i)
-	{
-		IsometricObjectLayeredSprite json;
-		json.fromJson(RpgGame::baseEntitySprite(i));
-		//json.layers.insert(QStringLiteral("default"), QStringLiteral("_sprite%1.png").arg(i));
-		json.layers.insert(QStringLiteral("default"), QStringLiteral("texture.png"));
-
-		RpgArmory::fillAvailableLayers(&json, i);
-		if (m_config.shield.isEmpty())
-			RpgArmory::fillLayer(&json, QStringLiteral("shield"), i);
-		else
-			RpgArmory::fillLayer(&json, QStringLiteral("shield"), m_config.shield, i);
-
-		appendSprite(json, m_config.prefixPath);
-	}*/
-
-
-	if (true || m_config.name == "TEST") {
-		QRect measure = RpgGame::loadTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"));
+	if (QFile::exists(m_config.prefixPath+QStringLiteral("/input.txt"))) {
+		QHash<QString, RpgArmory::LayerData> layerData;
+		QRect measure = RpgGame::loadTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"), &layerData);
 
 		Q_ASSERT(m_visualItem);
 
@@ -351,15 +335,15 @@ void RpgPlayer::load()
 
 		LOG_CINFO("game") << "####" << m_config.name << measure;
 
+		m_armory->setLayers(layerData);
+
 	} else {
+
+		LOG_CWARNING("game") << "Deprecated character" << m_config.name;
 
 		RpgGame::loadBaseTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"));
 
-		if (m_config.shield.isEmpty())
-			RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/shield/"), QStringLiteral("shield"));
-		else
-			RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/")+m_config.shield+QStringLiteral("/"),
-											QStringLiteral("shield"));
+		RpgGame::loadBaseTextureSprites(m_spriteHandler, QStringLiteral(":/rpg/shield/"), QStringLiteral("shield"));
 
 		Q_ASSERT(m_visualItem);
 

@@ -176,11 +176,25 @@ class RpgArmory : public QObject
 	Q_PROPERTY(RpgWeaponList *weaponList READ weaponList CONSTANT FINAL)
 	Q_PROPERTY(RpgWeapon *currentWeapon READ currentWeapon WRITE setCurrentWeapon NOTIFY currentWeaponChanged FINAL)
 	Q_PROPERTY(RpgWeapon *nextWeapon READ nextWeapon WRITE setNextWeapon NOTIFY nextWeaponChanged FINAL)
-	Q_PROPERTY(QStringList baseLayers READ baseLayers WRITE setBaseLayers NOTIFY baseLayersChanged FINAL)
 
 public:
-	explicit RpgArmory(TiledObject *parentObject, QObject *parent = nullptr);
+	explicit RpgArmory(IsometricEntity *parentObject, QObject *parent = nullptr);
 	virtual ~RpgArmory();
+
+	enum ShieldLayer {
+		ShieldNeutral,
+		ShieldMissing,
+		ShieldPresent
+	};
+
+	Q_ENUM(ShieldLayer);
+
+	struct LayerData {
+		RpgGameData::Weapon::WeaponType weapon = RpgGameData::Weapon::WeaponInvalid;
+		int subType = 0;
+		ShieldLayer shield = ShieldNeutral;
+	};
+
 
 	static const QHash<RpgGameData::Weapon::WeaponType, QString> &weaponHash() { return m_layerInfoHash; }
 
@@ -199,9 +213,6 @@ public:
 	RpgWeapon *currentWeapon() const;
 	void setCurrentWeapon(RpgWeapon *newCurrentWeapon);
 
-	QStringList baseLayers() const;
-	void setBaseLayers(const QStringList &newBaseLayers);
-
 	void updateNextWeapon();
 	void setCurrentWeaponIf(RpgWeapon *newCurrentWeapon, const RpgGameData::Weapon::WeaponType &currentType);
 
@@ -211,7 +222,20 @@ public:
 	RpgGameData::Armory serialize() const;
 	bool updateFromSnapshot(const RpgGameData::Armory &armory);
 
-	TiledObject *parentObject() const;
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<IsometricEntity, T>::value>::type>
+	T *parentObject() const {
+		return qobject_cast<T*>(m_parentObject);
+	}
+
+	IsometricEntity *parentObject() const;
+
+	void addLayer(const QString &name, const LayerData &data);
+	void addLayer(const QString &name, const RpgGameData::Weapon::WeaponType &weapon = RpgGameData::Weapon::WeaponInvalid,
+				  const int &subType = 0, const ShieldLayer &shield = ShieldNeutral);
+
+	void setLayers(const QHash<QString, LayerData> &layers);
+	void clearLayers();
 
 signals:
 	void currentWeaponChanged();
@@ -224,11 +248,12 @@ private:
 
 	RpgWeapon *getNextWeapon() const;
 
-	TiledObject *m_parentObject = nullptr;
+	IsometricEntity *m_parentObject = nullptr;
 	std::unique_ptr<RpgWeaponList> m_weaponList;
 	RpgWeapon *m_currentWeapon = nullptr;
 	RpgWeapon *m_nextWeapon = nullptr;
-	QStringList m_baseLayers = { QStringLiteral("default") };
+
+	QHash<QString, LayerData> m_layerHash;
 
 	static const QHash<RpgGameData::Weapon::WeaponType, QString> m_layerInfoHash;
 

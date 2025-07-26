@@ -70,6 +70,8 @@ public:
 
 
 	RpgPlayerCharacterConfig() : QSerializer()
+	  , weaponSub(0)
+	  , bullet(0)
 	  , cast(CastInvalid)
 	  , features(RpgGameData::Player::FeatureInvalid)
 	  , mpMax(100)
@@ -86,7 +88,6 @@ public:
 	QS_FIELD(QString, name)
 	QS_FIELD(QString, image)
 	QS_FIELD(QString, base)			// Based on character (e.g. sfx, inventory,...)
-	QS_FIELD(QString, shield)		// Character specific shield
 
 	// Sfx sounds
 
@@ -95,6 +96,13 @@ public:
 	QS_COLLECTION(QList, QString, sfxFootStep)
 	QS_COLLECTION(QList, QString, sfxAccept)
 	QS_COLLECTION(QList, QString, sfxDecline)
+
+
+	// Default weapon
+
+	QS_FIELD(QString, weapon)
+	QS_FIELD(int, weaponSub)
+	QS_FIELD(int, bullet)
 
 	// Inventory
 
@@ -108,9 +116,6 @@ public:
 	QS_FIELD(int, mpMax)
 	QS_FIELD(int, mpStart)
 
-	// Disabled weapons
-
-	QS_COLLECTION(QList, QString, disabledWeapons)
 	QS_FIELD(int, inability)		// Base inability time
 };
 

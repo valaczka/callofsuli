@@ -104,6 +104,7 @@ QItemGradient {
 
 						text: wallet ? wallet.baseReadableName : qsTr("Válassz...")
 						image: wallet ? wallet.image : ""
+						subImage: wallet ? wallet.subImage : ""
 						locked: !wallet || !wallet.available
 						selected: true
 						onClicked: {
@@ -396,6 +397,7 @@ QItemGradient {
 					width: _dialogView.height
 					text: wallet.baseReadableName
 					image: wallet.image
+					subImage: wallet.subImage
 					locked: !wallet.available
 					selected: wallet == _dialog.selectedWallet
 					onClicked: {

@@ -39,6 +39,8 @@
 #include "actionrpggame.h"
 
 
+
+
 /// Static hash
 
 const QHash<RpgGameData::Weapon::WeaponType, QString> RpgArmory::m_layerInfoHash = {
@@ -54,18 +56,19 @@ const QHash<RpgGameData::Weapon::WeaponType, QString> RpgArmory::m_layerInfoHash
 };
 
 
+
 /**
  * @brief RpgArmory::RpgArmory
  * @param parentObject
  * @param parent
  */
 
-RpgArmory::RpgArmory(TiledObject *parentObject, QObject *parent)
+RpgArmory::RpgArmory(IsometricEntity *parentObject, QObject *parent)
 	: QObject{parent}
 	, m_parentObject(parentObject)
 	, m_weaponList(new RpgWeaponList)
 {
-
+	addLayer(QStringLiteral("default"));
 }
 
 
@@ -118,7 +121,7 @@ RpgWeaponList *RpgArmory::weaponList() const
 RpgWeapon *RpgArmory::weaponFind(const RpgGameData::Weapon::WeaponType &type, const int &subType) const
 {
 	for (RpgWeapon *w : std::as_const(*m_weaponList)) {
-		if (w->weaponType() == type)
+		if (w->weaponType() == type && w->weaponSubType() == subType)
 			return w;
 	}
 
@@ -278,25 +281,6 @@ void RpgArmory::setCurrentWeapon(RpgWeapon *newCurrentWeapon)
 }
 
 
-/**
- * @brief RpgArmory::baseLayers
- * @return
- */
-
-QStringList RpgArmory::baseLayers() const
-{
-	return m_baseLayers;
-}
-
-void RpgArmory::setBaseLayers(const QStringList &newBaseLayers)
-{
-	if (m_baseLayers == newBaseLayers)
-		return;
-	m_baseLayers = newBaseLayers;
-	emit baseLayersChanged();
-	updateLayers();
-}
-
 
 /**
  * @brief RpgArmory::updateNextWeapon
@@ -395,9 +379,59 @@ RpgWeapon *RpgArmory::getNextWeapon() const
  * @return
  */
 
-TiledObject *RpgArmory::parentObject() const
+IsometricEntity *RpgArmory::parentObject() const
 {
 	return m_parentObject;
+}
+
+
+
+/**
+ * @brief RpgArmory::addLayer
+ * @param name
+ * @param data
+ */
+
+void RpgArmory::addLayer(const QString &name, const LayerData &data)
+{
+	m_layerHash[name] = data;
+}
+
+
+
+/**
+ * @brief RpgArmory::addLayer
+ * @param name
+ * @param weapon
+ * @param subType
+ * @param shield
+ */
+
+void RpgArmory::addLayer(const QString &name, const RpgGameData::Weapon::WeaponType &weapon, const int &subType, const ShieldLayer &shield)
+{
+	m_layerHash[name] = LayerData(weapon, subType, shield);
+}
+
+
+
+/**
+ * @brief RpgArmory::setLayers
+ * @param layers
+ */
+
+void RpgArmory::setLayers(const QHash<QString, LayerData> &layers)
+{
+	m_layerHash = layers;
+}
+
+
+/**
+ * @brief RpgArmory::clearLayers
+ */
+
+void RpgArmory::clearLayers()
+{
+	m_layerHash.clear();
 }
 
 
@@ -479,31 +513,11 @@ void RpgArmory::updateLayers()
 
 	TiledSpriteHandler *handler = m_parentObject->spriteHandler();
 
-	QStringList layers = m_baseLayers;
-	QStringList loadableLayers;
+	LayerData data;
 
 	if (m_currentWeapon && !m_currentWeapon->excludeFromLayers()) {
-		switch (m_currentWeapon->weaponType()) {
-			case RpgGameData::Weapon::WeaponShortbow:
-			case RpgGameData::Weapon::WeaponLongbow:
-			case RpgGameData::Weapon::WeaponLongsword:
-			case RpgGameData::Weapon::WeaponDagger:
-			case RpgGameData::Weapon::WeaponBroadsword:
-			case RpgGameData::Weapon::WeaponAxe:
-			case RpgGameData::Weapon::WeaponMace:
-			case RpgGameData::Weapon::WeaponHammer:
-				layers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
-				loadableLayers.append(m_layerInfoHash.value(m_currentWeapon->weaponType()));
-				break;
-
-			case RpgGameData::Weapon::WeaponShield:
-			case RpgGameData::Weapon::WeaponHand:
-			case RpgGameData::Weapon::WeaponGreatHand:
-			case RpgGameData::Weapon::WeaponLightningWeapon:
-			case RpgGameData::Weapon::WeaponFireFogWeapon:
-			case RpgGameData::Weapon::WeaponInvalid:
-				break;
-		}
+		data.weapon = m_currentWeapon->weaponType();
+		data.subType = m_currentWeapon->weaponSubType();
 	}
 
 	if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
@@ -511,17 +525,29 @@ void RpgArmory::updateLayers()
 							   return w->weaponType() == RpgGameData::Weapon::WeaponShield && !w->excludeFromLayers();
 }); it != m_weaponList->cend()) {
 		if ((*it)->bulletCount() > 0)
-			layers.append(QStringLiteral("shield"));
+			data.shield = ShieldPresent;
+		else
+			data.shield = ShieldMissing;
 	}
 
+	QStringList visibleLayers;
 
-	for (const QString &s : loadableLayers) {
-		if (auto *h = m_parentObject->spriteHandler(); !h->layers().contains(s)) {
-			RpgGame::loadBaseTextureSprites(h, QStringLiteral(":/rpg/")+s+QStringLiteral("/"), s);
+	for (const auto &[l, d] : m_layerHash.asKeyValueRange()) {
+		if (d.weapon != RpgGameData::Weapon::WeaponInvalid) {
+			if (d.weapon != data.weapon || d.subType != data.subType)
+				continue;
+
+			if (data.shield == ShieldPresent && d.shield == ShieldMissing)
+				continue;
+
+			if (data.shield == ShieldMissing && d.shield == ShieldPresent)
+				continue;
 		}
+
+		visibleLayers.append(l);
 	}
 
-	handler->setVisibleLayers(layers);
+	handler->setVisibleLayers(visibleLayers);
 }
 
 

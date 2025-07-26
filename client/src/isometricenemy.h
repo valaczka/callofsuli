@@ -199,8 +199,9 @@ protected:
 		FeatureVisibility,					// hide player
 		FeaturePursuit,						// always pursuit player
 		FeatureDisablePursuit,				// never pursuit player
+		FeatureBlock,						// player stops the enemy
 		FeatureAttackNotReached,			// attack player even when not reached,
-		FeatureRotate,						// don't rotate to player
+		FeatureRotate,						// rotate to player (default)
 		FeatureReplaceFrom,					// replace selected player ...
 		FeatureReplaceTo,					// ... to another
 	};

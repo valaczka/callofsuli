@@ -93,9 +93,6 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 				wptr->setParentObject(this);
 				playAttackEffect(wptr.get());
 				wptr->playAttack(target);
-
-				LOG_CWARNING("scene") << "REAL ENEMY HIT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << bodyPositionF()
-									  << snapshot.s1.a << bodyRotation();
 			}
 
 			throw -1;
@@ -107,8 +104,6 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 				playAttackEffect(wptr.get());
 				wptr->playAttack(nullptr);
 			}
-
-			LOG_CINFO("scene") << "REAL ENEMY SHOT" << snapshot.current << snapshot.s1.f << snapshot.s1.p << snapshot.s1.a << snapshot.s2.f;
 
 			throw -1;
 		} else {
@@ -165,16 +160,11 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::Enemy &snap)
 																	 .id = snap.tg.id
 		}))) {
 
-				LOG_CINFO("scene") << "REAL ENEMY ATTACK" << snap.f <<
-									  snap.p << snap.a << target->objectId().id;
-
 				if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(target))
 					player->attackedByEnemy(this, snap.arm.cw, false, true);
 			}
 
 		}
-
-		LOG_CINFO("scene") << "*********** ENEMY attack" << snap.tg.o << snap.tg.id << snap.arm.cw;
 
 		// Ne cserélje ki a fegyvert
 
@@ -201,12 +191,10 @@ bool RpgEnemy::isLastSnapshotValid(const RpgGameData::Enemy &snap, const RpgGame
 		return false;
 
 	if (lastSnap.hp != snap.hp) {
-		LOG_CDEBUG("scene") << "%%%%%%%%%%%%%% HP override";
 		return false;
 	}
 
 	if (snap.st == RpgGameData::Enemy::EnemyAttack) {
-		LOG_CDEBUG("scene") << "%%%%%%%%%%%%%% ATTACK override";
 		return false;
 	}
 
@@ -232,6 +220,8 @@ bool RpgEnemy::enemyWorldStep()
 		return true;
 
 	if (m_player && m_reachedPlayers.contains(m_player) && m_player->isAlive()) {
+		RpgPlayer *p = qobject_cast<RpgPlayer*>(m_player);
+
 		stop();
 
 		if (!hasAbility())
@@ -240,10 +230,14 @@ bool RpgEnemy::enemyWorldStep()
 		if (m_player->isLocked() || featureOverride(FeatureVisibility, m_player))
 			return false;
 
-		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
-			return false;
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, p)) {
+			if (m_temporalDisabledFeatures.value(p).contains(FeatureBlock))
+				return true;
 
-		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
+			return m_player->isRunning();
+		}
+
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, p))
 			return true;
 
 
@@ -263,7 +257,7 @@ bool RpgEnemy::enemyWorldStep()
 
 		if (m_player && !(m_player->isLocked() || featureOverride(FeatureVisibility, m_player))) {
 			if (checkFeature(RpgGameData::Player::FeatureLockEnemy, qobject_cast<RpgPlayer*>(m_player)))
-				return false;
+				return m_player->isRunning();
 		}
 
 	}
@@ -398,6 +392,41 @@ void RpgEnemy::onDead()
 
 
 
+/**
+ * @brief RpgEnemy::eventPlayerContacted
+ * @param player
+ */
+
+void RpgEnemy::eventPlayerContacted(IsometricPlayer */*player*/)
+{
+	/*RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
+
+	if (!p)
+		return;*/
+
+
+}
+
+
+/**
+ * @brief RpgEnemy::eventPlayerDiscontacted
+ * @param player
+ */
+
+void RpgEnemy::eventPlayerDiscontacted(IsometricPlayer *player)
+{
+	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
+
+	if (!p)
+		return;
+
+	LOG_CINFO("game") << "REMOVE FEATURES" << p << m_temporalDisabledFeatures;
+
+	m_temporalDisabledFeatures.remove(p);
+}
+
+
+
 
 /**
  * @brief RpgEnemy::featureOverride
@@ -434,39 +463,53 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 
 		return player->isHiding() || (player->config().cast == RpgPlayerCharacterConfig::CastInvisible &&
 									  player->castTimerActive());
-	}
-
-
-	if (feature == FeatureDisablePursuit) {
+	} else if (feature == FeatureDisablePursuit) {
 		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
 			return true;
 
 		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player))
 			return true;
-	}
 
-	if (feature == FeatureRotate) {
-		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player))
+	} else if (feature == FeatureBlock) {
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player)) {
+			if (m_temporalDisabledFeatures.value(player).contains(feature))
+				return false;
+
+			if (player->isRunning())
+				m_temporalDisabledFeatures[player].append(feature);
+
+			return !player->isRunning();
+		}
+
+	} else if (feature == FeatureRotate) {
+		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player)) {
+			if (m_temporalDisabledFeatures.value(player).contains(feature))
+				return false;
+
+			if (player->isRunning())
+				m_temporalDisabledFeatures[player].append(feature);
+
+			return !player->isRunning();
+		}
+
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
 			return false;
 
-		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
-			return true;
-	}
+		return true;
 
-	if (feature == FeatureReplaceFrom) {
+	} else if (feature == FeatureReplaceFrom) {
 		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player) ||
 				checkFeature(RpgGameData::Player::FeatureFreeWalk, player) )
 			return true;
-	}
 
-	if (feature == FeatureReplaceTo) {
+	} else if (feature == FeatureReplaceTo) {
 		if ((player->config().features & (RpgGameData::Player::FeatureFreeWalk |
 										  RpgGameData::Player::FeatureCamouflage)) == 0)
 			return true;
-	}
 
-	if (feature == FeatureAttackNotReached) {
+	} else if (feature == FeatureAttackNotReached) {
 		return (defaultWeapon() && defaultWeapon()->canShot());
+
 	}
 
 	return false;

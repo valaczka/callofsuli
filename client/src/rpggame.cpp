@@ -121,6 +121,8 @@ private:
 
 	void updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEvent &event);
 
+	static QHash<QString, RpgArmory::LayerData> readLayerData(const QString &file);
+
 
 	/**
 	 * @brief The CollectionPrivate class
@@ -2842,7 +2844,8 @@ bool RpgGame::loadTextureSpritesWithHurt(TiledSpriteHandler *handler, const QVec
  * @return
  */
 
-QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &path)
+QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &path,
+								  QHash<QString, RpgArmory::LayerData> *layerPtr)
 {
 	LOG_CINFO("game") << "LOAD TEXTURE FROM" << path;
 
@@ -2857,24 +2860,26 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 		TiledObject::West,
 	};
 
-	const auto &ptr = Utils::fileToJsonObject(path+QStringLiteral("/texture.json"));
 
-	QByteArray input = Utils::fileContentRead(path+QStringLiteral("/input.txt"));
 
-	if (!ptr || input.isEmpty())
+	QByteArray input = Utils::fileContentRead(path+QStringLiteral("input.txt"));
+
+	if (input.isEmpty())
 		return QRect();
 
-	TextureSpriteDef def;
-	def.fromJson(*ptr);
-
 	QTextStream buffer(&input, QIODevice::ReadOnly);
-	QString line;
 	int n = 0;
 
 	QRect measure;
 
+	/// input.txt format
+	///
+	/// line 1: <width> \t <height> \t [<bodyOffsetX>] \t [<bodyOffsetY>]
+	/// line ...: <sprite> \t <frames> \t <duration> \t [<loops>]
 
 	QVector<RpgGame::TextureSpriteMapper> mapper;
+
+	QString line;
 
 	while (buffer.readLineInto(&line)) {
 		const QStringList field = line.split('\t');
@@ -2901,6 +2906,8 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 			const int frames = field.at(1).toInt();
 			const int duration = field.at(2).toInt();
 
+			const int loops = field.size() > 3 ? field.at(3).toInt() : 0;
+
 			for (const auto &d : directions) {
 				TextureSpriteMapper dst;
 				dst.name = sprite;
@@ -2908,7 +2915,7 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 				dst.width = measure.width();
 				dst.height = measure.height();
 				dst.duration = duration;
-				//dst.loops = m.loops;
+				dst.loops = loops;
 
 				for (int i=0; i<frames; ++i)
 					mapper.append(dst);
@@ -2918,12 +2925,32 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 		++n;
 	}
 
-	const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(mapper, def);
 
-	if (appendToSpriteHandler(handler, sprites, path+QStringLiteral("/texture.png"), QStringLiteral("default")))
-		return measure;
-	else
-		return QRect();
+	QHash<QString, RpgArmory::LayerData> layerData = RpgGamePrivate::readLayerData(path+QStringLiteral("layers.txt"));
+
+	for (const QString &layer : layerData.keys()) {
+		QString basePath = path;
+		if (layer == QStringLiteral("default"))
+			basePath += QStringLiteral("texture");
+		else
+			basePath += layer + QStringLiteral("-texture");
+
+		LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to layer" << qPrintable(layer);
+
+		const auto &ptr = Utils::fileToJsonObject(basePath+QStringLiteral(".json"));
+		TextureSpriteDef def;
+		def.fromJson(*ptr);
+
+		const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(mapper, def);
+
+		if (!appendToSpriteHandler(handler, sprites, basePath+QStringLiteral(".png"), layer))
+			return QRect();
+	}
+
+	if (layerPtr)
+		layerPtr->swap(layerData);
+
+	return measure;
 }
 
 
@@ -3649,4 +3676,49 @@ void RpgGamePrivate::updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEv
 			return;
 		}
 	}
+}
+
+
+
+
+
+/**
+ * @brief RpgGamePrivate::readLayerData
+ * @param file
+ * @return
+ */
+
+QHash<QString, RpgArmory::LayerData> RpgGamePrivate::readLayerData(const QString &file)
+{
+	QHash<QString, RpgArmory::LayerData> hash;
+
+	hash.insert(QStringLiteral("default"), RpgArmory::LayerData(RpgGameData::Weapon::WeaponInvalid, 0, RpgArmory::ShieldNeutral));
+
+	QByteArray layerData = Utils::fileContentRead(file);
+	QTextStream layerBuffer(&layerData, QIODevice::ReadOnly);
+
+	QString line;
+
+	while (layerBuffer.readLineInto(&line)) {
+		const QStringList field = line.split('\t');
+
+		if (field.isEmpty())
+			continue;
+
+
+		RpgArmory::LayerData data;
+
+		if (field.size() > 3)
+			data.shield = QVariant::fromValue(field.at(3)).value<RpgArmory::ShieldLayer>();
+
+		if (field.size() > 2)
+			data.subType = field.at(2).toInt();
+
+		if (field.size() > 1)
+			data.weapon = RpgArmory::weaponHash().key(field.at(1), RpgGameData::Weapon::WeaponInvalid);
+
+		hash.insert(field.at(0), data);
+	}
+
+	return hash;
 }

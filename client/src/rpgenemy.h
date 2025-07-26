@@ -94,6 +94,9 @@ protected:
 	virtual void onAlive() override;
 	virtual void onDead() override;
 
+	virtual void eventPlayerContacted(IsometricPlayer *player) override;
+	virtual void eventPlayerDiscontacted(IsometricPlayer *player) override;
+
 	virtual bool featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const override final;
 	virtual bool featureOverride(const PlayerFeature &feature, RpgPlayer *player) const;
 
@@ -103,6 +106,8 @@ protected:
 
 	RpgEnemyConfig m_config;
 	QHash<RpgGameData::Enemy::EnemyState, qint64> m_stateLastRenderedTicks;
+
+	mutable QHash<RpgPlayer*, QList<PlayerFeature> > m_temporalDisabledFeatures;
 
 	friend class ActionRpgMultiplayerGame;
 };
