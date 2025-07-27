@@ -283,10 +283,18 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 
 	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		destroyCurrentGame();
+		/*destroyCurrentGame();
 		setGameState(StateFinished);
 		updateSolver();
-		m_client->reloadUser();
+		m_client->reloadUser();*/
+
+		m_finishObject = QJsonObject({
+										 { QStringLiteral("statistics"), levelGame->getStatistics() },
+									 });
+
+		m_finishTries = 0;
+		onFinishTimerTimeout();
+		m_finishTimer.start();
 
 		return;
 	}
@@ -422,12 +430,31 @@ void MapPlayCampaign::onFinishTimerTimeout()
 	LOG_CDEBUG("client") << "Try finishing game" << m_finishTries;
 
 
-	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		m_finishTimer.stop();
-		setGameState(StateFinished);
-		m_client->reloadUser();
+	if (ActionRpgMultiplayerGame *game = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+		if (const QJsonObject &data = game->finalData(); !data.isEmpty()) {
+			m_finishTimer.stop();
+			m_finishObject = QJsonObject();
 
-		return;
+			setFinishedData(data);
+
+			destroyCurrentGame();
+
+			updateSolver();
+
+			setGameState(StateFinished);
+
+			m_client->reloadUser();
+
+			return;
+		}
+
+		if (++m_finishTries > 4) {
+			m_client->messageError(tr("Játék mentése sikertelen"));
+			m_finishTimer.stop();
+			setGameState(StateFinished);
+			destroyCurrentGame();
+			return;
+		}
 	}
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());

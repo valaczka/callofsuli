@@ -218,8 +218,6 @@ void RpgActiveControlObject::connectScene()
 	m_visibleAreaMargins.setRight(50);
 
 	connect(sc, &TiledScene::onScreenAreaChanged, this, &RpgActiveControlObject::updateInVisibleArea);
-
-	LOG_CINFO("game") << "______________ CONNECT SCENE" << this << sc;
 }
 
 

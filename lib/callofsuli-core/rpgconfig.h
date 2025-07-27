@@ -400,7 +400,8 @@ public:
 		Invalid			= 0,
 		EnemyDefault	= 1,
 		WinnerDefault	= 2,
-		SuddenDeath		= 3
+		SuddenDeath		= 3,
+		NoKillDefault	= 4
 	};
 
 	Q_ENUM(Type);
@@ -1123,6 +1124,7 @@ public:
 		, lastObjectId(-1)
 		, xp(0)
 		, cur(0)
+		, kill(0)
 	{}
 
 	CharacterSelect(const RpgPlayerConfig &config)
@@ -1157,6 +1159,7 @@ public:
 	QS_FIELD(bool, finished)										// finished
 	QS_FIELD(int, xp)												// XP
 	QS_FIELD(int, cur)												// currency
+	QS_FIELD(int, kill)												// killed enemies
 };
 
 
@@ -1323,16 +1326,15 @@ public:
 		: Body()
 		, a(0.)
 		, hp(0)
-		, mhp(0)
 	{}
 
 
 	bool isEqual(const Entity &other) const {
-		return Body::isEqual(other) && other.p == p && other.a == a && other.hp == hp && other.mhp == mhp;
+		return Body::isEqual(other) && other.p == p && other.a == a && other.hp == hp;
 	}
 
 	bool canMerge(const Entity &other) const {
-		return Body::canMerge(other) && other.hp == hp && other.mhp == mhp && other.cv == cv && other.a == a;
+		return Body::canMerge(other) && other.hp == hp && other.cv == cv && other.a == a;
 	}
 
 	bool canInterpolateFrom(const Entity &other) const;
@@ -1345,7 +1347,6 @@ public:
 	QS_COLLECTION(QList, float, cv)		// current linear velocity
 	QS_FIELD(float, a)			// angle
 	QS_FIELD(int, hp)			// HP
-	QS_FIELD(int, mhp)			// max HP
 };
 
 
@@ -2098,6 +2099,7 @@ public:
 	EnemyBaseData(const EnemyType &_type, const float &_df, const float &_pf, const int &_o, const int &_s, const int &_id)
 		: ArmoredEntityBaseData(_df, _pf, _o, _s, _id)
 		, t(_type)
+		, mhp(0)
 	{}
 
 	EnemyBaseData(const EnemyType &_type, const int &_o, const int &_s, const int &_id)
@@ -2113,7 +2115,7 @@ public:
 	{}
 
 	bool isEqual(const EnemyBaseData &other) const {
-		return BaseData::isEqual(other);
+		return BaseData::isEqual(other) && other.mhp == mhp;
 	}
 
 	EQUAL_OPERATOR(EnemyBaseData)
@@ -2121,6 +2123,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(EnemyType, t)
+	QS_FIELD(int, mhp)
 };
 
 
@@ -2212,17 +2215,17 @@ public:
 	{}
 
 	bool isEqual(const PlayerBaseData &other) const {
-		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq && other.mmp == mmp;
+		return ArmoredEntityBaseData::isEqual(other) && other.rq == rq;
 	}
 
 	static void assign(const QList<PlayerBaseData*> &dst, const int &num);
+	static int getXpForAttack(const int &diffHp, const int &currHp);
 
 	EQUAL_OPERATOR(PlayerBaseData)
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, rq)						// required collection item
-	QS_FIELD(int, mmp)						// max MP
 };
 
 
@@ -2316,6 +2319,20 @@ public:
 
 	bool useTeleport(const ControlTeleportBaseData &base, const PlayerBaseData &playerBase) {
 		return useTeleport(*this, base, playerBase);
+	}
+
+	static bool threshold(const QList<float> &p1, const QList<float> &p2);
+
+	static bool threshold(const Player &p1, const Player &p2) {
+		return threshold(p1.p, p2.p);
+	}
+
+	bool threshold(const Player &other) const {
+		return threshold(*this, other);
+	}
+
+	bool threshold(const QList<float> &other) const {
+		return threshold(this->p, other);
 	}
 
 	EQUAL_OPERATOR(Player);

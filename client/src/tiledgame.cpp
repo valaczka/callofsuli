@@ -81,6 +81,11 @@ private:
 			qreal chunkWidth = 0.;
 			qreal chunkHeight = 0.;
 
+			QPoint getChunk(const cpVect &pos) const;
+			QPoint getChunk(const qreal &x, const qreal &y) const;
+
+			QPointF chunkMiddle(const int &x, const int &y) const;
+
 			std::optional<QPolygonF> findShortestPath(const cpVect &from, const cpVect &to) const;
 			std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
 		};
@@ -2317,7 +2322,67 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
 	if (it == d->m_sceneList.cend())
 		return std::nullopt;
 
-	return it->get()->tcodMap.findShortestPath(body->bodyPosition(), to);
+
+	const QPoint destChunk = it->get()->tcodMap.getChunk(to);
+
+	if (!it->get()->tcodMap.map->isWalkable(destChunk.x(), destChunk.y()))
+		return std::nullopt;
+
+
+	static const int steps = 2;
+
+	const QPoint baseChunk = it->get()->tcodMap.getChunk(body->bodyPosition());
+
+	for (int n=0; n<=steps; ++n) {
+		for (int y=-1; y<=1; ++y) {
+			for (int x=-1; x<=1; ++x) {
+				if (n>0 && y==0 && x==0)
+					continue;
+
+				if (n == 0) {
+					const auto &ptr = it->get()->tcodMap.findShortestPath(body->bodyPosition(), to);
+
+					if (ptr)
+						return ptr;
+
+					break;
+				} else {
+					int chunkX = baseChunk.x() + n*x;
+					int chunkY = baseChunk.y() + n*y;
+
+					if (!it->get()->tcodMap.map->isInBounds(chunkX, chunkY))
+						continue;
+
+					const cpVect &pos = TiledObjectBody::toVect(it->get()->tcodMap.chunkMiddle(chunkX, chunkY));
+
+					const RayCastInfo &info = body->rayCast(pos, TiledObjectBody::FixtureGround);
+
+					bool isWalkable = true;
+
+					for (const RayCastInfoItem &item : info) {
+						if (!item.walkable)
+							isWalkable = false;
+						break;
+					}
+
+					if (!isWalkable)
+						continue;
+
+					std::optional<QPolygonF> ptr = it->get()->tcodMap.findShortestPath(pos, to);
+
+					if (ptr) {
+						ptr->prepend(body->bodyPositionF());
+						return ptr;
+					}
+				}
+			}
+
+			if (n==0)
+				break;
+		}
+	}
+
+	return std::nullopt;
 }
 
 
@@ -2335,6 +2400,54 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
 	return findShortestPath(body, cpv(x2, y2));
 }
 
+
+
+/**
+ * @brief TiledGamePrivate::Scene::TcodMapData::getChunk
+ * @param pos
+ * @return
+ */
+
+QPoint TiledGamePrivate::Scene::TcodMapData::getChunk(const cpVect &pos) const
+{
+	return getChunk(pos.x, pos.y);
+}
+
+
+/**
+ * @brief TiledGamePrivate::Scene::TcodMapData::getChunk
+ * @param x
+ * @param y
+ * @return
+ */
+
+QPoint TiledGamePrivate::Scene::TcodMapData::getChunk(const qreal &x, const qreal &y) const
+{
+	QPoint p;
+
+	p.setX(std::floor((x-viewport.left())/chunkWidth));
+	p.setY(std::floor((y-viewport.top())/chunkHeight));
+
+	return p;
+}
+
+
+
+
+/**
+ * @brief TiledGamePrivate::Scene::TcodMapData::chunkMiddle
+ * @param x
+ * @param y
+ * @return
+ */
+
+QPointF TiledGamePrivate::Scene::TcodMapData::chunkMiddle(const int &x, const int &y) const
+{
+	return QPointF(
+				viewport.left() + (x+0.5) * chunkWidth,
+				viewport.top() + (y+0.5) * chunkHeight
+				);
+}
 
 
 
@@ -2372,10 +2485,13 @@ std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(
 	//TCODPath path(m_tcodMap.map.get());
 	TCODDijkstra path(map.get(), 1.0);
 
-	const int chX1 = std::floor((x1-viewport.left())/chunkWidth);
-	const int chX2 = std::floor((x2-viewport.left())/chunkWidth);
-	const int chY1 = std::floor((y1-viewport.top())/chunkHeight);
-	const int chY2 = std::floor((y2-viewport.top())/chunkHeight);
+	const QPoint ch1 = getChunk(x1, y1);
+	const QPoint ch2 = getChunk(x2, y2);
+
+	const int chX1 = ch1.x();
+	const int chX2 = ch2.x();
+	const int chY1 = ch1.y();
+	const int chY2 = ch2.y();
 
 	if (!map->isInBounds(chX1, chY1) ||
 			!map->isInBounds(chX2, chY2))
@@ -2405,10 +2521,7 @@ std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(
 		if (i == 0 && x == chX1 && y == chY1)
 			polygon << QPointF(x1, y1);
 		else
-			polygon << QPointF(
-						   viewport.left() + (x+0.5) * chunkWidth,
-						   viewport.top() + (y+0.5) * chunkHeight
-						   );
+			polygon << chunkMiddle(x, y);
 	}
 
 	// Az utolsó chunk közepe helyett a végleges pozíciót adjuk meg

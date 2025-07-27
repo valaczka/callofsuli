@@ -416,12 +416,18 @@ private:
 		{}
 
 		virtual bool solve(ConflictSolver *solver) override;
+		virtual void generateEvent(ConflictSolver *solver, RpgEngine *engine) override;
 
 
 		RendererObject<T3> *const src;
 		RendererObject<T4> *const dest;
 		RpgGameData::Weapon::WeaponType weaponType = RpgGameData::Weapon::WeaponInvalid;
 		int weaponSubType = 0;
+
+	private:
+		int m_xp = 0;
+		bool m_kill = false;
+		RpgGameData::PlayerBaseData m_player;
 	};
 
 
@@ -647,7 +653,6 @@ private:
 			return addData<T>(tick, unique, std::forward<Args>(args)...);
 		}
 	}
-
 
 
 

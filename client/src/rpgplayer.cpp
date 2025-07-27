@@ -354,24 +354,8 @@ void RpgPlayer::load()
 	}
 
 	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(57,250,65,150));
-	//m_visualItem->setProperty("ellipseSize", 2);
+	//m_visualItem->setProperty("ellipseSize", 1);
 	m_visualItem->setProperty("ellipseWidth", 50.);
-
-
-	/*
-	TiledVisualLight {
-		readonly property RpgPlayer _pl : baseObject && (baseObject instanceof RpgPlayer) ? baseObject : null
-
-		parent: _pl ? _pl.scene : null
-		x: root.x - root.width/2
-		y: root.y - root.height/2
-		sourceZ: Math.floor(root.z)
-		z: currentZ
-		color: Client.Utils.colorSetAlpha("#ffffff", 0.8)
-
-		width: 250
-		height: 350
-	}*/
 
 	loadSfx();
 	loadDefaultWeapons();
@@ -1304,6 +1288,15 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 	}
 
 	setShieldCount(m_armory->getShieldCount());
+
+	QList<float> p{ (float) bodyPosition().x, (float) bodyPosition().y };
+
+	if (!snap.threshold(p)) {
+		LOG_CDEBUG("scene") << "Player reemplace" << bodyPositionF() << "->" << snap.p;
+		emplace(cpv(snap.p.at(0), snap.p.at(1)));
+		if (snap.a >= 0)
+			setCurrentAngleForced(snap.a);
+	}
 }
 
 

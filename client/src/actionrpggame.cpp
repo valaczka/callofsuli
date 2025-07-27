@@ -448,8 +448,8 @@ void ActionRpgGame::onTimerLeftTimeout()
 			return;
 		}
 
-		if (m_playerResurrect.player)
-			m_rpgGame->setQuestions(m_playerResurrect.player->scene(), m_missionLevel->questions());
+		/*if (m_playerResurrect.player)
+			m_rpgGame->setQuestions(m_playerResurrect.player->scene(), m_missionLevel->questions());*/
 
 		m_rpgGame->resurrectEnemiesAndPlayer(m_playerResurrect.player);
 		loadInventory(m_playerResurrect.player);
@@ -496,7 +496,7 @@ void ActionRpgGame::onGameSuccess()
 {
 	Sound *sound = m_client->sound();
 
-	m_rpgGame->checkFinalQuests();
+	checkFinalQuests();
 
 	setFinishState(Success);
 	gameFinish();
@@ -525,14 +525,12 @@ void ActionRpgGame::onGameSuccess()
 
 void ActionRpgGame::onGameFailed()
 {
-	if (m_rpgGame) {
-		m_rpgGame->saveSceneState();
-	}
-
 	Sound *sound = m_client->sound();
 
 	sound->stopMusic();
 	sound->stopMusic2();
+
+	checkFinalQuests();
 
 	setFinishState(Fail);
 	gameFinish();
@@ -662,24 +660,13 @@ void ActionRpgGame::rpgGameActivated_()
 
 	m_rpgQuestion->initialize();
 
-	qreal factor = 0.35;
-
-	if (m_missionLevel->level() > 2)
-		factor = 0.45;
-	else if (m_missionLevel->level() == 2)
-		factor = 0.4;
-
-
-	m_config.duration = ptr->duration + (m_rpgQuestion->duration() * factor);
+	m_config.duration = ptr->duration + (m_rpgQuestion->duration() * 0.5);
 	updateConfig();
 
-	int sum = 0;
 
-	for (TiledScene *s : m_rpgGame->sceneList()) {
-		sum += m_rpgGame->setQuestions(s, /*m_missionLevel->questions()*/ factor);
-	}
-
-	m_rpgGame->loadDefaultQuests(sum);
+	recalculateQuests();
+	loadWinnerQuests(5);
+	loadEnemyQuests();	/// ??? weapon???
 
 	emit m_rpgGame->gameLoaded();
 }
@@ -819,7 +806,6 @@ void ActionRpgGame::updateRandomizer(const RpgGameData::Randomizer &randomizer)
 
 		if (RpgControlRandomizer *r = m_rpgGame->controlFind<RpgControlRandomizer>(base)) {
 			if (r->fromRandomizerGroup(g)) {
-				LOG_CINFO("game") << "UPDATE" << g.scene << g.gid << g.current;
 				sceneReload.insert(g.scene);
 			}
 
@@ -1060,7 +1046,7 @@ void ActionRpgGame::loadInventory(RpgPlayer *player)
 
 	LOG_CTRACE("game") << "Load player inventory" << player;
 
-/*	for (const QString &s : player->m_config.inventoryOnce) {
+	/*	for (const QString &s : player->m_config.inventoryOnce) {
 		loadInventory(player, RpgPickableObject::typeFromString(s));
 	}
 
@@ -1131,12 +1117,22 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
 
 	e.attacked(enemy->baseData(), weaponType, weaponSubtype, player->baseData());
 
-	int xp = std::max(0, e.hp-enemy->hp());
-	setXp(m_xp+xp);
+	setXp(m_xp + RpgGameData::PlayerBaseData::getXpForAttack(enemy->hp() - e.hp, e.hp));
 
 	enemy->attackedByPlayer(player, weaponType);
 
 	enemy->updateFromSnapshot(e);
+
+	if (e.hp <= 0) {
+		int num = 0;
+
+		for (RpgGame::EnemyData &e : m_rpgGame->m_enemyDataList) {
+			if (e.enemy && !e.enemy->isAlive())
+				++num;
+		}
+
+		checkEnemyQuests(num);
+	}
 
 
 	return true;
@@ -1636,6 +1632,8 @@ void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control
 
 	setXp(m_xp+xp);
 
+	checkWinnerQuests();
+
 	/*
 	if (player->config().cast != RpgPlayerCharacterConfig::CastInvalid && m_gameQuestion && !control) {
 		const int mp =
@@ -1659,6 +1657,8 @@ void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgActiveIface *control)
 {
 	setIsFlawless(false);
 
+	checkWinnerQuests();
+
 	if (!player)
 		return;
 
@@ -1668,6 +1668,254 @@ void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgActiveIface *control)
 		player->updateFromSnapshot(p);
 	}
 }
+
+
+
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::loadWinnerQuests
+ * @param num
+ */
+
+void ActionRpgGame::loadWinnerQuests(const int &rq)
+{
+	if (!m_rpgGame)
+		return;
+
+	int num = rq;
+
+	for (const auto &ptr : m_rpgGame->m_controls) {
+		if (RpgActiveIface *p = dynamic_cast<RpgActiveIface*>(ptr.get()); p && p->questionLock()) {
+			++num;
+		}
+	}
+
+	LOG_CINFO("game") << "Load winner quests" << rq << "->" << num;
+
+	// Winner streak quests
+
+	if (num >= 5) {
+		m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 3, 75 });
+		m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 5, 100 });
+
+		if (num >= 10) {
+			m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 7, 175 });
+
+			for (int i=2;; ++i) {
+				int q = 5*i;
+
+				if (q >= num) {
+					m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, num, (i+5) * 100 });
+					break;
+				}
+
+				m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, i*5, i * 100 });
+			}
+		}
+	}
+
+	emit m_rpgGame->questsChanged();
+}
+
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::loadEnemyQuests
+ */
+
+void ActionRpgGame::loadEnemyQuests(const bool &canKill)
+{
+	if (!m_rpgGame)
+		return;
+
+	LOG_CDEBUG("game") << "Load enemy quests" << canKill;
+
+	const int num = m_rpgGame->m_enemyDataList.size();
+
+	if (num >= 5) {
+		m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, 5, 2 });
+
+		for (int i=10; i<=num; i+=5) {
+			m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, i, i-5 });
+		}
+	}
+
+	if (canKill)
+		m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::NoKillDefault, 0, num * 50 });
+	else
+		m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::NoKillDefault, 0, num * 100 });
+
+	emit m_rpgGame->questsChanged();
+}
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::recalculateQuests
+ */
+
+void ActionRpgGame::recalculateQuests()
+{
+	if (!m_rpgGame)
+		return;
+
+	// Quests override on empty questions
+
+	if (!m_rpgQuestion->emptyQuestions())
+		return;
+
+	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
+		if (q.type == RpgQuest::SuddenDeath)
+			q.currency = std::min(95, std::max(10, (int) (q.currency * 0.1)));
+	}
+
+	emit m_rpgGame->questsChanged();
+}
+
+
+
+/**
+ * @brief ActionRpgGame::checkWinnerQuests
+ */
+
+void ActionRpgGame::checkWinnerQuests()
+{
+	if (!m_rpgGame)
+		return;
+
+	const int count = m_rpgGame->winnerStreak();
+
+	if (count < m_lastWinnerStreak)
+		m_lastWinnerStreak = 0;
+
+	auto found = m_rpgGame->m_gameDefinition.quests.end();
+
+	for (auto it = m_rpgGame->m_gameDefinition.quests.begin(); it != m_rpgGame->m_gameDefinition.quests.end(); ++it) {
+		if (it->type != RpgQuest::WinnerDefault)
+			continue;
+
+		if (it->amount > count)
+			continue;
+
+		if (found == m_rpgGame->m_gameDefinition.quests.end())
+			found = it;
+		else if (it->amount > found->amount)
+			found = it;
+	}
+
+	if (found == m_rpgGame->m_gameDefinition.quests.end())
+		return;
+
+	if (found->amount == m_lastWinnerStreak)
+		return;
+
+	questSuccess(&*found);
+
+	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
+
+	m_rpgGame->messageColor(tr("Winner streak: %1").arg(found->amount), color);
+
+	m_lastWinnerStreak = found->amount;
+}
+
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::checkEnemyQuests
+ * @param num
+ */
+
+void ActionRpgGame::checkEnemyQuests(const int &count)
+{
+	if (!m_rpgGame)
+		return;
+
+	auto found = m_rpgGame->m_gameDefinition.quests.end();
+
+	for (auto it = m_rpgGame->m_gameDefinition.quests.begin(); it != m_rpgGame->m_gameDefinition.quests.end(); ++it) {
+		if (count > 0 && it->type == RpgQuest::NoKillDefault) {
+			it->success = -1;
+			continue;
+		}
+
+		if (it->type != RpgQuest::EnemyDefault)
+			continue;
+
+		if (it->amount > count)
+			continue;
+
+		if (it->success > 0)
+			continue;
+
+		if (found == m_rpgGame->m_gameDefinition.quests.end())
+			found = it;
+		else if (it->amount > found->amount)
+			found = it;
+
+		questSuccess(&*it);
+	}
+
+	if (found == m_rpgGame->m_gameDefinition.quests.end())
+		return;
+
+	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
+
+	m_rpgGame->messageColor(tr("%1 killed enemies").arg(found->amount), color);
+
+}
+
+
+
+/**
+ * @brief ActionRpgGame::checkFinalQuests
+ */
+
+void ActionRpgGame::checkFinalQuests()
+{
+	if (!m_rpgGame)
+		return;
+
+	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
+		if (q.type == RpgQuest::SuddenDeath && q.success == 0)
+			questSuccess(&q);
+		else if (q.type == RpgQuest::NoKillDefault && q.success == 0)
+			questSuccess(&q);
+	}
+}
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::questSuccess
+ * @param quest
+ */
+
+void ActionRpgGame::questSuccess(RpgQuest *quest)
+{
+	Q_ASSERT(quest);
+
+	if (!m_rpgGame)
+		return;
+
+	quest->success++;
+	m_rpgGame->setCurrency(m_rpgGame->m_currency+quest->currency);
+}
+
+
 
 
 

@@ -80,7 +80,7 @@ public:
 	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse gameFinish(const QString &username, const int &id, const UserGame &game,
 								   const QJsonObject &inventory, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
-								   bool *okPtr = nullptr);
+								   bool *okPtr = nullptr, QJsonObject *retPtr = nullptr);
 
 	QHttpServerResponse inventory(const Credential &credential);
 
@@ -88,6 +88,7 @@ public:
 
 	QHttpServerResponse wallet(const Credential &credential);
 	QHttpServerResponse buy(const Credential &credential, const QJsonObject &json);
+	void setCurrency(const QString &username, const int &gameid, const int &amount) const;
 
 
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);

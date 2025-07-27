@@ -48,8 +48,7 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 	, m_worker(new QLambdaThreadWorker)
 	#endif
 {
-
-	LOG_CDEBUG("engine") << "START UDP ENGINE" << m_worker->getThread()->priority();
+	LOG_CDEBUG("client") << "Start udp engine";
 
 	m_worker->getThread()->setPriority(QThread::TimeCriticalPriority);
 
@@ -64,8 +63,6 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 	m_worker->execInThread(std::bind(&AbstractUdpEnginePrivate::run, d));
 
-	LOG_CINFO("engine") << "UDP ENGINE started"  << m_worker->getThread()->priority();
-
 #endif
 
 
@@ -79,8 +76,6 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 AbstractUdpEngine::~AbstractUdpEngine()
 {
-	LOG_CINFO("client") << "ABSTRACT UPD ENGINE DESTROY START";
-
 #ifndef Q_OS_WASM
 	m_worker->getThread()->requestInterruption();
 	m_worker->quitThread();
@@ -89,7 +84,7 @@ AbstractUdpEngine::~AbstractUdpEngine()
 
 	delete d;
 
-	LOG_CINFO("client") << "ABSTRACT UPD ENGINE DESTROYED";
+	LOG_CDEBUG("client") << "Udp engine destroyed";
 }
 
 
@@ -216,7 +211,6 @@ AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
 void AbstractUdpEnginePrivate::run()
 {
 #ifndef Q_OS_WASM
-	LOG_CINFO("client") << "RUN";
 
 	while (!QThread::currentThread()->isInterruptionRequested()) {
 		QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::ProcessEventsFlag::AllEvents);
@@ -248,7 +242,7 @@ void AbstractUdpEnginePrivate::run()
 			peer = enet_host_connect (client, &address, 2, 0);
 
 			if (!peer) {
-				LOG_CWARNING("game") << "Connection refused" << qPrintable(m_url.toDisplayString());
+				LOG_CWARNING("client") << "Connection refused" << qPrintable(m_url.toDisplayString());
 				enet_host_destroy(client);
 
 				if (m_udpState == UdpServerResponse::StateConnected) {
@@ -261,11 +255,11 @@ void AbstractUdpEnginePrivate::run()
 			}
 
 			if (enet_host_service(client, &event, 1000) > 0 && event.type == ENET_EVENT_TYPE_CONNECT) {
-				LOG_CINFO("game") << "Connected to host" << qPrintable(m_url.toDisplayString());
+				LOG_CINFO("client") << "Connected to host" << qPrintable(m_url.toDisplayString());
 				if (m_udpState == UdpServerResponse::StateConnected)
 					emit q->serverConnected();
 			} else {
-				LOG_CWARNING("game") << "Connection failed" << qPrintable(m_url.toDisplayString());
+				LOG_CWARNING("client") << "Connection failed" << qPrintable(m_url.toDisplayString());
 				enet_peer_reset(peer);
 				enet_host_destroy(client);
 
@@ -306,17 +300,14 @@ void AbstractUdpEnginePrivate::run()
 		if (r > 0) {
 			switch (event.type) {
 				case ENET_EVENT_TYPE_CONNECT:
-					LOG_CINFO("client") << "CONNECT" << event.peer->address.host << event.peer->address.port;
 					break;
 
 				case ENET_EVENT_TYPE_DISCONNECT:
 					if (m_udpState == UdpServerResponse::StateConnected) {
-						LOG_CINFO("client") << "DISCONNECT FROM CONNECTED STATE" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
 						emit q->serverConnectionLost();
 						destroyHostAndPeer();
 						QThread::msleep(1000);
 					} else {
-						LOG_CERROR("client") << "DISCONNECT" << event.peer->address.host << event.peer->address.port; //<< event.peer->data;
 						destroyHostAndPeer();
 						emit q->serverConnectFailed(tr("Connection rejected"));
 						QThread::msleep(1000);
@@ -373,12 +364,12 @@ void AbstractUdpEnginePrivate::run()
 
 
 					if (m_udpState == UdpServerResponse::StateConnected) {
-						LOG_CWARNING("engine") << "CONNECTION LOST";
+						LOG_CDEBUG("engine") << "Udp connection lost";
 
 						emit q->serverConnectionLost();
 
 					} else {
-						LOG_CERROR("engine") << "FORCE DISCONNECT" << m_enet_peer->address.host << m_enet_peer->address.port; //<< event.peer->data;
+						LOG_CDEBUG("engine") << "Udp connection failed";
 						emit q->serverConnectFailed(tr("Connection lost"));
 					}
 
@@ -393,8 +384,6 @@ void AbstractUdpEnginePrivate::run()
 
 		deliverReceived();
 	}
-
-	LOG_CINFO("client") << "UPD ENGINE RUN FINISHED";
 
 
 	destroyHostAndPeer();
@@ -438,8 +427,6 @@ void AbstractUdpEnginePrivate::setUrl(const QUrl &newUrl)
 	}
 
 #endif
-
-	LOG_CDEBUG("client") << "SET URL" << newUrl;
 
 	m_url = newUrl;
 }
@@ -554,7 +541,7 @@ void AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 				rsp.fromCbor(map);
 
 				if (rsp.key.size() != crypto_box_PUBLICKEYBYTES) {
-					LOG_CERROR("game") << "Invalid key size";
+					LOG_CERROR("client") << "Invalid key size";
 					return;
 				}
 
@@ -590,18 +577,14 @@ QByteArray AbstractUdpEnginePrivate::connectionToken() const
 
 void AbstractUdpEnginePrivate::setConnectionToken(const QByteArray &newConnectionToken)
 {
-	LOG_CINFO("game") << "SET TOKEN" << newConnectionToken;
-
 	m_connectionToken = newConnectionToken;
 
 	Token jwt(m_connectionToken);
 	UdpToken u;
 	u.fromJson(jwt.payload());
 
-	if (u.peerID > 0) {
-		LOG_CINFO("game") << "SET PEER ID" << u.peerID;
+	if (u.peerID > 0)
 		m_peerID = u.peerID;
-	}
 }
 
 
@@ -619,7 +602,7 @@ void AbstractUdpEnginePrivate::updateChallenge()
 		return;
 
 	if (m_udpState == UdpServerResponse::StateRejected) {
-		LOG_CERROR("game") << "STATE REJECTED";
+		LOG_CERROR("client") << "Udp connection rejected";
 		return;
 	}
 
@@ -634,8 +617,6 @@ void AbstractUdpEnginePrivate::updateChallenge()
 
 
 	if (m_udpState == UdpServerResponse::StateChallenge) {
-		LOG_CDEBUG("game") << "SEND CH" << m_challenge.challenge.size() << m_challenge.key.size();
-
 		UdpChallengeResponseContent rc;
 		rc.challenge = m_challenge.challenge;
 		rc.key = m_secretKey;
@@ -647,9 +628,8 @@ void AbstractUdpEnginePrivate::updateChallenge()
 
 		if (crypto_box_seal(dest, reinterpret_cast<const unsigned char*>(content.constData()), content.size(),
 							reinterpret_cast<const unsigned char*> (m_challenge.key.constData())) != 0) {
-			LOG_CERROR("game") << "Seal errror";
+			LOG_CERROR("client") << "Seal errror";
 		} else {
-			LOG_CDEBUG("game") << "Send seal";
 			UdpChallengeResponse r;
 			r.response = QByteArray(reinterpret_cast<const char *>(dest), len);
 			r.token = m_connectionToken;

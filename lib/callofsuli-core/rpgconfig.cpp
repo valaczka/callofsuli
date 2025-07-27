@@ -409,7 +409,6 @@ int CurrentSnapshot::fromCbor(const QCborMap &map)
 bool Entity::canInterpolateFrom(const Entity &other) const {
 	if (!Body::canInterpolateFrom(other) ||
 			hp != other.hp ||
-			mhp != other.mhp ||
 			a != other.a)
 		return false;
 
@@ -515,7 +514,7 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
  * @return
  */
 
-bool Player::useTeleport(Player &dst, const ControlTeleportBaseData &base, const PlayerBaseData &playerBase)
+bool Player::useTeleport(Player &dst, const ControlTeleportBaseData &base, const PlayerBaseData &/*playerBase*/)
 {
 	if (dst.pck.isValid()) {
 		qWarning() << "Player pck active!";
@@ -532,12 +531,29 @@ bool Player::useTeleport(Player &dst, const ControlTeleportBaseData &base, const
 		return false;
 	}
 
-	if (dst.c < playerBase.rq)
-		return false;
+	/*if (dst.c < playerBase.rq)
+		return false;*/
 
 	dst.pck = base;
 
 	return true;
+}
+
+
+/**
+ * @brief Player::threshold
+ * @param p1
+ * @param p2
+ * @return
+ */
+
+bool Player::threshold(const QList<float> &p1, const QList<float> &p2)
+{
+	if (p1.size() < 2 || p2.size() < 2)
+		return false;
+
+	return cpvlengthsq(cpvsub(cpv(p2.at(0), p2.at(1)),
+							  cpv(p1.at(0), p1.at(1)))) < 100*100;
 }
 
 
@@ -873,6 +889,26 @@ void PlayerBaseData::assign(const QList<PlayerBaseData *> &dst, const int &num)
 	for (int i=0; i<(int) dist.size() && i<dst.size(); ++i) {
 		dst.at(i)->rq = dist.at(i);
 	}
+}
+
+
+/**
+ * @brief PlayerBaseData::getXpForAttack
+ * @param diffHp
+ * @return
+ */
+
+int PlayerBaseData::getXpForAttack(const int &diffHp, const int &currHp)
+{
+	if (diffHp <= 0)
+		return 0;
+
+	int xp = diffHp + 5;
+
+	if (currHp == 0)
+		xp += 50;
+
+	return xp;
 }
 
 

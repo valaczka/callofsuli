@@ -2121,7 +2121,7 @@ QString Renderer::dumpBaseDataAs(const RendererObject<RpgGameData::PlayerBaseDat
 {
 	Q_ASSERT(obj);
 
-	QString txt = QStringLiteral("[Player %1] - rq: %2")
+	QString txt = QStringLiteral("[Player %1] - rq: %3")
 				  .arg(obj->baseData.o)
 				  .arg(obj->baseData.rq)
 				  ;
@@ -2290,7 +2290,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 			// Ha már volt egy különleges eset, akkor azt továbbvisszük
 
 			if (dst->m_data.st != p.st && !normalStates.contains(dst->m_data.st) && !normalStates.contains(p.st)) {
-				ELOG_ERROR << "**** CARRY USE control" << p.tg << src->baseData;
 				if (!src->carrySubSnap(p)) {
 					ELOG_WARNING << "State conflict" << specialSt << p.st << src->baseData;
 				}
@@ -2321,8 +2320,6 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 					}
 
 				} else if (p.st == RpgGameData::Player::PlayerUseControl) {
-					ELOG_ERROR << "**** USE control" << p.tg << src->baseData;
-
 					if (RendererObjectType *tg = findByBase(p.tg)) {
 						if (auto *iface = m_solver.addUnique(m_current, src, tg)) {
 							iface->releaseSuccess(m_current, src, p.x);
@@ -2730,7 +2727,6 @@ void Renderer::restore(RpgGameData::Player *dst, const RpgGameData::Player &data
 
 	//dst->tg = data.tg;
 	dst->hp = data.hp;
-	dst->mhp = data.mhp;
 	dst->c = data.c;
 
 	dst->arm = data.arm;
@@ -2738,6 +2734,10 @@ void Renderer::restore(RpgGameData::Player *dst, const RpgGameData::Player &data
 	dst->arm.s = s;
 
 	dst->pck = data.pck;
+
+	if (!dst->threshold(data)) {
+		dst->p = data.p;
+	}
 }
 
 
@@ -2754,7 +2754,6 @@ void Renderer::restore(RpgGameData::Enemy *dst, const RpgGameData::Enemy &data)
 
 	//dst->tg = data.tg;
 	dst->hp = data.hp;
-	dst->mhp = data.mhp;
 }
 
 
@@ -2899,7 +2898,6 @@ void Renderer::postRender(RendererObject<RpgGameData::ControlCollectionBaseData>
 		if (clear) {
 			if (RendererItem<RpgGameData::ControlCollection> *item = dynamic_cast<RendererItem<RpgGameData::ControlCollection>*>(ptr.get())) {
 				if (!hasOwner && item->data().own.isValid()) {
-					ELOG_DEBUG << "HAS OWNER";
 					hasOwner = true;
 					continue;
 				}
@@ -2991,6 +2989,7 @@ T *ConflictSolver::addData(Args &&...args)
 	m_list.emplace_back(new T(std::forward<Args>(args)...));
 	return dynamic_cast<T*>(m_list.back().get());
 }
+
 
 
 
@@ -3153,7 +3152,8 @@ bool ConflictSolver::ConflictWeaponUsage<T, T2, T3, T4>::solveData(ConflictSolve
 		--(it->b);
 	}
 
-	SLOG_DEBUG(solver) << "[Weapon used]" << src->baseData << weaponType << weaponSubType << "bullets" << it->b << "@" << tick;
+	if (tick <= 1)
+		SLOG_DEBUG(solver) << "[Weapon used]" << src->baseData << weaponType << weaponSubType << "bullets" << it->b;
 
 	e->setData(data);
 	e->addFlags(RendererType::Modified);
@@ -3275,11 +3275,22 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 
 
 	if (pData.hp <= 0) {
-		SLOG_WARNING(solver) << "Attacker hp <= 0" << p << src->baseData;
+		SLOG_WARNING(solver) << "Attacker hp <= 0" << src->baseData;
 		return true;
 	}
 
+	int oldHp = eData.hp;
+
 	eData.attacked(dest->baseData, weaponType, weaponSubType, src->baseData);
+
+	oldHp -= eData.hp;
+
+	if (const RpgGameData::PlayerBaseData *pd = dynamic_cast<const RpgGameData::PlayerBaseData*>(&src->baseData)) {
+		m_xp = pd->getXpForAttack(oldHp, eData.hp);
+		m_kill = eData.hp <= 0;
+		m_player = *pd;
+	}
+
 
 	if (!other->setData(eData)) {
 		SLOG_WARNING(solver) << "Read only snap forced override" << src->baseData;
@@ -3288,6 +3299,25 @@ bool ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::solve(Confli
 	other->addFlags(RendererType::Modified | RendererType::Storage);
 
 	return true;
+}
+
+
+
+/**
+ * @brief ConflictSolver::ConflictAttack::generateEvent
+ * @param solver
+ * @param engine
+ */
+
+template<typename T, typename T2, typename T3, typename T4, typename T5, typename T6, typename T7, typename T8>
+void ConflictSolver::ConflictAttack<T, T2, T3, T4, T5, T6, T7, T8>::generateEvent(ConflictSolver */*solver*/, RpgEngine *engine)
+{
+	Q_ASSERT(engine);
+
+	if (m_xp <= 0 || !m_player.isValid())
+		return;
+
+	engine->playerAddXp(m_player, m_xp, m_kill);
 }
 
 
@@ -3327,8 +3357,6 @@ void ConflictSolver::ConflictContainer::generateEvent(ConflictSolver *solver, Rp
 {
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
-
-	SLOG_ERROR(solver) << "!!!! CREATE CONTAINER EVENT" << m_unique->baseData;
 
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
 
@@ -3514,11 +3542,7 @@ ConflictSolver::ConflictUniqueIface::ReleaseState ConflictSolver::ConflictUnique
 		return {};
 	}
 
-	SLOG_INFO(renderer) << "---- INITIAL" << st.state << st.player << (st.player ? st.player->baseData.o : -1);
-
 	for (const auto &[t, rs] : m_release.asKeyValueRange()) {
-		SLOG_DEBUG(renderer) << "---- CHECK" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
-
 		if (t > maxTick)
 			break;
 
@@ -3528,12 +3552,10 @@ ConflictSolver::ConflictUniqueIface::ReleaseState ConflictSolver::ConflictUnique
 		if (rs.state == StateHold) {
 			if (!st.player) {
 				st = rs;
-				SLOG_INFO(renderer) << "---- SET" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
 			}
 		} else if (rs.state == StateSuccess || rs.state == StateFailed) {
 			if (st.state == StateInvalid || st.player == rs.player) {
 				st = rs;
-				SLOG_INFO(renderer) << "---- SET" << t << maxTick << rs.state << rs.player << (rs.player ? rs.player->baseData.o : -1);
 				break;
 			}
 		}
@@ -3625,8 +3647,6 @@ void ConflictSolver::ConflictCollection::generateEvent(ConflictSolver *solver, R
 {
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
-
-	SLOG_ERROR(solver) << "!!!! CREATE COLLECTION EVENT" << m_unique->baseData;
 
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
 
@@ -3735,8 +3755,6 @@ void ConflictSolver::ConflictPickable::generateEvent(ConflictSolver *solver, Rpg
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
 
-	SLOG_ERROR(solver) << "!!!! CREATE PICKABLE EVENT" << m_unique->baseData;
-
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
 
 	if (state.state == StateInvalid || !state.player)
@@ -3842,11 +3860,7 @@ void ConflictSolver::ConflictGate::generateEvent(ConflictSolver *solver, RpgEngi
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
 
-	SLOG_ERROR(solver) << "!!!! CREATE GATE EVENT" << m_unique->baseData;
-
 	const ReleaseState &state = renderCurrentState(solver->m_renderer, tick);
-
-	SLOG_INFO(solver) << "CURRENT STATE" << state.state << state.player << m_unique->baseData;
 
 	if (state.state != StateSuccess)
 		return;
@@ -3937,8 +3951,6 @@ void ConflictSolver::ConflictTeleport::generateEvent(ConflictSolver *solver, Rpg
 {
 	Q_ASSERT(solver);
 	Q_ASSERT(m_unique);
-
-	SLOG_ERROR(solver) << "!!!! CREATE TELEPORT EVENT" << m_unique->baseData;
 
 	if (!getInitialState(solver->m_renderer, nullptr)) {
 		SLOG_DEBUG(solver) << "Initial state finished, render disabled" << m_unique->baseData;

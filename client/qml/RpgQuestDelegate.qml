@@ -17,11 +17,13 @@ Qaterial.LoaderItemDelegate
           case RpgQuest.EnemyDefault: return qsTr("%1 killed enemies").arg(quest.amount)
           case RpgQuest.WinnerDefault: return qsTr("%1 winner streak").arg(quest.amount)
           case RpgQuest.SuddenDeath: return qsTr("Sudden death")
+          case RpgQuest.NoKillDefault: return qsTr("No killing")
           default: "--- invalid ---"
           }
 
     secondaryText: switch (quest.type) {
-                   case RpgQuest.SuddenDeath: return qsTr("You can't die")
+                   case RpgQuest.SuddenDeath: return qsTr("You must not die")
+                   case RpgQuest.NoKillDefault: return qsTr("You must not kill anyone")
                    default: ""
                    }
 
@@ -41,6 +43,7 @@ Qaterial.LoaderItemDelegate
                 case RpgQuest.EnemyDefault:		return Qaterial.Icons.targetAccount
                 case RpgQuest.WinnerDefault:	return Qaterial.Icons.checkBoxMultipleOutline
                 case RpgQuest.SuddenDeath:		return Qaterial.Icons.skullScanOutline
+                case RpgQuest.NoKillDefault:		return Qaterial.Icons.skullCrossbones
                 default: return ""
                 }
 

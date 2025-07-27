@@ -95,11 +95,15 @@ public:
 	const RpgGameData::PlayerPosition &startPosition() const;
 	void setStartPosition(const RpgGameData::PlayerPosition &newStartPosition);
 
+	bool isLost() const;
+	void setIsLost(bool newIsLost);
+
 private:
 	UdpServerPeer *m_udpPeer = nullptr;
 	bool m_isHost = false;
 	bool m_isPrepared = false;
 	bool m_isFullyPrepared = false;
+	bool m_isLost = false;
 	RpgGameData::CharacterSelect m_config;
 	RpgGameData::PlayerPosition m_startPosition;
 
@@ -107,6 +111,8 @@ private:
 	int m_gameId = -1;
 
 	quint32 m_peerID = 0;
+
+	QJsonObject m_final;
 
 	friend class RpgEngine;
 	friend class RpgEnginePrivate;
@@ -116,7 +122,6 @@ private:
 
 
 class RpgEnginePrivate;
-
 
 
 
@@ -147,295 +152,6 @@ protected:
 	qint64 m_tick = -1;					// Mikor történt / fog történni
 	const bool m_unique = true;			// Nem lehet ismételni
 };
-
-
-
-
-template <typename T>
-class RpgEvent : public RpgEventBase
-{
-public:
-	RpgEvent(RpgEngine *engine, const qint64 &tick, const T &data, const bool &unique = true)
-		: RpgEventBase(engine, tick, unique)
-		, m_data(data)
-	{ }
-
-	virtual ~RpgEvent() = default;
-
-	const T &baseData() const { return m_data; }
-
-	bool isBaseEqual(RpgEventBase *other) const {
-		if (RpgEvent<T> *d = dynamic_cast<RpgEvent<T>*>(other); d &&
-				d->m_tick == m_tick &&
-				d->m_data == m_data
-				)
-			return true;
-
-		return false;
-	}
-
-
-protected:
-	const T m_data;
-};
-
-
-
-#define ADD_EQUAL(T)		virtual bool isEqual(RpgEventBase *other) const override { \
-	return dynamic_cast<T*>(other) && isBaseEqual(other); \
-	}
-
-
-/**
- * @brief The RpgEventEnemyDied class
- */
-
-class RpgEventEnemyDied : public RpgEvent<RpgGameData::EnemyBaseData>
-{
-public:
-	RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data)
-		: RpgEvent<RpgGameData::EnemyBaseData>(engine, tick, data)
-	{
-		ELOG_DEBUG << "Enemy died" << m_data.o << m_data.id << "@" << tick;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventEnemyDied);
-};
-
-
-
-/**
- * @brief The RpgEventEnemyResurrect class
- */
-
-class RpgEventEnemyResurrect : public RpgEvent<bool>
-{
-public:
-	RpgEventEnemyResurrect(RpgEngine *engine, const qint64 &tick)
-		: RpgEvent<bool>(engine, tick, false)
-	{
-		ELOG_DEBUG << "RESURRECT created" << tick << m_unique;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventEnemyResurrect);
-};
-
-
-
-
-
-
-
-/**
- * @brief The RpgEventPlayerDied class
- */
-
-class RpgEventPlayerDied : public RpgEvent<RpgGameData::PlayerBaseData>
-{
-public:
-	RpgEventPlayerDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
-		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data)
-	{
-		ELOG_DEBUG << "Player died" << m_data.o << m_data.id << "@" << tick;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventPlayerDied);
-};
-
-
-
-
-
-/**
- * @brief The RpgEventPlayerResurrect class
- */
-
-class RpgEventPlayerResurrect : public RpgEvent<RpgGameData::PlayerBaseData>
-{
-public:
-	RpgEventPlayerResurrect(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
-		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data)
-	{
-		ELOG_DEBUG << "PLAYER RESURRECT created" << tick << m_unique << data.o;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventPlayerResurrect);
-};
-
-
-
-
-
-/**
- * @brief The RpgEventContainerUnlock class
- */
-
-class RpgEventControlUnlock : public RpgEvent<RpgGameData::PlayerBaseData>
-{
-public:
-	RpgEventControlUnlock(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
-		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data, true)
-	{
-		ELOG_DEBUG << "CONTROL UNLOCK created" << tick << m_unique << data.o;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventControlUnlock);
-};
-
-
-
-
-
-/**
- * @brief The RpgEventCollectionUsed class
- */
-
-class RpgEventCollectionUsed : public RpgEvent<RpgGameData::ControlCollectionBaseData>
-{
-public:
-	RpgEventCollectionUsed(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
-						   const bool &success, const RpgGameData::PlayerBaseData &player)
-		: RpgEvent<RpgGameData::ControlCollectionBaseData>(engine, tick, data, true)
-		, m_success(success)
-		, m_player(player)
-	{
-		ELOG_DEBUG << "COLLECTION RELOCATE created" << tick << m_unique << data.o << success << player.o;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventCollectionUsed);
-
-private:
-	bool m_success = false;
-	const RpgGameData::PlayerBaseData m_player;
-};
-
-
-
-
-
-/**
- * @brief The RpgEventCollectionPost class
- */
-
-class RpgEventCollectionPost : public RpgEvent<RpgGameData::ControlCollectionBaseData>
-{
-public:
-	RpgEventCollectionPost(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlCollectionBaseData &data,
-						   const bool &success)
-		: RpgEvent<RpgGameData::ControlCollectionBaseData>(engine, tick, data, true)
-		, m_success(success)
-	{
-		ELOG_DEBUG << "COLLECTION POST created" << tick << m_unique << data.o << success;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventCollectionPost);
-
-private:
-	bool m_success = false;
-};
-
-
-
-
-/**
- * @brief The RpgEventContainerUsed class
- */
-
-class RpgEventContainerUsed : public RpgEvent<RpgGameData::ControlContainerBaseData>
-{
-public:
-	RpgEventContainerUsed(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlContainerBaseData &data,
-						  const RpgGameData::PlayerBaseData &player, const QList<RpgGameData::PickableBaseData> &pickables,
-						  const bool &success)
-		: RpgEvent<RpgGameData::ControlContainerBaseData>(engine, tick, data, true)
-		, m_player(player)
-		, m_pickables(pickables)
-		, m_success(success)
-	{
-		ELOG_DEBUG << "CONTAINER USED created" << tick << m_unique << data.o << player.o << pickables.size() << success;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventContainerUsed);
-
-private:
-	const RpgGameData::PlayerBaseData m_player;
-	const QList<RpgGameData::PickableBaseData> m_pickables;
-	bool m_success = false;
-};
-
-
-
-
-
-
-/**
- * @brief The RpgEventPickablePicked class
- */
-
-class RpgEventPickablePicked : public RpgEvent<RpgGameData::PickableBaseData>
-{
-public:
-	RpgEventPickablePicked(RpgEngine *engine, const qint64 &tick, const RpgGameData::PickableBaseData &data,
-						   const RpgGameData::PlayerBaseData &player)
-		: RpgEvent<RpgGameData::PickableBaseData>(engine, tick, data, true)
-		, m_player(player)
-	{
-		ELOG_DEBUG << "PICKABLE PICKED created" << tick << m_unique << data.o << "-->" << player.o;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventPickablePicked);
-
-private:
-	RpgGameData::PlayerBaseData const m_player;
-};
-
-
-
-
-
-
-
-/**
- * @brief The RpgEventTeleportUsed class
- */
-
-class RpgEventTeleportUsed : public RpgEvent<RpgGameData::ControlTeleportBaseData>
-{
-public:
-	RpgEventTeleportUsed(RpgEngine *engine, const qint64 &tick, const RpgGameData::ControlTeleportBaseData &data,
-						 const RpgGameData::PlayerBaseData &player)
-		: RpgEvent<RpgGameData::ControlTeleportBaseData>(engine, tick, data, true)
-		, m_player(player)
-	{
-		ELOG_DEBUG << "TELEPORT USED created" << tick << m_unique << data.o << "-->" << player.o;
-	}
-
-	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
-
-	ADD_EQUAL(RpgEventTeleportUsed);
-
-private:
-	RpgGameData::PlayerBaseData const m_player;
-};
-
 
 
 
@@ -477,7 +193,7 @@ public:
 	RpgEnginePlayer *player(const RpgGameData::PlayerBaseData &base) const;
 	RpgEnginePlayer *player(const quint32 &peerID) const;
 	RpgEnginePlayer *playerSetGameCompleted(const RpgGameData::PlayerBaseData &base);
-	RpgEnginePlayer *playerAddXp(const RpgGameData::PlayerBaseData &base, const int &xp);
+	RpgEnginePlayer *playerAddXp(const RpgGameData::PlayerBaseData &base, const int &xp, const bool &hasKill = false);
 
 	QCborArray getPlayerData(const bool &forced = false);
 
@@ -564,6 +280,7 @@ public:
 
 	void renderTimerLog(const qint64 &msec);
 
+	int getCollected(const qint64 &tick, const RpgGameData::PlayerBaseData &player, int *leftPtr = nullptr);
 	void checkPlayersCompleted();
 
 	bool hasMessageSent(const SentMessageTypes &type) const { return m_sentMessages.contains(type); }

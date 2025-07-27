@@ -119,7 +119,7 @@ protected:
 	virtual bool gameFinishEvent() override;
 
 	virtual void onPlayerDead(RpgPlayer *player);
-	[[deprecated]] virtual void onTimerLeftTimeout() override;
+	virtual void onTimerLeftTimeout() override;
 
 	void onGameLoadFailed(const QString &);
 
@@ -159,6 +159,14 @@ protected:
 	virtual void onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp);
 	virtual void onQuestionFailed(RpgPlayer *player, RpgActiveIface *control);
 
+	void loadWinnerQuests(const int &rq);
+	void loadEnemyQuests(const bool &canKill = true);
+	void recalculateQuests();
+	void checkWinnerQuests();
+	void checkEnemyQuests(const int &count);
+	void checkFinalQuests();
+	virtual void questSuccess(RpgQuest *quest);
+
 private:
 	void rpgGameActivated_();
 	void onMsecLeftChanged();
@@ -188,6 +196,8 @@ protected:
 
 	int m_msecNotifyAt = 0;
 	int m_tmpSoundSfxVolume = 0;
+
+	int m_lastWinnerStreak = -1;
 
 	qint64 m_elapsedTick = 0;
 	qint64 m_deadlineTick = 0;

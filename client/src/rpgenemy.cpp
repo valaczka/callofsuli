@@ -369,7 +369,7 @@ void RpgEnemy::onAlive()
 			  TiledObjectBody::FixtureTarget);
 
 	if (m_visualItem)
-		m_visualItem->setProperty("ellipseSize", 2);
+		m_visualItem->setProperty("ellipseSize", 1);
 
 	IsometricEnemy::onAlive();
 }
@@ -420,8 +420,6 @@ void RpgEnemy::eventPlayerDiscontacted(IsometricPlayer *player)
 	if (!p)
 		return;
 
-	LOG_CINFO("game") << "REMOVE FEATURES" << p << m_temporalDisabledFeatures;
-
 	m_temporalDisabledFeatures.remove(p);
 }
 
@@ -464,6 +462,9 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 		return player->isHiding() || (player->config().cast == RpgPlayerCharacterConfig::CastInvisible &&
 									  player->castTimerActive());
 	} else if (feature == FeatureDisablePursuit) {
+		if (player->isLocked())
+			return true;
+
 		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
 			return true;
 
@@ -471,6 +472,9 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 			return true;
 
 	} else if (feature == FeatureBlock) {
+		if (player->isLocked())
+			return true;
+
 		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player)) {
 			if (m_temporalDisabledFeatures.value(player).contains(feature))
 				return false;
@@ -498,16 +502,25 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 		return true;
 
 	} else if (feature == FeatureReplaceFrom) {
+		if (player->isLocked())
+			return true;
+
 		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player) ||
 				checkFeature(RpgGameData::Player::FeatureFreeWalk, player) )
 			return true;
 
 	} else if (feature == FeatureReplaceTo) {
+		if (player->isLocked())
+			return false;
+
 		if ((player->config().features & (RpgGameData::Player::FeatureFreeWalk |
 										  RpgGameData::Player::FeatureCamouflage)) == 0)
 			return true;
 
 	} else if (feature == FeatureAttackNotReached) {
+		if (player->isLocked())
+			return false;
+
 		return (defaultWeapon() && defaultWeapon()->canShot());
 
 	}

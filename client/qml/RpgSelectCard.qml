@@ -91,8 +91,10 @@ Qaterial.Card {
 
 				visible: source != ""
 
-				width: parent.width*0.35
-				height: parent.height*0.35
+				readonly property real imgSize: Math.min(parent.width*0.35, parent.height*0.35)
+
+				width: imgSize
+				height: imgSize
 
 				anchors.right: parent.right
 				anchors.bottom: parent.bottom
@@ -101,6 +103,14 @@ Qaterial.Card {
 				anchors.bottomMargin: parent.height*0.1
 
 				fillMode: Image.PreserveAspectFit
+			}
+
+			Rectangle {
+				anchors.fill: _subImage
+				visible: _subImage.visible
+				color: "transparent"
+				border.width: 2
+				border.color: control.locked ? Qaterial.Colors.black : Qaterial.Colors.cyan300
 			}
 
 		}

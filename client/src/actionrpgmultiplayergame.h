@@ -68,6 +68,9 @@ public:
 
 	Q_INVOKABLE void connectToEngine(const int &id);
 
+	void setFinalData(const QJsonObject &data);
+	const QJsonObject &finalData() const;
+
 	void disconnectFromHost();
 
 	int playerId() const;
@@ -102,6 +105,7 @@ signals:
 protected:
 	void onConfigChanged() override;
 	virtual void timerEvent(QTimerEvent *) override;
+	virtual void questSuccess(RpgQuest *quest) override;
 
 	void changeGameState(const RpgConfig::GameState &state);
 

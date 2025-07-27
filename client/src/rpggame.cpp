@@ -262,8 +262,6 @@ bool RpgGame::load(const RpgGameDefinition &def, const int &playerCount, const b
 		e.enemy = enemy;
 	}
 
-	recalculateEnemies();
-
 	/*for (auto &e : m_pickableDataList) {
 
 		if (e.type == RpgGameData::PickableBaseData::PickableMp)
@@ -394,7 +392,7 @@ TiledObjectBody *RpgGame::findBody(const TiledObjectBody::ObjectId &objectId)
  * @brief RpgGame::saveSceneState
  * @param player
  */
-
+/*
 void RpgGame::saveSceneState(RpgPlayer *player)
 {
 	if (!player)
@@ -406,26 +404,8 @@ void RpgGame::saveSceneState(RpgPlayer *player)
 
 	saveSceneState();
 }
+*/
 
-
-
-
-/**
- * @brief RpgGame::saveSceneState
- */
-
-void RpgGame::saveSceneState()
-{
-	for (EnemyData &e : m_enemyDataList) {
-		if (!e.enemy)
-			continue;
-
-		if (e.enemy->hp() <= 0)
-			e.dieForever = true;
-	}
-
-	recalculateEnemies();
-}
 
 
 
@@ -515,8 +495,6 @@ void RpgGame::onEnemyDead(TiledObject *enemy)
 			}
 		}
 	}
-
-	recalculateEnemies();
 
 	/*const int &count = recalculateEnemies();
 
@@ -1378,7 +1356,6 @@ RpgGameData::Randomizer RpgGame::randomizer() const
 	for (const auto &ptr : m_controls) {
 		if (RpgControlRandomizer *r = dynamic_cast<RpgControlRandomizer*>(ptr.get())) {
 			randomizer.groups.append(r->toRandomizerGroup());
-			LOG_CINFO("game") << "!!!!!!!!!!!!!!!!!  ADDDED" << r->name() << r->baseData().id << r->activeId();
 		}
 	}
 
@@ -1914,73 +1891,16 @@ void RpgGame::addLocationSound(TiledObjectBody *object, const QString &sound, co
 
 
 /**
- * @brief RpgGame::loadDefaultQuests
- */
-
-void RpgGame::loadDefaultQuests(const int &questions)
-{
-	LOG_CTRACE("game") << "Load default quests";
-
-	// Winner streak quests
-
-	if (questions >= 5) {
-		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 3, 75 });
-		m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 5, 100 });
-
-		if (questions >= 10) {
-			m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, 7, 175 });
-
-			for (int i=2;; ++i) {
-				int q = 5*i;
-
-				if (q >= questions) {
-					m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, questions, (i+5) * 100 });
-					break;
-				}
-
-				m_gameDefinition.quests.append({ RpgQuest::WinnerDefault, i*5, i * 100 });
-			}
-		}
-	}
-
-	// Enemy quests
-
-	if (m_enemyCount >= 5) {
-		m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, 5, 2 });
-
-		for (int i=10; i<=m_enemyCount; i+=5) {
-			m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, i, i-5 });
-		}
-	}
-
-
-	// Quests override on empty questions
-
-	if (m_rpgQuestion->emptyQuestions()) {
-		for (RpgQuest &q : m_gameDefinition.quests) {
-			if (q.type == RpgQuest::SuddenDeath)
-				q.currency = std::min(95, std::max(10, (int) (q.currency * 0.1)));
-		}
-	}
-
-	emit questsChanged();
-}
-
-
-
-
-/**
  * @brief RpgGame::onGameQuestionSuccess
  * @param answer
  */
 
 void RpgGame::onGameQuestionSuccess(const QVariantMap &answer)
 {
+	setWinnerStreak(m_winnerStreak+1);
+
 	if (m_rpgQuestion)
 		m_rpgQuestion->questionSuccess(answer);
-
-	setWinnerStreak(m_winnerStreak+1);
-	checkQuests();
 
 	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
 	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
@@ -2001,11 +1921,10 @@ void RpgGame::onGameQuestionFailed(const QVariantMap &answer)
 		client->performVibrate();
 #endif
 
+	setWinnerStreak(0);
+
 	if (m_rpgQuestion)
 		m_rpgQuestion->questionFailed(answer);
-
-	setWinnerStreak(0);
-	checkQuests();
 
 	Application::instance()->client()->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
 }
@@ -2036,43 +1955,6 @@ void RpgGame::onGameQuestionFinished()
 
 
 
-
-
-/**
- * @brief RpgGame::recalculateEnemies
- * @return
- */
-
-int RpgGame::recalculateEnemies()
-{
-	int c = 0;
-	int d = 0;
-	int all = 0;
-
-	for (const EnemyData &e : m_enemyDataList) {
-		if (!e.enemy)
-			continue;
-
-		++all;
-
-		if (e.enemy->isAlive())
-			++c;
-		else if (e.dieForever)
-			++d;
-	}
-
-	setEnemyCount(c);
-
-	if (c==0)
-		d=all;
-
-	setDeadEnemyCount(d);
-	checkQuests();
-
-	return c;
-}
-
-
 /**
  * @brief RpgGame::onMarketLoaded
  */
@@ -2097,125 +1979,6 @@ void RpgGame::onMarketUnloaded()
 }
 
 
-
-/**
- * @brief RpgGame::checkQuests
- */
-
-void RpgGame::checkQuests()
-{
-	checkEnemyQuests(m_deadEnemyCount);
-	checkWinnerQuests(m_winnerStreak);
-}
-
-
-
-/**
- * @brief RpgGame::checkEnemyQuests
- * @param count
- */
-
-void RpgGame::checkEnemyQuests(const int &count)
-{
-	auto found = m_gameDefinition.quests.end();
-
-	for (auto it = m_gameDefinition.quests.begin(); it != m_gameDefinition.quests.end(); ++it) {
-		if (it->type != RpgQuest::EnemyDefault)
-			continue;
-
-		if (it->amount > count)
-			continue;
-
-		if (it->success > 0)
-			continue;
-
-		if (found == m_gameDefinition.quests.end())
-			found = it;
-		else if (it->amount > found->amount)
-			found = it;
-
-		questSuccess(&*it);
-	}
-
-	if (found == m_gameDefinition.quests.end())
-		return;
-
-	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
-
-	messageColor(tr("%1 killed enemies").arg(found->amount), color);
-
-}
-
-
-/**
- * @brief RpgGame::checkWinnerQuests
- * @param count
- */
-
-void RpgGame::checkWinnerQuests(const int &count)
-{
-	if (count < m_lastWinnerStreak)
-		m_lastWinnerStreak = 0;
-
-	auto found = m_gameDefinition.quests.end();
-
-	for (auto it = m_gameDefinition.quests.begin(); it != m_gameDefinition.quests.end(); ++it) {
-		if (it->type != RpgQuest::WinnerDefault)
-			continue;
-
-		if (it->amount > count)
-			continue;
-
-		if (found == m_gameDefinition.quests.end())
-			found = it;
-		else if (it->amount > found->amount)
-			found = it;
-	}
-
-	if (found == m_gameDefinition.quests.end())
-		return;
-
-	if (found->amount == m_lastWinnerStreak)
-		return;
-
-	questSuccess(&*found);
-
-	static const QColor color = QColor::fromString(QStringLiteral("#9C27B0"));
-
-	messageColor(tr("Winner streak: %1").arg(found->amount), color);
-
-	m_lastWinnerStreak = found->amount;
-}
-
-
-
-
-/**
- * @brief RpgGame::checkFinalQuests
- */
-
-void RpgGame::checkFinalQuests()
-{
-	for (RpgQuest &q : m_gameDefinition.quests) {
-		if (q.type == RpgQuest::SuddenDeath && q.success == 0)
-			questSuccess(&q);
-	}
-}
-
-
-
-/**
- * @brief RpgGame::questSuccess
- * @param quest
- */
-
-void RpgGame::questSuccess(RpgQuest *quest)
-{
-	Q_ASSERT(quest);
-
-	quest->success++;
-	setCurrency(m_currency+quest->currency);
-}
 
 
 
@@ -2425,21 +2188,6 @@ void RpgGame::setCurrency(int newCurrency)
 }
 
 
-
-int RpgGame::deadEnemyCount() const
-{
-	return m_deadEnemyCount;
-}
-
-void RpgGame::setDeadEnemyCount(int newDeadEnemyCount)
-{
-	if (m_deadEnemyCount == newDeadEnemyCount)
-		return;
-	m_deadEnemyCount = newDeadEnemyCount;
-	emit deadEnemyCountChanged();
-}
-
-
 /**
  * @brief RpgGame::terrains
  * @return
@@ -2626,23 +2374,6 @@ void RpgGame::setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers)
 
 
 
-/**
- * @brief RpgGame::enemyCount
- * @return
- */
-
-int RpgGame::enemyCount() const
-{
-	return m_enemyCount;
-}
-
-void RpgGame::setEnemyCount(int newEnemyCount)
-{
-	if (m_enemyCount == newEnemyCount)
-		return;
-	m_enemyCount = newEnemyCount;
-	emit enemyCountChanged();
-}
 
 RpgQuestion *RpgGame::rpgQuestion() const
 {
@@ -3117,62 +2848,6 @@ void RpgGame::onMouseClick(const qreal &x, const qreal &y, const int &buttons, c
 }
 
 
-/**
- * @brief RpgGame::setQuestions
- * @param scene
- * @param factor
- * @return
- */
-
-int RpgGame::setQuestions(TiledScene *scene, qreal factor)
-{
-	if (!scene)
-		return -1;
-
-	if (m_rpgQuestion && m_rpgQuestion->emptyQuestions()) {
-		/*for (EnemyData &e : m_enemyDataList)
-			e.hasQuestion = false;*/
-
-		return 0;
-	}
-
-	int q = 0;
-	int count = 0;
-	int created = 0;
-
-	QVector<EnemyData*> eList;
-
-	for (EnemyData &e : m_enemyDataList) {
-		if (!e.scene || e.scene != scene)
-			continue;
-
-		++count;
-
-		/*if (e.hasQuestion)
-			++q;
-		else*/
-		eList.append(&e);
-	}
-
-	if (!count)
-		return -1;
-
-	std::random_device rd;
-	std::mt19937 g(rd());
-	std::shuffle(eList.begin(), eList.end(), g);
-
-	for (EnemyData *e : eList) {
-		if ((qreal) (q+1) / (qreal) count > factor)
-			break;
-
-		//e->hasQuestion = true;
-		++q;
-		++created;
-	}
-
-	return created;
-}
-
 
 
 
@@ -3218,8 +2893,6 @@ void RpgGame::resurrectEnemies(const QPointer<TiledScene> &scene)
 		if (e.scene == scene && e.enemy && !e.dieForever)
 			e.enemy->setHp(e.enemy->maxHp());
 	}
-
-	recalculateEnemies();
 }
 
 

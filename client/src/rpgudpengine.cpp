@@ -90,7 +90,6 @@ void RpgUdpEngine::updateSnapshotRemoveMissing(const RpgGameData::SnapshotList<T
 
 void RpgUdpEngine::disconnect()
 {
-	LOG_CWARNING("game") << "DISCONNECT RPGUDPENGINE";
 	setUrl({});
 }
 
@@ -251,8 +250,6 @@ void RpgUdpEngine::messageAdd(const RpgGameData::Message &message)
 
 void RpgUdpEngine::packetReceivedConnect(const QCborMap &data)
 {
-	LOG_CDEBUG("game") << "***** CONNECT" << data;
-
 	if (!m_game)
 		return;
 
@@ -286,7 +283,7 @@ void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
 	selector.fromCbor(data);
 
 	if (selector.operation == RpgGameData::EngineSelector::Reset) {
-		LOG_CERROR("game") << "ENGINE RESET";
+		LOG_CDEBUG("game") << "Reset engine";
 
 		m_game->updateEnginesModel(selector);
 		updateSnapshot(QList<RpgGameData::CharacterSelect>{});
@@ -454,6 +451,11 @@ void RpgUdpEngine::packetReceivedFinished(const QCborMap &data)
 		msg.fromCbor(m);
 		messageAdd(msg);
 	}
+
+	if (const QCborMap &m = data.value(QStringLiteral("final")).toMap(); !m.isEmpty()) {
+		m_game->setFinalData(m.toJsonObject());
+	}
+
 }
 
 
@@ -780,7 +782,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 	});
 
 	if (it == m_players.end()) {
-		LOG_CERROR("game") << "Invalid player" << playerData.o;
+		LOG_CERROR("game") << "Invalid player" << playerData;
 		return;
 	}
 
@@ -788,9 +790,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::PlayerBaseData &playerData
 	it->data.id = playerData.id;
 	it->data.rq = playerData.rq;
 
-	if (player.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << player.f << player.p;
-	else
+	if (player.f >= 0)
 		it->list.insert_or_assign(player.f, player);
 }
 
@@ -812,7 +812,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 	});
 
 	if (it == m_enemies.end()) {
-		LOG_CINFO("game") << "New enemy" << enemyData.o << enemyData.s << enemyData.id;
+		LOG_CDEBUG("game") << "New enemy" << enemyData;
 		m_enemies.push_back({
 								.data = enemyData,
 								.list = {}
@@ -822,9 +822,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::EnemyBaseData &enemyData, 
 
 	it->data = enemyData;
 
-	if (enemy.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << enemy.f << enemy.p;
-	else
+	if (enemy.f >= 0)
 		it->list.insert_or_assign(enemy.f, enemy);
 }
 
@@ -857,9 +855,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::BulletBaseData &bulletData
 
 	it->data = bulletData;
 
-	if (bullet.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << bullet.f << bullet.p;
-	else
+	if (bullet.f >= 0)
 		it->list.insert_or_assign(bullet.f, bullet);
 }
 
@@ -880,7 +876,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlBaseData &lightData
 	});
 
 	if (it == m_controls.lights.end()) {
-		LOG_CINFO("game") << "New light" << lightData.o << lightData.s << lightData.id;
+		LOG_CDEBUG("game") << "New light" << lightData;
 		m_controls.lights.push_back({
 										.data = lightData,
 										.list = {}
@@ -890,9 +886,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlBaseData &lightData
 
 	it->data = lightData;
 
-	if (light.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << light.f << light.st;
-	else
+	if (light.f >= 0)
 		it->list.insert_or_assign(light.f, light);
 }
 
@@ -913,7 +907,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlContainerBaseData &
 	});
 
 	if (it == m_controls.containers.end()) {
-		LOG_CINFO("game") << "New container" << containerData.o << containerData.s << containerData.id;
+		LOG_CDEBUG("game") << "New container" << containerData;
 		m_controls.containers.push_back({
 											.data = containerData,
 											.list = {}
@@ -923,9 +917,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlContainerBaseData &
 
 	it->data = containerData;
 
-	if (container.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << container.f << container.st;
-	else
+	if (container.f >= 0)
 		it->list.insert_or_assign(container.f, container);
 }
 
@@ -945,7 +937,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlCollectionBaseData 
 	});
 
 	if (it == m_controls.collections.end()) {
-		LOG_CINFO("game") << "New collection" << collectionData.o << collectionData.s << collectionData.id;
+		LOG_CDEBUG("game") << "New collection" << collectionData;
 		m_controls.collections.push_back({
 											 .data = collectionData,
 											 .list = {}
@@ -955,9 +947,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlCollectionBaseData 
 
 	it->data = collectionData;
 
-	if (collection.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << collection.f;
-	else
+	if (collection.f >= 0)
 		it->list.insert_or_assign(collection.f, collection);
 }
 
@@ -978,7 +968,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::PickableBaseData &pickable
 	});
 
 	if (it == m_controls.pickables.end()) {
-		LOG_CINFO("game") << "New pickable" << pickableData.o << pickableData.s << pickableData.id << pickableData.t;
+		LOG_CDEBUG("game") << "New pickable" << pickableData << pickableData.t;
 		m_controls.pickables.push_back({
 										   .data = pickableData,
 										   .list = {}
@@ -988,9 +978,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::PickableBaseData &pickable
 
 	it->data = pickableData;
 
-	if (pickable.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << pickable.f << pickable.st;
-	else
+	if (pickable.f >= 0)
 		it->list.insert_or_assign(pickable.f, pickable);
 }
 
@@ -1011,7 +999,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlGateBaseData &baseD
 	});
 
 	if (it == m_controls.gates.end()) {
-		LOG_CINFO("game") << "New gate" << baseData.o << baseData.s << baseData.id;
+		LOG_CDEBUG("game") << "New gate" << baseData;
 		m_controls.gates.push_back({
 									   .data = baseData,
 									   .list = {}
@@ -1021,9 +1009,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlGateBaseData &baseD
 
 	it->data = baseData;
 
-	if (data.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << data.f << data.st;
-	else
+	if (data.f >= 0)
 		it->list.insert_or_assign(data.f, data);
 }
 
@@ -1045,7 +1031,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlTeleportBaseData &b
 	});
 
 	if (it == m_controls.teleports.end()) {
-		LOG_CINFO("game") << "New teleport" << baseData.o << baseData.s << baseData.id;
+		LOG_CDEBUG("game") << "New teleport" << baseData;
 		m_controls.teleports.push_back({
 										   .data = baseData,
 										   .list = {}
@@ -1055,9 +1041,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::ControlTeleportBaseData &b
 
 	it->data = baseData;
 
-	if (data.f < 0)
-		LOG_CDEBUG("game") << "SKIP FRAME" << data.f;
-	else
+	if (data.f >= 0)
 		it->list.insert_or_assign(data.f, data);
 }
 

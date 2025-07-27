@@ -322,7 +322,7 @@ void IsometricPlayer::onAlive()
 	emit becameAlive();
 
 	if (m_visualItem)
-		m_visualItem->setProperty("ellipseSize", 2);
+		m_visualItem->setProperty("ellipseSize", 1);
 
 	filterSet(TiledObjectBody::FixturePlayerBody,
 					  TiledObjectBody::FixtureCategories(TiledObjectBody::FixtureAll)

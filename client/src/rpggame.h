@@ -128,8 +128,6 @@ class RpgGame : public TiledGame
 	Q_PROPERTY(QList<RpgPlayer *> players READ players WRITE setPlayers NOTIFY playersChanged FINAL)
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 	Q_PROPERTY(GameQuestion *gameQuestion READ gameQuestion WRITE setGameQuestion NOTIFY gameQuestionChanged FINAL)
-	Q_PROPERTY(int enemyCount READ enemyCount WRITE setEnemyCount NOTIFY enemyCountChanged FINAL)
-	Q_PROPERTY(int deadEnemyCount READ deadEnemyCount WRITE setDeadEnemyCount NOTIFY deadEnemyCountChanged FINAL)
 	Q_PROPERTY(int currency READ currency WRITE setCurrency NOTIFY currencyChanged FINAL)
 	Q_PROPERTY(int winnerStreak READ winnerStreak WRITE setWinnerStreak NOTIFY winnerStreakChanged FINAL)
 	Q_PROPERTY(QList<RpgQuest> quests READ quests NOTIFY questsChanged FINAL)
@@ -155,9 +153,6 @@ public:
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
 	TiledObjectBody *findBody(const TiledObjectBody::ObjectId &objectId);
-
-	void saveSceneState(RpgPlayer *player);
-	void saveSceneState();
 
 	void onPlayerDead(TiledObject *player) override final;
 	void onEnemyDead(TiledObject *enemy) override final;
@@ -196,8 +191,6 @@ public:
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers) override;
 
-	int setQuestions(TiledScene *scene, qreal factor);
-
 	void resurrectEnemiesAndPlayer(RpgPlayer *player);
 	void resurrectEnemies(const QPointer<TiledScene> &scene);
 
@@ -216,9 +209,6 @@ public:
 	RpgQuestion *rpgQuestion() const;
 	void setRpgQuestion(RpgQuestion *newRpgQuestion);
 
-	int enemyCount() const;
-	void setEnemyCount(int newEnemyCount);
-
 	QScatterSeries *scatterSeriesPlayers() const;
 	void setScatterSeriesPlayers(QScatterSeries *newScatterSeriesPlayers);
 
@@ -227,9 +217,6 @@ public:
 
 	QScatterSeries *scatterSeriesPoints() const;
 	void setScatterSeriesPoints(QScatterSeries *newScatterSeriesPoints);
-
-	int deadEnemyCount() const;
-	void setDeadEnemyCount(int newDeadEnemyCount);
 
 	int currency() const;
 	void setCurrency(int newCurrency);
@@ -280,11 +267,9 @@ signals:
 	void controlledPlayerChanged();
 	void playersChanged();
 	void gameQuestionChanged();
-	void enemyCountChanged();
 	void scatterSeriesPlayersChanged();
 	void scatterSeriesEnemiesChanged();
 	void scatterSeriesPointsChanged();
-	void deadEnemyCountChanged();
 	void currencyChanged();
 	void winnerStreakChanged();
 	void questsChanged();
@@ -345,21 +330,14 @@ private:
 	void addLocationSound(TiledObjectBody *object, const QString &sound,
 						  const qreal &baseVolume = 1.,
 						  const Sound::ChannelType &channel = Sound::Music2Channel);
-	void loadDefaultQuests(const int &questions);
+
 
 	void onGameQuestionSuccess(const QVariantMap &answer);
 	void onGameQuestionFailed(const QVariantMap &answer);
 	void onGameQuestionStarted();
 	void onGameQuestionFinished();
-	int recalculateEnemies();
 	void onMarketLoaded();
 	void onMarketUnloaded();
-
-	void checkQuests();
-	void checkEnemyQuests(const int &count);
-	void checkWinnerQuests(const int &count);
-	void checkFinalQuests();
-	void questSuccess(RpgQuest *quest);
 
 	void updateScatterEnemies();
 	void updateScatterPlayers();
@@ -398,11 +376,8 @@ private:
 	QPointer<GameQuestion> m_gameQuestion;
 	RpgQuestion *m_rpgQuestion = nullptr;
 
-	int m_enemyCount = 0;
-	int m_deadEnemyCount = 0;
 	int m_currency = 0;
 	int m_winnerStreak = 0;
-	int m_lastWinnerStreak = 0;
 	int m_baseMp = 150;
 
 	int m_level = 0;

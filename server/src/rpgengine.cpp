@@ -25,255 +25,15 @@
  */
 
 #include "rpgengine.h"
+#include "rpgevent.h"
 #include "FileAppender.h"
 #include "Logger.h"
 #include "serverservice.h"
 #include "udpserver.h"
-#include "userapi.h"
 #include <QCborArray>
 #include <QCborMap>
 
-
-
-
-/**
- * @brief The RpgEngineMessage class
- */
-
-class RpgEngineMessage
-{
-public:
-	RpgEngineMessage(const RpgGameData::Message &msg, const QList<int> &players = {}, const bool &inverse = false)
-		: m_message(msg)
-		, m_players(players)
-		, m_inverse(inverse)
-	{}
-
-	const RpgGameData::Message &message() const { return m_message; }
-	const QList<int> &players() const { return m_players; }
-	const bool &inverse() const { return m_inverse; }
-
-	const QSet<int> &sent() const { return m_sent; }
-	void addSent(const int &id) { m_sent.insert(id); }
-
-	bool canSend(const int &id) const {
-		if (m_sent.contains(id))
-			return false;
-
-		const bool &ct = m_players.contains(id);
-
-		return (m_players.isEmpty() ||
-				(!m_inverse && ct) ||
-				(m_inverse && !ct))
-				;
-
-	}
-
-private:
-	RpgGameData::Message m_message;
-	QList<int> m_players;
-	bool m_inverse;
-	QSet<int> m_sent;
-};
-
-
-
-
-
-
-
-/**
- * @brief The RpgEnginePrivate class
- */
-
-class RpgEnginePrivate
-{
-private:
-	RpgEnginePrivate(RpgEngine *engine)
-		: m_removeTimer(-1)
-		, q(engine)
-		, m_logger(new Logger(QStringLiteral("engineprivate"), false))
-	{}
-
-
-	static void sendEngineList(const RpgConfigBase &config, UdpServerPeer *peer, EngineHandler *handler);
-
-	static bool canConnect(const qint64 &peerID, const RpgConfigBase &config, RpgEngine *engine);
-
-	RpgEnginePlayer* getPlayer(UdpServerPeer *peer) const;
-	RpgEnginePlayer* getPlayer(const int &playerId) const;
-
-	void dataReceived(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff);
-	void dataReceivedChrSel(RpgEnginePlayer *player, const QByteArray &data);
-	void dataReceivedPrepare(RpgEnginePlayer *player, const QByteArray &data);
-	void dataReceivedPlay(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff);
-
-	enum SendMode {
-		SendNone = 0,
-		SendChrSel,
-		SendPrepare,
-		SendReconnect
-	};
-
-	void dataSend(const SendMode &mode, RpgEnginePlayer *player = nullptr);
-	void dataSendPlay();
-	void dataSendFinished();
-
-	void insertBaseMapData(QCborMap *dst, RpgEnginePlayer *player);
-	bool insertMessages(QCborMap *dst, RpgEnginePlayer *player);
-	void clearMessages();
-
-	void updateState();
-
-	void updatePeers();
-	bool reconnectPeer(UdpServerPeer *peer);
-	bool banOutPlayer(RpgEnginePlayer *player);
-
-
-
-	void createEnemies(const RpgGameData::CurrentSnapshot &snapshot);
-	void createControls(const RpgGameData::CurrentSnapshot &snapshot);
-	void createCollection();
-	int relocateCollection(const RpgGameData::ControlCollectionBaseData &base, const qint64 &tick, QPointF *ptr);
-	bool finishCollection(const RpgGameData::ControlCollectionBaseData &base, const int &idx);
-
-	void createRandomizer();
-
-
-	template <typename T, typename ...Args,
-			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
-	void eventAdd(Args &&...args);
-
-	template <typename T, typename ...Args,
-			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
-	void eventAddLater(Args &&...args);
-
-	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgEventBase, T>::value>::type>
-	T* eventFind(const T2 &baseData);
-
-	void eventRemove(RpgEventBase *event);
-
-
-	RpgGameData::CurrentSnapshot processEvents(const qint64 &tick);
-
-	UserAPI::UserGame toUserGame() const;
-	bool gameCreate(RpgEnginePlayer *player);
-	bool gameFinish();
-
-
-	RpgGameData::GameConfig m_gameConfig;
-	std::optional<RpgGameData::Randomizer> m_randomizer;
-
-	QElapsedTimer m_elapsedTimer;
-	qint64 m_elapsedTimerReference = 0;
-	qint64 m_lastSentTick = -1;
-	qint64 m_lastReliable = -1;
-	int m_lastMyObjectId = 0;
-
-	float m_avgCollectionMsec = 0;
-	int m_collectionGenerated = -1;
-
-	bool m_playerDataModified = false;
-
-	std::vector<std::unique_ptr<RpgEventBase>> m_events;
-	std::vector<std::unique_ptr<RpgEventBase>> m_eventsLater;
-	QList<RpgEventBase*> m_eventsRemove;
-	bool m_eventsProcessing = false;
-
-	QDeadlineTimer m_removeTimer;
-
-	bool m_locked = false;
-	QList<qint64> m_banList;
-
-
-	QList<RpgEngineMessage> m_messages;
-
-	RpgEngine *q;
-
-	std::unique_ptr<Logger> m_logger;
-	Logger *_logger() const { return m_logger.get(); }
-
-
-
-	/// ---- MEASURE ----
-
-
-	enum Measure {
-		Invalid,
-		Received,
-		Render,
-		RenderFull,
-		TimerTick,
-		TimerUpd,
-		BinaryRcv
-	};
-
-	struct MeasureData {
-		qint64 min = -1;
-		qint64 max = -1;
-		qint64 med = -1;
-		QList<qint64> data;
-
-		qint64 avg() const {
-			if (data.size() > 0) {
-				qint64 sum = std::accumulate(data.constBegin(), data.constEnd(), 0);
-				return sum/data.size();
-			} else {
-				return 0;
-			}
-		}
-
-		void add(const qint64 &ms) {
-			if (data.size() > limit)
-				data.erase(data.constBegin(), data.constBegin()+(data.size()-limit-1));
-			data.append(ms);
-
-			QList<qint64> tmp = data;
-
-			std::sort(tmp.begin(), tmp.end());
-
-			if (const auto &s = tmp.size(); s % 2 == 0)
-				med = (tmp.at(s / 2 - 1) + tmp.at(s / 2)) / 2;
-			else
-				med = tmp.at(s / 2);
-
-			if (min < 0 || ms < min)
-				min = ms;
-
-			if (max < 0 || ms > max)
-				max = ms;
-		}
-
-		int limit = 120;
-	};
-
-	QHash<Measure, MeasureData> m_renderData;
-
-	QElapsedTimer m_renderTimer;
-
-	void renderTimerStart() {
-		if (m_renderTimer.isValid())
-			m_renderTimer.restart();
-		else
-			m_renderTimer.start();
-	}
-
-	void renderTimerMeausure(const Measure &measure) {
-		m_renderData[measure].add(m_renderTimer.restart());
-	}
-
-	void renderTimerMeausure(const Measure &measure, const qint64 &msec) {
-		m_renderData[measure].add(msec);
-	}
-
-	QString renderTimerDump() const;
-	QString engineDump() const;
-
-	friend class RpgEngine;
-};
-
-
+#include "rpgengine_p.h"
 
 
 
@@ -603,6 +363,7 @@ void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 			ELOG_DEBUG << "Remove UDP PEER" << peer << "from player" << player;
 			player->setUdpPeer(nullptr);
 			eventAdd<RpgEventControlUnlock>(m_currentTick+600, *player);
+			eventAdd<RpgEventPlayerLost>(m_currentTick+600, *player);
 		}
 	} else {
 		std::erase_if(m_player, [peer](const auto &ptr) { return ptr->udpPeer() == peer; });
@@ -698,11 +459,11 @@ RpgEnginePlayer *RpgEngine::playerSetGameCompleted(const RpgGameData::PlayerBase
 	RpgEnginePlayer *p = player(base);
 
 	if (!p) {
-		LOG_CERROR("engine") << "Invalid player" << base.o;
+		LOG_CERROR("engine") << "Invalid player" << base;
 		return nullptr;
 	}
 
-	ELOG_DEBUG << "Engine" << m_id << "player" << base.o << "game completed";
+	ELOG_DEBUG << "Player" << base << "game completed";
 
 	p->m_config.finished = true;
 
@@ -720,18 +481,23 @@ RpgEnginePlayer *RpgEngine::playerSetGameCompleted(const RpgGameData::PlayerBase
  * @return
  */
 
-RpgEnginePlayer *RpgEngine::playerAddXp(const RpgGameData::PlayerBaseData &base, const int &xp)
+RpgEnginePlayer *RpgEngine::playerAddXp(const RpgGameData::PlayerBaseData &base, const int &xp, const bool &hasKill)
 {
 	RpgEnginePlayer *p = player(base);
 
 	if (!p) {
-		LOG_CERROR("engine") << "Invalid player" << base.o;
+		LOG_CERROR("engine") << "Invalid player" << base;
 		return nullptr;
 	}
 
-	ELOG_DEBUG << "Engine" << m_id << "player" << base.o << "add" << xp << "XP";
+	ELOG_DEBUG << "Player" << base << "earned" << xp << "XP";
 
 	p->m_config.xp += xp;
+
+	if (hasKill) {
+		++p->m_config.kill;
+		ELOG_DEBUG << "Player" << base << "kill count increased" << p->m_config.kill;
+	}
 
 	d->m_playerDataModified = true;
 
@@ -847,7 +613,7 @@ int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::EnemyBaseData
 		return 0;
 
 	if (prev->hp > 0 && snap.hp <= 0) {
-		ELOG_INFO << "Enemy died" << data.o << data.id;
+		ELOG_DEBUG << "Enemy died" << data;
 		eventAdd<RpgEventEnemyDied>(tick, data);
 		return 1;
 	}
@@ -873,7 +639,7 @@ int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::PlayerBaseDat
 		return 0;
 
 	if (prev->hp > 0 && snap.hp <= 0) {
-		ELOG_INFO << "Player died" << data.o << data.id;
+		ELOG_INFO << "Player died" << data;
 		eventAdd<RpgEventPlayerDied>(tick, data);
 		return 1;
 	}
@@ -1076,6 +842,37 @@ void RpgEngine::renderTimerLog(const qint64 &msec)
 
 
 /**
+ * @brief RpgEngine::getCollected
+ * @param tick
+ * @param player
+ * @param leftPtr
+ * @return
+ */
+
+int RpgEngine::getCollected(const qint64 &tick, const RpgGameData::PlayerBaseData &player, int *leftPtr)
+{
+	int coll = 0;
+	int left = 0;				// csak egy körben megszámoljuk, mennyi van még szabadon
+
+	for (const auto &c : controlCollections()) {
+		if (const auto &ptr = c.get(tick)) {
+			if (leftPtr && !ptr->own.isValid())
+				++left;
+
+			if (player.isValid() && ptr->own.isBaseEqual(player))
+				++coll;
+		}
+	}
+
+	if (leftPtr)
+		*leftPtr = left;
+
+	return coll;
+}
+
+
+
+/**
  * @brief RpgEngine::checkPlayersCompleted
  */
 
@@ -1090,7 +887,7 @@ void RpgEngine::checkPlayersCompleted()
 		ELOG_INFO << "Game timeout";
 	} else {
 		for (const auto &pl : m_player) {
-			if (!pl->config().finished) {
+			if (!pl->config().finished && !pl->isLost() && pl->udpPeer()) {
 				completed = false;
 				break;
 			}
@@ -1103,7 +900,7 @@ void RpgEngine::checkPlayersCompleted()
 	ELOG_INFO << "All players completed!!!";
 
 	m_config.gameState = RpgConfig::StateFinished;
-	d->m_removeTimer.setRemainingTime(5000);
+	d->m_removeTimer.setRemainingTime(10000);
 
 	d->gameFinish();
 }
@@ -1211,16 +1008,18 @@ void RpgEngine::preparePlayers()
 
 		ptr->setStartPosition(pos);
 
-		const RpgGameData::CharacterSelect &config = ptr->config();
+		RpgGameData::CharacterSelect config = ptr->config();
 
-		ptr->mmp = config.maxMp;
+		config.maxHp = std::max(config.maxHp, 20);
+		//ptr->mmp = config.maxMp;
+
+		ptr->setConfig(config);
 
 		RpgGameData::Player pdata;
 		pdata.p = {pos.x, pos.y};
 		pdata.f = 0;
 		pdata.sc = pos.scene;
 		pdata.hp = std::max(config.maxHp, 13);			// TODO: from m_config
-		pdata.mhp = std::max(config.maxHp, 20);
 		pdata.mp = config.mp;
 
 		if (!config.armory.wl.isEmpty()) {
@@ -1239,7 +1038,7 @@ void RpgEngine::preparePlayers()
 			LOG_CINFO("engine") << "SET AUTO ARMORY" << pdata.arm.cw << pdata.arm.s << pdata.arm.wl.size();*/
 		}
 
-		ELOG_INFO << "SET ARMORY" << pdata.arm.cw << pdata.arm.s << "size" <<  pdata.arm.wl.size() << *ptr;
+		ELOG_INFO << "SET ARMORY" << pdata.arm.cw << pdata.arm.s << "size" <<  pdata.arm.wl.size() << *ptr << "***MHP" << ptr->config().maxHp;
 
 		m_snapshots.playerAdd(*ptr, pdata);
 	}
@@ -1403,6 +1202,8 @@ void RpgEnginePrivate::dataReceived(RpgEnginePlayer *player, const QByteArray &d
 		dataReceivedPrepare(player, data);
 	else if (q->m_config.gameState == RpgConfig::StatePlay)
 		dataReceivedPlay(player, data, diff);
+	else if (q->m_config.gameState == RpgConfig::StateFinished)
+		dataReceivedFinished(player, data, diff);
 
 
 }
@@ -1554,6 +1355,16 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 		return;
 	}
 
+
+	RpgGameData::CharacterSelect character;
+	character.fromCbor(m);
+
+	if (character.playerId == player->playerId()) {
+		updatePlayer(player, character);
+		return;
+	}
+
+
 	if (q->m_currentTick <= 0 || player->udpPeer()->isReconnecting()) {
 		if (m.value(QStringLiteral("full")).toBool(false)) {
 			player->setIsFullyPrepared(true);
@@ -1569,6 +1380,63 @@ void RpgEnginePrivate::dataReceivedPlay(RpgEnginePlayer *player, const QByteArra
 	q->m_snapshots.registerSnapshot(player, m, diff);
 
 	renderTimerMeausure(Received, timer2.elapsed());
+}
+
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::dataReceivedFinished
+ * @param player
+ * @param data
+ * @param diff
+ */
+
+void RpgEnginePrivate::dataReceivedFinished(RpgEnginePlayer *player, const QByteArray &data, const qint64 &/*diff*/)
+{
+	Q_ASSERT(player);
+
+	QCborMap m = QCborValue::fromCbor(data).toMap();
+
+	RpgGameData::CharacterSelect character;
+	character.fromCbor(m);
+
+	if (character.playerId == player->playerId()) {
+		if (updatePlayer(player, character))
+			gameUpdate(player);
+	}
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::updatePlayer
+ * @param player
+ * @param data
+ */
+
+bool RpgEnginePrivate::updatePlayer(RpgEnginePlayer *player, const RpgGameData::CharacterSelect &data)
+{
+	if (!player) {
+		LOG_CERROR("engine") << "Invalid player";
+		return false;
+	}
+
+	bool hasModified = false;
+
+	if (player->m_config.cur != data.cur) {
+		ELOG_DEBUG << "Player" << *player << "currency changed" << player->m_config.cur << "->" << data.cur;
+		player->m_config.cur = data.cur;
+		hasModified = true;
+	}
+
+	//...
+
+	if (hasModified)
+		m_playerDataModified = true;
+
+	return hasModified;
 }
 
 
@@ -1787,12 +1655,23 @@ void RpgEnginePrivate::dataSendFinished()
 		insertBaseMapData(&map, it->get());
 		insertMessages(&map, it->get());
 
+		if (const QJsonObject &final = it->get()->m_final; !final.isEmpty()) {
+			map.insert(QStringLiteral("final"), QCborMap::fromJsonObject(final));
+		}
+
 		peer->send(map.toCborValue().toCbor(), true);
 
 		peer->setLastSentTick(tick);
 	}
 
 	clearMessages();
+
+#ifdef WITH_FTXUI
+	QCborMap map;
+	map.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+	map.insert(QStringLiteral("txt"), QString::fromUtf8(QJsonDocument(current.toJsonObject()).toJson()));
+	q->service()->writeToSocket(map.toCborValue());
+#endif
 }
 
 
@@ -2087,9 +1966,13 @@ bool RpgEnginePrivate::reconnectPeer(UdpServerPeer *peer)
 				if (!q->m_hostPlayer)
 					q->setHostPlayer(ptr.get());
 
-				if (RpgEventControlUnlock *e = q->eventFind<RpgEventControlUnlock>(*ptr.get())) {
+				if (RpgEventControlUnlock *e = q->eventFind<RpgEventControlUnlock>(*ptr.get()))
 					eventRemove(e);
-				}
+
+				if (RpgEventPlayerLost *e = q->eventFind<RpgEventPlayerLost>(*ptr.get()))
+					eventRemove(e);
+
+				q->eventAdd<RpgEventPlayerResurrect>(q->m_currentTick+1, *ptr.get());
 
 				return true;
 			} else {
@@ -2159,7 +2042,6 @@ void RpgEnginePrivate::createEnemies(const RpgGameData::CurrentSnapshot &snapsho
 
 			edata.f = 0;
 			edata.hp = 32;
-			edata.mhp = 32;
 
 			q->m_snapshots.enemyAdd(enemy, edata);
 		}
@@ -2503,82 +2385,6 @@ Logger *RpgEventBase::_logger() const
 
 
 /**
- * @brief RpgEnginePrivate::eventAddLater
- * @param args
- */
-template<typename T, typename ...Args, typename T3>
-void RpgEnginePrivate::eventAddLater(Args &&...args)
-{
-	std::unique_ptr<T> e(new T(q, std::forward<Args>(args)...));
-
-	for (const auto &ptr : m_events) {
-		if (ptr->isUnique() && ptr->isEqual(e.get())) {
-			ELOG_WARNING << "Event unique constraint failed";
-			return;
-		}
-	}
-
-	for (const auto &ptr : m_eventsLater) {
-		if (ptr->isUnique() && ptr->isEqual(e.get())) {
-			ELOG_WARNING << "Event unique constraint failed";
-			return;
-		}
-	}
-
-	m_eventsLater.push_back(std::move(e));
-}
-
-
-
-
-/**
- * @brief RpgEnginePrivate::eventAdd
- * @param args
- */
-
-template<typename T, typename ...Args, typename T3>
-void RpgEnginePrivate::eventAdd(Args &&...args)
-{
-	if (m_eventsProcessing) {
-		eventAddLater<T>(std::forward<Args>(args)...);
-		return;
-	}
-
-	std::unique_ptr<T> e(new T(q, std::forward<Args>(args)...));
-
-	for (const auto &ptr : m_events) {
-		if (ptr->isUnique() && ptr->isEqual(e.get())) {
-			ELOG_ERROR << "Event unique constraint failed";
-			return;
-		}
-	}
-
-	m_events.push_back(std::move(e));
-}
-
-
-
-/**
- * @brief RpgEnginePrivate::eventFind
- * @param baseData
- * @return
- */
-
-template<typename T, typename T2, typename T3>
-T *RpgEnginePrivate::eventFind(const T2 &baseData)
-{
-	for (const auto &ptr : m_events) {
-		if (T* e = dynamic_cast<T*>(ptr.get()); e && e->baseData() == baseData)
-			return e;
-	}
-
-	return nullptr;
-}
-
-
-
-
-/**
  * @brief RpgEnginePrivate::eventRemove
  * @param event
  */
@@ -2589,35 +2395,10 @@ void RpgEnginePrivate::eventRemove(RpgEventBase *event)
 }
 
 
-
-
-
 /**
- * @brief RpgEngine::eventAdd
- * @param args
+ * @brief RpgEngine::eventRemove
+ * @param event
  */
-
-template<typename T, typename ...Args, typename T3>
-void RpgEngine::eventAdd(Args &&...args)
-{
-	d->eventAdd<T>(std::forward<Args>(args)...);
-}
-
-
-
-template<typename T, typename ...Args, typename T3>
-void RpgEngine::eventAddLater(Args &&...args)
-{
-	d->eventAddLater<T>(std::forward<Args>(args)...);
-}
-
-
-
-template<typename T, typename T2, typename T3>
-T *RpgEngine::eventFind(const T2 &data)
-{
-	return d->eventFind<T>(data);
-}
 
 
 void RpgEngine::eventRemove(RpgEventBase *event)
@@ -2755,6 +2536,8 @@ bool RpgEnginePrivate::gameFinish()
 		return false;
 	}
 
+	const int duration = q->m_currentTick * 1000./60.;
+
 	for (const auto &pl : q->m_player) {
 		if (pl->config().finished) {
 			pl->m_finalSuccess = true;
@@ -2765,9 +2548,67 @@ bool RpgEnginePrivate::gameFinish()
 			continue;
 		}
 
+		const auto &players = q->players();
+
+		const auto pit = std::find_if(players.cbegin(),
+									  players.cend(),
+									  [&pl](const auto &p){
+			return p.data.isBaseEqual(*pl);
+		});
+
+		if (pit == players.cend() || pit->list.empty()) {
+			ELOG_ERROR << "Invalid player" << *pl;
+			continue;
+		}
+
+		const RpgGameData::Player playerData = pit->get(q->m_currentTick).value();
+
+		const bool success = playerData.c >= pl->rq;
+
+		ELOG_INFO << "Finish game" << pl->m_gameId
+				  << (success ? "SUCCESS" : "FAILED")
+				  << "for" << qPrintable(pl->config().username)
+				  << "with" << pl->config().xp << "XP," << pl->config().cur << "currency,"
+				  << duration << "msec";
+
+		gameUpdate(pl.get());
+
 		api->gameFinish(pl->config().username, pl->m_gameId, game, {}, {},
-						false, pl->config().xp, q->m_currentTick * 1000./60., nullptr);
+						success, pl->config().xp, duration, nullptr, &pl->m_final);
 	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::gameUpdate
+ * @param player
+ * @return
+ */
+
+bool RpgEnginePrivate::gameUpdate(RpgEnginePlayer *player)
+{
+	if (!player)
+		return false;
+
+	WebServer *server = q->m_service->webServer().lock().get();
+
+	if (!server || !server->handler()) {
+		LOG_CERROR("engine") << "WebServer not found";
+		return false;
+	}
+
+	UserAPI::UserGame game = toUserGame();
+	UserAPI *api = server->handler()->api<UserAPI>("user");
+
+	if (!api) {
+		LOG_CERROR("engine") << "UserAPI not found";
+		return false;
+	}
+
+	api->setCurrency(player->config().username, player->m_gameId, player->config().cur);
 
 	return true;
 }
@@ -2886,685 +2727,6 @@ QString RpgEnginePrivate::engineDump() const
 
 
 
-
-
-
-/**
- * @brief RpgEventEnemyDied::process
- * @return
- */
-
-bool RpgEventEnemyDied::process(const qint64 &/*tick*/, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_UNUSED(dst);
-
-	ELOG_DEBUG << "Enemy died processed" << m_data << "@" << m_tick;
-
-	bool allDead = true;
-
-	for (const auto &ptr : m_engine->enemies()) {
-		if (ptr.data == m_data)
-			continue;
-
-		if (ptr.list.empty()) {
-			allDead = false;
-			break;
-		}
-
-		if (ptr.get(m_tick)->hp > 0) {
-			allDead = false;
-			break;
-		}
-	}
-
-	if (allDead) {
-		ELOG_INFO << "All enemies died";
-		m_engine->eventAdd<RpgEventEnemyResurrect>(m_tick+180);
-	}
-
-	return true;
-}
-
-
-
-
-/**
- * @brief RpgEventEnemyResurrect::process
- * @return
- */
-
-bool RpgEventEnemyResurrect::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_ASSERT(dst);
-
-	if (tick < m_tick)
-		return false;
-
-	for (const auto &ptr : m_engine->enemies()) {
-		if (ptr.list.empty())
-			continue;
-
-		RpgGameData::Enemy edata = ptr.get(m_tick).value();
-		edata.f = m_tick;
-		edata.hp = 32;
-
-		dst->assign(dst->enemies, ptr.data, edata);
-	}
-
-	return true;
-}
-
-
-
-
-
-/**
- * @brief RpgEventPlayerDied::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventPlayerDied::process(const qint64 &/*tick*/, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_UNUSED(dst);
-
-	ELOG_DEBUG << "Player died processed" << m_data << "@" << m_tick;
-
-	RpgGameData::Message msg;
-
-	if (RpgEnginePlayer *player = m_engine->player(m_data)) {
-		msg.m = QStringLiteral("%1 died").arg(player->config().nickname.isEmpty() ?
-												  player->config().username :
-												  player->config().nickname);
-	} else {
-		msg.m = QStringLiteral("Player %1 died").arg(m_data.o);
-	}
-
-
-	m_engine->eventAdd<RpgEventPlayerResurrect>(m_tick+300, m_data);
-	m_engine->messageAdd(msg, QList<int>{m_data.o}, true);
-
-	return true;
-}
-
-
-
-
-
-/**
- * @brief RpgEventPlayerResurrect::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventPlayerResurrect::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_ASSERT(dst);
-
-	if (tick < m_tick)
-		return false;
-
-	const auto &pl = m_engine->players();
-
-	const auto it = std::find_if(pl.cbegin(),
-								 pl.cend(),
-								 [this](const auto &p){
-		return p.data == m_data;
-	});
-
-	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid player" << m_data;
-		return true;
-	}
-
-	RpgGameData::Player player;
-
-	if (!it->list.empty())
-		player = it->get(m_tick).value();
-
-	player.f = m_tick;
-	player.hp = 45;
-
-	dst->assign(dst->players, m_data, player);
-
-	return true;
-}
-
-
-
-/**
- * @brief RpgEventCollectionRelocate::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventCollectionUsed::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_ASSERT(dst);
-
-	if (tick < m_tick)
-		return false;
-
-	const auto &pl = m_engine->controlCollections();
-
-	const auto it = std::find_if(pl.cbegin(),
-								 pl.cend(),
-								 [this](const auto &p){
-		return p.data == m_data;
-	});
-
-	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid collection" << m_data;
-		return true;
-	}
-
-	RpgGameData::ControlCollection d;
-
-	if (!it->list.empty())
-		d = it->get(m_tick).value();
-
-	d.f = m_tick;
-	d.u = {};
-
-	const auto &players = m_engine->players();
-
-	const auto pit = std::find_if(players.cbegin(),
-								  players.cend(),
-								  [this](const auto &p){
-		return p.data.isBaseEqual(m_player);
-	});
-
-
-	if (m_success) {
-		d.a = false;
-		d.own = m_player;
-
-		if (pit == players.cend() || pit->list.empty()) {
-			ELOG_ERROR << "Invalid player" << m_data;
-		} else {
-			RpgGameData::Player playerData = pit->get(m_tick).value();
-			playerData.c++;
-			dst->assign(dst->players, m_player, playerData);
-
-			const int left = pit->data.rq - playerData.c;
-
-			if (left > 1)
-				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Collect %1 more items").arg(left), true),
-									 QList<int>{m_player.o});
-			else if (left > 0)
-				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Collect 1 more item"), true),
-									 QList<int>{m_player.o});
-			else
-				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("All required items collected"), true),
-									 QList<int>{m_player.o});
-		}
-
-		m_engine->eventAdd<RpgEventCollectionPost>(m_tick+1, m_data, true);
-
-	} else {
-		if (pit == players.cend() || pit->list.empty()) {
-			ELOG_ERROR << "Invalid player" << m_data;
-		} else {
-			RpgGameData::Player playerData = pit->get(m_tick).value();
-			playerData.controlFailed(RpgConfig::ControlCollection);
-
-			dst->assign(dst->players, m_player, playerData);
-		}
-
-		m_engine->eventAdd<RpgEventCollectionPost>(m_tick+180, m_data, false);
-	}
-
-	dst->assign(dst->controls.collections, m_data, d);
-
-	return true;
-}
-
-
-
-
-
-
-/**
- * @brief RpgEventControlUnlock::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventControlUnlock::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_ASSERT(dst);
-
-	if (tick < m_tick)
-		return false;
-
-
-	const auto &pp = m_engine->players();
-
-	if (const auto &it = std::find_if(pp.cbegin(),
-									  pp.cend(),
-									  [this](const auto &pd){
-									  return pd.data == m_data;
-}); it != pp.cend() && !it->list.empty()) {
-		RpgGameData::Player d = it->get(m_tick).value();
-
-		d.l = false;
-
-		ELOG_TRACE << "Unlock player" << it->data;
-		dst->assign(dst->players, m_data, d);
-	}
-
-	const auto &pl = m_engine->controlContainers();
-
-
-
-	for (const auto &ptr : pl) {
-		if (ptr.list.empty())
-			continue;
-
-		RpgGameData::ControlContainer d = ptr.get(m_tick).value();
-
-		if (d.u.isBaseEqual(m_data) && d.st == RpgGameData::ControlContainer::ContainerClose) {
-			d.u = {};
-			d.a = true;
-			ELOG_TRACE << "Unlock container" << ptr.data;
-			dst->assign(dst->controls.containers, ptr.data, d);
-		}
-	}
-
-
-
-	const auto &pc = m_engine->controlCollections();
-
-	for (const auto &ptr : pc) {
-		if (ptr.list.empty())
-			continue;
-
-		RpgGameData::ControlCollection d = ptr.get(m_tick).value();
-
-		if (d.u.isBaseEqual(m_data) && !d.own.isValid()) {
-			d.u = {};
-			d.a = true;
-			ELOG_TRACE << "Unlock collection" << ptr.data;
-			dst->assign(dst->controls.collections, ptr.data, d);
-		}
-	}
-
-
-	return true;
-}
-
-
-
-/**
- * @brief RpgEventPickablePicked::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_ASSERT(dst);
-
-	if (tick < m_tick)
-		return false;
-
-	const auto &pl = m_engine->pickables();
-
-	const auto it = std::find_if(pl.cbegin(),
-								 pl.cend(),
-								 [this](const auto &p){
-		return p.data == m_data;
-	});
-
-	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid pickable" << m_data;
-		return true;
-	}
-
-
-	RpgGameData::Player pData;
-
-	const auto &pp = m_engine->players();
-
-	if (const auto &it = std::find_if(pp.cbegin(),
-									  pp.cend(),
-									  [this](const auto &pd){
-									  return pd.data == m_player;
-}); it != pp.cend() && !it->list.empty()) {
-		pData = it->get(m_tick).value();
-	} else {
-		ELOG_ERROR << "Invalid player" << m_player;
-		return true;
-	}
-
-
-	RpgGameData::Pickable d;
-
-	if (!it->list.empty())
-		d = it->get(m_tick).value();
-
-	d.f = m_tick;
-	d.u = {};
-	d.a = false;
-	d.own = m_player;
-	d.st = RpgGameData::LifeCycle::StageDead;
-
-	dst->assign(dst->controls.pickables, m_data, d);
-
-
-
-	pData.f = m_tick;
-
-	if (pData.pick(m_data.pt)) {
-		ELOG_INFO << "###### FINISH PICKABLE" << m_tick << m_data.id << "--->" << m_player.o;
-		ELOG_INFO << "!!!!! ADD HP" << pData.f << pData.hp;
-		dst->assign(dst->players, m_player, pData);
-	} else {
-		ELOG_ERROR << "###### PICKABLE PROCESS FAILED" << m_data.pt << m_tick << "--->" << m_player.o;
-	}
-
-	return true;
-}
-
-
-
-
-
-/**
- * @brief RpgEventContainerOpened::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventContainerUsed::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_UNUSED(dst);
-
-	if (tick < m_tick)
-		return false;
-
-	ELOG_DEBUG << "Container use processed" << m_data << m_success << "@" << m_tick;
-
-	if (!m_success) {
-		const auto &pl = m_engine->players();
-
-		const auto it = std::find_if(pl.cbegin(),
-									 pl.cend(),
-									 [this](const auto &p){
-			return p.data.isBaseEqual(m_player);
-		});
-
-		if (it == pl.cend() || it->list.empty()) {
-			ELOG_ERROR << "Invalid player" << m_data;
-			return true;
-		}
-
-		RpgGameData::Player playerData = it->get(m_tick).value();
-		playerData.controlFailed(RpgConfig::ControlContainer);
-
-		dst->assign(dst->players, m_player, playerData);
-
-
-	} else {
-		for (const RpgGameData::PickableBaseData &base : m_pickables) {
-			const auto &pl = m_engine->pickables();
-
-			const auto it = std::find_if(pl.cbegin(),
-										 pl.cend(),
-										 [&base](const auto &p){
-				return p.data == base;
-			});
-
-			if (it == pl.cend()) {
-				ELOG_ERROR << "Invalid pickable" << m_data;
-				continue;
-			}
-
-			RpgGameData::Pickable d;
-
-			if (!it->list.empty())
-				d = it->get(m_tick).value();
-
-			d.f = m_tick;
-			d.u = {};
-			d.a = true;
-			d.own = {};
-			d.st = RpgGameData::LifeCycle::StageLive;
-
-			dst->assign(dst->controls.pickables, base, d);
-		}
-	}
-
-	return true;
-}
-
-
-
-
-/**
- * @brief RpgEventCollectionPost::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventCollectionPost::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_ASSERT(dst);
-
-	if (tick < m_tick)
-		return false;
-
-	const auto &pl = m_engine->controlCollections();
-
-	const auto it = std::find_if(pl.cbegin(),
-								 pl.cend(),
-								 [this](const auto &p){
-		return p.data == m_data;
-	});
-
-	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid collection" << m_data;
-		return true;
-	}
-
-	RpgGameData::ControlCollection d;
-
-	if (!it->list.empty())
-		d = it->get(m_tick).value();
-
-	if (m_success) {
-		if (!m_engine->finishCollection(it->data, d.idx)) {
-			ELOG_ERROR << "Finish colection failed" << it->data;
-		}
-
-		int left = -1;
-		bool hasMissing = false;		// van-e, akinek még hiányzik
-
-		// Recalculate collections
-
-		for (const auto &p : m_engine->players()) {
-			if (p.list.empty()) {
-				ELOG_ERROR << "Empty player snap list";
-				continue;
-			}
-
-			RpgGameData::Player playerData = p.get(m_tick).value();
-
-			int coll = 0;
-			int l = 0;				// csak egy körben megszámoljuk, mennyi van még szabadon
-
-			for (const auto &c : m_engine->controlCollections()) {
-				if (const auto &ptr = c.get(m_tick)) {
-					if (left < 0 && !ptr->own.isValid())
-						++l;
-
-					if (ptr->own.isBaseEqual(p.data))
-						++coll;
-				}
-			}
-
-			if (left < 0)
-				left = l;
-
-			playerData.c = coll;
-
-			if (coll < p.data.rq)
-				hasMissing = true;
-
-			dst->assign(dst->players, p.data, playerData);
-		}
-
-		if (left == 0) {
-			ELOG_INFO << "All items collected, open teleports";
-
-			bool hasTeleport = false;
-
-			for (const auto &p : m_engine->controlTeleports()) {
-				// Nem final teleportok kihagyása
-				if (p.data.dst.isValid())
-					continue;
-
-				if (p.list.empty()) {
-					ELOG_ERROR << "Empty player snap list";
-					continue;
-				}
-
-				hasTeleport = true;
-
-				RpgGameData::ControlTeleport pData = p.get(m_tick).value();
-
-				pData.a = true;
-
-				dst->assign(dst->controls.teleports, p.data, pData);
-
-			}
-
-			if (hasTeleport)
-				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Escape through the teleporter"), true));
-
-		} else if (!hasMissing && !m_engine->hasMessageSent(RpgEngine::MessageCollectAllRemaining)) {
-			m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Collect all the remaining items"), true));
-			m_engine->setMessageSent(RpgEngine::MessageCollectAllRemaining);
-		}
-
-
-	} else {
-		d.f = m_tick;
-		d.u = {};
-		d.a = true;
-		d.own = {};
-
-		QPointF p;
-		const int idx = m_engine->relocateCollection(it->data, m_tick, &p);
-
-		ELOG_DEBUG << "Relocate collection" << m_data << "->" << idx << p << "@" << m_tick;
-
-		if (idx >= 0) {
-			d.idx = idx;
-			d.p = QList<float>{(float) p.x(), (float) p.y()};
-		}
-
-		dst->assign(dst->controls.collections, m_data, d);
-	}
-
-	return true;
-}
-
-
-
-
-/**
- * @brief RpgEventTeleportUsed::process
- * @param tick
- * @param dst
- * @return
- */
-
-bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst)
-{
-	Q_ASSERT(dst);
-
-	if (tick < m_tick)
-		return false;
-
-	const auto &pl = m_engine->controlTeleports();
-
-	const auto it = std::find_if(pl.cbegin(),
-								 pl.cend(),
-								 [this](const auto &p){
-		return p.data == m_data;
-	});
-
-	if (it == pl.cend()) {
-		ELOG_ERROR << "Invalid teleport" << m_data;
-		return true;
-	}
-
-
-	RpgGameData::Player pData;
-
-	const auto &pp = m_engine->players();
-
-	if (const auto &it = std::find_if(pp.cbegin(),
-									  pp.cend(),
-									  [this](const auto &pd){
-									  return pd.data == m_player;
-}); it != pp.cend() && !it->list.empty()) {
-		pData = it->get(m_tick).value();
-	} else {
-		ELOG_ERROR << "Invalid player" << m_player;
-		return true;
-	}
-
-	if (pData.useTeleport(m_data, m_player)) {
-		ELOG_INFO << "Teleport used" << m_data << "by player" << m_player << "@" << m_tick;
-		dst->assign(dst->players, m_player, pData);
-
-		// Hideout
-
-		if (m_data.hd)
-			return true;
-
-		// Final teleport
-
-		if (!m_data.dst.isValid()) {
-			if (RpgEnginePlayer *enginePlayer = m_engine->playerSetGameCompleted(m_player)) {
-				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("%1 mission completed").arg(enginePlayer->config().nickname.isEmpty() ?
-																										 enginePlayer->config().username :
-																										 enginePlayer->config().nickname),
-														  true),
-									 QList<int>{m_data.o}, true);
-			} else {
-				ELOG_ERROR << "Invalid player" << m_player.o;
-			}
-		}
-
-
-
-	} else {
-		ELOG_ERROR << "Player teleport" << m_data << "usage failed for player" << m_player;
-
-		const int left = std::max(1, m_player.rq - pData.c);
-
-		if (left > 1)
-			m_engine->messageAdd(RpgGameData::Message(QStringLiteral("%1 items missing").arg(left), false),
-								 QList<int>{m_player.o});
-		else
-			m_engine->messageAdd(RpgGameData::Message(QStringLiteral("1 item missing"), false),
-								 QList<int>{m_player.o});
-	}
-
-	return true;
-}
-
-
 /**
  * @brief RpgEnginePlayer::peerID
  * @return
@@ -3594,4 +2756,14 @@ const RpgGameData::PlayerPosition &RpgEnginePlayer::startPosition() const
 void RpgEnginePlayer::setStartPosition(const RpgGameData::PlayerPosition &newStartPosition)
 {
 	m_startPosition = newStartPosition;
+}
+
+bool RpgEnginePlayer::isLost() const
+{
+	return m_isLost;
+}
+
+void RpgEnginePlayer::setIsLost(bool newIsLost)
+{
+	m_isLost = newIsLost;
 }

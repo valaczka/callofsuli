@@ -59,10 +59,11 @@ private:
 
 	void updateBody(TiledObjectBody *body, const bool &isHosted);
 	void resetEngine();
+	void sendPlayerData();
 
 	RpgGameData::Armory getArmory() const;
 
-private:
+
 	template <typename T, typename T2, typename T3,
 			  typename = std::enable_if<std::is_base_of<RpgGameDataInterface<T2, T3>, T>::value>::type
 			  >
@@ -85,6 +86,8 @@ private:
 		}
 	}
 
+
+private:
 	RpgGameData::FullSnapshot m_currentSnapshot;
 
 	qint64 m_lastSentTick = -1;
@@ -97,6 +100,10 @@ private:
 
 	bool m_isReconnecting = false;
 	bool m_hasReconnected = false;
+
+	int m_questCurrency = 0;
+
+	QJsonObject m_finalData;
 
 	class TimeSync {
 	public:
@@ -468,6 +475,29 @@ void ActionRpgMultiplayerGame::connectToEngine(const int &id)
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::setFinalData
+ * @param data
+ */
+
+void ActionRpgMultiplayerGame::setFinalData(const QJsonObject &data)
+{
+	q->m_finalData = data;
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::finalData
+ * @return
+ */
+
+const QJsonObject &ActionRpgMultiplayerGame::finalData() const
+{
+	return q->m_finalData;
+}
+
+
+
+/**
  * @brief ActionRpgMultiplayerGame::disconnect
  */
 
@@ -555,6 +585,7 @@ void ActionRpgMultiplayerGame::onConfigChanged()
 
 
 	if (m_config.gameState == RpgConfig::StateFinished && m_oldGameState == RpgConfig::StatePlay) {
+		checkFinalQuests();
 		emit m_rpgGame->gameSuccess();
 	}
 
@@ -809,6 +840,28 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::questSuccess
+ * @param quest
+ */
+
+void ActionRpgMultiplayerGame::questSuccess(RpgQuest *quest)
+{
+	Q_ASSERT(quest);
+
+	if (!m_rpgGame)
+		return;
+
+	quest->success++;
+	///m_rpgGame->setCurrency(m_rpgGame->m_currency+quest->currency);
+
+	q->m_questCurrency += quest->currency;
+
+	q->sendPlayerData();
+}
+
+
+
+/**
  * @brief ActionRpgMultiplayerGame::changeGameState
  * @param state
  */
@@ -1005,6 +1058,7 @@ void ActionRpgMultiplayerGame::updatePlayersModel()
 				if (player == m_rpgGame->m_controlledPlayer) {
 					setXp(p.xp);
 					m_rpgGame->setCurrency(p.cur);
+					checkEnemyQuests(p.kill);
 				}
 			}
 		}
@@ -1130,7 +1184,7 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 		});
 
 		if (it == m_rpgGame->m_players.end()) {
-			LOG_CWARNING("game") << "Missing player" << pl.data.s << pl.data.id << pl.data.o << "RQ" << pl.data.rq;
+			LOG_CWARNING("game") << "Missing player" << pl.data << "RQ" << pl.data.rq;
 
 			RpgGameData::Player pd;
 
@@ -1156,6 +1210,9 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 			if (pl.data.o == m_playerId) {
 				m_rpgGame->setFollowedItem(rpgPlayer);
 				m_rpgGame->setControlledPlayer(rpgPlayer);
+
+				loadWinnerQuests(pl.data.rq);
+				loadEnemyQuests();
 			}
 
 			if (q->m_hasReconnected) {
@@ -1522,7 +1579,7 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 		return nullptr;
 	}
 
-	const RpgGameData::CharacterSelect chData = *it;
+	const RpgGameData::CharacterSelect chData = *it;			// Ezt a szerver küldi!
 
 
 	const auto characterPtr = RpgGame::characters().find(chData.character);
@@ -1543,10 +1600,10 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 	player->baseData() = config;
 	player->setCollectionRq(config.rq);
 	player->setCollection(0);
-	player->setMaxHp(playerData.mhp);
+	player->setMaxHp(chData.maxHp);
 	player->setHp(playerData.hp);
-	player->setMaxMp(characterPtr->mpMax);
-	player->setMp(characterPtr->mpStart);
+	player->setMaxMp(chData.maxMp);
+	player->setMp(playerData.mp);
 	player->armory()->updateFromSnapshot(playerData.arm);
 
 	loadInventory(player);
@@ -1628,7 +1685,7 @@ void ActionRpgMultiplayerGame::onTimeStepped()
 		LOG_CERROR("game") << "Time reset" << curr << "->" << tick;
 		m_rpgGame->tickTimer()->start(this, tick);
 	} else if (diff > delta) {
-		LOG_CWARNING("game") << "Time skew +1 frame" << curr << "->" << tick;
+		LOG_CDEBUG("game") << "Time skew +1 frame" << curr << "->" << tick;
 		m_rpgGame->tickTimer()->start(this, curr+1);
 	} else if (diff < -2*delta) {
 		LOG_CWARNING("game") << "Time skew -1 frame" << curr << "->" << tick;
@@ -1727,6 +1784,10 @@ void ActionRpgMultiplayerGame::onTimeAfterWorldStep(const qint64 &tick)
 	q->m_lastSentTick = tick;
 
 	q->m_toSend.clear();
+
+
+	if (forceKeyFrame)
+		q->sendPlayerData();
 
 	/*
 #ifdef WITH_FTXUI
@@ -1915,6 +1976,8 @@ void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgActiveIfa
 	if (!control)
 		return;
 
+	checkWinnerQuests();
+
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerUseControl;
 	p.tg = control->pureBaseData();
@@ -1935,6 +1998,8 @@ void ActionRpgMultiplayerGame::onQuestionSuccess(RpgPlayer *player, RpgActiveIfa
 void ActionRpgMultiplayerGame::onQuestionFailed(RpgPlayer *player, RpgActiveIface *control)
 {
 	setIsFlawless(false);
+
+	checkWinnerQuests();
 
 	RpgGameData::Player p = player->serialize(m_rpgGame->tickTimer()->currentTick());
 	p.st = RpgGameData::Player::PlayerUnlockControl;
@@ -2385,9 +2450,10 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 		for (RpgGame::EnemyData &e : m_rpgGame->m_enemyDataList) {
 			RpgGameData::EnemyBaseData eData(e.type, -1, e.objectId.sceneId, e.objectId.id);
 
-			if (RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(e.enemy.get()))
+			if (RpgEnemy *enemy = dynamic_cast<RpgEnemy*>(e.enemy.get())) {
 				snap.assign(snap.enemies, eData, enemy->serialize(0));
-			else
+				eData.mhp = enemy->maxHp();
+			} else
 				snap.assign(snap.enemies, eData, RpgGameData::Enemy());
 
 		}
@@ -2547,6 +2613,29 @@ void ActionRpgMultiplayerGamePrivate::resetEngine()
 	d->m_engine->setGameState(RpgConfig::StateConnect);
 
 	d->changeGameState(RpgConfig::StateConnect);
+}
+
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGamePrivate::sendPlayerData
+ */
+
+void ActionRpgMultiplayerGamePrivate::sendPlayerData()
+{
+	if (!d->m_rpgGame)
+		return;
+
+	RpgGameData::CharacterSelect data;
+	data.playerId = d->playerId();
+	data.cur = m_questCurrency; //d->m_rpgGame->currency();
+
+	QCborMap m = data.toCborMap(RpgGameData::CharacterSelect().toCborMap());
+
+	LOG_CINFO("game") << "### SEND" << m;
+
+	d->sendData(m.toCborValue().toCbor(), true);
 }
 
 

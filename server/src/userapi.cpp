@@ -973,14 +973,14 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, const UserGame &game,
 										const QJsonObject &inventory, const QJsonArray &statistics,
 										const bool &success, const int &xp, const int &duration,
-										bool *okPtr)
+										bool *okPtr, QJsonObject *retPtr)
 {
 	if (okPtr)
 		*okPtr = false;
 
 	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username);
 
-	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr);
+	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr, retPtr);
 
 	// Statistics
 
@@ -1187,6 +1187,9 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 
 	if (okPtr)
 		*okPtr = true;
+
+	if (retPtr)
+		*retPtr = retObj;
 
 	LAMBDA_THREAD_END;
 }
@@ -1454,6 +1457,25 @@ QHttpServerResponse UserAPI::buy(const Credential &credential, const QJsonObject
 	response = responseOk();
 
 	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+
+/**
+ * @brief UserAPI::setCurrency
+ * @param username
+ * @param gameid
+ * @param amount
+ */
+
+void UserAPI::setCurrency(const QString &username, const int &gameid, const int &amount) const
+{
+	databaseMainWorker()->execInThread([this, username, gameid, amount]() {
+		_setCurrency(username, gameid, amount);
+	});
 }
 
 
