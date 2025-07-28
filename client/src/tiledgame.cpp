@@ -388,7 +388,7 @@ Tiled::TileLayer *TiledGame::loadSceneLayer(TiledScene *scene, Tiled::Layer *lay
 	LOG_CTRACE("game") << "Load layer" << layer->id() << layer->name() << "to scene" << scene->sceneId();
 
 	if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-		scene->addTileLayer(tl, renderer);
+		loadTileLayer(scene, tl, renderer);
 	} else if (Tiled::ObjectGroup *group = layer->asObjectGroup()) {
 		loadObjectLayer(scene, group, renderer);
 	} else if (Tiled::GroupLayer *group = layer->asGroupLayer()) {
@@ -610,12 +610,12 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			loadDynamicZ(scene, object, renderer);
 		} else if (className == QStringLiteral("light")) {
 			scene->addLightObject(object);
-		} else if (className == QStringLiteral("viewport")) {
+		} /*else if (className == QStringLiteral("viewport")) {
 			if (object->name() == QStringLiteral("topLeft"))
 				tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
 			else if (object->name() == QStringLiteral("bottomRight"))
 				tmpViewport.setBottomRight(renderer->pixelToScreenCoords(object->position()));
-		} else if (group->className().isEmpty()) {
+		}*/ else if (group->className().isEmpty()) {
 			if (object->className() == QStringLiteral("ground")) {
 				loadGround(scene, object, renderer);
 			} else if (object->className() == QStringLiteral("light")) {
@@ -876,6 +876,20 @@ void TiledGame::overrideCurrentFrame(const qint64 &frame)
 {
 	LOG_CDEBUG("scene") << "Override current frame:" << d->m_currentFrame << "->" << frame;
 	d->m_currentFrame = frame;
+}
+
+
+/**
+ * @brief TiledGame::loadTiledLayer
+ * @param scene
+ * @param layer
+ * @param renderer
+ */
+
+void TiledGame::loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
+{
+	Q_ASSERT(scene);
+	scene->addTileLayer(layer, renderer);
 }
 
 

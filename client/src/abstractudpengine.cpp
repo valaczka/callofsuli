@@ -515,13 +515,12 @@ void AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 
 	stream >> data;
 
+	const QCborMap map = QCborValue::fromCbor(data).toMap();
+
+	UdpServerResponse rsp;
+	rsp.fromCbor(map);
 
 	if (m_udpState != UdpServerResponse::StateConnected) {
-		const QCborMap map = QCborValue::fromCbor(data).toMap();
-
-		UdpServerResponse rsp;
-		rsp.fromCbor(map);
-
 		if (rsp.state == UdpServerResponse::StateRejected || rsp.state == UdpServerResponse::StateConnected) {
 			if (m_udpState != rsp.state) {
 				if (rsp.state == UdpServerResponse::StateConnected)
@@ -551,6 +550,11 @@ void AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 
 		}
 
+		return;
+	}
+
+	if (rsp.state == UdpServerResponse::StateRejected) {
+		emit q->serverConnectFailed(tr("Connection rejected"));
 		return;
 	}
 

@@ -883,6 +883,7 @@ public:
 	Engine()
 		: QSerializer()
 		, id(0)
+		, readableId(0)
 		, count(0)
 	{}
 
@@ -899,6 +900,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, id)
+	QS_FIELD(int, readableId)
 	QS_OBJECT(EnginePlayer, owner)
 	QS_COLLECTION_OBJECTS(QList, EnginePlayer, players)
 	QS_FIELD(int, count)				// max. players
@@ -1179,6 +1181,7 @@ public:
 		: QSerializer()
 		, locked(false)
 		, max(0)
+		, engineReadableId(0)
 	{}
 
 
@@ -1188,6 +1191,7 @@ public:
 	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
 	QS_FIELD(bool, locked)
 	QS_FIELD(int, max)
+	QS_FIELD(int, engineReadableId)
 };
 
 

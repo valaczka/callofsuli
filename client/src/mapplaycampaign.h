@@ -45,6 +45,8 @@ class MapPlayCampaign : public MapPlay
 	Q_OBJECT
 
 	Q_PROPERTY(qreal extraTimeFactor READ extraTimeFactor WRITE setExtraTimeFactor NOTIFY extraTimeFactorChanged)
+	Q_PROPERTY(quint32 activeSeat READ activeSeat WRITE setActiveSeat NOTIFY activeSeatChanged FINAL)
+	Q_PROPERTY(int activeEngine READ activeEngine WRITE setActiveEngine NOTIFY activeEngineChanged FINAL)
 
 public:
 	explicit MapPlayCampaign(StudentMapHandler *handler, QObject *parent = nullptr);
@@ -54,14 +56,22 @@ public:
 
 	Q_INVOKABLE virtual void updateSolver() override;
 	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel *missionLevel) const override;
-	Q_INVOKABLE bool playMultiPlayer(MapPlayMissionLevel *level);
+	Q_INVOKABLE bool playMultiPlayer(MapPlayMissionLevel *level, const bool &forced);
 
 	qreal extraTimeFactor() const;
 	void setExtraTimeFactor(qreal newExtraTimeFactor);
 
+	quint32 activeSeat() const;
+	void setActiveSeat(quint32 newActiveSeat);
+
+	int activeEngine() const;
+	void setActiveEngine(int newActiveEngine);
+
 signals:
 	void gameIdChanged();
 	void extraTimeFactorChanged();
+	void activeSeatChanged();
+	void activeEngineChanged();
 
 protected:
 	virtual AbstractLevelGame *createLevelGame(MapPlayMissionLevel *level, const GameMap::GameMode &mode, const bool &multi) override;
@@ -82,6 +92,8 @@ private:
 	int m_finishTries = 0;
 	QHash<GameMapMissionLevel *, int> m_shortTimeHelper;
 	qreal m_extraTimeFactor = 0.0;
+	quint32 m_activeSeat = 0;
+	int m_activeEngine = 0;
 };
 
 

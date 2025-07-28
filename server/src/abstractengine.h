@@ -101,6 +101,7 @@ public:
 	virtual void udpPeerAdd(UdpServerPeer *peer) { Q_UNUSED(peer); }
 	virtual void udpPeerRemove(UdpServerPeer *peer) { Q_UNUSED(peer); }
 	virtual void disconnectUnusedPeer(UdpServerPeer *peer) { Q_UNUSED(peer); }
+	virtual bool isPeerValid(const quint32 &peerId) const = 0;
 
 	UdpServer *udpServer() const { return m_udpServer; }
 	void setUdpServer(UdpServer *server) { m_udpServer = server; }

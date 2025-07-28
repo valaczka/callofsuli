@@ -1294,6 +1294,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 	if (!snap.threshold(p)) {
 		LOG_CDEBUG("scene") << "Player reemplace" << bodyPositionF() << "->" << snap.p;
 		emplace(cpv(snap.p.at(0), snap.p.at(1)));
+		setCurrentVelocity(cpvzero);
 		if (snap.a >= 0)
 			setCurrentAngleForced(snap.a);
 	}

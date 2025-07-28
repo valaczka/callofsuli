@@ -30,6 +30,7 @@
 #include "qjsonarray.h"
 #include "serverservice.h"
 #include "teacherapi.h"
+#include "rpgengine.h"
 
 #include <QJsonObject>
 #include "querybuilder.hpp"
@@ -168,6 +169,13 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
 		return gameTokenCreate(*credential, id, *jsonObject);
+	});
+
+	server->route(path+"campaign/<arg>/game/close", QHttpServerRequest::Method::Post,
+				  [this](const int &/*id*/, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return gameClose(*credential, *jsonObject);
 	});
 
 	server->route(path+"game/<arg>/update", QHttpServerRequest::Method::Post,
@@ -786,13 +794,25 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 		return responseError("internal error");
 
 
-	// TODO: remove player other games
-
+	RpgGameData::ConnectionToken token;
 	QDateTime exp = QDateTime::currentDateTimeUtc();
 	exp = exp.addSecs(120);
 
-	RpgGameData::ConnectionToken token;
-	token.peerID = udpServer->addPeer(credential.username(), exp);
+	quint32 id = 0;
+	std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &id);
+
+	if (id > 0) {
+		LOG_CINFO("engine") << "SEAT EXISTS" << credential.username() << id << engine.get();
+
+		if (engine) {
+			LOG_CERROR("engine") << "SEAT ENGINE EXISTS" << credential.username() << id << engine->id();
+			return responseResult("error", QStringLiteral("active/%1/%2").arg(id).arg(engine->id()));
+		}
+
+		token.peerID = udpServer->resetPeer(id, exp);
+	} else {
+		token.peerID = udpServer->addPeer(credential.username(), exp);
+	}
 
 	if (token.peerID == 0) {
 		return responseError("player create error");
@@ -809,6 +829,41 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 	jwt.setPayload(token.toJson());
 
 	return responseResult("token", QString::fromUtf8(jwt.getToken()));
+}
+
+
+
+/**
+ * @brief UserAPI::gameClose
+ * @param credential
+ * @param campaign
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameClose(const Credential &credential, const QJsonObject &json)
+{
+	UdpServer *udpServer = m_service->udpServer();
+
+	if (!udpServer)
+		return responseError("internal error");
+
+	const quint32 id = (quint32) json.value(QStringLiteral("seat")).toInteger();
+	const int engineId = json.value(QStringLiteral("engine")).toInteger();
+
+	quint32 idPtr = 0;
+
+	std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &idPtr);
+
+	LOG_CINFO("engine") << "???" << id << idPtr << engineId << engine->id();
+
+	if (idPtr == 0 || !engine || idPtr != id || engine->id() != engineId) {
+		return responseError("invalid id");
+	}
+
+	QMetaObject::invokeMethod(engine.get(), std::bind(&RpgEngine::peerAbort, engine.get(), id), Qt::QueuedConnection);
+
+	return responseOk();
 }
 
 
@@ -973,14 +1028,14 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, const UserGame &game,
 										const QJsonObject &inventory, const QJsonArray &statistics,
 										const bool &success, const int &xp, const int &duration,
-										bool *okPtr, QJsonObject *retPtr)
+										bool *okPtr, QPointer<RpgEngine> engine)
 {
 	if (okPtr)
 		*okPtr = false;
 
-	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username);
+	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username) << "success:" << success;
 
-	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr, retPtr);
+	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr, engine);
 
 	// Statistics
 
@@ -1188,8 +1243,9 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 	if (okPtr)
 		*okPtr = true;
 
-	if (retPtr)
-		*retPtr = retObj;
+
+	if (engine)
+		QMetaObject::invokeMethod(engine, std::bind(&RpgEngine::playerSetFinal, engine, id, retObj), Qt::QueuedConnection);
 
 	LAMBDA_THREAD_END;
 }

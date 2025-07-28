@@ -290,6 +290,7 @@ protected:
 
 	virtual void onShapeAboutToDeletePrivate(cpShape *shape) override;
 
+	virtual void loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer) override;
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
@@ -306,13 +307,8 @@ protected:
 	virtual void timeSteppedEvent() override;
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
 
-	std::optional<QPointF> playerPosition(const int &sceneId, const int &num) const;
-	std::optional<QPointF> playerPosition(const TiledScene *scene, const int &num) const {
-		return scene ? playerPosition(scene->sceneId(), num) : std::nullopt;
-	}
-	QList<QPointF> playerPosition(const int &sceneId) const;
-
 	QList<RpgGameData::PlayerPosition> playerPositions() const;
+	QList<QPointF> playerPositions(const int &sceneId) const;
 	const RpgGameData::Collection &collection() const;
 	RpgGameData::Randomizer randomizer() const;
 

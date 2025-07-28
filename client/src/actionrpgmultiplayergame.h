@@ -51,6 +51,7 @@ class ActionRpgMultiplayerGame : public ActionRpgGame
 	Q_PROPERTY(bool selectionCompleted READ selectionCompleted WRITE setSelectionCompleted NOTIFY selectionCompletedChanged FINAL)
 	Q_PROPERTY(int maxPlayers READ maxPlayers WRITE setMaxPlayers NOTIFY maxPlayersChanged FINAL)
 	Q_PROPERTY(bool locked READ locked WRITE setLocked NOTIFY lockedChanged FINAL)
+	Q_PROPERTY(QString readableEngineId READ readableEngineId NOTIFY readableEngineIdChanged FINAL)
 
 public:
 	explicit ActionRpgMultiplayerGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -95,12 +96,18 @@ public:
 	bool locked() const;
 	void setLocked(bool newLocked);
 
+	QString readableEngineId() const;
+	void setReadableEngineId(int newReadableEngineId);
+
+	Q_INVOKABLE static QString toReadableEngineId(const int &id);
+
 signals:
 	void playerIdChanged();
 	void selectionCompletedChanged();
 	void canAddEngineChanged();
 	void maxPlayersChanged();
 	void lockedChanged();
+	void readableEngineIdChanged();
 
 protected:
 	void onConfigChanged() override;
@@ -110,6 +117,7 @@ protected:
 	void changeGameState(const RpgConfig::GameState &state);
 
 private:
+	int m_readableEngineId = -1;
 	int m_playerId = -1;
 	bool m_selectionCompleted = false;
 	bool m_tiledGameLoaded = false;
@@ -121,6 +129,7 @@ private:
 	bool m_othersPrepared = false;
 	int m_maxPlayers = 0;
 	bool m_locked = false;
+	bool m_isAborting = false;
 
 
 	std::unique_ptr<QSListModel> m_playersModel;

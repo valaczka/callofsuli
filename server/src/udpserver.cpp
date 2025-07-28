@@ -161,6 +161,47 @@ quint32 UdpServer::addPeer(const QString &username, const QDateTime &expired)
 
 
 /**
+ * @brief UdpServer::resetPeer
+ * @param id
+ * @param expired
+ * @return
+ */
+
+quint32 UdpServer::resetPeer(const quint32 &id, const QDateTime &expired)
+{
+	QMutexLocker peerLocker(&d->m_peerMutex);
+
+	auto it = d->m_peerHash.find(id);
+
+	if (it == d->m_peerHash.end()) {
+		LOG_CERROR("engine") << "Peer not found" << id;
+		return 0;
+	}
+
+	if (it->engine.lock()) {
+		LOG_CERROR("engine") << "Peer" << id << "has active engine, reset failed";
+		return 0;
+	}
+
+	it->reset(expired);
+
+	return id;
+}
+
+
+/**
+ * @brief UdpServer::removePeer
+ * @param id
+ * @return
+ */
+
+bool UdpServer::removePeer(const quint32 &id, UdpServerPeer *peer)
+{
+	return d->peerReject(id, peer);
+}
+
+
+/**
  * @brief UdpServer::peerConnectToEngine
  * @param peer
  * @param engine
@@ -182,6 +223,19 @@ bool UdpServer::peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<U
 bool UdpServer::peerRemoveEngine(UdpServerPeer *peer)
 {
 	return d->peerRemoveEngine(peer);
+}
+
+
+/**
+ * @brief UdpServer::findPeer
+ * @param type
+ * @param username
+ * @return
+ */
+
+std::shared_ptr<UdpEngine> UdpServer::findPeer(const UdpToken::Type &type, const QString &username, quint32 *idPtr) const
+{
+	return d->findPeer(type, username, idPtr);
 }
 
 
@@ -450,8 +504,6 @@ bool UdpServerPrivate::peerRemoveEngine(UdpServerPeer *peer)
 	if (!peer)
 		return false;
 
-	LOG_CDEBUG("engine") << "Peer remove from engine" << qPrintable(peer->address()) << "<-" << peer->engine()->id();
-
 	QMutexLocker peerLocker(&m_peerMutex);
 	auto it = m_peerHash.find(peer->peerID());
 
@@ -474,6 +526,72 @@ bool UdpServerPrivate::peerRemoveEngine(UdpServerPeer *peer)
 
 
 	return false;
+}
+
+
+
+/**
+ * @brief UdpServerPrivate::findPeer
+ * @param type
+ * @param username
+ * @return
+ */
+
+std::shared_ptr<UdpEngine> UdpServerPrivate::findPeer(const UdpToken::Type &type, const QString &username, quint32 *idPtr) const
+{
+	QMutexLocker peerLocker(&m_peerMutex);
+
+	for (const auto &[id, d] : m_peerHash.asKeyValueRange()) {
+		if (d.type == type && d.username == username) {
+			if (idPtr)
+				*idPtr = id;
+			auto ptr = d.engine.lock();
+
+			if (ptr && !ptr->isPeerValid(id))
+				continue;
+
+			return ptr;
+		}
+	}
+
+	if (idPtr)
+		*idPtr = 0;
+
+	return {};
+}
+
+
+
+
+
+/**
+ * @brief UdpServerPrivate::peerReject
+ * @param id
+ * @param peer
+ * @return
+ */
+
+bool UdpServerPrivate::peerReject(const quint32 &id, UdpServerPeer *peer)
+{
+	QMutexLocker peerLocker(&m_peerMutex);
+
+	if (peer) {
+		peer->m_isRejected = true;
+		sendPacket(peer->peer(), UdpServerResponse(UdpServerResponse::StateRejected).toCborMap().toCborValue().toCbor(), true);
+	}
+
+	const auto &it = m_peerHash.find(id);
+
+	if (it == m_peerHash.end()) {
+		LOG_CERROR("engine") << "Peer not found" << id;
+		return false;
+	}
+
+	m_peerHash.erase(it);
+
+	LOG_CDEBUG("engine") << "Udp server peer rejected" << id;
+
+	return true;
 }
 
 
@@ -899,6 +1017,9 @@ void UdpServerPrivate::deliverReceived()
 void UdpServerPrivate::disconnectUnusedPeers()
 {
 	for (const auto &ptr : q->m_peerList) {
+		if (ptr->m_isRejected)
+			sendPacket(ptr->peer(), UdpServerResponse(UdpServerResponse::StateRejected).toCborMap().toCborValue().toCbor(), true);
+
 		UdpEngine *e = ptr->engine().get();
 		if (!e)
 			continue;

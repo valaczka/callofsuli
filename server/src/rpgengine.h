@@ -109,6 +109,7 @@ private:
 
 	bool m_finalSuccess = false;
 	int m_gameId = -1;
+	bool m_isFinishing = false;
 
 	quint32 m_peerID = 0;
 
@@ -173,12 +174,17 @@ public:
 	static std::shared_ptr<RpgEngine> engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken,
 													 const QByteArray &data, UdpServerPeer *peer);
 
+
+	static std::shared_ptr<RpgEngine> peerFind(UdpServer *server, const QString &username, quint32 *idPtr = nullptr);
+	bool peerAbort(const quint32 &peerId);
+
 	virtual bool canDelete(const int &useCount) override;
 
 	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) override;
 	virtual void udpPeerAdd(UdpServerPeer *peer) override;
 	virtual void udpPeerRemove(UdpServerPeer *peer) override;
 	virtual void disconnectUnusedPeer(UdpServerPeer *peer) override;
+	virtual bool isPeerValid(const quint32 &peerId) const override;
 
 	virtual QString dumpEngine() const override;
 
@@ -194,6 +200,8 @@ public:
 	RpgEnginePlayer *player(const quint32 &peerID) const;
 	RpgEnginePlayer *playerSetGameCompleted(const RpgGameData::PlayerBaseData &base);
 	RpgEnginePlayer *playerAddXp(const RpgGameData::PlayerBaseData &base, const int &xp, const bool &hasKill = false);
+
+	bool playerSetFinal(const int &gameId, const QJsonObject &data);
 
 	QCborArray getPlayerData(const bool &forced = false);
 
@@ -301,6 +309,7 @@ private:
 	qint64 nextTick();
 
 	int m_nextPlayerId = 1;
+	int m_readableId = -1;
 
 	RpgEnginePrivate *d;
 

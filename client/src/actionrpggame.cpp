@@ -591,9 +591,6 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
-	const auto &ptrPos = m_rpgGame->playerPosition(firstScene, 0);
-
-	QList<RpgPlayer*> list;
 
 	RpgPlayer *player = m_rpgGame->createPlayer(firstScene, *characterPtr, 0);
 
@@ -646,17 +643,24 @@ void ActionRpgGame::rpgGameActivated_()
 
 
 
-	player->emplace(ptrPos.value_or(QPointF{0,0}));
+	QPointF pos;
+
+	if (const auto &posList = m_rpgGame->playerPositions(firstScene->sceneId()); !posList.isEmpty()) {
+		pos = posList.at(QRandomGenerator::global()->bounded(posList.size()));
+	} else {
+		LOG_CERROR("scene") << "Missing player positions";
+	}
+
+
+	player->emplace(pos);
 	player->setCurrentAngle(TiledObject::directionToRadian(TiledObject::West));
 
 	m_rpgGame->setFollowedItem(player);
 	m_rpgGame->setControlledPlayer(player);
 
-	player->setCurrentSceneStartPosition(ptrPos.value_or(QPointF{0,0}));
+	player->setCurrentSceneStartPosition(pos);
 
-	list.append(player);
-
-	m_rpgGame->setPlayers(list);
+	m_rpgGame->setPlayers(QList<RpgPlayer*>{player});
 
 	m_rpgQuestion->initialize();
 
@@ -1884,10 +1888,17 @@ void ActionRpgGame::checkEnemyQuests(const int &count)
 
 void ActionRpgGame::checkFinalQuests()
 {
-	if (!m_rpgGame)
+	if (!m_rpgGame || !m_rpgGame->controlledPlayer())
 		return;
 
 	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
+		if (m_rpgGame->controlledPlayer()->collection() < m_rpgGame->controlledPlayer()->collectionRq()) {
+			if (q.type == RpgQuest::SuddenDeath || q.type == RpgQuest::NoKillDefault)
+				q.success = -1;
+
+			continue;
+		}
+
 		if (q.type == RpgQuest::SuddenDeath && q.success == 0)
 			questSuccess(&q);
 		else if (q.type == RpgQuest::NoKillDefault && q.success == 0)

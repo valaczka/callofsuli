@@ -55,7 +55,9 @@ QItemGradient {
                 delegate: Qaterial.ItemDelegate {
                     width: ListView.view.width
 
-                    text: id + " " + owner.username + " - " + players.length + "/" + count
+                    text: game ? game.toReadableEngineId(readableId) : readableId
+
+                    secondaryText: owner.nickname + (players.length > 1 ? " +" + (players.length-1) : "")
 
                     icon.source: Qaterial.Icons.accountMultiple
 

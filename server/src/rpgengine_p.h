@@ -127,6 +127,7 @@ private:
 
 	void updatePeers();
 	bool reconnectPeer(UdpServerPeer *peer);
+	bool abortPlayer(const quint32 &peerId);
 	bool banOutPlayer(RpgEnginePlayer *player);
 
 
@@ -161,6 +162,7 @@ private:
 	bool gameCreate(RpgEnginePlayer *player);
 	bool gameFinish();
 	bool gameUpdate(RpgEnginePlayer *player);
+	bool gameAbort(RpgEnginePlayer *player);
 
 
 	RpgGameData::GameConfig m_gameConfig;
@@ -186,6 +188,7 @@ private:
 
 	bool m_locked = false;
 	QList<qint64> m_banList;
+	QList<qint64> m_abortList;
 
 
 	QList<RpgEngineMessage> m_messages;

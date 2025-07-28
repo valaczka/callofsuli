@@ -28,6 +28,7 @@
 #define UDPSERVER_H
 
 #include "qlambdathreadworker.h"
+#include "credential.h"
 #include <enet/enet.h>
 #include <QThread>
 
@@ -88,6 +89,7 @@ private:
 	std::shared_ptr<UdpEngine> m_engine;
 	qint64 m_lastSentTick = -1;
 	bool m_isReconnecting = false;
+	bool m_isRejected = false;
 
 	struct Speed {
 		void addRtt(const int &rtt);
@@ -151,8 +153,13 @@ public:
 	void removeEngine(UdpEngine *engine);
 
 	quint32 addPeer(const QString &username, const QDateTime &expired);
+	quint32 resetPeer(const quint32 &id, const QDateTime &expired);
+	bool removePeer(const quint32 &id, UdpServerPeer *peer);
+
 	bool peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
 	bool peerRemoveEngine(UdpServerPeer *peer);
+
+	std::shared_ptr<UdpEngine> findPeer(const UdpToken::Type &type, const QString &username, quint32 *idPtr = nullptr) const;
 
 	QString dumpPeers() const;
 	void removeExpiredPeers();

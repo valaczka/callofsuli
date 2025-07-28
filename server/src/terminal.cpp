@@ -152,8 +152,8 @@ ftxui::Component DefaultLoop::createComponent(ftxui::ScreenInteractive *screen)
 						text("Call of Suli server terminal") | bold | color(Color::White) | hcenter,
 						separatorHeavy(),
 						hbox({
-							m_textReceive->Render() | size(WIDTH, EQUAL, Dimension::Full().dimx * 0.5),
-							m_textSend->Render() | flex ,
+							m_textReceive->Render() | flex //size(WIDTH, EQUAL, Dimension::Full().dimx * 0.5),
+							//m_textSend->Render() | flex ,
 						}) | flex,
 						hbox({
 							vtext("RCV") | yflex | vcenter,
@@ -207,7 +207,7 @@ bool DefaultLoop::runCbor(const QCborValue &cbor)
 
 		m_textLeft->setText(QJsonDocument(m.toJsonObject()).toJson());*/
 
-		m_textSend->setText(m.value(QStringLiteral("txt")).toString());
+		/////m_textSend->setText(m.value(QStringLiteral("txt")).toString());
 	} else {
 		if (m_btnReceivePause->checked() || m_btnPauseAll->checked())
 			return true;

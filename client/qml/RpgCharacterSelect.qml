@@ -14,7 +14,8 @@ QItemGradient {
 	readonly property ActionRpgMultiplayerGame _multiplayer: game && (game instanceof ActionRpgMultiplayerGame) ? game : null
 	property bool _isFirst: true
 
-	title: game ? game.name + qsTr(" – level %1").arg(game.level): ""
+	title: (_multiplayer ? _multiplayer.readableEngineId + " | " : "") +
+		   (game ? game.name + qsTr(" – level %1").arg(game.level) : "")
 
 	Qaterial.BusyIndicator {
 		id: _busyIndicator

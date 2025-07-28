@@ -29,6 +29,7 @@
 
 #include "abstractapi.h"
 #include "gamemap.h"
+#include "rpgengine.h"
 
 class UserAPI : public AbstractAPI
 {
@@ -75,12 +76,13 @@ public:
 								   const UserGame &game, const QJsonObject &inventory,
 								   int *gameIdPtr = nullptr);
 	QHttpServerResponse gameTokenCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
+	QHttpServerResponse gameClose(const Credential &credential, const QJsonObject &json);
 	QHttpServerResponse gameUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse gameUpdateStatistics(const QString &username, const QJsonArray &statistics);
 	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse gameFinish(const QString &username, const int &id, const UserGame &game,
 								   const QJsonObject &inventory, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
-								   bool *okPtr = nullptr, QJsonObject *retPtr = nullptr);
+								   bool *okPtr = nullptr, QPointer<RpgEngine> engine = nullptr);
 
 	QHttpServerResponse inventory(const Credential &credential);
 

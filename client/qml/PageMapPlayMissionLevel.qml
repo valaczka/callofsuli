@@ -21,6 +21,7 @@ QPageGradient {
 	property bool _firstLoad: true
 	property bool _currentGameFailed: false
 	readonly property int _mapPlayLiteExtraTimeTries: 2
+	property bool _firstWarning: true
 
 	stackPopFunction: function() {
 		if (map && map.gameState == MapPlay.StateFinished) {
@@ -28,7 +29,11 @@ QPageGradient {
 			return false
 		} else if (map && map.gameState == MapPlay.StatePlay) {
 			Client.messageWarning(qsTr("A játék még folyamatban van..."))
-			return false
+
+			if (_firstWarning) {
+				_firstWarning = false
+				return false
+			}
 		}
 
 		return true
@@ -291,6 +296,18 @@ QPageGradient {
 		}
 
 
+		Qaterial.SwitchButton {
+			id: _logoutOtherEngine
+
+			anchors.horizontalCenter: parent.horizontalCenter
+
+			text: qsTr("Folyamatban lévő játék/szoba lezárása")
+
+			visible: _mapPlayCampaign && (_mapPlayCampaign.activeEngine > 0 || _mapPlayCampaign.activeSeat > 0)
+					 && map && !map.readOnly && map.gameState == MapPlay.StateSelect
+
+		}
+
 		Row {
 			spacing: 10 * Qaterial.Style.pixelSizeRatio
 			anchors.horizontalCenter: parent.horizontalCenter
@@ -364,7 +381,7 @@ QPageGradient {
 				outlined: !enabled
 
 				onClicked: {
-					_mapPlayCampaign.playMultiPlayer(missionLevel)
+					_mapPlayCampaign.playMultiPlayer(missionLevel, _logoutOtherEngine.checked)
 				}
 			}
 		}
@@ -565,90 +582,8 @@ QPageGradient {
 
 
 
-		// Inventory
-
-		QExpandableHeader {
-			text: qsTr("Megszerzett felszerelés")
-			icon: Qaterial.Icons.bagPersonal
-
-			anchors.left: _inventoryView.left
-			anchors.right: _inventoryView.right
-			topPadding: 30 * Qaterial.Style.pixelSizeRatio
-
-			visible: _inventoryView.visible
-
-			button.visible:  false
-		}
-
-		ListView {
-			id: _inventoryView
-			width: Math.min(parent.width, Qaterial.Style.maxContainerSize, 768*Qaterial.Style.pixelSizeRatio*0.6)
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			visible: map && map.gameState == MapPlay.StateFinished && _inventoryModel.count
-
-			height: contentHeight
-
-			model: ListModel {
-				id: _inventoryModel
-			}
-
-			boundsBehavior: Flickable.StopAtBounds
-
-			delegate: Qaterial.FullLoaderItemDelegate {
-				id: _inventoryDelegate
-
-				spacing: 10
-				leftPadding: 0
-				rightPadding: 0
-
-				width: ListView.view.width
-
-				height: Qaterial.Style.textTheme.body2.pixelSize*2 + topPadding+bottomPadding+topInset+bottomInset
-
-				readonly property var _info: map ? map.inventoryInfo(key) : {}
-
-				leftSourceComponent: Qaterial.Icon {
-					size: Qaterial.Style.delegate.iconWidth
-
-					icon: _inventoryDelegate._info.icon !== undefined ? _inventoryDelegate._info.icon : ""
-
-					color: "transparent"
-				}
-
-				contentSourceComponent: Label {
-					font: Qaterial.Style.textTheme.body2Upper
-					verticalAlignment: Label.AlignVCenter
-					text: _inventoryDelegate._info.name !== undefined ? _inventoryDelegate._info.name : ""
-					color: Qaterial.Colors.blue400
-				}
-
-				rightSourceComponent: QBanner {
-					num: value
-					color: Qaterial.Colors.blue700
-				}
-			}
-		}
-
-		Qaterial.IconLabel {
-			anchors.left: _inventoryView.left
-			anchors.right: _inventoryView.right
-			visible: _inventoryView.visible
-			font: Qaterial.Style.textTheme.caption
-			icon.source: Qaterial.Icons.informationOutline
-			wrapMode: Text.Wrap
-			text: qsTr("A megszerzett felszerelés bármelyik Sudden Death szinten felhasználható")
-			enabled: false
-			horizontalAlignment: Qt.AlignLeft
-		}
-
-
-
-
 
 		// Lists
-
-
 
 
 
@@ -921,13 +856,6 @@ QPageGradient {
 								name: qsTr("Gyorsabb megoldásért kapott"),
 								xp: map.finishedData.xpDuration
 							})
-
-		_inventoryModel.clear()
-
-		if (map.finishedData.inventory !== undefined) {
-			for (let i=0; i<map.finishedData.inventory.length; ++i)
-				_inventoryModel.append(map.finishedData.inventory[i])
-		}
 
 	}
 

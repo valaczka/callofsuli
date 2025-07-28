@@ -77,6 +77,18 @@ private:
 		QString username;
 
 		QDeadlineTimer deadline;
+
+		void reset(const QDateTime &expired = QDateTime()) {
+			engine.reset();
+			type = UdpToken::Invalid;
+			challenge.clear();
+			privateKey.clear();
+			connectionToken = QJsonObject();
+			if (expired.isValid())
+				deadline.setRemainingTime(QDateTime::currentDateTime().msecsTo(expired));
+			else
+				deadline.setRemainingTime(-1);
+		}
 	};
 
 	void peerConnect(ENetPeer *peer);
@@ -84,6 +96,8 @@ private:
 	void udpPeerRemove(ENetPeer *peer);
 	UdpServerPeer* peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
 	bool peerRemoveEngine(UdpServerPeer *peer);
+	std::shared_ptr<UdpEngine> findPeer(const UdpToken::Type &type, const QString &username, quint32 *idPtr = nullptr) const;
+	bool peerReject(const quint32 &id, UdpServerPeer *peer);
 
 	bool packetReceived(const ENetEvent &event);
 	bool updateChallenge(const QHash<quint32, PeerData>::iterator &iterator, ENetPeer *peer, const QByteArray &content);

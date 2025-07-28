@@ -152,8 +152,36 @@ int MapPlayCampaign::getShortTimeHelper(MapPlayMissionLevel *missionLevel) const
  * @return
  */
 
-bool MapPlayCampaign::playMultiPlayer(MapPlayMissionLevel *level)
+bool MapPlayCampaign::playMultiPlayer(MapPlayMissionLevel *level, const bool &forced)
 {
+	if (forced && (m_activeEngine > 0 || m_activeSeat > 0)) {
+		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/close").arg(
+						   m_campaign ? m_campaign->campaignid() : 0
+										), QJsonObject {
+						   { QStringLiteral("seat"), (qint64) m_activeSeat },
+						   { QStringLiteral("engine"), m_activeEngine }
+					   })
+				->error(this, [this](const QNetworkReply::NetworkError &){
+			m_client->messageError(tr("Hálózati hiba"), tr("Játék lezárása sikertelen"));
+		})
+				->fail(this, [this](const QString &err){
+
+			m_client->messageError(err, tr("Játék lezárása sikertelen"));
+		})
+				->done(this, [this, l = QPointer<MapPlayMissionLevel>(level)](const QJsonObject &){
+
+			LOG_CDEBUG("client") << "Restart multiplayer";
+
+			if (l)
+				playMultiPlayer(l, false);
+
+			setActiveEngine(0);
+			setActiveSeat(0);
+		});
+
+		return false;
+	}
+
 	return play(level, GameMap::Rpg, QJsonObject(), true);
 }
 
@@ -193,6 +221,23 @@ void MapPlayCampaign::onCurrentGamePrepared()
 			destroyCurrentGame();
 		})
 				->fail(this, [this](const QString &err){
+			if (err.startsWith(QStringLiteral("active"))) {
+				QStringList f = err.split('/', Qt::SkipEmptyParts);
+
+				if (f.size() > 2) {
+					setActiveSeat(f.at(1).toUInt());
+					setActiveEngine(f.at(2).toInt());
+
+					m_client->messageError(tr("Be vagy jelentkezve egy aktív játékba/szobába. "
+											  "Próbáld újra úgy, hogy kiválasztod a lezárási lehetőséget."),
+										   tr("Aktív játék/szoba van folyamatban"));
+
+					destroyCurrentGame();
+					setGameState(StateSelect);
+					return;
+				}
+			}
+
 			m_client->messageError(err, tr("Játék indítása sikertelen"));
 			destroyCurrentGame();
 		})
@@ -283,10 +328,11 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 
 	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		/*destroyCurrentGame();
-		setGameState(StateFinished);
-		updateSolver();
-		m_client->reloadUser();*/
+		if (levelGame->finishState() == AbstractGame::Neutral) {
+			destroyCurrentGame();
+			setGameState(StateSelect);
+			return;
+		}
 
 		m_finishObject = QJsonObject({
 										 { QStringLiteral("statistics"), levelGame->getStatistics() },
@@ -453,8 +499,9 @@ void MapPlayCampaign::onFinishTimerTimeout()
 			m_finishTimer.stop();
 			setGameState(StateFinished);
 			destroyCurrentGame();
-			return;
 		}
+
+		return;
 	}
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
@@ -582,3 +629,29 @@ void MapPlayCampaign::setExtraTimeFactor(qreal newExtraTimeFactor)
 
 
 
+
+quint32 MapPlayCampaign::activeSeat() const
+{
+	return m_activeSeat;
+}
+
+void MapPlayCampaign::setActiveSeat(quint32 newActiveSeat)
+{
+	if (m_activeSeat == newActiveSeat)
+		return;
+	m_activeSeat = newActiveSeat;
+	emit activeSeatChanged();
+}
+
+int MapPlayCampaign::activeEngine() const
+{
+	return m_activeEngine;
+}
+
+void MapPlayCampaign::setActiveEngine(int newActiveEngine)
+{
+	if (m_activeEngine == newActiveEngine)
+		return;
+	m_activeEngine = newActiveEngine;
+	emit activeEngineChanged();
+}

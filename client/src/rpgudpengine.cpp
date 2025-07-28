@@ -298,7 +298,7 @@ void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
 
 	m_game->setMaxPlayers(config.max);
 	m_game->setLocked(config.locked);
-
+	m_game->setReadableEngineId(config.engineReadableId);
 
 	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest || m_game->isReconnecting()) {
 		m_gameConfig = config.gameConfig;
@@ -414,6 +414,12 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 		RpgGameData::Message msg;
 		msg.fromCbor(m);
 		messageAdd(msg);
+	}
+
+	if (m_game->m_isAborting) {
+		if (const QCborMap &m = data.value(QStringLiteral("final")).toMap(); !m.isEmpty()) {
+			m_game->setFinalData(m.toJsonObject());
+		}
 	}
 }
 

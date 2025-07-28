@@ -83,6 +83,8 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, const
 	ptr->setId(m_nextId);
 	increaseNextId();
 
+	ptr->m_readableId = QRandomGenerator::global()->bounded(1000, 1000000);
+
 	ptr->setUdpServer(server);
 
 	ptr->setPlayerLimit(5);
@@ -218,6 +220,34 @@ std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, con
 }
 
 
+/**
+ * @brief RpgEngine::peerFind
+ * @param server
+ * @param username
+ * @return
+ */
+
+std::shared_ptr<RpgEngine> RpgEngine::peerFind(UdpServer *server, const QString &username, quint32 *idPtr)
+{
+	Q_ASSERT(server);
+
+	return std::dynamic_pointer_cast<RpgEngine>(server->findPeer(UdpToken::Rpg, username, idPtr));
+}
+
+
+
+/**
+ * @brief RpgEngine::peerAbort
+ * @param peerId
+ * @return
+ */
+
+bool RpgEngine::peerAbort(const quint32 &peerId)
+{
+	return d->abortPlayer(peerId);
+}
+
+
 
 /**
  * @brief RpgEngine::canDelete
@@ -311,7 +341,7 @@ void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 	if (!peer)
 		return;
 
-	if (d->m_banList.contains(peer->peerID())) {
+	if (d->m_banList.contains(peer->peerID()) || d->m_abortList.contains(peer->peerID())) {
 		ELOG_DEBUG << "Peer already banned" << peer->peerID();
 		disconnectUnusedPeer(peer);
 		return;
@@ -325,7 +355,7 @@ void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 		return;
 	}
 
-	bool isHost = m_player.empty();			// TODO
+	bool isHost = m_player.empty();
 
 	const auto &ptr = m_player.emplace_back(std::make_unique<RpgEnginePlayer>(peer, false));
 	ptr->setPlayerId(m_nextPlayerId++);
@@ -336,7 +366,7 @@ void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 	if (isHost)
 		setHostPlayer(ptr.get());
 
-	ELOG_DEBUG << "Add player" << ptr->o << peer << isHost << ptr->isHost();
+	ELOG_DEBUG << "Add player" << *ptr << qPrintable(peer->address());
 
 	d->updatePeers();
 }
@@ -352,6 +382,8 @@ void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 {
 	RpgEnginePlayer *player = d->getPlayer(peer);
 
+	LOG_CINFO("engine") << "Remove player" << peer->address() << player << m_config.gameState;
+
 	ELOG_DEBUG << "Remove player" << peer << player;
 
 	if (player && d->m_banList.contains(player->peerID())) {
@@ -360,17 +392,30 @@ void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 
 	} else if (m_config.gameState == RpgConfig::StatePlay) {
 		if (player) {
-			ELOG_DEBUG << "Remove UDP PEER" << peer << "from player" << player;
+			LOG_CINFO("engine") << "Remove player" << player->playerId() << qPrintable(peer->address()) << "from engine" << m_id;
+
+			ELOG_DEBUG << "Remove UDP peer" << peer << "from player" << *player;
 			player->setUdpPeer(nullptr);
-			eventAdd<RpgEventControlUnlock>(m_currentTick+600, *player);
-			eventAdd<RpgEventPlayerLost>(m_currentTick+600, *player);
+
+			if (d->m_abortList.contains(player->peerID())) {
+				eventAdd<RpgEventControlUnlock>(m_currentTick+1, *player);
+				eventAdd<RpgEventPlayerLost>(m_currentTick+1, *player);
+			} else {
+				eventAdd<RpgEventControlUnlock>(m_currentTick+600, *player);
+				eventAdd<RpgEventPlayerLost>(m_currentTick+600, *player);
+			}
 		}
 	} else {
+		if (m_config.gameState < RpgConfig::StatePrepare) {
+			if (!d->m_abortList.contains(peer->peerID()))
+				peerAbort(peer->peerID());
+		}
+
 		std::erase_if(m_player, [peer](const auto &ptr) { return ptr->udpPeer() == peer; });
 	}
 
 	if (player && m_hostPlayer == player) {
-		ELOG_WARNING << "No host";
+		ELOG_WARNING << "*** No host ***";
 		setHostPlayer(nullptr);
 	}
 
@@ -395,6 +440,27 @@ void RpgEngine::disconnectUnusedPeer(UdpServerPeer *peer)
 			LOG_CERROR("engine") << "Missing ENetPeer" << peer;
 		}
 	}
+}
+
+
+/**
+ * @brief RpgEngine::isPeerValid
+ * @param peerId
+ * @return
+ */
+
+bool RpgEngine::isPeerValid(const quint32 &peerId) const
+{
+	if (m_config.gameState == RpgConfig::StateError || m_config.gameState == RpgConfig::StateFinished)
+		return false;
+
+	if (d->m_abortList.contains(peerId))
+		return false;
+
+	if (player(peerId))
+		return true;
+
+	return false;
 }
 
 
@@ -502,6 +568,31 @@ RpgEnginePlayer *RpgEngine::playerAddXp(const RpgGameData::PlayerBaseData &base,
 	d->m_playerDataModified = true;
 
 	return p;
+}
+
+
+
+/**
+ * @brief RpgEngine::playerSetFinal
+ * @param gameId
+ * @param data
+ * @return
+ */
+
+bool RpgEngine::playerSetFinal(const int &gameId, const QJsonObject &data)
+{
+	auto it = std::find_if(m_player.begin(), m_player.end(), [&gameId](const auto &ptr) { return ptr->m_gameId == gameId; });
+
+	if (it == m_player.end()) {
+		ELOG_ERROR << "Player game id" << gameId << "not found";
+		return false;
+	}
+
+	ELOG_DEBUG << "Player" << *it->get() << "set final data";
+
+	it->get()->m_final = data;
+
+	return true;
 }
 
 
@@ -897,7 +988,7 @@ void RpgEngine::checkPlayersCompleted()
 	if (!completed)
 		return;
 
-	ELOG_INFO << "All players completed!!!";
+	ELOG_INFO << "[All players completed]";
 
 	m_config.gameState = RpgConfig::StateFinished;
 	d->m_removeTimer.setRemainingTime(10000);
@@ -971,7 +1062,7 @@ void RpgEngine::preparePlayers()
 	if (d->m_gameConfig.positionList.isEmpty())
 		return;
 
-	int idx = 0;
+	QList<RpgGameData::PlayerPosition> posList = d->m_gameConfig.positionList;
 
 	for (auto &ptr : m_player) {
 		if (ptr->m_gameId < 0)
@@ -980,33 +1071,21 @@ void RpgEngine::preparePlayers()
 		if (ptr->s != -1)
 			continue;
 
-		ELOG_DEBUG << "Prepare player" << (idx+1);
-
-
-		RpgGameData::PlayerPosition pos;
-
-		if (idx >= d->m_gameConfig.positionList.size()) {
-			ELOG_ERROR << "Missing player positions" << id();
-			/*pos.x = 0;
-			pos.y = 0;
-			pos.scene = 0;*/
-
-			pos.x = d->m_gameConfig.positionList.at(0).x - idx*30;
-			pos.y = d->m_gameConfig.positionList.at(0).y - idx*30;
-			pos.scene = d->m_gameConfig.positionList.at(0).scene;
-
-		} else {
-			pos = d->m_gameConfig.positionList.at(idx);
-			++idx;
-			/*if (idx >= d->m_gameConfig.positionList.size())
-				idx = 0; */
-		}
+		ELOG_DEBUG << "Prepare player" << *ptr;
 
 		// Scene = 0 minden player esetében
 		ptr->s = 0;
 
 
-		ptr->setStartPosition(pos);
+		if (posList.isEmpty()) {
+			ELOG_ERROR << "Missing player position";
+			ptr->setStartPosition(d->m_gameConfig.positionList.first());
+		} else {
+			ptr->setStartPosition(posList.takeAt(QRandomGenerator::global()->bounded(posList.size())));
+		}
+
+		ELOG_DEBUG << "Player" << *ptr << "position:" << ptr->m_startPosition.scene << ptr->m_startPosition.x << ptr->m_startPosition.y;
+
 
 		RpgGameData::CharacterSelect config = ptr->config();
 
@@ -1016,20 +1095,14 @@ void RpgEngine::preparePlayers()
 		ptr->setConfig(config);
 
 		RpgGameData::Player pdata;
-		pdata.p = {pos.x, pos.y};
+		pdata.p = {ptr->m_startPosition.x, ptr->m_startPosition.y};
 		pdata.f = 0;
-		pdata.sc = pos.scene;
+		pdata.sc = ptr->m_startPosition.scene;
 		pdata.hp = std::max(config.maxHp, 13);			// TODO: from m_config
 		pdata.mp = config.mp;
 
 		if (!config.armory.wl.isEmpty()) {
 			pdata.arm = config.armory;
-
-			LOG_CINFO("engine") << "SET ARMORY" << pdata.arm.cw << pdata.arm.s << pdata.arm.wl.size();
-
-			for (auto w : pdata.arm.wl) {
-				LOG_CDEBUG("engine") << "  -" << w.t << w.s << w.b;
-			}
 		} else {
 			/*pdata.arm.add(RpgGameData::Weapon::WeaponLongsword, 0, 135);
 			pdata.arm.cw = RpgGameData::Weapon::WeaponShortbow;
@@ -1097,6 +1170,7 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
 		RpgGameData::Engine engine;
 		engine.id = e->id();
 		engine.count = e->playerLimit();
+		engine.readableId = e->m_readableId;
 
 		RpgEnginePlayer *host = e->hostPlayer();
 
@@ -1143,6 +1217,7 @@ bool RpgEnginePrivate::canConnect(const qint64 &peerID, const RpgConfigBase &con
 			engine->config() == config &&
 			!engine->d->m_locked &&
 			!engine->d->m_banList.contains(peerID) &&
+			!engine->d->m_abortList.contains(peerID) &&
 			(engine->m_playerLimit <= 0 || engine->m_player.size() < engine->m_playerLimit)
 			);
 }
@@ -1423,6 +1498,12 @@ bool RpgEnginePrivate::updatePlayer(RpgEnginePlayer *player, const RpgGameData::
 		return false;
 	}
 
+	if (data.finished) {
+		ELOG_DEBUG << "Player" << *player << "abort game";
+		gameAbort(player);
+		return true;
+	}
+
 	bool hasModified = false;
 
 	if (player->m_config.cur != data.cur) {
@@ -1461,6 +1542,8 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 			config.gameConfig = m_gameConfig;
 			config.locked = m_locked;
 			config.max = q->m_playerLimit;
+			config.engineReadableId = q->m_readableId;
+
 			if (m_randomizer.has_value())
 				config.gameConfig.randomizer = m_randomizer.value();
 
@@ -1495,6 +1578,7 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 			config.gameConfig = m_gameConfig;
 			config.locked = m_locked;
 			config.max = q->m_playerLimit;
+			config.engineReadableId = q->m_readableId;
 
 			if (m_randomizer.has_value())
 				config.gameConfig.randomizer = m_randomizer.value();
@@ -1606,6 +1690,12 @@ void RpgEnginePrivate::dataSendPlay()
 		bool hasMsg = insertMessages(&map, it->get());
 
 		// reliable when message is present
+
+
+		if (const QJsonObject &final = it->get()->m_final; !final.isEmpty()) {
+			map.insert(QStringLiteral("final"), QCborMap::fromJsonObject(final));
+			reliable = true;
+		}
 
 		peer->send(map.toCborValue().toCbor(), reliable || hasMsg);
 
@@ -1779,7 +1869,7 @@ void RpgEnginePrivate::updateState()
 		}
 
 		if (allCompleted) {
-			ELOG_DEBUG << "All players completed" << q << q->id();
+			ELOG_DEBUG << "Character selection completed";
 
 			ELOG_INFO << "-------------------------------------------------------------";
 			ELOG_INFO << "PLAYERS";
@@ -1796,11 +1886,13 @@ void RpgEnginePrivate::updateState()
 
 				UdpServerPeer *peer = ptr->udpPeer();
 
-				txt += QStringLiteral("P%1 [%2] %3")
+				txt += QStringLiteral("P%1 [%2] %3 ")
 					   .arg(ptr->playerId())
 					   .arg(ptr->peerID(), 12)
 					   .arg(peer ? peer->address() : QStringLiteral("---"), 21)
 					   .toLatin1();
+
+				txt += ptr->config().username.toUtf8();
 
 				ELOG_INFO << txt.constData();
 			}
@@ -1985,6 +2077,25 @@ bool RpgEnginePrivate::reconnectPeer(UdpServerPeer *peer)
 	}
 
 	return false;
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::abortPlayer
+ * @param peerId
+ * @return
+ */
+
+bool RpgEnginePrivate::abortPlayer(const quint32 &peerId)
+{
+	RpgEnginePlayer *player = q->player(peerId);
+
+	m_abortList.append(peerId);
+
+	ELOG_INFO << "Abort player" << peerId;
+
+	return q->m_udpServer->removePeer(peerId, player ? player->udpPeer() : nullptr);
 }
 
 
@@ -2543,6 +2654,9 @@ bool RpgEnginePrivate::gameFinish()
 			pl->m_finalSuccess = true;
 		}
 
+		if (pl->m_isFinishing)
+			continue;
+
 		if (pl->m_gameId < 0) {
 			ELOG_WARNING << "Invalid game id" << pl->config().username;
 			continue;
@@ -2573,8 +2687,11 @@ bool RpgEnginePrivate::gameFinish()
 
 		gameUpdate(pl.get());
 
+		pl->m_isFinishing = true;
+
 		api->gameFinish(pl->config().username, pl->m_gameId, game, {}, {},
-						success, pl->config().xp, duration, nullptr, &pl->m_final);
+						success, pl->config().xp, duration, nullptr, q);
+
 	}
 
 	return true;
@@ -2593,6 +2710,14 @@ bool RpgEnginePrivate::gameUpdate(RpgEnginePlayer *player)
 	if (!player)
 		return false;
 
+	if (player->m_isFinishing)
+		return false;
+
+	if (player->m_gameId < 0) {
+		ELOG_WARNING << "Invalid game id" << player->config().username;
+		return false;
+	}
+
 	WebServer *server = q->m_service->webServer().lock().get();
 
 	if (!server || !server->handler()) {
@@ -2609,6 +2734,62 @@ bool RpgEnginePrivate::gameUpdate(RpgEnginePlayer *player)
 	}
 
 	api->setCurrency(player->config().username, player->m_gameId, player->config().cur);
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::gameAbort
+ * @param player
+ * @return
+ */
+
+bool RpgEnginePrivate::gameAbort(RpgEnginePlayer *player)
+{
+	if (!player)
+		return false;
+
+	if (player->m_isFinishing)
+		return true;
+
+	if (player->m_gameId < 0) {
+		ELOG_WARNING << "Invalid game id" << player->config().username;
+		return false;
+	}
+
+	WebServer *server = q->m_service->webServer().lock().get();
+
+	if (!server || !server->handler()) {
+		LOG_CERROR("engine") << "WebServer not found";
+		return false;
+	}
+
+	UserAPI::UserGame game = toUserGame();
+	UserAPI *api = server->handler()->api<UserAPI>("user");
+
+	if (!api) {
+		LOG_CERROR("engine") << "UserAPI not found";
+		return false;
+	}
+
+	const int duration = q->m_currentTick * 1000./60.;
+
+	ELOG_INFO << "Abort game" << player->m_gameId
+			  << "for" << qPrintable(player->config().username)
+			  << duration << "msec";
+
+	player->m_isFinishing = true;
+
+	m_abortList.append(player->peerID());
+
+	api->gameFinish(player->config().username, player->m_gameId, game, {}, {},
+					false, player->config().xp, duration, nullptr, q);
+
+
+	q->messageAdd(RpgGameData::Message(QObject::tr("%1 has left").arg(player->config().nickname), false),
+						 QList<int>{player->playerId()}, true);
 
 	return true;
 }
@@ -2683,7 +2864,7 @@ QString RpgEnginePrivate::engineDump() const
 {
 	QString txt;
 
-	txt += QStringLiteral("[ENGINE %1]\n").arg(q->m_id);
+	txt += QStringLiteral("[ENGINE %1] - %2\n").arg(q->m_id).arg(q->m_readableId, 6, 10, '0');
 	txt += QStringLiteral("------------------------------------------------------------------\n");
 
 	txt += renderTimerDump();

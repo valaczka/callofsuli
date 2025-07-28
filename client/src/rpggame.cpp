@@ -427,12 +427,15 @@ void RpgGame::onPlayerDead(TiledObject *player)
 		isoPlayer->clearData();
 
 		///playerFinishCast(isoPlayer);
+		///
+		if (isoPlayer == m_controlledPlayer) {
+			for (RpgQuest &q : m_gameDefinition.quests) {
+				if (q.type == RpgQuest::SuddenDeath)
+					q.success = -1;
+			}
+		}
 	}
 
-	for (RpgQuest &q : m_gameDefinition.quests) {
-		if (q.type == RpgQuest::SuddenDeath)
-			q.success = -1;
-	}
 
 	emit playerDead(isoPlayer);
 }
@@ -762,6 +765,31 @@ void RpgGame::onShapeAboutToDeletePrivate(cpShape *shape)
 
 
 
+/**
+ * @brief RpgGame::loadTileLayer
+ * @param scene
+ * @param layer
+ * @param renderer
+ */
+
+void RpgGame::loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
+{
+	if (layer->className().isEmpty())
+		return TiledGame::loadTileLayer(scene, layer, renderer);
+	else if (layer->className() == QStringLiteral("player1") && q->m_loadForPlayerCount == 1)
+		return TiledGame::loadTileLayer(scene, layer, renderer);
+	else if (layer->className() == QStringLiteral("player2") && q->m_loadForPlayerCount == 2)
+		return TiledGame::loadTileLayer(scene, layer, renderer);
+	else if (layer->className() == QStringLiteral("player3") && q->m_loadForPlayerCount == 3)
+		return TiledGame::loadTileLayer(scene, layer, renderer);
+	else if (layer->className() == QStringLiteral("player4") && q->m_loadForPlayerCount == 4)
+		return TiledGame::loadTileLayer(scene, layer, renderer);
+	else if (layer->className() == QStringLiteral("player5") && q->m_loadForPlayerCount == 5)
+		return TiledGame::loadTileLayer(scene, layer, renderer);
+}
+
+
+
 
 
 
@@ -788,9 +816,29 @@ void RpgGame::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const
 		return loadEnemy(scene, object, renderer);
 	else if (groupClass == QStringLiteral("enemy5") && q->m_loadForPlayerCount > 4)
 		return loadEnemy(scene, object, renderer);
+
+	else if (groupClass == QStringLiteral("ground1") && q->m_loadForPlayerCount == 1)
+		loadGround(scene, object, renderer);
+	else if (groupClass == QStringLiteral("ground2") && q->m_loadForPlayerCount == 2)
+		loadGround(scene, object, renderer);
+	else if (groupClass == QStringLiteral("ground3") && q->m_loadForPlayerCount == 3)
+		loadGround(scene, object, renderer);
+	else if (groupClass == QStringLiteral("ground4") && q->m_loadForPlayerCount == 4)
+		loadGround(scene, object, renderer);
+	else if (groupClass == QStringLiteral("ground5") && q->m_loadForPlayerCount == 5)
+		loadGround(scene, object, renderer);
+
 	/*else if (groupClass == QStringLiteral("pickable"))
 		return loadPickable(scene, object, renderer);*/
 	else if (object->className() == QStringLiteral("player"))
+		addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
+	else if (object->className() == QStringLiteral("player2") && q->m_loadForPlayerCount > 1)
+		addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
+	else if (object->className() == QStringLiteral("player3") && q->m_loadForPlayerCount > 2)
+		addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
+	else if (object->className() == QStringLiteral("player4") && q->m_loadForPlayerCount > 3)
+		addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
+	else if (object->className() == QStringLiteral("player5") && q->m_loadForPlayerCount > 4)
 		addPlayerPosition(scene, renderer->pixelToScreenCoords(object->position()));
 }
 
@@ -888,10 +936,53 @@ bool RpgGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tile
 	Q_ASSERT(scene);
 	Q_ASSERT(group);
 
-	if (group->className() == QStringLiteral("collection"))
+
+	if (group->className() == QStringLiteral("collection")) {
 		addCollection(scene, group, renderer);
-	else
+
+	} else if (group->className() == QStringLiteral("viewport") || group->name() == QStringLiteral("viewport")) {
+		QMap<int, QPointF> viewportTopLeft;
+		QMap<int, QPointF> viewportBottomRight;
+
+		for (Tiled::MapObject *object : std::as_const(group->objects())) {
+			if (object->name() == QStringLiteral("topLeft") || object->name() == QStringLiteral("topLeft1"))
+				viewportTopLeft.insert(1, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("topLeft2") && q->m_loadForPlayerCount > 1)
+				viewportTopLeft.insert(2, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("topLeft3") && q->m_loadForPlayerCount > 2)
+				viewportTopLeft.insert(3, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("topLeft4") && q->m_loadForPlayerCount > 3)
+				viewportTopLeft.insert(4, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("topLeft5") && q->m_loadForPlayerCount > 4)
+				viewportTopLeft.insert(5, renderer->pixelToScreenCoords(object->position()));
+
+			else if (object->name() == QStringLiteral("bottomRight") || object->name() == QStringLiteral("bottomRight1"))
+				viewportBottomRight.insert(1, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("bottomRight2") && q->m_loadForPlayerCount > 1)
+				viewportBottomRight.insert(2, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("bottomRight3") && q->m_loadForPlayerCount > 2)
+				viewportBottomRight.insert(3, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("bottomRight4") && q->m_loadForPlayerCount > 3)
+				viewportBottomRight.insert(4, renderer->pixelToScreenCoords(object->position()));
+			else if (object->name() == QStringLiteral("bottomRight5") && q->m_loadForPlayerCount > 4)
+				viewportBottomRight.insert(5, renderer->pixelToScreenCoords(object->position()));
+		}
+
+		LOG_CWARNING("scene") << "****VP TL" << viewportTopLeft;
+		LOG_CWARNING("scene") << "****VP BR" << viewportBottomRight;
+
+		if (!viewportTopLeft.isEmpty() && !viewportBottomRight.isEmpty()) {
+			QRectF vp;
+			vp.setTopLeft(viewportTopLeft.last());
+			vp.setBottomRight(viewportBottomRight.last());
+
+			LOG_CDEBUG("scene") << "Set viewport on scene" << scene->sceneId() << vp;
+			scene->setViewport(vp);
+		}
+
+	} else {
 		return TiledGame::loadObjectLayer(scene, group, renderer);
+	}
 
 	return true;
 }
@@ -1158,51 +1249,6 @@ void RpgGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene)
 
 
 
-/**
- * @brief RpgGame::playerPosition
- * @param sceneId
- * @param num
- * @return
- */
-
-std::optional<QPointF> RpgGame::playerPosition(const int &sceneId, const int &num) const
-{
-	int i = 0;
-
-	for (const auto &p : q->m_playerPositionList) {
-		if (p.scene && p.scene->sceneId() == sceneId) {
-			if (i==num)
-				return p.position;
-			else
-				++i;
-		}
-	}
-
-	return std::nullopt;
-}
-
-
-/**
- * @brief RpgGame::playerPosition
- * @param sceneId
- * @return
- */
-
-QList<QPointF> RpgGame::playerPosition(const int &sceneId) const
-{
-	QList<QPointF> list;
-
-	for (const auto &p : q->m_playerPositionList) {
-		if (p.scene && p.scene->sceneId() == sceneId) {
-			list << p.position;
-		}
-	}
-
-	return list;
-}
-
-
-
 
 
 /**
@@ -1218,7 +1264,7 @@ void RpgGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
 		return;
 	}
 
-	auto it = std::find_if(q->m_playerPositionList.constBegin(), q->m_playerPositionList.constEnd(),
+	/*auto it = std::find_if(q->m_playerPositionList.constBegin(), q->m_playerPositionList.constEnd(),
 						   [scene, &position](const auto &p){
 		return p.scene == scene && p.position == position;
 	});
@@ -1226,7 +1272,7 @@ void RpgGame::addPlayerPosition(TiledScene *scene, const QPointF &position)
 	if (it != q->m_playerPositionList.constEnd()) {
 		LOG_CWARNING("game") << "Player position already loaded:" << scene->sceneId() << it->position;
 		return;
-	}
+	}*/
 
 	q->m_playerPositionList.append({
 									   .scene = scene,
@@ -1266,7 +1312,18 @@ void RpgGame::addCollection(TiledScene *scene, Tiled::GroupLayer *groupLayer, Ti
 									 );
 
 		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
-			addCollection(scene, objgroup, renderer);
+			if (layer->className() == QStringLiteral("collection1") ||
+					 layer->className() == QStringLiteral("collection") ||
+					 layer->className().isEmpty())
+				addCollection(scene, objgroup, renderer);
+			else if (layer->className() == QStringLiteral("collection2") && q->m_loadForPlayerCount > 1)
+				addCollection(scene, objgroup, renderer);
+			else if (layer->className() == QStringLiteral("collection3") && q->m_loadForPlayerCount > 2)
+				addCollection(scene, objgroup, renderer);
+			else if (layer->className() == QStringLiteral("collection4") && q->m_loadForPlayerCount > 3)
+				addCollection(scene, objgroup, renderer);
+			else if (layer->className() == QStringLiteral("collection5") && q->m_loadForPlayerCount > 4)
+				addCollection(scene, objgroup, renderer);
 		}
 	}
 }
@@ -1327,6 +1384,32 @@ QList<RpgGameData::PlayerPosition> RpgGame::playerPositions() const
 			list.emplaceBack(p.scene->sceneId(), p.position.x(), p.position.y());
 		else
 			LOG_CERROR("game") << "Missing scene" << p.position;
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief RpgGame::playerPositions
+ * @param sceneId
+ * @return
+ */
+
+QList<QPointF> RpgGame::playerPositions(const int &sceneId) const
+{
+	QList<QPointF> list;
+
+	list.reserve(q->m_playerPositionList.size());
+
+	for (const RpgGamePrivate::PlayerPosition &p : q->m_playerPositionList) {
+		if (!p.scene) {
+			LOG_CERROR("game") << "Missing scene" << p.position;
+			continue;
+		}
+
+		if (p.scene->sceneId() == sceneId)
+			list << QPointF(p.position.x(), p.position.y());
 	}
 
 	return list;

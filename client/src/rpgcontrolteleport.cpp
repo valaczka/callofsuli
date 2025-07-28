@@ -147,7 +147,8 @@ bool RpgControlTeleport::loadFromLayer(RpgGame *game, TiledScene *scene, Tiled::
 			if (clName == QStringLiteral("dynamicZ")) {
 				m_game->loadDynamicZ(scene, object, renderer);
 			} else if (clName == QStringLiteral("trigger")) {
-				m_game->loadDynamicZ(scene, object, renderer);
+				if (!object->name().isEmpty())
+					m_game->loadDynamicZ(scene, object, renderer);
 
 				RpgActiveControlObject *o = game->createObject<RpgActiveControlObject>(-1, scene, object->id(),
 																					   this,
