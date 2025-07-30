@@ -29,6 +29,19 @@
 
 
 
+// Static hash
+
+const QHash<RpgGameData::PickableBaseData::PickableType, QString> RpgPickable::m_typeHash = {
+	{ RpgGameData::PickableBaseData::PickableHp, QStringLiteral("hp") },
+	{ RpgGameData::PickableBaseData::PickableShield, QStringLiteral("shield") },
+	{ RpgGameData::PickableBaseData::PickableBullet, QStringLiteral("bullet") },
+	{ RpgGameData::PickableBaseData::PickableTime, QStringLiteral("time") },
+	{ RpgGameData::PickableBaseData::PickableMp, QStringLiteral("time") },
+	{ RpgGameData::PickableBaseData::PickableCoin, QStringLiteral("coin") },
+	{ RpgGameData::PickableBaseData::PickableKey, QStringLiteral("key") },
+};
+
+
 
 /**
  * @brief RpgPickable::RpgPickable
@@ -39,9 +52,9 @@
  */
 
 RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::PickableBaseData &base)
-	: RpgActiveControl<RpgGameData::Pickable,
-	  RpgGameData::PickableBaseData,
-	  RpgActiveIface::DefaultEnum>(RpgConfig::ControlPickable)
+	: RpgActiveControl<RpgGameData::Pickable
+	  , RpgGameData::PickableBaseData
+	  , RpgActiveIface::DefaultEnum>(RpgConfig::ControlPickable)
 {
 	Q_ASSERT(scene);
 
@@ -54,7 +67,19 @@ RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::Pi
 	setIsLocked(false);
 
 	m_visualItem = createVisualItem(scene, nullptr);
-	m_visualItem->setSource(QUrl::fromLocalFile(":/rpg/key/pickable.png"));
+
+	QString name = m_typeHash.value(base.pt);
+
+	if (name.isEmpty()) {
+		LOG_CERROR("scene") << "Invalid pickable" << base.pt;
+	} else if (const QString f = QStringLiteral(":/rpg/%1/pickable.gif").arg(name); QFile::exists(f)) {
+		m_visualItem->setSource(QUrl::fromLocalFile(f));
+	} else if (const QString f = QStringLiteral(":/rpg/%1/pickable.png").arg(name); QFile::exists(f)) {
+		m_visualItem->setSource(QUrl::fromLocalFile(f));
+	} else {
+		LOG_CERROR("scene") << "Missing image for pickable" << base.pt;
+	}
+
 	m_visualItem->setVisible(true);
 
 	LOG_CDEBUG("scene") << "Add visual item" << this << m_visualItem->name() << base.o << base.s << base.id;
@@ -67,11 +92,11 @@ RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::Pi
 	}
 
 	RpgPickableControlObject *o = game->createObject<RpgPickableControlObject>(m_baseData.o,
-																				   scene,
-																				   m_baseData.id,
-																				   this,
-																				   pos, 25.,
-																				   game);
+																			   scene,
+																			   m_baseData.id,
+																			   this,
+																			   pos, 25.,
+																			   game);
 
 	if (!o)
 		return;
@@ -127,6 +152,29 @@ void RpgPickable::updateFromSnapshot(const RpgGameData::Pickable &snap)
 
 
 
+
+/**
+ * @brief RpgPickable::playSfx
+ */
+
+void RpgPickable::playSfx(const QString &sound) const
+{
+	if (!m_game || m_controlObjectList.empty())
+		return;
+
+	RpgPickableControlObject *object = qobject_cast<RpgPickableControlObject*>(m_controlObjectList.first());
+
+	if (!object)
+		return;
+
+
+	m_game->playSfx(sound, object->scene(), object->bodyPositionF());
+}
+
+
+
+
+
 /**
  * @brief RpgPickable::serializeThis
  * @return
@@ -164,6 +212,8 @@ void RpgPickable::onShapeContactEnd(cpShape *self, cpShape *other)
 	RpgActiveIface::onShapeContactEnd(self, other);
 	_updateGlow();
 }
+
+
 
 
 

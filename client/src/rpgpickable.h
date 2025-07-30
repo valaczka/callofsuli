@@ -46,6 +46,10 @@ public:
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Pickable> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Pickable &snap) override;
 
+	static QHash<RpgGameData::PickableBaseData::PickableType, QString> typeHash() { return m_typeHash; }
+
+	void playSfx(const QString &sound = QStringLiteral(":/sound/sfx/pick.mp3")) const;
+
 protected:
 	virtual RpgGameData::Pickable serializeThis() const override;
 
@@ -53,6 +57,8 @@ protected:
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
 private:
+	static const QHash<RpgGameData::PickableBaseData::PickableType, QString> m_typeHash;
+
 	void _updateGlow();
 };
 

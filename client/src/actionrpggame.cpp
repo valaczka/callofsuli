@@ -29,6 +29,7 @@
 #include "client.h"
 #include "mapplaycampaign.h"
 #include "rpgbroadsword.h"
+#include "rpgcontrolcollection.h"
 #include "rpgcontrolrandomizer.h"
 #include "rpgdagger.h"
 #include "rpglongsword.h"
@@ -320,71 +321,6 @@ void ActionRpgGame::clearSharedTextures()
 
 
 /**
- * @brief ActionRpgGame::addWallet
- * @param wallet
- */
-
-void ActionRpgGame::addWallet(RpgUserWallet *wallet)
-{
-	if (!wallet || !m_rpgGame)
-		return;
-
-	RpgPlayer *player = m_rpgGame->controlledPlayer();
-
-	if (!player)
-		return;
-
-	LOG_CDEBUG("game") << "Add wallet" << wallet->market().type << wallet->market().name;
-
-	switch (wallet->market().type) {
-		case RpgMarket::Weapon: {
-			/*const RpgGameData::Weapon::WeaponType type = RpgArmory::weaponHash().key(wallet->market().name, RpgGameData::Weapon::WeaponInvalid);
-			if (type == RpgGameData::Weapon::WeaponInvalid) {
-				LOG_CERROR("game") << "Invalid weapon" << wallet->market().name;
-				return;
-			}
-
-			int sub = wallet->market().info.value(QStringLiteral("subType")).toInt(0);
-
-			RpgWeapon *weapon = player->armory()->weaponFind(type, sub);
-
-			if (weapon) {
-				LOG_CDEBUG("game") << "Weapon already exists";
-				return;
-			}
-
-			loadWeapon(player, type, wallet->market().cost == 0 ? -1 : wallet->amount()
-																  ///wallet->bullet() ? wallet->bullet()->amount() : 0//);
-*/
-			return;
-		}
-
-		case RpgMarket::Hp:
-			player->setHp(player->hp() + wallet->market().amount);
-			return;
-
-		case RpgMarket::Mp:
-			player->setMp(player->mp() + wallet->market().amount);
-			return;
-
-		case RpgMarket::Time:
-			addToDeadline(wallet->market().amount * 1000);
-			return;
-
-
-		case RpgMarket::Map:
-		case RpgMarket::Skin:
-		case RpgMarket::Xp:
-		case RpgMarket::Pickable:
-		case RpgMarket::Other:
-		case RpgMarket::Invalid:
-			LOG_CTRACE("game") << "Wallet skipped";
-			break;
-	}
-}
-
-
-/**
  * @brief ActionRpgGame::getCharacterImage
  * @param name
  * @return
@@ -452,7 +388,6 @@ void ActionRpgGame::onTimerLeftTimeout()
 			m_rpgGame->setQuestions(m_playerResurrect.player->scene(), m_missionLevel->questions());*/
 
 		m_rpgGame->resurrectEnemiesAndPlayer(m_playerResurrect.player);
-		loadInventory(m_playerResurrect.player);
 
 		m_playerResurrect.player = nullptr;
 		m_playerResurrect.time = -1;
@@ -545,6 +480,77 @@ void ActionRpgGame::onGameFailed()
 
 
 /**
+ * @brief ActionRpgGame::createCollection
+ */
+
+int ActionRpgGame::createCollection()
+{
+	float avg = m_rpgQuestion->count() > 0 ? (float) m_rpgQuestion->duration() / (float) m_rpgQuestion->count() : 0.;
+
+	LOG_CINFO("game") << "####################" << m_rpgGame->m_gameDefinition.duration << "+"
+					  << m_rpgQuestion->count() << "*" << avg;
+
+	m_config.duration = 75;//m_rpgGame->m_gameDefinition.duration + m_rpgQuestion->count() * avg;
+	updateConfig();
+
+	if (m_rpgGame->collection().groups.empty()) {
+		LOG_CERROR("game") << "Missing collection groups";
+		return -1;
+	}
+
+	int generated = 0;
+
+	const QHash<int, QList<int> > &pos = m_rpgGame->collection().allocate(2 /*m_rpgQuestion->count()*/, &generated);
+
+	LOG_CDEBUG("game") << m_rpgQuestion->count() << "collection items required," << generated << "generated";
+
+	RpgGameData::ControlCollectionBaseData base;
+	base.o = -11;
+	base.id = 0;
+
+	for (const auto &[gid, list] : pos.asKeyValueRange()) {
+		const auto &it = m_rpgGame->collection().find(gid);
+
+		if (it == m_rpgGame->collection().groups.cend()) {
+			LOG_CERROR("game") << "Invalid GID" << gid;
+			continue;
+		}
+
+		for (const int &idx : list) {
+			if (const auto &s = m_rpgGame->collection().images.size(); s > 1)
+				base.img = m_rpgGame->collection().images.at(QRandomGenerator::global()->bounded(s));
+			else if (s > 0)
+				base.img = m_rpgGame->collection().images.first();
+
+			TiledScene *scene = m_rpgGame->findScene(it->scene);
+
+			if (!scene) {
+				LOG_CERROR("game") << "Invalid scene" << it->scene;
+				continue;
+			}
+
+			base.id++;
+			base.s = it->scene;
+			base.gid = gid;
+
+			const auto &ptr = it->pos.at(idx);
+
+			RpgControlCollection *c = m_rpgGame->controlAdd<RpgControlCollection>(m_rpgGame, scene, base, QPointF(ptr.x, ptr.y));
+			c->setIdx(idx);
+		}
+	}
+
+	LOG_CDEBUG("game") << base.id << "collection items created";
+
+	if (m_rpgGame->controlledPlayer())
+		m_rpgGame->controlledPlayer()->setCollectionRq(base.id);
+
+	return base.id;
+}
+
+
+
+/**
  * @brief ActionRpgGame::onGameLoadFailed
  */
 
@@ -592,6 +598,8 @@ void ActionRpgGame::rpgGameActivated_()
 	}
 
 
+
+
 	RpgPlayer *player = m_rpgGame->createPlayer(firstScene, *characterPtr, 0);
 
 	if (!player) {
@@ -599,13 +607,12 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
-	const int hp = m_missionLevel->startHP() + ptr->playerHP;
+	const int hp = m_missionLevel->startHP() + characterPtr->hp;
 
-	player->setHp(hp*10);
-	player->setMaxHp(hp*10);
+	player->setHp(hp);
+	player->setMaxHp(hp);
 	player->setMaxMp(characterPtr->mpMax);
 	player->setMp(characterPtr->mpStart);
-	loadInventory(player);
 
 
 	// Set user name
@@ -617,30 +624,10 @@ void ActionRpgGame::rpgGameActivated_()
 
 	// From wallet
 
-	RpgUserWalletList* wallet = m_client->server() ? m_client->server()->user()->wallet() : nullptr;
-
-	if (wallet) {
-		/*for (const QString &s : m_playerConfig.weapons) {
-			const auto it = std::find_if(wallet->constBegin(), wallet->constEnd(), [&s](RpgUserWallet *w) {
-							return w->market().type == RpgMarket::Weapon && w->market().name == s;
-		});
-			if (it == wallet->constEnd()) {
-				LOG_CERROR("game") << "Missing weapon" << s;
-				continue;
-			}
-
-			if (characterPtr->disabledWeapons.contains(s)) {
-				LOG_CWARNING("game") << "Weapon" << s << "disabled for character" << characterPtr->name;
-				continue;
-			}
-
-			loadWeapon(player,
-					   RpgArmory::weaponHash().key(s, RpgGameData::Weapon::WeaponInvalid),
-					   (*it)->bullet() ? (*it)->bullet()->amount() : 0
-					   (*it)->market().cost == 0 ? -1 : (*it)->amount());
-		}*/
+	if (RpgUserWalletList* wallet = m_client->server() ? m_client->server()->user()->wallet() : nullptr) {
+		RpgGameData::Armory armory = wallet->getArmory(m_playerConfig.character);
+		player->armory()->updateFromSnapshot(armory);
 	}
-
 
 
 	QPointF pos;
@@ -662,15 +649,20 @@ void ActionRpgGame::rpgGameActivated_()
 
 	m_rpgGame->setPlayers(QList<RpgPlayer*>{player});
 
+
+	RpgGameData::Randomizer randomizer = m_rpgGame->randomizer();
+	randomizer.randomize();
+
+	m_rpgGame->updateRandomizer(randomizer);
+
+
 	m_rpgQuestion->initialize();
 
-	m_config.duration = ptr->duration + (m_rpgQuestion->duration() * 0.5);
-	updateConfig();
+	int num = createCollection();
 
-
-	recalculateQuests();
-	loadWinnerQuests(5);
-	loadEnemyQuests();	/// ??? weapon???
+	recalculateQuests(player);
+	loadWinnerQuests(num);
+	loadEnemyQuests();
 
 	emit m_rpgGame->gameLoaded();
 }
@@ -696,7 +688,7 @@ void ActionRpgGame::updateConfig()
 
 void ActionRpgGame::onConfigChanged()
 {
-	//LOG_CDEBUG("game") << "ConquestGame state:" << m_config.gameState << m_config.currentStage << m_config.currentTurn;
+	LOG_CINFO("game") << "Game state:" << m_config.gameState;
 
 	/*if (m_config.currentTurn >= 0 && m_config.currentTurn < m_config.turnList.size())
 		setCurrentTurn(m_config.turnList.at(m_config.currentTurn));
@@ -731,19 +723,25 @@ void ActionRpgGame::onConfigChanged()
 			return;
 		}
 
-		//startWithRemainingTime(m_config.duration*1000);
 		gameStart();
 		m_deadlineTick = AbstractGame::TickTimer::msecToTick(m_config.duration*1000);
 		m_elapsedTick = 0;
 		m_rpgGame->tickTimer()->start(this, 0);
-		///m_timerLeft.start();
+		m_timerLeft.start();
 
 		if (!m_rpgGame->m_gameDefinition.music.isEmpty())
 			m_client->sound()->playSound(m_rpgGame->m_gameDefinition.music, Sound::MusicChannel);
 
-		m_rpgGame->message(tr("LEVEL %1").arg(level()));
+		if (RpgPlayer *player = m_rpgGame->controlledPlayer()) {
+			if (!m_rpgGame->collection().quest.isEmpty())
+				m_rpgGame->message(m_rpgGame->collection().quest.arg(player->collectionRq()), true);
+			else if (player->collectionRq() > 1)
+				m_rpgGame->message(tr("Collect %1 items").arg(player->collectionRq()), true);
+			else if (player->collectionRq() > 0)
+				m_rpgGame->message(tr("Collect 1 item"), true);
+		}
+
 		m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
-		///m_client->sound()->setVolumeSfx(m_tmpSoundSfxVolume);
 	}
 
 	m_oldGameState = m_config.gameState;
@@ -795,33 +793,6 @@ void ActionRpgGame::downloadGameData(const QString &map, const QList<RpgGameData
 }
 
 
-/**
- * @brief ActionRpgGame::updateRandomizer
- * @param randomizer
- */
-
-void ActionRpgGame::updateRandomizer(const RpgGameData::Randomizer &randomizer)
-{
-	QSet<int> sceneReload;
-
-	for (const RpgGameData::RandomizerGroup &g : randomizer.groups) {
-		RpgGameData::ControlBaseData base(RpgConfig::ControlRandomizer,
-										  -1, g.scene, g.gid);
-
-		if (RpgControlRandomizer *r = m_rpgGame->controlFind<RpgControlRandomizer>(base)) {
-			if (r->fromRandomizerGroup(g)) {
-				sceneReload.insert(g.scene);
-			}
-
-		} else {
-			LOG_CERROR("game") << "Missing randomizer group" << g.scene << g.gid;
-		}
-	}
-
-	for (const int &s : sceneReload)
-		m_rpgGame->reloadTcodMap(m_rpgGame->findScene(s));
-}
-
 
 
 
@@ -862,6 +833,21 @@ void ActionRpgGame::onTimeStepped()
 void ActionRpgGame::onTimeAfterWorldStep(const qint64 &tick)
 {
 	Q_UNUSED(tick);
+}
+
+
+
+
+
+/**
+ * @brief ActionRpgGame::onBodyStep
+ * @param body
+ * @return
+ */
+
+bool ActionRpgGame::onBodyStep(TiledObjectBody */*body*/)
+{
+	return false;
 }
 
 
@@ -1037,47 +1023,6 @@ void ActionRpgGame::onMsecLeftChanged()
 
 
 
-
-/**
- * @brief ActionRpgGame::loadInventory
- * @param player
- */
-
-void ActionRpgGame::loadInventory(RpgPlayer *player)
-{
-	if (!player)
-		return;
-
-	LOG_CTRACE("game") << "Load player inventory" << player;
-
-	/*	for (const QString &s : player->m_config.inventoryOnce) {
-		loadInventory(player, RpgPickableObject::typeFromString(s));
-	}
-
-	player->m_config.inventoryOnce.clear();
-
-	for (const QString &s : player->m_config.inventory) {
-		loadInventory(player, RpgPickableObject::typeFromString(s));
-	}
-
-
-	// Game inventory
-
-	for (const QString &s : m_rpgGame->m_gameDefinition.inventoryOnce) {
-		loadInventory(player, RpgPickableObject::typeFromString(s));
-	}
-
-	m_rpgGame->m_gameDefinition.inventoryOnce.clear();
-
-	for (const QString &s : m_rpgGame->m_gameDefinition.inventory) {
-		loadInventory(player, RpgPickableObject::typeFromString(s));
-	}*/
-}
-
-
-
-
-
 /**
  * @brief ActionRpgGame::loadWeapon
  * @param player
@@ -1117,7 +1062,7 @@ bool ActionRpgGame::onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
 	if (!player || !enemy)
 		return false;
 
-	RpgGameData::Enemy e = enemy->serialize();
+	RpgGameData::Enemy e = enemy->serialize(1);
 
 	e.attacked(enemy->baseData(), weaponType, weaponSubtype, player->baseData());
 
@@ -1155,8 +1100,8 @@ bool ActionRpgGame::onPlayerUseControl(RpgPlayer *player, RpgActiveIface *contro
 	if (!player || !control)
 		return false;
 
-	if (control && m_rpgQuestion->emptyQuestions()) {
-		m_rpgGame->playerUseControl(player, control);
+	if (control && (m_rpgQuestion->emptyQuestions() || !control->questionLock())) {
+		m_rpgGame->playerUseControl(player, control, true);
 		return true;
 	}
 
@@ -1542,7 +1487,7 @@ bool ActionRpgGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
 	if (!player || !enemy)
 		return false;
 
-	RpgGameData::Player p = player->serialize();
+	RpgGameData::Player p = player->serialize(1);
 	p.attacked(player->baseData(), weaponType, weaponSubtype, enemy->baseData());
 
 	const bool prot = p.hp == player->hp();
@@ -1632,7 +1577,7 @@ void ActionRpgGame::onLifeCycleDelete(TiledObjectBody *body)
 void ActionRpgGame::onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp)
 {
 	if (control)
-		m_rpgGame->playerUseControl(player, control);
+		m_rpgGame->playerUseControl(player, control, true);
 
 	setXp(m_xp+xp);
 
@@ -1666,11 +1611,7 @@ void ActionRpgGame::onQuestionFailed(RpgPlayer *player, RpgActiveIface *control)
 	if (!player)
 		return;
 
-	if (control) {
-		RpgGameData::Player p = player->serialize();
-		p.controlFailed(control->activeType());
-		player->updateFromSnapshot(p);
-	}
+	m_rpgGame->playerUseControl(player, control, false);
 }
 
 
@@ -1693,7 +1634,8 @@ void ActionRpgGame::loadWinnerQuests(const int &rq)
 	int num = rq;
 
 	for (const auto &ptr : m_rpgGame->m_controls) {
-		if (RpgActiveIface *p = dynamic_cast<RpgActiveIface*>(ptr.get()); p && p->questionLock()) {
+		if (RpgActiveIface *p = dynamic_cast<RpgActiveIface*>(ptr.get());
+				p && p->questionLock() && p->activeType() != RpgConfig::ControlCollection) {		// Benne van már az rq-ban
 			++num;
 		}
 	}
@@ -1734,12 +1676,12 @@ void ActionRpgGame::loadWinnerQuests(const int &rq)
  * @brief ActionRpgGame::loadEnemyQuests
  */
 
-void ActionRpgGame::loadEnemyQuests(const bool &canKill)
+void ActionRpgGame::loadEnemyQuests()
 {
 	if (!m_rpgGame)
 		return;
 
-	LOG_CDEBUG("game") << "Load enemy quests" << canKill;
+	LOG_CDEBUG("game") << "Load enemy quests";
 
 	const int num = m_rpgGame->m_enemyDataList.size();
 
@@ -1750,11 +1692,6 @@ void ActionRpgGame::loadEnemyQuests(const bool &canKill)
 			m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::EnemyDefault, i, i-5 });
 		}
 	}
-
-	if (canKill)
-		m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::NoKillDefault, 0, num * 50 });
-	else
-		m_rpgGame->m_gameDefinition.quests.append({ RpgQuest::NoKillDefault, 0, num * 100 });
 
 	emit m_rpgGame->questsChanged();
 }
@@ -1767,19 +1704,32 @@ void ActionRpgGame::loadEnemyQuests(const bool &canKill)
  * @brief ActionRpgGame::recalculateQuests
  */
 
-void ActionRpgGame::recalculateQuests()
+void ActionRpgGame::recalculateQuests(RpgPlayer *player)
 {
 	if (!m_rpgGame)
 		return;
 
-	// Quests override on empty questions
+	bool canKill = false;
 
-	if (!m_rpgQuestion->emptyQuestions())
-		return;
+	if (player) {
+		for (RpgWeapon *w : *player->armory()->weaponList()) {
+			if (w->canHit() || w->canShot() || w->canCast()) {
+				canKill = true;
+				break;
+			}
+		}
+	}
+
+	LOG_CDEBUG("game") << "Recalculat quests, can kill:" << canKill;
+
 
 	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
-		if (q.type == RpgQuest::SuddenDeath)
+		if (q.type == RpgQuest::SuddenDeath && m_rpgQuestion->emptyQuestions())
 			q.currency = std::min(95, std::max(10, (int) (q.currency * 0.1)));
+
+		else if (q.type == RpgQuest::NoKill && !canKill)
+			q.currency = std::max(q.currency, std::min(3000, q.currency * 5));
+
 	}
 
 	emit m_rpgGame->questsChanged();
@@ -1849,7 +1799,7 @@ void ActionRpgGame::checkEnemyQuests(const int &count)
 	auto found = m_rpgGame->m_gameDefinition.quests.end();
 
 	for (auto it = m_rpgGame->m_gameDefinition.quests.begin(); it != m_rpgGame->m_gameDefinition.quests.end(); ++it) {
-		if (count > 0 && it->type == RpgQuest::NoKillDefault) {
+		if (count > 0 && it->type == RpgQuest::NoKill) {
 			it->success = -1;
 			continue;
 		}
@@ -1893,7 +1843,7 @@ void ActionRpgGame::checkFinalQuests()
 
 	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
 		if (m_rpgGame->controlledPlayer()->collection() < m_rpgGame->controlledPlayer()->collectionRq()) {
-			if (q.type == RpgQuest::SuddenDeath || q.type == RpgQuest::NoKillDefault)
+			if (q.type == RpgQuest::SuddenDeath || q.type == RpgQuest::NoKill)
 				q.success = -1;
 
 			continue;
@@ -1901,7 +1851,7 @@ void ActionRpgGame::checkFinalQuests()
 
 		if (q.type == RpgQuest::SuddenDeath && q.success == 0)
 			questSuccess(&q);
-		else if (q.type == RpgQuest::NoKillDefault && q.success == 0)
+		else if (q.type == RpgQuest::NoKill && q.success == 0)
 			questSuccess(&q);
 	}
 }

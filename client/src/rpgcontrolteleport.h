@@ -62,6 +62,9 @@ protected:
 
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
+
+private:
+	void _updateGlow();
 };
 
 #endif // RPGCONTROLTELEPORT_H

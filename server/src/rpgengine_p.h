@@ -175,6 +175,7 @@ private:
 	int m_lastMyObjectId = 0;
 
 	float m_avgCollectionMsec = 0;
+	int m_collectionRequired = -1;
 	int m_collectionGenerated = -1;
 
 	bool m_playerDataModified = false;

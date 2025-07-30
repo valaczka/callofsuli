@@ -87,7 +87,7 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, const
 
 	ptr->setUdpServer(server);
 
-	ptr->setPlayerLimit(5);
+	ptr->setPlayerLimit(4);
 
 	if (const QString &dir = handler->service()->logDir(); !dir.isEmpty()) {
 		const QString fname = dir+QStringLiteral("/rpg-%1.log").arg(ptr->id(), 3, 10, '0');
@@ -670,6 +670,22 @@ int RpgEngine::nextObjectId() const
 }
 
 
+
+/**
+ * @brief RpgEngine::addMsec
+ * @param msec
+ */
+
+void RpgEngine::addMsec(const int &msec)
+{
+	if (msec > 0) {
+		ELOG_DEBUG << "Add" << msec << "msec";
+
+		m_deadlineTick += msec * 60./1000.;
+	}
+}
+
+
 /**
  * @brief RpgEngine::messageAdd
  * @param msg
@@ -1050,8 +1066,6 @@ void RpgEngine::preparePlayers()
 
 		qint64 ms = d->m_gameConfig.duration * 1000.;			// duration to msec
 
-		ms = 300*1000;
-
 		if (d->m_avgCollectionMsec > 0 && d->m_collectionGenerated > 0) {
 			ms += (d->m_avgCollectionMsec * d->m_collectionGenerated * 2.0) / (m_player.size() > 0 ? m_player.size() : 1);
 		}
@@ -1381,6 +1395,7 @@ void RpgEnginePrivate::dataReceivedPrepare(RpgEnginePlayer *player, const QByteA
 		return;
 
 	m_gameConfig = config.gameConfig;
+	m_collectionRequired = config.count;
 	m_avgCollectionMsec = config.avg;
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -2155,6 +2170,8 @@ void RpgEnginePrivate::createEnemies(const RpgGameData::CurrentSnapshot &snapsho
 			edata.hp = 32;
 
 			q->m_snapshots.enemyAdd(enemy, edata);
+
+			ELOG_DEBUG << "[prepare] Add enemy" << enemy << enemy.t << "df:" << enemy.df << "pf:" << enemy.pf;
 		}
 	}
 }
@@ -2190,6 +2207,8 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 			data.f = 0;
 
 			q->m_snapshots.lightAdd(cd, data);
+
+			ELOG_DEBUG << "[prepare] Add light" << cd << data.st;
 		}
 	}
 
@@ -2216,6 +2235,8 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 			data.f = 0;
 
 			q->m_snapshots.containerAdd(cd, data);
+
+			ELOG_DEBUG << "[prepare] Add container" << cd << cd.inv;
 		}
 	}
 
@@ -2242,6 +2263,8 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 			data.f = 0;
 
 			q->m_snapshots.gateAdd(cd, data);
+
+			ELOG_DEBUG << "[prepare] Add gate" << cd << data.st;
 		}
 	}
 
@@ -2267,6 +2290,8 @@ void RpgEnginePrivate::createControls(const RpgGameData::CurrentSnapshot &snapsh
 			data.f = 0;
 
 			q->m_snapshots.teleportAdd(cd, data);
+
+			ELOG_DEBUG << "[prepare] Add teleport" << cd << cd.hd << cd.dst;
 		}
 	}
 }
@@ -2282,19 +2307,17 @@ void RpgEnginePrivate::createCollection()
 	if (!q->m_snapshots.controls().collections.empty())
 		return;
 
-	/*int max = 0;
+	ELOG_INFO << "Required" << m_collectionRequired << "collection items for one player";
 
-	for (const RpgGameData::CollectionGroup &g : m_gameConfig.collection.groups) {
-		max += g.pos.size();
-	}*/
+	const int margin = std::max(0, (int) (q->m_player.size()-1));
 
-	const int req = 3 * q->m_player.size();//QRandomGenerator::global()->bounded(5, 7);
+	const int req = std::max(0, m_collectionRequired) * (q->m_player.size()) + margin;
 
-	ELOG_INFO << "Generate" << req << "collection items with images" << m_gameConfig.collection.images;
-
-
+	ELOG_INFO << "Generate" << req << "collection items with images" << m_gameConfig.collection.images << "...";
 
 	const QHash<int, QList<int> > &pos = m_gameConfig.collection.allocate(req, &m_collectionGenerated);
+
+	ELOG_INFO << "..." << m_collectionGenerated << "items generated";
 
 	for (const auto &[gid, list] : pos.asKeyValueRange()) {
 		const auto &it = m_gameConfig.collection.find(gid);
@@ -2348,10 +2371,15 @@ void RpgEnginePrivate::createCollection()
 		pList.append(ptr.get());
 	}
 
+	const int alloc = m_collectionGenerated-margin;
 
-	ELOG_DEBUG << "Assign" << (m_collectionGenerated - q->m_player.size()) << "items to" << pList.size() << "players";
+	ELOG_DEBUG << "Assign" << alloc << "items to" << pList.size() << "players";
 
-	RpgGameData::PlayerBaseData::assign(pList, m_collectionGenerated - q->m_player.size());
+	RpgGameData::PlayerBaseData::assign(pList, alloc);
+
+	for (RpgGameData::PlayerBaseData *p : pList) {
+		ELOG_DEBUG << "  -" << *p << "rq:" << p->rq;
+	}
 }
 
 

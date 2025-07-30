@@ -442,12 +442,18 @@ bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSna
 
 	pData.f = m_tick;
 
-	if (pData.pick(m_data.pt)) {
-		ELOG_INFO << "###### FINISH PICKABLE" << m_tick << m_data.id << "--->" << m_player.o;
-		ELOG_INFO << "!!!!! ADD HP" << pData.f << pData.hp;
+	ELOG_INFO << "Player" << m_player << "picked" << m_data.pt;
+
+	const int pv = pData.pick(m_data.pt);
+
+	if (pv < 0) {
 		dst->assign(dst->players, m_player, pData);
+	} else if (m_data.pt == RpgGameData::PickableBaseData::PickableMp) {
+		m_engine->addMsec(pv*1000);
+		m_engine->messageAdd(RpgGameData::Message(QStringLiteral("%1 seconds gained").arg(pv)));
 	} else {
 		ELOG_ERROR << "###### PICKABLE PROCESS FAILED" << m_data.pt << m_tick << "--->" << m_player.o;
+		LOG_CERROR("engine") << "Pickable process failed" << m_data.pt;
 	}
 
 	return true;
@@ -709,8 +715,8 @@ bool RpgEventTeleportUsed::process(const qint64 &tick, RpgGameData::CurrentSnaps
 		if (!m_data.dst.isValid()) {
 			if (RpgEnginePlayer *enginePlayer = m_engine->playerSetGameCompleted(m_player)) {
 				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("%1 has teleported").arg(enginePlayer->config().nickname.isEmpty() ?
-																										 enginePlayer->config().username :
-																										 enginePlayer->config().nickname),
+																									  enginePlayer->config().username :
+																									  enginePlayer->config().nickname),
 														  true),
 									 QList<int>{m_data.o}, true);
 			} else {

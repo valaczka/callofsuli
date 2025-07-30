@@ -361,18 +361,44 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::TileLayer *layer, Tiled::MapRe
 	Q_ASSERT(layer);
 	Q_ASSERT(renderer);
 
+	QRectF rect = renderer->boundingRect(layer->region().boundingRect()).toRectF();
+
+	QSize cell = renderer->boundingRect(QRect(0,0,1,1)).size();
+
+	float left = -0.5;
+	float top = -2;
+	float right = 0.5;
+	float bottom = 0;
+
+	if (layer->hasProperty(QStringLiteral("paddingTop")))
+		top = layer->property(QStringLiteral("paddingTop")).toFloat() * -1.f;
+
+	if (layer->hasProperty(QStringLiteral("paddingLeft")))
+		left = layer->property(QStringLiteral("paddingLeft")).toFloat() * -1.f;
+
+	if (layer->hasProperty(QStringLiteral("paddingBottom")))
+		bottom = layer->property(QStringLiteral("paddingBottom")).toFloat();
+
+	if (layer->hasProperty(QStringLiteral("paddingRight")))
+		right = layer->property(QStringLiteral("paddingRight")).toFloat();
+
+	rect.adjust(left * cell.width(), top * cell.height(),
+				right * cell.width(), bottom * cell.height());
+
 	TiledQuick::TileLayerItem *layerItem = new TiledQuick::TileLayerItem(layer, renderer, this);
 
-	// Nem ezt adjuk, hozzá, hanem a lentit
+	if (rect.width() > 2048 || rect.height() > 2048) {
+		LOG_CERROR("scene") << "Texture size error:" << layerItem->size() << "layer:" << layer->id() << layer->className() << layer->name();
+	}
 
-	//m_visualItems.append(layerItem);
-
+	// Nem ezt adjuk hozzá, hanem a lentit
 
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/TiledImageFromLayer.qml"), this);
 
 	auto img = qobject_cast<TiledVisualItem*>(
 				   component.createWithInitialProperties({
-															 { QStringLiteral("tiledLayer"), QVariant::fromValue(layerItem) }
+															 { QStringLiteral("tiledLayer"), QVariant::fromValue(layerItem) },
+															 { QStringLiteral("sourceRect"), rect }
 														 }));
 
 	if (!img) {
@@ -380,14 +406,13 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::TileLayer *layer, Tiled::MapRe
 		return nullptr;
 	}
 
-	// Nem fogja a libtiled rendesen megjeleníteni, ha nem a scene a szülője
-
-	//layerItem->setParentItem(img);
+	// Nem fogja a libtiled rendesen megjeleníteni, ha nem a scene a szülője!
 
 	img->setLayerItem(layerItem);
 	img->setParentItem(this);
 	img->setParent(this);
 	img->setScene(this);
+	img->setPosition(rect.topLeft() + layer->totalOffset());
 
 	m_visualItems.append(img);
 

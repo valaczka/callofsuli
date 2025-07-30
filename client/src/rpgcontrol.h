@@ -492,9 +492,6 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadQuestion(const RpgGameData::
 		return false;
 	}
 
-
-	LOG_CINFO("game") << "LOAD CONTAINER FOR" << snapshot.last.u.o;
-
 	if (question) {
 		if (question->control() == this)
 			return false;
@@ -559,16 +556,18 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadFromGroupLayer(RpgGame *game
 
 	setBasePosition(group->position()+group->totalOffset());
 
+	QString name;
+
 	for (Tiled::Layer *layer : std::as_const(*group)) {
 
 		if (loadFromLayer(game, scene, layer, renderer))
 			continue;
 
 		if (Tiled::ImageLayer *tl = layer->asImageLayer()) {
-			const auto &it = m_stateHash.find(tl->name());
+			const auto &it = m_stateHash.find(tl->className());
 
 			if (it == m_stateHash.cend()) {
-				LOG_CWARNING("scene") << "Invalid image layer" << tl->name();
+				LOG_CWARNING("scene") << "Invalid image layer" << tl->name() << tl->className() << "in" << group->name();
 				continue;
 			}
 
@@ -578,6 +577,9 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadFromGroupLayer(RpgGame *game
 
 		};
 
+			if (!tl->name().isEmpty())
+				name = tl->name();
+
 			LOG_CTRACE("scene") << "Add image layer" << tl->name() << "url:" << tl->imageSource() << this;
 
 		} else if (Tiled::TileLayer *tl = layer->asTileLayer()) {
@@ -586,39 +588,40 @@ inline bool RpgActiveControl<T, T2, E, T4, T5>::loadFromGroupLayer(RpgGame *game
 				continue;
 			}
 
-			auto it = m_stateHash.find(tl->name());
-
-			if (it == m_stateHash.cend()) {
-				it = m_stateHash.find(tl->className());
-			}
+			auto it = m_stateHash.find(tl->className());
 
 			if (it == m_stateHash.cend()) {
 				scene->addTileLayer(tl, renderer);
 				continue;
 			}
 
-			// TODO: add with glow effects (e.g. glow) - texture size problem!
+			if ((tl->hasProperty(QStringLiteral("glow")) && !tl->property(QStringLiteral("glow")).toBool())
+					|| tl->property(QStringLiteral("noglow")).toBool()) {
+				tileLayerAdd(it.value(), scene->addTileLayer(tl, renderer));
 
-			tileLayerAdd(it.value(), scene->addTileLayer(tl, renderer));
+				LOG_CDEBUG("scene") << "Add no glow tile layer" << tl->id() << tl->name() << "in" << group->name() << it.value();
 
-			/*TiledVisualItem *vItem = scene->addVisualItem(tl, renderer);
+			} else {
+				LOG_CDEBUG("scene") << "Add glow tile layer" << tl->id() << tl->name() << "in" << group->name() << it.value();
 
-			// A group neve alapján rendezi el
+				TiledVisualItem *vItem = scene->addVisualItem(tl, renderer);
 
-			vItem->setName(group->name());
-			vItem->setGlowColor(QStringLiteral("#FFF59D"));
+				vItem->setName(tl->name());
+				vItem->setGlowColor(QStringLiteral("#FFF59D"));
 
-			tileLayerAdd(it.value(), vItem);
+				tileLayerAdd(it.value(), vItem);
 
-			LOG_CINFO("scene") << "Add tile layer" << tl->name() << this << vItem->name() << vItem->size() << vItem->position()
-							   << tl->offset() << tl->position() << tl->totalOffset();*/
+			}
 		}
 	}
 
 	if (!m_visualItem && !m_visualInfo.isEmpty()) {
 		TiledVisualItem *item = createVisualItem(scene, group);
 
-		LOG_CTRACE("scene") << "Add visual item" << this << item->name();
+		if (!name.isEmpty())
+			item->setName(name);
+
+		LOG_CDEBUG("scene") << "Add visual item" << item->name();
 	}
 
 	refreshVisualItem();

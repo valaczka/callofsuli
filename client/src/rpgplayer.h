@@ -74,8 +74,9 @@ public:
 	  , bullet(0)
 	  , cast(CastInvalid)
 	  , features(RpgGameData::Player::FeatureInvalid)
-	  , mpMax(100)
-	  , mpStart(10)
+	  , hp(20)
+	  , mpMax(0)
+	  , mpStart(0)
 	  , inability(-1)
 	{}
 
@@ -104,15 +105,11 @@ public:
 	QS_FIELD(int, weaponSub)
 	QS_FIELD(int, bullet)
 
-	// Inventory
-
-	QS_COLLECTION(QList, QString, inventory)
-	QS_COLLECTION(QList, QString, inventoryOnce)
-
 	// Cast
 
 	QS_FIELD(CastType, cast)
 	QS_FIELD(RpgGameData::Player::Features, features)
+	QS_FIELD(int, hp)
 	QS_FIELD(int, mpMax)
 	QS_FIELD(int, mpStart)
 
@@ -287,6 +284,7 @@ private:
 	QHash<RpgGameData::Player::PlayerState, qint64> m_stateLastRenderedTicks;
 
 	friend class RpgGame;
+	friend class RpgGamePrivate;
 	friend class ActionRpgGame;
 	friend class ActionRpgMultiplayerGame;
 };

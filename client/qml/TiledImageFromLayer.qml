@@ -8,14 +8,22 @@ TiledVisualItemImpl {
 
 	required property Item tiledLayer
 
-	width: tiledLayer.width
-	height: tiledLayer.height
+	property alias sourceRect: _shader.sourceRect
 
-	x: tiledLayer.x
-	y: tiledLayer.y
-
+	width: sourceRect.width
+	height: sourceRect.height
 
 	property bool _initShow: true
+
+	layer.enabled: true
+
+	ShaderEffectSource {
+		id: _shader
+		sourceItem: _control.tiledLayer
+		width: sourceRect.width
+		height: sourceRect.height
+		visible: false
+	}
 
 	Timer {
 		running: true
@@ -32,24 +40,6 @@ TiledVisualItemImpl {
 		anchors.fill: parent
 	}
 
-	/*Image {
-		id: _image
-		anchors.fill: parent
-		source: _control.source
-	}*/
-
-	ThresholdMask {
-		id: _threshold
-		visible: false
-
-		//source: tiledLayer
-		//maskSource: tiledLayer
-		anchors.fill: parent
-
-		threshold: 0.7
-
-		z: 10
-	}
 
 	Glow {
 		id: glow
@@ -57,13 +47,11 @@ TiledVisualItemImpl {
 		visible: opacity != 0
 		color: _control.glowColor
 
-		source: _threshold
-		anchors.fill: _threshold
+		source: _shader
+		anchors.fill: _shader
 
 		radius: 4
 		samples: 9
-
-		z: 11
 
 		Behavior on opacity {
 			NumberAnimation { duration: 200 }
@@ -78,10 +66,8 @@ TiledVisualItemImpl {
 		visible: opacity != 0
 		color: _control.overlayColor
 
-		source: _threshold
-		anchors.fill: _threshold
-
-		z: 12
+		source: _shader
+		anchors.fill: _shader
 
 		Behavior on opacity {
 			NumberAnimation { duration: 300 }

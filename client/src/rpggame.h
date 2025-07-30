@@ -53,7 +53,6 @@ class RpgGameDefinition : public TiledGameDefinition
 public:
 	RpgGameDefinition()
 		: TiledGameDefinition()
-		, playerHP(0)
 	{}
 
 	QS_SERIALIZABLE
@@ -62,14 +61,6 @@ public:
 
 	QS_FIELD(QString, name)
 	QS_FIELD(QString, minVersion)
-
-	// Inventory
-
-	QS_COLLECTION(QList, QString, inventory)
-	QS_COLLECTION(QList, QString, inventoryOnce)
-
-	// Player HP
-	QS_FIELD(int, playerHP)
 
 	// Required tileset
 
@@ -183,6 +174,8 @@ public:
 									QHash<QString, RpgArmory::LayerData> *layerPtr = nullptr);
 
 
+	static RpgGameData::Inventory getInventoryFromPropertyValue(const QString &value);
+
 
 	static const QVector<TextureSpriteMapper> &baseEntitySprite();
 
@@ -288,6 +281,8 @@ protected:
 	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
 
 
+	void updateRandomizer(const RpgGameData::Randomizer &randomizer);
+
 	virtual void onShapeAboutToDeletePrivate(cpShape *shape) override;
 
 	virtual void loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer) override;
@@ -310,6 +305,7 @@ protected:
 	QList<RpgGameData::PlayerPosition> playerPositions() const;
 	QList<QPointF> playerPositions(const int &sceneId) const;
 	const RpgGameData::Collection &collection() const;
+	RpgGameData::Collection &collection();
 	RpgGameData::Randomizer randomizer() const;
 
 
@@ -320,7 +316,7 @@ private:
 	void addCollection(TiledScene *scene, Tiled::GroupLayer *groupLayer, Tiled::MapRenderer *renderer);
 	void addCollection(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
 
-	void playerUseControl(RpgPlayer *player, RpgActiveIface *control);
+	void playerUseControl(RpgPlayer *player, RpgActiveIface *control, const bool &success);
 
 	void loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
 	void addLocationSound(TiledObjectBody *object, const QString &sound,
@@ -338,8 +334,6 @@ private:
 	void updateScatterEnemies();
 	void updateScatterPlayers();
 	void updateScatterPoints();
-
-	static QVector<RpgGameData::PickableBaseData::PickableType> getPickablesFromPropertyValue(const QString &value);
 
 	struct EnemyData {
 		TiledObject::ObjectId objectId;

@@ -3879,7 +3879,7 @@ void ConflictSolver::ConflictGate::generateEvent(ConflictSolver *solver, RpgEngi
 				   RpgGameData::ControlGate::GateOpen);
 	data.a = true;
 
-	SLOG_INFO(solver) << "OVERRIDE SNAP" << data.st << m_unique->baseData;
+	SLOG_DEBUG(solver) << "[Gate used]" << m_unique->baseData << data.st << "by player" << state.player->baseData;
 
 	m_unique->overrideAuthSnap(data);
 }

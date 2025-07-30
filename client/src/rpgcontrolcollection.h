@@ -44,6 +44,11 @@ public:
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::ControlCollection> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::ControlCollection &snap) override;
 
+	int idx() const;
+	void setIdx(int newIdx);
+
+	void moveTo(const qint64 &startAt, const cpVect &dest);
+
 protected:
 	virtual RpgGameData::ControlCollection serializeThis() const override;
 
@@ -52,6 +57,8 @@ protected:
 
 private:
 	void _updateGlow();
+
+	int m_idx = -1;
 };
 
 
@@ -70,11 +77,16 @@ public:
 										const QPointF &center, const qreal &radius,
 										TiledGame *game);
 
+	void setDest(const qint64 &startAt, const cpVect &dest);
+
 protected:
 	virtual void synchronize() override;
+	virtual void worldStep() override;
 
 private:
 	RpgControlCollection *const m_control;
+	std::optional<cpVect> m_dest;
+	qint64 m_startAt = 0;
 
 };
 

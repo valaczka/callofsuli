@@ -1259,6 +1259,7 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 				m_rpgGame->setFollowedItem(rpgPlayer);
 				m_rpgGame->setControlledPlayer(rpgPlayer);
 
+				recalculateQuests(rpgPlayer);
 				loadWinnerQuests(pl.data.rq);
 				loadEnemyQuests();
 			}
@@ -1458,6 +1459,8 @@ void ActionRpgMultiplayerGame::syncPickableList(const ClientStorage &storage)
 
 			if (!newPickable) {
 				LOG_CERROR("game") << "Pickable create error" << b.data.o << b.data.s << b.data.id;
+			} else {
+				newPickable->playSfx();
 			}
 		}
 	}
@@ -1517,6 +1520,9 @@ void ActionRpgMultiplayerGame::onGameTimeout()
 
 void ActionRpgMultiplayerGame::onGameSuccess()
 {
+	if (!q->m_finalData.value(QStringLiteral("success")).toBool())
+		return onGameFailed();
+
 	Sound *sound = m_client->sound();
 
 	////m_rpgGame->checkFinalQuests();
@@ -1539,13 +1545,29 @@ void ActionRpgMultiplayerGame::onGameSuccess()
 
 
 
+
+
+
 /**
  * @brief ActionRpgMultiplayerGame::onGameFailed
  */
 
 void ActionRpgMultiplayerGame::onGameFailed()
 {
+	Sound *sound = m_client->sound();
 
+	sound->stopMusic();
+	sound->stopMusic2();
+
+	setFinishState(Fail);
+	gameFinish();
+
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+	sound->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
+
+	emit finishDialogRequest(tr("Time out"),
+							 QStringLiteral("qrc:/Qaterial/Icons/timer-sand.svg"),
+							 false);
 }
 
 
@@ -1653,8 +1675,6 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 	player->setMp(playerData.mp);
 	player->armory()->updateFromSnapshot(playerData.arm);
 
-	loadInventory(player);
-
 
 	if (playerData.p.size() > 1) {
 		player->emplace(playerData.p.at(0), playerData.p.at(1));
@@ -1691,7 +1711,7 @@ void ActionRpgMultiplayerGame::onTimeStepPrepare()
 			m_randomizerSynced = true;
 		}
 	} else if (!m_randomizerSynced) {
-		updateRandomizer(randomizer);
+		m_rpgGame->updateRandomizer(randomizer);
 		m_randomizerSynced = true;
 	}
 
@@ -2226,6 +2246,11 @@ bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody
 
 bool ActionRpgMultiplayerGame::onBodyStep(TiledObjectBody *body)
 {
+	if (body && (finishState() == Fail || finishState() == Success || m_config.gameState == RpgConfig::StateFinished)) {
+		body->stop();
+		return true;
+	}
+
 	if (m_config.gameState != RpgConfig::StatePlay || !body || !m_fullyPrepared)
 		return true;
 
@@ -2466,6 +2491,7 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 			config.gameConfig.collection = m_rpgGame->collection();
 			config.gameConfig.randomizer = m_rpgGame->randomizer();
 
+			config.count = m_rpgQuestion->count();
 			config.avg = m_rpgQuestion->count() > 0 ? (float) m_rpgQuestion->duration() * 1000. / (float) m_rpgQuestion->count() : 0.;
 			config.gameConfig.duration = m_config.duration + m_rpgGame->m_gameDefinition.duration;
 		}

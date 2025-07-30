@@ -303,6 +303,9 @@ void RpgPlayer::useCurrentControl()
 
 void RpgPlayer::exitHiding()
 {
+	if (m_isGameCompleted)
+		return;
+
 	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
 		g->playerTryUseControl(this, d->m_exitControl.get());
 }
@@ -498,7 +501,7 @@ void RpgPlayer::updateConfig()
 
 void RpgPlayer::loadDefaultWeapons()
 {
-	m_armory->setCurrentWeapon(m_armory->weaponAdd(RpgGameData::Weapon::WeaponHand, 0));
+	///m_armory->setCurrentWeapon(m_armory->weaponAdd(RpgGameData::Weapon::WeaponHand, 0));
 }
 
 

@@ -78,8 +78,6 @@ public:
 
 	Q_INVOKABLE void clearSharedTextures();
 
-	Q_INVOKABLE void addWallet(RpgUserWallet *wallet);
-
 	Q_INVOKABLE void saveTerrainInfo() { RpgGame::saveTerrainInfo(); }
 
 	Q_INVOKABLE QUrl getCharacterImage(const QString &name) const;
@@ -123,7 +121,6 @@ protected:
 
 	void onGameLoadFailed(const QString &);
 
-	void loadInventory(RpgPlayer *player);
 	void loadWeapon(RpgPlayer *player,
 					const RpgGameData::Weapon::WeaponType &type, const int &subType,
 					const int &bullet = 0);
@@ -134,13 +131,11 @@ protected:
 
 	void downloadGameData(const QString &map, const QList<RpgGameData::CharacterSelect> &players);
 
-	void updateRandomizer(const RpgGameData::Randomizer &randomizer);
-
 	virtual void onTimeStepPrepare();
 	virtual void onTimeBeforeWorldStep(const qint64 &tick);
 	virtual void onTimeStepped();
 	virtual void onTimeAfterWorldStep(const qint64 &tick);
-	virtual bool onBodyStep(TiledObjectBody *body) { Q_UNUSED(body); return false; }
+	virtual bool onBodyStep(TiledObjectBody *body);
 	virtual void onWorldStep() { }
 	virtual bool onPlayerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
 									 const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype);
@@ -160,8 +155,8 @@ protected:
 	virtual void onQuestionFailed(RpgPlayer *player, RpgActiveIface *control);
 
 	void loadWinnerQuests(const int &rq);
-	void loadEnemyQuests(const bool &canKill = true);
-	void recalculateQuests();
+	void loadEnemyQuests();
+	void recalculateQuests(RpgPlayer *player);
 	void checkWinnerQuests();
 	void checkEnemyQuests(const int &count);
 	void checkFinalQuests();
@@ -177,6 +172,8 @@ private:
 	void onGameTimeout();
 	void onGameSuccess();
 	void onGameFailed();
+
+	int createCollection();
 
 
 protected:
@@ -212,6 +209,7 @@ protected:
 
 	friend class RpgQuestion;
 	friend class RpgGame;
+	friend class RpgGamePrivate;
 };
 
 #endif // ACTIONRPGGAME_H

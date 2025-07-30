@@ -401,7 +401,7 @@ public:
 		EnemyDefault	= 1,
 		WinnerDefault	= 2,
 		SuddenDeath		= 3,
-		NoKillDefault	= 4
+		NoKill			= 4
 	};
 
 	Q_ENUM(Type);
@@ -1092,6 +1092,8 @@ public:
 		}
 	}
 
+	bool addBullet(const int &bullet);
+
 
 	EQUAL_OPERATOR(Armory)
 
@@ -1210,6 +1212,7 @@ public:
 	Prepare()
 		: QSerializer()
 		, prepared(false)
+		, count(0)
 		, avg(0.)
 		, loaded(false)
 	{}
@@ -1218,6 +1221,7 @@ public:
 
 	QS_FIELD(bool, prepared)
 	QS_OBJECT(GameConfig, gameConfig)
+	QS_FIELD(int, count)						// Question count
 	QS_FIELD(float, avg)						// Average question duration
 	QS_FIELD(bool, loaded)						// A host már betöltött mindent
 	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
@@ -1751,11 +1755,8 @@ public:
 	enum PickableType {
 		PickableInvalid = 0,
 		PickableHp,
-		PickableShortbow,
-		PickableLongbow,
-		PickableLongsword,
-		PickableDagger,
 		PickableShield,
+		PickableBullet,
 		PickableTime,
 		PickableMp,
 		PickableCoin,
@@ -2013,6 +2014,27 @@ public:
 			return l.emplace_back(type, name, count);
 		}
 	}
+
+	friend QDebug operator<<(QDebug debug, const Inventory &c) {
+		QDebugStateSaver saver(debug);
+		debug.nospace() << '[';
+		bool isFirst = true;
+		for (const InventoryItem &i : std::as_const(c.l)) {
+			if (!isFirst)
+				debug.nospace() << ',' << ' ';
+
+			debug.nospace() << i.t;
+
+			if (!i.n.isEmpty())
+				debug.nospace() << ':' << qPrintable(i.n);
+
+			isFirst = false;
+		}
+
+		debug.nospace() << ']';
+
+		return debug;
+	};
 
 
 	EQUAL_OPERATOR(Inventory)
@@ -2312,9 +2334,9 @@ public:
 		controlFailed(*this, control);
 	}
 
-	static bool pick(Player &dst, const PickableBaseData::PickableType &type, const QString &name = {});
+	static int pick(Player &dst, const PickableBaseData::PickableType &type, const QString &name = {});
 
-	bool pick(const PickableBaseData::PickableType &type, const QString &name = {}) {
+	int pick(const PickableBaseData::PickableType &type, const QString &name = {}) {
 		return pick(*this, type, name);
 	}
 

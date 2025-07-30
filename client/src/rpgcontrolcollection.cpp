@@ -29,6 +29,16 @@
 
 #define ITEM_MAX_SPEED				350
 
+
+static const auto fnStopCollection = [](TiledObjectBody *body){
+	const cpVect vel = cpBodyGetVelocity(body->body());
+
+	if (vel.x != 0. || vel.y != 0.)
+		body->stop();
+};
+
+
+
 /**
  * @brief RpgControlCollection::RpgControlCollection
  * @param game
@@ -61,7 +71,7 @@ RpgControlCollection::RpgControlCollection(RpgGame *game, TiledScene *scene,
 	const RpgCollectionData &data = m_game->getCollectionImageData(base.img);
 
 	if (data.url.isEmpty())
-		m_visualItem->setSource(QUrl::fromLocalFile(":/rpg/time/pickable.png"));
+		LOG_CERROR("scene") << "Missing collection image" << base;
 	else
 		m_visualItem->setSource(data.url);
 
@@ -119,13 +129,6 @@ void RpgControlCollection::updateFromSnapshot(const RpgGameData::SnapshotInterpo
 	}
 
 
-	static const auto fnStop = [](TiledObjectBody *body){
-		const cpVect vel = cpBodyGetVelocity(body->body());
-
-		if (vel.x != 0. || vel.y != 0.)
-			body->stop();
-	};
-
 	RpgActiveControlObject *control = m_controlObjectList.first();
 
 	const RpgGameData::ControlCollection &from = snapshot.s1.f >= 0 ? snapshot.s1 : snapshot.last;
@@ -133,19 +136,19 @@ void RpgControlCollection::updateFromSnapshot(const RpgGameData::SnapshotInterpo
 
 	if (from.f < 0 || to.f < 0 || from.f > to.f) {
 		LOG_CERROR("game") << "ERRROR" << from.f << to.f;
-		return fnStop(control);
+		return fnStopCollection(control);
 	}
 
 	if (to.p.size() < 2) {
 		LOG_CERROR("game") << "ERRROR TO P" << to.p;
-		return fnStop(control);
+		return fnStopCollection(control);
 	}
 
 	const cpVect pos1 = control->bodyPosition();
 	const cpVect pos2 = cpv(to.p.at(0), to.p.at(1));
 
 	if (pos1 == pos2)
-		return fnStop(control);
+		return fnStopCollection(control);
 
 	// Amíg mozog, addig nem lehet aktív
 
@@ -249,6 +252,40 @@ void RpgControlCollection::_updateGlow()
 }
 
 
+/**
+ * @brief RpgControlCollection::idx
+ * @return
+ */
+
+int RpgControlCollection::idx() const
+{
+	return m_idx;
+}
+
+void RpgControlCollection::setIdx(int newIdx)
+{
+	m_idx = newIdx;
+}
+
+
+/**
+ * @brief RpgControlCollection::moveTo
+ * @param dest
+ */
+
+void RpgControlCollection::moveTo(const qint64 &startAt, const cpVect &dest)
+{
+	RpgControlCollectionObject *control = qobject_cast<RpgControlCollectionObject*>(m_controlObjectList.first());
+
+	if (!control)
+		return;
+
+	setIsActive(false);
+	_updateGlow();
+	control->setDest(startAt, dest);
+}
+
+
 
 
 
@@ -263,6 +300,19 @@ RpgControlCollectionObject::RpgControlCollectionObject(RpgControlCollection *con
 	, m_control(control)
 {
 
+}
+
+
+
+/**
+ * @brief RpgControlCollectionObject::setDest
+ * @param dest
+ */
+
+void RpgControlCollectionObject::setDest(const qint64 &startAt, const cpVect &dest)
+{
+	m_startAt = startAt;
+	m_dest = dest;
 }
 
 
@@ -284,4 +334,37 @@ void RpgControlCollectionObject::synchronize()
 	//offset += m_bodyOffset;
 
 	m_visualItem->setPosition(pos-offset);
+}
+
+
+
+
+
+/**
+ * @brief RpgControlCollectionObject::worldStep
+ */
+
+void RpgControlCollectionObject::worldStep()
+{
+	if (m_dest.has_value()) {
+		if (m_game->tickTimer()->currentTick() < m_startAt) {
+			if (currentSpeedSq())
+			fnStopCollection(this);
+			m_control->setIsActive(false);
+			return;
+		}
+
+		if (m_dest.value() == bodyPosition()) {
+			fnStopCollection(this);
+			m_control->setIsActive(true);
+			m_dest.reset();
+
+			return;
+		}
+
+		moveToPoint(m_dest.value(), 1, ITEM_MAX_SPEED);
+		return;
+	}
+
+	TiledObjectBody::worldStep();
 }

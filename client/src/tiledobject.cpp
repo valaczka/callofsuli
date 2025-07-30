@@ -1568,8 +1568,8 @@ void TiledObjectBody::emplace(const cpVect &center)
 {
 	CHECK_LOCK();
 
-	d->setVelocity(cpvzero);
 	cpBodySetPosition(d->m_bodyRef, center);
+	d->setVelocity(cpvzero);
 
 	d->m_currentSpeedSq = 0.;
 }

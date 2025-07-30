@@ -31,23 +31,26 @@ Qaterial.ListDialog
 
 	listViewHeader: _dialog.iconSource != "" || _dialog.text != "" ? _cmpHeader : null
 
-	RpgQuestHeader {
+	Component {
 		id: _cmpHeader
+		RpgQuestHeader {
+			iconSource: _dialog.iconSource
+			text: _dialog.text
+			iconColor: _dialog.iconColor
+			textColor: _dialog.textColor
+			iconSize: _dialog.iconSize
 
-		iconSource: _dialog.iconSource
-		text: _dialog.text
-		iconColor: _dialog.iconColor
-		textColor: _dialog.textColor
-		iconSize: _dialog.iconSize
-
-		width: ListView.view.width
+			width: ListView.view.width
+		}
 	}
 
-	RpgQuestDelegate {
+	Component {
 		id: _cmp
+		RpgQuestDelegate {
 
-		showFailed: _dialog.showFailed
+			showFailed: _dialog.showFailed
 
-		width: ListView.view.width
+			width: ListView.view.width
+		}
 	}
 }

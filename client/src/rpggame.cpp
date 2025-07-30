@@ -35,6 +35,7 @@
 #include "rpgenemybase.h"
 #include "rpgfireball.h"
 #include "rpggame.h"
+#include "rpgpickable.h"
 #include "rpglightning.h"
 #include "rpglongsword.h"
 #include "rpgwerebear.h"
@@ -122,6 +123,14 @@ private:
 	void updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEvent &event);
 
 	static QHash<QString, RpgArmory::LayerData> readLayerData(const QString &file);
+
+	void playerUseCollection(RpgPlayer *player, RpgControlCollection *control, const bool &success);
+	void playerUseGate(RpgPlayer *player, RpgControlGate *control, const bool &success);
+	void playerUseTeleport(RpgPlayer *player, RpgControlTeleport *control, const bool &success);
+	void playerUseExit(RpgPlayer *player);
+	void playerUseContainer(RpgPlayer *player, RpgControlContainer *control, const bool &success);
+	void playerUsePickable(RpgPlayer *player, RpgPickable *control, const bool &success);
+
 
 
 	/**
@@ -546,7 +555,7 @@ bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveIface *control)
 	if (!player || !control || control->isLocked() || !control->isActive()) {
 		if (player && !player->m_sfxDecline.soundList().isEmpty())
 			player->m_sfxDecline.playOne();
-		messageColor(tr("Locked"), QColor::fromRgbF(0.8, 0., 0.));
+		messageColor(tr("Locked"), QColorConstants::Svg::red);
 		return false;
 	}
 
@@ -570,12 +579,33 @@ bool RpgGame::playerTryUseControl(RpgPlayer *player, RpgActiveIface *control)
  * @param container
  */
 
-void RpgGame::playerUseControl(RpgPlayer *player, RpgActiveIface *control)
+void RpgGame::playerUseControl(RpgPlayer *player, RpgActiveIface *control, const bool &success)
 {
-	if (!control)
+	if (!control || !player)
 		return;
 
-	LOG_CERROR("game") << "Missing implementation";
+	if (control->questionLock() && !success) {
+		RpgGameData::Player p = player->serialize(1);			// Azért kell az 1, mert különben nem fogja update-elni
+		p.controlFailed(control->activeType());
+		player->updateFromSnapshot(p);
+	}
+
+	if (RpgControlCollection *c = dynamic_cast<RpgControlCollection*>(control))
+		q->playerUseCollection(player, c, success);
+	else if (RpgControlGate *c = dynamic_cast<RpgControlGate*>(control))
+		q->playerUseGate(player, c, success);
+	else if (RpgControlTeleport *c = dynamic_cast<RpgControlTeleport*>(control))
+		q->playerUseTeleport(player, c, success);
+	else if (RpgControlContainer *c = dynamic_cast<RpgControlContainer*>(control))
+		q->playerUseContainer(player, c, success);
+	else if (RpgPickable *c = dynamic_cast<RpgPickable*>(control))
+		q->playerUsePickable(player, c, success);
+	else if (control->activeType() == RpgConfig::ControlExit)
+		q->playerUseExit(player);
+	else
+		LOG_CERROR("game") << "Missing implementation";
+
+
 }
 
 
@@ -751,6 +781,35 @@ RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int
 
 
 /**
+ * @brief RpgGame::updateRandomizer
+ * @param randomizer
+ */
+
+void RpgGame::updateRandomizer(const RpgGameData::Randomizer &randomizer)
+{
+	QSet<int> sceneReload;
+
+	for (const RpgGameData::RandomizerGroup &g : randomizer.groups) {
+		RpgGameData::ControlBaseData base(RpgConfig::ControlRandomizer,
+										  -1, g.scene, g.gid);
+
+		if (RpgControlRandomizer *r = controlFind<RpgControlRandomizer>(base)) {
+			if (r->fromRandomizerGroup(g)) {
+				sceneReload.insert(g.scene);
+			}
+
+		} else {
+			LOG_CERROR("game") << "Missing randomizer group" << g.scene << g.gid;
+		}
+	}
+
+	for (const int &s : sceneReload)
+		reloadTcodMap(findScene(s));
+}
+
+
+
+/**
  * @brief RpgGame::onShapeAboutToDeletePrivate
  * @param shape
  */
@@ -905,6 +964,14 @@ void RpgGame::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled:
 
 	if (cname == QStringLiteral("container")) {
 		controlAdd<RpgControlContainer>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("container2") && q->m_loadForPlayerCount > 1) {
+		controlAdd<RpgControlContainer>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("container3") && q->m_loadForPlayerCount > 2) {
+		controlAdd<RpgControlContainer>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("container4") && q->m_loadForPlayerCount > 3) {
+		controlAdd<RpgControlContainer>(this, scene, group, renderer);
+	} else if (cname == QStringLiteral("container5") && q->m_loadForPlayerCount > 4) {
+		controlAdd<RpgControlContainer>(this, scene, group, renderer);
 	} else if (cname == QStringLiteral("gate")) {
 		controlAdd<RpgControlGate>(this, scene, group, renderer);
 	} else if (cname == QStringLiteral("teleport")) {
@@ -967,9 +1034,6 @@ bool RpgGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tile
 			else if (object->name() == QStringLiteral("bottomRight5") && q->m_loadForPlayerCount > 4)
 				viewportBottomRight.insert(5, renderer->pixelToScreenCoords(object->position()));
 		}
-
-		LOG_CWARNING("scene") << "****VP TL" << viewportTopLeft;
-		LOG_CWARNING("scene") << "****VP BR" << viewportBottomRight;
 
 		if (!viewportTopLeft.isEmpty() && !viewportBottomRight.isEmpty()) {
 			QRectF vp;
@@ -1313,8 +1377,8 @@ void RpgGame::addCollection(TiledScene *scene, Tiled::GroupLayer *groupLayer, Ti
 
 		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
 			if (layer->className() == QStringLiteral("collection1") ||
-					 layer->className() == QStringLiteral("collection") ||
-					 layer->className().isEmpty())
+					layer->className() == QStringLiteral("collection") ||
+					layer->className().isEmpty())
 				addCollection(scene, objgroup, renderer);
 			else if (layer->className() == QStringLiteral("collection2") && q->m_loadForPlayerCount > 1)
 				addCollection(scene, objgroup, renderer);
@@ -1422,6 +1486,17 @@ QList<QPointF> RpgGame::playerPositions(const int &sceneId) const
  */
 
 const RpgGameData::Collection &RpgGame::collection() const
+{
+	return q->m_collection;
+}
+
+
+/**
+ * @brief RpgGame::collection
+ * @return
+ */
+
+RpgGameData::Collection &RpgGame::collection()
 {
 	return q->m_collection;
 }
@@ -1888,15 +1963,15 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 
 	QVector<RpgGameData::PickableBaseData::PickableType> pickableList;
 
-	if (object->hasProperty(QStringLiteral("pickable"))) {
+	/*if (object->hasProperty(QStringLiteral("pickable"))) {
 		pickableList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickable")).toString());
-	}
+	}*/
 
 	QVector<RpgGameData::PickableBaseData::PickableType> pickableOnceList;
 
-	if (object->hasProperty(QStringLiteral("pickableOnce"))) {
+	/*if (object->hasProperty(QStringLiteral("pickableOnce"))) {
 		pickableOnceList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickableOnce")).toString());
-	}
+	}*/
 
 	const int &defaultAngle = object->property(QStringLiteral("direction")).toInt();
 
@@ -2173,31 +2248,6 @@ void RpgGame::updateScatterPoints()
 
 
 
-
-/**
- * @brief RpgGame::getPickablesFromPropertyValue
- * @param value
- * @return
- */
-
-QVector<RpgGameData::PickableBaseData::PickableType> RpgGame::getPickablesFromPropertyValue(const QString &value)
-{
-	QVector<RpgGameData::PickableBaseData::PickableType> pickableList;
-
-	const QStringList &pList = value.split(',', Qt::SkipEmptyParts);
-	for (const QString &s : pList) {
-		/*const RpgGameData::PickableBaseData::PickableType &type = RpgPickableObject::typeFromString(s.simplified());
-
-		if (type == RpgGameData::PickableBaseData::PickableInvalid) {
-			LOG_CWARNING("scene") << "Invalid pickable type:" << s;
-			continue;
-		}
-
-		pickableList.append(type);*/
-	}
-
-	return pickableList;
-}
 
 
 
@@ -2771,6 +2821,42 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 
 
 
+
+/**
+ * @brief RpgGame::getInventoryFromPropertyValue
+ * @param value
+ * @return
+ */
+
+RpgGameData::Inventory RpgGame::getInventoryFromPropertyValue(const QString &value)
+{
+	RpgGameData::Inventory inventory;
+
+	const QStringList &pList = value.split(',', Qt::SkipEmptyParts);
+	for (const QString &s : pList) {
+		const QStringList &field = s.split(':', Qt::SkipEmptyParts);
+
+		const RpgGameData::PickableBaseData::PickableType &type = RpgPickable::typeHash().key(field.at(0).simplified(),
+																							  RpgGameData::PickableBaseData::PickableInvalid);
+
+		if (type == RpgGameData::PickableBaseData::PickableInvalid) {
+			LOG_CWARNING("scene") << "Invalid pickable type:" << s;
+			continue;
+		}
+
+		if (field.size() > 1)
+			inventory.add(type, 1, field.at(1));
+		else
+			inventory.add(type);
+	}
+
+	return inventory;
+}
+
+
+
+
+
 /**
  * @brief RpgGame::getAttackSprite
  * @param weaponType
@@ -2955,7 +3041,9 @@ void RpgGame::resurrectEnemiesAndPlayer(RpgPlayer *player)
 	player->setHp(player->maxHp());
 	//player->setMp(std::max(player->config().mpStart, player->mp()));
 
-	QTimer::singleShot(2000, this, [s = QPointer<TiledScene>(scene), this](){ this->resurrectEnemies(s); });
+	// DISABLED
+
+	///QTimer::singleShot(2000, this, [s = QPointer<TiledScene>(scene), this](){ this->resurrectEnemies(s); });
 }
 
 
@@ -3118,9 +3206,9 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 													 xml.attributes().value(QStringLiteral("name")).toString() == QStringLiteral("pickableOnce")
 													 )) {
 
-												pickableList.append(getPickablesFromPropertyValue(
+												/*pickableList.append(getPickablesFromPropertyValue(
 																		xml.attributes().value(QStringLiteral("value")).toString()
-																		));
+																		));*/
 											}
 
 											xml.skipCurrentElement();
@@ -3477,4 +3565,290 @@ QHash<QString, RpgArmory::LayerData> RpgGamePrivate::readLayerData(const QString
 	}
 
 	return hash;
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::playerUseCollection
+ */
+
+void RpgGamePrivate::playerUseCollection(RpgPlayer *player, RpgControlCollection *control, const bool &success)
+{
+	Q_ASSERT(control);
+	Q_ASSERT(player);
+
+	if (success) {
+		control->setIsActive(false);
+		control->visualItem()->setVisible(false);
+		player->setCollection(player->collection()+1);
+
+		const int left = player->collectionRq() - player->collection();
+
+		if (left > 1)
+			d->message(QObject::tr("Collect %1 more items").arg(left), true);
+		else if (left > 0)
+			d->message(QObject::tr("Collect 1 more item"), true);
+		else if (left == 0) {
+			d->message(QObject::tr("All required items collected"), true);
+
+			bool hasTeleport = false;
+
+			for (const auto &ptr : d->m_controls) {
+				RpgControlTeleport *c = dynamic_cast<RpgControlTeleport*>(ptr.get());
+
+				if (!c || c->baseData().hd)
+					continue;
+
+				hasTeleport = true;
+
+				c->setIsActive(true);
+				c->setCurrentState(RpgControlTeleportState::Active);
+			}
+
+			if (hasTeleport)
+				d->message(QObject::tr("Escape through the teleporter"), true);
+		}
+
+	} else {
+		const auto &it = m_collection.find(control->baseData().gid);
+
+		if (it == m_collection.groups.cend() || it->pos.empty()) {
+			LOG_CERROR("game") << "Missing places for group" << control->baseData().gid << "in" << control->baseData();
+			return;
+		}
+
+		QList<int> freeIndices;
+		freeIndices.reserve(it->pos.size());
+
+		for (int i=0; i<it->pos.size(); ++i) {
+			if (!it->pos.at(i).done)
+				freeIndices.append(i);
+		}
+
+
+		for (const auto &ptr : d->m_controls) {
+			RpgControlCollection *c = dynamic_cast<RpgControlCollection*>(ptr.get());
+
+			if (!c || c->baseData().gid != control->baseData().gid)
+				continue;
+
+			freeIndices.removeAll(c->idx());
+		}
+
+		if (freeIndices.isEmpty())
+			return;
+
+		const int idx = freeIndices.at(QRandomGenerator::global()->bounded(freeIndices.size()));
+
+		const auto &p = it->pos.at(idx);
+
+		control->setIsActive(false);
+		control->moveTo(d->tickTimer()->tickAddMsec(3000), cpv(p.x, p.y));
+		control->setIdx(idx);
+	}
+
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::playerUseGate
+ * @param player
+ * @param control
+ * @param success
+ */
+
+void RpgGamePrivate::playerUseGate(RpgPlayer *player, RpgControlGate *control, const bool &success)
+{
+	Q_ASSERT(control);
+	Q_ASSERT(player);
+
+	if (!success)
+		return;
+
+	if (control->currentState() == RpgGameData::ControlGate::GateDamaged) {
+		if (!player->m_sfxDecline.soundList().isEmpty())
+			player->m_sfxDecline.playOne();
+		return;
+	}
+
+	if (control->currentState() == RpgGameData::ControlGate::GateOpen)
+		control->setCurrentState(RpgGameData::ControlGate::GateClose);
+	else
+		control->setCurrentState(RpgGameData::ControlGate::GateOpen);
+
+	if (!player->m_sfxAccept.soundList().isEmpty())
+		player->m_sfxAccept.playOne();
+}
+
+
+
+
+
+/**
+ * @brief RpgGamePrivate::playerUseTeleport
+ */
+
+void RpgGamePrivate::playerUseTeleport(RpgPlayer *player, RpgControlTeleport *control, const bool &success)
+{
+	Q_ASSERT(control);
+	Q_ASSERT(player);
+
+	if (!success)
+		return;
+
+	RpgGameData::Player pData = player->serialize(1);
+	RpgGameData::ControlTeleportBaseData data = control->baseData();
+
+	if (pData.useTeleport(data, player->baseData())) {
+		LOG_CDEBUG("game") << "Teleport used" << data;
+
+		// Final teleport
+
+		if (!data.dst.isValid() && !data.hd) {
+			const int left = std::max(0, player->collectionRq() - player->collection());
+
+			if (left == 0) {
+				player->setIsGameCompleted(true);
+				emit d->gameSuccess();
+			} else {
+
+				if (left > 1)
+					d->messageColor(QObject::tr("%1 items missing").arg(left), QColorConstants::Svg::red, false);
+				else
+					d->messageColor(QObject::tr("1 item missing"), QColorConstants::Svg::red, false);
+
+				if (!player->m_sfxDecline.soundList().isEmpty())
+					player->m_sfxDecline.playOne();
+
+				return;
+			}
+		}
+
+		player->updateFromSnapshot(pData);
+
+		if (!player->m_sfxAccept.soundList().isEmpty())
+			player->m_sfxAccept.playOne();
+	}
+}
+
+
+
+
+
+
+/**
+ * @brief RpgGamePrivate::playerUseExit
+ * @param player
+ * @param control
+ * @param success
+ */
+
+void RpgGamePrivate::playerUseExit(RpgPlayer *player)
+{
+	Q_ASSERT(player);
+
+	if (!player->isHiding())
+		return;
+
+	RpgGameData::Player pData = player->serialize(1);
+
+	RpgControlTeleport *c = d->controlFind<RpgControlTeleport>(pData.pck);
+
+	if (!c)
+		return;
+
+	RpgGameData::ControlTeleportBaseData data = c->baseData();
+
+	if (data.x > 0 && data.y > 0)
+		player->emplace(cpv(data.x, data.y));
+
+	if (data.a >= 0)
+		player->setCurrentAngleForced(data.a);
+
+	player->setHidingObject({});
+}
+
+
+
+
+
+/**
+ * @brief RpgGamePrivate::playerUseContainer
+ * @param player
+ * @param control
+ * @param success
+ */
+
+void RpgGamePrivate::playerUseContainer(RpgPlayer *player, RpgControlContainer *control, const bool &success)
+{
+	Q_ASSERT(control);
+	Q_ASSERT(player);
+
+	if (!success)
+		return;
+
+	control->setCurrentState(RpgGameData::ControlContainer::ContainerOpen);
+	control->setIsActive(false);
+
+	for (const RpgGameData::InventoryItem &item : control->baseData().inv.l) {
+		TiledScene *scene = d->findScene(control->baseData().s);
+
+		if (!scene) {
+			LOG_CERROR("game") << "Invalid scene" << control->baseData().s;
+			continue;
+		}
+
+		RpgGameData::PickableBaseData data(item.t, player->baseData().o, scene->sceneId(), player->nextObjectId());
+		data.p = QList<float>{control->baseData().x, control->baseData().y};
+
+		RpgPickable *p = d->controlAdd<RpgPickable>(d, scene, data);
+		p->playSfx();
+	}
+
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::playerUsePickable
+ * @param player
+ * @param control
+ * @param success
+ */
+
+void RpgGamePrivate::playerUsePickable(RpgPlayer *player, RpgPickable *control, const bool &success)
+{
+	Q_ASSERT(control);
+	Q_ASSERT(player);
+
+	if (!success)
+		return;
+
+	RpgGameData::Player pData = player->serialize(1);
+	RpgGameData::PickableBaseData data = control->baseData();
+
+	const int pv = pData.pick(data.pt);
+
+	if (pv < 0) {
+		player->updateFromSnapshot(pData);
+	} else if (data.pt == RpgGameData::PickableBaseData::PickableMp) {
+		if (ActionRpgGame *game = d->actionRpgGame()) {
+			game->m_deadlineTick += AbstractGame::TickTimer::msecToTick(pv*1000);
+			d->message(QObject::tr("%1 seconds gained").arg(pv));
+		} else {
+			LOG_CERROR("game") << "Invalid ActionRpgGame";
+		}
+	} else {
+		LOG_CERROR("game") << "Invalid pickable" << data.pt;
+	}
+
+	control->setIsActive(false);
+	control->visualItem()->setVisible(false);
+
+	d->playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), player->scene(), player->bodyPositionF());
+
 }

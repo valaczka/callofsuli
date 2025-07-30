@@ -54,8 +54,8 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 	m_baseData.o = -1;
 	m_baseData.id = group->id();
 	m_baseData.s = scene->sceneId();
-	m_baseData.inv.add(RpgGameData::PickableBaseData::PickableHp);
-	//m_baseData.lck;
+
+	m_baseData.inv = RpgGame::getInventoryFromPropertyValue(group->propertyAsString(QStringLiteral("pickable")));
 
 	if (!m_controlObjectList.isEmpty()) {
 		const cpVect &pos = m_controlObjectList.first()->bodyPosition();

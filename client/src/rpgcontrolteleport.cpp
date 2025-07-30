@@ -114,6 +114,8 @@ void RpgControlTeleport::updateFromSnapshot(const RpgGameData::ControlTeleport &
 		setCurrentState(Operating);
 	else
 		setCurrentState(m_isActive ? Active : Inactive);
+
+	_updateGlow();
 }
 
 
@@ -224,6 +226,7 @@ RpgGameData::ControlTeleport RpgControlTeleport::serializeThis() const
 void RpgControlTeleport::onShapeContactBegin(cpShape *self, cpShape *other)
 {
 	RpgActiveIface::onShapeContactBegin(self, other);
+	_updateGlow();
 }
 
 
@@ -236,7 +239,27 @@ void RpgControlTeleport::onShapeContactBegin(cpShape *self, cpShape *other)
 void RpgControlTeleport::onShapeContactEnd(cpShape *self, cpShape *other)
 {
 	RpgActiveIface::onShapeContactEnd(self, other);
+	_updateGlow();
 }
 
 
+
+
+
+void RpgControlTeleport::_updateGlow()
+{
+	if (!m_isActive)
+		return updateGlow(false);
+
+	bool glow = false;
+
+	for (cpShape *s : m_contactedFixtures) {
+		if (TiledObjectBody::fromShapeRef(s) == m_game->controlledPlayer()) {
+			glow = true;
+			break;
+		}
+	}
+
+	updateGlow(glow);
+}
 

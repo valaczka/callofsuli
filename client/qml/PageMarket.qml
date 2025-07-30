@@ -530,8 +530,8 @@ QPageGradient {
 		Client.send(HttpConnection.ApiUser, "buy", d)
 		.done(root, function(r){
 			Client.server.user.wallet.reload()
-			if (game)
-				game.addWallet(w)
+			/*if (game)
+				game.addWallet(w)*/
 		})
 		.fail(root, JS.failMessage(qsTr("Sikertelen vásárlás")))
 	}

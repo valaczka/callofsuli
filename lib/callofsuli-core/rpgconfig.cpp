@@ -37,6 +37,9 @@
 
 #define PICKABLE_HP_VALUE				10
 #define PICKABLE_SHIELD_VALUE			2
+#define PICKABLE_BULLET_VALUE			5
+
+#define PICKABLE_TIME_VALUE				30					// sec
 
 
 const QHash<RpgConfig::ControlType, int> RpgConfig::m_controlDamageValue = {
@@ -473,10 +476,10 @@ void Player::controlFailed(Player &dst, const RpgConfig::ControlType &control)
  * @brief Player::pick
  * @param dst
  * @param type
- * @return
+ * @return -1, ha meg tudta oldani
  */
 
-bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const QString &name)
+int Player::pick(Player &dst, const PickableBaseData::PickableType &type, const QString &name)
 {
 	switch (type) {
 		case PickableBaseData::PickableHp:
@@ -484,25 +487,27 @@ bool Player::pick(Player &dst, const PickableBaseData::PickableType &type, const
 			break;
 
 		case PickableBaseData::PickableShield:
-			dst.arm.add(Weapon::WeaponShortbow, PICKABLE_SHIELD_VALUE);
+			dst.arm.add(Weapon::WeaponShield, PICKABLE_SHIELD_VALUE);
 			break;
 
 		case PickableBaseData::PickableKey:
 			dst.inv.add(type, 1, name);
 			break;
 
+		case PickableBaseData::PickableBullet:
+			dst.arm.addBullet(PICKABLE_BULLET_VALUE);
+			break;
+
 		case PickableBaseData::PickableTime:
+			return PICKABLE_TIME_VALUE;
+
 		case PickableBaseData::PickableMp:
 		case PickableBaseData::PickableCoin:
-		case PickableBaseData::PickableShortbow:
-		case PickableBaseData::PickableLongbow:
-		case PickableBaseData::PickableLongsword:
-		case PickableBaseData::PickableDagger:
 		case PickableBaseData::PickableInvalid:
 			return false;
 	}
 
-	return true;
+	return -1;
 }
 
 
@@ -909,6 +914,38 @@ int PlayerBaseData::getXpForAttack(const int &diffHp, const int &currHp)
 		xp += 50;
 
 	return xp;
+}
+
+
+
+/**
+ * @brief Armory::addBullet
+ * @param bullet
+ * @return
+ */
+
+bool Armory::addBullet(const int &bullet)
+{
+	static const QList<Weapon::WeaponType> canShot = {
+		Weapon::WeaponShortbow,
+		Weapon::WeaponLongbow,
+	};
+
+	if (canShot.contains(cw)) {
+		if (auto curr = find(cw, s); curr != wl.end()) {
+			curr->b += bullet;
+			return true;
+		}
+	}
+
+	for (Weapon &w : wl) {
+		if (canShot.contains(w.t)) {
+			w.b += bullet;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 

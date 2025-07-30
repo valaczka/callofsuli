@@ -213,6 +213,8 @@ public:
 	qint64 currentTick();
 	int nextObjectId() const;
 
+	void addMsec(const int &msec);
+
 	void messageAdd(const RpgGameData::Message &msg, const QList<int> &players = {}, const bool &inverse = false);
 
 
