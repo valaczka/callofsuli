@@ -245,6 +245,7 @@ SOURCES += \
 	mapplaydemo.cpp \
 	maskedmousearea.cpp \
 	offsetmodel.cpp \
+	pass.cpp \
 	question.cpp \
 	rpgarmory.cpp \
 	rpgarrow.cpp \
@@ -358,6 +359,7 @@ HEADERS += \
 	mapplaydemo.h \
 	maskedmousearea.h \
 	offsetmodel.h \
+	pass.h \
 	question.h \
 	rpgarmory.h \
 	rpgarrow.h \

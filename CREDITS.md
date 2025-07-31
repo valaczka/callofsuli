@@ -47,6 +47,7 @@
 - Kingel's Creative Commons pixel art (https://forums.tigsource.com/index.php?topic=14166.0)
 - WrathGames Studio (https://opengameart.org/content/wgstudio-fire-animation-loop, http://wrathgames.com/blog)
 - Openclipart (https://openclipart.com)
+- Web Fonts (http://www.onlinewebfonts.com)
 - Azgaar's Fantasy Map Generator - (c) 2017-2023 Max Haniyeu (https://azgaar.github.io/Fantasy-Map-Generator)
 - Animated Spinning Gems - (c) 2017 Code Inferno Games - codeinferno.com (https://opengameart.org/content/animated-spinning-gems)
 - Bleed - (c) 2017 Remos Turcuman - (https://opengameart.org/users/bleed, http://remusprites.carbonmade.com)

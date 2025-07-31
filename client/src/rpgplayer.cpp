@@ -793,6 +793,19 @@ void RpgPlayer::attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weap
 	}
 }
 
+QString RpgPlayer::specialState() const
+{
+	return m_specialState;
+}
+
+void RpgPlayer::setSpecialState(const QString &newSpecialState)
+{
+	if (m_specialState == newSpecialState)
+		return;
+	m_specialState = newSpecialState;
+	emit specialStateChanged();
+}
+
 int RpgPlayer::collectionRq() const
 {
 	return m_collectionRq;
@@ -878,7 +891,10 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 
 	const cpVect vel = cpBodyGetVelocity(body());
 
-	if (vel.x != 0. || vel.y != 0.)
+	if (!m_specialState.isEmpty()) {
+		p.st = RpgGameData::Player::PlayerSpecial;
+		p.sp = m_specialState;
+	} else if (vel.x != 0. || vel.y != 0.)
 		p.st = RpgGameData::Player::PlayerMoving;
 	else
 		p.st = RpgGameData::Player::PlayerIdle;
@@ -892,6 +908,18 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 	}
 
 	return p;
+}
+
+
+
+/**
+ * @brief RpgPlayer::changeSpecialState
+ * @param state
+ */
+
+void RpgPlayer::changeSpecialState(const QString &state)
+{
+	setSpecialState(state);
 }
 
 
@@ -1189,7 +1217,8 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 
 		if (e > 0) {
 			speed = entityMove(this, snapshot,
-							   RpgGameData::Player::PlayerIdle, RpgGameData::Player::PlayerMoving,
+							   RpgGameData::Player::PlayerIdle,
+							   { RpgGameData::Player::PlayerMoving, RpgGameData::Player::PlayerSpecial },
 							   m_speedLength, 2*m_speedRunLength,
 							   &msg);
 		} else {
@@ -1287,6 +1316,9 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 		}
 
 	} else {
+		if (snap.st == RpgGameData::Player::PlayerSpecial)
+			changeSpecialState(snap.sp);
+
 		m_armory->updateFromSnapshot(snap.arm);
 	}
 

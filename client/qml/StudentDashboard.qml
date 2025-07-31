@@ -18,15 +18,22 @@ QItemGradient {
 	property bool _notifyDailyRate100: false
 	property date _referenceDate: new Date()
 
-	appBar.rightComponent: Qaterial.AppBarButton {
-		icon.source: Qaterial.Icons.cogOutline
-		onClicked: Client.stackPushPage("PageStudentSettings.qml")
+	appBar.rightComponent: Row {
+		Qaterial.AppBarButton {
+			icon.source: Qaterial.Icons.account
+			onClicked: Client.stackPushPage("PageStudentProfile.qml")
+		}
+		Qaterial.AppBarButton {
+			icon.source: Qaterial.Icons.cogOutline
+			onClicked: Client.stackPushPage("PageStudentSettings.qml")
+		}
 	}
 
 	QScrollable {
 		anchors.fill: parent
 		spacing: 15
 		contentCentered: true
+		topPadding: Math.max(verticalPadding, Client.safeMarginTop, root.paddingTop)
 
 		refreshEnabled: true
 
@@ -35,7 +42,7 @@ QItemGradient {
 		Qaterial.LabelHeadline3 {
 			anchors.horizontalCenter: parent.horizontalCenter
 			width: Math.min(parent.width-100, Qaterial.Style.maxContainerSize)
-			topPadding: root.paddingTop
+			//topPadding: root.paddingTop
 			horizontalAlignment: Qt.AlignHCenter
 			text: user ? user.fullNickName : ""
 			wrapMode: Text.Wrap
@@ -256,6 +263,8 @@ QItemGradient {
 				}
 			}
 
+
+
 			QDashboardButton {
 				text: qsTr("Szabad játék")
 				visible: !_grid.showPlaceholders
@@ -316,6 +325,7 @@ QItemGradient {
 	}
 
 
+
 	Connections {
 		target: user
 
@@ -361,6 +371,7 @@ QItemGradient {
 			_firstRun = false
 			_referenceDate = new Date()
 		})
+
 		Client.send(HttpConnection.ApiGeneral, "user/%1/log/xp".arg(user.username))
 		.done(root, function(r){
 			_chart.loadList(r.list)

@@ -2284,6 +2284,7 @@ void Renderer::render(RendererItem<RpgGameData::Player> *dst, RendererObject<Rpg
 			RpgGameData::Player::PlayerIdle,
 			RpgGameData::Player::PlayerMoving,
 			RpgGameData::Player::PlayerInvalid,
+			RpgGameData::Player::PlayerSpecial
 		};
 
 		for (const RpgGameData::Player &p : dst->m_subData) {
@@ -2459,6 +2460,7 @@ void Renderer::render(RendererItem<RpgGameData::Enemy> *dst, RendererObject<RpgG
 			RpgGameData::Enemy::EnemyIdle,
 			RpgGameData::Enemy::EnemyMoving,
 			RpgGameData::Enemy::EnemyInvalid,
+			RpgGameData::Enemy::EnemySpecial
 		};
 
 		for (const RpgGameData::Enemy &p : dst->m_subData) {

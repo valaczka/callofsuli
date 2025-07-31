@@ -4,36 +4,33 @@ import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli
 import SortFilterProxyModel
-import "./JScript.js" as JS
 
-Item
-{
+
+QItemGradient {
 	id: control
 
-	property StudentGroup group: null
 	property StudentMapHandler mapHandler: null
+	property StudentGroupList groupList: null
+	property StudentGroup group: null
 
-	property real topPadding: 0
+	title: group ? group.name+qsTr(" | kihívások") : ""
+
+	appBar.rightComponent: StudentGroupButton {
+		anchors.verticalCenter: parent.verticalCenter
+		groupList: control.groupList
+		group: control.group
+		onGroupChanged: control.group = group
+	}
 
 	QScrollable {
 		anchors.fill: parent
-		topPadding: Math.max(verticalPadding, Client.safeMarginTop, control.topPadding)
+		topPadding: Math.max(Client.safeMarginTop, control.paddingTop + 5)
 		leftPadding: 0
 		bottomPadding: 0
 		rightPadding: 0
 
 		refreshEnabled: true
 		onRefreshRequest: Client.reloadCache("studentCampaignList")
-
-		Qaterial.LabelHeadline5 {
-			width: parent.width
-			topPadding: 25
-			leftPadding: 50
-			rightPadding: 50
-			horizontalAlignment: Qt.AlignHCenter
-			text: group ? group.name : ""
-			visible: group
-		}
 
 		QListView {
 			id: view
@@ -145,6 +142,9 @@ Item
 				rightSourceComponent: Qaterial.LabelHeadline5 {
 					visible: text != ""
 					text: {
+						if (!_delegate.campaign)
+							return ""
+
 						let l = []
 
 						if (_delegate.campaign.maxPts > 0)

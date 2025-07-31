@@ -15,8 +15,13 @@ QPage {
 		if (_closeEnabled || (Client.server && Client.server.user.loginState != User.LoggedIn))
 			return true
 
-		if (tabBar.currentIndex > 0) {
-			tabBar.decrementCurrentIndex()
+		if (_stack.currentItem.stackPopFunction) {
+			if (!_stack.currentItem.stackPopFunction())
+				return false
+		}
+
+		if (tabBar.currentIndex !== 2) {
+			tabBar.currentIndex = 2
 			return false
 		}
 
@@ -41,25 +46,20 @@ QPage {
 
 	header: null
 
+	property StudentGroupList groupList: Client.cache("studentGroupList")
+	property StudentGroup group: null
 	property StudentMapHandler studentMapHandler: StudentMapHandler {  }
 
 	property bool _closeEnabled: false
 
-	Loader {
-		id: _loader
-		asynchronous: true
+	Qaterial.StackView {
+		id: _stack
 		anchors.fill: parent
-		sourceComponent: Qaterial.StackView {  }
-		onLoaded: {
-			if (tabBar.currentIndex > -1)
-				item.replace(tabBar.model.get(tabBar.currentIndex).cmp)
-		}
 	}
-
 
 	QRefreshProgressBar {
 		anchors.top: parent.top
-		visible: Client.httpConnection.pending || _loader.status == Loader.Loading
+		visible: Client.httpConnection.pending
 	}
 
 	footer: QTabBar
@@ -67,39 +67,76 @@ QPage {
 		id: tabBar
 
 		onCurrentIndexChanged: {
-			if (!_loader.item || currentIndex < 0)
+			if (currentIndex < 0)
 				return
 
-			_loader.item.replace(model.get(currentIndex).cmp)
+			_stack.replace(model.get(currentIndex).cmp)
 		}
 
 		Component.onCompleted: {
+			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink", cmp: cmpCampaign })
+			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.fileDocumentMultiple, color: "red", cmp: cmpExam })
 			model.append({ text: qsTr("Áttekintés"), source: Qaterial.Icons.speedometer, cmp: cmpDashboard })
-			model.append({ text: qsTr("Csoportjaim"), source: Qaterial.Icons.accountGroup, cmp: cmpGroupList })
+			model.append({ text: qsTr("Call Pass"), source: "qrc:/internal/img/passIcon.svg", cmp: cmpPass })
 			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.podium, cmp: cmpScoreList })
-			model.append({ text: qsTr("Profil"), source: Qaterial.Icons.account, cmp: cmpProfil })
+
+			currentIndex = 2
+		}
+	}
+
+
+
+
+	Component {
+		id: cmpCampaign
+
+		StudentGroupCampaignList {
+			group: control.group
+			groupList: control.groupList
+			mapHandler: control.studentMapHandler
+			onGroupChanged: control.group = group
+		}
+	}
+
+	Component {
+		id: cmpExam
+
+		StudentGroupExamList {
+			group: control.group
+			groupList: control.groupList
+			mapHandler: control.studentMapHandler
+			onGroupChanged: control.group = group
 		}
 	}
 
 
 	Component {
 		id: cmpDashboard
+
 		StudentDashboard {
 			studentMapHandler: control.studentMapHandler
 		}
 	}
 
 	Component {
-		id: cmpGroupList
-		StudentGroups {
-			studentMapHandler: control.studentMapHandler
+		id: cmpPass
+
+		StudentGroupPassList {
+			group: control.group
+			groupList: control.groupList
+			mapHandler: control.studentMapHandler
+			onGroupChanged: control.group = group
 		}
 	}
 
+
+
 	Component {
 		id: cmpScoreList
+
 		QItemGradient {
 			id: _pageScoreList
+
 			ScoreList {
 				id: _scoreList
 				anchors.fill: parent
@@ -137,22 +174,17 @@ QPage {
 		}
 	}
 
-	Component {
-		id: cmpProfil
-
-		StudentProfile {
-			user: Client.server.user
-		}
-
-	}
-
 
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentDasboard)
 		Client.reloadUser()
-		Client.reloadCache("studentGroupList")
+		Client.reloadCache("studentGroupList", control, function() {
+			if (!control.group && control.groupList.count > 0)
+				control.group = control.groupList.get(0)
+		})
 		Client.reloadCache("studentCampaignList")
 		Client.reloadCache("classList")
+		Client.reloadCache("passList")
 		studentMapHandler.reload()
 	}
 }

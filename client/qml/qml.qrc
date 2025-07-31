@@ -86,7 +86,6 @@
         <file>StudentDashboard.qml</file>
         <file>QItemGradient.qml</file>
         <file>QAnimatedProgressBar.qml</file>
-        <file>StudentGroups.qml</file>
         <file>PageStudentCampaign.qml</file>
         <file>QPageGradient.qml</file>
         <file>PageMapPlayMissionLevel.qml</file>
@@ -137,13 +136,11 @@
         <file>QCard.qml</file>
         <file>MapEditorFormImage.qml</file>
         <file>UserInfoForm.qml</file>
-        <file>StudentProfile.qml</file>
         <file>UserInfoHeader.qml</file>
         <file>ScoreUserInfo.qml</file>
         <file>UserInfoLog.qml</file>
         <file>UserInfoPassword.qml</file>
         <file>QOffsetListView.qml</file>
-        <file>PageStudentGroup.qml</file>
         <file>StudentGroupCampaignList.qml</file>
         <file>PageTeacherCampaignResult.qml</file>
         <file>PageTeacherGroupUserResult.qml</file>
@@ -227,5 +224,9 @@
         <file>QUpgradeButton.qml</file>
         <file>ContextHelperDialog.qml</file>
         <file>RpgPlayerMarker.qml</file>
+        <file>PageStudentProfile.qml</file>
+        <file>StudentGroupButton.qml</file>
+        <file>StudentGroupPassList.qml</file>
+        <file>StudentPass.qml</file>
     </qresource>
 </RCC>

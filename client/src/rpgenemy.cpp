@@ -113,7 +113,8 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 
 		if (e > 0) {
 			speed = entityMove(this, snapshot,
-							   RpgGameData::Enemy::EnemyIdle, RpgGameData::Enemy::EnemyMoving,
+							   RpgGameData::Enemy::EnemyIdle,
+							   { RpgGameData::Enemy::EnemyMoving, RpgGameData::Enemy::EnemySpecial },
 							   m_metric.speed, 2*m_metric.pursuitSpeed,
 							   nullptr);
 		}
@@ -173,6 +174,9 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::Enemy &snap)
 		m_armory->updateFromSnapshot(arm);
 
 	} else {
+		if (snap.st == RpgGameData::Enemy::EnemySpecial)
+			changeSpecialState(snap.sp);
+
 		m_armory->updateFromSnapshot(snap.arm);
 	}
 }
@@ -530,6 +534,17 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 
 
 /**
+ * @brief RpgEnemy::changeSpecialState
+ * @param state
+ */
+
+void RpgEnemy::changeSpecialState(const QString &state)
+{
+	setSpecialState(state);
+}
+
+
+/**
  * @brief RpgEnemy::checkFeature
  * @param feature
  * @param player
@@ -568,7 +583,10 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 
 	const cpVect vel = cpBodyGetVelocity(body());
 
-	if (vel.x != 0. || vel.y != 0.)
+	if (!m_specialState.isEmpty()) {
+		p.st = RpgGameData::Enemy::EnemySpecial;
+		p.sp = m_specialState;
+	} else if (vel.x != 0. || vel.y != 0.)
 		p.st = RpgGameData::Enemy::EnemyMoving;
 	else
 		p.st = RpgGameData::Enemy::EnemyIdle;
@@ -583,6 +601,32 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 
 	return p;
 }
+
+
+/**
+ * @brief RpgEnemy::specialState
+ * @return
+ */
+
+QString RpgEnemy::specialState() const
+{
+	return m_specialState;
+}
+
+void RpgEnemy::setSpecialState(const QString &newSpecialState)
+{
+	if (m_specialState == newSpecialState)
+		return;
+	m_specialState = newSpecialState;
+	emit specialStateChanged();
+}
+
+
+
+/**
+ * @brief RpgEnemy::config
+ * @return
+ */
 
 const RpgEnemyConfig &RpgEnemy::config() const
 {

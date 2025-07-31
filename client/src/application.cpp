@@ -82,6 +82,7 @@
 #include "gamequestion.h"
 #include "mapplay.h"
 #include "httpconnection.h"
+#include "pass.h"
 
 // IOS and WASM bug
 
@@ -425,6 +426,10 @@ void Application::registerQmlTypes()
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
 	qmlRegisterType<MaskedMouseArea>("CallOfSuli", 1, 0, "MaskedMouseArea");
 	qmlRegisterType<OffsetModel>("CallOfSuli", 1, 0, "OffsetModelImpl");
+	qmlRegisterType<Pass>("CallOfSuli", 1, 0, "Pass");
+	qmlRegisterType<PassList>("CallOfSuli", 1, 0, "PassList");
+	qmlRegisterType<PassItem>("CallOfSuli", 1, 0, "PassItem");
+	qmlRegisterType<PassItemList>("CallOfSuli", 1, 0, "PassItemList");
 	qmlRegisterType<RpgUserWalletList>("CallOfSuli", 1, 0, "RpgUserWalletList");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");

@@ -124,6 +124,20 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 	});
 
 
+
+	server->route(path+"pass", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return passes(*credential);
+	});
+
+	server->route(path+"pass/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return pass(*credential, id);
+	});
+
+
+
 	server->route(path+"map/<arg>/solver", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
 				  [this](const QString &uuid, const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -267,6 +281,94 @@ QHttpServerResponse UserAPI::groupScore(const int &id)
 		return responseResult("list", *list);
 	else
 		return responseErrorSql();
+}
+
+
+
+
+/**
+ * @brief UserAPI::passes
+ * @param credential
+ * @return
+ */
+
+QHttpServerResponse UserAPI::passes(const Credential &credential)
+{
+	LOG_CTRACE("client") << "Get user passes";
+
+	LAMBDA_THREAD_BEGIN(credential);
+
+	const auto &list = QueryBuilder::q(db)
+					   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+								 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, title, grading, childless, pts, maxPts "
+								 "FROM pass LEFT JOIN passSumResult ON (passSumResult.passid=pass.id AND passSumResult.username=")
+					   .addValue(credential.username())
+					   .addQuery(") WHERE groupid IN "
+								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+					   .addQuery(")")
+					   .execToJsonArray({
+											{ QStringLiteral("grading"), [](const QVariant &v) {
+												  return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+											  } }
+										});
+
+	LAMBDA_SQL_ASSERT(list);
+
+	response = responseResult("list", *list);
+
+	LOG_CINFO("client") << "SEND" << *list;
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::pass
+ * @param credential
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse UserAPI::pass(const Credential &credential, const int &id)
+{
+	LOG_CTRACE("client") << "Get user pass" << id;
+
+	LAMBDA_THREAD_BEGIN(credential, id);
+
+	auto data = QueryBuilder::q(db)
+					   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+								 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, title, grading, childless, pts, maxPts "
+								 "FROM pass LEFT JOIN passSumResult ON (passSumResult.passid=pass.id AND passSumResult.username=")
+					   .addValue(credential.username())
+					   .addQuery(") WHERE groupid IN "
+								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+					   .addQuery(") AND id=").addValue(id)
+					   .execToJsonObject({
+											{ QStringLiteral("grading"), [](const QVariant &v) {
+												  return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+											  } }
+										});
+
+	LAMBDA_SQL_ASSERT(data);
+
+	const auto &list = QueryBuilder::q(db)
+					   .addQuery("SELECT passHierarchy.passitemid, result, pts, maxPts, extra, category, categoryid "
+								 "FROM passHierarchy "
+								 "LEFT JOIN passResultUser ON (passResultUser.passitemid=passHierarchy.passitemid "
+								 "AND passResultUser.username=").addValue(credential.username())
+					   .addQuery(") WHERE passid=").addValue(id)
+					   .execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(list);
+
+	data->insert(QStringLiteral("items"), *list);
+
+	LOG_CINFO("client") << "SEND" << *data;
+
+	response = responseOk(*data);
+
+	LAMBDA_THREAD_END;
 }
 
 

@@ -91,7 +91,7 @@ protected:
 	static cpVect entityMove(IsometricEntity *entity,
 							 const RpgGameData::SnapshotInterpolation<T> &snapshot,
 							 const E &idle,
-							 const E &moving,
+							 const QSet<E> &moving,
 							 const qreal &speed,
 							 const qreal &maxSpeed,
 							 QString *msg

@@ -3490,6 +3490,29 @@ QHttpServerResponse TeacherAPI::examGrading(const Credential &credential, const 
 									   .exec());
 		}
 
+		if (const auto &p = QueryBuilder::q(db)
+				.addQuery("SELECT passitemid FROM exam WHERE id=(SELECT examid FROM examContent WHERE id=")
+				.addValue(id).addQuery("))")
+				.execToValue("passitemid", -1); p.value_or(-1).toInt() > 0) {
+			if (result < 0) {
+				LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+										   .addQuery("DELETE FROM passresult WHERE passitemid=")
+										   .addValue(p.value())
+										   .addQuery(" AND username=(SELECT username FROM examContent WHERE id=")
+										   .addValue(id)
+										   .addQuery(")")
+										   .exec());
+			} else {
+				LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+										   .addQuery("INSERT OR REPLACE INTO passresult(passitemid, username, result) ")
+										   .addQuery("SELECT ").addValue(p.value())
+										   .addQuery(", username, ").addValue(result)
+										   .addQuery(" FROM examContent WHERE id=").addValue(id)
+										   .exec());
+			}
+
+		}
+
 		db.commit();
 
 	}
@@ -3655,12 +3678,17 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 
 	QMutexLocker _locker(api->databaseMain()->mutex());
 
+	int passItemId = -1;
+
 	QueryBuilder q(db);
 
-	q.addQuery("SELECT id, mapuuid, criterion FROM task WHERE campaignid=").addValue(campaign);
+	q.addQuery("SELECT task.id, mapuuid, criterion, passitemid FROM task "
+			   "LEFT JOIN campaign ON (task.campaignid=campaign.id) WHERE task.campaignid=").addValue(campaign);
 
 	if (!q.exec())
 		return false;
+
+	passItemId = q.value("passitemid", -1).toInt();
 
 
 	db.transaction();
@@ -3673,14 +3701,18 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 
 		std::optional<float> success;
 
+		bool hasPass = false;
+
 		if (module == QStringLiteral("xp"))
 			success = _evaluateCriterionXP(api, campaign, criterion, username);
 		else if (module == QStringLiteral("mission"))
 			success = _evaluateCriterionMission(api, /*campaign,*/ criterion, map, username);
 		else if (module == QStringLiteral("mapmission"))
 			success = _evaluateCriterionMapMission(api, /*campaign,*/ criterion, map, username);
-		else if (module == QStringLiteral("levels"))
+		else if (module == QStringLiteral("levels")) {
 			success = _evaluateCriterionMissionLevels(api, criterion, map, username);
+			hasPass = true;
+		}
 
 		if (!success) {
 			db.rollback();
@@ -3708,6 +3740,41 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 					.exec()) {
 				db.rollback();
 				return false;
+			}
+		}
+
+		if (hasPass && passItemId > 0) {
+			if (success.value() > 0) {
+				if (const auto &result = _campaignUserResult(api, campaign, false, username); result && result->maxPts > 0) {
+					if (!QueryBuilder::q(db)
+							.addQuery("INSERT OR REPLACE INTO passresult(")
+							.setFieldPlaceholder()
+							.addQuery(") VALUES (")
+							.setValuePlaceholder()
+							.addQuery(")")
+							.addField("passitemid", passItemId)
+							.addField("username", username)
+							.addField("result", result->progress)
+							.exec()) {
+						db.rollback();
+						return false;
+					}
+				}
+
+			} else {
+				if (!QueryBuilder::q(db)
+						.addQuery("INSERT OR REPLACE INTO passresult(")
+						.setFieldPlaceholder()
+						.addQuery(") VALUES (")
+						.setValuePlaceholder()
+						.addQuery(")")
+						.addField("passitemid", passItemId)
+						.addField("username", username)
+						.addField("result", 0.)
+						.exec()) {
+					db.rollback();
+					return false;
+				}
 			}
 		}
 	}

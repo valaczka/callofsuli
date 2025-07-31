@@ -2173,7 +2173,9 @@ public:
 		EnemyHit,
 		EnemyShot,
 		EnemyCast,
-		EnemyAttack
+		EnemyAttack,
+
+		EnemySpecial = 99
 	};
 
 	Q_ENUM(EnemyState);
@@ -2205,6 +2207,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(EnemyState, st)			// enemy state
+	QS_FIELD(QString, sp)				// special state
 	QS_OBJECT(BaseData, tg)				// target (player)
 	QS_OBJECT(Inventory, inv)			// inventory
 
@@ -2289,7 +2292,9 @@ public:
 		PlayerLockControl,					// előbb a feladat
 		PlayerUnlockControl,				// sikertelen feladat után
 		PlayerUseControl,					// nincs feladat vagy sikeres feladat után
-		PlayerExit							// kilép a teleportból, búvóhelyről,...stb.
+		PlayerExit,							// kilép a teleportból, búvóhelyről,...stb.
+
+		PlayerSpecial = 99
 	};
 
 	Q_ENUM(PlayerState);
@@ -2366,6 +2371,7 @@ public:
 	QS_SERIALIZABLE
 
 	QS_FIELD(PlayerState, st)			// state
+	QS_FIELD(QString, sp)				// special state
 	QS_OBJECT(BaseData, tg)				// target (enemy, control)
 	QS_OBJECT(BaseData, pck)			// packed (hiding place, teleport,...)
 	QS_FIELD(bool, l)					// locked

@@ -141,6 +141,7 @@ class RpgPlayer : public IsometricPlayer, public RpgGameDataInterface<RpgGameDat
 	Q_PROPERTY(int collectionRq READ collectionRq WRITE setCollectionRq NOTIFY collectionRqChanged FINAL)
 	Q_PROPERTY(bool isHiding READ isHiding NOTIFY isHidingChanged FINAL)
 	Q_PROPERTY(bool isGameCompleted READ isGameCompleted WRITE setIsGameCompleted NOTIFY isGameCompletedChanged FINAL)
+	Q_PROPERTY(QString specialState READ specialState WRITE setSpecialState NOTIFY specialStateChanged FINAL)
 
 public:
 	explicit RpgPlayer(RpgGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
@@ -209,6 +210,9 @@ public:
 	bool isGameCompleted() const;
 	void setIsGameCompleted(bool newIsGameCompleted);
 
+	QString specialState() const;
+	void setSpecialState(const QString &newSpecialState);
+
 signals:
 	void attackDone();
 	void characterChanged();
@@ -221,12 +225,15 @@ signals:
 	void collectionRqChanged();
 	void isHidingChanged();
 	void isGameCompletedChanged();
+	void specialStateChanged();
 
 protected:
 	void load() override final;
 	void updateSprite() override final;
 
 	RpgGameData::Player serializeThis() const override;
+
+	virtual void changeSpecialState(const QString &state);
 
 	void onEnemyReached(IsometricEnemy *enemy) override final;
 	void onEnemyLeft(IsometricEnemy */*enemy*/) override final {}
@@ -254,6 +261,7 @@ private:
 	RpgPlayerPrivate *const d;
 
 	RpgPlayerCharacterConfig m_config;
+	QString m_specialState;
 
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxFootStep;

@@ -40,6 +40,8 @@ Item {
 
 		color: Qaterial.Colors.black
 		readOnly: true
+		selectByKeyboard: false
+		selectByMouse: false
 		wrapMode: Text.Wrap
 
 		font.pixelSize: Qaterial.Style.textTheme.body1.pixelSize

@@ -152,7 +152,6 @@ signals:
 	void resultXPChanged();
 	void groupidChanged();
 	void progressChanged();
-
 	void maxPtsChanged();
 
 private:

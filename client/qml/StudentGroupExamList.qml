@@ -6,14 +6,22 @@ import CallOfSuli
 import SortFilterProxyModel
 import "./JScript.js" as JS
 
-Item
-{
+
+QItemGradient {
 	id: control
 
-	property StudentGroup group: null
 	property StudentMapHandler mapHandler: null
+	property StudentGroupList groupList: null
+	property StudentGroup group: null
 
-	property real topPadding: 0
+	title: group ? group.name+qsTr(" | dolgozatok") : ""
+
+	appBar.rightComponent: StudentGroupButton {
+		anchors.verticalCenter: parent.verticalCenter
+		groupList: control.groupList
+		group: control.group
+		onGroupChanged: control.group = group
+	}
 
 	property var stackPopFunction: function() {
 		if (_scrResult.visible) {
@@ -23,6 +31,7 @@ Item
 
 		return true
 	}
+
 
 	ExamList {
 		id: _examList
@@ -45,7 +54,7 @@ Item
 
 		visible: false
 
-		topPadding: Math.max(verticalPadding, Client.safeMarginTop, control.topPadding)
+		topPadding: Math.max(Client.safeMarginTop, control.paddingTop + 5)
 		leftPadding: 0
 		bottomPadding: 0
 		rightPadding: 0
@@ -62,7 +71,7 @@ Item
 	QScrollable {
 		id: _scrList
 		anchors.fill: parent
-		topPadding: Math.max(verticalPadding, Client.safeMarginTop, control.topPadding)
+		topPadding: Math.max(Client.safeMarginTop, control.paddingTop + 5)
 		leftPadding: 0
 		bottomPadding: 0
 		rightPadding: 0
@@ -71,16 +80,6 @@ Item
 
 		refreshEnabled: true
 		onRefreshRequest: _examList.reload()
-
-		Qaterial.LabelHeadline5 {
-			width: parent.width
-			topPadding: 25
-			leftPadding: 50
-			rightPadding: 50
-			horizontalAlignment: Qt.AlignHCenter
-			text: group ? group.name : ""
-			visible: group
-		}
 
 		QListView {
 			id: view
@@ -238,6 +237,12 @@ Item
 	}
 
 
+	onGroupChanged: {
+		_examList.reload()
+		_scrResult.visible = false
+	}
+
+	Component.onCompleted: _examList.reload()
 	StackView.onActivated: _examList.reload()
 	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _examList.reload()
 }

@@ -72,7 +72,6 @@ protected:
 	QString m_directory = QStringLiteral("base");
 
 private:
-	void onCurrentSpriteChanged();
 	void loadConfig(const QJsonObject &config = {});
 
 	TiledEffectHealed m_effectHealed;

@@ -118,7 +118,7 @@ template<typename E>
 inline cpVect RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity *entity,
 															  const RpgGameData::SnapshotInterpolation<T> &snapshot,
 															  const E &idle,
-															  const E &moving,
+															  const QSet<E> &moving,
 															  const qreal &speed,
 															  const qreal &maxSpeed,
 															  QString *msg)
@@ -173,7 +173,7 @@ inline cpVect RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity *e
 		}
 	}
 
-	if (to.st == moving) {
+	if (moving.contains(to.st)) {
 		// Extrapolation on moving (+1 frame)
 
 		if (!toFinal || !toCv) {

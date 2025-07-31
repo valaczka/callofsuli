@@ -70,6 +70,7 @@ class RpgEnemy : public IsometricEnemy, public RpgEnemyIface
 	QML_ELEMENT
 
 	Q_PROPERTY(TiledWeapon* defaultWeapon READ defaultWeapon CONSTANT FINAL)
+	Q_PROPERTY(QString specialState READ specialState WRITE setSpecialState NOTIFY specialStateChanged FINAL)
 
 public:
 	RpgEnemy(const RpgGameData::EnemyBaseData::EnemyType &type, RpgGame *game, const qreal &radius = 10.);
@@ -87,6 +88,12 @@ public:
 
 	bool isWatchingPlayer(RpgPlayer *player) const;
 
+	QString specialState() const;
+	void setSpecialState(const QString &newSpecialState);
+
+signals:
+	void specialStateChanged();
+
 protected:
 	virtual bool enemyWorldStep() override;
 	virtual bool enemyWorldStepNotReachedPlayer() override;
@@ -100,11 +107,14 @@ protected:
 	virtual bool featureOverride(const PlayerFeature &feature, IsometricPlayer *player) const override final;
 	virtual bool featureOverride(const PlayerFeature &feature, RpgPlayer *player) const;
 
+	virtual void changeSpecialState(const QString &state);
+
 	bool checkFeature(const RpgGameData::Player::Feature &feature, RpgPlayer *player) const;
 
 	RpgGameData::Enemy serializeEnemy() const;
 
 	RpgEnemyConfig m_config;
+	QString m_specialState;
 	QHash<RpgGameData::Enemy::EnemyState, qint64> m_stateLastRenderedTicks;
 
 	mutable QHash<RpgPlayer*, QList<PlayerFeature> > m_temporalDisabledFeatures;

@@ -60,6 +60,9 @@ public:
 	QHttpServerResponse group(const Credential &credential);
 	QHttpServerResponse groupScore(const int &id);
 
+	QHttpServerResponse passes(const Credential &credential);
+	QHttpServerResponse pass(const Credential &credential, const int &id);
+
 	QHttpServerResponse campaigns(const Credential &credential);
 	QHttpServerResponse campaign(const Credential &credential, const int &id);
 	QHttpServerResponse campaignResult(const Credential &credential, const int &id, const QJsonObject &json);

@@ -335,16 +335,6 @@ void RpgEnemyBase::setSubType(const QString &newSubType)
 
 
 
-/**
- * @brief RpgEnemyBase::onCurrentSpriteChanged
- */
-
-void RpgEnemyBase::onCurrentSpriteChanged()
-{
-
-}
-
-
 
 /**
  * @brief RpgEnemyBase::loadConfig

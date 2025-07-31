@@ -32,6 +32,7 @@
 #include "exam.h"
 #include "mapplay.h"
 #include "mapplaydemo.h"
+#include "pass.h"
 #include "qquickwindow.h"
 #include "rpguserwallet.h"
 #include "studentgroup.h"
@@ -957,6 +958,12 @@ void Client::startCache()
 						  &OlmLoader::find<Campaign>,
 						  "id", "campaignid", false,
 						  HttpConnection::ApiUser, "campaign");
+
+	m_cache.add<Pass>(QStringLiteral("passList"), std::move(new PassList(this)),
+						  &OlmLoader::loadFromJsonArray<Pass>,
+						  &OlmLoader::find<Pass>,
+						  "id", "passid", false,
+						  HttpConnection::ApiUser, "pass");
 
 	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), std::move(new TeacherGroupList(this)),
 							  &OlmLoader::loadFromJsonArray<TeacherGroup>,
