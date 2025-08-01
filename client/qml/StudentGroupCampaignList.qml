@@ -13,13 +13,15 @@ QItemGradient {
 	property StudentGroupList groupList: null
 	property StudentGroup group: null
 
+	signal changeGroup(StudentGroup group)
+
 	title: group ? group.name+qsTr(" | kihívások") : ""
 
 	appBar.rightComponent: StudentGroupButton {
 		anchors.verticalCenter: parent.verticalCenter
 		groupList: control.groupList
 		group: control.group
-		onGroupChanged: control.group = group
+		onChangeGroup: group => control.changeGroup(group)
 	}
 
 	QScrollable {

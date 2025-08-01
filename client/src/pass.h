@@ -28,8 +28,10 @@
 #define PASS_H
 
 #include "grade.h"
+#include "httpconnection.h"
 #include "qdatetime.h"
 #include "qjsonobject.h"
+#include "qslistmodel.h"
 #include <QPointer>
 #include <selectableobject.h>
 #include <QObject>
@@ -138,10 +140,12 @@ class Pass : public SelectableObject
 	Q_PROPERTY(PassItemList *itemList READ itemList CONSTANT FINAL)
 	Q_PROPERTY(bool childless READ childless WRITE setChildless NOTIFY childlessChanged FINAL)
 	Q_PROPERTY(QJsonObject grading READ grading WRITE setGrading NOTIFY gradingChanged FINAL)
-	Q_PROPERTY(GradeList *gradeList READ gradeList CONSTANT FINAL)
 	Q_PROPERTY(qreal pts READ pts WRITE setPts NOTIFY ptsChanged FINAL)
 	Q_PROPERTY(qreal maxPts READ maxPts WRITE setMaxPts NOTIFY maxPtsChanged FINAL)
 	Q_PROPERTY(qreal result READ result NOTIFY resultChanged FINAL)
+	Q_PROPERTY(QSListModel *categoryList READ categoryList CONSTANT FINAL)
+	Q_PROPERTY(int groupid READ groupid WRITE setGroupid NOTIFY groupidChanged FINAL)
+	Q_PROPERTY(QVariantList gradeList READ gradeList WRITE setGradeList NOTIFY gradeListChanged FINAL)
 
 public:
 	explicit Pass(QObject *parent = nullptr);
@@ -149,7 +153,11 @@ public:
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
-	Q_INVOKABLE void reload();
+	Q_INVOKABLE void reload(const HttpConnection::API &api = HttpConnection::ApiUser);
+
+	Q_INVOKABLE static QVariantList getGradingFromUi(const QVariantList &data);
+	Q_INVOKABLE static QVariantList getGradingFromData(const QJsonObject &grading);
+	Q_INVOKABLE static QJsonObject getMapFromUi(const QVariantList &data);
 
 	int passid() const;
 	void setPassid(int newPassid);
@@ -173,8 +181,6 @@ public:
 	QJsonObject grading() const;
 	void setGrading(const QJsonObject &newGrading);
 
-	GradeList *gradeList() const;
-
 	qreal pts() const;
 	void setPts(qreal newPts);
 
@@ -182,6 +188,25 @@ public:
 	void setMaxPts(qreal newMaxPts);
 
 	qreal result() const;
+
+	QSListModel *categoryList() const;
+
+	void updateCategoryList();
+	void updateGrading();
+
+	static qreal round(const qreal &num);
+	static QList<Grade*> getGrades(const qreal &result, const QJsonObject &grading, GradeList *list);
+	static QMap<int, QList<int>> getGradingMap(const QJsonObject &grading);
+	static QMap<int, QList<int>> getGradingMap(const QVariantList &grading);
+	static QVariantList mapToList(const QMap<int, QList<int> > &map);
+	static QJsonObject mapToObject(const QMap<int, QList<int> > &map);
+
+
+	int groupid() const;
+	void setGroupid(int newGroupid);
+
+	QVariantList gradeList() const;
+	void setGradeList(const QVariantList &newGradeList);
 
 signals:
 	void itemsLoaded();
@@ -195,18 +220,22 @@ signals:
 	void ptsChanged();
 	void maxPtsChanged();
 	void resultChanged();
+	void groupidChanged();
+	void gradeListChanged();
 
 private:
-	int m_passid;
+	int m_passid = -1;
 	QDateTime m_startTime;
 	QDateTime m_endTime;
 	QString m_title;
 	std::unique_ptr<PassItemList> m_itemList;
-	bool m_childless;
+	QVariantList m_gradeList;
+	bool m_childless = false;
 	QJsonObject m_grading;
-	std::unique_ptr<GradeList> m_gradeList;
-	qreal m_pts;
-	qreal m_maxPts;
+	qreal m_pts = 0.;
+	qreal m_maxPts = 0.;
+	std::unique_ptr<QSListModel> m_categoryList;
+	int m_groupid = -1;
 };
 
 #endif // PASS_H

@@ -16,7 +16,7 @@ Item {
 
 
     implicitWidth: 600
-    implicitHeight: col.height+85//+50
+    implicitHeight: Math.max(250, col.height + 30)
 
     height: implicitHeight
 
@@ -43,7 +43,7 @@ Item {
 
 
     Image {
-        source: "qrc:/internal/img/paper_bw.png"
+        source: "qrc:/internal/img/paper_texture.png"
         fillMode: Image.Tile
         anchors.fill: parent
 
@@ -94,7 +94,7 @@ Item {
                 spacing: -3
 
                 Qaterial.Label {
-                    text: pass ? (pass.title != "" ? "" : qsTr("Call Pass #%1").arg(pass.passid)) : ""
+                    text: pass ? (pass.title != "" ? pass.title : qsTr("Call Pass #%1").arg(pass.passid)) : ""
                     width: parent.width
                     wrapMode: Text.NoWrap
                     elide: implicitWidth > width ? Text.ElideRight : Text.ElideNone
@@ -104,9 +104,8 @@ Item {
                 }
 
                 Qaterial.LabelCaption {
-                    //visible: campaingDetails
-                    text: pass ? pass.startTime.toLocaleString(Qt.locale(), "yyyy. MMM d. – ")
-                                 + (pass.endTime.getTime() ? pass.endTime.toLocaleString(Qt.locale(), "yyyy. MMM d.") : "")
+                    text: pass ? pass.startTime.toLocaleString(Qt.locale(), "yyyy. MMMM d. – ")
+                                 + (pass.endTime.getTime() ? pass.endTime.toLocaleString(Qt.locale(), "yyyy. MMMM d.") : "")
                                : ""
                     width: parent.width
                     wrapMode: Text.NoWrap
@@ -115,84 +114,130 @@ Item {
                 }
             }
 
-            Label {
+            Row {
                 id: _labelResult
 
                 anchors.verticalCenter: parent.verticalCenter
 
-                text: "???" /*campaign ? campaign.readableShortResult(campaign.resultGrade, campaign.resultXP,
-                                                                                                                                                          campaign.maxPts > 0 ? Math.round(campaign.progress * campaign.maxPts) : -1) : ""
-                                */
-                wrapMode: Text.Wrap
-                color: Qaterial.Colors.black
-                font.family: Qaterial.Style.textTheme.headline5.family
-                font.pixelSize: Qaterial.Style.textTheme.headline5.pixelSize
-                font.capitalization: Font.AllUppercase
-                font.weight: Font.DemiBold
-                topPadding: 5
-                bottomPadding: 5
+                spacing: 5
+
+                Repeater {
+                    model: pass ? pass.gradeList : null
+
+                    delegate: Label {
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        text: modelData.shortname
+                        color: Qaterial.Colors.red700
+                        font.family: Qaterial.Style.textTheme.headline5.family
+                        font.pixelSize: Qaterial.Style.textTheme.headline5.pixelSize
+                        font.capitalization: Font.AllUppercase
+                        font.weight: Font.Bold
+                        topPadding: 5
+                        bottomPadding: 5
+                    }
+                }
             }
+
         }
 
 
+        Column {
+            id: _placeholderList
+
+            width: parent.width
+
+            visible: showPlaceholders
+
+            Repeater {
+                model: 5
+
+                delegate: QPlaceholderItem {
+                    width: parent.width
+                    horizontalAlignment: Qt.AlignLeft
+                    height: 24
+                    heightRatio: 0.8
+                }
+
+            }
+
+        }
 
         Column {
-            id: _colItemList
+            id: _categoryList
+
+            visible: pass && !showPlaceholders
 
             width: parent.width
 
             Repeater {
-                id: _rptr
+                model: pass ? pass.categoryList : null
 
-                model: pass ? pass.itemList : null
+                delegate: Column {
+                    id: _category
 
-                delegate: Item {
+                    readonly property int categoryId: id
+
                     width: parent.width
-                    height: showPlaceholders || passItem ? _itemDelegate.implicitHeight : 15//_section.implicitHeight
 
-                    readonly property PassItem passItem: model.qtObject
-
-                    /*Qaterial.LabelCaption {
-                                                                                id: _section
-                                                                                visible: !_rptr.showPlaceholders && !task
-                                                                                width: parent.width
-                                                                                text: modelData.section !== undefined ? modelData.section : ""
-                                                                                color: "saddlebrown"
-                                                                                topPadding: 15
-                                                                                bottomPadding: 5
-                                                                                font.pixelSize: Qaterial.Style.textTheme.caption.pixelSize
-                                                                                font.family: Qaterial.Style.textTheme.caption.family
-                                                                                font.capitalization: Font.AllUppercase
-                                                                                font.weight: Qaterial.Style.textTheme.caption.weight
-                                                                        }*/
-
-                    Row {
-                        id: _itemDelegate
-
-                        visible: pass && !showPlaceholders
-
+                    Qaterial.LabelCaption {
                         width: parent.width
+                        text: description
+                        color: "saddlebrown"
+                        topPadding: index > 0 ? 15 : 0
+                        //bottomPadding: 5
+                        font.pixelSize: Qaterial.Style.textTheme.caption.pixelSize
+                        font.family: Qaterial.Style.textTheme.caption.family
+                        font.capitalization: Font.AllUppercase
+                        font.weight: Qaterial.Style.textTheme.caption.weight
+                    }
 
-                        spacing: 10
+                    Repeater {
+                        model: SortFilterProxyModel {
+                            sourceModel: pass ? pass.itemList : null
 
-                        Qaterial.LabelBody2 {
-                            color: "black"
-                            text: passItem.description+" / "+passItem.category + " - " +passItem.pts + ":" + passItem.result
+                            filters: [
+                                ValueFilter {
+                                    roleName: "categoryId"
+                                    value: _category.categoryId
+                                }
+                            ]
+
+                            sorters: RoleSorter {
+                                roleName: "itemid"
+                            }
                         }
 
-                    }
+                        delegate: Row {
+                            readonly property PassItem passItem: model.qtObject
 
-                    QPlaceholderItem {
-                        visible: showPlaceholders
-                        anchors.fill: parent
-                        horizontalAlignment: Qt.AlignLeft
-                        height: 48
-                        heightRatio: 0.8
-                    }
+                            Qaterial.LabelBody2 {
+                                anchors.verticalCenter: parent.verticalCenter
 
+                                width: _category.width - _labelPts.width
+                                leftPadding: 15
+
+                                wrapMode: Text.NoWrap
+                                elide: implicitWidth > width ? Text.ElideRight : Text.ElideNone
+
+                                color: passItem.extra ? Qaterial.Colors.green800 : Qaterial.Colors.black
+                                text: (passItem.extra ? "+" : "") + passItem.description
+                            }
+
+                            Qaterial.LabelBody2 {
+                                id: _labelPts
+
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                textFormat: Text.StyledText
+
+                                color: passItem.extra ? Qaterial.Colors.green800 : Qaterial.Colors.black
+                                text: (passItem.extra ? "<b>+</b>" : "") + qsTr("<b>%1</b> / %2").arg(passItem.pts).arg(passItem.maxPts)
+                            }
+                        }
+                    }
                 }
             }
-
         }
 
     }

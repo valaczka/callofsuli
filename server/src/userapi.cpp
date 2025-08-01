@@ -299,11 +299,11 @@ QHttpServerResponse UserAPI::passes(const Credential &credential)
 	LAMBDA_THREAD_BEGIN(credential);
 
 	const auto &list = QueryBuilder::q(db)
-					   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+					   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, groupid, "
 								 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, title, grading, childless, pts, maxPts "
 								 "FROM pass LEFT JOIN passSumResult ON (passSumResult.passid=pass.id AND passSumResult.username=")
 					   .addValue(credential.username())
-					   .addQuery(") WHERE groupid IN "
+					   .addQuery(") WHERE starttime IS NOT NULL AND strftime('%s', starttime)<=strftime('%s', datetime('now')) AND groupid IN "
 								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
 					   .addQuery(")")
 					   .execToJsonArray({
@@ -315,8 +315,6 @@ QHttpServerResponse UserAPI::passes(const Credential &credential)
 	LAMBDA_SQL_ASSERT(list);
 
 	response = responseResult("list", *list);
-
-	LOG_CINFO("client") << "SEND" << *list;
 
 	LAMBDA_THREAD_END;
 }
@@ -337,11 +335,11 @@ QHttpServerResponse UserAPI::pass(const Credential &credential, const int &id)
 	LAMBDA_THREAD_BEGIN(credential, id);
 
 	auto data = QueryBuilder::q(db)
-					   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
+					   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, groupid, "
 								 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, title, grading, childless, pts, maxPts "
 								 "FROM pass LEFT JOIN passSumResult ON (passSumResult.passid=pass.id AND passSumResult.username=")
 					   .addValue(credential.username())
-					   .addQuery(") WHERE groupid IN "
+					   .addQuery(") WHERE starttime IS NOT NULL AND strftime('%s', starttime)<=strftime('%s', datetime('now')) AND groupid IN "
 								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
 					   .addQuery(") AND id=").addValue(id)
 					   .execToJsonObject({
@@ -353,9 +351,9 @@ QHttpServerResponse UserAPI::pass(const Credential &credential, const int &id)
 	LAMBDA_SQL_ASSERT(data);
 
 	const auto &list = QueryBuilder::q(db)
-					   .addQuery("SELECT passHierarchy.passitemid, result, pts, maxPts, extra, category, categoryid "
+					   .addQuery("SELECT passHierarchy.passitemid, result, description, pts, maxPts, extra, category, categoryid "
 								 "FROM passHierarchy "
-								 "LEFT JOIN passResultUser ON (passResultUser.passitemid=passHierarchy.passitemid "
+								 "JOIN passResultUser ON (passResultUser.passitemid=passHierarchy.passitemid "
 								 "AND passResultUser.username=").addValue(credential.username())
 					   .addQuery(") WHERE passid=").addValue(id)
 					   .execToJsonArray();
@@ -363,8 +361,6 @@ QHttpServerResponse UserAPI::pass(const Credential &credential, const int &id)
 	LAMBDA_SQL_ASSERT(list);
 
 	data->insert(QStringLiteral("items"), *list);
-
-	LOG_CINFO("client") << "SEND" << *data;
 
 	response = responseOk(*data);
 

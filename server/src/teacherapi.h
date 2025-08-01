@@ -124,6 +124,11 @@ public:
 	QHttpServerResponse examFinish(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examReclaim(const Credential &credential, const QJsonArray &list);
 
+	QHttpServerResponse pass(const Credential &credential, const int &id, const int &groupId);
+	QHttpServerResponse passCreate(const Credential &credential, const int &group, const QJsonObject &json);
+	QHttpServerResponse passUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse passDelete(const Credential &credential, const QJsonArray &list);
+
 	QHttpServerResponse userPeers() const;
 
 

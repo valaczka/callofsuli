@@ -53,6 +53,12 @@
 	.addValue(username).addQuery(" AND id=(SELECT groupid FROM campaign WHERE id=").addValue(id).addQuery(")") \
 	.execCheckExists());
 
+#define CHECK_PASS(username, id)	\
+	LAMBDA_SQL_ERROR("invalid id", \
+	QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=") \
+	.addValue(username).addQuery(" AND id=(SELECT groupid FROM pass WHERE id=").addValue(id).addQuery(")") \
+	.execCheckExists());
+
 #define CHECK_EXAM(username, id)	\
 	LAMBDA_SQL_ERROR("invalid id", \
 	QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=") \
@@ -769,31 +775,50 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 	});
 
 
-	/*server->route(path+"exam/<arg>/content", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+
+
+
+
+
+
+
+	// Pass
+
+	server->route(path+"pass/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return pass(*credential, id, -1);
+	});
+
+	server->route(path+"group/<arg>/pass", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &groupid, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return pass(*credential, -1, groupid);
+	});
+
+	server->route(path+"group/<arg>/pass/create", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
-		return examUpdate(*credential, id, *jsonObject);
+		return passCreate(*credential, id, *jsonObject);
 	});
 
-	*/
-
-
-
-
-
-	server->route(path+"user/peers", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"pass/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
-		return userPeers();
+		JSON_OBJECT_ASSERT();
+		return passUpdate(*credential, id, *jsonObject);
 	});
 
-
-	// TODO: tag (get tags, get subtags, get tagged maps, delete tag with merge)
-	// TODO: map (add alias, delete alias, tag map)
-
-	/*server->route(path+"user/peers/live", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+	server->route(path+"pass/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
-		return responseFakeEventStream();
-	});*/
+		return passDelete(*credential, QJsonArray{id});
+	});
+
+	server->route(path+"pass/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return passDelete(*credential, jsonObject->value(QStringLiteral("list")).toArray());
+	});
 }
 
 
@@ -3132,21 +3157,27 @@ QHttpServerResponse TeacherAPI::examResult(const Credential &credential, const i
 		idList.append(q.value("id").toInt());
 	}
 
-	// Ha virtuális, akkor küldi a "data" tartalmát is, egyébként üresen hagyja
-	const auto &list = QueryBuilder::q(db)
-					   .addQuery("SELECT exam.id AS examid, exam.mode AS mode, state, username, result, gradeid, "
-								 "CASE WHEN exam.mode=2 THEN data ELSE NULL END data "
-								 "FROM exam LEFT JOIN examContent ON (examContent.examid=exam.id) "
-								 "WHERE exam.id IN (").addList(idList).addQuery(")")
-					   .execToJsonArray({
-											{ QStringLiteral("data"), [](const QVariant &v) {
-												  return QJsonDocument::fromJson(v.toString().toUtf8()).array();
-											  } }
-										});
+	if (idList.isEmpty()) {
+		response = responseResult("list", QJsonArray());
 
-	LAMBDA_SQL_ASSERT(list);
+	} else {
 
-	response = responseResult("list", *list);
+		// Ha virtuális, akkor küldi a "data" tartalmát is, egyébként üresen hagyja
+		const auto &list = QueryBuilder::q(db)
+						   .addQuery("SELECT exam.id AS examid, exam.mode AS mode, state, username, result, gradeid, "
+									 "CASE WHEN exam.mode=2 THEN data ELSE NULL END data "
+									 "FROM exam LEFT JOIN examContent ON (examContent.examid=exam.id) "
+									 "WHERE exam.id IN (").addList(idList).addQuery(")")
+						   .execToJsonArray({
+												{ QStringLiteral("data"), [](const QVariant &v) {
+													  return QJsonDocument::fromJson(v.toString().toUtf8()).array();
+												  } }
+											});
+
+		LAMBDA_SQL_ASSERT(list);
+
+		response = responseResult("list", *list);
+	}
 
 	LAMBDA_THREAD_END;
 }
@@ -3637,6 +3668,205 @@ QHttpServerResponse TeacherAPI::examReclaim(const Credential &credential, const 
 					  .addQuery(" AND exam.id IN (").addList(list.toVariantList())
 					  .addQuery("))")
 					  .exec());
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::pass
+ * @param credential
+ * @param id
+ * @param groupId
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::pass(const Credential &credential, const int &id, const int &groupId)
+{
+	LOG_CTRACE("client") << "Get pass" << id << "in group" << groupId;
+
+	LAMBDA_THREAD_BEGIN(credential, id, groupId);
+
+	QueryBuilder q(db);
+
+
+	q.addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, groupid, "
+			   "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, title, grading, "
+			   "IFNULL((SELECT childless FROM passHierarchy WHERE passid=pass.id LIMIT 1), TRUE) AS childless "
+			   "FROM pass "
+			   "WHERE groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")");
+
+	if (id > 0)
+		q.addQuery(" AND id=").addValue(id);
+
+	if (groupId > 0)
+		q.addQuery(" AND groupid=").addValue(groupId);
+
+	const auto &list = q.execToJsonArray({
+											 { QStringLiteral("grading"), [](const QVariant &v) {
+												   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+											   } }
+										 });
+
+
+	LAMBDA_SQL_ASSERT(list);
+
+	if (id <= 0)
+		response = responseResult("list", *list);
+	else if (list->isEmpty())
+		response = responseError("not found");
+	else
+		response = QHttpServerResponse(list->at(0).toObject());
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::passCreate
+ * @param credential
+ * @param group
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::passCreate(const Credential &credential, const int &group, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Create pass in group" << group;
+
+	if (group <= 0)
+		return responseError("invalid group");
+
+	LAMBDA_THREAD_BEGIN(credential, group, json);
+
+	CHECK_GROUP(credential.username(), group);
+
+	QueryBuilder q(db);
+	q.addQuery("INSERT INTO pass(")
+			.setFieldPlaceholder()
+			.addQuery(") VALUES (")
+			.setValuePlaceholder()
+			.addQuery(")")
+			.addField("groupid", group)
+			;
+
+	if (json.contains(QStringLiteral("starttime"))) {
+		const qint64 &g = json.value(QStringLiteral("starttime")).toInteger();
+		q.addField("starttime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QMetaType::fromType<int>()));
+	}
+
+	if (json.contains(QStringLiteral("endtime"))) {
+		const qint64 &g = json.value(QStringLiteral("endtime")).toInteger();
+		q.addField("endtime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QMetaType::fromType<int>()));
+	}
+
+	if (json.contains(QStringLiteral("title")))
+		q.addField("title", json.value(QStringLiteral("title")).toString());
+
+	if (json.contains(QStringLiteral("grading")))
+		q.addField("grading", QString::fromUtf8(QJsonDocument(json.value(QStringLiteral("grading")).toObject()).toJson(QJsonDocument::Compact)));
+
+	const auto &id = q.execInsertAsInt();
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(id);
+
+	db.commit();
+
+	LOG_CDEBUG("client") << "Pass created:" << *id;
+
+	response = responseResult("id", *id);
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::passUpdate
+ * @param credential
+ * @param id
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::passUpdate(const Credential &credential, const int &id, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Pass exam" << id;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, id, json);
+
+	CHECK_PASS(credential.username(), id);
+
+	QueryBuilder q(db);
+	q.addQuery("UPDATE pass SET ").setCombinedPlaceholder();
+
+	if (json.contains(QStringLiteral("starttime"))) {
+		const qint64 &g = json.value(QStringLiteral("starttime")).toInteger();
+		q.addField("starttime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QMetaType::fromType<int>()));
+	}
+
+	if (json.contains(QStringLiteral("endtime"))) {
+		const qint64 &g = json.value(QStringLiteral("endtime")).toInteger();
+		q.addField("endtime", g>0 ? QDateTime::fromSecsSinceEpoch(g).toUTC() : QVariant(QMetaType::fromType<int>()));
+	}
+
+	if (json.contains(QStringLiteral("title")))
+		q.addField("title", json.value(QStringLiteral("title")).toString());
+
+	if (json.contains(QStringLiteral("grading")))
+		q.addField("grading", QString::fromUtf8(QJsonDocument(json.value(QStringLiteral("grading")).toObject()).toJson(QJsonDocument::Compact)));
+
+	q.addQuery(" WHERE id=").addValue(id);
+
+	LAMBDA_SQL_ASSERT(q.fieldCount() && q.exec());
+
+	LOG_CDEBUG("client") << "Pass modified:" << id;
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::passDelete
+ * @param credential
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::passDelete(const Credential &credential, const QJsonArray &list)
+{
+	LOG_CTRACE("client") << "Delete pass" << list;
+
+	if (list.isEmpty())
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, list);
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).
+					  addQuery("DELETE FROM pass WHERE id IN "
+							   "(SELECT pass.id FROM pass LEFT JOIN studentgroup ON (studentgroup.id=pass.groupid) WHERE pass.id IN(")
+					  .addList(list.toVariantList())
+					  .addQuery(") AND studentgroup.owner=").addValue(credential.username())
+					  .addQuery(")")
+					  .exec());
+
+	LOG_CDEBUG("client") << "Passes deleted:" << list;
 
 	response = responseOk();
 

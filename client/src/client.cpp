@@ -975,6 +975,7 @@ void Client::startCache()
 	m_cache.addHandler<User>(QStringLiteral("user"), &OlmLoader::loadFromJsonArray<User>, &OlmLoader::find<User>);
 	m_cache.addHandler<MapGame>(QStringLiteral("mapGame"), &OlmLoader::loadFromJsonArray<MapGame>, &OlmLoader::find<MapGame>);
 	m_cache.addHandler<Exam>(QStringLiteral("exam"), &OlmLoader::loadFromJsonArray<Exam>, &OlmLoader::find<Exam>, "id", "examId");
+	m_cache.addHandler<Pass>(QStringLiteral("pass"), &OlmLoader::loadFromJsonArray<Pass>, &OlmLoader::find<Pass>, "id", "passid");
 }
 
 

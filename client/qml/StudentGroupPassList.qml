@@ -15,11 +15,13 @@ QItemGradient {
 
 	title: group ? group.name+qsTr(" | Call Pass") : ""
 
+	signal changeGroup(StudentGroup group)
+
 	appBar.rightComponent: StudentGroupButton {
 		anchors.verticalCenter: parent.verticalCenter
 		groupList: control.groupList
 		group: control.group
-		onGroupChanged: control.group = group
+		onChangeGroup: group => control.changeGroup(group)
 	}
 
 
@@ -50,7 +52,7 @@ QItemGradient {
 
 				sourceModel: Client.cache("passList")
 
-				/*filters: [
+				filters: [
 					ValueFilter {
 						roleName: "groupid"
 						value: group ? group.groupid : -1
@@ -61,20 +63,20 @@ QItemGradient {
 				sorters: [
 					RoleSorter {
 						roleName: "isActive"
-						sortOrder: Qt.AscendingOrder
+						sortOrder: Qt.DescendingOrder
 						priority: 3
 					},
 					RoleSorter {
 						roleName: "childless"
-						sortOrder: Qt.AscendingOrder
+						sortOrder: Qt.DescendingOrder
 						priority: 2
 					},
 					RoleSorter {
 						roleName: "endTime"
 						sortOrder: Qt.AscendingOrder
-						priority: 3
+						priority: 1
 					}
-				]*/
+				]
 			}
 
 
@@ -104,29 +106,19 @@ QItemGradient {
 
 					width: _expandable.width
 
-					text: _expandable.pass ? (_expandable.pass.title != "" ? ""
+					text: _expandable.pass ? (_expandable.pass.title != "" ? _expandable.pass.title
 																		   : qsTr("Call Pass #%1").arg(_expandable.pass.passid)) : ""
-
-					secondaryText: {
-						if (!_expandable.pass)
-							return ""
-
-						if (_expandable.pass.startTime.getTime()) {
-							return _expandable.pass.startTime.toLocaleString(Qt.locale(), "yyyy. MMM d. – ")
-									+ (_expandable.pass.endTime.getTime() ? _expandable.pass.endTime.toLocaleString(Qt.locale(), "yyyy. MMM d.") : "")
-						}
-
-						return ""
-					}
-
-					/*textColor: iconColor
-					secondaryTextColor: !campaign || campaign.state == Campaign.Finished ?
-											Qaterial.Style.disabledTextColor() : Qaterial.Style.colorTheme.secondaryText*/
 
 					leftSourceComponent: Qaterial.RoundColorIcon
 					{
-						source: Qaterial.Icons.passportCheck //_delegate.iconSource
-						//color: _delegate.iconColor
+						source: _expandable.pass && _expandable.pass.childless ?
+									Qaterial.Icons.tagText :
+									Qaterial.Icons.tagMultipleOutline
+
+						color: _expandable.pass && _expandable.pass.childless ?
+								   Qaterial.Style.accentColor :
+								   Qaterial.Style.iconColor()
+
 						iconSize: Qaterial.Style.delegate.iconWidth
 
 						fill: true
@@ -134,39 +126,38 @@ QItemGradient {
 						height: roundIcon ? roundSize : iconSize
 					}
 
-					rightSourceComponent: Qaterial.LabelHeadline5 {
-						visible: text != ""
-						text: {
-							if (!_expandable.pass)
-								return ""
 
-							return _expandable.pass.pts + " / " +_expandable.pass.maxPts
 
-							/*let l = []
+					rightSourceComponent: Column {
+						spacing: -2
 
-							if (_delegate.campaign.maxPts > 0)
-								l.push(qsTr("%1 pt").arg(Number(Math.round(_delegate.campaign.maxPts * _delegate.campaign.progress).toLocaleString())))
+						Row {
+							anchors.right: parent.right
 
-							if (_delegate.campaign.resultXP > 0)
-								l.push(qsTr("%1 XP").arg(Number(_delegate.campaign.resultXP).toLocaleString()))
+							spacing: 5
 
-							if (_delegate.campaign.resultGrade)
-								l.push(_delegate.campaign.resultGrade.shortname)
+							Repeater {
+								model: _expandable.pass ? _expandable.pass.gradeList : null
 
-							return l.join(" / ")*/
+								delegate: Qaterial.LabelHeadline5 {
+									color: Qaterial.Colors.red400
+									anchors.verticalCenter: parent.verticalCenter
+									text: modelData.shortname
+								}
+							}
 						}
-						color: Qaterial.Style.accentColor
+
+						Qaterial.LabelHint1 {
+							anchors.right: parent.right
+							text: _expandable.pass ?
+									  _expandable.pass.pts + "/" +_expandable.pass.maxPts + qsTr(" pt") +
+									  (_expandable.pass.result>=0 ? " (" + Math.floor(_expandable.pass.result*100)+"%)" : "") :
+									  ""
+							color: Qaterial.Style.secondaryTextColor()
+						}
 					}
 
 					onClicked: _expandable.expanded = !_expandable.expanded
-
-					/*onClicked: Client.stackPushPage("PageStudentCampaign.qml", {
-														user: Client.server ? Client.server.user : null,
-														campaign: campaign,
-														studentMapHandler: control.mapHandler,
-														withResult: true,
-														title: group ? group.name : ""
-													})*/
 				}
 
 
@@ -178,7 +169,8 @@ QItemGradient {
 						id: _passItem
 
 						pass: _expandable.pass
-						width: Math.min(parent.width - 12 * Qaterial.Style.pixelSizeRatio, Qaterial.Style.maxContainerSize * 0.8)
+						width: Math.min(parent.width - 12 * Qaterial.Style.pixelSizeRatio, Qaterial.Style.maxContainerSize * 0.8,
+										650)
 
 						showPlaceholders: _expandable.showPlaceholder
 
@@ -188,7 +180,7 @@ QItemGradient {
 
 
 				Component.onCompleted: {
-					if (pass && pass.isActive)
+					if (pass && pass.isActive && pass.childless)
 						_expandable.expanded = true
 				}
 
@@ -200,4 +192,5 @@ QItemGradient {
 	}
 
 
+	StackView.onActivated: Client.reloadCache("passList")
 }

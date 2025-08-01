@@ -1,6 +1,6 @@
 RCC = rcc
 
-CRES_DIRS = internal character sound
+CRES_DIRS = internal sound
 CRES_FILES = $(addsuffix .cres,$(CRES_DIRS))
 
 all: $(CRES_FILES)

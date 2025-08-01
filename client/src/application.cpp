@@ -55,6 +55,7 @@
 #include "teachergroup.h"
 #include "teachermap.h"
 #include "teachermaphandler.h"
+#include "teacherpass.h"
 #include "testgame.h"
 #include "rpggame.h"
 #include "tileddebugdraw.h"
@@ -452,6 +453,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
+	qmlRegisterType<TeacherPass>("CallOfSuli", 1, 0, "TeacherPass");
 	qmlRegisterType<RpgGame>("CallOfSuli", 1, 0, "RpgGameImpl");
 	qmlRegisterType<RpgUserWorld>("CallOfSuli", 1, 0, "RpgUserWorld");
 	qmlRegisterType<RpgWorldLandData>("CallOfSuli", 1, 0, "RpgWorldLandData");

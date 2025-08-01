@@ -228,5 +228,8 @@
         <file>StudentGroupButton.qml</file>
         <file>StudentGroupPassList.qml</file>
         <file>StudentPass.qml</file>
+        <file>TeacherGroupPassList.qml</file>
+        <file>PageTeacherGroupPass.qml</file>
+        <file>PageTeacherPass.qml</file>
     </qresource>
 </RCC>

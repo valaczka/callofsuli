@@ -16,11 +16,13 @@ QItemGradient {
 
 	title: group ? group.name+qsTr(" | dolgozatok") : ""
 
+	signal changeGroup(StudentGroup group)
+
 	appBar.rightComponent: StudentGroupButton {
 		anchors.verticalCenter: parent.verticalCenter
 		groupList: control.groupList
 		group: control.group
-		onGroupChanged: control.group = group
+		onChangeGroup: group => control.changeGroup(group)
 	}
 
 	property var stackPopFunction: function() {

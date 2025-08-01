@@ -27,6 +27,7 @@
 #include "pass.h"
 #include "clientcache.h"
 #include "application.h"
+#include "utils_.h"
 
 
 
@@ -38,9 +39,9 @@
 Pass::Pass(QObject *parent)
 	: SelectableObject(parent)
 	, m_itemList(new PassItemList(this))
-	, m_gradeList(new GradeList(this))
+	, m_categoryList(new QSListModel(this))
 {
-
+	m_categoryList->setRoleNames({QStringLiteral("id"), QStringLiteral("description")});
 }
 
 
@@ -63,31 +64,35 @@ Pass::~Pass()
 
 void Pass::loadFromJson(const QJsonObject &object, const bool &allField)
 {
-	LOG_CINFO("client") << "LOAD" << object;
-
 	if (object.contains(QStringLiteral("id")) || allField)
 		setPassid(object.value(QStringLiteral("id")).toInt());
+
+	if (object.contains(QStringLiteral("groupid")) || allField)
+		setGroupid(object.value(QStringLiteral("groupid")).toInt());
 
 	if (object.contains(QStringLiteral("title")) || allField)
 		setTitle(object.value(QStringLiteral("title")).toString());
 
-	if (object.contains(QStringLiteral("starttime")) || allField)
-		setStartTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("starttime")).toInteger()));
+	if (object.contains(QStringLiteral("starttime")) || allField) {
+		if (const int s = object.value(QStringLiteral("starttime")).toInteger(); s > 0)
+			setStartTime(QDateTime::fromSecsSinceEpoch(s));
+		else
+			setStartTime({});
+	}
 
-	if (object.contains(QStringLiteral("endtime")) || allField)
-		setEndTime(QDateTime::fromSecsSinceEpoch(object.value(QStringLiteral("endtime")).toInteger()));
-
+	if (object.contains(QStringLiteral("endtime")) || allField) {
+		if (const int s = object.value(QStringLiteral("endtime")).toInteger(); s > 0)
+			setEndTime(QDateTime::fromSecsSinceEpoch(s));
+		else
+			setEndTime({});
+	}
 
 	if (object.contains(QStringLiteral("childless")) || allField)
 		setChildless(object.value(QStringLiteral("childless")).toVariant().toBool());
 
-	/*if (object.contains(QStringLiteral("defaultGrade")) || allField)
-		setDefaultGrade(qobject_cast<Grade*>(Application::instance()->client()->findCacheObject(QStringLiteral("gradeList"),
-																								object.value(QStringLiteral("defaultGrade")).toInt())));
-*/
-
 	if (object.contains(QStringLiteral("items")) || allField) {
 		OlmLoader::loadFromJsonArray<PassItem>(m_itemList.get(), object.value(QStringLiteral("items")).toArray(), "passitemid", "itemid", false);
+		updateCategoryList();
 	}
 
 	if (object.contains(QStringLiteral("grading")) || allField)
@@ -98,6 +103,9 @@ void Pass::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("maxPts")) || allField)
 		setMaxPts(object.value(QStringLiteral("maxPts")).toDouble());
+
+
+	updateGrading();
 }
 
 
@@ -108,18 +116,53 @@ void Pass::loadFromJson(const QJsonObject &object, const bool &allField)
  * @brief Pass::reload
  */
 
-void Pass::reload()
+void Pass::reload(const HttpConnection::API &api)
 {
-	LOG_CDEBUG("client") << "RELOAD" << m_passid;
-
 	if (m_passid <= 0)
 		return;
 
-	Application::instance()->client()->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("pass/%1").arg(m_passid))
+	Application::instance()->client()->httpConnection()->send(api, QStringLiteral("pass/%1").arg(m_passid))
 			->done(this, [this](const QJsonObject &data) {
 		loadFromJson(data, false);
 		emit itemsLoaded();
 	});
+}
+
+
+/**
+ * @brief Pass::getGradingFromData
+ * @param grading
+ * @return
+ */
+
+QVariantList Pass::getGradingFromData(const QJsonObject &grading)
+{
+	return mapToList(getGradingMap(grading));
+}
+
+
+/**
+ * @brief Pass::getMapFromUi
+ * @param data
+ * @return
+ */
+
+QJsonObject Pass::getMapFromUi(const QVariantList &data)
+{
+	return mapToObject(getGradingMap(data));
+}
+
+
+
+/**
+ * @brief Pass::getGradingFromUi
+ * @param data
+ * @return
+ */
+
+QVariantList Pass::getGradingFromUi(const QVariantList &data)
+{
+	return mapToList(getGradingMap(data));
 }
 
 
@@ -155,8 +198,6 @@ PassItem::~PassItem()
 
 void PassItem::loadFromJson(const QJsonObject &object, const bool &allField)
 {
-	LOG_CINFO("client") << "LOAD" << object;
-
 	if (object.contains(QStringLiteral("id")) || allField)
 		setItemid(object.value(QStringLiteral("id")).toInt());
 
@@ -250,7 +291,7 @@ void PassItem::setPts(qreal newPts)
 {
 	if (qFuzzyCompare(m_pts, newPts))
 		return;
-	m_pts = newPts;
+	m_pts = Pass::round(newPts);
 	emit ptsChanged();
 }
 
@@ -263,7 +304,7 @@ void PassItem::setMaxPts(qreal newMaxPts)
 {
 	if (qFuzzyCompare(m_maxPts, newMaxPts))
 		return;
-	m_maxPts = newMaxPts;
+	m_maxPts = Pass::round(newMaxPts);
 	emit maxPtsChanged();
 }
 
@@ -276,7 +317,7 @@ void PassItem::setResult(qreal newResult)
 {
 	if (qFuzzyCompare(m_result, newResult))
 		return;
-	m_result = newResult;
+	m_result = Pass::round(newResult);
 	emit resultChanged();
 }
 
@@ -351,8 +392,8 @@ void Pass::setEndTime(const QDateTime &newEndTime)
 
 bool Pass::isActive() const
 {
-	return m_startTime.isValid() && m_startTime <= QDateTime::currentDateTime() &&
-			(!m_endTime.isValid() || m_endTime > QDateTime::currentDateTime());
+	return !m_startTime.isNull() && m_startTime <= QDateTime::currentDateTime() &&
+			(m_endTime.isNull() || m_endTime > QDateTime::currentDateTime());
 }
 
 QString Pass::title() const
@@ -399,11 +440,6 @@ void Pass::setGrading(const QJsonObject &newGrading)
 	emit gradingChanged();
 }
 
-GradeList *Pass::gradeList() const
-{
-	return m_gradeList.get();
-}
-
 qreal Pass::pts() const
 {
 	return m_pts;
@@ -413,7 +449,7 @@ void Pass::setPts(qreal newPts)
 {
 	if (qFuzzyCompare(m_pts, newPts))
 		return;
-	m_pts = newPts;
+	m_pts = Pass::round(newPts);
 	emit ptsChanged();
 }
 
@@ -426,12 +462,272 @@ void Pass::setMaxPts(qreal newMaxPts)
 {
 	if (qFuzzyCompare(m_maxPts, newMaxPts))
 		return;
-	m_maxPts = newMaxPts;
+	m_maxPts = Pass::round(newMaxPts);
 	emit maxPtsChanged();
 }
 
 qreal Pass::result() const
 {
-	return m_maxPts > 0 ? (m_pts/m_maxPts) : -1;
+	return m_maxPts > 0 ? Pass::round(m_pts/m_maxPts) : -1;
 }
 
+QSListModel *Pass::categoryList() const
+{
+	return m_categoryList.get();
+}
+
+
+
+/**
+ * @brief Pass::updateCategoryList
+ */
+
+void Pass::updateCategoryList()
+{
+	struct Category {
+		int id = -1;
+		QString title;
+
+		bool operator < (const Category &other) const {
+			return other.id <= 0 || (id > 0 && id < other.id);
+		}
+
+		QVariantMap toMap() const {
+			return QVariantMap{
+				{ QStringLiteral("id"), id },
+				{ QStringLiteral("description"), title }
+			};
+		}
+	};
+
+	std::vector<Category> list;
+
+	for (PassItem *i : *m_itemList) {
+		if (list.cend() == std::find_if(list.cbegin(), list.cend(), [i](const Category &c) { return c.id == i->categoryId(); }))
+			list.emplace_back(i->categoryId(), i->category());
+	}
+
+	std::sort(list.begin(), list.end(), std::less<Category>());
+
+	QVariantList l;
+
+	for (const Category &c : list)
+		l.append(c.toMap());
+
+	Utils::patchSListModel(m_categoryList.get(), l, QStringLiteral("id"));
+}
+
+
+/**
+ * @brief Pass::updateGrading
+ */
+
+void Pass::updateGrading()
+{
+	QList<Grade*> list = getGrades(result(), m_grading,
+								   dynamic_cast<GradeList*>(Application::instance()->client()->cache(QStringLiteral("gradeList"))));
+
+	QVariantList l;
+	for (Grade *g : list)
+		l.append(QVariant::fromValue(g));
+
+	setGradeList(l);
+}
+
+
+
+/**
+ * @brief Pass::Pass::round
+ * @param num
+ * @return
+ */
+
+qreal Pass::round(const qreal &num)
+{
+	float value = (int)(num * 100 + .5);
+	return (float) value / 100;
+}
+
+
+/**
+ * @brief Pass::getGrades
+ * @param result
+ * @param grading
+ * @param list
+ * @return
+ */
+
+QList<Grade *> Pass::getGrades(const qreal &result, const QJsonObject &grading, GradeList *list)
+{
+	if (grading.isEmpty() || !list || list->empty()) {
+		return {};
+	}
+
+	const QMap<int, QList<int> > values = getGradingMap(grading);
+
+	auto it = values.upperBound(result*100);
+
+	if (it == values.constBegin())
+		return {};
+
+	it = std::prev(it);
+
+	QList<Grade*> ret;
+
+	for (const int id : it.value()) {
+		Grade *g = OlmLoader::find<Grade>(list, "gradeid", id);
+
+		if (g) {
+			ret.append(g);
+		} else {
+			LOG_CERROR("client") << "Invalid grade id" << id << "in" << grading;
+		}
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief Pass::getGradingMap
+ * @param grading
+ * @return
+ */
+
+QMap<int, QList<int> > Pass::getGradingMap(const QJsonObject &grading)
+{
+	QMap<int, QList<int>> values;
+
+	for (auto it = grading.constBegin(); it != grading.constEnd(); ++it) {
+		int key = it.key().toInt();
+
+		QList<int> list;
+
+		QJsonArray array = it.value().toArray();
+
+		for (const QJsonValue &v : array) {
+			list.append(v.toInt());
+		}
+
+		values[key] = list;
+	}
+
+	return values;
+}
+
+
+/**
+ * @brief Pass::getGradingMap
+ * @param grading
+ * @return
+ */
+
+QMap<int, QList<int> > Pass::getGradingMap(const QVariantList &grading)
+{
+	QMap<int, QList<int>> values;
+
+	for (const QVariant &v : grading) {
+		const QVariantMap &m = v.toMap();
+
+		int key = m.value(QStringLiteral("key"), -1.).toInt();
+
+		if (key < 0)
+			continue;
+
+		const QVariantList &list = m.value(QStringLiteral("list")).toList();
+
+		QList<int> l;
+
+		for (const QVariant &v : list)
+			l.append(v.toInt());
+
+		values[key] = l;
+	}
+
+	return values;
+}
+
+
+/**
+ * @brief Pass::mapToList
+ * @param map
+ * @return
+ */
+
+QVariantList Pass::mapToList(const QMap<int, QList<int> > &map)
+{
+	QVariantList list;
+
+	for (const auto &[key, l] : map.asKeyValueRange()) {
+		QVariantList ll;
+
+		for (const int i : l)
+			ll << i;
+
+		list.append(QVariantMap {
+						{ QStringLiteral("key"), key },
+						{ QStringLiteral("list"), ll }
+					});
+	}
+
+	return list;
+}
+
+
+/**
+ * @brief Pass::mapToObject
+ * @param map
+ * @return
+ */
+
+QJsonObject Pass::mapToObject(const QMap<int, QList<int> > &map)
+{
+	QJsonObject obj;
+
+	for (const auto &[key, l] : map.asKeyValueRange()) {
+		QJsonArray ll;
+
+		for (const int i : l)
+			ll << i;
+
+		obj.insert(QString::number(key), ll);
+	}
+
+	return obj;
+}
+
+
+
+
+int Pass::groupid() const
+{
+	return m_groupid;
+}
+
+void Pass::setGroupid(int newGroupid)
+{
+	if (m_groupid == newGroupid)
+		return;
+	m_groupid = newGroupid;
+	emit groupidChanged();
+}
+
+
+/**
+ * @brief Pass::gradeList
+ * @return
+ */
+
+QVariantList Pass::gradeList() const
+{
+	return m_gradeList;
+}
+
+void Pass::setGradeList(const QVariantList &newGradeList)
+{
+	if (m_gradeList == newGradeList)
+		return;
+	m_gradeList = newGradeList;
+	emit gradeListChanged();
+}

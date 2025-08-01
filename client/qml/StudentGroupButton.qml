@@ -12,6 +12,8 @@ Qaterial.AppBarButton {
     property StudentGroupList groupList: null
     property StudentGroup group: null
 
+    signal changeGroup(StudentGroup group)
+
     icon.source: Qaterial.Icons.accountGroupOutline
     ToolTip.text: qsTr("Csoportok")
 
@@ -35,7 +37,7 @@ Qaterial.AppBarButton {
 
             delegate: QMenuItem {
                 text: model.name
-                onTriggered: group = model.qtObject
+                onTriggered: changeGroup(model.qtObject)
             }
 
             onObjectAdded: (index, object) => _menuFilter.insertItem(index, object)

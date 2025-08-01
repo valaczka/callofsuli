@@ -291,6 +291,7 @@ SOURCES += \
 	teachergroup.cpp \
 	teachermap.cpp \
 	teachermaphandler.cpp \
+	teacherpass.cpp \
 	testgame.cpp \
 	tileddebugdraw.cpp \
 	tiledeffect.cpp \
@@ -408,6 +409,7 @@ HEADERS += \
 	teachergroup.h \
 	teachermap.h \
 	teachermaphandler.h \
+	teacherpass.h \
 	testgame.h \
 	tileddebugdraw.h \
 	tiledeffect.h \

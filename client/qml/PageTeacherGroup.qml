@@ -72,6 +72,17 @@ QPage {
 			}
 
 			QDashboardButton {
+				text: qsTr("Call Pass")
+				icon.source: "qrc:/internal/img/passIcon.svg"
+				onClicked: {
+					Client.stackPushPage("PageTeacherGroupPass.qml", {
+											 group: group,
+											 mapHandler: mapHandler
+										 })
+				}
+			}
+
+			QDashboardButton {
 				text: qsTr("Szabad játék")
 				icon.source: Qaterial.Icons.controller
 				onClicked: {

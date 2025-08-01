@@ -74,11 +74,11 @@ QPage {
 		}
 
 		Component.onCompleted: {
-			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink", cmp: cmpCampaign })
-			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.fileDocumentMultiple, color: "red", cmp: cmpExam })
+			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: Qaterial.Colors.pink300, cmp: cmpCampaign })
+			model.append({ text: qsTr("Dolgozatok"), source: Qaterial.Icons.fileDocumentMultiple, color: Qaterial.Colors.red400, cmp: cmpExam })
 			model.append({ text: qsTr("Áttekintés"), source: Qaterial.Icons.speedometer, cmp: cmpDashboard })
-			model.append({ text: qsTr("Call Pass"), source: "qrc:/internal/img/passIcon.svg", cmp: cmpPass })
-			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.podium, cmp: cmpScoreList })
+			model.append({ text: qsTr("Call Pass"), source: "qrc:/internal/img/passIcon.svg", color: Qaterial.Colors.lightBlue400, cmp: cmpPass })
+			model.append({ text: qsTr("Rangsor"), source: Qaterial.Icons.podium, color: Qaterial.Colors.green400, cmp: cmpScoreList })
 
 			currentIndex = 2
 		}
@@ -91,10 +91,11 @@ QPage {
 		id: cmpCampaign
 
 		StudentGroupCampaignList {
+			id: _btn
 			group: control.group
 			groupList: control.groupList
 			mapHandler: control.studentMapHandler
-			onGroupChanged: control.group = group
+			onChangeGroup: group => control.group = group
 		}
 	}
 
@@ -102,10 +103,11 @@ QPage {
 		id: cmpExam
 
 		StudentGroupExamList {
+			id: _btn
 			group: control.group
 			groupList: control.groupList
 			mapHandler: control.studentMapHandler
-			onGroupChanged: control.group = group
+			onChangeGroup: group => control.group = group
 		}
 	}
 
@@ -122,10 +124,11 @@ QPage {
 		id: cmpPass
 
 		StudentGroupPassList {
+			id: _btn
 			group: control.group
 			groupList: control.groupList
 			mapHandler: control.studentMapHandler
-			onGroupChanged: control.group = group
+			onChangeGroup: group => control.group = group
 		}
 	}
 
