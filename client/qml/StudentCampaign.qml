@@ -4,6 +4,7 @@ import SortFilterProxyModel
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli
+import "JScript.js" as JS
 
 
 Item {
@@ -72,8 +73,8 @@ Item {
 
 				Qaterial.LabelCaption {
 					visible: campaingDetails
-					text: campaign ? campaign.startTime.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm – ")
-									 + (campaign.endTime.getTime() ? campaign.endTime.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm") : "")
+					text: campaign ? JS.readableTimestampMin(campaign.startTime) + " – "
+									 + (campaign.endTime.getTime() ? JS.readableTimestampMin(campaign.endTime) : "")
 								   : ""
 					width: parent.width
 					wrapMode: Text.Wrap

@@ -5,7 +5,7 @@ import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli
 import SortFilterProxyModel
-
+import "JScript.js" as JS
 
 Item {
     id: _control
@@ -104,8 +104,8 @@ Item {
                 }
 
                 Qaterial.LabelCaption {
-                    text: pass ? pass.startTime.toLocaleString(Qt.locale(), "yyyy. MMMM d. – ")
-                                 + (pass.endTime.getTime() ? pass.endTime.toLocaleString(Qt.locale(), "yyyy. MMMM d.") : "")
+                    text: pass ? JS.readableTimestampMin(pass.startTime) + " – "
+                                 + (pass.endTime.getTime() ? JS.readableTimestampMin(pass.endTime) : "")
                                : ""
                     width: parent.width
                     wrapMode: Text.NoWrap

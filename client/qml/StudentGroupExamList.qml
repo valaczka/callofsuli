@@ -148,7 +148,7 @@ QItemGradient {
 				text: description != "" ? description : qsTr("Dolgozat #%1").arg(examId)
 				secondaryText: {
 					if (timestamp.getTime()) {
-						return timestamp.toLocaleString(Qt.locale(), "yyyy. MMMM d. HH:mm")
+						return JS.readableTimestampMin(timestamp)
 					}
 
 					return ""

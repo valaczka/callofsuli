@@ -513,7 +513,7 @@ QPage {
 		id: _actionDelete
 		icon.source: Qaterial.Icons.minus
 		text: qsTr("Eltávolítás")
-		enabled: _view.currentIndex != 1 || _view.selectEnabled
+		enabled: _view.currentIndex != -1 || _view.selectEnabled
 		onTriggered: {
 			if (_view.selectEnabled) {
 				JS.questionDialog(
@@ -549,7 +549,7 @@ QPage {
 		id: _actionUploadOn
 		icon.source: Qaterial.Icons.upload
 		text: qsTr("Feltöltés")
-		enabled: _view.currentIndex != 1 || _view.selectEnabled
+		enabled: _view.currentIndex != -1 || _view.selectEnabled
 		onTriggered: {
 			let l = _view.getSelected()
 			for (let i=0; i<l.length; ++i)
@@ -563,7 +563,7 @@ QPage {
 		id: _actionUploadOff
 		icon.source: Qaterial.Icons.uploadOff
 		text: qsTr("Ne töltse fel")
-		enabled: _view.currentIndex != 1 || _view.selectEnabled
+		enabled: _view.currentIndex != -1 || _view.selectEnabled
 		onTriggered: {
 			let l = _view.getSelected()
 			for (let i=0; i<l.length; ++i)

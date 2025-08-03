@@ -28,22 +28,12 @@ QPage {
 	subtitle: Client.server ? Client.server.serverName : ""
 
 	property TeacherGroup group: null
-	property TeacherMapHandler mapHandler: null
 
-	PassList {
-		id: _passList
 
-		function reload() {
-			if (!group)
-				return
+	TeacherPass {
+		id: _teacherPass
 
-			Client.send(HttpConnection.ApiTeacher, "group/%1/pass".arg(group.groupid))
-			.done(control, function(r){
-				Client.callReloadHandler("pass", _passList, r.list)
-				_result.resultModel.reload()
-			})
-			.fail(control, JS.failMessage(qsTr("Lista letöltése sikertelen")))
-		}
+		teacherGroup: group
 	}
 
 	appBar.backButtonVisible: true
@@ -56,9 +46,7 @@ QPage {
 
 		TeacherGroupPassList {
 			id: _cmpList
-			group: control.group
-			mapHandler: control.mapHandler
-			passList: _passList
+			teacherPass: _teacherPass
 		}
 
 		TeacherGroupExamResult {
@@ -89,11 +77,11 @@ QPage {
 		id: _actionResultReload
 		text: qsTr("Frissítés")
 		icon.source: Qaterial.Icons.refresh
-		onTriggered: _passList.reload()
+		onTriggered: _teacherPass.reload()
 	}
 
 	StackView.onActivated: {
 		_cmpList.selectById()
-		_passList.reload()
+		_teacherPass.reload()
 	}
 }

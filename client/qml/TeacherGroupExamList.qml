@@ -125,7 +125,7 @@ Item
 				text: description != "" ? description : qsTr("Dolgozat #%1").arg(examId)
 				secondaryText: {
 					if (timestamp.getTime()) {
-						return timestamp.toLocaleString(Qt.locale(), "yyyy. MMMM d. HH:mm")
+						return JS.readableTimestampMin(timestamp)
 					}
 
 					return ""
@@ -228,7 +228,7 @@ Item
 		id: _actionDelete
 		icon.source: Qaterial.Icons.delete_
 		text: qsTr("Törlés")
-		enabled: view.currentIndex != 1 || view.selectEnabled
+		enabled: view.currentIndex != -1 || view.selectEnabled
 		onTriggered: {
 			var l = view.getSelected()
 			if (!l.length)

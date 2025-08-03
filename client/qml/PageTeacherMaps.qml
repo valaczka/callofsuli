@@ -77,7 +77,7 @@ QPage {
 			iconColor: mapObject && mapObject.draftVersion > 0 ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
 			text: mapObject ? (mapObject.name + (mapObject.draftVersion > 0 ? qsTr(" [*]") : "")) : ""
 			secondaryText: mapObject ? qsTr("%1. verzió (%2 @%3)").arg(mapObject.version)
-									   .arg(mapObject.lastModified.toLocaleString(Qt.locale(), "yyyy. MMM d. H:mm:ss"))
+									   .arg(JS.readableTimestamp(mapObject.lastModified))
 									   .arg(mapObject.lastEditor)
 									   + (mapObject.draftVersion > 0 ? qsTr(" [vázlat]") : "")
 									 : ""

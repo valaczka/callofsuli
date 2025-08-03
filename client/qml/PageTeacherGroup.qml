@@ -76,8 +76,7 @@ QPage {
 				icon.source: "qrc:/internal/img/passIcon.svg"
 				onClicked: {
 					Client.stackPushPage("PageTeacherGroupPass.qml", {
-											 group: group,
-											 mapHandler: mapHandler
+											 group: group
 										 })
 				}
 			}

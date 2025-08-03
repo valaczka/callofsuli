@@ -4,6 +4,7 @@ import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli
 import SortFilterProxyModel
+import "JScript.js" as JS
 
 
 QItemGradient {
@@ -119,8 +120,8 @@ QItemGradient {
 						return ""
 
 					if (campaign.startTime.getTime()) {
-						return campaign.startTime.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm – ")
-								+ (campaign.endTime.getTime() ? campaign.endTime.toLocaleString(Qt.locale(), "yyyy. MMM d. HH:mm") : "")
+						return JS.readableTimestampMin(campaign.startTime) + " – "
+								+ (campaign.endTime.getTime() ? JS.readableTimestampMin(campaign.endTime) : "")
 					}
 
 					return ""

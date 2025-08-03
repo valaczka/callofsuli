@@ -69,10 +69,21 @@ class PassItem : public SelectableObject
 	Q_PROPERTY(qreal pts READ pts WRITE setPts NOTIFY ptsChanged FINAL)
 	Q_PROPERTY(qreal maxPts READ maxPts WRITE setMaxPts NOTIFY maxPtsChanged FINAL)
 	Q_PROPERTY(qreal result READ result WRITE setResult NOTIFY resultChanged FINAL)
+	Q_PROPERTY(int includePass READ includePass WRITE setIncludePass NOTIFY includePassChanged FINAL)
+	Q_PROPERTY(LinkType linkType READ linkType WRITE setLinkType NOTIFY linkTypeChanged FINAL)
+	Q_PROPERTY(int linkId READ linkId WRITE setLinkId NOTIFY linkIdChanged FINAL)
 
 public:
 	explicit PassItem(QObject *parent = nullptr);
 	virtual ~PassItem();
+
+	enum LinkType {
+		LinkNone = 0,
+		LinkCampaign,
+		LinkExam
+	};
+
+	Q_ENUM(LinkType);
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
 
@@ -100,6 +111,15 @@ public:
 	qreal result() const;
 	void setResult(qreal newResult);
 
+	int includePass() const;
+	void setIncludePass(int newIncludePass);
+
+	LinkType linkType() const;
+	void setLinkType(const LinkType &newLinkType);
+
+	int linkId() const;
+	void setLinkId(int newLinkId);
+
 signals:
 	void itemidChanged();
 	void categoryIdChanged();
@@ -109,6 +129,9 @@ signals:
 	void ptsChanged();
 	void maxPtsChanged();
 	void resultChanged();
+	void includePassChanged();
+	void linkTypeChanged();
+	void linkIdChanged();
 
 private:
 	int m_itemid = -1;
@@ -119,6 +142,9 @@ private:
 	qreal m_pts = 0.;
 	qreal m_maxPts = 0.;
 	qreal m_result = 0.;
+	int m_includePass = -1;
+	LinkType m_linkType = LinkNone;
+	int m_linkId = -1;
 };
 
 

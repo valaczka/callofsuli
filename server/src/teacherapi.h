@@ -125,9 +125,17 @@ public:
 	QHttpServerResponse examReclaim(const Credential &credential, const QJsonArray &list);
 
 	QHttpServerResponse pass(const Credential &credential, const int &id, const int &groupId);
+	QHttpServerResponse passCategories(const Credential &credential);
 	QHttpServerResponse passCreate(const Credential &credential, const int &group, const QJsonObject &json);
 	QHttpServerResponse passUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse passDelete(const Credential &credential, const QJsonArray &list);
+
+	QHttpServerResponse passItemCreate(const Credential &credential, const int &pass, const QJsonObject &json);
+	QHttpServerResponse passItemUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse passItemDelete(const Credential &credential, const QJsonArray &list);
+
+	QHttpServerResponse passResult(const Credential &credential, const int &id);
+	QHttpServerResponse passItemResult(const Credential &credential, const int &id);
 
 	QHttpServerResponse userPeers() const;
 
@@ -171,6 +179,8 @@ public:
 private:
 	QJsonObject _task(const int &id) const;
 	QJsonArray _taskList(const int &campaign) const;
+
+	bool _updatePassResultByExamContent(const QSet<int> &examContentId);
 
 };
 

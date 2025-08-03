@@ -10,14 +10,7 @@ Item
 {
 	id: control
 
-	property TeacherGroup group: null
-	property TeacherMapHandler mapHandler: null
-	property PassList passList: null
-	property alias view: view
-
-	property alias actionPassAdd: _actionCreate
-
-	property int _lastPassId: -1
+	property TeacherPass teacherPass: null
 
 	property var stackPopFunction: function() {
 		if (view.selectEnabled) {
@@ -28,12 +21,7 @@ Item
 		return true
 	}
 
-
-	TeacherPass {
-		id: _teacherPass
-		teacherGroup: group
-		//onExamListReloadRequest: examList.reload()
-	}
+	property int _lastPassId: -1
 
 	QScrollable {
 		anchors.fill: parent
@@ -42,8 +30,10 @@ Item
 		bottomPadding: 0
 		rightPadding: 0
 
+		visible: teacherPass
+
 		refreshEnabled: true
-		onRefreshRequest: passList.reload()
+		onRefreshRequest: teacherPass.reload()
 
 		QListView {
 			id: view
@@ -58,7 +48,7 @@ Item
 			boundsBehavior: Flickable.StopAtBounds
 
 			model: SortFilterProxyModel {
-				sourceModel: passList
+				sourceModel: teacherPass ? teacherPass.passList : null
 
 				/*sorters: [
 					FilterSorter {
@@ -112,15 +102,14 @@ Item
 
 
 				text: pass.title != "" ? pass.title : qsTr("Call Pass #%1").arg(pass.passid)
-				secondaryText: pass ? (pass.startTime.getTime() ? pass.startTime.toLocaleString(Qt.locale(), "yyyy. MMMM d. – ") : "")
-									  + (pass.endTime.getTime() ? pass.endTime.toLocaleString(Qt.locale(), "yyyy. MMMM d.") : "")
+				secondaryText: pass ? (pass.startTime.getTime() ? JS.readableTimestampMin(pass.startTime) + " – " : "")
+									  + (pass.endTime.getTime() ? JS.readableTimestampMin(pass.endTime) : "")
 									: ""
 
 				onClicked: {
 					let o = Client.stackPushPage("PageTeacherPass.qml", {
-													 group: control.group,
+													 teacherPass: teacherPass,
 													 pass: pass,
-													 passList: passList
 												 })
 
 					if (o)
@@ -160,8 +149,8 @@ Item
 
 		onAction1Clicked: _actionCreate.trigger()
 
-		enabled: group
-		visible: group && !passList.length
+		enabled: teacherPass
+		visible: teacherPass && !teacherPass.passList.length
 	}
 
 	QFabButton {
@@ -172,25 +161,24 @@ Item
 
 	Action {
 		id: _actionCreate
-		enabled: group
+		enabled: teacherPass && teacherPass.teacherGroup
 		text: qsTr("Új Call Pass")
 		icon.source: Qaterial.Icons.plus
 		onTriggered: {
-			Client.send(HttpConnection.ApiTeacher, "group/%1/pass/create".arg(group.groupid), {
+			Client.send(HttpConnection.ApiTeacher, "group/%1/pass/create".arg(teacherPass.teacherGroup.groupid), {
 							//mode: Exam.ExamVirtual
 						})
 			.done(control, function(r){
 				if (r.id) {
-					Client.send(HttpConnection.ApiTeacher, "group/%1/pass".arg(group.groupid))
+					Client.send(HttpConnection.ApiTeacher, "group/%1/pass".arg(teacherPass.teacherGroup.groupid))
 					.done(control, function(rr){
-						Client.callReloadHandler("pass", passList, rr.list)
-						var o = Client.findOlmObject(passList, "passid", r.id)
+						Client.callReloadHandler("pass", teacherPass.passList, rr.list)
+						var o = Client.findOlmObject(teacherPass.passList, "passid", r.id)
 
 						if (o) {
 							Client.stackPushPage("PageTeacherPass.qml", {
-													 group: control.group,
 													 pass: o,
-													 passList: passList
+													 teacherPass: teacherPass
 												 })
 
 							_lastPassId = o.passid
@@ -211,9 +199,10 @@ Item
 		id: _actionDelete
 		icon.source: Qaterial.Icons.delete_
 		text: qsTr("Törlés")
-		enabled: view.currentIndex != 1 || view.selectEnabled
+		enabled: view.currentIndex != -1 || view.selectEnabled
 		onTriggered: {
 			var l = view.getSelected()
+
 			if (!l.length)
 				return
 
@@ -225,7 +214,7 @@ Item
 															list: JS.listGetFields(l, "passid")
 														})
 											.done(control, function(r){
-												passList.reload()
+												teacherPass.reload()
 												view.unselectAll()
 											})
 											.fail(control, JS.failMessage("Törlés sikertelen"))

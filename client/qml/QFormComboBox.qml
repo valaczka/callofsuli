@@ -26,6 +26,16 @@ Row {
 
 	onFieldDataChanged: {
 		let i = _combo.indexOfValue(fieldData)
+
+		if (i === -1 && _combo.model.count !== undefined && valueRole !== "") {
+			for (let j=0; j<_combo.model.count; ++j) {
+				if (_combo.model.get(j)[valueRole] === fieldData) {
+					i = j
+					break
+				}
+			}
+		}
+
 		if (i === -1)
 			_combo.currentIndex = 0
 		else

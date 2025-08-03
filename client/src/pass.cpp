@@ -221,6 +221,15 @@ void PassItem::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("result")) || allField)
 		setResult(object.value(QStringLiteral("result")).toDouble());
+
+
+	if (int id = object.value(QStringLiteral("includepass")).toInt(-1); id > 0) {
+		setIncludePass(id);
+		setMaxPts(-1);
+		setDescription(object.value(QStringLiteral("includeTitle")).toString());
+	} else {
+		setIncludePass(-1);
+	}
 }
 
 
@@ -319,6 +328,45 @@ void PassItem::setResult(qreal newResult)
 		return;
 	m_result = Pass::round(newResult);
 	emit resultChanged();
+}
+
+int PassItem::includePass() const
+{
+	return m_includePass;
+}
+
+void PassItem::setIncludePass(int newIncludePass)
+{
+	if (m_includePass == newIncludePass)
+		return;
+	m_includePass = newIncludePass;
+	emit includePassChanged();
+}
+
+PassItem::LinkType PassItem::linkType() const
+{
+	return m_linkType;
+}
+
+void PassItem::setLinkType(const LinkType &newLinkType)
+{
+	if (m_linkType == newLinkType)
+		return;
+	m_linkType = newLinkType;
+	emit linkTypeChanged();
+}
+
+int PassItem::linkId() const
+{
+	return m_linkId;
+}
+
+void PassItem::setLinkId(int newLinkId)
+{
+	if (m_linkId == newLinkId)
+		return;
+	m_linkId = newLinkId;
+	emit linkIdChanged();
 }
 
 
