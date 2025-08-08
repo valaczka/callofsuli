@@ -16,7 +16,8 @@ QPage {
 	property PassItem passItem: null
 	property TeacherPass teacherPass: null
 
-	title: passItem ? qsTr("Elem #%1 szerkesztése").arg(passItem.itemid) : qsTr("Új elem")
+	title: passItem ? (passItem.description != "" ? passItem.description : qsTr("Elem #%1 szerkesztése").arg(passItem.itemid))
+					: qsTr("Új elem")
 	subtitle: pass ? (pass.title != "" ? pass.title : qsTr("Call Pass #%1").arg(pass.passid)) : ""
 
 	appBar.rightComponent: Qaterial.AppBarButton
@@ -62,9 +63,6 @@ QPage {
 			id: _form
 
 			spacing: 5
-
-			title: qsTr("Elem")
-
 
 			QFormTextField {
 				id: _tfDescription
@@ -206,6 +204,28 @@ QPage {
 
 				}
 			}
+
+			QFormTextField {
+				id: _tfLink
+
+				width: parent.width
+				leadingIconSource: Qaterial.Icons.linkOff
+				leadingIconInline: true
+				title: qsTr("Link")
+				readOnly: true
+				text: passItem.linkTitle
+				helperText: switch (passItem.linkType) {
+							case PassItem.LinkCampaign:
+								qsTr("Hadjárat")
+								break;
+							case PassItem.LinkExam:
+								qsTr("Dolgozat")
+								break;
+							default:
+								""
+							}
+
+			}
 		}
 
 
@@ -272,15 +292,31 @@ QPage {
 						anchors.right: parent.right
 						color: Qaterial.Style.accentColor
 						visible: userData.assigned
-						text: userData.pts
+						text: teacherPass.round(userData.pts)
 					}
 
 					Qaterial.LabelHint1 {
 						anchors.right: parent.right
 						color: Qaterial.Style.secondaryTextColor()
 						visible: userData.assigned
-						text: (userData.result*100) + "%"
+						text: teacherPass.round(userData.result*100) + "%"
 					}
+				}
+
+				onClicked: {
+					Qaterial.DialogManager.showTextFieldDialog({
+																   textTitle: qsTr("Eredmény"),
+																   title: qsTr("Eredmény módosítása"),
+																   text: teacherPass.round(userData.pts),
+																   helperText: qsTr("Eredmény beállítása (pont vagy százalék)"),
+																   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
+																   onAccepted: function(_text, _noerror) {
+																	   if (_noerror) {
+																		   teacherPass.assignResult(pass, passItem, _view.getSelected(), _text)
+																		   _view.unselectAll()
+																	   }
+																   }
+															   })
 				}
 
 			}
@@ -290,7 +326,8 @@ QPage {
 				QMenuItem { action: _view.actionSelectAll }
 				QMenuItem { action: _view.actionSelectNone }
 				Qaterial.MenuSeparator {}
-				//QMenuItem { action: _actionDelete }
+				QMenuItem { action: _actionAssign }
+				QMenuItem { action: _actionRemove }
 			}
 
 			onRightClickOrPressAndHold: (index, mouseX, mouseY) => {
@@ -302,7 +339,49 @@ QPage {
 
 	}
 
+	Action {
+		id: _actionAssign
+		icon.source: Qaterial.Icons.cardPlus
+		text: qsTr("Kiosztás")
+		enabled: passItem && teacherPass &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+		onTriggered: {
+			Qaterial.DialogManager.showTextFieldDialog({
+														   textTitle: qsTr("Eredmény"),
+														   title: qsTr("Elem kiosztása"),
+														   helperText: qsTr("Eredmény beállítása (pont vagy százalék)"),
+														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
+														   onAccepted: function(_text, _noerror) {
+															   if (_noerror) {
+																   teacherPass.assignResult(pass, passItem, _view.getSelected(), _text)
+																   _view.unselectAll()
+															   }
+														   }
+													   })
 
+		}
+	}
+
+	Action {
+		id: _actionRemove
+		icon.source: Qaterial.Icons.cardMinus
+		text: qsTr("Kiosztás törlése")
+		enabled: passItem && teacherPass &&
+				 (_view.currentIndex != -1 || _view.selectEnabled)
+		onTriggered: {
+			JS.questionDialog(
+						{
+							onAccepted: function()
+							{
+								teacherPass.removeResult(pass, passItem, _view.getSelected())
+								_view.unselectAll()
+							},
+							text: qsTr("Biztosan törlöd az eredményeket?"),
+							title: qsTr("Eredmények törlése"),
+							iconSource: Qaterial.Icons.cardMinusOutline
+						})
+		}
+	}
 
 	Component.onCompleted: {
 		if (teacherPass)

@@ -232,7 +232,7 @@ Item {
                                 textFormat: Text.StyledText
 
                                 color: passItem.extra ? Qaterial.Colors.green800 : Qaterial.Colors.black
-                                text: (passItem.extra ? "<b>+</b>" : "") + qsTr("<b>%1</b> / %2").arg(passItem.pts).arg(passItem.maxPts)
+                                text: (passItem.extra ? "<b>+</b>" : "") + qsTr("<b>%1</b> / %2").arg(pass.round(passItem.pts)).arg(passItem.maxPts)
                             }
                         }
                     }

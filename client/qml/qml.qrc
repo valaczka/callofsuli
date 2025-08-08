@@ -234,5 +234,6 @@
         <file>TeacherPassDetails.qml</file>
         <file>TeacherPassItemEdit.qml</file>
         <file>TeacherPassResult.qml</file>
+        <file>TeacherPassItemLink.qml</file>
     </qresource>
 </RCC>

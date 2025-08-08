@@ -12,6 +12,8 @@ Item {
 	property int columnSpacing: 3
 	property int rowSpacing: 2
 
+	property alias mainView: _mainView
+
 	property alias model: _mainView.model
 	property alias topHeaderDelegate: _topHeader.delegate
 	property alias leftHeaderDelegate: _leftHeader.delegate

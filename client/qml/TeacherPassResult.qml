@@ -12,7 +12,7 @@ QTableView {
 	property Pass pass: null
 	property TeacherPass teacherPass: null
 
-	//property string closeQuestion: _expGrading.modified ? qsTr("Biztosan eldobod a módosításokat?") : ""
+	property string closeQuestion: _model.hasTmpData ? qsTr("Biztosan eldobod a módosításokat?") : ""
 
 
 	firstColumnWidth: Math.min(250 * Qaterial.Style.pixelSizeRatio, width*0.45) + Client.safeMarginLeft
@@ -28,11 +28,23 @@ QTableView {
 											   Qaterial.Style.delegate.implicitHeight(Qaterial.Style.DelegateType.Icon, 1))
 
 
-	columnWidthFunc: function(col) { return col === 1 ? cellWidth * 1.5 : cellWidth }
+	columnWidthFunc: function(col) { return col === 1 ? cellWidth * 1.6 : cellWidth }
 
 	readonly property color _rowColor: Client.Utils.colorSetAlpha(Qaterial.Colors.gray700, 0.3)
 	readonly property color _linkedColor: Client.Utils.colorSetAlpha(Qaterial.Colors.green500, 0.3)
 	readonly property color _assignedColor: Client.Utils.colorSetAlpha(Qaterial.Colors.orange600, 0.3)
+
+	readonly property alias actionApply: _actionApply
+	readonly property alias actionCancel: _actionCancel
+
+	property var stackPopFunction: function() {
+		if (_model.hasTmpData) {
+			_actionCancel.trigger()
+			return false
+		}
+
+		return true
+	}
 
 	signal rowClicked(int row)
 	signal columnClicked(int col)
@@ -58,59 +70,184 @@ QTableView {
 	}
 
 
+	mainView.editTriggers: TableView.NoEditTriggers
+
+
 	// Eredmények
 
-	delegate: Rectangle {
-		required property var result
+	delegate: MouseArea {
+		id: _delegate
 
-		color: isPlaceholder ? "transparent" :
-							   column > 1 && result.assigned ? _assignedColor :
-												 row % 2 ? "transparent" : _rowColor
+		required property var result
+		required property User passUser
+		required property PassItem passItem
+
 		implicitWidth: 50
 		implicitHeight: 50
 
-		Qaterial.LabelSubtitle2 {
-			id: _labelResult
-			visible: !isPlaceholder && result.assigned && column > 1
-			anchors.centerIn: parent
-			text: result.pts
+		acceptedButtons: Qt.LeftButton
 
-			/*color: result.grade ? Qaterial.Style.accentColor : Qaterial.Colors.lightBlue500*/
+		onPressAndHold: {
+			if (!result.assigned) {
+				Client.snack(qsTr("Nincs kiosztva"))
+				return
+			}
+
+			Qaterial.DialogManager.showTextFieldDialog({
+														   title: passUser.fullName,
+														   textTitle: passItem.description.length ? passItem.description : qsTr("Eredmény módosítása"),
+														   text: teacherPass.round(result.pts),
+														   helperText: qsTr("Eredmény beállítása (pont vagy százalék)"),
+														   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
+														   onAccepted: function(_text, _noerror) {
+															   if (_noerror) {
+																   teacherPass.assignResult(pass, passItem, [passUser], _text)
+															   }
+														   }
+													   })
 		}
 
-		Row {
-			spacing: 5
-			anchors.horizontalCenter: parent.horizontalCenter
-			anchors.verticalCenter: parent.verticalCenter
-			anchors.horizontalCenterOffset: -10
+		onDoubleClicked: {
+			if (!result.assigned) {
+				Client.snack(qsTr("Nincs kiosztva"))
+				return
+			}
 
-			visible: !isPlaceholder && /*result.assigned &&*/ column == 1
+			mainView.edit(mainView.index(row, column))
+		}
 
-			Repeater {
-				model: result.grades
+		Rectangle {
+			anchors.fill: parent
 
-				delegate: Qaterial.LabelHeadline6 {
-					anchors.verticalCenter: parent.verticalCenter
-					text: modelData.shortname
-					color: Qaterial.Colors.red400
+			color: isPlaceholder ? "transparent" :
+								   tmpData != "" ? Qaterial.Colors.green600 :
+												   column > 1 && result.assigned ? _assignedColor :
+																				   row % 2 ? "transparent" : _rowColor
+			Qaterial.LabelSubtitle2 {
+				id: _labelResult
+				visible: !isPlaceholder && result.assigned && column > 1
+				anchors.centerIn: parent
+				text: tmpData != "" ? tmpData : teacherPass.round(result.pts)
+
+				//color: tmpData != "" ? Qaterial.Style.iconColor() : Qaterial.Style.colorTheme.primaryText
+			}
+
+			Row {
+				spacing: 5
+				anchors.horizontalCenter: parent.horizontalCenter
+				anchors.verticalCenter: parent.verticalCenter
+				anchors.horizontalCenterOffset: -25
+
+				visible: !isPlaceholder && /*result.assigned &&*/ column == 1
+
+				Repeater {
+					model: result.grades
+
+					delegate: Qaterial.LabelHeadline6 {
+						anchors.verticalCenter: parent.verticalCenter
+						text: modelData.shortname
+						color: Qaterial.Colors.red400
+					}
 				}
+			}
+
+			Qaterial.LabelHint2 {
+				anchors.right: parent.right
+				anchors.bottom: parent.bottom
+				anchors.margins: 3
+
+				text: teacherPass.round(result.pts)+"/"+result.maxPts
+				visible: !isPlaceholder && column == 1
+			}
+
+			QPlaceholderItem {
+				visible: isPlaceholder
+				anchors.fill: parent
+				widthRatio: 1.0
+				heightRatio: 1.0
 			}
 		}
 
-		Qaterial.LabelHint2 {
-			anchors.right: parent.right
-			anchors.bottom: parent.bottom
-			anchors.margins: 3
+		TableView.editDelegate: Qaterial.TextField {
+			anchors.fill: parent
+			text: tmpData != "" ? tmpData : teacherPass.round(result.pts)
 
-			text: result.pts+"/"+result.maxPts
-			visible: !isPlaceholder && column == 1
+			errorText: qsTr("Érvénytelen")
+
+			virtualRightPadding: 0
+
+			horizontalAlignment: Qt.AlignHCenter
+			selectedTextColor: Qaterial.Colors.black
+			textColor: Qaterial.Colors.black
+
+			background: Rectangle {
+				anchors.fill: parent
+				color: Qaterial.Colors.cyan400
+			}
+
+			/*validator: DoubleValidator {
+				bottom: 0
+				decimals: 2
+				top: 1000
+				locale: "en"
+			}*/
+
+
+			TableView.onCommit: {
+				if (text !== "")
+					_model.setTmpData(mainView.index(row, column), text)
+
+				Qt.callLater(_delegate.editNext)
+			}
+
+			Keys.onEscapePressed: {
+				mainView.closeEditor()
+			}
+
+			Keys.onBackPressed: {
+				mainView.closeEditor()
+			}
+
+			Keys.onUpPressed: event => {
+								  let next = _model.getNextEditable(mainView.index(row, column), 0, -1)
+								  if (next.valid) mainView.edit(next)
+								  event.accepted = true
+							  }
+
+			Keys.onDownPressed: event => {
+									let next = _model.getNextEditable(mainView.index(row, column), 0, 1)
+									if (next.valid) mainView.edit(next)
+									event.accepted = true
+								}
+
+
+			Keys.onLeftPressed: event => {
+									if (cursorPosition < 1) {
+										let next = _model.getNextEditable(mainView.index(row, column), -1, 0)
+										if (next.valid) mainView.edit(next)
+										event.accepted = true
+									} else {
+										event.accepted = false
+									}
+								}
+
+			Keys.onRightPressed: event => {
+									 if (cursorPosition >= length) {
+										 let next = _model.getNextEditable(mainView.index(row, column), 1, 0)
+										 if (next.valid) mainView.edit(next)
+										 event.accepted = true
+									 } else {
+										 event.accepted = false
+									 }
+								 }
+
+			Component.onCompleted: selectAll()
 		}
 
-		QPlaceholderItem {
-			visible: isPlaceholder
-			anchors.fill: parent
-			widthRatio: 1.0
-			heightRatio: 1.0
+		function editNext() {
+			let next = _model.getNextEditable(mainView.index(row, column), 0, 1)
+			if (next.valid)
+				mainView.edit(next)
 		}
 	}
 
@@ -256,6 +393,25 @@ QTableView {
 		}
 	}
 
+	Action {
+		id: _actionApply
+		enabled: _model.hasTmpData
+		icon.source: Qaterial.Icons.checkBold
+		text: qsTr("Mentés")
+		onTriggered: {
+			_model.saveTmpData()
+		}
+	}
+
+	Action {
+		id: _actionCancel
+		enabled: _model.hasTmpData
+		icon.source: Qaterial.Icons.cancel
+		text: qsTr("Mégsem")
+		onTriggered: {
+			_model.clearTmpData()
+		}
+	}
 
 	StackView.onActivated: if (teacherPass) teacherPass.reloadPassResult(pass)
 	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) if (teacherPass) teacherPass.reloadPassResult(pass)

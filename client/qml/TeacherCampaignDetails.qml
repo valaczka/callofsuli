@@ -12,6 +12,7 @@ Item {
 	property Campaign campaign: null
 	property TeacherMapHandler mapHandler: null
 
+
 	QScrollable {
 		anchors.fill: parent
 
@@ -43,19 +44,19 @@ Item {
 					QTextFieldInPlaceButtons {
 						setTo: campaign ? campaign.description : ""
 						onSaveRequest: text => {
-							Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
-										{
-											description: text
-										})
-							.done(control, function(r){
-								reloadCampaign()
-								saved()
-							})
-							.fail(control, function(err) {
-								Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-								revert()
-							})
-						}
+										   Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
+													   {
+														   description: text
+													   })
+										   .done(control, function(r){
+											   reloadCampaign()
+											   saved()
+										   })
+										   .fail(control, function(err) {
+											   Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+											   revert()
+										   })
+									   }
 					}
 				}
 			}
@@ -68,19 +69,19 @@ Item {
 				title: campaign && campaign.state < Campaign.Running ? qsTr("Automatikus indítás") : qsTr("Indítás ideje")
 				helperText: campaign && campaign.state >= Campaign.Running ? qsTr("A kihívás már elindult, az időpont nem módosítható") : ""
 				onSaveRequest: text => {
-					Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
-								{
-									starttime: hasDate ? Math.floor(getDateTime()/1000) : -1
-								})
-					.done(control, function(r){
-						reloadCampaign()
-						saved()
-					})
-					.fail(control, function(err) {
-						Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-						revert()
-					})
-				}
+								   Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
+											   {
+												   starttime: hasDate ? Math.floor(getDateTime()/1000) : -1
+											   })
+								   .done(control, function(r){
+									   reloadCampaign()
+									   saved()
+								   })
+								   .fail(control, function(err) {
+									   Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+									   revert()
+								   })
+							   }
 				Component.onCompleted: {
 					hasDate = campaign.startTime.getTime()
 					if (hasDate)
@@ -97,23 +98,56 @@ Item {
 				hour: 23
 				minute: 59
 				onSaveRequest: text => {
-					Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
-								{
-									endtime: hasDate ? Math.floor(getDateTime()/1000) : -1
-								})
-					.done(control, function(r){
-						reloadCampaign()
-						saved()
-					})
-					.fail(control, function(err) {
-						Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-						revert()
-					})
-				}
+								   Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
+											   {
+												   endtime: hasDate ? Math.floor(getDateTime()/1000) : -1
+											   })
+								   .done(control, function(r){
+									   reloadCampaign()
+									   saved()
+								   })
+								   .fail(control, function(err) {
+									   Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+									   revert()
+								   })
+							   }
 				Component.onCompleted: {
 					hasDate = campaign.endTime.getTime()
 					if (hasDate)
 						setFromDateTime(campaign.endTime)
+				}
+			}
+
+			Qaterial.TextField {
+				id: _passItem
+
+				width: parent.width
+				leadingIconSource: Qaterial.Icons.renameBox
+				leadingIconInline: true
+				title: qsTr("PassItem")
+				readOnly: true
+				//helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A kihívás véget ért, a név már nem módosítható") : ""
+
+				trailingContent: Qaterial.TextFieldButtonContainer
+				{
+					Qaterial.AppBarButton {
+						icon.source: Qaterial.Icons.plus
+						anchors.verticalCenter: parent.verticalCenter
+						ToolTip.text: qsTr("Add")
+
+						onClicked: {
+							_passLink.download()
+
+						}
+					}
+
+					Qaterial.AppBarButton {
+						icon.source: Qaterial.Icons.close
+						anchors.verticalCenter: parent.verticalCenter
+						ToolTip.text: qsTr("Remove")
+
+						//onClicked: revert()
+					}
 				}
 			}
 
@@ -213,34 +247,34 @@ Item {
 					anchors.verticalCenter: parent.verticalCenter
 
 					onSaveRequest: text => {
-						if (!campaign)
-							return
+									   if (!campaign)
+									   return
 
-						if (campaign.state >= Campaign.Finished) {
-							Client.messageWarning(qsTr("A kihívás már véget ért, az alapértelmezett jegy nem módosítható"),
-												  qsTr("Alapértelmezett jegy"))
-							return
-						} else if (campaign.state >= Campaign.Running) {
+									   if (campaign.state >= Campaign.Finished) {
+										   Client.messageWarning(qsTr("A kihívás már véget ért, az alapértelmezett jegy nem módosítható"),
+																 qsTr("Alapértelmezett jegy"))
+										   return
+									   } else if (campaign.state >= Campaign.Running) {
 
-							JS.questionDialog(
-										{
-											onAccepted: function()
-											{
-												_save()
-											},
-											onRejected: function() {
-												revert()
-											},
-											text: qsTr("A kihívás már elindult, biztosan megváltoztatod az alapértelmezett jegyet?"),
-											title: qsTr("Alapértelmezett jegy"),
-											iconSource: Qaterial.Icons.progressQuestion
-										})
-							return
-						}
+										   JS.questionDialog(
+											   {
+												   onAccepted: function()
+												   {
+													   _save()
+												   },
+												   onRejected: function() {
+													   revert()
+												   },
+												   text: qsTr("A kihívás már elindult, biztosan megváltoztatod az alapértelmezett jegyet?"),
+												   title: qsTr("Alapértelmezett jegy"),
+												   iconSource: Qaterial.Icons.progressQuestion
+											   })
+										   return
+									   }
 
-						_save()
+									   _save()
 
-					}
+								   }
 
 					function _save() {
 						Client.send(HttpConnection.ApiTeacher, "campaign/%1/update".arg(campaign.campaignid),
@@ -368,6 +402,19 @@ Item {
 	}
 
 
+	TeacherPassItemLink {
+		id: _passLink
+		groupid: group ? group.groupid : -1
+
+		onSelected: itemid => {
+						linkPass(itemid)
+					}
+
+	}
+
+
+
+
 	Action {
 		id: actionAddTask
 		text: qsTr("Új kritérium")
@@ -417,6 +464,19 @@ Item {
 	}
 
 
+	function linkPass(_id) {
+		Client.send(HttpConnection.ApiTeacher, "campaign/%1/link".arg(campaign.campaignid),
+					{
+						passitem: _id
+					})
+		.done(control, function(r){
+			reloadCampaign()
+		})
+		.fail(control, function(err) {
+			Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+		})
+	}
+
 
 	function reloadCampaign() {
 		if (!campaign)
@@ -441,4 +501,5 @@ Item {
 		else
 			_rptr.model = null
 	}
+
 }

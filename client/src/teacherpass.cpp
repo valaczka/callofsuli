@@ -94,18 +94,18 @@ void TeacherPass::reloadCategories()
  * @param pass
  */
 
-void TeacherPass::reloadPassResult(Pass *pass)
+void TeacherPass::reloadPassResult(Pass *pass, const QStringList &userList)
 {
 	if (!pass)
 		return;
 
 	m_client->send(HttpConnection::ApiTeacher, QStringLiteral("pass/%1/result").arg(pass->passid()))
-			->done(this, [this, i = QPointer(pass)](const QJsonObject &obj){
+			->done(this, [this, userList, i = QPointer(pass)](const QJsonObject &obj){
 		if (!i)
 			return;
 
 		updatePassItemResult(obj.value(QStringLiteral("items")).toArray());
-		updatePassResult(obj.value(QStringLiteral("sum")).toArray(), i->grading());
+		updatePassResult(obj.value(QStringLiteral("sum")).toArray(), i->grading(), i->passid(), userList);
 
 		emit passResultReloaded(i);
 	})
@@ -119,14 +119,14 @@ void TeacherPass::reloadPassResult(Pass *pass)
  * @param item
  */
 
-void TeacherPass::reloadPassItemResult(PassItem *item)
+void TeacherPass::reloadPassItemResult(PassItem *item, const QStringList &userList)
 {
 	if (!item)
 		return;
 
 	m_client->send(HttpConnection::ApiTeacher, QStringLiteral("passItem/%1/result").arg(item->itemid()))
-			->done(this, [this, i = QPointer(item)](const QJsonObject &obj){
-		updatePassItemResult(obj.value(QStringLiteral("list")).toArray());
+			->done(this, [this, userList, i = QPointer(item)](const QJsonObject &obj){
+		updatePassItemResult(obj.value(QStringLiteral("list")).toArray(), i->itemid(), userList);
 
 		emit passItemResultReloaded(i);
 	})
@@ -163,6 +163,92 @@ bool TeacherPass::addChild(Pass *dest, const int &passId)
 
 	return true;
 }
+
+
+
+/**
+ * @brief TeacherPass::removeResult
+ * @param item
+ * @param list
+ */
+
+void TeacherPass::removeResult(Pass *pass, PassItem *item, const QList<User *> &list)
+{
+	LOG_CTRACE("client") << "Delete result";
+
+	if (!item || list.isEmpty() || !pass)
+		return;
+
+	QStringList userList;
+
+	for (User *u : list)
+		userList.append(u->username());
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("passItem/%1/result/delete").arg(item->itemid()),
+											QJsonObject{
+												{ QStringLiteral("list"), QJsonArray::fromStringList(userList) }
+											})
+			->done(this, [this, userList, i = QPointer(item), p = QPointer(pass)](const QJsonObject &){
+		//Application::instance()->client()->snack(tr("Sikeres mentés"));
+
+		reloadPassItemResult(i, userList);
+		reloadPassResult(p);
+	})
+			->fail(this, [](const QString &err){
+		Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
+	})
+			;
+}
+
+
+
+/**
+ * @brief TeacherPass::assignResult
+ * @param item
+ * @param list
+ * @param result
+ */
+
+void TeacherPass::assignResult(Pass *pass, PassItem *item, const QList<User *> &list, const QString &result)
+{
+	LOG_CTRACE("client") << "Assign result";
+
+	if (!item || list.isEmpty() || !pass)
+		return;
+
+	QJsonArray a;
+
+	qreal r = 0.;
+
+	if (result.simplified().endsWith('%'))
+		r = result.simplified().chopped(1).toDouble() / 100.;
+	else
+		r = item->maxPts() > 0. ? (result.toDouble() / item->maxPts()) : 0.;
+
+	for (User *u : list) {
+		QJsonObject o;
+		o[QStringLiteral("user")] = u->username();
+		o[QStringLiteral("result")] = r;
+		a.append(o);
+	}
+
+	Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("passItem/%1/result/update").arg(item->itemid()),
+											QJsonObject{
+												{ QStringLiteral("list"), a }
+											})
+			->done(this, [this, i = QPointer(item), p = QPointer(pass)](const QJsonObject &){
+		//Application::instance()->client()->snack(tr("Sikeres mentés"));
+
+		reloadPassItemResult(i);
+		reloadPassResult(p);
+	})
+			->fail(this, [](const QString &err){
+		Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
+	})
+			;
+}
+
+
 
 /**
  * @brief TeacherPass::teacherGroup
@@ -228,6 +314,82 @@ void TeacherPass::notifyModels(const TeacherPassResultModel::Mode &mode, const i
 
 
 
+/**
+ * @brief TeacherPass::applyTmpResults
+ * @param model
+ */
+
+void TeacherPass::applyTmpResults(TeacherPassResultModel *model)
+{
+	LOG_CTRACE("client") << "Assign model results";
+
+	QMutexLocker locker(&model->m_tmpMutex);
+
+	if (!model || model->m_tmpData.empty())
+		return;
+
+	QHash<QPair<Pass*, PassItem*>, QJsonArray> data;
+
+	for (const auto &[p, result] : model->m_tmpData.asKeyValueRange()) {
+		const QModelIndex idx = model->index(p.first, p.second);
+
+		if (!idx.isValid()) {
+			LOG_CERROR("client") << "Invalid model index" << p << result;
+			continue;
+		}
+
+		Pass *pass = model->data(idx, Qt::UserRole+3).value<Pass*>();
+		PassItem *item = model->data(idx, Qt::UserRole+4).value<PassItem*>();
+		User *user = model->data(idx, Qt::UserRole+1).value<User*>();
+
+		if (!pass || !item || !user) {
+			LOG_CERROR("client") << "Invalid Pass or PassItem or User" << p << result;
+			continue;
+		}
+
+		qreal r = 0.;
+
+		if (result.simplified().endsWith('%'))
+			r = result.simplified().chopped(1).toDouble() / 100.;
+		else
+			r = item->maxPts() > 0. ? (result.toDouble() / item->maxPts()) : 0.;
+
+		QJsonObject o;
+		o[QStringLiteral("user")] = user->username();
+		o[QStringLiteral("result")] = r;
+
+		data[qMakePair(pass, item)].append(o);
+	}
+
+	locker.unlock();
+
+	if (data.isEmpty()) {
+		LOG_CERROR("client") << "Empty data";
+		return;
+	}
+
+
+	for (const auto &[p, list] : data.asKeyValueRange()) {
+		Application::instance()->client()->send(HttpConnection::ApiTeacher, QStringLiteral("passItem/%1/result/update").arg(p.second->itemid()),
+												QJsonObject{
+													{ QStringLiteral("list"), list }
+												})
+				->done(this, [this, i = QPointer(p.second), p = QPointer(p.first), m = QPointer(model)](const QJsonObject &){
+			reloadPassItemResult(i);
+			reloadPassResult(p);
+
+			if (m && p && i)
+				m->clearTmpData(p->passid(), i->itemid());
+		})
+				->fail(this, [](const QString &err){
+			Application::instance()->messageWarning(err, tr("Sikertelen mentés"));
+		})
+				;
+	}
+}
+
+
+
 
 /**
  * @brief TeacherPass::setResult
@@ -252,15 +414,18 @@ void TeacherPass::setResult(ResultHash &dest, const int &contentId, const QStrin
  */
 
 QSet<int> TeacherPass::updateResult(ResultHash *dest, const QJsonArray &list, const char *fieldId,
-									const QJsonObject &grading, const bool &calculateResult)
+									const QJsonObject &grading, const bool &calculateResult, const int &field,
+									const QStringList &userList)
 {
 	Q_ASSERT(dest);
 
-	//QSet<QPair<int, QString> > tmp;
+	QSet<QPair<int, QString> > tmp;
 	QSet<int> updatedIds;
 
-	/*for (auto it=dest->constBegin(); it != dest->constEnd(); ++it)
-		tmp.insert(it.key());*/
+	for (auto it=dest->constBegin(); it != dest->constEnd(); ++it) {
+		if (it.key().first == field && userList.contains(it.key().second))
+			tmp.insert(it.key());
+	}
 
 
 	for (const QJsonValue &v : list) {
@@ -276,15 +441,15 @@ QSet<int> TeacherPass::updateResult(ResultHash *dest, const QJsonArray &list, co
 
 		updatedIds.insert(id);
 
-		//tmp.remove(qMakePair(id, username));
+		tmp.remove(qMakePair(id, username));
 
 		setResult(*dest, id, username, Result().fromJson(o, calculateResult).fromGrading(grading));
 	}
 
-	/*for (const auto &pair : tmp) {
+	for (const auto &pair : tmp) {
 		dest->remove(pair);
 		notifyModels(dest->mode(), pair.first, pair.second);
-	}*/
+	}
 
 	return updatedIds;
 }
@@ -456,7 +621,34 @@ QHash<int, QByteArray> TeacherPassResultModel::roleNames() const
 		{ Qt::UserRole+3, QByteArrayLiteral("pass") },
 		{ Qt::UserRole+4, QByteArrayLiteral("passItem") },
 		{ Qt::UserRole+5, QByteArrayLiteral("result") },
+		{ Qt::UserRole+6, QByteArrayLiteral("tmpData") },
 	};
+}
+
+
+/**
+ * @brief TeacherPassResultModel::flags
+ * @param index
+ * @return
+ */
+
+Qt::ItemFlags TeacherPassResultModel::flags(const QModelIndex &index) const
+{
+	Qt::ItemFlags flags = QAbstractTableModel::flags(index);
+
+	switch (m_mode) {
+		case ModePassItem:
+			if (index.row() > 0 && index.column() > 0)
+				flags.setFlag(Qt::ItemIsEditable, true);
+			break;
+
+		case ModePass:
+			if (index.row() > 0 && index.column() > 1)
+				flags.setFlag(Qt::ItemIsEditable, true);
+			break;
+	}
+
+	return flags;
 }
 
 
@@ -471,6 +663,107 @@ QHash<int, QByteArray> TeacherPassResultModel::roleNames() const
 QVariantMap TeacherPassResultModel::getUserData(const User *user) const
 {
 	return getUserData(user ? user->username() : QString(), m_contentId);
+}
+
+
+
+
+/**
+ * @brief TeacherPassResultModel::getNextEditable
+ * @param from
+ * @param horizontal
+ * @param vertical
+ * @return
+ */
+
+QModelIndex TeacherPassResultModel::getNextEditable(const QModelIndex &from, const int &horizontal, const int &vertical) const
+{
+	if (!from.isValid() || from.model() != this)
+		return {};
+
+	Q_ASSERT(horizontal != 0 || vertical != 0);
+
+	int nextCol = from.column() + horizontal;
+	int nextRow = from.row() + vertical;
+
+	while (true) {
+		switch (m_mode) {
+			case ModePassItem:
+				if (nextCol < 1 || nextCol > m_passItemList.size() || nextRow <= 0 || nextRow > m_userList.size())
+					return {};
+				break;
+
+			case ModePass:
+				if (nextCol < 2 || nextCol > m_passItemList.size()+1 || nextRow <= 0 || nextRow > m_userList.size())
+					return {};
+				break;
+		}
+
+		const QModelIndex idx = index(nextRow, nextCol);
+
+		if (data(idx, Qt::UserRole+5).toMap().value(QStringLiteral("assigned")).toBool())
+			return idx;
+
+		nextCol += horizontal;
+		nextRow += vertical;
+	}
+
+	return {};
+}
+
+
+
+/**
+ * @brief TeacherPassResultModel::setTmpData
+ * @param index
+ * @param data
+ */
+
+void TeacherPassResultModel::setTmpData(const QModelIndex &index, const QString &data)
+{
+	if (!index.isValid() || index.model() != this)
+		return;
+
+	QMutexLocker locker(&m_tmpMutex);
+
+	m_tmpData.insert(qMakePair(index.row(), index.column()), data);
+
+	locker.unlock();
+
+	emit dataChanged(index, index, { Qt::UserRole+6 });
+	emit hasTmpDataChanged();
+}
+
+
+/**
+ * @brief TeacherPassResultModel::saveTmpData
+ */
+
+void TeacherPassResultModel::saveTmpData()
+{
+	if (m_tmpData.isEmpty())
+		return;
+
+	m_teacherPass->applyTmpResults(this);
+}
+
+
+
+/**
+ * @brief TeacherPassResultModel::clearTmpData
+ */
+
+void TeacherPassResultModel::clearTmpData()
+{
+	if (m_tmpData.isEmpty())
+		return;
+
+	QMutexLocker locker(&m_tmpMutex);
+	m_tmpData.clear();
+	locker.unlock();
+
+	emit dataChanged(index(0, 0), index(rowCount()-1, columnCount()-1), {Qt::UserRole+6});
+	emit hasTmpDataChanged();
 }
 
 
@@ -552,8 +845,6 @@ void TeacherPassResultModel::setContentId(int newContentId)
 
 void TeacherPassResultModel::reload()
 {
-	LOG_CWARNING("client") << "Reload model" << this << m_teacherPass << m_mode << m_contentId;
-
 	if (!m_teacherPass)
 		return;
 
@@ -678,6 +969,12 @@ QVariant TeacherPassResultModel::dataAsPass(const int &row, const int &column, i
 			return getPassData(m_userList.at(row-1), m_contentId);
 		else
 			return getUserData(m_userList.at(row-1), m_passItemList.at(column-2));
+	} else if (role == Qt::UserRole+6) {									// tmpData
+		if (!m_teacherPass || column < 2 || column > m_passItemList.size()+1 || row <= 0 || row > m_userList.size())
+			return QString();
+
+		QMutexLocker locker(&m_tmpMutex);
+		return m_tmpData.value(qMakePair(row, column));
 	}
 
 	return QVariant();
@@ -731,7 +1028,10 @@ QVariant TeacherPassResultModel::dataAsPassItem(const int &row, const int &colum
 
 	} else if (role == Qt::UserRole+5) {									// result
 		return getUserData(QString(), -1);
+	} else if (role == Qt::UserRole+6) {									// tmpData
+		return QVariant();
 	}
+
 	return QVariant();
 }
 
@@ -788,6 +1088,67 @@ QVariantMap TeacherPassResultModel::getPassData(const QString &username, const i
 }
 
 
+
+/**
+ * @brief TeacherPassResultModel::clearTmpData
+ * @param passId
+ * @param itemId
+ */
+
+void TeacherPassResultModel::clearTmpData(const int &passId, const int &itemId)
+{
+	int col = -1;
+
+	if (m_mode == ModePass) {
+		if (m_contentId != passId)
+			return;
+
+		const int idx = m_passItemList.indexOf(itemId);
+
+		if (idx < 0)
+			return;
+
+		col = idx + 2;
+	}
+
+	if (col < 0)
+		return;
+
+	QMutexLocker locker(&m_tmpMutex);
+
+	for (auto it = m_tmpData.constBegin(); it != m_tmpData.constEnd(); ) {
+		const QModelIndex &idx = index(it.key().first, it.key().second);
+		if (idx.isValid()) {
+			Pass *pass = data(idx, Qt::UserRole+3).value<Pass*>();
+			PassItem *item = data(idx, Qt::UserRole+4).value<PassItem*>();
+
+			if (pass && item && pass->passid() == passId && item->itemid() == itemId) {
+				it = m_tmpData.erase(it);
+				continue;
+			}
+		}
+
+		++it;
+	}
+
+	locker.unlock();
+
+	emit dataChanged(index(1, col), index(rowCount()-1, col), {Qt::UserRole+6});
+	emit hasTmpDataChanged();
+}
+
+
+
+/**
+ * @brief TeacherPassResultModel::hasTmpData
+ * @return
+ */
+
+bool TeacherPassResultModel::hasTmpData() const
+{
+	QMutexLocker locker(&m_tmpMutex);
+	return !m_tmpData.isEmpty();
+}
 
 
 /**
@@ -935,7 +1296,7 @@ QVariantMap TeacherPass::Result::toVariantMap() const
 
 	m.insert(QStringLiteral("pts"), pts);
 	m.insert(QStringLiteral("maxPts"), maxPts);
-	m.insert(QStringLiteral("result"), Pass::round(result));
+	m.insert(QStringLiteral("result"), result);
 
 	QVariantList l;
 

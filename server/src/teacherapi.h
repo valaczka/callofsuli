@@ -86,6 +86,7 @@ public:
 	QHttpServerResponse campaign(const Credential &credential, const int &id);
 	QHttpServerResponse campaignCreate(const Credential &credential, const int &group, const QJsonObject &json);
 	QHttpServerResponse campaignUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse campaignLink(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse campaignRun(const Credential &credential, const int &id);
 	QHttpServerResponse campaignFinish(const Credential &credential, const int &id);
 	QHttpServerResponse campaignDelete(const Credential &credential, const QJsonArray &list);
@@ -111,6 +112,7 @@ public:
 	QHttpServerResponse exam(const Credential &credential, const int &id, const int &groupId);
 	QHttpServerResponse examCreate(const Credential &credential, const int &group, const QJsonObject &json);
 	QHttpServerResponse examUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse examLink(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse examDelete(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse examResult(const Credential &credential, const int &id, const int &groupId);
 	QHttpServerResponse examCreateContent(const Credential &credential, const int &id, const QJsonObject &json);
@@ -133,9 +135,14 @@ public:
 	QHttpServerResponse passItemCreate(const Credential &credential, const int &pass, const QJsonObject &json);
 	QHttpServerResponse passItemUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse passItemDelete(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse passItemList(const Credential &credential, const int &groupid);
 
 	QHttpServerResponse passResult(const Credential &credential, const int &id);
 	QHttpServerResponse passItemResult(const Credential &credential, const int &id);
+
+	QHttpServerResponse passResultUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse passResultRemove(const Credential &credential, const int &id, const QJsonArray &list);
+
 
 	QHttpServerResponse userPeers() const;
 
@@ -181,6 +188,7 @@ private:
 	QJsonArray _taskList(const int &campaign) const;
 
 	bool _updatePassResultByExamContent(const QSet<int> &examContentId);
+	bool _updatePassResultByCampaign(const int &passitem, const int &campaign);
 
 };
 

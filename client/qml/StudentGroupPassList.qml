@@ -150,8 +150,8 @@ QItemGradient {
 						Qaterial.LabelHint1 {
 							anchors.right: parent.right
 							text: _expandable.pass ?
-									  _expandable.pass.pts + "/" +_expandable.pass.maxPts + qsTr(" pt") +
-									  (_expandable.pass.result>=0 ? " (" + Math.floor(_expandable.pass.result*100)+"%)" : "") :
+									  _expandable.pass.round(_expandable.pass.pts) + "/" + _expandable.pass.maxPts + qsTr(" pt") +
+									  (_expandable.pass.result>=0 ? " (" + _expandable.pass.round(_expandable.pass.result*100)+"%)" : "") :
 									  ""
 							color: Qaterial.Style.secondaryTextColor()
 						}

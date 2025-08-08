@@ -230,6 +230,26 @@ void PassItem::loadFromJson(const QJsonObject &object, const bool &allField)
 	} else {
 		setIncludePass(-1);
 	}
+
+
+	if (object.contains(QStringLiteral("linkCampaignId")) || object.contains(QStringLiteral("linkExamId")) || allField) {
+		int cid = object.value(QStringLiteral("linkCampaignId")).toInt(0);
+		int eid = object.value(QStringLiteral("linkExamId")).toInt(0);
+
+		if (cid > 0) {
+			setLinkType(LinkCampaign);
+			setLinkId(cid);
+			setLinkTitle(object.value(QStringLiteral("linkCampaignDescription")).toString());
+		} else if (eid > 0) {
+			setLinkType(LinkExam);
+			setLinkId(eid);
+			setLinkTitle(object.value(QStringLiteral("linkExamDescription")).toString());
+		} else {
+			setLinkType(LinkNone);
+			setLinkId(-1);
+			setLinkTitle(QString());
+		}
+	}
 }
 
 
@@ -300,7 +320,7 @@ void PassItem::setPts(qreal newPts)
 {
 	if (qFuzzyCompare(m_pts, newPts))
 		return;
-	m_pts = Pass::round(newPts);
+	m_pts = newPts;
 	emit ptsChanged();
 }
 
@@ -313,7 +333,7 @@ void PassItem::setMaxPts(qreal newMaxPts)
 {
 	if (qFuzzyCompare(m_maxPts, newMaxPts))
 		return;
-	m_maxPts = Pass::round(newMaxPts);
+	m_maxPts = newMaxPts;
 	emit maxPtsChanged();
 }
 
@@ -326,7 +346,7 @@ void PassItem::setResult(qreal newResult)
 {
 	if (qFuzzyCompare(m_result, newResult))
 		return;
-	m_result = Pass::round(newResult);
+	m_result = newResult;
 	emit resultChanged();
 }
 
@@ -367,6 +387,19 @@ void PassItem::setLinkId(int newLinkId)
 		return;
 	m_linkId = newLinkId;
 	emit linkIdChanged();
+}
+
+QString PassItem::linkTitle() const
+{
+	return m_linkTitle;
+}
+
+void PassItem::setLinkTitle(const QString &newLinkTitle)
+{
+	if (m_linkTitle == newLinkTitle)
+		return;
+	m_linkTitle = newLinkTitle;
+	emit linkTitleChanged();
 }
 
 
@@ -497,7 +530,7 @@ void Pass::setPts(qreal newPts)
 {
 	if (qFuzzyCompare(m_pts, newPts))
 		return;
-	m_pts = Pass::round(newPts);
+	m_pts = newPts;
 	emit ptsChanged();
 }
 
@@ -510,13 +543,13 @@ void Pass::setMaxPts(qreal newMaxPts)
 {
 	if (qFuzzyCompare(m_maxPts, newMaxPts))
 		return;
-	m_maxPts = Pass::round(newMaxPts);
+	m_maxPts = newMaxPts;
 	emit maxPtsChanged();
 }
 
 qreal Pass::result() const
 {
-	return m_maxPts > 0 ? Pass::round(m_pts/m_maxPts) : -1;
+	return m_maxPts > 0 ? m_pts/m_maxPts : -1;
 }
 
 QSListModel *Pass::categoryList() const
@@ -592,8 +625,8 @@ void Pass::updateGrading()
 
 qreal Pass::round(const qreal &num)
 {
-	float value = (int)(num * 100 + .5);
-	return (float) value / 100;
+	int value = (int)(num * 100 + (num < 0 ? -0.5f : .5f));
+	return (qreal) value / 100.f;
 }
 
 

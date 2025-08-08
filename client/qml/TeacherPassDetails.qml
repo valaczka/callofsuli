@@ -236,12 +236,28 @@ Item {
 
 
 
-                rightSourceComponent: Qaterial.LabelHeadline5 {
-                    color: passItem && passItem.extra ?
-                               Qaterial.Colors.green400 :
-                               Qaterial.Style.accentColor
-                    visible: passItem && passItem.maxPts > 0
-                    text: passItem ? (passItem.extra ? "+" : "") + passItem.maxPts + qsTr(" pt") : ""
+                rightSourceComponent: Row {
+                    Qaterial.Icon {
+                        visible: passItem && passItem.linkType !== PassItem.LinkNone
+                        size: Qaterial.Style.largeIcon
+                        icon: passItem ? (passItem.linkType == PassItem.LinkCampaign ?
+                                              Qaterial.Icons.trophyOutline :
+                                              passItem.linkType == PassItem.LinkExam ?
+                                                  Qaterial.Icons.paperRoll :
+                                                  Qaterial.Icons.beakerQuestion) :
+                                         ""
+
+                    }
+
+                    Qaterial.LabelHeadline5 {
+                        color: passItem && passItem.extra ?
+                                   Qaterial.Colors.green400 :
+                                   Qaterial.Style.accentColor
+                        visible: passItem && passItem.maxPts > 0
+                        text: passItem ? (passItem.extra ? "+" : "") + passItem.maxPts + qsTr(" pt") : ""
+
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
                 }
 
                 onClicked: {

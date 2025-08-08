@@ -54,6 +54,7 @@ class TeacherPassResultModel : public QAbstractTableModel
 	Q_PROPERTY(bool showCellPlaceholders READ showCellPlaceholders WRITE setShowCellPlaceholders NOTIFY showCellPlaceholdersChanged)
 	Q_PROPERTY(Mode mode READ mode WRITE setMode NOTIFY modeChanged FINAL)
 	Q_PROPERTY(int contentId READ contentId WRITE setContentId NOTIFY contentIdChanged FINAL)
+	Q_PROPERTY(bool hasTmpData READ hasTmpData NOTIFY hasTmpDataChanged FINAL)
 
 public:
 	explicit TeacherPassResultModel(QObject *parent = nullptr);
@@ -70,8 +71,14 @@ public:
 	int columnCount(const QModelIndex & = QModelIndex()) const override;
 	QVariant data(const QModelIndex &index, int role) const override;
 	QHash<int, QByteArray> roleNames() const override;
+	Qt::ItemFlags flags(const QModelIndex &index) const override;
 
 	Q_INVOKABLE QVariantMap getUserData(const User *user) const;
+	Q_INVOKABLE QModelIndex getNextEditable(const QModelIndex &from, const int &horizontal, const int &vertical) const;
+
+	Q_INVOKABLE void setTmpData(const QModelIndex &index, const QString &data);
+	Q_INVOKABLE void saveTmpData();
+	Q_INVOKABLE void clearTmpData();
 
 	TeacherPass *teacherPass() const;
 	void setTeacherPass(TeacherPass *newTeacherPass);
@@ -90,6 +97,8 @@ public:
 
 	void onContentModified(const Mode &mode, const int &contentId, const QString &username);
 
+	bool hasTmpData() const;
+
 public slots:
 	void reload();
 
@@ -100,6 +109,7 @@ signals:
 	void showCellPlaceholdersChanged();
 	void modeChanged();
 	void contentIdChanged();
+	void hasTmpDataChanged();
 
 private:
 	QVariant dataAsPass(const int &row, const int &column, int role) const;
@@ -107,16 +117,23 @@ private:
 	QVariantMap getUserData(const QString &username, const int &itemid) const;
 	QVariantMap getPassData(const QString &username, const int &passid) const;
 
+	void clearTmpData(const int &passId, const int &itemId);
+
 	TeacherPass *m_teacherPass = nullptr;
 	QStringList m_userList;
 	QList<int> m_passList;
 	QList<int> m_passItemList;
+
+	mutable QMutex m_tmpMutex;
+	QHash<QPair<int, int>, QString> m_tmpData;
 
 	bool m_showHeaderPlaceholders = true;
 	bool m_showCellPlaceholders = true;
 
 	Mode m_mode = ModePass;
 	int m_contentId = -1;
+
+	friend class TeacherPass;
 };
 
 
@@ -140,12 +157,17 @@ public:
 	explicit TeacherPass(QObject *parent = nullptr);
 	virtual ~TeacherPass();
 
+	Q_INVOKABLE qreal round(const qreal &value) const { return Pass::round(value); }
+
 	Q_INVOKABLE void reload();
 	Q_INVOKABLE void reloadCategories();
-	Q_INVOKABLE void reloadPassResult(Pass *pass);
-	Q_INVOKABLE void reloadPassItemResult(PassItem *item);
+	Q_INVOKABLE void reloadPassResult(Pass *pass, const QStringList &userList = {});
+	Q_INVOKABLE void reloadPassItemResult(PassItem *item, const QStringList &userList = {});
 
 	Q_INVOKABLE bool addChild(Pass *dest, const int &passId);
+
+	Q_INVOKABLE void assignResult(Pass *pass, PassItem *item, const QList<User*> &list, const QString &result = {});
+	Q_INVOKABLE void removeResult(Pass *pass, PassItem *item, const QList<User*> &list);
 
 	TeacherGroup *teacherGroup() const;
 	void setTeacherGroup(TeacherGroup *newTeacherGroup);
@@ -200,6 +222,7 @@ private:
 	void addModel(TeacherPassResultModel *model) { if (model) m_models.insert(model); }
 	void removeModel(TeacherPassResultModel *model) { if (model) m_models.remove(model); }
 	void notifyModels(const TeacherPassResultModel::Mode &mode, const int &contentId, const QString &username);
+	void applyTmpResults(TeacherPassResultModel *model);
 
 
 	ResultHash::const_iterator findPass(const int &contentId, const QString &username) const {
@@ -246,14 +269,17 @@ private:
 	}
 
 	QSet<int> updateResult(ResultHash *dest, const QJsonArray &list, const char *fieldId,
-					  const QJsonObject &grading = {}, const bool &calculateResult = false);
+						   const QJsonObject &grading = {}, const bool &calculateResult = false,
+						   const int &field = -1, const QStringList &userList = {});
 
-	QSet<int> updatePassResult(const QJsonArray &list, const QJsonObject &grading) {
-		return updateResult(&m_passResultHash, list, "passid", grading, true);
+	QSet<int> updatePassResult(const QJsonArray &list, const QJsonObject &grading,
+							   const int &field = -1, const QStringList &userList = {}) {
+		return updateResult(&m_passResultHash, list, "passid", grading, true, field, userList);
 	}
 
-	QSet<int> updatePassItemResult(const QJsonArray &list) {
-		return updateResult(&m_passItemResultHash, list, "passitemid");
+	QSet<int> updatePassItemResult(const QJsonArray &list,
+								   const int &field = -1, const QStringList &userList = {}) {
+		return updateResult(&m_passItemResultHash, list, "passitemid", {}, false, field, userList);
 	}
 
 

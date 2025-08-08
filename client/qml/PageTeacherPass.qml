@@ -36,26 +36,34 @@ QPage {
 
 	appBar.backButtonVisible: true
 
-	appBar.rightComponent: Qaterial.AppBarButton
-	{
-		icon.source: Qaterial.Icons.dotsVertical
-		onClicked: (swipeView.currentIndex < 2) ? menuDetails.open() : menuResult.open()
+	appBar.rightComponent: Row {
+		Qaterial.AppBarButton
+		{
+			visible: swipeView.currentIndex == 0
+			icon.source: Qaterial.Icons.dotsVertical
+			onClicked: menuDetails.open()
 
-		QMenu {
-			id: menuDetails
+			QMenu {
+				id: menuDetails
 
-			QMenuItem { action: _details.actionGradingCopy }
-			QMenuItem { action: _details.actionGradingPaste }
-			Qaterial.MenuSeparator {}
-			QMenuItem { action: _actionRemove }
+				QMenuItem { action: _details.actionGradingCopy }
+				QMenuItem { action: _details.actionGradingPaste }
+				Qaterial.MenuSeparator {}
+				QMenuItem { action: _actionRemove }
+			}
 		}
 
-		QMenu {
-			id: menuResult
+		Qaterial.AppBarButton {
+			visible: swipeView.currentIndex == 1 && _result.actionApply.enabled
+			action: _result.actionApply
+			//icon.source: action.icon.source
+			display: AbstractButton.IconOnly
+		}
 
-			/*QMenuItem { action: _result.actionStudentEdit }
-			QMenuItem { action: _result.actionRepeat }
-			QMenuItem { action: _actionResultReload }*/
+		Qaterial.AppBarButton {
+			visible: swipeView.currentIndex == 1 && _result.actionCancel.enabled
+			action: _result.actionCancel
+			//icon.source: action.icon.source
 		}
 	}
 

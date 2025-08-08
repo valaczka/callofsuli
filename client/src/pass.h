@@ -72,6 +72,7 @@ class PassItem : public SelectableObject
 	Q_PROPERTY(int includePass READ includePass WRITE setIncludePass NOTIFY includePassChanged FINAL)
 	Q_PROPERTY(LinkType linkType READ linkType WRITE setLinkType NOTIFY linkTypeChanged FINAL)
 	Q_PROPERTY(int linkId READ linkId WRITE setLinkId NOTIFY linkIdChanged FINAL)
+	Q_PROPERTY(QString linkTitle READ linkTitle WRITE setLinkTitle NOTIFY linkTitleChanged FINAL)
 
 public:
 	explicit PassItem(QObject *parent = nullptr);
@@ -120,6 +121,9 @@ public:
 	int linkId() const;
 	void setLinkId(int newLinkId);
 
+	QString linkTitle() const;
+	void setLinkTitle(const QString &newLinkTitle);
+
 signals:
 	void itemidChanged();
 	void categoryIdChanged();
@@ -132,6 +136,7 @@ signals:
 	void includePassChanged();
 	void linkTypeChanged();
 	void linkIdChanged();
+	void linkTitleChanged();
 
 private:
 	int m_itemid = -1;
@@ -145,6 +150,7 @@ private:
 	int m_includePass = -1;
 	LinkType m_linkType = LinkNone;
 	int m_linkId = -1;
+	QString m_linkTitle;
 };
 
 
@@ -220,7 +226,7 @@ public:
 	void updateCategoryList();
 	void updateGrading();
 
-	static qreal round(const qreal &num);
+	Q_INVOKABLE static qreal round(const qreal &num);
 	static QList<Grade*> getGrades(const qreal &result, const QJsonObject &grading, GradeList *list);
 	static QMap<int, QList<int>> getGradingMap(const QJsonObject &grading);
 	static QMap<int, QList<int>> getGradingMap(const QVariantList &grading);
