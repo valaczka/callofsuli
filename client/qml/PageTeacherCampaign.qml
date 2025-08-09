@@ -204,6 +204,8 @@ QPage {
 
 
 
-
+	StackView.onActivated: {
+		_details.reloadCampaign()
+	}
 
 }

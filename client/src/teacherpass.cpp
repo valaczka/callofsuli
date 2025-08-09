@@ -701,8 +701,12 @@ QModelIndex TeacherPassResultModel::getNextEditable(const QModelIndex &from, con
 
 		const QModelIndex idx = index(nextRow, nextCol);
 
-		if (data(idx, Qt::UserRole+5).toMap().value(QStringLiteral("assigned")).toBool())
-			return idx;
+		PassItem *item = data(idx, Qt::UserRole+4).value<PassItem*>();
+
+		if (item && item->linkType() == PassItem::LinkNone) {
+			if (data(idx, Qt::UserRole+5).toMap().value(QStringLiteral("assigned")).toBool())
+				return idx;
+		}
 
 		nextCol += horizontal;
 		nextRow += vertical;

@@ -104,8 +104,8 @@ Item {
                 }
 
                 Qaterial.LabelCaption {
-                    text: pass ? JS.readableTimestampMin(pass.startTime) + " – "
-                                 + (pass.endTime.getTime() ? JS.readableTimestampMin(pass.endTime) : "")
+                    text: pass ? JS.readableDate(pass.startTime) + " – "
+                                 + (pass.endTime.getTime() ? JS.readableDate(pass.endTime) : "")
                                : ""
                     width: parent.width
                     wrapMode: Text.NoWrap
@@ -205,6 +205,8 @@ Item {
 
                             sorters: RoleSorter {
                                 roleName: "itemid"
+                                sortOrder: Qt.AscendingOrder
+                                priority: 1
                             }
                         }
 
@@ -220,8 +222,9 @@ Item {
                                 wrapMode: Text.NoWrap
                                 elide: implicitWidth > width ? Text.ElideRight : Text.ElideNone
 
-                                color: passItem.extra ? Qaterial.Colors.green800 : Qaterial.Colors.black
-                                text: (passItem.extra ? "+" : "") + passItem.description
+                                color: passItem.pts < 0 ? Qaterial.Colors.red500 :
+                                                          passItem.extra ? Qaterial.Colors.green800 : Qaterial.Colors.black
+                                text: passItem.description
                             }
 
                             Qaterial.LabelBody2 {
@@ -231,7 +234,8 @@ Item {
 
                                 textFormat: Text.StyledText
 
-                                color: passItem.extra ? Qaterial.Colors.green800 : Qaterial.Colors.black
+                                color: passItem.pts < 0 ? Qaterial.Colors.red500 :
+                                                          passItem.extra ? Qaterial.Colors.green800 : Qaterial.Colors.black
                                 text: (passItem.extra ? "<b>+</b>" : "") + qsTr("<b>%1</b> / %2").arg(pass.round(passItem.pts)).arg(passItem.maxPts)
                             }
                         }

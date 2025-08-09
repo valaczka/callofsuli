@@ -69,6 +69,9 @@ class Campaign : public SelectableObject
 	Q_PROPERTY(qreal progress READ progress WRITE setProgress NOTIFY progressChanged FINAL)
 	Q_PROPERTY(int maxPts READ maxPts WRITE setMaxPts NOTIFY maxPtsChanged FINAL)
 	Q_PROPERTY(int groupid READ groupid WRITE setGroupid NOTIFY groupidChanged)
+	Q_PROPERTY(int passitemid READ passitemid WRITE setPassitemid NOTIFY passitemidChanged FINAL)
+	Q_PROPERTY(QString passDescription READ passDescription WRITE setPassDescription NOTIFY passDescriptionChanged FINAL)
+	Q_PROPERTY(QString passTitle READ passTitle WRITE setPassTitle NOTIFY passTitleChanged FINAL)
 
 public:
 	explicit Campaign(QObject *parent = nullptr);
@@ -137,6 +140,15 @@ public:
 	int maxPts() const;
 	void setMaxPts(int newMaxPts);
 
+	int passitemid() const;
+	void setPassitemid(int newPassitemid);
+
+	QString passDescription() const;
+	void setPassDescription(const QString &newPassDescription);
+
+	QString passTitle() const;
+	void setPassTitle(const QString &newPassTitle);
+
 signals:
 	void taskListReloaded();
 	void campaignidChanged();
@@ -153,6 +165,9 @@ signals:
 	void groupidChanged();
 	void progressChanged();
 	void maxPtsChanged();
+	void passitemidChanged();
+	void passDescriptionChanged();
+	void passTitleChanged();
 
 private:
 	int m_campaignid = 0;
@@ -168,6 +183,9 @@ private:
 	int m_groupid = -1;
 	qreal m_progress = 0.;
 	int m_maxPts = 0;
+	int m_passitemid = -1;
+	QString m_passDescription;
+	QString m_passTitle;
 };
 
 

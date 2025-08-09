@@ -208,7 +208,6 @@ QPage {
 
 
 
-
 				QFormComboBox {
 					id: _comboMap
 					text: qsTr("Pálya:")
@@ -263,6 +262,26 @@ QPage {
 					onClicked: Qaterial.DialogManager.openFromComponent(_cmpOpenMap)
 				}
 
+
+				TeacherPassItemLink {
+					id: _passLink
+					groupid: group ? group.groupid : -1
+					canAdd: groupid > 0 && exam && exam.passitemid <= 0
+					passitemid: exam ? exam.passitemid : -1
+					linkTitle: exam ?
+								   (exam.passDescription +
+									(exam.passTitle != "" ? qsTr(" (%1)").arg(exam.passTitle) : "")) :
+								   ""
+
+					width: parent.width
+
+					onSelected: itemid => {
+									linkPass(itemid)
+								}
+
+					onUnlinked: reloadExam()
+
+				}
 			}
 
 		}
@@ -1207,6 +1226,18 @@ QPage {
 
 	}
 
+	function linkPass(_id) {
+		Client.send(HttpConnection.ApiTeacher, "exam/%1/link".arg(exam.examId),
+					{
+						passitem: _id
+					})
+		.done(root, function(r){
+			reloadExam()()
+		})
+		.fail(root, function(err) {
+			Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+		})
+	}
 
 	function reloadExam() {
 		if (_teacherExam)

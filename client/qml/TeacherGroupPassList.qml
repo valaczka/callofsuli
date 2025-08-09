@@ -23,6 +23,12 @@ Item
 
 	property int _lastPassId: -1
 
+	property alias actionCreate: _actionCreate
+	property alias actionDelete: _actionDelete
+	property alias actionDuplicate: _actionDuplicate
+	property alias actionSelectAll: view.actionSelectAll
+	property alias actionSelectNone: view.actionSelectNone
+
 	QScrollable {
 		anchors.fill: parent
 		topPadding: 0
@@ -50,28 +56,28 @@ Item
 			model: SortFilterProxyModel {
 				sourceModel: teacherPass ? teacherPass.passList : null
 
-				/*sorters: [
-					FilterSorter {
-						ValueFilter {
-							roleName: "state"
-							value: Exam.Prepare
-						}
+				sorters: [
+					RoleSorter {
+						roleName: "childless"
+						sortOrder: Qt.DescendingOrder
+						priority: 4
+					},
+					RoleSorter {
+						roleName: "isActive"
+						sortOrder: Qt.DescendingOrder
 						priority: 3
 					},
-					FilterSorter {
-						ValueFilter {
-							roleName: "state"
-							value: Exam.Finished
-							inverted: true
-						}
+					RoleSorter {
+						roleName: "endTime"
+						sortOrder: Qt.AscendingOrder
 						priority: 2
 					},
 					RoleSorter {
-						roleName: "timestamp"
+						roleName: "passid"
 						sortOrder: Qt.AscendingOrder
 						priority: 1
 					}
-				]*/
+				]
 			}
 
 			delegate: QItemDelegate {
@@ -102,8 +108,8 @@ Item
 
 
 				text: pass.title != "" ? pass.title : qsTr("Call Pass #%1").arg(pass.passid)
-				secondaryText: pass ? (pass.startTime.getTime() ? JS.readableTimestampMin(pass.startTime) + " – " : "")
-									  + (pass.endTime.getTime() ? JS.readableTimestampMin(pass.endTime) : "")
+				secondaryText: pass ? (pass.startTime.getTime() ? JS.readableDate(pass.startTime) + " – " : "")
+									  + (pass.endTime.getTime() ? JS.readableDate(pass.endTime) : "")
 									: ""
 
 				onClicked: {
@@ -122,6 +128,7 @@ Item
 				QMenuItem { action: view.actionSelectAll }
 				QMenuItem { action: view.actionSelectNone }
 				Qaterial.MenuSeparator {}
+				QMenuItem { action: _actionDuplicate }
 				QMenuItem { action: _actionDelete }
 			}
 
@@ -158,6 +165,82 @@ Item
 		action: _actionCreate
 	}
 
+
+	SortFilterProxyModel {
+		id: _sortedGroupListTeacher
+		sourceModel: 	ListModel {
+			id: _groupModel
+		}
+
+		sorters: [
+			StringSorter {
+				roleName: "text"
+			}
+		]
+
+		function reload() {
+			_groupModel.clear()
+
+			if (!teacherPass || !teacherPass.teacherGroup)
+				return
+
+			let l = Client.cache("teacherGroupList")
+
+			for (let i=0; i<l.count; ++i) {
+				let g = l.get(i)
+				if (!g.active)
+					continue
+				_groupModel.append({
+									   text: g.fullName,
+									   id: g.groupid
+								   })
+			}
+		}
+	}
+
+	Action {
+		id: _actionDuplicate
+		text: qsTr("Kettőzés")
+		icon.source: Qaterial.Icons.contentDuplicate
+		enabled: teacherPass && teacherPass.teacherGroup && (view.currentIndex != -1 || view.selectEnabled)
+		onTriggered: {
+			var l = view.getSelected()
+
+			if (!l.length)
+				return
+
+			_sortedGroupListTeacher.reload()
+
+			Qaterial.DialogManager.openCheckListView(
+						{
+							onAccepted: function(indexList)
+							{
+								if (indexList.length === 0)
+									return
+
+								var dst = []
+
+								for (let i=0; i<indexList.length; ++i) {
+									dst.push(_sortedGroupListTeacher.get(indexList[i]).id)
+								}
+
+								Client.send(HttpConnection.ApiTeacher, "pass/duplicate", {
+												src: JS.listGetFields(l, "passid"),
+												list: dst
+											})
+								.done(control, function(r){
+									Client.snack(qsTr("%1 Call Pass megkettőzve %2x").arg(l.length).arg(dst.length))
+									teacherPass.reload()
+									view.unselectAll()
+								})
+								.fail(control, JS.failMessage("Megkettőzés sikertelen"))
+							},
+							title: qsTr("Call Pass megkettőzése"),
+							standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
+							model: _sortedGroupListTeacher
+						})
+		}
+	}
 
 	Action {
 		id: _actionCreate

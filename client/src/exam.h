@@ -66,6 +66,10 @@ class Exam : public SelectableObject
 	Q_PROPERTY(qreal result READ result WRITE setResult NOTIFY resultChanged FINAL)
 	Q_PROPERTY(Grade *resultGrade READ resultGrade WRITE setResultGrade NOTIFY resultGradeChanged FINAL)
 
+	Q_PROPERTY(int passitemid READ passitemid WRITE setPassitemid NOTIFY passitemidChanged FINAL)
+	Q_PROPERTY(QString passDescription READ passDescription WRITE setPassDescription NOTIFY passDescriptionChanged FINAL)
+	Q_PROPERTY(QString passTitle READ passTitle WRITE setPassTitle NOTIFY passTitleChanged FINAL)
+
 public:
 	explicit Exam(QObject *parent = nullptr);
 	virtual ~Exam();
@@ -129,6 +133,15 @@ public:
 	Grade *resultGrade() const;
 	void setResultGrade(Grade *newResultGrade);
 
+	int passitemid() const;
+	void setPassitemid(int newPassitemid);
+
+	QString passDescription() const;
+	void setPassDescription(const QString &newPassDescription);
+
+	QString passTitle() const;
+	void setPassTitle(const QString &newPassTitle);
+
 signals:
 	void examIdChanged();
 	void stateChanged();
@@ -142,6 +155,9 @@ signals:
 	void correctionDataChanged();
 	void resultChanged();
 	void resultGradeChanged();
+	void passitemidChanged();
+	void passDescriptionChanged();
+	void passTitleChanged();
 
 private:
 	QString toHtml() const;
@@ -160,6 +176,9 @@ private:
 	qreal m_result = -1;
 	Grade *m_resultGrade = nullptr;
 
+	int m_passitemid;
+	QString m_passDescription;
+	QString m_passTitle;
 };
 
 #endif // EXAM_H

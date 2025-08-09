@@ -118,39 +118,26 @@ Item {
 				}
 			}
 
-			Qaterial.TextField {
-				id: _passItem
+
+			TeacherPassItemLink {
+				id: _passLink
+				groupid: group ? group.groupid : -1
+				canAdd: groupid > 0 && campaign && campaign.passitemid <= 0
+				passitemid: campaign ? campaign.passitemid : -1
+				linkTitle: campaign ?
+							   (campaign.passDescription +
+								(campaign.passTitle != "" ? qsTr(" (%1)").arg(campaign.passTitle) : "")) :
+							   ""
 
 				width: parent.width
-				leadingIconSource: Qaterial.Icons.renameBox
-				leadingIconInline: true
-				title: qsTr("PassItem")
-				readOnly: true
-				//helperText: campaign && campaign.state >= Campaign.Finished ? qsTr("A kihívás véget ért, a név már nem módosítható") : ""
 
-				trailingContent: Qaterial.TextFieldButtonContainer
-				{
-					Qaterial.AppBarButton {
-						icon.source: Qaterial.Icons.plus
-						anchors.verticalCenter: parent.verticalCenter
-						ToolTip.text: qsTr("Add")
+				onSelected: itemid => {
+								linkPass(itemid)
+							}
 
-						onClicked: {
-							_passLink.download()
+				onUnlinked: reloadCampaign()
 
-						}
-					}
-
-					Qaterial.AppBarButton {
-						icon.source: Qaterial.Icons.close
-						anchors.verticalCenter: parent.verticalCenter
-						ToolTip.text: qsTr("Remove")
-
-						//onClicked: revert()
-					}
-				}
 			}
-
 
 
 			QExpandableHeader {
@@ -399,17 +386,6 @@ Item {
 	QFabButton {
 		visible: actionAddTask.enabled
 		action: actionAddTask
-	}
-
-
-	TeacherPassItemLink {
-		id: _passLink
-		groupid: group ? group.groupid : -1
-
-		onSelected: itemid => {
-						linkPass(itemid)
-					}
-
 	}
 
 

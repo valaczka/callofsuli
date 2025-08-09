@@ -28,7 +28,7 @@ QTableView {
 											   Qaterial.Style.delegate.implicitHeight(Qaterial.Style.DelegateType.Icon, 1))
 
 
-	columnWidthFunc: function(col) { return col === 1 ? cellWidth * 1.6 : cellWidth }
+	columnWidthFunc: function(col) { return col === 1 ? cellWidth * 1.7 : cellWidth }
 
 	readonly property color _rowColor: Client.Utils.colorSetAlpha(Qaterial.Colors.gray700, 0.3)
 	readonly property color _linkedColor: Client.Utils.colorSetAlpha(Qaterial.Colors.green500, 0.3)
@@ -93,6 +93,11 @@ QTableView {
 				return
 			}
 
+			if (passItem.linkType != PassItem.LinkNone) {
+				Client.snack(qsTr("Link van beállítva"))
+				return
+			}
+
 			Qaterial.DialogManager.showTextFieldDialog({
 														   title: passUser.fullName,
 														   textTitle: passItem.description.length ? passItem.description : qsTr("Eredmény módosítása"),
@@ -113,6 +118,11 @@ QTableView {
 				return
 			}
 
+			if (passItem.linkType != PassItem.LinkNone) {
+				Client.snack(qsTr("Link van beállítva"))
+				return
+			}
+
 			mainView.edit(mainView.index(row, column))
 		}
 
@@ -121,8 +131,9 @@ QTableView {
 
 			color: isPlaceholder ? "transparent" :
 								   tmpData != "" ? Qaterial.Colors.green600 :
-												   column > 1 && result.assigned ? _assignedColor :
-																				   row % 2 ? "transparent" : _rowColor
+												   column > 1 && result.assigned ?
+													   (passItem && passItem.linkType !== PassItem.LinkNone ? _linkedColor : _assignedColor) :
+													   row % 2 ? "transparent" : _rowColor
 			Qaterial.LabelSubtitle2 {
 				id: _labelResult
 				visible: !isPlaceholder && result.assigned && column > 1
@@ -281,7 +292,7 @@ QTableView {
 		Rectangle {
 			anchors.fill: parent
 
-			color: !isPlaceholder && passItem && passItem.linkType === PassItem.LinkNone ? _linkedColor : "transparent"
+			color: !isPlaceholder && passItem && passItem.linkType !== PassItem.LinkNone ? _linkedColor : "transparent"
 
 			Qaterial.ListDelegateBackground
 			{

@@ -1646,9 +1646,12 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 
 		db.transaction();
 
-		if (!QueryBuilder::q(db)
-				.addQuery("SELECT starttime FROM campaign WHERE started=true AND finished=false AND id=").addValue(campaign)
-				.execCheckExists()) {
+		const auto &passPtr = QueryBuilder::q(db)
+							  .addQuery("SELECT passitemid FROM campaign WHERE started=true AND finished=false AND id=")
+							  .addValue(campaign)
+							  .execToValue("passitemid");
+
+		if (!passPtr) {
 			db.rollback();
 			return ret.reject();
 		}
@@ -1738,6 +1741,14 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 		}
 
 		db.commit();
+
+		if (!passPtr->isNull()) {
+			const int passitemid = passPtr->toInt();
+
+			if (!TeacherAPI::_updatePassResultByCampaign(dbMain, passitemid, campaign)) {
+				LOG_CERROR("client") << "Pass result update failed" << passitemid << "for campaign" << campaign;
+			}
+		}
 
 		LOG_CINFO("client") << "Campaign finished:" << campaign;
 		ret.resolve();

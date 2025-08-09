@@ -38,6 +38,26 @@ QPage {
 
 	appBar.backButtonVisible: true
 
+
+	appBar.rightComponent: Qaterial.AppBarButton {
+		visible: swipeView.currentIndex == 0
+		icon.source: Qaterial.Icons.dotsVertical
+		onClicked: menuDetails.open()
+
+		QMenu {
+			id: menuDetails
+
+			QMenuItem { action: _cmpList.actionCreate }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: _cmpList.actionSelectAll }
+			QMenuItem { action: _cmpList.actionSelectNone }
+			Qaterial.MenuSeparator {}
+			QMenuItem { action: _cmpList.actionDuplicate }
+			QMenuItem { action: _cmpList.actionDelete }
+		}
+	}
+
+
 	Qaterial.SwipeView
 	{
 		id: swipeView

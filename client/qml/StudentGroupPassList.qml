@@ -33,7 +33,20 @@ QItemGradient {
 		rightPadding: 0
 
 		refreshEnabled: true
-		onRefreshRequest: Client.reloadCache("passList")
+		onRefreshRequest: {
+			Client.reloadCache("passList")
+
+			for (let i=0; i<view.count; ++i) {
+				let e = view.itemAtIndex(i)
+
+				let p = e.pass
+
+				if (e.expanded && p)
+					p.reload()
+			}
+
+		}
+
 
 		QListView {
 			id: view
@@ -62,17 +75,22 @@ QItemGradient {
 
 				sorters: [
 					RoleSorter {
+						roleName: "childless"
+						sortOrder: Qt.DescendingOrder
+						priority: 4
+					},
+					RoleSorter {
 						roleName: "isActive"
 						sortOrder: Qt.DescendingOrder
 						priority: 3
 					},
 					RoleSorter {
-						roleName: "childless"
-						sortOrder: Qt.DescendingOrder
+						roleName: "endTime"
+						sortOrder: Qt.AscendingOrder
 						priority: 2
 					},
 					RoleSorter {
-						roleName: "endTime"
+						roleName: "passid"
 						sortOrder: Qt.AscendingOrder
 						priority: 1
 					}
@@ -150,10 +168,10 @@ QItemGradient {
 						Qaterial.LabelHint1 {
 							anchors.right: parent.right
 							text: _expandable.pass ?
-									  _expandable.pass.round(_expandable.pass.pts) + "/" + _expandable.pass.maxPts + qsTr(" pt") +
+									  "<b>" + _expandable.pass.round(_expandable.pass.pts) + "</b>/" + _expandable.pass.maxPts + qsTr(" pt") +
 									  (_expandable.pass.result>=0 ? " (" + _expandable.pass.round(_expandable.pass.result*100)+"%)" : "") :
 									  ""
-							color: Qaterial.Style.secondaryTextColor()
+							color: Qaterial.Style.primaryTextColor()
 						}
 					}
 

@@ -88,6 +88,17 @@ void Exam::loadFromJson(const QJsonObject &object, const bool &allField)
 																							   object.value(QStringLiteral("gradeid")).toInt())));
 
 
+	// -- Pass Item --
+
+	if (object.contains(QStringLiteral("passitemid")))
+		setPassitemid(object.value(QStringLiteral("passitemid")).toInt());
+
+	if (object.contains(QStringLiteral("passDescription")))
+		setPassDescription(object.value(QStringLiteral("passDescription")).toString());
+
+	if (object.contains(QStringLiteral("passTitle")))
+		setPassTitle(object.value(QStringLiteral("passTitle")).toString());
+
 }
 
 
@@ -373,4 +384,43 @@ QVector<TestGame::QuestionData> Exam::toQuestionData(TestGame::QuestionResult *r
 	}
 
 	return list;
+}
+
+int Exam::passitemid() const
+{
+	return m_passitemid;
+}
+
+void Exam::setPassitemid(int newPassitemid)
+{
+	if (m_passitemid == newPassitemid)
+		return;
+	m_passitemid = newPassitemid;
+	emit passitemidChanged();
+}
+
+QString Exam::passDescription() const
+{
+	return m_passDescription;
+}
+
+void Exam::setPassDescription(const QString &newPassDescription)
+{
+	if (m_passDescription == newPassDescription)
+		return;
+	m_passDescription = newPassDescription;
+	emit passDescriptionChanged();
+}
+
+QString Exam::passTitle() const
+{
+	return m_passTitle;
+}
+
+void Exam::setPassTitle(const QString &newPassTitle)
+{
+	if (m_passTitle == newPassTitle)
+		return;
+	m_passTitle = newPassTitle;
+	emit passTitleChanged();
 }

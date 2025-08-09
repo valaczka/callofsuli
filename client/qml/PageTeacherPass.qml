@@ -56,14 +56,13 @@ QPage {
 		Qaterial.AppBarButton {
 			visible: swipeView.currentIndex == 1 && _result.actionApply.enabled
 			action: _result.actionApply
-			//icon.source: action.icon.source
 			display: AbstractButton.IconOnly
 		}
 
 		Qaterial.AppBarButton {
 			visible: swipeView.currentIndex == 1 && _result.actionCancel.enabled
 			action: _result.actionCancel
-			//icon.source: action.icon.source
+			display: AbstractButton.IconOnly
 		}
 	}
 

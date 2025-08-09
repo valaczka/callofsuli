@@ -214,7 +214,7 @@ Item {
 
                 selectableObject: passItem
 
-                highlighted: _view.selectEnabled ? selected : ListView.isCurrentItem
+                highlighted: _view.selectEnabled ? passItem.selected : ListView.isCurrentItem
                 iconSource: passItem && passItem.includePass > 0 ?
                                 Qaterial.Icons.tagMultipleOutline :
                                 passItem && passItem.extra ?
@@ -237,14 +237,18 @@ Item {
 
 
                 rightSourceComponent: Row {
+                    spacing:10
+
                     Qaterial.Icon {
                         visible: passItem && passItem.linkType !== PassItem.LinkNone
-                        size: Qaterial.Style.largeIcon
+                        anchors.verticalCenter: parent.verticalCenter
+                        color: Qaterial.Style.iconColor()
+                        //size: Qaterial.Style.largeIcon
                         icon: passItem ? (passItem.linkType == PassItem.LinkCampaign ?
-                                              Qaterial.Icons.trophyOutline :
+                                              Qaterial.Icons.trophyVariantOutline :
                                               passItem.linkType == PassItem.LinkExam ?
-                                                  Qaterial.Icons.paperRoll :
-                                                  Qaterial.Icons.beakerQuestion) :
+                                                  Qaterial.Icons.fileDocumentMultipleOutline :
+                                                  Qaterial.Icons.alert) :
                                          ""
 
                     }
@@ -292,6 +296,7 @@ Item {
                 Qaterial.ToolButton {
                     action: _actionAddItem
                     display: AbstractButton.IconOnly
+                    outlined: true
                 }
 
                 Qaterial.ToolButton {
@@ -299,6 +304,7 @@ Item {
 
                     icon.source: Qaterial.Icons.plusBoxMultipleOutline
                     display: AbstractButton.IconOnly
+                    outlined: true
 
                     onClicked: _menuFilteredPass.popup(_btnImport, 0, _btnImport.height)
                 }
@@ -309,6 +315,7 @@ Item {
                 QMenuItem { action: _view.actionSelectAll }
                 QMenuItem { action: _view.actionSelectNone }
                 Qaterial.MenuSeparator {}
+                QMenuItem { action: _actionDuplicate }
                 QMenuItem { action: _actionDelete }
             }
 
@@ -625,6 +632,38 @@ Item {
                                         },
                                         title: qsTr("Tartalmi elem törlése"),
                                         iconSource: Qaterial.Icons.delete_
+                                    })
+
+        }
+    }
+
+    Action {
+        id: _actionDuplicate
+        icon.source: Qaterial.Icons.contentDuplicate
+        text: qsTr("Kettőzés")
+        enabled: _view.currentIndex != -1 || _view.selectEnabled
+        onTriggered: {
+            var l = _view.getSelected()
+
+            if (!l.length)
+                return
+
+            JS.questionDialogPlural(l, qsTr("Biztosan megkettőzöd a kijelölt %1 elemet?"), "description",
+                                    {
+                                        onAccepted: function()
+                                        {
+                                            Client.send(HttpConnection.ApiTeacher,  "passItem/duplicate", {
+                                                            list: JS.listGetFields(l, "itemid")
+                                                        })
+                                            .done(control, function(r){
+                                                reloadPass()
+                                                _view.unselectAll()
+                                            })
+                                            .fail(control, JS.failMessage("Kettőzés sikertelen"))
+
+                                        },
+                                        title: qsTr("Tartalmi elem kettőzése"),
+                                        iconSource: Qaterial.Icons.contentDuplicate
                                     })
 
         }

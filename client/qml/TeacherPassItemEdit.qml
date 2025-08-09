@@ -164,6 +164,22 @@ QPage {
 			}
 
 
+			TeacherPassItemLink {
+				id: _passLink
+				passItem: control.passItem
+
+				visible: passItem && passItem.linkType !== PassItem.LinkNone
+
+				width: parent.width
+
+				onUnlinked: {
+					if (pass)
+						pass.reload(HttpConnection.ApiTeacher)
+					Client.stackPop(control)
+				}
+
+			}
+
 
 			QButton
 			{
@@ -203,28 +219,6 @@ QPage {
 					})
 
 				}
-			}
-
-			QFormTextField {
-				id: _tfLink
-
-				width: parent.width
-				leadingIconSource: Qaterial.Icons.linkOff
-				leadingIconInline: true
-				title: qsTr("Link")
-				readOnly: true
-				text: passItem.linkTitle
-				helperText: switch (passItem.linkType) {
-							case PassItem.LinkCampaign:
-								qsTr("Hadjárat")
-								break;
-							case PassItem.LinkExam:
-								qsTr("Dolgozat")
-								break;
-							default:
-								""
-							}
-
 			}
 		}
 

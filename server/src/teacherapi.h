@@ -131,11 +131,14 @@ public:
 	QHttpServerResponse passCreate(const Credential &credential, const int &group, const QJsonObject &json);
 	QHttpServerResponse passUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse passDelete(const Credential &credential, const QJsonArray &list);
+	QHttpServerResponse passDuplicate(const Credential &credential, const QJsonArray &src, const QJsonObject &json);
 
 	QHttpServerResponse passItemCreate(const Credential &credential, const int &pass, const QJsonObject &json);
 	QHttpServerResponse passItemUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse passItemDelete(const Credential &credential, const QJsonArray &list);
 	QHttpServerResponse passItemList(const Credential &credential, const int &groupid);
+	QHttpServerResponse passItemUnlink(const Credential &credential, const int &id);
+	QHttpServerResponse passItemDuplicate(const Credential &credential, const QJsonArray &src);
 
 	QHttpServerResponse passResult(const Credential &credential, const int &id);
 	QHttpServerResponse passItemResult(const Credential &credential, const int &id);
@@ -182,13 +185,20 @@ public:
 	static std::optional<int> _currency(const AbstractAPI *api, const QString &username);
 	static std::optional<int> _currency(const DatabaseMain *dbMain, const QString &username);
 
+	static bool _updatePassResultByExam(const AbstractAPI *api, const int &passitem, const int &exam);
+	static bool _updatePassResultByExam(const DatabaseMain *dbMain, const int &passitem, const int &exam);
+
+	static bool _updatePassResultByExamContent(const AbstractAPI *api, const QVariantList &examContentId);
+	static bool _updatePassResultByExamContent(const DatabaseMain *dbMain, const QVariantList &examContentId);
+
+	static bool _updatePassResultByCampaign(const AbstractAPI *api, const int &passitem, const int &campaign);
+	static bool _updatePassResultByCampaign(const DatabaseMain *dbMain, const int &passitem, const int &campaign);
 
 private:
 	QJsonObject _task(const int &id) const;
 	QJsonArray _taskList(const int &campaign) const;
 
-	bool _updatePassResultByExamContent(const QSet<int> &examContentId);
-	bool _updatePassResultByCampaign(const int &passitem, const int &campaign);
+	bool _passItemDuplicate(const int &itemid, const int &destPass);
 
 };
 

@@ -351,7 +351,7 @@ QHttpServerResponse UserAPI::pass(const Credential &credential, const int &id)
 	LAMBDA_SQL_ASSERT(data);
 
 	const auto &list = QueryBuilder::q(db)
-					   .addQuery("SELECT passHierarchy.passitemid, result, description, pts, maxPts, extra, category, categoryid "
+					   .addQuery("SELECT passHierarchy.passitemid AS id, result, description, pts, maxPts, extra, category, categoryid "
 								 "FROM passHierarchy "
 								 "JOIN passResultUser ON (passResultUser.passitemid=passHierarchy.passitemid "
 								 "AND passResultUser.username=").addValue(credential.username())

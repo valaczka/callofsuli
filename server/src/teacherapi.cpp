@@ -844,6 +844,20 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		return passResult(*credential, id);
 	});
 
+	server->route(path+"pass/<arg>/duplicate", QHttpServerRequest::Method::Post,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return passDuplicate(*credential, {id}, *jsonObject);
+	});
+
+	server->route(path+"pass/duplicate", QHttpServerRequest::Method::Post,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return passDuplicate(*credential, jsonObject->value(QStringLiteral("src")).toArray(), *jsonObject);
+	});
+
 
 
 	server->route(path+"pass/<arg>/create", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
@@ -862,6 +876,12 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return passItemDelete(*credential, QJsonArray{id});
+	});
+
+	server->route(path+"passItem/<arg>/unlink", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return passItemUnlink(*credential, id);
 	});
 
 	server->route(path+"passItem/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
@@ -894,6 +914,19 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
 		return passResultRemove(*credential, id, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
+	server->route(path+"passItem/<arg>/duplicate", QHttpServerRequest::Method::Post,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return passItemDuplicate(*credential, {id});
+	});
+
+	server->route(path+"passItem/duplicate", QHttpServerRequest::Method::Post,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return passItemDuplicate(*credential, jsonObject->value(QStringLiteral("list")).toArray());
 	});
 
 	server->route(path+"group/<arg>/passItems", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
@@ -2048,7 +2081,7 @@ QHttpServerResponse TeacherAPI::campaign(const Credential &credential, const int
 	auto obj = QueryBuilder::q(db)
 			   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, "
 						 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, "
-						 "description, started, finished, defaultGrade, groupid "
+						 "description, started, finished, defaultGrade, groupid, passitemid "
 						 "FROM campaign WHERE id=").addValue(id)
 			   .addQuery(" AND groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")")
 			   .execToJsonObject();
@@ -2057,6 +2090,23 @@ QHttpServerResponse TeacherAPI::campaign(const Credential &credential, const int
 	LAMBDA_SQL_ERROR("not found", !obj->isEmpty());
 
 	obj->insert(QStringLiteral("taskList"), _taskList(id));
+
+	QJsonObject passObj;
+
+	if (const int passitemid = obj->value(QStringLiteral("passitemid")).toInt(-1); passitemid > 0) {
+		const auto &ptr = QueryBuilder::q(db)
+						  .addQuery("SELECT pass.title, passItem.description "
+									"FROM passItem LEFT JOIN pass ON (passItem.passid=pass.id) "
+									"WHERE passItem.id=")
+						  .addValue(passitemid)
+						  .execToJsonObject();
+
+		if (ptr)
+			passObj = ptr.value();
+	}
+
+	obj->insert(QStringLiteral("passDescription"), passObj.value(QStringLiteral("description")).toString());
+	obj->insert(QStringLiteral("passTitle"), passObj.value(QStringLiteral("title")).toString());
 
 	response = QHttpServerResponse(*obj);
 
@@ -2231,8 +2281,10 @@ QHttpServerResponse TeacherAPI::campaignLink(const Credential &credential, const
 
 	LOG_CDEBUG("client") << "Campaign linked to PassItem:" << id << "->" << passitemid;
 
-	if (!_updatePassResultByCampaign(passitemid, id)) {
-		LOG_CERROR("client") << "Pass result update failed" << passitemid << "for campaign" << id;
+	if (id > 0) {
+		if (!_updatePassResultByCampaign(this, passitemid, id)) {
+			LOG_CERROR("client") << "Pass result update failed" << passitemid << "for campaign" << id;
+		}
 	}
 
 	response = responseOk();
@@ -2606,6 +2658,11 @@ QHttpServerResponse TeacherAPI::campaignUserClear(const Credential &credential, 
 					  .exec());
 
 	LOG_CDEBUG("client") << "All user removed from campaign:" << id;
+
+	if (!_updatePassResultByCampaign(this, -1, id)) {
+		LOG_CERROR("client") << "Pass result update failed for campaign" << id;
+	}
+
 	response = responseOk();
 
 	LAMBDA_THREAD_END;
@@ -2653,6 +2710,10 @@ QHttpServerResponse TeacherAPI::campaignUserAdd(const Credential &credential, co
 
 	db.commit();
 
+	if (!_updatePassResultByCampaign(this, -1, id)) {
+		LOG_CERROR("client") << "Pass result update failed for campaign" << id;
+	}
+
 	LOG_CDEBUG("client") << "User added to campaign:" << id << list;
 	response = responseOk();
 
@@ -2691,6 +2752,11 @@ QHttpServerResponse TeacherAPI::campaignUserRemove(const Credential &credential,
 					  .exec());
 
 	LOG_CDEBUG("client") << "User removed from campaign:" << id << list;
+
+	if (!_updatePassResultByCampaign(this, -1, id)) {
+		LOG_CERROR("client") << "Pass result update failed for campaign" << id;
+	}
+
 	response = responseOk();
 
 	LAMBDA_THREAD_END;
@@ -2760,6 +2826,10 @@ QHttpServerResponse TeacherAPI::campaignUserCopy(const Credential &credential, c
 
 
 	db.commit();
+
+	if (!_updatePassResultByCampaign(this, -1, id)) {
+		LOG_CERROR("client") << "Pass result update failed for campaign" << id;
+	}
 
 	LOG_CDEBUG("client") << "User copied to campaign:" << id << grades;
 
@@ -3104,14 +3174,19 @@ QHttpServerResponse TeacherAPI::exam(const Credential &credential, const int &id
 	LAMBDA_THREAD_BEGIN(credential, id, groupId);
 
 	QueryBuilder q(db);
-	q.addQuery("SELECT id, mode, state, mapuuid, description, engineData, CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp "
-			   "FROM exam WHERE groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")");
+	q.addQuery("SELECT exam.id, mode, state, mapuuid, exam.description, engineData, "
+			   "CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp,"
+			   "passItem.description AS passDescription, pass.title AS passTitle "
+			   "FROM exam "
+			   "LEFT JOIN passItem ON (passItem.id=exam.passitemid) "
+			   "LEFT JOIN pass ON (pass.id=passItem.passid) "
+			   "WHERE exam.groupid IN (SELECT id FROM studentgroup WHERE owner=").addValue(credential.username()).addQuery(")");
 
 	if (id > 0)
-		q.addQuery(" AND id=").addValue(id);
+		q.addQuery(" AND exam.id=").addValue(id);
 
 	if (groupId > 0)
-		q.addQuery(" AND groupid=").addValue(groupId);
+		q.addQuery(" AND exam.groupid=").addValue(groupId);
 
 	const auto &list = q.execToJsonArray({
 											 { QStringLiteral("engineData"), [](const QVariant &v) {
@@ -3254,7 +3329,7 @@ QHttpServerResponse TeacherAPI::examLink(const Credential &credential, const int
 
 	LAMBDA_THREAD_BEGIN(credential, id, passitemid, json);
 
-	CHECK_CAMPAIGN(credential.username(), id);
+	CHECK_EXAM(credential.username(), id);
 
 	db.transaction();
 
@@ -3274,6 +3349,7 @@ QHttpServerResponse TeacherAPI::examLink(const Credential &credential, const int
 
 	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
 							   .addQuery("UPDATE exam SET ")
+							   .setCombinedPlaceholder()
 							   .addField("passitemid", passitemid > 0 ? passitemid : QVariant(QMetaType::fromType<int>()))
 							   .addQuery(" WHERE id=").addValue(id)
 							   .exec());
@@ -3281,6 +3357,12 @@ QHttpServerResponse TeacherAPI::examLink(const Credential &credential, const int
 	db.commit();
 
 	LOG_CDEBUG("client") << "Exam linked to PassItem:" << id << "->" << passitemid;
+
+	if (id > 0) {
+		if (!_updatePassResultByExam(this, passitemid, id)) {
+			LOG_CERROR("client") << "Pass result update failed" << passitemid << "for exam" << id;
+		}
+	}
 
 	response = responseOk();
 
@@ -3441,6 +3523,10 @@ QHttpServerResponse TeacherAPI::examCreateContent(const Credential &credential, 
 
 	LOG_CDEBUG("client") << "Exam content created:" << id;
 
+	if (!_updatePassResultByExam(this, -1, id)) {
+		LOG_CERROR("client") << "Pass result update failed for exam" << id;
+	}
+
 	response = responseOk();
 
 	LAMBDA_THREAD_END;
@@ -3479,6 +3565,10 @@ QHttpServerResponse TeacherAPI::examRemoveContent(const Credential &credential, 
 					  .exec());
 
 	LOG_CDEBUG("client") << "Exam contents deleted:" << id << list;
+
+	if (!_updatePassResultByExam(this, -1, id)) {
+		LOG_CERROR("client") << "Pass result update failed for exam" << id;
+	}
 
 	response = responseOk();
 
@@ -3651,6 +3741,10 @@ QHttpServerResponse TeacherAPI::examAnswer(const Credential &credential, const i
 
 	db.commit();
 
+	if (!_updatePassResultByExamContent(this, {id})) {
+		LOG_CERROR("client") << "Pass result update failed for exam content" << id;
+	}
+
 	response = responseOk({
 							  { QStringLiteral("id"), id }
 						  });
@@ -3675,7 +3769,7 @@ QHttpServerResponse TeacherAPI::examGrading(const Credential &credential, const 
 
 	LAMBDA_THREAD_BEGIN(credential, list);
 
-	QSet<int> contentIdList;
+	QVariantList contentIdList;
 
 	for (const QJsonValue &v : std::as_const(list)) {
 		const QJsonObject &json = v.toObject();
@@ -3689,7 +3783,7 @@ QHttpServerResponse TeacherAPI::examGrading(const Credential &credential, const 
 			CHECK_EXAM_CONTENT_STATE(credential.username(), id, "state=3");
 		}
 
-		contentIdList.insert(id);
+		contentIdList.append(id);
 
 		const double &result = json.value(QStringLiteral("result")).toDouble(-1);
 		const int &gradeid = json.value(QStringLiteral("gradeid")).toInt(-1);
@@ -3728,7 +3822,10 @@ QHttpServerResponse TeacherAPI::examGrading(const Credential &credential, const 
 
 	}
 
-	LAMBDA_SQL_ASSERT(_updatePassResultByExamContent(contentIdList));
+	// Ez elvileg úgysem fut le (state < 4)
+	/*if (!_updatePassResultByExamContent(this, contentIdList)) {
+		LOG_CERROR("client") << "Pass result update failed for examContent" << contentIdList;
+	}*/
 
 	response = responseOk();
 
@@ -3822,6 +3919,13 @@ QHttpServerResponse TeacherAPI::examFinish(const Credential &credential, const Q
 					  .addQuery(" AND exam.id IN (").addList(list.toVariantList())
 					  .addQuery("))")
 					  .exec());
+
+
+	for (const QJsonValue &v : list) {
+		if (!_updatePassResultByExam(this, -1, v.toInt())) {
+			LOG_CERROR("client") << "Pass result update failed for exam" << v.toInt();
+		}
+	}
 
 	response = responseOk();
 
@@ -4112,6 +4216,82 @@ QHttpServerResponse TeacherAPI::passDelete(const Credential &credential, const Q
 
 
 
+/**
+ * @brief TeacherAPI::passDuplicate
+ * @param credential
+ * @param src
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::passDuplicate(const Credential &credential, const QJsonArray &src, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Duplicate pass" << src;
+
+	if (src.isEmpty())
+		return responseError("missing source");
+
+	QSet<int> dst;
+
+	if (json.contains(QStringLiteral("id")))
+		dst.insert(json.value(QStringLiteral("id")).toInt());
+
+	if (json.contains(QStringLiteral("list"))) {
+		const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
+
+		for (const QJsonValue &v : list)
+			dst.insert(v.toInt());
+	}
+
+	if (dst.isEmpty())
+		return responseError("missing list");
+
+	LAMBDA_THREAD_BEGIN(credential, src, dst);
+
+	db.transaction();
+
+	for (const QJsonValue &v : src) {
+		const int srcId = v.toInt();
+
+		if (srcId <= 0)
+			continue;
+
+		CHECK_PASS(credential.username(), srcId);
+
+		for (const int &d : dst) {
+			const auto &toId = QueryBuilder::q(db).
+							   addQuery("INSERT INTO pass(starttime, endtime, title, grading, groupid) "
+										"SELECT starttime, endtime, title, grading, ")
+							   .addValue(d)
+							   .addQuery(" FROM pass WHERE id=").addValue(srcId)
+							   .execInsertAsInt();
+
+			LAMBDA_SQL_ASSERT_ROLLBACK(toId);
+
+			QueryBuilder q(db);
+			q.addQuery("SELECT id FROM passItem WHERE includepass IS NULL AND passid=").addValue(srcId);
+
+			LAMBDA_SQL_ASSERT_ROLLBACK(q.exec());
+
+			while (q.sqlQuery().next()) {
+				const int itemid = q.value("id").toInt();
+
+				LAMBDA_SQL_ASSERT_ROLLBACK(_passItemDuplicate(itemid, toId.value()));
+			}
+		}
+
+		LOG_CDEBUG("client") << "Pass duplicated:" << srcId << "->" << dst;
+	}
+
+	db.commit();
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
 
 /**
  * @brief TeacherAPI::passItemCreate
@@ -4191,6 +4371,18 @@ QHttpServerResponse TeacherAPI::passItemCreate(const Credential &credential, con
 	db.commit();
 
 	LOG_CDEBUG("client") << "Pass item created:" << *id;
+
+	const int group = QueryBuilder::q(db)
+					  .addQuery("SELECT groupid FROM pass WHERE id=").addValue(pass)
+					  .execToValue("groupid", -1).value_or(-1).toInt();
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT OR REPLACE INTO passResult (passitemid, username) SELECT ").addValue(*id)
+			.addQuery(", username FROM studentGroupInfo WHERE id=").addValue(group)
+			.exec()) {
+		LOG_CERROR("client") << "Pass item result create failed" << *id;
+	}
+
 
 	response = responseResult("id", *id);
 
@@ -4354,6 +4546,94 @@ QHttpServerResponse TeacherAPI::passItemList(const Credential &credential, const
 	LAMBDA_SQL_ASSERT(list);
 
 	response = responseResult("list", *list);
+
+	LAMBDA_THREAD_END;
+}
+
+
+/**
+ * @brief TeacherAPI::passItemUnlink
+ * @param credential
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::passItemUnlink(const Credential &credential, const int &id)
+{
+	LOG_CTRACE("client") << "Unlink pass item" << id;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, id);
+
+	db.transaction();
+
+	LAMBDA_SQL_ERROR_ROLLBACK("invalid id", QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+							  .addValue(credential.username())
+							  .addQuery(" AND id=(SELECT groupid FROM pass WHERE id=(SELECT passid FROM passItem WHERE id=")
+							  .addValue(id)
+							  .addQuery("))")
+							  .execCheckExists());
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+							   .addQuery("UPDATE campaign SET passitemid = null WHERE passitemid=").addValue(id)
+							   .exec());
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+							   .addQuery("UPDATE exam SET passitemid = null WHERE passitemid=").addValue(id)
+							   .exec());
+
+	db.commit();
+
+	LOG_CDEBUG("client") << "Pass item unlinked:" << id;
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief TeacherAPI::passItemDuplicate
+ * @param credential
+ * @param src
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::passItemDuplicate(const Credential &credential, const QJsonArray &src)
+{
+	LOG_CTRACE("client") << "Pass item duplicate" << src;
+
+	if (src.empty())
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, src);
+
+	db.transaction();
+
+	for (const QJsonValue &v : src) {
+		const int id = v.toInt();
+
+		if (id <= 0)
+			continue;
+
+		LAMBDA_SQL_ERROR_ROLLBACK("invalid id", QueryBuilder::q(db).addQuery("SELECT id FROM studentgroup WHERE owner=")
+								  .addValue(credential.username())
+								  .addQuery(" AND id=(SELECT groupid FROM pass WHERE id=(SELECT passid FROM passItem WHERE id=")
+								  .addValue(id)
+								  .addQuery("))")
+								  .execCheckExists());
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(_passItemDuplicate(id, -1));
+
+		LOG_CDEBUG("client") << "Pass item duplicated:" << id;
+	}
+
+	db.commit();
+
+	response = responseOk();
 
 	LAMBDA_THREAD_END;
 }
@@ -4960,6 +5240,128 @@ std::optional<int> TeacherAPI::_currency(const DatabaseMain *dbMain, const QStri
 
 
 
+/**
+ * @brief TeacherAPI::_updatePassResultByExam
+ * @param api
+ * @param exam
+ * @return
+ */
+
+bool TeacherAPI::_updatePassResultByExam(const AbstractAPI *api, const int &passitem, const int &exam)
+{
+	Q_ASSERT(api);
+	return _updatePassResultByExam(api->databaseMain(), passitem, exam);
+}
+
+
+
+/**
+ * @brief TeacherAPI::_updatePassResultByExam
+ * @param dbMain
+ * @param exam
+ * @return
+ */
+
+bool TeacherAPI::_updatePassResultByExam(const DatabaseMain *dbMain, const int &passitem, const int &exam)
+{
+	Q_ASSERT(dbMain);
+
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+	QMutexLocker _locker(dbMain->mutex());
+
+	db.transaction();
+
+	int pid = passitem;
+
+	if (pid <= 0) {
+		pid = QueryBuilder::q(db)
+			  .addQuery("SELECT passitemid FROM exam WHERE id=").addValue(exam)
+			  .execToValue("passitemid", -1)
+			  .value_or(-1).toInt();
+	}
+
+	if (pid <= 0) {
+		db.rollback();
+		return true;
+	}
+
+
+	const bool finished = QueryBuilder::q(db)
+						  .addQuery("SELECT state FROM exam WHERE id=").addValue(exam)
+						  .execToValue("state", -1)
+						  .value_or(-1).toInt() >= 4;
+
+
+	if (!QueryBuilder::q(db)
+			.addQuery("CREATE TEMPORARY TABLE tmpExamResult AS "
+					  "SELECT username, result FROM examContent "
+					  "LEFT JOIN exam ON (examContent.examid=exam.id) "
+					  "WHERE exam.id=")
+			.addValue(exam)
+			.exec()) {
+		db.rollback();
+		return false;
+	}
+
+	if (finished) {
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO passResult(username, result, passitemid) "
+						  "SELECT username, result, ").addValue(pid)
+				.addQuery(" FROM tmpExamResult")
+				.exec()) {
+			db.rollback();
+			return false;
+		}
+	} else {
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO passResult(username, passitemid) "
+						  "SELECT username, ").addValue(pid)
+				.addQuery(" FROM tmpExamResult")
+				.exec()) {
+			db.rollback();
+			return false;
+		}
+	}
+
+	if (!QueryBuilder::q(db)
+			.addQuery("DELETE FROM passResult WHERE passitemid=").addValue(pid)
+			.addQuery(" AND username NOT IN (SELECT username FROM tmpExamResult)")
+			.exec()) {
+		db.rollback();
+		return false;
+	}
+
+	if (!QueryBuilder::q(db)
+			.addQuery("DROP TABLE tmpExamResult")
+			.exec()) {
+		db.rollback();
+		return false;
+	}
+
+	db.commit();
+
+	return true;
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::_updatePassResultByExamContent
+ * @param api
+ * @param examContentId
+ * @return
+ */
+
+bool TeacherAPI::_updatePassResultByExamContent(const AbstractAPI *api, const QVariantList &examContentId)
+{
+	Q_ASSERT(api);
+	return _updatePassResultByExamContent(api->databaseMain(), examContentId);
+}
+
+
+
 
 
 
@@ -5245,6 +5647,72 @@ QJsonArray TeacherAPI::_taskList(const int &campaign) const
 
 
 
+/**
+ * @brief TeacherAPI::_passItemDuplicate
+ * @param itemid
+ * @param destPass
+ * @return
+ */
+
+bool TeacherAPI::_passItemDuplicate(const int &itemid, const int &destPass)
+{
+	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+	QMutexLocker _locker(databaseMain()->mutex());
+
+	int id = -1;
+	int dp = destPass;
+
+	if (destPass > 0) {
+		const auto &ptr = QueryBuilder::q(db)
+						  .addQuery("INSERT INTO passItem(categoryid, description, extra, pts, passid) "
+									"SELECT categoryid, description, extra, pts, ")
+						  .addValue(destPass)
+						  .addQuery(" FROM passItem WHERE includepass IS NULL AND id=").addValue(itemid)
+						  .execInsertAsInt();
+
+		if (!ptr)
+			return false;
+
+		id = ptr.value();
+
+	} else {
+		const auto &ptr = QueryBuilder::q(db)
+						  .addQuery("INSERT INTO passItem(categoryid, description, extra, pts, passid) "
+									"SELECT categoryid, description, extra, pts, passid FROM passItem "
+									"WHERE includepass IS NULL AND id=")
+						  .addValue(itemid)
+						  .execInsertAsInt();
+
+		if (!ptr)
+			return false;
+
+		dp = QueryBuilder::q(db)
+			 .addQuery("SELECT passid FROM passItem WHERE id=").addValue(itemid)
+			 .execToValue("passid", -1).value_or(-1).toInt();
+
+		id = ptr.value();
+	}
+
+
+	const int group = QueryBuilder::q(db)
+					  .addQuery("SELECT groupid FROM pass WHERE id=").addValue(dp)
+					  .execToValue("groupid", -1).value_or(-1).toInt();
+
+	if (!QueryBuilder::q(db)
+			.addQuery("INSERT OR REPLACE INTO passResult (passitemid, username) SELECT ").addValue(id)
+			.addQuery(", username FROM studentGroupInfo WHERE id=").addValue(group)
+			.exec()) {
+		return false;
+	}
+
+
+	return true;
+}
+
+
+
+
 
 /**
  * @brief TeacherAPI::_updatePassResultByExamContent
@@ -5252,47 +5720,62 @@ QJsonArray TeacherAPI::_taskList(const int &campaign) const
  * @return
  */
 
-bool TeacherAPI::_updatePassResultByExamContent(const QSet<int> &examContentId)
+bool TeacherAPI::_updatePassResultByExamContent(const DatabaseMain *dbMain, const QVariantList &examContentId)
 {
+	Q_ASSERT(dbMain);
+
 	if (examContentId.empty())
 		return true;
 
-	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-	QMutexLocker _locker(databaseMain()->mutex());
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+	QMutexLocker _locker(dbMain->mutex());
 
-	db.transaction();
+	QSet<QPair<int, int>> list;
 
-	/*for (const int contentId : examContentId) {
-		select passitemid from exam
-		delete from passresult where passitemid=_id_ and username not in selectu username from examcontent where id=x
-		insert or replace into passresult select examcontent
-	}
-	if (const auto &p = QueryBuilder::q(db)
-			.addQuery("SELECT passitemid FROM exam WHERE id=(SELECT examid FROM examContent WHERE id=")
-			.addValue(id).addQuery("))")
-			.execToValue("passitemid", -1); p.value_or(-1).toInt() > 0) {
-		if (result < 0) {
-			LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-									   .addQuery("DELETE FROM passresult WHERE passitemid=")
-									   .addValue(p.value())
-									   .addQuery(" AND username=(SELECT username FROM examContent WHERE id=")
-									   .addValue(id)
-									   .addQuery(")")
-									   .exec());
-		} else {
-			LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-									   .addQuery("INSERT OR REPLACE INTO passresult(passitemid, username, result) ")
-									   .addQuery("SELECT ").addValue(p.value())
-									   .addQuery(", username, ").addValue(result)
-									   .addQuery(" FROM examContent WHERE id=").addValue(id)
-									   .exec());
+	{
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT DISTINCT exam.id, exam.passitemid FROM examContent "
+				   "LEFT JOIN exam ON (examContent.examid=exam.id) "
+				   "WHERE examContent.id IN (")
+				.addList(examContentId)
+				.addQuery(")");
+
+		if (!q.exec())
+			return false;
+
+		while (q.sqlQuery().next()) {
+			const int passitem = q.value("passitemid", -1).toInt();
+			if (passitem <= 0)
+				continue;
+
+			list.insert(qMakePair(passitem, q.value("id").toInt()));
 		}
+	}
 
-	}*/
 
-	db.commit();
+	for (const auto &l : list) {
+		if (!_updatePassResultByExam(dbMain, l.first, l.second))
+			return false;
+	}
 
 	return true;
+}
+
+
+
+/**
+ * @brief TeacherAPI::_updatePassResultByCampaign
+ * @param api
+ * @param passitem
+ * @param campaign
+ * @return
+ */
+
+bool TeacherAPI::_updatePassResultByCampaign(const AbstractAPI *api, const int &passitem, const int &campaign)
+{
+	Q_ASSERT(api);
+	return _updatePassResultByCampaign(api->databaseMain(), passitem, campaign);
 }
 
 
@@ -5303,35 +5786,67 @@ bool TeacherAPI::_updatePassResultByExamContent(const QSet<int> &examContentId)
  * @return
  */
 
-bool TeacherAPI::_updatePassResultByCampaign(const int &passitem, const int &campaign)
+bool TeacherAPI::_updatePassResultByCampaign(const DatabaseMain *dbMain, const int &passitem, const int &campaign)
 {
+	Q_ASSERT(dbMain);
+
 	if (passitem <= 0)
 		return false;
 
-	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-	QMutexLocker _locker(databaseMain()->mutex());
+	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+	QMutexLocker _locker(dbMain->mutex());
+
+	const bool finished = QueryBuilder::q(db)
+						  .addQuery("SELECT finished FROM campaign WHERE id=").addValue(campaign)
+						  .execToValue("finished", false).value_or(false).toBool();
 
 	db.transaction();
 
 	if (!QueryBuilder::q(db)
-			.addQuery("DELETE FROM passResult WHERE passitemid=")
-			.addValue(passitem)
-			.exec()) {
-		db.rollback();
-		return false;
-	}
-
-	if (!QueryBuilder::q(db)
-			.addQuery("INSERT INTO passResult(username, result, passitemid) "
+			.addQuery("CREATE TEMPORARY TABLE tmpCampaignResult AS "
 					  "WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
-					  "SELECT studentGroupInfo.username, COALESCE(progress, 0), ").addValue(passitem)
-			.addQuery(" FROM studentGroupInfo "
+					  "SELECT studentGroupInfo.username AS username, COALESCE(progress, 0) AS progress FROM studentGroupInfo "
 					  "LEFT JOIN campaignResult ON (campaignResult.campaignid=").addValue(campaign)
 			.addQuery(" AND campaignResult.username=studentGroupInfo.username) "
 					  "WHERE active=true AND studentGroupInfo.id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign)
 			.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(campaign)
 			.addQuery(") OR studentGroupInfo.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(campaign)
 			.addQuery("))")
+			.exec()) {
+		db.rollback();
+		return false;
+	}
+
+	if (finished) {
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO passResult(username, result, passitemid) "
+						  "SELECT username, progress, ").addValue(passitem)
+				.addQuery(" FROM tmpCampaignResult")
+				.exec()) {
+			db.rollback();
+			return false;
+		}
+	} else {
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO passResult(username, passitemid) "
+						  "SELECT username, ").addValue(passitem)
+				.addQuery(" FROM tmpCampaignResult")
+				.exec()) {
+			db.rollback();
+			return false;
+		}
+	}
+
+	if (!QueryBuilder::q(db)
+			.addQuery("DELETE FROM passResult WHERE passitemid=").addValue(passitem)
+			.addQuery(" AND username NOT IN (SELECT username FROM tmpCampaignResult)")
+			.exec()) {
+		db.rollback();
+		return false;
+	}
+
+	if (!QueryBuilder::q(db)
+			.addQuery("DROP TABLE tmpCampaignResult")
 			.exec()) {
 		db.rollback();
 		return false;

@@ -106,6 +106,18 @@ void Campaign::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("maxPts")) || allField)
 		setMaxPts(object.value(QStringLiteral("maxPts")).toInt());
+
+
+	// Ezek nem mindig jönnek
+
+	if (object.contains(QStringLiteral("passitemid")))
+		setPassitemid(object.value(QStringLiteral("passitemid")).toInt());
+
+	if (object.contains(QStringLiteral("passDescription")))
+		setPassDescription(object.value(QStringLiteral("passDescription")).toString());
+
+	if (object.contains(QStringLiteral("passTitle")))
+		setPassTitle(object.value(QStringLiteral("passTitle")).toString());
 }
 
 
@@ -685,4 +697,43 @@ void Campaign::setMaxPts(int newMaxPts)
 		return;
 	m_maxPts = newMaxPts;
 	emit maxPtsChanged();
+}
+
+int Campaign::passitemid() const
+{
+	return m_passitemid;
+}
+
+void Campaign::setPassitemid(int newPassitemid)
+{
+	if (m_passitemid == newPassitemid)
+		return;
+	m_passitemid = newPassitemid;
+	emit passitemidChanged();
+}
+
+QString Campaign::passDescription() const
+{
+	return m_passDescription;
+}
+
+void Campaign::setPassDescription(const QString &newPassDescription)
+{
+	if (m_passDescription == newPassDescription)
+		return;
+	m_passDescription = newPassDescription;
+	emit passDescriptionChanged();
+}
+
+QString Campaign::passTitle() const
+{
+	return m_passTitle;
+}
+
+void Campaign::setPassTitle(const QString &newPassTitle)
+{
+	if (m_passTitle == newPassTitle)
+		return;
+	m_passTitle = newPassTitle;
+	emit passTitleChanged();
 }
