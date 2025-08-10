@@ -842,7 +842,10 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	const QList<RpgGameData::Message> &messageList = m_engine->takeMessageList();
 
 	for (const RpgGameData::Message &msg : messageList) {
-		m_rpgGame->message(msg.m, msg.p);
+		if (const QColor &color = msg.color(); color.isValid())
+			m_rpgGame->messageColor(msg.m, color, msg.p);
+		else
+			m_rpgGame->message(msg.m, msg.p);
 	}
 
 }

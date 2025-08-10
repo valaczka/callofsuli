@@ -145,10 +145,13 @@ protected:
 	virtual bool onPlayerFinishCast(RpgPlayer *player);
 	virtual bool onPlayerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
 	virtual bool onPlayerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
+
 	virtual bool onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, RpgWeapon *weapon);
 	virtual bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle);
 	virtual bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
 									 const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype);
+	virtual void onEnemyDead(RpgEnemy *enemy);
+
 	virtual bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other);
 	virtual void onLifeCycleDelete(TiledObjectBody *body);
 	virtual void onQuestionSuccess(RpgPlayer *player, RpgActiveIface *control, int xp);

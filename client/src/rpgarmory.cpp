@@ -26,6 +26,7 @@
 
 #include "rpgarmory.h"
 #include "actionrpgmultiplayergame.h"
+#include "chipmunk/chipmunk_structs.h"
 #include "rpgaxe.h"
 #include "rpgbroadsword.h"
 #include "rpgdagger.h"

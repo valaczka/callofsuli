@@ -296,7 +296,7 @@ void RpgEnemyBase::playAttackEffect(RpgWeapon *weapon)
 cpVect RpgEnemyBase::getPickablePosition(const int &num) const
 {
 	return cpvsub(bodyPosition(),
-				  TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 75. *num)
+				  TiledObject::vectorFromAngle(directionToIsometricRadian(m_facingDirection), 15. *num)
 				  );
 }
 

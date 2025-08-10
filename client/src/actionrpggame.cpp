@@ -585,7 +585,7 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
-	if (!m_rpgGame->load(ptr.value(), 1, characterPtr->cast == RpgPlayerCharacterConfig::CastInvalid)) {
+	if (!m_rpgGame->load(ptr.value(), 1)) {
 		LOG_CERROR("game") << "Game load error";
 		return;
 	}
@@ -1496,6 +1496,22 @@ bool ActionRpgGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
 	player->attackedByEnemy(enemy, weaponType, prot);
 
 	return true;
+}
+
+
+
+/**
+ * @brief ActionRpgGame::onEnemyDead
+ * @param enemy
+ * @return
+ */
+
+void ActionRpgGame::onEnemyDead(RpgEnemy *enemy)
+{
+	if (!enemy)
+		return;
+
+	m_rpgGame->extractEnemyInventory(enemy);
 }
 
 

@@ -151,6 +151,7 @@ void RpgEnemy::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGa
 void RpgEnemy::updateFromSnapshot(const RpgGameData::Enemy &snap)
 {
 	setHp(snap.hp);
+	m_inventory = snap.inv;
 
 	if (snap.st == RpgGameData::Enemy::EnemyAttack) {
 		if (RpgGame *g = qobject_cast<RpgGame*>(m_game); g && g->actionRpgGame()) {
@@ -594,6 +595,7 @@ RpgGameData::Enemy RpgEnemy::serializeEnemy() const
 	p.cv = toPosList(vel);
 
 	p.arm = m_armory->serialize();
+	p.inv = m_inventory;
 
 	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(m_player)) {
 		p.tg = player->baseData();

@@ -161,51 +161,8 @@ RpgPlayer::~RpgPlayer()
 
 void RpgPlayer::attack(RpgWeapon *weapon)
 {
-	RpgGame *g = qobject_cast<RpgGame*>(m_game);
-
-	if (!weapon || !isAlive() || !g || isHiding())
-		return;
-
-	clearDestinationPoint();
-
-	if (!hasAbility())
-		return;
-
-	if (weapon->canShot()) {
-		g->playerShot(this, weapon, desiredBodyRotation());
-
-	} else if (weapon->canHit()) {
-		if (!m_enemy) {
-			const QList<IsometricEnemy*> &list = reachedEnemies();
-
-			for (IsometricEnemy *e : list) {
-				if (e && e->player() == this) {
-					setDestinationPoint(e->bodyPosition());
-					break;
-				}
-			}
-		} else {
-			clearDestinationPoint();
-			stop();
-			rotateBody(angleToPoint(m_enemy->bodyPosition()));
-		}
-
-		g->playerHit(this, qobject_cast<RpgEnemy*>(m_enemy), weapon);
-
-	} else {
-#ifndef Q_OS_WASM
-		StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-		if (client)
-			client->performVibrate();
-#endif
-		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
-		//m_game->messageColor(tr("Empty weapon"), QColor::fromRgbF(0.8, 0., 0.));
-
-		return;
-	}
-
-	if (weapon->bulletCount() == 0)
-		messageEmptyBullet(weapon->weaponType());
+	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
+		g->playerAttack(this, weapon, std::nullopt);
 }
 
 
@@ -255,22 +212,8 @@ void RpgPlayer::cast()
 
 void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
 {
-	if (!isAlive())
-		return;
-
-	clearDestinationPoint();
-	m_pickAtDestination = false;
-
-	if (m_isLocked) {
-		stop();
-		return;
-	}
-
-	rotateBody(angleToPoint(cpv(x,y)), true);
-
-	synchronize();
-
-	attackCurrentWeapon();
+	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
+		g->playerAttack(this, nullptr, QPointF(x, y));
 }
 
 
@@ -285,11 +228,8 @@ void RpgPlayer::attackToPoint(const qreal &x, const qreal &y)
 
 void RpgPlayer::useCurrentControl()
 {
-	RpgGame *g = qobject_cast<RpgGame*>(m_game);
-
-	if (d->m_currentControl && d->m_currentControl->isActive() && !isHiding() && isAlive()) {
-		g->playerTryUseControl(this, d->m_currentControl->activeControl());
-	}
+	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
+		g->playerUseCurrentControl(this);
 }
 
 
@@ -303,11 +243,8 @@ void RpgPlayer::useCurrentControl()
 
 void RpgPlayer::exitHiding()
 {
-	if (m_isGameCompleted)
-		return;
-
 	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
-		g->playerTryUseControl(this, d->m_exitControl.get());
+		g->playerExitHiding(this);
 }
 
 
@@ -792,6 +729,123 @@ void RpgPlayer::attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weap
 		LOG_CERROR("game") << "Weapon not supported:" << weaponType;
 	}
 }
+
+
+
+/**
+ * @brief RpgPlayer::useCurrentControlReal
+ */
+
+void RpgPlayer::useCurrentControlReal()
+{
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (!g)
+		return;
+
+	if (d->m_currentControl && d->m_currentControl->isActive() && !isHiding() && isAlive()) {
+		g->playerTryUseControl(this, d->m_currentControl->activeControl());
+	}
+}
+
+
+
+
+/**
+ * @brief RpgPlayer::exitHidingReal
+ */
+
+void RpgPlayer::exitHidingReal()
+{
+	if (m_isGameCompleted)
+		return;
+
+	if (RpgGame *g = qobject_cast<RpgGame*>(m_game))
+		g->playerTryUseControl(this, d->m_exitControl.get());
+}
+
+
+
+
+/**
+ * @brief RpgPlayer::playerAttackReal
+ * @param weapon
+ * @param dest
+ */
+
+void RpgPlayer::attackReal(RpgWeapon *weapon, const std::optional<QPointF> &dest)
+{
+	RpgGame *g = qobject_cast<RpgGame*>(m_game);
+
+	if (!g || !isAlive() || isHiding())
+		return;
+
+	if (!hasAbility())
+		return;
+
+	if (dest) {
+		clearDestinationPoint();
+		m_pickAtDestination = false;
+
+		if (m_isLocked) {
+			stop();
+			return;
+		}
+
+		rotateBody(angleToPoint(TiledObjectBody::toVect(*dest)), true);
+
+		synchronize();
+
+		if (!weapon)
+			weapon = m_armory->currentWeapon();
+	}
+
+
+	if (!weapon)
+		return;
+
+	clearDestinationPoint();
+
+	if (weapon->canShot()) {
+		g->playerShot(this, weapon, desiredBodyRotation());
+
+	} else if (weapon->canHit()) {
+		if (!m_enemy) {
+			const QList<IsometricEnemy*> &list = reachedEnemies();
+
+			for (IsometricEnemy *e : list) {
+				if (e && e->player() == this) {
+					setDestinationPoint(e->bodyPosition());
+					break;
+				}
+			}
+		} else {
+			clearDestinationPoint();
+			stop();
+			rotateBody(angleToPoint(m_enemy->bodyPosition()));
+		}
+
+		g->playerHit(this, qobject_cast<RpgEnemy*>(m_enemy), weapon);
+
+	} else {
+#ifndef Q_OS_WASM
+		StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
+		if (client)
+			client->performVibrate();
+#endif
+		if (!m_sfxDecline.soundList().isEmpty()) m_sfxDecline.playOne();
+		//m_game->messageColor(tr("Empty weapon"), QColor::fromRgbF(0.8, 0., 0.));
+
+		return;
+	}
+
+	if (weapon->bulletCount() == 0)
+		messageEmptyBullet(weapon->weaponType());
+
+}
+
+
+
 
 QString RpgPlayer::specialState() const
 {

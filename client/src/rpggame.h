@@ -30,6 +30,7 @@
 #include "gamequestion.h"
 #include "rpgcontrol.h"
 #include "rpgenemy.h"
+#include "rpgpickable.h"
 #include "rpgplayer.h"
 #include "tiledgame.h"
 #include "isometricenemy.h"
@@ -131,7 +132,7 @@ public:
 	explicit RpgGame(QQuickItem *parent = nullptr);
 	virtual ~RpgGame();
 
-	Q_INVOKABLE bool load(const RpgGameDefinition &def, const int &playerCount = 1, const bool &replaceMpToShield = false);
+	Q_INVOKABLE bool load(const RpgGameDefinition &def, const int &playerCount = 1);
 
 	static const QHash<QString, RpgGameDefinition> &terrains();
 	static void reloadTerrains();
@@ -242,6 +243,10 @@ public:
 	ActionRpgGame *actionRpgGame() const;
 	void setActionRpgGame(ActionRpgGame *game);
 
+	void playerAttack(RpgPlayer *player, RpgWeapon *weapon, const std::optional<QPointF> &dest);
+	void playerUseCurrentControl(RpgPlayer *player);
+	void playerExitHiding(RpgPlayer *player);
+
 	bool playerShot(RpgPlayer *player, RpgWeapon *weapon, const qreal &angle);
 	bool playerHit(RpgPlayer *player, RpgEnemy *enemy, RpgWeapon *weapon);
 	bool playerAttackEnemy(RpgPlayer *player, RpgEnemy *enemy,
@@ -279,6 +284,8 @@ protected:
 							TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
 
 	RpgBullet *createBullet(RpgWeapon *weapon, TiledScene *scene, const int &id, const int &ownerId, const bool &isDynamic);
+
+	QList<RpgPickable*> extractEnemyInventory(RpgEnemy *enemy);
 
 
 	void updateRandomizer(const RpgGameData::Randomizer &randomizer);
@@ -344,8 +351,7 @@ private:
 		QPointer<TiledScene> scene;
 		QPointer<IsometricEnemy> enemy;
 		bool dieForever = false;
-		QVector<RpgGameData::PickableBaseData::PickableType> pickables;
-		QVector<RpgGameData::PickableBaseData::PickableType> pickablesOnce;
+		RpgGameData::Inventory inventory;
 		QString displayName;
 	};
 

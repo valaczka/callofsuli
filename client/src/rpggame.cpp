@@ -131,6 +131,10 @@ private:
 	void playerUseContainer(RpgPlayer *player, RpgControlContainer *control, const bool &success);
 	void playerUsePickable(RpgPlayer *player, RpgPickable *control, const bool &success);
 
+	QList<RpgPickable *> extractInventory(const RpgGameData::Inventory &inventory,
+										  const int &scene, const int &owner,
+										  const std::function<int ()> &nextIdFn,
+										  const std::function<cpVect (const int &)> &nextPosFn);
 
 
 	/**
@@ -162,6 +166,27 @@ private:
 
 	QHash<RpgConfig::ControlType, QDeadlineTimer> m_controlMessageTimer;
 	QList<QPair<RpgActiveIface*, bool> > m_controlMessages;
+
+
+
+	// Player attack, control,...etc.
+
+	struct PlayerEvent {
+		enum Type {
+			EventNone = 0,
+			EventAttack,
+			EventControlUse,
+			EventExit
+		};
+
+		Type type = EventNone;
+		QPointer<RpgWeapon> weapon;
+		std::optional<QPointF> dest;
+	};
+
+	QMutex m_playerMutex;
+	QHash<RpgPlayer *, std::vector<PlayerEvent> > m_playerEventHash;
+
 
 	friend class RpgGame;
 
@@ -206,7 +231,7 @@ RpgGame::~RpgGame()
  */
 
 
-bool RpgGame::load(const RpgGameDefinition &def, const int &playerCount, const bool &replaceMpToShield)
+bool RpgGame::load(const RpgGameDefinition &def, const int &playerCount)
 {
 	LOG_CINFO("game") << "Create game for" << playerCount << "players";
 
@@ -236,21 +261,7 @@ bool RpgGame::load(const RpgGameDefinition &def, const int &playerCount, const b
 	for (auto &e : m_enemyDataList) {
 		Q_ASSERT(!e.motor.path.isEmpty());
 
-		// Replace pickables if character has no cast
-
-		if (replaceMpToShield) {
-			for (auto &p : e.pickables) {
-				if (p == RpgGameData::PickableBaseData::PickableMp)
-					p = RpgGameData::PickableBaseData::PickableShield;
-			}
-
-			for (auto &p : e.pickablesOnce) {
-				if (p == RpgGameData::PickableBaseData::PickableMp)
-					p = RpgGameData::PickableBaseData::PickableShield;
-			}
-		}
-
-		IsometricEnemy *enemy = createEnemy(e.type, e.subtype, e.scene, e.objectId.id);
+		RpgEnemy *enemy = createEnemy(e.type, e.subtype, e.scene, e.objectId.id);
 
 		if (!enemy)
 			continue;
@@ -267,6 +278,8 @@ bool RpgGame::load(const RpgGameDefinition &def, const int &playerCount, const b
 			enemy->loadFixPositionMotor(e.motor,
 										enemy->nearestDirectionFromRadian(TiledObject::toRadian(e.defaultAngle)));
 
+
+		enemy->m_inventory = e.inventory;
 
 		e.enemy = enemy;
 	}
@@ -350,74 +363,6 @@ TiledObjectBody *RpgGame::findBody(const TiledObjectBody::ObjectId &objectId)
 
 
 
-
-
-
-
-/**
- * @brief RpgGame::playerPickPickable
- * @param player
- * @param pickable
- * @return
- */
-
-/*bool RpgGame::playerPickPickable(TiledObject *player, TiledObject *pickable)
-{
-	Q_ASSERT(player);
-
-	RpgPlayer *p = qobject_cast<RpgPlayer*>(player);
-	RpgPickableObject *object = qobject_cast<RpgPickableObject*>(pickable);
-
-	if (!p || !object)
-		return false;
-
-	if (!object->isActive())
-		return false;
-
-	if (m_funcPlayerPick && !m_funcPlayerPick(p, object))
-		return false;
-
-	if (!object->playerPick(p))
-		return false;
-
-	object->setIsActive(false);
-
-	p->inventoryAdd(object);
-
-	p->armory()->updateLayers();
-	//p->setShieldCount(p->armory()->getShieldCount());
-
-	playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), player->scene(), player->bodyPosition());
-
-
-	return true;
-}*/
-
-
-
-
-
-/**
- * @brief RpgGame::saveSceneState
- * @param player
- */
-/*
-void RpgGame::saveSceneState(RpgPlayer *player)
-{
-	if (!player)
-		return;
-
-	messageColor(tr("State saved"), QColor::fromRgbF(0., 0.9, 0.));
-
-	playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene(), player->bodyPositionF());
-
-	saveSceneState();
-}
-*/
-
-
-
-
 /**
  * @brief RpgGame::onPlayerDead
  * @param player
@@ -461,57 +406,13 @@ void RpgGame::onPlayerDead(TiledObject *player)
 
 void RpgGame::onEnemyDead(TiledObject *enemy)
 {
+	RpgEnemy *rpgEnemy = qobject_cast<RpgEnemy*>(enemy);
+
 	if (!enemy)
 		return;
 
-	int num = 0;
-
-	if (RpgEnemyIface *iface = dynamic_cast<RpgEnemyIface*>(enemy)) {
-		if (IsometricEnemy *isoEnemy = qobject_cast<IsometricEnemy*>(enemy)) {
-			if (auto it = enemyFind(isoEnemy); it != m_enemyDataList.end()) {
-				/*for (const auto &p : it->pickables) {
-					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
-						pickable->emplace(iface->getPickablePosition(num++));
-						pickable->setIsActive(true);
-					}
-				}
-
-				for (const auto &p : it->pickablesOnce) {
-					if (RpgPickableObject *pickable = createPickable(p, enemy->scene())) {
-						pickable->emplace(iface->getPickablePosition(num++));
-						pickable->setIsActive(true);
-					}
-				}
-
-				it->pickablesOnce.clear();*/
-
-				//it->hasQuestion = false;
-			}
-
-			// on all of enemies in the same scene are dead -> set die forever
-
-			QVector<EnemyData*> eList;
-			bool isAllDead = true;
-
-			for (auto it = m_enemyDataList.begin(); it != m_enemyDataList.end(); ++it) {
-				if (it->enemy && it->enemy->scene() == isoEnemy->scene()) {
-					eList.append(&*it);
-					if (it->enemy->isAlive())
-						isAllDead = false;
-				}
-			}
-
-			if (isAllDead) {
-				for (EnemyData *e : eList)
-					e->dieForever = true;
-			}
-		}
-	}
-
-	/*const int &count = recalculateEnemies();
-
-	if (!count)
-		emit gameSuccess();*/
+	if (q->m_action)
+		q->m_action->onEnemyDead(rpgEnemy);
 }
 
 
@@ -776,6 +677,34 @@ RpgBullet *RpgGame::createBullet(RpgWeapon *weapon, TiledScene *scene, const int
 	}
 
 	return b;
+}
+
+
+
+/**
+ * @brief RpgGame::extractEnemyInventory
+ * @param enemy
+ * @return
+ */
+
+QList<RpgPickable *> RpgGame::extractEnemyInventory(RpgEnemy *enemy)
+{
+	if (!enemy || enemy->m_inventory.l.isEmpty())
+		return {};
+
+	if (!m_controlledPlayer) {
+		LOG_CERROR("game") << "Missing controlled player";
+		return {};
+	}
+
+	QList<RpgPickable*> list = q->extractInventory(enemy->m_inventory,
+												   enemy->baseData().s, m_controlledPlayer->baseData().o,
+												   std::bind(&RpgPlayer::nextObjectId, m_controlledPlayer),
+												   std::bind(&RpgEnemy::getPickablePosition, enemy, std::placeholders::_1));
+
+	enemy->m_inventory = RpgGameData::Inventory();
+
+	return list;
 }
 
 
@@ -1695,6 +1624,52 @@ void RpgGame::setActionRpgGame(ActionRpgGame *game)
 }
 
 
+
+/**
+ * @brief RpgGame::playerAttack
+ * @param player
+ * @param weapon
+ * @param dest
+ */
+
+void RpgGame::playerAttack(RpgPlayer *player, RpgWeapon *weapon, const std::optional<QPointF> &dest)
+{
+	if (!player)
+		return;
+
+	QMutexLocker locker(&q->m_playerMutex);
+
+	q->m_playerEventHash[player].emplace_back(RpgGamePrivate::PlayerEvent::EventAttack, weapon, dest);
+}
+
+
+
+/**
+ * @brief RpgGame::playerUseCurrentControl
+ * @param player
+ */
+
+void RpgGame::playerUseCurrentControl(RpgPlayer *player)
+{
+	QMutexLocker locker(&q->m_playerMutex);
+
+	q->m_playerEventHash[player].emplace_back(RpgGamePrivate::PlayerEvent::EventControlUse, nullptr, std::nullopt);
+}
+
+
+/**
+ * @brief RpgGame::playerExitHiding
+ * @param player
+ */
+
+void RpgGame::playerExitHiding(RpgPlayer *player)
+{
+	QMutexLocker locker(&q->m_playerMutex);
+
+	q->m_playerEventHash[player].emplace_back(RpgGamePrivate::PlayerEvent::EventExit, nullptr, std::nullopt);
+}
+
+
 /**
  * @brief RpgGame::playerShot
  * @param player
@@ -1863,6 +1838,33 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
 
 void RpgGame::worldStep(TiledObjectBody *body)
 {
+	if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(body)) {
+		QMutexLocker locker(&q->m_playerMutex);
+
+		if (const auto it = q->m_playerEventHash.find(player); it != q->m_playerEventHash.cend()) {
+			for (const RpgGamePrivate::PlayerEvent &e : it.value()) {
+				switch (e.type) {
+					case RpgGamePrivate::PlayerEvent::EventAttack:
+						player->attackReal(e.weapon, e.dest);
+						break;
+
+					case RpgGamePrivate::PlayerEvent::EventControlUse:
+						player->useCurrentControlReal();
+						break;
+
+					case RpgGamePrivate::PlayerEvent::EventExit:
+						player->exitHidingReal();
+						break;
+
+					case RpgGamePrivate::PlayerEvent::EventNone:
+						break;
+				}
+			}
+
+			q->m_playerEventHash.erase(it);
+		}
+	}
+
 	if (ActionRpgGame *a = actionRpgGame(); a && a->onBodyStep(body))
 		return;
 	else
@@ -1961,18 +1963,7 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 	}
 
 
-	QVector<RpgGameData::PickableBaseData::PickableType> pickableList;
-
-	/*if (object->hasProperty(QStringLiteral("pickable"))) {
-		pickableList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickable")).toString());
-	}*/
-
-	QVector<RpgGameData::PickableBaseData::PickableType> pickableOnceList;
-
-	/*if (object->hasProperty(QStringLiteral("pickableOnce"))) {
-		pickableOnceList = getPickablesFromPropertyValue(object->property(QStringLiteral("pickableOnce")).toString());
-	}*/
-
+	const RpgGameData::Inventory inventory = getInventoryFromPropertyValue(object->propertyAsString(QStringLiteral("inventory")));
 	const int &defaultAngle = object->property(QStringLiteral("direction")).toInt();
 
 	EnemyMotorData motor;
@@ -2022,8 +2013,7 @@ void RpgGame::loadEnemy(TiledScene *scene, Tiled::MapObject *object, Tiled::MapR
 							   scene,
 							   nullptr,
 							   object->property(QStringLiteral("dieForever")).toBool(),
-							   pickableList,
-							   pickableOnceList,
+							   inventory,
 							   object->propertyAsString(QStringLiteral("displayName"))
 						   });
 }
@@ -3591,7 +3581,7 @@ void RpgGamePrivate::playerUseCollection(RpgPlayer *player, RpgControlCollection
 		else if (left > 0)
 			d->message(QObject::tr("Collect 1 more item"), true);
 		else if (left == 0) {
-			d->message(QObject::tr("All required items collected"), true);
+			d->messageColor(QObject::tr("All required items collected"), QColorConstants::Svg::limegreen, true);
 
 			bool hasTeleport = false;
 
@@ -3774,6 +3764,49 @@ void RpgGamePrivate::playerUseExit(RpgPlayer *player)
 
 
 
+/**
+ * @brief RpgGamePrivate::extractInventory
+ * @param player
+ * @param control
+ */
+
+QList<RpgPickable*> RpgGamePrivate::extractInventory(const RpgGameData::Inventory &inventory,
+													 const int &scene, const int &owner,
+													 const std::function<int()> &nextIdFn,
+													 const std::function<cpVect(const int &)> &nextPosFn)
+{
+	Q_ASSERT(nextIdFn);
+	Q_ASSERT(nextPosFn);
+
+	QList<RpgPickable*> list;
+
+	int num=0;
+
+	for (const RpgGameData::InventoryItem &item : inventory.l) {
+		TiledScene *s = d->findScene(scene);
+
+		if (!s) {
+			LOG_CERROR("game") << "Invalid scene" << scene;
+			continue;
+		}
+
+		RpgGameData::PickableBaseData data(item.t, owner, scene, nextIdFn());
+
+		const cpVect pos = nextPosFn(num++);
+
+		data.p = QList<float>{(float) pos.x, (float) pos.y};
+
+		RpgPickable *p = d->controlAdd<RpgPickable>(d, s, data);
+		p->playSfx();
+
+		list.append(p);
+	}
+
+	return list;
+}
+
+
+
 
 /**
  * @brief RpgGamePrivate::playerUseContainer
@@ -3793,21 +3826,14 @@ void RpgGamePrivate::playerUseContainer(RpgPlayer *player, RpgControlContainer *
 	control->setCurrentState(RpgGameData::ControlContainer::ContainerOpen);
 	control->setIsActive(false);
 
-	for (const RpgGameData::InventoryItem &item : control->baseData().inv.l) {
-		TiledScene *scene = d->findScene(control->baseData().s);
+	static const auto fn = [control](const int &num) -> cpVect {
+		return cpv(control->baseData().x + num*15., control->baseData().y + num*15.);
+	};
 
-		if (!scene) {
-			LOG_CERROR("game") << "Invalid scene" << control->baseData().s;
-			continue;
-		}
-
-		RpgGameData::PickableBaseData data(item.t, player->baseData().o, scene->sceneId(), player->nextObjectId());
-		data.p = QList<float>{control->baseData().x, control->baseData().y};
-
-		RpgPickable *p = d->controlAdd<RpgPickable>(d, scene, data);
-		p->playSfx();
-	}
-
+	extractInventory(control->baseData().inv,
+					 control->baseData().s, player->baseData().o,
+					 std::bind(&RpgPlayer::nextObjectId, player),
+					 fn);
 }
 
 
@@ -3835,7 +3861,7 @@ void RpgGamePrivate::playerUsePickable(RpgPlayer *player, RpgPickable *control, 
 
 	if (pv < 0) {
 		player->updateFromSnapshot(pData);
-	} else if (data.pt == RpgGameData::PickableBaseData::PickableMp) {
+	} else if (data.pt == RpgGameData::PickableBaseData::PickableTime) {
 		if (ActionRpgGame *game = d->actionRpgGame()) {
 			game->m_deadlineTick += AbstractGame::TickTimer::msecToTick(pv*1000);
 			d->message(QObject::tr("%1 seconds gained").arg(pv));

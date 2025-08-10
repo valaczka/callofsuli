@@ -96,6 +96,8 @@ Page {
 
 		RpgCharacterSelect {
 			game: root.game
+
+			onMarketRequest: Client.stackPushPage("PageMarket.qml")
 		}
 	}
 

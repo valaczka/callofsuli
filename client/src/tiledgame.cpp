@@ -157,8 +157,23 @@ private:
 
 	void stepWorlds();
 
+
+	/// Collision
+
 	static cpBool collisionBegin(cpArbiter *arb, cpSpace *space, cpDataPointer userData);
 	static void collisionEnd(cpArbiter *arb, cpSpace *space, cpDataPointer userData);
+
+	struct Collision {
+		TiledObjectBody *bodyA = nullptr;
+		TiledObjectBody *bodyB = nullptr;
+		cpShape *shapeA = nullptr;
+		cpShape *shapeB = nullptr;
+	};
+
+	std::vector<Collision> m_collisionBeginList;
+	std::vector<Collision> m_collisionEndList;
+
+
 
 
 	TiledGame *const q;
@@ -1335,8 +1350,21 @@ bool TiledGame::initSpace(TiledObjectBody *body, TiledScene *scene)
 
 	QMutexLocker locker(&d->m_stepMutex);
 
-	if (cpSpaceIsLocked(newSpace)) {
-		LOG_CERROR("scene") << "Space locked" << this;
+	bool unlocked = false;
+	for (int i=0; i<15; ++i) {
+		if (cpSpaceIsLocked(newSpace)) {
+			LOG_CERROR("scene") << "Space locked" << this;
+			//return false;
+
+			QThread::msleep(100);
+		} else {
+			unlocked = true;
+			break;
+		}
+	}
+
+	if (!unlocked) {
+		LOG_CERROR("scene") << "***ERR";
 		return false;
 	}
 
@@ -2248,6 +2276,23 @@ void TiledGamePrivate::stepWorlds()
 
 	for (const auto &ptr : std::as_const(m_sceneList)) {
 		cpSpaceStep(ptr->space.get(), 1./60.);
+
+		for (const auto &e : m_collisionBeginList) {
+			if (e.bodyA)
+				e.bodyA->onShapeContactBegin(e.shapeA, e.shapeB);
+			if (e.bodyB)
+				e.bodyB->onShapeContactBegin(e.shapeB, e.shapeA);
+		}
+
+		for (const auto &e : m_collisionEndList) {
+			if (e.bodyA)
+				e.bodyA->onShapeContactEnd(e.shapeA, e.shapeB);
+			if (e.bodyB)
+				e.bodyB->onShapeContactEnd(e.shapeB, e.shapeA);
+		}
+
+		m_collisionBeginList.clear();
+		m_collisionEndList.clear();
 	}
 
 	for (const auto &ptr : std::as_const(m_bodyList)) {
@@ -2729,9 +2774,11 @@ void TiledGamePrivate::Scene::destroyScene()
  * @return
  */
 
-cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *, cpDataPointer)
+cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *, cpDataPointer userData)
 {
-	//TiledGamePrivate *d = (TiledGamePrivate *) userData;
+	TiledGamePrivate *d = (TiledGamePrivate *) userData;
+
+	Q_ASSERT(d);
 
 	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
 
@@ -2741,8 +2788,11 @@ cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *, cpDataPointer
 	if (!bodyA || !bodyB || bodyA->isAboutToDestruction() || bodyB->isAboutToDestruction())
 		return true;
 
-	bodyA->onShapeContactBegin(shapeA, shapeB);
-	bodyB->onShapeContactBegin(shapeB, shapeA);
+	//bodyA->onShapeContactBegin(shapeA, shapeB);
+	//bodyB->onShapeContactBegin(shapeB, shapeA);
+
+	QMutexLocker locker(&d->m_stepMutex);
+	d->m_collisionBeginList.emplace_back(bodyA, bodyB, shapeA, shapeB);
 
 	return true;
 }
@@ -2757,9 +2807,11 @@ cpBool TiledGamePrivate::collisionBegin(cpArbiter *arb, cpSpace *, cpDataPointer
  * @param userData
  */
 
-void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *, cpDataPointer)
+void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *, cpDataPointer userData)
 {
-	//TiledGamePrivate *d = (TiledGamePrivate *) userData;
+	TiledGamePrivate *d = (TiledGamePrivate *) userData;
+
+	Q_ASSERT(d);
 
 	CP_ARBITER_GET_SHAPES(arb, shapeA, shapeB);
 
@@ -2769,7 +2821,9 @@ void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *, cpDataPointer)
 	if (!bodyA || !bodyB || bodyA->isAboutToDestruction() || bodyB->isAboutToDestruction())
 		return;
 
-	bodyA->onShapeContactEnd(shapeA, shapeB);
-	bodyB->onShapeContactEnd(shapeB, shapeA);
+	//bodyA->onShapeContactEnd(shapeA, shapeB);
+	//bodyB->onShapeContactEnd(shapeB, shapeA);
 
+	QMutexLocker locker(&d->m_stepMutex);
+	d->m_collisionEndList.emplace_back(bodyA, bodyB, shapeA, shapeB);
 }

@@ -17,6 +17,8 @@ QItemGradient {
 	title: (_multiplayer ? _multiplayer.readableEngineId + " | " : "") +
 		   (game ? game.name + qsTr(" – level %1").arg(game.level) : "")
 
+	signal marketRequest()
+
 	Qaterial.BusyIndicator {
 		id: _busyIndicator
 		anchors.centerIn: parent
@@ -202,7 +204,7 @@ QItemGradient {
 								Qaterial.AppBarButton {
 									icon.source: Qaterial.Icons.cartOutline
 									ToolTip.text: qsTr("Vásárlás")
-									onClicked: game.marketRequest()
+									onClicked: marketRequest()
 									icon.width: Qaterial.Style.mediumIcon
 									icon.height: Qaterial.Style.mediumIcon
 									icon.color: Qaterial.Style.iconColor()

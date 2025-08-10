@@ -61,6 +61,7 @@ public:
 
 
 	RpgArmory *armory() const { return m_armory.get(); }
+	const RpgGameData::Inventory &inventory() const { return m_inventory; }
 
 
 	virtual RpgWeapon *defaultWeapon() const = 0;
@@ -74,6 +75,7 @@ protected:
 
 	RpgGameData::EnemyBaseData::EnemyType m_enemyType = RpgGameData::EnemyBaseData::EnemyInvalid;
 	std::unique_ptr<RpgArmory> m_armory;
+	RpgGameData::Inventory m_inventory;
 
 private:
 	static const QHash<QString, RpgGameData::EnemyBaseData::EnemyType> m_typeHash;

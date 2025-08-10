@@ -280,7 +280,8 @@ bool RpgEventCollectionUsed::process(const qint64 &tick, RpgGameData::CurrentSna
 				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("Collect 1 more item"), true),
 									 QList<int>{m_player.o});
 			else if (left == 0)
-				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("All required items collected"), true),
+				m_engine->messageAdd(RpgGameData::Message(QStringLiteral("All required items collected"),
+														  QColorConstants::Svg::limegreen, true),
 									 QList<int>{m_player.o});
 		}
 

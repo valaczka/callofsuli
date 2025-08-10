@@ -36,7 +36,7 @@ const QHash<RpgGameData::PickableBaseData::PickableType, QString> RpgPickable::m
 	{ RpgGameData::PickableBaseData::PickableShield, QStringLiteral("shield") },
 	{ RpgGameData::PickableBaseData::PickableBullet, QStringLiteral("bullet") },
 	{ RpgGameData::PickableBaseData::PickableTime, QStringLiteral("time") },
-	{ RpgGameData::PickableBaseData::PickableMp, QStringLiteral("time") },
+	{ RpgGameData::PickableBaseData::PickableMp, QStringLiteral("mp") },
 	{ RpgGameData::PickableBaseData::PickableCoin, QStringLiteral("coin") },
 	{ RpgGameData::PickableBaseData::PickableKey, QStringLiteral("key") },
 };

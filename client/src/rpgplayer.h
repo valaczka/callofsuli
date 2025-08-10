@@ -257,6 +257,10 @@ private:
 	void onCastTimerTimeout();
 	void attackReachedEnemies(const RpgGameData::Weapon::WeaponType &weaponType);
 
+	void useCurrentControlReal();
+	void exitHidingReal();
+	void attackReal(RpgWeapon *weapon, const std::optional<QPointF> &dest);
+
 private:
 	RpgPlayerPrivate *const d;
 
