@@ -170,5 +170,4 @@ Item {
 
 		handlerSlave: _spriteHandlerAuxBack
 	}
-
 }

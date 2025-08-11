@@ -2,10 +2,12 @@ include(../../common.pri)
 
 INCLUDEPATH += $$PWD
 
-include($$PWD/../QDeferred/src/qdeferred.pri)
-include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
+!wasm: {
+	include($$PWD/../QDeferred/src/qdeferred.pri)
+	include($$PWD/../QDeferred/src/qlambdathreadworker.pri)
 
-INCLUDEPATH += $$PWD/../QDeferred/src
+	INCLUDEPATH += $$PWD/../QDeferred/src
+}
 
 android: INCLUDEPATH += $$PWD/../android_openssl/static/include
 

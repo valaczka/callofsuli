@@ -110,6 +110,16 @@ RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::Pi
 }
 
 
+/**
+ * @brief RpgPickable::~RpgPickable
+ */
+
+RpgPickable::~RpgPickable()
+{
+
+}
+
+
 
 
 /**

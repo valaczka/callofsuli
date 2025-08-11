@@ -484,10 +484,12 @@ int Player::pick(Player &dst, const PickableBaseData::PickableType &type, const 
 	switch (type) {
 		case PickableBaseData::PickableHp:
 			dst.hp += PICKABLE_HP_VALUE;
+			return -PICKABLE_HP_VALUE;
 			break;
 
 		case PickableBaseData::PickableShield:
 			dst.arm.add(Weapon::WeaponShield, PICKABLE_SHIELD_VALUE);
+			return -PICKABLE_SHIELD_VALUE;
 			break;
 
 		case PickableBaseData::PickableKey:
@@ -496,6 +498,7 @@ int Player::pick(Player &dst, const PickableBaseData::PickableType &type, const 
 
 		case PickableBaseData::PickableBullet:
 			dst.arm.addBullet(PICKABLE_BULLET_VALUE);
+			return -PICKABLE_BULLET_VALUE;
 			break;
 
 		case PickableBaseData::PickableTime:

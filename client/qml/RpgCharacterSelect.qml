@@ -163,7 +163,8 @@ QItemGradient {
 								outlined: !enabled
 
 								enabled: _selectTerrain.wallet && _selectCharacter.wallet &&
-										 _selectCharacter.wallet.available
+										 _selectCharacter.wallet.available &&
+										 (!_multiplayer || _multiplayer.playersModel.count > 1 || Client.debug)
 
 								text: qsTr("Play")
 

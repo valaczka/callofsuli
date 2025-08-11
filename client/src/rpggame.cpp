@@ -1824,6 +1824,15 @@ RpgPlayer *RpgGame::createPlayer(TiledScene *scene, const RpgPlayerCharacterConf
 	if (player) {
 		player->setConfig(config);
 		player->initialize();
+
+		if (config.walk > 0)
+			player->m_speedLength = config.walk;
+
+		if (config.run > 0)
+			player->m_speedRunLength = config.run;
+
+		if (config.inability > 0)
+			player->m_inabilityTime = config.inability;
 	}
 
 	return player;
@@ -3861,6 +3870,10 @@ void RpgGamePrivate::playerUsePickable(RpgPlayer *player, RpgPickable *control, 
 
 	if (pv < 0) {
 		player->updateFromSnapshot(pData);
+
+		if (data.pt == RpgGameData::PickableBaseData::PickableBullet)
+			d->message(QObject::tr("%1 bullets gained").arg(-pv));
+
 	} else if (data.pt == RpgGameData::PickableBaseData::PickableTime) {
 		if (ActionRpgGame *game = d->actionRpgGame()) {
 			game->m_deadlineTick += AbstractGame::TickTimer::msecToTick(pv*1000);

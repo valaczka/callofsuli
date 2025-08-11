@@ -824,21 +824,16 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 																  .id = m_baseData.ownId.id,
 															  }));
 
-				LOG_CINFO("scene") << "REAL BULLET ATTACK PLAYER" << snapshot.current << snapshot.s1.f <<
-									  snapshot.s1.p << player->baseData().o << enemy;
-
 				player->attackedByEnemy(g->controlledPlayer() == player ? enemy : nullptr,
 										m_baseData.t, false, true);
 			}
 
 		}
 
-		LOG_CINFO("scene") << "attacked";
-
 		m_impactRendered = true;
 	}
 
-	if (m_stage != StageLive)
+	if (m_stage > StageLive)
 		return;
 
 
@@ -908,7 +903,8 @@ void RpgBullet::updateFromSnapshot(const RpgGameData::Bullet &snap)
 
 void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 {
-	if (m_stage != StageLive) {
+	if (m_stage > StageLive) {
+		LOG_CERROR("scene") << "NO LIVE" << this << m_baseData << base << m_stage;
 		disableBullet();
 		return;
 	}
@@ -984,7 +980,7 @@ void RpgBullet::impactEvent(TiledObjectBody *base, cpShape *shape)
 
 void RpgBullet::overshootEvent()
 {
-	if (m_stage != StageLive) {
+	if (m_stage > StageLive) {
 		disableBullet();
 		return;
 	}

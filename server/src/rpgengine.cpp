@@ -720,8 +720,31 @@ int RpgEngine::createEvents(const qint64 &tick, const RpgGameData::EnemyBaseData
 		return 0;
 
 	if (prev->hp > 0 && snap.hp <= 0) {
-		ELOG_DEBUG << "Enemy died" << data;
-		eventAdd<RpgEventEnemyDied>(tick, data);
+		ELOG_DEBUG << "Enemy died" << data << snap.inv;
+
+		QList<RpgGameData::PickableBaseData> list;
+
+		QPointF pos(0., 0.);
+
+		if (snap.p.size() > 1) {
+			pos.setX(snap.p.at(0));
+			pos.setY(snap.p.at(1));
+		}
+
+		for (const RpgGameData::InventoryItem &it : snap.inv.l) {
+			const RpgGameData::PickableBaseData &pdata = m_snapshots.pickableAdd(it.t, data.s, pos);
+
+			if (!pdata.isValid()) {
+				ELOG_ERROR << "Pickable creation failed";
+				continue;
+			}
+
+			list.append(pdata);
+
+			pos += QPointF(15., 15.);
+		}
+
+		eventAdd<RpgEventEnemyDied>(tick, data, list);
 		return 1;
 	}
 
@@ -905,8 +928,10 @@ void RpgEngine::addContainerUsed(const qint64 &tick,
 		return;
 	}
 
+	QPointF pos(base.x, base.y);
+
 	for (const RpgGameData::InventoryItem &it : base.inv.l) {
-		const RpgGameData::PickableBaseData &data = m_snapshots.pickableAdd(it.t, base.s, QPointF(base.x, base.y));
+		const RpgGameData::PickableBaseData &data = m_snapshots.pickableAdd(it.t, base.s, pos);
 
 		if (!data.isValid()) {
 			ELOG_ERROR << "Pickable creation failed";
@@ -914,6 +939,8 @@ void RpgEngine::addContainerUsed(const qint64 &tick,
 		}
 
 		list.append(data);
+
+		pos += QPointF(15., 15.);
 	}
 
 	eventAdd<RpgEventContainerUsed>(tick, base, player, list, success);
@@ -1103,7 +1130,7 @@ void RpgEngine::preparePlayers()
 
 		RpgGameData::CharacterSelect config = ptr->config();
 
-		config.maxHp = std::max(config.maxHp, 20);
+		config.maxHp = std::max(config.maxHp, 10);
 		//ptr->mmp = config.maxMp;
 
 		ptr->setConfig(config);
@@ -1112,7 +1139,7 @@ void RpgEngine::preparePlayers()
 		pdata.p = {ptr->m_startPosition.x, ptr->m_startPosition.y};
 		pdata.f = 0;
 		pdata.sc = ptr->m_startPosition.scene;
-		pdata.hp = std::max(config.maxHp, 13);			// TODO: from m_config
+		pdata.hp = std::max(config.maxHp, 10);
 		pdata.mp = config.mp;
 
 		if (!config.armory.wl.isEmpty()) {
@@ -2675,6 +2702,10 @@ bool RpgEnginePrivate::gameFinish()
 		return false;
 	}
 
+
+	int left = 1;
+	q->getCollected(q->m_currentTick, {}, &left);
+
 	const int duration = q->m_currentTick * 1000./60.;
 
 	for (const auto &pl : q->m_player) {
@@ -2705,7 +2736,7 @@ bool RpgEnginePrivate::gameFinish()
 
 		const RpgGameData::Player playerData = pit->get(q->m_currentTick).value();
 
-		const bool success = playerData.c >= pl->rq;
+		const bool success = (pl->m_finalSuccess && playerData.c >= pl->rq && left <= 0);
 
 		ELOG_INFO << "Finish game" << pl->m_gameId
 				  << (success ? "SUCCESS" : "FAILED")

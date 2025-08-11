@@ -414,7 +414,7 @@ inline T *RpgGame::controlFind(const T2 &baseData) const
 
 	for (const auto &ptr : m_controls) {
 		if (T *c = dynamic_cast<T*>(ptr.get());
-				c && c->baseData() == baseData) {
+				c && c->baseData().isBaseEqual(baseData)) {
 			r = c;
 			break;
 		}

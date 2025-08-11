@@ -2629,6 +2629,7 @@ void Renderer::render(RendererItem<RpgGameData::Bullet> *dst, RendererObject<Rpg
 
 				} else if (specialSt == RpgGameData::LifeCycle::StageInvalid) {
 					specialSt = p.st;
+					target = p.tg;
 				}
 
 			}
@@ -3140,12 +3141,14 @@ bool ConflictSolver::ConflictWeaponUsage<T, T2, T3, T4>::solveData(ConflictSolve
 	auto it = data.arm.find(weaponType, weaponSubType);
 
 	if (it == data.arm.wl.end()) {
-		SLOG_ERROR(solver) << "Missing weapon" << weaponType << weaponSubType << src->baseData;
+		if (tick <= 1)
+			SLOG_ERROR(solver) << "[Missing weapon]" << src->baseData << weaponType << weaponSubType;
 		return false;
 	}
 
 	if (it->b == 0) {
-		SLOG_ERROR(solver) << "No bullet" << weaponType << weaponSubType << src->baseData;
+		if (tick <= 1)
+			SLOG_ERROR(solver) << "[No bullet]" << src->baseData << weaponType << weaponSubType;
 		return false;
 	}
 

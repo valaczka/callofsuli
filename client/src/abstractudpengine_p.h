@@ -65,7 +65,6 @@ public:
 
 private:
 	void updateChallenge();
-	void deliverReceived();
 	void destroyHostAndPeer();
 
 	AbstractUdpEngine *q = nullptr;
@@ -73,6 +72,7 @@ private:
 	QUrl m_url;
 
 #ifndef Q_OS_WASM
+	void deliverReceived();
 	void packetReceived(const ENetEvent &event);
 
 	ENetHost *m_enet_host = nullptr;
@@ -120,7 +120,7 @@ private:
 
 	Speed m_speed;
 
-
+#ifndef Q_OS_WASM
 	struct InOutCache {
 		struct Packet {
 			Packet(const QByteArray &d, const bool r, const bool &s, const qint64 &_tick = -1)
@@ -156,6 +156,7 @@ private:
 	};
 
 	InOutCache m_inOutChache;
+#endif
 
 	QByteArray m_secretKey;
 	QByteArray m_connectionToken;

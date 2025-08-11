@@ -78,6 +78,8 @@ public:
 	  , mpMax(0)
 	  , mpStart(0)
 	  , inability(-1)
+	  , walk(0)
+	  , run(0)
 	{}
 
 	void updateSfxPath(const QString &prefix);
@@ -114,6 +116,8 @@ public:
 	QS_FIELD(int, mpStart)
 
 	QS_FIELD(int, inability)		// Base inability time
+	QS_FIELD(int, walk)				// walk speed
+	QS_FIELD(int, run)				// run speed
 };
 
 

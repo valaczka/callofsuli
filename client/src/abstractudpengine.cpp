@@ -50,9 +50,10 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 {
 	LOG_CDEBUG("client") << "Start udp engine";
 
-	m_worker->getThread()->setPriority(QThread::TimeCriticalPriority);
 
 #ifndef Q_OS_WASM
+	m_worker->getThread()->setPriority(QThread::TimeCriticalPriority);
+
 	QDefer ret;
 	m_worker->execInThread([this, ret]() mutable {
 		d = new AbstractUdpEnginePrivate(this);
@@ -98,9 +99,11 @@ AbstractUdpEngine::~AbstractUdpEngine()
 
 void AbstractUdpEngine::sendMessage(const QByteArray &data, const bool &reliable, const bool &sign)
 {
+#ifndef Q_OS_WASM
 	m_worker->execInThread([this, data, reliable, sign](){
 		d->sendMessage(data, reliable, sign);
 	});
+#endif
 }
 
 
@@ -112,9 +115,11 @@ void AbstractUdpEngine::sendMessage(const QByteArray &data, const bool &reliable
 
 void AbstractUdpEngine::setUrl(const QUrl &url)
 {
+#ifndef Q_OS_WASM
 	m_worker->execInThread([this, url](){
 		d->setUrl(url);
 	});
+#endif
 }
 
 
@@ -125,14 +130,16 @@ void AbstractUdpEngine::setUrl(const QUrl &url)
 
 QByteArray AbstractUdpEngine::connectionToken() const
 {
-	QDefer ret;
 	QByteArray token;
+#ifndef Q_OS_WASM
+	QDefer ret;
 	m_worker->execInThread([this, &token, ret]() mutable {
 		token = d->connectionToken();
 		ret.resolve();
 	});
 
 	QDefer::await(ret);
+#endif
 	return token;
 }
 
@@ -146,9 +153,11 @@ QByteArray AbstractUdpEngine::connectionToken() const
 
 void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 {
+#ifndef Q_OS_WASM
 	m_worker->execInThread([this, token](){
 		d->setConnectionToken(token);
 	});
+#endif
 }
 
 
@@ -161,13 +170,16 @@ void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 
 int AbstractUdpEngine::currentRtt() const
 {
-	QDefer ret;
 	int rtt = 0;
+
+#ifndef Q_OS_WASM
+	QDefer ret;
 	m_worker->execInThread([this, &rtt](){
 		rtt = d->currentRtt();
 	});
 
 	QDefer::await(ret);
+#endif
 
 	return rtt;
 }
@@ -182,9 +194,11 @@ int AbstractUdpEngine::currentRtt() const
 
 void AbstractUdpEngine::setCurrentRtt(const int &rtt)
 {
+#ifndef Q_OS_WASM
 	m_worker->execInThread([this, rtt](){
 		d->setCurrentRtt(rtt);
 	});
+#endif
 }
 
 
@@ -401,9 +415,11 @@ void AbstractUdpEnginePrivate::run()
 
 void AbstractUdpEnginePrivate::sendMessage(QByteArray data, const bool &reliable, const bool &sign)
 {
+#ifndef Q_OS_WASM
 	//const qint64 time = q->getTick();
 	QMutexLocker locker(&m_inOutChache.mutex);
 	m_inOutChache.sendList.emplace_back( data, reliable, sign, 0 );
+#endif
 }
 
 
@@ -437,6 +453,8 @@ void AbstractUdpEnginePrivate::setUrl(const QUrl &newUrl)
  * @brief AbstractUdpEnginePrivate::deliverReceived
  */
 
+#ifndef Q_OS_WASM
+
 void AbstractUdpEnginePrivate::deliverReceived()
 {
 	std::vector<InOutCache::PacketRcv> list;
@@ -455,6 +473,7 @@ void AbstractUdpEnginePrivate::deliverReceived()
 	q->binaryDataReceived(l);
 }
 
+#endif
 
 
 /**
@@ -463,6 +482,7 @@ void AbstractUdpEnginePrivate::deliverReceived()
 
 void AbstractUdpEnginePrivate::destroyHostAndPeer()
 {
+#ifndef Q_OS_WASM
 	if (m_enet_peer) {
 		enet_peer_disconnect(m_enet_peer, 0);
 		if (m_enet_host)
@@ -476,6 +496,7 @@ void AbstractUdpEnginePrivate::destroyHostAndPeer()
 	m_enet_peer = nullptr;
 	m_enet_host = nullptr;
 
+#endif
 	LOG_CDEBUG("client") << "Disconnected from host" << qPrintable(m_url.toDisplayString());
 	emit q->serverDisconnected();
 
@@ -487,6 +508,8 @@ void AbstractUdpEnginePrivate::destroyHostAndPeer()
  * @brief AbstractUdpEnginePrivate::packetReceived
  * @param event
  */
+
+#ifndef Q_OS_WASM
 
 void AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 {
@@ -562,6 +585,7 @@ void AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 	m_inOutChache.rcvList.emplace_back(data, event.channelID, rtt);			// timestamp
 }
 
+#endif
 
 /**
  * @brief AbstractUdpEnginePrivate::connectionToken
@@ -614,7 +638,9 @@ void AbstractUdpEnginePrivate::updateChallenge()
 		UdpConnectRequest rq(m_connectionToken);
 		QByteArray d = rq.toCborMap().toCborValue().toCbor();
 
+#ifndef Q_OS_WASM
 		m_inOutChache.sendList.emplace_back( d, false, false, 0 );
+#endif
 
 		return;
 	}

@@ -67,7 +67,9 @@ RpgUdpEngine::~RpgUdpEngine()
 template<typename T, typename T2>
 void RpgUdpEngine::updateSnapshotRemoveMissing(const RpgGameData::SnapshotList<T, T2> &list)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 
 	std::vector<T2> existing;
 
@@ -135,7 +137,9 @@ void RpgUdpEngine::updateState(const QCborMap &data)
 
 void RpgUdpEngine::updateSnapshot(const QList<RpgGameData::CharacterSelect> &players)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 
 	for (const RpgGameData::CharacterSelect &player : players) {
 		const auto it = std::find_if(m_playerData.begin(),
@@ -178,7 +182,9 @@ void RpgUdpEngine::updateSnapshot(const QList<RpgGameData::CharacterSelect> &pla
 
 void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 
 	for (const auto &ptr : snapshot.players) {
 		for (const auto &p : ptr.list) {
@@ -237,7 +243,9 @@ void RpgUdpEngine::updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot)
 
 void RpgUdpEngine::messageAdd(const RpgGameData::Message &message)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	m_messageList.append(message);
 }
 
@@ -341,7 +349,9 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 
 	updateSnapshot(snapshot);
 
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	emit gameDataDownload(config.gameConfig.terrain, m_playerData);
 
 	m_downloadContentStarted = true;
@@ -508,7 +518,9 @@ void RpgUdpEngine::setGameState(const RpgConfig::GameState &newGameState)
 
 ClientStorage RpgUdpEngine::snapshots()
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	return m_snapshots;
 }
 
@@ -521,7 +533,9 @@ ClientStorage RpgUdpEngine::snapshots()
 
 void RpgUdpEngine::zapSnapshots(const qint64 &tick)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	m_snapshots.zapSnapshots(tick);
 }
 
@@ -535,7 +549,9 @@ void RpgUdpEngine::zapSnapshots(const qint64 &tick)
 
 RpgGameData::FullSnapshot RpgUdpEngine::getFullSnapshot(const qint64 &tick, const bool &findLast)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	return m_snapshots.getFullSnapshot(tick, findLast);
 }
 
@@ -549,7 +565,9 @@ RpgGameData::FullSnapshot RpgUdpEngine::getFullSnapshot(const qint64 &tick, cons
 
 RpgGameData::FullSnapshot RpgUdpEngine::getNextFullSnapshot(const qint64 &tick)
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	return m_snapshots.getNextFullSnapshot(tick);
 }
 
@@ -562,7 +580,9 @@ RpgGameData::FullSnapshot RpgUdpEngine::getNextFullSnapshot(const qint64 &tick)
 
 RpgGameData::CurrentSnapshot RpgUdpEngine::getCurrentSnapshot()
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	return m_snapshots.getCurrentSnapshot();
 }
 
@@ -576,7 +596,9 @@ RpgGameData::CurrentSnapshot RpgUdpEngine::getCurrentSnapshot()
 
 QList<RpgGameData::Message> RpgUdpEngine::takeMessageList()
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	QList<RpgGameData::Message> list;
 
 	std::swap(list, m_messageList);
@@ -631,12 +653,16 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 		} else if (m_gameState == RpgConfig::StatePlay) {
 
 			if (const qint64 tick = cbor.value(QStringLiteral("t")).toInteger(-1); tick > -1) {
+#ifndef Q_OS_WASM
 				QMutexLocker locker(&m_snapshotMutex);
+#endif
 				m_snapshots.setServerTick(tick);
 			}
 
 			if (const qint64 tick = cbor.value(QStringLiteral("d")).toInteger(-1); tick > -1) {
+#ifndef Q_OS_WASM
 				QMutexLocker locker(&m_snapshotMutex);
+#endif
 				m_snapshots.setDeadlineTick(tick);
 			}
 
@@ -662,7 +688,9 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 
 QList<RpgGameData::CharacterSelect> RpgUdpEngine::playerData()
 {
+#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
+#endif
 	return m_playerData;
 }
 
@@ -851,7 +879,7 @@ void ClientStorage::updateSnapshot(const RpgGameData::BulletBaseData &bulletData
 	});
 
 	if (it == m_bullets.end()) {
-		LOG_CINFO("game") << "New bullet" << bulletData.o << bulletData.s << bulletData.id;
+		LOG_CDEBUG("game") << "New bullet" << bulletData;
 		m_bullets.push_back({
 								.data = bulletData,
 								.list = {}

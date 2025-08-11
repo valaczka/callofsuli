@@ -842,6 +842,15 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	const QList<RpgGameData::Message> &messageList = m_engine->takeMessageList();
 
 	for (const RpgGameData::Message &msg : messageList) {
+		if (msg.t == RpgGameData::Message::MessagePick && m_rpgGame->m_controlledPlayer) {
+			m_rpgGame->playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"),
+							   m_rpgGame->m_controlledPlayer->scene(),
+							   m_rpgGame->m_controlledPlayer->bodyPositionF());
+		}
+
+		if (msg.m.isEmpty())
+			continue;
+
 		if (const QColor &color = msg.color(); color.isValid())
 			m_rpgGame->messageColor(msg.m, color, msg.p);
 		else
@@ -1326,6 +1335,15 @@ void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 				continue;
 			}
 
+			if (!b.list.empty()) {
+				const RpgGameData::Bullet &bdata = std::prev(b.list.cend())->second;
+				if (bdata.st == RpgGameData::LifeCycle::StageDestroy ||
+						bdata.st == RpgGameData::LifeCycle::StageDead) {
+					//LOG_CWARNING("game") << "Skip Bullet creation" << b.data << bdata.st;
+					continue;
+				}
+			}
+
 			// Create new bullet
 
 			TiledScene *scene = m_rpgGame->findScene(b.data.s);
@@ -1339,8 +1357,10 @@ void ActionRpgMultiplayerGame::syncBulletList(const ClientStorage &storage)
 			RpgBullet *newBullet = m_rpgGame->createBullet(b.data.t, scene, b.data.id, b.data.o, false);
 
 			if (!newBullet) {
-				LOG_CERROR("game") << "Bullet create error" << b.data.o << b.data.s << b.data.id;
+				LOG_CERROR("game") << "Bullet create error" << b.data;
 				continue;
+			} else {
+				LOG_CDEBUG("game") << "Bullet created" << b.data;
 			}
 
 			newBullet->baseData() = b.data;
@@ -2210,6 +2230,18 @@ bool ActionRpgMultiplayerGame::onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *p
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::onEnemyDead
+ * @param enemy
+ */
+
+void ActionRpgMultiplayerGame::onEnemyDead(RpgEnemy *enemy)
+{
+	Q_UNUSED(enemy);
+}
+
+
+
+/**
  * @brief ActionRpgMultiplayerGame::onBulletImpact
  * @param bullet
  * @param other
@@ -2232,6 +2264,7 @@ bool ActionRpgMultiplayerGame::onBulletImpact(RpgBullet *bullet, TiledObjectBody
 	q->m_toSend.appendSnapshot(bullet->baseData(), b);
 
 	bullet->setLastSnapshot(b);
+
 
 	return true;
 }
@@ -2449,6 +2482,12 @@ void ActionRpgMultiplayerGame::sendDataChrSel(const int &ban, const bool &lock)
 	if (m_gameMode == MultiPlayerHost) {
 		config.gameConfig.terrain = m_playerConfig.terrain;
 	}
+
+	const RpgPlayerCharacterConfig &cfg = RpgGame::characters().value(m_playerConfig.character);
+
+	config.maxHp = cfg.hp;
+	config.mp = cfg.mpStart;
+	config.maxMp = cfg.mpMax;
 
 	config.completed = m_selectionCompleted;
 	config.armory = q->getArmory();

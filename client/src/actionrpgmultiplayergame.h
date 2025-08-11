@@ -178,6 +178,7 @@ private:
 	bool onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, const qreal &angle) override;
 	bool onEnemyAttackPlayer(RpgEnemy *enemy, RpgPlayer *player,
 							 const RpgGameData::Weapon::WeaponType &weaponType, const int &weaponSubtype) override;
+	void onEnemyDead(RpgEnemy *enemy) override;
 
 	bool onBulletImpact(RpgBullet *bullet, TiledObjectBody *other) override;
 	//void onBulletDelete(IsometricBullet *bullet) override;

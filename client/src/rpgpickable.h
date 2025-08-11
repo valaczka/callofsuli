@@ -41,7 +41,7 @@ class RpgPickable : public RpgActiveControl<RpgGameData::Pickable,
 {
 public:
 	RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::PickableBaseData &base);
-	virtual ~RpgPickable() = default;
+	virtual ~RpgPickable();
 
 	virtual void updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgGameData::Pickable> &snapshot) override;
 	virtual void updateFromSnapshot(const RpgGameData::Pickable &snap) override;

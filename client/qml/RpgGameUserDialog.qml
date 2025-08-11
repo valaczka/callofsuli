@@ -1,21 +1,16 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts
+import Qt5Compat.GraphicalEffects
 import CallOfSuli
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 
-Qaterial.ModalDialog
+
+Qaterial.ListDialog
 {
 	id: _dialog
 
 	required property ActionRpgMultiplayerGame game
-
-	horizontalPadding: 0
-
-	dialogImplicitWidth: 600
-
-	autoFocusButtons: true
 
 	property string iconSource: ""
 	property string text: ""
@@ -23,15 +18,21 @@ Qaterial.ModalDialog
 	property color textColor: Qaterial.Style.primaryTextColor()
 	property int iconSize: 32 * Qaterial.Style.pixelSizeRatio
 
+	title: qsTr("Players")
 
-	contentItem: GridLayout
+	dialogImplicitWidth: 600 * Qaterial.Style.pixelSizeRatio
+	autoFocusButtons: true
+
+	standardButtons: DialogButtonBox.Ok
+
+	listViewHeader: Column
 	{
-		id: _grid
-
-		columns: 2
+		width: ListView.view.width
 
 		RpgQuestHeader {
 			id: _cmpHeader
+
+			width: parent.width
 
 			visible: iconSource != "" || text != ""
 
@@ -40,59 +41,61 @@ Qaterial.ModalDialog
 			iconColor: _dialog.iconColor
 			textColor: _dialog.textColor
 			iconSize: _dialog.iconSize
-
-			Layout.fillWidth: true
-			Layout.columnSpan: _grid.columns
 		}
 
-		Repeater {
+		ListView {
+			width: parent.width
+			height: Math.min(_dialog.height*0.3, 250)
+			implicitHeight: 250
+
+			boundsBehavior: Flickable.StopAtBounds
+			snapMode: ListView.SnapToItem
+			clip: true
+			orientation: ListView.Horizontal
+
+			spacing: 5
+
 			model: game ? game.playersModel : null
 
-			delegate: Qaterial.ItemDelegate {
-				Layout.fillHeight: true
-				Layout.fillWidth: true
+			delegate: RpgSelectCard {
+				height: Math.min(_dialog.height*0.3, 250)
+				width: height
+				text: nickname
+				image: game ? game.getCharacterImage(character) : ""
+				selected: finished
+				scale: 1.0
 
-				text: username + " " + nickname + " - " + character
-				secondaryText: xp + " XP, " + cur + " CURR " + finished
-							   + (player ? " " + player.hp + " HP" : "")
-							   + (player ? " " + player.collection + "/" + player.collectionRq : "")
+				Qaterial.LabelHeadline5 {
+					id: _label
+					anchors.right: parent.right
+					anchors.top: parent.top
+					anchors.margins: 10
 
-				icon.source: Qaterial.Icons.account
+					text: (player ? " " + player.collection + " / " + player.collectionRq : "")
 
-				onClicked: {
+					color: Qaterial.Colors.green400
+				}
 
+				Glow {
+					anchors.fill: _label
+					source: _label
+					color: "black"
+					radius: 1
+					spread: 0.9
+					samples: 5
 				}
 			}
 		}
+	}
 
-		Repeater {
-			model : game && game.rpgGame ? game.rpgGame.quests : null
+	model : game && game.rpgGame ? game.rpgGame.quests : null
 
-			delegate: RpgQuestDelegate {
-				showFailed: game && game.config.gameState === RpgConfig.StateFinished
+	delegate: Component {
+		RpgQuestDelegate {
+			showFailed: game && game.config.gameState === RpgConfig.StateFinished
 
-				Layout.fillWidth: true
-				Layout.columnSpan: _grid.columns
-			}
+			width: ListView.view.width
 		}
 	}
-
-	standardButtons: DialogButtonBox.Ok
-
-	Component.onCompleted: {
-		open()
-	}
-
-
-	onOpened: {
-
-	}
-
-	onAccepted: {
-
-	}
-
-
-
 }
 

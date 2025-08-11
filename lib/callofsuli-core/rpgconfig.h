@@ -597,20 +597,37 @@ class Message : public QSerializer
 	Q_GADGET
 
 public:
-	Message(const QString &msg = {}, const QColor &color = QColor(), const bool &priority = false)
+	enum Type {
+		MessageDefault = 0,
+		MessagePick
+	};
+
+	Message(const Type &type, const QString &msg = {}, const QColor &color = QColor(), const bool &priority = false)
 		: QSerializer()
 		, m(msg)
 		, p(priority)
+		, t(type)
 	{
 		if (color.isValid())
 			c = color.name();
 	}
 
+	Message(const QString &msg = {}, const QColor &color = QColor(), const bool &priority = false)
+		: Message(MessageDefault, msg, color, priority)
+	{ }
+
 	Message(const QString &msg, const bool &priority)
 		: Message(msg, QColor(), priority)
 	{}
 
+	Message(const Type &type, const QString &msg, const bool &priority)
+		: Message(type, msg, QColor(), priority)
+	{}
+
+
+
 	QColor color() const { return c.isEmpty() ? QColor() : QColor::fromString(c); }
+
 	void setColor(const QColor &color) {
 		if (color.isValid())
 			c = color.name();
@@ -623,6 +640,7 @@ public:
 	QS_FIELD(QString, m)				// message text
 	QS_FIELD(bool, p)					// priority
 	QS_FIELD(QString, c)				// color
+	QS_FIELD(Type, t)					// message type
 };
 
 

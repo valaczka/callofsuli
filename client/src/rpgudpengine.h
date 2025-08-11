@@ -326,8 +326,10 @@ private:
 	QPointer<ActionRpgMultiplayerGame> m_game;
 	bool m_downloadContentStarted = false;
 
-
+#ifndef Q_OS_WASM
 	QRecursiveMutex m_snapshotMutex;
+#endif
+
 	QList<RpgGameData::CharacterSelect> m_playerData;
 	ClientStorage m_snapshots;
 	QList<RpgGameData::Message> m_messageList;

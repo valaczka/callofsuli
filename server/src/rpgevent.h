@@ -78,15 +78,20 @@ protected:
 class RpgEventEnemyDied : public RpgEvent<RpgGameData::EnemyBaseData>
 {
 public:
-	RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data)
+	RpgEventEnemyDied(RpgEngine *engine, const qint64 &tick, const RpgGameData::EnemyBaseData &data,
+					  const QList<RpgGameData::PickableBaseData> &pickables)
 		: RpgEvent<RpgGameData::EnemyBaseData>(engine, tick, data)
+		, m_pickables(pickables)
 	{
-		ELOG_DEBUG << "Enemy died" << m_data.o << m_data.id << "@" << tick;
+		ELOG_DEBUG << "Enemy died" << m_data.o << m_data.id << m_pickables;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;
 
 	ADD_EQUAL(RpgEventEnemyDied);
+
+private:
+	const QList<RpgGameData::PickableBaseData> m_pickables;
 };
 
 

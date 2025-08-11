@@ -27,7 +27,6 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "qlambdathreadworker.h"
 #include "qtemporarydir.h"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -42,6 +41,10 @@
 #include "qurl.h"
 #include <selectableobject.h>
 #include "user.h"
+
+#ifndef Q_OS_WASM
+#include "qlambdathreadworker.h"
+#endif
 
 class Client;
 class Server;

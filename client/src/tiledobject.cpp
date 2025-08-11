@@ -155,6 +155,9 @@ TiledObject::~TiledObject()
 	if (m_spriteHandlerAuxBack)
 		m_spriteHandlerAuxBack->setBaseObject(nullptr);
 
+	if (m_visualItem)
+		m_visualItem->setProperty("baseObject", QVariant::fromValue(nullptr));
+
 	LOG_CTRACE("scene") << "TiledObject destroyed" << this;
 }
 
