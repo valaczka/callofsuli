@@ -273,8 +273,6 @@ void RpgPlayer::load()
 		m_visualItem->setHeight(measure.height());
 		setBodyOffset(measure.x(), measure.y());
 
-		LOG_CINFO("game") << "####" << m_config.name << measure;
-
 		m_armory->setLayers(layerData);
 
 	} else {

@@ -350,7 +350,7 @@ FocusScope {
 			id: _infoCollection
 			anchors.right: parent.right
 			color: Qaterial.Colors.orange700
-			iconLabel.icon.source: Qaterial.Icons.targetAccount
+			iconLabel.icon.source: Qaterial.Icons.mapMarkerMultiple
 			text: Math.floor(progressBar.value)
 
 			visible: progressBar.to > 0

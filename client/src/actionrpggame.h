@@ -160,9 +160,11 @@ protected:
 	void loadWinnerQuests(const int &rq);
 	void loadEnemyQuests();
 	void recalculateQuests(RpgPlayer *player);
+	void sortQuests();
 	void checkWinnerQuests();
 	void checkEnemyQuests(const int &count);
 	void checkFinalQuests();
+	void checkCollectQuests();
 	virtual void questSuccess(RpgQuest *quest);
 
 private:

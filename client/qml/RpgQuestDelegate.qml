@@ -18,6 +18,7 @@ Qaterial.LoaderItemDelegate
           case RpgQuest.WinnerDefault: return qsTr("%1 winner streak").arg(quest.amount)
           case RpgQuest.SuddenDeath: return qsTr("Sudden death")
           case RpgQuest.NoKill: return qsTr("No killing")
+          case RpgQuest.Collect: return qsTr("Collect %1 items").arg(quest.amount)
           default: "--- invalid ---"
           }
 
@@ -44,6 +45,7 @@ Qaterial.LoaderItemDelegate
                 case RpgQuest.WinnerDefault:	return Qaterial.Icons.checkBoxMultipleOutline
                 case RpgQuest.SuddenDeath:		return Qaterial.Icons.skullScanOutline
                 case RpgQuest.NoKill:       	return Qaterial.Icons.skullCrossbones
+                case RpgQuest.Collect:       	return Qaterial.Icons.mapMarkerMultipleOutline
                 default: return ""
                 }
 

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import SortFilterProxyModel
 import Qt5Compat.GraphicalEffects
 import CallOfSuli
 import Qaterial as Qaterial
@@ -18,7 +19,7 @@ Qaterial.ListDialog
 	property color textColor: Qaterial.Style.primaryTextColor()
 	property int iconSize: 32 * Qaterial.Style.pixelSizeRatio
 
-	title: qsTr("Players")
+	title: qsTr("Players & Quests")
 
 	dialogImplicitWidth: 600 * Qaterial.Style.pixelSizeRatio
 	autoFocusButtons: true
@@ -45,8 +46,7 @@ Qaterial.ListDialog
 
 		ListView {
 			width: parent.width
-			height: Math.min(_dialog.height*0.3, 250)
-			implicitHeight: 250
+			height: Math.min(_dialog.height*0.3, 120)
 
 			boundsBehavior: Flickable.StopAtBounds
 			snapMode: ListView.SnapToItem
@@ -55,17 +55,39 @@ Qaterial.ListDialog
 
 			spacing: 5
 
-			model: game ? game.playersModel : null
+			model: SortFilterProxyModel {
+				sourceModel: game ? game.playersModel : null
+
+				sorters: [
+					FilterSorter {
+						ValueFilter {
+							roleName: "playerId"
+							value: game ? game.playerId : -1
+						}
+					}
+
+				]
+			}
+
+			header: Item {
+				width: ListView.view.spacing
+				height: ListView.view.height
+			}
+
+			footer: Item {
+				width: ListView.view.spacing
+				height: ListView.view.height
+			}
 
 			delegate: RpgSelectCard {
-				height: Math.min(_dialog.height*0.3, 250)
+				height: Math.min(_dialog.height*0.3, 120)
 				width: height
 				text: nickname
 				image: game ? game.getCharacterImage(character) : ""
 				selected: finished
 				scale: 1.0
 
-				Qaterial.LabelHeadline5 {
+				Qaterial.LabelHeadline6 {
 					id: _label
 					anchors.right: parent.right
 					anchors.top: parent.top
@@ -88,7 +110,7 @@ Qaterial.ListDialog
 		}
 	}
 
-	model : game && game.rpgGame ? game.rpgGame.quests : null
+	model: game && game.rpgGame ? game.rpgGame.quests : null
 
 	delegate: Component {
 		RpgQuestDelegate {
@@ -97,5 +119,6 @@ Qaterial.ListDialog
 			width: ListView.view.width
 		}
 	}
+
 }
 

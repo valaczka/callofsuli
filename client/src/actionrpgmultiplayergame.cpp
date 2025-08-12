@@ -1271,14 +1271,18 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 				m_rpgGame->setFollowedItem(rpgPlayer);
 				m_rpgGame->setControlledPlayer(rpgPlayer);
 
+				connect(rpgPlayer, &RpgPlayer::collectionChanged, this, &ActionRpgMultiplayerGame::checkCollectQuests);
+
 				recalculateQuests(rpgPlayer);
 				loadWinnerQuests(pl.data.rq);
 				loadEnemyQuests();
+				sortQuests();
 			}
 
 			if (q->m_hasReconnected) {
 				updateLastObjectId(rpgPlayer);
 			}
+
 
 			playerList.append(rpgPlayer);
 
@@ -1588,6 +1592,15 @@ void ActionRpgMultiplayerGame::onGameFailed()
 	sound->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
 	sound->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
 
+	if (RpgPlayer *p = m_rpgGame->controlledPlayer()) {
+		if (p->collection() < p->collectionRq()) {
+			emit finishDialogRequest(tr("Mission failed"),
+									 QStringLiteral("qrc:/Qaterial/Icons/map-marker-remove.svg"),
+									 false);
+			return;
+		}
+	}
+
 	emit finishDialogRequest(tr("Time out"),
 							 QStringLiteral("qrc:/Qaterial/Icons/timer-sand.svg"),
 							 false);
@@ -1701,9 +1714,8 @@ RpgPlayer* ActionRpgMultiplayerGame::createPlayer(TiledScene *scene,
 
 	if (playerData.p.size() > 1) {
 		player->emplace(playerData.p.at(0), playerData.p.at(1));
-		LOG_CINFO("scene") << "PLAYER EMPLACED AT" << playerData.p << player;
 	} else
-		LOG_CWARNING("scene") << "Player position missing! ########################";
+		LOG_CWARNING("scene") << "Player position missing";
 
 	player->setCurrentAngle(playerData.a);
 

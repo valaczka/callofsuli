@@ -2710,8 +2710,6 @@ bool RpgGame::loadTextureSpritesWithHurt(TiledSpriteHandler *handler, const QVec
 QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &path,
 								  QHash<QString, RpgArmory::LayerData> *layerPtr)
 {
-	LOG_CINFO("game") << "LOAD TEXTURE FROM" << path;
-
 	static const QVector<TiledObject::Direction> directions = {
 		TiledObject::SouthWest,
 		TiledObject::South,

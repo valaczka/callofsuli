@@ -399,10 +399,11 @@ class RpgQuest : public QSerializer
 public:
 	enum Type {
 		Invalid			= 0,
-		EnemyDefault	= 1,
-		WinnerDefault	= 2,
-		SuddenDeath		= 3,
-		NoKill			= 4
+		Collect			= 1,
+		EnemyDefault	= 10,
+		WinnerDefault	= 11,
+		SuddenDeath		= 20,
+		NoKill			= 21,
 	};
 
 	Q_ENUM(Type);

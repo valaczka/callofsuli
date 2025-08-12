@@ -41,19 +41,21 @@ class RpgControlRandomizerContent
 public:
 	RpgControlRandomizerContent(const int &id);
 
-	void objectAdd(TiledObjectBody *object);
-	void layerAdd(QQuickItem *item);
+	void objectAdd(TiledObjectBody *object, const bool &invert);
+	void layerAdd(QQuickItem *item, const bool &invert);
 
 	void setActive(const bool &active = true);
 
 	int id() const;
 
-	bool isEmpty() const { return m_objects.isEmpty() && m_layers.isEmpty(); }
+	bool isEmpty() const { return m_objects.isEmpty() && m_layers.isEmpty() && m_invertObjects.isEmpty() && m_invertLayers.isEmpty(); }
 
 private:
 	const int m_id;
 	QList<TiledObjectBody *> m_objects;
 	QList<QPointer<QQuickItem>> m_layers;
+	QList<TiledObjectBody *> m_invertObjects;
+	QList<QPointer<QQuickItem>> m_invertLayers;
 };
 
 

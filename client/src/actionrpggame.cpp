@@ -647,6 +647,8 @@ void ActionRpgGame::rpgGameActivated_()
 
 	player->setCurrentSceneStartPosition(pos);
 
+	connect(player, &RpgPlayer::collectionChanged, this, &ActionRpgGame::checkCollectQuests);
+
 	m_rpgGame->setPlayers(QList<RpgPlayer*>{player});
 
 
@@ -663,6 +665,7 @@ void ActionRpgGame::rpgGameActivated_()
 	recalculateQuests(player);
 	loadWinnerQuests(num);
 	loadEnemyQuests();
+	sortQuests();
 
 	emit m_rpgGame->gameLoaded();
 }
@@ -1656,7 +1659,12 @@ void ActionRpgGame::loadWinnerQuests(const int &rq)
 		}
 	}
 
-	LOG_CINFO("game") << "Load winner quests" << rq << "->" << num;
+	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
+		if (q.type == RpgQuest::Collect)
+			q.amount = rq;
+	}
+
+	LOG_CDEBUG("game") << "Load winner quests" << rq << "->" << num;
 
 	// Winner streak quests
 
@@ -1736,19 +1744,53 @@ void ActionRpgGame::recalculateQuests(RpgPlayer *player)
 		}
 	}
 
-	LOG_CDEBUG("game") << "Recalculat quests, can kill:" << canKill;
+	LOG_CDEBUG("game") << "Recalculate quests, can kill:" << canKill;
+
+	if (!canKill) {
+		LOG_CDEBUG("game") << "Delete kill quest if exists";
+		QList<RpgQuest> list = m_rpgGame->m_gameDefinition.quests;
+
+		list.removeIf([](const RpgQuest &q){
+			return q.type == RpgQuest::NoKill;
+		});
+
+		m_rpgGame->m_gameDefinition.quests.swap(list);
+	}
 
 
 	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
 		if (q.type == RpgQuest::SuddenDeath && m_rpgQuestion->emptyQuestions())
 			q.currency = std::min(95, std::max(10, (int) (q.currency * 0.1)));
 
-		else if (q.type == RpgQuest::NoKill && !canKill)
-			q.currency = std::max(q.currency, std::min(3000, q.currency * 5));
+		/*else if (q.type == RpgQuest::NoKill && !canKill)
+			q.currency = std::max(q.currency, std::min(3000, q.currency * 5));*/
 
 	}
 
 	emit m_rpgGame->questsChanged();
+}
+
+
+/**
+ * @brief ActionRpgGame::sortQuests
+ */
+
+void ActionRpgGame::sortQuests()
+{
+	if (!m_rpgGame)
+		return;
+
+	std::sort(m_rpgGame->m_gameDefinition.quests.begin(),
+			  m_rpgGame->m_gameDefinition.quests.end(),
+			  [](const RpgQuest &l, const RpgQuest &r) {
+		if (l.type > r.type)
+			return false;
+
+		if (l.type < r.type)
+			return true;
+
+		return l.amount < r.amount;
+	});
 }
 
 
@@ -1869,6 +1911,26 @@ void ActionRpgGame::checkFinalQuests()
 			questSuccess(&q);
 		else if (q.type == RpgQuest::NoKill && q.success == 0)
 			questSuccess(&q);
+	}
+}
+
+
+
+/**
+ * @brief ActionRpgGame::checkCollectQuests
+ */
+
+void ActionRpgGame::checkCollectQuests()
+{
+	if (!m_rpgGame || !m_rpgGame->controlledPlayer())
+		return;
+
+	for (RpgQuest &q : m_rpgGame->m_gameDefinition.quests) {
+		if (q.type == RpgQuest::Collect &&
+				m_rpgGame->controlledPlayer()->collection() >= m_rpgGame->controlledPlayer()->collectionRq() &&
+				q.success == 0) {
+			questSuccess(&q);
+		}
 	}
 }
 

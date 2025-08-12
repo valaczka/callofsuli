@@ -79,11 +79,11 @@ void RpgControlRandomizer::addGroupLayer(TiledScene *scene, Tiled::GroupLayer *g
 		if (Tiled::ImageLayer *tl = layer->asImageLayer()) {
 			TiledVisualItem *item = scene->addVisualItem(tl);
 			item->setVisible(false);
-			content.layerAdd(item);
+			content.layerAdd(item, tl->className() == QStringLiteral("invert"));
 		} else if (Tiled::TileLayer *tl = layer->asTileLayer()) {
 			TiledQuick::TileLayerItem *item = scene->addTileLayer(tl, renderer);
 			item->setVisible(false);
-			content.layerAdd(item);
+			content.layerAdd(item, tl->className() == QStringLiteral("invert"));
 		} else if (Tiled::ObjectGroup *objgroup = layer->asObjectGroup()) {
 			for (Tiled::MapObject *object : std::as_const(objgroup->objects())) {
 				const QString &clName = object->className();
@@ -93,7 +93,7 @@ void RpgControlRandomizer::addGroupLayer(TiledScene *scene, Tiled::GroupLayer *g
 				} else if (clName == QStringLiteral("ground")) {
 					TiledObjectBody *body = m_game->loadGround(scene, object, renderer);
 					body->filterSet(TiledObjectBody::FixtureInvalid);
-					content.objectAdd(body);
+					content.objectAdd(body, objgroup->className() == QStringLiteral("invert"));
 				}
 			}
 		}
@@ -231,12 +231,18 @@ RpgControlRandomizerContent::RpgControlRandomizerContent(const int &id)
  * @param object
  */
 
-void RpgControlRandomizerContent::objectAdd(TiledObjectBody *object)
+void RpgControlRandomizerContent::objectAdd(TiledObjectBody *object, const bool &invert)
 {
-	if (!object || m_objects.contains(object))
+	if (!object)
 		return;
 
-	m_objects.append(object);
+	if (invert) {
+		if (!m_invertObjects.contains(object))
+			m_invertObjects.append(object);
+	} else {
+		if (!m_objects.contains(object))
+			m_objects.append(object);
+	}
 }
 
 
@@ -245,12 +251,18 @@ void RpgControlRandomizerContent::objectAdd(TiledObjectBody *object)
  * @param item
  */
 
-void RpgControlRandomizerContent::layerAdd(QQuickItem *item)
+void RpgControlRandomizerContent::layerAdd(QQuickItem *item, const bool &invert)
 {
-	if (!item || m_layers.contains(item))
+	if (!item)
 		return;
 
-	m_layers.append(item);
+	if (invert) {
+		if (!m_invertLayers.contains(item))
+			m_invertLayers.append(item);
+	} else {
+		if (!m_layers.contains(item))
+			m_layers.append(item);
+	}
 }
 
 
@@ -272,6 +284,19 @@ void RpgControlRandomizerContent::setActive(const bool &active)
 	for (QQuickItem *item : m_layers) {
 		if (item)
 			item->setVisible(active);
+	}
+
+	for (TiledObjectBody *b : m_invertObjects) {
+		b->filterSet(!active ?
+						 TiledObjectBody::FixtureGround :
+						 TiledObjectBody::FixtureInvalid
+						 );
+	}
+
+
+	for (QQuickItem *item : m_invertLayers) {
+		if (item)
+			item->setVisible(!active);
 	}
 
 }

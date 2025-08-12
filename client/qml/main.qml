@@ -306,7 +306,7 @@ Qaterial.ApplicationWindow
 	onClosing: close => {
 		if (Client.closeWindow()) {
 			if (mainStackView.currentItem.onPageClose) {
-				console.info(qsTr("Lap bezárási funkció meghívása:"), mainStackView.currentItem)
+				console.debug(qsTr("Close page:"), mainStackView.currentItem)
 				mainStackView.currentItem.onPageClose()
 			}
 			close.accepted = true
