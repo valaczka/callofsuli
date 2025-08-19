@@ -811,7 +811,11 @@ void ActionRpgGame::onTimeStepPrepare()
 
 void ActionRpgGame::onTimeBeforeWorldStep(const qint64 &tick)
 {
-	Q_UNUSED(tick);
+	if (tick < 3 && m_rpgGame && m_rpgGame->controlledPlayer()) {
+		LOG_CTRACE("game") << "Forced player stop at" << tick;
+		m_rpgGame->controlledPlayer()->stop();
+		m_rpgGame->controlledPlayer()->setCurrentVelocity(cpvzero);
+	}
 }
 
 
@@ -1737,6 +1741,9 @@ void ActionRpgGame::recalculateQuests(RpgPlayer *player)
 
 	if (player) {
 		for (RpgWeapon *w : *player->armory()->weaponList()) {
+			if (w->weaponType() == RpgGameData::Weapon::WeaponHand)
+				continue;
+
 			if (w->canHit() || w->canShot() || w->canCast()) {
 				canKill = true;
 				break;

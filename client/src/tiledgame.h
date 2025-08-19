@@ -194,6 +194,7 @@ public:
 		int height = 0;
 		int duration = 0;
 		int loops = 0;
+		bool baked = false;
 	};
 
 	struct TextureSpriteDirection {

@@ -245,6 +245,9 @@ bool RpgEnemy::enemyWorldStep()
 		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, p))
 			return true;
 
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalkNoWeapon, p))
+			return true;
+
 
 		if (m_game->tickTimer()) {
 			if (m_autoHitTimer >= 0 && m_autoHitTimer <= m_game->tickTimer()->currentTick()) {
@@ -306,6 +309,9 @@ bool RpgEnemy::enemyWorldStepNotReachedPlayer()
 			return false;
 
 		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, qobject_cast<RpgPlayer*>(m_player)))
+			return true;
+
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalkNoWeapon, qobject_cast<RpgPlayer*>(m_player)))
 			return true;
 
 		if (m_game->tickTimer()) {
@@ -473,6 +479,9 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
 			return true;
 
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalkNoWeapon, player))
+			return true;
+
 		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player))
 			return true;
 
@@ -504,6 +513,9 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 		if (checkFeature(RpgGameData::Player::FeatureFreeWalk, player))
 			return false;
 
+		if (checkFeature(RpgGameData::Player::FeatureFreeWalkNoWeapon, player))
+			return false;
+
 		return true;
 
 	} else if (feature == FeatureReplaceFrom) {
@@ -511,7 +523,8 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 			return true;
 
 		if (checkFeature(RpgGameData::Player::FeatureLockEnemy, player) ||
-				checkFeature(RpgGameData::Player::FeatureFreeWalk, player) )
+				checkFeature(RpgGameData::Player::FeatureFreeWalk, player) ||
+				checkFeature(RpgGameData::Player::FeatureFreeWalkNoWeapon, player) )
 			return true;
 
 	} else if (feature == FeatureReplaceTo) {
@@ -519,6 +532,7 @@ bool RpgEnemy::featureOverride(const PlayerFeature &feature, RpgPlayer *player) 
 			return false;
 
 		if ((player->config().features & (RpgGameData::Player::FeatureFreeWalk |
+										  RpgGameData::Player::FeatureFreeWalkNoWeapon |
 										  RpgGameData::Player::FeatureCamouflage)) == 0)
 			return true;
 

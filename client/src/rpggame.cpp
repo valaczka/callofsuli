@@ -2736,7 +2736,7 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 	/// input.txt format
 	///
 	/// line 1: <width> \t <height> \t [<bodyOffsetX>] \t [<bodyOffsetY>]
-	/// line ...: <sprite> \t <frames> \t <duration> \t [<loops>]
+	/// line ...: <sprite> \t <frames> \t <duration> \t [<loops>] \ [<baked>]
 
 	QVector<RpgGame::TextureSpriteMapper> mapper;
 
@@ -2768,6 +2768,7 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 			const int duration = field.at(2).toInt();
 
 			const int loops = field.size() > 3 ? field.at(3).toInt() : 0;
+			const bool baked = field.size() > 4 ? field.at(4).toInt() : false;
 
 			for (const auto &d : directions) {
 				TextureSpriteMapper dst;
@@ -2777,6 +2778,7 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 				dst.height = measure.height();
 				dst.duration = duration;
 				dst.loops = loops;
+				dst.baked = baked;
 
 				for (int i=0; i<frames; ++i)
 					mapper.append(dst);
@@ -2789,20 +2791,47 @@ QRect RpgGame::loadTextureSprites(TiledSpriteHandler *handler, const QString &pa
 
 	QHash<QString, RpgArmory::LayerData> layerData = RpgGamePrivate::readLayerData(path+QStringLiteral("layers.txt"));
 
-	for (const QString &layer : layerData.keys()) {
+	for (const auto &[layer, data] : layerData.asKeyValueRange()) {
 		QString basePath = path;
 		if (layer == QStringLiteral("default"))
 			basePath += QStringLiteral("texture");
 		else
 			basePath += layer + QStringLiteral("-texture");
 
-		LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to layer" << qPrintable(layer);
+		if (data.baked)
+			LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to baked layer" << qPrintable(layer);
+		else
+			LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to layer" << qPrintable(layer);
 
 		const auto &ptr = Utils::fileToJsonObject(basePath+QStringLiteral(".json"));
+
+		if (!ptr) {
+			LOG_CERROR("scene") << "Missing" << qPrintable(basePath) << "JSON";
+			continue;
+		}
+
 		TextureSpriteDef def;
 		def.fromJson(*ptr);
 
-		const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(mapper, def);
+		QVector<RpgGame::TextureSpriteMapper> filteredMapper;
+
+		filteredMapper.reserve(mapper.size());
+
+		const QString bakedName = layer+QStringLiteral("-");
+
+		for (RpgGame::TextureSpriteMapper m : mapper) {
+			if (data.baked) {
+				if (m.baked && m.name.startsWith(bakedName)) {
+					m.name.remove(0, bakedName.size());
+					filteredMapper.append(m);
+				}
+			} else {
+				if (!m.baked)
+					filteredMapper.append(m);
+			}
+		}
+
+		const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(filteredMapper, def);
 
 		if (!appendToSpriteHandler(handler, sprites, basePath+QStringLiteral(".png"), layer))
 			return QRect();
@@ -3293,12 +3322,14 @@ std::optional<RpgMarket> RpgGame::saveTerrainInfo(const RpgGameDefinition &def)
 
 void RpgGame::useWeapon(const RpgGameData::Weapon::WeaponType &type)
 {
+	// DEPRECATED
+
 	if (type == RpgGameData::Weapon::WeaponInvalid) {
 		LOG_CERROR("game") << "Invalid weapon" << type;
 		return;
 	}
 
-	if (type == RpgGameData::Weapon::WeaponDagger) {			// Free
+	/*if (type == RpgGameData::Weapon::WeaponDagger) {			// Free
 		return;
 	}
 
@@ -3321,7 +3352,7 @@ void RpgGame::useWeapon(const RpgGameData::Weapon::WeaponType &type)
 		m_usedWallet.append(w);
 	} else {
 		it->amount++;
-	}
+	}*/
 }
 
 
@@ -3332,6 +3363,8 @@ void RpgGame::useWeapon(const RpgGameData::Weapon::WeaponType &type)
 
 QJsonArray RpgGame::usedWalletAsArray() const
 {
+	// DEPRECATED
+
 	QJsonArray list;
 
 	for (const RpgWallet &w : m_usedWallet) {
@@ -3509,6 +3542,7 @@ void RpgGamePrivate::updatePlayerWatched(RpgPlayer *player, const EnemyWatchedEv
 			RpgPlayerCharacterConfig config = player->config();
 			config.features.setFlag(RpgGameData::Player::FeatureCamouflage, false);
 			config.features.setFlag(RpgGameData::Player::FeatureFreeWalk, false);
+			config.features.setFlag(RpgGameData::Player::FeatureFreeWalkNoWeapon, false);
 			config.features.setFlag(RpgGameData::Player::FeatureLockEnemy, false);
 			player->setConfig(config);
 
@@ -3535,6 +3569,10 @@ QHash<QString, RpgArmory::LayerData> RpgGamePrivate::readLayerData(const QString
 
 	hash.insert(QStringLiteral("default"), RpgArmory::LayerData(RpgGameData::Weapon::WeaponInvalid, 0, RpgArmory::ShieldNeutral));
 
+	/// layer.txt format
+	///
+	/// <sprite-prefix> \t [<weapon-str>] \t [<shield-layer-str>] \t [<baked>]
+
 	QByteArray layerData = Utils::fileContentRead(file);
 	QTextStream layerBuffer(&layerData, QIODevice::ReadOnly);
 
@@ -3548,6 +3586,9 @@ QHash<QString, RpgArmory::LayerData> RpgGamePrivate::readLayerData(const QString
 
 
 		RpgArmory::LayerData data;
+
+		if (field.size() > 4)
+			data.baked = field.at(4).toInt();
 
 		if (field.size() > 3)
 			data.shield = QVariant::fromValue(field.at(3)).value<RpgArmory::ShieldLayer>();

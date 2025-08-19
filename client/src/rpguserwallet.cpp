@@ -206,7 +206,8 @@ void RpgUserWallet::setExpiry(const QDateTime &newExpiry)
 
 bool RpgUserWallet::available() const
 {
-	return (m_amount > 0 && (m_expiry.isNull() || m_expiry > QDateTime::currentDateTime())) ||
+	return ((m_amount > 0 || (m_market.type == RpgMarket::Weapon && m_amount < 0))
+			&& (m_expiry.isNull() || m_expiry > QDateTime::currentDateTime())) ||
 			(m_market.cost == 0 && m_market.rank == 0);
 }
 
@@ -1097,9 +1098,13 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 	if (character.isEmpty())
 		return armory;
 
-	int belongsValue = -1;
+	struct Data {
+		int sub = 0;
+		int bv = 0;
+		int bullet = 0;
+	};
 
-	int bulletCount = 0;
+	QHash<RpgGameData::Weapon::WeaponType, Data> wData;
 
 	for (RpgUserWallet *w : *this) {
 		if (w->marketType() != RpgMarket::Weapon || !w->available() || w->market().belongs.isEmpty())
@@ -1115,17 +1120,29 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 		if (type == RpgGameData::Weapon::WeaponInvalid)
 			continue;
 
-		if (bv > belongsValue) {
-			armory.cw = type;
-			armory.s = sub;
-			belongsValue = bv;
-			bulletCount = w->market().amount;
+		auto it = wData.find(type);
+
+		if (it == wData.end()) {
+			wData.emplace(type, sub, bv, w->market().amount);
+		} else if (bv > it->bv) {
+			it->sub = sub;
+			it->bv = bv;
+			it->bullet = w->market().amount;
 		}
 	}
 
-	if (armory.cw != RpgGameData::Weapon::WeaponInvalid)
-		armory.add(armory.cw, armory.s, bulletCount);
-	else {
+
+
+	if (!wData.isEmpty()) {
+		for (const auto &[type, data] : wData.asKeyValueRange()) {
+			armory.add(type, data.sub, data.bullet);
+			if (armory.cw == RpgGameData::Weapon::WeaponInvalid &&
+					type != RpgGameData::Weapon::WeaponInvalid && type != RpgGameData::Weapon::WeaponShield) {
+				armory.cw = type;
+				armory.s = data.sub;
+			}
+		}
+	} else {
 		const auto &ch = RpgGame::characters().value(character);
 		const auto t = RpgArmory::weaponHash().key(ch.weapon, RpgGameData::Weapon::WeaponInvalid);
 
@@ -1134,6 +1151,13 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 			armory.cw = t;
 			armory.s = ch.weaponSub;
 		}
+	}
+
+
+	if (armory.wl.isEmpty()) {
+		armory.add(RpgGameData::Weapon::WeaponHand, 0, -1);
+		armory.cw = RpgGameData::Weapon::WeaponHand;
+		armory.s = 0;
 	}
 
 	return armory;

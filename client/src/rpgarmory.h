@@ -193,6 +193,7 @@ public:
 		RpgGameData::Weapon::WeaponType weapon = RpgGameData::Weapon::WeaponInvalid;
 		int subType = 0;
 		ShieldLayer shield = ShieldNeutral;
+		bool baked = false;
 	};
 
 

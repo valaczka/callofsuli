@@ -274,7 +274,8 @@ std::optional<QVector<TiledSpriteHandler::Sprite>::const_iterator>
 TiledSpriteHandler::findFirst(const QString &baseName, const TiledObject::Direction &direction) const
 {
 	for (auto it = m_spriteList.constBegin(); it != m_spriteList.constEnd(); ++it) {
-		if (it->data.name == baseName && it->direction == direction)
+		if (it->data.name == baseName && it->direction == direction &&
+				(m_visibleLayers.isEmpty() || it->layer == m_visibleLayers.first()))
 			return it;
 	}
 

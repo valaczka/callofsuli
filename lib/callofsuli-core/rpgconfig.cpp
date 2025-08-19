@@ -105,30 +105,6 @@ void RpgWallet::setFromMarket(const RpgMarket &market)
 
 namespace RpgGameData {
 
-const QHash<QPair<Weapon::WeaponType, int>, int> Weapon::m_damageValue = {
-	{ { Weapon::WeaponHand, 0 }, 1 },
-	{ { Weapon::WeaponDagger, 0 }, 3 },
-	{ { Weapon::WeaponLongsword, 0 }, 10 },
-	{ { Weapon::WeaponHammer, 0 }, 20 },
-	{ { Weapon::WeaponMace, 0 }, 22 },
-	{ { Weapon::WeaponAxe, 0 }, 25 },
-	{ { Weapon::WeaponBroadsword, 0 }, 30 },
-	{ { Weapon::WeaponShortbow, 0 }, 10 },
-	{ { Weapon::WeaponLongbow, 0 }, 25 },
-	{ { Weapon::WeaponGreatHand, 0 }, 50 },
-	{ { Weapon::WeaponLightningWeapon, 0 }, 40 },
-	{ { Weapon::WeaponFireFogWeapon, 0 }, 60 },
-};
-
-
-const QHash<QPair<Weapon::WeaponType, int>, int> Weapon::m_protectValue = {
-	{ { Weapon::WeaponShield, 0 }, 10 },
-};
-
-
-
-
-
 
 
 
@@ -194,7 +170,14 @@ void SnapshotStorage::addFullSnapshot(SnapshotInterpolationList<T2, T> *dst, Sna
 void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity &dst,
 							 const Weapon::WeaponType &weapon, const int &weaponSubType, const ArmoredEntityBaseData &other)
 {
-	float damage = Weapon::damageValue().value(QPair<Weapon::WeaponType, int>(weapon, weaponSubType), 0) * other.df;
+	static const QSet<Weapon::WeaponType> canProtect = {
+		Weapon::WeaponShield
+	};
+
+	float damage = canProtect.contains(weapon) ? 0. : std::max(1., std::floor(weaponSubType/10.) * 10.) * other.df;
+
+	if (dstBase.pf > 0.)
+		damage *= dstBase.pf;
 
 	if (damage <= 0.)
 		return;
@@ -203,7 +186,7 @@ void ArmoredEntity::attacked(const ArmoredEntityBaseData &dstBase, ArmoredEntity
 		if (it->b == 0)
 			continue;
 
-		const float protect = Weapon::protectValue().value(QPair<Weapon::WeaponType, int>(it->t, it->s), 0) * dstBase.pf;
+		const float protect = canProtect.contains(it->t) ? std::max(1., std::floor(it->s/10.) * 10.) : 0.;
 		if (protect <= 0.)
 			continue;
 

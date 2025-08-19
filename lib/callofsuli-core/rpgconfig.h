@@ -1063,12 +1063,7 @@ public:
 
 	EQUAL_OPERATOR(Weapon);
 
-	static const QHash<QPair<WeaponType, int>, int> &damageValue() { return m_damageValue; }
-	static const QHash<QPair<WeaponType, int>, int> &protectValue() { return m_protectValue; }
-
 private:
-	static const QHash<QPair<WeaponType, int>, int> m_damageValue;
-	static const QHash<QPair<WeaponType, int>, int> m_protectValue;
 
 	QS_SERIALIZABLE
 
@@ -2337,10 +2332,11 @@ public:
 
 
 	enum Feature {
-		FeatureInvalid		= 0,
-		FeatureCamouflage	= 1,
-		FeatureFreeWalk		= 1 << 1,
-		FeatureLockEnemy	= 1 << 2,
+		FeatureInvalid			= 0,
+		FeatureCamouflage		= 1,
+		FeatureFreeWalk			= 1 << 1,
+		FeatureLockEnemy		= 1 << 2,
+		FeatureFreeWalkNoWeapon	= 1 << 3,
 	};
 
 	Q_ENUM(Feature)

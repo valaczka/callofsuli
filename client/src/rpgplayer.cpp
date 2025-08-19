@@ -1008,10 +1008,16 @@ void RpgPlayer::worldStep()
 
 	IsometricPlayer::worldStep();
 
-	if (RpgWeapon *w = m_armory->currentWeapon();
-			w && (w->canShot() || w->canCast())) {
-		updateEnemies(w->bulletDistance());
+	RpgWeapon *w = m_armory->currentWeapon();
+
+	if (w && w->weaponType() != RpgGameData::Weapon::WeaponHand &&
+			w->weaponType() != RpgGameData::Weapon::WeaponShield &&
+			m_config.features.testFlag(RpgGameData::Player::FeatureFreeWalkNoWeapon)) {
+		m_config.features.setFlag(RpgGameData::Player::FeatureFreeWalkNoWeapon, false);
 	}
+
+	if (w && (w->canShot() || w->canCast()))
+		updateEnemies(w->bulletDistance());
 	else
 		updateEnemies(0.);
 }

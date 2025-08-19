@@ -53,7 +53,7 @@ const QHash<RpgGameData::Weapon::WeaponType, QString> RpgArmory::m_layerInfoHash
 	{ RpgGameData::Weapon::WeaponAxe, QStringLiteral("axe") },
 	{ RpgGameData::Weapon::WeaponMace, QStringLiteral("mace") },
 	{ RpgGameData::Weapon::WeaponHammer, QStringLiteral("hammer") },
-	/*{ RpgGameData::Weapon::WeaponShield, QStringLiteral("shield") }*/
+	{ RpgGameData::Weapon::WeaponShield, QStringLiteral("shield") }
 };
 
 
@@ -349,13 +349,13 @@ RpgWeapon *RpgArmory::getNextWeapon() const
 		it = m_weaponList->constBegin();
 
 	do {
-		/*if ((*it)->canAttack()) { */
-		if ((*it)->weaponType() == RpgGameData::Weapon::WeaponHand)
-			weaponHand = *it;
-		else if ((*it)->canHit() || (*it)->canShot()) {
-			wList.append(*it);
+		if ((*it)->weaponType() != RpgGameData::Weapon::WeaponShield) {
+			if ((*it)->weaponType() == RpgGameData::Weapon::WeaponHand)
+				weaponHand = *it;
+			else if ((*it)->canHit() || (*it)->canShot()) {
+				wList.append(*it);
+			}
 		}
-		/*}*/
 
 		++it;
 
@@ -366,8 +366,6 @@ RpgWeapon *RpgArmory::getNextWeapon() const
 	if (wList.isEmpty()) {
 		if (weaponHand)
 			return weaponHand;
-
-		LOG_CWARNING("game") << "No available weapon";
 		return nullptr;
 	}
 
@@ -521,14 +519,26 @@ void RpgArmory::updateLayers()
 		data.subType = m_currentWeapon->weaponSubType();
 	}
 
+	data.shield = ShieldMissing;
+
 	if (auto it = std::find_if(m_weaponList->cbegin(), m_weaponList->cend(),
 							   [](RpgWeapon *w) {
 							   return w->weaponType() == RpgGameData::Weapon::WeaponShield && !w->excludeFromLayers();
 }); it != m_weaponList->cend()) {
 		if ((*it)->bulletCount() > 0)
 			data.shield = ShieldPresent;
-		else
-			data.shield = ShieldMissing;
+	}
+
+	bool isCurrentWeaponBaked = false;
+	bool hasNoWeaponBaked = false;
+
+	for (const LayerData &d : m_layerHash) {
+		if (m_currentWeapon && d.weapon == m_currentWeapon->weaponType() && d.subType == m_currentWeapon->weaponSubType()
+				&& d.baked)
+			isCurrentWeaponBaked = true;
+
+		if (d.weapon == RpgGameData::Weapon::WeaponInvalid && d.baked)
+			hasNoWeaponBaked = true;
 	}
 
 	QStringList visibleLayers;
@@ -543,6 +553,16 @@ void RpgArmory::updateLayers()
 
 			if (data.shield == ShieldMissing && d.shield == ShieldPresent)
 				continue;
+		} else {
+			if (m_currentWeapon && m_currentWeapon->weaponType() != RpgGameData::Weapon::WeaponHand) {
+				if (isCurrentWeaponBaked)
+					continue;
+				else if (d.baked)
+					continue;
+			} else {
+				if (!d.baked && hasNoWeaponBaked)
+					continue;
+			}
 		}
 
 		visibleLayers.append(l);

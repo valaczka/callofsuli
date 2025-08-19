@@ -231,10 +231,10 @@ void RpgEnemyBase::eventPlayerReached(IsometricPlayer *player)
 
 void RpgEnemyBase::attackedByPlayer(RpgPlayer *player, const RpgGameData::Weapon::WeaponType &weaponType)
 {
-	if (player && isAlive() && weaponType == RpgGameData::Weapon::WeaponHand) {
+	/*if (player && isAlive() && weaponType == RpgGameData::Weapon::WeaponHand) {
 		if (startSleeping())
 			return;
-	}
+	}*/
 
 	if (weaponType == RpgGameData::Weapon::WeaponLongbow || weaponType == RpgGameData::Weapon::WeaponFireFogWeapon)
 		m_effectFire.play();
