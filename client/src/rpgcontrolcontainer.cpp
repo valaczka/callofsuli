@@ -72,7 +72,6 @@ RpgControlContainer::RpgControlContainer(RpgGame *game, TiledScene *scene, Tiled
 	} else {
 		setIsLocked(false);
 	}
-
 }
 
 

@@ -701,6 +701,43 @@ void TiledObjectBody::drawCenter(TiledDebugDraw *draw, const QColor &colorX, con
 
 
 /**
+ * @brief TiledObjectBody::useDynamicZ
+ * @return
+ */
+
+bool TiledObjectBody::useDynamicZ() const
+{
+	return m_useDynamicZ;
+}
+
+void TiledObjectBody::setUseDynamicZ(bool newUseDynamicZ)
+{
+	m_useDynamicZ = newUseDynamicZ;
+}
+
+qreal TiledObjectBody::subZ() const
+{
+	return m_subZ;
+}
+
+void TiledObjectBody::setSubZ(qreal newSubZ)
+{
+	m_subZ = newSubZ;
+}
+
+qreal TiledObjectBody::defaultZ() const
+{
+	return m_defaultZ;
+}
+
+void TiledObjectBody::setDefaultZ(qreal newDefaultZ)
+{
+	m_defaultZ = newDefaultZ;
+}
+
+
+
+/**
  * @brief TiledObjectBody::visualItem
  * @return
  */

@@ -46,10 +46,6 @@ IsometricObject::IsometricObject(const QPointF &center, const qreal &radius, Til
  * @return
  */
 
-qreal IsometricObject::subZ() const
-{
-	return m_subZ;
-}
 
 void IsometricObject::setSubZ(qreal newSubZ)
 {
@@ -58,7 +54,9 @@ void IsometricObject::setSubZ(qreal newSubZ)
 
 	if (qFuzzyCompare(m_subZ, newSubZ))
 		return;
-	m_subZ = newSubZ;
+
+	TiledObjectBody::setSubZ(newSubZ);
+
 	emit subZChanged();
 }
 
@@ -69,16 +67,13 @@ void IsometricObject::setSubZ(qreal newSubZ)
  * @return
  */
 
-bool IsometricObject::useDynamicZ() const
-{
-	return m_useDynamicZ;
-}
-
 void IsometricObject::setUseDynamicZ(bool newUseDynamicZ)
 {
 	if (m_useDynamicZ == newUseDynamicZ)
 		return;
-	m_useDynamicZ = newUseDynamicZ;
+
+	TiledObjectBody::setUseDynamicZ(newUseDynamicZ);
+
 	emit useDynamicZChanged();
 }
 
@@ -91,17 +86,13 @@ void IsometricObject::setUseDynamicZ(bool newUseDynamicZ)
  * @return
  */
 
-
-qreal IsometricObject::defaultZ() const
-{
-	return m_defaultZ;
-}
-
 void IsometricObject::setDefaultZ(qreal newDefaultZ)
 {
 	if (qFuzzyCompare(m_defaultZ, newDefaultZ))
 		return;
-	m_defaultZ = newDefaultZ;
+
+	TiledObjectBody::setDefaultZ(newDefaultZ);
+
 	emit defaultZChanged();
 }
 

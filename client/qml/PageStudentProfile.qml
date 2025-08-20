@@ -164,10 +164,16 @@ QPageGradient {
 
 
 	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentProfile)
+
 		if (_isFirst) {
 			reload()
 			_isFirst = false
 		}
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentProfile)
 	}
 
 	function reload() {

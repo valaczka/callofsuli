@@ -838,6 +838,9 @@ FocusScope {
 	}
 
 	StackView.onActivated: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentPlayMultiplayer)
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentPlayRpg)
+
 		_prStackActivated = true
 		if (game)
 			game.rpgGameActivated()

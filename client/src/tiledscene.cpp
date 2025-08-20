@@ -205,17 +205,14 @@ void TiledScene::reorderObjectsZ(const std::vector<TiledObjectBody*> list)
 	QHash<qreal, QMultiMap<qreal, TiledObjectBody*>> map;
 
 	for (TiledObjectBody *obj : list) {
-		IsometricObject *iso = dynamic_cast<IsometricObject*>(obj);
-
 		qreal z = 0;
 		const qreal y = obj->bodyPositionF().y();
 
-		if (iso)
-			z = getDynamicZ(obj->bodyPositionF(), iso->defaultZ()) + iso->subZ();
-		else
-			z = getDynamicZ(obj->bodyPositionF(), 1);
+		if (obj->useDynamicZ()) {
+			z = getDynamicZ(obj->bodyPositionF(), obj->defaultZ()) + obj->subZ();
 
-		map[z].insert(y, obj);
+			map[z].insert(y, obj);
+		}
 	}
 
 	for (const auto &[subZ, subMap] : map.asKeyValueRange()) {

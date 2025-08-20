@@ -275,7 +275,7 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 
 	connect(m_engine, &RpgUdpEngine::gameDataDownload, this, &ActionRpgMultiplayerGame::downloadGameData);
 	connect(m_engine, &RpgUdpEngine::gameError, this, &ActionRpgMultiplayerGame::setUnknownError);
-	connect(m_engine, &RpgUdpEngine::serverConnectFailed, this, &ActionRpgMultiplayerGame::setError);
+	connect(m_engine, &RpgUdpEngine::serverConnectFailed, this, &ActionRpgMultiplayerGame::onConnectionFailed);
 	connect(m_engine, &RpgUdpEngine::serverConnectionLost, this, &ActionRpgMultiplayerGame::onConnectionLost);
 	connect(m_engine, &RpgUdpEngine::serverConnected, this, &ActionRpgMultiplayerGame::onConnected);
 	connect(m_engine, &RpgUdpEngine::serverDisconnected, this, &ActionRpgMultiplayerGame::onDisconnected);
@@ -782,8 +782,6 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 
 	if (!q->m_connectionLostTimer.isForever() &&
 			q->m_connectionLostTimer.hasExpired()) {
-		LOG_CERROR("game") << "Connection lost timeout" << q->m_connectionLostTimer.isForever() << q->m_connectionLostTimer.hasExpired()
-						   << q->m_connectionLostTimer.remainingTime();
 
 		if (m_config.gameState == RpgConfig::StatePlay) {
 			LOG_CINFO("game") << "Start reconnecting";
@@ -791,7 +789,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 			changeGameState(RpgConfig::StatePlay);
 			//updateConfig();
 
-		} else {
+		} else if (!q->m_isReconnecting) {
 			setError(tr("Connection lost"));
 		}
 
@@ -1011,8 +1009,8 @@ QString ActionRpgMultiplayerGame::toReadableEngineId(const int &id)
 		return QString();
 
 	return QStringLiteral("%1 %2")
-			.arg((int) std::floor(id/1000), 3, 10, '0')
-			.arg((int) (id - std::floor(id/1000)*1000), 3, 10, '0')
+			.arg((int) std::floor(id/1000), 3, 10, QChar('0'))
+			.arg((int) (id - std::floor(id/1000)*1000), 3, 10, QChar('0'))
 			;
 }
 
@@ -2166,6 +2164,7 @@ bool ActionRpgMultiplayerGame::onEnemyHit(RpgEnemy *enemy, RpgPlayer *player, Rp
 	RpgGameData::Enemy e = enemy->serialize(m_rpgGame->tickTimer()->currentTick());
 	e.st = RpgGameData::Enemy::EnemyHit;
 	e.arm.cw = weapon->weaponType();
+	e.arm.s = weapon->weaponSubType();
 
 	q->m_toSend.appendSnapshot(enemy->baseData(), e);
 	enemy->setLastSnapshot(e);
@@ -2199,6 +2198,7 @@ bool ActionRpgMultiplayerGame::onEnemyShot(RpgEnemy *enemy, RpgWeapon *weapon, c
 	RpgGameData::Enemy e = enemy->serialize(m_rpgGame->tickTimer()->currentTick());
 	e.st = RpgGameData::Enemy::EnemyShot;
 	e.arm.cw = weapon->weaponType();
+	e.arm.s = weapon->weaponSubType();
 
 	q->m_toSend.appendSnapshot(enemy->baseData(), e);
 	enemy->setLastSnapshot(e);
@@ -2424,14 +2424,29 @@ void ActionRpgMultiplayerGame::onConnected()
 
 
 /**
+ * @brief ActionRpgMultiplayerGame::onConnectionFailed
+ */
+
+void ActionRpgMultiplayerGame::onConnectionFailed(const QString &error)
+{
+	/*if (q->m_isReconnecting) {
+		LOG_CDEBUG("game") << "Reconnecting, skip" << error;
+		return;
+	}*/
+	setError(error);
+}
+
+
+
+/**
  * @brief ActionRpgMultiplayerGame::onConnectionLost
  */
 
 void ActionRpgMultiplayerGame::onConnectionLost()
 {
-	LOG_CWARNING("game") << "Connection lost";
+	LOG_CWARNING("game") << "Connection lost, state:" << m_config.gameState;
 
-	if (m_config.gameState != RpgConfig::StatePlay) {
+	if (m_config.gameState != RpgConfig::StatePlay && !q->m_isReconnecting) {
 		disconnectFromHost();
 		return;
 	}
@@ -2451,9 +2466,9 @@ void ActionRpgMultiplayerGame::onConnectionLost()
 
 void ActionRpgMultiplayerGame::onDisconnected()
 {
-	LOG_CWARNING("game") << "Server disconnected" << q->m_isReconnecting;
+	LOG_CWARNING("game") << "Server disconnected, state:" << m_config.gameState;
 
-	if (m_config.gameState != RpgConfig::StatePlay) {
+	if (m_config.gameState != RpgConfig::StatePlay && !q->m_isReconnecting) {
 		disconnectFromHost();
 	}
 }

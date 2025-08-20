@@ -152,6 +152,12 @@ QPageGradient {
 	StackView.onActivated: {
 		if (map)
 			map.gameState = MapPlay.StateSelect
+
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentPlayLevel)
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentPlayLevel)
 	}
 
 }

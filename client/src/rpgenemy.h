@@ -48,12 +48,14 @@ public:
 	RpgEnemyConfig()
 		: QSerializer()
 		, weapon(RpgGameData::Weapon::WeaponInvalid)
+		, subType(0)
 		, playerFeatures(RpgGameData::Player::FeatureInvalid)
 	{}
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(RpgGameData::Weapon::WeaponType, weapon)
+	QS_FIELD(int, subType)
 	QS_FIELD(RpgGameData::Player::Features, playerFeatures)			// player feature override
 };
 

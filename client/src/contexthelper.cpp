@@ -437,6 +437,9 @@ void ContextHelper::onTimerTimeout()
 		return;
 	}
 
+	if (m_dialogPresent)
+		return;
+
 	if (m_storage->isNextDownloading(m_currentContext))
 		return;
 
@@ -473,6 +476,19 @@ void ContextHelper::onTimerTimeout()
 std::optional<ContextHelperData> ContextHelper::takeCurrentData()
 {
 	return m_storage->takeNext(m_currentContext);
+}
+
+bool ContextHelper::dialogPresent() const
+{
+	return m_dialogPresent;
+}
+
+void ContextHelper::setDialogPresent(bool newDialogPresent)
+{
+	if (m_dialogPresent == newDialogPresent)
+		return;
+	m_dialogPresent = newDialogPresent;
+	emit dialogPresentChanged();
 }
 
 

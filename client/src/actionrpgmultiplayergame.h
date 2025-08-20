@@ -185,6 +185,7 @@ private:
 
 	void onRpgGameActivated();
 	void onConnected();
+	void onConnectionFailed(const QString &error);
 	void onConnectionLost();
 	void onDisconnected();
 

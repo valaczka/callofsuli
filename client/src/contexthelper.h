@@ -107,6 +107,7 @@ class ContextHelper : public QObject
 	Q_OBJECT
 
 	Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged FINAL)
+	Q_PROPERTY(bool dialogPresent READ dialogPresent WRITE setDialogPresent NOTIFY dialogPresentChanged FINAL)
 
 public:
 	explicit ContextHelper(Client *client);
@@ -122,8 +123,13 @@ public:
 	bool enabled() const;
 	void setEnabled(bool newEnabled);
 
+	bool dialogPresent() const;
+	void setDialogPresent(bool newDialogPresent);
+
 signals:
 	void enabledChanged();
+
+	void dialogPresentChanged();
 
 private:
 	void onTimerTimeout();
@@ -134,6 +140,7 @@ private:
 	bool m_enabled = true;
 	ContextHelperData::Context m_currentContext = ContextHelperData::ContextInvalid;
 	QTimer m_timer;
+	bool m_dialogPresent = false;
 };
 
 

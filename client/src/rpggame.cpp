@@ -3913,7 +3913,7 @@ void RpgGamePrivate::playerUsePickable(RpgPlayer *player, RpgPickable *control, 
 		if (data.pt == RpgGameData::PickableBaseData::PickableBullet)
 			d->message(QObject::tr("%1 bullets gained").arg(-pv));
 
-	} else if (data.pt == RpgGameData::PickableBaseData::PickableTime) {
+	} else if (pv > 0 && data.pt == RpgGameData::PickableBaseData::PickableTime) {
 		if (ActionRpgGame *game = d->actionRpgGame()) {
 			game->m_deadlineTick += AbstractGame::TickTimer::msecToTick(pv*1000);
 			d->message(QObject::tr("%1 seconds gained").arg(pv));
@@ -3921,7 +3921,8 @@ void RpgGamePrivate::playerUsePickable(RpgPlayer *player, RpgPickable *control, 
 			LOG_CERROR("game") << "Invalid ActionRpgGame";
 		}
 	} else {
-		LOG_CERROR("game") << "Invalid pickable" << data.pt;
+		LOG_CWARNING("game") << "Invalid pickable" << data.pt;
+		return;
 	}
 
 	control->setIsActive(false);

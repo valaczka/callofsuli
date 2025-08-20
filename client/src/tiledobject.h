@@ -257,6 +257,15 @@ public:
 	QQuickItem *visualItem() const;
 	void setVisualItem(QQuickItem *newVisualItem);
 
+	qreal defaultZ() const;
+	void setDefaultZ(qreal newDefaultZ);
+
+	qreal subZ() const;
+	void setSubZ(qreal newSubZ);
+
+	bool useDynamicZ() const;
+	void setUseDynamicZ(bool newUseDynamicZ);
+
 protected:
 	virtual void synchronize() {}
 
@@ -280,6 +289,9 @@ protected:
 
 	TiledGame *const m_game;
 	QQuickItem *m_visualItem = nullptr;
+	qreal m_defaultZ = 0;
+	qreal m_subZ = 0;
+	bool m_useDynamicZ = true;
 
 private:
 	cpShape *createFromPolygon(const QPolygonF &polygon,

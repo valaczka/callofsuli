@@ -1129,6 +1129,32 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 			it->bv = bv;
 			it->bullet = w->market().amount;
 		}
+
+		// Load attached weapons
+
+		const QJsonArray attach = w->market().info.value(QStringLiteral("attach")).toArray();
+
+		for (const QJsonValue &v : attach) {
+			const QJsonObject o = v.toObject();
+
+			const RpgGameData::Weapon::WeaponType type = RpgArmory::weaponHash().key(o.value(QStringLiteral("name")).toString(),
+																					 RpgGameData::Weapon::WeaponInvalid);
+			const int sub = o.value(QStringLiteral("subType")).toInt(0);
+			const int amount = o.value(QStringLiteral("amount")).toInt(1);
+
+			if (type == RpgGameData::Weapon::WeaponInvalid)
+				continue;
+
+			auto it = wData.find(type);
+
+			if (it == wData.end()) {
+				wData.emplace(type, sub, bv, amount);
+			} else if (bv > it->bv) {
+				it->sub = sub;
+				it->bv = bv;
+				it->bullet = amount;
+			}
+		}
 	}
 
 

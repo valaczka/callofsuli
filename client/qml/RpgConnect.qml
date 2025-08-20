@@ -103,4 +103,13 @@ QItemGradient {
             rightPadding: 15 * Qaterial.Style.pixelSizeRatio
         }
     }
+
+
+    StackView.onActivated: {
+        Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentSelectEngine)
+    }
+
+    StackView.onDeactivating: {
+        Client.contextHelper.unsetContext(ContextHelperData.ContextStudentSelectEngine)
+    }
 }

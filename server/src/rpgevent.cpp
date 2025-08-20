@@ -453,6 +453,9 @@ bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSna
 		return true;
 	}
 
+	pData.f = m_tick;
+
+	ELOG_INFO << "Player" << m_player << "picked" << m_data.pt;
 
 	RpgGameData::Pickable d;
 
@@ -465,13 +468,6 @@ bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSna
 	d.own = m_player;
 	d.st = RpgGameData::LifeCycle::StageDead;
 
-	dst->assign(dst->controls.pickables, m_data, d);
-
-
-
-	pData.f = m_tick;
-
-	ELOG_INFO << "Player" << m_player << "picked" << m_data.pt;
 
 	const int pv = pData.pick(m_data.pt);
 
@@ -488,14 +484,20 @@ bool RpgEventPickablePicked::process(const qint64 &tick, RpgGameData::CurrentSna
 								 {m_player.o});
 
 
-	} else if (m_data.pt == RpgGameData::PickableBaseData::PickableTime) {
+	} else if (pv > 0 && m_data.pt == RpgGameData::PickableBaseData::PickableTime) {
 		m_engine->addMsec(pv*1000);
 		m_engine->messageAdd(RpgGameData::Message(RpgGameData::Message::MessagePick,
 												  QStringLiteral("%1 seconds gained").arg(pv)));
 	} else {
-		ELOG_ERROR << "###### PICKABLE PROCESS FAILED" << m_data.pt << m_tick << "--->" << m_player.o;
-		LOG_CERROR("engine") << "Pickable process failed" << m_data.pt;
+		ELOG_WARNING << "Pickable process failed" << m_data.pt;
+		///LOG_CERROR("engine") << "Pickable process failed" << m_data.pt;
+
+		d.own = {};
+		d.a = true;
+		d.st = RpgGameData::LifeCycle::StageLive;
 	}
+
+	dst->assign(dst->controls.pickables, m_data, d);
 
 	return true;
 }

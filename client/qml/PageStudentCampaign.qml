@@ -301,7 +301,15 @@ QPageGradient {
 
 
 
-	StackView.onActivated: reload()
+
+	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentCampaign)
+		reload()
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentCampaign)
+	}
 
 
 	function reload() {

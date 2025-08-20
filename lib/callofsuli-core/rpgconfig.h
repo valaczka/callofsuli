@@ -263,6 +263,7 @@ public:
 		Xp			= 7,
 		Mp			= 8,
 		Pickable	= 9,
+		Feature		= 10,
 		Other		= 999,
 	};
 

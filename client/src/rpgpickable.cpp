@@ -103,6 +103,7 @@ RpgPickable::RpgPickable(RpgGame *game, TiledScene *scene, const RpgGameData::Pi
 
 	o->setSensor(true);
 	o->setVisualItem(m_visualItem);
+	o->setSubZ(0.4);
 
 	controlObjectAdd(o);
 

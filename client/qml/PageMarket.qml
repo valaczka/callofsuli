@@ -556,5 +556,10 @@ QPageGradient {
 
 	StackView.onActivated: {
 		Client.downloader.download()
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentMarket)
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentMarket)
 	}
 }

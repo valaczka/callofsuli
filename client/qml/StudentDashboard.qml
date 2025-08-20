@@ -350,7 +350,13 @@ QItemGradient {
 		}
 	}
 
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentDasboard)
+	}
+
 	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentDasboard)
 		reload()
 		if (!user)
 			return

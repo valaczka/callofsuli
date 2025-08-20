@@ -682,6 +682,7 @@ RpgGameData::Weapon RpgWeapon::serialize() const
 {
 	RpgGameData::Weapon w;
 	w.t = m_weaponType;
+	w.s = m_weaponSubType;
 	w.b = m_bulletCount;
 	return w;
 }

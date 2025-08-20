@@ -113,4 +113,12 @@ QPageGradient {
 	Component.onDestruction: {
 		Client.sound.stopSound("qrc:/sound/menu/bg.mp3", Sound.MusicChannel)
 	}
+
+	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextSettings)
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextSettings)
+	}
 }

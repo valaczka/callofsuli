@@ -198,7 +198,7 @@ public:
 	RpgEventPlayerLost(RpgEngine *engine, const qint64 &tick, const RpgGameData::PlayerBaseData &data)
 		: RpgEvent<RpgGameData::PlayerBaseData>(engine, tick, data, true)
 	{
-
+		ELOG_DEBUG << "Player lost event" << tick;
 	}
 
 	bool process(const qint64 &tick, RpgGameData::CurrentSnapshot *dst) override;

@@ -48,24 +48,14 @@ class IsometricObject : public TiledObject
 public:
 	IsometricObject(const QPointF &center, const qreal &radius, TiledGame *game, const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
-	qreal defaultZ() const;
 	void setDefaultZ(qreal newDefaultZ);
-
-	bool useDynamicZ() const;
 	void setUseDynamicZ(bool newUseDynamicZ);
-
-	qreal subZ() const;
 	void setSubZ(qreal newSubZ);
 
 signals:
 	void defaultZChanged();
 	void useDynamicZChanged();
 	void subZChanged();
-
-protected:
-	qreal m_defaultZ = 0;
-	qreal m_subZ = 0;
-	bool m_useDynamicZ = true;
 };
 
 

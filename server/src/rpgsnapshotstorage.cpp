@@ -3774,20 +3774,6 @@ void ConflictSolver::ConflictPickable::generateEvent(ConflictSolver *solver, Rpg
 
 	RpgGameData::Pickable data = e->data();
 
-	if (state.state == StateSuccess) {
-		data.own = state.player->asBaseData();
-		data.a = false;
-		data.u = {};
-	} /*else if (state.state == StateFailed) {
-		data.own = {};
-		data.a = false;
-		data.u = {};
-	}*/ else if (state.state == StateHold) {
-		data.a = false;
-		data.u = state.player->asBaseData();
-	}
-
-	m_unique->overrideAuthSnap(data);
 
 	if (state.state == StateSuccess) {
 		RpgGameData::PlayerBaseData pd;
@@ -3796,6 +3782,19 @@ void ConflictSolver::ConflictPickable::generateEvent(ConflictSolver *solver, Rpg
 			pd = state.player->baseData;
 
 		engine->addPickablePicked(solver->m_renderer->startTick()+tick, m_unique->baseData, pd);
+
+	} else if (state.state == StateFailed) {
+		data.own = {};
+		data.a = true;
+		data.u = {};
+
+		m_unique->overrideAuthSnap(data);
+
+	} else if (state.state == StateHold) {
+		data.a = false;
+		data.u = state.player->asBaseData();
+
+		m_unique->overrideAuthSnap(data);
 	}
 }
 

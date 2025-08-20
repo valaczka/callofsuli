@@ -101,6 +101,7 @@
 - Grass patches - (c) DJMaesen (https://skfb.ly/onMCA)
 - Teleporter circle - (c) 2012 Clint Bellanger (https://opengameart.org/content/teleporter-circle)
 - Teleporter effect - (c) 2015 rubberduck (https://opengameart.org/content/teleporter-effect)
+- Medieval Shield - (c) Artem Mykhailov (https://skfb.ly/6SQuN)
 
 **Music & SFX**
 

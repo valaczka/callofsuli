@@ -173,13 +173,20 @@ QPage {
 				}
 			}
 
-			StackView.onActivated: _scoreList.reload()
+
+			StackView.onActivated: {
+				Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentScore)
+				_scoreList.reload()
+			}
+
+			StackView.onDeactivating: {
+				Client.contextHelper.unsetContext(ContextHelperData.ContextStudentScore)
+			}
 		}
 	}
 
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentDasboard)
 		Client.reloadUser()
 		Client.reloadCache("studentGroupList", control, function() {
 			if (!control.group && control.groupList.count > 0)

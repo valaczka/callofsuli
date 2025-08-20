@@ -346,28 +346,36 @@ void RpgEnemyBase::loadConfig(const QJsonObject &config)
 	cfg.fromJson(config);
 
 	if (cfg.weapon == RpgGameData::Weapon::WeaponInvalid) {
-		if (m_enemyType == RpgGameData::EnemyBaseData::EnemySoldier || m_enemyType == RpgGameData::EnemyBaseData::EnemySoldierFix)
+		if (m_enemyType == RpgGameData::EnemyBaseData::EnemySoldier || m_enemyType == RpgGameData::EnemyBaseData::EnemySoldierFix) {
 			cfg.weapon = RpgGameData::Weapon::WeaponLongsword;
-		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix)
+			cfg.subType = 10;
+		} else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyArcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyArcherFix) {
 			cfg.weapon = RpgGameData::Weapon::WeaponShortbow;
-		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton)
+			cfg.subType = 20;
+		} else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySkeleton) {
 			cfg.weapon = RpgGameData::Weapon::WeaponLongsword;
-		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySmith || m_enemyType == RpgGameData::EnemyBaseData::EnemySmithFix)
+			cfg.subType = 10;
+		} else if (m_enemyType == RpgGameData::EnemyBaseData::EnemySmith || m_enemyType == RpgGameData::EnemyBaseData::EnemySmithFix) {
 			cfg.weapon = RpgGameData::Weapon::WeaponHammer;
-		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyButcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyButcherFix)
+			cfg.subType = 30;
+		} else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyButcher || m_enemyType == RpgGameData::EnemyBaseData::EnemyButcherFix) {
 			cfg.weapon = RpgGameData::Weapon::WeaponAxe;
-		else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarian || m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarianFix)
+			cfg.subType = 30;
+		} else if (m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarian || m_enemyType == RpgGameData::EnemyBaseData::EnemyBarbarianFix) {
 			cfg.weapon = RpgGameData::Weapon::WeaponMace;
+			cfg.subType = 30;
+		}
 	}
 
-
-	if (RpgWeapon *w = m_armory->weaponAdd(cfg.weapon, 0)) {
+	if (RpgWeapon *w = m_armory->weaponAdd(cfg.weapon, cfg.subType)) {
 		w->setExcludeFromLayers(true);
 		w->setBulletCount(-1);
 		m_armory->setCurrentWeapon(w);
 	} else {
 		LOG_CERROR("game") << "Invalid enemy config";
 	}
+
+
 
 	setConfig(cfg);
 }

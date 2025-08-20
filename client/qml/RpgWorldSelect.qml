@@ -84,6 +84,14 @@ QPage {
 		_map.enabled = false
 		_map.parent = null
 	}
+
+	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentSelectWorld)
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentSelectWorld)
+	}
 }
 
 

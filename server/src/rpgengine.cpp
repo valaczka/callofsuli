@@ -398,11 +398,13 @@ void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 			player->setUdpPeer(nullptr);
 
 			if (d->m_abortList.contains(player->peerID())) {
+				ELOG_DEBUG << "Abort" << peer << "for player" << *player << m_currentTick;
 				eventAdd<RpgEventControlUnlock>(m_currentTick+1, *player);
 				eventAdd<RpgEventPlayerLost>(m_currentTick+1, *player);
 			} else {
-				eventAdd<RpgEventControlUnlock>(m_currentTick+600, *player);
-				eventAdd<RpgEventPlayerLost>(m_currentTick+600, *player);
+				ELOG_DEBUG << "Wait" << peer << "for reconnect player" << *player << m_currentTick;
+				eventAdd<RpgEventControlUnlock>(m_currentTick+60*60, *player);
+				eventAdd<RpgEventPlayerLost>(m_currentTick+60*120, *player);
 			}
 		}
 	} else {

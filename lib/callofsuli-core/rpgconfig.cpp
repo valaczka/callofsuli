@@ -459,7 +459,7 @@ void Player::controlFailed(Player &dst, const RpgConfig::ControlType &control)
  * @brief Player::pick
  * @param dst
  * @param type
- * @return -1, ha meg tudta oldani
+ * @return -1, ha meg tudta oldani, 0: sikertelen
  */
 
 int Player::pick(Player &dst, const PickableBaseData::PickableType &type, const QString &name)
@@ -480,8 +480,10 @@ int Player::pick(Player &dst, const PickableBaseData::PickableType &type, const 
 			break;
 
 		case PickableBaseData::PickableBullet:
-			dst.arm.addBullet(PICKABLE_BULLET_VALUE);
-			return -PICKABLE_BULLET_VALUE;
+			if (dst.arm.addBullet(PICKABLE_BULLET_VALUE))
+				return -PICKABLE_BULLET_VALUE;
+			else
+				return 0;
 			break;
 
 		case PickableBaseData::PickableTime:
@@ -490,10 +492,10 @@ int Player::pick(Player &dst, const PickableBaseData::PickableType &type, const 
 		case PickableBaseData::PickableMp:
 		case PickableBaseData::PickableCoin:
 		case PickableBaseData::PickableInvalid:
-			return false;
+			return 0;
 	}
 
-	return -1;
+	return 0;
 }
 
 

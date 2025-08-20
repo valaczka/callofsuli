@@ -180,4 +180,7 @@ Qaterial.ModalDialog
 	}
 
 	standardButtons: DialogButtonBox.Ok
+
+	onAboutToHide: Client.contextHelper.dialogPresent = false
+	onAboutToShow: Client.contextHelper.dialogPresent = true
 }

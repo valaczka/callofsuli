@@ -177,4 +177,11 @@ QItemGradient {
 	}
 
 
+	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentGroupCampaign)
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentGroupCampaign)
+	}
 }
