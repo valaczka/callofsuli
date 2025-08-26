@@ -88,6 +88,7 @@ public:
 
 	const QString &currentSprite() const;
 	void setCurrentSprite(const QString &newCurrentSprite);
+	const QString &proxySprite() const;
 
 	TiledObject *baseObject() const;
 	void setBaseObject(TiledObject *newBaseObject);
@@ -110,6 +111,10 @@ public:
 
 	OpacityMask opacityMask() const;
 	void setOpacityMask(const OpacityMask &newOpacityMask);
+
+	QHash<QString, QString> proxySprites() const;
+	void setProxySprites(const QHash<QString, QString> &newProxySprites);
+	void addProxySprite(const QString &real, const QString &proxy);
 
 signals:
 	void cleared();
@@ -157,7 +162,10 @@ private:
 	QVector<Sprite> m_spriteList;
 	QStringList m_spriteNames;
 	QString m_currentSprite;
+	QString m_currentProxySprite;			// Ebben van mindig a valós
 	TiledObject::Direction m_currentDirection = TiledObject::Invalid;
+
+	QHash<QString, QString> m_proxySprites;
 
 	QStringList m_layers;
 	QStringList m_visibleLayers = { QStringLiteral("default") };

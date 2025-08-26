@@ -218,10 +218,16 @@ inline cpVect RpgGameDataInterface<T, T2, T3, T4>::entityMove(IsometricEntity *e
 
 			return cpvzero;
 		} else {
+			if (entity->distanceToPointSq(toFinal.value()) < (speed/120.)) {
+				fnEmplace(entity, toFinal.value(), to.a);
+				if (msg) *msg = QStringLiteral("________emplace_______");
+				return cpvzero;
+			}
+
 			const int frames = to.f-snapshot.current;
 			const cpVect pos = cpvlerp(entity->bodyPosition(), toFinal.value(), 1./frames);
 
-			if (msg) *msg = QStringLiteral("![%1,%2]").arg(pos.x).arg(pos.y);
+			if (msg) *msg = QStringLiteral("=[%1,%2]").arg(pos.x).arg(pos.y);
 
 			return fnMove(entity, pos, frames, maxSpeed, from.cv);
 		}

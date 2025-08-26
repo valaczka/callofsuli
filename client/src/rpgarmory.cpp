@@ -495,6 +495,8 @@ bool RpgArmory::updateFromSnapshot(const RpgGameData::Armory &armory)
 	if (RpgWeapon *w = weaponFind(armory.cw, armory.s))
 		setCurrentWeapon(w);
 
+	updateLayers();
+
 	return true;
 }
 

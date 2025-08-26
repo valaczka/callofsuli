@@ -607,6 +607,8 @@ void ActionRpgGame::rpgGameActivated_()
 		return;
 	}
 
+	player->loadIdleHandler();
+
 	const int hp = m_missionLevel->startHP() + characterPtr->hp;
 
 	player->setHp(hp);

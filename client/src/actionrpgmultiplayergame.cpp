@@ -1266,6 +1266,8 @@ void ActionRpgMultiplayerGame::syncPlayerList(const ClientStorage &storage)
 			}
 
 			if (pl.data.o == m_playerId) {
+				rpgPlayer->loadIdleHandler();
+
 				m_rpgGame->setFollowedItem(rpgPlayer);
 				m_rpgGame->setControlledPlayer(rpgPlayer);
 

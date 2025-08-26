@@ -91,6 +91,19 @@ private:
 	QPointer<RpgActiveControlObject> m_currentControl;
 	std::unique_ptr<RpgPlayerExitControl> m_exitControl;
 
+	struct IdleHandler {
+		QDeadlineTimer timer;
+		QStringList sprites;
+		QString nextSprite;
+		bool enabled = false;
+	};
+
+	void idleLoad();
+	void idleSet();
+	void idleClear();
+	void idleUpdate();
+
+	IdleHandler m_idleHandler;
 
 	friend class RpgPlayer;
 };
@@ -275,6 +288,8 @@ void RpgPlayer::load()
 
 		m_armory->setLayers(layerData);
 
+		d->idleLoad();
+
 	} else {
 
 		LOG_CWARNING("game") << "Deprecated character" << m_config.name;
@@ -320,17 +335,36 @@ void RpgPlayer::updateSprite()
 		return;
 	}
 
-	if (m_spriteHandler->currentSprite() == QStringLiteral("attack") ||
-			m_spriteHandler->currentSprite() == QStringLiteral("bow") ||
-			m_spriteHandler->currentSprite() == QStringLiteral("hurt") ||
-			m_spriteHandler->currentSprite() == QStringLiteral("cast") )
+	const QString &sprite = m_spriteHandler->currentSprite();
+	const QString &proxy = m_spriteHandler->proxySprite();
+
+	if (sprite == QStringLiteral("attack") ||
+			sprite == QStringLiteral("bow") ||
+			sprite == QStringLiteral("hurt") ||
+			sprite == QStringLiteral("cast"))
 		jumpToSpriteLater("idle", m_facingDirection);
 	else if (isRunning() && m_facingDirection != Invalid)
 		jumpToSprite("run", m_facingDirection);
 	else if (isWalking() && m_facingDirection != Invalid)
 		jumpToSprite("walk", m_facingDirection);
-	else
+	else if (sprite == QStringLiteral("idle") && proxy != QStringLiteral("idle"))
+		jumpToSpriteLater("idle", m_facingDirection);
+	else if (sprite != QStringLiteral("idle"))
 		jumpToSprite("idle", m_facingDirection);
+
+	d->idleUpdate();
+}
+
+
+
+/**
+ * @brief RpgPlayer::loadIdleHandler
+ */
+
+void RpgPlayer::loadIdleHandler()
+{
+	LOG_CWARNING("game") << "***" << m_baseData << "ENABLED";
+	d->m_idleHandler.enabled = true;
 }
 
 
@@ -490,11 +524,20 @@ void RpgPlayer::loadSfx()
 void RpgPlayer::onCurrentSpriteChanged()
 {
 	const QString &sprite = m_spriteHandler->currentSprite();
+	const QString &proxy = m_spriteHandler->proxySprite();
 
 	if (sprite == QStringLiteral("run"))
 		m_sfxFootStep.startFromBegin();
 	else if (sprite != QStringLiteral("run"))
 		m_sfxFootStep.stop();
+
+	if (!m_specialState.isEmpty() && m_specialState != proxy)
+		setSpecialState(QString());
+
+	if (sprite == QStringLiteral("idle") && proxy == QStringLiteral("idle"))
+		d->idleSet();
+	else
+		d->idleClear();
 }
 
 
@@ -971,7 +1014,13 @@ RpgGameData::Player RpgPlayer::serializeThis() const
 
 void RpgPlayer::changeSpecialState(const QString &state)
 {
-	setSpecialState(state);
+	if (m_specialState == state)
+		return;
+
+	if (!d->m_idleHandler.enabled && !state.isEmpty()) {
+		setSpecialState(state);
+		m_spriteHandler->jumpToSprite(state, m_facingDirection);
+	}
 }
 
 
@@ -1187,6 +1236,8 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 			  .arg(snapshot.last.st)
 			  ;
 
+	writer += QStringLiteral("[")+snapshot.s1.sp+QStringLiteral("] ")+
+			  QStringLiteral("[")+snapshot.last.sp+QStringLiteral("] ");
 
 	const auto &to = snapshot.s2.f >= 0 ? snapshot.s2 : snapshot.last;
 
@@ -1276,7 +1327,7 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::SnapshotInterpolation<RpgG
 		if (e > 0) {
 			speed = entityMove(this, snapshot,
 							   RpgGameData::Player::PlayerIdle,
-							   { RpgGameData::Player::PlayerMoving, RpgGameData::Player::PlayerSpecial },
+							   { RpgGameData::Player::PlayerMoving },
 							   m_speedLength, 2*m_speedRunLength,
 							   &msg);
 		} else {
@@ -1332,6 +1383,9 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 	setCollection(snap.c);
 	setHidingObject(snap.pck);
 
+	//if (snap.st == RpgGameData::Player::PlayerSpecial)
+	changeSpecialState(snap.sp);
+
 	if (snap.ft != m_config.features) {
 		LOG_CTRACE("game") << "Player"  << m_baseData.o << "feature override" << m_config.features << "->" << snap.ft;
 		m_config.features = snap.ft;
@@ -1374,9 +1428,6 @@ void RpgPlayer::updateFromSnapshot(const RpgGameData::Player &snap)
 		}
 
 	} else {
-		if (snap.st == RpgGameData::Player::PlayerSpecial)
-			changeSpecialState(snap.sp);
-
 		m_armory->updateFromSnapshot(snap.arm);
 	}
 
@@ -1590,4 +1641,101 @@ void RpgPlayer::setIsGameCompleted(bool newIsGameCompleted)
 		return;
 	m_isGameCompleted = newIsGameCompleted;
 	emit isGameCompletedChanged();
+}
+
+
+
+
+
+/**
+ * @brief RpgPlayerPrivate::idleLoad
+ */
+
+void RpgPlayerPrivate::idleLoad()
+{
+	LOG_CDEBUG("game") << "Load idle proxy sprites";
+
+	m_idleHandler.sprites.clear();
+	m_idleHandler.nextSprite.clear();
+	m_idleHandler.timer.setRemainingTime(-1);
+
+	if (q->m_config.idleSprites.isEmpty())
+		return;
+
+	const QStringList list = q->m_spriteHandler->spriteNames();
+
+	for (const QString &s : q->m_config.idleSprites) {
+		if (!list.contains(s)) {
+			LOG_CERROR("game") << "Invalid idle sprite" << s;
+			continue;
+		}
+
+		m_idleHandler.sprites.append(s);
+		q->m_spriteHandler->addProxySprite(s, QStringLiteral("idle"));
+	}
+}
+
+
+
+/**
+ * @brief RpgPlayerPrivate::idleSet
+ */
+
+void RpgPlayerPrivate::idleSet()
+{
+	if (!m_idleHandler.enabled)
+		return;
+
+	if (m_idleHandler.sprites.isEmpty())
+		return;
+
+	if (!m_idleHandler.nextSprite.isEmpty() && !m_idleHandler.timer.isForever() && !m_idleHandler.timer.hasExpired())
+		return;
+
+	const qint64 msecs = QRandomGenerator::global()->bounded(3000, 8000);
+	const QString sprite = m_idleHandler.sprites.at(QRandomGenerator::global()->bounded(m_idleHandler.sprites.size()));
+
+	m_idleHandler.nextSprite = sprite;
+	m_idleHandler.timer.setRemainingTime(msecs);
+}
+
+
+
+/**
+ * @brief RpgPlayerPrivate::idleClear
+ */
+
+void RpgPlayerPrivate::idleClear()
+{
+	if (!m_idleHandler.enabled)
+		return;
+
+	if (m_idleHandler.nextSprite.isEmpty() || m_idleHandler.timer.isForever())
+		return;
+
+	m_idleHandler.nextSprite.clear();
+	m_idleHandler.timer.setRemainingTime(-1);
+}
+
+
+/**
+ * @brief RpgPlayerPrivate::idleUpdate
+ */
+
+void RpgPlayerPrivate::idleUpdate()
+{
+	if (!m_idleHandler.enabled)
+		return;
+
+	if (!m_idleHandler.nextSprite.isEmpty() && !m_idleHandler.timer.isForever() && m_idleHandler.timer.hasExpired()) {
+		if (q->m_spriteHandler->currentSprite() != QStringLiteral("idle")) {
+			LOG_CWARNING("game") << "Invalid sprite" << q->m_spriteHandler->currentSprite();
+			idleClear();
+			return;
+		}
+
+		q->setSpecialState(m_idleHandler.nextSprite);
+		q->m_spriteHandler->jumpToSprite(m_idleHandler.nextSprite, q->m_facingDirection);
+		idleClear();
+	}
 }

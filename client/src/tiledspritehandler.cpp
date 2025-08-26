@@ -72,12 +72,12 @@ QSGNode *TiledSpriteHandler::updatePaintNode(QSGNode *node, UpdatePaintNodeData 
 	}
 
 	if (m_handlerMaster && m_handlerMaster->syncHandlers()) {
-		setCurrentSprite(m_handlerMaster->m_currentSprite);
+		setCurrentSprite(m_handlerMaster->m_currentProxySprite);
 		m_currentDirection = m_handlerMaster->m_currentDirection;
 		m_currentFrame = m_handlerMaster->m_currentFrame;
 	}
 
-	const auto &list = find(m_currentSprite, m_currentDirection);
+	const auto &list = find(m_currentProxySprite, m_currentDirection);
 
 	if (list.isEmpty()) {
 		///LOG_CERROR("scene") << "Sprite not found:" << m_currentSprite << m_currentDirection;
@@ -330,7 +330,7 @@ bool TiledSpriteHandler::exists(const QString &baseName, const QString &layer, c
 
 void TiledSpriteHandler::changeSprite(const QString &name, const TiledObject::Direction &direction)
 {
-	if (m_currentSprite == name && m_currentDirection == direction)
+	if (m_currentProxySprite == name && m_currentDirection == direction)
 		return;
 
 	const auto &ptr = findFirst(name, direction);
@@ -461,6 +461,41 @@ void TiledSpriteHandler::createNodes(QSGNode *node, const QList<QVector<TiledSpr
 }
 
 
+
+/**
+ * @brief TiledSpriteHandler::proxySprites
+ * @return
+ */
+
+QHash<QString, QString> TiledSpriteHandler::proxySprites() const
+{
+	return m_proxySprites;
+}
+
+
+/**
+ * @brief TiledSpriteHandler::setProxySprites
+ * @param newProxySprites
+ */
+
+void TiledSpriteHandler::setProxySprites(const QHash<QString, QString> &newProxySprites)
+{
+	m_proxySprites = newProxySprites;
+}
+
+
+/**
+ * @brief TiledSpriteHandler::addProxySprite
+ * @param real
+ * @param proxy
+ */
+
+void TiledSpriteHandler::addProxySprite(const QString &real, const QString &proxy)
+{
+	m_proxySprites[real] = proxy;
+}
+
+
 /**
  * @brief TiledSpriteHandler::setDirty
  */
@@ -578,6 +613,7 @@ void TiledSpriteHandler::clear()
 	m_spriteList.clear();
 	m_spriteNames.clear();
 	m_currentSprite.clear();
+	m_currentProxySprite.clear();
 	m_currentDirection = TiledObject::Invalid;
 	m_layers.clear();
 	setOpacityMask(MaskFull);
@@ -712,10 +748,10 @@ void TiledSpriteHandler::timerEvent(QTimerEvent *)
 	if (m_baseObject && m_baseObject->game() && m_baseObject->game()->paused())
 		return;
 
-	const auto &ptr = findFirst(m_currentSprite, m_currentDirection);
+	const auto &ptr = findFirst(m_currentProxySprite, m_currentDirection);
 
 	if (!ptr) {
-		LOG_CERROR("scene") << "Sprite not found:" << m_currentSprite << m_currentDirection;
+		LOG_CERROR("scene") << "Sprite not found:" << m_currentProxySprite << m_currentDirection;
 		m_timer.stop();
 		return;
 	}
@@ -777,12 +813,45 @@ const QString &TiledSpriteHandler::currentSprite() const
 	return m_currentSprite;
 }
 
+
+
+/**
+ * @brief TiledSpriteHandler::setCurrentSprite
+ * @param newCurrentSprite
+ */
+
 void TiledSpriteHandler::setCurrentSprite(const QString &newCurrentSprite)
 {
-	if (m_currentSprite == newCurrentSprite)
-		return;
-	m_currentSprite = newCurrentSprite;
+	const QString newProxySprite = m_proxySprites.value(newCurrentSprite);
+
+	if (newProxySprite.isEmpty()) {
+		if (m_currentSprite == newCurrentSprite && m_currentProxySprite == newCurrentSprite)
+			return;
+
+		m_currentProxySprite = newCurrentSprite;
+		m_currentSprite = newCurrentSprite;
+
+	} else {
+		if (m_currentSprite == newProxySprite && m_currentProxySprite == newCurrentSprite)
+			return;
+
+		m_currentProxySprite = newCurrentSprite;
+		m_currentSprite = newProxySprite;
+	}
+
 	emit currentSpriteChanged();
+}
+
+
+
+/**
+ * @brief TiledSpriteHandler::proxySprite
+ * @return
+ */
+
+const QString &TiledSpriteHandler::proxySprite() const
+{
+	return m_currentProxySprite;
 }
 
 

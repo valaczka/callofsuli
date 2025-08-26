@@ -101,6 +101,10 @@ public:
 	QS_COLLECTION(QList, QString, sfxDecline)
 
 
+	// Sprites
+
+	QS_COLLECTION(QList, QString, idleSprites)
+
 	// Default weapon
 
 	QS_FIELD(QString, weapon)
@@ -235,6 +239,8 @@ protected:
 	void load() override final;
 	void updateSprite() override final;
 
+	void loadIdleHandler();
+
 	RpgGameData::Player serializeThis() const override;
 
 	virtual void changeSpecialState(const QString &state);
@@ -299,6 +305,7 @@ private:
 
 	QHash<RpgGameData::Player::PlayerState, qint64> m_stateLastRenderedTicks;
 
+	friend class RpgPlayerPrivate;
 	friend class RpgGame;
 	friend class RpgGamePrivate;
 	friend class ActionRpgGame;
