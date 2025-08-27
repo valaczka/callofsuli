@@ -726,6 +726,7 @@ QPageGradient {
 	}
 
 	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentPlayLevel)
 		reload()
 		_modeGroup.clicked(null)
 		if (map.gameState == MapPlay.StateFinished) {
@@ -733,6 +734,11 @@ QPageGradient {
 		} else if (map.gameState == MapPlay.StatePlay) {
 			_unlockView._forceShow = true
 		}
+	}
+
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentPlayLevel)
 	}
 
 	Connections {

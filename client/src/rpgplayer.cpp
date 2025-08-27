@@ -363,7 +363,6 @@ void RpgPlayer::updateSprite()
 
 void RpgPlayer::loadIdleHandler()
 {
-	LOG_CWARNING("game") << "***" << m_baseData << "ENABLED";
 	d->m_idleHandler.enabled = true;
 }
 

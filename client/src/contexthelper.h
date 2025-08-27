@@ -57,6 +57,7 @@ public:
 		ContextStudentGroups,
 		ContextStudentGroupCampaign,
 		ContextStudentGroupExam,
+		ContextStudentGroupCallPass,
 
 		ContextStudentCampaign,
 		ContextStudentFreePlay,
@@ -126,9 +127,11 @@ public:
 	bool dialogPresent() const;
 	void setDialogPresent(bool newDialogPresent);
 
+protected:
+	bool eventFilter(QObject *obj, QEvent *event) override;
+
 signals:
 	void enabledChanged();
-
 	void dialogPresentChanged();
 
 private:

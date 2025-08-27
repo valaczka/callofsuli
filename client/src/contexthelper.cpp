@@ -30,7 +30,8 @@
 #include <QTemporaryFile>
 
 
-#define TIMER_TIMEOUT	3000
+#define TIMER_TIMEOUT	5000
+#define MAX_ITEMS		3
 #define JSON_URL "https://valaczka.github.io/callofsuli/context/helper.json"
 
 
@@ -99,6 +100,9 @@ public:
 private:
 	std::unordered_map<ContextHelperData::Context, ContextHelperStorageItem> m_data;
 	Client *const m_client;
+	int m_showed = 0;
+
+	friend class ContextHelper;
 };
 
 
@@ -437,6 +441,11 @@ void ContextHelper::onTimerTimeout()
 		return;
 	}
 
+	if (m_storage->m_showed >= MAX_ITEMS) {
+		m_timer.stop();
+		return;
+	}
+
 	if (m_dialogPresent)
 		return;
 
@@ -464,6 +473,8 @@ void ContextHelper::onTimerTimeout()
 							  Q_ARG(QVariant, QVariant::fromValue(data))
 							  );
 
+	++m_storage->m_showed;
+
 }
 
 
@@ -489,6 +500,34 @@ void ContextHelper::setDialogPresent(bool newDialogPresent)
 		return;
 	m_dialogPresent = newDialogPresent;
 	emit dialogPresentChanged();
+}
+
+
+
+/**
+ * @brief ContextHelper::eventFilter
+ * @param obj
+ * @param event
+ * @return
+ */
+
+bool ContextHelper::eventFilter(QObject *obj, QEvent *event)
+{
+	if (event->type() == QEvent::KeyPress ||
+			event->type() == QEvent::MouseButtonPress ||
+			event->type() == QEvent::MouseMove ||
+			event->type() == QEvent::Scroll ||
+			event->type() == QEvent::Wheel ||
+			event->type() == QEvent::TouchBegin ||
+			event->type() == QEvent::TouchUpdate
+			) {
+
+		if (m_currentContext != ContextHelperData::ContextInvalid) {
+			m_timer.start(TIMER_TIMEOUT);
+		}
+	}
+
+	return QObject::eventFilter(obj, event);
 }
 
 

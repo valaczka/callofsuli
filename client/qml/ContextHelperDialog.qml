@@ -76,6 +76,7 @@ Qaterial.ModalDialog
 					text: root.description
 					color: Qaterial.Style.primaryTextColor()
 					wrapMode: Text.Wrap
+					width: _flickable.width
 
 					bottomPadding: 5 * Qaterial.Style.pixelSizeRatio
 				}

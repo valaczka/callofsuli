@@ -194,7 +194,7 @@ QPage {
 		anchors.top: parent.top
 		width: parent.width
 		drawSeparator: true
-		text: qsTr("Még egyetlen szerver sincsen felvéve.")
+		text: qsTr("Még egyetlen szerver sincsen felvéve, adj hozzá egyet")
 		iconSource: Qaterial.Icons.desktopClassic
 		fillIcon: false
 		outlinedIcon: true
@@ -210,7 +210,7 @@ QPage {
 		visible: !Client.serverList.length
 	}
 
-	Column {
+	/*Column {
 		visible: !Client.serverList.length
 		anchors.centerIn: parent
 
@@ -238,11 +238,27 @@ QPage {
 				display: AbstractButton.IconOnly
 			}
 		}
+	}*/
+
+
+	QDashboardButton {
+		visible: !Client.serverList.length
+		anchors.centerIn: parent
+
+		action: actionAdd
+		text: qsTr("Új szerver")
+		icon.source: action.icon.source
+		/*highlighted: false
+		outlined: true
+		flat: true
+
+		textColor: Qaterial.Colors.yellow400
+
+		onClicked: Client.stackPushPage("PageMarket.qml")*/
 	}
 
-
 	QFabButton {
-		visible: view.visible
+		visible: Client.serverList.length
 		action: actionAdd
 	}
 

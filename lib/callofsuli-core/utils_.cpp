@@ -719,7 +719,9 @@ quint32 Utils::versionCode(const int &major, const int &minor)
 
 QVersionNumber Utils::versionNumber()
 {
-	return QVersionNumber(m_versionMajor, m_versionMinor, m_versionBuild).normalized();
+	return m_versionBuild > 0 ?
+				QVersionNumber(m_versionMajor, m_versionMinor, m_versionBuild) :
+				QVersionNumber(m_versionMajor, m_versionMinor);
 }
 
 

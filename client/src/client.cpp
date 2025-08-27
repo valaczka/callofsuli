@@ -91,6 +91,8 @@ Client::Client(Application *app)
 
 	retranslate(Utils::settingsGet(QStringLiteral("window/language"), QStringLiteral("hu")).toString());
 
+	m_application->application()->installEventFilter(m_contextHelper.get());
+
 	LOG_CTRACE("app") << "Client created" << this;
 }
 

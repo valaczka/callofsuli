@@ -210,5 +210,12 @@ QItemGradient {
 	}
 
 
-	StackView.onActivated: Client.reloadCache("passList")
+	StackView.onActivated: {
+		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentGroupCallPass)
+		Client.reloadCache("passList")
+	}
+
+	StackView.onDeactivating: {
+		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentGroupCallPass)
+	}
 }

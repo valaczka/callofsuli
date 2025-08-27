@@ -392,14 +392,15 @@ void Updater::githubUpdateCheck(const bool &force)
 		const QString &lastNotified = Utils::settingsGet(QStringLiteral("update/lastVersion")).toString();
 		const QDate &lastDate = Utils::settingsGet(QStringLiteral("update/lastDate")).toDate();
 
+		if (version > Utils::versionNumber())
+			setUpdateAvailable(true);
+
 		if (!force && !lastNotified.isEmpty() && vstr == lastNotified && lastDate == QDate::currentDate())
 			return;
 
 		if (version > Utils::versionNumber()) {
 			Utils::settingsSet(QStringLiteral("update/lastVersion"), vstr);
 			Utils::settingsSet(QStringLiteral("update/lastDate"), QDate::currentDate());
-
-			setUpdateAvailable(true);
 
 			if (autoUpdate() || force)
 				emit gitHubUpdateAvailable(platformData);
