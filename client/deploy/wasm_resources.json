@@ -1,7 +1,6 @@
 {
 	"resources": [
 		"internal.cres",
-		"character.cres",
 		"sound.cres"
 	]
 }

@@ -115,7 +115,7 @@ android {
 
 	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)
 
-	ANDROID_TARGET_SDK_VERSION = 34
+	ANDROID_TARGET_SDK_VERSION = 35
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 	QMAKE_SUBSTITUTES += alist

@@ -15,6 +15,8 @@ DESTDIR = ..
 
 DEFINES += NDEBUG
 
+equals(QT_ARCH, armeabi-v7a): DEFINES += CP_USE_DOUBLES=0
+
 SOURCES = $$SOURCEDIR/src/*.c
 HEADERS = $$SOURCEDIR/include/chipmunk/*.h
 
