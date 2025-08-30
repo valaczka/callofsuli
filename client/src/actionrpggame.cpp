@@ -31,6 +31,7 @@
 #include "rpgbroadsword.h"
 #include "rpgcontrolcollection.h"
 #include "rpgcontrolrandomizer.h"
+#include "rpgcontrolteleport.h"
 #include "rpgdagger.h"
 #include "rpglongsword.h"
 #include "rpgquestion.h"
@@ -487,10 +488,7 @@ int ActionRpgGame::createCollection()
 {
 	float avg = m_rpgQuestion->count() > 0 ? (float) m_rpgQuestion->duration() / (float) m_rpgQuestion->count() : 0.;
 
-	LOG_CINFO("game") << "####################" << m_rpgGame->m_gameDefinition.duration << "+"
-					  << m_rpgQuestion->count() << "*" << avg;
-
-	m_config.duration = 75;//m_rpgGame->m_gameDefinition.duration + m_rpgQuestion->count() * avg;
+	m_config.duration = m_rpgGame->m_gameDefinition.duration + m_rpgQuestion->count() * avg;
 	updateConfig();
 
 	if (m_rpgGame->collection().groups.empty()) {
@@ -500,7 +498,7 @@ int ActionRpgGame::createCollection()
 
 	int generated = 0;
 
-	const QHash<int, QList<int> > &pos = m_rpgGame->collection().allocate(2 /*m_rpgQuestion->count()*/, &generated);
+	const QHash<int, QList<int> > &pos = m_rpgGame->collection().allocate(m_rpgQuestion->count(), &generated);
 
 	LOG_CDEBUG("game") << m_rpgQuestion->count() << "collection items required," << generated << "generated";
 
@@ -659,6 +657,16 @@ void ActionRpgGame::rpgGameActivated_()
 
 	m_rpgGame->updateRandomizer(randomizer);
 
+
+	// Close teleports
+
+	for (const auto &ptr : m_rpgGame->m_controls) {
+		if (RpgControlTeleport *p = dynamic_cast<RpgControlTeleport*>(ptr.get());
+				p && !p->baseData().hd && !p->baseData().dst.isValid()) {
+			p->setIsActive(false);
+			p->setCurrentState(RpgControlTeleportState::Inactive);
+		}
+	}
 
 	m_rpgQuestion->initialize();
 

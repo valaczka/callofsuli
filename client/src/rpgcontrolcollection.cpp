@@ -136,12 +136,10 @@ void RpgControlCollection::updateFromSnapshot(const RpgGameData::SnapshotInterpo
 	const RpgGameData::ControlCollection &to = snapshot.s2.f >= 0 ? snapshot.s2 : snapshot.last;
 
 	if (from.f < 0 || to.f < 0 || from.f > to.f) {
-		LOG_CERROR("game") << "ERRROR" << from.f << to.f;
 		return fnStopCollection(control);
 	}
 
 	if (to.p.size() < 2) {
-		LOG_CERROR("game") << "ERRROR TO P" << to.p;
 		return fnStopCollection(control);
 	}
 
