@@ -179,7 +179,7 @@ void RpgEnemyBase::load()
 				setSensorPolygon(m_metric.sensorLength, m_metric.sensorRange);
 		}
 
-		loadConfig(ptr->value(QStringLiteral("config")).toObject());
+		loadConfig(ptr.value());
 		return;
 	}
 
@@ -376,6 +376,13 @@ void RpgEnemyBase::loadConfig(const QJsonObject &config)
 	}
 
 
+	m_baseData.pf = cfg.pf;
+	m_baseData.df = cfg.df;
+
+	if (cfg.hp > 0) {
+		setMaxHp(cfg.hp);
+		setHp(cfg.hp);
+	}
 
 	setConfig(cfg);
 }

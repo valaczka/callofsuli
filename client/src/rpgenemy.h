@@ -50,6 +50,9 @@ public:
 		, weapon(RpgGameData::Weapon::WeaponInvalid)
 		, subType(0)
 		, playerFeatures(RpgGameData::Player::FeatureInvalid)
+		, hp(0)
+		, df(1.0)
+		, pf(1.0)
 	{}
 
 	QS_SERIALIZABLE
@@ -57,6 +60,9 @@ public:
 	QS_FIELD(RpgGameData::Weapon::WeaponType, weapon)
 	QS_FIELD(int, subType)
 	QS_FIELD(RpgGameData::Player::Features, playerFeatures)			// player feature override
+	QS_FIELD(int, hp)
+	QS_FIELD(float, df)
+	QS_FIELD(float, pf)
 };
 
 
