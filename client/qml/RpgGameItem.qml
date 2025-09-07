@@ -128,12 +128,12 @@ FocusScope {
 								Client.Utils.formatMSecs(game.msecLeft, 1, false)
 		}
 
-		/*GameLabel {
+		GameLabel {
 			id: _playerZ
-			visible: Client.debug && game && game.rpgGame.controlledPlayer && game.rpgGame.controlledPlayer.visualItem
+			visible: Qt.platform.os === "linux" && Client.debug && game && game.rpgGame.controlledPlayer && game.rpgGame.controlledPlayer.visualItem
 			iconLabel.text: visible ? game.rpgGame.controlledPlayer.visualItem.z : ""
 			color: Qaterial.Colors.white
-		}*/
+		}
 	}
 
 

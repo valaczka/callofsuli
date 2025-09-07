@@ -12,6 +12,8 @@ Qaterial.TextArea {
 
 	readOnly: bindingField && bindingField.readOnly
 
+	selectByMouse: true
+
 	height: Math.max(implicitHeight, 120 * Qaterial.Style.pixelSizeRatio)
 	font: Qaterial.Style.textTheme.body1
 
@@ -19,6 +21,8 @@ Qaterial.TextArea {
 
 	onEditingFinished: if (bindingField)
 						   bindingField.performModification()
+
+	contentItem.Keys.onTabPressed: event => gotoNextField()
 
 	function loadData(d) {
 		text = d

@@ -60,6 +60,16 @@ QFormColumn {
 									event.accepted = true
 									return
 								}
+
+								if (event.matches(StandardKey.Copy)) {
+									if (selectionStart != selectionEnd) {
+										return
+									}
+
+									copyData()
+									event.accepted = true
+									return
+								}
 							}
 		}
 
@@ -74,9 +84,21 @@ QFormColumn {
 									event.accepted = true
 									return
 								}
+
+								if (event.matches(StandardKey.Copy)) {
+									if (selectionStart != selectionEnd) {
+										return
+									}
+
+									copyData()
+									event.accepted = true
+									return
+								}
 							}
 		}
 	}
+
+
 
 	function pasteData() {
 		let txt = Client.Utils.clipboardText()
@@ -86,21 +108,61 @@ QFormColumn {
 			return false
 		}
 
-		let found = false
+		let d = {}
 
-		let rows = txt.split("\n")
+		try {
+			d = JSON.parse(txt)
+		} catch (error) {
+			let found = false
 
-		for (let i=0; i<rows.length; ++i) {
-			let cols = rows[i].split("\t")
+			let rows = txt.split("\n")
 
-			if (cols.length < 2)
-				continue
+			for (let i=0; i<rows.length; ++i) {
+				let cols = rows[i].split("\t")
 
-			_binding._addItem(cols[0], cols[1])
-			found = true
+				if (cols.length < 2)
+					continue
+
+				_binding._addItem(cols[0], cols[1])
+				found = true
+			}
+
+
+			if (found)
+				root.modified = true
+
+			return found
 		}
 
-		return found
+
+		if (d.type === undefined || d.type !== "binding") {
+			Client.snack(qsTr("Érvénytelen tartalom a vágólapon"))
+			return false
+		}
+
+		for (let j=0; j<d.bindings.length; ++j) {
+			_binding._addItem(d.bindings[j].first, d.bindings[j].second)
+		}
+
+		if (d.bindings.length>0)
+			Client.snack(qsTr("%1 elem beillesztve").arg(d.bindings.length))
+
+		root.modified = true
+
+		return true
+	}
+
+
+
+	function copyData() {
+		let d = previewData()
+		d.type = "binding"
+
+		Client.Utils.setClipboardText(JSON.stringify(d))
+
+		Client.snack(qsTr("Tartalom a vágólapra másolva"))
+
+		console.debug(JSON.stringify(d))
 	}
 
 

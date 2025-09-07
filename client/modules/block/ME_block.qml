@@ -54,6 +54,24 @@ QFormColumn {
 
 			title: qsTr("Név")
 			onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+
+			Keys.onPressed: event => {
+								if (event.matches(StandardKey.Paste)) {
+									if (pasteData())
+									event.accepted = true
+									return
+								}
+
+								if (event.matches(StandardKey.Copy)) {
+									if (selectionStart !== selectionEnd) {
+										return
+									}
+
+									copyData()
+									event.accepted = true
+									return
+								}
+							}
 		}
 
 		rightComponent: QFormBindingTextArea {
@@ -70,8 +88,69 @@ QFormColumn {
 
 			title: qsTr("Elemek")
 			placeholderText: qsTr("A tömb elemei soronként")
+
+			contentItem.Keys.onPressed: event => {
+											if (event.matches(StandardKey.Paste)) {
+												if (pasteData())
+												event.accepted = true
+												return
+											}
+
+											if (event.matches(StandardKey.Copy)) {
+												if (contentItem.selectionStart !== contentItem.selectionEnd) {
+													return
+												}
+
+												copyData()
+												event.accepted = true
+												return
+											}
+										}
 		}
 	}
+
+
+
+
+	function pasteData() {
+		let d = {}
+
+		try {
+			d = JSON.parse(Client.Utils.clipboardText())
+		} catch (error) {
+			return false
+		}
+
+		if (d.type === undefined || d.type !== "blocks") {
+			Client.snack(qsTr("Érvénytelen tartalom a vágólapon"))
+			return false
+		}
+
+		for (let j=0; j<d.blocks.length; ++j) {
+			_binding._addItem(d.blocks[j].first, d.blocks[j].second)
+		}
+
+		if (d.blocks.length>0) {
+			Client.snack(qsTr("%1 elem beillesztve").arg(d.blocks.length))
+			root.modified = true
+		}
+
+		return true
+	}
+
+
+
+	function copyData() {
+		let d = previewData()
+		d.type = "blocks"
+
+		Client.Utils.setClipboardText(JSON.stringify(d))
+
+		Client.snack(qsTr("Tartalom a vágólapra másolva"))
+
+		console.debug(JSON.stringify(d))
+	}
+
 
 
 	function saveData() {
