@@ -228,6 +228,7 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 			html += pdfTitle(pdfConfig, username, id, &document);
 			html += pdfSheet(pdfConfig.sheetSize, count==0, layout.paintRectPoints().width()-(20+2*margin), autoQuestion, &document);
+			html += pdfInstruction(pdfConfig);
 			html += pdfQuestion(qList, autoQuestion);
 
 			html += QStringLiteral("</td><td width=%1 align=left><img width=%2 src=\"imgdata://bgR.png\"></td></tr></table>").arg(margin).arg(width);
@@ -285,6 +286,7 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 	if (m_exam) {
 		c.examId = m_exam->examId();
 		c.title = m_exam->description();
+		c.instruction = m_exam->engineData().value(QStringLiteral("instruction")).toString();
 	}
 
 	if (m_teacherGroup) {
@@ -1322,6 +1324,26 @@ QString TeacherExam::pdfSheet(const int &size, const bool &addResource, const in
 						  "<td align=center valign=middle style=\"padding-top: 5px; padding-bottom: 10px; margin-bottom: 10px; "
 						  "border-bottom: 1px solid #cccccc;\">"
 						  "<img src=\"%1\" width=\"%2\"></td></tr></table>").arg(imgName).arg(width);
+}
+
+
+
+/**
+ * @brief TeacherExam::pdfInstruction
+ * @param pdfConfig
+ * @param document
+ * @return
+ */
+
+QString TeacherExam::pdfInstruction(const PdfConfig &pdfConfig)
+{
+	if (pdfConfig.instruction.isEmpty())
+		return QString();
+
+
+	return QStringLiteral("<p style=\"margin-top: 10px;\" align=center>%1</p>"
+						  "<p align=center style=\"margin-top: 10px; margin-bottom: 10px;\">===============</p>")
+			.arg(pdfConfig.instruction);
 }
 
 

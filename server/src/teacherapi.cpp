@@ -3243,6 +3243,10 @@ QHttpServerResponse TeacherAPI::examCreate(const Credential &credential, const i
 	if (json.contains(QStringLiteral("description")))
 		q.addField("description", json.value(QStringLiteral("description")).toString());
 
+	if (json.contains(QStringLiteral("engineData")))
+		q.addField("engineData", QString::fromUtf8(QJsonDocument(json.value(QStringLiteral("engineData")).toObject())
+												   .toJson(QJsonDocument::Compact)));
+
 	const auto &id = q.execInsertAsInt();
 
 	LAMBDA_SQL_ASSERT_ROLLBACK(id);
@@ -3296,6 +3300,10 @@ QHttpServerResponse TeacherAPI::examUpdate(const Credential &credential, const i
 
 	if (json.contains(QStringLiteral("mapuuid")))
 		q.addField("mapuuid", json.value(QStringLiteral("mapuuid")).toString());
+
+	if (json.contains(QStringLiteral("engineData")))
+		q.addField("engineData", QString::fromUtf8(QJsonDocument(json.value(QStringLiteral("engineData")).toObject())
+												   .toJson(QJsonDocument::Compact)));
 
 	q.addQuery(" WHERE id=").addValue(id);
 

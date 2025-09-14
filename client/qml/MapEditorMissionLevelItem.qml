@@ -434,6 +434,81 @@ QPage {
 										})
 						}
 					}
+
+					QColoredItemDelegate {
+						width: parent.width
+						icon.source: Qaterial.Icons.contentCopy
+						text: qsTr("Feladatcsoportok másolása")
+						color: Qaterial.Style.accentColor
+
+						onClicked: {
+							if (!missionLevel)
+								return
+
+							let ids = []
+
+							for (let i=0; i<missionLevel.chapterList.length; ++i) {
+								let ml = missionLevel.chapterList[i]
+								ids.push(ml.chapterid)
+							}
+
+							let d = {
+								type: "chapters",
+								chapters: ids
+							}
+
+							Client.Utils.setClipboardText(JSON.stringify(d))
+
+							Client.snack(qsTr("Tartalom a vágólapra másolva"))
+						}
+
+					}
+
+					QColoredItemDelegate {
+						width: parent.width
+						icon.source: Qaterial.Icons.contentPaste
+						text: qsTr("Feladatcsoportok beillesztése")
+						color: Qaterial.Style.accentColor
+
+						onClicked: {
+							if (!missionLevel)
+								return
+
+							let d = {}
+
+							try {
+								d = JSON.parse(Client.Utils.clipboardText())
+							} catch (error) {
+								Client.snack(qsTr("Érvénytelen tartalom a vágólapon"))
+								return
+							}
+
+							if (d.type === undefined || d.type !== "chapters") {
+								Client.snack(qsTr("Érvénytelen tartalom a vágólapon"))
+								return false
+							}
+
+							let list = []
+
+							for (let j=0; j<d.chapters.length; ++j) {
+								let ch = editor.map.chapter(d.chapters[j])
+
+								if (!ch) {
+									console.error("Invalid chapterid:", d.chapters[j])
+									continue
+								}
+
+								list.push(ch)
+							}
+
+							if (list.length>0) {
+								editor.missionLevelChapterAdd(missionLevel, list)
+								Client.snack(qsTr("%1 feladatcsoport beillesztve").arg(list.length))
+							}
+						}
+
+					}
+
 				}
 			}
 

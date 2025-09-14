@@ -7,12 +7,14 @@ Row {
 	id: control
 
 	property Qaterial.TextField textField: null
+	property Qaterial.TextArea textArea: null
 	property string _storedText: ""
 	property string setTo: ""
 	property bool active: false
 
 	onSetToChanged: set(setTo)
 	onTextFieldChanged: if (setTo.length) set(setTo)
+	onTextAreaChanged: if (setTo.length) set(setTo)
 
 	visible: active
 
@@ -28,6 +30,12 @@ Row {
 		ToolTip.text: qsTr("Mentés")
 
 		onClicked: {
+			if (textArea) {
+				textArea.enabled = false
+				control.saveRequest(textArea.text)
+				return
+			}
+
 			if (!textField) {
 				console.error("Invalid TextField")
 				return
@@ -49,6 +57,7 @@ Row {
 
 	Connections {
 		target: textField
+
 		function onTextEdited() {
 			control.active = true
 		}
@@ -59,8 +68,27 @@ Row {
 		}
 	}
 
+	Connections {
+		target: textArea ? textArea.textArea : null
+
+		function onTextEdited() {
+			control.active = true
+		}
+
+		function onEditingFinished() {
+			control.active = true
+		}
+	}
+
 
 	function set(txt) {
+		if (textArea) {
+			_storedText = txt
+			textArea.text = txt
+			control.active = false
+			return
+		}
+
 		if (!textField)
 			return
 
@@ -72,6 +100,13 @@ Row {
 
 
 	function saved() {
+		if (textArea) {
+			textArea.enabled = true
+			_storedText = textArea.text
+			control.active = false
+			return
+		}
+
 		if (!textField) {
 			console.error("Invalid TextField")
 			return
@@ -83,6 +118,13 @@ Row {
 	}
 
 	function revert() {
+		if (textArea) {
+			textArea.text = _storedText
+			textArea.enabled = true
+			control.active = false
+			return
+		}
+
 		if (!textField) {
 			console.error("Invalid TextField")
 			return

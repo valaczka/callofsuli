@@ -147,8 +147,6 @@ QFormColumn {
 		Client.Utils.setClipboardText(JSON.stringify(d))
 
 		Client.snack(qsTr("Tartalom a vágólapra másolva"))
-
-		console.debug(JSON.stringify(d))
 	}
 
 

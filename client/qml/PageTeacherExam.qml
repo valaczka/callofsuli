@@ -167,6 +167,45 @@ QPage {
 					}
 				}
 
+				QFormTextArea {
+					id: _textInstruction
+
+					width: parent.width
+					leadingIconSource: Qaterial.Icons.tableOfContents
+					leadingIconInline: true
+					title: qsTr("Utasítások")
+					readOnly: !exam || exam.state >= Exam.Active
+					helperText: !exam || exam.state >= Exam.Active ? qsTr("A dolgozat már kiosztásra került, az utasítások már nem módosíthatók") : ""
+					visible: exam && exam.mode == Exam.ExamPaper
+
+					trailingContent: Qaterial.TextFieldButtonContainer
+					{
+						Qaterial.TextFieldClearButton { }
+
+						QTextFieldInPlaceButtons {
+							setTo: exam && exam.engineData.instruction !== undefined ? exam.engineData.instruction : ""
+							onSaveRequest: text => {
+											   let d = exam.engineData
+											   d.instruction = text
+
+											   Client.send(HttpConnection.ApiTeacher, "exam/%1/update".arg(exam.examId),
+														   {
+															   engineData: d
+														   })
+											   .done(root, function(r){
+												   reloadExam()
+												   saved()
+											   })
+											   .fail(root, function(err) {
+												   Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+												   revert()
+											   })
+										   }
+						}
+					}
+
+				}
+
 				QFormComboBox {
 					id: _comboMode
 
