@@ -122,8 +122,15 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, S
 
 	QHash<QString, QJsonObject> commonData;
 
+	StorageSeed oldSeed;
+
 	for (const Question &q : easyList) {
 		const QVariantMap &data = q.generate();
+
+		if (!oldSeed.currentMap().isEmpty() && oldSeed == *seed)
+			LOG_CWARNING("game") << "Paper exam StorageSeed malfunction";
+
+		oldSeed = *seed;
 
 		if (const QVariantMap &d = q.commonData(); !d.isEmpty() && !commonData.contains(q.uuid())) {
 			QJsonObject json = QJsonObject::fromVariantMap(d);

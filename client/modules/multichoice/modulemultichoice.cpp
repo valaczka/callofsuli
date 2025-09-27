@@ -117,8 +117,8 @@ QVariantMap ModuleMultichoice::details(const QVariantMap &data, ModuleInterface 
 		QVariantMap m;
 		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("details")] = data.value(QStringLiteral("corrects")).toStringList().join(QStringLiteral(", "))+
-				QStringLiteral("<br>(")+data.value(QStringLiteral("answers")).toStringList().join(QStringLiteral(", "))+
-				QStringLiteral(")");
+									   QStringLiteral("<br>(")+data.value(QStringLiteral("answers")).toStringList().join(QStringLiteral(", "))+
+									   QStringLiteral(")");
 		m[QStringLiteral("image")] = QString();
 		return m;
 	} else if (storage->name() == QStringLiteral("block")) {
@@ -263,40 +263,40 @@ QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVa
 	if (realIndices.isEmpty())
 		return {};
 
-	const QPair<int, int> idx = realIndices.at(QRandomGenerator::global()->bounded(realIndices.size()));
 
-	QStringList correctList;
-	QStringList optionsList;
+	for (const QPair<int, int> &idx : realIndices) {
+		QStringList correctList;
+		QStringList optionsList;
 
-	const QString &realname = bNames.at(idx.second);
+		const QString &realname = bNames.at(idx.second);
 
-	correctList.append(bItems.at(idx.second));
+		correctList.append(bItems.at(idx.second));
 
-	for (int i=0; i<bItems.size(); ++i) {
-		if (i == idx.second)
-			continue;
+		for (int i=0; i<bItems.size(); ++i) {
+			if (i == idx.second)
+				continue;
 
 
-		optionsList.append(bItems.at(i));
+			optionsList.append(bItems.at(i));
+		}
+
+		int minCorrect = qMax(data.value(QStringLiteral("correctMin"), -1).toInt(), 2);
+		int maxOptions = qMax(data.value(QStringLiteral("count"), -1).toInt(), 3);
+		int maxCorrect = qMin(data.value(QStringLiteral("correctMax"), -1).toInt(), maxOptions-1);
+
+		QVariantMap m = _generate(correctList, optionsList, minCorrect, maxOptions, maxCorrect);
+
+		if (question.isEmpty())
+			m[QStringLiteral("question")] = realname;
+		else if (question.contains(QStringLiteral("%1")))
+			m[QStringLiteral("question")] = question.arg(realname);
+		else
+			m[QStringLiteral("question")] = question;
+
+		m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+		helper.append(m, idx.first);
 	}
-
-
-	int minCorrect = qMax(data.value(QStringLiteral("correctMin"), -1).toInt(), 2);
-	int maxOptions = qMax(data.value(QStringLiteral("count"), -1).toInt(), 3);
-	int maxCorrect = qMin(data.value(QStringLiteral("correctMax"), -1).toInt(), maxOptions-1);
-
-	QVariantMap m = _generate(correctList, optionsList, minCorrect, maxOptions, maxCorrect);
-
-	if (question.isEmpty())
-		m[QStringLiteral("question")] = realname;
-	else if (question.contains(QStringLiteral("%1")))
-		m[QStringLiteral("question")] = question.arg(realname);
-	else
-		m[QStringLiteral("question")] = question;
-
-	m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
-
-	helper.append(m, idx.first);
 
 	return helper.getVariantList(true);
 }

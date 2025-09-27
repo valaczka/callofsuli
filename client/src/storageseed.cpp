@@ -49,6 +49,9 @@ private:
 
 	void record(const QString &map, const int &storage, const int &main, const int &sub);
 
+	void setReadyToClear(const QString &map, const int &storage, const int &main,
+						 const bool &isA, const bool &ready = true);
+	void performClear(const QString &map, const int &storage, const int &main, const bool &isA);
 	void clear(const QString &map, const int &storage, const int &main);
 
 	StorageSeed *const q;
@@ -57,12 +60,20 @@ private:
 
 	QHash<QString, StorageSeedStorageData> m_data;
 
+	struct ClearData {
+		QString map;
+		int storage = -1;
+		int main = -1;
+		bool isA = false;
+	};
+
+	std::vector<ClearData> m_toClear;
+
 
 	friend class StorageSeed;
 	friend class SeedHelper;
 	friend class SeedDuplexHelper;
 };
-
 
 
 /**
@@ -75,6 +86,51 @@ StorageSeed::StorageSeed(const QString &file)
 	d->m_fileName = file;
 	d->loadFromFile();
 }
+
+
+/**
+ * @brief StorageSeed::StorageSeed
+ * @param other
+ */
+
+StorageSeed::StorageSeed(const StorageSeed &other)
+	: StorageSeed()
+{
+	m_currentStorage = other.m_currentStorage;
+	m_currentMap = other.m_currentMap;
+	d->m_data = other.d->m_data;
+	d->m_toClear = other.d->m_toClear;
+}
+
+
+/**
+ * @brief StorageSeed::operator ==
+ * @param other
+ * @return
+ */
+
+bool StorageSeed::operator==(const StorageSeed &other) const
+{
+	return d->m_data == other.d->m_data;
+}
+
+
+/**
+ * @brief StorageSeed::operator =
+ * @param other
+ * @return
+ */
+
+StorageSeed &StorageSeed::operator=(const StorageSeed &other)
+{
+	m_currentStorage = other.m_currentStorage;
+	m_currentMap = other.m_currentMap;
+	d->m_data = other.d->m_data;
+	d->m_toClear = other.d->m_toClear;
+
+	return *this;
+}
+
 
 
 
@@ -233,6 +289,41 @@ void StorageSeed::setData(const QVariantMap &question, const int &storage, const
 }
 
 
+/**
+ * @brief StorageSeed::debug
+ * @param debug
+ */
+
+QDebug StorageSeed::debug(QDebug debug) const
+{
+	QDebugStateSaver saver(debug);
+	debug.nospace() << qPrintable("StorageSeed{\n");
+
+	for (const auto &p : d->m_data) {
+		debug.nospace() << '[' << '\n';
+
+		for (const auto &[k, l] : p.asKeyValueRange()) {
+			debug.nospace() << qPrintable("  ") << k << ':' << '\n';
+
+			for (const auto &[m, list] : l.asKeyValueRange()) {
+				debug.nospace() << qPrintable("     ") << m << ' ' << '[';
+
+				for (const auto &id : list)
+					debug.nospace() << id << ',';
+
+				debug.nospace() << ']' << '\n';
+			}
+		}
+
+
+		debug.nospace() << '\n' << ']' << '\n';
+	}
+
+	return debug;
+}
+
+
+
 
 /**
  * @brief StorageSeedPrivate::loadFromFile
@@ -384,9 +475,12 @@ void StorageSeedPrivate::setData(const QVariantMap &question, const int &storage
 	}
 
 	record(cMap, cStorage, main, sub);
+	performClear(cMap, cStorage, main, true);
 
-	if (mainB > 0 && subB > 0)
+	if (mainB > 0 && subB > 0) {
 		record(cMap, cStorage, mainB, subB);
+		performClear(cMap, cStorage, mainB, false);
+	}
 }
 
 
@@ -446,6 +540,58 @@ void StorageSeedPrivate::record(const QString &map, const int &storage, const in
 	QList<int> &list = m_data[map][storage][main];
 	list.removeAll(sub);
 	list.append(sub);
+}
+
+
+
+
+
+/**
+ * @brief StorageSeedPrivate::setReadyToclear
+ * @param map
+ * @param storage
+ * @param main
+ * @param ready
+ */
+
+void StorageSeedPrivate::setReadyToClear(const QString &map, const int &storage, const int &main,
+										 const bool &isA, const bool &ready)
+{
+	const auto it = std::find_if(m_toClear.cbegin(),
+								 m_toClear.cend(),
+								 [&map, &storage, &main, &isA](const auto &d){
+		return d.map == map && d.storage == storage && d.main == main && d.isA == isA;
+	});
+
+	if (it == m_toClear.end() && ready)
+		m_toClear.emplace_back(map, storage, main, isA);
+	else if (it != m_toClear.end() && !ready)
+		m_toClear.erase(it);
+}
+
+
+/**
+ * @brief StorageSeedPrivate::performClear
+ * @param map
+ * @param storage
+ * @param main
+ * @param isA
+ */
+
+void StorageSeedPrivate::performClear(const QString &map, const int &storage, const int &main, const bool &isA)
+{
+	const auto it = std::find_if(m_toClear.cbegin(),
+								 m_toClear.cend(),
+								 [&map, &storage, &main, &isA](const auto &d){
+		return d.map == map && d.storage == storage && d.main == main && d.isA == isA;
+	});
+
+	if (it == m_toClear.end())
+		return;
+
+	m_toClear.erase(it);
+
+	clear(map, storage, main);
 }
 
 
@@ -587,10 +733,8 @@ QVariantList SeedHelper::getVariantList(const bool &autoClean)
 	}
 
 	if (autoClean && m_itemReady.empty() && !m_itemUsed.empty()) {
-		m_data.clear();
-
 		if (m_seed)
-			m_seed->d->clear(m_map, m_storage, m_main);
+			m_seed->d->setReadyToClear(m_map, m_storage, m_main, true);
 	}
 
 	return list;
@@ -827,20 +971,29 @@ QVariantList SeedDuplexHelper::getVariantList(const bool &autoClean)
 	if (autoClean && m_itemReady.empty() && (!m_itemUsedA.empty() || !m_itemUsedB.empty() || !m_itemUsedDouble.empty())) {
 
 		if (m_itemUsedB.empty()) {
-			m_dataA.clear();
-
 			if (m_seed)
-				m_seed->d->clear(m_map, m_storage, m_mainA);
+				m_seed->d->setReadyToClear(m_map, m_storage, m_mainA, true);
 		}
 
 		if (m_itemUsedA.empty()) {
-			m_dataB.clear();
-
 			if (m_seed)
-				m_seed->d->clear(m_map, m_storage, m_mainB);
+				m_seed->d->setReadyToClear(m_map, m_storage, m_mainB, false);
 		}
 	}
 
 	return list;
 }
 
+
+
+
+/**
+ * @brief operator <<
+ * @param debug
+ * @param c
+ * @return
+ */
+
+QDebug operator<<(QDebug debug, const StorageSeed &c) {
+	return c.debug(debug);
+}

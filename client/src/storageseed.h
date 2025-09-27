@@ -27,6 +27,7 @@
 #ifndef STORAGESEED_H
 #define STORAGESEED_H
 
+#include "qdebug.h"
 #include <QString>
 #include <QList>
 
@@ -47,6 +48,7 @@ class StorageSeed
 
 public:
 	StorageSeed(const QString &file = {});
+	StorageSeed(const StorageSeed &other);
 	virtual ~StorageSeed();
 
 	static void addSeedToMap(QVariantMap *dst, const int &main, const int &sub, const int &storage = -1, const QString &map = {});
@@ -64,6 +66,11 @@ public:
 
 	void setData(const QVariantMap &question, const int &storage = -1, const QString &map = {});
 
+	QDebug debug(QDebug debug) const;
+
+	bool operator==(const StorageSeed &other) const;
+	StorageSeed& operator=(const StorageSeed &other);
+
 private:
 	StorageSeedPrivate *d;
 
@@ -75,6 +82,8 @@ private:
 	friend class SeedDuplexHelper;
 };
 
+
+QDebug operator<<(QDebug debug, const StorageSeed &c);
 
 
 
