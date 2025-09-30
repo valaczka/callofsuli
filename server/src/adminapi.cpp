@@ -1668,76 +1668,83 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 			return ret.reject();
 		}
 
-		QueryBuilder q(db);
 
-		q.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
-				   "SELECT username FROM studentGroupInfo WHERE active=true "
-				   "AND id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign)
-				.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(campaign)
-				.addQuery(") OR studentGroupInfo.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(campaign)
-				.addQuery("))");
+		// Azért kell külön scope, mert különben zárolva marad az adatbázis (amíg a QueryBuilder él), és nem lehet
+		// átvezetni az eredményeket
 
-		if (!q.exec()) {
-			LOG_CERROR("client") << "Campaign finish error:" << campaign;
-			db.rollback();
-			return ret.reject();
-		}
+		{
+			QueryBuilder q(db);
 
-		while (q.sqlQuery().next()) {
-			const QString &username = q.value("username").toString();
+			q.addQuery("WITH studentList(username, campaignid) AS (SELECT username, campaignid FROM campaignStudent) "
+					   "SELECT username FROM studentGroupInfo WHERE active=true "
+					   "AND id=(SELECT groupid FROM campaign WHERE campaign.id=").addValue(campaign)
+					.addQuery(") AND (NOT EXISTS(SELECT * FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+					.addQuery(") OR studentGroupInfo.username IN (SELECT username FROM studentList WHERE studentList.campaignid=").addValue(campaign)
+					.addQuery("))");
 
-			const auto &result = TeacherAPI::_campaignUserResult(dbMain, campaign, false, username);
-
-			if (!result) {
+			if (!q.exec()) {
 				LOG_CERROR("client") << "Campaign finish error:" << campaign;
 				db.rollback();
 				return ret.reject();
 			}
 
-			if (result->grade <= 0 && result->xp <= 0 && result->maxPts <= 0)
-				continue;
+			while (q.sqlQuery().next()) {
+				const QString &username = q.value("username").toString();
 
-			//QVariant scoreId = QVariant(QMetaType::fromType<int>());
-			int scoreId = -1;
+				const auto &result = TeacherAPI::_campaignUserResult(dbMain, campaign, false, username);
 
-			if (result->xp > 0) {
-				const auto &sId = QueryBuilder::q(db)
-								  .addQuery("INSERT OR REPLACE INTO score (")
-								  .setFieldPlaceholder()
-								  .addQuery(") VALUES (")
-								  .setValuePlaceholder()
-								  .addQuery(")")
-								  .addField("username", username)
-								  .addField("xp", result->xp)
-								  .execInsertAsInt();
-
-				if (!sId) {
+				if (!result) {
 					LOG_CERROR("client") << "Campaign finish error:" << campaign;
 					db.rollback();
 					return ret.reject();
 				}
 
-				scoreId = *sId;
+				if (result->grade <= 0 && result->xp <= 0 && result->maxPts <= 0)
+					continue;
+
+				//QVariant scoreId = QVariant(QMetaType::fromType<int>());
+				int scoreId = -1;
+
+				if (result->xp > 0) {
+					const auto &sId = QueryBuilder::q(db)
+									  .addQuery("INSERT OR REPLACE INTO score (")
+									  .setFieldPlaceholder()
+									  .addQuery(") VALUES (")
+									  .setValuePlaceholder()
+									  .addQuery(")")
+									  .addField("username", username)
+									  .addField("xp", result->xp)
+									  .execInsertAsInt();
+
+					if (!sId) {
+						LOG_CERROR("client") << "Campaign finish error:" << campaign;
+						db.rollback();
+						return ret.reject();
+					}
+
+					scoreId = *sId;
+				}
+
+				if (!QueryBuilder::q(db)
+						.addQuery("INSERT OR REPLACE INTO campaignResult (")
+						.setFieldPlaceholder()
+						.addQuery(") VALUES (")
+						.setValuePlaceholder()
+						.addQuery(")")
+						.addField("campaignid", campaign)
+						.addField("username", username)
+						.addField("gradeid", result->grade > 0 ? result->grade : QVariant(QMetaType::fromType<int>()))
+						.addField("scoreid", scoreId > 0 ? scoreId : QVariant(QMetaType::fromType<int>()))
+						.addField("maxPts", result->maxPts > 0 ? result->maxPts : QVariant(QMetaType::fromType<int>()))
+						.addField("progress", result->maxPts > 0 ? result->progress : QVariant(QMetaType::fromType<float>()))
+						.execInsert())
+				{
+					LOG_CERROR("client") << "Campaign finish error:" << campaign;
+					db.rollback();
+					return ret.reject();
+				}
 			}
 
-			if (!QueryBuilder::q(db)
-					.addQuery("INSERT OR REPLACE INTO campaignResult (")
-					.setFieldPlaceholder()
-					.addQuery(") VALUES (")
-					.setValuePlaceholder()
-					.addQuery(")")
-					.addField("campaignid", campaign)
-					.addField("username", username)
-					.addField("gradeid", result->grade > 0 ? result->grade : QVariant(QMetaType::fromType<int>()))
-					.addField("scoreid", scoreId > 0 ? scoreId : QVariant(QMetaType::fromType<int>()))
-					.addField("maxPts", result->maxPts > 0 ? result->maxPts : QVariant(QMetaType::fromType<int>()))
-					.addField("progress", result->maxPts > 0 ? result->progress : QVariant(QMetaType::fromType<float>()))
-					.execInsert())
-			{
-				LOG_CERROR("client") << "Campaign finish error:" << campaign;
-				db.rollback();
-				return ret.reject();
-			}
 		}
 
 		db.commit();

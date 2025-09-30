@@ -280,19 +280,26 @@ void ServerService::timerEvent(QTimerEvent *)
 
 		LOG_CTRACE("service") << "Finish campaigns";
 
-		QueryBuilder q(db);
-		q.addQuery("SELECT id FROM campaign WHERE started=true AND finished=false "
-				   "AND endTime IS NOT NULL AND endTime<").addValue(QDateTime::currentDateTimeUtc());
+		QList<int> ids;
 
-		if (!q.exec()) {
-			LOG_CERROR("service") << "Finish campaigns failed";
-			return;
+		// scope -> avoid db lock
+
+		{
+			QueryBuilder q(db);
+			q.addQuery("SELECT id FROM campaign WHERE started=true AND finished=false "
+					   "AND endTime IS NOT NULL AND endTime<").addValue(QDateTime::currentDateTimeUtc());
+
+			if (!q.exec()) {
+				LOG_CERROR("service") << "Finish campaigns failed";
+				return;
+			}
+			while (q.sqlQuery().next()) {
+				ids << q.value("id").toInt();
+			}
 		}
-		while (q.sqlQuery().next()) {
-			const int id = q.value("id").toInt();
+
+		for (const auto &id : ids)
 			AdminAPI::campaignFinish(m_databaseMain.get(), id);
-		}
-
 
 		// Start campaigns
 
@@ -682,9 +689,9 @@ std::optional<int> ServerService::preStart()
 
 	if (m_localServer.start(this,
 							parser.isSet(QStringLiteral("terminal-name")) ?
-										 parser.value(QStringLiteral("terminal-name")) :
-													  QStringLiteral("callofsuli-server")
-										 )) {
+							parser.value(QStringLiteral("terminal-name")) :
+							QStringLiteral("callofsuli-server")
+							)) {
 		LOG_CDEBUG("service") << "Local server started";
 	} else {
 		LOG_CERROR("service") << "Local server start failed";
