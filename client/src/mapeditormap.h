@@ -73,7 +73,7 @@ class MapEditor;
 
 #ifndef OPAQUE_PTR_MapEditor
 #define OPAQUE_PTR_MapEditor
-  Q_DECLARE_OPAQUE_POINTER(MapEditor*)
+Q_DECLARE_OPAQUE_POINTER(MapEditor*)
 #endif
 
 /**
@@ -317,6 +317,7 @@ class MapEditorChapter : public MapEditorObject, public GameMapChapterIface
 	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged)
 	Q_PROPERTY(MapEditorObjectiveList *objectiveList READ objectiveList CONSTANT)
 	Q_PROPERTY(int objectiveCount READ objectiveCount NOTIFY objectiveCountChanged)
+	Q_PROPERTY(QVariantList usedStorageList READ usedStorageList WRITE setUsedStorageList NOTIFY usedStorageListChanged FINAL)
 
 public:
 	explicit MapEditorChapter() : MapEditorObject(), GameMapChapterIface(),
@@ -345,10 +346,14 @@ public:
 	Q_INVOKABLE void recalculateObjectiveCount();
 	Q_INVOKABLE void recalculateStorageCount() const;
 
+	QVariantList usedStorageList() const;
+	void setUsedStorageList(const QVariantList &newUsedStorageList);
+
 signals:
 	void idChanged();
 	void nameChanged();
 	void objectiveCountChanged();
+	void usedStorageListChanged();
 
 protected:
 	QList<GameMapObjectiveIface*> ifaceObjectives() const override
@@ -364,6 +369,7 @@ protected:
 private:
 	MapEditorObjectiveList *const m_objectiveList;
 	int m_objectiveCount = 0;
+	QVariantList m_usedStorageList;
 };
 
 
@@ -556,8 +562,8 @@ class MapEditorMissionLevel : public MapEditorObject, public GameMapMissionLevel
 public:
 	explicit MapEditorMissionLevel(MapEditorMission *mission)
 		: MapEditorObject(), GameMapMissionLevelIface()
-	  , m_inventoryList(new MapEditorInventoryList(this))
-	  , m_mission(mission)
+		, m_inventoryList(new MapEditorInventoryList(this))
+		, m_mission(mission)
 	{
 		if (m_mission)
 			m_map = m_mission->map();

@@ -22,6 +22,7 @@ QFormColumn {
 	readonly property bool isImages: storage && storage.module == "images"
 	readonly property bool isSequence: storage && storage.module == "sequence"
 	readonly property bool isText: storage && storage.module == "text"
+	readonly property bool isBlock: storage && storage.module == "block"
 
 
 	QFormComboBox {
@@ -77,7 +78,7 @@ QFormColumn {
 		placeholderText: qsTr("Ez lesz a helyes válasz")
 		field: "correct"
 		width: parent.width
-		visible: !isBinding && !isImages && !isSequence && !isText
+		visible: !isBinding && !isImages && !isSequence && !isText && !isBlock
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -113,7 +114,7 @@ QFormColumn {
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isBinding || isImages || isSequence || isText
+		visible: isBinding || isImages || isSequence || isText || isBlock
 	}
 
 
@@ -121,10 +122,11 @@ QFormColumn {
 
 	function loadData() {
 		let _items = isBinding ? [_question, _modeBinding] :
-								 isImages ? [_questionII] :
-											isSequence ? [_countWords, _countPad] :
-														 isText ? [] :
-																  [_question, _correctAnswer]
+								 isBlock ? [_question] :
+										   isImages ? [_questionII] :
+													  isSequence ? [_countWords, _countPad] :
+																   isText ? [] :
+																			[_question, _correctAnswer]
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -140,10 +142,11 @@ QFormColumn {
 
 	function previewData() {
 		let _items = isBinding ? [_question, _modeBinding] :
-								 isImages ? [_questionII] :
-											isSequence ? [_countWords, _countPad] :
-														 isText ? [] :
-																  [_question, _correctAnswer]
+								 isBlock ? [_question] :
+										   isImages ? [_questionII] :
+													  isSequence ? [_countWords, _countPad] :
+																   isText ? [] :
+																			[_question, _correctAnswer]
 
 		return getItems(_items)
 	}

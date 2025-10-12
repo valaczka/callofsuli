@@ -29,6 +29,7 @@
 #include "qjsonarray.h"
 #include "storageseed.h"
 #include "../binding/modulebinding.h"
+#include "../block/moduleblock.h"
 
 
 /**
@@ -145,6 +146,8 @@ QVariantList ModuleSelector::generateAll(const QVariantMap &data, ModuleInterfac
 	if (storage && storage->name() == QStringLiteral("binding"))
 		return generateBinding(data, storageData, commonDataPtr, seed);
 
+	if (storage && storage->name() == QStringLiteral("block"))
+		return generateBlockContains(data, storageData, commonDataPtr, seed);
 
 	return QVariantList();
 }
@@ -268,6 +271,76 @@ QVariantList ModuleSelector::generateBinding(const QVariantMap &data, const QVar
 
 	return helper.getVariantList(true);
 }
+
+
+
+
+
+/**
+ * @brief ModuleSelector::generateBlockContains
+ * @param data
+ * @param storageData
+ * @param commonDataPtr
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleSelector::generateBlockContains(const QVariantMap &data, const QVariantMap &storageData,
+												   QVariantMap *commonDataPtr, StorageSeed *seed) const
+{
+	Q_UNUSED(commonDataPtr);
+
+	SeedDuplexHelper helper(seed, SEED_BLOCK_RIGHT, SEED_BLOCK_LEFT);
+
+	const QString &question = data.value(QStringLiteral("question")).toString();
+	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
+
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	for (int idx = 0; idx < list.size(); ++idx) {
+		const QVariantMap &m = list.at(idx).toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		for (int i=0; i<right.size(); ++i) {
+			const QString &s = right.at(i).simplified();
+			if (s.isEmpty())
+				continue;
+
+			if (question.isEmpty())
+				retMap[QStringLiteral("question")] = s;
+			else if (question.contains(QStringLiteral("%1")))
+				retMap[QStringLiteral("question")] = question.arg(s);
+			else
+				retMap[QStringLiteral("question")] = question;
+
+			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+			retMap[QStringLiteral("answer")] = left;
+
+			retMap.insert(generateOne(left, maxOptions));
+
+			// Seed main: 2
+			// Seed sub: (block index+1) * 1000 + (answer index + 1)
+
+			const int sub = (idx+1)*1000 + i+1;
+
+			helper.append(retMap, sub, idx+1);
+		}
+
+	}
+
+	return helper.getVariantList(true);
+}
+
+
+
+
 
 
 

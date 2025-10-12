@@ -19,13 +19,14 @@ QFormColumn {
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
 	readonly property bool isBinding: storage && storage.module == "binding"
+	readonly property bool isBlock: storage && storage.module == "block"
 
 	QFormSection {
 		text: qsTr("Adatbank nélkül ez a feladattípus nem használható!")
 		icon.source: Qaterial.Icons.alertCircle
 		color: Qaterial.Colors.red500
 
-		visible: !isBinding
+		visible: !isBinding && !isBlock
 	}
 
 	QFormComboBox {
@@ -57,7 +58,7 @@ QFormColumn {
 		helperText: qsTr("A \%1 jelöli az elem helyét")
 		field: "question"
 		width: parent.width
-		visible: isBinding
+		visible: isBinding || isBlock
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -74,20 +75,21 @@ QFormColumn {
 
 		spin.editable: true
 
-		visible: isBinding
+		visible: isBinding || isBlock
 	}
 
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isBinding
+		visible: isBinding || isBlock
 	}
 
 
 
 	function loadData() {
 		let _items = isBinding ? [_modeBinding, _questionBinding, _spinOptions] :
-								 []
+								 isBlock ? [_questionBinding, _spinOptions] :
+										   []
 
 
 		_countBinding.value = objective.storageCount
@@ -103,7 +105,8 @@ QFormColumn {
 
 	function previewData() {
 		let _items = isBinding ? [_modeBinding, _questionBinding, _spinOptions] :
-								 []
+								 isBlock ? [_questionBinding, _spinOptions] :
+										   []
 
 		return getItems(_items)
 	}

@@ -11,15 +11,31 @@ Item {
 	id: root
 
 	property MapEditor editor: null
+	property int filterStorageId: -1
+
+
+	onFilterStorageIdChanged: {
+		// Enélkül nem frissíti rendesen
+
+		_expressionFilter.enabled = false
+		if (filterStorageId != -1)
+			_expressionFilter.enabled = true
+	}
 
 	SortFilterProxyModel {
 		id: _model
 
 		sourceModel: editor && editor.map ? editor.map.chapterList : null
 
-		/*sorters: StringSorter {
+		sorters: StringSorter {
 			roleName: "name"
-		}*/
+		}
+
+		filters: ExpressionFilter {
+			id: _expressionFilter
+			expression: usedStorageList.includes(root.filterStorageId)
+			enabled: false
+		}
 	}
 
 	QScrollable {

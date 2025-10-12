@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import SortFilterProxyModel
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import CallOfSuli
@@ -34,6 +35,8 @@ QPage {
 	property bool online: false
 
 	property bool _errorShown: false
+
+	property int filterStorageId: -1
 
 	title: qsTr("Pályaszerkesztő")
 	subtitle: mapEditor.displayName
@@ -79,6 +82,55 @@ QPage {
 							 mapEditor.undoStack.redo()
 		}
 
+		Qaterial.AppBarButton {
+			id: _filter
+
+			icon.source: root.filterStorageId == -1 ? Qaterial.Icons.filterOutline : Qaterial.Icons.filterRemove
+			ToolTip.text: qsTr("Szűrét adatbankra")
+
+			visible: swipeView.currentIndex == 1
+
+			onClicked: _menuFilter.popup(_filter, 0, _filter.height)
+
+			QMenu {
+				id: _menuFilter
+
+				QMenuItem {
+					text: qsTr("Minden adatbank")
+					icon.source: Qaterial.Icons.filterRemove
+					onClicked: root.filterStorageId = -1
+				}
+
+				Qaterial.MenuSeparator {}
+
+				Instantiator {
+					model: SortFilterProxyModel {
+						sourceModel: _editor.map ? _editor.map.storageList: null
+
+						sorters: RoleSorter {
+							roleName: "storageid"
+						}
+					}
+
+					delegate: QMenuItem {
+						property var _info: _editor.storageInfo(model.qtObject)
+
+						icon.source: root.filterStorageId == -1 ?
+										 (_info.icon !== undefined ? _info.icon : "") :
+										 (root.filterStorageId == model.storageid ? Qaterial.Icons.filterOutline : "")
+
+						text: _info.title !== undefined ? _info.title :
+														  _info.name !== undefined ? _info.name : ""
+
+						onTriggered: root.filterStorageId = model.storageid
+					}
+
+					onObjectAdded: (index, object) => _menuFilter.insertItem(index+2, object)
+					onObjectRemoved: (index, object) => _menuFilter.removeItem(object)
+				}
+			}
+
+		}
 
 		Qaterial.AppBarButton
 		{
@@ -141,13 +193,13 @@ QPage {
 			title: qsTr("Pálya megnyitása")
 			filters: [ "*.map" ]
 			onFileSelected: file => {
-				if (mapEditor.hasBackup(file)) {
-					backupQuestion(file)
-				} else {
-					mapEditor.openFile(file)
-				}
-				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
-			}
+								if (mapEditor.hasBackup(file)) {
+									backupQuestion(file)
+								} else {
+									mapEditor.openFile(file)
+								}
+								Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+							}
 
 			folder: Client.Utils.settingsGet("folder/mapEditor", "")
 		}
@@ -163,12 +215,12 @@ QPage {
 			isSave: true
 			suffix: ".map"
 			onFileSelected: file => {
-				if (Client.Utils.fileExists(file))
-					overrideQuestion(file, false)
-				else
-					mapEditor.saveAs(file, false)
-				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
-			}
+								if (Client.Utils.fileExists(file))
+								overrideQuestion(file, false)
+								else
+								mapEditor.saveAs(file, false)
+								Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+							}
 
 			folder: mapEditor.currentFolder()
 		}
@@ -183,12 +235,12 @@ QPage {
 			isSave: true
 			suffix: ".map"
 			onFileSelected: file => {
-				if (Client.Utils.fileExists(file))
-					overrideQuestion(file, true)
-				else
-					mapEditor.saveAs(file, true)
-				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
-			}
+								if (Client.Utils.fileExists(file))
+								overrideQuestion(file, true)
+								else
+								mapEditor.saveAs(file, true)
+								Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+							}
 
 			folder: mapEditor.currentFolder()
 		}
@@ -202,9 +254,9 @@ QPage {
 			title: qsTr("Importálás")
 			filters: [ "*.map" ]
 			onFileSelected: file => {
-				mapEditor.chapterImport(file)
-				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
-			}
+								mapEditor.chapterImport(file)
+								Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+							}
 
 			folder: Client.Utils.settingsGet("folder/mapEditor", "")
 		}
@@ -229,6 +281,7 @@ QPage {
 
 		MapEditorChapterList {
 			editor: mapEditor
+			filterStorageId: root.filterStorageId
 		}
 
 

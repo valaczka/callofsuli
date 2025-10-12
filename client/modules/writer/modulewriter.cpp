@@ -30,6 +30,7 @@
 #include "writerengine.h"
 #include <QRandomGenerator>
 #include "../binding/modulebinding.h"
+#include "../block/moduleblock.h"
 #include "../images/moduleimages.h"
 #include "../text/moduletext.h"
 
@@ -211,6 +212,9 @@ QVariantList ModuleWriter::generateAll(const QVariantMap &data, ModuleInterface 
 
 	if (storage->name() == QStringLiteral("binding"))
 		return generateBinding(data, storageData, seed);
+
+	if (storage->name() == QStringLiteral("block"))
+		return generateBlockContains(data, storageData, seed);
 
 	if (storage->name() == QStringLiteral("images"))
 		return generateImages(data, storageData, seed);
@@ -527,6 +531,62 @@ QVariantList ModuleWriter::generateText(const QVariantMap &/*data*/, const QVari
 
 			helper.append(retMap, i+1);
 		}
+	}
+
+	return helper.getVariantList(true);
+}
+
+
+
+/**
+ * @brief ModuleWriter::generateBlockContains
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleWriter::generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+{
+	SeedDuplexHelper helper(seed, SEED_BLOCK_RIGHT, SEED_BLOCK_LEFT);
+
+	const QString &question = data.value(QStringLiteral("question")).toString();
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	for (int idx = 0; idx < list.size(); ++idx) {
+		const QVariantMap &m = list.at(idx).toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		for (int i=0; i<right.size(); ++i) {
+			const QString &s = right.at(i).simplified();
+			if (s.isEmpty())
+				continue;
+
+			if (question.isEmpty())
+				retMap[QStringLiteral("question")] = s;
+			else if (question.contains(QStringLiteral("%1")))
+				retMap[QStringLiteral("question")] = question.arg(s);
+			else
+				retMap[QStringLiteral("question")] = question;
+
+			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+			retMap[QStringLiteral("answer")] = left;
+
+			// Seed main: 2
+			// Seed sub: (block index+1) * 1000 + (answer index + 1)
+
+			const int sub = (idx+1)*1000 + i+1;
+
+			helper.append(retMap, sub, idx+1);
+		}
+
 	}
 
 	return helper.getVariantList(true);

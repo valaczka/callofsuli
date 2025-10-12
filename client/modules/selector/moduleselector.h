@@ -53,7 +53,8 @@ public:
 
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
-			QStringLiteral("binding")
+			QStringLiteral("binding"),
+			QStringLiteral("block")
 		};
 		return l;
 	}
@@ -63,10 +64,13 @@ public:
 	QVariantList generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
 							 QVariantMap *commonDataPtr, StorageSeed *seed) const override;
 
-	void extracted() const;
-		QVariantList generateBinding(const QVariantMap &data,
-									 const QVariantMap &storageData,
-									 QVariantMap *commonDataPtr, StorageSeed *seed) const;
+	QVariantList generateBinding(const QVariantMap &data,
+								 const QVariantMap &storageData,
+								 QVariantMap *commonDataPtr, StorageSeed *seed) const;
+
+	QVariantList generateBlockContains(const QVariantMap &data,
+									   const QVariantMap &storageData,
+									   QVariantMap *commonDataPtr, StorageSeed *seed) const;
 
 	qreal xpFactor() const override { return 1.0; };
 

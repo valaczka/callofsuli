@@ -53,7 +53,8 @@ public:
 
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
-			QStringLiteral("text"), QStringLiteral("binding"), QStringLiteral("sequence"), QStringLiteral("images")
+			QStringLiteral("text"), QStringLiteral("binding"), QStringLiteral("sequence"), QStringLiteral("images"),
+			QStringLiteral("block")
 		};
 		return l;
 	}
@@ -69,10 +70,11 @@ public:
 
 	void registerQmlTypes() const override;
 
-        QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
-        QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateSequence(const QVariantMap &data, const QVariantMap &storageData) const;
-        QVariantList generateText(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateText(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); };
 

@@ -592,13 +592,26 @@ void MapEditorChapter::setObjectiveCount(int newObjectiveCount)
 
 void MapEditorChapter::recalculateObjectiveCount()
 {
+	QSet<int> storageList;
+
 	int n = 0;
 
-	for (const MapEditorObjective *o : *m_objectiveList)
+	for (const MapEditorObjective *o : *m_objectiveList) {
 		n += qMax(1, o->storageCount());
+		if (o->storageId() > 0)
+			storageList.insert(o->storageId());
+	}
 
 	setObjectiveCount(n);
+
+	QVariantList l;
+
+	for (const int &id : storageList)
+		l << id;
+
+	setUsedStorageList(l);
 }
+
 
 void MapEditorChapter::recalculateStorageCount() const
 {
@@ -1797,4 +1810,17 @@ void MapEditorMissionLevel::setModes(const GameMap::GameModes &newModes)
 		return;
 	m_gameModes = newModes;
 	emit modesChanged();
+}
+
+QVariantList MapEditorChapter::usedStorageList() const
+{
+	return m_usedStorageList;
+}
+
+void MapEditorChapter::setUsedStorageList(const QVariantList &newUsedStorageList)
+{
+	if (m_usedStorageList == newUsedStorageList)
+		return;
+	m_usedStorageList = newUsedStorageList;
+	emit usedStorageListChanged();
 }
