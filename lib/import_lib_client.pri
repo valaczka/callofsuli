@@ -82,13 +82,12 @@ android|ios|wasm {
 include(SortFilterProxyModel/SortFilterProxyModel.pri)
 
 
-# QtXlsxWriter
+# QXlsx
 
-INCLUDEPATH += $$PWD/QtXlsxWriter/src/xlsx
+INCLUDEPATH += $$PWD/QXlsx/QXlsx/header
 
-android: LIBS += -lQtXlsxWriter_$${QT_ARCH}
-else: LIBS += -lQtXlsxWriter
-
+android: LIBS += -lQXlsx_$${QT_ARCH}
+else: LIBS += -lQXlsx
 
 
 

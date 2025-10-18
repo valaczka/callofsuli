@@ -270,6 +270,8 @@ QByteArray MapEditorMatrixImporter::createContent() const
 
 	QXlsx::Format fmtUsed;
 	fmtUsed.setFontBold(true);
+	fmtUsed.setFontColor(QColorConstants::Svg::seashell);
+	fmtUsed.setPatternBackgroundColor(QColorConstants::Svg::limegreen);
 
 
 	cFmtCount.addHighlightCellsRule(QXlsx::ConditionalFormatting::Highlight_GreaterThan, QStringLiteral("0"), fmtUsed);
@@ -295,8 +297,10 @@ QByteArray MapEditorMatrixImporter::createContent() const
 	QXlsx::Format fmtX;
 	fmtX.setFontBold(true);
 	fmtX.setHorizontalAlignment(QXlsx::Format::AlignHCenter);
+	fmtX.setFontColor(QColorConstants::Svg::maroon);
+	fmtX.setPatternBackgroundColor(QColorConstants::Svg::navajowhite);
 
-	cFmtX.addHighlightCellsRule(QXlsx::ConditionalFormatting::Highlight_Equal, QStringLiteral("X"), fmtX);
+	cFmtX.addHighlightCellsRule(QXlsx::ConditionalFormatting::Highlight_ContainsText, QStringLiteral("X"), fmtX);
 	cFmtX.addRange(startRow, startCol, lastRow, lastCol);
 
 	doc.addConditionalFormatting(cFmtX);

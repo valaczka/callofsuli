@@ -10,9 +10,6 @@
 [submodule "lib/SortFilterProxyModel"]
 	path = lib/SortFilterProxyModel
 	url = https://github.com/valaczka/SortFilterProxyModel.git
-[submodule "lib/QtXlsxWriter"]
-	path = lib/QtXlsxWriter
-	url = https://github.com/valaczka/QtXlsxWriter.git
 [submodule "lib/MaterialDesignSvgo"]
 	path = lib/MaterialDesignSvgo
 	url = https://github.com/OlivierLDff/MaterialDesignSvgo.git
@@ -78,3 +75,6 @@
 [submodule "lib/Chipmunk2D"]
 	path = lib/Chipmunk2D
 	url = https://github.com/slembcke/Chipmunk2D.git
+[submodule "lib/QXlsx"]
+	path = lib/QXlsx
+	url = https://github.com/QtExcel/QXlsx.git

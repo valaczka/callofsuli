@@ -28,6 +28,7 @@
 - Qt (https://www.qt.io)
 - QtService - (c) 2018 Felix Barz (https://github.com/Skycoder42/QtService)
 - QtXlsxWriter - (c) 2013-2014 Debao Zhang (https://github.com/dbzhang800/QtXlsxWriter)
+- QXlsx - (c) j2doll (https://github.com/QtExcel/QXlsx)
 - Qzxing (https://github.com/ftylitak/qzxing) 
 - SCodes - (c) Scythe Studio (https://github.com/scytheStudio/SCodes)
 - Single-file MIT licensed libraries for C/C++ - (c) 2017 Sean Barrett (https://github.com/nothings/stb)
