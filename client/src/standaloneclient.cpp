@@ -59,7 +59,7 @@ StandaloneClient::StandaloneClient(Application *app)
 		LOG_CERROR("client") << "QNetworkInformation load failed";
 	}
 
-	authorizedServersGet();
+	///authorizedServersGet();
 	serverListLoad();
 
 	QSettings s;
@@ -126,6 +126,13 @@ void StandaloneClient::onMainWindowChanged()
 
 	connect(m_mainWindow->screen(), &QScreen::primaryOrientationChanged, this, &StandaloneClient::onOrientationChanged);
 
+#if QT_VERSION >= 0x060900
+	connect(m_mainWindow, &QWindow::safeAreaMarginsChanged, this, [this](const QMargins &){ safeMarginsGet(); });
+
+	m_mainWindow->setFlag(Qt::ExpandedClientAreaHint);
+	m_mainWindow->setFlag(Qt::NoTitleBarBackgroundHint);
+
+#endif
 }
 
 
@@ -178,6 +185,9 @@ void StandaloneClient::onStartPageLoaded()
 	if (QNetworkInformation::instance() &&
 			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
 		return;
+
+
+	authorizedServersGet();
 
 
 	for (Server *s : *m_serverList)
@@ -344,7 +354,6 @@ void StandaloneClient::authorizedServersGet()
 	if (QNetworkInformation::instance() &&
 			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
 		return;
-
 
 	HttpConnection *HttpConnection = m_httpConnection.get();
 

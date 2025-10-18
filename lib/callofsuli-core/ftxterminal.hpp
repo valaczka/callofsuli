@@ -33,6 +33,7 @@
 #include "ftxui/component/loop.hpp"
 #include "qcborvalue.h"
 #include "qcoreapplication.h"
+#include "qelapsedtimer.h"
 #include "qeventloop.h"
 #include "qlocalserver.h"
 #include "qlocalsocket.h"

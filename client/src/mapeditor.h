@@ -107,6 +107,7 @@ public:
 	Q_INVOKABLE QVariantList uploadImageDirectory(const QUrl &url);
 
 	Q_INVOKABLE MapEditorMission* missionAdd(const QString &name = QString());
+	Q_INVOKABLE MapEditorMission* missionAddWithLevels(const QList<QSet<MapEditorChapter*>> &levels, const QString &name = QString());
 	Q_INVOKABLE void missionRemove(MapEditorMission *mission);
 	Q_INVOKABLE void missionModify(MapEditorMission *mission, QJSValue modifyFunc);
 	Q_INVOKABLE void missionLockAdd(MapEditorMission *mission, MapEditorMissionLevel *lock);

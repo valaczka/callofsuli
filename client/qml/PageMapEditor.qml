@@ -82,6 +82,22 @@ QPage {
 							 mapEditor.undoStack.redo()
 		}
 
+
+		Qaterial.AppBarButton {
+			id: _matrixImporter
+
+			icon.source: Qaterial.Icons.databaseImport
+			ToolTip.text: qsTr("Mátrix szerkesztés")
+
+			visible: swipeView.currentIndex == 0 && mapEditor.map
+
+			onClicked: Client.stackPushPage("PageMapEditorMatrixImport.qml", {
+												mapEditor: _editor
+											})
+
+
+		}
+
 		Qaterial.AppBarButton {
 			id: _filter
 
@@ -129,7 +145,6 @@ QPage {
 					onObjectRemoved: (index, object) => _menuFilter.removeItem(object)
 				}
 			}
-
 		}
 
 		Qaterial.AppBarButton

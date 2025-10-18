@@ -39,6 +39,7 @@
 #include "isometricobject.h"
 #include "litegame.h"
 #include "mapeditor.h"
+#include "mapeditormatriximporter.h"
 #include "mapgame.h"
 #include "mapplaycampaign.h"
 #include "maskedmousearea.h"
@@ -423,6 +424,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<GradeList>("CallOfSuli", 1, 0, "GradeList");
 	qmlRegisterType<GradingConfig>("CallOfSuli", 1, 0, "GradingConfig");
 	qmlRegisterType<MapEditor>("CallOfSuli", 1, 0, "MapEditor");
+	qmlRegisterType<MapEditorMatrixImporter>("CallOfSuli", 1, 0, "MapEditorMatrixImporter");
 	qmlRegisterType<MapGame>("CallOfSuli", 1, 0, "MapGame");
 	qmlRegisterType<MapGameList>("CallOfSuli", 1, 0, "MapGameList");
 	qmlRegisterType<MaskedMouseArea>("CallOfSuli", 1, 0, "MaskedMouseArea");

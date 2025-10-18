@@ -65,8 +65,6 @@ void MobileApplication::initialize()
 
 	createStandardPath();
 
-	LOG_CINFO("app") << "CHECK ENet";
-
 	if (enet_initialize() != 0) {
 		LOG_CERROR("app") << "ENet initialize failed";
 	} else {

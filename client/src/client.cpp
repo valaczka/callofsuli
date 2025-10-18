@@ -1601,7 +1601,20 @@ void Client::safeMarginsGet()
 	QMarginsF margins;
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+
+#	if QT_VERSION >= 0x060900
+	QMargins wm = m_mainWindow->safeAreaMargins();
+	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
+
+	margins.setTop(wm.top()/devicePixelRatio);
+	margins.setBottom(wm.bottom()/devicePixelRatio);
+	margins.setLeft(wm.left()/devicePixelRatio);
+	margins.setRight(wm.right()/devicePixelRatio);
+
+#	else
 	margins = MobileUtils::getSafeMargins();
+#	endif
+
 #else
 	const QString &str = QString::fromUtf8(qgetenv("SAFE_MARGINS"));
 

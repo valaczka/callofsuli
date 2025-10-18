@@ -238,6 +238,7 @@ SOURCES += \
 	main.cpp \
 	mapeditor.cpp \
 	mapeditormap.cpp \
+	mapeditormatriximporter.cpp \
 	mapgame.cpp \
 	mapimage.cpp \
 	mapplay.cpp \
@@ -353,6 +354,7 @@ HEADERS += \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \
+	mapeditormatriximporter.h \
 	mapgame.h \
 	mapimage.h \
 	mapplay.h \

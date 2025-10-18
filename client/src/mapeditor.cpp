@@ -1474,6 +1474,93 @@ MapEditorMission* MapEditor::missionAdd(const QString &name)
 
 
 /**
+ * @brief MapEditor::missionAddWithLevels
+ * @param name
+ * @param chapters
+ * @return
+ */
+
+MapEditorMission *MapEditor::missionAddWithLevels(const QList<QSet<MapEditorChapter *> > &levels, const QString &name)
+{
+	if (!m_map || levels.isEmpty())
+		return nullptr;
+
+	const QStringList &medals = AbstractLevelGame::availableMedal();
+
+	MapEditorMission mission;
+
+	if (!medals.isEmpty())
+		mission.setMedalImage(medals.at(QRandomGenerator::global()->bounded(medals.size())));
+
+	const QString &uuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+	mission.setUuid(uuid);
+	mission.setName(name.isEmpty() ? tr("Új küldetés") : name);
+	mission.setModes(GameMap::Lite|GameMap::Rpg);
+
+	bool success = true;
+
+	QList<MapEditorMissionLevel *> levelList;
+
+	for (const QSet<MapEditorChapter*> &chapters : levels) {
+		MapEditorMissionLevel *level = mission.createNextLevel(m_map);
+
+		if (!level) {
+			success = false;
+			break;
+		}
+
+		for (MapEditorChapter *ch : chapters)
+			level->chapterAdd(ch);
+
+		mission.levelList()->append(level);
+
+		levelList.append(level);
+	}
+
+
+	const QVariantMap &data = mission.toVariantMap();
+
+	for (MapEditorMissionLevel *level : levelList) {
+		mission.levelList()->remove(level);
+		level->deleteLater();
+	}
+
+	if (!success)
+		return nullptr;
+
+
+	EditorAction *action = new EditorAction(m_map, tr("Új küldetés: %1").arg(name));
+	action->setData(data);
+	action->setRedoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = new MapEditorMission(action->map());
+		m->fromVariantMap(action->data());
+
+		action->map()->missionList()->append(m);
+	});
+	action->setUndoFunc([action]{
+		if (!action->map())
+			return;
+
+		MapEditorMission *m = action->map()->mission(action->data().value(QStringLiteral("uuid")).toString());
+
+		if (m)
+			action->map()->missionList()->remove(m);
+	});
+
+	m_undoStack->call(action);
+
+	return m_map->mission(uuid);
+}
+
+
+
+
+
+/**
  * @brief MapEditor::missionRemove
  * @param mission
  */
@@ -2734,11 +2821,11 @@ MapEditorMissionLevel *MapEditor::missionLevelAdd(MapEditorMission *mission)
 	if (!m_map || !mission)
 		return nullptr;
 
-	MapEditorMissionLevel *maxLevel = nullptr;
+	/*MapEditorMissionLevel *maxLevel = nullptr;
 
 	for (MapEditorMissionLevel *ml : *mission->levelList())
 		if (!maxLevel || ml->level()>maxLevel->level())
-			maxLevel = ml;
+			maxLevel = ml;*/
 
 	MapEditorMissionLevel *level = mission->createNextLevel(m_map);
 

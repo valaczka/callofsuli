@@ -31,6 +31,7 @@
 #include "qurl.h"
 #include <QObject>
 #include <QMap>
+#include <QElapsedTimer>
 #include "credential.h"
 
 #ifndef Q_OS_WASM
