@@ -49,6 +49,7 @@ public:
 		int level = -1;
 		GameMap::GameMode mode = GameMap::Invalid;
 		int campaign = -1;
+		int passitemid = -1;
 	};
 
 	QHttpServerResponse update(const Credential &credential, const QJsonObject &json);

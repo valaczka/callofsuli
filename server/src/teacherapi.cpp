@@ -4873,7 +4873,7 @@ QHttpServerResponse TeacherAPI::userPeers() const
  * @return
  */
 
-bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username)
+bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, const int &passitemid)
 {
 	Q_ASSERT(api);
 
@@ -4940,6 +4940,10 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 
 
 	db.commit();
+
+	if (passitemid > -1 && !TeacherAPI::_updatePassResultByCampaign(api, passitemid, campaign, username)) {
+		LOG_CERROR("client") << "Pass result update failed" << passitemid << "for campaign" << campaign << "and user" << qPrintable(username);
+	}
 
 	return true;
 }
@@ -5780,10 +5784,11 @@ bool TeacherAPI::_updatePassResultByExamContent(const DatabaseMain *dbMain, cons
  * @return
  */
 
-bool TeacherAPI::_updatePassResultByCampaign(const AbstractAPI *api, const int &passitem, const int &campaign)
+bool TeacherAPI::_updatePassResultByCampaign(const AbstractAPI *api, const int &passitem, const int &campaign,
+											 const QString &username)
 {
 	Q_ASSERT(api);
-	return _updatePassResultByCampaign(api->databaseMain(), passitem, campaign);
+	return _updatePassResultByCampaign(api->databaseMain(), passitem, campaign, username);
 }
 
 
@@ -5794,7 +5799,8 @@ bool TeacherAPI::_updatePassResultByCampaign(const AbstractAPI *api, const int &
  * @return
  */
 
-bool TeacherAPI::_updatePassResultByCampaign(const DatabaseMain *dbMain, const int &passitem, const int &campaign)
+bool TeacherAPI::_updatePassResultByCampaign(const DatabaseMain *dbMain, const int &passitem, const int &campaign,
+											 const QString &username)
 {
 	Q_ASSERT(dbMain);
 
@@ -5825,6 +5831,7 @@ bool TeacherAPI::_updatePassResultByCampaign(const DatabaseMain *dbMain, const i
 		return false;
 	}
 
+
 	if (finished) {
 		if (!QueryBuilder::q(db)
 				.addQuery("INSERT OR REPLACE INTO passResult(username, result, passitemid) "
@@ -5835,7 +5842,33 @@ bool TeacherAPI::_updatePassResultByCampaign(const DatabaseMain *dbMain, const i
 			return false;
 		}
 	} else {
-		if (!QueryBuilder::q(db)
+		bool success = false;
+
+		if (!username.isEmpty()) {
+
+			const auto &result = _campaignUserResult(dbMain, campaign, finished, username);
+
+			if (result) {
+
+				if (!QueryBuilder::q(db)
+						.addQuery("INSERT OR REPLACE INTO passResult(username, result, passitemid) "
+								  "SELECT username, ").addValue(result->progress)
+						.addQuery(", ").addValue(passitem)
+						.addQuery(" FROM tmpCampaignResult WHERE username=").addValue(username)
+						.exec()) {
+					db.rollback();
+					return false;
+				}
+
+				LOG_CDEBUG("service") << "Update passResult for" << qPrintable(username) << "->" << result->progress;
+
+				success = true;
+			}
+
+		}
+
+
+		if (!success && !QueryBuilder::q(db)
 				.addQuery("INSERT OR REPLACE INTO passResult(username, passitemid) "
 						  "SELECT username, ").addValue(passitem)
 				.addQuery(" FROM tmpCampaignResult")

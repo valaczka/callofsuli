@@ -1068,7 +1068,7 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 
 		QueryBuilder qq(db);
 
-		qq.addQuery("SELECT mapid, missionid, level, mode, campaignid FROM game "
+		qq.addQuery("SELECT mapid, missionid, level, mode, campaignid, passitemid FROM game "
 					"LEFT JOIN runningGame ON (runningGame.gameid=game.id) "
 					"LEFT JOIN campaign ON (campaign.id=game.campaignid) "
 					"WHERE runningGame.gameid=game.id AND game.id=").addValue(id)
@@ -1083,6 +1083,7 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		g.level = qq.value("level").toInt();
 		g.mode = qq.value("mode").value<GameMap::GameMode>();
 		g.campaign = qq.value("campaignid", -1).toInt();
+		g.passitemid = qq.value("passitemid", -1).toInt();
 
 
 		// Wallet, currency
@@ -1328,7 +1329,7 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 */
 
 	if (success) {
-		LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, game.campaign, username));
+		LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, game.campaign, username, game.passitemid));
 	}
 
 

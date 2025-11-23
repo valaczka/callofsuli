@@ -169,7 +169,7 @@ public:
 	static std::optional<QJsonArray> _groupGameResult(const AbstractAPI *api, const int &group,
 									   const int &limit = DEFAULT_LIMIT, const int &offset = 0);
 
-	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username);
+	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, const int &passitemid);
 	static std::optional<float> _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username);
 	static std::optional<float> _evaluateCriterionMission(const AbstractAPI *api, /*const int &campaign,*/ const QJsonObject &criterion, const QString &map,
 										  const QString &username);
@@ -191,8 +191,10 @@ public:
 	static bool _updatePassResultByExamContent(const AbstractAPI *api, const QVariantList &examContentId);
 	static bool _updatePassResultByExamContent(const DatabaseMain *dbMain, const QVariantList &examContentId);
 
-	static bool _updatePassResultByCampaign(const AbstractAPI *api, const int &passitem, const int &campaign);
-	static bool _updatePassResultByCampaign(const DatabaseMain *dbMain, const int &passitem, const int &campaign);
+	static bool _updatePassResultByCampaign(const AbstractAPI *api, const int &passitem, const int &campaign,
+											const QString &username = QString());
+	static bool _updatePassResultByCampaign(const DatabaseMain *dbMain, const int &passitem, const int &campaign,
+											const QString &username = QString());
 
 private:
 	QJsonObject _task(const int &id) const;

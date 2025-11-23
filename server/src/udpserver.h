@@ -31,6 +31,7 @@
 #include "credential.h"
 #include <enet/enet.h>
 #include <QThread>
+#include <QElapsedTimer>
 
 class ServerService;
 class UdpServer;
