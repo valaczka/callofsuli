@@ -56,7 +56,9 @@ QVector<Question> ExamGame::createQuestions(GameMapMissionLevel *missionLevel, S
 			int n = (objective->storageId() > 0 ? objective->storageCount() : 1);
 
 			for (int i=0; i<n; ++i)
-				list.append(Question(seed, objective));
+				list.append(Question(
+								iface->types().testFlag(ModuleInterface::SkipSeed) ? nullptr : seed,
+								objective));
 
 		}
 	}
@@ -127,10 +129,12 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, S
 	for (const Question &q : easyList) {
 		const QVariantMap &data = q.generate();
 
-		if (!oldSeed.currentMap().isEmpty() && oldSeed == *seed)
-			LOG_CWARNING("game") << "Paper exam StorageSeed malfunction";
+		if (q.seed()) {
+			if (!oldSeed.currentMap().isEmpty() && oldSeed == *seed)
+				LOG_CWARNING("game") << "Paper exam StorageSeed malfunction";
 
-		oldSeed = *seed;
+			oldSeed = *seed;
+		}
 
 		if (const QVariantMap &d = q.commonData(); !d.isEmpty() && !commonData.contains(q.uuid())) {
 			QJsonObject json = QJsonObject::fromVariantMap(d);

@@ -376,9 +376,12 @@ QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QV
 
 	if (mode == QStringLiteral("simple"))
 		return generateBlockSimple(data, storageData, seed);
-	else
+	else if (mode == QStringLiteral("contains"))
 		return generateBlockContains(data, storageData, seed);
+	else if (mode == QStringLiteral("quiz"))
+		return generateBlockQuiz(data, storageData, seed);
 
+	return {};
 }
 
 
@@ -525,6 +528,58 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 		retMap.insert(generateOne(correct, alist, maxOptions));
 
 		helper.append(retMap, blockidx, blockidx*1000 + idx+1);
+	}
+
+	return helper.getVariantList(true);
+}
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateBlockQuiz
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateBlockQuiz(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+{
+	SeedDuplexHelper helper(seed, SEED_BLOCK_LEFT, SEED_BLOCK_RIGHT);
+
+	const QString &question = data.value(QStringLiteral("question")).toString();
+	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
+
+
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
+		const QVariantMap &m = it->toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+
+		QStringList right = m.value(QStringLiteral("second")).toStringList();
+
+		if (left.isEmpty() || right.isEmpty())
+			continue;
+
+		QVariantMap retMap;
+
+		if (question.isEmpty())
+			retMap[QStringLiteral("question")] = left;
+		else if (question.contains(QStringLiteral("%1")))
+			retMap[QStringLiteral("question")] = question.arg(left);
+		else
+			retMap[QStringLiteral("question")] = question;
+
+		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+		const int blockidx = (it-list.constBegin())+1;
+
+		const QString correct = right.takeFirst();
+
+		retMap.insert(generateOne(correct, right, maxOptions));
+
+		helper.append(retMap, blockidx, blockidx*1000 + 0 + 1);
 	}
 
 	return helper.getVariantList(true);

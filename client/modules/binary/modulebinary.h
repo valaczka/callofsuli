@@ -43,7 +43,7 @@ public:
 	explicit ModuleBinary(QObject *parent = nullptr);
 
 	inline QString name() const override { return QStringLiteral("binary"); }
-	inline Types types() const override { return PaperAuto; }
+	inline Types types() const override { return PaperAuto | SkipSeed; }
 	inline QString readableName() const override { return tr("Betűkombináció"); }
 	inline QString icon() const override { return QStringLiteral("qrc:/Qaterial/Icons/text-search.svg"); }
 
@@ -53,7 +53,8 @@ public:
 
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
-			QStringLiteral("binding")
+			QStringLiteral("binding"),
+			QStringLiteral("block")
 		};
 		return l;
 	}
@@ -64,6 +65,7 @@ public:
 							 const QVariantMap &storageData, QVariantMap *commonDataPtr, StorageSeed *seed) const override;
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, QVariantMap *commonDataPtr) const;
+	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, QVariantMap *commonDataPtr) const;
 
 	qreal xpFactor() const override { return 1.0; };
 

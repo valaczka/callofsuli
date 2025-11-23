@@ -71,6 +71,7 @@ public:
 	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlockQuiz(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList, const int &maxOptions) const;
 
 	QVariantMap preview(const QVariantList &generatedList, const QVariantMap &commonData) const override;

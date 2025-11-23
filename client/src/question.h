@@ -54,6 +54,8 @@ public:
 
 	QVariantMap commonData() const;
 
+	StorageSeed *seed() const { return m_seed; }
+
 	static QVariantMap objectiveInfo(const QString &module, const QVariantMap &data,
 									 const QString &storageModule = "", const QVariantMap &storageData = QVariantMap());
 

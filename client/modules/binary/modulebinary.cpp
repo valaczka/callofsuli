@@ -161,6 +161,8 @@ QVariantList ModuleBinary::generateAll(const QVariantMap &data, ModuleInterface 
 {
 	if (storage && storage->name() == QStringLiteral("binding"))
 		return generateBinding(data, storageData, commonDataPtr);
+	else if (storage && storage->name() == QStringLiteral("block"))
+		return generateBlock(data, storageData, commonDataPtr);
 
 
 	return QVariantList();
@@ -259,6 +261,104 @@ QVariantList ModuleBinary::generateBinding(const QVariantMap &data, const QVaria
 										 { QStringLiteral("list"), commonList }
 									 });
 
+
+	std::shuffle(ret.begin(), ret.end(), g);
+
+	return ret;
+}
+
+
+
+
+/**
+ * @brief ModuleBinary::generateBlock
+ * @param data
+ * @param storageData
+ * @param commonDataPtr
+ * @return
+ */
+
+QVariantList ModuleBinary::generateBlock(const QVariantMap &data, const QVariantMap &storageData, QVariantMap *commonDataPtr) const
+{
+	QVariantList ret;
+	QVariantList commonList;
+
+	const QString &question = data.value(QStringLiteral("question")).toString();
+	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+
+	if (list.size() > m_numbers.size()) {
+		qWarning() << "ModuleBinary data size exceeds range" << list.size() << ">" << m_numbers.size();
+		return {};
+	}
+
+	int s = 0;
+
+	for (const int i : m_optionsRange) {
+		if (i > list.size()) {
+			s = i;
+			break;
+		}
+	}
+
+	QVector<int> numbers(m_numbers.constBegin(), m_numbers.constBegin()+(s > 0 ? s : list.size()));
+
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(numbers.begin(), numbers.end(), g);
+
+	auto numberIterator = numbers.cbegin();
+
+	for (const QVariant &v : list) {
+		const QVariantMap &m = v.toMap();
+		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+
+		if (left.isEmpty())
+			continue;
+
+		if (right.isEmpty()) {
+			if (commonDataPtr)
+				commonList.append(QVariantMap{
+									  { QStringLiteral("answer"), 0 },
+									  { QStringLiteral("data"), left },
+								  });
+
+
+			continue;
+		}
+
+		int answer = *numberIterator;
+		++numberIterator;
+
+		if (commonDataPtr)
+			commonList.append(QVariantMap{
+								  { QStringLiteral("answer"), answer },
+								  { QStringLiteral("data"), left },
+							  });
+
+		QVariantMap retMap;
+
+		const QString questionPart = right.at(QRandomGenerator::global()->bounded(right.size()));
+
+		if (question.contains(QStringLiteral("%1")))
+			retMap[QStringLiteral("question")] = question.arg(questionPart);
+		else if (question.isEmpty())
+			retMap[QStringLiteral("question")] = questionPart;
+		else
+			retMap[QStringLiteral("question")] = question+QStringLiteral(" ")+questionPart;
+
+		retMap[QStringLiteral("answer")] = answer;
+
+		ret.append(retMap);
+	}
+
+	if (commonDataPtr)
+		*commonDataPtr = QVariantMap({
+										 { QStringLiteral("list"), commonList }
+									 });
+
+
+	std::shuffle(ret.begin(), ret.end(), g);
 
 	return ret;
 }

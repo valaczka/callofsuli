@@ -80,7 +80,8 @@ QFormColumn {
 
 		model: [
 			{value: "contains", text: qsTr("Halmazba tartozás")},
-			{value: "simple", text: qsTr("Egyszerű választás")}
+			{value: "simple", text: qsTr("Egyszerű választás")},
+			{value: "quiz", text: qsTr("Kvíz-mód")},
 		]
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
@@ -134,7 +135,7 @@ QFormColumn {
 		width: parent.width
 		visible: isBlock
 
-		text: _modeBlock.currentValue === "simple" ?  "" : qsTr("Minek a része: %1?")
+		text: _modeBlock.currentValue === "contains" ? qsTr("Minek a része: %1?") : ""
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}

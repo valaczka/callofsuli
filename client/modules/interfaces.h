@@ -42,6 +42,8 @@ public:
 		Online			= (1 << 1),			// Online (gépen) feladatmegoldás (általában mind)
 		PaperAuto		= (1 << 2),			// Papír alapon automatán javítható (pl. egyszerű választás)
 		PaperManual		= (1 << 3),			// Papír alapon kézzel javítható (pl. szöveges válasz)
+
+		SkipSeed		= (1 << 10),		// Nem használunk hozzá seed-et (a legyártott kérdéseket sorban használja fel)
 	};
 
 	Q_DECLARE_FLAGS(Types, Type)
