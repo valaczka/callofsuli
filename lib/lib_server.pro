@@ -6,7 +6,8 @@ SUBDIRS = \
 	CuteLogger \
 	libSimpleMail \
 	libENet \
-	libChipmunk2D
+	libChipmunk2D \
+	libCppBinaryStream
 
 CONFIG += ordered
 

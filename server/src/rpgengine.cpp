@@ -129,7 +129,7 @@ std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, con
 	if (selector.operation == RpgGameData::EngineSelector::Invalid) {
 		LOG_CDEBUG("engine") << "Invalid operation" << peer->peerID();
 
-		peer->send(RpgGameData::EngineSelector(RpgGameData::EngineSelector::Reset).toCborMap().toCborValue().toCbor(), true);
+		/////peer->send(RpgGameData::EngineSelector(RpgGameData::EngineSelector::Reset).toCborMap().toCborValue().toCbor(), true);
 		return {};
 	}
 
@@ -231,7 +231,7 @@ std::shared_ptr<RpgEngine> RpgEngine::peerFind(UdpServer *server, const QString 
 {
 	Q_ASSERT(server);
 
-	return std::dynamic_pointer_cast<RpgEngine>(server->findPeer(UdpToken::Rpg, username, idPtr));
+	return std::dynamic_pointer_cast<RpgEngine>(server->findEngineForUser(AbstractEngine::EngineRpg, username, idPtr));
 }
 
 
@@ -316,7 +316,7 @@ void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
  * @param data
  */
 
-void RpgEngine::binaryDataReceived(const UdpServerPeerReceived &recv)
+void RpgEngine::binaryDataReceived(const UdpPacketRcv &recv)
 {
 	Q_ASSERT(recv.peer);
 
@@ -327,7 +327,7 @@ void RpgEngine::binaryDataReceived(const UdpServerPeerReceived &recv)
 		return;
 	}
 
-	d->dataReceived(player, recv.data, recv.diff);
+	////d->dataReceived(player, recv.data, 0);
 }
 
 
@@ -1239,7 +1239,7 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
 
 	selector.add = (handler->engines().size() < max);
 
-	peer->send(selector.toCborMap().toCborValue().toCbor(), false);
+	/////peer->send(selector.toCborMap().toCborValue().toCbor(), false);
 }
 
 
@@ -1653,8 +1653,8 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 
 		insertBaseMapData(&map, player);
 
-		if (auto *peer = player->udpPeer())
-			peer->send(map.toCborValue().toCbor(), false);
+		/* //////////////////if (auto *peer = player->udpPeer())
+			peer->send(map.toCborValue().toCbor(), false);*/
 
 		return;
 	}
@@ -1664,8 +1664,8 @@ void RpgEnginePrivate::dataSend(const SendMode &mode, RpgEnginePlayer *player)
 
 		insertBaseMapData(&map, it->get());
 
-		if (auto *peer = it->get()->udpPeer())
-			peer->send(map.toCborValue().toCbor(), false);
+		/* ///////////////////////// if (auto *peer = it->get()->udpPeer())
+			peer->send(map.toCborValue().toCbor(), false); */
 	}
 
 
@@ -1741,9 +1741,12 @@ void RpgEnginePrivate::dataSendPlay()
 			reliable = true;
 		}
 
+		/*************************************
 		peer->send(map.toCborValue().toCbor(), reliable || hasMsg);
 
 		peer->setLastSentTick(tick);
+
+		*/////////////////////////////////////////////////
 	}
 
 	if (reliable)
@@ -1793,9 +1796,12 @@ void RpgEnginePrivate::dataSendFinished()
 			map.insert(QStringLiteral("final"), QCborMap::fromJsonObject(final));
 		}
 
+
+		/**********************************************
 		peer->send(map.toCborValue().toCbor(), true);
 
 		peer->setLastSentTick(tick);
+		*//////////////////////////////////////////////
 	}
 
 	clearMessages();

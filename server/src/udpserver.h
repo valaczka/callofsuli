@@ -28,10 +28,10 @@
 #define UDPSERVER_H
 
 #include "qlambdathreadworker.h"
-#include "credential.h"
 #include <enet/enet.h>
 #include <QThread>
 #include <QElapsedTimer>
+#include "abstractengine.h"
 
 class ServerService;
 class UdpServer;
@@ -68,10 +68,7 @@ public:
 	std::shared_ptr<UdpEngine> engine() const { return m_engine; }
 	void setEngine(const std::shared_ptr<UdpEngine> &newEngine) { m_engine = newEngine; }
 
-	void send(const QByteArray &data, const bool &reliable);
-
-	const qint64 &lastSentTick() const { return m_lastSentTick; }
-	void setLastSentTick(const qint64 &newLastSentTick) { m_lastSentTick = newLastSentTick; }
+	void send(const std::vector<std::uint8_t> &data, const bool &reliable);
 
 	bool readyToSend(const int &maxFps = 0);
 	void addRtt(const int &rtt) { m_speed.addRtt(rtt); }
@@ -88,7 +85,6 @@ private:
 	UdpServer *m_server = nullptr;
 	ENetPeer *m_peer = nullptr;
 	std::shared_ptr<UdpEngine> m_engine;
-	qint64 m_lastSentTick = -1;
 	bool m_isReconnecting = false;
 	bool m_isRejected = false;
 
@@ -126,13 +122,25 @@ private:
 
 
 
-struct UdpServerPeerReceived {
+
+struct UdpPacketRcv {
 	UdpServerPeer *peer = nullptr;
-	qint64 diff = 0;
-	QByteArray data;
+	std::vector<std::uint8_t> data;
+
+	ENetPeer *getENetPeer() const { return peer ? peer->peer() : nullptr; }
 };
 
-typedef QList<UdpServerPeerReceived> UdpServerPeerReceivedList;
+
+struct UdpPacketSnd {
+	ENetPeer *peer = nullptr;
+	std::vector<std::uint8_t> data;
+	bool reliable = false;
+
+	ENetPeer *getENetPeer() const { return peer; }
+};
+
+
+typedef std::vector<UdpPacketRcv> UdpServerPeerReceivedList;
 
 
 
@@ -142,25 +150,27 @@ typedef QList<UdpServerPeerReceived> UdpServerPeerReceivedList;
 
 class UdpServer
 {
-
 public:
+	enum UdpTokenType {
+		UdpInvalid = 0,
+		UdpRpg
+	};
+
 	explicit UdpServer(ServerService *service);
 	virtual ~UdpServer();
 
-	const std::vector<std::unique_ptr<UdpServerPeer>> &peerList() const { return m_peerList; }
-
-	void send(UdpServerPeer *peer, const QByteArray &data, const bool &reliable);
+	void send(UdpServerPeer *peer, const std::vector<uint8_t> &data, const bool &reliable);
 
 	void removeEngine(UdpEngine *engine);
 
 	quint32 addPeer(const QString &username, const QDateTime &expired);
-	quint32 resetPeer(const quint32 &id, const QDateTime &expired);
+	quint32 resetPeer(const quint32 &id, const QString &username, const QDateTime &expired);
 	bool removePeer(const quint32 &id, UdpServerPeer *peer);
 
 	bool peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
 	bool peerRemoveEngine(UdpServerPeer *peer);
 
-	std::shared_ptr<UdpEngine> findPeer(const UdpToken::Type &type, const QString &username, quint32 *idPtr = nullptr) const;
+	std::shared_ptr<UdpEngine> findEngineForUser(const AbstractEngine::Type &type, const QString &username, quint32 *idPtr = nullptr) const;
 
 	QString dumpPeers() const;
 	void removeExpiredPeers();
@@ -173,6 +183,53 @@ private:
 	std::vector<std::unique_ptr<UdpServerPeer>> m_peerList;
 
 	friend class UdpServerPrivate;
+};
+
+
+
+
+
+
+
+/**
+ * @brief The UdpEngine class
+ */
+
+class UdpEngine : public AbstractEngine
+{
+	Q_OBJECT
+
+public:
+	explicit UdpEngine(const Type &type, const int &id, EngineHandler *handler, QObject *parent = nullptr)
+		: AbstractEngine(type, id, handler, parent)
+	{}
+	explicit UdpEngine(const Type &type, EngineHandler *handler, QObject *parent = nullptr)
+		: AbstractEngine(type, 0, handler, parent) {}
+
+	static quint32 increaseNextId() { return ++m_nextId; }
+	static void setNextId(const quint32 &id) { m_nextId = id; }
+
+	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) { Q_UNUSED(data); }
+	virtual void udpPeerAdd(UdpServerPeer *peer) { Q_UNUSED(peer); }
+	virtual void udpPeerRemove(UdpServerPeer *peer) { Q_UNUSED(peer); }
+	virtual void disconnectUnusedPeer(UdpServerPeer *peer) { Q_UNUSED(peer); }
+	virtual bool isPeerValid(const quint32 &peerId) const = 0;
+
+	UdpServer *udpServer() const { return m_udpServer; }
+	void setUdpServer(UdpServer *server) { m_udpServer = server; }
+
+	static std::shared_ptr<UdpEngine> dispatch(EngineHandler *handler,
+											   const AbstractEngine::Type &type,
+											   const QJsonObject &connectionToken,
+											   const QByteArray &content,
+											   UdpServerPeer *peer);
+
+protected:
+	virtual void onRemoveRequest() override;
+
+	UdpServer *m_udpServer = nullptr;
+
+	static inline quint32 m_nextId = 1;
 };
 
 #endif // UDPSERVER_H

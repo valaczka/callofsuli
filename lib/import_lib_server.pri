@@ -66,3 +66,9 @@ if ($$BackwardCpp) {
 INCLUDEPATH += $$PWD/Chipmunk2D/include
 LIBS += -lchipmunk2d
 
+
+
+# CppBinaryStream
+
+INCLUDEPATH += $$PWD/CppBinaryStream/include
+LIBS += -lcppbinarystream

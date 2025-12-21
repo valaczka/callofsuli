@@ -21,6 +21,7 @@ HEADERS += \
 	$$PWD/rank.h \
 	$$PWD/rpgconfig.h \
 	$$PWD/selectableobject.h \
+	$$PWD/udpbitstream.hpp \
 	$$PWD/utils_.h
 
 

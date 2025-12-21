@@ -30,6 +30,7 @@
 #include "abstractengine.h"
 #include "rpgconfig.h"
 #include "rpgsnapshotstorage.h"
+#include "udpserver.h"
 
 
 #define ELOG_TRACE            CuteMessageLogger(_logger(), Logger::Trace,   __FILE__, __LINE__, Q_FUNC_INFO).write()
@@ -306,7 +307,7 @@ public:
 private:
 	void setLoggerFile(const QString &fname);
 
-	void binaryDataReceived(const UdpServerPeerReceived &recv);
+	void binaryDataReceived(const UdpPacketRcv &recv);
 	void preparePlayers();
 	qint64 nextTick();
 

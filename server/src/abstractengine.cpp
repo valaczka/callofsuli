@@ -1,7 +1,6 @@
 #include "abstractengine.h"
 #include "Logger.h"
 #include "enginehandler.h"
-#include "rpgengine.h"
 
 
 /**
@@ -126,43 +125,3 @@ void AbstractEngine::setPlayerLimit(uint newPlayerLimit)
 	m_playerLimit = newPlayerLimit;
 }
 
-
-
-
-
-/**
- * @brief UdpEngine::dispatch
- * @param handler
- * @param type
- * @param server
- * @param data
- * @return
- */
-
-std::shared_ptr<UdpEngine> UdpEngine::dispatch(EngineHandler *handler, const UdpToken::Type &type, const QJsonObject &connectionToken,
-											   const QByteArray &content, UdpServerPeer *peer)
-{
-	Q_ASSERT(handler);
-
-	switch (type) {
-		case UdpToken::Rpg:
-			return RpgEngine::engineDispatch(handler, connectionToken, content, peer);
-			break;
-
-		case UdpToken::Invalid:
-			break;
-	}
-
-	return nullptr;
-}
-
-
-/**
- * @brief UdpEngine::onRemoveRequest
- */
-
-void UdpEngine::onRemoveRequest()
-{
-	if (m_udpServer)
-		m_udpServer->removeEngine(this);
-}

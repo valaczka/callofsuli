@@ -31,6 +31,7 @@
 #include "abstractengine.h"
 #include "qbasictimer.h"
 #include <QWebSocket>
+#include <QRecursiveMutex>
 
 
 /**

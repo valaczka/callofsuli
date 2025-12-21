@@ -30,6 +30,7 @@
 #include "credential.h"
 #include "qcborarray.h"
 #include "qpoint.h"
+#include "udpbitstream.hpp"
 #include <QSerializer>
 #include <QIODevice>
 #include <QColor>
@@ -856,17 +857,13 @@ public:
  * @brief The ConnectToken class
  */
 
-class ConnectionToken : public UdpToken
+class ConnectionToken : public UdpConnectionToken
 {
 	Q_GADGET
 
 public:
-	ConnectionToken()
-		: UdpToken(Rpg)
-	{}
-
-	ConnectionToken(const QString &_user, const quint32 &_peer, const qint64 &_exp)
-		: UdpToken(Rpg, _user, _peer, _exp)
+	ConnectionToken(const QString &_user = QString(), const quint32 &_peer = 0, const qint64 &_exp = 0)
+		: UdpConnectionToken(1, _user, _peer, _exp)								// 1 = AbstractEngine::Rpg
 	{}
 
 	QS_SERIALIZABLE

@@ -28,15 +28,56 @@
 #include "udpserver.h"
 #include <sodium/randombytes.h>
 #include <sodium/crypto_generichash.h>
+#include "udpbitstream.hpp"
 #include "udpserver_p.h"
 #include "serverservice.h"
 #include "Logger.h"
 #include <QJsonObject>
 #include <QCborMap>
 #include <QJsonDocument>
+#include "rpgengine.h"
 
 
-#define SERVER_ENET_SPEED			1000./240.
+
+
+/**
+ * @brief UdpEngine::dispatch
+ * @param handler
+ * @param type
+ * @param server
+ * @param data
+ * @return
+ */
+
+std::shared_ptr<UdpEngine> UdpEngine::dispatch(EngineHandler *handler, const AbstractEngine::Type &type,
+											   const QJsonObject &connectionToken,
+											   const QByteArray &content, UdpServerPeer *peer)
+{
+	Q_ASSERT(handler);
+
+	switch (type) {
+		case AbstractEngine::EngineRpg:
+			return RpgEngine::engineDispatch(handler, connectionToken, content, peer);
+			break;
+
+		case AbstractEngine::EngineInvalid:
+			break;
+	}
+
+	return nullptr;
+}
+
+
+/**
+ * @brief UdpEngine::onRemoveRequest
+ */
+
+void UdpEngine::onRemoveRequest()
+{
+	if (m_udpServer)
+		m_udpServer->removeEngine(this);
+}
+
 
 
 /**
@@ -70,7 +111,7 @@ UdpServer::UdpServer(ServerService *service)
 
 UdpServer::~UdpServer()
 {
-	m_worker->getThread()->requestInterruption();
+	d->stop();
 	m_worker->quitThread();
 	m_worker->getThread()->wait();
 
@@ -88,7 +129,7 @@ UdpServer::~UdpServer()
  * @param reliable
  */
 
-void UdpServer::send(UdpServerPeer *peer, const QByteArray &data, const bool &reliable)
+void UdpServer::send(UdpServerPeer *peer, const std::vector<std::uint8_t> &data, const bool &reliable)
 {
 	if (!peer)
 		return;
@@ -111,12 +152,8 @@ void UdpServer::removeEngine(UdpEngine *engine)
 	QDefer ret;
 
 	m_worker->execInThread([this, engine, ret]() mutable {
-		LOG_CINFO("engine") << "Remove engine" << engine->type() << engine->id();
-
-		QMutexLocker peerLocker(&d->m_peerMutex);
-		d->m_peerHash.removeIf([engine](const auto &ptr){
-			return ptr->engine.lock().get() == engine;
-		});
+		if (d->m_lobby)
+			d->m_lobby->removeEngine(engine);
 
 		ret.resolve();
 	});
@@ -136,28 +173,22 @@ void UdpServer::removeEngine(UdpEngine *engine)
 
 quint32 UdpServer::addPeer(const QString &username, const QDateTime &expired)
 {
-	QMutexLocker peerLocker(&d->m_peerMutex);
+	if (!d->m_lobby) {
+		LOG_CERROR("engine") << "Udp server add player failed:" << username << "no lobby";
+		return 0;
+	}
 
-	for (int i=0; i<15; ++i) {
-		quint32 newId = QRandomGenerator::global()->generate();
-
-		if (newId > 0 && !d->m_peerHash.contains(newId)) {
-			LOG_CDEBUG("engine") << "Udp server add player" << newId << username;
-
-			auto it = d->m_peerHash.emplace(newId, username);
-			if (expired.isValid())
-				it->deadline.setRemainingTime(QDateTime::currentDateTime().msecsTo(expired));
-			else
-				it->deadline.setRemainingTime(-1);
-
-			return newId;
-		}
+	if (auto ptr = d->m_lobby->add(username, expired)) {
+		LOG_CDEBUG("engine") << "Udp server add player" << ptr->peerId << ptr->username;
+		return ptr->peerId;
 	}
 
 	LOG_CERROR("engine") << "Udp server add player failed:" << username;
 
 	return 0;
 }
+
+
 
 
 /**
@@ -167,25 +198,16 @@ quint32 UdpServer::addPeer(const QString &username, const QDateTime &expired)
  * @return
  */
 
-quint32 UdpServer::resetPeer(const quint32 &id, const QDateTime &expired)
+quint32 UdpServer::resetPeer(const quint32 &id, const QString &username, const QDateTime &expired)
 {
-	QMutexLocker peerLocker(&d->m_peerMutex);
-
-	auto it = d->m_peerHash.find(id);
-
-	if (it == d->m_peerHash.end()) {
-		LOG_CERROR("engine") << "Peer not found" << id;
+	if (!d->m_lobby) {
+		LOG_CERROR("engine") << "Udp server player update failed:" << id << "no lobby";
 		return 0;
 	}
 
-	if (it->engine.lock()) {
-		LOG_CERROR("engine") << "Peer" << id << "has active engine, reset failed";
-		return 0;
-	}
+	auto ptr = d->m_lobby->reset(id, username, expired);
 
-	it->reset(expired);
-
-	return id;
+	return ptr ? ptr->peerId : 0;
 }
 
 
@@ -222,20 +244,26 @@ bool UdpServer::peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<U
 
 bool UdpServer::peerRemoveEngine(UdpServerPeer *peer)
 {
-	return d->peerRemoveEngine(peer);
+	if (d->m_lobby)
+		return d->m_lobby->peerRemoveEngine(peer);
+	else
+		return false;
 }
 
 
 /**
- * @brief UdpServer::findPeer
+ * @brief UdpServer::findEngineForUser
  * @param type
  * @param username
  * @return
  */
 
-std::shared_ptr<UdpEngine> UdpServer::findPeer(const UdpToken::Type &type, const QString &username, quint32 *idPtr) const
+std::shared_ptr<UdpEngine> UdpServer::findEngineForUser(const AbstractEngine::Type &type, const QString &username, quint32 *idPtr) const
 {
-	return d->findPeer(type, username, idPtr);
+	if (d->m_lobby)
+		return d->m_lobby->getEngineForUser(type, username, idPtr);
+	else
+		return nullptr;
 }
 
 
@@ -247,7 +275,10 @@ std::shared_ptr<UdpEngine> UdpServer::findPeer(const UdpToken::Type &type, const
 
 QString UdpServer::dumpPeers() const
 {
-	return d->dumpPeers();
+	if (d->m_lobby)
+		return d->m_lobby->dumpPeers();
+	else
+		return {};
 }
 
 
@@ -257,7 +288,8 @@ QString UdpServer::dumpPeers() const
 
 void UdpServer::removeExpiredPeers()
 {
-	d->removeExpiredPeers();
+	if (d->m_lobby)
+		d->m_lobby->removeExpiredPeers();
 }
 
 
@@ -275,13 +307,7 @@ UdpServerPrivate::UdpServerPrivate(UdpServer *engine)
 	: QObject()
 	, q(engine)
 {
-	unsigned char publicKey[crypto_box_PUBLICKEYBYTES];
-	unsigned char secretKey[crypto_box_SECRETKEYBYTES];
-
-	crypto_box_keypair(publicKey, secretKey);
-
-	m_keyPair.publicKey = QByteArray(reinterpret_cast<char*>(publicKey), crypto_box_PUBLICKEYBYTES);
-	m_keyPair.secretKey = QByteArray(reinterpret_cast<char*>(secretKey), crypto_box_SECRETKEYBYTES);
+	crypto_box_keypair(m_keyPair.publicKey.data(), m_keyPair.secretKey.data());
 }
 
 
@@ -301,7 +327,6 @@ UdpServerPrivate::~UdpServerPrivate()
 }
 
 
-
 /**
  * @brief UdpServerPrivate::run
  */
@@ -310,37 +335,36 @@ void UdpServerPrivate::run()
 {
 	Q_ASSERT(q->m_service);
 
-
 	ENetAddress address;
 	address.host = ENET_HOST_ANY;
 	address.port = q->m_service->settings()->listenPort();
 
-	m_maxPeers = std::max(4, q->m_service->settings()->udpMaxSeats());
 
-	// Channel:
-	// 0: unsigned
-	// 1: signed
+	m_lobby.reset(new Lobby(this, std::max(4, q->m_service->settings()->udpMaxSeats())));
 
 	m_enet_server = enet_host_create(&address,
-									 2*m_maxPeers,
-									 2,
+									 m_lobby->size(),
+									 1,
 									 0, 0);
 
 	if (m_enet_server == NULL) {
 		LOG_CERROR("engine") << "UDP server run error";
 		return;
 	} else {
-		LOG_CDEBUG("engine") << "UPD server started:" << m_maxPeers << "seats";
+		LOG_CDEBUG("engine") << "UPD server started:" << m_lobby->size() << "seats";
 	}
+
+
+	m_running.storeRelease(1);
 
 
 	ENetEvent event;
 
-	while (int r = enet_host_service (m_enet_server, &event, SERVER_ENET_SPEED) >= 0) {
-		QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::ProcessEventsFlag::AllEvents);
-
-		if (QThread::currentThread()->isInterruptionRequested())
+	while (int r = enet_host_service (m_enet_server, &event, 1) >= 0) {
+		if (m_running.loadAcquire() < 1)
 			break;
+
+		// Read incoming packets
 
 		if (r > 0) {
 
@@ -356,7 +380,7 @@ void UdpServerPrivate::run()
 				case ENET_EVENT_TYPE_RECEIVE:
 					if (!packetReceived(event)) {
 						LOG_CDEBUG("engine") << "Reject connection" << qPrintable(UdpServerPeer::address(event.peer));
-						enet_peer_disconnect_later(event.peer, 1);
+						////enet_peer_disconnect_later(event.peer, 1);
 					}
 					enet_packet_destroy(event.packet);
 					break;
@@ -367,37 +391,36 @@ void UdpServerPrivate::run()
 		}
 
 
-		QMutexLocker locker(&m_inOutChache.mutex);
+		deliverPackets();
 
-		for (const auto &b : m_inOutChache.sendList) {
-			QByteArray out;
-
-			QDataStream stream(&out, QIODevice::WriteOnly);
-
-			stream.setVersion(QDataStream::Qt_6_7);
-
-			stream << (quint32) 0x434F53;			// COS
-			stream << Utils::versionCode();
-			stream << b.data;
-
-			ENetPacket *packet = enet_packet_create(out.data(), out.size(),
-													b.reliable ? ENET_PACKET_FLAG_RELIABLE :
-																 ENET_PACKET_FLAG_UNRELIABLE_FRAGMENT);
-			enet_peer_send(b.peer, 0, packet);
-		}
-
-		m_inOutChache.sendList.clear();
-
-		locker.unlock();
-
-		deliverReceived();
+		//enet_host_flush(m_enet_server);		// Ez nem vsz., hogy kellene
 
 		disconnectUnusedPeers();
 
+		QThread::msleep(1);
+
 	}
 
-	LOG_CTRACE("engine") << "UDP server stopped";
+	m_lobby.reset();
+
+	enet_host_destroy(m_enet_server);
+	m_enet_server = nullptr;
+
+	LOG_CDEBUG("engine") << "UDP server stopped";
 }
+
+
+
+/**
+ * @brief UdpServerPrivate::stop
+ */
+
+void UdpServerPrivate::stop()
+{
+	LOG_CDEBUG("engine") << "Stop UDP server";
+	m_running.storeRelease(0);
+}
+
 
 
 
@@ -408,19 +431,22 @@ void UdpServerPrivate::run()
 
 void UdpServerPrivate::peerConnect(ENetPeer *peer)
 {
+	Q_ASSERT(m_lobby);
+
 	LOG_CDEBUG("engine") << "Peer connection start:" << qPrintable(UdpServerPeer::address(peer));
 
-	QMutexLocker locker(&m_peerMutex);
+	/*QMutexLocker locker(&m_peerMutex);
 	const qsizetype size = m_peerHash.size();
 	locker.unlock();
 
 	if (size >= m_maxPeers) {
-		LOG_CDEBUG("engine") << "Reject connection" << qPrintable(UdpServerPeer::address(peer)) << "seats:" << m_peerHash.size();
-		enet_peer_disconnect_later(peer, 1);
+		LOG_CWARNING("engine") << "Reject connection" << qPrintable(UdpServerPeer::address(peer)) << "seats:" << m_peerHash.size();
 
-		sendPacket(peer, UdpServerResponse(UdpServerResponse::StateFull).toCborMap().toCborValue().toCbor(), false);
+		sendPacket(peer, UdpBitStream(UdpBitStream::MessageServerFull).data(), true);
+
+		enet_peer_disconnect_later(peer, 1);
 		return;
-	}
+	}*/
 }
 
 
@@ -454,14 +480,8 @@ void UdpServerPrivate::udpPeerRemove(ENetPeer *peer)
 	if (p && p->engine())
 		p->engine()->udpPeerRemove(p);
 
-	QMutexLocker locker(&m_inOutChache.mutex);
-
-	std::erase_if(m_inOutChache.sendList, [peer](const auto &p) { return p.peer == peer; });
-
-	if (p)
-		std::erase_if(m_inOutChache.rcvList, [p](const auto &ptr) { return ptr.peer == p; });
-
-	locker.unlock();
+	m_cacheSnd.clearPeer(peer);
+	m_cacheRcv.clearPeer(peer);
 
 	std::erase_if(q->m_peerList, [peer](const std::unique_ptr<UdpServerPeer> &ptr) {
 		return peer == ptr->peer();
@@ -493,75 +513,6 @@ UdpServerPeer *UdpServerPrivate::peerConnectToEngine(UdpServerPeer *peer, const 
 }
 
 
-/**
- * @brief UdpServerPrivate::peerRemoveEngine
- * @param peer
- * @return
- */
-
-bool UdpServerPrivate::peerRemoveEngine(UdpServerPeer *peer)
-{
-	if (!peer)
-		return false;
-
-	QMutexLocker peerLocker(&m_peerMutex);
-	auto it = m_peerHash.find(peer->peerID());
-
-	if (it == m_peerHash.end()) {
-		LOG_CERROR("engine") << "PeerID not found" << peer->peerID();
-	} else {
-		it->engine.reset();
-	}
-
-	peerLocker.unlock();
-
-	if (peer->engine()) {
-		LOG_CDEBUG("engine") << "Peer remove from engine" << qPrintable(peer->address()) << "<-" << peer->engine()->id();
-		peer->engine()->udpPeerRemove(peer);
-		peer->setEngine(nullptr);
-
-		return true;
-	}
-
-
-
-	return false;
-}
-
-
-
-/**
- * @brief UdpServerPrivate::findPeer
- * @param type
- * @param username
- * @return
- */
-
-std::shared_ptr<UdpEngine> UdpServerPrivate::findPeer(const UdpToken::Type &type, const QString &username, quint32 *idPtr) const
-{
-	QMutexLocker peerLocker(&m_peerMutex);
-
-	for (const auto &[id, d] : m_peerHash.asKeyValueRange()) {
-		if (d.type == type && d.username == username) {
-			if (idPtr)
-				*idPtr = id;
-			auto ptr = d.engine.lock();
-
-			if (ptr && !ptr->isPeerValid(id))
-				continue;
-
-			return ptr;
-		}
-	}
-
-	if (idPtr)
-		*idPtr = 0;
-
-	return {};
-}
-
-
-
 
 
 /**
@@ -573,23 +524,18 @@ std::shared_ptr<UdpEngine> UdpServerPrivate::findPeer(const UdpToken::Type &type
 
 bool UdpServerPrivate::peerReject(const quint32 &id, UdpServerPeer *peer)
 {
-	QMutexLocker peerLocker(&m_peerMutex);
+	LOG_CDEBUG("engine") << "Udp server peer rejected" << id;
 
 	if (peer) {
 		peer->m_isRejected = true;
-		sendPacket(peer->peer(), UdpServerResponse(UdpServerResponse::StateRejected).toCborMap().toCborValue().toCbor(), true);
+		sendPacket(peer->peer(), UdpBitStream(UdpBitStream::MessageRejected).data(), true);
 	}
 
-	const auto &it = m_peerHash.find(id);
-
-	if (it == m_peerHash.end()) {
-		LOG_CERROR("engine") << "Peer not found" << id;
+	if (m_lobby)
+		m_lobby->removePeer(id);
+	else
 		return false;
-	}
 
-	m_peerHash.erase(it);
-
-	LOG_CDEBUG("engine") << "Udp server peer rejected" << id;
 
 	return true;
 }
@@ -606,281 +552,178 @@ bool UdpServerPrivate::packetReceived(const ENetEvent &event)
 {
 	const QString peerAddress = '[' + (event.peer ? UdpServerPeer::address(event.peer) : QStringLiteral("invalid peer")) + ']';
 
+	if (!event.peer) {
+		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid peer";
+		return false;
+	}
+
 	if (event.packet->dataLength <= 0) {
 		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid data from peer";
 		return false;
 	}
 
-	QByteArray data = QByteArray::fromRawData((char*) event.packet->data, event.packet->dataLength);
 
-	QDataStream stream(data);
-	stream.setVersion(QDataStream::Qt_6_7);
+	UdpBitStream stream(event);
 
-	quint32 magic = 0;
-	quint32 version = 0;
-
-	stream >> magic >> version;
-
-	if (magic != 0x434F53 || version == 0) {			// COS
-		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid data";
+	if (!stream.validate()) {
+		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid data from peer";
 		return false;
 	}
 
 
-	stream.startTransaction();
 
-	quint32 peerID = 0;
+	if (stream.type() == UdpBitStream::MessageConnect) {
+		return packetConnectReceived(stream, event);
 
-	stream >> peerID;
+	} else if (stream.type() == UdpBitStream::MessageChallenge) {
+		return packetChallengeReceived(stream, event);
 
-	if (!stream.commitTransaction()) {
-		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid stream";
+	} else if (stream.type() >= UdpBitStream::MessageUser) {
+		return packetUserReceived(stream, event);
+	} else {
+		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid message type from peer" << stream.type();
 		return false;
 	}
 
-	QByteArray mac;
-
-	if (event.channelID == 1) {
-		stream.startTransaction();
-
-		stream >> mac;
-
-		if (!stream.commitTransaction()) {
-			LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid mac" << peerID;
-			return false;
-		}
-
-	}
+}
 
 
-	qint64 diff;					// Lassú gép ennyivel (frame) később küldte el, mint ahogy rögzítette
 
-	stream >> diff;
+/**
+ * @brief UdpServerPrivate::packetConnectReceived
+ * @param data
+ * @return
+ */
 
-	UdpServerPeer *peer = static_cast<UdpServerPeer*>(event.peer->data);
+bool UdpServerPrivate::packetConnectReceived(UdpBitStream &data, const ENetEvent &event)
+{
+	auto ptr = data.readByteArray();
 
-	QByteArray content;
-
-	stream >> content;
-
-
-	QMutexLocker peerLocker(&m_peerMutex);
-	QHash<quint32, PeerData>::iterator ptr = m_peerHash.find(peerID);
-
-	if (ptr == m_peerHash.end()) {
-		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid peerID" << peerID;
+	if (!ptr) {
+		LOG_CWARNING("engine") << "Invalid connect message" << UdpServerPeer::address(event.peer);
 		return false;
 	}
 
-	if (event.channelID == 1) {
-		if (ptr->privateKey.isEmpty()) {
-			LOG_CWARNING("engine") << qPrintable(peerAddress) << "Peer secret key missing" << peerID;
-			return false;
-		}
+	QByteArray hash;
 
-		if (!Token::verify(content, mac, ptr->privateKey)) {
-			LOG_CWARNING("engine") << qPrintable(peerAddress) << "Peer sign error" << peerID;
-			return false;
-		}
+	auto connectionToken = verifyToken(*ptr, &hash);
 
-		if (std::shared_ptr<UdpEngine> engine = ptr->engine.lock(); engine && !peer) {
-			LOG_CINFO("engine") << qPrintable(peerAddress) << "Create UdpServerPeer for" << peerID << "to engine" << engine->id();
-			const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(ptr.key(), q, event.peer));
-			peer = p.get();
-			p->peer()->data = peer;
-
-			peer->server()->peerConnectToEngine(peer, engine);
-		}
-
-
-		peer->addRtt(event.peer->roundTripTime);
-
-		if (!ptr->engine.lock()) {
-			updateEngine(ptr, content, peer);
-		} else {
-			// Ha a peer be van állítva, akkor az már "connected"
-
-			peerLocker.unlock();
-
-			QMutexLocker locker(&m_inOutChache.mutex);
-			m_inOutChache.rcvList.emplace_back(peer, content, event.channelID, diff);
-		}
-
-		return true;
-	}
-
-
-	if (peer && event.peer != peer->peer()) {
-		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Peer mismatch" << peerID;
+	if (!connectionToken) {
+		LOG_CWARNING("engine") << "Invalid token" << UdpServerPeer::address(event.peer);
 		return false;
 	}
 
-	return updateChallenge(ptr, event.peer, content);
+	UdpConnectionToken usertoken;
+	usertoken.fromJson(*connectionToken);
+
+	if (usertoken.exp <= QDateTime::currentSecsSinceEpoch()) {
+		LOG_CWARNING("engine") << "Expired token" << usertoken.exp << usertoken.user << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	AbstractEngine::Type engineType = static_cast<AbstractEngine::Type>(usertoken.type);
+
+	if (engineType == AbstractEngine::EngineInvalid) {
+		LOG_CWARNING("engine") << "Invalid engine type" << usertoken.type << usertoken.user << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	auto stream = m_lobby->updateConnection(usertoken.peer, engineType, *connectionToken);
+
+	if (!stream.has_value()) {
+		LOG_CWARNING("engine") << "PeerId not found" << usertoken.peer << usertoken.user << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	m_pendingClient.insert(hash, event.peer->address);
+
+	sendPacket(event.peer, stream->data(), false);
 }
 
 
 
 
-
-
 /**
- * @brief UdpServerPrivate::updateChallenge
- * @param iterator
- * @param content
+ * @brief UdpServerPrivate::packetChallengeReceived
+ * @param data
+ * @param event
  * @return
  */
 
-bool UdpServerPrivate::updateChallenge(const QHash<quint32, PeerData>::iterator &iterator, ENetPeer *peer, const QByteArray &content)
+bool UdpServerPrivate::packetChallengeReceived(UdpBitStream &data, const ENetEvent &event)
 {
-	const QCborMap cbor = QCborValue::fromCbor(content).toMap();
+	QByteArray token;
+	QByteArray encrypted;
 
-	if (iterator->privateKey.isEmpty()) {
-		if (iterator->challenge.isEmpty()) {
-			// Még nem volt challenge request
+	if (!data.getChallengeResponse(&token, &encrypted)) {
+		LOG_CWARNING("engine") << "Invalid connect message" << UdpServerPeer::address(event.peer);
+		return false;
+	}
 
-			UdpConnectRequest rq;
-			rq.fromCbor(cbor);
-
-			if (rq.token.isEmpty()) {
-				LOG_CWARNING("engine") << "Empty token" << iterator.key();
-				return false;
-			}
-
-			const QByteArray &hash = hashToken(rq.token);
-
-			if (m_connectTokenHash.contains(hash)) {
-				LOG_CWARNING("engine") << "Token already used" << iterator.key();
-				return false;
-			}
-
-			Token jwt(rq.token);
-
-			if (!jwt.verify(q->m_service->settings()->jwtSecret())) {
-				LOG_CWARNING("engine") << "Invalid token" << iterator.key();
-				return false;
-			}
-
-			QJsonObject connectionToken = jwt.payload();
-
-			UdpToken usertoken;
-			usertoken.fromJson(connectionToken);
-
-			if (usertoken.exp <= QDateTime::currentSecsSinceEpoch()) {
-				LOG_CWARNING("engine") << "Expired token" << iterator.key();
-				return false;
-			}
-
-			if (usertoken.peerID != iterator.key() || usertoken.type == UdpToken::Invalid) {
-				LOG_CWARNING("engine") << "Invalid token" << iterator.key() << usertoken.peerID << usertoken.type;
-				return false;
-			}
+	if (encrypted.size() <= crypto_box_SEALBYTES) {
+		LOG_CWARNING("engine") << "Buffer size error" << UdpServerPeer::address(event.peer);
+		return false;
+	}
 
 
-			const std::pair<enet_uint32, enet_uint16> address(peer->address.host, peer->address.port);
+	QByteArray hash;
 
-			m_pendingClient.insert(hash, address);
+	auto connectionToken = verifyToken(token, &hash);
 
-			static constexpr size_t size = 32;
-			char buf[size];
+	if (!connectionToken) {
+		LOG_CWARNING("engine") << "Invalid token" << UdpServerPeer::address(event.peer);
+		return false;
+	}
 
-			randombytes_buf(buf, size);
+	UdpConnectionToken usertoken;
+	usertoken.fromJson(*connectionToken);
 
-			iterator->challenge = QByteArray(buf, size);
-			iterator->type = usertoken.type;
-			iterator->connectionToken = connectionToken;
+	static constexpr ENetAddress empty{.host = 0, .port = 0};
 
-		} else {
-			// Már volt challenge request
+	const ENetAddress address = m_pendingClient.value(hash, empty);
 
-			UdpChallengeResponse rsp;
-			rsp.fromCbor(cbor);
-
-			if (rsp.token.isEmpty()) {
-				LOG_CWARNING("engine") << "Empty token" << iterator.key();
-				return false;
-			}
-
-			if (rsp.response.size() > crypto_box_SEALBYTES) {
-				const qsizetype len = rsp.response.size() - crypto_box_SEALBYTES;
-				unsigned char *msg = (unsigned char*) malloc(len);
-
-				if (crypto_box_seal_open(msg,
-										 reinterpret_cast<const unsigned char*>(rsp.response.constData()),
-										 rsp.response.size(),
-										 reinterpret_cast<const unsigned char*>(m_keyPair.publicKey.constData()),
-										 reinterpret_cast<const unsigned char*>(m_keyPair.secretKey.constData())) == 0) {
-
-					const QByteArray content = QByteArray::fromRawData(reinterpret_cast<const char*>(msg), len);
-
-					UdpChallengeResponseContent rc;
-					rc.fromCbor(QCborValue::fromCbor(content).toMap());
-
-					free(msg);
-
-					if (rc.challenge == iterator->challenge && !rc.key.isEmpty()) {
-						static constexpr std::pair<enet_uint32, enet_uint16> empty(0, 0);
-						const std::pair<enet_uint32, enet_uint16> address(peer->address.host, peer->address.port);
-
-						const QByteArray &hash = hashToken(rsp.token);
-
-						if (m_pendingClient.value(hash, empty) != address) {
-							LOG_CWARNING("engine") << "Invalid response (pending not found)" << iterator.key();
-							return false;
-						}
-
-						m_pendingClient.remove(hash);
-						m_connectTokenHash.insert(hash, QDateTime::currentMSecsSinceEpoch());
-
-						m_connectTokenHash.removeIf([](const auto &ptr) {
-							return ptr.value() < QDateTime::currentMSecsSinceEpoch() - 1000*60*240;
-						});
-
-						iterator->challenge.clear();
-						iterator->privateKey = rc.key;
-
-						return true;
-
-					} else {
-						LOG_CWARNING("engine") << "Invalid response" << iterator.key();
-					}
-
-				} else {
-					LOG_CWARNING("engine") << "Invalid response" << iterator.key();
-
-					free(msg);
-
-					return false;
-				}
+	if (address.host != event.peer->address.host || address.port != event.peer->address.port) {
+		LOG_CWARNING("engine") << "Invalid response (pending not found)" << usertoken.user << UdpServerPeer::address(event.peer);
+		return false;
+	}
 
 
-				// free(msg); ^^^
 
-			}
 
-			// Nem jött válasz, küljdük újra
+
+	const qsizetype len = encrypted.size() - crypto_box_SEALBYTES;
+
+	std::vector<unsigned char> msg(len);
+
+	if (crypto_box_seal_open(msg.data(),
+							 reinterpret_cast<const unsigned char*>(encrypted.constData()),
+							 encrypted.size(),
+							 m_keyPair.publicKey.data(),
+							 m_keyPair.secretKey.data()) == 0) {
+
+		UdpChallengeResponseStream decrypted(msg);
+
+		auto stream = m_lobby->updateChallenge(usertoken.peer, decrypted);
+
+		if (!stream.has_value()) {
+			LOG_CWARNING("engine") << "Challenge error" << usertoken.peer << usertoken.user << UdpServerPeer::address(event.peer);
+			return false;
 		}
 
+		m_pendingClient.remove(hash);
+		m_connectTokenHash.insert(hash, QDateTime::currentMSecsSinceEpoch());
 
-		// Ha nem dolgoztuk fel korábban, akkor küldjük a challenget
+		// Régieket töröljük
 
-		UdpChallengeRequest chr(iterator->challenge, m_keyPair.publicKey);
+		m_connectTokenHash.removeIf([](const auto &ptr) {
+			return ptr.value() < QDateTime::currentMSecsSinceEpoch() - 1000*60*240;
+		});
 
-		sendPacket(peer, chr.toCborMap().toCborValue().toCbor(), false);
+		sendPacket(event.peer, stream->data(), false);
 
 	} else {
-		if (peer->data == nullptr) {
-			// Már megvan a private key, beállítjuk a peert
-
-			const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(iterator.key(), q, peer));
-			p->peer()->data = p.get();
-
-			iterator->challenge.clear();
-
-			LOG_CDEBUG("engine") << "Peer connected" << qPrintable(p->address()) << "to id" << iterator.key() << "user:" << qPrintable(iterator->username);
-
-		}
-
-		sendPacket(peer, UdpServerResponse(UdpServerResponse::StateConnected).toCborMap().toCborValue().toCbor(), false);
+		LOG_CWARNING("engine") << "Seal open error" << usertoken.user << UdpServerPeer::address(event.peer);
+		return false;
 	}
 
 	return true;
@@ -890,26 +733,89 @@ bool UdpServerPrivate::updateChallenge(const QHash<quint32, PeerData>::iterator 
 
 
 /**
- * @brief UdpServerPrivate::updateEngine
- * @param iterator
- * @param content
+ * @brief UdpServerPrivate::packetUserReceived
+ * @param data
+ * @param event
  * @return
  */
 
-bool UdpServerPrivate::updateEngine(const QHash<quint32, PeerData>::iterator &iterator, const QByteArray &content, UdpServerPeer *peer)
+bool UdpServerPrivate::packetUserReceived(UdpBitStream &data, const ENetEvent &event)
 {
-	std::shared_ptr<UdpEngine> engine = UdpEngine::dispatch(q->m_service->engineHandler(),
-															iterator->type,
-															iterator->connectionToken,
-															content,
-															peer);
+	const auto &index = data.readPeerIndex();
 
-	if (engine) {
-		iterator->engine = engine;
+	if (!index) {
+		LOG_CWARNING("engine") << "Missing peerIndex" << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	const auto &peerData = m_lobby->at(*index);
+
+	if (!peerData) {
+		LOG_CWARNING("engine") << "Invalid peerIndex" << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	if (!peerData->hasAuthKey) {
+		LOG_CWARNING("engine") << "Missing auth key" << peerData->username << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	const auto &lastPos = data.verifyBuffer(peerData->authKey);
+
+	if (!lastPos) {
+		LOG_CWARNING("engine") << "Authentication error" << peerData->username << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	data.setAuthLastPosition(*lastPos);
+
+	UdpServerPeer *peer = static_cast<UdpServerPeer*>(event.peer->data);
+	std::shared_ptr<UdpEngine> engine = peerData->engine.lock();
+
+	if (engine && !peer) {
+		LOG_CINFO("engine") << "Create UdpServerPeer for" << peerData->peerId << "to engine" << engine->id() << peerData->username << UdpServerPeer::address(event.peer);
+
+		const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(peerData->peerId, q, event.peer));
+		peer = p.get();
+		p->peer()->data = peer;
+
+		peer->server()->peerConnectToEngine(peer, engine);
+	}
+
+	peer->addRtt(event.peer->roundTripTime);
+
+	std::size_t len = 0;
+	const auto &rmData = data.getRemainingData(&len);
+
+	if (!rmData) {
+		LOG_CWARNING("engine") << "Buffer read error" << peerData->username << UdpServerPeer::address(event.peer);
+		return false;
+	}
+
+	if (!engine) {
+		QByteArray content = QByteArray::fromRawData(reinterpret_cast<const char*>(*rmData), len);
+
+		std::shared_ptr<UdpEngine> peerEngine = UdpEngine::dispatch(q->m_service->engineHandler(),
+																	peerData->type,
+																	peerData->connectionToken,
+																	content,
+																	peer);
+
+		if (peerEngine)
+			m_lobby->updateEngine(peerData->peerId, peerEngine);
+
+	} else {
+		UdpPacketRcv packet;
+
+		packet.peer = peer;
+		packet.data.assign(*rmData, *rmData + len);
+
+		m_cacheRcv.push(std::move(packet));
 	}
 
 	return true;
 }
+
 
 
 
@@ -921,91 +827,107 @@ bool UdpServerPrivate::updateEngine(const QHash<quint32, PeerData>::iterator &it
 
 QByteArray UdpServerPrivate::hashToken(const QByteArray &token)
 {
+	return hashToken((const unsigned char*) token.constData(), token.size());
+}
+
+
+/**
+ * @brief UdpServerPrivate::hashToken
+ * @param data
+ * @param size
+ * @return
+ */
+
+QByteArray UdpServerPrivate::hashToken(const uint8_t *data, const std::size_t &size)
+{
 	unsigned char hash[crypto_generichash_BYTES];
 
-	crypto_generichash(hash, sizeof hash, (const unsigned char*) token.constData(), token.size(), NULL, 0);
+	crypto_generichash(hash, sizeof hash, data, size, NULL, 0);
 	return QByteArray((const char*) hash, sizeof hash);
 }
 
 
-
 /**
- * @brief UdpServerPrivate::dumpPeers
+ * @brief UdpServerPrivate::verifyToken
+ * @param token
+ * @param hashPtr
  * @return
  */
 
-QString UdpServerPrivate::dumpPeers() const
+std::optional<QJsonObject> UdpServerPrivate::verifyToken(const QByteArray &token, QByteArray *hashPtr)
 {
-	QString txt;
+	const QByteArray &hash = hashToken(token);
 
-	txt += QStringLiteral("SEATS\n");
-	txt += QStringLiteral("==================================================================\n");
+	if (hashPtr)
+		*hashPtr = hash;
 
-	QMutexLocker locker(&m_peerMutex);
+	if (m_connectTokenHash.contains(hash)) {
+		LOG_CWARNING("engine") << "Token already used";
+		return std::nullopt;
+	}
 
-	for (const auto &[id, data] : m_peerHash.asKeyValueRange()) {
-		UdpEngine *e = data.engine.lock().get();
+	Token jwt(token);
 
-		txt += QStringLiteral("%1: [%2] %3 (%4) %5\n")
-			   .arg(id, 12)
-			   .arg(!data.privateKey.isEmpty() ? '*' : (data.challenge.isEmpty() ? ' ' : '+'))
-			   .arg(data.type)
-			   .arg(e ? e->id() : 0, 3)
-			   .arg(data.username)
-			   ;
+	if (!jwt.verify(q->m_service->settings()->jwtSecret())) {
+		LOG_CWARNING("engine") << "Invalid token";
+		return std::nullopt;
+	}
+
+	return jwt.payload();
+}
+
+
+
+
+
+
+/**
+ * @brief UdpServerPrivate::deliverPackets
+ */
+
+void UdpServerPrivate::deliverPackets()
+{
+	// Send outgoing packets (always on channel 0)
+
+	std::vector<UdpPacketSnd> out = m_cacheSnd.take();
+
+	for (const UdpPacketSnd &p : out) {
+		ENetPacket *packet = enet_packet_create(p.data.data(), p.data.size(),
+												p.reliable ? ENET_PACKET_FLAG_RELIABLE :
+															 0);
+		enet_peer_send(p.peer, 0, packet);
 
 	}
 
-	txt += QStringLiteral(" \n \n");
 
-	return txt;
-}
+	// Deliver received packets
 
+	std::vector<UdpPacketRcv> in = m_cacheRcv.take();
 
+	QHash<UdpEngine*, UdpServerPeerReceivedList> engines;
 
-/**
- * @brief UdpServerPrivate::removeExpiredPeers
- */
-
-void UdpServerPrivate::removeExpiredPeers()
-{
-	QMutexLocker locker(&m_peerMutex);
-
-	m_peerHash.removeIf([](const auto &ptr) {
-		return !ptr->engine.lock() && ptr->deadline.hasExpired();
-	});
-}
-
-
-
-
-
-/**
- * @brief UdpServerPrivate::deliverReceived
- */
-
-void UdpServerPrivate::deliverReceived()
-{
-	const UdpEngineReceived &p = takePackets();
-
-	QList<UdpEngine*> engines;
 
 	for (const auto &ptr : q->m_peerList) {
-		auto *e = ptr->engine().get();
-		if (!e)
+		UdpEngine *engine = ptr->engine().get();
+
+		if (!engine)
 			continue;
 
-		if (!engines.contains(e))
-			engines.append(e);
+		engines.tryEmplace(engine);
 	}
 
-	for (const auto &[e, list] : p.asKeyValueRange()) {
+
+	for (UdpPacketRcv &p : in) {
+		UdpEngine *engine = p.peer->engine().get();
+
+		if (!engine)
+			continue;
+
+		engines[engine].emplace_back(std::move(p));
+	}
+
+	for (const auto &[e, list] : engines.asKeyValueRange())
 		e->binaryDataReceived(list);
-		engines.removeAll(e);
-	}
-
-	for (UdpEngine *e : engines)
-		e->binaryDataReceived({});
 }
 
 
@@ -1018,7 +940,7 @@ void UdpServerPrivate::disconnectUnusedPeers()
 {
 	for (const auto &ptr : q->m_peerList) {
 		if (ptr->m_isRejected)
-			sendPacket(ptr->peer(), UdpServerResponse(UdpServerResponse::StateRejected).toCborMap().toCborValue().toCbor(), true);
+			sendPacket(ptr->peer(), UdpBitStream(UdpBitStream::MessageRejected).data(), true);
 
 		UdpEngine *e = ptr->engine().get();
 		if (!e)
@@ -1038,54 +960,21 @@ void UdpServerPrivate::disconnectUnusedPeers()
  * @param isReliable
  */
 
-void UdpServerPrivate::sendPacket(ENetPeer *peer, const QByteArray &data, const bool isReliable)
+void UdpServerPrivate::sendPacket(ENetPeer *peer, const std::vector<uint8_t> &data, const bool isReliable)
 {
 	if (!peer)
 		return;
 
-	QMutexLocker locker(&m_inOutChache.mutex);
+	UdpPacketSnd packet;
 
-	m_inOutChache.sendList.emplace_back(peer, data, isReliable);
+	packet.peer = peer;
+	packet.reliable = isReliable;
+	packet.data = data;
+
+	m_cacheSnd.push(std::move(packet));
 }
 
 
-
-
-/**
- * @brief UdpServerPrivate::takePackets
- * @return
- */
-
-UdpEngineReceived UdpServerPrivate::takePackets()
-{
-	QMutexLocker locker(&m_inOutChache.mutex);
-
-	UdpEngineReceived r;
-
-	for (const auto &it : m_inOutChache.rcvList) {
-		if (!it.peer) {
-			LOG_CERROR("engine") << "Invalid peer";
-			continue;
-		}
-
-		UdpEngine *engine = it.peer->engine().get();
-
-		if (!engine) {
-			LOG_CERROR("engine") << "Invalid engine";
-			continue;
-		}
-
-		r[engine].append(UdpServerPeerReceived{
-							 .peer = it.peer,
-							 .diff = it.diff,
-							 .data = it.data
-						 });
-	}
-
-	m_inOutChache.rcvList.clear();
-
-	return r;
-}
 
 
 
@@ -1174,7 +1063,7 @@ QString UdpServerPeer::address(ENetPeer *peer)
  * @param reliable
  */
 
-void UdpServerPeer::send(const QByteArray &data, const bool &reliable)
+void UdpServerPeer::send(const std::vector<uint8_t> &data, const bool &reliable)
 {
 	if (!m_server) {
 		LOG_CERROR("engine") << "Missing UdpServer";
@@ -1293,3 +1182,589 @@ void UdpServerPeer::Speed::addRtt(const int &rtt)
 	}
 
 }
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief Lobby::Lobby
+ * @param size
+ */
+
+Lobby::Lobby(UdpServerPrivate *server, const quint32 &size)
+	: m_server(server)
+	, m_size(std::min(UdpBitStream::peerCapacity(), size))
+{
+	Q_ASSERT(size > 0);
+}
+
+
+
+/**
+ * @brief Lobby::at
+ * @param index
+ * @return
+ */
+
+std::optional<PeerData> Lobby::at(const quint32 &index) const
+{
+	QMutexLocker l(&m_mutex);
+
+	if (index >= m_size)
+		return std::nullopt;
+
+	return m_data[index];
+}
+
+
+
+
+/**
+ * @brief Lobby::add
+ * @param peerId
+ * @return
+ */
+
+std::optional<PeerData> Lobby::add(const quint32 &peerId)
+{
+	if (peerId == 0)
+		return std::nullopt;
+
+	QMutexLocker l(&m_mutex);
+
+	auto it = std::find_if(m_data.cbegin(),
+						   m_data.cend(), [peerId](const PeerData &d){
+		return d.peerId == peerId;
+	});
+
+	if (it != m_data.cend())
+		return std::nullopt;
+
+	auto idx = _nextUnusedIndex();
+
+	if (!idx)
+		return std::nullopt;
+
+	PeerData &d = m_data[idx.value()];
+
+	d.reset();
+	d.peerId = peerId;
+
+	m_indexMap[peerId] = idx.value();
+
+	return d;
+}
+
+
+/**
+ * @brief Lobby::index
+ * @param peerId
+ * @return
+ */
+
+std::optional<quint32> Lobby::index(const quint32 &peerId) const
+{
+	if (peerId == 0)
+		return std::nullopt;
+
+	QMutexLocker l(&m_mutex);
+
+	return _index(peerId);
+}
+
+
+
+/**
+ * @brief Lobby::removePeer
+ * @param peerId
+ * @return
+ */
+
+bool Lobby::removePeer(const quint32 &peerId)
+{
+	QMutexLocker l(&m_mutex);
+
+	bool r = false;
+
+	for (quint32 i=0; i<m_size; ++i) {
+		if (m_data[i].peerId == peerId) {
+			m_data[i].reset();
+			r = true;
+		}
+
+	}
+
+	m_indexMap.remove(peerId);
+
+	return r;
+}
+
+
+
+/**
+ * @brief Lobby::removeIndex
+ * @param idx
+ * @return
+ */
+
+bool Lobby::removeIndex(const quint32 &idx)
+{
+	QMutexLocker l(&m_mutex);
+
+	if (idx >= m_size)
+		return false;
+
+	m_indexMap.remove(m_data[idx].peerId);
+	m_data[idx].reset();
+
+	return true;
+}
+
+
+
+/**
+ * @brief Lobby::updateConnection
+ * @param peerId
+ * @param type
+ * @param token
+ * @return
+ */
+
+std::optional<UdpBitStream> Lobby::updateConnection(const quint32 &peerId, const AbstractEngine::Type &type, const QJsonObject &token)
+{
+	Q_ASSERT(m_server);
+
+	if (peerId == 0)
+		return std::nullopt;
+
+	QMutexLocker l(&m_mutex);
+
+	auto idx = _index(peerId);
+
+	if (!idx.has_value())
+		return std::nullopt;
+
+	PeerData &d = m_data[idx.value()];
+
+	if (d.hasAuthKey) {
+		// Already connected
+
+		return UdpBitStream(d.peerId, idx.value());
+
+	} else {
+		if (!d.hasChallenge) {
+			randombytes_buf(d.challenge.data(), d.challenge.size());
+			d.hasChallenge = true;
+		}
+
+		d.type = type;
+		d.connectionToken = token;
+
+		return UdpBitStream(d.challenge, m_server->m_keyPair.publicKey);
+	}
+}
+
+
+
+/**
+ * @brief Lobby::updateChallenge
+ * @param peerId
+ * @param stream
+ * @return
+ */
+
+std::optional<UdpBitStream> Lobby::updateChallenge(const quint32 &peerId, const UdpChallengeResponseStream &stream)
+{
+	Q_ASSERT(m_server);
+
+	if (peerId == 0)
+		return std::nullopt;
+
+	QMutexLocker l(&m_mutex);
+
+	auto idx = _index(peerId);
+
+	if (!idx.has_value())
+		return std::nullopt;
+
+	PeerData &d = m_data[idx.value()];
+
+	if (!d.hasAuthKey) {
+		// Not yet connected
+
+		if (!d.hasChallenge) {
+			LOG_CWARNING("engine") << "Missing challenge";
+			return std::nullopt;
+		}
+
+		std::array<std::uint8_t, CHALLENGE_BYTES> challenge;
+		std::array<std::uint8_t, crypto_auth_KEYBYTES> authKey;
+
+		if (stream.getResponse(&challenge, &authKey)) {
+			LOG_CWARNING("engine") << "Invalid response";
+			return std::nullopt;
+		}
+
+		if (challenge != d.challenge) {
+			LOG_CWARNING("engine") << "Challenge mismatch";
+			return std::nullopt;
+		}
+
+
+		d.authKey = std::move(authKey);
+		d.hasAuthKey = true;
+	}
+
+	return UdpBitStream(d.peerId, idx.value());
+}
+
+
+/**
+ * @brief Lobby::updateEngine
+ * @param peerId
+ * @param engine
+ * @return
+ */
+
+bool Lobby::updateEngine(const quint32 &peerId, const std::shared_ptr<UdpEngine> &engine)
+{
+	if (peerId == 0)
+		return false;
+
+	QMutexLocker l(&m_mutex);
+
+	auto idx = _index(peerId);
+
+	if (!idx.has_value())
+		return false;
+
+	PeerData &d = m_data[idx.value()];
+
+	d.engine = engine;
+
+	return true;
+}
+
+
+
+/**
+ * @brief Lobby::removeEngine
+ * @param engine
+ */
+
+void Lobby::removeEngine(UdpEngine *engine)
+{
+	if (!engine)
+		return;
+
+	LOG_CINFO("engine") << "Remove engine" << engine->type() << engine->id();
+
+	QMutexLocker l(&m_mutex);
+
+	for (PeerData &d : m_data) {
+		if (d.engine.lock().get() == engine) {
+			LOG_CDEBUG("engine") << "--- remove engine from" << d.peerId << d.username;
+			m_indexMap.remove(d.peerId);
+			d.reset();
+		}
+	}
+}
+
+
+
+/**
+ * @brief Lobby::getEngineForUser
+ * @param type
+ * @param username
+ * @param idPtr
+ * @return
+ */
+
+std::shared_ptr<UdpEngine> Lobby::getEngineForUser(const AbstractEngine::Type &type, const QString &username, quint32 *idPtr) const
+{
+	QMutexLocker l(&m_mutex);
+
+	for (const PeerData &d : m_data) {
+		if (d.peerId == 0)
+			continue;
+
+		if (d.type == type && d.username == username) {
+			if (idPtr)
+				*idPtr = d.peerId;
+
+			auto ptr = d.engine.lock();
+
+			if (ptr && !ptr->isPeerValid(d.peerId))
+				continue;
+
+			return ptr;
+		}
+	}
+
+	if (idPtr)
+		*idPtr = 0;
+
+	return {};
+}
+
+
+
+/**
+ * @brief Lobby::peerRemoveEngine
+ * @param peer
+ * @return
+ */
+
+bool Lobby::peerRemoveEngine(UdpServerPeer *peer)
+{
+	if (!peer)
+		return false;
+
+	{
+		QMutexLocker l(&m_mutex);
+
+		auto idx = _index(peer->peerID());
+
+		if (!idx) {
+			LOG_CERROR("engine") << "PeerID not found" << peer->peerID();
+			return false;
+		} else {
+			m_data[*idx].engine.reset();
+		}
+	}
+
+	if (peer->engine()) {
+		LOG_CDEBUG("engine") << "Peer remove from engine" << qPrintable(peer->address()) << "<-" << peer->engine()->id();
+		peer->engine()->udpPeerRemove(peer);
+		peer->setEngine(nullptr);
+
+		return true;
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief Lobby::removeExpiredPeers
+ */
+
+void Lobby::removeExpiredPeers()
+{
+	QMutexLocker l(&m_mutex);
+
+	for (PeerData &d : m_data) {
+		if (!d.engine.lock() && d.deadline.hasExpired()) {
+			m_indexMap.remove(d.peerId);
+			d.reset();
+		}
+	}
+}
+
+
+/**
+ * @brief Lobby::dumpPeers
+ * @return
+ */
+
+QString Lobby::dumpPeers() const
+{
+	QString txt;
+
+	///txt += QStringLiteral("SEATS\n");
+	txt += QStringLiteral("==================================================================\n");
+
+	QMutexLocker l(&m_mutex);
+
+	int count = 0;
+
+	for (const PeerData &d : m_data) {
+		if (d.peerId == 0)
+			continue;
+
+		++count;
+
+		UdpEngine *e = d.engine.lock().get();
+
+		txt += QStringLiteral("%1: [%2] %3 (%4) %5\n")
+			   .arg(d.peerId, 12)
+			   .arg(d.hasAuthKey ? '*' : (d.hasChallenge ? '+' : ' '))
+			   .arg(d.type)
+			   .arg(e ? e->id() : 0, 3)
+			   .arg(d.username)
+			   ;
+	}
+
+	txt += QStringLiteral(" \n \n");
+
+	txt.prepend(QStringLiteral("SEATS %1/%2\n").arg(count).arg(m_size));
+
+	return txt;
+}
+
+
+
+
+/**
+ * @brief Lobby::_nextUnusedIndex
+ * @return
+ */
+
+std::optional<quint32> Lobby::_nextUnusedIndex() const
+{
+	/// Nincs mutex locker, azt a hívó metódusban kell megtenni!
+
+	for (quint32 i=0; i<m_size; ++i) {
+		if (m_data[i].peerId == 0)
+			return i;
+	}
+
+	return std::nullopt;
+}
+
+
+
+
+/**
+ * @brief Lobby::_index
+ * @param peerId
+ * @return
+ */
+
+std::optional<quint32> Lobby::_index(const quint32 &peerId) const
+{
+	/// Nincs mutex locker, azt a hívó metódusban kell megtenni!
+
+	for (quint32 i=0; i<m_size; ++i) {
+		if (m_data[i].peerId == peerId)
+			return i;
+	}
+
+	return std::nullopt;
+}
+
+
+
+
+
+/**
+ * @brief Lobby::peerAdd
+ * @param username
+ * @param expired
+ * @return
+ */
+
+std::optional<PeerData> Lobby::add(const QString &username, const QDateTime &expired)
+{
+	QMutexLocker l(&m_mutex);
+
+	auto idx = _nextUnusedIndex();
+
+	if (!idx)
+		return std::nullopt;
+
+	std::set<quint32> used;
+
+	for (const PeerData &p : m_data) {
+		if (p.peerId > 0)
+			used.insert(p.peerId);
+	}
+
+	for (int i=0; i<15; ++i) {
+		quint32 newId = QRandomGenerator::global()->generate();
+
+		if (newId > 0 && !used.contains(newId)) {
+			LOG_CDEBUG("engine") << "Udp server add peer" << newId << username;
+
+
+			PeerData &d = m_data[idx.value()];
+
+			d.reset();
+			d.peerId = newId;
+			d.username = username;
+
+			if (expired.isValid())
+				d.deadline.setRemainingTime(QDateTime::currentDateTime().msecsTo(expired));
+			else
+				d.deadline.setRemainingTime(-1);
+
+			m_indexMap[newId] = idx.value();
+
+			return d;
+		}
+	}
+
+	LOG_CERROR("engine") << "Udp server add peer failed:" << username;
+
+	return std::nullopt;
+}
+
+
+
+/**
+ * @brief Lobby::updateExpiry
+ * @param peerId
+ * @param expired
+ * @return
+ */
+
+std::optional<PeerData> Lobby::updateExpiry(const quint32 &peerId, const QDateTime &expired)
+{
+	QMutexLocker l(&m_mutex);
+
+	auto it = m_indexMap.find(peerId);
+
+	if (it == m_indexMap.end())
+		return std::nullopt;
+
+	Q_ASSERT(it.value() < m_size);
+
+	if (expired.isValid())
+		m_data[*it].deadline.setRemainingTime(QDateTime::currentDateTime().msecsTo(expired));
+	else
+		m_data[*it].deadline.setRemainingTime(-1);
+
+	return m_data[*it];
+}
+
+
+/**
+ * @brief Lobby::reset
+ * @param peerId
+ * @return
+ */
+
+std::optional<PeerData> Lobby::reset(const quint32 &peerId, const QString &username, const QDateTime &expired)
+{
+	QMutexLocker l(&m_mutex);
+
+	auto it = m_indexMap.find(peerId);
+
+	if (it == m_indexMap.end())
+		return std::nullopt;
+
+	Q_ASSERT(it.value() < m_size);
+
+	if (m_data[*it].engine.lock())
+		return std::nullopt;
+
+	m_data[*it].reset();
+	m_data[*it].peerId = peerId;
+	m_data[*it].username = username;
+
+	if (expired.isValid())
+		m_data[*it].deadline.setRemainingTime(QDateTime::currentDateTime().msecsTo(expired));
+	else
+		m_data[*it].deadline.setRemainingTime(-1);
+
+	return m_data[*it];
+}
+
+

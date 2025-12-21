@@ -907,16 +907,16 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 			return responseResult("error", QStringLiteral("active/%1/%2").arg(id).arg(engine->id()));
 		}
 
-		token.peerID = udpServer->resetPeer(id, exp);
+		token.peer = udpServer->resetPeer(id, credential.username(), exp);
 	} else {
-		token.peerID = udpServer->addPeer(credential.username(), exp);
+		token.peer = udpServer->addPeer(credential.username(), exp);
 	}
 
-	if (token.peerID == 0) {
+	if (token.peer == 0) {
 		return responseError("player create error");
 	}
 
-	token.username = credential.username();
+	token.user = credential.username();
 	token.config = g;
 	token.exp = exp.toSecsSinceEpoch();
 
