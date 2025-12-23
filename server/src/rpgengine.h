@@ -172,8 +172,7 @@ public:
 
 
 	static std::shared_ptr<RpgEngine> engineCreate(EngineHandler *handler, const RpgConfigBase &config, UdpServer *server);
-	static std::shared_ptr<RpgEngine> engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken,
-													 const QByteArray &data, UdpServerPeer *peer);
+	static std::shared_ptr<RpgEngine> engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken, UdpPacketRcv &&data);
 
 
 	static std::shared_ptr<RpgEngine> peerFind(UdpServer *server, const QString &username, quint32 *idPtr = nullptr);

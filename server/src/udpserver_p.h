@@ -30,65 +30,17 @@
 #include <QObject>
 #include <QThread>
 #include <QMutex>
-#include <deque>
 #include <enet/enet.h>
 #include <sodium/crypto_box.h>
 #include "qjsonobject.h"
 #include "udpbitstream.hpp"
 #include "udpserver.h"
+#include "udphelper.h"
 #include <QPointer>
 
-
+#include <entt/entity/registry.hpp>
 
 class UdpServerPrivate;
-
-
-/**
- * @brief The CacheQueue class
- */
-
-template <typename T>
-class CacheQueue {
-public:
-	CacheQueue() = default;
-
-	void push(T &&value) {
-		QMutexLocker locker(&m_mutex);
-		m_queue.emplace_back(std::move(value));
-	}
-
-	std::vector<T> take() {
-		QMutexLocker locker(&m_mutex);
-		std::vector<T> out;
-
-		out.reserve(m_queue.size());
-		while (!m_queue.empty()) {
-			out.push_back(std::move(m_queue.front()));
-			m_queue.pop_front();
-		}
-
-		return out;
-	}
-
-	void clearPeer(ENetPeer *peer) {
-		if (!peer)
-			return;
-
-		QMutexLocker locker(&m_mutex);
-
-		std::erase_if(m_queue, [peer](const T &data) {
-			return data.getENetPeer() == peer;
-		});
-	}
-
-private:
-	QMutex m_mutex;
-	std::deque<T> m_queue;
-
-};
-
-
-
 
 
 
@@ -101,8 +53,8 @@ struct PeerData
 	quint32 peerId = 0;
 	std::weak_ptr<UdpEngine> engine;
 	AbstractEngine::Type type = AbstractEngine::EngineInvalid;
-	std::array<std::uint8_t, CHALLENGE_BYTES> challenge;
-	std::array<std::uint8_t, crypto_auth_KEYBYTES> authKey;					// non emtpy = connected
+	UdpChallenge challenge;
+	UdpAuthKey authKey;
 
 	bool hasChallenge = false;
 	bool hasAuthKey = false;
@@ -143,6 +95,7 @@ public:
 	quint32 size() { return m_size; }
 
 	std::optional<PeerData> at(const quint32 &index) const;
+	std::optional<PeerData> get(const quint32 &peerId) const;
 
 	std::optional<PeerData> add(const quint32 &peerId);
 	std::optional<PeerData> add(const QString &username, const QDateTime &expired);
@@ -155,7 +108,7 @@ public:
 	bool removeIndex(const quint32 &idx);
 
 	std::optional<UdpBitStream> updateConnection(const quint32 &peerId, const AbstractEngine::Type &type, const QJsonObject &token);
-	std::optional<UdpBitStream> updateChallenge(const quint32 &peerId, const UdpChallengeResponseStream &stream);
+	std::optional<UdpBitStream> updateChallenge(const UdpConnectionToken &connToken, const UdpChallengeResponseStream &stream, ENetPeer *peer);
 	bool updateEngine(const quint32 &peerId, const std::shared_ptr<UdpEngine> &engine);
 
 	void removeEngine(UdpEngine *engine);
@@ -210,9 +163,9 @@ private:
 	bool peerReject(const quint32 &id, UdpServerPeer *peer);
 
 	bool packetReceived(const ENetEvent &event);
-	bool packetConnectReceived(UdpBitStream &data, const ENetEvent &event);
-	bool packetChallengeReceived(UdpBitStream &data, const ENetEvent &event);
-	bool packetUserReceived(UdpBitStream &data, const ENetEvent &event);
+	bool packetConnectReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
+	bool packetChallengeReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
+	bool packetUserReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
 
 	static QByteArray hashToken(const QByteArray &token);
 	static QByteArray hashToken(const uint8_t *data, const std::size_t &size);
@@ -241,8 +194,8 @@ private:
 
 	QAtomicInt m_running{0};
 
-	CacheQueue<UdpPacketRcv> m_cacheRcv;
-	CacheQueue<UdpPacketSnd> m_cacheSnd;
+	UdpCacheQueue<UdpPacketRcv> m_cacheRcv;
+	UdpCacheQueue<UdpPacketSnd> m_cacheSnd;
 
 
 	friend class UdpServer;

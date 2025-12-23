@@ -25,6 +25,7 @@
  */
 
 #include "rpgengine.h"
+#include "rpgstream.h"
 #include "rpgevent.h"
 #include "FileAppender.h"
 #include "Logger.h"
@@ -114,34 +115,41 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, const
  */
 
 std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken,
-													 const QByteArray &data, UdpServerPeer *peer)
+													 UdpPacketRcv &&data)
 {
 	Q_ASSERT(handler);
-	Q_ASSERT(peer);
-	Q_ASSERT(peer->server());
+	Q_ASSERT(data.peer);
+	Q_ASSERT(data.peer->server());
 
-	RpgGameData::EngineSelector selector;
-	selector.fromCbor(QCborValue::fromCbor(data));
+
+	RpgStream::Engine::Operation operation = RpgStream::Engine::readOperation(*data.data);
+
+	LOG_CDEBUG("engine") << "*********************** operation" << data.peer->peerID() << operation;
+
+	if (operation == RpgStream::Engine::OperationInvalid) {
+		LOG_CWARNING("engine") << "Invalid operation" << data.peer->peerID();
+
+		return {};
+	}
+
 
 	RpgGameData::ConnectionToken cToken;
 	cToken.fromJson(connectionToken);
 
-	if (selector.operation == RpgGameData::EngineSelector::Invalid) {
-		LOG_CDEBUG("engine") << "Invalid operation" << peer->peerID();
-
-		/////peer->send(RpgGameData::EngineSelector(RpgGameData::EngineSelector::Reset).toCborMap().toCborValue().toCbor(), true);
+	if (operation == RpgStream::Engine::OperationList) {
+		RpgEnginePrivate::sendEngineList(cToken.config, data.peer, handler);
 		return {};
 	}
 
-	if (selector.operation == RpgGameData::EngineSelector::List) {
-		RpgEnginePrivate::sendEngineList(cToken.config, peer, handler);
-		return {};
-	}
 
+
+	/*
 	if (selector.operation == RpgGameData::EngineSelector::Reset) {
 		LOG_CWARNING("engine") << "Invalid RESET operation" << peer->peerID();
 		return {};
 	}
+
+
 
 
 
@@ -217,6 +225,9 @@ std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, con
 
 	peer->server()->peerConnectToEngine(peer, engine);
 	return engine;
+	*/
+
+	return {};
 }
 
 
@@ -434,12 +445,12 @@ void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 void RpgEngine::disconnectUnusedPeer(UdpServerPeer *peer)
 {
 	if (m_config.gameState == RpgConfig::StateFinished && !d->m_removeTimer.isForever() && d->m_removeTimer.hasExpired()) {
-		ELOG_INFO << "Disconnect peer" << peer;
+		ELOG_INFO << "Disconnect peer" << peer->peerID() << "from engine";
 
 		if (peer->peer()) {
 			enet_peer_disconnect_later(peer->peer(), 0);
 		} else {
-			LOG_CERROR("engine") << "Missing ENetPeer" << peer;
+			LOG_CERROR("engine") << "Missing ENetPeer" << peer << "in peer" << peer->peerID();
 		}
 	}
 }
@@ -1199,8 +1210,34 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
 	Q_ASSERT(peer);
 	Q_ASSERT(peer->server());
 
-	RpgGameData::EngineSelector selector(RpgGameData::EngineSelector::List);
+	LOG_CINFO("engine") << "++++++++++ send engine list" << peer->peerID();
 
+	/// TEST
+
+	RpgStream::Engine e;
+	e.setId(75);
+	e.setReadableId(785139);
+	e.players().emplace_back("username_el", "Ez pedig az első neve");
+	e.players().emplace_back("msodik_nev", "Ez pedig a második usernek a neve");
+	e.players().emplace_back("harmadik", "A harmadik név");
+
+
+	RpgStream::Engine e2;
+	e2.setId(375);
+	e2.setReadableId(999999);
+	e2.players().emplace_back("u23sername_el", "Ez222 pedig az első neve");
+	e2.players().emplace_back("m2sodik_nev", "Ez 222pedig a második usernek a neve");
+	e2.players().emplace_back("ha2rmadik", "A 222harmadik név");
+
+
+	RpgStream::EngineList list;
+	list.engines().push_back(e);
+	list.engines().push_back(e2);
+
+	peer->send(list.toStream().data(), true);
+
+
+/*
 	for (const auto &ptr : handler->engines()) {
 		if (!ptr || ptr->type() != AbstractEngine::EngineRpg)
 			continue;
@@ -1238,7 +1275,7 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
 	const int max = std::max(1, handler->service()->settings()->udpMaxEngines());
 
 	selector.add = (handler->engines().size() < max);
-
+*/
 	/////peer->send(selector.toCborMap().toCborValue().toCbor(), false);
 }
 

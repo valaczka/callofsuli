@@ -617,6 +617,13 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 	const ClientStorage &snapshots = m_engine->snapshots();
 	const qint64 tick = m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : -2;
 
+
+	LOG_CINFO("engine") << "******* SEND LIST" << m_engine->peerIndex();
+
+	RpgStream::EngineStream s(m_engine->peerIndex(), RpgStream::Engine::OperationList);
+	sendData(s);
+
+
 #ifdef WITH_FTXUI
 	if (DesktopApplication *a = dynamic_cast<DesktopApplication*>(Application::instance())) {
 		QCborMap map;
@@ -2496,7 +2503,33 @@ void ActionRpgMultiplayerGame::sendData(const QSerializer &data, const bool &rel
 
 void ActionRpgMultiplayerGame::sendData(const QByteArray &data, const bool &reliable)
 {
-	m_engine->sendMessage(data, reliable);
+	/////m_engine->sendMessage(data, reliable);
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::sendData
+ * @param data
+ * @param reliable
+ */
+
+void ActionRpgMultiplayerGame::sendData(RpgStream::EngineStream &data, const bool &reliable)
+{
+	if (!m_engine) {
+		LOG_CERROR("engine") << "Engine missing";
+		return;
+	}
+
+	if (!data.hasAuthKey()) {
+		LOG_CDEBUG("engine") << "ADD AUTH KEY";
+		data.setAuthKey(m_engine->authKey());
+	}
+
+	LOG_CINFO("client") << "SENDD----" << data;
+
+	m_engine->sendMessage(data.data(), reliable);
+
+	LOG_CDEBUG("client") << "REAL----" << data;
 }
 
 

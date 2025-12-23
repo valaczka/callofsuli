@@ -26,6 +26,7 @@
 
 
 #include "rpgudpengine.h"
+#include "rpgstream.h"
 #include "qbuffer.h"
 #include "actionrpgmultiplayergame.h"
 #include "server.h"
@@ -94,6 +95,8 @@ void RpgUdpEngine::disconnect()
 {
 	setUrl({});
 }
+
+
 
 
 
@@ -489,7 +492,6 @@ void RpgUdpEngine::onConnectedToServer()
 
 	if (m_game)
 		m_game->timerEvent(nullptr);
-
 }
 
 
@@ -617,13 +619,15 @@ QList<RpgGameData::Message> RpgUdpEngine::takeMessageList()
  * @param rtt
  */
 
-void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int> > &list)
+void RpgUdpEngine::binaryDataReceived(const std::vector<UdpPacketRcv> &list)
 {
 	if (!m_game)
 		return;
 
-	for (const auto &ptr : list) {
-		m_game->addLatency(ptr.second/2);
+	for (const UdpPacketRcv &data : list) {
+		LOG_CINFO("engine") << "-----RCV" << *data.data;
+
+		/*m_game->addLatency(ptr.second/2);
 
 		if (m_game->config().gameState == RpgConfig::StateError || m_gameState == RpgConfig::StateError)
 			return;
@@ -670,7 +674,7 @@ void RpgUdpEngine::binaryDataReceived(const QList<QPair<QByteArray, unsigned int
 
 		} else if (m_gameState == RpgConfig::StateFinished) {
 			packetReceivedFinished(cbor);
-		}
+		}*/
 	}
 }
 

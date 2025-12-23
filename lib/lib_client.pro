@@ -9,7 +9,8 @@ SUBDIRS += \
 	libTiled \
 	libQtXlsxWriter \
 	libSCodes \
-	libChipmunk2D
+	libChipmunk2D \
+	libCppBinaryStream
 
 !wasm: SUBDIRS += libENet
 !wasm:!android:!ios: SUBDIRS += CuteLogger

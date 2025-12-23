@@ -301,7 +301,7 @@ signals:
 
 
 protected:
-	virtual void binaryDataReceived(const QList<QPair<QByteArray, unsigned int> > &list) override;
+	virtual void binaryDataReceived(const std::vector<UdpPacketRcv> &list) override;
 
 private:
 	void updateState(const QCborMap &data);

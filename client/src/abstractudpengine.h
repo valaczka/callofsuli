@@ -27,16 +27,50 @@
 #ifndef ABSTRACTUDPENGINE_H
 #define ABSTRACTUDPENGINE_H
 
+#include "udpbitstream.hpp"
+#include "udphelper.h"
 #include <QObject>
 #include <QThread>
 #include <QCborMap>
 
 #ifndef Q_OS_WASM
 #include "qlambdathreadworker.h"
+#include <enet/enet.h>
 #endif
 
 
 class AbstractUdpEnginePrivate;
+
+
+/**
+ * @brief The UdpPacketRcv class
+ */
+
+struct UdpPacketRcv {
+	UdpPacketRcv() = default;
+	UdpPacketRcv(std::unique_ptr<UdpBitStream> &&stream)
+		: data(std::move(stream))
+	{}
+
+	std::unique_ptr<UdpBitStream> data;
+
+#ifndef Q_OS_WASM
+	ENetPeer *getENetPeer() const { return nullptr; }
+#endif
+};
+
+/**
+ * @brief The UdpPacketSnd class
+ */
+
+struct UdpPacketSnd {
+	std::vector<std::uint8_t> data;
+	bool reliable = false;
+
+#ifndef Q_OS_WASM
+	ENetPeer *getENetPeer() const { return nullptr; }
+#endif
+};
 
 
 /**
@@ -51,7 +85,10 @@ public:
 	explicit AbstractUdpEngine(QObject *parent = nullptr);
 	virtual ~AbstractUdpEngine();
 
-	void sendMessage(const QByteArray &data, const bool &reliable = true, const bool &sign = true);
+	const UdpAuthKey &authKey() const;
+	const quint32 &peerIndex() const;
+
+	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = true);
 
 	void setUrl(const QUrl &url);
 
@@ -68,7 +105,7 @@ signals:
 	void serverConnectionLost();
 
 protected:
-	virtual void binaryDataReceived(const QList<QPair<QByteArray, unsigned int> > &list) = 0;
+	virtual void binaryDataReceived(const std::vector<UdpPacketRcv> &list) = 0;
 
 private:
 #ifndef Q_OS_WASM

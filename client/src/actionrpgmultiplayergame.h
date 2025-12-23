@@ -29,6 +29,7 @@
 
 #include "actionrpggame.h"
 #include "qslistmodel.h"
+#include "rpgstream.h"
 #include "rpgudpengine.h"
 #include <QObject>
 
@@ -191,6 +192,7 @@ private:
 
 	void sendData(const QSerializer &data, const bool &reliable);
 	void sendData(const QByteArray &data, const bool &reliable);
+	void sendData(RpgStream::EngineStream &data, const bool &reliable = true);
 
 	void sendDataChrSel(const int &ban = -1, const bool &lock = false);
 	void sendDataPrepare();

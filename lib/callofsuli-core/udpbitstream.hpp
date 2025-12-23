@@ -28,13 +28,15 @@
 #define UDPBITSTREAM_H
 
 #include "Logger.h"
-#include "enet/enet.h"
 #include "qassert.h"
 #include "sodium/crypto_auth.h"
 #include "sodium/crypto_box.h"
 #include <BMLib/BinaryStream.hpp>
 #include <QSerializer>
 
+#ifndef Q_OS_WASM
+#include <enet/enet.h>
+#endif
 
 
 #define PEER_INDEX_BITS			8
@@ -83,9 +85,20 @@ public:
 		MessageMax = 0xFF
 	};
 
+	UdpBitStream(const UdpBitStream& temp_obj) = delete;
+	UdpBitStream& operator=(const UdpBitStream& temp_obj) = delete;
+	UdpBitStream(UdpBitStream&&) noexcept = default;
+	UdpBitStream& operator=(UdpBitStream&& temp_obj) noexcept = default;
+
 	UdpBitStream(const std::uint8_t &type = MessageInvalid);
-	UdpBitStream(const ENetEvent &event);
 	UdpBitStream(const std::vector<unsigned char> &buffer);
+	UdpBitStream(std::uint8_t *buffer, const std::size_t &size, const bool &auto_realloc_enabled = false);
+
+	virtual ~UdpBitStream();
+
+#ifndef Q_OS_WASM
+	UdpBitStream(const ENetEvent &event);
+#endif
 
 
 	// MessageConnect
@@ -100,6 +113,7 @@ public:
 	// MessageChallenge (response)
 
 	UdpBitStream(const QByteArray &connectToken, const QByteArray &encryptedData);
+	UdpBitStream(const QByteArray &connectToken, const std::vector<std::uint8_t> &encryptedData);
 
 	// MessageConnected
 
@@ -107,35 +121,82 @@ public:
 
 
 
+	/**
+	 * @brief The BinaryStream class
+	 */
+
+	class BinaryStream : public BMLib::BinaryStream
+	{
+	public:
+		explicit BinaryStream(BMLib::Buffer *buffer, std::size_t position) :
+			BMLib::BinaryStream(buffer, position)
+		{}
+
+
+		template <typename T>
+		T readBits(std::size_t size)
+		{
+			T result = 0;
+			for (std::size_t i = 0; i < size; ++i)
+				result |= static_cast<std::uint8_t>(this->readBit(false)) << (true ? (size - i - 1) : i);
+			return result;
+		}
+
+		bool readBit(bool skip)
+		{
+			if (this->curr_bit_read_pos == 0 || this->curr_bit_read_pos == 8 || skip) {
+				this->curr_read_octet = this->readSingle();
+				this->curr_bit_read_pos = 0;
+			}
+			std::uint8_t bit_value = this->curr_read_octet;
+
+			bit_value >>= (7 - this->curr_bit_read_pos);
+
+			++this->curr_bit_read_pos;
+			return (bit_value & 0b1) == 1;
+		}
+
+	private:
+		template <typename T>
+		T readBits(std::size_t size, bool msb_o) = delete;
+		bool readBit(bool skip, bool msb_o) = delete;
+
+
+		friend class UdpBitStream;
+	};
+
+
+
 	/// Member functions
 
-	std::vector<std::uint8_t> data() const;
+	virtual std::vector<std::uint8_t> data() const;
 	std::vector<std::uint8_t> operator*() const { return data(); }
 
 	bool validate();
 	const std::uint8_t &type() const { return m_type; }
 
-	const BMLib::BinaryStream &stream() const { return m_stream; }
-	BMLib::BinaryStream &stream() { return m_stream; }
+	const BinaryStream &stream() const { return m_stream; }
+	BinaryStream &stream() { return m_stream; }
 
 	static constexpr quint32 peerCapacity() { return m_peerCapacity; }
 
-	std::optional<BMLib::BinaryStream> getRemaining() const;
-	std::optional<std::uint8_t*> getRemainingData(std::size_t *lenPtr) const;
+	std::optional<UdpBitStream> getRemainingData() const;
 
 
 	// Crypto Auth
 
-	void setAuthStartPosition();
 	void setAuthLastPosition(const std::size_t &pos);
-	bool authBuffer(const std::array<std::uint8_t, crypto_auth_KEYBYTES> &secret);
-	std::optional<std::size_t> verifyBuffer(const std::array<std::uint8_t, crypto_auth_KEYBYTES> &secret);
+	bool authBuffer(const std::array<std::uint8_t, crypto_auth_KEYBYTES> &secret) const;
+	std::optional<std::size_t> verifyBuffer(const std::array<std::uint8_t, crypto_auth_KEYBYTES> &secret) const;
 
 
 	// MessageConnect
 
-	std::optional<QByteArray> readByteArray() const;
-	void writeByteArray(const QByteArray &data);
+	std::optional<QByteArray> readByteArray(const bool &bitAligned = false) const;
+	void writeByteArray(const QByteArray &data, const bool &bitAligned = false);
+
+	std::optional<std::vector<std::uint8_t>> readVector(const bool &bitAligned = false) const;
+	void writeVector(const std::vector<std::uint8_t> &data, const bool &bitAligned = false);
 
 
 	// MessageChallenge
@@ -155,6 +216,7 @@ public:
 	// MessageChallenge (response)
 
 	bool getChallengeResponse(QByteArray *tokenPtr, QByteArray *encryptedDataPtr);
+	bool getChallengeResponse(QByteArray *tokenPtr, std::vector<std::uint8_t> *encryptedDataPtr);
 
 	// MessageConnected
 
@@ -165,8 +227,43 @@ public:
 	std::optional<quint32> readPeerIndex() const;
 	void writePeerIndex(const quint32 &idx);
 
+
+	friend QDebug operator<<(QDebug debug, const UdpBitStream &c) {
+		QDebugStateSaver saver(debug);
+
+		if (!c.m_stream.getBuffer()) {
+			debug.nospace().noquote() << QStringLiteral("UdpBitStream()");
+			return debug;
+		}
+
+		debug.nospace().noquote() << QStringLiteral("\nUdpBitStream(") << c.m_stream.getBuffer()->size
+								  << ',' << c.m_stream.position
+								  << QStringLiteral(" | r")
+								  << c.m_stream.curr_read_octet << '/' << c.m_stream.curr_bit_read_pos
+								  << QStringLiteral(" | w")
+								  << c.m_stream.curr_write_octet << '/' << c.m_stream.curr_bit_write_pos
+								  << QStringLiteral(")\n");
+
+		std::uint8_t *ptr = c.m_stream.getBuffer()->binary;
+
+		for (size_t i=0; i<c.m_stream.getBuffer()->size; ++i) {
+			debug.nospace().noquote() << QStringLiteral("%1 ").arg(*ptr, 2, 16, QChar('0'));
+
+			if (i % 16 == 15)
+				debug.nospace() << '\n';
+			else if (i % 4 == 3)
+				debug.nospace() << ' ';
+
+			++ptr;
+		}
+
+		debug.nospace() << '\n';
+
+		return debug;
+	};
+
 protected:
-	mutable BMLib::BinaryStream m_stream;
+	mutable BinaryStream m_stream;
 
 	std::uint8_t m_type = MessageInvalid;
 
@@ -175,7 +272,6 @@ protected:
 
 	// Crypt Auth
 
-	std::size_t m_authStartPos = 0;
 	std::size_t m_authLastPos = 0;
 };
 
@@ -292,17 +388,24 @@ public:
 
 
 inline UdpBitStream::UdpBitStream(const std::uint8_t &type)
-	: m_stream(BMLib::Buffer::allocate(true, 128), 0)
+	: m_stream(BMLib::Buffer::allocate(true, 1), 0)
 {
 	Q_ASSERT(type >= MessageInvalid && type <= MessageMax);
 
 	m_stream.resetBitWriter();
 
+	/// Workaround for BMLib::Buffer
+
 	if (type != MessageInvalid) {
-		for (size_t i=0; i<m_magic.size(); ++i)
+		m_stream.getBuffer()->binary[0] = m_magic[0];
+		m_stream.getBuffer()->position = 1;
+
+		for (size_t i=1; i<m_magic.size(); ++i)
 			m_stream.write<std::uint8_t>(m_magic[i], true);
 
 		m_stream.write<std::uint8_t>(type, true);
+	} else {
+		m_stream.getBuffer()->binary[0] = 0;
 	}
 }
 
@@ -313,6 +416,8 @@ inline UdpBitStream::UdpBitStream(const std::uint8_t &type)
  * @param event
  */
 
+#ifndef Q_OS_WASM
+
 inline UdpBitStream::UdpBitStream(const ENetEvent &event)
 	: m_stream(nullptr, 0)
 {
@@ -320,9 +425,7 @@ inline UdpBitStream::UdpBitStream(const ENetEvent &event)
 		BMLib::Buffer *buf = BMLib::Buffer::allocate(false, event.packet->dataLength);
 
 		std::memcpy(buf->binary, event.packet->data, event.packet->dataLength);
-		buf->size = event.packet->dataLength;
 		buf->position = 0;
-		buf->dynamic = false;
 
 		m_stream.setBuffer(buf);
 		m_stream.resetBitReader();
@@ -331,6 +434,8 @@ inline UdpBitStream::UdpBitStream(const ENetEvent &event)
 		LOG_CERROR("engine") << "Empty ENetEvent packet";
 	}
 }
+
+#endif
 
 
 /**
@@ -344,13 +449,42 @@ inline UdpBitStream::UdpBitStream(const std::vector<unsigned char> &buffer)
 	BMLib::Buffer *buf = BMLib::Buffer::allocate(false, buffer.size());
 
 	std::memcpy(buf->binary, buffer.data(), buffer.size());
-	buf->size = buffer.size();
 	buf->position = 0;
-	buf->dynamic = false;
 
 	m_stream.setBuffer(buf);
 	m_stream.resetBitReader();
 	m_authLastPos = buf->size;
+}
+
+
+
+
+/**
+ * @brief UdpBitStream::UdpBitStream
+ * @param buffer
+ * @param size
+ */
+
+inline UdpBitStream::UdpBitStream(uint8_t *buffer, const std::size_t &size, const bool &auto_realloc_enabled)
+	: m_stream(BMLib::Buffer::allocate(auto_realloc_enabled, size), 0)
+{
+	BMLib::Buffer *buf = m_stream.getBuffer();
+
+	std::memcpy(buf->binary, buffer, size);
+	buf->position = 0;
+
+	m_stream.resetBitReader();
+	m_authLastPos = buf->size;
+}
+
+
+/**
+ * @brief UdpBitStream::~UdpBitStream
+ */
+
+inline UdpBitStream::~UdpBitStream()
+{
+	LOG_CDEBUG("engine") << "DESTROY" << this;
 }
 
 
@@ -381,6 +515,19 @@ inline UdpBitStream::UdpBitStream(const QByteArray &connectToken, const QByteArr
 	this->writeByteArray(encryptedData);
 }
 
+
+/**
+ * @brief UdpBitStream::UdpBitStream
+ * @param connectToken
+ * @param encryptedData
+ */
+
+inline UdpBitStream::UdpBitStream(const QByteArray &connectToken, const std::vector<uint8_t> &encryptedData)
+	: UdpBitStream(MessageChallenge)
+{
+	this->writeByteArray(connectToken);
+	this->writeVector(encryptedData);
+}
 
 /**
  * @brief UdpBitStream::UdpBitStream
@@ -489,7 +636,7 @@ inline void UdpBitStream::writePeerIndex(const quint32 &idx)
 inline std::optional<quint32> UdpBitStream::readPeerIndex() const
 {
 	try {
-		quint32 idx = m_stream.readBits<quint32>(PEER_INDEX_BITS, true);
+		quint32 idx = m_stream.readBits<quint32>(PEER_INDEX_BITS);
 
 		return idx;
 	} catch (const std::out_of_range &err) {
@@ -502,21 +649,6 @@ inline std::optional<quint32> UdpBitStream::readPeerIndex() const
 }
 
 
-/**
- * @brief UdpBitStream::getRemaining
- * @return
- */
-
-inline std::optional<BMLib::BinaryStream> UdpBitStream::getRemaining() const
-{
-	try {
-		BMLib::BinaryStream r(m_stream.readRemaining(), 0);
-		return r;
-	} catch (const std::exception &err) {
-		LOG_CWARNING("engine") << "Exception error" << err.what();
-		return std::nullopt;
-	}
-}
 
 
 /**
@@ -525,7 +657,7 @@ inline std::optional<BMLib::BinaryStream> UdpBitStream::getRemaining() const
  * @return
  */
 
-inline std::optional<uint8_t *> UdpBitStream::getRemainingData(std::size_t *lenPtr) const
+inline std::optional<UdpBitStream> UdpBitStream::getRemainingData() const
 {
 	BMLib::Buffer *buffer = m_stream.getBuffer();
 
@@ -545,29 +677,10 @@ inline std::optional<uint8_t *> UdpBitStream::getRemainingData(std::size_t *lenP
 		len = m_authLastPos - buffer->position;
 	}
 
-	if (lenPtr)
-		*lenPtr = std::move(len);
-
-	return buffer->binary + buffer->position;
+	return std::optional<UdpBitStream>(std::in_place, buffer->binary + buffer->position, len);
 }
 
 
-
-/**
- * @brief UdpBitStream::setEncryptionStartPosition
- */
-
-inline void UdpBitStream::setAuthStartPosition()
-{
-	BMLib::Buffer *buffer = m_stream.getBuffer();
-
-	if (!buffer) {
-		LOG_CERROR("engine") << "Missing buffer";
-		return;
-	}
-
-	m_authStartPos = buffer->position;
-}
 
 
 /**
@@ -588,7 +701,7 @@ inline void UdpBitStream::setAuthLastPosition(const std::size_t &pos)
  * @return
  */
 
-inline std::optional<std::size_t> UdpBitStream::verifyBuffer(const std::array<std::uint8_t, crypto_auth_KEYBYTES> &secret)
+inline std::optional<std::size_t> UdpBitStream::verifyBuffer(const std::array<uint8_t, crypto_auth_KEYBYTES> &secret) const
 {
 	BMLib::Buffer *buffer = m_stream.getBuffer();
 
@@ -598,16 +711,16 @@ inline std::optional<std::size_t> UdpBitStream::verifyBuffer(const std::array<st
 	}
 
 
-	if (buffer->position + crypto_auth_BYTES >= buffer->size) {
-		LOG_CERROR("engine") << "Crypto auth position error" << buffer->position << "vs." << buffer->size;
+	if (crypto_auth_BYTES >= buffer->size) {
+		LOG_CERROR("engine") << "Crypto auth buffer size error" << buffer->size;
 		return std::nullopt;
 	}
 
 	std::size_t macStart = buffer->size - crypto_auth_BYTES;
 
 	if (crypto_auth_verify(buffer->binary + macStart,
-						   buffer->binary + buffer->position,
-						   macStart - buffer->position,
+						   buffer->binary,
+						   macStart,
 						   secret.data()) == 0) {
 		return macStart;
 	}
@@ -620,7 +733,7 @@ inline std::optional<std::size_t> UdpBitStream::verifyBuffer(const std::array<st
  * @brief UdpBitStream::encryptBuffer
  */
 
-inline bool UdpBitStream::authBuffer(const std::array<uint8_t, crypto_auth_KEYBYTES> &secret)
+inline bool UdpBitStream::authBuffer(const std::array<uint8_t, crypto_auth_KEYBYTES> &secret) const
 {
 	BMLib::Buffer *buffer = m_stream.getBuffer();
 
@@ -629,16 +742,11 @@ inline bool UdpBitStream::authBuffer(const std::array<uint8_t, crypto_auth_KEYBY
 		return false;
 	}
 
-	if (m_authStartPos >= buffer->size) {
-		LOG_CERROR("engine") << "Crypto auth start position error" << m_authStartPos << "vs." << buffer->size;
-		return false;
-	}
-
 	std::array<std::uint8_t, crypto_auth_BYTES> mac;
 
 	if (crypto_auth(mac.data(),
-					buffer->binary + m_authStartPos,
-					buffer->size - m_authStartPos,
+					buffer->binary,
+					buffer->size,
 					secret.data()
 					) != 0) {
 		LOG_CERROR("utils") << "crypto_auth error";
@@ -659,17 +767,22 @@ inline bool UdpBitStream::authBuffer(const std::array<uint8_t, crypto_auth_KEYBY
  * @return
  */
 
-inline std::optional<QByteArray> UdpBitStream::readByteArray() const
+inline std::optional<QByteArray> UdpBitStream::readByteArray(const bool &bitAligned) const
 {
 	try {
 		QByteArray data;
 
-		quint32 size = m_stream.read<quint32>(true);
+		quint32 size = bitAligned ?
+						   m_stream.readBits<quint32>(32) :
+						   m_stream.read<quint32>(true);
 
 		data.reserve(size);
 
 		for (size_t i=0; i<size; ++i)
-			data.append(m_stream.read<char>(true));
+			data.append(bitAligned ?
+							m_stream.readBits<char>(8) :
+							m_stream.read<char>(true)
+							);
 
 		return data;
 
@@ -689,12 +802,76 @@ inline std::optional<QByteArray> UdpBitStream::readByteArray() const
  * @param token
  */
 
-inline void UdpBitStream::writeByteArray(const QByteArray &data)
+inline void UdpBitStream::writeByteArray(const QByteArray &data, const bool &bitAligned)
 {
-	m_stream.write<quint32>(data.size(), true);
+	if (bitAligned)
+		m_stream.writeBits<quint32>(data.size(), 32, true);
+	else
+		m_stream.write<quint32>(data.size(), true);
 
-	for (const char &b : data)
-		m_stream.write<char>(b, true);
+	for (const char &b : data) {
+		if (bitAligned)
+			m_stream.writeBits<char>(b, 8, true);
+		else
+			m_stream.write<char>(b, true);
+	}
+}
+
+
+/**
+ * @brief UdpBitStream::writeVector
+ * @param data
+ */
+
+inline void UdpBitStream::writeVector(const std::vector<uint8_t> &data, const bool &bitAligned)
+{
+	if (bitAligned)
+		m_stream.writeBits<quint32>(data.size(), 32, true);
+	else
+		m_stream.write<quint32>(data.size(), true);
+
+	for (const std::uint8_t &b : data) {
+		if (bitAligned)
+			m_stream.writeBits<std::uint8_t>(b, 8, true);
+		else
+			m_stream.write<std::uint8_t>(b, true);
+	}
+}
+
+
+/**
+ * @brief UdpBitStream::readVector
+ * @return
+ */
+
+inline std::optional<std::vector<uint8_t> > UdpBitStream::readVector(const bool &bitAligned) const
+{
+	try {
+		std::vector<uint8_t> data;
+
+		quint32 size = bitAligned ?
+						   m_stream.readBits<quint32>(32) :
+						   m_stream.read<quint32>(true);
+
+		data.reserve(size);
+
+		for (size_t i=0; i<size; ++i)
+			data.emplace_back(bitAligned ?
+								  std::move(m_stream.readBits<std::uint8_t>(8)) :
+								  std::move(m_stream.read<std::uint8_t>(true))
+								  );
+
+
+
+		return data;
+
+	} catch (const std::out_of_range &err) {
+		LOG_CWARNING("engine") << "Out of range" << err.what();
+		return std::nullopt;
+	} catch (const std::exception &err) {
+		LOG_CWARNING("engine") << "Exception" << err.what();
+		return std::nullopt;
+	}
 }
 
 
@@ -746,9 +923,6 @@ inline std::optional<std::array<uint8_t, crypto_auth_KEYBYTES> > UdpBitStream::r
 
 inline bool UdpBitStream::getChallengeResponse(QByteArray *tokenPtr, QByteArray *encryptedDataPtr)
 {
-	if (!validate())
-		return false;
-
 	if (this->type() != MessageChallenge)
 		return false;
 
@@ -758,6 +932,38 @@ inline bool UdpBitStream::getChallengeResponse(QByteArray *tokenPtr, QByteArray 
 		return false;
 
 	auto ptrEncrypted = readByteArray();
+
+	if (!ptrEncrypted)
+		return false;
+
+	if (tokenPtr)
+		*tokenPtr = std::move(*ptrToken);
+
+	if (encryptedDataPtr)
+		*encryptedDataPtr = std::move(*ptrEncrypted);
+
+	return true;
+}
+
+
+/**
+ * @brief UdpBitStream::getChallengeResponse
+ * @param tokenPtr
+ * @param encryptedDataPtr
+ * @return
+ */
+
+inline bool UdpBitStream::getChallengeResponse(QByteArray *tokenPtr, std::vector<uint8_t> *encryptedDataPtr)
+{
+	if (this->type() != MessageChallenge)
+		return false;
+
+	auto ptrToken = readByteArray();
+
+	if (!ptrToken)
+		return false;
+
+	auto ptrEncrypted = readVector();
 
 	if (!ptrEncrypted)
 		return false;
@@ -783,9 +989,6 @@ inline bool UdpBitStream::getChallengeResponse(QByteArray *tokenPtr, QByteArray 
 
 inline bool UdpBitStream::getConnected(quint32 *peerIdPtr, quint32 *peerIndexPtr)
 {
-	if (!validate())
-		return false;
-
 	if (this->type() != MessageConnected)
 		return false;
 
@@ -822,9 +1025,6 @@ inline bool UdpBitStream::getConnected(quint32 *peerIdPtr, quint32 *peerIndexPtr
 inline bool UdpBitStream::getChallenge(std::array<uint8_t, CHALLENGE_BYTES> *challengePtr,
 									   std::array<uint8_t, crypto_box_PUBLICKEYBYTES> *publicKeyPtr)
 {
-	if (!validate())
-		return false;
-
 	if (this->type() != MessageChallenge)
 		return false;
 

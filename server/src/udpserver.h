@@ -28,6 +28,7 @@
 #define UDPSERVER_H
 
 #include "qlambdathreadworker.h"
+#include "udphelper.h"
 #include <enet/enet.h>
 #include <QThread>
 #include <QElapsedTimer>
@@ -88,34 +89,7 @@ private:
 	bool m_isReconnecting = false;
 	bool m_isRejected = false;
 
-	struct Speed {
-		void addRtt(const int &rtt);
-
-		inline static constexpr int maxFps = 30;
-		int fps = maxFps;
-
-		// min rtt -> max fps
-		inline static const std::map<int, int> limit = {
-			{ 30,	30 },
-			{ 75,	24 },
-			{ 150,	20 },
-			{ 200,	15 },
-		};
-
-
-		QElapsedTimer lastSent;
-		QElapsedTimer lastBad;
-		QElapsedTimer lastGood;
-		QDeadlineTimer nextGood;
-		int delay = 2000;
-		int currentRtt = 0;
-		int peerFps = 0;
-
-		std::vector<qint64> received;
-	};
-
-
-	Speed m_speed;
+	UdpSpeed m_speed;
 
 	friend class UdpServerPrivate;
 };
@@ -124,8 +98,12 @@ private:
 
 
 struct UdpPacketRcv {
+	UdpPacketRcv(std::unique_ptr<UdpBitStream> &&_data)
+		: data(std::move(_data))
+	{}
+
 	UdpServerPeer *peer = nullptr;
-	std::vector<std::uint8_t> data;
+	std::unique_ptr<UdpBitStream> data;
 
 	ENetPeer *getENetPeer() const { return peer ? peer->peer() : nullptr; }
 };
@@ -221,8 +199,7 @@ public:
 	static std::shared_ptr<UdpEngine> dispatch(EngineHandler *handler,
 											   const AbstractEngine::Type &type,
 											   const QJsonObject &connectionToken,
-											   const QByteArray &content,
-											   UdpServerPeer *peer);
+											   UdpPacketRcv &&data);
 
 protected:
 	virtual void onRemoveRequest() override;

@@ -72,3 +72,8 @@ LIBS += -lchipmunk2d
 
 INCLUDEPATH += $$PWD/CppBinaryStream/include
 LIBS += -lcppbinarystream
+
+
+# EnTT
+
+INCLUDEPATH += $$PWD/entt/src

@@ -190,3 +190,14 @@ if ($$BackwardCpp) {
 	LIBS += -lbfd
 	SOURCES += $$PWD/../client/src/backward.cpp
 }
+
+
+# CppBinaryStream
+
+INCLUDEPATH += $$PWD/CppBinaryStream/include
+LIBS += -lcppbinarystream
+
+
+# EnTT
+
+INCLUDEPATH += $$PWD/entt/src

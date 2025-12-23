@@ -27,15 +27,15 @@
 #ifndef ABSTRACTUDPENGINE_P_H
 #define ABSTRACTUDPENGINE_P_H
 
-#include "qmutex.h"
 #include "qurl.h"
+#include "abstractudpengine.h"
 #include <QObject>
 #include <QMap>
 #include <QElapsedTimer>
-#include "credential.h"
 
 #ifndef Q_OS_WASM
 #include <enet/enet.h>
+#include "udphelper.h"
 #endif
 
 class AbstractUdpEngine;
@@ -53,8 +53,9 @@ public:
 	AbstractUdpEnginePrivate(AbstractUdpEngine *engine);
 
 	void run();
+	void stop();
 
-	void sendMessage(QByteArray data, const bool &reliable = true, const bool &sign = true);
+	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = true);
 	void setUrl(const QUrl &url);
 
 	const int &currentRtt() const { return m_speed.currentRtt; }
@@ -65,25 +66,26 @@ public:
 
 
 private:
-	void updateChallenge();
+	void sendConnectionToken();
+	void deliverPackets();
 	void destroyHostAndPeer();
+
+	bool packetChallengeReceived(const std::unique_ptr<UdpBitStream> &data);
 
 	AbstractUdpEngine *q = nullptr;
 
 	QUrl m_url;
 
 #ifndef Q_OS_WASM
-	void deliverReceived();
-	void packetReceived(const ENetEvent &event);
+	bool packetReceived(const ENetEvent &event);
 
 	ENetHost *m_enet_host = nullptr;
 	ENetPeer *m_enet_peer = nullptr;
 #endif
 
 
-	struct Speed {
-		void addRtt(const int &rtt);
-
+	struct UdpSpeedClient : public UdpSpeed
+	{
 		bool readyToSend() {
 			if (!lastSent.isValid()) {
 				lastSent.start();
@@ -97,74 +99,26 @@ private:
 
 			return false;
 		}
-
-		inline static constexpr int maxFps = 60;
-		int fps = maxFps;
-
-		// min rtt -> max fps
-		inline static const std::map<int, int> limit = {
-			{ 45,	30 },
-			{ 75,	20 },
-			{ 150,	15 },
-			{ 200,	10 }
-		};
-
-
-		QElapsedTimer lastSent;
-		QElapsedTimer lastBad;
-		QElapsedTimer lastGood;
-		QDeadlineTimer nextGood;
-		int delay = 2000;
-		int currentRtt = 0;
 	};
 
-
-	Speed m_speed;
-
-#ifndef Q_OS_WASM
-	struct InOutCache {
-		struct Packet {
-			Packet(const QByteArray &d, const bool r, const bool &s, const qint64 &_tick = -1)
-				: data(d)
-				, reliable(r)
-				, sign(s)
-				, tick(_tick)
-			{}
-
-			QByteArray data;
-			bool reliable = false;
-			bool sign = true;
-			qint64 tick = -1;
-		};
+	UdpSpeedClient m_speed;
 
 
-		struct PacketRcv {
-			PacketRcv(const QByteArray &d, const enet_uint8 _ch, const unsigned int &_rtt)
-				: data(d)
-				, channel(_ch)
-				, rtt(_rtt)
-			{}
+	QAtomicInt m_running{0};
 
-			QByteArray data;
-			enet_uint8 channel = 0;
-			unsigned int rtt = 0;
-		};
+	UdpCacheQueue<UdpPacketRcv> m_cacheRcv;
+	UdpCacheQueue<UdpPacketSnd> m_cacheSnd;
 
+	UdpAuthKey m_secretKey;
 
-		QMutex mutex;
-		std::vector<Packet> sendList;
-		std::vector<PacketRcv> rcvList;
-	};
-
-	InOutCache m_inOutChache;
-#endif
-
-	QByteArray m_secretKey;
 	QByteArray m_connectionToken;
-	UdpChallengeRequest m_challenge;
-	UdpServerResponse::State m_udpState = UdpServerResponse::StateInvalid;
-	quint32 m_peerID = 0;
 
+	quint32 m_peerId = 0;
+	quint32 m_peerIndex = 0;
+
+	UdpBitStream::MessageType m_udpState = UdpBitStream::MessageInvalid;
+
+	friend class AbstractUdpEngine;
 	friend class AbstractUdpEngineThread;
 };
 
