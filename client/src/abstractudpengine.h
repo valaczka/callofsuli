@@ -48,11 +48,13 @@ class AbstractUdpEnginePrivate;
 
 struct UdpPacketRcv {
 	UdpPacketRcv() = default;
-	UdpPacketRcv(std::unique_ptr<UdpBitStream> &&stream)
+	UdpPacketRcv(std::unique_ptr<UdpBitStream> &&stream, const quint64 &_rtt)
 		: data(std::move(stream))
+		, rtt(_rtt)
 	{}
 
 	std::unique_ptr<UdpBitStream> data;
+	qint64 rtt = -1;
 
 #ifndef Q_OS_WASM
 	ENetPeer *getENetPeer() const { return nullptr; }
@@ -105,7 +107,7 @@ signals:
 	void serverConnectionLost();
 
 protected:
-	virtual void binaryDataReceived(const std::vector<UdpPacketRcv> &list) = 0;
+	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &list) = 0;
 
 private:
 #ifndef Q_OS_WASM

@@ -35,6 +35,7 @@
 #include "abstractudpengine.h"
 #include "rpgconfig.h"
 #include "rpggamedataiface.h"
+#include "rpgstream.h"
 
 
 
@@ -301,7 +302,7 @@ signals:
 
 
 protected:
-	virtual void binaryDataReceived(const std::vector<UdpPacketRcv> &list) override;
+	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &list) override;
 
 private:
 	void updateState(const QCborMap &data);
@@ -309,12 +310,14 @@ private:
 	void updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot);
 	void messageAdd(const RpgGameData::Message &message);
 
-	void packetReceivedConnect(const QCborMap &data);
+	[[deprecated]] void packetReceivedConnect(const QCborMap &data);
 	void packetReceivedChrSel(const QCborMap &data);
 	void packetReceivedDownload(const QCborMap &data);
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
 	void packetReceivedFinished(const QCborMap &data);
+
+	void packetReceivedConnect(RpgStream::EngineStream &stream);
 
 	void onConnectedToServer();
 

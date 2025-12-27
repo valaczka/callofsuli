@@ -122,11 +122,13 @@ std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, con
 	Q_ASSERT(data.peer->server());
 
 
-	RpgStream::Engine::Operation operation = RpgStream::Engine::readOperation(*data.data);
+	RpgStream::EngineStream stream(data.data);
 
-	LOG_CDEBUG("engine") << "*********************** operation" << data.peer->peerID() << operation;
+	//RpgStream::Engine::Operation operation = RpgStream::Engine::readOperation(*data.data);
 
-	if (operation == RpgStream::Engine::OperationInvalid) {
+	LOG_CDEBUG("engine") << "*********************** operation" << data.peer->peerID() << stream.operation();
+
+	if (stream.operation() == RpgStream::EngineStream::OperationInvalid) {
 		LOG_CWARNING("engine") << "Invalid operation" << data.peer->peerID();
 
 		return {};
@@ -136,7 +138,7 @@ std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, con
 	RpgGameData::ConnectionToken cToken;
 	cToken.fromJson(connectionToken);
 
-	if (operation == RpgStream::Engine::OperationList) {
+	if (stream.operation() == RpgStream::EngineStream::OperationList) {
 		RpgEnginePrivate::sendEngineList(cToken.config, data.peer, handler);
 		return {};
 	}
@@ -1210,34 +1212,95 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
 	Q_ASSERT(peer);
 	Q_ASSERT(peer->server());
 
-	LOG_CINFO("engine") << "++++++++++ send engine list" << peer->peerID();
+	LOG_CINFO("engine") << "++++++++++ send engine list" << peer->peerID() << peer->peer();
+
+
+	RpgStream::EnginePlayer p;
+	p.setUserName("harmadik");
+	p.setNickName("A harmadik név");
 
 	/// TEST
 
 	RpgStream::Engine e;
-	e.setId(75);
+	e.setIsDeltaMode(true);
+	e.setIdDelta(75, true);
 	e.setReadableId(785139);
-	e.players().emplace_back("username_el", "Ez pedig az első neve");
-	e.players().emplace_back("msodik_nev", "Ez pedig a második usernek a neve");
-	e.players().emplace_back("harmadik", "A harmadik név");
+
+	{
+		RpgStream::EnginePlayer p1;
+		p1.setIsDeltaMode(true);
+		p1.setUserNameDelta("user1", true);
+		p1.setNickNameDelta("A harmadik név", [&p](const QByteArray &v) { return v != p.nickName(); });
+
+		e.players().push_back(std::move(p1));
+	}
+
+	{
+		RpgStream::EnginePlayer p1;
+		p1.setIsDeltaMode(true);
+		p1.setUserNameDelta("user2", false);
+		p1.setNickNameDelta("A asdfa sdfadf harmadik név", [&p](const QByteArray &v) { return v != p.nickName(); });
+		e.players().push_back(std::move(p1));
+	}
+
+
+	{
+		RpgStream::EnginePlayer p1;
+		p1.setIsDeltaMode(true);
+		p1.setUserNameDelta("user3", true);
+		p1.setNickNameDelta("A harmadik név", [&p](const QByteArray &v) { return v != p.nickName(); });
+		e.players().push_back(std::move(p1));
+	}
+	e.setPlayersDelta(true);
 
 
 	RpgStream::Engine e2;
-	e2.setId(375);
+	e2.setIsDeltaMode(true);
+	e2.setIdDelta(255, true);
 	e2.setReadableId(999999);
-	e2.players().emplace_back("u23sername_el", "Ez222 pedig az első neve");
-	e2.players().emplace_back("m2sodik_nev", "Ez 222pedig a második usernek a neve");
-	e2.players().emplace_back("ha2rmadik", "A 222harmadik név");
 
+	{
+		RpgStream::EnginePlayer p1;
+		p1.setIsDeltaMode(true);
+		p1.setUserNameDelta("user44", true);
+		p1.setNickNameDelta("A negyedik név", [&p](const QByteArray &v) { return v != p.nickName(); });
+		e2.players().push_back(std::move(p1));
+	}
+
+	{
+		RpgStream::EnginePlayer p1 = p;
+		p1.setIsDeltaMode(true);
+		p1.setNickNameDelta("A harmadik név", [&p](const QByteArray &v) { return v != p.nickName(); });
+		if (p1.deltaMask() > 0)
+			e2.players().push_back(std::move(p1));
+	}
+
+	e2.setPlayersDelta(true);
+
+
+	e.setDescriptionDelta("sgusdo gijsldfglsfjglskfjglsk f", true);
+	e2.setDescriptionDelta("ééédélsdfsf", false);
 
 	RpgStream::EngineList list;
-	list.engines().push_back(e);
-	list.engines().push_back(e2);
-
-	peer->send(list.toStream().data(), true);
+	list.engines().push_back(std::move(e));
+	list.engines().push_back(std::move(e2));
 
 
-/*
+	auto s = list.toStream();
+	peer->send(s.data(), true);
+
+	LOG_CWARNING("engine") << "<<<SEND ENGINES" << list.engines().size() << s;
+
+	for (const auto &e : list.engines()) {
+		LOG_CDEBUG("engine") << "---" << e.id() << e.isDeltaMode() << e.readableId() << e.players().size() << e.deltaMask();
+		for (const auto &p : e.players()) {
+			LOG_CDEBUG("engine") << "    -" << p.userName() << p.nickName() << p.deltaMask();
+		}
+	}
+
+
+
+	/*
 	for (const auto &ptr : handler->engines()) {
 		if (!ptr || ptr->type() != AbstractEngine::EngineRpg)
 			continue;
@@ -2893,7 +2956,7 @@ bool RpgEnginePrivate::gameAbort(RpgEnginePlayer *player)
 
 
 	q->messageAdd(RpgGameData::Message(QObject::tr("%1 has left").arg(player->config().nickname), false),
-						 QList<int>{player->playerId()}, true);
+				  QList<int>{player->playerId()}, true);
 
 	return true;
 }

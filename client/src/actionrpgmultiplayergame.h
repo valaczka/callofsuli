@@ -140,7 +140,8 @@ private:
 
 	void worldTerrainSelect(QString map, const bool forced);
 	void updatePlayersModel();
-	void updateEnginesModel(const RpgGameData::EngineSelector &selector);
+	[[deprecated]] void updateEnginesModel(const RpgGameData::EngineSelector &selector);
+	void updateEnginesModel(RpgStream::EngineStream &stream);
 
 	void syncEnemyList(const ClientStorage &storage);
 	void syncPlayerList(const ClientStorage &storage);

@@ -620,7 +620,7 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 
 	LOG_CINFO("engine") << "******* SEND LIST" << m_engine->peerIndex();
 
-	RpgStream::EngineStream s(m_engine->peerIndex(), RpgStream::Engine::OperationList);
+	RpgStream::EngineStream s(m_engine->peerIndex(), RpgStream::EngineStream::OperationList);
 	sendData(s);
 
 
@@ -1172,6 +1172,41 @@ void ActionRpgMultiplayerGame::updateEnginesModel(const RpgGameData::EngineSelec
 	Utils::patchSListModel(m_enginesModel.get(), list, QStringLiteral("id"));
 
 	setCanAddEngine(selector.add);
+}
+
+
+/**
+ * @brief ActionRpgMultiplayerGame::updateEnginesModel
+ * @param stream
+ */
+
+void ActionRpgMultiplayerGame::updateEnginesModel(RpgStream::EngineStream &stream)
+{
+	if (stream.operation() == RpgStream::EngineStream::OperationConnect) {
+		///LOG_CINFO("game") << "Connected to engine" << selector.engine;
+		///q->m_selectedEngineId = selector.engine;
+		m_engine->setGameState(RpgConfig::StateConnect);
+		return;
+	}
+/*
+	if (selector.operation == RpgGameData::EngineSelector::Reset) {
+		q->resetEngine();
+		Utils::patchSListModel(m_enginesModel.get(), QVariantList(), QStringLiteral("id"));
+		return;
+	}
+
+	if (selector.operation != RpgGameData::EngineSelector::List)
+		return;
+
+	QVariantList list;
+
+	for (const RpgGameData::Engine &e : selector.engines) {
+		list << e.toVariantMap();
+	}
+
+	Utils::patchSListModel(m_enginesModel.get(), list, QStringLiteral("id"));
+
+	setCanAddEngine(selector.add);*/
 }
 
 
@@ -2520,16 +2555,12 @@ void ActionRpgMultiplayerGame::sendData(RpgStream::EngineStream &data, const boo
 		return;
 	}
 
-	if (!data.hasAuthKey()) {
-		LOG_CDEBUG("engine") << "ADD AUTH KEY";
+	if (!data.hasAuthKey())
 		data.setAuthKey(m_engine->authKey());
-	}
-
-	LOG_CINFO("client") << "SENDD----" << data;
 
 	m_engine->sendMessage(data.data(), reliable);
 
-	LOG_CDEBUG("client") << "REAL----" << data;
+	LOG_CDEBUG("client") << "<<<SENT" << data;
 }
 
 

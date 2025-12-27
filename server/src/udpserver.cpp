@@ -134,9 +134,12 @@ void UdpServer::send(UdpServerPeer *peer, const std::vector<std::uint8_t> &data,
 	if (!peer)
 		return;
 
-	m_worker->execInThread([this, peer, data, reliable]() {
+	if (m_worker->getThread() == QThread::currentThread())
 		d->sendPacket(peer->peer(), data, reliable);
-	});
+	else
+		m_worker->execInThread([this, peer, data, reliable]() {
+			d->sendPacket(peer->peer(), data, reliable);
+		});
 }
 
 
@@ -149,16 +152,21 @@ void UdpServer::send(UdpServerPeer *peer, const std::vector<std::uint8_t> &data,
 
 void UdpServer::removeEngine(UdpEngine *engine)
 {
-	QDefer ret;
-
-	m_worker->execInThread([this, engine, ret]() mutable {
+	if (m_worker->getThread() == QThread::currentThread()) {
 		if (d->m_lobby)
 			d->m_lobby->removeEngine(engine);
+	} else {
+		QDefer ret;
 
-		ret.resolve();
-	});
+		m_worker->execInThread([this, engine, ret]() mutable {
+			if (d->m_lobby)
+				d->m_lobby->removeEngine(engine);
 
-	QDefer::await(ret);
+			ret.resolve();
+		});
+
+		QDefer::await(ret);
+	}
 }
 
 
@@ -755,11 +763,7 @@ bool UdpServerPrivate::packetChallengeReceived(std::unique_ptr<UdpBitStream> &&d
 
 bool UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event)
 {
-	LOG_CINFO("engine") << "*****>" << *data;
-
 	const auto &index = data->readPeerIndex();
-
-	LOG_CDEBUG("engine") << "*****AFTER>" << *data;
 
 	if (!index) {
 		LOG_CWARNING("engine") << "Missing peerIndex" << UdpServerPeer::address(event.peer);
@@ -793,6 +797,7 @@ bool UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, 
 	std::shared_ptr<UdpEngine> engine = peerData->engine.lock();
 
 	if (!peer) {
+		LOG_CINFO("engine") << "Creade UdpServerPeer" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
 		//LOG_CINFO("engine") << "Create UdpServerPeer engine:" << engine->id() << "peer:" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
 
 		const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(peerData->peerId, q, event.peer));
@@ -1360,8 +1365,6 @@ std::optional<UdpBitStream> Lobby::updateChallenge(const UdpConnectionToken &con
 
 		if (challenge != d.challenge) {
 			LOG_CWARNING("engine") << "Challenge mismatch" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
-			LOG_CWARNING("engine") << "ORIG" << d.challenge;
-			LOG_CWARNING("engine") << "RECV" << challenge;
 			return std::nullopt;
 		}
 

@@ -480,7 +480,9 @@ void AbstractUdpEnginePrivate::deliverPackets()
 
 	// Deliver received packets
 
-	q->binaryDataReceived(m_cacheRcv.take());
+	std::vector<UdpPacketRcv> list = m_cacheRcv.take();
+
+	q->binaryDataReceived(list);
 }
 
 
@@ -608,20 +610,20 @@ bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 
 
 	} else if (stream->type() == UdpBitStream::MessageConnected || stream->type() >= UdpBitStream::MessageUser) {
-		LOG_CINFO("engine") << "MESSAGE CONNECTED";
 
 		const unsigned int rtt = m_enet_peer->roundTripTime;
 
 		m_speed.addRtt(rtt);
 
-		//if (stream->type() == UdpBitStream::MessageConnected) {
+		if (stream->type() == UdpBitStream::MessageConnected) {
+			LOG_CINFO("engine") << "MESSAGE CONNECTED";
+
 			stream->getConnected(&m_peerId, &m_peerIndex);
 
 			LOG_CINFO("engine") << "#####" << m_peerId << m_peerIndex;
+		}
 
-		//} else {
-			m_cacheRcv.push(UdpPacketRcv(std::move(stream)));
-		//}
+		m_cacheRcv.push(UdpPacketRcv(std::move(stream), rtt));
 
 		if (m_udpState != UdpBitStream::MessageConnected) {
 			m_udpState = UdpBitStream::MessageConnected;

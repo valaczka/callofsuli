@@ -32,84 +32,6 @@ namespace RpgStream
 {
 
 
-/**
- * @brief Engine::readPlayers
- * @param stream
- * @return
- */
-
-void Engine::readPlayers(UdpBitStream &stream)
-{
-	m_players.clear();
-
-	quint8 size = readBits(stream, 3, 0);
-
-	m_players.reserve(size);
-
-	for (quint8 i=0; i<size; ++i) {
-		EnginePlayer p;
-		p.readUserName(stream);
-		p.readNickName(stream);
-		m_players.emplace_back(std::move(p));
-	}
-}
-
-
-/**
- * @brief Engine::writePlayers
- * @param stream
- * @return
- */
-
-void Engine::writePlayers(UdpBitStream &stream) const
-{
-	writeBits<quint8>(stream, m_players.size(), 3);
-	for (const EnginePlayer &p : m_players) {
-		p.writeUserName(stream);
-		p.writeNickName(stream);
-	}
-}
-
-
-
-/**
- * @brief EngineList::readEngines
- * @param stream
- */
-
-void EngineList::readEngines(UdpBitStream &stream)
-{
-	m_engines.clear();
-
-	quint8 size = readBits(stream, 3, 0);
-
-	m_engines.reserve(size);
-
-	for (quint8 i=0; i<size; ++i) {
-		Engine p;
-		p.readId(stream);
-		p.readReadableId(stream);
-		p.readPlayers(stream);
-		m_engines.emplace_back(std::move(p));
-	}
-}
-
-
-/**
- * @brief EngineList::writeEngines
- * @param stream
- */
-
-void EngineList::writeEngines(UdpBitStream &stream) const
-{
-	writeBits<quint8>(stream, m_engines.size(), 3);
-	for (const Engine &p : m_engines) {
-		p.writeId(stream);
-		p.writeReadableId(stream);
-		p.writePlayers(stream);
-	}
-}
-
 
 /**
  * @brief EngineList::toStream
@@ -118,12 +40,14 @@ void EngineList::writeEngines(UdpBitStream &stream) const
 
 EngineStream EngineList::toStream() const
 {
-	EngineStream stream(Engine::OperationList);
+	EngineStream stream(EngineStream::OperationList);
 
-	writeEngines(stream);
+	*this >> stream;
 
 	return stream;
 }
+
+
 
 
 /**
@@ -133,24 +57,173 @@ EngineStream EngineList::toStream() const
 
 std::vector<uint8_t> EngineStream::data() const
 {
-	// Fill stream
-	m_stream.writeBit(0, true);
-	m_stream.write<uint8_t>(0, true);
-	m_stream.write<uint8_t>(5, true);
-	m_stream.write<uint8_t>(4, true);
-	m_stream.write<uint8_t>(3, true);
-	m_stream.write<uint8_t>(0, true);
-
-	if (m_hasAuthKey) {
-		LOG_CDEBUG("engine") << "#################### auth buffer";
-		this->authBuffer(m_authKey);
-	}
+	finalize();
 
 	return UdpBitStream::data();
 }
 
 
+/**
+ * @brief EngineStream::EngineStream
+ * @param other
+ */
 
+EngineStream::EngineStream(UdpBitStream &&other)
+	: UdpBitStream(std::move(other))
+{
+	LOG_CINFO("engine") << "GET ENGINE STREAM" << this;
+
+	readOperation(*this);
+	setVersion(readVersion(*this));
+
+	LOG_CINFO("engine") << "OPERATION" << m_operation << "v" << m_version;
+}
+
+
+
+EngineStream::EngineStream(std::unique_ptr<UdpBitStream> &stream)
+	: UdpBitStream(std::move(*stream.release()))
+{
+	LOG_CINFO("engine") << "GET ENGINE STREAM" << this;
+
+	readOperation(*this);
+	setVersion(readVersion(*this));
+
+	LOG_CINFO("engine") << "OPERATION" << m_operation << "v" << m_version;;
+}
+
+
+/**
+ * @brief EngineStream::finalize
+ */
+
+void EngineStream::finalize() const
+{
+	if (!m_hasFinalized) {
+		// Fill stream
+		m_stream.writeBit(0, true);
+		m_stream.write<uint8_t>(0, true);
+		m_stream.write<uint8_t>(5, true);
+		m_stream.write<uint8_t>(4, true);
+		m_stream.write<uint8_t>(3, true);
+		m_stream.write<uint8_t>(0, true);
+
+		if (m_hasAuthKey) {
+			LOG_CDEBUG("engine") << "#################### auth buffer";
+			this->authBuffer(m_authKey);
+		}
+
+		m_hasFinalized = true;
+	}
+}
+
+
+
+/**
+ * @brief EnginePlayer::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EnginePlayer::operator<<(EngineStream &stream)
+{
+	readDeltaMask(stream);
+
+	readUserNameDelta(stream);
+	readNickNameDelta(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief EnginePlayer::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EnginePlayer::operator>>(EngineStream &stream) const
+{
+	writeDeltaMask(stream);
+
+	writeUserNameDelta(stream);
+	writeNickNameDelta(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief EngineList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EngineList::operator<<(EngineStream &stream)
+{
+	readCanCreate(stream);
+	readMaxPlayer(stream);
+	m_owner << stream;
+	readEngines(stream);
+	return stream;
+}
+
+
+/**
+ * @brief EngineList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EngineList::operator>>(EngineStream &stream) const
+{
+	writeCanCreate(stream);
+	writeMaxPlayer(stream);
+	m_owner >> stream;
+	writeEngines(stream);
+	return stream;
+}
+
+
+
+/**
+ * @brief Engine::readPlayers
+ * @param stream
+ * @return
+ */
+
+EngineStream &Engine::operator<<(EngineStream &stream)
+{
+	readDeltaMask(stream);
+
+	readIdDelta(stream);
+	readReadableId(stream);
+	readPlayersVectorDelta(stream, m_isDeltaMode);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Engine::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Engine::operator>>(EngineStream &stream) const
+{
+	writeDeltaMask(stream);
+
+	writeIdDelta(stream);
+
+	writeReadableId(stream);
+	writePlayersDelta(stream);
+
+	return stream;
+}
 
 
 

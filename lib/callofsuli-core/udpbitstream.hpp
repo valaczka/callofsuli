@@ -125,22 +125,13 @@ public:
 	 * @brief The BinaryStream class
 	 */
 
-	class BinaryStream : public BMLib::BinaryStream
+	class UdpBinaryStream : public BMLib::BinaryStream
 	{
 	public:
-		explicit BinaryStream(BMLib::Buffer *buffer, std::size_t position) :
+		explicit UdpBinaryStream(BMLib::Buffer *buffer, std::size_t position) :
 			BMLib::BinaryStream(buffer, position)
 		{}
 
-
-		template <typename T>
-		T readBits(std::size_t size)
-		{
-			T result = 0;
-			for (std::size_t i = 0; i < size; ++i)
-				result |= static_cast<std::uint8_t>(this->readBit(false)) << (true ? (size - i - 1) : i);
-			return result;
-		}
 
 		bool readBit(bool skip)
 		{
@@ -154,6 +145,15 @@ public:
 
 			++this->curr_bit_read_pos;
 			return (bit_value & 0b1) == 1;
+		}
+
+		template <typename T>
+		T readBits(std::size_t size)
+		{
+			T result = 0;
+			for (std::size_t i = 0; i < size; ++i)
+				result |= static_cast<std::uint8_t>(this->readBit(false)) << (true ? (size - i - 1) : i);
+			return result;
 		}
 
 	private:
@@ -175,8 +175,8 @@ public:
 	bool validate();
 	const std::uint8_t &type() const { return m_type; }
 
-	const BinaryStream &stream() const { return m_stream; }
-	BinaryStream &stream() { return m_stream; }
+	const UdpBinaryStream &stream() const { return m_stream; }
+	UdpBinaryStream &stream() { return m_stream; }
 
 	static constexpr quint32 peerCapacity() { return m_peerCapacity; }
 
@@ -263,7 +263,7 @@ public:
 	};
 
 protected:
-	mutable BinaryStream m_stream;
+	mutable UdpBinaryStream m_stream;
 
 	std::uint8_t m_type = MessageInvalid;
 

@@ -478,6 +478,44 @@ void RpgUdpEngine::packetReceivedFinished(const QCborMap &data)
 }
 
 
+/**
+ * @brief RpgUdpEngine::packageReceivedConnect
+ * @param stream
+ */
+
+void RpgUdpEngine::packetReceivedConnect(RpgStream::EngineStream &stream)
+{
+	if (!m_game)
+		return;
+
+	if (stream.operation() == RpgStream::EngineStream::OperationInvalid) {
+		LOG_CERROR("game") << "Invalid operation";
+		return;
+	}
+
+	m_game->updateEnginesModel(stream);
+
+	LOG_CWARNING("client") << ">>>>READ" << stream;
+
+	if (stream.operation() == RpgStream::EngineStream::OperationList) {
+
+		RpgStream::EngineList list;
+		list.readEnginesVectorDelta(stream);
+
+		LOG_CINFO("client") << "**************ENGINES" << list.engines().size() << "v" << stream.version();
+
+		for (const RpgStream::Engine &e : list.engines()) {
+			LOG_CDEBUG("client") << "+++" << e.id() << e.readableId() << e.players().size() << "|||" << e.deltaMask();
+
+			for (const RpgStream::EnginePlayer &p : e.players()) {
+				LOG_CDEBUG("client") << "   -" << p.userName() << p.nickName() << p.deltaMask();
+			}
+		}
+
+	}
+}
+
+
 
 /**
  * @brief RpgUdpEngine::onConnectedToServer
@@ -619,44 +657,51 @@ QList<RpgGameData::Message> RpgUdpEngine::takeMessageList()
  * @param rtt
  */
 
-void RpgUdpEngine::binaryDataReceived(const std::vector<UdpPacketRcv> &list)
+void RpgUdpEngine::binaryDataReceived(std::vector<UdpPacketRcv> &list)
 {
 	if (!m_game)
 		return;
 
-	for (const UdpPacketRcv &data : list) {
-		LOG_CINFO("engine") << "-----RCV" << *data.data;
+	for (UdpPacketRcv &data : list) {
+		RpgStream::EngineStream stream(data.data);
 
-		/*m_game->addLatency(ptr.second/2);
+		LOG_CINFO("engine") << "-----RCV" << stream.type();
+
+		if (stream.type() < UdpBitStream::MessageUser)
+			continue;
+
+		LOG_CINFO("engine") << "-----RCV OP" << stream.operation();
+
+		m_game->addLatency(data.rtt/2);
 
 		if (m_game->config().gameState == RpgConfig::StateError || m_gameState == RpgConfig::StateError)
 			return;
 
-		const QCborMap &cbor = QCborValue::fromCbor(ptr.first).toMap();
+		////const QCborMap &cbor = QCborValue::fromCbor(ptr.first).toMap();
 
-		updateState(cbor);
+		////updateState(cbor);
 
 		if (m_gameState == RpgConfig::StateConnect) {
-			packetReceivedConnect(cbor);
+			packetReceivedConnect(stream);
 
 			return;
 
 		} else if (m_gameState == RpgConfig::StateCharacterSelect) {
-			packetReceivedChrSel(cbor);
+			//packetReceivedChrSel(cbor);
 
 		} else if (m_gameState == RpgConfig::StatePrepare || m_gameState == RpgConfig::StateDownloadContent) {
 			if (m_game->isReconnecting()) {
-				packetReceivedChrSel(cbor);
+				//packetReceivedChrSel(cbor);
 			}
 
-			if (m_game->config().gameState == RpgConfig::StateDownloadContent)
+			/*if (m_game->config().gameState == RpgConfig::StateDownloadContent)
 				packetReceivedDownload(cbor);
 			else if (m_game->config().gameState == RpgConfig::StatePrepare)
-				packetReceivedPrepare(cbor);
+				packetReceivedPrepare(cbor);*/
 
 		} else if (m_gameState == RpgConfig::StatePlay) {
 
-			if (const qint64 tick = cbor.value(QStringLiteral("t")).toInteger(-1); tick > -1) {
+			/*if (const qint64 tick = cbor.value(QStringLiteral("t")).toInteger(-1); tick > -1) {
 #ifndef Q_OS_WASM
 				QMutexLocker locker(&m_snapshotMutex);
 #endif
@@ -668,13 +713,13 @@ void RpgUdpEngine::binaryDataReceived(const std::vector<UdpPacketRcv> &list)
 				QMutexLocker locker(&m_snapshotMutex);
 #endif
 				m_snapshots.setDeadlineTick(tick);
-			}
+			}*/
 
-			packetReceivedPlay(cbor);
+			//packetReceivedPlay(cbor);
 
 		} else if (m_gameState == RpgConfig::StateFinished) {
-			packetReceivedFinished(cbor);
-		}*/
+			//packetReceivedFinished(cbor);
+		}
 	}
 }
 
