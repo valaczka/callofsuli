@@ -100,8 +100,8 @@ private:
 	RpgEnginePlayer* getPlayer(UdpServerPeer *peer) const;
 	RpgEnginePlayer* getPlayer(const int &playerId) const;
 
-	void dataReceived(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff);
-	void dataReceivedChrSel(RpgEnginePlayer *player, const QByteArray &data);
+	void dataReceived(RpgEnginePlayer *player, const std::unique_ptr<UdpBitStream> &data);
+	void dataReceivedChrSel(RpgEnginePlayer *player, const std::unique_ptr<UdpBitStream> &data);
 	void dataReceivedPrepare(RpgEnginePlayer *player, const QByteArray &data);
 	void dataReceivedPlay(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff);
 	void dataReceivedFinished(RpgEnginePlayer *player, const QByteArray &data, const qint64 &diff);

@@ -573,14 +573,10 @@ bool UdpServerPrivate::packetReceived(const ENetEvent &event)
 
 	std::unique_ptr<UdpBitStream> stream = std::make_unique<UdpBitStream>(event);
 
-	LOG_CINFO("engine") << "IN>" << *stream;
-
 	if (!stream->validate()) {
 		LOG_CWARNING("engine") << qPrintable(peerAddress) << "Invalid data from peer";
 		return false;
 	}
-
-
 
 
 	if (stream->type() == UdpBitStream::MessageConnect) {
@@ -770,8 +766,6 @@ bool UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, 
 		return false;
 	}
 
-	LOG_CDEBUG("engine") << "GOT" << index.value();
-
 	const auto &peerData = m_lobby->at(*index);
 
 	if (!peerData) {
@@ -797,7 +791,7 @@ bool UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, 
 	std::shared_ptr<UdpEngine> engine = peerData->engine.lock();
 
 	if (!peer) {
-		LOG_CINFO("engine") << "Creade UdpServerPeer" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
+		LOG_CINFO("engine") << "Create UdpServerPeer" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
 		//LOG_CINFO("engine") << "Create UdpServerPeer engine:" << engine->id() << "peer:" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
 
 		const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(peerData->peerId, q, event.peer));
@@ -825,6 +819,7 @@ bool UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, 
 			m_lobby->updateEngine(peerData->peerId, peerEngine);
 
 	} else {
+		LOG_CDEBUG("engine") << "PEER ON ENGINE" << peerData->peerId << engine->id();
 		m_cacheRcv.push(std::move(packet));
 	}
 

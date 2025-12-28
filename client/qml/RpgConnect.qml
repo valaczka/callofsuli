@@ -57,7 +57,7 @@ QItemGradient {
 
                     text: game ? game.toReadableEngineId(readableId) : readableId
 
-                    secondaryText: owner.nickname + (players.length > 1 ? " +" + (players.length-1) : "")
+                    secondaryText: owner.nickName + (players.length > 1 ? " +" + (players.length-1) : "")
 
                     icon.source: Qaterial.Icons.accountMultiple
 
@@ -92,7 +92,7 @@ QItemGradient {
         Qaterial.LabelHeadline6 {
             id: _labelFull
 
-            visible: !game || (game.enginesModel.count === 0 && !game.canAddEngine)
+            visible: !game || (game.enginesModel.maxPlayer === 0 && !game.canAddEngine)
             anchors.centerIn: parent
             text: qsTr("A szerver tele van, jelenleg nem tudsz új szobát létrehozni")
             color: Qaterial.Style.accentColor

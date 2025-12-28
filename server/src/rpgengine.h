@@ -30,6 +30,7 @@
 #include "abstractengine.h"
 #include "rpgconfig.h"
 #include "rpgsnapshotstorage.h"
+#include "rpgstream.h"
 #include "udpserver.h"
 
 
@@ -187,6 +188,9 @@ public:
 	virtual bool isPeerValid(const quint32 &peerId) const override;
 
 	virtual QString dumpEngine() const override;
+
+
+	RpgStream::Engine toStream() const;
 
 	enum SentMessageTypes {
 		MessageCollectAllRemaining

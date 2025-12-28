@@ -103,15 +103,9 @@ void EngineStream::finalize() const
 		// Fill stream
 		m_stream.writeBit(0, true);
 		m_stream.write<uint8_t>(0, true);
-		m_stream.write<uint8_t>(5, true);
-		m_stream.write<uint8_t>(4, true);
-		m_stream.write<uint8_t>(3, true);
-		m_stream.write<uint8_t>(0, true);
 
-		if (m_hasAuthKey) {
-			LOG_CDEBUG("engine") << "#################### auth buffer";
+		if (m_hasAuthKey)
 			this->authBuffer(m_authKey);
-		}
 
 		m_hasFinalized = true;
 	}
@@ -125,12 +119,18 @@ void EngineStream::finalize() const
  * @return
  */
 
+EnginePlayer::EnginePlayer(const QByteArray &userName, const QByteArray &nickName)
+	: RpgStream::EnginePlayer()
+{
+	setUserName(userName);
+	setNickName(nickName);
+}
+
+
 EngineStream &EnginePlayer::operator<<(EngineStream &stream)
 {
-	readDeltaMask(stream);
-
-	readUserNameDelta(stream);
-	readNickNameDelta(stream);
+	readUserName(stream);
+	readNickName(stream);
 
 	return stream;
 }
@@ -145,10 +145,8 @@ EngineStream &EnginePlayer::operator<<(EngineStream &stream)
 
 EngineStream &EnginePlayer::operator>>(EngineStream &stream) const
 {
-	writeDeltaMask(stream);
-
-	writeUserNameDelta(stream);
-	writeNickNameDelta(stream);
+	writeUserName(stream);
+	writeNickName(stream);
 
 	return stream;
 }
@@ -164,8 +162,6 @@ EngineStream &EnginePlayer::operator>>(EngineStream &stream) const
 EngineStream &EngineList::operator<<(EngineStream &stream)
 {
 	readCanCreate(stream);
-	readMaxPlayer(stream);
-	m_owner << stream;
 	readEngines(stream);
 	return stream;
 }
@@ -180,8 +176,6 @@ EngineStream &EngineList::operator<<(EngineStream &stream)
 EngineStream &EngineList::operator>>(EngineStream &stream) const
 {
 	writeCanCreate(stream);
-	writeMaxPlayer(stream);
-	m_owner >> stream;
 	writeEngines(stream);
 	return stream;
 }
@@ -196,11 +190,11 @@ EngineStream &EngineList::operator>>(EngineStream &stream) const
 
 EngineStream &Engine::operator<<(EngineStream &stream)
 {
-	readDeltaMask(stream);
-
-	readIdDelta(stream);
+	readId(stream);
 	readReadableId(stream);
-	readPlayersVectorDelta(stream, m_isDeltaMode);
+	readMaxPlayer(stream);
+	m_owner << stream;
+	readPlayers(stream);
 
 	return stream;
 }
@@ -215,15 +209,117 @@ EngineStream &Engine::operator<<(EngineStream &stream)
 
 EngineStream &Engine::operator>>(EngineStream &stream) const
 {
-	writeDeltaMask(stream);
-
-	writeIdDelta(stream);
-
+	writeId(stream);
 	writeReadableId(stream);
-	writePlayersDelta(stream);
+	writeMaxPlayer(stream);
+	m_owner >> stream;
+	writePlayers(stream);
 
 	return stream;
 }
+
+
+
+/**
+ * @brief GameConfig::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &GameConfig::operator<<(EngineStream &stream)
+{
+	readTerrain(stream);
+	readDuration(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief GameConfig::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &GameConfig::operator>>(EngineStream &stream) const
+{
+	writeTerrain(stream);
+	writeDuration(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief CharacterSelectServer::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &CharacterSelectServer::operator<<(EngineStream &stream)
+{
+	m_gameConfig << stream;
+	readEngineReadableId(stream);
+	readMaxPlayers(stream);
+	readPlayers(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief CharacterSelectServer::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &CharacterSelectServer::operator>>(EngineStream &stream) const
+{
+	m_gameConfig >> stream;
+	writeEngineReadableId(stream);
+	writeMaxPlayers(stream);
+	writePlayers(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerData::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerData::operator<<(EngineStream &stream)
+{
+	readPlayerId(stream);
+	readUserName(stream);
+	readNickName(stream);
+	readCharacter(stream);
+	readCompleted(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerData::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerData::operator>>(EngineStream &stream) const
+{
+	writePlayerId(stream);
+	writeUserName(stream);
+	writeNickName(stream);
+	writeCharacter(stream);
+	writeCompleted(stream);
+
+	return stream;
+}
+
 
 
 

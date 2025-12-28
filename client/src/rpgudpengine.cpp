@@ -106,8 +106,11 @@ void RpgUdpEngine::disconnect()
  * @param data
  */
 
-void RpgUdpEngine::updateState(const QCborMap &data)
+void RpgUdpEngine::updateState(RpgStream::EngineDataStream &stream)
 {
+	/*if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationCharacterSelect) {
+
+	}
 	if (auto it = data.find(QStringLiteral("hst")); it != data.cend()) {
 		m_isHost = it->toBool();
 	}
@@ -128,7 +131,7 @@ void RpgUdpEngine::updateState(const QCborMap &data)
 
 		if (tick > 0)
 			m_game->overrideCurrentFrame(tick);
-	}
+	}*/
 }
 
 
@@ -138,7 +141,7 @@ void RpgUdpEngine::updateState(const QCborMap &data)
  * @param player
  */
 
-void RpgUdpEngine::updateSnapshot(const QList<RpgGameData::CharacterSelect> &players)
+void RpgUdpEngine::updateSnapshot(const std::vector<RpgStream::PlayerData> &players)
 {
 #ifndef Q_OS_WASM
 	QMutexLocker locker(&m_snapshotMutex);
@@ -254,68 +257,48 @@ void RpgUdpEngine::messageAdd(const RpgGameData::Message &message)
 
 
 
-/**
- * @brief RpgUdpEngine::packetReceivedConnect
- * @param data
- */
-
-void RpgUdpEngine::packetReceivedConnect(const QCborMap &data)
-{
-	if (!m_game)
-		return;
-
-	RpgGameData::EngineSelector selector;
-	selector.fromCbor(data);
-
-	if (selector.operation == RpgGameData::EngineSelector::Invalid) {
-		LOG_CERROR("game") << "Invalid operation";
-		return;
-	}
-
-	m_game->updateEnginesModel(selector);
-}
-
-
-
 
 
 
 /**
  * @brief RpgUdpEngine::packetReceivedChrSel
- * @param data
+ * @param stream
  */
 
-void RpgUdpEngine::packetReceivedChrSel(const QCborMap &data)
+void RpgUdpEngine::packetReceivedChrSel(RpgStream::EngineDataStream &stream)
 {
 	if (!m_game)
 		return;
 
-	RpgGameData::EngineSelector selector;
-	selector.fromCbor(data);
-
-	if (selector.operation == RpgGameData::EngineSelector::Reset) {
+	if (stream.operation() == RpgStream::EngineStream::OperationDisconnect) {
 		LOG_CDEBUG("game") << "Reset engine";
 
-		m_game->updateEnginesModel(selector);
-		updateSnapshot(QList<RpgGameData::CharacterSelect>{});
-
+		m_game->updateEnginesModel(stream);
 		return;
 	}
 
-	RpgGameData::CharacterSelectServer config;
-	config.fromCbor(data);
+	if (stream.dataOperation() != RpgStream::EngineDataStream::DataOperationCharacterSelect) {
+		LOG_CERROR("game") << "Invalid operation";
+		return;
+	}
 
-	updateSnapshot(config.players);
+	LOG_CWARNING("client") << ">>>>READ CHR" << stream;
 
-	m_game->setMaxPlayers(config.max);
-	m_game->setLocked(config.locked);
-	m_game->setReadableEngineId(config.engineReadableId);
 
-	if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest || m_game->isReconnecting()) {
+	RpgStream::CharacterSelectServer config;
+	config << stream;
+
+	updateSnapshot(config.players());
+
+	m_game->setMaxPlayers(config.maxPlayers());
+	///m_game->setLocked(config.locked);
+	m_game->setReadableEngineId(config.engineReadableId());
+
+	/*if (m_game->gameMode() == ActionRpgGame::MultiPlayerGuest || m_game->isReconnecting()) {
 		m_gameConfig = config.gameConfig;
 	} else {
 		m_gameConfig.randomizer = config.gameConfig.randomizer;
-	}
+	}*/
 }
 
 
@@ -343,7 +326,7 @@ void RpgUdpEngine::packetReceivedDownload(const QCborMap &data)
 		return;
 	}
 
-	updateSnapshot(config.players);
+	/////updateSnapshot(config.players);
 
 	m_gameConfig = config.gameConfig;
 
@@ -375,7 +358,7 @@ void RpgUdpEngine::packetReceivedPrepare(const QCborMap &data)
 	RpgGameData::Prepare config;
 	config.fromCbor(data);
 
-	updateSnapshot(config.players);
+	////updateSnapshot(config.players);
 
 	if (!config.gameConfig.randomizer.groups.isEmpty())
 		m_gameConfig.randomizer = config.gameConfig.randomizer;
@@ -415,7 +398,7 @@ void RpgUdpEngine::packetReceivedPlay(const QCborMap &data)
 			pl.append(pData);
 		}
 
-		updateSnapshot(pl);
+		//////updateSnapshot(pl);
 	}
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -457,7 +440,7 @@ void RpgUdpEngine::packetReceivedFinished(const QCborMap &data)
 			pl.append(pData);
 		}
 
-		updateSnapshot(pl);
+		//////updateSnapshot(pl);
 	}
 
 	RpgGameData::CurrentSnapshot snapshot;
@@ -500,15 +483,15 @@ void RpgUdpEngine::packetReceivedConnect(RpgStream::EngineStream &stream)
 	if (stream.operation() == RpgStream::EngineStream::OperationList) {
 
 		RpgStream::EngineList list;
-		list.readEnginesVectorDelta(stream);
+		list << stream;
 
 		LOG_CINFO("client") << "**************ENGINES" << list.engines().size() << "v" << stream.version();
 
 		for (const RpgStream::Engine &e : list.engines()) {
-			LOG_CDEBUG("client") << "+++" << e.id() << e.readableId() << e.players().size() << "|||" << e.deltaMask();
+			LOG_CDEBUG("client") << "+++" << e.id() << e.readableId() << e.players().size();
 
 			for (const RpgStream::EnginePlayer &p : e.players()) {
-				LOG_CDEBUG("client") << "   -" << p.userName() << p.nickName() << p.deltaMask();
+				LOG_CDEBUG("client") << "   -" << p.userName() << p.nickName();
 			}
 		}
 
@@ -663,14 +646,14 @@ void RpgUdpEngine::binaryDataReceived(std::vector<UdpPacketRcv> &list)
 		return;
 
 	for (UdpPacketRcv &data : list) {
-		RpgStream::EngineStream stream(data.data);
+		RpgStream::EngineDataStream stream(data.data);
 
 		LOG_CINFO("engine") << "-----RCV" << stream.type();
 
 		if (stream.type() < UdpBitStream::MessageUser)
 			continue;
 
-		LOG_CINFO("engine") << "-----RCV OP" << stream.operation();
+		LOG_CINFO("engine") << "-----RCV OP" << stream.operation()  << "DATAOP" << stream.dataOperation();
 
 		m_game->addLatency(data.rtt/2);
 
@@ -679,7 +662,7 @@ void RpgUdpEngine::binaryDataReceived(std::vector<UdpPacketRcv> &list)
 
 		////const QCborMap &cbor = QCborValue::fromCbor(ptr.first).toMap();
 
-		////updateState(cbor);
+		///updateState(stream);
 
 		if (m_gameState == RpgConfig::StateConnect) {
 			packetReceivedConnect(stream);
@@ -687,7 +670,7 @@ void RpgUdpEngine::binaryDataReceived(std::vector<UdpPacketRcv> &list)
 			return;
 
 		} else if (m_gameState == RpgConfig::StateCharacterSelect) {
-			//packetReceivedChrSel(cbor);
+			packetReceivedChrSel(stream);
 
 		} else if (m_gameState == RpgConfig::StatePrepare || m_gameState == RpgConfig::StateDownloadContent) {
 			if (m_game->isReconnecting()) {

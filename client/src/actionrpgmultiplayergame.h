@@ -140,7 +140,6 @@ private:
 
 	void worldTerrainSelect(QString map, const bool forced);
 	void updatePlayersModel();
-	[[deprecated]] void updateEnginesModel(const RpgGameData::EngineSelector &selector);
 	void updateEnginesModel(RpgStream::EngineStream &stream);
 
 	void syncEnemyList(const ClientStorage &storage);
@@ -193,7 +192,7 @@ private:
 
 	void sendData(const QSerializer &data, const bool &reliable);
 	void sendData(const QByteArray &data, const bool &reliable);
-	void sendData(RpgStream::EngineStream &data, const bool &reliable = true);
+	void sendData(RpgStream::EngineStream &&data, const bool &reliable = true);
 
 	void sendDataChrSel(const int &ban = -1, const bool &lock = false);
 	void sendDataPrepare();

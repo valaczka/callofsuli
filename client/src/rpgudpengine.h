@@ -275,8 +275,8 @@ public:
 	void connectToServer(Server *server);
 	void disconnect();
 
-	const RpgConfig::GameState &gameState() const;
-	void setGameState(const RpgConfig::GameState &newGameState);
+	///const RpgConfig::GameState &gameState() const;
+	///void setGameState(const RpgConfig::GameState &newGameState);
 
 	ClientStorage snapshots();
 
@@ -286,7 +286,7 @@ public:
 	RpgGameData::CurrentSnapshot getCurrentSnapshot();
 	QList<RpgGameData::Message> takeMessageList();
 
-	const RpgGameData::GameConfig &gameConfig() const;
+	///const RpgGameData::GameConfig &gameConfig() const;
 
 	int playerId() const;
 	void setPlayerId(int newPlayerId);
@@ -294,7 +294,7 @@ public:
 	bool isHost() const;
 	void setIsHost(bool newIsHost);
 
-	QList<RpgGameData::CharacterSelect> playerData();
+	///QList<RpgGameData::CharacterSelect> playerData();
 
 signals:
 	void gameError();
@@ -305,19 +305,18 @@ protected:
 	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &list) override;
 
 private:
-	void updateState(const QCborMap &data);
-	void updateSnapshot(const QList<RpgGameData::CharacterSelect> &players);
+	[[deprecated]] void updateState(RpgStream::EngineDataStream &stream);
+	void updateSnapshot(const std::vector<RpgStream::PlayerData> &players);
 	void updateSnapshot(const RpgGameData::CurrentSnapshot &snapshot);
 	void messageAdd(const RpgGameData::Message &message);
 
-	[[deprecated]] void packetReceivedConnect(const QCborMap &data);
-	void packetReceivedChrSel(const QCborMap &data);
 	void packetReceivedDownload(const QCborMap &data);
 	void packetReceivedPrepare(const QCborMap &data);
 	void packetReceivedPlay(const QCborMap &data);
 	void packetReceivedFinished(const QCborMap &data);
 
 	void packetReceivedConnect(RpgStream::EngineStream &stream);
+	void packetReceivedChrSel(RpgStream::EngineDataStream &stream);
 
 	void onConnectedToServer();
 
@@ -337,8 +336,8 @@ private:
 	ClientStorage m_snapshots;
 	QList<RpgGameData::Message> m_messageList;
 
-	RpgGameData::GameConfig m_gameConfig;
-	RpgConfig::GameState m_gameState = RpgConfig::StateInvalid;
+	///RpgGameData::GameConfig m_gameConfig;
+	///RpgConfig::GameState m_gameState = RpgConfig::StateInvalid;
 	int m_playerId = -1;
 	bool m_isHost = false;
 };

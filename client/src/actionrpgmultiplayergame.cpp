@@ -57,10 +57,13 @@ private:
 		, m_connectionLostTimer(-1)
 	{}
 
+
 	void updateBody(TiledObjectBody *body, const bool &isHosted);
 	void resetEngine();
 	void sendPlayerData();
 	void sendAbort();
+
+	RpgStream::EngineStream newStream(const RpgStream::EngineStream::Operation &operation) const;
 
 	RpgGameData::Armory getArmory() const;
 
@@ -264,7 +267,15 @@ ActionRpgMultiplayerGame::ActionRpgMultiplayerGame(GameMapMissionLevel *missionL
 	roles.append(QStringLiteral("player"));
 	m_playersModel->setRoleNames(roles);
 
-	m_enginesModel->setRoleNames(Utils::getRolesFromObject(RpgGameData::Engine().metaObject()));
+	static const QStringList engineRoles = {
+		QStringLiteral("id"),
+		QStringLiteral("readableId"),
+		QStringLiteral("owner"),
+		QStringLiteral("players"),
+		QStringLiteral("maxPlayer"),
+	};
+
+	m_enginesModel->setRoleNames(engineRoles);
 
 	if (m_client->server()) {
 		if (User *u = m_client->server()->user()) {
@@ -616,12 +627,6 @@ void ActionRpgMultiplayerGame::timerEvent(QTimerEvent *)
 {
 	const ClientStorage &snapshots = m_engine->snapshots();
 	const qint64 tick = m_rpgGame ? m_rpgGame->tickTimer()->currentTick() : -2;
-
-
-	LOG_CINFO("engine") << "******* SEND LIST" << m_engine->peerIndex();
-
-	RpgStream::EngineStream s(m_engine->peerIndex(), RpgStream::EngineStream::OperationList);
-	sendData(s);
 
 
 #ifdef WITH_FTXUI
@@ -1142,71 +1147,58 @@ void ActionRpgMultiplayerGame::updatePlayersModel()
 
 /**
  * @brief ActionRpgMultiplayerGame::updateEnginesModel
- * @param selector
- */
-
-void ActionRpgMultiplayerGame::updateEnginesModel(const RpgGameData::EngineSelector &selector)
-{
-	if (selector.operation == RpgGameData::EngineSelector::Connect) {
-		LOG_CINFO("game") << "Connected to engine" << selector.engine;
-		q->m_selectedEngineId = selector.engine;
-		m_engine->setGameState(RpgConfig::StateConnect);
-		return;
-	}
-
-	if (selector.operation == RpgGameData::EngineSelector::Reset) {
-		q->resetEngine();
-		Utils::patchSListModel(m_enginesModel.get(), QVariantList(), QStringLiteral("id"));
-		return;
-	}
-
-	if (selector.operation != RpgGameData::EngineSelector::List)
-		return;
-
-	QVariantList list;
-
-	for (const RpgGameData::Engine &e : selector.engines) {
-		list << e.toVariantMap();
-	}
-
-	Utils::patchSListModel(m_enginesModel.get(), list, QStringLiteral("id"));
-
-	setCanAddEngine(selector.add);
-}
-
-
-/**
- * @brief ActionRpgMultiplayerGame::updateEnginesModel
  * @param stream
  */
 
 void ActionRpgMultiplayerGame::updateEnginesModel(RpgStream::EngineStream &stream)
 {
 	if (stream.operation() == RpgStream::EngineStream::OperationConnect) {
-		///LOG_CINFO("game") << "Connected to engine" << selector.engine;
-		///q->m_selectedEngineId = selector.engine;
+		const quint32 id = stream.readEngineId();
+		LOG_CINFO("game") << "Connected to engine" << id;
+		q->m_selectedEngineId = id;
 		m_engine->setGameState(RpgConfig::StateConnect);
 		return;
 	}
-/*
-	if (selector.operation == RpgGameData::EngineSelector::Reset) {
+
+	if (stream.operation() == RpgStream::EngineStream::OperationDisconnect) {
 		q->resetEngine();
 		Utils::patchSListModel(m_enginesModel.get(), QVariantList(), QStringLiteral("id"));
 		return;
 	}
 
-	if (selector.operation != RpgGameData::EngineSelector::List)
+	if (stream.operation() != RpgStream::EngineStream::OperationList)
 		return;
 
-	QVariantList list;
+	RpgStream::EngineList list;
+	list << stream;
 
-	for (const RpgGameData::Engine &e : selector.engines) {
-		list << e.toVariantMap();
+	QVariantList l;
+
+	for (const RpgStream::Engine &e : list.engines()) {
+		QVariantList pList;
+
+		for (const RpgStream::EnginePlayer &p : e.players()) {
+			pList.append(QVariantMap{
+							 { QStringLiteral("userName"),		QString::fromUtf8(p.userName()) },
+							 { QStringLiteral("nickName"),		QString::fromUtf8(p.nickName()) },
+						 });
+		}
+
+		l.append(QVariantMap{
+					 { QStringLiteral("id"),		e.id() },
+					 { QStringLiteral("readableId"),		e.readableId() },
+					 { QStringLiteral("owner"),		QVariantMap{
+						   { QStringLiteral("userName"),		QString::fromUtf8(e.owner().userName()) },
+						   { QStringLiteral("nickName"),		QString::fromUtf8(e.owner().nickName()) },
+					   } },
+					 { QStringLiteral("players"),		pList },
+					 { QStringLiteral("maxPlayer"),		e.maxPlayer() },
+				 });
 	}
 
-	Utils::patchSListModel(m_enginesModel.get(), list, QStringLiteral("id"));
+	Utils::patchSListModel(m_enginesModel.get(), l, QStringLiteral("id"));
 
-	setCanAddEngine(selector.add);*/
+	setCanAddEngine(list.canCreate());
 }
 
 
@@ -2548,7 +2540,7 @@ void ActionRpgMultiplayerGame::sendData(const QByteArray &data, const bool &reli
  * @param reliable
  */
 
-void ActionRpgMultiplayerGame::sendData(RpgStream::EngineStream &data, const bool &reliable)
+void ActionRpgMultiplayerGame::sendData(RpgStream::EngineStream &&data, const bool &reliable)
 {
 	if (!m_engine) {
 		LOG_CERROR("engine") << "Engine missing";
@@ -2570,6 +2562,8 @@ void ActionRpgMultiplayerGame::sendData(RpgStream::EngineStream &data, const boo
 
 void ActionRpgMultiplayerGame::sendDataChrSel(const int &ban, const bool &lock)
 {
+	LOG_CWARNING("client") << "CHR SEL";
+
 	RpgGameData::CharacterSelect config(m_playerConfig);
 
 	if (m_gameMode == MultiPlayerHost) {
@@ -2681,18 +2675,17 @@ void ActionRpgMultiplayerGame::sendDataPrepare()
 
 void ActionRpgMultiplayerGame::sendDataConnect()
 {
-	RpgGameData::EngineSelector selector;
-
 	if (q->m_requireEngine) {
-		selector.operation = RpgGameData::EngineSelector::Create;
-	} else if (q->m_selectedEngineId > 0){
-		selector.operation = RpgGameData::EngineSelector::Connect;
-		selector.engine = q->m_selectedEngineId;
+		sendData(q->newStream(RpgStream::EngineStream::OperationCreate), true);
+	} else if (q->m_selectedEngineId > 0) {
+		RpgStream::EngineStream s = q->newStream(RpgStream::EngineStream::OperationConnect);
+		s.writeEngineId(q->m_selectedEngineId);
+		sendData(std::move(s), true);
 	} else {
-		selector.operation = RpgGameData::EngineSelector::List;
+		sendData(q->newStream(RpgStream::EngineStream::OperationList), false);
 	}
 
-	sendData(selector, false);
+
 }
 
 
@@ -2839,6 +2832,19 @@ void ActionRpgMultiplayerGamePrivate::sendAbort()
 	QCborMap m = data.toCborMap(RpgGameData::CharacterSelect().toCborMap());
 
 	d->sendData(m.toCborValue().toCbor(), true);
+}
+
+
+
+/**
+ * @brief ActionRpgMultiplayerGamePrivate::newStream
+ * @param operation
+ * @return
+ */
+
+RpgStream::EngineStream ActionRpgMultiplayerGamePrivate::newStream(const RpgStream::EngineStream::Operation &operation) const
+{
+	return RpgStream::EngineStream(d && d->m_engine ? d->m_engine->peerIndex() : 0, operation);
 }
 
 

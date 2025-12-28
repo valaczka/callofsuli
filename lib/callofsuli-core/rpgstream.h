@@ -31,6 +31,18 @@
 #include "udphelper.h"
 
 
+#define ENGINE_ID_TYPE				quint32
+#define ENGINE_ID_BITS				8
+
+#define ENGINE_READABLE_ID_TYPE		quint32
+#define ENGINE_READABLE_ID_BITS		20
+
+
+#define PLAYER_ID_TYPE				quint8
+#define PLAYER_ID_BITS				3
+
+
+
 namespace RpgStream
 {
 
@@ -84,6 +96,48 @@ void writeBitsAs(UdpBitStream &stream, const C &value, const size_t &bits) {
 
 
 
+
+
+/**
+ * @brief uint64_t
+ */
+
+class HashFnv1A64 : public QHash<quint64, QString>
+{
+public:
+	HashFnv1A64() = default;
+	virtual ~HashFnv1A64() {}
+
+	static constexpr quint64 hashFnv1a64(std::string_view s) {
+		if (s.empty())
+			return 0;
+
+		quint64 h = 1469598103934665603ull;
+		for (unsigned char c : s) {
+			h ^= quint64(c);
+			h *= 1099511628211ull;
+		}
+		return h;
+	}
+
+	std::optional<quint64> insert(const QString &value) {
+		const quint64 h = hashFnv1a64(value.toStdString());
+
+		auto it = this->tryEmplace(h, value);
+
+		if (!it.inserted) {
+			LOG_CWARNING("engine") << "Hash already exists" << h << "for value" << value;
+			return std::nullopt;
+		}
+
+		return h;
+	}
+};
+
+
+
+
+
 #define STREAM_FIELD(type, field, name) \
 	private: \
 	type m_##field; \
@@ -93,22 +147,20 @@ void writeBitsAs(UdpBitStream &stream, const C &value, const size_t &bits) {
 	void set##name(const type &value) { m_##field = value; }
 
 
-
-
 #define STREAM_STATIC(name, type, bits, error) \
 	public: \
-	static type read##name(EngineStream &stream) { \
-	return readBits<type>(stream, bits, error); } \
-	static void write##name(EngineStream &stream, const type &value) { \
-	writeBits<type>(stream, value, bits); }
+	type read##name() { \
+	return readBits<type>(*this, bits, error); } \
+	void write##name(const type &value) { \
+	writeBits<type>(*this, value, bits); } \
 
 
 #define STREAM_STATIC_CAST(name, cast, type, bits, error) \
 	public: \
-	static cast read##name(EngineStream &stream) { \
-	return readBitsAs<cast, type>(stream, bits, error); } \
-	static void write##name(EngineStream &stream, const cast &value) { \
-	writeBitsAs<cast, type>(stream, value, bits); }
+	cast read##name() { \
+	return readBitsAs<cast, type>(*this, bits, error); } \
+	void write##name(const cast &value) { \
+	writeBitsAs<cast, type>(*this, value, bits); }
 
 
 #define STREAM_MEMBER(type, field, name, bits, error) \
@@ -169,6 +221,16 @@ void writeBitsAs(UdpBitStream &stream, const C &value, const size_t &bits) {
 
 
 
+#define ADD_STRING_RESOLVER(field, name) \
+	public: \
+	QString field##Resolved(const HashFnv1A64 &hash) const { return hash.value(m_##field, QString()); } \
+	void set##name##Resolved(const QString &value) { set##name(HashFnv1A64::hashFnv1a64(value.toStdString())); }
+
+
+
+#define STREAM_MEMBER_RESOLVED(field, name) \
+	STREAM_MEMBER(quint64, field, name, 64, 0) \
+	ADD_STRING_RESOLVER(field, name)
 
 
 
@@ -257,7 +319,40 @@ void writeBitsAs(UdpBitStream &stream, const C &value, const size_t &bits) {
 	STREAM_MEMBER_VECTOR_ADD_READ_DELTA(type, field, name, sizetype, bits)
 
 
+#define STREAM_DELTA_MEMBER_RESOLVED(field, name, msk) \
+	STREAM_MEMBER_RESOLVED(field, name) \
+	STREAM_MEMBER_ADD_DELTA(quint64, field, name, msk)
 
+
+
+
+
+#define TO_DATA_STREAM(dataOp) \
+	EngineDataStream toDataStream() const { \
+	EngineDataStream stream(dataOp); \
+	*this >> stream; \
+	return stream; \
+} \
+	EngineDataStream toDataStream(const quint32 &peerIndex) const { \
+	EngineDataStream stream(peerIndex, dataOp); \
+	*this >> stream; \
+	return stream; \
+}
+
+/*STREAM_DELTA_MASK (
+		quint32, 5,
+
+		Egy,
+		Ketto,
+		Negy,
+		Nyolc,
+		Tizenhat,
+		)
+
+STREAM_DELTA_MEMBER(quint32, id, Id, 8, 0, Egy);
+STREAM_DELTA_MEMBER_BYTEARRAY(description, Description, Ketto)
+STREAM_MEMBER(quint32, readableId, ReadableId, 20, 0);
+STREAM_DELTA_MEMBER_VECTOR(EnginePlayer, players, Players, quint8, 3, Negy)*/
 
 
 
@@ -285,33 +380,36 @@ public:
 	EngineStream(const UdpAuthKey &authKey, const quint32 &peerIndex, const Operation &operation)
 		: UdpBitStream(MessageUser)
 		, m_operation(operation)
+		, m_version(CurrentVersion)
 		, m_authKey(authKey)
 		, m_hasAuthKey(true)
 	{
 		writePeerIndex(peerIndex);
 		writeOperation(*this);
-		writeVersion(*this, m_version);
+		writeVersion(*this);
 	}
 
 	EngineStream(const quint32 &peerIndex, const Operation &operation)
 		: UdpBitStream(MessageUser)
 		, m_operation(operation)
+		, m_version(CurrentVersion)
 		, m_authKey({})
 		, m_hasAuthKey(false)
 	{
 		writePeerIndex(peerIndex);
 		writeOperation(*this);
-		writeVersion(*this, m_version);
+		writeVersion(*this);
 	}
 
 	EngineStream(const Operation &operation)
 		: UdpBitStream(MessageUser)
 		, m_operation(operation)
+		, m_version(CurrentVersion)
 		, m_authKey({})
 		, m_hasAuthKey(false)
 	{
 		writeOperation(*this);
-		writeVersion(*this, m_version);
+		writeVersion(*this);
 	}
 
 
@@ -319,12 +417,10 @@ public:
 	EngineStream(std::unique_ptr<UdpBitStream> &stream);
 
 	STREAM_MEMBER_CAST(Operation, operation, Operation, quint32, 3, OperationInvalid)
-	STREAM_STATIC(Version, quint8, 4, 0)
+	STREAM_MEMBER(quint8, version, Version, 4, 0);
+	STREAM_STATIC(EngineId, ENGINE_ID_TYPE, ENGINE_ID_BITS, 0);
 
 	virtual std::vector<std::uint8_t> data() const override;
-
-	const quint8 &version() const { return m_version; }
-	void setVersion(const quint8 &version) { m_version = version; }
 
 	const bool &hasAuthKey() const { return m_hasAuthKey; }
 	const UdpAuthKey &authKey() const { return m_authKey; }
@@ -339,9 +435,57 @@ protected:
 	UdpAuthKey m_authKey;
 	bool m_hasAuthKey;
 	mutable bool m_hasFinalized = false;
-	quint8 m_version = CurrentVersion;
 };
 
+
+
+
+
+/**
+ * @brief The EngineDataStream class
+ */
+
+class EngineDataStream : public EngineStream
+{
+public:
+	enum DataOperation {
+		DataOperationInvalid = 0x0,
+		DataOperationCharacterSelect
+	};
+
+	EngineDataStream(const DataOperation &dataOperation)
+		: EngineStream(OperationData)
+		, m_dataOperation(dataOperation)
+	{
+		writeDataOperation(*this);
+	}
+
+	EngineDataStream(const quint32 &peerIndex, const DataOperation &dataOperation)
+		: EngineStream(peerIndex, OperationData)
+		, m_dataOperation(dataOperation)
+	{
+		writeDataOperation(*this);
+	}
+
+	EngineDataStream(UdpBitStream &&other)
+		: EngineStream(std::move(other))
+		, m_dataOperation(DataOperationInvalid)
+	{
+		if (this->operation() == OperationData)
+			readDataOperation(*this);
+	}
+
+	EngineDataStream(std::unique_ptr<UdpBitStream> &stream)
+		: EngineStream(stream)
+		, m_dataOperation(DataOperationInvalid)
+	{
+		if (this->operation() == OperationData)
+			readDataOperation(*this);
+	}
+
+
+	STREAM_MEMBER_CAST(DataOperation, dataOperation, DataOperation, quint32, 4, DataOperationInvalid)
+};
 
 
 
@@ -354,19 +498,13 @@ class EnginePlayer
 {
 public:
 	EnginePlayer() = default;
+	EnginePlayer(const QByteArray &userName, const QByteArray &nickName);
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	STREAM_DELTA_MASK (
-			quint8, 2,
-
-			Egy,
-			Ketto,
-			)
-
-	STREAM_DELTA_MEMBER_BYTEARRAY(userName, UserName, Egy)
-	STREAM_DELTA_MEMBER_BYTEARRAY(nickName, NickName, Ketto)
+	STREAM_MEMBER_BYTEARRAY(userName, UserName)
+	STREAM_MEMBER_BYTEARRAY(nickName, NickName)
 };
 
 
@@ -384,25 +522,16 @@ class Engine
 public:
 
 	Engine() = default;
-	virtual ~Engine() = default;
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	STREAM_DELTA_MASK (
-			quint32, 5,
 
-			Egy,
-			Ketto,
-			Negy,
-			Nyolc,
-			Tizenhat,
-			)
-
-	STREAM_DELTA_MEMBER(quint32, id, Id, 8, 0, Egy);
-	STREAM_DELTA_MEMBER_BYTEARRAY(description, Description, Ketto)
-	STREAM_MEMBER(quint32, readableId, ReadableId, 20, 0);
-	STREAM_DELTA_MEMBER_VECTOR(EnginePlayer, players, Players, quint8, 3, Negy)
+	STREAM_MEMBER(ENGINE_ID_TYPE, id, Id, ENGINE_ID_BITS, 0);
+	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, readableId, ReadableId, ENGINE_READABLE_ID_BITS, 0);
+	STREAM_MEMBER_VECTOR(EnginePlayer, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
+	STREAM_FIELD(EnginePlayer, owner, Owner)
+	STREAM_MEMBER(PLAYER_ID_TYPE, maxPlayer, MaxPlayer, PLAYER_ID_BITS, 0)
 
 };
 
@@ -423,12 +552,105 @@ public:
 
 	EngineStream toStream() const;
 
-	STREAM_MEMBER_VECTOR_READ_DELTA(Engine, engines, Engines, quint8, 3)
-	STREAM_MEMBER(bool, canCreate, CanCreate, 1, false)
-	STREAM_FIELD(EnginePlayer, owner, Owner)
-	STREAM_MEMBER(quint8, maxPlayer, MaxPlayer, 4, 0)
+	STREAM_MEMBER_VECTOR(Engine, engines, Engines, quint8, 8)
+	STREAM_MEMBER_CAST(bool, canCreate, CanCreate, char, 1, false)
 };
 
+
+
+
+/**
+ * @brief The GameConfig class
+ */
+
+class GameConfig
+{
+public:
+	GameConfig() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_RESOLVED(terrain, Terrain)
+	STREAM_MEMBER(quint32, duration, Duration, 32, 0)
+
+	/*QS_COLLECTION_OBJECTS(QList, PlayerPosition, positionList)
+	QS_FIELD(QString, terrain)
+	QS_OBJECT(Collection, collection)
+	QS_OBJECT(Randomizer, randomizer)
+	QS_FIELD(int, duration)*/
+};
+
+
+
+class PlayerData
+{
+public:
+	PlayerData() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_MEMBER(PLAYER_ID_TYPE, playerId, PlayerId, PLAYER_ID_BITS, 0)
+	STREAM_MEMBER_BYTEARRAY(userName, UserName)
+	STREAM_MEMBER_BYTEARRAY(nickName, NickName)
+
+	STREAM_MEMBER_RESOLVED(character, Character)
+
+	STREAM_MEMBER_CAST(bool, completed, Completed, char, 1, false)
+
+
+	/*QS_FIELD(int, playerId)
+	QS_FIELD(QString, username)
+	QS_FIELD(QString, nickname)
+
+	QS_FIELD(QString, character)
+	QS_FIELD(bool, completed)
+	QS_FIELD(bool, locked)											// lock the engine
+
+	// Character specification
+
+	QS_OBJECT(Armory, armory)
+	QS_FIELD(int, maxHp)
+	QS_FIELD(int, maxMp)
+	QS_FIELD(int, mp)
+
+	QS_OBJECT(GameConfig, gameConfig)
+
+	QS_FIELD(int, lastObjectId)
+
+	QS_FIELD(bool, finished)										// finished
+	QS_FIELD(int, xp)												// XP
+	QS_FIELD(int, cur)												// currency
+	QS_FIELD(int, kill)												// killed enemies*/
+};
+
+
+
+
+
+class CharacterSelectServer
+{
+public:
+	CharacterSelectServer() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationCharacterSelect)
+
+	STREAM_FIELD(GameConfig, gameConfig, GameConfig)
+	STREAM_MEMBER_VECTOR(PlayerData, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
+	STREAM_MEMBER(PLAYER_ID_TYPE, maxPlayers, MaxPlayers, PLAYER_ID_BITS, 0)
+	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, engineReadableId, EngineReadableId, ENGINE_READABLE_ID_BITS, 0);
+
+	/*QS_OBJECT(GameConfig, gameConfig)
+	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
+	QS_FIELD(bool, locked)
+	QS_FIELD(int, max)
+	QS_FIELD(int, engineReadableId)*/
+};
 
 
 };
