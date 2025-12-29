@@ -28,6 +28,7 @@
 #define MODULEWRITER_H
 
 #include "../interfaces.h"
+#include "../mergeblock/modulemergeblock.h"
 #include <QObject>
 #include <QtPlugin>
 
@@ -53,8 +54,13 @@ public:
 
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
-			QStringLiteral("text"), QStringLiteral("binding"), QStringLiteral("sequence"), QStringLiteral("images"),
-			QStringLiteral("block")
+			QStringLiteral("text"),
+			QStringLiteral("binding"),
+			QStringLiteral("sequence"),
+			QStringLiteral("images"),
+			QStringLiteral("block"),
+			QStringLiteral("mergebinding"),
+			QStringLiteral("mergeblock"),
 		};
 		return l;
 	}
@@ -74,7 +80,8 @@ public:
 	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateSequence(const QVariantMap &data, const QVariantMap &storageData) const;
 	QVariantList generateText(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
-	QVariantList generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlockContains(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const;
+	QVariantList generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); };
 

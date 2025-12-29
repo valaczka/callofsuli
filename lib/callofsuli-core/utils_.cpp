@@ -501,6 +501,17 @@ void Utils::settingsClear(const QString &key)
 }
 
 
+/**
+ * @brief Utils::createUuid
+ * @return
+ */
+
+QString Utils::createUuid()
+{
+	return QUuid::createUuid().toString(QUuid::WithoutBraces);
+}
+
+
 #ifdef CLIENT_UTILS
 
 /**

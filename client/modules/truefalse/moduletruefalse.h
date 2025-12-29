@@ -53,7 +53,10 @@ public:
 
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
-			QStringLiteral("numbers"), QStringLiteral("binding"), QStringLiteral("block")
+			QStringLiteral("numbers"),
+			QStringLiteral("binding"),
+			QStringLiteral("block"),
+			QStringLiteral("mergebinding"),
 		};
 		return l;
 	}
@@ -65,6 +68,7 @@ public:
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 
 	qreal xpFactor() const override { return 1.0; };
 

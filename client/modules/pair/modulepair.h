@@ -28,6 +28,7 @@
 #define MODULEPAIR_H
 
 #include "../interfaces.h"
+#include "../mergeblock/modulemergeblock.h"
 #include <QObject>
 #include <QtPlugin>
 
@@ -53,7 +54,13 @@ public:
 	QString testResult(const QVariantMap &data, const QVariantMap &answer, const bool &) const override;
 
 	inline QStringList storageModules() const override {
-		static const QStringList l = {QStringLiteral("numbers"), QStringLiteral("binding"), QStringLiteral("block")};
+		static const QStringList l = {
+			QStringLiteral("numbers"),
+			QStringLiteral("binding"),
+			QStringLiteral("block"),
+			QStringLiteral("mergebinding"),
+			QStringLiteral("mergeblock"),
+		};
 		return l;
 	}
 
@@ -68,8 +75,9 @@ public:
 
 	void registerQmlTypes() const override {};
 
-	QVariantList generateBlock(const QVariantMap &storageData) const;
+	QVariantList generateBlock(const ModuleMergeblock::BlockUnion &blocks) const;
 	QVariantMap generateOne(const QVariantMap &data, QVariantList pairList) const;
+	QVariantList generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 
 	enum Mode {
 		First = 0x1,

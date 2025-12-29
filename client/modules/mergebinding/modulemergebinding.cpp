@@ -24,9 +24,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "modulebinding.h"
+#include "modulemergebinding.h"
 
-ModuleBinding::ModuleBinding(QObject *parent) : QObject(parent)
+ModuleMergebinding::ModuleMergebinding(QObject *parent) : QObject(parent)
 {
 
 }
@@ -40,17 +40,18 @@ ModuleBinding::ModuleBinding(QObject *parent) : QObject(parent)
  * @return
  */
 
-QVariantMap ModuleBinding::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
+QVariantMap ModuleMergebinding::details(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData) const
 {
 	Q_UNUSED(storage)
 	Q_UNUSED(storageData)
 
 	QStringList list;
 
-	QVariantList l = data.value(QStringLiteral("bindings")).toList();
-	foreach (QVariant v, l) {
+	QVariantList l = data.value(QStringLiteral("sections")).toList();
+	for (const QVariant &v : l) {
 		QVariantMap m = v.toMap();
-		list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString()).arg(m.value(QStringLiteral("second")).toString()));
+		list.append(m.value(QStringLiteral("name")).toString());
+		//list.append(QStringLiteral("%1 — %2").arg(m.value(QStringLiteral("first")).toString()).arg(m.value(QStringLiteral("second")).toString()));
 	}
 
 	const QString &name = data.value(QStringLiteral("name")).toString();

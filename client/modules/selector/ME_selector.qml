@@ -18,8 +18,9 @@ QFormColumn {
 
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	readonly property bool isBinding: storage && storage.module == "binding"
-	readonly property bool isBlock: storage && storage.module == "block"
+	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "mergebinding")
+	readonly property bool isBlock: storage && (storage.module == "block" || storage.module == "mergeblock")
+	readonly property bool isMergeBinding: storage && (storage.module == "mergebinding" || storage.module == "mergeblock")
 
 	QFormSection {
 		text: qsTr("Adatbank nélkül ez a feladattípus nem használható!")
@@ -27,6 +28,15 @@ QFormColumn {
 		color: Qaterial.Colors.red500
 
 		visible: !isBinding && !isBlock
+	}
+
+	QFormSectionSelector {
+		id: _sectionSelector
+
+		form: root
+		field: "sections"
+		visible: isMergeBinding
+		storage: root.storage
 	}
 
 	QFormComboBox {
@@ -42,10 +52,10 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "left", text: qsTr("Bal oldaliakhoz")},
-			{value: "right", text: qsTr("Jobb oldaliakhoz")}
-		]
+		model: ListModel {
+			ListElement {value: "left"; text: qsTr("Bal oldaliakhoz")}
+			ListElement {value: "right"; text: qsTr("Jobb oldaliakhoz")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -91,6 +101,8 @@ QFormColumn {
 								 isBlock ? [_questionBinding, _spinOptions] :
 										   []
 
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -108,10 +120,12 @@ QFormColumn {
 								 isBlock ? [_questionBinding, _spinOptions] :
 										   []
 
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
+
 		return getItems(_items)
 	}
 }
-
 
 
 

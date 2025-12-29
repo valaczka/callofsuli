@@ -14,4 +14,6 @@ MODULES_LIST = truefalse \
 				text \
 				block \
 				binary \
-				selector
+				selector \
+				mergebinding \
+				mergeblock

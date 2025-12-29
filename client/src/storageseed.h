@@ -138,6 +138,9 @@ public:
 	int getSubBOffset(const int &to, const int &offset) const { return getSubB(offset, offset+to)-offset; }
 	int getSubB(const QList<int> &list) const;
 
+	QList<int> getAllSubB(const int &from, const int &to) const;
+	QList<int> getAllSubB(const int &to) const { return getAllSubB(0, to); }
+
 	QVariantList getVariantList(const bool &autoClean = false);
 
 private:

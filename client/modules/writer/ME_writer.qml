@@ -18,11 +18,22 @@ QFormColumn {
 
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	readonly property bool isBinding: storage && storage.module == "binding"
+	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "mergebinding")
 	readonly property bool isImages: storage && storage.module == "images"
 	readonly property bool isSequence: storage && storage.module == "sequence"
 	readonly property bool isText: storage && storage.module == "text"
-	readonly property bool isBlock: storage && storage.module == "block"
+	readonly property bool isBlock: storage && (storage.module == "block" || storage.module == "mergeblock")
+	readonly property bool isMergeBinding: storage && (storage.module == "mergebinding" || storage.module == "mergeblock")
+
+
+	QFormSectionSelector {
+		id: _sectionSelector
+
+		form: root
+		field: "sections"
+		visible: isMergeBinding
+		storage: root.storage
+	}
 
 
 	QFormComboBox {
@@ -38,10 +49,10 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "left", text: qsTr("Bal oldaliakhoz")},
-			{value: "right", text: qsTr("Jobb oldaliakhoz")}
-		]
+		model: ListModel {
+			ListElement {value: "left"; text: qsTr("Bal oldaliakhoz")}
+			ListElement {value: "right"; text: qsTr("Jobb oldaliakhoz")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -128,6 +139,9 @@ QFormColumn {
 																   isText ? [] :
 																			[_question, _correctAnswer]
 
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
+
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
 	}
@@ -148,9 +162,33 @@ QFormColumn {
 																   isText ? [] :
 																			[_question, _correctAnswer]
 
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
+
+
 		return getItems(_items)
 	}
 }
 
 
 
+
+
+/*
+readonly property bool isMergeBinding: storage && storage.module == "mergebinding"
+
+
+QFormSectionSelector {
+	id: _sectionSelector
+
+	form: root
+	field: "sections"
+	visible: isMergeBinding
+	storage: root.storage
+}
+
+if (isMergeBinding)
+	_items.push(_sectionSelector)
+
+
+	*/

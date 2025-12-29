@@ -18,9 +18,10 @@ QFormColumn {
 
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	readonly property bool isBinding: storage && storage.module == "binding"
+	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "mergebinding")
 	readonly property bool isNumbers: storage && storage.module == "numbers"
 	readonly property bool isBlock: storage && storage.module == "block"
+	readonly property bool isMergeBinding: storage && storage.module == "mergebinding"
 
 
 	QFormTextField {
@@ -48,16 +49,25 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: false, text: qsTr("Hamis")},
-			{value: true, text: qsTr("Igaz")}
-		]
+		model: ListModel {
+			ListElement {value: false; text: qsTr("Hamis")}
+			ListElement {value: true; text: qsTr("Igaz")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
 
 
+
+	QFormSectionSelector {
+		id: _sectionSelector
+
+		form: root
+		field: "sections"
+		visible: isMergeBinding
+		storage: root.storage
+	}
 
 
 	QFormComboBox {
@@ -73,12 +83,12 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "left", text: qsTr("Bal oldal: mind igaz, jobb: mind hamis")},
-			{value: "right", text: qsTr("Jobb oldal: mind igaz, bal: mind hamis")},
-			{value: "generateLeft", text: qsTr("Készítés a bal oldaliakhoz")},
-			{value: "generateRight", text: qsTr("Készítés a jobb oldaliakhoz")}
-		]
+		model: ListModel {
+			ListElement{value: "left"; text: qsTr("Bal oldal: mind igaz, jobb: mind hamis")}
+			ListElement{value: "right"; text: qsTr("Jobb oldal: mind igaz, bal: mind hamis")}
+			ListElement{value: "generateLeft"; text: qsTr("Készítés a bal oldaliakhoz")}
+			ListElement{value: "generateRight"; text: qsTr("Készítés a jobb oldaliakhoz")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -98,10 +108,10 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "generateLeft", text: qsTr("Bal oldaliakhoz")},
-			{value: "generateRight", text: qsTr("Jobb oldaliakhoz")}
-		]
+		model: ListModel {
+			ListElement{value: "generateLeft"; text: qsTr("Bal oldaliakhoz")}
+			ListElement{value: "generateRight"; text: qsTr("Jobb oldaliakhoz")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -162,6 +172,10 @@ QFormColumn {
 													   [_questionNone, _correct]
 
 
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
+
+
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
 	}
@@ -180,10 +194,13 @@ QFormColumn {
 											 isBlock ? [_questionBlock ] :
 													   [_questionNone, _correct]
 
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
+
+
 		return getItems(_items)
 	}
 }
-
 
 
 

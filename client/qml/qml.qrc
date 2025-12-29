@@ -236,5 +236,6 @@
         <file>TeacherPassResult.qml</file>
         <file>TeacherPassItemLink.qml</file>
         <file>PageMapEditorMatrixImport.qml</file>
+        <file>QFormSectionSelector.qml</file>
     </qresource>
 </RCC>

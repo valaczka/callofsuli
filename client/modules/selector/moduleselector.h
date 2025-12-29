@@ -28,6 +28,7 @@
 #define MODULESELECTOR_H
 
 #include "../interfaces.h"
+#include "../mergeblock/modulemergeblock.h"
 #include <QObject>
 #include <QtPlugin>
 
@@ -54,7 +55,9 @@ public:
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
 			QStringLiteral("binding"),
-			QStringLiteral("block")
+			QStringLiteral("block"),
+			QStringLiteral("mergebinding"),
+			QStringLiteral("mergeblock"),
 		};
 		return l;
 	}
@@ -68,8 +71,12 @@ public:
 								 const QVariantMap &storageData,
 								 QVariantMap *commonDataPtr, StorageSeed *seed) const;
 
+	QVariantList generateMergeBinding(const QVariantMap &data,
+									  const QVariantMap &storageData,
+									  QVariantMap *commonDataPtr, StorageSeed *seed) const;
+
 	QVariantList generateBlockContains(const QVariantMap &data,
-									   const QVariantMap &storageData,
+									   const ModuleMergeblock::BlockUnion &blocks,
 									   QVariantMap *commonDataPtr, StorageSeed *seed) const;
 
 	qreal xpFactor() const override { return 1.0; };
