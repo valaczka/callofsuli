@@ -257,7 +257,7 @@ Item {
                         color: passItem && passItem.extra ?
                                    Qaterial.Colors.green400 :
                                    Qaterial.Style.accentColor
-                        visible: passItem && passItem.maxPts > 0
+                        visible: passItem && passItem.includePass <= 0 && passItem.maxPts !== 0
                         text: passItem ? (passItem.extra ? "+" : "") + passItem.maxPts + qsTr(" pt") : ""
 
                         anchors.verticalCenter: parent.verticalCenter

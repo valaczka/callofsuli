@@ -84,7 +84,7 @@ QPage {
 				id: _spinMaxPts
 
 				text: qsTr("Maximális pont:")
-				from: 0
+				from: -1000
 				to: 1000
 				stepSize: 1
 				spin.editable: true

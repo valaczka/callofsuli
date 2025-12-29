@@ -37,7 +37,15 @@ QTableView {
 	readonly property alias actionApply: _actionApply
 	readonly property alias actionCancel: _actionCancel
 
+	property bool _editorOpened: false
+
 	property var stackPopFunction: function() {
+		if (_editorOpened) {
+			mainView.closeEditor()
+			_editorOpened = false
+			return false
+		}
+
 		if (_model.hasTmpData) {
 			_actionCancel.trigger()
 			return false
@@ -123,6 +131,7 @@ QTableView {
 				return
 			}
 
+			mainView.closeEditor()
 			mainView.edit(mainView.index(row, column))
 		}
 
@@ -211,23 +220,25 @@ QTableView {
 				Qt.callLater(_delegate.editNext)
 			}
 
-			Keys.onEscapePressed: {
-				mainView.closeEditor()
-			}
+			Keys.onEscapePressed: event => {
+									  mainView.closeEditor()
+									  event.accepted = true
+								  }
 
-			Keys.onBackPressed: {
-				mainView.closeEditor()
-			}
+			Keys.onBackPressed: event => {
+									mainView.closeEditor()
+									event.accepted = true
+								}
 
 			Keys.onUpPressed: event => {
 								  let next = _model.getNextEditable(mainView.index(row, column), 0, -1)
-								  if (next.valid) mainView.edit(next)
+								  if (next.valid) Qt.callLater(_delegate.moveEditor, next)
 								  event.accepted = true
 							  }
 
 			Keys.onDownPressed: event => {
 									let next = _model.getNextEditable(mainView.index(row, column), 0, 1)
-									if (next.valid) mainView.edit(next)
+									if (next.valid) Qt.callLater(_delegate.moveEditor, next)
 									event.accepted = true
 								}
 
@@ -235,7 +246,7 @@ QTableView {
 			Keys.onLeftPressed: event => {
 									if (cursorPosition < 1) {
 										let next = _model.getNextEditable(mainView.index(row, column), -1, 0)
-										if (next.valid) mainView.edit(next)
+										if (next.valid) Qt.callLater(_delegate.moveEditor, next)
 										event.accepted = true
 									} else {
 										event.accepted = false
@@ -245,20 +256,29 @@ QTableView {
 			Keys.onRightPressed: event => {
 									 if (cursorPosition >= length) {
 										 let next = _model.getNextEditable(mainView.index(row, column), 1, 0)
-										 if (next.valid) mainView.edit(next)
+										 if (next.valid) Qt.callLater(_delegate.moveEditor, next)
 										 event.accepted = true
 									 } else {
 										 event.accepted = false
 									 }
 								 }
 
-			Component.onCompleted: selectAll()
+			Component.onCompleted: {
+				_editorOpened = true
+				selectAll()
+			}
 		}
 
 		function editNext() {
 			let next = _model.getNextEditable(mainView.index(row, column), 0, 1)
 			if (next.valid)
 				mainView.edit(next)
+		}
+
+		function moveEditor(index) {
+			mainView.closeEditor()
+			if (index.valid)
+				mainView.edit(index)
 		}
 	}
 
