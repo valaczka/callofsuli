@@ -1,4 +1,5 @@
 /*
+ *
  * ---- Call of Suli ----
  *
  * client.h

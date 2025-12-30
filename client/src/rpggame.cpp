@@ -2357,6 +2357,8 @@ void RpgGame::reloadTerrains()
 	}
 
 	LOG_CDEBUG("game") << "...loaded " << m_terrains.size() << " terrains";
+
+
 }
 
 

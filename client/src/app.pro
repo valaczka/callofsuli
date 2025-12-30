@@ -436,5 +436,6 @@ HEADERS += \
 	websocket.h
 
 DISTFILES += \
+	../qml/StudentDashboardNotification.qml \
 	translation.pri
 

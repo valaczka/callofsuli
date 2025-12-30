@@ -30,6 +30,7 @@
 #include "qjsonarray.h"
 #include "qjsonobject.h"
 #include "utils_.h"
+#include "rpggame.h"
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
@@ -681,6 +682,97 @@ void Server::setIsStatic(bool newIsStatic)
 		return;
 	m_isStatic = newIsStatic;
 	emit isStaticChanged();
+}
+
+
+/**
+ * @brief Server::checkNotification
+ */
+
+void Server::checkNotification()
+{
+	const auto &dir = getContentDir();
+
+	if (!dir)
+		return;
+
+	const QString &filename = dir->absoluteFilePath(QStringLiteral("notification.json"));
+
+	const auto &ptr = Utils::fileToJsonObject(filename);
+
+	QJsonArray characterList;
+	QJsonArray mapList;
+
+	if (ptr) {
+		characterList = ptr->value(QStringLiteral("characters")).toArray();
+		mapList = ptr->value(QStringLiteral("maps")).toArray();
+	}
+
+
+	QStringList newCharacterList;
+	QStringList newMapList;
+
+
+	for (const auto &[id, config] : RpgGame::characters().asKeyValueRange()) {
+		if (!characterList.contains(id)) {
+			characterList.append(id);
+			newCharacterList.append(config.name);
+		}
+	}
+
+	for (const auto &[id, config] : RpgGame::terrains().asKeyValueRange()) {
+		if (!mapList.contains(id)) {
+			mapList.append(id);
+			newMapList.append(config.name);
+		}
+	}
+
+	if (!newMapList.isEmpty()) {
+		m_notificationContent.insert(qMakePair(NotificationMap, 1), mapList);
+		emit notificationActivated(NotificationMap, 1, tr("Új világ elérhető: <b>%1</b>").arg(newMapList.join(QStringLiteral(", "))));
+	} else if (!newCharacterList.isEmpty()) {
+		m_notificationContent.insert(qMakePair(NotificationCharacter, 1), characterList);
+		emit notificationActivated(NotificationCharacter, 1, tr("Új karakter elérhető: <b>%1</b>").arg(newCharacterList.join(QStringLiteral(", "))));
+	}
+
+
+}
+
+
+
+
+/**
+ * @brief Server::closeNotification
+ * @param type
+ * @param id
+ */
+
+void Server::closeNotification(const NotificationType &type, const int &id)
+{
+	if (type == NotificationInvalid || id <= 0)
+		return;
+
+	QJsonArray list = m_notificationContent.take(qMakePair(type, id)).toArray();
+
+	if (list.isEmpty())
+		return;
+
+	const auto &dir = getContentDir();
+
+	if (!dir)
+		return;
+
+	const QString &filename = dir->absoluteFilePath(QStringLiteral("notification.json"));
+
+	QJsonObject data = Utils::fileToJsonObject(filename).value_or(QJsonObject());
+
+	if (type == NotificationMap) {
+		data[QStringLiteral("maps")] = list;
+	} else if (type == NotificationCharacter) {
+		data[QStringLiteral("characters")] = list;
+	}
+
+	Utils::jsonObjectToFile(data, filename);
 }
 
 

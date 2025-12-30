@@ -153,6 +153,11 @@ Page {
 	}
 
 
+	StudentDashboardNotification {
+		id: _notification
+		alwaysHide: _rpgVisible
+	}
+
 	Qaterial.AppBarButton
 	{
 		id: _backButton
@@ -238,6 +243,8 @@ Page {
 	}
 
 	StackView.onActivated: {
+		_notification.check()
+
 		if (_multiplayer)
 			Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentPlayMultiplayer)
 		else

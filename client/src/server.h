@@ -88,6 +88,15 @@ public:
 		}
 	};
 
+	enum NotificationType {
+		NotificationInvalid,
+		NotificationMap,
+		NotificationCharacter,
+	};
+
+	Q_ENUM(NotificationType)
+
+
 	static Server *fromJson(const QJsonObject &data, QObject *parent = nullptr);
 	QJsonObject toJson() const;
 
@@ -151,7 +160,12 @@ public:
 	bool isStatic() const;
 	void setIsStatic(bool newIsStatic);
 
+	Q_INVOKABLE void checkNotification();
+	Q_INVOKABLE void closeNotification(const NotificationType &type, const int &id);
+
 signals:
+	void notificationActivated(const NotificationType &type, const int &id, const QString &text);
+
 	void urlChanged();
 	void directoryChanged();
 	void autoConnectChanged();
@@ -197,6 +211,8 @@ private:
 #endif
 
 	QStringList m_loadedContentList;
+
+	QHash<QPair<NotificationType, int>, QJsonValue> m_notificationContent;
 };
 
 
