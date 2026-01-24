@@ -31,7 +31,7 @@
 #include "application.h"
 #include "server.h"
 #include "utils_.h"
-#include "../modules/binary/modulebinary.h"
+#include "teacherexam.h"
 
 
 const QString TestGame::CheckOK = QStringLiteral("<img src=\"imgdata://check.png\" width=\"30\" align=right valign=top/>");
@@ -645,7 +645,7 @@ QString TestGame::questionDataResultToHtml(const QuestionData &data)
 
 				if (answer > 0) {
 					html += QStringLiteral("[<b>");
-					html += ModuleBinary::numberToKey(answer);
+					html += ExamPaper::getOptionString(answer);
 					html += QStringLiteral("</b>] ");
 				}
 

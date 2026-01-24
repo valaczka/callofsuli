@@ -222,7 +222,9 @@ SOURCES += \
 	editorundostack.cpp \
 	exam.cpp \
 	examgame.cpp \
+	exampaper.cpp \
 	examresultmodel.cpp \
+	examscandata.cpp \
 	fetchmodel.cpp \
 	fontimage.cpp \
 	gamequestion.cpp \
@@ -339,7 +341,9 @@ HEADERS += \
 	editorundostack.h \
 	exam.h \
 	examgame.h \
+	exampaper.h \
 	examresultmodel.h \
+	examscandata.h \
 	fetchmodel.h \
 	fontimage.h \
 	gamequestion.h \

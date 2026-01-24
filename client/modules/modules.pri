@@ -16,4 +16,5 @@ MODULES_LIST = truefalse \
 				binary \
 				selector \
 				mergebinding \
-				mergeblock
+				mergeblock \
+				doublechoice

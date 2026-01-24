@@ -128,10 +128,6 @@ void StandaloneClient::onMainWindowChanged()
 
 #if QT_VERSION >= 0x060900
 	connect(m_mainWindow, &QWindow::safeAreaMarginsChanged, this, [this](const QMargins &){ safeMarginsGet(); });
-
-	m_mainWindow->setFlag(Qt::ExpandedClientAreaHint);
-	m_mainWindow->setFlag(Qt::NoTitleBarBackgroundHint);
-
 #endif
 }
 

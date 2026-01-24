@@ -25,6 +25,7 @@
  */
 
 #include <QRandomGenerator>
+#include <exampaper.h>
 #include "modulebinary.h"
 
 QVector<int> ModuleBinary::m_numbers;
@@ -95,14 +96,15 @@ QString ModuleBinary::testResult(const QVariantMap &data, const QVariantMap &ans
 		else
 			html += QStringLiteral("<span class=\"answerFail\">");
 
-		html += numberToKey(answer.value(QStringLiteral("num")).toInt());
+
+		html += ExamPaper::getOptionString(answer.value(QStringLiteral("num")).toInt());
 
 		html += QStringLiteral("</span>");
 	}
 
 	if (const int num = data.value(QStringLiteral("answer")).toInt(); !success && num > 0) {
 		html += QStringLiteral(" <span class=\"answerCorrect\">")
-				+ numberToKey(num) + QStringLiteral("</span>");
+				+ ExamPaper::getOptionString(num) + QStringLiteral("</span>");
 	}
 
 	html += QStringLiteral("</p>");
@@ -380,7 +382,7 @@ QVariantMap ModuleBinary::preview(const QVariantList &generatedList, const QVari
 
 		s.append(QStringLiteral("- %1 - **%2**\n")
 				 .arg(m.value(QStringLiteral("question")).toString())
-				 .arg(numberToKey(m.value(QStringLiteral("answer")).toInt()))
+				 .arg(ExamPaper::getOptionString(m.value(QStringLiteral("answer")).toInt()))
 				 );
 	}
 
@@ -394,7 +396,7 @@ QVariantMap ModuleBinary::preview(const QVariantList &generatedList, const QVari
 
 			if (answer > 0)
 				s.append(QStringLiteral("[%1] %2\n\n")
-						 .arg(numberToKey(answer))
+						 .arg(ExamPaper::getOptionString(answer))
 						 .arg(m.value(QStringLiteral("data")).toString())
 						 );
 			else
@@ -409,51 +411,8 @@ QVariantMap ModuleBinary::preview(const QVariantList &generatedList, const QVari
 
 
 
-/**
- * @brief ModuleBinary::numberToKey
- * @param number
- * @return
- */
-
-QString ModuleBinary::numberToKey(const int &number)
-{
-	static const char *letters = "ABCDEF";
-
-	QString s;
-
-	for (int i=0; i<(int) strlen(letters); ++i) {
-		const int bit = (1 << i);
-
-		if (number & bit)
-			s.append(letters[i]);
-	}
-
-	return s;
-}
 
 
-
-
-
-/**
- * @brief ModuleBinary::keyToNumber
- * @param key
- * @return
- */
-
-int ModuleBinary::keyToNumber(const QString &key)
-{
-	static const char *letters = "ABCDEF";
-
-	int num = 0;
-
-	for (int i=0; i<(int) strlen(letters); ++i) {
-		if (key.contains(letters[i]))
-			num += (1 << i);
-	}
-
-	return num;
-}
 
 
 

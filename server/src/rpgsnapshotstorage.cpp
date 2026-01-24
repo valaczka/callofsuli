@@ -436,7 +436,7 @@ template<typename B, typename T2>
 QString RendererType::dumpAs(const B &data, const QList<B> &subData) const
 {
 	QString txt = QStringLiteral("%1 [%2] %3")
-				  .arg(m_flags)
+				  .arg((int)m_flags)
 				  .arg(data.f)
 				  .arg(subData.size())
 				  ;
@@ -476,7 +476,7 @@ QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGam
 				  .arg(data.hp)
 				  .arg(data.c)
 				  .arg(data.pck.id)
-				  .arg(data.ft)
+				  .arg((int)data.ft)
 				  ;
 
 	txt += QStringLiteral("arm:%1/%2 ")
@@ -522,7 +522,7 @@ QString RendererType::dumpAs(const RpgGameData::Player &data, const QList<RpgGam
 QString RendererType::dumpAs(const RpgGameData::Enemy &data, const QList<RpgGameData::Enemy> &/*subData*/) const
 {
 	QString txt = QStringLiteral("%1 [%2] %3 hp ")
-				  .arg(m_flags)
+				  .arg((int)m_flags)
 				  .arg(data.st)
 				  .arg(data.hp)
 				  ;
