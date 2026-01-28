@@ -220,17 +220,55 @@ void ServerService::agentSignLoad()
 {
 	QDirIterator it(m_settings->dataDir().absoluteFilePath(QStringLiteral("agentSign")), QDir::Files);
 
+	LOG_CDEBUG("service") << "Load agent signatures";
+
 	while (it.hasNext()) {
 		const QString &file = it.next();
-		const auto &ptr = Utils::fileContent(file);
+		auto ptr = Utils::fileToJsonObject(file);
 
 		if (!ptr) {
-			LOG_CERROR("service") << "Read error:" << file;
+			LOG_CERROR("service") << "JSON read error:" << file;
 			continue;
 		}
 
-		LOG_CDEBUG("service") << "Add agent signature" << file;
-		m_agentSignatures.append(ptr->data());
+		QString buildId = ptr->take(QStringLiteral("build_id")).toString();
+		QByteArray build = QByteArray::fromHex(buildId.toLatin1());
+
+		QString publicKeyStr = ptr->take(QStringLiteral("public_key")).toString();
+		QByteArray publicKey = QByteArray::fromBase64(publicKeyStr.toLatin1());
+
+		LOG_CDEBUG("service") << "- build:" << buildId << build.toHex(':');
+
+		if (publicKey.size() != crypto_sign_PUBLICKEYBYTES) {
+			LOG_CWARNING("service") << "   * Invalid public key" << publicKeyStr;
+			continue;
+		}
+
+		AgentSignature &sig = m_agentSignatures[build];
+
+		std::memcpy(sig.publicKey.data(),
+					reinterpret_cast<const unsigned char*>(publicKey.constData()),
+					publicKey.size());
+
+		for (const auto &[k, l] : ptr->asKeyValueRange()) {
+			const QByteArray platform = k.toString().toLatin1();
+
+			QSet<QByteArray> &proof = sig.platformProof[platform];
+
+			const QJsonArray list = l.toArray();
+
+			for (const QJsonValue &v : list) {
+				proof.insert(QByteArray::fromBase64(v.toString().toLatin1()));
+			}
+
+			if (proof.isEmpty()) {
+				LOG_CDEBUG("service") << "   *" << platform.constData() << "[]";
+				continue;
+			}
+
+			for (const QByteArray &p : proof)
+				LOG_CDEBUG("service") << "   *" << platform.constData() << p.toHex(':');
+		}
 	}
 }
 
@@ -616,7 +654,7 @@ std::optional<int> ServerService::preStart()
 	m_settings->setDataDir(QCoreApplication::applicationDirPath());
 
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2025 Valaczka János Pál")));
+	parser.setApplicationDescription(QString::fromUtf8(QByteArrayLiteral("Call of Suli szerver – Copyright © 2012-2026 Valaczka János Pál")));
 	parser.setSingleDashWordOptionMode(QCommandLineParser::ParseAsCompactedShortOptions);
 
 	auto helpOption = parser.addHelpOption();
@@ -1172,7 +1210,7 @@ bool ServerService::start()
 	if (!m_createToken.isEmpty()) {
 		if (const auto &cred = AuthAPI::getCredential(m_databaseMain.get(), m_createToken)) {
 			LOG_CDEBUG("service") << "Create token for:" << qPrintable(m_createToken);
-			const QByteArray &token = cred->createJWT(m_settings->jwtSecret());
+			const QByteArray &token = cred->createJWT(m_settings->jwtSecret(), QByteArray(), QByteArray());
 			QConsole::qStdOut()->write(token);
 			QConsole::qStdOut()->write("\n");
 		} else {
@@ -1325,7 +1363,7 @@ UdpServer *ServerService::udpServer() const
  * @return
  */
 
-const QList<QByteArray> &ServerService::agentSignatures() const
+const QHash<QByteArray, ServerService::AgentSignature> &ServerService::agentSignatures() const
 {
 	return m_agentSignatures;
 }

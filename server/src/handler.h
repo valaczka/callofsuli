@@ -60,7 +60,7 @@ public:
 		return dynamic_cast<T*>(api(path));
 	}
 
-	bool verifyPeer(const QHttpServerRequest &request) const;
+	bool verifyPeer(const QHttpServerRequest &request, const Credential &credential) const;
 
 private:
 	QHttpServerResponse getFavicon(const QHttpServerRequest &request);

@@ -30,6 +30,7 @@
 #include "client.h"
 #include <QApplication>
 #include <QtQml>
+#include <sodium.h>
 #include "../modules/interfaces.h"
 
 
@@ -53,6 +54,41 @@ public:
 		DevPage,
 		Adjacency [[deprecated]],
 		Terminal
+	};
+
+
+	struct Device {
+		static const QString userAgent;
+
+#ifndef Q_OS_WASM
+		mutable QMutex mutex;
+#endif
+
+		std::array<unsigned char, crypto_sign_SEEDBYTES> seed;
+		std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> publicKey;
+		std::array<unsigned char, crypto_sign_SECRETKEYBYTES> privateKey;
+
+		mutable QByteArray identity;
+		mutable QByteArray identitySignature;
+
+		template <std::size_t N>
+		void moveToArray(QByteArray& src, std::array<unsigned char, N> *dst)
+		{
+			Q_ASSERT(dst);
+
+			if (src.size() != static_cast<int>(N)) {
+				throw std::runtime_error("Invalid secret length");
+			}
+
+#ifndef Q_OS_WASM
+			QMutexLocker locker(&mutex);
+#endif
+
+			std::memcpy(dst->data(), src.constData(), N);
+
+			sodium_memzero(src.data(), src.size());
+			src.clear();
+		}
 	};
 
 	int run();
@@ -81,17 +117,24 @@ public:
 	void selectUrl(const QUrl &url);
 
 	static const QString &userAgent();
-	static const QByteArray userAgentSign(const QByteArray &content);
+	QByteArray userAgentSign(const QByteArray &content,
+							 const QByteArray &sessionId);
+
+	std::optional<std::pair<QByteArray, QByteArray> > deviceIdentity() const;
+	void setOnDeviceIdentityReady(QObject *instance, const std::function<void(bool)> &func, const bool &startTimer = true);
 
 protected:
 	virtual bool loadMainQml();
 	virtual bool loadResources();
 	virtual Client *createClient() = 0;
+	virtual QByteArray getDeviceIdentityPlatform() const = 0;
+	virtual bool getDeviceKeyPlatform() = 0;
 
 	void registerQmlTypes();
 	void loadFonts();
 	void loadQaterial();
 	void loadModules();
+	void loadDeviceIdentity();
 
 	friend class Client;
 	friend class OnlineClient;
@@ -107,7 +150,12 @@ protected:
 	QHash<QString, ModuleInterface*> m_objectiveModules;
 	QHash<QString, ModuleInterface*> m_storageModules;
 
-	static const QString m_userAgent;
+	Device m_device;
+
+private:
+	QTimer m_deviceIdentityTimer;
+	std::function<void(bool)> m_deviceIdentityFunc;
+	QObject *m_deviceIdentityInst = nullptr;
 };
 
 #endif // APPLICATION_H

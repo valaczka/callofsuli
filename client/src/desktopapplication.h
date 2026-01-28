@@ -55,6 +55,7 @@ public:
 
 protected:
 	virtual Client *createClient() override;
+	virtual QByteArray getDeviceIdentityPlatform() const override;
 
 private:
 	QStringList m_arguments;

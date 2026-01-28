@@ -176,3 +176,15 @@ QMarginsF MobileUtils::getSafeMargins()
 
 	return margins;
 }
+
+
+
+/**
+ * @brief MobileUtils::getApkSigningCertSha256
+ * @return
+ */
+
+QByteArray MobileUtils::getApkSigningCertSha256()
+{
+	return QByteArrayLiteral("-");
+}

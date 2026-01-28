@@ -1,5 +1,5 @@
 Call of Suli server
-Copyright (C) 2012-2025 Valaczka János Pál
+Copyright (C) 2012-2026 Valaczka János Pál
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

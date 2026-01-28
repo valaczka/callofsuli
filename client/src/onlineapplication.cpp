@@ -84,3 +84,56 @@ Client *OnlineApplication::createClient()
 }
 
 
+
+/**
+ * @brief OnlineApplication::getDeviceIdentityPlatform
+ * @return
+ */
+
+QByteArray OnlineApplication::getDeviceIdentityPlatform() const
+{
+	return QByteArrayLiteral("-");
+}
+
+
+/**
+ * @brief OnlineApplication::getDeviceKeyPlatform
+ * @return
+ */
+
+bool OnlineApplication::getDeviceKeyPlatform()
+{
+	QSettings s;
+	QByteArray key = s.value(QStringLiteral("deviceSeed")).toByteArray();
+
+	if (key.size() != (int) m_device.seed.size()) {
+		LOG_CWARNING("app") << "Device seed length mismatch" << key.size();
+
+		QByteArray k(crypto_sign_SEEDBYTES, Qt::Uninitialized);
+
+
+		// Ez valamiért nem működött...
+		///randombytes_buf(key.data(), key.size());
+
+		for (int i=0; i<k.size(); ++i)
+			k.data()[i] = QRandomGenerator::global()->bounded(256);
+
+		key = k;
+
+		LOG_CDEBUG("app") << "Create new device key" << key.size();
+
+
+
+		s.setValue(QStringLiteral("deviceSeed"), key);
+		s.sync();
+	}
+
+	m_device.moveToArray(key, &m_device.seed);
+
+	if (crypto_sign_seed_keypair(m_device.publicKey.data(), m_device.privateKey.data(), m_device.seed.data()) != 0) {
+		LOG_CERROR("app") << "Keypair generation failed";
+		return false;
+	}
+
+	return true;
+}

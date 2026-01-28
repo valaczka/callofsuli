@@ -122,7 +122,7 @@ public:
 
 	Credential(const QString &username, const Roles &roles = None);
 
-	QByteArray createJWT(const QByteArray &secret) const;
+	QByteArray createJWT(const QByteArray &secret, const QByteArray &session, const QByteArray &publicKey) const;
 	static Credential fromJWT(const QByteArray &jwt);
 
 	static bool verify(const QByteArray &token, const QByteArray &secret, const qint64 &firstIat);
@@ -138,6 +138,9 @@ public:
 
 	qint64 iat() const;
 
+	QByteArray session() const;
+	QByteArray devicePub() const;
+
 	inline bool operator==(const Credential &other) {
 		return other.m_username == m_username &&
 				other.m_roles == m_roles;
@@ -148,6 +151,8 @@ private:
 	QString m_username;
 	Roles m_roles = None;
 	qint64 m_iat = 0;
+	QByteArray m_session;
+	QByteArray m_devicePub;
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(Credential::Roles);

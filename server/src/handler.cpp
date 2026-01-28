@@ -194,6 +194,7 @@ std::optional<Credential> Handler::authorizeRequestLog(const QHttpServerRequest 
 	LOG_CDEBUG("service") << method.constData() << qPrintable(request.url().path())
 						  << qPrintable(request.remoteAddress().toString()) << request.remotePort()
 						  << (credential ? qPrintable(credential->username()) : "")
+						  << (credential ? credential->session() : "")
 						  << (userAgent.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgent+QByteArrayLiteral("]")).constData());
 
 	return credential;
@@ -489,29 +490,64 @@ AbstractAPI *Handler::api(const char *path) const
  * @return
  */
 
-bool Handler::verifyPeer(const QHttpServerRequest &request) const
+bool Handler::verifyPeer(const QHttpServerRequest &request, const Credential &credential) const
 {
 	const auto &message = request.body();
 
 	if (!m_service->settings()->verifyPeer())
 		return true;
 
-	const QByteArray &userAgentSign = request.value(QByteArrayLiteral("User-Agent-Sign"));
+	const QByteArray deviceSignature = QByteArray::fromBase64(request.value(QByteArrayLiteral("Content-Signature")));
 
-
-	const auto &list = m_service->agentSignatures();
-
-	for (const QByteArray &key : list) {
-		if (QMessageAuthenticationCode::hash(message, key, QCryptographicHash::Sha3_256).toBase64() == userAgentSign) {
-			return true;
-		}
+	if (deviceSignature.size() != crypto_sign_BYTES) {
+		LOG_CWARNING("service") << "Peer verification failed (invalid signature size)" << deviceSignature.size()
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
 	}
 
-	LOG_CWARNING("service") << "Peer verification failed"
-						  << qPrintable(request.remoteAddress().toString()) << request.remotePort()
-						  << (userAgentSign.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgentSign+QByteArrayLiteral("]")).constData());
+	if (!credential.isValid() && credential.devicePub().isEmpty()) {
+		LOG_CWARNING("service") << "Peer verification failed (invalid credential)"
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
+	}
 
-	return false;
+	if (credential.devicePub().size() != crypto_sign_PUBLICKEYBYTES) {
+		LOG_CWARNING("service") << "Peer verification failed (invalid public key size)"
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
+	}
+
+	QByteArray session = QByteArray::fromHex(credential.session());
+
+	std::vector<unsigned char> msg;
+	msg.reserve(message.size() + session.size());
+
+	msg.insert(msg.end(),
+			   reinterpret_cast<const unsigned char*>(message.constData()),
+			   reinterpret_cast<const unsigned char*>(message.constData()) + message.size());
+
+	msg.insert(msg.end(),
+			   reinterpret_cast<const unsigned char*>(session.constData()),
+			   reinterpret_cast<const unsigned char*>(session.constData()) + session.size());
+
+
+	if (crypto_sign_verify_detached(reinterpret_cast<const unsigned char*>(deviceSignature.constData()),
+									msg.data(),
+									msg.size(),
+									reinterpret_cast<const unsigned char*>(credential.devicePub().constData())
+									) != 0)
+	{
+		LOG_CWARNING("service") << "Peer verification failed (invalid signature)"
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
+	}
+
+
+	return true;
 }
 
 

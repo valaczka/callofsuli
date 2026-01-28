@@ -222,11 +222,9 @@ void OnlineClient::onResourceDownloaded()
 			if (!m_resourceList.contains(filename) || payload.isEmpty())	{
 				LOG_CWARNING("client") << "Érvénytelen erőforrás:" << qPrintable(filename);
 			} else {
-				const std::size_t count = payload.size();
-				unsigned char* resourceData = new unsigned char[count];
-				std::memcpy(resourceData, payload.constData(), count);
+				m_resources.append(payload);
 
-				QResource::registerResource(resourceData);
+				QResource::registerResource(reinterpret_cast<const uchar *>(m_resources.back().constData()));
 
 				LOG_CINFO("client") << "Register resource:" << qPrintable(filename);
 
@@ -258,10 +256,17 @@ void OnlineClient::onAllResourceReady()
 
 	initializeDynamicResources();
 
-	if (m_demoMode)
-		m_startPage = loadDemoMap();
-	else
-		m_startPage = stackPushPage("PageStart.qml");
+
+	m_application->setOnDeviceIdentityReady(this, [this](const bool &success) {
+		if (!success)
+			messageError(tr("Eszközöazonosító meghatározása sikertelen!"));
+
+		if (m_demoMode)
+			m_startPage = loadDemoMap();
+		else
+			m_startPage = stackPushPage("PageStart.qml");
+	});
+
 }
 
 

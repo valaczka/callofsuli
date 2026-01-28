@@ -777,3 +777,15 @@ void Server::closeNotification(const NotificationType &type, const int &id)
 
 
 
+QByteArray Server::sessionId() const
+{
+	return m_sessionId;
+}
+
+void Server::setSessionId(const QByteArray &newSessionId)
+{
+	if (m_sessionId == newSessionId)
+		return;
+	m_sessionId = newSessionId;
+	emit sessionIdChanged();
+}

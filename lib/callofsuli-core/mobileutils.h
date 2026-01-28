@@ -28,8 +28,6 @@
 #define MOBILEUTILS_H
 
 #include "qmargins.h"
-#include "qurl.h"
-#include <string>
 
 class MobileUtils
 {
@@ -51,6 +49,8 @@ public:
 	static QString checkPendingIntents();
 
 	static QMarginsF getSafeMargins();
+
+	static QByteArray getApkSigningCertSha256();
 
 private:
 	static MobileUtils *m_instance;

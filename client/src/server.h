@@ -61,6 +61,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(QDir directory READ directory WRITE setDirectory NOTIFY directoryChanged)
 	Q_PROPERTY(bool autoConnect READ autoConnect WRITE setAutoConnect NOTIFY autoConnectChanged)
 	Q_PROPERTY(QString token READ token WRITE setToken NOTIFY tokenChanged)
+	Q_PROPERTY(QByteArray sessionId READ sessionId WRITE setSessionId NOTIFY sessionIdChanged FINAL)
 	Q_PROPERTY(QByteArray certificate READ certificate WRITE setCertificate NOTIFY certificateChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QJsonObject config READ config NOTIFY configChanged)
@@ -163,6 +164,9 @@ public:
 	Q_INVOKABLE void checkNotification();
 	Q_INVOKABLE void closeNotification(const NotificationType &type, const int &id);
 
+	QByteArray sessionId() const;
+	void setSessionId(const QByteArray &newSessionId);
+
 signals:
 	void notificationActivated(const NotificationType &type, const int &id, const QString &text);
 
@@ -180,6 +184,7 @@ signals:
 	void maxUploadSizeChanged();
 	void dynamicContentReadyChanged();
 	void isStaticChanged();
+	void sessionIdChanged();
 
 private:
 	std::optional<QDir> getContentDir() const;
@@ -213,6 +218,7 @@ private:
 	QStringList m_loadedContentList;
 
 	QHash<QPair<NotificationType, int>, QJsonValue> m_notificationContent;
+	QByteArray m_sessionId;
 };
 
 

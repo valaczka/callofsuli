@@ -190,3 +190,10 @@ if ($$BackwardCpp) {
 	LIBS += -lbfd
 	SOURCES += $$PWD/../client/src/backward.cpp
 }
+
+
+
+
+# QtKeychain
+
+!wasm: include($$PWD/qtkeychain/qtkeychain.pri)

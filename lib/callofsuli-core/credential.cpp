@@ -66,7 +66,7 @@ bool Credential::isValid() const
  * @return
  */
 
-QByteArray Credential::createJWT(const QByteArray &secret) const
+QByteArray Credential::createJWT(const QByteArray &secret, const QByteArray &session, const QByteArray &publicKey) const
 {
 	QStringList list;
 
@@ -102,6 +102,12 @@ QByteArray Credential::createJWT(const QByteArray &secret) const
 	obj.insert(QStringLiteral("iat"), QDateTime::currentSecsSinceEpoch());
 	obj.insert(QStringLiteral("exp"), exp.toSecsSinceEpoch());
 	obj.insert(QStringLiteral("roles"), list.join("|"));
+
+	if (!session.isEmpty())
+		obj.insert(QStringLiteral("sid"), QString::fromLatin1(session));
+
+	if (!publicKey.isEmpty())
+		obj.insert(QStringLiteral("pub"), QString::fromLatin1(publicKey.toBase64()));
 
 	Token jwt;
 
@@ -159,6 +165,14 @@ Credential Credential::fromJWT(const QByteArray &jwt)
 	}
 
 	c.setRoles(roles);
+
+
+	if (const QString &sid = obj.value(QStringLiteral("sid")).toString(); !sid.isEmpty())
+		c.m_session = sid.toLatin1();
+
+
+	if (const QString &pub = obj.value(QStringLiteral("pub")).toString(); !pub.isEmpty())
+		c.m_devicePub = QByteArray::fromBase64(pub.toLatin1());
 
 	return c;
 }
@@ -243,6 +257,16 @@ void Credential::setRole(const Role &role, const bool &on)
 qint64 Credential::iat() const
 {
 	return m_iat;
+}
+
+QByteArray Credential::session() const
+{
+	return m_session;
+}
+
+QByteArray Credential::devicePub() const
+{
+	return m_devicePub;
 }
 
 

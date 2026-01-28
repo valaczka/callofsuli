@@ -74,6 +74,7 @@
 #include <QDebug>
 
 #include <Qaterial/Qaterial.hpp>
+#include <sodium.h>
 
 #include "application.h"
 #include "../modules/staticmodules.h"
@@ -95,11 +96,11 @@
 
 Application *Application::m_instance = nullptr;
 
-const QString Application::m_userAgent = QStringLiteral("CallOfSuli/%1 (%2; %3)")
-										 .arg(Utils::versionNumber().toString())
-										 .arg(QSysInfo::prettyProductName())
-										 .arg(QSysInfo::currentCpuArchitecture())
-										 ;
+const QString Application::Device::userAgent = QStringLiteral("CallOfSuli/%1 (%2; %3)")
+											   .arg(Utils::versionNumber().toString())
+											   .arg(QSysInfo::prettyProductName())
+											   .arg(QSysInfo::currentCpuArchitecture())
+											   ;
 
 
 
@@ -117,6 +118,8 @@ const bool Application::m_debug = true;
 
 void Application::initialize()
 {
+	Q_ASSERT (sodium_init() >= 0);
+
 	QCoreApplication::setApplicationName(QStringLiteral("callofsuli"));
 	QCoreApplication::setOrganizationDomain(QStringLiteral("callofsuli"));
 	QCoreApplication::setApplicationVersion(Utils::versionNumber().toString());
@@ -152,6 +155,10 @@ Application::Application(QApplication *app)
 	});
 
 	m_engine = std::make_unique<QQmlApplicationEngine>();
+
+	sodium_memzero(m_device.seed.data(), m_device.seed.size());
+	sodium_memzero(m_device.privateKey.data(), m_device.privateKey.size());
+	sodium_memzero(m_device.publicKey.data(), m_device.publicKey.size());
 
 	/*
 #ifndef QT_NO_DEBUG
@@ -218,6 +225,8 @@ int Application::run()
 		LOG_CERROR("app") << "Missing root object";
 		return -1;
 	}
+
+	QObject::connect(&m_deviceIdentityTimer, &QTimer::timeout, m_client.get(), std::bind(&Application::loadDeviceIdentity, this));
 
 	LOG_CINFO("app") << "Run Application";
 
@@ -567,6 +576,28 @@ void Application::loadModules()
 
 
 
+/**
+ * @brief Application::loadDeviceIdentity
+ */
+
+void Application::loadDeviceIdentity()
+{
+	if (const auto &ptr = deviceIdentity()) {
+		m_deviceIdentityTimer.stop();
+		if (m_deviceIdentityInst && m_deviceIdentityFunc)
+			m_deviceIdentityFunc(true);
+
+	} else if (!getDeviceKeyPlatform()) {
+		LOG_CERROR("app") << "Device key read error";
+
+		m_deviceIdentityTimer.stop();
+		if (m_deviceIdentityInst && m_deviceIdentityFunc)
+			m_deviceIdentityFunc(false);
+	}
+}
+
+
+
 
 
 /**
@@ -576,7 +607,7 @@ void Application::loadModules()
 
 const QString &Application::userAgent()
 {
-	return m_userAgent;
+	return Device::userAgent;
 }
 
 
@@ -588,27 +619,164 @@ const QString &Application::userAgent()
  * @return
  */
 
-const QByteArray Application::userAgentSign(const QByteArray &content)
+QByteArray Application::userAgentSign(const QByteArray &content, const QByteArray &sessionId)
 {
-	static const QString fname(":/sign/agent_sign.dat");
-	static QByteArray key;
-	static bool isFirst = true;
+	std::array<unsigned char, crypto_sign_SECRETKEYBYTES> privateKey;
 
-	if (isFirst) {
-		QFile f(fname);
+	{
+#ifndef Q_OS_WASM
+		QMutexLocker locker(&m_device.mutex);
+#endif
 
-		if (f.open(QIODevice::ReadOnly)) {
-			key = f.readAll();
-			f.close();
+		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
+			LOG_CERROR("app") << "Device private key missing";
+			return {};
 		}
 
-		isFirst = false;
+		privateKey = m_device.privateKey;
 	}
 
-	if (key.isEmpty())
-		return {};
 
-	return QMessageAuthenticationCode::hash(content, key, QCryptographicHash::Sha3_256).toBase64();
+	std::vector<unsigned char> msg;
+	msg.reserve(content.size() + sessionId.size());
+
+	msg.insert(msg.end(),
+			   reinterpret_cast<const unsigned char*>(content.constData()),
+			   reinterpret_cast<const unsigned char*>(content.constData()) + content.size());
+
+	msg.insert(msg.end(),
+			   reinterpret_cast<const unsigned char*>(sessionId.constData()),
+			   reinterpret_cast<const unsigned char*>(sessionId.constData()) + sessionId.size());
+
+
+	QByteArray sig(crypto_sign_BYTES, Qt::Uninitialized);
+
+	if (crypto_sign_detached(reinterpret_cast<unsigned char*>(sig.data()),
+							 nullptr,
+							 msg.data(), msg.size(),
+							 privateKey.data()) != 0) {
+		LOG_CERROR("app") << "Crypt sign error";
+		return {};
+	}
+
+	return sig;
+}
+
+
+
+/**
+ * @brief Application::deviceIdentity
+ * @return
+ */
+
+std::optional<std::pair<QByteArray, QByteArray> > Application::deviceIdentity() const
+{
+	QByteArray privateKey;
+	QByteArray publicKey;
+
+	{
+#ifndef Q_OS_WASM
+		QMutexLocker locker(&m_device.mutex);
+#endif
+
+		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
+			//LOG_CERROR("app") << "Device private key missing";
+			return std::nullopt;
+		}
+
+		if (sodium_is_zero(m_device.publicKey.data(), m_device.publicKey.size())) {
+			//LOG_CERROR("app") << "Device public key missing";
+			return std::nullopt;
+		}
+
+		if (!m_device.identity.isEmpty() && !m_device.identitySignature.isEmpty()) {
+			return {
+				{ m_device.identity, m_device.identitySignature }
+			};
+		}
+
+		privateKey.resize(m_device.privateKey.size());
+		std::memcpy(privateKey.data(), m_device.privateKey.data(), m_device.privateKey.size());
+
+		publicKey.resize(m_device.publicKey.size());
+		std::memcpy(publicKey.data(), m_device.publicKey.data(), m_device.publicKey.size());
+	}
+
+
+	static const QString fname(":/sign/agent_sign.dat");
+	QByteArray content;
+
+	QFile f(fname);
+
+	if (f.open(QIODevice::ReadOnly)) {
+		content = f.readAll();
+		f.close();
+	}
+
+	QCborArray container = QCborValue::fromCbor(content).toArray();
+
+	QByteArray manifest;
+	QByteArray signature;
+
+	if (container.size() > 1) {
+		manifest = container.first().toByteArray();
+		signature = container.at(1).toByteArray();
+
+		//manifestData = QCborValue::fromCbor(manifest).toArray();
+	}
+
+	const QByteArray proof = getDeviceIdentityPlatform();
+
+	QCborMap identity;
+
+	identity.insert(QStringLiteral("proto"),			QByteArrayLiteral("identity/v1"));
+	identity.insert(QStringLiteral("public_key"),		publicKey);
+	identity.insert(QStringLiteral("manifest"),			manifest);
+	identity.insert(QStringLiteral("signature"),		signature);
+	identity.insert(QStringLiteral("proof"),			proof);
+
+	//LOG_CERROR("app") << "****PROOF" << proof.toHex(':');
+
+	QByteArray msg = QCborValue(identity).toCbor();
+	QByteArray sig(crypto_sign_BYTES, Qt::Uninitialized);
+
+	if (crypto_sign_detached(reinterpret_cast<unsigned char*>(sig.data()),
+							 nullptr,
+							 reinterpret_cast<const unsigned char*>(msg.constData()), msg.size(),
+							 reinterpret_cast<const unsigned char*>(privateKey.data())) != 0) {
+		LOG_CERROR("app") << "Crypt sign error";
+		return std::nullopt;
+	}
+
+
+	{
+#ifndef Q_OS_WASM
+		QMutexLocker locker(&m_device.mutex);
+#endif
+
+		m_device.identity = msg;
+		m_device.identitySignature = sig;
+	}
+
+	return { { msg, sig } };
+}
+
+
+/**
+ * @brief Application::setOnDeviceIdentityReady
+ * @param func
+ * @param startTimer
+ */
+
+void Application::setOnDeviceIdentityReady(QObject *instance, const std::function<void (bool)> &func, const bool &startTimer)
+{
+	m_deviceIdentityInst = instance;
+	m_deviceIdentityFunc = func;
+
+	if (startTimer) {
+		m_deviceIdentityTimer.start(125);
+		loadDeviceIdentity();
+	}
 }
 
 

@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * mobileapplication.h
+ * desktoputils.h
  *
- * Created on: 2023. 01. 13.
+ * Created on: 2026. 01. 26.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * MobileApplication
+ * DesktopUtils
  *
  *  This file is part of Call of Suli.
  *
@@ -24,28 +24,34 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef MOBILEAPPLICATION_H
-#define MOBILEAPPLICATION_H
+#ifndef DESKTOPUTILS_H
+#define DESKTOPUTILS_H
 
-#include "application.h"
+#include <QByteArray>
+#include <QString>
+#include <optional>
 
-class MobileApplication : public Application
+
+
+class DesktopUtils
 {
+
 public:
-	MobileApplication(QApplication *app);
-	virtual ~MobileApplication();
+	DesktopUtils();
 
-	virtual void initialize();
-	virtual void createStandardPath();
+	static DesktopUtils* instance() {
+		if (!m_instance)
+			m_instance = new DesktopUtils();
+		return m_instance;
+	}
+
+	static std::optional<QByteArray> getExeHash(const QString &exePath, QString *err = nullptr,
+												const qint64 &chunkSize = (1 << 20));
 
 
-protected:
-	virtual Client *createClient() override;
-	virtual QByteArray getDeviceIdentityPlatform() const override;
-	virtual bool getDeviceKeyPlatform() override;
 
-	bool deviceKeyRead();
-	void deviceKeyCreate();
+private:
+	static inline DesktopUtils *m_instance = nullptr;
 };
 
-#endif // MOBILEAPPLICATION_H
+#endif // DESKTOPUTILS_H
