@@ -53,8 +53,15 @@ else: extralib.commands = echo \"Create bundle...\"; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
 			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(ldd $${LddBinFile} | \
 				grep \"=>\" | grep -i -v \"WINDOWS/SYSTEM32\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \
+				base=\"$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f)\" ; \
+				case \"$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}base\" in \
+					libc.so*|ld-linux*.so*|libpthread.so*|librt.so*|libm.so*|libstdc++.so*) \
+						echo \"[SKIP] $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \
+						continue \
+						;; \
+				esac ; \
 				echo \"---> $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f\" ; \
-				test -f $${LddLibDir}/$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f) || \
+				test -f $${LddLibDir}/$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}base || \
 					cp $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f $${LddLibDir} ; \
 			done ; \
 			ln -s usr/$${BinFile}.sh $${CQtTargetDir}/AppRun ; \
