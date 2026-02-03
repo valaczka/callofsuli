@@ -192,9 +192,9 @@ QByteArray MobileUtils::getApkSigningCertSha256() {
 
 
 	QJniObject jArray = activity.callObjectMethod(
-				"getSigningCertSha256",
-				"()[Ljava/lang/String;"
-				);
+							"getSigningCertSha256",
+							"()[Ljava/lang/String;"
+							);
 
 	if (!jArray.isValid()) {
 		LOG_CERROR("app") << "No signing certificate";
@@ -213,6 +213,23 @@ QByteArray MobileUtils::getApkSigningCertSha256() {
 	}
 
 	return {};
+}
+
+
+
+
+/**
+ * @brief MobileUtils::msecSinceBoot
+ * @return
+ */
+
+quint64 MobileUtils::msecSinceBoot()
+{
+	return (quint64) QJniObject::callStaticMethod<jlong>(
+				"android/os/SystemClock",
+				"elapsedRealtime",
+				"()J"
+				);
 }
 
 

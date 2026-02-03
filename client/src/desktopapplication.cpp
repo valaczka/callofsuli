@@ -365,37 +365,6 @@ Client *DesktopApplication::createClient()
 
 
 
-#ifdef Q_OS_LINUX
-
-static QString currentExePath()
-{
-	char buf[PATH_MAX + 1];
-	ssize_t n = readlink("/proc/self/exe", buf, PATH_MAX);
-	if (n <= 0) return {};
-	buf[n] = '\0';
-	return QString::fromLocal8Bit(buf);
-}
-
-#endif
-
-
-#ifdef Q_OS_WIN
-#include <windows.h>
-
-static QString currentExePath()
-{
-	wchar_t buf[32768];
-	DWORD len = GetModuleFileNameW(nullptr, buf, (DWORD)(sizeof(buf)/sizeof(buf[0])));
-	if (len == 0 || len >= (DWORD)(sizeof(buf)/sizeof(buf[0]))) return {};
-	return QString::fromWCharArray(buf, len);
-}
-
-#endif
-
-
-
-
-
 /**
  * @brief DesktopApplication::getDeviceIdentityPlatform
  * @return
@@ -403,13 +372,8 @@ static QString currentExePath()
 
 QByteArray DesktopApplication::getDeviceIdentityPlatform() const
 {
-	QString p = currentExePath();
-
-	if (p.isEmpty())
-		p = QCoreApplication::applicationFilePath();
-
 	QString err;
-	const auto &ptr = DesktopUtils::getExeHash(p, &err);
+	const auto &ptr = DesktopUtils::getExeHash(&err);
 
 	if (!err.isEmpty())
 		LOG_CERROR("app") << qPrintable(err);

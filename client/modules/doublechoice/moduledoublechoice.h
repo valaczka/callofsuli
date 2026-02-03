@@ -45,7 +45,7 @@ public:
 	inline QString name() const override { return QStringLiteral("doublechoice"); }
 	inline Types types() const override { return Online|PaperAuto; }
 	inline QString readableName() const override { return tr("Dupla választás"); }
-	inline QString icon() const override { return QStringLiteral("image://font/Academic/\uf155"); }
+	inline QString icon() const override { return QStringLiteral("image://font/Academic/\uf21c"); }
 
 	inline QString qmlEditor() const override { return QStringLiteral("ME_doublechoice.qml"); }
 	inline QString qmlQuestion() const override { return QStringLiteral("GQ_doublechoice.qml"); }
@@ -75,16 +75,29 @@ public:
 
 	QVariantMap generateOne(const QVariantMap &data) const;
 
+	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlock(const bool &isMerge, const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
 
 	static std::optional<quint8> getOptionValue(const quint8 &value, const bool &isA);
 	static QString getOptionString(const quint8 &value, const bool &isA);
 
-private:
-	QVariantMap _generate(const QString &correctA, const QString &correctB,
-						  const QSet<QString> &optionsListA, const QSet<QString> &optionsListB,
-						  int maxOptionsA, int maxOptionsB) const;
+	struct DoubleData
+	{
+		DoubleData(const QStringList &aList, const QString &correct, const QString &separator);
 
+		QString correctA;
+		QString correctB;
+		QSet<QString> oListA;
+		QSet<QString> oListB;
+	};
+
+
+	static QVariantMap _generate(const DoubleData &data, int maxOptionsA, int maxOptionsB);
+
+private:
 	static const QList<quint8> m_optionsA;
 	static const QList<quint8> m_optionsB;
 

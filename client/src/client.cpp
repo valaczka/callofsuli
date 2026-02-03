@@ -1052,7 +1052,12 @@ void Client::connectToServer(Server *server)
 		return;
 	}
 
-	m_httpConnection->connectToServer(server);
+	HttpReply *r = m_httpConnection->connectToServer(server);
+
+	if (!r)
+		return;
+
+	//r->error()
 }
 
 
@@ -1879,7 +1884,8 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 		connectToServer(getStaticServer());
 	}
 
-	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
+	QQuickItem *page = stackPushPage(QStringLiteral(""
+													"PageMapPlay.qml"), QVariantMap({
 																						{ QStringLiteral("title"), tr("Demó pálya") },
 																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
 																					}));

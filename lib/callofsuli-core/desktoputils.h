@@ -45,10 +45,11 @@ public:
 		return m_instance;
 	}
 
-	static std::optional<QByteArray> getExeHash(const QString &exePath, QString *err = nullptr,
+	static std::optional<QByteArray> getExeHash(QString *err = nullptr,
 												const qint64 &chunkSize = (1 << 20));
 
 
+	static quint64 msecSinceBoot();
 
 private:
 	static inline DesktopUtils *m_instance = nullptr;

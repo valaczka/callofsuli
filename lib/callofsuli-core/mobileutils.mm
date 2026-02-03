@@ -28,10 +28,12 @@
 
 #include <AudioToolbox/AudioToolbox.h>
 #include <UIKit/UIKit.h>
+#include <Foundation/Foundation.h>
 
 #include "mobileutils.h"
 #include "Logger.h"
 #include "application.h"
+
 
 
 MobileUtils* MobileUtils::m_instance = nullptr;
@@ -187,4 +189,17 @@ QMarginsF MobileUtils::getSafeMargins()
 QByteArray MobileUtils::getApkSigningCertSha256()
 {
 	return QByteArrayLiteral("-");
+}
+
+
+
+/**
+ * @brief MobileUtils::msecSinceBoot
+ * @return
+ */
+
+quint64 MobileUtils::msecSinceBoot()
+{
+	NSTimeInterval up = [NSProcessInfo processInfo].systemUptime; // seconds
+	return (quint64)(up * 1000.0);
 }

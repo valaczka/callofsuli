@@ -138,7 +138,7 @@ void HttpConnection::setServer(Server *newServer)
  * @param server
  */
 
-void HttpConnection::connectToServer(Server *server)
+HttpReply* HttpConnection::connectToServer(Server *server)
 {
 	if (!server)
 		server = m_server;
@@ -148,12 +148,12 @@ void HttpConnection::connectToServer(Server *server)
 #ifdef Q_OS_WASM
 	if (!server) {
 		m_client->messageError(tr("Nincs megadva szerver"), tr("Belső hiba"));
-		return;
+		return nullptr;
 	}
 #else
 	if (!server || server->url().isEmpty()) {
 		m_client->messageError(tr("Nincs megadva szerver"), tr("Belső hiba"));
-		return;
+		return nullptr;
 	}
 #endif
 
@@ -216,6 +216,8 @@ void HttpConnection::connectToServer(Server *server)
 		emit pendingSslErrors(errorList);
 	});
 #endif
+
+	return wr;
 }
 
 

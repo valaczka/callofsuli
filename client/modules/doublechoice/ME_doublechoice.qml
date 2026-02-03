@@ -110,6 +110,27 @@ QFormColumn {
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
 
+	QFormComboBox {
+		id: _modeBinding
+		text: qsTr("Kérdések készítése:")
+
+		visible: isBinding
+
+		combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 200*Qaterial.Style.pixelSizeRatio))
+
+		field: "mode"
+
+		valueRole: "value"
+		textRole: "text"
+
+		model: ListModel {
+			ListElement {value: "left"; text: qsTr("Bal oldaliakhoz")}
+			ListElement {value: "right"; text: qsTr("Jobb oldaliakhoz")}
+		}
+
+		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
 
 
 
@@ -154,9 +175,11 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = (isBlock || isBinding) ?
+		let _items = isBlock ?
 				[_questionBlock, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint] :
-				[_question, _correctAnswer, _answers, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint]
+				isBinding ?
+					[_questionBlock, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint, _modeBinding] :
+					[_question, _correctAnswer, _answers, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint]
 
 		if (isMergeBinding)
 			_items.push(_sectionSelector)
@@ -178,9 +201,11 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = (isBlock || isBinding) ?
+		let _items = isBlock ?
 				[_questionBlock, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint] :
-				[_question, _correctAnswer, _answers, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint]
+				isBinding ?
+					[_questionBlock, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint, _modeBinding] :
+					[_question, _correctAnswer, _answers, _spinOptionsA, _spinOptionsB, _separator, _checkMonospace, _questionPrint]
 
 		if (isMergeBinding)
 			_items.push(_sectionSelector)

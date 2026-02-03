@@ -29,6 +29,11 @@
 #include "question.h"
 #include <QRandomGenerator>
 
+#include "../block/moduleblock.h"
+#include "../binding/modulebinding.h"
+#include "../mergeblock/modulemergeblock.h"
+
+
 
 
 const QList<quint8> ModuleDoublechoice::m_optionsA = {
@@ -55,6 +60,27 @@ const QList<quint8> ModuleDoublechoice::m_optionsB = {
 
 
 
+namespace Doublechoice {
+
+struct Data {
+	QString left;
+	QString right;
+	int idx = 0;
+};
+
+
+class DataList : public QList<Data>
+{
+public:
+	DataList() = default;
+
+	QStringList toAnswerList(const bool &isBindToRight) const;
+	void toDuplexHelper(SeedDuplexHelper &helper, const QVariantMap &data, const bool &isBindToRight, const QStringList &aList) const;
+};
+
+};
+
+
 
 ModuleDoublechoice::ModuleDoublechoice(QObject *parent) : QObject(parent)
 {
@@ -71,7 +97,9 @@ ModuleDoublechoice::ModuleDoublechoice(QObject *parent) : QObject(parent)
 
 QString ModuleDoublechoice::testResult(const QVariantMap &data, const QVariantMap &answer, const bool &success) const
 {
-	const QStringList &options = data.value(QStringLiteral("options")).toStringList();
+	const QStringList &optionsA = data.value(QStringLiteral("optionsA")).toStringList();
+	const QStringList &optionsB = data.value(QStringLiteral("optionsB")).toStringList();
+	static QString placeholder("%1 | %2");
 
 
 	QString html;
@@ -80,45 +108,47 @@ QString ModuleDoublechoice::testResult(const QVariantMap &data, const QVariantMa
 		html += Question::monspaceTagStart();
 
 	html += QStringLiteral("<p class=\"options\">");
-	html += options.join(QStringLiteral(" • "));
+	html += placeholder.arg(optionsA.join(QStringLiteral(" • "))).arg(optionsB.join(QStringLiteral(" • ")));
 	html += QStringLiteral("</p>");
 
 	html += QStringLiteral("<p>");
 
-	if (answer.contains(QStringLiteral("list"))) {
-		const QVariantList &list = answer.value(QStringLiteral("list")).toList();
 
-		QStringList a;
-
-		foreach (const QVariant &v, list) {
-			bool ok = false;
-			const int &idx = v.toInt(&ok);
-
-			if (ok && idx >= 0 && idx < options.size())
-				a.append(options.at(idx));
-			else
-				a.append(QStringLiteral("???"));
-		}
-
+	if (answer.contains(QStringLiteral("indexA"))) {
 		if (success)
 			html += QStringLiteral("<span class=\"answer\">");
 		else
 			html += QStringLiteral("<span class=\"answerFail\">");
 
-		html += a.join(QStringLiteral(", ")) + QStringLiteral("</span>");
+		if (const int &idxA = answer.value(QStringLiteral("indexA"), -1).toInt(); idxA >=0 && idxA < optionsA.size()) {
+			html += optionsA.at(idxA) + QStringLiteral(" ");
+		}
 
+		if (const int &idxB = answer.value(QStringLiteral("indexB"), -1).toInt(); idxB >=0 && idxB < optionsB.size()) {
+			html += optionsB.at(idxB);
+		}
+
+		html += QStringLiteral("</span>");
 	}
+
 
 	if (!success) {
 		html += QStringLiteral(" <span class=\"answerCorrect\">");
-		const QVariantList &aList = data.value(QStringLiteral("answer")).toList();
-		QStringList cList;
-		for (int i=0; i<options.size(); ++i) {
-			if (aList.contains(i))
-				cList.append(options.at(i));
+
+		const QVariantMap aMap = data.value(QStringLiteral("answer")).toMap();
+
+		if (const int cIdx = aMap.value(QStringLiteral("first")).toInt(); cIdx >=0 && cIdx < optionsA.size()) {
+			html += optionsA.at(cIdx) + QStringLiteral(" ");
 		}
-		html += cList.join(QStringLiteral(", ")) + QStringLiteral("</span>");
+
+		if (const int cIdx = aMap.value(QStringLiteral("second")).toInt(); cIdx >=0 && cIdx < optionsB.size()) {
+			html += optionsB.at(cIdx) + QStringLiteral(" ");
+		}
+
+		html += QStringLiteral("</span>");
 	}
+
+
 
 	html += QStringLiteral("</p>");
 
@@ -194,18 +224,17 @@ QVariantList ModuleDoublechoice::generateAll(const QVariantMap &data, ModuleInte
 		return list;
 	}
 
-	/*if (storage->name() == QStringLiteral("binding"))
+	if (storage->name() == QStringLiteral("binding"))
 		return generateBinding(data, storageData, seed);
 
+	if (storage->name() == QStringLiteral("mergebinding"))
+		return generateMergeBinding(data, storageData, seed);
+
 	if (storage->name() == QStringLiteral("block"))
-		return generateBlock(data, storageData, seed);
+		return generateBlock(false, data, storageData, seed);
 
 	if (storage->name() == QStringLiteral("mergeblock"))
-		return generateMergeBlock(data, storageData, seed);
-
-	if (storage->name() == QStringLiteral("mergebinding"))
-		return generateMergeBinding(data, storageData, seed);*/
-
+		return generateBlock(true, data, storageData, seed);
 
 
 	return QVariantList();
@@ -228,13 +257,14 @@ QVariantMap ModuleDoublechoice::preview(const QVariantList &generatedList, const
 
 	for (const QVariant &v : generatedList) {
 		QVariantMap m = v.toMap();
+		QVariantMap correctMap = m.value(QStringLiteral("answer")).toMap();
 
 		s.append(QStringLiteral("**")+m.value(QStringLiteral("question")).toString()+QStringLiteral("**\n"));
 
-
 		{
+			const int correct = correctMap.value(QStringLiteral("first"), -1).toInt();
+
 			s.append(QStringLiteral("- (1)\n"));
-			int correct = m.value(QStringLiteral("answerA"), -1).toInt();
 			QStringList l = m.value(QStringLiteral("optionsA")).toStringList();
 
 			for (int i=0; i<l.size(); ++i) {
@@ -246,8 +276,9 @@ QVariantMap ModuleDoublechoice::preview(const QVariantList &generatedList, const
 		}
 
 		{
+			const int correct = correctMap.value(QStringLiteral("second"), -1).toInt();
+
 			s.append(QStringLiteral("- (2)\n"));
-			int correct = m.value(QStringLiteral("answerB"), -1).toInt();
 			QStringList l = m.value(QStringLiteral("optionsB")).toStringList();
 
 			for (int i=0; i<l.size(); ++i) {
@@ -265,6 +296,7 @@ QVariantMap ModuleDoublechoice::preview(const QVariantList &generatedList, const
 
 	return m;
 }
+
 
 
 
@@ -287,41 +319,150 @@ QVariantMap ModuleDoublechoice::generateOne(const QVariantMap &data) const
 	const QString separator = data.value(QStringLiteral("separator")).toString();
 	const QString &correct = data.value(QStringLiteral("correct")).toString();
 
-	QString correctA, correctB;
-
-	QStringList cl = correct.split(separator, Qt::SkipEmptyParts);
-
-	if (cl.size() > 1)
-		correctB = cl.at(1).simplified();
-
-	if (cl.size() > 0)
-		correctA = cl.at(0).simplified();
-
-	if (correctA.isEmpty())
-		correctA = QStringLiteral(" ");
-
-	if (correctB.isEmpty())
-		correctB = QStringLiteral(" ");
-
-
-	QSet<QString> oListA, oListB;
-
-	for (const QString &a : aList) {
-		QStringList al = a.split(separator, Qt::SkipEmptyParts);
-
-		if (al.size() > 1)
-			oListB.insert(al.at(1).simplified());
-
-		if (al.size() > 0)
-			oListA.insert(al.at(0).simplified());
-	}
-
-	QVariantMap m = _generate(correctA, correctB, oListA, oListB, maxOptionsA, maxOptionsB);
+	QVariantMap m = _generate(DoubleData(aList, correct, separator), maxOptionsA, maxOptionsB);
 
 	m[QStringLiteral("question")] = question;
 	m[QStringLiteral("monospace")] = monospace;
 
 	return m;
+}
+
+
+
+/**
+ * @brief ModuleDoublechoice::generateBinding
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleDoublechoice::generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+{
+	bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
+
+	const QVariantList &bindings = storageData.value(QStringLiteral("bindings")).toList();
+
+	SeedDuplexHelper helper(seed, isBindToRight ? SEED_BINDING_RIGHT : SEED_BINDING_LEFT,
+							isBindToRight ? SEED_BINDING_LEFT: SEED_BINDING_RIGHT);
+
+
+	Doublechoice::DataList list;
+
+	for (int i=0; const QVariant &v : bindings) {
+		const QVariantMap m = v.toMap();
+
+		list.append(Doublechoice::Data{.left = m.value(QStringLiteral("first")).toString().simplified(),
+									   .right = m.value(QStringLiteral("second")).toString().simplified(),
+									   .idx = (i+1)
+					});
+
+		++i;
+	}
+
+	const QStringList aList = list.toAnswerList(isBindToRight);
+	list.toDuplexHelper(helper, data, isBindToRight, aList);
+
+	return helper.getVariantList(true);
+
+}
+
+
+
+
+/**
+ * @brief ModuleDoublechoice::generateMergeBinding
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleDoublechoice::generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+{
+	bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
+
+	const QStringList usedSections = data.value(QStringLiteral("sections")).toStringList();
+	const QVariantList &sections = storageData.value(QStringLiteral("sections")).toList();
+
+	SeedDuplexHelper helper(seed, isBindToRight ? SEED_BINDING_RIGHT : SEED_BINDING_LEFT,
+							isBindToRight ? SEED_BINDING_LEFT: SEED_BINDING_RIGHT);
+
+
+	Doublechoice::DataList list;
+
+	for (int i=0; i<sections.size(); ++i) {
+		QVariantMap m = sections.at(i).toMap();
+		const QString &key = m.value(QStringLiteral("key")).toString();
+
+		if (!usedSections.contains(key))
+			continue;
+
+		const QVariantList &l = m.value(QStringLiteral("bindings")).toList();
+
+		for (int j=0; const QVariant &v : l) {
+			const QVariantMap m = v.toMap();
+
+			list.append(Doublechoice::Data{.left = m.value(QStringLiteral("first")).toString().simplified(),
+										   .right = m.value(QStringLiteral("second")).toString().simplified(),
+										   .idx = (i+1)*1000+j+1
+						});
+
+			++j;
+		}
+	}
+
+	const QStringList aList = list.toAnswerList(isBindToRight);
+	list.toDuplexHelper(helper, data, isBindToRight, aList);
+
+
+	return helper.getVariantList(true);
+}
+
+
+
+/**
+ * @brief ModuleDoublechoice::generateBlock
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleDoublechoice::generateBlock(const bool &isMerge, const QVariantMap &data,
+											   const QVariantMap &storageData, StorageSeed *seed) const
+{
+	const ModuleMergeblock::BlockUnion blocks = isMerge ?
+													ModuleMergeblock::getUnion(
+														storageData.value(QStringLiteral("sections")).toList(),
+														data.value(QStringLiteral("sections")).toStringList()
+														)
+												  : ModuleMergeblock::getUnion(storageData.value(QStringLiteral("blocks")).toList());
+
+	SeedDuplexHelper helper(seed, SEED_BLOCK_RIGHT, SEED_BLOCK_LEFT);
+
+
+	Doublechoice::DataList dlist;
+
+	for (const auto &[left, list] : blocks.asKeyValueRange()) {
+		for (const auto &d : list) {
+			const QStringList &right = d.content;
+
+			for (int i=0; const QString &s : right) {
+				dlist.append(Doublechoice::Data{.left = left,
+												.right = s.simplified(),
+												.idx = d.blockidx + i+1
+							 });
+
+				++i;
+			}
+		}
+	}
+
+	const QStringList aList = dlist.toAnswerList(true);
+	dlist.toDuplexHelper(helper, data, true, aList);
+
+	return helper.getVariantList(true);
 }
 
 
@@ -341,14 +482,16 @@ std::optional<quint8> ModuleDoublechoice::getOptionValue(const quint8 &value, co
 		return r;
 
 	if (isA) {
-		for (const quint8 v : m_optionsA) {
+		for (int idx=0; const quint8 v : m_optionsA) {
 			if ((value & v) == v)
-				r = v;
+				r = idx;
+			++idx;
 		}
 	} else {
-		for (const quint8 v : m_optionsB) {
+		for (int idx=0; const quint8 v : m_optionsB) {
 			if ((value & v) == v)
-				r = v;
+				r = idx;
+			++idx;
 		}
 	}
 
@@ -384,7 +527,7 @@ QString ModuleDoublechoice::getOptionString(const quint8 &value, const bool &isA
 
 /**
  * @brief ModuleDoublechoice::_generate
- * @param correctA
+ * @param data
  * @param correctB
  * @param optionsListA
  * @param optionsListB
@@ -393,20 +536,18 @@ QString ModuleDoublechoice::getOptionString(const quint8 &value, const bool &isA
  * @return
  */
 
-QVariantMap ModuleDoublechoice::_generate(const QString &correctA, const QString &correctB,
-										  const QSet<QString> &optionsListA, const QSet<QString> &optionsListB,
-										  int maxOptionsA, int maxOptionsB) const
+QVariantMap ModuleDoublechoice::_generate(const DoubleData &data, int maxOptionsA, int maxOptionsB)
 {
 	QVector<QPair<QString, bool>> optsA, optsB;
 
-	optsA.append(qMakePair(correctA, true));
-	optsB.append(qMakePair(correctB, true));
+	optsA.append(qMakePair(data.correctA, true));
+	optsB.append(qMakePair(data.correctB, true));
 
-	QStringList oListA = optionsListA.values();
-	QStringList oListB = optionsListB.values();
+	QStringList oListA = data.oListA.values();
+	QStringList oListB = data.oListB.values();
 
-	oListA.removeAll(correctA);
-	oListB.removeAll(correctB);
+	oListA.removeAll(data.correctA);
+	oListB.removeAll(data.correctB);
 
 	std::random_device rd;
 	std::mt19937 g(rd());
@@ -465,4 +606,94 @@ QVariantMap ModuleDoublechoice::_generate(const QString &correctA, const QString
 
 	return m;
 }
+
+
+
+
+
+ModuleDoublechoice::DoubleData::DoubleData(const QStringList &aList, const QString &correct, const QString &separator)
+{
+	QStringList cl = correct.split(separator, Qt::SkipEmptyParts);
+
+	if (cl.size() > 1)
+		correctB = cl.at(1).simplified();
+
+	if (cl.size() > 0)
+		correctA = cl.at(0).simplified();
+
+	if (correctA.isEmpty())
+		correctA = QStringLiteral(" ");
+
+	if (correctB.isEmpty())
+		correctB = QStringLiteral(" ");
+
+	for (const QString &a : aList) {
+		QStringList al = a.split(separator, Qt::SkipEmptyParts);
+
+		if (al.size() > 1)
+			oListB.insert(al.at(1).simplified());
+
+		if (al.size() > 0)
+			oListA.insert(al.at(0).simplified());
+	}
+}
+
+
+/**
+ * @brief ModuleDoublechoice::DataList::toAnswerList
+ * @return
+ */
+
+QStringList Doublechoice::DataList::toAnswerList(const bool &isBindToRight) const
+{
+	QStringList aList;
+
+	for (const Doublechoice::Data &d : *this) {
+		if (isBindToRight && !d.left.isEmpty())
+			aList.append(d.left);
+		else if (!isBindToRight && !d.right.isEmpty())
+			aList.append(d.right);
+	}
+
+	return aList;
+}
+
+
+
+/**
+ * @brief Doublechoice::DataList::toDuplexHelper
+ * @param helper
+ */
+
+void Doublechoice::DataList::toDuplexHelper(SeedDuplexHelper &helper, const QVariantMap &data, const bool &isBindToRight,
+											const QStringList &aList) const
+{
+	const QString &question = data.value(QStringLiteral("question")).toString();
+	const bool monospace = data.value(QStringLiteral("monospace")).toBool();
+	const int maxOptionsA = std::max(2, data.value(QStringLiteral("maxOptionsA")).toInt());
+	const int maxOptionsB = std::max(2, data.value(QStringLiteral("maxOptionsB")).toInt());
+	const QString separator = data.value(QStringLiteral("separator")).toString();
+
+	for (const Doublechoice::Data &d : *this) {
+		if (d.left.isEmpty() || d.right.isEmpty())
+			continue;
+
+		const QString correct = isBindToRight ? d.left : d.right;
+
+		QVariantMap retMap = ModuleDoublechoice::_generate(ModuleDoublechoice::DoubleData(aList, correct, separator),
+														   maxOptionsA, maxOptionsB);
+
+		if (question.isEmpty())
+			retMap[QStringLiteral("question")] = (isBindToRight ? d.right : d.left);
+		else if (question.contains(QStringLiteral("%1")))
+			retMap[QStringLiteral("question")] = question.arg(isBindToRight ? d.right : d.left);
+		else
+			retMap[QStringLiteral("question")] = question;
+
+		retMap[QStringLiteral("monospace")] = monospace;
+
+		helper.append(retMap, d.idx, d.idx);
+	}
+}
+
 

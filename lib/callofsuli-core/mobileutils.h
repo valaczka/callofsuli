@@ -52,6 +52,8 @@ public:
 
 	static QByteArray getApkSigningCertSha256();
 
+	static quint64 msecSinceBoot();
+
 private:
 	static MobileUtils *m_instance;
 

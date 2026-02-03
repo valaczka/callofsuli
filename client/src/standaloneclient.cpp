@@ -34,6 +34,8 @@
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 #include "mobileutils.h"
+#else
+#include "desktoputils.h"
 #endif
 
 
@@ -66,7 +68,6 @@ StandaloneClient::StandaloneClient(Application *app)
 	s.beginGroup(QStringLiteral("sound"));
 	setVibrate(s.value(QStringLiteral("vibrate"), true).toBool());
 	s.endGroup();
-
 
 }
 
@@ -397,6 +398,22 @@ void StandaloneClient::setAuthorizedServers(const QVariantList &newAuthorizedSer
 		return;
 	m_authorizedServers = newAuthorizedServers;
 	emit authorizedServersChanged();
+}
+
+
+
+/**
+ * @brief StandaloneClient::msecSinceBoot
+ * @return
+ */
+
+quint64 StandaloneClient::msecSinceBoot() const
+{
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	return MobileUtils::msecSinceBoot();
+#else
+	return DesktopUtils::msecSinceBoot();
+#endif
 }
 
 
