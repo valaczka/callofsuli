@@ -63,6 +63,7 @@ SOURCES += \
 	microsoftoauth2authenticator.cpp \
 	oauth2authenticator.cpp \
 	oauth2codeflow.cpp \
+	offlineserverengine.cpp \
 	rpgengine.cpp \
 	rpgevent.cpp \
 	rpgsnapshotstorage.cpp \
@@ -95,6 +96,7 @@ HEADERS += \
 	microsoftoauth2authenticator.h \
 	oauth2authenticator.h \
 	oauth2codeflow.h \
+	offlineserverengine.h \
 	querybuilder.hpp \
 	rpgengine.h \
 	rpgengine_p.h \

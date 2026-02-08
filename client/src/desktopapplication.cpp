@@ -373,7 +373,7 @@ Client *DesktopApplication::createClient()
 QByteArray DesktopApplication::getDeviceIdentityPlatform() const
 {
 	QString err;
-	const auto &ptr = DesktopUtils::getExeHash(&err);
+	const auto &ptr = DesktopUtils::getExeHash(QString(), &err);
 
 	if (!err.isEmpty())
 		LOG_CERROR("app") << qPrintable(err);

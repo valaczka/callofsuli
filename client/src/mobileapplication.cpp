@@ -181,9 +181,11 @@ bool MobileApplication::deviceKeyRead()
 
 		m_device.moveToArray(key, &m_device.seed);
 
+		std::array<unsigned char, crypto_sign_SEEDBYTES> keySeed = m_device.deriveFromSeed<crypto_sign_SEEDBYTES>(1, "PRIV_KEY");
+
 		QMutexLocker locker(&m_device.mutex);
 
-		if (crypto_sign_seed_keypair(m_device.publicKey.data(), m_device.privateKey.data(), m_device.seed.data()) != 0) {
+		if (crypto_sign_seed_keypair(m_device.publicKey.data(), m_device.privateKey.data(), keySeed.data()) != 0) {
 			LOG_CERROR("app") << "Keypair generation failed";
 			return;
 		}

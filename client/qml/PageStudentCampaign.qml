@@ -20,7 +20,7 @@ QPageGradient {
 
 	property bool withResult: false
 
-	property bool _firstRun: true
+	property bool _firstRun: studentMapHandler && !studentMapHandler.offlineEngine
 
 	stackPopFunction: function() {
 		if (!_scrollable.flickable.atYBeginning) {
@@ -324,7 +324,7 @@ QPageGradient {
 			}
 		}
 
-		if (withResult && campaign)
+		if (withResult && campaign && studentMapHandler && !studentMapHandler.offlineEngine)
 			_view.offsetModel.reload()
 	}
 

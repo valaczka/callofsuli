@@ -119,7 +119,9 @@ QPage {
 
 			highlighted: ListView.isCurrentItem
 			highlightedIcon: server ? server.autoConnect : false
-			iconSource: Qaterial.Icons.desktopClassic
+			iconSource: server.offlineEngine && server.offlineEngine.engineState == OfflineClientEngine.EngineActive ?
+							Qaterial.Icons.clockCheck :
+							Qaterial.Icons.desktopClassic
 			text: server ? server.serverName : ""
 			secondaryText: server ? (server.user.username.length ? server.user.username + " @ " : "") + server.url
 								  : ""

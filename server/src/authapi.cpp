@@ -746,27 +746,26 @@ std::optional<AuthAPI::DeviceIdentity> AuthAPI::createRawDeviceToken(const QJson
 		return std::nullopt;
 	}
 
-	if (signature.size() != crypto_sign_BYTES) {
-		LOG_CWARNING("client") << "Invalid signature";
-		return std::nullopt;
-	}
-
 	/// check proto
 
 	const QByteArray publicKey = identityMap.value(QStringLiteral("public_key")).toByteArray();
 
-
-	if (publicKey.size() != crypto_sign_PUBLICKEYBYTES) {
+	if (!PublicKeySigner::isValidPublicKey(publicKey)) {
 		LOG_CWARNING("client") << "Invalid public key";
 		return std::nullopt;
 	}
 
-	if (crypto_sign_verify_detached(reinterpret_cast<const unsigned char*>(signature.constData()),
-									reinterpret_cast<const unsigned char*>(identity.constData()),
-									identity.size(),
-									reinterpret_cast<const unsigned char*>(publicKey.constData())
-									) != 0)
-	{
+
+	PublicKeySigner signer;
+	signer.setPublicKey(publicKey);
+
+	if (!signer.isValidSignature(signature)) {
+		LOG_CWARNING("client") << "Invalid signature";
+		return std::nullopt;
+	}
+
+
+	if (!signer.verifySign(identity, signature)) {
 		LOG_CWARNING("client") << "Device identity signature error";
 		return std::nullopt;
 	}
@@ -811,17 +810,17 @@ std::optional<AuthAPI::DeviceIdentity> AuthAPI::createRawDeviceToken(const QJson
 
 		const QByteArray manifestSig = identityMap.value(QStringLiteral("signature")).toByteArray();
 
-		if (manifestSig.size() != crypto_sign_BYTES) {
+
+		PublicKeySigner signer;
+		signer.setPublicKey(it->publicKey);
+
+		if (!signer.isValidSignature(manifestSig)) {
 			LOG_CWARNING("client") << "Invalid mainfest signature";
 			return std::nullopt;
 		}
 
-		if (crypto_sign_verify_detached(reinterpret_cast<const unsigned char*>(manifestSig.constData()),
-										reinterpret_cast<const unsigned char*>(manifest.constData()),
-										manifest.size(),
-										it->publicKey.data()
-										) != 0)
-		{
+
+		if (!signer.verifySign(manifest, manifestSig)) {
 			LOG_CWARNING("client") << "Manifest signature error";
 			return std::nullopt;
 		}

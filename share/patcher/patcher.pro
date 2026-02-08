@@ -17,7 +17,8 @@ LIBS += $$LibSodiumLibs
         DEFINES += $$LibSodiumDefines
 }
 
-HEADERS += $$PWD/../../lib/callofsuli-core/desktoputils.h
+HEADERS += \
+        $$PWD/../../lib/callofsuli-core/desktoputils.h
 
 SOURCES += \
         main.cpp \

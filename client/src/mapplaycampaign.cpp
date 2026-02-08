@@ -141,6 +141,7 @@ int MapPlayCampaign::getShortTimeHelper(MapPlayMissionLevel *missionLevel) const
 {
 	if (!missionLevel)
 		return -1;
+
 	return m_shortTimeHelper.value(missionLevel->missionLevel(), 0);
 }
 

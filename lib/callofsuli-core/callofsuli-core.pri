@@ -19,6 +19,7 @@ HEADERS += \
 	$$PWD/desktoputils.h \
 	$$PWD/gamemap.h \
 	$$PWD/gamemapreaderiface.h \
+	$$PWD/offlineengine.h \
 	$$PWD/rank.h \
 	$$PWD/rpgconfig.h \
 	$$PWD/selectableobject.h \
@@ -30,6 +31,7 @@ SOURCES += \
 	$$PWD/desktoputils.cpp \
 	$$PWD/gamemap.cpp \
 	$$PWD/gamemapreaderiface.cpp \
+	$$PWD/offlineengine.cpp \
 	$$PWD/rank.cpp \
 	$$PWD/rpgconfig.cpp \
 	$$PWD/selectableobject.cpp \

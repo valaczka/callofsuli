@@ -55,6 +55,7 @@ class BaseMap : public SelectableObject
 	Q_PROPERTY(QJsonObject cache READ cache WRITE setCache NOTIFY cacheChanged)
 	Q_PROPERTY(bool downloaded READ downloaded WRITE setDownloaded NOTIFY downloadedChanged)
 	Q_PROPERTY(qreal downloadProgress READ downloadProgress WRITE setDownloadProgress NOTIFY downloadProgressChanged)
+	Q_PROPERTY(QByteArray hash READ hash WRITE setHash NOTIFY hashChanged FINAL)
 
 public:
 	explicit BaseMap(QObject *parent = nullptr);
@@ -84,6 +85,9 @@ public:
 
 	Q_INVOKABLE QJsonObject findMission(const QString &uuid) const;
 
+	QByteArray hash() const;
+	void setHash(const QByteArray &newHash);
+
 signals:
 	void downloadedChanged();
 	void downloadProgressChanged();
@@ -92,6 +96,7 @@ signals:
 	void sizeChanged();
 	void nameChanged();
 	void cacheChanged();
+	void hashChanged();
 
 protected:
 	QString m_uuid;
@@ -101,6 +106,7 @@ protected:
 	QJsonObject m_cache;
 	bool m_downloaded = false;
 	qreal m_downloadProgress = -1.0;
+	QByteArray m_hash;
 };
 
 #endif // BASEMAP_H

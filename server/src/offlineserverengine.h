@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * desktoputils.h
+ * offlineserverengine.h
  *
- * Created on: 2026. 01. 26.
+ * Created on: 2026. 02. 07.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * DesktopUtils
+ * OfflineServerEngine
  *
  *  This file is part of Call of Suli.
  *
@@ -24,35 +24,30 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef DESKTOPUTILS_H
-#define DESKTOPUTILS_H
+#ifndef OFFLINESERVERENGINE_H
+#define OFFLINESERVERENGINE_H
 
-#include <QByteArray>
-#include <QString>
-#include <optional>
+#include <credential.h>
+#include <offlineengine.h>
+#include "serverservice.h"
 
-
-
-class DesktopUtils
+class OfflineServerEngine : public OfflineEngine
 {
-
 public:
-	DesktopUtils();
+	OfflineServerEngine(ServerService *service);
 
-	static DesktopUtils* instance() {
-		if (!m_instance)
-			m_instance = new DesktopUtils();
-		return m_instance;
-	}
+	std::optional<PermitFull> createPermit(const QString &username, const int &campaign, const QByteArray &device,
+										   const qint64 &clientClock);
+	QByteArray signPermit(const PermitContent &permit) const;
+	std::optional<PermitContent> verifyPermit(const QByteArray &data) const;
 
-	static std::optional<QByteArray> getExeHash(const QString &path, QString *err = nullptr,
-												const qint64 &chunkSize = (1 << 20));
-
-
-	static quint64 msecSinceBoot();
 
 private:
-	static inline DesktopUtils *m_instance = nullptr;
+	bool generateHash(PermitContent &permit, const QString &username, const int &campaign, const QByteArray &device);
+
+
+	ServerService *const m_service;
+	AuthKeySigner m_signer;
 };
 
-#endif // DESKTOPUTILS_H
+#endif // OFFLINESERVERENGINE_H

@@ -104,12 +104,16 @@ static quint64 platformMsec()
  * @return
  */
 
-std::optional<QByteArray> DesktopUtils::getExeHash(QString *err, const qint64 &chunkSize)
+std::optional<QByteArray> DesktopUtils::getExeHash(const QString &path, QString *err, const qint64 &chunkSize)
 {
-	QString p = currentExePath();
+	QString p = path;
 
-	if (p.isEmpty())
-		p = QCoreApplication::applicationFilePath();
+	if (path.isEmpty()) {
+		p = currentExePath();
+
+		if (p.isEmpty())
+			p = QCoreApplication::applicationFilePath();
+	};
 
 
 	QFile f(p);

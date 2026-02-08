@@ -44,10 +44,12 @@
 #include "Logger.h"
 #include "mapgame.h"
 #include "updater.h"
-#include "server.h"
 #include "rpgplayer.h"
 #include "rpggame.h"
+#include "downloader.h"
+#include "server.h"
 #include <QScreen>
+#include "offlineclientengine.h"
 
 #ifdef Q_OS_ANDROID
 #include "qscreen.h"
@@ -477,6 +479,13 @@ void Client::onHttpConnectionError(const QNetworkReply::NetworkError &code)
 	}
 
 
+	if (m_httpConnection->server()) {
+		OfflineClientEngine *engine = m_httpConnection->server()->offlineEngine();
+
+		if (engine && engine->loadOfflineMode())
+			closeSocket = false;
+	}
+
 	if (m_httpConnection->state() == HttpConnection::Connecting && closeSocket)
 		m_httpConnection->abort();
 
@@ -604,8 +613,9 @@ void Client::onServerDisconnected()
 
 	m_oauthData.timer.stop();
 
-	if (server())
+	if (server()) {
 		server()->user()->setLoginState(User::LoggedOut);
+	}
 
 	stackPopToStartPage();
 
@@ -1054,10 +1064,13 @@ void Client::connectToServer(Server *server)
 
 	HttpReply *r = m_httpConnection->connectToServer(server);
 
-	if (!r)
+	OfflineClientEngine *engine = server->offlineEngine();
+
+	if (!r || !engine)
 		return;
 
-	//r->error()
+	r->error(engine, &OfflineClientEngine::loadOfflineMode);
+
 }
 
 

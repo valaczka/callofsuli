@@ -64,7 +64,7 @@ public:
 		mutable QMutex mutex;
 #endif
 
-		std::array<unsigned char, crypto_sign_SEEDBYTES> seed;
+		std::array<unsigned char, crypto_kdf_KEYBYTES> seed;
 		std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> publicKey;
 		std::array<unsigned char, crypto_sign_SECRETKEYBYTES> privateKey;
 
@@ -88,6 +88,22 @@ public:
 
 			sodium_memzero(src.data(), src.size());
 			src.clear();
+		}
+
+
+		template <std::size_t N>
+		std::array<unsigned char, N> deriveFromSeed(const uint64_t &subkey_id, const char ctx[crypto_kdf_CONTEXTBYTES])
+		{
+#ifndef Q_OS_WASM
+			QMutexLocker locker(&mutex);
+#endif
+
+			std::array<unsigned char, N> ret;
+			crypto_kdf_derive_from_key(ret.data(), N,
+									   subkey_id, ctx,
+									   seed.data()
+									   );
+			return ret;
 		}
 	};
 

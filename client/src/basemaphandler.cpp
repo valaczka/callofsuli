@@ -28,6 +28,7 @@
 #include "application.h"
 #include "utils_.h"
 #include "server.h"
+#include "offlineengine.h"
 
 BaseMapHandler::BaseMapHandler(const QString &subdirName, QObject *parent)
 	: QObject{parent}
@@ -69,6 +70,11 @@ bool BaseMapHandler::hasDownloaded(const BaseMap *map) const
 bool BaseMapHandler::checkDownload(const BaseMap *map, const QByteArray &data) const
 {
 	Q_ASSERT(map);
+
+
+	if (!map->hash().isEmpty()) {
+		return map->hash() == OfflineEngine::computeMapHash(data);
+	}
 
 	return (map->md5() == QString::fromLatin1(QCryptographicHash::hash(data, QCryptographicHash::Md5).toHex()) &&
 			map->size() == data.size());

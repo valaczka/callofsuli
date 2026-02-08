@@ -30,6 +30,7 @@
 #include "qquickwindow.h"
 #include "qscreen.h"
 #include "application.h"
+#include "offlineclientengine.h"
 #include <QSettings>
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
@@ -179,13 +180,20 @@ void StandaloneClient::onStartPageLoaded()
 
 	}
 
-	if (QNetworkInformation::instance() &&
-			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
-		return;
+
+	// Init servers
+
+	for (Server *s : *m_serverList) {
+		if (s->offlineEngine())
+			s->offlineEngine()->initEngine(this);
+	}
 
 
-	authorizedServersGet();
+	bool hasNetwork = QNetworkInformation::instance() &&
+			QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
 
+	if (hasNetwork)
+		authorizedServersGet();
 
 	for (Server *s : *m_serverList)
 		if (s->autoConnect()) {

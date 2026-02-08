@@ -497,9 +497,11 @@ bool Handler::verifyPeer(const QHttpServerRequest &request, const Credential &cr
 	if (!m_service->settings()->verifyPeer())
 		return true;
 
+	PublicKeySigner signer;
+
 	const QByteArray deviceSignature = QByteArray::fromBase64(request.value(QByteArrayLiteral("Content-Signature")));
 
-	if (deviceSignature.size() != crypto_sign_BYTES) {
+	if (!signer.isValidSignature(deviceSignature)) {
 		LOG_CWARNING("service") << "Peer verification failed (invalid signature size)" << deviceSignature.size()
 								<< credential.session()
 								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
@@ -513,12 +515,14 @@ bool Handler::verifyPeer(const QHttpServerRequest &request, const Credential &cr
 		return false;
 	}
 
-	if (credential.devicePub().size() != crypto_sign_PUBLICKEYBYTES) {
+	if (!signer.isValidPublicKey(credential.devicePub())) {
 		LOG_CWARNING("service") << "Peer verification failed (invalid public key size)"
 								<< credential.session()
 								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
 		return false;
 	}
+
+	signer.setPublicKey(credential.devicePub());
 
 	QByteArray session = QByteArray::fromHex(credential.session());
 
@@ -534,12 +538,7 @@ bool Handler::verifyPeer(const QHttpServerRequest &request, const Credential &cr
 			   reinterpret_cast<const unsigned char*>(session.constData()) + session.size());
 
 
-	if (crypto_sign_verify_detached(reinterpret_cast<const unsigned char*>(deviceSignature.constData()),
-									msg.data(),
-									msg.size(),
-									reinterpret_cast<const unsigned char*>(credential.devicePub().constData())
-									) != 0)
-	{
+	if (!signer.verifySign(msg, deviceSignature)) {
 		LOG_CWARNING("service") << "Peer verification failed (invalid signature)"
 								<< credential.session()
 								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();

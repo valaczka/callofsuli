@@ -27,7 +27,9 @@
 #include "studentmaphandler.h"
 #include "campaign.h"
 #include "mapplaycampaign.h"
+#include "mapplayoffline.h"
 #include "server.h"
+#include "offlineclientengine.h"
 
 /**
  * @brief StudentMapHandler::StudentMapHandler
@@ -60,7 +62,7 @@ StudentMapHandler::~StudentMapHandler()
 
 void StudentMapHandler::mapDownload(StudentMap *map)
 {
-	if (!map)
+	if (!map || m_offlineEngine)
 		return;
 
 	download(map, HttpConnection::ApiUser, QStringLiteral("map/%1").arg(map->uuid()));
@@ -92,6 +94,13 @@ void StudentMapHandler::getUserCampaign(Campaign *campaign)
 		return;
 	}
 
+	if (m_offlineEngine) {
+		LOG_CDEBUG("client") << "Offline campaign ready" << campaign->campaignid();
+		emit reloaded();
+		emit campaign->taskListReloaded();
+		return;
+	}
+
 	m_client->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1").arg(campaign->campaignid()))
 			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, [this, campaign](const QJsonObject &data){
@@ -118,10 +127,29 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, con
 		return;
 	}
 
-	auto mapPlay = std::make_unique<MapPlayCampaign>(this);
 
-	if (!mapPlay->load(campaign, map))
-		return;
+	MapPlay *mapPlay = nullptr;
+
+	std::unique_ptr<MapPlayCampaign> mapPlayCmp;
+	std::unique_ptr<MapPlayOffline> mapPlayOffl;
+
+
+	if (m_offlineEngine) {
+		mapPlayOffl.reset(new MapPlayOffline(this, m_offlineEngine));
+		mapPlay = mapPlayOffl.get();
+
+		if (!mapPlayOffl->load(campaign, map))
+			return;
+
+	} else {
+		mapPlayCmp.reset(new MapPlayCampaign(this));
+		mapPlay = mapPlayCmp.get();
+
+		if (!mapPlayCmp->load(campaign, map))
+			return;
+	}
+
+
 
 	// Daily rate
 
@@ -170,7 +198,7 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, con
 
 		QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlayMissionLevel.qml"),
 												   QVariantMap({
-																   { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) },
+																   { QStringLiteral("map"), QVariant::fromValue(mapPlay) },
 																   { QStringLiteral("mission"), QVariant::fromValue(mission) },
 															   }));
 
@@ -179,13 +207,18 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, con
 			return;
 		}
 
-		connect(page, &QQuickItem::destroyed, mapPlay.get(), [g = mapPlay.get(), this](){
-			if (g)
-				g->deleteLater();
+		connect(page, &QQuickItem::destroyed, mapPlay, [mapPlay, this](){
+			if (mapPlay)
+				mapPlay->deleteLater();
 			if (m_client && m_client->currentGame())
 				emit m_client->currentGame()->gameDestroyRequest();
 		});
-		mapPlay.release();
+
+		if (mapPlayCmp)
+			mapPlayCmp.release();
+
+		if (mapPlayOffl)
+			mapPlayOffl.release();
 
 		return;
 	}
@@ -193,7 +226,7 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, con
 
 	QQuickItem *page = m_client->stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
 																								  { QStringLiteral("title"), map->name() },
-																								  { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
+																								  { QStringLiteral("map"), QVariant::fromValue(mapPlay) }
 																							  }));
 
 	if (!page) {
@@ -201,13 +234,19 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, con
 		return;
 	}
 
-	connect(page, &QQuickItem::destroyed, mapPlay.get(), [g = mapPlay.get(), this](){
+	connect(page, &QQuickItem::destroyed, mapPlay, [g = mapPlay, this](){
 		if (g)
 			g->deleteLater();
 		if (m_client && m_client->currentGame())
 			emit m_client->currentGame()->gameDestroyRequest();
 	});
-	mapPlay.release();
+
+
+	if (mapPlayCmp)
+		mapPlayCmp.release();
+
+	if (mapPlayOffl)
+		mapPlayOffl.release();
 }
 
 
@@ -217,6 +256,9 @@ void StudentMapHandler::playCampaignMap(Campaign *campaign, StudentMap *map, con
 
 void StudentMapHandler::reloadList()
 {
+	if (m_offlineEngine)
+		return;
+
 	m_client->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("map"))
 			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, [this](const QJsonObject &data){
@@ -226,6 +268,26 @@ void StudentMapHandler::reloadList()
 		emit reloaded();
 	});
 }
+
+
+/**
+ * @brief StudentMapHandler::offlineEngine
+ * @return
+ */
+
+OfflineClientEngine *StudentMapHandler::offlineEngine() const
+{
+	return m_offlineEngine.get();
+}
+
+void StudentMapHandler::setOfflineEngine(OfflineClientEngine *newOfflineEngine)
+{
+	if (m_offlineEngine == newOfflineEngine)
+		return;
+	m_offlineEngine = newOfflineEngine;
+	emit offlineEngineChanged();
+}
+
 
 
 /**
@@ -246,6 +308,48 @@ StudentMapList *StudentMapHandler::mapList() const
 
 void StudentMapHandler::reloadFreePlayMapList(TeacherGroupFreeMapList *list)
 {
+	if (m_offlineEngine) {
+		LOG_CDEBUG("client") << "Reload offline freeplay map list";
+
+		if (!m_offlineEngine->freeplay())
+			return;
+
+		const OfflineDb &db = m_offlineEngine->db();
+		OfflinePermit permit;
+
+		if (db.permitList().contains(0))
+			permit = db.permitList().value(0);
+		else if (db.permitList().contains(-1))
+			permit = db.permitList().value(-1);
+		else {
+			m_client->messageError(tr("Hibás adatokat találtam"));
+			return;
+		}
+
+		if (!permit.isValid()) {
+			m_client->messageError(tr("A szabad játék zárolva van, szinkronizálj!"));
+			return;
+		}
+
+
+		list->clear();
+
+		for (const PermitMap &map : permit.permitContent().maps) {
+			OfflineMap *m = m_offlineEngine->findMap(map.map);
+			if (!m) {
+				LOG_CWARNING("client") << "Invalid map" << map.map;
+				continue;
+			}
+
+			TeacherGroupFreeMap *fm  = new TeacherGroupFreeMap();
+			fm->setMap(m);
+			fm->setMissionUuid(map.mission);
+			list->append(fm);
+		}
+
+		return;
+	}
+
 	m_client->httpConnection()->send(HttpConnection::ApiUser, QStringLiteral("freeplay"))
 			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Szabad játékok letöltése sikertelen"));})
 			->done(this, [this, mapList = QPointer<TeacherGroupFreeMapList>(list)](const QJsonObject &data){

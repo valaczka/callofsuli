@@ -31,6 +31,7 @@
 #include "rpgarmory.h"
 #include "rpggame.h"
 #include "utils_.h"
+#include "server.h"
 
 RpgUserWallet::RpgUserWallet(QObject *parent)
 	: QObject{parent}

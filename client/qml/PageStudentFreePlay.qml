@@ -16,7 +16,7 @@ QPageGradient {
 	appBar.backButtonVisible: true
 	progressBarEnabled: true
 
-	property bool _firstRun: true
+	property bool _firstRun: studentMapHandler && !studentMapHandler.offlineEngine
 
 	TeacherGroupFreeMapList {
 		id: _mapList

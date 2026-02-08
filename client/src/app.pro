@@ -246,7 +246,9 @@ SOURCES += \
 	mapplay.cpp \
 	mapplaycampaign.cpp \
 	mapplaydemo.cpp \
+	mapplayoffline.cpp \
 	maskedmousearea.cpp \
+	offlineclientengine.cpp \
 	offsetmodel.cpp \
 	pass.cpp \
 	question.cpp \
@@ -364,7 +366,9 @@ HEADERS += \
 	mapplay.h \
 	mapplaycampaign.h \
 	mapplaydemo.h \
+	mapplayoffline.h \
 	maskedmousearea.h \
+	offlineclientengine.h \
 	offsetmodel.h \
 	pass.h \
 	question.h \

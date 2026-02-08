@@ -17,6 +17,7 @@ QPageGradient {
 	property MapPlayMissionLevel missionLevel: null
 
 	readonly property MapPlayCampaign _mapPlayCampaign: map instanceof MapPlayCampaign ? map : null
+	readonly property MapPlayOffline _mapPlayOffline: map instanceof MapPlayOffline ? map : null
 
 	property bool _firstLoad: true
 	property bool _currentGameFailed: false
@@ -691,6 +692,11 @@ QPageGradient {
 			return
 
 		if (!map.online) {
+			_firstLoad = false
+			return
+		}
+
+		if (_mapPlayOffline) {
 			_firstLoad = false
 			return
 		}

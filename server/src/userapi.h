@@ -50,6 +50,7 @@ public:
 		GameMap::GameMode mode = GameMap::Invalid;
 		int campaign = -1;
 		int passitemid = -1;
+		qint64 timestamp = 0;
 	};
 
 	QHttpServerResponse update(const Credential &credential, const QJsonObject &json);
@@ -88,6 +89,8 @@ public:
 								   const QJsonObject &inventory, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
 								   bool *okPtr = nullptr, QPointer<RpgEngine> engine = nullptr);
 
+	QHttpServerResponse permitCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
+
 	QHttpServerResponse inventory(const Credential &credential);
 
 	QHttpServerResponse exam(const Credential &credential, const int &id);
@@ -97,6 +100,7 @@ public:
 	void setCurrency(const QString &username, const int &gameid, const int &amount) const;
 
 
+	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const DatabaseMain *dbMain, const QString &username, const QString &map);
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
 	static std::optional<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
 	static std::optional<int> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,

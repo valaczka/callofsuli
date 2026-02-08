@@ -29,6 +29,8 @@
 
 #include <QJsonObject>
 #include <QSerializer>
+#include <QCborArray>
+#include <sodium.h>
 
 #define JWT_ISSUER QStringLiteral("Call of Suli")
 
@@ -158,6 +160,244 @@ private:
 Q_DECLARE_OPERATORS_FOR_FLAGS(Credential::Roles);
 
 
+
+
+
+
+
+
+/**
+ * @brief The AbstractSigner class
+ */
+
+template <std::size_t N>
+class AbstractSigner
+{
+public:
+	AbstractSigner() {
+		sodium_memzero(m_secret.data(), m_secret.size());
+	}
+
+	AbstractSigner(const std::array<unsigned char, N> &secret)
+		: AbstractSigner() {
+		setSecret(secret);
+	}
+
+	AbstractSigner(const QByteArray &secret)
+		: AbstractSigner() {
+		setSecret(secret);
+	}
+
+	virtual ~AbstractSigner() {
+		sodium_memzero(m_secret.data(), m_secret.size());
+	}
+
+	static bool isValidSecret(const QByteArray &secret) { return secret.size() == N; }
+
+	std::array<unsigned char, N> secret() const { return m_secret; }
+	void setSecret(const std::array<unsigned char, N> &secret) { m_secret = secret; }
+	void setSecret(const QByteArray &secret);
+
+	QCborMap signToMap(const QByteArray &content) const;
+	QByteArray signToRaw(const QByteArray &content) const;
+
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<QSerializer, T>::value>::type>
+	QByteArray signToRaw(const T &content) const {
+		return signToRaw(content.toCborMap().toCborValue().toCbor());
+	}
+
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<QSerializer, T>::value>::type>
+	QByteArray signToRaw(const std::vector<T> &content) const {
+		QCborArray a;
+
+		for (const T &c : content)
+			a.append(c.toCborMap());
+
+		return signToRaw(a.toCborValue().toCbor());
+	}
+
+
+	std::optional<QByteArray> verify(const QByteArray &data) const;
+	std::optional<QByteArray> verify(const QCborMap &data) const;
+
+
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<QSerializer, T>::value>::type>
+	std::optional<T> verifyTo(const QByteArray &content) const {
+		if (const std::optional<QByteArray> &ptr = verify(content)) {
+			const QCborValue v = QCborValue::fromCbor(*ptr);
+			T r;
+			r.fromCbor(v);
+			return r;
+		} else {
+			return std::nullopt;
+		}
+	}
+
+
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<QSerializer, T>::value>::type>
+	std::optional<std::vector<T>> verifyToList(const QByteArray &content) const {
+		if (std::optional<QByteArray> &ptr = verify(content)) {
+			const QCborArray a = QCborValue::fromCbor(*ptr).toArray();
+			std::vector<T> list;
+			list.reserve(a.size());
+
+			for (const QCborValue &v : a) {
+				T r;
+				r.fromCbor(v);
+				list.push_back(std::move(r));
+			}
+			return list;
+		} else {
+			return std::nullopt;
+		}
+	}
+
+	virtual QByteArray sign(const QByteArray &content) const = 0;
+	virtual bool verifySign(const QByteArray &content, const QByteArray &signature) const = 0;
+	virtual bool isValidSignature(const QByteArray &secret) const = 0;
+
+protected:
+	std::array<unsigned char, N> m_secret;
+};
+
+
+
+
+/**
+ * @brief AbstractSigner::setSecret
+ * @param secret
+ */
+
+template<std::size_t N>
+inline void AbstractSigner<N>::setSecret(const QByteArray &secret)
+{
+	if (secret.size() != N) {
+		qWarning() << "Invalid secret size" << secret.size();
+		return;
+	}
+
+	std::memcpy(m_secret.data(), reinterpret_cast<const unsigned char*>(secret.constData()), N);
+}
+
+
+/**
+ * @brief AbstractSigner::signToMap
+ * @param content
+ * @return
+ */
+
+template<std::size_t N>
+inline QCborMap AbstractSigner<N>::signToMap(const QByteArray &content) const
+{
+	QCborMap m;
+	m[QStringLiteral("content")] = content;
+	m[QStringLiteral("sig")] = sign(content);
+	return m;
+}
+
+
+/**
+ * @brief AbstractSigner::signToRaw
+ * @param content
+ * @return
+ */
+
+template<std::size_t N>
+inline QByteArray AbstractSigner<N>::signToRaw(const QByteArray &content) const
+{
+	return signToMap(content).toCborValue().toCbor();
+}
+
+
+/**
+ * @brief AbstractSigner::verify
+ * @param data
+ * @return
+ */
+
+template<std::size_t N>
+inline std::optional<QByteArray> AbstractSigner<N>::verify(const QByteArray &data) const
+{
+	const QCborMap m = QCborValue::fromCbor(data).toMap();
+
+	if (m.isEmpty())
+		return std::nullopt;
+
+	return verify(m);
+}
+
+
+/**
+ * @brief AbstractSigner::verify
+ * @param data
+ * @return
+ */
+
+template<std::size_t N>
+inline std::optional<QByteArray> AbstractSigner<N>::verify(const QCborMap &data) const
+{
+	const QByteArray content = data.value(QStringLiteral("content")).toByteArray();
+
+	if (!verifySign(content, data.value(QStringLiteral("sig")).toByteArray()))
+		return std::nullopt;
+
+	return content;
+}
+
+
+
+
+/**
+ * @brief The AuthKeySigner class
+ */
+
+class AuthKeySigner : public AbstractSigner<crypto_auth_KEYBYTES>
+{
+public:
+	AuthKeySigner() : AbstractSigner() {}
+	AuthKeySigner(const std::array<unsigned char, crypto_auth_KEYBYTES> &secret) : AbstractSigner(secret) {}
+	AuthKeySigner(const QByteArray &secret) : AbstractSigner(secret) {}
+
+	virtual QByteArray sign(const QByteArray &content) const override;
+	virtual bool verifySign(const QByteArray &content, const QByteArray &signature) const override;
+	virtual bool isValidSignature(const QByteArray &secret) const override { return secret.size() == crypto_auth_BYTES; }
+
+};
+
+
+
+
+
+
+/**
+ * @brief The PublicKeySigner class
+ */
+
+class PublicKeySigner : public AbstractSigner<crypto_sign_SECRETKEYBYTES>
+{
+public:
+	PublicKeySigner() : AbstractSigner() {}
+	PublicKeySigner(const std::array<unsigned char, crypto_sign_SECRETKEYBYTES> &secret) : AbstractSigner(secret) {}
+	PublicKeySigner(const QByteArray &secret) : AbstractSigner(secret) {}
+
+	const std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> &publicKey() const { return m_publicKey; };
+	void setPublicKey(const std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> &newPublicKey) { m_publicKey = newPublicKey; }
+	void setPublicKey(const QByteArray &publicKey);
+
+	virtual QByteArray sign(const QByteArray &content) const override;
+	virtual bool verifySign(const QByteArray &content, const QByteArray &signature) const override;
+	bool verifySign(const std::vector<unsigned char> &content, const QByteArray &signature) const;
+	virtual bool isValidSignature(const QByteArray &secret) const override { return secret.size() == crypto_sign_BYTES; }
+
+	static bool isValidPublicKey(const QByteArray &publicKey) { return publicKey.size() == crypto_sign_PUBLICKEYBYTES; }
+
+private:
+	std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> m_publicKey;
+};
 
 
 

@@ -238,5 +238,7 @@
         <file>PageMapEditorMatrixImport.qml</file>
         <file>QFormSectionSelector.qml</file>
         <file>StudentDashboardNotification.qml</file>
+        <file>PageStudentOffline.qml</file>
+        <file>StudentOfflineDashboard.qml</file>
     </qresource>
 </RCC>

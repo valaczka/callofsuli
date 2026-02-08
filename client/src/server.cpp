@@ -31,10 +31,12 @@
 #include "qjsonobject.h"
 #include "utils_.h"
 #include "rpggame.h"
+#include "offlineclientengine.h"
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
 	, m_user(new User())
+	, m_offlineEngine(new OfflineClientEngine(this))
 {
 
 
@@ -663,6 +665,11 @@ std::optional<QDir> Server::getContentDir() const
 #endif
 
 	return dir;
+}
+
+OfflineClientEngine* Server::offlineEngine() const
+{
+	return m_offlineEngine.get();
 }
 
 

@@ -2398,7 +2398,7 @@ QString AdminAPI::pwhash_str(const QString &password)
 		return {};
 	}
 
-	return QByteArray(out);
+	return QByteArray(out, crypto_pwhash_STRBYTES);
 }
 
 

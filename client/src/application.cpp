@@ -42,8 +42,10 @@
 #include "mapeditormatriximporter.h"
 #include "mapgame.h"
 #include "mapplaycampaign.h"
+#include "mapplayoffline.h"
 #include "maskedmousearea.h"
 #include "offsetmodel.h"
+#include "offlineclientengine.h"
 #include "qapplication.h"
 #include "qsjsonlistmodel.h"
 #include "rpguserwallet.h"
@@ -376,6 +378,8 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayCampaign>("CallOfSuli", 1, 0, "MapPlayCampaign", "MapPlayCampaign is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMission>("CallOfSuli", 1, 0, "MapPlayMission", "MapPlayMission is uncreatable");
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
+	qmlRegisterUncreatableType<MapPlayOffline>("CallOfSuli", 1, 0, "MapPlayOffline", "MapPlayOffline is uncreatable");
+	qmlRegisterUncreatableType<OfflineClientEngine>("CallOfSuli", 1, 0, "OfflineClientEngine", "OfflineClientEngine is uncreatable");
 	qmlRegisterUncreatableType<RpgActiveControlObject>("CallOfSuli", 1, 0, "RpgActiveControl", "RpgActiveControl is uncreatable");
 	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
 	qmlRegisterUncreatableType<RpgEnemy>("CallOfSuli", 1, 0, "RpgEnemy", "RpgEnemy is uncreatable");

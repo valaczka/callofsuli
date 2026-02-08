@@ -6,6 +6,7 @@ import CallOfSuli
 import SortFilterProxyModel
 import "JScript.js" as JS
 
+
 QItemGradient {
 	id: root
 
@@ -236,6 +237,10 @@ QItemGradient {
 					}
 
 					onClicked: {
+						Client.server.offlineEngine.getPermit(campaign.campaignid)
+
+						return
+
 						let group = null
 
 						if (campaign && campaign.groupid > -1)
@@ -275,9 +280,11 @@ QItemGradient {
 
 				textColor: Qaterial.Colors.green500
 
-				onClicked: Client.stackPushPage("PageStudentFreePlay.qml", {
+				onClicked: Client.server.offlineEngine.getPermit(0)
+
+				/*onClicked: Client.stackPushPage("PageStudentFreePlay.qml", {
 													studentMapHandler: studentMapHandler
-												})
+												})*/
 			}
 
 

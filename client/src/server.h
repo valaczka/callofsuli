@@ -52,6 +52,20 @@ class Server;
 using ServerList = qolm::QOlm<Server>;
 Q_DECLARE_METATYPE(ServerList*)
 
+
+
+class OfflineClientEngine;
+
+#ifndef OPAQUE_PTR_OfflineClientEngine
+#define OPAQUE_PTR_OfflineClientEngine
+Q_DECLARE_OPAQUE_POINTER(OfflineClientEngine*)
+#endif
+
+
+/**
+ * @brief The Server class
+ */
+
 class Server : public SelectableObject
 {
 	Q_OBJECT
@@ -66,6 +80,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QJsonObject config READ config NOTIFY configChanged)
 	Q_PROPERTY(User *user READ user CONSTANT)
+	Q_PROPERTY(OfflineClientEngine *offlineEngine READ offlineEngine CONSTANT FINAL)
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
@@ -167,6 +182,8 @@ public:
 	QByteArray sessionId() const;
 	void setSessionId(const QByteArray &newSessionId);
 
+	OfflineClientEngine* offlineEngine() const;
+
 signals:
 	void notificationActivated(const NotificationType &type, const int &id, const QString &text);
 
@@ -219,6 +236,8 @@ private:
 
 	QHash<QPair<NotificationType, int>, QJsonValue> m_notificationContent;
 	QByteArray m_sessionId;
+
+	std::unique_ptr<OfflineClientEngine> m_offlineEngine;
 };
 
 
