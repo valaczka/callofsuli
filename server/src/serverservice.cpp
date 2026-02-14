@@ -231,6 +231,16 @@ void ServerService::agentSignLoad()
 			continue;
 		}
 
+
+		if (ptr->contains(QStringLiteral("private"))) {
+			QByteArray key = QByteArray::fromBase64(ptr->value(QStringLiteral("private")).toString().toLatin1());
+			LOG_CWARNING("service") << "- deprecated signature:" << key.toHex(':');
+
+			m_agentSignatures[QByteArrayLiteral("private")].platformProof[QByteArrayLiteral("private")].insert(key);
+			continue;
+		}
+
+
 		QString buildId = ptr->take(QStringLiteral("build_id")).toString();
 		QByteArray build = QByteArray::fromHex(buildId.toLatin1());
 

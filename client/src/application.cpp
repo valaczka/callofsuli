@@ -411,6 +411,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<RpgConfig>("CallOfSuli", 1, 0, "RpgConfig", "RpgConfig is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayerConfig>("CallOfSuli", 1, 0, "RpgPlayerConfig", "RpgPlayerConfig is uncreatable");
 	qmlRegisterUncreatableType<RpgGameData::Weapon>("CallOfSuli", 1, 0, "RpgWeaponType", "RpgWeapon is uncreatable");
+	qmlRegisterUncreatableType<OfflineReceipt>("CallOfSuli", 1, 0, "OfflineReceipt", "OfflineReceipt is uncreatable");
 
 
 	qmlRegisterUncreatableMetaObject(CallOfSuli::staticMetaObject, "CallOfSuli", 1, 0, "NotificationType", "NotificationType is uncreatable");
@@ -625,7 +626,7 @@ const QString &Application::userAgent()
 
 QByteArray Application::userAgentSign(const QByteArray &content, const QByteArray &sessionId)
 {
-	std::array<unsigned char, crypto_sign_SECRETKEYBYTES> privateKey;
+	PublicKeySigner signer;
 
 	{
 #ifndef Q_OS_WASM
@@ -637,7 +638,7 @@ QByteArray Application::userAgentSign(const QByteArray &content, const QByteArra
 			return {};
 		}
 
-		privateKey = m_device.privateKey;
+		signer.setSecret(m_device.privateKey);
 	}
 
 
@@ -653,17 +654,63 @@ QByteArray Application::userAgentSign(const QByteArray &content, const QByteArra
 			   reinterpret_cast<const unsigned char*>(sessionId.constData()) + sessionId.size());
 
 
-	QByteArray sig(crypto_sign_BYTES, Qt::Uninitialized);
+	return signer.sign(QByteArray::fromRawData(reinterpret_cast<const char*>(msg.data()), msg.size()));
+}
 
-	if (crypto_sign_detached(reinterpret_cast<unsigned char*>(sig.data()),
-							 nullptr,
-							 msg.data(), msg.size(),
-							 privateKey.data()) != 0) {
-		LOG_CERROR("app") << "Crypt sign error";
-		return {};
+
+
+/**
+ * @brief Application::signToMap
+ * @param message
+ * @return
+ */
+
+QCborMap Application::signToMap(const QByteArray &message) const
+{
+	PublicKeySigner signer;
+
+	{
+#ifndef Q_OS_WASM
+		QMutexLocker locker(&m_device.mutex);
+#endif
+
+		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
+			LOG_CERROR("app") << "Device private key missing";
+			return {};
+		}
+
+		signer.setSecret(m_device.privateKey);
 	}
 
-	return sig;
+	return signer.signToMap(message);
+}
+
+
+
+/**
+ * @brief Application::sign
+ * @param message
+ * @return
+ */
+
+QByteArray Application::signToRaw(const QByteArray &message) const
+{
+	PublicKeySigner signer;
+
+	{
+#ifndef Q_OS_WASM
+		QMutexLocker locker(&m_device.mutex);
+#endif
+
+		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
+			LOG_CERROR("app") << "Device private key missing";
+			return {};
+		}
+
+		signer.setSecret(m_device.privateKey);
+	}
+
+	return signer.signToRaw(message);
 }
 
 

@@ -136,8 +136,16 @@ public:
 	QByteArray userAgentSign(const QByteArray &content,
 							 const QByteArray &sessionId);
 
+	QCborMap signToMap(const QByteArray &message) const;
+	QByteArray signToRaw(const QByteArray &message) const;
+
 	std::optional<std::pair<QByteArray, QByteArray> > deviceIdentity() const;
 	void setOnDeviceIdentityReady(QObject *instance, const std::function<void(bool)> &func, const bool &startTimer = true);
+
+	template <std::size_t N>
+	std::array<unsigned char, N> deriveFromSeed(const uint64_t &subkey_id, const char ctx[crypto_kdf_CONTEXTBYTES]) {
+		return m_device.deriveFromSeed<N>(subkey_id, ctx);
+	}
 
 protected:
 	virtual bool loadMainQml();

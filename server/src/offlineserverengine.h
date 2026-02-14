@@ -30,6 +30,7 @@
 #include <credential.h>
 #include <offlineengine.h>
 #include "serverservice.h"
+#include "userapi.h"
 
 class OfflineServerEngine : public OfflineEngine
 {
@@ -40,6 +41,8 @@ public:
 										   const qint64 &clientClock);
 	QByteArray signPermit(const PermitContent &permit) const;
 	std::optional<PermitContent> verifyPermit(const QByteArray &data) const;
+
+	std::optional<PermitResponse> uploadReceipts(UserAPI *api, const PermitContent &permit, const std::vector<Receipt> &list);
 
 
 private:

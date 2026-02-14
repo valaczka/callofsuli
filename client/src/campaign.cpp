@@ -604,6 +604,26 @@ void StudentCampaignOffsetModel::setGroupid(int newGroupid)
 }
 
 
+/**
+ * @brief StudentCampaignOffsetModel::replaceFromJson
+ * @param obj
+ * @return
+ */
+
+bool StudentCampaignOffsetModel::replaceFromJson(const QJsonObject &obj)
+{
+	setApi(HttpConnection::ApiInvalid);
+	model()->clear();
+	emit modelCleared();
+
+	loadFromJson(obj);
+
+	setCanFetch(false);
+
+	return true;
+}
+
+
 
 /**
  * @brief StudentCampaignOffsetModel::username
@@ -736,4 +756,17 @@ void Campaign::setPassTitle(const QString &newPassTitle)
 		return;
 	m_passTitle = newPassTitle;
 	emit passTitleChanged();
+}
+
+Campaign::OfflineState Campaign::offlineState() const
+{
+	return m_offlineState;
+}
+
+void Campaign::setOfflineState(const OfflineState &newOfflineState)
+{
+	if (m_offlineState == newOfflineState)
+		return;
+	m_offlineState = newOfflineState;
+	emit offlineStateChanged();
 }

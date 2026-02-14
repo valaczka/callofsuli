@@ -84,6 +84,7 @@ public slots:
 
 protected:
 	virtual QVariantList getListFromJson(const QJsonObject &obj);
+	void loadFromJson(const QJsonObject &obj);
 
 signals:
 	void apiChanged();
@@ -100,7 +101,6 @@ signals:
 
 
 private:
-	void loadFromJson(const QJsonObject &obj);
 	std::unique_ptr<QSListModel> m_model;
 	HttpConnection::API m_api = HttpConnection::ApiInvalid;
 	QString m_path;

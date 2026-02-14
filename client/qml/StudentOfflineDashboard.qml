@@ -51,6 +51,13 @@ QItemGradient {
 		}
 
 
+		Qaterial.LabelBody1 {
+			visible: engine && !engine.allPermitValid
+			anchors.horizontalCenter: parent.horizontalCenter
+			text: qsTr("Az adatbázis egy része zárolva van, szinkronizálj a feloldáshoz")
+			color: Qaterial.Style.errorColor
+		}
+
 
 		QDashboardGrid {
 			id: _grid
@@ -64,54 +71,23 @@ QItemGradient {
 					property Campaign campaign: model && model.qtObject ? model.qtObject : null
 					text: campaign ? campaign.readableName : ""
 
-					icon.source: Qaterial.Icons.trophyBroken
+					readonly property bool isValid: campaign && engine && engine.checkCampaignValid(campaign)
 
-					QTagList {
+					icon.source: isValid ?
+									 Qaterial.Icons.trophyBroken :
+									 Qaterial.Icons.lockAlertOutline
+
+					bgColor: isValid ? Qaterial.Style.buttonColor : Qaterial.Colors.red500
+
+					DashboardTimingTag {
 						anchors.right: parent.right
-						anchors.top: parent.top
 						anchors.rightMargin: Qaterial.Style.card.horizontalPadding
+						anchors.top: parent.top
 						anchors.topMargin: Qaterial.Style.card.horizontalPadding
-
-						readonly property int msecLeft: _btn.campaign && _btn.campaign.endTime.getTime() ?
-															_btn.campaign.endTime - _referenceDate.getTime():
-															0
-
-						visible: msecLeft > 0 && msecLeft < 8 * 24 * 60 * 60 * 1000
-
-						readonly property string stateString: {
-							let d = Math.floor(msecLeft / (24*60*60*1000))
-
-							if (d > 5)
-								return qsTr(">5 nap")
-							else if (d > 0)
-								return qsTr("%1 nap").arg(d)
-							else if (msecLeft > 60*60*1000) {
-								let h = Math.floor(msecLeft / (60*60*1000))
-								return qsTr("%1 óra").arg(h)
-							} else {
-								return qsTr("<1 óra")
-							}
-						}
-
-						readonly property color stateColor: {
-							if (msecLeft > 4 * 24 * 60 * 60 * 1000)
-								return Qaterial.Colors.green600
-							else if (msecLeft > 2 * 24 * 60 * 60 * 1000)
-								return Qaterial.Colors.orange800
-							else
-								return Qaterial.Colors.red500
-						}
-
 						z: 99
 
-						model: [
-							{
-								"text": stateString,
-								"color": stateColor,
-								"textColor": Qaterial.Colors.white
-							}
-
-						]
+						campaign: _btn.campaign
+						referenceDate: _referenceDate
 					}
 
 					onClicked: {
@@ -130,12 +106,18 @@ QItemGradient {
 			QDashboardButton {
 				text: qsTr("Szabad játék")
 				visible: root.freeplay
-				icon.source: Qaterial.Icons.controller
+
+				readonly property bool isValid: engine && engine.checkCampaignValid(null)
+
+				icon.source: isValid ?
+								 Qaterial.Icons.controller :
+								 Qaterial.Icons.lockAlertOutline
+
 				highlighted: false
 				outlined: true
 				flat: true
 
-				textColor: Qaterial.Colors.green500
+				textColor: isValid ? Qaterial.Colors.green500 : Qaterial.Colors.red500
 
 				onClicked: Client.stackPushPage("PageStudentFreePlay.qml", {
 													studentMapHandler: studentMapHandler,

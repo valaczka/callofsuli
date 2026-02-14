@@ -28,6 +28,7 @@
 #define MAPPLAYOFFLINE_H
 
 #include "mapplay.h"
+#include "offlineclientengine.h"
 #include "studentmaphandler.h"
 #include <QObject>
 
@@ -62,6 +63,7 @@ private:
 	QPointer<StudentMapHandler> m_handler;
 	QPointer<OfflineClientEngine> m_engine;
 	QPointer<Campaign> m_campaign;
+	OfflineReceipt m_receipt;
 	QHash<GameMapMissionLevel *, int> m_shortTimeHelper;
 	qreal m_extraTimeFactor = 0.;
 };

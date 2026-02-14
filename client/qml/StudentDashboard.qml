@@ -188,59 +188,38 @@ QItemGradient {
 
 					icon.source: Qaterial.Icons.trophyBroken
 
-					QTagList {
+					Qaterial.Icon {
+						anchors.left: parent.left
+						anchors.top: parent.top
+						anchors.leftMargin: Qaterial.Style.card.horizontalPadding
+						anchors.topMargin: Qaterial.Style.card.horizontalPadding
+
+						visible: _btn.campaign && _btn.campaign.offlineState != Campaign.OfflineInvalid
+
+						icon: Qaterial.Icons.cloudCheckVariant
+
+						color: _btn.campaign && _btn.campaign.offlineState == Campaign.OfflineReady ?
+								   Qaterial.Colors.green500 :
+								   _btn.campaign && _btn.campaign.offlineState == Campaign.OfflineError ?
+									   Qaterial.Colors.red500 :
+									   Qaterial.Colors.orange500
+					}
+
+
+					DashboardTimingTag {
 						anchors.right: parent.right
 						anchors.top: parent.top
 						anchors.rightMargin: Qaterial.Style.card.horizontalPadding
 						anchors.topMargin: Qaterial.Style.card.horizontalPadding
 
-						readonly property int msecLeft: _btn.campaign && _btn.campaign.endTime.getTime() ?
-															_btn.campaign.endTime - _referenceDate.getTime():
-															0
-
-						visible: msecLeft > 0 && msecLeft < 8 * 24 * 60 * 60 * 1000
-
-						readonly property string stateString: {
-							let d = Math.floor(msecLeft / (24*60*60*1000))
-
-							if (d > 5)
-								return qsTr(">5 nap")
-							else if (d > 0)
-								return qsTr("%1 nap").arg(d)
-							else if (msecLeft > 60*60*1000) {
-								let h = Math.floor(msecLeft / (60*60*1000))
-								return qsTr("%1 óra").arg(h)
-							} else {
-								return qsTr("<1 óra")
-							}
-						}
-
-						readonly property color stateColor: {
-							if (msecLeft > 4 * 24 * 60 * 60 * 1000)
-								return Qaterial.Colors.green600
-							else if (msecLeft > 2 * 24 * 60 * 60 * 1000)
-								return Qaterial.Colors.orange800
-							else
-								return Qaterial.Colors.red500
-						}
+						campaign: _btn.campaign
+						referenceDate: _referenceDate
 
 						z: 99
 
-						model: [
-							{
-								"text": stateString,
-								"color": stateColor,
-								"textColor": Qaterial.Colors.white
-							}
-
-						]
 					}
 
 					onClicked: {
-						Client.server.offlineEngine.getPermit(campaign.campaignid)
-
-						return
-
 						let group = null
 
 						if (campaign && campaign.groupid > -1)
@@ -271,6 +250,8 @@ QItemGradient {
 
 
 			QDashboardButton {
+				id: _btnFreePlay
+
 				text: qsTr("Szabad játék")
 				visible: !_grid.showPlaceholders
 				icon.source: Qaterial.Icons.controller
@@ -278,13 +259,31 @@ QItemGradient {
 				outlined: true
 				flat: true
 
+				property Campaign campaign: Campaign { }
+
+				Qaterial.Icon {
+					anchors.left: parent.left
+					anchors.top: parent.top
+					anchors.leftMargin: Qaterial.Style.card.horizontalPadding
+					anchors.topMargin: Qaterial.Style.card.horizontalPadding
+
+					visible: _btnFreePlay.campaign.offlineState != Campaign.OfflineInvalid
+
+					icon: Qaterial.Icons.cloudCheckVariant
+
+					color: _btnFreePlay.campaign.offlineState == Campaign.OfflineReady ?
+							   Qaterial.Colors.green500 :
+							   _btnFreePlay.campaign && _btnFreePlay.campaign.offlineState == Campaign.OfflineError ?
+								   Qaterial.Colors.red500 :
+								   Qaterial.Colors.orange500
+				}
+
 				textColor: Qaterial.Colors.green500
 
-				onClicked: Client.server.offlineEngine.getPermit(0)
-
-				/*onClicked: Client.stackPushPage("PageStudentFreePlay.qml", {
-													studentMapHandler: studentMapHandler
-												})*/
+				onClicked: Client.stackPushPage("PageStudentFreePlay.qml", {
+													studentMapHandler: studentMapHandler,
+													campaign: _btnFreePlay.campaign
+												})
 			}
 
 
@@ -358,6 +357,14 @@ QItemGradient {
 	}
 
 
+	Connections {
+		target: Client.server ? Client.server.offlineEngine : null
+
+		function onDbUpdated() {
+			Client.server.offlineEngine.updateCampaignModel(campaignList, _btnFreePlay.campaign)
+		}
+	}
+
 	StackView.onDeactivating: {
 		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentDasboard)
 	}
@@ -383,6 +390,9 @@ QItemGradient {
 		Client.reloadCache("studentCampaignList", root, function() {
 			_firstRun = false
 			_referenceDate = new Date()
+
+			if (Client.server.offlineEngine)
+				Client.server.offlineEngine.updateCampaignModel(campaignList, _btnFreePlay.campaign)
 		})
 
 		Client.send(HttpConnection.ApiGeneral, "user/%1/log/xp".arg(user.username))

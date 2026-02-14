@@ -49,7 +49,6 @@ public:
 		int level = -1;
 		GameMap::GameMode mode = GameMap::Invalid;
 		int campaign = -1;
-		int passitemid = -1;
 		qint64 timestamp = 0;
 	};
 
@@ -85,11 +84,21 @@ public:
 	QHttpServerResponse gameUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse gameUpdateStatistics(const QString &username, const QJsonArray &statistics);
 	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json);
+
+	enum GameFinishMode {
+		GameFinishNone = 0,
+		GameFinishGameOnly = 1,
+		GameFinishCampaignOnly = 1 << 1,
+
+		GameFinishFull = GameFinishGameOnly | GameFinishCampaignOnly
+	};
+
 	QHttpServerResponse gameFinish(const QString &username, const int &id, const UserGame &game,
 								   const QJsonObject &inventory, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
-								   bool *okPtr = nullptr, QPointer<RpgEngine> engine = nullptr);
+								   bool *okPtr = nullptr, QPointer<RpgEngine> engine = nullptr, const GameFinishMode &mode = GameFinishFull);
 
 	QHttpServerResponse permitCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
+	QHttpServerResponse permitUpload(const Credential &credential, const QJsonObject &json);
 
 	QHttpServerResponse inventory(const Credential &credential);
 

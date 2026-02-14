@@ -88,7 +88,7 @@ std::optional<PermitFull> OfflineServerEngine::createPermit(const QString &usern
 				q.addQuery(" AND campaignid IS NULL");
 
 
-			if (!q.execCheckExists() || true) {				// CHECK STEP! (<300 -> create new)
+			if (!q.execCheckExists()) {				// CHECK STEP! (<300 -> create new)
 				if (!generateHash(permit, username, campaign, device)) {
 					LOG_CERROR("client") << "Permit create error";
 					return ret.reject();
@@ -116,8 +116,8 @@ std::optional<PermitFull> OfflineServerEngine::createPermit(const QString &usern
 			{
 				QueryBuilder q(db);
 				q.addQuery("SELECT endtime, description FROM campaign "
-															   "WHERE campaign.started IS TRUE AND campaign.finished IS FALSE AND "
-															   "id=").addValue(campaign);
+						   "WHERE campaign.started IS TRUE AND campaign.finished IS FALSE AND "
+						   "id=").addValue(campaign);
 
 				if (!q.exec() || !q.sqlQuery().first()) {
 					LOG_CWARNING("client") << "Invalid campaign" << campaign;
@@ -317,6 +317,128 @@ QByteArray OfflineServerEngine::signPermit(const PermitContent &permit) const
 std::optional<PermitContent> OfflineServerEngine::verifyPermit(const QByteArray &data) const
 {
 	return m_signer.verifyTo<PermitContent>(data);
+}
+
+
+
+/**
+ * @brief OfflineServerEngine::uploadReceipts
+ * @param permit
+ * @param list
+ * @return
+ */
+
+std::optional<PermitResponse> OfflineServerEngine::uploadReceipts(UserAPI *api, const PermitContent &permit, const std::vector<Receipt> &list)
+{
+	Q_ASSERT(api);
+	Q_ASSERT(m_service->databaseMain());
+
+	DatabaseMain *dbMain = m_service->databaseMain();
+
+	QDefer ret;
+
+	int step = 0;
+	QByteArray chain;
+
+	m_service->databaseMainWorker()->execInThread([api, dbMain, ret, &permit, &list, &step, &chain]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		{
+			if (const auto &ptr = QueryBuilder::q(db)
+					.addQuery("SELECT expected FROM permit WHERE id=").addValue(permit.id)
+					.execToValue("expected")) {
+				chain = ptr->toByteArray();
+			} else {
+				LOG_CWARNING("client") << "Hash chain error for permit" << permit.id;
+				return ret.reject();
+			}
+		}
+
+		bool hasSuccess = false;
+
+		for (const Receipt &r : list) {
+			if (OfflineEngine::computeMapHash(r.chainHash) != chain) {
+				LOG_CWARNING("client") << "Hash chain error";
+				break;
+			}
+
+			UserAPI::UserGame game;
+
+			game.map = QString::fromUtf8(r.map);
+			game.mission = QString::fromUtf8(r.mission);
+			game.level = r.level;
+			game.mode = r.mode;
+			game.campaign = permit.campaign;
+			game.timestamp = QDateTime::fromSecsSinceEpoch(permit.getClientTime(r)).toMSecsSinceEpoch();
+
+			int gameId = -1;
+			api->gameCreate(permit.username, permit.campaign, game, {}, &gameId);
+
+			if (gameId == -1) {
+				LOG_CERROR("client") << "Game create error" << permit.username;
+				break;
+			}
+
+			bool ok = false;
+
+			api->gameFinish(permit.username, gameId, game, {}, r.stat,
+							r.success, r.xp, r.duration, &ok, nullptr, UserAPI::GameFinishGameOnly);
+
+			if (!ok) {
+				LOG_CERROR("client") << "Game finish error" << permit.username;
+				break;
+			}
+
+			if (r.success)
+				hasSuccess = true;
+
+			chain = r.chainHash;
+
+			++step;
+		}
+
+
+		if (hasSuccess) {
+			bool ok = false;
+			UserAPI::UserGame game;
+			game.campaign = permit.campaign;
+
+			api->gameFinish(permit.username, 0, game, {}, {},
+							true, 0, 0, &ok, nullptr, UserAPI::GameFinishCampaignOnly);
+
+			if (!ok) {
+				LOG_CERROR("client") << "Game finish error" << permit.username;
+				return ret.reject();
+			}
+		}
+
+		if (step > 0) {
+			LOG_CDEBUG("client") << "Permit" << permit.id << "decrease step" << step;
+
+			if (!QueryBuilder::q(db)
+					.addQuery("UPDATE permit SET step=step-").addValue(step)
+					.addQuery(",  expected=").addValue(chain)
+					.addQuery(" WHERE id=").addValue(permit.id)
+					.exec()) {
+				step = 0;
+				return ret.reject();
+			}
+		}
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	PermitResponse resp;
+
+	resp.id = permit.id;
+	resp.campaign = permit.campaign;
+	resp.hashStep = permit.hashStep-step;
+
+	return resp;
 }
 
 

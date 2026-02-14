@@ -169,7 +169,7 @@ public:
 	static std::optional<QJsonArray> _groupGameResult(const AbstractAPI *api, const int &group,
 									   const int &limit = DEFAULT_LIMIT, const int &offset = 0);
 
-	static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, const int &passitemid);
+        static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username);
 	static std::optional<float> _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username);
 	static std::optional<float> _evaluateCriterionMission(const AbstractAPI *api, /*const int &campaign,*/ const QJsonObject &criterion, const QString &map,
 										  const QString &username);

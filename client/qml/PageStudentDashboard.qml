@@ -50,6 +50,7 @@ QPage {
 	property StudentGroup group: null
 	property StudentMapHandler studentMapHandler: StudentMapHandler {  }
 
+
 	property bool _closeEnabled: false
 
 	Qaterial.StackView {

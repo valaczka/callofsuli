@@ -497,6 +497,21 @@ bool Handler::verifyPeer(const QHttpServerRequest &request, const Credential &cr
 	if (!m_service->settings()->verifyPeer())
 		return true;
 
+	// Check old signature
+
+	if (const QByteArray &userAgentSign = request.value(QByteArrayLiteral("User-Agent-Sign"));
+			!userAgentSign.isEmpty() && credential.devicePub().isEmpty()) {
+		const QSet<QByteArray> list = m_service->agentSignatures().value(QByteArrayLiteral("private"))
+									  .platformProof.value(QByteArrayLiteral("private"));
+
+		for (const QByteArray &key : list) {
+			if (QMessageAuthenticationCode::hash(message, key, QCryptographicHash::Sha3_256).toBase64() == userAgentSign) {
+				return true;
+			}
+		}
+	}
+
+
 	PublicKeySigner signer;
 
 	const QByteArray deviceSignature = QByteArray::fromBase64(request.value(QByteArrayLiteral("Content-Signature")));

@@ -65,7 +65,7 @@ MapPlayOffline::~MapPlayOffline()
 
 bool MapPlayOffline::load(Campaign *campaign, StudentMap *map)
 {
-	if (!m_client)
+	if (!m_client || !m_engine || !m_handler)
 		return false;
 
 	const auto &data = m_handler->read(map);
@@ -90,6 +90,32 @@ bool MapPlayOffline::load(Campaign *campaign, StudentMap *map)
 	if (m_campaign && (m_campaign->finished() || !m_campaign->started()))
 		setReadOnly(true);
 
+	if (!m_engine->checkCampaignValid(m_campaign))
+		setReadOnly(true);
+
+	const GameMap::GameModes enabledModes = m_engine->getCampaignGameModes(m_campaign);
+
+	if (enabledModes == GameMap::Invalid) {
+		LOG_CWARNING("client") << "All game mode disabled";
+		setReadOnly(true);
+	}
+
+	for (GameMapMission *m : m_gameMap->missions()) {
+		GameMap::GameModes mode = m->modes();
+		if (mode == GameMap::Invalid)
+			mode = GameMap::Lite;
+
+		m->setModes(mode & enabledModes);
+
+		for (GameMapMissionLevel *ml : m->levels()) {
+			GameMap::GameModes mode = ml->modes();
+			if (mode == GameMap::Invalid)
+				continue;
+
+			ml->setModes(mode & enabledModes);
+		}
+	}
+
 	return true;
 }
 
@@ -102,8 +128,10 @@ bool MapPlayOffline::load(Campaign *campaign, StudentMap *map)
 
 void MapPlayOffline::updateSolver()
 {
-	if (!m_gameMap || !m_solver || !m_client || !m_engine)
+	if (!m_gameMap || !m_solver || !m_client || !m_engine || !m_handler)
 		return;
+
+	m_solver->clear();
 
 	OfflineMap *map = m_engine->findMap(m_gameMap->uuid());
 
@@ -125,6 +153,32 @@ void MapPlayOffline::updateSolver()
 			}
 		}
 	}
+
+	for (const OfflinePermit &p : m_engine->db().permitList()) {
+		for (const OfflineReceipt &r : p.receiptList()) {
+			if (r.map != m_gameMap->uuid().toUtf8())
+				continue;
+
+			if (!r.success)
+				continue;
+
+			GameMapMission *mission = m_gameMap->mission(QString::fromUtf8(r.mission));
+
+			if (!mission)
+				continue;
+
+			MapPlayMissionLevel *ml = getMissionLevel(mission->level(r.level));
+
+			if (!ml)
+				continue;
+
+			MapPlaySolverData solver = ml->solverData();
+			solver.setSolved(std::max(1, solver.solved()+1));				// Van, amikor -1
+			ml->setSolverData(solver);
+		}
+	}
+
+
 
 	QList<MapPlayMissionLevel*> list = m_solver->updateLock();
 	m_solver->updateXP();
@@ -176,7 +230,7 @@ void MapPlayOffline::setExtraTimeFactor(qreal newExtraTimeFactor)
 
 void MapPlayOffline::onCurrentGamePrepared()
 {
-	if (!m_client || !m_gameMap || !m_client->currentGame())
+	if (!m_client || !m_gameMap || !m_client->currentGame() || !m_engine)
 		return;
 
 
@@ -187,6 +241,31 @@ void MapPlayOffline::onCurrentGamePrepared()
 		return;
 	}
 
+
+	if (const auto &ptr = m_engine->requireReceipt(m_campaign)) {
+		m_receipt = *ptr;
+
+		/*
+		QS_BYTEARRAY(map)
+		QS_BYTEARRAY(mission)
+		QS_FIELD(quint32, level)
+		QS_FIELD(qint64, clock)
+		QS_FIELD(GameMap::GameMode, mode)
+		QS_FIELD(quint32, duration)
+		QS_FIELD(bool, success)
+		QS_FIELD(quint32, xp)
+		QS_FIELD(quint32, currency)
+		*/
+
+		m_receipt.map = levelGame->map()->uuid().toUtf8();
+		m_receipt.mission = levelGame->missionLevel()->mission()->uuid().toUtf8();
+		m_receipt.level = levelGame->level();
+		m_receipt.mode = levelGame->mode();
+
+	} else {
+		LOG_CERROR("client") << "Receipt request error";
+		return;
+	}
 
 	setFinishedData({});
 
@@ -254,7 +333,7 @@ void MapPlayOffline::onCurrentGamePrepared()
 
 void MapPlayOffline::onCurrentGameFinished()
 {
-	if (!m_client || !m_client->currentGame())
+	if (!m_client || !m_client->currentGame() || !m_engine)
 		return;
 
 
@@ -276,7 +355,7 @@ void MapPlayOffline::onCurrentGameFinished()
 		} else {
 			LOG_CERROR("client") << "Missing current game";
 		}
-		//updateSolver();
+
 		setGameState(StateFinished);
 	} else {
 		const QJsonArray &stat = levelGame->getStatistics();
@@ -289,6 +368,29 @@ void MapPlayOffline::onCurrentGameFinished()
 				emit shortTimeHelperUpdated();
 			}
 		}
+
+		/*
+		QS_BYTEARRAY(map)
+		QS_BYTEARRAY(mission)
+		QS_FIELD(quint32, level)
+		QS_FIELD(qint64, clock)
+		QS_FIELD(GameMap::GameMode, mode)
+		QS_FIELD(quint32, duration)
+		QS_FIELD(bool, success)
+		QS_FIELD(quint32, xp)
+		QS_FIELD(quint32, currency)
+		*/
+
+		m_receipt.success = levelGame->finishState() == AbstractGame::Success;
+		m_receipt.duration = levelGame->elapsedMsec();
+		m_receipt.xp = levelGame->xp();
+		m_receipt.stat = stat;
+		m_receipt.extended = extended;
+
+		m_engine->appendReceipt(m_receipt);
+
+		m_receipt = {};
+
 
 		/*m_finishObject = QJsonObject({
 										 { QStringLiteral("success"), levelGame->finishState() == AbstractGame::Success },
@@ -324,10 +426,10 @@ void MapPlayOffline::onCurrentGameFinished()
 			LOG_CERROR("client") << "Missing current game";
 		}
 
-		updateSolver();
-
 		setGameState(StateFinished);
 	}
+
+	updateSolver();
 }
 
 

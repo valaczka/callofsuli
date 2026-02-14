@@ -731,43 +731,52 @@ std::optional<AuthAPI::DeviceIdentity> AuthAPI::createRawDeviceToken(const QJson
 {
 	const QJsonObject dev = obj.value(QStringLiteral("device")).toObject();
 
+	bool verify = true;
+
 	if (dev.empty()) {
+		verify = false;
 		LOG_CWARNING("client") << "Missing device identity";
-		return std::nullopt;
+		//	return std::nullopt;
 	}
+
 
 	const QByteArray identity = QByteArray::fromBase64(dev.value(QStringLiteral("identity")).toString().toLatin1());
 	const QByteArray signature = QByteArray::fromBase64(dev.value(QStringLiteral("signature")).toString().toLatin1());
 
-	const QCborMap identityMap = QCborValue::fromCbor(identity).toMap();
-
-	if (identityMap.empty()) {
-		LOG_CWARNING("client") << "Invalid device identity";
-		return std::nullopt;
-	}
-
 	/// check proto
 
+	const QCborMap identityMap = QCborValue::fromCbor(identity).toMap();
 	const QByteArray publicKey = identityMap.value(QStringLiteral("public_key")).toByteArray();
 
-	if (!PublicKeySigner::isValidPublicKey(publicKey)) {
-		LOG_CWARNING("client") << "Invalid public key";
-		return std::nullopt;
-	}
 
 
-	PublicKeySigner signer;
-	signer.setPublicKey(publicKey);
-
-	if (!signer.isValidSignature(signature)) {
-		LOG_CWARNING("client") << "Invalid signature";
-		return std::nullopt;
-	}
+	if (verify) {
+		if (identityMap.empty()) {
+			LOG_CWARNING("client") << "Invalid device identity";
+			return std::nullopt;
+		}
 
 
-	if (!signer.verifySign(identity, signature)) {
-		LOG_CWARNING("client") << "Device identity signature error";
-		return std::nullopt;
+		if (!PublicKeySigner::isValidPublicKey(publicKey)) {
+			LOG_CWARNING("client") << "Invalid public key";
+			return std::nullopt;
+		}
+
+
+		PublicKeySigner signer;
+		signer.setPublicKey(publicKey);
+
+		if (!signer.isValidSignature(signature)) {
+			LOG_CWARNING("client") << "Invalid signature";
+			return std::nullopt;
+		}
+
+
+		if (!signer.verifySign(identity, signature)) {
+			LOG_CWARNING("client") << "Device identity signature error";
+			return std::nullopt;
+		}
+
 	}
 
 
@@ -775,8 +784,7 @@ std::optional<AuthAPI::DeviceIdentity> AuthAPI::createRawDeviceToken(const QJson
 	QByteArray platform("unknown");
 
 
-	if (m_service->settings()->verifyPeer()) {
-
+	if (m_service->settings()->verifyPeer() && verify) {
 		const QByteArray manifest = identityMap.value(QStringLiteral("manifest")).toByteArray();
 
 		const QCborArray manifestCbor = QCborValue::fromCbor(manifest).toArray();
@@ -849,17 +857,16 @@ std::optional<AuthAPI::DeviceIdentity> AuthAPI::createRawDeviceToken(const QJson
 	randombytes_buf(sid.data(), sid.size());
 
 	if (crypto_generichash(deviceid.data(), deviceid.size(),
-					   reinterpret_cast<const unsigned char*>(publicKey.constData()),
-					   publicKey.size(),
-					   nullptr, 0) != 0) {
+						   reinterpret_cast<const unsigned char*>(publicKey.constData()),
+						   publicKey.size(),
+						   nullptr, 0) != 0) {
 		LOG_CERROR("client") << "Generic hash error";
 		return std::nullopt;
 	}
 
 	id.publicKey = publicKey;
 	id.session = QByteArray(reinterpret_cast<const char*>(sid.data()), sid.size()).toHex();
-	id.id = QByteArray(reinterpret_cast<const char*>(deviceid.data()), deviceid.size());
-
+	id.id = publicKey.isEmpty() ? QByteArray() : QByteArray(reinterpret_cast<const char*>(deviceid.data()), deviceid.size());
 
 
 	LOG_CDEBUG("client") << "Device registered" << id.id.toHex().constData() << id.session << build.toHex().constData()

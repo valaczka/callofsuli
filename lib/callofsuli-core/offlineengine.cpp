@@ -176,3 +176,61 @@ void PermitContent::fromCbor(const QCborValue &val)
 		}
 	}
 }
+
+
+/**
+ * @brief PermitContent::getClientTime
+ * @param clock
+ * @return
+ */
+
+qint64 PermitContent::getClientTime(const qint64 &clock) const
+{
+	return serverTime + (clock - clientClock)/1000;
+}
+
+
+
+/**
+ * @brief ReceiptList::toCborMap
+ * @param alwaysUseFloats
+ * @return
+ */
+
+QCborMap ReceiptList::toCborMap(const bool &alwaysUseFloats) const
+{
+	QCborMap m = QSerializer::toCborMap(alwaysUseFloats);
+
+	QCborArray a;
+
+	for (const QByteArray &r : receipts)
+		a.append(r);
+
+	m.insert(QStringLiteral("receipts"), a);
+
+	return m;
+}
+
+
+
+/**
+ * @brief ReceiptList::fromCbor
+ * @param val
+ */
+
+void ReceiptList::fromCbor(const QCborValue &val)
+{
+	QSerializer::fromCbor(val);
+
+	const QCborMap m = val.toMap();
+
+	if (m.contains(QStringLiteral("receipts"))) {
+		receipts.clear();
+		const QCborArray a = m.value(QStringLiteral("receipts")).toArray();
+		receipts.reserve(a.size());
+
+		for (const QCborValue &v : a) {
+			receipts.emplace_back(v.toByteArray());
+		}
+	}
+}

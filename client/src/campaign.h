@@ -72,6 +72,7 @@ class Campaign : public SelectableObject
 	Q_PROPERTY(int passitemid READ passitemid WRITE setPassitemid NOTIFY passitemidChanged FINAL)
 	Q_PROPERTY(QString passDescription READ passDescription WRITE setPassDescription NOTIFY passDescriptionChanged FINAL)
 	Q_PROPERTY(QString passTitle READ passTitle WRITE setPassTitle NOTIFY passTitleChanged FINAL)
+	Q_PROPERTY(OfflineState offlineState READ offlineState WRITE setOfflineState NOTIFY offlineStateChanged FINAL)
 
 public:
 	explicit Campaign(QObject *parent = nullptr);
@@ -85,6 +86,16 @@ public:
 	};
 
 	Q_ENUM(State);
+
+
+	enum OfflineState {
+		OfflineInvalid = 0,
+		OfflineUpdate,
+		OfflineReady,
+		OfflineError
+	};
+
+	Q_ENUM(OfflineState);
 
 	Q_INVOKABLE void loadFromJson(const QJsonObject &object, const bool &allField = true);
 	Q_INVOKABLE Task *appendTask();
@@ -149,6 +160,9 @@ public:
 	QString passTitle() const;
 	void setPassTitle(const QString &newPassTitle);
 
+	OfflineState offlineState() const;
+	void setOfflineState(const OfflineState &newOfflineState);
+
 signals:
 	void taskListReloaded();
 	void campaignidChanged();
@@ -168,6 +182,7 @@ signals:
 	void passitemidChanged();
 	void passDescriptionChanged();
 	void passTitleChanged();
+	void offlineStateChanged();
 
 private:
 	int m_campaignid = 0;
@@ -186,6 +201,7 @@ private:
 	int m_passitemid = -1;
 	QString m_passDescription;
 	QString m_passTitle;
+	OfflineState m_offlineState;
 };
 
 
@@ -240,6 +256,8 @@ public:
 
 	int groupid() const;
 	void setGroupid(int newGroupid);
+
+	bool replaceFromJson(const QJsonObject &obj);
 
 signals:
 	void campaignChanged();

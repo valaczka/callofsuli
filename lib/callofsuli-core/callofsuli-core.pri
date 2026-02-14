@@ -16,7 +16,6 @@ android: INCLUDEPATH += $$PWD/../android_openssl/static/include
 HEADERS += \
 	$$PWD/commonsettings.h \
 	$$PWD/credential.h \
-	$$PWD/desktoputils.h \
 	$$PWD/gamemap.h \
 	$$PWD/gamemapreaderiface.h \
 	$$PWD/offlineengine.h \
@@ -28,7 +27,6 @@ HEADERS += \
 
 SOURCES += \
 	$$PWD/credential.cpp \
-	$$PWD/desktoputils.cpp \
 	$$PWD/gamemap.cpp \
 	$$PWD/gamemapreaderiface.cpp \
 	$$PWD/offlineengine.cpp \
@@ -54,6 +52,15 @@ ios: {
 		$$PWD/mobileutils.mm
 }
 
+
+!wasm: {
+	HEADERS += \
+		$$PWD/desktoputils.h
+
+	SOURCES += \
+		$$PWD/desktoputils.cpp
+
+}
 
 
 !isEmpty(FtxuiPath) {

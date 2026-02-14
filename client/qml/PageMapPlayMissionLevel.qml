@@ -268,7 +268,8 @@ QPageGradient {
 			id: _extraTimeCol
 
 			anchors.horizontalCenter: parent.horizontalCenter
-			visible: _mapPlayCampaign && _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Lite && _btnPlay.visible
+			visible: (_mapPlayCampaign || _mapPlayOffline) && _modeGroup.checkedButton
+					 && _modeGroup.checkedButton.gameMode === GameMap.Lite && _btnPlay.visible
 			enabled: map.gameState == MapPlay.StateSelect || map.gameState == MapPlay.StateFinished
 
 			Qaterial.SwitchButton {
@@ -346,6 +347,10 @@ QPageGradient {
 
 					if (_mapPlayCampaign)
 						_mapPlayCampaign.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
+									_extraTimeSwitch.timeFactor : 0.0
+
+					if (_mapPlayOffline)
+						_mapPlayOffline.extraTimeFactor = (_extraTimeSwitch.enabled && _extraTimeSwitch.checked) ?
 									_extraTimeSwitch.timeFactor : 0.0
 
 					map.play(missionLevel, _modeGroup.checkedButton.gameMode, d)
@@ -876,9 +881,15 @@ QPageGradient {
 			let num = _mapPlayCampaign.getShortTimeHelper(root.missionLevel)
 			_extraTimeSwitch.enabled = (num >= _mapPlayLiteExtraTimeTries)
 		}
+
+		if (_mapPlayOffline && root.missionLevel) {
+			let num = _mapPlayOffline.getShortTimeHelper(root.missionLevel)
+			_extraTimeSwitch.enabled = (num >= _mapPlayLiteExtraTimeTries)
+		}
 	}
 
 	on_MapPlayCampaignChanged: reloadExtraTimeSwitch()
+	on_MapPlayOfflineChanged: reloadExtraTimeSwitch()
 
 	onMissionLevelChanged: {
 		if (_currentGameFailed)

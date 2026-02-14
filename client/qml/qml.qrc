@@ -240,5 +240,7 @@
         <file>StudentDashboardNotification.qml</file>
         <file>PageStudentOffline.qml</file>
         <file>StudentOfflineDashboard.qml</file>
+        <file>PageStudentOfflineSync.qml</file>
+        <file>DashboardTimingTag.qml</file>
     </qresource>
 </RCC>

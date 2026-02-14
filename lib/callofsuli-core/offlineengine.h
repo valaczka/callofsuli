@@ -36,6 +36,69 @@
 
 
 
+/**
+ * @brief The Receipt class
+ */
+
+class Receipt : public QSerializer
+{
+	Q_GADGET
+
+public:
+	Receipt()
+		: QSerializer()
+		, level(0)
+		, clock(0)
+		, mode(GameMap::Invalid)
+		, duration(0)
+		, success(false)
+		, xp(0)
+		, currency(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_BYTEARRAY(chainHash)
+	QS_BYTEARRAY(prevHash)
+
+	QS_BYTEARRAY(map)
+	QS_BYTEARRAY(mission)
+	QS_FIELD(quint32, level)
+	QS_FIELD(qint64, clock)
+	QS_FIELD(GameMap::GameMode, mode)
+	QS_FIELD(quint32, duration)
+	QS_FIELD(bool, success)
+	QS_FIELD(quint32, xp)
+	QS_FIELD(quint32, currency)
+	QS_FIELD(QJsonArray, stat)
+	QS_FIELD(QJsonObject, extended)
+};
+
+
+
+
+
+/**
+ * @brief The ReceiptList class
+ */
+
+class ReceiptList : public QSerializer
+{
+	Q_GADGET
+
+	QS_BYTEARRAY(permit)
+
+	QS_SERIALIZABLE_DERIVED
+
+public:
+	std::vector<QByteArray> receipts;
+
+	virtual QCborMap toCborMap(const bool &alwaysUseFloats = false) const override;
+	virtual void fromCbor(const QCborValue &val) override;
+
+};
+
+
 
 /**
  * @brief The PermitMap class
@@ -78,6 +141,7 @@ public:
 		, id(0)
 		, campaign(-1)
 		, modes(GameMap::Invalid)
+		, hashStep(0)
 		, serverTime(0)
 		, clientClock(0)
 		, expire(0)
@@ -96,16 +160,18 @@ public:
 	QS_FIELD(quint32, hashStep)
 
 	QS_FIELD(qint64, serverTime)				// server epoch time (secs)
-	QS_FIELD(qint64, clientClock)				// client boot time (secs)
+	QS_FIELD(qint64, clientClock)				// client boot time (msecs)
 	QS_FIELD(qint64, expire)					// expire epoch time (secs)
 
 
-	public:
-	//QS_COLLECTION_OBJECTS(QList, PermitMap, maps)
+public:
 	std::vector<PermitMap> maps;
 
 	virtual QCborMap toCborMap(const bool &alwaysUseFloats = false) const override;
 	virtual void fromCbor(const QCborValue &val) override;
+
+	qint64 getClientTime(const qint64 &clock) const;
+	qint64 getClientTime(const Receipt &receipt) const { return getClientTime(receipt.clock); }
 };
 
 
@@ -209,45 +275,31 @@ public:
 
 
 
+
+
+
 /**
- * @brief The Receipt class
+ * @brief The PermitResponse class
  */
 
-class Receipt : public QSerializer
+class PermitResponse : public QSerializer
 {
 	Q_GADGET
 
 public:
-	Receipt()
+	PermitResponse()
 		: QSerializer()
-		, level(0)
-		, clock(0)
-		, mode(GameMap::Invalid)
-		, duration(0)
-		, success(false)
-		, xp(0)
-		, currency(0)
+		, id(0)
+		, campaign(-1)
+		, hashStep(0)
 	{}
 
 	QS_SERIALIZABLE
 
-	QS_BYTEARRAY(chainHash)
-
-	QS_BYTEARRAY(map)
-	QS_BYTEARRAY(mission)
-	QS_FIELD(quint32, level)
-	QS_FIELD(qint64, clock)
-	QS_FIELD(GameMap::GameMode, mode)
-	QS_FIELD(quint32, duration)
-	QS_FIELD(bool, success)
-	QS_FIELD(quint32, xp)
-	QS_FIELD(quint32, currency)
-	QS_FIELD(QJsonObject, extended)
+	QS_FIELD(quint64, id)
+	QS_FIELD(qint32, campaign)
+	QS_FIELD(quint32, hashStep)
 };
-
-
-
-typedef std::vector<Receipt> ReceiptList;
 
 
 
