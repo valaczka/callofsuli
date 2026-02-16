@@ -123,14 +123,20 @@ void StandaloneClient::onMainWindowChanged()
 	m_mainWindow->showMaximized();
 #endif
 
+#if QT_VERSION >= 0x060900
+
+#	if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	m_mainWindow->setFlags(m_mainWindow->flags() | Qt::ExpandedClientAreaHint | Qt::NoTitleBarBackgroundHint);
+#	endif
+
+	connect(m_mainWindow, &QWindow::safeAreaMarginsChanged, this, [this](const QMargins &){ safeMarginsGet(); });
+#endif
+
 	if (!m_mainWindow->screen())
 		return;
 
 	connect(m_mainWindow->screen(), &QScreen::primaryOrientationChanged, this, &StandaloneClient::onOrientationChanged);
 
-#if QT_VERSION >= 0x060900
-	connect(m_mainWindow, &QWindow::safeAreaMarginsChanged, this, [this](const QMargins &){ safeMarginsGet(); });
-#endif
 }
 
 
@@ -141,7 +147,7 @@ void StandaloneClient::onMainWindowChanged()
 
 void StandaloneClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 {
-	LOG_CTRACE("client") << "Screen orientation changed:" << orientation;
+	LOG_CDEBUG("client") << "Screen orientation changed:" << orientation;
 
 	safeMarginsGet();
 }
@@ -195,11 +201,12 @@ void StandaloneClient::onStartPageLoaded()
 	if (hasNetwork)
 		authorizedServersGet();
 
-	for (Server *s : *m_serverList)
+	for (Server *s : *m_serverList) {
 		if (s->autoConnect()) {
 			connectToServer(s);
 			break;
 		}
+	}
 }
 
 

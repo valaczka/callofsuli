@@ -48,7 +48,7 @@ QPageGradient {
 
 		}
 
-		visible: Client.server && Client.server.offlineEngine && campaign &&
+		visible: Client.server && Client.server.offlineEngine && campaign && !studentMapHandler.offlineEngine &&
 				 Client.server.offlineEngine.engineState != OfflineClientEngine.EngineInvalid
 	}
 

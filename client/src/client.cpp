@@ -1064,9 +1064,22 @@ void Client::connectToServer(Server *server)
 		return;
 	}
 
+	OfflineClientEngine *engine = server->offlineEngine();
+
+	if (engine) {
+		bool hasNetwork = QNetworkInformation::instance() &&
+				QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
+
+		if (!hasNetwork) {
+			m_httpConnection->setServer(server);
+			m_httpConnection->setState(HttpConnection::Connecting);
+			engine->loadOfflineMode();
+			return;
+		}
+	}
+
 	HttpReply *r = m_httpConnection->connectToServer(server);
 
-	OfflineClientEngine *engine = server->offlineEngine();
 
 	if (!r || !engine)
 		return;
@@ -1663,9 +1676,8 @@ void Client::safeMarginsGet()
 {
 	QMarginsF margins;
 
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+#if defined(Q_OS_IOS) && QT_VERSION >= 0x060900
 
-#	if QT_VERSION >= 0x060900
 	QMargins wm = m_mainWindow->safeAreaMargins();
 	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
 
@@ -1674,9 +1686,9 @@ void Client::safeMarginsGet()
 	margins.setLeft(wm.left()/devicePixelRatio);
 	margins.setRight(wm.right()/devicePixelRatio);
 
-#	else
+#elif defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+
 	margins = MobileUtils::getSafeMargins();
-#	endif
 
 #else
 	const QString &str = QString::fromUtf8(qgetenv("SAFE_MARGINS"));
@@ -1692,11 +1704,11 @@ void Client::safeMarginsGet()
 	}
 
 
-	QPlatformWindow *platformWindow = m_mainWindow->handle();
+	/*QPlatformWindow *platformWindow = m_mainWindow->handle();
 	if(!platformWindow) {
 		LOG_CERROR("client") << "Invalid QPlatformWindow";
 		return;
-	}
+	}*/
 #endif
 
 	LOG_CDEBUG("client") << "New safe margins:" << margins;

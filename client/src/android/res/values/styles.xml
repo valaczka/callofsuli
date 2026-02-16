@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="@android:style/Theme.DeviceDefault.NoActionBar">
+
+        <!-- Edge-to-edge: make bars transparent -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <!-- Optional: if you want light icons on dark content set these accordingly.
+             With DayNight you usually keep defaults, but you can force: -->
+        <!-- <item name="android:windowLightStatusBar">false</item> -->
+        <!-- <item name="android:windowLightNavigationBar">false</item> -->
+
+        <!-- Optional: prevent contrast enforcement (Android 10+) if it changes nav bar color -->
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:enforceStatusBarContrast">false</item>
+
+        <item name="android:windowFullscreen">true</item>
+
+        <!-- Notch / cutout handling (API 28+) -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+
+        <!-- Optional: remove default window background to reduce startup flash
+             (Qt often draws its own background quickly). -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+
+        <!-- Optional: keep full-screen layout stable when system UI changes -->
+        <item name="android:fitsSystemWindows">false</item>
+
+        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+
+    </style>
+
+</resources>
+

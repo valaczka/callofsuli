@@ -5,14 +5,22 @@ import android.os.*;
 import android.content.*;
 import android.app.*;
 
+import android.content.res.Configuration;
+
 import android.view.DisplayCutout;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+
 
 import android.content.Intent;
 import android.util.Log;
 import android.graphics.Rect;
+import android.graphics.Insets;
 
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -21,15 +29,16 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 
 
-
 public class ClientActivity extends QtActivity
 {
 	public static native void setUrl(String url);
 
 	public static boolean isIntentPending;
 
+
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+
 	  super.onCreate(savedInstanceState);
 
 	  Intent theIntent = getIntent();
@@ -40,11 +49,7 @@ public class ClientActivity extends QtActivity
 		  }
 	  }
 
-	  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-		  getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-				  WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-		  getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-	  }
+	  enterImmersive();
 	}
 
 
@@ -54,6 +59,29 @@ public class ClientActivity extends QtActivity
 	  setIntent(intent);
 
 	  processIntent();
+	}
+
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+
+		forceQtViewFullBleed();
+	}
+
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+		super.onWindowFocusChanged(hasFocus);
+		if (hasFocus) {
+			forceQtViewFullBleed();
+		}
+	}
+
+	@Override
+	public void onConfigurationChanged(Configuration newConfig) {
+		super.onConfigurationChanged(newConfig);
+
+		forceQtViewFullBleed();
 	}
 
 
@@ -88,22 +116,90 @@ public class ClientActivity extends QtActivity
 	}
 
 
+
+	public void enterImmersive() {
+		View qtView = getWindow().getDecorView();
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+			getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+					WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+			getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+		}
+
+		if (Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT < 30) {
+			qtView.setOnApplyWindowInsetsListener((v, insets) -> {
+				WindowInsets out = insets.consumeSystemWindowInsets();
+				out = out.consumeDisplayCutout();
+				return out;
+			});
+		} else if (Build.VERSION.SDK_INT >= 30) {
+			qtView.setFitsSystemWindows(false);
+			qtView.setOnApplyWindowInsetsListener((v, insets) -> insets);
+		}
+	}
+
+
+	private void reloadLayout() {
+		View qtView = getWindow().getDecorView();
+
+		qtView.requestApplyInsets();
+		qtView.requestLayout();
+	}
+
+
+	public void forceQtViewFullBleed() {
+		getWindow().getDecorView().postDelayed(this::reloadLayout, 50);
+		getWindow().getDecorView().postDelayed(this::reloadLayout, 100);
+		getWindow().getDecorView().postDelayed(this::reloadLayout, 500);
+		getWindow().getDecorView().postDelayed(this::reloadLayout, 750);
+		getWindow().getDecorView().postDelayed(this::reloadLayout, 1000);
+		getWindow().getDecorView().postDelayed(this::reloadLayout, 2000);
+	}
+
+
+
 	public Object getSafeArea() {
+		final Window w = getWindow();
+		final View decor = w.getDecorView();
 		final Rect safeInsetRect = new Rect();
 
 		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
 			return safeInsetRect;
 		}
 
-		final WindowInsets windowInsets = getWindow().getDecorView().getRootWindowInsets();
-		if (windowInsets == null) {
+		if (Build.VERSION.SDK_INT >= 30) {
+			 WindowInsets insets = decor.getRootWindowInsets();
+			 if (insets != null) {
+				 // System bars (status + nav)
+				 Insets sb = insets.getInsets(
+						 WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars()
+				 );
+
+
+				 // Display cutout (notch)
+				 Insets cut = insets.getInsets(WindowInsets.Type.displayCutout());
+
+				 safeInsetRect.set(
+					 Math.max(sb.left, cut.left),
+					 Math.max(sb.top, cut.top),
+					 Math.max(sb.right, cut.right),
+					 Math.max(sb.bottom, cut.bottom)
+				 );
+			 }
+
 		  return safeInsetRect;
+		}
+
+		final WindowInsets windowInsets = decor.getRootWindowInsets();
+
+		if (windowInsets == null) {
+			return safeInsetRect;
 		}
 
 		final DisplayCutout displayCutout = windowInsets.getDisplayCutout();
 		if (displayCutout != null) {
-		  safeInsetRect.set(displayCutout.getSafeInsetLeft(), displayCutout.getSafeInsetTop(),
-		  displayCutout.getSafeInsetRight(), displayCutout.getSafeInsetBottom());
+			safeInsetRect.set(displayCutout.getSafeInsetLeft(), displayCutout.getSafeInsetTop(),
+			displayCutout.getSafeInsetRight(), displayCutout.getSafeInsetBottom());
 		}
 
 		return safeInsetRect;
@@ -162,6 +258,7 @@ public class ClientActivity extends QtActivity
 		 }
 		 return new String(chars);
 	 }
+
 }
 
 

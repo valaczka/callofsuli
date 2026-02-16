@@ -54,6 +54,10 @@ QItemGradient {
 		Qaterial.LabelBody1 {
 			visible: engine && !engine.allPermitValid
 			anchors.horizontalCenter: parent.horizontalCenter
+			width: Math.min(parent.width-100, Qaterial.Style.maxContainerSize)
+			horizontalAlignment: Qt.AlignHCenter
+			wrapMode: Text.Wrap
+
 			text: qsTr("Az adatbázis egy része zárolva van, szinkronizálj a feloldáshoz")
 			color: Qaterial.Style.errorColor
 		}
