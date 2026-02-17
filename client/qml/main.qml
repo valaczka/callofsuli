@@ -70,7 +70,7 @@ Qaterial.ApplicationWindow
 
 		setPixelSize(Client.Utils.settingsGet("window/fontSize", Qaterial.Style.defaultPixelSize))
 
-		if (!Client.Utils.settingsGet("window/dense", true))
+		if (Client.Utils.settingsGet("window/dense", true) !== true)
 			Qaterial.Style.dense = false
 
 		Qaterial.Style.dialog.implicitWidth = Qt.binding(function() {

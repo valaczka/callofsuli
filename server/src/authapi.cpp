@@ -869,9 +869,8 @@ std::optional<AuthAPI::DeviceIdentity> AuthAPI::createRawDeviceToken(const QJson
 	id.id = publicKey.isEmpty() ? QByteArray() : QByteArray(reinterpret_cast<const char*>(deviceid.data()), deviceid.size());
 
 
-	LOG_CDEBUG("client") << "Device registered" << id.id.toHex().constData() << id.session << build.toHex().constData()
-						 << platform.constData()
-						 << publicKey.toHex(':').constData();
+	LOG_CDEBUG("client") << "Device registered" << id.publicKey.toBase64().constData() << id.session << build.toHex().constData()
+						 << platform.constData();
 
 	return id;
 }

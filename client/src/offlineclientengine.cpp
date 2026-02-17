@@ -34,9 +34,9 @@
 
 
 #ifndef Q_OS_WASM
-#include "desktoputils.h"
+#include "standaloneclient.h"
 #else
-namespace DesktopUtils {
+namespace StandaloneClient {
 qint64 msecSinceBoot() { return 0; }
 }
 #endif
@@ -187,7 +187,7 @@ bool OfflineClientEngine::getPermit(const int &campaign)
 				   campaign > 0 ? QStringLiteral("campaign/%1/permit").arg(campaign)
 								: QStringLiteral("freeplay/permit")
 								  , {
-					   { QStringLiteral("clock"), (qint64) DesktopUtils::msecSinceBoot() }
+					   { QStringLiteral("clock"), (qint64) StandaloneClient::msecSinceBoot() }
 				   })
 			->done(this, &OfflineClientEngine::onPermitDownloaded)
 			->fail(this, std::bind(&OfflineClientEngine::onSyncFailed, this, std::placeholders::_1, campaign))
@@ -1437,7 +1437,7 @@ OfflineReceipt OfflinePermit::requireReceipt() const
 	}
 
 	r.permitId = m_permitContent.id;
-	r.clock = DesktopUtils::msecSinceBoot();
+	r.clock = StandaloneClient::msecSinceBoot();
 
 	return r;
 }
@@ -1645,7 +1645,7 @@ Campaign *OfflinePermit::createCampaign() const
 
 bool OfflinePermit::check()
 {
-	const qint64 current = DesktopUtils::msecSinceBoot();
+	const qint64 current = StandaloneClient::msecSinceBoot();
 
 	if (std::abs(m_permitContent.getClientTime(current) - QDateTime::currentSecsSinceEpoch()) > 10*60) {
 		LOG_CERROR("client") << "Time difference error";

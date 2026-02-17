@@ -201,7 +201,7 @@ private:
 	int m_passitemid = -1;
 	QString m_passDescription;
 	QString m_passTitle;
-	OfflineState m_offlineState;
+	OfflineState m_offlineState = OfflineInvalid;
 };
 
 

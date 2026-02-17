@@ -166,3 +166,4 @@ quint64 DesktopUtils::msecSinceBoot()
 {
 	return platformMsec();
 }
+

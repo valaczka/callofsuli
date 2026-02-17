@@ -422,7 +422,7 @@ void StandaloneClient::setAuthorizedServers(const QVariantList &newAuthorizedSer
  * @return
  */
 
-quint64 StandaloneClient::msecSinceBoot() const
+quint64 StandaloneClient::msecSinceBoot()
 {
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 	return MobileUtils::msecSinceBoot();
@@ -521,6 +521,9 @@ Server *StandaloneClient::serverAdd()
 		delete server;
 		return nullptr;
 	}
+
+	if (server->offlineEngine())
+		server->offlineEngine()->initEngine(this);
 
 	m_serverList->append(server);
 

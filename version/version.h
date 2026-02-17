@@ -2,7 +2,7 @@
 #define _VERSION_H_
 #define VERSION_MAJOR 5
 #define VERSION_MINOR 1
-#define VERSION_BUILD 506
-#define VERSION_FULL "5.1.506"
-#define GIT_SHORT "1184bc5b8509"
+#define VERSION_BUILD 532
+#define VERSION_FULL "5.1.532"
+#define GIT_SHORT "7aa25ee006d5"
 #endif

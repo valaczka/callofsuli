@@ -409,6 +409,57 @@ void TeacherMapHandler::mapEdit(TeacherMap *map)
 
 
 
+/**
+ * @brief TeacherMapHandler::mapReplace
+ * @param map
+ * @param file
+ */
+
+void TeacherMapHandler::mapReplace(TeacherMap *map, const QUrl &file)
+{
+	if (!map) {
+		LOG_CERROR("client") << "Missing map";
+		return;
+
+	}
+	LOG_CDEBUG("client") << "Import draft:" << file;
+
+	if (file.isEmpty() || !file.isLocalFile()) {
+		LOG_CERROR("client") << "Invalid URL:" << file;
+		return m_client->messageError(tr("A fájl nem importálható"));
+	}
+
+	const auto &b = Utils::fileContent(file.toLocalFile());
+
+	if (!b)
+		return m_client->messageError(tr("A fájl nem importálható"));
+
+
+	std::unique_ptr<GameMap> content(GameMap::fromBinaryData(*b));
+
+	if (!content)
+		return m_client->messageError(tr("A fájl nem Call of Suli pályát tartalmaz!"), tr("Érvénytelen fájl"));
+
+	const QByteArray &data = qCompress(*b);
+
+	m_client->httpConnection()->send(HttpConnection::ApiTeacher, QStringLiteral("map/%1/upload/%2").arg(map->uuid())
+									 .arg(std::max(0, map->draftVersion())), data)
+			->fail(this, [this](const QString &err){
+		m_client->messageWarning(err, tr("Importálási hiba"));
+	})
+			->done(this, [m = QPointer<TeacherMap>(map), this](const QJsonObject &data){
+
+		if (m && data.contains(QStringLiteral("version")))
+			m->setDraftVersion(data.value(QStringLiteral("version")).toInt());
+
+		m_client->messageInfo(tr("A vázlat importálva"));
+
+		reload();
+	});
+}
+
+
+
 
 
 /**

@@ -67,7 +67,7 @@ public:
 	QVariantList authorizedServers() const;
 	void setAuthorizedServers(const QVariantList &newAuthorizedServers);
 
-	quint64 msecSinceBoot() const;
+	static quint64 msecSinceBoot();
 
 public slots:
 	void performVibrate() const;

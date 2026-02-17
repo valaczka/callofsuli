@@ -53,6 +53,7 @@ public:
 	Q_INVOKABLE void mapImport(const QUrl &file);
 	Q_INVOKABLE void mapDownload(TeacherMap *map);
 	Q_INVOKABLE void mapEdit(TeacherMap *map);
+	Q_INVOKABLE void mapReplace(TeacherMap *map, const QUrl &file);
 	Q_INVOKABLE void checkDownloads();
 
 	Q_INVOKABLE bool mapExport(const QUrl &file, const QList<TeacherMap*> &list) const;

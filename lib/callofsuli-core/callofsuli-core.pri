@@ -53,7 +53,7 @@ ios: {
 }
 
 
-!wasm: {
+!android:!ios:!wasm: {
 	HEADERS += \
 		$$PWD/desktoputils.h
 

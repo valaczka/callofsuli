@@ -247,7 +247,7 @@ void ServerService::agentSignLoad()
 		QString publicKeyStr = ptr->take(QStringLiteral("public_key")).toString();
 		QByteArray publicKey = QByteArray::fromBase64(publicKeyStr.toLatin1());
 
-		LOG_CDEBUG("service") << "- build:" << buildId << build.toHex(':');
+		LOG_CDEBUG("service") << "- build:" << buildId;
 
 		if (publicKey.size() != crypto_sign_PUBLICKEYBYTES) {
 			LOG_CWARNING("service") << "   * Invalid public key" << publicKeyStr;

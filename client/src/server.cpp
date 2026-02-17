@@ -36,7 +36,9 @@
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
 	, m_user(new User())
+#ifndef Q_OS_WASM
 	, m_offlineEngine(new OfflineClientEngine(this))
+#endif
 {
 
 

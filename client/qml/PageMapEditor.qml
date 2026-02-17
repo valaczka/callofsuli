@@ -92,7 +92,7 @@ QPage {
 			visible: swipeView.currentIndex == 0 && mapEditor.map
 
 			onClicked: Client.stackPushPage("PageMapEditorMatrixImport.qml", {
-												mapEditor: _editor
+												mapEditor: root.mapEditor
 											})
 
 
@@ -102,7 +102,7 @@ QPage {
 			id: _filter
 
 			icon.source: root.filterStorageId == -1 ? Qaterial.Icons.filterOutline : Qaterial.Icons.filterRemove
-			ToolTip.text: qsTr("Szűrét adatbankra")
+			ToolTip.text: qsTr("Szűrés adatbankra")
 
 			visible: swipeView.currentIndex == 1
 
@@ -121,7 +121,7 @@ QPage {
 
 				Instantiator {
 					model: SortFilterProxyModel {
-						sourceModel: _editor.map ? _editor.map.storageList: null
+						sourceModel: root.mapEditor.map ? root.mapEditor.map.storageList: null
 
 						sorters: RoleSorter {
 							roleName: "storageid"
@@ -129,7 +129,7 @@ QPage {
 					}
 
 					delegate: QMenuItem {
-						property var _info: _editor.storageInfo(model.qtObject)
+						property var _info: root.mapEditor.storageInfo(model.qtObject)
 
 						icon.source: root.filterStorageId == -1 ?
 										 (_info.icon !== undefined ? _info.icon : "") :
