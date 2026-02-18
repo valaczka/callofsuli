@@ -244,6 +244,9 @@ Java_hu_piarista_vjp_callofsuli_ClientActivity_setUrl(JNIEnv *env,
 													  jobject ,
 													  jstring url)
 {
+	if (!url)
+		return;
+
 	const char *urlStr = env->GetStringUTFChars(url, NULL);
 
 	QUrl _url(QString::fromUtf8(urlStr));

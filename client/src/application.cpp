@@ -851,6 +851,9 @@ const QString &Application::commandLineData() const
 
 void Application::selectUrl(const QUrl &url)
 {
+	if (url.isEmpty())
+		return;
+
 	LOG_CDEBUG("app") << "Select APP url:" << url;
 
 	if (!m_client) {
