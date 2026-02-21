@@ -22,9 +22,12 @@ QPage {
 	appBar.backButtonVisible: false
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
+		id: _menuButton
 		visible: view.visible
 		icon.source: Qaterial.Icons.dotsVertical
 		onClicked: (Qt.platform.os === "windows" || Qt.platform.os === "linux") ? menuDesktop.open() : menu.open()
+
+		////Component.onCompleted: _tour.list[0].target = _menuButton
 
 		QMenu {
 			id: menu
@@ -114,12 +117,15 @@ QPage {
 		model: Client.serverList
 
 		delegate: QItemDelegate {
+			id: _dlg
 			property Server server: model.qtObject
 			selectableObject: server
 
+			readonly property bool isOffline: server && server.offlineEngine && server.offlineEngine.engineState == OfflineClientEngine.EngineActive
+
 			highlighted: ListView.isCurrentItem
 			highlightedIcon: server ? server.autoConnect : false
-			iconSource: server.offlineEngine && server.offlineEngine.engineState == OfflineClientEngine.EngineActive ?
+			iconSource:  isOffline ?
 							Qaterial.Icons.cloudCheckVariant :
 							Qaterial.Icons.desktopClassic
 			text: server ? server.serverName : ""
@@ -128,6 +134,11 @@ QPage {
 
 			onClicked: if (!view.selectEnabled)
 						   Client.connectToServer(server)
+
+			onIsOfflineChanged: {
+				if (!_tour.list[1].target && isOffline)
+					_tour.list[1].target = _dlg
+			}
 		}
 
 		Qaterial.Menu {
@@ -244,6 +255,7 @@ QPage {
 
 
 	QDashboardButton {
+		id: _btnNew
 		visible: !Client.serverList.length
 		anchors.centerIn: parent
 
@@ -260,6 +272,7 @@ QPage {
 	}
 
 	QFabButton {
+		id: _fab
 		visible: Client.serverList.length
 		action: actionAdd
 	}
@@ -426,33 +439,24 @@ QPage {
 		}
 	]
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "start"
+
+		list: [
+			{ target: _btnNew, title: qsTr("Új szerver hozzáadása"), text: qsTr("Vegyél fel egy szervert, amihez csatlakozni szeretnél")},
+			{ id: 1, target: null, title: qsTr("Offline mód"), text: qsTr("Ehhez a szerverhez offline is tudsz csatlakozni") },
+		]
+	}
+
 	StackView.onActivated: {
 		view.forceActiveFocus()
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStart)
+		_tour.start()
 	}
 
 	StackView.onActivating: {
 		Client.safeMarginsGet()
 	}
-
-
-	/*Connections {
-		target: Client.Utils
-
-		function onMediaPermissionsGranted() {
-			var page = Client.stackPushPage("PageReadQR.qml")
-			page.tagFound.connect(function(tag) {
-				var server = Client.serverAddWithUrl(tag)
-
-				if (server) {
-					page.captureEnabled = false
-					Client.setParseUrl(tag)
-					Client.stackPop(page)
-					Client.connectToServer(server)
-				} else {
-					Client.snack(qsTr("Érvénytelen URL"))
-				}
-			})
-		}
-	}*/
 }

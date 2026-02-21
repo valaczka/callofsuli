@@ -37,7 +37,7 @@ win32: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -dir $${CQtTargetDir}/usr  \
 			--qmake $$QMAKE_QMAKE \
 			--qmldir $$QmlDir \
-			--no-translations --release --plugindir $${CQtTargetDir}/usr/plugins \
+			--no-translations --release --plugindir $${CQtTargetDir}/usr/plugins --exclude-plugins qglib \
 			../$${BinFile} ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
@@ -63,11 +63,12 @@ else: extralib.commands = echo \"Create bundle...\"; \
 			$${CQtDeployerPath} -targetDir $${CQtTargetDir}/usr -bin ../$${BinFile} \
 			-libDir ../lib -extraLibs Qaterial,qmlbox2d,QZXing,QtXlsxWriter,QOlm \
 			-qmake $$QMAKE_QMAKE \
-			-qmlDir $$QmlDir -enablePlugins multimedia,qwayland ; \
+			-qmlDir $$QmlDir -enablePlugins multimedia,qwayland -disablePlugins qglib ; \
 			test -d $${CQtTargetDir}/usr/share || mkdir $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../share/*.cres $${CQtTargetDir}/usr/share ; \
 			cp -r $$PWD/../share/OMRChecker $${CQtTargetDir}/usr/share ; \
 			cp $$PWD/../LICENSE $${CQtTargetDir}/usr ; \
+			test -z "$${ExtraDll}" || cp $${ExtraDll} $${LddLibDir} ; \
 			for f in $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(ldd $${CQtTargetDir}/usr/bin/$${BinFile} | \
 				grep \"=>\" | grep -i -v \"WINDOWS/SYSTEM32\" | sed \"s/^.*=>[ \t]\\(.*\\) (.*$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}/\1/\") ; do \
 				base=\"$${LITERAL_DOLLAR}$${LITERAL_DOLLAR}(basename $${LITERAL_DOLLAR}$${LITERAL_DOLLAR}f)\" ; \

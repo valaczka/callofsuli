@@ -4,12 +4,6 @@ TEMPLATE = aux
 
 AppVersionBuild = "$$cat(version_build.num)"
 
-GIT_SHORT = $$system(git rev-parse --short=12 HEAD)
-
-isEmpty(GIT_SHORT) {
-	GIT_SHORT = nogit
-}
-
 linux|wasm|win32|android: {
 	if($$AppVersionIncrement) {
 		AppVersionBuild = $$num_add($$AppVersionBuild,1)
@@ -20,7 +14,6 @@ linux|wasm|win32|android: {
 	lines += "VER_MIN = $$AppVersionMinor"
 	lines += "VER_PAT = $$AppVersionBuild"
 	lines += "VERSION = $${AppVersionMajor}.$${AppVersionMinor}.$${AppVersionBuild}"
-	lines += "GIT_SHORT = $$GIT_SHORT"
 
 	write_file(version.pri, lines)
 
@@ -30,7 +23,6 @@ linux|wasm|win32|android: {
 	hlines += "$${LITERAL_HASH}define VERSION_MINOR $${AppVersionMinor}"
 	hlines += "$${LITERAL_HASH}define VERSION_BUILD $${AppVersionBuild}"
 	hlines += "$${LITERAL_HASH}define VERSION_FULL \"$${AppVersionMajor}.$${AppVersionMinor}.$${AppVersionBuild}\""
-	hlines += "$${LITERAL_HASH}define GIT_SHORT \"$$GIT_SHORT\""
 	hlines += "$${LITERAL_HASH}endif"
 
 	write_file(version.h, hlines)

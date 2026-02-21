@@ -242,5 +242,7 @@
         <file>StudentOfflineDashboard.qml</file>
         <file>PageStudentOfflineSync.qml</file>
         <file>DashboardTimingTag.qml</file>
+        <file>SpotlightCoachMark.qml</file>
+        <file>SpotlightCoachTour.qml</file>
     </qresource>
 </RCC>

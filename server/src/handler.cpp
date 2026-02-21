@@ -277,16 +277,19 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 
 			if (fname.endsWith(QStringLiteral("css")))
 				contentType = QByteArrayLiteral("text/css");
-			if (fname.endsWith(QStringLiteral("js")))
+			else if (fname.endsWith(QStringLiteral("js")))
 				contentType = QByteArrayLiteral("text/javascript");
-			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm")))
+			else if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm")))
 				contentType = QByteArrayLiteral("text/html");
+			else if (fname.endsWith(QStringLiteral("wasm")))
+				contentType = QByteArrayLiteral("application/wasm");
 
 			return QHttpServerResponse(contentType, b, QHttpServerResponder::StatusCode::Ok);
 		}
 
 		if (QFile::exists(fname)) {
-			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm"))) {
+			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm"))
+					|| fname.endsWith(QStringLiteral("wasm"))) {
 				QByteArray b;
 				QFile f(fname);
 				if (f.open(QIODevice::ReadOnly)) {
@@ -294,7 +297,10 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 					f.close();
 				}
 
-				return QHttpServerResponse(QByteArrayLiteral("text/html"), b, QHttpServerResponder::StatusCode::Ok);
+				return QHttpServerResponse(fname.endsWith(QStringLiteral("wasm")) ?
+															  QByteArrayLiteral("application/wasm") :
+															  QByteArrayLiteral("text/html"),
+														  b, QHttpServerResponder::StatusCode::Ok);
 			} else
 				return QHttpServerResponse::fromFile(fname);
 		} else

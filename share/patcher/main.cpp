@@ -34,6 +34,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QProcess>
 
 #include <iostream>
 #include <sodium.h>
@@ -184,7 +185,23 @@ static int sign(const QString &baseName)
 		"wasm"
 	};
 
-	QByteArray build = GIT_SHORT;
+	QByteArray build;
+
+	QProcess git;
+	git.start("git", QStringList{"rev-parse", "--short=12", "HEAD"});
+
+	if (!git.waitForStarted()) {
+		build = QByteArray("nogit");
+	} else {
+		if (!git.waitForFinished())
+			die("git exec error");
+
+		build = git.readAll().simplified();
+	}
+
+	if (build.isEmpty())
+		build = QByteArray("nogit");
+
 	QByteArray rnd(4, Qt::Uninitialized);
 
 	randombytes_buf(rnd.data(), rnd.size());
